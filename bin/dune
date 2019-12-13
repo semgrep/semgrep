@@ -1,0 +1,11 @@
+(executables
+ (names main_sgrep main_spatch )
+ (libraries sgrep-matcher)
+ ; for ocamldebug
+ (modes byte)
+)
+
+(install
+ (section bin)
+ (files (main_sgrep.exe as sgrep) (main_spatch.exe as spatch))
+)
