@@ -1,6 +1,5 @@
 (library
- (public_name sgrep-matcher)
-
+ (name sgrep)
  (libraries str bigarray
             threads          ;; needed for json-wheel for mysterious reasons
             json-wheel       ;; Json_io, Json_type

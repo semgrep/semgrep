@@ -1,6 +1,6 @@
 (executables
  (names main_sgrep main_spatch )
- (libraries sgrep-matcher)
+ (libraries sgrep)
  ; for ocamldebug
  (modes byte)
 )
