@@ -1,0 +1,13 @@
+<?hh
+
+function f(Generator<int, int, void> $x) {
+}
+
+function g(): Generator<int, int, void> {
+}
+
+function h(Generator<int, Vector<int>, void> $x) {
+}
+
+function i(): Generator<int, Vector<int>, void> {
+}

@@ -1,0 +1,2 @@
+-foo(X, Y)
++foo_new(X, Y)

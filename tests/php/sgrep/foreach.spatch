@@ -1,0 +1,3 @@
+
+- foreach($A as $B) { if (strpos($T, $B) !== false) { return;  } }
++ if (atLeastOneArrayValueIsSubstringOfText($A, $T)) { return; }

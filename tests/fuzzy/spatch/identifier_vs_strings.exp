@@ -1,0 +1,3 @@
+class Foo {
+      return "/url/foo/should/not/be/touched";
+}

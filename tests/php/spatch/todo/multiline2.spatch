@@ -1,0 +1,2 @@
+- return fbts_locale('sms', $locale, 'X');
++ $msg = <fbt project="sms" raw="true" locale={$locale}>X</fbt>; return StringableXHP($msg);

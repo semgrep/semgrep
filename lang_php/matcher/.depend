@@ -1,0 +1,80 @@
+flag_matcher_php.cmo :
+flag_matcher_php.cmx :
+matching_php.cmo : php_vs_php.cmi metavars_php.cmi \
+    ../parsing/lib_parsing_php.cmi flag_matcher_php.cmo \
+    ../parsing/cst_php.cmo ../../commons/common2.cmi ../../commons/common.cmi \
+    matching_php.cmi
+matching_php.cmx : php_vs_php.cmx metavars_php.cmx \
+    ../parsing/lib_parsing_php.cmx flag_matcher_php.cmx \
+    ../parsing/cst_php.cmx ../../commons/common2.cmx ../../commons/common.cmx \
+    matching_php.cmi
+matching_php.cmi : metavars_php.cmi ../parsing/cst_php.cmo
+metavars_php.cmo : ../parsing/visitor_php.cmi ../parsing/cst_php.cmo \
+    ../../commons/common.cmi metavars_php.cmi
+metavars_php.cmx : ../parsing/visitor_php.cmx ../parsing/cst_php.cmx \
+    ../../commons/common.cmx metavars_php.cmi
+metavars_php.cmi : ../parsing/cst_php.cmo ../../commons/common.cmi
+php_vs_php.cmo : ../../h_program-lang/parse_info.cmi metavars_php.cmi \
+    ../parsing/cst_php.cmo ../../commons/common.cmi php_vs_php.cmi
+php_vs_php.cmx : ../../h_program-lang/parse_info.cmx metavars_php.cmx \
+    ../parsing/cst_php.cmx ../../commons/common.cmx php_vs_php.cmi
+php_vs_php.cmi : metavars_php.cmi ../parsing/cst_php.cmo
+refactoring_code_php.cmo : ../parsing/visitor_php.cmi \
+    ../parsing/unparse_php.cmi ../../h_program-lang/refactoring_code.cmi \
+    ../../h_program-lang/parse_info.cmi ../parsing/lib_parsing_php.cmi \
+    ../parsing/cst_php.cmo ../../commons/common2.cmi ../../commons/common.cmi \
+    refactoring_code_php.cmi
+refactoring_code_php.cmx : ../parsing/visitor_php.cmx \
+    ../parsing/unparse_php.cmx ../../h_program-lang/refactoring_code.cmx \
+    ../../h_program-lang/parse_info.cmx ../parsing/lib_parsing_php.cmx \
+    ../parsing/cst_php.cmx ../../commons/common2.cmx ../../commons/common.cmx \
+    refactoring_code_php.cmi
+refactoring_code_php.cmi : ../../h_program-lang/refactoring_code.cmi \
+    ../parsing/parse_php.cmi
+sgrep_php.cmo : ../parsing/visitor_php.cmi php_vs_php.cmi \
+    ../parsing/parse_php.cmi metavars_php.cmi matching_php.cmi \
+    ../parsing/lib_parsing_php.cmi ../../h_program-lang/flag_parsing.cmo \
+    ../parsing/cst_php.cmo ../../commons/common.cmi sgrep_php.cmi
+sgrep_php.cmx : ../parsing/visitor_php.cmx php_vs_php.cmx \
+    ../parsing/parse_php.cmx metavars_php.cmx matching_php.cmx \
+    ../parsing/lib_parsing_php.cmx ../../h_program-lang/flag_parsing.cmx \
+    ../parsing/cst_php.cmx ../../commons/common.cmx sgrep_php.cmi
+sgrep_php.cmi : metavars_php.cmi ../parsing/cst_php.cmo \
+    ../../commons/common.cmi
+spatch_php.cmo : ../parsing/visitor_php.cmi ../parsing/unparse_php.cmi \
+    transforming_php.cmi php_vs_php.cmi ../parsing/parse_php.cmi \
+    ../../h_program-lang/parse_info.cmi metavars_php.cmi matching_php.cmi \
+    ../parsing/lib_parsing_php.cmi ../../h_program-lang/flag_parsing.cmo \
+    ../parsing/cst_php.cmo ../../commons/common2.cmi ../../commons/common.cmi \
+    spatch_php.cmi
+spatch_php.cmx : ../parsing/visitor_php.cmx ../parsing/unparse_php.cmx \
+    transforming_php.cmx php_vs_php.cmx ../parsing/parse_php.cmx \
+    ../../h_program-lang/parse_info.cmx metavars_php.cmx matching_php.cmx \
+    ../parsing/lib_parsing_php.cmx ../../h_program-lang/flag_parsing.cmx \
+    ../parsing/cst_php.cmx ../../commons/common2.cmx ../../commons/common.cmx \
+    spatch_php.cmi
+spatch_php.cmi : ../parsing/cst_php.cmo ../../commons/common.cmi
+transforming_php.cmo : ../parsing/unparse_php.cmi php_vs_php.cmi \
+    ../../h_program-lang/parse_info.cmi metavars_php.cmi \
+    ../parsing/lib_parsing_php.cmi ../parsing/cst_php.cmo \
+    ../../commons/common2.cmi ../../commons/common.cmi transforming_php.cmi
+transforming_php.cmx : ../parsing/unparse_php.cmx php_vs_php.cmx \
+    ../../h_program-lang/parse_info.cmx metavars_php.cmx \
+    ../parsing/lib_parsing_php.cmx ../parsing/cst_php.cmx \
+    ../../commons/common2.cmx ../../commons/common.cmx transforming_php.cmi
+transforming_php.cmi : metavars_php.cmi ../parsing/cst_php.cmo
+unit_matcher_php.cmo : ../parsing/unparse_php.cmi spatch_php.cmi \
+    sgrep_php.cmi refactoring_code_php.cmi \
+    ../../h_program-lang/refactoring_code.cmi ../parsing/parser_php.cmi \
+    ../parsing/parse_php.cmi ../../h_program-lang/parse_info.cmi \
+    ../../commons/oUnit.cmi matching_php.cmi ../parsing/cst_php.cmo \
+    ../../globals/config_pfff.cmi ../../commons/common2.cmi \
+    ../../commons/common.cmi unit_matcher_php.cmi
+unit_matcher_php.cmx : ../parsing/unparse_php.cmx spatch_php.cmx \
+    sgrep_php.cmx refactoring_code_php.cmx \
+    ../../h_program-lang/refactoring_code.cmx ../parsing/parser_php.cmx \
+    ../parsing/parse_php.cmx ../../h_program-lang/parse_info.cmx \
+    ../../commons/oUnit.cmx matching_php.cmx ../parsing/cst_php.cmx \
+    ../../globals/config_pfff.cmx ../../commons/common2.cmx \
+    ../../commons/common.cmx unit_matcher_php.cmi
+unit_matcher_php.cmi : ../../commons/oUnit.cmi

@@ -1,0 +1,6 @@
+foreach($A as $V) {
+   if (strpos($T, $V) !== false) {
+     // can also be return;
+     return Z;
+   }
+}

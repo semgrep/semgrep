@@ -1,0 +1,15 @@
+<?php
+
+$x = 
+  <foo>
+    <foobar />
+  </foo>;
+
+$y = 
+  <x>
+  <foo>
+    <foobar />
+  </foo>
+  </x>;
+
+

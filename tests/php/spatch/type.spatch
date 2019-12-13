@@ -1,0 +1,2 @@
+-: Continuation<X>
++Generator<int, X, void>

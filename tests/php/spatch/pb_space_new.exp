@@ -1,0 +1,5 @@
+<?php
+
+function foo() {
+  id(new URI('/ads/manage/funding.php'))->addQueryData(array('act' => $this->account_id));
+}

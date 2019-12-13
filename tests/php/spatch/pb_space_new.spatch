@@ -1,0 +1,2 @@
+- X->addQueryData(A, B)
++ X->addQueryData(array(A => B))

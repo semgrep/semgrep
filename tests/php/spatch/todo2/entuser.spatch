@@ -1,0 +1,3 @@
+- Ent::createLoader('EntUser',
++ EntUser::createLoaderLSB(
+  ...)

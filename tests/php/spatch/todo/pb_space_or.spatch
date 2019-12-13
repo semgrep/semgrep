@@ -1,0 +1,2 @@
+- IS_INTERNAL_SANDBOX
++ TFBEnv::isInternalSandbox()
