@@ -1,6 +1,35 @@
 (executables
  (names main_sgrep main_spatch )
- (libraries sgrep)
+ (libraries 
+    bigarray
+    threads          ;; needed for json-wheel (Condition?)
+    json-wheel       ;; Json_io, Json_type
+    commons commons_core
+    pfff-config 
+    pfff-h_program-lang
+    pfff-lang_python pfff-lang_python-analyze
+    pfff-lang_js pfff-lang_js-analyze
+    pfff-lang_cpp pfff-lang_cpp-analyze
+    pfff-lang_c pfff-lang_c-analyze
+    pfff-lang_ml pfff-lang_ml-analyze
+    pfff-lang_java pfff-lang_java-analyze
+    pfff-lang_php
+    pfff-lang_lisp
+    pfff-lang_skip
+    pfff-lang_FUZZY
+    
+    sgrep
+
+; str 
+
+;            
+;            
+;            ocamlgraph pfff-commons-graph
+;            
+;             pfff-graph_code
+
+
+ )
  ; for ocamldebug
  (modes byte)
 )

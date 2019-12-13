@@ -1,4 +1,0 @@
-description = "Helper functions for matching, transforming, unparsing from pfff"
-requires = "unix num"
-archive(byte) = "lib.cma"
-archive(native) = "lib.cmxa"

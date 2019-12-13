@@ -7,6 +7,7 @@
  *    May you share freely, never taking more than you give.
  *)
 open Common
+open Sgrep
 
 open Parse_info
 module PI = Parse_info
@@ -88,7 +89,8 @@ let parse_pattern file =
   | None ->
     (match !lang with
     | "php" -> 
-        Left (Spatch_php.parse file)
+        raise Todo
+(*        Left (Spatch_php.parse file) *)
     | _ -> failwith ("unsupported language for the pattern: " ^ !lang)
     )
 
@@ -102,14 +104,17 @@ let spatch pattern file =
      then Some (Lib_unparser.string_of_toks_using_transfo toks)
      else None
 
-  | None, Left pattern ->
+  | None, Left _pattern ->
     (match !lang with
     | "php" -> 
+(*
       (try 
         Spatch_php.spatch ~case_sensitive:!case_sensitive pattern file
       with Parse_php.Parse_error tok ->
         failwith ("PARSING PB: " ^ Parse_info.error_message_info tok);
       )
+*)
+      raise Todo
     | _ -> failwith ("unsupported language: " ^ !lang)
     )
   | _ -> raise Impossible
@@ -149,8 +154,6 @@ let main_action xs =
         failwith "Can't use -f and -e at the same time"
   in
 
-  Logger.log Config_pfff.logger "spatch" (Some (Common.read_file spatch_file));
-
   let pattern = parse_pattern spatch_file in
   let files =
     Find_source.files_of_dir_or_files ~lang:!lang xs in
@@ -166,8 +169,11 @@ let main_action xs =
       Common.write_file ~file:tmpfile s;
 
       if !pretty_printer && !lang =$= "php"
-      then Unparse_pretty_print_mix.pretty_print_when_need_it
+      then raise Todo;
+(*
+Unparse_pretty_print_mix.pretty_print_when_need_it
              ~oldfile:file ~newfile:tmpfile;
+*)
       
       let diff = Common2.unix_diff file tmpfile in
       diff |> List.iter pr;
@@ -251,9 +257,11 @@ let apply_transfo transfo xs =
   ));
   !pbs |> List.iter Common.pr2
 
-let apply_refactoring refactoring file =
-  let ast_and_toks = Parse_php.ast_and_tokens file in
-  let s = Refactoring_code_php.refactor [refactoring] ast_and_toks in
+let apply_refactoring _refactoring file =
+  let _ast_and_toks = Parse_php.ast_and_tokens file in
+  let s = 
+  (*  Refactoring_code_php.refactor [refactoring] ast_and_toks  *) raise Todo
+  in
   let tmpfile = Common.new_temp_file "trans" ".spatch" in
   Common.write_file ~file:tmpfile s;
   let diff = Common2.unix_diff file tmpfile in
@@ -488,14 +496,18 @@ let add_action_ui_form_transfo = {
 (* pretty printer testing *)
 (*---------------------------------------------------------------------------*)
 let test_pp file =
-  let tokens = Parse_php.tokens file in
-  let ast = Parse_php.parse_program file in
+  let _tokens = Parse_php.tokens file in
+  let _ast = Parse_php.parse_program file in
 
-  let ast = Ast_pp_build.program_with_comments tokens ast in
+  let _ast = 
+    (*Ast_pp_build.program_with_comments tokens ast  *) raise Todo
+  in
 
   let buf = Buffer.create 256 in
+(*
   let env = Pretty_print_code.empty (Buffer.add_string buf) in
   Pretty_print.program_env env ast;
+*)
   let s = Buffer.contents buf in
 
   let tmp_file = Common.new_temp_file "pp" ".php" in
@@ -523,16 +535,18 @@ let juju_refactoring spec_file =
     )
     |> Common.group_assoc_bykey_eff
   in
-  xxs |> List.iter (fun (file, refactorings) ->
-    let (ast2, _stat) = Parse_php.parse file in
-    let s = Refactoring_code_php.refactor refactorings ast2 in
+  xxs |> List.iter (fun (file, _refactorings) ->
+    let (_ast2, _stat) = Parse_php.parse file in
+    let s = 
+    (*  Refactoring_code_php.refactor refactorings ast2  *) raise Todo
+    in
 
     let tmpfile = Common.new_temp_file "trans" ".php" in
     Common.write_file ~file:tmpfile s;
 
     if !pretty_printer
-    then Unparse_pretty_print_mix.pretty_print_when_need_it
-      ~oldfile:file ~newfile:tmpfile;
+    then (* Unparse_pretty_print_mix.pretty_print_when_need_it
+      ~oldfile:file ~newfile:tmpfile; *) raise Todo;
       
     let diff = Common2.unix_diff file tmpfile in
     diff |> List.iter pr;
@@ -718,8 +732,10 @@ let test () =
           Parse_cpp.parse_fuzzy file
         ))
         ;
+(*
     Unit_matcher_php.spatch_unittest;
     Unit_matcher_php.refactoring_unittest;
+*)
   ]
   in
   OUnit.run_test_tt suite |> ignore;

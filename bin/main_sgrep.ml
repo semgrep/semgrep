@@ -7,6 +7,7 @@
  *    May you share freely, never taking more than you give.
  *)
 open Common
+open Sgrep
 
 module Flag = Flag_parsing
 module PI = Parse_info
@@ -199,7 +200,7 @@ type pattern =
   | PatFuzzy of Ast_fuzzy.tree list
   | PatGen of Sgrep_generic.pattern
 
-  | PatPhp of Sgrep_php.pattern
+(*  | PatPhp of Sgrep_php.pattern *)
 
 
 let parse_pattern str =
@@ -214,7 +215,7 @@ let parse_pattern str =
        PatFuzzy (Parse_fuzzy.parse_pattern lang str)
      | None ->
        (match !lang with
-       | "php" -> PatPhp (Sgrep_php.parse str)
+       | "php" -> (* PatPhp (Sgrep_php.parse str) *) raise Todo
        | _ -> failwith ("unsupported language for the pattern: " ^ !lang)
        )
      )
@@ -250,6 +251,7 @@ let sgrep_ast pattern any_ast =
       )
       pattern ast
 
+(*
   | PatPhp pattern, Php ast ->
     Sgrep_php.sgrep_ast
       ~case_sensitive:!case_sensitive
@@ -257,6 +259,7 @@ let sgrep_ast pattern any_ast =
         print_match !mvars env Lib_parsing_php.ii_of_any matched_tokens
       )
       pattern ast
+*)
   | _ ->
     failwith ("unsupported language or combination: " ^ !lang)
 
@@ -337,7 +340,7 @@ let test () =
    (* ugly: todo: use a toy fuzzy parser instead of the one in lang_cpp/ *)
     Unit_matcher.sgrep_fuzzy_unittest ~ast_fuzzy_of_string;
     Unit_matcher.sgrep_gen_unittest ~any_gen_of_string;
-    Unit_matcher_php.sgrep_unittest;
+    (* Unit_matcher_php.sgrep_unittest; *)
   ]
   in
   OUnit.run_test_tt suite |> ignore;
@@ -394,7 +397,7 @@ let options () =
     "-verbose", Arg.Unit (fun () -> 
       verbose := true;
       Flag_matcher.verbose := true;
-      Flag_matcher_php.verbose := true;
+      (* Flag_matcher_php.verbose := true; *)
     ),
     " ";
   ] @
