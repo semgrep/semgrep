@@ -1,0 +1,19 @@
+(executables
+ (names simple_refactoring)
+ (flags (:standard -w -27))
+ (libraries 
+   bigarray str
+
+   commons
+   pfff-h_program-lang
+   pfff-lang_php
+ )
+ ; for ocamldebug
+ (modes byte)
+)
+
+(install
+ (section bin)
+ (files simple_refactoring.exe)
+)
+

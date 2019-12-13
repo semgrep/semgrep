@@ -4,6 +4,7 @@
     bigarray
     threads          ;; needed for json-wheel (Condition?)
     json-wheel       ;; Json_io, Json_type
+
     commons commons_core
     pfff-config 
     pfff-h_program-lang
@@ -19,16 +20,6 @@
     pfff-lang_FUZZY
     
     sgrep
-
-; str 
-
-;            
-;            
-;            ocamlgraph pfff-commons-graph
-;            
-;             pfff-graph_code
-
-
  )
  ; for ocamldebug
  (modes byte)

@@ -1,4 +1,4 @@
 _build
-/bin/.merlin
-/lib/.merlin
+.merlin
+
 /sgrep.install
