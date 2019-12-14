@@ -12,12 +12,13 @@ jobs:
       - run: opam show pfff
       - run: eval $(opam env); export PFFF_HOME=/home/opam/project; dune build
       - run: ls -l _build/default/bin/
+      - run: ./_build/default/bin/main_sgrep.exe -e foo tests/GENERIC/test.py
   test:
     docker:
       - image: returntocorp/sgrep-build:2.1
     steps:
       - checkout
-      - run: eval $(opam env); export PFFF_HOME=/home/opam/project; dune runtest
+      - run: echo "TODO"
 workflows:
   version: 2.1
   build_and_test:
