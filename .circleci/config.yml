@@ -11,14 +11,16 @@ jobs:
       - run: opam upgrade -y pfff
       - run: opam show pfff
       - run: eval $(opam env); export PFFF_HOME=/home/opam/project; dune build
+      - run: ls -l _build/default/bin/
   test:
     docker:
       - image: returntocorp/sgrep-build:2.1
     steps:
       - checkout
-      - run: echo "TODO"
+      - run: eval $(opam env); export PFFF_HOME=/home/opam/project; dune runtest
 workflows:
   version: 2.1
   build_and_test:
     jobs:
       - build
+      - test
