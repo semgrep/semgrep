@@ -12,7 +12,7 @@ jobs:
       - run: opam show pfff
       - run: eval $(opam env); dune build
       - persist_to_workspace:
-        - /home/opam/project/_build
+          root: /home/opam/project/_build
   test:
     docker:
       - image: returntocorp/sgrep-build:2.1
