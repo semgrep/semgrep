@@ -8,7 +8,7 @@ jobs:
       - run: cd ~/opam-repository; git pull
       - run: cd ~/project
       - run: opam update
-      - run: opam upgrade -y pfff
+      - run: sudo opam upgrade -y pfff
       - run: opam show pfff
       - run: eval $(opam env); export PFFF_HOME=/home/opam/project; dune build
   test:
