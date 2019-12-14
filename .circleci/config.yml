@@ -5,7 +5,8 @@ jobs:
       - image: returntocorp/sgrep-build:1.0
     steps:
       - checkout
-      - run: opam install pfff
+      - run: opam update
+      - run: opam upgrade -y
       - run: eval $(opam env); export PFFF_HOME=/home/opam/project; dune build
   test:
     docker:
