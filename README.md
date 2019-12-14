@@ -1,3 +1,7 @@
+# sgrep
+
+[![CircleCI](https://circleci.com/gh/returntocorp/sgrep.svg?style=svg)](https://circleci.com/gh/returntocorp/sgrep)
+
 To compile sgrep you first need to install OCaml and its
 package manager OPAM. See https://opam.ocaml.org/doc/Install.html
 

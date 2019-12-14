@@ -1,0 +1,34 @@
+version: 2.1
+jobs:
+  build:
+    docker:
+      - image: returntocorp/sgrep-build:2.1
+    steps:
+      - checkout
+      - run: cd ~/opam-repository; git pull
+      - run: cd ~/project
+      - run: opam update
+      - run: opam upgrade -y pfff
+      - run: opam show pfff
+      - run: eval $(opam env); dune build
+      - persist_to_workspace:
+          root: /home/opam/project
+          paths:
+            - _build
+  test:
+    docker:
+      - image: returntocorp/sgrep-build:2.1
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /home/opam/project
+      - run: ./_build/default/bin/main_sgrep.exe -e foo tests/GENERIC/test.py
+      - run: eval $(opam env); dune runtest
+workflows:
+  version: 2.1
+  build_and_test:
+    jobs:
+      - build
+      - test:
+          requires:
+            - build
