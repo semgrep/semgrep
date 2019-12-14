@@ -10,18 +10,25 @@ jobs:
       - run: opam update
       - run: opam upgrade -y pfff
       - run: opam show pfff
-      - run: eval $(opam env); export PFFF_HOME=/home/opam/project; dune build
-      - run: ls -l _build/default/bin/
-      - run: ./_build/default/bin/main_sgrep.exe -e foo tests/GENERIC/test.py
+      - run: eval $(opam env); dune build
+      - save_cache:
+          key: v1-build-{{ .Environment.CIRCLE_SHA1 }}
+          paths:
+            - ~/project/_build
   test:
     docker:
       - image: returntocorp/sgrep-build:2.1
     steps:
       - checkout
-      - run: echo "TODO"
+      - restore_cache:
+          key: v1-build-{{ .Environment.CIRCLE_SHA1 }}
+      - run: ./_build/default/bin/main_sgrep.exe -e foo tests/GENERIC/test.py
+      - run: eval $(opam env); dune runtest
 workflows:
   version: 2.1
   build_and_test:
     jobs:
       - build
-      - test
+      - test:
+          requires:
+            - build
