@@ -12,14 +12,16 @@ jobs:
       - run: opam show pfff
       - run: eval $(opam env); dune build
       - persist_to_workspace:
-          root: /home/opam/project/_build
+          root: /home/opam/project
+          paths:
+            - _build
   test:
     docker:
       - image: returntocorp/sgrep-build:2.1
     steps:
       - checkout
       - attach_workspace:
-          at: /home/opam/project/_build
+          at: /home/opam/project
       - run: ./_build/default/bin/main_sgrep.exe -e foo tests/GENERIC/test.py
       - run: eval $(opam env); dune runtest
 workflows:
