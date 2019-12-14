@@ -11,17 +11,15 @@ jobs:
       - run: opam upgrade -y pfff
       - run: opam show pfff
       - run: eval $(opam env); dune build
-      - save_cache:
-          key: v1-build-{{ .Environment.CIRCLE_SHA1 }}
-          paths:
-            - ~/project/_build
+      - persist_to_workspace:
+        - /home/opam/project/_build
   test:
     docker:
       - image: returntocorp/sgrep-build:2.1
     steps:
       - checkout
-      - restore_cache:
-          key: v1-build-{{ .Environment.CIRCLE_SHA1 }}
+      - attach_workspace:
+          at: /home/opam/project/_build
       - run: ./_build/default/bin/main_sgrep.exe -e foo tests/GENERIC/test.py
       - run: eval $(opam env); dune runtest
 workflows:
