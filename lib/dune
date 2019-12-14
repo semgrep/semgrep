@@ -1,5 +1,6 @@
 (library
  (name sgrep)
+ (wrapped false)
  (libraries
    commons
    pfff-config 

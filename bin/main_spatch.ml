@@ -7,7 +7,6 @@
  *    May you share freely, never taking more than you give.
  *)
 open Common
-open Sgrep
 
 open Parse_info
 module PI = Parse_info

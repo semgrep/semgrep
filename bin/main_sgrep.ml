@@ -7,7 +7,6 @@
  *    May you share freely, never taking more than you give.
  *)
 open Common
-open Sgrep
 
 module Flag = Flag_parsing
 module PI = Parse_info
