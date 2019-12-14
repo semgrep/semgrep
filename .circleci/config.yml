@@ -5,7 +5,7 @@ jobs:
       - image: returntocorp/sgrep-build:1.0
     steps:
       - checkout
-      - run: opam install pfff
+      - run: opam reinstall pfff
       - run: eval $(opam env); dune build
   test:
     docker:
