@@ -7,7 +7,8 @@ jobs:
       - checkout
       - run: cd ~/opam-repository; git pull
       - run: cd ~/project
-      - run: opam upgrade -y
+      - run: opam upgrade -y pfff
+      - run: opam show pfff
       - run: eval $(opam env); export PFFF_HOME=/home/opam/project; dune build
   test:
     docker:
