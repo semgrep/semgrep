@@ -6,14 +6,13 @@ jobs:
     steps:
       - checkout
       - run: opam install pfff
-      - run: opam install dune
-      - run: dune build
+      - run: eval $(opam env); dune build
   test:
     docker:
       - image: returntocorp/sgrep-build:1.0
     steps:
       - checkout
-      - run: echo "TODO!"
+      - run: echo "TODO"
 workflows:
   version: 2.1
   build_and_test:
