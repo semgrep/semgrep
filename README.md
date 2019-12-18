@@ -62,3 +62,11 @@ $ dune        --version # just checking dune is in your PATH
 $ ocamlmerlin -version  # just checking ocamlmerlin is in your PATH
 $ code .
 ```
+
+## Debugging code
+
+Set the OCAMLRUNPARAM environment variable to 'b' for backtrace. 
+You will get better backtrace information when an exception is thrown.
+
+$ export OCAMLRUNPARAM=b
+
