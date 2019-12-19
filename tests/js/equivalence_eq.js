@@ -12,3 +12,17 @@ function test_equal() {
 }
 
 //TODO: test also === vs !==, Javascript specific
+// 1+2 !== 1+2;
+function bar() {
+    var x;
+    if(1 === 2) {
+    }
+    if(1+2 === 1+2) {
+    }
+    if(1+2 === 1+2) {
+        foo();
+    }
+    if(x === x) {
+        foo();
+    }
+}
