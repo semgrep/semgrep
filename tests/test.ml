@@ -46,10 +46,22 @@ let regression_tests_for_lang files lang =
         then candidate2
         else failwith (spf "could not find sgrep file for %s" file)
     in
-    let ast = Parse_generic.parse_program file in
+    let ast = 
+        try 
+            Parse_generic.parse_program file 
+        with exn ->
+          failwith (spf "fail to parse %s (exn = %s)" file 
+                    (Common.exn_to_s exn))
+    in
     let pattern = 
       Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
-        Parse_generic.parse_pattern lang (Common.read_file sgrep_file)
+        try 
+          Parse_generic.parse_pattern lang (Common.read_file sgrep_file)
+        with exn ->
+          failwith (spf "fail to parse pattern %s with lang = %s (exn = %s)" 
+                        sgrep_file 
+                      (Lang.string_of_lang lang)
+                    (Common.exn_to_s exn))
       )
     in
     Error_code.g_errors := [];
@@ -75,6 +87,12 @@ let lang_regression_tests =
     let dir = Filename.concat tests_path "python" in
     let files = Common2.glob (spf "%s/*.py" dir) in
     let lang = Lang.Python in
+    regression_tests_for_lang files lang
+  );
+  "sgrep Javascript" >::: (
+    let dir = Filename.concat tests_path "js" in
+    let files = Common2.glob (spf "%s/*.js" dir) in
+    let lang = Lang.Javascript in
     regression_tests_for_lang files lang
   );
   "sgrep C" >::: (
