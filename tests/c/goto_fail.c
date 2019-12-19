@@ -3,6 +3,7 @@ int foo() {
 if (0)
   goto fail;
 
+//ERROR:
 if (1)
   goto fail;
   goto fail;
