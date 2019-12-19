@@ -9,7 +9,7 @@ open OUnit
 
 (* run also by sgrep -test *)
 let sgrep_fuzzy_unittest ~ast_fuzzy_of_string =
-  "sgrep features" >:: (fun () ->
+  "sgrep-fuzzy features" >:: (fun () ->
 
     (* spec: pattern string, code string, should_match boolean *)
     let triples = [
@@ -119,7 +119,7 @@ let sgrep_fuzzy_unittest ~ast_fuzzy_of_string =
 (*****************************************************************************)
 
 let sgrep_gen_unittest ~any_gen_of_string =
-  "sgrep features" >:: (fun () ->
+  "sgrep-generic features" >:: (fun () ->
 
     (* spec: pattern string, code string, should_match boolean *)
     let triples = [

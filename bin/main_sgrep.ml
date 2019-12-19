@@ -160,18 +160,6 @@ let gen_layer ~root ~query file =
   Layer_code.save_layer layer file;
   ()
   
-
-let ast_fuzzy_of_string str =
-  Common2.with_tmp_file ~str ~ext:"cpp" (fun tmpfile ->
-    Parse_cpp.parse_fuzzy tmpfile |> fst
-  )
-
-let any_gen_of_string str =
-  Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
-  let any = Parse_python.any_of_string str in
-  Python_to_generic.any any
-  )
-
 (*****************************************************************************)
 (* Language specific *)
 (*****************************************************************************)
@@ -330,39 +318,11 @@ let main_action xs =
 (* Extra actions *)
 (*****************************************************************************)
 
-(*---------------------------------------------------------------------------*)
-(* Regression testing *)
-(*---------------------------------------------------------------------------*)
-open OUnit
-let test () =
-  let suite = "sgrep" >::: [
-   (* ugly: todo: use a toy fuzzy parser instead of the one in lang_cpp/ *)
-    Unit_matcher.sgrep_fuzzy_unittest ~ast_fuzzy_of_string;
-    Unit_matcher.sgrep_gen_unittest ~any_gen_of_string;
-    (* Unit_matcher_php.sgrep_unittest; *)
-  ]
-  in
-  OUnit.run_test_tt suite |> ignore;
-  ()
-
-(*---------------------------------------------------------------------------*)
-(* the command line flags *)
-(*---------------------------------------------------------------------------*)
-let sgrep_extra_actions () = [
-(*
-  "-dump_php_pattern", " <file> (internal)",
-  Common.mk_action_1_arg dump_sgrep_php_pattern;
-*)
-  "-test", " run regression tests",
-  Common.mk_action_0_arg test;
-]
-
 (*****************************************************************************)
 (* The options *)
 (*****************************************************************************)
 
 let all_actions () = 
- sgrep_extra_actions()@
  []
 
 let options () = 
