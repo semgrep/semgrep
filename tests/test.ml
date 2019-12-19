@@ -95,6 +95,12 @@ let lang_regression_tests =
     let lang = Lang.Javascript in
     regression_tests_for_lang files lang
   );
+  "sgrep Java" >::: (
+    let dir = Filename.concat tests_path "java" in
+    let files = Common2.glob (spf "%s/*.java" dir) in
+    let lang = Lang.Java in
+    regression_tests_for_lang files lang
+  );
   "sgrep C" >::: (
     let dir = Filename.concat tests_path "c" in
     let files = Common2.glob (spf "%s/*.c" dir) in
