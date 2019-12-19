@@ -496,10 +496,11 @@ and m_expr a b =
     (m_list m_action) a2 b2 >>= (fun () -> 
     return ()
     ))
-  | A.Yield(a1), B.Yield(b1) ->
+  | A.Yield(a1, a2), B.Yield(b1, b2) ->
     m_expr a1 b1 >>= (fun () -> 
+    m_bool a2 b2 >>= (fun () -> 
     return ()
-    )
+    ))
   | A.Await(a1), B.Await(b1) ->
     m_expr a1 b1 >>= (fun () -> 
     return ()
