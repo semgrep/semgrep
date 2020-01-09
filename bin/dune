@@ -26,6 +26,7 @@
 )
 
 (install
+ (package sgrep)
  (section bin)
  (files (main_sgrep.exe as sgrep) (main_spatch.exe as spatch))
 )

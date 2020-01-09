@@ -13,6 +13,7 @@
 )
 
 (install
+ (package sgrep)
  (section bin)
  (files simple_refactoring.exe)
 )
