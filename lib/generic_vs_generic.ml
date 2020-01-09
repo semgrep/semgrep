@@ -1627,6 +1627,10 @@ and m_any a b =
     m_name a1 b1 >>= (fun () -> 
     return ()
     )
+  | A.Tk(a1), B.Tk(b1) ->
+    m_tok a1 b1 >>= (fun () -> 
+    return ()
+    )
   | A.Di(a1), B.Di(b1) ->
     m_dotted_name a1 b1 >>= (fun () -> 
     return ()
@@ -1698,5 +1702,5 @@ and m_any a b =
   | A.Id _, _  | A.N _, _  | A.Di _, _  | A.En _, _  | A.E _, _
   | A.S _, _  | A.T _, _  | A.P _, _  | A.Def _, _  | A.Dir _, _
   | A.I _, _  | A.Pa _, _  | A.Ar _, _  | A.At _, _  | A.Dk _, _ | A.Pr _, _
-  | A.Fld _, _ | A.Ss _, _
+  | A.Fld _, _ | A.Ss _, _ | A.Tk _, _
    -> fail ()
