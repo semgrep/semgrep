@@ -2,3 +2,6 @@ _build
 .merlin
 
 /sgrep.install
+/project.el
+/skip_list.txt
+/top.ml

@@ -1,0 +1,109 @@
+# Note that the order of the rule matters! The first rule that matches
+# some code is applied. So one can put a specific pattern first and later
+# more general patterns that will be triggered only when the specific
+# pattern does not match.
+rules:
+  # Basic rules
+  - id: stupid_equal
+    pattern: $X == $X
+    message: Dude, $X == $X is always true (Unless X is NAN ...)
+    languages: [python, javascript]
+    severity: WARNING
+  - id: stupid_not_equal
+    pattern: $X != $X
+    message: Dude, $X != $X is always false (Unless X is NAN ...)
+    languages: [python, javascript]
+    severity: WARNING
+  # Flask check2 rules
+  - id: send_file_mime_ok
+    pattern: $M.send_file($F, mime_type=$X, ...)
+    message: Ok
+    languages: [python]
+    severity: OK
+  - id: send_file_attach_ok
+    pattern: $M.send_file($F, attachment_filename=$X, ...)
+    message: Ok
+    languages: [python]
+    severity: OK
+  - id: send_file_open
+    pattern: $M.send_file(open($X, ...), ...)
+    message: Dangerous use of Flask
+    languages: [python]
+    severity: ERROR
+  - id: send_file_ok
+    pattern: $M.send_file($X, ...)
+    message: Ok
+    languages: [python]
+    severity: OK
+
+  # Flask check3: Avoid hardcoded config rules
+
+  # . Rules for `TESTING` config
+  - id: avoid_hardcoded_config_TESTING
+    pattern: $M.config['TESTING'] = True
+    message: Hardcoded variable `TESTING` detected. Use environment variables or config files instead
+    languages: [python]
+    severity: WARNING
+  - id: avoid_hardcoded_config_TESTING
+    pattern: $M.config['TESTING'] = False
+    message: Hardcoded variable `TESTING` detected. Use environment variables or config files instead
+    languages: [python]
+    severity: WARNING
+  - id: avoid_hardcoded_config_TESTING
+    pattern: $M.update(TESTING=True, ...)
+    message: Hardcoded variable `TESTING` detected. Use environment variables or config files instead
+    languages: [python]
+    severity: WARNING
+  - id: avoid_hardcoded_config_TESTING
+    pattern: $M.update(TESTING=False, ...)
+    message: Hardcoded variable `TESTING` detected. Use environment variables or config files instead
+    languages: [python]
+    severity: WARNING
+  - id: avoid_hardcoded_config_TESTING
+    pattern: $M.update(TESTING=False, ...)
+    message: Hardcoded variable `TESTING` detected. Use environment variables or config files instead
+    languages: [python]
+    severity: WARNING
+  # Rules for `SECRET_KEY` config
+  - id: avoid_hardcoded_config_SECRET_KEY
+    pattern: $M.config['SECRET_KEY'] = "=~/.*/"
+    message: Hardcoded variable `SECRET_KEY` detected. Use environment variables or config files instead
+    languages: [python]
+    severity: ERROR
+  - id: avoid_hardcoded_config_SECRET_KEY
+    pattern: $M.update(SECRET_KEY="=~/.*/")
+    message: Hardcoded variable `SECRET_KEY` detected. Use environment variables or config files instead
+    languages: [python]
+    severity: ERROR
+  # Rules for `ENV` config
+  - id: avoid_hardcoded_config_ENV
+    pattern: $M.update(ENV="=~/development\|production/")
+    message: Hardcoded variable `ENV` detected. Set this by using FLASK_ENV environment variable
+    languages: [python]
+    severity: WARNING
+  - id: avoid_hardcoded_config_ENV
+    pattern: $M.config['ENV'] = "=~/development\|production/"
+    message: Hardcoded variable `ENV` detected. Set this by using FLASK_ENV environment variable
+    languages: [python]
+    severity: WARNING
+    # Rules for `DEBUG` config
+  - id: avoid_hardcoded_config_DEBUG
+    pattern: $M.update(DEBUG=True)
+    message: Hardcoded variable `DEBUG` detected. Set this by using FLASK_DEBUG environment variable
+    languages: [python]
+    severity: WARNING
+  - id: avoid_hardcoded_config_DEBUG
+    pattern: $M.update(DEBUG=False)
+    message: Hardcoded variable `DEBUG` detected. Set this by using FLASK_DEBUG environment variable
+    languages: [python]
+    severity: WARNING
+  - id: avoid_hardcoded_config_DEBUG
+    pattern: $M.config['DEBUG'] = True
+    message: Hardcoded variable `DEBUG` detected. Set this by using FLASK_DEBUG environment variable
+    languages: [python]
+    severity: WARNING
+  - id: avoid_hardcoded_config_DEBUG
+    pattern: $M.config['DEBUG'] = False
+    message: Hardcoded variable `DEBUG` detected. Set this by using FLASK_DEBUG environment variable
+    languages: [python]
+    severity: WARNING

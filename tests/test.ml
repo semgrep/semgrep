@@ -1,5 +1,6 @@
 open Common
 open OUnit
+module E = Error_code
 
 (*****************************************************************************)
 (* Purpose *)
@@ -15,6 +16,7 @@ let dump_ast = ref false
 
 (* ran from _build/default/tests/ hence the '..'s below *)
 let tests_path = "../../../tests"
+let data_path = "../../../data"
 
 (*****************************************************************************)
 (* Helpers *)
@@ -109,6 +111,39 @@ let lang_regression_tests =
   );
  ]
 
+(* mostly a copy paste of pfff/linter/unit_linter.ml *)
+let lint_regression_tests = 
+  "lint regression testing" >:: (fun () ->
+  let p path = Filename.concat tests_path path in
+  let rule_file = Filename.concat data_path "basic.yml" in
+  let lang = Lang.Python in
+
+  let test_files = [
+   p "lint/stupid.py";
+   p "lint/flask2.py";
+   p "lint/flask_configs.py";
+  ] in
+  
+  (* expected *)
+  let expected_error_lines = E.expected_error_lines_of_files test_files in
+
+  (* actual *)
+  E.g_errors := [];
+  let rules = Parse_rules.parse rule_file in
+
+  test_files |> List.iter (fun file ->
+    E.try_with_exn_to_error file (fun () ->
+    let ast = Parse_generic.parse_with_lang lang file in
+    Sgrep_lint_generic.check rules ast
+  ));
+
+  (* compare *)
+  let actual_errors = !E.g_errors in
+  if !verbose 
+  then actual_errors |> List.iter (fun e -> pr (E.string_of_error e));
+  E.compare_actual_to_expected actual_errors expected_error_lines
+  )
+
 (*****************************************************************************)
 (* Main action *)
 (*****************************************************************************)
@@ -128,6 +163,7 @@ let test regexp =
       Unit_matcher.sgrep_fuzzy_unittest ~ast_fuzzy_of_string;
       (* TODO Unit_matcher.spatch_unittest ~xxx *)
       (* TODO Unit_matcher_php.unittest; (* sgrep, spatch, refactoring, unparsing *) *)
+      lint_regression_tests;
     ]
   in
   let suite =
@@ -157,8 +193,28 @@ let test regexp =
 (* Extra actions *)
 (*****************************************************************************)
 
-let dump_ast_file _file =
-  raise Todo
+
+module FT = File_type
+
+let ast_generic_of_file file =
+ let typ = File_type.file_type_of_file file in
+ match typ with
+ | FT.PL (FT.Web (FT.Js)) ->
+    let cst = Parse_js.parse_program file in
+    let ast = Ast_js_build.program cst in
+    Js_to_generic.program ast
+ | FT.PL (FT.Python) ->
+    let ast = Parse_python.parse_program file in
+    Resolve_python.resolve ast;
+    Python_to_generic.program ast
+ | _ -> failwith (spf "file type not supported for %s" file)
+
+(* copy paste of code in pfff/main_test.ml *)
+let dump_ast_generic file =
+  let ast = ast_generic_of_file file in
+  let v = Meta_ast.vof_any (Ast_generic.Pr ast) in
+  let s = Ocaml.string_of_v v in
+  pr2 s
 
 (*****************************************************************************)
 (* The options *)
@@ -185,7 +241,7 @@ let main () =
 
   (match List.rev !args with
   | [] -> test "all"
-  | [file] when !dump_ast -> dump_ast_file file
+  | [file] when !dump_ast -> dump_ast_generic file
   | [x] -> test x
   | _::_::_ ->
     print_string "too many arguments\n";

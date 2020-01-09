@@ -37,8 +37,13 @@ Then to test sgrep on a file, for example tests/GENERIC/test.py
 run:
 
 ```
-$ ./_build/default/bin/main_sgrep.exe -e foo tests/GENERIC/test.py
+$ ./_build/default/bin/main_sgrep.exe -e foo tests/python
 ...
+```
+
+If you want to test sgrep on a directory with a set of given rules, run:
+```
+$ ./_build/default/bin/main_sgrep.exe -sgrep_lint -rule_file data/basic.yml tests/python
 ```
 
 ## Development Environment

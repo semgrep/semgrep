@@ -12,14 +12,14 @@ module Flag = Flag_parsing
 module PI = Parse_info
 module S = Scope_code
 module E = Error_code
+module R = Rule
 
 (*****************************************************************************)
 (* Purpose *)
 (*****************************************************************************)
-(* 
- * A syntactical grep. https://github.com/facebook/pfff/wiki/Sgrep
- * Right now there is good support for PHP, Javascript, and Python
- * and partial support (fuzzy matcher) for C/C++/ObjectiveC, OCaml, and Java.
+(* A syntactical grep. https://github.com/facebook/pfff/wiki/Sgrep
+ * Right now there is good support for Python, Javascript, Java, and C
+ * and partial support (fuzzy matcher) for C++, OCaml.
  * 
  * opti: git grep foo | xargs sgrep -e 'foo(...)'
  * 
@@ -36,11 +36,18 @@ module E = Error_code
 (* Flags *)
 (*****************************************************************************)
 
-let use_multiple_patterns = ref false
 let verbose = ref false
+let debug = ref false
 
 let pattern_file = ref ""
 let pattern_string = ref ""
+
+(* todo: could get rid of sgrep_lint if implied by using -rule_file *)
+let sgrep_lint = ref false
+let rule_file = ref "data/basic.yml"
+let project_rule_file = ".bento-sgrep.yml"
+
+let use_multiple_patterns = ref false
 
 (* todo: infer from basename argv(0) ? *)
 let lang = ref "python"
@@ -65,7 +72,9 @@ let set_gc () =
   if !Flag.debug_gc
   then Gc.set { (Gc.get()) with Gc.verbose = 0x01F };
 *)
-  (* only relevant in bytecode, in native the stacklimit is the os stacklimit *)
+  (* only relevant in bytecode, in native the stacklimit is the os stacklimit,
+   * which usually requires a ulimit -s 40000
+  *)
   Gc.set {(Gc.get ()) with Gc.stack_limit = 1000 * 1024 * 1024};
   (* see www.elehack.net/michael/blog/2010/06/ocaml-memory-tuning *)
   Gc.set { (Gc.get()) with Gc.minor_heap_size = 4_000_000 };
@@ -315,6 +324,49 @@ let main_action xs =
   ()
 
 (*****************************************************************************)
+(* Sgrep lint *)
+(*****************************************************************************)
+
+let lint (xs: Common.path list) : unit =
+
+  (* to adjust paths in errors *)
+  let root =
+    match xs with
+    | [x] when Common2.is_directory x -> Common.fullpath x
+    | _ -> "/"
+  in
+  let project_file = Filename.concat root project_rule_file in
+  let file = 
+    if Sys.file_exists project_file
+    then project_file
+    else !rule_file
+  in
+  if !verbose then pr2 (spf "Parsing %s" file);
+  let rules = Parse_rules.parse file in
+
+  match Lang.lang_of_string_opt !lang with
+  | Some lang ->
+    let files = Lang.files_of_dirs_or_files lang xs in
+
+    let rules = rules |> List.filter (fun r -> List.mem lang r.R.languages) in
+
+    files |> List.iter (fun file ->
+      E.try_with_exn_to_error file (fun () ->
+        let ast = Parse_generic.parse_with_lang lang file in
+        Sgrep_lint_generic.check rules ast
+      )
+    );
+    let errs = !(Error_code.g_errors) 
+       |> E.filter_maybe_parse_and_fatal_errors
+    in
+
+    let errs = E.adjust_paths_relative_to_root root errs in
+    pr (R2c.string_of_errors "sgrep-lint" errs)
+
+  | None -> failwith (spf "unsupported language: %s" !lang)
+
+
+(*****************************************************************************)
 (* Extra actions *)
 (*****************************************************************************)
 
@@ -336,6 +388,11 @@ let options () =
     " <file> obtain pattern from file";
     "-multi", Arg.Set use_multiple_patterns,
     " combine with -f <file> to obtain multiple patterns from file, one per line";
+
+    "-sgrep_lint", Arg.Set sgrep_lint,
+    " run sgrep in lint mode using a rule file";
+    "-rule_file", Arg.Set_string rule_file,
+    " which rules to use";
 
     "-case_sensitive", Arg.Set case_sensitive, 
     " match code in a case sensitive manner";
@@ -359,6 +416,8 @@ let options () =
       (* Flag_matcher_php.verbose := true; *)
     ),
     " ";
+    "-debug", Arg.Set debug,
+    " add debugging information in the output (e.g., tracing)";
   ] @
   Error_code.options () @
   Common2.cmdline_flags_devel () @
@@ -376,9 +435,9 @@ let options () =
 
 let main () = 
   let usage_msg = 
-    spf "Usage: %s [options] <pattern> <file or dir> \nDoc: %s\nOptions:"
-      (Common2.basename Sys.argv.(0))
-      "https://github.com/facebook/pfff/wiki/Sgrep"
+    spf "Usage: %s [options] <pattern> <files_or_dirs> \nOptions:"
+      (Filename.basename Sys.argv.(0))
+
   in
   (* does side effect on many global flags *)
   let args = Common.parse_options (options()) usage_msg Sys.argv in
@@ -401,7 +460,9 @@ let main () =
     (* main entry *)
     (* --------------------------------------------------------- *)
     | x::xs -> 
-        main_action (x::xs)
+        if !sgrep_lint 
+        then lint (x::xs)
+        else main_action (x::xs)
 
     (* --------------------------------------------------------- *)
     (* empty entry *)
