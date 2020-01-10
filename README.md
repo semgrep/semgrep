@@ -20,6 +20,7 @@ Its main features are:
 for Java and C, and more languages on the way!
 
 For more information see https://r2c.dev/sgrep-public.pdf
+
 For more information on the use of sgrep as a linter see 
 https://github.com/returntocorp/bento/blob/master/SGREP-README.md
 
