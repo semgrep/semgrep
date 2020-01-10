@@ -2,9 +2,30 @@
 
 [![CircleCI](https://circleci.com/gh/returntocorp/sgrep.svg?style=svg)](https://circleci.com/gh/returntocorp/sgrep)
 
+`sgrep`, for syntactical (and occasionnally semantic) grep, is a
+tool to help find bugs by specifying code patterns using a familiar
+syntax. The idea is to mix the convenience of grep with the
+correctness and precision of a compiler frontend.
+
+Its main features are:
+1. **Use concrete code syntax**: easy to learn
+2. **Metavariables ($X)**: abstract away code
+3. **'...' operator**: abstract away sequences
+4. **Knows about code equivalences**: one pattern can match variations on the code
+<!-- known previously as isomorphisms -->
+5. **Less is more**: abstract away additional details
+<!-- known previously as iso by absence -->
+
+`sgrep` has good support for Python and JavaScript, with some support
+for Java and C, and more languages on the way!
+
+For more information see https://r2c.dev/sgrep-public.pdf
+For more information on the use of sgrep as a linter see 
+https://github.com/returntocorp/bento/blob/master/SGREP-README.md
+
 ## Installation from source
 
-To compile Sgrep, you first need to install OCaml and its
+To compile sgrep, you first need to install OCaml and its
 package manager OPAM. See https://opam.ocaml.org/doc/Install.html
 On macOS, it should simply consist in doing:
 
@@ -16,8 +37,8 @@ $ opam switch 4.07.1
 $ eval $(opam env)
 ```
 
-Once OPAM is installed, you need to install the dependent
-libraries pfff, the OCaml frontend reason, and the build system dune:
+Once OPAM is installed, you need to install the library pfff, 
+the OCaml frontend reason, and the build system dune:
 
 ```
 $ opam install pfff
