@@ -12,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * file license.txt for more details.
  *)
-open Common
 open Ast_generic
 module V = Visitor_ast
 module E = Error_code
@@ -65,16 +64,13 @@ module R = Rule
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-let string_of_id id =
-  spf "%s" id
-
 let error matched_tokens rule =
   let tok = List.hd matched_tokens in
   match rule.R.severity with
   | R.Error ->
-      E.error tok (E.SgrepLint (string_of_id rule.R.id, rule.R.message))
+      E.error tok (E.SgrepLint (rule.R.id, rule.R.message))
   | R.Warning ->
-      E.warning tok (E.SgrepLint (string_of_id rule.R.id, rule.R.message))
+      E.warning tok (E.SgrepLint (rule.R.id, rule.R.message))
   | R.Ok -> ()
 
 

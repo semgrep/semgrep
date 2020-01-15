@@ -314,7 +314,7 @@ let main_action xs =
           |> E.filter_maybe_parse_and_fatal_errors
           |> E.adjust_paths_relative_to_root root
    in
-   pr (R2c.string_of_errors "sgrep" errs)
+   pr (R2c.string_of_errors errs)
   end;
 
   !layer_file |> Common.do_option (fun file ->
@@ -361,7 +361,7 @@ let lint (xs: Common.path list) : unit =
     in
 
     let errs = E.adjust_paths_relative_to_root root errs in
-    pr (R2c.string_of_errors "sgrep-lint" errs)
+    pr (R2c.string_of_errors errs)
 
   | None -> failwith (spf "unsupported language: %s" !lang)
 
