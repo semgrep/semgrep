@@ -99,6 +99,7 @@ let print_match mvars mvar_binding ii_of_any tokens_matched_code =
       if !r2c
       then 
          let info = mk_one_info_from_multiple_infos tokens_matched_code in
+         (* todo? use the -e pattern for the check_id? *)
          E.error info (E.SgrepLint ("sgrep", "found a match"))
       else    
         Matching_report.print_match ~format:!match_format tokens_matched_code
