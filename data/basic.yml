@@ -14,6 +14,15 @@ rules:
     message: Dude, $X != $X is always false (Unless X is NAN ...)
     languages: [python, javascript]
     severity: WARNING
+  - id: stupid_conditional
+    pattern: |
+      if $E:
+        $S
+      else:
+        $S
+    message: Dune, both branches are equal
+    languages: [python]
+    severity: WARNING
   # Flask check2 rules
   - id: send_file_mime_ok
     pattern: $M.send_file($F, mime_type=$X, ...)
