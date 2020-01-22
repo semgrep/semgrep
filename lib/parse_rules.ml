@@ -66,8 +66,8 @@ let parse file =
                let pattern =
                  try Parse_generic.parse_pattern lang pattern
                  with exn ->
-                   error (spf "could not parse the pattern %s (exn = %s) in %s"
-                            pattern (Common.exn_to_s exn) file)
+                   error (spf "could not parse the pattern %s (exn = %s)"
+                            pattern (Common.exn_to_s exn))
                in
                let severity = severity_of_string sev in
                { R. id; pattern; message; languages; severity }
