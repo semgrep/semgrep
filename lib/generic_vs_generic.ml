@@ -51,6 +51,10 @@ module Lib = Lib_ast
  *     having many attributes), "less-is-more"
  *  - we do not care about differences in spaces/indentations/comments.
  *    we work at the AST-level.
+ *
+ * alternatives:
+ *  - would it be simpler to work on a simpler AST, like a Term language,
+ *    or even a Node/Leaf? or Ast_fuzzy?
  *)
 
 (*****************************************************************************)
