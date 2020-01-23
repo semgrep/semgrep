@@ -18,7 +18,7 @@ open Common
  * we both use the same module but they may differ later
  * as the expressivity of the pattern language grows.
  *
- * subtle: use 'b' for to report errors, 'a' is the sgrep pattern and it
+ * subtle: use 'b' to report errors, because 'a' is the sgrep pattern and it
  * has no file information usually.
  *)
 module A = Ast_generic
@@ -49,12 +49,18 @@ module Lib = Lib_ast
  *  - simple constructs match complex constructs having more details
  *    (e.g., the absence of attribute in a pattern will still match functions
  *     having many attributes), "less-is-more"
+ *  - the underlying AST uses some normalization (!= is transformed in !(..=))
+ *    to support certain code equivalences
  *  - we do not care about differences in spaces/indentations/comments.
  *    we work at the AST-level.
  *
  * alternatives:
  *  - would it be simpler to work on a simpler AST, like a Term language,
- *    or even a Node/Leaf? or Ast_fuzzy?
+ *    or even a Node/Leaf? or Ast_fuzzy? the "less-is-more" would be
+ *    difficult with that approach, because you need to know that some 
+ *    parts of the AST are attributes/annotations that can be skipped.
+ *    In the same way, code equivalences like name resolution on the AST
+ *    would be more difficult with an untyped-general tree.
  *)
 
 (*****************************************************************************)
