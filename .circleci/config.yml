@@ -19,7 +19,6 @@ jobs:
       - checkout
       - attach_workspace:
           at: /home/opam/project
-      - run: ./_build/default/bin/main_sgrep.exe -e foo tests/GENERIC/test.py
       - run: eval $(opam env); dune runtest
 workflows:
   version: 2.1
