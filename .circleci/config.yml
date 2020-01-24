@@ -19,6 +19,8 @@ jobs:
       - checkout
       - attach_workspace:
           at: /home/opam/project
+      - run: cd ~ && git clone  https://github.com/returntocorp/pfff # TODO remove and just mount these two lines
+      - run: eval $(opam env) && cd ~/pfff && git checkout bb3d11515b435bf37bdd1863c2839ef8efde9d82 && ./configure && make depend && make && make opt && make install-libs
       - run: eval $(opam env); dune runtest
 workflows:
   version: 2.1
