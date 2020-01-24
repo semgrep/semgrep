@@ -29,6 +29,9 @@ open Common
  *)
 type mvar = string 
 
+(* note that the Ast_generic.any acts as the value of the metavar and also
+ * as its concrete code "witness". You can get position information from it,
+ * it is not Parse_info.Ab(stractPos) *)
 type metavars_binding = (mvar, Ast_generic.any) Common.assoc
 
 (* ex: $X, $FAIL *)

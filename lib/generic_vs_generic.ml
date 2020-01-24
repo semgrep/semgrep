@@ -214,7 +214,7 @@ let pr2, _pr2_once = Common2.mk_pr2_wrappers verbose
          * not patterns, so we can just use the generic '=' of OCaml.
          *)
         if equal_ast_binded_code valu valu'
-        then Some tin
+        then Some tin (* valu remains the metavar witness *)
         else None
     | None ->
         (* first time the metavar is binded, just add it to the environment *)
