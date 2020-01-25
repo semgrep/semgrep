@@ -27,7 +27,7 @@ SGREP_PATH = "sgrep"
 def sgrep_pattern():
     """
 
-    You can assumle that there will be a -sgrep_lint2 command line parameter to the sgrep engine, 
+    You can assumle that there will be a -sgrep_lint2 command line parameter to the sgrep engine,
     which will still take a yaml file with a flat list of rules, and it will return a JSON with
      an array of objects with the rule id, matched range, and an array with the value for the metavars
 
@@ -47,8 +47,8 @@ def sgrep_pattern():
     - not-pattern: subprocess.Popen($X, safeflag=True)
     - and-pattern: subprocess.Popen($X)
     - or-patterns:
-        - 
-        - 
+        -
+        -
     - message: this is dangerous
 
     ==== suggestion, just do and, and-not, maybe "and-or"
@@ -67,7 +67,7 @@ def sgrep_pattern():
     - booleans: !P1 && P2
     - message: this is dangerous
 
-insight: our algebra needs to express "AND-INSIDE" as opposed to "AND-NOT-INSIDE" 
+insight: our algebra needs to express "AND-INSIDE" as opposed to "AND-NOT-INSIDE"
 (effectively CFG-dominance relations) in order to handle "in this function"
 let's makee the and implicit, then we'd have:
     either-pattern:
@@ -173,7 +173,7 @@ def testC():
         and-inside P4 --> remove all ranges that are not enclosed by P4. Now only ranges inside or equal to P4 are left (all ranges remain)
         and-not P1 --> remove all ranges == P1. Now only ranges that don't have P1 remain (R2, R3 remain)
         and P2 --> remove all ranges not == P2. R2 remains.
-        OUTPUT: R2 
+        OUTPUT: R2
     """
     results = {
         "pattern1": [Range(100, 1000)],
@@ -203,7 +203,7 @@ def testD():
         and-not-inside P4 --> remove all ranges that are not enclosed by P4. Now only ranges inside or equal to P4 are left (no ranges remain)
         and-not P1 --> no effect
         and P2 --> no effect
-        OUTPUT: [] 
+        OUTPUT: []
     """
     results = {
         "pattern1": [Range(100, 1000)],
@@ -214,7 +214,7 @@ def testD():
                   (OPERATORS.AND_NOT, ["pattern1"]),
                   (OPERATORS.AND, ["pattern2"])]
     result = evaluate_expression(expression, results)
-    assert result == set([Range(200, 300)]), f"{result}"
+    assert result == set([]), f"{result}"
 
 
 def testE():
@@ -224,7 +224,7 @@ def testE():
     let pattern3 = def normal(): \n...
 
 
-        0-100 def __eq__(): 
+        0-100 def __eq__():
         100-200    bad()
 
         200-300 def normal():
@@ -234,7 +234,7 @@ def testE():
 
         and-inside P3
         and-not-inside P2
-        and P1 
+        and P1
         OUTPUT: [300-400], [350-400]
     """
     results = {
@@ -255,7 +255,7 @@ def flatten(L: List[List[Any]]) -> List[Any]:
             yield item
 
 
-def evaluate_single_expression(operator, pattern_id, results, ranges_left):
+def _evaluate_single_expression(operator, pattern_id, results, ranges_left) -> List[Range]:
     if operator == OPERATORS.AND:
         # remove all ranges that don't equal the ranges for this pattern
         return ranges_left.intersection(results[pattern_id])
@@ -270,14 +270,15 @@ def evaluate_single_expression(operator, pattern_id, results, ranges_left):
             keep_this_range = False
             for keep_inside_this_range in results[pattern_id]:
                 is_enclosed = keep_inside_this_range.is_enclosing_or_eq(arange)
+                keep = (operator == OPERATORS.AND_INSIDE and is_enclosed) or \
+                    (operator == OPERATORS.AND_NOT_INSIDE and not is_enclosed)
                 print(
-                    f'candidate range is {arange}, needs to be `{operator}` {keep_inside_this_range}: {is_enclosed}')
-                if (OPERATORS.AND_INSIDE) and is_enclosed or (OPERATORS.AND_NOT_INSIDE and not is_enclosed):
+                    f'candidate range is {arange}, needs to be `{operator}` {keep_inside_this_range}; keep?: {keep}')
+                if keep:
                     output_ranges.add(arange)
                     break  # found a match, no need to keep going
-
+        print(f"after filter `{operator}`: {output_ranges}")
         return output_ranges
-        print(f"after filter `{operator}`: {ranges_left}")
     else:
         assert False, f'unknown operator {operator} in {expression}'
 
@@ -289,11 +290,13 @@ def evaluate_expression(expression, results) -> List[Range]:
             # create a set from the union of the expressions in the `or` block
             either_ranges = set(flatten((results[pid]) for pid in pattern_ids))
             # remove anything that does not equal one of these ranges
-            return ranges_left.intersection(either_ranges)
+            ranges_left.intersection_update(either_ranges)
         else:
             assert len(
                 pattern_ids) == 1, f'only {OPERATORS.AND_EITHER} expressions can have multiple pattern names'
-            return evaluate_single_expression(operator, pattern_ids[0], results, ranges_left)
+            ranges_left = _evaluate_single_expression(
+                operator, pattern_ids[0], results, ranges_left)
+    return ranges_left
 
 
 def print_error(e):
@@ -302,7 +305,7 @@ def print_error(e):
 
 
 def parse_sgrep_yml(file_path: str):
-    #print_error(f'loading rules from {file_path}...')
+    # print_error(f'loading rules from {file_path}...')
     try:
         y = yaml.safe_load(open(file_path))
     except FileNotFoundError:
@@ -330,7 +333,7 @@ def parse_sgrep_yml(file_path: str):
 
 @click.command()
 @click.argument("yaml_file_or_dirs", nargs=1, type=click.Path(),
-                #help=f"The YAML file or directory of YAML files ending in {YML_EXTENSIONS} with rules",
+                # help=f"The YAML file or directory of YAML files ending in {YML_EXTENSIONS} with rules",
                 )
 @click.argument("target_files_or_dirs", nargs=-1, type=click.Path())
 def main(yaml_file_or_dirs, target_files_or_dirs):
