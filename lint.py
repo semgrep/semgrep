@@ -8,20 +8,149 @@ import tempfile
 import traceback
 from dataclasses import dataclass
 from pathlib import PurePath
-from typing import Any, List
+from typing import Any, Generator, List, Set, Tuple
 
 import click
 import yaml
 
-# validate input yaml files
 
-# validate patterns inside yaml files
+class OPERATORS:
+    AND_NOT = "and_not"
+    AND = "and"
+    AND_EITHER = "and_either"
+    AND_INSIDE = "and_inside"
+    AND_NOT_INSIDE = "and_not_inside"
 
-# glob yaml files into a single rule files, adjusting check ids
-MUST_HAVE_KEYS = set(['id', 'pattern', 'message', 'languages', 'severity'])
+
+MUST_HAVE_KEYS = set(['id', 'message', 'languages', 'severity'])
+
+PATTERN_NAMES_MAP = {
+    "pattern-inside": OPERATORS.AND_INSIDE,
+    "pattern-not-inside": OPERATORS.AND_NOT_INSIDE,
+    "pattern-either": OPERATORS.AND_EITHER,
+    "pattern-not": OPERATORS.AND_NOT,
+    "pattern": OPERATORS.AND,
+}
+
 YML_EXTENSIONS = ['.yml', '.yaml']
 
 SGREP_PATH = "sgrep"
+
+
+def build_boolean_expression(rule):
+    """
+    Build a (flat, not nested #TODO boolean expression from the yml lines in the rule)
+    """
+    def _parse_boolean_expression(rule_patterns, counter=0):
+        for pattern in rule_patterns:
+            for boolean_operator, pattern_text in pattern.items():
+                if boolean_operator == 'pattern-either':
+                    yield (OPERATORS.AND_EITHER, list(range(counter, counter + len(pattern_text))))
+                    counter += len(pattern_text)
+                else:
+                    yield (operator_for_pattern_name(boolean_operator), [counter])
+                    counter += 1
+
+    if 'pattern' in rule:  # single pattern
+        yield (OPERATORS.AND, [0])
+    elif 'patterns' in rule:  # multiple patterns
+        yield from _parse_boolean_expression(rule['patterns'])
+    else:
+        assert False
+
+
+def operator_for_pattern_name(pattern_name):
+    return PATTERN_NAMES_MAP[pattern_name]
+
+
+def parse_rule_patterns(rule):
+    if 'pattern' in rule:  # single pattern
+        yield (0, rule['pattern'])
+    elif 'patterns' in rule:  # multiple patterns
+        yield from parse_pattern_expression(rule['patterns'])
+    else:
+        assert False
+
+# -> Generator[Tuple[int, str]]:
+
+
+def parse_pattern_expression(rule_patterns, counter=0):
+    #    print((counter, rule_patterns))
+    for pattern in rule_patterns:
+        for boolean_operator, pattern_text in pattern.items():
+            if boolean_operator == 'pattern-either':
+                yield from parse_pattern_expression(pattern_text, counter)
+                counter += len(pattern_text)
+            else:
+                yield (counter, pattern_text)
+                counter += 1
+
+
+def parse_sgrep_yml(file_path: str):
+    """
+rules:
+  - id: assert-eqeq-is-ok
+    pattern: |
+      def __eq__():
+          ...
+          $X == $X
+    message: "possibly useless comparison but in eq function"
+    languages: [python]
+    severity: OK
+  - id: eqeq-is-bad
+    patterns:
+      - pattern-not-inside: |
+          def __eq__():
+              ...
+      - pattern-not-inside: assert(...)
+      - pattern-not-inside: assertTrue(...)
+      - pattern-not-inside: assertFalse(...)
+      - pattern-not: 1 == 1
+      - pattern-either:
+          - pattern: $X == $X
+          - pattern: $X != $X
+    message: "useless comparison operation `$X == $X` or `$X != $X`; possible bug?"
+    langauges: [python]
+    severity: ERROR
+  - id: python37-compatability-os-module
+    patterns:
+      - pattern-not-inside: |
+          if hasattr(os, 'pwrite'):
+              ...
+      - pattern: os.pwrite(...)
+    message: "this function is only available on Python 3.7+"
+    languages: [python]
+    severity: ERROR
+
+    """
+    try:
+        y = yaml.safe_load(open(file_path))
+    except FileNotFoundError:
+        return None
+    except yaml.scanner.ScannerError as se:
+        print_error(se)
+        return None
+
+    if not 'rules' in y:
+        print_error(f'{file_path} should have top-level key named `rules`')
+        return None
+
+    counter = 0
+
+    rules = []
+    for i, rule in enumerate(y['rules']):
+        if not rule:
+            continue
+        rule_id_err_msg = f'(rule id: {rule["id"]})' if ('id' in rule) else ''
+        if set(rule.keys()).issubset(MUST_HAVE_KEYS):
+            print_error(
+                f'{file_path} is missing keys at rule {i+1}{rule_id_err_msg}, must have: {MUST_HAVE_KEYS}')
+        elif not 'pattern' in rule and not 'patterns' in rule:
+            print_error(
+                f'{file_path} is missing key `pattern` or `patterns` at rule {i+1}{rule_id_err_msg}')
+        else:
+            rules.append(rule)
+    return rules
 
 
 def sgrep_pattern():
@@ -51,8 +180,6 @@ def sgrep_pattern():
         -
     - message: this is dangerous
 
-    ==== suggestion, just do and, and-not, maybe "and-or"
-
     - id: subprocess-1
     - AND-EITHER:
         - subprocess.Popen($X, safeflag=True)
@@ -67,7 +194,7 @@ def sgrep_pattern():
     - booleans: !P1 && P2
     - message: this is dangerous
 
-insight: our algebra needs to express "AND-INSIDE" as opposed to "AND-NOT-INSIDE"
+
 (effectively CFG-dominance relations) in order to handle "in this function"
 let's makee the and implicit, then we'd have:
     either-pattern:
@@ -93,169 +220,13 @@ class Range:
         return f'{self.start}-{self.end}'
 
 
-class OPERATORS:
-    AND_NOT = "and_not"
-    AND = "and"
-    AND_EITHER = "and_either"
-    AND_INSIDE = "and_inside"
-    AND_NOT_INSIDE = "and_not_inside"
-
-
-def testA():
-    """
-
-    TODO: what about nested booleans?
-
-    let pattern1 = subprocess.Popen($X, safeflag=True)
-    let pattern2 =  subprocess.Popen($X, ...)
-
-        import subprocess
-        subprocess.Popen(subprocess.Popen(safeFlag=True))
-        ------------------------------------------------- P2        R1
-                         ------------------------------- P1, P2     R2
-
-    and-not P1 --> remove all ranges equal to P1 exactly (removes R2)
-    and P2 --> remove all ranges that don't equal P2 (R1 stays)
-    OUTPUT: R1
-
-    """
-    results = {
-        "pattern1": [Range(30, 100)],
-        "pattern2": [Range(0, 100), Range(30, 100)],
-    }
-    expression = [(OPERATORS.AND_NOT, ["pattern1"]),
-                  (OPERATORS.AND, ["pattern2"])]
-    result = evaluate_expression(expression, results)
-    assert result == set([Range(0, 100)]), f"{result}"
-
-
-def testB():
-    """
-
-        let pattern1 = subprocess.Popen($X, safeflag=True)
-        let pattern2 = subprocess.Popen($X, ...)
-        let pattern3 = importlib.Popen($X, ...)
-
-
-        import subprocess
-        subprocess.Popen(subprocess.Popen(bad), safeFlag=True)
-        ----------------------------------------------------- P1, P2        R1
-                         ---------------------                P2            R2
-
-        and-not P1 --> remove all ranges == P1 exactly (R1 is removed)
-        and-or (P2, P3) -->  remove any ranges not exactly == P2 or P3. (R2 stays)
-        OUTPUT: R2
-    """
-    results = {
-        "pattern1": [Range(0, 100)],
-        "pattern2": [Range(30, 70), Range(0, 100)],
-        "pattern3": []
-    }
-    expression = [(OPERATORS.AND_NOT, ["pattern1"]),
-                  (OPERATORS.AND_EITHER, ["pattern2", "pattern3"])]
-    result = evaluate_expression(expression, results)
-    assert result == set([Range(30, 70)]), f"{result}"
-
-
-def testC():
-    """
-        let pattern1 = subprocess.Popen($X, safeflag=True)
-        let pattern2 = subprocess.Popen($X, ...)
-        let pattern4 = def __eq__(): \n...
-
-        def __eq__():
-            import subprocess
-            subprocess.Popen(subprocess.Popen(bad), safeFlag=True)
-            -----------------------------------------------------   P1, P2      R1
-                            ---------------------                   P2          R2
-        ----------------------------------------------------------  P4          R3
-
-        and-inside P4 --> remove all ranges that are not enclosed by P4. Now only ranges inside or equal to P4 are left (all ranges remain)
-        and-not P1 --> remove all ranges == P1. Now only ranges that don't have P1 remain (R2, R3 remain)
-        and P2 --> remove all ranges not == P2. R2 remains.
-        OUTPUT: R2
-    """
-    results = {
-        "pattern1": [Range(100, 1000)],
-        "pattern2": [Range(100, 1000), Range(200, 300)],
-        "pattern4": [Range(0, 1000)]
-    }
-    expression = [(OPERATORS.AND_INSIDE, ["pattern4"]),
-                  (OPERATORS.AND_NOT, ["pattern1"]),
-                  (OPERATORS.AND, ["pattern2"])]
-    result = evaluate_expression(expression, results)
-    assert result == set([Range(200, 300)]), f"{result}"
-
-
-def testD():
-    """
-        let pattern1 = subprocess.Popen($X, safeflag=True)
-        let pattern2 = subprocess.Popen($X, ...)
-        let pattern4 = def __eq__(): \n...
-
-        def __eq__():
-            import subprocess
-            subprocess.Popen(subprocess.Popen(bad), safeFlag=True)
-            -----------------------------------------------------   P1, P2      R1
-                            ---------------------                   P2          R2
-        ----------------------------------------------------------  P4          R3
-
-        and-not-inside P4 --> remove all ranges that are not enclosed by P4. Now only ranges inside or equal to P4 are left (no ranges remain)
-        and-not P1 --> no effect
-        and P2 --> no effect
-        OUTPUT: []
-    """
-    results = {
-        "pattern1": [Range(100, 1000)],
-        "pattern2": [Range(100, 1000), Range(200, 300)],
-        "pattern4": [Range(0, 1000)]
-    }
-    expression = [(OPERATORS.AND_NOT_INSIDE, ["pattern4"]),
-                  (OPERATORS.AND_NOT, ["pattern1"]),
-                  (OPERATORS.AND, ["pattern2"])]
-    result = evaluate_expression(expression, results)
-    assert result == set([]), f"{result}"
-
-
-def testE():
-    """
-    let pattern1 = bad()
-    let pattern2 = def __eq__(): \n...
-    let pattern3 = def normal(): \n...
-
-
-        0-100 def __eq__():
-        100-200    bad()
-
-        200-300 def normal():
-        300-400     bad(bad())
-        400-500     def __eq__():
-        500-600         bad()
-
-        and-inside P3
-        and-not-inside P2
-        and P1
-        OUTPUT: [300-400], [350-400]
-    """
-    results = {
-        "pattern1": [Range(100, 200), Range(300, 400), Range(350, 400)],
-        "pattern2": [Range(0, 200), Range(400, 600)],
-        "pattern3": [Range(200, 600)]
-    }
-    expression = [(OPERATORS.AND_INSIDE, ["pattern3"]),
-                  (OPERATORS.AND_NOT_INSIDE, ["pattern2"]),
-                  (OPERATORS.AND, ["pattern1"])]
-    result = evaluate_expression(expression, results)
-    assert result == set([Range(300, 400), Range(350, 400)]), f"{result}"
-
-
 def flatten(L: List[List[Any]]) -> List[Any]:
     for list in L:
         for item in list:
             yield item
 
 
-def _evaluate_single_expression(operator, pattern_id, results, ranges_left) -> List[Range]:
+def _evaluate_single_expression(operator, pattern_id, results, ranges_left: Set[Range]) -> List[Range]:
     if operator == OPERATORS.AND:
         # remove all ranges that don't equal the ranges for this pattern
         return ranges_left.intersection(results[pattern_id])
@@ -263,21 +234,28 @@ def _evaluate_single_expression(operator, pattern_id, results, ranges_left) -> L
         # remove all ranges that DO equal the ranges for this pattern
         # difference_update = Remove all elements of another set from this set.
         return ranges_left.difference(results[pattern_id])
-    elif operator == OPERATORS.AND_INSIDE or operator == OPERATORS.AND_NOT_INSIDE:
+    elif operator == OPERATORS.AND_INSIDE:
         # remove all ranges (not enclosed by) or (not equal to) the inside ranges
         output_ranges = set()
         for arange in ranges_left:
-            keep_this_range = False
             for keep_inside_this_range in results[pattern_id]:
                 is_enclosed = keep_inside_this_range.is_enclosing_or_eq(arange)
-                keep = (operator == OPERATORS.AND_INSIDE and is_enclosed) or \
-                    (operator == OPERATORS.AND_NOT_INSIDE and not is_enclosed)
-                print(
-                    f'candidate range is {arange}, needs to be `{operator}` {keep_inside_this_range}; keep?: {keep}')
-                if keep:
+                # print(
+                #    f'candidate range is {arange}, needs to be `{operator}` {keep_inside_this_range}; keep?: {keep}')
+                if is_enclosed:
                     output_ranges.add(arange)
                     break  # found a match, no need to keep going
-        print(f"after filter `{operator}`: {output_ranges}")
+        # print(f"after filter `{operator}`: {output_ranges}")
+        return output_ranges
+    elif operator == OPERATORS.AND_NOT_INSIDE:
+        # remove all ranges enclosed by or equal to
+        output_ranges = ranges_left.copy()
+        for arange in ranges_left:
+            for keep_inside_this_range in results[pattern_id]:
+                if keep_inside_this_range.is_enclosing_or_eq(arange):
+                    output_ranges.remove(arange)
+                    break
+        # print(f"after filter `{operator}`: {output_ranges}")
         return output_ranges
     else:
         assert False, f'unknown operator {operator} in {expression}'
@@ -300,35 +278,13 @@ def evaluate_expression(expression, results) -> List[Range]:
 
 
 def print_error(e):
-    sys.stderr.write(e + os.linesep)
+    sys.stderr.write(str(e) + os.linesep)
     sys.stderr.flush()
 
 
-def parse_sgrep_yml(file_path: str):
-    # print_error(f'loading rules from {file_path}...')
-    try:
-        y = yaml.safe_load(open(file_path))
-    except FileNotFoundError:
-        return None
-    except yaml.scanner.ScannerError as se:
-        print_error(se)
-        return None
-
-    if not 'rules' in y:
-        print_error(f'{file_path} should have top-level key named `rules`')
-        return None
-
-    rules = []
-    for i, rule in enumerate(y['rules']):
-        if not rule:
-            continue
-        rule_id_err_msg = f'(rule id: {rule["id"]})' if ('id' in rule) else ''
-        if MUST_HAVE_KEYS != set(rule.keys()):
-            print_error(
-                f'{file_path} is missing keys at rule {i}{rule_id_err_msg}, must have: {MUST_HAVE_KEYS}')
-        else:
-            rules.append(rule)
-    return rules
+def output_to_ranges(sgrep_output: str) -> List[Range]:
+    # TODO: take sgrep output and convert it to ranges on a per-file or other basis
+    return [Range(0, 100)]
 
 
 @click.command()
@@ -356,27 +312,30 @@ def main(yaml_file_or_dirs, target_files_or_dirs):
                         rule['id'] = new_id
                     all_rules.extend(list(rules_in_file))
 
-    # create unified yml file
-    unified = {'rules': list(all_rules)}
+    unified = list(all_rules)
     print_error(
-        f'running {len(all_rules)} rules from {not_errors} yaml files ({errors} yaml files were invalid)')
-    with tempfile.NamedTemporaryFile('w') as fout:
-        fout.write(yaml.safe_dump(unified, sort_keys=False))
-        fout.flush()
-        cmd = f'{SGREP_PATH} -rule_file={fout.name} {" ".join(list(target_files_or_dirs))}'
-        output = subprocess.check_output(cmd, shell=True)
-        print(output.decode('utf-8'))
+        f'running {len(unified)} rules from {not_errors} yaml files ({errors} yaml files were invalid)')
+    # send each rule to sgrep one by one
+    for rule in unified:
+        output_by_pattern_index = {}
+        patterns_with_ids = list(parse_rule_patterns(rule))
+        for (patttern_index, pattern) in patterns_with_ids:
+            cmd = f'{SGREP_PATH} -pattern={pattern}'
+            # print(cmd)
+            output = b''
+            # output = subprocess.check_output(cmd, shell=True)
+            ranges = output_to_ranges(output.decode('utf-8'))
+            output_by_pattern_index[patttern_index] = ranges
 
-
-def testAll():
-    testA()
-    testB()
-    testC()
-    testD()
-    print('8'*80)
-    testE()
+        # we have the output, but now we need to build the expression
+        expression = list(build_boolean_expression(rule))
+        print(f'expression: {expression}')
+        print(f'output: {output_by_pattern_index}')
+        print(f'pattern map: {patterns_with_ids}')
+        print('-'*80)
+        compiled_result = evaluate_expression(
+            expression, output_by_pattern_index)
 
 
 if __name__ == '__main__':
-    testAll()
-    # main()
+    main()
