@@ -111,7 +111,7 @@ let sgrep_gen_unittest ~any_gen_of_string =
 ", true;
 
      (* for parameters *)
-       "def foo(a, b): ...
+       "def foo(...): ...
 ",
        "def foo(a, b): return a+b
 ", true;

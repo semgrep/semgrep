@@ -536,7 +536,7 @@ and m_expr a b =
     m_expr a1 b1 >>= (fun () -> 
     return ()
     )
-  | A.Ellipses(a1), B.Ellipses(b1) ->
+  | A.Ellipsis(a1), B.Ellipsis(b1) ->
     m_tok a1 b1 >>= (fun () -> 
     return ()
     )
@@ -551,7 +551,7 @@ and m_expr a b =
   | A.Assign _, _  | A.AssignOp _, _  | A.LetPattern _, _  | A.ObjAccess _, _
   | A.ArrayAccess _, _  | A.Conditional _, _  | A.MatchPattern _, _
   | A.Yield _, _  | A.Await _, _  | A.Cast _, _  | A.Seq _, _  | A.Ref _, _
-  | A.DeRef _, _  | A.Ellipses _, _  | A.OtherExpr _, _
+  | A.DeRef _, _  | A.Ellipsis _, _  | A.OtherExpr _, _
    -> fail ()
 
 
@@ -735,14 +735,14 @@ and m_list__m_argument (xsa: A.argument list) (xsb: A.argument list) =
       return ()
 
   (* '...', can also match no argument *)
-  | [A.Arg (A.Ellipses _i)], [] ->
+  | [A.Arg (A.Ellipsis _i)], [] ->
       return ()
 
-  | A.Arg (A.Ellipses i)::xsa, xb::xsb ->
+  | A.Arg (A.Ellipsis i)::xsa, xb::xsb ->
       (* can match nothing *)
       (m_list__m_argument xsa (xb::xsb)) >||>
       (* can match more *)
-      (m_list__m_argument ((A.Arg (A.Ellipses i))::xsa) xsb)
+      (m_list__m_argument ((A.Arg (A.Ellipsis i))::xsa) xsb)
 
   | A.ArgKwd ((s, _tok) as ida, ea)::xsa, xsb ->
       (try 
@@ -968,14 +968,14 @@ and m_stmts (xsa: A.stmt list) (xsb: A.stmt list) =
       return ()
 
   (* '...', can also match no statement *)
-  | [A.ExprStmt (A.Ellipses _i)], [] ->
+  | [A.ExprStmt (A.Ellipsis _i)], [] ->
       return ()
 
-  | (A.ExprStmt (A.Ellipses i))::xsa, xb::xsb ->
+  | (A.ExprStmt (A.Ellipsis i))::xsa, xb::xsb ->
       (* can match nothing *)
       (m_stmts xsa (xb::xsb)) >||>
       (* can match more *)
-      (m_stmts ((A.ExprStmt (A.Ellipses i))::xsa) xsb)
+      (m_stmts ((A.ExprStmt (A.Ellipsis i))::xsa) xsb)
 
 
   (* the general case *)
@@ -997,7 +997,7 @@ and m_stmt a b =
       envf (str, tok) (B.S b)
 
   (* '...' can to match any statememt *)
-  | A.ExprStmt(A.Ellipses _i), _b ->
+  | A.ExprStmt(A.Ellipsis _i), _b ->
       return ()
 
   | A.ExprStmt(a1), B.ExprStmt(b1) ->
@@ -1348,7 +1348,34 @@ and m_function_definition a b =
 
 and m_parameters a b = 
   match a, b with
-  (a, b) -> (m_list m_parameter) a b
+  (a, b) -> (m_list__m_parameter) a b
+
+and m_list__m_parameter (xsa: A.parameter list) (xsb: A.parameter list) =
+  match xsa, xsb with
+  | [], [] ->
+      return ()
+
+  (* '...', can also match no argument *)
+  | [A.ParamEllipsis _i], [] ->
+      return ()
+
+  | (A.ParamEllipsis i)::xsa, xb::xsb ->
+      (* can match nothing *)
+      (m_list__m_parameter xsa (xb::xsb)) >||>
+      (* can match more *)
+      (m_list__m_parameter ((A.ParamEllipsis i)::xsa) xsb)
+
+  (* the general case *)
+  | xa::aas, xb::bbs ->
+      m_parameter xa xb >>= (fun () ->
+      m_list__m_parameter aas bbs >>= (fun () ->
+        return ()
+      )
+      )
+  | [], _
+  | _::_, _ ->
+      fail ()
+
 
 and m_parameter a b = 
   match a, b with
@@ -1365,7 +1392,13 @@ and m_parameter a b =
     (m_list m_any) a2 b2 >>= (fun () -> 
     return ()
     ))
-  | A.ParamClassic _, _  | A.ParamPattern _, _  | A.OtherParam _, _
+  | A.ParamEllipsis(a1), B.ParamEllipsis(b1) ->
+    m_tok a1 b1 >>= (fun () -> 
+    return ()
+    )
+  | A.ParamClassic _, _  | A.ParamPattern _, _  
+  | A.ParamEllipsis _, _
+  | A.OtherParam _, _
    -> fail ()
 
 
