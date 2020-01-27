@@ -363,12 +363,14 @@ let m_resolved_name a b =
     return ()
     )
   | A.ImportedModule(a1), B.ImportedModule(b1) ->
-    m_qualified_name a1 b1 >>= (fun () -> 
+    m_module_name a1 b1 >>= (fun () -> 
     return ()
     )
   | A.Macro, B.Macro ->
     return ()
   | A.EnumConstant, B.EnumConstant ->
+    return ()
+  | A.TypeName, B.TypeName ->
     return ()
 
   | A.Local _, _
@@ -377,6 +379,7 @@ let m_resolved_name a b =
   | A.EnclosedVar _, _
   | A.Macro, _
   | A.EnumConstant, _
+  | A.TypeName, _
   | A.ImportedModule _, _
    -> fail ()
 
@@ -406,7 +409,8 @@ and m_expr a b =
   match a, b with
   (* iso: name resolving! *)
   | a, B.Name (_, { B.id_resolved = 
-      {contents = Some (B.Global dotted | B.ImportedModule dotted)}; _}) ->
+      {contents = Some (B.Global dotted 
+                       | B.ImportedModule (B.DottedName dotted))}; _}) ->
 
     m_expr a (make_dotted dotted)
 
