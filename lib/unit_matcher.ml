@@ -116,6 +116,11 @@ let sgrep_gen_unittest ~any_gen_of_string =
        "def foo(a, b): return a+b
 ", true;
 
+       "def foo(..., foo=..., ...): ...
+",
+       "def foo(a, b, foo = 1, bar = 2): return a+b
+", true;
+
 (*      "class Foo { ... }", "class Foo { int x; }", true; *)
       (* '...' in arrays *)
 (*      "foo($X, array(...));",  "foo(1, array(2, 3));", true; *)
