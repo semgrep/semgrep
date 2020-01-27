@@ -426,6 +426,12 @@ and m_expr a b =
      when MV.is_metavar_name str ->
       envf (str, tok) (B.E (e2))
 
+  (* should be patterned-match before in arguments, or statements,
+   * but this is useful for keyword parameters, as in f(..., foo=..., ...)
+   *)
+  | A.Ellipsis(_a1), _ ->
+    return ()
+
   | A.L(a1), B.L(b1) ->
     m_literal a1 b1 >>= (fun () -> 
     return ()
@@ -536,10 +542,8 @@ and m_expr a b =
     m_expr a1 b1 >>= (fun () -> 
     return ()
     )
-  | A.Ellipsis(a1), B.Ellipsis(b1) ->
-    m_tok a1 b1 >>= (fun () -> 
-    return ()
-    )
+
+
   | A.OtherExpr(a1, a2), B.OtherExpr(b1, b2) ->
     m_other_expr_operator a1 b1 >>= (fun () -> 
     (m_list m_any) a2 b2 >>= (fun () -> 
@@ -551,7 +555,7 @@ and m_expr a b =
   | A.Assign _, _  | A.AssignOp _, _  | A.LetPattern _, _  | A.ObjAccess _, _
   | A.ArrayAccess _, _  | A.Conditional _, _  | A.MatchPattern _, _
   | A.Yield _, _  | A.Await _, _  | A.Cast _, _  | A.Seq _, _  | A.Ref _, _
-  | A.DeRef _, _  | A.Ellipsis _, _  | A.OtherExpr _, _
+  | A.DeRef _, _  | A.OtherExpr _, _
    -> fail ()
 
 
