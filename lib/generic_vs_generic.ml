@@ -1610,22 +1610,7 @@ and m_other_directive_operator = m_other_xxx
 (* Toplevel *)
 (* ------------------------------------------------------------------------- *)
 
-and m_item a b = 
-  match a, b with
-  | A.IStmt(a1), B.IStmt(b1) ->
-    m_stmt a1 b1 >>= (fun () -> 
-    return ()
-    )
-  | A.IDef(a1), B.IDef(b1) ->
-    m_definition a1 b1 >>= (fun () -> 
-    return ()
-    )
-  | A.IDir(a1), B.IDir(b1) ->
-    m_directive a1 b1 >>= (fun () -> 
-    return ()
-    )
-  | A.IStmt _, _ | A.IDef _, _ | A.IDir _, _
-   -> fail ()
+and m_item a b = m_stmt a b
 
 and m_program a b = 
   match a, b with
@@ -1681,10 +1666,6 @@ and m_any a b =
     m_field a1 b1 >>= (fun () -> 
     return ()
     )
-  | A.I(a1), B.I(b1) ->
-    m_item a1 b1 >>= (fun () -> 
-    return ()
-    )
   | A.Pa(a1), B.Pa(b1) ->
     m_parameter a1 b1 >>= (fun () -> 
     return ()
@@ -1715,6 +1696,6 @@ and m_any a b =
     )
   | A.Id _, _  | A.N _, _  | A.Di _, _  | A.En _, _  | A.E _, _
   | A.S _, _  | A.T _, _  | A.P _, _  | A.Def _, _  | A.Dir _, _
-  | A.I _, _  | A.Pa _, _  | A.Ar _, _  | A.At _, _  | A.Dk _, _ | A.Pr _, _
+  | A.Pa _, _  | A.Ar _, _  | A.At _, _  | A.Dk _, _ | A.Pr _, _
   | A.Fld _, _ | A.Ss _, _ | A.Tk _, _
    -> fail ()
