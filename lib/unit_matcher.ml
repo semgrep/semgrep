@@ -67,6 +67,8 @@ let sgrep_gen_unittest ~any_gen_of_string =
   return 1
 ", true;
 
+
+
       (* metavariable string for identifiers *)
 (*     "foo('X');", "foo('a_func');", true; *)
       (* many arguments metavariables *)
@@ -91,14 +93,21 @@ let sgrep_gen_unittest ~any_gen_of_string =
 
       (* in strings *)
       "foo(\"...\")", "foo(\"this is a long string\")", true;
+     (* "foo(\"...\");", "foo(\"a string\" . \"another string\");", true;*)
 
       (* for stmts *)
+      "if True:
+  foo()
+  ...
+  bar()
+",
+      "if True:
+  foo()
+  foobar()
+  bar()
+", true;
+
 (*      "class Foo { ... }", "class Foo { int x; }", true; *)
-      (* '...' in strings *)
-(*      "foo(\"...\");", "foo(\"a string\" . \"another string\");", true;*)
-      (* '...' in new *)
-(*      "new Foo(...);","new Foo(1);", true;*)
-(*      "new Foo(...);","new Foo();", true; *)
       (* '...' in arrays *)
 (*      "foo($X, array(...));",  "foo(1, array(2, 3));", true; *)
 
