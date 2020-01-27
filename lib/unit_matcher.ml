@@ -65,11 +65,18 @@ let sgrep_gen_unittest ~any_gen_of_string =
        "if(True): return 1
 ", true;
 
-      (* metavariable for entity *)
-       "def $X():  ...
+      (* metavariable for entity definitions *)
+       "def $X():  return 1
 ",
        "def foo(): return 1
 ", true;
+
+      (* metavariable for parameter *)
+       "def foo($A, b):  return 1
+",
+       "def foo(x, b): return 1
+", true;
+
 
       (* metavariable string for identifiers *)
 (*     "foo('X');", "foo('a_func');", true; *)

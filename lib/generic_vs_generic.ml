@@ -981,7 +981,6 @@ and m_stmts (xsa: A.stmt list) (xsb: A.stmt list) =
   (* the general case *)
   | xa::aas, xb::bbs ->
       m_stmt xa xb >>= (fun () ->
-        pr2 "ONE MATCH";
       m_stmts aas bbs >>= (fun () ->
         return ()
       )
