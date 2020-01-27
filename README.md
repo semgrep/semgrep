@@ -47,11 +47,24 @@ $ opam install reason
 $ opam install dune
 ```
 
+sgrep probably needs the very latest features of pfff, which may not
+be yet in the latest OPAM version of pfff. In that case, install pfff
+manually by doing:
+
+```
+$ git clone https://github.com/returntocorp/pfff
+$ cd pfff
+$ make depend; make; make opt; make reinstall-libs
+```
+
 Then you can compile the program with:
 
 ```
 $ dune build
 ```
+
+You can also use the Dockerfile in this directory to build sgrep
+inside a container.
 
 ## Run 
 
