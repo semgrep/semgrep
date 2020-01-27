@@ -9,8 +9,8 @@ WORKDIR /home/opam/
 RUN git clone https://github.com/returntocorp/pfff
 RUN eval $(opam env) && cd pfff && git checkout bb3d11515b435bf37bdd1863c2839ef8efde9d82 && ./configure && make depend && make && make opt && make install-libs
 
-RUN git clone https://github.com/returntocorp/sgrep
-RUN eval $(opam env) && cd sgrep && git checkout f4368b81ed6a5911943f12b462c630970d258e66 && dune build
+COPY --chown=opam . /home/opam/sgrep/
+RUN eval $(opam env); cd sgrep; dune build
 
 FROM alpine:3.11.3@sha256:ddba4d27a7ffc3f86dd6c2f92041af252a1f23a8e742c90e6e1297bfa1bc0c45
 LABEL maintainer="sgrep@r2c.dev"
