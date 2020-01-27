@@ -60,14 +60,16 @@ let sgrep_gen_unittest ~any_gen_of_string =
       "$X(...)", "a+b", false;
 
       (* metavariable for statements *)
-      "if($X):
- $S
+      "if($X): $S
 ",
-       "if(True):
-  return 1
+       "if(True): return 1
 ", true;
 
-
+      (* metavariable for entity *)
+       "def $X():  ...
+",
+       "def foo(): return 1
+", true;
 
       (* metavariable string for identifiers *)
 (*     "foo('X');", "foo('a_func');", true; *)
@@ -96,15 +98,15 @@ let sgrep_gen_unittest ~any_gen_of_string =
      (* "foo(\"...\");", "foo(\"a string\" . \"another string\");", true;*)
 
       (* for stmts *)
-      "if True:
-  foo()
-  ...
-  bar()
+      "if True: foo(); ...; bar()
 ",
-      "if True:
-  foo()
-  foobar()
-  bar()
+      "if True: foo(); foobar(); bar()
+", true;
+
+     (* for parameters *)
+       "def foo(a, b): ...
+",
+       "def foo(a, b): return a+b
 ", true;
 
 (*      "class Foo { ... }", "class Foo { int x; }", true; *)
