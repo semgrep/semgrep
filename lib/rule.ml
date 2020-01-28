@@ -30,3 +30,6 @@ type rule = {
  and severity =
   | Error
   | Warning
+
+(* alias *)
+type t = rule

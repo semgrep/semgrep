@@ -35,38 +35,28 @@ module R = Rule
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-let error matched_tokens _env rule =
-  let tok = List.hd matched_tokens in
-  match rule.R.severity with
-  | R.Error ->
-      E.error tok (E.SgrepLint (rule.R.id, rule.R.message))
-  | R.Warning ->
-      E.warning tok (E.SgrepLint (rule.R.id, rule.R.message))
-
 
 (*****************************************************************************)
 (* Checking *)
 (*****************************************************************************)
 
-let check2 rules ast =
-
+(* coupling: this is similar to what we do in sgrep_generic.ml except we apply
+ * a list of sgrep patterns to the AST.
+ *)
+let check2 rules file ast =
   (* todo: use Normalize_ast.normalize like in sgrep_generic.ml *)
 
-  (* This is similar to what we do in main_sgrep.ml except we apply
-   * a list of sgrep patterns to the AST.
-   *)
+  let matches = ref [] in
 
-  let stmt_rules = ref [] in
   let expr_rules = ref [] in
-  (* we use List.rev here because we push2 below and we want the
-   * first rule in the files to be also the first rules in the x_rules
-   * lists for the 'OK' to work (see the comment above about OK).
-   *)
-  List.rev rules |> List.iter (fun rule ->
+  let stmt_rules = ref [] in
+  let stmts_rules = ref [] in
+  rules |> List.iter (fun rule ->
     match rule.R.pattern with
     | E pattern  -> Common.push (pattern, rule) expr_rules
     | S pattern -> Common.push (pattern, rule) stmt_rules
-    | _ -> failwith "only expr and stmt patterns supported for now"
+    | Ss pattern -> Common.push (pattern, rule) stmts_rules
+    | _ -> failwith "only expr, stmt, and stmts patterns are supported"
   );
 
   let visitor = V.mk_visitor { V.default_visitor with
@@ -78,29 +68,49 @@ let check2 rules ast =
          let matches_with_env = Sgrep_generic.match_e_e pattern expr in
          if matches_with_env <> []
          then (* Found a match *)
-           let matched_tokens = Lib_ast.ii_of_any (E expr) in
-           error matched_tokens matches_with_env rule
+           matches_with_env |> List.iter (fun env ->
+            Common.push
+             { Match_result. rule; file; code = E expr; env = env }
+             matches;
+         )
       );
       (* try the rules on subexpressions *)
       k expr
     );
 
     (* mostly copy paste of expr code but with the _st functions *)
-    V.kstmt = (fun (k, _) stmt ->
+    V.kstmt = (fun (k, _) x ->
       !stmt_rules |> List.iter (fun (pattern, rule) -> 
-         let matches_with_env = Sgrep_generic.match_st_st pattern stmt in
+         let matches_with_env = Sgrep_generic.match_st_st pattern x in
          if matches_with_env <> []
          then (* Found a match *)
-           let matched_tokens = Lib_ast.ii_of_any (S stmt) in
-           error matched_tokens matches_with_env rule
+           matches_with_env |> List.iter (fun env ->
+            Common.push
+             { Match_result. rule; file; code = S x; env = env }
+             matches;
+            )
       );
       (* try the rules on substatements and subexpressions *)
-      k stmt
+      k x
+    );
+
+    V.kstmts = (fun (k, _) x ->
+      !stmts_rules |> List.iter (fun (pattern, rule) -> 
+         let matches_with_env = Sgrep_generic.match_sts_sts pattern x in
+         if matches_with_env <> []
+         then (* Found a match *)
+           matches_with_env |> List.iter (fun env ->
+            Common.push
+             { Match_result. rule; file; code = Ss x; env = env }
+             matches;
+            )
+      );
+      k x
     );
   }
   in
   visitor (Pr ast);
-  ()
+  !matches |> List.rev
 
-let check rules a =
-  Common.profile_code "Sgrep_lint.check" (fun () -> check2 rules a)
+let check a b c =
+  Common.profile_code "Sgrep_lint.check" (fun () -> check2 a b c)
