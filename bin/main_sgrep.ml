@@ -330,6 +330,7 @@ let sgrep_with_rules rules_file xs =
     | _ -> "/"
   in
   if !verbose then pr2 (spf "Parsing %s" rules_file);
+  (* todo: call Normalize_ast.normalize here after or in parse()? *)
   let rules = Parse_rules.parse rules_file in
 
   match Lang.lang_of_string_opt !lang with
