@@ -1,4 +1,4 @@
-from lint import OPERATORS, Range, evaluate_expression
+from sgrep import OPERATORS, Range, evaluate_expression
 
 
 def testA():
