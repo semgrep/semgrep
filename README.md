@@ -54,7 +54,7 @@ manually by doing:
 ```
 $ git clone https://github.com/returntocorp/pfff
 $ cd pfff
-$ make depend; make; make opt; make reinstall-libs
+$ ./configure; make depend; make; make opt; make reinstall-libs
 ```
 
 Then you can compile the program with:
