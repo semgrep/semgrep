@@ -7,7 +7,7 @@ RUN git pull && opam update && opam switch 4.07 && opam install ocamlfind camlp4
 WORKDIR /home/opam/
 
 RUN git clone https://github.com/returntocorp/pfff
-RUN eval $(opam env) && cd pfff && git checkout bb3d11515b435bf37bdd1863c2839ef8efde9d82 && ./configure && make depend && make && make opt && make install-libs
+RUN eval $(opam env) && cd pfff && ./configure && make depend && make && make opt && make install-libs
 
 COPY --chown=opam . /home/opam/sgrep/
 RUN eval $(opam env); cd sgrep; dune build
