@@ -190,7 +190,7 @@ def _evaluate_single_expression(operator, pattern_id, results, ranges_left: Set[
                 if is_enclosed:
                     output_ranges.add(arange)
                     break  # found a match, no need to keep going
-        #print(f"after filter `{operator}`: {output_ranges}")
+        # print(f"after filter `{operator}`: {output_ranges}")
         return output_ranges
     elif operator == OPERATORS.AND_NOT_INSIDE:
         # remove all ranges enclosed by or equal to
@@ -200,7 +200,7 @@ def _evaluate_single_expression(operator, pattern_id, results, ranges_left: Set[
                 if keep_inside_this_range.is_enclosing_or_eq(arange):
                     output_ranges.remove(arange)
                     break
-        #print(f"after filter `{operator}`: {output_ranges}")
+        # print(f"after filter `{operator}`: {output_ranges}")
         return output_ranges
     else:
         assert False, f'unknown operator {operator} in {expression}'
@@ -220,7 +220,7 @@ def evaluate_expression(expression, results: Dict[str, List[Range]]) -> List[Ran
             either_ranges = set(flatten((results[pid]) for pid in pattern_ids))
             # remove anything that does not equal one of these ranges
             ranges_left.intersection_update(either_ranges)
-            #print(f"after filter `{operator}`: {ranges_left}")
+            # print(f"after filter `{operator}`: {ranges_left}")
         else:
             assert len(
                 pattern_ids) == 1, f'only {OPERATORS.AND_EITHER} expressions can have multiple pattern names'
@@ -274,13 +274,7 @@ def rewrite_message_with_metavars(yaml_rule, sgrep_result):
     return msg_text
 
 
-def main(yaml_file_or_dirs: str, target_files_or_dirs: List[str]):
-
-    if not os.path.exists(yaml_file_or_dirs):
-        print(f'path not found: {yaml_file_or_dirs}')
-        sys.exit(1)
-
-    all_rules = []
+def collect_rules(yaml_file_or_dirs: str) -> List[Dict[str, any]]:
     errors, not_errors = 0, 0
     for root, dirs, files in os.walk(yaml_file_or_dirs):
         dirs.sort()
@@ -297,24 +291,33 @@ def main(yaml_file_or_dirs: str, target_files_or_dirs: List[str]):
                             pathlib.Path(full_path)).parts[:-1] if len(x)])
                         new_id = f"{prefix}.{rule['id']}".lstrip('.')
                         rule['id'] = new_id
-                    all_rules.extend(list(rules_in_file))
-
+                    yield from rules_in_file
     print_error(
-        f'running {len(all_rules)} rules from {not_errors} yaml files ({errors} yaml files were invalid)')
-    # TODO: validate the rule patterns are ok
+        f'running rules from {not_errors} yaml files ({errors} yaml files were invalid)')
 
-    # a rule can have multiple patterns inside it. Flatten these so we can send sgrep a single yml file list of patterns
-    all_patterns = []
+
+def flatten_rule_patterns(all_rules):
     for rule_index, rule in enumerate(all_rules):
-        output_by_pattern_index = {}
         patterns_with_ids = list(parse_rule_patterns(rule))
         for (pattern_index, pattern) in patterns_with_ids:
             # if we don't copy an array (like `languages`), the yaml file will refer to it by reference (with an anchor)
             # which is nice and all but the sgrep YAML parser doesn't support that
-            all_patterns.append(
-                {'id': f'{rule_index}.{pattern_index}', 'pattern': pattern,
-                 'severity': rule['severity'], 'languages': rule['languages'].copy(), 'message': '<internalonly>'})
+            new_check_id = f'{rule_index}.{pattern_index}'
+            yield {'id': new_check_id, 'pattern': pattern,
+                   'severity': rule['severity'], 'languages': rule['languages'].copy(), 'message': '<internalonly>'}
 
+
+def main(yaml_file_or_dirs: str, target_files_or_dirs: List[str]):
+
+    if not os.path.exists(yaml_file_or_dirs):
+        print(f'path not found: {yaml_file_or_dirs}')
+        sys.exit(1)
+
+    all_rules = list(collect_rules(yaml_file_or_dirs))
+    # TODO: validate the rule patterns are ok
+
+    # a rule can have multiple patterns inside it. Flatten these so we can send sgrep a single yml file list of patterns
+    all_patterns = list(flatten_rule_patterns(all_rules))
     output_json = invoke_sgrep(all_patterns, target_files_or_dirs)
 
     # group output; we want to see all of the same rule ids on the same file path
