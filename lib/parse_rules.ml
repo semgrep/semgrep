@@ -25,7 +25,6 @@ let error s =
 let severity_of_string = function
  | "ERROR" -> R.Error
  | "WARNING" -> R.Warning
- | "OK" -> R.Ok
  | s -> error (spf "Bad severity: %s" s)
 
 (*****************************************************************************)

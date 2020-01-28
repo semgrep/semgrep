@@ -21,44 +21,13 @@ module R = Rule
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(*
- * The goal of this module is to make it easy to add lint rules
- * by using sgrep patterns (see https://github.com/facebook/pfff/wiki/Sgrep).
- * One has just to store in a special file the patterns and the corresponding
- * warning we want the linter to raise. Here is an example of such a file:
+(* The goal of this module is to make it easy to add lint rules by using
+ * sgrep patterns. You just have to store in a special file the patterns
+ * and the corresponding warning you want the linter to raise.
  *
- *    //security.sgrep_lint:
- *
- *    - HTML(render_link(...))
- *
- *    ERROR: <ui:link> does that!
- *
- *    - curl_setopt(X, CURLOPT_POSTFIELDS, Y)
-
- *    WARNING: Please use either curl_set_post_fields() or
- *    curl_set_post_fields_with_magic_file_upload_UNSAFE().
- *
- *    - HTML($Y->toString())
- *
- *    WARNING: If the output of toString() is passed directly to HTML(),
- *    you can probably remove both the toString() and HTML() calls.
- *
- *
- * TODO:
- *  - implement the '...' operator so can have patterns like:
- *     - $X = Y->toString(); ... HTML($X)
- *  - could also as erling suggested use a dataflow analysis to magically
- *    handle such cases.
- *  - all those things about the-order-of-the-rule-matters is maybe too
- *    complicated. Maybe we should just extend sgrep to allow difference
- *    patterns ? At the same time having rules like '- HTML($X)' and then
- *    at the very end the default fallback '- HTML(...)' is convenient.
- * - right now when a pattern involve variable or arrays one has to
- *   write a rule for the lvalue case and one for the rvalue cause
- *   (and even more when one wants also to match $val += ..., $val -= ...).
- *
- * related:
- * - http://tv.jetbrains.net/videocontent/intellij-idea-static-analysis-custom-rules-with-structural-search-replace
+ * update: if you need advanced patterns with boolean logic (which used
+ * to be partially provided by the hacky OK error keyword), use
+ * instead the sgrep python wrapper!
  *)
 
 (*****************************************************************************)
@@ -71,7 +40,6 @@ let error matched_tokens rule =
       E.error tok (E.SgrepLint (rule.R.id, rule.R.message))
   | R.Warning ->
       E.warning tok (E.SgrepLint (rule.R.id, rule.R.message))
-  | R.Ok -> ()
 
 
 (*****************************************************************************)
