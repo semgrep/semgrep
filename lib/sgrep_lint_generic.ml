@@ -28,12 +28,14 @@ module R = Rule
  * update: if you need advanced patterns with boolean logic (which used
  * to be partially provided by the hacky OK error keyword), use
  * instead the sgrep python wrapper!
+ *
+ * todo: factorize code with sgrep_lint.ml
  *)
 
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-let error matched_tokens rule =
+let error matched_tokens _env rule =
   let tok = List.hd matched_tokens in
   match rule.R.severity with
   | R.Error ->
@@ -47,6 +49,8 @@ let error matched_tokens rule =
 (*****************************************************************************)
 
 let check2 rules ast =
+
+  (* todo: use Normalize_ast.normalize like in sgrep_generic.ml *)
 
   (* This is similar to what we do in main_sgrep.ml except we apply
    * a list of sgrep patterns to the AST.
@@ -70,44 +74,28 @@ let check2 rules ast =
       (* this could be quite slow ... we match many sgrep patterns
        * against an expression recursively
        *)
-      let rec apply_rules rules =
-        match rules with
-        | [] ->
-            (* no more rules, try the rules on subexpressions *)
-            k expr
-        | (pattern, rule)::xs ->
-            let matches_with_env = Sgrep_generic.match_e_e pattern expr in
-            if matches_with_env = []
-            then
-              (* Try another rule *)
-              apply_rules xs
-            else
-              (* Found a match, we can stop everything. We could also
-               * recurse to find nested matching inside the matched code
-               * itself but we already found an error so we are
-               * happy enough.
-               *)
-              let matched_tokens = Lib_ast.ii_of_any (E expr) in
-              error matched_tokens rule
-      in
-      apply_rules !expr_rules
+      !expr_rules |> List.iter (fun (pattern, rule) -> 
+         let matches_with_env = Sgrep_generic.match_e_e pattern expr in
+         if matches_with_env <> []
+         then (* Found a match *)
+           let matched_tokens = Lib_ast.ii_of_any (E expr) in
+           error matched_tokens matches_with_env rule
+      );
+      (* try the rules on subexpressions *)
+      k expr
     );
 
     (* mostly copy paste of expr code but with the _st functions *)
     V.kstmt = (fun (k, _) stmt ->
-      let rec apply_rules rules =
-        match rules with
-        | [] ->
-            k stmt
-        | (pattern, rule)::xs ->
-            let matches_with_env = Sgrep_generic.match_st_st pattern stmt in
-            if matches_with_env = []
-            then apply_rules xs
-            else
-              let matched_tokens = Lib_ast.ii_of_any (S stmt) in
-               error matched_tokens rule
-      in
-      apply_rules !stmt_rules
+      !stmt_rules |> List.iter (fun (pattern, rule) -> 
+         let matches_with_env = Sgrep_generic.match_st_st pattern stmt in
+         if matches_with_env <> []
+         then (* Found a match *)
+           let matched_tokens = Lib_ast.ii_of_any (S stmt) in
+           error matched_tokens matches_with_env rule
+      );
+      (* try the rules on substatements and subexpressions *)
+      k stmt
     );
   }
   in
