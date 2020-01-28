@@ -11,6 +11,7 @@ RUN eval $(opam env) && cd pfff && ./configure && make depend && make && make op
 
 COPY --chown=opam . /home/opam/sgrep/
 RUN eval $(opam env); cd sgrep; dune build
+RUN /home/opam/sgrep/_build/default/bin/main_sgrep.exe -version
 
 FROM alpine:3.11.3@sha256:ddba4d27a7ffc3f86dd6c2f92041af252a1f23a8e742c90e6e1297bfa1bc0c45
 LABEL maintainer="sgrep@r2c.dev"
