@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
+import argparse
 import collections
+import itertools
+import json
 import os
 import pathlib
 import subprocess
@@ -8,9 +11,8 @@ import tempfile
 import traceback
 from dataclasses import dataclass
 from pathlib import PurePath
-from typing import Any, Generator, List, Set, Tuple
+from typing import Any, Dict, Generator, List, Set, Tuple
 
-import click
 import yaml
 
 
@@ -70,8 +72,6 @@ def parse_rule_patterns(rule):
         yield from parse_pattern_expression(rule['patterns'])
     else:
         assert False
-
-# -> Generator[Tuple[int, str]]:
 
 
 def parse_pattern_expression(rule_patterns, counter=0):
@@ -142,7 +142,7 @@ rules:
         if not rule:
             continue
         rule_id_err_msg = f'(rule id: {rule["id"]})' if ('id' in rule) else ''
-        if set(rule.keys()).issubset(MUST_HAVE_KEYS):
+        if not set(rule.keys()).issuperset(MUST_HAVE_KEYS):
             print_error(
                 f'{file_path} is missing keys at rule {i+1}{rule_id_err_msg}, must have: {MUST_HAVE_KEYS}')
         elif not 'pattern' in rule and not 'patterns' in rule:
@@ -151,61 +151,6 @@ rules:
         else:
             rules.append(rule)
     return rules
-
-
-def sgrep_pattern():
-    """
-
-    You can assumle that there will be a -sgrep_lint2 command line parameter to the sgrep engine,
-    which will still take a yaml file with a flat list of rules, and it will return a JSON with
-     an array of objects with the rule id, matched range, and an array with the value for the metavars
-
-    your job will be to create this yaml file for me that decompose a pattern
-     using AND OR NOT in a simpler pattern, and I will returned the
-      matched ranges for those simple patterns (I will not do anymore OK hack)
-
-
-    Assume that sgrep-lint gives us output that looks like this:
-
-    - id: subprocess-1
-    - pattern: subprocess.Popen($X)
-
-    output: { "check_id": "subprocess-1", range: [505, 510], metavars={"$X": "foobar"}}
-
-    - id: subprocess-1
-    - not-pattern: subprocess.Popen($X, safeflag=True)
-    - and-pattern: subprocess.Popen($X)
-    - or-patterns:
-        -
-        -
-    - message: this is dangerous
-
-    - id: subprocess-1
-    - AND-EITHER:
-        - subprocess.Popen($X, safeflag=True)
-        - subprocess.Popen($X, othersafeflag=True)
-    - AND:
-        - subprocess.Popen($X)
-    - message: this is dangerous
-
-    - id: subprocess-1
-    - AND-NOT: subprocess.Popen($X, safeflag=True)       <- P1
-    - AND: subprocess.Popen($X)                          <- P2
-    - booleans: !P1 && P2
-    - message: this is dangerous
-
-
-(effectively CFG-dominance relations) in order to handle "in this function"
-let's makee the and implicit, then we'd have:
-    either-pattern:
-    pattern:
-    not-pattern:
-    inside-pattern:
-    not-inside-pattern:
-
-also, the last one in the list (end of expression) needs to be the one that we want to print
-
-    """
 
 
 @dataclass(frozen=True)
@@ -245,7 +190,7 @@ def _evaluate_single_expression(operator, pattern_id, results, ranges_left: Set[
                 if is_enclosed:
                     output_ranges.add(arange)
                     break  # found a match, no need to keep going
-        # print(f"after filter `{operator}`: {output_ranges}")
+        #print(f"after filter `{operator}`: {output_ranges}")
         return output_ranges
     elif operator == OPERATORS.AND_NOT_INSIDE:
         # remove all ranges enclosed by or equal to
@@ -255,13 +200,19 @@ def _evaluate_single_expression(operator, pattern_id, results, ranges_left: Set[
                 if keep_inside_this_range.is_enclosing_or_eq(arange):
                     output_ranges.remove(arange)
                     break
-        # print(f"after filter `{operator}`: {output_ranges}")
+        #print(f"after filter `{operator}`: {output_ranges}")
         return output_ranges
     else:
         assert False, f'unknown operator {operator} in {expression}'
 
 
-def evaluate_expression(expression, results) -> List[Range]:
+def evaluate_expression(expression, results: Dict[str, List[Range]]) -> List[Range]:
+    # make sure there is a entry in results for every expression, even if it is empty
+    for (_, pattern_ids) in expression:
+        for pid in pattern_ids:
+            if pid not in results:
+                results[pid] = []
+
     ranges_left = set(flatten(results.values()))
     for (operator, pattern_ids) in expression:
         if operator == OPERATORS.AND_EITHER:
@@ -269,6 +220,7 @@ def evaluate_expression(expression, results) -> List[Range]:
             either_ranges = set(flatten((results[pid]) for pid in pattern_ids))
             # remove anything that does not equal one of these ranges
             ranges_left.intersection_update(either_ranges)
+            #print(f"after filter `{operator}`: {ranges_left}")
         else:
             assert len(
                 pattern_ids) == 1, f'only {OPERATORS.AND_EITHER} expressions can have multiple pattern names'
@@ -282,17 +234,26 @@ def print_error(e):
     sys.stderr.flush()
 
 
-def output_to_ranges(sgrep_output: str) -> List[Range]:
-    # TODO: take sgrep output and convert it to ranges on a per-file or other basis
-    return [Range(0, 100)]
+def parse_sgrep_output(sgrep_findings) -> Dict[str, List[Range]]:
+    output = collections.defaultdict(list)
+    for finding in sgrep_findings:
+        check_id = finding['check_id']
+        pattern_id = int(check_id.split('.')[1])
+        output[pattern_id].append(r2c_finding_to_range(finding))
+    print(dict(output))
+    return dict(output)
 
 
-@click.command()
-@click.argument("yaml_file_or_dirs", nargs=1, type=click.Path(),
-                # help=f"The YAML file or directory of YAML files ending in {YML_EXTENSIONS} with rules",
-                )
-@click.argument("target_files_or_dirs", nargs=-1, type=click.Path())
-def main(yaml_file_or_dirs, target_files_or_dirs):
+def r2c_finding_to_range(r2c_finding: Dict[str, any]):
+    return Range(r2c_finding['start']['offset'], r2c_finding['end']['offset'])
+
+
+def main(yaml_file_or_dirs: str, target_files_or_dirs: List[str]):
+
+    if not os.path.exists(yaml_file_or_dirs):
+        print(f'path not found: {yaml_file_or_dirs}')
+        sys.exit(1)
+
     all_rules = []
     errors, not_errors = 0, 0
     for root, dirs, files in os.walk(yaml_file_or_dirs):
@@ -315,27 +276,67 @@ def main(yaml_file_or_dirs, target_files_or_dirs):
     unified = list(all_rules)
     print_error(
         f'running {len(unified)} rules from {not_errors} yaml files ({errors} yaml files were invalid)')
-    # send each rule to sgrep one by one
-    for rule in unified:
+    # rename the rules by index, then send them to sgrep
+    original_rule_names = [rule['id'] for rule in unified]
+    # TODO: validate the rule patterns are ok
+
+    # a rule can have multiple patterns inside it. Flatten these so we can send sgrep a single yml file list of patterns
+    all_patterns = []
+    for rule_index, rule in enumerate(unified):
         output_by_pattern_index = {}
         patterns_with_ids = list(parse_rule_patterns(rule))
-        for (patttern_index, pattern) in patterns_with_ids:
-            cmd = f'{SGREP_PATH} -pattern={pattern}'
-            # print(cmd)
-            output = b''
-            # output = subprocess.check_output(cmd, shell=True)
-            ranges = output_to_ranges(output.decode('utf-8'))
-            output_by_pattern_index[patttern_index] = ranges
+        for (pattern_index, pattern) in patterns_with_ids:
+            # if we don't copy an array (like `languages`), the yaml file will refer to it by reference (with an anchor)
+            # which is nice and all but the sgrep YAML parser doesn't support that
+            all_patterns.append(
+                {'id': f'{rule_index}.{pattern_index}', 'pattern': pattern,
+                 'severity': rule['severity'], 'languages': rule['languages'].copy(), 'message': '<internalonly>'})
 
-        # we have the output, but now we need to build the expression
-        expression = list(build_boolean_expression(rule))
-        print(f'expression: {expression}')
-        print(f'output: {output_by_pattern_index}')
-        print(f'pattern map: {patterns_with_ids}')
-        print('-'*80)
-        compiled_result = evaluate_expression(
-            expression, output_by_pattern_index)
+    with tempfile.NamedTemporaryFile('w') as fout:
+        # very important not to sort keys here
+        yaml_as_str = yaml.safe_dump({'rules': all_patterns}, sort_keys=False)
+        print(yaml_as_str)
+        fout.write(yaml_as_str)
+        fout.flush()
+        cmd = f'{SGREP_PATH} -rules_file={fout.name} {" ".join(list(target_files_or_dirs))}'
+        output = subprocess.check_output(cmd, shell=True)
+        output_json = json.loads((output.decode('utf-8')))
+
+    # group output; we want to see all of the same rule ids on the same file path
+    by_filename = collections.defaultdict(
+        lambda: collections.defaultdict(list))
+    print(output_json)
+    for finding in output_json['matches']:
+        rule_index = int(finding['check_id'].split('.')[0])
+        by_filename[rule_index][finding['path']].append(finding)
+
+    outputs_after_booleans = []
+    for rule_index, paths in by_filename.items():
+        expression = list(build_boolean_expression(all_rules[rule_index]))
+        print(f'rule expression: {expression}')
+        for filepath, results in paths.items():
+            print(
+                f"-------- rule (index {rule_index}) {all_rules[rule_index]['id']}------ filepath: {filepath}")
+            check_ids_to_ranges = parse_sgrep_output(results)
+            print(check_ids_to_ranges)
+            valid_ranges_to_output = evaluate_expression(
+                expression, check_ids_to_ranges)
+
+            # only output matches which are inside these offsets!
+            print(f'compiled result {valid_ranges_to_output}')
+            print('-'*80)
+            for result in results:
+                if r2c_finding_to_range(result) in valid_ranges_to_output:
+                    outputs_after_booleans.append(result)
+
+    print(json.dumps({'matches': outputs_after_booleans}))
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser(
+        description="Helper to invoke sgrep with many patterns or files")
+    parser.add_argument(
+        "yaml_file_or_dirs", help=f"the YAML file or directory of YAML files ending in {YML_EXTENSIONS} with rules")
+    parser.add_argument("target_files_or_dirs", nargs='+')
+    args = parser.parse_args()
+    main(args.yaml_file_or_dirs, args.target_files_or_dirs)
