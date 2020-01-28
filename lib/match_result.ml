@@ -33,10 +33,11 @@ type t = {
 
 let json_range min max =
   (* pfff (and Emacs) have the first column at index 0, but not r2c *)
+  let adjust_column x = x + 1 in
+
   let min = PI.token_location_of_info min in
   let max = PI.token_location_of_info max in
   let len_max = String.length max.PI.str in
-  let adjust_column x = x + 1 in
   J.Object [
     "line", J.Int min.PI.line;
     "col", J.Int (adjust_column min.PI.column);
