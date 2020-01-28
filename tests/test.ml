@@ -132,7 +132,8 @@ let lint_regression_tests =
   test_files |> List.iter (fun file ->
     E.try_with_exn_to_error file (fun () ->
     let ast = Parse_generic.parse_with_lang lang file in
-    Sgrep_lint_generic.check rules ast
+    Sgrep_lint_generic.check rules file ast 
+      |> List.iter Match_result.match_to_error;
   ));
 
   (* compare *)

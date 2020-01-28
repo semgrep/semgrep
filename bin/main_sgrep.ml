@@ -13,6 +13,7 @@ module PI = Parse_info
 module S = Scope_code
 module E = Error_code
 module R = Rule
+module J = Json_type
 
 (*****************************************************************************)
 (* Purpose *)
@@ -323,36 +324,34 @@ let sgrep_with_one_pattern xs =
 
 let sgrep_with_rules rules_file xs =
 
-  (* to adjust paths in errors *)
-  let root =
-    match xs with
-    | [x] when Common2.is_directory x -> Common.fullpath x
-    | _ -> "/"
-  in
   if !verbose then pr2 (spf "Parsing %s" rules_file);
   (* todo: call Normalize_ast.normalize here after or in parse()? *)
   let rules = Parse_rules.parse rules_file in
 
   match Lang.lang_of_string_opt !lang with
+  | None -> failwith (spf "unsupported language: %s" !lang)
   | Some lang ->
     let files = Lang.files_of_dirs_or_files lang xs in
-
     let rules = rules |> List.filter (fun r -> List.mem lang r.R.languages) in
 
-    files |> List.iter (fun file ->
-      E.try_with_exn_to_error file (fun () ->
-        let ast = Parse_generic.parse_with_lang lang file in
-        Sgrep_lint_generic.check rules ast
-      )
-    );
-    let errs = !(Error_code.g_errors) 
-       |> E.filter_maybe_parse_and_fatal_errors
+    let errs = ref [] in
+    let matches = 
+      files |> List.map (fun file ->
+         try 
+           let ast = Parse_generic.parse_with_lang lang file in
+           Sgrep_lint_generic.check rules file ast
+         with exn -> 
+            Common.push (Error_code.exn_to_error file exn) errs;
+            []
+      ) |> List.flatten
     in
-
-    let errs = E.adjust_paths_relative_to_root root errs in
-    pr (R2c.string_of_errors errs)
-
-  | None -> failwith (spf "unsupported language: %s" !lang)
+    let errs = E.filter_maybe_parse_and_fatal_errors !errs in
+    let json = J.Object [
+       "matches", J.Array (matches |> List.map Match_result.match_to_json);
+       "errors", J.Array (errs |> List.map R2c.error_to_json)
+    ] in
+    let s = Json_io.string_of_json json in
+    pr s
 
 
 (*****************************************************************************)

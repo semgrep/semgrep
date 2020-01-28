@@ -2,7 +2,7 @@
  (public_name sgrep)
  (wrapped false)
  (libraries
-   yaml
+   yaml json-wheel
    commons
    pfff-config 
    pfff-h_program-lang
