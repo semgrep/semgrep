@@ -120,8 +120,6 @@ let lint_regression_tests =
 
   let test_files = [
    p "lint/stupid.py";
-   p "lint/flask2.py";
-   p "lint/flask_configs.py";
   ] in
   
   (* expected *)
