@@ -25,7 +25,6 @@ let error s =
 let severity_of_string = function
  | "ERROR" -> R.Error
  | "WARNING" -> R.Warning
- | "OK" -> R.Ok
  | s -> error (spf "Bad severity: %s" s)
 
 (*****************************************************************************)
@@ -64,6 +63,7 @@ let parse file =
                  | x::_xs -> x
                in
                let pattern =
+                 (* todo? call Normalize_ast.normalize here? *)
                  try Parse_generic.parse_pattern lang pattern
                  with exn ->
                    error (spf "could not parse the pattern %s (exn = %s)"

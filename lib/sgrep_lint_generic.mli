@@ -1,3 +1,4 @@
 
-(* will populate Errors_code.g_errors *)
-val check: Rule.rules -> Ast_generic.program -> unit
+val check: 
+  Rule.rules -> Common.filename -> Ast_generic.program -> 
+  Match_result.t list

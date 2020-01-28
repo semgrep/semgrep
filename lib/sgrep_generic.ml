@@ -25,6 +25,8 @@ module GG = Generic_vs_generic
 (*****************************************************************************)
 (* See https://github.com/facebook/pfff/wiki/Sgrep 
  *
+ * coupling: if you modify this file, there is a big chance you also need
+ *  to modify sgrep_lint_generic.ml
  *)
 
 (*****************************************************************************)
