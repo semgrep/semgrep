@@ -172,18 +172,19 @@ def flatten(L: List[List[Any]]) -> List[Any]:
 
 
 def _evaluate_single_expression(operator, pattern_id, results, ranges_left: Set[Range]) -> List[Range]:
+    results_for_pattern = results.get(pattern_id, [])
     if operator == OPERATORS.AND:
         # remove all ranges that don't equal the ranges for this pattern
-        return ranges_left.intersection(results[pattern_id])
+        return ranges_left.intersection(results_for_pattern)
     elif operator == OPERATORS.AND_NOT:
         # remove all ranges that DO equal the ranges for this pattern
         # difference_update = Remove all elements of another set from this set.
-        return ranges_left.difference(results[pattern_id])
+        return ranges_left.difference(results_for_pattern)
     elif operator == OPERATORS.AND_INSIDE:
         # remove all ranges (not enclosed by) or (not equal to) the inside ranges
         output_ranges = set()
         for arange in ranges_left:
-            for keep_inside_this_range in results[pattern_id]:
+            for keep_inside_this_range in results_for_pattern:
                 is_enclosed = keep_inside_this_range.is_enclosing_or_eq(arange)
                 # print(
                 #    f'candidate range is {arange}, needs to be `{operator}` {keep_inside_this_range}; keep?: {keep}')
@@ -196,7 +197,7 @@ def _evaluate_single_expression(operator, pattern_id, results, ranges_left: Set[
         # remove all ranges enclosed by or equal to
         output_ranges = ranges_left.copy()
         for arange in ranges_left:
-            for keep_inside_this_range in results[pattern_id]:
+            for keep_inside_this_range in results_for_pattern:
                 if keep_inside_this_range.is_enclosing_or_eq(arange):
                     output_ranges.remove(arange)
                     break
@@ -207,17 +208,11 @@ def _evaluate_single_expression(operator, pattern_id, results, ranges_left: Set[
 
 
 def evaluate_expression(expression, results: Dict[str, List[Range]]) -> List[Range]:
-    # make sure there is a entry in results for every expression, even if it is empty
-    for (_, pattern_ids) in expression:
-        for pid in pattern_ids:
-            if pid not in results:
-                results[pid] = []
-
     ranges_left = set(flatten(results.values()))
     for (operator, pattern_ids) in expression:
         if operator == OPERATORS.AND_EITHER:
             # create a set from the union of the expressions in the `or` block
-            either_ranges = set(flatten((results[pid]) for pid in pattern_ids))
+            either_ranges = set(flatten((results.get(pid, [])) for pid in pattern_ids))
             # remove anything that does not equal one of these ranges
             ranges_left.intersection_update(either_ranges)
             # print(f"after filter `{operator}`: {ranges_left}")
@@ -234,7 +229,7 @@ def print_error(e):
     sys.stderr.flush()
 
 
-def parse_sgrep_output(sgrep_findings: List[Dict[str, any]]) -> Dict[str, List[Range]]:
+def parse_sgrep_output(sgrep_findings: List[Dict[str, Any]]) -> Dict[str, List[Range]]:
     output = collections.defaultdict(list)
     for finding in sgrep_findings:
         check_id = finding['check_id']
@@ -243,11 +238,11 @@ def parse_sgrep_output(sgrep_findings: List[Dict[str, any]]) -> Dict[str, List[R
     return dict(output)
 
 
-def sgrep_finding_to_range(sgrep_finding: Dict[str, any]):
+def sgrep_finding_to_range(sgrep_finding: Dict[str, Any]):
     return Range(sgrep_finding['start']['offset'], sgrep_finding['end']['offset'])
 
 
-def invoke_sgrep(all_rules: List[Dict[str, any]], target_files_or_dirs: List[str]) -> Dict[str, any]:
+def invoke_sgrep(all_rules: List[Dict[str, Any]], target_files_or_dirs: List[str]) -> Dict[str, Any]:
     """Returns parsed json output of sgrep"""
     with tempfile.NamedTemporaryFile('w') as fout:
         # very important not to sort keys here
@@ -274,7 +269,7 @@ def rewrite_message_with_metavars(yaml_rule, sgrep_result):
     return msg_text
 
 
-def collect_rules(yaml_file_or_dirs: str) -> List[Dict[str, any]]:
+def collect_rules(yaml_file_or_dirs: str) -> List[Dict[str, Any]]:
     errors, not_errors = 0, 0
     for root, dirs, files in os.walk(yaml_file_or_dirs):
         dirs.sort()

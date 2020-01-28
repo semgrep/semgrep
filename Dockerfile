@@ -20,5 +20,4 @@ LABEL maintainer="sgrep@r2c.dev"
 
 COPY --from=build /home/opam/sgrep/_build/default/bin/main_sgrep.exe /bin/sgrep
 COPY --from=build /home/opam/sgrep/sgrep.py /bin/sgrep-lint
-COPY --from=build /home/opam/sgrep/test2 /bin/test2
 ENTRYPOINT [ "/bin/sgrep-lint" ]
