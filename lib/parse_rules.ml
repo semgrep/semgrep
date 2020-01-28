@@ -63,6 +63,7 @@ let parse file =
                  | x::_xs -> x
                in
                let pattern =
+                 (* todo? call Normalize_ast.normalize here? *)
                  try Parse_generic.parse_pattern lang pattern
                  with exn ->
                    error (spf "could not parse the pattern %s (exn = %s)"
