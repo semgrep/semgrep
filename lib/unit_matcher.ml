@@ -60,7 +60,7 @@ let sgrep_gen_unittest ~any_gen_of_string =
       "$X(...)", "a+b", false;
 
       (* metavariable for statements *)
-      "if($X): $S
+      "if(True): $S
 ",
        "if(True): return 1
 ", true;
@@ -161,9 +161,6 @@ let sgrep_gen_unittest ~any_gen_of_string =
 (* Sgrep Fuzzy Unit tests *)
 (*****************************************************************************)
 
-(* See https://github.com/facebook/pfff/wiki/Sgrep *)
-
-(* run also by sgrep -test *)
 let sgrep_fuzzy_unittest ~ast_fuzzy_of_string =
   "sgrep-fuzzy features" >:: (fun () ->
 
@@ -330,29 +327,3 @@ let spatch_fuzzy_unittest ~ast_fuzzy_of_string ~parse_file =
       else failwith ("wrong format for expfile: " ^ expfile)
     )
   )
-
-
-(*****************************************************************************)
-(* Misc unit tests *)
-(*****************************************************************************)
-(*
-let misc_unittest =
-  "misc" >::: [
-    "join_with_space" >:: (fun () ->
-      assert_equal
-        (Matching_report.join_with_space_if_needed ["$x";"=";"print";"FOO"])
-        "$x=print FOO"
-    )
-  ]
-*)
-
-(*****************************************************************************)
-(* Final suite *)
-(*****************************************************************************)
-
-(*
-let unittest =
-  "matcher" >::: (
-    sgrep_unittest ++ spatch_unittest ++ [misc_unittest]
-  )
-*)

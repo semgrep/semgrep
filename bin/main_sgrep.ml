@@ -17,14 +17,18 @@ module R = Rule
 (*****************************************************************************)
 (* Purpose *)
 (*****************************************************************************)
-(* A syntactical grep. https://github.com/facebook/pfff/wiki/Sgrep
+(* A syntactical grep. https://sgrep.dev/
  * Right now there is good support for Python, Javascript, Java, and C
- * and partial support (fuzzy matcher) for C++, OCaml.
+ * and partial support for PHP, C++, and OCaml.
  * 
  * opti: git grep foo | xargs sgrep -e 'foo(...)'
  * 
  * related: 
  *  - SSR http://www.jetbrains.com/idea/documentation/ssr.html
+ *  - gogrep: https://github.com/mvdan/gogrep/
+ *  - phpgrep: https://github.com/quasilyte/phpgrep
+ *    https://github.com/VKCOM/noverify/blob/master/docs/dynamic-rules.md
+ *    https://speakerdeck.com/quasilyte/phpgrep-syntax-aware-code-search
  *  - ack http://beyondgrep.com/
  *  - cgrep http://awgn.github.io/cgrep/
  *  - hound https://codeascraft.com/2015/01/27/announcing-hound-a-lightning-fast-code-search-tool/
@@ -264,7 +268,6 @@ let sgrep_ast pattern any_ast =
 (* Main action *)
 (*****************************************************************************)
 let main_action xs =
-  set_gc ();
   let xs = List.map Common.fullpath xs in
 
   let patterns, query_string =
@@ -435,10 +438,10 @@ let options () =
 (*****************************************************************************)
 
 let main () = 
+  set_gc ();
   let usage_msg = 
     spf "Usage: %s [options] <pattern> <files_or_dirs> \nOptions:"
       (Filename.basename Sys.argv.(0))
-
   in
   (* does side effect on many global flags *)
   let args = Common.parse_options (options()) usage_msg Sys.argv in
