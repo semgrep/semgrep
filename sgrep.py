@@ -266,6 +266,14 @@ def debug_print(msg):
         print(msg)
 
 
+def rewrite_message_with_metavars(yaml_rule, sgrep_result):
+    msg_text = yaml_rule['message']
+    if 'metavars' in sgrep_result['extra']:
+        for metavar, contents in sgrep_result['extra']['metavars'].items():
+            msg_text = msg_text.replace(metavar, contents['abstract_content'])
+    return msg_text
+
+
 def main(yaml_file_or_dirs: str, target_files_or_dirs: List[str]):
 
     if not os.path.exists(yaml_file_or_dirs):
@@ -334,6 +342,11 @@ def main(yaml_file_or_dirs: str, target_files_or_dirs: List[str]):
             debug_print('-'*80)
             for result in results:
                 if sgrep_finding_to_range(result) in valid_ranges_to_output:
+                    # restore the original rule ID
+                    result['check_id'] = all_rules[rule_index]['id']
+                    # restore the original message
+                    result['extra']['message'] = rewrite_message_with_metavars(
+                        all_rules[rule_index], result)
                     outputs_after_booleans.append(result)
 
     print(json.dumps({'matches': outputs_after_booleans}))
