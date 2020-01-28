@@ -35,7 +35,7 @@ PATTERN_NAMES_MAP = {
 }
 
 YML_EXTENSIONS = ['.yml', '.yaml']
-
+DEBUG = False
 SGREP_PATH = "sgrep"
 
 
@@ -234,18 +234,36 @@ def print_error(e):
     sys.stderr.flush()
 
 
-def parse_sgrep_output(sgrep_findings) -> Dict[str, List[Range]]:
+def parse_sgrep_output(sgrep_findings: List[Dict[str, any]]) -> Dict[str, List[Range]]:
     output = collections.defaultdict(list)
     for finding in sgrep_findings:
         check_id = finding['check_id']
         pattern_id = int(check_id.split('.')[1])
-        output[pattern_id].append(r2c_finding_to_range(finding))
-    print(dict(output))
+        output[pattern_id].append(sgrep_finding_to_range(finding))
     return dict(output)
 
 
-def r2c_finding_to_range(r2c_finding: Dict[str, any]):
-    return Range(r2c_finding['start']['offset'], r2c_finding['end']['offset'])
+def sgrep_finding_to_range(sgrep_finding: Dict[str, any]):
+    return Range(sgrep_finding['start']['offset'], sgrep_finding['end']['offset'])
+
+
+def invoke_sgrep(all_rules: List[Dict[str, any]], target_files_or_dirs: List[str]) -> Dict[str, any]:
+    """Returns parsed json output of sgrep"""
+    with tempfile.NamedTemporaryFile('w') as fout:
+        # very important not to sort keys here
+        yaml_as_str = yaml.safe_dump({'rules': all_rules}, sort_keys=False)
+        # print(yaml_as_str)
+        fout.write(yaml_as_str)
+        fout.flush()
+        cmd = f'{SGREP_PATH} -rules_file={fout.name} {" ".join(list(target_files_or_dirs))}'
+        output = subprocess.check_output(cmd, shell=True)
+        output_json = json.loads((output.decode('utf-8')))
+        return output_json
+
+
+def debug_print(msg):
+    if DEBUG:
+        print(msg)
 
 
 def main(yaml_file_or_dirs: str, target_files_or_dirs: List[str]):
@@ -273,16 +291,13 @@ def main(yaml_file_or_dirs: str, target_files_or_dirs: List[str]):
                         rule['id'] = new_id
                     all_rules.extend(list(rules_in_file))
 
-    unified = list(all_rules)
     print_error(
-        f'running {len(unified)} rules from {not_errors} yaml files ({errors} yaml files were invalid)')
-    # rename the rules by index, then send them to sgrep
-    original_rule_names = [rule['id'] for rule in unified]
+        f'running {len(all_rules)} rules from {not_errors} yaml files ({errors} yaml files were invalid)')
     # TODO: validate the rule patterns are ok
 
     # a rule can have multiple patterns inside it. Flatten these so we can send sgrep a single yml file list of patterns
     all_patterns = []
-    for rule_index, rule in enumerate(unified):
+    for rule_index, rule in enumerate(all_rules):
         output_by_pattern_index = {}
         patterns_with_ids = list(parse_rule_patterns(rule))
         for (pattern_index, pattern) in patterns_with_ids:
@@ -292,41 +307,33 @@ def main(yaml_file_or_dirs: str, target_files_or_dirs: List[str]):
                 {'id': f'{rule_index}.{pattern_index}', 'pattern': pattern,
                  'severity': rule['severity'], 'languages': rule['languages'].copy(), 'message': '<internalonly>'})
 
-    with tempfile.NamedTemporaryFile('w') as fout:
-        # very important not to sort keys here
-        yaml_as_str = yaml.safe_dump({'rules': all_patterns}, sort_keys=False)
-        print(yaml_as_str)
-        fout.write(yaml_as_str)
-        fout.flush()
-        cmd = f'{SGREP_PATH} -rules_file={fout.name} {" ".join(list(target_files_or_dirs))}'
-        output = subprocess.check_output(cmd, shell=True)
-        output_json = json.loads((output.decode('utf-8')))
+    output_json = invoke_sgrep(all_patterns, target_files_or_dirs)
 
     # group output; we want to see all of the same rule ids on the same file path
-    by_filename = collections.defaultdict(
+    by_rule_index = collections.defaultdict(
         lambda: collections.defaultdict(list))
-    print(output_json)
+    debug_print(output_json)
     for finding in output_json['matches']:
         rule_index = int(finding['check_id'].split('.')[0])
-        by_filename[rule_index][finding['path']].append(finding)
+        by_rule_index[rule_index][finding['path']].append(finding)
 
     outputs_after_booleans = []
-    for rule_index, paths in by_filename.items():
+    for rule_index, paths in by_rule_index.items():
         expression = list(build_boolean_expression(all_rules[rule_index]))
-        print(f'rule expression: {expression}')
+        debug_print(f'rule expression: {expression}')
         for filepath, results in paths.items():
-            print(
+            debug_print(
                 f"-------- rule (index {rule_index}) {all_rules[rule_index]['id']}------ filepath: {filepath}")
             check_ids_to_ranges = parse_sgrep_output(results)
-            print(check_ids_to_ranges)
+            debug_print(check_ids_to_ranges)
             valid_ranges_to_output = evaluate_expression(
                 expression, check_ids_to_ranges)
 
             # only output matches which are inside these offsets!
-            print(f'compiled result {valid_ranges_to_output}')
-            print('-'*80)
+            debug_print(f'compiled result {valid_ranges_to_output}')
+            debug_print('-'*80)
             for result in results:
-                if r2c_finding_to_range(result) in valid_ranges_to_output:
+                if sgrep_finding_to_range(result) in valid_ranges_to_output:
                     outputs_after_booleans.append(result)
 
     print(json.dumps({'matches': outputs_after_booleans}))
