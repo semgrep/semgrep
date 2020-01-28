@@ -25,30 +25,8 @@ type rule = {
   languages: Lang.t list; (* at least one element *)
 }
 
-
- (* The rules will be tried in sequence in check() below. Note that the
-  * order of the rules matter as we will issue a message only for the
-  * first rule that matches.
-  *)
  and rules = rule list
 
  and severity =
   | Error
   | Warning
-
-  (* This is subtle. Sometimes one wants to warn against the use of
-   * certain functions except when they are called in a certain way.
-   * For instance foo(bar()) would be ok but all other use of foo(...)
-   * would be bad. Sgrep right now can not express "difference patterns"
-   * but one can abuse the fact that we run the sgrep rules in sequence
-   * and stop when one of the rule is matching.
-   * Indeed one can do:
-   *
-   *   - foo(bar())
-   *   OK:
-   *   - foo(...)
-   *   ERROR: please don't use foo(), only foo(bar()) is ok.
-   *
-   * Another use could be to report lint stars or you-saved-puppies :)
-   *)
-  | Ok

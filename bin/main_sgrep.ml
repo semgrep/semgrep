@@ -24,7 +24,9 @@ module R = Rule
  * opti: git grep foo | xargs sgrep -e 'foo(...)'
  * 
  * related: 
- *  - SSR http://www.jetbrains.com/idea/documentation/ssr.html
+ *  - Structural Search and Replace (SSR) in Jetbrains IDE
+ *    http://www.jetbrains.com/idea/documentation/ssr.html
+ *    http://tv.jetbrains.net/videocontent/intellij-idea-static-analysis-custom-rules-with-structural-search-replace
  *  - gogrep: https://github.com/mvdan/gogrep/
  *  - phpgrep: https://github.com/quasilyte/phpgrep
  *    https://github.com/VKCOM/noverify/blob/master/docs/dynamic-rules.md
@@ -43,15 +45,9 @@ module R = Rule
 let verbose = ref false
 let debug = ref false
 
-let pattern_file = ref ""
 let pattern_string = ref ""
-
-(* todo: could get rid of sgrep_lint if implied by using -rule_file *)
-let sgrep_lint = ref false
-let rule_file = ref "data/basic.yml"
-let project_rule_file = ".bento-sgrep.yml"
-
-let use_multiple_patterns = ref false
+let pattern_file = ref ""
+let rules_file = ref ""
 
 (* todo: infer from basename argv(0) ? *)
 let lang = ref "python"
@@ -267,22 +263,20 @@ let sgrep_ast pattern any_ast =
 (*****************************************************************************)
 (* Main action *)
 (*****************************************************************************)
-let main_action xs =
+let sgrep_with_one_pattern xs =
   let xs = List.map Common.fullpath xs in
 
-  let patterns, query_string =
-    match !pattern_file, !pattern_string, !use_multiple_patterns with
-    | "", "", _ ->
+  let pattern, query_string =
+    match !pattern_file, !pattern_string with
+    | "", "" ->
         failwith "I need a pattern; use -f or -e"
-    | file, _, true when file <> "" ->
-        read_patterns file, "multi"
-    | file, _, _ when file <> "" ->
+    | s1, s2 when s1 <> "" && s2 <> "" ->
+        failwith "I need just one pattern; use -f OR -e (not both)"
+    | file, _ when file <> "" ->
         let s = Common.read_file file in
-        [parse_pattern s], s
-    | _, s, true when s <> ""->
-        failwith "cannot combine -multi with -e"
-    | _, s, _ when s <> ""->
-        [parse_pattern s], s
+        parse_pattern s, s
+    | _, s when s <> ""->
+        parse_pattern s, s
     | _ -> raise Impossible
   in
 
@@ -297,11 +291,7 @@ let main_action xs =
   files |> List.iter (fun file ->
     if !verbose 
     then pr2 (spf "processing: %s" file);
-    let process file =
-      patterns |> List.iter (fun pattern -> 
-        sgrep_ast pattern (create_ast file)
-      )
-    in
+    let process file = sgrep_ast pattern (create_ast file) in
     if !r2c
     then E.try_with_exn_to_error file (fun () ->
           Common.save_excursion Flag.error_recovery false (fun () ->
@@ -331,7 +321,7 @@ let main_action xs =
 (* Sgrep lint *)
 (*****************************************************************************)
 
-let lint (xs: Common.path list) : unit =
+let sgrep_with_rules rules_file xs =
 
   (* to adjust paths in errors *)
   let root =
@@ -339,14 +329,8 @@ let lint (xs: Common.path list) : unit =
     | [x] when Common2.is_directory x -> Common.fullpath x
     | _ -> "/"
   in
-  let project_file = Filename.concat root project_rule_file in
-  let file = 
-    if Sys.file_exists project_file
-    then project_file
-    else !rule_file
-  in
-  if !verbose then pr2 (spf "Parsing %s" file);
-  let rules = Parse_rules.parse file in
+  if !verbose then pr2 (spf "Parsing %s" rules_file);
+  let rules = Parse_rules.parse rules_file in
 
   match Lang.lang_of_string_opt !lang with
   | Some lang ->
@@ -371,15 +355,10 @@ let lint (xs: Common.path list) : unit =
 
 
 (*****************************************************************************)
-(* Extra actions *)
-(*****************************************************************************)
-
-(*****************************************************************************)
 (* The options *)
 (*****************************************************************************)
 
-let all_actions () = 
- []
+let all_actions () = []
 
 let options () = 
   [
@@ -390,13 +369,8 @@ let options () =
     " <pattern> expression pattern";
     "-f", Arg.Set_string pattern_file, 
     " <file> obtain pattern from file";
-    "-multi", Arg.Set use_multiple_patterns,
-    " combine with -f <file> to obtain multiple patterns from file, one per line";
-
-    "-sgrep_lint", Arg.Set sgrep_lint,
-    " run sgrep in lint mode using a rule file";
-    "-rule_file", Arg.Set_string rule_file,
-    " which rules to use";
+    "-rules_file", Arg.Set_string rules_file,
+    " <file> obtain list of patterns from YAML file";
 
     "-case_sensitive", Arg.Set case_sensitive, 
     " match code in a case sensitive manner";
@@ -425,8 +399,6 @@ let options () =
   ] @
   Error_code.options () @
   Common2.cmdline_flags_devel () @
-  (* old: Flag_parsing_php.cmdline_flags_pp () ++ *)
-  Common.options_of_actions action (all_actions()) @
   [ "-version",   Arg.Unit (fun () -> 
     pr2 (spf "sgrep version: %s" Config_pfff.version);
     exit 0;
@@ -464,9 +436,9 @@ let main () =
     (* main entry *)
     (* --------------------------------------------------------- *)
     | x::xs -> 
-        if !sgrep_lint 
-        then lint (x::xs)
-        else main_action (x::xs)
+        if !rules_file <> ""
+        then sgrep_with_rules !rules_file (x::xs)
+        else sgrep_with_one_pattern (x::xs)
 
     (* --------------------------------------------------------- *)
     (* empty entry *)
