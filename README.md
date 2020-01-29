@@ -21,7 +21,7 @@ for Java and C, and more languages on the way!
 
 For more information see https://r2c.dev/sgrep-public.pdf
 
-For more information on the use of sgrep as a linter see 
+For more information on the use of sgrep in a linter-type workflow, see 
 https://github.com/returntocorp/bento/blob/master/SGREP-README.md
 
 ## Installation from source
@@ -31,20 +31,20 @@ package manager OPAM. See https://opam.ocaml.org/doc/Install.html
 On macOS, it should simply consist in doing:
 
 ```
-$ brew install opam
-$ opam init
-$ opam switch create 4.07.1
-$ opam switch 4.07.1
-$ eval $(opam env)
+brew install opam
+opam init
+opam switch create 4.07.1
+opam switch 4.07.1
+eval $(opam env)
 ```
 
 Once OPAM is installed, you need to install the library pfff, 
 the OCaml frontend reason, and the build system dune:
 
 ```
-$ opam install pfff
-$ opam install reason
-$ opam install dune
+opam install pfff
+opam install reason
+opam install dune
 ```
 
 sgrep probably needs the very latest features of pfff, which may not
@@ -52,15 +52,15 @@ be yet in the latest OPAM version of pfff. In that case, install pfff
 manually by doing:
 
 ```
-$ git clone https://github.com/returntocorp/pfff
-$ cd pfff
-$ ./configure; make depend; make; make opt; make reinstall-libs
+git clone https://github.com/returntocorp/pfff
+cd pfff
+./configure; make depend; make; make opt; make reinstall-libs
 ```
 
 Then you can compile the program with:
 
 ```
-$ dune build
+dune build
 ```
 
 You can also use the Dockerfile in this directory to build sgrep
@@ -72,13 +72,16 @@ Then to test sgrep on a file, for example tests/GENERIC/test.py
 run:
 
 ```
-$ ./_build/default/bin/main_sgrep.exe -e foo tests/python
+./_build/default/bin/main_sgrep.exe -e foo tests/python
 ...
 ```
 
 If you want to test sgrep on a directory with a set of given rules, run:
+
 ```
-$ ./_build/default/bin/main_sgrep.exe -sgrep_lint -rule_file data/basic.yml tests/python
+cp ./_build/default/bin/main_sgrep.exe /usr/local/bin/sgrep
+cp ./sgrep.py /usr/local/bin/sgrep-lint
+sgrep-lint <YAML_FILE_OR_DIRECTORY> <code to check>
 ```
 
 ## Development Environment
@@ -94,13 +97,13 @@ containing a task file to automatically build sgrep from vscode.
 
 Note that dune and ocamlmerlin must be in your PATH for vscode to correctly
 build and provide cross-reference on the code. In case of problems, do:
-
+n
 ```
-$ cd /path/to/sgrep
-$ eval $(opam env)
-$ dune        --version # just checking dune is in your PATH
-$ ocamlmerlin -version  # just checking ocamlmerlin is in your PATH
-$ code .
+cd /path/to/sgrep
+eval $(opam env)
+dune        --version # just checking dune is in your PATH
+ocamlmerlin -version  # just checking ocamlmerlin is in your PATH
+code .
 ```
 
 ## Debugging code
@@ -108,5 +111,6 @@ $ code .
 Set the OCAMLRUNPARAM environment variable to 'b' for backtrace. 
 You will get better backtrace information when an exception is thrown.
 
-$ export OCAMLRUNPARAM=b
-
+```
+export OCAMLRUNPARAM=b
+```
