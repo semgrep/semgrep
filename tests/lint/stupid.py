@@ -4,6 +4,9 @@ def foo(a, b):
 
 
 def __eq__(a, b):
-    # ok because method is named eq
+    # ERROR: stupid $X == $X (linter knows ok because method is named eq)
     x == x
-    assertTrue(x == x)
+
+
+# ERROR: stupid $X == $X (linter knows ok because method is assertTrue)
+assertTrue(x == x)
