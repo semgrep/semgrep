@@ -126,6 +126,7 @@ rules:
     try:
         y = yaml.safe_load(open(file_path))
     except FileNotFoundError:
+        print_error(f'YAML file at {file_path} not found')
         return None
     except yaml.scanner.ScannerError as se:
         print_error(se)
@@ -134,8 +135,6 @@ rules:
     if not 'rules' in y:
         print_error(f'{file_path} should have top-level key named `rules`')
         return None
-
-    counter = 0
 
     rules = []
     for i, rule in enumerate(y['rules']):
@@ -316,7 +315,7 @@ def main(yaml_file_or_dirs: str, target_files_or_dirs: List[str], validate: bool
     if validate or strict:
         if errors > 0:
             print(
-                'validate flag passed and {errors} YAML files failed to parse, exiting')
+                f'validate flag passed and {errors} YAML files failed to parse, exiting')
             sys.exit(1)
         elif not strict:
             sys.exit(0)
