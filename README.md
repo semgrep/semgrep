@@ -45,7 +45,7 @@ docker run --rm -v $(pwd):/home/repo returntocorp/sgrep -e '<PATTERN>' path_of_f
 
 ### To test a config file
 
-By default, sgrep reads configs from `.sgrep.yml`, `.yaml` or `.yml` files in `.sgrep/`. You can override this with various config options
+By default, sgrep reads configs from `.sgrep.yml` or from `.yaml` or `.yml` files in `.sgrep`. You can override this with various config options.
 
 ```bash
 
