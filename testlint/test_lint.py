@@ -1,4 +1,9 @@
+import os
+import sys
+
 from sgrep import OPERATORS, Range, evaluate_expression
+
+# run from parent directory with PYTHONPATH=. python3 testlint/test_lint.py
 
 
 def testA():
