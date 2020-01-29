@@ -203,7 +203,7 @@ def _evaluate_single_expression(operator, pattern_id, results, ranges_left: Set[
         # print(f"after filter `{operator}`: {output_ranges}")
         return output_ranges
     else:
-        assert False, f'unknown operator {operator} in {expression}'
+        raise NotImplementedError(f'unknown operator {operator}')
 
 
 def evaluate_expression(expression, results: Dict[str, List[Range]]) -> List[Range]:

@@ -13,11 +13,22 @@ COPY --chown=opam . /home/opam/sgrep/
 RUN eval $(opam env); cd sgrep; dune build
 RUN /home/opam/sgrep/_build/default/bin/main_sgrep.exe -version
 
+USER root
+RUN apk add --no-cache python3-dev build-base chrpath
+RUN pip3 install Nuitka==0.6.7
+USER opam
+RUN nuitka3 --follow-imports --standalone /home/opam/sgrep/sgrep.py --output-dir /home/opam/sgrep/sgrep-lint-built/
+RUN ls -al /home/opam/sgrep/sgrep-lint-built/sgrep.dist/
+
 FROM alpine:3.11.3@sha256:ddba4d27a7ffc3f86dd6c2f92041af252a1f23a8e742c90e6e1297bfa1bc0c45
-RUN apk add --no-cache python3
-RUN pip3 install pyyaml
 LABEL maintainer="sgrep@r2c.dev"
 
+COPY --from=build /home/opam/sgrep/sgrep-lint-built/sgrep.dist/* /bin/
+RUN mv /bin/sgrep /bin/sgrep-lint
 COPY --from=build /home/opam/sgrep/_build/default/bin/main_sgrep.exe /bin/sgrep
-COPY --from=build /home/opam/sgrep/sgrep.py /bin/sgrep-lint
+RUN ls -al /bin
+
+RUN sgrep --help
+RUN sgrep-lint --help
+
 ENTRYPOINT [ "/bin/sgrep-lint" ]
