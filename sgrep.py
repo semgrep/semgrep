@@ -312,12 +312,12 @@ def main(yaml_file_or_dirs: str, target_files_or_dirs: List[str], validate: bool
     all_rules, (errors, not_errors) = list(collect_rules(yaml_file_or_dirs))
     # TODO: validate the rule patterns are ok by invoking sgrep core
 
-    if validate and errors > 0:
-        print(
-            'validate flag passed and {errors} YAML files failed to parse, exiting')
-        sys.exit(1)
-    else:
-        sys.exit(0)
+    if validate:
+        if errors > 0:
+            print('validate flag passed and {errors} YAML files failed to parse, exiting')
+            sys.exit(1)
+        else:
+            sys.exit(0)
 
     print_error(
         f'running {len(all_rules)} rules from {not_errors} yaml files ({errors} yaml files were invalid)')
