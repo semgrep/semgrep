@@ -5,6 +5,7 @@ clean:
 	dune clean
 test:
 	dune runtest
+	./testlint/run-lint-tests.sh
 install:
 	dune install
 
