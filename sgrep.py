@@ -219,7 +219,8 @@ def evaluate_expression(expression, results: Dict[str, List[Range]]) -> List[Ran
     for (operator, pattern_ids) in expression:
         if operator == OPERATORS.AND_EITHER:
             # create a set from the union of the expressions in the `or` block
-            either_ranges = set(flatten((results.get(pid, [])) for pid in pattern_ids))
+            either_ranges = set(flatten((results.get(pid, []))
+                                        for pid in pattern_ids))
             # remove anything that does not equal one of these ranges
             ranges_left.intersection_update(either_ranges)
             # print(f"after filter `{operator}`: {ranges_left}")
@@ -261,7 +262,8 @@ def invoke_sgrep(
         # print(yaml_as_str)
         fout.write(yaml_as_str)
         fout.flush()
-        cmd = [SGREP_PATH, f"-rules_file", fout.name, *list(target_files_or_dirs)]
+        cmd = [SGREP_PATH, f"-rules_file",
+               fout.name, *list(target_files_or_dirs)]
         output = subprocess.check_output(cmd, shell=False)
         output_json = json.loads((output.decode("utf-8")))
         return output_json
@@ -285,11 +287,12 @@ def collect_rules(
 ) -> Tuple[List[Dict[str, Any]], Tuple[int, int]]:
     collected_rules = []
     errors, not_errors = 0, 0
-    for root, dirs, files in os.walk(yaml_file_or_dirs):
+    for root, dirs, files in os.walk(yaml_file_or_dirs, topdown=True):
         # for determinism, sort directories and files
-        dirs.sort()
         # skip any directory with a `.`; this avoids common config yaml like `.circleci/config.yaml`
-        for filename in sorted([f for f in files if not f.startswith(".")]):
+        files = sorted([f for f in files if not f[0] == '.'])
+        dirs[:] = sorted([d for d in dirs if not d[0] == '.'])
+        for filename in files:
             if pathlib.Path(filename).suffix in YML_EXTENSIONS:
                 full_path = os.path.join(root, filename)
                 rules_in_file = parse_sgrep_yml(full_path)
@@ -359,7 +362,8 @@ def main(
     output_json = invoke_sgrep(all_patterns, target_files_or_dirs)
 
     # group output; we want to see all of the same rule ids on the same file path
-    by_rule_index = collections.defaultdict(lambda: collections.defaultdict(list))
+    by_rule_index = collections.defaultdict(
+        lambda: collections.defaultdict(list))
     debug_print(output_json)
     for finding in output_json["matches"]:
         rule_index = int(finding["check_id"].split(".")[0])
@@ -415,4 +419,5 @@ if __name__ == "__main__":
     )
     parser.add_argument("target_files_or_dirs", nargs="+")
     args = parser.parse_args()
-    main(args.yaml_file_or_dirs, args.target_files_or_dirs, args.validate, args.strict)
+    main(args.yaml_file_or_dirs, args.target_files_or_dirs,
+         args.validate, args.strict)
