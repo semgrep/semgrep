@@ -8,21 +8,70 @@ syntax. The idea is to mix the convenience of grep with the
 correctness and precision of a compiler frontend.
 
 Its main features are:
+
 1. **Use concrete code syntax**: easy to learn
-2. **Metavariables ($X)**: abstract away code
+2. **Metavariables (\$X)**: abstract away code
 3. **'...' operator**: abstract away sequences
 4. **Knows about code equivalences**: one pattern can match variations on the code
-<!-- known previously as isomorphisms -->
+   <!-- known previously as isomorphisms -->
 5. **Less is more**: abstract away additional details
-<!-- known previously as iso by absence -->
+   <!-- known previously as iso by absence -->
 
 `sgrep` has good support for Python and JavaScript, with some support
 for Java and C, and more languages on the way!
 
 For more information see https://r2c.dev/sgrep-public.pdf
 
-For more information on the use of sgrep as a linter see 
+For more information on the use of sgrep as a linter see
 https://github.com/returntocorp/bento/blob/master/SGREP-README.md
+
+## Running from docker
+
+```bash
+
+docker run --rm -v $(pwd):/home/repo returntocorp/sgrep
+
+```
+
+To run `sgrep` via docker to develop patterns locally
+
+### To test a single pattern
+
+```bash
+
+docker run --rm -v $(pwd):/home/repo returntocorp/sgrep -e '<PATTERN>' path_of_file/to/run_over.py
+
+```
+
+### To test a config file
+
+By default, sgrep reads configs from `.sgrep.yml`, `.yaml` or `.yml` files in `.sgrep/`. You can override this with various config options
+
+```bash
+
+docker run --rm -v $(pwd):/home/repo returntocorp/sgrep -f '<PATTERN>'
+
+```
+
+```bash
+
+docker run --rm -v $(pwd):/home/repo returntocorp/sgrep --config-url https://gist.github.com/...
+
+```
+
+### To control the output
+
+```bash
+
+docker run --rm -v $(pwd):/home/repo returntocorp/sgrep --output-url https://example.com/report
+
+```
+
+```bash
+
+docker run --rm -v $(pwd):/home/repo returntocorp/sgrep --json -o output.json
+
+```
 
 ## Installation from source
 
@@ -38,7 +87,7 @@ $ opam switch 4.07.1
 $ eval $(opam env)
 ```
 
-Once OPAM is installed, you need to install the library pfff, 
+Once OPAM is installed, you need to install the library pfff,
 the OCaml frontend reason, and the build system dune:
 
 ```
@@ -66,7 +115,7 @@ $ dune build
 You can also use the Dockerfile in this directory to build sgrep
 inside a container.
 
-## Run 
+## Run
 
 Then to test sgrep on a file, for example tests/GENERIC/test.py
 run:
@@ -77,16 +126,17 @@ $ ./_build/default/bin/main_sgrep.exe -e foo tests/python
 ```
 
 If you want to test sgrep on a directory with a set of given rules, run:
+
 ```
 $ ./_build/default/bin/main_sgrep.exe -sgrep_lint -rule_file data/basic.yml tests/python
 ```
 
 ## Development Environment
 
-You can use Visual Studio Code (vscode) to edit the code of sgrep. 
+You can use Visual Studio Code (vscode) to edit the code of sgrep.
 The reason-vscode Marketplace extension adds support for OCaml/Reason
 (see https://marketplace.visualstudio.com/items?itemName=jaredly.reason-vscode).
-The OCaml and Reason IDE extension by David Morrison is another valid 
+The OCaml and Reason IDE extension by David Morrison is another valid
 extension, but it seems not as actively maintained as reason-vscode.
 
 The source of sgrep contains also a .vscode/ directory at its root
@@ -105,8 +155,7 @@ $ code .
 
 ## Debugging code
 
-Set the OCAMLRUNPARAM environment variable to 'b' for backtrace. 
+Set the OCAMLRUNPARAM environment variable to 'b' for backtrace.
 You will get better backtrace information when an exception is thrown.
 
-$ export OCAMLRUNPARAM=b
-
+\$ export OCAMLRUNPARAM=b
