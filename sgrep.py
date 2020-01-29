@@ -126,6 +126,7 @@ rules:
     try:
         y = yaml.safe_load(open(file_path))
     except FileNotFoundError:
+        print_error(f'YAML file at {file_path} not found')
         return None
     except yaml.scanner.ScannerError as se:
         print_error(se)
@@ -134,8 +135,6 @@ rules:
     if not 'rules' in y:
         print_error(f'{file_path} should have top-level key named `rules`')
         return None
-
-    counter = 0
 
     rules = []
     for i, rule in enumerate(y['rules']):
@@ -251,8 +250,9 @@ def invoke_sgrep(all_rules: List[Dict[str, Any]], target_files_or_dirs: List[str
         # print(yaml_as_str)
         fout.write(yaml_as_str)
         fout.flush()
-        cmd = f'{SGREP_PATH} -rules_file={fout.name} {" ".join(list(target_files_or_dirs))}'
-        output = subprocess.check_output(cmd, shell=True)
+        cmd = [SGREP_PATH, f'-rules_file',
+               fout.name, *list(target_files_or_dirs)]
+        output = subprocess.check_output(cmd, shell=False)
         output_json = json.loads((output.decode('utf-8')))
         return output_json
 
@@ -303,7 +303,7 @@ def flatten_rule_patterns(all_rules):
                    'severity': rule['severity'], 'languages': rule['languages'].copy(), 'message': '<internalonly>'}
 
 
-def main(yaml_file_or_dirs: str, target_files_or_dirs: List[str], validate: bool):
+def main(yaml_file_or_dirs: str, target_files_or_dirs: List[str], validate: bool, strict: bool):
 
     if not os.path.exists(yaml_file_or_dirs):
         print(f'path not found: {yaml_file_or_dirs}')
@@ -312,11 +312,12 @@ def main(yaml_file_or_dirs: str, target_files_or_dirs: List[str], validate: bool
     all_rules, (errors, not_errors) = list(collect_rules(yaml_file_or_dirs))
     # TODO: validate the rule patterns are ok by invoking sgrep core
 
-    if validate:
+    if validate or strict:
         if errors > 0:
-            print('validate flag passed and {errors} YAML files failed to parse, exiting')
+            print(
+                f'validate flag passed and {errors} YAML files failed to parse, exiting')
             sys.exit(1)
-        else:
+        elif not strict:
             sys.exit(0)
 
     print_error(
@@ -368,6 +369,9 @@ if __name__ == '__main__':
         "yaml_file_or_dirs", help=f"the YAML file or directory of YAML files ending in {YML_EXTENSIONS} with rules")
     parser.add_argument(
         "--validate", help=f"only validate that the YAML files with rules are correctly form, then exit 0 if ok", action='store_true')
+    parser.add_argument(
+        "--strict", help=f"only invoke sgrep if all YAML files are valid", action='store_true')
     parser.add_argument("target_files_or_dirs", nargs='+')
     args = parser.parse_args()
-    main(args.yaml_file_or_dirs, args.target_files_or_dirs, args.validate)
+    main(args.yaml_file_or_dirs, args.target_files_or_dirs,
+         args.validate, args.strict)
