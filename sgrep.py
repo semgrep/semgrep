@@ -212,7 +212,8 @@ def evaluate_expression(expression, results: Dict[str, List[Range]]) -> List[Ran
     for (operator, pattern_ids) in expression:
         if operator == OPERATORS.AND_EITHER:
             # create a set from the union of the expressions in the `or` block
-            either_ranges = set(flatten((results.get(pid, [])) for pid in pattern_ids))
+            either_ranges = set(flatten((results.get(pid, []))
+                                        for pid in pattern_ids))
             # remove anything that does not equal one of these ranges
             ranges_left.intersection_update(either_ranges)
             # print(f"after filter `{operator}`: {ranges_left}")
@@ -269,7 +270,8 @@ def rewrite_message_with_metavars(yaml_rule, sgrep_result):
     return msg_text
 
 
-def collect_rules(yaml_file_or_dirs: str) -> List[Dict[str, Any]]:
+def collect_rules(yaml_file_or_dirs: str) -> Tuple[List[Dict[str, Any]], Tuple[int, int]]:
+    collected_rules = []
     errors, not_errors = 0, 0
     for root, dirs, files in os.walk(yaml_file_or_dirs):
         dirs.sort()
@@ -286,9 +288,8 @@ def collect_rules(yaml_file_or_dirs: str) -> List[Dict[str, Any]]:
                             pathlib.Path(full_path)).parts[:-1] if len(x)])
                         new_id = f"{prefix}.{rule['id']}".lstrip('.')
                         rule['id'] = new_id
-                    yield from rules_in_file
-    print_error(
-        f'running rules from {not_errors} yaml files ({errors} yaml files were invalid)')
+                    collected_rules.extend(rules_in_file)
+    return collected_rules, (errors, not_errors)
 
 
 def flatten_rule_patterns(all_rules):
@@ -302,14 +303,24 @@ def flatten_rule_patterns(all_rules):
                    'severity': rule['severity'], 'languages': rule['languages'].copy(), 'message': '<internalonly>'}
 
 
-def main(yaml_file_or_dirs: str, target_files_or_dirs: List[str]):
+def main(yaml_file_or_dirs: str, target_files_or_dirs: List[str], validate: bool):
 
     if not os.path.exists(yaml_file_or_dirs):
         print(f'path not found: {yaml_file_or_dirs}')
         sys.exit(1)
 
-    all_rules = list(collect_rules(yaml_file_or_dirs))
-    # TODO: validate the rule patterns are ok
+    all_rules, (errors, not_errors) = list(collect_rules(yaml_file_or_dirs))
+    # TODO: validate the rule patterns are ok by invoking sgrep core
+
+    if validate and errors > 0:
+        print(
+            'validate flag passed and {errors} YAML files failed to parse, exiting')
+        sys.exit(1)
+    else:
+        sys.exit(0)
+
+    print_error(
+        f'running {len(all_rules)} rules from {not_errors} yaml files ({errors} yaml files were invalid)')
 
     # a rule can have multiple patterns inside it. Flatten these so we can send sgrep a single yml file list of patterns
     all_patterns = list(flatten_rule_patterns(all_rules))
@@ -355,6 +366,8 @@ if __name__ == '__main__':
         description="Helper to invoke sgrep with many patterns or files")
     parser.add_argument(
         "yaml_file_or_dirs", help=f"the YAML file or directory of YAML files ending in {YML_EXTENSIONS} with rules")
+    parser.add_argument(
+        "--validate", help=f"only validate that the YAML files with rules are correctly form, then exit 0 if ok", action='store_true')
     parser.add_argument("target_files_or_dirs", nargs='+')
     args = parser.parse_args()
-    main(args.yaml_file_or_dirs, args.target_files_or_dirs)
+    main(args.yaml_file_or_dirs, args.target_files_or_dirs, args.validate)
