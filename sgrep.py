@@ -169,7 +169,6 @@ def flatten(L: List[List[Any]]) -> List[Any]:
         for item in list:
             yield item
 
-
 def _evaluate_single_expression(operator, pattern_id, results, ranges_left: Set[Range]) -> List[Range]:
     results_for_pattern = results.get(pattern_id, [])
     if operator == OPERATORS.AND:
@@ -178,7 +177,12 @@ def _evaluate_single_expression(operator, pattern_id, results, ranges_left: Set[
     elif operator == OPERATORS.AND_NOT:
         # remove all ranges that DO equal the ranges for this pattern
         # difference_update = Remove all elements of another set from this set.
-        return ranges_left.difference(results_for_pattern)
+        tmp_set = ranges_left.copy()
+        for result in results_for_pattern:
+            for range in ranges_left:
+                if result.is_enclosing_or_eq(range):
+                    tmp_set.remove(range)
+        return tmp_set.difference(results_for_pattern)
     elif operator == OPERATORS.AND_INSIDE:
         # remove all ranges (not enclosed by) or (not equal to) the inside ranges
         output_ranges = set()
