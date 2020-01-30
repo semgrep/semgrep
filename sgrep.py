@@ -270,36 +270,36 @@ def rewrite_message_with_metavars(yaml_rule, sgrep_result):
     return msg_text
 
 
-def collect_rules(yaml_file_or_dirs: str) -> Tuple[List[Dict[str, Any]], Tuple[int, int]]:
+def _collect_rules_from_files(files: List[str], root: Optional[str] = None)-> Tuple[List[Dict[str, Any]], Tuple[int, int]]:
     collected_rules = []
     errors, not_errors = 0, 0
+    for filename in sorted(files):
+        if pathlib.Path(filename).suffix in YML_EXTENSIONS:
+            if root:
+                full_path = os.path.join(root, filename)
+            else:
+                full_path = filename
+            rules_in_file = parse_sgrep_yml(full_path)
+            if rules_in_file is None:
+                errors += 1
+            else:
+                not_errors += 1
+                for rule in rules_in_file:
+                    prefix = '.'.join([x for x in PurePath(
+                        pathlib.Path(full_path)).parts[:-1] if len(x)])
+                    new_id = f"{prefix}.{rule['id']}".lstrip('.')
+                    rule['id'] = new_id
+                collected_rules.extend(rules_in_file)
+    return collected_rules, (errors, not_errors)
+
+def collect_rules(yaml_file_or_dirs: str) -> Tuple[List[Dict[str, Any]], Tuple[int, int]]:
     if os.path.isfile(yaml_file_or_dirs):
         file_path = os.path.abspath(yaml_file_or_dirs)
-        rules_in_file = parse_sgrep_yml(file_path)
-        if rules_in_file is None:
-            errors += 1
-        else:
-            not_errors += 1
-        collected_rules.extend(rules_in_file)
-        return collected_rules, (errors, not_errors)
+        return _collect_rules_from_files([file_path])
 
     for root, dirs, files in os.walk(yaml_file_or_dirs):
         dirs.sort()
-        for filename in sorted(files):
-            if pathlib.Path(filename).suffix in YML_EXTENSIONS:
-                full_path = os.path.join(root, filename)
-                rules_in_file = parse_sgrep_yml(full_path)
-                if rules_in_file is None:
-                    errors += 1
-                else:
-                    not_errors += 1
-                    for rule in rules_in_file:
-                        prefix = '.'.join([x for x in PurePath(
-                            pathlib.Path(full_path)).parts[:-1] if len(x)])
-                        new_id = f"{prefix}.{rule['id']}".lstrip('.')
-                        rule['id'] = new_id
-                    collected_rules.extend(rules_in_file)
-    return collected_rules, (errors, not_errors)
+        return _collect_rules_from_files(sorted(files), root)
 
 def transform_to_r2c_output(finding: Dict[str, Any])-> Dict[str, Any]:
     # https://docs.r2c.dev/en/latest/api/output.html does not support offset at the moment
