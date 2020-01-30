@@ -273,6 +273,16 @@ def rewrite_message_with_metavars(yaml_rule, sgrep_result):
 def collect_rules(yaml_file_or_dirs: str) -> Tuple[List[Dict[str, Any]], Tuple[int, int]]:
     collected_rules = []
     errors, not_errors = 0, 0
+    if os.path.isfile(yaml_file_or_dirs):
+        file_path = os.path.abspath(yaml_file_or_dirs)
+        rules_in_file = parse_sgrep_yml(file_path)
+        if rules_in_file is None:
+            errors += 1
+        else:
+            not_errors += 1
+        collected_rules.extend(rules_in_file)
+        return collected_rules, (errors, not_errors)
+
     for root, dirs, files in os.walk(yaml_file_or_dirs):
         dirs.sort()
         for filename in sorted(files):
