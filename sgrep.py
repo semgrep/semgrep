@@ -11,7 +11,7 @@ import tempfile
 import traceback
 from dataclasses import dataclass
 from pathlib import PurePath
-from typing import Any, Dict, Generator, List, Set, Tuple
+from typing import Any, Dict, Generator, List, Optional, Set, Tuple
 
 import yaml
 
@@ -291,6 +291,13 @@ def collect_rules(yaml_file_or_dirs: str) -> Tuple[List[Dict[str, Any]], Tuple[i
                     collected_rules.extend(rules_in_file)
     return collected_rules, (errors, not_errors)
 
+def transform_to_r2c_output(finding: Dict[str, Any])-> Dict[str, Any]:
+    # https://docs.r2c.dev/en/latest/api/output.html does not support offset at the moment
+    if "offset" in finding["start"]:
+        del finding["start"]["offset"]
+    if "offset" in finding["end"]:
+        del finding["end"]["offset"]
+    return finding
 
 def flatten_rule_patterns(all_rules):
     for rule_index, rule in enumerate(all_rules):
@@ -303,7 +310,7 @@ def flatten_rule_patterns(all_rules):
                    'severity': rule['severity'], 'languages': rule['languages'].copy(), 'message': '<internalonly>'}
 
 
-def main(yaml_file_or_dirs: str, target_files_or_dirs: List[str], validate: bool, strict: bool):
+def main(yaml_file_or_dirs: str, target_files_or_dirs: List[str], validate: bool, strict: bool, use_r2c_output: Optional[bool] = False):
 
     if not os.path.exists(yaml_file_or_dirs):
         print(f'path not found: {yaml_file_or_dirs}')
@@ -357,9 +364,12 @@ def main(yaml_file_or_dirs: str, target_files_or_dirs: List[str], validate: bool
                     # restore the original message
                     result['extra']['message'] = rewrite_message_with_metavars(
                         all_rules[rule_index], result)
+                    if use_r2c_output:
+                        result = transform_to_r2c_output(result)
                     outputs_after_booleans.append(result)
+    key_name = "results" if use_r2c_output else "matches"
 
-    print(json.dumps({'matches': outputs_after_booleans}))
+    print(json.dumps({key_name: outputs_after_booleans}))
 
 
 if __name__ == '__main__':
@@ -371,7 +381,9 @@ if __name__ == '__main__':
         "--validate", help=f"only validate that the YAML files with rules are correctly form, then exit 0 if ok", action='store_true')
     parser.add_argument(
         "--strict", help=f"only invoke sgrep if all YAML files are valid", action='store_true')
+    parser.add_argument(
+        "--r2c", help=f"output findings in r2c platform json format", action='store_true')
     parser.add_argument("target_files_or_dirs", nargs='+')
     args = parser.parse_args()
     main(args.yaml_file_or_dirs, args.target_files_or_dirs,
-         args.validate, args.strict)
+         args.validate, args.strict, args.r2c)
