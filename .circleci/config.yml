@@ -2,7 +2,7 @@ version: 2.1
 jobs:
   build:
     docker:
-      - image: returntocorp/sgrep-build:2.3
+      - image: returntocorp/sgrep-build:2.4
     steps:
       - checkout
       - run: cd ~ && git clone  https://github.com/returntocorp/pfff
@@ -14,7 +14,7 @@ jobs:
             - _build
   test:
     docker:
-      - image: returntocorp/sgrep-build:2.3
+      - image: returntocorp/sgrep-build:2.4
     steps:
       - checkout
       - attach_workspace:
