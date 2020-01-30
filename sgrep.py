@@ -110,7 +110,7 @@ rules:
           - pattern: $X == $X
           - pattern: $X != $X
     message: "useless comparison operation `$X == $X` or `$X != $X`; possible bug?"
-    langauges: [python]
+    languages: [python]
     severity: ERROR
   - id: python37-compatability-os-module
     patterns:
