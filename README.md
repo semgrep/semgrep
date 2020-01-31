@@ -1,6 +1,22 @@
 # sgrep
 
-`sgrep` is a powerful tool to search code for *s*ymantic patterns. `sgrep` is extensible, polyglot, and rapidly evolving to meet the needs of product security teams and developers. `sgrep` is under active support and we invite you to reach out to [sgrep@r2c.dev](mailto:sgrep@r2c.dev) for support.
+`sgrep`, for syntactical (and occasionnally semantic) grep, is a
+tool to help find bugs by specifying code patterns using a familiar
+syntax. The idea is to mix the convenience of grep with the
+correctness and precision of a compiler frontend.
+
+Its main features are:
+
+1. **Use concrete code syntax**: easy to learn
+2. **Metavariables ($X)**: abstract away code
+3. **'...' operator**: abstract away sequences
+4. **Knows about code equivalences**: one pattern can match variations on the code
+5. **Less is more**: abstract away additional details
+
+`sgrep` has good support for Python and JavaScript, with some support
+for Java and C, and more languages on the way!
+
+For more information see the [slides](https://r2c.dev/sgrep-public.pdf) from our last meetup
 
 ## Installation
 
@@ -50,7 +66,7 @@ TODO
 
 #### sgrep Registry
 
-r2c provides a registry of config files tuned using our Massive Analysis Platform on thousands of repositories. To use:
+r2c provides a [registry](https://github.com/returntocorp/sgrep-rules) of config files tuned using our Massive Analysis Platform on thousands of repositories. To use:
 
 ```bash
 
@@ -68,11 +84,11 @@ Patterns are snippets of code with variables and other operators that will be pa
 
 ### Metavariables
 
-TODO
+`$X`, `$FOO`, `$RETURN_CODE` are all examples of metavariables and you can referance them later in your pattern and `sgrep` will ensure they match
 
 #### Operators
 
-TODO
+`...` is the primary "match anything" operator
 
 #### Equivalences
 
@@ -92,6 +108,10 @@ with open('foo.txt', 'rb') as f:
 
 and other semantically equivalent configurations.
 
-## Outstanding Issues
+## Bug Reports
 
-- TODO
+Please open an issue on this project.
+
+## Contributions
+
+`sgrep`  is LGPL licensed and we would love your contributions. See [DEVELOPMENT.md](DEVELOPMENT.md)`
