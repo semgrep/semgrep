@@ -45,7 +45,7 @@ jobs:
       - run: git clone https://github.com/returntocorp/pfff ~/pfff
       - run: eval $(opam env); cd ~/pfff; ./configure; make depend; make; make opt; make reinstall-libs
       - run: eval $(opam env); dune build
-      - run: 
+      - run:
           name: "pubish release to github"
           command: |
             mkdir ~/artifacts
@@ -70,10 +70,10 @@ workflows:
       - test:
           requires:
             - build
-      - publish_mac:
-          # requires:
-          #   - test
-          # filters:
-          #   branches:
-          #     only: master
+      - publish_mac
+        # requires:
+        #   - test
+        # filters:
+        #   branches:
+        #     only: master
 
