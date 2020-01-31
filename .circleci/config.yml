@@ -1,28 +1,34 @@
 version: 2.1
-jobs:
-  build:
+
+executors:
+  sgrep-build:
+    environment:
+      POETRY_VIRTUALENVS_CREATE: "false"
     docker:
       - image: returntocorp/sgrep-build:2.5
+
+jobs:
+  build:
+    executor: sgrep-build
     steps:
       - checkout
       - run: cd ~ && git clone  https://github.com/returntocorp/pfff
       - run: eval $(opam env) && cd ~/pfff && ./configure && make depend && make && make opt && make install-libs
-      - run: env POETRY_VIRTUALENVS_CREATE=false poetry install
+      - run: poetry install
       - run: eval $(opam env); make all
       - persist_to_workspace:
           root: /home/opam/project
           paths:
             - _build
   test:
-    docker:
-      - image: returntocorp/sgrep-build:2.5
+    executor: sgrep-build
     steps:
       - checkout
       - attach_workspace:
           at: /home/opam/project
       - run: cd ~ && git clone  https://github.com/returntocorp/pfff # TODO remove and just mount these two lines
       - run: eval $(opam env) && cd ~/pfff && ./configure && make depend && make && make opt && make install-libs
-      - run: env POETRY_VIRTUALENVS_CREATE=false poetry install
+      - run: poetry install
       - run: eval $(opam env); make test
 workflows:
   version: 2.1
