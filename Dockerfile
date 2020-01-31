@@ -15,7 +15,8 @@ RUN /home/opam/sgrep/_build/default/bin/main_sgrep.exe -version
 
 FROM alpine:3.11.3@sha256:ddba4d27a7ffc3f86dd6c2f92041af252a1f23a8e742c90e6e1297bfa1bc0c45
 RUN apk add --no-cache python3
-RUN pip3 install pyyaml
+COPY --from=build /home/opam/sgrep/requirements.txt requirements.txt
+RUN pip3 install -r requirements.txt
 LABEL maintainer="sgrep@r2c.dev"
 
 COPY --from=build /home/opam/sgrep/_build/default/bin/main_sgrep.exe /bin/sgrep
