@@ -318,7 +318,7 @@ def parse_config_string(config_id: str, contents: str) -> Dict[str, Any]:
 
 
 def parse_config_file(loc: Path) -> Dict[str, Any]:
-    config_id = str(loc).replace(REPO_HOME_DOCKER, '')  # TODO
+    config_id = str(loc)  # TODO
     return {config_id: load_config_from_disk(loc)}
 
 
@@ -326,7 +326,7 @@ def parse_config_folder(loc: Path) -> Dict[str, Any]:
     configs = {}
     for l in loc.rglob("*"):
         if l.suffix in YML_EXTENSIONS:
-            config_id = str(l.relative_to(loc))  # TODO
+            config_id = str(l)  # TODO
             configs[config_id] = load_config_from_disk(l)
     return configs
 
