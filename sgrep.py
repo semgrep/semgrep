@@ -584,27 +584,38 @@ def main(args: Any):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Helper to invoke sgrep with many patterns or files",
-        prog="sgrep-lint",
+        description="sgrep CLI. For more information about sgrep, go to https://sgrep.dev/",
+        prog="sgrep",  # we have to lie to the user since they know of this as `sgrep`
     )
 
     ### input
-    parser.add_argument("target", nargs="*", default=["."])
+    parser.add_argument(
+        "target",
+        nargs="*",
+        default=["."],
+        help="Files to search (by default, entire current working directory searched). Implied argument if piping to sgrep.",
+    )
 
     ### config options
     config = parser.add_argument_group("config")
     config_ex = config.add_mutually_exclusive_group()
 
-    config_ex.add_argument("--config", help=f"Config file, folder, or named config")
+    config_ex.add_argument(
+        "-f",
+        "--config",
+        help=f"Config YAML file or directory of YAML files ending in .yml|.yaml, OR URL of a config file, OR sgrep registry entry name. See the README for sgrep for information on config file format.",
+    )
 
     config_ex.add_argument("-e", "--pattern", help="sgrep pattern")
     config.add_argument(
         "-l",
         "--lang",
-        help="Must be used with -e/--pattern. Sets the lanaguge of the pattern",
+        help="Parses pattern and all files in specified language. Must be used with -e/--pattern.",
     )
     config.add_argument(
-        "--validate", help=f"validate the config(s)", action="store_true"
+        "--validate",
+        help=f"Validate config file(s). No search is performed.",
+        action="store_true",
     )
     config.add_argument(
         "--strict",
@@ -615,13 +626,28 @@ if __name__ == "__main__":
     ### output options
     output = parser.add_argument_group("output")
 
-    output.add_argument("-q", "--quiet", help="run quietly", action="store_true")
-    output.add_argument("-o", "--output", help="send the output to this location")
+    output.add_argument(
+        "-q",
+        "--quiet",
+        help="Do not print anything to stdout. Search results can still be saved to an output file specified by -o/--output. Exit code provides success status.",
+        action="store_true",
+    )
+    output.add_argument(
+        "-o",
+        "--output",
+        help="Save search results to a file or post to URL. Default is to print to stdout.",
+    )
+    output.add_argument(
+        "--json", help="Convert search output to JSON format.", action="store_true"
+    )
     ### logging options
     logging = parser.add_argument_group("logging")
 
     logging.add_argument(
-        "-v", "--verbose", help=f"increase the verbosity", action="store_true"
+        "-v",
+        "--verbose",
+        help=f"Sets the logging level to verbose. E.g. statements about which files are being processed will be printed.",
+        action="store_true",
     )
 
     ### Parse and validate
