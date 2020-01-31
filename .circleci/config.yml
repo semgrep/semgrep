@@ -70,7 +70,7 @@ workflows:
       - test:
           requires:
             - build
-      - publish_mac
+      - publish_mac:
           requires:
             - test
           filters:
