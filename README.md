@@ -1,5 +1,7 @@
 # sgrep
 
+[![CircleCI](https://circleci.com/gh/returntocorp/sgrep.svg?style=svg)](https://circleci.com/gh/returntocorp/sgrep)
+
 `sgrep`, for syntactical (and occasionnally semantic) grep, is a
 tool to help find bugs by specifying code patterns using a familiar
 syntax. The idea is to mix the convenience of grep with the
@@ -47,10 +49,10 @@ docker run --rm -v $(pwd):/home/repo returntocorp/sgrep
 To rapidly iterate on a single pattern, you can test on a single file or folder. For example,
 
 ```bash
-docker run --rm -v $(pwd):/home/repo returntocorp/sgrep -e '$X == $X' path/to/login.py
+docker run --rm -v $(pwd):/home/repo returntocorp/sgrep -e '$X == $X' path/to/file.py
 ```
 
-Here, `sgrep` will search `login.py` pattern `$X == $X` (which is a stupid equals check) and print the results to `stdout`. This also works for directories and will skip the file if parsing fails. You can specifiy the language of the pattern with `--lang javascript` for example.
+Here, `sgrep` will search the target with the pattern `$X == $X` (which is a stupid equals check) and print the results to `stdout`. This also works for directories and will skip the file if parsing fails. You can specifiy the language of the pattern with `--lang javascript` for example.
 
 To see more options
 
@@ -62,7 +64,7 @@ docker run --rm returntocorp/sgrep --help
 
 #### Format
 
-TODO
+
 
 #### sgrep Registry
 
