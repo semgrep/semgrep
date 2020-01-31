@@ -29,10 +29,30 @@ jobs:
       - run: cd ~ && git clone  https://github.com/returntocorp/pfff # TODO remove and just mount these two lines
       - run: eval $(opam env) && cd ~/pfff && ./configure && make depend && make && make opt && make install-libs
       - run: eval $(opam env); make test
+
+  publish_mac:
+    macos:
+      xcode: 11.3.1
+    environment:
+      HOMEBREW_NO_AUTO_UPDATE: 1
+    steps:
+      - checkout
+      - run: brew install ghr
+      - run: brew install opam
+      - run: opam init
+      - run: opam switch create 4.07.1
+      - run: opam switch 4.07.1
+      - run: cd ~; git clone https://github.com/returntocorp/pfff
+      - run: eval $(opam env); cd ~/pfff; ./configure; make depend; make; make opt; make reinstall-libs
+      - run: eval $(opam env); opam install reason dune
+      - run: eval $(opam env); dune build
+      - run: ls -la **/*
+
 workflows:
   version: 2.1
   build_and_test:
     jobs:
+      - publish_mac
       - build
       - test:
           requires:
