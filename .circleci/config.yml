@@ -54,6 +54,8 @@ jobs:
       - run: cd ~/artifacts && shasum -a 256 * > ./${VERSION}_SHASUMS
       - run: brew install ghr
       - run: ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${VERSION} ~/artifacts/
+      - store_artifacts:
+          path: ~/artifacts
 
 workflows:
   version: 2.1
@@ -68,7 +70,7 @@ workflows:
             - test
           filters:
             branches:
-              ignore: /.*/
+              only: master
             tags:
               only: /^\d+\.\d+\.\d+$/
 
