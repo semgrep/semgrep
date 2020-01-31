@@ -39,7 +39,7 @@ jobs:
       - checkout
       - run: brew install ghr
       - run: brew install opam
-      - run: opam init --no-setup
+      - run: opam init --no-setup --bare
       - run: opam switch create 4.07.1
       - run: opam switch 4.07.1
       - run: cd ~; git clone https://github.com/returntocorp/pfff
@@ -49,6 +49,7 @@ jobs:
       - run: ls -la **/*
       - run: ~/project/_build/default/bin/main_sgrep.exe -help
       - run: ghr --help
+      - run: ghr -replace latest-dev ~/project/_build/default/bin/main_sgrep.exe
 
 workflows:
   version: 2.1
