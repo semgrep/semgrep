@@ -45,15 +45,20 @@ jobs:
       - run: git clone https://github.com/returntocorp/pfff ~/pfff
       - run: eval $(opam env); cd ~/pfff; ./configure; make depend; make; make opt; make reinstall-libs
       - run: eval $(opam env); dune build
-      - run: mkdir ~/artifacts
-      - run: mv ~/project/_build/default/bin/main_sgrep.exe main_sgrep-osx-${VERSION}
-      - run: chmod +x main_sgrep-osx-${VERSION}
-      - run: ./main_sgrep-osx-${VERSION} -help
-      - run: zip main_sgrep-osx-${VERSION}.zip main_sgrep-osx-${VERSION}
-      - run: mv main_sgrep-osx-${VERSION}.zip ~/artifacts
-      - run: cd ~/artifacts && shasum -a 256 * > ./${VERSION}_SHASUMS
-      - run: brew install ghr
-      - run: ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${VERSION} ~/artifacts/
+      - run:
+          name: "pubish release to github"
+          command: |
+            mkdir ~/artifacts
+            VERSION="latest"
+            chmod +x ~/project/_build/default/bin/main_sgrep.exe
+            mv ~/project/_build/default/bin/main_sgrep.exe main_sgrep-osx-${VERSION}
+            mv ~/project/sgrep.py sgrep-${VERSION}.py
+            ./main_sgrep-osx-${VERSION} -help
+            zip main_sgrep-osx-${VERSION}.zip main_sgrep-osx-${VERSION} sgrep-${VERSION}.py
+            mv main_sgrep-osx-${VERSION}.zip ~/artifacts
+            cd ~/artifacts && shasum -a 256 * > ./${VERSION}_SHASUMS
+            brew install ghr
+            ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${VERSION} ~/artifacts/
       - store_artifacts:
           path: ~/artifacts
 
@@ -71,6 +76,4 @@ workflows:
           filters:
             branches:
               only: master
-            tags:
-              only: /^\d+\.\d+\.\d+$/
 
