@@ -360,10 +360,10 @@ def download_config(config_url: str) -> Any:
     try:
         r = requests.get(config_url, stream=True)
         if r.status_code == requests.codes.ok:
-            content_type = r.headers.get('Content-Type')
-            if 'text/plain' in content_type:
+            content_type = r.headers.get("Content-Type")
+            if "text/plain" in content_type:
                 return parse_config_string(config_url, r.content)
-            elif content_type == 'application/x-gzip':
+            elif content_type == "application/x-gzip":
                 fname = f"/tmp/{base64.b64encode(config_url.encode()).decode()}"
                 with tarfile.open(fileobj=r.raw, mode="r:gz") as tar:
                     tar.extractall(fname)
