@@ -49,7 +49,7 @@ jobs:
           name: "pubish release to github"
           command: |
             mkdir ~/artifacts
-            VERSION=$(~/project/_build/default/bin/main_sgrep.exe -version)
+            VERSION="latest"
             chmod +x ~/project/_build/default/bin/main_sgrep.exe
             mv ~/project/_build/default/bin/main_sgrep.exe main_sgrep-osx-${VERSION}
             mv ~/project/sgrep.py sgrep-${VERSION}.py
@@ -71,9 +71,9 @@ workflows:
           requires:
             - build
       - publish_mac
-        # requires:
-        #   - test
-        # filters:
-        #   branches:
-        #     only: master
+          requires:
+            - test
+          filters:
+            branches:
+              only: master
 
