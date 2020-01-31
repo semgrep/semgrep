@@ -21,7 +21,7 @@ import tarfile
 
 ### Constants
 
-REPO_HOME_DOCKER = "/home/repo"
+REPO_HOME_DOCKER = "/home/repo/"
 DEFAULT_CONFIG_FILE = ".sgrep.yml"
 DEFAULT_CONFIG_FOLDER = ".sgrep"
 DEFAULT_LANG = "python"
@@ -318,7 +318,7 @@ def parse_config_string(config_id: str, contents: str) -> Dict[str, Any]:
 
 
 def parse_config_file(loc: Path) -> Dict[str, Any]:
-    config_id = str(loc)  # TODO
+    config_id = str(loc).replace(REPO_HOME_DOCKER, '')  # TODO
     return {config_id: load_config_from_disk(loc)}
 
 
@@ -326,7 +326,7 @@ def parse_config_folder(loc: Path) -> Dict[str, Any]:
     configs = {}
     for l in loc.rglob("*"):
         if l.suffix in YML_EXTENSIONS:
-            config_id = str(l)  # TODO
+            config_id = str(l.relative_to(loc))  # TODO
             configs[config_id] = load_config_from_disk(l)
     return configs
 
