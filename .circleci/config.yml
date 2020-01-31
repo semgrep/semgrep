@@ -42,9 +42,9 @@ jobs:
       - run: opam init --no-setup --bare
       - run: opam switch create 4.07.1
       - run: opam switch 4.07.1
+      - run: eval $(opam env); opam install reason dune ocamlfind camlp4 num ocamlgraph json-wheel conf-perl yaml
       - run: cd ~; git clone https://github.com/returntocorp/pfff
       - run: eval $(opam env); cd ~/pfff; ./configure; make depend; make; make opt; make reinstall-libs
-      - run: eval $(opam env); opam install reason dune ocamlfind camlp4 num ocamlgraph json-wheel conf-perl yaml
       - run: eval $(opam env); cd ~/project; dune build
       - run: ls -la **/*
       - run: ~/project/_build/default/bin/main_sgrep.exe -help
