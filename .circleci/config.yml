@@ -1,27 +1,34 @@
 version: 2.1
+
+executors:
+  sgrep-build:
+    docker:
+      - image: returntocorp/sgrep-build:2.5
+
 jobs:
   build:
-    docker:
-      - image: returntocorp/sgrep-build:2.3
+    executor: sgrep-build
     steps:
       - checkout
+      - run: pip3 install -r requirements.txt
       - run: cd ~ && git clone  https://github.com/returntocorp/pfff
       - run: eval $(opam env) && cd ~/pfff && ./configure && make depend && make && make opt && make install-libs
-      - run: eval $(opam env); dune build
+      - run: eval $(opam env); make all
       - persist_to_workspace:
           root: /home/opam/project
           paths:
             - _build
   test:
-    docker:
-      - image: returntocorp/sgrep-build:2.3
+    executor: sgrep-build
     steps:
       - checkout
       - attach_workspace:
           at: /home/opam/project
+      - run: ln -s /home/opam/project/_build/default/bin/main_sgrep.exe /home/opam/.local/bin/sgrep
+      - run: pip3 install -r requirements.txt
       - run: cd ~ && git clone  https://github.com/returntocorp/pfff # TODO remove and just mount these two lines
       - run: eval $(opam env) && cd ~/pfff && ./configure && make depend && make && make opt && make install-libs
-      - run: eval $(opam env); dune runtest
+      - run: eval $(opam env); make test
 workflows:
   version: 2.1
   build_and_test:
