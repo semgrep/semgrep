@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import collections
+import glob
 import itertools
 import json
 import os
@@ -273,12 +274,9 @@ def rewrite_message_with_metavars(yaml_rule, sgrep_result):
 def _collect_rules_from_files(files: List[str], root: Optional[str] = None)-> Tuple[List[Dict[str, Any]], Tuple[int, int]]:
     collected_rules = []
     errors, not_errors = 0, 0
-    for filename in sorted(files):
+    for filename in files:
         if pathlib.Path(filename).suffix in YML_EXTENSIONS:
-            if root:
-                full_path = os.path.join(root, filename)
-            else:
-                full_path = filename
+            full_path = filename
             rules_in_file = parse_sgrep_yml(full_path)
             if rules_in_file is None:
                 errors += 1
@@ -297,9 +295,8 @@ def collect_rules(yaml_file_or_dirs: str) -> Tuple[List[Dict[str, Any]], Tuple[i
         file_path = os.path.abspath(yaml_file_or_dirs)
         return _collect_rules_from_files([file_path])
 
-    for root, dirs, files in os.walk(yaml_file_or_dirs):
-        dirs.sort()
-        return _collect_rules_from_files(sorted(files), root)
+    files = [f for ext in YML_EXTENSIONS for f in glob.glob(os.path.join(yaml_file_or_dirs, f"**/*{ext}"), recursive=True)]
+    return _collect_rules_from_files(sorted(files))
 
 def transform_to_r2c_output(finding: Dict[str, Any])-> Dict[str, Any]:
     # https://docs.r2c.dev/en/latest/api/output.html does not support offset at the moment
