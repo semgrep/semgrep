@@ -39,14 +39,16 @@ jobs:
       - checkout
       - run: brew install ghr
       - run: brew install opam
-      - run: opam init
+      - run: opam init --no-setup
       - run: opam switch create 4.07.1
       - run: opam switch 4.07.1
-      - run: cd ~; git clone https://github.com/returntocorp/pfff
+      - run: git clone https://github.com/returntocorp/pfff
       - run: eval $(opam env); cd ~/pfff; ./configure; make depend; make; make opt; make reinstall-libs
       - run: eval $(opam env); opam install reason dune
-      - run: eval $(opam env); dune build
+      - run: eval $(opam env); cd ~/project; dune build
       - run: ls -la **/*
+      - run: ~/project/_build/default/bin/main_sgrep.exe -help
+      - run: ghr --help
 
 workflows:
   version: 2.1
