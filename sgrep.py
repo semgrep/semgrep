@@ -4,16 +4,31 @@ import collections
 import itertools
 import json
 import os
-import pathlib
 import subprocess
 import sys
 import tempfile
 import traceback
 from dataclasses import dataclass
-from pathlib import PurePath
+from pathlib import PurePath, Path
+import base64
 from typing import Any, Dict, Generator, List, Optional, Set, Tuple
 
 import yaml
+
+from urllib.parse import urlparse
+import requests
+import tarfile
+
+### Constants
+
+REPO_HOME_DOCKER = "/home/repo"
+DEFAULT_CONFIG_FILE = ".sgrep.yml"
+DEFAULT_CONFIG_FOLDER = ".sgrep"
+DEFAULT_LANG = "python"
+
+RULES_REGISTRY = {"r2c": "https://github.com/returntocorp/sgrep-rules/tarball/master"}
+RULES_KEY = "rules"
+ID_KEY = "id"
 
 
 class OPERATORS:
@@ -24,7 +39,7 @@ class OPERATORS:
     AND_NOT_INSIDE = "and_not_inside"
 
 
-MUST_HAVE_KEYS = set(["id", "message", "languages", "severity"])
+MUST_HAVE_KEYS = {"id", "message", "languages", "severity"}
 
 PATTERN_NAMES_MAP = {
     "pattern-inside": OPERATORS.AND_INSIDE,
@@ -34,28 +49,70 @@ PATTERN_NAMES_MAP = {
     "pattern": OPERATORS.AND,
 }
 
-YML_EXTENSIONS = [".yml", ".yaml"]
+YML_EXTENSIONS = {".yml", ".yaml"}
 DEBUG = False
+QUIET = False
 SGREP_PATH = "sgrep"
+
+### helper functions
+
+
+def is_url(url: str) -> bool:
+    try:
+        result = urlparse(url)
+        return all([result.scheme, result.netloc])
+    except ValueError:
+        return False
+
+
+def print_error(e):
+    if not QUIET:
+        print(str(e), file=sys.stderr)
+
+
+def print_error_exit(msg: str, exit_code: int = 1) -> None:
+    if not QUIET:
+        print(msg, file=sys.stderr)
+    sys.exit(exit_code)
+
+
+def print_msg(msg: str):
+    if not QUIET:
+        print(msg, file=sys.stderr)
+
+
+def debug_print(msg: str):
+    if DEBUG:
+        print(msg, file=sys.stderr)
+
+
+def flatten(L: List[List[Any]]) -> List[Any]:
+    for list in L:
+        for item in list:
+            yield item
+
+
+### sgrep functions
+
+
+def _parse_boolean_expression(rule_patterns, counter=0):
+    for pattern in rule_patterns:
+        for boolean_operator, pattern_text in pattern.items():
+            if boolean_operator == "pattern-either":
+                yield (
+                    OPERATORS.AND_EITHER,
+                    list(range(counter, counter + len(pattern_text))),
+                )
+                counter += len(pattern_text)
+            else:
+                yield (operator_for_pattern_name(boolean_operator), [counter])
+                counter += 1
 
 
 def build_boolean_expression(rule):
     """
     Build a (flat, not nested #TODO boolean expression from the yml lines in the rule)
     """
-
-    def _parse_boolean_expression(rule_patterns, counter=0):
-        for pattern in rule_patterns:
-            for boolean_operator, pattern_text in pattern.items():
-                if boolean_operator == "pattern-either":
-                    yield (
-                        OPERATORS.AND_EITHER,
-                        list(range(counter, counter + len(pattern_text))),
-                    )
-                    counter += len(pattern_text)
-                else:
-                    yield (operator_for_pattern_name(boolean_operator), [counter])
-                    counter += 1
 
     if "pattern" in rule:  # single pattern
         yield (OPERATORS.AND, [0])
@@ -90,74 +147,6 @@ def parse_pattern_expression(rule_patterns, counter=0):
                 counter += 1
 
 
-def parse_sgrep_yml(file_path: str):
-    """
-rules:
-  - id: assert-eqeq-is-ok
-    pattern: |
-      def __eq__():
-          ...
-          $X == $X
-    message: "possibly useless comparison but in eq function"
-    languages: [python]
-    severity: OK
-  - id: eqeq-is-bad
-    patterns:
-      - pattern-not-inside: |
-          def __eq__():
-              ...
-      - pattern-not-inside: assert(...)
-      - pattern-not-inside: assertTrue(...)
-      - pattern-not-inside: assertFalse(...)
-      - pattern-not: 1 == 1
-      - pattern-either:
-          - pattern: $X == $X
-          - pattern: $X != $X
-    message: "useless comparison operation `$X == $X` or `$X != $X`; possible bug?"
-    languages: [python]
-    severity: ERROR
-  - id: python37-compatability-os-module
-    patterns:
-      - pattern-not-inside: |
-          if hasattr(os, 'pwrite'):
-              ...
-      - pattern: os.pwrite(...)
-    message: "this function is only available on Python 3.7+"
-    languages: [python]
-    severity: ERROR
-
-    """
-    try:
-        y = yaml.safe_load(open(file_path))
-    except FileNotFoundError:
-        print_error(f"YAML file at {file_path} not found")
-        return None
-    except yaml.scanner.ScannerError as se:
-        print_error(se)
-        return None
-
-    if not "rules" in y:
-        print_error(f"{file_path} should have top-level key named `rules`")
-        return None
-
-    rules = []
-    for i, rule in enumerate(y["rules"]):
-        if not rule:
-            continue
-        rule_id_err_msg = f'(rule id: {rule["id"]})' if ("id" in rule) else ""
-        if not set(rule.keys()).issuperset(MUST_HAVE_KEYS):
-            print_error(
-                f"{file_path} is missing keys at rule {i+1}{rule_id_err_msg}, must have: {MUST_HAVE_KEYS}"
-            )
-        elif not "pattern" in rule and not "patterns" in rule:
-            print_error(
-                f"{file_path} is missing key `pattern` or `patterns` at rule {i+1}{rule_id_err_msg}"
-            )
-        else:
-            rules.append(rule)
-    return rules
-
-
 @dataclass(frozen=True)
 class Range:
     start: int
@@ -168,12 +157,6 @@ class Range:
 
     def __repr__(self):
         return f"{self.start}-{self.end}"
-
-
-def flatten(L: List[List[Any]]) -> List[Any]:
-    for list in L:
-        for item in list:
-            yield item
 
 
 def _evaluate_single_expression(
@@ -233,11 +216,6 @@ def evaluate_expression(expression, results: Dict[str, List[Range]]) -> List[Ran
     return ranges_left
 
 
-def print_error(e):
-    sys.stderr.write(str(e) + os.linesep)
-    sys.stderr.flush()
-
-
 def parse_sgrep_output(sgrep_findings: List[Dict[str, Any]]) -> Dict[str, List[Range]]:
     output = collections.defaultdict(list)
     for finding in sgrep_findings:
@@ -252,24 +230,19 @@ def sgrep_finding_to_range(sgrep_finding: Dict[str, Any]):
 
 
 def invoke_sgrep(
-    all_rules: List[Dict[str, Any]], target_files_or_dirs: List[str]
+    all_rules: List[Dict[str, Any]], targets: List[Path]
 ) -> Dict[str, Any]:
     """Returns parsed json output of sgrep"""
     with tempfile.NamedTemporaryFile("w") as fout:
         # very important not to sort keys here
         yaml_as_str = yaml.safe_dump({"rules": all_rules}, sort_keys=False)
-        # print(yaml_as_str)
+        debug_print(yaml_as_str)
         fout.write(yaml_as_str)
         fout.flush()
-        cmd = [SGREP_PATH, f"-rules_file", fout.name, *list(target_files_or_dirs)]
+        cmd = [SGREP_PATH, f"-rules_file", fout.name, *[str(path) for path in targets]]
         output = subprocess.check_output(cmd, shell=False)
         output_json = json.loads((output.decode("utf-8")))
         return output_json
-
-
-def debug_print(msg):
-    if DEBUG:
-        print(msg)
 
 
 def rewrite_message_with_metavars(yaml_rule, sgrep_result):
@@ -278,48 +251,6 @@ def rewrite_message_with_metavars(yaml_rule, sgrep_result):
         for metavar, contents in sgrep_result["extra"]["metavars"].items():
             msg_text = msg_text.replace(metavar, contents["abstract_content"])
     return msg_text
-
-
-def _collect_rules_from_files(
-    files: List[str], root: Optional[str] = None
-) -> Tuple[List[Dict[str, Any]], Tuple[int, int]]:
-    collected_rules = []
-    errors, not_errors = 0, 0
-    for filename in sorted(files):
-        if pathlib.Path(filename).suffix in YML_EXTENSIONS:
-            if root:
-                full_path = os.path.join(root, filename)
-            else:
-                full_path = filename
-            rules_in_file = parse_sgrep_yml(full_path)
-            if rules_in_file is None:
-                errors += 1
-            else:
-                not_errors += 1
-                for rule in rules_in_file:
-                    prefix = ".".join(
-                        [
-                            x
-                            for x in PurePath(pathlib.Path(full_path)).parts[:-1]
-                            if len(x)
-                        ]
-                    )
-                    new_id = f"{prefix}.{rule['id']}".lstrip(".")
-                    rule["id"] = new_id
-                collected_rules.extend(rules_in_file)
-    return collected_rules, (errors, not_errors)
-
-
-def collect_rules(
-    yaml_file_or_dirs: str
-) -> Tuple[List[Dict[str, Any]], Tuple[int, int]]:
-    if os.path.isfile(yaml_file_or_dirs):
-        file_path = os.path.abspath(yaml_file_or_dirs)
-        return _collect_rules_from_files([file_path])
-
-    for root, dirs, files in os.walk(yaml_file_or_dirs):
-        dirs.sort()
-        return _collect_rules_from_files(sorted(files), root)
 
 
 def transform_to_r2c_output(finding: Dict[str, Any]) -> Dict[str, Any]:
@@ -347,41 +278,271 @@ def flatten_rule_patterns(all_rules):
             }
 
 
-def main(
-    yaml_file_or_dirs: str,
-    target_files_or_dirs: List[str],
-    validate: bool,
-    strict: bool,
-    use_r2c_output: Optional[bool] = False,
-):
+### CLI functions
 
-    if not os.path.exists(yaml_file_or_dirs):
-        print(f"path not found: {yaml_file_or_dirs}")
-        sys.exit(1)
 
-    all_rules, (errors, not_errors) = list(collect_rules(yaml_file_or_dirs))
+def get_base_path() -> Path:
+    docker_folder = Path(REPO_HOME_DOCKER)
+    if docker_folder.exists():
+        return docker_folder
+    else:
+        return Path(".")
+
+
+def resolve_targets(targets: List[str]) -> List[Path]:
+    base_path = get_base_path()
+    return [
+        Path(target) if Path(target).is_absolute() else base_path.joinpath(target)
+        for target in targets
+    ]
+
+
+def load_config_from_disk(loc: Path) -> Any:
+    try:
+        with loc.open() as f:
+            return yaml.safe_load(f)
+    except FileNotFoundError:
+        print_error(f"YAML file at {file_path} not found")
+        return None
+    except yaml.scanner.ScannerError as se:
+        print_error(se)
+        return None
+
+
+def parse_config_string(config_id: str, contents: str) -> Dict[str, Any]:
+    try:
+        return {config_id: yaml.safe_load(contents)}
+    except yaml.scanner.ScannerError as se:
+        print_error(se)
+        return {config_id: None}
+
+
+def parse_config_file(loc: Path) -> Dict[str, Any]:
+    config_id = str(loc)  # TODO
+    return {config_id: load_config_from_disk(loc)}
+
+
+def parse_config_folder(loc: Path) -> Dict[str, Any]:
+    configs = {}
+    for l in loc.rglob("*"):
+        if l.suffix in YML_EXTENSIONS:
+            config_id = str(l)  # TODO
+            configs[config_id] = load_config_from_disk(l)
+    return configs
+
+
+def load_config(location: Optional[str] = None) -> Any:
+    base_path = get_base_path()
+    if location is None:
+        default_file = base_path.joinpath(DEFAULT_CONFIG_FILE)
+        default_folder = base_path.joinpath(DEFAULT_CONFIG_FOLDER)
+        if default_file.exists():
+            return parse_config_file(default_file)
+        elif default_folder.exists():
+            return parse_config_folder(default_folder)
+        else:
+            print_error_exit(f"unable to find a config file in {base_path.resolve()}")
+    else:
+        loc = base_path.joinpath(location)
+        if loc.exists():
+            if loc.is_file():
+                return parse_config_file(loc)
+            elif loc.is_dir():
+                return parse_config_folder(loc)
+            else:
+                print_error_exit(f"{loc} is not a file or folder!")
+        else:
+            print_error_exit(f"unable to find a config file in {base_path.resolve()}")
+
+
+def download_config(config_url: str) -> Any:
+    print_error(f"trying to download from {config_url}")
+    try:
+        r = requests.get(config_url, stream=True)
+        if r.status_code == requests.codes.ok:
+            content_type = r.headers.get('Content-Type')
+            if 'text/plain' in content_type:
+                return parse_config_string(config_url, r.content)
+            elif content_type == 'application/x-gzip':
+                fname = f"/tmp/{base64.b64encode(config_url.encode()).decode()}"
+                with tarfile.open(fileobj=r.raw, mode="r:gz") as tar:
+                    tar.extractall(fname)
+                extracted = Path(fname)
+                for path in extracted.iterdir():
+                    # get first folder in extracted folder (this is how GH does it)
+                    return parse_config_folder(path)
+            else:
+                print_error_exit(f"unknown content-type: {content_type}. Can not parse")
+    except Exception as e:
+        print_error(e)
+        return None
+
+
+def resolve_config(config_str: Optional[str]) -> Any:
+    """ resolves if config arg is a registry entry, a url, or a file, folder, or loads from defaults if None"""
+    if config_str is None:
+        config = load_config()
+    elif config_str in RULES_REGISTRY:
+        config = download_config(RULES_REGISTRY[config_str])
+    elif is_url(config_str):
+        config = download_config(config_str)
+    else:
+        config = load_config(config_str)
+    return config
+
+
+def validate_configs(configs: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    """ Take configs and separate into valid and invalid ones"""
+
     # TODO: validate the rule patterns are ok by invoking sgrep core
+    errors = {}
+    valid = {}
+    for config_id, config in configs.items():
+        if RULES_KEY not in config:
+            print_error(f"{config_id} should have top-level key named `{RULES_KEY}`")
+            errors[config_id] = config
+            continue
+        rules = config.get(RULES_KEY, [])
+        valid_rules = []
+        invalid_rules = []
+        for i, rule in enumerate(rules):
+            if rule:
+                rule_id_err_msg = f'(rule id: {rule.get("id", "No Id")})'
+                if not set(rule.keys()).issuperset(MUST_HAVE_KEYS):
+                    print_error(
+                        f"{config_id} is missing keys at rule {i+1}{rule_id_err_msg}, must have: {MUST_HAVE_KEYS}"
+                    )
+                    invalid_rules.append(rule)
+                elif not "pattern" in rule and not "patterns" in rule:
+                    print_error(
+                        f"{config_id} is missing key `pattern` or `patterns` at rule {i+1}{rule_id_err_msg}"
+                    )
+                    invalid_rules.append(rule)
+                else:
+                    valid_rules.append(rule)
+        if invalid_rules:
+            errors[config_id] = {**config, "rules": invalid_rules}
+        if valid_rules:
+            valid[config_id] = {**config, "rules": valid_rules}
+    return valid, errors
 
-    if validate or strict:
-        if errors > 0:
-            print(
-                f"validate flag passed and {errors} YAML files failed to parse, exiting"
-            )
-            sys.exit(1)
-        elif not strict:
-            sys.exit(0)
 
-    print_error(
-        f"running {len(all_rules)} rules from {not_errors} yaml files ({errors} yaml files were invalid)"
+def convert_config_id_to_prefix(config_id: str) -> str:
+    return ".".join(PurePath(config_id).parts[:-1])
+
+
+def transform_configs(valid_configs: Dict[str, Any]) -> Dict[str, Any]:
+    transformed = {}
+    for config_id, config in valid_configs.items():
+        rules = config.get(RULES_KEY, [])
+        transformed_rules = [
+            {
+                **rule,
+                ID_KEY: f"{convert_config_id_to_prefix(config_id)}.{rule.get(ID_KEY, 'no-id')}",
+            }
+            for rule in rules
+        ]
+        transformed[config_id] = {**config, RULES_KEY: transformed_rules}
+    return transformed
+
+
+def flatten_configs(transformed_configs: Dict[str, Any]) -> List[Any]:
+    return [
+        rule
+        for config in transformed_configs.values()
+        for rule in config.get(RULES_KEY, [])
+    ]
+
+
+def manual_config(pattern: str, lang: str) -> Dict[str, Any]:
+    return {
+        "manual": {
+            RULES_KEY: [
+                {
+                    ID_KEY: "manual_id",
+                    "pattern": pattern,
+                    "message": "Manual Pattern",
+                    "languages": [lang],
+                    "severity": "ERROR",
+                }
+            ]
+        }
+    }
+
+
+def post_output(output_url: str, output_data: Dict[str, Any]) -> None:
+    print_msg(f"posting to {output_url}...")
+    r = requests.post(output_url, json=output_data)
+    debug_print(f"posted to {output_url} and got status_code:{r.status_code}")
+
+
+def save_output(output_str: Optional[str], output_data: Dict[str, Any]):
+    if output_str:
+        if is_url(output_str):
+            post_output(output_str, output_data)
+        else:
+            if Path(output_str).is_absolute():
+                save_path = Path(output_str)
+            else:
+                base_path = get_base_path()
+                save_path = base_path.joinpath(target)
+
+            with save_path.open() as fout:
+                json.dump(output_data, fout)
+
+
+### entry point
+def main(args: Any):
+    """ main function that parses args and runs sgrep """
+    global DEBUG
+    global QUIET
+    if args.verbose:
+        DEBUG = True
+        debug_print("DEBUG is on")
+    if args.quiet:
+        QUIET = True
+        debug_print("QUIET is on")
+
+    targets = resolve_targets(args.target)
+    if args.pattern:
+        if args.lang:
+            lang = args.lang
+        else:
+            lang = DEFAULT_LANG
+        pattern = args.pattern
+        configs = manual_config(pattern, lang)
+    else:
+        configs = resolve_config(args.config)
+
+    validate = args.validate
+    strict = args.strict
+
+    if not configs:
+        print_error_exit(f"unable to resolve {args.config}")
+
+    valid_configs, errors = validate_configs(configs)
+    if errors:
+        if strict:
+            print_error_exit(f"run with --strict and there were {len(errors)} errors")
+        elif validate:
+            print_error_exit(f"run with --validate and there were {len(errors)} errors")
+
+    if validate:
+        print_error_exit("Config is valid", exit_code=0)
+    transformed_configs = transform_configs(valid_configs)
+    all_rules = flatten_configs(transformed_configs)
+    print_msg(
+        f"running {len(all_rules)} rules from {len(valid_configs)} yaml files ({len(errors)} yaml files were invalid)"
     )
+    # TODO log valid and invalid configs if verbose
 
     # a rule can have multiple patterns inside it. Flatten these so we can send sgrep a single yml file list of patterns
     all_patterns = list(flatten_rule_patterns(all_rules))
-    output_json = invoke_sgrep(all_patterns, target_files_or_dirs)
+    output_json = invoke_sgrep(all_patterns, targets)
+    debug_print(output_json)
 
     # group output; we want to see all of the same rule ids on the same file path
     by_rule_index = collections.defaultdict(lambda: collections.defaultdict(list))
-    debug_print(output_json)
     for finding in output_json["matches"]:
         rule_index = int(finding["check_id"].split(".")[0])
         by_rule_index[rule_index][finding["path"]].append(finding)
@@ -411,43 +572,61 @@ def main(
                     result["extra"]["message"] = rewrite_message_with_metavars(
                         all_rules[rule_index], result
                     )
-                    if use_r2c_output:
-                        result = transform_to_r2c_output(result)
+                    result = transform_to_r2c_output(result)
                     outputs_after_booleans.append(result)
-    key_name = "results" if use_r2c_output else "matches"
+    if not QUIET:
+        print(json.dumps({"results": outputs_after_booleans}))
+    if args.output:
+        save_output(args.output, {"results": outputs_after_booleans})
 
-    print(json.dumps({key_name: outputs_after_booleans}))
 
+### CLI
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Helper to invoke sgrep with many patterns or files"
+        description="Helper to invoke sgrep with many patterns or files",
+        prog="sgrep-lint",
     )
-    parser.add_argument(
-        "yaml_file_or_dirs",
-        help=f"the YAML file or directory of YAML files ending in {YML_EXTENSIONS} with rules",
+
+    ### input
+    parser.add_argument("target", nargs="*", default=["."])
+
+    ### config options
+    config = parser.add_argument_group("config")
+    config_ex = config.add_mutually_exclusive_group()
+
+    config_ex.add_argument("--config", help=f"Config file, folder, or named config")
+
+    config_ex.add_argument("-e", "--pattern", help="sgrep pattern")
+    config.add_argument(
+        "-l",
+        "--lang",
+        help="Must be used with -e/--pattern. Sets the lanaguge of the pattern",
     )
-    parser.add_argument(
-        "--validate",
-        help=f"only validate that the YAML files with rules are correctly form, then exit 0 if ok",
-        action="store_true",
+    config.add_argument(
+        "--validate", help=f"validate the config(s)", action="store_true"
     )
-    parser.add_argument(
+    config.add_argument(
         "--strict",
-        help=f"only invoke sgrep if all YAML files are valid",
+        help=f"only invoke sgrep if config(s) are valid",
         action="store_true",
     )
-    parser.add_argument(
-        "--r2c",
-        help=f"output findings in r2c platform json format",
-        action="store_true",
+
+    ### output options
+    output = parser.add_argument_group("output")
+
+    output.add_argument("-q", "--quiet", help="run quietly", action="store_true")
+    output.add_argument("-o", "--output", help="send the output to this location")
+    ### logging options
+    logging = parser.add_argument_group("logging")
+
+    logging.add_argument(
+        "-v", "--verbose", help=f"increase the verbosity", action="store_true"
     )
-    parser.add_argument("target_files_or_dirs", nargs="+")
+
+    ### Parse and validate
     args = parser.parse_args()
-    main(
-        args.yaml_file_or_dirs,
-        args.target_files_or_dirs,
-        args.validate,
-        args.strict,
-        args.r2c,
-    )
+    if args.lang and not args.pattern:
+        parser.error("-e/--pattern is required when -l/--lang is used.")
+
+    main(args)
