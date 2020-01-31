@@ -45,18 +45,30 @@ jobs:
       - run: git clone https://github.com/returntocorp/pfff ~/pfff
       - run: eval $(opam env); cd ~/pfff; ./configure; make depend; make; make opt; make reinstall-libs
       - run: eval $(opam env); dune build
-      - run: mv ~/project/_build/default/bin/main_sgrep.exe main_sgrep-osx
-      - run: chmod +x main_sgrep-osx
-      - run: ./main_sgrep-osx -help
+      - run: mkdir ~/artifacts
+      - run: mv ~/project/_build/default/bin/main_sgrep.exe main_sgrep-osx-${VERSION}
+      - run: chmod +x main_sgrep-osx-${VERSION}
+      - run: ./main_sgrep-osx-${VERSION} -help
+      - run: zip main_sgrep-osx-${VERSION}.zip main_sgrep-osx-${VERSION}
+      - run: mv main_sgrep-osx-${VERSION}.zip ~/artifacts
+      - run: cd ~/artifacts && shasum -a 256 * > ./${VERSION}_SHASUMS
       - run: brew install ghr
-      - run: ghr -replace latest-dev main_sgrep-osx
+      - run: ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${VERSION} ~/artifacts/
 
 workflows:
   version: 2.1
   build_and_test:
     jobs:
-      - publish_mac
-      # - build
-      # - test:
-      #     requires:
-      #       - build
+      - build
+      - test:
+          requires:
+            - build
+      - publish_mac:
+          requires:
+            - test
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^\d+\.\d+\.\d+$/
+
