@@ -4,12 +4,10 @@ on: [push]
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: [3.7, 3.8]
-
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
@@ -31,3 +29,13 @@ jobs:
         export PYTHONPATH="${PYTHONPATH}:${pwd}"
         pip install pytest
         pytest
+  check-style:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v1
+    - name: Check Formatted with Black
+      run: |
+        pip install black
+        black --check .
