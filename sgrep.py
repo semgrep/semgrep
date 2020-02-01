@@ -636,6 +636,12 @@ if __name__ == "__main__":
         action="store_true",
     )
 
+    config.add_argument(
+        "--no-rewrite-rule-ids",
+        help="Do not rewrite rule ids when they appear in nested subfolders (by default, rule 'foo' in test/rules.yaml will be renamed 'test.foo')",
+        action="store_true",
+    )
+
     # output options
     output = parser.add_argument_group("output")
 
@@ -645,11 +651,7 @@ if __name__ == "__main__":
         help="Do not print anything to stdout. Search results can still be saved to an output file specified by -o/--output. Exit code provides success status.",
         action="store_true",
     )
-    output.add_argument(
-        "--no-rewrite-rule-ids",
-        help="Do not rewrite rule ids when they appear in nested subfolders (by default, rule 'foo' in test/rules.yaml will be renamed 'test.foo')",
-        action="store_true",
-    )
+    
     output.add_argument(
         "-o",
         "--output",
