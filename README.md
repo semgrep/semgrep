@@ -12,13 +12,13 @@ Its main features are:
 1. **Use concrete code syntax**: easy to learn
 2. **Metavariables ($X)**: abstract away code
 3. **'...' operator**: abstract away sequences
-4. **Knows about code equivalences**: one pattern can match variations on the code
+4. **Knows about code equivalences**: one pattern can match many equivalent variations on }the code
 5. **Less is more**: abstract away additional details
 
 `sgrep` has good support for Python and JavaScript, with some support
 for Java and C, and more languages on the way!
 
-For more information see the [slides](https://r2c.dev/sgrep-public.pdf) from our last meetup
+For more information see the [slides](https://r2c.dev/sgrep-public.pdf) from the r2c December 2019 meetup.
 
 ## Installation
 
@@ -64,11 +64,11 @@ docker run --rm returntocorp/sgrep --help
 
 #### Format
 
-
+See [config.md](docs/config.md) for example configuration files and details on the syntax.
 
 #### sgrep Registry
 
-r2c provides a [registry](https://github.com/returntocorp/sgrep-rules) of config files tuned using our Massive Analysis Platform on thousands of repositories. To use:
+[r2c](https://r2c.dev) provides a [registry](https://github.com/returntocorp/sgrep-rules) of config files tuned using our [analysis platform](https://app.r2c.dev) on thousands of repositories. To use:
 
 ```bash
 
@@ -82,7 +82,7 @@ Default configs are loaded from `.sgrep.yml` or multiple files matching `.sgrep/
 
 ## Patterns
 
-Patterns are snippets of code with variables and other operators that will be parsed into an AST for that langauge and will be used to search for that pattern in code.
+Patterns are snippets of code with variables and other operators that will be parsed into an AST for that langauge and will be used to search for that pattern in code. See [patterns.md](docs/patterns.md) for full documentation.
 
 ### Metavariables
 
@@ -116,4 +116,4 @@ Please open an issue on this project.
 
 ## Contributions
 
-`sgrep`  is LGPL licensed and we would love your contributions. See [DEVELOPMENT.md](DEVELOPMENT.md)`
+`sgrep` is LGPL-licensed and we would love your contributions. See [docs/development.md](docs/development.md)`
