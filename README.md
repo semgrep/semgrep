@@ -1,6 +1,6 @@
 # sgrep
 
-[![CircleCI](https://circleci.com/gh/returntocorp/sgrep.svg?style=svg)](https://circleci.com/gh/returntocorp/sgrep)
+[![r2c community slack](https://img.shields.io/badge/r2c_slack-join-brightgreen?style=for-the-badge&logo=slack&labelColor=4A154B)](https://join.slack.com/t/r2c-community/shared_invite/enQtNjU0NDYzMjAwODY4LWE3NTg1MGNhYTAwMzk5ZGRhMjQ2MzVhNGJiZjI1ZWQ0NjQ2YWI4ZGY3OGViMGJjNzA4ODQ3MjEzOWExNjZlNTA)
 
 `sgrep`, for syntactical (and occasionnally semantic) grep, is a
 tool to help find bugs by specifying code patterns using a familiar
@@ -24,7 +24,7 @@ For more information see the [slides](https://r2c.dev/sgrep-public.pdf) from the
 
 ### Docker
 
-`sgrep` is packaged within a docker container, making installation as easy as [installing docker](https://docs.docker.com/install/).
+`sgrep` is packaged within a [docker container](https://hub.docker.com/r/returntocorp/sgrep), making installation as easy as [installing docker](https://docs.docker.com/install/).
 
 ### Mac
 
@@ -116,4 +116,4 @@ Please open an issue on this project.
 
 ## Contributions
 
-`sgrep` is LGPL-licensed and we would love your contributions. See [docs/development.md](docs/development.md)`
+`sgrep` is LGPL-licensed and we would love your [contributions](CONTRIBUTING.md). See [docs/development.md](docs/development.md)
