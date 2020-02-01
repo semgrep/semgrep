@@ -1,4 +1,4 @@
-name: Python package
+name: Lint and Test Python Code
 
 on: [push]
 
