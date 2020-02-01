@@ -199,7 +199,7 @@ def _evaluate_single_expression(
         # print(f"after filter `{operator}`: {output_ranges}")
         return output_ranges
     else:
-        assert False, f"unknown operator {operator} in {expression}"
+        assert False, f"unknown operator {operator}"
 
 
 def evaluate_expression(expression, results: Dict[str, List[Range]]) -> List[Range]:
@@ -309,7 +309,7 @@ def load_config_from_disk(loc: Path) -> Any:
         with loc.open() as f:
             return yaml.safe_load(f)
     except FileNotFoundError:
-        print_error(f"YAML file at {file_path} not found")
+        print_error(f"YAML file at {loc} not found")
         return None
     except yaml.scanner.ScannerError as se:
         print_error(se)
@@ -505,7 +505,7 @@ def save_output(output_str: str, output_data: Dict[str, Any]):
             save_path = Path(output_str)
         else:
             base_path = get_base_path()
-            save_path = base_path.joinpath(target)
+            save_path = base_path.joinpath(output_str)
 
         with save_path.open() as fout:
             json.dump(output_data, fout)
