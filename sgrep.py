@@ -409,7 +409,7 @@ def validate_configs(configs: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str,
             print_error(f"{config_id} is missing `{RULES_KEY}` as top-level key")
             errors[config_id] = config
             continue
-        rules = config.get(RULES_KEY)
+        rules = config.get(RULES_KEY, [])
         valid_rules = []
         invalid_rules = []
         for i, rule in enumerate(rules):
