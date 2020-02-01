@@ -1,30 +1,35 @@
 #!/usr/bin/env python3
 import argparse
+import base64
 import collections
 import itertools
 import json
 import os
 import subprocess
 import sys
+import tarfile
 import tempfile
 import traceback
 from dataclasses import dataclass
-from pathlib import PurePath, Path
-import base64
+from pathlib import Path, PurePath
 from typing import Any, Dict, Generator, List, Optional, Set, Tuple
+from urllib.parse import urlparse
+from datetime import datetime
 
+import requests
 import yaml
 
-from urllib.parse import urlparse
-import requests
-import tarfile
+# TODO: support nested expressions under pattern-either
 
-### Constants
+
+# Constants
 
 REPO_HOME_DOCKER = "/home/repo/"
 DEFAULT_CONFIG_FILE = ".sgrep.yml"
 DEFAULT_CONFIG_FOLDER = ".sgrep"
 DEFAULT_LANG = "python"
+
+MISSING_RULE_ID = 'no-rule-id'
 
 RULES_REGISTRY = {"r2c": "https://github.com/returntocorp/sgrep-rules/tarball/master"}
 RULES_KEY = "rules"
@@ -54,7 +59,7 @@ DEBUG = False
 QUIET = False
 SGREP_PATH = "sgrep"
 
-### helper functions
+# helper functions
 
 
 def is_url(url: str) -> bool:
@@ -92,7 +97,7 @@ def flatten(L: List[List[Any]]) -> List[Any]:
             yield item
 
 
-### sgrep functions
+# sgrep functions
 
 
 def _parse_boolean_expression(rule_patterns, counter=0):
@@ -194,7 +199,7 @@ def _evaluate_single_expression(
         # print(f"after filter `{operator}`: {output_ranges}")
         return output_ranges
     else:
-        assert False, f"unknown operator {operator} in {expression}"
+        assert False, f"unknown operator {operator}"
 
 
 def evaluate_expression(expression, results: Dict[str, List[Range]]) -> List[Range]:
@@ -278,8 +283,7 @@ def flatten_rule_patterns(all_rules):
             }
 
 
-### CLI functions
-
+# CLI helper functions
 
 def get_base_path() -> Path:
     docker_folder = Path(REPO_HOME_DOCKER)
@@ -297,12 +301,15 @@ def resolve_targets(targets: List[str]) -> List[Path]:
     ]
 
 
+### Config helpers
+
+
 def load_config_from_disk(loc: Path) -> Any:
     try:
         with loc.open() as f:
             return yaml.safe_load(f)
     except FileNotFoundError:
-        print_error(f"YAML file at {file_path} not found")
+        print_error(f"YAML file at {loc} not found")
         return None
     except yaml.scanner.ScannerError as se:
         print_error(se)
@@ -398,8 +405,11 @@ def validate_configs(configs: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str,
     errors = {}
     valid = {}
     for config_id, config in configs.items():
+        if not config:
+            errors[config_id] = config
+            continue
         if RULES_KEY not in config:
-            print_error(f"{config_id} should have top-level key named `{RULES_KEY}`")
+            print_error(f"{config_id} is missing `{RULES_KEY}` as top-level key")
             errors[config_id] = config
             continue
         rules = config.get(RULES_KEY, [])
@@ -407,15 +417,20 @@ def validate_configs(configs: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str,
         invalid_rules = []
         for i, rule in enumerate(rules):
             if rule:
-                rule_id_err_msg = f'(rule id: {rule.get("id", "No Id")})'
+                rule_id_err_msg = f'(rule id: {rule.get("id", MISSING_RULE_ID)})'
                 if not set(rule.keys()).issuperset(MUST_HAVE_KEYS):
                     print_error(
-                        f"{config_id} is missing keys at rule {i+1}{rule_id_err_msg}, must have: {MUST_HAVE_KEYS}"
+                        f"{config_id} is missing keys at rule {i+1} {rule_id_err_msg}, must have: {MUST_HAVE_KEYS}"
                     )
                     invalid_rules.append(rule)
                 elif not "pattern" in rule and not "patterns" in rule:
                     print_error(
-                        f"{config_id} is missing key `pattern` or `patterns` at rule {i+1}{rule_id_err_msg}"
+                        f"{config_id} is missing key `pattern` or `patterns` at rule {i+1} {rule_id_err_msg}"
+                    )
+                    invalid_rules.append(rule)
+                elif "patterns" in rule and not rule["patterns"]:
+                    print_error(
+                        f"{config_id} no patterns found inside rule {i+1} {rule_id_err_msg}"
                     )
                     invalid_rules.append(rule)
                 else:
@@ -431,14 +446,16 @@ def convert_config_id_to_prefix(config_id: str) -> str:
     return ".".join(PurePath(config_id).parts[:-1])
 
 
-def transform_configs(valid_configs: Dict[str, Any]) -> Dict[str, Any]:
+def rename_rule_ids(valid_configs: Dict[str, Any]) -> Dict[str, Any]:
     transformed = {}
     for config_id, config in valid_configs.items():
         rules = config.get(RULES_KEY, [])
         transformed_rules = [
             {
                 **rule,
-                ID_KEY: f"{convert_config_id_to_prefix(config_id)}.{rule.get(ID_KEY, 'no-id')}",
+                ID_KEY: f"{convert_config_id_to_prefix(config_id)}.{rule.get(ID_KEY, MISSING_RULE_ID)}".lstrip(
+                    "."
+                ),
             }
             for rule in rules
         ]
@@ -455,6 +472,7 @@ def flatten_configs(transformed_configs: Dict[str, Any]) -> List[Any]:
 
 
 def manual_config(pattern: str, lang: str) -> Dict[str, Any]:
+    # TODO remove when using sgrep -e ... -l ... instead of this hacked config
     return {
         "manual": {
             RULES_KEY: [
@@ -470,67 +488,94 @@ def manual_config(pattern: str, lang: str) -> Dict[str, Any]:
     }
 
 
+### Handle output
+
+
 def post_output(output_url: str, output_data: Dict[str, Any]) -> None:
     print_msg(f"posting to {output_url}...")
     r = requests.post(output_url, json=output_data)
     debug_print(f"posted to {output_url} and got status_code:{r.status_code}")
 
 
-def save_output(output_str: Optional[str], output_data: Dict[str, Any]):
-    if output_str:
-        if is_url(output_str):
-            post_output(output_str, output_data)
+def save_output(output_str: str, output_data: Dict[str, Any]):
+    if is_url(output_str):
+        post_output(output_str, output_data)
+    else:
+        if Path(output_str).is_absolute():
+            save_path = Path(output_str)
         else:
-            if Path(output_str).is_absolute():
-                save_path = Path(output_str)
-            else:
-                base_path = get_base_path()
-                save_path = base_path.joinpath(target)
+            base_path = get_base_path()
+            save_path = base_path.joinpath(output_str)
 
-            with save_path.open() as fout:
-                json.dump(output_data, fout)
+        with save_path.open() as fout:
+            json.dump(output_data, fout)
 
 
-### entry point
-def main(args: Any):
-    """ main function that parses args and runs sgrep """
+def set_flags(debug: bool, quiet: bool) -> None:
+    """Set the global DEBUG and QUIET flags"""
+    # TODO move to a proper logging framework
     global DEBUG
     global QUIET
-    if args.verbose:
+    if debug:
         DEBUG = True
         debug_print("DEBUG is on")
-    if args.quiet:
+    if quiet:
         QUIET = True
         debug_print("QUIET is on")
 
+
+# entry point
+def main(args: argparse.Namespace):
+    """ main function that parses args and runs sgrep """
+
+    # set the flags
+    set_flags(args.verbose, args.quiet)
+
+    # get the proper paths for targets i.e. handle base path of /home/repo when it exists in docker
     targets = resolve_targets(args.target)
+
+    # first let's check for a pattern
     if args.pattern:
+        # and a language
         if args.lang:
             lang = args.lang
         else:
             lang = DEFAULT_LANG
         pattern = args.pattern
+
+        # TODO for now we generate a manual config. Might want to just call sgrep -e ... -l ...
         configs = manual_config(pattern, lang)
     else:
+        # else let's get a config. A config is a dict from config_id -> config. Config Id is not well defined at this point.
         configs = resolve_config(args.config)
+
+    # if we can't find a config, bail
+    if not configs:
+        print_error_exit(f"unable to resolve {args.config}")
+
+    # let's split our configs into valid and invalid configs.
+    # It's possible that a config_id exists in both because we check valid rules and invalid rules
+    # instead of just hard failing for that config if mal-formed
+    valid_configs, errors = validate_configs(configs)
 
     validate = args.validate
     strict = args.strict
 
-    if not configs:
-        print_error_exit(f"unable to resolve {args.config}")
-
-    valid_configs, errors = validate_configs(configs)
     if errors:
         if strict:
             print_error_exit(f"run with --strict and there were {len(errors)} errors")
         elif validate:
             print_error_exit(f"run with --validate and there were {len(errors)} errors")
-
-    if validate:
+    elif validate:  # no errors!
         print_error_exit("Config is valid", exit_code=0)
-    transformed_configs = transform_configs(valid_configs)
-    all_rules = flatten_configs(transformed_configs)
+
+    if not args.no_rewrite_rule_ids:
+        # re-write the configs to have the hierarchical rule ids
+        valid_configs = rename_rule_ids(valid_configs)
+        
+    # extract just the rules from valid configs
+    all_rules = flatten_configs(valid_configs)
+
     print_msg(
         f"running {len(all_rules)} rules from {len(valid_configs)} yaml files ({len(errors)} yaml files were invalid)"
     )
@@ -538,7 +583,11 @@ def main(args: Any):
 
     # a rule can have multiple patterns inside it. Flatten these so we can send sgrep a single yml file list of patterns
     all_patterns = list(flatten_rule_patterns(all_rules))
+
+    # actually invoke sgrep
+    start = datetime.now()
     output_json = invoke_sgrep(all_patterns, targets)
+    debug_print(f"sgrep ran in {datetime.now() - start}")
     debug_print(output_json)
 
     # group output; we want to see all of the same rule ids on the same file path
@@ -574,13 +623,16 @@ def main(args: Any):
                     )
                     result = transform_to_r2c_output(result)
                     outputs_after_booleans.append(result)
+
+    # output results
+    output_data = {"results": outputs_after_booleans}
     if not QUIET:
-        print(json.dumps({"results": outputs_after_booleans}))
+        print(json.dumps(output_data))
     if args.output:
-        save_output(args.output, {"results": outputs_after_booleans})
+        save_output(args.output, output_data)
 
 
-### CLI
+# CLI
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -588,7 +640,7 @@ if __name__ == "__main__":
         prog="sgrep",  # we have to lie to the user since they know of this as `sgrep`
     )
 
-    ### input
+    # input
     parser.add_argument(
         "target",
         nargs="*",
@@ -596,7 +648,7 @@ if __name__ == "__main__":
         help="Files to search (by default, entire current working directory searched). Implied argument if piping to sgrep.",
     )
 
-    ### config options
+    # config options
     config = parser.add_argument_group("config")
     config_ex = config.add_mutually_exclusive_group()
 
@@ -623,7 +675,13 @@ if __name__ == "__main__":
         action="store_true",
     )
 
-    ### output options
+    config.add_argument(
+        "--no-rewrite-rule-ids",
+        help="Do not rewrite rule ids when they appear in nested subfolders (by default, rule 'foo' in test/rules.yaml will be renamed 'test.foo')",
+        action="store_true",
+    )
+
+    # output options
     output = parser.add_argument_group("output")
 
     output.add_argument(
@@ -632,6 +690,7 @@ if __name__ == "__main__":
         help="Do not print anything to stdout. Search results can still be saved to an output file specified by -o/--output. Exit code provides success status.",
         action="store_true",
     )
+    
     output.add_argument(
         "-o",
         "--output",
@@ -640,7 +699,7 @@ if __name__ == "__main__":
     output.add_argument(
         "--json", help="Convert search output to JSON format.", action="store_true"
     )
-    ### logging options
+    # logging options
     logging = parser.add_argument_group("logging")
 
     logging.add_argument(
