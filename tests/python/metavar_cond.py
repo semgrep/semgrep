@@ -1,5 +1,5 @@
 def foo():
     x = 1
-    #ERROR:
+    # ERROR:
     if x > 2:
         foo()

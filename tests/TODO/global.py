@@ -1,2 +1,1 @@
 myglobal = 1
-

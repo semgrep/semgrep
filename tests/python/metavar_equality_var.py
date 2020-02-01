@@ -1,6 +1,4 @@
 def foo():
-  #ERROR:
-  myfile = open()
-  close(myfile)
-
-
+    # ERROR:
+    myfile = open()
+    close(myfile)

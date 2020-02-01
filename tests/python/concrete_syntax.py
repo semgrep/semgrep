@@ -1,14 +1,11 @@
 def foo():
- #ERROR:
- foo(1,2)
+    # ERROR:
+    foo(1, 2)
 
- #ERROR:
- foo(1,
-    2)
+    # ERROR:
+    foo(1, 2)
 
- #ERROR:
- foo (1, # comment
-     2)
+    # ERROR:
+    foo(1, 2)  # comment
 
- foo(2,1)
-
+    foo(2, 1)

@@ -29,7 +29,7 @@ DEFAULT_CONFIG_FILE = ".sgrep.yml"
 DEFAULT_CONFIG_FOLDER = ".sgrep"
 DEFAULT_LANG = "python"
 
-MISSING_RULE_ID = 'no-rule-id'
+MISSING_RULE_ID = "no-rule-id"
 
 RULES_REGISTRY = {"r2c": "https://github.com/returntocorp/sgrep-rules/tarball/master"}
 RULES_KEY = "rules"
@@ -284,6 +284,7 @@ def flatten_rule_patterns(all_rules):
 
 
 # CLI helper functions
+
 
 def get_base_path() -> Path:
     docker_folder = Path(REPO_HOME_DOCKER)
@@ -572,7 +573,7 @@ def main(args: argparse.Namespace):
     if not args.no_rewrite_rule_ids:
         # re-write the configs to have the hierarchical rule ids
         valid_configs = rename_rule_ids(valid_configs)
-        
+
     # extract just the rules from valid configs
     all_rules = flatten_configs(valid_configs)
 
@@ -690,7 +691,7 @@ if __name__ == "__main__":
         help="Do not print anything to stdout. Search results can still be saved to an output file specified by -o/--output. Exit code provides success status.",
         action="store_true",
     )
-    
+
     output.add_argument(
         "-o",
         "--output",
