@@ -38,4 +38,4 @@ jobs:
     - name: Check Formatted with Black
       run: |
         pip install black
-        black --check .
+        black --check --exclude tests/TODO/bad.py .
