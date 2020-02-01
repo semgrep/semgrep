@@ -1,31 +1,35 @@
 #!/usr/bin/env python3
 import argparse
+import base64
 import collections
 import itertools
 import json
 import os
 import subprocess
 import sys
+import tarfile
 import tempfile
 import traceback
 from dataclasses import dataclass
-from pathlib import PurePath, Path
-import base64
+from pathlib import Path, PurePath
 from typing import Any, Dict, Generator, List, Optional, Set, Tuple
+from urllib.parse import urlparse
 from datetime import datetime
 
+import requests
 import yaml
 
-from urllib.parse import urlparse
-import requests
-import tarfile
+# TODO: support nested expressions under pattern-either
 
-### Constants
+
+# Constants
 
 REPO_HOME_DOCKER = "/home/repo/"
 DEFAULT_CONFIG_FILE = ".sgrep.yml"
 DEFAULT_CONFIG_FOLDER = ".sgrep"
 DEFAULT_LANG = "python"
+
+MISSING_RULE_ID = 'no-rule-id'
 
 RULES_REGISTRY = {"r2c": "https://github.com/returntocorp/sgrep-rules/tarball/master"}
 RULES_KEY = "rules"
@@ -55,7 +59,7 @@ DEBUG = False
 QUIET = False
 SGREP_PATH = "sgrep"
 
-### helper functions
+# helper functions
 
 
 def is_url(url: str) -> bool:
@@ -93,7 +97,7 @@ def flatten(L: List[List[Any]]) -> List[Any]:
             yield item
 
 
-### sgrep functions
+# sgrep functions
 
 
 def _parse_boolean_expression(rule_patterns, counter=0):
@@ -279,8 +283,7 @@ def flatten_rule_patterns(all_rules):
             }
 
 
-### CLI helper functions
-
+# CLI helper functions
 
 def get_base_path() -> Path:
     docker_folder = Path(REPO_HOME_DOCKER)
@@ -402,8 +405,11 @@ def validate_configs(configs: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str,
     errors = {}
     valid = {}
     for config_id, config in configs.items():
+        if not config:
+            errors[config_id] = config
+            continue
         if RULES_KEY not in config:
-            print_error(f"{config_id} should have top-level key named `{RULES_KEY}`")
+            print_error(f"{config_id} is missing `{RULES_KEY}` as top-level key")
             errors[config_id] = config
             continue
         rules = config.get(RULES_KEY, [])
@@ -411,15 +417,20 @@ def validate_configs(configs: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str,
         invalid_rules = []
         for i, rule in enumerate(rules):
             if rule:
-                rule_id_err_msg = f'(rule id: {rule.get("id", "No Id")})'
+                rule_id_err_msg = f'(rule id: {rule.get("id", MISSING_RULE_ID)})'
                 if not set(rule.keys()).issuperset(MUST_HAVE_KEYS):
                     print_error(
-                        f"{config_id} is missing keys at rule {i+1}{rule_id_err_msg}, must have: {MUST_HAVE_KEYS}"
+                        f"{config_id} is missing keys at rule {i+1} {rule_id_err_msg}, must have: {MUST_HAVE_KEYS}"
                     )
                     invalid_rules.append(rule)
                 elif not "pattern" in rule and not "patterns" in rule:
                     print_error(
-                        f"{config_id} is missing key `pattern` or `patterns` at rule {i+1}{rule_id_err_msg}"
+                        f"{config_id} is missing key `pattern` or `patterns` at rule {i+1} {rule_id_err_msg}"
+                    )
+                    invalid_rules.append(rule)
+                elif "patterns" in rule and not rule["patterns"]:
+                    print_error(
+                        f"{config_id} no patterns found inside rule {i+1} {rule_id_err_msg}"
                     )
                     invalid_rules.append(rule)
                 else:
@@ -435,14 +446,14 @@ def convert_config_id_to_prefix(config_id: str) -> str:
     return ".".join(PurePath(config_id).parts[:-1])
 
 
-def transform_configs(valid_configs: Dict[str, Any]) -> Dict[str, Any]:
+def rename_rule_ids(valid_configs: Dict[str, Any]) -> Dict[str, Any]:
     transformed = {}
     for config_id, config in valid_configs.items():
         rules = config.get(RULES_KEY, [])
         transformed_rules = [
             {
                 **rule,
-                ID_KEY: f"{convert_config_id_to_prefix(config_id)}.{rule.get(ID_KEY, 'no-id')}".lstrip(
+                ID_KEY: f"{convert_config_id_to_prefix(config_id)}.{rule.get(ID_KEY, MISSING_RULE_ID)}".lstrip(
                     "."
                 ),
             }
@@ -513,7 +524,7 @@ def set_flags(debug: bool, quiet: bool) -> None:
         debug_print("QUIET is on")
 
 
-### entry point
+# entry point
 def main(args: argparse.Namespace):
     """ main function that parses args and runs sgrep """
 
@@ -557,13 +568,14 @@ def main(args: argparse.Namespace):
             print_error_exit(f"run with --validate and there were {len(errors)} errors")
     elif validate:  # no errors!
         print_error_exit("Config is valid", exit_code=0)
-    # transform the configs to have the hierarchical rule ids
-    transformed_configs = transform_configs(valid_configs)
 
-    # extract just the valid configs
-    all_rules = flatten_configs(transformed_configs)
+    if not args.no_rewrite_rule_ids:
+        # re-write the configs to have the hierarchical rule ids
+        valid_configs = rename_rule_ids(valid_configs)
+        
+    # extract just the rules from valid configs
+    all_rules = flatten_configs(valid_configs)
 
-    # print out a message
     print_msg(
         f"running {len(all_rules)} rules from {len(valid_configs)} yaml files ({len(errors)} yaml files were invalid)"
     )
@@ -620,7 +632,7 @@ def main(args: argparse.Namespace):
         save_output(args.output, output_data)
 
 
-### CLI
+# CLI
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -628,7 +640,7 @@ if __name__ == "__main__":
         prog="sgrep",  # we have to lie to the user since they know of this as `sgrep`
     )
 
-    ### input
+    # input
     parser.add_argument(
         "target",
         nargs="*",
@@ -636,7 +648,7 @@ if __name__ == "__main__":
         help="Files to search (by default, entire current working directory searched). Implied argument if piping to sgrep.",
     )
 
-    ### config options
+    # config options
     config = parser.add_argument_group("config")
     config_ex = config.add_mutually_exclusive_group()
 
@@ -663,7 +675,13 @@ if __name__ == "__main__":
         action="store_true",
     )
 
-    ### output options
+    config.add_argument(
+        "--no-rewrite-rule-ids",
+        help="Do not rewrite rule ids when they appear in nested subfolders (by default, rule 'foo' in test/rules.yaml will be renamed 'test.foo')",
+        action="store_true",
+    )
+
+    # output options
     output = parser.add_argument_group("output")
 
     output.add_argument(
@@ -672,6 +690,7 @@ if __name__ == "__main__":
         help="Do not print anything to stdout. Search results can still be saved to an output file specified by -o/--output. Exit code provides success status.",
         action="store_true",
     )
+    
     output.add_argument(
         "-o",
         "--output",
@@ -680,7 +699,7 @@ if __name__ == "__main__":
     output.add_argument(
         "--json", help="Convert search output to JSON format.", action="store_true"
     )
-    ### logging options
+    # logging options
     logging = parser.add_argument_group("logging")
 
     logging.add_argument(
