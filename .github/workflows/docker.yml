@@ -13,8 +13,8 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Publish Docker
-        uses: elgohr/Publish-Docker-Github-Action@2.12
-          with:
-            name: returntocorp/sgrep
-            username: ${{ secrets.DOCKER_USERNAME }}
-            password: ${{ secrets.DOCKER_PASSWORD }}
+      uses: elgohr/Publish-Docker-Github-Action@2.12
+      with:
+        name: returntocorp/sgrep
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
