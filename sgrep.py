@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from pathlib import PurePath, Path
 import base64
 from typing import Any, Dict, Generator, List, Optional, Set, Tuple
+from datetime import datetime
 
 import yaml
 
@@ -278,7 +279,7 @@ def flatten_rule_patterns(all_rules):
             }
 
 
-### CLI functions
+### CLI helper functions
 
 
 def get_base_path() -> Path:
@@ -295,6 +296,9 @@ def resolve_targets(targets: List[str]) -> List[Path]:
         Path(target) if Path(target).is_absolute() else base_path.joinpath(target)
         for target in targets
     ]
+
+
+### Config helpers
 
 
 def load_config_from_disk(loc: Path) -> Any:
@@ -438,7 +442,9 @@ def transform_configs(valid_configs: Dict[str, Any]) -> Dict[str, Any]:
         transformed_rules = [
             {
                 **rule,
-                ID_KEY: f"{convert_config_id_to_prefix(config_id)}.{rule.get(ID_KEY, 'no-id')}",
+                ID_KEY: f"{convert_config_id_to_prefix(config_id)}.{rule.get(ID_KEY, 'no-id')}".lstrip(
+                    "."
+                ),
             }
             for rule in rules
         ]
@@ -455,6 +461,7 @@ def flatten_configs(transformed_configs: Dict[str, Any]) -> List[Any]:
 
 
 def manual_config(pattern: str, lang: str) -> Dict[str, Any]:
+    # TODO remove when using sgrep -e ... -l ... instead of this hacked config
     return {
         "manual": {
             RULES_KEY: [
@@ -470,67 +477,93 @@ def manual_config(pattern: str, lang: str) -> Dict[str, Any]:
     }
 
 
+### Handle output
+
+
 def post_output(output_url: str, output_data: Dict[str, Any]) -> None:
     print_msg(f"posting to {output_url}...")
     r = requests.post(output_url, json=output_data)
     debug_print(f"posted to {output_url} and got status_code:{r.status_code}")
 
 
-def save_output(output_str: Optional[str], output_data: Dict[str, Any]):
-    if output_str:
-        if is_url(output_str):
-            post_output(output_str, output_data)
+def save_output(output_str: str, output_data: Dict[str, Any]):
+    if is_url(output_str):
+        post_output(output_str, output_data)
+    else:
+        if Path(output_str).is_absolute():
+            save_path = Path(output_str)
         else:
-            if Path(output_str).is_absolute():
-                save_path = Path(output_str)
-            else:
-                base_path = get_base_path()
-                save_path = base_path.joinpath(target)
+            base_path = get_base_path()
+            save_path = base_path.joinpath(target)
 
-            with save_path.open() as fout:
-                json.dump(output_data, fout)
+        with save_path.open() as fout:
+            json.dump(output_data, fout)
 
 
-### entry point
-def main(args: Any):
-    """ main function that parses args and runs sgrep """
+def set_flags(debug: bool, quiet: bool) -> None:
+    """Set the global DEBUG and QUIET flags"""
+    # TODO move to a proper logging framework
     global DEBUG
     global QUIET
-    if args.verbose:
+    if debug:
         DEBUG = True
         debug_print("DEBUG is on")
-    if args.quiet:
+    if quiet:
         QUIET = True
         debug_print("QUIET is on")
 
+
+### entry point
+def main(args: argparse.Namespace):
+    """ main function that parses args and runs sgrep """
+
+    # set the flags
+    set_flags(args.verbose, args.quiet)
+
+    # get the proper paths for targets i.e. handle base path of /home/repo when it exists in docker
     targets = resolve_targets(args.target)
+
+    # first let's check for a pattern
     if args.pattern:
+        # and a language
         if args.lang:
             lang = args.lang
         else:
             lang = DEFAULT_LANG
         pattern = args.pattern
+
+        # TODO for now we generate a manual config. Might want to just call sgrep -e ... -l ...
         configs = manual_config(pattern, lang)
     else:
+        # else let's get a config. A config is a dict from config_id -> config. Config Id is not well defined at this point.
         configs = resolve_config(args.config)
+
+    # if we can't find a config, bail
+    if not configs:
+        print_error_exit(f"unable to resolve {args.config}")
+
+    # let's split our configs into valid and invalid configs.
+    # It's possible that a config_id exists in both because we check valid rules and invalid rules
+    # instead of just hard failing for that config if mal-formed
+    valid_configs, errors = validate_configs(configs)
 
     validate = args.validate
     strict = args.strict
 
-    if not configs:
-        print_error_exit(f"unable to resolve {args.config}")
-
-    valid_configs, errors = validate_configs(configs)
     if errors:
         if strict:
             print_error_exit(f"run with --strict and there were {len(errors)} errors")
         elif validate:
             print_error_exit(f"run with --validate and there were {len(errors)} errors")
-
-    if validate:
+    elif validate:  # no errors!
         print_error_exit("Config is valid", exit_code=0)
+    # transform the configs to have the hierarchical rule ids
     transformed_configs = transform_configs(valid_configs)
+
+    # extract just the valid configs
     all_rules = flatten_configs(transformed_configs)
+
+    # print out a message
     print_msg(
         f"running {len(all_rules)} rules from {len(valid_configs)} yaml files ({len(errors)} yaml files were invalid)"
     )
@@ -538,7 +571,11 @@ def main(args: Any):
 
     # a rule can have multiple patterns inside it. Flatten these so we can send sgrep a single yml file list of patterns
     all_patterns = list(flatten_rule_patterns(all_rules))
+
+    # actually invoke sgrep
+    start = datetime.now()
     output_json = invoke_sgrep(all_patterns, targets)
+    debug_print(f"sgrep ran in {datetime.now() - start}")
     debug_print(output_json)
 
     # group output; we want to see all of the same rule ids on the same file path
@@ -574,10 +611,13 @@ def main(args: Any):
                     )
                     result = transform_to_r2c_output(result)
                     outputs_after_booleans.append(result)
+
+    # output results
+    output_data = {"results": outputs_after_booleans}
     if not QUIET:
-        print(json.dumps({"results": outputs_after_booleans}))
+        print(json.dumps(output_data))
     if args.output:
-        save_output(args.output, {"results": outputs_after_booleans})
+        save_output(args.output, output_data)
 
 
 ### CLI

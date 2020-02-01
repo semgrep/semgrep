@@ -78,7 +78,7 @@ sgrep --config r2c
 
 ### Default
 
-Default configs are loaded from `.sgrep.yml` or multiple files matching `.sgrep/*.yml` and can be overridden by using `--config <file|folder|url|registy_name>`
+Default configs are loaded from `.sgrep.yml` or multiple files matching `.sgrep/**/*.yml` and can be overridden by using `--config <file|folder|yaml_url|tarball_url|registy_name>`
 
 ## Patterns
 
@@ -96,7 +96,7 @@ Patterns are snippets of code with variables and other operators that will be pa
 
 `sgrep` automatically searches for code that is semantically equivalent. For example, a pattern for
 
-```python
+```sgrep
 $F = open($X, ...)
 $F.read()
 ```
