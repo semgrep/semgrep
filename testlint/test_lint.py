@@ -28,8 +28,7 @@ def testA():
         "pattern1": [Range(30, 100)],
         "pattern2": [Range(0, 100), Range(30, 100)],
     }
-    expression = [(OPERATORS.AND_NOT, ["pattern1"]),
-                  (OPERATORS.AND, ["pattern2"])]
+    expression = [(OPERATORS.AND_NOT, ["pattern1"]), (OPERATORS.AND, ["pattern2"])]
     result = evaluate_expression(expression, results)
     assert result == set([Range(0, 100)]), f"{result}"
 
@@ -57,10 +56,12 @@ def testB():
     results = {
         "pattern1": [Range(0, 100)],
         "pattern2": [Range(30, 70), Range(0, 100)],
-        "pattern3": []
+        "pattern3": [],
     }
-    expression = [(OPERATORS.AND_NOT, ["pattern1"]),
-                  (OPERATORS.AND_EITHER, ["pattern2", "pattern3"])]
+    expression = [
+        (OPERATORS.AND_NOT, ["pattern1"]),
+        (OPERATORS.AND_EITHER, ["pattern2", "pattern3"]),
+    ]
     result = evaluate_expression(expression, results)
     assert result == set([Range(30, 70)]), f"{result}"
 
@@ -86,11 +87,13 @@ def testC():
     results = {
         "pattern1": [Range(100, 1000)],
         "pattern2": [Range(100, 1000), Range(200, 300)],
-        "pattern4": [Range(0, 1000)]
+        "pattern4": [Range(0, 1000)],
     }
-    expression = [(OPERATORS.AND_INSIDE, ["pattern4"]),
-                  (OPERATORS.AND_NOT, ["pattern1"]),
-                  (OPERATORS.AND, ["pattern2"])]
+    expression = [
+        (OPERATORS.AND_INSIDE, ["pattern4"]),
+        (OPERATORS.AND_NOT, ["pattern1"]),
+        (OPERATORS.AND, ["pattern2"]),
+    ]
     result = evaluate_expression(expression, results)
     assert result == set([Range(200, 300)]), f"{result}"
 
@@ -116,11 +119,13 @@ def testD():
     results = {
         "pattern1": [Range(100, 1000)],
         "pattern2": [Range(100, 1000), Range(200, 300)],
-        "pattern4": [Range(0, 1000)]
+        "pattern4": [Range(0, 1000)],
     }
-    expression = [(OPERATORS.AND_NOT_INSIDE, ["pattern4"]),
-                  (OPERATORS.AND_NOT, ["pattern1"]),
-                  (OPERATORS.AND, ["pattern2"])]
+    expression = [
+        (OPERATORS.AND_NOT_INSIDE, ["pattern4"]),
+        (OPERATORS.AND_NOT, ["pattern1"]),
+        (OPERATORS.AND, ["pattern2"]),
+    ]
     result = evaluate_expression(expression, results)
     assert result == set([]), f"{result}"
 
@@ -148,13 +153,20 @@ def testE():
         OUTPUT: [300-400], [350-400]
     """
     results = {
-        "pattern1": [Range(100, 200), Range(300, 400), Range(350, 400), Range(500, 600)],
+        "pattern1": [
+            Range(100, 200),
+            Range(300, 400),
+            Range(350, 400),
+            Range(500, 600),
+        ],
         "pattern2": [Range(0, 200), Range(400, 600)],
-        "pattern3": [Range(200, 600)]
+        "pattern3": [Range(200, 600)],
     }
-    expression = [(OPERATORS.AND_INSIDE, ["pattern3"]),
-                  (OPERATORS.AND_NOT_INSIDE, ["pattern2"]),
-                  (OPERATORS.AND, ["pattern1"])]
+    expression = [
+        (OPERATORS.AND_INSIDE, ["pattern3"]),
+        (OPERATORS.AND_NOT_INSIDE, ["pattern2"]),
+        (OPERATORS.AND, ["pattern1"]),
+    ]
     result = evaluate_expression(expression, results)
     assert result == set([Range(300, 400), Range(350, 400)]), f"{result}"
 
@@ -164,9 +176,11 @@ def testE():
         and P1
         OUTPUT: [100-200]
     """
-    expression = [(OPERATORS.AND_INSIDE, ["pattern2"]),
-                  (OPERATORS.AND_NOT_INSIDE, ["pattern3"]),
-                  (OPERATORS.AND, ["pattern1"])]
+    expression = [
+        (OPERATORS.AND_INSIDE, ["pattern2"]),
+        (OPERATORS.AND_NOT_INSIDE, ["pattern3"]),
+        (OPERATORS.AND, ["pattern1"]),
+    ]
     result = evaluate_expression(expression, results)
     assert result == set([Range(100, 200)]), f"{result}"
 
@@ -176,8 +190,9 @@ def testE():
     """
     expression = [(OPERATORS.AND_INSIDE, ["pattern1"])]
     result = evaluate_expression(expression, results)
-    assert result == set([Range(100, 200), Range(
-        300, 400), Range(350, 400), Range(500, 600)]), f"{result}"
+    assert result == set(
+        [Range(100, 200), Range(300, 400), Range(350, 400), Range(500, 600)]
+    ), f"{result}"
 
     """
         and-inside-noteq P1
@@ -200,6 +215,6 @@ def testAll():
     testE()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     testAll()
     print("all tests passed")
