@@ -1,5 +1,5 @@
 def foo():
-  a = open()
-  print(a)
-  print(a)
-  close(a)
+    a = open()
+    print(a)
+    print(a)
+    close(a)
