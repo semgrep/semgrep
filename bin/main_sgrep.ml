@@ -95,25 +95,24 @@ let mk_one_info_from_multiple_infos xs =
   List.hd xs
 
 let print_match mvars mvar_binding ii_of_any tokens_matched_code = 
+  (* there are a few fake tokens in the generic ASTs now (e.g., 
+   * for DotAccess generated outside the grammar) *)
+  let toks = tokens_matched_code |> List.filter PI.is_origintok in
   (match mvars with
   | [] ->
       if !r2c
       then 
-         let info = mk_one_info_from_multiple_infos tokens_matched_code in
+         let info = mk_one_info_from_multiple_infos toks in
          (* todo? use the -e pattern for the check_id? *)
          E.error info (E.SgrepLint ("sgrep", "found a match"))
       else    
-        Matching_report.print_match ~format:!match_format tokens_matched_code
+        Matching_report.print_match ~format:!match_format toks
   | xs ->
       (* similar to the code of Lib_matcher.print_match, maybe could
        * factorize code a bit.
-       * This assumes there is no FakeTok in tokens_matched_code.
-       * Currently the only fake tokens generated in parser_php.mly are
-       * for abstract methods and sgrep/spatch do not have metavariables
-       * to match such construct so we should be safe.
        *)
       let (mini, _maxi) = 
-        PI.min_max_ii_by_pos tokens_matched_code in
+        PI.min_max_ii_by_pos toks in
       let (file, line) = 
         PI.file_of_info mini, PI.line_of_info mini in
 
@@ -130,7 +129,7 @@ let print_match mvars mvar_binding ii_of_any tokens_matched_code =
       in
       pr (spf "%s:%d: %s" file line (Common.join ":" strings_metavars));
   );
-  tokens_matched_code |> List.iter (fun x -> Common.push x _matching_tokens)
+  toks |> List.iter (fun x -> Common.push x _matching_tokens)
 
 let print_simple_match tokens_matched_code =
   print_match [] [] tokens_matched_code
