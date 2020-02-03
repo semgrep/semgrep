@@ -31,6 +31,11 @@ rules:
       - pattern-either:
           - pattern: $X == $X
           - pattern: $X != $X
+          - patterns:
+            - pattern-inside: |
+                 def __init__(...):
+                      ...
+            - pattern: self.$X == self.$X
       - pattern-not: 1 == 1
     message: "useless comparison operation `$X == $X` or `$X != $X`; if testing for floating point NaN, use `math.isnan`, or `cmath.isnan` if the number is complex."
     languages: [python]
@@ -50,9 +55,10 @@ Will match nothing, because foo() and foo(1) can never occur together. If we mad
 
 There are several operators that can be used under `patterns`:
 
-- pattern: The rule will only fire if this pattern is found.
-- pattern-not: Opposite of `pattern`
-- pattern-either: You can put multiple other patterns under this; any of those patterns will count as a match.
+- `pattern`: The rule will only fire if this pattern is found.
+- `pattern-not`: Opposite of `pattern`
+- `pattern-either`: You can put multiple other patterns under this; any of those patterns will count as a match.
+- `pattterns`: Like `pattern-either`, you can put multiple patterns under this to create nested, implicitly-ANDed instructions.
 - `pattern-inside`: The rule will only fire if the following patterns are inside this specified pattern. Useful for specifying a function that this behavior must occur in, for instance.
 - `pattern-not-inside`: Opposite of `pattern-inside`
 
@@ -63,7 +69,7 @@ Each rule object has these fields:
 | Field     | Type          | Description                                                                                                        | Required |
 | --------- | ------------- | ------------------------------------------------------------------------------------------------------------------ | -------- |
 | id        | string        | None unique check-id that should be descriptive and understandable in isolation by the user. e.g. `no-unused-var`. | Y        |
-| `pattern` or `patterns`   | string        | See Example Patterns below.                                                                                        | Y        |
+| `pattern` or `patterns`   | string        | See example patterns in this document.                                                                                        | Y        |
 | message   | string        | Description of the rule that will be output when a match is found.                                                 | Y        |
 | languages | array<string> | Languages the check is relevant for. Can be python or javascript.                                                  | Y        |
 | severity  | string        | Case sensitive string equal to WARNING, ERROR                                                                  | Y        |
