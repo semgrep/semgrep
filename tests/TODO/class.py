@@ -1,5 +1,3 @@
 class BanditParser:
-
-  def foo():
-    return BanditParser.CST
-
+    def foo():
+        return BanditParser.CST

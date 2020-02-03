@@ -1,5 +1,5 @@
 import flask
 
-def foo():
-  flask.send_file(1)
 
+def foo():
+    flask.send_file(1)

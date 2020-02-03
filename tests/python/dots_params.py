@@ -1,3 +1,3 @@
-#ERROR: match
+# ERROR: match
 def foo(a, b):
-  return 1
+    return 1

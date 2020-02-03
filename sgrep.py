@@ -32,6 +32,10 @@ RULES_REGISTRY = {"r2c": "https://github.com/returntocorp/sgrep-rules/tarball/ma
 RULES_KEY = "rules"
 ID_KEY = "id"
 
+# Exit codes
+FINDINGS_EXIT_CODE = 1
+FATAL_EXIT_CODE = 2
+
 
 class OPERATORS:
     AND_ALL = "and_all"
@@ -76,7 +80,7 @@ def print_error(e):
         print(str(e), file=sys.stderr)
 
 
-def print_error_exit(msg: str, exit_code: int = 1) -> None:
+def print_error_exit(msg: str, exit_code: int = FATAL_EXIT_CODE) -> None:
     if not QUIET:
         print(msg, file=sys.stderr)
     sys.exit(exit_code)
@@ -681,6 +685,8 @@ def main(args: argparse.Namespace):
         print(json.dumps(output_data))
     if args.output:
         save_output(args.output, output_data)
+    if args.error and outputs_after_booleans:
+        sys.exit(FINDINGS_EXIT_CODE)
 
 
 # CLI
@@ -741,6 +747,7 @@ if __name__ == "__main__":
         help="Do not rewrite rule ids when they appear in nested subfolders (by default, rule 'foo' in test/rules.yaml will be renamed 'test.foo')",
         action="store_true",
     )
+
     output.add_argument(
         "-o",
         "--output",
@@ -748,6 +755,11 @@ if __name__ == "__main__":
     )
     output.add_argument(
         "--json", help="Convert search output to JSON format.", action="store_true"
+    )
+    output.add_argument(
+        "--error",
+        help="System Exit 1 if there are findings. Useful for CI and scripts.",
+        action="store_true",
     )
     # logging options
     logging = parser.add_argument_group("logging")

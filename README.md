@@ -42,6 +42,10 @@ docker run --rm -v $(pwd):/home/repo returntocorp/sgrep
 
 ```
 
+## Github Action for CI
+
+See our [sgrep-lint](https://github.com/marketplace/actions/sgrep-lint) action for easy use of `sgrep` in CI
+
 ## Usage
 
 ### Rule Development
