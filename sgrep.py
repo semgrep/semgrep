@@ -118,14 +118,22 @@ def enumerate_patterns_in_boolean_expression(expression):
     """
     flatten a potentially nested expression
     """
-    print(expression)
     for pattern_or_list in expression:
         if isinstance(pattern_or_list[1], list):
-            yield (pattern_or_list[0], 'no-id', 'no-pattern')
+            # yield (pattern_or_list[0], 'no-id', 'no-pattern')
             for expr in pattern_or_list[1]:
                 yield from enumerate_patterns_in_boolean_expression(expr)
         else:
             yield pattern_or_list
+
+def drop_patterns(expression_with_patterns):
+    for pattern_or_list in expression:
+        if isinstance(pattern_or_list[1], list):
+            for expr in pattern_or_list[1]:
+                yield from enumerate_patterns_in_boolean_expression(expr)
+        else:
+            (op, pattern_id, pattern) = pattern_or_list
+            yield (op, pattern_id)
 
 def _parse_boolean_expression(rule_patterns, pattern_id=0, prefix=''):
     """
@@ -311,9 +319,9 @@ def flatten_rule_patterns(all_rules):
         print(patterns_with_ids)
         print('8'*80)
         for (_operator, pattern_index, pattern) in patterns_with_ids:
-            if pattern_index == 'no-id':
-                # don't send rules like "and-either" or "and-all" to sgrep
-                continue
+            #if pattern_index == 'no-id':
+            #    # don't send rules like "and-either" or "and-all" to sgrep
+            #    continue
             # if we don't copy an array (like `languages`), the yaml file will refer to it by reference (with an anchor)
             # which is nice and all but the sgrep YAML parser doesn't support that
             new_check_id = f"{rule_index}.{pattern_index}"
