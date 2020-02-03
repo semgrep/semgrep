@@ -26,7 +26,7 @@ DEFAULT_CONFIG_FILE = ".sgrep.yml"
 DEFAULT_CONFIG_FOLDER = ".sgrep"
 DEFAULT_LANG = "python"
 
-MISSING_RULE_ID = 'no-rule-id'
+MISSING_RULE_ID = "no-rule-id"
 
 RULES_REGISTRY = {"r2c": "https://github.com/returntocorp/sgrep-rules/tarball/master"}
 RULES_KEY = "rules"
@@ -41,6 +41,7 @@ class OPERATORS:
     AND_INSIDE = "and_inside"
     AND_NOT_INSIDE = "and_not_inside"
 
+
 MUST_HAVE_KEYS = {"id", "message", "languages", "severity"}
 
 PATTERN_NAMES_MAP = {
@@ -49,7 +50,7 @@ PATTERN_NAMES_MAP = {
     "pattern-either": OPERATORS.AND_EITHER,
     "pattern-not": OPERATORS.AND_NOT,
     "pattern": OPERATORS.AND,
-    "patterns": OPERATORS.AND_ALL   
+    "patterns": OPERATORS.AND_ALL,
 }
 
 INVERSE_PATTERN_NAMES_MAP = dict((v, k) for k, v in PATTERN_NAMES_MAP.items())
@@ -98,7 +99,7 @@ def flatten(L: List[List[Any]]) -> List[Any]:
 
 
 ### sgrep functions
-NO_BOOLEAN_RULE_ID = '_internal_boolean_rule_no_id'
+NO_BOOLEAN_RULE_ID = "_internal_boolean_rule_no_id"
 
 
 def enumerate_patterns_in_boolean_expression(expression):
@@ -108,11 +109,12 @@ def enumerate_patterns_in_boolean_expression(expression):
     for pattern_or_list in expression:
         if isinstance(pattern_or_list[2], list):
             # we need to preserve this parent of multiple children, but it has no corresponding pattern
-            yield (pattern_or_list[0], NO_BOOLEAN_RULE_ID, 'no-pattern')
+            yield (pattern_or_list[0], NO_BOOLEAN_RULE_ID, "no-pattern")
             # now yield all the children
             yield from enumerate_patterns_in_boolean_expression(pattern_or_list[2])
         else:
             yield pattern_or_list
+
 
 def drop_patterns(expression_with_patterns):
     """
@@ -125,19 +127,28 @@ def drop_patterns(expression_with_patterns):
             (op, pattern_id, pattern) = pattern_or_list
             yield (op, pattern_id)
 
-def _parse_boolean_expression(rule_patterns, pattern_id=0, prefix=''):
+
+def _parse_boolean_expression(rule_patterns, pattern_id=0, prefix=""):
     """
     Move through the expression, yielding tuples of (operator, unique-id-for-pattern, pattern)
     """
     for pattern in rule_patterns:
         for boolean_operator, pattern_text in pattern.items():
-            if boolean_operator == INVERSE_PATTERN_NAMES_MAP[OPERATORS.AND_EITHER] or \
-                boolean_operator == INVERSE_PATTERN_NAMES_MAP[OPERATORS.AND_ALL]:
+            if (
+                boolean_operator == INVERSE_PATTERN_NAMES_MAP[OPERATORS.AND_EITHER]
+                or boolean_operator == INVERSE_PATTERN_NAMES_MAP[OPERATORS.AND_ALL]
+            ):
                 operator = operator_for_pattern_name(boolean_operator)
-                sub_expression = _parse_boolean_expression(pattern_text, 0, f'{prefix}.{pattern_id}')
+                sub_expression = _parse_boolean_expression(
+                    pattern_text, 0, f"{prefix}.{pattern_id}"
+                )
                 yield (operator, NO_BOOLEAN_RULE_ID, list(sub_expression))
             else:
-                yield (operator_for_pattern_name(boolean_operator), f'{prefix}.{pattern_id}', pattern_text)
+                yield (
+                    operator_for_pattern_name(boolean_operator),
+                    f"{prefix}.{pattern_id}",
+                    pattern_text,
+                )
                 pattern_id += 1
 
 
@@ -147,7 +158,7 @@ def build_boolean_expression(rule):
     tuples of (operator, rule-id, pattern)
     """
     if "pattern" in rule:  # single pattern at root
-        yield (OPERATORS.AND, '0', rule['pattern'])
+        yield (OPERATORS.AND, "0", rule["pattern"])
     elif "patterns" in rule:  # multiple patterns at root
         yield from _parse_boolean_expression(rule["patterns"])
     else:
@@ -156,6 +167,7 @@ def build_boolean_expression(rule):
 
 def operator_for_pattern_name(pattern_name):
     return PATTERN_NAMES_MAP[pattern_name]
+
 
 @dataclass(frozen=True)
 class Range:
@@ -206,18 +218,29 @@ def _evaluate_single_expression(
     else:
         assert False, f"unknown operator {operator}"
 
+
 def evaluate_expression(expression, results: Dict[str, List[Range]]) -> List[Range]:
     ranges_left = set(flatten(results.values()))
     return _evaluate_expression(expression, results, ranges_left)
 
-def _evaluate_expression(expression, results: Dict[str, List[Range]], ranges_left: Set[Range]) -> List[Range]:
+
+def _evaluate_expression(
+    expression, results: Dict[str, List[Range]], ranges_left: Set[Range]
+) -> List[Range]:
     for (operator, pattern_id_or_list) in expression:
         if operator == OPERATORS.AND_EITHER or operator == OPERATORS.AND_ALL:
-            assert isinstance(pattern_id_or_list, list), f"{OPERATORS.AND_EITHER} or {OPERATORS.AND_ALL} must have a list of subpatterns"
+            assert isinstance(
+                pattern_id_or_list, list
+            ), f"{OPERATORS.AND_EITHER} or {OPERATORS.AND_ALL} must have a list of subpatterns"
 
             # recurse on the nested expressions
-            evaluated_ranges = [_evaluate_expression([expr], results, ranges_left.copy()) for expr in pattern_id_or_list]
-            debug_print(f"recursion result {evaluated_ranges} (flat: {list(flatten(evaluated_ranges))}))")
+            evaluated_ranges = [
+                _evaluate_expression([expr], results, ranges_left.copy())
+                for expr in pattern_id_or_list
+            ]
+            debug_print(
+                f"recursion result {evaluated_ranges} (flat: {list(flatten(evaluated_ranges))}))"
+            )
 
             if operator == OPERATORS.AND_EITHER:
                 # remove anything that does not equal one of these ranges
@@ -228,7 +251,9 @@ def _evaluate_expression(expression, results: Dict[str, List[Range]], ranges_lef
                     ranges_left.intersection_update(arange)
             debug_print(f"after filter `{operator}`: {ranges_left}")
         else:
-            assert isinstance(pattern_id_or_list, str), f"only {OPERATORS.AND_EITHER} or {OPERATORS.AND_ALL} expressions can have multiple subpatterns"
+            assert isinstance(
+                pattern_id_or_list, str
+            ), f"only {OPERATORS.AND_EITHER} or {OPERATORS.AND_ALL} expressions can have multiple subpatterns"
             ranges_left = _evaluate_single_expression(
                 operator, pattern_id_or_list, results, ranges_left
             )
@@ -240,7 +265,7 @@ def parse_sgrep_output(sgrep_findings: List[Dict[str, Any]]) -> Dict[str, List[R
     for finding in sgrep_findings:
         check_id = finding["check_id"]
         # restore the pattern id: the check_id was encoded as f"{rule_index}.{pattern_id}"
-        pattern_id = '.'.join(check_id.split(".")[1:])
+        pattern_id = ".".join(check_id.split(".")[1:])
         output[pattern_id].append(sgrep_finding_to_range(finding))
     return dict(output)
 
@@ -283,7 +308,11 @@ def transform_to_r2c_output(finding: Dict[str, Any]) -> Dict[str, Any]:
 
 def flatten_rule_patterns(all_rules):
     for rule_index, rule in enumerate(all_rules):
-        patterns_with_ids = list(enumerate_patterns_in_boolean_expression(list(build_boolean_expression(rule))))
+        patterns_with_ids = list(
+            enumerate_patterns_in_boolean_expression(
+                list(build_boolean_expression(rule))
+            )
+        )
         for (_operator, pattern_index, pattern) in patterns_with_ids:
             if pattern_index == NO_BOOLEAN_RULE_ID:
                 # don't send rules like "and-either" or "and-all" to sgrep
@@ -301,6 +330,7 @@ def flatten_rule_patterns(all_rules):
 
 
 # CLI helper functions
+
 
 def get_base_path() -> Path:
     docker_folder = Path(REPO_HOME_DOCKER)
@@ -452,7 +482,7 @@ def validate_configs(configs: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str,
                     invalid_rules.append(rule)
                 else:
                     valid_rules.append(rule)
-        
+
         if invalid_rules:
             errors[config_id] = {**config, "rules": invalid_rules}
         if valid_rules:
@@ -590,7 +620,7 @@ def main(args: argparse.Namespace):
     if not args.no_rewrite_rule_ids:
         # re-write the configs to have the hierarchical rule ids
         valid_configs = rename_rule_ids(valid_configs)
-        
+
     # extract just the rules from valid configs
     all_rules = flatten_configs(valid_configs)
 
@@ -705,7 +735,7 @@ if __name__ == "__main__":
         help="Do not print anything to stdout. Search results can still be saved to an output file specified by -o/--output. Exit code provides success status.",
         action="store_true",
     )
-    
+
     output.add_argument(
         "--no-rewrite-rule-ids",
         help="Do not rewrite rule ids when they appear in nested subfolders (by default, rule 'foo' in test/rules.yaml will be renamed 'test.foo')",
