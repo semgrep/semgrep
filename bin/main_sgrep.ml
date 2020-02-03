@@ -279,13 +279,16 @@ let sgrep_with_one_pattern xs =
         parse_pattern s, s
     | _ -> raise Impossible
   in
-
-  let root, files = 
+  let files = 
+    match Lang.lang_of_string_opt !lang with
+    | Some lang -> Lang.files_of_dirs_or_files lang xs
+    (* should remove at some point *)
+    | None -> Find_source.files_of_dir_or_files ~lang:!lang xs
+  in
+  let root = 
     match xs with
-    | [x] when Sys.is_directory x ->
-       x, Find_source.files_of_root ~lang:!lang x
-    | _ -> 
-       "/", Find_source.files_of_dir_or_files ~lang:!lang xs
+    | [x] when Sys.is_directory x -> x
+    | _ -> "/"
   in
 
   files |> List.iter (fun file ->
