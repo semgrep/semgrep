@@ -1,7 +1,7 @@
 import os
 import sys
 
-from sgrep import OPERATORS, Range, evaluate_expression
+from sgrep import OPERATORS, Range, evaluate_expression, NO_BOOLEAN_RULE_ID, enumerate_patterns_in_boolean_expression
 
 # run from parent directory with PYTHONPATH=. python3 testlint/test_lint.py
 
@@ -244,13 +244,34 @@ def testF():
 
     # TODO test and-all (`patterns` subkey)
 
+def test_exprs():
+    subexpression1 = [(OPERATORS.AND_INSIDE, "pattern4", "p4"), (OPERATORS.AND, "pattern2", "p2")]
+    subexpression2 = [(OPERATORS.AND_NOT_INSIDE, "pattern4", "p4"), (OPERATORS.AND, "pattern1", "p1")]
+    expression = [(OPERATORS.AND_INSIDE, "pattern3", "p3"),
+                  (OPERATORS.AND_EITHER, NO_BOOLEAN_RULE_ID, [(OPERATORS.AND_ALL, 'someid', subexpression1), (OPERATORS.AND_ALL, 'someid2', subexpression2)]) 
+                  ]
+    flat = list(enumerate_patterns_in_boolean_expression(expression))
+    # print(flat)
+
+    assert flat == [
+        (OPERATORS.AND_INSIDE, "pattern3", "p3"),
+        (OPERATORS.AND_EITHER, NO_BOOLEAN_RULE_ID, "no-pattern"),
+        (OPERATORS.AND_ALL,NO_BOOLEAN_RULE_ID, "no-pattern"),
+        (OPERATORS.AND_INSIDE, "pattern4", "p4"), 
+        (OPERATORS.AND,         "pattern2", "p2"),
+        (OPERATORS.AND_ALL, NO_BOOLEAN_RULE_ID, "no-pattern"),
+        (OPERATORS.AND_NOT_INSIDE, "pattern4", "p4"), 
+        (OPERATORS.AND,          "pattern1", "p1")], f"flat: {flat}"
+
+
 def testAll():
+    test_exprs()
+
     testA()
     testB()
     testC()
     testD()
     testE()
-    print('---'*60)
     testF()
 
 if __name__ == '__main__':

@@ -100,24 +100,6 @@ def flatten(L: List[List[Any]]) -> List[Any]:
 ### sgrep functions
 NO_BOOLEAN_RULE_ID = '_internal_boolean_rule_no_id'
 
-def test_exprs():
-    subexpression1 = [(OPERATORS.AND_INSIDE, "pattern4", "p4"), (OPERATORS.AND, "pattern2", "p2")]
-    subexpression2 = [(OPERATORS.AND_NOT_INSIDE, "pattern4", "p4"), (OPERATORS.AND, "pattern1", "p1")]
-    expression = [(OPERATORS.AND_INSIDE, "pattern3", "p3"),
-                  (OPERATORS.AND_EITHER, NO_BOOLEAN_RULE_ID, [(OPERATORS.AND_ALL, 'someid', subexpression1), (OPERATORS.AND_ALL, 'someid2', subexpression2)]) 
-                  ]
-    flat = list(enumerate_patterns_in_boolean_expression(expression))
-    # print(flat)
-
-    assert flat == [
-        (OPERATORS.AND_INSIDE, "pattern3", "p3"),
-        (OPERATORS.AND_EITHER, NO_BOOLEAN_RULE_ID, "no-pattern"),
-        (OPERATORS.AND_ALL,NO_BOOLEAN_RULE_ID, "no-pattern"),
-        (OPERATORS.AND_INSIDE, "pattern4", "p4"), 
-        (OPERATORS.AND,         "pattern2", "p2"),
-        (OPERATORS.AND_ALL, NO_BOOLEAN_RULE_ID, "no-pattern"),
-        (OPERATORS.AND_NOT_INSIDE, "pattern4", "p4"), 
-        (OPERATORS.AND,          "pattern1", "p1")], f"flat: {flat}"
 
 def enumerate_patterns_in_boolean_expression(expression):
     """
@@ -125,8 +107,9 @@ def enumerate_patterns_in_boolean_expression(expression):
     """
     for pattern_or_list in expression:
         if isinstance(pattern_or_list[2], list):
+            # we need to preserve this parent of multiple children, but it has no corresponding pattern
             yield (pattern_or_list[0], NO_BOOLEAN_RULE_ID, 'no-pattern')
-            #for expr in pattern_or_list[2]:
+            # now yield all the children
             yield from enumerate_patterns_in_boolean_expression(pattern_or_list[2])
         else:
             yield pattern_or_list
@@ -256,6 +239,7 @@ def parse_sgrep_output(sgrep_findings: List[Dict[str, Any]]) -> Dict[str, List[R
     output = collections.defaultdict(list)
     for finding in sgrep_findings:
         check_id = finding["check_id"]
+        # restore the pattern id: the check_id was encoded as f"{rule_index}.{pattern_id}"
         pattern_id = '.'.join(check_id.split(".")[1:])
         output[pattern_id].append(sgrep_finding_to_range(finding))
     return dict(output)
@@ -627,6 +611,7 @@ def main(args: argparse.Namespace):
     # group output; we want to see all of the same rule ids on the same file path
     by_rule_index = collections.defaultdict(lambda: collections.defaultdict(list))
     for finding in output_json["matches"]:
+        # decode the rule index from the output check_id
         rule_index = int(finding["check_id"].split(".")[0])
         by_rule_index[rule_index][finding["path"]].append(finding)
 
@@ -748,9 +733,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
     if args.lang and not args.pattern:
         parser.error("-e/--pattern is required when -l/--lang is used.")
-
-    test_exprs()
-
-
 
     main(args)
