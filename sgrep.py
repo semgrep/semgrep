@@ -1,23 +1,22 @@
 #!/usr/bin/env python3
 import argparse
+import base64
 import collections
 import itertools
 import json
 import os
 import subprocess
 import sys
+import tarfile
 import tempfile
 import traceback
 from dataclasses import dataclass
-from pathlib import PurePath, Path
-import base64
+from pathlib import Path, PurePath
 from typing import Any, Dict, Generator, List, Optional, Set, Tuple
-
-import yaml
-
 from urllib.parse import urlparse
+
 import requests
-import tarfile
+import yaml
 
 ### Constants
 
@@ -32,12 +31,12 @@ ID_KEY = "id"
 
 
 class OPERATORS:
+    AND_ALL = "and_all"
     AND_NOT = "and_not"
     AND = "and"
     AND_EITHER = "and_either"
     AND_INSIDE = "and_inside"
     AND_NOT_INSIDE = "and_not_inside"
-
 
 MUST_HAVE_KEYS = {"id", "message", "languages", "severity"}
 
@@ -47,7 +46,10 @@ PATTERN_NAMES_MAP = {
     "pattern-either": OPERATORS.AND_EITHER,
     "pattern-not": OPERATORS.AND_NOT,
     "pattern": OPERATORS.AND,
+    "patterns": OPERATORS.AND_ALL
 }
+
+INVERSE_PATTERN_NAMES_MAP = dict((v, k) for k, v in PATTERN_NAMES_MAP.items())
 
 YML_EXTENSIONS = {".yml", ".yaml"}
 DEBUG = False
@@ -95,28 +97,60 @@ def flatten(L: List[List[Any]]) -> List[Any]:
 ### sgrep functions
 
 
-def _parse_boolean_expression(rule_patterns, counter=0):
+def test_exprs():
+    subexpression1 = [(OPERATORS.AND_INSIDE, "pattern4", "p4"), (OPERATORS.AND, "pattern2", "p2")]
+    subexpression2 = [(OPERATORS.AND_NOT_INSIDE, "pattern4", "p4"), (OPERATORS.AND, "pattern1", "p1")]
+    expression = [(OPERATORS.AND_INSIDE, "pattern3", "p3"),
+                  (OPERATORS.AND_EITHER, [subexpression1, subexpression2]) 
+                  ]
+    flat = list(enumerate_patterns_in_boolean_expression(expression))
+    # print(flat)
+
+    assert flat == [
+        (OPERATORS.AND_INSIDE, "pattern3", "p3"),
+        (OPERATORS.AND_EITHER, "no-id", "no-pattern"),
+        (OPERATORS.AND_INSIDE, "pattern4", "p4"), 
+        (OPERATORS.AND,         "pattern2", "p2"),
+        (OPERATORS.AND_NOT_INSIDE, "pattern4", "p4"), 
+        (OPERATORS.AND,          "pattern1", "p1")], f"flat: {flat}"
+
+def enumerate_patterns_in_boolean_expression(expression):
+    """
+    flatten a potentially nested expression
+    """
+    print(expression)
+    for pattern_or_list in expression:
+        if isinstance(pattern_or_list[1], list):
+            yield (pattern_or_list[0], 'no-id', 'no-pattern')
+            for expr in pattern_or_list[1]:
+                yield from enumerate_patterns_in_boolean_expression(expr)
+        else:
+            yield pattern_or_list
+
+def _parse_boolean_expression(rule_patterns, pattern_id=0, prefix=''):
+    """
+    Move through the expression, yielding tuples of (operator, unique-id-for-pattern, pattern)
+    """
     for pattern in rule_patterns:
         for boolean_operator, pattern_text in pattern.items():
-            if boolean_operator == "pattern-either":
-                yield (
-                    OPERATORS.AND_EITHER,
-                    list(range(counter, counter + len(pattern_text))),
-                )
-                counter += len(pattern_text)
+            if boolean_operator == INVERSE_PATTERN_NAMES_MAP[OPERATORS.AND_EITHER] or \
+                boolean_operator == INVERSE_PATTERN_NAMES_MAP[OPERATORS.AND_ALL]:
+                operator = operator_for_pattern_name(boolean_operator)
+                sub_expression = _parse_boolean_expression(pattern_text, 0, f'{prefix}.{pattern_id}')
+                yield (operator, 'no-id', list(sub_expression))
             else:
-                yield (operator_for_pattern_name(boolean_operator), [counter])
-                counter += 1
+                yield (operator_for_pattern_name(boolean_operator), f'{prefix}.{pattern_id}', pattern_text)
+                pattern_id += 1
 
 
 def build_boolean_expression(rule):
     """
-    Build a (flat, not nested #TODO boolean expression from the yml lines in the rule)
+    Build a boolean expression from the yml lines in the rule
+    tuples of (operator, rule-id, pattern)
     """
-
-    if "pattern" in rule:  # single pattern
-        yield (OPERATORS.AND, [0])
-    elif "patterns" in rule:  # multiple patterns
+    if "pattern" in rule:  # single pattern at root
+        yield (OPERATORS.AND, '0', rule['pattern'])
+    elif "patterns" in rule:  # multiple patterns at root
         yield from _parse_boolean_expression(rule["patterns"])
     else:
         assert False
@@ -126,26 +160,26 @@ def operator_for_pattern_name(pattern_name):
     return PATTERN_NAMES_MAP[pattern_name]
 
 
-def parse_rule_patterns(rule):
+""" def parse_rule_patterns(rule):
     if "pattern" in rule:  # single pattern
         yield (0, rule["pattern"])
     elif "patterns" in rule:  # multiple patterns
         yield from parse_pattern_expression(rule["patterns"])
     else:
-        assert False
+        assert False """
 
-
+"""
 def parse_pattern_expression(rule_patterns, counter=0):
     #    print((counter, rule_patterns))
     for pattern in rule_patterns:
         for boolean_operator, pattern_text in pattern.items():
-            if boolean_operator == "pattern-either":
+            if boolean_operator == OPERATORS.AND_EITHER:
                 yield from parse_pattern_expression(pattern_text, counter)
                 counter += len(pattern_text)
             else:
                 yield (counter, pattern_text)
                 counter += 1
-
+"""
 
 @dataclass(frozen=True)
 class Range:
@@ -196,22 +230,31 @@ def _evaluate_single_expression(
     else:
         assert False, f"unknown operator {operator} in {expression}"
 
-
 def evaluate_expression(expression, results: Dict[str, List[Range]]) -> List[Range]:
     ranges_left = set(flatten(results.values()))
-    for (operator, pattern_ids) in expression:
-        if operator == OPERATORS.AND_EITHER:
-            # create a set from the union of the expressions in the `or` block
-            either_ranges = set(flatten((results.get(pid, [])) for pid in pattern_ids))
-            # remove anything that does not equal one of these ranges
-            ranges_left.intersection_update(either_ranges)
-            # print(f"after filter `{operator}`: {ranges_left}")
+    return _evaluate_expression(expression, results, ranges_left)
+
+def _evaluate_expression(expression, results: Dict[str, List[Range]], ranges_left: Set[Range]) -> List[Range]:
+    for (operator, pattern_ids_or_expressions) in expression:
+        print(f'ranges are {ranges_left} for {expression}')
+
+        if operator == OPERATORS.AND_EITHER or operator == OPERATORS.AND_ALL:
+            # recurse on the nested express{ions
+            evaluated_ranges = [_evaluate_expression(expr, results, ranges_left) for expr in pattern_ids_or_expressions]
+            print(f"recursion result {evaluated_ranges} (flat: {list(flatten(evaluated_ranges))}))")
+
+            if operator == OPERATORS.AND_EITHER:
+                # remove anything that does not equal one of these ranges
+                ranges_left.intersection_update(flatten(evaluated_ranges))
+            elif operator == OPERATORS.AND_ALL:
+                # chain intersection of every range returned
+                for arange in evaluated_ranges:
+                    ranges_left.interesection_update(arange)
+            print(f"after filter `{operator}`: {ranges_left}")
         else:
-            assert (
-                len(pattern_ids) == 1
-            ), f"only {OPERATORS.AND_EITHER} expressions can have multiple pattern names"
+            assert isinstance(pattern_ids_or_expressions, str), f"only {OPERATORS.AND_EITHER} or {OPERATORS.AND_ALL} expressions can have multiple subpatterns"
             ranges_left = _evaluate_single_expression(
-                operator, pattern_ids[0], results, ranges_left
+                operator, pattern_ids_or_expressions, results, ranges_left
             )
     return ranges_left
 
@@ -220,7 +263,7 @@ def parse_sgrep_output(sgrep_findings: List[Dict[str, Any]]) -> Dict[str, List[R
     output = collections.defaultdict(list)
     for finding in sgrep_findings:
         check_id = finding["check_id"]
-        pattern_id = int(check_id.split(".")[1])
+        pattern_id = '.'.join(check_id.split(".")[1:])
         output[pattern_id].append(sgrep_finding_to_range(finding))
     return dict(output)
 
@@ -236,7 +279,7 @@ def invoke_sgrep(
     with tempfile.NamedTemporaryFile("w") as fout:
         # very important not to sort keys here
         yaml_as_str = yaml.safe_dump({"rules": all_rules}, sort_keys=False)
-        debug_print(yaml_as_str)
+        print_msg(yaml_as_str)
         fout.write(yaml_as_str)
         fout.flush()
         cmd = [SGREP_PATH, f"-rules_file", fout.name, *[str(path) for path in targets]]
@@ -264,8 +307,13 @@ def transform_to_r2c_output(finding: Dict[str, Any]) -> Dict[str, Any]:
 
 def flatten_rule_patterns(all_rules):
     for rule_index, rule in enumerate(all_rules):
-        patterns_with_ids = list(parse_rule_patterns(rule))
-        for (pattern_index, pattern) in patterns_with_ids:
+        patterns_with_ids = list(enumerate_patterns_in_boolean_expression(list(build_boolean_expression(rule))))
+        print(patterns_with_ids)
+        print('8'*80)
+        for (_operator, pattern_index, pattern) in patterns_with_ids:
+            if pattern_index == 'no-id':
+                # don't send rules like "and-either" or "and-all" to sgrep
+                continue
             # if we don't copy an array (like `languages`), the yaml file will refer to it by reference (with an anchor)
             # which is nice and all but the sgrep YAML parser doesn't support that
             new_check_id = f"{rule_index}.{pattern_index}"
@@ -420,6 +468,7 @@ def validate_configs(configs: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str,
                     invalid_rules.append(rule)
                 else:
                     valid_rules.append(rule)
+        
         if invalid_rules:
             errors[config_id] = {**config, "rules": invalid_rules}
         if valid_rules:
@@ -549,7 +598,8 @@ def main(args: Any):
 
     outputs_after_booleans = []
     for rule_index, paths in by_rule_index.items():
-        expression = list(build_boolean_expression(all_rules[rule_index]))
+        expression_with_patterns = list(build_boolean_expression(all_rules[rule_index]))
+        # expression = (op, pattern_id) for (op, pattern_id, pattern) in expression_with_patterns]
         debug_print(f"rule expression: {expression}")
         for filepath, results in paths.items():
             debug_print(
@@ -654,5 +704,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
     if args.lang and not args.pattern:
         parser.error("-e/--pattern is required when -l/--lang is used.")
+
+    test_exprs()
+
+
 
     main(args)

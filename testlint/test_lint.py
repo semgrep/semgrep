@@ -28,8 +28,8 @@ def testA():
         "pattern1": [Range(30, 100)],
         "pattern2": [Range(0, 100), Range(30, 100)],
     }
-    expression = [(OPERATORS.AND_NOT, ["pattern1"]),
-                  (OPERATORS.AND, ["pattern2"])]
+    expression = [(OPERATORS.AND_NOT, "pattern1"),
+                  (OPERATORS.AND, "pattern2")]
     result = evaluate_expression(expression, results)
     assert result == set([Range(0, 100)]), f"{result}"
 
@@ -59,8 +59,8 @@ def testB():
         "pattern2": [Range(30, 70), Range(0, 100)],
         "pattern3": []
     }
-    expression = [(OPERATORS.AND_NOT, ["pattern1"]),
-                  (OPERATORS.AND_EITHER, ["pattern2", "pattern3"])]
+    expression = [(OPERATORS.AND_NOT, "pattern1"),
+                  (OPERATORS.AND_EITHER, [[(OPERATORS.AND, "pattern2")], [(OPERATORS.AND, "pattern3")]])]
     result = evaluate_expression(expression, results)
     assert result == set([Range(30, 70)]), f"{result}"
 
@@ -88,9 +88,9 @@ def testC():
         "pattern2": [Range(100, 1000), Range(200, 300)],
         "pattern4": [Range(0, 1000)]
     }
-    expression = [(OPERATORS.AND_INSIDE, ["pattern4"]),
-                  (OPERATORS.AND_NOT, ["pattern1"]),
-                  (OPERATORS.AND, ["pattern2"])]
+    expression = [(OPERATORS.AND_INSIDE, "pattern4"),
+                  (OPERATORS.AND_NOT, "pattern1"),
+                  (OPERATORS.AND, "pattern2")]
     result = evaluate_expression(expression, results)
     assert result == set([Range(200, 300)]), f"{result}"
 
@@ -118,9 +118,9 @@ def testD():
         "pattern2": [Range(100, 1000), Range(200, 300)],
         "pattern4": [Range(0, 1000)]
     }
-    expression = [(OPERATORS.AND_NOT_INSIDE, ["pattern4"]),
-                  (OPERATORS.AND_NOT, ["pattern1"]),
-                  (OPERATORS.AND, ["pattern2"])]
+    expression = [(OPERATORS.AND_NOT_INSIDE, "pattern4"),
+                  (OPERATORS.AND_NOT, "pattern1"),
+                  (OPERATORS.AND, "pattern2")]
     result = evaluate_expression(expression, results)
     assert result == set([]), f"{result}"
 
@@ -152,9 +152,9 @@ def testE():
         "pattern2": [Range(0, 200), Range(400, 600)],
         "pattern3": [Range(200, 600)]
     }
-    expression = [(OPERATORS.AND_INSIDE, ["pattern3"]),
-                  (OPERATORS.AND_NOT_INSIDE, ["pattern2"]),
-                  (OPERATORS.AND, ["pattern1"])]
+    expression = [(OPERATORS.AND_INSIDE, "pattern3"),
+                  (OPERATORS.AND_NOT_INSIDE, "pattern2"),
+                  (OPERATORS.AND, "pattern1")]
     result = evaluate_expression(expression, results)
     assert result == set([Range(300, 400), Range(350, 400)]), f"{result}"
 
@@ -164,9 +164,9 @@ def testE():
         and P1
         OUTPUT: [100-200]
     """
-    expression = [(OPERATORS.AND_INSIDE, ["pattern2"]),
-                  (OPERATORS.AND_NOT_INSIDE, ["pattern3"]),
-                  (OPERATORS.AND, ["pattern1"])]
+    expression = [(OPERATORS.AND_INSIDE, "pattern2"),
+                  (OPERATORS.AND_NOT_INSIDE, "pattern3"),
+                  (OPERATORS.AND, "pattern1")]
     result = evaluate_expression(expression, results)
     assert result == set([Range(100, 200)]), f"{result}"
 
@@ -174,7 +174,7 @@ def testE():
         and-inside P1
         OUTPUT: [100-200, 300-400, 350-400, 500-600]
     """
-    expression = [(OPERATORS.AND_INSIDE, ["pattern1"])]
+    expression = [(OPERATORS.AND_INSIDE, "pattern1")]
     result = evaluate_expression(expression, results)
     assert result == set([Range(100, 200), Range(
         300, 400), Range(350, 400), Range(500, 600)]), f"{result}"
@@ -191,6 +191,58 @@ def testE():
     # assert result == set([Range(350, 400)]), f"{result}"
     # TODO
 
+def testF():
+    """Nested boolean expressions
+    
+    let pattern1 = bad(..., x=1)
+    let pattern2 = bad(..., y=2)
+    let pattern3 = def normal(): \n...
+    let pattern4 = def unusual(): \n...
+
+    We want to find (ONLY inside P3), either:
+        P2 inside P4 
+      or 
+        P1 not-inside P4
+    
+    example:
+
+    000-100    def normal():            
+    100-200        bad(x = 1) # P1 not-inside-P4
+    200-300        bad(y = 2) # no match
+    300-400        def unusual():
+    400-500            bad(x = 1) # no match
+    500-600            bad(y = 2) # P2 inside P4
+    600-700        def regular():
+    700-800            bad(x = 1) # P1 not-inside P4
+    800-900            bad(y = 2) # no-match
+               
+        pattern-inside P3
+        and-either:
+           - patterns:
+            - pattern-inside P4
+            - and P2
+          - pattterns:
+            - pattern-not-inside P4
+            - and P1
+    
+        OUTPUT: [500-600], [700-800]
+    """
+    results = {
+        "pattern1": [Range(100, 200), Range(400,500), Range(700,800)],
+        "pattern2": [Range(200,300), Range(500,600), Range(800,900)],
+        "pattern3": [Range(0, 900)],
+        "pattern4": [Range(300,600)]
+    }
+    
+    subexpression1 = [(OPERATORS.AND_INSIDE, "pattern4"), (OPERATORS.AND, "pattern2")]
+    subexpression2 = [(OPERATORS.AND_NOT_INSIDE, "pattern4"), (OPERATORS.AND, "pattern1")]
+    expression = [(OPERATORS.AND_INSIDE, "pattern3"),
+                  (OPERATORS.AND_EITHER, [subexpression1, subexpression2]) 
+                  ]
+    result = evaluate_expression(expression, results)
+    assert result == set([Range(100, 200), Range(500, 600), Range(700, 800)]), f"{result}"
+
+    # TODO test and-all (`patterns` subkey)
 
 def testAll():
     testA()
@@ -198,7 +250,8 @@ def testAll():
     testC()
     testD()
     testE()
-
+    print('---'*60)
+    testF()
 
 if __name__ == '__main__':
     testAll()
