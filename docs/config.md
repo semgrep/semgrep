@@ -57,7 +57,8 @@ There are several operators that can be used under `patterns`:
 
 - `pattern`: The rule will only fire if this pattern is found.
 - `pattern-not`: Opposite of `pattern`
-- `pattern-either`: You can put multiple other patterns under this; any of those patterns will count as a match. You can use `pattterns` again to create nested, implicitly-ANDed instructions.
+- `pattern-either`: You can put multiple other patterns under this; any of those patterns will count as a match.
+- `pattterns`: Like `pattern-either`, you can put multiple patterns under this to create nested, implicitly-ANDed instructions.
 - `pattern-inside`: The rule will only fire if the following patterns are inside this specified pattern. Useful for specifying a function that this behavior must occur in, for instance.
 - `pattern-not-inside`: Opposite of `pattern-inside`
 
