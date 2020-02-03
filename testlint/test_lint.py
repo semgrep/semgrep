@@ -60,7 +60,7 @@ def testB():
         "pattern3": []
     }
     expression = [(OPERATORS.AND_NOT, "pattern1"),
-                  (OPERATORS.AND_EITHER, [[(OPERATORS.AND, "pattern2")], [(OPERATORS.AND, "pattern3")]])]
+                  (OPERATORS.AND_EITHER, [(OPERATORS.AND, "pattern2"), (OPERATORS.AND, "pattern3")])]
     result = evaluate_expression(expression, results)
     assert result == set([Range(30, 70)]), f"{result}"
 
@@ -237,7 +237,7 @@ def testF():
     subexpression1 = [(OPERATORS.AND_INSIDE, "pattern4"), (OPERATORS.AND, "pattern2")]
     subexpression2 = [(OPERATORS.AND_NOT_INSIDE, "pattern4"), (OPERATORS.AND, "pattern1")]
     expression = [(OPERATORS.AND_INSIDE, "pattern3"),
-                  (OPERATORS.AND_EITHER, [subexpression1, subexpression2]) 
+                  (OPERATORS.AND_EITHER, [(OPERATORS.AND_ALL, subexpression1), (OPERATORS.AND_ALL, subexpression2)])
                   ]
     result = evaluate_expression(expression, results)
     assert result == set([Range(100, 200), Range(500, 600), Range(700, 800)]), f"{result}"
