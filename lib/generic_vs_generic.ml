@@ -253,6 +253,9 @@ let (m_option: ('a,'b) matcher -> ('a option,'b option) matcher) = fun f a b ->
   | Some _, _
       -> fail ()
 
+(* TODO *)
+let m_option_ellipsis_ok f a b = m_option f a b
+
 let (m_ref: ('a,'b) matcher -> ('a ref,'b ref) matcher) = fun f a b ->
   match a, b with
   { contents = xa}, { contents = xb} ->
@@ -403,7 +406,8 @@ and make_dotted xs =
   | x::xs ->
     let base = B.Name ((x, B.empty_name_info), B.empty_id_info()) in
     List.fold_left (fun acc e -> 
-      B.ObjAccess (acc, e)) base xs
+      let tok = Parse_info.fake_info "." in
+      B.DotAccess (acc, tok, e)) base xs
 
 and m_expr a b = 
   match a, b with
@@ -479,11 +483,12 @@ and m_expr a b =
     m_xml a1 b1 >>= (fun () -> 
     return ()
     )
-  | A.Assign(a1, a2), B.Assign(b1, b2) ->
+  | A.Assign(a1, at, a2), B.Assign(b1, bt, b2) ->
     m_expr a1 b1 >>= (fun () -> 
+    m_tok at bt >>= (fun () ->
     m_expr a2 b2 >>= (fun () -> 
     return ()
-    ))
+    )))
   | A.AssignOp(a1, a2, a3), B.AssignOp(b1, b2, b3) ->
     m_expr a1 b1 >>= (fun () -> 
     m_wrap m_arithmetic_operator a2 b2 >>= (fun () -> 
@@ -495,16 +500,24 @@ and m_expr a b =
     m_expr a2 b2 >>= (fun () -> 
     return ()
     ))
-  | A.ObjAccess(a1, a2), B.ObjAccess(b1, b2) ->
+  | A.DotAccess(a1, at, a2), B.DotAccess(b1, bt, b2) ->
     m_expr a1 b1 >>= (fun () -> 
+    m_tok at bt >>= (fun () -> 
     m_ident a2 b2 >>= (fun () -> 
     return ()
-    ))
+    )))
   | A.ArrayAccess(a1, a2), B.ArrayAccess(b1, b2) ->
     m_expr a1 b1 >>= (fun () -> 
     m_expr a2 b2 >>= (fun () -> 
     return ()
     ))
+  | A.SliceAccess(a1, a2, a3, a4), B.SliceAccess(b1, b2, b3, b4) ->
+    m_expr a1 b1 >>= (fun () -> 
+    m_option m_expr a2 b2 >>= (fun () -> 
+    m_option m_expr a3 b3 >>= (fun () -> 
+    m_option m_expr a4 b4 >>= (fun () -> 
+    return ()
+    ))))
   | A.Conditional(a1, a2, a3), B.Conditional(b1, b2, b3) ->
     m_expr a1 b1 >>= (fun () -> 
     m_expr a2 b2 >>= (fun () -> 
@@ -552,10 +565,11 @@ and m_expr a b =
   | A.L _, _  | A.Container _, _  | A.Tuple _, _  | A.Record _, _
   | A.Constructor _, _  | A.Lambda _, _  | A.AnonClass _, _  | A.Nop, _
   | A.Name _, _  | A.IdSpecial _, _  | A.Call _, _  | A.Xml _, _
-  | A.Assign _, _  | A.AssignOp _, _  | A.LetPattern _, _  | A.ObjAccess _, _
+  | A.Assign _, _  | A.AssignOp _, _  | A.LetPattern _, _  | A.DotAccess _, _
   | A.ArrayAccess _, _  | A.Conditional _, _  | A.MatchPattern _, _
   | A.Yield _, _  | A.Await _, _  | A.Cast _, _  | A.Seq _, _  | A.Ref _, _
   | A.DeRef _, _  | A.OtherExpr _, _
+  | A.SliceAccess _, _
    -> fail ()
 
 
@@ -602,6 +616,10 @@ and m_literal a b =
     (m_wrap m_string) a1 b1 >>= (fun () -> 
     return ()
     )
+  | A.Imag(a1), B.Imag(b1) ->
+    (m_wrap m_string) a1 b1 >>= (fun () -> 
+    return ()
+    )
   | A.Char(a1), B.Char(b1) ->
     (m_wrap m_string) a1 b1 >>= (fun () -> 
     return ()
@@ -621,6 +639,7 @@ and m_literal a b =
     )
   | A.Unit _, _  | A.Bool _, _  | A.Int _, _  | A.Float _, _  | A.Char _, _
   | A.String _, _  | A.Regexp _, _  | A.Null _, _  | A.Undefined _, _
+  | A.Imag _, _
    -> fail ()
 
 
@@ -817,7 +836,7 @@ and m_type_ a b =
     return ()
     )
   | A.TyFun(a1, a2), B.TyFun(b1, b2) ->
-    (m_list m_type_) a1 b1 >>= (fun () -> 
+    (m_list m_parameter_classic) a1 b1 >>= (fun () -> 
     m_type_ a2 b2 >>= (fun () -> 
     return ()
     ))
@@ -1043,13 +1062,14 @@ and m_stmt a b =
     m_stmt a2 b2 >>= (fun () -> 
     return ()
     ))
-  | A.Switch(a1, a2), B.Switch(b1, b2) ->
+  | A.Switch(at, a1, a2), B.Switch(bt, b1, b2) ->
+    m_tok at bt >>= (fun () -> 
     m_expr a1 b1 >>= (fun () -> 
     (m_list m_case_and_body) a2 b2 >>= (fun () -> 
     return ()
-    ))
+    )))
   | A.Return(a1), B.Return(b1) ->
-    m_expr a1 b1 >>= (fun () -> 
+    m_option_ellipsis_ok m_expr a1 b1 >>= (fun () -> 
     return ()
     )
   | A.Continue(a1), B.Continue(b1) ->
@@ -1163,7 +1183,7 @@ and m_case_and_body a b =
 and m_case a b = 
   match a, b with
   | A.Case(a1), B.Case(b1) ->
-    m_expr a1 b1 >>= (fun () -> 
+    m_pattern a1 b1 >>= (fun () -> 
     return ()
     )
   | A.Default, B.Default ->
@@ -1188,6 +1208,10 @@ and m_pattern a b =
     ))
   | A.PatLiteral(a1), B.PatLiteral(b1) ->
     m_literal a1 b1 >>= (fun () -> 
+    return ()
+    )
+  | A.PatType(a1), B.PatType(b1) ->
+    m_type_ a1 b1 >>= (fun () -> 
     return ()
     )
   | A.PatConstructor(a1, a2), B.PatConstructor(b1, b2) ->
@@ -1245,7 +1269,7 @@ and m_pattern a b =
   | A.PatVar _, _  | A.PatLiteral _, _  | A.PatConstructor _, _
   | A.PatTuple _, _  | A.PatList _, _  | A.PatRecord _, _  | A.PatKeyVal _, _
   | A.PatUnderscore _, _  | A.PatDisj _, _  | A.PatWhen _, _  | A.PatAs _, _
-  | A.PatTyped _, _  | A.OtherPat _, _
+  | A.PatTyped _, _  | A.OtherPat _, _ | A.PatType _, _
    -> fail ()
 
 and m_field_pattern a b = 
@@ -1272,15 +1296,14 @@ and m_definition a b =
 
 and m_entity a b = 
   match a, b with
-  { A. name = a1; attrs = a2; type_ = a3; tparams = a4; info = a5 },
-  { B. name = b1; attrs = b2; type_ = b3; tparams = b4; info = b5 } -> 
+  { A. name = a1; attrs = a2; tparams = a4; info = a5 },
+  { B. name = b1; attrs = b2; tparams = b4; info = b5 } -> 
     m_ident a1 b1 >>= (fun () -> 
     (m_list m_attribute) a2 b2 >>= (fun () -> 
-    (m_option m_type_) a3 b3 >>= (fun () -> 
     (m_list m_type_parameter) a4 b4 >>= (fun () -> 
     m_id_info a5 b5 >>= (fun () -> 
      return ()
-  )))))
+  ))))
 
 and m_definition_kind a b = 
   match a, b with
@@ -1410,7 +1433,7 @@ and m_parameter_classic a b =
   match a, b with
   { A. pname = a1; pdefault = a2; ptype = a3; pattrs = a4; pinfo = a5 },
   { B. pname = b1; pdefault = b2; ptype = b3; pattrs = b4; pinfo = b5 } -> 
-    m_ident a1 b1 >>= (fun () -> 
+    (m_option m_ident) a1 b1 >>= (fun () -> 
     (m_option m_expr) a2 b2 >>= (fun () -> 
     (m_option m_type_) a3 b3 >>= (fun () -> 
     (m_list m_attribute) a4 b4 >>= (fun () -> 
@@ -1624,12 +1647,22 @@ and m_directive a b =
     (m_option m_ident) a2 b2 >>= (fun () -> 
     return ()
     ))
+  | A.ImportAll(a1, a2), B.ImportAll(b1, b2) ->
+    m_module_name a1 b1 >>= (fun () -> 
+    m_tok a2 b2 >>= (fun () -> 
+    return ()
+    ))
+  | A.Package(a1), B.Package(b1) ->
+    m_dotted_name a1 b1 >>= (fun () -> 
+    return ()
+    )
   | A.OtherDirective(a1, a2), B.OtherDirective(b1, b2) ->
     m_other_directive_operator a1 b1 >>= (fun () -> 
     (m_list m_any) a2 b2 >>= (fun () -> 
     return ()
     ))
   | A.ImportFrom _, _ | A.ImportAs _, _ | A.OtherDirective _, _
+  | A.ImportAll _, _ | A.Package _, _
    -> fail ()
 
 and m_alias a b = 

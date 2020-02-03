@@ -69,7 +69,10 @@ let regression_tests_for_lang files lang =
     Error_code.g_errors := [];
     Sgrep_generic.sgrep_ast
       ~hook:(fun _env matched_tokens ->
-        let (minii, _maxii) = Parse_info.min_max_ii_by_pos matched_tokens in
+      (* there are a few fake tokens in the generic ASTs now (e.g., 
+       * for DotAccess generated outside the grammar) *)
+        let toks = matched_tokens |> List.filter Parse_info.is_origintok in
+        let (minii, _maxii) = Parse_info.min_max_ii_by_pos toks in
         Error_code.error minii (Error_code.SgrepLint ("",""))
       )
     pattern ast;
