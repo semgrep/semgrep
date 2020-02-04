@@ -12,7 +12,17 @@ import tempfile
 import traceback
 from dataclasses import dataclass
 from pathlib import Path, PurePath
-from typing import Any, Dict, Generator, List, Optional, Set, Tuple, Iterable, DefaultDict
+from typing import (
+    Any,
+    Dict,
+    Generator,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    Iterable,
+    DefaultDict,
+)
 from urllib.parse import urlparse
 from datetime import datetime
 
@@ -420,7 +430,7 @@ def download_config(config_url: str) -> Any:
         if r.status_code == requests.codes.ok:
             content_type = r.headers.get("Content-Type")
             if content_type and "text/plain" in content_type:
-                return parse_config_string(config_url, r.content.decode('utf-8'))
+                return parse_config_string(config_url, r.content.decode("utf-8"))
             elif content_type and content_type == "application/x-gzip":
                 fname = f"/tmp/{base64.b64encode(config_url.encode()).decode()}"
                 with tarfile.open(fileobj=r.raw, mode="r:gz") as tar:
@@ -548,8 +558,10 @@ def post_output(output_url: str, output_data: Dict[str, Any]) -> None:
     r = requests.post(output_url, json=output_data)
     debug_print(f"posted to {output_url} and got status_code:{r.status_code}")
 
+
 def build_output_json(output_json: Dict[str, Any]) -> str:
     return json.dumps(output_json)
+
 
 def save_output(output_str: str, output_data: Dict[str, Any]):
     if is_url(output_str):
@@ -645,7 +657,9 @@ def main(args: argparse.Namespace):
     debug_print(str(output_json))
 
     # group output; we want to see all of the same rule ids on the same file path
-    by_rule_index: Dict[int, Dict[str, List[Dict[str, Any]]]] = collections.defaultdict(lambda: collections.defaultdict(list))
+    by_rule_index: Dict[int, Dict[str, List[Dict[str, Any]]]] = collections.defaultdict(
+        lambda: collections.defaultdict(list)
+    )
     for finding in output_json["matches"]:
         # decode the rule index from the output check_id
         rule_index = int(finding["check_id"].split(".")[0])
