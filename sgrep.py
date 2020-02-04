@@ -505,7 +505,7 @@ def validate_configs(configs: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str,
 
 
 def convert_config_id_to_prefix(config_id: str) -> str:
-    return ".".join(PurePath(config_id).parts[:-1])
+    return ".".join(PurePath(config_id).parts[:-1]).lstrip('./')
 
 
 def rename_rule_ids(valid_configs: Dict[str, Any]) -> Dict[str, Any]:
@@ -515,9 +515,7 @@ def rename_rule_ids(valid_configs: Dict[str, Any]) -> Dict[str, Any]:
         transformed_rules = [
             {
                 **rule,
-                ID_KEY: f"{convert_config_id_to_prefix(config_id)}.{rule.get(ID_KEY, MISSING_RULE_ID)}".lstrip(
-                    "."
-                ),
+                ID_KEY: f"{convert_config_id_to_prefix(config_id)}.{rule.get(ID_KEY, MISSING_RULE_ID)}",
             }
             for rule in rules
         ]
