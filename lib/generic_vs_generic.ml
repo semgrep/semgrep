@@ -253,8 +253,20 @@ let (m_option: ('a,'b) matcher -> ('a option,'b option) matcher) = fun f a b ->
   | Some _, _
       -> fail ()
 
-(* TODO *)
-let m_option_ellipsis_ok f a b = m_option f a b
+let m_option_ellipsis_ok f a b = 
+  match a, b with
+  | None, None -> return ()
+
+  (* ... can match 0 or 1 expression *)
+  | Some (A.Ellipsis _), None -> return ()
+
+  | Some xa, Some xb ->
+      f xa xb >>= (fun () ->
+        return ()
+      )
+  | None, _
+  | Some _, _
+      -> fail ()
 
 let (m_ref: ('a,'b) matcher -> ('a ref,'b ref) matcher) = fun f a b ->
   match a, b with
@@ -307,6 +319,13 @@ let m_wrap f a b =
     m_info ainfo binfo >>= (fun () ->
       return ()
   ))
+
+let m_bracket f (a1, a2, a3) (b1, b2, b3) = 
+   m_info a1 b1 >>= (fun () ->
+   f a2 b2 >>= (fun () ->
+   m_info a3 b3 >>= (fun () ->
+     return ()
+   )))
 
 (* ---------------------------------------------------------------------- *)
 (* Name *)
@@ -442,7 +461,7 @@ and m_expr a b =
     )
   | A.Container(a1, a2), B.Container(b1, b2) ->
     m_container_operator a1 b1 >>= (fun () -> 
-    (m_list m_expr) a2 b2 >>= (fun () -> 
+    (m_bracket (m_list m_expr)) a2 b2 >>= (fun () -> 
     return ()
     ))
   | A.Tuple(a1), B.Tuple(b1) ->
@@ -450,7 +469,7 @@ and m_expr a b =
     return ()
     )
   | A.Record(a1), B.Record(b1) ->
-    (m_list m_field) a1 b1 >>= (fun () -> 
+    (m_bracket (m_list m_field)) a1 b1 >>= (fun () -> 
     return ()
     )
   | A.Constructor(a1, a2), B.Constructor(b1, b2) ->
@@ -529,15 +548,17 @@ and m_expr a b =
     (m_list m_action) a2 b2 >>= (fun () -> 
     return ()
     ))
-  | A.Yield(a1, a2), B.Yield(b1, b2) ->
-    m_expr a1 b1 >>= (fun () -> 
+  | A.Yield(a0, a1, a2), B.Yield(b0, b1, b2) ->
+    m_tok a0 b0 >>= (fun () -> 
+    m_option m_expr a1 b1 >>= (fun () -> 
     m_bool a2 b2 >>= (fun () -> 
     return ()
-    ))
-  | A.Await(a1), B.Await(b1) ->
+    )))
+  | A.Await(a0, a1), B.Await(b0, b1) ->
+    m_tok a0 b0 >>= (fun () -> 
     m_expr a1 b1 >>= (fun () -> 
     return ()
-    )
+    ))
   | A.Cast(a1, a2), B.Cast(b1, b2) ->
     m_type_ a1 b1 >>= (fun () -> 
     m_expr a2 b2 >>= (fun () -> 
@@ -547,14 +568,16 @@ and m_expr a b =
     (m_list m_expr) a1 b1 >>= (fun () -> 
     return ()
     )
-  | A.Ref(a1), B.Ref(b1) ->
+  | A.Ref(a0, a1), B.Ref(b0, b1) ->
+    m_tok a0 b0 >>= (fun () -> 
     m_expr a1 b1 >>= (fun () -> 
     return ()
-    )
-  | A.DeRef(a1), B.DeRef(b1) ->
+    ))
+  | A.DeRef(a0, a1), B.DeRef(b0, b1) ->
+    m_tok a0 b0 >>= (fun () -> 
     m_expr a1 b1 >>= (fun () -> 
     return ()
-    )
+    ))
 
 
   | A.OtherExpr(a1, a2), B.OtherExpr(b1, b2) ->
@@ -854,10 +877,11 @@ and m_type_ a b =
     m_type_ a2 b2 >>= (fun () -> 
     return ()
     ))
-  | A.TyPointer(a1), B.TyPointer(b1) ->
+  | A.TyPointer(a0, a1), B.TyPointer(b0, b1) ->
+    m_tok a0 b0 >>= (fun () -> 
     m_type_ a1 b1 >>= (fun () -> 
     return ()
-    )
+    ))
   | A.TyTuple(a1), B.TyTuple(b1) ->
     (m_list m_type_) a1 b1 >>= (fun () -> 
     return ()
@@ -1050,69 +1074,80 @@ and m_stmt a b =
     m_stmts a1 b1 >>= (fun () -> 
     return ()
     )
-  | A.If(a1, a2, a3), B.If(b1, b2, b3) ->
+  | A.If(a0, a1, a2, a3), B.If(b0, b1, b2, b3) ->
+    m_tok a0 b0 >>= (fun () ->
     m_expr a1 b1 >>= (fun () -> 
     m_stmt a2 b2 >>= (fun () -> 
     m_stmt a3 b3 >>= (fun () -> 
     return ()
-    )))
-  | A.While(a1, a2), B.While(b1, b2) ->
+    ))))
+  | A.While(a0, a1, a2), B.While(b0, b1, b2) ->
+    m_tok a0 b0 >>= (fun () ->
     m_expr a1 b1 >>= (fun () -> 
     m_stmt a2 b2 >>= (fun () -> 
     return ()
-    ))
-  | A.DoWhile(a1, a2), B.DoWhile(b1, b2) ->
+    )))
+  | A.DoWhile(a0, a1, a2), B.DoWhile(b0, b1, b2) ->
+    m_tok a0 b0 >>= (fun () ->
     m_stmt a1 b1 >>= (fun () -> 
     m_expr a2 b2 >>= (fun () -> 
     return ()
-    ))
-  | A.For(a1, a2), B.For(b1, b2) ->
+    )))
+  | A.For(a0, a1, a2), B.For(b0, b1, b2) ->
+    m_tok a0 b0 >>= (fun () ->
     m_for_header a1 b1 >>= (fun () -> 
     m_stmt a2 b2 >>= (fun () -> 
     return ()
-    ))
+    )))
   | A.Switch(at, a1, a2), B.Switch(bt, b1, b2) ->
     m_tok at bt >>= (fun () -> 
     m_expr a1 b1 >>= (fun () -> 
     (m_list m_case_and_body) a2 b2 >>= (fun () -> 
     return ()
     )))
-  | A.Return(a1), B.Return(b1) ->
+  | A.Return(a0, a1), B.Return(b0, b1) ->
+    m_tok a0 b0 >>= (fun () ->
     m_option_ellipsis_ok m_expr a1 b1 >>= (fun () -> 
     return ()
-    )
-  | A.Continue(a1), B.Continue(b1) ->
+    ))
+  | A.Continue(a0, a1), B.Continue(b0, b1) ->
+    m_tok a0 b0 >>= (fun () ->
     (m_option m_expr) a1 b1 >>= (fun () -> 
     return ()
-    )
-  | A.Break(a1), B.Break(b1) ->
+    ))
+  | A.Break(a0, a1), B.Break(b0, b1) ->
+    m_tok a0 b0 >>= (fun () ->
     (m_option m_expr) a1 b1 >>= (fun () -> 
     return ()
-    )
+    ))
   | A.Label(a1, a2), B.Label(b1, b2) ->
     m_label a1 b1 >>= (fun () -> 
     m_stmt a2 b2 >>= (fun () -> 
     return ()
     ))
-  | A.Goto(a1), B.Goto(b1) ->
+  | A.Goto(a0, a1), B.Goto(b0, b1) ->
+    m_tok a0 b0 >>= (fun () ->
     m_label a1 b1 >>= (fun () -> 
     return ()
-    )
-  | A.Throw(a1), B.Throw(b1) ->
+    ))
+  | A.Throw(a0, a1), B.Throw(b0, b1) ->
+    m_tok a0 b0 >>= (fun () ->
     m_expr a1 b1 >>= (fun () -> 
     return ()
-    )
-  | A.Try(a1, a2, a3), B.Try(b1, b2, b3) ->
+    ))
+  | A.Try(a0, a1, a2, a3), B.Try(b0, b1, b2, b3) ->
+    m_tok a0 b0 >>= (fun () ->
     m_stmt a1 b1 >>= (fun () -> 
     (m_list m_catch) a2 b2 >>= (fun () -> 
     (m_option m_finally) a3 b3 >>= (fun () -> 
     return ()
-    )))
-  | A.Assert(a1, a2), B.Assert(b1, b2) ->
+    ))))
+  | A.Assert(a0, a1, a2), B.Assert(b0, b1, b2) ->
+    m_tok a0 b0 >>= (fun () ->
     m_expr a1 b1 >>= (fun () -> 
     (m_option m_expr) a2 b2 >>= (fun () -> 
     return ()
-    ))
+    )))
   | A.OtherStmt(a1, a2), B.OtherStmt(b1, b2) ->
     m_other_stmt_operator a1 b1 >>= (fun () -> 
     (m_list m_any) a2 b2 >>= (fun () -> 
@@ -1191,13 +1226,16 @@ and m_case_and_body a b =
 
 and m_case a b = 
   match a, b with
-  | A.Case(a1), B.Case(b1) ->
+  | A.Case(a0, a1), B.Case(b0, b1) ->
+    m_tok a0 b0 >>= (fun () ->
     m_pattern a1 b1 >>= (fun () -> 
     return ()
-    )
-  | A.Default, B.Default ->
+    ))
+  | A.Default a0, B.Default b0 ->
+    m_tok a0 b0 >>= (fun () ->
     return ()
-  | A.Case _, _  | A.Default, _
+    )
+  | A.Case _, _  | A.Default _, _
    -> fail ()
 
 
@@ -1488,10 +1526,11 @@ and m_field a b =
     m_expr a3 b3 >>= (fun () -> 
     return ()
     )))
-  | A.FieldSpread(a1), B.FieldSpread(b1) ->
+  | A.FieldSpread(a0, a1), B.FieldSpread(b0, b1) ->
+    m_tok a0 b0 >>= (fun () ->
     m_expr a1 b1 >>= (fun () -> 
     return ()
-    )
+    ))
   | A.FieldStmt(a1), B.FieldStmt(b1) ->
     m_stmt a1 b1 >>= (fun () -> 
     return ()
@@ -1646,25 +1685,29 @@ and m_macro_definition a b =
 
 and m_directive a b = 
   match a, b with
-  | A.ImportFrom(a1, a2), B.ImportFrom(b1, b2) ->
+  | A.ImportFrom(a0, a1, a2), B.ImportFrom(b0, b1, b2) ->
+    m_tok a0 b0 >>= (fun () ->
     m_module_name a1 b1 >>= (fun () -> 
     (m_list m_alias) a2 b2 >>= (fun () -> 
     return ()
-    ))
-  | A.ImportAs(a1, a2), B.ImportAs(b1, b2) ->
+    )))
+  | A.ImportAs(a0, a1, a2), B.ImportAs(b0, b1, b2) ->
+    m_tok a0 b0 >>= (fun () ->
     m_module_name a1 b1 >>= (fun () -> 
     (m_option m_ident) a2 b2 >>= (fun () -> 
     return ()
-    ))
-  | A.ImportAll(a1, a2), B.ImportAll(b1, b2) ->
+    )))
+  | A.ImportAll(a0, a1, a2), B.ImportAll(b0, b1, b2) ->
+    m_tok a0 b0 >>= (fun () ->
     m_module_name a1 b1 >>= (fun () -> 
     m_tok a2 b2 >>= (fun () -> 
     return ()
-    ))
-  | A.Package(a1), B.Package(b1) ->
+    )))
+  | A.Package(a0, a1), B.Package(b0, b1) ->
+    m_tok a0 b0 >>= (fun () ->
     m_dotted_name a1 b1 >>= (fun () -> 
     return ()
-    )
+    ))
   | A.OtherDirective(a1, a2), B.OtherDirective(b1, b2) ->
     m_other_directive_operator a1 b1 >>= (fun () -> 
     (m_list m_any) a2 b2 >>= (fun () -> 
