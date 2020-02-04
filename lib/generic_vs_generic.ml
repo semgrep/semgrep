@@ -904,55 +904,70 @@ and m_other_type_argument_operator = m_other_xxx
 (* Attribute *)
 (* ------------------------------------------------------------------------- *)
 
-(* TODO: should sort attributes and allow subset *)
+and m_list__m_attribute (xsa: A.attribute list) (xsb: A.attribute list) =
+  match xsa, xsb with
+  | [], [] ->
+      return ()
 
+  (* less-is-ok: *)
+  | [], _ -> return ()
+
+  | A.KeywordAttr (k, tok)::xsa, xsb ->
+      (try 
+        let (before, there, after) = xsb |> Common2.split_when (function
+            | A.KeywordAttr (k2, _) when k =*= k2 -> true
+            | _ -> false) in
+        (match there with
+        | A.KeywordAttr (x) ->
+              m_wrap m_keyword_attribute (k, tok) x >>= (fun () ->
+              m_list__m_attribute xsa (before @ after) >>= (fun () ->
+                 return ()
+              ))
+        | _ -> raise Impossible
+        )
+      with Not_found -> fail ()
+      )
+
+  | A.NamedAttr ((s, _) as ida, argsa)::xsa, xsb ->
+      (try 
+        let (before, there, after) = xsb |> Common2.split_when (function
+            | A.NamedAttr ((s2, _), _) when s =$= s2 -> true
+            | _ -> false) in
+        (match there with
+        | A.NamedAttr (idb, argsb) ->
+              m_ident ida idb >>= (fun () ->
+              m_list__m_argument argsa argsb >>= (fun () ->
+              m_list__m_attribute xsa (before @ after) >>= (fun () ->
+                 return ()
+              )))
+        | _ -> raise Impossible
+        )
+      with Not_found -> fail ()
+      )
+
+  (* the general case *)
+  | xa::aas, xb::bbs ->
+      m_attribute xa xb >>= (fun () ->
+      m_list__m_attribute aas bbs >>= (fun () ->
+        return ()
+      )
+      )
+
+  | _::_, _ ->
+      fail ()
+
+
+and m_keyword_attribute a b = m_other_xxx a b
+  
 and m_attribute a b = 
   match a, b with
-  | A.Recursive, B.Recursive ->
+  | A.KeywordAttr(a1), B.KeywordAttr(b1) ->
+    m_wrap m_keyword_attribute a1 b1 >>= (fun () -> 
     return ()
-  | A.MutuallyRecursive, B.MutuallyRecursive ->
-    return ()
-  | A.Static, B.Static ->
-    return ()
-  | A.Volatile, B.Volatile ->
-    return ()
-  | A.Extern, B.Extern ->
-    return ()
-  | A.Public, B.Public ->
-    return ()
-  | A.Private, B.Private ->
-    return ()
-  | A.Protected, B.Protected ->
-    return ()
-  | A.Abstract, B.Abstract ->
-    return ()
-  | A.Final, B.Final ->
-    return ()
-  | A.Var, B.Var ->
-    return ()
-  | A.Let, B.Let ->
-    return ()
-  | A.Const, B.Const ->
-    return ()
-  | A.Mutable, B.Mutable ->
-    return ()
-  | A.Generator, B.Generator ->
-    return ()
-  | A.Async, B.Async ->
-    return ()
-  | A.Ctor, B.Ctor ->
-    return ()
-  | A.Dtor, B.Dtor ->
-    return ()
-  | A.Getter, B.Getter ->
-    return ()
-  | A.Setter, B.Setter ->
-    return ()
-  | A.Variadic, B.Variadic ->
-    return ()
+    )
   | A.NamedAttr(a1, a2), B.NamedAttr(b1, b2) ->
     m_ident a1 b1 >>= (fun () -> 
-    (m_list m_any) a2 b2 >>= (fun () -> 
+    (m_list__m_argument) a2 b2 >>= (fun () -> 
     return ()
     ))
   | A.OtherAttribute(a1, a2), B.OtherAttribute(b1, b2) ->
@@ -960,13 +975,7 @@ and m_attribute a b =
     (m_list m_any) a2 b2 >>= (fun () -> 
     return ()
     ))
-  | A.Recursive, _  | A.MutuallyRecursive, _  
-  | A.Static, _  | A.Volatile, _  | A.Extern, _  
-  | A.Public, _  | A.Private, _ | A.Protected, _
-  | A.Abstract, _  | A.Final, _  | A.Var, _  | A.Let, _
-  | A.Const, _  | A.Mutable, _  | A.Generator, _  | A.Async, _
-  | A.Ctor, _  | A.Dtor, _  | A.Getter, _  | A.Setter, _
-  | A.Variadic, _  | A.NamedAttr _, _  | A.OtherAttribute _, _
+  | A.KeywordAttr _, _  | A.NamedAttr _, _  | A.OtherAttribute _, _
    -> fail ()
 
 and m_other_attribute_operator = m_other_xxx
@@ -1299,7 +1308,7 @@ and m_entity a b =
   { A. name = a1; attrs = a2; tparams = a4; info = a5 },
   { B. name = b1; attrs = b2; tparams = b4; info = b5 } -> 
     m_ident a1 b1 >>= (fun () -> 
-    (m_list m_attribute) a2 b2 >>= (fun () -> 
+    (m_list__m_attribute) a2 b2 >>= (fun () -> 
     (m_list m_type_parameter) a4 b4 >>= (fun () -> 
     m_id_info a5 b5 >>= (fun () -> 
      return ()
