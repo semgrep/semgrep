@@ -548,17 +548,10 @@ def post_output(output_url: str, output_data: Dict[str, Any]) -> None:
     r = requests.post(output_url, json=output_data)
     debug_print(f"posted to {output_url} and got status_code:{r.status_code}")
 
-def build_output_json(output_data: Dict[str, Any], use_r2c_format: bool) -> str:
-    final: Dict[str, List[Dict[str, Any]]] = {}
-    if use_r2c_format:
-        final['results'] = []
-        for finding in final['results']:
-            final['results'].append(transform_to_r2c_output(finding))
-    else:
-        final = output_data
-    return json.dumps(final)
+def build_output_json(output_json: Dict[str, Any]) -> str:
+    return json.dumps(output_json)
 
-def save_output(output_str: str, output_data: Dict[str, Any], r2c_format: bool):
+def save_output(output_str: str, output_data: Dict[str, Any]):
     if is_url(output_str):
         post_output(output_str, output_data)
     else:
@@ -569,7 +562,7 @@ def save_output(output_str: str, output_data: Dict[str, Any], r2c_format: bool):
             save_path = base_path.joinpath(output_str)
 
         with save_path.open() as fout:
-            fout.write(build_output_json(output_data, r2c_format))
+            fout.write(build_output_json(output_data))
 
 
 def set_flags(debug: bool, quiet: bool) -> None:
@@ -658,6 +651,7 @@ def main(args: argparse.Namespace):
         rule_index = int(finding["check_id"].split(".")[0])
         by_rule_index[rule_index][finding["path"]].append(finding)
 
+    current_path = Path.cwd()
     outputs_after_booleans = []
     for rule_index, paths in by_rule_index.items():
         full_expression = list(build_boolean_expression(all_rules[rule_index]))
@@ -681,6 +675,8 @@ def main(args: argparse.Namespace):
                 if sgrep_finding_to_range(result) in valid_ranges_to_output:
                     # restore the original rule ID
                     result["check_id"] = all_rules[rule_index]["id"]
+                    # rewrite the path to be relative to the current working directory
+                    result["path"] = str(Path(result["path"]).relative_to(current_path))
                     # restore the original message
                     result["extra"]["message"] = rewrite_message_with_metavars(
                         all_rules[rule_index], result
@@ -691,9 +687,9 @@ def main(args: argparse.Namespace):
     # output results
     output_data = {"results": outputs_after_booleans}
     if not QUIET:
-        print(build_output_json(output_data, args.r2c))
+        print(build_output_json(output_data))
     if args.output:
-        save_output(args.output, output_data, args.r2c)
+        save_output(args.output, output_data)
     if args.error and outputs_after_booleans:
         sys.exit(FINDINGS_EXIT_CODE)
 
