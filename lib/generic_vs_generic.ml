@@ -44,19 +44,19 @@ module Lib = Lib_ast
  * See pfff/matcher/fuzzy_vs_fuzzy.ml for another approach.
  *
  * There are four main features allowing a "pattern" to match some "code":
- *  - metavariables can match anything
- *  - '...' can match any sequence
+ *  - metavariables can match anything (see metavar: tag in this file)
+ *  - '...' can match any sequence (see dots: tag)
  *  - simple constructs match complex constructs having more details
  *    (e.g., the absence of attribute in a pattern will still match functions
- *     having many attributes), "less-is-more"
+ *     having many attributes) (see less-is-ok: tag)
  *  - the underlying AST uses some normalization (!= is transformed in !(..=))
- *    to support certain code equivalences
+ *    to support certain code equivalences (see equivalence: tag)
  *  - we do not care about differences in spaces/indentations/comments.
  *    we work at the AST-level.
  *
  * alternatives:
  *  - would it be simpler to work on a simpler AST, like a Term language,
- *    or even a Node/Leaf? or Ast_fuzzy? the "less-is-more" would be
+ *    or even a Node/Leaf? or Ast_fuzzy? the "less-is-ok" would be
  *    difficult with that approach, because you need to know that some 
  *    parts of the AST are attributes/annotations that can be skipped.
  *    In the same way, code equivalences like name resolution on the AST
@@ -257,7 +257,7 @@ let m_option_ellipsis_ok f a b =
   match a, b with
   | None, None -> return ()
 
-  (* ... can match 0 or 1 expression *)
+  (* dots: ... can match 0 or 1 expression *)
   | Some (A.Ellipsis _), None -> return ()
 
   | Some xa, Some xb ->
@@ -332,7 +332,7 @@ let m_bracket f (a1, a2, a3) (b1, b2, b3) =
 (* ---------------------------------------------------------------------- *)
 
 let m_ident a b = 
-  (* metavariable! *)
+  (* metavar: *)
   match a, b with
   | (str, tok), b when MV.is_metavar_name str ->
       envf (str, tok) (B.Id b)
@@ -430,7 +430,7 @@ and make_dotted xs =
 
 and m_expr a b = 
   match a, b with
-  (* iso: name resolving! *)
+  (* equivalence: name resolving! *)
   | a, B.Name (_, { B.id_resolved = 
       {contents = Some (B.Global dotted 
                        | B.ImportedModule (B.DottedName dotted))}; _}) ->
@@ -444,12 +444,12 @@ and m_expr a b =
       when MV.is_metavar_name str ->
       fail ()
 
-  (* metavariable! *)
+  (* metavar: *)
   | A.Name (((str,tok), _name_info), _id_info), e2 
      when MV.is_metavar_name str ->
       envf (str, tok) (B.E (e2))
 
-  (* should be patterned-match before in arguments, or statements,
+  (* dots: should be patterned-match before in arguments, or statements,
    * but this is useful for keyword parameters, as in f(..., foo=..., ...)
    *)
   | A.Ellipsis(_a1), _ ->
@@ -469,7 +469,7 @@ and m_expr a b =
     return ()
     )
   | A.Record(a1), B.Record(b1) ->
-    (m_bracket (m_list m_field)) a1 b1 >>= (fun () -> 
+    (m_bracket (m_fields)) a1 b1 >>= (fun () -> 
     return ()
     )
   | A.Constructor(a1, a2), B.Constructor(b1, b2) ->
@@ -599,7 +599,7 @@ and m_expr a b =
 and m_literal a b = 
   match a, b with
 
-  (* '...' on string *)
+  (* dots: '...' on string *)
   | A.String("...", a), B.String(_s, b) ->
       m_info a b >>= (fun () ->
         return ())
@@ -780,7 +780,7 @@ and m_list__m_argument (xsa: A.argument list) (xsb: A.argument list) =
   | [], [] ->
       return ()
 
-  (* '...', can also match no argument *)
+  (* dots: '...', can also match no argument *)
   | [A.Arg (A.Ellipsis _i)], [] ->
       return ()
 
@@ -883,6 +883,7 @@ and m_type_ a b =
     return ()
     ))
   | A.TyTuple(a1), B.TyTuple(b1) ->
+    (*TODO: m_list__m_type_ ? *)
     (m_list m_type_) a1 b1 >>= (fun () -> 
     return ()
     )
@@ -1008,12 +1009,16 @@ and m_other_attribute_operator = m_other_xxx
 (* Statement *)
 (* ------------------------------------------------------------------------- *)
 
-and m_stmts (xsa: A.stmt list) (xsb: A.stmt list) =
+and m_stmts (xsa: A.stmt list) (xsb: A.stmt list) = 
+  m_list__m_stmt xsa xsb
+
+and m_list__m_stmt (xsa: A.stmt list) (xsb: A.stmt list) =
   match xsa, xsb with
   | [], [] ->
       return ()
 
-  (* it's ok to have statements after in the concrete code as long as we
+  (* less-is-ok:
+   * it's ok to have statements after in the concrete code as long as we
    * matched all the statements in the pattern (there is an implicit
    * '...' at the end, in addition to implicit '...' at the beginning
    * handled by kstmts calling the pattern for each subsequences).
@@ -1023,21 +1028,21 @@ and m_stmts (xsa: A.stmt list) (xsb: A.stmt list) =
   | [], _::_ ->
       return ()
 
-  (* '...', can also match no statement *)
+  (* dots: '...', can also match no statement *)
   | [A.ExprStmt (A.Ellipsis _i)], [] ->
       return ()
 
   | (A.ExprStmt (A.Ellipsis i))::xsa, xb::xsb ->
       (* can match nothing *)
-      (m_stmts xsa (xb::xsb)) >||>
+      (m_list__m_stmt xsa (xb::xsb)) >||>
       (* can match more *)
-      (m_stmts ((A.ExprStmt (A.Ellipsis i))::xsa) xsb)
+      (m_list__m_stmt ((A.ExprStmt (A.Ellipsis i))::xsa) xsb)
 
 
   (* the general case *)
   | xa::aas, xb::bbs ->
       m_stmt xa xb >>= (fun () ->
-      m_stmts aas bbs >>= (fun () ->
+      m_list__m_stmt aas bbs >>= (fun () ->
         return ()
       )
       )
@@ -1047,12 +1052,12 @@ and m_stmts (xsa: A.stmt list) (xsb: A.stmt list) =
 and m_stmt a b = 
   match a, b with
 
-  (* metavariable! *)
+  (* metavar: *)
   | A.ExprStmt(A.Name (((str,tok), _name_info), _id_info)), b 
      when MV.is_metavar_name str ->
       envf (str, tok) (B.S b)
 
-  (* '...' can to match any statememt *)
+  (* dots: '...' can to match any statememt *)
   | A.ExprStmt(A.Ellipsis _i), _b ->
       return ()
 
@@ -1429,7 +1434,7 @@ and m_list__m_parameter (xsa: A.parameter list) (xsb: A.parameter list) =
   | [], [] ->
       return ()
 
-  (* '...', can also match no argument *)
+  (* dots: '...', can also match no argument *)
   | [A.ParamEllipsis _i], [] ->
       return ()
 
@@ -1508,6 +1513,49 @@ and m_variable_definition a b =
 (* Field definition and use *)
 (* ------------------------------------------------------------------------- *)
 
+(* TODO: as opposed to statements, the order of fields should not matter
+ * so ... should really match things in any order, or maybe we should
+ * not even use '...' for that and instead use a less-is-ok approach
+ *)
+and m_fields (xsa: A.field list) (xsb: A.field list) =
+  m_list__m_field xsa xsb
+
+and m_list__m_field (xsa: A.field list) (xsb: A.field list) =
+  match xsa, xsb with
+  | [], [] ->
+      return ()
+
+  (* less-is-ok:
+   * it's ok to have after after in the concrete code as long as we
+   * matched all the fields in the pattern
+   * TODO: sgrep_generic though then display the whole sequence as a match
+   * instead of just the relevant part.
+   *)
+  | [], _::_ ->
+      return ()
+
+  (* dots: '...', can also match no more fields *)
+  | [A.FieldStmt (A.ExprStmt (A.Ellipsis _i))], [] ->
+      return ()
+
+  | (A.FieldStmt (A.ExprStmt (A.Ellipsis i)))::xsa, xb::xsb ->
+      (* can match nothing *)
+      (m_list__m_field xsa (xb::xsb)) >||>
+      (* can match more *)
+      (m_list__m_field ((A.FieldStmt (A.ExprStmt (A.Ellipsis i)))::xsa) xsb)
+
+
+  (* the general case *)
+  | xa::aas, xb::bbs ->
+      m_field xa xb >>= (fun () ->
+      m_list__m_field aas bbs >>= (fun () ->
+        return ()
+      )
+      )
+  | _::_, _ ->
+      fail ()
+
+
 and m_field a b = 
   match a, b with
   | A.FieldVar(a1, a2), B.FieldVar(b1, b2) ->
@@ -1557,7 +1605,7 @@ and m_type_definition_kind a b =
     return ()
     )
   | A.AndType(a1), B.AndType(b1) ->
-    (m_list m_field) a1 b1 >>= (fun () -> 
+    (m_fields) a1 b1 >>= (fun () -> 
     return ()
     )
   | A.AliasType(a1), B.AliasType(b1) ->
@@ -1566,6 +1614,7 @@ and m_type_definition_kind a b =
     )
   | A.Exception(a1, a2), B.Exception(b1, b2) ->
     m_ident a1 b1 >>= (fun () -> 
+    (* TODO: m_list__m_type_ ? *)
     (m_list m_type_) a2 b2 >>= (fun () -> 
     return ()
     ))
@@ -1582,6 +1631,7 @@ and m_or_type a b =
   match a, b with
   | A.OrConstructor(a1, a2), B.OrConstructor(b1, b2) ->
     (m_ident) a1 b1 >>= (fun () -> 
+    (* TODO: m_list__m_type_ ? *)
     (m_list m_type_) a2 b2 >>= (fun () -> 
     return ()
     ))
@@ -1610,15 +1660,55 @@ and m_other_or_type_element_operator = m_other_xxx
 (* ------------------------------------------------------------------------- *)
 (* Class definition *)
 (* ------------------------------------------------------------------------- *)
+(* TODO: there are a few remaining m_list m_type_ we could transform
+ * to use instead m_list__m_type_, for Exception, TyTuple and OrConstructor
+ * but maybe quite different from list of types in inheritance 
+ * TODO again like for m_list__m_field we should not care about the
+ * order here.
+ *)
+
+and m_list__m_type_ (xsa: A.type_ list) (xsb: A.type_ list) =
+  match xsa, xsb with
+  | [], [] ->
+      return ()
+
+  (* less-is-ok: it's ok to not specify all the parents I think *)
+  | [], _::_ ->
+      return ()
+
+  (* dots: '...', this is very Python Specific I think *)
+  | [A.OtherType (A.OT_Arg, [A.Ar (A.Arg(A.Ellipsis _i))])], [] ->
+      return ()
+
+  (* dots: '...', this is very Python Specific I think *)
+  | (A.OtherType (A.OT_Arg, [A.Ar (A.Arg (A.Ellipsis i))]))::xsa, xb::xsb ->
+      (* can match nothing *)
+      (m_list__m_type_ xsa (xb::xsb)) >||>
+      (* can match more *)
+      (m_list__m_type_ 
+          ((A.OtherType (A.OT_Arg, [A.Ar (A.Arg (A.Ellipsis i))]))::xsa) xsb)
+
+
+  (* the general case *)
+  | xa::aas, xb::bbs ->
+      m_type_ xa xb >>= (fun () ->
+      m_list__m_type_ aas bbs >>= (fun () ->
+        return ()
+      )
+      )
+  | _::_, _ ->
+      fail ()
+
+
 
 and m_class_definition a b = 
   match a, b with
   { A. ckind = a1; cextends = a2; cimplements = a3; cbody = a4; },
   { B. ckind = b1; cextends = b2; cimplements = b3; cbody = b4; } -> 
     m_class_kind a1 b1 >>= (fun () -> 
-    (m_list m_type_) a2 b2 >>= (fun () -> 
-    (m_list m_type_) a3 b3 >>= (fun () -> 
-    (m_list m_field) a4 b4 >>= (fun () -> 
+    (m_list__m_type_) a2 b2 >>= (fun () -> 
+    (m_list__m_type_) a3 b3 >>= (fun () -> 
+    (m_fields) a4 b4 >>= (fun () -> 
     return ()
   ))))
 
