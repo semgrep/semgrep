@@ -469,7 +469,7 @@ and m_expr a b =
     return ()
     )
   | A.Record(a1), B.Record(b1) ->
-    (m_bracket (m_list m_field)) a1 b1 >>= (fun () -> 
+    (m_bracket (m_fields)) a1 b1 >>= (fun () -> 
     return ()
     )
   | A.Constructor(a1, a2), B.Constructor(b1, b2) ->
@@ -1509,6 +1509,47 @@ and m_variable_definition a b =
 (* Field definition and use *)
 (* ------------------------------------------------------------------------- *)
 
+(* TODO: as opposed to statements, the order of fields should not matter
+ * so ... should really match things in any order, or maybe we should
+ * not even use '...' for that and instead use a less-is-ok approach
+ *)
+
+and m_fields (xsa: A.field list) (xsb: A.field list) =
+  match xsa, xsb with
+  | [], [] ->
+      return ()
+
+  (* less-is-ok:
+   * it's ok to have after after in the concrete code as long as we
+   * matched all the fields in the pattern
+   * TODO: sgrep_generic though then display the whole sequence as a match
+   * instead of just the relevant part.
+   *)
+  | [], _::_ ->
+      return ()
+
+  (* dots: '...', can also match no more fields *)
+  | [A.FieldStmt (A.ExprStmt (A.Ellipsis _i))], [] ->
+      return ()
+
+  | (A.FieldStmt (A.ExprStmt (A.Ellipsis i)))::xsa, xb::xsb ->
+      (* can match nothing *)
+      (m_fields xsa (xb::xsb)) >||>
+      (* can match more *)
+      (m_fields ((A.FieldStmt (A.ExprStmt (A.Ellipsis i)))::xsa) xsb)
+
+
+  (* the general case *)
+  | xa::aas, xb::bbs ->
+      m_field xa xb >>= (fun () ->
+      m_fields aas bbs >>= (fun () ->
+        return ()
+      )
+      )
+  | _::_, _ ->
+      fail ()
+
+
 and m_field a b = 
   match a, b with
   | A.FieldVar(a1, a2), B.FieldVar(b1, b2) ->
@@ -1558,7 +1599,7 @@ and m_type_definition_kind a b =
     return ()
     )
   | A.AndType(a1), B.AndType(b1) ->
-    (m_list m_field) a1 b1 >>= (fun () -> 
+    (m_fields) a1 b1 >>= (fun () -> 
     return ()
     )
   | A.AliasType(a1), B.AliasType(b1) ->
@@ -1619,7 +1660,7 @@ and m_class_definition a b =
     m_class_kind a1 b1 >>= (fun () -> 
     (m_list m_type_) a2 b2 >>= (fun () -> 
     (m_list m_type_) a3 b3 >>= (fun () -> 
-    (m_list m_field) a4 b4 >>= (fun () -> 
+    (m_fields) a4 b4 >>= (fun () -> 
     return ()
   ))))
 
