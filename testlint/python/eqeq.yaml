@@ -36,3 +36,9 @@ rules:
     message: "this function is only available on Python 3.7+"
     languages: [python]
     severity: ERROR
+  - id: javascript-basic-eqeq-bad
+    patterns:
+      - pattern: "$X == $X"
+    message: "useless comparison"
+    languages: [js]
+    severity: ERROR

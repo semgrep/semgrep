@@ -288,19 +288,43 @@ def sgrep_finding_to_range(sgrep_finding: Dict[str, Any]) -> Range:
     return Range(sgrep_finding["start"]["offset"], sgrep_finding["end"]["offset"])
 
 
+def group_rule_by_langauges(
+    all_rules: List[Dict[str, Any]]
+) -> Dict[str, List[Dict[str, Any]]]:
+    by_lang = collections.defaultdict(list)
+    for rule in all_rules:
+        for language in rule["languages"]:
+            by_lang[language].append(rule)
+    return by_lang
+
+
 def invoke_sgrep(
     all_rules: List[Dict[str, Any]], targets: List[Path]
 ) -> Dict[str, Any]:
     """Returns parsed json output of sgrep"""
-    with tempfile.NamedTemporaryFile("w") as fout:
-        # very important not to sort keys here
-        yaml_as_str = yaml.safe_dump({"rules": all_rules}, sort_keys=False)
-        fout.write(yaml_as_str)
-        fout.flush()
-        cmd = [SGREP_PATH, f"-rules_file", fout.name, *[str(path) for path in targets]]
-        output = subprocess.check_output(cmd, shell=False)
-        output_json = json.loads((output.decode("utf-8")))
-        return output_json
+
+    outputs = []
+    # multiple invocations per language
+    for language, all_rules_for_language in group_rule_by_langauges(all_rules).items():
+        with tempfile.NamedTemporaryFile("w") as fout:
+            # very important not to sort keys here
+            yaml_as_str = yaml.safe_dump(
+                {"rules": all_rules_for_language}, sort_keys=False
+            )
+            fout.write(yaml_as_str)
+            fout.flush()
+            cmd = [
+                SGREP_PATH,
+                "-lang",
+                language,
+                f"-rules_file",
+                fout.name,
+                *[str(path) for path in targets],
+            ]
+            output = subprocess.check_output(cmd, shell=False)
+            output_json = json.loads((output.decode("utf-8")))
+            outputs.extend(output_json["matches"])
+    return {"matches": outputs}
 
 
 def rewrite_message_with_metavars(yaml_rule, sgrep_result):
