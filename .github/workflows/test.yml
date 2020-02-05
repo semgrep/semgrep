@@ -10,6 +10,7 @@ jobs:
         run: sudo apt-get install -y --no-install-recommends make m4 perl wget swi-prolog mercurial pkg-config python3 python3-pip python3-setuptools opam
       - name: Set up Python
         uses: actions/setup-python@v1
+      - uses: actions/checkout@v2
       - name: Cache opam
         uses: actions/cache@v1
         env:
