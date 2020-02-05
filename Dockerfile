@@ -6,11 +6,11 @@ WORKDIR /home/opam/opam-repository
 RUN git pull && opam update && opam switch 4.07 && opam install ocamlfind camlp4 num ocamlgraph json-wheel conf-perl dune yaml
 WORKDIR /home/opam/
 
-COPY --chown=opam . /home/opam/sgrep/
 
-RUN git clone https://github.com/returntocorp/pfff
+RUN git clone https://github.com/returntocorp/pfff && cd pfff && git checkout 3c19b6d2c4cebe2f0adddf1bd6c237901e82a7e2
 RUN eval $(opam env) && cd pfff && ./configure && make depend && make && make opt && make install-libs
 
+COPY --chown=opam . /home/opam/sgrep/
 RUN eval $(opam env); cd sgrep; make all
 
 RUN /home/opam/sgrep/_build/default/bin/main_sgrep.exe -version
@@ -25,4 +25,5 @@ ENV PYTHONUNBUFFERED=1
 
 COPY --from=build /home/opam/sgrep/_build/default/bin/main_sgrep.exe /bin/sgrep
 COPY --from=build /home/opam/sgrep/sgrep.py /bin/sgrep-lint
+
 ENTRYPOINT [ "/bin/sgrep-lint" ]

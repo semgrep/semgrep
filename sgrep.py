@@ -536,10 +536,16 @@ def validate_configs(configs: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str,
 
 def convert_config_id_to_prefix(config_id: str) -> str:
     at_path = Path(config_id)
-    if at_path.is_absolute():
+    try:
         at_path = PurePath(config_id).relative_to(Path.cwd())
+    except ValueError:
+        # paths had no common prefix; not possible to relativize
+        pass
 
-    return ".".join(at_path.parts[:-1]).lstrip("./").lstrip(".")
+    prefix = ".".join(at_path.parts[:-1]).lstrip("./").lstrip(".")
+    if len(prefix):
+        prefix += "."
+    return prefix
 
 
 def rename_rule_ids(valid_configs: Dict[str, Any]) -> Dict[str, Any]:
@@ -549,7 +555,7 @@ def rename_rule_ids(valid_configs: Dict[str, Any]) -> Dict[str, Any]:
         transformed_rules = [
             {
                 **rule,
-                ID_KEY: f"{convert_config_id_to_prefix(config_id)}.{rule.get(ID_KEY, MISSING_RULE_ID)}",
+                ID_KEY: f"{convert_config_id_to_prefix(config_id)}{rule.get(ID_KEY, MISSING_RULE_ID)}",
             }
             for rule in rules
         ]
