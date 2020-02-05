@@ -29,7 +29,7 @@ For more information see the [slides](https://r2c.dev/sgrep-public.pdf) from the
 ### Mac
 
 ```bash
-brew install sgrep # coming soon
+brew install sgrep-lint # coming soon
 ```
 
 ## Quickstart
