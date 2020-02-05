@@ -9,13 +9,15 @@ jobs:
       image: returntocorp/sgrep-build:2.5
       options: --user 1001
     steps:
+      - name: link opam data to root
+        run: ln -s /home/opam/.opam ~/.opam
       - uses: actions/checkout@v2
       - name: Install Python Deps
         run: pip3 install -r requirements.txt
       - name: Clone latest pfff
         run: git clone https://github.com/returntocorp/pfff /tmp/pfff
       - name: Install pfff
-        run: eval $(opam env) && cd ~/pfff && ./configure && make depend && make && make opt && make install-libs
+        run: eval $(opam env) && cd /tmp/pfff && ./configure && make depend && make && make opt && make install-libs
       - name: Build sgrep
         run: eval $(opam env); make all
       - name: Add sgrep to Path
