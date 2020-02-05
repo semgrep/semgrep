@@ -5,7 +5,7 @@ clean:
 	dune clean
 test:
 	dune runtest
-#	./testlint/run-lint-tests.sh # NOT WORKING, hardcoded homedir paths
+	./testlint/run-lint-tests.sh
 install:
 	dune install
 
