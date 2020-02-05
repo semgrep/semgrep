@@ -883,6 +883,7 @@ and m_type_ a b =
     return ()
     ))
   | A.TyTuple(a1), B.TyTuple(b1) ->
+    (*TODO: m_list__m_type_ ? *)
     (m_list m_type_) a1 b1 >>= (fun () -> 
     return ()
     )
@@ -1613,6 +1614,7 @@ and m_type_definition_kind a b =
     )
   | A.Exception(a1, a2), B.Exception(b1, b2) ->
     m_ident a1 b1 >>= (fun () -> 
+    (* TODO: m_list__m_type_ ? *)
     (m_list m_type_) a2 b2 >>= (fun () -> 
     return ()
     ))
@@ -1629,6 +1631,7 @@ and m_or_type a b =
   match a, b with
   | A.OrConstructor(a1, a2), B.OrConstructor(b1, b2) ->
     (m_ident) a1 b1 >>= (fun () -> 
+    (* TODO: m_list__m_type_ ? *)
     (m_list m_type_) a2 b2 >>= (fun () -> 
     return ()
     ))
@@ -1657,14 +1660,54 @@ and m_other_or_type_element_operator = m_other_xxx
 (* ------------------------------------------------------------------------- *)
 (* Class definition *)
 (* ------------------------------------------------------------------------- *)
+(* TODO: there are a few remaining m_list m_type_ we could transform
+ * to use instead m_list__m_type_, for Exception, TyTuple and OrConstructor
+ * but maybe quite different from list of types in inheritance 
+ * TODO again like for m_list__m_field we should not care about the
+ * order here.
+ *)
+
+and m_list__m_type_ (xsa: A.type_ list) (xsb: A.type_ list) =
+  match xsa, xsb with
+  | [], [] ->
+      return ()
+
+  (* less-is-ok: it's ok to not specify all the parents I think *)
+  | [], _::_ ->
+      return ()
+
+  (* dots: '...', this is very Python Specific I think *)
+  | [A.OtherType (A.OT_Arg, [A.Ar (A.Arg(A.Ellipsis _i))])], [] ->
+      return ()
+
+  (* dots: '...', this is very Python Specific I think *)
+  | (A.OtherType (A.OT_Arg, [A.Ar (A.Arg (A.Ellipsis i))]))::xsa, xb::xsb ->
+      (* can match nothing *)
+      (m_list__m_type_ xsa (xb::xsb)) >||>
+      (* can match more *)
+      (m_list__m_type_ 
+          ((A.OtherType (A.OT_Arg, [A.Ar (A.Arg (A.Ellipsis i))]))::xsa) xsb)
+
+
+  (* the general case *)
+  | xa::aas, xb::bbs ->
+      m_type_ xa xb >>= (fun () ->
+      m_list__m_type_ aas bbs >>= (fun () ->
+        return ()
+      )
+      )
+  | _::_, _ ->
+      fail ()
+
+
 
 and m_class_definition a b = 
   match a, b with
   { A. ckind = a1; cextends = a2; cimplements = a3; cbody = a4; },
   { B. ckind = b1; cextends = b2; cimplements = b3; cbody = b4; } -> 
     m_class_kind a1 b1 >>= (fun () -> 
-    (m_list m_type_) a2 b2 >>= (fun () -> 
-    (m_list m_type_) a3 b3 >>= (fun () -> 
+    (m_list__m_type_) a2 b2 >>= (fun () -> 
+    (m_list__m_type_) a3 b3 >>= (fun () -> 
     (m_fields) a4 b4 >>= (fun () -> 
     return ()
   ))))
