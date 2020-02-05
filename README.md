@@ -12,7 +12,7 @@ Its main features are:
 1. **Use concrete code syntax**: easy to learn
 2. **Metavariables ($X)**: abstract away code
 3. **'...' operator**: abstract away sequences
-4. **Knows about code equivalences**: one pattern can match many equivalent variations on }the code
+4. **Knows about code equivalences**: one pattern can match many equivalent variations on the code
 5. **Less is more**: abstract away additional details
 
 `sgrep` has good support for Python and JavaScript, with some support
@@ -61,7 +61,7 @@ Here, `sgrep` will search the target with the pattern `$X == $X` (which is a stu
 To see more options
 
 ```bash
-docker run --rm returntocorp/sgrep --help
+docker run --rm -v $(pwd):/home/repo returntocorp/sgrep --help
 ```
 
 ### Config Files
