@@ -5,7 +5,8 @@ on: [push]
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: returntocorp/sgrep-build:2.5
+    container: 
+      image: returntocorp/sgrep-build:2.5
       options: --user 1001
     steps:
       - name: Permissions
