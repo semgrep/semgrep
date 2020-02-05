@@ -44,19 +44,19 @@ module Lib = Lib_ast
  * See pfff/matcher/fuzzy_vs_fuzzy.ml for another approach.
  *
  * There are four main features allowing a "pattern" to match some "code":
- *  - metavariables can match anything
- *  - '...' can match any sequence
+ *  - metavariables can match anything (see metavar: tag in this file)
+ *  - '...' can match any sequence (see dots: tag)
  *  - simple constructs match complex constructs having more details
  *    (e.g., the absence of attribute in a pattern will still match functions
- *     having many attributes), "less-is-more"
+ *     having many attributes) (see less-is-ok: tag)
  *  - the underlying AST uses some normalization (!= is transformed in !(..=))
- *    to support certain code equivalences
+ *    to support certain code equivalences (see equivalence: tag)
  *  - we do not care about differences in spaces/indentations/comments.
  *    we work at the AST-level.
  *
  * alternatives:
  *  - would it be simpler to work on a simpler AST, like a Term language,
- *    or even a Node/Leaf? or Ast_fuzzy? the "less-is-more" would be
+ *    or even a Node/Leaf? or Ast_fuzzy? the "less-is-ok" would be
  *    difficult with that approach, because you need to know that some 
  *    parts of the AST are attributes/annotations that can be skipped.
  *    In the same way, code equivalences like name resolution on the AST
@@ -257,7 +257,7 @@ let m_option_ellipsis_ok f a b =
   match a, b with
   | None, None -> return ()
 
-  (* ... can match 0 or 1 expression *)
+  (* dots: ... can match 0 or 1 expression *)
   | Some (A.Ellipsis _), None -> return ()
 
   | Some xa, Some xb ->
@@ -332,7 +332,7 @@ let m_bracket f (a1, a2, a3) (b1, b2, b3) =
 (* ---------------------------------------------------------------------- *)
 
 let m_ident a b = 
-  (* metavariable! *)
+  (* metavar: *)
   match a, b with
   | (str, tok), b when MV.is_metavar_name str ->
       envf (str, tok) (B.Id b)
@@ -430,7 +430,7 @@ and make_dotted xs =
 
 and m_expr a b = 
   match a, b with
-  (* iso: name resolving! *)
+  (* equivalence: name resolving! *)
   | a, B.Name (_, { B.id_resolved = 
       {contents = Some (B.Global dotted 
                        | B.ImportedModule (B.DottedName dotted))}; _}) ->
@@ -444,12 +444,12 @@ and m_expr a b =
       when MV.is_metavar_name str ->
       fail ()
 
-  (* metavariable! *)
+  (* metavar: *)
   | A.Name (((str,tok), _name_info), _id_info), e2 
      when MV.is_metavar_name str ->
       envf (str, tok) (B.E (e2))
 
-  (* should be patterned-match before in arguments, or statements,
+  (* dots: should be patterned-match before in arguments, or statements,
    * but this is useful for keyword parameters, as in f(..., foo=..., ...)
    *)
   | A.Ellipsis(_a1), _ ->
@@ -599,7 +599,7 @@ and m_expr a b =
 and m_literal a b = 
   match a, b with
 
-  (* '...' on string *)
+  (* dots: '...' on string *)
   | A.String("...", a), B.String(_s, b) ->
       m_info a b >>= (fun () ->
         return ())
@@ -780,7 +780,7 @@ and m_list__m_argument (xsa: A.argument list) (xsb: A.argument list) =
   | [], [] ->
       return ()
 
-  (* '...', can also match no argument *)
+  (* dots: '...', can also match no argument *)
   | [A.Arg (A.Ellipsis _i)], [] ->
       return ()
 
@@ -1013,7 +1013,8 @@ and m_stmts (xsa: A.stmt list) (xsb: A.stmt list) =
   | [], [] ->
       return ()
 
-  (* it's ok to have statements after in the concrete code as long as we
+  (* less-is-ok:
+   * it's ok to have statements after in the concrete code as long as we
    * matched all the statements in the pattern (there is an implicit
    * '...' at the end, in addition to implicit '...' at the beginning
    * handled by kstmts calling the pattern for each subsequences).
@@ -1023,7 +1024,7 @@ and m_stmts (xsa: A.stmt list) (xsb: A.stmt list) =
   | [], _::_ ->
       return ()
 
-  (* '...', can also match no statement *)
+  (* dots: '...', can also match no statement *)
   | [A.ExprStmt (A.Ellipsis _i)], [] ->
       return ()
 
@@ -1047,12 +1048,12 @@ and m_stmts (xsa: A.stmt list) (xsb: A.stmt list) =
 and m_stmt a b = 
   match a, b with
 
-  (* metavariable! *)
+  (* metavar: *)
   | A.ExprStmt(A.Name (((str,tok), _name_info), _id_info)), b 
      when MV.is_metavar_name str ->
       envf (str, tok) (B.S b)
 
-  (* '...' can to match any statememt *)
+  (* dots: '...' can to match any statememt *)
   | A.ExprStmt(A.Ellipsis _i), _b ->
       return ()
 
@@ -1429,7 +1430,7 @@ and m_list__m_parameter (xsa: A.parameter list) (xsb: A.parameter list) =
   | [], [] ->
       return ()
 
-  (* '...', can also match no argument *)
+  (* dots: '...', can also match no argument *)
   | [A.ParamEllipsis _i], [] ->
       return ()
 
