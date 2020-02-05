@@ -9,8 +9,6 @@ jobs:
       image: returntocorp/sgrep-build:2.5
       options: --user 1001
     steps:
-      - name: Permissions
-        run: sudo chmod 777 /
       - uses: actions/checkout@v2
       - name: Install Python Deps
         run: pip3 install -r requirements.txt
