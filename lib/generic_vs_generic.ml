@@ -1565,16 +1565,6 @@ and m_list__m_field (xsa: A.field list) (xsb: A.field list) =
 
 and m_field a b = 
   match a, b with
-  | A.FieldVar(a1, a2), B.FieldVar(b1, b2) ->
-    m_entity a1 b1 >>= (fun () -> 
-    m_variable_definition a2 b2 >>= (fun () -> 
-    return ()
-    ))
-  | A.FieldMethod(a1, a2), B.FieldMethod(b1, b2) ->
-    m_entity a1 b1 >>= (fun () -> 
-    m_function_definition a2 b2 >>= (fun () -> 
-    return ()
-    ))
   | A.FieldDynamic(a1, a2, a3), B.FieldDynamic(b1, b2, b3) ->
     m_expr a1 b1 >>= (fun () -> 
     (m_list m_attribute) a2 b2 >>= (fun () -> 
@@ -1590,7 +1580,7 @@ and m_field a b =
     m_stmt a1 b1 >>= (fun () -> 
     return ()
     )
-  | A.FieldVar _, _ | A.FieldMethod _, _ | A.FieldDynamic _, _
+  | A.FieldDynamic _, _
   | A.FieldSpread _, _ | A.FieldStmt _, _
    -> fail ()
 
