@@ -449,6 +449,12 @@ and m_expr a b =
      when MV.is_metavar_name str ->
       envf (str, tok) (B.E (e2))
 
+  (* metavar: typed! *)
+  | A.TypedMetavar ((str, tok), _, t), e2 
+      when MV.is_metavar_name str && 
+           Typechecking_generic.compatible_type t e2 ->
+      envf (str, tok) (B.E e2)
+
   (* dots: should be patterned-match before in arguments, or statements,
    * but this is useful for keyword parameters, as in f(..., foo=..., ...)
    *)
@@ -593,6 +599,7 @@ and m_expr a b =
   | A.Yield _, _  | A.Await _, _  | A.Cast _, _  | A.Seq _, _  | A.Ref _, _
   | A.DeRef _, _  | A.OtherExpr _, _
   | A.SliceAccess _, _
+  | A.TypedMetavar _, _
    -> fail ()
 
 
