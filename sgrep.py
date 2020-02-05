@@ -533,14 +533,16 @@ def validate_configs(configs: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str,
             valid[config_id] = {**config, "rules": valid_rules}
     return valid, errors
 
+def safe_relative_to(a: Path, b: Path) -> Path:
+    try:
+        return a.relative_to(b)
+    except ValueError:
+        # paths had no common prefix; not possible to relativize
+        return a
 
 def convert_config_id_to_prefix(config_id: str) -> str:
     at_path = Path(config_id)
-    try:
-        at_path = PurePath(config_id).relative_to(Path.cwd())
-    except ValueError:
-        # paths had no common prefix; not possible to relativize
-        pass
+    at_path = safe_relative_to(at_path, Path.cwd())
 
     prefix = ".".join(at_path.parts[:-1]).lstrip("./").lstrip(".")
     if len(prefix):
@@ -731,7 +733,7 @@ def main(args: argparse.Namespace):
                     # restore the original rule ID
                     result["check_id"] = all_rules[rule_index]["id"]
                     # rewrite the path to be relative to the current working directory
-                    result["path"] = str(Path(result["path"]).relative_to(current_path))
+                    result["path"] = str(safe_relative_to(Path(result["path"]), current_path))
                     # restore the original message
                     result["extra"]["message"] = rewrite_message_with_metavars(
                         all_rules[rule_index], result
