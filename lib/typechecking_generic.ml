@@ -31,7 +31,7 @@ open Ast_generic
 (*****************************************************************************)
 
 (* very Python specific for now where the type is currently an OT_Expr
- * todo: fill Ast_generic.expr_to_type at least.
+ * TODO: fill Ast_generic.expr_to_type at least.
  *)
 let compatible_type t e =
   match t, e with
