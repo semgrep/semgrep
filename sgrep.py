@@ -369,6 +369,7 @@ def flatten_rule_patterns(all_rules):
 
 # CLI helper functions
 
+
 def adjust_for_docker():
     # change into this folder so that all paths are relative to it
     if Path(REPO_HOME_DOCKER).exists():
@@ -537,8 +538,8 @@ def convert_config_id_to_prefix(config_id: str) -> str:
     at_path = Path(config_id)
     if at_path.is_absolute():
         at_path = PurePath(config_id).relative_to(Path.cwd())
-    
-    return ".".join(at_path.parts[:-1]).lstrip("./").lstrip('.')
+
+    return ".".join(at_path.parts[:-1]).lstrip("./").lstrip(".")
 
 
 def rename_rule_ids(valid_configs: Dict[str, Any]) -> Dict[str, Any]:
