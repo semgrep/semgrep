@@ -1,4 +1,4 @@
-name: Lint and Test Python Code
+name: python
 
 on: [push]
 

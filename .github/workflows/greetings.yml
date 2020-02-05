@@ -1,4 +1,4 @@
-name: Greetings
+name: bot
 
 on: [pull_request, issues]
 
