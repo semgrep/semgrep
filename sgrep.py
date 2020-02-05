@@ -369,6 +369,11 @@ def flatten_rule_patterns(all_rules):
 
 # CLI helper functions
 
+def adjust_for_docker():
+    # change into this folder so that all paths are relative to it
+    if Path(REPO_HOME_DOCKER).exists():
+        os.chdir(REPO_HOME_DOCKER)
+
 
 def get_base_path() -> Path:
     docker_folder = Path(REPO_HOME_DOCKER)
@@ -529,7 +534,11 @@ def validate_configs(configs: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str,
 
 
 def convert_config_id_to_prefix(config_id: str) -> str:
-    return ".".join(PurePath(config_id).parts[:-1]).lstrip("./")
+    at_path = Path(config_id)
+    if at_path.is_absolute():
+        at_path = PurePath(config_id).relative_to(Path.cwd())
+    
+    return ".".join(at_path.parts[:-1]).lstrip("./").lstrip('.')
 
 
 def rename_rule_ids(valid_configs: Dict[str, Any]) -> Dict[str, Any]:
@@ -618,6 +627,9 @@ def main(args: argparse.Namespace):
 
     # set the flags
     set_flags(args.verbose, args.quiet)
+
+    # change cwd if using docker
+    adjust_for_docker()
 
     # get the proper paths for targets i.e. handle base path of /home/repo when it exists in docker
     targets = resolve_targets(args.target)
