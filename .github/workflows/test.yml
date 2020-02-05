@@ -5,24 +5,14 @@ on: [push]
 jobs:
   build:
     runs-on: ubuntu-latest
+    container: returntocorp/sgrep-build
     steps:
-      - name: Install system deps
-        run: sudo apt-get install -y --no-install-recommends make m4 perl wget swi-prolog mercurial pkg-config python3 python3-pip python3-setuptools opam
-      - name: Set up Python
-        uses: actions/setup-python@v1
       - uses: actions/checkout@v2
-      - name: Cache opam
-        uses: actions/cache@v1
-        env:
-          cache-name: cache-opam
-        with:
-          path: ~/.opam # opam cache files are stored in `~/.opam` on Linux/macOS
-          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('sgrep.opam') }}
-      - name: Install Opam
-        run: |
-          opam init --no-setup --bare
-          opam switch create 4.07.1
-          opam switch 4.07.1
-      - name: Install Deps
-        run: |
-          opam install -y reason dune ocamlfind camlp4 num ocamlgraph json-wheel conf-perl yaml
+      - name: Install Python Deps
+        run: pip3 install -r requirements.txt
+      - name: Clone latest pfff
+        run: git clone https://github.com/returntocorp/pfff /tmp/pfff
+      - name: Install pfff
+        run: eval $(opam env) && cd ~/pfff && ./configure && make depend && make && make opt && make install-libs
+      - name: Build sgrep
+        run: eval $(opam env); make all
