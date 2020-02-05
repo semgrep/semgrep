@@ -12,7 +12,17 @@ import tempfile
 import traceback
 from dataclasses import dataclass
 from pathlib import Path, PurePath
-from typing import Any, Dict, Generator, List, Optional, Set, Tuple
+from typing import (
+    Any,
+    Dict,
+    Generator,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    Iterable,
+    DefaultDict,
+)
 from urllib.parse import urlparse
 from datetime import datetime
 
@@ -96,7 +106,7 @@ def debug_print(msg: str):
         print(msg, file=sys.stderr)
 
 
-def flatten(L: List[List[Any]]) -> List[Any]:
+def flatten(L: Iterable[Iterable[Any]]) -> Iterable[Any]:
     for list in L:
         for item in list:
             yield item
@@ -187,7 +197,7 @@ class Range:
 
 def _evaluate_single_expression(
     operator, pattern_id, results, ranges_left: Set[Range]
-) -> List[Range]:
+) -> Set[Range]:
     results_for_pattern = results.get(pattern_id, [])
     if operator == OPERATORS.AND:
         # remove all ranges that don't equal the ranges for this pattern
@@ -223,14 +233,14 @@ def _evaluate_single_expression(
         assert False, f"unknown operator {operator}"
 
 
-def evaluate_expression(expression, results: Dict[str, List[Range]]) -> List[Range]:
+def evaluate_expression(expression, results: Dict[str, List[Range]]) -> Set[Range]:
     ranges_left = set(flatten(results.values()))
     return _evaluate_expression(expression, results, ranges_left)
 
 
 def _evaluate_expression(
     expression, results: Dict[str, List[Range]], ranges_left: Set[Range]
-) -> List[Range]:
+) -> Set[Range]:
     for (operator, pattern_id_or_list) in expression:
         if operator == OPERATORS.AND_EITHER or operator == OPERATORS.AND_ALL:
             assert isinstance(
@@ -265,7 +275,7 @@ def _evaluate_expression(
 
 
 def parse_sgrep_output(sgrep_findings: List[Dict[str, Any]]) -> Dict[str, List[Range]]:
-    output = collections.defaultdict(list)
+    output: DefaultDict[str, List[Range]] = collections.defaultdict(list)
     for finding in sgrep_findings:
         check_id = finding["check_id"]
         # restore the pattern id: the check_id was encoded as f"{rule_index}.{pattern_id}"
@@ -274,7 +284,7 @@ def parse_sgrep_output(sgrep_findings: List[Dict[str, Any]]) -> Dict[str, List[R
     return dict(output)
 
 
-def sgrep_finding_to_range(sgrep_finding: Dict[str, Any]):
+def sgrep_finding_to_range(sgrep_finding: Dict[str, Any]) -> Range:
     return Range(sgrep_finding["start"]["offset"], sgrep_finding["end"]["offset"])
 
 
@@ -419,9 +429,9 @@ def download_config(config_url: str) -> Any:
         r = requests.get(config_url, stream=True)
         if r.status_code == requests.codes.ok:
             content_type = r.headers.get("Content-Type")
-            if "text/plain" in content_type:
-                return parse_config_string(config_url, r.content)
-            elif content_type == "application/x-gzip":
+            if content_type and "text/plain" in content_type:
+                return parse_config_string(config_url, r.content.decode("utf-8"))
+            elif content_type and content_type == "application/x-gzip":
                 fname = f"/tmp/{base64.b64encode(config_url.encode()).decode()}"
                 with tarfile.open(fileobj=r.raw, mode="r:gz") as tar:
                     tar.extractall(fname)
@@ -495,7 +505,7 @@ def validate_configs(configs: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str,
 
 
 def convert_config_id_to_prefix(config_id: str) -> str:
-    return ".".join(PurePath(config_id).parts[:-1])
+    return ".".join(PurePath(config_id).parts[:-1]).lstrip("./")
 
 
 def rename_rule_ids(valid_configs: Dict[str, Any]) -> Dict[str, Any]:
@@ -505,9 +515,7 @@ def rename_rule_ids(valid_configs: Dict[str, Any]) -> Dict[str, Any]:
         transformed_rules = [
             {
                 **rule,
-                ID_KEY: f"{convert_config_id_to_prefix(config_id)}.{rule.get(ID_KEY, MISSING_RULE_ID)}".lstrip(
-                    "."
-                ),
+                ID_KEY: f"{convert_config_id_to_prefix(config_id)}.{rule.get(ID_KEY, MISSING_RULE_ID)}",
             }
             for rule in rules
         ]
@@ -549,6 +557,10 @@ def post_output(output_url: str, output_data: Dict[str, Any]) -> None:
     debug_print(f"posted to {output_url} and got status_code:{r.status_code}")
 
 
+def build_output_json(output_json: Dict[str, Any]) -> str:
+    return json.dumps(output_json)
+
+
 def save_output(output_str: str, output_data: Dict[str, Any]):
     if is_url(output_str):
         post_output(output_str, output_data)
@@ -560,7 +572,7 @@ def save_output(output_str: str, output_data: Dict[str, Any]):
             save_path = base_path.joinpath(output_str)
 
         with save_path.open() as fout:
-            json.dump(output_data, fout)
+            fout.write(build_output_json(output_data))
 
 
 def set_flags(debug: bool, quiet: bool) -> None:
@@ -640,27 +652,30 @@ def main(args: argparse.Namespace):
     start = datetime.now()
     output_json = invoke_sgrep(all_patterns, targets)
     debug_print(f"sgrep ran in {datetime.now() - start}")
-    debug_print(output_json)
+    debug_print(str(output_json))
 
     # group output; we want to see all of the same rule ids on the same file path
-    by_rule_index = collections.defaultdict(lambda: collections.defaultdict(list))
+    by_rule_index: Dict[int, Dict[str, List[Dict[str, Any]]]] = collections.defaultdict(
+        lambda: collections.defaultdict(list)
+    )
     for finding in output_json["matches"]:
         # decode the rule index from the output check_id
         rule_index = int(finding["check_id"].split(".")[0])
         by_rule_index[rule_index][finding["path"]].append(finding)
 
+    current_path = Path.cwd()
     outputs_after_booleans = []
     for rule_index, paths in by_rule_index.items():
         full_expression = list(build_boolean_expression(all_rules[rule_index]))
         expression = list(drop_patterns(full_expression))
-        debug_print(expression)
+        debug_print(str(expression))
         # expression = (op, pattern_id) for (op, pattern_id, pattern) in expression_with_patterns]
         for filepath, results in paths.items():
             debug_print(
                 f"-------- rule (index {rule_index}) {all_rules[rule_index]['id']}------ filepath: {filepath}"
             )
             check_ids_to_ranges = parse_sgrep_output(results)
-            debug_print(check_ids_to_ranges)
+            debug_print(str(check_ids_to_ranges))
             valid_ranges_to_output = evaluate_expression(
                 expression, check_ids_to_ranges
             )
@@ -672,6 +687,8 @@ def main(args: argparse.Namespace):
                 if sgrep_finding_to_range(result) in valid_ranges_to_output:
                     # restore the original rule ID
                     result["check_id"] = all_rules[rule_index]["id"]
+                    # rewrite the path to be relative to the current working directory
+                    result["path"] = str(Path(result["path"]).relative_to(current_path))
                     # restore the original message
                     result["extra"]["message"] = rewrite_message_with_metavars(
                         all_rules[rule_index], result
@@ -682,7 +699,7 @@ def main(args: argparse.Namespace):
     # output results
     output_data = {"results": outputs_after_booleans}
     if not QUIET:
-        print(json.dumps(output_data))
+        print(build_output_json(output_data))
     if args.output:
         save_output(args.output, output_data)
     if args.error and outputs_after_booleans:
@@ -755,6 +772,11 @@ if __name__ == "__main__":
     )
     output.add_argument(
         "--json", help="Convert search output to JSON format.", action="store_true"
+    )
+    output.add_argument(
+        "--r2c",
+        help="output json in r2c platform format (https://app.r2c.dev)",
+        action="store_true",
     )
     output.add_argument(
         "--error",
