@@ -370,6 +370,12 @@ def flatten_rule_patterns(all_rules):
 # CLI helper functions
 
 
+def adjust_for_docker():
+    # change into this folder so that all paths are relative to it
+    if Path(REPO_HOME_DOCKER).exists():
+        os.chdir(REPO_HOME_DOCKER)
+
+
 def get_base_path() -> Path:
     docker_folder = Path(REPO_HOME_DOCKER)
     if docker_folder.exists():
@@ -528,8 +534,22 @@ def validate_configs(configs: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str,
     return valid, errors
 
 
+def safe_relative_to(a: Path, b: Path) -> Path:
+    try:
+        return a.relative_to(b)
+    except ValueError:
+        # paths had no common prefix; not possible to relativize
+        return a
+
+
 def convert_config_id_to_prefix(config_id: str) -> str:
-    return ".".join(PurePath(config_id).parts[:-1]).lstrip("./")
+    at_path = Path(config_id)
+    at_path = safe_relative_to(at_path, Path.cwd())
+
+    prefix = ".".join(at_path.parts[:-1]).lstrip("./").lstrip(".")
+    if len(prefix):
+        prefix += "."
+    return prefix
 
 
 def rename_rule_ids(valid_configs: Dict[str, Any]) -> Dict[str, Any]:
@@ -539,7 +559,7 @@ def rename_rule_ids(valid_configs: Dict[str, Any]) -> Dict[str, Any]:
         transformed_rules = [
             {
                 **rule,
-                ID_KEY: f"{convert_config_id_to_prefix(config_id)}.{rule.get(ID_KEY, MISSING_RULE_ID)}",
+                ID_KEY: f"{convert_config_id_to_prefix(config_id)}{rule.get(ID_KEY, MISSING_RULE_ID)}",
             }
             for rule in rules
         ]
@@ -618,6 +638,9 @@ def main(args: argparse.Namespace):
 
     # set the flags
     set_flags(args.verbose, args.quiet)
+
+    # change cwd if using docker
+    adjust_for_docker()
 
     # get the proper paths for targets i.e. handle base path of /home/repo when it exists in docker
     targets = resolve_targets(args.target)
@@ -712,7 +735,9 @@ def main(args: argparse.Namespace):
                     # restore the original rule ID
                     result["check_id"] = all_rules[rule_index]["id"]
                     # rewrite the path to be relative to the current working directory
-                    result["path"] = str(Path(result["path"]).relative_to(current_path))
+                    result["path"] = str(
+                        safe_relative_to(Path(result["path"]), current_path)
+                    )
                     # restore the original message
                     result["extra"]["message"] = rewrite_message_with_metavars(
                         all_rules[rule_index], result
