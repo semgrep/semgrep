@@ -222,15 +222,6 @@ let parse_pattern str =
       failwith (spf "fail to parse pattern: '%s' in lang %s" str !lang)
  
 
-let read_patterns name =
-  let ic = open_in name in
-  let try_read () =
-    try Some (input_line ic) with End_of_file -> None in
-  let rec loop acc = match try_read () with
-    | Some s -> loop ((parse_pattern s) :: acc)
-    | None -> close_in ic; List.rev acc in
-  loop []
-
 let sgrep_ast pattern any_ast =
   match pattern, any_ast with
   |  _, NoAST -> () (* skipping *)
@@ -355,12 +346,35 @@ let sgrep_with_rules rules_file xs =
     let s = Json_io.string_of_json json in
     pr s
 
+(*****************************************************************************)
+(* Dumpers *)
+(*****************************************************************************)
+(* works with -lang *)
+let dump_pattern file =
+  let s = Common.read_file file in
+  match parse_pattern s with
+  | PatGen x ->
+      let v = Meta_ast.vof_any x in
+      let s = Ocaml.string_of_v v in
+      pr2 s
+  | _ -> failwith "dumper supported only for generic patterns"
+
+let dump_ast file =
+  let x = Parse_generic.parse_program file in
+  let v = Meta_ast.vof_any (Ast_generic.Pr x) in
+  let s = Ocaml.string_of_v v in
+  pr2 s
 
 (*****************************************************************************)
 (* The options *)
 (*****************************************************************************)
 
-let all_actions () = []
+let all_actions () = [
+  "-dump_pattern", " <file>",
+  Common.mk_action_1_arg dump_pattern;
+  "-dump_ast", " <file>",
+  Common.mk_action_1_arg dump_ast;
+ ]
 
 let options () = 
   [
@@ -400,6 +414,7 @@ let options () =
     " add debugging information in the output (e.g., tracing)";
   ] @
   Error_code.options () @
+  Common.options_of_actions action (all_actions()) @
   Common2.cmdline_flags_devel () @
   [ "-version",   Arg.Unit (fun () -> 
     pr2 (spf "sgrep version: %s" Config_pfff.version);
