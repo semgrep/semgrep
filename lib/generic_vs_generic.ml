@@ -1008,7 +1008,10 @@ and m_other_attribute_operator = m_other_xxx
 (* Statement *)
 (* ------------------------------------------------------------------------- *)
 
-and m_stmts (xsa: A.stmt list) (xsb: A.stmt list) =
+and m_stmts (xsa: A.stmt list) (xsb: A.stmt list) = 
+  m_list__m_stmt xsa xsb
+
+and m_list__m_stmt (xsa: A.stmt list) (xsb: A.stmt list) =
   match xsa, xsb with
   | [], [] ->
       return ()
@@ -1030,15 +1033,15 @@ and m_stmts (xsa: A.stmt list) (xsb: A.stmt list) =
 
   | (A.ExprStmt (A.Ellipsis i))::xsa, xb::xsb ->
       (* can match nothing *)
-      (m_stmts xsa (xb::xsb)) >||>
+      (m_list__m_stmt xsa (xb::xsb)) >||>
       (* can match more *)
-      (m_stmts ((A.ExprStmt (A.Ellipsis i))::xsa) xsb)
+      (m_list__m_stmt ((A.ExprStmt (A.Ellipsis i))::xsa) xsb)
 
 
   (* the general case *)
   | xa::aas, xb::bbs ->
       m_stmt xa xb >>= (fun () ->
-      m_stmts aas bbs >>= (fun () ->
+      m_list__m_stmt aas bbs >>= (fun () ->
         return ()
       )
       )
@@ -1513,8 +1516,10 @@ and m_variable_definition a b =
  * so ... should really match things in any order, or maybe we should
  * not even use '...' for that and instead use a less-is-ok approach
  *)
-
 and m_fields (xsa: A.field list) (xsb: A.field list) =
+  m_list__m_field xsa xsb
+
+and m_list__m_field (xsa: A.field list) (xsb: A.field list) =
   match xsa, xsb with
   | [], [] ->
       return ()
@@ -1534,15 +1539,15 @@ and m_fields (xsa: A.field list) (xsb: A.field list) =
 
   | (A.FieldStmt (A.ExprStmt (A.Ellipsis i)))::xsa, xb::xsb ->
       (* can match nothing *)
-      (m_fields xsa (xb::xsb)) >||>
+      (m_list__m_field xsa (xb::xsb)) >||>
       (* can match more *)
-      (m_fields ((A.FieldStmt (A.ExprStmt (A.Ellipsis i)))::xsa) xsb)
+      (m_list__m_field ((A.FieldStmt (A.ExprStmt (A.Ellipsis i)))::xsa) xsb)
 
 
   (* the general case *)
   | xa::aas, xb::bbs ->
       m_field xa xb >>= (fun () ->
-      m_fields aas bbs >>= (fun () ->
+      m_list__m_field aas bbs >>= (fun () ->
         return ()
       )
       )
