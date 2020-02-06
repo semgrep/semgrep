@@ -436,13 +436,11 @@ def hidden_config_dir(loc: Path):
     )
 
 
-def parse_config_folder(
-    loc: Path, base: Optional[Path] = NotImplementedError
-) -> Dict[str, Any]:
+def parse_config_folder(loc: Path, relative: bool = False) -> Dict[str, Any]:
     configs = {}
     for l in loc.rglob("*"):
         if not hidden_config_dir(l) and l.suffix in YML_EXTENSIONS:
-            if base:
+            if relative:
                 config_id = str(l).replace(str(loc), "")  # delete base path to folder
             else:
                 config_id = str(l)
@@ -490,7 +488,7 @@ def download_config(config_url: str) -> Any:
                 extracted = Path(fname)
                 for path in extracted.iterdir():
                     # get first folder in extracted folder (this is how GH does it)
-                    return parse_config_folder(path, path)
+                    return parse_config_folder(path, relative=True)
             else:
                 print_error_exit(f"unknown content-type: {content_type}. Can not parse")
     except Exception as e:
