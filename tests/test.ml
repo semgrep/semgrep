@@ -69,7 +69,10 @@ let regression_tests_for_lang files lang =
     Error_code.g_errors := [];
     Sgrep_generic.sgrep_ast
       ~hook:(fun _env matched_tokens ->
-        let (minii, _maxii) = Parse_info.min_max_ii_by_pos matched_tokens in
+      (* there are a few fake tokens in the generic ASTs now (e.g., 
+       * for DotAccess generated outside the grammar) *)
+        let toks = matched_tokens |> List.filter Parse_info.is_origintok in
+        let (minii, _maxii) = Parse_info.min_max_ii_by_pos toks in
         Error_code.error minii (Error_code.SgrepLint ("",""))
       )
     pattern ast;
@@ -107,6 +110,12 @@ let lang_regression_tests =
     let dir = Filename.concat tests_path "c" in
     let files = Common2.glob (spf "%s/*.c" dir) in
     let lang = Lang.C in
+    regression_tests_for_lang files lang
+  );
+  "sgrep Go" >::: (
+    let dir = Filename.concat tests_path "go" in
+    let files = Common2.glob (spf "%s/*.go" dir) in
+    let lang = Lang.Go in
     regression_tests_for_lang files lang
   );
  ]

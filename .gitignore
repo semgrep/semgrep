@@ -22,7 +22,7 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
+#lib/ pad: used for ocaml
 lib64/
 parts/
 sdist/

@@ -12,15 +12,22 @@ import tempfile
 import traceback
 from dataclasses import dataclass
 from pathlib import Path, PurePath
-from typing import Any, Dict, Generator, List, Optional, Set, Tuple
+from typing import (
+    Any,
+    Dict,
+    Generator,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    Iterable,
+    DefaultDict,
+)
 from urllib.parse import urlparse
 from datetime import datetime
 
 import requests
 import yaml
-
-# TODO: support nested expressions under pattern-either
-
 
 # Constants
 
@@ -29,14 +36,19 @@ DEFAULT_CONFIG_FILE = ".sgrep.yml"
 DEFAULT_CONFIG_FOLDER = ".sgrep"
 DEFAULT_LANG = "python"
 
-MISSING_RULE_ID = 'no-rule-id'
+MISSING_RULE_ID = "no-rule-id"
 
 RULES_REGISTRY = {"r2c": "https://github.com/returntocorp/sgrep-rules/tarball/master"}
 RULES_KEY = "rules"
 ID_KEY = "id"
 
+# Exit codes
+FINDINGS_EXIT_CODE = 1
+FATAL_EXIT_CODE = 2
+
 
 class OPERATORS:
+    AND_ALL = "and_all"
     AND_NOT = "and_not"
     AND = "and"
     AND_EITHER = "and_either"
@@ -52,7 +64,10 @@ PATTERN_NAMES_MAP = {
     "pattern-either": OPERATORS.AND_EITHER,
     "pattern-not": OPERATORS.AND_NOT,
     "pattern": OPERATORS.AND,
+    "patterns": OPERATORS.AND_ALL,
 }
+
+INVERSE_PATTERN_NAMES_MAP = dict((v, k) for k, v in PATTERN_NAMES_MAP.items())
 
 YML_EXTENSIONS = {".yml", ".yaml"}
 DEBUG = False
@@ -75,7 +90,7 @@ def print_error(e):
         print(str(e), file=sys.stderr)
 
 
-def print_error_exit(msg: str, exit_code: int = 1) -> None:
+def print_error_exit(msg: str, exit_code: int = FATAL_EXIT_CODE) -> None:
     if not QUIET:
         print(msg, file=sys.stderr)
     sys.exit(exit_code)
@@ -91,37 +106,74 @@ def debug_print(msg: str):
         print(msg, file=sys.stderr)
 
 
-def flatten(L: List[List[Any]]) -> List[Any]:
+def flatten(L: Iterable[Iterable[Any]]) -> Iterable[Any]:
     for list in L:
         for item in list:
             yield item
 
 
-# sgrep functions
+### sgrep functions
+NO_BOOLEAN_RULE_ID = "_internal_boolean_rule_no_id"
 
 
-def _parse_boolean_expression(rule_patterns, counter=0):
+def enumerate_patterns_in_boolean_expression(expression):
+    """
+    flatten a potentially nested expression
+    """
+    for pattern_or_list in expression:
+        if isinstance(pattern_or_list[2], list):
+            # we need to preserve this parent of multiple children, but it has no corresponding pattern
+            yield (pattern_or_list[0], NO_BOOLEAN_RULE_ID, "no-pattern")
+            # now yield all the children
+            yield from enumerate_patterns_in_boolean_expression(pattern_or_list[2])
+        else:
+            yield pattern_or_list
+
+
+def drop_patterns(expression_with_patterns):
+    """
+    Iterate through an expression object of (op, pattern_id, pattern) and return the same shape but with (op, pattern_id)
+    """
+    for pattern_or_list in expression_with_patterns:
+        if isinstance(pattern_or_list[2], list):
+            yield (pattern_or_list[0], list(drop_patterns(pattern_or_list[2])))
+        else:
+            (op, pattern_id, pattern) = pattern_or_list
+            yield (op, pattern_id)
+
+
+def _parse_boolean_expression(rule_patterns, pattern_id=0, prefix=""):
+    """
+    Move through the expression, yielding tuples of (operator, unique-id-for-pattern, pattern)
+    """
     for pattern in rule_patterns:
         for boolean_operator, pattern_text in pattern.items():
-            if boolean_operator == "pattern-either":
-                yield (
-                    OPERATORS.AND_EITHER,
-                    list(range(counter, counter + len(pattern_text))),
+            if (
+                boolean_operator == INVERSE_PATTERN_NAMES_MAP[OPERATORS.AND_EITHER]
+                or boolean_operator == INVERSE_PATTERN_NAMES_MAP[OPERATORS.AND_ALL]
+            ):
+                operator = operator_for_pattern_name(boolean_operator)
+                sub_expression = _parse_boolean_expression(
+                    pattern_text, 0, f"{prefix}.{pattern_id}"
                 )
-                counter += len(pattern_text)
+                yield (operator, NO_BOOLEAN_RULE_ID, list(sub_expression))
             else:
-                yield (operator_for_pattern_name(boolean_operator), [counter])
-                counter += 1
+                yield (
+                    operator_for_pattern_name(boolean_operator),
+                    f"{prefix}.{pattern_id}",
+                    pattern_text,
+                )
+                pattern_id += 1
 
 
 def build_boolean_expression(rule):
     """
-    Build a (flat, not nested #TODO boolean expression from the yml lines in the rule)
+    Build a boolean expression from the yml lines in the rule
+    tuples of (operator, rule-id, pattern)
     """
-
-    if "pattern" in rule:  # single pattern
-        yield (OPERATORS.AND, [0])
-    elif "patterns" in rule:  # multiple patterns
+    if "pattern" in rule:  # single pattern at root
+        yield (OPERATORS.AND, "0", rule["pattern"])
+    elif "patterns" in rule:  # multiple patterns at root
         yield from _parse_boolean_expression(rule["patterns"])
     else:
         assert False
@@ -129,27 +181,6 @@ def build_boolean_expression(rule):
 
 def operator_for_pattern_name(pattern_name):
     return PATTERN_NAMES_MAP[pattern_name]
-
-
-def parse_rule_patterns(rule):
-    if "pattern" in rule:  # single pattern
-        yield (0, rule["pattern"])
-    elif "patterns" in rule:  # multiple patterns
-        yield from parse_pattern_expression(rule["patterns"])
-    else:
-        assert False
-
-
-def parse_pattern_expression(rule_patterns, counter=0):
-    #    print((counter, rule_patterns))
-    for pattern in rule_patterns:
-        for boolean_operator, pattern_text in pattern.items():
-            if boolean_operator == "pattern-either":
-                yield from parse_pattern_expression(pattern_text, counter)
-                counter += len(pattern_text)
-            else:
-                yield (counter, pattern_text)
-                counter += 1
 
 
 @dataclass(frozen=True)
@@ -166,7 +197,7 @@ class Range:
 
 def _evaluate_single_expression(
     operator, pattern_id, results, ranges_left: Set[Range]
-) -> List[Range]:
+) -> Set[Range]:
     results_for_pattern = results.get(pattern_id, [])
     if operator == OPERATORS.AND:
         # remove all ranges that don't equal the ranges for this pattern
@@ -202,52 +233,98 @@ def _evaluate_single_expression(
         assert False, f"unknown operator {operator}"
 
 
-def evaluate_expression(expression, results: Dict[str, List[Range]]) -> List[Range]:
+def evaluate_expression(expression, results: Dict[str, List[Range]]) -> Set[Range]:
     ranges_left = set(flatten(results.values()))
-    for (operator, pattern_ids) in expression:
-        if operator == OPERATORS.AND_EITHER:
-            # create a set from the union of the expressions in the `or` block
-            either_ranges = set(flatten((results.get(pid, [])) for pid in pattern_ids))
-            # remove anything that does not equal one of these ranges
-            ranges_left.intersection_update(either_ranges)
-            # print(f"after filter `{operator}`: {ranges_left}")
+    return _evaluate_expression(expression, results, ranges_left)
+
+
+def _evaluate_expression(
+    expression, results: Dict[str, List[Range]], ranges_left: Set[Range]
+) -> Set[Range]:
+    for (operator, pattern_id_or_list) in expression:
+        if operator == OPERATORS.AND_EITHER or operator == OPERATORS.AND_ALL:
+            assert isinstance(
+                pattern_id_or_list, list
+            ), f"{OPERATORS.AND_EITHER} or {OPERATORS.AND_ALL} must have a list of subpatterns"
+
+            # recurse on the nested expressions
+            evaluated_ranges = [
+                _evaluate_expression([expr], results, ranges_left.copy())
+                for expr in pattern_id_or_list
+            ]
+            debug_print(
+                f"recursion result {evaluated_ranges} (flat: {list(flatten(evaluated_ranges))}))"
+            )
+
+            if operator == OPERATORS.AND_EITHER:
+                # remove anything that does not equal one of these ranges
+                ranges_left.intersection_update(flatten(evaluated_ranges))
+            elif operator == OPERATORS.AND_ALL:
+                # chain intersection of every range returned
+                for arange in evaluated_ranges:
+                    ranges_left.intersection_update(arange)
+            debug_print(f"after filter `{operator}`: {ranges_left}")
         else:
-            assert (
-                len(pattern_ids) == 1
-            ), f"only {OPERATORS.AND_EITHER} expressions can have multiple pattern names"
+            assert isinstance(
+                pattern_id_or_list, str
+            ), f"only {OPERATORS.AND_EITHER} or {OPERATORS.AND_ALL} expressions can have multiple subpatterns"
             ranges_left = _evaluate_single_expression(
-                operator, pattern_ids[0], results, ranges_left
+                operator, pattern_id_or_list, results, ranges_left
             )
     return ranges_left
 
 
 def parse_sgrep_output(sgrep_findings: List[Dict[str, Any]]) -> Dict[str, List[Range]]:
-    output = collections.defaultdict(list)
+    output: DefaultDict[str, List[Range]] = collections.defaultdict(list)
     for finding in sgrep_findings:
         check_id = finding["check_id"]
-        pattern_id = int(check_id.split(".")[1])
+        # restore the pattern id: the check_id was encoded as f"{rule_index}.{pattern_id}"
+        pattern_id = ".".join(check_id.split(".")[1:])
         output[pattern_id].append(sgrep_finding_to_range(finding))
     return dict(output)
 
 
-def sgrep_finding_to_range(sgrep_finding: Dict[str, Any]):
+def sgrep_finding_to_range(sgrep_finding: Dict[str, Any]) -> Range:
     return Range(sgrep_finding["start"]["offset"], sgrep_finding["end"]["offset"])
+
+
+def group_rule_by_langauges(
+    all_rules: List[Dict[str, Any]]
+) -> Dict[str, List[Dict[str, Any]]]:
+    by_lang = collections.defaultdict(list)
+    for rule in all_rules:
+        for language in rule["languages"]:
+            by_lang[language].append(rule)
+    return by_lang
 
 
 def invoke_sgrep(
     all_rules: List[Dict[str, Any]], targets: List[Path]
 ) -> Dict[str, Any]:
     """Returns parsed json output of sgrep"""
-    with tempfile.NamedTemporaryFile("w") as fout:
-        # very important not to sort keys here
-        yaml_as_str = yaml.safe_dump({"rules": all_rules}, sort_keys=False)
-        debug_print(yaml_as_str)
-        fout.write(yaml_as_str)
-        fout.flush()
-        cmd = [SGREP_PATH, f"-rules_file", fout.name, *[str(path) for path in targets]]
-        output = subprocess.check_output(cmd, shell=False)
-        output_json = json.loads((output.decode("utf-8")))
-        return output_json
+
+    outputs = []
+    # multiple invocations per language
+    for language, all_rules_for_language in group_rule_by_langauges(all_rules).items():
+        with tempfile.NamedTemporaryFile("w") as fout:
+            # very important not to sort keys here
+            yaml_as_str = yaml.safe_dump(
+                {"rules": all_rules_for_language}, sort_keys=False
+            )
+            fout.write(yaml_as_str)
+            fout.flush()
+            cmd = [
+                SGREP_PATH,
+                "-lang",
+                language,
+                f"-rules_file",
+                fout.name,
+                *[str(path) for path in targets],
+            ]
+            output = subprocess.check_output(cmd, shell=False)
+            output_json = json.loads((output.decode("utf-8")))
+            outputs.extend(output_json["matches"])
+    return {"matches": outputs}
 
 
 def rewrite_message_with_metavars(yaml_rule, sgrep_result):
@@ -269,8 +346,15 @@ def transform_to_r2c_output(finding: Dict[str, Any]) -> Dict[str, Any]:
 
 def flatten_rule_patterns(all_rules):
     for rule_index, rule in enumerate(all_rules):
-        patterns_with_ids = list(parse_rule_patterns(rule))
-        for (pattern_index, pattern) in patterns_with_ids:
+        patterns_with_ids = list(
+            enumerate_patterns_in_boolean_expression(
+                list(build_boolean_expression(rule))
+            )
+        )
+        for (_operator, pattern_index, pattern) in patterns_with_ids:
+            if pattern_index == NO_BOOLEAN_RULE_ID:
+                # don't send rules like "and-either" or "and-all" to sgrep
+                continue
             # if we don't copy an array (like `languages`), the yaml file will refer to it by reference (with an anchor)
             # which is nice and all but the sgrep YAML parser doesn't support that
             new_check_id = f"{rule_index}.{pattern_index}"
@@ -284,6 +368,13 @@ def flatten_rule_patterns(all_rules):
 
 
 # CLI helper functions
+
+
+def adjust_for_docker():
+    # change into this folder so that all paths are relative to it
+    if Path(REPO_HOME_DOCKER).exists():
+        os.chdir(REPO_HOME_DOCKER)
+
 
 def get_base_path() -> Path:
     docker_folder = Path(REPO_HOME_DOCKER)
@@ -368,9 +459,9 @@ def download_config(config_url: str) -> Any:
         r = requests.get(config_url, stream=True)
         if r.status_code == requests.codes.ok:
             content_type = r.headers.get("Content-Type")
-            if "text/plain" in content_type:
-                return parse_config_string(config_url, r.content)
-            elif content_type == "application/x-gzip":
+            if content_type and "text/plain" in content_type:
+                return parse_config_string(config_url, r.content.decode("utf-8"))
+            elif content_type and content_type == "application/x-gzip":
                 fname = f"/tmp/{base64.b64encode(config_url.encode()).decode()}"
                 with tarfile.open(fileobj=r.raw, mode="r:gz") as tar:
                     tar.extractall(fname)
@@ -412,7 +503,7 @@ def validate_configs(configs: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str,
             print_error(f"{config_id} is missing `{RULES_KEY}` as top-level key")
             errors[config_id] = config
             continue
-        rules = config.get(RULES_KEY, [])
+        rules = config.get(RULES_KEY)
         valid_rules = []
         invalid_rules = []
         for i, rule in enumerate(rules):
@@ -435,6 +526,7 @@ def validate_configs(configs: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str,
                     invalid_rules.append(rule)
                 else:
                     valid_rules.append(rule)
+
         if invalid_rules:
             errors[config_id] = {**config, "rules": invalid_rules}
         if valid_rules:
@@ -442,8 +534,22 @@ def validate_configs(configs: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str,
     return valid, errors
 
 
+def safe_relative_to(a: Path, b: Path) -> Path:
+    try:
+        return a.relative_to(b)
+    except ValueError:
+        # paths had no common prefix; not possible to relativize
+        return a
+
+
 def convert_config_id_to_prefix(config_id: str) -> str:
-    return ".".join(PurePath(config_id).parts[:-1])
+    at_path = Path(config_id)
+    at_path = safe_relative_to(at_path, Path.cwd())
+
+    prefix = ".".join(at_path.parts[:-1]).lstrip("./").lstrip(".")
+    if len(prefix):
+        prefix += "."
+    return prefix
 
 
 def rename_rule_ids(valid_configs: Dict[str, Any]) -> Dict[str, Any]:
@@ -453,9 +559,7 @@ def rename_rule_ids(valid_configs: Dict[str, Any]) -> Dict[str, Any]:
         transformed_rules = [
             {
                 **rule,
-                ID_KEY: f"{convert_config_id_to_prefix(config_id)}.{rule.get(ID_KEY, MISSING_RULE_ID)}".lstrip(
-                    "."
-                ),
+                ID_KEY: f"{convert_config_id_to_prefix(config_id)}{rule.get(ID_KEY, MISSING_RULE_ID)}",
             }
             for rule in rules
         ]
@@ -497,6 +601,10 @@ def post_output(output_url: str, output_data: Dict[str, Any]) -> None:
     debug_print(f"posted to {output_url} and got status_code:{r.status_code}")
 
 
+def build_output_json(output_json: Dict[str, Any]) -> str:
+    return json.dumps(output_json)
+
+
 def save_output(output_str: str, output_data: Dict[str, Any]):
     if is_url(output_str):
         post_output(output_str, output_data)
@@ -508,7 +616,7 @@ def save_output(output_str: str, output_data: Dict[str, Any]):
             save_path = base_path.joinpath(output_str)
 
         with save_path.open() as fout:
-            json.dump(output_data, fout)
+            fout.write(build_output_json(output_data))
 
 
 def set_flags(debug: bool, quiet: bool) -> None:
@@ -530,6 +638,9 @@ def main(args: argparse.Namespace):
 
     # set the flags
     set_flags(args.verbose, args.quiet)
+
+    # change cwd if using docker
+    adjust_for_docker()
 
     # get the proper paths for targets i.e. handle base path of /home/repo when it exists in docker
     targets = resolve_targets(args.target)
@@ -572,7 +683,7 @@ def main(args: argparse.Namespace):
     if not args.no_rewrite_rule_ids:
         # re-write the configs to have the hierarchical rule ids
         valid_configs = rename_rule_ids(valid_configs)
-        
+
     # extract just the rules from valid configs
     all_rules = flatten_configs(valid_configs)
 
@@ -588,24 +699,30 @@ def main(args: argparse.Namespace):
     start = datetime.now()
     output_json = invoke_sgrep(all_patterns, targets)
     debug_print(f"sgrep ran in {datetime.now() - start}")
-    debug_print(output_json)
+    debug_print(str(output_json))
 
     # group output; we want to see all of the same rule ids on the same file path
-    by_rule_index = collections.defaultdict(lambda: collections.defaultdict(list))
+    by_rule_index: Dict[int, Dict[str, List[Dict[str, Any]]]] = collections.defaultdict(
+        lambda: collections.defaultdict(list)
+    )
     for finding in output_json["matches"]:
+        # decode the rule index from the output check_id
         rule_index = int(finding["check_id"].split(".")[0])
         by_rule_index[rule_index][finding["path"]].append(finding)
 
+    current_path = Path.cwd()
     outputs_after_booleans = []
     for rule_index, paths in by_rule_index.items():
-        expression = list(build_boolean_expression(all_rules[rule_index]))
-        debug_print(f"rule expression: {expression}")
+        full_expression = list(build_boolean_expression(all_rules[rule_index]))
+        expression = list(drop_patterns(full_expression))
+        debug_print(str(expression))
+        # expression = (op, pattern_id) for (op, pattern_id, pattern) in expression_with_patterns]
         for filepath, results in paths.items():
             debug_print(
                 f"-------- rule (index {rule_index}) {all_rules[rule_index]['id']}------ filepath: {filepath}"
             )
             check_ids_to_ranges = parse_sgrep_output(results)
-            debug_print(check_ids_to_ranges)
+            debug_print(str(check_ids_to_ranges))
             valid_ranges_to_output = evaluate_expression(
                 expression, check_ids_to_ranges
             )
@@ -617,6 +734,10 @@ def main(args: argparse.Namespace):
                 if sgrep_finding_to_range(result) in valid_ranges_to_output:
                     # restore the original rule ID
                     result["check_id"] = all_rules[rule_index]["id"]
+                    # rewrite the path to be relative to the current working directory
+                    result["path"] = str(
+                        safe_relative_to(Path(result["path"]), current_path)
+                    )
                     # restore the original message
                     result["extra"]["message"] = rewrite_message_with_metavars(
                         all_rules[rule_index], result
@@ -627,9 +748,11 @@ def main(args: argparse.Namespace):
     # output results
     output_data = {"results": outputs_after_booleans}
     if not QUIET:
-        print(json.dumps(output_data))
+        print(build_output_json(output_data))
     if args.output:
         save_output(args.output, output_data)
+    if args.error and outputs_after_booleans:
+        sys.exit(FINDINGS_EXIT_CODE)
 
 
 # CLI
@@ -675,12 +798,6 @@ if __name__ == "__main__":
         action="store_true",
     )
 
-    config.add_argument(
-        "--no-rewrite-rule-ids",
-        help="Do not rewrite rule ids when they appear in nested subfolders (by default, rule 'foo' in test/rules.yaml will be renamed 'test.foo')",
-        action="store_true",
-    )
-
     # output options
     output = parser.add_argument_group("output")
 
@@ -690,7 +807,13 @@ if __name__ == "__main__":
         help="Do not print anything to stdout. Search results can still be saved to an output file specified by -o/--output. Exit code provides success status.",
         action="store_true",
     )
-    
+
+    output.add_argument(
+        "--no-rewrite-rule-ids",
+        help="Do not rewrite rule ids when they appear in nested subfolders (by default, rule 'foo' in test/rules.yaml will be renamed 'test.foo')",
+        action="store_true",
+    )
+
     output.add_argument(
         "-o",
         "--output",
@@ -698,6 +821,16 @@ if __name__ == "__main__":
     )
     output.add_argument(
         "--json", help="Convert search output to JSON format.", action="store_true"
+    )
+    output.add_argument(
+        "--r2c",
+        help="output json in r2c platform format (https://app.r2c.dev)",
+        action="store_true",
+    )
+    output.add_argument(
+        "--error",
+        help="System Exit 1 if there are findings. Useful for CI and scripts.",
+        action="store_true",
     )
     # logging options
     logging = parser.add_argument_group("logging")

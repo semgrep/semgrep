@@ -44,19 +44,19 @@ module Lib = Lib_ast
  * See pfff/matcher/fuzzy_vs_fuzzy.ml for another approach.
  *
  * There are four main features allowing a "pattern" to match some "code":
- *  - metavariables can match anything
- *  - '...' can match any sequence
+ *  - metavariables can match anything (see metavar: tag in this file)
+ *  - '...' can match any sequence (see dots: tag)
  *  - simple constructs match complex constructs having more details
  *    (e.g., the absence of attribute in a pattern will still match functions
- *     having many attributes), "less-is-more"
+ *     having many attributes) (see less-is-ok: tag)
  *  - the underlying AST uses some normalization (!= is transformed in !(..=))
- *    to support certain code equivalences
+ *    to support certain code equivalences (see equivalence: tag)
  *  - we do not care about differences in spaces/indentations/comments.
  *    we work at the AST-level.
  *
  * alternatives:
  *  - would it be simpler to work on a simpler AST, like a Term language,
- *    or even a Node/Leaf? or Ast_fuzzy? the "less-is-more" would be
+ *    or even a Node/Leaf? or Ast_fuzzy? the "less-is-ok" would be
  *    difficult with that approach, because you need to know that some 
  *    parts of the AST are attributes/annotations that can be skipped.
  *    In the same way, code equivalences like name resolution on the AST
@@ -253,6 +253,21 @@ let (m_option: ('a,'b) matcher -> ('a option,'b option) matcher) = fun f a b ->
   | Some _, _
       -> fail ()
 
+let m_option_ellipsis_ok f a b = 
+  match a, b with
+  | None, None -> return ()
+
+  (* dots: ... can match 0 or 1 expression *)
+  | Some (A.Ellipsis _), None -> return ()
+
+  | Some xa, Some xb ->
+      f xa xb >>= (fun () ->
+        return ()
+      )
+  | None, _
+  | Some _, _
+      -> fail ()
+
 let (m_ref: ('a,'b) matcher -> ('a ref,'b ref) matcher) = fun f a b ->
   match a, b with
   { contents = xa}, { contents = xb} ->
@@ -305,12 +320,19 @@ let m_wrap f a b =
       return ()
   ))
 
+let m_bracket f (a1, a2, a3) (b1, b2, b3) = 
+   m_info a1 b1 >>= (fun () ->
+   f a2 b2 >>= (fun () ->
+   m_info a3 b3 >>= (fun () ->
+     return ()
+   )))
+
 (* ---------------------------------------------------------------------- *)
 (* Name *)
 (* ---------------------------------------------------------------------- *)
 
 let m_ident a b = 
-  (* metavariable! *)
+  (* metavar: *)
   match a, b with
   | (str, tok), b when MV.is_metavar_name str ->
       envf (str, tok) (B.Id b)
@@ -403,11 +425,12 @@ and make_dotted xs =
   | x::xs ->
     let base = B.Name ((x, B.empty_name_info), B.empty_id_info()) in
     List.fold_left (fun acc e -> 
-      B.ObjAccess (acc, e)) base xs
+      let tok = Parse_info.fake_info "." in
+      B.DotAccess (acc, tok, e)) base xs
 
 and m_expr a b = 
   match a, b with
-  (* iso: name resolving! *)
+  (* equivalence: name resolving! *)
   | a, B.Name (_, { B.id_resolved = 
       {contents = Some (B.Global dotted 
                        | B.ImportedModule (B.DottedName dotted))}; _}) ->
@@ -421,12 +444,18 @@ and m_expr a b =
       when MV.is_metavar_name str ->
       fail ()
 
-  (* metavariable! *)
+  (* metavar: *)
   | A.Name (((str,tok), _name_info), _id_info), e2 
      when MV.is_metavar_name str ->
       envf (str, tok) (B.E (e2))
 
-  (* should be patterned-match before in arguments, or statements,
+  (* metavar: typed! *)
+  | A.TypedMetavar ((str, tok), _, t), e2 
+      when MV.is_metavar_name str && 
+           Typechecking_generic.compatible_type t e2 ->
+      envf (str, tok) (B.E e2)
+
+  (* dots: should be patterned-match before in arguments, or statements,
    * but this is useful for keyword parameters, as in f(..., foo=..., ...)
    *)
   | A.Ellipsis(_a1), _ ->
@@ -438,7 +467,7 @@ and m_expr a b =
     )
   | A.Container(a1, a2), B.Container(b1, b2) ->
     m_container_operator a1 b1 >>= (fun () -> 
-    (m_list m_expr) a2 b2 >>= (fun () -> 
+    (m_bracket (m_list m_expr)) a2 b2 >>= (fun () -> 
     return ()
     ))
   | A.Tuple(a1), B.Tuple(b1) ->
@@ -446,7 +475,7 @@ and m_expr a b =
     return ()
     )
   | A.Record(a1), B.Record(b1) ->
-    (m_list m_field) a1 b1 >>= (fun () -> 
+    (m_bracket (m_fields)) a1 b1 >>= (fun () -> 
     return ()
     )
   | A.Constructor(a1, a2), B.Constructor(b1, b2) ->
@@ -460,8 +489,6 @@ and m_expr a b =
   | A.AnonClass(a1), B.AnonClass(b1) ->
     m_class_definition a1 b1 >>= (fun () -> 
     return ())
-  | A.Nop, B.Nop ->
-    return ()
   | A.Name(a1, a2), B.Name(b1, b2) ->
     m_name a1 b1 >>= (fun () -> 
     m_id_info a2 b2 >>= (fun () -> 
@@ -479,11 +506,12 @@ and m_expr a b =
     m_xml a1 b1 >>= (fun () -> 
     return ()
     )
-  | A.Assign(a1, a2), B.Assign(b1, b2) ->
+  | A.Assign(a1, at, a2), B.Assign(b1, bt, b2) ->
     m_expr a1 b1 >>= (fun () -> 
+    m_tok at bt >>= (fun () ->
     m_expr a2 b2 >>= (fun () -> 
     return ()
-    ))
+    )))
   | A.AssignOp(a1, a2, a3), B.AssignOp(b1, b2, b3) ->
     m_expr a1 b1 >>= (fun () -> 
     m_wrap m_arithmetic_operator a2 b2 >>= (fun () -> 
@@ -495,16 +523,24 @@ and m_expr a b =
     m_expr a2 b2 >>= (fun () -> 
     return ()
     ))
-  | A.ObjAccess(a1, a2), B.ObjAccess(b1, b2) ->
+  | A.DotAccess(a1, at, a2), B.DotAccess(b1, bt, b2) ->
     m_expr a1 b1 >>= (fun () -> 
+    m_tok at bt >>= (fun () -> 
     m_ident a2 b2 >>= (fun () -> 
     return ()
-    ))
+    )))
   | A.ArrayAccess(a1, a2), B.ArrayAccess(b1, b2) ->
     m_expr a1 b1 >>= (fun () -> 
     m_expr a2 b2 >>= (fun () -> 
     return ()
     ))
+  | A.SliceAccess(a1, a2, a3, a4), B.SliceAccess(b1, b2, b3, b4) ->
+    m_expr a1 b1 >>= (fun () -> 
+    m_option m_expr a2 b2 >>= (fun () -> 
+    m_option m_expr a3 b3 >>= (fun () -> 
+    m_option m_expr a4 b4 >>= (fun () -> 
+    return ()
+    ))))
   | A.Conditional(a1, a2, a3), B.Conditional(b1, b2, b3) ->
     m_expr a1 b1 >>= (fun () -> 
     m_expr a2 b2 >>= (fun () -> 
@@ -516,15 +552,17 @@ and m_expr a b =
     (m_list m_action) a2 b2 >>= (fun () -> 
     return ()
     ))
-  | A.Yield(a1, a2), B.Yield(b1, b2) ->
-    m_expr a1 b1 >>= (fun () -> 
+  | A.Yield(a0, a1, a2), B.Yield(b0, b1, b2) ->
+    m_tok a0 b0 >>= (fun () -> 
+    m_option m_expr a1 b1 >>= (fun () -> 
     m_bool a2 b2 >>= (fun () -> 
     return ()
-    ))
-  | A.Await(a1), B.Await(b1) ->
+    )))
+  | A.Await(a0, a1), B.Await(b0, b1) ->
+    m_tok a0 b0 >>= (fun () -> 
     m_expr a1 b1 >>= (fun () -> 
     return ()
-    )
+    ))
   | A.Cast(a1, a2), B.Cast(b1, b2) ->
     m_type_ a1 b1 >>= (fun () -> 
     m_expr a2 b2 >>= (fun () -> 
@@ -534,14 +572,16 @@ and m_expr a b =
     (m_list m_expr) a1 b1 >>= (fun () -> 
     return ()
     )
-  | A.Ref(a1), B.Ref(b1) ->
+  | A.Ref(a0, a1), B.Ref(b0, b1) ->
+    m_tok a0 b0 >>= (fun () -> 
     m_expr a1 b1 >>= (fun () -> 
     return ()
-    )
-  | A.DeRef(a1), B.DeRef(b1) ->
+    ))
+  | A.DeRef(a0, a1), B.DeRef(b0, b1) ->
+    m_tok a0 b0 >>= (fun () -> 
     m_expr a1 b1 >>= (fun () -> 
     return ()
-    )
+    ))
 
 
   | A.OtherExpr(a1, a2), B.OtherExpr(b1, b2) ->
@@ -550,19 +590,21 @@ and m_expr a b =
     return ()
     ))
   | A.L _, _  | A.Container _, _  | A.Tuple _, _  | A.Record _, _
-  | A.Constructor _, _  | A.Lambda _, _  | A.AnonClass _, _  | A.Nop, _
+  | A.Constructor _, _  | A.Lambda _, _  | A.AnonClass _, _
   | A.Name _, _  | A.IdSpecial _, _  | A.Call _, _  | A.Xml _, _
-  | A.Assign _, _  | A.AssignOp _, _  | A.LetPattern _, _  | A.ObjAccess _, _
+  | A.Assign _, _  | A.AssignOp _, _  | A.LetPattern _, _  | A.DotAccess _, _
   | A.ArrayAccess _, _  | A.Conditional _, _  | A.MatchPattern _, _
   | A.Yield _, _  | A.Await _, _  | A.Cast _, _  | A.Seq _, _  | A.Ref _, _
   | A.DeRef _, _  | A.OtherExpr _, _
+  | A.SliceAccess _, _
+  | A.TypedMetavar _, _
    -> fail ()
 
 
 and m_literal a b = 
   match a, b with
 
-  (* '...' on string *)
+  (* dots: '...' on string *)
   | A.String("...", a), B.String(_s, b) ->
       m_info a b >>= (fun () ->
         return ())
@@ -602,6 +644,10 @@ and m_literal a b =
     (m_wrap m_string) a1 b1 >>= (fun () -> 
     return ()
     )
+  | A.Imag(a1), B.Imag(b1) ->
+    (m_wrap m_string) a1 b1 >>= (fun () -> 
+    return ()
+    )
   | A.Char(a1), B.Char(b1) ->
     (m_wrap m_string) a1 b1 >>= (fun () -> 
     return ()
@@ -621,6 +667,7 @@ and m_literal a b =
     )
   | A.Unit _, _  | A.Bool _, _  | A.Int _, _  | A.Float _, _  | A.Char _, _
   | A.String _, _  | A.Regexp _, _  | A.Null _, _  | A.Undefined _, _
+  | A.Imag _, _
    -> fail ()
 
 
@@ -738,7 +785,7 @@ and m_list__m_argument (xsa: A.argument list) (xsb: A.argument list) =
   | [], [] ->
       return ()
 
-  (* '...', can also match no argument *)
+  (* dots: '...', can also match no argument *)
   | [A.Arg (A.Ellipsis _i)], [] ->
       return ()
 
@@ -817,7 +864,7 @@ and m_type_ a b =
     return ()
     )
   | A.TyFun(a1, a2), B.TyFun(b1, b2) ->
-    (m_list m_type_) a1 b1 >>= (fun () -> 
+    (m_list m_parameter_classic) a1 b1 >>= (fun () -> 
     m_type_ a2 b2 >>= (fun () -> 
     return ()
     ))
@@ -835,11 +882,13 @@ and m_type_ a b =
     m_type_ a2 b2 >>= (fun () -> 
     return ()
     ))
-  | A.TyPointer(a1), B.TyPointer(b1) ->
+  | A.TyPointer(a0, a1), B.TyPointer(b0, b1) ->
+    m_tok a0 b0 >>= (fun () -> 
     m_type_ a1 b1 >>= (fun () -> 
     return ()
-    )
+    ))
   | A.TyTuple(a1), B.TyTuple(b1) ->
+    (*TODO: m_list__m_type_ ? *)
     (m_list m_type_) a1 b1 >>= (fun () -> 
     return ()
     )
@@ -885,55 +934,70 @@ and m_other_type_argument_operator = m_other_xxx
 (* Attribute *)
 (* ------------------------------------------------------------------------- *)
 
-(* TODO: should sort attributes and allow subset *)
+and m_list__m_attribute (xsa: A.attribute list) (xsb: A.attribute list) =
+  match xsa, xsb with
+  | [], [] ->
+      return ()
 
+  (* less-is-ok: *)
+  | [], _ -> return ()
+
+  | A.KeywordAttr (k, tok)::xsa, xsb ->
+      (try 
+        let (before, there, after) = xsb |> Common2.split_when (function
+            | A.KeywordAttr (k2, _) when k =*= k2 -> true
+            | _ -> false) in
+        (match there with
+        | A.KeywordAttr (x) ->
+              m_wrap m_keyword_attribute (k, tok) x >>= (fun () ->
+              m_list__m_attribute xsa (before @ after) >>= (fun () ->
+                 return ()
+              ))
+        | _ -> raise Impossible
+        )
+      with Not_found -> fail ()
+      )
+
+  | A.NamedAttr ((s, _) as ida, argsa)::xsa, xsb ->
+      (try 
+        let (before, there, after) = xsb |> Common2.split_when (function
+            | A.NamedAttr ((s2, _), _) when s =$= s2 -> true
+            | _ -> false) in
+        (match there with
+        | A.NamedAttr (idb, argsb) ->
+              m_ident ida idb >>= (fun () ->
+              m_list__m_argument argsa argsb >>= (fun () ->
+              m_list__m_attribute xsa (before @ after) >>= (fun () ->
+                 return ()
+              )))
+        | _ -> raise Impossible
+        )
+      with Not_found -> fail ()
+      )
+
+  (* the general case *)
+  | xa::aas, xb::bbs ->
+      m_attribute xa xb >>= (fun () ->
+      m_list__m_attribute aas bbs >>= (fun () ->
+        return ()
+      )
+      )
+
+  | _::_, _ ->
+      fail ()
+
+
+and m_keyword_attribute a b = m_other_xxx a b
+  
 and m_attribute a b = 
   match a, b with
-  | A.Recursive, B.Recursive ->
+  | A.KeywordAttr(a1), B.KeywordAttr(b1) ->
+    m_wrap m_keyword_attribute a1 b1 >>= (fun () -> 
     return ()
-  | A.MutuallyRecursive, B.MutuallyRecursive ->
-    return ()
-  | A.Static, B.Static ->
-    return ()
-  | A.Volatile, B.Volatile ->
-    return ()
-  | A.Extern, B.Extern ->
-    return ()
-  | A.Public, B.Public ->
-    return ()
-  | A.Private, B.Private ->
-    return ()
-  | A.Protected, B.Protected ->
-    return ()
-  | A.Abstract, B.Abstract ->
-    return ()
-  | A.Final, B.Final ->
-    return ()
-  | A.Var, B.Var ->
-    return ()
-  | A.Let, B.Let ->
-    return ()
-  | A.Const, B.Const ->
-    return ()
-  | A.Mutable, B.Mutable ->
-    return ()
-  | A.Generator, B.Generator ->
-    return ()
-  | A.Async, B.Async ->
-    return ()
-  | A.Ctor, B.Ctor ->
-    return ()
-  | A.Dtor, B.Dtor ->
-    return ()
-  | A.Getter, B.Getter ->
-    return ()
-  | A.Setter, B.Setter ->
-    return ()
-  | A.Variadic, B.Variadic ->
-    return ()
+    )
   | A.NamedAttr(a1, a2), B.NamedAttr(b1, b2) ->
     m_ident a1 b1 >>= (fun () -> 
-    (m_list m_any) a2 b2 >>= (fun () -> 
+    (m_list__m_argument) a2 b2 >>= (fun () -> 
     return ()
     ))
   | A.OtherAttribute(a1, a2), B.OtherAttribute(b1, b2) ->
@@ -941,13 +1005,7 @@ and m_attribute a b =
     (m_list m_any) a2 b2 >>= (fun () -> 
     return ()
     ))
-  | A.Recursive, _  | A.MutuallyRecursive, _  
-  | A.Static, _  | A.Volatile, _  | A.Extern, _  
-  | A.Public, _  | A.Private, _ | A.Protected, _
-  | A.Abstract, _  | A.Final, _  | A.Var, _  | A.Let, _
-  | A.Const, _  | A.Mutable, _  | A.Generator, _  | A.Async, _
-  | A.Ctor, _  | A.Dtor, _  | A.Getter, _  | A.Setter, _
-  | A.Variadic, _  | A.NamedAttr _, _  | A.OtherAttribute _, _
+  | A.KeywordAttr _, _  | A.NamedAttr _, _  | A.OtherAttribute _, _
    -> fail ()
 
 and m_other_attribute_operator = m_other_xxx
@@ -956,12 +1014,16 @@ and m_other_attribute_operator = m_other_xxx
 (* Statement *)
 (* ------------------------------------------------------------------------- *)
 
-and m_stmts (xsa: A.stmt list) (xsb: A.stmt list) =
+and m_stmts (xsa: A.stmt list) (xsb: A.stmt list) = 
+  m_list__m_stmt xsa xsb
+
+and m_list__m_stmt (xsa: A.stmt list) (xsb: A.stmt list) =
   match xsa, xsb with
   | [], [] ->
       return ()
 
-  (* it's ok to have statements after in the concrete code as long as we
+  (* less-is-ok:
+   * it's ok to have statements after in the concrete code as long as we
    * matched all the statements in the pattern (there is an implicit
    * '...' at the end, in addition to implicit '...' at the beginning
    * handled by kstmts calling the pattern for each subsequences).
@@ -971,21 +1033,21 @@ and m_stmts (xsa: A.stmt list) (xsb: A.stmt list) =
   | [], _::_ ->
       return ()
 
-  (* '...', can also match no statement *)
+  (* dots: '...', can also match no statement *)
   | [A.ExprStmt (A.Ellipsis _i)], [] ->
       return ()
 
   | (A.ExprStmt (A.Ellipsis i))::xsa, xb::xsb ->
       (* can match nothing *)
-      (m_stmts xsa (xb::xsb)) >||>
+      (m_list__m_stmt xsa (xb::xsb)) >||>
       (* can match more *)
-      (m_stmts ((A.ExprStmt (A.Ellipsis i))::xsa) xsb)
+      (m_list__m_stmt ((A.ExprStmt (A.Ellipsis i))::xsa) xsb)
 
 
   (* the general case *)
   | xa::aas, xb::bbs ->
       m_stmt xa xb >>= (fun () ->
-      m_stmts aas bbs >>= (fun () ->
+      m_list__m_stmt aas bbs >>= (fun () ->
         return ()
       )
       )
@@ -995,12 +1057,12 @@ and m_stmts (xsa: A.stmt list) (xsb: A.stmt list) =
 and m_stmt a b = 
   match a, b with
 
-  (* metavariable! *)
+  (* metavar: *)
   | A.ExprStmt(A.Name (((str,tok), _name_info), _id_info)), b 
      when MV.is_metavar_name str ->
       envf (str, tok) (B.S b)
 
-  (* '...' can to match any statememt *)
+  (* dots: '...' can to match any statememt *)
   | A.ExprStmt(A.Ellipsis _i), _b ->
       return ()
 
@@ -1022,68 +1084,80 @@ and m_stmt a b =
     m_stmts a1 b1 >>= (fun () -> 
     return ()
     )
-  | A.If(a1, a2, a3), B.If(b1, b2, b3) ->
+  | A.If(a0, a1, a2, a3), B.If(b0, b1, b2, b3) ->
+    m_tok a0 b0 >>= (fun () ->
     m_expr a1 b1 >>= (fun () -> 
     m_stmt a2 b2 >>= (fun () -> 
     m_stmt a3 b3 >>= (fun () -> 
     return ()
-    )))
-  | A.While(a1, a2), B.While(b1, b2) ->
+    ))))
+  | A.While(a0, a1, a2), B.While(b0, b1, b2) ->
+    m_tok a0 b0 >>= (fun () ->
     m_expr a1 b1 >>= (fun () -> 
     m_stmt a2 b2 >>= (fun () -> 
     return ()
-    ))
-  | A.DoWhile(a1, a2), B.DoWhile(b1, b2) ->
+    )))
+  | A.DoWhile(a0, a1, a2), B.DoWhile(b0, b1, b2) ->
+    m_tok a0 b0 >>= (fun () ->
     m_stmt a1 b1 >>= (fun () -> 
     m_expr a2 b2 >>= (fun () -> 
     return ()
-    ))
-  | A.For(a1, a2), B.For(b1, b2) ->
+    )))
+  | A.For(a0, a1, a2), B.For(b0, b1, b2) ->
+    m_tok a0 b0 >>= (fun () ->
     m_for_header a1 b1 >>= (fun () -> 
     m_stmt a2 b2 >>= (fun () -> 
     return ()
-    ))
-  | A.Switch(a1, a2), B.Switch(b1, b2) ->
-    m_expr a1 b1 >>= (fun () -> 
+    )))
+  | A.Switch(at, a1, a2), B.Switch(bt, b1, b2) ->
+    m_tok at bt >>= (fun () -> 
+    m_option m_expr a1 b1 >>= (fun () -> 
     (m_list m_case_and_body) a2 b2 >>= (fun () -> 
     return ()
+    )))
+  | A.Return(a0, a1), B.Return(b0, b1) ->
+    m_tok a0 b0 >>= (fun () ->
+    m_option_ellipsis_ok m_expr a1 b1 >>= (fun () -> 
+    return ()
     ))
-  | A.Return(a1), B.Return(b1) ->
-    m_expr a1 b1 >>= (fun () -> 
-    return ()
-    )
-  | A.Continue(a1), B.Continue(b1) ->
+  | A.Continue(a0, a1), B.Continue(b0, b1) ->
+    m_tok a0 b0 >>= (fun () ->
     (m_option m_expr) a1 b1 >>= (fun () -> 
     return ()
-    )
-  | A.Break(a1), B.Break(b1) ->
+    ))
+  | A.Break(a0, a1), B.Break(b0, b1) ->
+    m_tok a0 b0 >>= (fun () ->
     (m_option m_expr) a1 b1 >>= (fun () -> 
     return ()
-    )
+    ))
   | A.Label(a1, a2), B.Label(b1, b2) ->
     m_label a1 b1 >>= (fun () -> 
     m_stmt a2 b2 >>= (fun () -> 
     return ()
     ))
-  | A.Goto(a1), B.Goto(b1) ->
+  | A.Goto(a0, a1), B.Goto(b0, b1) ->
+    m_tok a0 b0 >>= (fun () ->
     m_label a1 b1 >>= (fun () -> 
     return ()
-    )
-  | A.Throw(a1), B.Throw(b1) ->
+    ))
+  | A.Throw(a0, a1), B.Throw(b0, b1) ->
+    m_tok a0 b0 >>= (fun () ->
     m_expr a1 b1 >>= (fun () -> 
     return ()
-    )
-  | A.Try(a1, a2, a3), B.Try(b1, b2, b3) ->
+    ))
+  | A.Try(a0, a1, a2, a3), B.Try(b0, b1, b2, b3) ->
+    m_tok a0 b0 >>= (fun () ->
     m_stmt a1 b1 >>= (fun () -> 
     (m_list m_catch) a2 b2 >>= (fun () -> 
     (m_option m_finally) a3 b3 >>= (fun () -> 
     return ()
-    )))
-  | A.Assert(a1, a2), B.Assert(b1, b2) ->
+    ))))
+  | A.Assert(a0, a1, a2), B.Assert(b0, b1, b2) ->
+    m_tok a0 b0 >>= (fun () ->
     m_expr a1 b1 >>= (fun () -> 
     (m_option m_expr) a2 b2 >>= (fun () -> 
     return ()
-    ))
+    )))
   | A.OtherStmt(a1, a2), B.OtherStmt(b1, b2) ->
     m_other_stmt_operator a1 b1 >>= (fun () -> 
     (m_list m_any) a2 b2 >>= (fun () -> 
@@ -1107,8 +1181,8 @@ and m_for_header a b =
   match a, b with
   | A.ForClassic(a1, a2, a3), B.ForClassic(b1, b2, b3) ->
     (m_list m_for_var_or_expr) a1 b1 >>= (fun () -> 
-    m_expr a2 b2 >>= (fun () -> 
-    m_expr a3 b3 >>= (fun () -> 
+    m_option m_expr a2 b2 >>= (fun () -> 
+    m_option m_expr a3 b3 >>= (fun () -> 
     return ()
     )))
   | A.ForEach(a1, a2), B.ForEach(b1, b2) ->
@@ -1162,13 +1236,21 @@ and m_case_and_body a b =
 
 and m_case a b = 
   match a, b with
-  | A.Case(a1), B.Case(b1) ->
+  | A.Case(a0, a1), B.Case(b0, b1) ->
+    m_tok a0 b0 >>= (fun () ->
+    m_pattern a1 b1 >>= (fun () -> 
+    return ()
+    ))
+  | A.CaseEqualExpr(a0, a1), B.CaseEqualExpr(b0, b1) ->
+    m_tok a0 b0 >>= (fun () ->
     m_expr a1 b1 >>= (fun () -> 
     return ()
-    )
-  | A.Default, B.Default ->
+    ))
+  | A.Default a0, B.Default b0 ->
+    m_tok a0 b0 >>= (fun () ->
     return ()
-  | A.Case _, _  | A.Default, _
+    )
+  | A.Case _, _  | A.Default _, _ | A.CaseEqualExpr _, _  
    -> fail ()
 
 
@@ -1188,6 +1270,10 @@ and m_pattern a b =
     ))
   | A.PatLiteral(a1), B.PatLiteral(b1) ->
     m_literal a1 b1 >>= (fun () -> 
+    return ()
+    )
+  | A.PatType(a1), B.PatType(b1) ->
+    m_type_ a1 b1 >>= (fun () -> 
     return ()
     )
   | A.PatConstructor(a1, a2), B.PatConstructor(b1, b2) ->
@@ -1245,7 +1331,7 @@ and m_pattern a b =
   | A.PatVar _, _  | A.PatLiteral _, _  | A.PatConstructor _, _
   | A.PatTuple _, _  | A.PatList _, _  | A.PatRecord _, _  | A.PatKeyVal _, _
   | A.PatUnderscore _, _  | A.PatDisj _, _  | A.PatWhen _, _  | A.PatAs _, _
-  | A.PatTyped _, _  | A.OtherPat _, _
+  | A.PatTyped _, _  | A.OtherPat _, _ | A.PatType _, _
    -> fail ()
 
 and m_field_pattern a b = 
@@ -1272,15 +1358,14 @@ and m_definition a b =
 
 and m_entity a b = 
   match a, b with
-  { A. name = a1; attrs = a2; type_ = a3; tparams = a4; info = a5 },
-  { B. name = b1; attrs = b2; type_ = b3; tparams = b4; info = b5 } -> 
+  { A. name = a1; attrs = a2; tparams = a4; info = a5 },
+  { B. name = b1; attrs = b2; tparams = b4; info = b5 } -> 
     m_ident a1 b1 >>= (fun () -> 
-    (m_list m_attribute) a2 b2 >>= (fun () -> 
-    (m_option m_type_) a3 b3 >>= (fun () -> 
+    (m_list__m_attribute) a2 b2 >>= (fun () -> 
     (m_list m_type_parameter) a4 b4 >>= (fun () -> 
     m_id_info a5 b5 >>= (fun () -> 
      return ()
-  )))))
+  ))))
 
 and m_definition_kind a b = 
   match a, b with
@@ -1359,7 +1444,7 @@ and m_list__m_parameter (xsa: A.parameter list) (xsb: A.parameter list) =
   | [], [] ->
       return ()
 
-  (* '...', can also match no argument *)
+  (* dots: '...', can also match no argument *)
   | [A.ParamEllipsis _i], [] ->
       return ()
 
@@ -1410,7 +1495,7 @@ and m_parameter_classic a b =
   match a, b with
   { A. pname = a1; pdefault = a2; ptype = a3; pattrs = a4; pinfo = a5 },
   { B. pname = b1; pdefault = b2; ptype = b3; pattrs = b4; pinfo = b5 } -> 
-    m_ident a1 b1 >>= (fun () -> 
+    (m_option m_ident) a1 b1 >>= (fun () -> 
     (m_option m_expr) a2 b2 >>= (fun () -> 
     (m_option m_type_) a3 b3 >>= (fun () -> 
     (m_list m_attribute) a4 b4 >>= (fun () -> 
@@ -1438,33 +1523,67 @@ and m_variable_definition a b =
 (* Field definition and use *)
 (* ------------------------------------------------------------------------- *)
 
+(* TODO: as opposed to statements, the order of fields should not matter
+ * so ... should really match things in any order, or maybe we should
+ * not even use '...' for that and instead use a less-is-ok approach
+ *)
+and m_fields (xsa: A.field list) (xsb: A.field list) =
+  m_list__m_field xsa xsb
+
+and m_list__m_field (xsa: A.field list) (xsb: A.field list) =
+  match xsa, xsb with
+  | [], [] ->
+      return ()
+
+  (* less-is-ok:
+   * it's ok to have after after in the concrete code as long as we
+   * matched all the fields in the pattern
+   * TODO: sgrep_generic though then display the whole sequence as a match
+   * instead of just the relevant part.
+   *)
+  | [], _::_ ->
+      return ()
+
+  (* dots: '...', can also match no more fields *)
+  | [A.FieldStmt (A.ExprStmt (A.Ellipsis _i))], [] ->
+      return ()
+
+  | (A.FieldStmt (A.ExprStmt (A.Ellipsis i)))::xsa, xb::xsb ->
+      (* can match nothing *)
+      (m_list__m_field xsa (xb::xsb)) >||>
+      (* can match more *)
+      (m_list__m_field ((A.FieldStmt (A.ExprStmt (A.Ellipsis i)))::xsa) xsb)
+
+
+  (* the general case *)
+  | xa::aas, xb::bbs ->
+      m_field xa xb >>= (fun () ->
+      m_list__m_field aas bbs >>= (fun () ->
+        return ()
+      )
+      )
+  | _::_, _ ->
+      fail ()
+
+
 and m_field a b = 
   match a, b with
-  | A.FieldVar(a1, a2), B.FieldVar(b1, b2) ->
-    m_entity a1 b1 >>= (fun () -> 
-    m_variable_definition a2 b2 >>= (fun () -> 
-    return ()
-    ))
-  | A.FieldMethod(a1, a2), B.FieldMethod(b1, b2) ->
-    m_entity a1 b1 >>= (fun () -> 
-    m_function_definition a2 b2 >>= (fun () -> 
-    return ()
-    ))
   | A.FieldDynamic(a1, a2, a3), B.FieldDynamic(b1, b2, b3) ->
     m_expr a1 b1 >>= (fun () -> 
     (m_list m_attribute) a2 b2 >>= (fun () -> 
     m_expr a3 b3 >>= (fun () -> 
     return ()
     )))
-  | A.FieldSpread(a1), B.FieldSpread(b1) ->
+  | A.FieldSpread(a0, a1), B.FieldSpread(b0, b1) ->
+    m_tok a0 b0 >>= (fun () ->
     m_expr a1 b1 >>= (fun () -> 
     return ()
-    )
+    ))
   | A.FieldStmt(a1), B.FieldStmt(b1) ->
     m_stmt a1 b1 >>= (fun () -> 
     return ()
     )
-  | A.FieldVar _, _ | A.FieldMethod _, _ | A.FieldDynamic _, _
+  | A.FieldDynamic _, _
   | A.FieldSpread _, _ | A.FieldStmt _, _
    -> fail ()
 
@@ -1486,7 +1605,7 @@ and m_type_definition_kind a b =
     return ()
     )
   | A.AndType(a1), B.AndType(b1) ->
-    (m_list m_field) a1 b1 >>= (fun () -> 
+    (m_fields) a1 b1 >>= (fun () -> 
     return ()
     )
   | A.AliasType(a1), B.AliasType(b1) ->
@@ -1495,6 +1614,7 @@ and m_type_definition_kind a b =
     )
   | A.Exception(a1, a2), B.Exception(b1, b2) ->
     m_ident a1 b1 >>= (fun () -> 
+    (* TODO: m_list__m_type_ ? *)
     (m_list m_type_) a2 b2 >>= (fun () -> 
     return ()
     ))
@@ -1511,12 +1631,13 @@ and m_or_type a b =
   match a, b with
   | A.OrConstructor(a1, a2), B.OrConstructor(b1, b2) ->
     (m_ident) a1 b1 >>= (fun () -> 
+    (* TODO: m_list__m_type_ ? *)
     (m_list m_type_) a2 b2 >>= (fun () -> 
     return ()
     ))
   | A.OrEnum(a1, a2), B.OrEnum(b1, b2) ->
     m_ident a1 b1 >>= (fun () -> 
-    (m_expr) a2 b2 >>= (fun () -> 
+    m_option m_expr a2 b2 >>= (fun () -> 
     return ()
     ))
   | A.OrUnion(a1, a2), B.OrUnion(b1, b2) ->
@@ -1539,15 +1660,55 @@ and m_other_or_type_element_operator = m_other_xxx
 (* ------------------------------------------------------------------------- *)
 (* Class definition *)
 (* ------------------------------------------------------------------------- *)
+(* TODO: there are a few remaining m_list m_type_ we could transform
+ * to use instead m_list__m_type_, for Exception, TyTuple and OrConstructor
+ * but maybe quite different from list of types in inheritance 
+ * TODO again like for m_list__m_field we should not care about the
+ * order here.
+ *)
+
+and m_list__m_type_ (xsa: A.type_ list) (xsb: A.type_ list) =
+  match xsa, xsb with
+  | [], [] ->
+      return ()
+
+  (* less-is-ok: it's ok to not specify all the parents I think *)
+  | [], _::_ ->
+      return ()
+
+  (* dots: '...', this is very Python Specific I think *)
+  | [A.OtherType (A.OT_Arg, [A.Ar (A.Arg(A.Ellipsis _i))])], [] ->
+      return ()
+
+  (* dots: '...', this is very Python Specific I think *)
+  | (A.OtherType (A.OT_Arg, [A.Ar (A.Arg (A.Ellipsis i))]))::xsa, xb::xsb ->
+      (* can match nothing *)
+      (m_list__m_type_ xsa (xb::xsb)) >||>
+      (* can match more *)
+      (m_list__m_type_ 
+          ((A.OtherType (A.OT_Arg, [A.Ar (A.Arg (A.Ellipsis i))]))::xsa) xsb)
+
+
+  (* the general case *)
+  | xa::aas, xb::bbs ->
+      m_type_ xa xb >>= (fun () ->
+      m_list__m_type_ aas bbs >>= (fun () ->
+        return ()
+      )
+      )
+  | _::_, _ ->
+      fail ()
+
+
 
 and m_class_definition a b = 
   match a, b with
   { A. ckind = a1; cextends = a2; cimplements = a3; cbody = a4; },
   { B. ckind = b1; cextends = b2; cimplements = b3; cbody = b4; } -> 
     m_class_kind a1 b1 >>= (fun () -> 
-    (m_list m_type_) a2 b2 >>= (fun () -> 
-    (m_list m_type_) a3 b3 >>= (fun () -> 
-    (m_list m_field) a4 b4 >>= (fun () -> 
+    (m_list__m_type_) a2 b2 >>= (fun () -> 
+    (m_list__m_type_) a3 b3 >>= (fun () -> 
+    (m_fields) a4 b4 >>= (fun () -> 
     return ()
   ))))
 
@@ -1614,14 +1775,27 @@ and m_macro_definition a b =
 
 and m_directive a b = 
   match a, b with
-  | A.ImportFrom(a1, a2), B.ImportFrom(b1, b2) ->
+  | A.ImportFrom(a0, a1, a2), B.ImportFrom(b0, b1, b2) ->
+    m_tok a0 b0 >>= (fun () ->
     m_module_name a1 b1 >>= (fun () -> 
     (m_list m_alias) a2 b2 >>= (fun () -> 
     return ()
-    ))
-  | A.ImportAs(a1, a2), B.ImportAs(b1, b2) ->
+    )))
+  | A.ImportAs(a0, a1, a2), B.ImportAs(b0, b1, b2) ->
+    m_tok a0 b0 >>= (fun () ->
     m_module_name a1 b1 >>= (fun () -> 
     (m_option m_ident) a2 b2 >>= (fun () -> 
+    return ()
+    )))
+  | A.ImportAll(a0, a1, a2), B.ImportAll(b0, b1, b2) ->
+    m_tok a0 b0 >>= (fun () ->
+    m_module_name a1 b1 >>= (fun () -> 
+    m_tok a2 b2 >>= (fun () -> 
+    return ()
+    )))
+  | A.Package(a0, a1), B.Package(b0, b1) ->
+    m_tok a0 b0 >>= (fun () ->
+    m_dotted_name a1 b1 >>= (fun () -> 
     return ()
     ))
   | A.OtherDirective(a1, a2), B.OtherDirective(b1, b2) ->
@@ -1630,6 +1804,7 @@ and m_directive a b =
     return ()
     ))
   | A.ImportFrom _, _ | A.ImportAs _, _ | A.OtherDirective _, _
+  | A.ImportAll _, _ | A.Package _, _
    -> fail ()
 
 and m_alias a b = 

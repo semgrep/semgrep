@@ -95,25 +95,24 @@ let mk_one_info_from_multiple_infos xs =
   List.hd xs
 
 let print_match mvars mvar_binding ii_of_any tokens_matched_code = 
+  (* there are a few fake tokens in the generic ASTs now (e.g., 
+   * for DotAccess generated outside the grammar) *)
+  let toks = tokens_matched_code |> List.filter PI.is_origintok in
   (match mvars with
   | [] ->
       if !r2c
       then 
-         let info = mk_one_info_from_multiple_infos tokens_matched_code in
+         let info = mk_one_info_from_multiple_infos toks in
          (* todo? use the -e pattern for the check_id? *)
          E.error info (E.SgrepLint ("sgrep", "found a match"))
       else    
-        Matching_report.print_match ~format:!match_format tokens_matched_code
+        Matching_report.print_match ~format:!match_format toks
   | xs ->
       (* similar to the code of Lib_matcher.print_match, maybe could
        * factorize code a bit.
-       * This assumes there is no FakeTok in tokens_matched_code.
-       * Currently the only fake tokens generated in parser_php.mly are
-       * for abstract methods and sgrep/spatch do not have metavariables
-       * to match such construct so we should be safe.
        *)
       let (mini, _maxi) = 
-        PI.min_max_ii_by_pos tokens_matched_code in
+        PI.min_max_ii_by_pos toks in
       let (file, line) = 
         PI.file_of_info mini, PI.line_of_info mini in
 
@@ -130,7 +129,7 @@ let print_match mvars mvar_binding ii_of_any tokens_matched_code =
       in
       pr (spf "%s:%d: %s" file line (Common.join ":" strings_metavars));
   );
-  tokens_matched_code |> List.iter (fun x -> Common.push x _matching_tokens)
+  toks |> List.iter (fun x -> Common.push x _matching_tokens)
 
 let print_simple_match tokens_matched_code =
   print_match [] [] tokens_matched_code
@@ -223,15 +222,6 @@ let parse_pattern str =
       failwith (spf "fail to parse pattern: '%s' in lang %s" str !lang)
  
 
-let read_patterns name =
-  let ic = open_in name in
-  let try_read () =
-    try Some (input_line ic) with End_of_file -> None in
-  let rec loop acc = match try_read () with
-    | Some s -> loop ((parse_pattern s) :: acc)
-    | None -> close_in ic; List.rev acc in
-  loop []
-
 let sgrep_ast pattern any_ast =
   match pattern, any_ast with
   |  _, NoAST -> () (* skipping *)
@@ -280,13 +270,16 @@ let sgrep_with_one_pattern xs =
         parse_pattern s, s
     | _ -> raise Impossible
   in
-
-  let root, files = 
+  let files = 
+    match Lang.lang_of_string_opt !lang with
+    | Some lang -> Lang.files_of_dirs_or_files lang xs
+    (* should remove at some point *)
+    | None -> Find_source.files_of_dir_or_files ~lang:!lang xs
+  in
+  let root = 
     match xs with
-    | [x] when Sys.is_directory x ->
-       x, Find_source.files_of_root ~lang:!lang x
-    | _ -> 
-       "/", Find_source.files_of_dir_or_files ~lang:!lang xs
+    | [x] when Sys.is_directory x -> x
+    | _ -> "/"
   in
 
   files |> List.iter (fun file ->
@@ -353,12 +346,64 @@ let sgrep_with_rules rules_file xs =
     let s = Json_io.string_of_json json in
     pr s
 
+(*****************************************************************************)
+(* Checker *)
+(*****************************************************************************)
+(* We do not use the easier Stdlib.input_line here because this function
+ * does remove newlines (and may do other clever things), but
+ * newlines have a special meaning in some languages
+ * (e.g., Python), so we use the lower-level Stdlib.input instead.
+ *)
+let rec read_all chan =
+  let buf = Bytes.create 4096 in
+  let len = input chan buf 0 4096 in
+  if len = 0
+  then ""
+  else 
+    let rest = read_all chan in
+    Bytes.sub_string buf 0 len ^ rest
+
+(* works with -lang *)
+let validate_pattern () =
+  let chan = stdin in
+  let s = read_all chan in
+  try (
+  match parse_pattern s with
+  | PatGen _ -> exit 0
+  | _ -> exit 1
+  ) with _exn -> exit 1
+
+(*****************************************************************************)
+(* Dumpers *)
+(*****************************************************************************)
+(* works with -lang *)
+let dump_pattern file =
+  let s = Common.read_file file in
+  match parse_pattern s with
+  | PatGen x ->
+      let v = Meta_ast.vof_any x in
+      let s = Ocaml.string_of_v v in
+      pr2 s
+  | _ -> failwith "dumper supported only for generic patterns"
+
+let dump_ast file =
+  let x = Parse_generic.parse_program file in
+  let v = Meta_ast.vof_any (Ast_generic.Pr x) in
+  let s = Ocaml.string_of_v v in
+  pr2 s
 
 (*****************************************************************************)
 (* The options *)
 (*****************************************************************************)
 
-let all_actions () = []
+let all_actions () = [
+  "--validate-pattern-stdin", " you also need to pass -lang",
+  Common.mk_action_0_arg validate_pattern;
+  "-dump_pattern", " <file>",
+  Common.mk_action_1_arg dump_pattern;
+  "-dump_ast", " <file>",
+  Common.mk_action_1_arg dump_ast;
+ ]
 
 let options () = 
   [
@@ -398,6 +443,7 @@ let options () =
     " add debugging information in the output (e.g., tracing)";
   ] @
   Error_code.options () @
+  Common.options_of_actions action (all_actions()) @
   Common2.cmdline_flags_devel () @
   [ "-version",   Arg.Unit (fun () -> 
     pr2 (spf "sgrep version: %s" Config_pfff.version);

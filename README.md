@@ -12,13 +12,19 @@ Its main features are:
 1. **Use concrete code syntax**: easy to learn
 2. **Metavariables ($X)**: abstract away code
 3. **'...' operator**: abstract away sequences
-4. **Knows about code equivalences**: one pattern can match many equivalent variations on }the code
+4. **Knows about code equivalences**: one pattern can match many equivalent variations on the code
 5. **Less is more**: abstract away additional details
 
 `sgrep` has good support for Python and JavaScript, with some support
 for Java and C, and more languages on the way!
 
-For more information see the [slides](https://r2c.dev/sgrep-public.pdf) from the r2c December 2019 meetup.
+### sgrep meetups
+
+Want to learn more about sgrep? Come to the next [meetup in San Francisco on Monday, February 10](https://www.eventbrite.com/e/detect-complex-code-patterns-using-semantic-grep-tickets-91167980885).
+
+**Previous meetups**
+
+- r2c December 2019 meetup [slides](https://r2c.dev/sgrep-public.pdf)
 
 ## Installation
 
@@ -42,6 +48,10 @@ docker run --rm -v $(pwd):/home/repo returntocorp/sgrep
 
 ```
 
+## Github Action for CI
+
+See our [sgrep-lint](https://github.com/marketplace/actions/sgrep-lint) action for easy use of `sgrep` in CI
+
 ## Usage
 
 ### Rule Development
@@ -57,7 +67,7 @@ Here, `sgrep` will search the target with the pattern `$X == $X` (which is a stu
 To see more options
 
 ```bash
-docker run --rm returntocorp/sgrep --help
+docker run --rm -v $(pwd):/home/repo returntocorp/sgrep --help
 ```
 
 ### Config Files
@@ -97,15 +107,15 @@ Patterns are snippets of code with variables and other operators that will be pa
 `sgrep` automatically searches for code that is semantically equivalent. For example, a pattern for
 
 ```sgrep
-$F = open($X, ...)
-$F.read()
+subprocess.open(...)
 ```
 
 will match
 
 ```python
-with open('foo.txt', 'rb') as f:
-    f.read()
+from subprocess import open as
+ sub_open
+result = sub_open(“ls”)
 ```
 
 and other semantically equivalent configurations.
