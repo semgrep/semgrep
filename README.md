@@ -41,8 +41,10 @@ brew install sgrep-lint # coming soon
 
 ```bash
 cd /path/to/repo
-vim .sgrep.yml
+# generate a template config file
+docker run --rm -v $(pwd):/home/repo returntocorp/sgrep --generate-config
 
+# look for findings
 docker run --rm -v $(pwd):/home/repo returntocorp/sgrep
 
 ```
