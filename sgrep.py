@@ -32,6 +32,10 @@ import yaml
 
 # Constants
 
+TEMPLATE_YAML_URL = (
+    "https://raw.githubusercontent.com/returntocorp/sgrep-rules/develop/template.yaml"
+)
+
 REPO_HOME_DOCKER = "/home/repo/"
 DEFAULT_SGREP_CONFIG_NAME = "sgrep"
 DEFAULT_CONFIG_FILE = f".{DEFAULT_SGREP_CONFIG_NAME}.yml"
@@ -462,7 +466,7 @@ def load_config(location: Optional[str] = None) -> Any:
             else:
                 print_error_exit(f"{loc} is not a file or folder!")
         else:
-            return None
+            print_error_exit(f"unable to find a config file in {base_path.resolve()}")
 
 
 def download_config(config_url: str) -> Any:
@@ -632,6 +636,36 @@ def save_output(output_str: str, output_data: Dict[str, Any]):
             fout.write(build_output_json(output_data))
 
 
+def generate_config():
+    # defensive coding
+    if Path(DEFAULT_CONFIG_FILE).exists():
+        print_error_exit(
+            f"{DEFAULT_CONFIG_FILE} already exists. Please remove and try again"
+        )
+    try:
+        r = requests.get(TEMPLATE_YAML_URL, timeout=10)
+        r.raise_for_status()
+        template_str = r.text
+    except Exception as e:
+        debug_print(str(e))
+        print_msg(
+            f"There was a problem downloading the latest template config. Using fallback template"
+        )
+        template_str = """rules:
+  - id: eqeq-is-bad
+    pattern: $X == $X
+    message: "Dude, $X == $X is stupid"
+    languages: [python]
+    severity: ERROR"""
+    try:
+        with open(DEFAULT_CONFIG_FILE, "w") as template:
+            template.write(template_str)
+            print_msg(f"Template config successfully written to {DEFAULT_CONFIG_FILE}")
+            sys.exit(0)
+    except Exception as e:
+        print_error_exit(e)
+
+
 def set_flags(debug: bool, quiet: bool) -> None:
     """Set the global DEBUG and QUIET flags"""
     # TODO move to a proper logging framework
@@ -658,8 +692,12 @@ def main(args: argparse.Namespace):
     # get the proper paths for targets i.e. handle base path of /home/repo when it exists in docker
     targets = resolve_targets(args.target)
 
-    # first let's check for a pattern
-    if args.pattern:
+    # first check if user asked to generate a config
+    if args.generate_config:
+        generate_config()
+
+    # let's check for a pattern
+    elif args.pattern:
         # and a language
         if args.lang:
             lang = args.lang
@@ -675,13 +713,9 @@ def main(args: argparse.Namespace):
 
     # if we can't find a config, use default r2c rules
     if not configs:
-        print_error(f"Unable to find a config in {args.config}")
-        print_msg(f"No config given so using the {DEFAULT_REGISTRY_KEY} config...")
-        configs = resolve_config(DEFAULT_REGISTRY_KEY)
-
-    # if we STILL can't find a config, bail
-    if not configs:
-        print_error_exit(f"unable to resolve {args.config}")
+        print_error_exit(
+            f"No config given. If you want to see some examples run --config r2c"
+        )
 
     # let's split our configs into valid and invalid configs.
     # It's possible that a config_id exists in both because we check valid rules and invalid rules
@@ -793,6 +827,12 @@ if __name__ == "__main__":
     # config options
     config = parser.add_argument_group("config")
     config_ex = config.add_mutually_exclusive_group()
+    config_ex.add_argument(
+        "-g",
+        "--generate-config",
+        help=f"Generte starter {DEFAULT_CONFIG_FILE}",
+        action="store_true",
+    )
 
     config_ex.add_argument(
         "-f",
