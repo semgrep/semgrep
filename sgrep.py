@@ -148,22 +148,15 @@ def _parse_boolean_expression(rule_patterns, pattern_id=0, prefix=""):
     """
     for pattern in rule_patterns:
         for boolean_operator, pattern_text in pattern.items():
-            if (
-                boolean_operator == INVERSE_PATTERN_NAMES_MAP[OPERATORS.AND_EITHER]
-                or boolean_operator == INVERSE_PATTERN_NAMES_MAP[OPERATORS.AND_ALL]
-            ):
-                operator = operator_for_pattern_name(boolean_operator)
-                sub_expression = _parse_boolean_expression(
-                    pattern_text, 0, f"{prefix}.{pattern_id}"
-                )
+            operator = operator_for_pattern_name(boolean_operator)
+            if isinstance(pattern_text, list):                
+                sub_expression = _parse_boolean_expression(pattern_text, 0, f"{prefix}.{pattern_id}")
                 yield (operator, NO_BOOLEAN_RULE_ID, list(sub_expression))
-            else:
-                yield (
-                    operator_for_pattern_name(boolean_operator),
-                    f"{prefix}.{pattern_id}",
-                    pattern_text,
-                )
+            elif isinstance(pattern_text, str):
+                yield (operator, f"{prefix}.{pattern_id}", pattern_text)
                 pattern_id += 1
+            else:
+                raise TypeError(f'invalid type for pattern {pattern}: {type(pattern_text)}')
 
 
 def build_boolean_expression(rule):
@@ -179,8 +172,11 @@ def build_boolean_expression(rule):
         assert False
 
 
-def operator_for_pattern_name(pattern_name):
+def operator_for_pattern_name(pattern_name: str) -> str:
     return PATTERN_NAMES_MAP[pattern_name]
+
+def pattern_name_for_operator(operator: str) -> str:
+    return INVERSE_PATTERN_NAMES_MAP[operator]
 
 
 @dataclass(frozen=True)
@@ -245,7 +241,7 @@ def _evaluate_expression(
         if operator == OPERATORS.AND_EITHER or operator == OPERATORS.AND_ALL:
             assert isinstance(
                 pattern_id_or_list, list
-            ), f"{OPERATORS.AND_EITHER} or {OPERATORS.AND_ALL} must have a list of subpatterns"
+            ), f"{pattern_name_for_operator(OPERATORS.AND_EITHER)} or {pattern_name_for_operator(OPERATORS.AND_ALL)} must have a list of subpatterns"
 
             # recurse on the nested expressions
             evaluated_ranges = [
@@ -267,7 +263,7 @@ def _evaluate_expression(
         else:
             assert isinstance(
                 pattern_id_or_list, str
-            ), f"only {OPERATORS.AND_EITHER} or {OPERATORS.AND_ALL} expressions can have multiple subpatterns"
+            ), f"only `{pattern_name_for_operator(OPERATORS.AND_EITHER)}` or `{pattern_name_for_operator(OPERATORS.AND_ALL)}` expressions can have multiple subpatterns"
             ranges_left = _evaluate_single_expression(
                 operator, pattern_id_or_list, results, ranges_left
             )
