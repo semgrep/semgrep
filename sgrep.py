@@ -309,27 +309,24 @@ def invoke_sgrep(
     outputs = []
     # multiple invocations per language
     for language, all_rules_for_language in group_rule_by_langauges(all_rules).items():
-        try:
-            with tempfile.NamedTemporaryFile("w") as fout:
-                # very important not to sort keys here
-                yaml_as_str = yaml.safe_dump(
-                    {"rules": all_rules_for_language}, sort_keys=False
-                )
-                fout.write(yaml_as_str)
-                fout.flush()
-                cmd = [
-                    SGREP_PATH,
-                    "-lang",
-                    language,
-                    f"-rules_file",
-                    fout.name,
-                    *[str(path) for path in targets],
-                ]
-                output = subprocess.check_output(cmd, shell=False)
-                output_json = json.loads((output.decode("utf-8")))
-                outputs.extend(output_json["matches"])
-        except:
-            pass
+        with tempfile.NamedTemporaryFile("w") as fout:
+            # very important not to sort keys here
+            yaml_as_str = yaml.safe_dump(
+                {"rules": all_rules_for_language}, sort_keys=False
+            )
+            fout.write(yaml_as_str)
+            fout.flush()
+            cmd = [
+                SGREP_PATH,
+                "-lang",
+                language,
+                f"-rules_file",
+                fout.name,
+                *[str(path) for path in targets],
+            ]
+            output = subprocess.check_output(cmd, shell=False)
+            output_json = json.loads((output.decode("utf-8")))
+            outputs.extend(output_json["matches"])
     return {"matches": outputs}
 
 
