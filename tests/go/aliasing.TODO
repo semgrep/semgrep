@@ -1,0 +1,11 @@
+package foo
+
+func foo() {
+
+    var x = { fld1: eval };
+    x.fld2 = eval;
+    x("console.log('foo')");
+}
+
+
+
