@@ -1,8 +1,9 @@
-package Foo;
+package Foo
+
 func foo() {
     //ERROR:
-    user_data = get();
-    print("do stuff");
-    foobar();
-    eval(user_data);
+    user_data = get()
+    print("do stuff")
+    foobar()
+    eval(user_data)
 }

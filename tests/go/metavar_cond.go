@@ -1,8 +1,9 @@
 package Foo
+
 func foo() {
-    x = 1;
+    x = 1
     //ERROR:
     if (x > 2) {
-        foo();
+        foo()
     }
 }

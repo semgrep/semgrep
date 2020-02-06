@@ -3,17 +3,17 @@ package foo
 func foo() {
     //ERROR:
     if (x > 2) {
-        foo();
-        bar();
+        foo()
+        bar()
     } else {
-        foo();
-        bar();
+        foo()
+        bar()
     }
 
     if (x > 2) {
-        foo();
-        bar();
+        foo()
+        bar()
     } else {
-        foo();
+        foo()
     }
 }
