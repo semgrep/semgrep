@@ -347,6 +347,33 @@ let sgrep_with_rules rules_file xs =
     pr s
 
 (*****************************************************************************)
+(* Checker *)
+(*****************************************************************************)
+(* We do not use the easier Stdlib.input_line here because this function
+ * does remove newlines (and may do other clever things), but
+ * newlines have a special meaning in some languages
+ * (e.g., Python), so we use the lower-level Stdlib.input instead.
+ *)
+let rec read_all chan =
+  let buf = Bytes.create 4096 in
+  let len = input chan buf 0 4096 in
+  if len = 0
+  then ""
+  else 
+    let rest = read_all chan in
+    Bytes.sub_string buf 0 len ^ rest
+
+(* works with -lang *)
+let validate_pattern () =
+  let chan = stdin in
+  let s = read_all chan in
+  try (
+  match parse_pattern s with
+  | PatGen _ -> exit 0
+  | _ -> exit 1
+  ) with _exn -> exit 1
+
+(*****************************************************************************)
 (* Dumpers *)
 (*****************************************************************************)
 (* works with -lang *)
@@ -370,6 +397,8 @@ let dump_ast file =
 (*****************************************************************************)
 
 let all_actions () = [
+  "--validate-pattern-stdin", " you also need to pass -lang",
+  Common.mk_action_0_arg validate_pattern;
   "-dump_pattern", " <file>",
   Common.mk_action_1_arg dump_pattern;
   "-dump_ast", " <file>",
