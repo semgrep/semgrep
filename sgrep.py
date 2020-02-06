@@ -550,18 +550,14 @@ def convert_config_id_to_prefix(config_id: str) -> str:
         prefix += "."
     return prefix
 
-def validate_pattern_with_sgrep(pattern: str, language: str) -> bool:
-    cmd = [
-        SGREP_PATH,
-        "-lang",
-        language,
-        f"--validate-pattern-stdin",
-    ]
-    p = subprocess.run(cmd, stdout=subprocess.PIPE,
-        input=pattern, encoding='utf-8')
-    return (p.returncode == 0)
 
-def validate_patterns(valid_configs: Dict[str, Any]) -> List[str]: 
+def validate_pattern_with_sgrep(pattern: str, language: str) -> bool:
+    cmd = [SGREP_PATH, "-lang", language, f"--validate-pattern-stdin"]
+    p = subprocess.run(cmd, stdout=subprocess.PIPE, input=pattern, encoding="utf-8")
+    return p.returncode == 0
+
+
+def validate_patterns(valid_configs: Dict[str, Any]) -> List[str]:
     invalid = []
     for config_id, config in valid_configs.items():
         rules = config.get(RULES_KEY, [])
@@ -572,11 +568,14 @@ def validate_patterns(valid_configs: Dict[str, Any]) -> List[str]:
                 )
             )
             for (_operator, pattern_index, pattern) in patterns_with_ids:
-                for language in rule['languages']:
+                for language in rule["languages"]:
                     if not validate_pattern_with_sgrep(pattern, language):
                         invalid.append(pattern)
-                        print_error(f"in {config_id}, pattern in rule {rule['id']} can't be parsed for language {language}: {pattern}")
+                        print_error(
+                            f"in {config_id}, pattern in rule {rule['id']} can't be parsed for language {language}: {pattern}"
+                        )
     return invalid
+
 
 def rename_rule_ids(valid_configs: Dict[str, Any]) -> Dict[str, Any]:
     transformed = {}
@@ -713,7 +712,7 @@ def main(args: argparse.Namespace):
     # now validate all the patterns inside the configs
     invalid_patterns = validate_patterns(valid_configs)
     if len(invalid_patterns):
-        print_error_exit('invalid patterns found inside rules; aborting')
+        print_error_exit("invalid patterns found inside rules; aborting")
 
     # extract just the rules from valid configs
     all_rules = flatten_configs(valid_configs)
