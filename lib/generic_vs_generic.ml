@@ -1241,11 +1241,16 @@ and m_case a b =
     m_pattern a1 b1 >>= (fun () -> 
     return ()
     ))
+  | A.CaseEqualExpr(a0, a1), B.CaseEqualExpr(b0, b1) ->
+    m_tok a0 b0 >>= (fun () ->
+    m_expr a1 b1 >>= (fun () -> 
+    return ()
+    ))
   | A.Default a0, B.Default b0 ->
     m_tok a0 b0 >>= (fun () ->
     return ()
     )
-  | A.Case _, _  | A.Default _, _
+  | A.Case _, _  | A.Default _, _ | A.CaseEqualExpr _, _  
    -> fail ()
 
 

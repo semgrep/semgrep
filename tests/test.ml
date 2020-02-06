@@ -112,6 +112,12 @@ let lang_regression_tests =
     let lang = Lang.C in
     regression_tests_for_lang files lang
   );
+  "sgrep Go" >::: (
+    let dir = Filename.concat tests_path "go" in
+    let files = Common2.glob (spf "%s/*.go" dir) in
+    let lang = Lang.Go in
+    regression_tests_for_lang files lang
+  );
  ]
 
 (* mostly a copy paste of pfff/linter/unit_linter.ml *)
