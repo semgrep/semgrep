@@ -10,6 +10,7 @@ import sys
 import tarfile
 import tempfile
 import traceback
+import shutil
 from dataclasses import dataclass
 from pathlib import Path, PurePath
 from typing import (
@@ -31,14 +32,20 @@ import yaml
 
 # Constants
 
+TEMPLATE_YAML_URL = (
+    "https://raw.githubusercontent.com/returntocorp/sgrep-rules/develop/template.yaml"
+)
+
 REPO_HOME_DOCKER = "/home/repo/"
-DEFAULT_CONFIG_FILE = ".sgrep.yml"
-DEFAULT_CONFIG_FOLDER = ".sgrep"
+DEFAULT_SGREP_CONFIG_NAME = "sgrep"
+DEFAULT_CONFIG_FILE = f".{DEFAULT_SGREP_CONFIG_NAME}.yml"
+DEFAULT_CONFIG_FOLDER = f".{DEFAULT_SGREP_CONFIG_NAME}"
 DEFAULT_LANG = "python"
 
 MISSING_RULE_ID = "no-rule-id"
 
 RULES_REGISTRY = {"r2c": "https://github.com/returntocorp/sgrep-rules/tarball/master"}
+DEFAULT_REGISTRY_KEY = "r2c"
 RULES_KEY = "rules"
 ID_KEY = "id"
 
@@ -421,11 +428,23 @@ def parse_config_file(loc: Path) -> Dict[str, Any]:
     return {config_id: load_config_from_disk(loc)}
 
 
-def parse_config_folder(loc: Path) -> Dict[str, Any]:
+def hidden_config_dir(loc: Path):
+    # want to keep rules/.sgrep.yml but not path/.github/foo.yml
+    # also want to keep src/.sgrep/bad_pattern.yml
+    return any(
+        part.startswith(".") and DEFAULT_SGREP_CONFIG_NAME not in part
+        for part in loc.parts[:-1]
+    )
+
+
+def parse_config_folder(loc: Path, relative: bool = False) -> Dict[str, Any]:
     configs = {}
     for l in loc.rglob("*"):
-        if l.suffix in YML_EXTENSIONS:
-            config_id = str(l)  # TODO
+        if not hidden_config_dir(l) and l.suffix in YML_EXTENSIONS:
+            if relative:
+                config_id = str(l).replace(str(loc), "")  # delete base path to folder
+            else:
+                config_id = str(l)
             configs[config_id] = load_config_from_disk(l)
     return configs
 
@@ -440,7 +459,7 @@ def load_config(location: Optional[str] = None) -> Any:
         elif default_folder.exists():
             return parse_config_folder(default_folder)
         else:
-            print_error_exit(f"unable to find a config file in {base_path.resolve()}")
+            return None
     else:
         loc = base_path.joinpath(location)
         if loc.exists():
@@ -455,7 +474,7 @@ def load_config(location: Optional[str] = None) -> Any:
 
 
 def download_config(config_url: str) -> Any:
-    print_error(f"trying to download from {config_url}")
+    debug_print(f"trying to download from {config_url}")
     try:
         r = requests.get(config_url, stream=True)
         if r.status_code == requests.codes.ok:
@@ -464,12 +483,13 @@ def download_config(config_url: str) -> Any:
                 return parse_config_string(config_url, r.content.decode("utf-8"))
             elif content_type and content_type == "application/x-gzip":
                 fname = f"/tmp/{base64.b64encode(config_url.encode()).decode()}"
+                shutil.rmtree(fname)
                 with tarfile.open(fileobj=r.raw, mode="r:gz") as tar:
                     tar.extractall(fname)
                 extracted = Path(fname)
                 for path in extracted.iterdir():
                     # get first folder in extracted folder (this is how GH does it)
-                    return parse_config_folder(path)
+                    return parse_config_folder(path, relative=True)
             else:
                 print_error_exit(f"unknown content-type: {content_type}. Can not parse")
     except Exception as e:
@@ -645,6 +665,36 @@ def save_output(output_str: str, output_data: Dict[str, Any]):
             fout.write(build_output_json(output_data))
 
 
+def generate_config():
+    # defensive coding
+    if Path(DEFAULT_CONFIG_FILE).exists():
+        print_error_exit(
+            f"{DEFAULT_CONFIG_FILE} already exists. Please remove and try again"
+        )
+    try:
+        r = requests.get(TEMPLATE_YAML_URL, timeout=10)
+        r.raise_for_status()
+        template_str = r.text
+    except Exception as e:
+        debug_print(str(e))
+        print_msg(
+            f"There was a problem downloading the latest template config. Using fallback template"
+        )
+        template_str = """rules:
+  - id: eqeq-is-bad
+    pattern: $X == $X
+    message: "Dude, $X == $X is stupid"
+    languages: [python]
+    severity: ERROR"""
+    try:
+        with open(DEFAULT_CONFIG_FILE, "w") as template:
+            template.write(template_str)
+            print_msg(f"Template config successfully written to {DEFAULT_CONFIG_FILE}")
+            sys.exit(0)
+    except Exception as e:
+        print_error_exit(e)
+
+
 def set_flags(debug: bool, quiet: bool) -> None:
     """Set the global DEBUG and QUIET flags"""
     # TODO move to a proper logging framework
@@ -671,8 +721,12 @@ def main(args: argparse.Namespace):
     # get the proper paths for targets i.e. handle base path of /home/repo when it exists in docker
     targets = resolve_targets(args.target)
 
-    # first let's check for a pattern
-    if args.pattern:
+    # first check if user asked to generate a config
+    if args.generate_config:
+        generate_config()
+
+    # let's check for a pattern
+    elif args.pattern:
         # and a language
         if args.lang:
             lang = args.lang
@@ -686,9 +740,11 @@ def main(args: argparse.Namespace):
         # else let's get a config. A config is a dict from config_id -> config. Config Id is not well defined at this point.
         configs = resolve_config(args.config)
 
-    # if we can't find a config, bail
+    # if we can't find a config, use default r2c rules
     if not configs:
-        print_error_exit(f"unable to resolve {args.config}")
+        print_error_exit(
+            f"No config given. If you want to see some examples run --config r2c"
+        )
 
     # let's split our configs into valid and invalid configs.
     # It's possible that a config_id exists in both because we check valid rules and invalid rules
@@ -805,6 +861,12 @@ if __name__ == "__main__":
     # config options
     config = parser.add_argument_group("config")
     config_ex = config.add_mutually_exclusive_group()
+    config_ex.add_argument(
+        "-g",
+        "--generate-config",
+        help=f"Generte starter {DEFAULT_CONFIG_FILE}",
+        action="store_true",
+    )
 
     config_ex.add_argument(
         "-f",
