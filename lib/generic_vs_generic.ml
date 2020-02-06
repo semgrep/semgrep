@@ -489,8 +489,6 @@ and m_expr a b =
   | A.AnonClass(a1), B.AnonClass(b1) ->
     m_class_definition a1 b1 >>= (fun () -> 
     return ())
-  | A.Nop, B.Nop ->
-    return ()
   | A.Name(a1, a2), B.Name(b1, b2) ->
     m_name a1 b1 >>= (fun () -> 
     m_id_info a2 b2 >>= (fun () -> 
@@ -592,7 +590,7 @@ and m_expr a b =
     return ()
     ))
   | A.L _, _  | A.Container _, _  | A.Tuple _, _  | A.Record _, _
-  | A.Constructor _, _  | A.Lambda _, _  | A.AnonClass _, _  | A.Nop, _
+  | A.Constructor _, _  | A.Lambda _, _  | A.AnonClass _, _
   | A.Name _, _  | A.IdSpecial _, _  | A.Call _, _  | A.Xml _, _
   | A.Assign _, _  | A.AssignOp _, _  | A.LetPattern _, _  | A.DotAccess _, _
   | A.ArrayAccess _, _  | A.Conditional _, _  | A.MatchPattern _, _
@@ -1113,7 +1111,7 @@ and m_stmt a b =
     )))
   | A.Switch(at, a1, a2), B.Switch(bt, b1, b2) ->
     m_tok at bt >>= (fun () -> 
-    m_expr a1 b1 >>= (fun () -> 
+    m_option m_expr a1 b1 >>= (fun () -> 
     (m_list m_case_and_body) a2 b2 >>= (fun () -> 
     return ()
     )))
@@ -1183,8 +1181,8 @@ and m_for_header a b =
   match a, b with
   | A.ForClassic(a1, a2, a3), B.ForClassic(b1, b2, b3) ->
     (m_list m_for_var_or_expr) a1 b1 >>= (fun () -> 
-    m_expr a2 b2 >>= (fun () -> 
-    m_expr a3 b3 >>= (fun () -> 
+    m_option m_expr a2 b2 >>= (fun () -> 
+    m_option m_expr a3 b3 >>= (fun () -> 
     return ()
     )))
   | A.ForEach(a1, a2), B.ForEach(b1, b2) ->
@@ -1634,7 +1632,7 @@ and m_or_type a b =
     ))
   | A.OrEnum(a1, a2), B.OrEnum(b1, b2) ->
     m_ident a1 b1 >>= (fun () -> 
-    (m_expr) a2 b2 >>= (fun () -> 
+    m_option m_expr a2 b2 >>= (fun () -> 
     return ()
     ))
   | A.OrUnion(a1, a2), B.OrUnion(b1, b2) ->
