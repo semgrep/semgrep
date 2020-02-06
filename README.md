@@ -18,7 +18,13 @@ Its main features are:
 `sgrep` has good support for Python and JavaScript, with some support
 for Java and C, and more languages on the way!
 
-For more information see the [slides](https://r2c.dev/sgrep-public.pdf) from the r2c December 2019 meetup.
+### sgrep meetups
+
+Want to learn more about sgrep? Come to the next [meetup in San Francisco on Monday, February 10](https://www.eventbrite.com/e/detect-complex-code-patterns-using-semantic-grep-tickets-91167980885).
+
+**Previous meetups**
+
+- r2c December 2019 meetup [slides](https://r2c.dev/sgrep-public.pdf)
 
 ## Installation
 
