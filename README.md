@@ -35,7 +35,7 @@ Want to learn more about sgrep? Come to the next [meetup in San Francisco on Mon
 ### Mac
 
 ```bash
-brew install sgrep # coming soon
+brew install sgrep-lint # coming soon
 ```
 
 ## Quickstart
