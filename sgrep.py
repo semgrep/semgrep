@@ -436,7 +436,9 @@ def hidden_config_dir(loc: Path):
     )
 
 
-def parse_config_folder(loc: Path, base: Optional[Path] = NotImplementedError) -> Dict[str, Any]:
+def parse_config_folder(
+    loc: Path, base: Optional[Path] = NotImplementedError
+) -> Dict[str, Any]:
     configs = {}
     for l in loc.rglob("*"):
         if not hidden_config_dir(l) and l.suffix in YML_EXTENSIONS:
