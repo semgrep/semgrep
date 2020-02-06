@@ -10,6 +10,7 @@ import sys
 import tarfile
 import tempfile
 import traceback
+import shutil
 from dataclasses import dataclass
 from pathlib import Path, PurePath
 from typing import (
@@ -32,13 +33,15 @@ import yaml
 # Constants
 
 REPO_HOME_DOCKER = "/home/repo/"
-DEFAULT_CONFIG_FILE = ".sgrep.yml"
-DEFAULT_CONFIG_FOLDER = ".sgrep"
+DEFAULT_SGREP_CONFIG_NAME = "sgrep"
+DEFAULT_CONFIG_FILE = f".{DEFAULT_SGREP_CONFIG_NAME}.yml"
+DEFAULT_CONFIG_FOLDER = f".{DEFAULT_SGREP_CONFIG_NAME}"
 DEFAULT_LANG = "python"
 
 MISSING_RULE_ID = "no-rule-id"
 
 RULES_REGISTRY = {"r2c": "https://github.com/returntocorp/sgrep-rules/tarball/master"}
+DEFAULT_REGISTRY_KEY = "r2c"
 RULES_KEY = "rules"
 ID_KEY = "id"
 
@@ -306,24 +309,27 @@ def invoke_sgrep(
     outputs = []
     # multiple invocations per language
     for language, all_rules_for_language in group_rule_by_langauges(all_rules).items():
-        with tempfile.NamedTemporaryFile("w") as fout:
-            # very important not to sort keys here
-            yaml_as_str = yaml.safe_dump(
-                {"rules": all_rules_for_language}, sort_keys=False
-            )
-            fout.write(yaml_as_str)
-            fout.flush()
-            cmd = [
-                SGREP_PATH,
-                "-lang",
-                language,
-                f"-rules_file",
-                fout.name,
-                *[str(path) for path in targets],
-            ]
-            output = subprocess.check_output(cmd, shell=False)
-            output_json = json.loads((output.decode("utf-8")))
-            outputs.extend(output_json["matches"])
+        try:
+            with tempfile.NamedTemporaryFile("w") as fout:
+                # very important not to sort keys here
+                yaml_as_str = yaml.safe_dump(
+                    {"rules": all_rules_for_language}, sort_keys=False
+                )
+                fout.write(yaml_as_str)
+                fout.flush()
+                cmd = [
+                    SGREP_PATH,
+                    "-lang",
+                    language,
+                    f"-rules_file",
+                    fout.name,
+                    *[str(path) for path in targets],
+                ]
+                output = subprocess.check_output(cmd, shell=False)
+                output_json = json.loads((output.decode("utf-8")))
+                outputs.extend(output_json["matches"])
+        except:
+            pass
     return {"matches": outputs}
 
 
@@ -420,11 +426,20 @@ def parse_config_file(loc: Path) -> Dict[str, Any]:
     return {config_id: load_config_from_disk(loc)}
 
 
+def hidden_config_dir(loc: Path):
+    # want to keep rules/.sgrep.yml but not path/.github/foo.yml
+    # also want to keep src/.sgrep/bad_pattern.yml
+    return any(
+        part.startswith(".") and DEFAULT_SGREP_CONFIG_NAME not in part
+        for part in loc.parts[:-1]
+    )
+
+
 def parse_config_folder(loc: Path) -> Dict[str, Any]:
     configs = {}
     for l in loc.rglob("*"):
-        if l.suffix in YML_EXTENSIONS:
-            config_id = str(l)  # TODO
+        if not hidden_config_dir(l) and l.suffix in YML_EXTENSIONS:
+            config_id = str(l).replace(str(loc), "")  # delete base path to folder
             configs[config_id] = load_config_from_disk(l)
     return configs
 
@@ -439,7 +454,7 @@ def load_config(location: Optional[str] = None) -> Any:
         elif default_folder.exists():
             return parse_config_folder(default_folder)
         else:
-            print_error_exit(f"unable to find a config file in {base_path.resolve()}")
+            return None
     else:
         loc = base_path.joinpath(location)
         if loc.exists():
@@ -450,11 +465,11 @@ def load_config(location: Optional[str] = None) -> Any:
             else:
                 print_error_exit(f"{loc} is not a file or folder!")
         else:
-            print_error_exit(f"unable to find a config file in {base_path.resolve()}")
+            return None
 
 
 def download_config(config_url: str) -> Any:
-    print_error(f"trying to download from {config_url}")
+    debug_print(f"trying to download from {config_url}")
     try:
         r = requests.get(config_url, stream=True)
         if r.status_code == requests.codes.ok:
@@ -463,6 +478,7 @@ def download_config(config_url: str) -> Any:
                 return parse_config_string(config_url, r.content.decode("utf-8"))
             elif content_type and content_type == "application/x-gzip":
                 fname = f"/tmp/{base64.b64encode(config_url.encode()).decode()}"
+                shutil.rmtree(fname)
                 with tarfile.open(fileobj=r.raw, mode="r:gz") as tar:
                     tar.extractall(fname)
                 extracted = Path(fname)
@@ -660,7 +676,13 @@ def main(args: argparse.Namespace):
         # else let's get a config. A config is a dict from config_id -> config. Config Id is not well defined at this point.
         configs = resolve_config(args.config)
 
-    # if we can't find a config, bail
+    # if we can't find a config, use default r2c rules
+    if not configs:
+        print_error(f"Unable to find a config in {args.config}")
+        print_msg(f"No config given so using the {DEFAULT_REGISTRY_KEY} config...")
+        configs = resolve_config(DEFAULT_REGISTRY_KEY)
+
+    # if we STILL can't find a config, bail
     if not configs:
         print_error_exit(f"unable to resolve {args.config}")
 
