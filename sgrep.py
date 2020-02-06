@@ -149,14 +149,18 @@ def _parse_boolean_expression(rule_patterns, pattern_id=0, prefix=""):
     for pattern in rule_patterns:
         for boolean_operator, pattern_text in pattern.items():
             operator = operator_for_pattern_name(boolean_operator)
-            if isinstance(pattern_text, list):                
-                sub_expression = _parse_boolean_expression(pattern_text, 0, f"{prefix}.{pattern_id}")
+            if isinstance(pattern_text, list):
+                sub_expression = _parse_boolean_expression(
+                    pattern_text, 0, f"{prefix}.{pattern_id}"
+                )
                 yield (operator, NO_BOOLEAN_RULE_ID, list(sub_expression))
             elif isinstance(pattern_text, str):
                 yield (operator, f"{prefix}.{pattern_id}", pattern_text)
                 pattern_id += 1
             else:
-                raise TypeError(f'invalid type for pattern {pattern}: {type(pattern_text)}')
+                raise TypeError(
+                    f"invalid type for pattern {pattern}: {type(pattern_text)}"
+                )
 
 
 def build_boolean_expression(rule):
@@ -174,6 +178,7 @@ def build_boolean_expression(rule):
 
 def operator_for_pattern_name(pattern_name: str) -> str:
     return PATTERN_NAMES_MAP[pattern_name]
+
 
 def pattern_name_for_operator(operator: str) -> str:
     return INVERSE_PATTERN_NAMES_MAP[operator]
