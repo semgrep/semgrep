@@ -6,9 +6,13 @@ cd "$(dirname "$(realpath "$0")")";
 PYTHONPATH=.. python3 test_lint.py
 
 cd ..
-./sgrep.py --config testlint/python tests/lint | tee tmp.out
+./sgrep.py --strict --config testlint/python/eqeq.yaml tests/lint | tee tmp.out
 diff tmp.out ./testlint/python/eqeq.expected.json
 rm -f tmp.out
+
+# parsing bad.yaml should fail 
+./sgrep.py --strict --config testlint/python/bad.yaml tests/lint && exit 1
+
 
 echo "-----------------------"
 echo "all lint tests complete"
