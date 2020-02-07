@@ -148,6 +148,18 @@ def drop_patterns(expression_with_patterns):
             (op, pattern_id, pattern) = pattern_or_list
             yield (op, pattern_id)
 
+def enumerate_patterns_in_boolean_expression(expression):
+    """
+    flatten a potentially nested expression
+    """
+    for pattern_or_list in expression:
+        if isinstance(pattern_or_list[2], list):
+            # we need to preserve this parent of multiple children, but it has no corresponding pattern
+            yield (pattern_or_list[0], NO_BOOLEAN_RULE_ID, "no-pattern")
+            # now yield all the children
+            yield from enumerate_patterns_in_boolean_expression(pattern_or_list[2])
+        else:
+            yield pattern_or_list
 
 def _parse_boolean_expression(rule_patterns, pattern_id=0, prefix=""):
     """
@@ -161,13 +173,15 @@ def _parse_boolean_expression(rule_patterns, pattern_id=0, prefix=""):
                     pattern_text, 0, f"{prefix}.{pattern_id}"
                 )
                 yield (operator, NO_BOOLEAN_RULE_ID, list(sub_expression))
+<<<<<<< HEAD
             elif isinstance(pattern_text, str):
-                yield (operator, f"{prefix}.{pattern_id}", pattern_text)
                 pattern_id += 1
             else:
-                raise TypeError(
-                    f"invalid type for pattern {pattern}: {type(pattern_text)}"
+                    f"{prefix}.{pattern_id}",
+                    pattern_text,
                 )
+                pattern_id += 1
+>>>>>>> master
 
 
 def build_boolean_expression(rule):
