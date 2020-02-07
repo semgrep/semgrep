@@ -1,0 +1,5 @@
+-   id: sgrep
+    name: sgrep
+    description: This hook runs the sgrep-tool
+    language: docker_image
+    entry: returntocorp/sgrep:develop

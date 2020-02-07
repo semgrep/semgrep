@@ -36,6 +36,7 @@ TEMPLATE_YAML_URL = (
 )
 PLEASE_FILE_ISSUE_TEXT = "An error occurred while invoking the sgrep engine; please help us fix this by filing an an issue at https://sgrep.dev"
 REPO_HOME_DOCKER = "/home/repo/"
+PRE_COMMIT_SRC_DOCKER = "/src"
 DEFAULT_SGREP_CONFIG_NAME = "sgrep"
 DEFAULT_CONFIG_FILE = f".{DEFAULT_SGREP_CONFIG_NAME}.yml"
 DEFAULT_CONFIG_FOLDER = f".{DEFAULT_SGREP_CONFIG_NAME}"
@@ -387,12 +388,17 @@ def adjust_for_docker():
     # change into this folder so that all paths are relative to it
     if Path(REPO_HOME_DOCKER).exists():
         os.chdir(REPO_HOME_DOCKER)
+    elif Path(PRE_COMMIT_SRC_DOCKER).exists():
+        os.chdir(PRE_COMMIT_SRC_DOCKER)
 
 
 def get_base_path() -> Path:
     docker_folder = Path(REPO_HOME_DOCKER)
+    pre_commit_folder = Path(PRE_COMMIT_SRC_DOCKER)
     if docker_folder.exists():
         return docker_folder
+    elif pre_commit_folder.exists():
+        return pre_commit_folder
     else:
         return Path(".")
 
