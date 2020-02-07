@@ -483,7 +483,7 @@ def download_config(config_url: str) -> Any:
                 return parse_config_string(config_url, r.content.decode("utf-8"))
             elif content_type and content_type == "application/x-gzip":
                 fname = f"/tmp/{base64.b64encode(config_url.encode()).decode()}"
-                shutil.rmtree(fname)
+                shutil.rmtree(fname, ignore_errors=True)
                 with tarfile.open(fileobj=r.raw, mode="r:gz") as tar:
                     tar.extractall(fname)
                 extracted = Path(fname)
