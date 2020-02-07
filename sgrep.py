@@ -723,6 +723,36 @@ def generate_config():
         print_error_exit(e)
 
 
+def generate_config():
+    # defensive coding
+    if Path(DEFAULT_CONFIG_FILE).exists():
+        print_error_exit(
+            f"{DEFAULT_CONFIG_FILE} already exists. Please remove and try again"
+        )
+    try:
+        r = requests.get(TEMPLATE_YAML_URL, timeout=10)
+        r.raise_for_status()
+        template_str = r.text
+    except Exception as e:
+        debug_print(str(e))
+        print_msg(
+            f"There was a problem downloading the latest template config. Using fallback template"
+        )
+        template_str = """rules:
+  - id: eqeq-is-bad
+    pattern: $X == $X
+    message: "Dude, $X == $X is stupid"
+    languages: [python]
+    severity: ERROR"""
+    try:
+        with open(DEFAULT_CONFIG_FILE, "w") as template:
+            template.write(template_str)
+            print_msg(f"Template config successfully written to {DEFAULT_CONFIG_FILE}")
+            sys.exit(0)
+    except Exception as e:
+        print_error_exit(e)
+
+
 def set_flags(debug: bool, quiet: bool) -> None:
     """Set the global DEBUG and QUIET flags"""
     # TODO move to a proper logging framework
