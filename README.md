@@ -15,8 +15,7 @@ Its main features are:
 4. **Knows about code equivalences**: one pattern can match many equivalent variations on the code
 5. **Less is more**: abstract away additional details
 
-`sgrep` has good support for Python and JavaScript, with some support
-for Java and C, and more languages on the way!
+`sgrep` supports Python, JavaScript,  Golang, Java, and C, with more languages on the way!
 
 ### sgrep meetups
 
@@ -35,15 +34,17 @@ Want to learn more about sgrep? Come to the next [meetup in San Francisco on Mon
 ### Mac
 
 ```bash
-brew install sgrep # coming soon
+brew install sgrep-lint # coming soon
 ```
 
 ## Quickstart
 
 ```bash
 cd /path/to/repo
-vim .sgrep.yml
+# generate a template config file
+docker run --rm -v $(pwd):/home/repo returntocorp/sgrep --generate-config
 
+# look for findings
 docker run --rm -v $(pwd):/home/repo returntocorp/sgrep
 
 ```
@@ -122,7 +123,7 @@ and other semantically equivalent configurations.
 
 ## Bug Reports
 
-Please open an issue on this project.
+Reports are welcome! Please open an github issue on this project.
 
 ## Contributions
 

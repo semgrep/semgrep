@@ -10,6 +10,7 @@ import sys
 import tarfile
 import tempfile
 import traceback
+import shutil
 from dataclasses import dataclass
 from pathlib import Path, PurePath
 from typing import (
@@ -31,14 +32,20 @@ import yaml
 
 # Constants
 
+TEMPLATE_YAML_URL = (
+    "https://raw.githubusercontent.com/returntocorp/sgrep-rules/develop/template.yaml"
+)
+
 REPO_HOME_DOCKER = "/home/repo/"
-DEFAULT_CONFIG_FILE = ".sgrep.yml"
-DEFAULT_CONFIG_FOLDER = ".sgrep"
+DEFAULT_SGREP_CONFIG_NAME = "sgrep"
+DEFAULT_CONFIG_FILE = f".{DEFAULT_SGREP_CONFIG_NAME}.yml"
+DEFAULT_CONFIG_FOLDER = f".{DEFAULT_SGREP_CONFIG_NAME}"
 DEFAULT_LANG = "python"
 
 MISSING_RULE_ID = "no-rule-id"
 
 RULES_REGISTRY = {"r2c": "https://github.com/returntocorp/sgrep-rules/tarball/master"}
+DEFAULT_REGISTRY_KEY = "r2c"
 RULES_KEY = "rules"
 ID_KEY = "id"
 
@@ -142,28 +149,39 @@ def drop_patterns(expression_with_patterns):
             yield (op, pattern_id)
 
 
+def enumerate_patterns_in_boolean_expression(expression):
+    """
+    flatten a potentially nested expression
+    """
+    for pattern_or_list in expression:
+        if isinstance(pattern_or_list[2], list):
+            # we need to preserve this parent of multiple children, but it has no corresponding pattern
+            yield (pattern_or_list[0], NO_BOOLEAN_RULE_ID, "no-pattern")
+            # now yield all the children
+            yield from enumerate_patterns_in_boolean_expression(pattern_or_list[2])
+        else:
+            yield pattern_or_list
+
+
 def _parse_boolean_expression(rule_patterns, pattern_id=0, prefix=""):
     """
     Move through the expression, yielding tuples of (operator, unique-id-for-pattern, pattern)
     """
     for pattern in rule_patterns:
         for boolean_operator, pattern_text in pattern.items():
-            if (
-                boolean_operator == INVERSE_PATTERN_NAMES_MAP[OPERATORS.AND_EITHER]
-                or boolean_operator == INVERSE_PATTERN_NAMES_MAP[OPERATORS.AND_ALL]
-            ):
-                operator = operator_for_pattern_name(boolean_operator)
+            operator = operator_for_pattern_name(boolean_operator)
+            if isinstance(pattern_text, list):
                 sub_expression = _parse_boolean_expression(
                     pattern_text, 0, f"{prefix}.{pattern_id}"
                 )
                 yield (operator, NO_BOOLEAN_RULE_ID, list(sub_expression))
-            else:
-                yield (
-                    operator_for_pattern_name(boolean_operator),
-                    f"{prefix}.{pattern_id}",
-                    pattern_text,
-                )
+            elif isinstance(pattern_text, str):
+                yield (operator, f"{prefix}.{pattern_id}", pattern_text)
                 pattern_id += 1
+            else:
+                raise TypeError(
+                    f"invalid type for pattern {pattern}: {type(pattern_text)}"
+                )
 
 
 def build_boolean_expression(rule):
@@ -179,8 +197,12 @@ def build_boolean_expression(rule):
         assert False
 
 
-def operator_for_pattern_name(pattern_name):
+def operator_for_pattern_name(pattern_name: str) -> str:
     return PATTERN_NAMES_MAP[pattern_name]
+
+
+def pattern_name_for_operator(operator: str) -> str:
+    return INVERSE_PATTERN_NAMES_MAP[operator]
 
 
 @dataclass(frozen=True)
@@ -245,7 +267,7 @@ def _evaluate_expression(
         if operator == OPERATORS.AND_EITHER or operator == OPERATORS.AND_ALL:
             assert isinstance(
                 pattern_id_or_list, list
-            ), f"{OPERATORS.AND_EITHER} or {OPERATORS.AND_ALL} must have a list of subpatterns"
+            ), f"{pattern_name_for_operator(OPERATORS.AND_EITHER)} or {pattern_name_for_operator(OPERATORS.AND_ALL)} must have a list of subpatterns"
 
             # recurse on the nested expressions
             evaluated_ranges = [
@@ -267,7 +289,7 @@ def _evaluate_expression(
         else:
             assert isinstance(
                 pattern_id_or_list, str
-            ), f"only {OPERATORS.AND_EITHER} or {OPERATORS.AND_ALL} expressions can have multiple subpatterns"
+            ), f"only `{pattern_name_for_operator(OPERATORS.AND_EITHER)}` or `{pattern_name_for_operator(OPERATORS.AND_ALL)}` expressions can have multiple subpatterns"
             ranges_left = _evaluate_single_expression(
                 operator, pattern_id_or_list, results, ranges_left
             )
@@ -420,11 +442,23 @@ def parse_config_file(loc: Path) -> Dict[str, Any]:
     return {config_id: load_config_from_disk(loc)}
 
 
-def parse_config_folder(loc: Path) -> Dict[str, Any]:
+def hidden_config_dir(loc: Path):
+    # want to keep rules/.sgrep.yml but not path/.github/foo.yml
+    # also want to keep src/.sgrep/bad_pattern.yml
+    return any(
+        part.startswith(".") and DEFAULT_SGREP_CONFIG_NAME not in part
+        for part in loc.parts[:-1]
+    )
+
+
+def parse_config_folder(loc: Path, relative: bool = False) -> Dict[str, Any]:
     configs = {}
     for l in loc.rglob("*"):
-        if l.suffix in YML_EXTENSIONS:
-            config_id = str(l)  # TODO
+        if not hidden_config_dir(l) and l.suffix in YML_EXTENSIONS:
+            if relative:
+                config_id = str(l).replace(str(loc), "")  # delete base path to folder
+            else:
+                config_id = str(l)
             configs[config_id] = load_config_from_disk(l)
     return configs
 
@@ -439,7 +473,7 @@ def load_config(location: Optional[str] = None) -> Any:
         elif default_folder.exists():
             return parse_config_folder(default_folder)
         else:
-            print_error_exit(f"unable to find a config file in {base_path.resolve()}")
+            return None
     else:
         loc = base_path.joinpath(location)
         if loc.exists():
@@ -454,7 +488,7 @@ def load_config(location: Optional[str] = None) -> Any:
 
 
 def download_config(config_url: str) -> Any:
-    print_error(f"trying to download from {config_url}")
+    debug_print(f"trying to download from {config_url}")
     try:
         r = requests.get(config_url, stream=True)
         if r.status_code == requests.codes.ok:
@@ -463,12 +497,13 @@ def download_config(config_url: str) -> Any:
                 return parse_config_string(config_url, r.content.decode("utf-8"))
             elif content_type and content_type == "application/x-gzip":
                 fname = f"/tmp/{base64.b64encode(config_url.encode()).decode()}"
+                shutil.rmtree(fname, ignore_errors=True)
                 with tarfile.open(fileobj=r.raw, mode="r:gz") as tar:
                     tar.extractall(fname)
                 extracted = Path(fname)
                 for path in extracted.iterdir():
                     # get first folder in extracted folder (this is how GH does it)
-                    return parse_config_folder(path)
+                    return parse_config_folder(path, relative=True)
             else:
                 print_error_exit(f"unknown content-type: {content_type}. Can not parse")
     except Exception as e:
@@ -492,7 +527,6 @@ def resolve_config(config_str: Optional[str]) -> Any:
 def validate_configs(configs: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     """ Take configs and separate into valid and invalid ones"""
 
-    # TODO: validate the rule patterns are ok by invoking sgrep core
     errors = {}
     valid = {}
     for config_id, config in configs.items():
@@ -550,6 +584,32 @@ def convert_config_id_to_prefix(config_id: str) -> str:
     if len(prefix):
         prefix += "."
     return prefix
+
+
+def validate_pattern_with_sgrep(pattern: str, language: str) -> bool:
+    cmd = [SGREP_PATH, "-lang", language, f"--validate-pattern-stdin"]
+    p = subprocess.run(cmd, stdout=subprocess.PIPE, input=pattern, encoding="utf-8")
+    return p.returncode == 0
+
+
+def validate_patterns(valid_configs: Dict[str, Any]) -> List[str]:
+    invalid = []
+    for config_id, config in valid_configs.items():
+        rules = config.get(RULES_KEY, [])
+        for rule in rules:
+            patterns_with_ids = list(
+                enumerate_patterns_in_boolean_expression(
+                    list(build_boolean_expression(rule))
+                )
+            )
+            for (_operator, pattern_index, pattern) in patterns_with_ids:
+                for language in rule["languages"]:
+                    if not validate_pattern_with_sgrep(pattern, language):
+                        invalid.append(pattern)
+                        print_error(
+                            f"in {config_id}, pattern in rule {rule['id']} can't be parsed for language {language}: {pattern}"
+                        )
+    return invalid
 
 
 def rename_rule_ids(valid_configs: Dict[str, Any]) -> Dict[str, Any]:
@@ -619,6 +679,36 @@ def save_output(output_str: str, output_data: Dict[str, Any]):
             fout.write(build_output_json(output_data))
 
 
+def generate_config():
+    # defensive coding
+    if Path(DEFAULT_CONFIG_FILE).exists():
+        print_error_exit(
+            f"{DEFAULT_CONFIG_FILE} already exists. Please remove and try again"
+        )
+    try:
+        r = requests.get(TEMPLATE_YAML_URL, timeout=10)
+        r.raise_for_status()
+        template_str = r.text
+    except Exception as e:
+        debug_print(str(e))
+        print_msg(
+            f"There was a problem downloading the latest template config. Using fallback template"
+        )
+        template_str = """rules:
+  - id: eqeq-is-bad
+    pattern: $X == $X
+    message: "Dude, $X == $X is stupid"
+    languages: [python]
+    severity: ERROR"""
+    try:
+        with open(DEFAULT_CONFIG_FILE, "w") as template:
+            template.write(template_str)
+            print_msg(f"Template config successfully written to {DEFAULT_CONFIG_FILE}")
+            sys.exit(0)
+    except Exception as e:
+        print_error_exit(e)
+
+
 def set_flags(debug: bool, quiet: bool) -> None:
     """Set the global DEBUG and QUIET flags"""
     # TODO move to a proper logging framework
@@ -645,8 +735,12 @@ def main(args: argparse.Namespace):
     # get the proper paths for targets i.e. handle base path of /home/repo when it exists in docker
     targets = resolve_targets(args.target)
 
-    # first let's check for a pattern
-    if args.pattern:
+    # first check if user asked to generate a config
+    if args.generate_config:
+        generate_config()
+
+    # let's check for a pattern
+    elif args.pattern:
         # and a language
         if args.lang:
             lang = args.lang
@@ -660,9 +754,11 @@ def main(args: argparse.Namespace):
         # else let's get a config. A config is a dict from config_id -> config. Config Id is not well defined at this point.
         configs = resolve_config(args.config)
 
-    # if we can't find a config, bail
+    # if we can't find a config, use default r2c rules
     if not configs:
-        print_error_exit(f"unable to resolve {args.config}")
+        print_error_exit(
+            f"No config given. If you want to see some examples run --config r2c"
+        )
 
     # let's split our configs into valid and invalid configs.
     # It's possible that a config_id exists in both because we check valid rules and invalid rules
@@ -683,6 +779,11 @@ def main(args: argparse.Namespace):
     if not args.no_rewrite_rule_ids:
         # re-write the configs to have the hierarchical rule ids
         valid_configs = rename_rule_ids(valid_configs)
+
+    # now validate all the patterns inside the configs
+    invalid_patterns = validate_patterns(valid_configs)
+    if len(invalid_patterns):
+        print_error_exit("invalid patterns found inside rules; aborting")
 
     # extract just the rules from valid configs
     all_rules = flatten_configs(valid_configs)
@@ -774,6 +875,12 @@ if __name__ == "__main__":
     # config options
     config = parser.add_argument_group("config")
     config_ex = config.add_mutually_exclusive_group()
+    config_ex.add_argument(
+        "-g",
+        "--generate-config",
+        help=f"Generte starter {DEFAULT_CONFIG_FILE}",
+        action="store_true",
+    )
 
     config_ex.add_argument(
         "-f",
