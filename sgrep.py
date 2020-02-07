@@ -665,7 +665,17 @@ def build_output_json(output_json: Dict[str, Any]) -> str:
     return json.dumps(output_json)
 
 
-def save_output(output_str: str, output_data: Dict[str, Any]):
+def finding_to_line(finding: Dict[str, Any]) -> str:
+    return f"{finding.get('path', '<no path>')}:{finding.get('start', {}).get('line', '')} {finding.get('check_id', '<no check_id>')} - {finding.get('extra', {}).get('message')}"
+
+
+def build_normal_output(output_data: Dict[str, Any]) -> str:
+    return "\n".join(
+        [finding_to_line(finding) for finding in output_data.get("results", [])]
+    )
+
+
+def save_output(output_str: str, output_data: Dict[str, Any], json: bool = False):
     if is_url(output_str):
         post_output(output_str, output_data)
     else:
@@ -674,9 +684,43 @@ def save_output(output_str: str, output_data: Dict[str, Any]):
         else:
             base_path = get_base_path()
             save_path = base_path.joinpath(output_str)
+        # create the folders if not exists
+        save_path.parent.mkdir(parents=True, exist_ok=True)
+        with save_path.open(mode="w") as fout:
+            if json:
+                fout.write(build_output_json(output_data))
+            else:
+                fout.write(build_normal_output(output_data))
 
-        with save_path.open() as fout:
-            fout.write(build_output_json(output_data))
+
+def generate_config():
+    # defensive coding
+    if Path(DEFAULT_CONFIG_FILE).exists():
+        print_error_exit(
+            f"{DEFAULT_CONFIG_FILE} already exists. Please remove and try again"
+        )
+    try:
+        r = requests.get(TEMPLATE_YAML_URL, timeout=10)
+        r.raise_for_status()
+        template_str = r.text
+    except Exception as e:
+        debug_print(str(e))
+        print_msg(
+            f"There was a problem downloading the latest template config. Using fallback template"
+        )
+        template_str = """rules:
+  - id: eqeq-is-bad
+    pattern: $X == $X
+    message: "Dude, $X == $X is stupid"
+    languages: [python]
+    severity: ERROR"""
+    try:
+        with open(DEFAULT_CONFIG_FILE, "w") as template:
+            template.write(template_str)
+            print_msg(f"Template config successfully written to {DEFAULT_CONFIG_FILE}")
+            sys.exit(0)
+    except Exception as e:
+        print_error_exit(e)
 
 
 def generate_config():
@@ -849,9 +893,12 @@ def main(args: argparse.Namespace):
     # output results
     output_data = {"results": outputs_after_booleans}
     if not QUIET:
-        print(build_output_json(output_data))
+        if args.json:
+            print(build_output_json(output_data))
+        else:
+            print(build_normal_output(output_data))
     if args.output:
-        save_output(args.output, output_data)
+        save_output(args.output, output_data, args.json)
     if args.error and outputs_after_booleans:
         sys.exit(FINDINGS_EXIT_CODE)
 
