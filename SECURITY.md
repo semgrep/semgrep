@@ -2,7 +2,7 @@
 
 ## Supported Versions
 
-This project is under active development and we do our best to support the latest versions. 
+This project is under active development and we do our best to support the latest versions.
 
 | Version | Supported          |
 | ------- | ------------------ |
