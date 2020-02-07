@@ -5,27 +5,26 @@ import collections
 import itertools
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tarfile
 import tempfile
 import traceback
-import shutil
 from dataclasses import dataclass
-from pathlib import Path, PurePath
-from typing import (
-    Any,
-    Dict,
-    Generator,
-    List,
-    Optional,
-    Set,
-    Tuple,
-    Iterable,
-    DefaultDict,
-)
-from urllib.parse import urlparse
 from datetime import datetime
+from pathlib import Path
+from pathlib import PurePath
+from typing import Any
+from typing import DefaultDict
+from typing import Dict
+from typing import Generator
+from typing import Iterable
+from typing import List
+from typing import Optional
+from typing import Set
+from typing import Tuple
+from urllib.parse import urlparse
 
 import requests
 import yaml
@@ -147,20 +146,6 @@ def drop_patterns(expression_with_patterns):
         else:
             (op, pattern_id, pattern) = pattern_or_list
             yield (op, pattern_id)
-
-
-def enumerate_patterns_in_boolean_expression(expression):
-    """
-    flatten a potentially nested expression
-    """
-    for pattern_or_list in expression:
-        if isinstance(pattern_or_list[2], list):
-            # we need to preserve this parent of multiple children, but it has no corresponding pattern
-            yield (pattern_or_list[0], NO_BOOLEAN_RULE_ID, "no-pattern")
-            # now yield all the children
-            yield from enumerate_patterns_in_boolean_expression(pattern_or_list[2])
-        else:
-            yield pattern_or_list
 
 
 def _parse_boolean_expression(rule_patterns, pattern_id=0, prefix=""):
@@ -313,7 +298,7 @@ def sgrep_finding_to_range(sgrep_finding: Dict[str, Any]) -> Range:
 def group_rule_by_langauges(
     all_rules: List[Dict[str, Any]]
 ) -> Dict[str, List[Dict[str, Any]]]:
-    by_lang = collections.defaultdict(list)
+    by_lang: Any = collections.defaultdict(list)
     for rule in all_rules:
         for language in rule["languages"]:
             by_lang[language].append(rule)
@@ -325,7 +310,7 @@ def invoke_sgrep(
 ) -> Dict[str, Any]:
     """Returns parsed json output of sgrep"""
 
-    outputs = []
+    outputs: List[Any] = []
     # multiple invocations per language
     for language, all_rules_for_language in group_rule_by_langauges(all_rules).items():
         with tempfile.NamedTemporaryFile("w") as fout:
@@ -697,36 +682,6 @@ def save_output(output_str: str, output_data: Dict[str, Any], json: bool = False
                 fout.write(build_output_json(output_data))
             else:
                 fout.write(build_normal_output(output_data))
-
-
-def generate_config():
-    # defensive coding
-    if Path(DEFAULT_CONFIG_FILE).exists():
-        print_error_exit(
-            f"{DEFAULT_CONFIG_FILE} already exists. Please remove and try again"
-        )
-    try:
-        r = requests.get(TEMPLATE_YAML_URL, timeout=10)
-        r.raise_for_status()
-        template_str = r.text
-    except Exception as e:
-        debug_print(str(e))
-        print_msg(
-            f"There was a problem downloading the latest template config. Using fallback template"
-        )
-        template_str = """rules:
-  - id: eqeq-is-bad
-    pattern: $X == $X
-    message: "Dude, $X == $X is stupid"
-    languages: [python]
-    severity: ERROR"""
-    try:
-        with open(DEFAULT_CONFIG_FILE, "w") as template:
-            template.write(template_str)
-            print_msg(f"Template config successfully written to {DEFAULT_CONFIG_FILE}")
-            sys.exit(0)
-    except Exception as e:
-        print_error_exit(e)
 
 
 def generate_config():

@@ -2,6 +2,14 @@
 
 [![CircleCI](https://circleci.com/gh/returntocorp/sgrep.svg?style=svg)](https://circleci.com/gh/returntocorp/sgrep)
 
+## Pre-Commit
+
+sgrep uses [pre-commit](https://pre-commit.com/). [Install pre-commit](https://pre-commit.com/#installation) then:
+
+```bash
+pre-commit install
+```
+
 ## Installation from source
 
 To compile sgrep, you first need to [install OCaml](https://opam.ocaml.org/doc/Install.html) and its
@@ -86,7 +94,7 @@ code .
 
 ## Debugging code
 
-Set the OCAMLRUNPARAM environment variable to 'b' for backtrace. 
+Set the OCAMLRUNPARAM environment variable to 'b' for backtrace.
 You will get better backtrace information when an exception is thrown.
 
 ```bash
