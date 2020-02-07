@@ -3,7 +3,7 @@
     description: This hook runs sgrep:develop
     language: docker_image
     entry: returntocorp/sgrep:develop
-    
+
 -   id: sgrep
     name: sgrep
     description: This hook runs sgrep
