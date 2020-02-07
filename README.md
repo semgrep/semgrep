@@ -17,11 +17,11 @@ Its main features are:
 
 `sgrep` supports Python, JavaScript,  Golang, Java, and C, with more languages on the way!
 
-### sgrep meetups
+## Meetups
 
 Want to learn more about sgrep? Come to the next [meetup in San Francisco on Monday, February 10](https://www.eventbrite.com/e/detect-complex-code-patterns-using-semantic-grep-tickets-91167980885).
 
-**Previous meetups**
+### Previous meetups
 
 - r2c December 2019 meetup [slides](https://r2c.dev/sgrep-public.pdf)
 
@@ -51,9 +51,6 @@ docker run --rm -v $(pwd):/home/repo returntocorp/sgrep
 
 ```
 
-## Github Action for CI
-
-See our [sgrep-lint](https://github.com/marketplace/actions/sgrep-lint) action for easy use of `sgrep` in CI
 
 ## Usage
 
@@ -122,6 +119,10 @@ result = sub_open(“ls”)
 ```
 
 and other semantically equivalent configurations.
+
+## Integrations
+
+See [integrations.md](docs/integrations.md)
 
 ## Bug Reports
 
