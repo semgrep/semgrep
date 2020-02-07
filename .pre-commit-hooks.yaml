@@ -1,5 +1,11 @@
--   id: sgrep
+-   id: sgrep-develop
     name: sgrep
-    description: This hook runs the sgrep-tool
+    description: This hook runs sgrep:develop
     language: docker_image
     entry: returntocorp/sgrep:develop
+    
+-   id: sgrep
+    name: sgrep
+    description: This hook runs sgrep
+    language: docker_image
+    entry: returntocorp/sgrep:latest
