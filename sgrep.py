@@ -665,7 +665,17 @@ def build_output_json(output_json: Dict[str, Any]) -> str:
     return json.dumps(output_json)
 
 
-def save_output(output_str: str, output_data: Dict[str, Any]):
+def finding_to_line(finding: Dict[str, Any]) -> str:
+    return f"{finding.get('path', '<no path>')}:{finding.get('start', {}).get('line', '')} {finding.get('check_id', '<no check_id>')} - {finding.get('extra', {}).get('message')}"
+
+
+def build_normal_output(output_data: Dict[str, Any]) -> str:
+    return "\n".join(
+        [finding_to_line(finding) for finding in output_data.get("results", [])]
+    )
+
+
+def save_output(output_str: str, output_data: Dict[str, Any], json: bool = False):
     if is_url(output_str):
         post_output(output_str, output_data)
     else:
@@ -676,7 +686,10 @@ def save_output(output_str: str, output_data: Dict[str, Any]):
             save_path = base_path.joinpath(output_str)
 
         with save_path.open() as fout:
-            fout.write(build_output_json(output_data))
+            if json:
+                fout.write(build_output_json(output_data))
+            else:
+                fout.write(build_normal_output(output_data))
 
 
 def generate_config():
@@ -849,9 +862,12 @@ def main(args: argparse.Namespace):
     # output results
     output_data = {"results": outputs_after_booleans}
     if not QUIET:
-        print(build_output_json(output_data))
+        if args.json:
+            print(build_output_json(output_data))
+        else:
+            print(build_normal_output(output_data))
     if args.output:
-        save_output(args.output, output_data)
+        save_output(args.output, output_data, args.json)
     if args.error and outputs_after_booleans:
         sys.exit(FINDINGS_EXIT_CODE)
 
