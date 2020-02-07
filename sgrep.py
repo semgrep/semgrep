@@ -35,7 +35,7 @@ import yaml
 TEMPLATE_YAML_URL = (
     "https://raw.githubusercontent.com/returntocorp/sgrep-rules/develop/template.yaml"
 )
-
+PLEASE_FILE_ISSUE_TEXT = "An error occurred while invoking the sgrep engine; please help us fix this by filing an an issue at https://sgrep.dev"
 REPO_HOME_DOCKER = "/home/repo/"
 DEFAULT_SGREP_CONFIG_NAME = "sgrep"
 DEFAULT_CONFIG_FILE = f".{DEFAULT_SGREP_CONFIG_NAME}.yml"
@@ -343,7 +343,13 @@ def invoke_sgrep(
                 fout.name,
                 *[str(path) for path in targets],
             ]
-            output = subprocess.check_output(cmd, shell=False)
+            try:
+                output = subprocess.check_output(cmd, shell=False)
+            except subprocess.CalledProcessError as ex:
+                print_error(
+                    f"non-zero return code while invoking sgrep with:\n\t{' '.join(cmd)}\n{ex}"
+                )
+                print_error_exit(f"\n\n{PLEASE_FILE_ISSUE_TEXT}")
             output_json = json.loads((output.decode("utf-8")))
             outputs.extend(output_json["matches"])
     return {"matches": outputs}
