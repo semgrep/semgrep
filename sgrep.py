@@ -346,7 +346,9 @@ def invoke_sgrep(
             try:
                 output = subprocess.check_output(cmd, shell=False)
             except subprocess.CalledProcessError as ex:
-                print_error(f"non-zero return code while invoking sgrep with:\n\t{' '.join(cmd)}\n{ex}")
+                print_error(
+                    f"non-zero return code while invoking sgrep with:\n\t{' '.join(cmd)}\n{ex}"
+                )
                 print_error_exit(f"\n\n{PLEASE_FILE_ISSUE_TEXT}")
             output_json = json.loads((output.decode("utf-8")))
             outputs.extend(output_json["matches"])
