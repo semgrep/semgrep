@@ -1,0 +1,15 @@
+name: sgrep-lint
+
+on: [push]
+
+jobs:
+  run-r2c-config:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: sgrep action step
+        id: sgrep
+        uses: returntocorp/sgrep-action@develop
+        with:
+          config: r2c
+          error: true 
