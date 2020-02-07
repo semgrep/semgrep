@@ -684,8 +684,9 @@ def save_output(output_str: str, output_data: Dict[str, Any], json: bool = False
         else:
             base_path = get_base_path()
             save_path = base_path.joinpath(output_str)
-
-        with save_path.open() as fout:
+        # create the folders if not exists
+        save_path.parent.mkdir(parents=True, exist_ok=True)
+        with save_path.open(mode="w") as fout:
             if json:
                 fout.write(build_output_json(output_data))
             else:
