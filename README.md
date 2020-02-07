@@ -40,6 +40,8 @@ brew install sgrep-lint # coming soon
 ## Quickstart
 
 ```bash
+docker pull returntocorp/sgrep
+
 cd /path/to/repo
 # generate a template config file
 docker run --rm -v $(pwd):/home/repo returntocorp/sgrep --generate-config
