@@ -5,7 +5,9 @@ import json
 import os
 import subprocess
 import time
-from typing import Any, Dict, List
+from typing import Any
+from typing import Dict
+from typing import List
 
 # cache for "we already ran query x on this file, ignore it"
 query_to_path_cache: Dict[str, Dict[str, List[Any]]] = collections.defaultdict(
@@ -58,7 +60,7 @@ def cached_query(
                 )
         except json.decoder.JSONDecodeError:
             print(f"bad query: {json_output}")
-    return query_to_path_cache[expr].keys()
+    return list(query_to_path_cache[expr].keys())
 
 
 if __name__ == "__main__":
