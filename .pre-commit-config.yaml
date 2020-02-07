@@ -35,5 +35,6 @@ repos:
     rev: "3.7.9"
     hooks:
       - id: flake8
+        args: ["--select=E9,F63,F7,F82"]
 
-exclude: "^[tests|testlint|old|lib|demos|bin]|.*\\.ml"
+exclude: "^tests|testlint|old|lib|demos|bin|.*\\.ml"

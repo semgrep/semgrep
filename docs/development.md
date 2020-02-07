@@ -86,7 +86,7 @@ code .
 
 ## Debugging code
 
-Set the OCAMLRUNPARAM environment variable to 'b' for backtrace. 
+Set the OCAMLRUNPARAM environment variable to 'b' for backtrace.
 You will get better backtrace information when an exception is thrown.
 
 ```bash
