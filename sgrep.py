@@ -641,9 +641,9 @@ def manual_config(pattern: str, lang: str) -> Dict[str, Any]:
         "manual": {
             RULES_KEY: [
                 {
-                    ID_KEY: "manual_id",
+                    ID_KEY: "-",
                     "pattern": pattern,
-                    "message": "Manual Pattern",
+                    "message": f"{pattern}",
                     "languages": [lang],
                     "severity": "ERROR",
                 }
