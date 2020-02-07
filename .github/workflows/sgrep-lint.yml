@@ -12,4 +12,3 @@ jobs:
         uses: returntocorp/sgrep-action@develop
         with:
           config: r2c
-          error: true 
