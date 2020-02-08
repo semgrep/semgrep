@@ -407,8 +407,10 @@ def resolve_targets(targets: List[str]) -> List[Path]:
 
 ### Config helpers
 
+
 def indent(msg: str) -> str:
-    return '\n'.join(['\t' + line for line in msg.splitlines()])
+    return "\n".join(["\t" + line for line in msg.splitlines()])
+
 
 def load_config_from_disk(loc: Path) -> Any:
     try:
@@ -442,7 +444,10 @@ def hidden_config_dir(loc: Path):
     # want to keep rules/.sgrep.yml but not path/.github/foo.yml
     # also want to keep src/.sgrep/bad_pattern.yml
     return any(
-        part != '.' and part != ".." and part.startswith(".") and DEFAULT_SGREP_CONFIG_NAME not in part
+        part != "."
+        and part != ".."
+        and part.startswith(".")
+        and DEFAULT_SGREP_CONFIG_NAME not in part
         for part in loc.parts[:-1]
     )
 
@@ -718,8 +723,10 @@ def generate_config():
     except Exception as e:
         print_error_exit(e)
 
+
 def should_exclude_this_path(path: Path) -> bool:
-    return any('test' in p or 'example' in p for p in path.parts)
+    return any("test" in p or "example" in p for p in path.parts)
+
 
 def set_flags(debug: bool, quiet: bool) -> None:
     """Set the global DEBUG and QUIET flags"""
@@ -854,17 +861,19 @@ def main(args: argparse.Namespace):
                     # restore the original rule ID
                     result["check_id"] = all_rules[rule_index]["id"]
                     # rewrite the path to be relative to the current working directory
-                    result["path"] = str(                        safe_relative_to(path_object, current_path))
+                    result["path"] = str(safe_relative_to(path_object, current_path))
 
                     # restore the original message
                     result["extra"]["message"] = rewrite_message_with_metavars(
                         all_rules[rule_index], result
                     )
                     result = transform_to_r2c_output(result)
-                    outputs_after_booleans.append(result)        
+                    outputs_after_booleans.append(result)
 
     if ignored_in_tests > 0:
-        print_error(f'warning: ignored {ignored_in_tests} results in tests due to --exclude-tests option')
+        print_error(
+            f"warning: ignored {ignored_in_tests} results in tests due to --exclude-tests option"
+        )
 
     # output results
     output_data = {"results": outputs_after_booleans}
@@ -932,7 +941,7 @@ if __name__ == "__main__":
         "--exclude-tests",
         help=f"try to exclude tests, documentation, and examples (based on filename/path)",
         action="store_true",
-    )    
+    )
 
     # output options
     output = parser.add_argument_group("output")
