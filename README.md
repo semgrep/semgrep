@@ -51,7 +51,6 @@ docker run --rm -v $(pwd):/home/repo returntocorp/sgrep
 
 ```
 
-
 ## Usage
 
 ### Rule Development
