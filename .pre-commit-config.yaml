@@ -1,3 +1,5 @@
+exclude: "^tests|testlint|old|lib|demos|bin|.*\\.ml"
+
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v2.5.0
@@ -35,4 +37,16 @@ repos:
       - id: flake8
         args: ["--select=E9,F63,F7,F82"]
 
-exclude: "^tests|testlint|old|lib|demos|bin|.*\\.ml"
+  - repo: https://github.com/returntocorp/sgrep
+    rev: "0.4.3"
+    hooks:
+      - id: sgrep-develop
+        args:
+          [
+            "--error",
+            "--config",
+            "r2c",
+            "--output",
+            "https://sgrep.r2c.dev/api/report/returntocorp/sgrep",
+          ]
+        types: [python]

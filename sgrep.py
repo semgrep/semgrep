@@ -768,7 +768,7 @@ def main(args: argparse.Namespace):
     # if we can't find a config, use default r2c rules
     if not configs:
         print_error_exit(
-            f"No config given. If you want to see some examples run --config r2c"
+            f"No config given. If you want to see some examples, try running with --config r2c"
         )
 
     # let's split our configs into valid and invalid configs.
