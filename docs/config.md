@@ -6,7 +6,7 @@ If you want run these rules or ship them to your team, rather than write them, c
 
 ## Simple Example
 
-```
+```yaml
 rules:
   - id: eqeq-is-bad
     pattern: $X == $X
