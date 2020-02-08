@@ -13,8 +13,6 @@ repos:
       - id: check-merge-conflict
       - id: check-symlinks
       - id: requirements-txt-fixer
-      - id: no-commit-to-branch
-        args: [--branch, develop, --branch, master]
 
   - repo: https://github.com/psf/black
     rev: 19.10b0
