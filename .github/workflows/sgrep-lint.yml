@@ -12,4 +12,4 @@ jobs:
         uses: returntocorp/sgrep-action@develop
         with:
           config: r2c
-          output: "https://sgrep.r2c.dev/api/report/${{GITHUB_REPOSITORY}}"
+          output: https://sgrep.r2c.dev/api/report/${{ github.repository }}
