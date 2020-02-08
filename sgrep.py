@@ -437,7 +437,7 @@ def hidden_config_dir(loc: Path):
     # want to keep rules/.sgrep.yml but not path/.github/foo.yml
     # also want to keep src/.sgrep/bad_pattern.yml
     return any(
-        part.startswith(".") and DEFAULT_SGREP_CONFIG_NAME not in part
+        part != '.' and part != ".." and part.startswith(".") and DEFAULT_SGREP_CONFIG_NAME not in part
         for part in loc.parts[:-1]
     )
 
