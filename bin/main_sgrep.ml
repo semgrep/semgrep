@@ -437,6 +437,7 @@ let options () =
     "-verbose", Arg.Unit (fun () -> 
       verbose := true;
       Flag_matcher.verbose := true;
+      Generic_vs_generic.verbose := true;
       (* Flag_matcher_php.verbose := true; *)
     ),
     " ";
