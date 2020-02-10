@@ -6,7 +6,7 @@ cd "$(dirname "$(realpath "$0")")";
 PYTHONPATH=.. python3 test_lint.py
 
 cd ..
-./sgrep.py --json --strict --config testlint/python/eqeq.yaml tests/lint | tee tmp.out
+./sgrep.py --json --strict --config testlint/python/eqeq.yaml tests/lint -o tmp.out
 diff tmp.out ./testlint/python/eqeq.expected.json
 rm -f tmp.out
 
