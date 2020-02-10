@@ -74,7 +74,7 @@ let match_to_json x =
           "end", endp;
           "abstract_content", J.String (
               any
-              |> Lib_ast.ii_of_any
+              |> Lib_ast.ii_of_any |> List.filter PI.is_origintok
               |> List.sort Parse_info.compare_pos
               |> List.map PI.str_of_info 
               |> Matching_report.join_with_space_if_needed
@@ -98,6 +98,6 @@ let error tok rule =
       E.warning tok (E.SgrepLint (rule.R.id, rule.R.message))
 
 let match_to_error x = 
-  let toks = Lib_ast.ii_of_any x.code in
+  let toks = Lib_ast.ii_of_any x.code |> List.filter PI.is_origintok in
   let tok = List.hd toks in
   error tok x.rule
