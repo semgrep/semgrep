@@ -19,7 +19,7 @@ module J = Json_type
 (* Purpose *)
 (*****************************************************************************)
 (* A syntactical grep. https://sgrep.dev/
- * Right now there is good support for Python, Javascript, Java, and C
+ * Right now there is good support for Python, Javascript, Java, Go, and C
  * and partial support for PHP, C++, and OCaml.
  * 
  * opti: git grep foo | xargs sgrep -e 'foo(...)'
@@ -437,6 +437,7 @@ let options () =
     "-verbose", Arg.Unit (fun () -> 
       verbose := true;
       Flag_matcher.verbose := true;
+      Generic_vs_generic.verbose := true;
       (* Flag_matcher_php.verbose := true; *)
     ),
     " ";
