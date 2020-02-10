@@ -6,7 +6,7 @@ If you want run these rules or ship them to your team, rather than write them, c
 
 ## Simple Example
 
-```
+```yaml
 rules:
   - id: eqeq-is-bad
     pattern: $X == $X
@@ -23,7 +23,7 @@ rules:
   - id: eqeq-is-bad
     patterns:
       - pattern-not-inside: |
-          def __eq__(...): 
+          def __eq__(...):
               ...
       - pattern-not-inside: assert(...)
       - pattern-not-inside: assertTrue(...)
@@ -42,7 +42,7 @@ rules:
     severity: ERROR
 ```
 
-The main difference here is that we are composing patterns together. Every pattern is implicitly ANDed together, i.e.: 
+The main difference here is that we are composing patterns together. Every pattern is implicitly ANDed together, i.e.:
 
 ```
     ...

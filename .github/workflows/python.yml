@@ -18,24 +18,9 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-    - name: Lint with flake8
-      run: |
-        pip install flake8
-        # stop the build if there are Python syntax errors or undefined names
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude tests
     - name: Test with pytest
       run: |
         # add to PYTHONPATH so imports work in test files
         export PYTHONPATH="${PYTHONPATH}:${pwd}"
         pip install pytest
         pytest
-  check-style:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python
-      uses: actions/setup-python@v1
-    - name: Check Formatted with Black
-      run: |
-        pip install black
-        black --check --exclude tests/ .

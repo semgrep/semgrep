@@ -5,27 +5,26 @@ import collections
 import itertools
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tarfile
 import tempfile
 import traceback
-import shutil
 from dataclasses import dataclass
-from pathlib import Path, PurePath
-from typing import (
-    Any,
-    Dict,
-    Generator,
-    List,
-    Optional,
-    Set,
-    Tuple,
-    Iterable,
-    DefaultDict,
-)
-from urllib.parse import urlparse
 from datetime import datetime
+from pathlib import Path
+from pathlib import PurePath
+from typing import Any
+from typing import DefaultDict
+from typing import Dict
+from typing import Generator
+from typing import Iterable
+from typing import List
+from typing import Optional
+from typing import Set
+from typing import Tuple
+from urllib.parse import urlparse
 
 import requests
 import yaml
@@ -35,8 +34,9 @@ import yaml
 TEMPLATE_YAML_URL = (
     "https://raw.githubusercontent.com/returntocorp/sgrep-rules/develop/template.yaml"
 )
-
+PLEASE_FILE_ISSUE_TEXT = "An error occurred while invoking the sgrep engine; please help us fix this by filing an an issue at https://sgrep.dev"
 REPO_HOME_DOCKER = "/home/repo/"
+PRE_COMMIT_SRC_DOCKER = "/src"
 DEFAULT_SGREP_CONFIG_NAME = "sgrep"
 DEFAULT_CONFIG_FILE = f".{DEFAULT_SGREP_CONFIG_NAME}.yml"
 DEFAULT_CONFIG_FOLDER = f".{DEFAULT_SGREP_CONFIG_NAME}"
@@ -147,20 +147,6 @@ def drop_patterns(expression_with_patterns):
         else:
             (op, pattern_id, pattern) = pattern_or_list
             yield (op, pattern_id)
-
-
-def enumerate_patterns_in_boolean_expression(expression):
-    """
-    flatten a potentially nested expression
-    """
-    for pattern_or_list in expression:
-        if isinstance(pattern_or_list[2], list):
-            # we need to preserve this parent of multiple children, but it has no corresponding pattern
-            yield (pattern_or_list[0], NO_BOOLEAN_RULE_ID, "no-pattern")
-            # now yield all the children
-            yield from enumerate_patterns_in_boolean_expression(pattern_or_list[2])
-        else:
-            yield pattern_or_list
 
 
 def _parse_boolean_expression(rule_patterns, pattern_id=0, prefix=""):
@@ -313,7 +299,7 @@ def sgrep_finding_to_range(sgrep_finding: Dict[str, Any]) -> Range:
 def group_rule_by_langauges(
     all_rules: List[Dict[str, Any]]
 ) -> Dict[str, List[Dict[str, Any]]]:
-    by_lang = collections.defaultdict(list)
+    by_lang: Any = collections.defaultdict(list)
     for rule in all_rules:
         for language in rule["languages"]:
             by_lang[language].append(rule)
@@ -325,7 +311,7 @@ def invoke_sgrep(
 ) -> Dict[str, Any]:
     """Returns parsed json output of sgrep"""
 
-    outputs = []
+    outputs: List[Any] = []
     # multiple invocations per language
     for language, all_rules_for_language in group_rule_by_langauges(all_rules).items():
         with tempfile.NamedTemporaryFile("w") as fout:
@@ -343,7 +329,13 @@ def invoke_sgrep(
                 fout.name,
                 *[str(path) for path in targets],
             ]
-            output = subprocess.check_output(cmd, shell=False)
+            try:
+                output = subprocess.check_output(cmd, shell=False)
+            except subprocess.CalledProcessError as ex:
+                print_error(
+                    f"non-zero return code while invoking sgrep with:\n\t{' '.join(cmd)}\n{ex}"
+                )
+                print_error_exit(f"\n\n{PLEASE_FILE_ISSUE_TEXT}")
             output_json = json.loads((output.decode("utf-8")))
             outputs.extend(output_json["matches"])
     return {"matches": outputs}
@@ -396,12 +388,17 @@ def adjust_for_docker():
     # change into this folder so that all paths are relative to it
     if Path(REPO_HOME_DOCKER).exists():
         os.chdir(REPO_HOME_DOCKER)
+    elif Path(PRE_COMMIT_SRC_DOCKER).exists():
+        os.chdir(PRE_COMMIT_SRC_DOCKER)
 
 
 def get_base_path() -> Path:
     docker_folder = Path(REPO_HOME_DOCKER)
+    pre_commit_folder = Path(PRE_COMMIT_SRC_DOCKER)
     if docker_folder.exists():
         return docker_folder
+    elif pre_commit_folder.exists():
+        return pre_commit_folder
     else:
         return Path(".")
 
@@ -417,6 +414,10 @@ def resolve_targets(targets: List[str]) -> List[Path]:
 ### Config helpers
 
 
+def indent(msg: str) -> str:
+    return "\n".join(["\t" + line for line in msg.splitlines()])
+
+
 def load_config_from_disk(loc: Path) -> Any:
     try:
         with loc.open() as f:
@@ -424,8 +425,11 @@ def load_config_from_disk(loc: Path) -> Any:
     except FileNotFoundError:
         print_error(f"YAML file at {loc} not found")
         return None
+    except yaml.parser.ParserError as se:
+        print_error(f"Invalid yaml file at {loc}:\n{indent(str(se))}")
+        return None
     except yaml.scanner.ScannerError as se:
-        print_error(se)
+        print_error(f"Invalid yaml file at {loc}:\n{indent(str(se))}")
         return None
 
 
@@ -446,7 +450,10 @@ def hidden_config_dir(loc: Path):
     # want to keep rules/.sgrep.yml but not path/.github/foo.yml
     # also want to keep src/.sgrep/bad_pattern.yml
     return any(
-        part.startswith(".") and DEFAULT_SGREP_CONFIG_NAME not in part
+        part != "."
+        and part != ".."
+        and part.startswith(".")
+        and DEFAULT_SGREP_CONFIG_NAME not in part
         for part in loc.parts[:-1]
     )
 
@@ -641,9 +648,9 @@ def manual_config(pattern: str, lang: str) -> Dict[str, Any]:
         "manual": {
             RULES_KEY: [
                 {
-                    ID_KEY: "manual_id",
+                    ID_KEY: "-",
                     "pattern": pattern,
-                    "message": "Manual Pattern",
+                    "message": f"{pattern}",
                     "languages": [lang],
                     "severity": "ERROR",
                 }
@@ -723,34 +730,8 @@ def generate_config():
         print_error_exit(e)
 
 
-def generate_config():
-    # defensive coding
-    if Path(DEFAULT_CONFIG_FILE).exists():
-        print_error_exit(
-            f"{DEFAULT_CONFIG_FILE} already exists. Please remove and try again"
-        )
-    try:
-        r = requests.get(TEMPLATE_YAML_URL, timeout=10)
-        r.raise_for_status()
-        template_str = r.text
-    except Exception as e:
-        debug_print(str(e))
-        print_msg(
-            f"There was a problem downloading the latest template config. Using fallback template"
-        )
-        template_str = """rules:
-  - id: eqeq-is-bad
-    pattern: $X == $X
-    message: "Dude, $X == $X is stupid"
-    languages: [python]
-    severity: ERROR"""
-    try:
-        with open(DEFAULT_CONFIG_FILE, "w") as template:
-            template.write(template_str)
-            print_msg(f"Template config successfully written to {DEFAULT_CONFIG_FILE}")
-            sys.exit(0)
-    except Exception as e:
-        print_error_exit(e)
+def should_exclude_this_path(path: Path) -> bool:
+    return any("test" in p or "example" in p for p in path.parts)
 
 
 def set_flags(debug: bool, quiet: bool) -> None:
@@ -801,7 +782,7 @@ def main(args: argparse.Namespace):
     # if we can't find a config, use default r2c rules
     if not configs:
         print_error_exit(
-            f"No config given. If you want to see some examples run --config r2c"
+            f"No config given. If you want to see some examples, try running with --config r2c"
         )
 
     # let's split our configs into valid and invalid configs.
@@ -857,6 +838,7 @@ def main(args: argparse.Namespace):
 
     current_path = Path.cwd()
     outputs_after_booleans = []
+    ignored_in_tests = 0
     for rule_index, paths in by_rule_index.items():
         full_expression = list(build_boolean_expression(all_rules[rule_index]))
         expression = list(drop_patterns(full_expression))
@@ -877,18 +859,27 @@ def main(args: argparse.Namespace):
             debug_print("-" * 80)
             for result in results:
                 if sgrep_finding_to_range(result) in valid_ranges_to_output:
+                    path_object = Path(result["path"])
+                    if args.exclude_tests and should_exclude_this_path(path_object):
+                        ignored_in_tests += 1
+                        continue
+
                     # restore the original rule ID
                     result["check_id"] = all_rules[rule_index]["id"]
                     # rewrite the path to be relative to the current working directory
-                    result["path"] = str(
-                        safe_relative_to(Path(result["path"]), current_path)
-                    )
+                    result["path"] = str(safe_relative_to(path_object, current_path))
+
                     # restore the original message
                     result["extra"]["message"] = rewrite_message_with_metavars(
                         all_rules[rule_index], result
                     )
                     result = transform_to_r2c_output(result)
                     outputs_after_booleans.append(result)
+
+    if ignored_in_tests > 0:
+        print_error(
+            f"warning: ignored {ignored_in_tests} results in tests due to --exclude-tests option"
+        )
 
     # output results
     output_data = {"results": outputs_after_booleans}
@@ -949,6 +940,12 @@ if __name__ == "__main__":
     config.add_argument(
         "--strict",
         help=f"only invoke sgrep if config(s) are valid",
+        action="store_true",
+    )
+
+    config.add_argument(
+        "--exclude-tests",
+        help=f"try to exclude tests, documentation, and examples (based on filename/path)",
         action="store_true",
     )
 
