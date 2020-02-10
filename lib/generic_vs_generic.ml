@@ -72,7 +72,15 @@ let debug = ref false
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-let pr2, _pr2_once = Common2.mk_pr2_wrappers verbose
+
+let str_of_any any = 
+  if !debug || true
+  then Meta_parse_info._current_precision :=
+    { Meta_parse_info.default_dumper_precision with Meta_parse_info.
+      full_info = true };
+  let v = Meta_ast.vof_any any in
+  let s = Ocaml.string_of_v v in
+  s
 
 (*****************************************************************************)
 (* Types *)
@@ -200,7 +208,13 @@ let pr2, _pr2_once = Common2.mk_pr2_wrappers verbose
          *)
         let a = Lib.abstract_position_info_any a in
         let b = Lib.abstract_position_info_any b in
-        a =*= b
+        let res = a =*= b in
+        if !verbose && not res
+        then begin
+          pr2 (spf "A = %s" (str_of_any a));
+          pr2 (spf "B = %s" (str_of_any b));
+        end;
+        res
 
     | _, _ -> 
         false
@@ -224,10 +238,12 @@ let pr2, _pr2_once = Common2.mk_pr2_wrappers verbose
    fun (mvar, _imvar) any  -> fun tin ->
     match check_and_add_metavar_binding (mvar, any) tin with
     | None ->
-        pr2 (spf "envf: fail, %s" mvar);
+        if !verbose 
+        then pr2 (spf "envf: fail, %s (%s)" mvar (str_of_any any));
         fail tin
     | Some new_binding ->
-        pr2 (spf "envf: success, %s" mvar);
+        if !verbose 
+        then pr2 (spf "envf: success, %s (%s)" mvar (str_of_any any));
         return new_binding
 
   let empty_environment () = []

@@ -122,8 +122,9 @@ foo("this has an a")
 ### conditionals
 
 ```
-pattern: if $X:
-           $Y
+pattern: |
+    if $X:
+        $Y
 
 # CODE EXAMPLES
 
@@ -132,8 +133,9 @@ if __name__ == "__main__":
 ```
 
 ```
-pattern: if $X:
-           ...
+pattern: |
+    if $X:
+        ...
 
 # CODE EXAMPLES
 
@@ -148,8 +150,9 @@ Note you can’t match a half statement; both of the examples above must specify
 ### In a statement context, a Metavariable can also match any statement
 
 ```
-pattern: if $X:
-           $Y
+pattern: |
+    if $X:
+        $Y
 
 # CODE EXAMPLES
 if 1:
@@ -168,7 +171,7 @@ Because in Python there is usually no terminator (e.g., `;`), there is an ambigu
 ### Match on import types
 
 ```
-subprocess.Popen(...)
+pattern: subprocess.Popen(...)
 
 # CODE EXAMPLES
 

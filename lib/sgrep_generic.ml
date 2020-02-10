@@ -77,17 +77,17 @@ let sgrep_ast ~hook pattern ast =
         { V.default_visitor with
           V.kexpr = (fun (k, _) x ->
             let matches_with_env = match_e_e pattern_expr  x in
-            if matches_with_env = []
-            then k x
-            else begin
-              (* could also recurse to find nested matching inside
-               * the matched code itself.
-               *)
+            if matches_with_env <> []
+            then begin
               let matched_tokens = Lib_ast.ii_of_any (E x) in
               matches_with_env |> List.iter (fun env ->
                 hook env matched_tokens
               )
-            end
+            end;
+           (* try the rules on subexpressions *)
+           (* this can recurse to find nested matching inside the
+            * matched code itself *)
+           k x
           );
         }
 
@@ -95,17 +95,14 @@ let sgrep_ast ~hook pattern ast =
         { V.default_visitor with
           V.kstmt = (fun (k, _) x ->
             let matches_with_env = match_st_st pattern x in
-            if matches_with_env = []
-            then k x
-            else begin
-              (* could also recurse to find nested matching inside
-               * the matched code itself.
-               *)
+            if matches_with_env <> []
+            then begin
               let matched_tokens = Lib_ast.ii_of_any (S x) in
               matches_with_env |> List.iter (fun env ->
                 hook env matched_tokens
               )
-            end
+            end;
+            k x
           );
         }
 
@@ -118,17 +115,14 @@ let sgrep_ast ~hook pattern ast =
            *)
           V.kstmts = (fun (k, _) x ->
             let matches_with_env = match_sts_sts pattern x in
-            if matches_with_env = []
-            then k x
-            else begin
-              (* could also recurse to find nested matching inside
-               * the matched code itself.
-               *)
+            if matches_with_env <> []
+            then begin
               let matched_tokens = Lib_ast.ii_of_any (Ss x) in
               matches_with_env |> List.iter (fun env ->
                 hook env matched_tokens
               )
-            end
+            end;
+            k x
           );
         }
 
