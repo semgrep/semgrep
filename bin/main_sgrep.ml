@@ -330,6 +330,7 @@ let sgrep_with_rules rules_file xs =
     let errs = ref [] in
     let matches = 
       files |> List.map (fun file ->
+         if !verbose then pr2 (spf "Analyzing %s" file);
          try 
            let ast = Parse_generic.parse_with_lang lang file in
            Sgrep_lint_generic.check rules file ast
