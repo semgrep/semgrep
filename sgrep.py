@@ -414,6 +414,10 @@ def resolve_targets(targets: List[str]) -> List[Path]:
 ### Config helpers
 
 
+def indent(msg: str) -> str:
+    return "\n".join(["\t" + line for line in msg.splitlines()])
+
+
 def load_config_from_disk(loc: Path) -> Any:
     try:
         with loc.open() as f:
@@ -421,8 +425,11 @@ def load_config_from_disk(loc: Path) -> Any:
     except FileNotFoundError:
         print_error(f"YAML file at {loc} not found")
         return None
+    except yaml.parser.ParserError as se:
+        print_error(f"Invalid yaml file at {loc}:\n{indent(str(se))}")
+        return None
     except yaml.scanner.ScannerError as se:
-        print_error(se)
+        print_error(f"Invalid yaml file at {loc}:\n{indent(str(se))}")
         return None
 
 
@@ -443,7 +450,10 @@ def hidden_config_dir(loc: Path):
     # want to keep rules/.sgrep.yml but not path/.github/foo.yml
     # also want to keep src/.sgrep/bad_pattern.yml
     return any(
-        part.startswith(".") and DEFAULT_SGREP_CONFIG_NAME not in part
+        part != "."
+        and part != ".."
+        and part.startswith(".")
+        and DEFAULT_SGREP_CONFIG_NAME not in part
         for part in loc.parts[:-1]
     )
 
@@ -720,6 +730,10 @@ def generate_config():
         print_error_exit(e)
 
 
+def should_exclude_this_path(path: Path) -> bool:
+    return any("test" in p or "example" in p for p in path.parts)
+
+
 def set_flags(debug: bool, quiet: bool) -> None:
     """Set the global DEBUG and QUIET flags"""
     # TODO move to a proper logging framework
@@ -824,6 +838,7 @@ def main(args: argparse.Namespace):
 
     current_path = Path.cwd()
     outputs_after_booleans = []
+    ignored_in_tests = 0
     for rule_index, paths in by_rule_index.items():
         full_expression = list(build_boolean_expression(all_rules[rule_index]))
         expression = list(drop_patterns(full_expression))
@@ -844,18 +859,27 @@ def main(args: argparse.Namespace):
             debug_print("-" * 80)
             for result in results:
                 if sgrep_finding_to_range(result) in valid_ranges_to_output:
+                    path_object = Path(result["path"])
+                    if args.exclude_tests and should_exclude_this_path(path_object):
+                        ignored_in_tests += 1
+                        continue
+
                     # restore the original rule ID
                     result["check_id"] = all_rules[rule_index]["id"]
                     # rewrite the path to be relative to the current working directory
-                    result["path"] = str(
-                        safe_relative_to(Path(result["path"]), current_path)
-                    )
+                    result["path"] = str(safe_relative_to(path_object, current_path))
+
                     # restore the original message
                     result["extra"]["message"] = rewrite_message_with_metavars(
                         all_rules[rule_index], result
                     )
                     result = transform_to_r2c_output(result)
                     outputs_after_booleans.append(result)
+
+    if ignored_in_tests > 0:
+        print_error(
+            f"warning: ignored {ignored_in_tests} results in tests due to --exclude-tests option"
+        )
 
     # output results
     output_data = {"results": outputs_after_booleans}
@@ -916,6 +940,12 @@ if __name__ == "__main__":
     config.add_argument(
         "--strict",
         help=f"only invoke sgrep if config(s) are valid",
+        action="store_true",
+    )
+
+    config.add_argument(
+        "--exclude-tests",
+        help=f"try to exclude tests, documentation, and examples (based on filename/path)",
         action="store_true",
     )
 
