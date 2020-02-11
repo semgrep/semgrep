@@ -718,7 +718,7 @@ def generate_config():
         template_str = """rules:
   - id: eqeq-is-bad
     pattern: $X == $X
-    message: "Dude, $X == $X is stupid"
+    message: "$X == $X is stupid"
     languages: [python]
     severity: ERROR"""
     try:
