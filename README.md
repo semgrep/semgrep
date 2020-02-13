@@ -5,7 +5,14 @@
 `sgrep`, for syntactical (and occasionnally semantic) grep, is a tool to help find bugs by specifying code patterns using a familiar
 syntax. The idea is to mix the convenience of grep with the correctness and precision of a compiler frontend.
 
-As an example, the pattern `$X == $X` can be used to find useless equality checks. The pattern `subprocess.open(...)` will fire on cases even where imported modules are renamed, like `import subprocess as s; s.open(['foo'])`.
+## Quick Examples
+
+<table>
+  <tr><td>pattern</td><td>will match code like</td></tr>
+  <tr><td><code>$X == $X</code></td><td><code>if (node.id == node.id): ...</code></td></tr>
+  <tr><td><code>foo(kwd1=1, kwd2=2, ...)</code></td><td><code>foo(kwd2=2, kwd1=1, kwd3=3)</code></td></tr>
+  <tr><td><code>subprocess.open(...)</code></td><td><code>import subprocess as s; s.open(['foo'])</code></td></tr>
+</table>
 
 ## Supported Languages
 
