@@ -11,7 +11,7 @@ As an example, the pattern `$X == $X` can be used to find useless equality check
 
 <table>
   <tr>
-   <td>Javascript</td>
+   <td>JavaScript</td>
    <td>Python</td>
    <td>Go</td>
    <td>Java</td>
