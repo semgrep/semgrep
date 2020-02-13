@@ -311,7 +311,7 @@ def invoke_sgrep(
 ) -> Dict[str, Any]:
     """Returns parsed json output of sgrep"""
 
-    outputs: List[Any] = []    # multiple invocations per language
+    outputs: List[Any] = []  # multiple invocations per language
     errors: List[Any] = []
     for language, all_rules_for_language in group_rule_by_langauges(all_rules).items():
         with tempfile.NamedTemporaryFile("w") as fout:
@@ -321,14 +321,20 @@ def invoke_sgrep(
             )
             fout.write(yaml_as_str)
             fout.flush()
-            extra_args = ['-report_parse_errors'            , '-report_fatal_errors'] if strict else []
-            cmd = [
-                SGREP_PATH] + extra_args + ["-lang",
-                language,
-                f"-rules_file",
-                fout.name,
-                *[str(path) for path in targets],
-            ]
+            extra_args = (
+                ["-report_parse_errors", "-report_fatal_errors"] if strict else []
+            )
+            cmd = (
+                [SGREP_PATH]
+                + extra_args
+                + [
+                    "-lang",
+                    language,
+                    f"-rules_file",
+                    fout.name,
+                    *[str(path) for path in targets],
+                ]
+            )
             try:
                 output = subprocess.check_output(cmd, shell=False)
             except subprocess.CalledProcessError as ex:
@@ -836,8 +842,10 @@ def main(args: argparse.Namespace):
     for finding in output_json["errors"]:
         print_error(f"sgrep: {finding['path']}: {finding['check_id']}")
 
-    if strict and len(output_json['errors']):
-        print_error_exit(f"run with --strict and {len(output_json['errors'])} errors occurred during sgrep run; exiting")
+    if strict and len(output_json["errors"]):
+        print_error_exit(
+            f"run with --strict and {len(output_json['errors'])} errors occurred during sgrep run; exiting"
+        )
 
     for finding in output_json["matches"]:
         # decode the rule index from the output check_id
