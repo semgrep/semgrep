@@ -32,7 +32,7 @@ As an example, the pattern `$X == $X` can be used to find useless equality check
 
 ## Meetups
 
-Want to learn more about sgrep? Check out thes [slides from the r2c February meetup](https://r2c.dev/sgrep-public2.pdf)
+Want to learn more about sgrep? Check out these [slides from the r2c February meetup](https://r2c.dev/sgrep-public2.pdf)
 
 ## Installation
 
