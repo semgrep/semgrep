@@ -307,12 +307,12 @@ def group_rule_by_langauges(
 
 
 def invoke_sgrep(
-    all_rules: List[Dict[str, Any]], targets: List[Path]
+    all_rules: List[Dict[str, Any]], targets: List[Path], strict: bool
 ) -> Dict[str, Any]:
     """Returns parsed json output of sgrep"""
 
-    outputs: List[Any] = []
-    # multiple invocations per language
+    outputs: List[Any] = []    # multiple invocations per language
+    errors: List[Any] = []
     for language, all_rules_for_language in group_rule_by_langauges(all_rules).items():
         with tempfile.NamedTemporaryFile("w") as fout:
             # very important not to sort keys here
@@ -321,9 +321,9 @@ def invoke_sgrep(
             )
             fout.write(yaml_as_str)
             fout.flush()
+            extra_args = ['-report_parse_errors'            , '-report_fatal_errors'] if strict else []
             cmd = [
-                SGREP_PATH,
-                "-lang",
+                SGREP_PATH] + extra_args + ["-lang",
                 language,
                 f"-rules_file",
                 fout.name,
@@ -337,8 +337,9 @@ def invoke_sgrep(
                 )
                 print_error_exit(f"\n\n{PLEASE_FILE_ISSUE_TEXT}")
             output_json = json.loads((output.decode("utf-8")))
+            errors.extend(output_json["errors"])
             outputs.extend(output_json["matches"])
-    return {"matches": outputs}
+    return {"matches": outputs, "errors": errors}
 
 
 def rewrite_message_with_metavars(yaml_rule, sgrep_result):
@@ -708,7 +709,7 @@ def generate_config():
         template_str = """rules:
   - id: eqeq-is-bad
     pattern: $X == $X
-    message: "Dude, $X == $X is stupid"
+    message: "$X == $X is a useless equality check"
     languages: [python]
     severity: ERROR"""
     try:
@@ -809,7 +810,7 @@ def main(args: argparse.Namespace):
 
     # actually invoke sgrep
     start = datetime.now()
-    output_json = invoke_sgrep(all_patterns, targets)
+    output_json = invoke_sgrep(all_patterns, targets, strict)
     debug_print(f"sgrep ran in {datetime.now() - start}")
     debug_print(str(output_json))
 
@@ -817,6 +818,13 @@ def main(args: argparse.Namespace):
     by_rule_index: Dict[int, Dict[str, List[Dict[str, Any]]]] = collections.defaultdict(
         lambda: collections.defaultdict(list)
     )
+
+    for finding in output_json["errors"]:
+        print_error(f"sgrep: {finding['path']}: {finding['check_id']}")
+
+    if strict and len(output_json['errors']):
+        print_error_exit(f"run with --strict and {len(output_json['errors'])} errors occurred during sgrep run; exiting")
+
     for finding in output_json["matches"]:
         # decode the rule index from the output check_id
         rule_index = int(finding["check_id"].split(".")[0])
