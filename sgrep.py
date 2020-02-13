@@ -310,7 +310,7 @@ def group_rule_by_langauges(
 
 
 def invoke_sgrep(
-    all_rules: List[Dict[str, Any]], targets: List[Path]
+    all_rules: List[Dict[str, Any]], targets: List[Path], strict: bool
 ) -> Dict[str, Any]:
     """Returns parsed json output of sgrep"""
 
@@ -346,8 +346,9 @@ def invoke_sgrep(
                 )
                 print_error_exit(f"\n\n{PLEASE_FILE_ISSUE_TEXT}")
             output_json = json.loads((output.decode("utf-8")))
+            errors.extend(output_json["errors"])
             outputs.extend(output_json["matches"])
-    return {"matches": outputs}
+    return {"matches": outputs, "errors": errors}
 
 
 def rewrite_message_with_metavars(yaml_rule, sgrep_result):
@@ -735,7 +736,7 @@ def generate_config():
         template_str = """rules:
   - id: eqeq-is-bad
     pattern: $X == $X
-    message: "$X == $X is stupid"
+    message: "$X == $X is a useless equality check"
     languages: [python]
     severity: ERROR"""
     try:
@@ -844,7 +845,7 @@ def main(args: argparse.Namespace):
 
     # actually invoke sgrep
     start = datetime.now()
-    output_json = invoke_sgrep(all_patterns, targets)
+    output_json = invoke_sgrep(all_patterns, targets, strict)
     debug_print(f"sgrep ran in {datetime.now() - start}")
     debug_print(str(output_json))
 
