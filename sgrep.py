@@ -859,7 +859,7 @@ def main(args: argparse.Namespace):
     # actually invoke sgrep
     start = datetime.now()
     output_json = invoke_sgrep(all_patterns, targets, strict)
-    print_error(f"sgrep ran in {datetime.now() - start}")
+    debug_print(f"sgrep ran in {datetime.now() - start}")
     debug_print(str(output_json))
 
     # group output; we want to see all of the same rule ids on the same file path
