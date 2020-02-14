@@ -542,7 +542,8 @@ def resolve_config(config_str: Optional[str]) -> Any:
         config = download_config(config_str)
     else:
         config = load_config(config_str)
-    debug_print(f"loaded {len(config)} configs in {time.time() - start_t}")
+    if config:
+        debug_print(f"loaded {len(config)} configs in {time.time() - start_t}")
     return config
 
 
