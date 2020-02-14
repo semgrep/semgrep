@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import argparse
-import time
 import base64
 import collections
 import itertools
@@ -11,6 +10,7 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import time
 import traceback
 from dataclasses import dataclass
 from datetime import datetime
