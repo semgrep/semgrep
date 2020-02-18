@@ -10,6 +10,7 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import time
 import traceback
 from dataclasses import dataclass
 from datetime import datetime
@@ -183,7 +184,7 @@ def build_boolean_expression(rule):
     elif "patterns" in rule:  # multiple patterns at root
         yield from _parse_boolean_expression(rule["patterns"])
     else:
-        assert False
+        raise Exception(PLEASE_FILE_ISSUE_TEXT)
 
 
 def operator_for_pattern_name(pattern_name: str) -> str:
@@ -241,7 +242,9 @@ def _evaluate_single_expression(
         # print(f"after filter `{operator}`: {output_ranges}")
         return output_ranges
     else:
-        assert False, f"unknown operator {operator}"
+        raise NotImplementedError(
+            f"{PLEASE_FILE_ISSUE_TEXT}: unknown operator {operator}"
+        )
 
 
 def evaluate_expression(expression, results: Dict[str, List[Range]]) -> Set[Range]:
@@ -530,6 +533,7 @@ def download_config(config_url: str) -> Any:
 
 def resolve_config(config_str: Optional[str]) -> Any:
     """ resolves if config arg is a registry entry, a url, or a file, folder, or loads from defaults if None"""
+    start_t = time.time()
     if config_str is None:
         config = load_config()
     elif config_str in RULES_REGISTRY:
@@ -538,6 +542,8 @@ def resolve_config(config_str: Optional[str]) -> Any:
         config = download_config(config_str)
     else:
         config = load_config(config_str)
+    if config:
+        debug_print(f"loaded {len(config)} configs in {time.time() - start_t}")
     return config
 
 
@@ -828,9 +834,12 @@ def main(args: argparse.Namespace):
         valid_configs = rename_rule_ids(valid_configs)
 
     # now validate all the patterns inside the configs
-    invalid_patterns = validate_patterns(valid_configs)
-    if len(invalid_patterns):
-        print_error_exit("invalid patterns found inside rules; aborting")
+    if not args.skip_pattern_validation:
+        start_validate_t = time.time()
+        invalid_patterns = validate_patterns(valid_configs)
+        if len(invalid_patterns):
+            print_error_exit("invalid patterns found inside rules; aborting")
+        debug_print(f"debug: validated config in {time.time() - start_validate_t}")
 
     # extract just the rules from valid configs
     all_rules = flatten_configs(valid_configs)
@@ -1007,6 +1016,11 @@ if __name__ == "__main__":
     output.add_argument(
         "--r2c",
         help="output json in r2c platform format (https://app.r2c.dev)",
+        action="store_true",
+    )
+    output.add_argument(
+        "--skip-pattern-validation",
+        help="skip using sgrep to validate patterns before running (not recommended)",
         action="store_true",
     )
     output.add_argument(
