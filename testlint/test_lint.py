@@ -7,6 +7,7 @@ from sgrep import (
     evaluate_expression,
     NO_BOOLEAN_RULE_ID,
     enumerate_patterns_in_boolean_expression,
+    SgrepRange
 )
 
 # run from parent directory with PYTHONPATH=. python3 testlint/test_lint.py
@@ -246,7 +247,7 @@ def testF():
            - patterns:
             - pattern-inside P4
             - and P2
-          - pattterns:
+          - patterns:
             - pattern-not-inside P4
             - and P1
     
@@ -313,8 +314,59 @@ def test_exprs():
         (OPERATORS.AND, "pattern1", "p1"),
     ], f"flat: {flat}"
 
+def testEvaluatePython():
+    """Test evaluating the subpattern `where-python: <python_expression>`,
+    in which a rule can provide an arbitrary Python expression that will be
+    evaluated against the currently matched metavariables.
+    
+    NOTE: the Python expression must evaluate to True or False.
+   
+    NOTE: Assume patterns are applied in the order specified, top to bottom.
+
+    This is implementing: https://github.com/returntocorp/sgrep/issues/101.
+ 
+        let allExecs = exec($X)
+        let filteredExecs = where-python: "vars['$X'].startswith('cmd')" 
+
+        000-100   var exec = require('child_process').exec;
+ 
+        100-200   var cmd_pattern = "user_input";
+        200-300   var other_pattern = "hardcoded_string";
+ 
+        300-400   // should match
+        400-500   exec(cmd_pattern, function(error, stdout, stderr){
+        500-600       console.log(stdout);
+        600-700   });
+ 
+        700-800   // should not match
+        800-900   exec(other_pattern, function(error, stdout, stderr){
+        900-1000      console.log(stdout);
+        1100-1200 });
+    
+        patterns:
+            pattern: exec($X)
+            where-python: "vars['$X'].startswith('cmd')" 
+
+    
+        OUTPUT: [400-500]
+    """
+    results = {
+        "all_execs": [SgrepRange(Range(400, 500), {"$X": "cmd_pattern"}), 
+                      SgrepRange(Range(800, 900), {"$X": "other_pattern"})],
+    }
+
+    expression = [
+        (OPERATORS.AND, "all_execs"),
+        (OPERATORS.WHERE_PYTHON, "vars['$X'].startswith('cmd')"),
+    ]
+
+    result = evaluate_expression(expression, results)
+    assert result == set(
+        [Range(400, 500)]
+    ), f"{result}"
 
 def testAll():
+    testEvaluatePython()
     test_exprs()
 
     testA()
@@ -323,7 +375,7 @@ def testAll():
     testD()
     testE()
     testF()
-
+    
 
 if __name__ == "__main__":
     testAll()
