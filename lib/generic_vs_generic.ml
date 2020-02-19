@@ -772,6 +772,10 @@ and m_special a b =
     m_arithmetic_operator a1 b1 >>= (fun () -> 
     return ()
     )
+  | A.EncodedString(a1), B.EncodedString(b1) ->
+    m_wrap m_string a1 b1 >>= (fun () -> 
+    return ()
+    )
   | A.IncrDecr(a1, a2), B.IncrDecr(b1, b2) ->
     m_bool a1 b1 >>= (fun () -> 
     m_bool a2 b2 >>= (fun () -> 
@@ -780,6 +784,7 @@ and m_special a b =
   | A.This, _  | A.Super, _  | A.Self, _  | A.Parent, _  | A.Eval, _
   | A.Typeof, _  | A.Instanceof, _  | A.Sizeof, _  | A.New, _
   | A.Concat, _  | A.Spread, _  | A.ArithOp _, _  | A.IncrDecr _, _
+  | A.EncodedString _, _
    -> fail ()
 
 and m_name_info a b = 
