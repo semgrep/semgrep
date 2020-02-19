@@ -8,10 +8,11 @@ syntax. The idea is to mix the convenience of grep with the correctness and prec
 ## Quick Examples
 
 <table>
-  <tr><td>pattern</td><td>will match code like</td></tr>
+  <tr><td><b>pattern</b></td><td><b>will match code like</b></td></tr>
   <tr><td><code>$X == $X</code></td><td><code>if (node.id == node.id): ...</code></td></tr>
   <tr><td><code>foo(kwd1=1, kwd2=2, ...)</code></td><td><code>foo(kwd2=2, kwd1=1, kwd3=3)</code></td></tr>
   <tr><td><code>subprocess.open(...)</code></td><td><code>import subprocess as s; s.open(['foo'])</code></td></tr>
+  <tr><td colspan=2><a href="https://github.com/returntocorp/sgrep-rules">see more examples in the sgrep-rules registry</a></td></tr>
 </table>
 
 ## Supported Languages
