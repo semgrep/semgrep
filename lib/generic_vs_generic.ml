@@ -309,6 +309,9 @@ let rec m_list f a b =
 let m_bool a b = 
   if a = b then return () else fail ()
 
+let m_int a b = 
+  if a =|= b then return () else fail ()
+
 let m_string a b =
   if a =$= b then return () else fail ()
 
@@ -442,7 +445,7 @@ and make_dotted xs =
     let base = B.Name ((x, B.empty_name_info), B.empty_id_info()) in
     List.fold_left (fun acc e -> 
       let tok = Parse_info.fake_info "." in
-      B.DotAccess (acc, tok, e)) base xs
+      B.DotAccess (acc, tok, B.FId e)) base xs
 
 and m_expr a b = 
   match a, b with
@@ -542,7 +545,7 @@ and m_expr a b =
   | A.DotAccess(a1, at, a2), B.DotAccess(b1, bt, b2) ->
     m_expr a1 b1 >>= (fun () -> 
     m_tok at bt >>= (fun () -> 
-    m_ident a2 b2 >>= (fun () -> 
+    m_field_ident a2 b2 >>= (fun () -> 
     return ()
     )))
   | A.ArrayAccess(a1, a2), B.ArrayAccess(b1, b2) ->
@@ -616,6 +619,46 @@ and m_expr a b =
   | A.TypedMetavar _, _
    -> fail ()
 
+
+and m_field_ident a b =
+  match a, b with
+  | A.FId a, B.FId b -> 
+      m_ident a b >>= (fun () ->
+          return ()
+      )
+  | A.FName a, B.FName b -> 
+      m_name a b >>= (fun () ->
+          return ()
+      )
+  | A.FDynamic a, B.FDynamic b -> 
+      m_expr a b >>= (fun () ->
+          return ()
+      )
+  | A.FId _, _ 
+  | A.FName _, _
+  | A.FDynamic _, _
+    -> fail ()
+
+and m_label_ident a b =
+  match a, b with
+  | A.LNone, B.LNone -> return ()
+  | A.LId a, B.LId b -> 
+      m_label a b >>= (fun () ->
+          return ()
+      )
+  | A.LInt a, B.LInt b -> 
+      m_wrap m_int a b >>= (fun () ->
+          return ()
+      )
+  | A.LDynamic a, B.LDynamic b -> 
+      m_expr a b >>= (fun () ->
+          return ()
+      )
+  | A.LNone, _
+  | A.LId _, _ 
+  | A.LInt _, _
+  | A.LDynamic _, _
+    -> fail ()
 
 and m_literal a b = 
   match a, b with
@@ -729,6 +772,10 @@ and m_special a b =
     m_arithmetic_operator a1 b1 >>= (fun () -> 
     return ()
     )
+  | A.EncodedString(a1), B.EncodedString(b1) ->
+    m_wrap m_string a1 b1 >>= (fun () -> 
+    return ()
+    )
   | A.IncrDecr(a1, a2), B.IncrDecr(b1, b2) ->
     m_bool a1 b1 >>= (fun () -> 
     m_bool a2 b2 >>= (fun () -> 
@@ -737,6 +784,7 @@ and m_special a b =
   | A.This, _  | A.Super, _  | A.Self, _  | A.Parent, _  | A.Eval, _
   | A.Typeof, _  | A.Instanceof, _  | A.Sizeof, _  | A.New, _
   | A.Concat, _  | A.Spread, _  | A.ArithOp _, _  | A.IncrDecr _, _
+  | A.EncodedString _, _
    -> fail ()
 
 and m_name_info a b = 
@@ -786,7 +834,7 @@ and m_other_expr_operator = m_other_xxx
 
 and m_xml a b = 
   match a, b with
-  (a, b) -> (m_list m_any) a b
+  (_a, _b) -> raise Todo
 
 (*---------------------------------------------------------------------------*)
 (* Arguments list iso *)
@@ -884,7 +932,11 @@ and m_type_ a b =
     m_type_ a2 b2 >>= (fun () -> 
     return ()
     ))
-  | A.TyApply(a1, a2), B.TyApply(b1, b2) ->
+  | A.TyName(a1), B.TyName(b1) ->
+    m_name a1 b1 >>= (fun () -> 
+    return ()
+    )
+  | A.TyNameApply(a1, a2), B.TyNameApply(b1, b2) ->
     m_name a1 b1 >>= (fun () -> 
     m_type_arguments a2 b2 >>= (fun () -> 
     return ()
@@ -905,24 +957,41 @@ and m_type_ a b =
     ))
   | A.TyTuple(a1), B.TyTuple(b1) ->
     (*TODO: m_list__m_type_ ? *)
-    (m_list m_type_) a1 b1 >>= (fun () -> 
+    (m_bracket (m_list m_type_)) a1 b1 >>= (fun () -> 
     return ()
     )
-  | A.TyQuestion(a1), B.TyQuestion(b1) ->
+  | A.TyQuestion(a1, a2), B.TyQuestion(b1, b2) ->
     m_type_ a1 b1 >>= (fun () -> 
+    m_tok a2 b2 >>= (fun () -> 
+    return ()
+    ))
+| A.TyAnd(a1), B.TyAnd(b1) ->
+    (m_bracket (m_list m_ident_and_type_)) a1 b1 >>= (fun () -> 
     return ()
     )
+  | A.TyOr a1, B.TyOr b1 ->
+      m_list m_type_ a1 b1 >>= (fun () ->
+          return ()
+      )
   | A.OtherType(a1, a2), B.OtherType(b1, b2) ->
     m_other_type_operator a1 b1 >>= (fun () -> 
     (m_list m_any) a2 b2 >>= (fun () -> 
     return ()
     ))
-  | A.TyBuiltin _, _  | A.TyFun _, _  | A.TyApply _, _  | A.TyVar _, _
+  | A.TyBuiltin _, _  | A.TyFun _, _  | A.TyNameApply _, _  | A.TyVar _, _
   | A.TyArray _, _  | A.TyPointer _, _ | A.TyTuple _, _  | A.TyQuestion _, _
+  | A.TyName _, _ | A.TyOr _, _ | A.TyAnd _, _
   | A.OtherType _, _
    -> fail ()
 
 
+and m_ident_and_type_ a b =
+  match a, b with
+  | (a1, a2), (b1, b2) ->
+    m_ident a1 b1 >>= (fun () ->
+    m_type_ a2 b2 >>= (fun () ->
+      return ()
+    ))
 and m_type_arguments a b = 
   match a, b with
   (a, b) -> (m_list m_type_argument) a b
@@ -1138,12 +1207,12 @@ and m_stmt a b =
     ))
   | A.Continue(a0, a1), B.Continue(b0, b1) ->
     m_tok a0 b0 >>= (fun () ->
-    (m_option m_expr) a1 b1 >>= (fun () -> 
+    m_label_ident a1 b1 >>= (fun () -> 
     return ()
     ))
   | A.Break(a0, a1), B.Break(b0, b1) ->
     m_tok a0 b0 >>= (fun () ->
-    (m_option m_expr) a1 b1 >>= (fun () -> 
+    m_label_ident a1 b1 >>= (fun () -> 
     return ()
     ))
   | A.Label(a1, a2), B.Label(b1, b2) ->
@@ -1279,7 +1348,7 @@ and m_other_stmt_with_stmt_operator = m_other_xxx
 
 and m_pattern a b = 
   match a, b with
-  | A.PatVar(a1, a2), B.PatVar(b1, b2) ->
+  | A.PatId(a1, a2), B.PatId(b1, b2) ->
     m_ident a1 b1 >>= (fun () -> 
     m_id_info a2 b2 >>= (fun () -> 
       return ()
@@ -1334,6 +1403,11 @@ and m_pattern a b =
     m_type_ a2 b2 >>= (fun () -> 
     return ()
     ))
+  | A.PatVar(a1, a2), B.PatVar(b1, b2) ->
+    m_type_ a1 b1 >>= (fun () -> 
+    m_option m_id_and_id_info a2 b2 >>= (fun () -> 
+    return ()
+    ))
   | A.PatWhen(a1, a2), B.PatWhen(b1, b2) ->
     m_pattern a1 b1 >>= (fun () -> 
     m_expr a2 b2 >>= (fun () -> 
@@ -1344,12 +1418,17 @@ and m_pattern a b =
     (m_list m_any) a2 b2 >>= (fun () -> 
     return ()
     ))
-  | A.PatVar _, _  | A.PatLiteral _, _  | A.PatConstructor _, _
+  | A.PatId _, _  | A.PatLiteral _, _  | A.PatConstructor _, _
   | A.PatTuple _, _  | A.PatList _, _  | A.PatRecord _, _  | A.PatKeyVal _, _
   | A.PatUnderscore _, _  | A.PatDisj _, _  | A.PatWhen _, _  | A.PatAs _, _
-  | A.PatTyped _, _  | A.OtherPat _, _ | A.PatType _, _
+  | A.PatTyped _, _  | A.OtherPat _, _ | A.PatType _, _ | A.PatVar _, _
    -> fail ()
 
+and m_id_and_id_info (a2, a3) (b2, b3) =
+    m_ident a2 b2 >>= (fun () -> 
+    m_id_info a3 b3 >>= (fun () -> 
+          return ()
+    ))
 and m_field_pattern a b = 
   match a, b with
   | (a1, a2), (b1, b2) ->
@@ -1413,8 +1492,11 @@ and m_definition_kind a b =
     m_type_ a1 b1 >>= (fun () -> 
     return ()
     )
+  | A.UseOuterDecl a1, B.UseOuterDecl b1 ->
+      m_tok a1 b1 >>= (fun () -> return ())
   | A.FuncDef _, _ | A.VarDef _, _  | A.ClassDef _, _  | A.TypeDef _, _
   | A.ModuleDef _, _  | A.MacroDef _, _  | A.Signature _, _
+  | A.UseOuterDecl _, _
    -> fail ()
 
 
@@ -1628,6 +1710,10 @@ and m_type_definition_kind a b =
     m_type_ a1 b1 >>= (fun () -> 
     return ()
     )
+  | A.NewType(a1), B.NewType(b1) ->
+    m_type_ a1 b1 >>= (fun () -> 
+    return ()
+    )
   | A.Exception(a1, a2), B.Exception(b1, b2) ->
     m_ident a1 b1 >>= (fun () -> 
     (* TODO: m_list__m_type_ ? *)
@@ -1640,6 +1726,7 @@ and m_type_definition_kind a b =
     return ()
     ))
   | A.OrType _, _ | A.AndType _, _ | A.AliasType _, _ | A.Exception _, _
+  | A.NewType _, _
   | A.OtherTypeKind _, _
    -> fail ()
 
@@ -1719,14 +1806,19 @@ and m_list__m_type_ (xsa: A.type_ list) (xsb: A.type_ list) =
 
 and m_class_definition a b = 
   match a, b with
-  { A. ckind = a1; cextends = a2; cimplements = a3; cbody = a4; },
-  { B. ckind = b1; cextends = b2; cimplements = b3; cbody = b4; } -> 
+  { A. ckind = a1; cextends = a2; cimplements = a3; cbody = a4; 
+      cmixins = a5;
+    },
+  { B. ckind = b1; cextends = b2; cimplements = b3; cbody = b4; 
+      cmixins = b5;
+    } -> 
     m_class_kind a1 b1 >>= (fun () -> 
     (m_list__m_type_) a2 b2 >>= (fun () -> 
     (m_list__m_type_) a3 b3 >>= (fun () -> 
+    (m_list__m_type_) a5 b5 >>= (fun () -> 
     (m_fields) a4 b4 >>= (fun () -> 
     return ()
-  ))))
+  )))))
 
 and m_class_kind a b = 
   match a, b with
@@ -1814,13 +1906,15 @@ and m_directive a b =
     m_dotted_name a1 b1 >>= (fun () -> 
     return ()
     ))
+  | A.PackageEnd a1, B.PackageEnd b1 ->
+      m_tok a1 b1 >>= (fun () -> return ())
   | A.OtherDirective(a1, a2), B.OtherDirective(b1, b2) ->
     m_other_directive_operator a1 b1 >>= (fun () -> 
     (m_list m_any) a2 b2 >>= (fun () -> 
     return ()
     ))
   | A.ImportFrom _, _ | A.ImportAs _, _ | A.OtherDirective _, _
-  | A.ImportAll _, _ | A.Package _, _
+  | A.ImportAll _, _ | A.Package _, _ | A.PackageEnd _, _
    -> fail ()
 
 and m_alias a b = 

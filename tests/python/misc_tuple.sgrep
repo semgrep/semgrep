@@ -1,0 +1,3 @@
+$S = socket.socket(...)
+...
+$S.bind(("", ...))
