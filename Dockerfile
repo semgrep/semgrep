@@ -25,4 +25,6 @@ ENV PYTHONUNBUFFERED=1
 
 COPY --from=build /home/opam/sgrep/_build/default/bin/main_sgrep.exe /bin/sgrep
 COPY --from=build /home/opam/sgrep/sgrep.py /bin/sgrep-lint
+
+ENV SGREP_IN_DOCKER=1
 ENTRYPOINT [ "/bin/sgrep-lint" ]

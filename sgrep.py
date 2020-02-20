@@ -36,6 +36,7 @@ TEMPLATE_YAML_URL = (
     "https://raw.githubusercontent.com/returntocorp/sgrep-rules/develop/template.yaml"
 )
 PLEASE_FILE_ISSUE_TEXT = "An error occurred while invoking the sgrep engine; please help us fix this by filing an an issue at https://sgrep.dev"
+IN_DOCKER = 'SGREP_IN_DOCKER' in os.environ
 REPO_HOME_DOCKER = "/home/repo/"
 PRE_COMMIT_SRC_DOCKER = "/src"
 DEFAULT_SGREP_CONFIG_NAME = "sgrep"
@@ -399,21 +400,16 @@ def flatten_rule_patterns(all_rules):
 
 def adjust_for_docker():
     # change into this folder so that all paths are relative to it
-    if Path(REPO_HOME_DOCKER).exists():
+    if IN_DOCKER:
+        if not Path(REPO_HOME_DOCKER).exists():        
+            print_error_exit(f'you are running sgrep in docker, but you forgot to mount the current directory in Docker: missing: -v $(pwd):{REPO_HOME_DOCKER}')
         os.chdir(REPO_HOME_DOCKER)
     elif Path(PRE_COMMIT_SRC_DOCKER).exists():
         os.chdir(PRE_COMMIT_SRC_DOCKER)
 
 
 def get_base_path() -> Path:
-    docker_folder = Path(REPO_HOME_DOCKER)
-    pre_commit_folder = Path(PRE_COMMIT_SRC_DOCKER)
-    if docker_folder.exists():
-        return docker_folder
-    elif pre_commit_folder.exists():
-        return pre_commit_folder
-    else:
-        return Path(".")
+    return Path(".")
 
 
 def resolve_targets(targets: List[str]) -> List[Path]:
@@ -504,7 +500,10 @@ def load_config(location: Optional[str] = None) -> Any:
             else:
                 print_error_exit(f"{loc} is not a file or folder!")
         else:
-            print_error_exit(f"unable to find a config file in {base_path.resolve()}")
+            addendum = ''
+            if IN_DOCKER:
+                addendum = ' (since you are running in docker, you cannot specify arbitary paths on the host; they must be mounted into the container)'
+            print_error_exit(f"unable to find a config; path {loc} does not exist{addendum}")
 
 
 def download_config(config_url: str) -> Any:
