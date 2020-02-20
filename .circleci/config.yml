@@ -30,6 +30,38 @@ jobs:
       - run: eval $(opam env) && cd ~/pfff && ./configure && make depend && make && make opt && make install-libs
       - run: eval $(opam env); make test
 
+  publish_mac:
+    macos:
+      xcode: 11.3.1
+    environment:
+      HOMEBREW_NO_AUTO_UPDATE: 1
+    steps:
+      - checkout
+      - run: brew install opam pkg-config
+      - run: opam init --no-setup --bare
+      - run: opam switch create 4.07.1
+      - run: opam switch 4.07.1
+      - run: eval $(opam env); opam install -y reason dune ocamlfind camlp4 num ocamlgraph json-wheel conf-perl yaml
+      - run: git clone https://github.com/returntocorp/pfff ~/pfff
+      - run: eval $(opam env); cd ~/pfff; ./configure; make depend; make; make opt; make reinstall-libs
+      - run: eval $(opam env); dune build
+      - run:
+          name: "pubish release to github"
+          command: |
+            mkdir ~/artifacts
+            VERSION="latest"
+            chmod +x ~/project/_build/default/bin/main_sgrep.exe
+            mv ~/project/_build/default/bin/main_sgrep.exe main_sgrep-osx-${VERSION}
+            mv ~/project/sgrep.py sgrep-${VERSION}.py
+            ./main_sgrep-osx-${VERSION} -help
+            zip main_sgrep-osx-${VERSION}.zip main_sgrep-osx-${VERSION} sgrep-${VERSION}.py
+            mv main_sgrep-osx-${VERSION}.zip ~/artifacts
+            cd ~/artifacts && shasum -a 256 * > ./${VERSION}_SHASUMS
+            brew install ghr
+            ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${VERSION} ~/artifacts/
+      - store_artifacts:
+          path: ~/artifacts
+
 workflows:
   version: 2.1
   build_and_test:
@@ -38,3 +70,9 @@ workflows:
       - test:
           requires:
             - build
+      - publish_mac:
+          requires:
+            - test
+          filters:
+            branches:
+              only: master

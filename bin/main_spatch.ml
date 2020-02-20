@@ -224,8 +224,8 @@ let apply_transfo transfo xs =
     try (
     let (ast, toks) = 
       try 
-        Parse_php.parse file |> fst
-      with Parse_info.Parsing_error _err ->
+        Parse_php.ast_and_tokens file
+      with Parse_php.Parse_error _err ->
         Common.pr2 (spf "warning: parsing problem in %s" file);
         [], []
     in
@@ -257,7 +257,7 @@ let apply_transfo transfo xs =
   !pbs |> List.iter Common.pr2
 
 let apply_refactoring _refactoring file =
-  let _ast_and_toks, _ = Parse_php.parse file in
+  let _ast_and_toks = Parse_php.ast_and_tokens file in
   let s = 
   (*  Refactoring_code_php.refactor [refactoring] ast_and_toks  *) raise Todo
   in
@@ -290,7 +290,7 @@ let simple_transfo xs =
   files |> List.iter (fun file ->
     pr2 (spf "processing: %s" file);
 
-    let (ast, toks), _ = Parse_php.parse file in
+    let (ast, toks) = Parse_php.ast_and_tokens file in
 
     let hook = { Visitor_php.default_visitor with
       Visitor_php.kexpr = (fun (k, _) x ->

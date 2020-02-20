@@ -11,8 +11,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * file license.txt for more details.
  *)
-open Common
-
 module PI = Parse_info
 module R = Rule
 module E = Error_code
@@ -70,14 +68,7 @@ let match_to_json x =
     "extra", J.Object [
        "message", J.String x.rule.R.message;
        "metavars", J.Object (x.env |> List.map (fun (s, any) ->
-        let (startp, endp) = 
-          try 
-            range_of_any any 
-          with Parse_info.NoTokenLocation exn ->
-           failwith (spf 
-            "NoTokenLocation %s exn while processing %s for rule %s, with metavar %s, close location = %s"
-              exn x.file x.rule.R.id  s (Json_io.string_of_json startp))
-        in
+        let (startp, endp) = range_of_any any in
           s, J.Object [
           "start", startp;
           "end", endp;

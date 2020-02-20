@@ -1,9 +1,6 @@
 name: sgrep-lint
 
-on:
-  pull_request:
-  push:
-    branches: [master, develop]
+on: [push]
 
 jobs:
   run-r2c-config:

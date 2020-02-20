@@ -10,7 +10,6 @@ import subprocess
 import sys
 import tarfile
 import tempfile
-import time
 import traceback
 from dataclasses import dataclass
 from datetime import datetime
@@ -64,10 +63,7 @@ class OPERATORS:
     AND_NOT_INSIDE = "and_not_inside"
 
 
-# These are the only valid top-level keys
 MUST_HAVE_KEYS = {"id", "message", "languages", "severity"}
-MUST_HAVE_ONLY_ONE_KEY = {"pattern", "patterns"}
-ALL_VALID_RULE_KEYS = MUST_HAVE_ONLY_ONE_KEY.union(MUST_HAVE_KEYS)
 
 PATTERN_NAMES_MAP = {
     "pattern-inside": OPERATORS.AND_INSIDE,
@@ -184,7 +180,7 @@ def build_boolean_expression(rule):
     elif "patterns" in rule:  # multiple patterns at root
         yield from _parse_boolean_expression(rule["patterns"])
     else:
-        raise Exception(PLEASE_FILE_ISSUE_TEXT)
+        assert False
 
 
 def operator_for_pattern_name(pattern_name: str) -> str:
@@ -242,9 +238,7 @@ def _evaluate_single_expression(
         # print(f"after filter `{operator}`: {output_ranges}")
         return output_ranges
     else:
-        raise NotImplementedError(
-            f"{PLEASE_FILE_ISSUE_TEXT}: unknown operator {operator}"
-        )
+        assert False, f"unknown operator {operator}"
 
 
 def evaluate_expression(expression, results: Dict[str, List[Range]]) -> Set[Range]:
@@ -313,12 +307,12 @@ def group_rule_by_langauges(
 
 
 def invoke_sgrep(
-    all_rules: List[Dict[str, Any]], targets: List[Path], strict: bool
+    all_rules: List[Dict[str, Any]], targets: List[Path]
 ) -> Dict[str, Any]:
     """Returns parsed json output of sgrep"""
 
-    outputs: List[Any] = []  # multiple invocations per language
-    errors: List[Any] = []
+    outputs: List[Any] = []
+    # multiple invocations per language
     for language, all_rules_for_language in group_rule_by_langauges(all_rules).items():
         with tempfile.NamedTemporaryFile("w") as fout:
             # very important not to sort keys here
@@ -327,20 +321,14 @@ def invoke_sgrep(
             )
             fout.write(yaml_as_str)
             fout.flush()
-            extra_args = (
-                ["-report_parse_errors", "-report_fatal_errors"] if strict else []
-            )
-            cmd = (
-                [SGREP_PATH]
-                + extra_args
-                + [
-                    "-lang",
-                    language,
-                    f"-rules_file",
-                    fout.name,
-                    *[str(path) for path in targets],
-                ]
-            )
+            cmd = [
+                SGREP_PATH,
+                "-lang",
+                language,
+                f"-rules_file",
+                fout.name,
+                *[str(path) for path in targets],
+            ]
             try:
                 output = subprocess.check_output(cmd, shell=False)
             except subprocess.CalledProcessError as ex:
@@ -349,9 +337,8 @@ def invoke_sgrep(
                 )
                 print_error_exit(f"\n\n{PLEASE_FILE_ISSUE_TEXT}")
             output_json = json.loads((output.decode("utf-8")))
-            errors.extend(output_json["errors"])
             outputs.extend(output_json["matches"])
-    return {"matches": outputs, "errors": errors}
+    return {"matches": outputs}
 
 
 def rewrite_message_with_metavars(yaml_rule, sgrep_result):
@@ -533,7 +520,6 @@ def download_config(config_url: str) -> Any:
 
 def resolve_config(config_str: Optional[str]) -> Any:
     """ resolves if config arg is a registry entry, a url, or a file, folder, or loads from defaults if None"""
-    start_t = time.time()
     if config_str is None:
         config = load_config()
     elif config_str in RULES_REGISTRY:
@@ -542,8 +528,6 @@ def resolve_config(config_str: Optional[str]) -> Any:
         config = download_config(config_str)
     else:
         config = load_config(config_str)
-    if config:
-        debug_print(f"loaded {len(config)} configs in {time.time() - start_t}")
     return config
 
 
@@ -564,33 +548,25 @@ def validate_configs(configs: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str,
         valid_rules = []
         invalid_rules = []
         for i, rule in enumerate(rules):
-            rule_id_err_msg = f'(rule id: {rule.get("id", MISSING_RULE_ID)})'
-            if not set(rule.keys()).issuperset(MUST_HAVE_KEYS):
-                print_error(
-                    f"{config_id} is missing keys at rule {i+1} {rule_id_err_msg}, must have: {MUST_HAVE_KEYS}"
-                )
-                invalid_rules.append(rule)
-                continue
-            if not set(rule.keys()).issubset(ALL_VALID_RULE_KEYS):
-                print_error(
-                    f"{config_id} has invalid rule key at rule {i+1} {rule_id_err_msg}, can only have: {ALL_VALID_RULE_KEYS}"
-                )
-                invalid_rules.append(rule)
-                continue
-            if not "pattern" in rule and not "patterns" in rule:
-                print_error(
-                    f"{config_id} is missing key `pattern` or `patterns` at rule {i+1} {rule_id_err_msg}"
-                )
-                invalid_rules.append(rule)
-                continue
-            if "patterns" in rule and not rule["patterns"]:
-                print_error(
-                    f"{config_id} no patterns found inside rule {i+1} {rule_id_err_msg}"
-                )
-                invalid_rules.append(rule)
-                continue
-
-            valid_rules.append(rule)
+            if rule:
+                rule_id_err_msg = f'(rule id: {rule.get("id", MISSING_RULE_ID)})'
+                if not set(rule.keys()).issuperset(MUST_HAVE_KEYS):
+                    print_error(
+                        f"{config_id} is missing keys at rule {i+1} {rule_id_err_msg}, must have: {MUST_HAVE_KEYS}"
+                    )
+                    invalid_rules.append(rule)
+                elif not "pattern" in rule and not "patterns" in rule:
+                    print_error(
+                        f"{config_id} is missing key `pattern` or `patterns` at rule {i+1} {rule_id_err_msg}"
+                    )
+                    invalid_rules.append(rule)
+                elif "patterns" in rule and not rule["patterns"]:
+                    print_error(
+                        f"{config_id} no patterns found inside rule {i+1} {rule_id_err_msg}"
+                    )
+                    invalid_rules.append(rule)
+                else:
+                    valid_rules.append(rule)
 
         if invalid_rules:
             errors[config_id] = {**config, "rules": invalid_rules}
@@ -742,7 +718,7 @@ def generate_config():
         template_str = """rules:
   - id: eqeq-is-bad
     pattern: $X == $X
-    message: "$X == $X is a useless equality check"
+    message: "Dude, $X == $X is stupid"
     languages: [python]
     severity: ERROR"""
     try:
@@ -819,13 +795,9 @@ def main(args: argparse.Namespace):
 
     if errors:
         if strict:
-            print_error_exit(
-                f"run with --strict and there were {len(errors)} errors loading configs"
-            )
+            print_error_exit(f"run with --strict and there were {len(errors)} errors")
         elif validate:
-            print_error_exit(
-                f"run with --validate and there were {len(errors)} errors loading configs"
-            )
+            print_error_exit(f"run with --validate and there were {len(errors)} errors")
     elif validate:  # no errors!
         print_error_exit("Config is valid", exit_code=0)
 
@@ -834,12 +806,9 @@ def main(args: argparse.Namespace):
         valid_configs = rename_rule_ids(valid_configs)
 
     # now validate all the patterns inside the configs
-    if not args.skip_pattern_validation:
-        start_validate_t = time.time()
-        invalid_patterns = validate_patterns(valid_configs)
-        if len(invalid_patterns):
-            print_error_exit("invalid patterns found inside rules; aborting")
-        debug_print(f"debug: validated config in {time.time() - start_validate_t}")
+    invalid_patterns = validate_patterns(valid_configs)
+    if len(invalid_patterns):
+        print_error_exit("invalid patterns found inside rules; aborting")
 
     # extract just the rules from valid configs
     all_rules = flatten_configs(valid_configs)
@@ -854,7 +823,7 @@ def main(args: argparse.Namespace):
 
     # actually invoke sgrep
     start = datetime.now()
-    output_json = invoke_sgrep(all_patterns, targets, strict)
+    output_json = invoke_sgrep(all_patterns, targets)
     debug_print(f"sgrep ran in {datetime.now() - start}")
     debug_print(str(output_json))
 
@@ -862,15 +831,6 @@ def main(args: argparse.Namespace):
     by_rule_index: Dict[int, Dict[str, List[Dict[str, Any]]]] = collections.defaultdict(
         lambda: collections.defaultdict(list)
     )
-
-    for finding in output_json["errors"]:
-        print_error(f"sgrep: {finding['path']}: {finding['check_id']}")
-
-    if strict and len(output_json["errors"]):
-        print_error_exit(
-            f"run with --strict and {len(output_json['errors'])} errors occurred during sgrep run; exiting"
-        )
-
     for finding in output_json["matches"]:
         # decode the rule index from the output check_id
         rule_index = int(finding["check_id"].split(".")[0])
@@ -1016,11 +976,6 @@ if __name__ == "__main__":
     output.add_argument(
         "--r2c",
         help="output json in r2c platform format (https://app.r2c.dev)",
-        action="store_true",
-    )
-    output.add_argument(
-        "--skip-pattern-validation",
-        help="skip using sgrep to validate patterns before running (not recommended)",
         action="store_true",
     )
     output.add_argument(

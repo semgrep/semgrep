@@ -11,11 +11,8 @@ diff tmp.out ./testlint/python/eqeq.expected.json
 rm -f tmp.out
 
 # parsing bad.yaml should fail 
-./sgrep.py --strict --config testlint/python/bad.yaml tests/lint && echo "bad.yaml should have failed" && exit 1
-
-# parsing bad2.yaml should fail 
-./sgrep.py --strict --config testlint/python/bad2.yaml tests/lint && echo "bad2.yaml should have failed" && exit 1
+./sgrep.py --strict --config testlint/python/bad.yaml tests/lint && exit 1
 
 
 echo "-----------------------"
-echo "all lint tests passed"
+echo "all lint tests complete"

@@ -2,51 +2,40 @@
 
 [![r2c community slack](https://img.shields.io/badge/r2c_slack-join-brightgreen?style=for-the-badge&logo=slack&labelColor=4A154B)](https://join.slack.com/t/r2c-community/shared_invite/enQtNjU0NDYzMjAwODY4LWE3NTg1MGNhYTAwMzk5ZGRhMjQ2MzVhNGJiZjI1ZWQ0NjQ2YWI4ZGY3OGViMGJjNzA4ODQ3MjEzOWExNjZlNTA)
 
-`sgrep`, for syntactical (and occasionnally semantic) grep, is a tool to help find bugs by specifying code patterns using a familiar
-syntax. The idea is to mix the convenience of grep with the correctness and precision of a compiler frontend.
+`sgrep`, for syntactical (and occasionnally semantic) grep, is a
+tool to help find bugs by specifying code patterns using a familiar
+syntax. The idea is to mix the convenience of grep with the
+correctness and precision of a compiler frontend.
 
-## Quick Examples
+Its main features are:
 
-<table>
-  <tr><td><b>pattern</b></td><td><b>will match code like</b></td></tr>
-  <tr><td><code>$X == $X</code></td><td><code>if (node.id == node.id): ...</code></td></tr>
-  <tr><td><code>foo(kwd1=1, kwd2=2, ...)</code></td><td><code>foo(kwd2=2, kwd1=1, kwd3=3)</code></td></tr>
-  <tr><td><code>subprocess.open(...)</code></td><td><code>import subprocess as s; s.open(['foo'])</code></td></tr>
-  <tr><td colspan=2><a href="https://github.com/returntocorp/sgrep-rules">see more examples in the sgrep-rules registry</a></td></tr>
-</table>
+1. **Use concrete code syntax**: easy to learn
+2. **Metavariables ($X)**: abstract away code
+3. **'...' operator**: abstract away sequences
+4. **Knows about code equivalences**: one pattern can match many equivalent variations on the code
+5. **Less is more**: abstract away additional details
 
-## Supported Languages
-
-<table>
-  <tr>
-   <td>JavaScript</td>
-   <td>Python</td>
-   <td>Go</td>
-   <td>Java</td>
-   <td>C</td>
-   <td>Ruby</td>
-   <td>Scala</td>
-</tr>
-  <tr>
-   <td>✅</td>
-      <td>✅</td>
-   <td>✅</td>
-   <td>✅</td>
-   <td>✅</td>
-   <td>coming</td>
-   <td>coming</td>
- </tr>
- </table>
+`sgrep` supports Python, JavaScript,  Golang, Java, and C, with more languages on the way!
 
 ## Meetups
 
-Want to learn more about sgrep? Check out these [slides from the r2c February meetup](https://r2c.dev/sgrep-public2.pdf)
+Want to learn more about sgrep? Come to the next [meetup in San Francisco on Monday, February 10](https://www.eventbrite.com/e/detect-complex-code-patterns-using-semantic-grep-tickets-91167980885).
+
+### Previous meetups
+
+- r2c December 2019 meetup [slides](https://r2c.dev/sgrep-public.pdf)
 
 ## Installation
 
 ### Docker
 
 `sgrep` is packaged within a [docker container](https://hub.docker.com/r/returntocorp/sgrep), making installation as easy as [installing docker](https://docs.docker.com/install/).
+
+### Mac
+
+```bash
+brew install sgrep-lint # coming soon
+```
 
 ## Quickstart
 
@@ -99,16 +88,6 @@ sgrep --config r2c
 ### Default
 
 Default configs are loaded from `.sgrep.yml` or multiple files matching `.sgrep/**/*.yml` and can be overridden by using `--config <file|folder|yaml_url|tarball_url|registy_name>`
-
-## Design
-
-Sgrep has a design philosophy that emphasizes simplicity and a single pattern being as expressive as possible:
-
-1. **Use concrete code syntax:** easy to learn
-2. **Metavariables ($X)**: abstract away code
-3. **'...' operator:** abstract away sequences
-4. **Knows about code equivalences:** one pattern can match many equivalent variations on the code
-5. **Less is more:** abstract away additional details
 
 ## Patterns
 

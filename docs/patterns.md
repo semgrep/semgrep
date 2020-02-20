@@ -1,6 +1,6 @@
 ## Example sgrep Patterns
 
-### Expression Matching
+### expression Matching
 
 ```
 pattern: 1 + foo(42)
@@ -10,7 +10,7 @@ pattern: 1 + foo(42)
 foobar(1 + foo(42)) + whatever()
 ```
 
-### Metavariables
+### metavariables
 
 ```
 pattern: $X + $Y
@@ -30,7 +30,7 @@ pattern: import $X
 import random
 ```
 
-**Reusing Metavariables**
+Reusing Metavariables**
 
 ```
 pattern: ￼$X == $X
@@ -85,7 +85,7 @@ pattern: $X.get(..., None)
 json_data.get('success', None)
 ```
 
-**Keyword Arguments in Any Order**
+**Keyword Arguments in Any Order **
 
 ```
 pattern: foo(kwd1=$X, err=$Y)
@@ -119,7 +119,7 @@ pattern: foo("=~/.*a.*/")
 foo("this has an a")
 ```
 
-### Conditionals
+### conditionals
 
 ```
 pattern: |
