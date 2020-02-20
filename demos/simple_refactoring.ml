@@ -91,7 +91,7 @@ let main files_or_dirs =
     pr2 (spf "processing: %s (%d/%d)" file i total);
 
     (* step1: parse the file *)
-    let (ast, tokens) = Parse_php.ast_and_tokens file in
+    let (ast, tokens), _ = Parse_php.parse file in
 
     (* step2: visit the AST and annotate the relevant tokens in AST leaves *)
     let visitor = V.mk_visitor { V.default_visitor with
