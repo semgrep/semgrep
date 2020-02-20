@@ -1270,11 +1270,12 @@ and m_for_header a b =
     m_option m_expr a3 b3 >>= (fun () -> 
     return ()
     )))
-  | A.ForEach(a1, a2), B.ForEach(b1, b2) ->
+  | A.ForEach(a1, at, a2), B.ForEach(b1, bt, b2) ->
     m_pattern a1 b1 >>= (fun () -> 
+    m_tok at bt >>= (fun () -> 
     m_expr a2 b2 >>= (fun () -> 
     return ()
-    ))
+    )))
   | A.ForClassic _, _  | A.ForEach _, _
    -> fail ()
 
@@ -1300,15 +1301,20 @@ and m_label a b =
 
 and m_catch a b = 
   match a, b with
-  | (a1, a2), (b1, b2) ->
+  | (at, a1, a2), (bt, b1, b2) ->
+    m_tok at bt >>= (fun () -> 
     m_pattern a1 b1 >>= (fun () -> 
     m_stmt a2 b2 >>= (fun () -> 
     return ()
-    ))
+    )))
 
 and m_finally a b = 
   match a, b with
-  (a, b) -> m_stmt a b
+  ((at, a), (bt, b)) -> 
+      m_tok at bt >>= (fun () ->
+      m_stmt a b >>= (fun () ->
+              return ()
+      ))
 
 and m_case_and_body a b = 
   match a, b with
@@ -1371,11 +1377,11 @@ and m_pattern a b =
     return ()
     )
   | A.PatList(a1), B.PatList(b1) ->
-    (m_list m_pattern) a1 b1 >>= (fun () -> 
+    m_bracket (m_list m_pattern) a1 b1 >>= (fun () -> 
     return ()
     )
   | A.PatRecord(a1), B.PatRecord(b1) ->
-    (m_list m_field_pattern) a1 b1 >>= (fun () -> 
+    m_bracket (m_list m_field_pattern) a1 b1 >>= (fun () -> 
     return ()
     )
   | A.PatKeyVal(a1, a2), B.PatKeyVal(b1, b2) ->
@@ -1703,7 +1709,7 @@ and m_type_definition_kind a b =
     return ()
     )
   | A.AndType(a1), B.AndType(b1) ->
-    (m_fields) a1 b1 >>= (fun () -> 
+    m_bracket (m_fields) a1 b1 >>= (fun () -> 
     return ()
     )
   | A.AliasType(a1), B.AliasType(b1) ->
@@ -1816,7 +1822,7 @@ and m_class_definition a b =
     (m_list__m_type_) a2 b2 >>= (fun () -> 
     (m_list__m_type_) a3 b3 >>= (fun () -> 
     (m_list__m_type_) a5 b5 >>= (fun () -> 
-    (m_fields) a4 b4 >>= (fun () -> 
+    m_bracket (m_fields) a4 b4 >>= (fun () -> 
     return ()
   )))))
 
