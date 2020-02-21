@@ -468,7 +468,7 @@ def hidden_config_dir(loc: Path):
         and part.startswith(".")
         and DEFAULT_SGREP_CONFIG_NAME not in part
         for part in loc.parts[:-1]
-    )
+    ) or (loc.name.startswith(".") and DEFAULT_SGREP_CONFIG_NAME not in loc.name)
 
 
 def parse_config_folder(loc: Path, relative: bool = False) -> Dict[str, Any]:
