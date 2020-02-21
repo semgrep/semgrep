@@ -196,7 +196,6 @@ let create_ast file =
 type pattern =
   | PatFuzzy of Ast_fuzzy.tree list
   | PatGen of Sgrep_generic.pattern
-
 (*  | PatPhp of Sgrep_php.pattern *)
 
 
@@ -217,9 +216,9 @@ let parse_pattern str =
        )
      )
   ))
-  with 
-  | Parsing.Parse_error -> 
-      failwith (spf "fail to parse pattern: '%s' in lang %s" str !lang)
+  with exn ->
+      failwith (spf "fail to parse pattern: '%s' in lang %s (exn = %s)" 
+          str !lang (Common.exn_to_s exn))
  
 
 let sgrep_ast pattern any_ast =
@@ -380,12 +379,17 @@ let validate_pattern () =
 (* works with -lang *)
 let dump_pattern file =
   let s = Common.read_file file in
-  match parse_pattern s with
-  | PatGen x ->
-      let v = Meta_ast.vof_any x in
+  (* mostly copy-paste of parse_pattern above, but with better error report *)
+  match Lang.lang_of_string_opt !lang with
+  | Some lang ->
+    E.try_with_print_exn_and_reraise file (fun () ->
+      let any = Parse_generic.parse_pattern lang s in
+      let v = Meta_ast.vof_any any in
       let s = Ocaml.string_of_v v in
       pr2 s
-  | _ -> failwith "dumper supported only for generic patterns"
+    )
+  | None ->
+     failwith "unsupported language"
 
 let dump_ast file =
   let x = Parse_generic.parse_program file in
