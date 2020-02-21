@@ -459,7 +459,7 @@ def parse_config_file(loc: Path) -> Dict[str, Any]:
     return {config_id: load_config_from_disk(loc)}
 
 
-def hidden_config_dir(loc: Path):
+def hidden_dir_or_file(loc: Path):
     # want to keep rules/.sgrep.yml but not path/.github/foo.yml
     # also want to keep src/.sgrep/bad_pattern.yml
     return any(
@@ -467,14 +467,14 @@ def hidden_config_dir(loc: Path):
         and part != ".."
         and part.startswith(".")
         and DEFAULT_SGREP_CONFIG_NAME not in part
-        for part in loc.parts[:-1]
-    ) or (loc.name.startswith(".") and DEFAULT_SGREP_CONFIG_NAME not in loc.name)
+        for part in loc.parts
+    )
 
 
 def parse_config_folder(loc: Path, relative: bool = False) -> Dict[str, Any]:
     configs = {}
     for l in loc.rglob("*"):
-        if not hidden_config_dir(l) and l.suffix in YML_EXTENSIONS:
+        if not hidden_dir_or_file(l) and l.suffix in YML_EXTENSIONS:
             if relative:
                 config_id = str(l).replace(str(loc), "")  # delete base path to folder
             else:
