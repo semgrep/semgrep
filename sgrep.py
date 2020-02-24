@@ -865,6 +865,10 @@ def main(args: argparse.Namespace):
 
     for finding in output_json["errors"]:
         print_error(f"sgrep: {finding['path']}: {finding['check_id']}")
+    if len(output_json["errors"]) and args.strict_parsing:
+        print_error_exit(
+            'strict parsing flag is enabled and there were {len(output_json["errors"])}: aborting'
+        )
 
     if strict and len(output_json["errors"]):
         print_error_exit(
@@ -980,6 +984,11 @@ if __name__ == "__main__":
     config.add_argument(
         "--strict",
         help=f"only invoke sgrep if config(s) are valid",
+        action="store_true",
+    )
+    config.add_argument(
+        "--strict-parsing",
+        help=f"if parsing of any file fails for any reason, exit with return code 1 (not recommended)",
         action="store_true",
     )
 
