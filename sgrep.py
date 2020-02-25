@@ -280,7 +280,7 @@ def _evaluate_single_expression(
             # Only need to check where-python clause if the range hasn't already been filtered
 
             if sgrep_range.range in ranges_left:
-                print_error(
+                debug_print(
                     f"WHERE is {expression.operand}, metavars: {sgrep_range.metavars}"
                 )
                 if where_python_statement_matches(
@@ -319,7 +319,7 @@ def where_python_statement_matches(
         print_error_exit(
             f"python where expression needs boolean output but got: {output} for {where_expression}"
         )
-    return output
+    return output == True
 
 
 def evaluate_expression(
@@ -725,9 +725,7 @@ def validate_patterns(valid_configs: Dict[str, Any]) -> List[str]:
             )
             for expr in expressions:
                 for language in rule["languages"]:
-                    # if expr does not have a pattern id, it's not something that we will
-                    # actually send to sgrep
-                    if expr.pattern_id and not validate_pattern_with_sgrep(
+                    if expr.operand and not validate_pattern_with_sgrep(
                         expr.operand, language
                     ):
                         invalid.append(expr.operand)
