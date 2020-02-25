@@ -327,8 +327,8 @@ def _evaluate_expression(
     return ranges_left
 
 
-def parse_sgrep_output(sgrep_findings: List[Dict[str, Any]]) -> Dict[str, List[Range]]:
-    output: DefaultDict[str, List[Range]] = collections.defaultdict(list)
+def parse_sgrep_output(sgrep_findings: List[Dict[str, Any]]) -> Dict[str, List[SgrepRange]]:
+    output: DefaultDict[str, List[SgrepRange]] = collections.defaultdict(list)
     for finding in sgrep_findings:
         check_id = finding["check_id"]
         # restore the pattern id: the check_id was encoded as f"{rule_index}.{pattern_id}"
@@ -337,8 +337,12 @@ def parse_sgrep_output(sgrep_findings: List[Dict[str, Any]]) -> Dict[str, List[R
     return dict(output)
 
 
-def sgrep_finding_to_range(sgrep_finding: Dict[str, Any]) -> Range:
-    return Range(sgrep_finding["start"]["offset"], sgrep_finding["end"]["offset"])
+def sgrep_finding_to_range(sgrep_finding: Dict[str, Any]) -> SgrepRange:
+    metavars = sgrep_finding["extra"]["metavars"]
+    return SgrepRange(
+        Range(sgrep_finding["start"]["offset"], sgrep_finding["end"]["offset"]),
+        {k: v['abstract_content'] for k, v in metavars.items()}
+    )
 
 
 def group_rule_by_langauges(
@@ -501,7 +505,7 @@ def parse_config_file(loc: Path) -> Dict[str, Any]:
     return {config_id: load_config_from_disk(loc)}
 
 
-def hidden_dir_or_file(loc: Path):
+def hidden_config_dir(loc: Path):
     # want to keep rules/.sgrep.yml but not path/.github/foo.yml
     # also want to keep src/.sgrep/bad_pattern.yml
     return any(
@@ -509,14 +513,14 @@ def hidden_dir_or_file(loc: Path):
         and part != ".."
         and part.startswith(".")
         and DEFAULT_SGREP_CONFIG_NAME not in part
-        for part in loc.parts
+        for part in loc.parts[:-1]
     )
 
 
 def parse_config_folder(loc: Path, relative: bool = False) -> Dict[str, Any]:
     configs = {}
     for l in loc.rglob("*"):
-        if not hidden_dir_or_file(l) and l.suffix in YML_EXTENSIONS:
+        if not hidden_config_dir(l) and l.suffix in YML_EXTENSIONS:
             if relative:
                 config_id = str(l).replace(str(loc), "")  # delete base path to folder
             else:
@@ -907,10 +911,6 @@ def main(args: argparse.Namespace):
 
     for finding in output_json["errors"]:
         print_error(f"sgrep: {finding['path']}: {finding['check_id']}")
-    if len(output_json["errors"]) and args.strict_parsing:
-        print_error_exit(
-            'strict parsing flag is enabled and there were {len(output_json["errors"])}: aborting'
-        )
 
     if strict and len(output_json["errors"]):
         print_error_exit(
@@ -944,7 +944,7 @@ def main(args: argparse.Namespace):
             debug_print(f"compiled result {valid_ranges_to_output}")
             debug_print("-" * 80)
             for result in results:
-                if sgrep_finding_to_range(result) in valid_ranges_to_output:
+                if sgrep_finding_to_range(result).range in valid_ranges_to_output:
                     path_object = Path(result["path"])
                     if args.exclude_tests and should_exclude_this_path(path_object):
                         ignored_in_tests += 1
@@ -1026,11 +1026,6 @@ if __name__ == "__main__":
     config.add_argument(
         "--strict",
         help=f"only invoke sgrep if config(s) are valid",
-        action="store_true",
-    )
-    config.add_argument(
-        "--strict-parsing",
-        help=f"if parsing of any file fails for any reason, exit with return code 1 (not recommended)",
         action="store_true",
     )
 

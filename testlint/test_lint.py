@@ -12,6 +12,8 @@ from sgrep import (
 
 # run from parent directory with PYTHONPATH=. python3 testlint/test_lint.py
 
+def SRange(start:int, end: int):
+    return SgrepRange(Range(start,end), {})
 
 def testA():
     """
@@ -32,8 +34,8 @@ def testA():
 
     """
     results = {
-        "pattern1": [Range(30, 100)],
-        "pattern2": [Range(0, 100), Range(30, 100)],
+        "pattern1": [SRange(30, 100)],
+        "pattern2": [SRange(0, 100), SRange(30, 100)],
     }
     expression = [(OPERATORS.AND_NOT, "pattern1"), (OPERATORS.AND, "pattern2")]
     result = evaluate_expression(expression, results)
@@ -61,8 +63,8 @@ def testB():
         OUTPUT: R2
     """
     results = {
-        "pattern1": [Range(0, 100)],
-        "pattern2": [Range(30, 70), Range(0, 100)],
+        "pattern1": [SRange(0, 100)],
+        "pattern2": [SRange(30, 70), SRange(0, 100)],
         "pattern3": [],
     }
     expression = [
@@ -95,9 +97,9 @@ def testC():
         OUTPUT: R2
     """
     results = {
-        "pattern1": [Range(100, 1000)],
-        "pattern2": [Range(100, 1000), Range(200, 300)],
-        "pattern4": [Range(0, 1000)],
+        "pattern1": [SRange(100, 1000)],
+        "pattern2": [SRange(100, 1000), SRange(200, 300)],
+        "pattern4": [SRange(0, 1000)],
     }
     expression = [
         (OPERATORS.AND_INSIDE, "pattern4"),
@@ -127,9 +129,9 @@ def testD():
         OUTPUT: []
     """
     results = {
-        "pattern1": [Range(100, 1000)],
-        "pattern2": [Range(100, 1000), Range(200, 300)],
-        "pattern4": [Range(0, 1000)],
+        "pattern1": [SRange(100, 1000)],
+        "pattern2": [SRange(100, 1000), SRange(200, 300)],
+        "pattern4": [SRange(0, 1000)],
     }
     expression = [
         (OPERATORS.AND_NOT_INSIDE, "pattern4"),
@@ -164,13 +166,13 @@ def testE():
     """
     results = {
         "pattern1": [
-            Range(100, 200),
-            Range(300, 400),
-            Range(350, 400),
-            Range(500, 600),
+            SRange(100, 200),
+            SRange(300, 400),
+            SRange(350, 400),
+            SRange(500, 600),
         ],
-        "pattern2": [Range(0, 200), Range(400, 600)],
-        "pattern3": [Range(200, 600)],
+        "pattern2": [SRange(0, 200), SRange(400, 600)],
+        "pattern3": [SRange(200, 600)],
     }
     expression = [
         (OPERATORS.AND_INSIDE, "pattern3"),
@@ -254,10 +256,10 @@ def testF():
         OUTPUT: [500-600], [700-800]
     """
     results = {
-        "pattern1": [Range(100, 200), Range(400, 500), Range(700, 800)],
-        "pattern2": [Range(200, 300), Range(500, 600), Range(800, 900)],
-        "pattern3": [Range(0, 900)],
-        "pattern4": [Range(300, 600)],
+        "pattern1": [SRange(100, 200), SRange(400, 500), SRange(700, 800)],
+        "pattern2": [SRange(200, 300), SRange(500, 600), SRange(800, 900)],
+        "pattern3": [SRange(0, 900)],
+        "pattern4": [SRange(300, 600)],
     }
 
     subexpression1 = [(OPERATORS.AND_INSIDE, "pattern4"), (OPERATORS.AND, "pattern2")]
