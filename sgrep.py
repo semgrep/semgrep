@@ -45,7 +45,10 @@ DEFAULT_LANG = "python"
 
 MISSING_RULE_ID = "no-rule-id"
 
-RULES_REGISTRY = {"r2c": "https://github.com/returntocorp/sgrep-rules/tarball/master"}
+RULES_REGISTRY = {
+    "r2c": "https://github.com/returntocorp/sgrep-rules/tarball/master",
+    "r2c-develop": "https://github.com/returntocorp/sgrep-rules/tarball/develop",
+}
 DEFAULT_REGISTRY_KEY = "r2c"
 RULES_KEY = "rules"
 ID_KEY = "id"
