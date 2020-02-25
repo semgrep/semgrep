@@ -245,7 +245,7 @@ def _evaluate_single_expression(
                 if is_enclosed:
                     output_ranges.add(arange)
                     break  # found a match, no need to keep going
-        # print(f"after filter `{operator}`: {output_ranges}")
+        debug_print(f"after filter `{expression.operator}`: {output_ranges}")
         return output_ranges
     elif expression.operator == OPERATORS.AND_NOT_INSIDE:
         # remove all ranges enclosed by or equal to
@@ -255,7 +255,7 @@ def _evaluate_single_expression(
                 if keep_inside_this_range.is_enclosing_or_eq(arange):
                     output_ranges.remove(arange)
                     break
-        # print(f"after filter `{operator}`: {output_ranges}")
+        debug_print(f"after filter `{expression.operator}`: {output_ranges}")
         return output_ranges
     elif expression.operator == OPERATORS.WHERE_PYTHON:
         if not RCE_RULE_FLAG not in flags:
@@ -263,24 +263,17 @@ def _evaluate_single_expression(
                 f"at least one rule needs to execute arbitrary code; this is dangerous! if you want to continue, enable the flag: RCE_RULE_FLAG"
             )
         assert expression.operand, "must have operand for this operator type"
-        # we don't know what metavars a rule might refer to: we pass all metavars from all rules
-        # to the output
-        merged_metavars = {}
-        flat_results = list(flatten(results.values()))
-        for sgrep_range in flat_results:
-            for k, v in sgrep_range.metavars.items():
-                merged_metavars[k] = v
-            
-        print_error(f"WHERE is {expression.operand} metavarsr {merged_metavars}")
 
         output_ranges = set()
         # Look through every range that hasn't been filtered yet
-        for sgrep_range in flat_results:
+        for sgrep_range in list(flatten(results.values())):
             # Only need to check where-python clause if the range hasn't already been filtered
 
             if sgrep_range.range in ranges_left:
-                if where_python_statement_matches(expression.operand, merged_metavars):
+                print_error(f"WHERE is {expression.operand}, metavars: {sgrep_range.metavars}")
+                if where_python_statement_matches(expression.operand, sgrep_range.metavars):                    
                     output_ranges.add(sgrep_range.range)
+        debug_print(f"after filter `{expression.operator}`: {output_ranges}")
         return output_ranges
 
     else:
@@ -290,10 +283,8 @@ def _evaluate_single_expression(
 
 
 # Given a `where-python` expression as a string and currently matched metavars,
-# return a string that can be evaluated as Python to
-#
-# f"metavars = {str(metavars)}""
-def where_python_statement_matches(where_expression: str, metavars: Dict[str, str]):
+# return whether the expression matches as a boolean
+def where_python_statement_matches(where_expression: str, metavars: Dict[str, str]) -> bool:
     # TODO: filter out obvious dangerous things here
     global output
     output = None
@@ -304,7 +295,7 @@ def where_python_statement_matches(where_expression: str, metavars: Dict[str, st
     try:
         exec(f"global output; output = {where_expression}")
     except Exception as ex:
-        print_error(f'error evaluating {where_expression}: {ex}\n\t{PLEASE_FILE_ISSUE_TEXT}')
+        print_error(f'error evaluating a where-python expression: `{where_expression}`: {ex}')
 
     if type(output) != type(True):
         print_error_exit(f'python where expression needs boolean output but got: {output} for {where_expression}')
