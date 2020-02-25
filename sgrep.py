@@ -64,6 +64,7 @@ class OPERATORS:
     AND_NOT_INSIDE = "and_not_inside"
     WHERE_PYTHON = "where_python"
 
+
 # These are the only valid top-level keys
 MUST_HAVE_KEYS = {"id", "message", "languages", "severity"}
 MUST_HAVE_ONLY_ONE_KEY = {"pattern", "patterns"}
@@ -206,20 +207,22 @@ class Range:
     def __repr__(self):
         return f"{self.start}-{self.end}"
 
+
 @dataclass(frozen=True)
 class SgrepRange:
     # Wrapper to represent results from sgrep
 
-    range: Range            # The range of the match
-    metavars: Dict[str,str] # Any matched metavariables, {"$NAME": "<matched text>"}
+    range: Range  # The range of the match
+    metavars: Dict[str, str]  # Any matched metavariables, {"$NAME": "<matched text>"}
 
     def __repr__(self):
         return f"{self.range}-{self.metavars}"
 
+
 def _evaluate_single_expression(
     operator, pattern_id, results, ranges_left: Set[Range]
 ) -> Set[Range]:
-    
+
     results_for_pattern = [x.range for x in results.get(pattern_id, [])]
 
     if operator == OPERATORS.AND:
@@ -256,14 +259,14 @@ def _evaluate_single_expression(
         output_ranges = set()
 
         # Look through every range that hasn't been filtered yet
-        
+
         for sgrep_range in flatten(results.values()):
             # Only need to check where-python clause if the range
             # hasn't already been filtered
             if sgrep_range.range in ranges_left:
                 if where_python_statement_matches(pattern_id, sgrep_range.metavars):
                     output_ranges.add(sgrep_range.range)
-        
+
         return output_ranges
 
     else:
@@ -271,20 +274,22 @@ def _evaluate_single_expression(
             f"{PLEASE_FILE_ISSUE_TEXT}: unknown operator {operator}"
         )
 
+
 # Given a `where-python` expression as a string and currently matched metavars,
-# return a string that can be evaluated as Python to 
+# return a string that can be evaluated as Python to
 #
 # f"metavars = {str(metavars)}""
-def where_python_statement_matches(where_expression: str, metavars: Dict[str,str]):
-    # TODO: filter out obvious dangerous things here  
+def where_python_statement_matches(where_expression: str, metavars: Dict[str, str]):
+    # TODO: filter out obvious dangerous things here
 
     # HACK: we're executing arbitrary Python in the where-python,
     # be careful my friend
     vars = metavars
     exec(f"global output; output = {where_expression}")
-                                               
+
     global output
     return output
+
 
 def evaluate_expression(expression, results: Dict[str, List[SgrepRange]]) -> Set[Range]:
     ranges_left = set([x.range for x in flatten(results.values())])
@@ -327,7 +332,9 @@ def _evaluate_expression(
     return ranges_left
 
 
-def parse_sgrep_output(sgrep_findings: List[Dict[str, Any]]) -> Dict[str, List[SgrepRange]]:
+def parse_sgrep_output(
+    sgrep_findings: List[Dict[str, Any]]
+) -> Dict[str, List[SgrepRange]]:
     output: DefaultDict[str, List[SgrepRange]] = collections.defaultdict(list)
     for finding in sgrep_findings:
         check_id = finding["check_id"]
@@ -341,7 +348,7 @@ def sgrep_finding_to_range(sgrep_finding: Dict[str, Any]) -> SgrepRange:
     metavars = sgrep_finding["extra"]["metavars"]
     return SgrepRange(
         Range(sgrep_finding["start"]["offset"], sgrep_finding["end"]["offset"]),
-        {k: v['abstract_content'] for k, v in metavars.items()}
+        {k: v["abstract_content"] for k, v in metavars.items()},
     )
 
 
