@@ -7,15 +7,15 @@ from sgrep import (
     evaluate_expression,
     enumerate_patterns_in_boolean_expression,
     SgrepRange,
-    BooleanRuleExpression
+    BooleanRuleExpression,
 )
 
 # run from parent directory with PYTHONPATH=. python3 testlint/test_lint.py
 
-def SRange(start:int, end: int):
-    return SgrepRange(Range(start,end), {})
 
-    
+def SRange(start: int, end: int):
+    return SgrepRange(Range(start, end), {})
+
 
 def testA():
     """
@@ -39,7 +39,10 @@ def testA():
         "pattern1": [SRange(30, 100)],
         "pattern2": [SRange(0, 100), SRange(30, 100)],
     }
-    expression = [BooleanRuleExpression(OPERATORS.AND_NOT, "pattern1"), BooleanRuleExpression(OPERATORS.AND, "pattern2")]
+    expression = [
+        BooleanRuleExpression(OPERATORS.AND_NOT, "pattern1"),
+        BooleanRuleExpression(OPERATORS.AND, "pattern2"),
+    ]
     result = evaluate_expression(expression, results)
     assert result == set([Range(0, 100)]), f"{result}"
 
@@ -72,8 +75,12 @@ def testB():
     expression = [
         BooleanRuleExpression(OPERATORS.AND_NOT, "pattern1"),
         BooleanRuleExpression(
-            OPERATORS.AND_EITHER, None,
-            [BooleanRuleExpression(OPERATORS.AND, "pattern2"), BooleanRuleExpression(OPERATORS.AND, "pattern3")],
+            OPERATORS.AND_EITHER,
+            None,
+            [
+                BooleanRuleExpression(OPERATORS.AND, "pattern2"),
+                BooleanRuleExpression(OPERATORS.AND, "pattern3"),
+            ],
         ),
     ]
     result = evaluate_expression(expression, results)
@@ -193,7 +200,7 @@ def testE():
     expression = [
         BooleanRuleExpression(OPERATORS.AND_INSIDE, "pattern2"),
         BooleanRuleExpression(OPERATORS.AND_NOT_INSIDE, "pattern3"),
-       BooleanRuleExpression(OPERATORS.AND, "pattern1"),
+        BooleanRuleExpression(OPERATORS.AND, "pattern1"),
     ]
     result = evaluate_expression(expression, results)
     assert result == set([Range(100, 200)]), f"{result}"
@@ -264,7 +271,10 @@ def testF():
         "pattern4": [SRange(300, 600)],
     }
 
-    subexpression1 = [BooleanRuleExpression(OPERATORS.AND_INSIDE, "pattern4"), BooleanRuleExpression(OPERATORS.AND, "pattern2")]
+    subexpression1 = [
+        BooleanRuleExpression(OPERATORS.AND_INSIDE, "pattern4"),
+        BooleanRuleExpression(OPERATORS.AND, "pattern2"),
+    ]
     subexpression2 = [
         BooleanRuleExpression(OPERATORS.AND_NOT_INSIDE, "pattern4"),
         BooleanRuleExpression(OPERATORS.AND, "pattern1"),
@@ -272,8 +282,12 @@ def testF():
     expression = [
         BooleanRuleExpression(OPERATORS.AND_INSIDE, "pattern3"),
         BooleanRuleExpression(
-            OPERATORS.AND_EITHER, None,
-            [BooleanRuleExpression(OPERATORS.AND_ALL, None, subexpression1), BooleanRuleExpression(OPERATORS.AND_ALL, None, subexpression2)],
+            OPERATORS.AND_EITHER,
+            None,
+            [
+                BooleanRuleExpression(OPERATORS.AND_ALL, None, subexpression1),
+                BooleanRuleExpression(OPERATORS.AND_ALL, None, subexpression2),
+            ],
         ),
     ]
     result = evaluate_expression(expression, results)
@@ -320,6 +334,7 @@ def test_exprs():
 
     assert flat == expected, f"flat: {flat}"
 
+
 def testEvaluatePython():
     """Test evaluating the subpattern `where-python: <python_expression>`,
     in which a rule can provide an arbitrary Python expression that will be
@@ -357,19 +372,22 @@ def testEvaluatePython():
         OUTPUT: [400-500]
     """
     results = {
-        "all_execs": [SgrepRange(Range(400, 500), {"$X": "cmd_pattern"}), 
-                      SgrepRange(Range(800, 900), {"$X": "other_pattern"})],
+        "all_execs": [
+            SgrepRange(Range(400, 500), {"$X": "cmd_pattern"}),
+            SgrepRange(Range(800, 900), {"$X": "other_pattern"}),
+        ]
     }
 
     expression = [
         BooleanRuleExpression(OPERATORS.AND, "all_execs"),
-        BooleanRuleExpression(OPERATORS.WHERE_PYTHON, "p1", None, "vars['$X'].startswith('cmd')"),
+        BooleanRuleExpression(
+            OPERATORS.WHERE_PYTHON, "p1", None, "vars['$X'].startswith('cmd')"
+        ),
     ]
 
     result = evaluate_expression(expression, results)
-    assert result == set(
-        [Range(400, 500)]
-    ), f"{result}"
+    assert result == set([Range(400, 500)]), f"{result}"
+
 
 def testAll():
     testEvaluatePython()
@@ -381,7 +399,7 @@ def testAll():
     testD()
     testE()
     testF()
-    
+
 
 if __name__ == "__main__":
     testAll()

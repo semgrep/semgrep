@@ -28,13 +28,12 @@ from typing import Tuple
 from urllib.parse import urlparse
 from typing import NewType
 
-PatternId = NewType('PatternId', str)
-Operator = NewType('Operator', str)
+PatternId = NewType("PatternId", str)
+Operator = NewType("Operator", str)
 
 
 import requests
 import yaml
-
 
 
 class OPERATORS:
@@ -47,13 +46,11 @@ class OPERATORS:
     WHERE_PYTHON: Operator = Operator("where_python")
 
 
-
-
 @dataclass(frozen=True)
-class BooleanRuleExpression:    
+class BooleanRuleExpression:
     operator: Operator
     pattern_id: Optional[PatternId] = None
-    children: Optional[List['BooleanRuleExpression']] = None
+    children: Optional[List["BooleanRuleExpression"]] = None
     operand: Optional[str] = None
 
 
@@ -93,7 +90,7 @@ PATTERN_NAMES_MAP = {
     "pattern-not": OPERATORS.AND_NOT,
     "pattern": OPERATORS.AND,
     "patterns": OPERATORS.AND_ALL,
-    "pattern-where-python": OPERATORS.WHERE_PYTHON
+    "pattern-where-python": OPERATORS.WHERE_PYTHON,
 }
 
 INVERSE_PATTERN_NAMES_MAP = dict((v, k) for k, v in PATTERN_NAMES_MAP.items())
@@ -141,7 +138,9 @@ def flatten(L: Iterable[Iterable[Any]]) -> Iterable[Any]:
             yield item
 
 
-def enumerate_patterns_in_boolean_expression(expressions: Iterable[BooleanRuleExpression]) -> Iterable[BooleanRuleExpression]:
+def enumerate_patterns_in_boolean_expression(
+    expressions: Iterable[BooleanRuleExpression]
+) -> Iterable[BooleanRuleExpression]:
     """
     flatten a potentially nested expression
     """
@@ -154,7 +153,10 @@ def enumerate_patterns_in_boolean_expression(expressions: Iterable[BooleanRuleEx
         else:
             yield expr
 
-def _parse_boolean_expression(rule_patterns: List[Dict[str, Any]], pattern_id=0, prefix="") -> Iterator[BooleanRuleExpression]:
+
+def _parse_boolean_expression(
+    rule_patterns: List[Dict[str, Any]], pattern_id=0, prefix=""
+) -> Iterator[BooleanRuleExpression]:
     """
     Move through the expression from the YML, yielding tuples of (operator, unique-id-for-pattern, pattern)
     """
@@ -167,7 +169,9 @@ def _parse_boolean_expression(rule_patterns: List[Dict[str, Any]], pattern_id=0,
                 )
                 yield BooleanRuleExpression(operator, None, list(sub_expression), None)
             elif isinstance(pattern_text, str):
-                yield BooleanRuleExpression(operator, PatternId(f"{prefix}.{pattern_id}"), None, pattern_text)
+                yield BooleanRuleExpression(
+                    operator, PatternId(f"{prefix}.{pattern_id}"), None, pattern_text
+                )
                 pattern_id += 1
             else:
                 raise TypeError(
@@ -190,12 +194,15 @@ def build_boolean_expression(rule: Dict[str, Any]) -> Iterator[BooleanRuleExpres
 
 def operator_for_pattern_name(pattern_name: str) -> Operator:
     if not pattern_name in PATTERN_NAMES_MAP:
-        print_error_exit(f'invalid pattern name: {pattern_name}, valid pattern names are {list(PATTERN_NAMES_MAP.keys())}')
+        print_error_exit(
+            f"invalid pattern name: {pattern_name}, valid pattern names are {list(PATTERN_NAMES_MAP.keys())}"
+        )
     return PATTERN_NAMES_MAP[pattern_name]
 
 
 def pattern_name_for_operator(operator: Operator) -> str:
     return INVERSE_PATTERN_NAMES_MAP[operator]
+
 
 @dataclass(frozen=True)
 class Range:
@@ -221,10 +228,13 @@ class SgrepRange:
 
 
 def _evaluate_single_expression(
-    expression: BooleanRuleExpression, results: Dict[PatternId, List[SgrepRange]], ranges_left: Set[Range], **flags
+    expression: BooleanRuleExpression,
+    results: Dict[PatternId, List[SgrepRange]],
+    ranges_left: Set[Range],
+    **flags,
 ) -> Set[Range]:
 
-    assert expression.pattern_id, f'<internal error: expected pattern id: {expression}>'
+    assert expression.pattern_id, f"<internal error: expected pattern id: {expression}>"
     results_for_pattern = [x.range for x in results.get(expression.pattern_id, [])]
 
     if expression.operator == OPERATORS.AND:
@@ -270,8 +280,12 @@ def _evaluate_single_expression(
             # Only need to check where-python clause if the range hasn't already been filtered
 
             if sgrep_range.range in ranges_left:
-                print_error(f"WHERE is {expression.operand}, metavars: {sgrep_range.metavars}")
-                if where_python_statement_matches(expression.operand, sgrep_range.metavars):                    
+                print_error(
+                    f"WHERE is {expression.operand}, metavars: {sgrep_range.metavars}"
+                )
+                if where_python_statement_matches(
+                    expression.operand, sgrep_range.metavars
+                ):
                     output_ranges.add(sgrep_range.range)
         debug_print(f"after filter `{expression.operator}`: {output_ranges}")
         return output_ranges
@@ -284,7 +298,9 @@ def _evaluate_single_expression(
 
 # Given a `where-python` expression as a string and currently matched metavars,
 # return whether the expression matches as a boolean
-def where_python_statement_matches(where_expression: str, metavars: Dict[str, str]) -> bool:
+def where_python_statement_matches(
+    where_expression: str, metavars: Dict[str, str]
+) -> bool:
     # TODO: filter out obvious dangerous things here
     global output
     output = None
@@ -295,10 +311,14 @@ def where_python_statement_matches(where_expression: str, metavars: Dict[str, st
     try:
         exec(f"global output; output = {where_expression}")
     except Exception as ex:
-        print_error(f'error evaluating a where-python expression: `{where_expression}`: {ex}')
+        print_error(
+            f"error evaluating a where-python expression: `{where_expression}`: {ex}"
+        )
 
     if type(output) != type(True):
-        print_error_exit(f'python where expression needs boolean output but got: {output} for {where_expression}')
+        print_error_exit(
+            f"python where expression needs boolean output but got: {output} for {where_expression}"
+        )
     return output
 
 
@@ -310,17 +330,24 @@ def evaluate_expression(
 
 
 def _evaluate_expression(
-    expressions: List[BooleanRuleExpression], 
-    results: Dict[PatternId, List[SgrepRange]], 
-    ranges_left: Set[Range], **flags
+    expressions: List[BooleanRuleExpression],
+    results: Dict[PatternId, List[SgrepRange]],
+    ranges_left: Set[Range],
+    **flags,
 ) -> Set[Range]:
     for expression in expressions:
-        if expression.operator == OPERATORS.AND_EITHER or expression.operator == OPERATORS.AND_ALL:
-            assert expression.children is not None, f"{pattern_name_for_operator(OPERATORS.AND_EITHER)} or {pattern_name_for_operator(OPERATORS.AND_ALL)} must have a list of subpatterns"
+        if (
+            expression.operator == OPERATORS.AND_EITHER
+            or expression.operator == OPERATORS.AND_ALL
+        ):
+            assert (
+                expression.children is not None
+            ), f"{pattern_name_for_operator(OPERATORS.AND_EITHER)} or {pattern_name_for_operator(OPERATORS.AND_ALL)} must have a list of subpatterns"
 
             # recurse on the nested expressions
             evaluated_ranges = [
-                _evaluate_expression([expr], results, ranges_left.copy()) for expr in expression.children
+                _evaluate_expression([expr], results, ranges_left.copy())
+                for expr in expression.children
             ]
             debug_print(
                 f"recursion result {evaluated_ranges} (flat: {list(flatten(evaluated_ranges))}))"
@@ -335,7 +362,9 @@ def _evaluate_expression(
                     ranges_left.intersection_update(arange)
             debug_print(f"after filter `{expression.operator}`: {ranges_left}")
         else:
-            assert expression.children is None, f"only `{pattern_name_for_operator(OPERATORS.AND_EITHER)}` or `{pattern_name_for_operator(OPERATORS.AND_ALL)}` expressions can have multiple subpatterns"
+            assert (
+                expression.children is None
+            ), f"only `{pattern_name_for_operator(OPERATORS.AND_EITHER)}` or `{pattern_name_for_operator(OPERATORS.AND_ALL)}` expressions can have multiple subpatterns"
             ranges_left = _evaluate_single_expression(
                 expression, results, ranges_left, **flags
             )
@@ -696,9 +725,11 @@ def validate_patterns(valid_configs: Dict[str, Any]) -> List[str]:
             )
             for expr in expressions:
                 for language in rule["languages"]:
-                    # if expr does not have a pattern id, it's not something that we will 
-                    # actually send to sgrep 
-                    if expr.pattern_id and not validate_pattern_with_sgrep(expr.operand, language):
+                    # if expr does not have a pattern id, it's not something that we will
+                    # actually send to sgrep
+                    if expr.pattern_id and not validate_pattern_with_sgrep(
+                        expr.operand, language
+                    ):
                         invalid.append(expr.operand)
                         print_error(
                             f"in {config_id}, pattern in rule {rule['id']} can't be parsed for language {language}: {expr.operand}"
@@ -901,7 +932,9 @@ def main(args: argparse.Namespace):
         start_validate_t = time.time()
         invalid_patterns = validate_patterns(valid_configs)
         if len(invalid_patterns):
-            print_error_exit(f"{len(invalid_patterns)} invalid patterns found inside rules; aborting")
+            print_error_exit(
+                f"{len(invalid_patterns)} invalid patterns found inside rules; aborting"
+            )
         debug_print(f"debug: validated config in {time.time() - start_validate_t}")
 
     # extract just the rules from valid configs
