@@ -42,7 +42,7 @@ DEFAULT_SGREP_CONFIG_NAME = "sgrep"
 DEFAULT_CONFIG_FILE = f".{DEFAULT_SGREP_CONFIG_NAME}.yml"
 DEFAULT_CONFIG_FOLDER = f".{DEFAULT_SGREP_CONFIG_NAME}"
 DEFAULT_LANG = "python"
-
+RCE_RULE_FLAG = "--dangerously-allow-arbitrary-code-execution-from-rules"
 MISSING_RULE_ID = "no-rule-id"
 
 RULES_REGISTRY = {"r2c": "https://github.com/returntocorp/sgrep-rules/tarball/master"}
@@ -220,7 +220,7 @@ class SgrepRange:
 
 
 def _evaluate_single_expression(
-    operator, pattern_id, results, ranges_left: Set[Range]
+    operator, pattern_id, results, ranges_left: Set[Range], **flags
 ) -> Set[Range]:
 
     results_for_pattern = [x.range for x in results.get(pattern_id, [])]
@@ -256,17 +256,18 @@ def _evaluate_single_expression(
         # print(f"after filter `{operator}`: {output_ranges}")
         return output_ranges
     elif operator == OPERATORS.WHERE_PYTHON:
+        if not flags.dangerously_allow_arbitrary_code_execution_from_rules:
+            print_error_exit(
+                f"at least one rule needs to execute arbitrary code; this is dangerous! if you want to continue, enable the flag: RCE_RULE_FLAG"
+            )
+
         output_ranges = set()
-
         # Look through every range that hasn't been filtered yet
-
         for sgrep_range in flatten(results.values()):
-            # Only need to check where-python clause if the range
-            # hasn't already been filtered
+            # Only need to check where-python clause if the range hasn't already been filtered
             if sgrep_range.range in ranges_left:
                 if where_python_statement_matches(pattern_id, sgrep_range.metavars):
                     output_ranges.add(sgrep_range.range)
-
         return output_ranges
 
     else:
@@ -291,13 +292,15 @@ def where_python_statement_matches(where_expression: str, metavars: Dict[str, st
     return output
 
 
-def evaluate_expression(expression, results: Dict[str, List[SgrepRange]]) -> Set[Range]:
+def evaluate_expression(
+    expression, results: Dict[str, List[SgrepRange]], **flags
+) -> Set[Range]:
     ranges_left = set([x.range for x in flatten(results.values())])
-    return _evaluate_expression(expression, results, ranges_left)
+    return _evaluate_expression(expression, results, ranges_left, **flags)
 
 
 def _evaluate_expression(
-    expression, results: Dict[str, List[SgrepRange]], ranges_left: Set[Range]
+    expression, results: Dict[str, List[SgrepRange]], ranges_left: Set[Range], **flags
 ) -> Set[Range]:
     for (operator, pattern_id_or_list) in expression:
         if operator == OPERATORS.AND_EITHER or operator == OPERATORS.AND_ALL:
@@ -327,7 +330,7 @@ def _evaluate_expression(
                 pattern_id_or_list, str
             ), f"only `{pattern_name_for_operator(OPERATORS.AND_EITHER)}` or `{pattern_name_for_operator(OPERATORS.AND_ALL)}` expressions can have multiple subpatterns"
             ranges_left = _evaluate_single_expression(
-                operator, pattern_id_or_list, results, ranges_left
+                operator, pattern_id_or_list, results, ranges_left, flags
             )
     return ranges_left
 
@@ -1033,6 +1036,12 @@ if __name__ == "__main__":
     config.add_argument(
         "--strict",
         help=f"only invoke sgrep if config(s) are valid",
+        action="store_true",
+    )
+
+    config.add_argument(
+        RCE_RULE_FLAG,
+        help=f"DANGEROUS: allow rules to run arbitrary code: ONLY ENABLE IF YOU TRUST THE SOURCE OF ALL RULES IN YOUR CONFIG.",
         action="store_true",
     )
 
