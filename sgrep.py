@@ -21,12 +21,14 @@ from typing import DefaultDict
 from typing import Dict
 from typing import Generator
 from typing import Iterable
+from typing import Iterator
 from typing import List
 from typing import Optional
 from typing import Set
 from typing import Tuple
 from urllib.parse import urlparse
 
+import colorama
 import requests
 import yaml
 
@@ -355,6 +357,19 @@ def invoke_sgrep(
             errors.extend(output_json["errors"])
             outputs.extend(output_json["matches"])
     return {"matches": outputs, "errors": errors}
+
+
+def fetch_lines_in_file(
+    path: Path, start_line_number: int, end_line_number: int
+) -> Optional[Iterable[str]]:
+    """
+    `line_number` is one-indexed! Returns the line if it can be found, returns None if the path doesn't exist
+    TODO: cachine
+    """
+    if not path.exists():
+        return None
+    with path.open(buffering=1) as fin:  # buffering=1 turns on line-level reads
+        return list(itertools.islice(fin, start_line_number - 1, end_line_number))
 
 
 def rewrite_message_with_metavars(yaml_rule, sgrep_result):
@@ -699,14 +714,58 @@ def build_output_json(output_json: Dict[str, Any]) -> str:
     return json.dumps(output_json)
 
 
-def finding_to_line(finding: Dict[str, Any]) -> str:
-    return f"{finding.get('path', '<no path>')}:{finding.get('start', {}).get('line', '')} {finding.get('check_id', '<no check_id>')} - {finding.get('extra', {}).get('message')}"
-
-
-def build_normal_output(output_data: Dict[str, Any]) -> str:
-    return "\n".join(
-        [finding_to_line(finding) for finding in output_data.get("results", [])]
+def color_line(line, line_number, start_line, start_col, end_line, end_col):
+    start_color = 0 if line_number > start_line else start_col
+    # column offset
+    start_color = max(0, start_color - 1)
+    end_color = end_col if line_number >= end_line else len(line) + 1 + 1
+    end_color = max(end_color - 1, 0)
+    line = (
+        line[:start_color]
+        + colorama.Style.BRIGHT
+        + line[start_color:end_color]
+        + colorama.Style.RESET_ALL
+        + line[end_color:]
     )
+    return line
+
+
+def finding_to_line(finding: Dict[str, Any], color_output: bool) -> Iterator[str]:
+    path = finding.get("path")
+    yield f"rule:{finding.get('check_id', '<no rule id>')}: {finding.get('extra', {}).get('message')}"
+    start_line = finding.get("start", {}).get("line")
+    end_line = finding.get("end", {}).get("line")
+    start_col = finding.get("start", {}).get("col")
+    end_col = finding.get("end", {}).get("col")
+    if path and start_line:
+        file_lines = fetch_lines_in_file(Path(path), start_line, end_line)
+        if file_lines:
+            for i, line in enumerate(file_lines):
+                if color_output:
+                    yield f"{start_line + i}:{color_line(line.rstrip(), start_line + i, start_line, start_col, end_line, end_col)}"
+                else:
+                    yield f"{start_line + i}:{line.rstrip()}"
+
+
+def build_normal_output(
+    output_data: Dict[str, Any], color_output: bool
+) -> Iterator[str]:
+    results = output_data.get("results", [])
+    last_file = None
+    for finding in sorted(
+        results,
+        key=lambda k: (k.get("path", "<no path>"), k.get("check_id", "<no rule id>")),
+    ):
+        current_file = finding.get("path", "<no path>")
+        if last_file is None or last_file != current_file:
+            yield ""
+            if color_output:
+                yield f"{colorama.Fore.GREEN}{current_file}{colorama.Style.RESET_ALL}"
+            else:
+                yield current_file
+
+        last_file = current_file
+        yield from finding_to_line(finding, color_output)
 
 
 def save_output(output_str: str, output_data: Dict[str, Any], json: bool = False):
@@ -724,7 +783,9 @@ def save_output(output_str: str, output_data: Dict[str, Any], json: bool = False
             if json:
                 fout.write(build_output_json(output_data))
             else:
-                fout.write(build_normal_output(output_data))
+                fout.write(
+                    "\n".join(build_normal_output(output_data, color_output=False))
+                )
 
 
 def generate_config():
@@ -934,7 +995,7 @@ def main(args: argparse.Namespace):
         if args.json:
             print(build_output_json(output_data))
         else:
-            print(build_normal_output(output_data))
+            print("\n".join(build_normal_output(output_data, color_output=True)))
     if args.output:
         save_output(args.output, output_data, args.json)
     if args.error and outputs_after_booleans:
