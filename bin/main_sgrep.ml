@@ -51,7 +51,7 @@ let pattern_file = ref ""
 let rules_file = ref ""
 
 (* todo: infer from basename argv(0) ? *)
-let lang = ref "python"
+let lang = ref "unset"
 
 let case_sensitive = ref false
 let match_format = ref Matching_report.Normal
@@ -413,7 +413,7 @@ let all_actions () = [
 let options () = 
   [
     "-lang", Arg.Set_string lang, 
-    (spf " <str> choose language (default = %s)" !lang);
+    (spf " <str> choose language");
 
     "-e", Arg.Set_string pattern_string, 
     " <pattern> expression pattern";
