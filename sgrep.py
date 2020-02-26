@@ -41,7 +41,6 @@ PRE_COMMIT_SRC_DOCKER = "/src"
 DEFAULT_SGREP_CONFIG_NAME = "sgrep"
 DEFAULT_CONFIG_FILE = f".{DEFAULT_SGREP_CONFIG_NAME}.yml"
 DEFAULT_CONFIG_FOLDER = f".{DEFAULT_SGREP_CONFIG_NAME}"
-DEFAULT_LANG = "python"
 
 MISSING_RULE_ID = "no-rule-id"
 
@@ -677,7 +676,7 @@ def manual_config(pattern: str, lang: str) -> Dict[str, Any]:
                 {
                     ID_KEY: "-",
                     "pattern": pattern,
-                    "message": f"{pattern}",
+                    "message": pattern,
                     "languages": [lang],
                     "severity": "ERROR",
                 }
@@ -794,10 +793,9 @@ def main(args: argparse.Namespace):
     # let's check for a pattern
     elif args.pattern:
         # and a language
-        if args.lang:
-            lang = args.lang
-        else:
-            lang = DEFAULT_LANG
+        if not args.lang:
+            print_error_exit('language must be specified when a pattern is passed')
+        lang = args.lang
         pattern = args.pattern
 
         # TODO for now we generate a manual config. Might want to just call sgrep -e ... -l ...
@@ -1052,7 +1050,7 @@ if __name__ == "__main__":
 
     ### Parse and validate
     args = parser.parse_args()
-    if args.lang and not args.pattern:
-        parser.error("-e/--pattern is required when -l/--lang is used.")
+    if args.lang and not args.pattern or (args.pattern and not args.lang):
+        parser.error("-e/--pattern and -l/--lang must both be specified")
 
     main(args)
