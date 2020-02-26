@@ -192,7 +192,7 @@ def build_boolean_expression(rule: Dict[str, Any]) -> Iterator[BooleanRuleExpres
 
     """
     if "pattern" in rule:  # single pattern at root
-        yield BooleanRuleExpression(OPERATORS.AND, None, None, rule["pattern"])
+        yield BooleanRuleExpression(OPERATORS.AND, rule["id"], None, rule["pattern"])
     elif "patterns" in rule:  # multiple patterns at root
         yield from _parse_boolean_expression(rule["patterns"])
     else:
