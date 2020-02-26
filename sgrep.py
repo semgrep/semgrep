@@ -731,8 +731,7 @@ def color_line(line, line_number, start_line, start_col, end_line, end_col):
 
 
 def finding_to_line(finding: Dict[str, Any], color_output: bool) -> Iterator[str]:
-    path = finding.get("path")
-    yield f"rule:{finding.get('check_id', '<no rule id>')}: {finding.get('extra', {}).get('message')}"
+    path = finding.get("path")    
     start_line = finding.get("start", {}).get("line")
     end_line = finding.get("end", {}).get("line")
     start_col = finding.get("start", {}).get("col")
@@ -742,7 +741,7 @@ def finding_to_line(finding: Dict[str, Any], color_output: bool) -> Iterator[str
         if file_lines:
             for i, line in enumerate(file_lines):
                 if color_output:
-                    yield f"{start_line + i}:{color_line(line.rstrip(), start_line + i, start_line, start_col, end_line, end_col)}"
+                    yield f"{colorama.Fore.GREEN}{start_line + i}{colorama.Style.RESET_ALL}:{color_line(line.rstrip(), start_line + i, start_line, start_col, end_line, end_col)}"
                 else:
                     yield f"{start_line + i}:{line.rstrip()}"
 
@@ -752,19 +751,29 @@ def build_normal_output(
 ) -> Iterator[str]:
     results = output_data.get("results", [])
     last_file = None
+    last_message = None
     for finding in sorted(
         results,
         key=lambda k: (k.get("path", "<no path>"), k.get("check_id", "<no rule id>")),
     ):
+        RESET_COLOR = colorama.Style.RESET_ALL if color_output else ''
+        GREEN_COLOR = colorama.Fore.GREEN if color_output else ''
+        YELLOW_COLOR = colorama.Fore.YELLOW if color_output else ''
+
         current_file = finding.get("path", "<no path>")
+        check_id = finding.get('check_id')
+        message = finding.get('extra', {}).get('message')
         if last_file is None or last_file != current_file:
-            yield ""
-            if color_output:
-                yield f"{colorama.Fore.GREEN}{current_file}{colorama.Style.RESET_ALL}"
-            else:
-                yield current_file
+            if last_file is not None:
+                yield ""
+            yield f"{GREEN_COLOR}{current_file}{RESET_COLOR}"
+            last_message = None
+        # don't display the rule line if the check is empty            
+        if check_id and check_id != '-' and (last_message is None or last_message != message):
+            yield f"{YELLOW_COLOR}rule:{check_id}: {finding.get('extra', {}).get('message')}{RESET_COLOR}"
 
         last_file = current_file
+        last_message = message
         yield from finding_to_line(finding, color_output)
 
 
@@ -908,9 +917,10 @@ def main(args: argparse.Namespace):
     # extract just the rules from valid configs
     all_rules = flatten_configs(valid_configs)
 
-    print_msg(
-        f"running {len(all_rules)} rules from {len(valid_configs)} yaml files ({len(errors)} yaml files were invalid)"
-    )
+    if not args.pattern:
+        print_msg(
+            f"running {len(all_rules)} rules from {len(valid_configs)} yaml files ({len(errors)} yaml files were invalid)"
+        )
     # TODO log valid and invalid configs if verbose
 
     # a rule can have multiple patterns inside it. Flatten these so we can send sgrep a single yml file list of patterns
