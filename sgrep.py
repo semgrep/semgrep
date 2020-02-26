@@ -794,7 +794,7 @@ def main(args: argparse.Namespace):
     elif args.pattern:
         # and a language
         if not args.lang:
-            print_error_exit('language must be specified when a pattern is passed')
+            print_error_exit("language must be specified when a pattern is passed")
         lang = args.lang
         pattern = args.pattern
 
