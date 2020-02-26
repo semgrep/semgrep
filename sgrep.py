@@ -276,7 +276,7 @@ def _evaluate_single_expression(
     elif expression.operator == OPERATORS.WHERE_PYTHON:
         if not RCE_RULE_FLAG not in flags:
             print_error_exit(
-                f"at least one rule needs to execute arbitrary code; this is dangerous! if you want to continue, enable the flag: RCE_RULE_FLAG"
+                f"at least one rule needs to execute arbitrary code; this is dangerous! if you want to continue, enable the flag: {RCE_RULE_FLAG}"
             )
         assert expression.operand, "must have operand for this operator type"
 
