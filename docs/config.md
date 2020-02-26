@@ -10,7 +10,7 @@ If you want run these rules or ship them to your team, rather than write them, c
 rules:
   - id: eqeq-is-bad
     pattern: $X == $X
-    message: "Dude, $X == $X is always true!"
+    message: "$X == $X is always true!"
     languages: [python]
     severity: ERROR
 ```
