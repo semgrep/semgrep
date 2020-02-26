@@ -61,6 +61,12 @@ let mvars = ref ([]: Metavars_fuzzy.mvar list)
 
 let layer_file = ref (None: filename option)
 
+let keys = Common2.hkeys Lang.lang_of_string_map
+let supported_langs: string = String.concat ", " keys
+
+let unsupported_language_message = fun some_lang: string -> 
+  (spf "unsupported language: %s; supported langauge tags are: %s" some_lang supported_langs)
+
 (* action mode *)
 let action = ref ""
 
@@ -190,7 +196,7 @@ let create_ast file =
     Fuzzy (Parse_fuzzy.parse file)
   | "php" ->
     Php (Parse_php.parse_program file)
-  | _ -> failwith ("unsupported language: " ^ !lang)
+  | _ -> failwith (unsupported_language_message !lang)
   
 
 type pattern =
@@ -212,7 +218,7 @@ let parse_pattern str =
      | None ->
        (match !lang with
        | "php" -> (* PatPhp (Sgrep_php.parse str) *) raise Todo
-       | _ -> failwith ("unsupported language for the pattern: " ^ !lang)
+       | _ -> failwith (unsupported_language_message !lang)
        )
      )
   ))
@@ -248,7 +254,7 @@ let sgrep_ast pattern any_ast =
       pattern ast
 *)
   | _ ->
-    failwith ("unsupported language or combination: " ^ !lang)
+    failwith ("unsupported  combination or " ^ (unsupported_language_message !lang))
 
 (*****************************************************************************)
 (* Main action *)
@@ -321,7 +327,8 @@ let sgrep_with_rules rules_file xs =
   let rules = Parse_rules.parse rules_file in
 
   match Lang.lang_of_string_opt !lang with
-  | None -> failwith (spf "unsupported language: %s" !lang)
+  | None -> 
+        failwith (unsupported_language_message !lang)
   | Some lang ->
     let files = Lang.files_of_dirs_or_files lang xs in
     let rules = rules |> List.filter (fun r -> List.mem lang r.R.languages) in
@@ -389,7 +396,7 @@ let dump_pattern file =
       pr2 s
     )
   | None ->
-     failwith "unsupported language"
+     failwith (unsupported_language_message !lang)
 
 let dump_ast file =
   let x = Parse_generic.parse_program file in
@@ -413,7 +420,7 @@ let all_actions () = [
 let options () = 
   [
     "-lang", Arg.Set_string lang, 
-    (spf " <str> choose language");
+    (spf " <str> choose language (valid choices: %s)" supported_langs);
 
     "-e", Arg.Set_string pattern_string, 
     " <pattern> expression pattern";
