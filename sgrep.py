@@ -12,7 +12,8 @@ import tarfile
 import tempfile
 import time
 import traceback
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+from dataclasses import field
 from datetime import datetime
 from pathlib import Path
 from pathlib import PurePath
@@ -20,13 +21,14 @@ from typing import Any
 from typing import DefaultDict
 from typing import Dict
 from typing import Generator
-from typing import Iterable, Iterator
+from typing import Iterable
+from typing import Iterator
 from typing import List
+from typing import NewType
 from typing import Optional
 from typing import Set
 from typing import Tuple
 from urllib.parse import urlparse
-from typing import NewType
 
 PatternId = NewType("PatternId", str)
 Operator = NewType("Operator", str)
@@ -139,7 +141,7 @@ def flatten(L: Iterable[Iterable[Any]]) -> Iterable[Any]:
 
 
 def enumerate_patterns_in_boolean_expression(
-    expressions: Iterable[BooleanRuleExpression]
+    expressions: Iterable[BooleanRuleExpression],
 ) -> Iterable[BooleanRuleExpression]:
     """
     flatten a potentially nested expression
@@ -182,7 +184,7 @@ def _parse_boolean_expression(
 def build_boolean_expression(rule: Dict[str, Any]) -> Iterator[BooleanRuleExpression]:
     """
     Build a boolean expression from the yml lines in the rule
-    
+
     """
     if "pattern" in rule:  # single pattern at root
         yield BooleanRuleExpression(OPERATORS.AND, None, None, rule["pattern"])
