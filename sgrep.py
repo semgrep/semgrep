@@ -837,7 +837,6 @@ def color_line(line, line_number, start_line, start_col, end_line, end_col):
 
 def finding_to_line(finding: Dict[str, Any], color_output: bool) -> Iterator[str]:
     path = finding.get("path")
-    print(finding)
     yield f"rule:{finding.get('check_id', '<no rule id>')}: {finding.get('extra', {}).get('message')}"
     start_line = finding.get("start", {}).get("line")
     end_line = finding.get("end", {}).get("line")
