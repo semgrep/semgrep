@@ -29,7 +29,7 @@ syntax. The idea is to mix the convenience of grep with the correctness and prec
 </tr>
   <tr>
    <td>✅</td>
-   <td>✅</td>
+      <td>✅</td>
    <td>✅</td>
    <td>✅</td>
    <td>✅</td>
@@ -116,7 +116,7 @@ Patterns are snippets of code with variables and other operators that will be pa
 
 ### Metavariables
 
-`$X`, `$FOO`, `$RETURN_CODE` are all examples of metavariables. You can referance them later in your pattern and `sgrep` will ensure they match. Metavariables must be uppercased; `$x` is not a valid metavariable.
+`$X`, `$FOO`, `$RETURN_CODE` are all examples of metavariables and you can referance them later in your pattern and `sgrep` will ensure they match
 
 #### Operators
 
@@ -146,8 +146,8 @@ See [integrations.md](docs/integrations.md)
 
 ## Bug Reports
 
-Reports are welcome! Please open a issue on this project.
+Reports are welcome! Please open an github issue on this project.
 
 ## Contributions
 
-`sgrep` is LGPL-licensed and we would love your [contributions](docs/CONTRIBUTING.md). See [docs/development.md](docs/development.md)
+`sgrep` is LGPL-licensed and we would love your [contributions](CONTRIBUTING.md). See [docs/development.md](docs/development.md)
