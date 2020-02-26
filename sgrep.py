@@ -737,9 +737,9 @@ def validate_patterns(valid_configs: Dict[str, Any]) -> List[str]:
                 for language in rule["languages"]:
                     # avoid patterns that don't have pattern_ids, like pattern-either
                     if should_send_to_sgrep(expr) and not validate_pattern_with_sgrep(
-                        expr.operand, language # type: ignore
+                        expr.operand, language  # type: ignore
                     ):
-                        invalid.append(expr.operand) # type: ignore
+                        invalid.append(expr.operand)  # type: ignore
                         print_error(
                             f"in {config_id}, pattern in rule {rule['id']} can't be parsed for language {language}: {expr.operand}"
                         )
