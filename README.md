@@ -146,7 +146,7 @@ See [integrations.md](docs/integrations.md)
 
 ## Bug Reports
 
-Reports are welcome! Please open a issue on this project.
+Reports are welcome! Please open an issue on this project.
 
 ## Contributions
 
