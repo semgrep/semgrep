@@ -56,11 +56,11 @@ Will match nothing, because foo() and foo(1) can never occur together. If we mad
 There are several operators that can be used under `patterns`:
 
 - `pattern`: The rule will only fire if this pattern is found.
-- `pattern-not`: Opposite of `pattern`
+- `pattern-not`: Opposite of `pattern`; this is a filter that will remove any results which match the pattern
 - `pattern-either`: You can put multiple other patterns under this; any of those patterns will count as a match.
 - `pattterns`: Like `pattern-either`, you can put multiple patterns under this to create nested, implicitly-ANDed instructions.
-- `pattern-inside`: The rule will only fire if the following patterns are inside this specified pattern. Useful for specifying a function that this behavior must occur in, for instance.
-- `pattern-not-inside`: Opposite of `pattern-inside`
+- `pattern-inside`: The rule will only fire if the following patterns are inside this specified pattern. Useful for specifying a function that this behavior must occur in, for instance. This is a filter that will remove all results that are not inside this pattern.
+- `pattern-not-inside`: Opposite of `pattern-inside`; this is a filter that will remove all results inside the specified pattern.
 
 ## Schema
 
@@ -71,5 +71,5 @@ Each rule object has these fields:
 | id        | string        | None unique check-id that should be descriptive and understandable in isolation by the user. e.g. `no-unused-var`. | Y        |
 | `pattern` or `patterns`   | string        | See example patterns in this document.                                                                                        | Y        |
 | message   | string        | Description of the rule that will be output when a match is found.                                                 | Y        |
-| languages | array<string> | Languages the check is relevant for. Can be python or javascript.                                                  | Y        |
+| languages | array<string> | Languages the check is relevant for. Can be any [sgrep-supported language](languages.md).                                                  | Y        |
 | severity  | string        | Case sensitive string equal to WARNING, ERROR                                                                  | Y        |
