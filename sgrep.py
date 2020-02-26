@@ -739,12 +739,15 @@ def finding_to_line(finding: Dict[str, Any], color_output: bool) -> Iterator[str
     start_col = finding.get("start", {}).get("col")
     end_col = finding.get("end", {}).get("col")
     if path and start_line:
-        file_lines = fetch_lines_in_file(Path(path), start_line, end_line)
-        for i, line in enumerate(file_lines):
-            if color_output:
-                yield f"{start_line + i}:{color_line(line.rstrip(), start_line + i, start_line, start_col, end_line, end_col)}"
-            else:
-                yield f"{start_line + i}:{line.rstrip()}"
+        file_lines: Iterable[str] = fetch_lines_in_file(
+            Path(path), start_line, end_line
+        )
+        if file_lines:
+            for i, line in enumerate(file_lines):
+                if color_output:
+                    yield f"{start_line + i}:{color_line(line.rstrip(), start_line + i, start_line, start_col, end_line, end_col)}"
+                else:
+                    yield f"{start_line + i}:{line.rstrip()}"
 
 
 def build_normal_output(
