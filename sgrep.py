@@ -739,7 +739,7 @@ def finding_to_line(finding: Dict[str, Any], color_output: bool) -> Iterator[str
     start_col = finding.get("start", {}).get("col")
     end_col = finding.get("end", {}).get("col")
     if path and start_line:
-        file_lines: Iterable[str] = fetch_lines_in_file(
+        file_lines = fetch_lines_in_file(
             Path(path), start_line, end_line
         )
         if file_lines:
