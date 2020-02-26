@@ -461,6 +461,17 @@ def transform_to_r2c_output(finding: Dict[str, Any]) -> Dict[str, Any]:
     return finding
 
 
+def should_send_to_sgrep(expression: BooleanRuleExpression) -> bool:
+    """
+    don't send rules like "and-either" or "and-all" to sgrep
+    """
+    return (
+        expression.pattern_id
+        and expression.operand
+        and (expression.operator != OPERATORS.WHERE_PYTHON)
+    )
+
+
 def flatten_rule_patterns(all_rules):
     for rule_index, rule in enumerate(all_rules):
         flat_expressions = list(
@@ -469,8 +480,7 @@ def flatten_rule_patterns(all_rules):
             )
         )
         for expr in flat_expressions:
-            if not expr.pattern_id:
-                # don't send rules like "and-either" or "and-all" to sgrep
+            if not should_send_to_sgrep(expr):
                 continue
             # if we don't copy an array (like `languages`), the yaml file will refer to it by reference (with an anchor)
             # which is nice and all but the sgrep YAML parser doesn't support that
@@ -725,7 +735,8 @@ def validate_patterns(valid_configs: Dict[str, Any]) -> List[str]:
             )
             for expr in expressions:
                 for language in rule["languages"]:
-                    if expr.operand and not validate_pattern_with_sgrep(
+                    # avoid patterns that don't have pattern_ids, like pattern-either
+                    if should_send_to_sgrep(expr) and not validate_pattern_with_sgrep(
                         expr.operand, language
                     ):
                         invalid.append(expr.operand)
