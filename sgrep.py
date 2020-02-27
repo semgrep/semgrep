@@ -48,6 +48,10 @@ class OPERATORS:
     AND_NOT_INSIDE: Operator = Operator("and_not_inside")
     WHERE_PYTHON: Operator = Operator("where_python")
 
+OPERATORS_WITH_CHILDREN = [OPERATORS.AND_ALL, OPERATORS.AND_EITHER]
+
+class InvalidRuleSchema(BaseException):
+    pass
 
 @dataclass(frozen=True)
 class BooleanRuleExpression:
@@ -56,6 +60,22 @@ class BooleanRuleExpression:
     children: Optional[List["BooleanRuleExpression"]] = None
     operand: Optional[str] = None
 
+    def __post_init__(self):
+        self._validate()
+
+    def _validate(self):
+        if self.operator in set(OPERATORS_WITH_CHILDREN):
+            if self.operand is not None:
+                raise InvalidRuleSchema(f"operator `{pattern_name_for_operator(self.operator)}` cannot have operand but found {self.operand}")
+        else: 
+            if self.children is not None:
+                raise InvalidRuleSchema(f"only {list(map(pattern_name_for_operator, OPERATORS_WITH_CHILDREN))} operators can have children, but found `{self.operator}` with children")
+            
+            if self.operand is None:
+                raise InvalidRuleSchema(f"operator `{pattern_name_for_operator(self.operator)}` must have operand")
+            else:
+                if type(self.operand) != str:
+                    raise InvalidRuleSchema(f"operand of operator `{pattern_name_for_operator(self.operator)}` ought to have type string, but is {type(self.operand)}: {self.operand}")
 
 # Constants
 
@@ -180,7 +200,7 @@ def _parse_boolean_expression(
                 )
                 pattern_id += 1
             else:
-                raise TypeError(
+                raise InvalidRuleSchema(
                     f"invalid type for pattern {pattern}: {type(pattern_text)}"
                 )
 
@@ -195,13 +215,13 @@ def build_boolean_expression(rule: Dict[str, Any]) -> Iterator[BooleanRuleExpres
     elif "patterns" in rule:  # multiple patterns at root
         yield from _parse_boolean_expression(rule["patterns"])
     else:
-        raise Exception(PLEASE_FILE_ISSUE_TEXT)
+        print_error_exit(f"unknown operator in rule {rule}: {PLEASE_FILE_ISSUE_TEXT}")
 
 
 def operator_for_pattern_name(pattern_name: str) -> Operator:
     if not pattern_name in PATTERN_NAMES_MAP:
         print_error_exit(
-            f"invalid pattern name: {pattern_name}, valid pattern names are {list(PATTERN_NAMES_MAP.keys())}"
+            f"invalid pattern name: {pattern_name}, valid pattern names are {list(PATTERN_NAMES_MAP.keys())}: {PLEASE_FILE_ISSUE_TEXT}"
         )
     return PATTERN_NAMES_MAP[pattern_name]
 
@@ -297,7 +317,7 @@ def _evaluate_single_expression(
         return output_ranges
 
     else:
-        raise NotImplementedError(
+        print_error_exit(
             f"{PLEASE_FILE_ISSUE_TEXT}: unknown operator {expression.operator}"
         )
 
@@ -491,7 +511,7 @@ def should_send_to_sgrep(expression: BooleanRuleExpression) -> bool:
     )
 
 
-def flatten_rule_patterns(all_rules):
+def flatten_rule_patterns(all_rules) -> List[Dict[str, Any]]:
     for rule_index, rule in enumerate(all_rules):
         flat_expressions = list(
             enumerate_patterns_in_boolean_expression(
@@ -665,6 +685,36 @@ def resolve_config(config_str: Optional[str]) -> Any:
         debug_print(f"loaded {len(config)} configs in {time.time() - start_t}")
     return config
 
+def validate_single_rule(config_id: str, rule_index: int, rule: Dict[str, Any]) -> bool:
+    rule_id_err_msg = f'(rule id: {rule.get("id", MISSING_RULE_ID)})'
+    if not set(rule.keys()).issuperset(MUST_HAVE_KEYS):
+        print_error(
+            f"{config_id} is missing keys at rule {rule_index+1} {rule_id_err_msg}, must have: {MUST_HAVE_KEYS}"
+        )
+        return False
+    if not set(rule.keys()).issubset(ALL_VALID_RULE_KEYS):
+        print_error(
+            f"{config_id} has invalid rule key at rule {rule_index+1} {rule_id_err_msg}, can only have: {ALL_VALID_RULE_KEYS}"
+        )
+        return False
+    if not "pattern" in rule and not "patterns" in rule:
+        print_error(
+            f"{config_id} is missing key `pattern` or `patterns` at rule {rule_index+1} {rule_id_err_msg}"
+        )
+        return False
+    if "patterns" in rule and not rule["patterns"]:
+        print_error(
+            f"{config_id} no patterns found inside rule {rule_index+1} {rule_id_err_msg}"
+        )
+        return False
+    try:
+        _ = list(build_boolean_expression(rule))
+    except InvalidRuleSchema as ex:
+        print_error(f"{config_id}: inside rule {rule_index+1} {rule_id_err_msg}, pattern fields can't look like this: {ex}")
+        return False
+
+    return True
+        
 
 def validate_configs(configs: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     """ Take configs and separate into valid and invalid ones"""
@@ -683,33 +733,10 @@ def validate_configs(configs: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str,
         valid_rules = []
         invalid_rules = []
         for i, rule in enumerate(rules):
-            rule_id_err_msg = f'(rule id: {rule.get("id", MISSING_RULE_ID)})'
-            if not set(rule.keys()).issuperset(MUST_HAVE_KEYS):
-                print_error(
-                    f"{config_id} is missing keys at rule {i+1} {rule_id_err_msg}, must have: {MUST_HAVE_KEYS}"
-                )
+            if validate_single_rule(config_id, i, rule):
+                valid_rules.append(rule)
+            else:
                 invalid_rules.append(rule)
-                continue
-            if not set(rule.keys()).issubset(ALL_VALID_RULE_KEYS):
-                print_error(
-                    f"{config_id} has invalid rule key at rule {i+1} {rule_id_err_msg}, can only have: {ALL_VALID_RULE_KEYS}"
-                )
-                invalid_rules.append(rule)
-                continue
-            if not "pattern" in rule and not "patterns" in rule:
-                print_error(
-                    f"{config_id} is missing key `pattern` or `patterns` at rule {i+1} {rule_id_err_msg}"
-                )
-                invalid_rules.append(rule)
-                continue
-            if "patterns" in rule and not rule["patterns"]:
-                print_error(
-                    f"{config_id} no patterns found inside rule {i+1} {rule_id_err_msg}"
-                )
-                invalid_rules.append(rule)
-                continue
-
-            valid_rules.append(rule)
 
         if invalid_rules:
             errors[config_id] = {**config, "rules": invalid_rules}
@@ -747,11 +774,7 @@ def validate_patterns(valid_configs: Dict[str, Any]) -> List[str]:
     for config_id, config in valid_configs.items():
         rules = config.get(RULES_KEY, [])
         for rule in rules:
-            expressions = list(
-                enumerate_patterns_in_boolean_expression(
-                    list(build_boolean_expression(rule))
-                )
-            )
+            expressions = enumerate_patterns_in_boolean_expression(build_boolean_expression(rule))
             for expr in expressions:
                 for language in rule["languages"]:
                     # avoid patterns that don't have pattern_ids, like pattern-either
