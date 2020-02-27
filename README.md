@@ -69,7 +69,7 @@ docker run --rm -v $(pwd):/home/repo returntocorp/sgrep
 To rapidly iterate on a single pattern, you can test on a single file or folder. For example,
 
 ```bash
-docker run --rm -v $(pwd):/home/repo returntocorp/sgrep -e '$X == $X' path/to/file.py
+docker run --rm -v $(pwd):/home/repo returntocorp/sgrep -l python -e '$X == $X' path/to/file.py
 ```
 
 Here, `sgrep` will search the target with the pattern `$X == $X` (which is a stupid equals check) and print the results to `stdout`. This also works for directories and will skip the file if parsing fails. You can specifiy the language of the pattern with `--lang javascript` for example.
