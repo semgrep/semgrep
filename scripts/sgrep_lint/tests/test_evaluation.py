@@ -3,7 +3,7 @@ import os
 from typing import List
 import sys
 
-from ..sgrep_types import (
+from sgrep_types import (
     OPERATORS,
     Operator,
     Range,
@@ -11,7 +11,7 @@ from ..sgrep_types import (
     BooleanRuleExpression,
 )
 
-from ..evaluation import (
+from evaluation import (
     evaluate_expression,
     enumerate_patterns_in_boolean_expression,
 )
