@@ -332,7 +332,7 @@ def _evaluate_single_expression(
         print_error_exit(
             f"{PLEASE_FILE_ISSUE_TEXT}: unknown operator {expression.operator}"
         )
-        return None  # for mypy
+        assert False  # for mypy
 
 
 # Given a `where-python` expression as a string and currently matched metavars,
