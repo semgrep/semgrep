@@ -731,7 +731,7 @@ def color_line(line, line_number, start_line, start_col, end_line, end_col):
 
 
 def finding_to_line(finding: Dict[str, Any], color_output: bool) -> Iterator[str]:
-    path = finding.get("path")    
+    path = finding.get("path")
     start_line = finding.get("start", {}).get("line")
     end_line = finding.get("end", {}).get("line")
     start_col = finding.get("start", {}).get("col")
@@ -756,20 +756,24 @@ def build_normal_output(
         results,
         key=lambda k: (k.get("path", "<no path>"), k.get("check_id", "<no rule id>")),
     ):
-        RESET_COLOR = colorama.Style.RESET_ALL if color_output else ''
-        GREEN_COLOR = colorama.Fore.GREEN if color_output else ''
-        YELLOW_COLOR = colorama.Fore.YELLOW if color_output else ''
+        RESET_COLOR = colorama.Style.RESET_ALL if color_output else ""
+        GREEN_COLOR = colorama.Fore.GREEN if color_output else ""
+        YELLOW_COLOR = colorama.Fore.YELLOW if color_output else ""
 
         current_file = finding.get("path", "<no path>")
-        check_id = finding.get('check_id')
-        message = finding.get('extra', {}).get('message')
+        check_id = finding.get("check_id")
+        message = finding.get("extra", {}).get("message")
         if last_file is None or last_file != current_file:
             if last_file is not None:
                 yield ""
             yield f"{GREEN_COLOR}{current_file}{RESET_COLOR}"
             last_message = None
-        # don't display the rule line if the check is empty            
-        if check_id and check_id != '-' and (last_message is None or last_message != message):
+        # don't display the rule line if the check is empty
+        if (
+            check_id
+            and check_id != "-"
+            and (last_message is None or last_message != message)
+        ):
             yield f"{YELLOW_COLOR}rule:{check_id}: {finding.get('extra', {}).get('message')}{RESET_COLOR}"
 
         last_file = current_file
