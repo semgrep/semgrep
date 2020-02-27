@@ -32,6 +32,8 @@ module J = Json_type
  *  - phpgrep: https://github.com/quasilyte/phpgrep
  *    https://github.com/VKCOM/noverify/blob/master/docs/dynamic-rules.md
  *    https://speakerdeck.com/quasilyte/phpgrep-syntax-aware-code-search
+ *  - rubocop pattern
+ *    https://github.com/marcandre/rubocop/blob/master/manual/node_pattern.md
  *  - ack http://beyondgrep.com/
  *  - cgrep http://awgn.github.io/cgrep/
  *  - hound https://codeascraft.com/2015/01/27/announcing-hound-a-lightning-fast-code-search-tool/
