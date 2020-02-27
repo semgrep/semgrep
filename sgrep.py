@@ -332,6 +332,7 @@ def _evaluate_single_expression(
         print_error_exit(
             f"{PLEASE_FILE_ISSUE_TEXT}: unknown operator {expression.operator}"
         )
+        return None  # for mypy
 
 
 # Given a `where-python` expression as a string and currently matched metavars,
@@ -523,7 +524,7 @@ def should_send_to_sgrep(expression: BooleanRuleExpression) -> bool:
     )
 
 
-def flatten_rule_patterns(all_rules) -> List[Dict[str, Any]]:
+def flatten_rule_patterns(all_rules) -> Iterator[Dict[str, Any]]:
     for rule_index, rule in enumerate(all_rules):
         flat_expressions = list(
             enumerate_patterns_in_boolean_expression(
