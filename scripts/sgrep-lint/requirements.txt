@@ -1,0 +1,3 @@
+colorama==0.4.3
+pyyaml==5.3
+requests==2.22.0
