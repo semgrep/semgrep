@@ -48,10 +48,13 @@ class OPERATORS:
     AND_NOT_INSIDE: Operator = Operator("and_not_inside")
     WHERE_PYTHON: Operator = Operator("where_python")
 
+
 OPERATORS_WITH_CHILDREN = [OPERATORS.AND_ALL, OPERATORS.AND_EITHER]
+
 
 class InvalidRuleSchema(BaseException):
     pass
+
 
 @dataclass(frozen=True)
 class BooleanRuleExpression:
@@ -66,16 +69,25 @@ class BooleanRuleExpression:
     def _validate(self):
         if self.operator in set(OPERATORS_WITH_CHILDREN):
             if self.operand is not None:
-                raise InvalidRuleSchema(f"operator `{pattern_name_for_operator(self.operator)}` cannot have operand but found {self.operand}")
-        else: 
+                raise InvalidRuleSchema(
+                    f"operator `{pattern_name_for_operator(self.operator)}` cannot have operand but found {self.operand}"
+                )
+        else:
             if self.children is not None:
-                raise InvalidRuleSchema(f"only {list(map(pattern_name_for_operator, OPERATORS_WITH_CHILDREN))} operators can have children, but found `{self.operator}` with children")
-            
+                raise InvalidRuleSchema(
+                    f"only {list(map(pattern_name_for_operator, OPERATORS_WITH_CHILDREN))} operators can have children, but found `{self.operator}` with children"
+                )
+
             if self.operand is None:
-                raise InvalidRuleSchema(f"operator `{pattern_name_for_operator(self.operator)}` must have operand")
+                raise InvalidRuleSchema(
+                    f"operator `{pattern_name_for_operator(self.operator)}` must have operand"
+                )
             else:
                 if type(self.operand) != str:
-                    raise InvalidRuleSchema(f"operand of operator `{pattern_name_for_operator(self.operator)}` ought to have type string, but is {type(self.operand)}: {self.operand}")
+                    raise InvalidRuleSchema(
+                        f"operand of operator `{pattern_name_for_operator(self.operator)}` ought to have type string, but is {type(self.operand)}: {self.operand}"
+                    )
+
 
 # Constants
 
@@ -685,6 +697,7 @@ def resolve_config(config_str: Optional[str]) -> Any:
         debug_print(f"loaded {len(config)} configs in {time.time() - start_t}")
     return config
 
+
 def validate_single_rule(config_id: str, rule_index: int, rule: Dict[str, Any]) -> bool:
     rule_id_err_msg = f'(rule id: {rule.get("id", MISSING_RULE_ID)})'
     if not set(rule.keys()).issuperset(MUST_HAVE_KEYS):
@@ -710,11 +723,13 @@ def validate_single_rule(config_id: str, rule_index: int, rule: Dict[str, Any]) 
     try:
         _ = list(build_boolean_expression(rule))
     except InvalidRuleSchema as ex:
-        print_error(f"{config_id}: inside rule {rule_index+1} {rule_id_err_msg}, pattern fields can't look like this: {ex}")
+        print_error(
+            f"{config_id}: inside rule {rule_index+1} {rule_id_err_msg}, pattern fields can't look like this: {ex}"
+        )
         return False
 
     return True
-        
+
 
 def validate_configs(configs: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     """ Take configs and separate into valid and invalid ones"""
@@ -774,7 +789,9 @@ def validate_patterns(valid_configs: Dict[str, Any]) -> List[str]:
     for config_id, config in valid_configs.items():
         rules = config.get(RULES_KEY, [])
         for rule in rules:
-            expressions = enumerate_patterns_in_boolean_expression(build_boolean_expression(rule))
+            expressions = enumerate_patterns_in_boolean_expression(
+                build_boolean_expression(rule)
+            )
             for expr in expressions:
                 for language in rule["languages"]:
                     # avoid patterns that don't have pattern_ids, like pattern-either
