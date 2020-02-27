@@ -1,20 +1,15 @@
 #!/usr/bin/env python3
 import os
-from typing import List
 import sys
+from typing import List
 
-from sgrep_types import (
-    OPERATORS,
-    Operator,
-    Range,
-    SgrepRange,
-    BooleanRuleExpression,
-)
-
-from evaluation import (
-    evaluate_expression,
-    enumerate_patterns_in_boolean_expression,
-)
+from evaluation import enumerate_patterns_in_boolean_expression
+from evaluation import evaluate_expression
+from sgrep_types import BooleanRuleExpression
+from sgrep_types import Operator
+from sgrep_types import OPERATORS
+from sgrep_types import Range
+from sgrep_types import SgrepRange
 
 
 def SRange(start: int, end: int):
@@ -63,7 +58,7 @@ def testA():
 
 def testB():
     """
-    Our algebra needs to express "AND-INSIDE" as opposed to "AND-NOT-INSIDE", so that cases 
+    Our algebra needs to express "AND-INSIDE" as opposed to "AND-NOT-INSIDE", so that cases
     like this one can still fire (we explicitly don't want to ignore the nested expression
     just because it's inside).
 
@@ -241,20 +236,20 @@ def testE():
 
 def testF():
     """Nested boolean expressions
-    
+
     let pattern1 = bad(..., x=1)
     let pattern2 = bad(..., y=2)
     let pattern3 = def normal(): \n...
     let pattern4 = def unusual(): \n...
 
     We want to find (ONLY inside P3), either:
-        P2 inside P4 
-      or 
+        P2 inside P4
+      or
         P1 not-inside P4
-    
+
     example:
 
-    000-100    def normal():            
+    000-100    def normal():
     100-200        bad(x = 1) # P1 not-inside-P4
     200-300        bad(y = 2) # no match
     300-400        def unusual():
@@ -263,7 +258,7 @@ def testF():
     600-700        def regular():
     700-800            bad(x = 1) # P1 not-inside P4
     800-900            bad(y = 2) # no-match
-               
+
         pattern-inside P3
         and-either:
            - patterns:
@@ -272,7 +267,7 @@ def testF():
           - patterns:
             - pattern-not-inside P4
             - and P1
-    
+
         OUTPUT: [500-600], [700-800]
     """
     results = {
@@ -350,36 +345,36 @@ def testEvaluatePython():
     """Test evaluating the subpattern `where-python: <python_expression>`,
     in which a rule can provide an arbitrary Python expression that will be
     evaluated against the currently matched metavariables.
-    
+
     NOTE: the Python expression must evaluate to True or False.
-   
+
     NOTE: Assume patterns are applied in the order specified, top to bottom.
 
     This is implementing: https://github.com/returntocorp/sgrep/issues/101.
- 
+
         let allExecs = exec($X)
-        let filteredExecs = where-python: "vars['$X'].startswith('cmd')" 
+        let filteredExecs = where-python: "vars['$X'].startswith('cmd')"
 
         000-100   var exec = require('child_process').exec;
- 
+
         100-200   var cmd_pattern = "user_input";
         200-300   var other_pattern = "hardcoded_string";
- 
+
         300-400   // should match
         400-500   exec(cmd_pattern, function(error, stdout, stderr){
         500-600       console.log(stdout);
         600-700   });
- 
+
         700-800   // should not match
         800-900   exec(other_pattern, function(error, stdout, stderr){
         900-1000      console.log(stdout);
         1100-1200 });
-    
+
         patterns:
             pattern: exec($X)
-            where-python: "vars['$X'].startswith('cmd')" 
+            where-python: "vars['$X'].startswith('cmd')"
 
-    
+
         OUTPUT: [400-500]
     """
     results = {

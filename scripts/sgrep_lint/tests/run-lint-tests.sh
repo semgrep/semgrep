@@ -12,13 +12,13 @@ $SGREP --json --strict --config tests/python/eqeq.yaml tests/lint -o tmp.out >/d
 diff tmp.out tests/python/eqeq.expected.json
 rm -f tmp.out
 
-# parsing bad.yaml should fail 
+# parsing bad.yaml should fail
 $SGREP --strict --config tests/python/bad.yaml tests/lint && echo "bad.yaml should have failed" && exit 1
 
-# parsing bad2.yaml should fail 
+# parsing bad2.yaml should fail
 $SGREP --strict --config tests/python/bad2.yaml tests/lint && echo "bad2.yaml should have failed" && exit 1
 
-# parsing bad3.yaml should fail 
+# parsing bad3.yaml should fail
 $SGREP --strict --config tests/python/bad3.yaml tests/lint && echo "bad3.yaml should have failed" && exit 1
 
 

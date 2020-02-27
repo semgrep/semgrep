@@ -27,19 +27,21 @@ from typing import Set
 from typing import Tuple
 from urllib.parse import urlparse
 
-from sgrep_types import (
-    Operator,
-    OPERATORS,
-    BooleanRuleExpression,
-    operator_for_pattern_name,
-    PatternId,
-    InvalidRuleSchema,
-    pattern_name_for_operator,
-    SgrepRange,
-    Range,
-)
-from util import print_error_exit, debug_print, flatten, print_error
 from constants import RCE_RULE_FLAG
+from sgrep_types import BooleanRuleExpression
+from sgrep_types import InvalidRuleSchema
+from sgrep_types import Operator
+from sgrep_types import operator_for_pattern_name
+from sgrep_types import OPERATORS
+from sgrep_types import pattern_name_for_operator
+from sgrep_types import PatternId
+from sgrep_types import Range
+from sgrep_types import SgrepRange
+from util import debug_print
+from util import flatten
+from util import print_error
+from util import print_error_exit
+
 
 def _parse_boolean_expression(
     rule_patterns: List[Dict[str, Any]], pattern_id=0, prefix=""

@@ -1,6 +1,8 @@
 import sys
+from typing import Any
+from typing import Iterable
+from typing import Optional
 from urllib.parse import urlparse
-from typing import Iterable, Any, Optional
 
 global DEBUG
 global QUIET

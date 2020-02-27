@@ -30,26 +30,25 @@ from typing import Set
 from typing import Tuple
 from urllib.parse import urlparse
 
-from sgrep_types import (
-    Operator,
-    OPERATORS,
-    BooleanRuleExpression,
-    SgrepRange,
-    PatternId,
-    InvalidRuleSchema,
-    Range,
-)
-from evaluation import (
-    enumerate_patterns_in_boolean_expression,
-    build_boolean_expression,
-    evaluate_expression,
-)
-from util import print_error, print_error_exit, debug_print, print_msg, is_url
-from constants import RCE_RULE_FLAG
-
 import colorama
 import requests
 import yaml
+from constants import RCE_RULE_FLAG
+from evaluation import build_boolean_expression
+from evaluation import enumerate_patterns_in_boolean_expression
+from evaluation import evaluate_expression
+from sgrep_types import BooleanRuleExpression
+from sgrep_types import InvalidRuleSchema
+from sgrep_types import Operator
+from sgrep_types import OPERATORS
+from sgrep_types import PatternId
+from sgrep_types import Range
+from sgrep_types import SgrepRange
+from util import debug_print
+from util import is_url
+from util import print_error
+from util import print_error_exit
+from util import print_msg
 
 
 # Constants

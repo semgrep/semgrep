@@ -28,11 +28,10 @@ from typing import Optional
 from typing import Set
 from typing import Tuple
 
-from util import print_error_exit
-
 import colorama
 import requests
 import yaml
+from util import print_error_exit
 
 PatternId = NewType("PatternId", str)
 Operator = NewType("Operator", str)
