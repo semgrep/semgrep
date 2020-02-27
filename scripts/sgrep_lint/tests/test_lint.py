@@ -1,18 +1,20 @@
+#!/usr/bin/env python3
 import os
 from typing import List
 import sys
 
-from sgrep import (
+from ..sgrep_types import (
     OPERATORS,
     Operator,
     Range,
-    evaluate_expression,
-    enumerate_patterns_in_boolean_expression,
     SgrepRange,
     BooleanRuleExpression,
 )
 
-# run from parent directory with PYTHONPATH=. python3 testlint/test_lint.py
+from ..evaluation import (
+    evaluate_expression,
+    enumerate_patterns_in_boolean_expression,
+)
 
 
 def SRange(start: int, end: int):
@@ -396,20 +398,3 @@ def testEvaluatePython():
 
     result = evaluate_expression(expression, results)
     assert result == set([Range(400, 500)]), f"{result}"
-
-
-def testAll():
-    testEvaluatePython()
-    test_exprs()
-
-    testA()
-    testB()
-    testC()
-    testD()
-    testE()
-    testF()
-
-
-if __name__ == "__main__":
-    testAll()
-    print("all tests passed")

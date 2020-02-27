@@ -30,7 +30,7 @@ from typing import Set
 from typing import Tuple
 from urllib.parse import urlparse
 
-from sgrep_types import (
+from .sgrep_types import (
     Operator,
     OPERATORS,
     BooleanRuleExpression,
@@ -39,13 +39,13 @@ from sgrep_types import (
     InvalidRuleSchema,
     Range,
 )
-from evaluation import (
+from .evaluation import (
     enumerate_patterns_in_boolean_expression,
     build_boolean_expression,
     evaluate_expression,
 )
-from util import print_error, print_error_exit, debug_print, print_msg, is_url
-from constants import RCE_RULE_FLAG
+from .util import print_error, print_error_exit, debug_print, print_msg, is_url
+from .constants import RCE_RULE_FLAG
 
 import colorama
 import requests

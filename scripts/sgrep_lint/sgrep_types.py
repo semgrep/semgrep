@@ -28,7 +28,7 @@ from typing import Optional
 from typing import Set
 from typing import Tuple
 
-from util import print_error_exit
+from .util import print_error_exit
 
 import colorama
 import requests
