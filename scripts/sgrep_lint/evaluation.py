@@ -27,7 +27,7 @@ from typing import Set
 from typing import Tuple
 from urllib.parse import urlparse
 
-from .sgrep_types import (
+from sgrep_types import (
     Operator,
     OPERATORS,
     BooleanRuleExpression,
@@ -38,8 +38,8 @@ from .sgrep_types import (
     SgrepRange,
     Range,
 )
-from .util import print_error_exit, debug_print, flatten, print_error
-from .constants import RCE_RULE_FLAG
+from util import print_error_exit, debug_print, flatten, print_error
+from constants import RCE_RULE_FLAG
 
 def _parse_boolean_expression(
     rule_patterns: List[Dict[str, Any]], pattern_id=0, prefix=""
