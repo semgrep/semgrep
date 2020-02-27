@@ -1,15 +1,25 @@
 import os
+from typing import List
 import sys
 
 from sgrep import (
     OPERATORS,
+    Operator,
     Range,
     evaluate_expression,
-    NO_BOOLEAN_RULE_ID,
     enumerate_patterns_in_boolean_expression,
+    SgrepRange,
+    BooleanRuleExpression,
 )
 
 # run from parent directory with PYTHONPATH=. python3 testlint/test_lint.py
+
+
+def SRange(start: int, end: int):
+    return SgrepRange(Range(start, end), {})
+
+def RuleExpr(operator: Operator, fake_pattern_name: str, children: List[BooleanRuleExpression]=None):
+    return BooleanRuleExpression(operator, fake_pattern_name, children, "fake-pattern-text-here")
 
 
 def testA():
@@ -31,10 +41,13 @@ def testA():
 
     """
     results = {
-        "pattern1": [Range(30, 100)],
-        "pattern2": [Range(0, 100), Range(30, 100)],
+        "pattern1": [SRange(30, 100)],
+        "pattern2": [SRange(0, 100), SRange(30, 100)],
     }
-    expression = [(OPERATORS.AND_NOT, "pattern1"), (OPERATORS.AND, "pattern2")]
+    expression = [
+        RuleExpr(OPERATORS.AND_NOT, "pattern1"),
+        RuleExpr(OPERATORS.AND, "pattern2"),
+    ]
     result = evaluate_expression(expression, results)
     assert result == set([Range(0, 100)]), f"{result}"
 
@@ -60,15 +73,19 @@ def testB():
         OUTPUT: R2
     """
     results = {
-        "pattern1": [Range(0, 100)],
-        "pattern2": [Range(30, 70), Range(0, 100)],
+        "pattern1": [SRange(0, 100)],
+        "pattern2": [SRange(30, 70), SRange(0, 100)],
         "pattern3": [],
     }
     expression = [
-        (OPERATORS.AND_NOT, "pattern1"),
-        (
+        RuleExpr(OPERATORS.AND_NOT, "pattern1"),
+        BooleanRuleExpression(
             OPERATORS.AND_EITHER,
-            [(OPERATORS.AND, "pattern2"), (OPERATORS.AND, "pattern3")],
+            None,
+            [
+                RuleExpr(OPERATORS.AND, "pattern2"),
+                RuleExpr(OPERATORS.AND, "pattern3"),
+            ],
         ),
     ]
     result = evaluate_expression(expression, results)
@@ -94,14 +111,14 @@ def testC():
         OUTPUT: R2
     """
     results = {
-        "pattern1": [Range(100, 1000)],
-        "pattern2": [Range(100, 1000), Range(200, 300)],
-        "pattern4": [Range(0, 1000)],
+        "pattern1": [SRange(100, 1000)],
+        "pattern2": [SRange(100, 1000), SRange(200, 300)],
+        "pattern4": [SRange(0, 1000)],
     }
     expression = [
-        (OPERATORS.AND_INSIDE, "pattern4"),
-        (OPERATORS.AND_NOT, "pattern1"),
-        (OPERATORS.AND, "pattern2"),
+        RuleExpr(OPERATORS.AND_INSIDE, "pattern4"),
+        RuleExpr(OPERATORS.AND_NOT, "pattern1"),
+        RuleExpr(OPERATORS.AND, "pattern2"),
     ]
     result = evaluate_expression(expression, results)
     assert result == set([Range(200, 300)]), f"{result}"
@@ -126,14 +143,14 @@ def testD():
         OUTPUT: []
     """
     results = {
-        "pattern1": [Range(100, 1000)],
-        "pattern2": [Range(100, 1000), Range(200, 300)],
-        "pattern4": [Range(0, 1000)],
+        "pattern1": [SRange(100, 1000)],
+        "pattern2": [SRange(100, 1000), SRange(200, 300)],
+        "pattern4": [SRange(0, 1000)],
     }
     expression = [
-        (OPERATORS.AND_NOT_INSIDE, "pattern4"),
-        (OPERATORS.AND_NOT, "pattern1"),
-        (OPERATORS.AND, "pattern2"),
+        RuleExpr(OPERATORS.AND_NOT_INSIDE, "pattern4"),
+        RuleExpr(OPERATORS.AND_NOT, "pattern1"),
+        RuleExpr(OPERATORS.AND, "pattern2"),
     ]
     result = evaluate_expression(expression, results)
     assert result == set([]), f"{result}"
@@ -163,18 +180,18 @@ def testE():
     """
     results = {
         "pattern1": [
-            Range(100, 200),
-            Range(300, 400),
-            Range(350, 400),
-            Range(500, 600),
+            SRange(100, 200),
+            SRange(300, 400),
+            SRange(350, 400),
+            SRange(500, 600),
         ],
-        "pattern2": [Range(0, 200), Range(400, 600)],
-        "pattern3": [Range(200, 600)],
+        "pattern2": [SRange(0, 200), SRange(400, 600)],
+        "pattern3": [SRange(200, 600)],
     }
     expression = [
-        (OPERATORS.AND_INSIDE, "pattern3"),
-        (OPERATORS.AND_NOT_INSIDE, "pattern2"),
-        (OPERATORS.AND, "pattern1"),
+        RuleExpr(OPERATORS.AND_INSIDE, "pattern3"),
+        RuleExpr(OPERATORS.AND_NOT_INSIDE, "pattern2"),
+        RuleExpr(OPERATORS.AND, "pattern1"),
     ]
     result = evaluate_expression(expression, results)
     assert result == set([Range(300, 400), Range(350, 400)]), f"{result}"
@@ -186,9 +203,9 @@ def testE():
         OUTPUT: [100-200]
     """
     expression = [
-        (OPERATORS.AND_INSIDE, "pattern2"),
-        (OPERATORS.AND_NOT_INSIDE, "pattern3"),
-        (OPERATORS.AND, "pattern1"),
+        RuleExpr(OPERATORS.AND_INSIDE, "pattern2"),
+        RuleExpr(OPERATORS.AND_NOT_INSIDE, "pattern3"),
+        RuleExpr(OPERATORS.AND, "pattern1"),
     ]
     result = evaluate_expression(expression, results)
     assert result == set([Range(100, 200)]), f"{result}"
@@ -197,7 +214,7 @@ def testE():
         and-inside P1
         OUTPUT: [100-200, 300-400, 350-400, 500-600]
     """
-    expression = [(OPERATORS.AND_INSIDE, "pattern1")]
+    expression = [RuleExpr(OPERATORS.AND_INSIDE, "pattern1")]
     result = evaluate_expression(expression, results)
     assert result == set(
         [Range(100, 200), Range(300, 400), Range(350, 400), Range(500, 600)]
@@ -246,29 +263,36 @@ def testF():
            - patterns:
             - pattern-inside P4
             - and P2
-          - pattterns:
+          - patterns:
             - pattern-not-inside P4
             - and P1
     
         OUTPUT: [500-600], [700-800]
     """
     results = {
-        "pattern1": [Range(100, 200), Range(400, 500), Range(700, 800)],
-        "pattern2": [Range(200, 300), Range(500, 600), Range(800, 900)],
-        "pattern3": [Range(0, 900)],
-        "pattern4": [Range(300, 600)],
+        "pattern1": [SRange(100, 200), SRange(400, 500), SRange(700, 800)],
+        "pattern2": [SRange(200, 300), SRange(500, 600), SRange(800, 900)],
+        "pattern3": [SRange(0, 900)],
+        "pattern4": [SRange(300, 600)],
     }
 
-    subexpression1 = [(OPERATORS.AND_INSIDE, "pattern4"), (OPERATORS.AND, "pattern2")]
+    subexpression1 = [
+        RuleExpr(OPERATORS.AND_INSIDE, "pattern4"),
+        RuleExpr(OPERATORS.AND, "pattern2"),
+    ]
     subexpression2 = [
-        (OPERATORS.AND_NOT_INSIDE, "pattern4"),
-        (OPERATORS.AND, "pattern1"),
+        RuleExpr(OPERATORS.AND_NOT_INSIDE, "pattern4"),
+        RuleExpr(OPERATORS.AND, "pattern1"),
     ]
     expression = [
-        (OPERATORS.AND_INSIDE, "pattern3"),
-        (
+        RuleExpr(OPERATORS.AND_INSIDE, "pattern3"),
+        BooleanRuleExpression(
             OPERATORS.AND_EITHER,
-            [(OPERATORS.AND_ALL, subexpression1), (OPERATORS.AND_ALL, subexpression2)],
+            None,
+            [
+                BooleanRuleExpression(OPERATORS.AND_ALL, None, subexpression1),
+                BooleanRuleExpression(OPERATORS.AND_ALL, None, subexpression2),
+            ],
         ),
     ]
     result = evaluate_expression(expression, results)
@@ -281,40 +305,97 @@ def testF():
 
 def test_exprs():
     subexpression1 = [
-        (OPERATORS.AND_INSIDE, "pattern4", "p4"),
-        (OPERATORS.AND, "pattern2", "p2"),
+        BooleanRuleExpression(OPERATORS.AND_INSIDE, "pattern4", None, "p4"),
+        BooleanRuleExpression(OPERATORS.AND, "pattern2", None, "p2"),
     ]
     subexpression2 = [
-        (OPERATORS.AND_NOT_INSIDE, "pattern4", "p4"),
-        (OPERATORS.AND, "pattern1", "p1"),
+        BooleanRuleExpression(OPERATORS.AND_NOT_INSIDE, "pattern4", None, "p4"),
+        BooleanRuleExpression(OPERATORS.AND, "pattern1", None, "p1"),
     ]
     expression = [
-        (OPERATORS.AND_INSIDE, "pattern3", "p3"),
-        (
+        BooleanRuleExpression(OPERATORS.AND_INSIDE, "pattern3", None, "p3"),
+        BooleanRuleExpression(
             OPERATORS.AND_EITHER,
-            NO_BOOLEAN_RULE_ID,
+            None,
             [
-                (OPERATORS.AND_ALL, "someid", subexpression1),
-                (OPERATORS.AND_ALL, "someid2", subexpression2),
+                BooleanRuleExpression(OPERATORS.AND_ALL, "someid", subexpression1),
+                BooleanRuleExpression(OPERATORS.AND_ALL, "someid2", subexpression2),
             ],
         ),
     ]
     flat = list(enumerate_patterns_in_boolean_expression(expression))
     # print(flat)
 
-    assert flat == [
-        (OPERATORS.AND_INSIDE, "pattern3", "p3"),
-        (OPERATORS.AND_EITHER, NO_BOOLEAN_RULE_ID, "no-pattern"),
-        (OPERATORS.AND_ALL, NO_BOOLEAN_RULE_ID, "no-pattern"),
-        (OPERATORS.AND_INSIDE, "pattern4", "p4"),
-        (OPERATORS.AND, "pattern2", "p2"),
-        (OPERATORS.AND_ALL, NO_BOOLEAN_RULE_ID, "no-pattern"),
-        (OPERATORS.AND_NOT_INSIDE, "pattern4", "p4"),
-        (OPERATORS.AND, "pattern1", "p1"),
-    ], f"flat: {flat}"
+    expected = [
+        BooleanRuleExpression(OPERATORS.AND_INSIDE, "pattern3", None, "p3"),
+        BooleanRuleExpression(OPERATORS.AND_EITHER, None, None, None),
+        BooleanRuleExpression(OPERATORS.AND_ALL, None, None, None),
+        BooleanRuleExpression(OPERATORS.AND_INSIDE, "pattern4", None, "p4"),
+        BooleanRuleExpression(OPERATORS.AND, "pattern2", None, "p2"),
+        BooleanRuleExpression(OPERATORS.AND_ALL, None, None, None),
+        BooleanRuleExpression(OPERATORS.AND_NOT_INSIDE, "pattern4", None, "p4"),
+        BooleanRuleExpression(OPERATORS.AND, "pattern1", None, "p1"),
+    ]
+
+    assert flat == expected, f"flat: {flat}"
+
+
+def testEvaluatePython():
+    """Test evaluating the subpattern `where-python: <python_expression>`,
+    in which a rule can provide an arbitrary Python expression that will be
+    evaluated against the currently matched metavariables.
+    
+    NOTE: the Python expression must evaluate to True or False.
+   
+    NOTE: Assume patterns are applied in the order specified, top to bottom.
+
+    This is implementing: https://github.com/returntocorp/sgrep/issues/101.
+ 
+        let allExecs = exec($X)
+        let filteredExecs = where-python: "vars['$X'].startswith('cmd')" 
+
+        000-100   var exec = require('child_process').exec;
+ 
+        100-200   var cmd_pattern = "user_input";
+        200-300   var other_pattern = "hardcoded_string";
+ 
+        300-400   // should match
+        400-500   exec(cmd_pattern, function(error, stdout, stderr){
+        500-600       console.log(stdout);
+        600-700   });
+ 
+        700-800   // should not match
+        800-900   exec(other_pattern, function(error, stdout, stderr){
+        900-1000      console.log(stdout);
+        1100-1200 });
+    
+        patterns:
+            pattern: exec($X)
+            where-python: "vars['$X'].startswith('cmd')" 
+
+    
+        OUTPUT: [400-500]
+    """
+    results = {
+        "all_execs": [
+            SgrepRange(Range(400, 500), {"$X": "cmd_pattern"}),
+            SgrepRange(Range(800, 900), {"$X": "other_pattern"}),
+        ]
+    }
+
+    expression = [
+        BooleanRuleExpression(OPERATORS.AND, "all_execs", None, "all_execs"),
+        BooleanRuleExpression(
+            OPERATORS.WHERE_PYTHON, "p1", None, "vars['$X'].startswith('cmd')"
+        ),
+    ]
+
+    result = evaluate_expression(expression, results)
+    assert result == set([Range(400, 500)]), f"{result}"
 
 
 def testAll():
+    testEvaluatePython()
     test_exprs()
 
     testA()
