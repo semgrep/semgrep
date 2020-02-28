@@ -8,7 +8,7 @@ pip3 install Nuitka==0.6.7
 pip3 install -r requirements.txt
 
 echo "building and placing output binary in ${1}"
-python3 -m nuitka --follow-imports --standalone --show-modules --recurse-to=colorama --output-dir="${1}" ./sgrep.py
+python3 -m nuitka --follow-imports --standalone --show-modules --recurse-to=colorama --output-dir="${1}" --warn-unusual-code --lto ./sgrep.py
 
 # rename to sgrep-lint
 mv "${1}/sgrep.dist/sgrep" "${1}/sgrep.dist/sgrep-lint-exe"
