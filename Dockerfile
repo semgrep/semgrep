@@ -33,6 +33,7 @@ FROM alpine:3.11.3@sha256:ddba4d27a7ffc3f86dd6c2f92041af252a1f23a8e742c90e6e1297
 LABEL maintainer="sgrep@r2c.dev"
 
 ENV PYTHONUNBUFFERED=1
+ENV SGREP_IN_DOCKER=1
 
 COPY --from=build-sgrep-lint /home/pythonbuild/sgrep/sgrep_lint/build/sgrep.dist/* /bin/sgrep-lint-files/
 RUN ln -s /bin/sgrep-lint-files/sgrep-lint /bin/sgrep-lint

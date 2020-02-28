@@ -243,13 +243,15 @@ def validate_single_rule(config_id: str, rule_index: int, rule: Dict[str, Any]) 
     return True
 
 
-def validate_configs(configs: Dict[str, Optional[Dict[str, Any]]]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+def validate_configs(
+    configs: Dict[str, Optional[Dict[str, Any]]]
+) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     """ Take configs and separate into valid and invalid ones"""
 
     errors = {}
     valid = {}
     for config_id, config in configs.items():
-        if not config:            
+        if not config:
             errors[config_id] = config
             continue
         if RULES_KEY not in config:
@@ -259,7 +261,7 @@ def validate_configs(configs: Dict[str, Optional[Dict[str, Any]]]) -> Tuple[Dict
         rules = config.get(RULES_KEY)
         valid_rules = []
         invalid_rules = []
-        for i, rule in enumerate(rules): # type: ignore
+        for i, rule in enumerate(rules):  # type: ignore
             if validate_single_rule(config_id, i, rule):
                 valid_rules.append(rule)
             else:
@@ -549,9 +551,13 @@ def main(args: argparse.Namespace):
     all_rules = flatten_configs(valid_configs)
 
     if not args.pattern:
-        plural = 's' if len(valid_configs) > 1 else ''
-        config_id_if_single = list(valid_configs.keys())[0] if len(valid_configs) == 1 else ''
-        invalid_msg = f'({len(errors)} config files were invalid)' if len(errors) else ''
+        plural = "s" if len(valid_configs) > 1 else ""
+        config_id_if_single = (
+            list(valid_configs.keys())[0] if len(valid_configs) == 1 else ""
+        )
+        invalid_msg = (
+            f"({len(errors)} config files were invalid)" if len(errors) else ""
+        )
         print_msg(
             f"running {len(all_rules)} rules from {len(valid_configs)} config{plural} {config_id_if_single} {invalid_msg}"
         )
