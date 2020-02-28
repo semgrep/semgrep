@@ -3,7 +3,7 @@ version: 2.1
 executors:
   sgrep-build:
     docker:
-      - image: returntocorp/sgrep-build:latest
+      - image: returntocorp/sgrep-build:2.7
 
 jobs:
   build:
