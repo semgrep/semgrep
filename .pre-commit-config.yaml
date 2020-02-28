@@ -6,7 +6,6 @@ repos:
     hooks:
       - id: check-yaml
         args: [--allow-multiple-documents]
-      - id: end-of-file-fixer
       - id: trailing-whitespace
         args: [--markdown-linebreak-ext=md]
       - id: check-case-conflict
