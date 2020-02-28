@@ -665,10 +665,10 @@ def set_flags(debug: bool, quiet: bool) -> None:
     global DEBUG
     global QUIET
     if debug:
-        DEBUG = True
+        DEBUG = True  # type: ignore
         debug_print("DEBUG is on")
     if quiet:
-        QUIET = True
+        QUIET = True  # type: ignore
         debug_print("QUIET is on")
 
 

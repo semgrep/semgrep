@@ -99,7 +99,7 @@ class BooleanRuleExpression:
                     )
 
 
-def operator_for_pattern_name(pattern_name: str) -> Optional[Operator]:
+def operator_for_pattern_name(pattern_name: str) -> Operator:
     if not pattern_name in PATTERN_NAMES_MAP:
         raise NotImplementedError(
             f"invalid pattern name: {pattern_name}, valid pattern names are {list(PATTERN_NAMES_MAP.keys())}"

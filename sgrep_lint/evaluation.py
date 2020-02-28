@@ -155,7 +155,7 @@ def _where_python_statement_matches(
 ) -> bool:
     # TODO: filter out obvious dangerous things here
     global output
-    output = None
+    output = None  # type: ignore
 
     # HACK: we're executing arbitrary Python in the where-python,
     # be careful my friend
@@ -167,11 +167,11 @@ def _where_python_statement_matches(
             f"error evaluating a where-python expression: `{where_expression}`: {ex}"
         )
 
-    if type(output) != type(True):
-        print_error_exit(
-            f"python where expression needs boolean output but got: {output} for {where_expression}"
-        )
-    return output == True
+    if type(output) != type(True):  # type: ignore
+        print_error_exit(  # type: ignore
+            f"python where expression needs boolean output but got: {output} for {where_expression}"  # type: ignore
+        )  # type: ignore
+    return output == True  # type: ignore
 
 
 def evaluate_expression(
