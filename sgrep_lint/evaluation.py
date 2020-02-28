@@ -1,19 +1,3 @@
-import collections
-import itertools
-import json
-import os
-import shutil
-import subprocess
-import sys
-import tarfile
-import tempfile
-import time
-import traceback
-from dataclasses import dataclass
-from dataclasses import field
-from datetime import datetime
-from pathlib import Path
-from pathlib import PurePath
 from typing import Any
 from typing import DefaultDict
 from typing import Dict
@@ -25,7 +9,6 @@ from typing import NewType
 from typing import Optional
 from typing import Set
 from typing import Tuple
-from urllib.parse import urlparse
 
 from constants import RCE_RULE_FLAG
 from sgrep_types import BooleanRuleExpression
