@@ -39,7 +39,7 @@ RUN ln -s /bin/sgrep-lint-files/sgrep-lint /bin/sgrep-lint
 
 RUN ls -al  /bin/sgrep-lint-files/cacert.pem
 RUN mkdir /bin/sgrep-lint-files/certifi/
-RUN ln -sfn /bin/sgrep-lint-files/cacert.pem  /bin/sgrep-lint-files/certifi/cacert.pem 
+RUN ln -sfn /bin/sgrep-lint-files/cacert.pem  /bin/sgrep-lint-files/certifi/cacert.pem
 RUN ls -al /bin/sgrep-lint-files/
 
 RUN sgrep-lint --help
