@@ -8,7 +8,7 @@ clean:
 	rm -rf ./sgrep_lint/build/
 test:
 	dune runtest
-	./testlint/run-lint-tests.sh
+	./sgrep_lint/tests/run-lint-tests.sh
 install:
 	dune install
 install-lint:
