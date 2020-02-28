@@ -24,7 +24,7 @@ jobs:
       - checkout
       - attach_workspace:
           at: /home/opam/project
-          - run: apt-get install python3-dev # TODO put in dockerfile
+      - run: apt-get install python3-dev # TODO put in dockerfile
       - run: ln -s /home/opam/project/_build/default/bin/main_sgrep.exe /home/opam/.local/bin/sgrep
       - run: pip3 install -r sgrep_lint/requirements.txt
       - run: cd ~ && git clone  https://github.com/returntocorp/pfff # TODO remove and just mount these two lines
