@@ -32,6 +32,8 @@ module J = Json_type
  *  - phpgrep: https://github.com/quasilyte/phpgrep
  *    https://github.com/VKCOM/noverify/blob/master/docs/dynamic-rules.md
  *    https://speakerdeck.com/quasilyte/phpgrep-syntax-aware-code-search
+ *  - rubocop pattern
+ *    https://github.com/marcandre/rubocop/blob/master/manual/node_pattern.md
  *  - ack http://beyondgrep.com/
  *  - cgrep http://awgn.github.io/cgrep/
  *  - hound https://codeascraft.com/2015/01/27/announcing-hound-a-lightning-fast-code-search-tool/
@@ -51,7 +53,7 @@ let pattern_file = ref ""
 let rules_file = ref ""
 
 (* todo: infer from basename argv(0) ? *)
-let lang = ref "python"
+let lang = ref "unset"
 
 let case_sensitive = ref false
 let match_format = ref Matching_report.Normal
@@ -60,6 +62,12 @@ let r2c = ref false
 let mvars = ref ([]: Metavars_fuzzy.mvar list)
 
 let layer_file = ref (None: filename option)
+
+let keys = Common2.hkeys Lang.lang_of_string_map
+let supported_langs: string = String.concat ", " keys
+
+let unsupported_language_message = fun some_lang: string -> 
+  (spf "unsupported language: %s; supported langauge tags are: %s" some_lang supported_langs)
 
 (* action mode *)
 let action = ref ""
@@ -190,13 +198,12 @@ let create_ast file =
     Fuzzy (Parse_fuzzy.parse file)
   | "php" ->
     Php (Parse_php.parse_program file)
-  | _ -> failwith ("unsupported language: " ^ !lang)
+  | _ -> failwith (unsupported_language_message !lang)
   
 
 type pattern =
   | PatFuzzy of Ast_fuzzy.tree list
   | PatGen of Sgrep_generic.pattern
-
 (*  | PatPhp of Sgrep_php.pattern *)
 
 
@@ -213,13 +220,13 @@ let parse_pattern str =
      | None ->
        (match !lang with
        | "php" -> (* PatPhp (Sgrep_php.parse str) *) raise Todo
-       | _ -> failwith ("unsupported language for the pattern: " ^ !lang)
+       | _ -> failwith (unsupported_language_message !lang)
        )
      )
   ))
-  with 
-  | Parsing.Parse_error -> 
-      failwith (spf "fail to parse pattern: '%s' in lang %s" str !lang)
+  with exn ->
+      failwith (spf "fail to parse pattern: '%s' in lang %s (exn = %s)" 
+          str !lang (Common.exn_to_s exn))
  
 
 let sgrep_ast pattern any_ast =
@@ -249,7 +256,7 @@ let sgrep_ast pattern any_ast =
       pattern ast
 *)
   | _ ->
-    failwith ("unsupported language or combination: " ^ !lang)
+    failwith ("unsupported  combination or " ^ (unsupported_language_message !lang))
 
 (*****************************************************************************)
 (* Main action *)
@@ -322,7 +329,8 @@ let sgrep_with_rules rules_file xs =
   let rules = Parse_rules.parse rules_file in
 
   match Lang.lang_of_string_opt !lang with
-  | None -> failwith (spf "unsupported language: %s" !lang)
+  | None -> 
+        failwith (unsupported_language_message !lang)
   | Some lang ->
     let files = Lang.files_of_dirs_or_files lang xs in
     let rules = rules |> List.filter (fun r -> List.mem lang r.R.languages) in
@@ -380,12 +388,17 @@ let validate_pattern () =
 (* works with -lang *)
 let dump_pattern file =
   let s = Common.read_file file in
-  match parse_pattern s with
-  | PatGen x ->
-      let v = Meta_ast.vof_any x in
+  (* mostly copy-paste of parse_pattern above, but with better error report *)
+  match Lang.lang_of_string_opt !lang with
+  | Some lang ->
+    E.try_with_print_exn_and_reraise file (fun () ->
+      let any = Parse_generic.parse_pattern lang s in
+      let v = Meta_ast.vof_any any in
       let s = Ocaml.string_of_v v in
       pr2 s
-  | _ -> failwith "dumper supported only for generic patterns"
+    )
+  | None ->
+     failwith (unsupported_language_message !lang)
 
 let dump_ast file =
   let x = Parse_generic.parse_program file in
@@ -409,7 +422,7 @@ let all_actions () = [
 let options () = 
   [
     "-lang", Arg.Set_string lang, 
-    (spf " <str> choose language (default = %s)" !lang);
+    (spf " <str> choose language (valid choices: %s)" supported_langs);
 
     "-e", Arg.Set_string pattern_string, 
     " <pattern> expression pattern";
