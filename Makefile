@@ -5,16 +5,15 @@ lint:
 	./sgrep_lint/build.sh ./build/
 clean:
 	dune clean
-	rm -rf ./build/
+	rm -rf ./sgrep_lint/build/
 test:
 	dune runtest
 	./testlint/run-lint-tests.sh
 install:
 	dune install
-	mkdir -p /usr/local/bin/sgrep-lint/
 install-lint:
-	cp -rv ./sgrep_lint/build/sgrep.dist/ /usr/local/bin/sgrep-lint/
-
+	cp -rv ./sgrep_lint/build/sgrep.dist/ /usr/local/bin/sgrep-lint-files/
+	ln -s /usr/local/bin/sgrep-lint-files/sgrep-lint /usr/local/bin/sgrep-lint 
 dump:
 	./_build/default/tests/test.bc -dump_ast tests/lint/stupid.py
 

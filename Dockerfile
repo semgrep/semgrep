@@ -25,7 +25,7 @@ COPY . /home/pythonbuild/sgrep/
 # have to manually specify colorama for some reason, but others (yaml, etc) are working ok
 WORKDIR /home/pythonbuild/sgrep
 RUN make lint
-RUN ls -al /home/opam/sgrep/sgrep-lint/build/sgrep.dist/
+RUN ls -al /home/pythonbuild/sgrep/sgrep_lint/build/sgrep.dist/
 
 ## final output, combining both
 
@@ -34,8 +34,11 @@ LABEL maintainer="sgrep@r2c.dev"
 
 ENV PYTHONUNBUFFERED=1
 
-COPY --from=build-sgrep-lint /home/pythonbuild/sgrep-lint/build/sgrep.dist/* /bin/
+COPY --from=build-sgrep-lint /home/pythonbuild/sgrep/sgrep_lint/build/sgrep.dist/* /bin/sgrep-lint-files/
+RUN ls -al /bin/sgrep-lint-files/certifi/
+RUN ln -s /bin/sgrep-lint-files/sgrep-lint /bin/sgrep-lint
 RUN sgrep-lint --help
+RUN sgrep-lint --config=r2c .
 
 COPY --from=build-sgrep /home/opam/sgrep/_build/default/bin/main_sgrep.exe /bin/sgrep
 RUN sgrep --help
