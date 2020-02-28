@@ -1,0 +1,7 @@
+rules:
+  - id: test-pattern
+    pattern:
+        - pattern: "$D = {}"
+    message: "test"
+    languages: [python]
+    severity: WARNING
