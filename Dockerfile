@@ -35,13 +35,18 @@ LABEL maintainer="sgrep@r2c.dev"
 ENV PYTHONUNBUFFERED=1
 
 COPY --from=build-sgrep-lint /home/pythonbuild/sgrep/sgrep_lint/build/sgrep.dist/* /bin/sgrep-lint-files/
-RUN ls -al /bin/sgrep-lint-files/certifi/
 RUN ln -s /bin/sgrep-lint-files/sgrep-lint /bin/sgrep-lint
-RUN sgrep-lint --help
-RUN sgrep-lint --config=r2c .
 
+RUN ls -al  /bin/sgrep-lint-files/cacert.pem
+RUN mkdir /bin/sgrep-lint-files/certifi/
+RUN ln -sfn /bin/sgrep-lint-files/cacert.pem  /bin/sgrep-lint-files/certifi/cacert.pem 
+RUN ls -al /bin/sgrep-lint-files/
+
+RUN sgrep-lint --help
 COPY --from=build-sgrep /home/opam/sgrep/_build/default/bin/main_sgrep.exe /bin/sgrep
 RUN sgrep --help
+RUN sgrep-lint --config=r2c /bin/sgrep-lint-files/
+
 
 
 ENTRYPOINT [ "/bin/sgrep-lint" ]

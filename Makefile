@@ -13,7 +13,7 @@ install:
 	dune install
 install-lint:
 	cp -rv ./sgrep_lint/build/sgrep.dist/ /usr/local/bin/sgrep-lint-files/
-	ln -s /usr/local/bin/sgrep-lint-files/sgrep-lint /usr/local/bin/sgrep-lint
+	ln -sf /usr/local/bin/sgrep-lint-files/sgrep-lint /usr/local/bin/sgrep-lint
 dump:
 	./_build/default/tests/test.bc -dump_ast tests/lint/stupid.py
 
