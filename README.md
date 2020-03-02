@@ -44,6 +44,8 @@ Want to learn more about sgrep? Check out these [slides from the r2c February me
 
 ## Installation
 
+Too lazy to install? Try out [sgrep.live](https://sgrep.live) for instant access to the full power of sgrep
+
 ### Docker
 
 `sgrep` is packaged within a [docker container](https://hub.docker.com/r/returntocorp/sgrep), making installation as easy as [installing docker](https://docs.docker.com/install/).
