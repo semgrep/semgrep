@@ -1,19 +1,14 @@
 #!/usr/bin/env python3
 import argparse
-import base64
 import collections
 import itertools
 import json
 import os
-import shutil
 import subprocess
 import sys
-import tarfile
 import tempfile
 import time
 import traceback
-from dataclasses import dataclass
-from dataclasses import field
 from datetime import datetime
 from pathlib import Path
 from pathlib import PurePath
@@ -30,383 +25,50 @@ from typing import Set
 from typing import Tuple
 from urllib.parse import urlparse
 
-PatternId = NewType("PatternId", str)
-Operator = NewType("Operator", str)
-
-
 import colorama
+import config_resolver
 import requests
 import yaml
-
-
-class OPERATORS:
-    AND_ALL: Operator = Operator("and_all")
-    AND_NOT: Operator = Operator("and_not")
-    AND: Operator = Operator("and")
-    AND_EITHER: Operator = Operator("and_either")
-    AND_INSIDE: Operator = Operator("and_inside")
-    AND_NOT_INSIDE: Operator = Operator("and_not_inside")
-    WHERE_PYTHON: Operator = Operator("where_python")
-
-
-OPERATORS_WITH_CHILDREN = [OPERATORS.AND_ALL, OPERATORS.AND_EITHER]
-
-
-class InvalidRuleSchema(BaseException):
-    pass
-
-
-@dataclass(frozen=True)
-class BooleanRuleExpression:
-    operator: Operator
-    pattern_id: Optional[PatternId] = None
-    children: Optional[List["BooleanRuleExpression"]] = None
-    operand: Optional[str] = None
-
-    def __post_init__(self):
-        self._validate()
-
-    def _validate(self):
-        if self.operator in set(OPERATORS_WITH_CHILDREN):
-            if self.operand is not None:
-                raise InvalidRuleSchema(
-                    f"operator `{pattern_name_for_operator(self.operator)}` cannot have operand but found {self.operand}"
-                )
-        else:
-            if self.children is not None:
-                raise InvalidRuleSchema(
-                    f"only {list(map(pattern_name_for_operator, OPERATORS_WITH_CHILDREN))} operators can have children, but found `{self.operator}` with children"
-                )
-
-            if self.operand is None:
-                raise InvalidRuleSchema(
-                    f"operator `{pattern_name_for_operator(self.operator)}` must have operand"
-                )
-            else:
-                if type(self.operand) != str:
-                    raise InvalidRuleSchema(
-                        f"operand of operator `{pattern_name_for_operator(self.operator)}` ought to have type string, but is {type(self.operand)}: {self.operand}"
-                    )
-
+from constants import DEFAULT_CONFIG_FILE
+from constants import ID_KEY
+from constants import RCE_RULE_FLAG
+from constants import RULES_KEY
+from evaluation import build_boolean_expression
+from evaluation import enumerate_patterns_in_boolean_expression
+from evaluation import evaluate_expression
+from sgrep_types import BooleanRuleExpression
+from sgrep_types import InvalidRuleSchema
+from sgrep_types import Operator
+from sgrep_types import OPERATORS
+from sgrep_types import PatternId
+from sgrep_types import Range
+from sgrep_types import SgrepRange
+from util import debug_print
+from util import is_url
+from util import print_error
+from util import print_error_exit
+from util import print_msg
 
 # Constants
 
-TEMPLATE_YAML_URL = (
-    "https://raw.githubusercontent.com/returntocorp/sgrep-rules/develop/template.yaml"
-)
+SGREP_URL = "https://sgrep.dev/"
+SGREP_RULES_HOME = "https://github.com/returntocorp/sgrep-rules"
 PLEASE_FILE_ISSUE_TEXT = "An error occurred while invoking the sgrep engine; please help us fix this by filing an an issue at https://sgrep.dev"
-REPO_HOME_DOCKER = "/home/repo/"
-PRE_COMMIT_SRC_DOCKER = "/src"
-DEFAULT_SGREP_CONFIG_NAME = "sgrep"
-DEFAULT_CONFIG_FILE = f".{DEFAULT_SGREP_CONFIG_NAME}.yml"
-DEFAULT_CONFIG_FOLDER = f".{DEFAULT_SGREP_CONFIG_NAME}"
-RCE_RULE_FLAG = "--dangerously-allow-arbitrary-code-execution-from-rules"
 MISSING_RULE_ID = "no-rule-id"
 
-RULES_REGISTRY = {
-    "r2c": "https://github.com/returntocorp/sgrep-rules/tarball/master",
-    "r2c-develop": "https://github.com/returntocorp/sgrep-rules/tarball/develop",
-}
-DEFAULT_REGISTRY_KEY = "r2c"
-RULES_KEY = "rules"
-ID_KEY = "id"
 
 # Exit codes
 FINDINGS_EXIT_CODE = 1
-FATAL_EXIT_CODE = 2
 
 # These are the only valid top-level keys
 MUST_HAVE_KEYS = {"id", "message", "languages", "severity"}
 MUST_HAVE_ONLY_ONE_KEY = {"pattern", "patterns"}
 ALL_VALID_RULE_KEYS = MUST_HAVE_ONLY_ONE_KEY.union(MUST_HAVE_KEYS)
 
-PATTERN_NAMES_MAP = {
-    "pattern-inside": OPERATORS.AND_INSIDE,
-    "pattern-not-inside": OPERATORS.AND_NOT_INSIDE,
-    "pattern-either": OPERATORS.AND_EITHER,
-    "pattern-not": OPERATORS.AND_NOT,
-    "pattern": OPERATORS.AND,
-    "patterns": OPERATORS.AND_ALL,
-    "pattern-where-python": OPERATORS.WHERE_PYTHON,
-}
 
-INVERSE_PATTERN_NAMES_MAP = dict((v, k) for k, v in PATTERN_NAMES_MAP.items())
-
-YML_EXTENSIONS = {".yml", ".yaml"}
-DEBUG = False
-QUIET = False
 SGREP_PATH = "sgrep"
 
 # helper functions
-
-
-def is_url(url: str) -> bool:
-    try:
-        result = urlparse(url)
-        return all([result.scheme, result.netloc])
-    except ValueError:
-        return False
-
-
-def print_error(e):
-    if not QUIET:
-        print(str(e), file=sys.stderr)
-
-
-def print_error_exit(msg: str, exit_code: int = FATAL_EXIT_CODE) -> None:
-    if not QUIET:
-        print(msg, file=sys.stderr)
-    sys.exit(exit_code)
-
-
-def print_msg(msg: str):
-    if not QUIET:
-        print(msg, file=sys.stderr)
-
-
-def debug_print(msg: str):
-    if DEBUG:
-        print(msg, file=sys.stderr)
-
-
-def flatten(L: Iterable[Iterable[Any]]) -> Iterable[Any]:
-    for list in L:
-        for item in list:
-            yield item
-
-
-def enumerate_patterns_in_boolean_expression(
-    expressions: Iterable[BooleanRuleExpression],
-) -> Iterable[BooleanRuleExpression]:
-    """
-    flatten a potentially nested expression
-    """
-    for expr in expressions:
-        if expr.children is not None:
-            # we need to preserve this parent of multiple children, but it has no corresponding pattern
-            yield BooleanRuleExpression(expr.operator, None, None, None)
-            # now yield all the children
-            yield from enumerate_patterns_in_boolean_expression(expr.children)
-        else:
-            yield expr
-
-
-def _parse_boolean_expression(
-    rule_patterns: List[Dict[str, Any]], pattern_id=0, prefix=""
-) -> Iterator[BooleanRuleExpression]:
-    """
-    Move through the expression from the YML, yielding tuples of (operator, unique-id-for-pattern, pattern)
-    """
-    for pattern in rule_patterns:
-        for boolean_operator, pattern_text in pattern.items():
-            operator = operator_for_pattern_name(boolean_operator)
-            if isinstance(pattern_text, list):
-                sub_expression = _parse_boolean_expression(
-                    pattern_text, 0, f"{prefix}.{pattern_id}"
-                )
-                yield BooleanRuleExpression(operator, None, list(sub_expression), None)
-            elif isinstance(pattern_text, str):
-                yield BooleanRuleExpression(
-                    operator, PatternId(f"{prefix}.{pattern_id}"), None, pattern_text
-                )
-                pattern_id += 1
-            else:
-                raise InvalidRuleSchema(
-                    f"invalid type for pattern {pattern}: {type(pattern_text)}"
-                )
-
-
-def build_boolean_expression(rule: Dict[str, Any]) -> Iterator[BooleanRuleExpression]:
-    """
-    Build a boolean expression from the yml lines in the rule
-
-    """
-    if "pattern" in rule:  # single pattern at root
-        yield BooleanRuleExpression(OPERATORS.AND, rule["id"], None, rule["pattern"])
-    elif "patterns" in rule:  # multiple patterns at root
-        yield from _parse_boolean_expression(rule["patterns"])
-    else:
-        print_error_exit(f"unknown operator in rule {rule}: {PLEASE_FILE_ISSUE_TEXT}")
-
-
-def operator_for_pattern_name(pattern_name: str) -> Operator:
-    if not pattern_name in PATTERN_NAMES_MAP:
-        print_error_exit(
-            f"invalid pattern name: {pattern_name}, valid pattern names are {list(PATTERN_NAMES_MAP.keys())}: {PLEASE_FILE_ISSUE_TEXT}"
-        )
-    return PATTERN_NAMES_MAP[pattern_name]
-
-
-def pattern_name_for_operator(operator: Operator) -> str:
-    return INVERSE_PATTERN_NAMES_MAP[operator]
-
-
-@dataclass(frozen=True)
-class Range:
-    start: int
-    end: int
-
-    def is_enclosing_or_eq(self, other_range):
-        return self.start <= other_range.start and other_range.end <= self.end
-
-    def __repr__(self):
-        return f"{self.start}-{self.end}"
-
-
-@dataclass(frozen=True)
-class SgrepRange:
-    # Wrapper to represent results from sgrep
-
-    range: Range  # The range of the match
-    metavars: Dict[str, str]  # Any matched metavariables, {"$NAME": "<matched text>"}
-
-    def __repr__(self):
-        return f"{self.range}-{self.metavars}"
-
-
-def _evaluate_single_expression(
-    expression: BooleanRuleExpression,
-    results: Dict[PatternId, List[SgrepRange]],
-    ranges_left: Set[Range],
-    **flags,
-) -> Set[Range]:
-
-    assert expression.pattern_id, f"<internal error: expected pattern id: {expression}>"
-    results_for_pattern = [x.range for x in results.get(expression.pattern_id, [])]
-
-    if expression.operator == OPERATORS.AND:
-        # remove all ranges that don't equal the ranges for this pattern
-        return ranges_left.intersection(results_for_pattern)
-    elif expression.operator == OPERATORS.AND_NOT:
-        # remove all ranges that DO equal the ranges for this pattern
-        # difference_update = Remove all elements of another set from this set.
-        return ranges_left.difference(results_for_pattern)
-    elif expression.operator == OPERATORS.AND_INSIDE:
-        # remove all ranges (not enclosed by) or (not equal to) the inside ranges
-        output_ranges = set()
-        for arange in ranges_left:
-            for keep_inside_this_range in results_for_pattern:
-                is_enclosed = keep_inside_this_range.is_enclosing_or_eq(arange)
-                # print(
-                #    f'candidate range is {arange}, needs to be `{operator}` {keep_inside_this_range}; keep?: {keep}')
-                if is_enclosed:
-                    output_ranges.add(arange)
-                    break  # found a match, no need to keep going
-        debug_print(f"after filter `{expression.operator}`: {output_ranges}")
-        return output_ranges
-    elif expression.operator == OPERATORS.AND_NOT_INSIDE:
-        # remove all ranges enclosed by or equal to
-        output_ranges = ranges_left.copy()
-        for arange in ranges_left:
-            for keep_inside_this_range in results_for_pattern:
-                if keep_inside_this_range.is_enclosing_or_eq(arange):
-                    output_ranges.remove(arange)
-                    break
-        debug_print(f"after filter `{expression.operator}`: {output_ranges}")
-        return output_ranges
-    elif expression.operator == OPERATORS.WHERE_PYTHON:
-        if not RCE_RULE_FLAG not in flags:
-            print_error_exit(
-                f"at least one rule needs to execute arbitrary code; this is dangerous! if you want to continue, enable the flag: {RCE_RULE_FLAG}"
-            )
-        assert expression.operand, "must have operand for this operator type"
-
-        output_ranges = set()
-        # Look through every range that hasn't been filtered yet
-        for sgrep_range in list(flatten(results.values())):
-            # Only need to check where-python clause if the range hasn't already been filtered
-
-            if sgrep_range.range in ranges_left:
-                debug_print(
-                    f"WHERE is {expression.operand}, metavars: {sgrep_range.metavars}"
-                )
-                if where_python_statement_matches(
-                    expression.operand, sgrep_range.metavars
-                ):
-                    output_ranges.add(sgrep_range.range)
-        debug_print(f"after filter `{expression.operator}`: {output_ranges}")
-        return output_ranges
-
-    else:
-        print_error_exit(
-            f"{PLEASE_FILE_ISSUE_TEXT}: unknown operator {expression.operator}"
-        )
-        assert False  # for mypy
-
-
-# Given a `where-python` expression as a string and currently matched metavars,
-# return whether the expression matches as a boolean
-def where_python_statement_matches(
-    where_expression: str, metavars: Dict[str, str]
-) -> bool:
-    # TODO: filter out obvious dangerous things here
-    global output
-    output = None
-
-    # HACK: we're executing arbitrary Python in the where-python,
-    # be careful my friend
-    vars = metavars
-    try:
-        exec(f"global output; output = {where_expression}")
-    except Exception as ex:
-        print_error(
-            f"error evaluating a where-python expression: `{where_expression}`: {ex}"
-        )
-
-    if type(output) != type(True):
-        print_error_exit(
-            f"python where expression needs boolean output but got: {output} for {where_expression}"
-        )
-    return output == True
-
-
-def evaluate_expression(
-    expression, results: Dict[PatternId, List[SgrepRange]], **flags
-) -> Set[Range]:
-    ranges_left = set([x.range for x in flatten(results.values())])
-    return _evaluate_expression(expression, results, ranges_left, **flags)
-
-
-def _evaluate_expression(
-    expressions: List[BooleanRuleExpression],
-    results: Dict[PatternId, List[SgrepRange]],
-    ranges_left: Set[Range],
-    **flags,
-) -> Set[Range]:
-    for expression in expressions:
-        if (
-            expression.operator == OPERATORS.AND_EITHER
-            or expression.operator == OPERATORS.AND_ALL
-        ):
-            assert (
-                expression.children is not None
-            ), f"{pattern_name_for_operator(OPERATORS.AND_EITHER)} or {pattern_name_for_operator(OPERATORS.AND_ALL)} must have a list of subpatterns"
-
-            # recurse on the nested expressions
-            evaluated_ranges = [
-                _evaluate_expression([expr], results, ranges_left.copy())
-                for expr in expression.children
-            ]
-            debug_print(
-                f"recursion result {evaluated_ranges} (flat: {list(flatten(evaluated_ranges))}))"
-            )
-
-            if expression.operator == OPERATORS.AND_EITHER:
-                # remove anything that does not equal one of these ranges
-                ranges_left.intersection_update(flatten(evaluated_ranges))
-            elif expression.operator == OPERATORS.AND_ALL:
-                # chain intersection of every range returned
-                for arange in evaluated_ranges:
-                    ranges_left.intersection_update(arange)
-            debug_print(f"after filter `{expression.operator}`: {ranges_left}")
-        else:
-            assert (
-                expression.children is None
-            ), f"only `{pattern_name_for_operator(OPERATORS.AND_EITHER)}` or `{pattern_name_for_operator(OPERATORS.AND_ALL)}` expressions can have multiple subpatterns"
-            ranges_left = _evaluate_single_expression(
-                expression, results, ranges_left, **flags
-            )
-    return ranges_left
 
 
 def parse_sgrep_output(
@@ -545,157 +207,7 @@ def flatten_rule_patterns(all_rules) -> Iterator[Dict[str, Any]]:
             }
 
 
-# CLI helper functions
-
-
-def adjust_for_docker():
-    # change into this folder so that all paths are relative to it
-    if Path(REPO_HOME_DOCKER).exists():
-        os.chdir(REPO_HOME_DOCKER)
-    elif Path(PRE_COMMIT_SRC_DOCKER).exists():
-        os.chdir(PRE_COMMIT_SRC_DOCKER)
-
-
-def get_base_path() -> Path:
-    docker_folder = Path(REPO_HOME_DOCKER)
-    pre_commit_folder = Path(PRE_COMMIT_SRC_DOCKER)
-    if docker_folder.exists():
-        return docker_folder
-    elif pre_commit_folder.exists():
-        return pre_commit_folder
-    else:
-        return Path(".")
-
-
-def resolve_targets(targets: List[str]) -> List[Path]:
-    base_path = get_base_path()
-    return [
-        Path(target) if Path(target).is_absolute() else base_path.joinpath(target)
-        for target in targets
-    ]
-
-
 ### Config helpers
-
-
-def indent(msg: str) -> str:
-    return "\n".join(["\t" + line for line in msg.splitlines()])
-
-
-def load_config_from_disk(loc: Path) -> Any:
-    try:
-        with loc.open() as f:
-            return yaml.safe_load(f)
-    except FileNotFoundError:
-        print_error(f"YAML file at {loc} not found")
-        return None
-    except yaml.parser.ParserError as se:
-        print_error(f"Invalid yaml file at {loc}:\n{indent(str(se))}")
-        return None
-    except yaml.scanner.ScannerError as se:
-        print_error(f"Invalid yaml file at {loc}:\n{indent(str(se))}")
-        return None
-
-
-def parse_config_string(config_id: str, contents: str) -> Dict[str, Any]:
-    try:
-        return {config_id: yaml.safe_load(contents)}
-    except yaml.scanner.ScannerError as se:
-        print_error(se)
-        return {config_id: None}
-
-
-def parse_config_file(loc: Path) -> Dict[str, Any]:
-    config_id = str(loc)  # TODO
-    return {config_id: load_config_from_disk(loc)}
-
-
-def hidden_config_dir(loc: Path):
-    # want to keep rules/.sgrep.yml but not path/.github/foo.yml
-    # also want to keep src/.sgrep/bad_pattern.yml
-    return any(
-        part != "."
-        and part != ".."
-        and part.startswith(".")
-        and DEFAULT_SGREP_CONFIG_NAME not in part
-        for part in loc.parts[:-1]
-    )
-
-
-def parse_config_folder(loc: Path, relative: bool = False) -> Dict[str, Any]:
-    configs = {}
-    for l in loc.rglob("*"):
-        if not hidden_config_dir(l) and l.suffix in YML_EXTENSIONS:
-            if relative:
-                config_id = str(l).replace(str(loc), "")  # delete base path to folder
-            else:
-                config_id = str(l)
-            configs[config_id] = load_config_from_disk(l)
-    return configs
-
-
-def load_config(location: Optional[str] = None) -> Any:
-    base_path = get_base_path()
-    if location is None:
-        default_file = base_path.joinpath(DEFAULT_CONFIG_FILE)
-        default_folder = base_path.joinpath(DEFAULT_CONFIG_FOLDER)
-        if default_file.exists():
-            return parse_config_file(default_file)
-        elif default_folder.exists():
-            return parse_config_folder(default_folder)
-        else:
-            return None
-    else:
-        loc = base_path.joinpath(location)
-        if loc.exists():
-            if loc.is_file():
-                return parse_config_file(loc)
-            elif loc.is_dir():
-                return parse_config_folder(loc)
-            else:
-                print_error_exit(f"{loc} is not a file or folder!")
-        else:
-            print_error_exit(f"unable to find a config file in {base_path.resolve()}")
-
-
-def download_config(config_url: str) -> Any:
-    debug_print(f"trying to download from {config_url}")
-    try:
-        r = requests.get(config_url, stream=True)
-        if r.status_code == requests.codes.ok:
-            content_type = r.headers.get("Content-Type")
-            if content_type and "text/plain" in content_type:
-                return parse_config_string(config_url, r.content.decode("utf-8"))
-            elif content_type and content_type == "application/x-gzip":
-                fname = f"/tmp/{base64.b64encode(config_url.encode()).decode()}"
-                shutil.rmtree(fname, ignore_errors=True)
-                with tarfile.open(fileobj=r.raw, mode="r:gz") as tar:
-                    tar.extractall(fname)
-                extracted = Path(fname)
-                for path in extracted.iterdir():
-                    # get first folder in extracted folder (this is how GH does it)
-                    return parse_config_folder(path, relative=True)
-            else:
-                print_error_exit(f"unknown content-type: {content_type}. Can not parse")
-    except Exception as e:
-        print_error(e)
-        return None
-
-
-def resolve_config(config_str: Optional[str]) -> Any:
-    """ resolves if config arg is a registry entry, a url, or a file, folder, or loads from defaults if None"""
-    start_t = time.time()
-    if config_str is None:
-        config = load_config()
-    elif config_str in RULES_REGISTRY:
-        config = download_config(RULES_REGISTRY[config_str])
-    elif is_url(config_str):
-        config = download_config(config_str)
-    else:
-        config = load_config(config_str)
-    if config:
-        debug_print(f"loaded {len(config)} configs in {time.time() - start_t}")
-    return config
 
 
 def validate_single_rule(config_id: str, rule_index: int, rule: Dict[str, Any]) -> bool:
@@ -731,7 +243,9 @@ def validate_single_rule(config_id: str, rule_index: int, rule: Dict[str, Any]) 
     return True
 
 
-def validate_configs(configs: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+def validate_configs(
+    configs: Dict[str, Optional[Dict[str, Any]]]
+) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     """ Take configs and separate into valid and invalid ones"""
 
     errors = {}
@@ -747,7 +261,7 @@ def validate_configs(configs: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str,
         rules = config.get(RULES_KEY)
         valid_rules = []
         invalid_rules = []
-        for i, rule in enumerate(rules):
+        for i, rule in enumerate(rules):  # type: ignore
             if validate_single_rule(config_id, i, rule):
                 valid_rules.append(rule)
             else:
@@ -932,7 +446,7 @@ def save_output(output_str: str, output_data: Dict[str, Any], json: bool = False
         if Path(output_str).is_absolute():
             save_path = Path(output_str)
         else:
-            base_path = get_base_path()
+            base_path = config_resolver.get_base_path()
             save_path = base_path.joinpath(output_str)
         # create the folders if not exists
         save_path.parent.mkdir(parents=True, exist_ok=True)
@@ -945,36 +459,6 @@ def save_output(output_str: str, output_data: Dict[str, Any], json: bool = False
                 )
 
 
-def generate_config():
-    # defensive coding
-    if Path(DEFAULT_CONFIG_FILE).exists():
-        print_error_exit(
-            f"{DEFAULT_CONFIG_FILE} already exists. Please remove and try again"
-        )
-    try:
-        r = requests.get(TEMPLATE_YAML_URL, timeout=10)
-        r.raise_for_status()
-        template_str = r.text
-    except Exception as e:
-        debug_print(str(e))
-        print_msg(
-            f"There was a problem downloading the latest template config. Using fallback template"
-        )
-        template_str = """rules:
-  - id: eqeq-is-bad
-    pattern: $X == $X
-    message: "$X == $X is a useless equality check"
-    languages: [python]
-    severity: ERROR"""
-    try:
-        with open(DEFAULT_CONFIG_FILE, "w") as template:
-            template.write(template_str)
-            print_msg(f"Template config successfully written to {DEFAULT_CONFIG_FILE}")
-            sys.exit(0)
-    except Exception as e:
-        print_error_exit(e)
-
-
 def should_exclude_this_path(path: Path) -> bool:
     return any("test" in p or "example" in p for p in path.parts)
 
@@ -985,10 +469,10 @@ def set_flags(debug: bool, quiet: bool) -> None:
     global DEBUG
     global QUIET
     if debug:
-        DEBUG = True
+        DEBUG = True  # type: ignore
         debug_print("DEBUG is on")
     if quiet:
-        QUIET = True
+        QUIET = True  # type: ignore
         debug_print("QUIET is on")
 
 
@@ -1000,14 +484,14 @@ def main(args: argparse.Namespace):
     set_flags(args.verbose, args.quiet)
 
     # change cwd if using docker
-    adjust_for_docker()
+    config_resolver.adjust_for_docker()
 
     # get the proper paths for targets i.e. handle base path of /home/repo when it exists in docker
-    targets = resolve_targets(args.target)
+    targets = config_resolver.resolve_targets(args.target)
 
     # first check if user asked to generate a config
     if args.generate_config:
-        generate_config()
+        config_resolver.generate_config()
 
     # let's check for a pattern
     elif args.pattern:
@@ -1018,10 +502,10 @@ def main(args: argparse.Namespace):
         pattern = args.pattern
 
         # TODO for now we generate a manual config. Might want to just call sgrep -e ... -l ...
-        configs = manual_config(pattern, lang)
+        configs = config_resolver.manual_config(pattern, lang)
     else:
         # else let's get a config. A config is a dict from config_id -> config. Config Id is not well defined at this point.
-        configs = resolve_config(args.config)
+        configs = config_resolver.resolve_config(args.config)
 
     # if we can't find a config, use default r2c rules
     if not configs:
@@ -1067,8 +551,15 @@ def main(args: argparse.Namespace):
     all_rules = flatten_configs(valid_configs)
 
     if not args.pattern:
+        plural = "s" if len(valid_configs) > 1 else ""
+        config_id_if_single = (
+            list(valid_configs.keys())[0] if len(valid_configs) == 1 else ""
+        )
+        invalid_msg = (
+            f"({len(errors)} config files were invalid)" if len(errors) else ""
+        )
         print_msg(
-            f"running {len(all_rules)} rules from {len(valid_configs)} yaml files ({len(errors)} yaml files were invalid)"
+            f"running {len(all_rules)} rules from {len(valid_configs)} config{plural} {config_id_if_single} {invalid_msg}"
         )
     # TODO log valid and invalid configs if verbose
 
@@ -1146,7 +637,7 @@ def main(args: argparse.Namespace):
 
     # output results
     output_data = {"results": outputs_after_booleans}
-    if not QUIET:
+    if not args.quiet:
         if args.json:
             print(build_output_json(output_data))
         else:
@@ -1161,7 +652,7 @@ def main(args: argparse.Namespace):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="sgrep CLI. For more information about sgrep, go to https://sgrep.dev/",
+        description=f"sgrep CLI. For more information about sgrep, go to {SGREP_URL}",
         prog="sgrep",  # we have to lie to the user since they know of this as `sgrep`
     )
 
@@ -1271,5 +762,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
     if args.lang and not args.pattern or (args.pattern and not args.lang):
         parser.error("-e/--pattern and -l/--lang must both be specified")
-
-    main(args)
+    try:
+        main(args)
+    except NotImplementedError as ex:
+        print_error_exit(
+            f"sgrep encountered an error: {ex}; this is not your fault. {PLEASE_FILE_ISSUE_TEXT}"
+        )
