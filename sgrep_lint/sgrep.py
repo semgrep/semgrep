@@ -1,19 +1,14 @@
 #!/usr/bin/env python3
 import argparse
-import base64
 import collections
 import itertools
 import json
 import os
-import shutil
 import subprocess
 import sys
-import tarfile
 import tempfile
 import time
 import traceback
-from dataclasses import dataclass
-from dataclasses import field
 from datetime import datetime
 from pathlib import Path
 from pathlib import PurePath
@@ -31,9 +26,13 @@ from typing import Tuple
 from urllib.parse import urlparse
 
 import colorama
+import config_resolver
 import requests
 import yaml
+from constants import DEFAULT_CONFIG_FILE
+from constants import ID_KEY
 from constants import RCE_RULE_FLAG
+from constants import RULES_KEY
 from evaluation import build_boolean_expression
 from evaluation import enumerate_patterns_in_boolean_expression
 from evaluation import evaluate_expression
@@ -50,27 +49,13 @@ from util import print_error
 from util import print_error_exit
 from util import print_msg
 
-
 # Constants
 
-TEMPLATE_YAML_URL = (
-    "https://raw.githubusercontent.com/returntocorp/sgrep-rules/develop/template.yaml"
-)
+SGREP_URL = "https://sgrep.dev/"
+SGREP_RULES_HOME = "https://github.com/returntocorp/sgrep-rules"
 PLEASE_FILE_ISSUE_TEXT = "An error occurred while invoking the sgrep engine; please help us fix this by filing an an issue at https://sgrep.dev"
-REPO_HOME_DOCKER = "/home/repo/"
-PRE_COMMIT_SRC_DOCKER = "/src"
-DEFAULT_SGREP_CONFIG_NAME = "sgrep"
-DEFAULT_CONFIG_FILE = f".{DEFAULT_SGREP_CONFIG_NAME}.yml"
-DEFAULT_CONFIG_FOLDER = f".{DEFAULT_SGREP_CONFIG_NAME}"
 MISSING_RULE_ID = "no-rule-id"
 
-RULES_REGISTRY = {
-    "r2c": "https://github.com/returntocorp/sgrep-rules/tarball/master",
-    "r2c-develop": "https://github.com/returntocorp/sgrep-rules/tarball/develop",
-}
-DEFAULT_REGISTRY_KEY = "r2c"
-RULES_KEY = "rules"
-ID_KEY = "id"
 
 # Exit codes
 FINDINGS_EXIT_CODE = 1
@@ -81,7 +66,6 @@ MUST_HAVE_ONLY_ONE_KEY = {"pattern", "patterns"}
 ALL_VALID_RULE_KEYS = MUST_HAVE_ONLY_ONE_KEY.union(MUST_HAVE_KEYS)
 
 
-YML_EXTENSIONS = {".yml", ".yaml"}
 SGREP_PATH = "sgrep"
 
 # helper functions
@@ -223,159 +207,7 @@ def flatten_rule_patterns(all_rules) -> Iterator[Dict[str, Any]]:
             }
 
 
-# CLI helper functions
-
-
-def adjust_for_docker():
-    # change into this folder so that all paths are relative to it
-    if Path(REPO_HOME_DOCKER).exists():
-        os.chdir(REPO_HOME_DOCKER)
-    elif Path(PRE_COMMIT_SRC_DOCKER).exists():
-        os.chdir(PRE_COMMIT_SRC_DOCKER)
-
-
-def get_base_path() -> Path:
-    docker_folder = Path(REPO_HOME_DOCKER)
-    pre_commit_folder = Path(PRE_COMMIT_SRC_DOCKER)
-    if docker_folder.exists():
-        return docker_folder
-    elif pre_commit_folder.exists():
-        return pre_commit_folder
-    else:
-        return Path(".")
-
-
-def resolve_targets(targets: List[str]) -> List[Path]:
-    base_path = get_base_path()
-    return [
-        Path(target) if Path(target).is_absolute() else base_path.joinpath(target)
-        for target in targets
-    ]
-
-
 ### Config helpers
-
-
-def indent(msg: str) -> str:
-    return "\n".join(["\t" + line for line in msg.splitlines()])
-
-
-def load_config_from_disk(loc: Path) -> Any:
-    try:
-        with loc.open() as f:
-            return yaml.safe_load(f)
-    except FileNotFoundError:
-        print_error(f"YAML file at {loc} not found")
-        return None
-    except yaml.parser.ParserError as se:
-        print_error(f"Invalid yaml file at {loc}:\n{indent(str(se))}")
-        return None
-    except yaml.scanner.ScannerError as se:
-        print_error(f"Invalid yaml file at {loc}:\n{indent(str(se))}")
-        return None
-
-
-def parse_config_string(config_id: str, contents: str) -> Dict[str, Any]:
-    try:
-        return {config_id: yaml.safe_load(contents)}
-    except yaml.scanner.ScannerError as se:
-        print_error(se)
-        return {config_id: None}
-
-
-def parse_config_file(loc: Path) -> Dict[str, Any]:
-    config_id = str(loc)  # TODO
-    return {config_id: load_config_from_disk(loc)}
-
-
-def hidden_config_dir(loc: Path):
-    """
-    Want to keep rules/.sgrep.yml but not path/.github/foo.yml
-    Also want to keep src/.sgrep/bad_pattern.yml
-    """
-    return any(
-        part != "."
-        and part != ".."
-        and part.startswith(".")
-        and DEFAULT_SGREP_CONFIG_NAME not in part
-        for part in loc.parts[:-1]
-    )
-
-
-def parse_config_folder(loc: Path, relative: bool = False) -> Dict[str, Any]:
-    configs = {}
-    for l in loc.rglob("*"):
-        if not hidden_config_dir(l) and l.suffix in YML_EXTENSIONS:
-            if relative:
-                config_id = str(l).replace(str(loc), "")  # delete base path to folder
-            else:
-                config_id = str(l)
-            configs[config_id] = load_config_from_disk(l)
-    return configs
-
-
-def load_config(location: Optional[str] = None) -> Any:
-    base_path = get_base_path()
-    if location is None:
-        default_file = base_path.joinpath(DEFAULT_CONFIG_FILE)
-        default_folder = base_path.joinpath(DEFAULT_CONFIG_FOLDER)
-        if default_file.exists():
-            return parse_config_file(default_file)
-        elif default_folder.exists():
-            return parse_config_folder(default_folder)
-        else:
-            return None
-    else:
-        loc = base_path.joinpath(location)
-        if loc.exists():
-            if loc.is_file():
-                return parse_config_file(loc)
-            elif loc.is_dir():
-                return parse_config_folder(loc)
-            else:
-                print_error_exit(f"{loc} is not a file or folder!")
-        else:
-            print_error_exit(f"unable to find a config file in {base_path.resolve()}")
-
-
-def download_config(config_url: str) -> Any:
-    debug_print(f"trying to download from {config_url}")
-    try:
-        r = requests.get(config_url, stream=True)
-        if r.status_code == requests.codes.ok:
-            content_type = r.headers.get("Content-Type")
-            if content_type and "text/plain" in content_type:
-                return parse_config_string(config_url, r.content.decode("utf-8"))
-            elif content_type and content_type == "application/x-gzip":
-                fname = f"/tmp/{base64.b64encode(config_url.encode()).decode()}"
-                shutil.rmtree(fname, ignore_errors=True)
-                with tarfile.open(fileobj=r.raw, mode="r:gz") as tar:
-                    tar.extractall(fname)
-                extracted = Path(fname)
-                for path in extracted.iterdir():
-                    # get first folder in extracted folder (this is how GH does it)
-                    return parse_config_folder(path, relative=True)
-            else:
-                print_error_exit(f"unknown content-type: {content_type}. Can not parse")
-    except Exception as e:
-        print_error(e)
-        return None
-
-
-def resolve_config(config_str: Optional[str]) -> Any:
-    """ resolves if config arg is a registry entry, a url, or a file, folder, or loads from defaults if None"""
-    start_t = time.time()
-    if config_str is None:
-        config = load_config()
-    elif config_str in RULES_REGISTRY:
-        config = download_config(RULES_REGISTRY[config_str])
-    elif is_url(config_str):
-        config = download_config(config_str)
-    else:
-        config = load_config(config_str)
-    if config:
-        debug_print(f"loaded {len(config)} configs in {time.time() - start_t}")
-    return config
 
 
 def validate_single_rule(config_id: str, rule_index: int, rule: Dict[str, Any]) -> bool:
@@ -411,7 +243,9 @@ def validate_single_rule(config_id: str, rule_index: int, rule: Dict[str, Any]) 
     return True
 
 
-def validate_configs(configs: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+def validate_configs(
+    configs: Dict[str, Optional[Dict[str, Any]]]
+) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     """ Take configs and separate into valid and invalid ones"""
 
     errors = {}
@@ -427,7 +261,7 @@ def validate_configs(configs: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str,
         rules = config.get(RULES_KEY)
         valid_rules = []
         invalid_rules = []
-        for i, rule in enumerate(rules):
+        for i, rule in enumerate(rules):  # type: ignore
             if validate_single_rule(config_id, i, rule):
                 valid_rules.append(rule)
             else:
@@ -612,7 +446,7 @@ def save_output(output_str: str, output_data: Dict[str, Any], json: bool = False
         if Path(output_str).is_absolute():
             save_path = Path(output_str)
         else:
-            base_path = get_base_path()
+            base_path = config_resolver.get_base_path()
             save_path = base_path.joinpath(output_str)
         # create the folders if not exists
         save_path.parent.mkdir(parents=True, exist_ok=True)
@@ -623,36 +457,6 @@ def save_output(output_str: str, output_data: Dict[str, Any], json: bool = False
                 fout.write(
                     "\n".join(build_normal_output(output_data, color_output=False))
                 )
-
-
-def generate_config():
-    # defensive coding
-    if Path(DEFAULT_CONFIG_FILE).exists():
-        print_error_exit(
-            f"{DEFAULT_CONFIG_FILE} already exists. Please remove and try again"
-        )
-    try:
-        r = requests.get(TEMPLATE_YAML_URL, timeout=10)
-        r.raise_for_status()
-        template_str = r.text
-    except Exception as e:
-        debug_print(str(e))
-        print_msg(
-            f"There was a problem downloading the latest template config. Using fallback template"
-        )
-        template_str = """rules:
-  - id: eqeq-is-bad
-    pattern: $X == $X
-    message: "$X == $X is a useless equality check"
-    languages: [python]
-    severity: ERROR"""
-    try:
-        with open(DEFAULT_CONFIG_FILE, "w") as template:
-            template.write(template_str)
-            print_msg(f"Template config successfully written to {DEFAULT_CONFIG_FILE}")
-            sys.exit(0)
-    except Exception as e:
-        print_error_exit(e)
 
 
 def should_exclude_this_path(path: Path) -> bool:
@@ -680,14 +484,14 @@ def main(args: argparse.Namespace):
     set_flags(args.verbose, args.quiet)
 
     # change cwd if using docker
-    adjust_for_docker()
+    config_resolver.adjust_for_docker()
 
     # get the proper paths for targets i.e. handle base path of /home/repo when it exists in docker
-    targets = resolve_targets(args.target)
+    targets = config_resolver.resolve_targets(args.target)
 
     # first check if user asked to generate a config
     if args.generate_config:
-        generate_config()
+        config_resolver.generate_config()
 
     # let's check for a pattern
     elif args.pattern:
@@ -698,10 +502,10 @@ def main(args: argparse.Namespace):
         pattern = args.pattern
 
         # TODO for now we generate a manual config. Might want to just call sgrep -e ... -l ...
-        configs = manual_config(pattern, lang)
+        configs = config_resolver.manual_config(pattern, lang)
     else:
         # else let's get a config. A config is a dict from config_id -> config. Config Id is not well defined at this point.
-        configs = resolve_config(args.config)
+        configs = config_resolver.resolve_config(args.config)
 
     # if we can't find a config, use default r2c rules
     if not configs:
@@ -747,8 +551,15 @@ def main(args: argparse.Namespace):
     all_rules = flatten_configs(valid_configs)
 
     if not args.pattern:
+        plural = "s" if len(valid_configs) > 1 else ""
+        config_id_if_single = (
+            list(valid_configs.keys())[0] if len(valid_configs) == 1 else ""
+        )
+        invalid_msg = (
+            f"({len(errors)} config files were invalid)" if len(errors) else ""
+        )
         print_msg(
-            f"running {len(all_rules)} rules from {len(valid_configs)} yaml files ({len(errors)} yaml files were invalid)"
+            f"running {len(all_rules)} rules from {len(valid_configs)} config{plural} {config_id_if_single} {invalid_msg}"
         )
     # TODO log valid and invalid configs if verbose
 
@@ -841,7 +652,7 @@ def main(args: argparse.Namespace):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="sgrep CLI. For more information about sgrep, go to https://sgrep.dev/",
+        description=f"sgrep CLI. For more information about sgrep, go to {SGREP_URL}",
         prog="sgrep",  # we have to lie to the user since they know of this as `sgrep`
     )
 

@@ -48,5 +48,5 @@ RUN sgrep --help
 RUN sgrep-lint --config=r2c /bin/sgrep-lint-files/
 
 
-
+ENV SGREP_IN_DOCKER=1
 ENTRYPOINT [ "/bin/sgrep-lint" ]
