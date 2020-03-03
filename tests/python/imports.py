@@ -16,6 +16,7 @@ import foo as f, foo.bar as b
 import foo.bar as fb, foo.baz as bz
 
 # from imports
+#ERROR:
 from foo import bar
 from .foo import bar
 from ...foo import bar

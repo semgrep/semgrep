@@ -1921,16 +1921,49 @@ and m_macro_definition a b =
 (* Directives (Module import/export, macros) *)
 (* ------------------------------------------------------------------------- *)
 
+
+(* normalize from:
+    import foo.bar -> from foo import bar 
+    import foo.bar.baz -> from foo.bar import baz
+    import foo.bar.baz.yoo -> from foo  
+*) 
+and normalize_import_as (a0: Parse_info.token_mutable) (from_module_name: Ast_generic.module_name) = 
+  match from_module_name with 
+  | DottedName idents -> 
+    (* if there are more than two dotted name identifiers, 
+      take the last and put it as the identifier imported
+    *)
+    if List.length idents > 1
+    then 
+      let last_dotted_name = Common2.list_last idents in
+      let without_last_dotted_name = (List.rev (List.tl (List.rev idents))) in 
+       A.ImportFrom(a0, DottedName without_last_dotted_name, [(last_dotted_name, None)])
+    else 
+      A.ImportFrom(a0, from_module_name, [])
+  | _ -> A.ImportFrom(a0, from_module_name, [])
+
+and drop_aliases (aliases: Ast_generic.alias list) = 
+  (* if we have from x import y as z, normalize it to:
+      from x import y
+  *)
+  List.map (fun (ident, _) -> ident, None) aliases
+
 (* 
-  want a function that will take ImportFrom, ImportAs, ImportAll-> normalized 
+  a function that will take ImportFrom, ImportAs, ImportAll -> normalized 
   ImportFrom for matching `import` purposes
 *)
 and normalize_import i =
-  (* let _ = pr2 (spf "A = %s" (str_of_any i)) in *)
   match i with
-  | A.ImportFrom(a0, a1, _) -> A.ImportFrom(a0, a1, [])
-  | A.ImportAs(a0, a1, _) -> A.ImportFrom(a0, a1, [])
-  | A.ImportAll(a0, a1, _) ->A.ImportFrom(a0, a1, [])
+  | A.ImportFrom(a0, from_module_name, import_aliases) -> 
+      (*
+         separate logic needs to be added to recurse inside the identifier list
+         so that we can have:
+          pattern: from foo import bar2
+          matches: from foo import (bar, bar2)          
+       *)
+      A.ImportFrom(a0, from_module_name, drop_aliases import_aliases)
+  | A.ImportAs(a0, a1, _) -> normalize_import_as a0 a1
+  | A.ImportAll(a0, a1, _) -> A.ImportFrom(a0, a1, [])
   | _ -> i
 
 
