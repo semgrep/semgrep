@@ -1956,10 +1956,14 @@ and normalize_import i =
   match i with
   | A.ImportFrom(a0, from_module_name, import_aliases) -> 
       (*
-         separate logic needs to be added to recurse inside the identifier list
+         TODO: separate logic needs to be added to recurse inside the identifier list
          so that we can have:
           pattern: from foo import bar2
-          matches: from foo import (bar, bar2)          
+          matches: from foo import (bar, bar2)
+         
+         TODO and also:
+          pattern: import foo.x
+          matches: from foo.x.z.y
        *)
       A.ImportFrom(a0, from_module_name, drop_aliases import_aliases)
   | A.ImportAs(a0, a1, _) -> normalize_import_as a0 a1

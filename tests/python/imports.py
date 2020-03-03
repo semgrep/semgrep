@@ -32,6 +32,12 @@ from .. import bar
 from ... import bar
 from .... import fbar
 
+#ERROR:
+from foo import bar2, bar
+
+#ERROR:
+import foo.bar.x.y.z
+
 # * imports
 from foo import *
 from .foo import *
