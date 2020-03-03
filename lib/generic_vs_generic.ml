@@ -1925,9 +1925,10 @@ and m_macro_definition a b =
   want a function that will take ImportFrom, ImportAs, ImportAll-> normalized 
   ImportFrom for matching `import` purposes
 *)
-and normalize_import i=
+and normalize_import i =
+  (* let _ = pr2 (spf "A = %s" (str_of_any i)) in *)
   match i with
-  | A.ImportFrom(a0, a1, a2) -> A.ImportFrom(a0, a1, a2)
+  | A.ImportFrom(a0, a1, _) -> A.ImportFrom(a0, a1, [])
   | A.ImportAs(a0, a1, _) -> A.ImportFrom(a0, a1, [])
   | A.ImportAll(a0, a1, _) ->A.ImportFrom(a0, a1, [])
   | _ -> i
