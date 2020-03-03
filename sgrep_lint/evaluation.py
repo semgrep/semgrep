@@ -59,15 +59,17 @@ def _parse_boolean_expression(
                 )
 
 
-def build_boolean_expression(rule: Dict[str, Any]) -> Iterator[BooleanRuleExpression]:
+def build_boolean_expression(rule: Dict[str, Any]) -> BooleanRuleExpression:
     """
     Build a boolean expression from the yml lines in the rule
 
     """
     if "pattern" in rule:  # single pattern at root
-        yield BooleanRuleExpression(OPERATORS.AND, rule["id"], None, rule["pattern"])
+        return BooleanRuleExpression(OPERATORS.AND, rule["id"], None, rule["pattern"])
     elif "patterns" in rule:  # multiple patterns at root
-        yield from _parse_boolean_expression(rule["patterns"])
+        return BooleanRuleExpression(OPERATORS.AND_ALL, None, list(_parse_boolean_expression(rule["patterns"])), None)
+    elif "patterns-either" in rule:  # multiple patterns at root
+        return BooleanRuleExpression(OPERATORS.AND_EITHER, None, list(_parse_boolean_expression(rule["patterns-either"])), None)
     else:
         raise NotImplementedError(f"unknown operator in rule {rule}")
 
@@ -166,65 +168,64 @@ def _where_python_statement_matches(
 
 
 def evaluate_expression(
-    expression, results: Dict[PatternId, List[SgrepRange]], **flags
+    expression: BooleanRuleExpression, results: Dict[PatternId, List[SgrepRange]], **flags
 ) -> Set[Range]:
     ranges_left = set([x.range for x in flatten(results.values())])
     return _evaluate_expression(expression, results, ranges_left, **flags)
 
 
 def _evaluate_expression(
-    expressions: List[BooleanRuleExpression],
+    expression: BooleanRuleExpression,
     results: Dict[PatternId, List[SgrepRange]],
     ranges_left: Set[Range],
     **flags,
 ) -> Set[Range]:
-    for expression in expressions:
-        if (
-            expression.operator == OPERATORS.AND_EITHER
-            or expression.operator == OPERATORS.AND_ALL
-        ):
-            assert (
-                expression.children is not None
-            ), f"{pattern_name_for_operator(OPERATORS.AND_EITHER)} or {pattern_name_for_operator(OPERATORS.AND_ALL)} must have a list of subpatterns"
+    if (
+        expression.operator == OPERATORS.AND_EITHER
+        or expression.operator == OPERATORS.AND_ALL
+    ):
+        assert (
+            expression.children is not None
+        ), f"{pattern_name_for_operator(OPERATORS.AND_EITHER)} or {pattern_name_for_operator(OPERATORS.AND_ALL)} must have a list of subpatterns"
 
-            # recurse on the nested expressions
-            evaluated_ranges = [
-                _evaluate_expression([expr], results, ranges_left.copy())
-                for expr in expression.children
-            ]
-            debug_print(
-                f"recursion result {evaluated_ranges} (flat: {list(flatten(evaluated_ranges))}))"
-            )
+        # recurse on the nested expressions
+        evaluated_ranges = [
+            _evaluate_expression(expr, results, ranges_left.copy())
+           for expr in expression.children
+        ]
+        debug_print(
+            f"recursion result {evaluated_ranges} (flat: {list(flatten(evaluated_ranges))}))"
+        )
 
-            if expression.operator == OPERATORS.AND_EITHER:
-                # remove anything that does not equal one of these ranges
-                ranges_left.intersection_update(flatten(evaluated_ranges))
-            elif expression.operator == OPERATORS.AND_ALL:
-                # chain intersection of every range returned
-                for arange in evaluated_ranges:
-                    ranges_left.intersection_update(arange)
-            debug_print(f"after filter `{expression.operator}`: {ranges_left}")
-        else:
-            assert (
-                expression.children is None
-            ), f"only `{pattern_name_for_operator(OPERATORS.AND_EITHER)}` or `{pattern_name_for_operator(OPERATORS.AND_ALL)}` expressions can have multiple subpatterns"
-            ranges_left = _evaluate_single_expression(
-                expression, results, ranges_left, **flags
-            )
+        if expression.operator == OPERATORS.AND_EITHER:
+            # remove anything that does not equal one of these ranges
+            ranges_left.intersection_update(flatten(evaluated_ranges))
+        elif expression.operator == OPERATORS.AND_ALL:
+            # chain intersection of every range returned
+            for arange in evaluated_ranges:
+                ranges_left.intersection_update(arange)
+        debug_print(f"after filter `{expression.operator}`: {ranges_left}")
+    else:
+        assert (
+            expression.children is None
+        ), f"only `{pattern_name_for_operator(OPERATORS.AND_EITHER)}` or `{pattern_name_for_operator(OPERATORS.AND_ALL)}` expressions can have multiple subpatterns"
+        ranges_left = _evaluate_single_expression(
+            expression, results, ranges_left, **flags
+        )
     return ranges_left
 
 
 def enumerate_patterns_in_boolean_expression(
-    expressions: Iterable[BooleanRuleExpression],
+    expr: BooleanRuleExpression,
 ) -> Iterable[BooleanRuleExpression]:
     """
     flatten a potentially nested expression
     """
-    for expr in expressions:
-        if expr.children is not None:
-            # we need to preserve this parent of multiple children, but it has no corresponding pattern
-            yield BooleanRuleExpression(expr.operator, None, None, None)
-            # now yield all the children
-            yield from enumerate_patterns_in_boolean_expression(expr.children)
-        else:
-            yield expr
+    if expr.children is not None:
+        # we need to preserve this parent of multiple children, but it has no corresponding pattern
+        yield BooleanRuleExpression(expr.operator, None, None, None)
+        # now yield all the children
+        for c in expr.children:
+            yield from enumerate_patterns_in_boolean_expression(c)
+    else:
+        yield expr

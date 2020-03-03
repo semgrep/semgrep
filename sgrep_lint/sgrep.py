@@ -189,7 +189,7 @@ def flatten_rule_patterns(all_rules) -> Iterator[Dict[str, Any]]:
     for rule_index, rule in enumerate(all_rules):
         flat_expressions = list(
             enumerate_patterns_in_boolean_expression(
-                list(build_boolean_expression(rule))
+                build_boolean_expression(rule)
             )
         )
         for expr in flat_expressions:
@@ -233,7 +233,7 @@ def validate_single_rule(config_id: str, rule_index: int, rule: Dict[str, Any]) 
         )
         return False
     try:
-        _ = list(build_boolean_expression(rule))
+        _ = build_boolean_expression(rule)
     except InvalidRuleSchema as ex:
         print_error(
             f"{config_id}: inside rule {rule_index+1} {rule_id_err_msg}, pattern fields can't look like this: {ex}"
@@ -594,8 +594,7 @@ def main(args: argparse.Namespace):
     outputs_after_booleans = []
     ignored_in_tests = 0
     for rule_index, paths in by_rule_index.items():
-        full_expression = list(build_boolean_expression(all_rules[rule_index]))
-        expression = list(full_expression)
+        expression = build_boolean_expression(all_rules[rule_index])
         debug_print(str(expression))
         # expression = (op, pattern_id) for (op, pattern_id, pattern) in expression_with_patterns]
         for filepath, results in paths.items():
