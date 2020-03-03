@@ -37,7 +37,7 @@ from evaluation import build_boolean_expression
 from evaluation import enumerate_patterns_in_boolean_expression
 from evaluation import evaluate_expression
 from sgrep_types import BooleanRuleExpression
-from sgrep_types import InvalidRuleSchema
+from sgrep_types import InvalidRuleSchema, YAML_ALL_VALID_RULE_KEYS, YAML_MUST_HAVE_KEYS
 from sgrep_types import Operator
 from sgrep_types import OPERATORS
 from sgrep_types import PatternId
@@ -59,12 +59,6 @@ MISSING_RULE_ID = "no-rule-id"
 
 # Exit codes
 FINDINGS_EXIT_CODE = 1
-
-# These are the only valid top-level keys
-MUST_HAVE_KEYS = {"id", "message", "languages", "severity"}
-MUST_HAVE_ONLY_ONE_KEY = {"pattern", "patterns"}
-ALL_VALID_RULE_KEYS = MUST_HAVE_ONLY_ONE_KEY.union(MUST_HAVE_KEYS)
-
 
 SGREP_PATH = "sgrep"
 
@@ -210,24 +204,14 @@ def flatten_rule_patterns(all_rules) -> Iterator[Dict[str, Any]]:
 
 def validate_single_rule(config_id: str, rule_index: int, rule: Dict[str, Any]) -> bool:
     rule_id_err_msg = f'(rule id: {rule.get("id", MISSING_RULE_ID)})'
-    if not set(rule.keys()).issuperset(MUST_HAVE_KEYS):
+    if not set(rule.keys()).issuperset(YAML_MUST_HAVE_KEYS):
         print_error(
-            f"{config_id} is missing keys at rule {rule_index+1} {rule_id_err_msg}, must have: {MUST_HAVE_KEYS}"
+            f"{config_id} is missing keys at rule {rule_index+1} {rule_id_err_msg}, must have: {YAML_MUST_HAVE_KEYS}"
         )
         return False
-    if not set(rule.keys()).issubset(ALL_VALID_RULE_KEYS):
+    if not set(rule.keys()).issubset(YAML_ALL_VALID_RULE_KEYS):
         print_error(
-            f"{config_id} has invalid rule key at rule {rule_index+1} {rule_id_err_msg}, can only have: {ALL_VALID_RULE_KEYS}"
-        )
-        return False
-    if not "pattern" in rule and not "patterns" in rule:
-        print_error(
-            f"{config_id} is missing key `pattern` or `patterns` at rule {rule_index+1} {rule_id_err_msg}"
-        )
-        return False
-    if "patterns" in rule and not rule["patterns"]:
-        print_error(
-            f"{config_id} no patterns found inside rule {rule_index+1} {rule_id_err_msg}"
+            f"{config_id} has invalid rule key at rule {rule_index+1} {rule_id_err_msg}, can only have: {YAML_ALL_VALID_RULE_KEYS}"
         )
         return False
     try:

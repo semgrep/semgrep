@@ -110,5 +110,9 @@ $SGREP --strict --config tests/python/bad3.yaml tests/lint && echo "bad3.yaml sh
 # parsing bad4.yaml should fail
 $SGREP --strict --config tests/python/bad4.yaml tests/lint && echo "bad4.yaml should have failed" && exit 1
 
+# parsing good.yaml should succeed
+$SGREP --strict --config=tests/python/good.yaml tests/lint
+
+
 echo "-----------------------"
 echo "all lint tests passed"

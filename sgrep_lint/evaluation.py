@@ -13,7 +13,7 @@ from typing import Tuple
 from constants import RCE_RULE_FLAG
 from sgrep_types import BooleanRuleExpression
 from sgrep_types import InvalidRuleSchema
-from sgrep_types import Operator
+from sgrep_types import Operator, YAML_VALID_TOP_LEVEL_OPERATORS
 from sgrep_types import operator_for_pattern_name
 from sgrep_types import OPERATORS
 from sgrep_types import pattern_name_for_operator
@@ -34,7 +34,7 @@ def _parse_boolean_expression(
     """
     if not isinstance(rule_patterns, list):
         raise InvalidRuleSchema(
-            f"invalid type for block {rule_patterns}: {type(rule_patterns)} is not a list; perhaps you are missing a `-` inside {rule_patterns}?"
+            f"invalid type for patterns in rule: {type(rule_patterns)} is not a list; perhaps your YAML is missing a `-` before {rule_patterns}?"
         )
     for pattern in rule_patterns:
         if not isinstance(pattern, dict):
@@ -64,24 +64,28 @@ def build_boolean_expression(rule: Dict[str, Any]) -> BooleanRuleExpression:
     Build a boolean expression from the yml lines in the rule
 
     """
-    if "pattern" in rule:  # single pattern at root
+    valid_top_level_keys = YAML_VALID_TOP_LEVEL_OPERATORS
+    if pattern_name_for_operator(OPERATORS.AND) in rule:  # single pattern at root
         return BooleanRuleExpression(OPERATORS.AND, rule["id"], None, rule["pattern"])
-    elif "patterns" in rule:  # multiple patterns at root
+    
+    patterns = rule.get(pattern_name_for_operator(OPERATORS.AND_ALL))
+    if patterns:
         return BooleanRuleExpression(
             OPERATORS.AND_ALL,
             None,
-            list(_parse_boolean_expression(rule["patterns"])),
+            list(_parse_boolean_expression(patterns)),
             None,
         )
-    elif "patterns-either" in rule:  # multiple patterns at root
+    patterns = rule.get(pattern_name_for_operator(OPERATORS.AND_EITHER))
+    if patterns:
         return BooleanRuleExpression(
             OPERATORS.AND_EITHER,
             None,
-            list(_parse_boolean_expression(rule["patterns-either"])),
+            list(_parse_boolean_expression(patterns)),
             None,
         )
-    else:
-        raise NotImplementedError(f"unknown operator in rule {rule}")
+
+    raise InvalidRuleSchema(f"missing a pattern type in rule, expected one of {list(map(pattern_name_for_operator, valid_top_level_keys))}")
 
 
 def _evaluate_single_expression(
