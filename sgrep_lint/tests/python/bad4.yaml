@@ -1,0 +1,10 @@
+rules:
+  - id: arg-reassign
+    patterns:
+        pattern-inside: |
+            def foo($X):
+                ...
+        pattern: $X = 1
+    message: "$X is being reassigned"
+    languages: [python]
+    severity: WARNING
