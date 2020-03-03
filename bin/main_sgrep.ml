@@ -57,6 +57,7 @@ let lang = ref "unset"
 
 let case_sensitive = ref false
 let match_format = ref Matching_report.Normal
+let r2c = ref false
 
 let mvars = ref ([]: Metavars_fuzzy.mvar list)
 
@@ -106,8 +107,14 @@ let print_match mvars mvar_binding ii_of_any tokens_matched_code =
    * for DotAccess generated outside the grammar) *)
   let toks = tokens_matched_code |> List.filter PI.is_origintok in
   (match mvars with
-  | [] ->    
-      Matching_report.print_match ~format:!match_format toks
+  | [] ->
+      if !r2c
+      then 
+         let info = mk_one_info_from_multiple_infos toks in
+         (* todo? use the -e pattern for the check_id? *)
+         E.error info (E.SgrepLint ("sgrep", "found a match"))
+      else    
+        Matching_report.print_match ~format:!match_format toks
   | xs ->
       (* similar to the code of Lib_matcher.print_match, maybe could
        * factorize code a bit.
@@ -276,15 +283,34 @@ let sgrep_with_one_pattern xs =
     (* should remove at some point *)
     | None -> Find_source.files_of_dir_or_files ~lang:!lang xs
   in
+  let root = 
+    match xs with
+    | [x] when Sys.is_directory x -> x
+    | _ -> "/"
+  in
 
   files |> List.iter (fun file ->
     if !verbose 
     then pr2 (spf "processing: %s" file);
     let process file = sgrep_ast pattern (create_ast file) in
-    E.try_with_print_exn_and_reraise file (fun () ->
-      process file
-    );
+    if !r2c
+    then E.try_with_exn_to_error file (fun () ->
+          Common.save_excursion Flag.error_recovery false (fun () ->
+          Common.save_excursion Flag.exn_when_lexical_error true (fun () ->
+          Common.save_excursion Flag.show_parsing_error false (fun () ->
+            process file
+         ))))
+    else E.try_with_print_exn_and_reraise file (fun () ->
+            process file
+         )
   );
+  if !r2c then begin
+   let errs = !E.g_errors 
+          |> E.filter_maybe_parse_and_fatal_errors
+          |> E.adjust_paths_relative_to_root root
+   in
+   pr (R2c.string_of_errors errs)
+  end;
 
   !layer_file |> Common.do_option (fun file ->
     let root = Common2.common_prefix_of_files_or_dirs xs in
@@ -412,6 +438,8 @@ let options () =
     " print matches on the same line than the match position";
     "-oneline", Arg.Unit (fun () -> match_format := Matching_report.OneLine),
     " print matches on one line, in normalized form";
+    "-r2c", Arg.Unit (fun () -> r2c := true;),
+    " use r2c platform error format for output";
 
     "-pvar", Arg.String (fun s -> mvars := Common.split "," s),
     " <metavars> print the metavariables, not the matched code";
