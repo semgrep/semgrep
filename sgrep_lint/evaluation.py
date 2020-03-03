@@ -67,9 +67,19 @@ def build_boolean_expression(rule: Dict[str, Any]) -> BooleanRuleExpression:
     if "pattern" in rule:  # single pattern at root
         return BooleanRuleExpression(OPERATORS.AND, rule["id"], None, rule["pattern"])
     elif "patterns" in rule:  # multiple patterns at root
-        return BooleanRuleExpression(OPERATORS.AND_ALL, None, list(_parse_boolean_expression(rule["patterns"])), None)
+        return BooleanRuleExpression(
+            OPERATORS.AND_ALL,
+            None,
+            list(_parse_boolean_expression(rule["patterns"])),
+            None,
+        )
     elif "patterns-either" in rule:  # multiple patterns at root
-        return BooleanRuleExpression(OPERATORS.AND_EITHER, None, list(_parse_boolean_expression(rule["patterns-either"])), None)
+        return BooleanRuleExpression(
+            OPERATORS.AND_EITHER,
+            None,
+            list(_parse_boolean_expression(rule["patterns-either"])),
+            None,
+        )
     else:
         raise NotImplementedError(f"unknown operator in rule {rule}")
 
@@ -168,7 +178,9 @@ def _where_python_statement_matches(
 
 
 def evaluate_expression(
-    expression: BooleanRuleExpression, results: Dict[PatternId, List[SgrepRange]], **flags
+    expression: BooleanRuleExpression,
+    results: Dict[PatternId, List[SgrepRange]],
+    **flags,
 ) -> Set[Range]:
     ranges_left = set([x.range for x in flatten(results.values())])
     return _evaluate_expression(expression, results, ranges_left, **flags)
@@ -191,7 +203,7 @@ def _evaluate_expression(
         # recurse on the nested expressions
         evaluated_ranges = [
             _evaluate_expression(expr, results, ranges_left.copy())
-           for expr in expression.children
+            for expr in expression.children
         ]
         debug_print(
             f"recursion result {evaluated_ranges} (flat: {list(flatten(evaluated_ranges))}))"

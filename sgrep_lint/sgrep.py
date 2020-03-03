@@ -188,9 +188,7 @@ def should_send_to_sgrep(expression: BooleanRuleExpression) -> bool:
 def flatten_rule_patterns(all_rules) -> Iterator[Dict[str, Any]]:
     for rule_index, rule in enumerate(all_rules):
         flat_expressions = list(
-            enumerate_patterns_in_boolean_expression(
-                build_boolean_expression(rule)
-            )
+            enumerate_patterns_in_boolean_expression(build_boolean_expression(rule))
         )
         for expr in flat_expressions:
             if not should_send_to_sgrep(expr):
