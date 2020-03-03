@@ -1921,8 +1921,22 @@ and m_macro_definition a b =
 (* Directives (Module import/export, macros) *)
 (* ------------------------------------------------------------------------- *)
 
+(* 
+  want a function that will take ImportFrom, ImportAs, ImportAll-> normalized 
+  ImportFrom for matching `import` purposes
+*)
+and normalize_import i=
+  match i with
+  | A.ImportFrom(a0, a1, a2) -> A.ImportFrom(a0, a1, a2)
+  | A.ImportAs(a0, a1, _) -> A.ImportFrom(a0, a1, [])
+  | A.ImportAll(a0, a1, _) ->A.ImportFrom(a0, a1, [])
+  | _ -> i
+
+
 and m_directive a b = 
-  match a, b with
+  let normal_a = normalize_import a in
+  let normal_b = normalize_import b in
+  match normal_a, normal_b with
   | A.ImportFrom(a0, a1, a2), B.ImportFrom(b0, b1, b2) ->
     m_tok a0 b0 >>= (fun () ->
     m_module_name a1 b1 >>= (fun () -> 
