@@ -1963,7 +1963,7 @@ and normalize_import i =
        *)
       A.ImportFrom(a0, from_module_name, drop_aliases import_aliases)
   | A.ImportAs(a0, a1, _) -> normalize_import_as a0 a1
-  | A.ImportAll(a0, a1, _) -> A.ImportFrom(a0, a1, [])
+  | A.ImportAll(a0, a1, _) -> normalize_import_as a0 a1 
   | _ -> i
 
 
