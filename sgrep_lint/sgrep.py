@@ -484,7 +484,7 @@ def main(args: argparse.Namespace):
     set_flags(args.verbose, args.quiet)
 
     # change cwd if using docker
-    config_resolver.adjust_for_docker()
+    config_resolver.adjust_for_docker(args.precommit)
 
     # get the proper paths for targets i.e. handle base path of /home/repo when it exists in docker
     targets = config_resolver.resolve_targets(args.target)
@@ -708,6 +708,7 @@ if __name__ == "__main__":
         help=f"try to exclude tests, documentation, and examples (based on filename/path)",
         action="store_true",
     )
+    config.add_argument("--precommit", help=argparse.SUPPRESS, action="store_true")
 
     # output options
     output = parser.add_argument_group("output")

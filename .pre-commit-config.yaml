@@ -44,6 +44,7 @@ repos:
         args:
           [
             "--error",
+            "--precommit",
             "--config",
             "r2c",
             "--output",
