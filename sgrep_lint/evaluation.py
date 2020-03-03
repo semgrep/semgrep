@@ -32,7 +32,15 @@ def _parse_boolean_expression(
     """
     Move through the expression from the YML, yielding tuples of (operator, unique-id-for-pattern, pattern)
     """
+    if not isinstance(rule_patterns, list):
+        raise InvalidRuleSchema(
+            f"invalid type for pattern {rule_patterns}: {type(rule_patterns)} is not a list"
+        )
     for pattern in rule_patterns:
+        if not isinstance(pattern, dict):
+            raise InvalidRuleSchema(
+                f"invalid type for pattern {pattern}: {type(pattern)} is not a dict"
+            )
         for boolean_operator, pattern_text in pattern.items():
             operator = operator_for_pattern_name(boolean_operator)
             if isinstance(pattern_text, list):
