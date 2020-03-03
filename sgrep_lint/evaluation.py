@@ -34,12 +34,12 @@ def _parse_boolean_expression(
     """
     if not isinstance(rule_patterns, list):
         raise InvalidRuleSchema(
-            f"invalid type for pattern {rule_patterns}: {type(rule_patterns)} is not a list"
+            f"invalid type for block {rule_patterns}: {type(rule_patterns)} is not a list; perhaps you are missing a `-` inside {rule_patterns}?"
         )
     for pattern in rule_patterns:
         if not isinstance(pattern, dict):
             raise InvalidRuleSchema(
-                f"invalid type for pattern {pattern}: {type(pattern)} is not a dict; perhaps you are missing a `-` before {pattern}?"
+                f"invalid type for pattern {pattern}: {type(pattern)} is not a dict"
             )
         for boolean_operator, pattern_text in pattern.items():
             operator = operator_for_pattern_name(boolean_operator)
