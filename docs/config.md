@@ -68,7 +68,7 @@ There are several operators that can be used in a rule. At the top level, there 
 Filters: there are several operators that act as filters to remove results you don't want. They must be combined with `pattern` operator in order to see results; e.g., if you have a rule with just `patttern-not`, nothing will fire.
 
 - `pattern-not`: This rule will filter out any cases where the pattern is found.
-- `pattern-inside`: Filter out results that do not lie inside this specified pattern. Useful for specifying a function that this behavior must occur in, for instance. 
+- `pattern-inside`: Filter out results that do not lie inside this specified pattern. Useful for specifying a function that this behavior must occur in, for instance.
 - `pattern-not-inside`: Opposite of `pattern-inside`; this will filter out any following pattern results that are *not* inside the specified pattern.
 - `pattern-where-python`: Uses a python expression to decide whether or not to filter out this result. Variables are passed to your python expression Python in an array called `vars`. **Running rules from other people that use this filter is dangerous as it can allow arbitrary code exeuction. If you have a rule using Python, you must pass the flag  `--dangerously-allow-arbitrary-code-execution-from-rules`.** Example:
   ```python

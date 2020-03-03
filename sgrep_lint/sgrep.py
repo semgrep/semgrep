@@ -37,12 +37,14 @@ from evaluation import build_boolean_expression
 from evaluation import enumerate_patterns_in_boolean_expression
 from evaluation import evaluate_expression
 from sgrep_types import BooleanRuleExpression
-from sgrep_types import InvalidRuleSchema, YAML_ALL_VALID_RULE_KEYS, YAML_MUST_HAVE_KEYS
+from sgrep_types import InvalidRuleSchema
 from sgrep_types import Operator
 from sgrep_types import OPERATORS
 from sgrep_types import PatternId
 from sgrep_types import Range
 from sgrep_types import SgrepRange
+from sgrep_types import YAML_ALL_VALID_RULE_KEYS
+from sgrep_types import YAML_MUST_HAVE_KEYS
 from util import debug_print
 from util import is_url
 from util import print_error

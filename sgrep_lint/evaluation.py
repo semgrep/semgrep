@@ -13,13 +13,14 @@ from typing import Tuple
 from constants import RCE_RULE_FLAG
 from sgrep_types import BooleanRuleExpression
 from sgrep_types import InvalidRuleSchema
-from sgrep_types import Operator, YAML_VALID_TOP_LEVEL_OPERATORS
+from sgrep_types import Operator
 from sgrep_types import operator_for_pattern_name
 from sgrep_types import OPERATORS
 from sgrep_types import pattern_name_for_operator
 from sgrep_types import PatternId
 from sgrep_types import Range
 from sgrep_types import SgrepRange
+from sgrep_types import YAML_VALID_TOP_LEVEL_OPERATORS
 from util import debug_print
 from util import flatten
 from util import print_error
@@ -67,25 +68,21 @@ def build_boolean_expression(rule: Dict[str, Any]) -> BooleanRuleExpression:
     valid_top_level_keys = YAML_VALID_TOP_LEVEL_OPERATORS
     if pattern_name_for_operator(OPERATORS.AND) in rule:  # single pattern at root
         return BooleanRuleExpression(OPERATORS.AND, rule["id"], None, rule["pattern"])
-    
+
     patterns = rule.get(pattern_name_for_operator(OPERATORS.AND_ALL))
     if patterns:
         return BooleanRuleExpression(
-            OPERATORS.AND_ALL,
-            None,
-            list(_parse_boolean_expression(patterns)),
-            None,
+            OPERATORS.AND_ALL, None, list(_parse_boolean_expression(patterns)), None,
         )
     patterns = rule.get(pattern_name_for_operator(OPERATORS.AND_EITHER))
     if patterns:
         return BooleanRuleExpression(
-            OPERATORS.AND_EITHER,
-            None,
-            list(_parse_boolean_expression(patterns)),
-            None,
+            OPERATORS.AND_EITHER, None, list(_parse_boolean_expression(patterns)), None,
         )
 
-    raise InvalidRuleSchema(f"missing a pattern type in rule, expected one of {list(map(pattern_name_for_operator, valid_top_level_keys))}")
+    raise InvalidRuleSchema(
+        f"missing a pattern type in rule, expected one of {list(map(pattern_name_for_operator, valid_top_level_keys))}"
+    )
 
 
 def _evaluate_single_expression(
