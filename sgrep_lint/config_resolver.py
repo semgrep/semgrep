@@ -31,6 +31,7 @@ from util import print_msg
 IN_DOCKER = "SGREP_IN_DOCKER" in os.environ
 REPO_HOME_DOCKER = "/home/repo/"
 PRE_COMMIT_SRC_DOCKER = "/src"
+GH_ACTION_BASE_PATH_DOCKER = "/github"
 DEFAULT_CONFIG_FOLDER = f".{DEFAULT_SGREP_CONFIG_NAME}"
 YML_EXTENSIONS = {".yml", ".yaml"}
 
@@ -75,8 +76,12 @@ def resolve_targets(targets: List[str]) -> List[Path]:
 def adjust_for_docker():
     # change into this folder so that all paths are relative to it
     if IN_DOCKER:
-        if not Path(REPO_HOME_DOCKER).exists():
-            print_error_exit(
+        if (
+            not Path(REPO_HOME_DOCKER).exists()
+            and not Path(PRE_COMMIT_SRC_DOCKER).exists()
+            and not Path(GH_ACTION_BASE_PATH_DOCKER).exists()
+        ):
+            print_error(
                 f"you are running sgrep in docker, but you forgot to mount the current directory in Docker: missing: -v $(pwd):{REPO_HOME_DOCKER}"
             )
     if Path(REPO_HOME_DOCKER).exists():
