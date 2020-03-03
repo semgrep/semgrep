@@ -10,15 +10,8 @@ class A {
 }
 
 //ERROR:
-class B extends A {
+class A extends B {
   foo() {
     return 'bar';
-  }
-}
-
-//ERROR:
-class C extends B {
-  foo() {
-    return 'ccc';
   }
 }

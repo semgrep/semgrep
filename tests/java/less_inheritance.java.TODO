@@ -6,14 +6,8 @@ public class A {
 }
 
 // ERROR: match
-public class B extends A {
+public class A extends B {
   public static bar() {
     return 1;
-  }
-}
-
-public class C extends B{
-  public static foo() {
-    return 11;
   }
 }
