@@ -190,10 +190,17 @@ type ast =
 
   | NoAST
 
+(* coupling: you need also to modify tests/test.ml *)
+let parse_generic file = 
+  let ast = Parse_generic.parse_program file in
+  let lang = Common2.some (Lang.lang_of_filename_opt file) in
+  Naming_ast.resolve lang ast;
+  ast
+
 let create_ast file =
   match !lang with
   | s when Lang.lang_of_string_opt s <> None ->
-    Gen (Parse_generic.parse_program file)
+    Gen (parse_generic file)
   | s when Lang_fuzzy.lang_of_string_opt s <> None ->
     Fuzzy (Parse_fuzzy.parse file)
   | "php" ->
@@ -401,7 +408,7 @@ let dump_pattern file =
      failwith (unsupported_language_message !lang)
 
 let dump_ast file =
-  let x = Parse_generic.parse_program file in
+  let x = parse_generic file in
   let v = Meta_ast.vof_any (Ast_generic.Pr x) in
   let s = Ocaml.string_of_v v in
   pr2 s
