@@ -118,7 +118,7 @@ Patterns are snippets of code with variables and other operators that will be pa
 
 ### Metavariables
 
-`$X`, `$FOO`, `$RETURNCODE` are all examples of metavariables. You can referance them later in your pattern and `sgrep` will ensure they match. Metavariables can only contain uppercase ASCII characters; `$x` and $SOME_VALUE are not valid metavariables.
+`$X`, `$FOO`, `$RETURNCODE` are all examples of metavariables. You can referance them later in your pattern and `sgrep` will ensure they match. **Metavariables can only contain uppercase ASCII characters**; `$x` and `$SOME_VALUE` are not valid metavariables.
 
 #### Operators
 
