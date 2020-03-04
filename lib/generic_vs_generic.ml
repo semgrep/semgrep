@@ -1985,6 +1985,12 @@ and drop_aliases (aliases: Ast_generic.alias list) =
   *)
   List.map (fun (ident, _) -> ident, None) aliases
 
+and fully_qualify (module_name: Ast_generic.module_name) (aliases: Ast_generic.alias list): Ast_generic.alias list  = 
+  (* if we have from foo.bar import baz, quz 
+      transform into from '' import foo.bar.baz, foo.bar.qux *)
+  List.map (fun (ident, alias) -> [module_name; ident], alias) aliases
+
+
 and strip_aliases (aliases: Ast_generic.alias list) = 
   (* if we have from x import y as z, normalize it to:
       from x import y
@@ -1998,7 +2004,7 @@ and strip_aliases (aliases: Ast_generic.alias list) =
 and normalize_import i =
   match i with
   | A.ImportFrom(a0, from_module_name, import_aliases) -> 
-      A.ImportFrom(a0, from_module_name, drop_aliases import_aliases)
+      A.ImportFrom(a0, DottedName [], drop_aliases (fully_qualify from_module_name import_aliases))
   | A.ImportAs(a0, a1, _) -> normalize_import_as a0 a1
   | A.ImportAll(a0, a1, _) -> normalize_import_as a0 a1 
   | _ -> i
