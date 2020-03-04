@@ -2,7 +2,9 @@
 
 [![r2c community slack](https://img.shields.io/badge/r2c_slack-join-brightgreen?style=for-the-badge&logo=slack&labelColor=4A154B)](https://join.slack.com/t/r2c-community/shared_invite/enQtNjU0NDYzMjAwODY4LWE3NTg1MGNhYTAwMzk5ZGRhMjQ2MzVhNGJiZjI1ZWQ0NjQ2YWI4ZGY3OGViMGJjNzA4ODQ3MjEzOWExNjZlNTA)
 
-`sgrep`, for syntactical (and occasionnally semantic) grep, is a tool to help find bugs by specifying code patterns using a familiar
+[sgrep.live](https://sgrep.live/)-Try it now
+
+[`sgrep`](https://sgrep.live/), for syntactical (and occasionnally semantic) grep, is a tool to help find bugs by specifying code patterns using a familiar
 syntax. The idea is to mix the convenience of grep with the correctness and precision of a compiler frontend.
 
 ## Quick Examples
