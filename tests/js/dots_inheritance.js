@@ -1,16 +1,19 @@
 //ERROR:
 class A {
-  constructor(name) {
-    this.name = name;
-  }
-
   foo() {
     return 'foo';
   }
 }
 
-//ERROR:
+// ERROR:
 class A extends B {
+  foo() {
+    return 'bar';
+  }
+}
+
+// OK:
+class C {
   foo() {
     return 'bar';
   }
