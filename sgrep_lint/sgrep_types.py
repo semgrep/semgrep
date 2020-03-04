@@ -45,6 +45,17 @@ PATTERN_NAMES_MAP = {
 
 INVERSE_PATTERN_NAMES_MAP = dict((v, k) for k, v in PATTERN_NAMES_MAP.items())
 
+# These are the only valid top-level keys
+YAML_MUST_HAVE_KEYS = {"id", "message", "languages", "severity"}
+YAML_VALID_TOP_LEVEL_OPERATORS = {
+    OPERATORS.AND,
+    OPERATORS.AND_ALL,
+    OPERATORS.AND_EITHER,
+}
+YAML_ALL_VALID_RULE_KEYS = set(
+    [INVERSE_PATTERN_NAMES_MAP[k] for k in YAML_VALID_TOP_LEVEL_OPERATORS]
+).union(YAML_MUST_HAVE_KEYS)
+
 
 class InvalidRuleSchema(BaseException):
     pass
@@ -69,7 +80,7 @@ class BooleanRuleExpression:
         else:
             if self.children is not None:
                 raise InvalidRuleSchema(
-                    f"only {list(map(pattern_name_for_operator, OPERATORS_WITH_CHILDREN))} operators can have children, but found `{self.operator}` with children"
+                    f"only {list(map(pattern_name_for_operator, OPERATORS_WITH_CHILDREN))} operators can have children, but found `{pattern_name_for_operator(self.operator)}` with children"
                 )
 
             if self.operand is None:
