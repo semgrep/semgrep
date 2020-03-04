@@ -486,6 +486,10 @@ and make_dotted xs =
 
 and m_expr a b = 
   match a, b with
+  (* equivalence: constant propagation! *)
+  | A.L(a1), B.Id (_, { B.id_const_literal = {contents = Some a2}; _}) ->
+    m_literal a1 a2
+
   (* equivalence: name resolving! *)
   | a,   B.Id (_, { B.id_resolved = 
       {contents = Some ( ( B.Global dotted 

@@ -33,6 +33,12 @@ let any_gen_of_string str =
   Python_to_generic.any any
   )
 
+let parse_generic file = 
+  let ast = Parse_generic.parse_program file in
+  let lang = Common2.some (Lang.lang_of_filename_opt file) in
+  Naming_ast.resolve lang ast;
+  ast
+
 let regression_tests_for_lang files lang = 
   files |> List.map (fun file ->
    (Filename.basename file) >:: (fun () ->
@@ -50,7 +56,7 @@ let regression_tests_for_lang files lang =
     in
     let ast = 
         try 
-            Parse_generic.parse_program file 
+            parse_generic file 
         with exn ->
           failwith (spf "fail to parse %s (exn = %s)" file 
                     (Common.exn_to_s exn))
