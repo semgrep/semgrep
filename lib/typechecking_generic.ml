@@ -35,11 +35,11 @@ open Ast_generic
  *)
 let compatible_type t e =
   match t, e with
-  | OtherType (OT_Expr, [E (Name ((("int", _tok), _nameinfo), _idinfo))]),
+  | OtherType (OT_Expr, [E (Id (("int", _tok), _idinfo))]),
     L (Int _) -> true
-  | OtherType (OT_Expr, [E (Name ((("float", _tok), _nameinfo), _idinfo))]),
+  | OtherType (OT_Expr, [E (Id (("float", _tok), _idinfo))]),
     L (Float _) -> true
-  | OtherType (OT_Expr, [E (Name ((("str", _tok), _nameinfo), _idinfo))]),
+  | OtherType (OT_Expr, [E (Id (("str", _tok), _idinfo))]),
     L (String _) -> true
 
   | _ -> false
