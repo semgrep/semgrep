@@ -53,14 +53,29 @@ The main difference here is that we are composing patterns together. Every patte
 
 Will match nothing, because foo() and foo(1) can never occur together. If we made the first pattern `foo(...)`, the rule will work, although the pattern is unecessary.
 
-There are several operators that can be used under `patterns`:
+## Pattern Composition Operators
+
+### basic operators
+
+There are several operators that can be used in a rule. At the top level, there are three:
 
 - `pattern`: The rule will only fire if this pattern is found.
-- `pattern-not`: Opposite of `pattern`
-- `pattern-either`: You can put multiple other patterns under this; any of those patterns will count as a match.
-- `pattterns`: Like `pattern-either`, you can put multiple patterns under this to create nested, implicitly-ANDed instructions.
-- `pattern-inside`: The rule will only fire if the following patterns are inside this specified pattern. Useful for specifying a function that this behavior must occur in, for instance.
-- `pattern-not-inside`: Opposite of `pattern-inside`
+- `pattern-either`: (logical OR) Nest multiple other patterns under this; any of those patterns will count as a match.
+- `pattterns`: (logical AND) You can put multiple patterns under this to create nested, implicitly-ANDed instructions.
+
+### filter operators
+
+Filters: there are several operators that act as filters to remove results you don't want. They must be combined with `pattern` operator in order to see results; e.g., if you have a rule with just `patttern-not`, nothing will fire.
+
+- `pattern-not`: This rule will filter out any cases where the pattern is found.
+- `pattern-inside`: Filter out results that do not lie inside this specified pattern. Useful for specifying a function that this behavior must occur in, for instance.
+- `pattern-not-inside`: Opposite of `pattern-inside`; this will filter out any following pattern results that are *not* inside the specified pattern.
+- `pattern-where-python`: Uses a python expression to decide whether or not to filter out this result. Variables are passed to your python expression Python in an array called `vars`. **Running rules from other people that use this filter is dangerous as it can allow arbitrary code exeuction. If you have a rule using Python, you must pass the flag  `--dangerously-allow-arbitrary-code-execution-from-rules`.** Example:
+  ```sgrep
+    patterns:
+      - pattern: $F = django.db.models.FloatField(...)
+      - pattern-where-python: "'price' in vars['$F']"
+  ```
 
 ## Schema
 
@@ -69,7 +84,7 @@ Each rule object has these fields:
 | Field     | Type          | Description                                                                                                        | Required |
 | --------- | ------------- | ------------------------------------------------------------------------------------------------------------------ | -------- |
 | id        | string        | None unique check-id that should be descriptive and understandable in isolation by the user. e.g. `no-unused-var`. | Y        |
-| `pattern` or `patterns`   | string        | See example patterns in this document.                                                                                        | Y        |
+| `pattern` or `patterns` or `pattern-either`   | string        | See example patterns in this document.                                                                                        | Y        |
 | message   | string        | Description of the rule that will be output when a match is found.                                                 | Y        |
 | languages | array<string> | Languages the check is relevant for. Can be python or javascript.                                                  | Y        |
 | severity  | string        | Case sensitive string equal to WARNING, ERROR                                                                  | Y        |

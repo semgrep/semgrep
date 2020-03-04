@@ -4,13 +4,18 @@ import sys
 from typing import List
 
 from evaluation import enumerate_patterns_in_boolean_expression
-from evaluation import evaluate_expression
+from evaluation import evaluate_expression as raw_evalute_expression
 from sgrep_types import BooleanRuleExpression
 from sgrep_types import Operator
 from sgrep_types import OPERATORS
 from sgrep_types import Range
 from sgrep_types import SgrepRange
 
+
+def evaluate_expression(exprs: List[BooleanRuleExpression], results):
+    # convert it to an implicit and
+    e = BooleanRuleExpression(OPERATORS.AND_ALL, None, exprs, None)
+    return raw_evalute_expression(e, results)
 
 def SRange(start: int, end: int):
     return SgrepRange(Range(start, end), {})
@@ -313,7 +318,7 @@ def test_exprs():
         BooleanRuleExpression(OPERATORS.AND_NOT_INSIDE, "pattern4", None, "p4"),
         BooleanRuleExpression(OPERATORS.AND, "pattern1", None, "p1"),
     ]
-    expression = [
+    expression = BooleanRuleExpression(OPERATORS.AND_ALL, None, [
         BooleanRuleExpression(OPERATORS.AND_INSIDE, "pattern3", None, "p3"),
         BooleanRuleExpression(
             OPERATORS.AND_EITHER,
@@ -323,11 +328,12 @@ def test_exprs():
                 BooleanRuleExpression(OPERATORS.AND_ALL, "someid2", subexpression2),
             ],
         ),
-    ]
+    ])
     flat = list(enumerate_patterns_in_boolean_expression(expression))
     # print(flat)
 
     expected = [
+        BooleanRuleExpression(OPERATORS.AND_ALL, None, None, None),
         BooleanRuleExpression(OPERATORS.AND_INSIDE, "pattern3", None, "p3"),
         BooleanRuleExpression(OPERATORS.AND_EITHER, None, None, None),
         BooleanRuleExpression(OPERATORS.AND_ALL, None, None, None),
@@ -341,7 +347,7 @@ def test_exprs():
     assert flat == expected, f"flat: {flat}"
 
 
-def testEvaluatePython():
+def test_evaluate_python():
     """Test evaluating the subpattern `where-python: <python_expression>`,
     in which a rule can provide an arbitrary Python expression that will be
     evaluated against the currently matched metavariables.
