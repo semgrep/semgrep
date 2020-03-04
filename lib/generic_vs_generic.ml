@@ -314,6 +314,7 @@ let m_list_subset a b =
   else
     fail ()
 
+
 let m_bool a b = 
   if a = b then return () else fail ()
 
@@ -377,6 +378,26 @@ let m_dotted_name a b =
   match a, b with
   (* TODO: [$X] should match any list *)
   (a, b) -> (m_list m_ident) a b
+
+
+let rec m_list_prefix a b: bool =
+  match a, b with
+  | [], [] ->
+      true
+  | xa::aas, xb::bbs ->
+     let idents = m_ident xa xb in 
+     if idents then
+      let foo = m_list_prefix aas bbs in
+        foo
+      else 
+        false
+  | [], _ -> true
+  | _::_, _ -> false  
+
+let m_dotted_name_is_prefix (a: Ast_generic.module_name) (b: Ast_generic.module_name) =  
+  match a, b with 
+  | DottedName(da), DottedName(db) -> m_list_prefix da db
+  | _ -> false
 
 let m_qualified_name a b = 
   match a, b with
@@ -1981,6 +2002,16 @@ and normalize_import_as (a0: Parse_info.token_mutable) (from_module_name: Ast_ge
 
 and add_empty_aliases aliases: Ast_generic.alias list =  List.map (fun (ident) -> (ident, None)) aliases
 
+and ident_to_dotted_name (ident: Ast_generic.ident): Ast_generic.module_name = 
+  let ident_str, tok = ident in 
+  let (idents_strs: string list) = (String.split_on_char '.' ident_str) in
+  let (idents: Ast_generic.ident list) = List.map (fun (i) -> (i, tok)) idents_strs in
+  Ast_generic.DottedName idents
+
+
+and to_dotted_names (imports: Ast_generic.alias list) = 
+  List.map (fun ((ident: Ast_generic.ident), _) -> ident_to_dotted_name ident) imports
+
 and str_of_module (module_name: Ast_generic.module_name): string =
   match module_name with 
   | DottedName idents -> 
@@ -2037,9 +2068,17 @@ and m_directive a b =
 
     m_tok a0 b0 >>= (fun () ->
     m_module_name_less a1 b1 >>= (fun () -> 
-    m_list_subset (strip_aliases a2) (strip_aliases b2) >>= (fun () -> 
-    return ()
-    )))
+    let pattern_imports = (to_dotted_names a2) in
+    let code_imports = (to_dotted_names b2) in
+
+    
+      ))
+    (* *)
+
+    let did_prefix_match = List.for_all (fun a_dname -> List.exists (m_dotted_name_is_prefix a_dname) code_imports) pattern_imports in 
+    if did_prefix_match then return () else fail()
+
+      
   | A.ImportAs(a0, a1, a2), B.ImportAs(b0, b1, b2) ->
     m_tok a0 b0 >>= (fun () ->
     m_module_name_less a1 b1 >>= (fun () -> 
