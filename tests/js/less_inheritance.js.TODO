@@ -1,0 +1,17 @@
+//ERROR:
+class A {
+  constructor(name) {
+    this.name = name;
+  }
+
+  foo() {
+    return 'foo';
+  }
+}
+
+//ERROR:
+class A extends B {
+  foo() {
+    return 'bar';
+  }
+}
