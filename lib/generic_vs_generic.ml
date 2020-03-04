@@ -305,6 +305,14 @@ let rec m_list f a b =
   | _::_, _ ->
       fail ()
 
+let m_list_subset a b =
+  (* match if a is a subset of b *)
+  let set_a = Common2.set a in
+  let set_b = Common2.set b in
+  if set_a <= set_b then
+    return ()
+  else
+    fail ()
 
 let m_bool a b = 
   if a = b then return () else fail ()
@@ -368,6 +376,20 @@ let m_dotted_name a b =
 let m_qualified_name a b = 
   match a, b with
   (a, b) -> m_dotted_name a b
+
+let m_module_name_less a b = 
+  match a, b with
+  | A.FileName(a1), B.FileName(b1) ->
+    (m_wrap m_string) a1 b1 >>= (fun () -> 
+    return ()
+    )
+  | A.DottedName(a1), B.DottedName(b1) ->
+    m_dotted_name a1 b1 >>= (fun () -> 
+    return ()
+    )
+  | A.FileName _, _
+  | A.DottedName _, _
+   -> fail ()
 
 let m_module_name a b = 
   match a, b with
@@ -1948,6 +1970,12 @@ and drop_aliases (aliases: Ast_generic.alias list) =
   *)
   List.map (fun (ident, _) -> ident, None) aliases
 
+and strip_aliases (aliases: Ast_generic.alias list) = 
+  (* if we have from x import y as z, normalize it to:
+      from x import y
+  *)
+  List.map (fun (ident, _) -> ident) aliases
+
 (* 
   a function that will take ImportFrom, ImportAs, ImportAll -> normalized 
   ImportFrom for matching `import` purposes
@@ -1955,41 +1983,44 @@ and drop_aliases (aliases: Ast_generic.alias list) =
 and normalize_import i =
   match i with
   | A.ImportFrom(a0, from_module_name, import_aliases) -> 
-      (*
-         TODO: separate logic needs to be added to recurse inside the identifier list
-         so that we can have:
-          pattern: from foo import bar2
-          matches: from foo import (bar, bar2)
-         
-         TODO and also:
-          pattern: import foo.x
-          matches: from foo.x.z.y
-       *)
       A.ImportFrom(a0, from_module_name, drop_aliases import_aliases)
   | A.ImportAs(a0, a1, _) -> normalize_import_as a0 a1
   | A.ImportAll(a0, a1, _) -> normalize_import_as a0 a1 
   | _ -> i
 
-
 and m_directive a b = 
   let normal_a = normalize_import a in
   let normal_b = normalize_import b in
+  (* a is the pattern, b is the target*)
+  (* pr2 (spf "B = %s" (str_of_any (Dir normal_b))); *)
+  (*     
+         TODO and also:
+          pattern: import foo.x
+          matches: from foo.x.z.y
+       *)
   match normal_a, normal_b with
   | A.ImportFrom(a0, a1, a2), B.ImportFrom(b0, b1, b2) ->
+    (* pr2 (spf "A0 = %s" (str_of_any foo)); *)
+
+    (* A = from foo import bar, B = from foo.bar import baz, bar2 as b2
+    * A1 = 'foo' -> 'foo.bar'
+    * B1 = 'foo.bar' -> 'foo.bar.baz' & 'foo.bar.bar2'
+    *)
+
     m_tok a0 b0 >>= (fun () ->
-    m_module_name a1 b1 >>= (fun () -> 
-    (m_list m_alias) a2 b2 >>= (fun () -> 
+    m_module_name_less a1 b1 >>= (fun () -> 
+    m_list_subset (strip_aliases a2) (strip_aliases b2) >>= (fun () -> 
     return ()
     )))
   | A.ImportAs(a0, a1, a2), B.ImportAs(b0, b1, b2) ->
     m_tok a0 b0 >>= (fun () ->
-    m_module_name a1 b1 >>= (fun () -> 
+    m_module_name_less a1 b1 >>= (fun () -> 
     (m_option m_ident) a2 b2 >>= (fun () -> 
     return ()
     )))
   | A.ImportAll(a0, a1, a2), B.ImportAll(b0, b1, b2) ->
     m_tok a0 b0 >>= (fun () ->
-    m_module_name a1 b1 >>= (fun () -> 
+    m_module_name_less a1 b1 >>= (fun () -> 
     m_tok a2 b2 >>= (fun () -> 
     return ()
     )))

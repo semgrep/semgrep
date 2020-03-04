@@ -55,19 +55,20 @@ from .... import *
 
 # , imports
 
+#ERROR:
 from foo import bar, baz
 from .foo import bar, baz
 from ...foo import bar, baz
 from ..foo import bar, baz
 #ERROR:
-from foo.bar import baz, qux
+from foo.bar import baz, qux 
 from .foo.bar import baz, qux
 from ...foo.bar import baz, qux
 from ..foo.bar import baz, qux
 from . import bar, baz
 
 # ( ) imports
-
+#ERROR:
 from foo import (bar, baz)
 from .foo import (bar, baz)
 from ...foo import (bar, baz)
@@ -80,7 +81,7 @@ from ..foo.bar import (baz, qux)
 from . import (bar, baz,)
 
 # as imports 
-
+#ERROR:
 from foo import bar, baz as b
 from .foo import bar, baz as b
 from ...foo import bar, baz as b
