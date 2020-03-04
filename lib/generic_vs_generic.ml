@@ -1979,16 +1979,23 @@ and normalize_import_as (a0: Parse_info.token_mutable) (from_module_name: Ast_ge
       A.ImportFrom(a0, from_module_name, [])
   | _ -> A.ImportFrom(a0, from_module_name, [])
 
-and drop_aliases (aliases: Ast_generic.alias list) = 
-  (* if we have from x import y as z, normalize it to:
-      from x import y
-  *)
-  List.map (fun (ident, _) -> ident, None) aliases
+and add_empty_aliases aliases: Ast_generic.alias list =  List.map (fun (ident) -> (ident, None)) aliases
 
-and fully_qualify (module_name: Ast_generic.module_name) (aliases: Ast_generic.alias list): Ast_generic.alias list  = 
+and str_of_module (module_name: Ast_generic.module_name): string =
+  match module_name with 
+  | DottedName idents -> 
+      (String.concat "." (List.map (fun i -> (str_of_any (A.Id i))) idents))
+  | FileName(fname, _) ->     fname
+
+and fully_qualify (module_name: Ast_generic.module_name) (imports: Ast_generic.ident list): Ast_generic.ident list  = 
   (* if we have from foo.bar import baz, quz 
       transform into from '' import foo.bar.baz, foo.bar.qux *)
-  List.map (fun (ident, alias) -> [module_name; ident], alias) aliases
+  List.map (fun (ident: Ast_generic.ident) -> 
+    let ident_str, tok = ident in 
+    let module_name_str = (String.concat "." [str_of_module module_name; (ident_str)]) in 
+      (module_name_str, tok)
+    )
+    imports
 
 
 and strip_aliases (aliases: Ast_generic.alias list) = 
@@ -2003,8 +2010,8 @@ and strip_aliases (aliases: Ast_generic.alias list) =
 *)
 and normalize_import i =
   match i with
-  | A.ImportFrom(a0, from_module_name, import_aliases) -> 
-      A.ImportFrom(a0, DottedName [], drop_aliases (fully_qualify from_module_name import_aliases))
+  | A.ImportFrom(a0, from_module_name, imports) -> 
+      A.ImportFrom(a0, DottedName [], add_empty_aliases (fully_qualify from_module_name (strip_aliases imports)))
   | A.ImportAs(a0, a1, _) -> normalize_import_as a0 a1
   | A.ImportAll(a0, a1, _) -> normalize_import_as a0 a1 
   | _ -> i
