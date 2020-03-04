@@ -4,5 +4,8 @@ const Bar = "password"
 
 func foo() {
      //ERROR: match!
-     password(Bar);
+     dangerous1("password");
+
+     //ERROR: match!
+     dangerous2(Bar);
 }
