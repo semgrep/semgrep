@@ -399,7 +399,9 @@ let m_resolved_name_kind a b =
       return ()
   | A.Param, B.Param ->
       return ()
-  | A.Global(a1), B.Global(b1) ->
+  | A.Global, B.Global ->
+      return ()
+  | A.ImportedEntity(a1), B.ImportedEntity(b1) ->
     m_qualified_name a1 b1 >>= (fun () -> 
     return ()
     )
@@ -416,11 +418,12 @@ let m_resolved_name_kind a b =
 
   | A.Local , _
   | A.Param , _
-  | A.Global _, _
+  | A.Global, _
   | A.EnclosedVar , _
   | A.Macro, _
   | A.EnumConstant, _
   | A.TypeName, _
+  | A.ImportedEntity _, _
   | A.ImportedModule _, _
    -> fail ()
 
@@ -492,7 +495,7 @@ and m_expr a b =
 
   (* equivalence: name resolving! *)
   | a,   B.Id (_, { B.id_resolved = 
-      {contents = Some ( ( B.Global dotted 
+      {contents = Some ( ( B.ImportedEntity dotted 
                          | B.ImportedModule (B.DottedName dotted)
                          ), _sid)}; _}) ->
 
