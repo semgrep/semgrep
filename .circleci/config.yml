@@ -29,7 +29,7 @@ jobs:
       - run: ln -s /home/opam/project/_build/default/bin/main_sgrep.exe /home/opam/.local/bin/sgrep
       - run: eval $(opam env) && cd ./pfff && ./configure && make depend && make && make opt && make install-libs
       - run: eval $(opam env) && cd sgrep && make test && make && make install
-      - run: cd sgrep_lint && make test
+      - run: eval $(opam env) && cd sgrep_lint && make test
 
 workflows:
   version: 2.1
