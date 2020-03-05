@@ -36,6 +36,7 @@ jobs:
       - run: eval $(opam env); make test
       - run: cd sgrep_lint && make test
 
+
 workflows:
   version: 2.1
   build_and_test:
