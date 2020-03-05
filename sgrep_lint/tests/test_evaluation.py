@@ -3,6 +3,7 @@ import os
 import sys
 from typing import List
 
+from constants import RCE_RULE_FLAG
 from evaluation import enumerate_patterns_in_boolean_expression
 from evaluation import evaluate_expression as raw_evalute_expression
 from sgrep_types import BooleanRuleExpression
@@ -12,10 +13,10 @@ from sgrep_types import Range
 from sgrep_types import SgrepRange
 
 
-def evaluate_expression(exprs: List[BooleanRuleExpression], results):
+def evaluate_expression(exprs: List[BooleanRuleExpression], results, flags=None):
     # convert it to an implicit and
     e = BooleanRuleExpression(OPERATORS.AND_ALL, None, exprs, None)
-    return raw_evalute_expression(e, results)
+    return raw_evalute_expression(e, results, flags)
 
 def SRange(start: int, end: int):
     return SgrepRange(Range(start, end), {})
@@ -397,5 +398,5 @@ def test_evaluate_python():
         ),
     ]
 
-    result = evaluate_expression(expression, results)
+    result = evaluate_expression(expression, results, flags={RCE_RULE_FLAG: True})
     assert result == set([Range(400, 500)]), f"{result}"

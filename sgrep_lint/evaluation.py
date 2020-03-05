@@ -89,7 +89,7 @@ def _evaluate_single_expression(
     expression: BooleanRuleExpression,
     results: Dict[PatternId, List[SgrepRange]],
     ranges_left: Set[Range],
-    **flags,
+    flags: Optional[Dict[str, Any]] = None,
 ) -> Set[Range]:
 
     assert expression.pattern_id, f"<internal error: expected pattern id: {expression}>"
@@ -126,7 +126,7 @@ def _evaluate_single_expression(
         debug_print(f"after filter `{expression.operator}`: {output_ranges}")
         return output_ranges
     elif expression.operator == OPERATORS.WHERE_PYTHON:
-        if not RCE_RULE_FLAG not in flags:
+        if not flags or flags[RCE_RULE_FLAG] != True:
             print_error_exit(
                 f"at least one rule needs to execute arbitrary code; this is dangerous! if you want to continue, enable the flag: {RCE_RULE_FLAG}"
             )
@@ -181,17 +181,17 @@ def _where_python_statement_matches(
 def evaluate_expression(
     expression: BooleanRuleExpression,
     results: Dict[PatternId, List[SgrepRange]],
-    **flags,
+    flags: Optional[Dict[str, Any]] = None,
 ) -> Set[Range]:
     ranges_left = set([x.range for x in flatten(results.values())])
-    return _evaluate_expression(expression, results, ranges_left, **flags)
+    return _evaluate_expression(expression, results, ranges_left, flags)
 
 
 def _evaluate_expression(
     expression: BooleanRuleExpression,
     results: Dict[PatternId, List[SgrepRange]],
     ranges_left: Set[Range],
-    **flags,
+    flags: Optional[Dict[str, Any]] = None,
 ) -> Set[Range]:
     if (
         expression.operator == OPERATORS.AND_EITHER
@@ -205,7 +205,7 @@ def _evaluate_expression(
         if expression.operator == OPERATORS.AND_EITHER:
             # remove anything that does not equal one of these ranges
             evaluated_ranges = [
-                _evaluate_expression(expr, results, ranges_left.copy())
+                _evaluate_expression(expr, results, ranges_left.copy(), flags)
                 for expr in expression.children
             ]
             ranges_left.intersection_update(flatten(evaluated_ranges))
@@ -213,7 +213,7 @@ def _evaluate_expression(
             # chain intersection eagerly; intersect for every AND'ed child
             for expr in expression.children:
                 remainining_ranges = _evaluate_expression(
-                    expr, results, ranges_left.copy()
+                    expr, results, ranges_left.copy(), flags
                 )
                 ranges_left.intersection_update(remainining_ranges)
 
@@ -223,7 +223,7 @@ def _evaluate_expression(
             expression.children is None
         ), f"only `{pattern_name_for_operator(OPERATORS.AND_EITHER)}` or `{pattern_name_for_operator(OPERATORS.AND_ALL)}` expressions can have multiple subpatterns"
         ranges_left = _evaluate_single_expression(
-            expression, results, ranges_left, **flags
+            expression, results, ranges_left, flags
         )
     return ranges_left
 

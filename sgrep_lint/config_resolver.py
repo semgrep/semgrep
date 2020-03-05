@@ -23,6 +23,7 @@ import yaml
 from constants import DEFAULT_CONFIG_FILE
 from constants import DEFAULT_CONFIG_FOLDER
 from constants import DEFAULT_SGREP_CONFIG_NAME
+from constants import YML_EXTENSIONS
 from util import debug_print
 from util import is_url
 from util import print_error
@@ -32,7 +33,7 @@ from util import print_msg
 IN_DOCKER = "SGREP_IN_DOCKER" in os.environ
 IN_GH_ACTION = "GITHUB_WORKSPACE" in os.environ
 REPO_HOME_DOCKER = "/home/repo/"
-YML_EXTENSIONS = {".yml", ".yaml"}
+
 
 from constants import RULES_KEY, ID_KEY
 
