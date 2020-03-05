@@ -380,37 +380,37 @@ let m_dotted_name a b =
   (a, b) -> (m_list m_ident) a b
 
 
-let rec m_list_prefix a b: bool =
+let rec m_list_prefix f a b =
   match a, b with
   | [], [] ->
-      true
+      return ()
   | xa::aas, xb::bbs ->
-     let idents = m_ident xa xb in 
-     if idents then
-      let foo = m_list_prefix aas bbs in
-        foo
-      else 
-        false
-  | [], _ -> true
-  | _::_, _ -> false  
-
-let m_dotted_name_is_prefix (a: Ast_generic.module_name) (b: Ast_generic.module_name) =  
-  match a, b with 
-  | DottedName(da), DottedName(db) -> m_list_prefix da db
-  | _ -> false
+      f xa xb >>= (fun () ->
+      m_list_prefix f aas bbs >>= (fun () ->
+        return ()
+      )
+      )
+  | [], _ -> return ()
+  | _::_, _ ->
+      fail ()
 
 let m_qualified_name a b = 
   match a, b with
   (a, b) -> m_dotted_name a b
 
-let m_module_name_less a b = 
+(* prefix matching is supported for imports, eg.:
+  pattern: import foo.x
+  should match: from foo.x.z.y
+*)
+let m_module_name_prefix a b = 
   match a, b with
   | A.FileName(a1), B.FileName(b1) ->
+    (* TODO figure out what prefix support means here *)
     (m_wrap m_string) a1 b1 >>= (fun () -> 
     return ()
     )
   | A.DottedName(a1), B.DottedName(b1) ->
-    m_dotted_name a1 b1 >>= (fun () -> 
+    m_list_prefix m_ident a1 b1 >>= (fun () -> 
     return ()
     )
   | A.FileName _, _
@@ -1981,59 +1981,27 @@ and m_macro_definition a b =
 
 
 (* normalize from:
-    import foo.bar -> from foo import bar 
-    import foo.bar.baz -> from foo.bar import baz
-    import foo.bar.baz.yoo -> from foo  
-*) 
-and normalize_import_as (a0: Parse_info.token_mutable) (from_module_name: Ast_generic.module_name) = 
+    from foo import bar -> import foo.bar
+    from foo.bar import baz -> import foo.bar.baz
+    from foo.bar.baz import yoo -> import foo.bar.baz.yoo
+
+    TODO: we plan to refactor ImportFrom such that it has at most one identifier; this function assumes that has already happened
+*)
+and normalize_import_as (a0: Parse_info.token_mutable) (from_module_name: Ast_generic.module_name) (import_opt: Ast_generic.label option) = 
   match from_module_name with 
   | DottedName idents -> 
-    (* if there are more than two dotted name identifiers, 
-      take the last and put it as the identifier imported
-    *)
-    if List.length idents > 1
-    then 
-      let last_dotted_name = Common2.list_last idents in
-      let without_last_dotted_name = (List.rev (List.tl (List.rev idents))) in 
-       A.ImportFrom(a0, DottedName without_last_dotted_name, [(last_dotted_name, None)])
-    else 
-      A.ImportFrom(a0, from_module_name, [])
-  | _ -> A.ImportFrom(a0, from_module_name, [])
+    begin
+    match import_opt with 
+    | Some(import) ->
+      let import_ident_name: Ast_generic.label = import in
+      let new_module_name: Ast_generic.dotted_ident = idents @ [import_ident_name] in 
+        A.ImportFrom(a0, DottedName new_module_name, [])
+    | None -> A.ImportFrom(a0, from_module_name, [])
+  end;  
+  | FileName _ -> (* TODO *)
+    A.ImportFrom(a0, from_module_name, [])
 
-and add_empty_aliases aliases: Ast_generic.alias list =  List.map (fun (ident) -> (ident, None)) aliases
-
-and ident_to_dotted_name (ident: Ast_generic.ident): Ast_generic.module_name = 
-  let ident_str, tok = ident in 
-  let (idents_strs: string list) = (String.split_on_char '.' ident_str) in
-  let (idents: Ast_generic.ident list) = List.map (fun (i) -> (i, tok)) idents_strs in
-  Ast_generic.DottedName idents
-
-
-and to_dotted_names (imports: Ast_generic.alias list) = 
-  List.map (fun ((ident: Ast_generic.ident), _) -> ident_to_dotted_name ident) imports
-
-and str_of_module (module_name: Ast_generic.module_name): string =
-  match module_name with 
-  | DottedName idents -> 
-      (String.concat "." (List.map (fun i -> (str_of_any (A.Id i))) idents))
-  | FileName(fname, _) ->     fname
-
-and fully_qualify (module_name: Ast_generic.module_name) (imports: Ast_generic.ident list): Ast_generic.ident list  = 
-  (* if we have from foo.bar import baz, quz 
-      transform into from '' import foo.bar.baz, foo.bar.qux *)
-  List.map (fun (ident: Ast_generic.ident) -> 
-    let ident_str, tok = ident in 
-    let module_name_str = (String.concat "." [str_of_module module_name; (ident_str)]) in 
-      (module_name_str, tok)
-    )
-    imports
-
-
-and strip_aliases (aliases: Ast_generic.alias list) = 
-  (* if we have from x import y as z, normalize it to:
-      from x import y
-  *)
-  List.map (fun (ident, _) -> ident) aliases
+and strip_aliases (aliases: Ast_generic.alias list) = List.map (fun (ident, _) -> ident) aliases
 
 (* 
   a function that will take ImportFrom, ImportAs, ImportAll -> normalized 
@@ -2042,52 +2010,32 @@ and strip_aliases (aliases: Ast_generic.alias list) =
 and normalize_import i =
   match i with
   | A.ImportFrom(a0, from_module_name, imports) -> 
-      A.ImportFrom(a0, DottedName [], add_empty_aliases (fully_qualify from_module_name (strip_aliases imports)))
-  | A.ImportAs(a0, a1, _) -> normalize_import_as a0 a1
-  | A.ImportAll(a0, a1, _) -> normalize_import_as a0 a1 
+    (* TODO: list.hd should not be needed after we refactor importfrom to have a single element under imports *)
+      let single_import = (List.hd (strip_aliases imports)) in
+      normalize_import_as a0 from_module_name (Some single_import)
+  | A.ImportAs(a0, a1, _) -> normalize_import_as a0 a1 None
+  | A.ImportAll(a0, a1, _) -> normalize_import_as a0 a1 None
   | _ -> i
 
 and m_directive a b = 
   let normal_a = normalize_import a in
   let normal_b = normalize_import b in
   (* a is the pattern, b is the target*)
-  (* pr2 (spf "B = %s" (str_of_any (Dir normal_b))); *)
-  (*     
-         TODO and also:
-          pattern: import foo.x
-          matches: from foo.x.z.y
-       *)
   match normal_a, normal_b with
-  | A.ImportFrom(a0, a1, a2), B.ImportFrom(b0, b1, b2) ->
-    (* pr2 (spf "A0 = %s" (str_of_any foo)); *)
-
-    (* A = from foo import bar, B = from foo.bar import baz, bar2 as b2
-    * A1 = 'foo' -> 'foo.bar'
-    * B1 = 'foo.bar' -> 'foo.bar.baz' & 'foo.bar.bar2'
-    *)
-
+  | A.ImportFrom(a0, a1, _), B.ImportFrom(b0, b1, _) ->
     m_tok a0 b0 >>= (fun () ->
-    m_module_name_less a1 b1 >>= (fun () -> 
-    let pattern_imports = (to_dotted_names a2) in
-    let code_imports = (to_dotted_names b2) in
-
-    
-      ))
-    (* *)
-
-    let did_prefix_match = List.for_all (fun a_dname -> List.exists (m_dotted_name_is_prefix a_dname) code_imports) pattern_imports in 
-    if did_prefix_match then return () else fail()
-
-      
+    m_module_name_prefix a1 b1 >>= (fun () -> 
+    return()
+    ))
   | A.ImportAs(a0, a1, a2), B.ImportAs(b0, b1, b2) ->
     m_tok a0 b0 >>= (fun () ->
-    m_module_name_less a1 b1 >>= (fun () -> 
+    m_module_name_prefix a1 b1 >>= (fun () -> 
     (m_option m_ident) a2 b2 >>= (fun () -> 
     return ()
     )))
   | A.ImportAll(a0, a1, a2), B.ImportAll(b0, b1, b2) ->
     m_tok a0 b0 >>= (fun () ->
-    m_module_name_less a1 b1 >>= (fun () -> 
+    m_module_name_prefix a1 b1 >>= (fun () -> 
     m_tok a2 b2 >>= (fun () -> 
     return ()
     )))

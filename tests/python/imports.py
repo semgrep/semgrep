@@ -32,8 +32,11 @@ from .. import bar
 from ... import bar
 from .... import fbar
 
+# TODO: this one requires the statement normalization before generic AST
+#from foo import bar2, bar
+
 #ERROR:
-from foo import bar2, bar
+from foo import bar, bar2
 
 #ERROR:
 import foo.bar.x.y.z
