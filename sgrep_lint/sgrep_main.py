@@ -587,7 +587,11 @@ def main(args: argparse.Namespace):
             check_ids_to_ranges = parse_sgrep_output(results)
             debug_print(str(check_ids_to_ranges))
             valid_ranges_to_output = evaluate_expression(
-                expression, check_ids_to_ranges, flags={RCE_RULE_FLAG: args.dangerously_allow_arbitrary_code_execution_from_rules}
+                expression,
+                check_ids_to_ranges,
+                flags={
+                    RCE_RULE_FLAG: args.dangerously_allow_arbitrary_code_execution_from_rules
+                },
             )
 
             # only output matches which are inside these offsets!

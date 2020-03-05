@@ -9,10 +9,10 @@ WORKDIR /home/opam/opam-repository
 RUN git pull && opam update && opam switch 4.07 && opam install ocamlfind camlp4 num ocamlgraph json-wheel conf-perl dune yaml
 WORKDIR /home/opam/
 
+COPY --chown=opam . /home/opam/sgrep/
+
 RUN git clone https://github.com/returntocorp/pfff
 RUN eval $(opam env) && cd pfff && ./configure && make depend && make && make opt && make install-libs
-
-COPY --chown=opam . /home/opam/sgrep/
 
 RUN eval $(opam env); cd sgrep; make all
 RUN /home/opam/sgrep/_build/default/bin/main_sgrep.exe -version
@@ -21,10 +21,10 @@ RUN /home/opam/sgrep/_build/default/bin/main_sgrep.exe -version
 
 FROM alpine:3.11.3@sha256:ddba4d27a7ffc3f86dd6c2f92041af252a1f23a8e742c90e6e1297bfa1bc0c45 as build-sgrep-lint
 RUN apk add --no-cache python3-dev build-base chrpath
-COPY . /home/pythonbuild/sgrep/
+COPY sgrep_lint /home/pythonbuild/sgrep_lint/
 # have to manually specify colorama for some reason, but others (yaml, etc) are working ok
-WORKDIR /home/pythonbuild/sgrep
-RUN make lint
+WORKDIR /home/pythonbuild/sgrep_lint
+RUN make all
 RUN ls -al /home/pythonbuild/sgrep/sgrep_lint/build/sgrep.dist/
 
 ## final output, combining both

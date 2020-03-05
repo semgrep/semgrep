@@ -144,7 +144,7 @@ def invoke_sgrep_lint(
             verbose=verbose,
             strict=strict,
             no_rewrite_rule_ids=True,
-            dangerously_allow_arbitrary_code_execution_from_rules = unsafe,
+            dangerously_allow_arbitrary_code_execution_from_rules=unsafe,
             config=str(config),
             quiet=True,
             precommit=False,
@@ -262,7 +262,12 @@ def generate_file_pairs(
 
 
 def main(
-    location: Path, ignore_todo: bool, verbose: bool, strict: bool, sgrep_verbose: bool, unsafe: bool
+    location: Path,
+    ignore_todo: bool,
+    verbose: bool,
+    strict: bool,
+    sgrep_verbose: bool,
+    unsafe: bool,
 ):
     global DEBUG
     DEBUG = verbose  # type: ignore
@@ -274,4 +279,11 @@ def test_main(args):
     if len(args.target) != 1:
         print_error_exit("only one target directory allowed for tests")
     target = Path(args.target[0])
-    main(target, args.test_ignore_todo, args.verbose, args.strict, args.verbose, args.dangerously_allow_arbitrary_code_execution_from_rules)
+    main(
+        target,
+        args.test_ignore_todo,
+        args.verbose,
+        args.strict,
+        args.verbose,
+        args.dangerously_allow_arbitrary_code_execution_from_rules,
+    )
