@@ -2,13 +2,14 @@
 import argparse
 import test
 
+import config_resolver
 import sgrep_main
 from constants import DEFAULT_CONFIG_FILE
 from constants import PLEASE_FILE_ISSUE_TEXT
 from constants import RCE_RULE_FLAG
 from constants import SGREP_URL
-import config_resolver
-from util import print_error_exit, debug_print
+from util import debug_print
+from util import print_error_exit
 
 
 def set_flags(debug: bool, quiet: bool) -> None:
@@ -146,7 +147,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
     if args.lang and not args.pattern or (args.pattern and not args.lang):
         parser.error("-e/--pattern and -l/--lang must both be specified")
-
 
     # set the flags
     set_flags(args.verbose, args.quiet)
