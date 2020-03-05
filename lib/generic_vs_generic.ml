@@ -1998,19 +1998,19 @@ and m_macro_definition a b =
 
     TODO: we plan to refactor ImportFrom such that it has at most one identifier; this function assumes that has already happened
 *)
-and normalize_import_as (a0: Parse_info.token_mutable) (from_module_name: Ast_generic.module_name) (import_opt: Ast_generic.label option) = 
+and normalize_import_as (a0: Parse_info.token_mutable) (from_module_name: Ast_generic.module_name) (import_opt: Ast_generic.alias option) = 
   match from_module_name with 
   | Ast_generic.DottedName idents -> 
     begin
     match import_opt with 
     | Some(import) ->
-      let import_ident_name: Ast_generic.label = import in
+      let (import_ident_name: Ast_generic.label), _ = import in
       let new_module_name: Ast_generic.dotted_ident = idents @ [import_ident_name] in 
-        A.ImportFrom(a0, Ast_generic.DottedName new_module_name, [])
-    | None -> A.ImportFrom(a0, from_module_name, [])
+        A.ImportFrom(a0, Ast_generic.DottedName new_module_name, None)
+    | None -> A.ImportFrom(a0, from_module_name, None)
   end;  
   | Ast_generic.FileName _ -> (* TODO *)
-    A.ImportFrom(a0, from_module_name, [])
+    A.ImportFrom(a0, from_module_name, import_opt)
 
 and strip_aliases (aliases: Ast_generic.alias list) = List.map (fun (ident, _) -> ident) aliases
 
@@ -2020,10 +2020,7 @@ and strip_aliases (aliases: Ast_generic.alias list) = List.map (fun (ident, _) -
 *)
 and normalize_import i =
   match i with
-  | A.ImportFrom(a0, from_module_name, imports) -> 
-    (* TODO: list.hd should not be needed after we refactor importfrom to have a single element under imports *)
-      let single_import = (List.hd (strip_aliases imports)) in
-      normalize_import_as a0 from_module_name (Some single_import)
+  | A.ImportFrom(a0, from_module_name, import) -> normalize_import_as a0 from_module_name import
   | A.ImportAs(a0, a1, _) -> normalize_import_as a0 a1 None
   | A.ImportAll(a0, a1, _) -> normalize_import_as a0 a1 None
   | _ -> i
