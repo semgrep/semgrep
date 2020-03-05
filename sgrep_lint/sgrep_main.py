@@ -446,28 +446,9 @@ def should_exclude_this_path(path: Path) -> bool:
     return any("test" in p or "example" in p for p in path.parts)
 
 
-def set_flags(debug: bool, quiet: bool) -> None:
-    """Set the global DEBUG and QUIET flags"""
-    # TODO move to a proper logging framework
-    global DEBUG
-    global QUIET
-    if debug:
-        DEBUG = True  # type: ignore
-        debug_print("DEBUG is on")
-    if quiet:
-        QUIET = True  # type: ignore
-        debug_print("QUIET is on")
-
-
 # entry point
 def main(args: argparse.Namespace):
     """ main function that parses args and runs sgrep """
-
-    # set the flags
-    set_flags(args.verbose, args.quiet)
-
-    # change cwd if using docker
-    config_resolver.adjust_for_docker(args.precommit)
 
     # get the proper paths for targets i.e. handle base path of /home/repo when it exists in docker
     targets = config_resolver.resolve_targets(args.target)

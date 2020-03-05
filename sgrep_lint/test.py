@@ -269,8 +269,6 @@ def main(
     sgrep_verbose: bool,
     unsafe: bool,
 ):
-    global DEBUG
-    DEBUG = verbose  # type: ignore
     generate_file_pairs(location, ignore_todo, strict, sgrep_verbose, unsafe)
 
 
