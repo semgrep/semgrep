@@ -28,7 +28,7 @@ jobs:
       - run: pip3 install -r sgrep_lint/requirements.txt
       - run: ln -s /home/opam/project/_build/default/bin/main_sgrep.exe /home/opam/.local/bin/sgrep
       - run: eval $(opam env) && cd ./pfff && ./configure && make depend && make && make opt && make install-libs
-      - run: eval $(opam env) && cd sgrep && make test
+      - run: eval $(opam env) && cd sgrep && make test && make install
       - run: cd sgrep_lint && make test
 
 workflows:
