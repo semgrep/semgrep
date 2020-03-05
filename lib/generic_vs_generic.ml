@@ -324,6 +324,17 @@ let m_int a b =
 let m_string a b =
   if a =$= b then return () else fail ()
 
+(* todo, slow *)
+let string_is_prefix s1 s2 =
+  let len1 = String.length s1
+  and len2 = String.length s2 in
+  if len1 < len2 then false else
+    let sub = String.sub s1 0 len2 in
+    (sub = s2)
+
+let m_string_prefix a b =
+  if string_is_prefix b a then return () else fail ()
+
 let m_other_xxx a b = 
   match a, b with
   | a, b when a =*= b -> return ()
@@ -406,7 +417,7 @@ let m_module_name_prefix a b =
   match a, b with
   | A.FileName(a1), B.FileName(b1) ->
     (* TODO figure out what prefix support means here *)
-    (m_wrap m_string) a1 b1 >>= (fun () -> 
+    (m_wrap m_string_prefix) a1 b1 >>= (fun () -> 
     return ()
     )
   | A.DottedName(a1), B.DottedName(b1) ->
@@ -1989,16 +2000,16 @@ and m_macro_definition a b =
 *)
 and normalize_import_as (a0: Parse_info.token_mutable) (from_module_name: Ast_generic.module_name) (import_opt: Ast_generic.label option) = 
   match from_module_name with 
-  | DottedName idents -> 
+  | Ast_generic.DottedName idents -> 
     begin
     match import_opt with 
     | Some(import) ->
       let import_ident_name: Ast_generic.label = import in
       let new_module_name: Ast_generic.dotted_ident = idents @ [import_ident_name] in 
-        A.ImportFrom(a0, DottedName new_module_name, [])
+        A.ImportFrom(a0, Ast_generic.DottedName new_module_name, [])
     | None -> A.ImportFrom(a0, from_module_name, [])
   end;  
-  | FileName _ -> (* TODO *)
+  | Ast_generic.FileName _ -> (* TODO *)
     A.ImportFrom(a0, from_module_name, [])
 
 and strip_aliases (aliases: Ast_generic.alias list) = List.map (fun (ident, _) -> ident) aliases
@@ -2020,6 +2031,10 @@ and normalize_import i =
 and m_directive a b = 
   let normal_a = normalize_import a in
   let normal_b = normalize_import b in
+  (*
+    pr2 (spf "A = %s" (str_of_any (Dir normal_a)));
+    pr2 (spf "B = %s" (str_of_any (Dir normal_b)));
+  *)
   (* a is the pattern, b is the target*)
   match normal_a, normal_b with
   | A.ImportFrom(a0, a1, _), B.ImportFrom(b0, b1, _) ->
