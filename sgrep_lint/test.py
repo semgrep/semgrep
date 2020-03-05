@@ -137,13 +137,14 @@ def confusion_matrix_to_string(confusion: List[int]) -> str:
 
 
 def invoke_sgrep_lint(
-    verbose: bool, strict: bool, test_files: List[Path], config: Path
+    verbose: bool, strict: bool, test_files: List[Path], config: Path, unsafe: bool,
 ):
     return sgrep_main.main(
         argparse.Namespace(
             verbose=verbose,
             strict=strict,
             no_rewrite_rule_ids=True,
+            dangerously_allow_arbitrary_code_execution_from_rules = unsafe,
             config=str(config),
             quiet=True,
             precommit=False,
@@ -160,7 +161,7 @@ def invoke_sgrep_lint(
 
 
 def generate_file_pairs(
-    location: Path, ignore_todo: bool, strict: bool, sgrep_verbose: bool
+    location: Path, ignore_todo: bool, strict: bool, sgrep_verbose: bool, unsafe: bool
 ):
     filenames = list(location.rglob("*"))
     no_tests = []
@@ -195,7 +196,7 @@ def generate_file_pairs(
             # invoke sgrep
             try:
                 output_json = invoke_sgrep_lint(
-                    sgrep_verbose, strict, test_files, filename
+                    sgrep_verbose, strict, test_files, filename, unsafe
                 )
                 tested.append(
                     (filename, score_output_json(output_json, test_files, ignore_todo))
@@ -261,11 +262,11 @@ def generate_file_pairs(
 
 
 def main(
-    location: Path, ignore_todo: bool, verbose: bool, strict: bool, sgrep_verbose: bool
+    location: Path, ignore_todo: bool, verbose: bool, strict: bool, sgrep_verbose: bool, unsafe: bool
 ):
     global DEBUG
     DEBUG = verbose  # type: ignore
-    generate_file_pairs(location, ignore_todo, strict, sgrep_verbose)
+    generate_file_pairs(location, ignore_todo, strict, sgrep_verbose, unsafe)
 
 
 def test_main(args):
@@ -273,4 +274,4 @@ def test_main(args):
     if len(args.target) != 1:
         print_error_exit("only one target directory allowed for tests")
     target = Path(args.target[0])
-    main(target, args.test_ignore_todo, args.verbose, args.strict, args.verbose)
+    main(target, args.test_ignore_todo, args.verbose, args.strict, args.verbose, args.dangerously_allow_arbitrary_code_execution_from_rules)
