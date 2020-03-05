@@ -23,7 +23,7 @@ jobs:
     steps:
       - checkout
       - run: cd sgrep_lint && make all
-      - run: cd sgrep_lint && make test      
+      - run: cd sgrep_lint && make test
   test:
     executor: sgrep-build
     steps:
