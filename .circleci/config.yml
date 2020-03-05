@@ -18,11 +18,16 @@ jobs:
           root: /home/opam/project
           paths:
             - _build
-  build-and-test-lint:
+  build-lint:
     executor: sgrep-build
     steps:
       - checkout
       - run: cd sgrep_lint && make all
+  test-lint:
+    executor: sgrep-build
+    steps:
+      - checkout
+      - run: pip3 install -r sgrep_lint/requirements.txt
       - run: cd sgrep_lint && make test
   test:
     executor: sgrep-build
@@ -31,18 +36,17 @@ jobs:
       - attach_workspace:
           at: /home/opam/project
       - run: ln -s /home/opam/project/_build/default/bin/main_sgrep.exe /home/opam/.local/bin/sgrep
-      - run: pip3 install -r sgrep_lint/requirements.txt
       - run: cd ~ && git clone  https://github.com/returntocorp/pfff # TODO remove and just mount these two lines
       - run: eval $(opam env) && cd ~/pfff && ./configure && make depend && make && make opt && make install-libs
       - run: eval $(opam env); make test
-      - run: cd sgrep_lint; make test
 
 workflows:
   version: 2.1
   build_and_test:
     jobs:
       - build
-      - build-and-test-lint
+      - test-lint
+      - build-lint
       - test:
           requires:
             - build
