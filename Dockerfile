@@ -22,10 +22,9 @@ RUN /home/opam/sgrep/_build/default/bin/main_sgrep.exe -version
 FROM alpine:3.11.3@sha256:ddba4d27a7ffc3f86dd6c2f92041af252a1f23a8e742c90e6e1297bfa1bc0c45 as build-sgrep-lint
 RUN apk add --no-cache python3-dev build-base chrpath
 COPY sgrep_lint /home/pythonbuild/sgrep_lint/
-# have to manually specify colorama for some reason, but others (yaml, etc) are working ok
 WORKDIR /home/pythonbuild/sgrep_lint
 RUN make all
-RUN ls -al /home/pythonbuild/sgrep/sgrep_lint/build/sgrep.dist/
+RUN ls -al /home/pythonbuild/sgrep_lint/build/sgrep.dist/
 
 ## final output, combining both
 
@@ -34,7 +33,7 @@ LABEL maintainer="sgrep@r2c.dev"
 
 ENV PYTHONUNBUFFERED=1
 
-COPY --from=build-sgrep-lint /home/pythonbuild/sgrep/sgrep_lint/build/sgrep.dist/* /bin/sgrep-lint-files/
+COPY --from=build-sgrep-lint /home/pythonbuild/sgrep_lint/build/sgrep.dist/* /bin/sgrep-lint-files/
 RUN ln -s /bin/sgrep-lint-files/sgrep-lint /bin/sgrep-lint
 
 RUN ls -al  /bin/sgrep-lint-files/cacert.pem
