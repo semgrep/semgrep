@@ -305,6 +305,15 @@ let rec m_list f a b =
   | _::_, _ ->
       fail ()
 
+let m_list_subset a b =
+  (* match if a is a subset of b *)
+  let set_a = Common2.set a in
+  let set_b = Common2.set b in
+  if set_a <= set_b then
+    return ()
+  else
+    fail ()
+
 
 let m_bool a b = 
   if a = b then return () else fail ()
@@ -314,6 +323,17 @@ let m_int a b =
 
 let m_string a b =
   if a =$= b then return () else fail ()
+
+(* todo, slow *)
+let string_is_prefix s1 s2 =
+  let len1 = String.length s1
+  and len2 = String.length s2 in
+  if len1 < len2 then false else
+    let sub = String.sub s1 0 len2 in
+    (sub = s2)
+
+let m_string_prefix a b =
+  if string_is_prefix b a then return () else fail ()
 
 let m_other_xxx a b = 
   match a, b with
@@ -370,9 +390,43 @@ let m_dotted_name a b =
   (* TODO: [$X] should match any list *)
   (a, b) -> (m_list m_ident) a b
 
+
+let rec m_list_prefix f a b =
+  match a, b with
+  | [], [] ->
+      return ()
+  | xa::aas, xb::bbs ->
+      f xa xb >>= (fun () ->
+      m_list_prefix f aas bbs >>= (fun () ->
+        return ()
+      )
+      )
+  | [], _ -> return ()
+  | _::_, _ ->
+      fail ()
+
 let m_qualified_name a b = 
   match a, b with
   (a, b) -> m_dotted_name a b
+
+(* prefix matching is supported for imports, eg.:
+  pattern: import foo.x
+  should match: from foo.x.z.y
+*)
+let m_module_name_prefix a b = 
+  match a, b with
+  | A.FileName(a1), B.FileName(b1) ->
+    (* TODO figure out what prefix support means here *)
+    (m_wrap m_string_prefix) a1 b1 >>= (fun () -> 
+    return ()
+    )
+  | A.DottedName(a1), B.DottedName(b1) ->
+    m_list_prefix m_ident a1 b1 >>= (fun () -> 
+    return ()
+    )
+  | A.FileName _, _
+  | A.DottedName _, _
+   -> fail ()
 
 let m_module_name a b = 
   match a, b with
@@ -1939,23 +1993,64 @@ and m_macro_definition a b =
 (* Directives (Module import/export, macros) *)
 (* ------------------------------------------------------------------------- *)
 
+
+(* normalize from:
+    from foo import bar -> import foo.bar
+    from foo.bar import baz -> import foo.bar.baz
+    from foo.bar.baz import yoo -> import foo.bar.baz.yoo
+
+    TODO: we plan to refactor ImportFrom such that it has at most one identifier; this function assumes that has already happened
+*)
+and normalize_import_as (a0: Parse_info.token_mutable) (from_module_name: Ast_generic.module_name) (import_opt: Ast_generic.alias option) = 
+  match from_module_name with 
+  | Ast_generic.DottedName idents -> 
+    begin
+    match import_opt with 
+    | Some(import) ->
+      let (import_ident_name: Ast_generic.label), _ = import in
+      let new_module_name: Ast_generic.dotted_ident = idents @ [import_ident_name] in 
+        A.ImportFrom(a0, Ast_generic.DottedName new_module_name, None)
+    | None -> A.ImportFrom(a0, from_module_name, None)
+  end;  
+  | Ast_generic.FileName _ -> (* TODO *)
+    A.ImportFrom(a0, from_module_name, import_opt)
+
+and strip_aliases (aliases: Ast_generic.alias list) = List.map (fun (ident, _) -> ident) aliases
+
+(* 
+  a function that will take ImportFrom, ImportAs, ImportAll -> normalized 
+  ImportFrom for matching `import` purposes
+*)
+and normalize_import i =
+  match i with
+  | A.ImportFrom(a0, from_module_name, import) -> normalize_import_as a0 from_module_name import
+  | A.ImportAs(a0, a1, _) -> normalize_import_as a0 a1 None
+  | A.ImportAll(a0, a1, _) -> normalize_import_as a0 a1 None
+  | _ -> i
+
 and m_directive a b = 
-  match a, b with
-  | A.ImportFrom(a0, a1, a2), B.ImportFrom(b0, b1, b2) ->
+  let normal_a = normalize_import a in
+  let normal_b = normalize_import b in
+  (*
+    pr2 (spf "A = %s" (str_of_any (Dir normal_a)));
+    pr2 (spf "B = %s" (str_of_any (Dir normal_b)));
+  *)
+  (* a is the pattern, b is the target*)
+  match normal_a, normal_b with
+  | A.ImportFrom(a0, a1, _), B.ImportFrom(b0, b1, _) ->
     m_tok a0 b0 >>= (fun () ->
-    m_module_name a1 b1 >>= (fun () -> 
-    (m_list m_alias) a2 b2 >>= (fun () -> 
-    return ()
-    )))
+    m_module_name_prefix a1 b1 >>= (fun () -> 
+    return()
+    ))
   | A.ImportAs(a0, a1, a2), B.ImportAs(b0, b1, b2) ->
     m_tok a0 b0 >>= (fun () ->
-    m_module_name a1 b1 >>= (fun () -> 
+    m_module_name_prefix a1 b1 >>= (fun () -> 
     (m_option m_ident) a2 b2 >>= (fun () -> 
     return ()
     )))
   | A.ImportAll(a0, a1, a2), B.ImportAll(b0, b1, b2) ->
     m_tok a0 b0 >>= (fun () ->
-    m_module_name a1 b1 >>= (fun () -> 
+    m_module_name_prefix a1 b1 >>= (fun () -> 
     m_tok a2 b2 >>= (fun () -> 
     return ()
     )))
