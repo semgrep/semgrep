@@ -202,21 +202,21 @@ def _evaluate_expression(
         ), f"{pattern_name_for_operator(OPERATORS.AND_EITHER)} or {pattern_name_for_operator(OPERATORS.AND_ALL)} must have a list of subpatterns"
 
         # recurse on the nested expressions
-        evaluated_ranges = [
-            _evaluate_expression(expr, results, ranges_left.copy())
-            for expr in expression.children
-        ]
-        debug_print(
-            f"recursion result {evaluated_ranges} (flat: {list(flatten(evaluated_ranges))}))"
-        )
-
         if expression.operator == OPERATORS.AND_EITHER:
             # remove anything that does not equal one of these ranges
+            evaluated_ranges = [
+                _evaluate_expression(expr, results, ranges_left.copy())
+                for expr in expression.children
+            ]
             ranges_left.intersection_update(flatten(evaluated_ranges))
-        elif expression.operator == OPERATORS.AND_ALL:
-            # chain intersection of every range returned
-            for arange in evaluated_ranges:
-                ranges_left.intersection_update(arange)
+        else:
+            # chain intersection eagerly; intersect for every AND'ed child
+            for expr in expression.children:
+                remainining_ranges = _evaluate_expression(
+                    expr, results, ranges_left.copy()
+                )
+                ranges_left.intersection_update(remainining_ranges)
+
         debug_print(f"after filter `{expression.operator}`: {ranges_left}")
     else:
         assert (
