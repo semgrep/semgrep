@@ -212,7 +212,9 @@ def _evaluate_expression(
         else:
             # chain intersection eagerly; intersect for every AND'ed child
             for expr in expression.children:
-                remainining_ranges = _evaluate_expression(expr, results, ranges_left.copy())
+                remainining_ranges = _evaluate_expression(
+                    expr, results, ranges_left.copy()
+                )
                 ranges_left.intersection_update(remainining_ranges)
 
         debug_print(f"after filter `{expression.operator}`: {ranges_left}")
