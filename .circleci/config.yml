@@ -10,10 +10,14 @@ jobs:
     executor: sgrep-build
     steps:
       - checkout
-      - run: cd ~ && git clone  https://github.com/returntocorp/pfff
-      - run: eval $(opam env) && cd ~/pfff && ./configure && make depend && make && make opt && make install-libs
-      - run: eval $(opam env); make all
-      - run: cd sgrep_lint; make all
+      - run:
+        name: "Pull Submodules"
+        command: |
+          git submodule init
+          git submodule update --remote
+      - run: eval $(opam env) && cd ./pfff && ./configure && make depend && make && make opt && make install-libs
+      - run: eval $(opam env) && cd sgrep && make all
+      - run: cd sgrep_lint && make all
       - persist_to_workspace:
           root: /home/opam/project
           paths:
@@ -27,13 +31,17 @@ jobs:
     executor: sgrep-build
     steps:
       - checkout
+      - run:
+        name: "Pull Submodules"
+        command: |
+          git submodule init
+          git submodule update --remote      
       - attach_workspace:
           at: /home/opam/project
       - run: pip3 install -r sgrep_lint/requirements.txt
       - run: ln -s /home/opam/project/_build/default/bin/main_sgrep.exe /home/opam/.local/bin/sgrep
-      - run: cd ~ && git clone  https://github.com/returntocorp/pfff # TODO remove and just mount these two lines
-      - run: eval $(opam env) && cd ~/pfff && ./configure && make depend && make && make opt && make install-libs
-      - run: eval $(opam env); make test
+      - run: eval $(opam env) && cd ./pfff && ./configure && make depend && make && make opt && make install-libs
+      - run: eval $(opam env); cd sgrep && make test
       - run: cd sgrep_lint && make test
 
 workflows:

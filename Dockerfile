@@ -9,11 +9,9 @@ WORKDIR /home/opam/opam-repository
 RUN git pull && opam update && opam switch 4.07 && opam install ocamlfind camlp4 num ocamlgraph json-wheel conf-perl dune yaml
 WORKDIR /home/opam/
 
-RUN git clone https://github.com/returntocorp/pfff
-RUN eval $(opam env) && cd pfff && ./configure && make depend && make && make opt && make install-libs
-
 COPY --chown=opam . /home/opam/sgrep/
 
+RUN eval $(opam env) && cd sgrep/pfff && ./configure && make depend && make && make opt && make install-libs
 RUN eval $(opam env); cd sgrep; make all
 RUN /home/opam/sgrep/_build/default/bin/main_sgrep.exe -version
 
