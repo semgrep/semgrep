@@ -205,7 +205,7 @@ def _evaluate_expression(
         if expression.operator == OPERATORS.AND_EITHER:
             # remove anything that does not equal one of these ranges
             evaluated_ranges = [
-                _evaluate_expression(expr, results, ranges_left.copy())
+                _evaluate_expression(expr, results, ranges_left.copy(), flags)
                 for expr in expression.children
             ]
             ranges_left.intersection_update(flatten(evaluated_ranges))
@@ -213,7 +213,7 @@ def _evaluate_expression(
             # chain intersection eagerly; intersect for every AND'ed child
             for expr in expression.children:
                 remainining_ranges = _evaluate_expression(
-                    expr, results, ranges_left.copy()
+                    expr, results, ranges_left.copy(), flags
                 )
                 ranges_left.intersection_update(remainining_ranges)
 

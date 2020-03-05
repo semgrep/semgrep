@@ -177,8 +177,6 @@ def generate_file_pairs(
             # find all filenames that have the same name but not extension, or are in a folder with the same name as a the yaml file
             yaml_file_name_without_ext = filename.with_suffix("")
 
-            # import pdb
-            # pdb.set_trace()
             children_test_files = [
                 p
                 for p in filenames
