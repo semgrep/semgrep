@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
 import argparse
 import test
-import sgrep_main
 
-from constants import SGREP_URL, RCE_RULE_FLAG, DEFAULT_CONFIG_FILE, PLEASE_FILE_ISSUE_TEXT
+import sgrep_main
+from constants import DEFAULT_CONFIG_FILE
+from constants import PLEASE_FILE_ISSUE_TEXT
+from constants import RCE_RULE_FLAG
+from constants import SGREP_URL
 from util import print_error_exit
+
 # CLI
 
 if __name__ == "__main__":
@@ -91,9 +95,7 @@ if __name__ == "__main__":
     output.add_argument(
         "--json", help="Convert search output to JSON format.", action="store_true"
     )
-    output.add_argument(
-        "--test", help="Run a test suite", action="store_true"
-    )
+    output.add_argument("--test", help="Run a test suite", action="store_true")
     parser.add_argument(
         "--test-ignore-todo",
         help="Ignore rules marked as #todoruleid: in test files",

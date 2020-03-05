@@ -30,8 +30,10 @@ import requests
 import yaml
 from constants import DEFAULT_CONFIG_FILE
 from constants import ID_KEY
+from constants import PLEASE_FILE_ISSUE_TEXT
 from constants import RCE_RULE_FLAG
 from constants import RULES_KEY
+from constants import SGREP_URL
 from evaluation import build_boolean_expression
 from evaluation import enumerate_patterns_in_boolean_expression
 from evaluation import evaluate_expression
@@ -52,7 +54,6 @@ from util import print_msg
 
 # Constants
 
-from constants import SGREP_URL, PLEASE_FILE_ISSUE_TEXT
 SGREP_RULES_HOME = "https://github.com/returntocorp/sgrep-rules"
 MISSING_RULE_ID = "no-rule-id"
 
