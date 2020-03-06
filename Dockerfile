@@ -2,7 +2,7 @@
 
 FROM ocaml/opam2:alpine@sha256:4c2ce9a181b4b12442a68fc221d0b753959ec80e24eae3bf788eeca4dcb9a293 as build-sgrep
 USER root
-RUN apk add --no-cache perl m4 ssh
+RUN apk add --no-cache perl m4 openssh
 
 USER opam
 WORKDIR /home/opam/opam-repository
