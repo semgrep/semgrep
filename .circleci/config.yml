@@ -3,38 +3,46 @@ version: 2.1
 executors:
   sgrep-build:
     docker:
-      - image: returntocorp/sgrep-build:2.5
+      - image: returntocorp/sgrep-build:2.7
 
 jobs:
   build:
     executor: sgrep-build
     steps:
       - checkout
-      - run: pip3 install -r requirements.txt
       - run: cd ~ && git clone  https://github.com/returntocorp/pfff
       - run: eval $(opam env) && cd ~/pfff && ./configure && make depend && make && make opt && make install-libs
       - run: eval $(opam env); make all
+      - run: cd sgrep_lint; make all
       - persist_to_workspace:
           root: /home/opam/project
           paths:
             - _build
+  build-lint:
+    executor: sgrep-build
+    steps:
+      - checkout
+      - run: cd sgrep_lint && make all
   test:
     executor: sgrep-build
     steps:
       - checkout
       - attach_workspace:
           at: /home/opam/project
+      - run: pip3 install -r sgrep_lint/requirements.txt
       - run: ln -s /home/opam/project/_build/default/bin/main_sgrep.exe /home/opam/.local/bin/sgrep
-      - run: pip3 install -r requirements.txt
       - run: cd ~ && git clone  https://github.com/returntocorp/pfff # TODO remove and just mount these two lines
       - run: eval $(opam env) && cd ~/pfff && ./configure && make depend && make && make opt && make install-libs
       - run: eval $(opam env); make test
+      - run: cd sgrep_lint && make test
+
 
 workflows:
   version: 2.1
   build_and_test:
     jobs:
       - build
+      - build-lint
       - test:
           requires:
             - build

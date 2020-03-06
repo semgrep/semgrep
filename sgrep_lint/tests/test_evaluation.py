@@ -1,25 +1,35 @@
+#!/usr/bin/env python3
 import os
-from typing import List
 import sys
+from typing import List
 
-from sgrep import (
-    OPERATORS,
-    Operator,
-    Range,
-    evaluate_expression,
-    enumerate_patterns_in_boolean_expression,
-    SgrepRange,
-    BooleanRuleExpression,
-)
+from constants import RCE_RULE_FLAG
+from evaluation import enumerate_patterns_in_boolean_expression
+from evaluation import evaluate_expression as raw_evalute_expression
+from sgrep_types import BooleanRuleExpression
+from sgrep_types import Operator
+from sgrep_types import OPERATORS
+from sgrep_types import Range
+from sgrep_types import SgrepRange
 
-# run from parent directory with PYTHONPATH=. python3 testlint/test_lint.py
 
+def evaluate_expression(exprs: List[BooleanRuleExpression], results, flags=None):
+    # convert it to an implicit and
+    e = BooleanRuleExpression(OPERATORS.AND_ALL, None, exprs, None)
+    return raw_evalute_expression(e, results, flags)
 
 def SRange(start: int, end: int):
     return SgrepRange(Range(start, end), {})
 
-def RuleExpr(operator: Operator, fake_pattern_name: str, children: List[BooleanRuleExpression]=None):
-    return BooleanRuleExpression(operator, fake_pattern_name, children, "fake-pattern-text-here")
+
+def RuleExpr(
+    operator: Operator,
+    fake_pattern_name: str,
+    children: List[BooleanRuleExpression] = None,
+):
+    return BooleanRuleExpression(
+        operator, fake_pattern_name, children, "fake-pattern-text-here"
+    )
 
 
 def testA():
@@ -54,7 +64,7 @@ def testA():
 
 def testB():
     """
-    Our algebra needs to express "AND-INSIDE" as opposed to "AND-NOT-INSIDE", so that cases 
+    Our algebra needs to express "AND-INSIDE" as opposed to "AND-NOT-INSIDE", so that cases
     like this one can still fire (we explicitly don't want to ignore the nested expression
     just because it's inside).
 
@@ -82,10 +92,7 @@ def testB():
         BooleanRuleExpression(
             OPERATORS.AND_EITHER,
             None,
-            [
-                RuleExpr(OPERATORS.AND, "pattern2"),
-                RuleExpr(OPERATORS.AND, "pattern3"),
-            ],
+            [RuleExpr(OPERATORS.AND, "pattern2"), RuleExpr(OPERATORS.AND, "pattern3")],
         ),
     ]
     result = evaluate_expression(expression, results)
@@ -235,20 +242,20 @@ def testE():
 
 def testF():
     """Nested boolean expressions
-    
+
     let pattern1 = bad(..., x=1)
     let pattern2 = bad(..., y=2)
     let pattern3 = def normal(): \n...
     let pattern4 = def unusual(): \n...
 
     We want to find (ONLY inside P3), either:
-        P2 inside P4 
-      or 
+        P2 inside P4
+      or
         P1 not-inside P4
-    
+
     example:
 
-    000-100    def normal():            
+    000-100    def normal():
     100-200        bad(x = 1) # P1 not-inside-P4
     200-300        bad(y = 2) # no match
     300-400        def unusual():
@@ -257,7 +264,7 @@ def testF():
     600-700        def regular():
     700-800            bad(x = 1) # P1 not-inside P4
     800-900            bad(y = 2) # no-match
-               
+
         pattern-inside P3
         and-either:
            - patterns:
@@ -266,7 +273,7 @@ def testF():
           - patterns:
             - pattern-not-inside P4
             - and P1
-    
+
         OUTPUT: [500-600], [700-800]
     """
     results = {
@@ -312,7 +319,7 @@ def test_exprs():
         BooleanRuleExpression(OPERATORS.AND_NOT_INSIDE, "pattern4", None, "p4"),
         BooleanRuleExpression(OPERATORS.AND, "pattern1", None, "p1"),
     ]
-    expression = [
+    expression = BooleanRuleExpression(OPERATORS.AND_ALL, None, [
         BooleanRuleExpression(OPERATORS.AND_INSIDE, "pattern3", None, "p3"),
         BooleanRuleExpression(
             OPERATORS.AND_EITHER,
@@ -322,11 +329,12 @@ def test_exprs():
                 BooleanRuleExpression(OPERATORS.AND_ALL, "someid2", subexpression2),
             ],
         ),
-    ]
+    ])
     flat = list(enumerate_patterns_in_boolean_expression(expression))
     # print(flat)
 
     expected = [
+        BooleanRuleExpression(OPERATORS.AND_ALL, None, None, None),
         BooleanRuleExpression(OPERATORS.AND_INSIDE, "pattern3", None, "p3"),
         BooleanRuleExpression(OPERATORS.AND_EITHER, None, None, None),
         BooleanRuleExpression(OPERATORS.AND_ALL, None, None, None),
@@ -340,40 +348,40 @@ def test_exprs():
     assert flat == expected, f"flat: {flat}"
 
 
-def testEvaluatePython():
+def test_evaluate_python():
     """Test evaluating the subpattern `where-python: <python_expression>`,
     in which a rule can provide an arbitrary Python expression that will be
     evaluated against the currently matched metavariables.
-    
+
     NOTE: the Python expression must evaluate to True or False.
-   
+
     NOTE: Assume patterns are applied in the order specified, top to bottom.
 
     This is implementing: https://github.com/returntocorp/sgrep/issues/101.
- 
+
         let allExecs = exec($X)
-        let filteredExecs = where-python: "vars['$X'].startswith('cmd')" 
+        let filteredExecs = where-python: "vars['$X'].startswith('cmd')"
 
         000-100   var exec = require('child_process').exec;
- 
+
         100-200   var cmd_pattern = "user_input";
         200-300   var other_pattern = "hardcoded_string";
- 
+
         300-400   // should match
         400-500   exec(cmd_pattern, function(error, stdout, stderr){
         500-600       console.log(stdout);
         600-700   });
- 
+
         700-800   // should not match
         800-900   exec(other_pattern, function(error, stdout, stderr){
         900-1000      console.log(stdout);
         1100-1200 });
-    
+
         patterns:
             pattern: exec($X)
-            where-python: "vars['$X'].startswith('cmd')" 
+            where-python: "vars['$X'].startswith('cmd')"
 
-    
+
         OUTPUT: [400-500]
     """
     results = {
@@ -390,22 +398,5 @@ def testEvaluatePython():
         ),
     ]
 
-    result = evaluate_expression(expression, results)
+    result = evaluate_expression(expression, results, flags={RCE_RULE_FLAG: True})
     assert result == set([Range(400, 500)]), f"{result}"
-
-
-def testAll():
-    testEvaluatePython()
-    test_exprs()
-
-    testA()
-    testB()
-    testC()
-    testD()
-    testE()
-    testF()
-
-
-if __name__ == "__main__":
-    testAll()
-    print("all tests passed")

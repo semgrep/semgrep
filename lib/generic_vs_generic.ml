@@ -192,9 +192,9 @@ let str_of_any any =
    *)
   let equal_ast_binded_code a b =
     match a, b with
-    | Ast.Id _, Ast.Id _
-    | Ast.E _, Ast.E _ 
+    | Ast.I _, Ast.I _
     | Ast.N _, Ast.N _
+    | Ast.E _, Ast.E _ 
     | Ast.S _, Ast.S _
       ->
         (* Note that because we want to retain the position information
@@ -305,6 +305,15 @@ let rec m_list f a b =
   | _::_, _ ->
       fail ()
 
+let m_list_subset a b =
+  (* match if a is a subset of b *)
+  let set_a = Common2.set a in
+  let set_b = Common2.set b in
+  if set_a <= set_b then
+    return ()
+  else
+    fail ()
+
 
 let m_bool a b = 
   if a = b then return () else fail ()
@@ -314,6 +323,17 @@ let m_int a b =
 
 let m_string a b =
   if a =$= b then return () else fail ()
+
+(* todo, slow *)
+let string_is_prefix s1 s2 =
+  let len1 = String.length s1
+  and len2 = String.length s2 in
+  if len1 < len2 then false else
+    let sub = String.sub s1 0 len2 in
+    (sub = s2)
+
+let m_string_prefix a b =
+  if string_is_prefix b a then return () else fail ()
 
 let m_other_xxx a b = 
   match a, b with
@@ -354,7 +374,12 @@ let m_ident a b =
   (* metavar: *)
   match a, b with
   | (str, tok), b when MV.is_metavar_name str ->
-      envf (str, tok) (B.Id b)
+      (* note that adding B.I here is sometimes not what you want.
+       * this can prevent this id to later be matched against
+       * an ident used in an expression context (an Id).
+       * see m_ident_and_id_info_add_in_env_Expr for more information.
+       *)
+      envf (str, tok) (B.I b)
 
   (* general case *)
   | (a, b) -> (m_wrap m_string) a b
@@ -365,9 +390,43 @@ let m_dotted_name a b =
   (* TODO: [$X] should match any list *)
   (a, b) -> (m_list m_ident) a b
 
+
+let rec m_list_prefix f a b =
+  match a, b with
+  | [], [] ->
+      return ()
+  | xa::aas, xb::bbs ->
+      f xa xb >>= (fun () ->
+      m_list_prefix f aas bbs >>= (fun () ->
+        return ()
+      )
+      )
+  | [], _ -> return ()
+  | _::_, _ ->
+      fail ()
+
 let m_qualified_name a b = 
   match a, b with
   (a, b) -> m_dotted_name a b
+
+(* prefix matching is supported for imports, eg.:
+  pattern: import foo.x
+  should match: from foo.x.z.y
+*)
+let m_module_name_prefix a b = 
+  match a, b with
+  | A.FileName(a1), B.FileName(b1) ->
+    (* TODO figure out what prefix support means here *)
+    (m_wrap m_string_prefix) a1 b1 >>= (fun () -> 
+    return ()
+    )
+  | A.DottedName(a1), B.DottedName(b1) ->
+    m_list_prefix m_ident a1 b1 >>= (fun () -> 
+    return ()
+    )
+  | A.FileName _, _
+  | A.DottedName _, _
+   -> fail ()
 
 let m_module_name a b = 
   match a, b with
@@ -383,24 +442,20 @@ let m_module_name a b =
   | A.DottedName _, _
    -> fail ()
 
-let m_gensym a b = 
+let m_sid a b = 
   if a =|= b then return () else fail ()
 
-let m_resolved_name a b = 
+let m_resolved_name_kind a b =
   match a, b with
-  | A.Local a1, B.Local b1 ->
-    m_gensym a1 b1 >>= (fun () -> 
+  | A.Local, B.Local ->
       return ()
-    )
-  | A.EnclosedVar a1, B.EnclosedVar b1 ->
-    m_gensym a1 b1 >>= (fun () -> 
+  | A.EnclosedVar, B.EnclosedVar ->
       return ()
-    )
-  | A.Param a1, B.Param b1 ->
-    m_gensym a1 b1 >>= (fun () -> 
+  | A.Param, B.Param ->
       return ()
-    )
-  | A.Global(a1), B.Global(b1) ->
+  | A.Global, B.Global ->
+      return ()
+  | A.ImportedEntity(a1), B.ImportedEntity(b1) ->
     m_qualified_name a1 b1 >>= (fun () -> 
     return ()
     )
@@ -415,15 +470,22 @@ let m_resolved_name a b =
   | A.TypeName, B.TypeName ->
     return ()
 
-  | A.Local _, _
-  | A.Param _, _
-  | A.Global _, _
-  | A.EnclosedVar _, _
+  | A.Local , _
+  | A.Param , _
+  | A.Global, _
+  | A.EnclosedVar , _
   | A.Macro, _
   | A.EnumConstant, _
   | A.TypeName, _
+  | A.ImportedEntity _, _
   | A.ImportedModule _, _
    -> fail ()
+
+let m_resolved_name (a1, a2) (b1, b2) = 
+  m_resolved_name_kind a1 b1 >>= (fun () ->
+  m_sid a2 b2 >>= (fun () ->
+    return ()
+  ))
 
 
 (* start of recursive need *)
@@ -435,20 +497,20 @@ let rec m_name a b =
       return ()
    ))
 
-and m_ident_and_id_info_add_in_env_Name (a1, a2) (b1, b2) =
+and m_ident_and_id_info_add_in_env_Expr (a1, a2) (b1, b2) =
   (* metavar: *)
   match a1, b1 with
   | (str, tok), b when MV.is_metavar_name str ->
       m_id_info a2 b2 >>= (fun () ->
-        envf (str, tok) (B.E (B.Name ((b, B.empty_name_info), b2)))
+        envf (str, tok) (B.E (B.Id (b, b2))) (* B.E here, not B.I *)
      )
   (* general case *)
   | (a, b) -> (m_wrap m_string) a b
 
 and m_id_info a b =
   match a, b with
-  { A. id_resolved = _a1; id_type = a2; },
-  { B. id_resolved = _b1; id_type = b2; }
+  { A. id_resolved = _a1; id_type = a2; id_const_literal = _a3 },
+  { B. id_resolved = _b1; id_type = b2; id_const_literal = _b3 }
    -> 
 
      (* TODO:
@@ -474,29 +536,34 @@ and make_dotted xs =
   match xs with
   | [] -> raise Impossible
   | x::xs ->
-    let base = B.Name ((x, B.empty_name_info), B.empty_id_info()) in
+    let base = B.Id (x, B.empty_id_info()) in
     List.fold_left (fun acc e -> 
       let tok = Parse_info.fake_info "." in
       B.DotAccess (acc, tok, B.FId e)) base xs
 
 and m_expr a b = 
   match a, b with
+  (* equivalence: constant propagation! *)
+  | A.L(a1), B.Id (_, { B.id_const_literal = {contents = Some a2}; _}) ->
+    m_literal a1 a2
+
   (* equivalence: name resolving! *)
-  | a, B.Name (_, { B.id_resolved = 
-      {contents = Some (B.Global dotted 
-                       | B.ImportedModule (B.DottedName dotted))}; _}) ->
+  | a,   B.Id (_, { B.id_resolved = 
+      {contents = Some ( ( B.ImportedEntity dotted 
+                         | B.ImportedModule (B.DottedName dotted)
+                         ), _sid)}; _}) ->
 
     m_expr a (make_dotted dotted)
 
   (* $X should not match an IdSpecial otherwise $X(...) could match
    * a+b because this is transformed in a Call(IdSpecial Plus, ...) 
    *)
-  | A.Name (((str,_tok), _name_info), _id_info), B.IdSpecial _ 
+  | A.Id ((str,_tok), _id_info), B.IdSpecial _ 
       when MV.is_metavar_name str ->
       fail ()
 
   (* metavar: *)
-  | A.Name (((str,tok), _name_info), _id_info), e2 
+  | A.Id ((str,tok), _id_info), e2 
      when MV.is_metavar_name str ->
       envf (str, tok) (B.E (e2))
 
@@ -540,7 +607,11 @@ and m_expr a b =
   | A.AnonClass(a1), B.AnonClass(b1) ->
     m_class_definition a1 b1 >>= (fun () -> 
     return ())
-  | A.Name(a1, a2), B.Name(b1, b2) ->
+  | A.Id(a1, a2), B.Id(b1, b2) ->
+    m_ident a1 b1 >>= (fun () -> 
+    m_id_info a2 b2 >>= (fun () -> 
+    return ()))
+  | A.IdQualified(a1, a2), B.IdQualified(b1, b2) ->
     m_name a1 b1 >>= (fun () -> 
     m_id_info a2 b2 >>= (fun () -> 
     return ()))
@@ -642,7 +713,8 @@ and m_expr a b =
     ))
   | A.L _, _  | A.Container _, _  | A.Tuple _, _  | A.Record _, _
   | A.Constructor _, _  | A.Lambda _, _  | A.AnonClass _, _
-  | A.Name _, _  | A.IdSpecial _, _  | A.Call _, _  | A.Xml _, _
+  | A.Id _, _  | A.IdQualified _, _ | A.IdSpecial _, _  
+  | A.Call _, _  | A.Xml _, _
   | A.Assign _, _  | A.AssignOp _, _  | A.LetPattern _, _  | A.DotAccess _, _
   | A.ArrayAccess _, _  | A.Conditional _, _  | A.MatchPattern _, _
   | A.Yield _, _  | A.Await _, _  | A.Cast _, _  | A.Seq _, _  | A.Ref _, _
@@ -1156,7 +1228,7 @@ and m_stmt a b =
   match a, b with
 
   (* metavar: *)
-  | A.ExprStmt(A.Name (((str,tok), _name_info), _id_info)), b 
+  | A.ExprStmt(A.Id ((str,tok), _id_info)), b 
      when MV.is_metavar_name str ->
       envf (str, tok) (B.S b)
 
@@ -1473,13 +1545,13 @@ and m_definition a b =
 and m_entity a b = 
   match a, b with
   (* bugfix: when we use a metavar to match an entity, as in $X(...): ...
-   * and later we use $X again to match a name, the $X is first an Id and
-   * later a Name, which would prevent a match. Instead we need to
-   * make $X a Name early on
+   * and later we use $X again to match a name, the $X is first an ident and
+   * later an expression, which would prevent a match. Instead we need to
+   * make $X an expression early on
    *)
   { A. name = a1; attrs = a2; tparams = a4; info = a5 },
   { B. name = b1; attrs = b2; tparams = b4; info = b5 } -> 
-    m_ident_and_id_info_add_in_env_Name (a1, a5) (b1, b5) >>= (fun () ->
+    m_ident_and_id_info_add_in_env_Expr (a1, a5) (b1, b5) >>= (fun () ->
     (m_list__m_attribute) a2 b2 >>= (fun () -> 
     (m_list m_type_parameter) a4 b4 >>= (fun () -> 
      return ()
@@ -1615,15 +1687,15 @@ and m_parameter a b =
 and m_parameter_classic a b = 
   match a, b with
   (* bugfix: when we use a metavar to match a parameter, as in foo($X): ...
-   * and later we use $X again to match a name, the $X is first an Id and
-   * later a Name, which would prevent a match. Instead we need to
-   * make $X a Name early on
+   * and later we use $X again to match a name, the $X is first an ident and
+   * later an expression, which would prevent a match. Instead we need to
+   * make $X an expression early on
    *)
 
   | { A. pname = Some a1; pdefault = a2; ptype = a3; pattrs = a4; pinfo = a5 },
     { B. pname = Some b1; pdefault = b2; ptype = b3; pattrs = b4; pinfo = b5 }
     -> 
-     m_ident_and_id_info_add_in_env_Name (a1, a5) (b1, b5) >>= (fun () ->
+     m_ident_and_id_info_add_in_env_Expr (a1, a5) (b1, b5) >>= (fun () ->
      (m_option m_expr) a2 b2 >>= (fun () -> 
      (m_option m_type_) a3 b3 >>= (fun () -> 
      (m_list m_attribute) a4 b4 >>= (fun () -> 
@@ -1921,23 +1993,64 @@ and m_macro_definition a b =
 (* Directives (Module import/export, macros) *)
 (* ------------------------------------------------------------------------- *)
 
+
+(* normalize from:
+    from foo import bar -> import foo.bar
+    from foo.bar import baz -> import foo.bar.baz
+    from foo.bar.baz import yoo -> import foo.bar.baz.yoo
+
+    TODO: we plan to refactor ImportFrom such that it has at most one identifier; this function assumes that has already happened
+*)
+and normalize_import_as (a0: Parse_info.token_mutable) (from_module_name: Ast_generic.module_name) (import_opt: Ast_generic.alias option) = 
+  match from_module_name with 
+  | Ast_generic.DottedName idents -> 
+    begin
+    match import_opt with 
+    | Some(import) ->
+      let (import_ident_name: Ast_generic.label), _ = import in
+      let new_module_name: Ast_generic.dotted_ident = idents @ [import_ident_name] in 
+        A.ImportFrom(a0, Ast_generic.DottedName new_module_name, None)
+    | None -> A.ImportFrom(a0, from_module_name, None)
+  end;  
+  | Ast_generic.FileName _ -> (* TODO *)
+    A.ImportFrom(a0, from_module_name, import_opt)
+
+and strip_aliases (aliases: Ast_generic.alias list) = List.map (fun (ident, _) -> ident) aliases
+
+(* 
+  a function that will take ImportFrom, ImportAs, ImportAll -> normalized 
+  ImportFrom for matching `import` purposes
+*)
+and normalize_import i =
+  match i with
+  | A.ImportFrom(a0, from_module_name, import) -> normalize_import_as a0 from_module_name import
+  | A.ImportAs(a0, a1, _) -> normalize_import_as a0 a1 None
+  | A.ImportAll(a0, a1, _) -> normalize_import_as a0 a1 None
+  | _ -> i
+
 and m_directive a b = 
-  match a, b with
-  | A.ImportFrom(a0, a1, a2), B.ImportFrom(b0, b1, b2) ->
+  let normal_a = normalize_import a in
+  let normal_b = normalize_import b in
+  (*
+    pr2 (spf "A = %s" (str_of_any (Dir normal_a)));
+    pr2 (spf "B = %s" (str_of_any (Dir normal_b)));
+  *)
+  (* a is the pattern, b is the target*)
+  match normal_a, normal_b with
+  | A.ImportFrom(a0, a1, _), B.ImportFrom(b0, b1, _) ->
     m_tok a0 b0 >>= (fun () ->
-    m_module_name a1 b1 >>= (fun () -> 
-    (m_list m_alias) a2 b2 >>= (fun () -> 
-    return ()
-    )))
+    m_module_name_prefix a1 b1 >>= (fun () -> 
+    return()
+    ))
   | A.ImportAs(a0, a1, a2), B.ImportAs(b0, b1, b2) ->
     m_tok a0 b0 >>= (fun () ->
-    m_module_name a1 b1 >>= (fun () -> 
+    m_module_name_prefix a1 b1 >>= (fun () -> 
     (m_option m_ident) a2 b2 >>= (fun () -> 
     return ()
     )))
   | A.ImportAll(a0, a1, a2), B.ImportAll(b0, b1, b2) ->
     m_tok a0 b0 >>= (fun () ->
-    m_module_name a1 b1 >>= (fun () -> 
+    m_module_name_prefix a1 b1 >>= (fun () -> 
     m_tok a2 b2 >>= (fun () -> 
     return ()
     )))
@@ -2047,7 +2160,7 @@ and m_any a b =
     m_program a1 b1 >>= (fun () -> 
     return ()
     )
-  | A.Id(a1), B.Id(b1) ->
+  | A.I(a1), B.I(b1) ->
     m_ident a1 b1 >>= (fun () -> 
     return ()
     )
@@ -2055,7 +2168,7 @@ and m_any a b =
     m_stmts a1 b1 >>= (fun () -> 
     return ()
     )
-  | A.Id _, _  | A.N _, _  | A.Di _, _  | A.En _, _  | A.E _, _
+  | A.I _, _  | A.N _, _  | A.Di _, _  | A.En _, _  | A.E _, _
   | A.S _, _  | A.T _, _  | A.P _, _  | A.Def _, _  | A.Dir _, _
   | A.Pa _, _  | A.Ar _, _  | A.At _, _  | A.Dk _, _ | A.Pr _, _
   | A.Fld _, _ | A.Ss _, _ | A.Tk _, _

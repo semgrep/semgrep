@@ -18,7 +18,7 @@ rules:
       - pattern-either:
         - pattern: $X == $X
         - pattern: $X != $X
-        - patterns:          
+        - patterns:
           - pattern-inside: |
               def __init__(...):
                   ...
