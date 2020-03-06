@@ -7,13 +7,15 @@ RUN apk add --no-cache perl m4
 USER opam
 WORKDIR /home/opam/opam-repository
 RUN git pull && opam update && opam switch 4.07 && opam install ocamlfind camlp4 num ocamlgraph json-wheel conf-perl dune yaml
+
 WORKDIR /home/opam/
 
-COPY --chown=opam . /home/opam/sgrep/
+COPY --chown=opam sgrep /home/opam/sgrep/
+COPY --chown=opam pfff /home/opam/pfff/
 
 RUN git submodule update --init --recursive
-RUN eval $(opam env) && cd sgrep/pfff && ./configure && make depend && make && make opt && make install-libs
-RUN eval $(opam env) && cd sgrep; make all
+RUN eval $(opam env) && cd pfff && ./configure && make depend && make && make opt && make install-libs
+RUN eval $(opam env) && cd sgrep && make all
 RUN /home/opam/sgrep/_build/default/bin/main_sgrep.exe -version
 
 ## sgrep lint build

@@ -113,7 +113,7 @@ $SGREP --strict --config tests/python/bad4.yaml tests/lint && echo "bad4.yaml sh
 # parsing good.yaml should succeed
 $SGREP --strict --config=tests/python/good.yaml tests/lint
 
-git clone https://github.com/returntocorp/sgrep-rules /tmp/sgrep-rules
+rm -rf /tmp/sgrep-rules && git clone https://github.com/returntocorp/sgrep-rules /tmp/sgrep-rules
 $SGREP --dangerously-allow-arbitrary-code-execution-from-rules --strict --test --test-ignore-todo /tmp/sgrep-rules
 
 echo "-----------------------"
