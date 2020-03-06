@@ -17,7 +17,8 @@ syntax. The idea is to mix the convenience of grep with the correctness and prec
   <tr><td colspan=2><a href="https://github.com/returntocorp/sgrep-rules">see more examples in the sgrep-rules registry</a></td></tr>
 </table>
 
-## Supported Languages
+## Supported Languages by Sgrep Feature
+
 
 <table style="text-align:center">
 <tr>
@@ -51,7 +52,7 @@ syntax. The idea is to mix the convenience of grep with the correctness and prec
 </tr>
 <tr>
 <td>
-dots
+'...' operator
 </td>
 <td>
 ✅
@@ -80,7 +81,7 @@ dots
 </tr>
 <tr>
 <td>
-equivalence
+Equivalences
 </td>
 <td>
 🔶
@@ -109,7 +110,7 @@ equivalence
 </tr>
 <tr>
 <td>
-metavar
+Metavariables
 </td>
 <td>
 ✅
@@ -138,7 +139,7 @@ metavar
 </tr>
 <tr>
 <td>
-misc
+Others
 </td>
 <td>
 🔶
@@ -167,7 +168,7 @@ misc
 </tr>
 <tr>
 <td>
-less
+Expressivity of `...`
 </td>
 <td>
 🚧
@@ -195,6 +196,7 @@ less
 </td>
 </tr>
 </table>
+
 
 ✅ — Supported
 🔶 — Partial support
