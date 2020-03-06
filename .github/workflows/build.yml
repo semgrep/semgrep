@@ -9,8 +9,10 @@ jobs:
     steps:
       - name: adjust permissions
         run: sudo chmod -R 777 . /github && export PATH=/github/home/.local/bin:$PATH
-      - uses: actions/checkout@v2
-      - run: git submodule init && git submodule update --init --recursive
+      - name: checkout code
+        uses: actions/checkout@v2
+      - name: install submodules
+        run: git submodule update --init --recursive
       - name: install pfff
         run: eval $(opam  env --root /home/opam/.opam --set-root) && cd ./pfff && ./configure && make depend && make && make opt && make install-libs
       - name: install and test sgrep
