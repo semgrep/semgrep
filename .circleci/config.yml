@@ -13,11 +13,7 @@ jobs:
       - run: git submodule init && git submodule update --init --recursive
       - run: eval $(opam env) && cd ./pfff && ./configure && make depend && make && make opt && make install-libs
       - run: eval $(opam env) && cd sgrep && make all
-  build-lint:
-    executor: sgrep-build
-    steps:
-      - checkout
-      - run: cd sgrep_lint && make all
+
   test:
     executor: sgrep-build
     steps:
@@ -37,7 +33,6 @@ workflows:
   build_and_test:
     jobs:
       - build
-      - build-lint
       - test:
           requires:
             - build
