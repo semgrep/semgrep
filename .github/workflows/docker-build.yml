@@ -1,16 +1,13 @@
 name: docker
 
 on:
-  push
+  pull_request:
+    branches: [develop, master]
 
 jobs:
-  build:
+  docker-build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - name: build
-      uses: elgohr/Publish-Docker-Github-Action@2.12
-      with:
-        name: returntocorp/sgrep
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
+      - uses: actions/checkout@v2
+      - name: Build the Docker image
+        run: docker build .
