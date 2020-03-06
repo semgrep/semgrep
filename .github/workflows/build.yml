@@ -32,7 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     container: returntocorp/sgrep-build:2.7
     steps:
-      - run: sudo chmod 777 .
+      - run: sudo chmod -R 777 . /github
       - uses: actions/checkout@v2
       - run: pip3 install -r sgrep_lint/requirements.txt
       - run: ln -s /home/opam/project/_build/default/bin/main_sgrep.exe /home/opam/.local/bin/sgrep
