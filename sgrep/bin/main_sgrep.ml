@@ -394,7 +394,7 @@ let dump_ext_of_lang () =
       | Some lang -> lang_str ^ "->" ^ String.concat ", " (Lang.ext_of_lang lang)
       | None -> ""
     ) in
-  pr2 (spf "Language ext to language mappings:\n %s" (String.concat "\n" lang_to_exts))
+  pr2 (spf "Language to supported file extension mappings:\n %s" (String.concat "\n" lang_to_exts))
 
   (*****************************************************************************)
 (* The options *)
