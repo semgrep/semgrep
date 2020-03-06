@@ -1,0 +1,3 @@
+var $OTHER = $X
+...
+var $LAST = $OTHER
