@@ -1,5 +1,4 @@
 module MV = Metavars_generic
-module Ast = Ast_generic
 
 val verbose : bool ref
 val debug : bool ref
