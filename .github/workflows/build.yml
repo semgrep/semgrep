@@ -28,3 +28,14 @@ jobs:
       - run: git submodule init && git submodule update --init --recursive
       - run: eval $(opam env --root /home/opam/.opam --set-root) && cd ./pfff && ./configure && make depend && make && make opt && make install-libs
       - run: eval $(opam env --root /home/opam/.opam --set-root) && cd sgrep && make all
+  test-sgrep:
+    runs-on: ubuntu-latest
+    container: returntocorp/sgrep-build:2.7
+    steps:
+      - run: sudo chmod 777 .
+      - uses: actions/checkout@v2
+      - run: pip3 install -r sgrep_lint/requirements.txt
+      - run: ln -s /home/opam/project/_build/default/bin/main_sgrep.exe /home/opam/.local/bin/sgrep
+      - run: eval $(opam  env --root /home/opam/.opam --set-root) && cd ./pfff && ./configure && make depend && make && make opt && make install-libs
+      - run: eval $(opam  env --root /home/opam/.opam --set-root) && cd sgrep && make test && make && make install
+      - run: eval $(opam  env --root /home/opam/.opam --set-root) && cd sgrep_lint && make test
