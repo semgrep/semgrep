@@ -9,6 +9,7 @@ jobs:
       - name: install system deps
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends make
       - uses: actions/setup-python@v1
+      - uses: actions/checkout@v2
       - uses: actions/cache@v1
         with:
           path: ~/.cache/pip
