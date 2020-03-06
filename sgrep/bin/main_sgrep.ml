@@ -283,11 +283,6 @@ let sgrep_with_one_pattern xs =
     (* should remove at some point *)
     | None -> Find_source.files_of_dir_or_files ~lang:!lang xs
   in
-  let root = 
-    match xs with
-    | [x] when Sys.is_directory x -> x
-    | _ -> "/"
-  in
 
   files |> List.iter (fun file ->
     if !verbose 
