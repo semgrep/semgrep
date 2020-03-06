@@ -11,10 +11,8 @@ WORKDIR /home/opam/
 
 COPY --chown=opam . /home/opam/sgrep/
 
-RUN git clone https://github.com/returntocorp/pfff
-RUN eval $(opam env) && cd pfff && ./configure && make depend && make && make opt && make install-libs
-
-RUN eval $(opam env); cd sgrep; make all
+RUN eval $(opam env) && cd sgrep/pfff && ./configure && make depend && make && make opt && make install-libs
+RUN eval $(opam env) && cd sgrep; make all
 RUN /home/opam/sgrep/_build/default/bin/main_sgrep.exe -version
 
 ## sgrep lint build
