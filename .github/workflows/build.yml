@@ -20,6 +20,7 @@ jobs:
         working-directory: sgrep_lint
         run: make all
   build-sgrep:
+    runs-on: ubuntu-latest
     container: returntocorp/sgrep-build:2.7
     steps:
       - run: sudo mkdir /github
