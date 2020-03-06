@@ -114,7 +114,7 @@ $SGREP --strict --config tests/python/bad4.yaml tests/lint && echo "bad4.yaml sh
 $SGREP --strict --config=tests/python/good.yaml tests/lint
 
 echo TODO: disabled sgrep-rules regression testing for now
-#git clone https://github.com/returntocorp/sgrep-rules /tmp/sgrep-rules
+#rm -rf /tmp/sgrep-rules && git clone https://github.com/returntocorp/sgrep-rules /tmp/sgrep-rules
 #$SGREP --dangerously-allow-arbitrary-code-execution-from-rules --strict --test --test-ignore-todo /tmp/sgrep-rules
 
 echo "-----------------------"

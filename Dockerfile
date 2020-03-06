@@ -5,16 +5,17 @@ USER root
 RUN apk add --no-cache perl m4
 
 USER opam
+
 WORKDIR /home/opam/opam-repository
 RUN git pull && opam update && opam switch 4.07 && opam install ocamlfind camlp4 num ocamlgraph json-wheel conf-perl dune yaml
-WORKDIR /home/opam/
 
 COPY --chown=opam . /home/opam/sgrep/
+WORKDIR /home/opam/sgrep
 
 RUN git submodule update --init --recursive
-RUN eval $(opam env) && cd sgrep/pfff && ./configure && make depend && make && make opt && make install-libs
-RUN eval $(opam env) && cd sgrep; make all
-RUN /home/opam/sgrep/_build/default/bin/main_sgrep.exe -version
+RUN eval $(opam env) && cd pfff && ./configure && make depend && make && make opt && make install-libs
+RUN eval $(opam env) && cd sgrep && make all
+RUN sgrep/_build/default/bin/main_sgrep.exe -version
 
 ## sgrep lint build
 
@@ -41,7 +42,7 @@ RUN ln -sfn /bin/sgrep-lint-files/cacert.pem  /bin/sgrep-lint-files/certifi/cace
 RUN ls -al /bin/sgrep-lint-files/
 
 RUN sgrep-lint --help
-COPY --from=build-sgrep /home/opam/sgrep/_build/default/bin/main_sgrep.exe /bin/sgrep
+COPY --from=build-sgrep /home/opam/sgrep/sgrep/_build/default/bin/main_sgrep.exe /bin/sgrep
 RUN sgrep --help
 RUN sgrep-lint --config=r2c /bin/sgrep-lint-files/
 
