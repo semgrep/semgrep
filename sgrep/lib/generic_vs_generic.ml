@@ -190,7 +190,7 @@ let str_of_any any =
   (* pre: both 'a' and 'b' contains only regular code; there are no
    * metavariables inside them.
    *)
-  let equal_ast_binded_code a b =
+  let equal_ast_binded_code (a: Ast.any) (b: Ast.any) : bool =
     match a, b with
     | Ast.I _, Ast.I _
     | Ast.N _, Ast.N _
@@ -304,15 +304,6 @@ let rec m_list f a b =
   | [], _
   | _::_, _ ->
       fail ()
-
-let m_list_subset a b =
-  (* match if a is a subset of b *)
-  let set_a = Common2.set a in
-  let set_b = Common2.set b in
-  if set_a <= set_b then
-    return ()
-  else
-    fail ()
 
 
 let m_bool a b = 
@@ -481,7 +472,7 @@ let m_resolved_name_kind a b =
   | A.ImportedModule _, _
    -> fail ()
 
-let m_resolved_name (a1, a2) (b1, b2) = 
+let _m_resolved_name (a1, a2) (b1, b2) = 
   m_resolved_name_kind a1 b1 >>= (fun () ->
   m_sid a2 b2 >>= (fun () ->
     return ()
@@ -2015,8 +2006,6 @@ and normalize_import_as (a0: Parse_info.token_mutable) (from_module_name: Ast_ge
   | Ast_generic.FileName _ -> (* TODO *)
     A.ImportFrom(a0, from_module_name, import_opt)
 
-and strip_aliases (aliases: Ast_generic.alias list) = List.map (fun (ident, _) -> ident) aliases
-
 (* 
   a function that will take ImportFrom, ImportAs, ImportAll -> normalized 
   ImportFrom for matching `import` purposes
@@ -2070,7 +2059,7 @@ and m_directive a b =
   | A.ImportAll _, _ | A.Package _, _ | A.PackageEnd _, _
    -> fail ()
 
-and m_alias a b = 
+and _m_alias a b = 
   match a, b with
   | (a1, a2), (b1, b2) ->
     m_ident a1 b1 >>= (fun () -> 
