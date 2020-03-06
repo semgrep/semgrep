@@ -13,7 +13,6 @@ WORKDIR /home/opam/
 COPY --chown=opam sgrep /home/opam/sgrep/
 COPY --chown=opam pfff /home/opam/pfff/
 
-RUN git submodule update --init --recursive
 RUN eval $(opam env) && cd pfff && ./configure && make depend && make && make opt && make install-libs
 RUN eval $(opam env) && cd sgrep && make all
 RUN /home/opam/sgrep/_build/default/bin/main_sgrep.exe -version

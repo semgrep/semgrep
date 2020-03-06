@@ -1,0 +1,20 @@
+name: docker
+
+on:
+  push
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Checkout submodules
+      uses: srt32/git-actions@v0.0.3
+      with:
+        args: git submodule update --init --recursive
+    - name: build
+      uses: elgohr/Publish-Docker-Github-Action@2.12
+      with:
+        name: returntocorp/sgrep
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
