@@ -69,6 +69,11 @@ module Lib = Lib_ast
 let verbose = ref false
 let debug = ref false
 
+(* experimental: a bit hacky, and may introduce big perf regressions,
+ * so be careful
+ *)
+let go_deeper = ref true
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
@@ -173,6 +178,14 @@ let str_of_any any =
     (* opti? use set instead of list *)
     m1 tin @ m2 tin
 
+    (* the if-fail combinator *)
+    let (>!>) m1 else_cont = fun tin ->
+      match m1 tin with
+      | [] -> (else_cont ()) tin
+      | xs -> xs
+
+
+
     (* The classical monad combinators *)
     let (return : tin -> tout) = fun tin ->
     [tin]
@@ -190,7 +203,7 @@ let str_of_any any =
   (* pre: both 'a' and 'b' contains only regular code; there are no
    * metavariables inside them.
    *)
-  let equal_ast_binded_code a b =
+  let equal_ast_binded_code (a: Ast.any) (b: Ast.any) : bool =
     match a, b with
     | Ast.I _, Ast.I _
     | Ast.N _, Ast.N _
@@ -304,15 +317,6 @@ let rec m_list f a b =
   | [], _
   | _::_, _ ->
       fail ()
-
-let m_list_subset a b =
-  (* match if a is a subset of b *)
-  let set_a = Common2.set a in
-  let set_b = Common2.set b in
-  if set_a <= set_b then
-    return ()
-  else
-    fail ()
 
 
 let m_bool a b = 
@@ -481,7 +485,7 @@ let m_resolved_name_kind a b =
   | A.ImportedModule _, _
    -> fail ()
 
-let m_resolved_name (a1, a2) (b1, b2) = 
+let _m_resolved_name (a1, a2) (b1, b2) = 
   m_resolved_name_kind a1 b1 >>= (fun () ->
   m_sid a2 b2 >>= (fun () ->
     return ()
@@ -540,6 +544,25 @@ and make_dotted xs =
     List.fold_left (fun acc e -> 
       let tok = Parse_info.fake_info "." in
       B.DotAccess (acc, tok, B.FId e)) base xs
+
+(* experimental! *)
+and m_expr_deep a b =
+  if not !go_deeper 
+  then m_expr a b 
+  else
+    m_expr a b >!> (fun () ->
+      let subs = Subast_generic.subexprs_of_expr b in
+      let rec aux xs =
+        match xs with
+        | [] -> fail ()
+        | x::xs ->
+           m_expr_deep a x >||> aux xs
+      in
+      aux subs
+    )
+
+    
+
 
 and m_expr a b = 
   match a, b with
@@ -1236,8 +1259,9 @@ and m_stmt a b =
   | A.ExprStmt(A.Ellipsis _i), _b ->
       return ()
 
+  (* deeper: *)
   | A.ExprStmt(a1), B.ExprStmt(b1) ->
-    m_expr a1 b1 >>= (fun () -> 
+    m_expr_deep a1 b1 >>= (fun () -> 
     return ()
     )
   | A.DefStmt(a1), B.DefStmt(b1) ->
@@ -1256,21 +1280,21 @@ and m_stmt a b =
     )
   | A.If(a0, a1, a2, a3), B.If(b0, b1, b2, b3) ->
     m_tok a0 b0 >>= (fun () ->
-    m_expr a1 b1 >>= (fun () -> 
+    m_expr_deep a1 b1 >>= (fun () -> 
     m_stmt a2 b2 >>= (fun () -> 
     m_stmt a3 b3 >>= (fun () -> 
     return ()
     ))))
   | A.While(a0, a1, a2), B.While(b0, b1, b2) ->
     m_tok a0 b0 >>= (fun () ->
-    m_expr a1 b1 >>= (fun () -> 
+    m_expr_deep a1 b1 >>= (fun () -> 
     m_stmt a2 b2 >>= (fun () -> 
     return ()
     )))
   | A.DoWhile(a0, a1, a2), B.DoWhile(b0, b1, b2) ->
     m_tok a0 b0 >>= (fun () ->
     m_stmt a1 b1 >>= (fun () -> 
-    m_expr a2 b2 >>= (fun () -> 
+    m_expr_deep a2 b2 >>= (fun () -> 
     return ()
     )))
   | A.For(a0, a1, a2), B.For(b0, b1, b2) ->
@@ -1281,7 +1305,7 @@ and m_stmt a b =
     )))
   | A.Switch(at, a1, a2), B.Switch(bt, b1, b2) ->
     m_tok at bt >>= (fun () -> 
-    m_option m_expr a1 b1 >>= (fun () -> 
+    m_option (m_expr_deep) a1 b1 >>= (fun () -> 
     (m_list m_case_and_body) a2 b2 >>= (fun () -> 
     return ()
     )))
@@ -1324,10 +1348,11 @@ and m_stmt a b =
     ))))
   | A.Assert(a0, a1, a2), B.Assert(b0, b1, b2) ->
     m_tok a0 b0 >>= (fun () ->
-    m_expr a1 b1 >>= (fun () -> 
+    m_expr_deep a1 b1 >>= (fun () -> 
     (m_option m_expr) a2 b2 >>= (fun () -> 
     return ()
     )))
+
   | A.OtherStmt(a1, a2), B.OtherStmt(b1, b2) ->
     m_other_stmt_operator a1 b1 >>= (fun () -> 
     (m_list m_any) a2 b2 >>= (fun () -> 
@@ -1339,6 +1364,7 @@ and m_stmt a b =
     m_stmt a3 b3 >>= (fun () -> 
       return ()
     )))
+
   | A.ExprStmt _, _  | A.DefStmt _, _  | A.DirectiveStmt _, _
   | A.Block _, _  | A.If _, _  | A.While _, _  | A.DoWhile _, _  | A.For _, _
   | A.Switch _, _  | A.Return _, _  | A.Continue _, _  | A.Break _, _
@@ -2015,8 +2041,6 @@ and normalize_import_as (a0: Parse_info.token_mutable) (from_module_name: Ast_ge
   | Ast_generic.FileName _ -> (* TODO *)
     A.ImportFrom(a0, from_module_name, import_opt)
 
-and strip_aliases (aliases: Ast_generic.alias list) = List.map (fun (ident, _) -> ident) aliases
-
 (* 
   a function that will take ImportFrom, ImportAs, ImportAll -> normalized 
   ImportFrom for matching `import` purposes
@@ -2070,7 +2094,7 @@ and m_directive a b =
   | A.ImportAll _, _ | A.Package _, _ | A.PackageEnd _, _
    -> fail ()
 
-and m_alias a b = 
+and _m_alias a b = 
   match a, b with
   | (a1, a2), (b1, b2) ->
     m_ident a1 b1 >>= (fun () -> 
