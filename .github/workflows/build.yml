@@ -7,15 +7,15 @@ jobs:
     runs-on: ubuntu-latest
     container: returntocorp/sgrep-build:2.7
     steps:
-      - name: adjust permissions
-        run: sudo chmod -R 777 . /github && export PATH=/github/home/.local/bin:$PATH
-      - name: checkout code
+      - name: Adjust permissions
+        run: sudo chmod -R 777 . /github
+      - name: Checkout
         uses: actions/checkout@v2
-      - name: install submodules
+      - name: Install submodules
         run: git submodule update --init --recursive
-      - name: install pfff
+      - name: Install pfff
         run: eval $(opam  env --root /home/opam/.opam --set-root) && cd ./pfff && ./configure && make depend && make && make opt && make install-libs
-      - name: install and test sgrep
+      - name: Install and test sgrep
         run: eval $(opam  env --root /home/opam/.opam --set-root) && cd sgrep && make all && make test && make install
-      - name: install and test sgrep-lint
-        run: eval $(opam  env --root /home/opam/.opam --set-root) && cd sgrep_lint && make all && make test
+      - name: Install and test sgrep-lint
+        run: eval $(opam  env --root /home/opam/.opam --set-root) && cd sgrep_lint && export PATH=/github/home/.local/bin:$PATH && make all && make test
