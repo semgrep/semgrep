@@ -38,7 +38,7 @@ be yet in the latest OPAM version of pfff. In that case, install pfff
 manually by doing:
 
 ```bash
-git submodule init && git submodule update --remote
+git submodule init && git submodule update --init --recursive
 cd pfff
 ./configure; make depend; make; make opt; make reinstall-libs
 ```
