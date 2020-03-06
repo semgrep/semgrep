@@ -3,6 +3,13 @@ import os
 import glob
 
 FEATURES = ["dots", "equivalence", "metavar", "misc", "less"]
+VERBOSE_FEATURE_NAME = {
+  "dots": "'...' operator",
+  "equivalence": "Equivalences",
+  "metavar": "Metavariables",
+  "misc": "Others",
+  "less": "Expressivity of `...`"
+}
 LANG_DIR_TO_EXT = {"python": "py"}
 EXCLUDE = ["TODO", "GENERIC", "fuzzy", "lint"]
 
@@ -13,7 +20,7 @@ def get_emoji(count: int):
     return "\U0001F536"
   else:
     return "\U00002705"
-    
+
 def print_to_html(stats):
     def append_td(l, name):
       l.append("<td>")
@@ -29,7 +36,7 @@ def print_to_html(stats):
 
     for f in FEATURES:
       tags.append('<tr>')
-      append_td(tags, f"{f}")
+      append_td(tags, f"{VERBOSE_FEATURE_NAME.get(f)}")
       for lang in languages:
         append_td(tags, f"{get_emoji(stats[lang].get(f, 0))}")
       tags.append('</tr>')
