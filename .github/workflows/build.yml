@@ -1,0 +1,13 @@
+name: ci
+
+on:
+  push
+
+jobs:
+  build-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build the Docker image
+        working-directory: sgrep_lint
+        run: make all
