@@ -2,14 +2,14 @@
 import os
 import glob
 
-FEATURES = ["dots", "equivalence", "metavar", "misc", "less"]
+FEATURES = ["dots", "equivalence", "metavar", "misc"]
 VERBOSE_FEATURE_NAME = {
   "dots": "'...' operator",
   "equivalence": "Equivalences",
   "metavar": "Metavariables",
   "misc": "Others",
-  "less": "Expressivity of `...`"
 }
+
 LANG_DIR_TO_EXT = {"python": "py"}
 EXCLUDE = ["TODO", "GENERIC", "fuzzy", "lint"]
 
