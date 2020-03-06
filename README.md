@@ -166,41 +166,13 @@ Others
 🚧
 </td>
 </tr>
-<tr>
-<td>
-Expressivity of `...`
-</td>
-<td>
-🚧
-</td>
-<td>
-🔶
-</td>
-<td>
-🔶
-</td>
-<td>
-🚧
-</td>
-<td>
-🚧
-</td>
-<td>
-🚧
-</td>
-<td>
-🚧
-</td>
-<td>
-🚧
-</td>
-</tr>
 </table>
 
 
-✅ — Supported
-🔶 — Partial support
-🚧 — Under development
+
+- ✅ — Supported
+- 🔶 — Partial support
+- 🚧 — Under development
 
 ## Meetups
 
