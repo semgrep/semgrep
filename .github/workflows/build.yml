@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: install system deps
-        run: apt-get update && apt-get install -y --no-install-recommends make
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends make
       - uses: actions/setup-python@v1
       - uses: actions/cache@v1
         with:
