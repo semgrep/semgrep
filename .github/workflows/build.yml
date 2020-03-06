@@ -26,5 +26,5 @@ jobs:
       - run: sudo chmod 777 .
       - uses: actions/checkout@v2
       - run: git submodule init && git submodule update --init --recursive
-      - run: eval $(opam env --root /home/opam/.opam) && cd ./pfff && ./configure && make depend && make && make opt && make install-libs
-      - run: eval $(opam env --root /home/opam/.opam) && cd sgrep && make all
+      - run: eval $(opam env --root /home/opam/.opam --set-root) && cd ./pfff && ./configure && make depend && make && make opt && make install-libs
+      - run: eval $(opam env --root /home/opam/.opam --set-root) && cd sgrep && make all
