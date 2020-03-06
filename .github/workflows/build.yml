@@ -23,7 +23,6 @@ jobs:
     runs-on: ubuntu-latest
     container: returntocorp/sgrep-build:2.7
     steps:
-      - run: sudo mkdir /github
       - run: sudo chmod 777 /github
       - uses: actions/checkout@v2
       - run: git submodule init && git submodule update --init --recursive
