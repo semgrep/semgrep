@@ -387,7 +387,16 @@ let dump_ast file =
   let s = Ocaml.string_of_v v in
   pr2 s
 
-(*****************************************************************************)
+let dump_ext_of_lang () =
+  let lang_to_exts = keys |> List.map (
+    fun lang_str -> 
+      match Lang.lang_of_string_opt lang_str with
+      | Some lang -> lang_str ^ "->" ^ String.concat ", " (Lang.ext_of_lang lang)
+      | None -> ""
+    ) in
+  pr2 (spf "Language ext to language mappings:\n %s" (String.concat "\n" lang_to_exts))
+
+  (*****************************************************************************)
 (* The options *)
 (*****************************************************************************)
 
@@ -398,6 +407,8 @@ let all_actions () = [
   Common.mk_action_1_arg dump_pattern;
   "-dump_ast", " <file>",
   Common.mk_action_1_arg dump_ast;
+  "-dump_extensions", "print file extension to language mapping",
+  Common.mk_action_0_arg dump_ext_of_lang;
  ]
 
 let options () = 
