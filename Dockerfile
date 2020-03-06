@@ -2,11 +2,11 @@
 
 FROM ocaml/opam2:alpine@sha256:4c2ce9a181b4b12442a68fc221d0b753959ec80e24eae3bf788eeca4dcb9a293 as build-sgrep
 USER root
-RUN apk add --no-cache perl m4
+RUN apk add --no-cache perl m4 ssh
 
 USER opam
 WORKDIR /home/opam/opam-repository
-RUN git pull && opam update && opam switch 4.07 && opam install ocamlfind camlp4 num ocamlgraph json-wheel conf-perl dune yaml ssh
+RUN git pull && opam update && opam switch 4.07 && opam install ocamlfind camlp4 num ocamlgraph json-wheel conf-perl dune yaml
 
 COPY --chown=opam . /home/opam/sgrep/
 WORKDIR /home/opam/sgrep
