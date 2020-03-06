@@ -6,6 +6,14 @@ FEATURES = ["dots", "equivalence", "metavar", "misc", "less"]
 LANG_DIR_TO_EXT = {"python": "py"}
 EXCLUDE = ["TODO", "GENERIC", "fuzzy", "lint"]
 
+def get_emoji(count: int):
+  if count == 0:
+    return "\U0001F6A7"
+  elif count < 5:
+    return "\U0001F536"
+  else:
+    return "\U00002705"
+    
 def print_to_html(stats):
     def append_td(l, name):
       l.append("<td>")
@@ -23,7 +31,7 @@ def print_to_html(stats):
       tags.append('<tr>')
       append_td(tags, f"{f}")
       for lang in languages:
-        append_td(tags, f"{stats[lang].get(f, 0)}")
+        append_td(tags, f"{get_emoji(stats[lang].get(f, 0))}")
       tags.append('</tr>')
     tags.append("</table>")
     return "\n".join(tags)

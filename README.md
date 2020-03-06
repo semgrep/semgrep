@@ -19,26 +19,186 @@ syntax. The idea is to mix the convenience of grep with the correctness and prec
 
 ## Supported Languages
 
-<table>
-  <tr>
-   <td>JavaScript</td>
-   <td>Python</td>
-   <td>Go</td>
-   <td>Java</td>
-   <td>C</td>
-   <td>Ruby</td>
-   <td>Scala</td>
+<table style="text-align:center">
+<tr>
+<td>
+
+</td>
+<td>
+<b>go</b>
+</td>
+<td>
+<b>python</b>
+</td>
+<td>
+<b>js</b>
+</td>
+<td>
+<b>java</b>
+</td>
+<td>
+<b>php</b>
+</td>
+<td>
+<b>ml</b>
+</td>
+<td>
+<b>cpp</b>
+</td>
+<td>
+<b>c</b>
+</td>
 </tr>
-  <tr>
-   <td>✅</td>
-   <td>✅</td>
-   <td>✅</td>
-   <td>✅</td>
-   <td>✅</td>
-   <td>coming</td>
-   <td>coming</td>
- </tr>
- </table>
+<tr>
+<td>
+dots
+</td>
+<td>
+✅
+</td>
+<td>
+✅
+</td>
+<td>
+✅
+</td>
+<td>
+✅
+</td>
+<td>
+🚧
+</td>
+<td>
+🚧
+</td>
+<td>
+🚧
+</td>
+<td>
+🔶
+</td>
+</tr>
+<tr>
+<td>
+equivalence
+</td>
+<td>
+🔶
+</td>
+<td>
+🔶
+</td>
+<td>
+🔶
+</td>
+<td>
+🔶
+</td>
+<td>
+🚧
+</td>
+<td>
+🚧
+</td>
+<td>
+🚧
+</td>
+<td>
+🔶
+</td>
+</tr>
+<tr>
+<td>
+metavar
+</td>
+<td>
+✅
+</td>
+<td>
+✅
+</td>
+<td>
+✅
+</td>
+<td>
+✅
+</td>
+<td>
+🚧
+</td>
+<td>
+🚧
+</td>
+<td>
+🚧
+</td>
+<td>
+✅
+</td>
+</tr>
+<tr>
+<td>
+misc
+</td>
+<td>
+🔶
+</td>
+<td>
+✅
+</td>
+<td>
+🔶
+</td>
+<td>
+🔶
+</td>
+<td>
+🚧
+</td>
+<td>
+🚧
+</td>
+<td>
+🚧
+</td>
+<td>
+🚧
+</td>
+</tr>
+<tr>
+<td>
+less
+</td>
+<td>
+🚧
+</td>
+<td>
+🔶
+</td>
+<td>
+🔶
+</td>
+<td>
+🚧
+</td>
+<td>
+🚧
+</td>
+<td>
+🚧
+</td>
+<td>
+🚧
+</td>
+<td>
+🚧
+</td>
+</tr>
+</table>
+
+✅ — Supported
+🔶 — Partial support
+🚧 — Under development
 
 ## Meetups
 
