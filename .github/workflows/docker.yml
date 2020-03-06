@@ -11,11 +11,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - name: Checkout submodules
-      uses: srt32/git-actions@v0.0.3
-      with:
-        args: git submodule update --init --recursive
+    - uses: actions/checkout@v2    
     - name: publish
       uses: elgohr/Publish-Docker-Github-Action@2.12
       with:
