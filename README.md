@@ -17,7 +17,7 @@ syntax. The idea is to mix the convenience of grep with the correctness and prec
   <tr><td colspan=2><a href="https://github.com/returntocorp/sgrep-rules">see more examples in the sgrep-rules registry</a></td></tr>
 </table>
 
-## Supported Languages by Sgrep Feature
+## Supported Languages
 
 <table>
   <tr>
