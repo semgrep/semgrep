@@ -16,5 +16,5 @@ repos:
     rev: '0.4.3'
     hooks:
       - id: sgrep
-        args: ['--error'] # exit 1
+        args: ['--precommit', '--error'] # exit 1
 ```

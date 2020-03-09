@@ -38,7 +38,7 @@ be yet in the latest OPAM version of pfff. In that case, install pfff
 manually by doing:
 
 ```bash
-git clone https://github.com/returntocorp/pfff
+git submodule init && git submodule update --init --recursive
 cd pfff
 ./configure; make depend; make; make opt; make reinstall-libs
 ```
@@ -46,6 +46,7 @@ cd pfff
 Then you can compile the program with:
 
 ```bash
+cd sgrep
 dune build
 ```
 
@@ -58,6 +59,7 @@ Then to test sgrep on a file, for example tests/GENERIC/test.py
 run:
 
 ```bash
+cd sgrep
 ./_build/default/bin/main_sgrep.exe -e foo tests/python
 ...
 ```
@@ -65,8 +67,9 @@ run:
 If you want to test sgrep on a directory with a set of given rules, run:
 
 ```bash
-cp ./_build/default/bin/main_sgrep.exe /usr/local/bin/sgrep
-cp ./sgrep.py /usr/local/bin/sgrep-lint
+cp ./sgrep/_build/default/bin/main_sgrep.exe /usr/local/bin/sgrep
+cd sgrep_lint
+make && make install
 sgrep-lint --config <YAML_FILE_OR_DIRECTORY> <code to check>
 ```
 

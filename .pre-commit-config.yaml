@@ -1,4 +1,4 @@
-exclude: "^tests|testlint|old|lib|demos|bin|.*\\.ml"
+exclude: "^sgrep_lint/tests|sgrep/tests|sgrep/old|sgrep/lib|sgrep/demos|sgrep/bin|.*\\.ml"
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -44,6 +44,7 @@ repos:
         args:
           [
             "--error",
+            "--precommit",
             "--config",
             "r2c",
             "--output",

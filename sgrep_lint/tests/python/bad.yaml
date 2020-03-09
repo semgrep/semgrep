@@ -1,0 +1,15 @@
+rules:
+  - id: eqeq-is-bad
+    patterns:
+      - pattern-inside:
+        - pattern: $X == $X
+        - pattern: $X != $X
+        - patterns:
+          - pattern-inside: |
+              def __init__(...):
+                  ...
+          - pattern: self.$X == self.$X
+      - pattern-not: 1 == 1
+    message: "useless comparison operation `$X == $X` or `$X != $X`; possible bug?"
+    languages: [python]
+    severity: ERROR

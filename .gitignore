@@ -1,7 +1,7 @@
 _build
 .merlin
 
-/sgrep.install
+sgrep/sgrep.install
 /project.el
 /skip_list.txt
 /top.ml
@@ -22,7 +22,7 @@ dist/
 downloads/
 eggs/
 .eggs/
-#lib/ pad: used for ocaml
+#lib/ No! pad: used for ocaml
 lib64/
 parts/
 sdist/

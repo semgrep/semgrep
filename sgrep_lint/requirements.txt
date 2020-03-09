@@ -1,0 +1,4 @@
+colorama==0.4.3
+pytest==5.3.5
+pyyaml==5.3
+requests==2.22.0

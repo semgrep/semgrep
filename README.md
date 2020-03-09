@@ -1,8 +1,10 @@
-# sgrep
+# sgrep [![ci](https://github.com/returntocorp/sgrep/workflows/ci/badge.svg)](https://github.com/returntocorp/sgrep/actions?query=workflow%3Aci+branch%3Adevelop)
 
 [![r2c community slack](https://img.shields.io/badge/r2c_slack-join-brightgreen?style=for-the-badge&logo=slack&labelColor=4A154B)](https://join.slack.com/t/r2c-community/shared_invite/enQtNjU0NDYzMjAwODY4LWE3NTg1MGNhYTAwMzk5ZGRhMjQ2MzVhNGJiZjI1ZWQ0NjQ2YWI4ZGY3OGViMGJjNzA4ODQ3MjEzOWExNjZlNTA)
 
-`sgrep`, for syntactical (and occasionnally semantic) grep, is a tool to help find bugs by specifying code patterns using a familiar
+[sgrep.live](https://sgrep.live/) - Try it now
+
+[`sgrep`](https://sgrep.live/), for syntactical (and occasionnally semantic) grep, is a tool to help find bugs by specifying code patterns using a familiar
 syntax. The idea is to mix the convenience of grep with the correctness and precision of a compiler frontend.
 
 ## Quick Examples
@@ -15,34 +17,170 @@ syntax. The idea is to mix the convenience of grep with the correctness and prec
   <tr><td colspan=2><a href="https://github.com/returntocorp/sgrep-rules">see more examples in the sgrep-rules registry</a></td></tr>
 </table>
 
-## Supported Languages
+## Supported Languages by Sgrep Feature
 
-<table>
-  <tr>
-   <td>JavaScript</td>
-   <td>Python</td>
-   <td>Go</td>
-   <td>Java</td>
-   <td>C</td>
-   <td>Ruby</td>
-   <td>Scala</td>
+
+<table style="text-align:center">
+<tr>
+<td>
+
+</td>
+<td>
+<b>go</b>
+</td>
+<td>
+<b>python</b>
+</td>
+<td>
+<b>js</b>
+</td>
+<td>
+<b>java</b>
+</td>
+<td>
+<b>php</b>
+</td>
+<td>
+<b>ml</b>
+</td>
+<td>
+<b>cpp</b>
+</td>
+<td>
+<b>c</b>
+</td>
 </tr>
-  <tr>
-   <td>✅</td>
-   <td>✅</td>
-   <td>✅</td>
-   <td>✅</td>
-   <td>✅</td>
-   <td>coming</td>
-   <td>coming</td>
- </tr>
- </table>
+<tr>
+<td>
+'...' operator
+</td>
+<td>
+✅
+</td>
+<td>
+✅
+</td>
+<td>
+✅
+</td>
+<td>
+✅
+</td>
+<td>
+🚧
+</td>
+<td>
+🚧
+</td>
+<td>
+🚧
+</td>
+<td>
+🔶
+</td>
+</tr>
+<tr>
+<td>
+Equivalences
+</td>
+<td>
+🔶
+</td>
+<td>
+🔶
+</td>
+<td>
+🔶
+</td>
+<td>
+🔶
+</td>
+<td>
+🚧
+</td>
+<td>
+🚧
+</td>
+<td>
+🚧
+</td>
+<td>
+🔶
+</td>
+</tr>
+<tr>
+<td>
+Metavariables
+</td>
+<td>
+✅
+</td>
+<td>
+✅
+</td>
+<td>
+✅
+</td>
+<td>
+✅
+</td>
+<td>
+🚧
+</td>
+<td>
+🚧
+</td>
+<td>
+🚧
+</td>
+<td>
+✅
+</td>
+</tr>
+<tr>
+<td>
+Others
+</td>
+<td>
+🔶
+</td>
+<td>
+✅
+</td>
+<td>
+🔶
+</td>
+<td>
+🔶
+</td>
+<td>
+🚧
+</td>
+<td>
+🚧
+</td>
+<td>
+🚧
+</td>
+<td>
+🚧
+</td>
+</tr>
+</table>
+
+
+
+- ✅ — Supported
+- 🔶 — Partial support
+- 🚧 — Under development
 
 ## Meetups
 
 Want to learn more about sgrep? Check out these [slides from the r2c February meetup](https://r2c.dev/sgrep-public2.pdf)
 
 ## Installation
+
+Too lazy to install? Try out [sgrep.live](https://sgrep.live)
 
 ### Docker
 
@@ -116,7 +254,7 @@ Patterns are snippets of code with variables and other operators that will be pa
 
 ### Metavariables
 
-`$X`, `$FOO`, `$RETURN_CODE` are all examples of metavariables. You can referance them later in your pattern and `sgrep` will ensure they match. Metavariables must be uppercased; `$x` is not a valid metavariable.
+`$X`, `$FOO`, `$RETURNCODE` are all examples of metavariables. You can referance them later in your pattern and `sgrep` will ensure they match. **Metavariables can only contain uppercase ASCII characters**; `$x` and `$SOME_VALUE` are not valid metavariables.
 
 #### Operators
 

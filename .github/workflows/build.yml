@@ -1,0 +1,24 @@
+name: ci
+
+on:
+  pull_request:
+    push:
+      branches: [master, develop]
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    container: returntocorp/sgrep-build:2.7
+    steps:
+      - name: Adjust permissions
+        run: sudo chmod -R 777 . /github
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install submodules
+        run: git submodule update --init --recursive
+      - name: Install pfff
+        run: eval $(opam  env --root /home/opam/.opam --set-root) && cd ./pfff && ./configure && make depend && make && make opt && make install-libs
+      - name: Install and test sgrep
+        run: eval $(opam  env --root /home/opam/.opam --set-root) && cd sgrep && make all && make test && make install
+      - name: Install and test sgrep-lint
+        run: eval $(opam  env --root /home/opam/.opam --set-root) && cd sgrep_lint && export PATH=/github/home/.local/bin:$PATH && make all && make test
