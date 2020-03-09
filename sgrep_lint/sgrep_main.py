@@ -2,44 +2,34 @@ import argparse
 import collections
 import itertools
 import json
-import os
 import subprocess
 import sys
 import tempfile
 import time
-import traceback
 from datetime import datetime
 from pathlib import Path
-from pathlib import PurePath
 from typing import Any
 from typing import DefaultDict
 from typing import Dict
-from typing import Generator
 from typing import Iterable
 from typing import Iterator
 from typing import List
-from typing import NewType
 from typing import Optional
-from typing import Set
 from typing import Tuple
-from urllib.parse import urlparse
 
 import colorama
 import config_resolver
 import requests
 import yaml
-from constants import DEFAULT_CONFIG_FILE
 from constants import ID_KEY
 from constants import PLEASE_FILE_ISSUE_TEXT
 from constants import RCE_RULE_FLAG
 from constants import RULES_KEY
-from constants import SGREP_URL
 from evaluation import build_boolean_expression
 from evaluation import enumerate_patterns_in_boolean_expression
 from evaluation import evaluate_expression
 from sgrep_types import BooleanRuleExpression
 from sgrep_types import InvalidRuleSchema
-from sgrep_types import Operator
 from sgrep_types import OPERATORS
 from sgrep_types import PatternId
 from sgrep_types import Range
@@ -89,7 +79,7 @@ def sgrep_finding_to_range(sgrep_finding: Dict[str, Any]) -> SgrepRange:
 def group_rule_by_langauges(
     all_rules: List[Dict[str, Any]]
 ) -> Dict[str, List[Dict[str, Any]]]:
-    by_lang: Any = collections.defaultdict(list)
+    by_lang: Dict[str, List[Dict[str, Any]]] = collections.defaultdict(list)
     for rule in all_rules:
         for language in rule["languages"]:
             by_lang[language].append(rule)
@@ -152,8 +142,10 @@ def fetch_lines_in_file(
         return list(itertools.islice(fin, start_line_number - 1, end_line_number))
 
 
-def rewrite_message_with_metavars(yaml_rule, sgrep_result):
-    msg_text = yaml_rule["message"]
+def rewrite_message_with_metavars(
+    yaml_rule: Dict[str, Any], sgrep_result: Dict[str, Any]
+) -> str:
+    msg_text: str = yaml_rule["message"]
     if "metavars" in sgrep_result["extra"]:
         for metavar, contents in sgrep_result["extra"]["metavars"].items():
             msg_text = msg_text.replace(metavar, contents["abstract_content"])
@@ -180,7 +172,7 @@ def should_send_to_sgrep(expression: BooleanRuleExpression) -> bool:
     )
 
 
-def flatten_rule_patterns(all_rules) -> Iterator[Dict[str, Any]]:
+def flatten_rule_patterns(all_rules: List[Dict[str, Any]]) -> Iterator[Dict[str, Any]]:
     for rule_index, rule in enumerate(all_rules):
         flat_expressions = list(
             enumerate_patterns_in_boolean_expression(build_boolean_expression(rule))
@@ -317,7 +309,7 @@ def rename_rule_ids(valid_configs: Dict[str, Any]) -> Dict[str, Any]:
     return transformed
 
 
-def flatten_configs(transformed_configs: Dict[str, Any]) -> List[Any]:
+def flatten_configs(transformed_configs: Dict[str, Any]) -> List[Dict[str, Any]]:
     return [
         rule
         for config in transformed_configs.values()
@@ -355,7 +347,14 @@ def build_output_json(output_json: Dict[str, Any]) -> str:
     return json.dumps(output_json)
 
 
-def color_line(line, line_number, start_line, start_col, end_line, end_col):
+def color_line(
+    line: str,
+    line_number: int,
+    start_line: int,
+    start_col: int,
+    end_line: int,
+    end_col: int,
+) -> str:
     start_color = 0 if line_number > start_line else start_col
     # column offset
     start_color = max(0, start_color - 1)
@@ -422,7 +421,9 @@ def build_normal_output(
         yield from finding_to_line(finding, color_output)
 
 
-def save_output(output_str: str, output_data: Dict[str, Any], json: bool = False):
+def save_output(
+    output_str: str, output_data: Dict[str, Any], json: bool = False
+) -> None:
     if is_url(output_str):
         post_output(output_str, output_data)
     else:
@@ -447,7 +448,7 @@ def should_exclude_this_path(path: Path) -> bool:
 
 
 # entry point
-def main(args: argparse.Namespace):
+def main(args: argparse.Namespace) -> Dict[str, Any]:
     """ main function that parses args and runs sgrep """
 
     # get the proper paths for targets i.e. handle base path of /home/repo when it exists in docker
