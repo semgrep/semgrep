@@ -132,7 +132,7 @@ def invoke_sgrep(
                     f"non-zero return code while invoking sgrep with:\n\t{' '.join(cmd)}\n{ex}"
                 )
                 print_error_exit(f"\n\n{PLEASE_FILE_ISSUE_TEXT}")
-            output_json = json.loads((output.decode("utf-8")))
+            output_json = json.loads((output.decode("utf-8", "replace")))
 
             errors.extend(output_json["errors"])
             outputs.extend(output_json["matches"])
