@@ -93,7 +93,7 @@ def line_has_todo_ok(line: str) -> bool:
 
 
 def score_output_json(
-    json_out, test_files: List[Path], ignore_todo: bool
+    json_out: Dict[str, Any], test_files: List[Path], ignore_todo: bool
 ) -> Tuple[Dict[str, List[int]], Dict[str, Dict[str, Any]], int]:
     comment_lines: Dict[str, Dict[str, List[int]]] = collections.defaultdict(
         lambda: collections.defaultdict(list)
