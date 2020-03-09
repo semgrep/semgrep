@@ -11,13 +11,13 @@ Validate that the output is annotated in the source file with by looking for a c
  """
 import argparse
 import collections
-import json
-import subprocess
 import sys
 from pathlib import Path
 from typing import Any
 from typing import Dict
 from typing import List
+from typing import Set
+from typing import Tuple
 
 import sgrep_main
 from constants import YML_EXTENSIONS
@@ -25,7 +25,7 @@ from util import debug_print
 from util import print_error_exit
 
 
-def normalize_rule_id(line):
+def normalize_rule_id(line: str) -> str:
     """
     given a line like `     # ruleid:foobar`
     or `      // ruleid:foobar`
@@ -34,16 +34,18 @@ def normalize_rule_id(line):
     return line.strip().split(":")[1].strip()
 
 
-def compute_confusion_matrix(reported, expected):
+def compute_confusion_matrix(
+    reported: Set[Any], expected: Set[Any]
+) -> Tuple[int, int, int, int]:
     true_positives = len(expected.intersection(reported))
     false_positives = len(reported - expected)
     true_negatives = 0  # we have no way to label "ok"
     false_negatives = len(expected - reported)
 
-    return [true_positives, true_negatives, false_positives, false_negatives]
+    return (true_positives, true_negatives, false_positives, false_negatives)
 
 
-def _test_compute_confusion_matrix():
+def _test_compute_confusion_matrix() -> None:
     tp, tn, fp, fn = compute_confusion_matrix(set([1, 2, 3, 4]), set([1]))
     assert tp == 1
     assert tn == 0
@@ -90,7 +92,9 @@ def line_has_todo_ok(line: str) -> bool:
     )
 
 
-def score_output_json(json_out, test_files: List[Path], ignore_todo: bool):
+def score_output_json(
+    json_out, test_files: List[Path], ignore_todo: bool
+) -> Tuple[Dict[str, List[int]], Dict[str, Dict[str, Any]], int]:
     comment_lines: Dict[str, Dict[str, List[int]]] = collections.defaultdict(
         lambda: collections.defaultdict(list)
     )
@@ -130,7 +134,7 @@ def score_output_json(json_out, test_files: List[Path], ignore_todo: bool):
             int(result["start"]["line"])
         )
 
-    def join_keys(a, b):
+    def join_keys(a: Dict[str, Any], b: Dict[str, Any]) -> Set[str]:
         return set(a.keys()).union(set(b.keys()))
 
     for file_path in join_keys(comment_lines, reported_lines):
@@ -165,7 +169,7 @@ def confusion_matrix_to_string(confusion: List[int]) -> str:
 
 def invoke_sgrep_lint(
     verbose: bool, strict: bool, test_files: List[Path], config: Path, unsafe: bool
-):
+) -> Dict[str, Any]:
     return sgrep_main.main(
         argparse.Namespace(
             verbose=verbose,
@@ -189,7 +193,7 @@ def invoke_sgrep_lint(
 
 def generate_file_pairs(
     location: Path, ignore_todo: bool, strict: bool, sgrep_verbose: bool, unsafe: bool
-):
+) -> None:
     filenames = list(location.rglob("*"))
     no_tests = []
     tested = []
@@ -293,11 +297,11 @@ def main(
     strict: bool,
     sgrep_verbose: bool,
     unsafe: bool,
-):
+) -> None:
     generate_file_pairs(location, ignore_todo, strict, sgrep_verbose, unsafe)
 
 
-def test_main(args):
+def test_main(args: argparse.Namespace) -> None:
     _test_compute_confusion_matrix()
     if len(args.target) != 1:
         print_error_exit("only one target directory allowed for tests")
