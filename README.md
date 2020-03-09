@@ -1,4 +1,4 @@
-# sgrep [![ci](https://github.com/returntocorp/sgrep/workflows/ci/badge.svg)](https://github.com/returntocorp/sgrep/actions?query=workflow%3Aci+branch%3Adevelop)
+# sgrep [![ci](https://github.com/returntocorp/sgrep/workflows/ci/badge.svg)](https://github.com/returntocorp/sgrep/actions?query=workflow%3Aci+branch%3Adevelop) 
 
 [![r2c community slack](https://img.shields.io/badge/r2c_slack-join-brightgreen?style=for-the-badge&logo=slack&labelColor=4A154B)](https://join.slack.com/t/r2c-community/shared_invite/enQtNjU0NDYzMjAwODY4LWE3NTg1MGNhYTAwMzk5ZGRhMjQ2MzVhNGJiZjI1ZWQ0NjQ2YWI4ZGY3OGViMGJjNzA4ODQ3MjEzOWExNjZlNTA)
 
@@ -19,160 +19,29 @@ syntax. The idea is to mix the convenience of grep with the correctness and prec
 
 ## Supported Languages by Sgrep Feature
 
-
-<table style="text-align:center">
-<tr>
-<td>
-
-</td>
-<td>
-<b>go</b>
-</td>
-<td>
-<b>python</b>
-</td>
-<td>
-<b>js</b>
-</td>
-<td>
-<b>java</b>
-</td>
-<td>
-<b>php</b>
-</td>
-<td>
-<b>ml</b>
-</td>
-<td>
-<b>cpp</b>
-</td>
-<td>
-<b>c</b>
-</td>
+<table>
+  <tr>
+    <td><b>javascript</b></td>
+    <td><b>python</b></td>
+    <td><b>go</b></td>
+    <td><b>java</b></td>
+    <td><b>c</b></td>
+    <td><b>ruby</b></td>
+    <td><b>scala</b></td>
 </tr>
-<tr>
-<td>
-'...' operator
-</td>
-<td>
-✅
-</td>
-<td>
-✅
-</td>
-<td>
-✅
-</td>
-<td>
-✅
-</td>
-<td>
-🚧
-</td>
-<td>
-🚧
-</td>
-<td>
-🚧
-</td>
-<td>
-🔶
-</td>
-</tr>
-<tr>
-<td>
-Equivalences
-</td>
-<td>
-🔶
-</td>
-<td>
-🔶
-</td>
-<td>
-🔶
-</td>
-<td>
-🔶
-</td>
-<td>
-🚧
-</td>
-<td>
-🚧
-</td>
-<td>
-🚧
-</td>
-<td>
-🔶
-</td>
-</tr>
-<tr>
-<td>
-Metavariables
-</td>
-<td>
-✅
-</td>
-<td>
-✅
-</td>
-<td>
-✅
-</td>
-<td>
-✅
-</td>
-<td>
-🚧
-</td>
-<td>
-🚧
-</td>
-<td>
-🚧
-</td>
-<td>
-✅
-</td>
-</tr>
-<tr>
-<td>
-Others
-</td>
-<td>
-🔶
-</td>
-<td>
-✅
-</td>
-<td>
-🔶
-</td>
-<td>
-🔶
-</td>
-<td>
-🚧
-</td>
-<td>
-🚧
-</td>
-<td>
-🚧
-</td>
-<td>
-🚧
-</td>
-</tr>
-</table>
-
-
-
-- ✅ — Supported
-- 🔶 — Partial support
-- 🚧 — Under development
+  <tr>
+   <td>✅</td>
+   <td>✅</td>
+   <td>✅</td>
+   <td>✅</td>
+   <td>✅</td>
+   <td>coming</td>
+   <td>coming</td>
+ </tr>
+  <tr>
+    <td colspan=7>see full language support details in <a href="docs/matrix.md">matrix.md</a></td>
+  </tr>
+ </table>
 
 ## Meetups
 
