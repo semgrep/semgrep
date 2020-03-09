@@ -4,26 +4,13 @@ import test
 
 import config_resolver
 import sgrep_main
+import util
 from constants import DEFAULT_CONFIG_FILE
 from constants import PLEASE_FILE_ISSUE_TEXT
 from constants import RCE_RULE_FLAG
 from constants import SGREP_URL
 from util import debug_print
 from util import print_error_exit
-
-
-def set_flags(debug: bool, quiet: bool) -> None:
-    """Set the global DEBUG and QUIET flags"""
-    # TODO move to a proper logging framework
-    global DEBUG
-    global QUIET
-    if debug:
-        DEBUG = True  # type: ignore
-        debug_print("DEBUG is on")
-    if quiet:
-        QUIET = True  # type: ignore
-        debug_print("QUIET is on")
-
 
 # CLI
 
@@ -149,7 +136,7 @@ if __name__ == "__main__":
         parser.error("-e/--pattern and -l/--lang must both be specified")
 
     # set the flags
-    set_flags(args.verbose, args.quiet)
+    util.set_flags(args.verbose, args.quiet)
 
     # change cwd if using docker
     config_resolver.adjust_for_docker(args.precommit)
