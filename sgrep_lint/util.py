@@ -45,3 +45,16 @@ def flatten(L: Iterable[Iterable[Any]]) -> Iterable[Any]:
     for list in L:
         for item in list:
             yield item
+
+
+def set_flags(debug: bool, quiet: bool) -> None:
+    """Set the global DEBUG and QUIET flags"""
+    # TODO move to a proper logging framework
+    global DEBUG
+    global QUIET
+    if debug:
+        DEBUG = True  # type: ignore
+        debug_print("DEBUG is on")
+    if quiet:
+        QUIET = True  # type: ignore
+        debug_print("QUIET is on")
