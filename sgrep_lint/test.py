@@ -63,6 +63,33 @@ def _test_compute_confusion_matrix():
     assert fn == 2
 
 
+def line_has_todo_rule(line: str) -> bool:
+    return (
+        "#todoruleid:" in line
+        or "# todoruleid:" in line
+        or "// todoruleid:" in line
+        or "//todoruleid:" in line
+    )
+
+
+def line_has_rule(line: str) -> bool:
+    return (
+        "#ruleid:" in line
+        or "# ruleid:" in line
+        or "//ruleid:" in line
+        or "// ruleid:" in line
+    )
+
+
+def line_has_todo_ok(line: str) -> bool:
+    return (
+        "#todook" in line
+        or "# todook" in line
+        or "// todook" in line
+        or "//todook" in line
+    )
+
+
 def score_output_json(json_out, test_files: List[Path], ignore_todo: bool):
     comment_lines: Dict[str, Dict[str, List[int]]] = collections.defaultdict(
         lambda: collections.defaultdict(list)
@@ -70,6 +97,7 @@ def score_output_json(json_out, test_files: List[Path], ignore_todo: bool):
     reported_lines: Dict[str, Dict[str, List[int]]] = collections.defaultdict(
         lambda: collections.defaultdict(list)
     )
+    ignore_lines: Dict[str, List[int]] = collections.defaultdict(list)
     score_by_checkid: Dict[str, List[int]] = collections.defaultdict(
         lambda: [0, 0, 0, 0]
     )
@@ -83,24 +111,19 @@ def score_output_json(json_out, test_files: List[Path], ignore_todo: bool):
         with open(test_file_resolved) as fin:
             all_lines = fin.readlines()
             for i, line in enumerate(all_lines):
-                todo_in_line = (
-                    "#todoruleid:" in line
-                    or "# todoruleid" in line
-                    or "// todoruleid:" in line
-                    or "//todoruleid:" in line
-                )
+                # +1 because we are 0 based and sgrep output is not, plus skip the comment line
+                effective_line_num = i + 2
+
+                todo_in_line = line_has_todo_rule(line)
+                todo_ok_in_line = line_has_todo_ok(line)
                 if todo_in_line:
                     num_todo += 1
-                if (not ignore_todo and todo_in_line) or (
-                    "#ruleid:" in line
-                    or "# ruleid:" in line
-                    or "//ruleid:" in line
-                    or "// ruleid:" in line
-                ):
-                    # +1 because we are 0 based and sgrep output is not, plus skip the comment line
+                if (not ignore_todo and todo_in_line) or line_has_rule(line):
                     comment_lines[test_file_resolved][normalize_rule_id(line)].append(
-                        i + 2
+                        effective_line_num
                     )
+                if ignore_todo and todo_ok_in_line:
+                    ignore_lines[test_file_resolved].append(effective_line_num)
 
     for result in json_out["results"]:
         reported_lines[str(Path(result["path"]).resolve())][result["check_id"]].append(
@@ -112,11 +135,15 @@ def score_output_json(json_out, test_files: List[Path], ignore_todo: bool):
 
     for file_path in join_keys(comment_lines, reported_lines):
         for check_id in join_keys(comment_lines[file_path], reported_lines[file_path]):
-            reported = set(reported_lines[file_path][check_id])
+            all_reported = set(reported_lines[file_path][check_id])
             expected = set(comment_lines[file_path][check_id])
+            ignored = set(ignore_lines[file_path])
+
+            reported = all_reported - ignored
+
             new_cm = compute_confusion_matrix(reported, expected)
             debug_print(
-                f"reported lines for check {check_id}: {reported}, expected lines: {expected}, confusion matrix: {new_cm}"
+                f"reported lines for check {check_id}: {sorted(reported)}, expected lines: {sorted(expected)} (ignored: {sorted(ignored)}, confusion matrix: {new_cm}"
             )
             expected_reported_by_check_id[check_id][file_path] = (expected, reported)
             # TODO: -- re-enable this
@@ -137,7 +164,7 @@ def confusion_matrix_to_string(confusion: List[int]) -> str:
 
 
 def invoke_sgrep_lint(
-    verbose: bool, strict: bool, test_files: List[Path], config: Path, unsafe: bool,
+    verbose: bool, strict: bool, test_files: List[Path], config: Path, unsafe: bool
 ):
     return sgrep_main.main(
         argparse.Namespace(
@@ -248,7 +275,7 @@ def generate_file_pairs(
             print(f" ✖ FAILED rule file: {filename} check: {check_id}")
             for test_file_path, (expected, reported) in failed_test_files.items():
                 print(
-                    f"              in test: {test_file_path}, expected lines: {expected} != reported: {reported}"
+                    f"              in test: {test_file_path}, expected lines: {sorted(expected)} != reported: {sorted(reported)}"
                 )
         print(
             f"{len(failed_tests)} checks failed tests (run with verbose flag for more details)"
