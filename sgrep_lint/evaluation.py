@@ -1,19 +1,14 @@
 from typing import Any
-from typing import DefaultDict
 from typing import Dict
-from typing import Generator
 from typing import Iterable
 from typing import Iterator
 from typing import List
-from typing import NewType
 from typing import Optional
 from typing import Set
-from typing import Tuple
 
 from constants import RCE_RULE_FLAG
 from sgrep_types import BooleanRuleExpression
 from sgrep_types import InvalidRuleSchema
-from sgrep_types import Operator
 from sgrep_types import operator_for_pattern_name
 from sgrep_types import OPERATORS
 from sgrep_types import pattern_name_for_operator
@@ -28,7 +23,7 @@ from util import print_error_exit
 
 
 def _parse_boolean_expression(
-    rule_patterns: List[Dict[str, Any]], pattern_id=0, prefix=""
+    rule_patterns: List[Dict[str, Any]], pattern_id: int = 0, prefix: str = ""
 ) -> Iterator[BooleanRuleExpression]:
     """
     Move through the expression from the YML, yielding tuples of (operator, unique-id-for-pattern, pattern)
@@ -172,9 +167,9 @@ def _where_python_statement_matches(
         )
 
     if type(output) != type(True):  # type: ignore
-        print_error_exit(  # type: ignore
+        print_error_exit(
             f"python where expression needs boolean output but got: {output} for {where_expression}"  # type: ignore
-        )  # type: ignore
+        )
     return output == True  # type: ignore
 
 

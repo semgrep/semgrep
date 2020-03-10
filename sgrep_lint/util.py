@@ -20,9 +20,9 @@ def is_url(url: str) -> bool:
         return False
 
 
-def print_error(e):
+def print_error(e: str) -> None:
     if not QUIET:
-        print(str(e), file=sys.stderr)
+        print(e, file=sys.stderr)
 
 
 def print_error_exit(msg: str, exit_code: int = FATAL_EXIT_CODE) -> None:
@@ -31,12 +31,12 @@ def print_error_exit(msg: str, exit_code: int = FATAL_EXIT_CODE) -> None:
     sys.exit(exit_code)
 
 
-def print_msg(msg: str):
+def print_msg(msg: str) -> None:
     if not QUIET:
         print(msg, file=sys.stderr)
 
 
-def debug_print(msg: str):
+def debug_print(msg: str) -> None:
     if DEBUG:
         print(msg, file=sys.stderr)
 
@@ -53,8 +53,8 @@ def set_flags(debug: bool, quiet: bool) -> None:
     global DEBUG
     global QUIET
     if debug:
-        DEBUG = True  # type: ignore
+        DEBUG = True
         debug_print("DEBUG is on")
     if quiet:
-        QUIET = True  # type: ignore
+        QUIET = True
         debug_print("QUIET is on")
