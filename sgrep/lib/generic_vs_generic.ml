@@ -87,6 +87,12 @@ let str_of_any any =
   let s = Ocaml.string_of_v v in
   s
 
+(* guard for deep stmt matching *)
+let has_ellipsis_stmts xs = 
+  xs |> List.exists (function
+    | A.ExprStmt (A.Ellipsis _) -> true
+    | _ -> false
+  )
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
@@ -545,6 +551,22 @@ and make_dotted xs =
       let tok = Parse_info.fake_info "." in
       B.DotAccess (acc, tok, B.FId e)) base xs
 
+(* possibly go deeper when someone wants that a pattern like 
+ *   'bar();' 
+ * match also an expression statement like
+ *   'x = bar();'.
+ *
+ * This is very hacky. 
+ *
+ * alternatives:
+ *  - force the user to use 'if(... <expr> ...)' (isaac, jmelton)
+ *  - do as in coccinelle and use 'if(<... <expr> ...>)' 
+ *  - CURRENT: impicitely go deep without requiring an extra syntax
+ *
+ * todo? we could restrict ourselves to only a few forms? see subast_generic.ml
+ *   - x = <expr>,
+ *   - <call>(<exprs).
+ *)
 (* experimental! *)
 and m_expr_deep a b =
   if not !go_deeper 
@@ -1207,8 +1229,38 @@ and m_other_attribute_operator = m_other_xxx
 (* Statement *)
 (* ------------------------------------------------------------------------- *)
 
-and m_stmts (xsa: A.stmt list) (xsb: A.stmt list) = 
-  m_list__m_stmt xsa xsb
+(* possibly go deeper when someone wants that a pattern like 
+ *   ...
+ *   bar();
+ * to match also calls to bar() deeply as in
+ *   foo();
+ *   if(true) 
+ *      bar();
+ * 
+ * When combined with the deep expr, this even allows to match code like
+ *  if(true)
+ *     x = bar();
+ * 
+ * This is currently very hacky. We just flatten the list of all substmts.
+ *
+ * alternatives:
+ *   - do it the right way by having '...' work on control-flow paths as in
+ *     coccinelle
+ *
+ * todo? we could restrict ourselves to only a few forms?
+ *)
+(* experimental! *)
+and m_stmts_deep (xsa: A.stmt list) (xsb: A.stmt list) = 
+  if !go_deeper && (has_ellipsis_stmts xsa)
+  then 
+    m_list__m_stmt xsa xsb >!> (fun () ->
+      let xsb' = Subast_generic.flatten_substmts_of_stmts xsb in
+      m_list__m_stmt xsa xsb'
+    )
+  else m_list__m_stmt xsa xsb 
+
+and _m_stmts (xsa: A.stmt list) (xsb: A.stmt list) = 
+  m_list__m_stmt xsa xsb 
 
 and m_list__m_stmt (xsa: A.stmt list) (xsb: A.stmt list) =
   match xsa, xsb with
@@ -1275,7 +1327,7 @@ and m_stmt a b =
 
   (* TODO: ... should also allow a subset of stmts *)
   | A.Block(a1), B.Block(b1) ->
-    m_stmts a1 b1 >>= (fun () -> 
+    m_stmts_deep a1 b1 >>= (fun () -> 
     return ()
     )
   | A.If(a0, a1, a2, a3), B.If(b0, b1, b2, b3) ->
@@ -2189,7 +2241,7 @@ and m_any a b =
     return ()
     )
   | A.Ss(a1), B.Ss(b1) ->
-    m_stmts a1 b1 >>= (fun () -> 
+    m_stmts_deep a1 b1 >>= (fun () -> 
     return ()
     )
   | A.I _, _  | A.N _, _  | A.Di _, _  | A.En _, _  | A.E _, _
