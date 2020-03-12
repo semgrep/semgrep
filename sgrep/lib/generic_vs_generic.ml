@@ -69,6 +69,8 @@ module Lib = Lib_ast
 let verbose = ref false
 let debug = ref false
 
+let debug_with_full_position = ref false
+
 (* experimental: a bit hacky, and may introduce big perf regressions,
  * so be careful
  *)
@@ -79,7 +81,7 @@ let go_deeper = ref true
 (*****************************************************************************)
 
 let str_of_any any = 
-  if !debug || true
+  if !debug && !debug_with_full_position
   then Meta_parse_info._current_precision :=
     { Meta_parse_info.default_dumper_precision with Meta_parse_info.
       full_info = true };
@@ -1277,6 +1279,8 @@ and _m_stmts (xsa: A.stmt list) (xsb: A.stmt list) =
   m_list__m_stmt xsa xsb 
 
 and m_list__m_stmt (xsa: A.stmt list) (xsb: A.stmt list) =
+  if !debug
+  then pr2 (spf "%d vs %d" (List.length xsa) (List.length xsb));
   match xsa, xsb with
   | [], [] ->
       return ()
