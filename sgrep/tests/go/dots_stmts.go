@@ -6,4 +6,5 @@ func foo() {
     print("do stuff")
     foobar()
     eval(user_data)
+    foobar()
 }
