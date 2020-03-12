@@ -2111,7 +2111,9 @@ and m_directive a b =
   )
 
 (* less-is-ok: a few of these below with the use of m_module_name_prefix and
- * m_option_none_can_match_some *)
+ * m_option_none_can_match_some.
+ * todo? not sure it makes sense to always allow m_module_name_prefix below
+ *)
 and m_directive_basic a b = 
   match a, b with
   | A.ImportFrom(a0, a1, a2, a3), B.ImportFrom(b0, b1, b2, b3) ->
@@ -2129,7 +2131,7 @@ and m_directive_basic a b =
     )))
   | A.ImportAll(a0, a1, a2), B.ImportAll(b0, b1, b2) ->
     m_tok a0 b0 >>= (fun () ->
-    m_module_name a1 b1 >>= (fun () -> 
+    m_module_name_prefix a1 b1 >>= (fun () -> 
     m_tok a2 b2 >>= (fun () -> 
     return ()
     )))
