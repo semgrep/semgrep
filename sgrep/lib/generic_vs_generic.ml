@@ -288,6 +288,7 @@ let (m_option: ('a,'b) matcher -> ('a option,'b option) matcher) = fun f a b ->
   | Some _, _
       -> fail ()
 
+(* dots: *)
 let m_option_ellipsis_ok f a b = 
   match a, b with
   | None, None -> return ()
@@ -302,6 +303,20 @@ let m_option_ellipsis_ok f a b =
   | None, _
   | Some _, _
       -> fail ()
+
+(* less-is-ok: *)
+let m_option_none_can_match_some f a b =
+  match a, b with
+  (* Nothing specified in the pattern can match Some stuff *)
+  | None, _ -> return ()
+
+  | Some xa, Some xb ->
+      f xa xb >>= (fun () ->
+        return ()
+      )
+  | Some _, _
+      -> fail ()
+
 
 let (m_ref: ('a,'b) matcher -> ('a ref,'b ref) matcher) = fun f a b ->
   match a, b with
@@ -334,7 +349,6 @@ let m_int a b =
 let m_string a b =
   if a =$= b then return () else fail ()
 
-(* todo, slow *)
 let string_is_prefix s1 s2 =
   let len1 = String.length s1
   and len2 = String.length s2 in
@@ -342,6 +356,7 @@ let string_is_prefix s1 s2 =
     let sub = String.sub s1 0 len2 in
     (sub = s2)
 
+(* less-is-ok: *)
 let m_string_prefix a b =
   if string_is_prefix b a then return () else fail ()
 
@@ -419,10 +434,9 @@ let m_qualified_name a b =
   match a, b with
   (a, b) -> m_dotted_name a b
 
-(* prefix matching is supported for imports, eg.:
-  pattern: import foo.x
-  should match: from foo.x.z.y
-*)
+(* less-is-ok: prefix matching is supported for imports, eg.:
+ *  pattern: import foo.x should match: from foo.x.z.y
+ *)
 let m_module_name_prefix a b = 
   match a, b with
   | A.FileName(a1), B.FileName(b1) ->
@@ -2071,62 +2085,51 @@ and m_macro_definition a b =
 (* Directives (Module import/export, macros) *)
 (* ------------------------------------------------------------------------- *)
 
-
-(* normalize from:
-    from foo import bar -> import foo.bar
-    from foo.bar import baz -> import foo.bar.baz
-    from foo.bar.baz import yoo -> import foo.bar.baz.yoo
-
-    TODO: we plan to refactor ImportFrom such that it has at most one identifier; this function assumes that has already happened
-*)
-and normalize_import_as (a0: Parse_info.token_mutable) (from_module_name: Ast_generic.module_name) (import_opt: Ast_generic.alias option) = 
-  match from_module_name with 
-  | Ast_generic.DottedName idents -> 
-    begin
-    match import_opt with 
-    | Some(import) ->
-      let (import_ident_name: Ast_generic.label), _ = import in
-      let new_module_name: Ast_generic.dotted_ident = idents @ [import_ident_name] in 
-        A.ImportFrom(a0, Ast_generic.DottedName new_module_name, None)
-    | None -> A.ImportFrom(a0, from_module_name, None)
-  end;  
-  | Ast_generic.FileName _ -> (* TODO *)
-    A.ImportFrom(a0, from_module_name, import_opt)
-
-(* 
-  a function that will take ImportFrom, ImportAs, ImportAll -> normalized 
-  ImportFrom for matching `import` purposes
-*)
-and normalize_import i =
-  match i with
-  | A.ImportFrom(a0, from_module_name, import) -> normalize_import_as a0 from_module_name import
-  | A.ImportAs(a0, a1, _) -> normalize_import_as a0 a1 None
-  | A.ImportAll(a0, a1, _) -> normalize_import_as a0 a1 None
-  | _ -> i
-
 and m_directive a b = 
-  let normal_a = normalize_import a in
-  let normal_b = normalize_import b in
-  (*
-    pr2 (spf "A = %s" (str_of_any (Dir normal_a)));
-    pr2 (spf "B = %s" (str_of_any (Dir normal_b)));
-  *)
-  (* a is the pattern, b is the target*)
-  match normal_a, normal_b with
-  | A.ImportFrom(a0, a1, _), B.ImportFrom(b0, b1, _) ->
+  m_directive_basic a b >!> (fun () ->
+    match a with
+    (* normalize only if very simple import pattern (no alias) *)
+    | A.ImportFrom (_, _, _, None) | A.ImportAs (_, _, None) 
+      ->
+      (* equivalence: *)
+      let normal_a = Normalize_generic.normalize_import_opt true a in
+      let normal_b = Normalize_generic.normalize_import_opt false b in
+      (match normal_a, normal_b with
+      | Some (a0, a1), Some (b0, b1) ->
+        m_tok a0 b0 >>= (fun () ->
+        m_module_name_prefix a1 b1 >>= (fun () ->
+         return ()
+        ))
+      | _ -> fail ()
+      )
+   (* more complex pattern should not be normalized *)
+   | A.ImportFrom _ | A.ImportAs _
+   (* definitely do not normalize the pattern for ImportAll *)
+   | A.ImportAll _
+   | A.Package _ | A.PackageEnd _ | A.OtherDirective _ ->
+      fail ()
+  )
+
+(* less-is-ok: a few of these below with the use of m_module_name_prefix and
+ * m_option_none_can_match_some *)
+and m_directive_basic a b = 
+  match a, b with
+  | A.ImportFrom(a0, a1, a2, a3), B.ImportFrom(b0, b1, b2, b3) ->
     m_tok a0 b0 >>= (fun () ->
     m_module_name_prefix a1 b1 >>= (fun () -> 
+    m_ident a2 b2 >>= (fun () -> 
+    (m_option_none_can_match_some m_ident) a3 b3 >>= (fun () -> 
     return()
-    ))
+    ))))
   | A.ImportAs(a0, a1, a2), B.ImportAs(b0, b1, b2) ->
     m_tok a0 b0 >>= (fun () ->
     m_module_name_prefix a1 b1 >>= (fun () -> 
-    (m_option m_ident) a2 b2 >>= (fun () -> 
+    (m_option_none_can_match_some m_ident) a2 b2 >>= (fun () -> 
     return ()
     )))
   | A.ImportAll(a0, a1, a2), B.ImportAll(b0, b1, b2) ->
     m_tok a0 b0 >>= (fun () ->
-    m_module_name_prefix a1 b1 >>= (fun () -> 
+    m_module_name a1 b1 >>= (fun () -> 
     m_tok a2 b2 >>= (fun () -> 
     return ()
     )))
@@ -2145,14 +2148,6 @@ and m_directive a b =
   | A.ImportFrom _, _ | A.ImportAs _, _ | A.OtherDirective _, _
   | A.ImportAll _, _ | A.Package _, _ | A.PackageEnd _, _
    -> fail ()
-
-and _m_alias a b = 
-  match a, b with
-  | (a1, a2), (b1, b2) ->
-    m_ident a1 b1 >>= (fun () -> 
-    (m_option m_ident) a2 b2 >>= (fun () -> 
-    return ()
-    ))
 
 and m_other_directive_operator = m_other_xxx
 
