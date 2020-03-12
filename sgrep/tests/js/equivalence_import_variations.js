@@ -1,23 +1,33 @@
 // from https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/import
 
+//TODO: they all match because of the import isomorphism is currently
+// buggy; only a few should really match
+
+//ERROR: TODO
 import defaultExport from "module-name";
+//ERROR: TODO
 import * as name from "module-name";
+//ERROR: yes
 import { export1 } from "module-name";
+//ERROR: yes
 import { export1 as alias1 } from "module-name";
+//ERROR: yes
 import { export1 , export2 } from "module-name";
+//ERROR: TODO
 import { foo , bar } from "module-name/path/to/specific/un-exported/file";
+//ERROR: yes
 import { export1 , export2 as alias2 } from "module-name";
+//ERROR: yes
 import defaultExport, { export1, export2 } from "module-name";
+//ERROR: TODO
 import defaultExport, * as name from "module-name";
 import "module-name";
-
 
 import {foo, bar} from '/modules/my-module.js';
 
 // side effecs only
 import '/modules/my-module.js';
 
-
+// TODO
 var promise = import("module-name");
-
 let module = await import('/modules/my-module.js');
