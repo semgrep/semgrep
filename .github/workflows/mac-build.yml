@@ -5,11 +5,18 @@ on:
     # branches: [master, develop]
 
 jobs:
-  build-test:
+  mac-build-test:
     runs-on: macos-latest
     steps:
       - name: Install System Deps
         run: brew install opam pkg-config
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Cache Primes
+        uses: actions/cache@v1
+        with:
+          path: ~/.opam
+          key: ${{ runner.os }}-opam-${{ hashFiles('.github/workflows/mac-build.yml') }}
       - name: OPAM setup
         run: |
           opam init --no-setup --bare;
@@ -17,8 +24,6 @@ jobs:
           opam switch 4.07.1
       - name: OPAM install Deps
         run: eval $(opam env); opam install -y reason dune ocamlfind camlp4 num ocamlgraph json-wheel conf-perl yaml
-      - name: Checkout
-        uses: actions/checkout@v2
       - name: Install submodules
         run: git submodule update --init --recursive
       - name: Install pfff
@@ -27,3 +32,13 @@ jobs:
         run: eval $(opam env) && cd sgrep && make all && make test && make install
       - name: Install and test sgrep-lint
         run: eval $(opam env) && cd sgrep_lint && export PATH=/github/home/.local/bin:$PATH && make all && make test
+      - name: Clean Cache
+        run: rm -rf ~/.opam/log
+      - uses: actions/upload-artifact@v1
+        with:
+          name: sgrep-lint
+          path: ./sgrep_lint/build/sgrep.dist/sgrep-lint
+      - uses: actions/upload-artifact@v1
+        with:
+          name: sgrep
+          path: ./sgrep/_build/default/bin/main_sgrep.exe
