@@ -24,9 +24,12 @@ jobs:
         run: eval $(opam  env --root /home/opam/.opam --set-root) && cd sgrep_lint && export PATH=/github/home/.local/bin:$PATH && make all && make test
       - name: Prepare artifacts
         run: |
-          mkdir artifacts
+          mkdir -p artifacts/bin/sgrep-lint-files
           cp ./sgrep/_build/default/bin/main_sgrep.exe artifacts/sgrep
-          cp -r ./sgrep_lint/build/sgrep.dist/* artifacts
+          cp -r ./sgrep_lint/build/sgrep.dist/* artifacts/bin/sgrep-lint-files
+          mv artifacts/bin/sgrep-lint-files/sgrep-lint artifacts
+          mv artifacts/bin/sgrep-lint-files/sgrep-lint-exe artifacts
+          chmod +x artifacts/sgrep artifacts/sgrep-lint artifacts/sgrep-lint-exe
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
