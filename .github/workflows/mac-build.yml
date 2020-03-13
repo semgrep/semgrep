@@ -1,0 +1,27 @@
+name: mac
+
+on:
+  push:
+    branches: [master, develop]
+
+jobs:
+  build-test:
+    runs-on: macos-latest
+    steps:
+      - name: Install System Deps
+        run: brew install opam pkg-config
+      - name: OPAM setup
+        run: |
+          opam init --no-setup --bare;
+          opam switch create 4.07.1;
+          opam switch 4.07.1
+      - name: OPAM install Deps
+        run: eval $(opam env); opam install -y reason dune ocamlfind camlp4 num ocamlgraph json-wheel conf-perl yaml
+      - name: Install submodules
+        run: git submodule update --init --recursive
+      - name: Install pfff
+        run: eval $(opam env) && cd ./pfff && ./configure && make depend && make && make opt && make install-libs
+      - name: Install and test sgrep
+        run: eval $(opam env) && cd sgrep && make all && make test && make install
+      - name: Install and test sgrep-lint
+        run: eval $(opam env) && cd sgrep_lint && export PATH=/github/home/.local/bin:$PATH && make all && make test
