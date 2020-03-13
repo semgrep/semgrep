@@ -26,10 +26,7 @@ jobs:
         run: |
           mkdir -p artifacts/bin/sgrep-lint-files
           cp ./sgrep/_build/default/bin/main_sgrep.exe artifacts/sgrep
-          cp -r ./sgrep_lint/build/sgrep.dist/* artifacts/bin/sgrep-lint-files
-          mv artifacts/bin/sgrep-lint-files/sgrep-lint artifacts
-          mv artifacts/bin/sgrep-lint-files/sgrep-lint-exe artifacts
-          chmod +x artifacts/sgrep artifacts/sgrep-lint artifacts/sgrep-lint-exe
+          cp -r ./sgrep_lint/build/sgrep.dist/* artifacts
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
