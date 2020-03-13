@@ -50,7 +50,7 @@ let match_st_st pattern e =
 
 let match_sts_sts pattern e = 
   let env = GG.empty_environment () in
-  GG.m_stmts pattern e env
+  GG.m_stmts_deep pattern e env
 
 (* for unit testing *)
 let match_any_any pattern e = 

@@ -1,0 +1,3 @@
+$X = requests.get(...)
+...
+render($S.format($X))
