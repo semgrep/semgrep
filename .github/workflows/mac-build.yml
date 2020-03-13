@@ -20,8 +20,13 @@ jobs:
       - name: OPAM setup
         run: |
           opam init --no-setup --bare;
-          opam switch create 4.07.1;
-          opam switch 4.07.1
+          if [ -d ~/.opam/4.07.1 ]
+            then
+                echo "switch already exists";
+            else
+                opam switch create 4.07.1;
+            fi
+          opam switch 4.07.1;
       - name: OPAM install Deps
         run: eval $(opam env); opam install -y reason dune ocamlfind camlp4 num ocamlgraph json-wheel conf-perl yaml
       - name: Install submodules
@@ -34,11 +39,13 @@ jobs:
         run: eval $(opam env) && cd sgrep_lint && export PATH=/github/home/.local/bin:$PATH && make all && make test
       - name: Clean Cache
         run: rm -rf ~/.opam/log
-      - uses: actions/upload-artifact@v1
+      - name: Prepare artifacts
+        run: |
+          mkdir artifacts
+          cp ./sgrep/_build/default/bin/main_sgrep.exe artifacts/sgrep
+          cp -r ./sgrep_lint/build/sgrep.dist/* artifacts
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v1
         with:
-          name: sgrep-lint
-          path: ./sgrep_lint/build/sgrep.dist/sgrep-lint
-      - uses: actions/upload-artifact@v1
-        with:
-          name: sgrep
-          path: ./sgrep/_build/default/bin/main_sgrep.exe
+          name: sgrep-${{ github.sha::8 }}
+          path: artifacts
