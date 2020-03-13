@@ -69,6 +69,8 @@ module Lib = Lib_ast
 let verbose = ref false
 let debug = ref false
 
+let debug_with_full_position = ref false
+
 (* experimental: a bit hacky, and may introduce big perf regressions,
  * so be careful
  *)
@@ -79,7 +81,7 @@ let go_deeper = ref true
 (*****************************************************************************)
 
 let str_of_any any = 
-  if !debug || true
+  if !debug && !debug_with_full_position
   then Meta_parse_info._current_precision :=
     { Meta_parse_info.default_dumper_precision with Meta_parse_info.
       full_info = true };
@@ -87,6 +89,12 @@ let str_of_any any =
   let s = Ocaml.string_of_v v in
   s
 
+(* guard for deep stmt matching *)
+let has_ellipsis_stmts xs = 
+  xs |> List.exists (function
+    | A.ExprStmt (A.Ellipsis _) -> true
+    | _ -> false
+  )
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
@@ -282,6 +290,7 @@ let (m_option: ('a,'b) matcher -> ('a option,'b option) matcher) = fun f a b ->
   | Some _, _
       -> fail ()
 
+(* dots: *)
 let m_option_ellipsis_ok f a b = 
   match a, b with
   | None, None -> return ()
@@ -296,6 +305,20 @@ let m_option_ellipsis_ok f a b =
   | None, _
   | Some _, _
       -> fail ()
+
+(* less-is-ok: *)
+let m_option_none_can_match_some f a b =
+  match a, b with
+  (* Nothing specified in the pattern can match Some stuff *)
+  | None, _ -> return ()
+
+  | Some xa, Some xb ->
+      f xa xb >>= (fun () ->
+        return ()
+      )
+  | Some _, _
+      -> fail ()
+
 
 let (m_ref: ('a,'b) matcher -> ('a ref,'b ref) matcher) = fun f a b ->
   match a, b with
@@ -328,7 +351,6 @@ let m_int a b =
 let m_string a b =
   if a =$= b then return () else fail ()
 
-(* todo, slow *)
 let string_is_prefix s1 s2 =
   let len1 = String.length s1
   and len2 = String.length s2 in
@@ -336,6 +358,7 @@ let string_is_prefix s1 s2 =
     let sub = String.sub s1 0 len2 in
     (sub = s2)
 
+(* less-is-ok: *)
 let m_string_prefix a b =
   if string_is_prefix b a then return () else fail ()
 
@@ -413,10 +436,9 @@ let m_qualified_name a b =
   match a, b with
   (a, b) -> m_dotted_name a b
 
-(* prefix matching is supported for imports, eg.:
-  pattern: import foo.x
-  should match: from foo.x.z.y
-*)
+(* less-is-ok: prefix matching is supported for imports, eg.:
+ *  pattern: import foo.x should match: from foo.x.z.y
+ *)
 let m_module_name_prefix a b = 
   match a, b with
   | A.FileName(a1), B.FileName(b1) ->
@@ -545,6 +567,22 @@ and make_dotted xs =
       let tok = Parse_info.fake_info "." in
       B.DotAccess (acc, tok, B.FId e)) base xs
 
+(* possibly go deeper when someone wants that a pattern like 
+ *   'bar();' 
+ * match also an expression statement like
+ *   'x = bar();'.
+ *
+ * This is very hacky. 
+ *
+ * alternatives:
+ *  - force the user to use 'if(... <expr> ...)' (isaac, jmelton)
+ *  - do as in coccinelle and use 'if(<... <expr> ...>)' 
+ *  - CURRENT: impicitely go deep without requiring an extra syntax
+ *
+ * todo? we could restrict ourselves to only a few forms? see subast_generic.ml
+ *   - x = <expr>,
+ *   - <call>(<exprs).
+ *)
 (* experimental! *)
 and m_expr_deep a b =
   if not !go_deeper 
@@ -1207,10 +1245,42 @@ and m_other_attribute_operator = m_other_xxx
 (* Statement *)
 (* ------------------------------------------------------------------------- *)
 
-and m_stmts (xsa: A.stmt list) (xsb: A.stmt list) = 
-  m_list__m_stmt xsa xsb
+(* possibly go deeper when someone wants that a pattern like 
+ *   ...
+ *   bar();
+ * to match also calls to bar() deeply as in
+ *   foo();
+ *   if(true) 
+ *      bar();
+ * 
+ * When combined with the deep expr, this even allows to match code like
+ *  if(true)
+ *     x = bar();
+ * 
+ * This is currently very hacky. We just flatten the list of all substmts.
+ *
+ * alternatives:
+ *   - do it the right way by having '...' work on control-flow paths as in
+ *     coccinelle
+ *
+ * todo? we could restrict ourselves to only a few forms?
+ *)
+(* experimental! *)
+and m_stmts_deep (xsa: A.stmt list) (xsb: A.stmt list) = 
+  if !go_deeper && (has_ellipsis_stmts xsa)
+  then 
+    m_list__m_stmt xsa xsb >!> (fun () ->
+      let xsb' = Subast_generic.flatten_substmts_of_stmts xsb in
+      m_list__m_stmt xsa xsb'
+    )
+  else m_list__m_stmt xsa xsb 
+
+and _m_stmts (xsa: A.stmt list) (xsb: A.stmt list) = 
+  m_list__m_stmt xsa xsb 
 
 and m_list__m_stmt (xsa: A.stmt list) (xsb: A.stmt list) =
+  if !debug
+  then pr2 (spf "%d vs %d" (List.length xsa) (List.length xsb));
   match xsa, xsb with
   | [], [] ->
       return ()
@@ -1275,7 +1345,7 @@ and m_stmt a b =
 
   (* TODO: ... should also allow a subset of stmts *)
   | A.Block(a1), B.Block(b1) ->
-    m_stmts a1 b1 >>= (fun () -> 
+    m_stmts_deep a1 b1 >>= (fun () -> 
     return ()
     )
   | A.If(a0, a1, a2, a3), B.If(b0, b1, b2, b3) ->
@@ -2019,57 +2089,48 @@ and m_macro_definition a b =
 (* Directives (Module import/export, macros) *)
 (* ------------------------------------------------------------------------- *)
 
-
-(* normalize from:
-    from foo import bar -> import foo.bar
-    from foo.bar import baz -> import foo.bar.baz
-    from foo.bar.baz import yoo -> import foo.bar.baz.yoo
-
-    TODO: we plan to refactor ImportFrom such that it has at most one identifier; this function assumes that has already happened
-*)
-and normalize_import_as (a0: Parse_info.token_mutable) (from_module_name: Ast_generic.module_name) (import_opt: Ast_generic.alias option) = 
-  match from_module_name with 
-  | Ast_generic.DottedName idents -> 
-    begin
-    match import_opt with 
-    | Some(import) ->
-      let (import_ident_name: Ast_generic.label), _ = import in
-      let new_module_name: Ast_generic.dotted_ident = idents @ [import_ident_name] in 
-        A.ImportFrom(a0, Ast_generic.DottedName new_module_name, None)
-    | None -> A.ImportFrom(a0, from_module_name, None)
-  end;  
-  | Ast_generic.FileName _ -> (* TODO *)
-    A.ImportFrom(a0, from_module_name, import_opt)
-
-(* 
-  a function that will take ImportFrom, ImportAs, ImportAll -> normalized 
-  ImportFrom for matching `import` purposes
-*)
-and normalize_import i =
-  match i with
-  | A.ImportFrom(a0, from_module_name, import) -> normalize_import_as a0 from_module_name import
-  | A.ImportAs(a0, a1, _) -> normalize_import_as a0 a1 None
-  | A.ImportAll(a0, a1, _) -> normalize_import_as a0 a1 None
-  | _ -> i
-
 and m_directive a b = 
-  let normal_a = normalize_import a in
-  let normal_b = normalize_import b in
-  (*
-    pr2 (spf "A = %s" (str_of_any (Dir normal_a)));
-    pr2 (spf "B = %s" (str_of_any (Dir normal_b)));
-  *)
-  (* a is the pattern, b is the target*)
-  match normal_a, normal_b with
-  | A.ImportFrom(a0, a1, _), B.ImportFrom(b0, b1, _) ->
+  m_directive_basic a b >!> (fun () ->
+    match a with
+    (* normalize only if very simple import pattern (no alias) *)
+    | A.ImportFrom (_, _, _, None) | A.ImportAs (_, _, None) 
+      ->
+      (* equivalence: *)
+      let normal_a = Normalize_generic.normalize_import_opt true a in
+      let normal_b = Normalize_generic.normalize_import_opt false b in
+      (match normal_a, normal_b with
+      | Some (a0, a1), Some (b0, b1) ->
+        m_tok a0 b0 >>= (fun () ->
+        m_module_name_prefix a1 b1 >>= (fun () ->
+         return ()
+        ))
+      | _ -> fail ()
+      )
+   (* more complex pattern should not be normalized *)
+   | A.ImportFrom _ | A.ImportAs _
+   (* definitely do not normalize the pattern for ImportAll *)
+   | A.ImportAll _
+   | A.Package _ | A.PackageEnd _ | A.OtherDirective _ ->
+      fail ()
+  )
+
+(* less-is-ok: a few of these below with the use of m_module_name_prefix and
+ * m_option_none_can_match_some.
+ * todo? not sure it makes sense to always allow m_module_name_prefix below
+ *)
+and m_directive_basic a b = 
+  match a, b with
+  | A.ImportFrom(a0, a1, a2, a3), B.ImportFrom(b0, b1, b2, b3) ->
     m_tok a0 b0 >>= (fun () ->
     m_module_name_prefix a1 b1 >>= (fun () -> 
+    m_ident a2 b2 >>= (fun () -> 
+    (m_option_none_can_match_some m_ident) a3 b3 >>= (fun () -> 
     return()
-    ))
+    ))))
   | A.ImportAs(a0, a1, a2), B.ImportAs(b0, b1, b2) ->
     m_tok a0 b0 >>= (fun () ->
     m_module_name_prefix a1 b1 >>= (fun () -> 
-    (m_option m_ident) a2 b2 >>= (fun () -> 
+    (m_option_none_can_match_some m_ident) a2 b2 >>= (fun () -> 
     return ()
     )))
   | A.ImportAll(a0, a1, a2), B.ImportAll(b0, b1, b2) ->
@@ -2093,14 +2154,6 @@ and m_directive a b =
   | A.ImportFrom _, _ | A.ImportAs _, _ | A.OtherDirective _, _
   | A.ImportAll _, _ | A.Package _, _ | A.PackageEnd _, _
    -> fail ()
-
-and _m_alias a b = 
-  match a, b with
-  | (a1, a2), (b1, b2) ->
-    m_ident a1 b1 >>= (fun () -> 
-    (m_option m_ident) a2 b2 >>= (fun () -> 
-    return ()
-    ))
 
 and m_other_directive_operator = m_other_xxx
 
@@ -2189,7 +2242,7 @@ and m_any a b =
     return ()
     )
   | A.Ss(a1), B.Ss(b1) ->
-    m_stmts a1 b1 >>= (fun () -> 
+    m_stmts_deep a1 b1 >>= (fun () -> 
     return ()
     )
   | A.I _, _  | A.N _, _  | A.Di _, _  | A.En _, _  | A.E _, _
