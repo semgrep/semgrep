@@ -9,10 +9,10 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Install System Deps
-        run: brew install opam pkg-config
+        run: brew install opam pkg-config coreutils
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Cache Primes
+      - name: Cache OPAM
         uses: actions/cache@v1
         with:
           path: ~/.opam
