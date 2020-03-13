@@ -78,7 +78,7 @@ def adjust_for_docker(in_precommit: bool = False):
     if IN_DOCKER and not IN_GH_ACTION and not in_precommit:
         if not Path(REPO_HOME_DOCKER).exists():
             print_error_exit(
-                f"you are running sgrep in docker, but you forgot to mount the current directory in Docker: missing: -v $(pwd):{REPO_HOME_DOCKER}"
+                f'you are running sgrep in docker, but you forgot to mount the current directory in Docker: missing: -v "${{PWD}}:{REPO_HOME_DOCKER}"'
             )
     if Path(REPO_HOME_DOCKER).exists():
         os.chdir(REPO_HOME_DOCKER)

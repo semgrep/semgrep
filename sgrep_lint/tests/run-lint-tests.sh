@@ -84,7 +84,7 @@ local_tests() {
 }
 
 docker_tests() {
-    SGREP="docker run --rm -v $(pwd):/home/repo returntocorp/sgrep:develop"
+    SGREP="docker run --rm -v \"\${PWD}:/home/repo\" returntocorp/sgrep:develop"
     test_sgrep_local
     #test_sgrep_relative
     #test_sgrep_absolute
