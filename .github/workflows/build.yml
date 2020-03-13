@@ -22,3 +22,11 @@ jobs:
         run: eval $(opam  env --root /home/opam/.opam --set-root) && cd sgrep && make all && make test && make install
       - name: Install and test sgrep-lint
         run: eval $(opam  env --root /home/opam/.opam --set-root) && cd sgrep_lint && export PATH=/github/home/.local/bin:$PATH && make all && make test
+      - uses: actions/upload-artifact@v1
+        with:
+          name: sgrep-lint
+          path: ./sgrep_lint/build/sgrep.dist/sgrep-lint
+      - uses: actions/upload-artifact@v1
+        with:
+          name: sgrep
+          path: ./sgrep/_build/default/bin/main_sgrep.exe
