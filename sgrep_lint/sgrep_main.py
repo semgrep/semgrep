@@ -415,7 +415,7 @@ def build_normal_output(
         yield from finding_to_line(finding, color_output)
 
 
-def r2c_error_format(sgrep_errors_json: Dict[str, Any]):
+def r2c_error_format(sgrep_errors_json: Dict[str, Any]) -> Dict[str, Any]:
     # TODO https://docs.r2c.dev/en/latest/api/output.html
     return sgrep_errors_json
 
