@@ -1829,9 +1829,6 @@ and m_variable_definition a b =
 (* Field definition and use *)
 (* ------------------------------------------------------------------------- *)
 
-and sort_fields (field_list: A.field list) = 
-    field_list
-
 and bool_match_literal_str (a: A.ident) (b: A.ident) = 
   let (a_string, _a_tok) = a in 
   let (b_string, _b_tok) = b in
@@ -1842,9 +1839,7 @@ and bool_match_literal_str (a: A.ident) (b: A.ident) =
  * not even use '...' for that and instead use a less-is-ok approach
  *)
 and m_fields (xsa: A.field list) (xsb: A.field list) =
-  let normalized_xsa = sort_fields xsa in 
-  let normalized_xsb = sort_fields xsb in 
-  m_list__m_field normalized_xsa normalized_xsb
+  m_list__m_field xsa xsb
 
 and m_list__m_field (xsa: A.field list) (xsb: A.field list) =
   match xsa, xsb with
