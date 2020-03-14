@@ -67,12 +67,12 @@ def build_boolean_expression(rule: Dict[str, Any]) -> BooleanRuleExpression:
     patterns = rule.get(pattern_name_for_operator(OPERATORS.AND_ALL))
     if patterns:
         return BooleanRuleExpression(
-            OPERATORS.AND_ALL, None, list(_parse_boolean_expression(patterns)), None,
+            OPERATORS.AND_ALL, None, list(_parse_boolean_expression(patterns)), None
         )
     patterns = rule.get(pattern_name_for_operator(OPERATORS.AND_EITHER))
     if patterns:
         return BooleanRuleExpression(
-            OPERATORS.AND_EITHER, None, list(_parse_boolean_expression(patterns)), None,
+            OPERATORS.AND_EITHER, None, list(_parse_boolean_expression(patterns)), None
         )
 
     raise InvalidRuleSchema(
