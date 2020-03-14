@@ -101,17 +101,14 @@ def invoke_sgrep(
             )
             fout.write(yaml_as_str)
             fout.flush()
-            cmd = (
-                [SGREP_PATH]
-                + [
-                    "-stats",
-                    "-lang",
-                    language,
-                    f"-rules_file",
-                    fout.name,
-                    *[str(path) for path in targets],
-                ]
-            )
+            cmd = [SGREP_PATH] + [
+                "-stats",
+                "-lang",
+                language,
+                f"-rules_file",
+                fout.name,
+                *[str(path) for path in targets],
+            ]
             try:
                 output = subprocess.check_output(cmd, shell=False)
             except subprocess.CalledProcessError as ex:
@@ -120,7 +117,7 @@ def invoke_sgrep(
                 )
                 print_error_exit(f"\n\n{PLEASE_FILE_ISSUE_TEXT}")
             output_json = json.loads((output.decode("utf-8", "replace")))
-            #print(f"output json {output_json}")
+            # print(f"output json {output_json}")
             errors.extend(output_json["errors"])
             outputs.extend(output_json["matches"])
     return {"matches": outputs, "errors": errors}
@@ -417,9 +414,11 @@ def build_normal_output(
         last_message = message
         yield from finding_to_line(finding, color_output)
 
+
 def r2c_error_format(sgrep_errors_json: Dict[str, Any]):
     # TODO https://docs.r2c.dev/en/latest/api/output.html
     return sgrep_errors_json
+
 
 def save_output(
     output_str: str, output_data: Dict[str, Any], json: bool = False
@@ -521,7 +520,9 @@ def main(args: argparse.Namespace) -> Dict[str, Any]:
             list(valid_configs.keys())[0] if len(valid_configs) == 1 else ""
         )
         invalid_msg = (
-            f"({len(invalid_configs)} config files were invalid)" if len(invalid_configs) else ""
+            f"({len(invalid_configs)} config files were invalid)"
+            if len(invalid_configs)
+            else ""
         )
         print_msg(
             f"running {len(all_rules)} rules from {len(valid_configs)} config{plural} {config_id_if_single} {invalid_msg}"
@@ -606,7 +607,10 @@ def main(args: argparse.Namespace) -> Dict[str, Any]:
         )
 
     # output results
-    output_data = {"results": outputs_after_booleans, "errors": r2c_error_format(sgrep_errors)}
+    output_data = {
+        "results": outputs_after_booleans,
+        "errors": r2c_error_format(sgrep_errors),
+    }
     if not args.quiet:
         if args.json:
             print(build_output_json(output_data))

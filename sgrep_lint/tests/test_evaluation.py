@@ -18,6 +18,7 @@ def evaluate_expression(exprs: List[BooleanRuleExpression], results, flags=None)
     e = BooleanRuleExpression(OPERATORS.AND_ALL, None, exprs, None)
     return raw_evalute_expression(e, results, flags)
 
+
 def SRange(start: int, end: int):
     return SgrepRange(Range(start, end), {})
 
@@ -319,17 +320,21 @@ def test_exprs():
         BooleanRuleExpression(OPERATORS.AND_NOT_INSIDE, "pattern4", None, "p4"),
         BooleanRuleExpression(OPERATORS.AND, "pattern1", None, "p1"),
     ]
-    expression = BooleanRuleExpression(OPERATORS.AND_ALL, None, [
-        BooleanRuleExpression(OPERATORS.AND_INSIDE, "pattern3", None, "p3"),
-        BooleanRuleExpression(
-            OPERATORS.AND_EITHER,
-            None,
-            [
-                BooleanRuleExpression(OPERATORS.AND_ALL, "someid", subexpression1),
-                BooleanRuleExpression(OPERATORS.AND_ALL, "someid2", subexpression2),
-            ],
-        ),
-    ])
+    expression = BooleanRuleExpression(
+        OPERATORS.AND_ALL,
+        None,
+        [
+            BooleanRuleExpression(OPERATORS.AND_INSIDE, "pattern3", None, "p3"),
+            BooleanRuleExpression(
+                OPERATORS.AND_EITHER,
+                None,
+                [
+                    BooleanRuleExpression(OPERATORS.AND_ALL, "someid", subexpression1),
+                    BooleanRuleExpression(OPERATORS.AND_ALL, "someid2", subexpression2),
+                ],
+            ),
+        ],
+    )
     flat = list(enumerate_patterns_in_boolean_expression(expression))
     # print(flat)
 
