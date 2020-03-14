@@ -1630,7 +1630,7 @@ and m_other_pattern_operator = m_other_xxx
 (* Definitions *)
 (* ------------------------------------------------------------------------- *)
 
-and m_definition a b = 
+and m_definition (a: A.definition) (b: A.definition) = 
   match a, b with
   | (a1, a2), (b1, b2) ->
     m_entity a1 b1 >>= (fun () -> 
@@ -1638,7 +1638,7 @@ and m_definition a b =
     return ()
     ))
 
-and m_entity a b = 
+and m_entity (a: A.entity) (b: A.entity) = 
   match a, b with
   (* bugfix: when we use a metavar to match an entity, as in $X(...): ...
    * and later we use $X again to match a name, the $X is first an ident and
@@ -1653,7 +1653,7 @@ and m_entity a b =
      return ()
     )))
 
-and m_definition_kind a b = 
+and m_definition_kind (a: A.definition_kind) (b: A.definition_kind) = 
   match a, b with
   | A.FuncDef(a1), B.FuncDef(b1) ->
     m_function_definition a1 b1 >>= (fun () -> 
@@ -1829,12 +1829,22 @@ and m_variable_definition a b =
 (* Field definition and use *)
 (* ------------------------------------------------------------------------- *)
 
+and sort_fields (field_list: A.field list) = 
+    field_list
+
+and bool_match_literal_str (a: A.ident) (b: A.ident) = 
+  let (a_string, _a_tok) = a in 
+  let (b_string, _b_tok) = b in
+  a_string =$= b_string
+
 (* TODO: as opposed to statements, the order of fields should not matter
  * so ... should really match things in any order, or maybe we should
  * not even use '...' for that and instead use a less-is-ok approach
  *)
 and m_fields (xsa: A.field list) (xsb: A.field list) =
-  m_list__m_field xsa xsb
+  let normalized_xsa = sort_fields xsa in 
+  let normalized_xsb = sort_fields xsb in 
+  m_list__m_field normalized_xsa normalized_xsb
 
 and m_list__m_field (xsa: A.field list) (xsb: A.field list) =
   match xsa, xsb with
@@ -1860,6 +1870,26 @@ and m_list__m_field (xsa: A.field list) (xsb: A.field list) =
       (* can match more *)
       (m_list__m_field ((A.FieldStmt (A.ExprStmt (A.Ellipsis i)))::xsa) xsb)
 
+  | (A.FieldStmt (A.DefStmt adef))::xsa, xsb ->
+    (* my problem
+      for each `A` field, I want to match whether it exists in the `B` list
+      and return only if this is true for all of the `A` fields
+     *)
+    (try 
+        let (s, _) = adef in
+        let (before, there, after) = xsb |> Common2.split_when (function
+            | (A.FieldStmt (A.DefStmt (s2, _))) when (bool_match_literal_str s.name s2.name) -> true
+            | _ -> false) in
+        (match there with
+        | (A.FieldStmt (A.DefStmt bdef)) ->
+           m_definition adef bdef >>= (fun () ->
+           m_list__m_field xsa (before @ after) >>= (fun () ->
+              return ()
+           ))
+        | _ -> raise Impossible
+        )
+      with Not_found -> fail ()
+      )
 
   (* the general case *)
   | xa::aas, xb::bbs ->
