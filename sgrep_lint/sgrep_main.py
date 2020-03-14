@@ -547,7 +547,7 @@ def main(args: argparse.Namespace) -> Dict[str, Any]:
     for finding in sgrep_errors:
         print_error(f"sgrep: {finding['path']}: {finding['check_id']}")
 
-    if strict and len(sgrep_errors["errors"]):
+    if strict and len(sgrep_errors):
         print_error_exit(
             f"run with --strict and {len(sgrep_errors)} errors occurred during sgrep run; exiting"
         )
