@@ -102,7 +102,6 @@ def invoke_sgrep(
             fout.write(yaml_as_str)
             fout.flush()
             cmd = [SGREP_PATH] + [
-                "-stats",
                 "-lang",
                 language,
                 f"-rules_file",
