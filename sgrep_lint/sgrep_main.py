@@ -446,6 +446,30 @@ def save_output(
 def should_exclude_this_path(path: Path) -> bool:
     return any("test" in p or "example" in p for p in path.parts)
 
+def dump_parsed_ast(to_json: bool, language: str, pattern: Optional[str], targets: List[Path]):
+    with tempfile.NamedTemporaryFile("w") as fout:
+        args = []
+        if pattern:
+            fout.write(pattern)
+            fout.flush()
+            args = ['-lang', language, '-dump_pattern', fout.name]
+        else:
+            if len(targets) != 1:
+                print_error_exit('exactly one target file is required with this option')            
+            target = targets[0]
+            args = ['-lang', language, '-dump_ast', str(target)]
+
+        if to_json:
+            args = ['-json'] + args
+
+        cmd = [SGREP_PATH] + args
+        try:
+            output = subprocess.check_output(cmd, shell=False)
+        except subprocess.CalledProcessError as ex:
+            print_error(
+                f"error invoking sgrep with:\n\t{' '.join(cmd)}\n{ex}"
+            )
+            print_error_exit(f"\n\n{PLEASE_FILE_ISSUE_TEXT}")
 
 # entry point
 def main(args: argparse.Namespace) -> Dict[str, Any]:
@@ -471,6 +495,10 @@ def main(args: argparse.Namespace) -> Dict[str, Any]:
     else:
         # else let's get a config. A config is a dict from config_id -> config. Config Id is not well defined at this point.
         configs = config_resolver.resolve_config(args.config)
+
+    if args.dump_ast:
+        dump_parsed_ast(args.json, args.lang, args.pattern, targets)
+        sys.exit(0)
 
     # if we can't find a config, use default r2c rules
     if not configs:

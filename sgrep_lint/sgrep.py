@@ -116,6 +116,11 @@ if __name__ == "__main__":
         action="store_true",
     )
     output.add_argument(
+        "--dump-ast",
+        help="show AST of the input file or passed expression and then exit (can use --json)",
+        action="store_true",
+    )
+    output.add_argument(
         "--error",
         help="System Exit 1 if there are findings. Useful for CI and scripts.",
         action="store_true",
@@ -132,7 +137,7 @@ if __name__ == "__main__":
 
     ### Parse and validate
     args = parser.parse_args()
-    if args.lang and not args.pattern or (args.pattern and not args.lang):
+    if args.pattern and not args.lang:
         parser.error("-e/--pattern and -l/--lang must both be specified")
 
     # set the flags

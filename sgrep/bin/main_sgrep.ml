@@ -461,7 +461,7 @@ let options () =
     "-rules_file", Arg.Set_string rules_file,
     " <file> obtain list of patterns from YAML file";
 
-    "-json", Arg.Set output_format_json, "output JSON format";
+    "-json", Arg.Set output_format_json, " output JSON format";
 
     "-case_sensitive", Arg.Set case_sensitive, 
     " match code in a case sensitive manner";
