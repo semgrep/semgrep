@@ -414,7 +414,7 @@ let dump_pattern (file: Common.filename) =
       let any = Parse_generic.parse_pattern lang s in
       let v = Meta_ast.vof_any any in
       let s = dump_v_to_format v in
-      pr2 s
+      pr s
     )
   | None ->
      failwith (unsupported_language_message !lang)
@@ -423,7 +423,7 @@ let dump_ast file =
   let x = parse_generic file in
   let v = Meta_ast.vof_any (Ast_generic.Pr x) in
   let s = dump_v_to_format v in
-  pr2 s
+  pr s
 
 let dump_ext_of_lang () =
   let lang_to_exts = keys |> List.map (

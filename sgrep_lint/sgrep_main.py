@@ -470,6 +470,7 @@ def dump_parsed_ast(to_json: bool, language: str, pattern: Optional[str], target
                 f"error invoking sgrep with:\n\t{' '.join(cmd)}\n{ex}"
             )
             print_error_exit(f"\n\n{PLEASE_FILE_ISSUE_TEXT}")
+        print(output.decode())
 
 # entry point
 def main(args: argparse.Namespace) -> Dict[str, Any]:
