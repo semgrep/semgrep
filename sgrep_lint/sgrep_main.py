@@ -498,6 +498,8 @@ def main(args: argparse.Namespace) -> Dict[str, Any]:
         configs = config_resolver.resolve_config(args.config)
 
     if args.dump_ast:
+        if not args.lang:
+            print_error_exit("language must be specified to dump ASTs")
         dump_parsed_ast(args.json, args.lang, args.pattern, targets)
         sys.exit(0)
 
