@@ -569,6 +569,7 @@ and m_expr_deep a b =
   else
     m_expr a b >!> (fun () ->
       let subs = Subast_generic.subexprs_of_expr b in
+      (* less: could use a fold *)
       let rec aux xs =
         match xs with
         | [] -> fail ()
@@ -916,7 +917,9 @@ and m_list__m_argument (xsa: A.argument list) (xsb: A.argument list) =
   | A.ArgKwd ((s, _tok) as ida, ea)::xsa, xsb ->
       (try 
         let (before, there, after) = xsb |> Common2.split_when (function
-            (* TODO: what if s2 is a metavar! need to try all combination *)
+            (* TODO: what if s is a metavar! we need to try all combination
+             * like for the class fields with all_elem_and_rest_of_list
+             *)
             | A.ArgKwd ((s2,_), _) when s =$= s2 -> true
             | _ -> false) in
         (match there with
@@ -1641,10 +1644,11 @@ and m_list__m_field (xsa: A.field list) (xsb: A.field list) =
       (m_list__m_field ((A.FieldStmt (A.ExprStmt (A.Ellipsis i)))::xsa) xsb)
 
   | (A.FieldStmt (A.DefStmt (({A.name = (s1, _); _}, _) as adef)) as a)::xsa,
-     xsb->
+     xsb ->
      if MV.is_metavar_name s1
      then
         let candidates = all_elem_and_rest_of_list xsb in
+        (* less: could use a fold *)
         let rec aux xs =
           match xs with
           | [] -> fail ()
