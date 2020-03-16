@@ -17,6 +17,7 @@ syntax. The idea is to mix the convenience of grep with the correctness and prec
   <tr><td colspan=2><a href="https://github.com/returntocorp/sgrep-rules">see more examples in the sgrep-rules registry</a></td></tr>
 </table>
 
+
 ## Supported Languages
 
 <table>
@@ -62,10 +63,10 @@ docker pull returntocorp/sgrep
 
 cd /path/to/repo
 # generate a template config file
-docker run --rm -v $(pwd):/home/repo returntocorp/sgrep --generate-config
+docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep --generate-config
 
 # look for findings
-docker run --rm -v $(pwd):/home/repo returntocorp/sgrep
+docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep
 
 ```
 
@@ -76,7 +77,7 @@ docker run --rm -v $(pwd):/home/repo returntocorp/sgrep
 To rapidly iterate on a single pattern, you can test on a single file or folder. For example,
 
 ```bash
-docker run --rm -v $(pwd):/home/repo returntocorp/sgrep -l python -e '$X == $X' path/to/file.py
+docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep -l python -e '$X == $X' path/to/file.py
 ```
 
 Here, `sgrep` will search the target with the pattern `$X == $X` (which is a stupid equals check) and print the results to `stdout`. This also works for directories and will skip the file if parsing fails. You can specifiy the language of the pattern with `--lang javascript` for example.
@@ -84,7 +85,7 @@ Here, `sgrep` will search the target with the pattern `$X == $X` (which is a stu
 To see more options
 
 ```bash
-docker run --rm -v $(pwd):/home/repo returntocorp/sgrep --help
+docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep --help
 ```
 
 ### Config Files
@@ -112,7 +113,7 @@ Default configs are loaded from `.sgrep.yml` or multiple files matching `.sgrep/
 Sgrep has a design philosophy that emphasizes simplicity and a single pattern being as expressive as possible:
 
 1. **Use concrete code syntax:** easy to learn
-2. **Metavariables ($X)**: abstract away code
+2. **Metavariables (\$X)**: abstract away code
 3. **'...' operator:** abstract away sequences
 4. **Knows about code equivalences:** one pattern can match many equivalent variations on the code
 5. **Less is more:** abstract away additional details
