@@ -1,15 +1,18 @@
-name: ubuntu
+name: release
 
 on:
   push:
     # branches: [master, develop]
 
 jobs:
-  ubuntu-build-test:
-    runs-on: ubuntu-16.04
+  release-deb:
+    runs-on: ubuntu-latest
+    container: ocaml/opam2:debian-8
     steps:
       - name: Install System Deps
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends make m4 perl wget swi-prolog mercurial pkg-config python3 python3-pip python3-dev build-essential python3-setuptools opam
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends make m4 perl wget swi-prolog mercurial pkg-config python3 python3-pip python3-dev build-essential python3-setuptools
+      - name: Update OPAM
+        run: cd /home/opam/opam-repository && git pull && opam update
       - name: Checkout
         uses: actions/checkout@v2
       - name: Cache OPAM
@@ -18,15 +21,7 @@ jobs:
           path: ~/.opam
           key: ${{ runner.os }}-opam-${{ hashFiles('.github/workflows/mac-build.yml') }}
       - name: OPAM setup
-        run: |
-          opam init --no-setup;
-          if [ -d ~/.opam/4.07.1 ]
-            then
-                echo "switch already exists";
-            else
-                opam switch create 4.07.1;
-            fi
-          opam switch 4.07.1;
+        run: opam switch 4.07.1;
       - name: OPAM install Deps
         run: eval $(opam env); opam install -y reason dune ocamlfind camlp4 num ocamlgraph json-wheel conf-perl yaml
       - name: Install submodules
