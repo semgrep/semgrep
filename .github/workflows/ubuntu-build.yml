@@ -19,7 +19,7 @@ jobs:
           key: ${{ runner.os }}-opam-${{ hashFiles('.github/workflows/mac-build.yml') }}
       - name: OPAM setup
         run: |
-          opam init --no-setup --bare;
+          opam init --no-setup;
           if [ -d ~/.opam/4.07.1 ]
             then
                 echo "switch already exists";
