@@ -283,9 +283,7 @@ let (m_option: ('a,'b) matcher -> ('a option,'b option) matcher) = fun f a b ->
   match a, b with
   | None, None -> return ()
   | Some xa, Some xb ->
-      f xa xb >>= (fun () ->
-        return ()
-      )
+      f xa xb 
   | None, _
   | Some _, _
       -> fail ()
@@ -299,9 +297,7 @@ let m_option_ellipsis_ok f a b =
   | Some (A.Ellipsis _), None -> return ()
 
   | Some xa, Some xb ->
-      f xa xb >>= (fun () ->
-        return ()
-      )
+      f xa xb 
   | None, _
   | Some _, _
       -> fail ()
@@ -313,9 +309,7 @@ let m_option_none_can_match_some f a b =
   | None, _ -> return ()
 
   | Some xa, Some xb ->
-      f xa xb >>= (fun () ->
-        return ()
-      )
+      f xa xb 
   | Some _, _
       -> fail ()
 
@@ -323,9 +317,7 @@ let m_option_none_can_match_some f a b =
 let (m_ref: ('a,'b) matcher -> ('a ref,'b ref) matcher) = fun f a b ->
   match a, b with
   { contents = xa}, { contents = xb} ->
-    f xa xb >>= (fun () ->
-      return ()
-    )
+    f xa xb 
 
 let rec m_list f a b =
   match a, b with
@@ -333,9 +325,7 @@ let rec m_list f a b =
       return ()
   | xa::aas, xb::bbs ->
       f xa xb >>= (fun () ->
-      m_list f aas bbs >>= (fun () ->
-        return ()
-      )
+      m_list f aas bbs 
       )
   | [], _
   | _::_, _ ->
@@ -382,16 +372,14 @@ let m_wrap f a b =
   match a, b with
   ((xaa, ainfo), (xbb, binfo)) ->
     f xaa xbb >>= (fun () ->
-    m_info ainfo binfo >>= (fun () ->
-      return ()
-  ))
+    m_info ainfo binfo 
+    )
 
 let m_bracket f (a1, a2, a3) (b1, b2, b3) = 
    m_info a1 b1 >>= (fun () ->
    f a2 b2 >>= (fun () ->
-   m_info a3 b3 >>= (fun () ->
-     return ()
-   )))
+   m_info a3 b3
+   ))
 
 (* ---------------------------------------------------------------------- *)
 (* Name *)
@@ -424,9 +412,7 @@ let rec m_list_prefix f a b =
       return ()
   | xa::aas, xb::bbs ->
       f xa xb >>= (fun () ->
-      m_list_prefix f aas bbs >>= (fun () ->
-        return ()
-      )
+      m_list_prefix f aas bbs 
       )
   | [], _ -> return ()
   | _::_, _ ->
@@ -443,13 +429,9 @@ let m_module_name_prefix a b =
   match a, b with
   | A.FileName(a1), B.FileName(b1) ->
     (* TODO figure out what prefix support means here *)
-    (m_wrap m_string_prefix) a1 b1 >>= (fun () -> 
-    return ()
-    )
+    (m_wrap m_string_prefix) a1 b1 
   | A.DottedName(a1), B.DottedName(b1) ->
-    m_list_prefix m_ident a1 b1 >>= (fun () -> 
-    return ()
-    )
+    m_list_prefix m_ident a1 b1 
   | A.FileName _, _
   | A.DottedName _, _
    -> fail ()
@@ -457,13 +439,9 @@ let m_module_name_prefix a b =
 let m_module_name a b = 
   match a, b with
   | A.FileName(a1), B.FileName(b1) ->
-    (m_wrap m_string) a1 b1 >>= (fun () -> 
-    return ()
-    )
+    (m_wrap m_string) a1 b1 
   | A.DottedName(a1), B.DottedName(b1) ->
-    m_dotted_name a1 b1 >>= (fun () -> 
-    return ()
-    )
+    m_dotted_name a1 b1 
   | A.FileName _, _
   | A.DottedName _, _
    -> fail ()
@@ -482,13 +460,9 @@ let m_resolved_name_kind a b =
   | A.Global, B.Global ->
       return ()
   | A.ImportedEntity(a1), B.ImportedEntity(b1) ->
-    m_qualified_name a1 b1 >>= (fun () -> 
-    return ()
-    )
+    m_qualified_name a1 b1 
   | A.ImportedModule(a1), B.ImportedModule(b1) ->
-    m_module_name a1 b1 >>= (fun () -> 
-    return ()
-    )
+    m_module_name a1 b1 
   | A.Macro, B.Macro ->
     return ()
   | A.EnumConstant, B.EnumConstant ->
@@ -509,9 +483,7 @@ let m_resolved_name_kind a b =
 
 let _m_resolved_name (a1, a2) (b1, b2) = 
   m_resolved_name_kind a1 b1 >>= (fun () ->
-  m_sid a2 b2 >>= (fun () ->
-    return ()
-  ))
+  m_sid a2 b2 )
 
 
 (* start of recursive need *)
@@ -519,9 +491,8 @@ let rec m_name a b =
   match a,b with
   | (a1, a2), (b1, b2) ->
     m_ident a1 b1 >>= (fun () ->
-    m_name_info a2 b2 >>= (fun () ->
-      return ()
-   ))
+    m_name_info a2 b2
+    )
 
 and m_ident_and_id_info_add_in_env_Expr (a1, a2) (b1, b2) =
   (* metavar: *)
@@ -549,9 +520,7 @@ and m_id_info a b =
       *)
       (* (m_ref m_resolved_name) a3 b3  >>= (fun () ->  *)
 
-    (m_ref (m_option m_type_)) a2 b2 >>= (fun () -> 
-      return ()
-    )
+    (m_ref (m_option m_type_)) a2 b2 
 
        
 (* ------------------------------------------------------------------------- *)
@@ -641,137 +610,107 @@ and m_expr a b =
     return ()
 
   | A.L(a1), B.L(b1) ->
-    m_literal a1 b1 >>= (fun () -> 
-    return ()
-    )
+    m_literal a1 b1 
+
   | A.Container(a1, a2), B.Container(b1, b2) ->
     m_container_operator a1 b1 >>= (fun () -> 
-    (m_bracket (m_list m_expr)) a2 b2 >>= (fun () -> 
-    return ()
-    ))
+    (m_bracket (m_list m_expr)) a2 b2
+    )
   | A.Tuple(a1), B.Tuple(b1) ->
-    (m_list m_expr) a1 b1 >>= (fun () -> 
-    return ()
-    )
+    (m_list m_expr) a1 b1 
   | A.Record(a1), B.Record(b1) ->
-    (m_bracket (m_fields)) a1 b1 >>= (fun () -> 
-    return ()
-    )
+    (m_bracket (m_fields)) a1 b1 
   | A.Constructor(a1, a2), B.Constructor(b1, b2) ->
     m_name a1 b1 >>= (fun () -> 
-    (m_list m_expr) a2 b2 >>= (fun () -> 
-    return ()
-    ))
+    (m_list m_expr) a2 b2 
+    )
   | A.Lambda(a1), B.Lambda(b1) ->
     m_function_definition a1 b1 >>= (fun () -> 
     return ())
   | A.AnonClass(a1), B.AnonClass(b1) ->
-    m_class_definition a1 b1 >>= (fun () -> 
-    return ())
+    m_class_definition a1 b1 
   | A.Id(a1, a2), B.Id(b1, b2) ->
     m_ident a1 b1 >>= (fun () -> 
-    m_id_info a2 b2 >>= (fun () -> 
-    return ()))
+    m_id_info a2 b2 )
   | A.IdQualified(a1, a2), B.IdQualified(b1, b2) ->
     m_name a1 b1 >>= (fun () -> 
-    m_id_info a2 b2 >>= (fun () -> 
-    return ()))
-  | A.IdSpecial(a1), B.IdSpecial(b1) ->
-    m_wrap m_special a1 b1 >>= (fun () -> 
-    return ()
+    m_id_info a2 b2 
     )
+  | A.IdSpecial(a1), B.IdSpecial(b1) ->
+    m_wrap m_special a1 b1 
   | A.Call(a1, a2), B.Call(b1, b2) ->
     m_expr a1 b1 >>= (fun () -> 
-    m_arguments a2 b2 >>= (fun () -> 
-    return ()
-    ))
-  | A.Xml(a1), B.Xml(b1) ->
-    m_xml a1 b1 >>= (fun () -> 
-    return ()
+    m_arguments a2 b2 
     )
+  | A.Xml(a1), B.Xml(b1) ->
+    m_xml a1 b1 
   | A.Assign(a1, at, a2), B.Assign(b1, bt, b2) ->
     m_expr a1 b1 >>= (fun () -> 
     m_tok at bt >>= (fun () ->
-    m_expr a2 b2 >>= (fun () -> 
-    return ()
-    )))
+    m_expr a2 b2 
+    ))
   | A.AssignOp(a1, a2, a3), B.AssignOp(b1, b2, b3) ->
     m_expr a1 b1 >>= (fun () -> 
     m_wrap m_arithmetic_operator a2 b2 >>= (fun () -> 
-    m_expr a3 b3 >>= (fun () -> 
-    return ()
-    )))
+    m_expr a3 b3 
+    ))
   | A.LetPattern(a1, a2), B.LetPattern(b1, b2) ->
     m_pattern a1 b1 >>= (fun () -> 
-    m_expr a2 b2 >>= (fun () -> 
-    return ()
-    ))
+    m_expr a2 b2 
+    )
   | A.DotAccess(a1, at, a2), B.DotAccess(b1, bt, b2) ->
     m_expr a1 b1 >>= (fun () -> 
     m_tok at bt >>= (fun () -> 
-    m_field_ident a2 b2 >>= (fun () -> 
-    return ()
-    )))
+    m_field_ident a2 b2 
+    ))
   | A.ArrayAccess(a1, a2), B.ArrayAccess(b1, b2) ->
     m_expr a1 b1 >>= (fun () -> 
-    m_expr a2 b2 >>= (fun () -> 
-    return ()
-    ))
+    m_expr a2 b2 
+    )
   | A.SliceAccess(a1, a2, a3, a4), B.SliceAccess(b1, b2, b3, b4) ->
     m_expr a1 b1 >>= (fun () -> 
     m_option m_expr a2 b2 >>= (fun () -> 
     m_option m_expr a3 b3 >>= (fun () -> 
-    m_option m_expr a4 b4 >>= (fun () -> 
-    return ()
-    ))))
+    m_option m_expr a4 b4 
+    )))
   | A.Conditional(a1, a2, a3), B.Conditional(b1, b2, b3) ->
     m_expr a1 b1 >>= (fun () -> 
     m_expr a2 b2 >>= (fun () -> 
-    m_expr a3 b3 >>= (fun () -> 
-    return ()
-    )))
+    m_expr a3 b3 
+    ))
   | A.MatchPattern(a1, a2), B.MatchPattern(b1, b2) ->
     m_expr a1 b1 >>= (fun () -> 
-    (m_list m_action) a2 b2 >>= (fun () -> 
-    return ()
-    ))
+    (m_list m_action) a2 b2 
+    )
   | A.Yield(a0, a1, a2), B.Yield(b0, b1, b2) ->
     m_tok a0 b0 >>= (fun () -> 
     m_option m_expr a1 b1 >>= (fun () -> 
-    m_bool a2 b2 >>= (fun () -> 
-    return ()
-    )))
+    m_bool a2 b2 
+    ))
   | A.Await(a0, a1), B.Await(b0, b1) ->
     m_tok a0 b0 >>= (fun () -> 
-    m_expr a1 b1 >>= (fun () -> 
-    return ()
-    ))
+    m_expr a1 b1 
+    )
   | A.Cast(a1, a2), B.Cast(b1, b2) ->
     m_type_ a1 b1 >>= (fun () -> 
-    m_expr a2 b2 >>= (fun () -> 
-    return ()
-    ))
-  | A.Seq(a1), B.Seq(b1) ->
-    (m_list m_expr) a1 b1 >>= (fun () -> 
-    return ()
+    m_expr a2 b2 
     )
+  | A.Seq(a1), B.Seq(b1) ->
+    (m_list m_expr) a1 b1 
   | A.Ref(a0, a1), B.Ref(b0, b1) ->
     m_tok a0 b0 >>= (fun () -> 
-    m_expr a1 b1 >>= (fun () -> 
-    return ()
-    ))
+    m_expr a1 b1 
+    )
   | A.DeRef(a0, a1), B.DeRef(b0, b1) ->
     m_tok a0 b0 >>= (fun () -> 
-    m_expr a1 b1 >>= (fun () -> 
-    return ()
-    ))
+    m_expr a1 b1 
+    )
 
 
   | A.OtherExpr(a1, a2), B.OtherExpr(b1, b2) ->
     m_other_expr_operator a1 b1 >>= (fun () -> 
-    (m_list m_any) a2 b2 >>= (fun () -> 
-    return ()
-    ))
+    (m_list m_any) a2 b2 
+     )
   | A.L _, _  | A.Container _, _  | A.Tuple _, _  | A.Record _, _
   | A.Constructor _, _  | A.Lambda _, _  | A.AnonClass _, _
   | A.Id _, _  | A.IdQualified _, _ | A.IdSpecial _, _  
@@ -788,17 +727,11 @@ and m_expr a b =
 and m_field_ident a b =
   match a, b with
   | A.FId a, B.FId b -> 
-      m_ident a b >>= (fun () ->
-          return ()
-      )
+      m_ident a b 
   | A.FName a, B.FName b -> 
-      m_name a b >>= (fun () ->
-          return ()
-      )
+      m_name a b 
   | A.FDynamic a, B.FDynamic b -> 
-      m_expr a b >>= (fun () ->
-          return ()
-      )
+      m_expr a b 
   | A.FId _, _ 
   | A.FName _, _
   | A.FDynamic _, _
@@ -808,17 +741,11 @@ and m_label_ident a b =
   match a, b with
   | A.LNone, B.LNone -> return ()
   | A.LId a, B.LId b -> 
-      m_label a b >>= (fun () ->
-          return ()
-      )
+      m_label a b 
   | A.LInt a, B.LInt b -> 
-      m_wrap m_int a b >>= (fun () ->
-          return ()
-      )
+      m_wrap m_int a b 
   | A.LDynamic a, B.LDynamic b -> 
-      m_expr a b >>= (fun () ->
-          return ()
-      )
+      m_expr a b 
   | A.LNone, _
   | A.LId _, _ 
   | A.LInt _, _
@@ -830,8 +757,7 @@ and m_literal a b =
 
   (* dots: '...' on string *)
   | A.String("...", a), B.String(_s, b) ->
-      m_info a b >>= (fun () ->
-        return ())
+      m_info a b 
 
   (* regexp matching *)
   | A.String(name, info_name), B.String(sb, info_sb)
@@ -843,52 +769,31 @@ and m_literal a b =
 *)
       if sb =~ s
       then
-        m_info info_name info_sb >>= (fun () ->
-        return ())
+        m_info info_name info_sb 
       else fail ()
 
   | A.String(a1), B.String(b1) ->
-    (m_wrap m_string) a1 b1 >>= (fun () -> 
-    return ()
-    )
+    (m_wrap m_string) a1 b1 
 
   | A.Unit(a1), B.Unit(b1) ->
-    m_tok a1 b1 >>= (fun () -> 
-    return ()
-    )
+    m_tok a1 b1 
   | A.Bool(a1), B.Bool(b1) ->
-    (m_wrap m_bool) a1 b1 >>= (fun () -> 
-    return ()
-    )
+    (m_wrap m_bool) a1 b1 
   | A.Int(a1), B.Int(b1) ->
-    (m_wrap m_string) a1 b1 >>= (fun () -> 
-    return ()
-    )
+    (m_wrap m_string) a1 b1 
   | A.Float(a1), B.Float(b1) ->
-    (m_wrap m_string) a1 b1 >>= (fun () -> 
-    return ()
-    )
+    (m_wrap m_string) a1 b1 
   | A.Imag(a1), B.Imag(b1) ->
-    (m_wrap m_string) a1 b1 >>= (fun () -> 
-    return ()
-    )
+    (m_wrap m_string) a1 b1 
   | A.Char(a1), B.Char(b1) ->
-    (m_wrap m_string) a1 b1 >>= (fun () -> 
-    return ()
-    )
+    (m_wrap m_string) a1 b1 
 
   | A.Regexp(a1), B.Regexp(b1) ->
-    (m_wrap m_string) a1 b1 >>= (fun () -> 
-    return ()
-    )
+    (m_wrap m_string) a1 b1 
   | A.Null(a1), B.Null(b1) ->
-    m_tok a1 b1 >>= (fun () -> 
-    return ()
-    )
+    m_tok a1 b1 
   | A.Undefined(a1), B.Undefined(b1) ->
-    m_tok a1 b1 >>= (fun () -> 
-    return ()
-    )
+    m_tok a1 b1 
   | A.Unit _, _  | A.Bool _, _  | A.Int _, _  | A.Float _, _  | A.Char _, _
   | A.String _, _  | A.Regexp _, _  | A.Null _, _  | A.Undefined _, _
   | A.Imag _, _
@@ -899,9 +804,8 @@ and m_action a b =
   match a, b with
   | (a1, a2), (b1, b2) ->
     m_pattern a1 b1 >>= (fun () -> 
-    m_expr a2 b2 >>= (fun () -> 
-    return ()
-    ))
+    m_expr a2 b2 
+    )
 
 
 and m_arithmetic_operator a b = 
@@ -934,18 +838,13 @@ and m_special a b =
   | A.Spread, B.Spread ->
     return ()
   | A.ArithOp(a1), B.ArithOp(b1) ->
-    m_arithmetic_operator a1 b1 >>= (fun () -> 
-    return ()
-    )
+    m_arithmetic_operator a1 b1 
   | A.EncodedString(a1), B.EncodedString(b1) ->
-    m_wrap m_string a1 b1 >>= (fun () -> 
-    return ()
-    )
+    m_wrap m_string a1 b1 
   | A.IncrDecr(a1, a2), B.IncrDecr(b1, b2) ->
     m_bool a1 b1 >>= (fun () -> 
-    m_bool a2 b2 >>= (fun () -> 
-    return ()
-    ))
+    m_bool a2 b2 
+    )
   | A.This, _  | A.Super, _  | A.Self, _  | A.Parent, _  | A.Eval, _
   | A.Typeof, _  | A.Instanceof, _  | A.Sizeof, _  | A.New, _
   | A.Concat, _  | A.Spread, _  | A.ArithOp _, _  | A.IncrDecr _, _
@@ -958,9 +857,8 @@ and m_name_info a b =
   { B. name_qualifier = b1; name_typeargs = b2; }
    -> 
     (m_option m_dotted_name) a1 b1 >>= (fun () -> 
-    (m_option m_type_arguments) a2 b2 >>= (fun () -> 
-    return ()
-  ))
+    (m_option m_type_arguments) a2 b2  
+    )
 
 
 and m_container_operator a b = 
@@ -1014,9 +912,8 @@ and m_list__m_argument (xsa: A.argument list) (xsb: A.argument list) =
         | A.ArgKwd (idb, eb) ->
            m_ident ida idb >>= (fun () ->
            m_expr ea eb >>= (fun () ->
-           m_list__m_argument xsa (before @ after) >>= (fun () ->
-              return ()
-           )))
+           m_list__m_argument xsa (before @ after) 
+           ))
         | _ -> raise Impossible
         )
       with Not_found -> fail ()
@@ -1025,9 +922,7 @@ and m_list__m_argument (xsa: A.argument list) (xsb: A.argument list) =
   (* the general case *)
   | xa::aas, xb::bbs ->
       m_argument xa xb >>= (fun () ->
-      m_list__m_argument aas bbs >>= (fun () ->
-        return ()
-      )
+      m_list__m_argument aas bbs 
       )
   | [], _
   | _::_, _ ->
@@ -1037,27 +932,21 @@ and m_list__m_argument (xsa: A.argument list) (xsb: A.argument list) =
 and m_argument a b = 
   match a, b with
   | A.Arg(a1), B.Arg(b1) ->
-    m_expr a1 b1 >>= (fun () -> 
-    return ()
-    )
+    m_expr a1 b1 
 
   | A.ArgType(a1), B.ArgType(b1) ->
-    m_type_ a1 b1 >>= (fun () -> 
-    return ()
-    )
+    m_type_ a1 b1 
 
   (* TODO: iso on keyword argument, keyword is optional in pattern *)
 
   | A.ArgKwd(a1, a2), B.ArgKwd(b1, b2) ->
     m_ident a1 b1 >>= (fun () -> 
-    m_expr a2 b2 >>= (fun () -> 
-    return ()
-    ))
+    m_expr a2 b2 
+    )
   | A.ArgOther(a1, a2), B.ArgOther(b1, b2) ->
     m_other_argument_operator a1 b1 >>= (fun () -> 
-    (m_list m_any) a2 b2 >>= (fun () -> 
-    return ()
-    ))
+    (m_list m_any) a2 b2 
+    )
   | A.Arg _, _  | A.ArgKwd _, _  | A.ArgType _, _  | A.ArgOther _, _
    -> fail ()
 
@@ -1070,60 +959,42 @@ and m_other_argument_operator = m_other_xxx
 and m_type_ a b = 
   match a, b with
   | A.TyBuiltin(a1), B.TyBuiltin(b1) ->
-    (m_wrap m_string) a1 b1 >>= (fun () -> 
-    return ()
-    )
+    (m_wrap m_string) a1 b1 
   | A.TyFun(a1, a2), B.TyFun(b1, b2) ->
     (m_list m_parameter_classic) a1 b1 >>= (fun () -> 
-    m_type_ a2 b2 >>= (fun () -> 
-    return ()
-    ))
-  | A.TyName(a1), B.TyName(b1) ->
-    m_name a1 b1 >>= (fun () -> 
-    return ()
+    m_type_ a2 b2 
     )
+  | A.TyName(a1), B.TyName(b1) ->
+    m_name a1 b1 
   | A.TyNameApply(a1, a2), B.TyNameApply(b1, b2) ->
     m_name a1 b1 >>= (fun () -> 
-    m_type_arguments a2 b2 >>= (fun () -> 
-    return ()
-    ))
-  | A.TyVar(a1), B.TyVar(b1) ->
-    m_ident a1 b1 >>= (fun () -> 
-    return ()
+    m_type_arguments a2 b2 
     )
+  | A.TyVar(a1), B.TyVar(b1) ->
+    m_ident a1 b1 
   | A.TyArray(a1, a2), B.TyArray(b1, b2) ->
     (m_option m_expr) a1 b1 >>= (fun () -> 
-    m_type_ a2 b2 >>= (fun () -> 
-    return ()
-    ))
+    m_type_ a2 b2 
+    )
   | A.TyPointer(a0, a1), B.TyPointer(b0, b1) ->
     m_tok a0 b0 >>= (fun () -> 
-    m_type_ a1 b1 >>= (fun () -> 
-    return ()
-    ))
+    m_type_ a1 b1 
+    )
   | A.TyTuple(a1), B.TyTuple(b1) ->
     (*TODO: m_list__m_type_ ? *)
-    (m_bracket (m_list m_type_)) a1 b1 >>= (fun () -> 
-    return ()
-    )
+    (m_bracket (m_list m_type_)) a1 b1 
   | A.TyQuestion(a1, a2), B.TyQuestion(b1, b2) ->
     m_type_ a1 b1 >>= (fun () -> 
-    m_tok a2 b2 >>= (fun () -> 
-    return ()
-    ))
-| A.TyAnd(a1), B.TyAnd(b1) ->
-    (m_bracket (m_list m_ident_and_type_)) a1 b1 >>= (fun () -> 
-    return ()
+    m_tok a2 b2 
     )
+| A.TyAnd(a1), B.TyAnd(b1) ->
+    (m_bracket (m_list m_ident_and_type_)) a1 b1 
   | A.TyOr a1, B.TyOr b1 ->
-      m_list m_type_ a1 b1 >>= (fun () ->
-          return ()
-      )
+      m_list m_type_ a1 b1 
   | A.OtherType(a1, a2), B.OtherType(b1, b2) ->
     m_other_type_operator a1 b1 >>= (fun () -> 
-    (m_list m_any) a2 b2 >>= (fun () -> 
-    return ()
-    ))
+    (m_list m_any) a2 b2 
+     )
   | A.TyBuiltin _, _  | A.TyFun _, _  | A.TyNameApply _, _  | A.TyVar _, _
   | A.TyArray _, _  | A.TyPointer _, _ | A.TyTuple _, _  | A.TyQuestion _, _
   | A.TyName _, _ | A.TyOr _, _ | A.TyAnd _, _
@@ -1135,9 +1006,8 @@ and m_ident_and_type_ a b =
   match a, b with
   | (a1, a2), (b1, b2) ->
     m_ident a1 b1 >>= (fun () ->
-    m_type_ a2 b2 >>= (fun () ->
-      return ()
-    ))
+    m_type_ a2 b2 
+    )
 and m_type_arguments a b = 
   match a, b with
   (a, b) -> (m_list m_type_argument) a b
@@ -1146,14 +1016,11 @@ and m_type_arguments a b =
 and m_type_argument a b = 
   match a, b with
   | A.TypeArg(a1), B.TypeArg(b1) ->
-    m_type_ a1 b1 >>= (fun () -> 
-    return ()
-    )
+    m_type_ a1 b1 
   | A.OtherTypeArg(a1, a2), B.OtherTypeArg(b1, b2) ->
     m_other_type_argument_operator a1 b1 >>= (fun () -> 
-    (m_list m_any) a2 b2 >>= (fun () -> 
-    return ()
-    ))
+    (m_list m_any) a2 b2 
+    )
   | A.TypeArg _, _  | A.OtherTypeArg _, _
    -> fail ()
 
@@ -1181,9 +1048,8 @@ and m_list__m_attribute (xsa: A.attribute list) (xsb: A.attribute list) =
         (match there with
         | A.KeywordAttr (x) ->
               m_wrap m_keyword_attribute (k, tok) x >>= (fun () ->
-              m_list__m_attribute xsa (before @ after) >>= (fun () ->
-                 return ()
-              ))
+              m_list__m_attribute xsa (before @ after) 
+              )
         | _ -> raise Impossible
         )
       with Not_found -> fail ()
@@ -1198,9 +1064,8 @@ and m_list__m_attribute (xsa: A.attribute list) (xsb: A.attribute list) =
         | A.NamedAttr (idb, argsb) ->
               m_ident ida idb >>= (fun () ->
               m_list__m_argument argsa argsb >>= (fun () ->
-              m_list__m_attribute xsa (before @ after) >>= (fun () ->
-                 return ()
-              )))
+              m_list__m_attribute xsa (before @ after) 
+              ))
         | _ -> raise Impossible
         )
       with Not_found -> fail ()
@@ -1209,9 +1074,7 @@ and m_list__m_attribute (xsa: A.attribute list) (xsb: A.attribute list) =
   (* the general case *)
   | xa::aas, xb::bbs ->
       m_attribute xa xb >>= (fun () ->
-      m_list__m_attribute aas bbs >>= (fun () ->
-        return ()
-      )
+      m_list__m_attribute aas bbs 
       )
 
   | _::_, _ ->
@@ -1223,19 +1086,15 @@ and m_keyword_attribute a b = m_other_xxx a b
 and m_attribute a b = 
   match a, b with
   | A.KeywordAttr(a1), B.KeywordAttr(b1) ->
-    m_wrap m_keyword_attribute a1 b1 >>= (fun () -> 
-    return ()
-    )
+    m_wrap m_keyword_attribute a1 b1 
   | A.NamedAttr(a1, a2), B.NamedAttr(b1, b2) ->
     m_ident a1 b1 >>= (fun () -> 
-    (m_list__m_argument) a2 b2 >>= (fun () -> 
-    return ()
-    ))
+    (m_list__m_argument) a2 b2 
+    )
   | A.OtherAttribute(a1, a2), B.OtherAttribute(b1, b2) ->
     m_other_attribute_operator a1 b1 >>= (fun () -> 
-    (m_list m_any) a2 b2 >>= (fun () -> 
-    return ()
-    ))
+    (m_list m_any) a2 b2 
+    )
   | A.KeywordAttr _, _  | A.NamedAttr _, _  | A.OtherAttribute _, _
    -> fail ()
 
@@ -1310,9 +1169,7 @@ and m_list__m_stmt (xsa: A.stmt list) (xsb: A.stmt list) =
   (* the general case *)
   | xa::aas, xb::bbs ->
       m_stmt xa xb >>= (fun () ->
-      m_list__m_stmt aas bbs >>= (fun () ->
-        return ()
-      )
+      m_list__m_stmt aas bbs 
       )
   | _::_, _ ->
       fail ()
@@ -1331,109 +1188,86 @@ and m_stmt a b =
 
   (* deeper: *)
   | A.ExprStmt(a1), B.ExprStmt(b1) ->
-    m_expr_deep a1 b1 >>= (fun () -> 
-    return ()
-    )
+    m_expr_deep a1 b1 
   | A.DefStmt(a1), B.DefStmt(b1) ->
-    m_definition a1 b1 >>= (fun () -> 
-    return ()
-    )
+    m_definition a1 b1 
   | A.DirectiveStmt(a1), B.DirectiveStmt(b1) ->
-    m_directive a1 b1 >>= (fun () -> 
-    return ()
-    )
+    m_directive a1 b1 
 
   (* TODO: ... should also allow a subset of stmts *)
   | A.Block(a1), B.Block(b1) ->
-    m_stmts_deep a1 b1 >>= (fun () -> 
-    return ()
-    )
+    m_stmts_deep a1 b1 
   | A.If(a0, a1, a2, a3), B.If(b0, b1, b2, b3) ->
     m_tok a0 b0 >>= (fun () ->
     m_expr_deep a1 b1 >>= (fun () -> 
     m_stmt a2 b2 >>= (fun () -> 
-    m_stmt a3 b3 >>= (fun () -> 
-    return ()
-    ))))
+    m_stmt a3 b3 
+    )))
   | A.While(a0, a1, a2), B.While(b0, b1, b2) ->
     m_tok a0 b0 >>= (fun () ->
     m_expr_deep a1 b1 >>= (fun () -> 
-    m_stmt a2 b2 >>= (fun () -> 
-    return ()
-    )))
+    m_stmt a2 b2 
+    ))
   | A.DoWhile(a0, a1, a2), B.DoWhile(b0, b1, b2) ->
     m_tok a0 b0 >>= (fun () ->
     m_stmt a1 b1 >>= (fun () -> 
-    m_expr_deep a2 b2 >>= (fun () -> 
-    return ()
-    )))
+    m_expr_deep a2 b2 
+    ))
   | A.For(a0, a1, a2), B.For(b0, b1, b2) ->
     m_tok a0 b0 >>= (fun () ->
     m_for_header a1 b1 >>= (fun () -> 
-    m_stmt a2 b2 >>= (fun () -> 
-    return ()
-    )))
+    m_stmt a2 b2 
+    ))
   | A.Switch(at, a1, a2), B.Switch(bt, b1, b2) ->
     m_tok at bt >>= (fun () -> 
     m_option (m_expr_deep) a1 b1 >>= (fun () -> 
-    (m_list m_case_and_body) a2 b2 >>= (fun () -> 
-    return ()
-    )))
+    (m_list m_case_and_body) a2 b2 
+    ))
   | A.Return(a0, a1), B.Return(b0, b1) ->
     m_tok a0 b0 >>= (fun () ->
-    m_option_ellipsis_ok m_expr a1 b1 >>= (fun () -> 
-    return ()
-    ))
+    m_option_ellipsis_ok m_expr a1 b1 
+    )
   | A.Continue(a0, a1), B.Continue(b0, b1) ->
     m_tok a0 b0 >>= (fun () ->
-    m_label_ident a1 b1 >>= (fun () -> 
-    return ()
-    ))
+    m_label_ident a1 b1 
+    )
   | A.Break(a0, a1), B.Break(b0, b1) ->
     m_tok a0 b0 >>= (fun () ->
-    m_label_ident a1 b1 >>= (fun () -> 
-    return ()
-    ))
+    m_label_ident a1 b1 
+    )
   | A.Label(a1, a2), B.Label(b1, b2) ->
     m_label a1 b1 >>= (fun () -> 
-    m_stmt a2 b2 >>= (fun () -> 
-    return ()
-    ))
+    m_stmt a2 b2 
+    )
   | A.Goto(a0, a1), B.Goto(b0, b1) ->
     m_tok a0 b0 >>= (fun () ->
-    m_label a1 b1 >>= (fun () -> 
-    return ()
-    ))
+    m_label a1 b1 
+    )
   | A.Throw(a0, a1), B.Throw(b0, b1) ->
     m_tok a0 b0 >>= (fun () ->
-    m_expr a1 b1 >>= (fun () -> 
-    return ()
-    ))
+    m_expr a1 b1 
+    )
   | A.Try(a0, a1, a2, a3), B.Try(b0, b1, b2, b3) ->
     m_tok a0 b0 >>= (fun () ->
     m_stmt a1 b1 >>= (fun () -> 
     (m_list m_catch) a2 b2 >>= (fun () -> 
-    (m_option m_finally) a3 b3 >>= (fun () -> 
-    return ()
-    ))))
+    (m_option m_finally) a3 b3 
+    )))
   | A.Assert(a0, a1, a2), B.Assert(b0, b1, b2) ->
     m_tok a0 b0 >>= (fun () ->
     m_expr_deep a1 b1 >>= (fun () -> 
-    (m_option m_expr) a2 b2 >>= (fun () -> 
-    return ()
-    )))
+    (m_option m_expr) a2 b2 
+    ))
 
   | A.OtherStmt(a1, a2), B.OtherStmt(b1, b2) ->
     m_other_stmt_operator a1 b1 >>= (fun () -> 
-    (m_list m_any) a2 b2 >>= (fun () -> 
-    return ()
-    ))
+    (m_list m_any) a2 b2 
+    )
   | A.OtherStmtWithStmt(a1, a2, a3), B.OtherStmtWithStmt(b1, b2, b3) ->
     m_other_stmt_with_stmt_operator a1 b1 >>= (fun () -> 
     m_expr a2 b2 >>= (fun () -> 
-    m_stmt a3 b3 >>= (fun () -> 
-      return ()
-    )))
+    m_stmt a3 b3 
+    ))
 
   | A.ExprStmt _, _  | A.DefStmt _, _  | A.DirectiveStmt _, _
   | A.Block _, _  | A.If _, _  | A.While _, _  | A.DoWhile _, _  | A.For _, _
@@ -1448,15 +1282,13 @@ and m_for_header a b =
   | A.ForClassic(a1, a2, a3), B.ForClassic(b1, b2, b3) ->
     (m_list m_for_var_or_expr) a1 b1 >>= (fun () -> 
     m_option m_expr a2 b2 >>= (fun () -> 
-    m_option m_expr a3 b3 >>= (fun () -> 
-    return ()
-    )))
+    m_option m_expr a3 b3 
+    ))
   | A.ForEach(a1, at, a2), B.ForEach(b1, bt, b2) ->
     m_pattern a1 b1 >>= (fun () -> 
     m_tok at bt >>= (fun () -> 
-    m_expr a2 b2 >>= (fun () -> 
-    return ()
-    )))
+    m_expr a2 b2 
+    ))
   | A.ForClassic _, _  | A.ForEach _, _
    -> fail ()
 
@@ -1465,13 +1297,10 @@ and m_for_var_or_expr a b =
   match a, b with
   | A.ForInitVar(a1, a2), B.ForInitVar(b1, b2) ->
     m_entity a1 b1 >>= (fun () -> 
-    m_variable_definition a2 b2 >>= (fun () -> 
-    return ()
-    ))
-  | A.ForInitExpr(a1), B.ForInitExpr(b1) ->
-    m_expr a1 b1 >>= (fun () -> 
-    return ()
+    m_variable_definition a2 b2 
     )
+  | A.ForInitExpr(a1), B.ForInitExpr(b1) ->
+    m_expr a1 b1 
   | A.ForInitVar _, _  | A.ForInitExpr _, _
    -> fail ()
 
@@ -1485,43 +1314,36 @@ and m_catch a b =
   | (at, a1, a2), (bt, b1, b2) ->
     m_tok at bt >>= (fun () -> 
     m_pattern a1 b1 >>= (fun () -> 
-    m_stmt a2 b2 >>= (fun () -> 
-    return ()
-    )))
+    m_stmt a2 b2 
+     ))
 
 and m_finally a b = 
   match a, b with
   ((at, a), (bt, b)) -> 
       m_tok at bt >>= (fun () ->
-      m_stmt a b >>= (fun () ->
-              return ()
-      ))
+      m_stmt a b 
+      )
 
 and m_case_and_body a b = 
   match a, b with
   | (a1, a2), (b1, b2) ->
     (m_list m_case) a1 b1 >>= (fun () -> 
-    m_stmt a2 b2 >>= (fun () -> 
-    return ()
-    ))
+    m_stmt a2 b2 
+    )
 
 
 and m_case a b = 
   match a, b with
   | A.Case(a0, a1), B.Case(b0, b1) ->
     m_tok a0 b0 >>= (fun () ->
-    m_pattern a1 b1 >>= (fun () -> 
-    return ()
-    ))
+    m_pattern a1 b1 
+    )
   | A.CaseEqualExpr(a0, a1), B.CaseEqualExpr(b0, b1) ->
     m_tok a0 b0 >>= (fun () ->
-    m_expr a1 b1 >>= (fun () -> 
-    return ()
-    ))
-  | A.Default a0, B.Default b0 ->
-    m_tok a0 b0 >>= (fun () ->
-    return ()
+    m_expr a1 b1 
     )
+  | A.Default a0, B.Default b0 ->
+    m_tok a0 b0 
   | A.Case _, _  | A.Default _, _ | A.CaseEqualExpr _, _  
    -> fail ()
 
@@ -1537,74 +1359,53 @@ and m_pattern a b =
   match a, b with
   | A.PatId(a1, a2), B.PatId(b1, b2) ->
     m_ident a1 b1 >>= (fun () -> 
-    m_id_info a2 b2 >>= (fun () -> 
-      return ()
-    ))
+    m_id_info a2 b2 
+    )
   | A.PatLiteral(a1), B.PatLiteral(b1) ->
-    m_literal a1 b1 >>= (fun () -> 
-    return ()
-    )
+    m_literal a1 b1 
   | A.PatType(a1), B.PatType(b1) ->
-    m_type_ a1 b1 >>= (fun () -> 
-    return ()
-    )
+    m_type_ a1 b1 
   | A.PatConstructor(a1, a2), B.PatConstructor(b1, b2) ->
     m_name a1 b1 >>= (fun () -> 
-    (m_list m_pattern) a2 b2 >>= (fun () -> 
-    return ()
-    ))
+    (m_list m_pattern) a2 b2 
+    )
   | A.PatTuple(a1), B.PatTuple(b1) ->
-    (m_list m_pattern) a1 b1 >>= (fun () -> 
-    return ()
-    )
+    (m_list m_pattern) a1 b1 
   | A.PatList(a1), B.PatList(b1) ->
-    m_bracket (m_list m_pattern) a1 b1 >>= (fun () -> 
-    return ()
-    )
+    m_bracket (m_list m_pattern) a1 b1 
   | A.PatRecord(a1), B.PatRecord(b1) ->
-    m_bracket (m_list m_field_pattern) a1 b1 >>= (fun () -> 
-    return ()
-    )
+    m_bracket (m_list m_field_pattern) a1 b1 
   | A.PatKeyVal(a1, a2), B.PatKeyVal(b1, b2) ->
     m_pattern a1 b1 >>= (fun () -> 
-    m_pattern a2 b2 >>= (fun () -> 
-    return ()
-    ))
-  | A.PatUnderscore(a1), B.PatUnderscore(b1) ->
-    m_tok a1 b1 >>= (fun () -> 
-    return ()
+    m_pattern a2 b2 
     )
+  | A.PatUnderscore(a1), B.PatUnderscore(b1) ->
+    m_tok a1 b1 
   | A.PatDisj(a1, a2), B.PatDisj(b1, b2) ->
     m_pattern a1 b1 >>= (fun () -> 
-    m_pattern a2 b2 >>= (fun () -> 
-    return ()
-    ))
+    m_pattern a2 b2 
+    )
   | A.PatAs(a1, (a2, a3)), B.PatAs(b1, (b2, b3)) ->
     m_pattern a1 b1 >>= (fun () -> 
     m_ident a2 b2 >>= (fun () -> 
-    m_id_info a3 b3 >>= (fun () -> 
-    return ()
-    )))
+    m_id_info a3 b3 
+    ))
   | A.PatTyped(a1, a2), B.PatTyped(b1, b2) ->
     m_pattern a1 b1 >>= (fun () -> 
-    m_type_ a2 b2 >>= (fun () -> 
-    return ()
-    ))
+    m_type_ a2 b2  
+    )
   | A.PatVar(a1, a2), B.PatVar(b1, b2) ->
     m_type_ a1 b1 >>= (fun () -> 
-    m_option m_id_and_id_info a2 b2 >>= (fun () -> 
-    return ()
-    ))
+    m_option m_id_and_id_info a2 b2 
+    )
   | A.PatWhen(a1, a2), B.PatWhen(b1, b2) ->
     m_pattern a1 b1 >>= (fun () -> 
-    m_expr a2 b2 >>= (fun () -> 
-    return ()
-    ))
+    m_expr a2 b2 
+    )
   | A.OtherPat(a1, a2), B.OtherPat(b1, b2) ->
     m_other_pattern_operator a1 b1 >>= (fun () -> 
-    (m_list m_any) a2 b2 >>= (fun () -> 
-    return ()
-    ))
+    (m_list m_any) a2 b2 
+    )
   | A.PatId _, _  | A.PatLiteral _, _  | A.PatConstructor _, _
   | A.PatTuple _, _  | A.PatList _, _  | A.PatRecord _, _  | A.PatKeyVal _, _
   | A.PatUnderscore _, _  | A.PatDisj _, _  | A.PatWhen _, _  | A.PatAs _, _
@@ -1613,16 +1414,14 @@ and m_pattern a b =
 
 and m_id_and_id_info (a2, a3) (b2, b3) =
     m_ident a2 b2 >>= (fun () -> 
-    m_id_info a3 b3 >>= (fun () -> 
-          return ()
-    ))
+    m_id_info a3 b3 
+    )
 and m_field_pattern a b = 
   match a, b with
   | (a1, a2), (b1, b2) ->
     m_name a1 b1 >>= (fun () -> 
-    m_pattern a2 b2 >>= (fun () -> 
-    return ()
-    ))
+    m_pattern a2 b2 
+    )
 
 and m_other_pattern_operator = m_other_xxx
 
@@ -1634,9 +1433,8 @@ and m_definition a b =
   match a, b with
   | (a1, a2), (b1, b2) ->
     m_entity a1 b1 >>= (fun () -> 
-    m_definition_kind a2 b2 >>= (fun () -> 
-    return ()
-    ))
+    m_definition_kind a2 b2 
+    )
 
 and m_entity a b = 
   match a, b with
@@ -1649,42 +1447,27 @@ and m_entity a b =
   { B. name = b1; attrs = b2; tparams = b4; info = b5 } -> 
     m_ident_and_id_info_add_in_env_Expr (a1, a5) (b1, b5) >>= (fun () ->
     (m_list__m_attribute) a2 b2 >>= (fun () -> 
-    (m_list m_type_parameter) a4 b4 >>= (fun () -> 
-     return ()
-    )))
+    (m_list m_type_parameter) a4 b4 
+    ))
 
 and m_definition_kind a b = 
   match a, b with
   | A.FuncDef(a1), B.FuncDef(b1) ->
-    m_function_definition a1 b1 >>= (fun () -> 
-    return ()
-    )
+    m_function_definition a1 b1 
   | A.VarDef(a1), B.VarDef(b1) ->
-    m_variable_definition a1 b1 >>= (fun () -> 
-    return ()
-    )
+    m_variable_definition a1 b1 
   | A.ClassDef(a1), B.ClassDef(b1) ->
-    m_class_definition a1 b1 >>= (fun () -> 
-    return ()
-    )
+    m_class_definition a1 b1 
   | A.TypeDef(a1), B.TypeDef(b1) ->
-    m_type_definition a1 b1 >>= (fun () -> 
-    return ()
-    )
+    m_type_definition a1 b1 
   | A.ModuleDef(a1), B.ModuleDef(b1) ->
-    m_module_definition a1 b1 >>= (fun () -> 
-    return ()
-    )
+    m_module_definition a1 b1 
   | A.MacroDef(a1), B.MacroDef(b1) ->
-    m_macro_definition a1 b1 >>= (fun () -> 
-    return ()
-    )
+    m_macro_definition a1 b1 
   | A.Signature(a1), B.Signature(b1) ->
-    m_type_ a1 b1 >>= (fun () -> 
-    return ()
-    )
+    m_type_ a1 b1 
   | A.UseOuterDecl a1, B.UseOuterDecl b1 ->
-      m_tok a1 b1 >>= (fun () -> return ())
+    m_tok a1 b1 
   | A.FuncDef _, _ | A.VarDef _, _  | A.ClassDef _, _  | A.TypeDef _, _
   | A.ModuleDef _, _  | A.MacroDef _, _  | A.Signature _, _
   | A.UseOuterDecl _, _
@@ -1694,9 +1477,7 @@ and m_definition_kind a b =
 and m_type_parameter_constraint a b = 
   match a, b with
   | A.Extends(a1), B.Extends(b1) ->
-    m_type_ a1 b1 >>= (fun () -> 
-    return ()
-    )
+    m_type_ a1 b1 
 
 and m_type_parameter_constraints a b = 
   match a, b with
@@ -1706,9 +1487,8 @@ and m_type_parameter a b =
   match a, b with
   | (a1, a2), (b1, b2) ->
     m_ident a1 b1 >>= (fun () -> 
-    m_type_parameter_constraints a2 b2 >>= (fun () -> 
-    return ()
-    ))
+    m_type_parameter_constraints a2 b2 
+    )
 
 (* ------------------------------------------------------------------------- *)
 (* Function (or method) definition *)
@@ -1720,9 +1500,8 @@ and m_function_definition a b =
   { B. fparams = b1; frettype = b2; fbody = b3; } -> 
     m_parameters a1 b1 >>= (fun () -> 
     (m_option m_type_) a2 b2 >>= (fun () -> 
-    m_stmt a3 b3 >>= (fun () -> 
-    return ()
-  )))
+    m_stmt a3 b3 
+    ))
 
 and m_parameters a b = 
   match a, b with
@@ -1746,9 +1525,7 @@ and m_list__m_parameter (xsa: A.parameter list) (xsb: A.parameter list) =
   (* the general case *)
   | xa::aas, xb::bbs ->
       m_parameter xa xb >>= (fun () ->
-      m_list__m_parameter aas bbs >>= (fun () ->
-        return ()
-      )
+      m_list__m_parameter aas bbs 
       )
   | [], _
   | _::_, _ ->
@@ -1758,22 +1535,15 @@ and m_list__m_parameter (xsa: A.parameter list) (xsb: A.parameter list) =
 and m_parameter a b = 
   match a, b with
   | A.ParamClassic(a1), B.ParamClassic(b1) ->
-    m_parameter_classic a1 b1 >>= (fun () -> 
-    return ()
-    )
+    m_parameter_classic a1 b1 
   | A.ParamPattern(a1), B.ParamPattern(b1) ->
-    m_pattern a1 b1 >>= (fun () -> 
-    return ()
-    )
+    m_pattern a1 b1 
   | A.OtherParam(a1, a2), B.OtherParam(b1, b2) ->
     m_other_parameter_operator a1 b1 >>= (fun () -> 
-    (m_list m_any) a2 b2 >>= (fun () -> 
-    return ()
-    ))
-  | A.ParamEllipsis(a1), B.ParamEllipsis(b1) ->
-    m_tok a1 b1 >>= (fun () -> 
-    return ()
+    (m_list m_any) a2 b2 
     )
+  | A.ParamEllipsis(a1), B.ParamEllipsis(b1) ->
+    m_tok a1 b1 
   | A.ParamClassic _, _  | A.ParamPattern _, _  
   | A.ParamEllipsis _, _
   | A.OtherParam _, _
@@ -1794,9 +1564,8 @@ and m_parameter_classic a b =
      m_ident_and_id_info_add_in_env_Expr (a1, a5) (b1, b5) >>= (fun () ->
      (m_option m_expr) a2 b2 >>= (fun () -> 
      (m_option m_type_) a3 b3 >>= (fun () -> 
-     (m_list m_attribute) a4 b4 >>= (fun () -> 
-        return ()
-     ))))
+     (m_list m_attribute) a4 b4 
+     )))
 
 
   | { A. pname = a1; pdefault = a2; ptype = a3; pattrs = a4; pinfo = a5 },
@@ -1805,9 +1574,8 @@ and m_parameter_classic a b =
     (m_option m_expr) a2 b2 >>= (fun () -> 
     (m_option m_type_) a3 b3 >>= (fun () -> 
     (m_list m_attribute) a4 b4 >>= (fun () -> 
-    m_id_info a5 b5 >>= (fun () ->
-    return ()
-    )))))
+    m_id_info a5 b5 
+    ))))
 
 
 and m_other_parameter_operator = m_other_xxx
@@ -1821,9 +1589,8 @@ and m_variable_definition a b =
   { A. vinit = a1; vtype = a2; },
   { B. vinit = b1; vtype = b2; } -> 
     (m_option m_expr) a1 b1 >>= (fun () -> 
-    (m_option m_type_) a2 b2 >>= (fun () -> 
-    return ()
-  ))
+    (m_option m_type_) a2 b2 
+    )
 
 (* ------------------------------------------------------------------------- *)
 (* Field definition and use *)
@@ -1864,9 +1631,7 @@ and m_list__m_field (xsa: A.field list) (xsb: A.field list) =
   (* the general case *)
   | xa::aas, xb::bbs ->
       m_field xa xb >>= (fun () ->
-      m_list__m_field aas bbs >>= (fun () ->
-        return ()
-      )
+      m_list__m_field aas bbs 
       )
   | _::_, _ ->
       fail ()
@@ -1877,18 +1642,14 @@ and m_field a b =
   | A.FieldDynamic(a1, a2, a3), B.FieldDynamic(b1, b2, b3) ->
     m_expr a1 b1 >>= (fun () -> 
     (m_list m_attribute) a2 b2 >>= (fun () -> 
-    m_expr a3 b3 >>= (fun () -> 
-    return ()
-    )))
+    m_expr a3 b3 
+    ))
   | A.FieldSpread(a0, a1), B.FieldSpread(b0, b1) ->
     m_tok a0 b0 >>= (fun () ->
-    m_expr a1 b1 >>= (fun () -> 
-    return ()
-    ))
-  | A.FieldStmt(a1), B.FieldStmt(b1) ->
-    m_stmt a1 b1 >>= (fun () -> 
-    return ()
+    m_expr a1 b1 
     )
+  | A.FieldStmt(a1), B.FieldStmt(b1) ->
+    m_stmt a1 b1 
   | A.FieldDynamic _, _
   | A.FieldSpread _, _ | A.FieldStmt _, _
    -> fail ()
@@ -1900,39 +1661,27 @@ and m_type_definition a b =
   match a, b with
   { A. tbody = a1;},
   { B. tbody = b1; } -> 
-    m_type_definition_kind a1 b1 >>= (fun () -> 
-    return ()
-  )
+    m_type_definition_kind a1 b1 
 
 and m_type_definition_kind a b = 
   match a, b with
   | A.OrType(a1), B.OrType(b1) ->
-    (m_list m_or_type) a1 b1 >>= (fun () -> 
-    return ()
-    )
+    (m_list m_or_type) a1 b1 
   | A.AndType(a1), B.AndType(b1) ->
-    m_bracket (m_fields) a1 b1 >>= (fun () -> 
-    return ()
-    )
+    m_bracket (m_fields) a1 b1 
   | A.AliasType(a1), B.AliasType(b1) ->
-    m_type_ a1 b1 >>= (fun () -> 
-    return ()
-    )
+    m_type_ a1 b1 
   | A.NewType(a1), B.NewType(b1) ->
-    m_type_ a1 b1 >>= (fun () -> 
-    return ()
-    )
+    m_type_ a1 b1 
   | A.Exception(a1, a2), B.Exception(b1, b2) ->
     m_ident a1 b1 >>= (fun () -> 
     (* TODO: m_list__m_type_ ? *)
-    (m_list m_type_) a2 b2 >>= (fun () -> 
-    return ()
-    ))
+    (m_list m_type_) a2 b2 
+    )
   | A.OtherTypeKind(a1, a2), B.OtherTypeKind(b1, b2) ->
     m_other_type_kind_operator a1 b1 >>= (fun () -> 
-    (m_list m_any) a2 b2 >>= (fun () -> 
-    return ()
-    ))
+    (m_list m_any) a2 b2 
+    )
   | A.OrType _, _ | A.AndType _, _ | A.AliasType _, _ | A.Exception _, _
   | A.NewType _, _
   | A.OtherTypeKind _, _
@@ -1943,24 +1692,20 @@ and m_or_type a b =
   | A.OrConstructor(a1, a2), B.OrConstructor(b1, b2) ->
     (m_ident) a1 b1 >>= (fun () -> 
     (* TODO: m_list__m_type_ ? *)
-    (m_list m_type_) a2 b2 >>= (fun () -> 
-    return ()
-    ))
+    (m_list m_type_) a2 b2 
+    )
   | A.OrEnum(a1, a2), B.OrEnum(b1, b2) ->
     m_ident a1 b1 >>= (fun () -> 
-    m_option m_expr a2 b2 >>= (fun () -> 
-    return ()
-    ))
+    m_option m_expr a2 b2 
+    )
   | A.OrUnion(a1, a2), B.OrUnion(b1, b2) ->
     m_ident a1 b1 >>= (fun () -> 
-    (m_type_) a2 b2 >>= (fun () -> 
-    return ()
-    ))
+    (m_type_) a2 b2 
+    )
   | A.OtherOr(a1, a2), B.OtherOr(b1, b2) ->
     m_other_or_type_element_operator a1 b1 >>= (fun () -> 
-    (m_list m_any) a2 b2 >>= (fun () -> 
-    return ()
-    ))
+    (m_list m_any) a2 b2 
+    )
   | A.OrConstructor _, _ | A.OrEnum _, _ | A.OrUnion _, _ | A.OtherOr _, _
    -> fail ()
 
@@ -2003,9 +1748,7 @@ and m_list__m_type_ (xsa: A.type_ list) (xsb: A.type_ list) =
   (* the general case *)
   | xa::aas, xb::bbs ->
       m_type_ xa xb >>= (fun () ->
-      m_list__m_type_ aas bbs >>= (fun () ->
-        return ()
-      )
+      m_list__m_type_ aas bbs 
       )
   | _::_, _ ->
       fail ()
@@ -2024,9 +1767,8 @@ and m_class_definition a b =
     (m_list__m_type_) a2 b2 >>= (fun () -> 
     (m_list__m_type_) a3 b3 >>= (fun () -> 
     (m_list__m_type_) a5 b5 >>= (fun () -> 
-    m_bracket (m_fields) a4 b4 >>= (fun () -> 
-    return ()
-  )))))
+    m_bracket (m_fields) a4 b4 
+    ))))
 
 and m_class_kind a b = 
   match a, b with
@@ -2047,26 +1789,20 @@ and m_module_definition a b =
   match a, b with
   { A. mbody = a1; },
   { B. mbody = b1; } -> 
-    m_module_definition_kind a1 b1 >>= (fun () -> 
-    return ()
-  )
+    m_module_definition_kind a1 b1 
 
 and m_module_definition_kind a b = 
   match a, b with
   | A.ModuleAlias(a1), B.ModuleAlias(b1) ->
-    m_name a1 b1 >>= (fun () -> 
-    return ()
-    )
+    m_name a1 b1 
   | A.ModuleStruct(a1, a2), B.ModuleStruct(b1, b2) ->
     (m_option m_dotted_name) a1 b1 >>= (fun () -> 
-    (m_list m_item) a2 b2 >>= (fun () -> 
-    return ()
-    ))
+    (m_list m_item) a2 b2 
+    )
   | A.OtherModule(a1, a2), B.OtherModule(b1, b2) ->
     m_other_module_operator a1 b1 >>= (fun () -> 
-    (m_list m_any) a2 b2 >>= (fun () -> 
-    return ()
-    ))
+    (m_list m_any) a2 b2 
+    )
   | A.ModuleAlias _, _ | A.ModuleStruct _, _ | A.OtherModule _, _
    -> fail ()
 
@@ -2081,9 +1817,8 @@ and m_macro_definition a b =
   { A. macroparams = a1; macrobody = a2; },
   { B. macroparams = b1; macrobody = b2; } -> 
     (m_list m_ident) a1 b1 >>= (fun () -> 
-    (m_list m_any) a2 b2 >>= (fun () -> 
-    return ()
-  ))
+    (m_list m_any) a2 b2 
+    )
 
 (* ------------------------------------------------------------------------- *)
 (* Directives (Module import/export, macros) *)
@@ -2101,9 +1836,8 @@ and m_directive a b =
       (match normal_a, normal_b with
       | Some (a0, a1), Some (b0, b1) ->
         m_tok a0 b0 >>= (fun () ->
-        m_module_name_prefix a1 b1 >>= (fun () ->
-         return ()
-        ))
+        m_module_name_prefix a1 b1 
+        )
       | _ -> fail ()
       )
    (* more complex pattern should not be normalized *)
@@ -2124,33 +1858,28 @@ and m_directive_basic a b =
     m_tok a0 b0 >>= (fun () ->
     m_module_name_prefix a1 b1 >>= (fun () -> 
     m_ident a2 b2 >>= (fun () -> 
-    (m_option_none_can_match_some m_ident) a3 b3 >>= (fun () -> 
-    return()
-    ))))
+    (m_option_none_can_match_some m_ident) a3 b3 
+    )))
   | A.ImportAs(a0, a1, a2), B.ImportAs(b0, b1, b2) ->
     m_tok a0 b0 >>= (fun () ->
     m_module_name_prefix a1 b1 >>= (fun () -> 
-    (m_option_none_can_match_some m_ident) a2 b2 >>= (fun () -> 
-    return ()
-    )))
+    (m_option_none_can_match_some m_ident) a2 b2 
+    ))
   | A.ImportAll(a0, a1, a2), B.ImportAll(b0, b1, b2) ->
     m_tok a0 b0 >>= (fun () ->
     m_module_name_prefix a1 b1 >>= (fun () -> 
-    m_tok a2 b2 >>= (fun () -> 
-    return ()
-    )))
+    m_tok a2 b2 
+    ))
   | A.Package(a0, a1), B.Package(b0, b1) ->
     m_tok a0 b0 >>= (fun () ->
-    m_dotted_name a1 b1 >>= (fun () -> 
-    return ()
-    ))
+    m_dotted_name a1 b1 
+    )
   | A.PackageEnd a1, B.PackageEnd b1 ->
-      m_tok a1 b1 >>= (fun () -> return ())
+      m_tok a1 b1 
   | A.OtherDirective(a1, a2), B.OtherDirective(b1, b2) ->
     m_other_directive_operator a1 b1 >>= (fun () -> 
-    (m_list m_any) a2 b2 >>= (fun () -> 
-    return ()
-    ))
+    (m_list m_any) a2 b2 
+    )
   | A.ImportFrom _, _ | A.ImportAs _, _ | A.OtherDirective _, _
   | A.ImportAll _, _ | A.Package _, _ | A.PackageEnd _, _
    -> fail ()
@@ -2174,77 +1903,41 @@ and m_program a b =
 and m_any a b = 
   match a, b with
   | A.N(a1), B.N(b1) ->
-    m_name a1 b1 >>= (fun () -> 
-    return ()
-    )
+    m_name a1 b1 
   | A.Tk(a1), B.Tk(b1) ->
-    m_tok a1 b1 >>= (fun () -> 
-    return ()
-    )
+    m_tok a1 b1 
   | A.Di(a1), B.Di(b1) ->
-    m_dotted_name a1 b1 >>= (fun () -> 
-    return ()
-    )
+    m_dotted_name a1 b1 
   | A.En(a1), B.En(b1) ->
-    m_entity a1 b1 >>= (fun () -> 
-    return ()
-    )
+    m_entity a1 b1 
   | A.E(a1), B.E(b1) ->
-    m_expr a1 b1 >>= (fun () -> 
-    return ()
-    )
+    m_expr a1 b1 
   | A.S(a1), B.S(b1) ->
-    m_stmt a1 b1 >>= (fun () -> 
-    return ()
-    )
+    m_stmt a1 b1 
   | A.T(a1), B.T(b1) ->
-    m_type_ a1 b1 >>= (fun () -> 
-    return ()
-    )
+    m_type_ a1 b1 
   | A.P(a1), B.P(b1) ->
-    m_pattern a1 b1 >>= (fun () -> 
-    return ()
-    )
+    m_pattern a1 b1 
   | A.Def(a1), B.Def(b1) ->
-    m_definition a1 b1 >>= (fun () -> 
-    return ()
-    )
+    m_definition a1 b1 
   | A.Dir(a1), B.Dir(b1) ->
-    m_directive a1 b1 >>= (fun () -> 
-    return ()
-    )
+    m_directive a1 b1 
   | A.Fld(a1), B.Fld(b1) ->
-    m_field a1 b1 >>= (fun () -> 
-    return ()
-    )
+    m_field a1 b1 
   | A.Pa(a1), B.Pa(b1) ->
-    m_parameter a1 b1 >>= (fun () -> 
-    return ()
-    )
+    m_parameter a1 b1 
   | A.Ar(a1), B.Ar(b1) ->
-    m_argument a1 b1 >>= (fun () -> 
-    return ()
-    )
+    m_argument a1 b1 
   | A.At(a1), B.At(b1) ->
-    m_attribute a1 b1 >>= (fun () -> 
-    return ()
-    )
+    m_attribute a1 b1 
   | A.Dk(a1), B.Dk(b1) ->
-    m_definition_kind a1 b1 >>= (fun () -> 
-    return ()
-    )
+    m_definition_kind a1 b1 
   | A.Pr(a1), B.Pr(b1) ->
-    m_program a1 b1 >>= (fun () -> 
-    return ()
-    )
+    m_program a1 b1 
   | A.I(a1), B.I(b1) ->
-    m_ident a1 b1 >>= (fun () -> 
-    return ()
-    )
+    m_ident a1 b1 
   | A.Ss(a1), B.Ss(b1) ->
-    m_stmts_deep a1 b1 >>= (fun () -> 
-    return ()
-    )
+    m_stmts_deep a1 b1 
   | A.I _, _  | A.N _, _  | A.Di _, _  | A.En _, _  | A.E _, _
   | A.S _, _  | A.T _, _  | A.P _, _  | A.Def _, _  | A.Dir _, _
   | A.Pa _, _  | A.Ar _, _  | A.At _, _  | A.Dk _, _ | A.Pr _, _
