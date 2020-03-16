@@ -47,5 +47,5 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
-          name: sgrep-osx-${{ github.sha }}
+          name: sgrep-ubuntu-16_04-${{ github.sha }}
           path: artifacts
