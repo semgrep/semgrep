@@ -12,7 +12,7 @@ jobs:
       - name: Install System Deps
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends make m4 perl wget swi-prolog mercurial pkg-config python3 python3-pip python3-dev build-essential python3-setuptools
       - name: Update OPAM
-        run: cd /home/opam/opam-repository && git pull && opam update
+        run: cd /home/opam/opam-repository && git pull && opam init && opam update
       - name: Adjust permissions
         run: sudo chmod -R 777 . /github
       - name: Checkout
