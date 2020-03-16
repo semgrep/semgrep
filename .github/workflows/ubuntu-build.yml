@@ -6,7 +6,7 @@ on:
 
 jobs:
   ubuntu-build-test:
-    runs-on: ubuntu-16-04
+    runs-on: ubuntu-16.04
     steps:
       - name: Install System Deps
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends make m4 perl wget swi-prolog mercurial pkg-config python3 python3-pip python3-dev build-essential python3-setuptools
