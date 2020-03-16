@@ -1,0 +1,7 @@
+class $C:
+  def $A(..., $D=[], ...):
+      ...
+      self.$E = $D
+  def $B(...):
+      ...
+      self.$E.append(...)
