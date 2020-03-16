@@ -55,6 +55,7 @@ let rules_file = ref ""
 (* todo: infer from basename argv(0) ? *)
 let lang = ref "unset"
 
+let output_format_json = ref false
 let case_sensitive = ref false
 let match_format = ref Matching_report.Normal
 
@@ -363,11 +364,48 @@ let validate_pattern () =
   | _ -> exit 1
   ) with _exn -> exit 1
 
+let json_of_v (v: Ocaml.v) = 
+  let rec aux v = 
+    match v with
+    | Ocaml.VUnit -> J.String "()"
+    | Ocaml.VBool v1 ->
+        if v1
+        then J.String "true"
+        else J.String "false"
+    | Ocaml.VFloat v1 -> J.Float v1 (* ppf "%f" v1 *)
+    | Ocaml.VChar v1 -> J.String (spf "'%c'" v1)
+    | Ocaml.VString v1 -> J.String v1
+    | Ocaml.VInt i -> J.Int i
+    | Ocaml.VTuple xs -> J.Array (List.map aux xs)
+    | Ocaml.VDict xs ->
+        J.Object (List.map (fun (k, v) -> (k, (aux v))) xs)
+    | Ocaml.VSum ((s, xs)) ->
+        (match xs with
+        | [] -> J.String (spf "%s" s)
+        | [one_element] -> J.Object [s, (aux one_element)]
+        | _ -> J.Object [s, J.Array (List.map aux xs)]
+        )          
+    | Ocaml.VVar (s, i64) -> J.String (spf "%s_%d" s (Int64.to_int i64))
+    | Ocaml.VArrow _ -> failwith "Arrow TODO"
+    | Ocaml.VNone -> J.Null
+    | Ocaml.VSome v -> J.Object [ "some", aux v ]
+    | Ocaml.VRef v -> J.Object [ "ref@", aux v ];
+    | Ocaml.VList xs -> J.Array (List.map aux xs)
+    | Ocaml.VTODO _ -> J.String "VTODO"
+  in
+  aux v
+
+
 (*****************************************************************************)
 (* Dumpers *)
 (*****************************************************************************)
+let dump_v_to_format (v: Ocaml.v) = 
+  if (not !output_format_json)
+    then (Ocaml.string_of_v v)
+    else (Json_io.string_of_json (json_of_v v))
+
 (* works with -lang *)
-let dump_pattern file =
+let dump_pattern (file: Common.filename) =
   let s = Common.read_file file in
   (* mostly copy-paste of parse_pattern above, but with better error report *)
   match Lang.lang_of_string_opt !lang with
@@ -375,8 +413,8 @@ let dump_pattern file =
     E.try_with_print_exn_and_reraise file (fun () ->
       let any = Parse_generic.parse_pattern lang s in
       let v = Meta_ast.vof_any any in
-      let s = Ocaml.string_of_v v in
-      pr2 s
+      let s = dump_v_to_format v in
+      pr s
     )
   | None ->
      failwith (unsupported_language_message !lang)
@@ -384,8 +422,8 @@ let dump_pattern file =
 let dump_ast file =
   let x = parse_generic file in
   let v = Meta_ast.vof_any (Ast_generic.Pr x) in
-  let s = Ocaml.string_of_v v in
-  pr2 s
+  let s = dump_v_to_format v in
+  pr s
 
 let dump_ext_of_lang () =
   let lang_to_exts = keys |> List.map (
@@ -422,6 +460,8 @@ let options () =
     " <file> obtain pattern from file";
     "-rules_file", Arg.Set_string rules_file,
     " <file> obtain list of patterns from YAML file";
+
+    "-json", Arg.Set output_format_json, " output JSON format";
 
     "-case_sensitive", Arg.Set case_sensitive, 
     " match code in a case sensitive manner";
