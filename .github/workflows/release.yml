@@ -17,11 +17,6 @@ jobs:
         run: cd /home/opam/opam-repository && git reset --hard && git pull && opam init && opam update
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Cache OPAM
-        uses: actions/cache@v1
-        with:
-          path: ~/.opam
-          key: ${{ runner.os }}-opam-${{ hashFiles('.github/workflows/release.yml') }}
       - name: OPAM setup
         run: opam switch 4.07.1;
       - name: OPAM install Deps
@@ -30,12 +25,10 @@ jobs:
         run: git submodule update --init --recursive
       - name: Install pfff
         run: eval $(opam env) && cd ./pfff && ./configure && make depend && make && make opt && make install-libs
-      - name: Install and test sgrep
-        run: eval $(opam env) && cd sgrep && make all && make test && make install
-      - name: Install and test sgrep-lint
-        run: eval $(opam env) && cd sgrep_lint && export PATH=/github/home/.local/bin:$PATH && make all && make test
-      - name: Clean Cache
-        run: rm -rf ~/.opam/log
+      - name: Build sgrep
+        run: eval $(opam env) && cd sgrep && make all
+      - name: Build sgrep-lint
+        run: eval $(opam env) && cd sgrep_lint && export PATH=/github/home/.local/bin:$PATH && make all
       - name: Prepare artifacts
         run: |
           mkdir -p artifacts/bin/sgrep-lint-files
