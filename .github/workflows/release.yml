@@ -14,7 +14,7 @@ jobs:
       - name: Adjust permissions
         run: sudo chmod -R 777 . /github /home/opam
       - name: Update OPAM
-        run: cd /home/opam/opam-repository && git pull && opam init && opam update
+        run: cd /home/opam/opam-repository && git reset --hard && git pull && opam init && opam update
       - name: Checkout
         uses: actions/checkout@v2
       - name: Cache OPAM
