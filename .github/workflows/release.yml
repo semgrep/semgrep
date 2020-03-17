@@ -7,7 +7,7 @@ on:
 jobs:
   release-deb:
     runs-on: ubuntu-latest
-    container: ocaml/opam2:debian-8
+    container: ocaml/opam2:debian-9
     steps:
       - name: Install System Deps
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends make m4 perl wget swi-prolog mercurial pkg-config python3 python3-pip python3-dev build-essential python3-setuptools
@@ -18,9 +18,7 @@ jobs:
       - name: OPAM install Deps
         run: eval $(opam env --root /home/opam/.opam --set-root); opam install -y reason dune ocamlfind camlp4 num ocamlgraph json-wheel conf-perl yaml
       - name: Checkout
-        uses: actions/checkout@master
-        with:
-          submodules: 'true'
+        uses: actions/checkout@v2
       - name: debugging
         run: ls -al .
       - name: Install pfff
@@ -37,5 +35,5 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
-          name: sgrep-deb-jessie-${{ github.sha }}
+          name: sgrep-deb-stretch-${{ github.sha }}
           path: artifacts
