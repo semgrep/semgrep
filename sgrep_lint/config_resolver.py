@@ -115,22 +115,22 @@ def parse_config_folder(
 ) -> Dict[str, Optional[Dict[str, Any]]]:
     configs = {}
     for l in loc.rglob("*"):
-        if not _is_hidden_config_dir(l) and l.suffix in YML_EXTENSIONS:
+        if not _is_hidden_config(l) and l.suffix in YML_EXTENSIONS:
             configs.update(parse_config_at_path(l, loc if relative else None))
     return configs
 
 
-def _is_hidden_config_dir(loc: Path) -> bool:
+def _is_hidden_config(loc: Path) -> bool:
     """
     Want to keep rules/.sgrep.yml but not path/.github/foo.yml
-    Also want to keep src/.sgrep/bad_pattern.yml
+    Also want to keep src/.sgrep/bad_pattern.yml but not ./.pre-commit-config.yaml
     """
     return any(
         part != "."
         and part != ".."
         and part.startswith(".")
         and DEFAULT_SGREP_CONFIG_NAME not in part
-        for part in loc.parts[:-1]
+        for part in loc.parts
     )
 
 
