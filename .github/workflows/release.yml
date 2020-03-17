@@ -7,7 +7,7 @@ on:
 jobs:
   release-deb:
     runs-on: ubuntu-latest
-    container: ocaml/opam2:debian-9
+    container: ocaml/opam2:debian-8
     steps:
       - name: Install System Deps
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends make m4 perl wget swi-prolog mercurial pkg-config python3 python3-pip python3-dev build-essential python3-setuptools
@@ -21,6 +21,10 @@ jobs:
           sudo make prefix=/usr/local all;
           sudo make prefix=/usr/local install;
           git --version;
+      - name: Install Python 3.7
+        run: |
+          python3 --version
+          echo "Pls help me make this at least 3.6"
       - name: Adjust permissions
         run: sudo chmod -R 777 . /github
       - name: OPAM setup
