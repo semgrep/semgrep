@@ -13,18 +13,10 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends make m4 perl wget swi-prolog mercurial pkg-config python3 python3-pip python3-dev build-essential python3-setuptools
       - name: Adjust permissions
         run: sudo chmod -R 777 . /github
-      - name: whoami
-        run: |
-          whoami;
-          echo whoami;
-          pwd;
-          ls -al /home/opam;
-      - name: Update OPAM
-        run: cd /home/opam/opam-repository && git pull && opam init && opam update
       - name: Checkout
         uses: actions/checkout@v2
       - name: OPAM setup
-        run: sudo opam switch 4.07.1;
+        run: opam switch 4.07.1;
       - name: OPAM install Deps
         run: eval $(opam env); opam install -y reason dune ocamlfind camlp4 num ocamlgraph json-wheel conf-perl yaml
       - name: Install submodules
