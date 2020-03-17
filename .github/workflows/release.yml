@@ -24,8 +24,11 @@ jobs:
       - name: Install Python 3.7
         run: |
           python3 --version
+          python3.7 --version
           ldd --version
           echo "Pls help me make this at least 3.6"
+          which python3
+          which python3.7
       - name: Adjust permissions
         run: sudo chmod -R 777 . /github
       - name: OPAM setup
