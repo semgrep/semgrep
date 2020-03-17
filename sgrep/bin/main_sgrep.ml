@@ -47,6 +47,7 @@ module J = Json_type
 
 let verbose = ref false
 let debug = ref false
+let output_format_json = ref false
 
 let pattern_string = ref ""
 let pattern_file = ref ""
@@ -326,13 +327,16 @@ let sgrep_with_rules rules_file xs =
            Sgrep_lint_generic.check rules file ast
          with exn -> 
             Common.push (Error_code.exn_to_error file exn) errs;
-            []
-      ) |> List.flatten
-    in
-    let errs = E.filter_maybe_parse_and_fatal_errors !errs in
+           []
+      ) |> List.flatten in
+    let count_errors = (List.length !errs) in
+    let count_ok = (List.length files) - count_errors in
+    let errs = !errs in 
+    let stats = J.Object [ "okfiles", J.Int count_ok; "errorfiles", J.Int count_errors; ] in
     let json = J.Object [
        "matches", J.Array (matches |> List.map Match_result.match_to_json);
-       "errors", J.Array (errs |> List.map R2c.error_to_json)
+       "errors", J.Array (errs |> List.map R2c.error_to_json);        
+       "stats", stats
     ] in
     let s = Json_io.string_of_json json in
     pr s

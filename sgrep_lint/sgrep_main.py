@@ -87,7 +87,7 @@ def group_rule_by_langauges(
 
 
 def invoke_sgrep(
-    all_rules: List[Dict[str, Any]], targets: List[Path], strict: bool
+    all_rules: List[Dict[str, Any]], targets: List[Path]
 ) -> Dict[str, Any]:
     """Returns parsed json output of sgrep"""
 
@@ -101,20 +101,13 @@ def invoke_sgrep(
             )
             fout.write(yaml_as_str)
             fout.flush()
-            extra_args = (
-                ["-report_parse_errors", "-report_fatal_errors"] if strict else []
-            )
-            cmd = (
-                [SGREP_PATH]
-                + extra_args
-                + [
-                    "-lang",
-                    language,
-                    f"-rules_file",
-                    fout.name,
-                    *[str(path) for path in targets],
-                ]
-            )
+            cmd = [SGREP_PATH] + [
+                "-lang",
+                language,
+                f"-rules_file",
+                fout.name,
+                *[str(path) for path in targets],
+            ]
             try:
                 output = subprocess.check_output(cmd, shell=False)
             except subprocess.CalledProcessError as ex:
@@ -123,7 +116,7 @@ def invoke_sgrep(
                 )
                 print_error_exit(f"\n\n{PLEASE_FILE_ISSUE_TEXT}")
             output_json = json.loads((output.decode("utf-8", "replace")))
-
+            # print(f"output json {output_json}")
             errors.extend(output_json["errors"])
             outputs.extend(output_json["matches"])
     return {"matches": outputs, "errors": errors}
@@ -421,6 +414,11 @@ def build_normal_output(
         yield from finding_to_line(finding, color_output)
 
 
+def r2c_error_format(sgrep_errors_json: Dict[str, Any]) -> Dict[str, Any]:
+    # TODO https://docs.r2c.dev/en/latest/api/output.html
+    return sgrep_errors_json
+
+
 def save_output(
     output_str: str, output_data: Dict[str, Any], json: bool = False
 ) -> None:
@@ -514,19 +512,19 @@ def main(args: argparse.Namespace) -> Dict[str, Any]:
     # let's split our configs into valid and invalid configs.
     # It's possible that a config_id exists in both because we check valid rules and invalid rules
     # instead of just hard failing for that config if mal-formed
-    valid_configs, errors = validate_configs(configs)
+    valid_configs, invalid_configs = validate_configs(configs)
 
     validate = args.validate
     strict = args.strict
 
-    if errors:
+    if invalid_configs:
         if strict:
             print_error_exit(
-                f"run with --strict and there were {len(errors)} errors loading configs"
+                f"run with --strict and there were {len(invalid_configs)} errors loading configs"
             )
         elif validate:
             print_error_exit(
-                f"run with --validate and there were {len(errors)} errors loading configs"
+                f"run with --validate and there were {len(invalid_configs)} errors loading configs"
             )
     elif validate:  # no errors!
         print_error_exit("Config is valid", exit_code=0)
@@ -554,7 +552,9 @@ def main(args: argparse.Namespace) -> Dict[str, Any]:
             list(valid_configs.keys())[0] if len(valid_configs) == 1 else ""
         )
         invalid_msg = (
-            f"({len(errors)} config files were invalid)" if len(errors) else ""
+            f"({len(invalid_configs)} config files were invalid)"
+            if len(invalid_configs)
+            else ""
         )
         print_msg(
             f"running {len(all_rules)} rules from {len(valid_configs)} config{plural} {config_id_if_single} {invalid_msg}"
@@ -566,7 +566,7 @@ def main(args: argparse.Namespace) -> Dict[str, Any]:
 
     # actually invoke sgrep
     start = datetime.now()
-    output_json = invoke_sgrep(all_patterns, targets, strict)
+    output_json = invoke_sgrep(all_patterns, targets)
     debug_print(f"sgrep ran in {datetime.now() - start}")
     debug_print(str(output_json))
 
@@ -575,12 +575,14 @@ def main(args: argparse.Namespace) -> Dict[str, Any]:
         lambda: collections.defaultdict(list)
     )
 
-    for finding in output_json["errors"]:
+    sgrep_errors = output_json["errors"]
+
+    for finding in sgrep_errors:
         print_error(f"sgrep: {finding['path']}: {finding['check_id']}")
 
-    if strict and len(output_json["errors"]):
+    if strict and len(sgrep_errors):
         print_error_exit(
-            f"run with --strict and {len(output_json['errors'])} errors occurred during sgrep run; exiting"
+            f"run with --strict and {len(sgrep_errors)} errors occurred during sgrep run; exiting"
         )
 
     for finding in output_json["matches"]:
@@ -637,7 +639,10 @@ def main(args: argparse.Namespace) -> Dict[str, Any]:
         )
 
     # output results
-    output_data = {"results": outputs_after_booleans}
+    output_data = {
+        "results": outputs_after_booleans,
+        "errors": r2c_error_format(sgrep_errors),
+    }
     if not args.quiet:
         if args.json:
             print(build_output_json(output_data))
