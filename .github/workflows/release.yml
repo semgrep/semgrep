@@ -18,7 +18,7 @@ jobs:
       - name: OPAM install Deps
         run: eval $(opam env --root /home/opam/.opam --set-root); opam install -y reason dune ocamlfind camlp4 num ocamlgraph json-wheel conf-perl yaml
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@master
         with:
           submodules: 'true'
       - name: debugging
