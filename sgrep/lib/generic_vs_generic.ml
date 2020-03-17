@@ -919,7 +919,11 @@ and m_list__m_attr a b =
   m_list m_attr a b
 
 and m_list__m_body a b =
-  m_list m_body a b
+  match a with
+  (* less-is-ok: it's ok to have an empty body in the pattern *)
+  | [] -> return ()
+
+  | _ -> m_list m_body a b
 
 and m_attr a b =
   match a, b with
