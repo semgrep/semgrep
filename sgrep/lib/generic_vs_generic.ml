@@ -351,6 +351,15 @@ let m_int a b =
 let m_string a b =
   if a =$= b then return () else fail ()
 
+(* equivalence: on different indentation 
+ * todo? work? was copy-pasted from XHP sgrep matcher
+*)
+let m_string_xhp_text sa sb =
+  if  sa =$= sb ||
+      (sa =~ "^[\n ]+$" && sb =~ "^[\n ]+$")
+  then return ()
+  else fail ()
+
 let string_is_prefix s1 s2 =
   let len1 = String.length s1
   and len2 = String.length s2 in
@@ -887,9 +896,54 @@ and m_container_operator a b =
 
 and m_other_expr_operator = m_other_xxx
 
+(*---------------------------------------------------------------------------*)
+(* XML *)
+(*---------------------------------------------------------------------------*)
+
 and m_xml a b = 
   match a, b with
-  (_a, _b) -> raise Todo
+  | { A.xml_tag = a1; xml_attrs = a2; xml_body = a3 },
+    { B.xml_tag = b1; xml_attrs = b2; xml_body = b3 } ->
+    m_ident a1 b1 >>= (fun () ->
+    m_attrs a2 b2 >>= (fun () ->
+    m_bodies a3 b3
+    ))
+
+and m_attrs a b = 
+  m_list__m_attr a b
+
+and m_bodies a b = 
+  m_list__m_body a b
+
+and m_list__m_attr a b =
+  m_list m_attr a b
+
+and m_list__m_body a b =
+  m_list m_body a b
+
+and m_attr a b =
+  match a, b with
+  | (a1, a2), (b1, b2) ->
+    m_ident a1 b1 >>= (fun () ->
+    m_xml_attr_value a2 b2
+    )
+
+and m_xml_attr_value a b =
+  (* less: deep? *)
+  m_expr a b
+
+and m_body a b =
+  match a, b with
+  | A.XmlText a1, B.XmlText b1 -> 
+      m_wrap m_string_xhp_text a1 b1
+  | A.XmlExpr a1, B.XmlExpr b1 ->
+      m_expr a1 b1
+  | A.XmlXml a1, B.XmlXml b1 ->
+      m_xml a1 b1
+  | A.XmlText _, _
+  | A.XmlExpr _, _
+  | A.XmlXml _, _
+    -> fail ()
 
 (*---------------------------------------------------------------------------*)
 (* Arguments list iso *)
