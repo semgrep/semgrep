@@ -10,7 +10,7 @@ jobs:
     container: ocaml/opam2:debian-8
     steps:
       - name: Install System Deps
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends make m4 perl wget swi-prolog mercurial pkg-config python3 python3-pip python3-dev build-essential python3-setuptools
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends make m4 perl wget swi-prolog mercurial pkg-config python3 python3-pip python3-dev build-essential python3-setuptools libssl-dev
       - name: Install Git 2.18
         run: |
           cd /usr/src/;
