@@ -16,17 +16,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: OPAM setup
-        run: opam switch 4.07.1;
+        run: opam --root /home/opam/.opam --set-root switch 4.07.1;
       - name: OPAM install Deps
-        run: eval $(opam env); opam install -y reason dune ocamlfind camlp4 num ocamlgraph json-wheel conf-perl yaml
+        run: eval $(opam env --root /home/opam/.opam --set-root); opam install -y reason dune ocamlfind camlp4 num ocamlgraph json-wheel conf-perl yaml
       - name: Install submodules
         run: git submodule update --init --recursive
       - name: Install pfff
-        run: eval $(opam env) && cd ./pfff && ./configure && make depend && make && make opt && make install-libs
+        run: eval $(opam env --root /home/opam/.opam --set-root) && cd ./pfff && ./configure && make depend && make && make opt && make install-libs
       - name: Build sgrep
-        run: eval $(opam env) && cd sgrep && make all
+        run: eval $(opam env --root /home/opam/.opam --set-root) && cd sgrep && make all
       - name: Build sgrep-lint
-        run: eval $(opam env) && cd sgrep_lint && export PATH=/github/home/.local/bin:$PATH && make all
+        run: eval $(opam env --root /home/opam/.opam --set-root) && cd sgrep_lint && export PATH=/github/home/.local/bin:$PATH && make all
       - name: Prepare artifacts
         run: |
           mkdir -p artifacts/bin/sgrep-lint-files
