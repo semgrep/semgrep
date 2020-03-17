@@ -95,6 +95,16 @@ let has_ellipsis_stmts xs =
     | A.ExprStmt (A.Ellipsis _) -> true
     | _ -> false
   )
+
+(* todo? optimize, probably not the optimal version ... *)
+let all_elem_and_rest_of_list xs =
+  let xs = Common.index_list xs |> List.map (fun (x, i) -> (i, x)) in
+  xs |> List.map (fun (i, x) -> x, List.remove_assq i xs |> List.map snd)
+
+let _ = Common2.example
+  (all_elem_and_rest_of_list ['a';'b';'c'] =
+    [('a', ['b';'c']); ('b', ['a';'c']); ('c', ['a';'b'])])
+
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
@@ -559,6 +569,7 @@ and m_expr_deep a b =
   else
     m_expr a b >!> (fun () ->
       let subs = Subast_generic.subexprs_of_expr b in
+      (* less: could use a fold *)
       let rec aux xs =
         match xs with
         | [] -> fail ()
@@ -906,6 +917,9 @@ and m_list__m_argument (xsa: A.argument list) (xsb: A.argument list) =
   | A.ArgKwd ((s, _tok) as ida, ea)::xsa, xsb ->
       (try 
         let (before, there, after) = xsb |> Common2.split_when (function
+            (* TODO: what if s is a metavar! we need to try all combination
+             * like for the class fields with all_elem_and_rest_of_list
+             *)
             | A.ArgKwd ((s2,_), _) when s =$= s2 -> true
             | _ -> false) in
         (match there with
@@ -1596,9 +1610,10 @@ and m_variable_definition a b =
 (* Field definition and use *)
 (* ------------------------------------------------------------------------- *)
 
-(* TODO: as opposed to statements, the order of fields should not matter
- * so ... should really match things in any order, or maybe we should
- * not even use '...' for that and instead use a less-is-ok approach
+(* As opposed to statements, the order of fields should not matter.
+ * todo? maybe we should not even use '...' and use a less-is-ok approach?
+ * todo? opti? if there is no metavar involved, we could sort by key the
+ *  fields in the pattern and code and just zip-and-match.
  *)
 and m_fields (xsa: A.field list) (xsb: A.field list) =
   m_list__m_field xsa xsb
@@ -1609,9 +1624,10 @@ and m_list__m_field (xsa: A.field list) (xsb: A.field list) =
       return ()
 
   (* less-is-ok:
-   * it's ok to have after after in the concrete code as long as we
-   * matched all the fields in the pattern
-   * TODO: sgrep_generic though then display the whole sequence as a match
+   * it's ok to have fields after in the concrete code as long as we
+   * matched all the fields in the pattern?
+   * TODO? should we impose to use '...' if you allow extra fields? 
+   * TODO: sgrep_generic though then displays the whole sequence as a match
    * instead of just the relevant part.
    *)
   | [], _::_ ->
@@ -1626,6 +1642,37 @@ and m_list__m_field (xsa: A.field list) (xsb: A.field list) =
       (m_list__m_field xsa (xb::xsb)) >||>
       (* can match more *)
       (m_list__m_field ((A.FieldStmt (A.ExprStmt (A.Ellipsis i)))::xsa) xsb)
+
+  | (A.FieldStmt (A.DefStmt (({A.name = (s1, _); _}, _) as adef)) as a)::xsa,
+     xsb ->
+     if MV.is_metavar_name s1
+     then
+        let candidates = all_elem_and_rest_of_list xsb in
+        (* less: could use a fold *)
+        let rec aux xs =
+          match xs with
+          | [] -> fail ()
+          | (b, xsb)::xs ->
+              (m_field a b >>= (fun () -> m_list__m_field xsa xsb))
+              >||> aux xs
+        in
+        aux candidates
+     else
+      (try 
+        let (before, there, after) = xsb |> Common2.split_when (function
+            | (A.FieldStmt (A.DefStmt ({B.name = (s2, _tok); _}, _))) 
+                when s2 = s1 -> true
+            | _ -> false
+        ) in
+        (match there with
+        | (A.FieldStmt (A.DefStmt bdef)) ->
+           m_definition adef bdef >>= (fun () ->
+           m_list__m_field xsa (before @ after)
+           )
+        | _ -> raise Impossible
+        )
+      with Not_found -> fail ()
+      )
 
 
   (* the general case *)
