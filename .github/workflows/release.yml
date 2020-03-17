@@ -7,10 +7,19 @@ on:
 jobs:
   release-deb:
     runs-on: ubuntu-latest
-    container: ocaml/opam2:debian-9
+    container: ocaml/opam2:debian-8
     steps:
       - name: Install System Deps
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends make m4 perl wget swi-prolog mercurial pkg-config python3 python3-pip python3-dev build-essential python3-setuptools
+      - name: Install Git 2.18
+        run: |
+          cd /usr/src/;
+          sudo wget https://github.com/git/git/archive/v2.18.0.tar.gz -O git.tar.gz;
+          sudo tar -xf git.tar.gz;
+          cd git-*;
+          sudo make prefix=/usr/local all;
+          sudo make prefix=/usr/local install;
+          git --version;
       - name: Adjust permissions
         run: sudo chmod -R 777 . /github
       - name: OPAM setup
@@ -35,5 +44,5 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
-          name: sgrep-deb-stretch-${{ github.sha }}
+          name: sgrep-deb-jessie-${{ github.sha }}
           path: artifacts
