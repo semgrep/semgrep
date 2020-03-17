@@ -174,6 +174,7 @@ def invoke_sgrep_lint(
         argparse.Namespace(
             verbose=verbose,
             strict=strict,
+            dump_ast=False,
             no_rewrite_rule_ids=True,
             dangerously_allow_arbitrary_code_execution_from_rules=unsafe,
             config=str(config),
