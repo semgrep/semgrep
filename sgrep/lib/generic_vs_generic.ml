@@ -61,6 +61,14 @@ module Lib = Lib_ast
  *    parts of the AST are attributes/annotations that can be skipped.
  *    In the same way, code equivalences like name resolution on the AST
  *    would be more difficult with an untyped-general tree.
+ *
+ * todo:
+ *  - factorize code in m_list__in_any_order at some point:
+ *     * m_list__m_field 
+ *     * m_list__m_attribute
+ *     * m_list__m_xml_attr
+ *     * m_list__m_argument (harder)
+ *
  *)
 
 (*****************************************************************************)
@@ -128,7 +136,7 @@ let _ = Common2.example
    * 
    *   Why not returning a binding option ? because we need sometimes
    *   to return multiple possible bindings for one matching code.
-   *   For instance with the pattern do 'f(..., X, ...)', X could be binded
+   *   For instance with the pattern do 'f(..., $X, ...)', $X could be binded
    *   to different parts of the code.
    * 
    *   Note that the empty list means a match failure.
@@ -154,7 +162,7 @@ let _ = Common2.example
 
     (* The >>= combinator below allow you to configure the matching process
      * anyway you want. Essentially this combinator takes a matcher,
-     * another matcher, and returns a matcher that combine the 2
+     * another matcher, and returns a matcher that combines the 2
      * matcher arguments.
      *
      * In the case of a simple boolean matcher, you just need to write:
@@ -910,13 +918,62 @@ and m_xml a b =
     ))
 
 and m_attrs a b = 
-  m_list__m_attr a b
+  m_list__m_xml_attr a b
 
 and m_bodies a b = 
   m_list__m_body a b
 
-and m_list__m_attr a b =
-  m_list m_attr a b
+and m_list__m_xml_attr 
+ (xsa: A.xml_attribute list) (xsb: A.xml_attribute list) =
+  match xsa, xsb with
+  | [], [] ->
+      return ()
+  (* less-is-ok: *)
+  | [], _::_ ->
+      return ()
+  (* todo? allow '...'? *)
+
+  | (((s1, _), _) as a)::xsa, xsb ->
+     if MV.is_metavar_name s1
+     then
+        let candidates = all_elem_and_rest_of_list xsb in
+        (* less: could use a fold *)
+        let rec aux xs =
+          match xs with
+          | [] -> fail ()
+          | (b, xsb)::xs ->
+              (m_xml_attr a b >>= (fun () -> m_list__m_xml_attr xsa xsb))
+              >||> aux xs
+        in
+        aux candidates
+     else
+      (try 
+        let (before, there, after) = xsb |> Common2.split_when (function
+            | ((s2, _), _) when s2 = s1 -> true
+            | _ -> false
+        ) in
+        (match there with
+        | b ->
+           m_xml_attr a b >>= (fun () ->
+           m_list__m_xml_attr xsa (before @ after)
+           )
+        (* | _ -> raise Impossible *)
+        )
+      with Not_found -> fail ()
+      )
+
+
+  (* the general case *)
+(*
+  | xa::aas, xb::bbs ->
+      m_xml_attr xa xb >>= (fun () ->
+      m_list__m_xml_attr aas bbs 
+      )
+  | _::_, _ ->
+      fail ()
+*)
+
+
 
 and m_list__m_body a b =
   match a with
@@ -925,7 +982,7 @@ and m_list__m_body a b =
 
   | _ -> m_list m_body a b
 
-and m_attr a b =
+and m_xml_attr a b =
   match a, b with
   | (a1, a2), (b1, b2) ->
     m_ident a1 b1 >>= (fun () ->
