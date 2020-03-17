@@ -47,7 +47,6 @@ module J = Json_type
 
 let verbose = ref false
 let debug = ref false
-let output_format_json = ref false
 
 let pattern_string = ref ""
 let pattern_file = ref ""
