@@ -53,8 +53,10 @@ jobs:
           chmod +x artifacts/sgrep
           chmod +x artifacts/sgrep-lint
           chmod +x artifacts/sgrep-lint-exe
+          tar -cvzf sgrep-ubuntu-18.04.tar.gz artifacts/
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
-          name: sgrep-deb-jessie-${{ github.sha }}
-          path: artifacts
+          name: sgrep-ubuntu-18.04-${{ github.sha }}
+          path: sgrep-ubuntu-18.04.tar.gz
