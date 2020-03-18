@@ -11,6 +11,14 @@ jobs:
     steps:
       - name: Install System Deps
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends make m4 perl wget swi-prolog mercurial pkg-config python3.7 python3.7-dev build-essential
+      - name: Install Python 3.7
+        run: |
+          which pip3
+          pip3 --version
+          python3.7 -m pip install pip
+          python3 --version
+          ldd --version
+          echo "Pls help me make this at least 3.6"
       - name: Install Git 2.18
         run: |
           sudo apt-get install -y --no-install-recommends libcurl4-openssl-dev libexpat1-dev gettext libz-dev libssl-dev build-essential autoconf
@@ -21,16 +29,6 @@ jobs:
           sudo make prefix=/usr/local all;
           sudo make prefix=/usr/local install;
           git --version;
-      - name: Install Python 3.7
-        run: |
-          which pip
-          pip --version
-          which pip3
-          pip3 --version
-          python3.7 -m pip install pip
-          python3 --version
-          ldd --version
-          echo "Pls help me make this at least 3.6"
       - name: Adjust permissions
         run: sudo chmod -R 777 . /github
       - name: OPAM setup
