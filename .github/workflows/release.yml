@@ -50,6 +50,9 @@ jobs:
           mkdir -p artifacts/bin/sgrep-lint-files
           cp ./sgrep/_build/default/bin/main_sgrep.exe artifacts/sgrep
           cp -r ./sgrep_lint/build/sgrep.dist/* artifacts
+          chmod +x artifacts/sgrep
+          chmod +x artifacts/sgrep-lint
+          chmod +x artifacts/sgrep-lint-exe
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
