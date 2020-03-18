@@ -19,6 +19,6 @@ jobs:
       - name: Install pfff
         run: eval $(opam  env --root /home/opam/.opam --set-root) && opam install ./pfff
       - name: Install and test sgrep
-        run: eval $(opam  env --root /home/opam/.opam --set-root) && cd sgrep && opam install . && make test
+        run: eval $(opam  env --root /home/opam/.opam --set-root) && cd sgrep && opam install . && make all && make test && make install
       - name: Install and test sgrep-lint
         run: eval $(opam  env --root /home/opam/.opam --set-root) && cd sgrep_lint && export PATH=/github/home/.local/bin:$PATH && make all && make test
