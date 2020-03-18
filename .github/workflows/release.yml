@@ -13,8 +13,6 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends make m4 perl wget swi-prolog mercurial pkg-config python3.7 python3.7-dev build-essential
       - name: Install Python 3.7
         run: |
-          which pip3
-          pip3 --version
           python3.7 -m pip install pip
           python3 --version
           ldd --version
