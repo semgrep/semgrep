@@ -10,13 +10,15 @@ jobs:
     container: ocaml/opam2:ubuntu-18.04
     steps:
       - name: Install System Deps
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends make m4 perl wget swi-prolog mercurial pkg-config python3.7 python3.7-dev build-essential
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends make m4 perl wget swi-prolog mercurial pkg-config python3.7 python3.7-dev python3.7-distutils build-essential
       - name: Install Python 3.7
         run: |
-          python3.7 -m pip install pip
+          sudo curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+          sudo -H python3.7 get-pip.py
           python3 --version
+          pip3 --version
           ldd --version
-          echo "Pls help me make this at least 3.6"
+          echo "Pls help me make this at least 3.7"
       - name: Install Git 2.18
         run: |
           sudo apt-get install -y --no-install-recommends libcurl4-openssl-dev libexpat1-dev gettext libz-dev libssl-dev build-essential autoconf
