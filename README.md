@@ -120,7 +120,7 @@ Sgrep has a design philosophy that emphasizes simplicity and a single pattern be
 
 ## Patterns
 
-Patterns are snippets of code with variables and other operators that will be parsed into an AST for that langauge and will be used to search for that pattern in code. See [patterns.md](docs/patterns.md) for full documentation.
+Patterns are snippets of code with variables and other operators that will be parsed into an AST for that language and will be used to search for that pattern in code. See [patterns.md](docs/patterns.md) for full documentation.
 
 ### Metavariables
 
