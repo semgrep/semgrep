@@ -1,6 +1,6 @@
 ## Config format
 
-This document provides examples for the .yaml format for specifying rules to sgrep. It does not cover the patterns themselves; for information on the query sytnax see [patterns.md](patterns.md)
+This document provides examples for the .yaml format for specifying rules to sgrep. It does not cover the patterns themselves; for [the pattern syntax see patterns.md](patterns.md)
 
 If you want run these rules or ship them to your team, rather than write them, check out the easy-to-use [bento.dev](https://bento.dev)
 
@@ -15,7 +15,7 @@ rules:
     severity: ERROR
 ```
 
-This is a minimal rule. It will be run on any Python code, and will output the rule `id` "eqeq-is-bad" along with the `message` and the line and column range the match occurred on. So it will match code like `1 == 1` and output the message: "Dude, 1 == 1 is always true!"
+When invoked with `sgrep -f myconfig.yaml project/`, this rule will run on Python files inside `project/` and output the rule `id` "eqeq-is-bad" along with the `message` and the line and column range the match occurred on. Given a line inside a Python file with `1 == 1`, sgrep will output the message: "1 == 1 is always true!"
 
 ## Complex Example
 ```
@@ -77,7 +77,7 @@ Filters: there are several operators that act as filters to remove results you d
       - pattern-where-python: "'price' in vars['$F']"
   ```
 
-## Schema
+## Full Schema
 
 Each rule object has these fields:
 
