@@ -1,3 +1,30 @@
+opam-version: "2.0"
+name: "sgrep"
+version: "0.4.8"
+synopsis: "Like grep but for code: fast and syntax-aware semantic code pattern for many languages"
+description: """
+grep is like grep but for searching patterns at the AST level.
+
+For more information see https://sgrep.dev"""
+
+maintainer: "Yoann Padioleau <pad@r2c.dev>"
+authors: [ "Yoann Padioleau <pad@r2c.dev>" ]
+license: "LGPL-2.1"
+homepage: "https://sgrep.dev"
+dev-repo: "git+https://github.com/returntocorp/sgrep"
+bug-reports: "https://github.com/returntocorp/sgrep/issues"
+
 depends: [
-  "pfff" { = "0.39.5" }
+  "reason"
+  "dune"
+  "ocamlfind"
+  "camlp4"
+  "num"
+  "ocamlgraph"
+  "json-wheel"
+  "conf-perl"
+  "yaml"
+  "pfff"
 ]
+
+build: ["dune" "build" "-j" jobs]
