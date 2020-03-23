@@ -1692,7 +1692,7 @@ and m_parameter_classic a b =
     -> 
      m_ident_and_id_info_add_in_env_Expr (a1, a5) (b1, b5) >>= (fun () ->
      (m_option m_expr) a2 b2 >>= (fun () -> 
-     (m_option m_type_) a3 b3 >>= (fun () -> 
+     (m_option_none_can_match_some m_type_) a3 b3 >>= (fun () -> 
      (m_list m_attribute) a4 b4 
      )))
 
