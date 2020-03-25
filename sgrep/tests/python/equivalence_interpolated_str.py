@@ -1,5 +1,5 @@
-# ERROR
+# ERROR:
 x = "python"      "is"          "stupid"  "haha"  " another one"
 
-# ERROR
+# ERROR:
 y = "add" + "aa"
