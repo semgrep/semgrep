@@ -40,7 +40,7 @@ jobs:
       - name: Install submodules
         run: git submodule update --init --recursive
       - name: Install pfff
-        run: eval $(opam env --root /home/opam/.opam --set-root) && opam install ./pfff
+        run: eval $(opam env --root /home/opam/.opam --set-root) && opam install -y ./pfff
       - name: Build sgrep
         run: eval $(opam env --root /home/opam/.opam --set-root) && cd sgrep && make all
       - name: Build sgrep-lint

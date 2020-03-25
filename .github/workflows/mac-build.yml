@@ -22,7 +22,7 @@ jobs:
       - name: Install submodules
         run: git submodule update --init --recursive
       - name: Install pfff
-        run: eval $(opam env) && opam install ./pfff
+        run: eval $(opam env) && opam install -y ./pfff
       - name: Install and test sgrep
         run: eval $(opam env) && cd sgrep && make all && make test && make install
       - name: Install and test sgrep-lint
