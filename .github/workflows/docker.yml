@@ -18,3 +18,5 @@ jobs:
         name: returntocorp/sgrep
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
+    - name: update sgrep.live
+      run: curl -X POST https://sgrep.live/api/admin/update-docker
