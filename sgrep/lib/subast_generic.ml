@@ -14,7 +14,6 @@
  *)
 
 open Ast_generic
-
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -47,6 +46,14 @@ let subexprs_of_expr e =
   | Container (_, xs) 
     -> unbracket xs
 
+  | Call(IdSpecial (_, e), args) ->
+    let strs = (args |> Common.map_filter (function
+      | Arg(L(String(v, _))) ->
+        Some v
+      | _ -> None
+    )) in 
+    let concated = String.concat "" strs in
+    [L(String(concated, e))]
 
   | Call (e, args) ->
       (* not sure we want to return 'e' here *)
