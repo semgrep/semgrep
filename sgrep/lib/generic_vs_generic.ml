@@ -601,10 +601,6 @@ and m_expr_deep a b =
 
 and m_expr a b = 
   match a, b with
-  (* equivalence: constant propagation! *)
-  | A.L(a1), B.Id (_, { B.id_const_literal = {contents = Some a2}; _}) ->
-    m_literal a1 a2
-
   (* equivalence: name resolving! *)
   | a,   B.Id (_, { B.id_resolved = 
       {contents = Some ( ( B.ImportedEntity dotted 
@@ -639,6 +635,14 @@ and m_expr a b =
 
   | A.L(a1), B.L(b1) ->
     m_literal a1 b1 
+
+  (* equivalence: constant propagation and evaluation! *)
+  | A.L(a1), b1 -> 
+    (match Normalize_generic.constant_propagation_and_evaluate_literal b1 with
+    | Some b1 ->
+      m_literal a1 b1
+    | None -> fail ()
+    ) 
 
   | A.Container(a1, a2), B.Container(b1, b2) ->
     m_container_operator a1 b1 >>= (fun () -> 
@@ -739,7 +743,7 @@ and m_expr a b =
     m_other_expr_operator a1 b1 >>= (fun () -> 
     (m_list m_any) a2 b2 
      )
-  | A.L _, _  | A.Container _, _  | A.Tuple _, _  | A.Record _, _
+  | A.Container _, _  | A.Tuple _, _  | A.Record _, _
   | A.Constructor _, _  | A.Lambda _, _  | A.AnonClass _, _
   | A.Id _, _  | A.IdQualified _, _ | A.IdSpecial _, _  
   | A.Call _, _  | A.Xml _, _
