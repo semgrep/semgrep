@@ -1173,7 +1173,7 @@ and m_list__m_attribute (xsa: A.attribute list) (xsb: A.attribute list) =
   (* less-is-ok: *)
   | [], _ -> return ()
 
-  | A.KeywordAttr (k, tok)::xsa, xsb ->
+  | ((A.KeywordAttr (k, tok)) as a)::xsa, xsb ->
       (try 
         let (before, there, after) = xsb |> Common2.split_when (function
             | A.KeywordAttr (k2, _) when k =*= k2 -> true
@@ -1185,8 +1185,21 @@ and m_list__m_attribute (xsa: A.attribute list) (xsb: A.attribute list) =
               )
         | _ -> raise Impossible
         )
-      with Not_found -> fail ()
-      )
+      with Not_found -> 
+        (* we now allow some attribute (e.g., Var) to match other (e..g, Let),
+         * so we should try all combinations.
+         * opti: give an order to each attribute and zip (like in JS AI) *)
+        let candidates = all_elem_and_rest_of_list xsb in
+        (* less: could use a fold *)
+        let rec aux xs =
+          match xs with
+          | [] -> fail ()
+          | (b, xsb)::xs ->
+            (m_attribute a b >>= (fun () -> m_list__m_attribute xsa xsb))
+             >||> aux xs
+        in
+        aux candidates
+       )
 
   | A.NamedAttr ((s, _) as ida, argsa)::xsa, xsb ->
       (try 
@@ -1214,7 +1227,12 @@ and m_list__m_attribute (xsa: A.attribute list) (xsb: A.attribute list) =
       fail ()
 
 
-and m_keyword_attribute a b = m_other_xxx a b
+and m_keyword_attribute a b = 
+  match a, b with
+ (* equivalent: quite JS-specific *)
+  | A.Var, (A.Var | A.Let | A.Const) -> return ()
+
+  | _ -> m_other_xxx a b
   
 and m_attribute a b = 
   match a, b with
@@ -1697,7 +1715,7 @@ and m_parameter_classic a b =
      m_ident_and_id_info_add_in_env_Expr (a1, a5) (b1, b5) >>= (fun () ->
      (m_option m_expr) a2 b2 >>= (fun () -> 
      (m_option_none_can_match_some m_type_) a3 b3 >>= (fun () -> 
-     (m_list m_attribute) a4 b4 
+     (m_list__m_attribute) a4 b4 
      )))
 
 
@@ -1706,7 +1724,7 @@ and m_parameter_classic a b =
     (m_option m_ident) a1 b1 >>= (fun () -> 
     (m_option m_expr) a2 b2 >>= (fun () -> 
     (m_option m_type_) a3 b3 >>= (fun () -> 
-    (m_list m_attribute) a4 b4 >>= (fun () -> 
+    (m_list__m_attribute) a4 b4 >>= (fun () -> 
     m_id_info a5 b5 
     ))))
 
@@ -1807,7 +1825,7 @@ and m_field a b =
   match a, b with
   | A.FieldDynamic(a1, a2, a3), B.FieldDynamic(b1, b2, b3) ->
     m_expr a1 b1 >>= (fun () -> 
-    (m_list m_attribute) a2 b2 >>= (fun () -> 
+    (m_list__m_attribute) a2 b2 >>= (fun () -> 
     m_expr a3 b3 
     ))
   | A.FieldSpread(a0, a1), B.FieldSpread(b0, b1) ->
