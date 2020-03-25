@@ -2,7 +2,7 @@
 
 This document provides examples for the .yaml format for specifying rules to sgrep. It does not cover the patterns themselves; for [the pattern syntax see patterns.md](patterns.md)
 
-If you want run these rules or ship them to your team, rather than write them, check out the easy-to-use [bento.dev](https://bento.dev)
+If instead of writing rules, you want run them, ship them to your team, or enforce them in CI/CD, check out the easy-to-use [bento.dev](https://bento.dev)
 
 ## Simple Example
 
