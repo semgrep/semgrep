@@ -65,3 +65,21 @@ let normalize_import_opt is_pattern i =
   | PackageEnd _
   | OtherDirective _
     -> None
+
+let rec eval x =
+  match x with
+  | L x -> Some x
+  | Id (_, { id_const_literal = {contents = Some x}; _}) -> Some x
+
+  | Call(IdSpecial((ArithOp(Plus) | Concat), _), [Arg e1; Arg e2]) ->
+    (match eval e1, eval e2 with
+    | Some (String (s1, t1)), Some (String (s2, _t2)) ->
+          Some (String (s1 ^ s2, t1))
+    | _ -> None
+    )
+  (* TODO: partial evaluation for ints/floats/... *)
+  | _ -> None
+
+let constant_propagation_and_evaluate_literal = eval
+
+
