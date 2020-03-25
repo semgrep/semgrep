@@ -71,11 +71,22 @@ let rec eval x =
   | L x -> Some x
   | Id (_, { id_const_literal = {contents = Some x}; _}) -> Some x
 
-  | Call(IdSpecial((ArithOp(Plus) | Concat), _), [Arg e1; Arg e2]) ->
-    (match eval e1, eval e2 with
-    | Some (String (s1, t1)), Some (String (s2, _t2)) ->
-          Some (String (s1 ^ s2, t1))
-    | _ -> None
+  | Call(IdSpecial((ArithOp(Plus) | Concat), _), args) ->
+    let literals = args |> Common.map_filter (fun (arg) ->
+      match arg with 
+        | Arg e -> eval e
+        | _ -> None
+    ) in 
+    let strs = literals |> Common.map_filter (fun (lit) -> 
+      match lit with
+        | String (s1, _) -> Some s1
+        | _ -> None
+    ) in
+    let concated = String.concat "" strs in
+    let all_args_are_string = List.length strs == List.length args in
+    (match List.nth_opt literals 0 with
+      | Some(String(_s1, t1)) when all_args_are_string -> Some(String(concated, t1))
+      | _ -> None
     )
   (* TODO: partial evaluation for ints/floats/... *)
   | _ -> None
