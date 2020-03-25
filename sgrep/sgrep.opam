@@ -17,6 +17,7 @@ bug-reports: "https://github.com/returntocorp/sgrep/issues"
 depends: [
   "reason"
   "dune"
+
   "ocamlfind"
   "camlp4"
   "num"
@@ -24,6 +25,8 @@ depends: [
   "json-wheel"
   "conf-perl"
   "yaml"
+  "grain_dypgen"
+  "menhir"
   "pfff"
 ]
 
