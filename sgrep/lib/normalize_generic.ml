@@ -83,8 +83,8 @@ let rec eval x =
         | _ -> None
     ) in
     let concated = String.concat "" strs in
-    (match List.nth literals 0 with
-      | String(_s1, t1) -> Some(String(concated, t1))
+    (match List.nth_opt literals 0 with
+      | Some(String(_s1, t1)) -> Some(String(concated, t1))
       | _ -> None
     )
   (* TODO: partial evaluation for ints/floats/... *)
