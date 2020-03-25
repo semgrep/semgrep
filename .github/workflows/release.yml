@@ -10,7 +10,15 @@ jobs:
     container: ocaml/opam2:ubuntu-18.04
     steps:
       - name: Install System Deps
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends make m4 perl wget swi-prolog mercurial pkg-config python3.7 python3-pip python3-dev build-essential python3-setuptools
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends make m4 perl wget swi-prolog mercurial pkg-config python3.7 python3.7-dev python3.7-distutils build-essential
+      - name: Install Python 3.7
+        run: |
+          sudo curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+          sudo -H python3.7 get-pip.py
+          python3 --version
+          pip3 --version
+          ldd --version
+          echo "Pls help me make this at least 3.7"
       - name: Install Git 2.18
         run: |
           sudo apt-get install -y --no-install-recommends libcurl4-openssl-dev libexpat1-dev gettext libz-dev libssl-dev build-essential autoconf
@@ -21,11 +29,6 @@ jobs:
           sudo make prefix=/usr/local all;
           sudo make prefix=/usr/local install;
           git --version;
-      - name: Install Python 3.7
-        run: |
-          python3 --version
-          ldd --version
-          echo "Pls help me make this at least 3.6"
       - name: Adjust permissions
         run: sudo chmod -R 777 . /github
       - name: OPAM setup
@@ -44,11 +47,16 @@ jobs:
         run: eval $(opam env --root /home/opam/.opam --set-root) && cd sgrep_lint && export PATH=/github/home/.local/bin:$PATH && make all
       - name: Prepare artifacts
         run: |
-          mkdir -p artifacts/bin/sgrep-lint-files
-          cp ./sgrep/_build/default/bin/main_sgrep.exe artifacts/sgrep
-          cp -r ./sgrep_lint/build/sgrep.dist/* artifacts
+          mkdir -p sgrep-lint-files
+          cp ./sgrep/_build/default/bin/main_sgrep.exe sgrep-lint-files/sgrep
+          cp -r ./sgrep_lint/build/sgrep.dist/* sgrep-lint-files
+          chmod +x sgrep-lint-files/sgrep
+          chmod +x sgrep-lint-files/sgrep-lint
+          chmod +x sgrep-lint-files/sgrep-lint-exe
+          tar -cvzf sgrep-ubuntu-18.04.tar.gz sgrep-lint-files/
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
-          name: sgrep-deb-jessie-${{ github.sha }}
-          path: artifacts
+          name: sgrep-ubuntu-18.04-${{ github.sha }}
+          path: sgrep-ubuntu-18.04.tar.gz
