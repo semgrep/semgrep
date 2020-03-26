@@ -66,8 +66,9 @@ let layer_file = ref (None: filename option)
 let keys = Common2.hkeys Lang.lang_of_string_map
 let supported_langs: string = String.concat ", " keys
 
-let unsupported_language_message = fun some_lang: string -> 
-  (spf "unsupported language: %s; supported langauge tags are: %s" some_lang supported_langs)
+let unsupported_language_message some_lang =
+  spf "unsupported language: %s; supported langauge tags are: %s" 
+      some_lang supported_langs
 
 (* action mode *)
 let action = ref ""
@@ -184,17 +185,19 @@ type ast =
 
   | NoAST
 
+let lang_of_file file = 
+  Common2.some (Lang.lang_of_string_opt file)
+
 (* coupling: you need also to modify tests/test.ml *)
-let parse_generic file = 
-  let ast = Parse_generic.parse_program file in
-  let lang = Common2.some (Lang.lang_of_filename_opt file) in
+let parse_generic lang file = 
+  let ast = Parse_generic.parse_with_lang lang file in
   Naming_ast.resolve lang ast;
   ast
 
 let create_ast file =
   match !lang with
   | s when Lang.lang_of_string_opt s <> None ->
-    Gen (parse_generic file)
+    Gen (parse_generic (lang_of_file file) file)
   | s when Lang_fuzzy.lang_of_string_opt s <> None ->
     Fuzzy (Parse_fuzzy.parse file)
   | "php" ->
@@ -322,7 +325,7 @@ let sgrep_with_rules rules_file xs =
       files |> List.map (fun file ->
          if !verbose then pr2 (spf "Analyzing %s" file);
          try 
-           let ast = Parse_generic.parse_with_lang lang file in
+           let ast = parse_generic lang file in
            Sgrep_lint_generic.check rules file ast
          with exn -> 
             Common.push (Error_code.exn_to_error file exn) errs;
@@ -423,7 +426,7 @@ let dump_pattern (file: Common.filename) =
      failwith (unsupported_language_message !lang)
 
 let dump_ast file =
-  let x = parse_generic file in
+  let x = parse_generic (lang_of_file file) file in
   let v = Meta_ast.vof_any (Ast_generic.Pr x) in
   let s = dump_v_to_format v in
   pr s
