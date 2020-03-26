@@ -17,8 +17,18 @@ jobs:
       - name: Install submodules
         run: git submodule update --init --recursive
       - name: Install pfff
-        run: eval $(opam  env --root /home/opam/.opam --set-root) && opam install ./pfff
+        run: eval $(opam  env --root /home/opam/.opam --set-root) && opam install -y ./pfff
       - name: Install and test sgrep
         run: eval $(opam  env --root /home/opam/.opam --set-root) && cd sgrep && opam install . && make all && make test && make install
       - name: Install and test sgrep-lint
         run: eval $(opam  env --root /home/opam/.opam --set-root) && cd sgrep_lint && export PATH=/github/home/.local/bin:$PATH && make all && make test
+      - name: Prepare artifacts
+        run: |
+          mkdir -p artifacts/bin/sgrep-lint-files
+          cp ./sgrep/_build/default/bin/main_sgrep.exe artifacts/sgrep
+          cp -r ./sgrep_lint/build/sgrep.dist/* artifacts
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v1
+        with:
+          name: sgrep-${{ github.sha }}
+          path: artifacts
