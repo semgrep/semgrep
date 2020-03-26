@@ -61,6 +61,12 @@ if __name__ == "__main__":
         help=f"only invoke sgrep if config(s) are valid",
         action="store_true",
     )
+    parser.add_argument(
+        "--exclude",
+        action="append",
+        default=[],
+        help="Path pattern to exclude. Can be added multiple times to exclude multiple patterns.",
+    )
 
     config.add_argument(
         RCE_RULE_FLAG,

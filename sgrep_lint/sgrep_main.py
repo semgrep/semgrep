@@ -8,6 +8,7 @@ import tempfile
 import time
 from datetime import datetime
 from pathlib import Path
+from pathlib import PurePath
 from typing import Any
 from typing import DefaultDict
 from typing import Dict
@@ -643,6 +644,21 @@ def main(args: argparse.Namespace) -> Dict[str, Any]:
         "results": outputs_after_booleans,
         "errors": r2c_error_format(sgrep_errors),
     }
+    if args.exclude:
+        exclude_glob_patterns = args.exclude
+        debug_print(f"patterns to exclude: {', '.join(exclude_glob_patterns)}")
+        filtered_results = [
+            output
+            for output in outputs_after_booleans
+            if not any(
+                PurePath(output.get("path", "")).match(pat)
+                for pat in exclude_glob_patterns
+            )
+        ]
+        debug_print(
+            f"filtered output from {len(outputs_after_booleans)} down to {len(filtered_results)} results"
+        )
+        output_data["results"] = filtered_results
     if not args.quiet:
         if args.json:
             print(build_output_json(output_data))
