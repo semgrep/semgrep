@@ -13,7 +13,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends make m4 perl wget swi-prolog mercurial pkg-config build-essential
       - name: Install Python 3.7
         run: |
-          sudo apt-get build-dep python3.6
+          sudo apt-get install -y zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev
           sudo wget https://www.python.org/ftp/python/3.7.0/Python-3.7.0.tar.xz
           sudo tar xvf Python-3.7.0.tar.xz
           cd Python-3.7.0
