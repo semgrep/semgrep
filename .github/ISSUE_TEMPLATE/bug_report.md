@@ -21,4 +21,3 @@ If applicable, add screenshots to help explain your problem.
 
 **Environment**
 If not using sgrep.live: are you running off docker, an official binary, a local build?
-
