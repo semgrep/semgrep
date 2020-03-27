@@ -48,4 +48,5 @@ RUN sgrep-lint --config=r2c /bin/sgrep-lint-files/
 
 
 ENV SGREP_IN_DOCKER=1
+ENV PYTHONIOENCODING=utf8
 ENTRYPOINT [ "/bin/sgrep-lint" ]
