@@ -186,7 +186,7 @@ type ast =
   | NoAST
 
 let lang_of_file file = 
-  Common2.some (Lang.lang_of_string_opt file)
+  Common2.some (Lang.lang_of_filename_opt file)
 
 (* coupling: you need also to modify tests/test.ml *)
 let parse_generic lang file = 

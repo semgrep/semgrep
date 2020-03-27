@@ -76,6 +76,7 @@ let subexprs_of_expr e =
 
 let substmts_of_stmt stmts = 
   let rec aux x = 
+    (* return the current statement first, and add substmts *)
     x::(
     match x with
     (* we do not recurse inside function definitions *)
@@ -109,7 +110,7 @@ let substmts_of_stmt stmts =
     | Switch (_, _, xs) ->
         xs |> List.map snd |> List.map aux |> List.flatten
     | Try (_, st, xs, opt) ->
-        [st] @
+        ([st] |> List.map aux |> List.flatten) @
         (xs |> List.map Common2.thd3 |> List.map aux |> List.flatten) @
         (match opt with None -> [] | Some (_, st) -> [st])
     )
