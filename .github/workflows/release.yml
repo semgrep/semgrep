@@ -10,12 +10,17 @@ jobs:
     container: ocaml/opam2:ubuntu-16.04
     steps:
       - name: Install System Deps
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends make m4 perl wget swi-prolog mercurial pkg-config python3.7 python3.7-dev python3.7-distutils build-essential
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends make m4 perl wget swi-prolog mercurial pkg-config build-essential build-dep
       - name: Install Python 3.7
         run: |
-          sudo curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+          sudo wget https://www.python.org/ftp/python/3.7.0/Python-3.7.0.tar.xz
+          sudo tar xvf Python-3.7.0.tar.xz
+          cd Python-3.7.0
+          sudo ./configure
+          sudo make altinstall
+          # sudo curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
           sudo -H python3.7 get-pip.py
-          python3 --version
+          python3.7 --version
           pip3 --version
           ldd --version
           echo "Pls help me make this at least 3.7"
