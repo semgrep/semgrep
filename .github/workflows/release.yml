@@ -19,9 +19,9 @@ jobs:
           cd Python-3.7.0
           sudo ./configure
           sudo make altinstall
-          # sudo curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
-          sudo -H python3.7 get-pip.py
           python3.7 --version
+          sudo curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+          sudo -H python3.7 get-pip.py
           pip3 --version
           ldd --version
           echo "Pls help me make this at least 3.7"
