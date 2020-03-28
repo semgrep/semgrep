@@ -13,13 +13,15 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends make m4 perl wget swi-prolog mercurial pkg-config build-essential
       - name: Install Python 3.7
         run: |
-          sudo apt-get install -y zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev
+          sudo apt-get install -y zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev libbz2-dev
           sudo wget https://www.python.org/ftp/python/3.7.0/Python-3.7.0.tar.xz
           sudo tar xvf Python-3.7.0.tar.xz
           cd Python-3.7.0
           sudo ./configure
           sudo make altinstall
           python3.7 --version
+          which python3.7
+          /usr/local/bin/python3.7 -c "import bz2; print(bz2.__doc__)"
           sudo curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
           sudo -H python3.7 get-pip.py
           pip3 --version
@@ -27,7 +29,7 @@ jobs:
           echo "Pls help me make this at least 3.7"
       - name: Install Git 2.18
         run: |
-          sudo apt-get install -y --no-install-recommends libcurl4-openssl-dev libexpat1-dev gettext libz-dev libssl-dev build-essential autoconf libbz2-dev
+          sudo apt-get install -y --no-install-recommends libcurl4-openssl-dev libexpat1-dev gettext libz-dev libssl-dev build-essential autoconf
           cd /usr/src/;
           sudo wget https://github.com/git/git/archive/v2.18.0.tar.gz -O git.tar.gz;
           sudo tar -xf git.tar.gz;
