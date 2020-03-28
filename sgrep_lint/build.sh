@@ -4,7 +4,11 @@ set -e
 THIS_DIR="$(dirname "$(realpath "$0")")";
 cd "${THIS_DIR}"
 
-pip3 install Nuitka==0.6.7
+git clone -b develop https://github.com/Nuitka/Nuitka
+cd Nuitka
+python3.7 setup.py install
+cd ..
+
 pip3 install -r requirements.txt
 
 echo "building and placing output binary in ${1}"

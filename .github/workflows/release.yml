@@ -52,7 +52,7 @@ jobs:
       - name: Build sgrep
         run: eval $(opam env --root /home/opam/.opam --set-root) && cd sgrep && make all
       - name: Build sgrep-lint
-        run: eval $(opam env --root /home/opam/.opam --set-root) && cd sgrep_lint && export PATH=/github/home/.local/bin:$PATH && make all
+        run: eval $(opam env --root /home/opam/.opam --set-root) && cd sgrep_lint && export PATH=/github/home/.local/bin:$PATH && sudo make all
       - name: Prepare artifacts
         run: |
           mkdir -p sgrep-lint-files
