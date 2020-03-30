@@ -1,23 +1,29 @@
-# ERROR:
-w = "foo"
-query = f"hello {w} hel"
+def foo1():
+  # ERROR:
+  w = "foo"
+  query = f"hello {w} hel"
 
-# ERROR:
-w = "bar"
-query = f"ASD{ww}ASASD"
+def foo2():
+  # ERROR:
+  ww = "bar"
+  query = f"ASD{ww}ASASD"
 
-# ERROR:
-www = "bar"
-query = f".SS{www}"
+def foo3():
+  # OK:
+  www = "bar"
+  query = f"SELECT {www}"
 
-# ERROR:
-www = "bar"
-query = f".SS{www} and {ww} aasd {w}"
+def foo4():
+  # OK:
+  www = "bar"
+  query = f"SELECT {www} and {ww} aasd {w}"
 
-# OK:
-num = 1
-query = f"num = {num} !"
+def foo5():
+  # OK:
+  num = 1
+  query = f"num = {num} !"
 
-# OK:
-f = foo()
-query = f"complex = {f} !"
+def foo6():
+  # OK:
+  complex_func = foo()
+  query = f"complex = {complex_func} !"
