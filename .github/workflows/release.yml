@@ -1,11 +1,11 @@
-name: release
+name: release-ubuntu-18-04
 
 on:
   push:
     # branches: [master, develop]
 
 jobs:
-  release-deb:
+  release-ubuntu-18-04:
     runs-on: ubuntu-latest
     container: ocaml/opam2:ubuntu-18.04
     steps:
