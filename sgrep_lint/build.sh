@@ -13,7 +13,7 @@ cd ..
 pip3 install -r requirements.txt
 
 echo "building and placing output binary in ${1}"
-python3.7 -m nuitka --follow-imports --standalone --show-modules --recurse-to=colorama --output-dir="${1}" --warn-unusual-code --lto ./sgrep.py
+python3.7 -m nuitka --follow-imports --standalone --recurse-stdlib --show-modules --recurse-to=colorama --output-dir="${1}" --warn-unusual-code --lto ./sgrep.py
 
 # rename to sgrep-lint
 mv "${1}/sgrep.dist/sgrep" "${1}/sgrep.dist/sgrep-lint-exe"
