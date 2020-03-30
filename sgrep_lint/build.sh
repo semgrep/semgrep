@@ -6,6 +6,7 @@ cd "${THIS_DIR}"
 
 git clone -b develop https://github.com/Nuitka/Nuitka
 cd Nuitka
+git checkout 09ea153bd33293c622cda6fe44c06f970fe82886
 python3.7 setup.py install
 cd ..
 

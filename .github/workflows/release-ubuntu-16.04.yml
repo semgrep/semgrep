@@ -7,15 +7,23 @@ on:
 jobs:
   release-deb:
     runs-on: ubuntu-latest
-    container: ocaml/opam2:ubuntu-18.04
+    container: ocaml/opam2:ubuntu-16.04
     steps:
       - name: Install System Deps
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends make m4 perl wget swi-prolog mercurial pkg-config python3.7 python3.7-dev python3.7-distutils build-essential
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends make m4 perl wget swi-prolog mercurial pkg-config build-essential
       - name: Install Python 3.7
         run: |
+          sudo apt-get install -y zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev libbz2-dev
+          sudo wget https://www.python.org/ftp/python/3.7.7/Python-3.7.7.tar.xz
+          sudo tar xvf Python-3.7.7.tar.xz
+          cd Python-3.7.7
+          sudo ./configure
+          sudo make altinstall
+          python3.7 --version
+          which python3.7
+          /usr/local/bin/python3.7 -c "import bz2; print(bz2.__doc__)"
           sudo curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
           sudo -H python3.7 get-pip.py
-          python3 --version
           pip3 --version
           ldd --version
           echo "Pls help me make this at least 3.7"
@@ -44,7 +52,7 @@ jobs:
       - name: Build sgrep
         run: eval $(opam env --root /home/opam/.opam --set-root) && cd sgrep && make all
       - name: Build sgrep-lint
-        run: eval $(opam env --root /home/opam/.opam --set-root) && cd sgrep_lint && export PATH=/github/home/.local/bin:$PATH && make all
+        run: eval $(opam env --root /home/opam/.opam --set-root) && cd sgrep_lint && export PATH=/github/home/.local/bin:$PATH && sudo make all
       - name: Prepare artifacts
         run: |
           mkdir -p sgrep-lint-files
@@ -53,10 +61,10 @@ jobs:
           chmod +x sgrep-lint-files/sgrep
           chmod +x sgrep-lint-files/sgrep-lint
           chmod +x sgrep-lint-files/sgrep-lint-exe
-          tar -cvzf sgrep-ubuntu-18.04.tar.gz sgrep-lint-files/
+          tar -cvzf sgrep-ubuntu-16.04.tar.gz sgrep-lint-files/
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
-          name: sgrep-ubuntu-18.04-${{ github.sha }}
-          path: sgrep-ubuntu-18.04.tar.gz
+          name: sgrep-ubuntu-16.04-${{ github.sha }}
+          path: sgrep-ubuntu-16.04.tar.gz
