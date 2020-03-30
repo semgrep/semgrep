@@ -15,8 +15,9 @@ def foo3():
 
 def foo4():
   # OK:
+  ww = "foo"
   www = "bar"
-  query = f"SELECT {www} and {ww} aasd {w}"
+  query = f"SELECT {www} and {ww}"
 
 def foo5():
   # OK:
