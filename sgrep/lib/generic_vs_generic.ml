@@ -1022,7 +1022,7 @@ and m_list__m_argument (xsa: A.argument list) (xsb: A.argument list) =
   | [], [] ->
       return ()
 
-  (* dots: '...', can also match no argument *)
+  (* dots: ..., can also match no argument *)
   | [A.Arg (A.Ellipsis _i)], [] ->
       return ()
 
@@ -1032,10 +1032,14 @@ and m_list__m_argument (xsa: A.argument list) (xsb: A.argument list) =
       (* can match more *)
       (m_list__m_argument ((A.Arg (A.Ellipsis i))::xsa) xsb)
 
-  (* dots: '...', can also match no argument *)
+  (* dots '...' for string literal, can also match no argument *)
   | [A.Arg (A.L (A.String("...", _a)))], [] ->
       return ()
-  (* dots: '...' on string *)
+  (* dots '...' for string literal:
+    interpolated strings are transformed into Call(Spedial(Concat, ...), 
+    hence want patterns like f"...{$X}...", which are expanded to Call(Special(Concat, [L"..."; Id "$X"; L"..."])) to
+    match concrete code like f"foo{a}" such that "..." is seemingly matching 0 or more literal expressions.
+  *)
   | A.Arg (A.L (A.String("...", a)))::xsa, B.Arg(bexpr)::xsb ->
       (match Normalize_generic.constant_propagation_and_evaluate_literal bexpr with
       | Some _ -> 
