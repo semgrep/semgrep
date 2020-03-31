@@ -17,7 +17,7 @@ jobs:
           sudo wget https://www.python.org/ftp/python/3.7.7/Python-3.7.7.tar.xz
           sudo tar xvf Python-3.7.7.tar.xz
           cd Python-3.7.7
-          sudo ./configure
+          sudo ./configure --enable-shared
           sudo make altinstall
           python3.7 --version
           which python3.7
