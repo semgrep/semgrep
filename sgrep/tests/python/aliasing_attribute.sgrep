@@ -1,0 +1,3 @@
+@django.views.decorators.csrf.csrf_exempt
+def $R(...):
+  ...

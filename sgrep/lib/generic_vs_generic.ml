@@ -1201,17 +1201,20 @@ and m_list__m_attribute (xsa: A.attribute list) (xsb: A.attribute list) =
         aux candidates
        )
 
-  | A.NamedAttr ((s, _) as ida, argsa)::xsa, xsb ->
+  | A.NamedAttr ((s, _) as ida, idinfoa, argsa)::xsa, xsb ->
       (try 
         let (before, there, after) = xsb |> Common2.split_when (function
-            | A.NamedAttr ((s2, _), _) when s =$= s2 -> true
+            (* todo: in theory we should resolve the possible alias s2 *)
+            | A.NamedAttr ((s2, _), _idinfoaliasTODO, _) when s =$= s2 -> true
             | _ -> false) in
         (match there with
-        | A.NamedAttr (idb, argsb) ->
+        | A.NamedAttr (idb, idinfob, argsb) ->
               m_ident ida idb >>= (fun () ->
+              (* less: should use m_ident_and_id_info_add_in_env_Expr? *)
+              m_id_info idinfoa idinfob >>= (fun () ->
               m_list__m_argument argsa argsb >>= (fun () ->
               m_list__m_attribute xsa (before @ after) 
-              ))
+              )))
         | _ -> raise Impossible
         )
       with Not_found -> fail ()
@@ -1236,12 +1239,23 @@ and m_keyword_attribute a b =
   
 and m_attribute a b = 
   match a, b with
+
+  (* equivalence: name resolving! *)
+  | a,   B.NamedAttr (_b1, { B.id_resolved = 
+      {contents = Some ( ( B.ImportedEntity dotted 
+                         | B.ImportedModule (B.DottedName dotted)
+                         ), _sid)}; _}, b2) ->
+    let exp = make_dotted dotted in
+    m_attribute a (B.OtherAttribute (B.OA_Expr, [B.E (B.Call (exp, b2))]))
+
   | A.KeywordAttr(a1), B.KeywordAttr(b1) ->
     m_wrap m_keyword_attribute a1 b1 
-  | A.NamedAttr(a1, a2), B.NamedAttr(b1, b2) ->
+  | A.NamedAttr(a1, ida, a2), B.NamedAttr(b1, idb, b2) ->
     m_ident a1 b1 >>= (fun () -> 
+    (* less: should use m_ident_and_id_info_add_in_env_Expr? *)
+    m_id_info ida idb >>= (fun () ->
     (m_list__m_argument) a2 b2 
-    )
+    ))
   | A.OtherAttribute(a1, a2), B.OtherAttribute(b1, b2) ->
     m_other_attribute_operator a1 b1 >>= (fun () -> 
     (m_list m_any) a2 b2 
