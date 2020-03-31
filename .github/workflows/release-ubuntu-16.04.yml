@@ -19,6 +19,7 @@ jobs:
           cd Python-3.7.7
           sudo ./configure --enable-shared
           sudo make altinstall
+          sudo ldconfig /usr/local/lib
           python3.7 --version
           which python3.7
           /usr/local/bin/python3.7 -c "import bz2; print(bz2.__doc__)"
