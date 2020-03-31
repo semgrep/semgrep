@@ -663,7 +663,8 @@ def main(args: argparse.Namespace) -> Dict[str, Any]:
         if args.json:
             print(build_output_json(output_data))
         else:
-            print("\n".join(build_normal_output(output_data, color_output=True)))
+            if outputs_after_booleans:
+                print("\n".join(build_normal_output(output_data, color_output=True)))
     if args.output:
         save_output(args.output, output_data, args.json)
     if args.error and outputs_after_booleans:
