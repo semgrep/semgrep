@@ -557,7 +557,7 @@ def main(args: argparse.Namespace) -> Dict[str, Any]:
             if len(invalid_configs)
             else ""
         )
-        print_msg(
+        debug_print(
             f"running {len(all_rules)} rules from {len(valid_configs)} config{plural} {config_id_if_single} {invalid_msg}"
         )
     # TODO log valid and invalid configs if verbose
