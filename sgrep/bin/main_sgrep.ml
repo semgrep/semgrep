@@ -37,8 +37,10 @@ module J = Json_type
  *  - ack http://beyondgrep.com/
  *  - cgrep http://awgn.github.io/cgrep/
  *  - hound https://codeascraft.com/2015/01/27/announcing-hound-a-lightning-fast-code-search-tool/
+ *  - many grep-based linters (in Zulip, autodesk, bento, etc.)
  * 
  * See also codequery for more structural queries.
+ * See also old information at https://github.com/facebook/pfff/wiki/Sgrep.
  *)
 
 (*****************************************************************************)
@@ -48,8 +50,11 @@ module J = Json_type
 let verbose = ref false
 let debug = ref false
 
+(* -e *)
 let pattern_string = ref ""
+(* -f *)
 let pattern_file = ref ""
+(* -rules_file *)
 let rules_file = ref ""
 
 (* todo: infer from basename argv(0) ? *)
@@ -65,10 +70,6 @@ let layer_file = ref (None: filename option)
 
 let keys = Common2.hkeys Lang.lang_of_string_map
 let supported_langs: string = String.concat ", " keys
-
-let unsupported_language_message some_lang =
-  spf "unsupported language: %s; supported langauge tags are: %s" 
-      some_lang supported_langs
 
 (* action mode *)
 let action = ref ""
@@ -93,8 +94,6 @@ let set_gc () =
   ()
 
 
-(* for -gen_layer *)
-let _matching_tokens = ref []
 
 (* TODO? could do slicing of function relative to the pattern, so 
  * would see where the parameters come from :)
@@ -102,6 +101,9 @@ let _matching_tokens = ref []
 
 let mk_one_info_from_multiple_infos xs =
   List.hd xs
+
+(* for -gen_layer *)
+let _matching_tokens = ref []
 
 let print_match mvars mvar_binding ii_of_any tokens_matched_code = 
   (* there are a few fake tokens in the generic ASTs now (e.g., 
@@ -172,6 +174,19 @@ let gen_layer ~root ~query file =
   in
   Layer_code.save_layer layer file;
   ()
+
+let lang_of_file file = 
+  Common2.some (Lang.lang_of_filename_opt file)
+
+(* coupling: you need also to modify tests/test.ml *)
+let parse_generic lang file = 
+  let ast = Parse_generic.parse_with_lang lang file in
+  Naming_ast.resolve lang ast;
+  ast
+
+let unsupported_language_message some_lang =
+  spf "unsupported language: %s; supported langauge tags are: %s" 
+      some_lang supported_langs
   
 (*****************************************************************************)
 (* Language specific *)
@@ -184,15 +199,6 @@ type ast =
   | Php of Cst_php.program
 
   | NoAST
-
-let lang_of_file file = 
-  Common2.some (Lang.lang_of_filename_opt file)
-
-(* coupling: you need also to modify tests/test.ml *)
-let parse_generic lang file = 
-  let ast = Parse_generic.parse_with_lang lang file in
-  Naming_ast.resolve lang ast;
-  ast
 
 let create_ast file =
   match !lang with
@@ -207,7 +213,7 @@ let create_ast file =
 
 type pattern =
   | PatFuzzy of Ast_fuzzy.tree list
-  | PatGen of Sgrep_generic.pattern
+  | PatGen of Rule.pattern
 (*  | PatPhp of Sgrep_php.pattern *)
 
 
@@ -233,15 +239,20 @@ let parse_pattern str =
           str !lang (Common.exn_to_s exn))
  
 
-let sgrep_ast pattern any_ast =
+let sgrep_ast pattern file any_ast =
   match pattern, any_ast with
   |  _, NoAST -> () (* skipping *)
   | PatGen pattern, Gen ast ->
-    Sgrep_generic.sgrep_ast
+    let lang = Common2.some (Lang.lang_of_string_opt !lang) in
+    let rule = { R.
+      id = "-e/-f"; pattern; message = ""; severity = R.Error; 
+      languages = [lang] } in
+    Sgrep_generic.check
       ~hook:(fun env matched_tokens ->
-        print_match !mvars env Lib_ast.ii_of_any matched_tokens
+        let xs = Lazy.force matched_tokens in
+        print_match !mvars env Lib_ast.ii_of_any xs
       )
-      pattern ast
+      [rule] file ast |> ignore;
 
   | PatFuzzy pattern, Fuzzy ast ->
     Sgrep_fuzzy.sgrep
@@ -291,7 +302,7 @@ let sgrep_with_one_pattern xs =
   files |> List.iter (fun file ->
     if !verbose 
     then pr2 (spf "processing: %s" file);
-    let process file = sgrep_ast pattern (create_ast file) in
+    let process file = sgrep_ast pattern file (create_ast file) in
       E.try_with_print_exn_and_reraise file (fun () ->
             process file
          )
@@ -326,7 +337,7 @@ let sgrep_with_rules rules_file xs =
          if !verbose then pr2 (spf "Analyzing %s" file);
          try 
            let ast = parse_generic lang file in
-           Sgrep_lint_generic.check rules file ast
+           Sgrep_generic.check ~hook:(fun _ _ -> ()) rules file ast
          with exn -> 
             Common.push (Error_code.exn_to_error file exn) errs;
            []
