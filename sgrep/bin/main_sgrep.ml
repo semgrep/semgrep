@@ -57,6 +57,8 @@ let pattern_file = ref ""
 (* -rules_file *)
 let rules_file = ref ""
 
+let equivalences_file = ref ""
+
 (* todo: infer from basename argv(0) ? *)
 let lang = ref "unset"
 
@@ -430,7 +432,11 @@ let dump_ext_of_lang () =
     ) in
   pr2 (spf "Language to supported file extension mappings:\n %s" (String.concat "\n" lang_to_exts))
 
-  (*****************************************************************************)
+let dump_equivalences file = 
+  let xs = Parse_equivalences.parse file in
+  pr2_gen xs
+
+(*****************************************************************************)
 (* The options *)
 (*****************************************************************************)
 
@@ -441,6 +447,8 @@ let all_actions () = [
   Common.mk_action_1_arg dump_pattern;
   "-dump_ast", " <file>",
   Common.mk_action_1_arg dump_ast;
+  "-dump_equivalences", " <file>",
+  Common.mk_action_1_arg dump_equivalences;
   "-dump_extensions", "print file extension to language mapping",
   Common.mk_action_0_arg dump_ext_of_lang;
  ]
@@ -456,6 +464,9 @@ let options () =
     " <file> obtain pattern from file";
     "-rules_file", Arg.Set_string rules_file,
     " <file> obtain list of patterns from YAML file";
+
+    "-equivalences", Arg.Set_string equivalences_file,
+    " <file> obtain list of code equivalences from YAML file";
 
     "-json", Arg.Set output_format_json, " output JSON format";
 
