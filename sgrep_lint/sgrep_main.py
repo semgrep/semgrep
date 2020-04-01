@@ -16,6 +16,7 @@ from typing import Iterable
 from typing import Iterator
 from typing import List
 from typing import Optional
+from typing import Set
 from typing import Tuple
 
 import colorama
@@ -144,6 +145,18 @@ def rewrite_message_with_metavars(
         for metavar, contents in sgrep_result["extra"]["metavars"].items():
             msg_text = msg_text.replace(metavar, contents["abstract_content"])
     return msg_text
+
+
+def generate_fix(
+    yaml_rule: Dict[str, Any], sgrep_result: Dict[str, Any]
+) -> Optional[Any]:
+    fix_str = yaml_rule.get("fix")
+    if fix_str is None:
+        return None
+    if "metavars" in sgrep_result["extra"]:
+        for metavar, contents in sgrep_result["extra"]["metavars"].items():
+            fix_str = fix_str.replace(metavar, contents["abstract_content"])
+    return fix_str
 
 
 def transform_to_r2c_output(finding: Dict[str, Any]) -> Dict[str, Any]:
@@ -393,10 +406,13 @@ def build_normal_output(
         RESET_COLOR = colorama.Style.RESET_ALL if color_output else ""
         GREEN_COLOR = colorama.Fore.GREEN if color_output else ""
         YELLOW_COLOR = colorama.Fore.YELLOW if color_output else ""
+        BLUE_COLOR = colorama.Fore.BLUE if color_output else ""
 
         current_file = finding.get("path", "<no path>")
         check_id = finding.get("check_id")
-        message = finding.get("extra", {}).get("message")
+        extra = finding.get("extra", {})
+        message = extra.get("message")
+        fix = extra.get("fix")
         if last_file is None or last_file != current_file:
             if last_file is not None:
                 yield ""
@@ -413,6 +429,8 @@ def build_normal_output(
         last_file = current_file
         last_message = message
         yield from finding_to_line(finding, color_output)
+        if fix:
+            yield f"{BLUE_COLOR}autofix:{RESET_COLOR} {fix}"
 
 
 def r2c_error_format(sgrep_errors_json: Dict[str, Any]) -> Dict[str, Any]:
@@ -594,6 +612,8 @@ def main(args: argparse.Namespace) -> Dict[str, Any]:
     current_path = Path.cwd()
     outputs_after_booleans = []
     ignored_in_tests = 0
+    fixes: List[Tuple[str, Dict[str, Any]]] = []
+
     for rule_index, paths in by_rule_index.items():
         expression = build_boolean_expression(all_rules[rule_index])
         debug_print(str(expression))
@@ -631,6 +651,12 @@ def main(args: argparse.Namespace) -> Dict[str, Any]:
                     result["extra"]["message"] = rewrite_message_with_metavars(
                         all_rules[rule_index], result
                     )
+
+                    # try to generate a fix
+                    fix = generate_fix(all_rules[rule_index], result)
+                    if fix:
+                        result["extra"]["fix"] = fix
+                        fixes.append((filepath, result))
                     result = transform_to_r2c_output(result)
                     outputs_after_booleans.append(result)
 
@@ -665,6 +691,29 @@ def main(args: argparse.Namespace) -> Dict[str, Any]:
         else:
             if outputs_after_booleans:
                 print("\n".join(build_normal_output(output_data, color_output=True)))
+    if args.autofix and fixes:
+        modified_files: Set[str] = set()
+        for filepath, finding in fixes:
+            lines = Path(filepath).read_text().splitlines()
+            fix = finding.get("extra", {}).get("fix")
+            start_obj = finding.get("start")
+            start_line = start_obj.get("line") - 1  # start_line is 1 indexed
+            start_col = start_obj.get("col") - 1  # start_col is 1 indexed
+            end_obj = finding.get("end")
+            end_line = end_obj.get("line") - 1  # end_line is 1 indexed
+            end_col = end_obj.get("col") - 1  # end_line is 1 indexed
+            before_lines = lines[:start_line]
+            before_on_start_line = lines[start_line][:start_col]
+            after_on_end_line = lines[end_line][end_col + 1 :]
+            modified_lines = (
+                before_on_start_line + fix + after_on_end_line
+            ).splitlines()
+            after_lines = lines[end_line + 1 :]
+            contents_after_fix = before_lines + modified_lines + after_lines
+            contents_after_fix_str = "\n".join(contents_after_fix)
+            Path(filepath).write_text(contents_after_fix_str)
+            modified_files.add(filepath)
+        print_msg(f"Successfully modified {len(modified_files)} files.")
     if args.output:
         save_output(args.output, output_data, args.json)
     if args.error and outputs_after_booleans:

@@ -17,6 +17,7 @@ class OPERATORS:
     AND_INSIDE: Operator = Operator("and_inside")
     AND_NOT_INSIDE: Operator = Operator("and_not_inside")
     WHERE_PYTHON: Operator = Operator("where_python")
+    FIX: Operator = Operator("fix")
 
 
 OPERATORS_WITH_CHILDREN = [OPERATORS.AND_ALL, OPERATORS.AND_EITHER]
@@ -29,6 +30,7 @@ PATTERN_NAMES_MAP = {
     "pattern": OPERATORS.AND,
     "patterns": OPERATORS.AND_ALL,
     "pattern-where-python": OPERATORS.WHERE_PYTHON,
+    "fix": OPERATORS.FIX,
 }
 
 INVERSE_PATTERN_NAMES_MAP = dict((v, k) for k, v in PATTERN_NAMES_MAP.items())
@@ -39,6 +41,7 @@ YAML_VALID_TOP_LEVEL_OPERATORS = {
     OPERATORS.AND,
     OPERATORS.AND_ALL,
     OPERATORS.AND_EITHER,
+    OPERATORS.FIX,
 }
 YAML_ALL_VALID_RULE_KEYS = set(
     [INVERSE_PATTERN_NAMES_MAP[k] for k in YAML_VALID_TOP_LEVEL_OPERATORS]
