@@ -364,15 +364,15 @@ def color_line(
 ) -> str:
     start_color = 0 if line_number > start_line else start_col
     # column offset
-    start_color = max(0, start_color - 1)
+    start_color = max(start_color - 1, 0)
     end_color = end_col if line_number >= end_line else len(line) + 1 + 1
     end_color = max(end_color - 1, 0)
     line = (
         line[:start_color]
         + colorama.Style.BRIGHT
-        + line[start_color:end_color]
+        + line[start_color : end_color + 1]  # want the color to include the end_col
         + colorama.Style.RESET_ALL
-        + line[end_color:]
+        + line[end_color + 1 :]
     )
     return line
 
@@ -458,6 +458,33 @@ def save_output(
                 fout.write(
                     "\n".join(build_normal_output(output_data, color_output=False))
                 )
+
+
+def modify_file(filepath: str, finding: Dict[str, Any]) -> None:
+    p = Path(filepath)
+    SPLIT_CHAR = "\n"
+    contents = p.read_text()
+    lines = contents.split(SPLIT_CHAR)
+    fix = finding.get("extra", {}).get("fix")
+
+    # get the start and end points
+    start_obj = finding.get("start", {})
+    start_line = start_obj.get("line", 1) - 1  # start_line is 1 indexed
+    start_col = start_obj.get("col", 1) - 1  # start_col is 1 indexed
+    end_obj = finding.get("end", {})
+    end_line = end_obj.get("line", 1) - 1  # end_line is 1 indexed
+    end_col = end_obj.get("col", 1) - 1  # end_line is 1 indexed
+
+    # break into before, to modify, after
+    before_lines = lines[:start_line]
+    before_on_start_line = lines[start_line][:start_col]
+    after_on_end_line = lines[end_line][end_col + 1 :]  # next char after end of match
+    modified_lines = (before_on_start_line + fix + after_on_end_line).splitlines()
+    after_lines = lines[end_line + 1 :]  # next line after end of match
+    contents_after_fix = before_lines + modified_lines + after_lines
+
+    contents_after_fix_str = SPLIT_CHAR.join(contents_after_fix)
+    p.write_text(contents_after_fix_str)
 
 
 def should_exclude_this_path(path: Path) -> bool:
@@ -694,26 +721,15 @@ def main(args: argparse.Namespace) -> Dict[str, Any]:
     if args.autofix and fixes:
         modified_files: Set[str] = set()
         for filepath, finding in fixes:
-            lines = Path(filepath).read_text().splitlines()
-            fix = finding.get("extra", {}).get("fix")
-            start_obj = finding.get("start")
-            start_line = start_obj.get("line") - 1  # start_line is 1 indexed
-            start_col = start_obj.get("col") - 1  # start_col is 1 indexed
-            end_obj = finding.get("end")
-            end_line = end_obj.get("line") - 1  # end_line is 1 indexed
-            end_col = end_obj.get("col") - 1  # end_line is 1 indexed
-            before_lines = lines[:start_line]
-            before_on_start_line = lines[start_line][:start_col]
-            after_on_end_line = lines[end_line][end_col + 1 :]
-            modified_lines = (
-                before_on_start_line + fix + after_on_end_line
-            ).splitlines()
-            after_lines = lines[end_line + 1 :]
-            contents_after_fix = before_lines + modified_lines + after_lines
-            contents_after_fix_str = "\n".join(contents_after_fix)
-            Path(filepath).write_text(contents_after_fix_str)
-            modified_files.add(filepath)
-        print_msg(f"Successfully modified {len(modified_files)} files.")
+            try:
+                modify_file(filepath, finding)
+                modified_files.add(filepath)
+            except Exception as e:
+                print_error_exit(f"unable to modify file: {filepath}: {e}")
+        num_modified = len(modified_files)
+        print_msg(
+            f"Successfully modified {num_modified} file{'s' if num_modified > 1 else ''}."
+        )
     if args.output:
         save_output(args.output, output_data, args.json)
     if args.error and outputs_after_booleans:
