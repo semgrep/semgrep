@@ -195,9 +195,6 @@ let unsupported_language_message some_lang =
 type ast =
   | Gen of Ast_generic.program
   | Fuzzy of Ast_fuzzy.trees
-
-  | Php of Cst_php.program
-
   | NoAST
 
 let create_ast file =
@@ -206,16 +203,12 @@ let create_ast file =
     Gen (parse_generic (lang_of_file file) file)
   | s when Lang_fuzzy.lang_of_string_opt s <> None ->
     Fuzzy (Parse_fuzzy.parse file)
-  | "php" ->
-    Php (Parse_php.parse_program file)
   | _ -> failwith (unsupported_language_message !lang)
   
 
 type pattern =
   | PatFuzzy of Ast_fuzzy.tree list
   | PatGen of Rule.pattern
-(*  | PatPhp of Sgrep_php.pattern *)
-
 
 let parse_pattern str =
  try (
@@ -228,10 +221,7 @@ let parse_pattern str =
      | Some lang -> 
        PatFuzzy (Parse_fuzzy.parse_pattern lang str)
      | None ->
-       (match !lang with
-       | "php" -> (* PatPhp (Sgrep_php.parse str) *) raise Todo
-       | _ -> failwith (unsupported_language_message !lang)
-       )
+       failwith (unsupported_language_message !lang)
      )
   ))
   with exn ->
@@ -261,15 +251,6 @@ let sgrep_ast pattern file any_ast =
       )
       pattern ast
 
-(*
-  | PatPhp pattern, Php ast ->
-    Sgrep_php.sgrep_ast
-      ~case_sensitive:!case_sensitive
-      ~hook:(fun env matched_tokens ->
-        print_match !mvars env Lib_parsing_php.ii_of_any matched_tokens
-      )
-      pattern ast
-*)
   | _ ->
     failwith ("unsupported  combination or " ^ (unsupported_language_message !lang))
 
@@ -498,7 +479,6 @@ let options () =
       verbose := true;
       Flag_matcher.verbose := true;
       Generic_vs_generic.verbose := true;
-      (* Flag_matcher_php.verbose := true; *)
     ),
     " ";
     "-debug", Arg.Set debug,
