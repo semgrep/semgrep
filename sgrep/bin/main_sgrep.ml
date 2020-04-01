@@ -190,13 +190,13 @@ let unsupported_language_message some_lang =
 (*****************************************************************************)
 
 type ast =
-  | Gen of Ast_generic.program
+  | Gen of Ast_generic.program * Lang.t
   | Fuzzy of Ast_fuzzy.trees
   | NoAST
 
 let create_ast file =
   match Lang.lang_of_string_opt !lang with
-  | Some lang -> Gen (parse_generic lang file)
+  | Some lang -> Gen (parse_generic lang file, lang)
   | None ->
     (match Lang_fuzzy.lang_of_string_opt !lang with
     | Some _ -> Fuzzy (Parse_fuzzy.parse file)
@@ -227,11 +227,11 @@ let parse_pattern str =
 let sgrep_ast pattern file any_ast =
   match pattern, any_ast with
   |  _, NoAST -> () (* skipping *)
-  | PatGen pattern, Gen ast ->
-    let lang = Common2.some (Lang.lang_of_string_opt !lang) in
+  | PatGen pattern, Gen (ast, lang) ->
     let rule = { R.
       id = "-e/-f"; pattern; message = ""; severity = R.Error; 
-      languages = [lang] } in
+      languages = [lang] 
+    } in
     Sgrep_generic.check
       ~hook:(fun env matched_tokens ->
         let xs = Lazy.force matched_tokens in
@@ -278,10 +278,9 @@ let sgrep_with_one_pattern xs =
   files |> List.iter (fun file ->
     if !verbose 
     then pr2 (spf "processing: %s" file);
-    let process file = sgrep_ast pattern file (create_ast file) in
-      E.try_with_print_exn_and_reraise file (fun () ->
-            process file
-         )
+    E.try_with_print_exn_and_reraise file (fun () ->
+         sgrep_ast pattern file (create_ast file)
+    )
   );
 
   !layer_file |> Common.do_option (fun file ->
@@ -294,15 +293,16 @@ let sgrep_with_one_pattern xs =
 (* Sgrep lint *)
 (*****************************************************************************)
 
+(* less: could factorize even more and merge sgrep_with_rules and
+ * sgrep_with_one_pattern now.
+ *)
 let sgrep_with_rules rules_file xs =
 
   if !verbose then pr2 (spf "Parsing %s" rules_file);
-  (* todo: call Normalize_ast.normalize here after or in parse()? *)
   let rules = Parse_rules.parse rules_file in
 
   match Lang.lang_of_string_opt !lang with
-  | None -> 
-        failwith (unsupported_language_message !lang)
+  | None -> failwith (unsupported_language_message !lang)
   | Some lang ->
     let files = Lang.files_of_dirs_or_files lang xs in
     let rules = rules |> List.filter (fun r -> List.mem lang r.R.languages) in
