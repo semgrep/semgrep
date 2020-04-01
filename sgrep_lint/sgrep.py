@@ -14,7 +14,7 @@ from util import debug_print
 from util import print_error_exit
 
 # CLI
-__VERSION__ = "0.4.9b4"
+__VERSION__ = "0.4.9b5"
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
