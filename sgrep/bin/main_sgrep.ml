@@ -183,6 +183,11 @@ let parse_generic lang file =
   Naming_ast.resolve lang ast;
   ast
 
+let parse_equivalences () =
+  match !equivalences_file with
+  | "" -> []
+  | file -> Parse_equivalences.parse file
+
 let unsupported_language_message some_lang =
   spf "unsupported language: %s; supported langauge tags are: %s" 
       some_lang supported_langs
@@ -239,7 +244,8 @@ let sgrep_ast pattern file any_ast =
         let xs = Lazy.force matched_tokens in
         print_match !mvars env Lib_ast.ii_of_any xs
       )
-      [rule] file ast |> ignore;
+      [rule] (parse_equivalences ())
+      file ast |> ignore;
 
   | PatFuzzy pattern, Fuzzy ast ->
     Sgrep_fuzzy.sgrep
@@ -315,7 +321,9 @@ let sgrep_with_rules rules_file xs =
          if !verbose then pr2 (spf "Analyzing %s" file);
          try 
            let ast = parse_generic lang file in
-           Sgrep_generic.check ~hook:(fun _ _ -> ()) rules file ast
+           Sgrep_generic.check ~hook:(fun _ _ -> ()) 
+              rules (parse_equivalences ())
+              file ast
          with exn -> 
             Common.push (Error_code.exn_to_error file exn) errs;
            []

@@ -68,7 +68,7 @@ let match_any_any pattern e =
 (* Main entry point *)
 (*****************************************************************************)
 
-let check2 ~hook rules file ast =
+let check2 ~hook rules _equivalences file ast =
 
    let matches = ref [] in
 
