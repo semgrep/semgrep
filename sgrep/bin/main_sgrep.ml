@@ -37,8 +37,10 @@ module J = Json_type
  *  - ack http://beyondgrep.com/
  *  - cgrep http://awgn.github.io/cgrep/
  *  - hound https://codeascraft.com/2015/01/27/announcing-hound-a-lightning-fast-code-search-tool/
+ *  - many grep-based linters (in Zulip, autodesk, bento, etc.)
  * 
  * See also codequery for more structural queries.
+ * See also old information at https://github.com/facebook/pfff/wiki/Sgrep.
  *)
 
 (*****************************************************************************)
@@ -48,8 +50,11 @@ module J = Json_type
 let verbose = ref false
 let debug = ref false
 
+(* -e *)
 let pattern_string = ref ""
+(* -f *)
 let pattern_file = ref ""
+(* -rules_file *)
 let rules_file = ref ""
 
 (* todo: infer from basename argv(0) ? *)
@@ -65,10 +70,6 @@ let layer_file = ref (None: filename option)
 
 let keys = Common2.hkeys Lang.lang_of_string_map
 let supported_langs: string = String.concat ", " keys
-
-let unsupported_language_message some_lang =
-  spf "unsupported language: %s; supported langauge tags are: %s" 
-      some_lang supported_langs
 
 (* action mode *)
 let action = ref ""
@@ -93,8 +94,6 @@ let set_gc () =
   ()
 
 
-(* for -gen_layer *)
-let _matching_tokens = ref []
 
 (* TODO? could do slicing of function relative to the pattern, so 
  * would see where the parameters come from :)
@@ -102,6 +101,9 @@ let _matching_tokens = ref []
 
 let mk_one_info_from_multiple_infos xs =
   List.hd xs
+
+(* for -gen_layer *)
+let _matching_tokens = ref []
 
 let print_match mvars mvar_binding ii_of_any tokens_matched_code = 
   (* there are a few fake tokens in the generic ASTs now (e.g., 
@@ -172,21 +174,6 @@ let gen_layer ~root ~query file =
   in
   Layer_code.save_layer layer file;
   ()
-  
-(*****************************************************************************)
-(* Language specific *)
-(*****************************************************************************)
-
-type ast =
-  | Gen of Ast_generic.program
-  | Fuzzy of Ast_fuzzy.trees
-
-  | Php of Cst_php.program
-
-  | NoAST
-
-let lang_of_file file = 
-  Common2.some (Lang.lang_of_filename_opt file)
 
 (* coupling: you need also to modify tests/test.ml *)
 let parse_generic lang file = 
@@ -194,38 +181,42 @@ let parse_generic lang file =
   Naming_ast.resolve lang ast;
   ast
 
+let unsupported_language_message some_lang =
+  spf "unsupported language: %s; supported langauge tags are: %s" 
+      some_lang supported_langs
+  
+(*****************************************************************************)
+(* Language specific *)
+(*****************************************************************************)
+
+type ast =
+  | Gen of Ast_generic.program * Lang.t
+  | Fuzzy of Ast_fuzzy.trees
+  | NoAST
+
 let create_ast file =
-  match !lang with
-  | s when Lang.lang_of_string_opt s <> None ->
-    Gen (parse_generic (lang_of_file file) file)
-  | s when Lang_fuzzy.lang_of_string_opt s <> None ->
-    Fuzzy (Parse_fuzzy.parse file)
-  | "php" ->
-    Php (Parse_php.parse_program file)
-  | _ -> failwith (unsupported_language_message !lang)
+  match Lang.lang_of_string_opt !lang with
+  | Some lang -> Gen (parse_generic lang file, lang)
+  | None ->
+    (match Lang_fuzzy.lang_of_string_opt !lang with
+    | Some _ -> Fuzzy (Parse_fuzzy.parse file)
+    | None -> failwith (unsupported_language_message !lang)
+    )
   
 
 type pattern =
   | PatFuzzy of Ast_fuzzy.tree list
-  | PatGen of Sgrep_generic.pattern
-(*  | PatPhp of Sgrep_php.pattern *)
-
+  | PatGen of Rule.pattern
 
 let parse_pattern str =
  try (
   Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
    match Lang.lang_of_string_opt !lang with
-   | Some lang ->
-       PatGen (Parse_generic.parse_pattern lang str)
+   | Some lang -> PatGen (Parse_generic.parse_pattern lang str)
    | None ->
      (match Lang_fuzzy.lang_of_string_opt !lang with
-     | Some lang -> 
-       PatFuzzy (Parse_fuzzy.parse_pattern lang str)
-     | None ->
-       (match !lang with
-       | "php" -> (* PatPhp (Sgrep_php.parse str) *) raise Todo
-       | _ -> failwith (unsupported_language_message !lang)
-       )
+     | Some lang -> PatFuzzy (Parse_fuzzy.parse_pattern lang str)
+     | None -> failwith (unsupported_language_message !lang)
      )
   ))
   with exn ->
@@ -233,15 +224,20 @@ let parse_pattern str =
           str !lang (Common.exn_to_s exn))
  
 
-let sgrep_ast pattern any_ast =
+let sgrep_ast pattern file any_ast =
   match pattern, any_ast with
   |  _, NoAST -> () (* skipping *)
-  | PatGen pattern, Gen ast ->
-    Sgrep_generic.sgrep_ast
+  | PatGen pattern, Gen (ast, lang) ->
+    let rule = { R.
+      id = "-e/-f"; pattern; message = ""; severity = R.Error; 
+      languages = [lang] 
+    } in
+    Sgrep_generic.check
       ~hook:(fun env matched_tokens ->
-        print_match !mvars env Lib_ast.ii_of_any matched_tokens
+        let xs = Lazy.force matched_tokens in
+        print_match !mvars env Lib_ast.ii_of_any xs
       )
-      pattern ast
+      [rule] file ast |> ignore;
 
   | PatFuzzy pattern, Fuzzy ast ->
     Sgrep_fuzzy.sgrep
@@ -250,15 +246,6 @@ let sgrep_ast pattern any_ast =
       )
       pattern ast
 
-(*
-  | PatPhp pattern, Php ast ->
-    Sgrep_php.sgrep_ast
-      ~case_sensitive:!case_sensitive
-      ~hook:(fun env matched_tokens ->
-        print_match !mvars env Lib_parsing_php.ii_of_any matched_tokens
-      )
-      pattern ast
-*)
   | _ ->
     failwith ("unsupported  combination or " ^ (unsupported_language_message !lang))
 
@@ -291,10 +278,9 @@ let sgrep_with_one_pattern xs =
   files |> List.iter (fun file ->
     if !verbose 
     then pr2 (spf "processing: %s" file);
-    let process file = sgrep_ast pattern (create_ast file) in
-      E.try_with_print_exn_and_reraise file (fun () ->
-            process file
-         )
+    E.try_with_print_exn_and_reraise file (fun () ->
+         sgrep_ast pattern file (create_ast file)
+    )
   );
 
   !layer_file |> Common.do_option (fun file ->
@@ -307,15 +293,16 @@ let sgrep_with_one_pattern xs =
 (* Sgrep lint *)
 (*****************************************************************************)
 
+(* less: could factorize even more and merge sgrep_with_rules and
+ * sgrep_with_one_pattern now.
+ *)
 let sgrep_with_rules rules_file xs =
 
   if !verbose then pr2 (spf "Parsing %s" rules_file);
-  (* todo: call Normalize_ast.normalize here after or in parse()? *)
   let rules = Parse_rules.parse rules_file in
 
   match Lang.lang_of_string_opt !lang with
-  | None -> 
-        failwith (unsupported_language_message !lang)
+  | None -> failwith (unsupported_language_message !lang)
   | Some lang ->
     let files = Lang.files_of_dirs_or_files lang xs in
     let rules = rules |> List.filter (fun r -> List.mem lang r.R.languages) in
@@ -326,7 +313,7 @@ let sgrep_with_rules rules_file xs =
          if !verbose then pr2 (spf "Analyzing %s" file);
          try 
            let ast = parse_generic lang file in
-           Sgrep_lint_generic.check rules file ast
+           Sgrep_generic.check ~hook:(fun _ _ -> ()) rules file ast
          with exn -> 
             Common.push (Error_code.exn_to_error file exn) errs;
            []
@@ -426,10 +413,13 @@ let dump_pattern (file: Common.filename) =
      failwith (unsupported_language_message !lang)
 
 let dump_ast file =
-  let x = parse_generic (lang_of_file file) file in
-  let v = Meta_ast.vof_any (Ast_generic.Pr x) in
-  let s = dump_v_to_format v in
-  pr s
+  match Lang.lang_of_filename_opt file with
+  | Some lang -> 
+    let x = parse_generic lang file in
+    let v = Meta_ast.vof_any (Ast_generic.Pr x) in
+    let s = dump_v_to_format v in
+    pr s
+  | None -> failwith (spf "unsupported language for %s" file)
 
 let dump_ext_of_lang () =
   let lang_to_exts = keys |> List.map (
@@ -487,7 +477,6 @@ let options () =
       verbose := true;
       Flag_matcher.verbose := true;
       Generic_vs_generic.verbose := true;
-      (* Flag_matcher_php.verbose := true; *)
     ),
     " ";
     "-debug", Arg.Set debug,

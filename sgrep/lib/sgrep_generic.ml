@@ -1,5 +1,6 @@
 (* Yoann Padioleau
  *
+ * Copyright (C) 2011 Facebook
  * Copyright (C) 2019 r2c
  *
  * This library is free software; you can redistribute it and/or
@@ -12,29 +13,35 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-open Common
-
 open Ast_generic
-module Ast = Ast_generic
-module V = Visitor_ast
 
+module V = Visitor_ast
+module Ast = Ast_generic
+module E = Error_code
+module PI = Parse_info
+module R = Rule
+module M = Match_result
 module GG = Generic_vs_generic
+
 
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* See https://github.com/facebook/pfff/wiki/Sgrep 
+(* Main matching engine behind sgrep. This module implements mainly
+ * the expr/stmt visitor, while generic_vs_generic does the matching.
  *
- * coupling: if you modify this file, there is a big chance you also need
- *  to modify sgrep_lint_generic.ml
+ * history: this file was split in sgrep_generic.ml for -e/-f and
+ * sgrep_lint_generic.ml for -rules_file. The -e/-f returns results as
+ * it goes and takes a single pattern while -rules_file applies a list
+ * of patterns and return a result just at the end. We have now factorized
+ * the two files because of many bugs and discrepancies between the
+ * two operating modes. It was easy to forget to add a new feature in
+ * one of the file. Now -rules_file and -e/-f work mostly the same.
  *)
 
 (*****************************************************************************)
-(* Type *)
+(* Types *)
 (*****************************************************************************)
-
-(* right now only Expr, Stmt, and Stmts are supported *)
-type pattern = Ast.any
 
 type ('a, 'b) matcher = 'a -> 'b ->
   Metavars_generic.metavars_binding list
@@ -61,77 +68,92 @@ let match_any_any pattern e =
 (* Main entry point *)
 (*****************************************************************************)
 
-let sgrep_ast ~hook pattern ast =
+let check2 ~hook rules file ast =
 
-  (* rewrite code, e.g., A != B is rewritten as !(A == B) *)
-  let pattern = Normalize_ast.normalize pattern in
+   let matches = ref [] in
+
+  (* rewrite code, e.g., A != B is rewritten as !(A == B) 
+   * update: this is less necessary once you have user-defined
+   * code equivalences (see equivalence.ml).
+   *)
   let prog = Normalize_ast.normalize (Pr ast) in
 
-  let hook =
-    match pattern with
-    (* depending on the pattern, we visit every relevant nodes
-     * and try the pattern on it.
-     *)
+  let expr_rules = ref [] in
+  let stmt_rules = ref [] in
+  let stmts_rules = ref [] in
+  rules |> List.iter (fun rule ->
+    (* less: normalize the pattern? *)
+    match rule.R.pattern with
+    | E pattern  -> Common.push (pattern, rule) expr_rules
+    | S pattern -> Common.push (pattern, rule) stmt_rules
+    | Ss pattern -> Common.push (pattern, rule) stmts_rules
+    | _ -> failwith "only expr, stmt, and stmts patterns are supported"
+  );
 
-    | E pattern_expr ->
-        { V.default_visitor with
-          V.kexpr = (fun (k, _) x ->
-            let matches_with_env = match_e_e pattern_expr  x in
-            if matches_with_env <> []
-            then begin
-              let matched_tokens = Lib_ast.ii_of_any (E x) in
-              matches_with_env |> List.iter (fun env ->
-                hook env matched_tokens
-              )
-            end;
-           (* try the rules on subexpressions *)
-           (* this can recurse to find nested matching inside the
-            * matched code itself *)
-           k x
-          );
-        }
+  let visitor = V.mk_visitor { V.default_visitor with
+    V.kexpr = (fun (k, _) x ->
+      (* this could be quite slow ... we match many sgrep patterns
+       * against an expression recursively
+       *)
+      !expr_rules |> List.iter (fun (pattern, rule) -> 
+         let matches_with_env = match_e_e pattern x in
+         if matches_with_env <> []
+         then (* Found a match *)
+           matches_with_env |> List.iter (fun env ->
+             Common.push { M. rule; file; env; code = E x } matches;
+             let matched_tokens = lazy (Lib_ast.ii_of_any (E x)) in
+             hook env matched_tokens
+         )
+      );
+      (* try the rules on subexpressions *)
+      (* this can recurse to find nested matching inside the
+       * matched code itself *)
+      k x
+    );
 
-    | S pattern ->
-        { V.default_visitor with
-          V.kstmt = (fun (k, _) x ->
-            let matches_with_env = match_st_st pattern x in
-            if matches_with_env <> []
-            then begin
-              let matched_tokens = Lib_ast.ii_of_any (S x) in
-              matches_with_env |> List.iter (fun env ->
-                hook env matched_tokens
-              )
-            end;
-            k x
-          );
-        }
+    (* mostly copy paste of expr code but with the _st functions *)
+    V.kstmt = (fun (k, _) x ->
+      !stmt_rules |> List.iter (fun (pattern, rule) -> 
+         let matches_with_env = match_st_st pattern x in
+         if matches_with_env <> []
+         then (* Found a match *)
+           matches_with_env |> List.iter (fun env ->
+             Common.push { M. rule; file; env; code = S x } matches;
+             let matched_tokens = lazy (Lib_ast.ii_of_any (S x)) in
+             hook env matched_tokens
+           )
+      );
+      (* try the rules on substatements and subexpressions *)
+      k x
+    );
 
-    | Ss pattern ->
-        { V.default_visitor with
-          (* this is potentially slower than what we did in Coccinelle with
-           * CTL. We try every sequences. Hopefully the first statement in
-           * the pattern will filter lots of sequences so we need to do
-           * the heavy stuff (e.g., handling '...' between statements) rarely.
-           *)
-          V.kstmts = (fun (k, _) x ->
-            let matches_with_env = match_sts_sts pattern x in
-            if matches_with_env <> []
-            then begin
-              let matched_tokens = Lib_ast.ii_of_any (Ss x) in
-              matches_with_env |> List.iter (fun env ->
-                hook env matched_tokens
-              )
-            end;
-            k x
-          );
-        }
-
-    | _ -> failwith (spf "pattern not yet supported:" )
+    V.kstmts = (fun (k, _) x ->
+      (* this is potentially slower than what we did in Coccinelle with
+       * CTL. We try every sequences. Hopefully the first statement in
+       * the pattern will filter lots of sequences so we need to do
+       * the heavy stuff (e.g., handling '...' between statements) rarely.
+       *)
+      !stmts_rules |> List.iter (fun (pattern, rule) -> 
+         let matches_with_env = match_sts_sts pattern x in
+         if matches_with_env <> []
+         then (* Found a match *)
+           matches_with_env |> List.iter (fun env ->
+             Common.push { M. rule; file; env; code = Ss x } matches;
+             let matched_tokens = lazy (Lib_ast.ii_of_any (Ss x)) in
+             hook env matched_tokens
+           )
+      );
+      k x
+    );
+  }
   in
   (* later: opti: dont analyze certain ASTs if they do not contain
    * certain constants that interect with the pattern?
    * But this requires to analyze the pattern to extract those
    * constants (name of function, field, etc.).
    *)
+  visitor prog;
+  !matches |> List.rev
 
-  (V.mk_visitor hook) prog
+let check ~hook a b c =
+  Common.profile_code "Sgrep_generic.check" (fun () -> check2 ~hook a b c)
