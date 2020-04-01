@@ -150,9 +150,8 @@ let apply_equivalences equivs any =
              if Lib_ast.abstract_position_info_any (Ast.E x) =*=
                 Lib_ast.abstract_position_info_any (Ast.E alt)
              then x'
-             else
-               (* TODO: disjunction (if different) *)
-               alt
+             (* disjunction (if different) *)
+             else Ast.DisjExpr (x', alt)
 
            (* no match yet, trying another equivalence *)
            | [] -> aux xs
