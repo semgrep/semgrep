@@ -76,7 +76,6 @@ module Lib = Lib_ast
 (*****************************************************************************)
 let verbose = ref false
 let debug = ref false
-
 let debug_with_full_position = ref false
 
 (* experimental: a bit hacky, and may introduce big perf regressions,
@@ -1023,7 +1022,7 @@ and m_list__m_argument (xsa: A.argument list) (xsb: A.argument list) =
   | [], [] ->
       return ()
 
-  (* dots: '...', can also match no argument *)
+  (* dots: ..., can also match no argument *)
   | [A.Arg (A.Ellipsis _i)], [] ->
       return ()
 
@@ -1032,6 +1031,25 @@ and m_list__m_argument (xsa: A.argument list) (xsb: A.argument list) =
       (m_list__m_argument xsa (xb::xsb)) >||>
       (* can match more *)
       (m_list__m_argument ((A.Arg (A.Ellipsis i))::xsa) xsb)
+
+  (* dots '...' for string literal, can also match no argument *)
+  | [A.Arg (A.L (A.String("...", _a)))], [] ->
+      return ()
+  (* dots '...' for string literal:
+    interpolated strings are transformed into Call(Spedial(Concat, ...), 
+    hence want patterns like f"...{$X}...", which are expanded to Call(Special(Concat, [L"..."; Id "$X"; L"..."])) to
+    match concrete code like f"foo{a}" such that "..." is seemingly matching 0 or more literal expressions.
+  *)
+  | A.Arg (A.L (A.String("...", a)))::xsa, B.Arg(bexpr)::xsb ->
+      (match Normalize_generic.constant_propagation_and_evaluate_literal bexpr with
+      | Some _ -> 
+        (* can match nothing *)
+        (m_list__m_argument xsa xsb) >||>
+        (* can match more *)
+        (m_list__m_argument ((A.Arg (A.L (A.String("...", a))))::xsa) xsb)
+      | None ->
+        (m_list__m_argument xsa (B.Arg(bexpr)::xsb))
+      )
 
   | A.ArgKwd ((s, _tok) as ida, ea)::xsa, xsb ->
       (try 
