@@ -18,7 +18,8 @@ rules:
 When invoked with `sgrep -f myconfig.yaml project/`, this rule will run on Python files inside `project/` and output the rule `id` "eqeq-is-bad" along with the `message` and the line and column range the match occurred on. Given a line inside a Python file with `1 == 1`, sgrep will output the message: "1 == 1 is always true!"
 
 ## Complex Example
-```
+
+```yaml
 rules:
   - id: eqeq-is-bad
     patterns:
@@ -76,6 +77,10 @@ Filters: there are several operators that act as filters to remove results you d
       - pattern: $F = django.db.models.FloatField(...)
       - pattern-where-python: "'price' in vars['$F']"
   ```
+
+### additonal operators
+
+- `fix` allows for an expression to be displayed to the user as the suggested autofix. Can be applied with `--autofix`
 
 ## Full Schema
 

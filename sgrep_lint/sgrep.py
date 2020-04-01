@@ -132,6 +132,14 @@ if __name__ == "__main__":
         help="System Exit 1 if there are findings. Useful for CI and scripts.",
         action="store_true",
     )
+
+    output.add_argument(
+        "-a",
+        "--autofix",
+        help="Apply the autofix patches. WARNING: data loss can occur with this flag. Make sure your files are stored in a version control system.",
+        action="store_true",
+    )
+
     # logging options
     logging = parser.add_argument_group("logging")
 
