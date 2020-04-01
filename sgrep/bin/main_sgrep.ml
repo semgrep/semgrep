@@ -175,9 +175,6 @@ let gen_layer ~root ~query file =
   Layer_code.save_layer layer file;
   ()
 
-let lang_of_file file = 
-  Common2.some (Lang.lang_of_filename_opt file)
-
 (* coupling: you need also to modify tests/test.ml *)
 let parse_generic lang file = 
   let ast = Parse_generic.parse_with_lang lang file in
@@ -198,12 +195,13 @@ type ast =
   | NoAST
 
 let create_ast file =
-  match !lang with
-  | s when Lang.lang_of_string_opt s <> None ->
-    Gen (parse_generic (lang_of_file file) file)
-  | s when Lang_fuzzy.lang_of_string_opt s <> None ->
-    Fuzzy (Parse_fuzzy.parse file)
-  | _ -> failwith (unsupported_language_message !lang)
+  match Lang.lang_of_string_opt !lang with
+  | Some lang -> Gen (parse_generic lang file)
+  | None ->
+    (match Lang_fuzzy.lang_of_string_opt !lang with
+    | Some _ -> Fuzzy (Parse_fuzzy.parse file)
+    | None -> failwith (unsupported_language_message !lang)
+    )
   
 
 type pattern =
@@ -214,14 +212,11 @@ let parse_pattern str =
  try (
   Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
    match Lang.lang_of_string_opt !lang with
-   | Some lang ->
-       PatGen (Parse_generic.parse_pattern lang str)
+   | Some lang -> PatGen (Parse_generic.parse_pattern lang str)
    | None ->
      (match Lang_fuzzy.lang_of_string_opt !lang with
-     | Some lang -> 
-       PatFuzzy (Parse_fuzzy.parse_pattern lang str)
-     | None ->
-       failwith (unsupported_language_message !lang)
+     | Some lang -> PatFuzzy (Parse_fuzzy.parse_pattern lang str)
+     | None -> failwith (unsupported_language_message !lang)
      )
   ))
   with exn ->
@@ -418,10 +413,13 @@ let dump_pattern (file: Common.filename) =
      failwith (unsupported_language_message !lang)
 
 let dump_ast file =
-  let x = parse_generic (lang_of_file file) file in
-  let v = Meta_ast.vof_any (Ast_generic.Pr x) in
-  let s = dump_v_to_format v in
-  pr s
+  match Lang.lang_of_filename_opt file with
+  | Some lang -> 
+    let x = parse_generic lang file in
+    let v = Meta_ast.vof_any (Ast_generic.Pr x) in
+    let s = dump_v_to_format v in
+    pr s
+  | None -> failwith (spf "unsupported language for %s" file)
 
 let dump_ext_of_lang () =
   let lang_to_exts = keys |> List.map (
