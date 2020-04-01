@@ -188,6 +188,7 @@ def invoke_sgrep_lint(
             exclude=[],
             output=None,
             error=False,
+            autofix=False,
             target=[str(t) for t in test_files],
         )
     )
