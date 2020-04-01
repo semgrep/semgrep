@@ -13,16 +13,19 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
+open Common
 open Ast_generic
 
 module V = Visitor_ast
+module M = Map_ast
 module Ast = Ast_generic
-module E = Error_code
+module Err = Error_code
 module PI = Parse_info
 module R = Rule
-module M = Match_result
+module Eq = Equivalence
+module Res = Match_result
 module GG = Generic_vs_generic
-
+module MV = Metavars_generic
 
 (*****************************************************************************)
 (* Prelude *)
@@ -46,6 +49,9 @@ module GG = Generic_vs_generic
 type ('a, 'b) matcher = 'a -> 'b ->
   Metavars_generic.metavars_binding list
 
+(*****************************************************************************)
+(* Matchers *)
+(*****************************************************************************)
  
 let match_e_e pattern e = 
   let env = GG.empty_environment () in
@@ -65,10 +71,107 @@ let match_any_any pattern e =
   GG.m_any pattern e env
 
 (*****************************************************************************)
+(* Matchers for code equivalence mode *)
+(*****************************************************************************)
+
+let match_e_e_for_equivalences a b =
+  Common.save_excursion GG.equivalence_mode true (fun () ->
+  Common.save_excursion GG.go_deeper true (fun () ->
+    match_e_e a b
+  ))
+
+(*****************************************************************************)
+(* Substituters *)
+(*****************************************************************************)
+let subst_e (bindings: MV.metavars_binding) e = 
+  let visitor = M.mk_visitor { M.default_visitor with
+    M.kexpr = (fun (k, _) x -> 
+      match x with
+      | Ast.Id ((str,_tok), _id_info) when MV.is_metavar_name str ->
+          (match List.assoc_opt str bindings with
+          | Some (Ast.E e) -> 
+              (* less: abstract-line? *)
+              e
+          | Some _ -> 
+             failwith (spf "incompatible metavar: %s, was expecting an expr"
+                      str)
+          | None ->
+             failwith (spf "could not find metavariable %s in environment"
+                      str)
+          )
+      | _ -> k x
+    );
+   } 
+  in
+  visitor.M.vexpr e
+
+(*****************************************************************************)
+(* Applying code equivalences *)
+(*****************************************************************************)
+
+let apply_equivalences equivs any =
+  let expr_rules = ref [] in
+  let stmt_rules = ref [] in
+
+  equivs |> List.iter (fun {Eq. left; op; right; _ } ->
+    match left, op, right with
+    | E l, Eq.Equiv, E r -> 
+          Common.push (l, r) expr_rules;
+          Common.push (r, l) expr_rules;
+    | E l, Eq.Imply, E r -> 
+          Common.push (l, r) expr_rules;
+    | S l, Eq.Equiv, S r -> 
+          Common.push (l, r) stmt_rules;
+          Common.push (r, l) stmt_rules;
+    | S l, Eq.Imply, S r -> 
+          Common.push (l, r) stmt_rules;
+    | _ -> failwith "only expr and stmt equivalence patterns are supported"
+  );
+  (* the order matters, keep the original order reverting Common.push *)
+  let expr_rules = List.rev !expr_rules in
+  let _stmt_rulesTODO = List.rev !stmt_rules in
+
+  let visitor = M.mk_visitor { M.default_visitor with
+    M.kexpr = (fun (k, _) x -> 
+       (* transform the children *)
+       let x' = k x in
+
+       let rec aux xs =
+         match xs with
+         | [] -> x' 
+         | (l, r)::xs ->
+           (* look for a match on original x, not x' *)
+           let matches_with_env = match_e_e_for_equivalences l x in
+           (match matches_with_env with
+           (* todo: should generate a Disj for each possibilities? *)
+           | env::_xs ->
+           (* Found a match *)
+             let alt = subst_e env r (* recurse on r? *) in
+             if Lib_ast.abstract_position_info_any (Ast.E x) =*=
+                Lib_ast.abstract_position_info_any (Ast.E alt)
+             then x'
+             else
+               (* TODO: disjunction (if different) *)
+               alt
+
+           (* no match yet, trying another equivalence *)
+           | [] -> aux xs
+           )
+        in
+        aux expr_rules
+    );
+    M.kstmt = (fun (_k, _) x ->
+      x
+    );
+   } in
+  visitor.M.vany any
+
+
+(*****************************************************************************)
 (* Main entry point *)
 (*****************************************************************************)
 
-let check2 ~hook rules _equivalences file ast =
+let check2 ~hook rules equivs file ast =
 
    let matches = ref [] in
 
@@ -83,7 +186,8 @@ let check2 ~hook rules _equivalences file ast =
   let stmts_rules = ref [] in
   rules |> List.iter (fun rule ->
     (* less: normalize the pattern? *)
-    match rule.R.pattern with
+    let any = apply_equivalences equivs rule.R.pattern in
+    match any with
     | E pattern  -> Common.push (pattern, rule) expr_rules
     | S pattern -> Common.push (pattern, rule) stmt_rules
     | Ss pattern -> Common.push (pattern, rule) stmts_rules
@@ -100,7 +204,7 @@ let check2 ~hook rules _equivalences file ast =
          if matches_with_env <> []
          then (* Found a match *)
            matches_with_env |> List.iter (fun env ->
-             Common.push { M. rule; file; env; code = E x } matches;
+             Common.push { Res. rule; file; env; code = E x } matches;
              let matched_tokens = lazy (Lib_ast.ii_of_any (E x)) in
              hook env matched_tokens
          )
@@ -118,7 +222,7 @@ let check2 ~hook rules _equivalences file ast =
          if matches_with_env <> []
          then (* Found a match *)
            matches_with_env |> List.iter (fun env ->
-             Common.push { M. rule; file; env; code = S x } matches;
+             Common.push { Res. rule; file; env; code = S x } matches;
              let matched_tokens = lazy (Lib_ast.ii_of_any (S x)) in
              hook env matched_tokens
            )
@@ -138,7 +242,7 @@ let check2 ~hook rules _equivalences file ast =
          if matches_with_env <> []
          then (* Found a match *)
            matches_with_env |> List.iter (fun env ->
-             Common.push { M. rule; file; env; code = Ss x } matches;
+             Common.push { Res. rule; file; env; code = Ss x } matches;
              let matched_tokens = lazy (Lib_ast.ii_of_any (Ss x)) in
              hook env matched_tokens
            )

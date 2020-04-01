@@ -83,6 +83,8 @@ let debug_with_full_position = ref false
  *)
 let go_deeper = ref true
 
+let equivalence_mode = ref false
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
