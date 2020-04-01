@@ -14,12 +14,29 @@
  *)
 
 (*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+(* The goal of this module is to make it easy to add lint rules by using
+ * sgrep patterns. You just have to store in a special file the patterns
+ * and the corresponding warning you want the linter to raise.
+ *
+ * update: if you need advanced patterns with boolean logic (which used
+ * to be partially provided by the hacky OK error keyword), use
+ * instead the sgrep python wrapper! It also uses a yaml file but it
+ * has more features, e.g. some pattern-either fields, pattern-inside, 
+ * where-eval, etc.
+ *)
+
+(*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
 
+(* right now only Expr, Stmt, and Stmts are supported *)
+type pattern = Ast.any
+
 type rule = {
   id: string;
-  pattern: Sgrep_generic.pattern;
+  pattern: pattern;
   message: string;
   severity: severity;
   languages: Lang.t list; (* at least one element *)
