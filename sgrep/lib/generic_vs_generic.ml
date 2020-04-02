@@ -305,6 +305,12 @@ and m_expr a b =
     | None -> fail ()
     ) 
 
+  | A.Container(A.Array, a2), B.Container(B.Array, b2) ->
+    (m_bracket (m_container_ordered_elements)) a2 b2
+  | A.Container(A.List, a2), B.Container(B.List, b2) ->
+    (m_bracket (m_container_ordered_elements)) a2 b2
+
+
   | A.Container(a1, a2), B.Container(b1, b2) ->
     m_container_operator a1 b1 >>= (fun () -> 
     (m_bracket (m_list m_expr)) a2 b2
@@ -566,6 +572,13 @@ and m_container_operator a b =
     return ()
   | A.Array, _  | A.List, _  | A.Set, _  | A.Dict, _
    -> fail ()
+
+and m_container_ordered_elements a b =
+  m_list_with_dots m_expr
+    (function A.Ellipsis _ -> true | _ -> false)
+  false (* empty list can not match non-empty list *)
+  a b
+
 
 and m_other_expr_operator = m_other_xxx
 
