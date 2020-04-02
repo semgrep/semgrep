@@ -1057,12 +1057,22 @@ and m_list__m_argument (xsa: A.argument list) (xsb: A.argument list) =
         (m_list__m_argument xsa (B.Arg(bexpr)::xsb))
       )
 
-  | A.ArgKwd ((s, _tok) as ida, ea)::xsa, xsb ->
+  | (A.ArgKwd ((s, _tok) as ida, ea) as a)::xsa, xsb ->
+     if MV.is_metavar_name s
+     then
+        let candidates = all_elem_and_rest_of_list xsb in
+        (* less: could use a fold *)
+        let rec aux xs =
+          match xs with
+          | [] -> fail ()
+          | (b, xsb)::xs ->
+              (m_argument a b >>= (fun () -> m_list__m_argument xsa xsb))
+              >||> aux xs
+        in
+        aux candidates
+     else
       (try 
         let (before, there, after) = xsb |> Common2.split_when (function
-            (* TODO: what if s is a metavar! we need to try all combination
-             * like for the class fields with all_elem_and_rest_of_list
-             *)
             | A.ArgKwd ((s2,_), _) when s =$= s2 -> true
             | _ -> false) in
         (match there with
