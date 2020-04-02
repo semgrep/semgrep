@@ -495,7 +495,7 @@ let options () =
     "-verbose", Arg.Unit (fun () -> 
       verbose := true;
       Flag_matcher.verbose := true;
-      Generic_vs_generic.verbose := true;
+      Matching_generic.verbose := true;
     ),
     " ";
     "-debug", Arg.Set debug,
