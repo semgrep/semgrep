@@ -1363,6 +1363,7 @@ and m_function_definition a b =
 and m_parameters a b = 
   m_list_with_dots m_parameter 
     (function A.ParamEllipsis _ -> true | _ -> false)
+  false (* empty list can not match non-empty list *)
   a b
 
 
@@ -1590,7 +1591,6 @@ and m_other_or_type_element_operator = m_other_xxx
  * order here.
  *)
 
-(* less-is-ok: it's ok to not specify all the parents I think *)
 and m_list__m_type_ (xsa: A.type_ list) (xsb: A.type_ list) =
   m_list_with_dots m_type_
    (* dots: '...', this is very Python Specific I think *)
@@ -1598,6 +1598,8 @@ and m_list__m_type_ (xsa: A.type_ list) (xsb: A.type_ list) =
      | A.OtherType (A.OT_Arg, [A.Ar (A.Arg(A.Ellipsis _i))]) -> true
      | _ -> false
    )
+  (* less-is-ok: it's ok to not specify all the parents I think *)
+  true (* empty list can not match non-empty list *)
   xsa xsb
 
 
