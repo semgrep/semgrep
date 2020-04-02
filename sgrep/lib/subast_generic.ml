@@ -73,6 +73,7 @@ let subexprs_of_expr e =
   | Xml _
   | LetPattern _ | MatchPattern _
     -> []
+  | DisjExpr _ -> raise Common.Impossible
 
 let substmts_of_stmt stmts = 
   let rec aux x = 
@@ -113,6 +114,7 @@ let substmts_of_stmt stmts =
         ([st] |> List.map aux |> List.flatten) @
         (xs |> List.map Common2.thd3 |> List.map aux |> List.flatten) @
         (match opt with None -> [] | Some (_, st) -> [st])
+    | DisjStmt _ -> raise Common.Impossible
     )
    in
    aux stmts

@@ -16,3 +16,7 @@ val m_stmts_deep : (Ast.stmt list, Ast.stmt list) matcher
 
 (* used only for unit testing *)
 val m_any : (Ast.any, Ast.any) matcher
+
+(* so can be changed when in equivalence matching mode *)
+val go_deeper: bool ref
+val equivalence_mode: bool ref

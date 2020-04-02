@@ -57,6 +57,8 @@ let pattern_file = ref ""
 (* -rules_file *)
 let rules_file = ref ""
 
+let equivalences_file = ref ""
+
 (* todo: infer from basename argv(0) ? *)
 let lang = ref "unset"
 
@@ -181,6 +183,11 @@ let parse_generic lang file =
   Naming_ast.resolve lang ast;
   ast
 
+let parse_equivalences () =
+  match !equivalences_file with
+  | "" -> []
+  | file -> Parse_equivalences.parse file
+
 let unsupported_language_message some_lang =
   spf "unsupported language: %s; supported langauge tags are: %s" 
       some_lang supported_langs
@@ -237,7 +244,8 @@ let sgrep_ast pattern file any_ast =
         let xs = Lazy.force matched_tokens in
         print_match !mvars env Lib_ast.ii_of_any xs
       )
-      [rule] file ast |> ignore;
+      [rule] (parse_equivalences ())
+      file ast |> ignore;
 
   | PatFuzzy pattern, Fuzzy ast ->
     Sgrep_fuzzy.sgrep
@@ -313,7 +321,9 @@ let sgrep_with_rules rules_file xs =
          if !verbose then pr2 (spf "Analyzing %s" file);
          try 
            let ast = parse_generic lang file in
-           Sgrep_generic.check ~hook:(fun _ _ -> ()) rules file ast
+           Sgrep_generic.check ~hook:(fun _ _ -> ()) 
+              rules (parse_equivalences ())
+              file ast
          with exn -> 
             Common.push (Error_code.exn_to_error file exn) errs;
            []
@@ -430,7 +440,11 @@ let dump_ext_of_lang () =
     ) in
   pr2 (spf "Language to supported file extension mappings:\n %s" (String.concat "\n" lang_to_exts))
 
-  (*****************************************************************************)
+let dump_equivalences file = 
+  let xs = Parse_equivalences.parse file in
+  pr2_gen xs
+
+(*****************************************************************************)
 (* The options *)
 (*****************************************************************************)
 
@@ -441,6 +455,8 @@ let all_actions () = [
   Common.mk_action_1_arg dump_pattern;
   "-dump_ast", " <file>",
   Common.mk_action_1_arg dump_ast;
+  "-dump_equivalences", " <file>",
+  Common.mk_action_1_arg dump_equivalences;
   "-dump_extensions", "print file extension to language mapping",
   Common.mk_action_0_arg dump_ext_of_lang;
  ]
@@ -456,6 +472,9 @@ let options () =
     " <file> obtain pattern from file";
     "-rules_file", Arg.Set_string rules_file,
     " <file> obtain list of patterns from YAML file";
+
+    "-equivalences", Arg.Set_string equivalences_file,
+    " <file> obtain list of code equivalences from YAML file";
 
     "-json", Arg.Set output_format_json, " output JSON format";
 
