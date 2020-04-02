@@ -54,20 +54,20 @@ type ('a, 'b) matcher = 'a -> 'b ->
 (*****************************************************************************)
  
 let match_e_e pattern e = 
-  let env = GG.empty_environment () in
+  let env = Matching_generic.empty_environment () in
   GG.m_expr pattern e env
 
 let match_st_st pattern e = 
-  let env = GG.empty_environment () in
+  let env = Matching_generic.empty_environment () in
   GG.m_stmt pattern e env
 
 let match_sts_sts pattern e = 
-  let env = GG.empty_environment () in
+  let env = Matching_generic.empty_environment () in
   GG.m_stmts_deep pattern e env
 
 (* for unit testing *)
 let match_any_any pattern e = 
-  let env = GG.empty_environment () in
+  let env = Matching_generic.empty_environment () in
   GG.m_any pattern e env
 
 (*****************************************************************************)
@@ -75,8 +75,8 @@ let match_any_any pattern e =
 (*****************************************************************************)
 
 let match_e_e_for_equivalences a b =
-  Common.save_excursion GG.equivalence_mode true (fun () ->
-  Common.save_excursion GG.go_deeper true (fun () ->
+  Common.save_excursion Matching_generic.equivalence_mode true (fun () ->
+  Common.save_excursion Matching_generic.go_deeper true (fun () ->
     match_e_e a b
   ))
 
