@@ -1361,32 +1361,9 @@ and m_function_definition a b =
     ))
 
 and m_parameters a b = 
-  match a, b with
-  (a, b) -> (m_list__m_parameter) a b
-
-and m_list__m_parameter (xsa: A.parameter list) (xsb: A.parameter list) =
-  match xsa, xsb with
-  | [], [] ->
-      return ()
-
-  (* dots: '...', can also match no argument *)
-  | [A.ParamEllipsis _i], [] ->
-      return ()
-
-  | (A.ParamEllipsis i)::xsa, xb::xsb ->
-      (* can match nothing *)
-      (m_list__m_parameter xsa (xb::xsb)) >||>
-      (* can match more *)
-      (m_list__m_parameter ((A.ParamEllipsis i)::xsa) xsb)
-
-  (* the general case *)
-  | xa::aas, xb::bbs ->
-      m_parameter xa xb >>= (fun () ->
-      m_list__m_parameter aas bbs 
-      )
-  | [], _
-  | _::_, _ ->
-      fail ()
+  m_list_with_dots m_parameter 
+    (function A.ParamEllipsis _ -> true | _ -> false)
+  a b
 
 
 and m_parameter a b = 
@@ -1613,36 +1590,15 @@ and m_other_or_type_element_operator = m_other_xxx
  * order here.
  *)
 
+(* less-is-ok: it's ok to not specify all the parents I think *)
 and m_list__m_type_ (xsa: A.type_ list) (xsb: A.type_ list) =
-  match xsa, xsb with
-  | [], [] ->
-      return ()
-
-  (* less-is-ok: it's ok to not specify all the parents I think *)
-  | [], _::_ ->
-      return ()
-
-  (* dots: '...', this is very Python Specific I think *)
-  | [A.OtherType (A.OT_Arg, [A.Ar (A.Arg(A.Ellipsis _i))])], [] ->
-      return ()
-
-  (* dots: '...', this is very Python Specific I think *)
-  | (A.OtherType (A.OT_Arg, [A.Ar (A.Arg (A.Ellipsis i))]))::xsa, xb::xsb ->
-      (* can match nothing *)
-      (m_list__m_type_ xsa (xb::xsb)) >||>
-      (* can match more *)
-      (m_list__m_type_ 
-          ((A.OtherType (A.OT_Arg, [A.Ar (A.Arg (A.Ellipsis i))]))::xsa) xsb)
-
-
-  (* the general case *)
-  | xa::aas, xb::bbs ->
-      m_type_ xa xb >>= (fun () ->
-      m_list__m_type_ aas bbs 
-      )
-  | _::_, _ ->
-      fail ()
-
+  m_list_with_dots m_type_
+   (* dots: '...', this is very Python Specific I think *)
+   (function 
+     | A.OtherType (A.OT_Arg, [A.Ar (A.Arg(A.Ellipsis _i))]) -> true
+     | _ -> false
+   )
+  xsa xsb
 
 
 and m_class_definition a b = 
