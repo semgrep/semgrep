@@ -83,6 +83,8 @@ let debug_with_full_position = ref false
  *)
 let go_deeper = ref true
 
+let equivalence_mode = ref false
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
@@ -600,6 +602,10 @@ and m_expr_deep a b =
 
 and m_expr a b = 
   match a, b with
+  (* equivalence: user-defined equivalence! *)
+  | A.DisjExpr (a1, a2), b ->
+      m_expr a1 b >||> m_expr a2 b
+
   (* equivalence: name resolving! *)
   | a,   B.Id (_, { B.id_resolved = 
       {contents = Some ( ( B.ImportedEntity dotted 
@@ -1359,6 +1365,9 @@ and m_list__m_stmt (xsa: A.stmt list) (xsb: A.stmt list) =
 
 and m_stmt a b = 
   match a, b with
+  (* equivalence: user-defined equivalence! *)
+  | A.DisjStmt (a1, a2), b ->
+      m_stmt a1 b >||> m_stmt a2 b
 
   (* metavar: *)
   | A.ExprStmt(A.Id ((str,tok), _id_info)), b 

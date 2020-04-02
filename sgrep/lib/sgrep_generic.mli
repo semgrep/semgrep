@@ -2,7 +2,8 @@
 val check: 
   hook:(Metavars_generic.metavars_binding -> Parse_info.t list Lazy.t -> unit)
   ->
-  Rule.rules -> Common.filename -> Ast_generic.program -> 
+  Rule.rules -> Equivalence.equivalences ->
+  Common.filename -> Ast_generic.program -> 
   Match_result.t list
 
 type ('a, 'b) matcher = 'a -> 'b ->
