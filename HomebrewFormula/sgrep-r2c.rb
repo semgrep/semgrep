@@ -3,7 +3,7 @@ class SgrepR2c < Formula
   #keg_only "maybe?"
   desc "Like grep but for code"
   homepage "https://github.com/r2c/sgrep"
-  depends_on "core_utils"
+  depends_on "coreutils"
   conflicts_with "sgrep", :because => "we currently include an sgrep binary"
 
   if OS.mac?
