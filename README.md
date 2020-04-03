@@ -63,7 +63,7 @@ The brew install is WIP and will change significantly.
 ```bash
 brew tap returntocorp/sgrep https://github.com/returntocorp/sgrep.git
 brew install sgrep-r2c
-sgrep-lint-exe --help
+sgrep-lint --help
 ```
 
 ## Quickstart
