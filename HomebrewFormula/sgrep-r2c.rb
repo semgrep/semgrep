@@ -4,6 +4,7 @@ class SgrepR2c < Formula
   desc "Like grep but for code"
   homepage "https://github.com/r2c/sgrep"
   conflicts_with "sgrep", :because => "we currently include an sgrep binary"
+  depends_on "coreutils"
 
   if OS.mac?
       url "https://github.com/returntocorp/sgrep/releases/download/v0.4.9b5/sgrep-osx-20b13243a29b4df3176648058df432ef63df7a92.zip"
