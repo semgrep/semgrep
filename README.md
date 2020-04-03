@@ -13,7 +13,7 @@ syntax. The idea is to mix the convenience of grep with the correctness and prec
   <tr><td><b>pattern</b></td><td><b>will match code like</b></td></tr>
   <tr><td><code>$X == $X</code></td><td><code>if (node.id == node.id): ...</code></td></tr>
   <tr><td><code>foo(kwd1=1, kwd2=2, ...)</code></td><td><code>foo(kwd2=2, kwd1=1, kwd3=3)</code></td></tr>
-  <tr><td><code>subprocess.open(...)</code></td><td><code>import subprocess as s; s.open(['foo'])</code></td></tr>
+  <tr><td><code>subprocess.Popen(...)</code></td><td><code>import subprocess as s; s.Popen(['foo'])</code></td></tr>
   <tr><td colspan=2><a href="https://github.com/returntocorp/sgrep-rules">see more examples in the sgrep-rules registry</a></td></tr>
 </table>
 
@@ -145,15 +145,15 @@ Patterns are snippets of code with variables and other operators that will be pa
 `sgrep` automatically searches for code that is semantically equivalent. For example, a pattern for
 
 ```sgrep
-subprocess.open(...)
+subprocess.Popen(...)
 ```
 
 will match
 
 ```python
-from subprocess import open as
- sub_open
-result = sub_open(“ls”)
+from subprocess import Popen as
+ sub_popen
+result = sub_popen(“ls”)
 ```
 
 and other semantically equivalent configurations.
