@@ -145,15 +145,15 @@ Patterns are snippets of code with variables and other operators that will be pa
 `sgrep` automatically searches for code that is semantically equivalent. For example, a pattern for
 
 ```sgrep
-subprocess.open(...)
+subprocess.Popen(...)
 ```
 
 will match
 
 ```python
-from subprocess import open as
- sub_open
-result = sub_open(“ls”)
+from subprocess import Popen as
+ sub_popen
+result = sub_popen(“ls”)
 ```
 
 and other semantically equivalent configurations.
