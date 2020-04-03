@@ -1,8 +1,9 @@
 class SgrepR2c < Formula
-  version 'v0.4.9b5'
+  version 'v0.4.9b5a'
   #keg_only "maybe?"
   desc "Like grep but for code"
   homepage "https://github.com/r2c/sgrep"
+  depends_on "core_utils"
   conflicts_with "sgrep", :because => "we currently include an sgrep binary"
 
   if OS.mac?
