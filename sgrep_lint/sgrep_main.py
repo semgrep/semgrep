@@ -118,7 +118,6 @@ def invoke_sgrep(
                 )
                 print_error_exit(f"\n\n{PLEASE_FILE_ISSUE_TEXT}")
             output_json = json.loads((output.decode("utf-8", "replace")))
-            # print(f"output json {output_json}")
             errors.extend(output_json["errors"])
             outputs.extend(output_json["matches"])
     return {"matches": outputs, "errors": errors}
@@ -351,6 +350,14 @@ def post_output(output_url: str, output_data: Dict[str, Any]) -> None:
 
 
 def build_output_json(output_json: Dict[str, Any]) -> str:
+    # wrap errors under "data" entry to be compatible with
+    # https://docs.r2c.dev/en/latest/api/output.html#errors
+    errors = output_json["errors"]
+    if errors:
+        output_json["errors"] = {
+            "data": output_json["errors"],
+            "message": "SgrepRuntimeErrors",
+        }
     return json.dumps(output_json)
 
 
