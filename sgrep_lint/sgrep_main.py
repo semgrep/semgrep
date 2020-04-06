@@ -350,9 +350,12 @@ def post_output(output_url: str, output_data: Dict[str, Any]) -> None:
 
 
 def build_output_json(output_json: Dict[str, Any]) -> str:
-    # wrap errors under "data" entry to be compatible with 
+    # wrap errors under "data" entry to be compatible with
     # https://docs.r2c.dev/en/latest/api/output.html#errors
-    output_json["errors"] = {"data": output_json["errors"], "message": "SgrepRuntimeErrors"}
+    output_json["errors"] = {
+        "data": output_json["errors"],
+        "message": "SgrepRuntimeErrors",
+    }
     return json.dumps(output_json)
 
 
