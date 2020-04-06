@@ -2,7 +2,7 @@ name: mac
 
 on:
   push:
-    # branches: [master, develop]
+    branches: [master, develop]
 
 jobs:
   mac-build-test:

@@ -2,7 +2,7 @@ name: release-ubuntu-16-04
 
 on:
   push:
-    # branches: [master, develop]
+    branches: [master, develop]
 
 jobs:
   release-ubuntu-16-04:
