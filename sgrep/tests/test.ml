@@ -1,6 +1,7 @@
 open Common
 open OUnit
 module E = Error_code
+module R = Rule
 
 (*****************************************************************************)
 (* Purpose *)
@@ -73,15 +74,21 @@ let regression_tests_for_lang files lang =
       )
     in
     Error_code.g_errors := [];
-    Sgrep_generic.sgrep_ast
+
+    let rule = { R.
+      id = "unit testing"; pattern; message = ""; severity = R.Error; 
+      languages = [lang] } in
+    let equiv = [] in
+    Sgrep_generic.check
       ~hook:(fun _env matched_tokens ->
       (* there are a few fake tokens in the generic ASTs now (e.g., 
        * for DotAccess generated outside the grammar) *)
-        let toks = matched_tokens |> List.filter Parse_info.is_origintok in
+        let xs = Lazy.force matched_tokens in
+        let toks = xs |> List.filter Parse_info.is_origintok in
         let (minii, _maxii) = Parse_info.min_max_ii_by_pos toks in
         Error_code.error minii (Error_code.SgrepLint ("",""))
       )
-    pattern ast;
+      [rule] equiv file ast |> ignore;
 
     let actual = !Error_code.g_errors in
     let expected = Error_code.expected_error_lines_of_files [file] in
@@ -143,11 +150,12 @@ let lint_regression_tests =
   (* actual *)
   E.g_errors := [];
   let rules = Parse_rules.parse rule_file in
+  let equivs = [] in
 
   test_files |> List.iter (fun file ->
     E.try_with_exn_to_error file (fun () ->
     let ast = Parse_generic.parse_with_lang lang file in
-    Sgrep_lint_generic.check rules file ast 
+    Sgrep_generic.check ~hook:(fun _ _ -> ()) rules equivs file ast 
       |> List.iter Match_result.match_to_error;
   ));
 

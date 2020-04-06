@@ -26,14 +26,6 @@ open Ast_generic
 (* Entry points *)
 (*****************************************************************************)
 
-(* currently used to go deeper in sgrep when someone wants that
- * a pattern like 'bar();' matches also an expression statement like
- * 'x = bar();'.
- * todo? we could restrict ourselves to only a few forms?
- *   - x = <expr>,
- *   - <call>(<exprs).
- *)
-
 let subexprs_of_expr e = 
   match e with
   | L _ 
@@ -81,5 +73,51 @@ let subexprs_of_expr e =
   | Xml _
   | LetPattern _ | MatchPattern _
     -> []
+  | DisjExpr _ -> raise Common.Impossible
 
+let substmts_of_stmt stmts = 
+  let rec aux x = 
+    (* return the current statement first, and add substmts *)
+    x::(
+    match x with
+    (* we do not recurse inside function definitions *)
+    | DefStmt _
+    | DirectiveStmt _
 
+    (* 0 *)
+    | ExprStmt _ 
+    | Return _ | Continue _ | Break _ | Goto _
+    | Throw _
+    | Assert _
+    | OtherStmt _
+    -> 
+        []
+
+    (* 1 *)
+    | While (_, _, st) | DoWhile (_, st, _) 
+    | For (_, _, st)
+    | Label (_, st)
+    | OtherStmtWithStmt (_, _, st)
+      ->
+        aux st
+
+    (* 2 *)
+    | If (_, _, st1, st2) -> 
+        [st1; st2] |> List.map aux |> List.flatten
+
+    (* n *)
+    | Block xs -> 
+        xs |> List.map aux |> List.flatten
+    | Switch (_, _, xs) ->
+        xs |> List.map snd |> List.map aux |> List.flatten
+    | Try (_, st, xs, opt) ->
+        ([st] |> List.map aux |> List.flatten) @
+        (xs |> List.map Common2.thd3 |> List.map aux |> List.flatten) @
+        (match opt with None -> [] | Some (_, st) -> [st])
+    | DisjStmt _ -> raise Common.Impossible
+    )
+   in
+   aux stmts
+
+let flatten_substmts_of_stmts xs =
+  xs |> List.map (fun x -> substmts_of_stmt x) |> List.flatten

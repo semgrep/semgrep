@@ -1,5 +1,7 @@
 package Foo
 
+import "a/subprocess"
+
 import sub "subprocess"
 
 func foo() {

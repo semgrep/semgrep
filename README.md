@@ -13,166 +13,36 @@ syntax. The idea is to mix the convenience of grep with the correctness and prec
   <tr><td><b>pattern</b></td><td><b>will match code like</b></td></tr>
   <tr><td><code>$X == $X</code></td><td><code>if (node.id == node.id): ...</code></td></tr>
   <tr><td><code>foo(kwd1=1, kwd2=2, ...)</code></td><td><code>foo(kwd2=2, kwd1=1, kwd3=3)</code></td></tr>
-  <tr><td><code>subprocess.open(...)</code></td><td><code>import subprocess as s; s.open(['foo'])</code></td></tr>
+  <tr><td><code>subprocess.Popen(...)</code></td><td><code>import subprocess as s; s.Popen(['foo'])</code></td></tr>
   <tr><td colspan=2><a href="https://github.com/returntocorp/sgrep-rules">see more examples in the sgrep-rules registry</a></td></tr>
 </table>
 
-## Supported Languages by Sgrep Feature
 
+## Supported Languages
 
-<table style="text-align:center">
-<tr>
-<td>
-
-</td>
-<td>
-<b>go</b>
-</td>
-<td>
-<b>python</b>
-</td>
-<td>
-<b>js</b>
-</td>
-<td>
-<b>java</b>
-</td>
-<td>
-<b>php</b>
-</td>
-<td>
-<b>ml</b>
-</td>
-<td>
-<b>cpp</b>
-</td>
-<td>
-<b>c</b>
-</td>
+<table>
+  <tr>
+    <td><b>javascript</b></td>
+    <td><b>python</b></td>
+    <td><b>go</b></td>
+    <td><b>java</b></td>
+    <td><b>c</b></td>
+    <td><b>ruby</b></td>
+    <td><b>scala</b></td>
 </tr>
-<tr>
-<td>
-'...' operator
-</td>
-<td>
-✅
-</td>
-<td>
-✅
-</td>
-<td>
-✅
-</td>
-<td>
-✅
-</td>
-<td>
-🚧
-</td>
-<td>
-🚧
-</td>
-<td>
-🚧
-</td>
-<td>
-🔶
-</td>
-</tr>
-<tr>
-<td>
-Equivalences
-</td>
-<td>
-🔶
-</td>
-<td>
-🔶
-</td>
-<td>
-🔶
-</td>
-<td>
-🔶
-</td>
-<td>
-🚧
-</td>
-<td>
-🚧
-</td>
-<td>
-🚧
-</td>
-<td>
-🔶
-</td>
-</tr>
-<tr>
-<td>
-Metavariables
-</td>
-<td>
-✅
-</td>
-<td>
-✅
-</td>
-<td>
-✅
-</td>
-<td>
-✅
-</td>
-<td>
-🚧
-</td>
-<td>
-🚧
-</td>
-<td>
-🚧
-</td>
-<td>
-✅
-</td>
-</tr>
-<tr>
-<td>
-Others
-</td>
-<td>
-🔶
-</td>
-<td>
-✅
-</td>
-<td>
-🔶
-</td>
-<td>
-🔶
-</td>
-<td>
-🚧
-</td>
-<td>
-🚧
-</td>
-<td>
-🚧
-</td>
-<td>
-🚧
-</td>
-</tr>
-</table>
-
-
-
-- ✅ — Supported
-- 🔶 — Partial support
-- 🚧 — Under development
+  <tr>
+   <td>✅</td>
+   <td>✅</td>
+   <td>✅</td>
+   <td>✅</td>
+   <td>✅</td>
+   <td>coming</td>
+   <td>coming</td>
+ </tr>
+  <tr>
+    <td colspan=7>see full language support details in <a href="docs/matrix.md">matrix.md</a></td>
+  </tr>
+ </table>
 
 ## Meetups
 
@@ -186,6 +56,16 @@ Too lazy to install? Try out [sgrep.live](https://sgrep.live)
 
 `sgrep` is packaged within a [docker container](https://hub.docker.com/r/returntocorp/sgrep), making installation as easy as [installing docker](https://docs.docker.com/install/).
 
+### Mac (alpha)
+
+The brew install is WIP and will change significantly.
+
+```bash
+brew tap returntocorp/sgrep https://github.com/returntocorp/sgrep.git
+brew install sgrep-r2c
+sgrep-lint --help
+```
+
 ## Quickstart
 
 ```bash
@@ -193,10 +73,10 @@ docker pull returntocorp/sgrep
 
 cd /path/to/repo
 # generate a template config file
-docker run --rm -v $(pwd):/home/repo returntocorp/sgrep --generate-config
+docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep --generate-config
 
 # look for findings
-docker run --rm -v $(pwd):/home/repo returntocorp/sgrep
+docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep
 
 ```
 
@@ -207,7 +87,7 @@ docker run --rm -v $(pwd):/home/repo returntocorp/sgrep
 To rapidly iterate on a single pattern, you can test on a single file or folder. For example,
 
 ```bash
-docker run --rm -v $(pwd):/home/repo returntocorp/sgrep -l python -e '$X == $X' path/to/file.py
+docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep -l python -e '$X == $X' path/to/file.py
 ```
 
 Here, `sgrep` will search the target with the pattern `$X == $X` (which is a stupid equals check) and print the results to `stdout`. This also works for directories and will skip the file if parsing fails. You can specifiy the language of the pattern with `--lang javascript` for example.
@@ -215,7 +95,7 @@ Here, `sgrep` will search the target with the pattern `$X == $X` (which is a stu
 To see more options
 
 ```bash
-docker run --rm -v $(pwd):/home/repo returntocorp/sgrep --help
+docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep --help
 ```
 
 ### Config Files
@@ -243,14 +123,14 @@ Default configs are loaded from `.sgrep.yml` or multiple files matching `.sgrep/
 Sgrep has a design philosophy that emphasizes simplicity and a single pattern being as expressive as possible:
 
 1. **Use concrete code syntax:** easy to learn
-2. **Metavariables ($X)**: abstract away code
+2. **Metavariables (\$X)**: abstract away code
 3. **'...' operator:** abstract away sequences
 4. **Knows about code equivalences:** one pattern can match many equivalent variations on the code
 5. **Less is more:** abstract away additional details
 
 ## Patterns
 
-Patterns are snippets of code with variables and other operators that will be parsed into an AST for that langauge and will be used to search for that pattern in code. See [patterns.md](docs/patterns.md) for full documentation.
+Patterns are snippets of code with variables and other operators that will be parsed into an AST for that language and will be used to search for that pattern in code. See [patterns.md](docs/patterns.md) for full documentation.
 
 ### Metavariables
 
@@ -265,15 +145,15 @@ Patterns are snippets of code with variables and other operators that will be pa
 `sgrep` automatically searches for code that is semantically equivalent. For example, a pattern for
 
 ```sgrep
-subprocess.open(...)
+subprocess.Popen(...)
 ```
 
 will match
 
 ```python
-from subprocess import open as
- sub_open
-result = sub_open(“ls”)
+from subprocess import Popen as
+ sub_popen
+result = sub_popen(“ls”)
 ```
 
 and other semantically equivalent configurations.

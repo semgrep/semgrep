@@ -2,44 +2,36 @@ import argparse
 import collections
 import itertools
 import json
-import os
 import subprocess
 import sys
 import tempfile
 import time
-import traceback
 from datetime import datetime
 from pathlib import Path
 from pathlib import PurePath
 from typing import Any
 from typing import DefaultDict
 from typing import Dict
-from typing import Generator
 from typing import Iterable
 from typing import Iterator
 from typing import List
-from typing import NewType
 from typing import Optional
 from typing import Set
 from typing import Tuple
-from urllib.parse import urlparse
 
 import colorama
 import config_resolver
 import requests
 import yaml
-from constants import DEFAULT_CONFIG_FILE
 from constants import ID_KEY
 from constants import PLEASE_FILE_ISSUE_TEXT
 from constants import RCE_RULE_FLAG
 from constants import RULES_KEY
-from constants import SGREP_URL
 from evaluation import build_boolean_expression
 from evaluation import enumerate_patterns_in_boolean_expression
 from evaluation import evaluate_expression
 from sgrep_types import BooleanRuleExpression
 from sgrep_types import InvalidRuleSchema
-from sgrep_types import Operator
 from sgrep_types import OPERATORS
 from sgrep_types import PatternId
 from sgrep_types import Range
@@ -89,7 +81,7 @@ def sgrep_finding_to_range(sgrep_finding: Dict[str, Any]) -> SgrepRange:
 def group_rule_by_langauges(
     all_rules: List[Dict[str, Any]]
 ) -> Dict[str, List[Dict[str, Any]]]:
-    by_lang: Any = collections.defaultdict(list)
+    by_lang: Dict[str, List[Dict[str, Any]]] = collections.defaultdict(list)
     for rule in all_rules:
         for language in rule["languages"]:
             by_lang[language].append(rule)
@@ -97,7 +89,7 @@ def group_rule_by_langauges(
 
 
 def invoke_sgrep(
-    all_rules: List[Dict[str, Any]], targets: List[Path], strict: bool
+    all_rules: List[Dict[str, Any]], targets: List[Path]
 ) -> Dict[str, Any]:
     """Returns parsed json output of sgrep"""
 
@@ -111,20 +103,13 @@ def invoke_sgrep(
             )
             fout.write(yaml_as_str)
             fout.flush()
-            extra_args = (
-                ["-report_parse_errors", "-report_fatal_errors"] if strict else []
-            )
-            cmd = (
-                [SGREP_PATH]
-                + extra_args
-                + [
-                    "-lang",
-                    language,
-                    f"-rules_file",
-                    fout.name,
-                    *[str(path) for path in targets],
-                ]
-            )
+            cmd = [SGREP_PATH] + [
+                "-lang",
+                language,
+                f"-rules_file",
+                fout.name,
+                *[str(path) for path in targets],
+            ]
             try:
                 output = subprocess.check_output(cmd, shell=False)
             except subprocess.CalledProcessError as ex:
@@ -133,7 +118,6 @@ def invoke_sgrep(
                 )
                 print_error_exit(f"\n\n{PLEASE_FILE_ISSUE_TEXT}")
             output_json = json.loads((output.decode("utf-8", "replace")))
-
             errors.extend(output_json["errors"])
             outputs.extend(output_json["matches"])
     return {"matches": outputs, "errors": errors}
@@ -152,12 +136,26 @@ def fetch_lines_in_file(
         return list(itertools.islice(fin, start_line_number - 1, end_line_number))
 
 
-def rewrite_message_with_metavars(yaml_rule, sgrep_result):
-    msg_text = yaml_rule["message"]
+def rewrite_message_with_metavars(
+    yaml_rule: Dict[str, Any], sgrep_result: Dict[str, Any]
+) -> str:
+    msg_text: str = yaml_rule["message"]
     if "metavars" in sgrep_result["extra"]:
         for metavar, contents in sgrep_result["extra"]["metavars"].items():
             msg_text = msg_text.replace(metavar, contents["abstract_content"])
     return msg_text
+
+
+def generate_fix(
+    yaml_rule: Dict[str, Any], sgrep_result: Dict[str, Any]
+) -> Optional[Any]:
+    fix_str = yaml_rule.get("fix")
+    if fix_str is None:
+        return None
+    if "metavars" in sgrep_result["extra"]:
+        for metavar, contents in sgrep_result["extra"]["metavars"].items():
+            fix_str = fix_str.replace(metavar, contents["abstract_content"])
+    return fix_str
 
 
 def transform_to_r2c_output(finding: Dict[str, Any]) -> Dict[str, Any]:
@@ -180,7 +178,7 @@ def should_send_to_sgrep(expression: BooleanRuleExpression) -> bool:
     )
 
 
-def flatten_rule_patterns(all_rules) -> Iterator[Dict[str, Any]]:
+def flatten_rule_patterns(all_rules: List[Dict[str, Any]]) -> Iterator[Dict[str, Any]]:
     for rule_index, rule in enumerate(all_rules):
         flat_expressions = list(
             enumerate_patterns_in_boolean_expression(build_boolean_expression(rule))
@@ -317,7 +315,7 @@ def rename_rule_ids(valid_configs: Dict[str, Any]) -> Dict[str, Any]:
     return transformed
 
 
-def flatten_configs(transformed_configs: Dict[str, Any]) -> List[Any]:
+def flatten_configs(transformed_configs: Dict[str, Any]) -> List[Dict[str, Any]]:
     return [
         rule
         for config in transformed_configs.values()
@@ -352,21 +350,36 @@ def post_output(output_url: str, output_data: Dict[str, Any]) -> None:
 
 
 def build_output_json(output_json: Dict[str, Any]) -> str:
+    # wrap errors under "data" entry to be compatible with
+    # https://docs.r2c.dev/en/latest/api/output.html#errors
+    errors = output_json["errors"]
+    if errors:
+        output_json["errors"] = {
+            "data": output_json["errors"],
+            "message": "SgrepRuntimeErrors",
+        }
     return json.dumps(output_json)
 
 
-def color_line(line, line_number, start_line, start_col, end_line, end_col):
+def color_line(
+    line: str,
+    line_number: int,
+    start_line: int,
+    start_col: int,
+    end_line: int,
+    end_col: int,
+) -> str:
     start_color = 0 if line_number > start_line else start_col
     # column offset
-    start_color = max(0, start_color - 1)
+    start_color = max(start_color - 1, 0)
     end_color = end_col if line_number >= end_line else len(line) + 1 + 1
     end_color = max(end_color - 1, 0)
     line = (
         line[:start_color]
         + colorama.Style.BRIGHT
-        + line[start_color:end_color]
+        + line[start_color : end_color + 1]  # want the color to include the end_col
         + colorama.Style.RESET_ALL
-        + line[end_color:]
+        + line[end_color + 1 :]
     )
     return line
 
@@ -400,10 +413,13 @@ def build_normal_output(
         RESET_COLOR = colorama.Style.RESET_ALL if color_output else ""
         GREEN_COLOR = colorama.Fore.GREEN if color_output else ""
         YELLOW_COLOR = colorama.Fore.YELLOW if color_output else ""
+        BLUE_COLOR = colorama.Fore.BLUE if color_output else ""
 
         current_file = finding.get("path", "<no path>")
         check_id = finding.get("check_id")
-        message = finding.get("extra", {}).get("message")
+        extra = finding.get("extra", {})
+        message = extra.get("message")
+        fix = extra.get("fix")
         if last_file is None or last_file != current_file:
             if last_file is not None:
                 yield ""
@@ -420,9 +436,18 @@ def build_normal_output(
         last_file = current_file
         last_message = message
         yield from finding_to_line(finding, color_output)
+        if fix:
+            yield f"{BLUE_COLOR}autofix:{RESET_COLOR} {fix}"
 
 
-def save_output(output_str: str, output_data: Dict[str, Any], json: bool = False):
+def r2c_error_format(sgrep_errors_json: Dict[str, Any]) -> Dict[str, Any]:
+    # TODO https://docs.r2c.dev/en/latest/api/output.html
+    return sgrep_errors_json
+
+
+def save_output(
+    output_str: str, output_data: Dict[str, Any], json: bool = False
+) -> None:
     if is_url(output_str):
         post_output(output_str, output_data)
     else:
@@ -442,12 +467,66 @@ def save_output(output_str: str, output_data: Dict[str, Any], json: bool = False
                 )
 
 
+def modify_file(filepath: str, finding: Dict[str, Any]) -> None:
+    p = Path(filepath)
+    SPLIT_CHAR = "\n"
+    contents = p.read_text()
+    lines = contents.split(SPLIT_CHAR)
+    fix = finding.get("extra", {}).get("fix")
+
+    # get the start and end points
+    start_obj = finding.get("start", {})
+    start_line = start_obj.get("line", 1) - 1  # start_line is 1 indexed
+    start_col = start_obj.get("col", 1) - 1  # start_col is 1 indexed
+    end_obj = finding.get("end", {})
+    end_line = end_obj.get("line", 1) - 1  # end_line is 1 indexed
+    end_col = end_obj.get("col", 1) - 1  # end_line is 1 indexed
+
+    # break into before, to modify, after
+    before_lines = lines[:start_line]
+    before_on_start_line = lines[start_line][:start_col]
+    after_on_end_line = lines[end_line][end_col + 1 :]  # next char after end of match
+    modified_lines = (before_on_start_line + fix + after_on_end_line).splitlines()
+    after_lines = lines[end_line + 1 :]  # next line after end of match
+    contents_after_fix = before_lines + modified_lines + after_lines
+
+    contents_after_fix_str = SPLIT_CHAR.join(contents_after_fix)
+    p.write_text(contents_after_fix_str)
+
+
 def should_exclude_this_path(path: Path) -> bool:
     return any("test" in p or "example" in p for p in path.parts)
 
 
+def dump_parsed_ast(
+    to_json: bool, language: str, pattern: Optional[str], targets: List[Path]
+) -> None:
+    with tempfile.NamedTemporaryFile("w") as fout:
+        args = []
+        if pattern:
+            fout.write(pattern)
+            fout.flush()
+            args = ["-lang", language, "-dump_pattern", fout.name]
+        else:
+            if len(targets) != 1:
+                print_error_exit("exactly one target file is required with this option")
+            target = targets[0]
+            args = ["-lang", language, "-dump_ast", str(target)]
+
+        if to_json:
+            args = ["-json"] + args
+
+        cmd = [SGREP_PATH] + args
+        try:
+            output = subprocess.check_output(cmd, shell=False)
+        except subprocess.CalledProcessError as ex:
+            print_error(f"error invoking sgrep with:\n\t{' '.join(cmd)}\n{ex}")
+            print_error_exit(f"\n\n{PLEASE_FILE_ISSUE_TEXT}")
+        print(output.decode())
+
+
 # entry point
-def main(args: argparse.Namespace):
+def main(args: argparse.Namespace) -> Dict[str, Any]:
     """ main function that parses args and runs sgrep """
 
     # get the proper paths for targets i.e. handle base path of /home/repo when it exists in docker
@@ -471,6 +550,12 @@ def main(args: argparse.Namespace):
         # else let's get a config. A config is a dict from config_id -> config. Config Id is not well defined at this point.
         configs = config_resolver.resolve_config(args.config)
 
+    if args.dump_ast:
+        if not args.lang:
+            print_error_exit("language must be specified to dump ASTs")
+        dump_parsed_ast(args.json, args.lang, args.pattern, targets)
+        sys.exit(0)
+
     # if we can't find a config, use default r2c rules
     if not configs:
         print_error_exit(
@@ -480,19 +565,19 @@ def main(args: argparse.Namespace):
     # let's split our configs into valid and invalid configs.
     # It's possible that a config_id exists in both because we check valid rules and invalid rules
     # instead of just hard failing for that config if mal-formed
-    valid_configs, errors = validate_configs(configs)
+    valid_configs, invalid_configs = validate_configs(configs)
 
     validate = args.validate
     strict = args.strict
 
-    if errors:
+    if invalid_configs:
         if strict:
             print_error_exit(
-                f"run with --strict and there were {len(errors)} errors loading configs"
+                f"run with --strict and there were {len(invalid_configs)} errors loading configs"
             )
         elif validate:
             print_error_exit(
-                f"run with --validate and there were {len(errors)} errors loading configs"
+                f"run with --validate and there were {len(invalid_configs)} errors loading configs"
             )
     elif validate:  # no errors!
         print_error_exit("Config is valid", exit_code=0)
@@ -520,9 +605,11 @@ def main(args: argparse.Namespace):
             list(valid_configs.keys())[0] if len(valid_configs) == 1 else ""
         )
         invalid_msg = (
-            f"({len(errors)} config files were invalid)" if len(errors) else ""
+            f"({len(invalid_configs)} config files were invalid)"
+            if len(invalid_configs)
+            else ""
         )
-        print_msg(
+        debug_print(
             f"running {len(all_rules)} rules from {len(valid_configs)} config{plural} {config_id_if_single} {invalid_msg}"
         )
     # TODO log valid and invalid configs if verbose
@@ -532,7 +619,7 @@ def main(args: argparse.Namespace):
 
     # actually invoke sgrep
     start = datetime.now()
-    output_json = invoke_sgrep(all_patterns, targets, strict)
+    output_json = invoke_sgrep(all_patterns, targets)
     debug_print(f"sgrep ran in {datetime.now() - start}")
     debug_print(str(output_json))
 
@@ -541,12 +628,14 @@ def main(args: argparse.Namespace):
         lambda: collections.defaultdict(list)
     )
 
-    for finding in output_json["errors"]:
+    sgrep_errors = output_json["errors"]
+
+    for finding in sgrep_errors:
         print_error(f"sgrep: {finding['path']}: {finding['check_id']}")
 
-    if strict and len(output_json["errors"]):
+    if strict and len(sgrep_errors):
         print_error_exit(
-            f"run with --strict and {len(output_json['errors'])} errors occurred during sgrep run; exiting"
+            f"run with --strict and {len(sgrep_errors)} errors occurred during sgrep run; exiting"
         )
 
     for finding in output_json["matches"]:
@@ -557,6 +646,8 @@ def main(args: argparse.Namespace):
     current_path = Path.cwd()
     outputs_after_booleans = []
     ignored_in_tests = 0
+    fixes: List[Tuple[str, Dict[str, Any]]] = []
+
     for rule_index, paths in by_rule_index.items():
         expression = build_boolean_expression(all_rules[rule_index])
         debug_print(str(expression))
@@ -594,6 +685,12 @@ def main(args: argparse.Namespace):
                     result["extra"]["message"] = rewrite_message_with_metavars(
                         all_rules[rule_index], result
                     )
+
+                    # try to generate a fix
+                    fix = generate_fix(all_rules[rule_index], result)
+                    if fix:
+                        result["extra"]["fix"] = fix
+                        fixes.append((filepath, result))
                     result = transform_to_r2c_output(result)
                     outputs_after_booleans.append(result)
 
@@ -603,12 +700,43 @@ def main(args: argparse.Namespace):
         )
 
     # output results
-    output_data = {"results": outputs_after_booleans}
+    output_data = {
+        "results": outputs_after_booleans,
+        "errors": r2c_error_format(sgrep_errors),
+    }
+    if args.exclude:
+        exclude_glob_patterns = args.exclude
+        debug_print(f"patterns to exclude: {', '.join(exclude_glob_patterns)}")
+        filtered_results = [
+            output
+            for output in outputs_after_booleans
+            if not any(
+                PurePath(output.get("path", "")).match(pat)
+                for pat in exclude_glob_patterns
+            )
+        ]
+        debug_print(
+            f"filtered output from {len(outputs_after_booleans)} down to {len(filtered_results)} results"
+        )
+        output_data["results"] = filtered_results
     if not args.quiet:
         if args.json:
             print(build_output_json(output_data))
         else:
-            print("\n".join(build_normal_output(output_data, color_output=True)))
+            if outputs_after_booleans:
+                print("\n".join(build_normal_output(output_data, color_output=True)))
+    if args.autofix and fixes:
+        modified_files: Set[str] = set()
+        for filepath, finding in fixes:
+            try:
+                modify_file(filepath, finding)
+                modified_files.add(filepath)
+            except Exception as e:
+                print_error_exit(f"unable to modify file: {filepath}: {e}")
+        num_modified = len(modified_files)
+        print_msg(
+            f"Successfully modified {num_modified} file{'s' if num_modified > 1 else ''}."
+        )
     if args.output:
         save_output(args.output, output_data, args.json)
     if args.error and outputs_after_booleans:

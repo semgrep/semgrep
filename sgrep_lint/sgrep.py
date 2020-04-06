@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 import argparse
+import sys
 import test
 
 import config_resolver
 import sgrep_main
+import util
 from constants import DEFAULT_CONFIG_FILE
 from constants import PLEASE_FILE_ISSUE_TEXT
 from constants import RCE_RULE_FLAG
@@ -11,22 +13,8 @@ from constants import SGREP_URL
 from util import debug_print
 from util import print_error_exit
 
-
-def set_flags(debug: bool, quiet: bool) -> None:
-    """Set the global DEBUG and QUIET flags"""
-    # TODO move to a proper logging framework
-    global DEBUG
-    global QUIET
-    if debug:
-        DEBUG = True  # type: ignore
-        debug_print("DEBUG is on")
-    if quiet:
-        QUIET = True  # type: ignore
-        debug_print("QUIET is on")
-
-
 # CLI
-
+__VERSION__ = "0.4.9"
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -73,6 +61,12 @@ if __name__ == "__main__":
         "--strict",
         help=f"only invoke sgrep if config(s) are valid",
         action="store_true",
+    )
+    parser.add_argument(
+        "--exclude",
+        action="append",
+        default=[],
+        help="Path pattern to exclude. Can be added multiple times to exclude multiple patterns.",
     )
 
     config.add_argument(
@@ -129,10 +123,23 @@ if __name__ == "__main__":
         action="store_true",
     )
     output.add_argument(
+        "--dump-ast",
+        help="show AST of the input file or passed expression and then exit (can use --json)",
+        action="store_true",
+    )
+    output.add_argument(
         "--error",
         help="System Exit 1 if there are findings. Useful for CI and scripts.",
         action="store_true",
     )
+
+    output.add_argument(
+        "-a",
+        "--autofix",
+        help="Apply the autofix patches. WARNING: data loss can occur with this flag. Make sure your files are stored in a version control system.",
+        action="store_true",
+    )
+
     # logging options
     logging = parser.add_argument_group("logging")
 
@@ -143,13 +150,21 @@ if __name__ == "__main__":
         action="store_true",
     )
 
+    parser.add_argument(
+        "--version", help="Show the version and exit.", action="store_true"
+    )
+
     ### Parse and validate
     args = parser.parse_args()
-    if args.lang and not args.pattern or (args.pattern and not args.lang):
+    if args.version:
+        print(__VERSION__)
+        sys.exit(0)
+
+    if args.pattern and not args.lang:
         parser.error("-e/--pattern and -l/--lang must both be specified")
 
     # set the flags
-    set_flags(args.verbose, args.quiet)
+    util.set_flags(args.verbose, args.quiet)
 
     # change cwd if using docker
     config_resolver.adjust_for_docker(args.precommit)

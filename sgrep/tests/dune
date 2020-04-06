@@ -4,6 +4,7 @@
     bigarray
     threads          ;; needed for json-wheel (Condition?)
     json-wheel       ;; Json_io, Json_type
+    dyp
 
     commons commons_core
     pfff-config 

@@ -37,8 +37,10 @@ module J = Json_type
  *  - ack http://beyondgrep.com/
  *  - cgrep http://awgn.github.io/cgrep/
  *  - hound https://codeascraft.com/2015/01/27/announcing-hound-a-lightning-fast-code-search-tool/
+ *  - many grep-based linters (in Zulip, autodesk, bento, etc.)
  * 
  * See also codequery for more structural queries.
+ * See also old information at https://github.com/facebook/pfff/wiki/Sgrep.
  *)
 
 (*****************************************************************************)
@@ -48,13 +50,19 @@ module J = Json_type
 let verbose = ref false
 let debug = ref false
 
+(* -e *)
 let pattern_string = ref ""
+(* -f *)
 let pattern_file = ref ""
+(* -rules_file *)
 let rules_file = ref ""
+
+let equivalences_file = ref ""
 
 (* todo: infer from basename argv(0) ? *)
 let lang = ref "unset"
 
+let output_format_json = ref false
 let case_sensitive = ref false
 let match_format = ref Matching_report.Normal
 
@@ -64,9 +72,6 @@ let layer_file = ref (None: filename option)
 
 let keys = Common2.hkeys Lang.lang_of_string_map
 let supported_langs: string = String.concat ", " keys
-
-let unsupported_language_message = fun some_lang: string -> 
-  (spf "unsupported language: %s; supported langauge tags are: %s" some_lang supported_langs)
 
 (* action mode *)
 let action = ref ""
@@ -91,8 +96,6 @@ let set_gc () =
   ()
 
 
-(* for -gen_layer *)
-let _matching_tokens = ref []
 
 (* TODO? could do slicing of function relative to the pattern, so 
  * would see where the parameters come from :)
@@ -100,6 +103,9 @@ let _matching_tokens = ref []
 
 let mk_one_info_from_multiple_infos xs =
   List.hd xs
+
+(* for -gen_layer *)
+let _matching_tokens = ref []
 
 let print_match mvars mvar_binding ii_of_any tokens_matched_code = 
   (* there are a few fake tokens in the generic ASTs now (e.g., 
@@ -170,58 +176,54 @@ let gen_layer ~root ~query file =
   in
   Layer_code.save_layer layer file;
   ()
+
+(* coupling: you need also to modify tests/test.ml *)
+let parse_generic lang file = 
+  let ast = Parse_generic.parse_with_lang lang file in
+  Naming_ast.resolve lang ast;
+  ast
+
+let parse_equivalences () =
+  match !equivalences_file with
+  | "" -> []
+  | file -> Parse_equivalences.parse file
+
+let unsupported_language_message some_lang =
+  spf "unsupported language: %s; supported langauge tags are: %s" 
+      some_lang supported_langs
   
 (*****************************************************************************)
 (* Language specific *)
 (*****************************************************************************)
 
 type ast =
-  | Gen of Ast_generic.program
+  | Gen of Ast_generic.program * Lang.t
   | Fuzzy of Ast_fuzzy.trees
-
-  | Php of Cst_php.program
-
   | NoAST
 
-(* coupling: you need also to modify tests/test.ml *)
-let parse_generic file = 
-  let ast = Parse_generic.parse_program file in
-  let lang = Common2.some (Lang.lang_of_filename_opt file) in
-  Naming_ast.resolve lang ast;
-  ast
-
 let create_ast file =
-  match !lang with
-  | s when Lang.lang_of_string_opt s <> None ->
-    Gen (parse_generic file)
-  | s when Lang_fuzzy.lang_of_string_opt s <> None ->
-    Fuzzy (Parse_fuzzy.parse file)
-  | "php" ->
-    Php (Parse_php.parse_program file)
-  | _ -> failwith (unsupported_language_message !lang)
+  match Lang.lang_of_string_opt !lang with
+  | Some lang -> Gen (parse_generic lang file, lang)
+  | None ->
+    (match Lang_fuzzy.lang_of_string_opt !lang with
+    | Some _ -> Fuzzy (Parse_fuzzy.parse file)
+    | None -> failwith (unsupported_language_message !lang)
+    )
   
 
 type pattern =
   | PatFuzzy of Ast_fuzzy.tree list
-  | PatGen of Sgrep_generic.pattern
-(*  | PatPhp of Sgrep_php.pattern *)
-
+  | PatGen of Rule.pattern
 
 let parse_pattern str =
  try (
   Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
    match Lang.lang_of_string_opt !lang with
-   | Some lang ->
-       PatGen (Parse_generic.parse_pattern lang str)
+   | Some lang -> PatGen (Parse_generic.parse_pattern lang str)
    | None ->
      (match Lang_fuzzy.lang_of_string_opt !lang with
-     | Some lang -> 
-       PatFuzzy (Parse_fuzzy.parse_pattern lang str)
-     | None ->
-       (match !lang with
-       | "php" -> (* PatPhp (Sgrep_php.parse str) *) raise Todo
-       | _ -> failwith (unsupported_language_message !lang)
-       )
+     | Some lang -> PatFuzzy (Parse_fuzzy.parse_pattern lang str)
+     | None -> failwith (unsupported_language_message !lang)
      )
   ))
   with exn ->
@@ -229,15 +231,21 @@ let parse_pattern str =
           str !lang (Common.exn_to_s exn))
  
 
-let sgrep_ast pattern any_ast =
+let sgrep_ast pattern file any_ast =
   match pattern, any_ast with
   |  _, NoAST -> () (* skipping *)
-  | PatGen pattern, Gen ast ->
-    Sgrep_generic.sgrep_ast
+  | PatGen pattern, Gen (ast, lang) ->
+    let rule = { R.
+      id = "-e/-f"; pattern; message = ""; severity = R.Error; 
+      languages = [lang] 
+    } in
+    Sgrep_generic.check
       ~hook:(fun env matched_tokens ->
-        print_match !mvars env Lib_ast.ii_of_any matched_tokens
+        let xs = Lazy.force matched_tokens in
+        print_match !mvars env Lib_ast.ii_of_any xs
       )
-      pattern ast
+      [rule] (parse_equivalences ())
+      file ast |> ignore;
 
   | PatFuzzy pattern, Fuzzy ast ->
     Sgrep_fuzzy.sgrep
@@ -246,15 +254,6 @@ let sgrep_ast pattern any_ast =
       )
       pattern ast
 
-(*
-  | PatPhp pattern, Php ast ->
-    Sgrep_php.sgrep_ast
-      ~case_sensitive:!case_sensitive
-      ~hook:(fun env matched_tokens ->
-        print_match !mvars env Lib_parsing_php.ii_of_any matched_tokens
-      )
-      pattern ast
-*)
   | _ ->
     failwith ("unsupported  combination or " ^ (unsupported_language_message !lang))
 
@@ -287,10 +286,9 @@ let sgrep_with_one_pattern xs =
   files |> List.iter (fun file ->
     if !verbose 
     then pr2 (spf "processing: %s" file);
-    let process file = sgrep_ast pattern (create_ast file) in
-      E.try_with_print_exn_and_reraise file (fun () ->
-            process file
-         )
+    E.try_with_print_exn_and_reraise file (fun () ->
+         sgrep_ast pattern file (create_ast file)
+    )
   );
 
   !layer_file |> Common.do_option (fun file ->
@@ -303,15 +301,16 @@ let sgrep_with_one_pattern xs =
 (* Sgrep lint *)
 (*****************************************************************************)
 
+(* less: could factorize even more and merge sgrep_with_rules and
+ * sgrep_with_one_pattern now.
+ *)
 let sgrep_with_rules rules_file xs =
 
   if !verbose then pr2 (spf "Parsing %s" rules_file);
-  (* todo: call Normalize_ast.normalize here after or in parse()? *)
   let rules = Parse_rules.parse rules_file in
 
   match Lang.lang_of_string_opt !lang with
-  | None -> 
-        failwith (unsupported_language_message !lang)
+  | None -> failwith (unsupported_language_message !lang)
   | Some lang ->
     let files = Lang.files_of_dirs_or_files lang xs in
     let rules = rules |> List.filter (fun r -> List.mem lang r.R.languages) in
@@ -321,17 +320,22 @@ let sgrep_with_rules rules_file xs =
       files |> List.map (fun file ->
          if !verbose then pr2 (spf "Analyzing %s" file);
          try 
-           let ast = Parse_generic.parse_with_lang lang file in
-           Sgrep_lint_generic.check rules file ast
+           let ast = parse_generic lang file in
+           Sgrep_generic.check ~hook:(fun _ _ -> ()) 
+              rules (parse_equivalences ())
+              file ast
          with exn -> 
             Common.push (Error_code.exn_to_error file exn) errs;
-            []
-      ) |> List.flatten
-    in
-    let errs = E.filter_maybe_parse_and_fatal_errors !errs in
+           []
+      ) |> List.flatten in
+    let count_errors = (List.length !errs) in
+    let count_ok = (List.length files) - count_errors in
+    let errs = !errs in 
+    let stats = J.Object [ "okfiles", J.Int count_ok; "errorfiles", J.Int count_errors; ] in
     let json = J.Object [
        "matches", J.Array (matches |> List.map Match_result.match_to_json);
-       "errors", J.Array (errs |> List.map R2c.error_to_json)
+       "errors", J.Array (errs |> List.map R2c.error_to_json);        
+       "stats", stats
     ] in
     let s = Json_io.string_of_json json in
     pr s
@@ -363,11 +367,48 @@ let validate_pattern () =
   | _ -> exit 1
   ) with _exn -> exit 1
 
+let json_of_v (v: Ocaml.v) = 
+  let rec aux v = 
+    match v with
+    | Ocaml.VUnit -> J.String "()"
+    | Ocaml.VBool v1 ->
+        if v1
+        then J.String "true"
+        else J.String "false"
+    | Ocaml.VFloat v1 -> J.Float v1 (* ppf "%f" v1 *)
+    | Ocaml.VChar v1 -> J.String (spf "'%c'" v1)
+    | Ocaml.VString v1 -> J.String v1
+    | Ocaml.VInt i -> J.Int i
+    | Ocaml.VTuple xs -> J.Array (List.map aux xs)
+    | Ocaml.VDict xs ->
+        J.Object (List.map (fun (k, v) -> (k, (aux v))) xs)
+    | Ocaml.VSum ((s, xs)) ->
+        (match xs with
+        | [] -> J.String (spf "%s" s)
+        | [one_element] -> J.Object [s, (aux one_element)]
+        | _ -> J.Object [s, J.Array (List.map aux xs)]
+        )          
+    | Ocaml.VVar (s, i64) -> J.String (spf "%s_%d" s (Int64.to_int i64))
+    | Ocaml.VArrow _ -> failwith "Arrow TODO"
+    | Ocaml.VNone -> J.Null
+    | Ocaml.VSome v -> J.Object [ "some", aux v ]
+    | Ocaml.VRef v -> J.Object [ "ref@", aux v ];
+    | Ocaml.VList xs -> J.Array (List.map aux xs)
+    | Ocaml.VTODO _ -> J.String "VTODO"
+  in
+  aux v
+
+
 (*****************************************************************************)
 (* Dumpers *)
 (*****************************************************************************)
+let dump_v_to_format (v: Ocaml.v) = 
+  if (not !output_format_json)
+    then (Ocaml.string_of_v v)
+    else (Json_io.string_of_json (json_of_v v))
+
 (* works with -lang *)
-let dump_pattern file =
+let dump_pattern (file: Common.filename) =
   let s = Common.read_file file in
   (* mostly copy-paste of parse_pattern above, but with better error report *)
   match Lang.lang_of_string_opt !lang with
@@ -375,17 +416,20 @@ let dump_pattern file =
     E.try_with_print_exn_and_reraise file (fun () ->
       let any = Parse_generic.parse_pattern lang s in
       let v = Meta_ast.vof_any any in
-      let s = Ocaml.string_of_v v in
-      pr2 s
+      let s = dump_v_to_format v in
+      pr s
     )
   | None ->
      failwith (unsupported_language_message !lang)
 
 let dump_ast file =
-  let x = parse_generic file in
-  let v = Meta_ast.vof_any (Ast_generic.Pr x) in
-  let s = Ocaml.string_of_v v in
-  pr2 s
+  match Lang.lang_of_filename_opt file with
+  | Some lang -> 
+    let x = parse_generic lang file in
+    let v = Meta_ast.vof_any (Ast_generic.Pr x) in
+    let s = dump_v_to_format v in
+    pr s
+  | None -> failwith (spf "unsupported language for %s" file)
 
 let dump_ext_of_lang () =
   let lang_to_exts = keys |> List.map (
@@ -396,7 +440,11 @@ let dump_ext_of_lang () =
     ) in
   pr2 (spf "Language to supported file extension mappings:\n %s" (String.concat "\n" lang_to_exts))
 
-  (*****************************************************************************)
+let dump_equivalences file = 
+  let xs = Parse_equivalences.parse file in
+  pr2_gen xs
+
+(*****************************************************************************)
 (* The options *)
 (*****************************************************************************)
 
@@ -407,6 +455,8 @@ let all_actions () = [
   Common.mk_action_1_arg dump_pattern;
   "-dump_ast", " <file>",
   Common.mk_action_1_arg dump_ast;
+  "-dump_equivalences", " <file>",
+  Common.mk_action_1_arg dump_equivalences;
   "-dump_extensions", "print file extension to language mapping",
   Common.mk_action_0_arg dump_ext_of_lang;
  ]
@@ -422,6 +472,11 @@ let options () =
     " <file> obtain pattern from file";
     "-rules_file", Arg.Set_string rules_file,
     " <file> obtain list of patterns from YAML file";
+
+    "-equivalences", Arg.Set_string equivalences_file,
+    " <file> obtain list of code equivalences from YAML file";
+
+    "-json", Arg.Set output_format_json, " output JSON format";
 
     "-case_sensitive", Arg.Set case_sensitive, 
     " match code in a case sensitive manner";
@@ -440,8 +495,7 @@ let options () =
     "-verbose", Arg.Unit (fun () -> 
       verbose := true;
       Flag_matcher.verbose := true;
-      Generic_vs_generic.verbose := true;
-      (* Flag_matcher_php.verbose := true; *)
+      Matching_generic.verbose := true;
     ),
     " ";
     "-debug", Arg.Set debug,

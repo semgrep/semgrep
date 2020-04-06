@@ -3,26 +3,20 @@ import os
 import shutil
 import sys
 import tarfile
-import tempfile
 import time
 from pathlib import Path
 from typing import Any
-from typing import DefaultDict
 from typing import Dict
-from typing import Generator
-from typing import Iterable
-from typing import Iterator
 from typing import List
-from typing import NewType
 from typing import Optional
-from typing import Set
-from typing import Tuple
 
 import requests
 import yaml
 from constants import DEFAULT_CONFIG_FILE
 from constants import DEFAULT_CONFIG_FOLDER
 from constants import DEFAULT_SGREP_CONFIG_NAME
+from constants import ID_KEY
+from constants import RULES_KEY
 from constants import YML_EXTENSIONS
 from util import debug_print
 from util import is_url
@@ -33,9 +27,6 @@ from util import print_msg
 IN_DOCKER = "SGREP_IN_DOCKER" in os.environ
 IN_GH_ACTION = "GITHUB_WORKSPACE" in os.environ
 REPO_HOME_DOCKER = "/home/repo/"
-
-
-from constants import RULES_KEY, ID_KEY
 
 TEMPLATE_YAML_URL = (
     "https://raw.githubusercontent.com/returntocorp/sgrep-rules/develop/template.yaml"
@@ -73,12 +64,12 @@ def resolve_targets(targets: List[str]) -> List[Path]:
     ]
 
 
-def adjust_for_docker(in_precommit: bool = False):
+def adjust_for_docker(in_precommit: bool = False) -> None:
     # change into this folder so that all paths are relative to it
     if IN_DOCKER and not IN_GH_ACTION and not in_precommit:
         if not Path(REPO_HOME_DOCKER).exists():
             print_error_exit(
-                f"you are running sgrep in docker, but you forgot to mount the current directory in Docker: missing: -v $(pwd):{REPO_HOME_DOCKER}"
+                f'you are running sgrep in docker, but you forgot to mount the current directory in Docker: missing: -v "${{PWD}}:{REPO_HOME_DOCKER}"'
             )
     if Path(REPO_HOME_DOCKER).exists():
         os.chdir(REPO_HOME_DOCKER)
@@ -124,22 +115,22 @@ def parse_config_folder(
 ) -> Dict[str, Optional[Dict[str, Any]]]:
     configs = {}
     for l in loc.rglob("*"):
-        if not _hidden_config_dir(l) and l.suffix in YML_EXTENSIONS:
+        if not _is_hidden_config(l) and l.suffix in YML_EXTENSIONS:
             configs.update(parse_config_at_path(l, loc if relative else None))
     return configs
 
 
-def _hidden_config_dir(loc: Path):
+def _is_hidden_config(loc: Path) -> bool:
     """
     Want to keep rules/.sgrep.yml but not path/.github/foo.yml
-    Also want to keep src/.sgrep/bad_pattern.yml
+    Also want to keep src/.sgrep/bad_pattern.yml but not ./.pre-commit-config.yaml
     """
     return any(
         part != "."
         and part != ".."
         and part.startswith(".")
         and DEFAULT_SGREP_CONFIG_NAME not in part
-        for part in loc.parts[:-1]
+        for part in loc.parts
     )
 
 
@@ -204,7 +195,7 @@ def download_config(config_url: str) -> Dict[str, Optional[Dict[str, Any]]]:
             )
             assert False
     except Exception as e:
-        print_error(e)
+        print_error(str(e))
     return {config_url: None}
 
 
@@ -224,7 +215,7 @@ def resolve_config(config_str: Optional[str]) -> Dict[str, Optional[Dict[str, An
     return config
 
 
-def generate_config():
+def generate_config() -> None:
     # defensive coding
     if Path(DEFAULT_CONFIG_FILE).exists():
         print_error_exit(
@@ -251,4 +242,4 @@ def generate_config():
             print_msg(f"Template config successfully written to {DEFAULT_CONFIG_FILE}")
             sys.exit(0)
     except Exception as e:
-        print_error_exit(e)
+        print_error_exit(str(e))

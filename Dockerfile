@@ -7,7 +7,7 @@ RUN apk add --no-cache perl m4
 USER opam
 
 WORKDIR /home/opam/opam-repository
-RUN git pull && opam update && opam switch 4.07 && opam install ocamlfind camlp4 num ocamlgraph json-wheel conf-perl dune yaml
+RUN git pull && opam update && opam switch 4.07 && opam install ocamlfind camlp4 num ocamlgraph json-wheel conf-perl dune yaml grain_dypgen menhir
 
 COPY --chown=opam . /home/opam/sgrep/
 WORKDIR /home/opam/sgrep
@@ -19,7 +19,7 @@ RUN sgrep/_build/default/bin/main_sgrep.exe -version
 
 ## sgrep lint build
 
-FROM alpine:3.11.3@sha256:ddba4d27a7ffc3f86dd6c2f92041af252a1f23a8e742c90e6e1297bfa1bc0c45 as build-sgrep-lint
+FROM python:3.7.7-alpine3.11 as build-sgrep-lint
 RUN apk add --no-cache python3-dev build-base chrpath
 COPY sgrep_lint /home/pythonbuild/sgrep_lint/
 WORKDIR /home/pythonbuild/sgrep_lint
@@ -28,7 +28,7 @@ RUN ls -al /home/pythonbuild/sgrep_lint/build/sgrep.dist/
 
 ## final output, combining both
 
-FROM alpine:3.11.3@sha256:ddba4d27a7ffc3f86dd6c2f92041af252a1f23a8e742c90e6e1297bfa1bc0c45
+FROM python:3.7.7-alpine3.11
 LABEL maintainer="sgrep@r2c.dev"
 
 ENV PYTHONUNBUFFERED=1
@@ -48,4 +48,5 @@ RUN sgrep-lint --config=r2c /bin/sgrep-lint-files/
 
 
 ENV SGREP_IN_DOCKER=1
+ENV PYTHONIOENCODING=utf8
 ENTRYPOINT [ "/bin/sgrep-lint" ]
