@@ -87,8 +87,8 @@ let m_ident a b =
   match a, b with
   | (str, tok), b when MV.is_metavar_name str ->
       (* note that adding B.I here is sometimes not what you want.
-       * this can prevent this id to later be matched against
-       * an ident used in an expression context (an Id).
+       * this can prevent this ID to later be matched against
+       * an ID used in an expression context (an Id).
        * see m_ident_and_id_info_add_in_env_Expr for more information.
        *)
       envf (str, tok) (B.I b)
@@ -202,6 +202,10 @@ and m_id_info a b =
       * matching, hence the comment for now. We need to correctly resolve
       * names and always compare with the resolved_name instead of the 
       * name used in the code (which can be an alias)
+      *
+      * Note that is is independent of the check done in equal_ast to check
+      * that two $X refers to the same code. In that case we are using
+      * the id_resolved tag and sid.
       *)
       (* (m_ref m_resolved_name) a3 b3  >>= (fun () ->  *)
 
@@ -297,7 +301,10 @@ and m_expr a b =
   | A.L(a1), B.L(b1) ->
     m_literal a1 b1 
 
-  (* equivalence: constant propagation and evaluation! *)
+  (* equivalence: constant propagation and evaluation! 
+   * TODO: too late, must do that before 'metavar:' so that
+   * const a = "foo"; ... a == "foo" would be catched by $X == $X.
+*)
   | A.L(a1), b1 -> 
     (match Normalize_generic.constant_propagation_and_evaluate_literal b1 with
     | Some b1 ->
@@ -601,6 +608,7 @@ and m_attrs a b =
 and m_bodies a b = 
   m_list__m_body a b
 
+(* todo: factorize in m_list_unordered_keys_no_dots *)
 and m_list__m_xml_attr 
  (xsa: A.xml_attribute list) (xsb: A.xml_attribute list) =
   match xsa, xsb with
@@ -692,6 +700,7 @@ and m_arguments a b =
   match a, b with
   (a, b) -> (m_list__m_argument) a b
 
+(* todo: factorize in m_list_and_dots? but also has unordered for kwd args *)
 and m_list__m_argument (xsa: A.argument list) (xsb: A.argument list) =
   match xsa, xsb with
   | [], [] ->
@@ -868,6 +877,7 @@ and m_other_type_argument_operator = m_other_xxx
 (* Attribute *)
 (*****************************************************************************)
 
+(* todo: factorize m_list_unordered_keys? but two "keys" here *)
 and m_list__m_attribute (xsa: A.attribute list) (xsb: A.attribute list) =
   match xsa, xsb with
   | [], [] ->
@@ -1004,6 +1014,7 @@ and m_stmts_deep (xsa: A.stmt list) (xsb: A.stmt list) =
 and _m_stmts (xsa: A.stmt list) (xsb: A.stmt list) = 
   m_list__m_stmt xsa xsb 
 
+(* TODO: factorize with m_list_and_dots less_is_ok = true *)
 and m_list__m_stmt (xsa: A.stmt list) (xsb: A.stmt list) =
   if !debug
   then pr2 (spf "%d vs %d" (List.length xsa) (List.length xsb));
@@ -1452,6 +1463,7 @@ and m_variable_definition a b =
 and m_fields (xsa: A.field list) (xsb: A.field list) =
   m_list__m_field xsa xsb
 
+(* todo: mix of m_list_and_dots and m_list_unordered_keys *)
 and m_list__m_field (xsa: A.field list) (xsb: A.field list) =
   match xsa, xsb with
   | [], [] ->
