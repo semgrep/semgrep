@@ -86,6 +86,9 @@ type ('a, 'b) matcher = 'a -> 'b  -> tin -> tout
 (* Globals *)
 (*****************************************************************************)
 let verbose = ref false
+
+(* note that this will stop at the first fail(), but if you restrict
+ * enough your pattern, this can help you debug your problem.*)
 let debug = ref false
 let debug_with_full_position = ref false
 
@@ -104,6 +107,7 @@ let str_of_any any =
   then Meta_parse_info._current_precision :=
     { Meta_parse_info.default_dumper_precision with Meta_parse_info.
       full_info = true };
+
   let v = Meta_ast.vof_any any in
   let s = Ocaml.string_of_v v in
   s
@@ -187,6 +191,7 @@ let equal_ast_binded_code (a: Ast.any) (b: Ast.any) : bool =
   | A.I _, A.I _
   | A.N _, A.N _
   | A.E _, A.E _ 
+  | A.P _, A.P _ 
   | A.S _, A.S _
     ->
       (* Note that because we want to retain the position information
