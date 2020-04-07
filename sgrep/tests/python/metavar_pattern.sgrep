@@ -1,0 +1,4 @@
+try:
+  foo()
+except $K as $E:
+  return $E

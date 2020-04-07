@@ -259,7 +259,9 @@ and m_expr_deep a b =
     )
 
 
-
+(* coupling: if you add special sgrep hooks here, you should probably
+ * also add them in m_pattern
+ *)
 and m_expr a b = 
   match a, b with
   (* equivalence: user-defined equivalence! *)
@@ -1238,6 +1240,21 @@ and m_other_stmt_with_stmt_operator = m_other_xxx
 
 and m_pattern a b = 
   match a, b with
+  (* equivalence: user-defined equivalence! *)
+  | A.DisjPat (a1, a2), b ->
+      m_pattern a1 b >||> m_pattern a2 b
+
+  (* metavar: *)
+  | A.PatId ((str,tok), _id_info), b2 
+     when MV.is_metavar_name str ->
+      (try 
+        let e2 = Ast.pattern_to_expr b2 in
+        envf (str, tok) (B.E (e2))
+       (* this can happen with PatAs in exception handler in Python *)
+       with Ast.NotAnExpr ->
+        envf (str, tok) (B.P b2)
+      )
+
   | A.PatId(a1, a2), B.PatId(b1, b2) ->
     m_ident a1 b1 >>= (fun () -> 
     m_id_info a2 b2 
@@ -1268,16 +1285,15 @@ and m_pattern a b =
     )
   | A.PatAs(a1, (a2, a3)), B.PatAs(b1, (b2, b3)) ->
     m_pattern a1 b1 >>= (fun () -> 
-    m_ident a2 b2 >>= (fun () -> 
-    m_id_info a3 b3 
-    ))
+    m_ident_and_id_info_add_in_env_Expr (a2, a3) (b2, b3)
+    )
   | A.PatTyped(a1, a2), B.PatTyped(b1, b2) ->
     m_pattern a1 b1 >>= (fun () -> 
     m_type_ a2 b2  
     )
   | A.PatVar(a1, a2), B.PatVar(b1, b2) ->
     m_type_ a1 b1 >>= (fun () -> 
-    m_option m_id_and_id_info a2 b2 
+    m_option m_ident_and_id_info_add_in_env_Expr a2 b2 
     )
   | A.PatWhen(a1, a2), B.PatWhen(b1, b2) ->
     m_pattern a1 b1 >>= (fun () -> 
@@ -1293,10 +1309,7 @@ and m_pattern a b =
   | A.PatTyped _, _  | A.OtherPat _, _ | A.PatType _, _ | A.PatVar _, _
    -> fail ()
 
-and m_id_and_id_info (a2, a3) (b2, b3) =
-    m_ident a2 b2 >>= (fun () -> 
-    m_id_info a3 b3 
-    )
+
 and m_field_pattern a b = 
   match a, b with
   | (a1, a2), (b1, b2) ->
