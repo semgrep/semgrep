@@ -1,0 +1,105 @@
+autorun:
+  block: true
+formatter:
+- clippy: {}
+tools:
+  bandit:
+    ignore:
+    - any-other-function-with-shell-equals-true
+    - assert-used
+    - hardcoded-bind-all-interfaces
+    - hardcoded-password-default
+    - hardcoded-password-funcarg
+    - hardcoded-password-string
+    - hardcoded-sql-expressions
+    - hardcoded-tmp-directory
+    - import-lxml
+    - import-pickle
+    - import-subprocess
+    - import-xml-expat
+    - import-xml-minidom
+    - import-xml-pulldom
+    - import-xml-sax
+    - import_xml-etree
+    - md5
+    - random
+    - start-process-with-no-shell
+    - start-process-with-partial-path
+    - subprocess-without-shell-equals-true
+    - try-except-continue
+    - urllib-urlopen
+    run: true
+  dlint:
+    ignore: []
+    run: true
+  flake8:
+    ignore:
+    - bad-wildcard-import
+    - bare-except-bugbear
+    - no-getattr
+    - no-setattr
+    - unused-loop-variable
+    - unused-module
+    - unused-variable
+    run: true
+  hadolint:
+    ignore:
+    - DL3008
+    - DL3010
+    - DL3012
+    - DL3018
+    - DL3020
+    - DL3022
+    - DL3027
+    - DL4001
+    run: true
+  r2c.click:
+    ignore:
+    - names-are-well-formed
+    run: true
+  r2c.flask:
+    ignore: []
+    run: true
+  r2c.registry.latest:
+    ignore: []
+    run: true
+  r2c.requests:
+    ignore:
+    - use-timeout
+    run: true
+  shellcheck:
+    ignore:
+    - SC1004
+    - SC1008
+    - SC1009
+    - SC1047
+    - SC1050
+    - SC1062
+    - SC1071
+    - SC1072
+    - SC1090
+    - SC1091
+    - SC1105
+    - SC1107
+    - SC1123
+    - SC1124
+    - SC1126
+    - SC2001
+    - SC2002
+    - SC2003
+    - SC2004
+    - SC2005
+    - SC2006
+    - SC2007
+    - SC2009
+    - SC2034
+    - SC2035
+    - SC2039
+    - SC2155
+    - SC2164
+    - SC2181
+    - SC2186
+    - SC2196
+    - SC2197
+    - SC2230
+    run: true

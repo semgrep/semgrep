@@ -1,0 +1,15 @@
+jobs:
+  bento:
+    name: Check
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - id: bento
+      name: Bento
+      uses: returntocorp/bento-action@v1
+      with:
+        acceptTermsWithEmail: test@returntocorp.com
+        slackWebhookURL: ${{ secrets.BENTO_SLACK_WEBHOOK_URL }}
+name: Bento
+'on':
+- pull_request
