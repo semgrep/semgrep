@@ -323,7 +323,7 @@ and m_expr a b =
     (m_bracket (m_list m_expr)) a2 b2
     )
   | A.Tuple(a1), B.Tuple(b1) ->
-    (m_list m_expr) a1 b1 
+    m_container_ordered_elements a1 b1 
   | A.Record(a1), B.Record(b1) ->
     (m_bracket (m_fields)) a1 b1 
   | A.Constructor(a1, a2), B.Constructor(b1, b2) ->
