@@ -1,4 +1,4 @@
-# sgrep
+# development
 
 [![CircleCI](https://circleci.com/gh/returntocorp/sgrep.svg?style=svg)](https://circleci.com/gh/returntocorp/sgrep)
 

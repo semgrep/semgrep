@@ -4,17 +4,20 @@ about: Create a report to help us improve
 title: ''
 labels: ''
 assignees: ''
+
 ---
 
-# bug\_report
+**Describe the bug**
+A clear and concise description of what the bug is.
 
-**Describe the bug** A clear and concise description of what the bug is.
+**To Reproduce**
+Steps to reproduce the behavior, ideally a link to https://sgrep.live:
 
-**To Reproduce** Steps to reproduce the behavior, ideally a link to [https://sgrep.live](https://sgrep.live):
+**Expected behavior**
+A clear and concise description of what you expected to happen.
 
-**Expected behavior** A clear and concise description of what you expected to happen.
+**Screenshots**
+If applicable, add screenshots to help explain your problem.
 
-**Screenshots** If applicable, add screenshots to help explain your problem.
-
-**Environment** If not using sgrep.live: are you running off docker, an official binary, a local build?
-
+**Environment**
+If not using sgrep.live: are you running off docker, an official binary, a local build?
