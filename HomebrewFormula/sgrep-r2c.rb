@@ -72,13 +72,13 @@ class SgrepR2c < Formula
       end
   end
   test do
-    system "#{bin}/sgrep_lint_python --help"
+    system "#{bin}/sgrok --help"
     (testpath/"script.py").write <<~EOS
       def silly_eq(a, b):
         return a + b == a + b
     EOS
 
-    output = shell_output("#{bin}/sgrep_lint_python script.py -l python -e '$X == $X'")
+    output = shell_output("#{bin}/sgrok script.py -l python -e '$X == $X'")
     assert_match "a + b == a + b", output
   end
 end
