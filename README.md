@@ -20,7 +20,7 @@
 | **javascript** | **python** | **go** | **java** | **c** | **ruby** | **scala** |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | ✅ | ✅ | ✅ | ✅ | ✅ | coming | coming |
-| see full language support details in [matrix.md](config/matrix.md) |  |  |  |  |  |  |
+| see full language support details in [matrix.md](docs/matrix.md) |  |  |  |  |  |  |
 
 ## Meetups
 
@@ -79,7 +79,7 @@ docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep --help
 
 #### Format
 
-See [config.md](config/advanced.md) for example configuration files and details on the syntax.
+See [config/advanced.md](docs/config/advanced.md) for example configuration files and details on the syntax.
 
 #### sgrep Registry
 
@@ -105,7 +105,7 @@ Sgrep has a design philosophy that emphasizes simplicity and a single pattern be
 
 ## Patterns
 
-Patterns are snippets of code with variables and other operators that will be parsed into an AST for that language and will be used to search for that pattern in code. See [patterns.md](config/simple.md) for full documentation.
+Patterns are snippets of code with variables and other operators that will be parsed into an AST for that language and will be used to search for that pattern in code. See [config/simple.md](config/simple.md) for full documentation.
 
 ### Metavariables
 
@@ -135,7 +135,7 @@ and other semantically equivalent configurations.
 
 ## Integrations
 
-See [integrations.md](config/integrations.md)
+See [integrations.md](docs/integrations.md)
 
 ## Bug Reports
 
@@ -143,5 +143,4 @@ Reports are welcome! Please open an issue on this project.
 
 ## Contributions
 
-`sgrep` is LGPL-licensed and we would love your [contributions](https://github.com/returntocorp/sgrep/tree/f92e3b4a12f0fcd659e787894ef3de0619f21419/docs/CONTRIBUTING.md). See [docs/development.md](config/development.md)
-
+`sgrep` is LGPL-licensed and we would love your [contributions](https://github.com/returntocorp/sgrep/tree/f92e3b4a12f0fcd659e787894ef3de0619f21419/docs/CONTRIBUTING.md). See [docs/development.md](docs/development.md)
