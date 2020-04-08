@@ -5,9 +5,9 @@ class SgrepR2c < Formula
   depends_on "coreutils"
   depends_on "python@3.8"
 
-  if OS.mac?
-      url "https://github.com/returntocorp/sgrep/releases/download/v0.4.9b5/sgrep-osx-20b13243a29b4df3176648058df432ef63df7a92.zip"
-      sha256 "49db8437c428ad5bc92828996440609f112447651e19697a90504140e1307101"
+  stable do
+    url "https://github.com/rcoh/sgrep-noclash/archive/v0.4.9b5.tar.gz"
+    sha256 "f757a021c4d06ad7aa578ae149f39a508e5d393fb694c1e1e502420762e8ad57"
   end
   
   # To avoid upstream breakage, patch the Python code to make it well behaved
