@@ -414,15 +414,13 @@ def color_line(
 
 def finding_to_raw_lines(
     finding: Dict[str, Any], color_output: bool = False
-) -> Iterable[str]:
+) -> Optional[Iterable[str]]:
     path = finding.get("path")
     start_line = finding.get("start", {}).get("line")
     end_line = finding.get("end", {}).get("line")
     if path and start_line:
-        file_lines = fetch_lines_in_file(Path(path), start_line, end_line)
-        if file_lines:
-            return file_lines
-    yield from ()
+        return fetch_lines_in_file(Path(path), start_line, end_line)
+    return None
 
 
 def finding_to_line(
@@ -590,7 +588,9 @@ def dedup_output(outputs: List[Any]) -> List[Any]:
 
 def add_finding_line(outputs: List[Any]) -> List[Any]:
     for r in outputs:
-        r["extra"]["file_lines"] = list(finding_to_raw_lines(r))
+        file_lines = finding_to_raw_lines(r)
+        if file_lines is not None:
+            r["extra"]["file_lines"] = list(file_lines)
     return outputs
 
 
