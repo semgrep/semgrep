@@ -1,4 +1,4 @@
-# sgrep
+# Getting Started
 
 [![r2c community slack](https://img.shields.io/badge/r2c_slack-join-brightgreen?style=for-the-badge&logo=slack&labelColor=4A154B)](https://join.slack.com/t/r2c-community/shared_invite/enQtNjU0NDYzMjAwODY4LWE3NTg1MGNhYTAwMzk5ZGRhMjQ2MzVhNGJiZjI1ZWQ0NjQ2YWI4ZGY3OGViMGJjNzA4ODQ3MjEzOWExNjZlNTA)
 
@@ -135,7 +135,7 @@ and other semantically equivalent configurations.
 
 ## Integrations
 
-See [integrations.md](config/integrations.md)
+See [integrations.md](integrations.md)
 
 ## Bug Reports
 
@@ -143,5 +143,5 @@ Reports are welcome! Please open an issue on this project.
 
 ## Contributions
 
-`sgrep` is LGPL-licensed and we would love your [contributions](https://github.com/returntocorp/sgrep/tree/f92e3b4a12f0fcd659e787894ef3de0619f21419/docs/CONTRIBUTING.md). See [docs/development.md](config/development.md)
+`sgrep` is LGPL-licensed and we would love your [contributions](https://github.com/returntocorp/sgrep/tree/f92e3b4a12f0fcd659e787894ef3de0619f21419/docs/CONTRIBUTING.md). See [docs/development.md](development.md)
 
