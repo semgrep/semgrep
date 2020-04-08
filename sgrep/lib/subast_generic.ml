@@ -34,7 +34,7 @@ let subexprs_of_expr e =
     -> []
 
   | DotAccess (e, _, _) | Await (_, e) | Cast (_, e)
-  | Ref (_, e) | DeRef (_, e)
+  | Ref (_, e) | DeRef (_, e) | DeepEllipsis (_, e, _)
     -> [e]
   | Assign (e1, _, e2) | AssignOp (e1, _, e2) 
   | ArrayAccess (e1, e2)

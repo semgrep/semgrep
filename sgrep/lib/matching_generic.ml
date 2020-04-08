@@ -92,10 +92,12 @@ let verbose = ref false
 let debug = ref false
 let debug_with_full_position = ref false
 
-(* experimental: a bit hacky, and may introduce big perf regressions,
- * so be careful
- *)
-let go_deeper = ref true
+(* !experimental: a bit hacky, and may introduce big perf regressions! *)
+
+(* should be used with DeepEllipsis; do it implicitely has issues *)
+let go_deeper_expr = ref true
+(* this ultimately should go away once '...' works on the CFG *)
+let go_deeper_stmt = ref true
 
 let equivalence_mode = ref false
 
