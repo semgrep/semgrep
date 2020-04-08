@@ -1,7 +1,7 @@
 name: mac
 
 on:
-  push:
+  pull_request:
     branches: [master, develop]
 
 jobs:
@@ -16,4 +16,3 @@ jobs:
         run: brew test HomebrewRecipe/SgrepR2c.rb
       - name: sanity
         run: sgrok --help
-      
