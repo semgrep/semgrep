@@ -2,9 +2,9 @@
 
 [![r2c community slack](https://img.shields.io/badge/r2c_slack-join-brightgreen?style=for-the-badge&logo=slack&labelColor=4A154B)](https://join.slack.com/t/r2c-community/shared_invite/enQtNjU0NDYzMjAwODY4LWE3NTg1MGNhYTAwMzk5ZGRhMjQ2MzVhNGJiZjI1ZWQ0NjQ2YWI4ZGY3OGViMGJjNzA4ODQ3MjEzOWExNjZlNTA)
 
-[sgrep.live](https://sgrep.live/) - Try it now
+[sgrep.live](https://sgrep.live/): try it now!
 
-[`sgrep`](https://sgrep.live/), for syntactical \(and occasionnally semantic\) grep, is a tool to help find bugs by specifying code patterns using a familiar syntax. The idea is to mix the convenience of grep with the correctness and precision of a compiler frontend.
+sgrep, for syntactical \(and occasionnally semantic\) grep, is a tool to help find bugs by specifying code patterns using a familiar syntax. The idea is to mix the convenience of grep with the correctness and precision of a compiler frontend.
 
 ## Quick Examples
 
@@ -13,14 +13,16 @@
 | `$X == $X` | `if (node.id == node.id): ...` |
 | `foo(kwd1=1, kwd2=2, ...)` | `foo(kwd2=2, kwd1=1, kwd3=3)` |
 | `subprocess.Popen(...)` | `import subprocess as s; s.Popen(['foo'])` |
-| [see more examples in the sgrep-rules registry](https://github.com/returntocorp/sgrep-rules) |  |
+
+→ [see more examples in the sgrep-rules registry](https://github.com/returntocorp/sgrep-rules)
 
 ## Supported Languages
 
 | **javascript** | **python** | **go** | **java** | **c** | **ruby** | **scala** |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | ✅ | ✅ | ✅ | ✅ | ✅ | coming | coming |
-| see full language support details in [matrix.md](docs/matrix.md) |  |  |  |  |  |  |
+
+→ see full language support details in [matrix.md](docs/matrix.md)
 
 ## Meetups
 
@@ -105,7 +107,7 @@ Sgrep has a design philosophy that emphasizes simplicity and a single pattern be
 
 ## Patterns
 
-Patterns are snippets of code with variables and other operators that will be parsed into an AST for that language and will be used to search for that pattern in code. See [config/simple.md](config/simple.md) for full documentation.
+Patterns are snippets of code with variables and other operators that will be parsed into an AST for that language and will be used to search for that pattern in code. See [docs/config/simple.md](docs/config/simple.md) for full documentation.
 
 ### Metavariables
 
@@ -113,7 +115,7 @@ Patterns are snippets of code with variables and other operators that will be pa
 
 #### Operators
 
-`...` is the primary "match anything" operator
+`...` is the primary "match anything" operator. It can match sequences of characters, arguments, or statements. See [docs/config/simple.md](docs/config/simple.md) for more details!
 
 #### Equivalences
 
