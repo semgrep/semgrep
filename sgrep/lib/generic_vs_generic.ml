@@ -243,7 +243,7 @@ and make_dotted xs =
  *)
 (* experimental! *)
 and m_expr_deep a b =
-  if not !go_deeper 
+  if not !go_deeper_expr
   then m_expr a b 
   else
     m_expr a b >!> (fun () ->
@@ -299,6 +299,8 @@ and m_expr a b =
    *)
   | A.Ellipsis(_a1), _ ->
     return ()
+  | A.DeepEllipsis (_, a1, _), a2 ->
+      m_expr_deep a1 a2
 
   | A.L(a1), B.L(b1) ->
     m_literal a1 b1 
@@ -1005,7 +1007,7 @@ and m_other_attribute_operator = m_other_xxx
  *)
 (* experimental! *)
 and m_stmts_deep (xsa: A.stmt list) (xsb: A.stmt list) = 
-  if !go_deeper && (has_ellipsis_stmts xsa)
+  if !go_deeper_stmt && (has_ellipsis_stmts xsa)
   then 
     m_list__m_stmt xsa xsb >!> (fun () ->
       let xsb' = Subast_generic.flatten_substmts_of_stmts xsb in
@@ -1069,7 +1071,7 @@ and m_stmt a b =
   | A.ExprStmt(A.Ellipsis _i), _b ->
       return ()
 
-  (* deeper: *)
+  (* deeper: go deep by default? *)
   | A.ExprStmt(a1), B.ExprStmt(b1) ->
     m_expr_deep a1 b1 
   | A.DefStmt(a1), B.DefStmt(b1) ->
@@ -1082,19 +1084,20 @@ and m_stmt a b =
     m_stmts_deep a1 b1 
   | A.If(a0, a1, a2, a3), B.If(b0, b1, b2, b3) ->
     m_tok a0 b0 >>= (fun () ->
-    m_expr_deep a1 b1 >>= (fun () -> 
+    (* too many regressions doing m_expr_deep by default; Use DeepEllipsis *)
+    m_expr a1 b1 >>= (fun () -> 
     m_stmt a2 b2 >>= (fun () -> 
     m_stmt a3 b3 
     )))
   | A.While(a0, a1, a2), B.While(b0, b1, b2) ->
     m_tok a0 b0 >>= (fun () ->
-    m_expr_deep a1 b1 >>= (fun () -> 
+    m_expr a1 b1 >>= (fun () -> 
     m_stmt a2 b2 
     ))
   | A.DoWhile(a0, a1, a2), B.DoWhile(b0, b1, b2) ->
     m_tok a0 b0 >>= (fun () ->
     m_stmt a1 b1 >>= (fun () -> 
-    m_expr_deep a2 b2 
+    m_expr a2 b2 
     ))
   | A.For(a0, a1, a2), B.For(b0, b1, b2) ->
     m_tok a0 b0 >>= (fun () ->
@@ -1103,7 +1106,7 @@ and m_stmt a b =
     ))
   | A.Switch(at, a1, a2), B.Switch(bt, b1, b2) ->
     m_tok at bt >>= (fun () -> 
-    m_option (m_expr_deep) a1 b1 >>= (fun () -> 
+    m_option (m_expr) a1 b1 >>= (fun () -> 
     (m_list m_case_and_body) a2 b2 
     ))
   | A.Return(a0, a1), B.Return(b0, b1) ->
@@ -1138,7 +1141,7 @@ and m_stmt a b =
     )))
   | A.Assert(a0, a1, a2), B.Assert(b0, b1, b2) ->
     m_tok a0 b0 >>= (fun () ->
-    m_expr_deep a1 b1 >>= (fun () -> 
+    m_expr a1 b1 >>= (fun () -> 
     (m_option m_expr) a2 b2 
     ))
 

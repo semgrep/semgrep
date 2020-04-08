@@ -76,9 +76,10 @@ let match_any_any pattern e =
 
 let match_e_e_for_equivalences a b =
   Common.save_excursion Matching_generic.equivalence_mode true (fun () ->
-  Common.save_excursion Matching_generic.go_deeper true (fun () ->
+  Common.save_excursion Matching_generic.go_deeper_expr false (fun () ->
+  Common.save_excursion Matching_generic.go_deeper_stmt false (fun () ->
     match_e_e a b
-  ))
+  )))
 
 (*****************************************************************************)
 (* Substituters *)
