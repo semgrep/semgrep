@@ -12,8 +12,8 @@ class SgrepR2c < Formula
   
   # To avoid upstream breakage, patch the Python code to make it well behaved
   patch do
-    url "https://github.com/returntocorp/sgrep/compare/brewable.patch"
-    sha256 "7442d8d652f5a4f9cec31d1b1c1ff3a3675f79bd4b8e5bf99fd9a36b80273f40"
+    url "https://github.com/returntocorp/sgrep/compare/brewable.diff"
+    sha256 "03b4a5665981605611a246d8f26351c4da31b0976e427ed5743e3c12eed7b184"
   end
   
   resource "idna" do
