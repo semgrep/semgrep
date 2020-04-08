@@ -1,48 +1,26 @@
-# sgrep [![ci](https://github.com/returntocorp/sgrep/workflows/ci/badge.svg)](https://github.com/returntocorp/sgrep/actions?query=workflow%3Aci+branch%3Adevelop)
+# sgrep
 
 [![r2c community slack](https://img.shields.io/badge/r2c_slack-join-brightgreen?style=for-the-badge&logo=slack&labelColor=4A154B)](https://join.slack.com/t/r2c-community/shared_invite/enQtNjU0NDYzMjAwODY4LWE3NTg1MGNhYTAwMzk5ZGRhMjQ2MzVhNGJiZjI1ZWQ0NjQ2YWI4ZGY3OGViMGJjNzA4ODQ3MjEzOWExNjZlNTA)
 
 [sgrep.live](https://sgrep.live/) - Try it now
 
-[`sgrep`](https://sgrep.live/), for syntactical (and occasionnally semantic) grep, is a tool to help find bugs by specifying code patterns using a familiar
-syntax. The idea is to mix the convenience of grep with the correctness and precision of a compiler frontend.
+[`sgrep`](https://sgrep.live/), for syntactical \(and occasionnally semantic\) grep, is a tool to help find bugs by specifying code patterns using a familiar syntax. The idea is to mix the convenience of grep with the correctness and precision of a compiler frontend.
 
 ## Quick Examples
 
-<table>
-  <tr><td><b>pattern</b></td><td><b>will match code like</b></td></tr>
-  <tr><td><code>$X == $X</code></td><td><code>if (node.id == node.id): ...</code></td></tr>
-  <tr><td><code>foo(kwd1=1, kwd2=2, ...)</code></td><td><code>foo(kwd2=2, kwd1=1, kwd3=3)</code></td></tr>
-  <tr><td><code>subprocess.Popen(...)</code></td><td><code>import subprocess as s; s.Popen(['foo'])</code></td></tr>
-  <tr><td colspan=2><a href="https://github.com/returntocorp/sgrep-rules">see more examples in the sgrep-rules registry</a></td></tr>
-</table>
-
+| **pattern** | **will match code like** |
+| :--- | :--- |
+| `$X == $X` | `if (node.id == node.id): ...` |
+| `foo(kwd1=1, kwd2=2, ...)` | `foo(kwd2=2, kwd1=1, kwd3=3)` |
+| `subprocess.Popen(...)` | `import subprocess as s; s.Popen(['foo'])` |
+| [see more examples in the sgrep-rules registry](https://github.com/returntocorp/sgrep-rules) |  |
 
 ## Supported Languages
 
-<table>
-  <tr>
-    <td><b>javascript</b></td>
-    <td><b>python</b></td>
-    <td><b>go</b></td>
-    <td><b>java</b></td>
-    <td><b>c</b></td>
-    <td><b>ruby</b></td>
-    <td><b>scala</b></td>
-</tr>
-  <tr>
-   <td>✅</td>
-   <td>✅</td>
-   <td>✅</td>
-   <td>✅</td>
-   <td>✅</td>
-   <td>coming</td>
-   <td>coming</td>
- </tr>
-  <tr>
-    <td colspan=7>see full language support details in <a href="docs/matrix.md">matrix.md</a></td>
-  </tr>
- </table>
+| **javascript** | **python** | **go** | **java** | **c** | **ruby** | **scala** |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| ✅ | ✅ | ✅ | ✅ | ✅ | coming | coming |
+| see full language support details in [matrix.md](config/matrix.md) |  |  |  |  |  |  |
 
 ## Meetups
 
@@ -56,7 +34,7 @@ Too lazy to install? Try out [sgrep.live](https://sgrep.live)
 
 `sgrep` is packaged within a [docker container](https://hub.docker.com/r/returntocorp/sgrep), making installation as easy as [installing docker](https://docs.docker.com/install/).
 
-### Mac (alpha)
+### Mac \(alpha\)
 
 The brew install is WIP and will change significantly.
 
@@ -77,7 +55,6 @@ docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep --generate-config
 
 # look for findings
 docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep
-
 ```
 
 ## Usage
@@ -90,7 +67,7 @@ To rapidly iterate on a single pattern, you can test on a single file or folder.
 docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep -l python -e '$X == $X' path/to/file.py
 ```
 
-Here, `sgrep` will search the target with the pattern `$X == $X` (which is a stupid equals check) and print the results to `stdout`. This also works for directories and will skip the file if parsing fails. You can specifiy the language of the pattern with `--lang javascript` for example.
+Here, `sgrep` will search the target with the pattern `$X == $X` \(which is a stupid equals check\) and print the results to `stdout`. This also works for directories and will skip the file if parsing fails. You can specifiy the language of the pattern with `--lang javascript` for example.
 
 To see more options
 
@@ -102,16 +79,14 @@ docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep --help
 
 #### Format
 
-See [config.md](docs/config.md) for example configuration files and details on the syntax.
+See [config.md](config/advanced.md) for example configuration files and details on the syntax.
 
 #### sgrep Registry
 
 [r2c](https://r2c.dev) provides a [registry](https://github.com/returntocorp/sgrep-rules) of config files tuned using our [analysis platform](https://app.r2c.dev) on thousands of repositories. To use:
 
 ```bash
-
 sgrep --config r2c
-
 ```
 
 ### Default
@@ -123,14 +98,14 @@ Default configs are loaded from `.sgrep.yml` or multiple files matching `.sgrep/
 Sgrep has a design philosophy that emphasizes simplicity and a single pattern being as expressive as possible:
 
 1. **Use concrete code syntax:** easy to learn
-2. **Metavariables (\$X)**: abstract away code
+2. **Metavariables \($X\)**: abstract away code
 3. **'...' operator:** abstract away sequences
 4. **Knows about code equivalences:** one pattern can match many equivalent variations on the code
 5. **Less is more:** abstract away additional details
 
 ## Patterns
 
-Patterns are snippets of code with variables and other operators that will be parsed into an AST for that language and will be used to search for that pattern in code. See [patterns.md](docs/patterns.md) for full documentation.
+Patterns are snippets of code with variables and other operators that will be parsed into an AST for that language and will be used to search for that pattern in code. See [patterns.md](config/simple.md) for full documentation.
 
 ### Metavariables
 
@@ -144,7 +119,7 @@ Patterns are snippets of code with variables and other operators that will be pa
 
 `sgrep` automatically searches for code that is semantically equivalent. For example, a pattern for
 
-```sgrep
+```text
 subprocess.Popen(...)
 ```
 
@@ -160,7 +135,7 @@ and other semantically equivalent configurations.
 
 ## Integrations
 
-See [integrations.md](docs/integrations.md)
+See [integrations.md](config/integrations.md)
 
 ## Bug Reports
 
@@ -168,4 +143,5 @@ Reports are welcome! Please open an issue on this project.
 
 ## Contributions
 
-`sgrep` is LGPL-licensed and we would love your [contributions](docs/CONTRIBUTING.md). See [docs/development.md](docs/development.md)
+`sgrep` is LGPL-licensed and we would love your [contributions](https://github.com/returntocorp/sgrep/tree/f92e3b4a12f0fcd659e787894ef3de0619f21419/docs/CONTRIBUTING.md). See [docs/development.md](config/development.md)
+
