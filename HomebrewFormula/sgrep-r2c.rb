@@ -10,13 +10,13 @@ class SgrepR2c < Formula
     url "https://github.com/rcoh/sgrep-noclash/archive/v0.4.9b5.tar.gz"
     sha256 "7c28c1a2c746f56853deabbdea815cdb5e38b399afcde23898f4d6cf1052e4c7"
   end
-  
+
   # To avoid upstream breakage, patch the Python code to make it well behaved
   patch do
     url "https://github.com/returntocorp/sgrep/compare/brewable.diff"
     sha256 "c6e9ae058418ea4aaa1ceaec6e45596365b7313520626c06310d24b7135946fc"
   end
-  
+
   resource "certifi" do
     url "https://files.pythonhosted.org/packages/b8/e2/a3a86a67c3fc8249ed305fc7b7d290ebe5e4d46ad45573884761ef4dea7b/certifi-2020.4.5.1.tar.gz"
     sha256 "51fcb31174be6e6664c5f69e3e1691a2d72a1a12e90f872cbdb1567eb47b6519"
