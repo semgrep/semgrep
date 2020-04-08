@@ -7,8 +7,8 @@ class SgrepR2c < Formula
   include Language::Python::Virtualenv
 
   stable do
-    url "https://github.com/rcoh/sgrep-noclash/archive/v0.4.9b5.tar.gz"
-    sha256 "7c28c1a2c746f56853deabbdea815cdb5e38b399afcde23898f4d6cf1052e4c7"
+    url "https://github.com/returntocorp/sgrep/archive/v0.4.9.tar.gz"
+    sha256 "7820716c96bb85a07ed5e561f66b3fb0cca59e5c910370c58ec04276f99864c5"
   end
 
   # To avoid upstream breakage, patch the Python code to make it well behaved
@@ -53,8 +53,8 @@ class SgrepR2c < Formula
   end
 
   resource "ocaml-binary" do
-    url "https://github.com/returntocorp/sgrep/releases/download/v0.4.9b5/sgrep-osx-20b13243a29b4df3176648058df432ef63df7a92.zip"
-    sha256 "49db8437c428ad5bc92828996440609f112447651e19697a90504140e1307101"
+    url "https://github.com/returntocorp/sgrep/releases/download/v0.4.9/sgrep-0.4.9-osx.zip"
+    sha256 "7e710b5c912dfadb0919349b3e5fc60570aba12eb78313ad37adb1487263d018"
   end
 
 
