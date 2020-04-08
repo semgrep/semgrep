@@ -9,5 +9,3 @@
   * [Integrations](config/integrations.md)
   * [development](config/development.md)
 
-## Development <a id="development-1"></a>
-
