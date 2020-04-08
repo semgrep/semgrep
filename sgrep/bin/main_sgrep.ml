@@ -180,6 +180,11 @@ let gen_layer ~root ~query file =
 (* coupling: you need also to modify tests/test.ml *)
 let parse_generic lang file = 
   let ast = Parse_generic.parse_with_lang lang file in
+  (* to be deterministic, reset the gensym; anyway right now sgrep is
+   * used only for local per-file analysis, so no need to have a unique ID
+   * among a set of files in a project like codegraph.
+   *)
+  Ast_generic.gensym_counter := 0;
   Naming_ast.resolve lang ast;
   ast
 

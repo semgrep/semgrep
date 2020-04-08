@@ -12,6 +12,7 @@
  * file license.txt for more details.
  *)
 open Common
+open Ast_generic
 
 module PI = Parse_info
 module R = Rule
@@ -28,6 +29,56 @@ type t = {
   code: Ast_generic.any;
   env: Metavars_generic.metavars_binding;
 }
+
+(*****************************************************************************)
+(* Unique ID *)
+(*****************************************************************************)
+let string_of_resolved = function
+  | Global -> "Global"
+  | Local -> "Local"
+  | Param -> "Param"
+  | EnclosedVar -> "EnclosedVar"
+  | ImportedEntity _ -> "ImportedEntity"
+  | ImportedModule _ -> "ImportedModule"
+  | TypeName -> "TypeName"
+  | Macro -> "Macro"
+  | EnumConstant -> "EnumConstant"
+
+(* Returning scoping-aware information about a metavariable, so that
+ * the callers of sgrep (sgrep-lint) can check if multiple metavariables
+ * reference the same entity, or reference exactly the same code.
+ * See pfff/.../naming_ast.ml for more information.
+ *)
+let unique_id any =
+  match any with
+  | E (Id (id, { id_resolved = {contents = Some (resolved, sid)}; _})) ->
+      J.Object [
+        "type", J.String "id";
+        "value", J.String (Ast_generic.str_of_ident id);
+        "kind", J.String (string_of_resolved resolved);
+        (* single unique id *)
+        "sid", J.Int sid;
+      ]
+  (* not an Id, return a md5sum of its AST as a "single unique id" *)
+  | _ ->
+
+     (* todo? note that if the any use a parameter, or a local,
+      * as in foo(x): return complex(x), then they will have different
+      * md5sum because the parameter will be different! We may
+      * want to abstract also the resolved information in those cases.
+      *)
+     let any = Lib_ast.abstract_position_info_any any in
+     (* alt: Using the AST dumper should work also.
+      * let v = Meta_ast.vof_any any in
+      * let s = Ocaml.string_of_v v in
+      *)
+     let s = Marshal.to_string any [] in
+     let md5 = Digest.string s in
+     J.Object [
+      "type", J.String "AST";
+      "md5sum", J.String (Digest.to_hex md5);
+     ]
+
 
 (*****************************************************************************)
 (* JSON *)
@@ -76,7 +127,8 @@ let json_metavar x startp (s, any) =
       |> List.sort Parse_info.compare_pos
       |> List.map PI.str_of_info 
       |> Matching_report.join_with_space_if_needed
-    )
+    );
+  "unique_id", unique_id any
   ]
   
 
