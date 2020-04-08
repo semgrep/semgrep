@@ -58,6 +58,28 @@ let range_of_any any =
   let (startp, endp) = json_range min max in
   startp, endp
 
+let json_metavar x startp (s, any) =
+  let (startp, endp) = 
+    try 
+      range_of_any any 
+    with Parse_info.NoTokenLocation exn ->
+     failwith (spf 
+      "NoTokenLocation %s exn while processing %s for rule %s, with metavar %s, close location = %s"
+        exn x.file x.rule.R.id  s (Json_io.string_of_json startp))
+  in
+  s, J.Object [
+  "start", startp;
+  "end", endp;
+  "abstract_content", J.String (
+      any
+      |> Lib_ast.ii_of_any |> List.filter PI.is_origintok
+      |> List.sort Parse_info.compare_pos
+      |> List.map PI.str_of_info 
+      |> Matching_report.join_with_space_if_needed
+    )
+  ]
+  
+
 (* similar to pfff/h_program-lang/r2c.ml *)
 let match_to_json x =
   let (startp, endp) = range_of_any x.code in
@@ -69,27 +91,7 @@ let match_to_json x =
     "end", endp;
     "extra", J.Object [
        "message", J.String x.rule.R.message;
-       "metavars", J.Object (x.env |> List.map (fun (s, any) ->
-        let (startp, endp) = 
-          try 
-            range_of_any any 
-          with Parse_info.NoTokenLocation exn ->
-           failwith (spf 
-            "NoTokenLocation %s exn while processing %s for rule %s, with metavar %s, close location = %s"
-              exn x.file x.rule.R.id  s (Json_io.string_of_json startp))
-        in
-          s, J.Object [
-          "start", startp;
-          "end", endp;
-          "abstract_content", J.String (
-              any
-              |> Lib_ast.ii_of_any |> List.filter PI.is_origintok
-              |> List.sort Parse_info.compare_pos
-              |> List.map PI.str_of_info 
-              |> Matching_report.join_with_space_if_needed
-            )
-          ]
-        ));
+       "metavars", J.Object (x.env |> List.map (json_metavar x startp));
      ]
   ]
 
