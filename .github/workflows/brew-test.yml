@@ -1,0 +1,18 @@
+name: mac
+
+on:
+  pull_request:
+    branches: [master, develop]
+
+jobs:
+  test-homebrew:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Homebrew install
+        run: brew install ./HomebrewFormula/sgrep-r2c.rb
+      - name: Homebrew test
+        run: brew test ./HomebrewFormula/sgrep-r2c.rb
+      - name: sanity
+        run: sgrok --help
