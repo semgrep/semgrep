@@ -591,6 +591,8 @@ def add_finding_line(outputs: List[Any]) -> List[Any]:
         file_lines = finding_to_raw_lines(r)
         if file_lines is not None:
             r["extra"]["file_lines"] = list(file_lines)
+        else:
+            r["extra"]["file_lines"] = []
     return outputs
 
 
