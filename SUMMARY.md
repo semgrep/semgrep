@@ -1,14 +1,13 @@
 # Table of contents
 
-* [Getting Started](README.md)
+* [sgrep](README.md)
 * [Live Editor](https://sgrep.live)
-* [Config](config/README.md)
+* [docs](config/README.md)
   * [patterns](config/simple.md)
   * [config](config/advanced.md)
   * [languages by sgrep feature support](config/matrix.md)
-* [Integrations](integrations.md)
+  * [Integrations](config/integrations.md)
+  * [development](config/development.md)
 
 ## Development <a id="development-1"></a>
-
-* [development](development.md)
 
