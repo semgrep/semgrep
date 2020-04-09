@@ -27,7 +27,7 @@ module MV = Metavars_fuzzy
 (*****************************************************************************)
 (* Wrappers *)
 (*****************************************************************************)
-let pr2, _pr2_once = Common2.mk_pr2_wrappers Flag_matcher.verbose
+let pr2, _pr2_once = Common2.mk_pr2_wrappers Flag_fuzzy.verbose
 
 (*****************************************************************************)
 (* The functor argument *)

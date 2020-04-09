@@ -182,7 +182,7 @@ let test regexp =
       (* full testing for many languages *)
       lang_regression_tests;
       (* ugly: todo: use a toy fuzzy parser instead of the one in lang_cpp/ *)
-      Unit_matcher.sgrep_fuzzy_unittest ~ast_fuzzy_of_string;
+      Unit_fuzzy.sgrep_fuzzy_unittest ~ast_fuzzy_of_string;
       (* TODO Unit_matcher.spatch_unittest ~xxx *)
       (* TODO Unit_matcher_php.unittest; (* sgrep, spatch, refactoring, unparsing *) *)
       lint_regression_tests;
