@@ -63,7 +63,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
     import foo.bar.baz
     ```
 
-    will not match any of the following statements:
+    will now match any of the following statements:
 
     ```python
     import foo.bar.baz
