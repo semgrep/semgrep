@@ -525,6 +525,23 @@ def dump_parsed_ast(
         print(output.decode())
 
 
+def uniq_id(r: Any) -> Tuple[str, str, int, int, int, int]:
+    start = r.get("start", {})
+    end = r.get("end", {})
+    return (
+        r.get("check_id"),
+        r.get("path"),
+        start.get("line"),
+        start.get("col"),
+        end.get("line"),
+        end.get("col"),
+    )
+
+
+def dedup_output(outputs: List[Any]) -> List[Any]:
+    return list({uniq_id(r): r for r in outputs}.values())
+
+
 # entry point
 def main(args: argparse.Namespace) -> Dict[str, Any]:
     """ main function that parses args and runs sgrep """
@@ -698,6 +715,8 @@ def main(args: argparse.Namespace) -> Dict[str, Any]:
         print_error(
             f"warning: ignored {ignored_in_tests} results in tests due to --exclude-tests option"
         )
+
+    outputs_after_booleans = dedup_output(outputs_after_booleans)
 
     # output results
     output_data = {
