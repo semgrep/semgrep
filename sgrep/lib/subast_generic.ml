@@ -75,12 +75,10 @@ let subexprs_of_expr e =
     -> []
   | DisjExpr _ -> raise Common.Impossible
 
+
 (* todo? also visit expr for Lambda and AnonClass? *)
-let substmts_of_stmt stmts = 
-  let rec aux x = 
-    (* return the current statement first, and add substmts *)
-    x::(
-    match x with
+let substmts_of_stmt st = 
+    match st with
     | DirectiveStmt _
 
     (* 0 *)
@@ -98,21 +96,22 @@ let substmts_of_stmt stmts =
     | Label (_, st)
     | OtherStmtWithStmt (_, _, st)
       ->
-        aux st
+        [st]
 
     (* 2 *)
     | If (_, _, st1, st2) -> 
-        [st1; st2] |> List.map aux |> List.flatten
+        [st1; st2]
 
     (* n *)
     | Block xs -> 
-        xs |> List.map aux |> List.flatten
+        xs
     | Switch (_, _, xs) ->
-        xs |> List.map snd |> List.map aux |> List.flatten
+        xs |> List.map snd
     | Try (_, st, xs, opt) ->
-        ([st] |> List.map aux |> List.flatten) @
-        (xs |> List.map Common2.thd3 |> List.map aux |> List.flatten) @
+        [st] @
+        (xs |> List.map Common2.thd3) @
         (match opt with None -> [] | Some (_, st) -> [st])
+
     | DisjStmt _ -> raise Common.Impossible
 
     (* this may slow down things quite a bit *)
@@ -131,16 +130,19 @@ let substmts_of_stmt stmts =
                 -> []
          (* this will add lots of substatements *)
          | FuncDef def ->
-            aux def.fbody
+            [def.fbody]
          | ClassDef def ->
             def.cbody |> unbracket |> Common.map_filter (function
               | FieldStmt st -> Some st
-              | FieldDynamic _ | FieldSpread _ -> None)
-             |> List.map aux |> List.flatten
+              | FieldDynamic _ | FieldSpread _ -> None
+            )
          )
-    )
-   in
-   aux stmts
+
 
 let flatten_substmts_of_stmts xs =
-  xs |> List.map (fun x -> substmts_of_stmt x) |> List.flatten
+  let rec aux x = 
+    let xs = substmts_of_stmt x in
+    (* return the current statement first, and add substmts *)
+    x::(xs |> List.map aux |> List.flatten)
+  in
+  xs |> List.map aux |> List.flatten
