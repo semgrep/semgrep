@@ -26,7 +26,7 @@ Language support:
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | ✅ | ✅ | ✅ | ✅ | ✅ | Coming... | Coming... |
 
-## Installing
+## Installation
 
 For the best experience, simply install `sgrep` with [Docker](https://docs.docker.com/install/):
 
