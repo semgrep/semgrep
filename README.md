@@ -22,7 +22,7 @@ Simple patterns for finding code in many languages:
 
 Language support:
 
-| **Python** | **Javascript** | **Go &nbsp; &nbsp; &nbsp;** | **Java &nbsp;** | **C &nbsp; &nbsp; &nbsp; &nbsp;** | **Typescript** | **PHP &nbsp; &nbsp;** |
+| **Python** | **JavaScript** | **Go &nbsp; &nbsp; &nbsp;** | **Java &nbsp;** | **C &nbsp; &nbsp; &nbsp; &nbsp;** | **TypeScript** | **PHP &nbsp; &nbsp;** |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | ✅ | ✅ | ✅ | ✅ | ✅ | Coming... | Coming... |
 
