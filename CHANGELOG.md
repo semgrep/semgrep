@@ -67,7 +67,22 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
     api(`${LIT}eral`);
     ```
 
-- Deep statement matching
+- Deep statement matching:
+    Elipsis operator (`...`) will also include going deeper in scope (i.e. if-else, try-catch, loop, etc.)
+    ```
+    foo()
+    ...
+    bar()
+    ```
+    will now match
+    ```python
+    foo()
+    if baz():
+        try:
+            bar()
+        except Exception:
+            pass
+    ```
 - Unified import resolution in python:
     ```
     import foo.bar.baz
