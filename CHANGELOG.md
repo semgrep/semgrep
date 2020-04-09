@@ -85,7 +85,19 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
     from foo.bar import baz as flob
     from foo.bar.bax import qux as flob
     ```
-- Support lambda expressions in javascript #288
+- Support for anonymous functions in javascript:
+    ```
+    function() {
+        ...
+    }
+    ```
+    will now match
+    ```javascript
+    var bar = foo(
+        //matches the following line
+        function () { console.log("baz"); }
+    );
+    ```
 - Support arrow function in javascript
     ```
     (a) => { ... }
