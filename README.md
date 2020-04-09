@@ -43,7 +43,8 @@ The brew install is WIP and will change significantly.
 ```bash
 brew tap returntocorp/sgrep https://github.com/returntocorp/sgrep.git
 brew install sgrep-r2c
-sgrep-lint --help
+# Due to a naming conflict, when installed via brew, it is named `sgrok`
+sgrok --help
 ```
 
 ## Quickstart
