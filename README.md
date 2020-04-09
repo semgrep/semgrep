@@ -172,7 +172,7 @@ $ docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep --config r2c
 
 ## Resources
 
-* [r2c `sgrep` meetup slides](https://r2c.dev/sgrep-public2.pdf)
+* [r2c `sgrep` meetup slides](https://web-assets.r2c.dev/sgrep/r2c-sgrep-meetup-feb-2020.pdf)
 * [Simple configuration documentation](docs/config/simple.md)
 * [Advanced configuration documentation](docs/config/advanced.md)
 * [Integrations](docs/integrations.md)
