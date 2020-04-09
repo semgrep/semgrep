@@ -78,7 +78,7 @@ $ docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep --generate-config
 $ docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep
 ```
 
-## Configuring
+## Configuration
 
 For simple patterns use the `--lang` and `--pattern` flags. This mode of
 operation is useful for quickly iterating on a pattern on a single file or
