@@ -38,7 +38,17 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
     ```
     foo(1, 2, bar=baz, 3)
     ```
-- Support python fstring variable substitution
+- Support constant propogation in f-strings in python:
+    ```
+    $M = "..."
+    ...
+    $Q = f"...{$M}..."
+    ```
+    will now match
+    ```python
+    foo = "bar"
+    baz = f"qux {foo}"
+    ```
 - Constant propogation in javascript:
     ```
     api("literal");
