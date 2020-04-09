@@ -32,6 +32,9 @@
  *  - macros/templates over the yaml rule file to generate some pattern-either,
  *    but this may be a bit hacky and add yet another layer
  *    (sgrep-core -> sgrep-python -> sgrep-yaml-generator)
+ *    As Matt said, adding a templating language, on top of a markup language
+ *    on top of a domain specific language, on top of a programming language
+ *    is hard to grasp.
  *  - pfff/lang_GENERIC/analize/normalize_ast.ml but this requires
  *    to know OCaml (we go back to the argument of sgrep vs AST visitors)
  *
@@ -49,7 +52,8 @@
 (* Types *)
 (*****************************************************************************)
 
-type pattern = Rule.pattern
+(* right now only Expr, Stmt, and Stmts are supported *)
+type pattern = Ast.any
 
 type equivalence_kind = Equiv (* <==> *) | Imply (* ==> *)
 

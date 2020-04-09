@@ -2,11 +2,11 @@ open Common
 open OUnit
 
 (*****************************************************************************)
-(* Sgrep generic Unit tests *)
+(* Sgrep Unit tests *)
 (*****************************************************************************)
 
-let sgrep_gen_unittest ~any_gen_of_string =
-  "sgrep-generic features" >:: (fun () ->
+let unittest ~any_gen_of_string =
+  "sgrep(generic) features" >:: (fun () ->
 
     (* spec: pattern string, code string, should_match boolean *)
     let triples = [

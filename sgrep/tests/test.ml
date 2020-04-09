@@ -178,7 +178,7 @@ let test regexp =
     "all" >::: [
 
       (* just expression vs expression testing for one language (Python) *)
-      Unit_matcher.sgrep_gen_unittest ~any_gen_of_string;
+      Unit_matcher.unittest ~any_gen_of_string;
       (* full testing for many languages *)
       lang_regression_tests;
       (* ugly: todo: use a toy fuzzy parser instead of the one in lang_cpp/ *)
