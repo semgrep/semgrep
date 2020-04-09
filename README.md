@@ -44,7 +44,7 @@ $ tar xf sgrep-0.4.9-ubuntu-16.04.tgz
 $ ./sgrep-lint-files/sgrep-lint --help
 ```
 
-## Using
+## Usage
 
 Let's start with a simple example:
 
