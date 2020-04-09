@@ -35,7 +35,7 @@ jobs:
           ls;
           find .;
       - name: Upload Release Asset
-        id: upload-release-asset-osx 
+        id: upload-release-asset-osx
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -85,14 +85,14 @@ jobs:
           mkdir -p artifacts;
           cp ./sgrep/_build/default/bin/main_sgrep.exe artifacts/sgrep;
           zip -r artifacts.zip artifacts
-          
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
           name: sgrep-osx-${{ github.sha }}
           path: artifacts.zip
   release-ubuntu-16-04:
-    # TODO: this is very similar to the ubuntu-build workflow. 
+    # TODO: this is very similar to the ubuntu-build workflow.
     # convert to github action to DRY
     runs-on: ubuntu-latest
     container: ocaml/opam2:ubuntu-16.04
