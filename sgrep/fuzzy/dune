@@ -1,0 +1,9 @@
+(library
+ (public_name sgrep_fuzzy)
+ (wrapped false)
+ (libraries
+   commons
+   pfff-config
+   pfff-h_program-lang
+ )
+)

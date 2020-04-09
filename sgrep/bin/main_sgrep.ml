@@ -494,8 +494,7 @@ let options () =
 
     "-verbose", Arg.Unit (fun () -> 
       verbose := true;
-      Flag_matcher.verbose := true;
-      Matching_generic.verbose := true;
+      Flag_sgrep.verbose := true;
     ),
     " ";
     "-debug", Arg.Set debug,

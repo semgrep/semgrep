@@ -27,6 +27,7 @@ module B = Ast_generic
 module MV = Metavars_generic
 module Ast = Ast_generic
 module Lib = Lib_ast
+module Flag = Flag_sgrep
 
 open Matching_generic
 
@@ -243,7 +244,7 @@ and make_dotted xs =
  *)
 (* experimental! *)
 and m_expr_deep a b =
-  if not !go_deeper_expr
+  if not !Flag.go_deeper_expr
   then m_expr a b 
   else
     m_expr a b >!> (fun () ->
@@ -1007,7 +1008,7 @@ and m_other_attribute_operator = m_other_xxx
  *)
 (* experimental! *)
 and m_stmts_deep (xsa: A.stmt list) (xsb: A.stmt list) = 
-  if !go_deeper_stmt && (has_ellipsis_stmts xsa)
+  if !Flag.go_deeper_stmt && (has_ellipsis_stmts xsa)
   then 
     m_list__m_stmt xsa xsb >!> (fun () ->
       let xsb' = Subast_generic.flatten_substmts_of_stmts xsb in
@@ -1020,7 +1021,7 @@ and _m_stmts (xsa: A.stmt list) (xsb: A.stmt list) =
 
 (* TODO: factorize with m_list_and_dots less_is_ok = true *)
 and m_list__m_stmt (xsa: A.stmt list) (xsb: A.stmt list) =
-  if !debug
+  if !Flag.debug
   then pr2 (spf "%d vs %d" (List.length xsa) (List.length xsb));
   match xsa, xsb with
   | [], [] ->
