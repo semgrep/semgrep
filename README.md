@@ -179,6 +179,6 @@ $ docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep --config r2c
 * [Development](docs/development.md)
 * [Bug reports](https://github.com/returntocorp/sgrep/issues)
 
-## Contributing
+## Contribution
 
 `sgrep` is LGPL-licensed, feel free to help out: [CONTRIBUTING](https://github.com/returntocorp/sgrep/blob/develop/CONTRIBUTING.md).
