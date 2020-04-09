@@ -75,13 +75,12 @@ let subexprs_of_expr e =
     -> []
   | DisjExpr _ -> raise Common.Impossible
 
+(* todo? also visit expr for Lambda and AnonClass? *)
 let substmts_of_stmt stmts = 
   let rec aux x = 
     (* return the current statement first, and add substmts *)
     x::(
     match x with
-    (* we do not recurse inside function definitions *)
-    | DefStmt _
     | DirectiveStmt _
 
     (* 0 *)
@@ -115,6 +114,30 @@ let substmts_of_stmt stmts =
         (xs |> List.map Common2.thd3 |> List.map aux |> List.flatten) @
         (match opt with None -> [] | Some (_, st) -> [st])
     | DisjStmt _ -> raise Common.Impossible
+
+    (* this may slow down things quite a bit *)
+    | DefStmt (_ent, def) ->
+       if not !Flag_sgrep.go_really_deeper_stmt
+       then []
+       else
+         (match def with
+         | VarDef _ 
+         | TypeDef _
+         | MacroDef _
+         | Signature _
+         | UseOuterDecl _
+         (* recurse? *)
+         | ModuleDef _
+                -> []
+         (* this will add lots of substatements *)
+         | FuncDef def ->
+            aux def.fbody
+         | ClassDef def ->
+            def.cbody |> unbracket |> Common.map_filter (function
+              | FieldStmt st -> Some st
+              | FieldDynamic _ | FieldSpread _ -> None)
+             |> List.map aux |> List.flatten
+         )
     )
    in
    aux stmts
