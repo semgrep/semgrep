@@ -1,0 +1,158 @@
+on:
+  push:
+    # Sequence of patterns matched against refs/tags
+    tags:
+    - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
+
+name: Create draft release
+
+jobs:
+  create_release:
+    name: Create the Github Release
+    runs-on: ubuntu-latest
+    needs: [release-osx, release-ubuntu-16-04]
+    steps:
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: true
+          prerelease: false
+      - uses: actions/download-artifact@v1
+        with:
+          name: sgrep-osx-${{ github.sha }}
+          path: sgrep-osx
+      - name: Get the version
+        id: get_version
+        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+      - name: help
+        run: |
+          pwd;
+          ls;
+          find .;
+      - name: Upload Release Asset
+        id: upload-release-asset-osx 
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./sgrep-osx/artifacts.zip
+          asset_name: sgrep-osx-${{ steps.get_version.outputs.VERSION }}.zip
+          asset_content_type: application/zip
+      - uses: actions/download-artifact@v1
+        with:
+          name: sgrep-ubuntu-16.04-${{ github.sha }}
+          path: sgrep-ubuntu
+      - name: Upload Release Asset
+        id: upload-release-asset-ubuntu
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./sgrep-ubuntu/artifacts.tar.gz
+          asset_name: sgrep-ubuntu-1604-${{ steps.get_version.outputs.VERSION }}.tar.gz
+          asset_content_type: application/gzip
+  release-osx:
+    name: Build the OSX binaries
+    runs-on: macos-latest
+    # TODO: this is very similar to the mac-build workflow. Convert to an action
+    steps:
+      - name: Install System Deps
+        run: brew install opam pkg-config coreutils
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: OPAM setup
+        run: |
+          opam init --no-setup --bare;
+          opam switch create 4.07.1;
+          opam switch 4.07.1;
+      - name: OPAM install Deps
+        run: eval $(opam env); opam install -y reason dune ocamlfind camlp4 num ocamlgraph json-wheel conf-perl yaml
+      - name: Install submodules
+        run: git submodule update --init --recursive
+      - name: Install pfff
+        run: eval $(opam env) && opam install -y ./pfff
+      - name: Install and test sgrep
+        run: eval $(opam env) && cd sgrep && make all && make test && make install
+      - name: Prepare artifacts
+        run: |
+          mkdir -p artifacts;
+          cp ./sgrep/_build/default/bin/main_sgrep.exe artifacts/sgrep;
+          zip -r artifacts.zip artifacts
+          
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v1
+        with:
+          name: sgrep-osx-${{ github.sha }}
+          path: artifacts.zip
+  release-ubuntu-16-04:
+    # TODO: this is very similar to the ubuntu-build workflow. 
+    # convert to github action to DRY
+    runs-on: ubuntu-latest
+    container: ocaml/opam2:ubuntu-16.04
+    steps:
+      - name: Install System Deps
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends make m4 perl wget swi-prolog mercurial pkg-config build-essential
+      - name: Install Python 3.7
+        run: |
+          sudo apt-get install -y zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev libbz2-dev
+          sudo wget https://www.python.org/ftp/python/3.7.7/Python-3.7.7.tar.xz
+          sudo tar xvf Python-3.7.7.tar.xz
+          cd Python-3.7.7
+          sudo ./configure --enable-shared
+          sudo make altinstall
+          sudo ldconfig /usr/local/lib
+          python3.7 --version
+          which python3.7
+          /usr/local/bin/python3.7 -c "import bz2; print(bz2.__doc__)"
+          sudo curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+          sudo -H python3.7 get-pip.py
+          pip3 --version
+          ldd --version
+          echo "Pls help me make this at least 3.7"
+      - name: Install Git 2.18
+        run: |
+          sudo apt-get install -y --no-install-recommends libcurl4-openssl-dev libexpat1-dev gettext libz-dev libssl-dev build-essential autoconf
+          cd /usr/src/;
+          sudo wget https://github.com/git/git/archive/v2.18.0.tar.gz -O git.tar.gz;
+          sudo tar -xf git.tar.gz;
+          cd git-*;
+          sudo make prefix=/usr/local all;
+          sudo make prefix=/usr/local install;
+          git --version;
+      - name: Adjust permissions
+        run: sudo chmod -R 777 . /github
+      - name: OPAM setup
+        run: opam switch --root /home/opam/.opam 4.07;
+      - name: OPAM install Deps
+        run: eval $(opam env --root /home/opam/.opam --set-root); opam install -y reason dune ocamlfind camlp4 num ocamlgraph json-wheel conf-perl yaml
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install submodules
+        run: git submodule update --init --recursive
+      - name: Install pfff
+        run: eval $(opam env --root /home/opam/.opam --set-root) && opam install -y ./pfff
+      - name: Build sgrep
+        run: eval $(opam env --root /home/opam/.opam --set-root) && cd sgrep && make all
+      - name: Build sgrep-lint
+        run: eval $(opam env --root /home/opam/.opam --set-root) && cd sgrep_lint && export PATH=/github/home/.local/bin:$PATH && sudo make all
+      - name: Prepare artifacts
+        run: |
+          mkdir -p sgrep-lint-files
+          cp ./sgrep/_build/default/bin/main_sgrep.exe sgrep-lint-files/sgrep
+          cp -r ./sgrep_lint/build/sgrep.dist/* sgrep-lint-files
+          chmod +x sgrep-lint-files/sgrep
+          chmod +x sgrep-lint-files/sgrep-lint
+          chmod +x sgrep-lint-files/sgrep-lint-exe
+          tar -cvzf artifacts.tar.gz sgrep-lint-files/
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v1
+        with:
+          name: sgrep-ubuntu-16.04-${{ github.sha }}
+          path: artifacts.tar.gz
