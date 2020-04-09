@@ -26,6 +26,7 @@ module Eq = Equivalence
 module Res = Match_result
 module GG = Generic_vs_generic
 module MV = Metavars_generic
+module Flag = Flag_sgrep
 
 (*****************************************************************************)
 (* Prelude *)
@@ -75,9 +76,9 @@ let match_any_any pattern e =
 (*****************************************************************************)
 
 let match_e_e_for_equivalences a b =
-  Common.save_excursion Matching_generic.equivalence_mode true (fun () ->
-  Common.save_excursion Matching_generic.go_deeper_expr false (fun () ->
-  Common.save_excursion Matching_generic.go_deeper_stmt false (fun () ->
+  Common.save_excursion Flag.equivalence_mode true (fun () ->
+  Common.save_excursion Flag.go_deeper_expr false (fun () ->
+  Common.save_excursion Flag.go_deeper_stmt false (fun () ->
     match_e_e a b
   )))
 
