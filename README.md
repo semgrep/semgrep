@@ -46,7 +46,7 @@ $ ./sgrep-lint-files/sgrep-lint --help
 
 ## Usage
 
-Let's start with a simple example:
+Start with a simple example:
 
 ```
 $ cat << EOF > test.py
