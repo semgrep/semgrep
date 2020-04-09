@@ -39,7 +39,24 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
     foo(1, 2, bar=baz, 3)
     ```
 - Support python fstring variable substitution
-- Constant propogation #332
+- Constant propogation in javascript:
+    ```
+    api("literal");
+    ```
+    will now match with any of the following:
+    ```javascript
+    api("literal");
+
+    const LITERAL = "literal";
+    api(LITERAL);
+
+    const LIT = "lit";
+    api(LIT + "eral");
+
+    const LIT = "lit";
+    api(`${LIT}eral`);
+    ```
+
 - Deep statement matching
 - Unified import resolution in python:
     ```
