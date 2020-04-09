@@ -28,7 +28,7 @@ RUN ls -al /home/pythonbuild/sgrep_lint/build/sgrep.dist/
 
 ## final output, combining both
 
-FROM python:3.7.7-alpine3.11
+FROM alpine:3.11.3@sha256:ddba4d27a7ffc3f86dd6c2f92041af252a1f23a8e742c90e6e1297bfa1bc0c45
 LABEL maintainer="sgrep@r2c.dev"
 
 ENV PYTHONUNBUFFERED=1
