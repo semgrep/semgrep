@@ -19,6 +19,7 @@ module B = Ast_generic
 module MV = Metavars_generic
 module Lib = Lib_ast
 module Ast = Ast_generic
+module Flag = Flag_sgrep
 
 (*****************************************************************************)
 (* Prelude *)
@@ -85,27 +86,13 @@ type ('a, 'b) matcher = 'a -> 'b  -> tin -> tout
 (*****************************************************************************)
 (* Globals *)
 (*****************************************************************************)
-let verbose = ref false
 
-(* note that this will stop at the first fail(), but if you restrict
- * enough your pattern, this can help you debug your problem.*)
-let debug = ref false
-let debug_with_full_position = ref false
-
-(* !experimental: a bit hacky, and may introduce big perf regressions! *)
-
-(* should be used with DeepEllipsis; do it implicitely has issues *)
-let go_deeper_expr = ref true
-(* this ultimately should go away once '...' works on the CFG *)
-let go_deeper_stmt = ref true
-
-let equivalence_mode = ref false
 
 (*****************************************************************************)
 (* Debugging *)
 (*****************************************************************************)
 let str_of_any any = 
-  if !debug && !debug_with_full_position
+  if !Flag.debug && !Flag.debug_with_full_position
   then Meta_parse_info._current_precision :=
     { Meta_parse_info.default_dumper_precision with Meta_parse_info.
       full_info = true };
@@ -176,7 +163,7 @@ let (return : tin -> tout) = fun tin ->
 [tin]
       
 let (fail : tin -> tout) = fun _tin ->
-  if !debug
+  if !Flag.debug
   then failwith "Generic_vs_generic.fail: Match failure"
   else
   []
@@ -208,7 +195,7 @@ let equal_ast_binded_code (a: Ast.any) (b: Ast.any) : bool =
       let a = Lib.abstract_position_info_any a in
       let b = Lib.abstract_position_info_any b in
       let res = a =*= b in
-      if !verbose && not res
+      if !Flag.verbose && not res
       then begin
         pr2 (spf "A = %s" (str_of_any a));
         pr2 (spf "B = %s" (str_of_any b));
@@ -237,11 +224,11 @@ let (envf: (MV.mvar Ast.wrap, Ast.any) matcher) =
  fun (mvar, _imvar) any  -> fun tin ->
   match check_and_add_metavar_binding (mvar, any) tin with
   | None ->
-      if !verbose 
+      if !Flag.verbose 
       then pr2 (spf "envf: fail, %s (%s)" mvar (str_of_any any));
       fail tin
   | Some new_binding ->
-      if !verbose 
+      if !Flag.verbose 
       then pr2 (spf "envf: success, %s (%s)" mvar (str_of_any any));
       return new_binding
 

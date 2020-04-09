@@ -22,6 +22,7 @@
     pfff-lang_FUZZY
     
     sgrep
+    sgrep_fuzzy
  )
  ; for ocamldebug
  (modes byte)

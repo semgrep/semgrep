@@ -38,10 +38,6 @@ type metavars_binding = (mvar, Ast_generic.any) Common.assoc
 let metavar_regexp_string = 
   "^\\(\\$[A-Z]+\\)$"
 
-(* ex: $x *)
-let metavar_variable_regexp_string = 
-  "^\\(\\$[a-z]\\)$"
-
 (* 
  * Hacks abusing existing constructs to encode extra constructions.
  * One day we will have a pattern_ast.ml that mimics mostly
@@ -49,6 +45,3 @@ let metavar_variable_regexp_string =
  *)
 let is_metavar_name s = 
   s =~ metavar_regexp_string
-
-let is_metavar_variable_name s = 
-  s =~ metavar_variable_regexp_string

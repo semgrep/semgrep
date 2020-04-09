@@ -22,5 +22,6 @@
     pfff-lang_FUZZY
     
     sgrep
+    sgrep_fuzzy
   )
 )
