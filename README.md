@@ -8,9 +8,15 @@ your codebase. It combines the convenience of `grep` with the correctness of
 syntactical and semantic search. Quickly write rules so you can code with
 confidence.
 
-Try it now: [https://sgrep.live](https://sgrep.live/)
+**Try it now:** [https://sgrep.live](https://sgrep.live/)
 
 ## Overview
+
+Language support:
+
+| **Python** | **Javascript** | **Go &nbsp; &nbsp; &nbsp;** | **Java &nbsp;** | **C &nbsp; &nbsp; &nbsp; &nbsp;** | **Typescript** | **PHP &nbsp; &nbsp;** |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| ✅ | ✅ | ✅ | ✅ | ✅ | Coming... | Coming... |
 
 Simple patterns for finding code in many languages:
 
@@ -19,12 +25,8 @@ Simple patterns for finding code in many languages:
 | `$X == $X` | `if (node.id == node.id): ...` |
 | `requests.get(..., verify=False, ...)` | `requests.get(url, timeout=3, verify=False)` |
 | `os.system(...)` | `from os import system; system('echo sgrep')` |
-
-Language support:
-
-| **Python** | **JavaScript** | **Go &nbsp; &nbsp; &nbsp;** | **Java &nbsp;** | **C &nbsp; &nbsp; &nbsp; &nbsp;** | **TypeScript** | **PHP &nbsp; &nbsp;** |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| ✅ | ✅ | ✅ | ✅ | ✅ | Coming... | Coming... |
+| `$ELEMENT.innerHTML` | ``el.innerHTML = "<img src='x' onerror='alert(`XSS`)'>";`` |
+| `$TOKEN.SignedString([]byte("..."))` | `ss, err := token.SignedString([]byte("HARDCODED KEY"))` |
 
 ## Installation
 
@@ -108,11 +110,11 @@ or multiple files matching `.sgrep/**/*.yml`.
 
 Configuration files make use of two primary operators:
 
-* **Metavariables like $X, $LIST, or $METAVARIABLE.** Metavariable names can
+* **Metavariables like $X, $WIDGET, or $USERS.** Metavariable names can
 only contain uppercase characters. Metavariables are used to track a variable
 across a specific code scope.
-* **The '...' (splat) operator.** The splat operator abstracts away sequences
-so you don't have to sweat the details of a particular code pattern.
+* **The '...' (ellipsis) operator.** The ellipsis operator abstracts away
+sequences so you don't have to sweat the details of a particular code pattern.
 
 Let's consider an example:
 
@@ -120,11 +122,11 @@ Let's consider an example:
 rules:
   - id: open-never-closed
     patterns:
-      - pattern: $FD = open(...)
+      - pattern: $FILE = open(...)
       - pattern-not-inside: |
-          $FD = open(...)
+          $FILE = open(...)
           ...
-          $FD.close()
+          $FILE.close()
     message: "file object opened without corresponding close"
     languages: [python]
     severity: ERROR
@@ -132,14 +134,14 @@ rules:
 
 This rule looks for files that are opened but never closed. It accomplishes
 this by looking for the `open(...)` pattern _and not_ a following `close()`
-pattern. The `$FD` metavariable ensures that the same variable name is used
-in the `open` and `close` calls. The splat operator allows for any arguments
+pattern. The `$FILE` metavariable ensures that the same variable name is used
+in the `open` and `close` calls. The ellipsis operator allows for any arguments
 to be passed to `open` and any sequence of code statements in-between the `open`
 and `close` calls. We don't care how `open` is called or what happens up to
 a `close` call, we just need to make sure `close` is called.
 
-For a more complete introduction to the configuration format please see the
-[advanced configuration documentation](docs/config/advanced.md).
+**For a more complete introduction to the configuration format please see the
+[advanced configuration documentation](docs/config/advanced.md).**
 
 #### Equivalences
 
