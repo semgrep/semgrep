@@ -36,17 +36,6 @@ Too lazy to install? Try out [sgrep.live](https://sgrep.live)
 
 `sgrep` is packaged within a [docker container](https://hub.docker.com/r/returntocorp/sgrep), making installation as easy as [installing docker](https://docs.docker.com/install/).
 
-### Mac \(alpha\)
-
-The brew install is WIP and will change significantly.
-
-```bash
-brew tap returntocorp/sgrep https://github.com/returntocorp/sgrep.git
-brew install sgrep-r2c
-# Due to a naming conflict, when installed via brew, it is named `sgrok`
-sgrok --help
-```
-
 ## Quickstart
 
 ```bash
