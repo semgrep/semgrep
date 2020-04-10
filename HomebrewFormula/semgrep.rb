@@ -53,7 +53,7 @@ class Semgrep < Formula
   # To avoid upstream breakage, patch the Python code to make it well behaved
   patch do
     url "https://github.com/returntocorp/sgrep/compare/brewable.diff"
-    sha256 "c6e9ae058418ea4aaa1ceaec6e45596365b7313520626c06310d24b7135946fc"
+    sha256 "83888a36495c482d8a106bba56664af3795fd85f88655a312c6d43e56dbd2494"
   end
 
 
@@ -71,13 +71,13 @@ class Semgrep < Formula
       end
   end
   test do
-    system "#{bin}/sgrok --help"
+    system "#{bin}/semgrep --help"
     (testpath/"script.py").write <<~EOS
       def silly_eq(a, b):
         return a + b == a + b
     EOS
 
-    output = shell_output("#{bin}/sgrok script.py -l python -e '$X == $X'")
+    output = shell_output("#{bin}/semgrep script.py -l python -e '$X == $X'")
     assert_match "a + b == a + b", output
   end
 end
