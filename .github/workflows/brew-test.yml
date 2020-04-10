@@ -11,8 +11,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Homebrew install
-        run: brew install ./HomebrewFormula/sgrep-r2c.rb
+        run: brew install ./HomebrewFormula/semgrep.rb
       - name: Homebrew test
-        run: brew test ./HomebrewFormula/sgrep-r2c.rb
+        run: brew test ./HomebrewFormula/semgrep.rb
       - name: sanity
-        run: sgrok --help
+        run: semgrep --help
