@@ -110,10 +110,11 @@ or multiple files matching `.sgrep/**/*.yml`.
 
 Configuration files make use of two primary operators:
 
-* **Metavariables like $X, $WIDGET, or $USERS.** Metavariable names can
-only contain uppercase characters. Metavariables are used to track a variable
-across a specific code scope.
-* **The '...' (ellipsis) operator.** The ellipsis operator abstracts away
+* **Metavariables like `$X`, `$WIDGET`, or `$USERS`.** Metavariable names can
+only contain uppercase characters - names like `$x` or `$SOME_VALUE` are
+invalid.  Metavariables are used to track a variable across a specific code
+scope.
+* **The `...` (ellipsis) operator.** The ellipsis operator abstracts away
 sequences so you don't have to sweat the details of a particular code pattern.
 
 Let's consider an example:
