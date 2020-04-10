@@ -18,7 +18,7 @@ Language support:
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | ✅ | ✅ | ✅ | ✅ | ✅ | Coming... | Coming... |
 
-Simple patterns for finding code in many languages:
+Example patterns:
 
 | **Pattern** | **Matches** |
 | :--- | :--- |
@@ -30,20 +30,16 @@ Simple patterns for finding code in many languages:
 
 ## Installation
 
-For the best experience, simply install `sgrep` with [Docker](https://docs.docker.com/install/):
+Install `sgrep` with [Docker](https://docs.docker.com/install/):
 
 ```
 $ docker pull returntocorp/sgrep
 ```
 
-`sgrep` binaries can also be installed on Ubuntu:
+And double check that it was installed correctly:
 
 ```
-$ wget https://github.com/returntocorp/sgrep/releases/download/v0.4.9/sgrep-0.4.9-ubuntu-16.04.tgz
-$ wget https://github.com/returntocorp/sgrep/releases/download/v0.4.9/sgrep-0.4.9-ubuntu-16.04.tgz.sha256
-$ sha256sum --check sgrep-0.4.9-ubuntu-16.04.tgz.sha256
-$ tar xf sgrep-0.4.9-ubuntu-16.04.tgz
-$ ./sgrep-lint-files/sgrep-lint --help
+$ docker run --rm returntocorp/sgrep --help
 ```
 
 ## Usage
@@ -69,7 +65,7 @@ From here you can use our rules to search for issues in your codebase:
 
 ```
 $ cd /path/to/code
-$ docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep --config https://r2c.dev/default-r2c-checks
+$ docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep --config r2c
 ```
 
 You can also [create your own rules](docs/config/advanced.md):
