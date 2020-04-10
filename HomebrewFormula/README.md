@@ -1,5 +1,5 @@
 # Homebrew
-This directory contains the code to build homebrew formulas for sgrep.
+This directory contains the code to build homebrew formulas for semgrep.
 
 ## How it works
 The formula works in two parts:
@@ -37,10 +37,11 @@ curl -L https://github.com/returntocorp/sgrep/archive/v0.4.9.tar.gz | sha256sum
 ## Testing
 The easiest way to test a formula is to run brew directly on a file. If you have the file locally, you can literally run:
 ```
-brew install sgrep-r2c.rb
-brew test sgrep-r2c.rb
+brew install ./semgrep.rb
+brew test ./semgrep.rb
 ```
 
+Coincidentally, this is what the automated testing will also do.
 This also works with URLS:
 ```
 brew install https://raw.githubusercontent.com/returntocorp/sgrep/e77e44a948333a968b694bf77b2bf8bf0c3d2920/HomebrewFormula/sgrep-r2c.rb
