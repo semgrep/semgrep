@@ -5,7 +5,7 @@ class SgrepR2c < Formula
 
   url "https://github.com/returntocorp/sgrep/archive/v0.4.9.tar.gz"
   sha256 "7820716c96bb85a07ed5e561f66b3fb0cca59e5c910370c58ec04276f99864c5"
-  
+
   depends_on "coreutils"
   depends_on "python@3.8"
 
@@ -49,7 +49,7 @@ class SgrepR2c < Formula
     url "https://github.com/returntocorp/sgrep/releases/download/v0.4.9/sgrep-0.4.9-osx.zip"
     sha256 "7e710b5c912dfadb0919349b3e5fc60570aba12eb78313ad37adb1487263d018"
   end
-  
+
   # To avoid upstream breakage, patch the Python code to make it well behaved
   patch do
     url "https://github.com/returntocorp/sgrep/compare/brewable.diff"
