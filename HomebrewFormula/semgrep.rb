@@ -1,4 +1,4 @@
-class SgrepR2c < Formula
+class Semgrep < Formula
   include Language::Python::Virtualenv
   desc "Like grep but for code"
   homepage "https://github.com/returntocorp/sgrep"
