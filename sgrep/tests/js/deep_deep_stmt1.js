@@ -69,3 +69,4 @@ function test6() {
         console.log(x);
     }
 }
+
