@@ -16,16 +16,21 @@ open Common
 
 module R = Rule
 
+exception InvalidRuleException of string * string
+exception InvalidLanguageException of string * string
+exception InvalidPatternException of string * string * string * string
+exception UnparsableYamlException of string
+exception InvalidYamlException of string
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-let error s =
-  failwith (spf "sgrep_lint: wrong format. %s" s)
 
-let severity_of_string = function
+let severity_of_string (pattern_id: string) (severity: string) =
+  match severity with
  | "ERROR" -> R.Error
  | "WARNING" -> R.Warning
- | s -> error (spf "Bad severity: %s" s)
+ | s -> raise (InvalidRuleException (pattern_id, (spf "Bad severity: %s" s)))
 
 (*****************************************************************************)
 (* Main entry point *)
@@ -52,37 +57,36 @@ let parse file =
                let languages = langs |> List.map (function
                 | `String s ->
                   (match Lang.lang_of_string_opt s with
-                  | None -> error (spf "unsupported language: %s" s)
+                  | None -> raise (InvalidLanguageException (id, (spf "unsupported language: %s" s)))
                   | Some l -> l
                   )
-                | _ -> error (spf "expecting a string for languages")
+                | _ -> raise (InvalidRuleException (id, (spf "expecting a string for languages")))
                ) in
                let lang =
                  match languages with
-                 | [] -> error "we need at least one language"
+                 | [] -> raise (InvalidRuleException (id, "we need at least one language"))
                  | x::_xs -> x
                in
                let pattern =
                  (* todo? call Normalize_ast.normalize here? *)
                  try Parse_generic.parse_pattern lang pattern
                  with exn ->
-                   error (spf "could not parse the pattern %s (exn = %s)"
-                            pattern (Common.exn_to_s exn))
+                   raise (InvalidPatternException (id, pattern, lang, (Common.exn_to_s exn)))
                in
-               let severity = severity_of_string sev in
+               let severity = (severity_of_string id sev) in
                { R. id; pattern; message; languages; severity }
              | x ->
                pr2_gen x;
-               error "wrong rule fields"
+               raise (InvalidYamlException "wrong rule fields")
              )
           | x ->
               pr2_gen x;
-              error "wrong rule fields"
+              raise (InvalidYamlException "wrong rule fields")
          )
-      | _ -> error "missing rules entry"
+      | _ -> raise (InvalidYamlException "missing rules entry as top-level key")
       )
   | Result.Error (`Msg s) ->
-    failwith (spf "sgrep_lint: could not parse %s (error = %s)" file s)
+    raise (UnparsableYamlException (spf "%s could not be parsed as YAML (error = %s)" file s))
 
 (*
       let sgrep_string = Common.matched1 s in

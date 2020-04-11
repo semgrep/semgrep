@@ -227,8 +227,7 @@ let parse_pattern str =
      )
   ))
   with exn ->
-      failwith (spf "fail to parse pattern: '%s' in lang %s (exn = %s)" 
-          str !lang (Common.exn_to_s exn))
+      raise (InvalidPatternException ("no-id", str, !lang, Common.exn_to_s exn))
  
 
 let sgrep_ast pattern file any_ast =
@@ -513,6 +512,31 @@ let options () =
 (* Main entry point *)
 (*****************************************************************************)
 
+let format_output_exception e : string = 
+  (* if (ouptut_as_json) then *)
+  let msg = match e with 
+    | Parse_rules.InvalidRuleException (pattern_id, msg)     ->
+      J.Object [ "pattern_id", J.String pattern_id;
+       "error", J.String "invalid rule";
+       "message", J.String msg; ]
+    | Parse_rules.InvalidLanguageException (pattern_id, language) -> 
+      J.Object [ "pattern_id", J.String pattern_id; 
+      "error", J.String "invalid language"; 
+      "language", J.String language; ]
+    | Parse_rules.InvalidPatternException (pattern_id, pattern) ->
+      J.Object [ "pattern_id", J.String pattern_id;
+       "error", J.String "invalid pattern";
+       "pattern", J.String pattern; ]
+    | Parse_rules.UnparsableYamlException msg ->
+      J.Object [  "error", J.String "unparsable yaml"; "message", J.String msg; ]
+    | Parse_rules.InvalidYamlException msg ->
+      J.Object [  "error", J.String "invalid yaml"; "message", J.String msg; ]
+    | exn -> 
+      J.Object [  "error", J.String "unknown exception"; "message", J.String (Common.exn_to_s exn); ]
+  in 
+    Json_io.string_of_json msg
+
+
 let main () = 
   set_gc ();
   let usage_msg = 
@@ -540,10 +564,13 @@ let main () =
     (* main entry *)
     (* --------------------------------------------------------- *)
     | x::xs -> 
-        if !rules_file <> ""
-        then sgrep_with_rules !rules_file (x::xs)
-        else sgrep_with_one_pattern (x::xs)
-
+        (try (
+          if !rules_file <> ""
+          then sgrep_with_rules !rules_file (x::xs)
+          else sgrep_with_one_pattern (x::xs)
+        ) with exn -> 
+          pr (format_output_exception exn)
+        )
     (* --------------------------------------------------------- *)
     (* empty entry *)
     (* --------------------------------------------------------- *)
