@@ -1,5 +1,6 @@
 RCE_RULE_FLAG = "--dangerously-allow-arbitrary-code-execution-from-rules"
 RULES_KEY = "rules"
+SGREP_USER_AGENT = "sgrep-give-me-yaml"
 ID_KEY = "id"
 SGREP_URL = "https://sgrep.dev/"
 PLEASE_FILE_ISSUE_TEXT = "An error occurred while invoking the sgrep engine; please help us fix this by filing an an issue at https://sgrep.dev"

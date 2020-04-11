@@ -17,6 +17,7 @@ from constants import DEFAULT_CONFIG_FOLDER
 from constants import DEFAULT_SGREP_CONFIG_NAME
 from constants import ID_KEY
 from constants import RULES_KEY
+from constants import SGREP_USER_AGENT
 from constants import YML_EXTENSIONS
 from util import debug_print
 from util import is_url
@@ -169,8 +170,10 @@ def load_config_from_local_path(
 
 def download_config(config_url: str) -> Dict[str, Optional[Dict[str, Any]]]:
     debug_print(f"trying to download from {config_url}")
+    headers = {"User-Agent": SGREP_USER_AGENT}
+
     try:
-        r = requests.get(config_url, stream=True)
+        r = requests.get(config_url, stream=True, headers=headers)
         if r.status_code == requests.codes.ok:
             content_type = r.headers.get("Content-Type")
             if content_type and "text/plain" in content_type:
