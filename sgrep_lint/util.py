@@ -17,6 +17,7 @@ INVALID_PATTERN_EXIT_CODE = 4
 UNPARSEABLE_YAML = 5
 NEED_ARBITRARY_CODE_EXEC = 6
 
+
 def is_url(url: str) -> bool:
     try:
         result = urlparse(url)

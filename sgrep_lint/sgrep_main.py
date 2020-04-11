@@ -39,19 +39,20 @@ from sgrep_types import SgrepRange
 from sgrep_types import YAML_ALL_VALID_RULE_KEYS
 from sgrep_types import YAML_MUST_HAVE_KEYS
 from util import debug_print
+from util import FINDINGS_EXIT_CODE
+from util import INVALID_CODE_EXIT_CODE
+from util import INVALID_PATTERN_EXIT_CODE
 from util import is_url
 from util import print_error
 from util import print_error_exit
 from util import print_msg
-
-from util import (FINDINGS_EXIT_CODE, INVALID_CODE_EXIT_CODE, INVALID_PATTERN_EXIT_CODE, UNPARSEABLE_YAML)
+from util import UNPARSEABLE_YAML
 
 
 # Constants
 
 SGREP_RULES_HOME = "https://github.com/returntocorp/sgrep-rules"
 MISSING_RULE_ID = "no-rule-id"
-
 
 
 SGREP_PATH = "sgrep"
@@ -88,32 +89,44 @@ def group_rule_by_langauges(
             by_lang[language].append(rule)
     return by_lang
 
-def sgrep_error_json_to_message_then_exit(error_json: Dict[str, Any], all_rules: List[Dict[str, Any]]) -> str:
+
+def sgrep_error_json_to_message_then_exit(
+    error_json: Dict[str, Any], all_rules: List[Dict[str, Any]]
+) -> None:
     """
     See format_output_exception in sgrep O'Caml for details on schema
     """
     error_type = error_json["error"]
     if error_type == "invalid language":
-        print_error_exit(f'invalid language {error_json["language"]}')        
+        print_error_exit(f'invalid language {error_json["language"]}')
     elif error_type == "invalid pattern":
         decoded_pattern_index = decode_rule_id_to_index(error_json["pattern_id"])
         rule = all_rules[decoded_pattern_index]
-        print_error(f'in rule {rule["id"]} for language {error_json["language"]} invalid pattern "{error_json["pattern"]}": {error_json["message"]}')
+        print_error(
+            f'in rule {rule["id"]} for language {error_json["language"]} invalid pattern "{error_json["pattern"]}": {error_json["message"]}'
+        )
         exit(INVALID_PATTERN_EXIT_CODE)
-    # no special formatting ought to be required for the other types; the sgrep python should be performing 
+    # no special formatting ought to be required for the other types; the sgrep python should be performing
     # validation for them. So if any other type of error occurs, ask the user to file an issue
     else:
-        print_error_exit('an internal error occured while invoking the sgrep engine: {error_type}: {error_json.get("message", "")}.\n\n{PLEASE_FILE_ISSUE_TEXT}')
-        
+        print_error_exit(
+            'an internal error occured while invoking the sgrep engine: {error_type}: {error_json.get("message", "")}.\n\n{PLEASE_FILE_ISSUE_TEXT}'
+        )
+
 
 def invoke_sgrep(
-    all_patterns: List[Dict[str, Any]], targets: List[Path], output_mode_json: bool, all_rules: List[Dict[str, Any]]
+    all_patterns: List[Dict[str, Any]],
+    targets: List[Path],
+    output_mode_json: bool,
+    all_rules: List[Dict[str, Any]],
 ) -> Dict[str, Any]:
     """Returns parsed json output of sgrep"""
 
     outputs: List[Any] = []  # multiple invocations per language
     errors: List[Any] = []
-    for language, all_rules_for_language in group_rule_by_langauges(all_patterns).items():
+    for language, all_rules_for_language in group_rule_by_langauges(
+        all_patterns
+    ).items():
         with tempfile.NamedTemporaryFile("w") as fout:
             # very important not to sort keys here
             yaml_as_str = yaml.safe_dump(
@@ -131,19 +144,19 @@ def invoke_sgrep(
             try:
                 output = subprocess.check_output(cmd, shell=False)
             except subprocess.CalledProcessError as ex:
-                try: 
+                try:
                     # see if sgrep output a JSON error that we can decode
                     output_json = json.loads((ex.output.decode("utf-8", "replace")))
                     if "error" in output_json:
                         sgrep_error_json_to_message_then_exit(output_json, all_rules)
                     else:
-                        raise ex # let our general exception handler take care of this
-                except Exception:                    
+                        raise ex  # let our general exception handler take care of this
+                except Exception:
                     print_error(
                         f"non-zero return code while invoking sgrep with:\n\t{' '.join(cmd)}\n{ex}"
                     )
                     print_error_exit(f"\n\n{PLEASE_FILE_ISSUE_TEXT}")
-            output_json = json.loads((output.decode("utf-8", "replace")))            
+            output_json = json.loads((output.decode("utf-8", "replace")))
             errors.extend(output_json["errors"])
             outputs.extend(output_json["matches"])
     return {"matches": outputs, "errors": errors}
@@ -558,7 +571,7 @@ def uniq_id(r: Any) -> Tuple[str, str, int, int, int, int]:
     )
 
 
-def decode_rule_id_to_index(rule_id):
+def decode_rule_id_to_index(rule_id: str) -> int:
     # decode the rule index from the output check_id
     return int(rule_id.split(".")[0])
 
@@ -670,7 +683,7 @@ def main(args: argparse.Namespace) -> Dict[str, Any]:
             f"run with --strict and {len(sgrep_errors)} errors occurred during sgrep run; exiting"
         )
 
-    for finding in output_json["matches"]:        
+    for finding in output_json["matches"]:
         rule_index = decode_rule_id_to_index(finding["check_id"])
         by_rule_index[rule_index][finding["path"]].append(finding)
 
