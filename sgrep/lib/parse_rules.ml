@@ -71,7 +71,7 @@ let parse file =
                  (* todo? call Normalize_ast.normalize here? *)
                  try Parse_generic.parse_pattern lang pattern
                  with exn ->
-                   raise (InvalidPatternException (id, pattern, lang, (Common.exn_to_s exn)))
+                   raise (InvalidPatternException (id, pattern, (Lang.string_of_lang lang), (Common.exn_to_s exn)))
                in
                let severity = (severity_of_string id sev) in
                { R. id; pattern; message; languages; severity }
@@ -86,7 +86,7 @@ let parse file =
       | _ -> raise (InvalidYamlException "missing rules entry as top-level key")
       )
   | Result.Error (`Msg s) ->
-    raise (UnparsableYamlException (spf "%s could not be parsed as YAML (error = %s)" file s))
+    raise (UnparsableYamlException (spf "input file could not be parsed as YAML (error = %s)" s))
 
 (*
       let sgrep_string = Common.matched1 s in

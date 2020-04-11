@@ -227,7 +227,7 @@ let parse_pattern str =
      )
   ))
   with exn ->
-      raise (InvalidPatternException ("no-id", str, !lang, Common.exn_to_s exn))
+      raise (Parse_rules.InvalidPatternException ("no-id", str, !lang, (Common.exn_to_s exn)))
  
 
 let sgrep_ast pattern file any_ast =
@@ -523,10 +523,12 @@ let format_output_exception e : string =
       J.Object [ "pattern_id", J.String pattern_id; 
       "error", J.String "invalid language"; 
       "language", J.String language; ]
-    | Parse_rules.InvalidPatternException (pattern_id, pattern) ->
+    | Parse_rules.InvalidPatternException (pattern_id, pattern, lang, message) ->
       J.Object [ "pattern_id", J.String pattern_id;
        "error", J.String "invalid pattern";
-       "pattern", J.String pattern; ]
+       "pattern", J.String pattern; 
+       "language", J.String lang;
+       "message", J.String message; ]
     | Parse_rules.UnparsableYamlException msg ->
       J.Object [  "error", J.String "unparsable yaml"; "message", J.String msg; ]
     | Parse_rules.InvalidYamlException msg ->
