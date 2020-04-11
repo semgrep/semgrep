@@ -18,7 +18,7 @@ from sgrep_types import SgrepRange
 from sgrep_types import YAML_VALID_TOP_LEVEL_OPERATORS
 from util import debug_print
 from util import flatten
-from util import NEED_ARBITRARY_CODE_EXEC
+from util import NEED_ARBITRARY_CODE_EXEC_EXIT_CODE
 from util import print_error
 from util import print_error_exit
 
@@ -125,7 +125,7 @@ def _evaluate_single_expression(
         if not flags or flags[RCE_RULE_FLAG] != True:
             print_error_exit(
                 f"at least one rule needs to execute arbitrary code; this is dangerous! if you want to continue, enable the flag: {RCE_RULE_FLAG}",
-                NEED_ARBITRARY_CODE_EXEC,
+                NEED_ARBITRARY_CODE_EXEC_EXIT_CODE,
             )
         assert expression.operand, "must have operand for this operator type"
 

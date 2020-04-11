@@ -46,7 +46,7 @@ from util import is_url
 from util import print_error
 from util import print_error_exit
 from util import print_msg
-from util import UNPARSEABLE_YAML
+from util import UNPARSEABLE_YAML_EXIT_CODE
 
 
 # Constants
@@ -680,7 +680,7 @@ def main(args: argparse.Namespace) -> Dict[str, Any]:
 
     if strict and len(sgrep_errors):
         print_error_exit(
-            f"run with --strict and {len(sgrep_errors)} errors occurred during sgrep run; exiting"
+            f"run with --strict and {len(sgrep_errors)} errors occurred during sgrep run; exiting", INVALID_CODE_EXIT_CODE
         )
 
     for finding in output_json["matches"]:
