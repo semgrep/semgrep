@@ -86,7 +86,7 @@ let parse file =
       | _ -> raise (InvalidYamlException "missing rules entry as top-level key")
       )
   | Result.Error (`Msg s) ->
-    raise (UnparsableYamlException (spf "input file could not be parsed as YAML (error = %s)" s))
+    raise (UnparsableYamlException s)
 
 (*
       let sgrep_string = Common.matched1 s in

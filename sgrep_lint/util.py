@@ -9,8 +9,13 @@ global QUIET
 DEBUG = False
 QUIET = False
 
+# Exit codes
+FINDINGS_EXIT_CODE = 1
 FATAL_EXIT_CODE = 2
-
+INVALID_CODE_EXIT_CODE = 3
+INVALID_PATTERN_EXIT_CODE = 4
+UNPARSEABLE_YAML = 5
+NEED_ARBITRARY_CODE_EXEC = 6
 
 def is_url(url: str) -> bool:
     try:

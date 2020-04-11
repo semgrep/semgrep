@@ -571,7 +571,8 @@ let main () =
           then sgrep_with_rules !rules_file (x::xs)
           else sgrep_with_one_pattern (x::xs)
         ) with exn -> 
-          pr (format_output_exception exn)
+          pr (format_output_exception exn); (* todo, should be pr2 probably *)
+          exit 2
         )
     (* --------------------------------------------------------- *)
     (* empty entry *)

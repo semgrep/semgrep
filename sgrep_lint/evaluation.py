@@ -19,7 +19,7 @@ from sgrep_types import YAML_VALID_TOP_LEVEL_OPERATORS
 from util import debug_print
 from util import flatten
 from util import print_error
-from util import print_error_exit
+from util import print_error_exit, NEED_ARBITRARY_CODE_EXEC
 
 
 def _parse_boolean_expression(
@@ -123,7 +123,7 @@ def _evaluate_single_expression(
     elif expression.operator == OPERATORS.WHERE_PYTHON:
         if not flags or flags[RCE_RULE_FLAG] != True:
             print_error_exit(
-                f"at least one rule needs to execute arbitrary code; this is dangerous! if you want to continue, enable the flag: {RCE_RULE_FLAG}"
+                f"at least one rule needs to execute arbitrary code; this is dangerous! if you want to continue, enable the flag: {RCE_RULE_FLAG}", NEED_ARBITRARY_CODE_EXEC
             )
         assert expression.operand, "must have operand for this operator type"
 
