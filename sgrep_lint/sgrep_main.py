@@ -312,27 +312,6 @@ def convert_config_id_to_prefix(config_id: str) -> str:
     return prefix
 
 
-# def validate_patterns(valid_configs: Dict[str, Any]) -> List[str]:
-#     invalid: List[str] = []
-#     for config_id, config in valid_configs.items():
-#         rules = config.get(RULES_KEY, [])
-#         for rule in rules:
-#             expressions = enumerate_patterns_in_boolean_expression(
-#                 build_boolean_expression(rule)
-#             )
-#             for expr in expressions:
-#                 for language in rule["languages"]:
-#                     # avoid patterns that don't have pattern_ids, like pattern-either
-#                     if should_send_to_sgrep(expr) and not validate_pattern_with_sgrep(
-#                         expr.operand, language  # type: ignore
-#                     ):
-#                         invalid.append(expr.operand)  # type: ignore
-#                         print_error(
-#                             f"in {config_id}, pattern in rule {rule['id']} can't be parsed for language {language}: {expr.operand}"
-#                         )
-#     return invalid
-
-
 def rename_rule_ids(valid_configs: Dict[str, Any]) -> Dict[str, Any]:
     transformed = {}
     for config_id, config in valid_configs.items():
@@ -680,7 +659,8 @@ def main(args: argparse.Namespace) -> Dict[str, Any]:
 
     if strict and len(sgrep_errors):
         print_error_exit(
-            f"run with --strict and {len(sgrep_errors)} errors occurred during sgrep run; exiting", INVALID_CODE_EXIT_CODE
+            f"run with --strict and {len(sgrep_errors)} errors occurred during sgrep run; exiting",
+            INVALID_CODE_EXIT_CODE,
         )
 
     for finding in output_json["matches"]:
