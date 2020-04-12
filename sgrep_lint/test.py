@@ -183,7 +183,7 @@ def invoke_sgrep_lint(
             generate_config=False,
             pattern=None,
             validate=False,
-            skip_pattern_validation=False,
+            json=True,
             exclude_tests=False,
             exclude=[],
             output=None,
