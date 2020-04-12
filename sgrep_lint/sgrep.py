@@ -118,11 +118,6 @@ if __name__ == "__main__":
         action="store_true",
     )
     output.add_argument(
-        "--skip-pattern-validation",
-        help="skip using sgrep to validate patterns before running (not recommended)",
-        action="store_true",
-    )
-    output.add_argument(
         "--dump-ast",
         help="show AST of the input file or passed expression and then exit (can use --json)",
         action="store_true",

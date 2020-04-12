@@ -1,0 +1,7 @@
+rules:
+  - id: eqeq-is-bad
+    patterns:
+      - pattern: $X == $X 3
+    message: "yeah this pattern doesn't work"
+    languages: [python]
+    severity: ERROR

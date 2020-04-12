@@ -101,6 +101,9 @@ local_tests
 # parsing bad.yaml should fail
 $SGREP --strict --config tests/python/bad.yaml tests/lint && echo "bad.yaml should have failed" && exit 1
 
+# parsing badpattern.yaml should fail
+$SGREP --strict --config tests/python/badpattern.yaml tests/lint && echo "badpattern.yaml should have failed" && exit 1
+
 # parsing bad2.yaml should fail
 $SGREP --strict --config tests/python/bad2.yaml tests/lint && echo "bad2.yaml should have failed" && exit 1
 
