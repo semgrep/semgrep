@@ -1,21 +1,14 @@
-class SgrepR2c < Formula
-  version 'v0.4.9b5a'
+class Semgrep < Formula
+  include Language::Python::Virtualenv
   desc "Like grep but for code"
   homepage "https://github.com/returntocorp/sgrep"
+
+  url "https://github.com/returntocorp/sgrep/archive/v0.4.9.tar.gz"
+  sha256 "7820716c96bb85a07ed5e561f66b3fb0cca59e5c910370c58ec04276f99864c5"
+
   depends_on "coreutils"
   depends_on "python@3.8"
-  include Language::Python::Virtualenv
 
-  stable do
-    url "https://github.com/returntocorp/sgrep/archive/v0.4.9.tar.gz"
-    sha256 "7820716c96bb85a07ed5e561f66b3fb0cca59e5c910370c58ec04276f99864c5"
-  end
-
-  # To avoid upstream breakage, patch the Python code to make it well behaved
-  patch do
-    url "https://github.com/returntocorp/sgrep/compare/brewable.diff"
-    sha256 "c6e9ae058418ea4aaa1ceaec6e45596365b7313520626c06310d24b7135946fc"
-  end
 
   resource "certifi" do
     url "https://files.pythonhosted.org/packages/b8/e2/a3a86a67c3fc8249ed305fc7b7d290ebe5e4d46ad45573884761ef4dea7b/certifi-2020.4.5.1.tar.gz"
@@ -57,6 +50,12 @@ class SgrepR2c < Formula
     sha256 "7e710b5c912dfadb0919349b3e5fc60570aba12eb78313ad37adb1487263d018"
   end
 
+  # To avoid upstream breakage, patch the Python code to make it well behaved
+  patch do
+    url "https://github.com/returntocorp/sgrep/compare/brewable.diff"
+    sha256 "83888a36495c482d8a106bba56664af3795fd85f88655a312c6d43e56dbd2494"
+  end
+
 
   def install
     (buildpath/"ocaml-binary").install resource("ocaml-binary")
@@ -72,13 +71,13 @@ class SgrepR2c < Formula
       end
   end
   test do
-    system "#{bin}/sgrok --help"
+    system "#{bin}/semgrep --help"
     (testpath/"script.py").write <<~EOS
       def silly_eq(a, b):
         return a + b == a + b
     EOS
 
-    output = shell_output("#{bin}/sgrok script.py -l python -e '$X == $X'")
+    output = shell_output("#{bin}/semgrep script.py -l python -e '$X == $X'")
     assert_match "a + b == a + b", output
   end
 end
