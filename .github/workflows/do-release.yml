@@ -144,7 +144,7 @@ jobs:
         run: eval $(opam env --root /home/opam/.opam --set-root) && cd sgrep_lint && export PATH=/github/home/.local/bin:$PATH && sudo make all
       - name: Prepare artifacts
         run: |
-          mkdir -p sgrep-lint-files
+          mkdir -p semgrep-lint-files
           cp ./sgrep/_build/default/bin/main_sgrep.exe sgrep-lint-files/semgrep
           cp -r ./sgrep_lint/build/sgrep.dist/* sgrep-lint-files
           chmod +x sgrep-lint-files/semgrep
