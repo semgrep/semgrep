@@ -1,138 +1,183 @@
 # sgrep
 
-[![r2c community slack](https://img.shields.io/badge/r2c_slack-join-brightgreen?style=for-the-badge&logo=slack&labelColor=4A154B)](https://join.slack.com/t/r2c-community/shared_invite/enQtNjU0NDYzMjAwODY4LWE3NTg1MGNhYTAwMzk5ZGRhMjQ2MzVhNGJiZjI1ZWQ0NjQ2YWI4ZGY3OGViMGJjNzA4ODQ3MjEzOWExNjZlNTA)
+[![CircleCI](https://circleci.com/gh/returntocorp/sgrep.svg?style=svg)](https://circleci.com/gh/returntocorp/sgrep)
+[![r2c Community Slack](https://img.shields.io/badge/r2c_slack-join-brightgreen?style=flat&logo=slack&labelColor=4A154B)](https://join.slack.com/t/r2c-community/shared_invite/enQtNjU0NDYzMjAwODY4LWE3NTg1MGNhYTAwMzk5ZGRhMjQ2MzVhNGJiZjI1ZWQ0NjQ2YWI4ZGY3OGViMGJjNzA4ODQ3MjEzOWExNjZlNTA)
 
-[sgrep.live](https://sgrep.live/): try it now!
+`sgrep` is a tool for easily detecting and preventing bugs and anti-patterns in
+your codebase. It combines the convenience of `grep` with the correctness of
+syntactical and semantic search. Quickly write rules so you can code with
+confidence.
 
-sgrep, for syntactical \(and occasionnally semantic\) grep, is a tool to help find bugs by specifying code patterns using a familiar syntax. The idea is to mix the convenience of grep with the correctness and precision of a compiler frontend.
+**Try it now:** [https://sgrep.live](https://sgrep.live/)
 
-## Quick Examples
+## Overview
 
-| **pattern** | **will match code like** |
+Language support:
+
+| **Python** | **Javascript** | **Go &nbsp; &nbsp; &nbsp;** | **Java &nbsp;** | **C &nbsp; &nbsp; &nbsp; &nbsp;** | **Typescript** | **PHP &nbsp; &nbsp;** |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| ✅ | ✅ | ✅ | ✅ | ✅ | Coming... | Coming... |
+
+Example patterns:
+
+| **Pattern** | **Matches** |
 | :--- | :--- |
 | `$X == $X` | `if (node.id == node.id): ...` |
-| `foo(kwd1=1, kwd2=2, ...)` | `foo(kwd2=2, kwd1=1, kwd3=3)` |
-| `subprocess.Popen(...)` | `import subprocess as s; s.Popen(['foo'])` |
-
-→ [see more examples in the sgrep-rules registry](https://github.com/returntocorp/sgrep-rules)
-
-## Supported Languages
-
-| **javascript** | **python** | **go** | **java** | **c** | **ruby** | **scala** |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| ✅ | ✅ | ✅ | ✅ | ✅ | coming | coming |
-
-→ see full language support details in [matrix.md](docs/matrix.md)
-
-## Meetups
-
-Want to learn more about sgrep? Check out these [slides from the r2c February meetup](https://r2c.dev/sgrep-public2.pdf)
+| `requests.get(..., verify=False, ...)` | `requests.get(url, timeout=3, verify=False)` |
+| `os.system(...)` | `from os import system; system('echo sgrep')` |
+| `$ELEMENT.innerHTML` | ``el.innerHTML = "<img src='x' onerror='alert(`XSS`)'>";`` |
+| `$TOKEN.SignedString([]byte("..."))` | `ss, err := token.SignedString([]byte("HARDCODED KEY"))` |
 
 ## Installation
 
-Too lazy to install? Try out [sgrep.live](https://sgrep.live)
+Install `sgrep` with [Docker](https://docs.docker.com/install/):
 
-### Docker
+```
+$ docker pull returntocorp/sgrep
+```
 
-`sgrep` is packaged within a [docker container](https://hub.docker.com/r/returntocorp/sgrep), making installation as easy as [installing docker](https://docs.docker.com/install/).
+And double check that it was installed correctly:
 
-## Quickstart
-
-```bash
-docker pull returntocorp/sgrep
-
-cd /path/to/repo
-# generate a template config file
-docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep --generate-config
-
-# look for findings
-docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep
+```
+$ docker run --rm returntocorp/sgrep --help
 ```
 
 ## Usage
 
-### Rule Development
+Start with a simple example:
 
-To rapidly iterate on a single pattern, you can test on a single file or folder. For example,
-
-```bash
-docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep -l python -e '$X == $X' path/to/file.py
+```
+$ cat << EOF > test.py
+a = 1
+b = 2
+if a == a:  # oops, supposed to be a == b
+    print('sgrep test')
+EOF
 ```
 
-Here, `sgrep` will search the target with the pattern `$X == $X` \(which is a stupid equals check\) and print the results to `stdout`. This also works for directories and will skip the file if parsing fails. You can specifiy the language of the pattern with `--lang javascript` for example.
-
-To see more options
-
-```bash
-docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep --help
+```
+$ docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep --lang python --pattern '$X == $X' test.py
+test.py
+3:if a == a:  # oops, supposed to be a == b
 ```
 
-### Config Files
+From here you can use our rules to search for issues in your codebase:
 
-#### Format
-
-See [config/advanced.md](docs/config/advanced.md) for example configuration files and details on the syntax.
-
-#### sgrep Registry
-
-[r2c](https://r2c.dev) provides a [registry](https://github.com/returntocorp/sgrep-rules) of config files tuned using our [analysis platform](https://app.r2c.dev) on thousands of repositories. To use:
-
-```bash
-sgrep --config r2c
+```
+$ cd /path/to/code
+$ docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep --config r2c
 ```
 
-### Default
+You can also [create your own rules](docs/config/advanced.md):
 
-Default configs are loaded from `.sgrep.yml` or multiple files matching `.sgrep/**/*.yml` and can be overridden by using `--config <file|folder|yaml_url|tarball_url|registy_name>`
+```
+$ cd /path/to/code
+$ docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep --generate-config
+$ docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep
+```
 
-## Design
+## Configuration
 
-Sgrep has a design philosophy that emphasizes simplicity and a single pattern being as expressive as possible:
+For simple patterns use the `--lang` and `--pattern` flags. This mode of
+operation is useful for quickly iterating on a pattern on a single file or
+folder:
 
-1. **Use concrete code syntax:** easy to learn
-2. **Metavariables \($X\)**: abstract away code
-3. **'...' operator:** abstract away sequences
-4. **Knows about code equivalences:** one pattern can match many equivalent variations on the code
-5. **Less is more:** abstract away additional details
+```
+$ docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep --lang javascript --pattern 'eval(...)' path/to/file.js
+```
 
-## Patterns
+To fine-tune your searching, specify the `--help` flag:
 
-Patterns are snippets of code with variables and other operators that will be parsed into an AST for that language and will be used to search for that pattern in code. See [docs/config/simple.md](docs/config/simple.md) for full documentation.
+```
+$ docker run --rm returntocorp/sgrep --help
+```
 
-### Metavariables
+### Configuration Files
 
-`$X`, `$FOO`, `$RETURNCODE` are all examples of metavariables. You can referance them later in your pattern and `sgrep` will ensure they match. **Metavariables can only contain uppercase ASCII characters**; `$x` and `$SOME_VALUE` are not valid metavariables.
+For advanced configuration use the `--config` flag. This flag automagically
+handles a multitude of input types:
+
+* `--config <file|folder|yaml_url|tarball_url|registy_name>`
+
+In the absense of this flag, a default configuration is loaded from `.sgrep.yml`
+or multiple files matching `.sgrep/**/*.yml`.
 
 #### Operators
 
-`...` is the primary "match anything" operator. It can match sequences of characters, arguments, or statements. See [docs/config/simple.md](docs/config/simple.md) for more details!
+Configuration files make use of two primary operators:
+
+* **Metavariables like `$X`, `$WIDGET`, or `$USERS`.** Metavariable names can
+only contain uppercase characters - names like `$x` or `$SOME_VALUE` are
+invalid.  Metavariables are used to track a variable across a specific code
+scope.
+* **The `...` (ellipsis) operator.** The ellipsis operator abstracts away
+sequences so you don't have to sweat the details of a particular code pattern.
+
+Let's consider an example:
+
+```yaml
+rules:
+  - id: open-never-closed
+    patterns:
+      - pattern: $FILE = open(...)
+      - pattern-not-inside: |
+          $FILE = open(...)
+          ...
+          $FILE.close()
+    message: "file object opened without corresponding close"
+    languages: [python]
+    severity: ERROR
+```
+
+This rule looks for files that are opened but never closed. It accomplishes
+this by looking for the `open(...)` pattern _and not_ a following `close()`
+pattern. The `$FILE` metavariable ensures that the same variable name is used
+in the `open` and `close` calls. The ellipsis operator allows for any arguments
+to be passed to `open` and any sequence of code statements in-between the `open`
+and `close` calls. We don't care how `open` is called or what happens up to
+a `close` call, we just need to make sure `close` is called.
+
+**For a more complete introduction to the configuration format please see the
+[advanced configuration documentation](docs/config/advanced.md).**
 
 #### Equivalences
 
-`sgrep` automatically searches for code that is semantically equivalent. For example, a pattern for
+Equivalences are another key concept in `sgrep`. `sgrep` automatically searches
+for code that is semantically equivalent. For example, the following patterns
+are semantically equivalent
 
-```text
+```python
 subprocess.Popen(...)
 ```
 
-will match
-
 ```python
-from subprocess import Popen as
- sub_popen
-result = sub_popen(“ls”)
+from subprocess import Popen as sub_popen
+result = sub_popen("ls")
 ```
 
-and other semantically equivalent configurations.
+For a full list of `sgrep` feature support by language see the
+[language matrix](docs/matrix.md).
 
-## Integrations
+### Registry
 
-See [integrations.md](docs/integrations.md)
+As mentioned above, you may also specify a registry name as configuration.
+[r2c](https://r2c.dev) provides a [registry](https://github.com/returntocorp/sgrep-rules)
+of configuration files. These rules have been tuned on thousands of repositories
+using our [analysis platform](https://app.r2c.dev).
 
-## Bug Reports
+```
+$ docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep --config r2c
+```
 
-Reports are welcome! Please open an issue on this project.
+## Resources
 
-## Contributions
+* [r2c `sgrep` meetup slides](https://web-assets.r2c.dev/sgrep/r2c-sgrep-meetup-feb-2020.pdf)
+* [Simple configuration documentation](docs/config/simple.md)
+* [Advanced configuration documentation](docs/config/advanced.md)
+* [Integrations](docs/integrations.md)
+* [Development](docs/development.md)
+* [Bug reports](https://github.com/returntocorp/sgrep/issues)
 
-`sgrep` is LGPL-licensed and we would love your [contributions](https://github.com/returntocorp/sgrep/tree/f92e3b4a12f0fcd659e787894ef3de0619f21419/docs/CONTRIBUTING.md). See [docs/development.md](docs/development.md)
+## Contribution
+
+`sgrep` is LGPL-licensed, feel free to help out: [CONTRIBUTING](https://github.com/returntocorp/sgrep/blob/develop/CONTRIBUTING.md).
