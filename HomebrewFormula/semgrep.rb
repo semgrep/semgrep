@@ -52,7 +52,7 @@ class Semgrep < Formula
 
   # To avoid upstream breakage, patch the Python code to make it well behaved
   patch do
-    url "https://github.com/returntocorp/sgrep/compare/brewable.diff"
+    url "https://github.com/returntocorp/sgrep/compare/f3b49b1.diff"
     sha256 "83888a36495c482d8a106bba56664af3795fd85f88655a312c6d43e56dbd2494"
   end
 
