@@ -41,6 +41,12 @@ And double check that it was installed correctly:
 ```
 $ docker run --rm returntocorp/sgrep --help
 ```
+### Installation with Brew
+
+```bash
+brew tap returntocorp/sgrep
+brew install semgrep
+```
 
 ## Usage
 
