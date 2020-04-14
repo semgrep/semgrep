@@ -110,7 +110,7 @@ def sgrep_error_json_to_message_then_exit(
     # validation for them. So if any other type of error occurs, ask the user to file an issue
     else:
         print_error_exit(
-            'an internal error occured while invoking the sgrep engine: {error_type}: {error_json.get("message", "")}.\n\n{PLEASE_FILE_ISSUE_TEXT}'
+            f'an internal error occured while invoking the sgrep engine: {error_type}: {error_json.get("message", "")}.\n\n{PLEASE_FILE_ISSUE_TEXT}'
         )
 
 
