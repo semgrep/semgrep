@@ -28,6 +28,22 @@
   },
   "hadolint": {
     "violations": {
+      "2bfbc1daf8c9edc0498d83102148b164": {
+        "tool_id": "hadolint",
+        "check_id": "DL3003",
+        "path": "Dockerfile",
+        "message": "Use WORKDIR to switch to a directory",
+        "severity": 1,
+        "syntactic_context": "RUN eval $(opam env) && cd sgrep && opam install -y . && make all\n"
+      },
+      "3924ce7b34822f1410540b0e52623f0b": {
+        "tool_id": "hadolint",
+        "check_id": "SC2046",
+        "path": "Dockerfile",
+        "message": "Quote this to prevent word splitting.",
+        "severity": 1,
+        "syntactic_context": "RUN eval $(opam env) && cd sgrep && opam install -y . && make all\n"
+      },
       "366097962bbe29586382e586fcb7ef6d": {
         "tool_id": "hadolint",
         "check_id": "SC2046",

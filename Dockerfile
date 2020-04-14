@@ -14,7 +14,7 @@ WORKDIR /home/opam/sgrep
 
 RUN git submodule update --init --recursive
 RUN eval $(opam env) && opam install -y ./pfff
-RUN eval $(opam env) && cd sgrep && opam install . && make all
+RUN eval $(opam env) && cd sgrep && opam install -y . && make all
 RUN sgrep/_build/default/bin/main_sgrep.exe -version
 
 ## sgrep lint build

@@ -22,7 +22,7 @@ jobs:
       - name: Install pfff
         run: eval $(opam env) && opam install -y ./pfff
       - name: Install and test sgrep
-        run: eval $(opam env) && cd sgrep && make all && make test && make install
+        run: eval $(opam env) && cd sgrep && opam install -y . && make all && make test && make install
       - name: Install and test sgrep-lint
         run: eval $(opam env) && cd sgrep_lint && export PATH=/github/home/.local/bin:$PATH && make all && make test
       - name: Prepare artifacts
