@@ -91,3 +91,11 @@ Set the OCAMLRUNPARAM environment variable to 'b' for backtrace. You will get be
 ```bash
 export OCAMLRUNPARAM=b
 ```
+
+## Overriding expected integration test outputs
+
+When you're confident in the changes and you want to overwrite the `*.expected.json` files you can do this for sgrep_lint
+
+```bash
+OVERRIDE_EXPECTED=1 make test
+```
