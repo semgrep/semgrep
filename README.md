@@ -41,7 +41,7 @@ And double check that it was installed correctly:
 ```
 $ docker run --rm returntocorp/sgrep --help
 ```
-### Installation with Brew
+### Installation with Brew (Experimental)
 
 ```bash
 brew tap returntocorp/sgrep
