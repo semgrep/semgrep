@@ -15,10 +15,10 @@ rules:
       - pattern-not-inside: assert(...)
       - pattern-not-inside: assertTrue(...)
       - pattern-not-inside: assertFalse(...)
-      - pattern-either:
+      - patterns-or:
         - pattern: $X == $X
         - pattern: $X != $X
-        - patterns:
+        - patterns-and:
           - pattern-inside: |
               def __init__(...):
                   ...

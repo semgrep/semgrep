@@ -29,7 +29,7 @@
  * and have the engine handles this equivalence.
  *
  * alternatives:
- *  - macros/templates over the yaml rule file to generate some pattern-either,
+ *  - macros/templates over the yaml rule file to generate some patterns-or,
  *    but this may be a bit hacky and add yet another layer
  *    (sgrep-core -> sgrep-python -> sgrep-yaml-generator)
  *    As Matt said, adding a templating language, on top of a markup language
