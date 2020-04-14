@@ -44,7 +44,7 @@ $ docker run --rm returntocorp/sgrep --help
 ### Installation with Brew (Experimental)
 
 ```bash
-brew tap returntocorp/sgrep
+brew tap returntocorp/sgrep https://github.com/returntocorp/sgrep.git
 brew install semgrep
 ```
 
