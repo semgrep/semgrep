@@ -22,6 +22,7 @@ module Glob = Dune_glob__Glob
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
+(* see https://dune.readthedocs.io/en/stable/concepts.html#glob *)
 type glob = Glob.t
 
 type filters = {
