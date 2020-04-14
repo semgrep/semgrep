@@ -11,6 +11,8 @@ let debug_with_full_position = ref false
 let go_deeper_expr = ref true
 (* this ultimately should go away once '...' works on the CFG *)
 let go_deeper_stmt = ref true
+(* not sure we want that ... *)
+let go_really_deeper_stmt = ref true
 
 (* special mode to set before using generic_vs_generic to match
  * code equivalences.
