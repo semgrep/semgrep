@@ -23,5 +23,6 @@
     
     sgrep
     sgrep_fuzzy
+    sgrep_files
   )
 )

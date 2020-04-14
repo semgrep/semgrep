@@ -62,8 +62,12 @@ let equivalences_file = ref ""
 (* todo: infer from basename argv(0) ? *)
 let lang = ref "unset"
 
+(* similar to grep options (see man grep) *)
+let excludes = ref []
+let includes = ref []
+let exclude_dirs = ref []
+
 let output_format_json = ref false
-let case_sensitive = ref false
 let match_format = ref Matching_report.Normal
 
 let mvars = ref ([]: Metavars_fuzzy.mvar list)
@@ -286,6 +290,12 @@ let sgrep_with_one_pattern xs =
     (* should remove at some point *)
     | None -> Find_source.files_of_dir_or_files ~lang:!lang xs
   in
+  let files = files |> Files_filter.filter 
+               (Files_filter.mk_filters
+                    ~excludes:!excludes 
+                    ~exclude_dirs:!exclude_dirs 
+                    ~includes:!includes) in
+  
 
   files |> List.iter (fun file ->
     if !verbose 
@@ -313,36 +323,48 @@ let sgrep_with_rules rules_file xs =
   if !verbose then pr2 (spf "Parsing %s" rules_file);
   let rules = Parse_rules.parse rules_file in
 
-  match Lang.lang_of_string_opt !lang with
-  | None -> failwith (unsupported_language_message !lang)
-  | Some lang ->
-    let files = Lang.files_of_dirs_or_files lang xs in
-    let rules = rules |> List.filter (fun r -> List.mem lang r.R.languages) in
-
-    let errs = ref [] in
-    let matches = 
-      files |> List.map (fun file ->
-         if !verbose then pr2 (spf "Analyzing %s" file);
-         try 
-           let ast = parse_generic lang file in
-           Sgrep_generic.check ~hook:(fun _ _ -> ()) 
-              rules (parse_equivalences ())
-              file ast
-         with exn -> 
-            Common.push (Error_code.exn_to_error file exn) errs;
-           []
-      ) |> List.flatten in
-    let count_errors = (List.length !errs) in
-    let count_ok = (List.length files) - count_errors in
-    let errs = !errs in 
-    let stats = J.Object [ "okfiles", J.Int count_ok; "errorfiles", J.Int count_errors; ] in
-    let json = J.Object [
-       "matches", J.Array (matches |> List.map Match_result.match_to_json);
-       "errors", J.Array (errs |> List.map R2c.error_to_json);        
-       "stats", stats
-    ] in
-    let s = Json_io.string_of_json json in
-    pr s
+  let files =
+    match Lang.lang_of_string_opt !lang with
+    | None -> Files_finder.files_of_dirs_or_files xs
+    | Some lang -> Lang.files_of_dirs_or_files lang xs 
+  in
+  let files = files |> Files_filter.filter 
+               (Files_filter.mk_filters
+                    ~excludes:!excludes 
+                    ~exclude_dirs:!exclude_dirs 
+                    ~includes:!includes) in
+  let errs = ref [] in
+  let matches = 
+    files |> List.map (fun file ->
+       if !verbose then pr2 (spf "Analyzing %s" file);
+       try 
+         let lang = 
+           match Lang.lang_of_filename_opt file with
+           | Some lang -> lang
+           | None -> 
+              failwith (spf "can not extract generic AST from %s" file)
+         in
+         let ast = parse_generic lang file in
+         let rules = rules |> List.filter 
+              (fun r -> List.mem lang r.R.languages) in
+         Sgrep_generic.check ~hook:(fun _ _ -> ()) 
+            rules (parse_equivalences ())
+            file ast
+       with exn -> 
+         Common.push (Error_code.exn_to_error file exn) errs;
+         []
+    ) |> List.flatten in
+  let count_errors = (List.length !errs) in
+  let count_ok = (List.length files) - count_errors in
+  let errs = !errs in 
+  let stats = J.Object [ "okfiles", J.Int count_ok; "errorfiles", J.Int count_errors; ] in
+  let json = J.Object [
+     "matches", J.Array (matches |> List.map Match_result.match_to_json);
+     "errors", J.Array (errs |> List.map R2c.error_to_json);        
+     "stats", stats
+  ] in
+  let s = Json_io.string_of_json json in
+  pr s
 
 (*****************************************************************************)
 (* Checker *)
@@ -461,30 +483,34 @@ let all_actions () = [
   Common.mk_action_1_arg dump_ast;
   "-dump_equivalences", " <file>",
   Common.mk_action_1_arg dump_equivalences;
-  "-dump_extensions", "print file extension to language mapping",
+  "-dump_extensions", " print file extension to language mapping",
   Common.mk_action_0_arg dump_ext_of_lang;
  ]
 
 let options () = 
   [
-    "-lang", Arg.Set_string lang, 
-    (spf " <str> choose language (valid choices: %s)" supported_langs);
-
     "-e", Arg.Set_string pattern_string, 
-    " <pattern> expression pattern";
+    " <pattern> expression pattern (need -lang)";
     "-f", Arg.Set_string pattern_file, 
-    " <file> obtain pattern from file";
+    " <file> obtain pattern from file (need -lang)";
     "-rules_file", Arg.Set_string rules_file,
     " <file> obtain list of patterns from YAML file";
+
+    "-lang", Arg.Set_string lang, 
+    (spf " <str> choose language (valid choices: %s)" supported_langs);
 
     "-equivalences", Arg.Set_string equivalences_file,
     " <file> obtain list of code equivalences from YAML file";
 
-    "-json", Arg.Set output_format_json, " output JSON format";
+    "-exclude", Arg.String (fun s -> Common.push s excludes),
+    " <GLOB> skip files whose basename matches GLOB";
+    "-include", Arg.String (fun s -> Common.push s includes),
+    " <GLOB> search only files whose basename matches GLOB";
+    "-exclude-dir", Arg.String (fun s -> Common.push s exclude_dirs),
+    " <DIR> exclude directories matching the pattern DIR";
 
-    "-case_sensitive", Arg.Set case_sensitive, 
-    " match code in a case sensitive manner";
-
+    "-json", Arg.Set output_format_json, 
+    " output JSON format";
     "-emacs", Arg.Unit (fun () -> match_format := Matching_report.Emacs ),
     " print matches on the same line than the match position";
     "-oneline", Arg.Unit (fun () -> match_format := Matching_report.OneLine),
@@ -494,7 +520,7 @@ let options () =
     " <metavars> print the metavariables, not the matched code";
 
     "-gen_layer", Arg.String (fun s -> layer_file := Some s),
-    " <file> save result in a pfff layer file\n";
+    " <file> save result in a codemap layer file";
 
     "-verbose", Arg.Unit (fun () -> 
       verbose := true;
