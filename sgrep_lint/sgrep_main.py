@@ -46,7 +46,7 @@ from util import is_url
 from util import print_error
 from util import print_error_exit
 from util import print_msg
-from util import UNPARSEABLE_YAML_EXIT_CODE
+from util import UNPARSEABLE_YAML_EXIT_CODE, MISSING_CONFIG_EXIT_CODE
 
 
 # Constants
@@ -636,7 +636,9 @@ def main(args: argparse.Namespace) -> Dict[str, Any]:
         debug_print(
             f"running {len(all_rules)} rules from {len(valid_configs)} config{plural} {config_id_if_single} {invalid_msg}"
         )
-    # TODO log valid and invalid configs if verbose
+
+        if len(valid_configs) == 0:
+            print_error_exit(f'no valid configuration file found ({len(invalid_configs)} configs were invalid)', MISSING_CONFIG_EXIT_CODE)
 
     # a rule can have multiple patterns inside it. Flatten these so we can send sgrep a single yml file list of patterns
     all_patterns = list(flatten_rule_patterns(all_rules))
