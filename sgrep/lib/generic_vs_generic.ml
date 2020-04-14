@@ -1075,6 +1075,13 @@ and m_stmt a b =
   (* deeper: go deep by default? *)
   | A.ExprStmt(a1), B.ExprStmt(b1) ->
     m_expr_deep a1 b1 
+  (* equivalence: vardef vs assign, and go deep *)
+  | A.ExprStmt a1, 
+    B.DefStmt ({ B.info={B.id_resolved={contents=resolved }; _}; _ } as ent,
+      B.VarDef ({B.vinit = Some _; _} as def)) ->
+      let b1 = Ast.vardef_to_assign (ent, def) resolved in
+      m_expr_deep a1 b1
+
   | A.DefStmt(a1), B.DefStmt(b1) ->
     m_definition a1 b1 
   | A.DirectiveStmt(a1), B.DirectiveStmt(b1) ->
