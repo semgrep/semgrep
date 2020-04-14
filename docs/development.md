@@ -30,7 +30,10 @@ opam install reason
 opam install dune
 ```
 
-sgrep probably needs the very latest features of pfff, which may not be yet in the latest OPAM version of pfff. In that case, install pfff manually by doing:
+sgrep probably needs the very latest features of pfff,
+which may not be yet in the latest OPAM version of pfff.
+In that case, first install the OPAM version to set up dependencies,
+then install the latest pfff manually by doing:
 
 ```bash
 git submodule init && git submodule update --init --recursive
