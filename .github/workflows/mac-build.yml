@@ -17,8 +17,6 @@ jobs:
           opam init --no-setup --bare;
           opam switch create 4.07.1;
           opam switch 4.07.1;
-      - name: OPAM install Deps
-        run: eval $(opam env); opam install -y reason dune ocamlfind camlp4 num ocamlgraph json-wheel conf-perl yaml
       - name: Install submodules
         run: git submodule update --init --recursive
       - name: Install pfff

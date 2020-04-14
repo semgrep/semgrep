@@ -22,27 +22,18 @@ opam switch 4.07.1
 eval $(opam env)
 ```
 
-Once OPAM is installed, you need to install the library pfff, the OCaml frontend reason, and the build system dune:
-
-```bash
-opam install pfff
-opam install reason
-opam install dune
-```
-
-sgrep probably needs the very latest features of pfff, which may not be yet in the latest OPAM version of pfff. In that case, install pfff manually by doing:
+Install `pfff` which is a dependency of `sgrep`
 
 ```bash
 git submodule init && git submodule update --init --recursive
-cd pfff
-./configure; make depend; make; make opt; make reinstall-libs
+eval $(opam env) && opam install -y ./pfff
 ```
 
 Then you can compile the program with:
 
 ```bash
 cd sgrep
-dune build
+make all
 ```
 
 You can also use the Dockerfile in this directory to build sgrep inside a container.
