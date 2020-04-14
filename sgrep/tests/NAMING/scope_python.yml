@@ -1,0 +1,14 @@
+rules:
+  - id: naming1
+    pattern: |
+      def foo($X):
+         ...
+    message: first X
+    languages: [python]
+    severity: WARNING
+  - id: naming2
+    pattern: |
+      return $X
+    message: second X
+    languages: [python]
+    severity: WARNING

@@ -5,7 +5,11 @@ set -e
 test_sgrep_local () { 
     cd "${THIS_DIR}/../";
     $SGREP --json --strict --config tests/python/eqeq.yaml tests/lint -o tmp.out >/dev/null
-    diff tmp.out tests/python/eqeq.expected.json
+    if [ -z "$OVERRIDE_EXPECTED" ]; then
+        diff tmp.out tests/python/eqeq.expected.json
+    else
+        cat tmp.out > tests/python/eqeq.expected.json
+    fi
     rm -f tmp.out
 }
 
@@ -13,7 +17,11 @@ test_sgrep_relative() {
     # test relative paths
     cd "${THIS_DIR}/../";
     $SGREP --json --strict --config ../sgrep_lint/tests/python/eqeq.yaml tests/lint -o tmp.out >/dev/null
-    diff tmp.out tests/python/eqeq.expected.relative.json
+    if [ -z "$OVERRIDE_EXPECTED" ]; then
+        diff tmp.out tests/python/eqeq.expected.relative.json
+    else
+        cat tmp.out > tests/python/eqeq.expected.relative.json
+    fi
     rm -f tmp.out
 }
 
@@ -21,7 +29,11 @@ test_sgrep_absolute() {
     cd "${THIS_DIR}/../";
     cp tests/python/eqeq.yaml /tmp
     $SGREP --json --strict --config /tmp/eqeq.yaml tests/lint -o tmp.out >/dev/null
-    diff tmp.out tests/python/eqeq.expected.directory.json
+    if [ -z "$OVERRIDE_EXPECTED" ]; then
+        diff tmp.out tests/python/eqeq.expected.directory.json
+    else
+        cat tmp.out > tests/python/eqeq.expected.directory.json
+    fi
     rm -f tmp.out
     rm -f /tmp/eqeq.yaml
 }
@@ -30,13 +42,21 @@ test_sgrep_url_config() {
     cd "${THIS_DIR}/../";
     # test url paths
     $SGREP --json --strict --config=https://raw.githubusercontent.com/returntocorp/sgrep-rules/develop/template.yaml tests/lint -o tmp.out >/dev/null
-    diff tmp.out tests/python/eqeq.expected.remote.json
+    if [ -z "$OVERRIDE_EXPECTED" ]; then
+        diff tmp.out tests/python/eqeq.expected.remote.json
+    else
+        cat tmp.out > tests/python/eqeq.expected.remote.json
+    fi
     rm -f tmp.out
 }
 
 test_registry() {    
     $SGREP --json --strict --config=r2c tests/lint -o tmp.out >/dev/null
-    diff tmp.out tests/python/eqeq.expected.registry.json
+    if [ -z "$OVERRIDE_EXPECTED" ]; then
+        diff tmp.out tests/python/eqeq.expected.registry.json
+    else
+        cat tmp.out > tests/python/eqeq.expected.registry.json
+    fi
     rm -f tmp.out
 }
 
@@ -46,7 +66,11 @@ test_sgrep_default_file() {
     rm -rf .sgrep.yml
     $SGREP --generate-config
     $SGREP --json --strict tests/lint -o tmp.out >/dev/null
-    diff tmp.out tests/python/eqeq.expected.template.json
+    if [ -z "$OVERRIDE_EXPECTED" ]; then
+        diff tmp.out tests/python/eqeq.expected.template.json
+    else
+        cat tmp.out > tests/python/eqeq.expected.template.json
+    fi
     rm -f tmp.out
     rm -rf .sgrep.yml
 }
@@ -58,7 +82,11 @@ test_sgrep_default_folder() {
     $SGREP --generate-config
     mv .sgrep.yml .sgrep/
     $SGREP --json --strict tests/lint -o tmp.out >/dev/null
-    diff tmp.out tests/python/eqeq.expected.template.json
+    if [ -z "$OVERRIDE_EXPECTED" ]; then
+        diff tmp.out tests/python/eqeq.expected.template.json
+    else
+        cat tmp.out > tests/python/eqeq.expected.template.json
+    fi
     rm -f tmp.out
     rm -rf .sgrep/
 }
