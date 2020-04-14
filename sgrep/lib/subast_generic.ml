@@ -14,6 +14,7 @@
  *)
 
 open Ast_generic
+module V = Visitor_ast
 
 (*****************************************************************************)
 (* Prelude *)
@@ -23,9 +24,10 @@ open Ast_generic
  *)
 
 (*****************************************************************************)
-(* Entry points *)
+(* Expressions *)
 (*****************************************************************************)
 
+(* used for deep expression matching *)
 let subexprs_of_expr e = 
   match e with
   | L _ 
@@ -75,49 +77,155 @@ let subexprs_of_expr e =
     -> []
   | DisjExpr _ -> raise Common.Impossible
 
-let substmts_of_stmt stmts = 
-  let rec aux x = 
-    (* return the current statement first, and add substmts *)
-    x::(
-    match x with
-    (* we do not recurse inside function definitions *)
-    | DefStmt _
-    | DirectiveStmt _
+(*****************************************************************************)
+(* Statements *)
+(*****************************************************************************)
+
+(* used for really deep statement matching *)
+let subexprs_of_stmt st = 
+    match st with
+    (* 1 *)
+    | ExprStmt e
+    | If (_, e, _, _)
+    | While (_, e, _)
+    | DoWhile (_, _, e)
+    | DefStmt (_, VarDef { vinit = Some e; _ })
+    | For (_, ForEach (_, _, e), _)
+    | Continue (_, LDynamic e)
+    | Break (_, LDynamic e)
+    | Throw (_, e)
+    | OtherStmtWithStmt (_, e, _)
+     -> [e]
+
+    (* opt *)
+    | Switch (_, eopt, _)
+    | Return (_, eopt)
+     -> Common.opt_to_list eopt
+
+    (* n *)
+    | For (_, ForClassic (xs, eopt1, eopt2), _) ->
+      (xs |> Common.map_filter (function
+       | ForInitExpr e -> Some e
+       | ForInitVar (_, vdef) -> vdef.vinit
+      )) @
+      Common.opt_to_list eopt1 @
+      Common.opt_to_list eopt2
+
+    | Assert (_, e1, e2opt) ->
+      e1::Common.opt_to_list e2opt
 
     (* 0 *)
+    | DirectiveStmt _
+    | Block _
+    | Continue _ | Break _
+    | Label _ | Goto _
+    | Try _
+    | DisjStmt _
+    | DefStmt _
+    (* could extract the expr in any? *)
+    | OtherStmt _
+     -> []
+
+(* used for deep statement matching *)
+let substmts_of_stmt st = 
+    match st with
+    (* 0 *)
+    | DirectiveStmt _
     | ExprStmt _ 
     | Return _ | Continue _ | Break _ | Goto _
     | Throw _
     | Assert _
     | OtherStmt _
-    -> 
-        []
+    -> []
 
     (* 1 *)
     | While (_, _, st) | DoWhile (_, st, _) 
     | For (_, _, st)
     | Label (_, st)
     | OtherStmtWithStmt (_, _, st)
-      ->
-        aux st
+    -> [st]
 
     (* 2 *)
-    | If (_, _, st1, st2) -> 
-        [st1; st2] |> List.map aux |> List.flatten
+    | If (_, _, st1, st2) 
+    -> [st1; st2]
 
     (* n *)
     | Block xs -> 
-        xs |> List.map aux |> List.flatten
+        xs
     | Switch (_, _, xs) ->
-        xs |> List.map snd |> List.map aux |> List.flatten
+        xs |> List.map snd
     | Try (_, st, xs, opt) ->
-        ([st] |> List.map aux |> List.flatten) @
-        (xs |> List.map Common2.thd3 |> List.map aux |> List.flatten) @
+        [st] @
+        (xs |> List.map Common2.thd3) @
         (match opt with None -> [] | Some (_, st) -> [st])
+
     | DisjStmt _ -> raise Common.Impossible
-    )
-   in
-   aux stmts
+
+    (* this may slow down things quite a bit *)
+    | DefStmt (_ent, def) ->
+       if not !Flag_sgrep.go_really_deeper_stmt
+       then []
+       else
+         (match def with
+         | VarDef _ 
+         | TypeDef _
+         | MacroDef _
+         | Signature _
+         | UseOuterDecl _
+         (* recurse? *)
+         | ModuleDef _
+                -> []
+         (* this will add lots of substatements *)
+         | FuncDef def ->
+            [def.fbody]
+         | ClassDef def ->
+            def.cbody |> unbracket |> Common.map_filter (function
+              | FieldStmt st -> Some st
+              | FieldDynamic _ | FieldSpread _ -> None
+            )
+         )
+
+(*****************************************************************************)
+(* Visitors  *)
+(*****************************************************************************)
+(* TODO: move in pfff at some point *)
+let do_visit_with_ref mk_hooks = fun any ->
+  let res = ref [] in
+  let hooks = mk_hooks res in
+  let vout = V.mk_visitor hooks in
+  vout any;
+  List.rev !res
+
+let lambdas_in_expr e = 
+  do_visit_with_ref (fun aref -> { V.default_visitor with
+    V.kexpr = (fun (k, _) e ->
+      match e with
+      | Lambda def -> Common.push def aref
+      | _ -> k e
+    );
+  }) (E e)
+
+(*****************************************************************************)
+(* Really substmts_of_stmts *)
+(*****************************************************************************)
 
 let flatten_substmts_of_stmts xs =
-  xs |> List.map (fun x -> substmts_of_stmt x) |> List.flatten
+  let rec aux x = 
+    let xs = substmts_of_stmt x in
+    (* getting deeply nested lambdas stmts *)
+    let extras = 
+       if not !Flag_sgrep.go_really_deeper_stmt
+       then []
+       else 
+         let es = subexprs_of_stmt x in
+         let lambdas = es |> List.map lambdas_in_expr |> List.flatten in
+         lambdas |> List.map (fun def -> def.fbody)
+    in
+
+
+    (* return the current statement first, and add substmts *)
+    [x] @
+    (extras |> List.map aux |> List.flatten) @
+    (xs |> List.map aux |> List.flatten)
+  in
+  xs |> List.map aux |> List.flatten
