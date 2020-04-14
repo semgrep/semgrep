@@ -82,14 +82,37 @@ Filters: there are several operators that act as filters to remove results you d
 
 - `fix` allows for an expression to be displayed to the user as the suggested autofix. Can be applied with `--autofix`
 
+## Metadata
+
+In some cases, you might wish to
+note some extra information on a rule,
+such as a CVE that was created for it,
+or the name of the security engineer that came up with the rule.
+
+You can use the `metadata:` key in these cases, like so:
+
+```
+rules:
+  - id: eqeq-is-bad
+    patterns:
+      - [...]
+    message: "useless comparison operation `$X == $X` or `$X != $X`"
+    metadata:
+      cve: CVE-2077-1234
+      discovered-by: Ikwa L'equale
+```
+
+The metadata will also be reproduced in sgrep's output if you're running it with `--json`.
+
 ## Full Schema
 
 Each rule object has these fields:
 
-| Field     | Type          | Description                                                                                                        | Required |
-| --------- | ------------- | ------------------------------------------------------------------------------------------------------------------ | -------- |
-| id        | string        | None unique check-id that should be descriptive and understandable in isolation by the user. e.g. `no-unused-var`. | Y        |
-| `pattern` or `patterns` or `pattern-either`   | string        | See example patterns in this document.                                                                                        | Y        |
-| message   | string        | Description of the rule that will be output when a match is found.                                                 | Y        |
-| languages | array<string> | Languages the check is relevant for. Can be python or javascript.                                                  | Y        |
-| severity  | string        | Case sensitive string equal to WARNING, ERROR                                                                  | Y        |
+| Field                                       | Type          | Description                                                                                                        | Required |
+|---------------------------------------------|---------------|--------------------------------------------------------------------------------------------------------------------|----------|
+| id                                          | string        | None unique check-id that should be descriptive and understandable in isolation by the user. e.g. `no-unused-var`. | Y        |
+| `pattern` or `patterns` or `pattern-either` | string        | See example patterns in this document.                                                                             | Y        |
+| message                                     | string        | Description of the rule that will be output when a match is found.                                                 | Y        |
+| languages                                   | array<string> | Languages the check is relevant for. Can be python or javascript.                                                  | Y        |
+| severity                                    | string        | Case sensitive string equal to WARNING, ERROR                                                                      | Y        |
+| metadata                                    | object<any>   | Arbitrary user-provided data. Use to attach data to rules without affecting sgrep's behavior                       | Y        |
