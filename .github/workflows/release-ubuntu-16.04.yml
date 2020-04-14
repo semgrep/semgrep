@@ -49,7 +49,7 @@ jobs:
       - name: Install pfff
         run: eval $(opam env --root /home/opam/.opam --set-root) && opam install -y ./pfff
       - name: Build sgrep
-        run: eval $(opam env --root /home/opam/.opam --set-root) && cd sgrep && make all
+        run: eval $(opam env --root /home/opam/.opam --set-root) && cd sgrep && opam install -y . && make all
       - name: Build sgrep-lint
         run: eval $(opam env --root /home/opam/.opam --set-root) && cd sgrep_lint && export PATH=/github/home/.local/bin:$PATH && sudo make all
       - name: Prepare artifacts
