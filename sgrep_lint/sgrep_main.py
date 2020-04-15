@@ -114,11 +114,25 @@ def sgrep_error_json_to_message_then_exit(
         )
 
 
+def yield_targeting_options(args: argparse.Namespace) -> Iterator[str]:
+    """Yields include/exclude CLI options to call semgrep with.
+
+    This is based on the arguments given to semgrep-lint.
+    """
+    for pattern in args.include:
+        yield from ["-include", pattern]
+    for pattern in args.exclude:
+        yield from ["-exclude", pattern]
+    for pattern in args.exclude_dir:
+        yield from ["-exclude-dir", pattern]
+
+
 def invoke_sgrep(
     all_patterns: List[Dict[str, Any]],
     targets: List[Path],
     output_mode_json: bool,
     all_rules: List[Dict[str, Any]],
+    targeting_options: List[str],
 ) -> Dict[str, Any]:
     """Returns parsed json output of sgrep"""
 
@@ -134,11 +148,13 @@ def invoke_sgrep(
             )
             fout.write(yaml_as_str)
             fout.flush()
-            cmd = [SGREP_PATH] + [
+            cmd = [
+                SGREP_PATH,
                 "-lang",
                 language,
-                f"-rules_file",
+                "-rules_file",
                 fout.name,
+                *targeting_options,
                 *[str(path) for path in targets],
             ]
             try:
@@ -648,7 +664,13 @@ def main(args: argparse.Namespace) -> Dict[str, Any]:
 
     # actually invoke sgrep
     start = datetime.now()
-    output_json = invoke_sgrep(all_patterns, targets, args.json, all_rules)
+    output_json = invoke_sgrep(
+        all_patterns,
+        targets,
+        args.json,
+        all_rules,
+        targeting_options=list(yield_targeting_options(args)),
+    )
     debug_print(f"sgrep ran in {datetime.now() - start}")
     debug_print(str(output_json))
 

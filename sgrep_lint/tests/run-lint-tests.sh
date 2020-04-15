@@ -91,6 +91,39 @@ test_sgrep_default_folder() {
     rm -rf .sgrep/
 }
 
+test_sgrep_include () { 
+    cd "${THIS_DIR}/../";
+    $SGREP --json --strict --config tests/python/eqeq.yaml --include '*.py' tests/lint -o tmp.out >/dev/null
+    if [ -z "$OVERRIDE_EXPECTED" ]; then
+        diff tmp.out tests/python/eqeq.include.json
+    else
+        cat tmp.out > tests/python/eqeq.include.json
+    fi
+    rm -f tmp.out
+}
+
+test_sgrep_exclude () { 
+    cd "${THIS_DIR}/../";
+    $SGREP --json --strict --config tests/python/eqeq.yaml --exclude '*.py' tests/lint -o tmp.out >/dev/null
+    if [ -z "$OVERRIDE_EXPECTED" ]; then
+        diff tmp.out tests/python/eqeq.exclude.json
+    else
+        cat tmp.out > tests/python/eqeq.exclude.json
+    fi
+    rm -f tmp.out
+}
+
+test_sgrep_exclude_dir () { 
+    cd "${THIS_DIR}/../";
+    $SGREP --json --strict --config tests/python/eqeq.yaml --exclude-dir 'excluded_dir' tests/lint tests/excluded_dir -o tmp.out >/dev/null
+    if [ -z "$OVERRIDE_EXPECTED" ]; then
+        diff tmp.out tests/python/eqeq.exclude_dir.json
+    else
+        cat tmp.out > tests/python/eqeq.exclude_dir.json
+    fi
+    rm -f tmp.out
+}
+
 
 echo "-----------------------"
 echo "starting lint tests"
@@ -109,6 +142,9 @@ local_tests() {
     test_registry
     test_sgrep_default_file
     test_sgrep_default_folder
+    test_sgrep_include
+    test_sgrep_exclude
+    test_sgrep_exclude_dir
 }
 
 docker_tests() {
