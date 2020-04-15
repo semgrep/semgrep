@@ -49,6 +49,10 @@ module J = Json_type
 
 let verbose = ref false
 let debug = ref false
+(* try to continue processing files, even if one has a parse error with -e/f.
+ * note that -rules_file does its own error recovery.
+ *)
+let error_recovery = ref false
 
 (* -e *)
 let pattern_string = ref ""
@@ -183,6 +187,9 @@ let gen_layer ~root ~query file =
 
 (* coupling: you need also to modify tests/test.ml *)
 let parse_generic lang file = 
+  if lang = Lang.C && Sys.file_exists !Flag_parsing_cpp.macros_h
+  then Parse_cpp.init_defs !Flag_parsing_cpp.macros_h;
+
   let ast = Parse_generic.parse_with_lang lang file in
   (* to be deterministic, reset the gensym; anyway right now sgrep is
    * used only for local per-file analysis, so no need to have a unique ID
@@ -300,10 +307,14 @@ let sgrep_with_one_pattern xs =
   files |> List.iter (fun file ->
     if !verbose 
     then pr2 (spf "processing: %s" file);
-    E.try_with_print_exn_and_reraise file (fun () ->
-         sgrep_ast pattern file (create_ast file)
-    )
+    let process file = sgrep_ast pattern file (create_ast file) in
+    if not !error_recovery
+    then E.try_with_print_exn_and_reraise file (fun () -> process file)
+    else E.try_with_exn_to_error file (fun () -> process file)
   );
+
+  let n = List.length !E.g_errors in
+  if n > 0 then pr2 (spf "error count: %d" n);
 
   !layer_file |> Common.do_option (fun file ->
     let root = Common2.common_prefix_of_files_or_dirs xs in
@@ -522,6 +533,11 @@ let options () =
     "-gen_layer", Arg.String (fun s -> layer_file := Some s),
     " <file> save result in a codemap layer file";
 
+    "-error_recovery", Arg.Unit (fun () ->
+        error_recovery := true;
+        Flag_parsing.error_recovery := true;
+    ),  
+    " do not stop at first parsing error with -e/-f";
     "-verbose", Arg.Unit (fun () -> 
       verbose := true;
       Flag_sgrep.verbose := true;
@@ -532,6 +548,7 @@ let options () =
   ] @
   Error_code.options () @
   Common.options_of_actions action (all_actions()) @
+  Flag_parsing_cpp.cmdline_flags_macrofile () @
   Common2.cmdline_flags_devel () @
   [ "-version",   Arg.Unit (fun () -> 
     pr2 (spf "sgrep version: %s" Config_pfff.version);
@@ -597,14 +614,14 @@ let main () =
     (* main entry *)
     (* --------------------------------------------------------- *)
     | x::xs -> 
-        (try (
-          if !rules_file <> ""
-          then sgrep_with_rules !rules_file (x::xs)
-          else sgrep_with_one_pattern (x::xs)
-        ) with exn -> 
+        if !rules_file <> ""
+        then 
+         try  sgrep_with_rules !rules_file (x::xs)
+         with exn -> begin
           pr (format_output_exception exn); (* todo, should be pr2 probably *)
           exit 2
-        )
+          end
+        else sgrep_with_one_pattern (x::xs)
     (* --------------------------------------------------------- *)
     (* empty entry *)
     (* --------------------------------------------------------- *)
