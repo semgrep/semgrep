@@ -18,6 +18,17 @@ module Glob = Dune_glob__Glob
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
+(* Filter files.
+ *
+ * In theory we should use find ... | grep ... | xargs sgrep ...
+ * which would be more the UNIX spirit, but on huge codebase
+ * xargs fails.
+ *
+ * We just copy the options in GNU grep.
+ *
+ * todo?
+ *  - also process .gitignore as in ripgrep?
+ *)
 
 (*****************************************************************************)
 (* Types *)
@@ -55,13 +66,14 @@ let filter filters xs =
   xs |> List.filter (fun file ->
     let base = Filename.basename file in
     let dir = Filename.dirname file in
+    let dirs = Str.split (Str.regexp "/") dir in
     (* todo? includes have priority over excludes? *)
     (filters.excludes |> List.for_all (fun glob -> not (Glob.test glob base)))
     &&
     (filters.includes |> List.exists (fun glob -> Glob.test glob base))
     &&
     (filters.exclude_dirs |> List.for_all 
-            (fun glob -> not (Glob.test glob dir)))
+       (fun glob -> not (dirs |> List.exists (fun dir -> Glob.test glob dir))))
     
  )
   

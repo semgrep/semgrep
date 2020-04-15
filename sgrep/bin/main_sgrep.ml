@@ -276,7 +276,9 @@ let sgrep_ast pattern file any_ast =
 (* Main action *)
 (*****************************************************************************)
 let sgrep_with_one_pattern xs =
-  let xs = List.map Common.fullpath xs in
+  (* old: let xs = List.map Common.fullpath xs in
+   * better no fullpath here, not our responsability.
+   *)
 
   let pattern, query_string =
     match !pattern_file, !pattern_string with
