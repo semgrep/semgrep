@@ -15,7 +15,7 @@ let unittest =
         let filters = Files_filter.mk_filters
           ~excludes:["*.{c,h}"; "*.go"]
           ~includes:["foo.*"]
-          ~exclude_dirs:["a/c"] in
+          ~exclude_dirs:["c"] in
         assert_equal ~msg:"it should filter files"
           ["a/b/foo.js"]
           (Files_filter.filter filters files)
