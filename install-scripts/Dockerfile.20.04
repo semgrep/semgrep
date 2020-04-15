@@ -1,5 +1,5 @@
 FROM ubuntu:20.04
-RUN apt-get update && apt-get install -y wget curl sudo --no-recommends
+RUN apt-get update && apt-get install -y wget curl sudo ca-certificates --no-install-recommends
 COPY ubuntu-16.04.sh ./install.sh
 RUN chmod +x install.sh
 COPY validate-install.sh ./validate-install.sh
