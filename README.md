@@ -54,17 +54,19 @@ Start with a simple example:
 
 ```
 $ cat << EOF > test.py
-a = 1
-b = 2
-if a == a:  # oops, supposed to be a == b
-    print('sgrep test')
+def get_node(node_id, nodes):
+    for node in nodes:
+        if node.id == node.id:  # Oops, supposed to be 'node_id'
+            return node
+    return None
 EOF
 ```
 
 ```
 $ docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep --lang python --pattern '$X == $X' test.py
 test.py
-3:if a == a:  # oops, supposed to be a == b
+rule:python.deadcode.eqeq-is-bad: useless comparison operation `node.id == node.id` or `node.id != node.id`.
+3:        if node.id == node.id:  # Oops, supposed to be 'node_id'
 ```
 
 From here you can use our rules to search for issues in your codebase:
