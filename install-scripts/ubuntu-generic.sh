@@ -27,5 +27,6 @@ echo "def silly_eq(a, b):" >> /tmp/test.py
 echo " return a + b == a + b" >> /tmp/test.py
 
 echo -n "Testing your semgrep installation..."
+# shellcheck disable=SC2016
 semgrep /tmp/test.py -l python -e '$X == $X' | grep 'a + b' > /dev/null || (echo "Something seems wrong with your semgrep install" && exit 1)
 echo "OK! Enjoy semgrep :-)"
