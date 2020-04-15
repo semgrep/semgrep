@@ -10,7 +10,6 @@ from constants import DEFAULT_CONFIG_FILE
 from constants import PLEASE_FILE_ISSUE_TEXT
 from constants import RCE_RULE_FLAG
 from constants import SGREP_URL
-from util import debug_print
 from util import print_error_exit
 
 # CLI
