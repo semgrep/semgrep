@@ -23,7 +23,7 @@
  * update: if you need advanced patterns with boolean logic (which used
  * to be partially provided by the hacky OK error keyword), use
  * instead the sgrep python wrapper! It also uses a yaml file but it
- * has more features, e.g. some pattern-either fields, pattern-inside, 
+ * has more features, e.g. some patterns-or fields, pattern-inside,
  * where-eval, etc.
  *)
 
