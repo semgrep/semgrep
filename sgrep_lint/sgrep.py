@@ -67,19 +67,19 @@ if __name__ == "__main__":
         "--include",
         action="append",
         default=[],
-        help="Scan only files with this filename. Can be added multiple times to include multiple patterns.",
+        help="Scan only files with this filename, such as --include='*.js' Add multiple times to include multiple patterns.",
     )
     parser.add_argument(
         "--exclude",
         action="append",
         default=[],
-        help="Don't scan files with this filename. Can be added multiple times to exclude multiple patterns.",
+        help="Don't scan files with this filename, such as --exclude='*.js'. Add multiple times to exclude multiple patterns.",
     )
     parser.add_argument(
         "--exclude-dir",
         action="append",
         default=[],
-        help="Don't scan these directories. Can be added multiple times to exclude multiple patterns.",
+        help="Don't scan these directories, such as --exclude-dir='tests'. Add multiple times to exclude multiple patterns.",
     )
 
     config.add_argument(
