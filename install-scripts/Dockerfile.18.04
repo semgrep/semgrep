@@ -1,0 +1,10 @@
+FROM ubuntu:18.04
+RUN apt-get update && apt-get install -y wget curl sudo
+COPY ubuntu-16.04.sh ./install.sh
+RUN chmod +x install.sh
+COPY validate-install.sh ./validate-install.sh
+RUN chmod +x validate-install.sh
+
+ENV VERSION 0.4.9
+RUN ./install.sh
+RUN ./validate-install.sh
