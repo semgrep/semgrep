@@ -29,7 +29,7 @@ rules:
       - pattern-not-inside: assert(...)
       - pattern-not-inside: assertTrue(...)
       - pattern-not-inside: assertFalse(...)
-      - patterns-or:
+      - pattern-either:
           - pattern: $X == $X
           - pattern: $X != $X
           - patterns:
@@ -61,8 +61,8 @@ Will match nothing, because foo() and foo(1) can never occur together. If we mad
 There are several operators that can be used in a rule. At the top level, there are three:
 
 - `pattern`: The rule will only fire if this pattern is found.
-- `patterns-or`: (logical OR) Nest multiple other patterns under this; any of those patterns will count as a match.
-- `patterns-and`: (logical AND) You can put multiple patterns under this to create nested, implicitly-ANDed instructions.
+- `pattern-either`: (logical OR) Nest multiple other patterns under this; any of those patterns will count as a match.
+- `patterns`: (logical AND) You can put multiple patterns under this to create nested, implicitly-ANDed instructions.
 
 ### filter operators
 
@@ -89,7 +89,7 @@ Each rule object has these fields:
 | Field     | Type          | Description                                                                                                        | Required |
 | --------- | ------------- | ------------------------------------------------------------------------------------------------------------------ | -------- |
 | id        | string        | None unique check-id that should be descriptive and understandable in isolation by the user. e.g. `no-unused-var`. | Y        |
-| `pattern` or `patterns-and` or `patterns-or`   | string        | See example patterns in this document.                                                                                        | Y        |
+| `pattern` or `patterns` or `pattern-either`   | string        | See example patterns in this document.                                                                                        | Y        |
 | message   | string        | Description of the rule that will be output when a match is found.                                                 | Y        |
 | languages | array<string> | Languages the check is relevant for. Can be python or javascript.                                                  | Y        |
 | severity  | string        | Case sensitive string equal to WARNING, ERROR                                                                  | Y        |

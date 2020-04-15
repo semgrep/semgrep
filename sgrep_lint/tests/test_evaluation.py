@@ -364,9 +364,7 @@ def test_build_exprs():
     rules = [
         {**base_rule, **{"pattern": "test(...)"}},
         {**base_rule, **{"patterns": [{"pattern": "test(...)"}]}},
-        {**base_rule, **{"patterns-and": [{"pattern": "test(...)"}]}},
         {**base_rule, **{"pattern-either": [{"pattern": "test(...)"}]}},
-        {**base_rule, **{"patterns-or": [{"pattern": "test(...)"}]}},
     ]
 
     results = [build_boolean_expression(rule) for rule in rules]
@@ -374,8 +372,6 @@ def test_build_exprs():
     expected = [
         BooleanRuleExpression(OPERATORS.AND, "test-id", None, "test(...)"),
         BooleanRuleExpression(OPERATORS.AND_ALL, None, base_expected, None),
-        BooleanRuleExpression(OPERATORS.AND_ALL, None, base_expected, None),
-        BooleanRuleExpression(OPERATORS.AND_EITHER, None, base_expected, None),
         BooleanRuleExpression(OPERATORS.AND_EITHER, None, base_expected, None),
     ]
 
