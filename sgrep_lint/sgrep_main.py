@@ -732,6 +732,11 @@ def main(args: argparse.Namespace) -> Dict[str, Any]:
                     # rewrite the path to be relative to the current working directory
                     result["path"] = str(safe_relative_to(path_object, current_path))
 
+                    # reproduce free-form metadata
+                    result["extra"]["metadata"] = all_rules[rule_index].get(
+                        "metadata", {}
+                    )
+
                     # restore the original message
                     result["extra"]["message"] = rewrite_message_with_metavars(
                         all_rules[rule_index], result

@@ -37,15 +37,18 @@ INVERSE_PATTERN_NAMES_MAP = dict((v, k) for k, v in PATTERN_NAMES_MAP.items())
 
 # These are the only valid top-level keys
 YAML_MUST_HAVE_KEYS = {"id", "message", "languages", "severity"}
+YAML_OPTIONAL_KEYS = {"metadata"}
 YAML_VALID_TOP_LEVEL_OPERATORS = {
     OPERATORS.AND,
     OPERATORS.AND_ALL,
     OPERATORS.AND_EITHER,
     OPERATORS.FIX,
 }
-YAML_ALL_VALID_RULE_KEYS = set(
-    [INVERSE_PATTERN_NAMES_MAP[k] for k in YAML_VALID_TOP_LEVEL_OPERATORS]
-).union(YAML_MUST_HAVE_KEYS)
+YAML_ALL_VALID_RULE_KEYS = (
+    {INVERSE_PATTERN_NAMES_MAP[k] for k in YAML_VALID_TOP_LEVEL_OPERATORS}
+    .union(YAML_MUST_HAVE_KEYS)
+    .union(YAML_OPTIONAL_KEYS)
+)
 
 
 class InvalidRuleSchema(BaseException):
