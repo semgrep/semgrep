@@ -20,35 +20,33 @@ from typing import Set
 from typing import Tuple
 
 import colorama
-import config_resolver
 import requests
+import semgrep.config_resolver
 import yaml
-from constants import ID_KEY
-from constants import PLEASE_FILE_ISSUE_TEXT
-from constants import RCE_RULE_FLAG
-from constants import RULES_KEY
-from evaluation import build_boolean_expression
-from evaluation import enumerate_patterns_in_boolean_expression
-from evaluation import evaluate_expression
-from sgrep_types import BooleanRuleExpression
-from sgrep_types import InvalidRuleSchema
-from sgrep_types import OPERATORS
-from sgrep_types import PatternId
-from sgrep_types import Range
-from sgrep_types import SgrepRange
-from sgrep_types import YAML_ALL_VALID_RULE_KEYS
-from sgrep_types import YAML_MUST_HAVE_KEYS
-from util import debug_print
-from util import FINDINGS_EXIT_CODE
-from util import INVALID_CODE_EXIT_CODE
-from util import INVALID_PATTERN_EXIT_CODE
-from util import is_url
-from util import MISSING_CONFIG_EXIT_CODE
-from util import print_error
-from util import print_error_exit
-from util import print_msg
-from util import UNPARSEABLE_YAML_EXIT_CODE
-
+from semgrep.constants import ID_KEY
+from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
+from semgrep.constants import RCE_RULE_FLAG
+from semgrep.constants import RULES_KEY
+from semgrep.evaluation import build_boolean_expression
+from semgrep.evaluation import enumerate_patterns_in_boolean_expression
+from semgrep.evaluation import evaluate_expression
+from semgrep.sgrep_types import BooleanRuleExpression
+from semgrep.sgrep_types import InvalidRuleSchema
+from semgrep.sgrep_types import OPERATORS
+from semgrep.sgrep_types import PatternId
+from semgrep.sgrep_types import Range
+from semgrep.sgrep_types import SgrepRange
+from semgrep.sgrep_types import YAML_ALL_VALID_RULE_KEYS
+from semgrep.sgrep_types import YAML_MUST_HAVE_KEYS
+from semgrep.util import debug_print
+from semgrep.util import FINDINGS_EXIT_CODE
+from semgrep.util import INVALID_CODE_EXIT_CODE
+from semgrep.util import INVALID_PATTERN_EXIT_CODE
+from semgrep.util import is_url
+from semgrep.util import MISSING_CONFIG_EXIT_CODE
+from semgrep.util import print_error
+from semgrep.util import print_error_exit
+from semgrep.util import print_msg
 
 # Constants
 
@@ -467,7 +465,7 @@ def save_output(
         if Path(output_str).is_absolute():
             save_path = Path(output_str)
         else:
-            base_path = config_resolver.get_base_path()
+            base_path = semgrep.config_resolver.get_base_path()
             save_path = base_path.joinpath(output_str)
         # create the folders if not exists
         save_path.parent.mkdir(parents=True, exist_ok=True)
@@ -560,16 +558,10 @@ def dedup_output(outputs: List[Any]) -> List[Any]:
     return list({uniq_id(r): r for r in outputs}.values())
 
 
-# entry point
-def main(args: argparse.Namespace) -> Dict[str, Any]:
-    """ main function that parses args and runs sgrep """
-
-    # get the proper paths for targets i.e. handle base path of /home/repo when it exists in docker
-    targets = config_resolver.resolve_targets(args.target)
-
+def get_config(args: Any) -> Any:
     # first check if user asked to generate a config
     if args.generate_config:
-        config_resolver.generate_config()
+        semgrep.config_resolver.generate_config()
 
     # let's check for a pattern
     elif args.pattern:
@@ -580,16 +572,10 @@ def main(args: argparse.Namespace) -> Dict[str, Any]:
         pattern = args.pattern
 
         # TODO for now we generate a manual config. Might want to just call sgrep -e ... -l ...
-        configs = config_resolver.manual_config(pattern, lang)
+        configs = semgrep.config_resolver.manual_config(pattern, lang)
     else:
         # else let's get a config. A config is a dict from config_id -> config. Config Id is not well defined at this point.
-        configs = config_resolver.resolve_config(args.config)
-
-    if args.dump_ast:
-        if not args.lang:
-            print_error_exit("language must be specified to dump ASTs")
-        dump_parsed_ast(args.json, args.lang, args.pattern, targets)
-        sys.exit(0)
+        configs = semgrep.config_resolver.resolve_config(args.config)
 
     # if we can't find a config, use default r2c rules
     if not configs:
@@ -601,6 +587,22 @@ def main(args: argparse.Namespace) -> Dict[str, Any]:
     # It's possible that a config_id exists in both because we check valid rules and invalid rules
     # instead of just hard failing for that config if mal-formed
     valid_configs, invalid_configs = validate_configs(configs)
+    return valid_configs, invalid_configs
+
+
+def main(args: argparse.Namespace) -> Dict[str, Any]:
+    """ main function that parses args and runs sgrep """
+
+    # get the proper paths for targets i.e. handle base path of /home/repo when it exists in docker
+    targets = semgrep.config_resolver.resolve_targets(args.target)
+
+    if args.dump_ast:
+        if not args.lang:
+            print_error_exit("language must be specified to dump ASTs")
+        dump_parsed_ast(args.json, args.lang, args.pattern, targets)
+        sys.exit(0)
+
+    valid_configs, invalid_configs = get_config(args)
 
     validate = args.validate
     strict = args.strict
@@ -673,6 +675,23 @@ def main(args: argparse.Namespace) -> Dict[str, Any]:
         rule_index = decode_rule_id_to_index(finding["check_id"])
         by_rule_index[rule_index][finding["path"]].append(finding)
 
+    outputs_after_booleans, ignored_in_tests, fixes = resolve_sgrep_output(
+        by_rule_index, all_rules, args
+    )
+
+    if ignored_in_tests > 0:
+        print_error(
+            f"warning: ignored {ignored_in_tests} results in tests due to --exclude-tests option"
+        )
+
+    outputs_after_booleans = dedup_output(outputs_after_booleans)
+
+    output_data = handle_output(outputs_after_booleans, sgrep_errors, fixes, args)
+
+    return output_data
+
+
+def resolve_sgrep_output(by_rule_index: Any, all_rules: Any, args: Any) -> Any:
     current_path = Path.cwd()
     outputs_after_booleans = []
     ignored_in_tests = 0
@@ -723,14 +742,12 @@ def main(args: argparse.Namespace) -> Dict[str, Any]:
                         fixes.append((filepath, result))
                     result = transform_to_r2c_output(result)
                     outputs_after_booleans.append(result)
+    return outputs_after_booleans, ignored_in_tests, fixes
 
-    if ignored_in_tests > 0:
-        print_error(
-            f"warning: ignored {ignored_in_tests} results in tests due to --exclude-tests option"
-        )
 
-    outputs_after_booleans = dedup_output(outputs_after_booleans)
-
+def handle_output(
+    outputs_after_booleans: Any, sgrep_errors: Any, fixes: Any, args: Any
+) -> Dict[str, Any]:
     # output results
     output_data = {
         "results": outputs_after_booleans,
