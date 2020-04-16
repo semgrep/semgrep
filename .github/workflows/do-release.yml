@@ -29,11 +29,6 @@ jobs:
       - name: Get the version
         id: get_version
         run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
-      - name: help
-        run: |
-          pwd;
-          ls;
-          find .;
       - name: Upload Release Asset
         id: upload-release-asset-osx
         uses: actions/upload-release-asset@v1
@@ -67,25 +62,8 @@ jobs:
         run: brew install opam pkg-config coreutils
       - name: Checkout
         uses: actions/checkout@v2
-      - name: OPAM setup
-        run: |
-          opam init --no-setup --bare;
-          opam switch create 4.07.1;
-          opam switch 4.07.1;
-      - name: OPAM install Deps
-        run: eval $(opam env); opam install -y reason dune ocamlfind camlp4 num ocamlgraph json-wheel conf-perl yaml
-      - name: Install submodules
-        run: git submodule update --init --recursive
-      - name: Install pfff
-        run: eval $(opam env) && opam install -y ./pfff
-      - name: Install and test semgrep
-        run: eval $(opam env) && cd sgrep && make all && make test && make install
-      - name: Prepare artifacts
-        run: |
-          mkdir -p artifacts;
-          cp ./sgrep/_build/default/bin/main_sgrep.exe artifacts/semgrep;
-          zip -r artifacts.zip artifacts
-
+      - name: Run OSX release script
+        run: ./release-scripts/osx-release.sh
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
