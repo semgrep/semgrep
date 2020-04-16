@@ -2,7 +2,7 @@
 
 set -e
 
-test_sgrep_local () { 
+test_sgrep_local () {
     cd "${THIS_DIR}/../";
     $SGREP --json --strict --config tests/python/eqeq.yaml tests/lint -o tmp.out >/dev/null
     if [ -z "$OVERRIDE_EXPECTED" ]; then
@@ -50,7 +50,7 @@ test_sgrep_url_config() {
     rm -f tmp.out
 }
 
-test_registry() {    
+test_registry() {
     $SGREP --json --strict --config=r2c tests/lint -o tmp.out >/dev/null
     if [ -z "$OVERRIDE_EXPECTED" ]; then
         diff tmp.out tests/python/eqeq.expected.registry.json
@@ -101,7 +101,7 @@ cd "${THIS_DIR}"
 PYTHONPATH=.. pytest .
 
 local_tests() {
-    SGREP="./sgrep.py"
+    SGREP="python3 -m semgrep"
     test_sgrep_local
     test_sgrep_relative
     test_sgrep_absolute
