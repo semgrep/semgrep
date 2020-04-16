@@ -74,7 +74,7 @@ All optional fields must reside underneath a `patterns-and` or `patterns-or` fie
 
 | Field | Type | Description |
 | :--- | :--- | :--- |
-| [`pattern-not`](#pattern-not) | `string` | Logical NOT - memove findings matching this expression. |
+| [`pattern-not`](#pattern-not) | `string` | Logical NOT - remove findings matching this expression. |
 | [`pattern-inside`](#pattern-inside) | `string` | Keep findings that lie inside this pattern. |
 | [`pattern-not-inside`](#pattern-not-inside) | `string` | Keep findings that do not lie inside this pattern. |
 | [`pattern-where-python`](#pattern-where-python) | `string` | Remove findings matching this Python expression. |
