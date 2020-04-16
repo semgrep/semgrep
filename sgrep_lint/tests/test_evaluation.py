@@ -4,6 +4,7 @@ import sys
 from typing import List
 
 from constants import RCE_RULE_FLAG
+from evaluation import build_boolean_expression
 from evaluation import enumerate_patterns_in_boolean_expression
 from evaluation import evaluate_expression as raw_evalute_expression
 from sgrep_types import BooleanRuleExpression
@@ -351,6 +352,30 @@ def test_exprs():
     ]
 
     assert flat == expected, f"flat: {flat}"
+
+
+def test_build_exprs():
+    base_rule = {
+        "id": "test-id",
+        "message": "test message",
+        "languages": ["python"],
+        "severity": "ERROR",
+    }
+    rules = [
+        {**base_rule, **{"pattern": "test(...)"}},
+        {**base_rule, **{"patterns": [{"pattern": "test(...)"}]}},
+        {**base_rule, **{"pattern-either": [{"pattern": "test(...)"}]}},
+    ]
+
+    results = [build_boolean_expression(rule) for rule in rules]
+    base_expected = [BooleanRuleExpression(OPERATORS.AND, '.0', None, "test(...)")]
+    expected = [
+        BooleanRuleExpression(OPERATORS.AND, "test-id", None, "test(...)"),
+        BooleanRuleExpression(OPERATORS.AND_ALL, None, base_expected, None),
+        BooleanRuleExpression(OPERATORS.AND_EITHER, None, base_expected, None),
+    ]
+
+    assert results == expected
 
 
 def test_evaluate_python():

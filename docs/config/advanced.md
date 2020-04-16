@@ -62,7 +62,7 @@ There are several operators that can be used in a rule. At the top level, there 
 
 - `pattern`: The rule will only fire if this pattern is found.
 - `pattern-either`: (logical OR) Nest multiple other patterns under this; any of those patterns will count as a match.
-- `pattterns`: (logical AND) You can put multiple patterns under this to create nested, implicitly-ANDed instructions.
+- `patterns`: (logical AND) You can put multiple patterns under this to create nested, implicitly-ANDed instructions.
 
 ### filter operators
 
