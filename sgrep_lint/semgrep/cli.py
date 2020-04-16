@@ -172,7 +172,7 @@ def cli() -> None:
                 dump_parsed_ast(args.json, args.lang, args.pattern, args.target)
         elif args.validate:
             _, invalid_configs = semgrep.sgrep_main.get_config(args)
-            if invalid_configs is not None:
+            if invalid_configs:
                 print_error_exit(
                     f"run with --validate and there were {len(invalid_configs)} errors loading configs"
                 )
