@@ -54,17 +54,19 @@ Start with a simple example:
 
 ```
 $ cat << EOF > test.py
-a = 1
-b = 2
-if a == a:  # oops, supposed to be a == b
-    print('sgrep test')
+def get_node(node_id, nodes):
+    for node in nodes:
+        if node.id == node.id:  # Oops, supposed to be 'node_id'
+            return node
+    return None
 EOF
 ```
 
 ```
 $ docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep --lang python --pattern '$X == $X' test.py
 test.py
-3:if a == a:  # oops, supposed to be a == b
+rule:python.deadcode.eqeq-is-bad: useless comparison operation `node.id == node.id` or `node.id != node.id`.
+3:        if node.id == node.id:  # Oops, supposed to be 'node_id'
 ```
 
 From here you can use our rules to search for issues in your codebase:
@@ -108,9 +110,9 @@ handles a multitude of input types:
 In the absense of this flag, a default configuration is loaded from `.sgrep.yml`
 or multiple files matching `.sgrep/**/*.yml`.
 
-#### Operators
+#### Pattern Features
 
-Configuration files make use of two primary operators:
+`sgrep` patterns make use of two primary features:
 
 * **Metavariables like `$X`, `$WIDGET`, or `$USERS`.** Metavariable names can
 only contain uppercase characters - names like `$x` or `$SOME_VALUE` are
@@ -143,8 +145,8 @@ to be passed to `open` and any sequence of code statements in-between the `open`
 and `close` calls. We don't care how `open` is called or what happens up to
 a `close` call, we just need to make sure `close` is called.
 
-**For a more complete introduction to the configuration format please see the
-[advanced configuration documentation](docs/config/advanced.md).**
+**For more information on rule fields like `patterns` and `pattern-not-inside`
+see the [configuration documentation](docs/config/advanced.md).**
 
 #### Equivalences
 
