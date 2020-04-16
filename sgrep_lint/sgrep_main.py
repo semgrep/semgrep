@@ -8,7 +8,6 @@ import tempfile
 import time
 from datetime import datetime
 from pathlib import Path
-from pathlib import PurePath
 from typing import Any
 from typing import DefaultDict
 from typing import Dict
@@ -115,11 +114,25 @@ def sgrep_error_json_to_message_then_exit(
         )
 
 
+def yield_targeting_options(args: argparse.Namespace) -> Iterator[str]:
+    """Yields include/exclude CLI options to call semgrep with.
+
+    This is based on the arguments given to semgrep-lint.
+    """
+    for pattern in args.include:
+        yield from ["-include", pattern]
+    for pattern in args.exclude:
+        yield from ["-exclude", pattern]
+    for pattern in args.exclude_dir:
+        yield from ["-exclude-dir", pattern]
+
+
 def invoke_sgrep(
     all_patterns: List[Dict[str, Any]],
     targets: List[Path],
     output_mode_json: bool,
     all_rules: List[Dict[str, Any]],
+    targeting_options: List[str],
 ) -> Dict[str, Any]:
     """Returns parsed json output of sgrep"""
 
@@ -135,11 +148,13 @@ def invoke_sgrep(
             )
             fout.write(yaml_as_str)
             fout.flush()
-            cmd = [SGREP_PATH] + [
+            cmd = [
+                SGREP_PATH,
                 "-lang",
                 language,
-                f"-rules_file",
+                "-rules_file",
                 fout.name,
+                *targeting_options,
                 *[str(path) for path in targets],
             ]
             try:
@@ -649,7 +664,13 @@ def main(args: argparse.Namespace) -> Dict[str, Any]:
 
     # actually invoke sgrep
     start = datetime.now()
-    output_json = invoke_sgrep(all_patterns, targets, args.json, all_rules)
+    output_json = invoke_sgrep(
+        all_patterns,
+        targets,
+        args.json,
+        all_rules,
+        targeting_options=list(yield_targeting_options(args)),
+    )
     debug_print(f"sgrep ran in {datetime.now() - start}")
     debug_print(str(output_json))
 
@@ -736,21 +757,6 @@ def main(args: argparse.Namespace) -> Dict[str, Any]:
         "results": outputs_after_booleans,
         "errors": r2c_error_format(sgrep_errors),
     }
-    if args.exclude:
-        exclude_glob_patterns = args.exclude
-        debug_print(f"patterns to exclude: {', '.join(exclude_glob_patterns)}")
-        filtered_results = [
-            output
-            for output in outputs_after_booleans
-            if not any(
-                PurePath(output.get("path", "")).match(pat)
-                for pat in exclude_glob_patterns
-            )
-        ]
-        debug_print(
-            f"filtered output from {len(outputs_after_booleans)} down to {len(filtered_results)} results"
-        )
-        output_data["results"] = filtered_results
     if not args.quiet:
         if args.json:
             print(build_output_json(output_data))
