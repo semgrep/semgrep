@@ -69,7 +69,7 @@ let parse file =
                in
                let pattern =
                  (* todo? call Normalize_ast.normalize here? *)
-                 try Parse_generic.parse_pattern lang pattern
+                 try Check_sgrep.parse_check_pattern lang pattern
                  with exn ->
                    raise (InvalidPatternException (id, pattern, (Lang.string_of_lang lang), (Common.exn_to_s exn)))
                in
