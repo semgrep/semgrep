@@ -1,23 +1,251 @@
-## Config format
+# Configuration Format
 
-This document describes sgrep rule fields and provides rule examples. It does not cover the patterns themselves; for [the pattern syntax see simple.md](simple.md)
+This document describes `sgrep` rule fields and provides rule examples.
 
-If instead of writing rules, you want run them, ship them to your team, or enforce them in CI/CD, check out the easy-to-use [bento.dev](https://bento.dev)
+Contents:
+
+* [Simple Example](#simple-example)
+* [Schema](#schema)
+* [Operators](#operators)
+  * [`pattern`](#pattern)
+  * [`patterns`](#patterns)
+  * [`pattern-either`](#pattern-either)
+  * [`pattern-not`](#pattern-not)
+  * [`pattern-inside`](#pattern-inside)
+  * [`pattern-not-inside`](#pattern-not-inside)
+  * [`pattern-where-python`](#pattern-where-python)
+* [Other Examples](#other-examples)
+  * [Complete Useless Comparison](#complete-useless-comparison)
 
 ## Simple Example
 
+To get a feel for the rule format, let's start with a simple example:
+
 ```yaml
 rules:
-  - id: eqeq-is-bad
+  - id: eqeq-always-true
     pattern: $X == $X
-    message: "$X == $X is always true!"
+    message: "$X == $X is always true"
     languages: [python]
     severity: ERROR
 ```
 
-When invoked with `sgrep -f myconfig.yaml project/`, this rule will run on Python files inside `project/` and output the rule `id` "eqeq-is-bad" along with the `message` and the line and column range the match occurred on. Given a line inside a Python file with `1 == 1`, sgrep will output the message: "1 == 1 is always true!"
+This rule is useful for basic comparison mistakes. Consider the following:
 
-## Complex Example
+```python
+def get_node(node_id, nodes):
+    for node in nodes:
+        if node.id == node.id:  # Oops, supposed to be 'node_id'
+            return node
+    return None
+```
+
+Running `sgrep` against this code produces the following results:
+
+```
+rule:eqeq-always-true: node.id == node.id is always true
+3: if node.id == node.id:  # Oops, supposed to be 'node_id'
+```
+
+This should give you a basic idea of what the rule fields do.
+
+## Schema
+
+**Required:**
+
+All required fields must be present at the top-level of a rule. I.e.
+immediately underneath `rules`.
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `id` | `string` | Unique, descriptive identifier . e.g. `no-unused-variable`. |
+| `message` | `string` | Message highlighting why this rule fired and how to remediate the issue. |
+| `severity` | `string` | One of: `WARNING`, `ERROR`. |
+| `languages` | `array` | Any of: `python`, `javascript`, or `go`. |
+| [`pattern`](#pattern)_*_ | `string` | Find code matching this expression. |
+| [`patterns`](#patterns)_*_ | `array` | Logical AND of multiple patterns. |
+| [`pattern-either`](#pattern-either)_*_ | `array` | Logical OR of multiple patterns. |
+
+_* Only one of `pattern`, `patterns`, or `pattern-either` is required._
+
+**Optional:**
+
+All optional fields must reside underneath a `patterns` or `pattern-either` field.
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| [`pattern-not`](#pattern-not) | `string` | Logical NOT - remove findings matching this expression. |
+| [`pattern-inside`](#pattern-inside) | `string` | Keep findings that lie inside this pattern. |
+| [`pattern-not-inside`](#pattern-not-inside) | `string` | Keep findings that do not lie inside this pattern. |
+| [`pattern-where-python`](#pattern-where-python) | `string` | Remove findings matching this Python expression. |
+
+## Operators
+
+### `pattern`
+
+The `pattern` operator looks for code matching its expression. As noted above,
+this can be basic expressions like `$X == $X` or blacklisted functionality like
+`crypto.md5(...)`.
+
+**Example**
+
+See the [Simple Example](#simple-example) above.
+
+### `patterns`
+
+The `patterns` operator performs a logical AND operation on one or more
+child patterns. This is useful for chaining multiple patterns together that
+all must be true.
+
+**Example**
+
+Let's build on the [Simple Example](#simple-example) above:
+
+```yaml
+rules:
+  - id: eqeq-always-true
+    patterns:
+      - pattern: $X == $X
+      - pattern-not: 0 == 0
+    message: "$X == $X is always true"
+    languages: [python]
+    severity: ERROR
+```
+
+Checking if `0 == 0` is often used to quickly enable and disable blocks of
+code. It can easily be changed to `0 == 1` to disable functionality.  We can
+remove these debugging false positives with `patterns`.
+
+### `pattern-either`
+
+The `pattern-either` operator performs a logical OR operation on one or more
+child patterns. This is useful for chaining multiple patterns together where
+any may be true.
+
+**Example**
+
+```yaml
+rules:
+  - id: insecure-crypto-usage
+    pattern-either:
+      - pattern: hashlib.md5(...)
+      - pattern: hashlib.sha1(...)
+    message: "insecure cryptography hashing function"
+    languages: [python]
+    severity: ERROR
+```
+
+This rule looks for usage of the Python standard library functions `hashlib.md5`
+**or** `hashlib.sha1`. Depending on their usage, these hashing functions are
+[considered insecure](https://shattered.io/).
+
+### `pattern-not`
+
+The `pattern-not` operator is the opposite of the `pattern` operator. That is,
+it finds code that does not match its expression. This is useful for eliminating
+common false positives.
+
+**Example**
+
+See the [`patterns`](#patterns) example above.
+
+### `pattern-inside`
+
+The `pattern-inside` operator keeps matched findings that reside within its
+expression. This is useful for finding code inside other pieces of code like
+functions or if blocks.
+
+**Example**
+
+```yaml
+rules:
+  - id: return-in-init
+    patterns:
+      - pattern: return ...
+      - pattern-inside: |
+          class $CLASS(...):
+              ...
+              def __init__(...):
+                  ...
+    message: "return should never appear inside a class __init__ function"
+    languages: [python]
+    severity: ERROR
+```
+
+Which fires on the following code:
+
+```python
+class Cls(object):
+    def __init__(self):
+        return None
+```
+
+### `pattern-not-inside`
+
+The `pattern-not-inside` operator keeps matched findings that do not reside
+within its expression. It is the opposite of `pattern-inside`. This is useful
+for finding code that's missing a corresponding cleanup action like disconnect,
+close, or shutdown. It's also useful for finding problematic code that isn't
+inside code that mitigates the issue.
+
+**Example**
+
+```yaml
+rules:
+  - id: open-never-closed
+    patterns:
+      - pattern: $F = open(...)
+      - pattern-not-inside: |
+          $F = open(...)
+          ...
+          $F.close()
+    message: "file object opened without corresponding close"
+    languages: [python]
+    severity: ERROR
+```
+
+This rule looks for calls to the Python `open` function without a corresponding
+`close`. Without a `close` call the file will be left open which can lead to
+resource exhaustion.
+
+### `pattern-where-python`
+
+The `pattern-where-python` is the most flexible operator. It allows for writing
+custom Python logic to filter findings. This is useful when none of the other
+operators provide the functionality needed to create a rule.
+
+**This operator must also be used with caution. Its use allows for arbitrary
+Python code execution.  As a defensive measure, the `--dangerously-allow-arbitrary-code-execution-from-rules`
+flag must also be enabled to use `pattern-where-python` rules.**
+
+**Example**
+
+```yaml
+rules:
+  - id: use-decimalfield-for-money
+    patterns:
+      - pattern: $FIELD = django.db.models.FloatField(...)
+      - pattern-inside: |
+          class $CLASS(...):
+              ...
+      - pattern-where-python: "'price' in vars['$FIELD'] or 'salary' in vars['$FIELD']"
+    message: "use DecimalField for currency fields to avoid float-rounding errors"
+    languages: [python]
+    severity: ERROR
+```
+
+This rule looks for usage of Django's [`FloatField`](https://docs.djangoproject.com/en/3.0/ref/models/fields/#django.db.models.FloatField)
+model when storing currency information. `FloatField` can lead to rounding
+errors and should be avoided in favor of [`DecimalField`](https://docs.djangoproject.com/en/3.0/ref/models/fields/#django.db.models.DecimalField)
+when dealing with currency. Here the `pattern-where-python` operator allows us
+to utilize the Python `in` statement to filter findings that look like
+currency.
+
+## Other Examples
+
+This section highlights more complex rules that perform advanced code searching.
+
+### Complete Useless Comparison
 
 ```yaml
 rules:
@@ -38,58 +266,10 @@ rules:
                       ...
             - pattern: self.$X == self.$X
       - pattern-not: 1 == 1
-    message: "useless comparison operation `$X == $X` or `$X != $X`; if testing for floating point NaN, use `math.isnan`, or `cmath.isnan` if the number is complex."
-    languages: [python]
-    severity: ERROR
+    message: "useless comparison operation `$X == $X` or `$X != $X`"
 ```
 
-The main difference here is that we are composing patterns together. Every pattern is implicitly ANDed together, i.e.:
-
-```
-    ...
-    patterns:
-      - pattern: foo()
-      - pattern: foo(1)
-```
-
-Will match nothing, because foo() and foo(1) can never occur together. If we made the first pattern `foo(...)`, the rule will work, although the pattern is unecessary.
-
-## Pattern Composition Operators
-
-### basic operators
-
-There are several operators that can be used in a rule. At the top level, there are three:
-
-- `pattern`: The rule will only fire if this pattern is found.
-- `pattern-either`: (logical OR) Nest multiple other patterns under this; any of those patterns will count as a match.
-- `patterns`: (logical AND) You can put multiple patterns under this to create nested, implicitly-ANDed instructions.
-
-### filter operators
-
-Filters: there are several operators that act as filters to remove results you don't want. They must be combined with `pattern` operator in order to see results; e.g., if you have a rule with just `patttern-not`, nothing will fire.
-
-- `pattern-not`: This rule will filter out any cases where the pattern is found.
-- `pattern-inside`: Filter out results that do not lie inside this specified pattern. Useful for specifying a function that this behavior must occur in, for instance.
-- `pattern-not-inside`: Opposite of `pattern-inside`; this will filter out any following pattern results that are *not* inside the specified pattern.
-- `pattern-where-python`: Uses a python expression to decide whether or not to filter out this result. Variables are passed to your python expression Python in an array called `vars`. **Running rules from other people that use this filter is dangerous as it can allow arbitrary code exeuction. If you have a rule using Python, you must pass the flag  `--dangerously-allow-arbitrary-code-execution-from-rules`.** Example:
-  ```sgrep
-    patterns:
-      - pattern: $F = django.db.models.FloatField(...)
-      - pattern-where-python: "'price' in vars['$F']"
-  ```
-
-### additonal operators
-
-- `fix` allows for an expression to be displayed to the user as the suggested autofix. Can be applied with `--autofix`
-
-## Full Schema
-
-Each rule object has these fields:
-
-| Field     | Type          | Description                                                                                                        | Required |
-| --------- | ------------- | ------------------------------------------------------------------------------------------------------------------ | -------- |
-| id        | string        | None unique check-id that should be descriptive and understandable in isolation by the user. e.g. `no-unused-var`. | Y        |
-| `pattern` or `patterns` or `pattern-either`   | string        | See example patterns in this document.                                                                                        | Y        |
-| message   | string        | Description of the rule that will be output when a match is found.                                                 | Y        |
-| languages | array<string> | Languages the check is relevant for. Can be python or javascript.                                                  | Y        |
-| severity  | string        | Case sensitive string equal to WARNING, ERROR                                                                  | Y        |
+This rule makes use of many of the operators above. It uses `pattern-either`,
+`patterns`, `pattern`, and `pattern-inside` to carefully consider
+different cases, and uses `pattern-not-inside` and `pattern-not` to whitelist
+certain useless comparisons.
