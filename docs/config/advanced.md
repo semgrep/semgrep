@@ -8,8 +8,8 @@ Contents:
 * [Schema](#schema)
 * [Operators](#operators)
   * [`pattern`](#pattern)
-  * [`patterns-and`](#patterns-and)
-  * [`patterns-or`](#patterns-or)
+  * [`patterns`](#patterns)
+  * [`pattern-either`](#pattern-either)
   * [`pattern-not`](#pattern-not)
   * [`pattern-inside`](#pattern-inside)
   * [`pattern-not-inside`](#pattern-not-inside)
@@ -63,14 +63,14 @@ immediately underneath `rules`.
 | `severity` | `string` | One of: `WARNING`, `ERROR`. |
 | `languages` | `array` | Any of: `python`, `javascript`, or `go`. |
 | [`pattern`](#pattern)_*_ | `string` | Find code matching this expression. |
-| [`patterns-and`](#patterns-and)_*_ | `array` | Logical AND of multiple patterns. |
-| [`patterns-or`](#patterns-or)_*_ | `array` | Logical OR of multiple patterns. |
+| [`patterns`](#patterns)_*_ | `array` | Logical AND of multiple patterns. |
+| [`pattern-either`](#pattern-either)_*_ | `array` | Logical OR of multiple patterns. |
 
-_* Only one of `pattern`, `patterns-and`, or `patterns-or` is required._
+_* Only one of `pattern`, `patterns`, or `pattern-either` is required._
 
 **Optional:**
 
-All optional fields must reside underneath a `patterns-and` or `patterns-or` field.
+All optional fields must reside underneath a `patterns` or `pattern-either` field.
 
 | Field | Type | Description |
 | :--- | :--- | :--- |
@@ -91,9 +91,9 @@ this can be basic expressions like `$X == $X` or blacklisted functionality like
 
 See the [Simple Example](#simple-example) above.
 
-### `patterns-and`
+### `patterns`
 
-The `patterns-and` operator performs a logical AND operation on one or more
+The `patterns` operator performs a logical AND operation on one or more
 child patterns. This is useful for chaining multiple patterns together that
 all must be true.
 
@@ -104,7 +104,7 @@ Let's build on the [Simple Example](#simple-example) above:
 ```yaml
 rules:
   - id: eqeq-always-true
-    patterns-and:
+    patterns:
       - pattern: $X == $X
       - pattern-not: 0 == 0
     message: "$X == $X is always true"
@@ -114,11 +114,11 @@ rules:
 
 Checking if `0 == 0` is often used to quickly enable and disable blocks of
 code. It can easily be changed to `0 == 1` to disable functionality.  We can
-remove these debugging false positives with `patterns-and`.
+remove these debugging false positives with `patterns`.
 
-### `patterns-or`
+### `pattern-either`
 
-The `patterns-or` operator performs a logical OR operation on one or more
+The `pattern-either` operator performs a logical OR operation on one or more
 child patterns. This is useful for chaining multiple patterns together where
 any may be true.
 
@@ -127,7 +127,7 @@ any may be true.
 ```yaml
 rules:
   - id: insecure-crypto-usage
-    patterns-or:
+    pattern-either:
       - pattern: hashlib.md5(...)
       - pattern: hashlib.sha1(...)
     message: "insecure cryptography hashing function"
@@ -147,7 +147,7 @@ common false positives.
 
 **Example**
 
-See the [`patterns-and`](#patterns-and) example above.
+See the [`patterns`](#patterns) example above.
 
 ### `pattern-inside`
 
@@ -160,7 +160,7 @@ functions or if blocks.
 ```yaml
 rules:
   - id: return-in-init
-    patterns-and:
+    patterns:
       - pattern: return ...
       - pattern-inside: |
           class $CLASS(...):
@@ -193,7 +193,7 @@ inside code that mitigates the issue.
 ```yaml
 rules:
   - id: open-never-closed
-    patterns-and:
+    patterns:
       - pattern: $F = open(...)
       - pattern-not-inside: |
           $F = open(...)
@@ -223,7 +223,7 @@ flag must also be enabled to use `pattern-where-python` rules.**
 ```yaml
 rules:
   - id: use-decimalfield-for-money
-    patterns-and:
+    patterns:
       - pattern: $FIELD = django.db.models.FloatField(...)
       - pattern-inside: |
           class $CLASS(...):
@@ -250,17 +250,17 @@ This section highlights more complex rules that perform advanced code searching.
 ```yaml
 rules:
   - id: eqeq-is-bad
-    patterns-and:
+    patterns:
       - pattern-not-inside: |
           def __eq__(...):
               ...
       - pattern-not-inside: assert(...)
       - pattern-not-inside: assertTrue(...)
       - pattern-not-inside: assertFalse(...)
-      - patterns-or:
+      - pattern-either:
           - pattern: $X == $X
           - pattern: $X != $X
-          - patterns-and:
+          - patterns:
             - pattern-inside: |
                  def __init__(...):
                       ...
@@ -269,7 +269,7 @@ rules:
     message: "useless comparison operation `$X == $X` or `$X != $X`"
 ```
 
-This rule makes use of many of the operators above. It uses `patterns-or`,
-`patterns-and`, `pattern`, and `pattern-inside` to carefully consider
+This rule makes use of many of the operators above. It uses `pattern-either`,
+`patterns`, `pattern`, and `pattern-inside` to carefully consider
 different cases, and uses `pattern-not-inside` and `pattern-not` to whitelist
 certain useless comparisons.

@@ -110,9 +110,9 @@ handles a multitude of input types:
 In the absense of this flag, a default configuration is loaded from `.sgrep.yml`
 or multiple files matching `.sgrep/**/*.yml`.
 
-#### Operators
+#### Pattern Features
 
-Configuration files make use of two primary operators:
+`sgrep` expressions make use of two primary pattern features:
 
 * **Metavariables like `$X`, `$WIDGET`, or `$USERS`.** Metavariable names can
 only contain uppercase characters - names like `$x` or `$SOME_VALUE` are
@@ -145,8 +145,8 @@ to be passed to `open` and any sequence of code statements in-between the `open`
 and `close` calls. We don't care how `open` is called or what happens up to
 a `close` call, we just need to make sure `close` is called.
 
-**For a more complete introduction to the configuration format please see the
-[advanced configuration documentation](docs/config/advanced.md).**
+**For more information on rule fields like `patterns` and `pattern-not-inside`
+see the [configuration documentation](docs/config/advanced.md).**
 
 #### Equivalences
 
