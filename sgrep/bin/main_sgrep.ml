@@ -520,7 +520,7 @@ let options () =
     "-include", Arg.String (fun s -> Common.push s includes),
     " <GLOB> search only files whose basename matches GLOB";
     "-exclude-dir", Arg.String (fun s -> Common.push s exclude_dirs),
-    " <DIR> exclude directories matching the pattern DIR";
+    " <DIR> exclude directories with the prefix DIR";
 
     "-json", Arg.Set output_format_json, 
     " output JSON format";
