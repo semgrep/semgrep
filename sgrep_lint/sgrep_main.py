@@ -412,20 +412,31 @@ def color_line(
     return line
 
 
-def finding_to_line(finding: Dict[str, Any], color_output: bool) -> Iterator[str]:
+def finding_to_raw_lines(
+    finding: Dict[str, Any], color_output: bool = False
+) -> Optional[Iterable[str]]:
+    path = finding.get("path")
+    start_line = finding.get("start", {}).get("line")
+    end_line = finding.get("end", {}).get("line")
+    if path and start_line:
+        return fetch_lines_in_file(Path(path), start_line, end_line)
+    return None
+
+
+def finding_to_line(
+    finding: Dict[str, Any], color_output: bool = False
+) -> Iterator[str]:
     path = finding.get("path")
     start_line = finding.get("start", {}).get("line")
     end_line = finding.get("end", {}).get("line")
     start_col = finding.get("start", {}).get("col")
     end_col = finding.get("end", {}).get("col")
-    if path and start_line:
-        file_lines = fetch_lines_in_file(Path(path), start_line, end_line)
-        if file_lines:
-            for i, line in enumerate(file_lines):
-                if color_output:
-                    yield f"{colorama.Fore.GREEN}{start_line + i}{colorama.Style.RESET_ALL}:{color_line(line.rstrip(), start_line + i, start_line, start_col, end_line, end_col)}"
-                else:
-                    yield f"{start_line + i}:{line.rstrip()}"
+    file_lines = finding.get("extra", {}).get("file_lines")
+    for i, line in enumerate(file_lines):
+        if color_output:
+            yield f"{colorama.Fore.GREEN}{start_line + i}{colorama.Style.RESET_ALL}:{color_line(line.rstrip(), start_line + i, start_line, start_col, end_line, end_col)}"
+        else:
+            yield f"{start_line + i}:{line.rstrip()}"
 
 
 def build_normal_output(
@@ -573,6 +584,22 @@ def decode_rule_id_to_index(rule_id: str) -> int:
 
 def dedup_output(outputs: List[Any]) -> List[Any]:
     return list({uniq_id(r): r for r in outputs}.values())
+
+
+def add_finding_line(outputs: List[Any]) -> List[Any]:
+    for r in outputs:
+        file_lines = finding_to_raw_lines(r)
+        if file_lines is not None:
+            r["extra"]["file_lines"] = list(file_lines)
+        else:
+            r["extra"]["file_lines"] = []
+    return outputs
+
+
+def clean_output(outputs: List[Any]) -> List[Any]:
+    for r in outputs:
+        del r["extra"]["metavars"]
+    return outputs
 
 
 # entry point
@@ -756,6 +783,8 @@ def main(args: argparse.Namespace) -> Dict[str, Any]:
         )
 
     outputs_after_booleans = dedup_output(outputs_after_booleans)
+    outputs_after_booleans = add_finding_line(outputs_after_booleans)
+    outputs_after_booleans = clean_output(outputs_after_booleans)
 
     # output results
     output_data = {
