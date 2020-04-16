@@ -12,18 +12,18 @@ from typing import Optional
 
 import requests
 import yaml
-from constants import DEFAULT_CONFIG_FILE
-from constants import DEFAULT_CONFIG_FOLDER
-from constants import DEFAULT_SGREP_CONFIG_NAME
-from constants import ID_KEY
-from constants import RULES_KEY
-from constants import SGREP_USER_AGENT
-from constants import YML_EXTENSIONS
-from util import debug_print
-from util import is_url
-from util import print_error
-from util import print_error_exit
-from util import print_msg
+from semgrep.constants import DEFAULT_CONFIG_FILE
+from semgrep.constants import DEFAULT_CONFIG_FOLDER
+from semgrep.constants import DEFAULT_SGREP_CONFIG_NAME
+from semgrep.constants import ID_KEY
+from semgrep.constants import RULES_KEY
+from semgrep.constants import SGREP_USER_AGENT
+from semgrep.constants import YML_EXTENSIONS
+from semgrep.util import debug_print
+from semgrep.util import is_url
+from semgrep.util import print_error
+from semgrep.util import print_error_exit
+from semgrep.util import print_msg
 
 IN_DOCKER = "SGREP_IN_DOCKER" in os.environ
 IN_GH_ACTION = "GITHUB_WORKSPACE" in os.environ
@@ -157,7 +157,6 @@ def load_config_from_local_path(
                 return parse_config_folder(loc)
             else:
                 print_error_exit(f"config location `{loc}` is not a file or folder!")
-                assert False
         else:
             addendum = ""
             if IN_DOCKER:
@@ -165,7 +164,7 @@ def load_config_from_local_path(
             print_error_exit(
                 f"unable to find a config; path `{loc}` does not exist{addendum}"
             )
-            assert False
+    raise Exception
 
 
 def download_config(config_url: str) -> Dict[str, Optional[Dict[str, Any]]]:
@@ -191,12 +190,10 @@ def download_config(config_url: str) -> Dict[str, Optional[Dict[str, Any]]]:
                 print_error_exit(
                     f"unknown content-type: {content_type} returned by config url: {config_url}. Can not parse"
                 )
-                assert False
         else:
             print_error_exit(
                 f"bad status code: {r.status_code} returned by config url: {config_url}"
             )
-            assert False
     except Exception as e:
         print_error(str(e))
     return {config_url: None}

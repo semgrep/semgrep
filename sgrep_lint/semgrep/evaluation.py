@@ -6,22 +6,22 @@ from typing import List
 from typing import Optional
 from typing import Set
 
-from constants import RCE_RULE_FLAG
-from sgrep_types import BooleanRuleExpression
-from sgrep_types import InvalidRuleSchema
-from sgrep_types import operator_for_pattern_name
-from sgrep_types import OPERATORS
-from sgrep_types import pattern_names_for_operator
-from sgrep_types import pattern_names_for_operators
-from sgrep_types import PatternId
-from sgrep_types import Range
-from sgrep_types import SgrepRange
-from sgrep_types import YAML_VALID_TOP_LEVEL_OPERATORS
-from util import debug_print
-from util import flatten
-from util import NEED_ARBITRARY_CODE_EXEC_EXIT_CODE
-from util import print_error
-from util import print_error_exit
+from semgrep.constants import RCE_RULE_FLAG
+from semgrep.sgrep_types import BooleanRuleExpression
+from semgrep.sgrep_types import InvalidRuleSchema
+from semgrep.sgrep_types import operator_for_pattern_name
+from semgrep.sgrep_types import OPERATORS
+from semgrep.sgrep_types import pattern_names_for_operator
+from semgrep.sgrep_types import pattern_names_for_operators
+from semgrep.sgrep_types import PatternId
+from semgrep.sgrep_types import Range
+from semgrep.sgrep_types import SgrepRange
+from semgrep.sgrep_types import YAML_VALID_TOP_LEVEL_OPERATORS
+from semgrep.util import debug_print
+from semgrep.util import flatten
+from semgrep.util import NEED_ARBITRARY_CODE_EXEC_EXIT_CODE
+from semgrep.util import print_error
+from semgrep.util import print_error_exit
 
 
 def _parse_boolean_expression(

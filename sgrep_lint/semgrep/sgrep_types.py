@@ -25,10 +25,10 @@ OPERATORS_WITH_CHILDREN = [OPERATORS.AND_ALL, OPERATORS.AND_EITHER]
 OPERATOR_PATTERN_NAMES_MAP = {
     OPERATORS.AND_INSIDE: ["pattern-inside"],
     OPERATORS.AND_NOT_INSIDE: ["pattern-not-inside"],
-    OPERATORS.AND_EITHER: ["pattern-either", "patterns-or"],
+    OPERATORS.AND_EITHER: ["pattern-either"],
     OPERATORS.AND_NOT: ["pattern-not"],
     OPERATORS.AND: ["pattern"],
-    OPERATORS.AND_ALL: ["patterns", "patterns-and"],
+    OPERATORS.AND_ALL: ["patterns"],
     OPERATORS.WHERE_PYTHON: ["pattern-where-python"],
     OPERATORS.FIX: ["fix"],
 }

@@ -29,7 +29,7 @@
  * and have the engine handles this equivalence.
  *
  * alternatives:
- *  - macros/templates over the yaml rule file to generate some patterns-or,
+ *  - macros/templates over the yaml rule file to generate some pattern-either,
  *    but this may be a bit hacky and add yet another layer
  *    (sgrep-core -> sgrep-python -> sgrep-yaml-generator)
  *    As Matt said, adding a templating language, on top of a markup language
@@ -42,7 +42,7 @@
  * in generic_vs_generic.ml or normalize_ast.ml because they are too
  * difficult to encode otherwise (e.g., the less-is-ok).
  * todo: we should give them name too, so they can be disabled too.
- * 
+ *
  * related work:
  *  - standard.iso in coccinelle
  *    https://github.com/coccinelle/coccinelle/blob/master/standard.iso
