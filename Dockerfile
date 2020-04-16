@@ -35,6 +35,8 @@ ENV PYTHONUNBUFFERED=1
 
 COPY --from=build-sgrep-lint /home/pythonbuild/sgrep_lint/build/sgrep.dist/* /bin/sgrep-lint-files/
 RUN ln -s /bin/sgrep-lint-files/sgrep-lint /bin/semgrep
+# Keep the old link around for backwards compatibility
+RUN ln -s /bin/sgrep-lint-files/sgrep-lint /bin/sgrep-lint
 
 RUN ls -al  /bin/sgrep-lint-files/cacert.pem
 RUN mkdir /bin/sgrep-lint-files/certifi/
