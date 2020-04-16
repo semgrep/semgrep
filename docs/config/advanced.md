@@ -55,30 +55,31 @@ This should give you a basic idea of what the rule fields do.
 
 All required fields must be present at the top-level of a rule. I.e. immediately underneath `rules`.
 
-| Field | Type | Description |
-| :--- | :--- | :--- |
-| `id` | `string` | Unique, descriptive identifier . e.g. `no-unused-variable`. |
-| `message` | `string` | Message highlighting why this rule fired and how to remediate the issue. |
-| `severity` | `string` | One of: `WARNING`, `ERROR`. |
-| `languages` | `array` | Any of: `python`, `javascript`, or `go`. |
-| [`pattern`](advanced.md#pattern)_\*_ | `string` | Find code matching this expression. |
-| [`patterns`](advanced.md#patterns)_\*_ | `array` | Logical AND of multiple patterns. |
-| [`pattern-either`](advanced.md#pattern-either)_\*_ | `array` | Logical OR of multiple patterns. |
+| Field                                              | Type     | Description                                                              |
+|:---------------------------------------------------|:---------|:-------------------------------------------------------------------------|
+| `id`                                               | `string` | Unique, descriptive identifier . e.g. `no-unused-variable`.              |
+| `message`                                          | `string` | Message highlighting why this rule fired and how to remediate the issue. |
+| `severity`                                         | `string` | One of: `WARNING`, `ERROR`.                                              |
+| `languages`                                        | `array`  | Any of: `python`, `javascript`, or `go`.                                 |
+| [`pattern`](advanced.md#pattern)_\*_               | `string` | Find code matching this expression.                                      |
+| [`patterns`](advanced.md#patterns)_\*_             | `array`  | Logical AND of multiple patterns.                                        |
+| [`pattern-either`](advanced.md#pattern-either)_\*_ | `array`  | Logical OR of multiple patterns.                                         |
 
 _\* Only one of `pattern`, `patterns`, or `pattern-either` is required._
 
 **Optional:**
 
-| Field                      | Type    | Description                                                             |
-|:---------------------------|:--------|:------------------------------------------------------------------------|
-| [`paths`](#Path+Filtering) | `array` | Paths to run this check on, or to ignore this check in. See [examples]. |
+| Field                              | Type     | Description                                                                                  |
+|:-----------------------------------|:---------|:---------------------------------------------------------------------------------------------|
+| [`metadata`](advanced.md#metadata) | `object` | Arbitrary user-provided data. Use to attach data to rules without affecting sgrep's behavior |
+| [`paths`](#Path+Filtering)         | `array`  | Paths to run this check on, or to ignore this check in. See [examples].                      |
 
-| Field | Type | Description |
-| :--- | :--- | :--- |
-| [`pattern-not`](advanced.md#pattern-not) | `string` | Logical NOT - remove findings matching this expression. |
-| [`pattern-inside`](advanced.md#pattern-inside) | `string` | Keep findings that lie inside this pattern. |
-| [`pattern-not-inside`](advanced.md#pattern-not-inside) | `string` | Keep findings that do not lie inside this pattern. |
-| [`pattern-where-python`](advanced.md#pattern-where-python) | `string` | Remove findings matching this Python expression. |
+| Field                                                      | Type     | Description                                             |
+|:-----------------------------------------------------------|:---------|:--------------------------------------------------------|
+| [`pattern-not`](advanced.md#pattern-not)                   | `string` | Logical NOT - remove findings matching this expression. |
+| [`pattern-inside`](advanced.md#pattern-inside)             | `string` | Keep findings that lie inside this pattern.             |
+| [`pattern-not-inside`](advanced.md#pattern-not-inside)     | `string` | Keep findings that do not lie inside this pattern.      |
+| [`pattern-where-python`](advanced.md#pattern-where-python) | `string` | Remove findings matching this Python expression.        |
 
 ## Operators
 
@@ -272,10 +273,6 @@ paths:
 
 Would return results from `project/schemata/scan.py`, but not from `project/schemata/scan_internal.py`.
 
-## Other Examples
-
-This section highlights more complex rules that perform advanced code searching.
-
 ## Metadata
 
 In some cases, you might wish to
@@ -297,6 +294,10 @@ rules:
 ```
 
 The metadata will also be reproduced in sgrep's output if you're running it with `--json`.
+
+## Other Examples
+
+This section highlights more complex rules that perform advanced code searching.
 
 ### Complete Useless Comparison
 
@@ -323,4 +324,3 @@ rules:
 ```
 
 This rule makes use of many of the operators above. It uses `pattern-either`, `patterns`, `pattern`, and `pattern-inside` to carefully consider different cases, and uses `pattern-not-inside` and `pattern-not` to whitelist certain useless comparisons.
-

@@ -141,6 +141,10 @@ class Rule:
         return str(self._raw["message"])
 
     @property
+    def metadata(self) -> Dict[str, Any]:  # type: ignore
+        return self._raw.get("metadata", {})
+
+    @property
     def severity(self) -> str:
         return str(self._raw["severity"])
 
