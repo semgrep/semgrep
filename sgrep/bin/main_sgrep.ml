@@ -551,6 +551,7 @@ let options () =
   Error_code.options () @
   Common.options_of_actions action (all_actions()) @
   Flag_parsing_cpp.cmdline_flags_macrofile () @
+  Meta_parse_info.cmdline_flags_precision () @
   Common2.cmdline_flags_devel () @
   [ "-version",   Arg.Unit (fun () -> 
     pr2 (spf "sgrep version: %s" Config_pfff.version);
