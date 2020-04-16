@@ -3,15 +3,15 @@ import os
 import sys
 from typing import List
 
-from constants import RCE_RULE_FLAG
-from evaluation import build_boolean_expression
-from evaluation import enumerate_patterns_in_boolean_expression
-from evaluation import evaluate_expression as raw_evalute_expression
-from sgrep_types import BooleanRuleExpression
-from sgrep_types import Operator
-from sgrep_types import OPERATORS
-from sgrep_types import Range
-from sgrep_types import SgrepRange
+from semgrep.constants import RCE_RULE_FLAG
+from semgrep.evaluation import build_boolean_expression
+from semgrep.evaluation import enumerate_patterns_in_boolean_expression
+from semgrep.evaluation import evaluate_expression as raw_evalute_expression
+from semgrep.sgrep_types import BooleanRuleExpression
+from semgrep.sgrep_types import Operator
+from semgrep.sgrep_types import OPERATORS
+from semgrep.sgrep_types import Range
+from semgrep.sgrep_types import SgrepRange
 
 
 def evaluate_expression(exprs: List[BooleanRuleExpression], results, flags=None):
