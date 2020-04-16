@@ -14,12 +14,12 @@ from util import debug_print
 from util import print_error_exit
 
 # CLI
-__VERSION__ = "0.4.9"
+__VERSION__ = "0.4.10b1"
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(
-        description=f"sgrep CLI. For more information about sgrep, go to {SGREP_URL}",
-        prog="sgrep",  # we have to lie to the user since they know of this as `sgrep`
+        description=f"semgrep CLI. For more information about semgrep, go to {SGREP_URL}",
+        prog="semgrep",  # we have to lie to the user since they know of this as `sgrep`
     )
 
     # input
@@ -27,7 +27,7 @@ if __name__ == "__main__":
         "target",
         nargs="*",
         default=["."],
-        help="Files to search (by default, entire current working directory searched). Implied argument if piping to sgrep.",
+        help="Files to search (by default, entire current working directory searched). Implied argument if piping to semgrep.",
     )
 
     # config options
@@ -43,10 +43,10 @@ if __name__ == "__main__":
     config_ex.add_argument(
         "-f",
         "--config",
-        help=f"Config YAML file or directory of YAML files ending in .yml|.yaml, OR URL of a config file, OR sgrep registry entry name. See the README for sgrep for information on config file format.",
+        help=f"Config YAML file or directory of YAML files ending in .yml|.yaml, OR URL of a config file, OR semgrep registry entry name. See the README for semgrep for information on config file format.",
     )
 
-    config_ex.add_argument("-e", "--pattern", help="sgrep pattern")
+    config_ex.add_argument("-e", "--pattern", help="semgrep pattern")
     config.add_argument(
         "-l",
         "--lang",
@@ -59,7 +59,7 @@ if __name__ == "__main__":
     )
     config.add_argument(
         "--strict",
-        help=f"only invoke sgrep if config(s) are valid",
+        help=f"only invoke semgrep if config(s) are valid",
         action="store_true",
     )
     parser.add_argument(
@@ -171,5 +171,8 @@ if __name__ == "__main__":
             sgrep_main.main(args)
     except NotImplementedError as ex:
         print_error_exit(
-            f"sgrep encountered an error: {ex}; this is not your fault. {PLEASE_FILE_ISSUE_TEXT}"
+            f"semgrep encountered an error: {ex}; this is not your fault. {PLEASE_FILE_ISSUE_TEXT}"
         )
+
+if __name__ == "__main__":
+    main()

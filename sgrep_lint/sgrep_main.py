@@ -55,7 +55,7 @@ SGREP_RULES_HOME = "https://github.com/returntocorp/sgrep-rules"
 MISSING_RULE_ID = "no-rule-id"
 
 
-SGREP_PATH = "sgrep"
+SGREP_PATH = "semgrep-core"
 
 # helper functions
 
