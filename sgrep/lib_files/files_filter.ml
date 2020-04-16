@@ -47,6 +47,18 @@ exception GlobSyntaxError of string
 (*****************************************************************************)
 (* Parsing *)
 (*****************************************************************************)
+
+let starts_with str p =
+  if String.length str < String.length p then 
+    false
+  else
+    let rec loop str p i =
+      if i = String.length p then true else
+      if String.unsafe_get str i <> String.unsafe_get p i then false
+      else loop str p (i+1)
+    in
+    loop str p 0
+
 let mk_filters ~excludes ~includes ~exclude_dirs =
  try 
   { excludes = excludes |> List.map Glob.of_string;
@@ -66,14 +78,12 @@ let filter filters xs =
   xs |> List.filter (fun file ->
     let base = Filename.basename file in
     let dir = Filename.dirname file in
-    let dirs = Str.split (Str.regexp "/") dir in
     (* todo? includes have priority over excludes? *)
     (filters.excludes |> List.for_all (fun glob -> not (Glob.test glob base)))
     &&
     (filters.includes |> List.exists (fun glob -> Glob.test glob base))
     &&
-    (filters.exclude_dirs |> List.for_all 
-       (fun glob -> not (dirs |> List.exists (fun dir -> Glob.test glob dir))))
+    (filters.exclude_dirs |> List.for_all (fun glob -> not (starts_with dir (Glob.to_string glob))))
     
  )
   
