@@ -112,7 +112,7 @@ or multiple files matching `.sgrep/**/*.yml`.
 
 #### Pattern Features
 
-`sgrep` expressions make use of two primary pattern features:
+`sgrep` patterns make use of two primary features:
 
 * **Metavariables like `$X`, `$WIDGET`, or `$USERS`.** Metavariable names can
 only contain uppercase characters - names like `$x` or `$SOME_VALUE` are
