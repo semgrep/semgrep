@@ -11,10 +11,17 @@ class RuleMatch:
     """
 
     def __init__(
-        self, id: str, message: str, pattern_match: PatternMatch, *, severity: str
+        self,
+        id: str,
+        message: str,
+        pattern_match: PatternMatch,
+        *,
+        metadata: Dict[str, Any],
+        severity: str,
     ) -> None:
         self._id = id
         self._message = message
+        self._metadata = metadata
         self._severity = severity
 
         self._path = pattern_match.path
@@ -57,6 +64,7 @@ class RuleMatch:
         json_obj = self._pattern_match._raw_json
         json_obj["check_id"] = self._id
         json_obj["extra"]["message"] = self._message
+        json_obj["extra"]["metadata"] = self._metadata
         json_obj["start"] = self._start
         json_obj["end"] = self._end
         return json_obj
