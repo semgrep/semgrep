@@ -101,7 +101,7 @@ cd "${THIS_DIR}"
 PYTHONPATH=.. pytest .
 
 local_tests() {
-    SGREP="./semgrep/__main__.py"
+    SGREP="python3 -m semgrep"
     test_sgrep_local
     test_sgrep_relative
     test_sgrep_absolute
