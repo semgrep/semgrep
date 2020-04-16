@@ -1,3 +1,4 @@
+from collections import namedtuple
 from typing import Any
 from typing import Dict
 from typing import Iterable
@@ -90,6 +91,49 @@ def build_boolean_expression(rule: Dict[str, Any]) -> BooleanRuleExpression:
     raise InvalidRuleSchema(
         f"missing a pattern type in rule, expected one of {pattern_names_for_operators(valid_top_level_keys)}"
     )
+
+
+RuleGlobs = namedtuple("Globs", ["include", "exclude"])
+
+
+def build_rule_globs(paths_rules: List[Dict[str, Any]]) -> RuleGlobs:
+    """
+    Return a list of globs to be included and excluded for the given `paths:` rules.
+
+    Glob conversion works as follows
+
+    - path: tests/*.py -> tests/*.py
+    - directory: tests -> tests/**
+    - filename: *.js -> **/*.js
+    """
+    ALLOWED_TYPES = {
+        "path",
+        "directory",
+        "filename",
+        "path-not",
+        "directory-not",
+        "filename-not",
+    }
+    globs = RuleGlobs(set(), set())
+    for rule in paths_rules:
+        rule_type = list(rule.keys())[0] if len(rule) == 1 else None
+        if rule_type not in ALLOWED_TYPES:
+            raise InvalidRuleSchema(
+                f"each `paths:` targeting rule must have exactly one of {list(ALLOWED_TYPES)}"
+            )
+
+        rule_value = list(rule.values())[0]
+        if rule_type.startswith("path"):
+            rule_glob = rule_value
+        elif rule_type.startswith("directory"):
+            rule_glob = rule_value.strip("/") + "/**"
+        elif rule_type.startswith("filename"):
+            rule_glob = "**/" + rule_value
+
+        glob_set = globs.exclude if rule_type.endswith("-not") else globs.include
+        glob_set.add(rule_glob)
+
+    return globs
 
 
 def _evaluate_single_expression(

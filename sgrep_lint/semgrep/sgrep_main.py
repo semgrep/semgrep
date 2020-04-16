@@ -6,6 +6,7 @@ import sys
 import tempfile
 from datetime import datetime
 from pathlib import Path
+from pathlib import PurePath
 from typing import Any
 from typing import DefaultDict
 from typing import Dict
@@ -24,6 +25,7 @@ from semgrep.constants import RCE_RULE_FLAG
 from semgrep.constants import RULES_KEY
 from semgrep.constants import SGREP_PATH
 from semgrep.evaluation import build_boolean_expression
+from semgrep.evaluation import build_rule_globs
 from semgrep.evaluation import enumerate_patterns_in_boolean_expression
 from semgrep.evaluation import evaluate_expression
 from semgrep.output import build_normal_output
@@ -218,6 +220,11 @@ def flatten_rule_patterns(all_rules: List[Dict[str, Any]]) -> Iterator[Dict[str,
             }
 
 
+def globs_match_output(globs: List[str], output: Dict[str, Any]) -> bool:
+    """Return true if at least one of ``globs`` match for the path of ``output``"""
+    return any(PurePath(output.get("path", "")).match(pat) for pat in globs)
+
+
 ### Config helpers
 
 
@@ -238,6 +245,13 @@ def validate_single_rule(config_id: str, rule_index: int, rule: Dict[str, Any]) 
     except InvalidRuleSchema as ex:
         print_error(
             f"{config_id}: inside rule {rule_index+1} {rule_id_err_msg}, pattern fields can't look like this: {ex}"
+        )
+        return False
+    try:
+        _ = build_rule_globs(rule.get("paths", []))
+    except InvalidRuleSchema as ex:
+        print_error(
+            f"{config_id}: inside rule {rule_index+1} {rule_id_err_msg}, path fields can't look like this: {ex}"
         )
         return False
 
@@ -538,6 +552,26 @@ def main(args: argparse.Namespace) -> Dict[str, Any]:
 
     outputs_after_booleans = dedup_output(outputs_after_booleans)
 
+    for rule in all_rules:
+        if not rule.get("paths", []):
+            continue  # rule has not path filtering, leave its results alone
+
+        rule_globs = build_rule_globs(rule["paths"])
+        filtered_results = []
+        for output in outputs_after_booleans:
+            if output["check_id"] == rule["id"]:
+                if globs_match_output(rule_globs.exclude, output):
+                    continue  # path is excluded
+
+                if rule_globs.include and not globs_match_output(
+                    rule_globs.include, output
+                ):
+                    continue  # there are includes and this isn't one of them
+
+            filtered_results.append(output)
+
+        outputs_after_booleans = filtered_results
+
     output_data = handle_output(outputs_after_booleans, sgrep_errors, fixes, args)
 
     return output_data
@@ -618,10 +652,11 @@ def handle_output(
     outputs_after_booleans: Any, sgrep_errors: Any, fixes: Any, args: Any
 ) -> Dict[str, Any]:
     # output results
-    output_data = {
+    output_data: Dict[str, Any] = {
         "results": outputs_after_booleans,
         "errors": r2c_error_format(sgrep_errors),
     }
+
     if not args.quiet:
         if args.json:
             print(build_output_json(output_data))

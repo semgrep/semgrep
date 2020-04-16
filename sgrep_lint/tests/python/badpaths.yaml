@@ -1,0 +1,11 @@
+rules:
+  - id: arg-reassign
+    pattern-either:
+      - pattern: $X = 1
+      - pattern: $X = 2
+    paths:
+      # bad syntax: the correct key is just `path:`
+      - path-is: "*.py"
+    message: "$X is being assigned to one or two"
+    languages: [python]
+    severity: WARNING

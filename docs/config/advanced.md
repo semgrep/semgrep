@@ -56,28 +56,32 @@ This should give you a basic idea of what the rule fields do.
 All required fields must be present at the top-level of a rule. I.e.
 immediately underneath `rules`.
 
-| Field | Type | Description |
-| :--- | :--- | :--- |
-| `id` | `string` | Unique, descriptive identifier . e.g. `no-unused-variable`. |
-| `message` | `string` | Message highlighting why this rule fired and how to remediate the issue. |
-| `severity` | `string` | One of: `WARNING`, `ERROR`. |
-| `languages` | `array` | Any of: `python`, `javascript`, or `go`. |
-| [`pattern`](#pattern)_*_ | `string` | Find code matching this expression. |
-| [`patterns`](#patterns)_*_ | `array` | Logical AND of multiple patterns. |
-| [`pattern-either`](#pattern-either)_*_ | `array` | Logical OR of multiple patterns. |
+| Field                                  | Type     | Description                                                              |
+|:---------------------------------------|:---------|:-------------------------------------------------------------------------|
+| `id`                                   | `string` | Unique, descriptive identifier . e.g. `no-unused-variable`.              |
+| `message`                              | `string` | Message highlighting why this rule fired and how to remediate the issue. |
+| `severity`                             | `string` | One of: `WARNING`, `ERROR`.                                              |
+| `languages`                            | `array`  | Any of: `python`, `javascript`, or `go`.                                 |
+| [`pattern`](#pattern)_*_               | `string` | Find code matching this expression.                                      |
+| [`patterns`](#patterns)_*_             | `array`  | Logical AND of multiple patterns.                                        |
+| [`pattern-either`](#pattern-either)_*_ | `array`  | Logical OR of multiple patterns.                                         |
 
 _* Only one of `pattern`, `patterns`, or `pattern-either` is required._
 
 **Optional:**
 
-All optional fields must reside underneath a `patterns` or `pattern-either` field.
+| Field                      | Type    | Description                                                             |
+|:---------------------------|:--------|:------------------------------------------------------------------------|
+| [`paths`](#Path+Filtering) | `array` | Paths to run this check on, or to ignore this check in. See [examples]. |
 
-| Field | Type | Description |
-| :--- | :--- | :--- |
-| [`pattern-not`](#pattern-not) | `string` | Logical NOT - remove findings matching this expression. |
-| [`pattern-inside`](#pattern-inside) | `string` | Keep findings that lie inside this pattern. |
-| [`pattern-not-inside`](#pattern-not-inside) | `string` | Keep findings that do not lie inside this pattern. |
-| [`pattern-where-python`](#pattern-where-python) | `string` | Remove findings matching this Python expression. |
+The following optional fields must reside underneath a `patterns` or `pattern-either` field.
+
+| Field                                           | Type     | Description                                             |
+|:------------------------------------------------|:---------|:--------------------------------------------------------|
+| [`pattern-not`](#pattern-not)                   | `string` | Logical NOT - remove findings matching this expression. |
+| [`pattern-inside`](#pattern-inside)             | `string` | Keep findings that lie inside this pattern.             |
+| [`pattern-not-inside`](#pattern-not-inside)     | `string` | Keep findings that do not lie inside this pattern.      |
+| [`pattern-where-python`](#pattern-where-python) | `string` | Remove findings matching this Python expression.        |
 
 ## Operators
 
@@ -240,6 +244,65 @@ errors and should be avoided in favor of [`DecimalField`](https://docs.djangopro
 when dealing with currency. Here the `pattern-where-python` operator allows us
 to utilize the Python `in` statement to filter findings that look like
 currency.
+
+## Path Filtering
+
+### Excluding a Rule in Paths
+
+To ignore a specific rule on specific files, set a `paths:` key with one or more filters like so:
+
+```yaml
+rules:
+  - id: eqeq-is-bad
+    pattern: $X == $X
+    paths:
+      - filename-not: "*.jinja2"
+      - filename-not: "*_test.go"
+      - directory-not: "project/tests"
+      - path-not: "project/static/**/*.js"
+```
+
+When invoked with `sgrep -f myconfig.yaml project/`, this rule will run on files inside `project/`, but no results will be returned for:
+
+- any file with a `.jinja2` file extension
+- any file whose name ends in `_test.go`, such as `project/backend/server_test.go`
+- any file inside `project/tests` or its subdirectories
+- any file matching the `project/static/**/*.js` glob pattern
+
+**Note:** the glob syntax is [the one in Python's `pathlib`](https://docs.python.org/3/library/pathlib.html#pathlib.Path.glob),
+which supports `**` to match the current directory and all subdirectories recursively.
+
+### Limiting a Rule to Paths
+
+Conversely, to run a rule *only* on specific files, set a `paths:` key with one or more of these filters:
+
+```yaml
+rules:
+  - id: eqeq-is-bad
+    pattern: $X == $X
+    paths:
+      - filename: "*_test.go"
+      - directory: "project/server"
+      - directory: "project/schemata"
+      - path: "project/static/**/*.js"
+```
+
+When invoked with `sgrep -f myconfig.yaml project/`, this rule will run on files inside `project/`, but results will be returned only for:
+
+- files whose name ends in `_test.go`, such as `project/backend/server_test.go`
+- files inside `project/server`, `project/schemata`, or their subdirectories
+- files matching the `project/static/**/*.js` glob pattern
+
+**Note:** when mixing inclusion and exclusion filters, the exclusion ones take precedence.
+For example a rule that specifies these paths:
+
+```yaml
+paths:
+  - directory: "project/schemata"
+  - filename-not: "*_internal.py"
+```
+
+Would return results from `project/schemata/scan.py`, but not from `project/schemata/scan_internal.py`.
 
 ## Other Examples
 

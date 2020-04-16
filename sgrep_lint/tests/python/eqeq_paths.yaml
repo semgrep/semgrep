@@ -1,0 +1,92 @@
+rules:
+  - id: name-included
+    paths:
+      - filename: stupid.*
+    patterns:
+      - pattern-either:
+        - pattern: $X == $X
+        - pattern: $X != $X
+    message: "useless comparison operation `$X == $X` or `$X != $X`; possible bug?"
+    languages: [js, python]
+    severity: ERROR
+  - id: extension-included
+    paths:
+      - filename: "*.js"
+    patterns:
+      - pattern-either:
+        - pattern: $X == $X
+        - pattern: $X != $X
+    message: "useless comparison operation `$X == $X` or `$X != $X`; possible bug?"
+    languages: [js, python]
+    severity: ERROR
+  - id: directory-included
+    paths:
+      - directory: tests/lint/
+    patterns:
+      - pattern-either:
+        - pattern: $X == $X
+        - pattern: $X != $X
+    message: "useless comparison operation `$X == $X` or `$X != $X`; possible bug?"
+    languages: [js, python]
+    severity: ERROR
+  - id: path-included
+    paths:
+      - path: tests/lint/*.py
+    patterns:
+      - pattern-either:
+        - pattern: $X == $X
+        - pattern: $X != $X
+    message: "useless comparison operation `$X == $X` or `$X != $X`; possible bug?"
+    languages: [js, python]
+    severity: ERROR
+  - id: name-ignored
+    paths:
+      - filename-not: stupid.*
+    patterns:
+      - pattern-either:
+        - pattern: $X == $X
+        - pattern: $X != $X
+    message: "useless comparison operation `$X == $X` or `$X != $X`; possible bug?"
+    languages: [js, python]
+    severity: ERROR
+  - id: extension-ignored
+    paths:
+      - filename-not: "*.js"
+    patterns:
+      - pattern-either:
+        - pattern: $X == $X
+        - pattern: $X != $X
+    message: "useless comparison operation `$X == $X` or `$X != $X`; possible bug?"
+    languages: [js, python]
+    severity: ERROR
+  - id: directory-ignored
+    paths:
+      - directory-not: tests/lint/
+    patterns:
+      - pattern-either:
+        - pattern: $X == $X
+        - pattern: $X != $X
+    message: "useless comparison operation `$X == $X` or `$X != $X`; possible bug?"
+    languages: [js, python]
+    severity: ERROR
+  - id: path-ignored
+    paths:
+      - path-not: tests/lint/*.py
+    patterns:
+      - pattern-either:
+        - pattern: $X == $X
+        - pattern: $X != $X
+    message: "useless comparison operation `$X == $X` or `$X != $X`; possible bug?"
+    languages: [js, python]
+    severity: ERROR
+  - id: path-included-ignored
+    paths:
+      - path: tests/lint/*.*
+      - filename-not: stupid.js
+    patterns:
+      - pattern-either:
+        - pattern: $X == $X
+        - pattern: $X != $X
+    message: "useless comparison operation `$X == $X` or `$X != $X`; possible bug?"
+    languages: [js, python]
+    severity: ERROR

@@ -14,18 +14,6 @@ assert_output_equal () {
     fi
 }
 
-test_sgrep_local () {
-    cd "${THIS_DIR}/../";
-    $SGREP --json --strict --config tests/python/eqeq.yaml tests/lint -o tmp.out >/dev/null
-    if [ -z "$OVERRIDE_EXPECTED" ]; then
-        echo "checking $expected_path"
-        diff <(python -m json.tool $actual_path) <(python -m json.tool $expected_path)
-    else
-        echo "regenerating $expected_path"
-        cat $actual_path > $expected_path
-    fi
-}
-
 test_sgrep_local () { 
     cd "${THIS_DIR}/../";
     $SGREP --json --strict --config tests/python/eqeq.yaml tests/lint -o tmp.out >/dev/null
@@ -108,6 +96,12 @@ test_sgrep_exclude_dir () {
     rm -f tmp.out
 }
 
+test_sgrep_rule_with_paths () { 
+    cd "${THIS_DIR}/../";
+    $SGREP --json --strict --config tests/python/eqeq_paths.yaml tests/lint -o tmp.out >/dev/null
+    assert_output_equal tmp.out tests/python/eqeq.expected.paths.json
+    rm -f tmp.out
+}
 
 echo "-----------------------"
 echo "starting lint tests"
@@ -129,6 +123,7 @@ local_tests() {
     test_sgrep_include
     test_sgrep_exclude
     test_sgrep_exclude_dir
+    test_sgrep_rule_with_paths
 }
 
 docker_tests() {
@@ -160,6 +155,12 @@ $SGREP --strict --config tests/python/bad3.yaml tests/lint && echo "bad3.yaml sh
 
 # parsing bad4.yaml should fail
 $SGREP --strict --config tests/python/bad4.yaml tests/lint && echo "bad4.yaml should have failed" && exit 1
+
+# parsing badpaths.yaml should fail
+$SGREP --strict --config tests/python/badpaths.yaml tests/lint && echo "badpaths.yaml should have failed" && exit 1
+
+# parsing badpaths2.yaml should fail
+$SGREP --strict --config tests/python/badpaths2.yaml tests/lint && echo "badpaths2.yaml should have failed" && exit 1
 
 # parsing good.yaml should succeed
 $SGREP --strict --config=tests/python/good.yaml tests/lint
