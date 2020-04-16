@@ -9,18 +9,7 @@ from typing import Optional
 
 import colorama
 
-
-def fetch_lines_in_file(
-    path: Path, start_line_number: int, end_line_number: int
-) -> Optional[Iterable[str]]:
-    """
-    `line_number` is one-indexed! Returns the line if it can be found, returns None if the path doesn't exist
-    TODO: cachine
-    """
-    if not path.exists():
-        return None
-    with path.open(buffering=1) as fin:  # buffering=1 turns on line-level reads
-        return list(itertools.islice(fin, start_line_number - 1, end_line_number))
+from semgrep.util import fetch_lines_in_file
 
 
 def color_line(

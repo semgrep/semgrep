@@ -1,9 +1,11 @@
 from pathlib import Path
 from typing import Any
 from typing import Dict
+from typing import List
 
 from semgrep.semgrep_types import PatternId
 from semgrep.semgrep_types import Range
+from semgrep.util import fetch_lines_in_file
 
 
 class PatternMatch:
@@ -53,6 +55,12 @@ class PatternMatch:
         if "offset" in end:
             del end["offset"]
         return end
+
+    @property
+    def raw_lines(self) -> List[str]:
+        return (
+            fetch_lines_in_file(self.path, self.start["line"], self.end["line"]) or []
+        )
 
     # def __repr__(self) -> str:
     #     return f"{self.range}-{self.metavars}"

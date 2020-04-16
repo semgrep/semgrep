@@ -1,9 +1,12 @@
 import sys
+from itertools import islice
+from pathlib import Path
 from pathlib import PurePath
 from typing import Any
 from typing import Dict
 from typing import Iterable
 from typing import List
+from typing import Optional
 from urllib.parse import urlparse
 
 global DEBUG
@@ -67,3 +70,16 @@ def set_flags(debug: bool, quiet: bool) -> None:
     if quiet:
         QUIET = True
         debug_print("QUIET is on")
+
+
+def fetch_lines_in_file(
+    path: Path, start_line_number: int, end_line_number: int
+) -> Optional[List[str]]:
+    """
+    `line_number` is one-indexed! Returns the line if it can be found, returns None if the path doesn't exist
+    TODO: cachine
+    """
+    if not path.exists():
+        return None
+    with path.open(buffering=1) as fin:  # buffering=1 turns on line-level reads
+        return list(islice(fin, start_line_number - 1, end_line_number))
