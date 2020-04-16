@@ -19,7 +19,7 @@ class Semgrep < Formula
   #  sha256 "todo"
   #end
 
-  head "https://github.com/returntocorp/sgrep.git", :branch => "semgrep-rename"
+  head "https://github.com/returntocorp/sgrep.git", :branch => "russell/semgrep-rename"
 
   depends_on "coreutils"
   depends_on "python@3.8"
