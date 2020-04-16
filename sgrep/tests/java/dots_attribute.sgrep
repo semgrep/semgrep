@@ -1,0 +1,2 @@
+@RequestMapping(...) 
+public $T $METHOD(...) { ... }

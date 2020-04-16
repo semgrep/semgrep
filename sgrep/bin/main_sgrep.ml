@@ -352,9 +352,17 @@ let sgrep_with_rules rules_file xs =
        if !verbose then pr2 (spf "Analyzing %s" file);
        try 
          let lang = 
-           match Lang.lang_of_filename_opt file with
-           | Some lang -> lang
-           | None -> 
+           match Lang.langs_of_filename file with
+           | [lang] -> lang
+           | x::_xs ->
+               (match Lang.lang_of_string_opt !lang with
+               | Some lang -> lang
+               | None -> 
+                 pr2 (spf "no language specified, defaulting to %s for %s"
+                      (Lang.string_of_lang x) file);
+                 x
+               )
+           | [] -> 
               failwith (spf "can not extract generic AST from %s" file)
          in
          let ast = parse_generic lang file in
@@ -462,13 +470,13 @@ let dump_pattern (file: Common.filename) =
      failwith (unsupported_language_message !lang)
 
 let dump_ast file =
-  match Lang.lang_of_filename_opt file with
-  | Some lang -> 
+  match Lang.langs_of_filename file with
+  | lang::_ -> 
     let x = parse_generic lang file in
     let v = Meta_ast.vof_any (Ast_generic.Pr x) in
     let s = dump_v_to_format v in
     pr s
-  | None -> failwith (spf "unsupported language for %s" file)
+  | [] -> failwith (spf "unsupported language for %s" file)
 
 let dump_ext_of_lang () =
   let lang_to_exts = keys |> List.map (
@@ -551,6 +559,7 @@ let options () =
   Error_code.options () @
   Common.options_of_actions action (all_actions()) @
   Flag_parsing_cpp.cmdline_flags_macrofile () @
+  Meta_parse_info.cmdline_flags_precision () @
   Common2.cmdline_flags_devel () @
   [ "-version",   Arg.Unit (fun () -> 
     pr2 (spf "sgrep version: %s" Config_pfff.version);
