@@ -5,7 +5,6 @@ import json
 import subprocess
 import sys
 import tempfile
-import time
 from datetime import datetime
 from pathlib import Path
 from pathlib import PurePath
@@ -27,6 +26,7 @@ from semgrep.constants import ID_KEY
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import RCE_RULE_FLAG
 from semgrep.constants import RULES_KEY
+from semgrep.constants import SGREP_PATH
 from semgrep.evaluation import build_boolean_expression
 from semgrep.evaluation import enumerate_patterns_in_boolean_expression
 from semgrep.evaluation import evaluate_expression
@@ -48,15 +48,8 @@ from semgrep.util import print_error
 from semgrep.util import print_error_exit
 from semgrep.util import print_msg
 
-# Constants
-
 SGREP_RULES_HOME = "https://github.com/returntocorp/sgrep-rules"
 MISSING_RULE_ID = "no-rule-id"
-
-
-SGREP_PATH = "sgrep"
-
-# helper functions
 
 
 def parse_sgrep_output(
@@ -509,33 +502,6 @@ def should_exclude_this_path(path: Path) -> bool:
     return any("test" in p or "example" in p for p in path.parts)
 
 
-def dump_parsed_ast(
-    to_json: bool, language: str, pattern: Optional[str], targets: List[Path]
-) -> None:
-    with tempfile.NamedTemporaryFile("w") as fout:
-        args = []
-        if pattern:
-            fout.write(pattern)
-            fout.flush()
-            args = ["-lang", language, "-dump_pattern", fout.name]
-        else:
-            if len(targets) != 1:
-                print_error_exit("exactly one target file is required with this option")
-            target = targets[0]
-            args = ["-lang", language, "-dump_ast", str(target)]
-
-        if to_json:
-            args = ["-json"] + args
-
-        cmd = [SGREP_PATH] + args
-        try:
-            output = subprocess.check_output(cmd, shell=False)
-        except subprocess.CalledProcessError as ex:
-            print_error(f"error invoking sgrep with:\n\t{' '.join(cmd)}\n{ex}")
-            print_error_exit(f"\n\n{PLEASE_FILE_ISSUE_TEXT}")
-        print(output.decode())
-
-
 def uniq_id(r: Any) -> Tuple[str, str, int, int, int, int]:
     start = r.get("start", {})
     end = r.get("end", {})
@@ -592,32 +558,14 @@ def get_config(args: Any) -> Any:
 
 def main(args: argparse.Namespace) -> Dict[str, Any]:
     """ main function that parses args and runs sgrep """
-
     # get the proper paths for targets i.e. handle base path of /home/repo when it exists in docker
     targets = semgrep.config_resolver.resolve_targets(args.target)
-
-    if args.dump_ast:
-        if not args.lang:
-            print_error_exit("language must be specified to dump ASTs")
-        dump_parsed_ast(args.json, args.lang, args.pattern, targets)
-        sys.exit(0)
-
     valid_configs, invalid_configs = get_config(args)
 
-    validate = args.validate
-    strict = args.strict
-
-    if invalid_configs:
-        if strict:
-            print_error_exit(
-                f"run with --strict and there were {len(invalid_configs)} errors loading configs"
-            )
-        elif validate:
-            print_error_exit(
-                f"run with --validate and there were {len(invalid_configs)} errors loading configs"
-            )
-    elif validate:  # no errors!
-        print_error_exit("Config is valid", exit_code=0)
+    if invalid_configs and args.strict:
+        print_error_exit(
+            f"run with --strict and there were {len(invalid_configs)} errors loading configs"
+        )
 
     if not args.no_rewrite_rule_ids:
         # re-write the configs to have the hierarchical rule ids
@@ -665,7 +613,7 @@ def main(args: argparse.Namespace) -> Dict[str, Any]:
     for finding in sgrep_errors:
         print_error(f"sgrep: {finding['path']}: {finding['check_id']}")
 
-    if strict and len(sgrep_errors):
+    if args.strict and len(sgrep_errors):
         print_error_exit(
             f"run with --strict and {len(sgrep_errors)} errors occurred during sgrep run; exiting",
             INVALID_CODE_EXIT_CODE,

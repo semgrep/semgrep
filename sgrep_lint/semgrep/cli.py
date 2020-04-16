@@ -9,39 +9,11 @@ from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import RCE_RULE_FLAG
 from semgrep.constants import SGREP_URL
+from semgrep.dump_ast import dump_parsed_ast
+from semgrep.util import print_error
 from semgrep.util import print_error_exit
 
-# import logging
-
-# import click
-
 __VERSION__ = "0.4.9"
-
-
-# def _is_running_supported_python3() -> bool:
-#     python_major_v = sys.version_info.major
-#     python_minor_v = sys.version_info.minor
-#     logging.info(f"Python version is ({python_major_v}.{python_minor_v})")
-#     return python_major_v >= 3 and python_minor_v >= 6
-
-# @click.group(epilog="To get help for a specific command, run `semgrep COMMAND --help`")
-# @click.version_option(
-#     prog_name="semgrep", version=__VERSION__, message="%(prog)s/%(version)s"
-# )
-# @click.pass_context
-# def cli(ctx: click.Context) -> None:
-#     ctx.help_option_names = ["-h", "--help"]
-
-#     if not _is_running_supported_python3():
-#         raise OutdatedPythonException()
-
-# @click.command()
-# @click.pass_obj
-# def test(ctx: click.Context) -> None:
-#     print("testing")
-
-
-# cli.add_command(test)
 
 
 def cli() -> None:
@@ -193,7 +165,21 @@ def cli() -> None:
     semgrep.config_resolver.adjust_for_docker(args.precommit)
 
     try:
-        if args.test:
+        if args.dump_ast:
+            if not args.lang:
+                print_error_exit("language must be specified to dump ASTs")
+            else:
+                dump_parsed_ast(args.json, args.lang, args.pattern, args.target)
+        elif args.validate:
+            _, invalid_configs = semgrep.sgrep_main.get_config(args)
+            if invalid_configs is not None:
+                print_error_exit(
+                    f"run with --validate and there were {len(invalid_configs)} errors loading configs"
+                )
+            else:
+                print_error("Config is valid")
+
+        elif args.test:
             semgrep.test.test_main(args)
         else:
             semgrep.sgrep_main.main(args)
