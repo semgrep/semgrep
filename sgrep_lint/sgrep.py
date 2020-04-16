@@ -62,11 +62,24 @@ if __name__ == "__main__":
         help=f"only invoke sgrep if config(s) are valid",
         action="store_true",
     )
+
+    parser.add_argument(
+        "--include",
+        action="append",
+        default=[],
+        help="Scan only files with this filename, such as --include='*.js' Add multiple times to include multiple patterns.",
+    )
     parser.add_argument(
         "--exclude",
         action="append",
         default=[],
-        help="Path pattern to exclude. Can be added multiple times to exclude multiple patterns.",
+        help="Don't scan files with this filename, such as --exclude='*.js'. Add multiple times to exclude multiple patterns.",
+    )
+    parser.add_argument(
+        "--exclude-dir",
+        action="append",
+        default=[],
+        help="Don't scan these directories, such as --exclude-dir='tests'. Add multiple times to exclude multiple patterns.",
     )
 
     config.add_argument(
