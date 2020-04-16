@@ -152,6 +152,9 @@ $SGREP --strict --config tests/python/bad4.yaml tests/lint && echo "bad4.yaml sh
 # parsing good.yaml should succeed
 $SGREP --strict --config=tests/python/good.yaml tests/lint
 
+# parsing good_with_metadata.yaml should succeed
+$SGREP --strict --config=tests/python/good_with_metadata.yaml tests/lint
+
 #echo TODO: disabled sgrep-rules regression testing for now
 rm -rf /tmp/sgrep-rules && git clone https://github.com/returntocorp/sgrep-rules /tmp/sgrep-rules
 $SGREP --dangerously-allow-arbitrary-code-execution-from-rules --strict --test --test-ignore-todo /tmp/sgrep-rules

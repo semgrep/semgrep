@@ -36,7 +36,7 @@ let any_gen_of_string str =
 
 let parse_generic file = 
   let ast = Parse_generic.parse_program file in
-  let lang = Common2.some (Lang.lang_of_filename_opt file) in
+  let lang = List.hd (Lang.langs_of_filename file) in
   Naming_ast.resolve lang ast;
   ast
 
