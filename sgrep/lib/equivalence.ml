@@ -42,7 +42,7 @@
  * in generic_vs_generic.ml or normalize_ast.ml because they are too
  * difficult to encode otherwise (e.g., the less-is-ok).
  * todo: we should give them name too, so they can be disabled too.
- * 
+ *
  * related work:
  *  - standard.iso in coccinelle
  *    https://github.com/coccinelle/coccinelle/blob/master/standard.iso

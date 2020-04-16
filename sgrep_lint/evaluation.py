@@ -11,7 +11,8 @@ from sgrep_types import BooleanRuleExpression
 from sgrep_types import InvalidRuleSchema
 from sgrep_types import operator_for_pattern_name
 from sgrep_types import OPERATORS
-from sgrep_types import pattern_name_for_operator
+from sgrep_types import pattern_names_for_operator
+from sgrep_types import pattern_names_for_operators
 from sgrep_types import PatternId
 from sgrep_types import Range
 from sgrep_types import SgrepRange
@@ -61,23 +62,33 @@ def build_boolean_expression(rule: Dict[str, Any]) -> BooleanRuleExpression:
     Build a boolean expression from the yml lines in the rule
 
     """
-    valid_top_level_keys = YAML_VALID_TOP_LEVEL_OPERATORS
-    if pattern_name_for_operator(OPERATORS.AND) in rule:  # single pattern at root
-        return BooleanRuleExpression(OPERATORS.AND, rule["id"], None, rule["pattern"])
+    for pattern_name in pattern_names_for_operator(OPERATORS.AND):
+        pattern = rule.get(pattern_name)
+        if pattern:
+            return BooleanRuleExpression(
+                OPERATORS.AND, rule["id"], None, rule[pattern_name]
+            )
 
-    patterns = rule.get(pattern_name_for_operator(OPERATORS.AND_ALL))
-    if patterns:
-        return BooleanRuleExpression(
-            OPERATORS.AND_ALL, None, list(_parse_boolean_expression(patterns)), None
-        )
-    patterns = rule.get(pattern_name_for_operator(OPERATORS.AND_EITHER))
-    if patterns:
-        return BooleanRuleExpression(
-            OPERATORS.AND_EITHER, None, list(_parse_boolean_expression(patterns)), None
-        )
+    for pattern_name in pattern_names_for_operator(OPERATORS.AND_ALL):
+        patterns = rule.get(pattern_name)
+        if patterns:
+            return BooleanRuleExpression(
+                OPERATORS.AND_ALL, None, list(_parse_boolean_expression(patterns)), None
+            )
 
+    for pattern_name in pattern_names_for_operator(OPERATORS.AND_EITHER):
+        patterns = rule.get(pattern_name)
+        if patterns:
+            return BooleanRuleExpression(
+                OPERATORS.AND_EITHER,
+                None,
+                list(_parse_boolean_expression(patterns)),
+                None,
+            )
+
+    valid_top_level_keys = list(YAML_VALID_TOP_LEVEL_OPERATORS)
     raise InvalidRuleSchema(
-        f"missing a pattern type in rule, expected one of {list(map(pattern_name_for_operator, valid_top_level_keys))}"
+        f"missing a pattern type in rule, expected one of {pattern_names_for_operators(valid_top_level_keys)}"
     )
 
 
@@ -196,7 +207,7 @@ def _evaluate_expression(
     ):
         assert (
             expression.children is not None
-        ), f"{pattern_name_for_operator(OPERATORS.AND_EITHER)} or {pattern_name_for_operator(OPERATORS.AND_ALL)} must have a list of subpatterns"
+        ), f"{pattern_names_for_operator(OPERATORS.AND_EITHER)} or {pattern_names_for_operator(OPERATORS.AND_ALL)} must have a list of subpatterns"
 
         # recurse on the nested expressions
         if expression.operator == OPERATORS.AND_EITHER:
@@ -218,7 +229,7 @@ def _evaluate_expression(
     else:
         assert (
             expression.children is None
-        ), f"only `{pattern_name_for_operator(OPERATORS.AND_EITHER)}` or `{pattern_name_for_operator(OPERATORS.AND_ALL)}` expressions can have multiple subpatterns"
+        ), f"only `{pattern_names_for_operator(OPERATORS.AND_EITHER)}` or `{pattern_names_for_operator(OPERATORS.AND_ALL)}` expressions can have multiple subpatterns"
         ranges_left = _evaluate_single_expression(
             expression, results, ranges_left, flags
         )
