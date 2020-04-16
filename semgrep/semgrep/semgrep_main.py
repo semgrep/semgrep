@@ -244,6 +244,9 @@ def main(args: argparse.Namespace) -> str:
     rule_matches_by_rule, semgrep_errors = CoreRunner(
         allow_exec=args.dangerously_allow_arbitrary_code_execution_from_rules,
         jobs=args.jobs,
+        include=args.include,
+        exclude=args.exclude,
+        exclude_dir=args.exclude_dir,
     ).invoke_semgrep(targets, all_rules)
 
     if args.exclude_tests:
@@ -272,7 +275,7 @@ def main(args: argparse.Namespace) -> str:
             INVALID_CODE_EXIT_CODE,
         )
 
-    rule_matches = filter_rule_matches(rule_matches_by_rule, args.exclude)
+    rule_matches = flatten_rule_matches(rule_matches_by_rule)
     output = handle_output(rule_matches, semgrep_errors, args)
 
     if args.autofix:
@@ -281,26 +284,12 @@ def main(args: argparse.Namespace) -> str:
     return output
 
 
-def filter_rule_matches(
+def flatten_rule_matches(
     rule_matches_by_rule: Dict[Rule, List[RuleMatch]],
-    exclude_glob_patterns: Optional[List[str]],
 ) -> List[RuleMatch]:
     rule_matches: List[RuleMatch] = []
     for rule_match in rule_matches_by_rule.values():
         rule_matches.extend(rule_match)
-
-    if exclude_glob_patterns:
-        debug_print(f"patterns to exclude: {', '.join(exclude_glob_patterns)}")
-        filtered_results = [
-            rm
-            for rm in rule_matches
-            if not any(PurePath(rm.path).match(pat) for pat in exclude_glob_patterns)
-        ]
-        debug_print(
-            f"filtered output from {len(rule_matches)} down to {len(filtered_results)} results"
-        )
-        rule_matches = filtered_results
-
     return rule_matches
 
 

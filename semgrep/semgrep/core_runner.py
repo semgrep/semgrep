@@ -37,9 +37,19 @@ class CoreRunner:
         This includes properly invoking semgrep-core and parsing the output
     """
 
-    def __init__(self, allow_exec: bool, jobs: int):
+    def __init__(
+        self,
+        allow_exec: bool,
+        jobs: int,
+        include: List[str],
+        exclude: List[str],
+        exclude_dir: List[str],
+    ):
         self._allow_exec = allow_exec
         self._jobs = jobs
+        self._include = include
+        self._exclude = exclude
+        self._exclude_dir = exclude_dir
 
     def _flatten_rule_patterns(self, rules: List[Rule]) -> Iterator[Pattern]:
         """
@@ -168,7 +178,7 @@ class CoreRunner:
                         "-j",
                         str(self._jobs),
                     ]
-                    cmd += [*[str(path) for path in targets]]
+                    cmd += [*self.targeting_options, *[str(path) for path in targets]]
 
                     try:
                         output = subprocess.check_output(cmd, shell=False)
@@ -226,6 +236,19 @@ class CoreRunner:
             findings_by_rule[rule] = dedup_output(findings)
 
         return findings_by_rule
+
+    @property
+    def targeting_options(self) -> Iterator[str]:
+        """
+            Yields include/exclude CLI options to call semgrep-core with.
+            This is based on the arguments given to semgrep.
+        """
+        for pattern in self._include:
+            yield from ["-include", pattern]
+        for pattern in self._exclude:
+            yield from ["-exclude", pattern]
+        for pattern in self._exclude_dir:
+            yield from ["-exclude-dir", pattern]
 
     def invoke_semgrep(
         self, targets: List[Path], rules: List[Rule],

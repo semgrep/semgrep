@@ -83,14 +83,24 @@ def cli() -> None:
         action="store_true",
         help="Only invoke semgrep if configuration files(s) are valid.",
     )
+
     parser.add_argument(
         "--exclude",
         action="append",
         default=[],
-        help=(
-            "Exclude these path patterns. Can be added multiple times to "
-            "exclude multiple patterns."
-        ),
+        help="Skip any file with this name; --exclude='*.py' will ignore foo.py as well as src/foo.py. Can add multiple times. Overrides includes.",,
+    )
+    parser.add_argument(
+        "--include",
+        action="append",
+        default=[],
+        help="Scan only files with this name, such as --include='*.jsx'. Can add multiple times.",
+    )
+    parser.add_argument(
+        "--exclude-dir",
+        action="append",
+        default=[],
+        help="Skip any directory with this name; --exclude-dir=doc will ignore doc/ as well as src/doc. Can add multiple times. Overrides includes.",
     )
 
     config.add_argument(
