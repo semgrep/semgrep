@@ -2,6 +2,18 @@
 
 set -e
 
+assert_output_equal () {
+    actual_path=$1
+    expected_path=$2
+    if [ -z "$OVERRIDE_EXPECTED" ]; then
+        echo "checking $expected_path"
+        diff <(python -m json.tool $actual_path) <(python -m json.tool $expected_path)
+    else
+        echo "regenerating $expected_path"
+        cat $actual_path > $expected_path
+    fi
+}
+
 test_sgrep_local () {
     cd "${THIS_DIR}/../";
     $SGREP --json --strict --config tests/python/eqeq.yaml tests/lint -o tmp.out >/dev/null
