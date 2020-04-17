@@ -1,75 +1,53 @@
 import argparse
 import collections
-import itertools
 import json
 import subprocess
 import sys
 import tempfile
-import time
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 from typing import DefaultDict
 from typing import Dict
-from typing import Iterable
 from typing import Iterator
 from typing import List
 from typing import Optional
 from typing import Set
 from typing import Tuple
 
-import colorama
-import config_resolver
 import requests
+import semgrep.config_resolver
 import yaml
-from constants import ID_KEY
-from constants import PLEASE_FILE_ISSUE_TEXT
-from constants import RCE_RULE_FLAG
-from constants import RULES_KEY
-from evaluation import build_boolean_expression
-from evaluation import enumerate_patterns_in_boolean_expression
-from evaluation import evaluate_expression
-from sgrep_types import BooleanRuleExpression
-from sgrep_types import InvalidRuleSchema
-from sgrep_types import OPERATORS
-from sgrep_types import PatternId
-from sgrep_types import Range
-from sgrep_types import SgrepRange
-from sgrep_types import YAML_ALL_VALID_RULE_KEYS
-from sgrep_types import YAML_MUST_HAVE_KEYS
-from util import debug_print
-from util import FINDINGS_EXIT_CODE
-from util import INVALID_CODE_EXIT_CODE
-from util import INVALID_PATTERN_EXIT_CODE
-from util import is_url
-from util import MISSING_CONFIG_EXIT_CODE
-from util import print_error
-from util import print_error_exit
-from util import print_msg
-from util import UNPARSEABLE_YAML_EXIT_CODE
-
-
-# Constants
+from semgrep.constants import ID_KEY
+from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
+from semgrep.constants import RCE_RULE_FLAG
+from semgrep.constants import RULES_KEY
+from semgrep.constants import SGREP_PATH
+from semgrep.evaluation import build_boolean_expression
+from semgrep.evaluation import enumerate_patterns_in_boolean_expression
+from semgrep.evaluation import evaluate_expression
+from semgrep.output import build_normal_output
+from semgrep.output import build_output_json
+from semgrep.sgrep_types import BooleanRuleExpression
+from semgrep.sgrep_types import InvalidRuleSchema
+from semgrep.sgrep_types import OPERATORS
+from semgrep.sgrep_types import PatternId
+from semgrep.sgrep_types import Range
+from semgrep.sgrep_types import SgrepRange
+from semgrep.sgrep_types import YAML_ALL_VALID_RULE_KEYS
+from semgrep.sgrep_types import YAML_MUST_HAVE_KEYS
+from semgrep.util import debug_print
+from semgrep.util import FINDINGS_EXIT_CODE
+from semgrep.util import INVALID_CODE_EXIT_CODE
+from semgrep.util import INVALID_PATTERN_EXIT_CODE
+from semgrep.util import is_url
+from semgrep.util import MISSING_CONFIG_EXIT_CODE
+from semgrep.util import print_error
+from semgrep.util import print_error_exit
+from semgrep.util import print_msg
 
 SGREP_RULES_HOME = "https://github.com/returntocorp/sgrep-rules"
 MISSING_RULE_ID = "no-rule-id"
-
-
-SGREP_PATH = "sgrep"
-
-# helper functions
-
-
-def parse_sgrep_output(
-    sgrep_findings: List[Dict[str, Any]]
-) -> Dict[PatternId, List[SgrepRange]]:
-    output: DefaultDict[PatternId, List[SgrepRange]] = collections.defaultdict(list)
-    for finding in sgrep_findings:
-        check_id = finding["check_id"]
-        # restore the pattern id: the check_id was encoded as f"{rule_index}.{pattern_id}"
-        pattern_id = PatternId(".".join(check_id.split(".")[1:]))
-        output[pattern_id].append(sgrep_finding_to_range(finding))
-    return dict(output)
 
 
 def sgrep_finding_to_range(sgrep_finding: Dict[str, Any]) -> SgrepRange:
@@ -176,19 +154,6 @@ def invoke_sgrep(
             errors.extend(output_json["errors"])
             outputs.extend(output_json["matches"])
     return {"matches": outputs, "errors": errors}
-
-
-def fetch_lines_in_file(
-    path: Path, start_line_number: int, end_line_number: int
-) -> Optional[Iterable[str]]:
-    """
-    `line_number` is one-indexed! Returns the line if it can be found, returns None if the path doesn't exist
-    TODO: cachine
-    """
-    if not path.exists():
-        return None
-    with path.open(buffering=1) as fin:  # buffering=1 turns on line-level reads
-        return list(itertools.islice(fin, start_line_number - 1, end_line_number))
 
 
 def rewrite_message_with_metavars(
@@ -377,108 +342,6 @@ def post_output(output_url: str, output_data: Dict[str, Any]) -> None:
     debug_print(f"posted to {output_url} and got status_code:{r.status_code}")
 
 
-def build_output_json(output_json: Dict[str, Any]) -> str:
-    # wrap errors under "data" entry to be compatible with
-    # https://docs.r2c.dev/en/latest/api/output.html#errors
-    errors = output_json["errors"]
-    if errors:
-        output_json["errors"] = {
-            "data": output_json["errors"],
-            "message": "SgrepRuntimeErrors",
-        }
-    return json.dumps(output_json)
-
-
-def color_line(
-    line: str,
-    line_number: int,
-    start_line: int,
-    start_col: int,
-    end_line: int,
-    end_col: int,
-) -> str:
-    start_color = 0 if line_number > start_line else start_col
-    # column offset
-    start_color = max(start_color - 1, 0)
-    end_color = end_col if line_number >= end_line else len(line) + 1 + 1
-    end_color = max(end_color - 1, 0)
-    line = (
-        line[:start_color]
-        + colorama.Style.BRIGHT
-        + line[start_color : end_color + 1]  # want the color to include the end_col
-        + colorama.Style.RESET_ALL
-        + line[end_color + 1 :]
-    )
-    return line
-
-
-def finding_to_raw_lines(
-    finding: Dict[str, Any], color_output: bool = False
-) -> Optional[Iterable[str]]:
-    path = finding.get("path")
-    start_line = finding.get("start", {}).get("line")
-    end_line = finding.get("end", {}).get("line")
-    if path and start_line:
-        return fetch_lines_in_file(Path(path), start_line, end_line)
-    return None
-
-
-def finding_to_line(
-    finding: Dict[str, Any], color_output: bool = False
-) -> Iterator[str]:
-    path = finding.get("path")
-    start_line = finding.get("start", {}).get("line")
-    end_line = finding.get("end", {}).get("line")
-    start_col = finding.get("start", {}).get("col")
-    end_col = finding.get("end", {}).get("col")
-    file_lines = finding.get("extra", {}).get("file_lines")
-    for i, line in enumerate(file_lines):
-        if color_output:
-            yield f"{colorama.Fore.GREEN}{start_line + i}{colorama.Style.RESET_ALL}:{color_line(line.rstrip(), start_line + i, start_line, start_col, end_line, end_col)}"
-        else:
-            yield f"{start_line + i}:{line.rstrip()}"
-
-
-def build_normal_output(
-    output_data: Dict[str, Any], color_output: bool
-) -> Iterator[str]:
-    results = output_data.get("results", [])
-    last_file = None
-    last_message = None
-    for finding in sorted(
-        results,
-        key=lambda k: (k.get("path", "<no path>"), k.get("check_id", "<no rule id>")),
-    ):
-        RESET_COLOR = colorama.Style.RESET_ALL if color_output else ""
-        GREEN_COLOR = colorama.Fore.GREEN if color_output else ""
-        YELLOW_COLOR = colorama.Fore.YELLOW if color_output else ""
-        BLUE_COLOR = colorama.Fore.BLUE if color_output else ""
-
-        current_file = finding.get("path", "<no path>")
-        check_id = finding.get("check_id")
-        extra = finding.get("extra", {})
-        message = extra.get("message")
-        fix = extra.get("fix")
-        if last_file is None or last_file != current_file:
-            if last_file is not None:
-                yield ""
-            yield f"{GREEN_COLOR}{current_file}{RESET_COLOR}"
-            last_message = None
-        # don't display the rule line if the check is empty
-        if (
-            check_id
-            and check_id != "-"
-            and (last_message is None or last_message != message)
-        ):
-            yield f"{YELLOW_COLOR}rule:{check_id}: {finding.get('extra', {}).get('message')}{RESET_COLOR}"
-
-        last_file = current_file
-        last_message = message
-        yield from finding_to_line(finding, color_output)
-        if fix:
-            yield f"{BLUE_COLOR}autofix:{RESET_COLOR} {fix}"
-
-
 def r2c_error_format(sgrep_errors_json: Dict[str, Any]) -> Dict[str, Any]:
     # TODO https://docs.r2c.dev/en/latest/api/output.html
     return sgrep_errors_json
@@ -493,7 +356,7 @@ def save_output(
         if Path(output_str).is_absolute():
             save_path = Path(output_str)
         else:
-            base_path = config_resolver.get_base_path()
+            base_path = semgrep.config_resolver.get_base_path()
             save_path = base_path.joinpath(output_str)
         # create the folders if not exists
         save_path.parent.mkdir(parents=True, exist_ok=True)
@@ -537,33 +400,6 @@ def should_exclude_this_path(path: Path) -> bool:
     return any("test" in p or "example" in p for p in path.parts)
 
 
-def dump_parsed_ast(
-    to_json: bool, language: str, pattern: Optional[str], targets: List[Path]
-) -> None:
-    with tempfile.NamedTemporaryFile("w") as fout:
-        args = []
-        if pattern:
-            fout.write(pattern)
-            fout.flush()
-            args = ["-lang", language, "-dump_pattern", fout.name]
-        else:
-            if len(targets) != 1:
-                print_error_exit("exactly one target file is required with this option")
-            target = targets[0]
-            args = ["-lang", language, "-dump_ast", str(target)]
-
-        if to_json:
-            args = ["-json"] + args
-
-        cmd = [SGREP_PATH] + args
-        try:
-            output = subprocess.check_output(cmd, shell=False)
-        except subprocess.CalledProcessError as ex:
-            print_error(f"error invoking sgrep with:\n\t{' '.join(cmd)}\n{ex}")
-            print_error_exit(f"\n\n{PLEASE_FILE_ISSUE_TEXT}")
-        print(output.decode())
-
-
 def uniq_id(r: Any) -> Tuple[str, str, int, int, int, int]:
     start = r.get("start", {})
     end = r.get("end", {})
@@ -586,32 +422,10 @@ def dedup_output(outputs: List[Any]) -> List[Any]:
     return list({uniq_id(r): r for r in outputs}.values())
 
 
-def add_finding_line(outputs: List[Any]) -> List[Any]:
-    for r in outputs:
-        file_lines = finding_to_raw_lines(r)
-        if file_lines is not None:
-            r["extra"]["file_lines"] = list(file_lines)
-        else:
-            r["extra"]["file_lines"] = []
-    return outputs
-
-
-def clean_output(outputs: List[Any]) -> List[Any]:
-    for r in outputs:
-        del r["extra"]["metavars"]
-    return outputs
-
-
-# entry point
-def main(args: argparse.Namespace) -> Dict[str, Any]:
-    """ main function that parses args and runs sgrep """
-
-    # get the proper paths for targets i.e. handle base path of /home/repo when it exists in docker
-    targets = config_resolver.resolve_targets(args.target)
-
+def get_config(args: Any) -> Any:
     # first check if user asked to generate a config
     if args.generate_config:
-        config_resolver.generate_config()
+        semgrep.config_resolver.generate_config()
 
     # let's check for a pattern
     elif args.pattern:
@@ -622,16 +436,10 @@ def main(args: argparse.Namespace) -> Dict[str, Any]:
         pattern = args.pattern
 
         # TODO for now we generate a manual config. Might want to just call sgrep -e ... -l ...
-        configs = config_resolver.manual_config(pattern, lang)
+        configs = semgrep.config_resolver.manual_config(pattern, lang)
     else:
         # else let's get a config. A config is a dict from config_id -> config. Config Id is not well defined at this point.
-        configs = config_resolver.resolve_config(args.config)
-
-    if args.dump_ast:
-        if not args.lang:
-            print_error_exit("language must be specified to dump ASTs")
-        dump_parsed_ast(args.json, args.lang, args.pattern, targets)
-        sys.exit(0)
+        configs = semgrep.config_resolver.resolve_config(args.config)
 
     # if we can't find a config, use default r2c rules
     if not configs:
@@ -643,21 +451,19 @@ def main(args: argparse.Namespace) -> Dict[str, Any]:
     # It's possible that a config_id exists in both because we check valid rules and invalid rules
     # instead of just hard failing for that config if mal-formed
     valid_configs, invalid_configs = validate_configs(configs)
+    return valid_configs, invalid_configs
 
-    validate = args.validate
-    strict = args.strict
 
-    if invalid_configs:
-        if strict:
-            print_error_exit(
-                f"run with --strict and there were {len(invalid_configs)} errors loading configs"
-            )
-        elif validate:
-            print_error_exit(
-                f"run with --validate and there were {len(invalid_configs)} errors loading configs"
-            )
-    elif validate:  # no errors!
-        print_error_exit("Config is valid", exit_code=0)
+def main(args: argparse.Namespace) -> Dict[str, Any]:
+    """ main function that parses args and runs sgrep """
+    # get the proper paths for targets i.e. handle base path of /home/repo when it exists in docker
+    targets = semgrep.config_resolver.resolve_targets(args.target)
+    valid_configs, invalid_configs = get_config(args)
+
+    if invalid_configs and args.strict:
+        print_error_exit(
+            f"run with --strict and there were {len(invalid_configs)} errors loading configs"
+        )
 
     if not args.no_rewrite_rule_ids:
         # re-write the configs to have the hierarchical rule ids
@@ -711,7 +517,7 @@ def main(args: argparse.Namespace) -> Dict[str, Any]:
     for finding in sgrep_errors:
         print_error(f"sgrep: {finding['path']}: {finding['check_id']}")
 
-    if strict and len(sgrep_errors):
+    if args.strict and len(sgrep_errors):
         print_error_exit(
             f"run with --strict and {len(sgrep_errors)} errors occurred during sgrep run; exiting",
             INVALID_CODE_EXIT_CODE,
@@ -721,6 +527,35 @@ def main(args: argparse.Namespace) -> Dict[str, Any]:
         rule_index = decode_rule_id_to_index(finding["check_id"])
         by_rule_index[rule_index][finding["path"]].append(finding)
 
+    outputs_after_booleans, ignored_in_tests, fixes = resolve_sgrep_output(
+        by_rule_index, all_rules, args
+    )
+
+    if ignored_in_tests > 0:
+        print_error(
+            f"warning: ignored {ignored_in_tests} results in tests due to --exclude-tests option"
+        )
+
+    outputs_after_booleans = dedup_output(outputs_after_booleans)
+
+    output_data = handle_output(outputs_after_booleans, sgrep_errors, fixes, args)
+
+    return output_data
+
+
+def parse_sgrep_output(
+    sgrep_findings: List[Dict[str, Any]]
+) -> Dict[PatternId, List[SgrepRange]]:
+    output: DefaultDict[PatternId, List[SgrepRange]] = collections.defaultdict(list)
+    for finding in sgrep_findings:
+        check_id = finding["check_id"]
+        # restore the pattern id: the check_id was encoded as f"{rule_index}.{pattern_id}"
+        pattern_id = PatternId(".".join(check_id.split(".")[1:]))
+        output[pattern_id].append(sgrep_finding_to_range(finding))
+    return dict(output)
+
+
+def resolve_sgrep_output(by_rule_index: Any, all_rules: Any, args: Any) -> Any:
     current_path = Path.cwd()
     outputs_after_booleans = []
     ignored_in_tests = 0
@@ -776,16 +611,12 @@ def main(args: argparse.Namespace) -> Dict[str, Any]:
                         fixes.append((filepath, result))
                     result = transform_to_r2c_output(result)
                     outputs_after_booleans.append(result)
+    return outputs_after_booleans, ignored_in_tests, fixes
 
-    if ignored_in_tests > 0:
-        print_error(
-            f"warning: ignored {ignored_in_tests} results in tests due to --exclude-tests option"
-        )
 
-    outputs_after_booleans = dedup_output(outputs_after_booleans)
-    outputs_after_booleans = add_finding_line(outputs_after_booleans)
-    outputs_after_booleans = clean_output(outputs_after_booleans)
-
+def handle_output(
+    outputs_after_booleans: Any, sgrep_errors: Any, fixes: Any, args: Any
+) -> Dict[str, Any]:
     # output results
     output_data = {
         "results": outputs_after_booleans,

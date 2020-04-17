@@ -2,9 +2,9 @@
 
 set -e
 
-assert_output_equal () {
-    actual_path=$1
-    expected_path=$2
+test_sgrep_local () {
+    cd "${THIS_DIR}/../";
+    $SGREP --json --strict --config tests/python/eqeq.yaml tests/lint -o tmp.out >/dev/null
     if [ -z "$OVERRIDE_EXPECTED" ]; then
         echo "checking $expected_path"
         diff <(python -m json.tool $actual_path) <(python -m json.tool $expected_path)
@@ -46,7 +46,7 @@ test_sgrep_url_config() {
     rm -f tmp.out
 }
 
-test_registry() {    
+test_registry() {
     $SGREP --json --strict --config=r2c tests/lint -o tmp.out >/dev/null
     assert_output_equal tmp.out tests/python/eqeq.expected.registry.json
     rm -f tmp.out
@@ -106,7 +106,7 @@ cd "${THIS_DIR}"
 PYTHONPATH=.. pytest .
 
 local_tests() {
-    SGREP="./sgrep.py"
+    SGREP="python3 -m semgrep"
     test_sgrep_local
     test_sgrep_relative
     test_sgrep_absolute

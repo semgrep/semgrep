@@ -22,18 +22,16 @@ class OPERATORS:
 
 OPERATORS_WITH_CHILDREN = [OPERATORS.AND_ALL, OPERATORS.AND_EITHER]
 
-PATTERN_NAMES_MAP = {
-    "pattern-inside": OPERATORS.AND_INSIDE,
-    "pattern-not-inside": OPERATORS.AND_NOT_INSIDE,
-    "pattern-either": OPERATORS.AND_EITHER,
-    "pattern-not": OPERATORS.AND_NOT,
-    "pattern": OPERATORS.AND,
-    "patterns": OPERATORS.AND_ALL,
-    "pattern-where-python": OPERATORS.WHERE_PYTHON,
-    "fix": OPERATORS.FIX,
+OPERATOR_PATTERN_NAMES_MAP = {
+    OPERATORS.AND_INSIDE: ["pattern-inside"],
+    OPERATORS.AND_NOT_INSIDE: ["pattern-not-inside"],
+    OPERATORS.AND_EITHER: ["pattern-either"],
+    OPERATORS.AND_NOT: ["pattern-not"],
+    OPERATORS.AND: ["pattern"],
+    OPERATORS.AND_ALL: ["patterns"],
+    OPERATORS.WHERE_PYTHON: ["pattern-where-python"],
+    OPERATORS.FIX: ["fix"],
 }
-
-INVERSE_PATTERN_NAMES_MAP = dict((v, k) for k, v in PATTERN_NAMES_MAP.items())
 
 # These are the only valid top-level keys
 YAML_MUST_HAVE_KEYS = {"id", "message", "languages", "severity"}
@@ -44,11 +42,11 @@ YAML_VALID_TOP_LEVEL_OPERATORS = {
     OPERATORS.AND_EITHER,
     OPERATORS.FIX,
 }
-YAML_ALL_VALID_RULE_KEYS = (
-    {INVERSE_PATTERN_NAMES_MAP[k] for k in YAML_VALID_TOP_LEVEL_OPERATORS}
-    .union(YAML_MUST_HAVE_KEYS)
-    .union(YAML_OPTIONAL_KEYS)
-)
+YAML_ALL_VALID_RULE_KEYS = {
+    pattern_name
+    for op in YAML_VALID_TOP_LEVEL_OPERATORS
+    for pattern_name in OPERATOR_PATTERN_NAMES_MAP[op]
+} | YAML_MUST_HAVE_KEYS
 
 
 class InvalidRuleSchema(BaseException):
@@ -69,35 +67,44 @@ class BooleanRuleExpression:
         if self.operator in set(OPERATORS_WITH_CHILDREN):
             if self.operand is not None:
                 raise InvalidRuleSchema(
-                    f"operator `{pattern_name_for_operator(self.operator)}` cannot have operand but found {self.operand}"
+                    f"operators `{pattern_names_for_operator(self.operator)}` cannot have operand but found {self.operand}"
                 )
         else:
             if self.children is not None:
                 raise InvalidRuleSchema(
-                    f"only {list(map(pattern_name_for_operator, OPERATORS_WITH_CHILDREN))} operators can have children, but found `{pattern_name_for_operator(self.operator)}` with children"
+                    f"only {pattern_names_for_operators(OPERATORS_WITH_CHILDREN)} operators can have children, but found `{pattern_names_for_operator(self.operator)}` with children"
                 )
 
             if self.operand is None:
                 raise InvalidRuleSchema(
-                    f"operator `{pattern_name_for_operator(self.operator)}` must have operand"
+                    f"operators `{pattern_names_for_operator(self.operator)}` must have operand"
                 )
             else:
                 if type(self.operand) != str:
                     raise InvalidRuleSchema(
-                        f"operand of operator `{pattern_name_for_operator(self.operator)}` ought to have type string, but is {type(self.operand)}: {self.operand}"
+                        f"operand of operators `{pattern_names_for_operator(self.operator)}` must have type string, but is {type(self.operand)}: {self.operand}"
                     )
 
 
 def operator_for_pattern_name(pattern_name: str) -> Operator:
-    if not pattern_name in PATTERN_NAMES_MAP:
-        raise NotImplementedError(
-            f"invalid pattern name: {pattern_name}, valid pattern names are {list(PATTERN_NAMES_MAP.keys())}"
-        )
-    return PATTERN_NAMES_MAP[pattern_name]
+    for op, pattern_names in OPERATOR_PATTERN_NAMES_MAP.items():
+        if pattern_name in pattern_names:
+            return op
+
+    valid_pattern_names: List[str] = sum(OPERATOR_PATTERN_NAMES_MAP.values(), [])
+    raise NotImplementedError(
+        f"invalid pattern name: {pattern_name}, valid pattern names are {valid_pattern_names}"
+    )
 
 
-def pattern_name_for_operator(operator: Operator) -> str:
-    return INVERSE_PATTERN_NAMES_MAP[operator]
+def pattern_names_for_operator(operator: Operator) -> List[str]:
+    return OPERATOR_PATTERN_NAMES_MAP[operator]
+
+
+def pattern_names_for_operators(operators: List[Operator]) -> List[str]:
+    return sum(
+        (pattern_names_for_operator(op) for op in OPERATOR_PATTERN_NAMES_MAP), []
+    )
 
 
 @dataclass(frozen=True)

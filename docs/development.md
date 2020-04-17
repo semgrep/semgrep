@@ -57,6 +57,12 @@ make && make install
 sgrep-lint --config <YAML_FILE_OR_DIRECTORY> <code to check>
 ```
 
+It is also possible to run sgrep_lint from source:
+```
+cd sgrep_lint
+python3 -m semgrep
+```
+
 ## Development Environment
 
 You can use Visual Studio Code \(vscode\) to edit the code of sgrep. The [reason-vscode](https://marketplace.visualstudio.com/items?itemName=jaredly.reason-vscode) Marketplace extension adds support for OCaml/Reason.
