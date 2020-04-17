@@ -10,6 +10,7 @@ from pathlib import PurePath
 from typing import Any
 from typing import DefaultDict
 from typing import Dict
+from typing import Iterable
 from typing import Iterator
 from typing import List
 from typing import Optional
@@ -30,6 +31,7 @@ from semgrep.evaluation import enumerate_patterns_in_boolean_expression
 from semgrep.evaluation import evaluate_expression
 from semgrep.output import build_normal_output
 from semgrep.output import build_output_json
+from semgrep.output import fetch_lines_in_file
 from semgrep.sgrep_types import BooleanRuleExpression
 from semgrep.sgrep_types import InvalidRuleSchema
 from semgrep.sgrep_types import OPERATORS
@@ -436,6 +438,33 @@ def dedup_output(outputs: List[Any]) -> List[Any]:
     return list({uniq_id(r): r for r in outputs}.values())
 
 
+def clean_output(outputs: List[Any]) -> List[Any]:
+    for r in outputs:
+        del r["extra"]["metavars"]
+    return outputs
+
+
+def finding_to_raw_lines(
+    finding: Dict[str, Any], color_output: bool = False
+) -> Optional[Iterable[str]]:
+    path = finding.get("path")
+    start_line = finding.get("start", {}).get("line")
+    end_line = finding.get("end", {}).get("line")
+    if path and start_line:
+        return fetch_lines_in_file(Path(path), start_line, end_line)
+    return None
+
+
+def add_finding_line(outputs: List[Any]) -> List[Any]:
+    for r in outputs:
+        file_lines = finding_to_raw_lines(r)
+        if file_lines is not None:
+            r["extra"]["file_lines"] = list(file_lines)
+        else:
+            r["extra"]["file_lines"] = []
+    return outputs
+
+
 def get_config(args: Any) -> Any:
     # first check if user asked to generate a config
     if args.generate_config:
@@ -551,6 +580,8 @@ def main(args: argparse.Namespace) -> Dict[str, Any]:
         )
 
     outputs_after_booleans = dedup_output(outputs_after_booleans)
+    outputs_after_booleans = add_finding_line(outputs_after_booleans)
+    outputs_after_booleans = clean_output(outputs_after_booleans)
 
     for rule in all_rules:
         if not rule.get("paths", []):
