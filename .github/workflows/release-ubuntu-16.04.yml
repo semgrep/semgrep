@@ -16,6 +16,8 @@ jobs:
         run: sudo chmod -R 777 . /github
       - name: Checkout
         uses: actions/checkout@v2
+        with:
+            submodules: recursive
       - name: Run Ubuntu build script
         run: ./release-scripts/ubuntu-release.sh
       - name: Upload artifacts
