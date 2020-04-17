@@ -62,7 +62,7 @@ jobs:
           cp -r ./sgrep_lint/build/sgrep.dist/* sgrep-lint-files
           chmod +x sgrep-lint-files/sgrep
           chmod +x sgrep-lint-files/sgrep-lint
-          chmod +x sgrep-lint-files/sgrep-lint-exe
+          chmod +x sgrep-lint-files/__main__
           tar -cvzf sgrep-ubuntu-16.04.tar.gz sgrep-lint-files/
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
