@@ -3,7 +3,6 @@ set -e
 
 echo "here's some help"
 ls
-find
 echo "---------"
 sudo apt-get install -y --no-install-recommends libcurl4-openssl-dev libexpat1-dev gettext libz-dev libssl-dev build-essential autoconf
 opam switch --root /home/opam/.opam 4.07;
