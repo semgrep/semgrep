@@ -15,7 +15,7 @@ jobs:
       - name: Adjust permissions
         run: sudo chmod -R 777 . /github
       - name: Tempdir for github
-        run: sudo mkdir /gh-runner-tmp && sudo chmod 777 ./gh-runner-tmp
+        run: sudo mkdir /gh-runner-tmp && sudo chmod 777 /gh-runner-tmp
       - name: Install git
         run: |
           sudo apt-get update && sudo apt-get install -y --no-install-recommends make m4 perl wget swi-prolog mercurial pkg-config build-essential
