@@ -3,9 +3,6 @@ name: release-ubuntu-16-04
 on:
   push:
     branches: [master, develop, experimental]
-  pull_request:
-    # TODO delete
-    branches: [experimental]
 
 jobs:
   release-ubuntu-16-04:
