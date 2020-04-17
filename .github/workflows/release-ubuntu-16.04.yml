@@ -14,8 +14,6 @@ jobs:
     steps:
       - name: Adjust permissions
         run: sudo chmod -R 777 . /github
-      - name: Tempdir for github
-        run: sudo mkdir /gh-runner-tmp && sudo chmod 777 /gh-runner-tmp
       - name: Install git
         run: |
           sudo apt-get update && sudo apt-get install -y --no-install-recommends make m4 perl wget swi-prolog mercurial pkg-config build-essential
@@ -29,10 +27,8 @@ jobs:
           git --version
       - name: Checkout
         uses: actions/checkout@v2
-        with:
-            submodules: recursive
-        env:
-          RUNNER_TEMP: /gh-runer-temp
+      - name: Initializes submodules
+        run: git submodule update --init --recursive
       - name: Install Python
         run: ./release-scripts/install-python.sh
       - name: Run Ubuntu build script
