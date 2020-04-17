@@ -3,6 +3,8 @@ class Semgrep < Formula
   desc "Like grep but for code"
   homepage "https://github.com/returntocorp/sgrep"
 
+  head "https://github.com/returntocorp/sgrep.git", :branch => "russell/semgrep-rename"
+
   stable do
     url "https://github.com/returntocorp/sgrep/archive/v0.4.9.tar.gz"
     sha256 "7820716c96bb85a07ed5e561f66b3fb0cca59e5c910370c58ec04276f99864c5"
@@ -14,7 +16,6 @@ class Semgrep < Formula
     end
   end
 
-  head "https://github.com/returntocorp/sgrep.git", :branch => "russell/semgrep-rename"
 
   depends_on "coreutils"
   depends_on "python@3.8"
