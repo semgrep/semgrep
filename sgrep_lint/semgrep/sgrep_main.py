@@ -50,6 +50,7 @@ from semgrep.util import print_msg
 SGREP_RULES_HOME = "https://github.com/returntocorp/sgrep-rules"
 MISSING_RULE_ID = "no-rule-id"
 
+
 def sgrep_finding_to_range(sgrep_finding: Dict[str, Any]) -> SgrepRange:
     metavars = sgrep_finding["extra"]["metavars"]
     return SgrepRange(

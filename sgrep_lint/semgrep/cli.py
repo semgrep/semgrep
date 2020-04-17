@@ -187,4 +187,3 @@ def cli() -> None:
         print_error_exit(
             f"semgrep encountered an error: {ex}; this is not your fault. {PLEASE_FILE_ISSUE_TEXT}"
         )
-

@@ -6,7 +6,7 @@ class Semgrep < Formula
   stable do
     url "https://github.com/returntocorp/sgrep/archive/v0.4.9.tar.gz"
     sha256 "7820716c96bb85a07ed5e561f66b3fb0cca59e5c910370c58ec04276f99864c5"
-    
+
     # To avoid upstream breakage, patch the Python code to make it well behaved
     patch do
       url "https://github.com/returntocorp/sgrep/compare/f3b49b1.diff"
