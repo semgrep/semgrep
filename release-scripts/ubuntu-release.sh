@@ -1,10 +1,13 @@
 #!/bin/bash
 set -e
 
+echo "here's some help"
+ls
+find
+echo "---------"
 sudo apt-get install -y --no-install-recommends libcurl4-openssl-dev libexpat1-dev gettext libz-dev libssl-dev build-essential autoconf
 opam switch --root /home/opam/.opam 4.07;
 
-cd /github
 eval "$(opam env --root /home/opam/.opam --set-root)"; opam install -y reason dune ocamlfind camlp4 num ocamlgraph json-wheel conf-perl yaml
 eval "$(opam env --root /home/opam/.opam --set-root)" && opam install -y ./pfff
 eval "$(opam env --root /home/opam/.opam --set-root)" && cd sgrep && make all && cd ..
