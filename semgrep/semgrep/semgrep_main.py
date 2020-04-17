@@ -60,6 +60,13 @@ def validate_single_rule(config_id: str, rule: Dict[str, Any]) -> bool:
             f"{config_id}: inside rule id {rule_id_err_msg}, pattern fields can't look like this: {ex}"
         )
         return False
+    try:
+        _ = Rule.from_json(rule).globs
+    except InvalidRuleSchema as ex:
+        print_error(
+            f"{config_id}: inside rule id {rule_id_err_msg}, path fields can't look like this: {ex}"
+        )
+        return False
 
     return True
 

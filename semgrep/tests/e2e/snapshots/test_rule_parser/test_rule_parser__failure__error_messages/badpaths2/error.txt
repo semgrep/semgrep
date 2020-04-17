@@ -1,0 +1,2 @@
+rules/syntax/badpaths2.yaml: inside rule id arg-reassign, pattern fields can't look like this: the `paths:` targeting rules must each be one of ('include', 'exclude')
+run with --strict and there were 1 errors loading configs

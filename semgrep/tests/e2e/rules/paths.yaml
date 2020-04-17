@@ -1,0 +1,71 @@
+rules:
+  - id: file-excluded
+    paths:
+      exclude: excluded.*
+    patterns:
+      - pattern: "$X == $X"
+    message: "possibly useless comparison but in eq function"
+    languages: [javascript]
+    severity: ERROR
+  - id: file-included
+    paths:
+      include: included.*
+    patterns:
+      - pattern: "$X == $X"
+    message: "possibly useless comparison but in eq function"
+    languages: [javascript]
+    severity: ERROR
+  - id: directory-excluded
+    paths:
+      exclude: excluded/
+    patterns:
+      - pattern: "$X == $X"
+    message: "possibly useless comparison but in eq function"
+    languages: [javascript]
+    severity: ERROR
+  - id: directory-included
+    paths:
+      include: included/
+    patterns:
+      - pattern: "$X == $X"
+    message: "possibly useless comparison but in eq function"
+    languages: [javascript]
+    severity: ERROR
+  - id: paths-excluded
+    paths:
+      exclude:
+        - included/excluded.*
+        - excluded/excluded.*
+    patterns:
+      - pattern: "$X == $X"
+    message: "possibly useless comparison but in eq function"
+    languages: [javascript]
+    severity: ERROR
+  - id: paths-included
+    paths:
+      include:
+        - included/included.*
+        - excluded/included.*
+    patterns:
+      - pattern: "$X == $X"
+    message: "possibly useless comparison but in eq function"
+    languages: [javascript]
+    severity: ERROR
+  - id: file-excluded-directory-included
+    paths:
+      exclude: excluded.*
+      include: included/
+    patterns:
+      - pattern: "$X == $X"
+    message: "possibly useless comparison but in eq function"
+    languages: [javascript]
+    severity: ERROR
+  - id: directory-excluded-file-included
+    paths:
+      exclude: excluded/
+      include: included.*
+    patterns:
+      - pattern: "$X == $X"
+    message: "possibly useless comparison but in eq function"
+    languages: [javascript]
+    severity: ERROR

@@ -1,0 +1,551 @@
+{
+  "errors": [],
+  "results": [
+    {
+      "check_id": "rules.directory-excluded-file-included",
+      "end": {
+        "col": 19,
+        "line": 3
+      },
+      "extra": {
+        "lines": "console.log(x == x)",
+        "message": "possibly useless comparison but in eq function",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "x",
+            "end": {
+              "col": 14,
+              "line": 3,
+              "offset": 25
+            },
+            "start": {
+              "col": 13,
+              "line": 3,
+              "offset": 24
+            },
+            "unique_id": {
+              "kind": "Global",
+              "sid": 1,
+              "type": "id",
+              "value": "x"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/exclude_include/included/included.js",
+      "start": {
+        "col": 13,
+        "line": 3
+      }
+    },
+    {
+      "check_id": "rules.file-excluded-directory-included",
+      "end": {
+        "col": 19,
+        "line": 3
+      },
+      "extra": {
+        "lines": "console.log(x == x)",
+        "message": "possibly useless comparison but in eq function",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "x",
+            "end": {
+              "col": 14,
+              "line": 3,
+              "offset": 25
+            },
+            "start": {
+              "col": 13,
+              "line": 3,
+              "offset": 24
+            },
+            "unique_id": {
+              "kind": "Global",
+              "sid": 1,
+              "type": "id",
+              "value": "x"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/exclude_include/included/included.js",
+      "start": {
+        "col": 13,
+        "line": 3
+      }
+    },
+    {
+      "check_id": "rules.paths-included",
+      "end": {
+        "col": 19,
+        "line": 3
+      },
+      "extra": {
+        "lines": "console.log(x == x)",
+        "message": "possibly useless comparison but in eq function",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "x",
+            "end": {
+              "col": 14,
+              "line": 3,
+              "offset": 25
+            },
+            "start": {
+              "col": 13,
+              "line": 3,
+              "offset": 24
+            },
+            "unique_id": {
+              "kind": "Global",
+              "sid": 1,
+              "type": "id",
+              "value": "x"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/exclude_include/excluded/included.js",
+      "start": {
+        "col": 13,
+        "line": 3
+      }
+    },
+    {
+      "check_id": "rules.paths-included",
+      "end": {
+        "col": 19,
+        "line": 3
+      },
+      "extra": {
+        "lines": "console.log(x == x)",
+        "message": "possibly useless comparison but in eq function",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "x",
+            "end": {
+              "col": 14,
+              "line": 3,
+              "offset": 25
+            },
+            "start": {
+              "col": 13,
+              "line": 3,
+              "offset": 24
+            },
+            "unique_id": {
+              "kind": "Global",
+              "sid": 1,
+              "type": "id",
+              "value": "x"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/exclude_include/included/included.js",
+      "start": {
+        "col": 13,
+        "line": 3
+      }
+    },
+    {
+      "check_id": "rules.paths-excluded",
+      "end": {
+        "col": 19,
+        "line": 3
+      },
+      "extra": {
+        "lines": "console.log(x == x)",
+        "message": "possibly useless comparison but in eq function",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "x",
+            "end": {
+              "col": 14,
+              "line": 3,
+              "offset": 25
+            },
+            "start": {
+              "col": 13,
+              "line": 3,
+              "offset": 24
+            },
+            "unique_id": {
+              "kind": "Global",
+              "sid": 1,
+              "type": "id",
+              "value": "x"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/exclude_include/excluded/included.js",
+      "start": {
+        "col": 13,
+        "line": 3
+      }
+    },
+    {
+      "check_id": "rules.paths-excluded",
+      "end": {
+        "col": 19,
+        "line": 3
+      },
+      "extra": {
+        "lines": "console.log(x == x)",
+        "message": "possibly useless comparison but in eq function",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "x",
+            "end": {
+              "col": 14,
+              "line": 3,
+              "offset": 25
+            },
+            "start": {
+              "col": 13,
+              "line": 3,
+              "offset": 24
+            },
+            "unique_id": {
+              "kind": "Global",
+              "sid": 1,
+              "type": "id",
+              "value": "x"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/exclude_include/included/included.js",
+      "start": {
+        "col": 13,
+        "line": 3
+      }
+    },
+    {
+      "check_id": "rules.directory-included",
+      "end": {
+        "col": 19,
+        "line": 3
+      },
+      "extra": {
+        "lines": "console.log(x == x)",
+        "message": "possibly useless comparison but in eq function",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "x",
+            "end": {
+              "col": 14,
+              "line": 3,
+              "offset": 25
+            },
+            "start": {
+              "col": 13,
+              "line": 3,
+              "offset": 24
+            },
+            "unique_id": {
+              "kind": "Global",
+              "sid": 1,
+              "type": "id",
+              "value": "x"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/exclude_include/included/excluded.js",
+      "start": {
+        "col": 13,
+        "line": 3
+      }
+    },
+    {
+      "check_id": "rules.directory-included",
+      "end": {
+        "col": 19,
+        "line": 3
+      },
+      "extra": {
+        "lines": "console.log(x == x)",
+        "message": "possibly useless comparison but in eq function",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "x",
+            "end": {
+              "col": 14,
+              "line": 3,
+              "offset": 25
+            },
+            "start": {
+              "col": 13,
+              "line": 3,
+              "offset": 24
+            },
+            "unique_id": {
+              "kind": "Global",
+              "sid": 1,
+              "type": "id",
+              "value": "x"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/exclude_include/included/included.js",
+      "start": {
+        "col": 13,
+        "line": 3
+      }
+    },
+    {
+      "check_id": "rules.directory-excluded",
+      "end": {
+        "col": 19,
+        "line": 3
+      },
+      "extra": {
+        "lines": "console.log(x == x)",
+        "message": "possibly useless comparison but in eq function",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "x",
+            "end": {
+              "col": 14,
+              "line": 3,
+              "offset": 25
+            },
+            "start": {
+              "col": 13,
+              "line": 3,
+              "offset": 24
+            },
+            "unique_id": {
+              "kind": "Global",
+              "sid": 1,
+              "type": "id",
+              "value": "x"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/exclude_include/included/excluded.js",
+      "start": {
+        "col": 13,
+        "line": 3
+      }
+    },
+    {
+      "check_id": "rules.directory-excluded",
+      "end": {
+        "col": 19,
+        "line": 3
+      },
+      "extra": {
+        "lines": "console.log(x == x)",
+        "message": "possibly useless comparison but in eq function",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "x",
+            "end": {
+              "col": 14,
+              "line": 3,
+              "offset": 25
+            },
+            "start": {
+              "col": 13,
+              "line": 3,
+              "offset": 24
+            },
+            "unique_id": {
+              "kind": "Global",
+              "sid": 1,
+              "type": "id",
+              "value": "x"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/exclude_include/included/included.js",
+      "start": {
+        "col": 13,
+        "line": 3
+      }
+    },
+    {
+      "check_id": "rules.file-included",
+      "end": {
+        "col": 19,
+        "line": 3
+      },
+      "extra": {
+        "lines": "console.log(x == x)",
+        "message": "possibly useless comparison but in eq function",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "x",
+            "end": {
+              "col": 14,
+              "line": 3,
+              "offset": 25
+            },
+            "start": {
+              "col": 13,
+              "line": 3,
+              "offset": 24
+            },
+            "unique_id": {
+              "kind": "Global",
+              "sid": 1,
+              "type": "id",
+              "value": "x"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/exclude_include/excluded/included.js",
+      "start": {
+        "col": 13,
+        "line": 3
+      }
+    },
+    {
+      "check_id": "rules.file-included",
+      "end": {
+        "col": 19,
+        "line": 3
+      },
+      "extra": {
+        "lines": "console.log(x == x)",
+        "message": "possibly useless comparison but in eq function",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "x",
+            "end": {
+              "col": 14,
+              "line": 3,
+              "offset": 25
+            },
+            "start": {
+              "col": 13,
+              "line": 3,
+              "offset": 24
+            },
+            "unique_id": {
+              "kind": "Global",
+              "sid": 1,
+              "type": "id",
+              "value": "x"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/exclude_include/included/included.js",
+      "start": {
+        "col": 13,
+        "line": 3
+      }
+    },
+    {
+      "check_id": "rules.file-excluded",
+      "end": {
+        "col": 19,
+        "line": 3
+      },
+      "extra": {
+        "lines": "console.log(x == x)",
+        "message": "possibly useless comparison but in eq function",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "x",
+            "end": {
+              "col": 14,
+              "line": 3,
+              "offset": 25
+            },
+            "start": {
+              "col": 13,
+              "line": 3,
+              "offset": 24
+            },
+            "unique_id": {
+              "kind": "Global",
+              "sid": 1,
+              "type": "id",
+              "value": "x"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/exclude_include/excluded/included.js",
+      "start": {
+        "col": 13,
+        "line": 3
+      }
+    },
+    {
+      "check_id": "rules.file-excluded",
+      "end": {
+        "col": 19,
+        "line": 3
+      },
+      "extra": {
+        "lines": "console.log(x == x)",
+        "message": "possibly useless comparison but in eq function",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "x",
+            "end": {
+              "col": 14,
+              "line": 3,
+              "offset": 25
+            },
+            "start": {
+              "col": 13,
+              "line": 3,
+              "offset": 24
+            },
+            "unique_id": {
+              "kind": "Global",
+              "sid": 1,
+              "type": "id",
+              "value": "x"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/exclude_include/included/included.js",
+      "start": {
+        "col": 13,
+        "line": 3
+      }
+    }
+  ]
+}
