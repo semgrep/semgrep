@@ -29,7 +29,5 @@ jobs:
         run: brew install --HEAD ./HomebrewFormula/semgrep.rb
       - name: Homebrew test
         run: brew test --HEAD ./HomebrewFormula/semgrep.rb
-      - name: Homebrew audit
-        run: brew audit --HEAD ./HomebrewFormula/semgrep.rb
       - name: sanity
         run: semgrep --help
