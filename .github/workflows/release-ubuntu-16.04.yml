@@ -7,27 +7,12 @@ on:
 jobs:
   release-ubuntu-16-04:
     runs-on: ubuntu-latest
-    container: ocaml/opam2:ubuntu-16.04
+    container: returntocorp/sgrep-build:ubuntu-16.04
     steps:
-      - name: Adjust permissions
-        run: sudo chmod -R 777 . /github
-      - name: Install git
-        run: |
-          sudo apt-get update && sudo apt-get install -y --no-install-recommends make m4 perl wget swi-prolog mercurial pkg-config build-essential
-          sudo apt-get install -y --no-install-recommends libcurl4-openssl-dev libexpat1-dev gettext libz-dev libssl-dev build-essential autoconf
-          cd /usr/src/;
-          sudo wget https://github.com/git/git/archive/v2.18.0.tar.gz -O git.tar.gz;
-          sudo tar -xf git.tar.gz;
-          cd git-*;
-          sudo make prefix=/usr/local all;
-          sudo make prefix=/usr/local install;
-          git --version
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Initializes submodules
-        run: git submodule update --init --recursive
-      - name: Install Python
-        run: ./release-scripts/install-python.sh
+        with:
+          submodules: 'recursive'
       - name: Run Ubuntu build script
         run: ./release-scripts/ubuntu-release.sh
       - name: Upload artifacts
