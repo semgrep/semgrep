@@ -1,3 +1,4 @@
+#!/bin/bash
 sudo apt-get update && sudo apt-get install -y --no-install-recommends make m4 perl wget swi-prolog mercurial pkg-config build-essential
 sudo apt-get install -y zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev libbz2-dev
 sudo wget https://www.python.org/ftp/python/3.7.7/Python-3.7.7.tar.xz
