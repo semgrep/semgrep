@@ -39,5 +39,5 @@ cp ./sgrep/_build/default/bin/main_sgrep.exe sgrep-lint-files/semgrep
 cp -r ./sgrep_lint/build/sgrep.dist/* sgrep-lint-files
 chmod +x sgrep-lint-files/semgrep
 chmod +x sgrep-lint-files/semgrep-lint
-chmod +x sgrep-lint-files/semgrep-lint-exe
+chmod +x sgrep-lint-files/__main__
 tar -cvzf artifacts.tar.gz semgrep-lint-files/
