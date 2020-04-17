@@ -29,6 +29,7 @@ sudo chmod -R 777 . /github
 opam switch --root /home/opam/.opam 4.07;
 cd ..
 
+cd /github
 eval "$(opam env --root /home/opam/.opam --set-root)"; opam install -y reason dune ocamlfind camlp4 num ocamlgraph json-wheel conf-perl yaml
 git submodule update --init --recursive
 eval "$(opam env --root /home/opam/.opam --set-root)" && opam install -y ./pfff
