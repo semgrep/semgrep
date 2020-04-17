@@ -188,5 +188,3 @@ def cli() -> None:
             f"semgrep encountered an error: {ex}; this is not your fault. {PLEASE_FILE_ISSUE_TEXT}"
         )
 
-if __name__ == "__main__":
-    main()

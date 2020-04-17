@@ -1,7 +1,7 @@
 import setuptools
 
 setuptools.setup(
-    name="sgrep", # Replace with your own username
+    name="semgrep", # Replace with your own username
     version="0.0.4",
     author="Russell & Return 2 Corp",
     author_email="author@example.com",
@@ -15,9 +15,9 @@ setuptools.setup(
 	'requests==2.22.0'
     ],
     entry_points={
-      'console_scripts': ['semgrep=sgrep:main']
+      'console_scripts': ['semgrep=semgrep.__main__:main']
     },
-    py_modules=["sgrep", "config_resolver", "constants", "evaluation", "sgrep_main", "sgrep_types", "util"],
+    packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
