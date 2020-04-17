@@ -1,0 +1,12 @@
+rules:
+  - id: arg-reassign
+    pattern-either:
+      - pattern: $X = 1
+      - pattern: $X = 2
+    paths:
+      # bad syntax: each key should be in its own array element, i.e. `- path-not:`
+      - filename-not: "*.py"
+        path-not: "test/**"
+    message: "$X is being assigned to one or two"
+    languages: [python]
+    severity: WARNING
