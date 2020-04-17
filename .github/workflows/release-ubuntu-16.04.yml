@@ -37,4 +37,4 @@ jobs:
         uses: actions/upload-artifact@v1
         with:
           name: sgrep-ubuntu-16.04-${{ github.sha }}
-          path: sgrep-ubuntu-16.04.tar.gz
+          path: artifacts.tar.gz
