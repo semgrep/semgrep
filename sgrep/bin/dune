@@ -23,6 +23,7 @@
     
     sgrep
     sgrep_fuzzy
+    sgrep_files
  )
  ; for ocamldebug
  (modes byte)

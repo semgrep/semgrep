@@ -9,15 +9,10 @@ class Semgrep < Formula
     
     # To avoid upstream breakage, patch the Python code to make it well behaved
     patch do
-      url "https://github.com/returntocorp/sgrep/compare/brewable.diff"
+      url "https://github.com/returntocorp/sgrep/compare/f3b49b1.diff"
       sha256 "83888a36495c482d8a106bba56664af3795fd85f88655a312c6d43e56dbd2494"
     end
   end
-
-  #devel do
-  #  url "https://github.com/returntocorp/sgrep/archive/v0.4.10b1.tar.gz"
-  #  sha256 "todo"
-  #end
 
   head "https://github.com/returntocorp/sgrep.git", :branch => "russell/semgrep-rename"
 
@@ -64,7 +59,6 @@ class Semgrep < Formula
     url "https://github.com/returntocorp/sgrep/releases/download/v0.4.9/sgrep-0.4.9-osx.zip"
     sha256 "7e710b5c912dfadb0919349b3e5fc60570aba12eb78313ad37adb1487263d018"
   end
-
 
 
   def install

@@ -349,6 +349,22 @@ and m_expr a b =
     )
   | A.IdSpecial(a1), B.IdSpecial(b1) ->
     m_wrap m_special a1 b1 
+
+  (* dots '...' for string literal:
+   * Interpolated strings are transformed into Call(Special(Concat, ...), 
+   * hence we want Python patterns like f"...{$X}...", which are expanded to 
+   * Call(Special(Concat, [L"..."; Id "$X"; L"..."])) to
+   * match concrete code like f"foo{a}" such that "..." is seemingly
+   * matching 0 or more literal expressions.
+   * bugfix: note that we want to do that only when inside 
+   * Call(Special(Concat(...))), hence the special m_arguments_concat below,
+   * otherwise regular call patterns like foo("...") would match code like
+   * foo().
+   *)
+  | A.Call(A.IdSpecial(A.Concat, _a1), a2), 
+    B.Call(B.IdSpecial(B.Concat, _b1), b2) ->
+    m_arguments_concat a2 b2
+
   | A.Call(a1, a2), B.Call(b1, b2) ->
     m_expr a1 b1 >>= (fun () -> 
     m_arguments a2 b2 
@@ -721,25 +737,7 @@ and m_list__m_argument (xsa: A.argument list) (xsb: A.argument list) =
       (* can match more *)
       (m_list__m_argument ((A.Arg (A.Ellipsis i))::xsa) xsb)
 
-  (* dots '...' for string literal, can also match no argument *)
-  | [A.Arg (A.L (A.String("...", _a)))], [] ->
-      return ()
-  (* dots '...' for string literal:
-    interpolated strings are transformed into Call(Spedial(Concat, ...), 
-    hence want patterns like f"...{$X}...", which are expanded to Call(Special(Concat, [L"..."; Id "$X"; L"..."])) to
-    match concrete code like f"foo{a}" such that "..." is seemingly matching 0 or more literal expressions.
-  *)
-  | A.Arg (A.L (A.String("...", a)))::xsa, B.Arg(bexpr)::xsb ->
-      (match Normalize_generic.constant_propagation_and_evaluate_literal bexpr with
-      | Some _ -> 
-        (* can match nothing *)
-        (m_list__m_argument xsa xsb) >||>
-        (* can match more *)
-        (m_list__m_argument ((A.Arg (A.L (A.String("...", a))))::xsa) xsb)
-      | None ->
-        (m_list__m_argument xsa (B.Arg(bexpr)::xsb))
-      )
-
+  (* unordered kwd argument matching *)
   | (A.ArgKwd ((s, _tok) as ida, ea) as a)::xsa, xsb ->
      if MV.is_metavar_name s
      then
@@ -773,6 +771,40 @@ and m_list__m_argument (xsa: A.argument list) (xsb: A.argument list) =
   | xa::aas, xb::bbs ->
       m_argument xa xb >>= (fun () ->
       m_list__m_argument aas bbs 
+      )
+  | [], _
+  | _::_, _ ->
+      fail ()
+
+(* special case m_arguments when inside a Call(Special(Concat,_), ...)
+ * todo: factorize with m_list_with_dots? hard because of the special
+ * call to Normalize_generic below.
+ *)
+and m_arguments_concat a b = 
+  match a,b with
+  | [], [] ->
+      return ()
+  
+  (* dots '...' for string literal, can also match no argument *)
+  | [A.Arg (A.L (A.String("...", _a)))], [] ->
+      return ()
+
+  | A.Arg (A.L (A.String("...", a)))::xsa, B.Arg(bexpr)::xsb ->
+    (match Normalize_generic.constant_propagation_and_evaluate_literal bexpr 
+     with
+      | Some _ -> 
+        (* can match nothing *)
+        (m_arguments_concat xsa xsb) >||>
+        (* can match more *)
+        (m_arguments_concat ((A.Arg (A.L (A.String("...", a))))::xsa) xsb)
+      | None ->
+        (m_arguments_concat xsa (B.Arg(bexpr)::xsb))
+      )
+
+  (* the general case *)
+  | xa::aas, xb::bbs ->
+      m_argument xa xb >>= (fun () ->
+      m_arguments_concat aas bbs 
       )
   | [], _
   | _::_, _ ->
@@ -1075,6 +1107,13 @@ and m_stmt a b =
   (* deeper: go deep by default? *)
   | A.ExprStmt(a1), B.ExprStmt(b1) ->
     m_expr_deep a1 b1 
+  (* equivalence: vardef vs assign, and go deep *)
+  | A.ExprStmt a1, 
+    B.DefStmt ({ B.info={B.id_resolved={contents=resolved }; _}; _ } as ent,
+      B.VarDef ({B.vinit = Some _; _} as def)) ->
+      let b1 = Ast.vardef_to_assign (ent, def) resolved in
+      m_expr_deep a1 b1
+
   | A.DefStmt(a1), B.DefStmt(b1) ->
     m_definition a1 b1 
   | A.DirectiveStmt(a1), B.DirectiveStmt(b1) ->

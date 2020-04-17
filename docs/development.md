@@ -22,27 +22,18 @@ opam switch 4.07.1
 eval $(opam env)
 ```
 
-Once OPAM is installed, you need to install the library pfff, the OCaml frontend reason, and the build system dune:
-
-```bash
-opam install pfff
-opam install reason
-opam install dune
-```
-
-sgrep probably needs the very latest features of pfff, which may not be yet in the latest OPAM version of pfff. In that case, install pfff manually by doing:
+Install `pfff` which is a dependency of `sgrep`
 
 ```bash
 git submodule init && git submodule update --init --recursive
-cd pfff
-./configure; make depend; make; make opt; make reinstall-libs
+eval $(opam env) && opam install -y ./pfff
 ```
 
 Then you can compile the program with:
 
 ```bash
 cd sgrep
-dune build
+make all
 ```
 
 You can also use the Dockerfile in this directory to build sgrep inside a container.
@@ -64,6 +55,12 @@ cp ./sgrep/_build/default/bin/main_sgrep.exe /usr/local/bin/sgrep
 cd sgrep_lint
 make && make install
 sgrep-lint --config <YAML_FILE_OR_DIRECTORY> <code to check>
+```
+
+It is also possible to run sgrep_lint from source:
+```
+cd sgrep_lint
+python3 -m semgrep
 ```
 
 ## Development Environment
@@ -90,4 +87,12 @@ Set the OCAMLRUNPARAM environment variable to 'b' for backtrace. You will get be
 
 ```bash
 export OCAMLRUNPARAM=b
+```
+
+## Overriding expected integration test outputs
+
+When you're confident in the changes and you want to overwrite the `*.expected.json` files you can do this for sgrep_lint
+
+```bash
+OVERRIDE_EXPECTED=1 make test
 ```

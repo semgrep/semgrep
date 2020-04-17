@@ -19,10 +19,10 @@ from typing import List
 from typing import Set
 from typing import Tuple
 
-import sgrep_main
-from constants import YML_EXTENSIONS
-from util import debug_print
-from util import print_error_exit
+from semgrep.constants import YML_EXTENSIONS
+from semgrep.sgrep_main import main as sgrepmain
+from semgrep.util import debug_print
+from semgrep.util import print_error_exit
 
 
 def normalize_rule_id(line: str) -> str:
@@ -170,7 +170,7 @@ def confusion_matrix_to_string(confusion: List[int]) -> str:
 def invoke_sgrep_lint(
     verbose: bool, strict: bool, test_files: List[Path], config: Path, unsafe: bool
 ) -> Dict[str, Any]:
-    return sgrep_main.main(
+    return sgrepmain(
         argparse.Namespace(
             verbose=verbose,
             strict=strict,

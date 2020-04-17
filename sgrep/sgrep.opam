@@ -27,6 +27,7 @@ depends: [
   "yaml"
   "grain_dypgen"
   "menhir"
+  "dune-glob"
   "pfff"
 ]
 

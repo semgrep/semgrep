@@ -49,6 +49,10 @@ module J = Json_type
 
 let verbose = ref false
 let debug = ref false
+(* try to continue processing files, even if one has a parse error with -e/f.
+ * note that -rules_file does its own error recovery.
+ *)
+let error_recovery = ref false
 
 (* -e *)
 let pattern_string = ref ""
@@ -62,8 +66,12 @@ let equivalences_file = ref ""
 (* todo: infer from basename argv(0) ? *)
 let lang = ref "unset"
 
+(* similar to grep options (see man grep) *)
+let excludes = ref []
+let includes = ref []
+let exclude_dirs = ref []
+
 let output_format_json = ref false
-let case_sensitive = ref false
 let match_format = ref Matching_report.Normal
 
 let mvars = ref ([]: Metavars_fuzzy.mvar list)
@@ -179,7 +187,15 @@ let gen_layer ~root ~query file =
 
 (* coupling: you need also to modify tests/test.ml *)
 let parse_generic lang file = 
+  if lang = Lang.C && Sys.file_exists !Flag_parsing_cpp.macros_h
+  then Parse_cpp.init_defs !Flag_parsing_cpp.macros_h;
+
   let ast = Parse_generic.parse_with_lang lang file in
+  (* to be deterministic, reset the gensym; anyway right now sgrep is
+   * used only for local per-file analysis, so no need to have a unique ID
+   * among a set of files in a project like codegraph.
+   *)
+  Ast_generic.gensym_counter := 0;
   Naming_ast.resolve lang ast;
   ast
 
@@ -260,7 +276,9 @@ let sgrep_ast pattern file any_ast =
 (* Main action *)
 (*****************************************************************************)
 let sgrep_with_one_pattern xs =
-  let xs = List.map Common.fullpath xs in
+  (* old: let xs = List.map Common.fullpath xs in
+   * better no fullpath here, not our responsability.
+   *)
 
   let pattern, query_string =
     match !pattern_file, !pattern_string with
@@ -281,14 +299,24 @@ let sgrep_with_one_pattern xs =
     (* should remove at some point *)
     | None -> Find_source.files_of_dir_or_files ~lang:!lang xs
   in
+  let files = files |> Files_filter.filter 
+               (Files_filter.mk_filters
+                    ~excludes:!excludes 
+                    ~exclude_dirs:!exclude_dirs 
+                    ~includes:!includes) in
+  
 
   files |> List.iter (fun file ->
     if !verbose 
     then pr2 (spf "processing: %s" file);
-    E.try_with_print_exn_and_reraise file (fun () ->
-         sgrep_ast pattern file (create_ast file)
-    )
+    let process file = sgrep_ast pattern file (create_ast file) in
+    if not !error_recovery
+    then E.try_with_print_exn_and_reraise file (fun () -> process file)
+    else E.try_with_exn_to_error file (fun () -> process file)
   );
+
+  let n = List.length !E.g_errors in
+  if n > 0 then pr2 (spf "error count: %d" n);
 
   !layer_file |> Common.do_option (fun file ->
     let root = Common2.common_prefix_of_files_or_dirs xs in
@@ -308,36 +336,56 @@ let sgrep_with_rules rules_file xs =
   if !verbose then pr2 (spf "Parsing %s" rules_file);
   let rules = Parse_rules.parse rules_file in
 
-  match Lang.lang_of_string_opt !lang with
-  | None -> failwith (unsupported_language_message !lang)
-  | Some lang ->
-    let files = Lang.files_of_dirs_or_files lang xs in
-    let rules = rules |> List.filter (fun r -> List.mem lang r.R.languages) in
-
-    let errs = ref [] in
-    let matches = 
-      files |> List.map (fun file ->
-         if !verbose then pr2 (spf "Analyzing %s" file);
-         try 
-           let ast = parse_generic lang file in
-           Sgrep_generic.check ~hook:(fun _ _ -> ()) 
-              rules (parse_equivalences ())
-              file ast
-         with exn -> 
-            Common.push (Error_code.exn_to_error file exn) errs;
-           []
-      ) |> List.flatten in
-    let count_errors = (List.length !errs) in
-    let count_ok = (List.length files) - count_errors in
-    let errs = !errs in 
-    let stats = J.Object [ "okfiles", J.Int count_ok; "errorfiles", J.Int count_errors; ] in
-    let json = J.Object [
-       "matches", J.Array (matches |> List.map Match_result.match_to_json);
-       "errors", J.Array (errs |> List.map R2c.error_to_json);        
-       "stats", stats
-    ] in
-    let s = Json_io.string_of_json json in
-    pr s
+  let files =
+    match Lang.lang_of_string_opt !lang with
+    | None -> Files_finder.files_of_dirs_or_files xs
+    | Some lang -> Lang.files_of_dirs_or_files lang xs 
+  in
+  let files = files |> Files_filter.filter 
+               (Files_filter.mk_filters
+                    ~excludes:!excludes 
+                    ~exclude_dirs:!exclude_dirs 
+                    ~includes:!includes) in
+  let errs = ref [] in
+  let matches = 
+    files |> List.map (fun file ->
+       if !verbose then pr2 (spf "Analyzing %s" file);
+       try 
+         let lang = 
+           match Lang.langs_of_filename file with
+           | [lang] -> lang
+           | x::_xs ->
+               (match Lang.lang_of_string_opt !lang with
+               | Some lang -> lang
+               | None -> 
+                 pr2 (spf "no language specified, defaulting to %s for %s"
+                      (Lang.string_of_lang x) file);
+                 x
+               )
+           | [] -> 
+              failwith (spf "can not extract generic AST from %s" file)
+         in
+         let ast = parse_generic lang file in
+         let rules = rules |> List.filter 
+              (fun r -> List.mem lang r.R.languages) in
+         Sgrep_generic.check ~hook:(fun _ _ -> ()) 
+            rules (parse_equivalences ())
+            file ast
+       with exn -> 
+         Common.push (Error_code.exn_to_error file exn) errs;
+         []
+    ) |> List.flatten in
+  let count_errors = (List.length !errs) in
+  let count_ok = (List.length files) - count_errors in
+  let errs = !errs in 
+  let stats = J.Object [ "okfiles", J.Int count_ok; "errorfiles", J.Int count_errors; ] in
+  let json = J.Object [
+     "matches", J.Array (matches |> List.map Match_result.match_to_json);
+     "errors", J.Array (errs |> List.map R2c.error_to_json);        
+     "stats", stats
+  ] in
+  let s = Json_io.string_of_json json in
+  pr s
 
 (*****************************************************************************)
 (* Checker *)
@@ -422,13 +470,13 @@ let dump_pattern (file: Common.filename) =
      failwith (unsupported_language_message !lang)
 
 let dump_ast file =
-  match Lang.lang_of_filename_opt file with
-  | Some lang -> 
+  match Lang.langs_of_filename file with
+  | lang::_ -> 
     let x = parse_generic lang file in
     let v = Meta_ast.vof_any (Ast_generic.Pr x) in
     let s = dump_v_to_format v in
     pr s
-  | None -> failwith (spf "unsupported language for %s" file)
+  | [] -> failwith (spf "unsupported language for %s" file)
 
 let dump_ext_of_lang () =
   let lang_to_exts = keys |> List.map (
@@ -456,30 +504,34 @@ let all_actions () = [
   Common.mk_action_1_arg dump_ast;
   "-dump_equivalences", " <file>",
   Common.mk_action_1_arg dump_equivalences;
-  "-dump_extensions", "print file extension to language mapping",
+  "-dump_extensions", " print file extension to language mapping",
   Common.mk_action_0_arg dump_ext_of_lang;
  ]
 
 let options () = 
   [
-    "-lang", Arg.Set_string lang, 
-    (spf " <str> choose language (valid choices: %s)" supported_langs);
-
     "-e", Arg.Set_string pattern_string, 
-    " <pattern> expression pattern";
+    " <pattern> expression pattern (need -lang)";
     "-f", Arg.Set_string pattern_file, 
-    " <file> obtain pattern from file";
+    " <file> obtain pattern from file (need -lang)";
     "-rules_file", Arg.Set_string rules_file,
     " <file> obtain list of patterns from YAML file";
+
+    "-lang", Arg.Set_string lang, 
+    (spf " <str> choose language (valid choices: %s)" supported_langs);
 
     "-equivalences", Arg.Set_string equivalences_file,
     " <file> obtain list of code equivalences from YAML file";
 
-    "-json", Arg.Set output_format_json, " output JSON format";
+    "-exclude", Arg.String (fun s -> Common.push s excludes),
+    " <GLOB> skip files whose basename matches GLOB";
+    "-include", Arg.String (fun s -> Common.push s includes),
+    " <GLOB> search only files whose basename matches GLOB";
+    "-exclude-dir", Arg.String (fun s -> Common.push s exclude_dirs),
+    " <DIR> exclude directories matching the pattern DIR";
 
-    "-case_sensitive", Arg.Set case_sensitive, 
-    " match code in a case sensitive manner";
-
+    "-json", Arg.Set output_format_json, 
+    " output JSON format";
     "-emacs", Arg.Unit (fun () -> match_format := Matching_report.Emacs ),
     " print matches on the same line than the match position";
     "-oneline", Arg.Unit (fun () -> match_format := Matching_report.OneLine),
@@ -489,8 +541,13 @@ let options () =
     " <metavars> print the metavariables, not the matched code";
 
     "-gen_layer", Arg.String (fun s -> layer_file := Some s),
-    " <file> save result in a pfff layer file\n";
+    " <file> save result in a codemap layer file";
 
+    "-error_recovery", Arg.Unit (fun () ->
+        error_recovery := true;
+        Flag_parsing.error_recovery := true;
+    ),  
+    " do not stop at first parsing error with -e/-f";
     "-verbose", Arg.Unit (fun () -> 
       verbose := true;
       Flag_sgrep.verbose := true;
@@ -501,6 +558,8 @@ let options () =
   ] @
   Error_code.options () @
   Common.options_of_actions action (all_actions()) @
+  Flag_parsing_cpp.cmdline_flags_macrofile () @
+  Meta_parse_info.cmdline_flags_precision () @
   Common2.cmdline_flags_devel () @
   [ "-version",   Arg.Unit (fun () -> 
     pr2 (spf "sgrep version: %s" Config_pfff.version);
@@ -566,14 +625,14 @@ let main () =
     (* main entry *)
     (* --------------------------------------------------------- *)
     | x::xs -> 
-        (try (
-          if !rules_file <> ""
-          then sgrep_with_rules !rules_file (x::xs)
-          else sgrep_with_one_pattern (x::xs)
-        ) with exn -> 
+        if !rules_file <> ""
+        then 
+         try  sgrep_with_rules !rules_file (x::xs)
+         with exn -> begin
           pr (format_output_exception exn); (* todo, should be pr2 probably *)
           exit 2
-        )
+          end
+        else sgrep_with_one_pattern (x::xs)
     (* --------------------------------------------------------- *)
     (* empty entry *)
     (* --------------------------------------------------------- *)
