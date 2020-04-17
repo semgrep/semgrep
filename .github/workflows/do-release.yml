@@ -73,7 +73,7 @@ jobs:
     # TODO: this is very similar to the ubuntu-build workflow.
     # convert to github action to DRY
     runs-on: ubuntu-latest
-    container: ocaml/opam2:ubuntu-16.04
+    container: ocaml/opam2:ubuntu-18.04
     steps:
       - name: Adjust permissions
         run: sudo chmod -R 777 . /github
