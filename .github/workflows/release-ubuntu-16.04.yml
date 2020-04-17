@@ -16,6 +16,7 @@ jobs:
         run: sudo chmod -R 777 . /github
       - name: Install git
         run: |
+          sudo apt-get update && sudo apt-get install -y --no-install-recommends make m4 perl wget swi-prolog mercurial pkg-config build-essential
           cd /usr/src/;
           sudo wget https://github.com/git/git/archive/v2.18.0.tar.gz -O git.tar.gz;
           sudo tar -xf git.tar.gz;
