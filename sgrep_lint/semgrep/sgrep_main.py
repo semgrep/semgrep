@@ -674,6 +674,9 @@ def resolve_sgrep_output(by_rule_index: Any, all_rules: Any, args: Any) -> Any:
                         all_rules[rule_index], result
                     )
 
+                    # add severity
+                    result["extra"]["severity"] = all_rules[rule_index].get("severity")
+
                     # try to generate a fix
                     fix = generate_fix(all_rules[rule_index], result)
                     if fix:
