@@ -127,6 +127,7 @@ class SgrepBridge:
         for finding in outputs:
             rule_index = self.decode_rule_id_to_index(finding["check_id"])
             rule = rules[rule_index]
+            finding["check_id"] = ".".join(finding["check_id"].split(".")[1:])
             by_rule_index[rule][finding["path"]].append(finding)
 
         return by_rule_index, errors
@@ -259,8 +260,7 @@ def parse_sgrep_output(
     output: DefaultDict[PatternId, List[SgrepRange]] = collections.defaultdict(list)
     for finding in sgrep_findings:
         check_id = finding["check_id"]
-        # restore the pattern id: the check_id was encoded as f"{rule_index}.{pattern_id}"
-        pattern_id = PatternId(".".join(check_id.split(".")[1:]))
+        pattern_id = PatternId(check_id)
         output[pattern_id].append(sgrep_finding_to_range(finding))
     return dict(output)
 
