@@ -625,15 +625,14 @@ let main () =
     (* main entry *)
     (* --------------------------------------------------------- *)
     | x::xs -> 
-      (try (
         if !rules_file <> ""
-        then sgrep_with_rules !rules_file (x::xs)
+        then 
+         try  sgrep_with_rules !rules_file (x::xs)
+         with exn -> begin
+          pr (format_output_exception exn); (* todo, should be pr2 probably *)
+          exit 2
+          end
         else sgrep_with_one_pattern (x::xs)
-        )
-      with exn ->
-        pr (format_output_exception exn); (* todo, should be pr2 probably *)
-        exit 2)
-
     (* --------------------------------------------------------- *)
     (* empty entry *)
     (* --------------------------------------------------------- *)
