@@ -10,9 +10,12 @@ class RuleMatch:
         A section of code that matches a single rule (which is potentially many patterns)
     """
 
-    def __init__(self, id: str, message: str, pattern_match: PatternMatch) -> None:
+    def __init__(
+        self, id: str, message: str, pattern_match: PatternMatch, *, severity: str
+    ) -> None:
         self._id = id
         self._message = message
+        self._severity = severity
 
         self._path = pattern_match.path
         self._start = pattern_match.start
