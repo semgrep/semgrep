@@ -13,7 +13,6 @@ import requests
 import semgrep.config_resolver
 from semgrep.constants import ID_KEY
 from semgrep.constants import RULES_KEY
-from semgrep.evaluation import build_boolean_expression
 from semgrep.output import build_normal_output
 from semgrep.output import build_output_json
 from semgrep.rule import Rule
@@ -47,7 +46,7 @@ def validate_single_rule(config_id: str, rule_index: int, rule: Dict[str, Any]) 
         )
         return False
     try:
-        _ = build_boolean_expression(Rule.from_json(rule))
+        _ = Rule.from_json(rule).expression
     except InvalidRuleSchema as ex:
         print_error(
             f"{config_id}: inside rule {rule_index+1} {rule_id_err_msg}, pattern fields can't look like this: {ex}"

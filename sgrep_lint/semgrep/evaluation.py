@@ -1,98 +1,22 @@
 from typing import Any
 from typing import Dict
 from typing import Iterable
-from typing import Iterator
 from typing import List
 from typing import Optional
 from typing import Set
 
 from semgrep.constants import RCE_RULE_FLAG
-from semgrep.rule import Rule
 from semgrep.sgrep_types import BooleanRuleExpression
-from semgrep.sgrep_types import InvalidRuleSchema
-from semgrep.sgrep_types import operator_for_pattern_name
 from semgrep.sgrep_types import OPERATORS
 from semgrep.sgrep_types import pattern_names_for_operator
-from semgrep.sgrep_types import pattern_names_for_operators
 from semgrep.sgrep_types import PatternId
 from semgrep.sgrep_types import Range
 from semgrep.sgrep_types import SgrepRange
-from semgrep.sgrep_types import YAML_VALID_TOP_LEVEL_OPERATORS
 from semgrep.util import debug_print
 from semgrep.util import flatten
 from semgrep.util import NEED_ARBITRARY_CODE_EXEC_EXIT_CODE
 from semgrep.util import print_error
 from semgrep.util import print_error_exit
-
-
-def _parse_boolean_expression(
-    rule_patterns: List[Dict[str, Any]], pattern_id: int = 0, prefix: str = ""
-) -> Iterator[BooleanRuleExpression]:
-    """
-    Move through the expression from the YML, yielding tuples of (operator, unique-id-for-pattern, pattern)
-    """
-    if not isinstance(rule_patterns, list):
-        raise InvalidRuleSchema(
-            f"invalid type for patterns in rule: {type(rule_patterns)} is not a list; perhaps your YAML is missing a `-` before {rule_patterns}?"
-        )
-    for pattern in rule_patterns:
-        if not isinstance(pattern, dict):
-            raise InvalidRuleSchema(
-                f"invalid type for pattern {pattern}: {type(pattern)} is not a dict"
-            )
-        for boolean_operator, pattern_text in pattern.items():
-            operator = operator_for_pattern_name(boolean_operator)
-            if isinstance(pattern_text, list):
-                sub_expression = _parse_boolean_expression(
-                    pattern_text, 0, f"{prefix}.{pattern_id}"
-                )
-                yield BooleanRuleExpression(operator, None, list(sub_expression), None)
-            elif isinstance(pattern_text, str):
-                yield BooleanRuleExpression(
-                    operator, PatternId(f"{prefix}.{pattern_id}"), None, pattern_text
-                )
-                pattern_id += 1
-            else:
-                raise InvalidRuleSchema(
-                    f"invalid type for pattern {pattern}: {type(pattern_text)}"
-                )
-
-
-def build_boolean_expression(rule: Rule) -> BooleanRuleExpression:
-    """
-    Build a boolean expression from the yml lines in the rule
-
-    """
-    rule_raw = rule.raw
-
-    for pattern_name in pattern_names_for_operator(OPERATORS.AND):
-        pattern = rule_raw.get(pattern_name)
-        if pattern:
-            return BooleanRuleExpression(
-                OPERATORS.AND, rule_raw["id"], None, rule_raw[pattern_name]
-            )
-
-    for pattern_name in pattern_names_for_operator(OPERATORS.AND_ALL):
-        patterns = rule_raw.get(pattern_name)
-        if patterns:
-            return BooleanRuleExpression(
-                OPERATORS.AND_ALL, None, list(_parse_boolean_expression(patterns)), None
-            )
-
-    for pattern_name in pattern_names_for_operator(OPERATORS.AND_EITHER):
-        patterns = rule_raw.get(pattern_name)
-        if patterns:
-            return BooleanRuleExpression(
-                OPERATORS.AND_EITHER,
-                None,
-                list(_parse_boolean_expression(patterns)),
-                None,
-            )
-
-    valid_top_level_keys = list(YAML_VALID_TOP_LEVEL_OPERATORS)
-    raise InvalidRuleSchema(
-        f"missing a pattern type in rule, expected one of {pattern_names_for_operators(valid_top_level_keys)}"
-    )
 
 
 def _evaluate_single_expression(

@@ -9,14 +9,12 @@ from typing import DefaultDict
 from typing import Dict
 from typing import Iterator
 from typing import List
-from typing import Set
 from typing import Tuple
 
 import yaml
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import RCE_RULE_FLAG
 from semgrep.constants import SGREP_PATH
-from semgrep.evaluation import build_boolean_expression
 from semgrep.evaluation import enumerate_patterns_in_boolean_expression
 from semgrep.evaluation import evaluate_expression
 from semgrep.rule import Rule
@@ -74,14 +72,19 @@ class SgrepBridge:
                 f'an internal error occured while invoking the sgrep engine: {error_type}: {error_json.get("message", "")}.\n\n{PLEASE_FILE_ISSUE_TEXT}'
             )
 
-    def run_all_patterns(
-        self, all_patterns: List[Dict[str, Any]], targets: List[Path]
-    ) -> Tuple[List[Any], List[Any]]:
+    def run_rules(
+        self, rules: List[Rule], targets: List[Path]
+    ) -> Tuple[Dict[Rule, Dict[str, List[Dict[str, Any]]]], List[Any]]:
+        """
+            Run all rules on targets and return list of all places that match patterns, ... todo errors
+        """
+        patterns = list(flatten_rule_patterns(rules))
+
         outputs: List[Any] = []  # multiple invocations per language
         errors: List[Any] = []
 
         for language, all_rules_for_language in self.group_rule_by_langauges(
-            all_patterns
+            patterns
         ).items():
             with tempfile.NamedTemporaryFile("w") as fout:
                 # very important not to sort keys here
@@ -116,37 +119,36 @@ class SgrepBridge:
                 errors.extend(output_json["errors"])
                 outputs.extend(output_json["matches"])
 
-        return outputs, errors
-
-    def resolve_rules(
-        self, all_rules: List[Rule], outputs: List[Dict[str, Any]]
-    ) -> Dict[Rule, List[Dict[str, Any]]]:
-        """
-            Takes output of all running all patterns and rules and returns Findings
-        """
-
-        # group output; we want to see all of the same rule ids on the same file path
+                # group output; we want to see all of the same rule ids on the same file path
         by_rule_index: Dict[
             Rule, Dict[str, List[Dict[str, Any]]]
         ] = collections.defaultdict(lambda: collections.defaultdict(list))
 
         for finding in outputs:
             rule_index = self.decode_rule_id_to_index(finding["check_id"])
-            rule = all_rules[rule_index]
+            rule = rules[rule_index]
             by_rule_index[rule][finding["path"]].append(finding)
 
+        return by_rule_index, errors
+
+    def resolve_rules(
+        self,
+        all_rules: List[Rule],
+        outputs: Dict[Rule, Dict[str, List[Dict[str, Any]]]],
+    ) -> Dict[Rule, List[Dict[str, Any]]]:
+        """
+            Takes output of all running all patterns and rules and returns Findings
+        """
         current_path = Path.cwd()
         findings_by_rule: Dict[Rule, List[Dict[str, Any]]] = {}
         ignored_in_tests = 0
 
-        for rule, paths in by_rule_index.items():
-            expression = build_boolean_expression(rule)
+        for rule, paths in outputs.items():
+            expression = rule.expression
             debug_print(str(expression))
             # expression = (op, pattern_id) for (op, pattern_id, pattern) in expression_with_patterns]
             for filepath, results in paths.items():
-                debug_print(
-                    f"-------- rule (index {rule_index}) {rule.id}------ filepath: {filepath}"
-                )
+                debug_print(f"-------- rule ({rule.id} ------ filepath: {filepath}")
                 check_ids_to_ranges = parse_sgrep_output(results)
                 debug_print(str(check_ids_to_ranges))
                 valid_ranges_to_output = evaluate_expression(
@@ -179,11 +181,6 @@ class SgrepBridge:
                             rule, result
                         )
 
-                        # try to generate a fix
-                        # fix = generate_fix(rule, result)
-                        # if fix:
-                        #     result["extra"]["fix"] = fix
-                        #     fixes.append((filepath, result))
                         result = transform_to_r2c_output(result)
                         # todo dedup this
                         findings_by_rule.setdefault(rule, []).append(result)
@@ -204,8 +201,7 @@ class SgrepBridge:
         # a rule can have multiple patterns inside it. Flatten these so we can send sgrep a single yml file list of patterns
         start = datetime.now()
 
-        all_patterns = list(flatten_rule_patterns(all_rules))
-        outputs, errors = self.run_all_patterns(all_patterns, targets)
+        outputs, errors = self.run_rules(all_rules, targets)
         findings_by_rule = self.resolve_rules(all_rules, outputs)
 
         debug_print(f"sgrep ran in {datetime.now() - start}")
@@ -216,7 +212,7 @@ class SgrepBridge:
 def flatten_rule_patterns(all_rules: List[Rule]) -> Iterator[Dict[str, Any]]:
     for rule_index, rule in enumerate(all_rules):
         flat_expressions = list(
-            enumerate_patterns_in_boolean_expression(build_boolean_expression(rule))
+            enumerate_patterns_in_boolean_expression(rule.expression)
         )
         for expr in flat_expressions:
             if not should_send_to_sgrep(expr):

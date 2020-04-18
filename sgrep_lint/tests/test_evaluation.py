@@ -4,7 +4,6 @@ import sys
 from typing import List
 
 from semgrep.constants import RCE_RULE_FLAG
-from semgrep.evaluation import build_boolean_expression
 from semgrep.evaluation import enumerate_patterns_in_boolean_expression
 from semgrep.evaluation import evaluate_expression as raw_evalute_expression
 from semgrep.sgrep_types import BooleanRuleExpression
@@ -367,7 +366,7 @@ def test_build_exprs():
         {**base_rule, **{"pattern-either": [{"pattern": "test(...)"}]}},
     ]
 
-    results = [build_boolean_expression(Rule.from_json(rule)) for rule in rules]
+    results = [Rule.from_json(rule).expression for rule in rules]
     base_expected = [BooleanRuleExpression(OPERATORS.AND, '.0', None, "test(...)")]
     expected = [
         BooleanRuleExpression(OPERATORS.AND, "test-id", None, "test(...)"),
