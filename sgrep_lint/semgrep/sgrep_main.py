@@ -451,7 +451,8 @@ def main(args: argparse.Namespace) -> Dict[str, Any]:
 
     if invalid_configs and args.strict:
         print_error_exit(
-            f"run with --strict and there were {len(invalid_configs)} errors loading configs", MISSING_CONFIG_EXIT_CODE
+            f"run with --strict and there were {len(invalid_configs)} errors loading configs",
+            MISSING_CONFIG_EXIT_CODE,
         )
 
     if not args.no_rewrite_rule_ids:
