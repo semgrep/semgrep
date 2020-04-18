@@ -3,9 +3,6 @@ name: release-ubuntu-16-04
 on:
   push:
     branches: [master, develop]
-  pull_request:
-    # NO MERGE
-    branches: [master, develop]
 
 jobs:
   release-ubuntu-16-04:
