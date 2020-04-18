@@ -7,6 +7,7 @@ from typing import Optional
 from typing import Set
 
 from semgrep.constants import RCE_RULE_FLAG
+from semgrep.rule import Rule
 from semgrep.sgrep_types import BooleanRuleExpression
 from semgrep.sgrep_types import InvalidRuleSchema
 from semgrep.sgrep_types import operator_for_pattern_name
@@ -57,27 +58,29 @@ def _parse_boolean_expression(
                 )
 
 
-def build_boolean_expression(rule: Dict[str, Any]) -> BooleanRuleExpression:
+def build_boolean_expression(rule: Rule) -> BooleanRuleExpression:
     """
     Build a boolean expression from the yml lines in the rule
 
     """
+    rule_raw = rule.raw
+
     for pattern_name in pattern_names_for_operator(OPERATORS.AND):
-        pattern = rule.get(pattern_name)
+        pattern = rule_raw.get(pattern_name)
         if pattern:
             return BooleanRuleExpression(
-                OPERATORS.AND, rule["id"], None, rule[pattern_name]
+                OPERATORS.AND, rule_raw["id"], None, rule_raw[pattern_name]
             )
 
     for pattern_name in pattern_names_for_operator(OPERATORS.AND_ALL):
-        patterns = rule.get(pattern_name)
+        patterns = rule_raw.get(pattern_name)
         if patterns:
             return BooleanRuleExpression(
                 OPERATORS.AND_ALL, None, list(_parse_boolean_expression(patterns)), None
             )
 
     for pattern_name in pattern_names_for_operator(OPERATORS.AND_EITHER):
-        patterns = rule.get(pattern_name)
+        patterns = rule_raw.get(pattern_name)
         if patterns:
             return BooleanRuleExpression(
                 OPERATORS.AND_EITHER,

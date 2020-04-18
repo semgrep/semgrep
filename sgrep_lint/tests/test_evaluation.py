@@ -12,7 +12,7 @@ from semgrep.sgrep_types import Operator
 from semgrep.sgrep_types import OPERATORS
 from semgrep.sgrep_types import Range
 from semgrep.sgrep_types import SgrepRange
-
+from semgrep.rule import Rule
 
 def evaluate_expression(exprs: List[BooleanRuleExpression], results, flags=None):
     # convert it to an implicit and
@@ -367,7 +367,7 @@ def test_build_exprs():
         {**base_rule, **{"pattern-either": [{"pattern": "test(...)"}]}},
     ]
 
-    results = [build_boolean_expression(rule) for rule in rules]
+    results = [build_boolean_expression(Rule.from_json(rule)) for rule in rules]
     base_expected = [BooleanRuleExpression(OPERATORS.AND, '.0', None, "test(...)")]
     expected = [
         BooleanRuleExpression(OPERATORS.AND, "test-id", None, "test(...)"),
