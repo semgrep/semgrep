@@ -44,7 +44,7 @@ jobs:
           asset_name: semgrep-${{ steps.get_version.outputs.VERSION }}-osx.zip
           asset_content_type: application/zip
       - name: Upload Release Checksum
-        id: upload-release-asset-osx
+        id: upload-checksum-asset-osx
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -72,7 +72,7 @@ jobs:
           asset_name: semgrep-${{ steps.get_version.outputs.VERSION }}-ubuntu-16.04.tgz
           asset_content_type: application/gzip
       - name: Upload Release Checksum
-        id: upload-release-asset-ubuntu
+        id: upload-release-checksum-ubuntu
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
