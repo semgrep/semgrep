@@ -169,6 +169,7 @@ def evaluate(
                 pattern_match,
                 metadata=rule.metadata,
                 file_lines=pattern_match.raw_lines,
+                severity=rule.severity,
             )
             output.append(rule_match)
 

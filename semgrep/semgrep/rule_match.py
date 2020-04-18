@@ -21,11 +21,13 @@ class RuleMatch:
         *,
         metadata: Dict[str, Any],
         file_lines: List[str],
+        severity: str,
     ) -> None:
         self._id = id
         self._message = message
         self._metadata = metadata
         self._file_lines = file_lines
+        self._severity = severity
 
         self._path = pattern_match.path
         self._start = pattern_match.start
@@ -72,6 +74,7 @@ class RuleMatch:
         json_obj["extra"]["message"] = self._message
         json_obj["extra"]["metadata"] = self._metadata
         json_obj["extra"]["file_lines"] = self._file_lines
+        json_obj["extra"]["severity"] = self._severity
         json_obj["start"] = self._start
         json_obj["end"] = self._end
         return json_obj
