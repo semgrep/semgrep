@@ -87,7 +87,7 @@ def sgrep_error_json_to_message_then_exit(
         print_error(
             f'in rule {rule["id"]} for language {error_json["language"]} invalid pattern "{error_json["pattern"]}": {error_json["message"]}'
         )
-        exit(INVALID_PATTERN_EXIT_CODE)
+        sys.exit(INVALID_PATTERN_EXIT_CODE)
     # no special formatting ought to be required for the other types; the sgrep python should be performing
     # validation for them. So if any other type of error occurs, ask the user to file an issue
     else:
@@ -144,14 +144,18 @@ def invoke_sgrep(
             except subprocess.CalledProcessError as ex:
                 try:
                     # see if sgrep output a JSON error that we can decode
-                    output_json = json.loads((ex.output.decode("utf-8", "replace")))
+                    sgrep_output = ex.output.decode("utf-8", "replace")
+                    output_json = json.loads(sgrep_output)
                     if "error" in output_json:
                         sgrep_error_json_to_message_then_exit(output_json, all_rules)
                     else:
-                        raise ex  # let our general exception handler take care of this
-                except Exception:
+                        print_error(
+                            f"unexpected non-json output while invoking sgrep with:\n\t{' '.join(cmd)}\n{ex}"
+                        )
+                        print_error_exit(f"\n\n{PLEASE_FILE_ISSUE_TEXT}")
+                except Exception as decodeEx:
                     print_error(
-                        f"non-zero return code while invoking sgrep with:\n\t{' '.join(cmd)}\n{ex}"
+                        f"non-zero return code while invoking sgrep with:\n\t{' '.join(cmd)}\n{ex}\n{decodeEx}"
                     )
                     print_error_exit(f"\n\n{PLEASE_FILE_ISSUE_TEXT}")
             output_json = json.loads((output.decode("utf-8", "replace")))
@@ -505,7 +509,8 @@ def main(args: argparse.Namespace) -> Dict[str, Any]:
 
     if invalid_configs and args.strict:
         print_error_exit(
-            f"run with --strict and there were {len(invalid_configs)} errors loading configs"
+            f"run with --strict and there were {len(invalid_configs)} errors loading configs",
+            MISSING_CONFIG_EXIT_CODE,
         )
 
     if not args.no_rewrite_rule_ids:
