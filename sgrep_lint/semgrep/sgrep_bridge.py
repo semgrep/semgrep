@@ -218,7 +218,7 @@ class SgrepBridge:
         return findings_by_rule
 
     def invoke_sgrep(
-        self, targets: List[Path], output_mode_json: bool, all_rules: List[Rule],
+        self, targets: List[Path], all_rules: List[Rule],
     ) -> Tuple[Dict[Rule, List[Dict[str, Any]]], List[Any]]:
         """
             Takes in rules and targets and retuns object with findings

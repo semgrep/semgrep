@@ -6,11 +6,11 @@ from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
-from typing import Set
 from typing import Tuple
 
 import requests
 import semgrep.config_resolver
+from semgrep.autofix import apply_fixes
 from semgrep.constants import ID_KEY
 from semgrep.constants import RULES_KEY
 from semgrep.output import build_normal_output
@@ -119,23 +119,6 @@ def rename_rule_ids(valid_configs: Dict[str, Any]) -> Dict[str, Any]:
     return transformed
 
 
-def manual_config(pattern: str, lang: str) -> Dict[str, Any]:
-    # TODO remove when using sgrep -e ... -l ... instead of this hacked config
-    return {
-        "manual": {
-            RULES_KEY: [
-                {
-                    ID_KEY: "-",
-                    "pattern": pattern,
-                    "message": pattern,
-                    "languages": [lang],
-                    "severity": "ERROR",
-                }
-            ]
-        }
-    }
-
-
 ### Handle output
 
 
@@ -170,33 +153,6 @@ def save_output(
                 fout.write(
                     "\n".join(build_normal_output(output_data, color_output=False))
                 )
-
-
-def modify_file(finding: Dict[str, Any]) -> None:
-    p = Path(finding["path"])
-    SPLIT_CHAR = "\n"
-    contents = p.read_text()
-    lines = contents.split(SPLIT_CHAR)
-    fix = finding.get("extra", {}).get("fix")
-
-    # get the start and end points
-    start_obj = finding.get("start", {})
-    start_line = start_obj.get("line", 1) - 1  # start_line is 1 indexed
-    start_col = start_obj.get("col", 1) - 1  # start_col is 1 indexed
-    end_obj = finding.get("end", {})
-    end_line = end_obj.get("line", 1) - 1  # end_line is 1 indexed
-    end_col = end_obj.get("col", 1) - 1  # end_line is 1 indexed
-
-    # break into before, to modify, after
-    before_lines = lines[:start_line]
-    before_on_start_line = lines[start_line][:start_col]
-    after_on_end_line = lines[end_line][end_col + 1 :]  # next char after end of match
-    modified_lines = (before_on_start_line + fix + after_on_end_line).splitlines()
-    after_lines = lines[end_line + 1 :]  # next line after end of match
-    contents_after_fix = before_lines + modified_lines + after_lines
-
-    contents_after_fix_str = SPLIT_CHAR.join(contents_after_fix)
-    p.write_text(contents_after_fix_str)
 
 
 def get_config(args: Any) -> Any:
@@ -280,7 +236,7 @@ def main(args: argparse.Namespace) -> Dict[str, Any]:
     # actually invoke sgrep
     findings_by_rule, sgrep_errors = SgrepBridge(
         args.dangerously_allow_arbitrary_code_execution_from_rules, args.exclude_tests
-    ).invoke_sgrep(targets, args.json, all_rules)
+    ).invoke_sgrep(targets, all_rules)
 
     for finding in sgrep_errors:
         print_error(f"sgrep: {finding['path']}: {finding['check_id']}")
@@ -293,18 +249,10 @@ def main(args: argparse.Namespace) -> Dict[str, Any]:
 
     output_data = handle_output(findings_by_rule, sgrep_errors, args)
 
+    if args.autofix:
+        apply_fixes(findings_by_rule)
+
     return output_data
-
-
-def generate_fix(rule: Rule, sgrep_result: Dict[str, Any]) -> Optional[Any]:
-    # TODO add fix to rule object
-    fix_str = rule.raw.get("fix")
-    if fix_str is None:
-        return None
-    if "metavars" in sgrep_result["extra"]:
-        for metavar, contents in sgrep_result["extra"]["metavars"].items():
-            fix_str = fix_str.replace(metavar, contents["abstract_content"])
-    return fix_str
 
 
 def handle_output(
@@ -340,24 +288,7 @@ def handle_output(
         else:
             if outputs_after_booleans:
                 print("\n".join(build_normal_output(output_data, color_output=True)))
-    if args.autofix:
-        modified_files: Set[str] = set()
 
-        for rule, findings in findings_by_rule.items():
-            for finding in findings:
-                fix = generate_fix(rule, finding)
-                if fix:
-                    finding["extra"]["fix"] = fix
-                    filepath = finding["path"]
-                    try:
-                        modify_file(finding)
-                        modified_files.add(filepath)
-                    except Exception as e:
-                        print_error_exit(f"unable to modify file: {filepath}: {e}")
-        num_modified = len(modified_files)
-        print_msg(
-            f"Successfully modified {num_modified} file{'s' if num_modified > 1 else ''}."
-        )
     if args.output:
         save_output(args.output, output_data, args.json)
     if args.error and outputs_after_booleans:
