@@ -23,7 +23,7 @@ jobs:
           draft: true
           prerelease: false
 
-  ## OSX Artifacts
+          # OSX
       - uses: actions/download-artifact@v1
         with:
           name: semgrep-osx-${{ github.sha }}
@@ -50,11 +50,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./osx.sha256
+          asset_path: ./semgrep-osx/artifacts.zip.sha256
           asset_name: semgrep-${{ steps.get_version.outputs.VERSION }}-osx.zip.sha256
           asset_content_type: application/zip
 
-  ## Ubuntu Artifacts
+          ## UBUNTU
       - uses: actions/download-artifact@v1
         with:
           name: semgrep-ubuntu-16.04-${{ github.sha }}
@@ -91,7 +91,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Run OSX release script
-        run: ./release-scripts/osx-release.sh
+        run: ./release-scripts/osx-release-stub.sh
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
@@ -106,9 +106,9 @@ jobs:
         with:
           submodules: 'recursive'
       - name: Run Ubuntu build script
-        run: ./release-scripts/ubuntu-release.sh
+        run: ./release-scripts/ubuntu-release-stub.sh
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
-          name: sgrep-ubuntu-16.04-${{ github.sha }}
+          name: semgrep-ubuntu-16.04-${{ github.sha }}
           path: artifacts.tar.gz
