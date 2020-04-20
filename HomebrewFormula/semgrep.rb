@@ -52,8 +52,8 @@ class Semgrep < Formula
 
   # To avoid upstream breakage, patch the Python code to make it well behaved
   patch do
-    url "https://github.com/returntocorp/sgrep/compare/f3b49b1.diff"
-    sha256 "83888a36495c482d8a106bba56664af3795fd85f88655a312c6d43e56dbd2494"
+    url "https://github.com/returntocorp/sgrep/commit/f71a9ccb520c9f7a4eddc93e3e0f80c946741c3d.diff"
+    sha256 "f2b5cd9877cdaeb40c68244b9e06b7f1582c2cfb830121dbf2f806c85bdae745"
   end
 
 
