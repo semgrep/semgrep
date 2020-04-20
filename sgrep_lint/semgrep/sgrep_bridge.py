@@ -32,6 +32,7 @@ from semgrep.util import print_error_exit
 Handle executing and parsing output of sgrep binary
 """
 
+
 # Rename to CoreRunner
 class SgrepBridge:
     def __init__(self, allow_exec: bool, exclude_tests: bool):
@@ -42,16 +43,39 @@ class SgrepBridge:
         # decode the rule index from the output check_id
         return int(rule_id.split(".")[0])
 
-    def group_rule_by_langauges(
-        self, all_rules: List[Dict[str, Any]]
+    def _flatten_rule_patterns(self, rules: List[Rule]) -> Iterator[Dict[str, Any]]:
+        """
+            Convert list of rules to format understandable by sgrep core
+        """
+        for rule_index, rule in enumerate(rules):
+            flat_expressions = list(
+                enumerate_patterns_in_boolean_expression(rule.expression)
+            )
+            for expr in flat_expressions:
+                if not should_send_to_sgrep(expr):
+                    continue
+                # if we don't copy an array (like `languages`), the yaml file will refer to it by reference (with an anchor)
+                # which is nice and all but the sgrep YAML parser doesn't support that
+                new_check_id = f"{rule_index}.{expr.pattern_id}"
+                yield {
+                    "id": new_check_id,
+                    "pattern": expr.operand,
+                    "severity": rule.severity,
+                    "languages": rule.languages.copy(),
+                    "message": "<internalonly>",
+                }
+
+    def _group_rule_by_langauges(
+        self, rules: List[Rule]
     ) -> Dict[str, List[Dict[str, Any]]]:
+        patterns = list(self._flatten_rule_patterns(rules))
         by_lang: Dict[str, List[Dict[str, Any]]] = collections.defaultdict(list)
-        for rule in all_rules:
-            for language in rule["languages"]:
-                by_lang[language].append(rule)
+        for pattern in patterns:
+            for language in pattern["languages"]:
+                by_lang[language].append(pattern)
         return by_lang
 
-    def sgrep_error_json_to_message_then_exit(
+    def _sgrep_error_json_to_message_then_exit(
         self, error_json: Dict[str, Any],
     ) -> None:
         """
@@ -78,13 +102,11 @@ class SgrepBridge:
         """
             Run all rules on targets and return list of all places that match patterns, ... todo errors
         """
-        patterns = list(flatten_rule_patterns(rules))
-
         outputs: List[Any] = []  # multiple invocations per language
         errors: List[Any] = []
 
-        for language, all_rules_for_language in self.group_rule_by_langauges(
-            patterns
+        for language, all_rules_for_language in self._group_rule_by_langauges(
+            rules
         ).items():
             with tempfile.NamedTemporaryFile("w") as fout:
                 # very important not to sort keys here
@@ -107,7 +129,7 @@ class SgrepBridge:
                         # see if sgrep output a JSON error that we can decode
                         output_json = json.loads((ex.output.decode("utf-8", "replace")))
                         if "error" in output_json:
-                            self.sgrep_error_json_to_message_then_exit(output_json)
+                            self._sgrep_error_json_to_message_then_exit(output_json)
                         else:
                             raise ex  # let our general exception handler take care of this
                     except Exception:
@@ -150,7 +172,9 @@ class SgrepBridge:
             # expression = (op, pattern_id) for (op, pattern_id, pattern) in expression_with_patterns]
             for filepath, results in paths.items():
                 debug_print(f"-------- rule ({rule.id} ------ filepath: {filepath}")
-                check_ids_to_ranges = parse_sgrep_output(results)
+                check_ids_to_ranges = parse_sgrep_output(
+                    results
+                )  # TODO should run_rules handle this
                 debug_print(str(check_ids_to_ranges))
                 valid_ranges_to_output = evaluate_expression(
                     expression,
@@ -208,26 +232,6 @@ class SgrepBridge:
         debug_print(f"sgrep ran in {datetime.now() - start}")
 
         return findings_by_rule, errors
-
-
-def flatten_rule_patterns(all_rules: List[Rule]) -> Iterator[Dict[str, Any]]:
-    for rule_index, rule in enumerate(all_rules):
-        flat_expressions = list(
-            enumerate_patterns_in_boolean_expression(rule.expression)
-        )
-        for expr in flat_expressions:
-            if not should_send_to_sgrep(expr):
-                continue
-            # if we don't copy an array (like `languages`), the yaml file will refer to it by reference (with an anchor)
-            # which is nice and all but the sgrep YAML parser doesn't support that
-            new_check_id = f"{rule_index}.{expr.pattern_id}"
-            yield {
-                "id": new_check_id,
-                "pattern": expr.operand,
-                "severity": rule.severity,
-                "languages": rule.languages.copy(),
-                "message": "<internalonly>",
-            }
 
 
 def uniq_id(r: Any) -> Tuple[str, str, int, int, int, int]:

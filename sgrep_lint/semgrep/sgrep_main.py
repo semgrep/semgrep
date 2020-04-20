@@ -33,23 +33,23 @@ SGREP_RULES_HOME = "https://github.com/returntocorp/sgrep-rules"
 MISSING_RULE_ID = "no-rule-id"
 
 
-def validate_single_rule(config_id: str, rule_index: int, rule: Dict[str, Any]) -> bool:
+def validate_single_rule(config_id: str, rule: Dict[str, Any]) -> bool:
     rule_id_err_msg = f'(rule id: {rule.get("id", MISSING_RULE_ID)})'
     if not set(rule.keys()).issuperset(YAML_MUST_HAVE_KEYS):
         print_error(
-            f"{config_id} is missing keys at rule {rule_index+1} {rule_id_err_msg}, must have: {YAML_MUST_HAVE_KEYS}"
+            f"{config_id} is missing keys at rule {rule_id_err_msg}, must have: {YAML_MUST_HAVE_KEYS}"
         )
         return False
     if not set(rule.keys()).issubset(YAML_ALL_VALID_RULE_KEYS):
         print_error(
-            f"{config_id} has invalid rule key at rule {rule_index+1} {rule_id_err_msg}, can only have: {YAML_ALL_VALID_RULE_KEYS}"
+            f"{config_id} has invalid rule key at rule {rule_id_err_msg}, can only have: {YAML_ALL_VALID_RULE_KEYS}"
         )
         return False
     try:
         _ = Rule.from_json(rule).expression
     except InvalidRuleSchema as ex:
         print_error(
-            f"{config_id}: inside rule {rule_index+1} {rule_id_err_msg}, pattern fields can't look like this: {ex}"
+            f"{config_id}: inside rule {rule_id_err_msg}, pattern fields can't look like this: {ex}"
         )
         return False
 
@@ -60,7 +60,6 @@ def validate_configs(
     configs: Dict[str, Optional[Dict[str, Any]]]
 ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     """ Take configs and separate into valid and invalid ones"""
-
     errors = {}
     valid = {}
     for config_id, config in configs.items():
@@ -74,8 +73,8 @@ def validate_configs(
         rules = config.get(RULES_KEY)
         valid_rules = []
         invalid_rules = []
-        for i, rule in enumerate(rules):  # type: ignore
-            if validate_single_rule(config_id, i, rule):
+        for rule in rules:  # type: ignore
+            if validate_single_rule(config_id, rule):
                 valid_rules.append(rule)
             else:
                 invalid_rules.append(rule)
