@@ -144,6 +144,10 @@ def safe_relative_to(a: Path, b: Path) -> Path:
         return a
 
 
+def should_exclude_this_path(path: Path) -> bool:
+    return any("test" in p or "example" in p for p in path.parts)
+
+
 def evaluate(
     rule: Rule, results: List[Dict[str, Any]], allow_exec: bool
 ) -> List[Dict[str, Any]]:
@@ -164,11 +168,6 @@ def evaluate(
     for result in results:
         if sgrep_finding_to_range(result).range in valid_ranges_to_output:
             path_object = Path(result["path"])
-            # if self._exclude_tests and should_exclude_this_path(
-            #     path_object
-            # ):
-            #     ignored_in_tests += 1
-            #     continue
 
             # restore the original rule ID
             result["check_id"] = rule.id

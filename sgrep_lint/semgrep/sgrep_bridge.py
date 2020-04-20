@@ -30,9 +30,8 @@ Handle executing and parsing output of sgrep binary
 
 # Rename to CoreRunner
 class SgrepBridge:
-    def __init__(self, allow_exec: bool, exclude_tests: bool):
+    def __init__(self, allow_exec: bool):
         self._allow_exec = allow_exec
-        self._exclude_tests = exclude_tests
 
     def _decode_rule_id_to_index(self, rule_id: str) -> int:
         # decode the rule index from the output check_id
@@ -169,12 +168,6 @@ class SgrepBridge:
             # Brendon figure this out in the morning
             findings_by_rule[rule] = findings
 
-        # ignored_in_tests = 0
-        # if ignored_in_tests > 0:
-        #     print_error(
-        #         f"warning: ignored {ignored_in_tests} results in tests due to --exclude-tests option"
-        #     )
-
         return findings_by_rule
 
     def invoke_sgrep(
@@ -215,7 +208,3 @@ def should_send_to_sgrep(expression: BooleanRuleExpression) -> bool:
         and expression.operand is not None
         and (expression.operator != OPERATORS.WHERE_PYTHON)
     )
-
-
-def should_exclude_this_path(path: Path) -> bool:
-    return any("test" in p or "example" in p for p in path.parts)

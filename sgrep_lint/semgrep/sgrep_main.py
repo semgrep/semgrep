@@ -195,6 +195,13 @@ def flatten_configs(transformed_configs: Dict[str, Any]) -> List[Rule]:
     ]
 
 
+def should_exclude_this_path(path: Path) -> bool:
+    """
+        Return true if "test" or "example" are anywhere in path
+    """
+    return any("test" in p or "example" in p for p in path.parts)
+
+
 def main(args: argparse.Namespace) -> Dict[str, Any]:
     """ main function that parses args and runs sgrep """
     # get the proper paths for targets i.e. handle base path of /home/repo when it exists in docker
@@ -235,8 +242,25 @@ def main(args: argparse.Namespace) -> Dict[str, Any]:
 
     # actually invoke sgrep
     findings_by_rule, sgrep_errors = SgrepBridge(
-        args.dangerously_allow_arbitrary_code_execution_from_rules, args.exclude_tests
+        args.dangerously_allow_arbitrary_code_execution_from_rules,
     ).invoke_sgrep(targets, all_rules)
+
+    if args.exclude_tests:
+        ignored_in_tests = 0
+        filtered_findings_by_rule = {}
+        for rule, findings in findings_by_rule.items():
+            filtered = []
+            for finding in findings:
+                if should_exclude_this_path(Path(finding["path"])):
+                    ignored_in_tests += 1
+                else:
+                    filtered.append(finding)
+            filtered_findings_by_rule[rule] = filtered
+        findings_by_rule = filtered_findings_by_rule
+        if ignored_in_tests > 0:
+            print_error(
+                f"warning: ignored {ignored_in_tests} results in tests due to --exclude-tests option"
+            )
 
     for finding in sgrep_errors:
         print_error(f"sgrep: {finding['path']}: {finding['check_id']}")
