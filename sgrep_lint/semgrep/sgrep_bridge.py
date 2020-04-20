@@ -5,7 +5,6 @@ import tempfile
 from datetime import datetime
 from pathlib import Path
 from typing import Any
-from typing import DefaultDict
 from typing import Dict
 from typing import Iterator
 from typing import List
@@ -13,16 +12,12 @@ from typing import Tuple
 
 import yaml
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
-from semgrep.constants import RCE_RULE_FLAG
 from semgrep.constants import SGREP_PATH
 from semgrep.evaluation import enumerate_patterns_in_boolean_expression
-from semgrep.evaluation import evaluate_expression
+from semgrep.evaluation import evaluate
 from semgrep.rule import Rule
 from semgrep.sgrep_types import BooleanRuleExpression
 from semgrep.sgrep_types import OPERATORS
-from semgrep.sgrep_types import PatternId
-from semgrep.sgrep_types import Range
-from semgrep.sgrep_types import SgrepRange
 from semgrep.util import debug_print
 from semgrep.util import INVALID_PATTERN_EXIT_CODE
 from semgrep.util import print_error
@@ -39,7 +34,7 @@ class SgrepBridge:
         self._allow_exec = allow_exec
         self._exclude_tests = exclude_tests
 
-    def decode_rule_id_to_index(self, rule_id: str) -> int:
+    def _decode_rule_id_to_index(self, rule_id: str) -> int:
         # decode the rule index from the output check_id
         return int(rule_id.split(".")[0])
 
@@ -68,6 +63,7 @@ class SgrepBridge:
     def _group_rule_by_langauges(
         self, rules: List[Rule]
     ) -> Dict[str, List[Dict[str, Any]]]:
+        # a rule can have multiple patterns inside it. Flatten these so we can send sgrep a single yml file list of patterns
         patterns = list(self._flatten_rule_patterns(rules))
         by_lang: Dict[str, List[Dict[str, Any]]] = collections.defaultdict(list)
         for pattern in patterns:
@@ -96,7 +92,7 @@ class SgrepBridge:
                 f'an internal error occured while invoking the sgrep engine: {error_type}: {error_json.get("message", "")}.\n\n{PLEASE_FILE_ISSUE_TEXT}'
             )
 
-    def run_rules(
+    def _run_rules(
         self, rules: List[Rule], targets: List[Path]
     ) -> Tuple[Dict[Rule, Dict[str, List[Dict[str, Any]]]], List[Any]]:
         """
@@ -147,87 +143,50 @@ class SgrepBridge:
         ] = collections.defaultdict(lambda: collections.defaultdict(list))
 
         for finding in outputs:
-            rule_index = self.decode_rule_id_to_index(finding["check_id"])
+            rule_index = self._decode_rule_id_to_index(finding["check_id"])
             rule = rules[rule_index]
             finding["check_id"] = ".".join(finding["check_id"].split(".")[1:])
             by_rule_index[rule][finding["path"]].append(finding)
 
         return by_rule_index, errors
 
-    def resolve_rules(
-        self,
-        all_rules: List[Rule],
-        outputs: Dict[Rule, Dict[str, List[Dict[str, Any]]]],
+    def _resolve_output(
+        self, outputs: Dict[Rule, Dict[str, List[Dict[str, Any]]]],
     ) -> Dict[Rule, List[Dict[str, Any]]]:
         """
             Takes output of all running all patterns and rules and returns Findings
         """
-        current_path = Path.cwd()
         findings_by_rule: Dict[Rule, List[Dict[str, Any]]] = {}
-        ignored_in_tests = 0
 
         for rule, paths in outputs.items():
-            expression = rule.expression
-            debug_print(str(expression))
-            # expression = (op, pattern_id) for (op, pattern_id, pattern) in expression_with_patterns]
+            findings = []
             for filepath, results in paths.items():
                 debug_print(f"-------- rule ({rule.id} ------ filepath: {filepath}")
-                check_ids_to_ranges = parse_sgrep_output(
-                    results
-                )  # TODO should run_rules handle this
-                debug_print(str(check_ids_to_ranges))
-                valid_ranges_to_output = evaluate_expression(
-                    expression,
-                    check_ids_to_ranges,
-                    flags={RCE_RULE_FLAG: self._allow_exec},
-                )
 
-                # only output matches which are inside these offsets!
-                debug_print(f"compiled result {valid_ranges_to_output}")
-                debug_print("-" * 80)
-                for result in results:
-                    if sgrep_finding_to_range(result).range in valid_ranges_to_output:
-                        path_object = Path(result["path"])
-                        if self._exclude_tests and should_exclude_this_path(
-                            path_object
-                        ):
-                            ignored_in_tests += 1
-                            continue
+                findings.extend(evaluate(rule, results, self._allow_exec))
 
-                        # restore the original rule ID
-                        result["check_id"] = rule.id
-                        # rewrite the path to be relative to the current working directory
-                        result["path"] = str(
-                            safe_relative_to(path_object, current_path)
-                        )
+            # todo dedup this
+            # Brendon figure this out in the morning
+            findings_by_rule[rule] = findings
 
-                        # restore the original message
-                        result["extra"]["message"] = rewrite_message_with_metavars(
-                            rule, result
-                        )
-
-                        result = transform_to_r2c_output(result)
-                        # todo dedup this
-                        findings_by_rule.setdefault(rule, []).append(result)
-
-        if ignored_in_tests > 0:
-            print_error(
-                f"warning: ignored {ignored_in_tests} results in tests due to --exclude-tests option"
-            )
+        # ignored_in_tests = 0
+        # if ignored_in_tests > 0:
+        #     print_error(
+        #         f"warning: ignored {ignored_in_tests} results in tests due to --exclude-tests option"
+        #     )
 
         return findings_by_rule
 
     def invoke_sgrep(
-        self, targets: List[Path], all_rules: List[Rule],
+        self, targets: List[Path], rules: List[Rule],
     ) -> Tuple[Dict[Rule, List[Dict[str, Any]]], List[Any]]:
         """
             Takes in rules and targets and retuns object with findings
         """
-        # a rule can have multiple patterns inside it. Flatten these so we can send sgrep a single yml file list of patterns
         start = datetime.now()
 
-        outputs, errors = self.run_rules(all_rules, targets)
-        findings_by_rule = self.resolve_rules(all_rules, outputs)
+        outputs, errors = self._run_rules(rules, targets)
+        findings_by_rule = self._resolve_output(outputs)
 
         debug_print(f"sgrep ran in {datetime.now() - start}")
 
@@ -258,49 +217,5 @@ def should_send_to_sgrep(expression: BooleanRuleExpression) -> bool:
     )
 
 
-def parse_sgrep_output(
-    sgrep_findings: List[Dict[str, Any]]
-) -> Dict[PatternId, List[SgrepRange]]:
-    output: DefaultDict[PatternId, List[SgrepRange]] = collections.defaultdict(list)
-    for finding in sgrep_findings:
-        check_id = finding["check_id"]
-        pattern_id = PatternId(check_id)
-        output[pattern_id].append(sgrep_finding_to_range(finding))
-    return dict(output)
-
-
-def transform_to_r2c_output(finding: Dict[str, Any]) -> Dict[str, Any]:
-    # https://docs.r2c.dev/en/latest/api/output.html does not support offset at the moment
-    if "offset" in finding["start"]:
-        del finding["start"]["offset"]
-    if "offset" in finding["end"]:
-        del finding["end"]["offset"]
-    return finding
-
-
-def safe_relative_to(a: Path, b: Path) -> Path:
-    try:
-        return a.relative_to(b)
-    except ValueError:
-        # paths had no common prefix; not possible to relativize
-        return a
-
-
 def should_exclude_this_path(path: Path) -> bool:
     return any("test" in p or "example" in p for p in path.parts)
-
-
-def sgrep_finding_to_range(sgrep_finding: Dict[str, Any]) -> SgrepRange:
-    metavars = sgrep_finding["extra"]["metavars"]
-    return SgrepRange(
-        Range(sgrep_finding["start"]["offset"], sgrep_finding["end"]["offset"]),
-        {k: v["abstract_content"] for k, v in metavars.items()},
-    )
-
-
-def rewrite_message_with_metavars(rule: Rule, sgrep_result: Dict[str, Any]) -> str:
-    msg_text = rule.message
-    if "metavars" in sgrep_result["extra"]:
-        for metavar, contents in sgrep_result["extra"]["metavars"].items():
-            msg_text = msg_text.replace(metavar, contents["abstract_content"])
-    return msg_text

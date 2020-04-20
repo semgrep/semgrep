@@ -1,4 +1,7 @@
+import collections
+from pathlib import Path
 from typing import Any
+from typing import DefaultDict
 from typing import Dict
 from typing import Iterable
 from typing import List
@@ -6,6 +9,7 @@ from typing import Optional
 from typing import Set
 
 from semgrep.constants import RCE_RULE_FLAG
+from semgrep.rule import Rule
 from semgrep.sgrep_types import BooleanRuleExpression
 from semgrep.sgrep_types import OPERATORS
 from semgrep.sgrep_types import pattern_names_for_operator
@@ -111,6 +115,90 @@ def _where_python_statement_matches(
             f"python where expression needs boolean output but got: {output} for {where_expression}"  # type: ignore
         )
     return output == True  # type: ignore
+
+
+def parse_sgrep_output(
+    sgrep_findings: List[Dict[str, Any]]
+) -> Dict[PatternId, List[SgrepRange]]:
+    output: DefaultDict[PatternId, List[SgrepRange]] = collections.defaultdict(list)
+    for finding in sgrep_findings:
+        check_id = finding["check_id"]
+        pattern_id = PatternId(check_id)
+        output[pattern_id].append(sgrep_finding_to_range(finding))
+    return dict(output)
+
+
+def sgrep_finding_to_range(sgrep_finding: Dict[str, Any]) -> SgrepRange:
+    metavars = sgrep_finding["extra"]["metavars"]
+    return SgrepRange(
+        Range(sgrep_finding["start"]["offset"], sgrep_finding["end"]["offset"]),
+        {k: v["abstract_content"] for k, v in metavars.items()},
+    )
+
+
+def safe_relative_to(a: Path, b: Path) -> Path:
+    try:
+        return a.relative_to(b)
+    except ValueError:
+        # paths had no common prefix; not possible to relativize
+        return a
+
+
+def evaluate(
+    rule: Rule, results: List[Dict[str, Any]], allow_exec: bool
+) -> List[Dict[str, Any]]:
+    current_path = Path(".")
+    output = []
+    expression = rule.expression
+    check_ids_to_ranges = parse_sgrep_output(
+        results
+    )  # TODO should run_rules handle this
+    debug_print(str(check_ids_to_ranges))
+    valid_ranges_to_output = evaluate_expression(
+        expression, check_ids_to_ranges, flags={RCE_RULE_FLAG: allow_exec},
+    )
+
+    # only output matches which are inside these offsets!
+    debug_print(f"compiled result {valid_ranges_to_output}")
+    debug_print("-" * 80)
+    for result in results:
+        if sgrep_finding_to_range(result).range in valid_ranges_to_output:
+            path_object = Path(result["path"])
+            # if self._exclude_tests and should_exclude_this_path(
+            #     path_object
+            # ):
+            #     ignored_in_tests += 1
+            #     continue
+
+            # restore the original rule ID
+            result["check_id"] = rule.id
+            # rewrite the path to be relative to the current working directory
+            result["path"] = str(safe_relative_to(path_object, current_path))
+
+            # restore the original message
+            result["extra"]["message"] = rewrite_message_with_metavars(rule, result)
+
+            result = transform_to_r2c_output(result)
+            output.append(result)
+
+    return output
+
+
+def rewrite_message_with_metavars(rule: Rule, sgrep_result: Dict[str, Any]) -> str:
+    msg_text = rule.message
+    if "metavars" in sgrep_result["extra"]:
+        for metavar, contents in sgrep_result["extra"]["metavars"].items():
+            msg_text = msg_text.replace(metavar, contents["abstract_content"])
+    return msg_text
+
+
+def transform_to_r2c_output(finding: Dict[str, Any]) -> Dict[str, Any]:
+    # https://docs.r2c.dev/en/latest/api/output.html does not support offset at the moment
+    if "offset" in finding["start"]:
+        del finding["start"]["offset"]
+    if "offset" in finding["end"]:
+        del finding["end"]["offset"]
+    return finding
 
 
 def evaluate_expression(
