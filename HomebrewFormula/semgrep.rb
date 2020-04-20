@@ -9,7 +9,6 @@ class Semgrep < Formula
   depends_on "coreutils"
   depends_on "python@3.8"
 
-
   resource "certifi" do
     url "https://files.pythonhosted.org/packages/b8/e2/a3a86a67c3fc8249ed305fc7b7d290ebe5e4d46ad45573884761ef4dea7b/certifi-2020.4.5.1.tar.gz"
     sha256 "51fcb31174be6e6664c5f69e3e1691a2d72a1a12e90f872cbdb1567eb47b6519"
@@ -52,23 +51,22 @@ class Semgrep < Formula
 
   # To avoid upstream breakage, patch the Python code to make it well behaved
   patch do
-    url "https://github.com/returntocorp/sgrep/compare/f3b49b1.diff"
-    sha256 "83888a36495c482d8a106bba56664af3795fd85f88655a312c6d43e56dbd2494"
+    url "https://github.com/returntocorp/sgrep/commit/f71a9ccb520c9f7a4eddc93e3e0f80c946741c3d.diff?full_index=1"
+    sha256 "3568550fb88764a596fef71728ec0e91d1716e29b049788ea7e2c3d2d9569c87"
   end
-
 
   def install
     (buildpath/"ocaml-binary").install resource("ocaml-binary")
     File.rename("ocaml-binary/sgrep", "sgrep-core")
     bin.install "sgrep-core"
-    cd 'sgrep_lint' do
-        venv = virtualenv_create(libexec, Formula["python@3.8"].bin/"python3.8")
-        python_deps = resources.select do |resource|
-          resource.name != 'ocaml-binary'
-        end
-        venv.pip_install python_deps
-        venv.pip_install_and_link buildpath/"sgrep_lint"
+    cd "sgrep_lint" do
+      venv = virtualenv_create(libexec, Formula["python@3.8"].bin/"python3.8")
+      python_deps = resources.reject do |resource|
+        resource.name == "ocaml-binary"
       end
+      venv.pip_install python_deps
+      venv.pip_install_and_link buildpath/"sgrep_lint"
+    end
   end
   test do
     system "#{bin}/semgrep --help"

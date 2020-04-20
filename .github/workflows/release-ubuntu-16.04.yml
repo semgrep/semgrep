@@ -7,16 +7,16 @@ on:
 jobs:
   release-ubuntu-16-04:
     runs-on: ubuntu-latest
-    container: ocaml/opam2:ubuntu-16.04
+    container: returntocorp/sgrep-build:ubuntu-16.04
     steps:
-      - name: Adjust permissions
-        run: sudo chmod -R 777 . /github
       - name: Checkout
         uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
       - name: Run Ubuntu build script
         run: ./release-scripts/ubuntu-release.sh
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
           name: sgrep-ubuntu-16.04-${{ github.sha }}
-          path: sgrep-ubuntu-16.04.tar.gz
+          path: artifacts.tar.gz
