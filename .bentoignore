@@ -31,6 +31,6 @@
 .gitignore
 .git/
 :include .gitignore
-sgrep/tests/
+semgrep-core/tests/
 pfff/
 sgrep_lint/tests/
