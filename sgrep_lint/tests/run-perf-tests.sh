@@ -32,7 +32,7 @@ test_sample_repos() {
     $HYPERFINE --export-markdown ${THIS_DIR}/testsuite.md "${CMDA}" "${CMDB}"
     cat ${THIS_DIR}/testsuite.md
     cd -
-    
+
 }
 
 echo "-----------------------"

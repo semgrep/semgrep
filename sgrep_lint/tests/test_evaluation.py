@@ -1,40 +1,56 @@
 #!/usr/bin/env python3
-import os
-import sys
+from typing import Any
+from typing import Dict
 from typing import List
+from typing import Optional
+from typing import Set
+from unittest.mock import MagicMock
+from unittest.mock import PropertyMock
 
 from semgrep.constants import RCE_RULE_FLAG
-from semgrep.evaluation import build_boolean_expression
 from semgrep.evaluation import enumerate_patterns_in_boolean_expression
-from semgrep.evaluation import evaluate_expression as raw_evalute_expression
+from semgrep.evaluation import evaluate_expression as raw_evaluate_expression
+from semgrep.pattern_match import PatternMatch
+from semgrep.rule import Rule
 from semgrep.sgrep_types import BooleanRuleExpression
 from semgrep.sgrep_types import Operator
 from semgrep.sgrep_types import OPERATORS
+from semgrep.sgrep_types import PatternId
 from semgrep.sgrep_types import Range
-from semgrep.sgrep_types import SgrepRange
 
 
-def evaluate_expression(exprs: List[BooleanRuleExpression], results, flags=None):
+def evaluate_expression(
+    exprs: List[BooleanRuleExpression],
+    pattern_ids_to_pattern_matches: Dict[PatternId, List[PatternMatch]],
+    flags: Optional[Dict[str, Any]] = None,
+) -> Set[Range]:
     # convert it to an implicit and
     e = BooleanRuleExpression(OPERATORS.AND_ALL, None, exprs, None)
-    return raw_evalute_expression(e, results, flags)
+    return raw_evaluate_expression(e, pattern_ids_to_pattern_matches, flags)
 
 
-def SRange(start: int, end: int):
-    return SgrepRange(Range(start, end), {})
+def PatternMatchMock(
+    start: int, end: int, metavars: Optional[Dict[str, Any]] = None
+) -> MagicMock:
+    mock = MagicMock()
+    range_property = PropertyMock(return_value=Range(start, end))
+    type(mock).range = range_property
+    metavars_property = PropertyMock(return_value=metavars)
+    type(mock).metavars = metavars_property
+    return mock
 
 
 def RuleExpr(
     operator: Operator,
     fake_pattern_name: str,
-    children: List[BooleanRuleExpression] = None,
-):
+    children: Optional[List[BooleanRuleExpression]] = None,
+) -> BooleanRuleExpression:
     return BooleanRuleExpression(
-        operator, fake_pattern_name, children, "fake-pattern-text-here"
+        operator, PatternId(fake_pattern_name), children, "fake-pattern-text-here"
     )
 
 
-def testA():
+def testA() -> None:
     """
 
     TODO: what about nested booleans?
@@ -53,8 +69,8 @@ def testA():
 
     """
     results = {
-        "pattern1": [SRange(30, 100)],
-        "pattern2": [SRange(0, 100), SRange(30, 100)],
+        PatternId("pattern1"): [PatternMatchMock(30, 100)],
+        PatternId("pattern2"): [PatternMatchMock(0, 100), PatternMatchMock(30, 100)],
     }
     expression = [
         RuleExpr(OPERATORS.AND_NOT, "pattern1"),
@@ -64,7 +80,7 @@ def testA():
     assert result == set([Range(0, 100)]), f"{result}"
 
 
-def testB():
+def testB() -> None:
     """
     Our algebra needs to express "AND-INSIDE" as opposed to "AND-NOT-INSIDE", so that cases
     like this one can still fire (we explicitly don't want to ignore the nested expression
@@ -85,9 +101,9 @@ def testB():
         OUTPUT: R2
     """
     results = {
-        "pattern1": [SRange(0, 100)],
-        "pattern2": [SRange(30, 70), SRange(0, 100)],
-        "pattern3": [],
+        PatternId("pattern1"): [PatternMatchMock(0, 100)],
+        PatternId("pattern2"): [PatternMatchMock(30, 70), PatternMatchMock(0, 100)],
+        PatternId("pattern3"): [],
     }
     expression = [
         RuleExpr(OPERATORS.AND_NOT, "pattern1"),
@@ -101,7 +117,7 @@ def testB():
     assert result == set([Range(30, 70)]), f"{result}"
 
 
-def testC():
+def testC() -> None:
     """
         let pattern1 = subprocess.Popen($X, safeflag=True)
         let pattern2 = subprocess.Popen($X, ...)
@@ -120,9 +136,12 @@ def testC():
         OUTPUT: R2
     """
     results = {
-        "pattern1": [SRange(100, 1000)],
-        "pattern2": [SRange(100, 1000), SRange(200, 300)],
-        "pattern4": [SRange(0, 1000)],
+        PatternId("pattern1"): [PatternMatchMock(100, 1000)],
+        PatternId("pattern2"): [
+            PatternMatchMock(100, 1000),
+            PatternMatchMock(200, 300),
+        ],
+        PatternId("pattern4"): [PatternMatchMock(0, 1000)],
     }
     expression = [
         RuleExpr(OPERATORS.AND_INSIDE, "pattern4"),
@@ -133,7 +152,7 @@ def testC():
     assert result == set([Range(200, 300)]), f"{result}"
 
 
-def testD():
+def testD() -> None:
     """
         let pattern1 = subprocess.Popen($X, safeflag=True)
         let pattern2 = subprocess.Popen($X, ...)
@@ -152,9 +171,12 @@ def testD():
         OUTPUT: []
     """
     results = {
-        "pattern1": [SRange(100, 1000)],
-        "pattern2": [SRange(100, 1000), SRange(200, 300)],
-        "pattern4": [SRange(0, 1000)],
+        PatternId("pattern1"): [PatternMatchMock(100, 1000)],
+        PatternId("pattern2"): [
+            PatternMatchMock(100, 1000),
+            PatternMatchMock(200, 300),
+        ],
+        PatternId("pattern4"): [PatternMatchMock(0, 1000)],
     }
     expression = [
         RuleExpr(OPERATORS.AND_NOT_INSIDE, "pattern4"),
@@ -165,7 +187,7 @@ def testD():
     assert result == set([]), f"{result}"
 
 
-def testE():
+def testE() -> None:
     """
     let pattern1 = bad(...)
     let pattern2 = def __eq__(): \n...
@@ -188,14 +210,14 @@ def testE():
         OUTPUT: [300-400], [350-400]
     """
     results = {
-        "pattern1": [
-            SRange(100, 200),
-            SRange(300, 400),
-            SRange(350, 400),
-            SRange(500, 600),
+        PatternId("pattern1"): [
+            PatternMatchMock(100, 200),
+            PatternMatchMock(300, 400),
+            PatternMatchMock(350, 400),
+            PatternMatchMock(500, 600),
         ],
-        "pattern2": [SRange(0, 200), SRange(400, 600)],
-        "pattern3": [SRange(200, 600)],
+        PatternId("pattern2"): [PatternMatchMock(0, 200), PatternMatchMock(400, 600)],
+        PatternId("pattern3"): [PatternMatchMock(200, 600)],
     }
     expression = [
         RuleExpr(OPERATORS.AND_INSIDE, "pattern3"),
@@ -242,7 +264,7 @@ def testE():
     # TODO
 
 
-def testF():
+def testF() -> None:
     """Nested boolean expressions
 
     let pattern1 = bad(..., x=1)
@@ -279,10 +301,18 @@ def testF():
         OUTPUT: [500-600], [700-800]
     """
     results = {
-        "pattern1": [SRange(100, 200), SRange(400, 500), SRange(700, 800)],
-        "pattern2": [SRange(200, 300), SRange(500, 600), SRange(800, 900)],
-        "pattern3": [SRange(0, 900)],
-        "pattern4": [SRange(300, 600)],
+        PatternId("pattern1"): [
+            PatternMatchMock(100, 200),
+            PatternMatchMock(400, 500),
+            PatternMatchMock(700, 800),
+        ],
+        PatternId("pattern2"): [
+            PatternMatchMock(200, 300),
+            PatternMatchMock(500, 600),
+            PatternMatchMock(800, 900),
+        ],
+        PatternId("pattern3"): [PatternMatchMock(0, 900)],
+        PatternId("pattern4"): [PatternMatchMock(300, 600)],
     }
 
     subexpression1 = [
@@ -312,26 +342,34 @@ def testF():
     # TODO test and-all (`patterns` subkey)
 
 
-def test_exprs():
+def test_exprs() -> None:
     subexpression1 = [
-        BooleanRuleExpression(OPERATORS.AND_INSIDE, "pattern4", None, "p4"),
-        BooleanRuleExpression(OPERATORS.AND, "pattern2", None, "p2"),
+        BooleanRuleExpression(OPERATORS.AND_INSIDE, PatternId("pattern4"), None, "p4"),
+        BooleanRuleExpression(OPERATORS.AND, PatternId("pattern2"), None, "p2"),
     ]
     subexpression2 = [
-        BooleanRuleExpression(OPERATORS.AND_NOT_INSIDE, "pattern4", None, "p4"),
-        BooleanRuleExpression(OPERATORS.AND, "pattern1", None, "p1"),
+        BooleanRuleExpression(
+            OPERATORS.AND_NOT_INSIDE, PatternId("pattern4"), None, "p4"
+        ),
+        BooleanRuleExpression(OPERATORS.AND, PatternId("pattern1"), None, "p1"),
     ]
     expression = BooleanRuleExpression(
         OPERATORS.AND_ALL,
         None,
         [
-            BooleanRuleExpression(OPERATORS.AND_INSIDE, "pattern3", None, "p3"),
+            BooleanRuleExpression(
+                OPERATORS.AND_INSIDE, PatternId("pattern3"), None, "p3"
+            ),
             BooleanRuleExpression(
                 OPERATORS.AND_EITHER,
                 None,
                 [
-                    BooleanRuleExpression(OPERATORS.AND_ALL, "someid", subexpression1),
-                    BooleanRuleExpression(OPERATORS.AND_ALL, "someid2", subexpression2),
+                    BooleanRuleExpression(
+                        OPERATORS.AND_ALL, PatternId("someid"), subexpression1
+                    ),
+                    BooleanRuleExpression(
+                        OPERATORS.AND_ALL, PatternId("someid2"), subexpression2
+                    ),
                 ],
             ),
         ],
@@ -341,36 +379,40 @@ def test_exprs():
 
     expected = [
         BooleanRuleExpression(OPERATORS.AND_ALL, None, None, None),
-        BooleanRuleExpression(OPERATORS.AND_INSIDE, "pattern3", None, "p3"),
+        BooleanRuleExpression(OPERATORS.AND_INSIDE, PatternId("pattern3"), None, "p3"),
         BooleanRuleExpression(OPERATORS.AND_EITHER, None, None, None),
         BooleanRuleExpression(OPERATORS.AND_ALL, None, None, None),
-        BooleanRuleExpression(OPERATORS.AND_INSIDE, "pattern4", None, "p4"),
-        BooleanRuleExpression(OPERATORS.AND, "pattern2", None, "p2"),
+        BooleanRuleExpression(OPERATORS.AND_INSIDE, PatternId("pattern4"), None, "p4"),
+        BooleanRuleExpression(OPERATORS.AND, PatternId("pattern2"), None, "p2"),
         BooleanRuleExpression(OPERATORS.AND_ALL, None, None, None),
-        BooleanRuleExpression(OPERATORS.AND_NOT_INSIDE, "pattern4", None, "p4"),
-        BooleanRuleExpression(OPERATORS.AND, "pattern1", None, "p1"),
+        BooleanRuleExpression(
+            OPERATORS.AND_NOT_INSIDE, PatternId("pattern4"), None, "p4"
+        ),
+        BooleanRuleExpression(OPERATORS.AND, PatternId("pattern1"), None, "p1"),
     ]
 
     assert flat == expected, f"flat: {flat}"
 
 
-def test_build_exprs():
-    base_rule = {
+def test_build_exprs() -> None:
+    base_rule: Dict[str, Any] = {
         "id": "test-id",
         "message": "test message",
         "languages": ["python"],
         "severity": "ERROR",
     }
-    rules = [
+    rules: List[Dict[str, Any]] = [
         {**base_rule, **{"pattern": "test(...)"}},
         {**base_rule, **{"patterns": [{"pattern": "test(...)"}]}},
         {**base_rule, **{"pattern-either": [{"pattern": "test(...)"}]}},
     ]
 
-    results = [build_boolean_expression(rule) for rule in rules]
-    base_expected = [BooleanRuleExpression(OPERATORS.AND, '.0', None, "test(...)")]
+    results = [Rule.from_json(rule).expression for rule in rules]
+    base_expected = [
+        BooleanRuleExpression(OPERATORS.AND, PatternId(".0"), None, "test(...)")
+    ]
     expected = [
-        BooleanRuleExpression(OPERATORS.AND, "test-id", None, "test(...)"),
+        BooleanRuleExpression(OPERATORS.AND, PatternId("test-id"), None, "test(...)"),
         BooleanRuleExpression(OPERATORS.AND_ALL, None, base_expected, None),
         BooleanRuleExpression(OPERATORS.AND_EITHER, None, base_expected, None),
     ]
@@ -378,7 +420,7 @@ def test_build_exprs():
     assert results == expected
 
 
-def test_evaluate_python():
+def test_evaluate_python() -> None:
     """Test evaluating the subpattern `where-python: <python_expression>`,
     in which a rule can provide an arbitrary Python expression that will be
     evaluated against the currently matched metavariables.
@@ -415,16 +457,19 @@ def test_evaluate_python():
         OUTPUT: [400-500]
     """
     results = {
-        "all_execs": [
-            SgrepRange(Range(400, 500), {"$X": "cmd_pattern"}),
-            SgrepRange(Range(800, 900), {"$X": "other_pattern"}),
+        PatternId("all_execs"): [
+            PatternMatchMock(400, 500, {"$X": {"abstract_content": "cmd_pattern"}}),
+            PatternMatchMock(800, 900, {"$X": {"abstract_content": "other_pattern"}}),
         ]
     }
 
     expression = [
-        BooleanRuleExpression(OPERATORS.AND, "all_execs", None, "all_execs"),
+        BooleanRuleExpression(OPERATORS.AND, PatternId("all_execs"), None, "all_execs"),
         BooleanRuleExpression(
-            OPERATORS.WHERE_PYTHON, "p1", None, "vars['$X'].startswith('cmd')"
+            OPERATORS.WHERE_PYTHON,
+            PatternId("p1"),
+            None,
+            "vars['$X'].startswith('cmd')",
         ),
     ]
 
