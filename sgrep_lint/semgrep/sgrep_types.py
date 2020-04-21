@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Dict
 from typing import List
 from typing import NewType
 from typing import Optional
@@ -116,14 +115,3 @@ class Range:
 
     def __repr__(self) -> str:
         return f"{self.start}-{self.end}"
-
-
-@dataclass(frozen=True)
-class SgrepRange:
-    # Wrapper to represent results from sgrep
-
-    range: Range  # The range of the match
-    metavars: Dict[str, str]  # Any matched metavariables, {"$NAME": "<matched text>"}
-
-    def __repr__(self) -> str:
-        return f"{self.range}-{self.metavars}"

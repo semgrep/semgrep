@@ -1,22 +1,20 @@
+from pathlib import Path
 from typing import Any
 from typing import Dict
 from typing import Iterable
-from typing import Iterator
 from typing import List
 from typing import Optional
 from typing import Set
 
 from semgrep.constants import RCE_RULE_FLAG
+from semgrep.pattern_match import PatternMatch
+from semgrep.rule import Rule
+from semgrep.rule_match import RuleMatch
 from semgrep.sgrep_types import BooleanRuleExpression
-from semgrep.sgrep_types import InvalidRuleSchema
-from semgrep.sgrep_types import operator_for_pattern_name
 from semgrep.sgrep_types import OPERATORS
 from semgrep.sgrep_types import pattern_names_for_operator
-from semgrep.sgrep_types import pattern_names_for_operators
 from semgrep.sgrep_types import PatternId
 from semgrep.sgrep_types import Range
-from semgrep.sgrep_types import SgrepRange
-from semgrep.sgrep_types import YAML_VALID_TOP_LEVEL_OPERATORS
 from semgrep.util import debug_print
 from semgrep.util import flatten
 from semgrep.util import NEED_ARBITRARY_CODE_EXEC_EXIT_CODE
@@ -24,83 +22,17 @@ from semgrep.util import print_error
 from semgrep.util import print_error_exit
 
 
-def _parse_boolean_expression(
-    rule_patterns: List[Dict[str, Any]], pattern_id: int = 0, prefix: str = ""
-) -> Iterator[BooleanRuleExpression]:
-    """
-    Move through the expression from the YML, yielding tuples of (operator, unique-id-for-pattern, pattern)
-    """
-    if not isinstance(rule_patterns, list):
-        raise InvalidRuleSchema(
-            f"invalid type for patterns in rule: {type(rule_patterns)} is not a list; perhaps your YAML is missing a `-` before {rule_patterns}?"
-        )
-    for pattern in rule_patterns:
-        if not isinstance(pattern, dict):
-            raise InvalidRuleSchema(
-                f"invalid type for pattern {pattern}: {type(pattern)} is not a dict"
-            )
-        for boolean_operator, pattern_text in pattern.items():
-            operator = operator_for_pattern_name(boolean_operator)
-            if isinstance(pattern_text, list):
-                sub_expression = _parse_boolean_expression(
-                    pattern_text, 0, f"{prefix}.{pattern_id}"
-                )
-                yield BooleanRuleExpression(operator, None, list(sub_expression), None)
-            elif isinstance(pattern_text, str):
-                yield BooleanRuleExpression(
-                    operator, PatternId(f"{prefix}.{pattern_id}"), None, pattern_text
-                )
-                pattern_id += 1
-            else:
-                raise InvalidRuleSchema(
-                    f"invalid type for pattern {pattern}: {type(pattern_text)}"
-                )
-
-
-def build_boolean_expression(rule: Dict[str, Any]) -> BooleanRuleExpression:
-    """
-    Build a boolean expression from the yml lines in the rule
-
-    """
-    for pattern_name in pattern_names_for_operator(OPERATORS.AND):
-        pattern = rule.get(pattern_name)
-        if pattern:
-            return BooleanRuleExpression(
-                OPERATORS.AND, rule["id"], None, rule[pattern_name]
-            )
-
-    for pattern_name in pattern_names_for_operator(OPERATORS.AND_ALL):
-        patterns = rule.get(pattern_name)
-        if patterns:
-            return BooleanRuleExpression(
-                OPERATORS.AND_ALL, None, list(_parse_boolean_expression(patterns)), None
-            )
-
-    for pattern_name in pattern_names_for_operator(OPERATORS.AND_EITHER):
-        patterns = rule.get(pattern_name)
-        if patterns:
-            return BooleanRuleExpression(
-                OPERATORS.AND_EITHER,
-                None,
-                list(_parse_boolean_expression(patterns)),
-                None,
-            )
-
-    valid_top_level_keys = list(YAML_VALID_TOP_LEVEL_OPERATORS)
-    raise InvalidRuleSchema(
-        f"missing a pattern type in rule, expected one of {pattern_names_for_operators(valid_top_level_keys)}"
-    )
-
-
 def _evaluate_single_expression(
     expression: BooleanRuleExpression,
-    results: Dict[PatternId, List[SgrepRange]],
+    pattern_ids_to_pattern_matches: Dict[PatternId, List[PatternMatch]],
     ranges_left: Set[Range],
     flags: Optional[Dict[str, Any]] = None,
 ) -> Set[Range]:
 
     assert expression.pattern_id, f"<internal error: expected pattern id: {expression}>"
-    results_for_pattern = [x.range for x in results.get(expression.pattern_id, [])]
+    results_for_pattern = [
+        x.range for x in pattern_ids_to_pattern_matches.get(expression.pattern_id, [])
+    ]
 
     if expression.operator == OPERATORS.AND:
         # remove all ranges that don't equal the ranges for this pattern
@@ -142,17 +74,17 @@ def _evaluate_single_expression(
 
         output_ranges = set()
         # Look through every range that hasn't been filtered yet
-        for sgrep_range in list(flatten(results.values())):
+        for pattern_match in list(flatten(pattern_ids_to_pattern_matches.values())):
             # Only need to check where-python clause if the range hasn't already been filtered
 
-            if sgrep_range.range in ranges_left:
+            if pattern_match.range in ranges_left:
                 debug_print(
-                    f"WHERE is {expression.operand}, metavars: {sgrep_range.metavars}"
+                    f"WHERE is {expression.operand}, metavars: {pattern_match.metavars}"
                 )
                 if _where_python_statement_matches(
-                    expression.operand, sgrep_range.metavars
+                    expression.operand, pattern_match.metavars
                 ):
-                    output_ranges.add(sgrep_range.range)
+                    output_ranges.add(pattern_match.range)
         debug_print(f"after filter `{expression.operator}`: {output_ranges}")
         return output_ranges
 
@@ -163,7 +95,7 @@ def _evaluate_single_expression(
 # Given a `where-python` expression as a string and currently matched metavars,
 # return whether the expression matches as a boolean
 def _where_python_statement_matches(
-    where_expression: str, metavars: Dict[str, str]
+    where_expression: str, metavars: Dict[str, Any]
 ) -> bool:
     # TODO: filter out obvious dangerous things here
     global output
@@ -171,7 +103,7 @@ def _where_python_statement_matches(
 
     # HACK: we're executing arbitrary Python in the where-python,
     # be careful my friend
-    vars = metavars
+    vars = {k: v["abstract_content"] for k, v in metavars.items()}
     try:
         exec(f"global output; output = {where_expression}")
     except Exception as ex:
@@ -186,18 +118,80 @@ def _where_python_statement_matches(
     return output == True  # type: ignore
 
 
+def group_by_pattern_id(
+    pattern_matches: List[PatternMatch],
+) -> Dict[PatternId, List[PatternMatch]]:
+    by_id: Dict[PatternId, List[PatternMatch]] = {}
+    for pattern_match in pattern_matches:
+        by_id.setdefault(pattern_match.id, []).append(pattern_match)
+    return by_id
+
+
+def safe_relative_to(a: Path, b: Path) -> Path:
+    try:
+        return a.relative_to(b)
+    except ValueError:
+        # paths had no common prefix; not possible to relativize
+        return a
+
+
+def should_exclude_this_path(path: Path) -> bool:
+    return any("test" in p or "example" in p for p in path.parts)
+
+
+def evaluate(
+    rule: Rule, pattern_matches: List[PatternMatch], allow_exec: bool
+) -> List[RuleMatch]:
+    """
+        Takes a Rule and list of pattern matches from a single file and
+        handles the boolean expression evaluation of the Rule's patterns
+        Returns a list of RuleMatches.
+    """
+    output = []
+    pattern_ids_to_pattern_matches = group_by_pattern_id(pattern_matches)
+    debug_print(str(pattern_ids_to_pattern_matches))
+    valid_ranges_to_output = evaluate_expression(
+        rule.expression,
+        pattern_ids_to_pattern_matches,
+        flags={RCE_RULE_FLAG: allow_exec},
+    )
+
+    # only output matches which are inside these offsets!
+    debug_print(f"compiled result {valid_ranges_to_output}")
+    debug_print("-" * 80)
+    for pattern_match in pattern_matches:
+        if pattern_match.range in valid_ranges_to_output:
+            message = interpolate_message_metavariables(rule, pattern_match)
+            rule_match = RuleMatch(rule.id, message, pattern_match)
+            output.append(rule_match)
+
+    return output
+
+
+def interpolate_message_metavariables(rule: Rule, pattern_match: PatternMatch) -> str:
+    msg_text = rule.message
+    if "metavars" in pattern_match.extra:
+        for metavar, contents in pattern_match.metavars.items():
+            msg_text = msg_text.replace(metavar, contents["abstract_content"])
+    return msg_text
+
+
 def evaluate_expression(
     expression: BooleanRuleExpression,
-    results: Dict[PatternId, List[SgrepRange]],
+    pattern_ids_to_pattern_matches: Dict[PatternId, List[PatternMatch]],
     flags: Optional[Dict[str, Any]] = None,
 ) -> Set[Range]:
-    ranges_left = set([x.range for x in flatten(results.values())])
-    return _evaluate_expression(expression, results, ranges_left, flags)
+    ranges_left = set(
+        [x.range for x in flatten(pattern_ids_to_pattern_matches.values())]
+    )
+    return _evaluate_expression(
+        expression, pattern_ids_to_pattern_matches, ranges_left, flags
+    )
 
 
 def _evaluate_expression(
     expression: BooleanRuleExpression,
-    results: Dict[PatternId, List[SgrepRange]],
+    pattern_ids_to_pattern_matches: Dict[PatternId, List[PatternMatch]],
     ranges_left: Set[Range],
     flags: Optional[Dict[str, Any]] = None,
 ) -> Set[Range]:
@@ -213,7 +207,9 @@ def _evaluate_expression(
         if expression.operator == OPERATORS.AND_EITHER:
             # remove anything that does not equal one of these ranges
             evaluated_ranges = [
-                _evaluate_expression(expr, results, ranges_left.copy(), flags)
+                _evaluate_expression(
+                    expr, pattern_ids_to_pattern_matches, ranges_left.copy(), flags
+                )
                 for expr in expression.children
             ]
             ranges_left.intersection_update(flatten(evaluated_ranges))
@@ -221,7 +217,7 @@ def _evaluate_expression(
             # chain intersection eagerly; intersect for every AND'ed child
             for expr in expression.children:
                 remainining_ranges = _evaluate_expression(
-                    expr, results, ranges_left.copy(), flags
+                    expr, pattern_ids_to_pattern_matches, ranges_left.copy(), flags
                 )
                 ranges_left.intersection_update(remainining_ranges)
 
@@ -231,7 +227,7 @@ def _evaluate_expression(
             expression.children is None
         ), f"only `{pattern_names_for_operator(OPERATORS.AND_EITHER)}` or `{pattern_names_for_operator(OPERATORS.AND_ALL)}` expressions can have multiple subpatterns"
         ranges_left = _evaluate_single_expression(
-            expression, results, ranges_left, flags
+            expression, pattern_ids_to_pattern_matches, ranges_left, flags
         )
     return ranges_left
 

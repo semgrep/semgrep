@@ -138,6 +138,9 @@ def _is_hidden_config(loc: Path) -> bool:
 def load_config_from_local_path(
     location: Optional[str] = None,
 ) -> Dict[str, Optional[Dict[str, Any]]]:
+    """
+        Return config file(s) as dictionary object
+    """
     base_path = get_base_path()
     if location is None:
         default_file = base_path.joinpath(DEFAULT_CONFIG_FILE)

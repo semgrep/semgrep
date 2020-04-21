@@ -1,7 +1,6 @@
 import sys
 from typing import Any
 from typing import Iterable
-from typing import Optional
 from urllib.parse import urlparse
 
 global DEBUG
