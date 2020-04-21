@@ -16,6 +16,7 @@ from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import SGREP_PATH
 from semgrep.evaluation import enumerate_patterns_in_boolean_expression
 from semgrep.evaluation import evaluate
+from semgrep.pattern import Pattern
 from semgrep.pattern_match import PatternMatch
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
@@ -26,21 +27,18 @@ from semgrep.util import INVALID_PATTERN_EXIT_CODE
 from semgrep.util import print_error
 from semgrep.util import print_error_exit
 
-"""
-Handle executing and parsing output of sgrep binary
-"""
 
+class CoreRunner:
+    """
+        Handles interactions between semgrep and semgrep-core
 
-# Rename to CoreRunner
-class SgrepBridge:
+        This includes properly invoking semgrep-core and parsing the output
+    """
+
     def __init__(self, allow_exec: bool):
         self._allow_exec = allow_exec
 
-    def _decode_rule_id_to_index(self, rule_id: str) -> int:
-        # decode the rule index from the output check_id
-        return int(rule_id.split(".")[0])
-
-    def _flatten_rule_patterns(self, rules: List[Rule]) -> Iterator[Dict[str, Any]]:
+    def _flatten_rule_patterns(self, rules: List[Rule]) -> Iterator[Pattern]:
         """
             Convert list of rules to format understandable by sgrep core
         """
@@ -51,25 +49,17 @@ class SgrepBridge:
             for expr in flat_expressions:
                 if not should_send_to_sgrep(expr):
                     continue
-                # if we don't copy an array (like `languages`), the yaml file will refer to it by reference (with an anchor)
-                # which is nice and all but the sgrep YAML parser doesn't support that
-                new_check_id = f"{rule_index}.{expr.pattern_id}"
-                yield {
-                    "id": new_check_id,
-                    "pattern": expr.operand,
-                    "severity": rule.severity,
-                    "languages": rule.languages.copy(),
-                    "message": "<internalonly>",
-                }
 
-    def _group_rule_by_langauges(
+                yield Pattern(rule_index, expr, rule.severity, rule.languages)
+
+    def _group_patterns_by_langauge(
         self, rules: List[Rule]
-    ) -> Dict[str, List[Dict[str, Any]]]:
+    ) -> Dict[str, List[Pattern]]:
         # a rule can have multiple patterns inside it. Flatten these so we can send sgrep a single yml file list of patterns
         patterns = list(self._flatten_rule_patterns(rules))
-        by_lang: Dict[str, List[Dict[str, Any]]] = collections.defaultdict(list)
+        by_lang: Dict[str, List[Pattern]] = collections.defaultdict(list)
         for pattern in patterns:
-            for language in pattern["languages"]:
+            for language in pattern.languages:
                 by_lang[language].append(pattern)
         return by_lang
 
@@ -103,14 +93,13 @@ class SgrepBridge:
         outputs: List[PatternMatch] = []  # multiple invocations per language
         errors: List[Any] = []
 
-        for language, all_rules_for_language in self._group_rule_by_langauges(
+        for language, all_patterns_for_language in self._group_patterns_by_langauge(
             rules
         ).items():
             with tempfile.NamedTemporaryFile("w") as fout:
                 # very important not to sort keys here
-                yaml_as_str = yaml.safe_dump(
-                    {"rules": all_rules_for_language}, sort_keys=False
-                )
+                patterns_json = [p.to_json() for p in all_patterns_for_language]
+                yaml_as_str = yaml.safe_dump({"rules": patterns_json}, sort_keys=False)
                 fout.write(yaml_as_str)
                 fout.flush()
                 cmd = [SGREP_PATH] + [
@@ -144,7 +133,7 @@ class SgrepBridge:
                 errors.extend(output_json["errors"])
                 outputs.extend([PatternMatch(m) for m in output_json["matches"]])
 
-                # group output; we want to see all of the same rule ids on the same file path
+        # group output; we want to see all of the same rule ids on the same file path
         by_rule_index: Dict[
             Rule, Dict[Path, List[PatternMatch]]
         ] = collections.defaultdict(lambda: collections.defaultdict(list))

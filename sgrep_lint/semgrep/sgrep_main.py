@@ -13,11 +13,11 @@ import semgrep.config_resolver
 from semgrep.autofix import apply_fixes
 from semgrep.constants import ID_KEY
 from semgrep.constants import RULES_KEY
+from semgrep.core_runner import CoreRunner
 from semgrep.output import build_normal_output
 from semgrep.output import build_output_json
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
-from semgrep.sgrep_bridge import SgrepBridge
 from semgrep.sgrep_types import InvalidRuleSchema
 from semgrep.sgrep_types import YAML_ALL_VALID_RULE_KEYS
 from semgrep.sgrep_types import YAML_MUST_HAVE_KEYS
@@ -35,6 +35,10 @@ MISSING_RULE_ID = "no-rule-id"
 
 
 def validate_single_rule(config_id: str, rule: Dict[str, Any]) -> bool:
+    """
+        Validate that a rule dictionary contains all necessary keys
+        and can be correclty parsed
+    """
     rule_id_err_msg = f'(rule id: {rule.get("id", MISSING_RULE_ID)})'
     if not set(rule.keys()).issuperset(YAML_MUST_HAVE_KEYS):
         print_error(
@@ -60,7 +64,9 @@ def validate_single_rule(config_id: str, rule: Dict[str, Any]) -> bool:
 def validate_configs(
     configs: Dict[str, Optional[Dict[str, Any]]]
 ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
-    """ Take configs and separate into valid and invalid ones"""
+    """
+        Take configs and separate into valid and invalid ones
+    """
     errors = {}
     valid = {}
     for config_id, config in configs.items():
@@ -243,7 +249,7 @@ def main(args: argparse.Namespace) -> Dict[str, Any]:
             )
 
     # actually invoke sgrep
-    rule_matches_by_rule, sgrep_errors = SgrepBridge(
+    rule_matches_by_rule, sgrep_errors = CoreRunner(
         args.dangerously_allow_arbitrary_code_execution_from_rules,
     ).invoke_sgrep(targets, all_rules)
 

@@ -7,6 +7,10 @@ from semgrep.sgrep_types import Range
 
 
 class PatternMatch:
+    """
+        Encapsulates a section of code that matches a single pattern
+    """
+
     def __init__(self, raw_json: Dict[str, Any]) -> None:
         self._raw_json = raw_json
 

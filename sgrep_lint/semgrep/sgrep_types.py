@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Dict
 from typing import List
 from typing import NewType
 from typing import Optional

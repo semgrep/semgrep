@@ -6,6 +6,10 @@ from semgrep.pattern_match import PatternMatch
 
 
 class RuleMatch:
+    """
+        A section of code that matches a single rule (which is potentially many patterns)
+    """
+
     def __init__(self, id: str, message: str, pattern_match: PatternMatch) -> None:
         self._id = id
         self._message = message
