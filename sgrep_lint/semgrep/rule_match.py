@@ -23,6 +23,10 @@ class RuleMatch:
         self._pattern_match = pattern_match
 
     @property
+    def id(self) -> str:
+        return self._id
+
+    @property
     def path(self) -> Path:
         return self._path
 

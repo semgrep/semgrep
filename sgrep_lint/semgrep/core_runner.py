@@ -9,6 +9,7 @@ from typing import Any
 from typing import Dict
 from typing import Iterator
 from typing import List
+from typing import Optional
 from typing import Tuple
 
 import yaml
@@ -160,9 +161,7 @@ class CoreRunner:
 
                 findings.extend(evaluate(rule, pattern_matches, self._allow_exec))
 
-            # todo dedup this
-            # Brendon figure this out in the morning
-            findings_by_rule[rule] = findings
+            findings_by_rule[rule] = dedup_output(findings)
 
         return findings_by_rule
 
@@ -182,12 +181,18 @@ class CoreRunner:
         return findings_by_rule, errors
 
 
-def uniq_id(r: Any) -> Tuple[str, str, int, int, int, int]:
-    start = r.get("start", {})
-    end = r.get("end", {})
+def dedup_output(outputs: List[RuleMatch]) -> List[RuleMatch]:
+    return list({uniq_id(r): r for r in outputs}.values())
+
+
+def uniq_id(
+    r: RuleMatch,
+) -> Tuple[str, Path, Optional[int], Optional[int], Optional[int], Optional[int]]:
+    start = r.start
+    end = r.end
     return (
-        r.get("check_id"),
-        r.get("path"),
+        r.id,
+        r.path,
         start.get("line"),
         start.get("col"),
         end.get("line"),

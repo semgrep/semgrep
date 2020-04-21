@@ -142,7 +142,11 @@ def should_exclude_this_path(path: Path) -> bool:
 def evaluate(
     rule: Rule, pattern_matches: List[PatternMatch], allow_exec: bool
 ) -> List[RuleMatch]:
-    # current_path = Path(".")
+    """
+        Takes a Rule and list of pattern matches from a single file and
+        handles the boolean expression evaluation of the Rule's patterns
+        Returns a list of RuleMatches.
+    """
     output = []
     pattern_ids_to_pattern_matches = group_by_pattern_id(pattern_matches)
     debug_print(str(pattern_ids_to_pattern_matches))
@@ -158,8 +162,6 @@ def evaluate(
     for pattern_match in pattern_matches:
         if pattern_match.range in valid_ranges_to_output:
             message = interpolate_message_metavariables(rule, pattern_match)
-            # path = str(safe_relative_to(pattern_match.path, current_path))
-
             rule_match = RuleMatch(rule.id, message, pattern_match)
             output.append(rule_match)
 
