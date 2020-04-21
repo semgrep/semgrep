@@ -32,5 +32,5 @@
 (install
  (package sgrep)
  (section bin)
- (files (main_sgrep.exe as sgrep) (main_spatch.exe as spatch))
+ (files (main_sgrep.exe as semgrep-core) (main_sgrep.exe as sgrep) (main_spatch.exe as spatch))
 )
