@@ -3,12 +3,12 @@
 ![Homebrew Tap](https://github.com/returntocorp/semgrep/workflows/homebrew/badge.svg)
 [![r2c Community Slack](https://img.shields.io/badge/r2c_slack-join-brightgreen?style=flat&logo=slack&labelColor=4A154B)](https://join.slack.com/t/r2c-community/shared_invite/enQtNjU0NDYzMjAwODY4LWE3NTg1MGNhYTAwMzk5ZGRhMjQ2MzVhNGJiZjI1ZWQ0NjQ2YWI4ZGY3OGViMGJjNzA4ODQ3MjEzOWExNjZlNTA)
 
-`sgrep` is a tool for easily detecting and preventing bugs and anti-patterns in
+`semgrep` is a tool for easily detecting and preventing bugs and anti-patterns in
 your codebase. It combines the convenience of `grep` with the correctness of
 syntactical and semantic search. Quickly write rules so you can code with
 confidence.
 
-**Try it now:** [https://sgrep.live](https://sgrep.live/)
+**Try it now:** [https://semgrep.live](https://semgrep.live/)
 
 ## Overview
 
@@ -30,7 +30,7 @@ Example patterns:
 
 ## Installation
 
-Install `sgrep` with [Docker](https://docs.docker.com/install/):
+Install `semgrep` with [Docker](https://docs.docker.com/install/):
 
 ```
 $ docker pull returntocorp/sgrep
@@ -112,7 +112,7 @@ or multiple files matching `.sgrep/**/*.yml`.
 
 #### Pattern Features
 
-`sgrep` patterns make use of two primary features:
+`semgrep` patterns make use of two primary features:
 
 * **Metavariables like `$X`, `$WIDGET`, or `$USERS`.** Metavariable names can
 only contain uppercase characters - names like `$x` or `$SOME_VALUE` are
@@ -150,7 +150,7 @@ see the [configuration documentation](docs/config/advanced.md).**
 
 #### Equivalences
 
-Equivalences are another key concept in `sgrep`. `sgrep` automatically searches
+Equivalences are another key concept in `semgrep`. `semgrep` automatically searches
 for code that is semantically equivalent. For example, the following patterns
 are semantically equivalent
 
@@ -163,7 +163,7 @@ from subprocess import Popen as sub_popen
 result = sub_popen("ls")
 ```
 
-For a full list of `sgrep` feature support by language see the
+For a full list of `semgrep` feature support by language see the
 [language matrix](docs/matrix.md).
 
 ### Registry
@@ -179,7 +179,7 @@ $ docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep --config r2c
 
 ## Resources
 
-* [r2c `sgrep` meetup slides](https://web-assets.r2c.dev/sgrep/r2c-sgrep-meetup-feb-2020.pdf)
+* [r2c `semgrep` meetup slides](https://web-assets.r2c.dev/sgrep/r2c-sgrep-meetup-feb-2020.pdf)
 * [Simple configuration documentation](docs/config/simple.md)
 * [Advanced configuration documentation](docs/config/advanced.md)
 * [Integrations](docs/integrations.md)
@@ -188,4 +188,4 @@ $ docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep --config r2c
 
 ## Contribution
 
-`sgrep` is LGPL-licensed, feel free to help out: [CONTRIBUTING](https://github.com/returntocorp/sgrep/blob/develop/CONTRIBUTING.md).
+`semgrep` is LGPL-licensed, feel free to help out: [CONTRIBUTING](https://github.com/returntocorp/sgrep/blob/develop/CONTRIBUTING.md).
