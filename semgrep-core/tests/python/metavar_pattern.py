@@ -1,7 +1,8 @@
 def foo():
-    # ERROR: match
+    #ERROR: match
     try:
         foo()
     # PatVar
     except ValidationError as e:
         return e
+

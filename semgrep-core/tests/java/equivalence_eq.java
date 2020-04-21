@@ -1,4 +1,4 @@
-class Foo {
+class Foo { 
   void test_equal() {
     a = 1;
     b = 2;

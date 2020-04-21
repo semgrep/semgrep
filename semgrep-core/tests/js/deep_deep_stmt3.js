@@ -11,3 +11,4 @@ function test6() {
     // but this should not match, different scope
     console.log("hi");
 }
+

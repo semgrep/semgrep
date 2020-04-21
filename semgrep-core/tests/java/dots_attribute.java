@@ -4,11 +4,11 @@ class Foo {
   @PreAuthorize(PermissionUtils.CAN_ADMIN_DO_THIS)
   public
   @ResponseBody
-  ResponseEntity<SomeReturnObjectType>
+  ResponseEntity<SomeReturnObjectType> 
   list
     (@RequestParam(required = false) Integer someId,
      @RequestParam(required = false) boolean doThing,
-     ...) throws Exception {
+     ...) throws Exception { 
     return 1;
   }
 }

@@ -8,7 +8,7 @@ func foo() {
 		x = "bar"
 	}
 	var z = 3
-	if (false) {
+	if (false) { 
 		// ignore me
 	}
 	var d1 = x + z;

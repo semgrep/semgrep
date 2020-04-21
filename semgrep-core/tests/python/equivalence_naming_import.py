@@ -1,6 +1,7 @@
-import subprocess as sub
 import subprocess.open
 from subprocess import open as sub_open
+
+import subprocess as sub
 
 
 # TODO

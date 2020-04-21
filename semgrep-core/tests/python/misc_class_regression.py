@@ -1,4 +1,4 @@
-# ERROR: match
+#ERROR: match
 class A:
     def method1(self, args):
         pass
@@ -11,9 +11,8 @@ class A2:
 
 class B:
     def method1(self, args):
-        print("hello there")
-
+        print('hello there')
 
 class C(A, B):
     def __init__():
-        print("initialized")
+        print('initialized')

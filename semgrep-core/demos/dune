@@ -1,7 +1,7 @@
 (executables
  (names simple_refactoring)
  (flags (:standard -w -27))
- (libraries
+ (libraries 
    bigarray str
 
    commons
@@ -17,3 +17,4 @@
  (section bin)
  (files simple_refactoring.exe)
 )
+

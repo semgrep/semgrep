@@ -1,8 +1,7 @@
 import os
 import subprocess as sub
-import sys
-
 import requests
+import sys
 
 send = True
 

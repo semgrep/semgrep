@@ -3,3 +3,6 @@ function foo() {
     myfile = open();
     close(myfile);
 }
+
+
+

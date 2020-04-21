@@ -6,3 +6,6 @@ func foo() {
     x.fld2 = eval;
     x("console.log('foo')");
 }
+
+
+

@@ -4,3 +4,4 @@ function foo() {
     if (v > 2)
         return 1;
 }
+

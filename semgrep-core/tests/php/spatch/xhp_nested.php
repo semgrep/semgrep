@@ -1,15 +1,17 @@
 <?php
 
-$x =
+$x = 
   <foo>
     <bar />
     <foobar />
   </foo>;
 
-$y =
+$y = 
   <x>
   <foo>
     <bar />
     <foobar />
   </foo>
   </x>;
+
+

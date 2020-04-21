@@ -37,11 +37,11 @@ function test4() {
     var x = 1;
 
     class Hello {
-
+        
 	    test() {
 		    console.log(x);
 	    }
-
+        
     }
 }
 
@@ -51,11 +51,11 @@ function test5() {
     var x = 1;
 
     function OldSchool () {
-
+        
         this.test = function() {
             console.log(x);
         }
-
+        
     }
 }
 
@@ -69,3 +69,4 @@ function test6() {
         console.log(x);
     }
 }
+

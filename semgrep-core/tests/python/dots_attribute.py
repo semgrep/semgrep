@@ -1,14 +1,14 @@
-# ERROR: matching
+#ERROR: matching
 @alpha
-@beta
-@charlie("xyz")
+@beta 
+@charlie('xyz')
 def foo():
     x = 42
 
 
-# ERROR: matching
+#ERROR: matching
 @beta
-@alpha
-@charlie("bla")
+@alpha 
+@charlie('bla')
 def foo():
     x = 42

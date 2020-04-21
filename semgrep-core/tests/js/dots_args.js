@@ -4,3 +4,4 @@ function foo() {
   //ERROR:
     foo(5);
 }
+

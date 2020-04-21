@@ -1,2 +1,2 @@
-class $X {
+class $X { 
 }

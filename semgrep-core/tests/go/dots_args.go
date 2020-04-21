@@ -6,3 +6,6 @@ func bar() {
     //ERROR:
     foo(5)
 }
+
+
+

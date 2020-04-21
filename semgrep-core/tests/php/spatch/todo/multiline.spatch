@@ -1,5 +1,5 @@
 - return fbts_locale('sms', $locale, 'X');
-+ $msg =
++ $msg = 
 +   <fbt project="sms"
 +     raw="true"
 +     locale={$locale}>

@@ -6,7 +6,7 @@ foo(1); // I'm a clown
 foo(
   1);
 3;
-foo(1); /* I'm a
+foo(1); /* I'm a 
 really bad clown */
 4;
 // this should be kept

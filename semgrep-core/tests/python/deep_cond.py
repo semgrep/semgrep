@@ -1,8 +1,8 @@
 def foo():
-    # ERROR: match
+    #ERROR: match
     if x == true:
-        return 1
+      return 1
 
-    # ERROR: match
+    #ERROR: match
     if (b == c) and (x == true):
-        return 1
+      return 1

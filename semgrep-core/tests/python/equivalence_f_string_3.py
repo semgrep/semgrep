@@ -1,67 +1,58 @@
 def foo1():
-    # ERROR:
-    select = "select * "
-    query = f"{select} from foo"
-
+  # ERROR:
+  select = "select * "
+  query = f"{select} from foo"
 
 def foo2():
-    # TODO
-    # OK:
-    select = "select * "
-    # TODO:
-    # OK:
-    name = "foo"
-    query = f"{select} from foo where name={name}"
-
+  # TODO
+  # OK:
+  select = "select * "
+  # TODO:
+  # OK:
+  name = "foo"
+  query = f"{select} from foo where name={name}"
 
 def foo5():
-    # OK:
-    num = 1
-    query = f"{num} is 1"
-
+  # OK:
+  num = 1
+  query = f"{num} is 1"
 
 def foo6():
-    # OK:
-    complex_func = foo()
-    query = f"{complex_func} is foo"
-
+  # OK:
+  complex_func = foo()
+  query = f"{complex_func} is foo"
 
 def foo7():
-    # ERROR:
-    w = "foo"
-    query = f"hello {w}"
-
+  # ERROR:
+  w = "foo"
+  query = f"hello {w}"
 
 def foo8():
-    # ERROR:
-    ww = "bar"
-    query = f"ASD{ww}"
-
+  # ERROR:
+  ww = "bar"
+  query = f"ASD{ww}"
 
 def foo9():
-    # ERROR:
-    www = "bar"
-    query = f"SELECT {www}"
-
+  # ERROR:
+  www = "bar"
+  query = f"SELECT {www}"
 
 def foo10():
-    # TODO:
-    # OK:
-    ww = "foo"
-    # TODO:
-    # OK:
-    ww = "foo"
-    www = "bar"
-    query = f"SELECT {www} and {ww}"
-
+  # TODO: 
+  # OK:
+  ww = "foo"
+  # TODO: 
+  # OK:
+  ww = "foo"
+  www = "bar"
+  query = f"SELECT {www} and {ww}"
 
 def foo11():
-    # OK:
-    num = 1
-    query = f"num = {num}"
-
+  # OK:
+  num = 1
+  query = f"num = {num}"
 
 def foo12():
-    # OK:
-    complex_func = foo()
-    query = f"complex = {complex_func}"
+  # OK:
+  complex_func = foo()
+  query = f"complex = {complex_func}"

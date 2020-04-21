@@ -18,4 +18,4 @@ var foo2 = {
     alpha: 'a',
     bravo: 'b',
     charlie: 'c',
-}
+} 

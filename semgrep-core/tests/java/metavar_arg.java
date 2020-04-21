@@ -17,3 +17,4 @@ class Foo {
     foo(2,1);
   }
 }
+

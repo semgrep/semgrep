@@ -4,3 +4,4 @@ void foo() {
     if (x > 2)
         foo();
 }
+

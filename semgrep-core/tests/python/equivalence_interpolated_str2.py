@@ -2,7 +2,7 @@
 foo("aa" + "aaa" + "asdasda")
 
 # ERROR:
-bar("aa" "aaa" "asdasda")
+bar("aa" "aaa"  "asdasda")
 
 # OK:
 const = 1
