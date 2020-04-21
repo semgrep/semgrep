@@ -2,9 +2,7 @@ name: release-ubuntu-16-04
 
 on:
   push:
-    branches: [master, develop]
-  pull_request:
-    branches: '*-test-release'
+    branches: [master, develop, '*-test-release']
 
 jobs:
   release-ubuntu-16-04:

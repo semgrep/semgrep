@@ -2,7 +2,7 @@ name: release-ubuntu-18-04
 
 on:
   push:
-    branches: [master, develop]
+    branches: [master, develop, '*-test-release']
   pull_request:
     # For PRs that modify release jobs, name your branch `*release` to run the release builds
     branches: '*-test-release'
