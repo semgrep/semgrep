@@ -16,6 +16,7 @@ from semgrep.constants import RULES_KEY
 from semgrep.output import build_normal_output
 from semgrep.output import build_output_json
 from semgrep.rule import Rule
+from semgrep.rule_match import RuleMatch
 from semgrep.sgrep_bridge import SgrepBridge
 from semgrep.sgrep_types import InvalidRuleSchema
 from semgrep.sgrep_types import YAML_ALL_VALID_RULE_KEYS
@@ -242,22 +243,22 @@ def main(args: argparse.Namespace) -> Dict[str, Any]:
             )
 
     # actually invoke sgrep
-    findings_by_rule, sgrep_errors = SgrepBridge(
+    rule_matches_by_rule, sgrep_errors = SgrepBridge(
         args.dangerously_allow_arbitrary_code_execution_from_rules,
     ).invoke_sgrep(targets, all_rules)
 
     if args.exclude_tests:
         ignored_in_tests = 0
         filtered_findings_by_rule = {}
-        for rule, findings in findings_by_rule.items():
+        for rule, rule_matches in rule_matches_by_rule.items():
             filtered = []
-            for finding in findings:
-                if should_exclude_this_path(Path(finding["path"])):
+            for rule_match in rule_matches:
+                if should_exclude_this_path(Path(rule_match.path)):
                     ignored_in_tests += 1
                 else:
-                    filtered.append(finding)
+                    filtered.append(rule_match)
             filtered_findings_by_rule[rule] = filtered
-        findings_by_rule = filtered_findings_by_rule
+        rule_matches_by_rule = filtered_findings_by_rule
         if ignored_in_tests > 0:
             print_error(
                 f"warning: ignored {ignored_in_tests} results in tests due to --exclude-tests option"
@@ -272,51 +273,49 @@ def main(args: argparse.Namespace) -> Dict[str, Any]:
             INVALID_CODE_EXIT_CODE,
         )
 
-    output_data = handle_output(findings_by_rule, sgrep_errors, args)
+    output_data = handle_output(rule_matches_by_rule, sgrep_errors, args)
 
     if args.autofix:
-        apply_fixes(findings_by_rule)
+        apply_fixes(rule_matches_by_rule)
 
     return output_data
 
 
 def handle_output(
-    findings_by_rule: Any, sgrep_errors: Any, args: Any
+    rule_matches_by_rule: Dict[Rule, List[RuleMatch]], sgrep_errors: Any, args: Any
 ) -> Dict[str, Any]:
-    outputs_after_booleans: List[Dict[str, Any]] = []
-    for findings in findings_by_rule.values():
-        outputs_after_booleans.extend(findings)
+    rule_matches: List[RuleMatch] = []
+    for rule_match in rule_matches_by_rule.values():
+        rule_matches.extend(rule_match)
 
-    # output results
-    output_data = {
-        "results": outputs_after_booleans,
-        "errors": r2c_error_format(sgrep_errors),
-    }
     if args.exclude:
         exclude_glob_patterns = args.exclude
         debug_print(f"patterns to exclude: {', '.join(exclude_glob_patterns)}")
         filtered_results = [
-            output
-            for output in outputs_after_booleans
-            if not any(
-                PurePath(output.get("path", "")).match(pat)
-                for pat in exclude_glob_patterns
-            )
+            rm
+            for rm in rule_matches
+            if not any(PurePath(rm.path).match(pat) for pat in exclude_glob_patterns)
         ]
         debug_print(
-            f"filtered output from {len(outputs_after_booleans)} down to {len(filtered_results)} results"
+            f"filtered output from {len(rule_matches)} down to {len(filtered_results)} results"
         )
-        output_data["results"] = filtered_results
+        rule_matches = filtered_results
+
+    # output results
+    output_data = {
+        "results": [rm.to_json() for rm in rule_matches],
+        "errors": r2c_error_format(sgrep_errors),
+    }
     if not args.quiet:
         if args.json:
             print(build_output_json(output_data))
         else:
-            if outputs_after_booleans:
+            if rule_matches:
                 print("\n".join(build_normal_output(output_data, color_output=True)))
 
     if args.output:
         save_output(args.output, output_data, args.json)
-    if args.error and outputs_after_booleans:
+    if args.error and rule_matches:
         sys.exit(FINDINGS_EXIT_CODE)
 
     return output_data

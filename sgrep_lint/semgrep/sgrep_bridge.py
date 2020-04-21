@@ -16,7 +16,9 @@ from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import SGREP_PATH
 from semgrep.evaluation import enumerate_patterns_in_boolean_expression
 from semgrep.evaluation import evaluate
+from semgrep.pattern_match import PatternMatch
 from semgrep.rule import Rule
+from semgrep.rule_match import RuleMatch
 from semgrep.sgrep_types import BooleanRuleExpression
 from semgrep.sgrep_types import OPERATORS
 from semgrep.util import debug_print
@@ -94,11 +96,11 @@ class SgrepBridge:
 
     def _run_rules(
         self, rules: List[Rule], targets: List[Path]
-    ) -> Tuple[Dict[Rule, Dict[str, List[Dict[str, Any]]]], List[Any]]:
+    ) -> Tuple[Dict[Rule, Dict[Path, List[PatternMatch]]], List[Any]]:
         """
             Run all rules on targets and return list of all places that match patterns, ... todo errors
         """
-        outputs: List[Any] = []  # multiple invocations per language
+        outputs: List[PatternMatch] = []  # multiple invocations per language
         errors: List[Any] = []
 
         for language, all_rules_for_language in self._group_rule_by_langauges(
@@ -140,35 +142,34 @@ class SgrepBridge:
                         print_error_exit(f"\n\n{PLEASE_FILE_ISSUE_TEXT}")
                 output_json = json.loads((output.decode("utf-8", "replace")))
                 errors.extend(output_json["errors"])
-                outputs.extend(output_json["matches"])
+                outputs.extend([PatternMatch(m) for m in output_json["matches"]])
 
                 # group output; we want to see all of the same rule ids on the same file path
         by_rule_index: Dict[
-            Rule, Dict[str, List[Dict[str, Any]]]
+            Rule, Dict[Path, List[PatternMatch]]
         ] = collections.defaultdict(lambda: collections.defaultdict(list))
 
-        for finding in outputs:
-            rule_index = self._decode_rule_id_to_index(finding["check_id"])
+        for pattern_match in outputs:
+            rule_index = pattern_match.rule_index
             rule = rules[rule_index]
-            finding["check_id"] = ".".join(finding["check_id"].split(".")[1:])
-            by_rule_index[rule][finding["path"]].append(finding)
+            by_rule_index[rule][pattern_match.path].append(pattern_match)
 
         return by_rule_index, errors
 
     def _resolve_output(
-        self, outputs: Dict[Rule, Dict[str, List[Dict[str, Any]]]],
-    ) -> Dict[Rule, List[Dict[str, Any]]]:
+        self, outputs: Dict[Rule, Dict[Path, List[PatternMatch]]],
+    ) -> Dict[Rule, List[RuleMatch]]:
         """
             Takes output of all running all patterns and rules and returns Findings
         """
-        findings_by_rule: Dict[Rule, List[Dict[str, Any]]] = {}
+        findings_by_rule: Dict[Rule, List[RuleMatch]] = {}
 
         for rule, paths in outputs.items():
             findings = []
-            for filepath, results in paths.items():
+            for filepath, pattern_matches in paths.items():
                 debug_print(f"-------- rule ({rule.id} ------ filepath: {filepath}")
 
-                findings.extend(evaluate(rule, results, self._allow_exec))
+                findings.extend(evaluate(rule, pattern_matches, self._allow_exec))
 
             # todo dedup this
             # Brendon figure this out in the morning
@@ -178,7 +179,7 @@ class SgrepBridge:
 
     def invoke_sgrep(
         self, targets: List[Path], rules: List[Rule],
-    ) -> Tuple[Dict[Rule, List[Dict[str, Any]]], List[Any]]:
+    ) -> Tuple[Dict[Rule, List[RuleMatch]], List[Any]]:
         """
             Takes in rules and targets and retuns object with findings
         """

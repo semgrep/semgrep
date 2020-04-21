@@ -6,33 +6,33 @@ from typing import Optional
 from typing import Set
 
 from semgrep.rule import Rule
+from semgrep.rule_match import RuleMatch
 from semgrep.util import print_error_exit
 from semgrep.util import print_msg
 
 
-def _generate_fix(rule: Rule, sgrep_result: Dict[str, Any]) -> Optional[Any]:
+def _generate_fix(rule: Rule, rule_match: RuleMatch) -> Optional[Any]:
     # TODO add fix to rule object
     fix_str = rule.raw.get("fix")
     if fix_str is None:
         return None
-    if "metavars" in sgrep_result["extra"]:
-        for metavar, contents in sgrep_result["extra"]["metavars"].items():
+    if "metavars" in rule_match.extra:
+        for metavar, contents in rule_match.metavars.items():
             fix_str = fix_str.replace(metavar, contents["abstract_content"])
     return fix_str
 
 
-def _modify_file(finding: Dict[str, Any]) -> None:
-    p = Path(finding["path"])
+def _modify_file(rule_match: RuleMatch, fix: str) -> None:
+    p = Path(rule_match.path)
     SPLIT_CHAR = "\n"
     contents = p.read_text()
     lines = contents.split(SPLIT_CHAR)
-    fix = finding.get("extra", {}).get("fix")
 
     # get the start and end points
-    start_obj = finding.get("start", {})
+    start_obj = rule_match.start
     start_line = start_obj.get("line", 1) - 1  # start_line is 1 indexed
     start_col = start_obj.get("col", 1) - 1  # start_col is 1 indexed
-    end_obj = finding.get("end", {})
+    end_obj = rule_match.end
     end_line = end_obj.get("line", 1) - 1  # end_line is 1 indexed
     end_col = end_obj.get("col", 1) - 1  # end_line is 1 indexed
 
@@ -48,17 +48,16 @@ def _modify_file(finding: Dict[str, Any]) -> None:
     p.write_text(contents_after_fix_str)
 
 
-def apply_fixes(findings_by_rule: Dict[Rule, List[Dict[str, Any]]]) -> None:
-    modified_files: Set[str] = set()
+def apply_fixes(rule_matches_by_rule: Dict[Rule, List[RuleMatch]]) -> None:
+    modified_files: Set[Path] = set()
 
-    for rule, findings in findings_by_rule.items():
-        for finding in findings:
-            fix = _generate_fix(rule, finding)
+    for rule, rule_matches in rule_matches_by_rule.items():
+        for rule_match in rule_matches:
+            fix = _generate_fix(rule, rule_match)
             if fix:
-                finding["extra"]["fix"] = fix
-                filepath = finding["path"]
+                filepath = rule_match.path
                 try:
-                    _modify_file(finding)
+                    _modify_file(rule_match, fix)
                     modified_files.add(filepath)
                 except Exception as e:
                     print_error_exit(f"unable to modify file: {filepath}: {e}")

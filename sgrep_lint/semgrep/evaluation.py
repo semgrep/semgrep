@@ -1,7 +1,5 @@
-import collections
 from pathlib import Path
 from typing import Any
-from typing import DefaultDict
 from typing import Dict
 from typing import Iterable
 from typing import List
@@ -9,13 +7,14 @@ from typing import Optional
 from typing import Set
 
 from semgrep.constants import RCE_RULE_FLAG
+from semgrep.pattern_match import PatternMatch
 from semgrep.rule import Rule
+from semgrep.rule_match import RuleMatch
 from semgrep.sgrep_types import BooleanRuleExpression
 from semgrep.sgrep_types import OPERATORS
 from semgrep.sgrep_types import pattern_names_for_operator
 from semgrep.sgrep_types import PatternId
 from semgrep.sgrep_types import Range
-from semgrep.sgrep_types import SgrepRange
 from semgrep.util import debug_print
 from semgrep.util import flatten
 from semgrep.util import NEED_ARBITRARY_CODE_EXEC_EXIT_CODE
@@ -25,13 +24,15 @@ from semgrep.util import print_error_exit
 
 def _evaluate_single_expression(
     expression: BooleanRuleExpression,
-    results: Dict[PatternId, List[SgrepRange]],
+    pattern_ids_to_pattern_matches: Dict[PatternId, List[PatternMatch]],
     ranges_left: Set[Range],
     flags: Optional[Dict[str, Any]] = None,
 ) -> Set[Range]:
 
     assert expression.pattern_id, f"<internal error: expected pattern id: {expression}>"
-    results_for_pattern = [x.range for x in results.get(expression.pattern_id, [])]
+    results_for_pattern = [
+        x.range for x in pattern_ids_to_pattern_matches.get(expression.pattern_id, [])
+    ]
 
     if expression.operator == OPERATORS.AND:
         # remove all ranges that don't equal the ranges for this pattern
@@ -73,17 +74,17 @@ def _evaluate_single_expression(
 
         output_ranges = set()
         # Look through every range that hasn't been filtered yet
-        for sgrep_range in list(flatten(results.values())):
+        for pattern_match in list(flatten(pattern_ids_to_pattern_matches.values())):
             # Only need to check where-python clause if the range hasn't already been filtered
 
-            if sgrep_range.range in ranges_left:
+            if pattern_match.range in ranges_left:
                 debug_print(
-                    f"WHERE is {expression.operand}, metavars: {sgrep_range.metavars}"
+                    f"WHERE is {expression.operand}, metavars: {pattern_match.metavars}"
                 )
                 if _where_python_statement_matches(
-                    expression.operand, sgrep_range.metavars
+                    expression.operand, pattern_match.metavars
                 ):
-                    output_ranges.add(sgrep_range.range)
+                    output_ranges.add(pattern_match.range)
         debug_print(f"after filter `{expression.operator}`: {output_ranges}")
         return output_ranges
 
@@ -94,7 +95,7 @@ def _evaluate_single_expression(
 # Given a `where-python` expression as a string and currently matched metavars,
 # return whether the expression matches as a boolean
 def _where_python_statement_matches(
-    where_expression: str, metavars: Dict[str, str]
+    where_expression: str, metavars: Dict[str, Any]
 ) -> bool:
     # TODO: filter out obvious dangerous things here
     global output
@@ -102,7 +103,7 @@ def _where_python_statement_matches(
 
     # HACK: we're executing arbitrary Python in the where-python,
     # be careful my friend
-    vars = metavars
+    vars = {k: v["abstract_content"] for k, v in metavars.items()}
     try:
         exec(f"global output; output = {where_expression}")
     except Exception as ex:
@@ -117,23 +118,13 @@ def _where_python_statement_matches(
     return output == True  # type: ignore
 
 
-def parse_sgrep_output(
-    sgrep_findings: List[Dict[str, Any]]
-) -> Dict[PatternId, List[SgrepRange]]:
-    output: DefaultDict[PatternId, List[SgrepRange]] = collections.defaultdict(list)
-    for finding in sgrep_findings:
-        check_id = finding["check_id"]
-        pattern_id = PatternId(check_id)
-        output[pattern_id].append(sgrep_finding_to_range(finding))
-    return dict(output)
-
-
-def sgrep_finding_to_range(sgrep_finding: Dict[str, Any]) -> SgrepRange:
-    metavars = sgrep_finding["extra"]["metavars"]
-    return SgrepRange(
-        Range(sgrep_finding["start"]["offset"], sgrep_finding["end"]["offset"]),
-        {k: v["abstract_content"] for k, v in metavars.items()},
-    )
+def group_by_pattern_id(
+    pattern_matches: List[PatternMatch],
+) -> Dict[PatternId, List[PatternMatch]]:
+    by_id: Dict[PatternId, List[PatternMatch]] = {}
+    for pattern_match in pattern_matches:
+        by_id.setdefault(pattern_match.id, []).append(pattern_match)
+    return by_id
 
 
 def safe_relative_to(a: Path, b: Path) -> Path:
@@ -149,69 +140,56 @@ def should_exclude_this_path(path: Path) -> bool:
 
 
 def evaluate(
-    rule: Rule, results: List[Dict[str, Any]], allow_exec: bool
-) -> List[Dict[str, Any]]:
-    current_path = Path(".")
+    rule: Rule, pattern_matches: List[PatternMatch], allow_exec: bool
+) -> List[RuleMatch]:
+    # current_path = Path(".")
     output = []
-    expression = rule.expression
-    check_ids_to_ranges = parse_sgrep_output(
-        results
-    )  # TODO should run_rules handle this
-    debug_print(str(check_ids_to_ranges))
+    pattern_ids_to_pattern_matches = group_by_pattern_id(pattern_matches)
+    debug_print(str(pattern_ids_to_pattern_matches))
     valid_ranges_to_output = evaluate_expression(
-        expression, check_ids_to_ranges, flags={RCE_RULE_FLAG: allow_exec},
+        rule.expression,
+        pattern_ids_to_pattern_matches,
+        flags={RCE_RULE_FLAG: allow_exec},
     )
 
     # only output matches which are inside these offsets!
     debug_print(f"compiled result {valid_ranges_to_output}")
     debug_print("-" * 80)
-    for result in results:
-        if sgrep_finding_to_range(result).range in valid_ranges_to_output:
-            path_object = Path(result["path"])
+    for pattern_match in pattern_matches:
+        if pattern_match.range in valid_ranges_to_output:
+            message = interpolate_message_metavariables(rule, pattern_match)
+            # path = str(safe_relative_to(pattern_match.path, current_path))
 
-            # restore the original rule ID
-            result["check_id"] = rule.id
-            # rewrite the path to be relative to the current working directory
-            result["path"] = str(safe_relative_to(path_object, current_path))
-
-            # restore the original message
-            result["extra"]["message"] = rewrite_message_with_metavars(rule, result)
-
-            result = transform_to_r2c_output(result)
-            output.append(result)
+            rule_match = RuleMatch(rule.id, message, pattern_match)
+            output.append(rule_match)
 
     return output
 
 
-def rewrite_message_with_metavars(rule: Rule, sgrep_result: Dict[str, Any]) -> str:
+def interpolate_message_metavariables(rule: Rule, pattern_match: PatternMatch) -> str:
     msg_text = rule.message
-    if "metavars" in sgrep_result["extra"]:
-        for metavar, contents in sgrep_result["extra"]["metavars"].items():
+    if "metavars" in pattern_match.extra:
+        for metavar, contents in pattern_match.metavars.items():
             msg_text = msg_text.replace(metavar, contents["abstract_content"])
     return msg_text
 
 
-def transform_to_r2c_output(finding: Dict[str, Any]) -> Dict[str, Any]:
-    # https://docs.r2c.dev/en/latest/api/output.html does not support offset at the moment
-    if "offset" in finding["start"]:
-        del finding["start"]["offset"]
-    if "offset" in finding["end"]:
-        del finding["end"]["offset"]
-    return finding
-
-
 def evaluate_expression(
     expression: BooleanRuleExpression,
-    results: Dict[PatternId, List[SgrepRange]],
+    pattern_ids_to_pattern_matches: Dict[PatternId, List[PatternMatch]],
     flags: Optional[Dict[str, Any]] = None,
 ) -> Set[Range]:
-    ranges_left = set([x.range for x in flatten(results.values())])
-    return _evaluate_expression(expression, results, ranges_left, flags)
+    ranges_left = set(
+        [x.range for x in flatten(pattern_ids_to_pattern_matches.values())]
+    )
+    return _evaluate_expression(
+        expression, pattern_ids_to_pattern_matches, ranges_left, flags
+    )
 
 
 def _evaluate_expression(
     expression: BooleanRuleExpression,
-    results: Dict[PatternId, List[SgrepRange]],
+    pattern_ids_to_pattern_matches: Dict[PatternId, List[PatternMatch]],
     ranges_left: Set[Range],
     flags: Optional[Dict[str, Any]] = None,
 ) -> Set[Range]:
@@ -227,7 +205,9 @@ def _evaluate_expression(
         if expression.operator == OPERATORS.AND_EITHER:
             # remove anything that does not equal one of these ranges
             evaluated_ranges = [
-                _evaluate_expression(expr, results, ranges_left.copy(), flags)
+                _evaluate_expression(
+                    expr, pattern_ids_to_pattern_matches, ranges_left.copy(), flags
+                )
                 for expr in expression.children
             ]
             ranges_left.intersection_update(flatten(evaluated_ranges))
@@ -235,7 +215,7 @@ def _evaluate_expression(
             # chain intersection eagerly; intersect for every AND'ed child
             for expr in expression.children:
                 remainining_ranges = _evaluate_expression(
-                    expr, results, ranges_left.copy(), flags
+                    expr, pattern_ids_to_pattern_matches, ranges_left.copy(), flags
                 )
                 ranges_left.intersection_update(remainining_ranges)
 
@@ -245,7 +225,7 @@ def _evaluate_expression(
             expression.children is None
         ), f"only `{pattern_names_for_operator(OPERATORS.AND_EITHER)}` or `{pattern_names_for_operator(OPERATORS.AND_ALL)}` expressions can have multiple subpatterns"
         ranges_left = _evaluate_single_expression(
-            expression, results, ranges_left, flags
+            expression, pattern_ids_to_pattern_matches, ranges_left, flags
         )
     return ranges_left
 
