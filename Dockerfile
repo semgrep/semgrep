@@ -44,7 +44,7 @@ RUN ln -sfn /bin/sgrep-lint-files/cacert.pem  /bin/sgrep-lint-files/certifi/cace
 RUN ls -al /bin/sgrep-lint-files/
 
 RUN semgrep --help
-COPY --from=build-sgrep /home/opam/sgrep/sgrep/_build/default/bin/main_sgrep.exe /bin/semgrep-core
+COPY --from=build-sgrep-core /home/opam/sgrep/sgrep/_build/default/bin/main_sgrep.exe /bin/semgrep-core
 RUN semgrep-core --help
 RUN semgrep --config=r2c /bin/sgrep-lint-files/
 
