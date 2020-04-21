@@ -1,4 +1,4 @@
-## sgrep build
+## build
 
 FROM ocaml/opam2:alpine@sha256:4c2ce9a181b4b12442a68fc221d0b753959ec80e24eae3bf788eeca4dcb9a293 as build-semgrep-core
 USER root
@@ -14,8 +14,8 @@ WORKDIR /home/opam/sgrep
 
 RUN git submodule update --init --recursive
 RUN eval $(opam env) && opam install -y ./pfff
-RUN eval $(opam env) && cd sgrep && opam install -y . && make all
-RUN sgrep/_build/default/bin/main_sgrep.exe -version
+RUN eval $(opam env) && cd semgrep-core && opam install -y . && make all
+RUN semgrep-core/_build/default/bin/main_sgrep.exe -version
 
 ## sgrep lint build
 
@@ -44,7 +44,7 @@ RUN ln -sfn /bin/sgrep-lint-files/cacert.pem  /bin/sgrep-lint-files/certifi/cace
 RUN ls -al /bin/sgrep-lint-files/
 
 RUN semgrep --help
-COPY --from=build-semgrep-core /home/opam/sgrep/sgrep/_build/default/bin/main_sgrep.exe /bin/semgrep-core
+COPY --from=build-semgrep-core /home/opam/sgrep/semgrep-core/_build/default/bin/main_sgrep.exe /bin/semgrep-core
 RUN semgrep-core --help
 RUN semgrep --config=r2c /bin/sgrep-lint-files/
 
