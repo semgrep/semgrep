@@ -1,4 +1,4 @@
-name: mac
+name: homebrew
 
 on:
   pull_request:
