@@ -3,7 +3,7 @@ class Semgrep < Formula
   desc "Like grep but for code"
   homepage "https://github.com/returntocorp/sgrep"
 
-  head "https://github.com/returntocorp/sgrep.git", :branch => "russell/semgrep-rename"
+  head "https://github.com/returntocorp/sgrep.git", :branch => "develop"
 
   stable do
     url "https://github.com/returntocorp/sgrep/archive/v0.4.9.tar.gz"
