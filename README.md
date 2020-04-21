@@ -52,7 +52,7 @@ brew install semgrep
 
 ### Example Usage
 
-Let's start with a simple example. We begin with a Python file, `test.py`. We want to retrieve an object by it's ID, and write:
+Here is a simple Python example, `test.py`. We want to retrieve an object by ID:
 
 ```python3
 def get_node(node_id, nodes):
