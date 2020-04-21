@@ -1,3 +1,0 @@
-//TODO, $ not allowed for attribute yet
-<div $A="foo" $B="bar" />
-

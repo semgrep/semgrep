@@ -1,6 +1,22 @@
 {
   "bandit": {
     "violations": {
+      "494caf235fd74f24cce57cbfd0fbb529": {
+        "tool_id": "bandit",
+        "check_id": "try-except-pass",
+        "path": "semgrep-core/tests/python/deep_try.py",
+        "message": "Try, Except, Pass detected.",
+        "severity": 0,
+        "syntactic_context": "except Exception:"
+      },
+      "bb5a6e613d6b0367ba9b7ba0e6896e77": {
+        "tool_id": "bandit",
+        "check_id": "eval-used",
+        "path": "semgrep-core/tests/python/dots_stmts.py",
+        "message": "Use of possibly insecure function - consider using safer ast.literal_eval.",
+        "severity": 1,
+        "syntactic_context": "eval(user_data)"
+      },
       "bcbe9de4fcc164d88d24abeed3888c42": {
         "tool_id": "bandit",
         "check_id": "exec-used",
@@ -24,6 +40,1238 @@
   },
   "flake8": {
     "violations": {
+      "04c52db983cdf9ad14a17b63a2eab856": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'qux' from line 32",
+        "severity": 2,
+        "syntactic_context": "from ...foo.bar import qux"
+      },
+      "0a79607494c085ebd88da285308c8e50": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'q' from line 18",
+        "severity": 2,
+        "syntactic_context": "from ...foo.bar import qux as q"
+      },
+      "0bc078009833c2623aea0bfc0d1d59cc": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'baz' from line 16",
+        "severity": 2,
+        "syntactic_context": "from . import baz"
+      },
+      "1214885c1483822ea29f5c3649640653": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'qux' from line 47",
+        "severity": 2,
+        "syntactic_context": "from .foo.bar import qux"
+      },
+      "186592bd61bf89f8791113c2b8d684e1": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'b' from line 44",
+        "severity": 2,
+        "syntactic_context": "from .foo import baz as b"
+      },
+      "251516edd4e07d08eecc829b2f72e4ab": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'b' from line 6",
+        "severity": 2,
+        "syntactic_context": "from foo import baz as b"
+      },
+      "3bb8767854118e3422247461b241d930": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'b' from line 30",
+        "severity": 2,
+        "syntactic_context": "from ...foo import baz as b"
+      },
+      "4a7d721cb26536d9e7aa06420626003c": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'b' from line 36",
+        "severity": 2,
+        "syntactic_context": "from ..foo import baz as b"
+      },
+      "4acf32658314eac2d926fde63a469bb0": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/dots_inherit.py",
+        "message": "redefinition of unused 'A' from line 2",
+        "severity": 2,
+        "syntactic_context": "class A:"
+      },
+      "633ecfca6c08461e930aa3a171f0299d": {
+        "tool_id": "flake8",
+        "check_id": "no-mutable-default-args",
+        "path": "semgrep-core/tests/python/metavar_equality_funcdef_vs_use.py",
+        "message": "Do not use mutable data structures for argument defaults.  They are created during function definition time. All calls to the function reuse this one instance of that data structure, persisting changes between them.",
+        "severity": 2,
+        "syntactic_context": "def func(a, b=[]):"
+      },
+      "65093952f7b4eaff9fd549804a9c9071": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'baz' from line 22",
+        "severity": 2,
+        "syntactic_context": "from ...foo import baz"
+      },
+      "67a0e545fa39db7a3a8e30f3baec514c": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'q' from line 48",
+        "severity": 2,
+        "syntactic_context": "from .foo.bar import qux as q"
+      },
+      "7e12047d1c02c1825417298b814bf4d1": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'b' from line 23",
+        "severity": 2,
+        "syntactic_context": "from ..........foo.bar import baz as b"
+      },
+      "8ca6282fabdecef08b93f89d996ba882": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'baz' from line 38",
+        "severity": 2,
+        "syntactic_context": "from ..foo import baz"
+      },
+      "9085a76b9a07b9e83a926339433dfd77": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/NAMING/scope_python.py",
+        "message": "undefined name 'complex_call'",
+        "severity": 2,
+        "syntactic_context": "return complex_call(glob)  # space and comments should not matter"
+      },
+      "952f202c3d0f511390acdfde089804c8": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/python/misc_faketok2.py",
+        "message": "undefined name 'logging'",
+        "severity": 2,
+        "syntactic_context": "logging.info("
+      },
+      "95b090a67e7952b0dd00e123b0272ed9": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/python/misc_dots_stmts.py",
+        "message": "undefined name 'd'",
+        "severity": 2,
+        "syntactic_context": "for k, v in d.items():"
+      },
+      "b426a8a35efe69dc4b9e0e31f930365d": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/less_inherits.py",
+        "message": "redefinition of unused 'A' from line 2",
+        "severity": 2,
+        "syntactic_context": "class A:"
+      },
+      "b7162d0100cd85c2db898935f63e6b59": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'baz' from line 46",
+        "severity": 2,
+        "syntactic_context": "from .foo import baz"
+      },
+      "b83919da06fba4621dd2ff3bc95c9952": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'f' from line 4",
+        "severity": 2,
+        "syntactic_context": "import foo as f"
+      },
+      "b92516a4e7ef6e468e64b7f5a70deb49": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/python/equivalence_interpolated_str2.py",
+        "message": "undefined name 'bar'",
+        "severity": 2,
+        "syntactic_context": "bar(\"aa\" \"aaa\" \"asdasda\")"
+      },
+      "c029ea2c15aac6e5859a9a62d39680a2": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'b' from line 14",
+        "severity": 2,
+        "syntactic_context": "from . import baz as b"
+      },
+      "c2de421c165665a3f15328296487dd42": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/python/misc_faketok2.py",
+        "message": "undefined name 'latest_version'",
+        "severity": 2,
+        "syntactic_context": "f\"Current bento version is {current_version}, latest is {latest_version}\""
+      },
+      "cad37214cc31b1a6f984e11977fdd429": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/python/dots_attribute.py",
+        "message": "undefined name 'charlie'",
+        "severity": 2,
+        "syntactic_context": "@charlie(\"xyz\")"
+      },
+      "cf6195c939fc922169dc0f156f2a3e34": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'qux' from line 39",
+        "severity": 2,
+        "syntactic_context": "from ..foo.bar import qux"
+      },
+      "d13fa1b5f6d1c1b7c446bba94687010d": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'b' from line 3",
+        "severity": 2,
+        "syntactic_context": "import foo.bar as b"
+      },
+      "d1b2726a35d3e7ca3e1c604a49d05c5e": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/python/less_attributes.py",
+        "message": "undefined name 'charlie'",
+        "severity": 2,
+        "syntactic_context": "@charlie(\"xyz\")"
+      },
+      "d25f89699371501abed0ba8ed1bf2776": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'qux' from line 17",
+        "severity": 2,
+        "syntactic_context": "from ..........foo.bar import qux"
+      },
+      "df0e47471679df13754bba5d3967f5fb": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'baz' from line 13",
+        "severity": 2,
+        "syntactic_context": "from foo.bar import baz"
+      },
+      "e0d7c7e5976e7f33f85861d6244d04c1": {
+        "tool_id": "flake8",
+        "check_id": "no-mutable-default-args",
+        "path": "semgrep-core/tests/python/metavar_equality_param_vs_use.py",
+        "message": "Do not use mutable data structures for argument defaults.  They are created during function definition time. All calls to the function reuse this one instance of that data structure, persisting changes between them.",
+        "severity": 2,
+        "syntactic_context": "def func(a, b=[]):"
+      },
+      "ef89a62d4637eb2a71acb7dc034089e5": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'q' from line 40",
+        "severity": 2,
+        "syntactic_context": "from ..foo.bar import qux as q"
+      },
+      "fe715b3aae170aad45c09c842df95684": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/python/dots_attribute.py",
+        "message": "undefined name 'charlie'",
+        "severity": 2,
+        "syntactic_context": "@charlie(\"bla\")"
+      },
+      "049a6f0362a6f6244447865f1e066786": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/NAMING/scope_python.py",
+        "message": "undefined name 'complex_call'",
+        "severity": 2,
+        "syntactic_context": "return complex_call(x)"
+      },
+      "05259026b4200eb156b05f124ca8fec8": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/python/deep_fake_dataflow.py",
+        "message": "undefined name 'bar'",
+        "severity": 2,
+        "syntactic_context": "bar()"
+      },
+      "099e7a3ca3b997572aafa294705bb9b1": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/dots_inherit.py",
+        "message": "redefinition of unused 'A' from line 7",
+        "severity": 2,
+        "syntactic_context": "class A(B):"
+      },
+      "0be7921b7cad159f56b72fbabe43c5ac": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/less_inherits.py",
+        "message": "redefinition of unused 'A' from line 2",
+        "severity": 2,
+        "syntactic_context": "class A():"
+      },
+      "0c606fded2e517e378c983cf621d1a98": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'bar' from line 22",
+        "severity": 2,
+        "syntactic_context": "from ..foo import bar"
+      },
+      "11d7a83d919da56c6ac9b81633e3a4ed": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'baz' from line 71",
+        "severity": 2,
+        "syntactic_context": "from foo import (bar, baz)"
+      },
+      "1239caa95091aae60a6ffcd787a5775a": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/python/dots_attribute.py",
+        "message": "undefined name 'charlie'",
+        "severity": 2,
+        "syntactic_context": "@charlie('xyz')"
+      },
+      "13c0f2c353515478feaa02c6a49e189f": {
+        "tool_id": "flake8",
+        "check_id": "wildcard-import",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "'from foo.bar import *' used; unable to detect undefined names",
+        "severity": 2,
+        "syntactic_context": "from foo.bar import *"
+      },
+      "19b8825f8385e02f86dc40ffc1d44600": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'baz' from line 26",
+        "severity": 2,
+        "syntactic_context": "from ...foo.bar import baz"
+      },
+      "1a436900efbe8bb746773df4a7e2da21": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'qux' from line 81",
+        "severity": 2,
+        "syntactic_context": "from ...foo.bar import (baz, qux)"
+      },
+      "1bf139d07f45a501237dd5b18cf50fe0": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/TODO/stmt_ellipsis.py",
+        "message": "undefined name 'close'",
+        "severity": 2,
+        "syntactic_context": "close(a)"
+      },
+      "1c271d9fc1990c58fac0933d997ffbc6": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/python/dots_attribute.py",
+        "message": "undefined name 'beta'",
+        "severity": 2,
+        "syntactic_context": "@beta"
+      },
+      "1c8d946dfccb73d2c88fc2a963fc77fa": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/python/metavar_arg.py",
+        "message": "undefined name 'a_very_long_constant_name'",
+        "severity": 2,
+        "syntactic_context": "foo(a_very_long_constant_name, 2)"
+      },
+      "1d78aa043bcaeaaa305685f1ddc38e6e": {
+        "tool_id": "flake8",
+        "check_id": "wildcard-import",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "'from ... import *' used; unable to detect undefined names",
+        "severity": 2,
+        "syntactic_context": "from ... import *"
+      },
+      "1dc9093e050bdf8c02b1e4ca5c6c827c": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/python/less_typehint.py",
+        "message": "undefined name 'Flask'",
+        "severity": 2,
+        "syntactic_context": "app = Flask(__name__)"
+      },
+      "2125a2e312706dddb2f9519418e359fa": {
+        "tool_id": "flake8",
+        "check_id": "wildcard-import",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "'from ..foo.bar import *' used; unable to detect undefined names",
+        "severity": 2,
+        "syntactic_context": "from ..foo.bar import *"
+      },
+      "23057eb2d89dd38fce4aa9cc8430e836": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/python/dots_attribute.py",
+        "message": "undefined name 'charlie'",
+        "severity": 2,
+        "syntactic_context": "@charlie('bla')"
+      },
+      "249adf981f936cc414a08036fc395ea8": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/TODO/imports2.py",
+        "message": "undefined name 'z'",
+        "severity": 2,
+        "syntactic_context": "requests.get(url, foo=x, timeout=10, bar=z)"
+      },
+      "25c8e61e83e1fb0c1de2a054b23dfc96": {
+        "tool_id": "flake8",
+        "check_id": "wildcard-import",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "'from . import *' used; unable to detect undefined names",
+        "severity": 2,
+        "syntactic_context": "from . import *"
+      },
+      "26b3e0bdb93ae3916a3c65297134961f": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/python/misc_prefix_string.py",
+        "message": "undefined name 'gzutil'",
+        "severity": 2,
+        "syntactic_context": "assert gzutil.hash(b\"\\xe4\") != gzutil.hash(\"\\xe4\")"
+      },
+      "284b8a518a396e25278a8876c56742e8": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'qux' from line 82",
+        "severity": 2,
+        "syntactic_context": "from ..foo.bar import (baz, qux)"
+      },
+      "290d0b8efae315c4e35871492bb7aa99": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/python/dots_stmts.py",
+        "message": "undefined name 'get'",
+        "severity": 2,
+        "syntactic_context": "user_data = get()"
+      },
+      "292b7c00ccdf5277db342fe387b32015": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'baz' from line 76",
+        "severity": 2,
+        "syntactic_context": "from ...foo import (bar, baz)"
+      },
+      "2d4980aa8e672367d4a6428b61cc96de": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/TODO/imports2.py",
+        "message": "undefined name 'script'",
+        "severity": 2,
+        "syntactic_context": "p35 = s.Popen([sys.executable, \"-c\", script])"
+      },
+      "303c5611c38801216cd090eabb3f7b14": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'fb' from line 11",
+        "severity": 2,
+        "syntactic_context": "import foo.bar as fb, foo.baz as bz"
+      },
+      "329370d929b4f19a76dcaedd1dfe71c1": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/TODO/imports2.py",
+        "message": "undefined name 'subprocess'",
+        "severity": 2,
+        "syntactic_context": "[sys.executable, \"-c\", script], encoding=encoding, stdout=subprocess.PIPE"
+      },
+      "3bd4de72b464cae524449e300db84026": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'bar' from line 21",
+        "severity": 2,
+        "syntactic_context": "from ...foo import bar"
+      },
+      "3d9634d8309cdd7106004c8bd07e0884": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/python/equivalence_f_string.py",
+        "message": "undefined name 'foo'",
+        "severity": 2,
+        "syntactic_context": "complex_func = foo()"
+      },
+      "3d9e270606b5e560b5a170deab2faf36": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'b' from line 90",
+        "severity": 2,
+        "syntactic_context": "from ..foo import bar, baz as b"
+      },
+      "3f681ff9020c5dde06c3bf6a9a7b5753": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/python/misc_if1.py",
+        "message": "undefined name 'foo'",
+        "severity": 2,
+        "syntactic_context": "foo()"
+      },
+      "42af84165419f0f0ac280fc52579bb9a": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/python/misc_faketok2.py",
+        "message": "undefined name 'latest_version'",
+        "severity": 2,
+        "syntactic_context": "logging.info(f\"Current bento version is {current_version}, latest is {latest_version}\")"
+      },
+      "44914efd1969f83cb6de99216e2e4c2d": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/less_attributes.py",
+        "message": "redefinition of unused 'foo' from line 2",
+        "severity": 2,
+        "syntactic_context": "@beta"
+      },
+      "44b96a2aec53745b2a5cf22f2df91345": {
+        "tool_id": "flake8",
+        "check_id": "wildcard-import",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "'from ..foo import *' used; unable to detect undefined names",
+        "severity": 2,
+        "syntactic_context": "from ..foo import *"
+      },
+      "45d9d490409cc2a7a2213442aede0690": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'baz' from line 28",
+        "severity": 2,
+        "syntactic_context": "from foo import bar, baz"
+      },
+      "473c744f34f016152249c510db8a0bda": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'baz' from line 84",
+        "severity": 2,
+        "syntactic_context": "from foo.bar import baz, qux as q"
+      },
+      "505644e902032ac58a68877b509a54ad": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'b' from line 88",
+        "severity": 2,
+        "syntactic_context": "from .foo import bar, baz as b"
+      },
+      "5139c217f2aacd0659db69dead6c2360": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/TODO/test.py",
+        "message": "undefined name 'x'",
+        "severity": 2,
+        "syntactic_context": "if x == x:"
+      },
+      "53fa994155ad069f746b5136f696bb81": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/python/equivalence_interpolated_str2.py",
+        "message": "undefined name 'foo'",
+        "severity": 2,
+        "syntactic_context": "foo(\"aa\" + \"aaa\" + \"asdasda\")"
+      },
+      "556b95be2300cb97cbb105c4a4be8bc5": {
+        "tool_id": "flake8",
+        "check_id": "wildcard-import",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "'from ...foo import *' used; unable to detect undefined names",
+        "severity": 2,
+        "syntactic_context": "from ...foo import *"
+      },
+      "560d5f2392ffd498edf6cf479559b005": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'bar2' from line 36",
+        "severity": 2,
+        "syntactic_context": "from foo import bar, bar2"
+      },
+      "5c41d6709e3c44c0b069e1e8ac7e6fdb": {
+        "tool_id": "flake8",
+        "check_id": "indentation-error",
+        "path": "semgrep-core/tests/TODO/bad.py",
+        "message": "unexpected indentation",
+        "severity": 2,
+        "syntactic_context": "return 1"
+      },
+      "5ce72898d4bbdc4f07380bd0155d0b4d": {
+        "tool_id": "flake8",
+        "check_id": "parse-error",
+        "path": "semgrep-core/tests/TODO/bad.py",
+        "message": "SyntaxError: invalid syntax",
+        "severity": 2,
+        "syntactic_context": "def foo"
+      },
+      "5d424ca2eab3b6e7cc8962a66765c10a": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/python/misc_dots_stmts.py",
+        "message": "undefined name 'd'",
+        "severity": 2,
+        "syntactic_context": "del d[k]"
+      },
+      "5db016bf1a896f38e025da408a9f26b1": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/python/dots_stmts.py",
+        "message": "undefined name 'foobar'",
+        "severity": 2,
+        "syntactic_context": "foobar()"
+      },
+      "5de4f2c3669d5e2c9b5ca96d7d9b8be1": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/lint/stupid.py",
+        "message": "undefined name 'x'",
+        "severity": 2,
+        "syntactic_context": "x == x"
+      },
+      "5eb77eb289aa3799d24dda4570e3368d": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/python/misc_if1.py",
+        "message": "undefined name 'app'",
+        "severity": 2,
+        "syntactic_context": "app.run()"
+      },
+      "608f840b13d140156ec51bfa3527a7a7": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/NAMING/scope_python.py",
+        "message": "undefined name 'complex_call_different'",
+        "severity": 2,
+        "syntactic_context": "return complex_call_different(glob)"
+      },
+      "6224e18f7e1c4da5ca2546151a06f485": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/python/equivalence_interpolated_str2.py",
+        "message": "undefined name 'bar'",
+        "severity": 2,
+        "syntactic_context": "bar(\"aa\" + const)"
+      },
+      "632676c6e356218954c57fcd52f1b967": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'q' from line 94",
+        "severity": 2,
+        "syntactic_context": "from ...foo.bar import baz, qux as q"
+      },
+      "6335d284ebfbc5fef6371d9ceaa45bee": {
+        "tool_id": "flake8",
+        "check_id": "wildcard-import",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "'from .... import *' used; unable to detect undefined names",
+        "severity": 2,
+        "syntactic_context": "from .... import *"
+      },
+      "65264cf03295ce8220dc8bf0aa2b6f65": {
+        "tool_id": "flake8",
+        "check_id": "wildcard-import",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "'from .. import *' used; unable to detect undefined names",
+        "severity": 2,
+        "syntactic_context": "from .. import *"
+      },
+      "68926925c172eaa24bfd862539cf8b1e": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'qux' from line 69",
+        "severity": 2,
+        "syntactic_context": "from ..foo.bar import baz, qux"
+      },
+      "6ba7cd31e9592f908f2a8ae6f744966d": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/python/dots_attribute.py",
+        "message": "undefined name 'alpha'",
+        "severity": 2,
+        "syntactic_context": "@alpha"
+      },
+      "6fb29cd124da5e92844a92896ac8397f": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/python/deep_cond.py",
+        "message": "undefined name 'true'",
+        "severity": 2,
+        "syntactic_context": "if (b == c) and (x == true):"
+      },
+      "6ff1ae1eb6c70b86fcf54814f3f2bdd4": {
+        "tool_id": "flake8",
+        "check_id": "wildcard-import",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "'from foo import *' used; unable to detect undefined names",
+        "severity": 2,
+        "syntactic_context": "from foo import *"
+      },
+      "7161f80bc2af24cb475789e2e3e54218": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/python/metavar_equality_stmt.py",
+        "message": "undefined name 'bar'",
+        "severity": 2,
+        "syntactic_context": "bar()"
+      },
+      "716c010f22ae6d964bd6b1ae96f850b2": {
+        "tool_id": "flake8",
+        "check_id": "wildcard-import",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "'from .foo import *' used; unable to detect undefined names",
+        "severity": 2,
+        "syntactic_context": "from .foo import *"
+      },
+      "71fbb79b6bf2fa3d4020a63061cea6f7": {
+        "tool_id": "flake8",
+        "check_id": "wildcard-import",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "'from ...foo.bar import *' used; unable to detect undefined names",
+        "severity": 2,
+        "syntactic_context": "from ...foo.bar import *"
+      },
+      "75232bed98a17a9ff4ecb400f2d98fa2": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'b' from line 89",
+        "severity": 2,
+        "syntactic_context": "from ...foo import bar, baz as b"
+      },
+      "753974b9ccab411dd0767ae1c6016a95": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/NAMING/scope_python.py",
+        "message": "undefined name 'complex_call'",
+        "severity": 2,
+        "syntactic_context": "return complex_call(glob)"
+      },
+      "77675e7d541d82e6b438677d40350ee7": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/python/less_attributes.py",
+        "message": "undefined name 'beta'",
+        "severity": 2,
+        "syntactic_context": "@beta"
+      },
+      "7d0c7371fac55661f1f496d97f64d8cf": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/python/misc_dots_stmts.py",
+        "message": "undefined name 'd'",
+        "severity": 2,
+        "syntactic_context": "for k,v in d.items():"
+      },
+      "835aa0ff3cf2a34e413440c14fd0f55f": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/python/less_attributes.py",
+        "message": "undefined name 'alpha'",
+        "severity": 2,
+        "syntactic_context": "@alpha"
+      },
+      "8574c8815651f505ba9a4701b49db371": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'q' from line 95",
+        "severity": 2,
+        "syntactic_context": "from ..foo.bar import baz, qux as q"
+      },
+      "8c1e5179edcbea195e56f01834d5078c": {
+        "tool_id": "flake8",
+        "check_id": "no-mutable-default-args",
+        "path": "semgrep-core/tests/python/metavar_equality_funcdef_vs_use.py",
+        "message": "Do not use mutable data structures for argument defaults.  They are created during function definition time. All calls to the function reuse this one instance of that data structure, persisting changes between them.",
+        "severity": 2,
+        "syntactic_context": "def func(a, b = []):"
+      },
+      "8decbd16577d9201fdc4e358e3a6395c": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'f' from line 8",
+        "severity": 2,
+        "syntactic_context": "import efoo as f, bar as b"
+      },
+      "8fb9e3b04c86327755a721627b9b8bd1": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'qux' from line 67",
+        "severity": 2,
+        "syntactic_context": "from .foo.bar import baz, qux"
+      },
+      "8fc76a086657d99cc8f8c1090332651a": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/python/deep_fake_dataflow.py",
+        "message": "undefined name 'o'",
+        "severity": 2,
+        "syntactic_context": "render(o.format(x))"
+      },
+      "91433476051cd529b73df20fa1139797": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'baz' from line 77",
+        "severity": 2,
+        "syntactic_context": "from ..foo import (bar, baz)"
+      },
+      "96a7cc404359fdb32f2913a4c24f8370": {
+        "tool_id": "flake8",
+        "check_id": "parse-error",
+        "path": "semgrep-core/tests/python/python2.py",
+        "message": "SyntaxError: invalid syntax",
+        "severity": 2,
+        "syntactic_context": "blah(async=true)"
+      },
+      "9833ad78d6e52edf60238989c3fa2fd7": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/python/equivalence_f_string_2.py",
+        "message": "undefined name 'foo'",
+        "severity": 2,
+        "syntactic_context": "complex_func = foo()"
+      },
+      "98f48fcb78ecfe81eed3c8cc492bac3c": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'baz' from line 25",
+        "severity": 2,
+        "syntactic_context": "from .foo.bar import baz"
+      },
+      "9f921a681ac718f21682c9eaa0d77944": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/python/equivalence_f_string_3.py",
+        "message": "undefined name 'foo'",
+        "severity": 2,
+        "syntactic_context": "complex_func = foo()"
+      },
+      "a16338c017c4855fd1f52338f01d3812": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'baz' from line 63",
+        "severity": 2,
+        "syntactic_context": "from ...foo import bar, baz"
+      },
+      "a16a9a601ebc627723595a6855c0c1d4": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/python/less_attributes.py",
+        "message": "undefined name 'charlie'",
+        "severity": 2,
+        "syntactic_context": "@charlie('xyz')"
+      },
+      "a1c66da0a1f293f6d8b05e6e894cbdb2": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/NAMING/scope_python.py",
+        "message": "redefinition of unused 'foo' from line 19",
+        "severity": 2,
+        "syntactic_context": "def foo(x):"
+      },
+      "a5004e081533e4e6c6d88c110b8b68ca": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/less_inherits.py",
+        "message": "redefinition of unused 'A' from line 7",
+        "severity": 2,
+        "syntactic_context": "class A(B):"
+      },
+      "a576761e10571c5b74bafc4b305ebb59": {
+        "tool_id": "flake8",
+        "check_id": "bad-async-or-await",
+        "path": "semgrep-core/tests/python/python2.py",
+        "message": "'async' and 'await' are reserved keywords starting with Python 3.7",
+        "severity": 2,
+        "syntactic_context": "blah(async=true)"
+      },
+      "a665d68e7e0228b633da78b3406a108f": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/python/dots_inherit.py",
+        "message": "undefined name 'B'",
+        "severity": 2,
+        "syntactic_context": "class A(B):"
+      },
+      "a6d3fb4b7ef2042966fb3d09ebdca27f": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'bar' from line 31",
+        "severity": 2,
+        "syntactic_context": "from ... import bar"
+      },
+      "a80bffe14db6a2387ab6dddcfa5ca3d3": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'bar' from line 30",
+        "severity": 2,
+        "syntactic_context": "from .. import bar"
+      },
+      "aaa2e50a2180f58527bbc7c1c6475f7a": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/python/metavar_arg.py",
+        "message": "undefined name 'unsafe'",
+        "severity": 2,
+        "syntactic_context": "foo(unsafe(), 2)  # indeed"
+      },
+      "ac9500fe1996b90faf2144aa6c641286": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'baz' from line 75",
+        "severity": 2,
+        "syntactic_context": "from .foo import (bar, baz)"
+      },
+      "ae249d60ef2af3bae6141ddf30675601": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/python/equivalence_interpolated_str2.py",
+        "message": "undefined name 'bar'",
+        "severity": 2,
+        "syntactic_context": "bar(\"aa\" \"aaa\"  \"asdasda\")"
+      },
+      "ae3d14330abb8549e208b4e0ec937698": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'qux' from line 83",
+        "severity": 2,
+        "syntactic_context": "from ..........foo.bar import baz as b, qux, quux as qq"
+      },
+      "af107ce512f1873be9543c5de6ac0a8c": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'bar' from line 29",
+        "severity": 2,
+        "syntactic_context": "from . import bar"
+      },
+      "af6dc53571280674a9759f0120b48416": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'baz' from line 62",
+        "severity": 2,
+        "syntactic_context": "from .foo import bar, baz"
+      },
+      "b1e6ceaf2212ade771dda41547faa192": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/dots_inherit.py",
+        "message": "redefinition of unused 'A' from line 2",
+        "severity": 2,
+        "syntactic_context": "class A():"
+      },
+      "b39151e09e61b0739290a85a9c01f64a": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'bar' from line 20",
+        "severity": 2,
+        "syntactic_context": "from .foo import bar"
+      },
+      "b483894f620eb729d2b93283aa34dcce": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'baz' from line 27",
+        "severity": 2,
+        "syntactic_context": "from ..foo.bar import baz"
+      },
+      "b5281bd605fd8b78befab950ace3e413": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/python/deep_cond.py",
+        "message": "undefined name 'true'",
+        "severity": 2,
+        "syntactic_context": "if x == true:"
+      },
+      "b6c119b710236241cd80c70bac15fe53": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/NAMING/scope_python.py",
+        "message": "redefinition of unused 'foo2' from line 22",
+        "severity": 2,
+        "syntactic_context": "def foo2(x):"
+      },
+      "b72cb3384e00c5c1d7037125cf774678": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'baz' from line 83",
+        "severity": 2,
+        "syntactic_context": "from . import (bar, baz,)"
+      },
+      "ba7b9e31996f44c33b4262504f57342d": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'bar' from line 32",
+        "severity": 2,
+        "syntactic_context": "from foo import bar2, bar"
+      },
+      "ba88063b66d819be25abf68843366932": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'qq' from line 101",
+        "severity": 2,
+        "syntactic_context": "from ..........foo.bar import (baz as b, qux, quux as qq,)"
+      },
+      "bb69a2000ad1d85d28fb17be3f853b29": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'baz' from line 64",
+        "severity": 2,
+        "syntactic_context": "from ..foo import bar, baz"
+      },
+      "bd34c420361fe72658dd58205830179d": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/visitor_def.py",
+        "message": "redefinition of unused 'A' from line 5",
+        "severity": 2,
+        "syntactic_context": "def A():"
+      },
+      "bd7280f99f611de923e009404cf32060": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/lint/stupid.py",
+        "message": "undefined name 'x'",
+        "severity": 2,
+        "syntactic_context": "assertTrue(x == x)"
+      },
+      "bdea33e4f7c089df8aa8a791020ff7c1": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/dots_attribute.py",
+        "message": "redefinition of unused 'foo' from line 2",
+        "severity": 2,
+        "syntactic_context": "@beta"
+      },
+      "beac41d13c22fcb8ce099816d8cd7442": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/python/misc_tuple.py",
+        "message": "undefined name 'matter'",
+        "severity": 2,
+        "syntactic_context": "easy_s = socket.socket(doesnt, matter)"
+      },
+      "c5d4bac4f206556974bfe81054cf3c74": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'b' from line 14",
+        "severity": 2,
+        "syntactic_context": "from foo import bar, baz as b"
+      },
+      "c864e7222c259de70a9f006e36e6ab8c": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/python/misc_faketok1.py",
+        "message": "undefined name 'projects'",
+        "severity": 2,
+        "syntactic_context": "click.echo(click.style(f\"Detected project with {projects}\\n\", fg=\"blue\", err=True))"
+      },
+      "cc213638c6e0e7e8338256e82364c983": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/python/misc_faketok1.py",
+        "message": "undefined name 'cmd'",
+        "severity": 2,
+        "syntactic_context": "click.echo(f\" $ {click.style(cmd, bold=True)}\\n\", err=True)"
+      },
+      "d70da4cfce0e7e2f9727117b131c940a": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/python/metavar_equality_var.py",
+        "message": "undefined name 'close'",
+        "severity": 2,
+        "syntactic_context": "close(myfile)"
+      },
+      "d85ed11a1dc52bb67cd20b099d105ceb": {
+        "tool_id": "flake8",
+        "check_id": "wildcard-import",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "'from .foo.bar import *' used; unable to detect undefined names",
+        "severity": 2,
+        "syntactic_context": "from .foo.bar import *"
+      },
+      "db134805b8038f6351d4e8663868986c": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/python/metavar_pattern.py",
+        "message": "undefined name 'ValidationError'",
+        "severity": 2,
+        "syntactic_context": "except ValidationError as e:"
+      },
+      "db9e27533395766a1ffb899373ab2dd6": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'baz' from line 65",
+        "severity": 2,
+        "syntactic_context": "from foo.bar import baz, qux"
+      },
+      "dee49f71fdd805b429876b115074064f": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'b' from line 91",
+        "severity": 2,
+        "syntactic_context": "from . import bar, baz as b"
+      },
+      "e1c4b0fa4da3bf29f002f3fbc8058502": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/python/deep_fake_dataflow.py",
+        "message": "undefined name 'requests'",
+        "severity": 2,
+        "syntactic_context": "x = requests.get(\"foo\")"
+      },
+      "e2c9737792cb717bcfdd3a029a6f39c6": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'qux' from line 68",
+        "severity": 2,
+        "syntactic_context": "from ...foo.bar import baz, qux"
+      },
+      "e74e83fd92166826d42bffcb5e3d9a91": {
+        "tool_id": "flake8",
+        "check_id": "no-mutable-default-args",
+        "path": "semgrep-core/tests/python/metavar_equality_param_vs_use.py",
+        "message": "Do not use mutable data structures for argument defaults.  They are created during function definition time. All calls to the function reuse this one instance of that data structure, persisting changes between them.",
+        "severity": 2,
+        "syntactic_context": "def func(a, b = []):"
+      },
+      "e7915f1156ada672b9d53276925212ff": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/aliasing_attribute.py",
+        "message": "redefinition of unused 'foo' from line 6",
+        "severity": 2,
+        "syntactic_context": "@django.views.decorators.csrf.csrf_exempt"
+      },
+      "e9ece36171530a0e3fbccffb3e426dd0": {
+        "tool_id": "flake8",
+        "check_id": "no-mutable-default-args",
+        "path": "semgrep-core/tests/python/unordered_metavar2.py",
+        "message": "Do not use mutable data structures for argument defaults.  They are created during function definition time. All calls to the function reuse this one instance of that data structure, persisting changes between them.",
+        "severity": 2,
+        "syntactic_context": "def a(self, default=[]):"
+      },
+      "ea325dac23aa6dca15c2df1371bd57a3": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/python/metavar_arg.py",
+        "message": "undefined name 'bar'",
+        "severity": 2,
+        "syntactic_context": "foo(bar(1, 3), 2)"
+      },
+      "eac1e046c6f4506e636be1938dc0938e": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/python/less_inherits.py",
+        "message": "undefined name 'B'",
+        "severity": 2,
+        "syntactic_context": "class A(B):"
+      },
+      "ec92d6e4e2e6e14858b159c03ac5372d": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/python/metavar_equality_stmt.py",
+        "message": "undefined name 'x'",
+        "severity": 2,
+        "syntactic_context": "if x > 2:"
+      },
+      "f165a68aa012d04d7b28a9cb3b4fb13d": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'baz' from line 70",
+        "severity": 2,
+        "syntactic_context": "from . import bar, baz"
+      },
+      "f43aa335defbac41bbddf5de49ebe59e": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "semgrep-core/tests/NAMING/scope_python.py",
+        "message": "undefined name 'complex_call'",
+        "severity": 2,
+        "syntactic_context": "return complex_call("
+      },
+      "f68759af38dea1bb9a221fe91a058886": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'q' from line 93",
+        "severity": 2,
+        "syntactic_context": "from .foo.bar import baz, qux as q"
+      },
+      "fdc85ff5d8f4e478490473e6bc713cfb": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'qux' from line 70",
+        "severity": 2,
+        "syntactic_context": "from foo.bar import (baz, qux)"
+      },
+      "fe2a36a886a853167186ffda2adba0a4": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'qux' from line 80",
+        "severity": 2,
+        "syntactic_context": "from .foo.bar import (baz, qux)"
+      },
+      "fe9853c7e3a6975d3bd867bf5682bbe2": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep-core/tests/python/imports.py",
+        "message": "redefinition of unused 'b' from line 12",
+        "severity": 2,
+        "syntactic_context": "import foo as f, foo.bar as b"
+      },
       "9c84b4b004acf3254bd910ba43baa388": {
         "tool_id": "flake8",
         "check_id": "no-assert-false",
@@ -85,7 +1333,88 @@
     "violations": {}
   },
   "r2c.registry.latest": {
-    "violations": {}
+    "violations": {
+      "17a9cf5076a48dd83ada2591bbb25974": {
+        "tool_id": "r2c.registry.latest",
+        "check_id": "https:.r2c.dev.eqeq-is-bad",
+        "path": "semgrep-core/tests/TODO/stupid.py",
+        "message": "useless comparison operation `1+2 == 1+2` or `1+2 != 1+2`; if testing for floating point NaN, use `math.isnan(1+2)`, or `cmath.isnan(1+2)` if the number is complex.",
+        "severity": 2,
+        "syntactic_context": "return 1 + 2 == 1 + 2\n"
+      },
+      "3a5ba39d8c4c28070709419e228ac462": {
+        "tool_id": "r2c.registry.latest",
+        "check_id": "https:.r2c.dev.eqeq-is-bad",
+        "path": "semgrep-core/tests/lint/stupid.py",
+        "message": "useless comparison operation `a+b == a+b` or `a+b != a+b`; if testing for floating point NaN, use `math.isnan(a+b)`, or `cmath.isnan(a+b)` if the number is complex.",
+        "severity": 2,
+        "syntactic_context": "return a + b == a + b\n"
+      },
+      "7aeaf0d5c8d52bd0d68c1ba294d0857c": {
+        "tool_id": "r2c.registry.latest",
+        "check_id": "https:.r2c.dev.useless-if-body",
+        "path": "semgrep-core/tests/python/metavar_equality_stmt.py",
+        "message": "useless if statment; both blocks have the same body",
+        "severity": 2,
+        "syntactic_context": "if x > 2:\n"
+      },
+      "8f2026b5b45d75a30d826e71308cfa89": {
+        "tool_id": "r2c.registry.latest",
+        "check_id": "https:.r2c.dev.eqeq-is-bad",
+        "path": "semgrep-core/tests/python/equivalence_eq.py",
+        "message": "useless comparison operation `a+b == a+b` or `a+b != a+b`; if testing for floating point NaN, use `math.isnan(a+b)`, or `cmath.isnan(a+b)` if the number is complex.",
+        "severity": 2,
+        "syntactic_context": "if a + b == a + b:\n"
+      },
+      "92f9b4ea018c8ddb9c9ee4c1084a78e8": {
+        "tool_id": "r2c.registry.latest",
+        "check_id": "https:.r2c.dev.eqeq-is-bad",
+        "path": "semgrep-core/tests/python/equivalence_eq.py",
+        "message": "useless comparison operation `a+b == a+b` or `a+b != a+b`; if testing for floating point NaN, use `math.isnan(a+b)`, or `cmath.isnan(a+b)` if the number is complex.",
+        "severity": 2,
+        "syntactic_context": "if a + b != a + b:\n"
+      },
+      "af3216e4bd249887697b470a5c329e5a": {
+        "tool_id": "r2c.registry.latest",
+        "check_id": "https:.r2c.dev.eqeq-is-bad",
+        "path": "semgrep-core/tests/python/metavar_equality_expr.py",
+        "message": "useless comparison operation `a+b == a+b` or `a+b != a+b`; if testing for floating point NaN, use `math.isnan(a+b)`, or `cmath.isnan(a+b)` if the number is complex.",
+        "severity": 2,
+        "syntactic_context": "if a + b == a + b:\n"
+      },
+      "b2978aa74e5d657246613f6442468ba6": {
+        "tool_id": "r2c.registry.latest",
+        "check_id": "https:.r2c.dev.eqeq-is-bad",
+        "path": "semgrep-core/tests/TODO/test.py",
+        "message": "useless comparison operation `1+2 == 1+2` or `1+2 != 1+2`; if testing for floating point NaN, use `math.isnan(1+2)`, or `cmath.isnan(1+2)` if the number is complex.",
+        "severity": 2,
+        "syntactic_context": "if 1 + 2 == 1 + 2:\n"
+      },
+      "d58d6451ef2d4a1d134453a85cfb1037": {
+        "tool_id": "r2c.registry.latest",
+        "check_id": "https:.r2c.dev.eqeq-is-bad",
+        "path": "semgrep-core/tests/TODO/test.py",
+        "message": "useless comparison operation `x == x` or `x != x`; if testing for floating point NaN, use `math.isnan(x)`, or `cmath.isnan(x)` if the number is complex.",
+        "severity": 2,
+        "syntactic_context": "if x == x:\n"
+      },
+      "db7f74dd48905f92f3d8644d912ae8c8": {
+        "tool_id": "r2c.registry.latest",
+        "check_id": "https:.r2c.dev.eqeq-is-bad",
+        "path": "semgrep-core/tests/TODO/stupid.py",
+        "message": "useless comparison operation `1+2 == 1+2` or `1+2 != 1+2`; if testing for floating point NaN, use `math.isnan(1+2)`, or `cmath.isnan(1+2)` if the number is complex.",
+        "severity": 2,
+        "syntactic_context": "return 1 + 2 != 1 + 2\n"
+      },
+      "f8dd1e34d9b402bfd6b7dc329d1ac467": {
+        "tool_id": "r2c.registry.latest",
+        "check_id": "https:.r2c.dev.useless-if-body",
+        "path": "semgrep-core/tests/TODO/test.py",
+        "message": "useless if statment; both blocks have the same body",
+        "severity": 2,
+        "syntactic_context": "if foo() > 2:\n"
+      }
+    }
   },
   "r2c.requests": {
     "violations": {}
