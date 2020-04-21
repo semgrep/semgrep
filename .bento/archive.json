@@ -9,6 +9,22 @@
         "severity": 0,
         "syntactic_context": "except Exception:"
       },
+      "979cf589ba3e84b352989fc016757143": {
+        "tool_id": "bandit",
+        "check_id": "error",
+        "path": "semgrep-core/tests/python/python2.py",
+        "message": "syntax error while parsing AST from file",
+        "severity": 2,
+        "syntactic_context": ""
+      },
+      "b42d9752589dfb80896874951fe97aa3": {
+        "tool_id": "bandit",
+        "check_id": "error",
+        "path": "semgrep-core/tests/TODO/bad.py",
+        "message": "syntax error while parsing AST from file",
+        "severity": 2,
+        "syntactic_context": ""
+      },
       "bb5a6e613d6b0367ba9b7ba0e6896e77": {
         "tool_id": "bandit",
         "check_id": "eval-used",
@@ -24,14 +40,6 @@
         "message": "Use of exec detected.",
         "severity": 1,
         "syntactic_context": "exec(f\"global output; output = {where_expression}\")"
-      },
-      "9907a14dd497eafbc89459000a3c57a1": {
-        "tool_id": "bandit",
-        "check_id": "exec-used",
-        "path": "sgrep_lint/evaluation.py",
-        "message": "Use of exec detected.",
-        "severity": 1,
-        "syntactic_context": "exec(f\"global output; output = {where_expression}\")"
       }
     }
   },
@@ -40,262 +48,6 @@
   },
   "flake8": {
     "violations": {
-      "04c52db983cdf9ad14a17b63a2eab856": {
-        "tool_id": "flake8",
-        "check_id": "redefined-unused-name",
-        "path": "semgrep-core/tests/python/imports.py",
-        "message": "redefinition of unused 'qux' from line 32",
-        "severity": 2,
-        "syntactic_context": "from ...foo.bar import qux"
-      },
-      "0a79607494c085ebd88da285308c8e50": {
-        "tool_id": "flake8",
-        "check_id": "redefined-unused-name",
-        "path": "semgrep-core/tests/python/imports.py",
-        "message": "redefinition of unused 'q' from line 18",
-        "severity": 2,
-        "syntactic_context": "from ...foo.bar import qux as q"
-      },
-      "0bc078009833c2623aea0bfc0d1d59cc": {
-        "tool_id": "flake8",
-        "check_id": "redefined-unused-name",
-        "path": "semgrep-core/tests/python/imports.py",
-        "message": "redefinition of unused 'baz' from line 16",
-        "severity": 2,
-        "syntactic_context": "from . import baz"
-      },
-      "1214885c1483822ea29f5c3649640653": {
-        "tool_id": "flake8",
-        "check_id": "redefined-unused-name",
-        "path": "semgrep-core/tests/python/imports.py",
-        "message": "redefinition of unused 'qux' from line 47",
-        "severity": 2,
-        "syntactic_context": "from .foo.bar import qux"
-      },
-      "186592bd61bf89f8791113c2b8d684e1": {
-        "tool_id": "flake8",
-        "check_id": "redefined-unused-name",
-        "path": "semgrep-core/tests/python/imports.py",
-        "message": "redefinition of unused 'b' from line 44",
-        "severity": 2,
-        "syntactic_context": "from .foo import baz as b"
-      },
-      "251516edd4e07d08eecc829b2f72e4ab": {
-        "tool_id": "flake8",
-        "check_id": "redefined-unused-name",
-        "path": "semgrep-core/tests/python/imports.py",
-        "message": "redefinition of unused 'b' from line 6",
-        "severity": 2,
-        "syntactic_context": "from foo import baz as b"
-      },
-      "3bb8767854118e3422247461b241d930": {
-        "tool_id": "flake8",
-        "check_id": "redefined-unused-name",
-        "path": "semgrep-core/tests/python/imports.py",
-        "message": "redefinition of unused 'b' from line 30",
-        "severity": 2,
-        "syntactic_context": "from ...foo import baz as b"
-      },
-      "4a7d721cb26536d9e7aa06420626003c": {
-        "tool_id": "flake8",
-        "check_id": "redefined-unused-name",
-        "path": "semgrep-core/tests/python/imports.py",
-        "message": "redefinition of unused 'b' from line 36",
-        "severity": 2,
-        "syntactic_context": "from ..foo import baz as b"
-      },
-      "4acf32658314eac2d926fde63a469bb0": {
-        "tool_id": "flake8",
-        "check_id": "redefined-unused-name",
-        "path": "semgrep-core/tests/python/dots_inherit.py",
-        "message": "redefinition of unused 'A' from line 2",
-        "severity": 2,
-        "syntactic_context": "class A:"
-      },
-      "633ecfca6c08461e930aa3a171f0299d": {
-        "tool_id": "flake8",
-        "check_id": "no-mutable-default-args",
-        "path": "semgrep-core/tests/python/metavar_equality_funcdef_vs_use.py",
-        "message": "Do not use mutable data structures for argument defaults.  They are created during function definition time. All calls to the function reuse this one instance of that data structure, persisting changes between them.",
-        "severity": 2,
-        "syntactic_context": "def func(a, b=[]):"
-      },
-      "65093952f7b4eaff9fd549804a9c9071": {
-        "tool_id": "flake8",
-        "check_id": "redefined-unused-name",
-        "path": "semgrep-core/tests/python/imports.py",
-        "message": "redefinition of unused 'baz' from line 22",
-        "severity": 2,
-        "syntactic_context": "from ...foo import baz"
-      },
-      "67a0e545fa39db7a3a8e30f3baec514c": {
-        "tool_id": "flake8",
-        "check_id": "redefined-unused-name",
-        "path": "semgrep-core/tests/python/imports.py",
-        "message": "redefinition of unused 'q' from line 48",
-        "severity": 2,
-        "syntactic_context": "from .foo.bar import qux as q"
-      },
-      "7e12047d1c02c1825417298b814bf4d1": {
-        "tool_id": "flake8",
-        "check_id": "redefined-unused-name",
-        "path": "semgrep-core/tests/python/imports.py",
-        "message": "redefinition of unused 'b' from line 23",
-        "severity": 2,
-        "syntactic_context": "from ..........foo.bar import baz as b"
-      },
-      "8ca6282fabdecef08b93f89d996ba882": {
-        "tool_id": "flake8",
-        "check_id": "redefined-unused-name",
-        "path": "semgrep-core/tests/python/imports.py",
-        "message": "redefinition of unused 'baz' from line 38",
-        "severity": 2,
-        "syntactic_context": "from ..foo import baz"
-      },
-      "9085a76b9a07b9e83a926339433dfd77": {
-        "tool_id": "flake8",
-        "check_id": "undefined-name",
-        "path": "semgrep-core/tests/NAMING/scope_python.py",
-        "message": "undefined name 'complex_call'",
-        "severity": 2,
-        "syntactic_context": "return complex_call(glob)  # space and comments should not matter"
-      },
-      "952f202c3d0f511390acdfde089804c8": {
-        "tool_id": "flake8",
-        "check_id": "undefined-name",
-        "path": "semgrep-core/tests/python/misc_faketok2.py",
-        "message": "undefined name 'logging'",
-        "severity": 2,
-        "syntactic_context": "logging.info("
-      },
-      "95b090a67e7952b0dd00e123b0272ed9": {
-        "tool_id": "flake8",
-        "check_id": "undefined-name",
-        "path": "semgrep-core/tests/python/misc_dots_stmts.py",
-        "message": "undefined name 'd'",
-        "severity": 2,
-        "syntactic_context": "for k, v in d.items():"
-      },
-      "b426a8a35efe69dc4b9e0e31f930365d": {
-        "tool_id": "flake8",
-        "check_id": "redefined-unused-name",
-        "path": "semgrep-core/tests/python/less_inherits.py",
-        "message": "redefinition of unused 'A' from line 2",
-        "severity": 2,
-        "syntactic_context": "class A:"
-      },
-      "b7162d0100cd85c2db898935f63e6b59": {
-        "tool_id": "flake8",
-        "check_id": "redefined-unused-name",
-        "path": "semgrep-core/tests/python/imports.py",
-        "message": "redefinition of unused 'baz' from line 46",
-        "severity": 2,
-        "syntactic_context": "from .foo import baz"
-      },
-      "b83919da06fba4621dd2ff3bc95c9952": {
-        "tool_id": "flake8",
-        "check_id": "redefined-unused-name",
-        "path": "semgrep-core/tests/python/imports.py",
-        "message": "redefinition of unused 'f' from line 4",
-        "severity": 2,
-        "syntactic_context": "import foo as f"
-      },
-      "b92516a4e7ef6e468e64b7f5a70deb49": {
-        "tool_id": "flake8",
-        "check_id": "undefined-name",
-        "path": "semgrep-core/tests/python/equivalence_interpolated_str2.py",
-        "message": "undefined name 'bar'",
-        "severity": 2,
-        "syntactic_context": "bar(\"aa\" \"aaa\" \"asdasda\")"
-      },
-      "c029ea2c15aac6e5859a9a62d39680a2": {
-        "tool_id": "flake8",
-        "check_id": "redefined-unused-name",
-        "path": "semgrep-core/tests/python/imports.py",
-        "message": "redefinition of unused 'b' from line 14",
-        "severity": 2,
-        "syntactic_context": "from . import baz as b"
-      },
-      "c2de421c165665a3f15328296487dd42": {
-        "tool_id": "flake8",
-        "check_id": "undefined-name",
-        "path": "semgrep-core/tests/python/misc_faketok2.py",
-        "message": "undefined name 'latest_version'",
-        "severity": 2,
-        "syntactic_context": "f\"Current bento version is {current_version}, latest is {latest_version}\""
-      },
-      "cad37214cc31b1a6f984e11977fdd429": {
-        "tool_id": "flake8",
-        "check_id": "undefined-name",
-        "path": "semgrep-core/tests/python/dots_attribute.py",
-        "message": "undefined name 'charlie'",
-        "severity": 2,
-        "syntactic_context": "@charlie(\"xyz\")"
-      },
-      "cf6195c939fc922169dc0f156f2a3e34": {
-        "tool_id": "flake8",
-        "check_id": "redefined-unused-name",
-        "path": "semgrep-core/tests/python/imports.py",
-        "message": "redefinition of unused 'qux' from line 39",
-        "severity": 2,
-        "syntactic_context": "from ..foo.bar import qux"
-      },
-      "d13fa1b5f6d1c1b7c446bba94687010d": {
-        "tool_id": "flake8",
-        "check_id": "redefined-unused-name",
-        "path": "semgrep-core/tests/python/imports.py",
-        "message": "redefinition of unused 'b' from line 3",
-        "severity": 2,
-        "syntactic_context": "import foo.bar as b"
-      },
-      "d1b2726a35d3e7ca3e1c604a49d05c5e": {
-        "tool_id": "flake8",
-        "check_id": "undefined-name",
-        "path": "semgrep-core/tests/python/less_attributes.py",
-        "message": "undefined name 'charlie'",
-        "severity": 2,
-        "syntactic_context": "@charlie(\"xyz\")"
-      },
-      "d25f89699371501abed0ba8ed1bf2776": {
-        "tool_id": "flake8",
-        "check_id": "redefined-unused-name",
-        "path": "semgrep-core/tests/python/imports.py",
-        "message": "redefinition of unused 'qux' from line 17",
-        "severity": 2,
-        "syntactic_context": "from ..........foo.bar import qux"
-      },
-      "df0e47471679df13754bba5d3967f5fb": {
-        "tool_id": "flake8",
-        "check_id": "redefined-unused-name",
-        "path": "semgrep-core/tests/python/imports.py",
-        "message": "redefinition of unused 'baz' from line 13",
-        "severity": 2,
-        "syntactic_context": "from foo.bar import baz"
-      },
-      "e0d7c7e5976e7f33f85861d6244d04c1": {
-        "tool_id": "flake8",
-        "check_id": "no-mutable-default-args",
-        "path": "semgrep-core/tests/python/metavar_equality_param_vs_use.py",
-        "message": "Do not use mutable data structures for argument defaults.  They are created during function definition time. All calls to the function reuse this one instance of that data structure, persisting changes between them.",
-        "severity": 2,
-        "syntactic_context": "def func(a, b=[]):"
-      },
-      "ef89a62d4637eb2a71acb7dc034089e5": {
-        "tool_id": "flake8",
-        "check_id": "redefined-unused-name",
-        "path": "semgrep-core/tests/python/imports.py",
-        "message": "redefinition of unused 'q' from line 40",
-        "severity": 2,
-        "syntactic_context": "from ..foo.bar import qux as q"
-      },
-      "fe715b3aae170aad45c09c842df95684": {
-        "tool_id": "flake8",
-        "check_id": "undefined-name",
-        "path": "semgrep-core/tests/python/dots_attribute.py",
-        "message": "undefined name 'charlie'",
-        "severity": 2,
-        "syntactic_context": "@charlie(\"bla\")"
-      },
       "049a6f0362a6f6244447865f1e066786": {
         "tool_id": "flake8",
         "check_id": "undefined-name",
@@ -1271,34 +1023,18 @@
         "message": "redefinition of unused 'b' from line 12",
         "severity": 2,
         "syntactic_context": "import foo as f, foo.bar as b"
-      },
-      "9c84b4b004acf3254bd910ba43baa388": {
-        "tool_id": "flake8",
-        "check_id": "no-assert-false",
-        "path": "sgrep_lint/config_resolver.py",
-        "message": "Do not call assert False since python -O removes these calls. Instead callers should raise AssertionError().",
-        "severity": 2,
-        "syntactic_context": "assert False"
       }
     }
   },
   "hadolint": {
     "violations": {
-      "2bfbc1daf8c9edc0498d83102148b164": {
+      "142d6e5f77de7ecb6cc818a63c935c03": {
         "tool_id": "hadolint",
         "check_id": "DL3003",
         "path": "Dockerfile",
         "message": "Use WORKDIR to switch to a directory",
         "severity": 1,
-        "syntactic_context": "RUN eval $(opam env) && cd sgrep && opam install -y . && make all\n"
-      },
-      "3924ce7b34822f1410540b0e52623f0b": {
-        "tool_id": "hadolint",
-        "check_id": "SC2046",
-        "path": "Dockerfile",
-        "message": "Quote this to prevent word splitting.",
-        "severity": 1,
-        "syntactic_context": "RUN eval $(opam env) && cd sgrep && opam install -y . && make all\n"
+        "syntactic_context": "RUN eval $(opam env) && cd semgrep-core && opam install -y . && make all\n"
       },
       "366097962bbe29586382e586fcb7ef6d": {
         "tool_id": "hadolint",
@@ -1308,21 +1044,13 @@
         "severity": 1,
         "syntactic_context": "RUN eval $(opam env) && opam install -y ./pfff\n"
       },
-      "52f33317e7099af4e584f3ed17b24e7c": {
+      "915f3d7f2403006041adee9e22b7a0f8": {
         "tool_id": "hadolint",
         "check_id": "SC2046",
         "path": "Dockerfile",
         "message": "Quote this to prevent word splitting.",
         "severity": 1,
-        "syntactic_context": "RUN eval $(opam env) && cd sgrep && opam install . && make all\n"
-      },
-      "f20ace6da57040c54998e2233e3a643a": {
-        "tool_id": "hadolint",
-        "check_id": "DL3003",
-        "path": "Dockerfile",
-        "message": "Use WORKDIR to switch to a directory",
-        "severity": 1,
-        "syntactic_context": "RUN eval $(opam env) && cd sgrep && opam install . && make all\n"
+        "syntactic_context": "RUN eval $(opam env) && cd semgrep-core && opam install -y . && make all\n"
       }
     }
   },
@@ -1334,85 +1062,85 @@
   },
   "r2c.registry.latest": {
     "violations": {
-      "17a9cf5076a48dd83ada2591bbb25974": {
+      "198e015098ee4d7ab73e546a688b3086": {
         "tool_id": "r2c.registry.latest",
-        "check_id": "https:.r2c.dev.eqeq-is-bad",
-        "path": "semgrep-core/tests/TODO/stupid.py",
+        "check_id": "eqeq-is-bad",
+        "path": "semgrep-core/tests/TODO/test.py",
         "message": "useless comparison operation `1+2 == 1+2` or `1+2 != 1+2`; if testing for floating point NaN, use `math.isnan(1+2)`, or `cmath.isnan(1+2)` if the number is complex.",
         "severity": 2,
-        "syntactic_context": "return 1 + 2 == 1 + 2\n"
+        "syntactic_context": "if 1 + 2 == 1 + 2:"
       },
-      "3a5ba39d8c4c28070709419e228ac462": {
+      "26970d02b3587e888dcad107a944608e": {
         "tool_id": "r2c.registry.latest",
-        "check_id": "https:.r2c.dev.eqeq-is-bad",
+        "check_id": "useless-if-body",
+        "path": "semgrep-core/tests/TODO/test.py",
+        "message": "useless if statment; both blocks have the same body",
+        "severity": 2,
+        "syntactic_context": "if foo() > 2:"
+      },
+      "3d5ef75bdb6755e665af12061dd92b1f": {
+        "tool_id": "r2c.registry.latest",
+        "check_id": "eqeq-is-bad",
         "path": "semgrep-core/tests/lint/stupid.py",
         "message": "useless comparison operation `a+b == a+b` or `a+b != a+b`; if testing for floating point NaN, use `math.isnan(a+b)`, or `cmath.isnan(a+b)` if the number is complex.",
         "severity": 2,
-        "syntactic_context": "return a + b == a + b\n"
+        "syntactic_context": "return a + b == a + b"
       },
-      "7aeaf0d5c8d52bd0d68c1ba294d0857c": {
+      "43833eae645bc792f2185cc84dcfe9bc": {
         "tool_id": "r2c.registry.latest",
-        "check_id": "https:.r2c.dev.useless-if-body",
-        "path": "semgrep-core/tests/python/metavar_equality_stmt.py",
-        "message": "useless if statment; both blocks have the same body",
-        "severity": 2,
-        "syntactic_context": "if x > 2:\n"
-      },
-      "8f2026b5b45d75a30d826e71308cfa89": {
-        "tool_id": "r2c.registry.latest",
-        "check_id": "https:.r2c.dev.eqeq-is-bad",
-        "path": "semgrep-core/tests/python/equivalence_eq.py",
-        "message": "useless comparison operation `a+b == a+b` or `a+b != a+b`; if testing for floating point NaN, use `math.isnan(a+b)`, or `cmath.isnan(a+b)` if the number is complex.",
-        "severity": 2,
-        "syntactic_context": "if a + b == a + b:\n"
-      },
-      "92f9b4ea018c8ddb9c9ee4c1084a78e8": {
-        "tool_id": "r2c.registry.latest",
-        "check_id": "https:.r2c.dev.eqeq-is-bad",
-        "path": "semgrep-core/tests/python/equivalence_eq.py",
-        "message": "useless comparison operation `a+b == a+b` or `a+b != a+b`; if testing for floating point NaN, use `math.isnan(a+b)`, or `cmath.isnan(a+b)` if the number is complex.",
-        "severity": 2,
-        "syntactic_context": "if a + b != a + b:\n"
-      },
-      "af3216e4bd249887697b470a5c329e5a": {
-        "tool_id": "r2c.registry.latest",
-        "check_id": "https:.r2c.dev.eqeq-is-bad",
-        "path": "semgrep-core/tests/python/metavar_equality_expr.py",
-        "message": "useless comparison operation `a+b == a+b` or `a+b != a+b`; if testing for floating point NaN, use `math.isnan(a+b)`, or `cmath.isnan(a+b)` if the number is complex.",
-        "severity": 2,
-        "syntactic_context": "if a + b == a + b:\n"
-      },
-      "b2978aa74e5d657246613f6442468ba6": {
-        "tool_id": "r2c.registry.latest",
-        "check_id": "https:.r2c.dev.eqeq-is-bad",
-        "path": "semgrep-core/tests/TODO/test.py",
-        "message": "useless comparison operation `1+2 == 1+2` or `1+2 != 1+2`; if testing for floating point NaN, use `math.isnan(1+2)`, or `cmath.isnan(1+2)` if the number is complex.",
-        "severity": 2,
-        "syntactic_context": "if 1 + 2 == 1 + 2:\n"
-      },
-      "d58d6451ef2d4a1d134453a85cfb1037": {
-        "tool_id": "r2c.registry.latest",
-        "check_id": "https:.r2c.dev.eqeq-is-bad",
+        "check_id": "eqeq-is-bad",
         "path": "semgrep-core/tests/TODO/test.py",
         "message": "useless comparison operation `x == x` or `x != x`; if testing for floating point NaN, use `math.isnan(x)`, or `cmath.isnan(x)` if the number is complex.",
         "severity": 2,
-        "syntactic_context": "if x == x:\n"
+        "syntactic_context": "if x == x:"
       },
-      "db7f74dd48905f92f3d8644d912ae8c8": {
+      "6c74e4cd6b4057052f2c4537eb3c4437": {
         "tool_id": "r2c.registry.latest",
-        "check_id": "https:.r2c.dev.eqeq-is-bad",
+        "check_id": "eqeq-is-bad",
         "path": "semgrep-core/tests/TODO/stupid.py",
         "message": "useless comparison operation `1+2 == 1+2` or `1+2 != 1+2`; if testing for floating point NaN, use `math.isnan(1+2)`, or `cmath.isnan(1+2)` if the number is complex.",
         "severity": 2,
-        "syntactic_context": "return 1 + 2 != 1 + 2\n"
+        "syntactic_context": "return 1 + 2 == 1 + 2"
       },
-      "f8dd1e34d9b402bfd6b7dc329d1ac467": {
+      "b8cf49127093fb680ef535e4e155ceae": {
         "tool_id": "r2c.registry.latest",
-        "check_id": "https:.r2c.dev.useless-if-body",
-        "path": "semgrep-core/tests/TODO/test.py",
+        "check_id": "useless-if-body",
+        "path": "semgrep-core/tests/python/metavar_equality_stmt.py",
         "message": "useless if statment; both blocks have the same body",
         "severity": 2,
-        "syntactic_context": "if foo() > 2:\n"
+        "syntactic_context": "if x > 2:"
+      },
+      "e25f87c07f8eecff7f34b7a366abf189": {
+        "tool_id": "r2c.registry.latest",
+        "check_id": "eqeq-is-bad",
+        "path": "semgrep-core/tests/python/equivalence_eq.py",
+        "message": "useless comparison operation `a+b == a+b` or `a+b != a+b`; if testing for floating point NaN, use `math.isnan(a+b)`, or `cmath.isnan(a+b)` if the number is complex.",
+        "severity": 2,
+        "syntactic_context": "if a + b != a + b:"
+      },
+      "f0b857fecb71f041b00623882e677497": {
+        "tool_id": "r2c.registry.latest",
+        "check_id": "eqeq-is-bad",
+        "path": "semgrep-core/tests/python/equivalence_eq.py",
+        "message": "useless comparison operation `a+b == a+b` or `a+b != a+b`; if testing for floating point NaN, use `math.isnan(a+b)`, or `cmath.isnan(a+b)` if the number is complex.",
+        "severity": 2,
+        "syntactic_context": "if a + b == a + b:"
+      },
+      "fd125f62e5694c11adda031274181376": {
+        "tool_id": "r2c.registry.latest",
+        "check_id": "eqeq-is-bad",
+        "path": "semgrep-core/tests/python/metavar_equality_expr.py",
+        "message": "useless comparison operation `a+b == a+b` or `a+b != a+b`; if testing for floating point NaN, use `math.isnan(a+b)`, or `cmath.isnan(a+b)` if the number is complex.",
+        "severity": 2,
+        "syntactic_context": "if a + b == a + b:"
+      },
+      "ff0af02c3f8ccfb2f9433ffdc545115b": {
+        "tool_id": "r2c.registry.latest",
+        "check_id": "eqeq-is-bad",
+        "path": "semgrep-core/tests/TODO/stupid.py",
+        "message": "useless comparison operation `1+2 == 1+2` or `1+2 != 1+2`; if testing for floating point NaN, use `math.isnan(1+2)`, or `cmath.isnan(1+2)` if the number is complex.",
+        "severity": 2,
+        "syntactic_context": "return 1 + 2 != 1 + 2"
       }
     }
   },
