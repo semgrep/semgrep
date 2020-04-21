@@ -4,7 +4,7 @@ class Semgrep < Formula
   homepage "https://github.com/returntocorp/sgrep"
 
   url "https://github.com/returntocorp/sgrep/archive/v0.4.9.tar.gz"
-  sha256 "7820716c96bb85a07ed5e561f66b3fb0cca59e5c910370c58ec04276f99864c5"
+  sha256 "e84eed277e58398f18a345756d533cadf4dea28025a4c4dc2ce47232997e7ad4"
 
   depends_on "coreutils"
   depends_on "python@3.8"
