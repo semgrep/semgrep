@@ -3,8 +3,18 @@ class Semgrep < Formula
   desc "Like grep but for code"
   homepage "https://github.com/returntocorp/sgrep"
 
-  url "https://github.com/returntocorp/sgrep/archive/v0.4.9.tar.gz"
-  sha256 "e84eed277e58398f18a345756d533cadf4dea28025a4c4dc2ce47232997e7ad4"
+  head "https://github.com/returntocorp/sgrep.git", :branch => "russell/semgrep-rename"
+
+  stable do
+    url "https://github.com/returntocorp/sgrep/archive/v0.4.9.tar.gz"
+    sha256 "e84eed277e58398f18a345756d533cadf4dea28025a4c4dc2ce47232997e7ad4"
+
+    # To avoid upstream breakage, patch the Python code to make it well behaved
+    patch do
+      url "https://github.com/returntocorp/sgrep/commit/f71a9ccb520c9f7a4eddc93e3e0f80c946741c3d.diff?full_index=1"
+      sha256 "3568550fb88764a596fef71728ec0e91d1716e29b049788ea7e2c3d2d9569c87"
+    end
+  end
 
   depends_on "coreutils"
   depends_on "python@3.8"
@@ -49,16 +59,13 @@ class Semgrep < Formula
     sha256 "7e710b5c912dfadb0919349b3e5fc60570aba12eb78313ad37adb1487263d018"
   end
 
-  # To avoid upstream breakage, patch the Python code to make it well behaved
-  patch do
-    url "https://github.com/returntocorp/sgrep/commit/f71a9ccb520c9f7a4eddc93e3e0f80c946741c3d.diff?full_index=1"
-    sha256 "3568550fb88764a596fef71728ec0e91d1716e29b049788ea7e2c3d2d9569c87"
-  end
-
   def install
     (buildpath/"ocaml-binary").install resource("ocaml-binary")
-    File.rename("ocaml-binary/sgrep", "sgrep-core")
+    cp "ocaml-binary/sgrep", "sgrep-core"
+    cp "ocaml-binary/sgrep", "semgrep-core"
     bin.install "sgrep-core"
+    bin.install "semgrep-core"
+
     cd "sgrep_lint" do
       venv = virtualenv_create(libexec, Formula["python@3.8"].bin/"python3.8")
       python_deps = resources.reject do |resource|

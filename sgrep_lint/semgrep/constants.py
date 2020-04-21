@@ -11,4 +11,4 @@ DEFAULT_CONFIG_FOLDER = f".{DEFAULT_SGREP_CONFIG_NAME}"
 
 YML_EXTENSIONS = {".yml", ".yaml"}
 
-SGREP_PATH = "sgrep"
+SGREP_PATH = "semgrep-core"
