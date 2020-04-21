@@ -15,7 +15,7 @@ jobs:
     - name: publish
       uses: elgohr/Publish-Docker-Github-Action@2.12
       with:
-        name: returntocorp/sgrep
+        name: returntocorp/semgrep
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
     - name: update sgrep.live
