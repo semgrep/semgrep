@@ -12,8 +12,7 @@ from semgrep.util import print_msg
 
 
 def _generate_fix(rule: Rule, rule_match: RuleMatch) -> Optional[Any]:
-    # TODO add fix to rule object
-    fix_str = rule.raw.get("fix")
+    fix_str = rule.fix
     if fix_str is None:
         return None
     if "metavars" in rule_match.extra:
@@ -49,6 +48,10 @@ def _modify_file(rule_match: RuleMatch, fix: str) -> None:
 
 
 def apply_fixes(rule_matches_by_rule: Dict[Rule, List[RuleMatch]]) -> None:
+    """
+        Modify files in place for all files with findings from rules with an
+        autofix configuration
+    """
     modified_files: Set[Path] = set()
 
     for rule, rule_matches in rule_matches_by_rule.items():

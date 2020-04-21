@@ -3,6 +3,7 @@ from typing import Any
 from typing import Dict
 from typing import Iterator
 from typing import List
+from typing import Optional
 
 from semgrep.sgrep_types import BooleanRuleExpression
 from semgrep.sgrep_types import InvalidRuleSchema
@@ -120,6 +121,10 @@ class Rule:
     def expression(self) -> BooleanRuleExpression:
         return self._expression
 
+    @property
+    def fix(self) -> Optional[str]:
+        return self._raw.get("fix")
+
     @classmethod
     def from_json(cls, rule_json: Dict[str, Any]) -> "Rule":  # type: ignore
         return cls(rule_json)
@@ -129,17 +134,3 @@ class Rule:
 
     def __repr__(self) -> str:
         return json.dumps(self.to_json())
-
-
-# class PatternCollection:
-#     def __init__(self, rules: List[Rule]) -> None:
-#         pass
-
-#     def languages(self):
-#         pass
-
-#     def rules_for_language(language):
-#         pass
-
-#     def all_patterns():
-#         pass
