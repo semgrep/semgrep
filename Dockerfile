@@ -1,4 +1,4 @@
-## sgrep build
+## semgrep-core build
 
 FROM ocaml/opam2:alpine@sha256:4c2ce9a181b4b12442a68fc221d0b753959ec80e24eae3bf788eeca4dcb9a293 as build-semgrep-core
 USER root
@@ -14,8 +14,8 @@ WORKDIR /home/opam/sgrep
 
 RUN git submodule update --init --recursive
 RUN eval $(opam env) && opam install -y ./pfff
-RUN eval $(opam env) && cd sgrep && opam install -y . && make all
-RUN sgrep/_build/default/bin/main_sgrep.exe -version
+RUN eval $(opam env) && cd semgrep-core && opam install -y . && make all
+RUN semgrep-core/_build/default/bin/main_sgrep.exe -version
 
 ## sgrep lint build
 
