@@ -1,6 +1,6 @@
 # semgrep
 
-![Homebrew Tap](https://github.com/returntocorp/semgrep/workflows/homebrew/badge.svg)
+![Homebrew](https://github.com/returntocorp/homebrew-semgrep/workflows/homebrew/badge.svg)
 [![r2c Community Slack](https://img.shields.io/badge/r2c_slack-join-brightgreen?style=flat&logo=slack&labelColor=4A154B)](https://join.slack.com/t/r2c-community/shared_invite/enQtNjU0NDYzMjAwODY4LWE3NTg1MGNhYTAwMzk5ZGRhMjQ2MzVhNGJiZjI1ZWQ0NjQ2YWI4ZGY3OGViMGJjNzA4ODQ3MjEzOWExNjZlNTA)
 
 `semgrep` is a tool for easily detecting and preventing bugs and anti-patterns in
@@ -41,11 +41,10 @@ And double check that it was installed correctly:
 ```bash
 docker run --rm returntocorp/sgrep --help
 ```
-### Installation with Brew (Experimental)
+### Installation with Homebrew (OSX)
 
 ```bash
-brew tap returntocorp/sgrep https://github.com/returntocorp/sgrep.git
-brew install semgrep
+brew install returntocorp/semgrep/semgrep
 ```
 
 ## Usage
