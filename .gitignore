@@ -1,7 +1,7 @@
 _build
 .merlin
 
-sgrep/sgrep.install
+semgrep_core/sgrep.install
 /project.el
 /skip_list.txt
 /top.ml
