@@ -13,10 +13,9 @@ eval "$(opam env --root /home/opam/.opam --set-root)" && cd semgrep-core && opam
 eval "$(opam env --root /home/opam/.opam --set-root)" && cd sgrep_lint && export PATH=/github/home/.local/bin:$PATH && sudo make all && cd ..
 mkdir -p semgrep-lint-files
 cp ./semgrep-core/_build/default/bin/main_sgrep.exe semgrep-lint-files/semgrep-core
-cp -r ./sgrep_lint/build/sgrep.dist/* semgrep-lint-files
+cp -r ./semgrep/build/semgrep.dist/* semgrep-lint-files
 ls semgrep-lint-files
 # TODO: remove once the Python build job makes something named `semgrep`
-mv semgrep-lint-files/sgrep-lint semgrep-lint-files/semgrep
 chmod +x semgrep-lint-files/semgrep-core
 chmod +x semgrep-lint-files/semgrep
 tar -cvzf artifacts.tar.gz semgrep-lint-files/
