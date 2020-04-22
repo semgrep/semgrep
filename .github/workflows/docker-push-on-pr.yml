@@ -17,6 +17,6 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
           repository: returntocorp/semgrep
-          tag_with_sha: true
+          tags: ${{ github.event.pull_request.head.sha }}
       - name: update sgrep.live
         run: curl --fail -X POST https://semgrep.live/api/admin/update-docker
