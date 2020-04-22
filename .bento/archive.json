@@ -1,6 +1,14 @@
 {
   "bandit": {
     "violations": {
+      "a03ece7b789bad80c977f90f382c0fac": {
+        "tool_id": "bandit",
+        "check_id": "exec-used",
+        "path": "semgrep/semgrep/evaluation.py",
+        "message": "Use of exec detected.",
+        "severity": 1,
+        "syntactic_context": "exec(f\"global output; output = {where_expression}\")"
+      },
       "bcbe9de4fcc164d88d24abeed3888c42": {
         "tool_id": "bandit",
         "check_id": "exec-used",

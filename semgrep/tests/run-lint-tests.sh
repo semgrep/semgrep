@@ -2,7 +2,7 @@
 
 set -e
 
-test_sgrep_local () {
+test_semgrep_local () {
     cd "${THIS_DIR}/../";
     $SGREP --json --strict --config tests/python/eqeq.yaml tests/lint -o tmp.out >/dev/null
     if [ -z "$OVERRIDE_EXPECTED" ]; then
@@ -13,10 +13,10 @@ test_sgrep_local () {
     rm -f tmp.out
 }
 
-test_sgrep_relative() {
+test_semgrep_relative() {
     # test relative paths
     cd "${THIS_DIR}/../";
-    $SGREP --json --strict --config ../sgrep_lint/tests/python/eqeq.yaml tests/lint -o tmp.out >/dev/null
+    $SGREP --json --strict --config ../semgrep/tests/python/eqeq.yaml tests/lint -o tmp.out >/dev/null
     if [ -z "$OVERRIDE_EXPECTED" ]; then
         diff tmp.out tests/python/eqeq.expected.relative.json
     else
@@ -25,7 +25,7 @@ test_sgrep_relative() {
     rm -f tmp.out
 }
 
-test_sgrep_absolute() {
+test_semgrep_absolute() {
     cd "${THIS_DIR}/../";
     cp tests/python/eqeq.yaml /tmp
     $SGREP --json --strict --config /tmp/eqeq.yaml tests/lint -o tmp.out >/dev/null
@@ -38,10 +38,10 @@ test_sgrep_absolute() {
     rm -f /tmp/eqeq.yaml
 }
 
-test_sgrep_url_config() {
+test_semgrep_url_config() {
     cd "${THIS_DIR}/../";
     # test url paths
-    $SGREP --json --strict --config=https://raw.githubusercontent.com/returntocorp/sgrep-rules/develop/template.yaml tests/lint -o tmp.out >/dev/null
+    $SGREP --json --strict --config=https://raw.githubusercontent.com/returntocorp/semgrep-rules/develop/template.yaml tests/lint -o tmp.out >/dev/null
     if [ -z "$OVERRIDE_EXPECTED" ]; then
         diff tmp.out tests/python/eqeq.expected.remote.json
     else
@@ -60,10 +60,10 @@ test_registry() {
     rm -f tmp.out
 }
 
-test_sgrep_default_file() {
+test_semgrep_default_file() {
     cd "${THIS_DIR}/../";
-    # test .sgrep.yml
-    rm -rf .sgrep.yml
+    # test .semgrep.yml
+    rm -rf .semgrep.yml
     $SGREP --generate-config
     $SGREP --json --strict tests/lint -o tmp.out >/dev/null
     if [ -z "$OVERRIDE_EXPECTED" ]; then
@@ -72,15 +72,15 @@ test_sgrep_default_file() {
         cat tmp.out > tests/python/eqeq.expected.template.json
     fi
     rm -f tmp.out
-    rm -rf .sgrep.yml
+    rm -rf .semgrep.yml
 }
 
-test_sgrep_default_folder() {
+test_semgrep_default_folder() {
     cd "${THIS_DIR}/../";
-    # test .sgrep/ directory
-    rm -rf .sgrep/ && mkdir .sgrep/
+    # test .semgrep/ directory
+    rm -rf .semgrep/ && mkdir .semgrep/
     $SGREP --generate-config
-    mv .sgrep.yml .sgrep/
+    mv .semgrep.yml .semgrep/
     $SGREP --json --strict tests/lint -o tmp.out >/dev/null
     if [ -z "$OVERRIDE_EXPECTED" ]; then
         diff tmp.out tests/python/eqeq.expected.template.json
@@ -88,7 +88,7 @@ test_sgrep_default_folder() {
         cat tmp.out > tests/python/eqeq.expected.template.json
     fi
     rm -f tmp.out
-    rm -rf .sgrep/
+    rm -rf .semgrep/
 }
 
 
@@ -102,28 +102,28 @@ PYTHONPATH=.. pytest .
 
 local_tests() {
     SGREP="python3 -m semgrep"
-    test_sgrep_local
-    test_sgrep_relative
-    test_sgrep_absolute
-    test_sgrep_url_config
+    test_semgrep_local
+    test_semgrep_relative
+    test_semgrep_absolute
+    test_semgrep_url_config
     test_registry
-    test_sgrep_default_file
-    test_sgrep_default_folder
+    test_semgrep_default_file
+    test_semgrep_default_folder
 }
 
 docker_tests() {
-    SGREP="docker run --rm -v \"\${PWD}:/home/repo\" returntocorp/sgrep:develop"
-    test_sgrep_local
-    #test_sgrep_relative
-    #test_sgrep_absolute
-    test_sgrep_url_config
+    SGREP="docker run --rm -v \"\${PWD}:/home/repo\" returntocorp/semgrep:develop"
+    test_semgrep_local
+    #test_semgrep_relative
+    #test_semgrep_absolute
+    test_semgrep_url_config
     test_registry
-    test_sgrep_default_file
-    test_sgrep_default_folder
+    test_semgrep_default_file
+    test_semgrep_default_folder
 }
 
 local_tests
-#echo "sgrep docker develop image"
+#echo "semgrep docker develop image"
 #docker_tests
 
 # parsing bad.yaml should fail
@@ -144,10 +144,10 @@ $SGREP --strict --config tests/python/bad4.yaml tests/lint && echo "bad4.yaml sh
 # parsing good.yaml should succeed
 $SGREP --strict --config=tests/python/good.yaml tests/lint
 
-#echo TODO: disabled sgrep-rules regression testing for now
-rm -rf /tmp/sgrep-rules && git clone https://github.com/returntocorp/sgrep-rules /tmp/sgrep-rules
-$SGREP --dangerously-allow-arbitrary-code-execution-from-rules --strict --test --test-ignore-todo /tmp/sgrep-rules
-$SGREP --validate --config=/tmp/sgrep-rules
+#echo TODO: disabled semgrep-rules regression testing for now
+rm -rf /tmp/semgrep-rules && git clone https://github.com/returntocorp/semgrep-rules /tmp/semgrep-rules
+$SGREP --dangerously-allow-arbitrary-code-execution-from-rules --strict --test --test-ignore-todo /tmp/semgrep-rules
+$SGREP --validate --config=/tmp/semgrep-rules
 
 echo "-----------------------"
 echo "all lint tests passed"

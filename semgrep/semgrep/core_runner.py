@@ -13,6 +13,7 @@ from typing import Optional
 from typing import Tuple
 
 import yaml
+
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import SGREP_PATH
 from semgrep.evaluation import enumerate_patterns_in_boolean_expression
@@ -21,8 +22,8 @@ from semgrep.pattern import Pattern
 from semgrep.pattern_match import PatternMatch
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
-from semgrep.sgrep_types import BooleanRuleExpression
-from semgrep.sgrep_types import OPERATORS
+from semgrep.semgrep_types import BooleanRuleExpression
+from semgrep.semgrep_types import OPERATORS
 from semgrep.util import debug_print
 from semgrep.util import INVALID_PATTERN_EXIT_CODE
 from semgrep.util import print_error
@@ -41,14 +42,14 @@ class CoreRunner:
 
     def _flatten_rule_patterns(self, rules: List[Rule]) -> Iterator[Pattern]:
         """
-            Convert list of rules to format understandable by sgrep core
+            Convert list of rules to format understandable by semgrep core
         """
         for rule_index, rule in enumerate(rules):
             flat_expressions = list(
                 enumerate_patterns_in_boolean_expression(rule.expression)
             )
             for expr in flat_expressions:
-                if not should_send_to_sgrep(expr):
+                if not should_send_to_semgrep_core(expr):
                     continue
 
                 yield Pattern(rule_index, expr, rule.severity, rule.languages)
@@ -56,7 +57,7 @@ class CoreRunner:
     def _group_patterns_by_langauge(
         self, rules: List[Rule]
     ) -> Dict[str, List[Pattern]]:
-        # a rule can have multiple patterns inside it. Flatten these so we can send sgrep a single yml file list of patterns
+        # a rule can have multiple patterns inside it. Flatten these so we can send semgrep a single yml file list of patterns
         patterns = list(self._flatten_rule_patterns(rules))
         by_lang: Dict[str, List[Pattern]] = collections.defaultdict(list)
         for pattern in patterns:
@@ -64,11 +65,11 @@ class CoreRunner:
                 by_lang[language].append(pattern)
         return by_lang
 
-    def _sgrep_error_json_to_message_then_exit(
+    def _semgrep_error_json_to_message_then_exit(
         self, error_json: Dict[str, Any],
     ) -> None:
         """
-        See format_output_exception in sgrep O'Caml for details on schema
+        See format_output_exception in semgrep O'Caml for details on schema
         """
         error_type = error_json["error"]
         if error_type == "invalid language":
@@ -78,11 +79,11 @@ class CoreRunner:
                 f'invalid pattern "{error_json["pattern"]}": {error_json["message"]}'
             )
             sys.exit(INVALID_PATTERN_EXIT_CODE)
-        # no special formatting ought to be required for the other types; the sgrep python should be performing
+        # no special formatting ought to be required for the other types; the semgrep python should be performing
         # validation for them. So if any other type of error occurs, ask the user to file an issue
         else:
             print_error_exit(
-                f'an internal error occured while invoking the sgrep engine: {error_type}: {error_json.get("message", "")}.\n\n{PLEASE_FILE_ISSUE_TEXT}'
+                f'an internal error occured while invoking the semgrep engine: {error_type}: {error_json.get("message", "")}.\n\n{PLEASE_FILE_ISSUE_TEXT}'
             )
 
     def _run_rules(
@@ -114,20 +115,20 @@ class CoreRunner:
                     output = subprocess.check_output(cmd, shell=False)
                 except subprocess.CalledProcessError as ex:
                     try:
-                        # see if sgrep output a JSON error that we can decode
-                        sgrep_output = ex.output.decode("utf-8", "replace")
-                        output_json = json.loads(sgrep_output)
+                        # see if semgrep output a JSON error that we can decode
+                        semgrep_output = ex.output.decode("utf-8", "replace")
+                        output_json = json.loads(semgrep_output)
                         if "error" in output_json:
-                            self._sgrep_error_json_to_message_then_exit(output_json)
+                            self._semgrep_error_json_to_message_then_exit(output_json)
                         else:
                             print_error(
-                                f"unexpected non-json output while invoking sgrep core with {' '.join(cmd)} \n {ex}"
+                                f"unexpected non-json output while invoking semgrep core with {' '.join(cmd)} \n {ex}"
                             )
                             print_error_exit(f"\n{PLEASE_FILE_ISSUE_TEXT}")
                             raise ex  # let our general exception handler take care of this
                     except Exception as e:
                         print_error(
-                            f"non-zero return code while invoking sgrep with:\n\t{' '.join(cmd)}\n{ex} {e}"
+                            f"non-zero return code while invoking semgrep with:\n\t{' '.join(cmd)}\n{ex} {e}"
                         )
                         print_error_exit(f"\n\n{PLEASE_FILE_ISSUE_TEXT}")
                 output_json = json.loads((output.decode("utf-8", "replace")))
@@ -165,7 +166,7 @@ class CoreRunner:
 
         return findings_by_rule
 
-    def invoke_sgrep(
+    def invoke_semgrep(
         self, targets: List[Path], rules: List[Rule],
     ) -> Tuple[Dict[Rule, List[RuleMatch]], List[Any]]:
         """
@@ -176,7 +177,7 @@ class CoreRunner:
         outputs, errors = self._run_rules(rules, targets)
         findings_by_rule = self._resolve_output(outputs)
 
-        debug_print(f"sgrep ran in {datetime.now() - start}")
+        debug_print(f"semgrep ran in {datetime.now() - start}")
 
         return findings_by_rule, errors
 
@@ -200,9 +201,9 @@ def uniq_id(
     )
 
 
-def should_send_to_sgrep(expression: BooleanRuleExpression) -> bool:
+def should_send_to_semgrep_core(expression: BooleanRuleExpression) -> bool:
     """
-    don't send rules like "and-either" or "and-all" to sgrep
+    don't send rules like "and-either" or "and-all" to semgrep
     """
     return (
         expression.pattern_id is not None

@@ -2,8 +2,8 @@ from pathlib import Path
 from typing import Any
 from typing import Dict
 
-from semgrep.sgrep_types import PatternId
-from semgrep.sgrep_types import Range
+from semgrep.semgrep_types import PatternId
+from semgrep.semgrep_types import Range
 
 
 class PatternMatch:

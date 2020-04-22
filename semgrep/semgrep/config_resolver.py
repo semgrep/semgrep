@@ -12,6 +12,7 @@ from typing import Optional
 
 import requests
 import yaml
+
 from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import DEFAULT_CONFIG_FOLDER
 from semgrep.constants import DEFAULT_SGREP_CONFIG_NAME
@@ -30,12 +31,12 @@ IN_GH_ACTION = "GITHUB_WORKSPACE" in os.environ
 REPO_HOME_DOCKER = "/home/repo/"
 
 TEMPLATE_YAML_URL = (
-    "https://raw.githubusercontent.com/returntocorp/sgrep-rules/develop/template.yaml"
+    "https://raw.githubusercontent.com/returntocorp/semgrep-rules/develop/template.yaml"
 )
 
 RULES_REGISTRY = {
-    "r2c": "https://github.com/returntocorp/sgrep-rules/tarball/master",
-    "r2c-develop": "https://github.com/returntocorp/sgrep-rules/tarball/develop",
+    "r2c": "https://github.com/returntocorp/semgrep-rules/tarball/master",
+    "r2c-develop": "https://github.com/returntocorp/semgrep-rules/tarball/develop",
 }
 DEFAULT_REGISTRY_KEY = "r2c"
 
@@ -70,7 +71,7 @@ def adjust_for_docker(in_precommit: bool = False) -> None:
     if IN_DOCKER and not IN_GH_ACTION and not in_precommit:
         if not Path(REPO_HOME_DOCKER).exists():
             print_error_exit(
-                f'you are running sgrep in docker, but you forgot to mount the current directory in Docker: missing: -v "${{PWD}}:{REPO_HOME_DOCKER}"'
+                f'you are running semgrep in docker, but you forgot to mount the current directory in Docker: missing: -v "${{PWD}}:{REPO_HOME_DOCKER}"'
             )
     if Path(REPO_HOME_DOCKER).exists():
         os.chdir(REPO_HOME_DOCKER)
@@ -123,8 +124,8 @@ def parse_config_folder(
 
 def _is_hidden_config(loc: Path) -> bool:
     """
-    Want to keep rules/.sgrep.yml but not path/.github/foo.yml
-    Also want to keep src/.sgrep/bad_pattern.yml but not ./.pre-commit-config.yaml
+    Want to keep rules/.semgrep.yml but not path/.github/foo.yml
+    Also want to keep src/.semgrep/bad_pattern.yml but not ./.pre-commit-config.yaml
     """
     return any(
         part != "."

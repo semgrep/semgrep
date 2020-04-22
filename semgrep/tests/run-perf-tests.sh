@@ -10,10 +10,10 @@ B_VERSION="0.4.9"
 
 
 test_test_suite() {
-    rm -rf /tmp/sgrep-rules && git clone https://github.com/returntocorp/sgrep-rules /tmp/sgrep-rules
-    ls -al /tmp/sgrep-rules
-    CMDA="${SGREP_A} --dangerously-allow-arbitrary-code-execution-from-rules --strict --test --test-ignore-todo /tmp/sgrep-rules"
-    CMDB="${SGREP_B} --dangerously-allow-arbitrary-code-execution-from-rules --strict --test --test-ignore-todo /tmp/sgrep-rules"
+    rm -rf /tmp/semgrep-rules && git clone https://github.com/returntocorp/semgrep-rules /tmp/semgrep-rules
+    ls -al /tmp/semgrep-rules
+    CMDA="${SGREP_A} --dangerously-allow-arbitrary-code-execution-from-rules --strict --test --test-ignore-todo /tmp/semgrep-rules"
+    CMDB="${SGREP_B} --dangerously-allow-arbitrary-code-execution-from-rules --strict --test --test-ignore-todo /tmp/semgrep-rules"
     $CMDA
     $CMDB
     $HYPERFINE --export-markdown testsuite.md "${CMDA}" "${CMDB}"
@@ -22,8 +22,8 @@ test_test_suite() {
 test_sample_repos() {
     rm -rf /tmp/sample && git clone --depth=1 https://github.com/apache/airflow /tmp/sample/
     cd /tmp/sample
-    SGREP_A="docker run --rm -v ${PWD}:/home/repo returntocorp/sgrep:${A_VERSION}"
-    SGREP_B="docker run --rm -v ${PWD}:/home/repo returntocorp/sgrep:${B_VERSION}"
+    SGREP_A="docker run --rm -v ${PWD}:/home/repo returntocorp/semgrep:${A_VERSION}"
+    SGREP_B="docker run --rm -v ${PWD}:/home/repo returntocorp/semgrep:${B_VERSION}"
 
     CMDA="${SGREP_A} --config=r2c --dangerously-allow-arbitrary-code-execution-from-rules --strict"
     CMDB="${SGREP_B} --config=r2c --dangerously-allow-arbitrary-code-execution-from-rules --strict"
