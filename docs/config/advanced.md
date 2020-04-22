@@ -308,6 +308,28 @@ Would return results from `project/schemata/scan.py`, but not from `project/sche
 
 This section highlights more complex rules that perform advanced code searching.
 
+## Metadata
+
+In some cases, you might wish to
+note some extra information on a rule,
+such as a CVE that was created for it,
+or the name of the security engineer that came up with the rule.
+
+You can use the `metadata:` key in these cases, like so:
+
+```
+rules:
+  - id: eqeq-is-bad
+    patterns:
+      - [...]
+    message: "useless comparison operation `$X == $X` or `$X != $X`"
+    metadata:
+      cve: CVE-2077-1234
+      discovered-by: Ikwa L'equale
+```
+
+The metadata will also be reproduced in sgrep's output if you're running it with `--json`.
+
 ### Complete Useless Comparison
 
 ```yaml
