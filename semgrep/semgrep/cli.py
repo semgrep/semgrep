@@ -3,7 +3,7 @@ import argparse
 import sys
 
 import semgrep.config_resolver
-import semgrep.sgrep_main
+import semgrep.semgrep_main
 import semgrep.test
 from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
@@ -19,7 +19,7 @@ __VERSION__ = "0.4.9"
 def cli() -> None:
     parser = argparse.ArgumentParser(
         description=f"semgrep CLI. For more information about semgrep, go to {SGREP_URL}",
-        prog="semgrep",  # we have to lie to the user since they know of this as `sgrep`
+        prog="semgrep",
     )
 
     # input
@@ -171,7 +171,7 @@ def cli() -> None:
             else:
                 dump_parsed_ast(args.json, args.lang, args.pattern, args.target)
         elif args.validate:
-            _, invalid_configs = semgrep.sgrep_main.get_config(args)
+            _, invalid_configs = semgrep.semgrep_main.get_config(args)
             if invalid_configs:
                 print_error_exit(
                     f"run with --validate and there were {len(invalid_configs)} errors loading configs"
@@ -182,7 +182,7 @@ def cli() -> None:
         elif args.test:
             semgrep.test.test_main(args)
         else:
-            semgrep.sgrep_main.main(args)
+            semgrep.semgrep_main.main(args)
     except NotImplementedError as ex:
         print_error_exit(
             f"semgrep encountered an error: {ex}; this is not your fault. {PLEASE_FILE_ISSUE_TEXT}"

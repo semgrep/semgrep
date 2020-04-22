@@ -12,11 +12,11 @@ from semgrep.evaluation import enumerate_patterns_in_boolean_expression
 from semgrep.evaluation import evaluate_expression as raw_evaluate_expression
 from semgrep.pattern_match import PatternMatch
 from semgrep.rule import Rule
-from semgrep.sgrep_types import BooleanRuleExpression
-from semgrep.sgrep_types import Operator
-from semgrep.sgrep_types import OPERATORS
-from semgrep.sgrep_types import PatternId
-from semgrep.sgrep_types import Range
+from semgrep.semgrep_types import BooleanRuleExpression
+from semgrep.semgrep_types import Operator
+from semgrep.semgrep_types import OPERATORS
+from semgrep.semgrep_types import PatternId
+from semgrep.semgrep_types import Range
 
 
 def evaluate_expression(
@@ -429,7 +429,7 @@ def test_evaluate_python() -> None:
 
     NOTE: Assume patterns are applied in the order specified, top to bottom.
 
-    This is implementing: https://github.com/returntocorp/sgrep/issues/101.
+    This is implementing: https://github.com/returntocorp/semgrep/issues/101.
 
         let allExecs = exec($X)
         let filteredExecs = where-python: "vars['$X'].startswith('cmd')"

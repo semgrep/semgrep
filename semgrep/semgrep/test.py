@@ -20,7 +20,7 @@ from typing import Set
 from typing import Tuple
 
 from semgrep.constants import YML_EXTENSIONS
-from semgrep.sgrep_main import main as sgrepmain
+from semgrep.semgrep_main import main as semgrepmain
 from semgrep.util import debug_print
 from semgrep.util import print_error_exit
 
@@ -115,7 +115,7 @@ def score_output_json(
         with open(test_file_resolved) as fin:
             all_lines = fin.readlines()
             for i, line in enumerate(all_lines):
-                # +1 because we are 0 based and sgrep output is not, plus skip the comment line
+                # +1 because we are 0 based and semgrep output is not, plus skip the comment line
                 effective_line_num = i + 2
 
                 todo_in_line = line_has_todo_rule(line)
@@ -167,10 +167,10 @@ def confusion_matrix_to_string(confusion: List[int]) -> str:
     return f"TP: {tp}\tTN:{tn}\t FP: {fp}\t FN: {fn}"
 
 
-def invoke_sgrep_lint(
+def invoke_semgrep(
     verbose: bool, strict: bool, test_files: List[Path], config: Path, unsafe: bool
 ) -> Dict[str, Any]:
-    return sgrepmain(
+    return semgrepmain(
         argparse.Namespace(
             verbose=verbose,
             strict=strict,
@@ -195,12 +195,12 @@ def invoke_sgrep_lint(
 
 
 def generate_file_pairs(
-    location: Path, ignore_todo: bool, strict: bool, sgrep_verbose: bool, unsafe: bool
+    location: Path, ignore_todo: bool, strict: bool, semgrep_verbose: bool, unsafe: bool
 ) -> None:
     filenames = list(location.rglob("*"))
     no_tests = []
     tested = []
-    sgrep_error = []
+    semgrep_error = []
     print("starting tests...")
     for filename in filenames:
         if (
@@ -225,22 +225,22 @@ def generate_file_pairs(
             if not len(test_files):
                 no_tests.append(filename)
                 continue
-            # invoke sgrep
+            # invoke semgrep
             try:
-                output_json = invoke_sgrep_lint(
-                    sgrep_verbose, strict, test_files, filename, unsafe
+                output_json = invoke_semgrep(
+                    semgrep_verbose, strict, test_files, filename, unsafe
                 )
                 tested.append(
                     (filename, score_output_json(output_json, test_files, ignore_todo))
                 )
             except Exception as ex:
                 print(
-                    f"sgrep error running with config {filename} on {test_files}:\n{ex}"
+                    f"semgrep error running with config {filename} on {test_files}:\n{ex}"
                 )
-                sgrep_error.append(filename)
+                semgrep_error.append(filename)
 
-    if len(sgrep_error) and strict:
-        print("exiting due to sgrep/config errors and strict flag")
+    if len(semgrep_error) and strict:
+        print("exiting due to semgrep/config errors and strict flag")
         sys.exit(1)
 
     print(f"{len(no_tests)} yaml files missing tests")
@@ -298,10 +298,10 @@ def main(
     ignore_todo: bool,
     verbose: bool,
     strict: bool,
-    sgrep_verbose: bool,
+    semgrep_verbose: bool,
     unsafe: bool,
 ) -> None:
-    generate_file_pairs(location, ignore_todo, strict, sgrep_verbose, unsafe)
+    generate_file_pairs(location, ignore_todo, strict, semgrep_verbose, unsafe)
 
 
 def test_main(args: argparse.Namespace) -> None:

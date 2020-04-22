@@ -9,6 +9,7 @@ from typing import Optional
 from typing import Tuple
 
 import requests
+
 import semgrep.config_resolver
 from semgrep.autofix import apply_fixes
 from semgrep.constants import ID_KEY
@@ -18,9 +19,9 @@ from semgrep.output import build_normal_output
 from semgrep.output import build_output_json
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
-from semgrep.sgrep_types import InvalidRuleSchema
-from semgrep.sgrep_types import YAML_ALL_VALID_RULE_KEYS
-from semgrep.sgrep_types import YAML_MUST_HAVE_KEYS
+from semgrep.semgrep_types import InvalidRuleSchema
+from semgrep.semgrep_types import YAML_ALL_VALID_RULE_KEYS
+from semgrep.semgrep_types import YAML_MUST_HAVE_KEYS
 from semgrep.util import debug_print
 from semgrep.util import FINDINGS_EXIT_CODE
 from semgrep.util import INVALID_CODE_EXIT_CODE
@@ -30,7 +31,7 @@ from semgrep.util import print_error
 from semgrep.util import print_error_exit
 from semgrep.util import print_msg
 
-SGREP_RULES_HOME = "https://github.com/returntocorp/sgrep-rules"
+SGREP_RULES_HOME = "https://github.com/returntocorp/semgrep-rules"
 MISSING_RULE_ID = "no-rule-id"
 
 
@@ -135,9 +136,9 @@ def post_output(output_url: str, output_data: Dict[str, Any]) -> None:
     debug_print(f"posted to {output_url} and got status_code:{r.status_code}")
 
 
-def r2c_error_format(sgrep_errors_json: Dict[str, Any]) -> Dict[str, Any]:
+def r2c_error_format(semgrep_errors_json: Dict[str, Any]) -> Dict[str, Any]:
     # TODO https://docs.r2c.dev/en/latest/api/output.html
-    return sgrep_errors_json
+    return semgrep_errors_json
 
 
 def save_output(
@@ -175,7 +176,7 @@ def get_config(args: Any) -> Any:
         lang = args.lang
         pattern = args.pattern
 
-        # TODO for now we generate a manual config. Might want to just call sgrep -e ... -l ...
+        # TODO for now we generate a manual config. Might want to just call semgrep -e ... -l ...
         configs = semgrep.config_resolver.manual_config(pattern, lang)
     else:
         # else let's get a config. A config is a dict from config_id -> config. Config Id is not well defined at this point.
@@ -210,7 +211,7 @@ def should_exclude_this_path(path: Path) -> bool:
 
 
 def main(args: argparse.Namespace) -> Dict[str, Any]:
-    """ main function that parses args and runs sgrep """
+    """ main function that parses args and runs semgrep """
     # get the proper paths for targets i.e. handle base path of /home/repo when it exists in docker
     targets = semgrep.config_resolver.resolve_targets(args.target)
     valid_configs, invalid_configs = get_config(args)
@@ -248,10 +249,10 @@ def main(args: argparse.Namespace) -> Dict[str, Any]:
                 MISSING_CONFIG_EXIT_CODE,
             )
 
-    # actually invoke sgrep
-    rule_matches_by_rule, sgrep_errors = CoreRunner(
+    # actually invoke semgrep
+    rule_matches_by_rule, semgrep_errors = CoreRunner(
         args.dangerously_allow_arbitrary_code_execution_from_rules,
-    ).invoke_sgrep(targets, all_rules)
+    ).invoke_semgrep(targets, all_rules)
 
     if args.exclude_tests:
         ignored_in_tests = 0
@@ -270,16 +271,16 @@ def main(args: argparse.Namespace) -> Dict[str, Any]:
                 f"warning: ignored {ignored_in_tests} results in tests due to --exclude-tests option"
             )
 
-    for finding in sgrep_errors:
-        print_error(f"sgrep: {finding['path']}: {finding['check_id']}")
+    for finding in semgrep_errors:
+        print_error(f"semgrep: {finding['path']}: {finding['check_id']}")
 
-    if args.strict and len(sgrep_errors):
+    if args.strict and len(semgrep_errors):
         print_error_exit(
-            f"run with --strict and {len(sgrep_errors)} errors occurred during sgrep run; exiting",
+            f"run with --strict and {len(semgrep_errors)} errors occurred during semgrep run; exiting",
             INVALID_CODE_EXIT_CODE,
         )
 
-    output_data = handle_output(rule_matches_by_rule, sgrep_errors, args)
+    output_data = handle_output(rule_matches_by_rule, semgrep_errors, args)
 
     if args.autofix:
         apply_fixes(rule_matches_by_rule)
@@ -288,7 +289,7 @@ def main(args: argparse.Namespace) -> Dict[str, Any]:
 
 
 def handle_output(
-    rule_matches_by_rule: Dict[Rule, List[RuleMatch]], sgrep_errors: Any, args: Any
+    rule_matches_by_rule: Dict[Rule, List[RuleMatch]], semgrep_errors: Any, args: Any
 ) -> Dict[str, Any]:
     rule_matches: List[RuleMatch] = []
     for rule_match in rule_matches_by_rule.values():
@@ -310,7 +311,7 @@ def handle_output(
     # output results
     output_data = {
         "results": [rm.to_json() for rm in rule_matches],
-        "errors": r2c_error_format(sgrep_errors),
+        "errors": r2c_error_format(semgrep_errors),
     }
     if not args.quiet:
         if args.json:
