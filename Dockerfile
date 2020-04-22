@@ -9,8 +9,8 @@ USER opam
 WORKDIR /home/opam/opam-repository
 RUN git pull && opam update && opam switch 4.07
 
-COPY --chown=opam . /home/opam/semgrep-core/
-WORKDIR /home/opam/semgrep-core
+COPY --chown=opam . /home/opam/sgrep/
+WORKDIR /home/opam/sgrep
 
 RUN git submodule update --init --recursive
 RUN eval $(opam env) && opam install -y ./pfff
