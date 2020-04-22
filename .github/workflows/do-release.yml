@@ -87,9 +87,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Get the version
+      - name: Get the version without leading v
         id: get_version
-        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\/v/}
       - name: build-and-push
         uses: docker/build-push-action@v1
         with:
