@@ -18,15 +18,15 @@ jobs:
         run: git submodule update --init --recursive
       - name: Install pfff
         run: eval $(opam  env --root /home/opam/.opam --set-root) && opam install -y ./pfff
-      - name: Install and test sgrep
+      - name: Install and test semgrep-core
         run: eval $(opam  env --root /home/opam/.opam --set-root) && cd semgrep-core && opam install -y . && make all && make test && make install
-      - name: Install and test sgrep-lint
-        run: eval $(opam  env --root /home/opam/.opam --set-root) && cd sgrep_lint && export PATH=/github/home/.local/bin:$PATH && make all && make test
+      - name: Install and test semgrep
+        run: eval $(opam  env --root /home/opam/.opam --set-root) && cd semgrep && export PATH=/github/home/.local/bin:$PATH && make all && make test
       - name: Prepare artifacts
         run: |
           mkdir -p artifacts/bin/sgrep-lint-files
           cp ./semgrep-core/_build/default/bin/main_sgrep.exe artifacts/semgrep-core
-          cp -r ./sgrep_lint/build/sgrep.dist/* artifacts
+          cp -r ./semgrep/build/semgrep.dist/* artifacts
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
