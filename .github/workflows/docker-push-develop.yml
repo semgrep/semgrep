@@ -3,20 +3,20 @@ name: docker
 on:
   push:
     branches:
-    - master
-    - develop
-    - release/*
+      - develop
 
 jobs:
   build:
+    name: Build and Push Semgrep Docker Container
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
     - name: publish
-      uses: elgohr/Publish-Docker-Github-Action@2.12
+      uses: docker/build-push-action@v1
       with:
-        name: returntocorp/semgrep
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
+        repository: returntocorp/semgrep
+        tags: develop
     - name: update sgrep.live
       run: curl --fail -X POST https://semgrep.live/api/admin/update-docker
