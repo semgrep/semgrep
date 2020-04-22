@@ -32,14 +32,14 @@ Example patterns:
 
 Install `semgrep` with [Docker](https://docs.docker.com/install/):
 
-```
-$ docker pull returntocorp/sgrep
+```bash
+docker pull returntocorp/sgrep
 ```
 
 And double check that it was installed correctly:
 
-```
-$ docker run --rm returntocorp/sgrep --help
+```bash
+docker run --rm returntocorp/sgrep --help
 ```
 ### Installation with Brew (Experimental)
 
@@ -50,17 +50,19 @@ brew install semgrep
 
 ## Usage
 
-Start with a simple example:
+### Example Usage
 
-```
-$ cat << EOF > test.py
+Here is a simple Python example, `test.py`. We want to retrieve an object by ID:
+
+```python3
 def get_node(node_id, nodes):
     for node in nodes:
         if node.id == node.id:  # Oops, supposed to be 'node_id'
             return node
     return None
-EOF
 ```
+
+This is a bug. Let's use `semgrep` to find bugs like it, using a simple search pattern: `$X == $X`. It will find all places in our code where the left- and right-hand sides of a comparison are the same expression:
 
 ```
 $ docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep --lang python --pattern '$X == $X' test.py
@@ -69,19 +71,23 @@ rule:python.deadcode.eqeq-is-bad: useless comparison operation `node.id == node.
 3:        if node.id == node.id:  # Oops, supposed to be 'node_id'
 ```
 
-From here you can use our rules to search for issues in your codebase:
+### r2c-developed Rules
 
+You can use rules developed by r2c to search for issues in your codebase:
+
+```bash
+cd /path/to/code
+docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep --config r2c
 ```
-$ cd /path/to/code
-$ docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep --config r2c
-```
+
+### Custom Rules
 
 You can also [create your own rules](docs/config/advanced.md):
 
-```
-$ cd /path/to/code
-$ docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep --generate-config
-$ docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep
+```bash
+cd /path/to/code
+docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep --generate-config
+docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep
 ```
 
 ## Configuration
@@ -90,20 +96,20 @@ For simple patterns use the `--lang` and `--pattern` flags. This mode of
 operation is useful for quickly iterating on a pattern on a single file or
 folder:
 
-```
-$ docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep --lang javascript --pattern 'eval(...)' path/to/file.js
+```bash
+docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep --lang javascript --pattern 'eval(...)' path/to/file.js
 ```
 
 To fine-tune your searching, specify the `--help` flag:
 
-```
-$ docker run --rm returntocorp/sgrep --help
+```bash
+docker run --rm returntocorp/sgrep --help
 ```
 
 ### Configuration Files
 
 For advanced configuration use the `--config` flag. This flag automagically
-handles a multitude of input types:
+handles a multitude of input configuration types:
 
 * `--config <file|folder|yaml_url|tarball_url|registy_name>`
 
@@ -120,6 +126,17 @@ invalid.  Metavariables are used to track a variable across a specific code
 scope.
 * **The `...` (ellipsis) operator.** The ellipsis operator abstracts away
 sequences so you don't have to sweat the details of a particular code pattern.
+
+For example,
+```yaml
+$FILE = open(...)
+```
+will find all occurences in your code where the result of an `open()` call is assigned
+to an variable.
+
+#### Composing Patterns
+
+You can also construct rules by composing multiple patterns together. 
 
 Let's consider an example:
 
@@ -173,8 +190,8 @@ As mentioned above, you may also specify a registry name as configuration.
 of configuration files. These rules have been tuned on thousands of repositories
 using our [analysis platform](https://app.r2c.dev).
 
-```
-$ docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep --config r2c
+```bash
+docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep --config r2c
 ```
 
 ## Resources
