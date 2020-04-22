@@ -32,7 +32,7 @@ eval $(opam env) && opam install -y ./pfff
 Then you can compile the program with:
 
 ```bash
-cd sgrep
+cd semgrep_core
 make all
 ```
 
@@ -43,24 +43,24 @@ You can also use the Dockerfile in this directory to build semgrep inside a cont
 Then to test semgrep on a file, for example tests/GENERIC/test.py run:
 
 ```bash
-cd sgrep
+cd semgrep_core
 ./_build/default/bin/main_sgrep.exe -e foo tests/python
 ...
 ```
 
-If you want to test sgrep on a directory with a set of given rules, run:
+If you want to test semgrep on a directory with a set of given rules, run:
 
 ```bash
-cp ./sgrep/_build/default/bin/main_sgrep.exe /usr/local/bin/sgrep
-cd sgrep_lint
+cp ./semgrep_core/_build/default/bin/main_sgrep.exe /usr/local/bin/semgrep_core
+cd semgrep
 make && make install
-sgrep-lint --config <YAML_FILE_OR_DIRECTORY> <code to check>
+semgrep --config <YAML_FILE_OR_DIRECTORY> <code to check>
 ```
 
-It is also possible to run sgrep\_lint from source:
+It is also possible to run semgrep from source:
 
 ```text
-cd sgrep_lint
+cd semgrep
 python3 -m semgrep
 ```
 
@@ -70,7 +70,7 @@ You can use Visual Studio Code \(vscode\) to edit the code of semgrep. The [reas
 
 The OCaml and Reason IDE extension by David Morrison is another valid extension, but it seems not as actively maintained as reason-vscode.
 
-The source of semgrep contains also a .vscode/ directory at its root containing a task file to automatically build sgrep from vscode.
+The source of semgrep contains also a .vscode/ directory at its root containing a task file to automatically build semgrep from vscode.
 
 Note that dune and ocamlmerlin must be in your PATH for vscode to correctly build and provide cross-reference on the code. In case of problems, do:
 
