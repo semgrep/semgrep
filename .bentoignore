@@ -33,4 +33,4 @@
 :include .gitignore
 semgrep-core/tests/
 pfff/
-sgrep_lint/tests/
+semgrep/tests/

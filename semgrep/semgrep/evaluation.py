@@ -10,11 +10,11 @@ from semgrep.constants import RCE_RULE_FLAG
 from semgrep.pattern_match import PatternMatch
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
-from semgrep.sgrep_types import BooleanRuleExpression
-from semgrep.sgrep_types import OPERATORS
-from semgrep.sgrep_types import pattern_names_for_operator
-from semgrep.sgrep_types import PatternId
-from semgrep.sgrep_types import Range
+from semgrep.semgrep_types import BooleanRuleExpression
+from semgrep.semgrep_types import OPERATORS
+from semgrep.semgrep_types import pattern_names_for_operator
+from semgrep.semgrep_types import PatternId
+from semgrep.semgrep_types import Range
 from semgrep.util import debug_print
 from semgrep.util import flatten
 from semgrep.util import NEED_ARBITRARY_CODE_EXEC_EXIT_CODE

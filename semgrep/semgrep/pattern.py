@@ -2,7 +2,7 @@ from typing import Any
 from typing import Dict
 from typing import List
 
-from semgrep.sgrep_types import BooleanRuleExpression
+from semgrep.semgrep_types import BooleanRuleExpression
 
 
 class Pattern:
@@ -19,7 +19,7 @@ class Pattern:
     ) -> None:
         self._id = f"{rule_index}.{expression.pattern_id}"
         # if we don't copy an array (like `languages`), the yaml file will refer to it by reference (with an anchor)
-        # which is nice and all but the sgrep YAML parser doesn't support that
+        # which is nice and all but the semgrep YAML parser doesn't support that
         self._languages = languages.copy()
         self._severity = severity
         self._pattern = expression.operand

@@ -34,6 +34,6 @@ def dump_parsed_ast(
         try:
             output = subprocess.check_output(cmd, shell=False)
         except subprocess.CalledProcessError as ex:
-            print_error(f"error invoking sgrep with:\n\t{' '.join(cmd)}\n{ex}")
+            print_error(f"error invoking semgrep with:\n\t{' '.join(cmd)}\n{ex}")
             print_error_exit(f"\n\n{PLEASE_FILE_ISSUE_TEXT}")
         print(output.decode())
