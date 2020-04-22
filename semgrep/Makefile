@@ -5,5 +5,5 @@ clean:
 test:
 	./tests/run-lint-tests.sh
 install:
-	cp -rv ./build/sgrep.dist/ /usr/local/bin/sgrep-lint-files/
-	ln -sf /usr/local/bin/sgrep-lint-files/sgrep-lint /usr/local/bin/sgrep-lint
+	cp -rv ./build/semgrep.dist/ /usr/local/bin/semgrep-files/
+	ln -sf /usr/local/bin/semgrep-files/semgrep /usr/local/bin/semgrep

@@ -6,7 +6,7 @@ setuptools.setup(
     version="0.0.4",
     author="Russell & Return 2 Corp",
     author_email="author@example.com",
-    description="sgrep python wrapper",
+    description="semgrep python wrapper",
     long_description="bloop",
     long_description_content_type="text/markdown",
     url="https://github.com/pypa/sampleproject",
