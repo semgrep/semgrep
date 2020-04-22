@@ -61,10 +61,10 @@ class Semgrep < Formula
 
   def install
     (buildpath/"ocaml-binary").install resource("ocaml-binary")
-    cp "ocaml-binary/sgrep", "sgrep-core"
-    cp "ocaml-binary/sgrep", "semgrep-core"
-    bin.install "sgrep-core"
-    bin.install "semgrep-core"
+    cp "ocaml-binary/sgrep", "ocaml-binary/sgrep-core"
+    cp "ocaml-binary/sgrep", "ocaml-binary/semgrep-core"
+    bin.install "ocaml-binary/sgrep-core"
+    bin.install "ocaml-binary/semgrep-core"
 
     cd "sgrep_lint" do
       venv = virtualenv_create(libexec, Formula["python@3.8"].bin/"python3.8")
