@@ -1,7 +1,7 @@
 _build
 .merlin
 
-semgrep_core/sgrep.install
+sgrep/sgrep.install
 /project.el
 /skip_list.txt
 /top.ml
@@ -138,9 +138,3 @@ dmypy.json
 
 # Vim
 .*.sw*
-
-# Pycharm
-.idea/
-
-# OSX
-*.DS_Store

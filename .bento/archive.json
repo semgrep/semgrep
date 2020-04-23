@@ -1,10 +1,18 @@
 {
   "bandit": {
     "violations": {
-      "a03ece7b789bad80c977f90f382c0fac": {
+      "bcbe9de4fcc164d88d24abeed3888c42": {
         "tool_id": "bandit",
         "check_id": "exec-used",
-        "path": "semgrep/semgrep/evaluation.py",
+        "path": "sgrep_lint/semgrep/evaluation.py",
+        "message": "Use of exec detected.",
+        "severity": 1,
+        "syntactic_context": "exec(f\"global output; output = {where_expression}\")"
+      },
+      "9907a14dd497eafbc89459000a3c57a1": {
+        "tool_id": "bandit",
+        "check_id": "exec-used",
+        "path": "sgrep_lint/evaluation.py",
         "message": "Use of exec detected.",
         "severity": 1,
         "syntactic_context": "exec(f\"global output; output = {where_expression}\")"
@@ -15,17 +23,34 @@
     "violations": {}
   },
   "flake8": {
-    "violations": {}
+    "violations": {
+      "9c84b4b004acf3254bd910ba43baa388": {
+        "tool_id": "flake8",
+        "check_id": "no-assert-false",
+        "path": "sgrep_lint/config_resolver.py",
+        "message": "Do not call assert False since python -O removes these calls. Instead callers should raise AssertionError().",
+        "severity": 2,
+        "syntactic_context": "assert False"
+      }
+    }
   },
   "hadolint": {
     "violations": {
-      "142d6e5f77de7ecb6cc818a63c935c03": {
+      "2bfbc1daf8c9edc0498d83102148b164": {
         "tool_id": "hadolint",
         "check_id": "DL3003",
         "path": "Dockerfile",
         "message": "Use WORKDIR to switch to a directory",
         "severity": 1,
-        "syntactic_context": "RUN eval $(opam env) && cd semgrep-core && opam install -y . && make all\n"
+        "syntactic_context": "RUN eval $(opam env) && cd sgrep && opam install -y . && make all\n"
+      },
+      "3924ce7b34822f1410540b0e52623f0b": {
+        "tool_id": "hadolint",
+        "check_id": "SC2046",
+        "path": "Dockerfile",
+        "message": "Quote this to prevent word splitting.",
+        "severity": 1,
+        "syntactic_context": "RUN eval $(opam env) && cd sgrep && opam install -y . && make all\n"
       },
       "366097962bbe29586382e586fcb7ef6d": {
         "tool_id": "hadolint",
@@ -35,13 +60,21 @@
         "severity": 1,
         "syntactic_context": "RUN eval $(opam env) && opam install -y ./pfff\n"
       },
-      "915f3d7f2403006041adee9e22b7a0f8": {
+      "52f33317e7099af4e584f3ed17b24e7c": {
         "tool_id": "hadolint",
         "check_id": "SC2046",
         "path": "Dockerfile",
         "message": "Quote this to prevent word splitting.",
         "severity": 1,
-        "syntactic_context": "RUN eval $(opam env) && cd semgrep-core && opam install -y . && make all\n"
+        "syntactic_context": "RUN eval $(opam env) && cd sgrep && opam install . && make all\n"
+      },
+      "f20ace6da57040c54998e2233e3a643a": {
+        "tool_id": "hadolint",
+        "check_id": "DL3003",
+        "path": "Dockerfile",
+        "message": "Use WORKDIR to switch to a directory",
+        "severity": 1,
+        "syntactic_context": "RUN eval $(opam env) && cd sgrep && opam install . && make all\n"
       }
     }
   },

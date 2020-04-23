@@ -1,6 +1,6 @@
 #!/bin/bash
 set -eox
-curl https://api.github.com/repos/returntocorp/semgrep/releases/latest > release.json
+curl https://api.github.com/repos/returntocorp/sgrep/releases/latest > release.json
 
 # Look for release notes
 cat release.json | jq '.body' | grep -o "Changed"

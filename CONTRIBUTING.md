@@ -2,7 +2,7 @@
 
 ## Latest build [![CircleCI](https://circleci.com/gh/returntocorp/sgrep.svg?style=svg)](https://circleci.com/gh/returntocorp/sgrep)
 
-`semgrep` is LGPL-licensed and we would love your contributions. See docs/development.md
+`sgrep` is LGPL-licensed and we would love your contributions. See docs/development.md
 
 We have [Circle CI](https://circleci.com/gh/returntocorp/sgrep) builds running on this project and forks.
 

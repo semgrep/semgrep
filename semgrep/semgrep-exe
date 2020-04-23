@@ -1,6 +1,0 @@
-#!/bin/sh
-
-# semgrep single executable must be run from the folder with all the shared objects
-
-THIS_DIR="$(dirname "$(realpath "$0")")";
-"${THIS_DIR}"/__main__ "$@"
