@@ -36,12 +36,7 @@ Install `semgrep` with [Docker](https://docs.docker.com/install/):
 docker pull returntocorp/sgrep
 ```
 
-And double check that it was installed correctly:
-
-```bash
-docker run --rm returntocorp/sgrep --help
-```
-### Installation with Homebrew (OSX)
+On OSX, binaries are available via [Homebrew](https://brew.sh/):
 
 ```bash
 brew install returntocorp/semgrep/semgrep
@@ -205,3 +200,5 @@ docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep --config r2c
 ## Contribution
 
 `semgrep` is LGPL-licensed, feel free to help out: [CONTRIBUTING](https://github.com/returntocorp/sgrep/blob/develop/CONTRIBUTING.md).
+
+`semgrep` is a frontend to a larger program analysis library named [pfff](https://github.com/returntocorp/pfff/), where it was named `sgrep`. pfff began and was open-sourced at [Facebook](https://github.com/facebookarchive/pfff) but is now archived and the primary maintainer works at r2c.
