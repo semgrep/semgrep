@@ -1,4 +1,4 @@
-name: mac
+name: homebrew
 
 on:
   pull_request:
@@ -7,16 +7,10 @@ on:
     branches: [master, develop]
 
 jobs:
-  test-homebrew:
+  test-homebrew-external:
     runs-on: macos-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
       - name: Homebrew install
-        run: brew install ./HomebrewFormula/semgrep.rb
+        run: brew install returntocorp/semgrep/semgrep
       - name: Homebrew test
-        run: brew test ./HomebrewFormula/semgrep.rb
-      - name: Homebrew audit
-        run: brew audit ./HomebrewFormula/semgrep.rb
-      - name: sanity
-        run: semgrep --help
+        run: brew install returntocorp/semgrep/semgrep

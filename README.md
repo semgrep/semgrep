@@ -1,14 +1,14 @@
-# sgrep
+# semgrep
 
-[![CircleCI](https://circleci.com/gh/returntocorp/sgrep.svg?style=svg)](https://circleci.com/gh/returntocorp/sgrep)
+![Homebrew](https://github.com/returntocorp/homebrew-semgrep/workflows/homebrew/badge.svg)
 [![r2c Community Slack](https://img.shields.io/badge/r2c_slack-join-brightgreen?style=flat&logo=slack&labelColor=4A154B)](https://join.slack.com/t/r2c-community/shared_invite/enQtNjU0NDYzMjAwODY4LWE3NTg1MGNhYTAwMzk5ZGRhMjQ2MzVhNGJiZjI1ZWQ0NjQ2YWI4ZGY3OGViMGJjNzA4ODQ3MjEzOWExNjZlNTA)
 
-`sgrep` is a tool for easily detecting and preventing bugs and anti-patterns in
+`semgrep` is a tool for easily detecting and preventing bugs and anti-patterns in
 your codebase. It combines the convenience of `grep` with the correctness of
 syntactical and semantic search. Quickly write rules so you can code with
 confidence.
 
-**Try it now:** [https://sgrep.live](https://sgrep.live/)
+**Try it now:** [https://semgrep.live](https://semgrep.live/)
 
 ## Overview
 
@@ -28,39 +28,37 @@ Example patterns:
 | `$ELEMENT.innerHTML` | ``el.innerHTML = "<img src='x' onerror='alert(`XSS`)'>";`` |
 | `$TOKEN.SignedString([]byte("..."))` | `ss, err := token.SignedString([]byte("HARDCODED KEY"))` |
 
+→ [see more example patterns in the semgrep-rules repository](https://github.com/returntocorp/semgrep-rules)
+
 ## Installation
 
-Install `sgrep` with [Docker](https://docs.docker.com/install/):
-
-```
-$ docker pull returntocorp/sgrep
-```
-
-And double check that it was installed correctly:
-
-```
-$ docker run --rm returntocorp/sgrep --help
-```
-### Installation with Brew (Experimental)
+Install `semgrep` with [Docker](https://docs.docker.com/install/):
 
 ```bash
-brew tap returntocorp/sgrep https://github.com/returntocorp/sgrep.git
-brew install semgrep
+docker pull returntocorp/sgrep
+```
+
+On OSX, binaries are available via [Homebrew](https://brew.sh/):
+
+```bash
+brew install returntocorp/semgrep/semgrep
 ```
 
 ## Usage
 
-Start with a simple example:
+### Example Usage
 
-```
-$ cat << EOF > test.py
+Here is a simple Python example, `test.py`. We want to retrieve an object by ID:
+
+```python3
 def get_node(node_id, nodes):
     for node in nodes:
         if node.id == node.id:  # Oops, supposed to be 'node_id'
             return node
     return None
-EOF
 ```
+
+This is a bug. Let's use `semgrep` to find bugs like it, using a simple search pattern: `$X == $X`. It will find all places in our code where the left- and right-hand sides of a comparison are the same expression:
 
 ```
 $ docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep --lang python --pattern '$X == $X' test.py
@@ -69,19 +67,23 @@ rule:python.deadcode.eqeq-is-bad: useless comparison operation `node.id == node.
 3:        if node.id == node.id:  # Oops, supposed to be 'node_id'
 ```
 
-From here you can use our rules to search for issues in your codebase:
+### r2c-developed Rules
 
+You can use rules developed by r2c to search for issues in your codebase:
+
+```bash
+cd /path/to/code
+docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep --config r2c
 ```
-$ cd /path/to/code
-$ docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep --config r2c
-```
+
+### Custom Rules
 
 You can also [create your own rules](docs/config/advanced.md):
 
-```
-$ cd /path/to/code
-$ docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep --generate-config
-$ docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep
+```bash
+cd /path/to/code
+docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep --generate-config
+docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep
 ```
 
 ## Configuration
@@ -90,20 +92,20 @@ For simple patterns use the `--lang` and `--pattern` flags. This mode of
 operation is useful for quickly iterating on a pattern on a single file or
 folder:
 
-```
-$ docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep --lang javascript --pattern 'eval(...)' path/to/file.js
+```bash
+docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep --lang javascript --pattern 'eval(...)' path/to/file.js
 ```
 
 To fine-tune your searching, specify the `--help` flag:
 
-```
-$ docker run --rm returntocorp/sgrep --help
+```bash
+docker run --rm returntocorp/sgrep --help
 ```
 
 ### Configuration Files
 
 For advanced configuration use the `--config` flag. This flag automagically
-handles a multitude of input types:
+handles a multitude of input configuration types:
 
 * `--config <file|folder|yaml_url|tarball_url|registy_name>`
 
@@ -112,7 +114,7 @@ or multiple files matching `.sgrep/**/*.yml`.
 
 #### Pattern Features
 
-`sgrep` patterns make use of two primary features:
+`semgrep` patterns make use of two primary features:
 
 * **Metavariables like `$X`, `$WIDGET`, or `$USERS`.** Metavariable names can
 only contain uppercase characters - names like `$x` or `$SOME_VALUE` are
@@ -120,6 +122,17 @@ invalid.  Metavariables are used to track a variable across a specific code
 scope.
 * **The `...` (ellipsis) operator.** The ellipsis operator abstracts away
 sequences so you don't have to sweat the details of a particular code pattern.
+
+For example,
+```yaml
+$FILE = open(...)
+```
+will find all occurences in your code where the result of an `open()` call is assigned
+to an variable.
+
+#### Composing Patterns
+
+You can also construct rules by composing multiple patterns together. 
 
 Let's consider an example:
 
@@ -150,7 +163,7 @@ see the [configuration documentation](docs/config/advanced.md).**
 
 #### Equivalences
 
-Equivalences are another key concept in `sgrep`. `sgrep` automatically searches
+Equivalences are another key concept in `semgrep`. `semgrep` automatically searches
 for code that is semantically equivalent. For example, the following patterns
 are semantically equivalent
 
@@ -163,7 +176,7 @@ from subprocess import Popen as sub_popen
 result = sub_popen("ls")
 ```
 
-For a full list of `sgrep` feature support by language see the
+For a full list of `semgrep` feature support by language see the
 [language matrix](docs/matrix.md).
 
 ### Registry
@@ -173,13 +186,13 @@ As mentioned above, you may also specify a registry name as configuration.
 of configuration files. These rules have been tuned on thousands of repositories
 using our [analysis platform](https://app.r2c.dev).
 
-```
-$ docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep --config r2c
+```bash
+docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep --config r2c
 ```
 
 ## Resources
 
-* [r2c `sgrep` meetup slides](https://web-assets.r2c.dev/sgrep/r2c-sgrep-meetup-feb-2020.pdf)
+* [r2c `semgrep` meetup slides](https://web-assets.r2c.dev/sgrep/r2c-sgrep-meetup-feb-2020.pdf)
 * [Simple configuration documentation](docs/config/simple.md)
 * [Advanced configuration documentation](docs/config/advanced.md)
 * [Integrations](docs/integrations.md)
@@ -188,4 +201,6 @@ $ docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep --config r2c
 
 ## Contribution
 
-`sgrep` is LGPL-licensed, feel free to help out: [CONTRIBUTING](https://github.com/returntocorp/sgrep/blob/develop/CONTRIBUTING.md).
+`semgrep` is LGPL-licensed, feel free to help out: [CONTRIBUTING](https://github.com/returntocorp/sgrep/blob/develop/CONTRIBUTING.md).
+
+`semgrep` is a frontend to a larger program analysis library named [pfff](https://github.com/returntocorp/pfff/), where it was named `sgrep`. pfff began and was open-sourced at [Facebook](https://github.com/facebookarchive/pfff) but is now archived and the primary maintainer works at r2c.
