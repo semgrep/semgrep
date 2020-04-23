@@ -28,6 +28,8 @@ Example patterns:
 | `$ELEMENT.innerHTML` | ``el.innerHTML = "<img src='x' onerror='alert(`XSS`)'>";`` |
 | `$TOKEN.SignedString([]byte("..."))` | `ss, err := token.SignedString([]byte("HARDCODED KEY"))` |
 
+→ [see more example patterns in the semgrep-rules repository](https://github.com/returntocorp/semgrep-rules)
+
 ## Installation
 
 Install `semgrep` with [Docker](https://docs.docker.com/install/):
