@@ -1,6 +1,6 @@
-## sgrep build
+## semgrep-core build
 
-FROM ocaml/opam2:alpine@sha256:4c2ce9a181b4b12442a68fc221d0b753959ec80e24eae3bf788eeca4dcb9a293 as build-sgrep
+FROM ocaml/opam2:alpine@sha256:4c2ce9a181b4b12442a68fc221d0b753959ec80e24eae3bf788eeca4dcb9a293 as build-semgrep-core
 USER root
 RUN apk add --no-cache perl m4
 
@@ -14,17 +14,17 @@ WORKDIR /home/opam/sgrep
 
 RUN git submodule update --init --recursive
 RUN eval $(opam env) && opam install -y ./pfff
-RUN eval $(opam env) && cd sgrep && opam install -y . && make all
-RUN sgrep/_build/default/bin/main_sgrep.exe -version
+RUN eval $(opam env) && cd semgrep-core && opam install -y . && make all
+RUN semgrep-core/_build/default/bin/main_sgrep.exe -version
 
-## sgrep lint build
+## semgrep build
 
-FROM python:3.7.7-alpine3.11 as build-sgrep-lint
+FROM python:3.7.7-alpine3.11 as build-semgrep
 RUN apk add --no-cache python3-dev build-base chrpath
-COPY sgrep_lint /home/pythonbuild/sgrep_lint/
-WORKDIR /home/pythonbuild/sgrep_lint
+COPY semgrep /home/pythonbuild/semgrep/
+WORKDIR /home/pythonbuild/semgrep
 RUN make all
-RUN ls -al /home/pythonbuild/sgrep_lint/build/sgrep.dist/
+RUN ls -al /home/pythonbuild/semgrep/build/semgrep.dist/
 
 ## final output, combining both
 
@@ -33,20 +33,20 @@ LABEL maintainer="sgrep@r2c.dev"
 
 ENV PYTHONUNBUFFERED=1
 
-COPY --from=build-sgrep-lint /home/pythonbuild/sgrep_lint/build/sgrep.dist/* /bin/sgrep-lint-files/
-RUN ln -s /bin/sgrep-lint-files/sgrep-lint /bin/sgrep-lint
+COPY --from=build-semgrep /home/pythonbuild/semgrep/build/semgrep.dist/* /bin/semgrep-files/
+RUN ln -s /bin/semgrep-files/semgrep /bin/semgrep
 
-RUN ls -al  /bin/sgrep-lint-files/cacert.pem
-RUN mkdir /bin/sgrep-lint-files/certifi/
-RUN ln -sfn /bin/sgrep-lint-files/cacert.pem  /bin/sgrep-lint-files/certifi/cacert.pem
-RUN ls -al /bin/sgrep-lint-files/
+RUN ls -al  /bin/semgrep-files/cacert.pem
+RUN mkdir /bin/semgrep-files/certifi/
+RUN ln -sfn /bin/semgrep-files/cacert.pem  /bin/semgrep-files/certifi/cacert.pem
+RUN ls -al /bin/semgrep-files/
 
-RUN sgrep-lint --help
-COPY --from=build-sgrep /home/opam/sgrep/sgrep/_build/default/bin/main_sgrep.exe /bin/sgrep
-RUN sgrep --help
-RUN sgrep-lint --config=r2c /bin/sgrep-lint-files/
+RUN semgrep --help
+COPY --from=build-semgrep-core /home/opam/sgrep/semgrep-core/_build/default/bin/main_sgrep.exe /bin/semgrep-core
+RUN semgrep-core --help
+RUN semgrep --config=r2c /bin/semgrep-files/
 
 
 ENV SGREP_IN_DOCKER=1
 ENV PYTHONIOENCODING=utf8
-ENTRYPOINT [ "/bin/sgrep-lint" ]
+ENTRYPOINT [ "/bin/semgrep" ]

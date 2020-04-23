@@ -1,1 +1,0 @@
-{"results": [{"check_id": "tests.python.eqeq-is-bad", "path": "tests/lint/stupid.py", "start": {"line": 3, "col": 12}, "end": {"line": 3, "col": 26}, "extra": {"message": "useless comparison operation `a+b == a+b` or `a+b != a+b`; possible bug?", "metadata": {}, "severity": "ERROR", "file_lines": ["    return a + b == a + b\n"]}}], "errors": []}
