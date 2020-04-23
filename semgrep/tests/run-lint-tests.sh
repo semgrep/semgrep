@@ -7,12 +7,12 @@ assert_output_equal () {
     expected_path=$2
     if [ -z "$OVERRIDE_EXPECTED" ]; then
         echo "checking $expected_path"
-        colordiff --side-by-side <(echo ACTUAL) <(echo EXPECTED) || true
-        colordiff --side-by-side <(python -m json.tool $actual_path) <(python -m json.tool $expected_path)
+        diff --side-by-side <(echo ACTUAL) <(echo EXPECTED) || true
+        diff --side-by-side <(python -m json.tool $actual_path) <(python -m json.tool $expected_path)
     else
         echo "regenerating $expected_path"
-        colordiff --side-by-side <(echo ACTUAL) <(echo EXPECTED) || true
-        colordiff --side-by-side <(python -m json.tool $actual_path) <(python -m json.tool $expected_path) || true
+        diff --side-by-side <(echo ACTUAL) <(echo EXPECTED) || true
+        diff --side-by-side <(python -m json.tool $actual_path) <(python -m json.tool $expected_path) || true
         cat $actual_path > $expected_path
     fi
 }
