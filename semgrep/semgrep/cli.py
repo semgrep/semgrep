@@ -13,7 +13,7 @@ from semgrep.dump_ast import dump_parsed_ast
 from semgrep.util import print_error
 from semgrep.util import print_error_exit
 
-__VERSION__ = "0.5.0b1"
+__VERSION__ = "0.5.0b2"
 
 
 def cli() -> None:
