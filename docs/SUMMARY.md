@@ -1,7 +1,7 @@
 # Table of contents
 
 * [Getting Started](README.md)
-* [Live Editor](https://sgrep.live)
+* [Live Editor](https://semgrep.live)
 * [Config](config/README.md)
   * [Simple](config/simple.md)
   * [Advanced](config/advanced.md)

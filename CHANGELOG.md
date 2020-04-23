@@ -2,7 +2,7 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [0.4.9](https://github.com/returntocorp/sgrep/releases/tag/v0.4.9) - 2019-04-07
+## [0.4.9](https://github.com/returntocorp/semgrep/releases/tag/v0.4.9) - 2019-04-07
 
 ### Changed
 
@@ -182,7 +182,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Metavariables were not matching due to go parser adding empty statements in golang
 
 
-## [0.4.8](https://github.com/returntocorp/sgrep/releases/tag/0.4.8) - 2020-03-09
+## [0.4.8](https://github.com/returntocorp/semgrep/releases/tag/0.4.8) - 2020-03-09
 
 ### Added
 * Constant propagation for some langauges. Golang example:

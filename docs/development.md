@@ -1,6 +1,6 @@
 # Development
 
-[![CircleCI](https://circleci.com/gh/returntocorp/sgrep.svg?style=svg)](https://circleci.com/gh/returntocorp/sgrep)
+[![CircleCI](https://circleci.com/gh/returntocorp/semgrep.svg?style=svg)](https://circleci.com/gh/returntocorp/semgrep)
 
 ## Pre-Commit
 

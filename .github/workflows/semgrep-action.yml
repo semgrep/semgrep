@@ -1,0 +1,17 @@
+name: semgrep-action
+
+on:
+  pull_request:
+  push:
+    branches: [master, develop]
+
+jobs:
+  run-r2c-config:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: semgrep action step
+        id: semgrep
+        uses: returntocorp/semgrep-action@develop
+        with:
+          config: r2c-develop
