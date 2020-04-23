@@ -9,8 +9,8 @@ USER opam
 WORKDIR /home/opam/opam-repository
 RUN git pull && opam update && opam switch 4.07
 
-COPY --chown=opam . /home/opam/sgrep/
-WORKDIR /home/opam/sgrep
+COPY --chown=opam . /home/opam/semgrep/
+WORKDIR /home/opam/semgrep
 
 RUN git submodule update --init --recursive
 RUN eval $(opam env) && opam install -y ./pfff
@@ -29,7 +29,7 @@ RUN ls -al /home/pythonbuild/semgrep/build/semgrep.dist/
 ## final output, combining both
 
 FROM alpine:3.11.3@sha256:ddba4d27a7ffc3f86dd6c2f92041af252a1f23a8e742c90e6e1297bfa1bc0c45
-LABEL maintainer="sgrep@r2c.dev"
+LABEL maintainer="semgrep@r2c.dev"
 
 ENV PYTHONUNBUFFERED=1
 
