@@ -128,6 +128,7 @@ jobs:
           #      - name: update sgrep.live
           #        run: curl --fail -X POST https://semgrep.live/api/admin/update-docker
 
+
   release-osx:
     name: Build the OSX binaries
     runs-on: macos-latest
