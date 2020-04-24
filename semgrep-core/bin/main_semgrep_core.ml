@@ -254,7 +254,7 @@ let sgrep_ast pattern file any_ast =
       id = "-e/-f"; pattern; message = ""; severity = R.Error; 
       languages = [lang] 
     } in
-    Sgrep_generic.check
+    Semgrep_generic.check
       ~hook:(fun env matched_tokens ->
         let xs = Lazy.force matched_tokens in
         print_match !mvars env Lib_ast.ii_of_any xs
@@ -263,7 +263,7 @@ let sgrep_ast pattern file any_ast =
       file ast |> ignore;
 
   | PatFuzzy pattern, Fuzzy ast ->
-    Sgrep_fuzzy.sgrep
+    Semgrep_fuzzy.sgrep
       ~hook:(fun env matched_tokens ->
         print_match !mvars env Lib_ast_fuzzy.toks_of_trees matched_tokens
       )
@@ -368,7 +368,7 @@ let sgrep_with_rules rules_file xs =
          let ast = parse_generic lang file in
          let rules = rules |> List.filter 
               (fun r -> List.mem lang r.R.languages) in
-         Sgrep_generic.check ~hook:(fun _ _ -> ()) 
+         Semgrep_generic.check ~hook:(fun _ _ -> ()) 
             rules (parse_equivalences ())
             file ast
        with exn -> 
@@ -550,7 +550,7 @@ let options () =
     " do not stop at first parsing error with -e/-f";
     "-verbose", Arg.Unit (fun () -> 
       verbose := true;
-      Flag_sgrep.verbose := true;
+      Flag_semgrep.verbose := true;
     ),
     " ";
     "-debug", Arg.Set debug,
