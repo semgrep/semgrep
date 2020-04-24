@@ -141,7 +141,7 @@ jobs:
         id: get_version
         run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\/v/}
       - name: Generate ubuntu release script
-        run: cat ./install-scripts/ubuntu-generic.sh | sed 's/version=".*"/version=${{ steps.get_version.outputs.VERSION }} > install-scripts/ubuntu-templated.sh'
+        run: cat ./install-scripts/ubuntu-generic.sh | sed 's/version=".*"/version=${{ steps.get_version.outputs.VERSION }}/' > install-scripts/ubuntu-templated.sh
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
