@@ -17,7 +17,7 @@ Contents:
     * [Conditionals and Loops](#conditionals-and-loops)
   * [Equivalences](#equivalences)
     * [Imports](#imports)
-    * [Constant Propagation](#constant-propagation)
+    * [Constants](#constants)
 * [Limitations](#limitations)
   * [Statement Types](#statement-types)
   * [Partial Statements](#partial-statements)
@@ -286,7 +286,7 @@ from foo.bar import baz
 baz.qux()
 ```
 
-#### Constant Propagation
+#### Constants
 
 JavaScript code will match propagated constants:
 
