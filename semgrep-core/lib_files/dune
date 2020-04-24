@@ -1,5 +1,5 @@
 (library
- (public_name sgrep_files)
+ (public_name semgrep_files)
  (wrapped false)
  (libraries
    dune-glob
