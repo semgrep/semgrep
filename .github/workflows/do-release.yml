@@ -90,7 +90,7 @@ jobs:
       - name: Compute checksum
         run: cat ./semgrep-ubuntu/installer.sh | sha256sum > ./semgrep-ubuntu/installer.sh.sha256
       - name: Upload Release Asset
-        id: upload-release-asset-ubuntu
+        id: upload-release-asset-ubuntu-installer
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -100,7 +100,7 @@ jobs:
           asset_name: semgrep-${{ steps.get_version.outputs.VERSION }}-ubuntu-generic.sh
           asset_content_type: text/x-shellscript
       - name: Upload Release Checksum
-        id: upload-release-checksum-ubuntu
+        id: upload-release-checksum-ubuntu-installer
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
