@@ -5,6 +5,6 @@ set -e
 mkdir -p semgrep-lint-files
 echo "sgrep-core" > semgrep-lint-files/sgrep
 echo "sgrep-lint" > semgrep-lint-files/sgrep-lint
-chmod +x semgrep-lint-files/sgrep
-chmod +x semgrep-lint-files/sgrep-lint
-tar -cvzf artifacts.tar.gz semgrep-lint-files/
+chmod +x semgrep-files/sgrep
+chmod +x semgrep-files/sgrep-lint
+tar -cvzf artifacts.tar.gz semgrep-files/
