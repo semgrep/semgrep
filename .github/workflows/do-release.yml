@@ -81,8 +81,34 @@ jobs:
           asset_path: ./semgrep-ubuntu/artifacts.tar.gz.sha256
           asset_name: semgrep-${{ steps.get_version.outputs.VERSION }}-ubuntu-16.04.tgz.sha256
           asset_content_type: application/gzip
-      - name: Generate ubuntu install script
-        run: cat
+
+        ## UBUNTU INSTALL SCRIPT
+      - uses: actions/download-artifact@v1
+        with:
+          name: install-semgrep-ubuntu-generic-${{ github.sha }}
+          path: semgrep-ubuntu
+      - name: Compute checksum
+        run: cat ./semgrep-ubuntu/installer.sh | sha256sum > ./semgrep-ubuntu/installer.sh.sha256
+      - name: Upload Release Asset
+        id: upload-release-asset-ubuntu
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./semgrep-ubuntu/installer.sh
+          asset_name: semgrep-${{ steps.get_version.outputs.VERSION }}-ubuntu-generic.sh
+          asset_content_type: text/x-shellscript
+      - name: Upload Release Checksum
+        id: upload-release-checksum-ubuntu
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./semgrep-ubuntu/installer.sh.sha256
+          asset_name: semgrep-${{ steps.get_version.outputs.VERSION }}-ubuntu-generic.sh.sha256
+          asset_content_type: text/plain
 
   release-docker:
     name: Build and Push Semgrep Docker Container
@@ -145,5 +171,5 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
-          name: install-semgrep-ubuntu-generic-${{ github.sha }}.sh
-          path: install-scripts/ubuntu-templated.sh
+          name: install-semgrep-ubuntu-generic-${{ github.sha }}
+          path: install-scripts/installer.sh
