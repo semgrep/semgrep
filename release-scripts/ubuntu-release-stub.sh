@@ -3,8 +3,8 @@
 set -e
 
 mkdir -p semgrep-lint-files
-echo "sgrep-core" > semgrep-lint-files/semgrep-core
-echo "sgrep-lint" > semgrep-lint-files/semgrep
+echo "sgrep-core" > semgrep-files/semgrep-core
+echo "sgrep-lint" > semgrep-files/semgrep
 chmod +x semgrep-files/semgrep-core
 chmod +x semgrep-files/semgrep
 tar -cvzf artifacts.tar.gz semgrep-files/
