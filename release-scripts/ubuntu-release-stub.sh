@@ -2,7 +2,7 @@
 ## For testing release jobs, make an empty ubuntu release quickly
 set -e
 
-mkdir -p semgrep-lint-files
+mkdir -p semgrep-files
 echo "sgrep-core" > semgrep-files/semgrep-core
 echo "sgrep-lint" > semgrep-files/semgrep
 chmod +x semgrep-files/semgrep-core
