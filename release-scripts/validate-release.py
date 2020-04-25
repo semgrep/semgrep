@@ -93,18 +93,24 @@ CHECKS = [
 ]
 
 if __name__ == "__main__":
-    with open("release.json") as f:
-        release = json.load(f)
+    import os
 
-    version = release["tag_name"]
+    print(os.environ)
+    with open("version") as f:
+        version = f.read()
+    # release_obj = urllib.request.urlopen
+    # with open("release.json") as f:
+    #    release = json.load(f)
 
-    errs: List[str] = []
-    for check in CHECKS:
-        errs += check(release, version)
+    # version = release["tag_name"]
 
-    if errs:
-        print("Several problems with the release were found:")
-        print("\n".join(errs))
-        sys.exit(1)
-    else:
-        print("Release looks good!")
+    # errs: List[str] = []
+    # for check in CHECKS:
+    #    errs += check(release, version)
+
+    # if errs:
+    #    print("Several problems with the release were found:")
+    #    print("\n".join(errs))
+    #    sys.exit(1)
+    # else:
+    #    print("Release looks good!")
