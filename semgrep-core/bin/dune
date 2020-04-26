@@ -1,5 +1,5 @@
 (executables
- (names main_sgrep main_spatch )
+ (names main_semgrep_core main_spatch )
  (libraries 
     bigarray
     threads          ;; needed for json-wheel (Condition?)
@@ -21,16 +21,16 @@
     pfff-lang_skip
     pfff-lang_FUZZY
     
-    sgrep
-    sgrep_fuzzy
-    sgrep_files
+    semgrep
+    semgrep_fuzzy
+    semgrep_files
  )
  ; for ocamldebug
  (modes byte)
 )
 
 (install
- (package sgrep)
+ (package semgrep)
  (section bin)
- (files (main_sgrep.exe as semgrep-core) (main_sgrep.exe as sgrep) (main_spatch.exe as spatch))
+ (files (main_semgrep_core.exe as semgrep-core) (main_spatch.exe as spatch))
 )

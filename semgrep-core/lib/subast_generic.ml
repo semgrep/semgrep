@@ -163,7 +163,7 @@ let substmts_of_stmt st =
 
     (* this may slow down things quite a bit *)
     | DefStmt (_ent, def) ->
-       if not !Flag_sgrep.go_really_deeper_stmt
+       if not !Flag_semgrep.go_really_deeper_stmt
        then []
        else
          (match def with
@@ -214,7 +214,7 @@ let flatten_substmts_of_stmts xs =
     let xs = substmts_of_stmt x in
     (* getting deeply nested lambdas stmts *)
     let extras = 
-       if not !Flag_sgrep.go_really_deeper_stmt
+       if not !Flag_semgrep.go_really_deeper_stmt
        then []
        else 
          let es = subexprs_of_stmt x in
