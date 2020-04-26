@@ -15,7 +15,7 @@ WORKDIR /home/opam/sgrep
 RUN git submodule update --init --recursive
 RUN eval $(opam env) && opam install -y ./pfff
 RUN eval $(opam env) && cd semgrep-core && opam install -y . && make all
-RUN semgrep-core/_build/default/bin/main_sgrep.exe -version
+RUN semgrep-core/_build/default/bin/main_semgrep_core.exe -version
 
 ## semgrep build
 
@@ -42,7 +42,7 @@ RUN ln -sfn /bin/semgrep-files/cacert.pem  /bin/semgrep-files/certifi/cacert.pem
 RUN ls -al /bin/semgrep-files/
 
 RUN semgrep --help
-COPY --from=build-semgrep-core /home/opam/sgrep/semgrep-core/_build/default/bin/main_sgrep.exe /bin/semgrep-core
+COPY --from=build-semgrep-core /home/opam/sgrep/semgrep-core/_build/default/bin/main_semgrep_core.exe /bin/semgrep-core
 RUN semgrep-core --help
 RUN semgrep --config=r2c /bin/semgrep-files/
 

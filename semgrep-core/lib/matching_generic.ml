@@ -19,7 +19,7 @@ module B = Ast_generic
 module MV = Metavars_generic
 module Lib = Lib_ast
 module Ast = Ast_generic
-module Flag = Flag_sgrep
+module Flag = Flag_semgrep
 
 (*****************************************************************************)
 (* Prelude *)

@@ -1,5 +1,5 @@
 (library
- (public_name sgrep)
+ (public_name semgrep)
  (wrapped false)
  (libraries
    yaml json-wheel
