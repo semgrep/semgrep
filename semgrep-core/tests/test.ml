@@ -156,7 +156,7 @@ let lint_regression_tests =
     E.try_with_exn_to_error file (fun () ->
     let ast = Parse_generic.parse_with_lang lang file in
     Semgrep_generic.check ~hook:(fun _ _ -> ()) rules equivs file ast 
-      |> List.iter Match_result.match_to_error;
+      |> List.iter Json_report.match_to_error;
   ));
 
   (* compare *)
