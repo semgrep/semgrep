@@ -19,16 +19,7 @@ module R = Rule
 module E = Error_code
 module J = Json_type
 
-(*****************************************************************************)
-(* Types *)
-(*****************************************************************************)
-
-type t = {
-  rule: Rule.t;
-  file: Common.filename;
-  code: Ast_generic.any;
-  env: Metavars_generic.metavars_binding;
-}
+open Match_result
 
 (*****************************************************************************)
 (* Unique ID *)
