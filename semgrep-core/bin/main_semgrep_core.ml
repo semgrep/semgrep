@@ -60,6 +60,8 @@ let pattern_string = ref ""
 let pattern_file = ref ""
 (* -rules_file *)
 let rules_file = ref ""
+(* -tainting_rules_file *)
+let tainting_rules_file = ref ""
 
 let equivalences_file = ref ""
 
@@ -335,7 +337,7 @@ let print_matches_and_errors files matches errs =
   pr s
 
 (*****************************************************************************)
-(* Main action *)
+(* Semgrep -e/-f *)
 (*****************************************************************************)
 (* simpler code path compared to sgrep_with_rules *)
 let sgrep_with_one_pattern xs =
@@ -383,7 +385,7 @@ let sgrep_with_one_pattern xs =
   ()
 
 (*****************************************************************************)
-(* Sgrep lint *)
+(* Semgrep -rules_file *)
 (*****************************************************************************)
 
 (* less: could factorize even more and merge sgrep_with_rules and
@@ -403,6 +405,27 @@ let sgrep_with_rules rules_file xs =
          Semgrep_generic.check ~hook:(fun _ _ -> ()) 
             rules (parse_equivalences ())
             file ast
+       )
+  in
+  print_matches_and_errors files matches errs
+
+(*****************************************************************************)
+(* Semgrep -tainting_rules_file *)
+(*****************************************************************************)
+
+module TR = Tainting_rule
+
+let tainting_with_rules rules_file xs =
+  if !verbose then pr2 (spf "Parsing %s" rules_file);
+  let rules = Parse_tainting_rules.parse rules_file in
+
+  let files = get_final_files xs in
+  let matches, errs = 
+     files |> iter_generic_ast_of_files_and_get_matches_and_exn_to_errors 
+       (fun file lang ast ->
+         let rules = 
+            rules |> List.filter (fun r -> List.mem lang r.TR.languages) in
+         Tainting_generic.check rules file ast
        )
   in
   print_matches_and_errors files matches errs
@@ -542,6 +565,8 @@ let options () =
     " <file> obtain pattern from file (need -lang)";
     "-rules_file", Arg.Set_string rules_file,
     " <file> obtain list of patterns from YAML file";
+    "-tainting_rules_file", Arg.Set_string tainting_rules_file,
+    " <file> obtain source/sink/sanitizer patterns from YAML file";
 
     "-lang", Arg.Set_string lang, 
     (spf " <str> choose language (valid choices: %s)" supported_langs);
@@ -651,14 +676,24 @@ let main () =
     (* main entry *)
     (* --------------------------------------------------------- *)
     | x::xs -> 
-        if !rules_file <> ""
-        then 
-         try  sgrep_with_rules !rules_file (x::xs)
-         with exn -> begin
-          pr (format_output_exception exn); (* todo, should be pr2 probably *)
-          exit 2
-          end
-        else sgrep_with_one_pattern (x::xs)
+        (match () with
+        | _ when !tainting_rules_file <> "" ->
+           (try  tainting_with_rules !tainting_rules_file (x::xs)
+            with exn -> begin
+             pr (format_output_exception exn);
+             exit 2
+             end
+            )
+            
+        | _ when !rules_file <> "" ->
+           (try  sgrep_with_rules !rules_file (x::xs)
+            with exn -> begin
+             pr (format_output_exception exn);
+             exit 2
+             end
+            )
+        | _ -> sgrep_with_one_pattern (x::xs)
+        )
     (* --------------------------------------------------------- *)
     (* empty entry *)
     (* --------------------------------------------------------- *)

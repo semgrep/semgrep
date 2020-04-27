@@ -1,0 +1,13 @@
+(library
+ (public_name semgrep_tainting)
+ (wrapped false)
+ (libraries
+   yaml json-wheel
+   commons
+   pfff-config
+   pfff-h_program-lang
+   pfff-lang_GENERIC pfff-lang_GENERIC-analyze
+
+   semgrep_core
+ )
+)

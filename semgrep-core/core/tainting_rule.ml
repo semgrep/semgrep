@@ -43,5 +43,7 @@ type rule = {
   languages: Lang.t list; (* at least one element *)
 }
 
+ and rules = rule list
+
 (* alias *)
 type t = rule
