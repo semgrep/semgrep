@@ -1,0 +1,6 @@
+rules:
+  - id: useless-equals
+    pattern: $X==$X
+    message: "Useless equals"
+    languages: [python, javascript]
+    severity: ERROR
