@@ -3,7 +3,8 @@ version="${GITHUB_REF/refs\/tags\//}"
 version="${version:-$VERSION}"
 version="${version:?Version must be set}"
 
-docker_tag="$(echo $version | sed 's/v//')"
+# strip the v out
+docker_tag="${version/v/}"
 
 echo "Validating release with docker tag: $docker_tag"
 
