@@ -491,6 +491,10 @@ let dump_equivalences file =
   let xs = Parse_equivalences.parse file in
   pr2_gen xs
 
+let dump_tainting_rules file = 
+  let xs = Parse_tainting_rules.parse file in
+  pr2_gen xs
+
 (*****************************************************************************)
 (* The options *)
 (*****************************************************************************)
@@ -504,6 +508,8 @@ let all_actions () = [
   Common.mk_action_1_arg dump_ast;
   "-dump_equivalences", " <file>",
   Common.mk_action_1_arg dump_equivalences;
+  "-dump_tainting_rules", " <file>",
+  Common.mk_action_1_arg dump_tainting_rules;
   "-dump_extensions", " print file extension to language mapping",
   Common.mk_action_0_arg dump_ext_of_lang;
  ]
