@@ -6,7 +6,7 @@
     json-wheel       ;; Json_io, Json_type
     dyp
 
-    commons commons_core
+    commons commons_core commons_ocollection
     pfff-config 
     pfff-h_program-lang
     pfff-lang_python pfff-lang_python-analyze

@@ -11,6 +11,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * file license.txt for more details.
  *)
+module R = Rule
 
 (*****************************************************************************)
 (* Prelude *)
@@ -47,3 +48,16 @@ type rule = {
 
 (* alias *)
 type t = rule
+
+
+(* for Match_result.t.rule compatibility *)
+
+let rule_of_tainting_rule tr =
+  { R.
+    id = tr.id;
+    message = tr.message;
+    severity = tr.severity;
+    languages = tr.languages;
+    (* arbitrary *)
+    pattern = List.hd (tr.sink)
+  }

@@ -3,11 +3,12 @@
  (wrapped false)
  (libraries
    yaml json-wheel
-   commons
+   commons commons_ocollection
    pfff-config
    pfff-h_program-lang
    pfff-lang_GENERIC pfff-lang_GENERIC-analyze
 
    semgrep_core
+   semgrep_matching
  )
 )

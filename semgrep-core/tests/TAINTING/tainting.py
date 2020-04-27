@@ -1,8 +1,8 @@
 def foo():
-  a = source()
+  a = source1()
   if True:
      b = a
-     b = sanitize()
+     b = sanitize1()
   else:
      b = a
-  sink(b)
+  sink1(b)
