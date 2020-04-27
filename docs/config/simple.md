@@ -288,23 +288,40 @@ baz.qux()
 
 #### Constants
 
-JavaScript code will match propagated constants:
+Languages supporting constants allow for constant propagation. In other words,
+the constant's value is considered equivalent to a literal value. The following
+patterns will catch each respective code snippet:
+
+**Javascript:**
 
 ```text
-pattern: api("literal");
+pattern: crypto.subtle.digest("SHA-1", ...);
 ```
 
 ```javascript
-api("literal");
+crypto.subtle.digest("SHA-1", "text");
 
-const LITERAL = "literal";
-api(LITERAL);
+const LITERAL = "SHA-1";
+crypto.subtle.digest(LITERAL, "text");
 
-const LIT = "lit";
-api(LIT + "eral");
+const LIT = "SHA";
+crypto.subtle.digest(LIT + "-1", "text");
 
-const LIT = "lit";
-api(`${LIT}eral`);
+const LIT = "SHA";
+crypto.subtle.digest(`${LIT}-1`, "text");
+```
+
+**Go:**
+
+```text
+pattern: crypto.hash("MD5", ...)
+```
+
+```go
+crypto.hash("MD5", "text")
+
+const algorithm = "MD5"
+crypto.hash(algorithm, "text")
 ```
 
 ## Limitations
