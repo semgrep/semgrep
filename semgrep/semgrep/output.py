@@ -97,7 +97,7 @@ def build_output_json(output_json: Dict[str, Any]) -> str:
     errors = output_json["errors"]
     if errors:
         output_json["errors"] = {
-            "data": output_json["errors"],
+            "data": {"errors": output_json["errors"]},
             "message": "SgrepRuntimeErrors",
         }
     return json.dumps(output_json)
