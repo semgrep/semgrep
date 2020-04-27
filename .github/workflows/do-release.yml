@@ -137,7 +137,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Run OSX release script
-        run: ./release-scripts/osx-release-stub.sh
+        run: ./release-scripts/osx-release.sh
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
@@ -152,7 +152,7 @@ jobs:
         with:
           submodules: 'recursive'
       - name: Run Ubuntu build script
-        run: ./release-scripts/ubuntu-release-stub.sh
+        run: ./release-scripts/ubuntu-release.sh
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
