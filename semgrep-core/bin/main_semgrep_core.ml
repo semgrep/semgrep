@@ -60,6 +60,8 @@ let pattern_string = ref ""
 let pattern_file = ref ""
 (* -rules_file *)
 let rules_file = ref ""
+(* -tainting_rules_file *)
+let tainting_rules_file = ref ""
 
 let equivalences_file = ref ""
 
@@ -273,8 +275,71 @@ let sgrep_ast pattern file any_ast =
     failwith ("unsupported  combination or " ^ (unsupported_language_message !lang))
 
 (*****************************************************************************)
-(* Main action *)
+(* Iteration helpers *)
 (*****************************************************************************)
+
+let filter_files files =
+  files |> Files_filter.filter (Files_filter.mk_filters
+      ~excludes:!excludes 
+      ~exclude_dirs:!exclude_dirs 
+      ~includes:!includes
+  )
+
+let get_final_files xs =
+  let files =
+    match Lang.lang_of_string_opt !lang with
+    | None -> Files_finder.files_of_dirs_or_files xs
+    | Some lang -> Lang.files_of_dirs_or_files lang xs 
+  in
+  let files = filter_files files in
+  files
+  
+let iter_generic_ast_of_files_and_get_matches_and_exn_to_errors f files =
+  let errs = ref [] in
+  let matches = 
+    files |> List.map (fun file ->
+       if !verbose then pr2 (spf "Analyzing %s" file);
+       try 
+         let lang = 
+           match Lang.langs_of_filename file with
+           | [lang] -> lang
+           | x::_xs ->
+               (match Lang.lang_of_string_opt !lang with
+               | Some lang -> lang
+               | None -> 
+                 pr2 (spf "no language specified, defaulting to %s for %s"
+                      (Lang.string_of_lang x) file);
+                 x
+               )
+           | [] -> 
+              failwith (spf "can not extract generic AST from %s" file)
+         in
+         let ast = parse_generic lang file in
+         (* calling the hook *)
+         f file lang ast
+       with exn -> 
+         Common.push (Error_code.exn_to_error file exn) errs;
+         []
+    ) |> List.flatten
+  in
+  matches, !errs
+
+let print_matches_and_errors files matches errs =
+  let count_errors = (List.length errs) in
+  let count_ok = (List.length files) - count_errors in
+  let stats = J.Object [ "okfiles", J.Int count_ok; "errorfiles", J.Int count_errors; ] in
+  let json = J.Object [
+     "matches", J.Array (matches |> List.map Json_report.match_to_json);
+     "errors", J.Array (errs |> List.map R2c.error_to_json);        
+     "stats", stats
+  ] in
+  let s = Json_io.string_of_json json in
+  pr s
+
+(*****************************************************************************)
+(* Semgrep -e/-f *)
+(*****************************************************************************)
+(* simpler code path compared to sgrep_with_rules *)
 let sgrep_with_one_pattern xs =
   (* old: let xs = List.map Common.fullpath xs in
    * better no fullpath here, not our responsability.
@@ -299,13 +364,8 @@ let sgrep_with_one_pattern xs =
     (* should remove at some point *)
     | None -> Find_source.files_of_dir_or_files ~lang:!lang xs
   in
-  let files = files |> Files_filter.filter 
-               (Files_filter.mk_filters
-                    ~excludes:!excludes 
-                    ~exclude_dirs:!exclude_dirs 
-                    ~includes:!includes) in
+  let files = filter_files files in
   
-
   files |> List.iter (fun file ->
     if !verbose 
     then pr2 (spf "processing: %s" file);
@@ -325,7 +385,7 @@ let sgrep_with_one_pattern xs =
   ()
 
 (*****************************************************************************)
-(* Sgrep lint *)
+(* Semgrep -rules_file *)
 (*****************************************************************************)
 
 (* less: could factorize even more and merge sgrep_with_rules and
@@ -336,56 +396,39 @@ let sgrep_with_rules rules_file xs =
   if !verbose then pr2 (spf "Parsing %s" rules_file);
   let rules = Parse_rules.parse rules_file in
 
-  let files =
-    match Lang.lang_of_string_opt !lang with
-    | None -> Files_finder.files_of_dirs_or_files xs
-    | Some lang -> Lang.files_of_dirs_or_files lang xs 
-  in
-  let files = files |> Files_filter.filter 
-               (Files_filter.mk_filters
-                    ~excludes:!excludes 
-                    ~exclude_dirs:!exclude_dirs 
-                    ~includes:!includes) in
-  let errs = ref [] in
-  let matches = 
-    files |> List.map (fun file ->
-       if !verbose then pr2 (spf "Analyzing %s" file);
-       try 
-         let lang = 
-           match Lang.langs_of_filename file with
-           | [lang] -> lang
-           | x::_xs ->
-               (match Lang.lang_of_string_opt !lang with
-               | Some lang -> lang
-               | None -> 
-                 pr2 (spf "no language specified, defaulting to %s for %s"
-                      (Lang.string_of_lang x) file);
-                 x
-               )
-           | [] -> 
-              failwith (spf "can not extract generic AST from %s" file)
-         in
-         let ast = parse_generic lang file in
-         let rules = rules |> List.filter 
-              (fun r -> List.mem lang r.R.languages) in
+  let files = get_final_files xs in
+  let matches, errs = 
+     files |> iter_generic_ast_of_files_and_get_matches_and_exn_to_errors 
+       (fun file lang ast ->
+         let rules = 
+            rules |> List.filter (fun r -> List.mem lang r.R.languages) in
          Semgrep_generic.check ~hook:(fun _ _ -> ()) 
             rules (parse_equivalences ())
             file ast
-       with exn -> 
-         Common.push (Error_code.exn_to_error file exn) errs;
-         []
-    ) |> List.flatten in
-  let count_errors = (List.length !errs) in
-  let count_ok = (List.length files) - count_errors in
-  let errs = !errs in 
-  let stats = J.Object [ "okfiles", J.Int count_ok; "errorfiles", J.Int count_errors; ] in
-  let json = J.Object [
-     "matches", J.Array (matches |> List.map Json_report.match_to_json);
-     "errors", J.Array (errs |> List.map R2c.error_to_json);        
-     "stats", stats
-  ] in
-  let s = Json_io.string_of_json json in
-  pr s
+       )
+  in
+  print_matches_and_errors files matches errs
+
+(*****************************************************************************)
+(* Semgrep -tainting_rules_file *)
+(*****************************************************************************)
+
+module TR = Tainting_rule
+
+let tainting_with_rules rules_file xs =
+  if !verbose then pr2 (spf "Parsing %s" rules_file);
+  let rules = Parse_tainting_rules.parse rules_file in
+
+  let files = get_final_files xs in
+  let matches, errs = 
+     files |> iter_generic_ast_of_files_and_get_matches_and_exn_to_errors 
+       (fun file lang ast ->
+         let rules = 
+            rules |> List.filter (fun r -> List.mem lang r.TR.languages) in
+         Tainting_generic.check rules file ast
+       )
+  in
+  print_matches_and_errors files matches errs
 
 (*****************************************************************************)
 (* Checker *)
@@ -491,6 +534,10 @@ let dump_equivalences file =
   let xs = Parse_equivalences.parse file in
   pr2_gen xs
 
+let dump_tainting_rules file = 
+  let xs = Parse_tainting_rules.parse file in
+  pr2_gen xs
+
 (*****************************************************************************)
 (* The options *)
 (*****************************************************************************)
@@ -504,6 +551,8 @@ let all_actions () = [
   Common.mk_action_1_arg dump_ast;
   "-dump_equivalences", " <file>",
   Common.mk_action_1_arg dump_equivalences;
+  "-dump_tainting_rules", " <file>",
+  Common.mk_action_1_arg dump_tainting_rules;
   "-dump_extensions", " print file extension to language mapping",
   Common.mk_action_0_arg dump_ext_of_lang;
  ]
@@ -516,6 +565,8 @@ let options () =
     " <file> obtain pattern from file (need -lang)";
     "-rules_file", Arg.Set_string rules_file,
     " <file> obtain list of patterns from YAML file";
+    "-tainting_rules_file", Arg.Set_string tainting_rules_file,
+    " <file> obtain source/sink/sanitizer patterns from YAML file";
 
     "-lang", Arg.Set_string lang, 
     (spf " <str> choose language (valid choices: %s)" supported_langs);
@@ -625,14 +676,24 @@ let main () =
     (* main entry *)
     (* --------------------------------------------------------- *)
     | x::xs -> 
-        if !rules_file <> ""
-        then 
-         try  sgrep_with_rules !rules_file (x::xs)
-         with exn -> begin
-          pr (format_output_exception exn); (* todo, should be pr2 probably *)
-          exit 2
-          end
-        else sgrep_with_one_pattern (x::xs)
+        (match () with
+        | _ when !tainting_rules_file <> "" ->
+           (try  tainting_with_rules !tainting_rules_file (x::xs)
+            with exn -> begin
+             pr (format_output_exception exn);
+             exit 2
+             end
+            )
+            
+        | _ when !rules_file <> "" ->
+           (try  sgrep_with_rules !rules_file (x::xs)
+            with exn -> begin
+             pr (format_output_exception exn);
+             exit 2
+             end
+            )
+        | _ -> sgrep_with_one_pattern (x::xs)
+        )
     (* --------------------------------------------------------- *)
     (* empty entry *)
     (* --------------------------------------------------------- *)
