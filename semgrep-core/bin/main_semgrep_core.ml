@@ -380,7 +380,7 @@ let sgrep_with_rules rules_file xs =
   let errs = !errs in 
   let stats = J.Object [ "okfiles", J.Int count_ok; "errorfiles", J.Int count_errors; ] in
   let json = J.Object [
-     "matches", J.Array (matches |> List.map Match_result.match_to_json);
+     "matches", J.Array (matches |> List.map Json_report.match_to_json);
      "errors", J.Array (errs |> List.map R2c.error_to_json);        
      "stats", stats
   ] in
