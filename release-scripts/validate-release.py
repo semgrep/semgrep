@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
-from __future__ import print_function
-
 import hashlib
 import json
+import os
 import sys
 import urllib.request
 from typing import Any
@@ -93,24 +92,33 @@ CHECKS = [
 ]
 
 if __name__ == "__main__":
-    import os
+    # Environment variables
+    # 'GITHUB_REF': 'refs/tags/vGenInstall-10',
+    # 'GITHUB_REPOSITORY': 'rcoh/semgrep', 'GITHUB_
+    release_tag = os.environ.get("GITHUB_REF", "refs/tags/vGenInstall-10").split("/")[
+        -1
+    ]
+    version = release_tag
+    print(f"Testing {release_tag}")
+    repo = os.environ.get("GITHUB_REPOSITORY", "rcoh/semgrep")
 
-    print(os.environ)
-    with open("version") as f:
-        version = f.read()
-    # release_obj = urllib.request.urlopen
-    # with open("release.json") as f:
-    #    release = json.load(f)
+    release_json_url = f"https://api.github.com/repos/{repo}/releases"
+    releases = json.load(urllib.request.urlopen(release_json_url))
+    matching_releases = [r for r in releases if r["tag_name"] == release_tag]
+    print([r["tag_name"] for r in releases])
+    if not matching_releases:
+        print(f"No matching release found for {release_tag}")
+        sys.exit(1)
 
-    # version = release["tag_name"]
+    release = matching_releases[0]
 
-    # errs: List[str] = []
-    # for check in CHECKS:
-    #    errs += check(release, version)
+    errs: List[str] = []
+    for check in CHECKS:
+        errs += check(release, version)
 
-    # if errs:
-    #    print("Several problems with the release were found:")
-    #    print("\n".join(errs))
-    #    sys.exit(1)
-    # else:
-    #    print("Release looks good!")
+    if errs:
+        print("Several problems with the release were found:")
+        print("\n".join(errs))
+        sys.exit(1)
+    else:
+        print("Release looks good!")

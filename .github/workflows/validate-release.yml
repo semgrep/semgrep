@@ -11,17 +11,10 @@ jobs:
     name: Sanity check the release
     runs-on: ubuntu-latest
     steps:
-      - name: Get the version
-        id: get_version
-        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
-      - name: Install JQ
-        run: sudo apt-get update && sudo apt install -y jq
       - name: Checkout
         uses: actions/checkout@v2
-      - name: write to a file
-        run: echo "${{ steps.get_version.outputs.VERSION }}" | tee version
       - name: Validate the release
-        run: VERSION=${{ steps.get_version.ouputs.VERSION }} ./release-scripts/validate-release.sh
+        run: ./release-scripts/validate-release.py
   verify_osx_release:
     name: Verify the OSX brew package
     runs-on: macos-latest
