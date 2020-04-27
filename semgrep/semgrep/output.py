@@ -96,8 +96,7 @@ def build_output_json(output_json: Dict[str, Any]) -> str:
     # https://docs.r2c.dev/en/latest/api/output.html#errors
     errors = output_json["errors"]
     if errors:
-        output_json["errors"] = {
-            "data": {"errors": output_json["errors"]},
-            "message": "SgrepRuntimeErrors",
-        }
+        output_json["errors"] = [
+            {"data": error, "message": "SgrepRuntimeErrors"} for error in errors
+        ]
     return json.dumps(output_json)
