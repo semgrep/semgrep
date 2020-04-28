@@ -8,11 +8,14 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Rename executable to semgrep
 - Deep expression matching in conditionals requires different syntax:
     ```
+    if <... $X = True ...>:
+        ...
     ```
     will now match
+    ```python
+    if foo == bar and baz == True:
+        return 1
     ```
-    ```
-    previously
 - Deduplicate semgrep output in cases where there are multiple ways
   a rule matches section of code
 - Deep statement matchings goes into functions and classes:
