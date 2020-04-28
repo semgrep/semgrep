@@ -1,4 +1,4 @@
-name: sgrep-lint
+name: semgrep
 
 on:
   pull_request:
@@ -10,9 +10,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: sgrep action step
-        id: sgrep
-        uses: returntocorp/sgrep-action@develop
+      - name: semgrep action step
+        id: semgrep
+        uses: returntocorp/semgrep-action@develop
         with:
           config: r2c
           output: https://sgrep.r2c.dev/api/report/${{ github.repository }}
