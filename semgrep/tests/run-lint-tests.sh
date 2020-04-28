@@ -171,6 +171,9 @@ $SGREP --strict --config=tests/python/good.yaml tests/lint
 # parsing good_with_metadata.yaml should succeed
 $SGREP --strict --config=tests/python/good_with_metadata.yaml tests/lint
 
+# parsing good_info_severity.yaml should succeed
+$SGREP --strict --config=tests/python/good_info_severity.yaml tests/lint
+
 #echo TODO: disabled sgrep-rules regression testing for now
 rm -rf /tmp/semgrep-rules && git clone https://github.com/returntocorp/semgrep-rules /tmp/semgrep-rules
 $SGREP --dangerously-allow-arbitrary-code-execution-from-rules --strict --test --test-ignore-todo /tmp/semgrep-rules
