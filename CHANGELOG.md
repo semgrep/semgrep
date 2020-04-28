@@ -2,7 +2,58 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [0.4.9](https://github.com/returntocorp/sgrep/releases/tag/v0.4.9) - 2019-04-07
+## [0.5.0](https://github.com/returntocorp/semgrep/releases/tag/v0.5.0) - 2020-04-28
+
+### Changed
+- Rename executable to semgrep
+- Deep expression matching in conditionals requires different syntax:
+    ```
+    ```
+    will now match
+    ```
+    ```
+    previously
+- Deduplicate semgrep output in cases where there are multiple ways
+  a rule matches section of code
+- Deep statement matchings goes into functions and classes:
+    ```
+    $X = ...
+    ...
+    bar($X)
+    ```
+    now matches with
+    ```javascript
+    QUX = "qux"
+
+    function baz() {
+        function foo() {
+            bar(QUX)
+        }
+    }
+    ```
+
+### Added
+- `python2` is a valid supported language
+
+### Fixed
+- Expression will right hand side of assignment/variable definition in javascript. See #429
+    ```
+    foo();
+    ```
+    will now match
+    ```
+    var x = foo();
+    ```
+- Regression where `"..."` was matching empty list
+    ```
+    foo("...")
+    ```
+    does _not_ match
+    ```
+    foo()
+    ```
+
+## [0.4.9](https://github.com/returntocorp/sgrep/releases/tag/v0.4.9) - 2020-04-07
 
 ### Changed
 
