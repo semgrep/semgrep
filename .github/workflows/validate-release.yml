@@ -30,3 +30,11 @@ jobs:
         run: brew install jq
       - name: Validate the release
         run: VERSION=${{ steps.get_version.ouputs.VERSION }} ./release-scripts/validate-osx-release.sh
+  verify_docker_release:
+    name: Verify the docker release works
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Validate docker release
+        run: ./release-scripts/validate-docker-release.sh
