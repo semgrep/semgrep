@@ -1,5 +1,7 @@
 FROM ubuntu:16.04
-RUN apt-get update && apt-get install -y wget curl sudo ca-certificates --no-install-recommends \
+ARG version
+RUN test -n "$version"
+RUN apt-get update && apt-get install -y curl sudo ca-certificates --no-install-recommends \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/*
 COPY ubuntu-16.04.sh ./install.sh
@@ -7,6 +9,6 @@ RUN chmod +x install.sh
 COPY validate-install.sh ./validate-install.sh
 RUN chmod +x validate-install.sh
 
-ENV VERSION 0.4.9
+ENV VERSION ${version}
 RUN ./install.sh
 RUN ./validate-install.sh

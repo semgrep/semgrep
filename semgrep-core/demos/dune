@@ -13,7 +13,7 @@
 )
 
 (install
- (package sgrep)
+ (package semgrep)
  (section bin)
  (files simple_refactoring.exe)
 )

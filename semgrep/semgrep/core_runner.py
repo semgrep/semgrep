@@ -63,7 +63,7 @@ class CoreRunner:
 
                 yield Pattern(rule_index, expr, rule.severity, rule.languages)
 
-    def _group_patterns_by_langauge(
+    def _group_patterns_by_language(
         self, rules: List[Rule]
     ) -> Dict[str, List[Pattern]]:
         # a rule can have multiple patterns inside it. Flatten these so we can send semgrep a single yml file list of patterns
@@ -104,7 +104,7 @@ class CoreRunner:
         outputs: List[PatternMatch] = []  # multiple invocations per language
         errors: List[Any] = []
 
-        for language, all_patterns_for_language in self._group_patterns_by_langauge(
+        for language, all_patterns_for_language in self._group_patterns_by_language(
             rules
         ).items():
             with tempfile.NamedTemporaryFile("w") as fout:

@@ -214,6 +214,23 @@ rules:
 
 This rule looks for usage of Django's [`FloatField`](https://docs.djangoproject.com/en/3.0/ref/models/fields/#django.db.models.FloatField) model when storing currency information. `FloatField` can lead to rounding errors and should be avoided in favor of [`DecimalField`](https://docs.djangoproject.com/en/3.0/ref/models/fields/#django.db.models.DecimalField) when dealing with currency. Here the `pattern-where-python` operator allows us to utilize the Python `in` statement to filter findings that look like currency.
 
+### `fix`
+
+The `fix` top-level key allows for simple autofixing of a pattern by suggesting an autofix for each match. Run `semgrep` with `--autofix` to apply the changes to the files.
+
+**Example**
+
+```yaml
+rules:
+  - id: use-dict-get
+    patterns:
+      - pattern: $DICT[$KEY]
+    fix: $DICT.get($KEY)
+    message: "Use `.get()` method to avoid a KeyNotFound error"
+    languages: [python]
+    severity: ERROR
+```
+
 ## Path Filtering
 
 ### Excluding a Rule in Paths

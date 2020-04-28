@@ -26,12 +26,39 @@ exception InvalidYamlException of string
 (* Helpers *)
 (*****************************************************************************)
 
-let severity_of_string (pattern_id: string) (severity: string) =
-  match severity with
+(* also used in parse_tainting_rules.ml *)
+let parse_severity ~id s = 
+  match s with
  | "ERROR" -> R.Error
  | "WARNING" -> R.Warning
  | "INFO" -> R.Info
- | s -> raise (InvalidRuleException (pattern_id, (spf "Bad severity: %s" s)))
+ | s -> raise (InvalidRuleException (id, (spf "Bad severity: %s" s)))
+
+let parse_pattern ~id ~lang pattern =
+  (* todo? call Normalize_ast.normalize here? *)
+  try Parse_generic.parse_pattern lang pattern
+  with exn ->
+   raise (InvalidPatternException (id, pattern, (Lang.string_of_lang lang), 
+          (Common.exn_to_s exn)))
+
+let parse_languages ~id langs = 
+  let languages = langs |> List.map (function
+    | `String s ->
+      (match Lang.lang_of_string_opt s with
+      | None -> raise (InvalidLanguageException (id, (spf "unsupported language: %s" s)))
+      | Some l -> l
+      )
+    | _ -> raise (InvalidRuleException (id, (spf "expecting a string for languages")))
+   ) 
+  in
+  let lang =
+    match languages with
+    | [] -> raise (InvalidRuleException (id, "we need at least one language"))
+    | x::_xs -> x
+  in
+  languages, lang
+ 
+ 
 
 (*****************************************************************************)
 (* Main entry point *)
@@ -55,26 +82,9 @@ let parse file =
             "pattern", `String pattern;
             "severity", `String sev;
             ] ->
-               let languages = langs |> List.map (function
-                | `String s ->
-                  (match Lang.lang_of_string_opt s with
-                  | None -> raise (InvalidLanguageException (id, (spf "unsupported language: %s" s)))
-                  | Some l -> l
-                  )
-                | _ -> raise (InvalidRuleException (id, (spf "expecting a string for languages")))
-               ) in
-               let lang =
-                 match languages with
-                 | [] -> raise (InvalidRuleException (id, "we need at least one language"))
-                 | x::_xs -> x
-               in
-               let pattern =
-                 (* todo? call Normalize_ast.normalize here? *)
-                 try Parse_generic.parse_pattern lang pattern
-                 with exn ->
-                   raise (InvalidPatternException (id, pattern, (Lang.string_of_lang lang), (Common.exn_to_s exn)))
-               in
-               let severity = (severity_of_string id sev) in
+               let languages, lang = parse_languages ~id langs in
+               let pattern = parse_pattern ~id ~lang pattern in
+               let severity = parse_severity ~id sev in
                { R. id; pattern; message; languages; severity }
              | x ->
                pr2_gen x;
