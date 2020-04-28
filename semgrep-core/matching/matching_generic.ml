@@ -182,6 +182,7 @@ let equal_ast_binded_code (a: Ast.any) (b: Ast.any) : bool =
   | A.E _, A.E _ 
   | A.P _, A.P _ 
   | A.S _, A.S _
+  | A.T _, A.T _
     ->
       (* Note that because we want to retain the position information
        * of the matched code in the environment (e.g. for the -pvar

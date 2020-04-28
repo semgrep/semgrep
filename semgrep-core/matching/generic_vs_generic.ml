@@ -840,6 +840,10 @@ and m_other_argument_operator = m_other_xxx
 
 and m_type_ a b = 
   match a, b with
+  | A.TyName ((str,tok), _name_info), t2
+     when MV.is_metavar_name str ->
+      envf (str, tok) (B.T (t2))
+
   | A.TyBuiltin(a1), B.TyBuiltin(b1) ->
     (m_wrap m_string) a1 b1 
   | A.TyFun(a1, a2), B.TyFun(b1, b2) ->
