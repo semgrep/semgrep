@@ -150,12 +150,7 @@ def test_lemur() -> None:
 #     run_repo("https://github.com/highcharts/highcharts")
 
 
-# # fail
-# def test_yesterday_i_learned() -> None:
-#     run_repo("https://github.com/1337/yesterday-i-learned")
-
-
-# # fail Can uncomment after #580
+# # fail uncomment after #580
 # def test_lodash() -> None:
 #     run_repo("https://github.com/lodash/lodash")
 
@@ -175,11 +170,11 @@ def test_lemur() -> None:
 #     run_repo("https://github.com/zulip/zulip")
 
 
-# # fail
+# # fail uncomment after #599 #600 #601 #602
 # def test_home_assistant() -> None:
 #     run_repo("https://github.com/home-assistant/home-assistant")
 
 
-# # fail Can uncomment after #581 #582
+# # fail uncomment after #581 #582
 # def test_incubator_superset() -> None:
 #     run_repo("https://github.com/apache/incubator-superset")
