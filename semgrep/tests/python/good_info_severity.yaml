@@ -1,0 +1,8 @@
+rules:
+  - id: arg-reassign
+    pattern-either:
+      - pattern: $X = 1
+      - pattern: $X = 2
+    message: "$X is being assigned to one or two"
+    languages: [python]
+    severity: INFO

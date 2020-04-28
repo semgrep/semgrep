@@ -30,6 +30,7 @@ let severity_of_string (pattern_id: string) (severity: string) =
   match severity with
  | "ERROR" -> R.Error
  | "WARNING" -> R.Warning
+ | "INFO" -> R.Info
  | s -> raise (InvalidRuleException (pattern_id, (spf "Bad severity: %s" s)))
 
 (*****************************************************************************)

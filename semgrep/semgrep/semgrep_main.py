@@ -325,7 +325,7 @@ def handle_output(
 
     if args.output:
         save_output(args.output, output_data, args.json)
-    if args.error and rule_matches:
+    if args.error and any(match.should_fail_run for match in rule_matches):
         sys.exit(FINDINGS_EXIT_CODE)
 
     return output_data
