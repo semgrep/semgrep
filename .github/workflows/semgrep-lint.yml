@@ -1,4 +1,4 @@
-name: semgrep-lint
+name: semgrep
 
 on:
   pull_request:
