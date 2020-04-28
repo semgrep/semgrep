@@ -49,6 +49,10 @@ class RuleMatch:
     def end(self) -> Dict[str, Any]:
         return self._end
 
+    @property
+    def should_fail_run(self) -> bool:
+        return self._severity in {"WARNING", "ERROR"}
+
     def to_json(self) -> Dict[str, Any]:
         json_obj = self._pattern_match._raw_json
         json_obj["check_id"] = self._id

@@ -131,6 +131,9 @@ $SGREP --strict --config tests/python/bad4.yaml tests/lint && echo "bad4.yaml sh
 # parsing good.yaml should succeed
 $SGREP --strict --config=tests/python/good.yaml tests/lint
 
+# parsing good_info_severity.yaml should succeed
+$SGREP --strict --config=tests/python/good_info_severity.yaml tests/lint
+
 #echo TODO: disabled semgrep-rules regression testing for now
 rm -rf /tmp/semgrep-rules && git clone https://github.com/returntocorp/semgrep-rules /tmp/semgrep-rules
 $SGREP --dangerously-allow-arbitrary-code-execution-from-rules --strict --test --test-ignore-todo /tmp/semgrep-rules
