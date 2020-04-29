@@ -255,7 +255,7 @@ let parse_pattern str =
  try (
   Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
    match Lang.lang_of_string_opt !lang with
-   | Some lang -> PatGen (Parse_generic.parse_pattern lang str)
+   | Some lang -> PatGen (Check_semgrep.parse_check_pattern lang str)
    | None ->
      (match Lang_fuzzy.lang_of_string_opt !lang with
      | Some lang -> PatFuzzy (Parse_fuzzy.parse_pattern lang str)
