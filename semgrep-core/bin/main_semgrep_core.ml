@@ -109,7 +109,7 @@ let set_gc () =
   ()
 
 let map f xs =
-  if !ncores = 1
+  if !ncores <= 1
   then List.map f xs
   else 
     let n = List.length xs in
