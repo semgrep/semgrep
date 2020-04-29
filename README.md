@@ -5,7 +5,7 @@
 
 `semgrep` is a tool for easily detecting and preventing bugs and anti-patterns in
 your codebase. It combines the convenience of `grep` with the correctness of
-syntactical and semantic search. Developers, devops engineers, and security engineers
+syntactical and semantic search. Developers, DevOps engineers, and security engineers
 use semgrep to write code with confidence.
 
 **Try it now:** [https://semgrep.live](https://semgrep.live/)
