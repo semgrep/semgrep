@@ -16,6 +16,11 @@ from semgrep.util import print_error_exit
 
 __VERSION__ = "0.5.0"
 
+try:
+    CPU_COUNT = multiprocessing.cpu_count()
+except NotImplementedError:
+    CPU_COUNT = 1
+
 
 def cli() -> None:
     parser = argparse.ArgumentParser(
@@ -88,7 +93,7 @@ def cli() -> None:
         help="Number of subprocesses to use to run checks in parallel. Defaults to the number of CPUs on the system.",
         action="store",
         type=int,
-        default=multiprocessing.cpu_count(),
+        default=CPU_COUNT,
     )
 
     # output options
