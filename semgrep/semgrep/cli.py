@@ -36,7 +36,7 @@ def cli() -> None:
     config_ex.add_argument(
         "-g",
         "--generate-config",
-        help=f"Generte starter {DEFAULT_CONFIG_FILE}",
+        help=f"Generate starter {DEFAULT_CONFIG_FILE}",
         action="store_true",
     )
 
