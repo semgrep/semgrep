@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import multiprocessing
 import sys
 
 import semgrep.config_resolver
@@ -81,6 +82,14 @@ def cli() -> None:
         action="store_true",
     )
     config.add_argument("--precommit", help=argparse.SUPPRESS, action="store_true")
+    config.add_argument(
+        "-j",
+        "--jobs",
+        help="Number of subprocesses to use to run checks in parallel. Defaults to the number of CPUs on the system.",
+        action="store",
+        type=int,
+        default=multiprocessing.cpu_count(),
+    )
 
     # output options
     output = parser.add_argument_group("output")

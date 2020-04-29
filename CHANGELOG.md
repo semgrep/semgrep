@@ -4,6 +4,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Next release
 
+### Added
+- The `-j/--jobs` flag for specifying number of subprocesses to use to run checks in parallel.
+
 ### Changed
 - Config files in hidden paths can now be used by explicitly specifying
   the hidden path:

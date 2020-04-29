@@ -251,7 +251,7 @@ def main(args: argparse.Namespace) -> Dict[str, Any]:
 
     # actually invoke semgrep
     rule_matches_by_rule, semgrep_errors = CoreRunner(
-        args.dangerously_allow_arbitrary_code_execution_from_rules,
+        args.dangerously_allow_arbitrary_code_execution_from_rules, args.jobs
     ).invoke_semgrep(targets, all_rules)
 
     if args.exclude_tests:

@@ -37,8 +37,9 @@ class CoreRunner:
         This includes properly invoking semgrep-core and parsing the output
     """
 
-    def __init__(self, allow_exec: bool):
+    def __init__(self, allow_exec: bool, jobs: int):
         self._allow_exec = allow_exec
+        self._jobs = jobs
 
     def _flatten_rule_patterns(self, rules: List[Rule]) -> Iterator[Pattern]:
         """
@@ -107,8 +108,10 @@ class CoreRunner:
                 cmd = [SGREP_PATH] + [
                     "-lang",
                     language,
-                    f"-rules_file",
+                    "-rules_file",
                     fout.name,
+                    "-j",
+                    str(self._jobs),
                     *[str(path) for path in targets],
                 ]
                 try:
