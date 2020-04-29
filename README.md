@@ -78,7 +78,7 @@ docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep --config r2c
 
 ### Custom Rules
 
-You can also [create your own rules](docs/config/advanced.md):
+You can also [create your own rules](docs/configuration-files.md):
 
 ```bash
 cd /path/to/code
@@ -159,7 +159,7 @@ and `close` calls. We don't care how `open` is called or what happens up to
 a `close` call, we just need to make sure `close` is called.
 
 **For more information on rule fields like `patterns` and `pattern-not-inside`
-see the [configuration documentation](docs/config/advanced.md).**
+see the [configuration documentation](docs/configuration-files.md).**
 
 #### Equivalences
 
@@ -193,8 +193,8 @@ docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep --config r2c
 ## Resources
 
 * [r2c `semgrep` meetup slides](https://web-assets.r2c.dev/sgrep/r2c-sgrep-meetup-feb-2020.pdf)
-* [Simple configuration documentation](docs/config/simple.md)
-* [Advanced configuration documentation](docs/config/advanced.md)
+* [Pattern features documentation](docs/pattern-features.md)
+* [Configuration files documentation](docs/configuration-files.md)
 * [Integrations](docs/integrations.md)
 * [Development](docs/development.md)
 * [Bug reports](https://github.com/returntocorp/sgrep/issues)

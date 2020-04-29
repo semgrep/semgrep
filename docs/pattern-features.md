@@ -1,6 +1,9 @@
-# Simple
+# Pattern Features
 
-This document describes `semgrep` pattern features and provides pattern examples.
+This document describes `semgrep` pattern features and provides pattern
+examples. Patterns are specified with the `--pattern` (or `-e`) flag. Multiple
+coordinating patterns may be specified in a configuration file. See
+[configuration files](/docs/configuration-files.md) for more information.
 
 Contents:
 
@@ -338,7 +341,7 @@ pattern: foo
 ```python
 foo()
 bar + foo
-foo(1,2)
+foo(1, 2)
 ```
 
 It will not match the following:
