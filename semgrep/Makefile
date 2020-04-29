@@ -11,7 +11,3 @@ install:
 .PHONY: qa-test
 qa-test: build
 	pytest -s tests/acceptance/qa.py
-
-.PHONY: regenerate-tests
-regenerate-tests:
-	python tests/acceptance/qa.py

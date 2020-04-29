@@ -36,7 +36,7 @@ def git_checkout(url: str, commit_hash: Optional[str] = None) -> Iterator[str]:
 
 def run_repo(target: str, rewrite: bool = False) -> None:
     """
-    Runs semgrep on github repo with a simple pattrern
+    Runs semgrep on github repo with a simple pattern
 
     Check that semgrep did not into any errors parsing targets
     """
