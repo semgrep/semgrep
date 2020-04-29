@@ -83,6 +83,9 @@ let layer_file = ref (None: filename option)
 let keys = Common2.hkeys Lang.lang_of_string_map
 let supported_langs: string = String.concat ", " keys
 
+(* -j *)
+let ncores = ref 1
+
 (* action mode *)
 let action = ref ""
 
@@ -105,7 +108,22 @@ let set_gc () =
   Gc.set { (Gc.get()) with Gc.space_overhead = 300 };
   ()
 
-
+let map f xs =
+  if !ncores = 1
+  then List.map f xs
+  else 
+    let n = List.length xs in
+    (* Heuristic. Note that if you don't set a chunksize, Parmap
+     * will evenly split the list xs, which does not provide any load
+     * balancing.
+     *)
+    let chunksize = 
+      match n with
+      | _ when n > 1000 -> 10
+      | _ when n > 100 -> 5
+      | _ -> n / !ncores 
+    in
+    Parmap.parmap ~ncores:!ncores ~chunksize f (Parmap.L xs)
 
 (* TODO? could do slicing of function relative to the pattern, so 
  * would see where the parameters come from :)
@@ -295,9 +313,8 @@ let get_final_files xs =
   files
   
 let iter_generic_ast_of_files_and_get_matches_and_exn_to_errors f files =
-  let errs = ref [] in
-  let matches = 
-    files |> List.map (fun file ->
+  let matches_and_errors = 
+    files |> map (fun file ->
        if !verbose then pr2 (spf "Analyzing %s" file);
        try 
          let lang = 
@@ -316,13 +333,14 @@ let iter_generic_ast_of_files_and_get_matches_and_exn_to_errors f files =
          in
          let ast = parse_generic lang file in
          (* calling the hook *)
-         f file lang ast
+         f file lang ast, []
        with exn -> 
-         Common.push (Error_code.exn_to_error file exn) errs;
-         []
-    ) |> List.flatten
+         [], [Error_code.exn_to_error file exn]
+    )
   in
-  matches, !errs
+  let matches = matches_and_errors |> List.map fst |> List.flatten in
+  let errors = matches_and_errors |> List.map snd |> List.flatten in  
+  matches, errors
 
 let print_matches_and_errors files matches errs =
   let count_errors = (List.length errs) in
@@ -580,6 +598,9 @@ let options () =
     " <GLOB> search only files whose basename matches GLOB";
     "-exclude-dir", Arg.String (fun s -> Common.push s exclude_dirs),
     " <DIR> exclude directories matching the pattern DIR";
+
+    "-j", Arg.Set_int ncores, 
+    " <int> number of cores to use (default = 1)";
 
     "-json", Arg.Set output_format_json, 
     " output JSON format";

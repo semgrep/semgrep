@@ -1,6 +1,6 @@
 opam-version: "2.0"
 name: "semgrep"
-version: "0.4.8"
+version: "0.5.0"
 synopsis: "Like grep but for code: fast and syntax-aware semantic code pattern for many languages"
 description: """
 grep is like grep but for searching patterns at the AST level.
@@ -15,11 +15,9 @@ dev-repo: "git+https://github.com/returntocorp/semsgrep"
 bug-reports: "https://github.com/returntocorp/semgrep/issues"
 
 depends: [
-  "reason"
   "dune"
 
   "ocamlfind"
-  "camlp4"
   "num"
   "ocamlgraph"
   "json-wheel"
@@ -27,6 +25,7 @@ depends: [
   "yaml"
   "grain_dypgen"
   "menhir"
+  "parmap"
   "dune-glob"
   "pfff"
 ]
