@@ -41,27 +41,20 @@ def run_repo(target: str, rewrite: bool = False) -> None:
     Check that semgrep did not into any errors parsing targets
     """
     with git_checkout(target) as target_dir:
-        config_dir = Path(f"tests/acceptance/{target}/rule.yaml")
-
         command = [
+            "python3",
+            "-m",
             "semgrep",
-            f"--pattern=$X==$X",
+            "--pattern=$X==$X",
             "--lang=python",
             "--lang=javascript",
             "--json",
-            ".",
+            f"{Path(target_dir).resolve()}",
         ]
 
         runned = subprocess.run(
-            command,
-            cwd=target_dir,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            encoding="utf-8",
+            command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding="utf-8",
         )
-
-        # if runned.returncode != 0:
-        #     print(runned.stderr)
 
         output = json.loads(runned.stdout)
         assert "results" in output
