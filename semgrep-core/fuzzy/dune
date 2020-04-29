@@ -1,5 +1,5 @@
 (library
- (public_name sgrep_fuzzy)
+ (public_name semgrep_fuzzy)
  (wrapped false)
  (libraries
    commons

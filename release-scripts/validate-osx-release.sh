@@ -4,14 +4,15 @@ set -e
 echo "Loading version from file: $(cat version)"
 cat version | sed 's/^v//' > release-version
 echo "Installing via homebrew"
-brew tap returntocorp/sgrep https://github.com/returntocorp/sgrep.git
-brew install semgrep
+brew install returntocorp/semgrep/semgrep
 
 echo "Running homebrew recipe checks"
 brew test semgrep
 
 
 brew info semgrep --json | jq -r '.[0].installed[0].version' | tee brew-version
+
+echo "Checking the brew package has been updated"
 
 semgrep --version > semgrep-version
 echo -n "Validating brew the version ($(cat brew-version) vs. $(cat release-version))..."

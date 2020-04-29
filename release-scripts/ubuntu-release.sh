@@ -12,7 +12,7 @@ eval "$(opam env --root /home/opam/.opam --set-root)" && opam install -y ./pfff
 eval "$(opam env --root /home/opam/.opam --set-root)" && cd semgrep-core && opam install -y . && make all && cd ..
 eval "$(opam env --root /home/opam/.opam --set-root)" && cd semgrep && export PATH=/github/home/.local/bin:$PATH && sudo make all && cd ..
 mkdir -p semgrep-files
-cp ./semgrep-core/_build/default/bin/main_sgrep.exe semgrep-files/semgrep-core
+cp ./semgrep-core/_build/default/bin/main_semgrep_core.exe semgrep-files/semgrep-core
 cp -r ./semgrep/build/semgrep.dist/* semgrep-files
 ls semgrep-files
 # TODO: remove once the Python build job makes something named `semgrep`

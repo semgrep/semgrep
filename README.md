@@ -28,6 +28,8 @@ Example patterns:
 | `$ELEMENT.innerHTML` | ``el.innerHTML = "<img src='x' onerror='alert(`XSS`)'>";`` |
 | `$TOKEN.SignedString([]byte("..."))` | `ss, err := token.SignedString([]byte("HARDCODED KEY"))` |
 
+→ [see more example patterns in the semgrep-rules repository](https://github.com/returntocorp/semgrep-rules)
+
 ## Installation
 
 Install `semgrep` with [Docker](https://docs.docker.com/install/):
@@ -36,12 +38,7 @@ Install `semgrep` with [Docker](https://docs.docker.com/install/):
 docker pull returntocorp/semgrep
 ```
 
-And double check that it was installed correctly:
-
-```bash
-docker run --rm returntocorp/semgrep --help
-```
-### Installation with Homebrew (OSX)
+On OSX, binaries are available via [Homebrew](https://brew.sh/):
 
 ```bash
 brew install returntocorp/semgrep/semgrep
@@ -204,4 +201,6 @@ docker run --rm -v "${PWD}:/home/repo" returntocorp/semgrep --config r2c
 
 ## Contribution
 
-`semgrep` is LGPL-licensed, feel free to help out: [CONTRIBUTING](https://github.com/returntocorp/semgrep/blob/develop/CONTRIBUTING.md).
+`semgrep` is LGPL-licensed, feel free to help out: [CONTRIBUTING](https://github.com/returntocorp/sgrep/blob/develop/CONTRIBUTING.md).
+
+`semgrep` is a frontend to a larger program analysis library named [pfff](https://github.com/returntocorp/pfff/), where it was named `sgrep`. pfff began and was open-sourced at [Facebook](https://github.com/facebookarchive/pfff) but is now archived and the primary maintainer works at r2c.

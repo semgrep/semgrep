@@ -26,7 +26,7 @@ module Eq = Equivalence
 module Res = Match_result
 module GG = Generic_vs_generic
 module MV = Metavars_generic
-module Flag = Flag_sgrep
+module Flag = Flag_semgrep
 
 (*****************************************************************************)
 (* Prelude *)

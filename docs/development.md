@@ -44,14 +44,14 @@ Then to test semgrep on a file, for example tests/GENERIC/test.py run:
 
 ```bash
 cd semgrep_core
-./_build/default/bin/main_sgrep.exe -e foo tests/python
+./_build/default/bin/main_semgrep_core.exe -e foo tests/python
 ...
 ```
 
 If you want to test semgrep on a directory with a set of given rules, run:
 
 ```bash
-cp ./semgrep_core/_build/default/bin/main_sgrep.exe /usr/local/bin/semgrep_core
+cp ./semgrep_core/_build/default/bin/main_semgrep_core.exe /usr/local/bin/semgrep_core
 cd semgrep
 make && make install
 semgrep --config <YAML_FILE_OR_DIRECTORY> <code to check>

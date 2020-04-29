@@ -1,4 +1,4 @@
-name: docker
+name: docker-push-pr
 
 on:
   pull_request:

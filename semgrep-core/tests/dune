@@ -21,8 +21,11 @@
     pfff-lang_skip
     pfff-lang_FUZZY
     
-    sgrep
-    sgrep_fuzzy
-    sgrep_files
+    semgrep_core
+    semgrep_fuzzy
+    semgrep_finding
+    semgrep_parsing
+    semgrep_matching
+    semgrep_reporting
   )
 )
