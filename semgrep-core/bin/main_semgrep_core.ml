@@ -225,7 +225,7 @@ let parse_equivalences () =
   | file -> Parse_equivalences.parse file
 
 let unsupported_language_message some_lang =
-  spf "unsupported language: %s; supported langauge tags are: %s" 
+  spf "unsupported language: %s; supported language tags are: %s" 
       some_lang supported_langs
   
 (*****************************************************************************)
