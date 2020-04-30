@@ -137,7 +137,7 @@ class CoreRunner:
             )
             equiv_fout.flush()
 
-        for language, all_patterns_for_language in self._group_patterns_by_langauge(
+        for language, all_patterns_for_language in self._group_patterns_by_language(
             rules
         ).items():
             with tempfile.NamedTemporaryFile("w") as fout:
