@@ -1,6 +1,5 @@
 import collections
 import json
-import os
 import subprocess
 import sys
 import tempfile
@@ -112,12 +111,11 @@ class CoreRunner:
                     "-rules_file",
                     fout.name,
                     "-j",
-                    str(self._jobs),
+                    "2",
                     *[str(path) for path in targets],
                 ]
-                env = {**os.environ, "OCAMLRUNPARAM": "b"}
                 try:
-                    output = subprocess.check_output(cmd, shell=False, env=env)
+                    output = subprocess.check_output(cmd, shell=False)
                 except subprocess.CalledProcessError as ex:
                     try:
                         # see if semgrep output a JSON error that we can decode
