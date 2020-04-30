@@ -9,6 +9,9 @@ jobs:
   build-test:
     runs-on: ubuntu-latest
     container: returntocorp/sgrep-build:2.7
+    env:
+      # Enable OCaml backtraces on exception
+      OCAMLRUNPARAM: b
     steps:
       - name: Adjust permissions
         run: sudo chmod -R 777 . /github

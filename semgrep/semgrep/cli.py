@@ -19,7 +19,7 @@ __VERSION__ = "0.5.0"
 try:
     CPU_COUNT = multiprocessing.cpu_count()
 except NotImplementedError:
-    CPU_COUNT = 1
+    CPU_COUNT = 1  # CPU count is not implemented on Windows
 
 
 def cli() -> None:
