@@ -2,6 +2,18 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [unreleased]
+
+### Added
+- expression statements will now match by default also return statements
+  ```
+  foo();
+  ```
+  will now match
+  ```javascript
+  return foo();
+  ```
+
 ## [0.5.0](https://github.com/returntocorp/semgrep/releases/tag/v0.5.0) - 2020-04-28
 
 ### Changed
