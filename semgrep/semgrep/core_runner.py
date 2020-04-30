@@ -111,12 +111,12 @@ class CoreRunner:
                     language,
                     "-rules_file",
                     fout.name,
+                    "-j",
+                    str(self._jobs),
                     *[str(path) for path in targets],
                 ]
                 try:
-                    output = subprocess.check_output(
-                        cmd, shell=False, env=os.environ.copy()
-                    )
+                    output = subprocess.check_output(cmd, shell=False)
                 except subprocess.CalledProcessError as ex:
                     try:
                         # see if semgrep output a JSON error that we can decode
