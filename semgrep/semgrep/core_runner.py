@@ -1,5 +1,6 @@
 import collections
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -115,7 +116,9 @@ class CoreRunner:
                     *[str(path) for path in targets],
                 ]
                 try:
-                    output = subprocess.check_output(cmd, shell=False)
+                    output = subprocess.check_output(
+                        cmd, shell=False, env=os.environ.copy()
+                    )
                 except subprocess.CalledProcessError as ex:
                     try:
                         # see if semgrep output a JSON error that we can decode
