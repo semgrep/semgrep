@@ -150,6 +150,8 @@ let error tok rule =
       E.error tok (E.SgrepLint (rule.R.id, rule.R.message))
   | R.Warning ->
       E.warning tok (E.SgrepLint (rule.R.id, rule.R.message))
+  | R.Info ->
+      E.info tok (E.SgrepLint (rule.R.id, rule.R.message))
 
 let match_to_error x = 
   let toks = Lib_ast.ii_of_any x.code |> List.filter PI.is_origintok in
