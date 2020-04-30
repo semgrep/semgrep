@@ -41,6 +41,30 @@ test_semgrep_absolute() {
     rm -f /tmp/eqeq.yaml
 }
 
+# Explicitly included hidden configs should be included
+test_semgrep_explicit_hidden() {
+    cd "${THIS_DIR}/../";
+    $SGREP --json --strict --config tests/python/hidden/.hidden tests/lint -o tmp.out >/dev/null
+    if [ -z "$OVERRIDE_EXPECTED" ]; then
+        diff tmp.out tests/python/eqeq.expected.explicit-hidden.json
+    else
+        cat tmp.out > tests/python/eqeq.expected.explicit-hidden.json
+    fi
+    rm -f tmp.out
+}
+
+# Implicitly included hidden configs should be excluded
+test_semgrep_implicit_hidden() {
+    cd "${THIS_DIR}/../";
+    $SGREP --json --strict --config tests/python/hidden tests/lint 2>tmp.out |:
+    if [ -z "$OVERRIDE_EXPECTED" ]; then
+        diff tmp.out tests/python/eqeq.expected.implicit-hidden.out
+    else
+        cat tmp.out > tests/python/eqeq.expected.implicit-hidden.out
+    fi
+    rm -f tmp.out
+}
+
 test_semgrep_url_config() {
     cd "${THIS_DIR}/../";
     # test url paths
@@ -92,6 +116,8 @@ local_tests() {
     test_semgrep_local
     test_semgrep_relative
     test_semgrep_absolute
+    test_semgrep_explicit_hidden
+    test_semgrep_implicit_hidden
     test_semgrep_url_config
     test_registry
     test_semgrep_default_file
