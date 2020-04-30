@@ -129,17 +129,13 @@ class CoreRunner:
         equivalences = self._flatten_all_equivalences(rules)
         if equivalences:
             equiv_fout = tempfile.NamedTemporaryFile("w")
-            restore_me = yaml.SafeDumper.ignore_aliases
             yaml.SafeDumper.ignore_aliases = (  # type: ignore
                 lambda *args: True
             )  # I don't even know why this is a thing
-            print(yaml.safe_dump({"equivalences": [e.to_json() for e in equivalences]}))
             equiv_fout.write(
                 yaml.safe_dump({"equivalences": [e.to_json() for e in equivalences]})
             )
             equiv_fout.flush()
-            # Restore original method
-            yaml.SafeDumper = restore_me  # type: ignore
 
         for language, all_patterns_for_language in self._group_patterns_by_langauge(
             rules
@@ -162,7 +158,6 @@ class CoreRunner:
 
                 cmd += [*[str(path) for path in targets]]
 
-                print("Running cmd: " + " ".join(cmd))
                 try:
                     output = subprocess.check_output(cmd, shell=False)
                 except subprocess.CalledProcessError as ex:
