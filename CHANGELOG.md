@@ -2,7 +2,7 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## unrelease
+## Next release
 
 ### Added
 - You can now use regexps for field names:
@@ -13,6 +13,15 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   ```javascript
   var x = {"Location": 1};
   ```
+  
+## Next release
+
+### Changed
+- Config files in hidden paths can now be used by explicitly specifying
+  the hidden path:
+    ```
+    semgrep --config some/hidden/.directory
+    ```
 
 ## [0.5.0](https://github.com/returntocorp/semgrep/releases/tag/v0.5.0) - 2020-04-28
 
