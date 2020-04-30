@@ -111,7 +111,7 @@ class CoreRunner:
                     "-rules_file",
                     fout.name,
                     "-j",
-                    "2",
+                    str(self._jobs),
                     *[str(path) for path in targets],
                 ]
                 try:
