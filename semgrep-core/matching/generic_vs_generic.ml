@@ -83,6 +83,7 @@ let m_string_xhp_text sa sb =
 (* Name *)
 (*****************************************************************************)
 
+(* coupling: modify also m_ident_and_id_info_add_in_env_Expr *) 
 let m_ident a b = 
   (* metavar: *)
   match a, b with
@@ -93,6 +94,17 @@ let m_ident a b =
        * see m_ident_and_id_info_add_in_env_Expr for more information.
        *)
       envf (str, tok) (B.I b)
+
+  (* in some languages such as Javascript certain entities like
+   * fields can use strings for identifiers (e.g., {"myfield": 1}),
+   * which gives the opportunity to use regexp string for fields
+   * (e.g., {"=~/.*field/": $X}).
+   *)
+  | (stra, _), (strb, _) when Matching_generic.is_regexp_string stra ->
+      let re = Matching_generic.regexp_of_regexp_string stra in
+      if Str.string_match re strb 0
+      then return ()
+      else fail ()
 
   (* general case *)
   | (a, b) -> (m_wrap m_string) a b
@@ -187,6 +199,18 @@ and m_ident_and_id_info_add_in_env_Expr (a1, a2) (b1, b2) =
       m_id_info a2 b2 >>= (fun () ->
         envf (str, tok) (B.E (B.Id (b, b2))) (* B.E here, not B.I *)
      )
+
+  (* in some languages such as Javascript certain entities like
+   * fields can use strings for identifiers (e.g., {"myfield": 1}),
+   * which gives the opportunity to use regexp string for fields
+   * (e.g., {"=~/.*field/": $X}).
+   *)
+  | (stra, _), (strb, _) when Matching_generic.is_regexp_string stra ->
+      let re = Matching_generic.regexp_of_regexp_string stra in
+      if Str.string_match re strb 0
+      then return ()
+      else fail ()
+
   (* general case *)
   | (a, b) -> (m_wrap m_string) a b
 
@@ -488,13 +512,9 @@ and m_literal a b =
 
   (* regexp matching *)
   | A.String(name, info_name), B.String(sb, info_sb)
-      when name =~ "^=~/\\(.*\\)/$" ->
-      let s = Common.matched1 name in
-(* TODO
-      let rex = Pcre.regexp s in
-      if Pcre.pmatch ~rex sb
-*)
-      if sb =~ s
+      when Matching_generic.is_regexp_string name ->
+      let re = Matching_generic.regexp_of_regexp_string name in
+      if Str.string_match re sb 0
       then
         m_info info_name info_sb 
       else fail ()
@@ -1551,7 +1571,7 @@ and m_list__m_field (xsa: A.field list) (xsb: A.field list) =
 
   | (A.FieldStmt (A.DefStmt (({A.name = (s1, _); _}, _) as adef)) as a)::xsa,
      xsb ->
-     if MV.is_metavar_name s1
+     if MV.is_metavar_name s1 || Matching_generic.is_regexp_string s1
      then
         let candidates = all_elem_and_rest_of_list xsb in
         (* less: could use a fold *)

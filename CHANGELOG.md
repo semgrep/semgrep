@@ -2,6 +2,18 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## unrelease
+
+### Added
+- You can now use regexps for field names:
+  ```
+  var $X = {"=~/[lL]ocation/": $Y};
+  ```
+  will now match
+  ```javascript
+  var x = {"Location": 1};
+  ```
+
 ## [0.5.0](https://github.com/returntocorp/semgrep/releases/tag/v0.5.0) - 2020-04-28
 
 ### Changed

@@ -258,6 +258,21 @@ let _ = Common2.example
 let return () = return
 let fail () = fail
 
+let regexp_regexp_string = "^=~/\\(.*\\)/$"
+let is_regexp_string s =
+ s =~ regexp_regexp_string
+let regexp_of_regexp_string s = 
+  if s =~ regexp_regexp_string
+  then 
+    let x = Common.matched1 s in
+(* TODO
+      let rex = Pcre.regexp s in
+      if Pcre.pmatch ~rex sb
+*)
+    Str.regexp x 
+  else
+    failwith (spf "This is not a regexp_string: " ^ s)
+
 (*****************************************************************************)
 (* Generic matchers *)
 (*****************************************************************************)
