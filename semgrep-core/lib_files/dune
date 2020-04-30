@@ -1,8 +1,0 @@
-(library
- (public_name sgrep_files)
- (wrapped false)
- (libraries
-   dune-glob
-   commons
- )
-)

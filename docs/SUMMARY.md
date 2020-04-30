@@ -1,10 +1,9 @@
-# Table of contents
+# Table of Contents
 
 * [Getting Started](README.md)
 * [Live Editor](https://sgrep.live)
-* [Config](config/README.md)
-  * [Simple](config/simple.md)
-  * [Advanced](config/advanced.md)
+* [Pattern Features](pattern-features.md)
+* [Configuration Files](configuration-files.md)
 * [Languages](matrix.md)
 * [Integrations](integrations.md)
 * [Development](development.md)

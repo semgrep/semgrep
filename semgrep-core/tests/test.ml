@@ -79,7 +79,7 @@ let regression_tests_for_lang files lang =
       id = "unit testing"; pattern; message = ""; severity = R.Error; 
       languages = [lang] } in
     let equiv = [] in
-    Sgrep_generic.check
+    Semgrep_generic.check
       ~hook:(fun _env matched_tokens ->
       (* there are a few fake tokens in the generic ASTs now (e.g., 
        * for DotAccess generated outside the grammar) *)
@@ -155,8 +155,8 @@ let lint_regression_tests =
   test_files |> List.iter (fun file ->
     E.try_with_exn_to_error file (fun () ->
     let ast = Parse_generic.parse_with_lang lang file in
-    Sgrep_generic.check ~hook:(fun _ _ -> ()) rules equivs file ast 
-      |> List.iter Match_result.match_to_error;
+    Semgrep_generic.check ~hook:(fun _ _ -> ()) rules equivs file ast 
+      |> List.iter Json_report.match_to_error;
   ));
 
   (* compare *)

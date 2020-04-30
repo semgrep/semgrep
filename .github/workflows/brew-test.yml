@@ -1,4 +1,4 @@
-name: homebrew
+name: homebrew-test
 
 on:
   pull_request:
