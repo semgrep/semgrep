@@ -163,7 +163,11 @@ def evaluate(
         if pattern_match.range in valid_ranges_to_output:
             message = interpolate_message_metavariables(rule, pattern_match)
             rule_match = RuleMatch(
-                rule.id, message, pattern_match, severity=rule.severity
+                rule.id,
+                message,
+                pattern_match,
+                metadata=rule.metadata,
+                severity=rule.severity,
             )
             output.append(rule_match)
 
