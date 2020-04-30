@@ -10,7 +10,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   or `_` though.
 
 ### Added
-- semgrep will return an error if your pattern contains an identifier 
+- For languages not allowing the dollar sign in identifiers (e.g., Python),
+  semgrep will return an error if your pattern contains an identifier
   starting with a dollar that is actually not considered a metavariable
   (e.g., `$x`)
 
