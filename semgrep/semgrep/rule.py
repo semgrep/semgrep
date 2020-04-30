@@ -125,6 +125,10 @@ class Rule:
     def fix(self) -> Optional[str]:
         return self._raw.get("fix")
 
+    @property
+    def equivalences(self) -> Dict[str, str]:
+        return self._raw.get(OPERATORS.EQUIVALENCES, {})
+
     @classmethod
     def from_json(cls, rule_json: Dict[str, Any]) -> "Rule":  # type: ignore
         return cls(rule_json)

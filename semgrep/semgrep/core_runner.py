@@ -16,6 +16,7 @@ import yaml
 
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import SGREP_PATH
+from semgrep.equivalences import Equivalence
 from semgrep.evaluation import enumerate_patterns_in_boolean_expression
 from semgrep.evaluation import evaluate
 from semgrep.pattern import Pattern
@@ -86,6 +87,28 @@ class CoreRunner:
                 f'an internal error occured while invoking the semgrep engine: {error_type}: {error_json.get("message", "")}.\n\n{PLEASE_FILE_ISSUE_TEXT}'
             )
 
+    def _flatten_all_equivalences(self, rules: List[Rule]) -> List[Equivalence]:
+        """
+        Convert all the equivalences defined in the rules into a single rule file
+        """
+
+        equivalences = []
+
+        for rule in rules:
+            try:
+                equivalences.extend(
+                    [
+                        Equivalence(
+                            f"{rule.id}-{i}", eq["equivalence"], rule.languages  # type: ignore
+                        )  # Use 'i' to make equivalence id's unique
+                        for i, eq in enumerate(rule.equivalences)
+                    ]
+                )
+            except Exception as e:
+                print_error_exit(f"could not get equivalences for rule {rule.id}; {e}")
+
+        return equivalences
+
     def _run_rules(
         self, rules: List[Rule], targets: List[Path]
     ) -> Tuple[Dict[Rule, Dict[Path, List[PatternMatch]]], List[Any]]:
@@ -94,6 +117,29 @@ class CoreRunner:
         """
         outputs: List[PatternMatch] = []  # multiple invocations per language
         errors: List[Any] = []
+
+        # This will need to be addressed in the future. Since we flatten all the patterns,
+        # there's no way to tell semgrep which equivalences apply to which rules.
+        # So, my approach here is a naive implementation which likewise flattens all equivalences...
+        # Here there be dragons.... :-(
+        #  .>   )\;`a__
+        # (  _ _)/ /-." ~~
+        #  `( )_ )/
+        #   <_  <_ sb/dwb
+        equivalences = self._flatten_all_equivalences(rules)
+        if equivalences:
+            equiv_fout = tempfile.NamedTemporaryFile("w")
+            restore_me = yaml.SafeDumper.ignore_aliases
+            yaml.SafeDumper.ignore_aliases = (  # type: ignore
+                lambda *args: True
+            )  # I don't even know why this is a thing
+            print(yaml.safe_dump({"equivalences": [e.to_json() for e in equivalences]}))
+            equiv_fout.write(
+                yaml.safe_dump({"equivalences": [e.to_json() for e in equivalences]})
+            )
+            equiv_fout.flush()
+            # Restore original method
+            yaml.SafeDumper = restore_me  # type: ignore
 
         for language, all_patterns_for_language in self._group_patterns_by_langauge(
             rules
@@ -109,8 +155,14 @@ class CoreRunner:
                     language,
                     f"-rules_file",
                     fout.name,
-                    *[str(path) for path in targets],
                 ]
+
+                if equivalences:
+                    cmd += ["-equivalences", equiv_fout.name]
+
+                cmd += [*[str(path) for path in targets]]
+
+                print("Running cmd: " + " ".join(cmd))
                 try:
                     output = subprocess.check_output(cmd, shell=False)
                 except subprocess.CalledProcessError as ex:
@@ -134,6 +186,10 @@ class CoreRunner:
                 output_json = json.loads((output.decode("utf-8", "replace")))
                 errors.extend(output_json["errors"])
                 outputs.extend([PatternMatch(m) for m in output_json["matches"]])
+
+        # Close equivalences file
+        if equivalences:
+            equiv_fout.close()
 
         # group output; we want to see all of the same rule ids on the same file path
         by_rule_index: Dict[
