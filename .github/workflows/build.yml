@@ -19,9 +19,9 @@ jobs:
       - name: Install pfff
         run: eval $(opam  env --root /home/opam/.opam --set-root) && opam install -y ./pfff
       - name: Install and test semgrep-core
-        run: eval $(opam  env --root /home/opam/.opam --set-root) && cd semgrep-core && opam install -y . && make all && make test && make install
+        run: eval $(opam  env --root /home/opam/.opam --set-root) && cd semgrep-core && opam install -y . && export OCAMLRUNPARAM=b && make all && make test && make install
       - name: Install and test semgrep
-        run: eval $(opam  env --root /home/opam/.opam --set-root) && cd semgrep && export PATH=/github/home/.local/bin:$PATH && pip3 install -r requirements.txt && make test && make qa-test && make all
+        run: eval $(opam  env --root /home/opam/.opam --set-root) && cd semgrep && export PATH=/github/home/.local/bin:$PATH && export OCAMLRUNPARAM=b && pip3 install -r requirements.txt && make test && make qa-test && make all
       - name: Prepare artifacts
         run: |
           mkdir -p artifacts/bin/sgrep-lint-files
