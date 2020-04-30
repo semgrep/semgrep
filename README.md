@@ -209,4 +209,4 @@ docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep --config r2c
 
 `semgrep` is proudly supported by [r2c](https://r2c.dev). We're hiring! 
 
-Interested in a fully-supported, hosted version of semgrep? [Join the mailing list](TODO) and we'll ping you!
+Interested in a fully-supported, hosted version of semgrep? [Drop your email](https://forms.gle/dpUUvSo1WtELL8DW6) and we'll ping you!
