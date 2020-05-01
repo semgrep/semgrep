@@ -1,3 +1,4 @@
+(*s: semgrep/parsing/parse_equivalences.ml *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2020 r2c
@@ -18,13 +19,16 @@ module Eq = Equivalence
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
+(*s: function [[Parse_equivalences.error]] *)
 let error s =
   failwith (spf "sgrep_equivalence: wrong format. %s" s)
+(*e: function [[Parse_equivalences.error]] *)
 
 (*****************************************************************************)
 (* Main entry point *)
 (*****************************************************************************)
 
+(*s: function [[Parse_equivalences.parse]] *)
 let parse file =
   let str = Common.read_file file in
   let yaml_res = Yaml.of_string str in
@@ -89,3 +93,5 @@ let parse file =
       )
   | Result.Error (`Msg s) ->
     failwith (spf "sgrep_equivalence: could not parse %s (error = %s)" file s)
+(*e: function [[Parse_equivalences.parse]] *)
+(*e: semgrep/parsing/parse_equivalences.ml *)

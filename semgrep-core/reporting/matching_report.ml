@@ -1,3 +1,4 @@
+(*s: semgrep/reporting/matching_report.ml *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2013 Facebook
@@ -24,6 +25,7 @@ module PI = Parse_info
 (* Types *)
 (*****************************************************************************)
 
+(*s: type [[Matching_report.match_format (semgrep/reporting/matching_report.ml)]] *)
 (* could perhaps create a special file related to display of code? *)
 type match_format =
   (* ex: tests/misc/foo4.php:3
@@ -36,11 +38,13 @@ type match_format =
   | Emacs
   (* ex: tests/misc/foo4.php:3: foo(1,2) *)
   | OneLine
+(*e: type [[Matching_report.match_format (semgrep/reporting/matching_report.ml)]] *)
 
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
+(*s: function [[Matching_report.join_with_space_if_needed]] *)
 (* When we print in the OneLine format we want to normalize the matched
  * expression or code and so only print the tokens in the AST (and not
  * the extra whitespace, newlines or comments). It's not enough though
@@ -57,10 +61,12 @@ let rec join_with_space_if_needed xs =
          y =~ "^[a-zA-Z0-9_]"
       then x ^ " " ^ (join_with_space_if_needed (y::xs))
       else x ^ (join_with_space_if_needed (y::xs))
+(*e: function [[Matching_report.join_with_space_if_needed]] *)
 
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
+(*s: function [[Matching_report.print_match]] *)
 let print_match ?(format = Normal) ii = 
  try
   let (mini, maxi) = PI.min_max_ii_by_pos ii in
@@ -83,3 +89,5 @@ let print_match ?(format = Normal) ii =
   )
  with Failure "get_pos: Ab or FakeTok" ->
    pr "<could not locate match, FakeTok or AbstractTok>"
+(*e: function [[Matching_report.print_match]] *)
+(*e: semgrep/reporting/matching_report.ml *)

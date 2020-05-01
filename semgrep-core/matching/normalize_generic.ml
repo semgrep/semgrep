@@ -1,3 +1,4 @@
+(*s: semgrep/matching/normalize_generic.ml *)
 (* Isaac Evans
  *
  * Copyright (C) 2020 r2c
@@ -28,6 +29,7 @@ open Ast_generic
 (* Entry points *)
 (*****************************************************************************)
 
+(*s: function [[Normalize_generic.full_module_name]] *)
 (* Normalize imports for matching purposes.
  * Examples (for Python):
  *   from foo import bar -> import foo.bar
@@ -52,7 +54,9 @@ let full_module_name is_pattern from_module_name import_opt =
      *)
       Some (FileName s)
   | FileName _, Some _ -> None
+(*e: function [[Normalize_generic.full_module_name]] *)
 
+(*s: function [[Normalize_generic.normalize_import_opt]] *)
 let normalize_import_opt is_pattern i =
   match i with
   | ImportFrom(t, module_name, m, _alias_opt) ->
@@ -65,7 +69,9 @@ let normalize_import_opt is_pattern i =
   | PackageEnd _
   | OtherDirective _
     -> None
+(*e: function [[Normalize_generic.normalize_import_opt]] *)
 
+(*s: function [[Normalize_generic.eval]] *)
 let rec eval x =
   match x with
   | L x -> Some x
@@ -90,7 +96,11 @@ let rec eval x =
     )
   (* TODO: partial evaluation for ints/floats/... *)
   | _ -> None
+(*e: function [[Normalize_generic.eval]] *)
 
+(*s: constant [[Normalize_generic.constant_propagation_and_evaluate_literal]] *)
 let constant_propagation_and_evaluate_literal = eval
+(*e: constant [[Normalize_generic.constant_propagation_and_evaluate_literal]] *)
 
 
+(*e: semgrep/matching/normalize_generic.ml *)

@@ -1,5 +1,7 @@
+(*s: semgrep/finding/unit_files.ml *)
 open OUnit
 
+(*s: constant [[Unit_files.unittest]] *)
 let unittest =
   "file filtering" >::: [
     "basic exclude/include" >:: (fun () ->
@@ -21,3 +23,5 @@ let unittest =
           (Files_filter.filter filters files)
      )
   ]
+(*e: constant [[Unit_files.unittest]] *)
+(*e: semgrep/finding/unit_files.ml *)

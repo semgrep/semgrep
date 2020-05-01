@@ -1,3 +1,4 @@
+(*s: semgrep/core/equivalence.ml *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2020 r2c
@@ -52,11 +53,16 @@
 (* Types *)
 (*****************************************************************************)
 
+(*s: type [[Equivalence.pattern]] *)
 (* right now only Expr, Stmt, and Stmts are supported *)
 type pattern = Ast.any
+(*e: type [[Equivalence.pattern]] *)
 
+(*s: type [[Equivalence.equivalence_kind]] *)
 type equivalence_kind = Equiv (* <==> *) | Imply (* ==> *)
+(*e: type [[Equivalence.equivalence_kind]] *)
 
+(*s: type [[Equivalence.equivalence]] *)
 type equivalence = {
   id: string; (* useful? to be able to disable some selectively by name? *)
   left: pattern;
@@ -64,8 +70,14 @@ type equivalence = {
   op: equivalence_kind;
   languages: Lang.t list; (* at least one element *)
 }
+(*e: type [[Equivalence.equivalence]] *)
 
+(*s: type [[Equivalence.equivalences]] *)
  and equivalences = equivalence list
+(*e: type [[Equivalence.equivalences]] *)
 
+(*s: type [[Equivalence.t]] *)
 (* alias *)
 type t = equivalence
+(*e: type [[Equivalence.t]] *)
+(*e: semgrep/core/equivalence.ml *)

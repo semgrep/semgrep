@@ -1,3 +1,4 @@
+(*s: semgrep/matching/semgrep_generic.ml *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2011 Facebook
@@ -47,44 +48,57 @@ module Flag = Flag_semgrep
 (* Types *)
 (*****************************************************************************)
 
+(*s: type [[Semgrep_generic.matcher (semgrep/matching/semgrep_generic.ml)]] *)
 type ('a, 'b) matcher = 'a -> 'b ->
   Metavars_generic.metavars_binding list
+(*e: type [[Semgrep_generic.matcher (semgrep/matching/semgrep_generic.ml)]] *)
 
 (*****************************************************************************)
 (* Matchers *)
 (*****************************************************************************)
  
+(*s: function [[Semgrep_generic.match_e_e]] *)
 let match_e_e pattern e = 
   let env = Matching_generic.empty_environment () in
   GG.m_expr pattern e env
+(*e: function [[Semgrep_generic.match_e_e]] *)
 
+(*s: function [[Semgrep_generic.match_st_st]] *)
 let match_st_st pattern e = 
   let env = Matching_generic.empty_environment () in
   GG.m_stmt pattern e env
+(*e: function [[Semgrep_generic.match_st_st]] *)
 
+(*s: function [[Semgrep_generic.match_sts_sts]] *)
 let match_sts_sts pattern e = 
   let env = Matching_generic.empty_environment () in
   GG.m_stmts_deep pattern e env
+(*e: function [[Semgrep_generic.match_sts_sts]] *)
 
+(*s: function [[Semgrep_generic.match_any_any]] *)
 (* for unit testing *)
 let match_any_any pattern e = 
   let env = Matching_generic.empty_environment () in
   GG.m_any pattern e env
+(*e: function [[Semgrep_generic.match_any_any]] *)
 
 (*****************************************************************************)
 (* Matchers for code equivalence mode *)
 (*****************************************************************************)
 
+(*s: function [[Semgrep_generic.match_e_e_for_equivalences]] *)
 let match_e_e_for_equivalences a b =
   Common.save_excursion Flag.equivalence_mode true (fun () ->
   Common.save_excursion Flag.go_deeper_expr false (fun () ->
   Common.save_excursion Flag.go_deeper_stmt false (fun () ->
     match_e_e a b
   )))
+(*e: function [[Semgrep_generic.match_e_e_for_equivalences]] *)
 
 (*****************************************************************************)
 (* Substituters *)
 (*****************************************************************************)
+(*s: function [[Semgrep_generic.subst_e]] *)
 let subst_e (bindings: MV.metavars_binding) e = 
   let visitor = M.mk_visitor { M.default_visitor with
     M.kexpr = (fun (k, _) x -> 
@@ -106,11 +120,13 @@ let subst_e (bindings: MV.metavars_binding) e =
    } 
   in
   visitor.M.vexpr e
+(*e: function [[Semgrep_generic.subst_e]] *)
 
 (*****************************************************************************)
 (* Applying code equivalences *)
 (*****************************************************************************)
 
+(*s: function [[Semgrep_generic.apply_equivalences]] *)
 let apply_equivalences equivs any =
   let expr_rules = ref [] in
   let stmt_rules = ref [] in
@@ -166,12 +182,14 @@ let apply_equivalences equivs any =
     );
    } in
   visitor.M.vany any
+(*e: function [[Semgrep_generic.apply_equivalences]] *)
 
 
 (*****************************************************************************)
 (* Main entry point *)
 (*****************************************************************************)
 
+(*s: function [[Semgrep_generic.check2]] *)
 let check2 ~hook rules equivs file ast =
 
    let matches = ref [] in
@@ -259,6 +277,10 @@ let check2 ~hook rules equivs file ast =
    *)
   visitor prog;
   !matches |> List.rev
+(*e: function [[Semgrep_generic.check2]] *)
 
+(*s: function [[Semgrep_generic.check]] *)
 let check ~hook a b c =
   Common.profile_code "Sgrep_generic.check" (fun () -> check2 ~hook a b c)
+(*e: function [[Semgrep_generic.check]] *)
+(*e: semgrep/matching/semgrep_generic.ml *)
