@@ -116,8 +116,9 @@ or multiple files matching `.sgrep/**/*.yml`.
 
 `semgrep` patterns make use of two primary features:
 
-* **Metavariables like `$X`, `$WIDGET`, or `$USERS`.** Metavariable names can
-only contain uppercase characters - names like `$x` or `$SOME_VALUE` are
+* **Metavariables like `$X`, `$WIDGET`, or `$USERS_2`.** Metavariable names can
+only contain uppercase characters, or `_`, or digits, and must start with
+an uppercase character or `_` - names like `$x` or `$some_value` are
 invalid.  Metavariables are used to track a variable across a specific code
 scope.
 * **The `...` (ellipsis) operator.** The ellipsis operator abstracts away
