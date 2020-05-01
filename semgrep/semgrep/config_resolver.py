@@ -183,8 +183,7 @@ def download_config(config_url: str) -> Dict[str, Optional[Dict[str, Any]]]:
             if content_type and "text/plain" in content_type:
                 return parse_config_string("remote-url", r.content.decode("utf-8"))
             elif content_type and content_type == "application/x-gzip":
-                directory_name = base64.b64encode(config_url.encode()).decode()
-                with tempfile.TemporaryDirectory(suffix=directory_name) as fname:
+                with tempfile.TemporaryDirectory() as fname:
                     with tarfile.open(fileobj=r.raw, mode="r:gz") as tar:
                         tar.extractall(fname)
                     extracted = Path(fname)
