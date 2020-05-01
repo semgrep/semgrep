@@ -117,7 +117,8 @@ def parse_config_folder(
 ) -> Dict[str, Optional[Dict[str, Any]]]:
     configs = {}
     for l in loc.rglob("*"):
-        if not _is_hidden_config(l) and l.suffix in YML_EXTENSIONS:
+        # Allow manually specified paths with ".", but don't auto-expand them
+        if not _is_hidden_config(l.relative_to(loc)) and l.suffix in YML_EXTENSIONS:
             configs.update(parse_config_at_path(l, loc if relative else None))
     return configs
 

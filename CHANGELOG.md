@@ -2,9 +2,14 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## unrelease
+## Next release
 
 ### Changed
+- Config files in hidden paths can now be used by explicitly specifying
+  the hidden path:
+    ```
+    semgrep --config some/hidden/.directory
+    ```
 - Metavariables can now contain digits or `_`. `$USERS_2` is now
   a valid metavariable name. A metavariable must start with a letter
   or `_` though.

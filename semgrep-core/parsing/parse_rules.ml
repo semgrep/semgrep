@@ -31,6 +31,7 @@ let parse_severity ~id s =
   match s with
  | "ERROR" -> R.Error
  | "WARNING" -> R.Warning
+ | "INFO" -> R.Info
  | s -> raise (InvalidRuleException (id, (spf "Bad severity: %s" s)))
 
 let parse_pattern ~id ~lang pattern =

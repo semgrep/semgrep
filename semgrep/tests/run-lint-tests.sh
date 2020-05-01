@@ -2,14 +2,25 @@
 
 set -e
 
+assert_output_equal () {
+    actual_path=$1
+    expected_path=$2
+    if [ -z "$OVERRIDE_EXPECTED" ]; then
+        echo "checking $expected_path"
+        diff --side-by-side <(echo EXPECTED) <(echo ACTUAL) || true
+        diff --side-by-side <(python -m json.tool $expected_path) <(python -m json.tool $actual_path)
+    else
+        echo "regenerating $expected_path"
+        diff --side-by-side <(echo EXPECTED) <(echo ACTUAL) || true
+        diff --side-by-side <(python -m json.tool $expected_path) <(python -m json.tool $actual_path) || true
+        cat $actual_path > $expected_path
+    fi
+}
+
 test_semgrep_local () {
     cd "${THIS_DIR}/../";
     $SGREP --json --strict --config tests/python/eqeq.yaml tests/lint -o tmp.out >/dev/null
-    if [ -z "$OVERRIDE_EXPECTED" ]; then
-        diff tmp.out tests/python/eqeq.expected.json
-    else
-        cat tmp.out > tests/python/eqeq.expected.json
-    fi
+    assert_output_equal tmp.out tests/python/eqeq.expected.json
     rm -f tmp.out
 }
 
@@ -17,11 +28,7 @@ test_semgrep_relative() {
     # test relative paths
     cd "${THIS_DIR}/../";
     $SGREP --json --strict --config ../semgrep/tests/python/eqeq.yaml tests/lint -o tmp.out >/dev/null
-    if [ -z "$OVERRIDE_EXPECTED" ]; then
-        diff tmp.out tests/python/eqeq.expected.relative.json
-    else
-        cat tmp.out > tests/python/eqeq.expected.relative.json
-    fi
+    assert_output_equal tmp.out tests/python/eqeq.expected.relative.json
     rm -f tmp.out
 }
 
@@ -29,34 +36,46 @@ test_semgrep_absolute() {
     cd "${THIS_DIR}/../";
     cp tests/python/eqeq.yaml /tmp
     $SGREP --json --strict --config /tmp/eqeq.yaml tests/lint -o tmp.out >/dev/null
-    if [ -z "$OVERRIDE_EXPECTED" ]; then
-        diff tmp.out tests/python/eqeq.expected.directory.json
-    else
-        cat tmp.out > tests/python/eqeq.expected.directory.json
-    fi
+    assert_output_equal tmp.out tests/python/eqeq.expected.directory.json
     rm -f tmp.out
     rm -f /tmp/eqeq.yaml
+}
+
+# Explicitly included hidden configs should be included
+test_semgrep_explicit_hidden() {
+    cd "${THIS_DIR}/../";
+    $SGREP --json --strict --config tests/python/hidden/.hidden tests/lint -o tmp.out >/dev/null
+    if [ -z "$OVERRIDE_EXPECTED" ]; then
+        diff tmp.out tests/python/eqeq.expected.explicit-hidden.json
+    else
+        cat tmp.out > tests/python/eqeq.expected.explicit-hidden.json
+    fi
+    rm -f tmp.out
+}
+
+# Implicitly included hidden configs should be excluded
+test_semgrep_implicit_hidden() {
+    cd "${THIS_DIR}/../";
+    $SGREP --json --strict --config tests/python/hidden tests/lint 2>tmp.out |:
+    if [ -z "$OVERRIDE_EXPECTED" ]; then
+        diff tmp.out tests/python/eqeq.expected.implicit-hidden.out
+    else
+        cat tmp.out > tests/python/eqeq.expected.implicit-hidden.out
+    fi
+    rm -f tmp.out
 }
 
 test_semgrep_url_config() {
     cd "${THIS_DIR}/../";
     # test url paths
     $SGREP --json --strict --config=https://raw.githubusercontent.com/returntocorp/semgrep-rules/develop/template.yaml tests/lint -o tmp.out >/dev/null
-    if [ -z "$OVERRIDE_EXPECTED" ]; then
-        diff tmp.out tests/python/eqeq.expected.remote.json
-    else
-        cat tmp.out > tests/python/eqeq.expected.remote.json
-    fi
+    assert_output_equal tmp.out tests/python/eqeq.expected.remote.json
     rm -f tmp.out
 }
 
 test_registry() {
     $SGREP --json --strict --config=r2c tests/lint -o tmp.out >/dev/null
-    if [ -z "$OVERRIDE_EXPECTED" ]; then
-        diff tmp.out tests/python/eqeq.expected.registry.json
-    else
-        cat tmp.out > tests/python/eqeq.expected.registry.json
-    fi
+    assert_output_equal tmp.out tests/python/eqeq.expected.registry.json
     rm -f tmp.out
 }
 
@@ -66,11 +85,7 @@ test_semgrep_default_file() {
     rm -rf .semgrep.yml
     $SGREP --generate-config
     $SGREP --json --strict tests/lint -o tmp.out >/dev/null
-    if [ -z "$OVERRIDE_EXPECTED" ]; then
-        diff tmp.out tests/python/eqeq.expected.template.json
-    else
-        cat tmp.out > tests/python/eqeq.expected.template.json
-    fi
+    assert_output_equal tmp.out tests/python/eqeq.expected.template.json
     rm -f tmp.out
     rm -rf .semgrep.yml
 }
@@ -82,11 +97,7 @@ test_semgrep_default_folder() {
     $SGREP --generate-config
     mv .semgrep.yml .semgrep/
     $SGREP --json --strict tests/lint -o tmp.out >/dev/null
-    if [ -z "$OVERRIDE_EXPECTED" ]; then
-        diff tmp.out tests/python/eqeq.expected.template.json
-    else
-        cat tmp.out > tests/python/eqeq.expected.template.json
-    fi
+    assert_output_equal tmp.out tests/python/eqeq.expected.template.json
     rm -f tmp.out
     rm -rf .semgrep/
 }
@@ -105,6 +116,8 @@ local_tests() {
     test_semgrep_local
     test_semgrep_relative
     test_semgrep_absolute
+    test_semgrep_explicit_hidden
+    test_semgrep_implicit_hidden
     test_semgrep_url_config
     test_registry
     test_semgrep_default_file
@@ -143,6 +156,9 @@ $SGREP --strict --config tests/python/bad4.yaml tests/lint && echo "bad4.yaml sh
 
 # parsing good.yaml should succeed
 $SGREP --strict --config=tests/python/good.yaml tests/lint
+
+# parsing good_info_severity.yaml should succeed
+$SGREP --strict --config=tests/python/good_info_severity.yaml tests/lint
 
 #echo TODO: disabled semgrep-rules regression testing for now
 rm -rf /tmp/semgrep-rules && git clone https://github.com/returntocorp/semgrep-rules /tmp/semgrep-rules
