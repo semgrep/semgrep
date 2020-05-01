@@ -1,0 +1,25 @@
+rules:
+  - id: open-redirect
+    languages: [python]
+    equivalences:
+      - equivalence: request.$W(...) <==> request.$W.get(...)
+    patterns:
+      - pattern-inside: |
+          def $FUNC(...):
+            ...
+      - pattern-not-inside: |
+          def $FUNC(...):
+            ...
+            django.utils.http.is_safe_url(...)
+            ...
+      - pattern-not-inside: |
+          if <... django.utils.http.is_safe_url(...) ...>:
+            ...
+          ...
+      - pattern-either:
+        - pattern: django.shortcuts.redirect(..., request.$W.get(...), ...)
+        - pattern: django.shortcuts.redirect(..., $S.format(..., request.$W.get(...), ...), ...)
+        - pattern: django.shortcuts.redirect(..., $S % request.$W.get(...), ...)
+        - pattern: django.shortcuts.redirect(..., f"...{request.$W.get(...)}...", ...)
+    message: ""
+    severity: WARNING
