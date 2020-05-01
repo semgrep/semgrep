@@ -12,9 +12,8 @@ from typing import Any
 from typing import Callable
 from typing import Dict
 from typing import List
+from typing import Optional
 from zipfile import ZipFile
-
-print(os.environ)
 
 GITHUB_TOKEN = os.environ["AUTH_TOKEN"]
 repo = os.environ.get("GITHUB_REPOSITORY", "returntocorp/semgrep")
@@ -32,7 +31,7 @@ def download_json(url: str) -> Any:
     return json.load(urllib.request.urlopen(request))
 
 
-def get_latest_artifact_url(branch: str, workflow: str) -> str:
+def get_latest_artifact_url(branch: str, workflow: str) -> Optional[str]:
     workflows = download_json("/actions/workflows")["workflows"]
     workflow_objs = [w for w in workflows if w["name"] == workflow]
     if not workflow_objs:
@@ -49,8 +48,7 @@ def get_latest_artifact_url(branch: str, workflow: str) -> str:
         if run["conclusion"] == "success" and run["head_branch"] == branch
     ]
     if not successful_runs:
-        print(f'No successful run for "{workflow}" on "{branch}"', file=sys.stderr)
-        sys.exit(1)
+        return None
 
     last_successful_run = successful_runs[0]
     print(f'Found a release from {last_successful_run["created_at"]}', file=sys.stderr)
@@ -93,8 +91,22 @@ def download_extract_install(url: str) -> None:
 
 
 if __name__ == "__main__":
-    branch = os.environ.get("GITHUB_BASE_REF", "develop")
+    # If there is a HEAD_REF (this branch) use that.
+    # Otherewise try to use the branch we're being merged into
+    # if we're in a weird state, just use master
+    branch_options = [
+        os.environ.get("GITHUB_BASE_REF"),
+        os.environ.get("GITHUB_HEAD_REF"),
+        "master",
+    ]
+    branches: List[str] = [b for b in branch_options if b is not None]
     workflow = os.environ.get("WORKFLOW", "release-ubuntu-16-04")
-    print(f"Downloading the semgrep-core binary for {branch}", file=sys.stderr)
-    url = get_latest_artifact_url(branch, workflow)
-    download_extract_install(url)
+    for branch in branches:
+        print(f"Downloading the semgrep-core binary for {branch}", file=sys.stderr)
+        url = get_latest_artifact_url(branch, workflow)
+        if url is not None:
+            download_extract_install(url)
+            print(f"Installed prebuilt asset from {branch}", file=sys.stderr)
+            sys.exit(0)
+        else:
+            print(f"Tried {branch} but no prebuilt asset existed", file=sys.stderr)
