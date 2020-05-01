@@ -88,7 +88,11 @@ _\* Only one of `pattern`, `patterns`, or `pattern-either` is required._
 
 **Optional:**
 
-All optional fields must reside underneath a `patterns` or `pattern-either` field.
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| [`metadata`](advanced.md#metadata) | `object` | Arbitrary user-provided data. Use to attach data to rules without affecting semgrep's behavior |
+
+The below optional fields must reside underneath a `patterns` or `pattern-either` field.
 
 | Field | Type | Description |
 | :--- | :--- | :--- |
@@ -247,6 +251,27 @@ rules:
     severity: ERROR
 ```
 
+## Metadata
+
+In some cases, you might wish to
+note some extra information on a rule,
+such as a CVE that was created for it,
+or the name of the security engineer that came up with the rule.
+
+You can use the `metadata:` key in these cases, like so:
+
+```
+rules:
+  - id: eqeq-is-bad
+    patterns:
+      - [...]
+    message: "useless comparison operation `$X == $X` or `$X != $X`"
+    metadata:
+      cve: CVE-2077-1234
+      discovered-by: Ikwa L'equale
+```
+
+The metadata will also be reproduced in sgrep's output if you're running it with `--json`.
 
 ## Other Examples
 
@@ -277,4 +302,3 @@ rules:
 ```
 
 This rule makes use of many of the operators above. It uses `pattern-either`, `patterns`, `pattern`, and `pattern-inside` to carefully consider different cases, and uses `pattern-not-inside` and `pattern-not` to whitelist certain useless comparisons.
-

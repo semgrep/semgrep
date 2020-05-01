@@ -34,9 +34,16 @@ type mvar = string
  * it is not Parse_info.Ab(stractPos) *)
 type metavars_binding = (mvar, Ast_generic.any) Common.assoc
 
-(* ex: $X, $FAIL *)
+(* ex: $X, $FAIL, $VAR2, $_ 
+ * Note that some languages such as PHP or Javascript allows '$' in identifier
+ * names, so forcing metavariables to have uppercase letters at least allow
+ * us to match specifically also identifiers in lower case (e.g., $foo will
+ * only match the $foo identifiers in some concrete code; this is not a
+ * metavariable).
+ * 
+*)
 let metavar_regexp_string = 
-  "^\\(\\$[A-Z]+\\)$"
+  "^\\(\\$[A-Z_][A-Z_0-9]*\\)$"
 
 (* 
  * Hacks abusing existing constructs to encode extra constructions.

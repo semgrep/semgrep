@@ -43,10 +43,8 @@ type rule = {
 }
 
  and rules = rule list
-
- and severity =
-  | Error
-  | Warning
+ 
+ and severity = Error | Warning | Info (* TODO? just reuse Error_code.severity *)
 
 (* alias *)
 type t = rule

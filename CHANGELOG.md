@@ -2,7 +2,7 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [unreleased]
+## Next release
 
 ### Added
 - expression statements will now match by default also return statements
@@ -13,6 +13,34 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   ```javascript
   return foo();
   ```
+
+### Added
+- You can now use regexps for field names:
+  ```
+  var $X = {"=~/[lL]ocation/": $Y};
+  ```
+  will now match
+  ```javascript
+  var x = {"Location": 1};
+  ```
+  
+## Next release
+
+### Changed
+- Config files in hidden paths can now be used by explicitly specifying
+  the hidden path:
+    ```
+    semgrep --config some/hidden/.directory
+    ```
+- Metavariables can now contain digits or `_`. `$USERS_2` is now
+  a valid metavariable name. A metavariable must start with a letter
+  or `_` though.
+
+### Added
+- For languages not allowing the dollar sign in identifiers (e.g., Python),
+  semgrep will return an error if your pattern contains an identifier
+  starting with a dollar that is actually not considered a metavariable
+  (e.g., `$x`)
 
 ## [0.5.0](https://github.com/returntocorp/semgrep/releases/tag/v0.5.0) - 2020-04-28
 
