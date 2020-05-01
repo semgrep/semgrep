@@ -204,3 +204,9 @@ docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep --config r2c
 `semgrep` is LGPL-licensed, feel free to help out: [CONTRIBUTING](https://github.com/returntocorp/sgrep/blob/develop/CONTRIBUTING.md).
 
 `semgrep` is a frontend to a larger program analysis library named [pfff](https://github.com/returntocorp/pfff/), where it was named `sgrep`. pfff began and was open-sourced at [Facebook](https://github.com/facebookarchive/pfff) but is now archived and the primary maintainer works at [r2c](https://r2c.dev).
+
+## Commercial Support
+
+`semgrep` is proudly supported by [r2c](https://r2c.dev). We're hiring! 
+
+Interested in a fully-supported, hosted version of semgrep? [Drop your email](https://forms.gle/dpUUvSo1WtELL8DW6) and we'll ping you!
