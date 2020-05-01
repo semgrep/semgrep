@@ -29,3 +29,6 @@ jobs:
         run: |
           cd semgrep
           tox -e py  # Run tox using the version of Python in `PATH`
+      - name: Failure hint
+        if: ${{ failure() }}
+        run: echo "This job runs with the most recent binary from the develop branch for semgrep-core. If you are using bleeding edge features, you may need to wait for a build"

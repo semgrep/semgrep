@@ -93,7 +93,7 @@ def download_extract_install(url: str) -> None:
 
 
 if __name__ == "__main__":
-    branch = os.environ.get("BRANCH", "develop")
+    branch = os.environ.get("GITHUB_BASE_REF", "develop")
     workflow = os.environ.get("WORKFLOW", "release-ubuntu-16-04")
     url = get_latest_artifact_url(branch, workflow)
     download_extract_install(url)
