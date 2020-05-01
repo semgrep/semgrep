@@ -104,6 +104,8 @@ class CoreRunner:
     def _write_equivalences_file(self, fp: IO, equivalences: List[Equivalence]) -> None:
         # I don't even know why this is a thing.
         # cf. https://stackoverflow.com/questions/51272814/python-yaml-dumping-pointer-references
+        import yaml  # here for faster startup times
+
         yaml.SafeDumper.ignore_aliases = (  # type: ignore
             lambda *args: True
         )
