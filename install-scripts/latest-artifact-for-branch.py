@@ -58,6 +58,12 @@ def get_latest_artifact_url(branch: str, workflow: str) -> str:
     return str(artifacts[0]["archive_download_url"])
 
 
+def make_executable(path: str) -> None:
+    mode = os.stat(path).st_mode
+    mode |= (mode & 0o444) >> 2  # copy R bits to X
+    os.chmod(path, mode)
+
+
 def download_extract_install(url: str) -> None:
     with tempfile.TemporaryDirectory() as tempdir:
         request = urllib.request.Request(
@@ -72,11 +78,13 @@ def download_extract_install(url: str) -> None:
         with tarfile.open("artifacts.tar.gz") as tar:
             tar.extract("semgrep-files/semgrep-core", path=tempdir)
 
-        if not os.path.exists("/usr/local/bin/semgrep-core"):
+        binary_path = "/usr/local/bin/semgrep-core"
+        if not os.path.exists(binary_path):
             copyfile(
-                Path(tempdir) / "semgrep-files" / "semgrep-core",
-                "/usr/local/bin/semgrep-core",
+                Path(tempdir) / "semgrep-files" / "semgrep-core", binary_path,
             )
+            make_executable(binary_path)
+
         else:
             print(
                 "Refusing to overwite existing file for semgrep-core!", file=sys.stderr
