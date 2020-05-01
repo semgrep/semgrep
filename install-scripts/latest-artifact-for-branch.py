@@ -95,8 +95,8 @@ if __name__ == "__main__":
     # Otherewise try to use the branch we're being merged into
     # if we're in a weird state, just use master
     branch_options = [
-        os.environ.get("GITHUB_BASE_REF"),
         os.environ.get("GITHUB_HEAD_REF"),
+        os.environ.get("GITHUB_BASE_REF"),
         "master",
     ]
     branches: List[str] = [b for b in branch_options if b is not None]
