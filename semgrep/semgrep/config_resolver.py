@@ -3,6 +3,7 @@ import os
 import shutil
 import sys
 import tarfile
+import tempfile
 import time
 from pathlib import Path
 from typing import Any
@@ -184,14 +185,13 @@ def download_config(config_url: str) -> Dict[str, Optional[Dict[str, Any]]]:
             if content_type and "text/plain" in content_type:
                 return parse_config_string("remote-url", r.content.decode("utf-8"))
             elif content_type and content_type == "application/x-gzip":
-                fname = f"/tmp/{base64.b64encode(config_url.encode()).decode()}"
-                shutil.rmtree(fname, ignore_errors=True)
-                with tarfile.open(fileobj=r.raw, mode="r:gz") as tar:
-                    tar.extractall(fname)
-                extracted = Path(fname)
-                for path in extracted.iterdir():
-                    # get first folder in extracted folder (this is how GH does it)
-                    return parse_config_folder(path, relative=True)
+                with tempfile.TemporaryDirectory() as fname:
+                    with tarfile.open(fileobj=r.raw, mode="r:gz") as tar:
+                        tar.extractall(fname)
+                    extracted = Path(fname)
+                    for path in extracted.iterdir():
+                        # get first folder in extracted folder (this is how GH does it)
+                        return parse_config_folder(path, relative=True)
             else:
                 print_error_exit(
                     f"unknown content-type: {content_type} returned by config url: {config_url}. Can not parse"
