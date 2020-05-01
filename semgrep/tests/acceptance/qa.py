@@ -56,7 +56,12 @@ def run_repo(target: str, rewrite: bool = False) -> None:
             command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding="utf-8",
         )
 
-        output = json.loads(runned.stdout)
+        try:
+            output = json.loads(runned.stdout)
+        except ValueError:
+            print("Output was not JSON: ")
+            print(runned.stdout)
+            # raise
         assert "results" in output
         print(output["errors"])
         assert len(output["errors"]) == 0

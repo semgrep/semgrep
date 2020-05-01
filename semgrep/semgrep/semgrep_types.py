@@ -1,5 +1,6 @@
-from dataclasses import dataclass
+from typing import Any
 from typing import List
+from typing import NamedTuple
 from typing import NewType
 from typing import Optional
 
@@ -56,11 +57,10 @@ class InvalidRuleSchema(BaseException):
     pass
 
 
-@dataclass(frozen=True)
-class BooleanRuleExpression:
+class BooleanRuleExpression(NamedTuple):
     operator: Operator
     pattern_id: Optional[PatternId] = None
-    children: Optional[List["BooleanRuleExpression"]] = None
+    children: Optional[List[Any]] = None
     operand: Optional[str] = None
 
     def __post_init__(self) -> None:
@@ -110,8 +110,7 @@ def pattern_names_for_operators(operators: List[Operator]) -> List[str]:
     )
 
 
-@dataclass(frozen=True)
-class Range:
+class Range(NamedTuple):
     start: int
     end: int
 
