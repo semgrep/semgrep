@@ -134,9 +134,6 @@ def cli() -> None:
         help="Apply the autofix patches. WARNING: data loss can occur with this flag. Make sure your files are stored in a version control system.",
         action="store_true",
     )
-    output.add_argument(
-        "-eq", "--equivalences", help="An equivalences file in YAML format",
-    )
 
     # logging options
     logging = parser.add_argument_group("logging")
