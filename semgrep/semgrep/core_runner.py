@@ -7,6 +7,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 from typing import Dict
+from typing import IO
 from typing import Iterator
 from typing import List
 from typing import Optional
@@ -96,18 +97,20 @@ class CoreRunner:
 
         for rule in rules:
             try:
-                equivalences.extend(
-                    [
-                        Equivalence(
-                            f"{rule.id}-{i}", eq["equivalence"], rule.languages  # type: ignore
-                        )  # Use 'i' to make equivalence id's unique
-                        for i, eq in enumerate(rule.equivalences)
-                    ]
-                )
+                equivalences.extend(rule.equivalences)
             except Exception as e:
                 print_error_exit(f"could not get equivalences for rule {rule.id}; {e}")
 
         return equivalences
+
+    def _write_equivalences_file(self, fp: IO, equivalences: List[Equivalence]) -> None:
+        # I don't even know why this is a thing.
+        # cf. https://stackoverflow.com/questions/51272814/python-yaml-dumping-pointer-references
+        yaml.SafeDumper.ignore_aliases = (  # type: ignore
+            lambda *args: True
+        )
+        fp.write(yaml.safe_dump({"equivalences": [e.to_json() for e in equivalences]}))
+        fp.flush()
 
     def _run_rules(
         self, rules: List[Rule], targets: List[Path]
@@ -127,64 +130,65 @@ class CoreRunner:
         #  `( )_ )/
         #   <_  <_ sb/dwb
         equivalences = self._flatten_all_equivalences(rules)
-        if equivalences:
-            equiv_fout = tempfile.NamedTemporaryFile("w")
-            yaml.SafeDumper.ignore_aliases = (  # type: ignore
-                lambda *args: True
-            )  # I don't even know why this is a thing
-            equiv_fout.write(
-                yaml.safe_dump({"equivalences": [e.to_json() for e in equivalences]})
-            )
-            equiv_fout.flush()
+        with tempfile.NamedTemporaryFile("w") as equiv_fout:
 
-        for language, all_patterns_for_language in self._group_patterns_by_language(
-            rules
-        ).items():
-            with tempfile.NamedTemporaryFile("w") as fout:
-                # very important not to sort keys here
-                patterns_json = [p.to_json() for p in all_patterns_for_language]
-                yaml_as_str = yaml.safe_dump({"rules": patterns_json}, sort_keys=False)
-                fout.write(yaml_as_str)
-                fout.flush()
-                cmd = [SGREP_PATH] + [
-                    "-lang",
-                    language,
-                    f"-rules_file",
-                    fout.name,
-                ]
-
-                if equivalences:
-                    cmd += ["-equivalences", equiv_fout.name]
-
-                cmd += [*[str(path) for path in targets]]
-
+            if equivalences:
                 try:
-                    output = subprocess.check_output(cmd, shell=False)
-                except subprocess.CalledProcessError as ex:
-                    try:
-                        # see if semgrep output a JSON error that we can decode
-                        semgrep_output = ex.output.decode("utf-8", "replace")
-                        output_json = json.loads(semgrep_output)
-                        if "error" in output_json:
-                            self._semgrep_error_json_to_message_then_exit(output_json)
-                        else:
-                            print_error(
-                                f"unexpected non-json output while invoking semgrep core with {' '.join(cmd)} \n {ex}"
-                            )
-                            print_error_exit(f"\n{PLEASE_FILE_ISSUE_TEXT}")
-                            raise ex  # let our general exception handler take care of this
-                    except Exception as e:
-                        print_error(
-                            f"non-zero return code while invoking semgrep with:\n\t{' '.join(cmd)}\n{ex} {e}"
-                        )
-                        print_error_exit(f"\n\n{PLEASE_FILE_ISSUE_TEXT}")
-                output_json = json.loads((output.decode("utf-8", "replace")))
-                errors.extend(output_json["errors"])
-                outputs.extend([PatternMatch(m) for m in output_json["matches"]])
+                    self._write_equivalences_file(equiv_fout, equivalences)
+                except Exception as e:
+                    print_error(
+                        f"could not write equivalences file. will continue without equivalences. {e}"
+                    )
+                    equivalences = []
 
-        # Close equivalences file
-        if equivalences:
-            equiv_fout.close()
+            for language, all_patterns_for_language in self._group_patterns_by_language(
+                rules
+            ).items():
+                with tempfile.NamedTemporaryFile("w") as fout:
+                    # very important not to sort keys here
+                    patterns_json = [p.to_json() for p in all_patterns_for_language]
+                    yaml_as_str = yaml.safe_dump(
+                        {"rules": patterns_json}, sort_keys=False
+                    )
+                    fout.write(yaml_as_str)
+                    fout.flush()
+                    cmd = [SGREP_PATH] + [
+                        "-lang",
+                        language,
+                        f"-rules_file",
+                        fout.name,
+                    ]
+
+                    if equivalences:
+                        cmd += ["-equivalences", equiv_fout.name]
+
+                    cmd += [*[str(path) for path in targets]]
+
+                    try:
+                        output = subprocess.check_output(cmd, shell=False)
+                    except subprocess.CalledProcessError as ex:
+                        try:
+                            # see if semgrep output a JSON error that we can decode
+                            semgrep_output = ex.output.decode("utf-8", "replace")
+                            output_json = json.loads(semgrep_output)
+                            if "error" in output_json:
+                                self._semgrep_error_json_to_message_then_exit(
+                                    output_json
+                                )
+                            else:
+                                print_error(
+                                    f"unexpected non-json output while invoking semgrep core with {' '.join(cmd)} \n {ex}"
+                                )
+                                print_error_exit(f"\n{PLEASE_FILE_ISSUE_TEXT}")
+                                raise ex  # let our general exception handler take care of this
+                        except Exception as e:
+                            print_error(
+                                f"non-zero return code while invoking semgrep with:\n\t{' '.join(cmd)}\n{ex} {e}"
+                            )
+                            print_error_exit(f"\n\n{PLEASE_FILE_ISSUE_TEXT}")
+                    output_json = json.loads((output.decode("utf-8", "replace")))
+                    errors.extend(output_json["errors"])
+                    outputs.extend([PatternMatch(m) for m in output_json["matches"]])
 
         # group output; we want to see all of the same rule ids on the same file path
         by_rule_index: Dict[
