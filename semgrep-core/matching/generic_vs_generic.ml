@@ -1,3 +1,4 @@
+(*s: semgrep/matching/generic_vs_generic.ml *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2019-2020 r2c
@@ -71,6 +72,7 @@ open Matching_generic
 (* Extra Helpers *)
 (*****************************************************************************)
 
+(*s: function [[Generic_vs_generic.m_string_xhp_text]] *)
 (* equivalence: on different indentation 
  * todo? work? was copy-pasted from XHP sgrep matcher
 *)
@@ -78,11 +80,13 @@ let m_string_xhp_text sa sb =
   if  sa =$= sb || (sa =~ "^[\n ]+$" && sb =~ "^[\n ]+$")
   then return ()
   else fail ()
+(*e: function [[Generic_vs_generic.m_string_xhp_text]] *)
 
 (*****************************************************************************)
 (* Name *)
 (*****************************************************************************)
 
+(*s: function [[Generic_vs_generic.m_ident]] *)
 (* coupling: modify also m_ident_and_id_info_add_in_env_Expr *) 
 let m_ident a b = 
   (* metavar: *)
@@ -108,18 +112,24 @@ let m_ident a b =
 
   (* general case *)
   | (a, b) -> (m_wrap m_string) a b
+(*e: function [[Generic_vs_generic.m_ident]] *)
 
 
+(*s: function [[Generic_vs_generic.m_dotted_name]] *)
 let m_dotted_name a b = 
   match a, b with
   (* TODO: [$X] should match any list *)
   (a, b) -> (m_list m_ident) a b
+(*e: function [[Generic_vs_generic.m_dotted_name]] *)
 
 
+(*s: function [[Generic_vs_generic.m_qualified_name]] *)
 let m_qualified_name a b = 
   match a, b with
   (a, b) -> m_dotted_name a b
+(*e: function [[Generic_vs_generic.m_qualified_name]] *)
 
+(*s: function [[Generic_vs_generic.m_module_name_prefix]] *)
 (* less-is-ok: prefix matching is supported for imports, eg.:
  *  pattern: import foo.x should match: from foo.x.z.y
  *)
@@ -133,7 +143,9 @@ let m_module_name_prefix a b =
   | A.FileName _, _
   | A.DottedName _, _
    -> fail ()
+(*e: function [[Generic_vs_generic.m_module_name_prefix]] *)
 
+(*s: function [[Generic_vs_generic.m_module_name]] *)
 let m_module_name a b = 
   match a, b with
   | A.FileName(a1), B.FileName(b1) ->
@@ -143,10 +155,14 @@ let m_module_name a b =
   | A.FileName _, _
   | A.DottedName _, _
    -> fail ()
+(*e: function [[Generic_vs_generic.m_module_name]] *)
 
+(*s: function [[Generic_vs_generic.m_sid]] *)
 let m_sid a b = 
   if a =|= b then return () else fail ()
+(*e: function [[Generic_vs_generic.m_sid]] *)
 
+(*s: function [[Generic_vs_generic.m_resolved_name_kind]] *)
 let m_resolved_name_kind a b =
   match a, b with
   | A.Local, B.Local ->
@@ -178,10 +194,13 @@ let m_resolved_name_kind a b =
   | A.ImportedEntity _, _
   | A.ImportedModule _, _
    -> fail ()
+(*e: function [[Generic_vs_generic.m_resolved_name_kind]] *)
 
+(*s: function [[Generic_vs_generic._m_resolved_name]] *)
 let _m_resolved_name (a1, a2) (b1, b2) = 
   m_resolved_name_kind a1 b1 >>= (fun () ->
   m_sid a2 b2 )
+(*e: function [[Generic_vs_generic._m_resolved_name]] *)
 
 
 (* start of recursive need *)
@@ -1898,3 +1917,4 @@ and m_any a b =
   | A.Pa _, _  | A.Ar _, _  | A.At _, _  | A.Dk _, _ | A.Pr _, _
   | A.Fld _, _ | A.Ss _, _ | A.Tk _, _
    -> fail ()
+(*e: semgrep/matching/generic_vs_generic.ml *)

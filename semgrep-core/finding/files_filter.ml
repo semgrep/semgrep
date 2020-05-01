@@ -1,3 +1,4 @@
+(*s: semgrep/finding/files_filter.ml *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2020 r2c
@@ -33,20 +34,27 @@ module Glob = Dune_glob__Glob
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
+(*s: type [[Files_filter.glob]] *)
 (* see https://dune.readthedocs.io/en/stable/concepts.html#glob *)
 type glob = Glob.t
+(*e: type [[Files_filter.glob]] *)
 
+(*s: type [[Files_filter.filters (semgrep/finding/files_filter.ml)]] *)
 type filters = {
   excludes: glob list;
   includes: glob list;
   exclude_dirs: glob list;
 }
+(*e: type [[Files_filter.filters (semgrep/finding/files_filter.ml)]] *)
 
+(*s: exception [[Files_filter.GlobSyntaxError (semgrep/finding/files_filter.ml)]] *)
 exception GlobSyntaxError of string
+(*e: exception [[Files_filter.GlobSyntaxError (semgrep/finding/files_filter.ml)]] *)
 
 (*****************************************************************************)
 (* Parsing *)
 (*****************************************************************************)
+(*s: function [[Files_filter.mk_filters]] *)
 let mk_filters ~excludes ~includes ~exclude_dirs =
  try 
   { excludes = excludes |> List.map Glob.of_string;
@@ -57,11 +65,13 @@ let mk_filters ~excludes ~includes ~exclude_dirs =
     exclude_dirs = exclude_dirs |> List.map Glob.of_string;
   } 
  with Invalid_argument s -> raise (GlobSyntaxError s)
+(*e: function [[Files_filter.mk_filters]] *)
 
 (*****************************************************************************)
 (* Main entry point *)
 (*****************************************************************************)
 
+(*s: function [[Files_filter.filter]] *)
 let filter filters xs =
   xs |> List.filter (fun file ->
     let base = Filename.basename file in
@@ -76,5 +86,7 @@ let filter filters xs =
        (fun glob -> not (dirs |> List.exists (fun dir -> Glob.test glob dir))))
     
  )
+(*e: function [[Files_filter.filter]] *)
   
 
+(*e: semgrep/finding/files_filter.ml *)

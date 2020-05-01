@@ -1,3 +1,4 @@
+(*s: semgrep/matching/subast_generic.ml *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2020 r2c
@@ -27,6 +28,7 @@ module V = Visitor_ast
 (* Expressions *)
 (*****************************************************************************)
 
+(*s: function [[Subast_generic.subexprs_of_expr]] *)
 (* used for deep expression matching *)
 let subexprs_of_expr e = 
   match e with
@@ -76,11 +78,13 @@ let subexprs_of_expr e =
   | LetPattern _ | MatchPattern _
     -> []
   | DisjExpr _ -> raise Common.Impossible
+(*e: function [[Subast_generic.subexprs_of_expr]] *)
 
 (*****************************************************************************)
 (* Statements *)
 (*****************************************************************************)
 
+(*s: function [[Subast_generic.subexprs_of_stmt]] *)
 (* used for really deep statement matching *)
 let subexprs_of_stmt st = 
     match st with
@@ -125,7 +129,9 @@ let subexprs_of_stmt st =
     (* could extract the expr in any? *)
     | OtherStmt _
      -> []
+(*e: function [[Subast_generic.subexprs_of_stmt]] *)
 
+(*s: function [[Subast_generic.substmts_of_stmt]] *)
 (* used for deep statement matching *)
 let substmts_of_stmt st = 
     match st with
@@ -184,10 +190,12 @@ let substmts_of_stmt st =
               | FieldDynamic _ | FieldSpread _ -> None
             )
          )
+(*e: function [[Subast_generic.substmts_of_stmt]] *)
 
 (*****************************************************************************)
 (* Visitors  *)
 (*****************************************************************************)
+(*s: function [[Subast_generic.do_visit_with_ref]] *)
 (* TODO: move in pfff at some point *)
 let do_visit_with_ref mk_hooks = fun any ->
   let res = ref [] in
@@ -195,7 +203,9 @@ let do_visit_with_ref mk_hooks = fun any ->
   let vout = V.mk_visitor hooks in
   vout any;
   List.rev !res
+(*e: function [[Subast_generic.do_visit_with_ref]] *)
 
+(*s: function [[Subast_generic.lambdas_in_expr]] *)
 let lambdas_in_expr e = 
   do_visit_with_ref (fun aref -> { V.default_visitor with
     V.kexpr = (fun (k, _) e ->
@@ -204,11 +214,13 @@ let lambdas_in_expr e =
       | _ -> k e
     );
   }) (E e)
+(*e: function [[Subast_generic.lambdas_in_expr]] *)
 
 (*****************************************************************************)
 (* Really substmts_of_stmts *)
 (*****************************************************************************)
 
+(*s: function [[Subast_generic.flatten_substmts_of_stmts]] *)
 let flatten_substmts_of_stmts xs =
   let rec aux x = 
     let xs = substmts_of_stmt x in
@@ -229,3 +241,5 @@ let flatten_substmts_of_stmts xs =
     (xs |> List.map aux |> List.flatten)
   in
   xs |> List.map aux |> List.flatten
+(*e: function [[Subast_generic.flatten_substmts_of_stmts]] *)
+(*e: semgrep/matching/subast_generic.ml *)
