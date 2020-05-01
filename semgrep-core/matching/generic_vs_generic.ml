@@ -1108,7 +1108,7 @@ and m_stmt a b =
   | A.ExprStmt(A.Ellipsis _i), _b ->
       return ()
 
-  (* deeper: go deep by default implicitely (no need for explicit <... ...>) *)
+  (* deeper: go deep by default implicitly (no need for explicit <... ...>) *)
   | A.ExprStmt(a1), B.ExprStmt(b1) ->
     m_expr_deep a1 b1 
   (* equivalence: vardef ==> assign, and go deep *)
