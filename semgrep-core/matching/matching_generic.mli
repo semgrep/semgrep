@@ -28,6 +28,8 @@ val check_and_add_metavar_binding :
 (* helpers *)
 val has_ellipsis_stmts : Ast_generic.stmt list -> bool
 val all_elem_and_rest_of_list : 'a list -> ('a * 'a list) list
+val is_regexp_string: string -> bool
+val regexp_of_regexp_string: string -> Str.regexp
 
 (* internal:
 val str_of_any : Ast_generic.any -> string
