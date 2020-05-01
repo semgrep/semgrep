@@ -35,6 +35,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Metavariables can now contain digits or `_`. `$USERS_2` is now
   a valid metavariable name. A metavariable must start with a letter
   or `_` though.
+- Simple calls of the `semgrep` CLI, such as `semgrep --version`, are now 60% faster.
 
 ### Added
 - For languages not allowing the dollar sign in identifiers (e.g., Python),
