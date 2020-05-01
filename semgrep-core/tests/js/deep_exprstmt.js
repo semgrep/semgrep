@@ -5,4 +5,6 @@ function foo() {
     x = bar();
     //ERROR: match
     print(bar());
+    //ERROR: match
+    return bar();
 }

@@ -5,6 +5,16 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## Next release
 
 ### Added
+- expression statements will now match by default also return statements
+  ```
+  foo();
+  ```
+  will now match
+  ```javascript
+  return foo();
+  ```
+
+### Added
 - You can now use regexps for field names:
   ```
   var $X = {"=~/[lL]ocation/": $Y};
