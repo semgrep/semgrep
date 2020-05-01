@@ -60,6 +60,8 @@ class InvalidRuleSchema(BaseException):
 class BooleanRuleExpression(NamedTuple):
     operator: Operator
     pattern_id: Optional[PatternId] = None
+    # This is a recursive member but mypy is a half-baked dumpster fire.
+    # https://github.com/python/mypy/issues/8320
     children: Optional[List[Any]] = None
     operand: Optional[str] = None
 
