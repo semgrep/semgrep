@@ -4,6 +4,18 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Next release
 
+### Added
+- You can now use regexps for field names:
+  ```
+  var $X = {"=~/[lL]ocation/": $Y};
+  ```
+  will now match
+  ```javascript
+  var x = {"Location": 1};
+  ```
+  
+## Next release
+
 ### Changed
 - Config files in hidden paths can now be used by explicitly specifying
   the hidden path:
