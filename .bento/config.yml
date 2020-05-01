@@ -67,6 +67,9 @@ tools:
     ignore:
     - use-timeout
     run: true
+  semgrep:
+    ignore: []
+    run: true
   shellcheck:
     ignore:
     - SC1004
