@@ -59,8 +59,7 @@ def run_repo(target: str, rewrite: bool = False) -> None:
         try:
             output = json.loads(runned.stdout)
         except ValueError:
-            print("Output was not JSON: ")
-            print(runned.stdout)
+            raise Exception(f"Value was not json: \n{runned.stdout}\n{runned.stderr}")
             # raise
         assert "results" in output
         print(output["errors"])
