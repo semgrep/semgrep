@@ -8,8 +8,6 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 
-import requests
-
 import semgrep.config_resolver
 from semgrep.autofix import apply_fixes
 from semgrep.constants import ID_KEY
@@ -131,6 +129,8 @@ def rename_rule_ids(valid_configs: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def post_output(output_url: str, output_data: Dict[str, Any]) -> None:
+    import requests  # here for faster startup times
+
     print_msg(f"posting to {output_url}...")
     r = requests.post(output_url, json=output_data)
     debug_print(f"posted to {output_url} and got status_code:{r.status_code}")

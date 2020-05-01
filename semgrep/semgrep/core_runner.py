@@ -12,8 +12,6 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 
-import yaml
-
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import SGREP_PATH
 from semgrep.evaluation import enumerate_patterns_in_boolean_expression
@@ -92,6 +90,8 @@ class CoreRunner:
         """
             Run all rules on targets and return list of all places that match patterns, ... todo errors
         """
+        import yaml  # here for faster startup times
+
         outputs: List[PatternMatch] = []  # multiple invocations per language
         errors: List[Any] = []
 

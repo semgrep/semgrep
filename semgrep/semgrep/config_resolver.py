@@ -10,9 +10,6 @@ from typing import Dict
 from typing import List
 from typing import Optional
 
-import requests
-import yaml
-
 from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import DEFAULT_CONFIG_FOLDER
 from semgrep.constants import DEFAULT_SGREP_CONFIG_NAME
@@ -102,6 +99,8 @@ def parse_config_at_path(
 def parse_config_string(
     config_id: str, contents: str
 ) -> Dict[str, Optional[Dict[str, Any]]]:
+    import yaml  # here for faster startup times
+
     try:
         return {config_id: yaml.safe_load(contents)}
     except yaml.parser.ParserError as se:
@@ -173,6 +172,8 @@ def load_config_from_local_path(
 
 
 def download_config(config_url: str) -> Dict[str, Optional[Dict[str, Any]]]:
+    import requests  # here for faster startup times
+
     debug_print(f"trying to download from {config_url}")
     headers = {"User-Agent": SGREP_USER_AGENT}
 
@@ -221,6 +222,8 @@ def resolve_config(config_str: Optional[str]) -> Dict[str, Optional[Dict[str, An
 
 
 def generate_config() -> None:
+    import requests  # here for faster startup times
+
     # defensive coding
     if Path(DEFAULT_CONFIG_FILE).exists():
         print_error_exit(
