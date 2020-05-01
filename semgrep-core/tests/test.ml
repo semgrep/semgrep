@@ -1,3 +1,4 @@
+(*s: semgrep/tests/test.ml *)
 open Common
 open OUnit
 module E = Error_code
@@ -11,35 +12,50 @@ module R = Rule
 (*****************************************************************************)
 (* Flags *)
 (*****************************************************************************)
+(*s: constant [[Test.verbose]] *)
 let verbose = ref false
+(*e: constant [[Test.verbose]] *)
 
+(*s: constant [[Test.dump_ast]] *)
 let dump_ast = ref false
+(*e: constant [[Test.dump_ast]] *)
 
+(*s: constant [[Test.tests_path]] *)
 (* ran from _build/default/tests/ hence the '..'s below *)
 let tests_path = "../../../tests"
+(*e: constant [[Test.tests_path]] *)
+(*s: constant [[Test.data_path]] *)
 let data_path = "../../../data"
+(*e: constant [[Test.data_path]] *)
 
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
+(*s: function [[Test.ast_fuzzy_of_string]] *)
 let ast_fuzzy_of_string str =
   Common2.with_tmp_file ~str ~ext:"cpp" (fun tmpfile ->
     Parse_cpp.parse_fuzzy tmpfile |> fst
   )
+(*e: function [[Test.ast_fuzzy_of_string]] *)
 
+(*s: function [[Test.any_gen_of_string]] *)
 let any_gen_of_string str =
   Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
   let any = Parse_python.any_of_string str in
   Python_to_generic.any any
   )
+(*e: function [[Test.any_gen_of_string]] *)
 
+(*s: function [[Test.parse_generic]] *)
 let parse_generic file = 
   let ast = Parse_generic.parse_program file in
   let lang = List.hd (Lang.langs_of_filename file) in
   Naming_ast.resolve lang ast;
   ast
+(*e: function [[Test.parse_generic]] *)
 
+(*s: function [[Test.regression_tests_for_lang]] *)
 let regression_tests_for_lang files lang = 
   files |> List.map (fun file ->
    (Filename.basename file) >:: (fun () ->
@@ -95,10 +111,12 @@ let regression_tests_for_lang files lang =
       Error_code.compare_actual_to_expected actual expected; 
    )
  )
+(*e: function [[Test.regression_tests_for_lang]] *)
 
 (*****************************************************************************)
 (* More tests *)
 (*****************************************************************************)
+(*s: constant [[Test.lang_regression_tests]] *)
 let lang_regression_tests = 
  "lang regression testing" >::: [
   "sgrep Python" >::: (
@@ -132,7 +150,9 @@ let lang_regression_tests =
     regression_tests_for_lang files lang
   );
  ]
+(*e: constant [[Test.lang_regression_tests]] *)
 
+(*s: constant [[Test.lint_regression_tests]] *)
 (* mostly a copy paste of pfff/linter/unit_linter.ml *)
 let lint_regression_tests = 
   "lint regression testing" >:: (fun () ->
@@ -165,11 +185,13 @@ let lint_regression_tests =
   then actual_errors |> List.iter (fun e -> pr (E.string_of_error e));
   E.compare_actual_to_expected actual_errors expected_error_lines
   )
+(*e: constant [[Test.lint_regression_tests]] *)
 
 (*****************************************************************************)
 (* Main action *)
 (*****************************************************************************)
 
+(*s: function [[Test.test]] *)
 let test regexp =
   (* There is no reflection in OCaml so the unit test framework OUnit requires
    * us to explicitely build the test suites (which is not too bad).
@@ -211,6 +233,7 @@ let test regexp =
   if has_an_error
   then exit 1
   else exit 0
+(*e: function [[Test.test]] *)
 
 (*****************************************************************************)
 (* Extra actions *)
@@ -219,6 +242,7 @@ let test regexp =
 
 module FT = File_type
 
+(*s: function [[Test.ast_generic_of_file]] *)
 let ast_generic_of_file file =
  let typ = File_type.file_type_of_file file in
  match typ with
@@ -231,33 +255,41 @@ let ast_generic_of_file file =
     Resolve_python.resolve ast;
     Python_to_generic.program ast
  | _ -> failwith (spf "file type not supported for %s" file)
+(*e: function [[Test.ast_generic_of_file]] *)
 
+(*s: function [[Test.dump_ast_generic]] *)
 (* copy paste of code in pfff/main_test.ml *)
 let dump_ast_generic file =
   let ast = ast_generic_of_file file in
   let v = Meta_ast.vof_any (Ast_generic.Pr ast) in
   let s = Ocaml.string_of_v v in
   pr2 s
+(*e: function [[Test.dump_ast_generic]] *)
 
 (*****************************************************************************)
 (* The options *)
 (*****************************************************************************)
 
+(*s: constant [[Test.options]] *)
 let options = [
   "-verbose", Arg.Set verbose,
   " verbose mode";
   "-dump_ast", Arg.Set dump_ast,
   " <file> dump the generic Abstract Syntax Tree of a file";
   ]
+(*e: constant [[Test.options]] *)
 
 (*****************************************************************************)
 (* Main entry point *)
 (*****************************************************************************)
 
+(*s: constant [[Test.usage]] *)
 let usage =
    Common.spf "Usage: %s [options] [regexp]> \nrun the unit tests matching the regexp\nOptions:"
       (Filename.basename Sys.argv.(0))
+(*e: constant [[Test.usage]] *)
 
+(*s: function [[Test.main]] *)
 let main () =
   let args = ref [] in
   Arg.parse options (fun arg -> args := arg::!args) usage;
@@ -270,5 +302,9 @@ let main () =
     print_string "too many arguments\n";
     Arg.usage options usage;
   )
+(*e: function [[Test.main]] *)
 
+(*s: toplevel [[Test._1]] *)
 let _ = main ()
+(*e: toplevel [[Test._1]] *)
+(*e: semgrep/tests/test.ml *)

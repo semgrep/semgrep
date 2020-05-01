@@ -1,3 +1,4 @@
+(*s: semgrep/matching/unit_matcher.ml *)
 open Common
 open OUnit
 
@@ -5,6 +6,7 @@ open OUnit
 (* Sgrep Unit tests *)
 (*****************************************************************************)
 
+(*s: function [[Unit_matcher.unittest]] *)
 let unittest ~any_gen_of_string =
   "sgrep(generic) features" >:: (fun () ->
 
@@ -155,3 +157,5 @@ let unittest ~any_gen_of_string =
               failwith (spf "problem parsing %s or %s" spattern scode)
     )
   )
+(*e: function [[Unit_matcher.unittest]] *)
+(*e: semgrep/matching/unit_matcher.ml *)

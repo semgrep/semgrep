@@ -1,3 +1,4 @@
+(*s: semgrep/core/match_result.ml *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2020 r2c
@@ -16,9 +17,12 @@
 (* Types *)
 (*****************************************************************************)
 
+(*s: type [[Match_result.t]] *)
 type t = {
   rule: Rule.t;
   file: Common.filename;
   code: Ast_generic.any;
   env: Metavars_generic.metavars_binding;
 }
+(*e: type [[Match_result.t]] *)
+(*e: semgrep/core/match_result.ml *)
