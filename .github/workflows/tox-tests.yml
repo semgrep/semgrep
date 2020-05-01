@@ -20,7 +20,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: Install semgrep-core from develop
-        run: sudo ./install-scripts/latest-artifact-for-branch.py
+        run: sudo -E ./install-scripts/latest-artifact-for-branch.py
         env:
           AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Install Tox and any other packages
