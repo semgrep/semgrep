@@ -88,7 +88,7 @@ def cli() -> None:
         "--exclude",
         action="append",
         default=[],
-        help="Skip any file with this name; --exclude='*.py' will ignore foo.py as well as src/foo.py. Can add multiple times. Overrides includes.",,
+        help="Skip any file with this name; --exclude='*.py' will ignore foo.py as well as src/foo.py. Can add multiple times. Overrides includes.",
     )
     parser.add_argument(
         "--include",
@@ -101,6 +101,12 @@ def cli() -> None:
         action="append",
         default=[],
         help="Skip any directory with this name; --exclude-dir=doc will ignore doc/ as well as src/doc. Can add multiple times. Overrides includes.",
+    )
+    parser.add_argument(
+        "--include-dir",
+        action="append",
+        default=[],
+        help="Scan only directories with this name; --include-dir=doc will include doc/ as well as src/doc. Can add multiple times.",
     )
 
     config.add_argument(

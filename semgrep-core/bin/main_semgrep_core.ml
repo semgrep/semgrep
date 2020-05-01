@@ -103,6 +103,9 @@ let includes = ref []
 (*s: constant [[Main_semgrep_core.exclude_dirs]] *)
 let exclude_dirs = ref []
 (*e: constant [[Main_semgrep_core.exclude_dirs]] *)
+(*s: constant [[Main_semgrep_core.include_dirs]] *)
+let include_dirs = ref []
+(*e: constant [[Main_semgrep_core.include_dirs]] *)
 
 (*s: constant [[Main_semgrep_core.output_format_json]] *)
 let output_format_json = ref false
@@ -382,6 +385,7 @@ let filter_files files =
       ~excludes:!excludes 
       ~exclude_dirs:!exclude_dirs 
       ~includes:!includes
+      ~include_dirs:!include_dirs
   )
 (*e: function [[Main_semgrep_core.filter_files]] *)
 
@@ -713,6 +717,8 @@ let options () =
     " <GLOB> search only files whose basename matches GLOB";
     "-exclude-dir", Arg.String (fun s -> Common.push s exclude_dirs),
     " <DIR> exclude directories matching the pattern DIR";
+    "-include-dir", Arg.String (fun s -> Common.push s include_dirs),
+    " <DIR> search only in directories matching the pattern DIR";
 
     "-j", Arg.Set_int ncores, 
     " <int> number of cores to use (default = 1)";

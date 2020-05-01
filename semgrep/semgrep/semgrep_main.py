@@ -244,9 +244,10 @@ def main(args: argparse.Namespace) -> str:
     rule_matches_by_rule, semgrep_errors = CoreRunner(
         allow_exec=args.dangerously_allow_arbitrary_code_execution_from_rules,
         jobs=args.jobs,
-        include=args.include,
         exclude=args.exclude,
+        include=args.include,
         exclude_dir=args.exclude_dir,
+        include_dir=args.include_dir,
     ).invoke_semgrep(targets, all_rules)
 
     if args.exclude_tests:

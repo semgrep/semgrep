@@ -41,15 +41,17 @@ class CoreRunner:
         self,
         allow_exec: bool,
         jobs: int,
-        include: List[str],
         exclude: List[str],
+        include: List[str],
         exclude_dir: List[str],
+        include_dir: List[str],
     ):
         self._allow_exec = allow_exec
         self._jobs = jobs
-        self._include = include
         self._exclude = exclude
+        self._include = include
         self._exclude_dir = exclude_dir
+        self._include_dir = include_dir
 
     def _flatten_rule_patterns(self, rules: List[Rule]) -> Iterator[Pattern]:
         """
@@ -243,12 +245,14 @@ class CoreRunner:
             Yields include/exclude CLI options to call semgrep-core with.
             This is based on the arguments given to semgrep.
         """
-        for pattern in self._include:
-            yield from ["-include", pattern]
         for pattern in self._exclude:
             yield from ["-exclude", pattern]
+        for pattern in self._include:
+            yield from ["-include", pattern]
         for pattern in self._exclude_dir:
             yield from ["-exclude-dir", pattern]
+        for pattern in self._include_dir:
+            yield from ["-include-dir", pattern]
 
     def invoke_semgrep(
         self, targets: List[Path], rules: List[Rule],
