@@ -14,7 +14,7 @@ from typing import Dict
 from typing import List
 from zipfile import ZipFile
 
-GITHUB_TOKEN = os.environ["GITHUB_TOKEN"]
+GITHUB_TOKEN = os.environ["AUTH_TOKEN"]
 repo = os.environ.get("GITHUB_REPOSITORY", "returntocorp/semgrep")
 
 API_BASE_URL = f"https://api.github.com/repos/{repo}"

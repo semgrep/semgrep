@@ -13,9 +13,6 @@ jobs:
     strategy:
       matrix:
         python: [3.6, 3.7, 3.8]
-    env:
-      GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}'
-
     steps:
       - uses: actions/checkout@v2
       - name: Setup Python
@@ -24,6 +21,8 @@ jobs:
           python-version: ${{ matrix.python }}
       - name: Install semgrep-core from develop
         run: sudo ./install-scripts/latest-artifact-for-branch.py
+        env:
+          AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Install Tox and any other packages
         run: pip install tox
       - name: Run Tox
