@@ -97,9 +97,9 @@ if __name__ == "__main__":
     branch_options = [
         os.environ.get("GITHUB_HEAD_REF"),
         os.environ.get("GITHUB_BASE_REF"),
-        "master",
+        "develop",
     ]
-    branches: List[str] = [b for b in branch_options if b is not None]
+    branches: List[str] = [b for b in branch_options if b]
     workflow = os.environ.get("WORKFLOW", "release-ubuntu-16-04")
     for branch in branches:
         print(f"Downloading the semgrep-core binary for {branch}", file=sys.stderr)
