@@ -1,0 +1,1 @@
+foo("..." + $REQ.$QUERY.$VAR + "..." + $REQ.$QUERY.$VAR_2 + "...", ...)

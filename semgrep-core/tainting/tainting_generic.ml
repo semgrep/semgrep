@@ -1,3 +1,4 @@
+(*s: semgrep/tainting/tainting_generic.ml *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2020 r2c
@@ -38,6 +39,7 @@ module DataflowY = Dataflow.Make (struct
   let short_string_of_node n = Meta_il.short_string_of_node_kind n.F2.n
 end)
 
+(*s: function [[Tainting_generic.match_pat_instr]] *)
 let match_pat_instr pat =
   match pat with
   | [] -> (fun _ -> false)
@@ -53,9 +55,11 @@ let match_pat_instr pat =
        let matches_with_env = Semgrep_generic.match_e_e pat eorig in
        matches_with_env <> []
     )
+(*e: function [[Tainting_generic.match_pat_instr]] *)
 
  
 
+(*s: function [[Tainting_generic.config_of_rule]] *)
 let config_of_rule found_tainted_sink rule = 
   { Dataflow_tainting.
     is_source = match_pat_instr rule.R.source;
@@ -64,11 +68,13 @@ let config_of_rule found_tainted_sink rule =
     
     found_tainted_sink;
   }
+(*e: function [[Tainting_generic.config_of_rule]] *)
 
 (*****************************************************************************)
 (* Main entry point *)
 (*****************************************************************************)
 
+(*s: function [[Tainting_generic.check2]] *)
 let check2 rules file ast =
   let matches = ref [] in
 
@@ -97,7 +103,11 @@ let check2 rules file ast =
   v (Ast.Pr ast);
 
    !matches
+(*e: function [[Tainting_generic.check2]] *)
 
+(*s: function [[Tainting_generic.check]] *)
 let check a b c =
   Common.profile_code "Tainting_generic.check" (fun () -> check2 a b c)
+(*e: function [[Tainting_generic.check]] *)
 
+(*e: semgrep/tainting/tainting_generic.ml *)

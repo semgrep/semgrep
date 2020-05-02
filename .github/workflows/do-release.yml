@@ -161,14 +161,25 @@ jobs:
 
   ubuntu-release-script:
     runs-on: ubuntu-latest
+    needs: [release-ubuntu-16-04]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Get the version without leading v
         id: get_version
         run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\/v/}
+      - uses: actions/download-artifact@v1
+        with:
+          name: semgrep-ubuntu-16.04-${{ github.sha }}
+          path: semgrep-ubuntu
+      - name: Compute checksum
+        run: echo ::set-output name=CHECKSUM::$(cat ./semgrep-ubuntu/artifacts.tar.gz | sha256sum | awk '{ print $1 }')
+        id: checksum
       - name: Generate ubuntu release script
-        run: cat ./install-scripts/ubuntu-generic.sh | sed 's/version=".*"/version="${{ steps.get_version.outputs.VERSION }}"/' > install-scripts/installer.sh
+        run: |
+          cat ./install-scripts/ubuntu-generic.sh |\
+          sed 's/version=".*"/version="${{ steps.get_version.outputs.VERSION }}"/' |\
+          sed 's/sha256=.*$/sha256="${{ steps.checksum.outputs.CHECKSUM }}"/'> install-scripts/installer.sh
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:

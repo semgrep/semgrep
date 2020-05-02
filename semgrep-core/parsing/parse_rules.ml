@@ -1,3 +1,4 @@
+(*s: semgrep/parsing/parse_rules.ml *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2011 Facebook
@@ -16,30 +17,46 @@ open Common
 
 module R = Rule
 
+(*s: exception [[Parse_rules.InvalidRuleException (semgrep/parsing/parse_rules.ml)]] *)
 exception InvalidRuleException of string * string
+(*e: exception [[Parse_rules.InvalidRuleException (semgrep/parsing/parse_rules.ml)]] *)
+(*s: exception [[Parse_rules.InvalidLanguageException (semgrep/parsing/parse_rules.ml)]] *)
 exception InvalidLanguageException of string * string
+(*e: exception [[Parse_rules.InvalidLanguageException (semgrep/parsing/parse_rules.ml)]] *)
+(*s: exception [[Parse_rules.InvalidPatternException (semgrep/parsing/parse_rules.ml)]] *)
 exception InvalidPatternException of string * string * string * string
+(*e: exception [[Parse_rules.InvalidPatternException (semgrep/parsing/parse_rules.ml)]] *)
+(*s: exception [[Parse_rules.UnparsableYamlException (semgrep/parsing/parse_rules.ml)]] *)
 exception UnparsableYamlException of string
+(*e: exception [[Parse_rules.UnparsableYamlException (semgrep/parsing/parse_rules.ml)]] *)
+(*s: exception [[Parse_rules.InvalidYamlException (semgrep/parsing/parse_rules.ml)]] *)
 exception InvalidYamlException of string
+(*e: exception [[Parse_rules.InvalidYamlException (semgrep/parsing/parse_rules.ml)]] *)
 
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
+(*s: function [[Parse_rules.parse_severity]] *)
 (* also used in parse_tainting_rules.ml *)
 let parse_severity ~id s = 
   match s with
  | "ERROR" -> R.Error
  | "WARNING" -> R.Warning
+ | "INFO" -> R.Info
  | s -> raise (InvalidRuleException (id, (spf "Bad severity: %s" s)))
+(*e: function [[Parse_rules.parse_severity]] *)
 
+(*s: function [[Parse_rules.parse_pattern]] *)
 let parse_pattern ~id ~lang pattern =
   (* todo? call Normalize_ast.normalize here? *)
-  try Parse_generic.parse_pattern lang pattern
+  try Check_semgrep.parse_check_pattern lang pattern
   with exn ->
    raise (InvalidPatternException (id, pattern, (Lang.string_of_lang lang), 
           (Common.exn_to_s exn)))
+(*e: function [[Parse_rules.parse_pattern]] *)
 
+(*s: function [[Parse_rules.parse_languages]] *)
 let parse_languages ~id langs = 
   let languages = langs |> List.map (function
     | `String s ->
@@ -56,6 +73,7 @@ let parse_languages ~id langs =
     | x::_xs -> x
   in
   languages, lang
+(*e: function [[Parse_rules.parse_languages]] *)
  
  
 
@@ -63,6 +81,7 @@ let parse_languages ~id langs =
 (* Main entry point *)
 (*****************************************************************************)
 
+(*s: function [[Parse_rules.parse]] *)
 let parse file =
   let str = Common.read_file file in
   let yaml_res = Yaml.of_string str in
@@ -97,6 +116,7 @@ let parse file =
       )
   | Result.Error (`Msg s) ->
     raise (UnparsableYamlException s)
+(*e: function [[Parse_rules.parse]] *)
 
 (*
       let sgrep_string = Common.matched1 s in
@@ -118,3 +138,4 @@ let parse file =
     else raise Impossible
   )
 *)
+(*e: semgrep/parsing/parse_rules.ml *)

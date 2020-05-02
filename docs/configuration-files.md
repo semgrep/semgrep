@@ -1,21 +1,28 @@
-# Advanced
+# Configuration Files
 
-This document describes `semgrep` rule fields and provides rule examples.
+This document describes `semgrep` configuration files and provides rule
+examples. Configuration files are specified with the `--config` (or `-f`) flag.
+A single [YAML](https://en.wikipedia.org/wiki/YAML) file or a directory of
+files ending in `.yml` or `.yaml` may be specified. Each configuration file
+must match the [schema](configuration-files.md#schema).
+
+*For more information on the `--config` flag see [other configuration options](configuration-files.md#other-configuration-options).*
 
 Contents:
 
-* [Simple Example](advanced.md#simple-example)
-* [Schema](advanced.md#schema)
-* [Operators](advanced.md#operators)
-  * [`pattern`](advanced.md#pattern)
-  * [`patterns`](advanced.md#patterns)
-  * [`pattern-either`](advanced.md#pattern-either)
-  * [`pattern-not`](advanced.md#pattern-not)
-  * [`pattern-inside`](advanced.md#pattern-inside)
-  * [`pattern-not-inside`](advanced.md#pattern-not-inside)
-  * [`pattern-where-python`](advanced.md#pattern-where-python)
-* [Other Examples](advanced.md#other-examples)
-  * [Complete Useless Comparison](advanced.md#complete-useless-comparison)
+* [Simple Example](configuration-files.md#simple-example)
+* [Other Configuration Options](configuration-files.md#other-configuration-options)
+* [Schema](configuration-files.md#schema)
+* [Operators](configuration-files.md#operators)
+  * [`pattern`](configuration-files.md#pattern)
+  * [`patterns`](configuration-files.md#patterns)
+  * [`pattern-either`](configuration-files.md#pattern-either)
+  * [`pattern-not`](configuration-files.md#pattern-not)
+  * [`pattern-inside`](configuration-files.md#pattern-inside)
+  * [`pattern-not-inside`](configuration-files.md#pattern-not-inside)
+  * [`pattern-where-python`](configuration-files.md#pattern-where-python)
+* [Other Examples](configuration-files.md#other-examples)
+  * [Complete Useless Comparison](configuration-files.md#complete-useless-comparison)
 
 ## Simple Example
 
@@ -49,6 +56,18 @@ rule:eqeq-always-true: node.id == node.id is always true
 
 This should give you a basic idea of what the rule fields do.
 
+## Other Configuration Options
+
+`semgrep` configuration can be specified in a number of ways:
+
+* A single YAML rule file, e.g. `--config /path/to/rules.yaml`, defaults to `.sgrep.yml`
+* A directory of YAML rule files ending in `.yml` or `.yaml`, e.g. `--config /path/to/rules`
+* A configuration URL, e.g. `--config https://rules.corp.com/semgrep.yml`
+* A registry name, e.g. `--config r2c.python`
+
+r2c provides a registry of curated rules, see [semgrep-rules](https://github.com/returntocorp/semgrep-rules)
+for more information.
+
 ## Schema
 
 **Required:**
@@ -61,22 +80,26 @@ All required fields must be present at the top-level of a rule. I.e. immediately
 | `message` | `string` | Message highlighting why this rule fired and how to remediate the issue. |
 | `severity` | `string` | One of: `WARNING`, `ERROR`. |
 | `languages` | `array` | Any of: `python`, `javascript`, or `go`. |
-| [`pattern`](advanced.md#pattern)_\*_ | `string` | Find code matching this expression. |
-| [`patterns`](advanced.md#patterns)_\*_ | `array` | Logical AND of multiple patterns. |
-| [`pattern-either`](advanced.md#pattern-either)_\*_ | `array` | Logical OR of multiple patterns. |
+| [`pattern`](configuration-files.md#pattern)_\*_ | `string` | Find code matching this expression. |
+| [`patterns`](configuration-files.md#patterns)_\*_ | `array` | Logical AND of multiple patterns. |
+| [`pattern-either`](configuration-files.md#pattern-either)_\*_ | `array` | Logical OR of multiple patterns. |
 
 _\* Only one of `pattern`, `patterns`, or `pattern-either` is required._
 
 **Optional:**
 
-All optional fields must reside underneath a `patterns` or `pattern-either` field.
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| [`metadata`](advanced.md#metadata) | `object` | Arbitrary user-provided data. Use to attach data to rules without affecting semgrep's behavior |
+
+The below optional fields must reside underneath a `patterns` or `pattern-either` field.
 
 | Field | Type | Description |
 | :--- | :--- | :--- |
-| [`pattern-not`](advanced.md#pattern-not) | `string` | Logical NOT - remove findings matching this expression. |
-| [`pattern-inside`](advanced.md#pattern-inside) | `string` | Keep findings that lie inside this pattern. |
-| [`pattern-not-inside`](advanced.md#pattern-not-inside) | `string` | Keep findings that do not lie inside this pattern. |
-| [`pattern-where-python`](advanced.md#pattern-where-python) | `string` | Remove findings matching this Python expression. |
+| [`pattern-not`](configuration-files.md#pattern-not) | `string` | Logical NOT - remove findings matching this expression. |
+| [`pattern-inside`](configuration-files.md#pattern-inside) | `string` | Keep findings that lie inside this pattern. |
+| [`pattern-not-inside`](configuration-files.md#pattern-not-inside) | `string` | Keep findings that do not lie inside this pattern. |
+| [`pattern-where-python`](configuration-files.md#pattern-where-python) | `string` | Remove findings matching this Python expression. |
 
 ## Operators
 
@@ -86,7 +109,7 @@ The `pattern` operator looks for code matching its expression. As noted above, t
 
 **Example**
 
-See the [Simple Example](advanced.md#simple-example) above.
+See the [Simple Example](configuration-files.md#simple-example) above.
 
 ### `patterns`
 
@@ -94,7 +117,7 @@ The `patterns` operator performs a logical AND operation on one or more child pa
 
 **Example**
 
-Let's build on the [Simple Example](advanced.md#simple-example) above:
+Let's build on the [Simple Example](configuration-files.md#simple-example) above:
 
 ```yaml
 rules:
@@ -134,7 +157,7 @@ The `pattern-not` operator is the opposite of the `pattern` operator. That is, i
 
 **Example**
 
-See the [`patterns`](advanced.md#patterns) example above.
+See the [`patterns`](configuration-files.md#patterns) example above.
 
 ### `pattern-inside`
 
@@ -228,6 +251,27 @@ rules:
     severity: ERROR
 ```
 
+## Metadata
+
+In some cases, you might wish to
+note some extra information on a rule,
+such as a CVE that was created for it,
+or the name of the security engineer that came up with the rule.
+
+You can use the `metadata:` key in these cases, like so:
+
+```
+rules:
+  - id: eqeq-is-bad
+    patterns:
+      - [...]
+    message: "useless comparison operation `$X == $X` or `$X != $X`"
+    metadata:
+      cve: CVE-2077-1234
+      discovered-by: Ikwa L'equale
+```
+
+The metadata will also be reproduced in sgrep's output if you're running it with `--json`.
 
 ## Other Examples
 
@@ -258,4 +302,3 @@ rules:
 ```
 
 This rule makes use of many of the operators above. It uses `pattern-either`, `patterns`, `pattern`, and `pattern-inside` to carefully consider different cases, and uses `pattern-not-inside` and `pattern-not` to whitelist certain useless comparisons.
-

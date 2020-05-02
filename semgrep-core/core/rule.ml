@@ -1,3 +1,4 @@
+(*s: semgrep/core/rule.ml *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2011 Facebook
@@ -31,9 +32,12 @@
 (* Types *)
 (*****************************************************************************)
 
+(*s: type [[Rule.pattern]] *)
 (* right now only Expr, Stmt, and Stmts are supported *)
 type pattern = Ast.any
+(*e: type [[Rule.pattern]] *)
 
+(*s: type [[Rule.rule]] *)
 type rule = {
   id: string;
   pattern: pattern;
@@ -41,12 +45,18 @@ type rule = {
   severity: severity;
   languages: Lang.t list; (* at least one element *)
 }
+(*e: type [[Rule.rule]] *)
 
+(*s: type [[Rule.rules]] *)
  and rules = rule list
+(*e: type [[Rule.rules]] *)
+ 
+(*s: type [[Rule.severity]] *)
+ and severity = Error | Warning | Info (* TODO? just reuse Error_code.severity *)
+(*e: type [[Rule.severity]] *)
 
- and severity =
-  | Error
-  | Warning
-
+(*s: type [[Rule.t]] *)
 (* alias *)
 type t = rule
+(*e: type [[Rule.t]] *)
+(*e: semgrep/core/rule.ml *)

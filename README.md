@@ -5,8 +5,8 @@
 
 `semgrep` is a tool for easily detecting and preventing bugs and anti-patterns in
 your codebase. It combines the convenience of `grep` with the correctness of
-syntactical and semantic search. Quickly write rules so you can code with
-confidence.
+syntactical and semantic search. Developers, DevOps engineers, and security engineers
+use `semgrep` to write code with confidence.
 
 **Try it now:** [https://semgrep.live](https://semgrep.live/)
 
@@ -78,7 +78,7 @@ docker run --rm -v "${PWD}:/home/repo" returntocorp/sgrep --config r2c
 
 ### Custom Rules
 
-You can also [create your own rules](docs/config/advanced.md):
+You can also [create your own rules](docs/configuration-files.md):
 
 ```bash
 cd /path/to/code
@@ -116,8 +116,9 @@ or multiple files matching `.sgrep/**/*.yml`.
 
 `semgrep` patterns make use of two primary features:
 
-* **Metavariables like `$X`, `$WIDGET`, or `$USERS`.** Metavariable names can
-only contain uppercase characters - names like `$x` or `$SOME_VALUE` are
+* **Metavariables like `$X`, `$WIDGET`, or `$USERS_2`.** Metavariable names can
+only contain uppercase characters, or `_`, or digits, and must start with
+an uppercase character or `_` - names like `$x` or `$some_value` are
 invalid.  Metavariables are used to track a variable across a specific code
 scope.
 * **The `...` (ellipsis) operator.** The ellipsis operator abstracts away
@@ -159,7 +160,7 @@ and `close` calls. We don't care how `open` is called or what happens up to
 a `close` call, we just need to make sure `close` is called.
 
 **For more information on rule fields like `patterns` and `pattern-not-inside`
-see the [configuration documentation](docs/config/advanced.md).**
+see the [configuration documentation](docs/configuration-files.md).**
 
 #### Equivalences
 
@@ -193,8 +194,8 @@ docker run --rm -v "${PWD}:/home/repo" returntocorp/semgrep --config r2c
 ## Resources
 
 * [r2c `semgrep` meetup slides](https://web-assets.r2c.dev/sgrep/r2c-sgrep-meetup-feb-2020.pdf)
-* [Simple configuration documentation](docs/config/simple.md)
-* [Advanced configuration documentation](docs/config/advanced.md)
+* [Pattern features documentation](docs/pattern-features.md)
+* [Configuration files documentation](docs/configuration-files.md)
 * [Integrations](docs/integrations.md)
 * [Development](docs/development.md)
 * [Bug reports](https://github.com/returntocorp/semgrep/issues)
@@ -203,4 +204,10 @@ docker run --rm -v "${PWD}:/home/repo" returntocorp/semgrep --config r2c
 
 `semgrep` is LGPL-licensed, feel free to help out: [CONTRIBUTING](https://github.com/returntocorp/sgrep/blob/develop/CONTRIBUTING.md).
 
-`semgrep` is a frontend to a larger program analysis library named [pfff](https://github.com/returntocorp/pfff/), where it was named `sgrep`. pfff began and was open-sourced at [Facebook](https://github.com/facebookarchive/pfff) but is now archived and the primary maintainer works at r2c.
+`semgrep` is a frontend to a larger program analysis library named [pfff](https://github.com/returntocorp/pfff/), where it was named `sgrep`. pfff began and was open-sourced at [Facebook](https://github.com/facebookarchive/pfff) but is now archived and the primary maintainer works at [r2c](https://r2c.dev).
+
+## Commercial Support
+
+`semgrep` is proudly supported by [r2c](https://r2c.dev). We're hiring! 
+
+Interested in a fully-supported, hosted version of semgrep? [Drop your email](https://forms.gle/dpUUvSo1WtELL8DW6) and we'll ping you!

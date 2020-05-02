@@ -1,3 +1,4 @@
+(*s: semgrep/reporting/json_report.ml *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2020 r2c
@@ -24,6 +25,7 @@ open Match_result
 (*****************************************************************************)
 (* Unique ID *)
 (*****************************************************************************)
+(*s: function [[Json_report.string_of_resolved]] *)
 let string_of_resolved = function
   | Global -> "Global"
   | Local -> "Local"
@@ -34,7 +36,9 @@ let string_of_resolved = function
   | TypeName -> "TypeName"
   | Macro -> "Macro"
   | EnumConstant -> "EnumConstant"
+(*e: function [[Json_report.string_of_resolved]] *)
 
+(*s: function [[Json_report.unique_id]] *)
 (* Returning scoping-aware information about a metavariable, so that
  * the callers of sgrep (sgrep-lint) can check if multiple metavariables
  * reference the same entity, or reference exactly the same code.
@@ -69,12 +73,14 @@ let unique_id any =
       "type", J.String "AST";
       "md5sum", J.String (Digest.to_hex md5);
      ]
+(*e: function [[Json_report.unique_id]] *)
 
 
 (*****************************************************************************)
 (* JSON *)
 (*****************************************************************************)
 
+(*s: function [[Json_report.json_range]] *)
 let json_range min max =
   (* pfff (and Emacs) have the first column at index 0, but not r2c *)
   let adjust_column x = x + 1 in
@@ -92,14 +98,18 @@ let json_range min max =
     "col", J.Int (adjust_column (max.PI.column + len_max));
     "offset", J.Int (max.PI.charpos + len_max);
   ]
+(*e: function [[Json_report.json_range]] *)
 
+(*s: function [[Json_report.range_of_any]] *)
 let range_of_any any = 
   let ii = Lib_ast.ii_of_any any in
   let ii = ii |> List.filter PI.is_origintok in
   let (min, max) = PI.min_max_ii_by_pos ii in
   let (startp, endp) = json_range min max in
   startp, endp
+(*e: function [[Json_report.range_of_any]] *)
 
+(*s: function [[Json_report.json_metavar]] *)
 let json_metavar x startp (s, any) =
   let (startp, endp) = 
     try 
@@ -121,8 +131,10 @@ let json_metavar x startp (s, any) =
     );
   "unique_id", unique_id any
   ]
+(*e: function [[Json_report.json_metavar]] *)
   
 
+(*s: function [[Json_report.match_to_json]] *)
 (* similar to pfff/h_program-lang/r2c.ml *)
 let match_to_json x =
   let (startp, endp) = range_of_any x.code in
@@ -137,10 +149,12 @@ let match_to_json x =
        "metavars", J.Object (x.env |> List.map (json_metavar x startp));
      ]
   ]
+(*e: function [[Json_report.match_to_json]] *)
 
 (*****************************************************************************)
 (* Error *)
 (*****************************************************************************)
+(*s: function [[Json_report.error]] *)
 (* this is used only in the testing code, to reuse the 
  * Error_code.compare_actual_to_expected
  *)
@@ -150,8 +164,14 @@ let error tok rule =
       E.error tok (E.SgrepLint (rule.R.id, rule.R.message))
   | R.Warning ->
       E.warning tok (E.SgrepLint (rule.R.id, rule.R.message))
+  | R.Info ->
+      E.info tok (E.SgrepLint (rule.R.id, rule.R.message))
+(*e: function [[Json_report.error]] *)
 
+(*s: function [[Json_report.match_to_error]] *)
 let match_to_error x = 
   let toks = Lib_ast.ii_of_any x.code |> List.filter PI.is_origintok in
   let tok = List.hd toks in
   error tok x.rule
+(*e: function [[Json_report.match_to_error]] *)
+(*e: semgrep/reporting/json_report.ml *)

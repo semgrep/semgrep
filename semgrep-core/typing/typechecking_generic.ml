@@ -1,3 +1,4 @@
+(*s: semgrep/typing/typechecking_generic.ml *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2020 r2c
@@ -30,6 +31,7 @@ open Ast_generic
 (* Entry point *)
 (*****************************************************************************)
 
+(*s: function [[Typechecking_generic.compatible_type]] *)
 (* very Python specific for now where the type is currently an OT_Expr
  * TODO: fill Ast_generic.expr_to_type at least.
  *)
@@ -43,3 +45,5 @@ let compatible_type t e =
     L (String _) -> true
 
   | _ -> false
+(*e: function [[Typechecking_generic.compatible_type]] *)
+(*e: semgrep/typing/typechecking_generic.ml *)
