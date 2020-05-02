@@ -123,7 +123,7 @@ class Rule:
         return self._raw
 
     @property
-    def expression(self) -> BooleanRuleExpression:
+    def expression(self) -> BooleanRuleExpression:  # type: ignore
         return self._expression
 
     @property
