@@ -36,24 +36,27 @@ MISSING_RULE_ID = "no-rule-id"
 def validate_single_rule(config_id: str, rule: Dict[str, Any]) -> bool:
     """
         Validate that a rule dictionary contains all necessary keys
-        and can be correclty parsed
+        and can be correctly parsed
     """
-    rule_id_err_msg = f'(rule id: {rule.get("id", MISSING_RULE_ID)})'
-    if not set(rule.keys()).issuperset(YAML_MUST_HAVE_KEYS):
+    rule_id_err_msg = f'{rule.get("id", MISSING_RULE_ID)}'
+    rule_keys = set(rule.keys())
+    if not rule_keys.issuperset(YAML_MUST_HAVE_KEYS):
+        missing_keys = YAML_MUST_HAVE_KEYS - rule_keys
         print_error(
-            f"{config_id} is missing keys at rule {rule_id_err_msg}, must have: {YAML_MUST_HAVE_KEYS}"
+            f"{config_id} is missing required keys {missing_keys} at rule id {rule_id_err_msg}"
         )
         return False
-    if not set(rule.keys()).issubset(YAML_ALL_VALID_RULE_KEYS):
+    if not rule_keys.issubset(YAML_ALL_VALID_RULE_KEYS):
+        extra_keys = rule_keys - YAML_ALL_VALID_RULE_KEYS
         print_error(
-            f"{config_id} has invalid rule key at rule {rule_id_err_msg}, can only have: {YAML_ALL_VALID_RULE_KEYS}"
+            f"{config_id} has invalid rule key {extra_keys} at rule id {rule_id_err_msg}, can only have: {YAML_ALL_VALID_RULE_KEYS}"
         )
         return False
     try:
         _ = Rule.from_json(rule).expression
     except InvalidRuleSchema as ex:
         print_error(
-            f"{config_id}: inside rule {rule_id_err_msg}, pattern fields can't look like this: {ex}"
+            f"{config_id}: inside rule id {rule_id_err_msg}, pattern fields can't look like this: {ex}"
         )
         return False
 
