@@ -37,8 +37,9 @@ class CoreRunner:
         This includes properly invoking semgrep-core and parsing the output
     """
 
-    def __init__(self, allow_exec: bool):
+    def __init__(self, allow_exec: bool, jobs: int):
         self._allow_exec = allow_exec
+        self._jobs = jobs
 
     def _flatten_rule_patterns(self, rules: List[Rule]) -> Iterator[Pattern]:
         """
@@ -163,7 +164,10 @@ class CoreRunner:
 
                     if equivalences:
                         cmd += ["-equivalences", equiv_fout.name]
-
+                    cmd += [
+                        "-j",
+                        str(self._jobs),
+                    ]
                     cmd += [*[str(path) for path in targets]]
 
                     try:

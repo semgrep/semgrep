@@ -159,7 +159,7 @@ let set_gc () =
 
 (*s: function [[Main_semgrep_core.map]] *)
 let map f xs =
-  if !ncores = 1
+  if !ncores <= 1
   then List.map f xs
   else 
     let n = List.length xs in
@@ -175,6 +175,7 @@ let map f xs =
       | _ when n <= !ncores -> 1
       | _ -> n / !ncores 
     in
+    assert (!ncores > 0 && chunksize > 0);
     Parmap.parmap ~ncores:!ncores ~chunksize f (Parmap.L xs)
 (*e: function [[Main_semgrep_core.map]] *)
 
