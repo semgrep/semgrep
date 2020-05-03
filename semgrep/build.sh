@@ -5,6 +5,7 @@ THIS_DIR="$(dirname "$(realpath "$0")")";
 cd "${THIS_DIR}"
 
 pip3 install Nuitka==0.6.7
+pip3 install wheel==0.34.2
 pip3 install -r requirements.txt
 
 echo "building and placing output binary in ${1}"
