@@ -13,10 +13,10 @@ from typing import Optional
 
 from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import DEFAULT_CONFIG_FOLDER
-from semgrep.constants import DEFAULT_SGREP_CONFIG_NAME
+from semgrep.constants import DEFAULT_SEMGREP_CONFIG_NAME
 from semgrep.constants import ID_KEY
 from semgrep.constants import RULES_KEY
-from semgrep.constants import SGREP_USER_AGENT
+from semgrep.constants import SEMGREP_USER_AGENT
 from semgrep.constants import YML_EXTENSIONS
 from semgrep.util import debug_print
 from semgrep.util import is_url
@@ -24,7 +24,7 @@ from semgrep.util import print_error
 from semgrep.util import print_error_exit
 from semgrep.util import print_msg
 
-IN_DOCKER = "SGREP_IN_DOCKER" in os.environ
+IN_DOCKER = "SEMGREP_IN_DOCKER" in os.environ
 IN_GH_ACTION = "GITHUB_WORKSPACE" in os.environ
 REPO_HOME_DOCKER = "/home/repo/"
 
@@ -132,7 +132,7 @@ def _is_hidden_config(loc: Path) -> bool:
         part != "."
         and part != ".."
         and part.startswith(".")
-        and DEFAULT_SGREP_CONFIG_NAME not in part
+        and DEFAULT_SEMGREP_CONFIG_NAME not in part
         for part in loc.parts
     )
 
@@ -175,14 +175,18 @@ def load_config_from_local_path(
 def download_config(config_url: str) -> Dict[str, Optional[Dict[str, Any]]]:
     import requests  # here for faster startup times
 
+    DOWNLOADING_MESSAGE = "downloading config..."
+    SCANNING_MESSAGE = "scanning code...     "  # needs to have same number of chars as DOWNLOADING_MESSAGE
     debug_print(f"trying to download from {config_url}")
-    headers = {"User-Agent": SGREP_USER_AGENT}
+    print_msg(DOWNLOADING_MESSAGE, end="\r")
+    headers = {"User-Agent": SEMGREP_USER_AGENT}
 
     try:
         r = requests.get(config_url, stream=True, headers=headers)
         if r.status_code == requests.codes.ok:
             content_type = r.headers.get("Content-Type")
             if content_type and "text/plain" in content_type:
+                print_msg(SCANNING_MESSAGE)
                 return parse_config_string("remote-url", r.content.decode("utf-8"))
             elif content_type and content_type == "application/x-gzip":
                 with tempfile.TemporaryDirectory() as fname:
@@ -191,6 +195,7 @@ def download_config(config_url: str) -> Dict[str, Optional[Dict[str, Any]]]:
                     extracted = Path(fname)
                     for path in extracted.iterdir():
                         # get first folder in extracted folder (this is how GH does it)
+                        print_msg(SCANNING_MESSAGE)
                         return parse_config_folder(path, relative=True)
             else:
                 print_error_exit(

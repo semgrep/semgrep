@@ -14,7 +14,7 @@ from typing import Optional
 from typing import Tuple
 
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
-from semgrep.constants import SGREP_PATH
+from semgrep.constants import SEMGREP_PATH
 from semgrep.equivalences import Equivalence
 from semgrep.evaluation import enumerate_patterns_in_boolean_expression
 from semgrep.evaluation import evaluate
@@ -155,7 +155,7 @@ class CoreRunner:
                     )
                     fout.write(yaml_as_str)
                     fout.flush()
-                    cmd = [SGREP_PATH] + [
+                    cmd = [SEMGREP_PATH] + [
                         "-lang",
                         language,
                         f"-rules_file",

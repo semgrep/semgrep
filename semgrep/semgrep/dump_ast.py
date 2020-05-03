@@ -5,7 +5,7 @@ from typing import Optional
 
 import semgrep.config_resolver
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
-from semgrep.constants import SGREP_PATH
+from semgrep.constants import SEMGREP_PATH
 from semgrep.util import print_error
 from semgrep.util import print_error_exit
 
@@ -30,7 +30,7 @@ def dump_parsed_ast(
         if to_json:
             args = ["-json"] + args
 
-        cmd = [SGREP_PATH] + args
+        cmd = [SEMGREP_PATH] + args
         try:
             output = subprocess.check_output(cmd, shell=False)
         except subprocess.CalledProcessError as ex:
