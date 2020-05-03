@@ -178,9 +178,8 @@ def evaluate(
 
 def interpolate_message_metavariables(rule: Rule, pattern_match: PatternMatch) -> str:
     msg_text = rule.message
-    if "metavars" in pattern_match.extra:
-        for metavar, contents in pattern_match.metavars.items():
-            msg_text = msg_text.replace(metavar, contents["abstract_content"])
+    for metavar, contents in pattern_match.metavars.items():
+        msg_text = msg_text.replace(metavar, contents.get("abstract_content", ""))
     return msg_text
 
 
@@ -190,9 +189,8 @@ def interpolate_fix_metavariables(
     fix_str = rule.fix
     if fix_str is None:
         return None
-    if "metavars" in pattern_match.extra:
-        for metavar, contents in pattern_match.metavars.items():
-            fix_str = fix_str.replace(metavar, contents["abstract_content"])
+    for metavar, contents in pattern_match.metavars.items():
+        fix_str = fix_str.replace(metavar, contents.get("abstract_content", ""))
     return fix_str
 
 

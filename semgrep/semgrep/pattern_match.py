@@ -28,7 +28,7 @@ class PatternMatch:
 
     @property
     def metavars(self) -> Dict[str, Any]:
-        return self._raw_json["extra"]["metavars"]
+        return self.extra.get("metavars", {})
 
     @property
     def extra(self) -> Dict[str, Any]:
