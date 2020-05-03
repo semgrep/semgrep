@@ -97,15 +97,15 @@ def build_normal_output(
             and check_id != "-"
             and (last_message is None or last_message != message)
         ):
+            severity_prepend = ""
             if severity:
                 if severity == "ERROR":
-                    yield f"{RED_COLOR}ERROR {YELLOW_COLOR}rule:{check_id}: {finding.get('extra', {}).get('message')}{RESET_COLOR}"
+                    severity_prepend = f"{RED_COLOR}{severity} "
                 elif severity == "WARNING":
-                    yield f"{YELLOW_COLOR}WARNING rule:{check_id}: {finding.get('extra', {}).get('message')}{RESET_COLOR}"
+                    severity_prepend = f"{YELLOW_COLOR}{severity} "
                 else:
-                    yield f"{severity} {YELLOW_COLOR}rule:{check_id}: {finding.get('extra', {}).get('message')}{RESET_COLOR}"
-            else:
-                yield f"{YELLOW_COLOR}rule:{check_id}: {finding.get('extra', {}).get('message')}{RESET_COLOR}"
+                    severity_prepend = f"{severity} "
+            yield f"{severity_prepend}{YELLOW_COLOR}rule:{check_id}: {finding.get('extra', {}).get('message')}{RESET_COLOR}"
 
         last_file = current_file
         last_message = message
