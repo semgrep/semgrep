@@ -10,6 +10,7 @@ from typing import Tuple
 
 import semgrep.config_resolver
 from semgrep.autofix import apply_fixes
+from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import ID_KEY
 from semgrep.constants import RULES_KEY
 from semgrep.core_runner import CoreRunner
@@ -188,7 +189,7 @@ def get_config(args: Any) -> Any:
     # if we can't find a config, use default r2c rules
     if not configs:
         print_error_exit(
-            f"No config given. If you want to see some examples, try running with --config r2c"
+            f"No config given and {DEFAULT_CONFIG_FILE} was not found. Try running with --help to debug or if you want to download a default config, try running with --config r2c"
         )
 
     # let's split our configs into valid and invalid configs.

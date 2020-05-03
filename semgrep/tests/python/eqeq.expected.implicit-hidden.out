@@ -1,1 +1,1 @@
-No config given. If you want to see some examples, try running with --config r2c
+No config given and .semgrep.yml was not found. Try running with --help to debug or if you want to download a default config, try running with --config r2c
