@@ -18,5 +18,5 @@ jobs:
         password: ${{ secrets.DOCKER_PASSWORD }}
         repository: returntocorp/semgrep
         tags: develop
-    - name: update sgrep.live
+    - name: update semgrep.live
       run: curl --fail -X POST https://semgrep.live/api/admin/update-docker
