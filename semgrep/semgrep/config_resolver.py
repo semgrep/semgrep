@@ -152,7 +152,7 @@ def load_config_from_local_path(
         elif default_folder.exists():
             return parse_config_folder(default_folder, relative=True)
         else:
-            return {str(default_file): None}
+            return {}
     else:
         loc = base_path.joinpath(location)
         if loc.exists():
