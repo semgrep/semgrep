@@ -171,6 +171,8 @@ let map f xs =
       match n with
       | _ when n > 1000 -> 10
       | _ when n > 100 -> 5
+      | _ when n = 0 -> 1
+      | _ when n <= !ncores -> 1
       | _ -> n / !ncores 
     in
     Parmap.parmap ~ncores:!ncores ~chunksize f (Parmap.L xs)
