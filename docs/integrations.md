@@ -4,7 +4,7 @@
 
 ## Github Action
 
-See our [semgrep-lint](https://github.com/marketplace/actions/sgrep-lint) action for easy use of `semgrep` in CI. We dogfood it [here](https://github.com/returntocorp/sgrep/tree/f92e3b4a12f0fcd659e787894ef3de0619f21419/.github/workflows/sgrep-lint.yml)
+See our [semgrep](https://github.com/marketplace/actions/semgrep-action) action for easy use of `semgrep` in CI. We dogfood it [here](https://github.com/returntocorp/semgrep/tree/develop/.github/workflows/semgrep-action.yml)
 
 ## Pre-Commit Hook
 
@@ -13,9 +13,9 @@ You can run `semgrep` as a pre-commit hook using [pre-commit](https://pre-commit
 ```yaml
 repos:
   - repo: https://github.com/returntocorp/semgrep
-    rev: '0.4.9'
+    rev: '0.5.0'
     hooks:
-      - id: sgrep
+      - id: semgrep
         args: ['--precommit', '--error'] # exit 1
 ```
 

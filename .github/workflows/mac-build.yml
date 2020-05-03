@@ -15,5 +15,5 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
-          name: sgrep-osx-${{ github.sha }}
+          name: semgrep-osx-${{ github.sha }}
           path: artifacts
