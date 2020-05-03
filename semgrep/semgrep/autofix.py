@@ -11,16 +11,6 @@ from semgrep.util import print_error_exit
 from semgrep.util import print_msg
 
 
-def _generate_fix(rule: Rule, rule_match: RuleMatch) -> Optional[Any]:
-    fix_str = rule.fix
-    if fix_str is None:
-        return None
-    if "metavars" in rule_match.extra:
-        for metavar, contents in rule_match.metavars.items():
-            fix_str = fix_str.replace(metavar, contents["abstract_content"])
-    return fix_str
-
-
 def _modify_file(rule_match: RuleMatch, fix: str) -> None:
     p = Path(rule_match.path)
     SPLIT_CHAR = "\n"
@@ -56,7 +46,7 @@ def apply_fixes(rule_matches_by_rule: Dict[Rule, List[RuleMatch]]) -> None:
 
     for rule, rule_matches in rule_matches_by_rule.items():
         for rule_match in rule_matches:
-            fix = _generate_fix(rule, rule_match)
+            fix = rule_match.fix
             if fix:
                 filepath = rule_match.path
                 try:
