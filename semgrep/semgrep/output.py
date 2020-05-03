@@ -19,7 +19,9 @@ def fetch_lines_in_file(
     """
     if not path.exists():
         return None
-    with path.open(buffering=1) as fin:  # buffering=1 turns on line-level reads
+    with path.open(
+        buffering=1, errors="replace"
+    ) as fin:  # buffering=1 turns on line-level reads
         return list(itertools.islice(fin, start_line_number - 1, end_line_number))
 
 
