@@ -30,7 +30,6 @@ from semgrep.util import print_error
 from semgrep.util import print_error_exit
 from semgrep.util import print_msg
 
-SGREP_RULES_HOME = "https://github.com/returntocorp/semgrep-rules"
 MISSING_RULE_ID = "no-rule-id"
 
 

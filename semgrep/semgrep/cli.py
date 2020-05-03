@@ -9,7 +9,7 @@ import semgrep.test
 from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import RCE_RULE_FLAG
-from semgrep.constants import SGREP_URL
+from semgrep.constants import SEMGREP_URL
 from semgrep.dump_ast import dump_parsed_ast
 from semgrep.util import print_error
 from semgrep.util import print_error_exit
@@ -24,7 +24,7 @@ except NotImplementedError:
 
 def cli() -> None:
     parser = argparse.ArgumentParser(
-        description=f"semgrep CLI. For more information about semgrep, go to {SGREP_URL}",
+        description=f"semgrep CLI. For more information about semgrep, go to {SEMGREP_URL}",
         prog="semgrep",
     )
 
