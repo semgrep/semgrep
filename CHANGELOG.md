@@ -22,9 +22,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   ```javascript
   var x = {"Location": 1};
   ```
+- Add severity to json output and prepend the rule line with it. Color yellow if `WARNING`, and red if `ERROR`. e.g. WARNING rule:tests.equivalence-tests
   
-## Next release
-
 ### Changed
 - Config files in hidden paths can now be used by explicitly specifying
   the hidden path:
