@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import multiprocessing
 import sys
 
 import semgrep.config_resolver
@@ -14,6 +15,11 @@ from semgrep.util import print_error
 from semgrep.util import print_error_exit
 
 __VERSION__ = "0.5.0"
+
+try:
+    CPU_COUNT = multiprocessing.cpu_count()
+except NotImplementedError:
+    CPU_COUNT = 1  # CPU count is not implemented on Windows
 
 
 def cli() -> None:
@@ -81,6 +87,14 @@ def cli() -> None:
         action="store_true",
     )
     config.add_argument("--precommit", help=argparse.SUPPRESS, action="store_true")
+    config.add_argument(
+        "-j",
+        "--jobs",
+        help="Number of subprocesses to use to run checks in parallel. Defaults to the number of CPUs on the system.",
+        action="store",
+        type=int,
+        default=CPU_COUNT,
+    )
 
     # output options
     output = parser.add_argument_group("output")
