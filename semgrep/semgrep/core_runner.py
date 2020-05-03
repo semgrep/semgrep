@@ -164,7 +164,10 @@ class CoreRunner:
 
                     if equivalences:
                         cmd += ["-equivalences", equiv_fout.name]
-                    cmd += ["-j", str(self._jobs),]
+                    cmd += [
+                        "-j",
+                        str(self._jobs),
+                    ]
                     cmd += [*[str(path) for path in targets]]
 
                     try:
