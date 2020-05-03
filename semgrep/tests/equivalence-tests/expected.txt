@@ -1,4 +1,0 @@
-tests/equivalence-tests/open-redirect.py
-WARNING rule:tests.equivalence-tests.open-redirect: 
-9:    return redirect(request.POST.get("next"))
-14:    return redirect(request.get_host())
