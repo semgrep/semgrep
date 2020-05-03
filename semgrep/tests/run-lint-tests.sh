@@ -111,7 +111,7 @@ test_semgrep_equivalence() {
 
 test_semgrep_autofix() {
     cd "${THIS_DIR}/../";
-    $SEMGREP --json --strict --config=tests/python/atuofix.yml tests/autofix.py -o tmp.out >/dev/null
+    $SEMGREP --json --strict --config=tests/python/autofix.yml tests/lint/autofix.py -o tmp.out >/dev/null
     assert_output_equal tmp.out tests/python/autofix.expected.json
     rm -f tmp.out
 }
@@ -136,6 +136,7 @@ local_tests() {
     test_semgrep_default_file
     test_semgrep_default_folder
     test_semgrep_equivalence
+    test_semgrep_autofix
 }
 
 docker_tests() {
