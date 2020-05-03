@@ -175,8 +175,7 @@ let map f xs =
       | _ when n <= !ncores -> 1
       | _ -> n / !ncores 
     in
-    assert (!ncores > 0);
-    assert (chunksize > 0);
+    assert (!ncores > 0 && chunksize > 0);
     Parmap.parmap ~ncores:!ncores ~chunksize f (Parmap.L xs)
 (*e: function [[Main_semgrep_core.map]] *)
 
