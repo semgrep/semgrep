@@ -1,4 +1,4 @@
 [32mtests/equivalence-tests/open-redirect.py[0m
-[33mrule:tests.equivalence-tests.open-redirect: [0m
+[33mWARNING rule:tests.equivalence-tests.open-redirect: [0m
 [32m9[0m:    return [1mredirect(request.POST.get("next")[0m)
 [32m14[0m:    return [1mredirect(request.get_host([0m))

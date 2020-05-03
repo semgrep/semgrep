@@ -77,12 +77,14 @@ def build_normal_output(
         RESET_COLOR = colorama.Style.RESET_ALL if color_output else ""
         GREEN_COLOR = colorama.Fore.GREEN if color_output else ""
         YELLOW_COLOR = colorama.Fore.YELLOW if color_output else ""
+        RED_COLOR = colorama.Fore.RED if color_output else ""
         BLUE_COLOR = colorama.Fore.BLUE if color_output else ""
 
         current_file = finding.get("path", "<no path>")
         check_id = finding.get("check_id")
         extra = finding.get("extra", {})
         message = extra.get("message")
+        severity = extra.get("severity")
         fix = extra.get("fix")
         if last_file is None or last_file != current_file:
             if last_file is not None:
@@ -95,7 +97,15 @@ def build_normal_output(
             and check_id != "-"
             and (last_message is None or last_message != message)
         ):
-            yield f"{YELLOW_COLOR}rule:{check_id}: {finding.get('extra', {}).get('message')}{RESET_COLOR}"
+            if severity:
+                if severity == "ERROR":
+                    yield f"{RED_COLOR}ERROR {YELLOW_COLOR}rule:{check_id}: {finding.get('extra', {}).get('message')}{RESET_COLOR}"
+                elif severity == "WARNING":
+                    yield f"{YELLOW_COLOR}WARNING rule:{check_id}: {finding.get('extra', {}).get('message')}{RESET_COLOR}"
+                else:
+                    yield f"{severity} {YELLOW_COLOR}rule:{check_id}: {finding.get('extra', {}).get('message')}{RESET_COLOR}"
+            else:
+                yield f"{YELLOW_COLOR}rule:{check_id}: {finding.get('extra', {}).get('message')}{RESET_COLOR}"
 
         last_file = current_file
         last_message = message
