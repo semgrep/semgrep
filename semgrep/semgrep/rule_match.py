@@ -56,6 +56,10 @@ class RuleMatch:
         return self._fix
 
     @property
+    def fix(self) -> Optional[str]:
+        return self._fix
+
+    @property
     def start(self) -> Dict[str, Any]:
         return self._start
 
