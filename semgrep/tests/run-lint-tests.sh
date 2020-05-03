@@ -109,7 +109,6 @@ THIS_DIR="$(dirname "$(realpath "$0")")";
 
 cd "${THIS_DIR}"
 PYTHONPATH=.. pytest .
-OCAMLRUNPARAM='b'
 
 local_tests() {
     SGREP="python3 -m semgrep"
