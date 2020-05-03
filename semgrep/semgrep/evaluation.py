@@ -162,12 +162,14 @@ def evaluate(
     for pattern_match in pattern_matches:
         if pattern_match.range in valid_ranges_to_output:
             message = interpolate_message_metavariables(rule, pattern_match)
+            fix = interpolate_fix_metavariables(rule, pattern_match)
             rule_match = RuleMatch(
                 rule.id,
-                message,
                 pattern_match,
+                message=message,
                 metadata=rule.metadata,
                 severity=rule.severity,
+                fix=fix,
             )
             output.append(rule_match)
 
@@ -180,6 +182,18 @@ def interpolate_message_metavariables(rule: Rule, pattern_match: PatternMatch) -
         for metavar, contents in pattern_match.metavars.items():
             msg_text = msg_text.replace(metavar, contents["abstract_content"])
     return msg_text
+
+
+def interpolate_fix_metavariables(
+    rule: Rule, pattern_match: PatternMatch
+) -> Optional[str]:
+    fix_str = rule.fix
+    if fix_str is None:
+        return None
+    if "metavars" in pattern_match.extra:
+        for metavar, contents in pattern_match.metavars.items():
+            fix_str = fix_str.replace(metavar, contents["abstract_content"])
+    return fix_str
 
 
 def evaluate_expression(
