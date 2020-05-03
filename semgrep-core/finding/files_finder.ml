@@ -1,3 +1,4 @@
+(*s: semgrep/finding/files_finder.ml *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2020 r2c
@@ -20,5 +21,8 @@
 (*****************************************************************************)
 (* Main entry point *)
 (*****************************************************************************)
+(*s: function [[Files_finder.files_of_dirs_or_files]] *)
 let files_of_dirs_or_files xs =
   Common.files_of_dir_or_files_no_vcs_nofilter xs
+(*e: function [[Files_finder.files_of_dirs_or_files]] *)
+(*e: semgrep/finding/files_finder.ml *)

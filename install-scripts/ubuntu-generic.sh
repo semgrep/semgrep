@@ -2,6 +2,7 @@
 set -e
 version="${VERSION:?Set a version to install}"
 tarball=semgrep-v$version-ubuntu-16.04.tgz
+
 tarball_url=https://github.com/returntocorp/semgrep/releases/download/v$version/$tarball
 sha_url=https://github.com/returntocorp/semgrep/releases/download/v$version/$tarball.sha256
 

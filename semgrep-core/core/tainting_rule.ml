@@ -1,3 +1,4 @@
+(*s: semgrep/core/tainting_rule.ml *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2020 r2c
@@ -27,10 +28,13 @@ module R = Rule
 (* Types *)
 (*****************************************************************************)
 
+(*s: type [[Tainting_rule.pattern]] *)
 (* right now only Expr is supported *)
 type pattern = Ast.any
+(*e: type [[Tainting_rule.pattern]] *)
 
 (* less: could extend Rule.t *)
+(*s: type [[Tainting_rule.rule]] *)
 type rule = {
   id: string;
 
@@ -43,13 +47,19 @@ type rule = {
   severity: Rule.severity;
   languages: Lang.t list; (* at least one element *)
 }
+(*e: type [[Tainting_rule.rule]] *)
 
+(*s: type [[Tainting_rule.rules]] *)
  and rules = rule list
+(*e: type [[Tainting_rule.rules]] *)
 
+(*s: type [[Tainting_rule.t]] *)
 (* alias *)
 type t = rule
+(*e: type [[Tainting_rule.t]] *)
 
 
+(*s: function [[Tainting_rule.rule_of_tainting_rule]] *)
 (* for Match_result.t.rule compatibility *)
 
 let rule_of_tainting_rule tr =
@@ -61,3 +71,5 @@ let rule_of_tainting_rule tr =
     (* arbitrary *)
     pattern = List.hd (tr.sink)
   }
+(*e: function [[Tainting_rule.rule_of_tainting_rule]] *)
+(*e: semgrep/core/tainting_rule.ml *)

@@ -1,3 +1,4 @@
+(*s: semgrep/matching/generic_vs_generic.ml *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2019-2020 r2c
@@ -71,6 +72,7 @@ open Matching_generic
 (* Extra Helpers *)
 (*****************************************************************************)
 
+(*s: function [[Generic_vs_generic.m_string_xhp_text]] *)
 (* equivalence: on different indentation 
  * todo? work? was copy-pasted from XHP sgrep matcher
 *)
@@ -78,11 +80,14 @@ let m_string_xhp_text sa sb =
   if  sa =$= sb || (sa =~ "^[\n ]+$" && sb =~ "^[\n ]+$")
   then return ()
   else fail ()
+(*e: function [[Generic_vs_generic.m_string_xhp_text]] *)
 
 (*****************************************************************************)
 (* Name *)
 (*****************************************************************************)
 
+(*s: function [[Generic_vs_generic.m_ident]] *)
+(* coupling: modify also m_ident_and_id_info_add_in_env_Expr *) 
 let m_ident a b = 
   (* metavar: *)
   match a, b with
@@ -94,20 +99,37 @@ let m_ident a b =
        *)
       envf (str, tok) (B.I b)
 
+  (* in some languages such as Javascript certain entities like
+   * fields can use strings for identifiers (e.g., {"myfield": 1}),
+   * which gives the opportunity to use regexp string for fields
+   * (e.g., {"=~/.*field/": $X}).
+   *)
+  | (stra, _), (strb, _) when Matching_generic.is_regexp_string stra ->
+      let re = Matching_generic.regexp_of_regexp_string stra in
+      if Str.string_match re strb 0
+      then return ()
+      else fail ()
+
   (* general case *)
   | (a, b) -> (m_wrap m_string) a b
+(*e: function [[Generic_vs_generic.m_ident]] *)
 
 
+(*s: function [[Generic_vs_generic.m_dotted_name]] *)
 let m_dotted_name a b = 
   match a, b with
   (* TODO: [$X] should match any list *)
   (a, b) -> (m_list m_ident) a b
+(*e: function [[Generic_vs_generic.m_dotted_name]] *)
 
 
+(*s: function [[Generic_vs_generic.m_qualified_name]] *)
 let m_qualified_name a b = 
   match a, b with
   (a, b) -> m_dotted_name a b
+(*e: function [[Generic_vs_generic.m_qualified_name]] *)
 
+(*s: function [[Generic_vs_generic.m_module_name_prefix]] *)
 (* less-is-ok: prefix matching is supported for imports, eg.:
  *  pattern: import foo.x should match: from foo.x.z.y
  *)
@@ -121,7 +143,9 @@ let m_module_name_prefix a b =
   | A.FileName _, _
   | A.DottedName _, _
    -> fail ()
+(*e: function [[Generic_vs_generic.m_module_name_prefix]] *)
 
+(*s: function [[Generic_vs_generic.m_module_name]] *)
 let m_module_name a b = 
   match a, b with
   | A.FileName(a1), B.FileName(b1) ->
@@ -131,10 +155,14 @@ let m_module_name a b =
   | A.FileName _, _
   | A.DottedName _, _
    -> fail ()
+(*e: function [[Generic_vs_generic.m_module_name]] *)
 
+(*s: function [[Generic_vs_generic.m_sid]] *)
 let m_sid a b = 
   if a =|= b then return () else fail ()
+(*e: function [[Generic_vs_generic.m_sid]] *)
 
+(*s: function [[Generic_vs_generic.m_resolved_name_kind]] *)
 let m_resolved_name_kind a b =
   match a, b with
   | A.Local, B.Local ->
@@ -166,10 +194,13 @@ let m_resolved_name_kind a b =
   | A.ImportedEntity _, _
   | A.ImportedModule _, _
    -> fail ()
+(*e: function [[Generic_vs_generic.m_resolved_name_kind]] *)
 
+(*s: function [[Generic_vs_generic._m_resolved_name]] *)
 let _m_resolved_name (a1, a2) (b1, b2) = 
   m_resolved_name_kind a1 b1 >>= (fun () ->
   m_sid a2 b2 )
+(*e: function [[Generic_vs_generic._m_resolved_name]] *)
 
 
 (* start of recursive need *)
@@ -187,6 +218,18 @@ and m_ident_and_id_info_add_in_env_Expr (a1, a2) (b1, b2) =
       m_id_info a2 b2 >>= (fun () ->
         envf (str, tok) (B.E (B.Id (b, b2))) (* B.E here, not B.I *)
      )
+
+  (* in some languages such as Javascript certain entities like
+   * fields can use strings for identifiers (e.g., {"myfield": 1}),
+   * which gives the opportunity to use regexp string for fields
+   * (e.g., {"=~/.*field/": $X}).
+   *)
+  | (stra, _), (strb, _) when Matching_generic.is_regexp_string stra ->
+      let re = Matching_generic.regexp_of_regexp_string stra in
+      if Str.string_match re strb 0
+      then return ()
+      else fail ()
+
   (* general case *)
   | (a, b) -> (m_wrap m_string) a b
 
@@ -488,13 +531,9 @@ and m_literal a b =
 
   (* regexp matching *)
   | A.String(name, info_name), B.String(sb, info_sb)
-      when name =~ "^=~/\\(.*\\)/$" ->
-      let s = Common.matched1 name in
-(* TODO
-      let rex = Pcre.regexp s in
-      if Pcre.pmatch ~rex sb
-*)
-      if sb =~ s
+      when Matching_generic.is_regexp_string name ->
+      let re = Matching_generic.regexp_of_regexp_string name in
+      if Str.string_match re sb 0
       then
         m_info info_name info_sb 
       else fail ()
@@ -1108,15 +1147,18 @@ and m_stmt a b =
   | A.ExprStmt(A.Ellipsis _i), _b ->
       return ()
 
-  (* deeper: go deep by default? *)
+  (* deeper: go deep by default implicitly (no need for explicit <... ...>) *)
   | A.ExprStmt(a1), B.ExprStmt(b1) ->
     m_expr_deep a1 b1 
-  (* equivalence: vardef vs assign, and go deep *)
+  (* equivalence: vardef ==> assign, and go deep *)
   | A.ExprStmt a1, 
     B.DefStmt ({ B.info={B.id_resolved={contents=resolved }; _}; _ } as ent,
       B.VarDef ({B.vinit = Some _; _} as def)) ->
       let b1 = Ast.vardef_to_assign (ent, def) resolved in
       m_expr_deep a1 b1
+  (* equivalence: *)
+  | A.ExprStmt(a1), B.Return (_, Some b1) ->
+     m_expr_deep a1 b1
 
   | A.DefStmt(a1), B.DefStmt(b1) ->
     m_definition a1 b1 
@@ -1551,7 +1593,7 @@ and m_list__m_field (xsa: A.field list) (xsb: A.field list) =
 
   | (A.FieldStmt (A.DefStmt (({A.name = (s1, _); _}, _) as adef)) as a)::xsa,
      xsb ->
-     if MV.is_metavar_name s1
+     if MV.is_metavar_name s1 || Matching_generic.is_regexp_string s1
      then
         let candidates = all_elem_and_rest_of_list xsb in
         (* less: could use a fold *)
@@ -1875,3 +1917,4 @@ and m_any a b =
   | A.Pa _, _  | A.Ar _, _  | A.At _, _  | A.Dk _, _ | A.Pr _, _
   | A.Fld _, _ | A.Ss _, _ | A.Tk _, _
    -> fail ()
+(*e: semgrep/matching/generic_vs_generic.ml *)

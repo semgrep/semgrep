@@ -1,5 +1,6 @@
-from dataclasses import dataclass
+from typing import Any
 from typing import List
+from typing import NamedTuple
 from typing import NewType
 from typing import Optional
 
@@ -17,6 +18,7 @@ class OPERATORS:
     AND_NOT_INSIDE: Operator = Operator("and_not_inside")
     WHERE_PYTHON: Operator = Operator("where_python")
     FIX: Operator = Operator("fix")
+    EQUIVALENCES: Operator = Operator("equivalences")
 
 
 OPERATORS_WITH_CHILDREN = [OPERATORS.AND_ALL, OPERATORS.AND_EITHER]
@@ -30,32 +32,40 @@ OPERATOR_PATTERN_NAMES_MAP = {
     OPERATORS.AND_ALL: ["patterns"],
     OPERATORS.WHERE_PYTHON: ["pattern-where-python"],
     OPERATORS.FIX: ["fix"],
+    OPERATORS.EQUIVALENCES: ["equivalences"],
 }
 
 # These are the only valid top-level keys
 YAML_MUST_HAVE_KEYS = {"id", "message", "languages", "severity"}
+YAML_OPTIONAL_KEYS = {"metadata"}
 YAML_VALID_TOP_LEVEL_OPERATORS = {
     OPERATORS.AND,
     OPERATORS.AND_ALL,
     OPERATORS.AND_EITHER,
     OPERATORS.FIX,
+    OPERATORS.EQUIVALENCES,
 }
-YAML_ALL_VALID_RULE_KEYS = {
-    pattern_name
-    for op in YAML_VALID_TOP_LEVEL_OPERATORS
-    for pattern_name in OPERATOR_PATTERN_NAMES_MAP[op]
-} | YAML_MUST_HAVE_KEYS
+YAML_ALL_VALID_RULE_KEYS = (
+    {
+        pattern_name
+        for op in YAML_VALID_TOP_LEVEL_OPERATORS
+        for pattern_name in OPERATOR_PATTERN_NAMES_MAP[op]
+    }
+    | YAML_MUST_HAVE_KEYS
+    | YAML_OPTIONAL_KEYS
+)
 
 
 class InvalidRuleSchema(BaseException):
     pass
 
 
-@dataclass(frozen=True)
-class BooleanRuleExpression:
+class BooleanRuleExpression(NamedTuple):
     operator: Operator
     pattern_id: Optional[PatternId] = None
-    children: Optional[List["BooleanRuleExpression"]] = None
+    # This is a recursive member but mypy is a half-baked dumpster fire.
+    # https://github.com/python/mypy/issues/8320
+    children: Optional[List[Any]] = None
     operand: Optional[str] = None
 
     def __post_init__(self) -> None:
@@ -105,8 +115,7 @@ def pattern_names_for_operators(operators: List[Operator]) -> List[str]:
     )
 
 
-@dataclass(frozen=True)
-class Range:
+class Range(NamedTuple):
     start: int
     end: int
 

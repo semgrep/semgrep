@@ -5,6 +5,7 @@ from typing import Iterator
 from typing import List
 from typing import Optional
 
+from semgrep.equivalences import Equivalence
 from semgrep.semgrep_types import BooleanRuleExpression
 from semgrep.semgrep_types import InvalidRuleSchema
 from semgrep.semgrep_types import operator_for_pattern_name
@@ -122,12 +123,20 @@ class Rule:
         return self._raw
 
     @property
-    def expression(self) -> BooleanRuleExpression:
+    def expression(self) -> BooleanRuleExpression:  # type: ignore
         return self._expression
 
     @property
     def fix(self) -> Optional[str]:
         return self._raw.get("fix")
+
+    @property
+    def equivalences(self) -> List[Equivalence]:
+        # Use 'i' to make equivalence id's unique
+        return [
+            Equivalence(f"{self.id}-{i}", eq["equivalence"], self.languages)
+            for i, eq in enumerate(self._raw.get(OPERATORS.EQUIVALENCES, []))
+        ]
 
     @classmethod
     def from_json(cls, rule_json: Dict[str, Any]) -> "Rule":  # type: ignore

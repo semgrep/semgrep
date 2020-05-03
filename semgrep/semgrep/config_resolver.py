@@ -3,15 +3,13 @@ import os
 import shutil
 import sys
 import tarfile
+import tempfile
 import time
 from pathlib import Path
 from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
-
-import requests
-import yaml
 
 from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import DEFAULT_CONFIG_FOLDER
@@ -102,6 +100,8 @@ def parse_config_at_path(
 def parse_config_string(
     config_id: str, contents: str
 ) -> Dict[str, Optional[Dict[str, Any]]]:
+    import yaml  # here for faster startup times
+
     try:
         return {config_id: yaml.safe_load(contents)}
     except yaml.parser.ParserError as se:
@@ -152,7 +152,7 @@ def load_config_from_local_path(
         elif default_folder.exists():
             return parse_config_folder(default_folder, relative=True)
         else:
-            return {str(default_file): None}
+            return {}
     else:
         loc = base_path.joinpath(location)
         if loc.exists():
@@ -173,6 +173,8 @@ def load_config_from_local_path(
 
 
 def download_config(config_url: str) -> Dict[str, Optional[Dict[str, Any]]]:
+    import requests  # here for faster startup times
+
     debug_print(f"trying to download from {config_url}")
     headers = {"User-Agent": SGREP_USER_AGENT}
 
@@ -183,14 +185,13 @@ def download_config(config_url: str) -> Dict[str, Optional[Dict[str, Any]]]:
             if content_type and "text/plain" in content_type:
                 return parse_config_string("remote-url", r.content.decode("utf-8"))
             elif content_type and content_type == "application/x-gzip":
-                fname = f"/tmp/{base64.b64encode(config_url.encode()).decode()}"
-                shutil.rmtree(fname, ignore_errors=True)
-                with tarfile.open(fileobj=r.raw, mode="r:gz") as tar:
-                    tar.extractall(fname)
-                extracted = Path(fname)
-                for path in extracted.iterdir():
-                    # get first folder in extracted folder (this is how GH does it)
-                    return parse_config_folder(path, relative=True)
+                with tempfile.TemporaryDirectory() as fname:
+                    with tarfile.open(fileobj=r.raw, mode="r:gz") as tar:
+                        tar.extractall(fname)
+                    extracted = Path(fname)
+                    for path in extracted.iterdir():
+                        # get first folder in extracted folder (this is how GH does it)
+                        return parse_config_folder(path, relative=True)
             else:
                 print_error_exit(
                     f"unknown content-type: {content_type} returned by config url: {config_url}. Can not parse"
@@ -221,6 +222,8 @@ def resolve_config(config_str: Optional[str]) -> Dict[str, Optional[Dict[str, An
 
 
 def generate_config() -> None:
+    import requests  # here for faster startup times
+
     # defensive coding
     if Path(DEFAULT_CONFIG_FILE).exists():
         print_error_exit(

@@ -6,6 +6,24 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 - The `-j/--jobs` flag for specifying number of subprocesses to use to run checks in parallel.
+- expression statements will now match by default also return statements
+  ```
+  foo();
+  ```
+  will now match
+  ```javascript
+  return foo();
+  ```
+- You can now use regexps for field names:
+  ```
+  var $X = {"=~/[lL]ocation/": $Y};
+  ```
+  will now match
+  ```javascript
+  var x = {"Location": 1};
+  ```
+  
+## Next release
 
 ### Changed
 - Config files in hidden paths can now be used by explicitly specifying
@@ -13,6 +31,16 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
     ```
     semgrep --config some/hidden/.directory
     ```
+- Metavariables can now contain digits or `_`. `$USERS_2` is now
+  a valid metavariable name. A metavariable must start with a letter
+  or `_` though.
+- Simple calls of the `semgrep` CLI, such as `semgrep --version`, are now 60% faster.
+
+### Added
+- For languages not allowing the dollar sign in identifiers (e.g., Python),
+  semgrep will return an error if your pattern contains an identifier
+  starting with a dollar that is actually not considered a metavariable
+  (e.g., `$x`)
 
 ## [0.5.0](https://github.com/returntocorp/semgrep/releases/tag/v0.5.0) - 2020-04-28
 
@@ -248,7 +276,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Metavariables were not matching due to go parser adding empty statements in golang
 
 
-## [0.4.8](https://github.com/returntocorp/sgrep/releases/tag/0.4.8) - 2020-03-09
+## [0.4.8](https://github.com/returntocorp/semgrep/releases/tag/0.4.8) - 2020-03-09
 
 ### Added
 * Constant propagation for some langauges. Golang example:

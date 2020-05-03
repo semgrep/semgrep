@@ -1,3 +1,4 @@
+(*s: semgrep/parsing/parse_tainting_rules.ml *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2020 r2c
@@ -20,6 +21,7 @@ open Parse_rules (* for the exns *)
 (* Helpers *)
 (*****************************************************************************)
 
+(*s: function [[Parse_tainting_rules.parse_patterns]] *)
 let parse_patterns ~id ~lang xs = 
   xs |> List.map (function
    | `String s -> Parse_rules.parse_pattern ~id ~lang s
@@ -27,11 +29,13 @@ let parse_patterns ~id ~lang xs =
         pr2_gen x;
         raise (InvalidYamlException ("wrong pattern field"))
  )
+(*e: function [[Parse_tainting_rules.parse_patterns]] *)
 
 (*****************************************************************************)
 (* Main entry point *)
 (*****************************************************************************)
 
+(*s: function [[Parse_tainting_rules.parse]] *)
 let parse file =
   let str = Common.read_file file in
   let yaml_res = Yaml.of_string str in
@@ -117,3 +121,5 @@ let parse file =
       )
   | Result.Error (`Msg s) ->
     raise (UnparsableYamlException s)
+(*e: function [[Parse_tainting_rules.parse]] *)
+(*e: semgrep/parsing/parse_tainting_rules.ml *)

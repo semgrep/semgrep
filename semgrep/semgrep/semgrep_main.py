@@ -8,10 +8,9 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 
-import requests
-
 import semgrep.config_resolver
 from semgrep.autofix import apply_fixes
+from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import ID_KEY
 from semgrep.constants import RULES_KEY
 from semgrep.core_runner import CoreRunner
@@ -38,24 +37,27 @@ MISSING_RULE_ID = "no-rule-id"
 def validate_single_rule(config_id: str, rule: Dict[str, Any]) -> bool:
     """
         Validate that a rule dictionary contains all necessary keys
-        and can be correclty parsed
+        and can be correctly parsed
     """
-    rule_id_err_msg = f'(rule id: {rule.get("id", MISSING_RULE_ID)})'
-    if not set(rule.keys()).issuperset(YAML_MUST_HAVE_KEYS):
+    rule_id_err_msg = f'{rule.get("id", MISSING_RULE_ID)}'
+    rule_keys = set(rule.keys())
+    if not rule_keys.issuperset(YAML_MUST_HAVE_KEYS):
+        missing_keys = YAML_MUST_HAVE_KEYS - rule_keys
         print_error(
-            f"{config_id} is missing keys at rule {rule_id_err_msg}, must have: {YAML_MUST_HAVE_KEYS}"
+            f"{config_id} is missing required keys {missing_keys} at rule id {rule_id_err_msg}"
         )
         return False
-    if not set(rule.keys()).issubset(YAML_ALL_VALID_RULE_KEYS):
+    if not rule_keys.issubset(YAML_ALL_VALID_RULE_KEYS):
+        extra_keys = rule_keys - YAML_ALL_VALID_RULE_KEYS
         print_error(
-            f"{config_id} has invalid rule key at rule {rule_id_err_msg}, can only have: {YAML_ALL_VALID_RULE_KEYS}"
+            f"{config_id} has invalid rule key {extra_keys} at rule id {rule_id_err_msg}, can only have: {YAML_ALL_VALID_RULE_KEYS}"
         )
         return False
     try:
         _ = Rule.from_json(rule).expression
     except InvalidRuleSchema as ex:
         print_error(
-            f"{config_id}: inside rule {rule_id_err_msg}, pattern fields can't look like this: {ex}"
+            f"{config_id}: inside rule id {rule_id_err_msg}, pattern fields can't look like this: {ex}"
         )
         return False
 
@@ -131,6 +133,8 @@ def rename_rule_ids(valid_configs: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def post_output(output_url: str, output_data: Dict[str, Any]) -> None:
+    import requests  # here for faster startup times
+
     print_msg(f"posting to {output_url}...")
     r = requests.post(output_url, json=output_data)
     debug_print(f"posted to {output_url} and got status_code:{r.status_code}")
@@ -185,7 +189,7 @@ def get_config(args: Any) -> Any:
     # if we can't find a config, use default r2c rules
     if not configs:
         print_error_exit(
-            f"No config given. If you want to see some examples, try running with --config r2c"
+            f"No config given and {DEFAULT_CONFIG_FILE} was not found. Try running with --help to debug or if you want to download a default config, try running with --config r2c"
         )
 
     # let's split our configs into valid and invalid configs.

@@ -102,7 +102,6 @@ test_semgrep_default_folder() {
     rm -rf .semgrep/
 }
 
-
 echo "-----------------------"
 echo "starting lint tests"
 
@@ -158,8 +157,22 @@ $SGREP --strict --config tests/python/bad4.yaml tests/lint && echo "bad4.yaml sh
 # parsing good.yaml should succeed
 $SGREP --strict --config=tests/python/good.yaml tests/lint
 
+# test equivalences
+expected=$(cat tests/equivalence-tests/expected.txt)
+actual=$($SGREP --strict --config=tests/equivalence-tests/open-redirect.equiv.yml tests/equivalence-tests)
+if [ "$expected" = "$actual" ]; then
+    echo "equivalence test passed"
+else
+    echo "equivalence test failed"
+    diff <(echo "$actual") <(echo "$expected")
+    exit 1
+fi
+
 # parsing good_info_severity.yaml should succeed
 $SGREP --strict --config=tests/python/good_info_severity.yaml tests/lint
+
+# parsing good_metadata.yaml should succeed
+$SGREP --strict --config=tests/python/good_metadata.yaml tests/lint
 
 #echo TODO: disabled semgrep-rules regression testing for now
 rm -rf /tmp/semgrep-rules && git clone https://github.com/returntocorp/semgrep-rules /tmp/semgrep-rules
