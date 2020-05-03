@@ -47,6 +47,6 @@ RUN semgrep-core --help
 RUN semgrep --config=r2c /bin/semgrep-files/
 
 
-ENV SGREP_IN_DOCKER=1
+ENV SEMGREP_IN_DOCKER=1
 ENV PYTHONIOENCODING=utf8
 ENTRYPOINT [ "/bin/semgrep" ]

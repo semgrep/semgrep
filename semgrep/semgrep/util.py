@@ -37,9 +37,9 @@ def print_error_exit(msg: str, exit_code: int = FATAL_EXIT_CODE) -> None:
     sys.exit(exit_code)
 
 
-def print_msg(msg: str) -> None:
+def print_msg(msg: str, **kwargs: Any) -> None:
     if not QUIET:
-        print(msg, file=sys.stderr)
+        print(msg, file=sys.stderr, **kwargs)
 
 
 def debug_print(msg: str) -> None:
