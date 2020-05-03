@@ -65,6 +65,7 @@ class RuleMatch:
         json_obj["check_id"] = self._id
         json_obj["extra"]["message"] = self._message
         json_obj["extra"]["metadata"] = self._metadata
+        json_obj["extra"]["severity"] = self._severity
         json_obj["start"] = self._start
         json_obj["end"] = self._end
         return json_obj

@@ -102,6 +102,13 @@ test_semgrep_default_folder() {
     rm -rf .semgrep/
 }
 
+test_semgrep_equivalence() {
+    cd "${THIS_DIR}/../";
+    $SGREP --strict --config=tests/equivalence-tests/open-redirect.equiv.yml tests/equivalence-tests -o tmp.out >/dev/null
+    assert_output_equal tmp.out tests/equivalence-tests/expected.txt
+    rm -f tmp.out
+}
+
 echo "-----------------------"
 echo "starting lint tests"
 
@@ -121,6 +128,7 @@ local_tests() {
     test_registry
     test_semgrep_default_file
     test_semgrep_default_folder
+    test_semgrep_equivalence
 }
 
 docker_tests() {
@@ -155,17 +163,6 @@ $SGREP --strict --config tests/python/bad4.yaml tests/lint && echo "bad4.yaml sh
 
 # parsing good.yaml should succeed
 $SGREP --strict --config=tests/python/good.yaml tests/lint
-
-# test equivalences
-expected=$(cat tests/equivalence-tests/expected.txt)
-actual=$($SGREP --strict --config=tests/equivalence-tests/open-redirect.equiv.yml tests/equivalence-tests)
-if [ "$expected" = "$actual" ]; then
-    echo "equivalence test passed"
-else
-    echo "equivalence test failed"
-    diff <(echo "$actual") <(echo "$expected")
-    exit 1
-fi
 
 # parsing good_info_severity.yaml should succeed
 $SGREP --strict --config=tests/python/good_info_severity.yaml tests/lint
