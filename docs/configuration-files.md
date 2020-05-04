@@ -21,6 +21,9 @@ Contents:
   * [`pattern-inside`](configuration-files.md#pattern-inside)
   * [`pattern-not-inside`](configuration-files.md#pattern-not-inside)
   * [`pattern-where-python`](configuration-files.md#pattern-where-python)
+* [Optional Fields](configuration-files.md#optional-fields)
+  * [`fix`](configuration-files.md#fix)
+  * [`metadata`](configuration-files.md#metadata)
 * [Other Examples](configuration-files.md#other-examples)
   * [Complete Useless Comparison](configuration-files.md#complete-useless-comparison)
 
@@ -234,6 +237,8 @@ rules:
 
 This rule looks for usage of Django's [`FloatField`](https://docs.djangoproject.com/en/3.0/ref/models/fields/#django.db.models.FloatField) model when storing currency information. `FloatField` can lead to rounding errors and should be avoided in favor of [`DecimalField`](https://docs.djangoproject.com/en/3.0/ref/models/fields/#django.db.models.DecimalField) when dealing with currency. Here the `pattern-where-python` operator allows us to utilize the Python `in` statement to filter findings that look like currency.
 
+## Optional Fields
+
 ### `fix`
 
 The `fix` top-level key allows for simple autofixing of a pattern by suggesting an autofix for each match. Run `semgrep` with `--autofix` to apply the changes to the files.
@@ -251,11 +256,9 @@ rules:
     severity: ERROR
 ```
 
-## Metadata
+### `metadata`
 
-In some cases, you might wish to
-note some extra information on a rule,
-such as a CVE that was created for it,
+In some cases, you might wish to note some extra information on a rule, such as a CVE that was created for it,
 or the name of the security engineer that came up with the rule.
 
 You can use the `metadata:` key in these cases, like so:
@@ -271,7 +274,7 @@ rules:
       discovered-by: Ikwa L'equale
 ```
 
-The metadata will also be reproduced in sgrep's output if you're running it with `--json`.
+The metadata will also be reproduced in semgrep's output if you're running it with `--json`.
 
 ## Other Examples
 
