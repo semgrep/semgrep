@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import multiprocessing
+import os
 import sys
 
 import semgrep.config_resolver
@@ -32,8 +33,11 @@ def cli() -> None:
     parser.add_argument(
         "target",
         nargs="*",
-        default=["."],
-        help="Files to search (by default, entire current working directory searched). Implied argument if piping to semgrep.",
+        default=[os.curdir],
+        help=(
+            "Search these files or directories. Defaults to entire current "
+            "working directory. Implied argument if piping to semgrep."
+        ),
     )
 
     # config options
@@ -42,58 +46,80 @@ def cli() -> None:
     config_ex.add_argument(
         "-g",
         "--generate-config",
-        help=f"Generate starter {DEFAULT_CONFIG_FILE}",
         action="store_true",
+        help=f"Generate starter configuration file, {DEFAULT_CONFIG_FILE}",
     )
 
     config_ex.add_argument(
         "-f",
         "--config",
-        help=f"Config YAML file or directory of YAML files ending in .yml|.yaml, OR URL of a config file, OR semgrep registry entry name. See the README for semgrep for information on config file format.",
+        help=(
+            "YAML configuration file, directory of YAML files ending in "
+            ".yml|.yaml, URL of a configuration file, or semgrep registry entry "
+            "name. See README for information on configuration file format."
+        ),
     )
 
-    config_ex.add_argument("-e", "--pattern", help="semgrep pattern")
+    config_ex.add_argument(
+        "-e",
+        "--pattern",
+        help="Code search pattern. See README for information on pattern features.",
+    )
     config.add_argument(
         "-l",
         "--lang",
-        help="Parses pattern and all files in specified language. Must be used with -e/--pattern.",
+        help=(
+            "Parse pattern and all files in specified language. Must be used "
+            "with -e/--pattern."
+        ),
     )
     config.add_argument(
         "--validate",
-        help=f"Validate config file(s). No search is performed.",
         action="store_true",
+        help="Validate configuration file(s). No search is performed.",
     )
     config.add_argument(
         "--strict",
-        help=f"only invoke semgrep if config(s) are valid",
         action="store_true",
+        help="Only invoke semgrep if configuration files(s) are valid.",
     )
     parser.add_argument(
         "--exclude",
         action="append",
         default=[],
-        help="Path pattern to exclude. Can be added multiple times to exclude multiple patterns.",
+        help=(
+            "Exclude these path patterns. Can be added multiple times to "
+            "exclude multiple patterns."
+        ),
     )
 
     config.add_argument(
         RCE_RULE_FLAG,
-        help=f"DANGEROUS: allow rules to run arbitrary code: ONLY ENABLE IF YOU TRUST THE SOURCE OF ALL RULES IN YOUR CONFIG.",
         action="store_true",
+        help=(
+            "WARNING: allow rules to run arbitrary code. ONLY ENABLE IF YOU "
+            "TRUST THE SOURCE OF ALL RULES IN YOUR CONFIGURATION."
+        ),
     )
 
     config.add_argument(
         "--exclude-tests",
-        help=f"try to exclude tests, documentation, and examples (based on filename/path)",
         action="store_true",
+        help="Exclude tests, documentation, and examples based on filename/path.",
     )
-    config.add_argument("--precommit", help=argparse.SUPPRESS, action="store_true")
+    config.add_argument(
+        "--precommit", action="store_true", help=argparse.SUPPRESS,
+    )
     config.add_argument(
         "-j",
         "--jobs",
-        help="Number of subprocesses to use to run checks in parallel. Defaults to the number of CPUs on the system.",
         action="store",
         type=int,
         default=CPU_COUNT,
+        help=(
+            "Number of subprocesses to use to run checks in parallel. Defaults "
+            "to the number of CPUs on the system."
+        ),
     )
 
     # output options
@@ -102,51 +128,68 @@ def cli() -> None:
     output.add_argument(
         "-q",
         "--quiet",
-        help="Do not print anything to stdout. Search results can still be saved to an output file specified by -o/--output. Exit code provides success status.",
         action="store_true",
+        help=(
+            "Do not print anything to stdout. Search results can still be "
+            "saved to an output file specified by -o/--output. Exit code "
+            "provides success status."
+        ),
     )
 
     output.add_argument(
         "--no-rewrite-rule-ids",
-        help="Do not rewrite rule ids when they appear in nested subfolders (by default, rule 'foo' in test/rules.yaml will be renamed 'test.foo')",
         action="store_true",
+        help=(
+            "Do not rewrite rule ids when they appear in nested sub-directories "
+            "(by default, rule 'foo' in test/rules.yaml will be renamed "
+            "'test.foo')."
+        ),
     )
 
     output.add_argument(
         "-o",
         "--output",
-        help="Save search results to a file or post to URL. Default is to print to stdout.",
+        help=(
+            "Save search results to a file or post to URL. "
+            "Default is to print to stdout."
+        ),
     )
     output.add_argument(
-        "--json", help="Convert search output to JSON format.", action="store_true"
+        "--json", action="store_true", help="Output results in JSON format."
     )
-    output.add_argument("--test", help="Run a test suite", action="store_true")
+    output.add_argument("--test", action="store_true", help="Run test suite.")
     parser.add_argument(
         "--test-ignore-todo",
-        help="Ignore rules marked as #todoruleid: in test files",
         action="store_true",
+        help="Ignore rules marked as '#todoruleid:' in test files.",
     )
     output.add_argument(
         "--r2c",
-        help="output json in r2c platform format (https://app.r2c.dev)",
         action="store_true",
+        help="Output json in r2c platform format (https://app.r2c.dev).",
     )
     output.add_argument(
         "--dump-ast",
-        help="show AST of the input file or passed expression and then exit (can use --json)",
         action="store_true",
+        help=(
+            "Show AST of the input file or passed expression and then exit "
+            "(can use --json)."
+        ),
     )
     output.add_argument(
         "--error",
-        help="System Exit 1 if there are findings. Useful for CI and scripts.",
         action="store_true",
+        help="Exit 1 if there are findings. Useful for CI and scripts.",
     )
 
     output.add_argument(
         "-a",
         "--autofix",
-        help="Apply the autofix patches. WARNING: data loss can occur with this flag. Make sure your files are stored in a version control system.",
         action="store_true",
+        help=(
+            "Apply the autofix patches. WARNING: data loss can occur with this "
+            "flag. Make sure your files are stored in a version control system."
+        ),
     )
 
     # logging options
@@ -155,12 +198,15 @@ def cli() -> None:
     logging.add_argument(
         "-v",
         "--verbose",
-        help=f"Sets the logging level to verbose. E.g. statements about which files are being processed will be printed.",
         action="store_true",
+        help=(
+            "Set the logging level to verbose. E.g. statements about which "
+            "files are being processed will be printed."
+        ),
     )
 
     parser.add_argument(
-        "--version", help="Show the version and exit.", action="store_true"
+        "--version", action="store_true", help="Show the version and exit."
     )
 
     ### Parse and validate
