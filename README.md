@@ -109,7 +109,7 @@ handles a multitude of input configuration types:
 
 * `--config <file|folder|yaml_url|tarball_url|registy_name>`
 
-In the absense of this flag, a default configuration is loaded from `.sgrep.yml`
+In the absence of this flag, a default configuration is loaded from `.sgrep.yml`
 or multiple files matching `.sgrep/**/*.yml`.
 
 #### Pattern Features
@@ -128,8 +128,8 @@ For example,
 ```yaml
 $FILE = open(...)
 ```
-will find all occurences in your code where the result of an `open()` call is assigned
-to an variable.
+will find all occurrences in your code where the result of an `open()` call is assigned
+to a variable.
 
 #### Composing Patterns
 
