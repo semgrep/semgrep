@@ -193,7 +193,7 @@ docker run --rm -v "${PWD}:/home/repo" returntocorp/semgrep --config r2c
 
 ## Resources
 
-* [r2c `semgrep` meetup slides](https://web-assets.r2c.dev/sgrep/r2c-sgrep-meetup-feb-2020.pdf)
+* [`semgrep` presentation at HellaSecure](https://www.youtube.com/watch?v=M586wePrwYs) and [slides](https://bit.ly/hella-secure-semgrep) 
 * [Pattern features documentation](docs/pattern-features.md)
 * [Configuration files documentation](docs/configuration-files.md)
 * [Integrations](docs/integrations.md)
