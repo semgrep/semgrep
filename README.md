@@ -44,6 +44,8 @@ On OSX, binaries are available via [Homebrew](https://brew.sh/):
 brew install returntocorp/semgrep/semgrep
 ```
 
+On Ubuntu, an install script is available [here](https://github.com/returntocorp/semgrep/releases/download/v0.6.0/semgrep-v0.6.0-ubuntu-generic.sh)
+
 ## Usage
 
 ### Example Usage
