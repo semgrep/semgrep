@@ -1,6 +1,8 @@
+import itertools
 from pathlib import Path
 from typing import Any
 from typing import Dict
+from typing import Iterable
 from typing import Optional
 
 from semgrep.pattern_match import PatternMatch
@@ -64,6 +66,18 @@ class RuleMatch:
         return self._end
 
     @property
+    def lines(self) -> Iterable[str]:
+        """
+            Return lines in file that this RuleMatch is referring to.
+
+            Assumes file exists.  Note that start/end line is one-indexed
+        """
+        with self.path.open(
+            buffering=1, errors="replace"
+        ) as fin:  # buffering=1 turns on line-level reads
+            return list(itertools.islice(fin, self.start["line"] - 1, self.end["line"]))
+
+    @property
     def should_fail_run(self) -> bool:
         return self._severity in {"WARNING", "ERROR"}
 
@@ -77,4 +91,6 @@ class RuleMatch:
             json_obj["extra"]["fix"] = self._fix
         json_obj["start"] = self._start
         json_obj["end"] = self._end
+        json_obj["extra"]["lines"] = "\n".join(self.lines).rstrip()
+
         return json_obj

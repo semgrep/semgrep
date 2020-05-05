@@ -11,6 +11,7 @@ Validate that the output is annotated in the source file with by looking for a c
  """
 import argparse
 import collections
+import json
 import sys
 from pathlib import Path
 from typing import Any
@@ -169,28 +170,30 @@ def confusion_matrix_to_string(confusion: List[int]) -> str:
 
 def invoke_semgrep(
     verbose: bool, strict: bool, test_files: List[Path], config: Path, unsafe: bool
-) -> Dict[str, Any]:
-    return semgrepmain(
-        argparse.Namespace(
-            verbose=verbose,
-            strict=strict,
-            dump_ast=False,
-            no_rewrite_rule_ids=True,
-            dangerously_allow_arbitrary_code_execution_from_rules=unsafe,
-            config=str(config),
-            quiet=True,
-            precommit=False,
-            generate_config=False,
-            pattern=None,
-            validate=False,
-            json=True,
-            exclude_tests=False,
-            jobs=1,
-            exclude=[],
-            output=None,
-            error=False,
-            autofix=False,
-            target=[str(t) for t in test_files],
+) -> Any:
+    return json.loads(
+        semgrepmain(
+            argparse.Namespace(
+                verbose=verbose,
+                strict=strict,
+                dump_ast=False,
+                no_rewrite_rule_ids=True,
+                dangerously_allow_arbitrary_code_execution_from_rules=unsafe,
+                config=str(config),
+                quiet=True,
+                precommit=False,
+                generate_config=False,
+                pattern=None,
+                validate=False,
+                json=True,
+                exclude_tests=False,
+                jobs=1,
+                exclude=[],
+                output=None,
+                error=False,
+                autofix=False,
+                target=[str(t) for t in test_files],
+            )
         )
     )
 
