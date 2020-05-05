@@ -8,7 +8,7 @@ from typing import Union
 import pytest
 
 
-E2E_TESTS_PATH = Path(__file__).parent
+TESTS_PATH = Path(__file__).parent
 
 
 def _run_semgrep(
@@ -39,11 +39,30 @@ def _run_semgrep(
 
 @pytest.fixture
 def run_semgrep(monkeypatch, tmp_path):
-    monkeypatch.setenv("PYTHONPATH", str(E2E_TESTS_PATH.parents[1].resolve()))
+    monkeypatch.setenv("PYTHONPATH", str(TESTS_PATH.parent.resolve()))
 
-    (tmp_path / "targets").symlink_to(Path(E2E_TESTS_PATH / "targets").resolve())
-    (tmp_path / "rules").symlink_to(Path(E2E_TESTS_PATH / "rules").resolve())
+    (tmp_path / "targets").symlink_to(Path(TESTS_PATH / "e2e" / "targets").resolve())
+    (tmp_path / "rules").symlink_to(Path(TESTS_PATH / "e2e" / "rules").resolve())
 
     monkeypatch.chdir(tmp_path)
 
     yield _run_semgrep
+
+
+def pytest_addoption(parser):
+    parser.addoption(
+        "--qa",
+        action="store_true",
+        dest="is_qa",
+        default=False,
+        help="enable comprehensive QA tests",
+    )
+
+
+def pytest_configure(config):
+    config.addinivalue_line("markers", "qa: mark tests that only need to run during QA")
+
+
+def pytest_runtest_setup(item):
+    if item.get_closest_marker("qa") and not item.config.getoption("--qa"):
+        pytest.skip("skipping QA tests, add --qa flag to run them")

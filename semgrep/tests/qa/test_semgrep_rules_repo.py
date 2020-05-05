@@ -1,6 +1,11 @@
 import subprocess
 from pathlib import Path
 
+import pytest
+
+
+pytestmark = pytest.mark.qa
+
 
 def test_semgrep_rules_repo(run_semgrep):
     subprocess.check_output(
