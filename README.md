@@ -69,7 +69,7 @@ rule:python.deadcode.eqeq-is-bad: useless comparison operation `node.id == node.
 
 ### r2c-developed Rules
 
-You can use rules developed by r2c to search for issues in your codebase:
+You can use rules developed by [r2c](https://r2c.dev) to search for issues in your codebase:
 
 ```bash
 cd /path/to/code
