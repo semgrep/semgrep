@@ -95,7 +95,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
     foo()
     ```
 
-## [0.4.9](https://github.com/returntocorp/sgrep/releases/tag/v0.4.9) - 2020-04-07
+## [0.4.9](https://github.com/returntocorp/semgrep/releases/tag/v0.4.9) - 2020-04-07
 
 ### Changed
 
