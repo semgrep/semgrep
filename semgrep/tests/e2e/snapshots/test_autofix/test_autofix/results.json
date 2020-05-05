@@ -1,1 +1,121 @@
-{"results": [{"check_id": "rules.use-dict-get", "path": "targets/autofix/autofix.py", "start": {"line": 5, "col": 3}, "end": {"line": 5, "col": 11}, "extra": {"message": "Use `.get()` method to avoid a KeyNotFound error", "metavars": {"$KEY": {"start": {"line": 5, "col": 10, "offset": 52}, "end": {"line": 5, "col": 11, "offset": 53}, "abstract_content": "x", "unique_id": {"type": "id", "value": "x", "kind": "Global", "sid": 2}}, "$DICT": {"start": {"line": 5, "col": 3, "offset": 45}, "end": {"line": 5, "col": 9, "offset": 51}, "abstract_content": "inputs", "unique_id": {"type": "id", "value": "inputs", "kind": "Global", "sid": 1}}}, "metadata": {}, "severity": "ERROR", "fix": "inputs.get(x)", "lines": "  inputs[x] = 1"}}, {"check_id": "rules.use-dict-get", "path": "targets/autofix/autofix.py", "start": {"line": 6, "col": 6}, "end": {"line": 6, "col": 18}, "extra": {"message": "Use `.get()` method to avoid a KeyNotFound error", "metavars": {"$KEY": {"start": {"line": 6, "col": 13, "offset": 71}, "end": {"line": 6, "col": 18, "offset": 76}, "abstract_content": "x+1", "unique_id": {"type": "AST", "md5sum": "8590bed2f57698fa93cac69b97a59eba"}}, "$DICT": {"start": {"line": 6, "col": 6, "offset": 64}, "end": {"line": 6, "col": 12, "offset": 70}, "abstract_content": "inputs", "unique_id": {"type": "id", "value": "inputs", "kind": "Global", "sid": 1}}}, "metadata": {}, "severity": "ERROR", "fix": "inputs.get(x+1)", "lines": "  if inputs[x + 1] == True:"}}], "errors": []}
+{
+  "errors": [],
+  "results": [
+    {
+      "check_id": "rules.use-dict-get",
+      "end": {
+        "col": 11,
+        "line": 5
+      },
+      "extra": {
+        "fix": "inputs.get(x)",
+        "lines": "  inputs[x] = 1",
+        "message": "Use `.get()` method to avoid a KeyNotFound error",
+        "metadata": {},
+        "metavars": {
+          "$DICT": {
+            "abstract_content": "inputs",
+            "end": {
+              "col": 9,
+              "line": 5,
+              "offset": 51
+            },
+            "start": {
+              "col": 3,
+              "line": 5,
+              "offset": 45
+            },
+            "unique_id": {
+              "kind": "Global",
+              "sid": 1,
+              "type": "id",
+              "value": "inputs"
+            }
+          },
+          "$KEY": {
+            "abstract_content": "x",
+            "end": {
+              "col": 11,
+              "line": 5,
+              "offset": 53
+            },
+            "start": {
+              "col": 10,
+              "line": 5,
+              "offset": 52
+            },
+            "unique_id": {
+              "kind": "Global",
+              "sid": 2,
+              "type": "id",
+              "value": "x"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/autofix/autofix.py",
+      "start": {
+        "col": 3,
+        "line": 5
+      }
+    },
+    {
+      "check_id": "rules.use-dict-get",
+      "end": {
+        "col": 18,
+        "line": 6
+      },
+      "extra": {
+        "fix": "inputs.get(x+1)",
+        "lines": "  if inputs[x + 1] == True:",
+        "message": "Use `.get()` method to avoid a KeyNotFound error",
+        "metadata": {},
+        "metavars": {
+          "$DICT": {
+            "abstract_content": "inputs",
+            "end": {
+              "col": 12,
+              "line": 6,
+              "offset": 70
+            },
+            "start": {
+              "col": 6,
+              "line": 6,
+              "offset": 64
+            },
+            "unique_id": {
+              "kind": "Global",
+              "sid": 1,
+              "type": "id",
+              "value": "inputs"
+            }
+          },
+          "$KEY": {
+            "abstract_content": "x+1",
+            "end": {
+              "col": 18,
+              "line": 6,
+              "offset": 76
+            },
+            "start": {
+              "col": 13,
+              "line": 6,
+              "offset": 71
+            },
+            "unique_id": {
+              "md5sum": "8590bed2f57698fa93cac69b97a59eba",
+              "type": "AST"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/autofix/autofix.py",
+      "start": {
+        "col": 6,
+        "line": 6
+      }
+    }
+  ]
+}

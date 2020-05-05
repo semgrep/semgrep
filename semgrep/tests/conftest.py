@@ -1,3 +1,4 @@
+import json
 import subprocess
 from pathlib import Path
 from typing import List
@@ -38,11 +39,16 @@ def _run_semgrep(
     if use_json:
         options.append("--json")
 
-    return subprocess.check_output(
-        ["python", "-m", "semgrep", *options, Path("targets") / target_name],
+    output = subprocess.check_output(
+        ["python3", "-m", "semgrep", *options, Path("targets") / target_name],
         encoding="utf-8",
         stderr=subprocess.STDOUT if stderr else None,
     )
+
+    if use_json and not stderr:
+        output = json.dumps(json.loads(output), indent=2, sort_keys=True)
+
+    return output
 
 
 @pytest.fixture
