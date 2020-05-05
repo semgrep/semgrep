@@ -1,4 +1,5 @@
 (*s: semgrep/matching/matching_generic.ml *)
+(*s: pad/r2c copyright *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2019-2020 r2c
@@ -13,6 +14,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
+(*e: pad/r2c copyright *)
 open Common
 
 module A = Ast_generic
@@ -72,23 +74,28 @@ module Flag = Flag_semgrep
  *   type ('a, 'b) matcher = 'a -> 'b -> tin -> tout
  *)
 
-(*s: type [[Matching_generic.tin (semgrep/matching/matching_generic.ml)]] *)
+(*s: type [[Matching_generic.tin]] *)
 (* tin is for 'type in' and tout for 'type out' *)
-type tin = MV.metavars_binding
-(*e: type [[Matching_generic.tin (semgrep/matching/matching_generic.ml)]] *)
-(*s: type [[Matching_generic.tout (semgrep/matching/matching_generic.ml)]] *)
-type tout = MV.metavars_binding list
-(*e: type [[Matching_generic.tout (semgrep/matching/matching_generic.ml)]] *)
+(* incoming environment *)
+type tin = Metavars_generic.metavars_binding
+(*e: type [[Matching_generic.tin]] *)
+(*s: type [[Matching_generic.tout]] *)
+(* list of possible outcoming matching environments *)
+type tout = tin list
+(*e: type [[Matching_generic.tout]] *)
 
-(*s: type [[Matching_generic.matcher (semgrep/matching/matching_generic.ml)]] *)
+(*s: type [[Matching_generic.matcher]] *)
 (* A matcher is something taking an element A and an element B
  * (for this module A will be the AST of the pattern and B
  * the AST of the program we want to match over), then some environment
  * information tin, and it will return something (tout) that will
  * represent a match between element A and B.
  *)
-type ('a, 'b) matcher = 'a -> 'b  -> tin -> tout
-(*e: type [[Matching_generic.matcher (semgrep/matching/matching_generic.ml)]] *)
+(* currently 'a and 'b are usually the same type as we use the
+ * same language for the host language and pattern language 
+ *)
+type ('a, 'b) matcher = 'a -> 'b -> tin -> tout
+(*e: type [[Matching_generic.matcher]] *)
 
 (*****************************************************************************)
 (* Globals *)

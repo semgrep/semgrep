@@ -1,18 +1,20 @@
 (*s: semgrep/matching/normalize_generic.ml *)
-(* Isaac Evans
+(*s: pad/r2c copyright *)
+(* Yoann Padioleau
  *
- * Copyright (C) 2020 r2c
+ * Copyright (C) 2019-2020 r2c
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
  * version 2.1 as published by the Free Software Foundation, with the
  * special exception on linking described in file license.txt.
- * 
+ *
  * This library is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
+(*e: pad/r2c copyright *)
 open Common (* >>= *)
 open Ast_generic
 
@@ -101,6 +103,5 @@ let rec eval x =
 (*s: constant [[Normalize_generic.constant_propagation_and_evaluate_literal]] *)
 let constant_propagation_and_evaluate_literal = eval
 (*e: constant [[Normalize_generic.constant_propagation_and_evaluate_literal]] *)
-
 
 (*e: semgrep/matching/normalize_generic.ml *)

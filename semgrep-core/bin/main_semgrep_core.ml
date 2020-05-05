@@ -53,9 +53,6 @@ let verbose = ref false
 (*e: constant [[Main_semgrep_core.verbose]] *)
 (*s: constant [[Main_semgrep_core.debug]] *)
 let debug = ref false
-(* try to continue processing files, even if one has a parse error with -e/f.
- * note that -rules_file does its own error recovery.
- *)
 (*e: constant [[Main_semgrep_core.debug]] *)
 (*s: constant [[Main_semgrep_core.error_recovery]] *)
 (* try to continue processing files, even if one has a parse error with -e/f.
@@ -67,17 +64,14 @@ let error_recovery = ref false
 (*s: constant [[Main_semgrep_core.pattern_string]] *)
 (* -e *)
 let pattern_string = ref ""
-(* -f *)
 (*e: constant [[Main_semgrep_core.pattern_string]] *)
 (*s: constant [[Main_semgrep_core.pattern_file]] *)
 (* -f *)
 let pattern_file = ref ""
-(* -rules_file *)
 (*e: constant [[Main_semgrep_core.pattern_file]] *)
 (*s: constant [[Main_semgrep_core.rules_file]] *)
 (* -rules_file *)
 let rules_file = ref ""
-(* -tainting_rules_file *)
 (*e: constant [[Main_semgrep_core.rules_file]] *)
 (*s: constant [[Main_semgrep_core.tainting_rules_file]] *)
 (* -tainting_rules_file *)

@@ -1,9 +1,9 @@
 (*s: semgrep/matching/matching_generic.mli *)
 
 (*s: type [[Matching_generic.tin]] *)
+(* tin is for 'type in' and tout for 'type out' *)
 (* incoming environment *)
 type tin = Metavars_generic.metavars_binding
-(* list of possible outcoming matching environments *)
 (*e: type [[Matching_generic.tin]] *)
 (*s: type [[Matching_generic.tout]] *)
 (* list of possible outcoming matching environments *)
@@ -11,6 +11,12 @@ type tout = tin list
 (*e: type [[Matching_generic.tout]] *)
 
 (*s: type [[Matching_generic.matcher]] *)
+(* A matcher is something taking an element A and an element B
+ * (for this module A will be the AST of the pattern and B
+ * the AST of the program we want to match over), then some environment
+ * information tin, and it will return something (tout) that will
+ * represent a match between element A and B.
+ *)
 (* currently 'a and 'b are usually the same type as we use the
  * same language for the host language and pattern language 
  *)

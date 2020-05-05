@@ -17,7 +17,6 @@ type filters = {
 
 (*s: exception [[Files_filter.GlobSyntaxError]] *)
 exception GlobSyntaxError of string
-(* may raise GlobSyntaxError *)
 (*e: exception [[Files_filter.GlobSyntaxError]] *)
 (*s: signature [[Files_filter.mk_filters]] *)
 (* may raise GlobSyntaxError *)
