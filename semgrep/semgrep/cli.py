@@ -15,7 +15,7 @@ from semgrep.dump_ast import dump_parsed_ast
 from semgrep.util import print_error
 from semgrep.util import print_error_exit
 
-__VERSION__ = "0.6.0b1"
+__VERSION__ = "0.6.0"
 
 try:
     CPU_COUNT = multiprocessing.cpu_count()
