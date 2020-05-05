@@ -2,7 +2,7 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## Next release
+## [0.6.0](https://github.com/returntocorp/semgrep/releases/tag/v0.6.0) - 2020-05-05
 
 ### Added
 - The `-j/--jobs` flag for specifying number of subprocesses to use to run checks in parallel.
@@ -23,7 +23,13 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   var x = {"Location": 1};
   ```
 - Add severity to json output and prepend the rule line with it. Color yellow if `WARNING`, and red if `ERROR`. e.g. WARNING rule:tests.equivalence-tests
-  
+- For languages not allowing the dollar sign in identifiers (e.g., Python),
+  semgrep will return an error if your pattern contains an identifier
+  starting with a dollar that is actually not considered a metavariable
+  (e.g., `$x`)
+- Support top level `metadata` field in rule.yaml. Entire metadata object is attached to
+  all things that match the rule when using json output format.
+
 ### Changed
 - Config files in hidden paths can now be used by explicitly specifying
   the hidden path:
@@ -34,12 +40,12 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   a valid metavariable name. A metavariable must start with a letter
   or `_` though.
 - Simple calls of the `semgrep` CLI, such as `semgrep --version`, are now 60% faster.
+- Display autofix suggestion in regular and json output mode.
+- Update command line help texts.
 
-### Added
-- For languages not allowing the dollar sign in identifiers (e.g., Python),
-  semgrep will return an error if your pattern contains an identifier
-  starting with a dollar that is actually not considered a metavariable
-  (e.g., `$x`)
+### Fixed
+- Correctly parse `f"{foo:,f}"` in Python
+- Correctly parse Python files where the last line is a comment
 
 ## [0.5.0](https://github.com/returntocorp/semgrep/releases/tag/v0.5.0) - 2020-04-28
 
