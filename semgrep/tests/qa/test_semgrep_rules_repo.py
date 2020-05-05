@@ -7,7 +7,7 @@ import pytest
 pytestmark = pytest.mark.qa
 
 
-def test_semgrep_rules_repo(run_semgrep):
+def test_semgrep_rules_repo(run_semgrep_in_tmp):
     subprocess.check_output(
         ["git", "clone", "--depth=1", "https://github.com/returntocorp/semgrep-rules"]
     )

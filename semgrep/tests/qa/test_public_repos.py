@@ -59,7 +59,7 @@ def xfail_repo(url, *, reason=None):
         ),
     ],
 )
-def test_semgrep_on_repo(run_semgrep, repo_url):
+def test_semgrep_on_repo(run_semgrep_in_tmp, repo_url):
     subprocess.check_output(
         [
             "git",

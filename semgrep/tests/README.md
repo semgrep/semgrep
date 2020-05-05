@@ -63,10 +63,10 @@ Some common ones we use are:
   to make temporary changes to the environment
 - [`tmp_path`](https://docs.pytest.org/en/latest/tmpdir.html),
   to get a temporary workspace in the filesystem
-- [`run_semgrep`](#run_semgrep),
+- [`run_semgrep_in_tmp`](#run_semgrep_in_tmp),
   to easily run the `semgrep` command line tool
 
-### `run_semgrep`
+### `run_semgrep_in_tmp`
 
 This function runs `semgrep` for you via the CLI,
 raises a `subprocess.CalledProcessError` if it fails,
@@ -77,22 +77,22 @@ with `e2e/targets` and `e2e/rules` available at `./targets` and `./rules`, respe
 
 When calling this, you specify the `--config` value as the first parameter:
 
-```run_semgrep("r2c/python")```
+```run_semgrep_in_tmp("r2c/python")```
 
 It runs on the files in `e2e/targets/basic/` by default,
 but you can change that to another directory next to that one:
 
-```run_semgrep("r2c/python", target="equivalence")```
+```run_semgrep_in_tmp("r2c/python", target="equivalence")```
 
 The return value is the JSON output from stdout,
 but you can ask for stderr to be merged into the returned string:
 
-```run_semgrep("r2c/python", stderr=True)```
+```run_semgrep_in_tmp("r2c/python", stderr=True)```
 
 You can add any additional CLI flag you'd like like so:
 
-```run_semgrep("r2c/python", options=["--exclude", "*.py"])```
+```run_semgrep_in_tmp("r2c/python", options=["--exclude", "*.py"])```
 
 To call semgrep without the `--json` flag:
 
-```run_semgrep("r2c/python", use_json=False)```
+```run_semgrep_in_tmp("r2c/python", use_json=False)```

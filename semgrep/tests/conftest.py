@@ -46,7 +46,7 @@ def _run_semgrep(
 
 
 @pytest.fixture
-def run_semgrep(monkeypatch, tmp_path):
+def run_semgrep_in_tmp(monkeypatch, tmp_path):
     monkeypatch.setenv("PYTHONPATH", str(TESTS_PATH.parent.resolve()))
 
     (tmp_path / "targets").symlink_to(Path(TESTS_PATH / "e2e" / "targets").resolve())
