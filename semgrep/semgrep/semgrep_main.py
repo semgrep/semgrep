@@ -1,4 +1,5 @@
 import argparse
+import json
 import sys
 from pathlib import Path
 from pathlib import PurePath
@@ -14,8 +15,7 @@ from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import ID_KEY
 from semgrep.constants import RULES_KEY
 from semgrep.core_runner import CoreRunner
-from semgrep.output import build_normal_output
-from semgrep.output import build_output_json
+from semgrep.output import build_output
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.semgrep_types import InvalidRuleSchema
@@ -131,39 +131,27 @@ def rename_rule_ids(valid_configs: Dict[str, Any]) -> Dict[str, Any]:
 ### Handle output
 
 
-def post_output(output_url: str, output_data: Dict[str, Any]) -> None:
+def post_output(output_url: str, output: str) -> None:
     import requests  # here for faster startup times
 
     print_msg(f"posting to {output_url}...")
-    r = requests.post(output_url, json=output_data)
+    r = requests.post(output_url, data=output)
     debug_print(f"posted to {output_url} and got status_code:{r.status_code}")
 
 
-def r2c_error_format(semgrep_errors_json: Dict[str, Any]) -> Dict[str, Any]:
-    # TODO https://docs.r2c.dev/en/latest/api/output.html
-    return semgrep_errors_json
-
-
-def save_output(
-    output_str: str, output_data: Dict[str, Any], json: bool = False
-) -> None:
-    if is_url(output_str):
-        post_output(output_str, output_data)
+def save_output(destination: str, output: str) -> None:
+    if is_url(destination):
+        post_output(destination, output)
     else:
-        if Path(output_str).is_absolute():
-            save_path = Path(output_str)
+        if Path(destination).is_absolute():
+            save_path = Path(destination)
         else:
             base_path = semgrep.config_resolver.get_base_path()
-            save_path = base_path.joinpath(output_str)
+            save_path = base_path.joinpath(destination)
         # create the folders if not exists
         save_path.parent.mkdir(parents=True, exist_ok=True)
         with save_path.open(mode="w") as fout:
-            if json:
-                fout.write(build_output_json(output_data))
-            else:
-                fout.write(
-                    "\n".join(build_normal_output(output_data, color_output=False))
-                )
+            fout.write(output)
 
 
 def get_config(args: Any) -> Any:
@@ -213,7 +201,7 @@ def should_exclude_this_path(path: Path) -> bool:
     return any("test" in p or "example" in p for p in path.parts)
 
 
-def main(args: argparse.Namespace) -> Dict[str, Any]:
+def main(args: argparse.Namespace) -> str:
     """ main function that parses args and runs semgrep """
     # get the proper paths for targets i.e. handle base path of /home/repo when it exists in docker
     targets = semgrep.config_resolver.resolve_targets(args.target)
@@ -284,23 +272,24 @@ def main(args: argparse.Namespace) -> Dict[str, Any]:
             INVALID_CODE_EXIT_CODE,
         )
 
-    output_data = handle_output(rule_matches_by_rule, semgrep_errors, args)
+    rule_matches = filter_rule_matches(rule_matches_by_rule, args.exclude)
+    output = handle_output(rule_matches, semgrep_errors, args)
 
     if args.autofix:
         apply_fixes(rule_matches_by_rule)
 
-    return output_data
+    return output
 
 
-def handle_output(
-    rule_matches_by_rule: Dict[Rule, List[RuleMatch]], semgrep_errors: Any, args: Any
-) -> Dict[str, Any]:
+def filter_rule_matches(
+    rule_matches_by_rule: Dict[Rule, List[RuleMatch]],
+    exclude_glob_patterns: Optional[List[str]],
+) -> List[RuleMatch]:
     rule_matches: List[RuleMatch] = []
     for rule_match in rule_matches_by_rule.values():
         rule_matches.extend(rule_match)
 
-    if args.exclude:
-        exclude_glob_patterns = args.exclude
+    if exclude_glob_patterns:
         debug_print(f"patterns to exclude: {', '.join(exclude_glob_patterns)}")
         filtered_results = [
             rm
@@ -312,21 +301,22 @@ def handle_output(
         )
         rule_matches = filtered_results
 
-    # output results
-    output_data = {
-        "results": [rm.to_json() for rm in rule_matches],
-        "errors": r2c_error_format(semgrep_errors),
-    }
+    return rule_matches
+
+
+def handle_output(
+    rule_matches: List[RuleMatch], semgrep_errors: List[Any], args: Any
+) -> str:
+    output = build_output(rule_matches, semgrep_errors, args.json, not args.output)
     if not args.quiet:
-        if args.json:
-            print(build_output_json(output_data))
-        else:
-            if rule_matches:
-                print("\n".join(build_normal_output(output_data, color_output=True)))
+        if output:
+            print(output)
 
     if args.output:
-        save_output(args.output, output_data, args.json)
+        save_output(args.output, output)
+
     if args.error and any(match.should_fail_run for match in rule_matches):
         sys.exit(FINDINGS_EXIT_CODE)
 
-    return output_data
+    # TODO tests still rely on this but it is unnecessary
+    return output
