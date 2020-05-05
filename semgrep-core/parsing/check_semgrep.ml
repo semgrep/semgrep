@@ -3,7 +3,6 @@
 (*s: constant [[Check_semgrep.lang_has_no_dollar_ids]] *)
 (* for these languages, we are sure that $x is an error *)
 let lang_has_no_dollar_ids = Lang.(function
-(*e: constant [[Check_semgrep.lang_has_no_dollar_ids]] *)
   | Python | Python2 | Python3
   | Java
   | Go
@@ -12,6 +11,7 @@ let lang_has_no_dollar_ids = Lang.(function
   -> true
   | Javascript
   -> false)
+(*e: constant [[Check_semgrep.lang_has_no_dollar_ids]] *)
 
 (*s: function [[Check_semgrep.check_pattern_metavars]] *)
 let check_pattern_metavars lang ast =
@@ -22,8 +22,8 @@ let check_pattern_metavars lang ast =
     k ident
     in
   if lang_has_no_dollar_ids lang then
-(*e: function [[Check_semgrep.check_pattern_metavars]] *)
     Visitor_ast.(mk_visitor ({default_visitor with kident = kident_metavar}) ast)
+(*e: function [[Check_semgrep.check_pattern_metavars]] *)
 
 (*s: function [[Check_semgrep.check_pattern]] *)
 let check_pattern lang ast =
