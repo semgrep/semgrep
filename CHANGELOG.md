@@ -2,7 +2,7 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## Next release
+## [0.6.0](https://github.com/returntocorp/semgrep/releases/tag/v0.6.0) - 2020-05-05
 
 ### Added
 - The `-j/--jobs` flag for specifying number of subprocesses to use to run checks in parallel.
@@ -45,6 +45,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Fixed
 - Correctly parse `f"{foo:,f}"` in Python
+- Correctly parse Python files where the last line is a comment
 
 ## [0.5.0](https://github.com/returntocorp/semgrep/releases/tag/v0.5.0) - 2020-04-28
 
