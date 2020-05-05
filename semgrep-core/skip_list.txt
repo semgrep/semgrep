@@ -1,1 +1,2 @@
 dir: _build
+file: docs/Semgrep.tex

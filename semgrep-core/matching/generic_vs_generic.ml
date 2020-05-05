@@ -1,4 +1,5 @@
 (*s: semgrep/matching/generic_vs_generic.ml *)
+(*s: pad/r2c copyright *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2019-2020 r2c
@@ -13,6 +14,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
+(*e: pad/r2c copyright *)
 open Common
 
 (* A is the pattern, and B the concrete source code. For now

@@ -48,10 +48,10 @@ module Flag = Flag_semgrep
 (* Types *)
 (*****************************************************************************)
 
-(*s: type [[Semgrep_generic.matcher (semgrep/matching/semgrep_generic.ml)]] *)
+(*s: type [[Semgrep_generic.matcher]] *)
 type ('a, 'b) matcher = 'a -> 'b ->
   Metavars_generic.metavars_binding list
-(*e: type [[Semgrep_generic.matcher (semgrep/matching/semgrep_generic.ml)]] *)
+(*e: type [[Semgrep_generic.matcher]] *)
 
 (*****************************************************************************)
 (* Matchers *)

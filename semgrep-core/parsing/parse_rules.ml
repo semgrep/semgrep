@@ -17,21 +17,21 @@ open Common
 
 module R = Rule
 
-(*s: exception [[Parse_rules.InvalidRuleException (semgrep/parsing/parse_rules.ml)]] *)
+(*s: exception [[Parse_rules.InvalidRuleException]] *)
 exception InvalidRuleException of string * string
-(*e: exception [[Parse_rules.InvalidRuleException (semgrep/parsing/parse_rules.ml)]] *)
-(*s: exception [[Parse_rules.InvalidLanguageException (semgrep/parsing/parse_rules.ml)]] *)
+(*e: exception [[Parse_rules.InvalidRuleException]] *)
+(*s: exception [[Parse_rules.InvalidLanguageException]] *)
 exception InvalidLanguageException of string * string
-(*e: exception [[Parse_rules.InvalidLanguageException (semgrep/parsing/parse_rules.ml)]] *)
-(*s: exception [[Parse_rules.InvalidPatternException (semgrep/parsing/parse_rules.ml)]] *)
+(*e: exception [[Parse_rules.InvalidLanguageException]] *)
+(*s: exception [[Parse_rules.InvalidPatternException]] *)
 exception InvalidPatternException of string * string * string * string
-(*e: exception [[Parse_rules.InvalidPatternException (semgrep/parsing/parse_rules.ml)]] *)
-(*s: exception [[Parse_rules.UnparsableYamlException (semgrep/parsing/parse_rules.ml)]] *)
+(*e: exception [[Parse_rules.InvalidPatternException]] *)
+(*s: exception [[Parse_rules.UnparsableYamlException]] *)
 exception UnparsableYamlException of string
-(*e: exception [[Parse_rules.UnparsableYamlException (semgrep/parsing/parse_rules.ml)]] *)
-(*s: exception [[Parse_rules.InvalidYamlException (semgrep/parsing/parse_rules.ml)]] *)
+(*e: exception [[Parse_rules.UnparsableYamlException]] *)
+(*s: exception [[Parse_rules.InvalidYamlException]] *)
 exception InvalidYamlException of string
-(*e: exception [[Parse_rules.InvalidYamlException (semgrep/parsing/parse_rules.ml)]] *)
+(*e: exception [[Parse_rules.InvalidYamlException]] *)
 
 (*****************************************************************************)
 (* Helpers *)
@@ -74,8 +74,6 @@ let parse_languages ~id langs =
   in
   languages, lang
 (*e: function [[Parse_rules.parse_languages]] *)
- 
- 
 
 (*****************************************************************************)
 (* Main entry point *)
