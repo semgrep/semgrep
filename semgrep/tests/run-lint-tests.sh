@@ -17,18 +17,6 @@ assert_output_equal () {
     fi
 }
 
-test_semgrep_equivalence() {
-    cd "${THIS_DIR}/../";
-    $SEMGREP --json --strict --config=tests/equivalence-tests/open-redirect.equiv.yml tests/equivalence-tests -o tmp.out >/dev/null
-    assert_output_equal tmp.out tests/equivalence-tests/open-redirect.equiv.expected.json
-    rm -f tmp.out
-}
-
-test_semgrep_autofix() {
-    cd "${THIS_DIR}/../";
-    $SEMGREP --json --strict --config=tests/python/autofix.yml tests/lint/autofix.py -o tmp.out >/dev/null
-    assert_output_equal tmp.out tests/python/autofix.expected.json
-}
 
 test_semgrep_exclude () {
     cd "${THIS_DIR}/../";
@@ -70,8 +58,6 @@ PYTHONPATH=.. pytest .
 
 local_tests() {
     SEMGREP="python3 -m semgrep"
-    test_semgrep_equivalence
-    test_semgrep_autofix
     test_semgrep_exclude
     test_semgrep_include
     test_semgrep_exclude_dir

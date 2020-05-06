@@ -1,0 +1,2 @@
+rules/syntax/bad4.yaml: inside rule id arg-reassign, pattern fields can't look like this: invalid type for patterns in rule: <class 'dict'> is not a list; perhaps your YAML is missing a `-` before {'pattern-inside': 'def foo($X):\n    ...\n', 'pattern': '$X = 1'}?
+run with --strict and there were 1 errors loading configs
