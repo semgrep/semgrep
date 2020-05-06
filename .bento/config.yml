@@ -28,7 +28,7 @@ tools:
     - subprocess-without-shell-equals-true
     - try-except-continue
     - urllib-urlopen
-    run: true
+    run: false
   dlint:
     ignore: []
     run: true
