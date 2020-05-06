@@ -2,50 +2,6 @@
 
 set -e
 
-assert_output_equal () {
-    actual_path=$1
-    expected_path=$2
-    if [ -z "$OVERRIDE_EXPECTED" ]; then
-        echo "checking $expected_path"
-        diff --side-by-side <(echo EXPECTED) <(echo ACTUAL) || true
-        diff --side-by-side <(python -m json.tool $expected_path) <(python -m json.tool $actual_path)
-    else
-        echo "regenerating $expected_path"
-        diff --side-by-side <(echo EXPECTED) <(echo ACTUAL) || true
-        diff --side-by-side <(python -m json.tool $expected_path) <(python -m json.tool $actual_path) || true
-        cat $actual_path > $expected_path
-    fi
-}
-
-
-test_semgrep_exclude () {
-    cd "${THIS_DIR}/../";
-    $SEMGREP --json --strict --config tests/python/eqeq.yaml --include '*.py' tests/lint -o tmp.out >/dev/null
-    assert_output_equal tmp.out tests/python/eqeq.include.json
-    rm -f tmp.out
-}
-
-test_semgrep_include () {
-    cd "${THIS_DIR}/../";
-    $SEMGREP --json --strict --config tests/python/eqeq.yaml --exclude '*.py' tests/lint -o tmp.out >/dev/null
-    assert_output_equal tmp.out tests/python/eqeq.exclude.json
-    rm -f tmp.out
-}
-
-test_semgrep_exclude_dir () {
-    cd "${THIS_DIR}/../";
-    $SEMGREP --json --strict --config tests/python/eqeq.yaml --exclude-dir 'excluded_dir' tests/lint tests/excluded_dir -o tmp.out >/dev/null
-    assert_output_equal tmp.out tests/python/eqeq.exclude_dir.json
-    rm -f tmp.out
-}
-
-test_semgrep_include_dir () {
-    cd "${THIS_DIR}/../";
-    $SEMGREP --json --strict --config tests/python/eqeq.yaml --include-dir 'lint' tests/lint tests/excluded_dir -o tmp.out >/dev/null
-    assert_output_equal tmp.out tests/python/eqeq.include_dir.json
-    rm -f tmp.out
-}
-
 
 
 echo "-----------------------"
@@ -56,15 +12,7 @@ THIS_DIR="$(dirname "$(realpath "$0")")";
 cd "${THIS_DIR}"
 PYTHONPATH=.. pytest .
 
-local_tests() {
-    SEMGREP="python3 -m semgrep"
-    test_semgrep_exclude
-    test_semgrep_include
-    test_semgrep_exclude_dir
-    test_semgrep_include_dir
-}
-
-local_tests
+SEMGREP="python3 -m semgrep"
 
 # parsing bad.yaml should fail
 $SEMGREP --strict --config tests/python/bad.yaml tests/lint && echo "bad.yaml should have failed" && exit 1
