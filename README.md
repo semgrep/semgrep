@@ -22,11 +22,11 @@ Example patterns:
 
 | **Pattern** | **Matches** |
 | :--- | :--- |
-| `$X == $X` | `if (node.id == node.id): ...` |
-| `requests.get(..., verify=False, ...)` | `requests.get(url, timeout=3, verify=False)` |
-| `os.system(...)` | `from os import system; system('echo semgrep')` |
-| `$ELEMENT.innerHTML` | ``el.innerHTML = "<img src='x' onerror='alert(`XSS`)'>";`` |
-| `$TOKEN.SignedString([]byte("..."))` | `ss, err := token.SignedString([]byte("HARDCODED KEY"))` |
+| [`$X == $X`](https://semgrep.live/20B) | `if (node.id == node.id): ...` |
+| [`requests.get(..., verify=False, ...)`](https://semgrep.live/jqn) | `requests.get(url, timeout=3, verify=False)` |
+| [`os.system(...)`](https://semgrep.live/1W5) | `from os import system; system('echo semgrep')` |
+| [`$ELEMENT.innerHTML`](https://semgrep.live/9ze) | ``el.innerHTML = "<img src='x' onerror='alert(`XSS`)'>";`` |
+| [`$TOKEN.SignedString([]byte("..."))`](https://semgrep.live/rXW) | `ss, err := token.SignedString([]byte("HARDCODED KEY"))` |
 
 → [see more example patterns in the semgrep-rules repository](https://github.com/returntocorp/semgrep-rules)
 
