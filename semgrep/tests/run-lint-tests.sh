@@ -17,29 +17,6 @@ assert_output_equal () {
     fi
 }
 
-test_semgrep_default_file() {
-    cd "${THIS_DIR}/../";
-    # test .semgrep.yml
-    rm -rf .semgrep.yml
-    $SEMGREP --generate-config
-    $SEMGREP --json --strict tests/lint -o tmp.out >/dev/null
-    assert_output_equal tmp.out tests/python/eqeq.expected.template.json
-    rm -f tmp.out
-    rm -rf .semgrep.yml
-}
-
-test_semgrep_default_folder() {
-    cd "${THIS_DIR}/../";
-    # test .semgrep/ directory
-    rm -rf .semgrep/ && mkdir .semgrep/
-    $SEMGREP --generate-config
-    mv .semgrep.yml .semgrep/
-    $SEMGREP --json --strict tests/lint -o tmp.out >/dev/null
-    assert_output_equal tmp.out tests/python/eqeq.expected.template.json
-    rm -f tmp.out
-    rm -rf .semgrep/
-}
-
 test_semgrep_equivalence() {
     cd "${THIS_DIR}/../";
     $SEMGREP --json --strict --config=tests/equivalence-tests/open-redirect.equiv.yml tests/equivalence-tests -o tmp.out >/dev/null
@@ -101,15 +78,7 @@ local_tests() {
     test_semgrep_include_dir
 }
 
-docker_tests() {
-    SEMGREP="docker run --rm -v \"\${PWD}:/home/repo\" returntocorp/semgrep:develop"
-    test_semgrep_default_file
-    test_semgrep_default_folder
-}
-
 local_tests
-#echo "semgrep docker develop image"
-#docker_tests
 
 # parsing bad.yaml should fail
 $SEMGREP --strict --config tests/python/bad.yaml tests/lint && echo "bad.yaml should have failed" && exit 1

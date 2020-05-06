@@ -48,3 +48,17 @@ def test_hidden_rule__implicit(run_semgrep, snapshot):
         run_semgrep("rules/hidden", stderr=True)
     assert excinfo.value.returncode == 2
     snapshot.assert_match(excinfo.value.output, "error.txt")
+
+
+def test_default_rule__file(run_semgrep_in_tmp, snapshot):
+    Path(".semgrep.yml").symlink_to(Path("rules/eqeq.yaml").resolve())
+    snapshot.assert_match(run_semgrep_in_tmp(), "results.json")
+
+
+def test_default_rule__folder(run_semgrep_in_tmp, snapshot):
+    Path(".semgrep").mkdir()
+    Path(".semgrep/.semgrep.yml").symlink_to(Path("rules/eqeq.yaml").resolve())
+
+    snapshot.assert_match(
+        run_semgrep_in_tmp(), "results.json",
+    )
