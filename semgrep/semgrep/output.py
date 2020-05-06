@@ -63,9 +63,9 @@ def build_normal_output(
         current_file = rule_match.path
         check_id = rule_match.id
         extra = rule_match.extra
-        message = extra.get("message")
-        severity = extra.get("severity")
-        fix = extra.get("fix")
+        message = rule_match.message
+        severity = rule_match.severity
+        fix = rule_match.fix
         if last_file is None or last_file != current_file:
             if last_file is not None:
                 yield ""
