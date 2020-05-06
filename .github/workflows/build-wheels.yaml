@@ -1,0 +1,25 @@
+name: build-wheels
+#strategy:
+#  matrix:
+#    os: [ubuntu-16.04, ubuntu-18.04, macos-latest]
+#    include:
+#      # includes a new variable of npm with a value of 2 for the matrix leg matching the os and version
+#      - os: ubuntu-16.04
+#        container: 'container: returntocorp/sgrep-build:ubuntu-16.04'
+#      - os: ubuntu-18.04
+#        container: 'container: returntocorp/sgrep-build:ubuntu-16.04'
+
+on:
+  push:
+    branches: [master, develop, '**-test-release']
+
+jobs:
+  build-wheels-osx:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+      - name: Run Ubuntu build script
+        run: ./release-scripts/build-wheels.sh
