@@ -33,7 +33,9 @@ class RuleMatch:
         self._start = pattern_match.start
         self._end = pattern_match.end
 
-        self._extra = pattern_match.extra
+        self._extra = (
+            pattern_match.extra
+        )  # note that message is still the old value defined before metavar interpolation
 
         self._pattern_match = pattern_match
 
@@ -56,6 +58,14 @@ class RuleMatch:
     @property
     def fix(self) -> Optional[str]:
         return self._fix
+
+    @property
+    def message(self) -> str:
+        return self._message
+
+    @property
+    def severity(self) -> str:
+        return self._severity
 
     @property
     def start(self) -> Dict[str, Any]:
