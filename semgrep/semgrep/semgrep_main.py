@@ -274,7 +274,6 @@ def main(args: argparse.Namespace) -> str:
 
     rule_matches = filter_rule_matches(rule_matches_by_rule, args.exclude)
     output = handle_output(rule_matches, semgrep_errors, args)
-
     if args.autofix:
         apply_fixes(rule_matches_by_rule)
 
