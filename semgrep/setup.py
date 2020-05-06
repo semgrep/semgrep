@@ -3,7 +3,7 @@ import setuptools
 
 setuptools.setup(
     name="semgrep",  # Replace with your own username
-    version="0.6.1b1",
+    version="0.6.1",
     author="Russell & Return 2 Corp",
     author_email="author@example.com",
     description="semgrep python wrapper",
