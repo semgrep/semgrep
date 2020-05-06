@@ -14,6 +14,11 @@ jobs:
           submodules: 'recursive'
       - name: Build the wheels
         run: ./release-scripts/build-wheels.sh
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v1
+        with:
+          name: osx-wheel
+          path: semgrep/dist.zip
   build-wheels-ubuntu:
     strategy:
       matrix:
@@ -31,3 +36,8 @@ jobs:
           ln `which python3.7` /usr/bin/python
       - name: Build the wheels
         run: ./release-scripts/build-wheels.sh
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v1
+        with:
+          name: osx-wheel
+          path: semgrep/dist.zip
