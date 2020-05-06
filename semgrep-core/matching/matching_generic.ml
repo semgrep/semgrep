@@ -137,6 +137,7 @@ let str_of_any any =
  * https://www.cs.cornell.edu/courses/cs3110/2019sp/textbook/ads/ex_maybe_monad.html
  *)
 
+(*s: function [[Matching_generic.monadic_bind]] *)
 let ((>>=):
   (tin -> tout) ->
   (unit -> (tin -> tout)) ->
@@ -152,7 +153,9 @@ let ((>>=):
       m2 () binding
     ) in
     List.flatten xxs
+(*e: function [[Matching_generic.monadic_bind]] *)
 
+(*s: function [[Matching_generic.monadic_or]] *)
 (* the disjunctive combinator *)
 let ((>||>) :
   (tin -> tout) ->
@@ -166,26 +169,30 @@ let ((>||>) :
 *)
     (* opti? use set instead of list *)
     m1 tin @ m2 tin
+(*e: function [[Matching_generic.monadic_or]] *)
 
-(*s: function [[Matching_generic.TODOOPERATOR]] *)
+(*s: function [[Matching_generic.monadic_if_fail]] *)
 (* the if-fail combinator *)
 let (>!>) m1 else_cont = fun tin ->
   match m1 tin with
   | [] -> (else_cont ()) tin
   | xs -> xs
-(*e: function [[Matching_generic.TODOOPERATOR]] *)
+(*e: function [[Matching_generic.monadic_if_fail]] *)
 
-
+(*s: function [[Matching_generic.return]] *)
 (* The classical monad combinators *)
 let (return : tin -> tout) = fun tin ->
 [tin]
-      
+(*e: function [[Matching_generic.return]] *)
+
+(*s: function [[Matching_generic.fail]] *)
 let (fail : tin -> tout) = fun _tin ->
   if !Flag.debug
   then failwith "Generic_vs_generic.fail: Match failure"
   else
   []
-
+(*e: function [[Matching_generic.fail]] *)
+      
 (*****************************************************************************)
 (* Environment *)
 (*****************************************************************************)
@@ -243,6 +250,7 @@ let check_and_add_metavar_binding((mvar:MV.mvar), valu) = fun tin ->
       Some (Common2.insert_assoc (mvar, valu) tin)
 (*e: function [[Matching_generic.check_and_add_metavar_binding]] *)
 
+(*s: function [[Matching_generic.envf]] *)
 let (envf: (MV.mvar Ast.wrap, Ast.any) matcher) =
  fun (mvar, _imvar) any  -> fun tin ->
   match check_and_add_metavar_binding (mvar, any) tin with
@@ -254,6 +262,7 @@ let (envf: (MV.mvar Ast.wrap, Ast.any) matcher) =
       if !Flag.verbose 
       then pr2 (spf "envf: success, %s (%s)" mvar (str_of_any any));
       return new_binding
+(*e: function [[Matching_generic.envf]] *)
 
 (*s: function [[Matching_generic.empty_environment]] *)
 let empty_environment () = []
@@ -285,12 +294,12 @@ let _ = Common2.example
     [('a', ['b';'c']); ('b', ['a';'c']); ('c', ['a';'b'])])
 (*e: toplevel [[Matching_generic._1]] *)
 
-(*s: function [[Matching_generic.return]] *)
+(*s: function [[Matching_generic.return_bis]] *)
 let return () = return
-(*e: function [[Matching_generic.return]] *)
-(*s: function [[Matching_generic.fail]] *)
+(*e: function [[Matching_generic.return_bis]] *)
+(*s: function [[Matching_generic.fail_bis]] *)
 let fail () = fail
-(*e: function [[Matching_generic.fail]] *)
+(*e: function [[Matching_generic.fail_bis]] *)
 
 (*s: constant [[Matching_generic.regexp_regexp_string]] *)
 let regexp_regexp_string = "^=~/\\(.*\\)/$"
@@ -320,6 +329,7 @@ let regexp_of_regexp_string s =
 (* ---------------------------------------------------------------------- *)
 (* stdlib: option *)
 (* ---------------------------------------------------------------------- *)
+(*s: function [[Matching_generic.m_option]] *)
 let (m_option: ('a,'b) matcher -> ('a option,'b option) matcher) = fun f a b ->
   match a, b with
   | None, None -> return ()
@@ -328,6 +338,7 @@ let (m_option: ('a,'b) matcher -> ('a option,'b option) matcher) = fun f a b ->
   | None, _
   | Some _, _
       -> fail ()
+(*e: function [[Matching_generic.m_option]] *)
 
 (*s: function [[Matching_generic.m_option_ellipsis_ok]] *)
 (* dots: *)
@@ -361,10 +372,12 @@ let m_option_none_can_match_some f a b =
 (* ---------------------------------------------------------------------- *)
 (* stdlib: ref *)
 (* ---------------------------------------------------------------------- *)
+(*s: function [[Matching_generic.m_ref]] *)
 let (m_ref: ('a,'b) matcher -> ('a ref,'b ref) matcher) = fun f a b ->
   match a, b with
   { contents = xa}, { contents = xb} ->
     f xa xb 
+(*e: function [[Matching_generic.m_ref]] *)
 
 (* ---------------------------------------------------------------------- *)
 (* stdlib: list *)

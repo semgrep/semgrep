@@ -177,7 +177,6 @@ let map f xs =
 (* TODO? could do slicing of function relative to the pattern, so 
  * would see where the parameters come from :)
  *)
-
 let mk_one_info_from_multiple_infos xs =
   List.hd xs
 (*e: function [[Main_semgrep_core.mk_one_info_from_multiple_infos]] *)
