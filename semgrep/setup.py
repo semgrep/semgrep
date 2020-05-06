@@ -21,9 +21,10 @@ def chdir(dirname=None):
         os.chdir(curdir)
 
 
+# TODO: what is the minimum OSX version?
+MIN_OSX_VERSION = "10_14"
+
 # from https://stackoverflow.com/questions/45150304/how-to-force-a-python-wheel-to-be-platform-specific-when-building-it # noqa
-
-
 class bdist_wheel(_bdist_wheel):
     def finalize_options(self):
         _bdist_wheel.finalize_options(self)
@@ -38,6 +39,9 @@ class bdist_wheel(_bdist_wheel):
         # We don't need cPython
         python = ".".join(["py36", "py37", "py38"])
         abi = "none"
+
+        if "macosx" in plat:
+            plat = f"macosx_{MIN_OSX_VERSION}_x86_64.whl"
 
         return python, abi, plat
 
