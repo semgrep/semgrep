@@ -25,5 +25,9 @@ jobs:
         uses: actions/checkout@v2
         with:
           submodules: 'recursive'
+      - name: Make Python happy
+        run: |
+          rm /usr/bin/python
+          ln `which python3.7` /usr/bin/python
       - name: Build the wheels
         run: ./release-scripts/build-wheels.sh

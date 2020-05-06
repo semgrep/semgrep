@@ -71,7 +71,11 @@ class PostInstallCommand(install):
                     os.system(os.path.join(repo_root, "release-scripts/osx-release.sh"))
                     source = os.path.join(repo_root, "artifacts/semgrep-core")
             else:
-                raise Exception("Unsupported platform")
+                with chdir(repo_root):
+                    os.system(
+                        os.path.join(repo_root, "release-scripts/ubuntu-release.sh")
+                    )
+                    source = os.path.join(repo_root, "semgrep-files/semgrep-core")
 
         ## setuptools_rust doesn't seem to let me specify a musl cross compilation target
         ## so instead just build ourselves here =(.
