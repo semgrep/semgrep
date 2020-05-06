@@ -1,5 +1,6 @@
 colorama==0.4.3
 pytest==5.3.5
+pytest-snapshot==0.4.0
 pyyaml==5.3
 requests==2.22.0
 tox==3.14.6

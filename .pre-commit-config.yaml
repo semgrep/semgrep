@@ -1,4 +1,4 @@
-exclude: "^semgrep/tests/excluded_dir|semgrep/tests/lint|semgrep/tests/python|semgrep/tests/equivalence-tests|semgrep-core/tests|semgrep-core/old|semgrep-core/lib|semgrep-core/demos|semgrep-core/bin|.*\\.ml|.*\\.md"
+exclude: "^semgrep/tests/e2e/targets|semgrep-core/tests|semgrep-core/old|semgrep-core/lib|semgrep-core/demos|semgrep-core/bin|.*\\.ml|.*\\.md"
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
