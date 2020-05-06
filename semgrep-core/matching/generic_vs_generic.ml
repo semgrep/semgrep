@@ -206,13 +206,16 @@ let _m_resolved_name (a1, a2) (b1, b2) =
 
 
 (* start of recursive need *)
+(*s: function [[Generic_vs_generic.m_name]] *)
 let rec m_name a b =
   match a,b with
   | (a1, a2), (b1, b2) ->
     m_ident a1 b1 >>= (fun () ->
     m_name_info a2 b2
     )
+(*e: function [[Generic_vs_generic.m_name]] *)
 
+(*s: function [[Generic_vs_generic.m_ident_and_id_info_add_in_env_Expr]] *)
 and m_ident_and_id_info_add_in_env_Expr (a1, a2) (b1, b2) =
   (* metavar: *)
   match a1, b1 with
@@ -235,6 +238,9 @@ and m_ident_and_id_info_add_in_env_Expr (a1, a2) (b1, b2) =
   (* general case *)
   | (a, b) -> (m_wrap m_string) a b
 
+(*e: function [[Generic_vs_generic.m_ident_and_id_info_add_in_env_Expr]] *)
+
+(*s: function [[Generic_vs_generic.m_id_info]] *)
 and m_id_info a b =
   match a, b with
   { A. id_resolved = _a1; id_type = a2; id_const_literal = _a3 },
@@ -256,12 +262,13 @@ and m_id_info a b =
       (* (m_ref m_resolved_name) a3 b3  >>= (fun () ->  *)
 
     (m_ref (m_option m_type_)) a2 b2 
+(*e: function [[Generic_vs_generic.m_id_info]] *)
 
-       
 (*****************************************************************************)
 (* Expression *)
 (*****************************************************************************)
 
+(*s: function [[Generic_vs_generic.make_dotted]] *)
 and make_dotted xs =
   match xs with
   | [] -> raise Impossible
@@ -270,6 +277,7 @@ and make_dotted xs =
     List.fold_left (fun acc e -> 
       let tok = Parse_info.fake_info "." in
       B.DotAccess (acc, tok, B.FId e)) base xs
+(*e: function [[Generic_vs_generic.make_dotted]] *)
 
 (* possibly go deeper when someone wants that a pattern like 
  *   'bar();' 
@@ -288,6 +296,7 @@ and make_dotted xs =
  *   - <call>(<exprs).
  *)
 (* experimental! *)
+(*s: function [[Generic_vs_generic.m_expr_deep]] *)
 and m_expr_deep a b =
   if not !Flag.go_deeper_expr
   then m_expr a b 
@@ -303,11 +312,13 @@ and m_expr_deep a b =
       in
       aux subs
     )
+(*e: function [[Generic_vs_generic.m_expr_deep]] *)
 
 
 (* coupling: if you add special sgrep hooks here, you should probably
  * also add them in m_pattern
  *)
+(*s: function [[Generic_vs_generic.m_expr]] *)
 and m_expr a b = 
   match a, b with
   (* equivalence: user-defined equivalence! *)
@@ -494,8 +505,9 @@ and m_expr a b =
   | A.SliceAccess _, _
   | A.TypedMetavar _, _
    -> fail ()
+(*e: function [[Generic_vs_generic.m_expr]] *)
 
-
+(*s: function [[Generic_vs_generic.m_field_ident]] *)
 and m_field_ident a b =
   match a, b with
   | A.FId a, B.FId b -> 
@@ -508,7 +520,9 @@ and m_field_ident a b =
   | A.FName _, _
   | A.FDynamic _, _
     -> fail ()
+(*e: function [[Generic_vs_generic.m_field_ident]] *)
 
+(*s: function [[Generic_vs_generic.m_label_ident]] *)
 and m_label_ident a b =
   match a, b with
   | A.LNone, B.LNone -> return ()
@@ -523,7 +537,9 @@ and m_label_ident a b =
   | A.LInt _, _
   | A.LDynamic _, _
     -> fail ()
+(*e: function [[Generic_vs_generic.m_label_ident]] *)
 
+(*s: function [[Generic_vs_generic.m_literal]] *)
 and m_literal a b = 
   match a, b with
 
@@ -566,21 +582,25 @@ and m_literal a b =
   | A.String _, _  | A.Regexp _, _  | A.Null _, _  | A.Undefined _, _
   | A.Imag _, _
    -> fail ()
+(*e: function [[Generic_vs_generic.m_literal]] *)
 
-
+(*s: function [[Generic_vs_generic.m_action]] *)
 and m_action a b = 
   match a, b with
   | (a1, a2), (b1, b2) ->
     m_pattern a1 b1 >>= (fun () -> 
     m_expr a2 b2 
     )
+(*e: function [[Generic_vs_generic.m_action]] *)
 
-
+(*s: function [[Generic_vs_generic.m_arithmetic_operator]] *)
 and m_arithmetic_operator a b = 
   match a, b with
   | _ when a =*= b -> return ()
   | _ -> fail ()
+(*e: function [[Generic_vs_generic.m_arithmetic_operator]] *)
 
+(*s: function [[Generic_vs_generic.m_special]] *)
 and m_special a b = 
   match a, b with
   | A.This, B.This ->
@@ -618,7 +638,9 @@ and m_special a b =
   | A.Concat, _  | A.Spread, _  | A.ArithOp _, _  | A.IncrDecr _, _
   | A.EncodedString _, _
    -> fail ()
+(*e: function [[Generic_vs_generic.m_special]] *)
 
+(*s: function [[Generic_vs_generic.m_name_info]] *)
 and m_name_info a b = 
   match a, b with
   { A. name_qualifier = a1; name_typeargs = a2; },
@@ -627,8 +649,9 @@ and m_name_info a b =
     (m_option m_dotted_name) a1 b1 >>= (fun () -> 
     (m_option m_type_arguments) a2 b2  
     )
+(*e: function [[Generic_vs_generic.m_name_info]] *)
 
-
+(*s: function [[Generic_vs_generic.m_container_operator]] *)
 and m_container_operator a b = 
   match a, b with
   | A.Array, B.Array ->
@@ -641,20 +664,25 @@ and m_container_operator a b =
     return ()
   | A.Array, _  | A.List, _  | A.Set, _  | A.Dict, _
    -> fail ()
+(*e: function [[Generic_vs_generic.m_container_operator]] *)
 
+(*s: function [[Generic_vs_generic.m_container_ordered_elements]] *)
 and m_container_ordered_elements a b =
   m_list_with_dots m_expr
     (function A.Ellipsis _ -> true | _ -> false)
   false (* empty list can not match non-empty list *)
   a b
+(*e: function [[Generic_vs_generic.m_container_ordered_elements]] *)
 
-
+(*s: function [[Generic_vs_generic.m_other_expr_operator]] *)
 and m_other_expr_operator = m_other_xxx
+(*e: function [[Generic_vs_generic.m_other_expr_operator]] *)
 
 (*---------------------------------------------------------------------------*)
 (* XML *)
 (*---------------------------------------------------------------------------*)
 
+(*s: function [[Generic_vs_generic.m_xml]] *)
 and m_xml a b = 
   match a, b with
   | { A.xml_tag = a1; xml_attrs = a2; xml_body = a3 },
@@ -663,14 +691,21 @@ and m_xml a b =
     m_attrs a2 b2 >>= (fun () ->
     m_bodies a3 b3
     ))
+(*e: function [[Generic_vs_generic.m_xml]] *)
 
+(*s: function [[Generic_vs_generic.m_attrs]] *)
 and m_attrs a b = 
   m_list__m_xml_attr a b
 
+(*e: function [[Generic_vs_generic.m_attrs]] *)
+
+(*s: function [[Generic_vs_generic.m_bodies]] *)
 and m_bodies a b = 
   m_list__m_body a b
+(*e: function [[Generic_vs_generic.m_bodies]] *)
 
 (* todo: factorize in m_list_unordered_keys_no_dots *)
+(*s: function [[Generic_vs_generic.m_list__m_xml_attr]] *)
 and m_list__m_xml_attr 
  (xsa: A.xml_attribute list) (xsb: A.xml_attribute list) =
   match xsa, xsb with
@@ -720,27 +755,33 @@ and m_list__m_xml_attr
   | _::_, _ ->
       fail ()
 *)
+(*e: function [[Generic_vs_generic.m_list__m_xml_attr]] *)
 
-
-
+(*s: function [[Generic_vs_generic.m_list__m_body]] *)
 and m_list__m_body a b =
   match a with
   (* less-is-ok: it's ok to have an empty body in the pattern *)
   | [] -> return ()
 
   | _ -> m_list m_body a b
+(*e: function [[Generic_vs_generic.m_list__m_body]] *)
 
+(*s: function [[Generic_vs_generic.m_xml_attr]] *)
 and m_xml_attr a b =
   match a, b with
   | (a1, a2), (b1, b2) ->
     m_ident a1 b1 >>= (fun () ->
     m_xml_attr_value a2 b2
     )
+(*e: function [[Generic_vs_generic.m_xml_attr]] *)
 
+(*s: function [[Generic_vs_generic.m_xml_attr_value]] *)
 and m_xml_attr_value a b =
   (* less: deep? *)
   m_expr a b
+(*e: function [[Generic_vs_generic.m_xml_attr_value]] *)
 
+(*s: function [[Generic_vs_generic.m_body]] *)
 and m_body a b =
   match a, b with
   | A.XmlText a1, B.XmlText b1 -> 
@@ -753,16 +794,20 @@ and m_body a b =
   | A.XmlExpr _, _
   | A.XmlXml _, _
     -> fail ()
+(*e: function [[Generic_vs_generic.m_body]] *)
 
 (*---------------------------------------------------------------------------*)
 (* Arguments list iso *)
 (*---------------------------------------------------------------------------*)
 
+(*s: function [[Generic_vs_generic.m_arguments]] *)
 and m_arguments a b = 
   match a, b with
   (a, b) -> (m_list__m_argument) a b
+(*e: function [[Generic_vs_generic.m_arguments]] *)
 
 (* todo: factorize in m_list_and_dots? but also has unordered for kwd args *)
+(*s: function [[Generic_vs_generic.m_list__m_argument]] *)
 and m_list__m_argument (xsa: A.argument list) (xsb: A.argument list) =
   match xsa, xsb with
   | [], [] ->
@@ -816,11 +861,13 @@ and m_list__m_argument (xsa: A.argument list) (xsb: A.argument list) =
   | [], _
   | _::_, _ ->
       fail ()
+(*e: function [[Generic_vs_generic.m_list__m_argument]] *)
 
 (* special case m_arguments when inside a Call(Special(Concat,_), ...)
  * todo: factorize with m_list_with_dots? hard because of the special
  * call to Normalize_generic below.
  *)
+(*s: function [[Generic_vs_generic.m_arguments_concat]] *)
 and m_arguments_concat a b = 
   match a,b with
   | [], [] ->
@@ -850,8 +897,9 @@ and m_arguments_concat a b =
   | [], _
   | _::_, _ ->
       fail ()
+(*e: function [[Generic_vs_generic.m_arguments_concat]] *)
 
-
+(*s: function [[Generic_vs_generic.m_argument]] *)
 and m_argument a b = 
   match a, b with
   | A.Arg(a1), B.Arg(b1) ->
@@ -872,13 +920,17 @@ and m_argument a b =
     )
   | A.Arg _, _  | A.ArgKwd _, _  | A.ArgType _, _  | A.ArgOther _, _
    -> fail ()
+(*e: function [[Generic_vs_generic.m_argument]] *)
 
+(*s: function [[Generic_vs_generic.m_other_argument_operator]] *)
 and m_other_argument_operator = m_other_xxx
+(*e: function [[Generic_vs_generic.m_other_argument_operator]] *)
 
 (*****************************************************************************)
 (* Type *)
 (*****************************************************************************)
 
+(*s: function [[Generic_vs_generic.m_type_]] *)
 and m_type_ a b = 
   match a, b with
   | A.TyName ((str,tok), _name_info), t2
@@ -927,19 +979,24 @@ and m_type_ a b =
   | A.TyName _, _ | A.TyOr _, _ | A.TyAnd _, _
   | A.OtherType _, _
    -> fail ()
+(*e: function [[Generic_vs_generic.m_type_]] *)
 
-
+(*s: function [[Generic_vs_generic.m_ident_and_type_]] *)
 and m_ident_and_type_ a b =
   match a, b with
   | (a1, a2), (b1, b2) ->
     m_ident a1 b1 >>= (fun () ->
     m_type_ a2 b2 
     )
+(*e: function [[Generic_vs_generic.m_ident_and_type_]] *)
+
+(*s: function [[Generic_vs_generic.m_type_arguments]] *)
 and m_type_arguments a b = 
   match a, b with
   (a, b) -> (m_list m_type_argument) a b
+(*e: function [[Generic_vs_generic.m_type_arguments]] *)
 
-
+(*s: function [[Generic_vs_generic.m_type_argument]] *)
 and m_type_argument a b = 
   match a, b with
   | A.TypeArg(a1), B.TypeArg(b1) ->
@@ -950,16 +1007,24 @@ and m_type_argument a b =
     )
   | A.TypeArg _, _  | A.OtherTypeArg _, _
    -> fail ()
+(*e: function [[Generic_vs_generic.m_type_argument]] *)
 
+(*s: function [[Generic_vs_generic.m_other_type_operator]] *)
 and m_other_type_operator = m_other_xxx
+(*e: function [[Generic_vs_generic.m_other_type_operator]] *)
 
+(*s: function [[Generic_vs_generic.m_other_type_argument_operator]] *)
 and m_other_type_argument_operator = m_other_xxx
+(*e: function [[Generic_vs_generic.m_other_type_argument_operator]] *)
+
 
 (*****************************************************************************)
 (* Attribute *)
 (*****************************************************************************)
 
 (* todo: factorize m_list_unordered_keys? but two "keys" here *)
+
+(*s: function [[Generic_vs_generic.m_list__m_attribute]] *)
 and m_list__m_attribute (xsa: A.attribute list) (xsb: A.attribute list) =
   match xsa, xsb with
   | [], [] ->
@@ -1023,15 +1088,18 @@ and m_list__m_attribute (xsa: A.attribute list) (xsb: A.attribute list) =
 
   | _::_, _ ->
       fail ()
+(*e: function [[Generic_vs_generic.m_list__m_attribute]] *)
 
-
+(*s: function [[Generic_vs_generic.m_keyword_attribute]] *)
 and m_keyword_attribute a b = 
   match a, b with
  (* equivalent: quite JS-specific *)
   | A.Var, (A.Var | A.Let | A.Const) -> return ()
 
   | _ -> m_other_xxx a b
-  
+(*e: function [[Generic_vs_generic.m_keyword_attribute]] *)
+
+(*s: function [[Generic_vs_generic.m_attribute]] *)
 and m_attribute a b = 
   match a, b with
 
@@ -1057,8 +1125,12 @@ and m_attribute a b =
     )
   | A.KeywordAttr _, _  | A.NamedAttr _, _  | A.OtherAttribute _, _
    -> fail ()
+(*e: function [[Generic_vs_generic.m_attribute]] *)
 
+(*s: function [[Generic_vs_generic.m_other_attribute_operator]] *)
 and m_other_attribute_operator = m_other_xxx
+(*e: function [[Generic_vs_generic.m_other_attribute_operator]] *)
+
 
 (*****************************************************************************)
 (* Statement *)
@@ -1084,6 +1156,8 @@ and m_other_attribute_operator = m_other_xxx
  * todo? we could restrict ourselves to only a few forms?
  *)
 (* experimental! *)
+
+(*s: function [[Generic_vs_generic.m_stmts_deep]] *)
 and m_stmts_deep (xsa: A.stmt list) (xsb: A.stmt list) = 
   if !Flag.go_deeper_stmt && (has_ellipsis_stmts xsa)
   then 
@@ -1092,11 +1166,13 @@ and m_stmts_deep (xsa: A.stmt list) (xsb: A.stmt list) =
       m_list__m_stmt xsa xsb'
     )
   else m_list__m_stmt xsa xsb 
+(*e: function [[Generic_vs_generic.m_stmts_deep]] *)
 
 and _m_stmts (xsa: A.stmt list) (xsb: A.stmt list) = 
   m_list__m_stmt xsa xsb 
 
 (* TODO: factorize with m_list_and_dots less_is_ok = true *)
+(*s: function [[Generic_vs_generic.m_list__m_stmt]] *)
 and m_list__m_stmt (xsa: A.stmt list) (xsb: A.stmt list) =
   if !Flag.debug
   then pr2 (spf "%d vs %d" (List.length xsa) (List.length xsb));
@@ -1133,7 +1209,9 @@ and m_list__m_stmt (xsa: A.stmt list) (xsb: A.stmt list) =
       )
   | _::_, _ ->
       fail ()
+(*e: function [[Generic_vs_generic.m_list__m_stmt]] *)
 
+(*s: function [[Generic_vs_generic.m_stmt]] *)
 and m_stmt a b = 
   match a, b with
   (* equivalence: user-defined equivalence! *)
@@ -1249,8 +1327,9 @@ and m_stmt a b =
   | A.Label _, _  | A.Goto _, _  | A.Throw _, _  | A.Try _, _  | A.Assert _, _
   | A.OtherStmt _, _ | A.OtherStmtWithStmt _, _
    -> fail ()
+(*e: function [[Generic_vs_generic.m_stmt]] *)
 
-
+(*s: function [[Generic_vs_generic.m_for_header]] *)
 and m_for_header a b = 
   match a, b with
   | A.ForClassic(a1, a2, a3), B.ForClassic(b1, b2, b3) ->
@@ -1265,8 +1344,9 @@ and m_for_header a b =
     ))
   | A.ForClassic _, _  | A.ForEach _, _
    -> fail ()
+(*e: function [[Generic_vs_generic.m_for_header]] *)
 
-
+(*s: function [[Generic_vs_generic.m_for_var_or_expr]] *)
 and m_for_var_or_expr a b = 
   match a, b with
   | A.ForInitVar(a1, a2), B.ForInitVar(b1, b2) ->
@@ -1277,12 +1357,15 @@ and m_for_var_or_expr a b =
     m_expr a1 b1 
   | A.ForInitVar _, _  | A.ForInitExpr _, _
    -> fail ()
+(*e: function [[Generic_vs_generic.m_for_var_or_expr]] *)
 
-
+(*s: function [[Generic_vs_generic.m_label]] *)
 and m_label a b = 
   match a, b with
   (a, b) -> m_ident a b
+(*e: function [[Generic_vs_generic.m_label]] *)
 
+(*s: function [[Generic_vs_generic.m_catch]] *)
 and m_catch a b = 
   match a, b with
   | (at, a1, a2), (bt, b1, b2) ->
@@ -1290,22 +1373,27 @@ and m_catch a b =
     m_pattern a1 b1 >>= (fun () -> 
     m_stmt a2 b2 
      ))
+(*e: function [[Generic_vs_generic.m_catch]] *)
 
+(*s: function [[Generic_vs_generic.m_finally]] *)
 and m_finally a b = 
   match a, b with
   ((at, a), (bt, b)) -> 
       m_tok at bt >>= (fun () ->
       m_stmt a b 
       )
+(*e: function [[Generic_vs_generic.m_finally]] *)
 
+(*s: function [[Generic_vs_generic.m_case_and_body]] *)
 and m_case_and_body a b = 
   match a, b with
   | (a1, a2), (b1, b2) ->
     (m_list m_case) a1 b1 >>= (fun () -> 
     m_stmt a2 b2 
     )
+(*e: function [[Generic_vs_generic.m_case_and_body]] *)
 
-
+(*s: function [[Generic_vs_generic.m_case]] *)
 and m_case a b = 
   match a, b with
   | A.Case(a0, a1), B.Case(b0, b1) ->
@@ -1320,15 +1408,22 @@ and m_case a b =
     m_tok a0 b0 
   | A.Case _, _  | A.Default _, _ | A.CaseEqualExpr _, _  
    -> fail ()
+(*e: function [[Generic_vs_generic.m_case]] *)
 
-
+(*s: function [[Generic_vs_generic.m_other_stmt_operator]] *)
 and m_other_stmt_operator = m_other_xxx
+(*e: function [[Generic_vs_generic.m_other_stmt_operator]] *)
+
+(*s: function [[Generic_vs_generic.m_other_stmt_with_stmt_operator]] *)
 and m_other_stmt_with_stmt_operator = m_other_xxx
+(*e: function [[Generic_vs_generic.m_other_stmt_with_stmt_operator]] *)
+
 
 (*****************************************************************************)
 (* Pattern *)
 (*****************************************************************************)
 
+(*s: function [[Generic_vs_generic.m_pattern]] *)
 and m_pattern a b = 
   match a, b with
   (* equivalence: user-defined equivalence! *)
@@ -1399,28 +1494,36 @@ and m_pattern a b =
   | A.PatUnderscore _, _  | A.PatDisj _, _  | A.PatWhen _, _  | A.PatAs _, _
   | A.PatTyped _, _  | A.OtherPat _, _ | A.PatType _, _ | A.PatVar _, _
    -> fail ()
+(*e: function [[Generic_vs_generic.m_pattern]] *)
 
-
+(*s: function [[Generic_vs_generic.m_field_pattern]] *)
 and m_field_pattern a b = 
   match a, b with
   | (a1, a2), (b1, b2) ->
     m_name a1 b1 >>= (fun () -> 
     m_pattern a2 b2 
     )
+(*e: function [[Generic_vs_generic.m_field_pattern]] *)
 
+(*s: function [[Generic_vs_generic.m_other_pattern_operator]] *)
 and m_other_pattern_operator = m_other_xxx
+(*e: function [[Generic_vs_generic.m_other_pattern_operator]] *)
+
 
 (*****************************************************************************)
 (* Definitions *)
 (*****************************************************************************)
 
+(*s: function [[Generic_vs_generic.m_definition]] *)
 and m_definition a b = 
   match a, b with
   | (a1, a2), (b1, b2) ->
     m_entity a1 b1 >>= (fun () -> 
     m_definition_kind a2 b2 
     )
+(*e: function [[Generic_vs_generic.m_definition]] *)
 
+(*s: function [[Generic_vs_generic.m_entity]] *)
 and m_entity a b = 
   match a, b with
   (* bugfix: when we use a metavar to match an entity, as in $X(...): ...
@@ -1434,7 +1537,9 @@ and m_entity a b =
     (m_list__m_attribute) a2 b2 >>= (fun () -> 
     (m_list m_type_parameter) a4 b4 
     ))
+(*e: function [[Generic_vs_generic.m_entity]] *)
 
+(*s: function [[Generic_vs_generic.m_definition_kind]] *)
 and m_definition_kind a b = 
   match a, b with
   | A.FuncDef(a1), B.FuncDef(b1) ->
@@ -1457,28 +1562,36 @@ and m_definition_kind a b =
   | A.ModuleDef _, _  | A.MacroDef _, _  | A.Signature _, _
   | A.UseOuterDecl _, _
    -> fail ()
+(*e: function [[Generic_vs_generic.m_definition_kind]] *)
 
-
+(*s: function [[Generic_vs_generic.m_type_parameter_constraint]] *)
 and m_type_parameter_constraint a b = 
   match a, b with
   | A.Extends(a1), B.Extends(b1) ->
     m_type_ a1 b1 
+(*e: function [[Generic_vs_generic.m_type_parameter_constraint]] *)
 
+(*s: function [[Generic_vs_generic.m_type_parameter_constraints]] *)
 and m_type_parameter_constraints a b = 
   match a, b with
   (a, b) -> (m_list m_type_parameter_constraint) a b
+(*e: function [[Generic_vs_generic.m_type_parameter_constraints]] *)
 
+(*s: function [[Generic_vs_generic.m_type_parameter]] *)
 and m_type_parameter a b = 
   match a, b with
   | (a1, a2), (b1, b2) ->
     m_ident a1 b1 >>= (fun () -> 
     m_type_parameter_constraints a2 b2 
     )
+(*e: function [[Generic_vs_generic.m_type_parameter]] *)
+
 
 (* ------------------------------------------------------------------------- *)
 (* Function (or method) definition *)
 (* ------------------------------------------------------------------------- *)
 
+(*s: function [[Generic_vs_generic.m_function_definition]] *)
 and m_function_definition a b = 
   match a, b with
   { A. fparams = a1; frettype = a2; fbody = a3; },
@@ -1487,14 +1600,17 @@ and m_function_definition a b =
     (m_option m_type_) a2 b2 >>= (fun () -> 
     m_stmt a3 b3 
     ))
+(*e: function [[Generic_vs_generic.m_function_definition]] *)
 
+(*s: function [[Generic_vs_generic.m_parameters]] *)
 and m_parameters a b = 
   m_list_with_dots m_parameter 
     (function A.ParamEllipsis _ -> true | _ -> false)
   false (* empty list can not match non-empty list *)
   a b
+(*e: function [[Generic_vs_generic.m_parameters]] *)
 
-
+(*s: function [[Generic_vs_generic.m_parameter]] *)
 and m_parameter a b = 
   match a, b with
   | A.ParamClassic(a1), B.ParamClassic(b1) ->
@@ -1511,8 +1627,9 @@ and m_parameter a b =
   | A.ParamEllipsis _, _
   | A.OtherParam _, _
    -> fail ()
+(*e: function [[Generic_vs_generic.m_parameter]] *)
 
-
+(*s: function [[Generic_vs_generic.m_parameter_classic]] *)
 and m_parameter_classic a b = 
   match a, b with
   (* bugfix: when we use a metavar to match a parameter, as in foo($X): ...
@@ -1539,14 +1656,18 @@ and m_parameter_classic a b =
     (m_list__m_attribute) a4 b4 >>= (fun () -> 
     m_id_info a5 b5 
     ))))
+(*e: function [[Generic_vs_generic.m_parameter_classic]] *)
 
-
+(*s: function [[Generic_vs_generic.m_other_parameter_operator]] *)
 and m_other_parameter_operator = m_other_xxx
+(*e: function [[Generic_vs_generic.m_other_parameter_operator]] *)
+
 
 (* ------------------------------------------------------------------------- *)
 (* Variable definition *)
 (* ------------------------------------------------------------------------- *)
 
+(*s: function [[Generic_vs_generic.m_variable_definition]] *)
 and m_variable_definition a b = 
   match a, b with
   { A. vinit = a1; vtype = a2; },
@@ -1554,6 +1675,8 @@ and m_variable_definition a b =
     (m_option m_expr) a1 b1 >>= (fun () -> 
     (m_option m_type_) a2 b2 
     )
+(*e: function [[Generic_vs_generic.m_variable_definition]] *)
+
 
 (* ------------------------------------------------------------------------- *)
 (* Field definition and use *)
@@ -1564,10 +1687,13 @@ and m_variable_definition a b =
  * todo? opti? if there is no metavar involved, we could sort by key the
  *  fields in the pattern and code and just zip-and-match.
  *)
+(*s: function [[Generic_vs_generic.m_fields]] *)
 and m_fields (xsa: A.field list) (xsb: A.field list) =
   m_list__m_field xsa xsb
+(*e: function [[Generic_vs_generic.m_fields]] *)
 
 (* todo: mix of m_list_and_dots and m_list_unordered_keys *)
+(*s: function [[Generic_vs_generic.m_list__m_field]] *)
 and m_list__m_field (xsa: A.field list) (xsb: A.field list) =
   match xsa, xsb with
   | [], [] ->
@@ -1632,8 +1758,9 @@ and m_list__m_field (xsa: A.field list) (xsb: A.field list) =
       )
   | _::_, _ ->
       fail ()
+(*e: function [[Generic_vs_generic.m_list__m_field]] *)
 
-
+(*s: function [[Generic_vs_generic.m_field]] *)
 and m_field a b = 
   match a, b with
   | A.FieldDynamic(a1, a2, a3), B.FieldDynamic(b1, b2, b3) ->
@@ -1650,16 +1777,22 @@ and m_field a b =
   | A.FieldDynamic _, _
   | A.FieldSpread _, _ | A.FieldStmt _, _
    -> fail ()
+(*e: function [[Generic_vs_generic.m_field]] *)
+
 
 (* ------------------------------------------------------------------------- *)
 (* Type definition *)
 (* ------------------------------------------------------------------------- *)
+
+(*s: function [[Generic_vs_generic.m_type_definition]] *)
 and m_type_definition a b = 
   match a, b with
   { A. tbody = a1;},
   { B. tbody = b1; } -> 
     m_type_definition_kind a1 b1 
+(*e: function [[Generic_vs_generic.m_type_definition]] *)
 
+(*s: function [[Generic_vs_generic.m_type_definition_kind]] *)
 and m_type_definition_kind a b = 
   match a, b with
   | A.OrType(a1), B.OrType(b1) ->
@@ -1683,7 +1816,9 @@ and m_type_definition_kind a b =
   | A.NewType _, _
   | A.OtherTypeKind _, _
    -> fail ()
+(*e: function [[Generic_vs_generic.m_type_definition_kind]] *)
 
+(*s: function [[Generic_vs_generic.m_or_type]] *)
 and m_or_type a b = 
   match a, b with
   | A.OrConstructor(a1, a2), B.OrConstructor(b1, b2) ->
@@ -1705,10 +1840,28 @@ and m_or_type a b =
     )
   | A.OrConstructor _, _ | A.OrEnum _, _ | A.OrUnion _, _ | A.OtherOr _, _
    -> fail ()
+(*e: function [[Generic_vs_generic.m_or_type]] *)
 
+(*s: function [[Generic_vs_generic.m_other_type_kind_operator]] *)
 and m_other_type_kind_operator = m_other_xxx
+(*e: function [[Generic_vs_generic.m_other_type_kind_operator]] *)
 
+(*s: function [[Generic_vs_generic.m_other_or_type_element_operator]] *)
 and m_other_or_type_element_operator = m_other_xxx
+(*e: function [[Generic_vs_generic.m_other_or_type_element_operator]] *)
+
+(*s: function [[Generic_vs_generic.m_list__m_type_]] *)
+and m_list__m_type_ (xsa: A.type_ list) (xsb: A.type_ list) =
+  m_list_with_dots m_type_
+   (* dots: '...', this is very Python Specific I think *)
+   (function 
+     | A.OtherType (A.OT_Arg, [A.Ar (A.Arg(A.Ellipsis _i))]) -> true
+     | _ -> false
+   )
+  (* less-is-ok: it's ok to not specify all the parents I think *)
+  true (* empty list can not match non-empty list *)
+  xsa xsb
+(*e: function [[Generic_vs_generic.m_list__m_type_]] *)
 
 (* ------------------------------------------------------------------------- *)
 (* Class definition *)
@@ -1720,18 +1873,7 @@ and m_other_or_type_element_operator = m_other_xxx
  * order here.
  *)
 
-and m_list__m_type_ (xsa: A.type_ list) (xsb: A.type_ list) =
-  m_list_with_dots m_type_
-   (* dots: '...', this is very Python Specific I think *)
-   (function 
-     | A.OtherType (A.OT_Arg, [A.Ar (A.Arg(A.Ellipsis _i))]) -> true
-     | _ -> false
-   )
-  (* less-is-ok: it's ok to not specify all the parents I think *)
-  true (* empty list can not match non-empty list *)
-  xsa xsb
-
-
+(*s: function [[Generic_vs_generic.m_class_definition]] *)
 and m_class_definition a b = 
   match a, b with
   { A. ckind = a1; cextends = a2; cimplements = a3; cbody = a4; 
@@ -1746,7 +1888,9 @@ and m_class_definition a b =
     (m_list__m_type_) a5 b5 >>= (fun () -> 
     m_bracket (m_fields) a4 b4 
     ))))
+(*e: function [[Generic_vs_generic.m_class_definition]] *)
 
+(*s: function [[Generic_vs_generic.m_class_kind]] *)
 and m_class_kind a b = 
   match a, b with
   | A.Class, B.Class ->
@@ -1757,17 +1901,22 @@ and m_class_kind a b =
     return ()
   | A.Class, _ | A.Interface, _ | A.Trait, _
    -> fail ()
+(*e: function [[Generic_vs_generic.m_class_kind]] *)
+
 
 (* ------------------------------------------------------------------------- *)
 (* Module definition *)
 (* ------------------------------------------------------------------------- *)
 
+(*s: function [[Generic_vs_generic.m_module_definition]] *)
 and m_module_definition a b = 
   match a, b with
   { A. mbody = a1; },
   { B. mbody = b1; } -> 
     m_module_definition_kind a1 b1 
+(*e: function [[Generic_vs_generic.m_module_definition]] *)
 
+(*s: function [[Generic_vs_generic.m_module_definition_kind]] *)
 and m_module_definition_kind a b = 
   match a, b with
   | A.ModuleAlias(a1), B.ModuleAlias(b1) ->
@@ -1782,13 +1931,18 @@ and m_module_definition_kind a b =
     )
   | A.ModuleAlias _, _ | A.ModuleStruct _, _ | A.OtherModule _, _
    -> fail ()
+(*e: function [[Generic_vs_generic.m_module_definition_kind]] *)
 
+(*s: function [[Generic_vs_generic.m_other_module_operator]] *)
 and m_other_module_operator = m_other_xxx
+(*e: function [[Generic_vs_generic.m_other_module_operator]] *)
+
 
 (* ------------------------------------------------------------------------- *)
 (* Macro definition *)
 (* ------------------------------------------------------------------------- *)
 
+(*s: function [[Generic_vs_generic.m_macro_definition]] *)
 and m_macro_definition a b = 
   match a, b with
   { A. macroparams = a1; macrobody = a2; },
@@ -1796,10 +1950,14 @@ and m_macro_definition a b =
     (m_list m_ident) a1 b1 >>= (fun () -> 
     (m_list m_any) a2 b2 
     )
+(*e: function [[Generic_vs_generic.m_macro_definition]] *)
+
 
 (*****************************************************************************)
 (* Directives (Module import/export, macros) *)
 (*****************************************************************************)
+
+(*s: function [[Generic_vs_generic.m_directive]] *)
 and m_directive a b = 
   m_directive_basic a b >!> (fun () ->
     match a with
@@ -1823,11 +1981,14 @@ and m_directive a b =
    | A.Package _ | A.PackageEnd _ | A.OtherDirective _ ->
       fail ()
   )
+(*e: function [[Generic_vs_generic.m_directive]] *)
+
 
 (* less-is-ok: a few of these below with the use of m_module_name_prefix and
  * m_option_none_can_match_some.
  * todo? not sure it makes sense to always allow m_module_name_prefix below
  *)
+(*s: function [[Generic_vs_generic.m_directive_basic]] *)
 and m_directive_basic a b = 
   match a, b with
   | A.ImportFrom(a0, a1, a2, a3), B.ImportFrom(b0, b1, b2, b3) ->
@@ -1859,23 +2020,32 @@ and m_directive_basic a b =
   | A.ImportFrom _, _ | A.ImportAs _, _ | A.OtherDirective _, _
   | A.ImportAll _, _ | A.Package _, _ | A.PackageEnd _, _
    -> fail ()
+(*e: function [[Generic_vs_generic.m_directive_basic]] *)
 
+(*s: function [[Generic_vs_generic.m_other_directive_operator]] *)
 and m_other_directive_operator = m_other_xxx
+(*e: function [[Generic_vs_generic.m_other_directive_operator]] *)
 
 (*****************************************************************************)
 (* Toplevel *)
 (*****************************************************************************)
 
+(*s: function [[Generic_vs_generic.m_item]] *)
 and m_item a b = m_stmt a b
 
+(*e: function [[Generic_vs_generic.m_item]] *)
+
+(*s: function [[Generic_vs_generic.m_program]] *)
 and m_program a b = 
   match a, b with
   (a, b) -> (m_list m_item) a b
+(*e: function [[Generic_vs_generic.m_program]] *)
 
 (*****************************************************************************)
 (* Any *)
 (*****************************************************************************)
 
+(*s: function [[Generic_vs_generic.m_any]] *)
 and m_any a b = 
   match a, b with
   | A.N(a1), B.N(b1) ->
@@ -1919,4 +2089,5 @@ and m_any a b =
   | A.Pa _, _  | A.Ar _, _  | A.At _, _  | A.Dk _, _ | A.Pr _, _
   | A.Fld _, _ | A.Ss _, _ | A.Tk _, _
    -> fail ()
+(*e: function [[Generic_vs_generic.m_any]] *)
 (*e: semgrep/matching/generic_vs_generic.ml *)
