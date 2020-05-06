@@ -3,7 +3,7 @@ all:
 clean:
 	rm -rf ./build/
 test:
-	./tests/run-lint-tests.sh
+	PYTHONPATH=. pytest tests/
 install:
 	cp -rv ./build/semgrep.dist/ /usr/local/bin/semgrep-files/
 	ln -sf /usr/local/bin/semgrep-files/semgrep /usr/local/bin/semgrep
