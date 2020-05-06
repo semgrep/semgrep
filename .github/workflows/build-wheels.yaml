@@ -34,6 +34,8 @@ jobs:
         run: |
           rm /usr/bin/python
           ln `which python3.7` /usr/bin/python
+      - name: Install zip
+        run: apt-get update && apt install -y zip
       - name: Build the wheels
         run: ./release-scripts/build-wheels.sh
       - name: Upload artifacts
