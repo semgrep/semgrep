@@ -46,6 +46,7 @@ type filters = {
   excludes: glob list;
   includes: glob list;
   exclude_dirs: glob list;
+  include_dirs: glob list;
 }
 (*e: type [[Files_filter.filters]] *)
 
@@ -57,7 +58,7 @@ exception GlobSyntaxError of string
 (* Parsing *)
 (*****************************************************************************)
 (*s: function [[Files_filter.mk_filters]] *)
-let mk_filters ~excludes ~includes ~exclude_dirs =
+let mk_filters ~excludes ~includes ~exclude_dirs ~include_dirs =
  try 
   { excludes = excludes |> List.map Glob.of_string;
     includes = 
@@ -65,6 +66,10 @@ let mk_filters ~excludes ~includes ~exclude_dirs =
       then [Glob.universal]
       else includes |> List.map Glob.of_string;
     exclude_dirs = exclude_dirs |> List.map Glob.of_string;
+    include_dirs = 
+      if include_dirs = []
+      then [Glob.universal]
+      else include_dirs |> List.map Glob.of_string;
   } 
  with Invalid_argument s -> raise (GlobSyntaxError s)
 (*e: function [[Files_filter.mk_filters]] *)
@@ -85,7 +90,9 @@ let filter filters xs =
     &&
     (filters.exclude_dirs |> List.for_all 
        (fun glob -> not (dirs |> List.exists (fun dir -> Glob.test glob dir))))
-    
+    &&
+    (filters.include_dirs |> List.exists 
+       (fun glob -> (dirs |> List.exists (fun dir -> Glob.test glob dir))))
  )
 (*e: function [[Files_filter.filter]] *)
 
