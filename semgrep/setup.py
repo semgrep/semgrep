@@ -56,13 +56,6 @@ class PostInstallCommand(install):
         # take the advice from that comment, and move over after install
         source_dir = os.path.dirname(os.path.abspath(__file__))
 
-        # cross_compile_target = os.getenv("PYSPY_CROSS_COMPILE_TARGET")
-        # if cross_compile_target:
-        #    compile_args = " --target=%s" % cross_compile_target
-        #    build_dir = os.path.join(source_dir, "target", cross_compile_target, "release")
-        # else:
-        #    compile_args = ""
-        #    build_dir = os.path.join(source_dir, "target", "release")
         if os.environ.get("PRECOMILED_LOCATION"):
             source = os.environ["PRECOMPILED_LOCATION"]
         else:
@@ -99,12 +92,12 @@ setup(
     name="semgrep",  # Replace with your own username
     version="0.6.0",
     author="Russell & Return 2 Corp",
-    author_email="author@example.com",
-    description="semgrep python wrapper",
+    author_email="support@returntocorp.com",
+    description="like grep but for code: fast and syntax-aware semantic code pattern search for many languages",
     cmdclass={"install": PostInstallCommand, "bdist_wheel": bdist_wheel},
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/pypa/sampleproject",
+    url="https://github.com/returntocorp/semgrep",
     install_requires=["colorama==0.4.3", "pyyaml==5.3", "requests==2.22.0"],
     entry_points={"console_scripts": ["semgrep=semgrep.__main__:main"]},
     packages=setuptools.find_packages(),
