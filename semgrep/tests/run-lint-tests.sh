@@ -17,31 +17,6 @@ assert_output_equal () {
     fi
 }
 
-# Explicitly included hidden configs should be included
-test_semgrep_explicit_hidden() {
-    cd "${THIS_DIR}/../";
-    $SEMGREP --json --strict --config tests/python/hidden/.hidden tests/lint -o tmp.out >/dev/null
-    if [ -z "$OVERRIDE_EXPECTED" ]; then
-        diff tmp.out tests/python/eqeq.expected.explicit-hidden.json
-    else
-        cat tmp.out > tests/python/eqeq.expected.explicit-hidden.json
-    fi
-    rm -f tmp.out
-}
-
-# Implicitly included hidden configs should be excluded
-test_semgrep_implicit_hidden() {
-    cd "${THIS_DIR}/../";
-    $SEMGREP --json --strict --config tests/python/hidden tests/lint 2>tmp.out |:
-    if [ -z "$OVERRIDE_EXPECTED" ]; then
-        diff tmp.out tests/python/eqeq.expected.implicit-hidden.out
-    else
-        cat tmp.out > tests/python/eqeq.expected.implicit-hidden.out
-    fi
-    rm -f tmp.out
-}
-
-
 test_semgrep_default_file() {
     cd "${THIS_DIR}/../";
     # test .semgrep.yml
@@ -118,8 +93,6 @@ PYTHONPATH=.. pytest .
 
 local_tests() {
     SEMGREP="python3 -m semgrep"
-    test_semgrep_explicit_hidden
-    test_semgrep_implicit_hidden
     test_semgrep_equivalence
     test_semgrep_autofix
     test_semgrep_exclude

@@ -1,4 +1,7 @@
 from pathlib import Path
+from subprocess import CalledProcessError
+
+import pytest
 
 
 def test_basic_rule__local(run_semgrep, snapshot):
@@ -34,3 +37,14 @@ def test_registry_rule(run_semgrep, snapshot):
     snapshot.assert_match(
         run_semgrep("r2c"), "results.json",
     )
+
+
+def test_hidden_rule__explicit(run_semgrep, snapshot):
+    snapshot.assert_match(run_semgrep("rules/hidden/.hidden"), "results.json")
+
+
+def test_hidden_rule__implicit(run_semgrep, snapshot):
+    with pytest.raises(CalledProcessError) as excinfo:
+        run_semgrep("rules/hidden", stderr=True)
+    assert excinfo.value.returncode == 2
+    snapshot.assert_match(excinfo.value.output, "error.txt")
