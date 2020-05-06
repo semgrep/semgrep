@@ -1,0 +1,26 @@
+Traceback (most recent call last):
+  File "/Users/underyx/.pyenv/versions/3.8.1/lib/python3.8/runpy.py", line 193, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/Users/underyx/.pyenv/versions/3.8.1/lib/python3.8/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "/Users/underyx/r2c/sgrep/semgrep/semgrep/__main__.py", line 21, in <module>
+    main()
+  File "/Users/underyx/r2c/sgrep/semgrep/semgrep/__main__.py", line 11, in main
+    cli()
+  File "/Users/underyx/r2c/sgrep/semgrep/semgrep/cli.py", line 245, in cli
+    semgrep.semgrep_main.main(args)
+  File "/Users/underyx/r2c/sgrep/semgrep/semgrep/semgrep_main.py", line 244, in main
+    rule_matches_by_rule, semgrep_errors = CoreRunner(
+  File "/Users/underyx/r2c/sgrep/semgrep/semgrep/core_runner.py", line 239, in invoke_semgrep
+    findings_by_rule = self._resolve_output(outputs)
+  File "/Users/underyx/r2c/sgrep/semgrep/semgrep/core_runner.py", line 224, in _resolve_output
+    findings.extend(evaluate(rule, pattern_matches, self._allow_exec))
+  File "/Users/underyx/r2c/sgrep/semgrep/semgrep/evaluation.py", line 153, in evaluate
+    valid_ranges_to_output = evaluate_expression(
+  File "/Users/underyx/r2c/sgrep/semgrep/semgrep/evaluation.py", line 205, in evaluate_expression
+    return _evaluate_expression(
+  File "/Users/underyx/r2c/sgrep/semgrep/semgrep/evaluation.py", line 237, in _evaluate_expression
+    remainining_ranges = _evaluate_expression(
+  File "/Users/underyx/r2c/sgrep/semgrep/semgrep/evaluation.py", line 244, in _evaluate_expression
+    assert (
+AssertionError: only `['pattern-either']` or `['patterns']` expressions can have multiple subpatterns

@@ -1,0 +1,4 @@
+[("id", (-976970511, "0.rules.syntax.test-pattern")); ["languages"; 65; (-976970511, "python")]; ("message", (-976970511, "<internalonly>")); ["pattern"; 65; [79; ("pattern", (-976970511, "$D = {}"))]]; ("severity", (-976970511, "WARNING"))]
+an internal error occured while invoking the semgrep engine: invalid yaml: wrong rule fields.
+
+An error occurred while invoking the semgrep engine; please help us fix this by filing an an issue at https://semgrep.dev
