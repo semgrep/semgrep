@@ -2,6 +2,13 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## Next Release
+
+### Added
+- `--exclude`, `--include`, `--exclude-dir`, and `--include-dir` flags
+  for targeting specific paths with command line options.
+  The behavior of these flags mimics `grep`'s behavior.
+
 ## [0.6.1](https://github.com/returntocorp/semgrep/releases/tag/v0.6.1) - 2020-05-06
 
 ### Fix
@@ -107,7 +114,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
     foo()
     ```
 
-## [0.4.9](https://github.com/returntocorp/sgrep/releases/tag/v0.4.9) - 2020-04-07
+## [0.4.9](https://github.com/returntocorp/semgrep/releases/tag/v0.4.9) - 2020-04-07
 
 ### Changed
 

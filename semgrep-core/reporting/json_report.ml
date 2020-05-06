@@ -1,17 +1,20 @@
 (*s: semgrep/reporting/json_report.ml *)
+(*s: pad/r2c copyright *)
 (* Yoann Padioleau
  *
- * Copyright (C) 2020 r2c
+ * Copyright (C) 2019-2020 r2c
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License (GPL)
- * version 2 as published by the Free Software Foundation.
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * version 2.1 as published by the Free Software Foundation, with the
+ * special exception on linking described in file license.txt.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * file license.txt for more details.
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
+ * license.txt for more details.
  *)
+(*e: pad/r2c copyright *)
 open Common
 open Ast_generic
 
@@ -74,7 +77,6 @@ let unique_id any =
       "md5sum", J.String (Digest.to_hex md5);
      ]
 (*e: function [[Json_report.unique_id]] *)
-
 
 (*****************************************************************************)
 (* JSON *)

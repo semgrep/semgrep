@@ -63,7 +63,7 @@ This should give you a basic idea of what the rule fields do.
 
 `semgrep` configuration can be specified in a number of ways:
 
-* A single YAML rule file, e.g. `--config /path/to/rules.yaml`, defaults to `.sgrep.yml`
+* A single YAML rule file, e.g. `--config /path/to/rules.yaml`, defaults to `.semgrep.yml`
 * A directory of YAML rule files ending in `.yml` or `.yaml`, e.g. `--config /path/to/rules`
 * A configuration URL, e.g. `--config https://rules.corp.com/semgrep.yml`
 * A registry name, e.g. `--config r2c.python`

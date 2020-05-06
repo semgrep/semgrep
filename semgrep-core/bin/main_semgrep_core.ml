@@ -53,9 +53,6 @@ let verbose = ref false
 (*e: constant [[Main_semgrep_core.verbose]] *)
 (*s: constant [[Main_semgrep_core.debug]] *)
 let debug = ref false
-(* try to continue processing files, even if one has a parse error with -e/f.
- * note that -rules_file does its own error recovery.
- *)
 (*e: constant [[Main_semgrep_core.debug]] *)
 (*s: constant [[Main_semgrep_core.error_recovery]] *)
 (* try to continue processing files, even if one has a parse error with -e/f.
@@ -67,17 +64,14 @@ let error_recovery = ref false
 (*s: constant [[Main_semgrep_core.pattern_string]] *)
 (* -e *)
 let pattern_string = ref ""
-(* -f *)
 (*e: constant [[Main_semgrep_core.pattern_string]] *)
 (*s: constant [[Main_semgrep_core.pattern_file]] *)
 (* -f *)
 let pattern_file = ref ""
-(* -rules_file *)
 (*e: constant [[Main_semgrep_core.pattern_file]] *)
 (*s: constant [[Main_semgrep_core.rules_file]] *)
 (* -rules_file *)
 let rules_file = ref ""
-(* -tainting_rules_file *)
 (*e: constant [[Main_semgrep_core.rules_file]] *)
 (*s: constant [[Main_semgrep_core.tainting_rules_file]] *)
 (* -tainting_rules_file *)
@@ -103,6 +97,9 @@ let includes = ref []
 (*s: constant [[Main_semgrep_core.exclude_dirs]] *)
 let exclude_dirs = ref []
 (*e: constant [[Main_semgrep_core.exclude_dirs]] *)
+(*s: constant [[Main_semgrep_core.include_dirs]] *)
+let include_dirs = ref []
+(*e: constant [[Main_semgrep_core.include_dirs]] *)
 
 (*s: constant [[Main_semgrep_core.output_format_json]] *)
 let output_format_json = ref false
@@ -183,7 +180,6 @@ let map f xs =
 (* TODO? could do slicing of function relative to the pattern, so 
  * would see where the parameters come from :)
  *)
-
 let mk_one_info_from_multiple_infos xs =
   List.hd xs
 (*e: function [[Main_semgrep_core.mk_one_info_from_multiple_infos]] *)
@@ -382,6 +378,7 @@ let filter_files files =
       ~excludes:!excludes 
       ~exclude_dirs:!exclude_dirs 
       ~includes:!includes
+      ~include_dirs:!include_dirs
   )
 (*e: function [[Main_semgrep_core.filter_files]] *)
 
@@ -713,6 +710,8 @@ let options () =
     " <GLOB> search only files whose basename matches GLOB";
     "-exclude-dir", Arg.String (fun s -> Common.push s exclude_dirs),
     " <DIR> exclude directories matching the pattern DIR";
+    "-include-dir", Arg.String (fun s -> Common.push s include_dirs),
+    " <DIR> search only in directories matching the pattern DIR";
 
     "-j", Arg.Set_int ncores, 
     " <int> number of cores to use (default = 1)";

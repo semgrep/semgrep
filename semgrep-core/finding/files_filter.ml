@@ -1,18 +1,20 @@
 (*s: semgrep/finding/files_filter.ml *)
+(*s: pad/r2c copyright *)
 (* Yoann Padioleau
  *
- * Copyright (C) 2020 r2c
+ * Copyright (C) 2019-2020 r2c
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
  * version 2.1 as published by the Free Software Foundation, with the
  * special exception on linking described in file license.txt.
- * 
+ *
  * This library is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
+(*e: pad/r2c copyright *)
 
 module Glob = Dune_glob__Glob
 
@@ -39,23 +41,24 @@ module Glob = Dune_glob__Glob
 type glob = Glob.t
 (*e: type [[Files_filter.glob]] *)
 
-(*s: type [[Files_filter.filters (semgrep/finding/files_filter.ml)]] *)
+(*s: type [[Files_filter.filters]] *)
 type filters = {
   excludes: glob list;
   includes: glob list;
   exclude_dirs: glob list;
+  include_dirs: glob list;
 }
-(*e: type [[Files_filter.filters (semgrep/finding/files_filter.ml)]] *)
+(*e: type [[Files_filter.filters]] *)
 
-(*s: exception [[Files_filter.GlobSyntaxError (semgrep/finding/files_filter.ml)]] *)
+(*s: exception [[Files_filter.GlobSyntaxError]] *)
 exception GlobSyntaxError of string
-(*e: exception [[Files_filter.GlobSyntaxError (semgrep/finding/files_filter.ml)]] *)
+(*e: exception [[Files_filter.GlobSyntaxError]] *)
 
 (*****************************************************************************)
 (* Parsing *)
 (*****************************************************************************)
 (*s: function [[Files_filter.mk_filters]] *)
-let mk_filters ~excludes ~includes ~exclude_dirs =
+let mk_filters ~excludes ~includes ~exclude_dirs ~include_dirs =
  try 
   { excludes = excludes |> List.map Glob.of_string;
     includes = 
@@ -63,6 +66,10 @@ let mk_filters ~excludes ~includes ~exclude_dirs =
       then [Glob.universal]
       else includes |> List.map Glob.of_string;
     exclude_dirs = exclude_dirs |> List.map Glob.of_string;
+    include_dirs = 
+      if include_dirs = []
+      then [Glob.universal]
+      else include_dirs |> List.map Glob.of_string;
   } 
  with Invalid_argument s -> raise (GlobSyntaxError s)
 (*e: function [[Files_filter.mk_filters]] *)
@@ -70,7 +77,6 @@ let mk_filters ~excludes ~includes ~exclude_dirs =
 (*****************************************************************************)
 (* Main entry point *)
 (*****************************************************************************)
-
 (*s: function [[Files_filter.filter]] *)
 let filter filters xs =
   xs |> List.filter (fun file ->
@@ -84,9 +90,10 @@ let filter filters xs =
     &&
     (filters.exclude_dirs |> List.for_all 
        (fun glob -> not (dirs |> List.exists (fun dir -> Glob.test glob dir))))
-    
+    &&
+    (filters.include_dirs |> List.exists 
+       (fun glob -> (dirs |> List.exists (fun dir -> Glob.test glob dir))))
  )
 (*e: function [[Files_filter.filter]] *)
-  
 
 (*e: semgrep/finding/files_filter.ml *)
