@@ -17,37 +17,6 @@ assert_output_equal () {
     fi
 }
 
-test_semgrep_local () {
-    cd "${THIS_DIR}/../";
-    $SEMGREP --json --strict --config tests/python/eqeq.yaml tests/lint -o tmp.out >/dev/null
-    assert_output_equal tmp.out tests/python/eqeq.expected.json
-    rm -f tmp.out
-}
-
-test_semgrep_non_json_output () {
-    cd "${THIS_DIR}/../";
-    $SEMGREP --strict --config tests/python/eqeq.yaml tests/lint -o tmp.out >/dev/null
-    assert_output_equal tmp.out tests/python/eqeq.expected.txt
-    rm -f tmp.out
-}
-
-test_semgrep_relative() {
-    # test relative paths
-    cd "${THIS_DIR}/../";
-    $SEMGREP --json --strict --config ../semgrep/tests/python/eqeq.yaml tests/lint -o tmp.out >/dev/null
-    assert_output_equal tmp.out tests/python/eqeq.expected.relative.json
-    rm -f tmp.out
-}
-
-test_semgrep_absolute() {
-    cd "${THIS_DIR}/../";
-    cp tests/python/eqeq.yaml /tmp
-    $SEMGREP --json --strict --config /tmp/eqeq.yaml tests/lint -o tmp.out >/dev/null
-    assert_output_equal tmp.out tests/python/eqeq.expected.directory.json
-    rm -f tmp.out
-    rm -f /tmp/eqeq.yaml
-}
-
 # Explicitly included hidden configs should be included
 test_semgrep_explicit_hidden() {
     cd "${THIS_DIR}/../";
@@ -72,19 +41,6 @@ test_semgrep_implicit_hidden() {
     rm -f tmp.out
 }
 
-test_semgrep_url_config() {
-    cd "${THIS_DIR}/../";
-    # test url paths
-    $SEMGREP --json --strict --config=https://raw.githubusercontent.com/returntocorp/semgrep-rules/develop/template.yaml tests/lint -o tmp.out >/dev/null
-    assert_output_equal tmp.out tests/python/eqeq.expected.remote.json
-    rm -f tmp.out
-}
-
-test_registry() {
-    $SEMGREP --json --strict --config=r2c tests/lint -o tmp.out >/dev/null
-    assert_output_equal tmp.out tests/python/eqeq.expected.registry.json
-    rm -f tmp.out
-}
 
 test_semgrep_default_file() {
     cd "${THIS_DIR}/../";
@@ -162,16 +118,8 @@ PYTHONPATH=.. pytest .
 
 local_tests() {
     SEMGREP="python3 -m semgrep"
-    test_semgrep_local
-    test_semgrep_relative
-    test_semgrep_absolute
-    test_semgrep_non_json_output
     test_semgrep_explicit_hidden
     test_semgrep_implicit_hidden
-    test_semgrep_url_config
-    test_registry
-    test_semgrep_default_file
-    test_semgrep_default_folder
     test_semgrep_equivalence
     test_semgrep_autofix
     test_semgrep_exclude
@@ -182,11 +130,6 @@ local_tests() {
 
 docker_tests() {
     SEMGREP="docker run --rm -v \"\${PWD}:/home/repo\" returntocorp/semgrep:develop"
-    test_semgrep_local
-    #test_semgrep_relative
-    #test_semgrep_absolute
-    test_semgrep_url_config
-    test_registry
     test_semgrep_default_file
     test_semgrep_default_folder
 }
