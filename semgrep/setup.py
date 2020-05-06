@@ -1,4 +1,5 @@
 # type: ignore
+import contextlib
 import distutils.util
 import os
 import sys
@@ -7,6 +8,18 @@ import setuptools
 from setuptools import setup
 from setuptools.command.install import install
 from wheel.bdist_wheel import bdist_wheel as _bdist_wheel
+
+
+@contextlib.contextmanager
+def chdir(dirname=None):
+    curdir = os.getcwd()
+    try:
+        if dirname is not None:
+            os.chdir(dirname)
+        yield
+    finally:
+        os.chdir(curdir)
+
 
 # from https://stackoverflow.com/questions/45150304/how-to-force-a-python-wheel-to-be-platform-specific-when-building-it # noqa
 
@@ -21,11 +34,11 @@ class bdist_wheel(_bdist_wheel):
         # this set's us up to build generic wheels.
         # note: we're only doing this for windows right now (causes packaging issues
         # with osx)
-        if not sys.platform.startswith("win"):
-            return _bdist_wheel.get_tag(self)
+        _, _, plat = _bdist_wheel.get_tag(self)
+        # We don't need cPython
+        python = ".".join(["py36", "py37", "py38"])
+        abi = "none"
 
-        python, abi, plat = _bdist_wheel.get_tag(self)
-        python, abi = "py2.py3", "none"
         return python, abi, plat
 
 
@@ -55,8 +68,9 @@ class PostInstallCommand(install):
         else:
             repo_root = os.path.dirname(source_dir)
             if "osx" in distutils.util.get_platform():
-                os.system(os.path.join(repo_root, "release-scripts/osx-release.sh"))
-                source = "artifacts/semgrep-core"
+                with chdir(repo_root):
+                    os.system(os.path.join(repo_root, "release-scripts/osx-release.sh"))
+                    source = os.path.join(repo_root, "artifacts/semgrep-core")
             else:
                 raise Exception("Unsupported platform")
 
