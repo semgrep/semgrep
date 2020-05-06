@@ -12,17 +12,17 @@ type filters = {
   excludes: glob list;
   includes: glob list;
   exclude_dirs: glob list;
+  include_dirs: glob list;
 }
 (*e: type [[Files_filter.filters]] *)
 
 (*s: exception [[Files_filter.GlobSyntaxError]] *)
 exception GlobSyntaxError of string
-(* may raise GlobSyntaxError *)
 (*e: exception [[Files_filter.GlobSyntaxError]] *)
 (*s: signature [[Files_filter.mk_filters]] *)
 (* may raise GlobSyntaxError *)
 val mk_filters: 
-  excludes: string list -> includes: string list -> exclude_dirs: string list->
+  excludes: string list -> includes: string list -> exclude_dirs: string list -> include_dirs: string list ->
   filters
 (*e: signature [[Files_filter.mk_filters]] *)
 

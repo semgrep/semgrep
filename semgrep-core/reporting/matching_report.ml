@@ -25,8 +25,7 @@ module PI = Parse_info
 (* Types *)
 (*****************************************************************************)
 
-(*s: type [[Matching_report.match_format (semgrep/reporting/matching_report.ml)]] *)
-(* could perhaps create a special file related to display of code? *)
+(*s: type [[Matching_report.match_format]] *)
 type match_format =
   (* ex: tests/misc/foo4.php:3
    *  foo(
@@ -38,7 +37,7 @@ type match_format =
   | Emacs
   (* ex: tests/misc/foo4.php:3: foo(1,2) *)
   | OneLine
-(*e: type [[Matching_report.match_format (semgrep/reporting/matching_report.ml)]] *)
+(*e: type [[Matching_report.match_format]] *)
 
 (*****************************************************************************)
 (* Helpers *)
