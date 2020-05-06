@@ -24,6 +24,13 @@ test_semgrep_local () {
     rm -f tmp.out
 }
 
+test_semgrep_non_json_output () {
+    cd "${THIS_DIR}/../";
+    $SEMGREP --strict --config tests/python/eqeq.yaml tests/lint -o tmp.out >/dev/null
+    assert_output_equal tmp.out tests/python/eqeq.expected.txt
+    rm -f tmp.out
+}
+
 test_semgrep_relative() {
     # test relative paths
     cd "${THIS_DIR}/../";
@@ -143,6 +150,8 @@ test_semgrep_include_dir () {
     rm -f tmp.out
 }
 
+
+
 echo "-----------------------"
 echo "starting lint tests"
 
@@ -156,6 +165,7 @@ local_tests() {
     test_semgrep_local
     test_semgrep_relative
     test_semgrep_absolute
+    test_semgrep_non_json_output
     test_semgrep_explicit_hidden
     test_semgrep_implicit_hidden
     test_semgrep_url_config
