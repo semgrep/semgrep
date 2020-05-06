@@ -42,14 +42,20 @@ class bdist_wheel(_bdist_wheel):
         return python, abi, plat
 
 
-with open("../README.md") as f:
-    long_description = f.read()
+try:
+    with open("../README.md") as f:
+        long_description = f.read()
+except FileNotFoundError:
+    long_description = ""
 
 
 class PostInstallCommand(install):
     """Post-installation for installation mode."""
 
     def run(self):
+        if "TOX_ENV_NAME" in os.environ:
+            print("Not attempting to install binary while running under tox")
+            return
         # So ths builds the executable, and even installs it
         # but we can't install to the bin directory:
         #     https://github.com/pypa/setuptools/issues/210#issuecomment-216657975
