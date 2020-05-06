@@ -30,6 +30,7 @@ repos:
     rev: "v0.761"
     hooks:
       - id: mypy
+        exclude: ^semgrep/tests/.+$
         args: [--config, mypy.ini]
 
   - repo: https://gitlab.com/pycqa/flake8
