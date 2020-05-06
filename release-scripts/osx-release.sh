@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e
-brew install opam pkg-config coreutils
+brew bundle
 opam init --no-setup --bare;
 opam switch create 4.07.1;
 opam switch 4.07.1;
