@@ -113,6 +113,33 @@ test_semgrep_autofix() {
     cd "${THIS_DIR}/../";
     $SEMGREP --json --strict --config=tests/python/autofix.yml tests/lint/autofix.py -o tmp.out >/dev/null
     assert_output_equal tmp.out tests/python/autofix.expected.json
+}
+
+test_semgrep_exclude () {
+    cd "${THIS_DIR}/../";
+    $SEMGREP --json --strict --config tests/python/eqeq.yaml --include '*.py' tests/lint -o tmp.out >/dev/null
+    assert_output_equal tmp.out tests/python/eqeq.include.json
+    rm -f tmp.out
+}
+
+test_semgrep_include () {
+    cd "${THIS_DIR}/../";
+    $SEMGREP --json --strict --config tests/python/eqeq.yaml --exclude '*.py' tests/lint -o tmp.out >/dev/null
+    assert_output_equal tmp.out tests/python/eqeq.exclude.json
+    rm -f tmp.out
+}
+
+test_semgrep_exclude_dir () {
+    cd "${THIS_DIR}/../";
+    $SEMGREP --json --strict --config tests/python/eqeq.yaml --exclude-dir 'excluded_dir' tests/lint tests/excluded_dir -o tmp.out >/dev/null
+    assert_output_equal tmp.out tests/python/eqeq.exclude_dir.json
+    rm -f tmp.out
+}
+
+test_semgrep_include_dir () {
+    cd "${THIS_DIR}/../";
+    $SEMGREP --json --strict --config tests/python/eqeq.yaml --include-dir 'lint' tests/lint tests/excluded_dir -o tmp.out >/dev/null
+    assert_output_equal tmp.out tests/python/eqeq.include_dir.json
     rm -f tmp.out
 }
 
@@ -137,6 +164,10 @@ local_tests() {
     test_semgrep_default_folder
     test_semgrep_equivalence
     test_semgrep_autofix
+    test_semgrep_exclude
+    test_semgrep_include
+    test_semgrep_exclude_dir
+    test_semgrep_include_dir
 }
 
 docker_tests() {
