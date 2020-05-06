@@ -1,7 +1,0 @@
-tests/lint/stupid.js
-ERROR rule:tests.python.javascript-basic-eqeq-bad: useless comparison
-3:console.log(x == x)
-
-tests/lint/stupid.py
-ERROR rule:tests.python.eqeq-is-bad: useless comparison operation `a+b == a+b` or `a+b != a+b`; possible bug?
-3:    return a + b == a + b
