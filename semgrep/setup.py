@@ -107,7 +107,7 @@ setup(
     name="semgrep",  # Replace with your own username
     version="0.6.0",
     author="Russell & Return 2 Corp",
-    author_email="support@returntocorp.com",
+    author_email="support@r2c.dev",
     description="like grep but for code: fast and syntax-aware semantic code pattern search for many languages",
     cmdclass={"install": PostInstallCommand, "bdist_wheel": bdist_wheel},
     long_description=long_description,
