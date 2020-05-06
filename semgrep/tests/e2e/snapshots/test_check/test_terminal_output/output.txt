@@ -1,0 +1,7 @@
+[32mtargets/basic/stupid.js[0m
+[31mERROR [33mrule:rules.javascript-basic-eqeq-bad: useless comparison[0m
+[32m3[0m:console.log([1mx == x)[0m
+
+[32mtargets/basic/stupid.py[0m
+[31mERROR [33mrule:rules.eqeq-is-bad: useless comparison operation `a+b == a+b` or `a+b != a+b`; possible bug?[0m
+[32m3[0m:    return [1ma + b == a + b[0m
