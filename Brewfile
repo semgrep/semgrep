@@ -1,4 +1,4 @@
 brew 'opam'
 brew 'pkg-config'
 brew 'coreutils'
-brew 'wget'
+brew 'openssl@1.1'
