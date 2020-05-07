@@ -99,13 +99,9 @@ def build_output_json(rule_matches: List[RuleMatch], semgrep_errors: List[Any]) 
     # https://docs.r2c.dev/en/latest/api/output.html#errors
     output_json = {}
     output_json["results"] = [rm.to_json() for rm in rule_matches]
-
-    errors = []
-    for error in semgrep_errors:
-        errors.append(
-            {"data": semgrep_errors, "message": "SemgrepCoreRuntimeErrors",}
-        )
-    output_json["errors"] = errors
+    output_json["errors"] = [
+        {"data": e, "message": "SemgrepCoreRuntimeErrors"} for e in semgrep_errors
+    ]
     return json.dumps(output_json)
 
 
