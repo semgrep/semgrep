@@ -1,0 +1,22 @@
+name: test
+
+on:
+  push:
+    # Sequence of patterns matched against refs/tags
+    tags:
+    - 'testing*' # Push events to matching v*, i.e. v1.0, v20.15.10
+
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Get version printed out by semgrep --version
+        run: (cd semgrep && python3 -m semgrep --version) | tee semgrep_version
+      - name: Get Tagged Version
+        id: get_version
+        run: echo ${GITHUB_REF/refs\/tags\/testing/} | tee tagged_version
+      - name: Check tagged_version and semgrep_version are the same
+        run: diff tagged_version semgrep_version
