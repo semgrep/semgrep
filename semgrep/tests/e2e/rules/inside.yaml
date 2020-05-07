@@ -1,0 +1,10 @@
+rules:
+  - id: open-from-request
+    patterns:
+      - pattern-inside: |
+          $X = request.get("...")
+          ...
+      - pattern: open($X)
+    languages: [python]
+    severity: ERROR
+    message: Unsafe open from request data

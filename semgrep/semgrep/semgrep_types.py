@@ -1,9 +1,10 @@
 from typing import Any
 from typing import List
+from typing import Mapping
 from typing import NamedTuple
 from typing import NewType
 from typing import Optional
-
+from typing import Set
 
 PatternId = NewType("PatternId", str)
 Operator = NewType("Operator", str)
@@ -118,9 +119,42 @@ def pattern_names_for_operators(operators: List[Operator]) -> List[str]:
 class Range(NamedTuple):
     start: int
     end: int
+    vars: Mapping[str, Any]
 
     def is_enclosing_or_eq(self, other_range: "Range") -> bool:
-        return self.start <= other_range.start and other_range.end <= self.end
+        return (
+            self.start <= other_range.start
+            and other_range.end <= self.end
+            and self.vars_match(other_range)
+        )
+
+    def vars_match(self, rhs: "Range") -> bool:
+        """
+        Returns true if and only if all metavariables that match as variable nodes in either
+        this or the other Range refer to the same identical variable nodes, in the same scope
+
+        That is, if two patterns define a "$X", and $X refers to a variable in one pattern, then
+        $X must refer to the same variable in both patterns
+        :param rhs: The other Range
+        """
+        to_match = set(self.vars.keys()).intersection(rhs.vars.keys())
+        return all(
+            v in self.vars and v in rhs.vars and self.vars[v] == rhs.vars[v]
+            for v in to_match
+        )
 
     def __repr__(self) -> str:
-        return f"{self.start}-{self.end}"
+        return f"{self.start}-{self.end} { {m: self.vars.get(m, 'None') for m in self.vars} }"
+
+    def __hash__(self) -> int:
+        return hash((self.start, self.end))
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, type(self)):
+            return False
+
+        return (
+            self.start == other.start
+            and self.end == other.end
+            and self.vars_match(other)
+        )
