@@ -130,8 +130,8 @@ class Range(NamedTuple):
 
     def vars_match(self, rhs: "Range") -> bool:
         """
-        Returns true if and only if all metavariables that match as variable nodes in either
-        this or the other Range refer to the same identical variable nodes, in the same scope
+        Returns true if and only if all metavariables in both this and the other Range refer to the same
+        variables (if variable nodes), in the same scope, or the same expressions (if expression nodes).
 
         That is, if two patterns define a "$X", and $X refers to a variable in one pattern, then
         $X must refer to the same variable in both patterns
