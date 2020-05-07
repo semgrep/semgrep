@@ -9,6 +9,11 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   for targeting specific paths with command line options.
   The behavior of these flags mimics `grep`'s behavior.
 
+## [0.6.1](https://github.com/returntocorp/semgrep/releases/tag/v0.6.1) - 2020-05-06
+
+### Fix
+
+- Message field in output was not using proper interpolated message
 
 ## [0.6.0](https://github.com/returntocorp/semgrep/releases/tag/v0.6.0) - 2020-05-05
 
