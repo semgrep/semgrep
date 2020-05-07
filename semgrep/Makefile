@@ -13,3 +13,12 @@ install:
 .PHONY: qa-test
 qa-test:
 	pipenv run pytest tests/ --qa
+
+.PHONY: benchmark
+benchmark:
+	pipenv run pytest tests/ --benchmark-only $(ARGS)
+
+.PHONY: benchmark-snapshot
+benchmark-snapshot:
+	@read -p "Name your snapshot: " snapshot_name;\
+	pipenv run pytest tests/ --benchmark-only --benchmark-save=$$snapshot_name $(ARGS)
