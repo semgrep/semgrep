@@ -32,19 +32,19 @@ Example patterns:
 
 ## Installation
 
-Install `semgrep` with [Docker](https://docs.docker.com/install/):
-
-```bash
-docker pull returntocorp/semgrep
-```
-
-On OSX, binaries are available via [Homebrew](https://brew.sh/):
+On macOS, binaries are available via [Homebrew](https://brew.sh/):
 
 ```bash
 brew install returntocorp/semgrep/semgrep
 ```
 
 On Ubuntu, an install script is available [here](https://github.com/returntocorp/semgrep/releases/download/v0.6.0/semgrep-v0.6.0-ubuntu-generic.sh)
+
+To try `semgrep` without installation, you can also run it via [Docker](https://docs.docker.com/install/):
+
+```
+docker run --rm -v "${PWD}:/home/repo" returntocorp/semgrep --help
+```
 
 ## Usage
 
@@ -63,7 +63,7 @@ def get_node(node_id, nodes):
 This is a bug. Let's use `semgrep` to find bugs like it, using a simple search pattern: `$X == $X`. It will find all places in our code where the left- and right-hand sides of a comparison are the same expression:
 
 ```
-$ docker run --rm -v "${PWD}:/home/repo" returntocorp/semgrep --lang python --pattern '$X == $X' test.py
+$ semgrep --lang python --pattern '$X == $X' test.py
 test.py
 rule:python.deadcode.eqeq-is-bad: useless comparison operation `node.id == node.id` or `node.id != node.id`.
 3:        if node.id == node.id:  # Oops, supposed to be 'node_id'
@@ -75,7 +75,7 @@ You can use rules developed by [r2c](https://r2c.dev) to search for issues in yo
 
 ```bash
 cd /path/to/code
-docker run --rm -v "${PWD}:/home/repo" returntocorp/semgrep --config r2c
+semgrep --config r2c
 ```
 
 ### Custom Rules
@@ -84,8 +84,8 @@ You can also [create your own rules](docs/configuration-files.md):
 
 ```bash
 cd /path/to/code
-docker run --rm -v "${PWD}:/home/repo" returntocorp/semgrep --generate-config
-docker run --rm -v "${PWD}:/home/repo" returntocorp/semgrep
+semgrep --generate-config
+semgrep
 ```
 
 ## Configuration
@@ -95,13 +95,13 @@ operation is useful for quickly iterating on a pattern on a single file or
 folder:
 
 ```bash
-docker run --rm -v "${PWD}:/home/repo" returntocorp/semgrep --lang javascript --pattern 'eval(...)' path/to/file.js
+semgrep --lang javascript --pattern 'eval(...)' path/to/file.js
 ```
 
 To fine-tune your searching, specify the `--help` flag:
 
 ```bash
-docker run --rm returntocorp/semgrep --help
+semgrep --help
 ```
 
 ### Configuration Files
@@ -190,7 +190,7 @@ of configuration files. These rules have been tuned on thousands of repositories
 using our [analysis platform](https://app.r2c.dev).
 
 ```bash
-docker run --rm -v "${PWD}:/home/repo" returntocorp/semgrep --config r2c
+semgrep --config r2c
 ```
 
 ## Resources
