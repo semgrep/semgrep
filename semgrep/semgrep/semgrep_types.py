@@ -138,10 +138,7 @@ class Range(NamedTuple):
         :param rhs: The other Range
         """
         to_match = set(self.vars.keys()).intersection(rhs.vars.keys())
-        return all(
-            v in self.vars and v in rhs.vars and self.vars[v] == rhs.vars[v]
-            for v in to_match
-        )
+        return all(self.vars[v] == rhs.vars[v] for v in to_match)
 
     def __repr__(self) -> str:
         return f"{self.start}-{self.end} { {m: self.vars.get(m, 'None') for m in self.vars} }"
