@@ -1,3 +1,6 @@
+from enum import auto
+from enum import Enum
+
 RCE_RULE_FLAG = "--dangerously-allow-arbitrary-code-execution-from-rules"
 RULES_KEY = "rules"
 SEMGREP_USER_AGENT = "semgrep-give-me-yaml"
@@ -12,3 +15,9 @@ DEFAULT_CONFIG_FOLDER = f".{DEFAULT_SEMGREP_CONFIG_NAME}"
 YML_EXTENSIONS = {".yml", ".yaml"}
 
 SEMGREP_PATH = "semgrep-core"
+
+
+class OutputFormat(Enum):
+    TEXT = auto()
+    JSON = auto()
+    SARIF = auto()

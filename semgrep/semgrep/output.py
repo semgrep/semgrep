@@ -8,6 +8,7 @@ from typing import List
 import colorama
 
 from semgrep import __VERSION__
+from semgrep.constants import OutputFormat
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 
@@ -141,16 +142,17 @@ def build_output(
     rule_matches: List[RuleMatch],
     rules: FrozenSet[Rule],
     semgrep_errors: List[Any],
-    output_format: str,
+    output_format: OutputFormat,
     color_output: bool,
 ) -> str:
-    if output_format == "json":
+    if output_format == OutputFormat.JSON:
         return build_output_json(rule_matches, semgrep_errors)
-    elif output_format == "sarif":
+    elif output_format == OutputFormat.SARIF:
         return build_sarif_output(rule_matches, rules, semgrep_errors)
-    elif output_format == "normal":
+    elif output_format == OutputFormat.TEXT:
         return "\n".join(
             build_normal_output(rule_matches, semgrep_errors, color_output)
         )
     else:
-        raise RuntimeError(f"Not sure how to format as '{output_format}'")
+        # https://github.com/python/mypy/issues/6366
+        raise RuntimeError(f"Unhandled output format: {type(output_format).__name__}")

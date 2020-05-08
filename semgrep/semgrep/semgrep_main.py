@@ -13,6 +13,7 @@ import semgrep.config_resolver
 from semgrep.autofix import apply_fixes
 from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import ID_KEY
+from semgrep.constants import OutputFormat
 from semgrep.constants import RULES_KEY
 from semgrep.core_runner import CoreRunner
 from semgrep.output import build_output
@@ -283,13 +284,13 @@ def main(args: argparse.Namespace) -> str:
     return output
 
 
-def _output_format(args: Any) -> str:
+def _output_format(args: Any) -> OutputFormat:
     if args.sarif:
-        return "sarif"
+        return OutputFormat.SARIF
     elif args.json:
-        return "json"
+        return OutputFormat.JSON
     else:
-        return "normal"
+        return OutputFormat.TEXT
 
 
 def handle_output(
