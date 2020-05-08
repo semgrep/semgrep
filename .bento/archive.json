@@ -31,7 +31,16 @@
     "violations": {}
   },
   "flake8": {
-    "violations": {}
+    "violations": {
+      "1e70dbd8bd37a36bd5f32a0d1e5bc2dc": {
+        "tool_id": "flake8",
+        "check_id": "redefined-unused-name",
+        "path": "semgrep/semgrep/cli.py",
+        "message": "redefinition of unused 'metadata' from line 19",
+        "severity": 2,
+        "syntactic_context": "import importlib_metadata as metadata  # type: ignore"
+      }
+    }
   },
   "hadolint": {
     "violations": {

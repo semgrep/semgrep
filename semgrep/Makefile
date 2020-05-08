@@ -11,4 +11,5 @@ install:
 	ln -sf /usr/local/bin/semgrep-files/semgrep /usr/local/bin/semgrep
 
 .PHONY: qa-test
-qa-test: pipenv run pytest tests/ --qa
+qa-test:
+	pipenv run pytest tests/ --qa
