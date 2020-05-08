@@ -20,7 +20,9 @@ RUN semgrep-core/_build/default/bin/main_semgrep_core.exe -version
 ## semgrep build
 
 FROM python:3.7.7-alpine3.11 as build-semgrep
-RUN apk add --no-cache python3-dev build-base chrpath
+RUN apk add --no-cache python3-dev build-base chrpath git
+# The Python builder loads the tag info from git
+COPY .git /home/pythonbuild/.git
 COPY semgrep /home/pythonbuild/semgrep/
 WORKDIR /home/pythonbuild/semgrep
 RUN make all
