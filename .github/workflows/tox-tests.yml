@@ -24,7 +24,7 @@ jobs:
         env:
           AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Install Tox and any other packages
-        run: pip install tox
+        run: pip install tox wheel setuptools
       - name: Run Tox
         run: |
           cd semgrep
