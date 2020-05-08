@@ -3,12 +3,12 @@ all:
 clean:
 	rm -rf ./build/
 test:
-	PYTHONPATH=. pytest tests/
+	pipenv run pytest tests/
 regenerate-tests:
-	PYTHONPATH=. pytest tests/ --snapshot-update
+	pipenv run pytest tests/ --snapshot-update
 install:
 	cp -rv ./build/semgrep.dist/ /usr/local/bin/semgrep-files/
 	ln -sf /usr/local/bin/semgrep-files/semgrep /usr/local/bin/semgrep
 
 .PHONY: qa-test
-qa-test: PYTHONPATH=. pytest tests/ --qa
+qa-test: pipenv run pytest tests/ --qa
