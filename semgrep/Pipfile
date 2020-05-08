@@ -1,0 +1,18 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+# needs to be pinned because
+# https://github.com/tox-dev/tox-pipenv/issues/61
+pytest = "*"
+wheel = "*"
+tox = "*"
+pytest-snapshot = "*"
+
+[packages]
+semgrep = {editable = true,path = "."}
+
+[requires]
+python_version = "3.7"
