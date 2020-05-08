@@ -1,0 +1,44 @@
+{
+  "errors": [],
+  "results": [
+    {
+      "check_id": "rules.open-from-request",
+      "end": {
+        "col": 14,
+        "line": 4
+      },
+      "extra": {
+        "lines": "    open(path)",
+        "message": "Unsafe open from request data",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "path",
+            "end": {
+              "col": 14,
+              "line": 4,
+              "offset": 95
+            },
+            "start": {
+              "col": 10,
+              "line": 4,
+              "offset": 91
+            },
+            "unique_id": {
+              "kind": "Local",
+              "sid": 2,
+              "type": "id",
+              "value": "path"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/basic/inside.py",
+      "start": {
+        "col": 5,
+        "line": 4
+      }
+    }
+  ]
+}

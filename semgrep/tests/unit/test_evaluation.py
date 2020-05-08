@@ -33,7 +33,7 @@ def PatternMatchMock(
     start: int, end: int, metavars: Optional[Dict[str, Any]] = None
 ) -> MagicMock:
     mock = MagicMock()
-    range_property = PropertyMock(return_value=Range(start, end))
+    range_property = PropertyMock(return_value=Range(start, end, metavars or {}))
     type(mock).range = range_property
     metavars_property = PropertyMock(return_value=metavars)
     type(mock).metavars = metavars_property
@@ -77,7 +77,7 @@ def testA() -> None:
         RuleExpr(OPERATORS.AND, "pattern2"),
     ]
     result = evaluate_expression(expression, results)
-    assert result == set([Range(0, 100)]), f"{result}"
+    assert result == set([Range(0, 100, {})]), f"{result}"
 
 
 def testB() -> None:
@@ -114,7 +114,7 @@ def testB() -> None:
         ),
     ]
     result = evaluate_expression(expression, results)
-    assert result == set([Range(30, 70)]), f"{result}"
+    assert result == set([Range(30, 70, {})]), f"{result}"
 
 
 def testC() -> None:
@@ -149,7 +149,7 @@ def testC() -> None:
         RuleExpr(OPERATORS.AND, "pattern2"),
     ]
     result = evaluate_expression(expression, results)
-    assert result == set([Range(200, 300)]), f"{result}"
+    assert result == set([Range(200, 300, {})]), f"{result}"
 
 
 def testD() -> None:
@@ -225,7 +225,7 @@ def testE() -> None:
         RuleExpr(OPERATORS.AND, "pattern1"),
     ]
     result = evaluate_expression(expression, results)
-    assert result == set([Range(300, 400), Range(350, 400)]), f"{result}"
+    assert result == set([Range(300, 400, {}), Range(350, 400, {})]), f"{result}"
 
     """
         and-inside P2
@@ -239,7 +239,7 @@ def testE() -> None:
         RuleExpr(OPERATORS.AND, "pattern1"),
     ]
     result = evaluate_expression(expression, results)
-    assert result == set([Range(100, 200)]), f"{result}"
+    assert result == set([Range(100, 200, {})]), f"{result}"
 
     """
         and-inside P1
@@ -248,7 +248,12 @@ def testE() -> None:
     expression = [RuleExpr(OPERATORS.AND_INSIDE, "pattern1")]
     result = evaluate_expression(expression, results)
     assert result == set(
-        [Range(100, 200), Range(300, 400), Range(350, 400), Range(500, 600)]
+        [
+            Range(100, 200, {}),
+            Range(300, 400, {}),
+            Range(350, 400, {}),
+            Range(500, 600, {}),
+        ]
     ), f"{result}"
 
     """
@@ -336,7 +341,7 @@ def testF() -> None:
     ]
     result = evaluate_expression(expression, results)
     assert result == set(
-        [Range(100, 200), Range(500, 600), Range(700, 800)]
+        [Range(100, 200, {}), Range(500, 600, {}), Range(700, 800, {})]
     ), f"{result}"
 
     # TODO test and-all (`patterns` subkey)
@@ -474,4 +479,4 @@ def test_evaluate_python() -> None:
     ]
 
     result = evaluate_expression(expression, results, flags={RCE_RULE_FLAG: True})
-    assert result == set([Range(400, 500)]), f"{result}"
+    assert result == set([Range(400, 500, {})]), f"{result}"
