@@ -1,4 +1,4 @@
-# semgrep
+# Semgrep
 
 ![Homebrew](https://github.com/returntocorp/homebrew-semgrep/workflows/homebrew/badge.svg)
 [![r2c Community Slack](https://img.shields.io/badge/r2c_slack-join-brightgreen?style=flat&logo=slack&labelColor=4A154B)](https://join.slack.com/t/r2c-community/shared_invite/enQtNjU0NDYzMjAwODY4LWE3NTg1MGNhYTAwMzk5ZGRhMjQ2MzVhNGJiZjI1ZWQ0NjQ2YWI4ZGY3OGViMGJjNzA4ODQ3MjEzOWExNjZlNTA)
@@ -38,7 +38,10 @@ On macOS, binaries are available via [Homebrew](https://brew.sh/):
 brew install returntocorp/semgrep/semgrep
 ```
 
-On Ubuntu, an install script is available [here](https://github.com/returntocorp/semgrep/releases/download/v0.6.0/semgrep-v0.6.0-ubuntu-generic.sh)
+On Ubuntu, an install script is available on each release [here](https://github.com/returntocorp/semgrep/releases/download/v0.6.1/semgrep-v0.6.1-ubuntu-generic.sh)
+```bash
+./semgrep-v0.6.1-ubuntu-generic.sh
+```
 
 To try `semgrep` without installation, you can also run it via [Docker](https://docs.docker.com/install/):
 
@@ -65,27 +68,7 @@ This is a bug. Let's use `semgrep` to find bugs like it, using a simple search p
 ```
 $ semgrep --lang python --pattern '$X == $X' test.py
 test.py
-rule:python.deadcode.eqeq-is-bad: useless comparison operation `node.id == node.id` or `node.id != node.id`.
 3:        if node.id == node.id:  # Oops, supposed to be 'node_id'
-```
-
-### r2c-developed Rules
-
-You can use rules developed by [r2c](https://r2c.dev) to search for issues in your codebase:
-
-```bash
-cd /path/to/code
-semgrep --config r2c
-```
-
-### Custom Rules
-
-You can also [create your own rules](docs/configuration-files.md):
-
-```bash
-cd /path/to/code
-semgrep --generate-config
-semgrep
 ```
 
 ## Configuration
@@ -96,12 +79,6 @@ folder:
 
 ```bash
 semgrep --lang javascript --pattern 'eval(...)' path/to/file.js
-```
-
-To fine-tune your searching, specify the `--help` flag:
-
-```bash
-semgrep --help
 ```
 
 ### Configuration Files
@@ -135,7 +112,7 @@ to a variable.
 
 #### Composing Patterns
 
-You can also construct rules by composing multiple patterns together. 
+You can also construct rules by composing multiple patterns together.
 
 Let's consider an example:
 
@@ -168,14 +145,15 @@ see the [configuration documentation](docs/configuration-files.md).**
 
 Equivalences are another key concept in `semgrep`. `semgrep` automatically searches
 for code that is semantically equivalent. For example, the following patterns
-are semantically equivalent
+are semantically equivalent. The pattern `subprocess.Popen(...)` will fire on both.
 
 ```python
-subprocess.Popen(...)
+subprocess.Popen("ls")
 ```
 
 ```python
 from subprocess import Popen as sub_popen
+
 result = sub_popen("ls")
 ```
 
@@ -195,7 +173,7 @@ semgrep --config r2c
 
 ## Resources
 
-* [`semgrep` presentation at HellaSecure](https://www.youtube.com/watch?v=M586wePrwYs) and [slides](https://bit.ly/hella-secure-semgrep) 
+* [`semgrep` presentation at HellaSecure](https://www.youtube.com/watch?v=M586wePrwYs) and [slides](https://bit.ly/hella-secure-semgrep)
 * [Pattern features documentation](docs/pattern-features.md)
 * [Configuration files documentation](docs/configuration-files.md)
 * [Integrations](docs/integrations.md)
@@ -210,6 +188,6 @@ semgrep --config r2c
 
 ## Commercial Support
 
-`semgrep` is proudly supported by [r2c](https://r2c.dev). We're hiring! 
+`semgrep` is proudly supported by [r2c](https://r2c.dev). We're hiring!
 
 Interested in a fully-supported, hosted version of semgrep? [Drop your email](https://forms.gle/dpUUvSo1WtELL8DW6) and we'll ping you!
