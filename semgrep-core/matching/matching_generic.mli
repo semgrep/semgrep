@@ -23,16 +23,16 @@ type tout = tin list
 type ('a, 'b) matcher = 'a -> 'b -> tin -> tout
 (*e: type [[Matching_generic.matcher]] *)
 
-(*s: signature [[Matching_generic.TODOOPERATOR]] *)
 (* monadic combinators *)
+(*s: signature [[Matching_generic.TODOOPERATOR]] *)
 val ( >>= ) : (tin -> tout) -> (unit -> tin -> tout) -> tin -> tout
 (*e: signature [[Matching_generic.TODOOPERATOR]] *)
-(*s: signature [[Matching_generic.TODOOPERATOR (semgrep/matching/matching_generic.mli)]] *)
+(*s: signature [[Matching_generic.TODOOPERATOR2]] *)
 val ( >||> ) : (tin -> tout) -> (tin -> tout) -> tin -> tout
-(*e: signature [[Matching_generic.TODOOPERATOR (semgrep/matching/matching_generic.mli)]] *)
-(*s: signature [[Matching_generic.TODOOPERATOR (semgrep/matching/matching_generic.mli)2]] *)
+(*e: signature [[Matching_generic.TODOOPERATOR2]] *)
+(*s: signature [[Matching_generic.TODOOPERATOR3]] *)
 val ( >!> ) : (tin -> tout) -> (unit -> tin -> tout) -> tin -> tout
-(*e: signature [[Matching_generic.TODOOPERATOR (semgrep/matching/matching_generic.mli)2]] *)
+(*e: signature [[Matching_generic.TODOOPERATOR3]] *)
 
 (*s: signature [[Matching_generic.return]] *)
 val return : unit -> tin -> tout
