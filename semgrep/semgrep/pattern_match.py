@@ -35,8 +35,17 @@ class PatternMatch:
         return self._raw_json["extra"]
 
     @property
+    def vars(self) -> Dict[str, Any]:
+        metavars = {v: data.get("unique_id", {}) for v, data in self.metavars.items()}
+        return {v: uid.get("sid", "md5sum") for v, uid in metavars.items()}
+
+    @property
     def range(self) -> Range:
-        return Range(self._raw_json["start"]["offset"], self._raw_json["end"]["offset"])
+        return Range(
+            self._raw_json["start"]["offset"],
+            self._raw_json["end"]["offset"],
+            self.vars,
+        )
 
     @property
     def start(self) -> Dict[str, Any]:
