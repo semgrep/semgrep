@@ -1,5 +1,5 @@
 #!/bin/bash
 set -e
 mkdir -p artifacts
-echo "semgrep" > artifacts/semgrep
+echo "semgrep-core" > artifacts/semgrep-core
 zip -r artifacts.zip artifacts

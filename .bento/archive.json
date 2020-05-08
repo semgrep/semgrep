@@ -1,6 +1,22 @@
 {
   "bandit": {
     "violations": {
+      "3d0e53b239ed4229f9a0cc161e437fc3": {
+        "tool_id": "bandit",
+        "check_id": "start-process-with-a-shell",
+        "path": "semgrep/setup.py",
+        "message": "Starting a process with a shell, possible injection detected, security issue.",
+        "severity": 2,
+        "syntactic_context": "os.system(\n    os.path.join(repo_root, \"release-scripts/ubuntu-release.sh\")"
+      },
+      "ea9a33e97f911758b19908cde2b0e6b0": {
+        "tool_id": "bandit",
+        "check_id": "start-process-with-a-shell",
+        "path": "semgrep/setup.py",
+        "message": "Starting a process with a shell, possible injection detected, security issue.",
+        "severity": 2,
+        "syntactic_context": "os.system(os.path.join(repo_root, \"release-scripts/osx-release.sh\"))"
+      },
       "a03ece7b789bad80c977f90f382c0fac": {
         "tool_id": "bandit",
         "check_id": "exec-used",
