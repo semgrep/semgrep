@@ -82,8 +82,8 @@ let tainting_rules_file = ref ""
 let equivalences_file = ref ""
 (*e: constant [[Main_semgrep_core.equivalences_file]] *)
 
-(*s: constant [[Main_semgrep_core.lang]] *)
 (* todo: infer from basename argv(0) ? *)
+(*s: constant [[Main_semgrep_core.lang]] *)
 let lang = ref "unset"
 (*e: constant [[Main_semgrep_core.lang]] *)
 
@@ -97,9 +97,8 @@ let includes = ref []
 (*s: constant [[Main_semgrep_core.exclude_dirs]] *)
 let exclude_dirs = ref []
 (*e: constant [[Main_semgrep_core.exclude_dirs]] *)
-(*s: constant [[Main_semgrep_core.include_dirs]] *)
+
 let include_dirs = ref []
-(*e: constant [[Main_semgrep_core.include_dirs]] *)
 
 (*s: constant [[Main_semgrep_core.output_format_json]] *)
 let output_format_json = ref false
@@ -451,13 +450,17 @@ let sgrep_with_one_pattern xs =
 
   let pattern, query_string =
     match !pattern_file, !pattern_string with
+    (*s: [[Main_semgrep_core.sgrep_with_one_pattern()]] sanity check cases *)
     | "", "" ->
         failwith "I need a pattern; use -f or -e"
     | s1, s2 when s1 <> "" && s2 <> "" ->
         failwith "I need just one pattern; use -f OR -e (not both)"
+    (*e: [[Main_semgrep_core.sgrep_with_one_pattern()]] sanity check cases *)
+    (*s: [[Main_semgrep_core.sgrep_with_one_pattern()]] pattern file case *)
     | file, _ when file <> "" ->
         let s = Common.read_file file in
         parse_pattern s, s
+    (*e: [[Main_semgrep_core.sgrep_with_one_pattern()]] pattern file case *)
     | _, s when s <> ""->
         parse_pattern s, s
     | _ -> raise Impossible
@@ -482,10 +485,12 @@ let sgrep_with_one_pattern xs =
   let n = List.length !E.g_errors in
   if n > 0 then pr2 (spf "error count: %d" n);
 
+  (*s: [[Main_semgrep_core.sgrep_with_one_pattern()]] optional layer generation *)
   !layer_file |> Common.do_option (fun file ->
     let root = Common2.common_prefix_of_files_or_dirs xs in
     gen_layer ~root ~query:query_string  file
   );
+  (*e: [[Main_semgrep_core.sgrep_with_one_pattern()]] optional layer generation *)
   ()
 (*e: function [[Main_semgrep_core.sgrep_with_one_pattern]] *)
 
@@ -790,6 +795,7 @@ let format_output_exception e : string =
 (*s: function [[Main_semgrep_core.main]] *)
 let main () = 
   set_gc ();
+
   let usage_msg = 
     spf "Usage: %s [options] <pattern> <files_or_dirs> \nOptions:"
       (Filename.basename Sys.argv.(0))
@@ -801,7 +807,7 @@ let main () =
   Common.profile_code "Main total" (fun () -> 
 
     (match args with
-   
+    (*s: [[Main_semgrep_core.main()]] match [[args]] actions *)
     (* --------------------------------------------------------- *)
     (* actions, useful to debug subpart *)
     (* --------------------------------------------------------- *)
@@ -810,20 +816,14 @@ let main () =
 
     | _ when not (Common.null_string !action) -> 
         failwith ("unrecognized action or wrong params: " ^ !action)
+    (*e: [[Main_semgrep_core.main()]] match [[args]] actions *)
 
     (* --------------------------------------------------------- *)
     (* main entry *)
     (* --------------------------------------------------------- *)
     | x::xs -> 
         (match () with
-        | _ when !tainting_rules_file <> "" ->
-           (try  tainting_with_rules !tainting_rules_file (x::xs)
-            with exn -> begin
-             pr (format_output_exception exn);
-             exit 2
-             end
-            )
-            
+        (*s: [[Main_semgrep_core.main()]] main entry match cases *)
         | _ when !rules_file <> "" ->
            (try  sgrep_with_rules !rules_file (x::xs)
             with exn -> begin
@@ -831,7 +831,18 @@ let main () =
              exit 2
              end
             )
+        (*x: [[Main_semgrep_core.main()]] main entry match cases *)
+        | _ when !tainting_rules_file <> "" ->
+           (try  tainting_with_rules !tainting_rules_file (x::xs)
+            with exn -> begin
+             pr (format_output_exception exn);
+             exit 2
+             end
+            )
+        (*e: [[Main_semgrep_core.main()]] main entry match cases *)
+        (*s: [[Main_semgrep_core.main()]] main entry match cases default case *)
         | _ -> sgrep_with_one_pattern (x::xs)
+        (*e: [[Main_semgrep_core.main()]] main entry match cases default case *)
         )
     (* --------------------------------------------------------- *)
     (* empty entry *)

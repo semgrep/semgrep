@@ -27,10 +27,10 @@ open Common
 
 (* mostly a copy-paste of metavars_fuzzy.ml and metavars_js.ml *)
 
-(*s: type [[Metavars_generic.mvar]] *)
 (* less: could want to remember the position in the pattern of the metavar
  * for error reporting on pattern itself? so use a 'string Ast_generic.wrap'?
  *)
+(*s: type [[Metavars_generic.mvar]] *)
 type mvar = string 
 (*e: type [[Metavars_generic.mvar]] *)
 
