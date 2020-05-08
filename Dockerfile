@@ -25,6 +25,7 @@ RUN apk add --no-cache python3-dev build-base chrpath git
 COPY .git /home/pythonbuild/.git
 COPY semgrep /home/pythonbuild/semgrep/
 WORKDIR /home/pythonbuild/semgrep
+RUN pipenv install --deploy --system
 RUN make all
 RUN ls -al /home/pythonbuild/semgrep/build/semgrep.dist/
 

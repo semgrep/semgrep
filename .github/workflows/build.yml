@@ -21,7 +21,7 @@ jobs:
       - name: Install and test semgrep-core
         run: eval $(opam  env --root /home/opam/.opam --set-root) && cd semgrep-core && opam install -y . && make all && make test && make install
       - name: Install and test semgrep
-        run: eval $(opam  env --root /home/opam/.opam --set-root) && cd semgrep && export PATH=/github/home/.local/bin:$PATH && pip3 install wheel==0.34.2 pipenv && pipenv install --system --dev && make test && make qa-test && make all
+        run: eval $(opam  env --root /home/opam/.opam --set-root) && cd semgrep && export PATH=/github/home/.local/bin:$PATH && pip3 install wheel==0.34.2 pipenv && pipenv install --dev && make test && make qa-test && make all
       - name: Prepare artifacts
         run: |
           mkdir -p artifacts/bin/sgrep-lint-files

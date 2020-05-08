@@ -21,8 +21,14 @@ from semgrep.util import print_error_exit
 try:
     from importlib import metadata
 except ImportError:
-    # Running on pre-3.8 Python; use importlib-metadata package
+    pass
+
+try:
+    # The standard try/except/fallback pattern doesn't work with nuitka
+    # Fallback import of importlib backport for Python < 3.8
     import importlib_metadata as metadata  # type: ignore
+except ImportError:
+    pass
 
 __VERSION__ = metadata.version("semgrep")  # type: ignore
 
