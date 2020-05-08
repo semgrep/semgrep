@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 from subprocess import CalledProcessError
 
@@ -27,8 +28,19 @@ def test_terminal_output(run_semgrep_in_tmp, snapshot):
 
 
 def test_sarif_output(run_semgrep_in_tmp, snapshot):
+    sarif_output = json.loads(
+        run_semgrep_in_tmp("rules/eqeq.yaml", output_format="sarif")
+    )
+
+    # rules are logically a set so the JSON list's order doesn't matter
+    # we make the order deterministic here so that snapshots match across runs
+    # the proper solution will be https://github.com/joseph-roitman/pytest-snapshot/issues/14
+    sarif_output["tool"]["driver"]["rules"] = sorted(
+        sarif_output["tool"]["driver"]["rules"], key=lambda rule: rule["id"]
+    )
+
     snapshot.assert_match(
-        run_semgrep_in_tmp("rules/eqeq.yaml", output_format="sarif"), "results.sarif"
+        json.dumps(sarif_output, indent=2, sort_keys=True), "results.sarif"
     )
 
 
