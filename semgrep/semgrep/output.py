@@ -1,10 +1,14 @@
 import json
 from typing import Any
+from typing import Dict
+from typing import FrozenSet
 from typing import Iterator
 from typing import List
 
 import colorama
 
+from semgrep import __VERSION__
+from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 
 
@@ -105,15 +109,48 @@ def build_output_json(rule_matches: List[RuleMatch], semgrep_errors: List[Any]) 
     return json.dumps(output_json)
 
 
+def _sarif_tool_info() -> Dict[str, Any]:
+    return {"name": "semgrep", "semanticVersion": __VERSION__}
+
+
+def build_sarif_output(
+    rule_matches: List[RuleMatch], rules: FrozenSet[Rule], semgrep_errors: List[Any]
+) -> str:
+    """
+    Format matches in SARIF v2.1.0 formatted JSON.
+
+    - written based on https://help.github.com/en/github/finding-security-vulnerabilities-and-errors-in-your-code/about-sarif-support-for-code-scanning
+    - which links to this schema https://github.com/oasis-tcs/sarif-spec/blob/master/Schemata/sarif-schema-2.1.0.json
+    - full spec is at https://docs.oasis-open.org/sarif/sarif/v2.1.0/cs01/sarif-v2.1.0-cs01.html
+    """
+    output_dict = {
+        "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+        "version": "2.1.0",
+        "tool": {
+            "driver": {
+                **_sarif_tool_info(),
+                "rules": [rule.to_sarif() for rule in rules],
+            }
+        },
+        "results": [match.to_sarif() for match in rule_matches],
+    }
+    return json.dumps(output_dict)
+
+
 def build_output(
     rule_matches: List[RuleMatch],
+    rules: FrozenSet[Rule],
     semgrep_errors: List[Any],
-    json_format: bool,
+    output_format: str,
     color_output: bool,
 ) -> str:
-    if json_format:
+    if output_format == "json":
         return build_output_json(rule_matches, semgrep_errors)
-    else:
+    elif output_format == "sarif":
+        return build_sarif_output(rule_matches, rules, semgrep_errors)
+    elif output_format == "normal":
         return "\n".join(
             build_normal_output(rule_matches, semgrep_errors, color_output)
         )
+    else:
+        raise RuntimeError(f"Not sure how to format as '{output_format}'")

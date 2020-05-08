@@ -7,7 +7,7 @@ Traceback (most recent call last):
     main()
   File "/Users/underyx/r2c/semgrep/semgrep/semgrep/__main__.py", line 11, in main
     cli()
-  File "/Users/underyx/r2c/semgrep/semgrep/semgrep/cli.py", line 261, in cli
+  File "/Users/underyx/r2c/semgrep/semgrep/semgrep/cli.py", line 264, in cli
     semgrep.semgrep_main.main(args)
   File "/Users/underyx/r2c/semgrep/semgrep/semgrep/semgrep_main.py", line 244, in main
     rule_matches_by_rule, semgrep_errors = CoreRunner(

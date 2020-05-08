@@ -22,7 +22,13 @@ def test_basic_rule__absolute(run_semgrep_in_tmp, snapshot):
 
 def test_terminal_output(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(
-        run_semgrep_in_tmp("rules/eqeq.yaml", use_json=False), "output.txt"
+        run_semgrep_in_tmp("rules/eqeq.yaml", output_format="normal"), "output.txt"
+    )
+
+
+def test_sarif_output(run_semgrep_in_tmp, snapshot):
+    snapshot.assert_match(
+        run_semgrep_in_tmp("rules/eqeq.yaml", output_format="sarif"), "results.sarif"
     )
 
 
