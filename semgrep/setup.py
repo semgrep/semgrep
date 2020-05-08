@@ -108,7 +108,7 @@ setup(
     version="0.6.0",
     author="Russell & Return 2 Corp",
     author_email="support@r2c.dev",
-    description="like grep but for code: fast and syntax-aware semantic code pattern search for many languages",
+    description="Fast and syntax-aware semantic code pattern search for many languages: like grep but for code",
     cmdclass={"install": PostInstallCommand, "bdist_wheel": bdist_wheel},
     long_description=long_description,
     long_description_content_type="text/markdown",
