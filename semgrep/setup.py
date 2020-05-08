@@ -59,7 +59,10 @@ try:
 except FileNotFoundError:
     long_description = ""
 
+source_dir = os.path.dirname(os.path.abspath(__file__))
+repo_root = os.path.dirname(source_dir)
 
+# Lifted with love (and edits) from https://github.com/benfred/py-spy/blob/master/setup.py
 class PostInstallCommand(install):
     """Post-installation for installation mode."""
 
@@ -75,12 +78,10 @@ class PostInstallCommand(install):
         # but we can't install to the bin directory:
         #     https://github.com/pypa/setuptools/issues/210#issuecomment-216657975
         # take the advice from that comment, and move over after install
-        source_dir = os.path.dirname(os.path.abspath(__file__))
 
         if os.environ.get("PRECOMPILED_LOCATION"):
             source = os.environ["PRECOMPILED_LOCATION"]
         else:
-            repo_root = os.path.dirname(source_dir)
             if "osx" in distutils.util.get_platform():
                 with chdir(repo_root):
                     os.system(os.path.join(repo_root, "release-scripts/osx-release.sh"))
@@ -110,8 +111,9 @@ class PostInstallCommand(install):
 
 
 setup(
-    name="semgrep",  # Replace with your own username
-    version="0.7.0",
+    name="semgrep",
+    use_scm_version={"relative_to": source_dir},
+    setup_requires=["setuptools_scm"],
     author="Russell & Return 2 Corp",
     author_email="support@r2c.dev",
     description="Fast and syntax-aware semantic code pattern search for many languages: like grep but for code",
@@ -119,7 +121,7 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/returntocorp/semgrep",
-    install_requires=["colorama>=0.4.3", "pyyaml>=5.3", "requests>=2.22.0"],
+    install_requires=["colorama>=0.4.3", "pyyaml>=5.3", "requests>=2.22.0", 'importlib-metadata ~= 1.0 ; python_version < "3.8"'],
     entry_points={"console_scripts": ["semgrep=semgrep.__main__:main"]},
     packages=setuptools.find_packages(),
     classifiers=[
