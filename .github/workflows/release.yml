@@ -1,13 +1,16 @@
-name: release-ubuntu-18-04
+name: release-ubuntu
 
 on:
   push:
     branches: [master, develop, '**-test-release']
 
 jobs:
-  release-ubuntu-18-04:
+  release-ubuntu:
+    strategy:
+      matrix:
+        os: ['ubuntu-16.04', 'ubuntu-18.04']
     runs-on: ubuntu-latest
-    container: returntocorp/sgrep-build:ubuntu-18.04
+    container: returntocorp/sgrep-build:${{ matrix.os }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -18,5 +21,5 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
-          name: semgrep-ubuntu-18.04-${{ github.sha }}
+          name: semgrep-${{ matrix.os }}-${{ github.sha }}
           path: artifacts.tar.gz
