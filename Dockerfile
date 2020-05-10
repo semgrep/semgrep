@@ -7,7 +7,6 @@ RUN apk add --no-cache perl m4
 USER opam
 
 WORKDIR /home/opam/opam-repository
-RUN apt install -y musl-tools
 RUN git pull && opam update && opam switch create 4.10.0+musl+static+flambda
 
 COPY --chown=opam . /home/opam/sgrep/
