@@ -734,15 +734,16 @@ let options () =
     " <file> obtain pattern from file (need -lang)";
     "-rules_file", Arg.Set_string rules_file,
     " <file> obtain list of patterns from YAML file";
-    "-tainting_rules_file", Arg.Set_string tainting_rules_file,
-    " <file> obtain source/sink/sanitizer patterns from YAML file";
 
     "-lang", Arg.Set_string lang, 
     (spf " <str> choose language (valid choices: %s)" supported_langs);
 
+    (*s: [[Main_semgrep_core.options]] user-defined equivalences case *)
     "-equivalences", Arg.Set_string equivalences_file,
     " <file> obtain list of code equivalences from YAML file";
+    (*e: [[Main_semgrep_core.options]] user-defined equivalences case *)
 
+    (*s: [[Main_semgrep_core.options]] file filters cases *)
     "-exclude", Arg.String (fun s -> Common.push s excludes),
     " <GLOB> skip files whose basename matches GLOB";
     "-include", Arg.String (fun s -> Common.push s includes),
@@ -751,27 +752,38 @@ let options () =
     " <DIR> exclude directories matching the pattern DIR";
     "-include-dir", Arg.String (fun s -> Common.push s include_dirs),
     " <DIR> search only in directories matching the pattern DIR";
+    (*e: [[Main_semgrep_core.options]] file filters cases *)
 
+    (*s: [[Main_semgrep_core.options]] [[-j]] case *)
     "-j", Arg.Set_int ncores, 
     " <int> number of cores to use (default = 1)";
+    (*e: [[Main_semgrep_core.options]] [[-j]] case *)
 
+    (*s: [[Main_semgrep_core.options]] report match mode cases *)
     "-json", Arg.Set output_format_json, 
     " output JSON format";
     "-emacs", Arg.Unit (fun () -> match_format := Matching_report.Emacs ),
     " print matches on the same line than the match position";
     "-oneline", Arg.Unit (fun () -> match_format := Matching_report.OneLine),
     " print matches on one line, in normalized form";
+    (*e: [[Main_semgrep_core.options]] report match mode cases *)
 
+    (*s: [[Main_semgrep_core.options]] other cases *)
     "-pvar", Arg.String (fun s -> mvars := Common.split "," s),
     " <metavars> print the metavariables, not the matched code";
-
+    (*x: [[Main_semgrep_core.options]] other cases *)
     "-gen_layer", Arg.String (fun s -> layer_file := Some s),
     " <file> save result in a codemap layer file";
-
+    (*x: [[Main_semgrep_core.options]] other cases *)
+    "-tainting_rules_file", Arg.Set_string tainting_rules_file,
+    " <file> obtain source/sink/sanitizer patterns from YAML file";
+    (*x: [[Main_semgrep_core.options]] other cases *)
     "-error_recovery", Arg.Unit (fun () ->
         error_recovery := true;
         Flag_parsing.error_recovery := true;
     ),  
+    (*e: [[Main_semgrep_core.options]] other cases *)
+
     " do not stop at first parsing error with -e/-f";
     "-verbose", Arg.Unit (fun () -> 
       verbose := true;
@@ -781,13 +793,17 @@ let options () =
     "-debug", Arg.Set debug,
     " add debugging information in the output (e.g., tracing)";
   ] @
+  (*s: [[Main_semgrep_core.options]] concatenated flags *)
   Error_code.options () @
-  Common.options_of_actions action (all_actions()) @
   Flag_parsing_cpp.cmdline_flags_macrofile () @
   Meta_parse_info.cmdline_flags_precision () @
   Common2.cmdline_flags_devel () @
+  (*e: [[Main_semgrep_core.options]] concatenated flags *)
+  (*s: [[Main_semgrep_core.options]] concatenated actions *)
+  Common.options_of_actions action (all_actions()) @
+  (*e: [[Main_semgrep_core.options]] concatenated actions *)
   [ "-version",   Arg.Unit (fun () -> 
-    pr2 (spf "sgrep version: %s" Config_pfff.version);
+    pr2 (spf "semgrep-core version: %s" Config_pfff.version);
     exit 0;
     ), "  guess what"; 
   ]
