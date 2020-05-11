@@ -1682,6 +1682,8 @@ and m_parameters a b =
 and m_parameter a b = 
   match a, b with
   (* boilerplate *)
+  | A.ParamClassic(a1), B.ParamClassic(b1) ->
+    m_parameter_classic a1 b1 
   (*s: [[Generic_vs_generic.m_parameter]] boilerplate cases *)
   | A.ParamPattern(a1), B.ParamPattern(b1) ->
     m_pattern a1 b1 
@@ -1696,8 +1698,6 @@ and m_parameter a b =
   | A.OtherParam _, _
    -> fail ()
   (*e: [[Generic_vs_generic.m_parameter]] boilerplate cases *)
-  | A.ParamClassic(a1), B.ParamClassic(b1) ->
-    m_parameter_classic a1 b1 
 (*e: function [[Generic_vs_generic.m_parameter]] *)
 
 (*s: function [[Generic_vs_generic.m_parameter_classic]] *)
