@@ -860,6 +860,7 @@ and m_list__m_argument (xsa: A.argument list) (xsb: A.argument list) =
       (* can match more *)
       (m_list__m_argument ((A.Arg (A.Ellipsis i))::xsa) xsb)
 
+  (*s: [[Generic_vs_generic.m_list__m_argument]] keyword argument case *)
   (* unordered kwd argument matching *)
   | (A.ArgKwd ((s, _tok) as ida, ea) as a)::xsa, xsb ->
      if MV.is_metavar_name s
@@ -889,6 +890,7 @@ and m_list__m_argument (xsa: A.argument list) (xsb: A.argument list) =
         )
       with Not_found -> fail ()
       )
+  (*e: [[Generic_vs_generic.m_list__m_argument]] keyword argument case *)
 
   (* the general case *)
   | xa::aas, xb::bbs ->
@@ -939,13 +941,14 @@ and m_arguments_concat a b =
 (*s: function [[Generic_vs_generic.m_argument]] *)
 and m_argument a b = 
   match a, b with
+  (* TODO: iso on keyword argument, keyword is optional in pattern *)
+
+  (* boilerplate *)
   | A.Arg(a1), B.Arg(b1) ->
     m_expr a1 b1 
-
+  (*s: [[Generic_vs_generic.m_argument()]] boilerplate cases *)
   | A.ArgType(a1), B.ArgType(b1) ->
     m_type_ a1 b1 
-
-  (* TODO: iso on keyword argument, keyword is optional in pattern *)
 
   | A.ArgKwd(a1, a2), B.ArgKwd(b1, b2) ->
     m_ident a1 b1 >>= (fun () -> 
@@ -957,6 +960,7 @@ and m_argument a b =
     )
   | A.Arg _, _  | A.ArgKwd _, _  | A.ArgType _, _  | A.ArgOther _, _
    -> fail ()
+  (*e: [[Generic_vs_generic.m_argument()]] boilerplate cases *)
 (*e: function [[Generic_vs_generic.m_argument]] *)
 
 (*s: function [[Generic_vs_generic.m_other_argument_operator]] *)
@@ -1074,8 +1078,10 @@ and m_list__m_attribute (xsa: A.attribute list) (xsb: A.attribute list) =
   | [], [] ->
       return ()
 
+  (*s: [[Generic_vs_generic.m_list__m_attribute]] empty list vs list case *)
   (* less-is-ok: *)
   | [], _ -> return ()
+  (*e: [[Generic_vs_generic.m_list__m_attribute]] empty list vs list case *)
 
   | ((A.KeywordAttr (k, tok)) as a)::xsa, xsb ->
       (try 
@@ -1222,10 +1228,12 @@ and _m_stmts (xsa: A.stmt list) (xsb: A.stmt list) =
 and m_list__m_stmt (xsa: A.stmt list) (xsb: A.stmt list) =
   if !Flag.debug
   then pr2 (spf "%d vs %d" (List.length xsa) (List.length xsb));
+
   match xsa, xsb with
   | [], [] ->
       return ()
 
+  (*s: [[Generic_vs_generic.m_list__m_stmt()]] empty list vs list case *)
   (* less-is-ok:
    * it's ok to have statements after in the concrete code as long as we
    * matched all the statements in the pattern (there is an implicit
@@ -1236,6 +1244,7 @@ and m_list__m_stmt (xsa: A.stmt list) (xsb: A.stmt list) =
    *)
   | [], _::_ ->
       return ()
+  (*e: [[Generic_vs_generic.m_list__m_stmt()]] empty list vs list case *)
 
   (* dots: '...', can also match no statement *)
   | [A.ExprStmt (A.Ellipsis _i)], [] ->
@@ -1707,6 +1716,7 @@ and m_parameter a b =
 (*s: function [[Generic_vs_generic.m_parameter_classic]] *)
 and m_parameter_classic a b = 
   match a, b with
+  (*s: [[Generic_vs_generic.m_parameter_classic]] metavariable case *)
   (* bugfix: when we use a metavar to match a parameter, as in foo($X): ...
    * and later we use $X again to match a name, the $X is first an ident and
    * later an expression, which would prevent a match. Instead we need to
@@ -1721,6 +1731,7 @@ and m_parameter_classic a b =
      (m_option_none_can_match_some m_type_) a3 b3 >>= (fun () -> 
      (m_list__m_attribute) a4 b4 
      )))
+  (*e: [[Generic_vs_generic.m_parameter_classic]] metavariable case *)
 
   (* boilerplate *)
   | { A. pname = a1; pdefault = a2; ptype = a3; pattrs = a4; pinfo = a5 },
@@ -1775,6 +1786,7 @@ and m_list__m_field (xsa: A.field list) (xsb: A.field list) =
   | [], [] ->
       return ()
 
+  (*s: [[Generic_vs_generic.m_list__m_field()]] empty list vs list case *)
   (* less-is-ok:
    * it's ok to have fields after in the concrete code as long as we
    * matched all the fields in the pattern?
@@ -1784,7 +1796,9 @@ and m_list__m_field (xsa: A.field list) (xsb: A.field list) =
    *)
   | [], _::_ ->
       return ()
+  (*e: [[Generic_vs_generic.m_list__m_field()]] empty list vs list case *)
 
+  (*s: [[Generic_vs_generic.m_list__m_field()]] ellipsis cases *)
   (* dots: '...', can also match no more fields *)
   | [A.FieldStmt (A.ExprStmt (A.Ellipsis _i))], [] ->
       return ()
@@ -1794,6 +1808,7 @@ and m_list__m_field (xsa: A.field list) (xsb: A.field list) =
       (m_list__m_field xsa (xb::xsb)) >||>
       (* can match more *)
       (m_list__m_field ((A.FieldStmt (A.ExprStmt (A.Ellipsis i)))::xsa) xsb)
+  (*e: [[Generic_vs_generic.m_list__m_field()]] ellipsis cases *)
 
   | (A.FieldStmt (A.DefStmt (({A.name = (s1, _); _}, _) as adef)) as a)::xsa,
      xsb ->
@@ -1842,7 +1857,7 @@ and m_field a b =
   (* boilerplate *)
   | A.FieldStmt(a1), B.FieldStmt(b1) ->
     m_stmt a1 b1 
-  (*s: [[Generic_vs_generic.m_field]] boilerplace case *)
+  (*s: [[Generic_vs_generic.m_field]] boilerplate cases *)
   | A.FieldDynamic(a1, a2, a3), B.FieldDynamic(b1, b2, b3) ->
     m_expr a1 b1 >>= (fun () -> 
     (m_list__m_attribute) a2 b2 >>= (fun () -> 
@@ -1855,7 +1870,7 @@ and m_field a b =
   | A.FieldDynamic _, _
   | A.FieldSpread _, _ | A.FieldStmt _, _
    -> fail ()
-  (*e: [[Generic_vs_generic.m_field]] boilerplace case *)
+  (*e: [[Generic_vs_generic.m_field]] boilerplate cases *)
 (*e: function [[Generic_vs_generic.m_field]] *)
 
 

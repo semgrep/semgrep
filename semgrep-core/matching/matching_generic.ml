@@ -417,9 +417,11 @@ let rec m_list_with_dots f is_dots less_is_ok xsa xsb =
   | [], [] ->
       return ()
 
-  (* less-is-ok: empty list can sometimes match non-empty list *)
-  | [], _::_ when less_is_ok -> 
-    return ()
+   (*s: [[Matching_generic.m_list_with_dots()]]> empty list vs list case *)
+   (* less-is-ok: empty list can sometimes match non-empty list *)
+   | [], _::_ when less_is_ok -> 
+     return ()
+   (*e: [[Matching_generic.m_list_with_dots()]]> empty list vs list case *)
 
   (* dots: '...', can also match no argument *)
   | [a], []  when is_dots a ->
