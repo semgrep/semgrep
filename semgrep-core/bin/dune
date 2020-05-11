@@ -33,6 +33,7 @@
  ; for ocamldebug
  (modes byte)
  (flags (-ccopt -static))
+)
 
 
 (install
