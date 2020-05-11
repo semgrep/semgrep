@@ -760,12 +760,13 @@ let options () =
     (*e: [[Main_semgrep_core.options]] [[-j]] case *)
 
     (*s: [[Main_semgrep_core.options]] report match mode cases *)
-    "-json", Arg.Set output_format_json, 
-    " output JSON format";
     "-emacs", Arg.Unit (fun () -> match_format := Matching_report.Emacs ),
     " print matches on the same line than the match position";
     "-oneline", Arg.Unit (fun () -> match_format := Matching_report.OneLine),
     " print matches on one line, in normalized form";
+    (*x: [[Main_semgrep_core.options]] report match mode cases *)
+    "-json", Arg.Set output_format_json, 
+    " output JSON format";
     (*e: [[Main_semgrep_core.options]] report match mode cases *)
 
     (*s: [[Main_semgrep_core.options]] other cases *)
