@@ -1273,6 +1273,10 @@ and m_stmt a b =
       envf (str, tok) (B.S b)
   (*e: [[Generic_vs_generic.m_stmt()]] metavariable case *)
   (*s: [[Generic_vs_generic.m_stmt()]] ellipsis cases *)
+  (* dots: '...' can to match any statememt *)
+  | A.ExprStmt(A.Ellipsis _i), _b ->
+      return ()
+  (*x: [[Generic_vs_generic.m_stmt()]] ellipsis cases *)
   | A.Return(a0, a1), B.Return(b0, b1) ->
     m_tok a0 b0 >>= (fun () ->
     m_option_ellipsis_ok m_expr a1 b1 
