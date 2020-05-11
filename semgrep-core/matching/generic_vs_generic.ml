@@ -91,8 +91,9 @@ let m_string_xhp_text sa sb =
 (*s: function [[Generic_vs_generic.m_ident]] *)
 (* coupling: modify also m_ident_and_id_info_add_in_env_Expr *) 
 let m_ident a b = 
-  (* metavar: *)
   match a, b with
+  (*s: [[Generic_vs_generic.m_ident()]] metavariable case *)
+  (* metavar: *)
   | (str, tok), b when MV.is_metavar_name str ->
       (* note that adding B.I here is sometimes not what you want.
        * this can prevent this ID to later be matched against
@@ -100,7 +101,8 @@ let m_ident a b =
        * see m_ident_and_id_info_add_in_env_Expr for more information.
        *)
       envf (str, tok) (B.I b)
-
+  (*e: [[Generic_vs_generic.m_ident()]] metavariable case *)
+  (*s: [[Generic_vs_generic.m_ident()]] regexp case *)
   (* in some languages such as Javascript certain entities like
    * fields can use strings for identifiers (e.g., {"myfield": 1}),
    * which gives the opportunity to use regexp string for fields
@@ -111,6 +113,8 @@ let m_ident a b =
       if Str.string_match re strb 0
       then return ()
       else fail ()
+
+  (*e: [[Generic_vs_generic.m_ident()]] regexp case *)
 
   (* general case *)
   | (a, b) -> (m_wrap m_string) a b
@@ -223,7 +227,8 @@ and m_ident_and_id_info_add_in_env_Expr (a1, a2) (b1, b2) =
       m_id_info a2 b2 >>= (fun () ->
         envf (str, tok) (B.E (B.Id (b, b2))) (* B.E here, not B.I *)
      )
-
+  (* same code than for m_ident *)
+  (*s: [[Generic_vs_generic.m_ident()]] regexp case *)
   (* in some languages such as Javascript certain entities like
    * fields can use strings for identifiers (e.g., {"myfield": 1}),
    * which gives the opportunity to use regexp string for fields
@@ -235,9 +240,9 @@ and m_ident_and_id_info_add_in_env_Expr (a1, a2) (b1, b2) =
       then return ()
       else fail ()
 
+  (*e: [[Generic_vs_generic.m_ident()]] regexp case *)
   (* general case *)
   | (a, b) -> (m_wrap m_string) a b
-
 (*e: function [[Generic_vs_generic.m_ident_and_id_info_add_in_env_Expr]] *)
 
 (*s: function [[Generic_vs_generic.m_id_info]] *)
@@ -321,10 +326,13 @@ and m_expr_deep a b =
 (*s: function [[Generic_vs_generic.m_expr]] *)
 and m_expr a b = 
   match a, b with
+  (* the order of the matches matters! take care! *)
+  (*s: [[Generic_vs_generic.m_expr()]] disjunction case *)
   (* equivalence: user-defined equivalence! *)
   | A.DisjExpr (a1, a2), b ->
       m_expr a1 b >||> m_expr a2 b
-
+  (*e: [[Generic_vs_generic.m_expr()]] disjunction case *)
+  (*s: [[Generic_vs_generic.m_expr()]] resolving alias case *)
   (* equivalence: name resolving! *)
   | a,   B.Id (_, { B.id_resolved = 
       {contents = Some ( ( B.ImportedEntity dotted 
@@ -332,80 +340,70 @@ and m_expr a b =
                          ), _sid)}; _}) ->
 
     m_expr a (make_dotted dotted)
-
+  (*e: [[Generic_vs_generic.m_expr()]] resolving alias case *)
+  (*s: [[Generic_vs_generic.m_expr()]] metavariable case *)
+  (*s: [[Generic_vs_generic.m_expr()]] forbidden metavariable case *)
   (* $X should not match an IdSpecial otherwise $X(...) could match
    * a+b because this is transformed in a Call(IdSpecial Plus, ...) 
    *)
   | A.Id ((str,_tok), _id_info), B.IdSpecial _ 
       when MV.is_metavar_name str ->
       fail ()
-
+  (*e: [[Generic_vs_generic.m_expr()]] forbidden metavariable case *)
   (* metavar: *)
   | A.Id ((str,tok), _id_info), e2 
      when MV.is_metavar_name str ->
       envf (str, tok) (B.E (e2))
-
+  (*e: [[Generic_vs_generic.m_expr()]] metavariable case *)
+  (*s: [[Generic_vs_generic.m_expr()]] typed metavariable case *)
   (* metavar: typed! *)
   | A.TypedMetavar ((str, tok), _, t), e2 
       when MV.is_metavar_name str && 
            Typechecking_generic.compatible_type t e2 ->
       envf (str, tok) (B.E e2)
-
+  (*e: [[Generic_vs_generic.m_expr()]] typed metavariable case *)
+  (*s: [[Generic_vs_generic.m_expr()]] ellipsis cases *)
   (* dots: should be patterned-match before in arguments, or statements,
    * but this is useful for keyword parameters, as in f(..., foo=..., ...)
    *)
   | A.Ellipsis(_a1), _ ->
     return ()
+  (*x: [[Generic_vs_generic.m_expr()]] ellipsis cases *)
   | A.DeepEllipsis (_, a1, _), a2 ->
       m_expr_deep a1 a2
+  (*e: [[Generic_vs_generic.m_expr()]] ellipsis cases *)
 
+  (* must be before constant propagation case after *)
   | A.L(a1), B.L(b1) ->
     m_literal a1 b1 
 
+  (*s: [[Generic_vs_generic.m_expr()]] propagated constant case *)
   (* equivalence: constant propagation and evaluation! 
    * TODO: too late, must do that before 'metavar:' so that
    * const a = "foo"; ... a == "foo" would be catched by $X == $X.
-*)
+   *)
   | A.L(a1), b1 -> 
     (match Normalize_generic.constant_propagation_and_evaluate_literal b1 with
     | Some b1 ->
       m_literal a1 b1
     | None -> fail ()
     ) 
-
+  (*e: [[Generic_vs_generic.m_expr()]] propagated constant case *)
+  (*s: [[Generic_vs_generic.m_expr()]] sequencable container cases *)
   | A.Container(A.Array, a2), B.Container(B.Array, b2) ->
     (m_bracket (m_container_ordered_elements)) a2 b2
   | A.Container(A.List, a2), B.Container(B.List, b2) ->
     (m_bracket (m_container_ordered_elements)) a2 b2
-
+  | A.Tuple(a1), B.Tuple(b1) ->
+    m_container_ordered_elements a1 b1 
+  (*e: [[Generic_vs_generic.m_expr()]] sequencable container cases *)
 
   | A.Container(a1, a2), B.Container(b1, b2) ->
     m_container_operator a1 b1 >>= (fun () -> 
     (m_bracket (m_list m_expr)) a2 b2
     )
-  | A.Tuple(a1), B.Tuple(b1) ->
-    m_container_ordered_elements a1 b1 
-  | A.Record(a1), B.Record(b1) ->
-    (m_bracket (m_fields)) a1 b1 
-  | A.Constructor(a1, a2), B.Constructor(b1, b2) ->
-    m_name a1 b1 >>= (fun () -> 
-    (m_list m_expr) a2 b2 
-    )
-  | A.Lambda(a1), B.Lambda(b1) ->
-    m_function_definition a1 b1 >>= (fun () -> 
-    return ())
-  | A.AnonClass(a1), B.AnonClass(b1) ->
-    m_class_definition a1 b1 
-  | A.Id(a1, a2), B.Id(b1, b2) ->
-    m_ident a1 b1 >>= (fun () -> 
-    m_id_info a2 b2 )
-  | A.IdQualified(a1, a2), B.IdQualified(b1, b2) ->
-    m_name a1 b1 >>= (fun () -> 
-    m_id_info a2 b2 
-    )
-  | A.IdSpecial(a1), B.IdSpecial(b1) ->
-    m_wrap m_special a1 b1 
 
+  (*s: [[Generic_vs_generic.m_expr()]] interpolated strings case *)
   (* dots '...' for string literal:
    * Interpolated strings are transformed into Call(Special(Concat, ...), 
    * hence we want Python patterns like f"...{$X}...", which are expanded to 
@@ -420,27 +418,23 @@ and m_expr a b =
   | A.Call(A.IdSpecial(A.Concat, _a1), a2), 
     B.Call(B.IdSpecial(B.Concat, _b1), b2) ->
     m_arguments_concat a2 b2
+  (*e: [[Generic_vs_generic.m_expr()]] interpolated strings case *)
+  (* boilerplate *)
+  | A.Id(a1, a2), B.Id(b1, b2) ->
+    m_ident a1 b1 >>= (fun () -> 
+    m_id_info a2 b2 )
 
   | A.Call(a1, a2), B.Call(b1, b2) ->
     m_expr a1 b1 >>= (fun () -> 
     m_arguments a2 b2 
     )
-  | A.Xml(a1), B.Xml(b1) ->
-    m_xml a1 b1 
+
   | A.Assign(a1, at, a2), B.Assign(b1, bt, b2) ->
     m_expr a1 b1 >>= (fun () -> 
     m_tok at bt >>= (fun () ->
     m_expr a2 b2 
     ))
-  | A.AssignOp(a1, a2, a3), B.AssignOp(b1, b2, b3) ->
-    m_expr a1 b1 >>= (fun () -> 
-    m_wrap m_arithmetic_operator a2 b2 >>= (fun () -> 
-    m_expr a3 b3 
-    ))
-  | A.LetPattern(a1, a2), B.LetPattern(b1, b2) ->
-    m_pattern a1 b1 >>= (fun () -> 
-    m_expr a2 b2 
-    )
+
   | A.DotAccess(a1, at, a2), B.DotAccess(b1, bt, b2) ->
     m_expr a1 b1 >>= (fun () -> 
     m_tok at bt >>= (fun () -> 
@@ -450,68 +444,104 @@ and m_expr a b =
     m_expr a1 b1 >>= (fun () -> 
     m_expr a2 b2 
     )
-  | A.SliceAccess(a1, a2, a3, a4), B.SliceAccess(b1, b2, b3, b4) ->
-    m_expr a1 b1 >>= (fun () -> 
-    m_option m_expr a2 b2 >>= (fun () -> 
-    m_option m_expr a3 b3 >>= (fun () -> 
-    m_option m_expr a4 b4 
-    )))
-  | A.Conditional(a1, a2, a3), B.Conditional(b1, b2, b3) ->
-    m_expr a1 b1 >>= (fun () -> 
-    m_expr a2 b2 >>= (fun () -> 
-    m_expr a3 b3 
-    ))
-  | A.MatchPattern(a1, a2), B.MatchPattern(b1, b2) ->
-    m_expr a1 b1 >>= (fun () -> 
-    (m_list m_action) a2 b2 
-    )
-  | A.Yield(a0, a1, a2), B.Yield(b0, b1, b2) ->
-    m_tok a0 b0 >>= (fun () -> 
-    m_option m_expr a1 b1 >>= (fun () -> 
-    m_bool a2 b2 
-    ))
-  | A.Await(a0, a1), B.Await(b0, b1) ->
-    m_tok a0 b0 >>= (fun () -> 
-    m_expr a1 b1 
-    )
-  | A.Cast(a1, a2), B.Cast(b1, b2) ->
-    m_type_ a1 b1 >>= (fun () -> 
-    m_expr a2 b2 
-    )
-  | A.Seq(a1), B.Seq(b1) ->
-    (m_list m_expr) a1 b1 
-  | A.Ref(a0, a1), B.Ref(b0, b1) ->
-    m_tok a0 b0 >>= (fun () -> 
-    m_expr a1 b1 
-    )
-  | A.DeRef(a0, a1), B.DeRef(b0, b1) ->
-    m_tok a0 b0 >>= (fun () -> 
-    m_expr a1 b1 
-    )
+
+  (*s: [[Generic_vs_generic.m_expr()]] boilerplate cases *)
+    | A.Record(a1), B.Record(b1) ->
+      (m_bracket (m_fields)) a1 b1 
+    | A.Constructor(a1, a2), B.Constructor(b1, b2) ->
+      m_name a1 b1 >>= (fun () -> 
+      (m_list m_expr) a2 b2 
+      )
+    | A.Lambda(a1), B.Lambda(b1) ->
+      m_function_definition a1 b1 >>= (fun () -> 
+      return ())
+    | A.AnonClass(a1), B.AnonClass(b1) ->
+      m_class_definition a1 b1 
+    | A.IdQualified(a1, a2), B.IdQualified(b1, b2) ->
+      m_name a1 b1 >>= (fun () -> 
+      m_id_info a2 b2 
+      )
+    | A.IdSpecial(a1), B.IdSpecial(b1) ->
+      m_wrap m_special a1 b1 
+
+    | A.AssignOp(a1, a2, a3), B.AssignOp(b1, b2, b3) ->
+      m_expr a1 b1 >>= (fun () -> 
+      m_wrap m_arithmetic_operator a2 b2 >>= (fun () -> 
+      m_expr a3 b3 
+      ))
+
+    | A.Xml(a1), B.Xml(b1) ->
+      m_xml a1 b1 
+    | A.LetPattern(a1, a2), B.LetPattern(b1, b2) ->
+      m_pattern a1 b1 >>= (fun () -> 
+      m_expr a2 b2 
+      )
+
+    | A.SliceAccess(a1, a2, a3, a4), B.SliceAccess(b1, b2, b3, b4) ->
+      m_expr a1 b1 >>= (fun () -> 
+      m_option m_expr a2 b2 >>= (fun () -> 
+      m_option m_expr a3 b3 >>= (fun () -> 
+      m_option m_expr a4 b4 
+      )))
+    | A.Conditional(a1, a2, a3), B.Conditional(b1, b2, b3) ->
+      m_expr a1 b1 >>= (fun () -> 
+      m_expr a2 b2 >>= (fun () -> 
+      m_expr a3 b3 
+      ))
+    | A.MatchPattern(a1, a2), B.MatchPattern(b1, b2) ->
+      m_expr a1 b1 >>= (fun () -> 
+      (m_list m_action) a2 b2 
+      )
+    | A.Yield(a0, a1, a2), B.Yield(b0, b1, b2) ->
+      m_tok a0 b0 >>= (fun () -> 
+      m_option m_expr a1 b1 >>= (fun () -> 
+      m_bool a2 b2 
+      ))
+    | A.Await(a0, a1), B.Await(b0, b1) ->
+      m_tok a0 b0 >>= (fun () -> 
+      m_expr a1 b1 
+      )
+    | A.Cast(a1, a2), B.Cast(b1, b2) ->
+      m_type_ a1 b1 >>= (fun () -> 
+      m_expr a2 b2 
+      )
+    | A.Seq(a1), B.Seq(b1) ->
+      (m_list m_expr) a1 b1 
+    | A.Ref(a0, a1), B.Ref(b0, b1) ->
+      m_tok a0 b0 >>= (fun () -> 
+      m_expr a1 b1 
+      )
+    | A.DeRef(a0, a1), B.DeRef(b0, b1) ->
+      m_tok a0 b0 >>= (fun () -> 
+      m_expr a1 b1 
+      )
 
 
-  | A.OtherExpr(a1, a2), B.OtherExpr(b1, b2) ->
-    m_other_expr_operator a1 b1 >>= (fun () -> 
-    (m_list m_any) a2 b2 
-     )
-  | A.Container _, _  | A.Tuple _, _  | A.Record _, _
-  | A.Constructor _, _  | A.Lambda _, _  | A.AnonClass _, _
-  | A.Id _, _  | A.IdQualified _, _ | A.IdSpecial _, _  
-  | A.Call _, _  | A.Xml _, _
-  | A.Assign _, _  | A.AssignOp _, _  | A.LetPattern _, _  | A.DotAccess _, _
-  | A.ArrayAccess _, _  | A.Conditional _, _  | A.MatchPattern _, _
-  | A.Yield _, _  | A.Await _, _  | A.Cast _, _  | A.Seq _, _  | A.Ref _, _
-  | A.DeRef _, _  | A.OtherExpr _, _
-  | A.SliceAccess _, _
-  | A.TypedMetavar _, _
-   -> fail ()
+    | A.OtherExpr(a1, a2), B.OtherExpr(b1, b2) ->
+      m_other_expr_operator a1 b1 >>= (fun () -> 
+      (m_list m_any) a2 b2 
+       )
+    | A.Container _, _  | A.Tuple _, _  | A.Record _, _
+    | A.Constructor _, _  | A.Lambda _, _  | A.AnonClass _, _
+    | A.Id _, _  | A.IdQualified _, _ | A.IdSpecial _, _  
+    | A.Call _, _  | A.Xml _, _
+    | A.Assign _, _  | A.AssignOp _, _  | A.LetPattern _, _  | A.DotAccess _, _
+    | A.ArrayAccess _, _  | A.Conditional _, _  | A.MatchPattern _, _
+    | A.Yield _, _  | A.Await _, _  | A.Cast _, _  | A.Seq _, _  | A.Ref _, _
+    | A.DeRef _, _  | A.OtherExpr _, _
+    | A.SliceAccess _, _
+    | A.TypedMetavar _, _
+     -> fail ()
+  (*e: [[Generic_vs_generic.m_expr()]] boilerplate cases *)
 (*e: function [[Generic_vs_generic.m_expr]] *)
 
 (*s: function [[Generic_vs_generic.m_field_ident]] *)
 and m_field_ident a b =
   match a, b with
+  (* boilerplate cases *)
   | A.FId a, B.FId b -> 
       m_ident a b 
+  (*s: [[Generic_vs_generic.m_field_ident()]] boilerplate cases *)
   | A.FName a, B.FName b -> 
       m_name a b 
   | A.FDynamic a, B.FDynamic b -> 
@@ -520,6 +550,7 @@ and m_field_ident a b =
   | A.FName _, _
   | A.FDynamic _, _
     -> fail ()
+  (*e: [[Generic_vs_generic.m_field_ident()]] boilerplate cases *)
 (*e: function [[Generic_vs_generic.m_field_ident]] *)
 
 (*s: function [[Generic_vs_generic.m_label_ident]] *)
@@ -542,11 +573,12 @@ and m_label_ident a b =
 (*s: function [[Generic_vs_generic.m_literal]] *)
 and m_literal a b = 
   match a, b with
-
+  (*s: [[Generic_vs_generic.m_literal()]] ellipsis case *)
   (* dots: '...' on string *)
   | A.String("...", a), B.String(_s, b) ->
       m_info a b 
-
+  (*e: [[Generic_vs_generic.m_literal()]] ellipsis case *)
+  (*s: [[Generic_vs_generic.m_literal()]] regexp case *)
   (* regexp matching *)
   | A.String(name, info_name), B.String(sb, info_sb)
       when Matching_generic.is_regexp_string name ->
@@ -555,7 +587,9 @@ and m_literal a b =
       then
         m_info info_name info_sb 
       else fail ()
+  (*e: [[Generic_vs_generic.m_literal()]] regexp case *)
 
+  (* boilerplate *)
   | A.String(a1), B.String(b1) ->
     (m_wrap m_string) a1 b1 
 
@@ -696,7 +730,6 @@ and m_xml a b =
 (*s: function [[Generic_vs_generic.m_attrs]] *)
 and m_attrs a b = 
   m_list__m_xml_attr a b
-
 (*e: function [[Generic_vs_generic.m_attrs]] *)
 
 (*s: function [[Generic_vs_generic.m_bodies]] *)
@@ -786,14 +819,17 @@ and m_body a b =
   match a, b with
   | A.XmlText a1, B.XmlText b1 -> 
       m_wrap m_string_xhp_text a1 b1
-  | A.XmlExpr a1, B.XmlExpr b1 ->
-      m_expr a1 b1
-  | A.XmlXml a1, B.XmlXml b1 ->
-      m_xml a1 b1
-  | A.XmlText _, _
-  | A.XmlExpr _, _
-  | A.XmlXml _, _
-    -> fail ()
+  (* boilerplate *)
+  (*s: [[Generic_vs_generic.m_body]] boilerplate cases *)
+    | A.XmlExpr a1, B.XmlExpr b1 ->
+        m_expr a1 b1
+    | A.XmlXml a1, B.XmlXml b1 ->
+        m_xml a1 b1
+    | A.XmlText _, _
+    | A.XmlExpr _, _
+    | A.XmlXml _, _
+      -> fail ()
+  (*e: [[Generic_vs_generic.m_body]] boilerplate cases *)
 (*e: function [[Generic_vs_generic.m_body]] *)
 
 (*---------------------------------------------------------------------------*)
@@ -936,49 +972,51 @@ and m_type_ a b =
   | A.TyName ((str,tok), _name_info), t2
      when MV.is_metavar_name str ->
       envf (str, tok) (B.T (t2))
-
-  | A.TyBuiltin(a1), B.TyBuiltin(b1) ->
-    (m_wrap m_string) a1 b1 
-  | A.TyFun(a1, a2), B.TyFun(b1, b2) ->
-    (m_list m_parameter_classic) a1 b1 >>= (fun () -> 
-    m_type_ a2 b2 
-    )
-  | A.TyName(a1), B.TyName(b1) ->
-    m_name a1 b1 
-  | A.TyNameApply(a1, a2), B.TyNameApply(b1, b2) ->
-    m_name a1 b1 >>= (fun () -> 
-    m_type_arguments a2 b2 
-    )
-  | A.TyVar(a1), B.TyVar(b1) ->
-    m_ident a1 b1 
-  | A.TyArray(a1, a2), B.TyArray(b1, b2) ->
-    (m_option m_expr) a1 b1 >>= (fun () -> 
-    m_type_ a2 b2 
-    )
-  | A.TyPointer(a0, a1), B.TyPointer(b0, b1) ->
-    m_tok a0 b0 >>= (fun () -> 
-    m_type_ a1 b1 
-    )
-  | A.TyTuple(a1), B.TyTuple(b1) ->
-    (*TODO: m_list__m_type_ ? *)
-    (m_bracket (m_list m_type_)) a1 b1 
-  | A.TyQuestion(a1, a2), B.TyQuestion(b1, b2) ->
-    m_type_ a1 b1 >>= (fun () -> 
-    m_tok a2 b2 
-    )
-| A.TyAnd(a1), B.TyAnd(b1) ->
-    (m_bracket (m_list m_ident_and_type_)) a1 b1 
-  | A.TyOr a1, B.TyOr b1 ->
-      m_list m_type_ a1 b1 
-  | A.OtherType(a1, a2), B.OtherType(b1, b2) ->
-    m_other_type_operator a1 b1 >>= (fun () -> 
-    (m_list m_any) a2 b2 
-     )
-  | A.TyBuiltin _, _  | A.TyFun _, _  | A.TyNameApply _, _  | A.TyVar _, _
-  | A.TyArray _, _  | A.TyPointer _, _ | A.TyTuple _, _  | A.TyQuestion _, _
-  | A.TyName _, _ | A.TyOr _, _ | A.TyAnd _, _
-  | A.OtherType _, _
-   -> fail ()
+  (* boilerplate *)
+  (*s: [[Generic_vs_generic.m_type_]] boilerplate cases *)
+    | A.TyBuiltin(a1), B.TyBuiltin(b1) ->
+      (m_wrap m_string) a1 b1 
+    | A.TyFun(a1, a2), B.TyFun(b1, b2) ->
+      (m_list m_parameter_classic) a1 b1 >>= (fun () -> 
+      m_type_ a2 b2 
+      )
+    | A.TyName(a1), B.TyName(b1) ->
+      m_name a1 b1 
+    | A.TyNameApply(a1, a2), B.TyNameApply(b1, b2) ->
+      m_name a1 b1 >>= (fun () -> 
+      m_type_arguments a2 b2 
+      )
+    | A.TyVar(a1), B.TyVar(b1) ->
+      m_ident a1 b1 
+    | A.TyArray(a1, a2), B.TyArray(b1, b2) ->
+      (m_option m_expr) a1 b1 >>= (fun () -> 
+      m_type_ a2 b2 
+      )
+    | A.TyPointer(a0, a1), B.TyPointer(b0, b1) ->
+      m_tok a0 b0 >>= (fun () -> 
+      m_type_ a1 b1 
+      )
+    | A.TyTuple(a1), B.TyTuple(b1) ->
+      (*TODO: m_list__m_type_ ? *)
+      (m_bracket (m_list m_type_)) a1 b1 
+    | A.TyQuestion(a1, a2), B.TyQuestion(b1, b2) ->
+      m_type_ a1 b1 >>= (fun () -> 
+      m_tok a2 b2 
+      )
+    | A.TyAnd(a1), B.TyAnd(b1) ->
+      (m_bracket (m_list m_ident_and_type_)) a1 b1 
+    | A.TyOr a1, B.TyOr b1 ->
+        m_list m_type_ a1 b1 
+    | A.OtherType(a1, a2), B.OtherType(b1, b2) ->
+      m_other_type_operator a1 b1 >>= (fun () -> 
+      (m_list m_any) a2 b2 
+       )
+    | A.TyBuiltin _, _  | A.TyFun _, _  | A.TyNameApply _, _  | A.TyVar _, _
+    | A.TyArray _, _  | A.TyPointer _, _ | A.TyTuple _, _  | A.TyQuestion _, _
+    | A.TyName _, _ | A.TyOr _, _ | A.TyAnd _, _
+    | A.OtherType _, _
+     -> fail ()
+  (*e: [[Generic_vs_generic.m_type_]] boilerplate cases *)
 (*e: function [[Generic_vs_generic.m_type_]] *)
 
 (*s: function [[Generic_vs_generic.m_ident_and_type_]] *)
@@ -1111,6 +1149,7 @@ and m_attribute a b =
     let exp = make_dotted dotted in
     m_attribute a (B.OtherAttribute (B.OA_Expr, [B.E (B.Call (exp, b2))]))
 
+  (* boilerplate *)
   | A.KeywordAttr(a1), B.KeywordAttr(b1) ->
     m_wrap m_keyword_attribute a1 b1 
   | A.NamedAttr(a1, ida, a2), B.NamedAttr(b1, idb, b2) ->
@@ -1240,11 +1279,6 @@ and m_stmt a b =
   | A.ExprStmt(a1), B.Return (_, Some b1) ->
      m_expr_deep a1 b1
 
-  | A.DefStmt(a1), B.DefStmt(b1) ->
-    m_definition a1 b1 
-  | A.DirectiveStmt(a1), B.DirectiveStmt(b1) ->
-    m_directive a1 b1 
-
   (* TODO: ... should also allow a subset of stmts *)
   | A.Block(a1), B.Block(b1) ->
     m_stmts_deep a1 b1 
@@ -1255,78 +1289,87 @@ and m_stmt a b =
     m_stmt a2 b2 >>= (fun () -> 
     m_stmt a3 b3 
     )))
-  | A.While(a0, a1, a2), B.While(b0, b1, b2) ->
-    m_tok a0 b0 >>= (fun () ->
-    m_expr a1 b1 >>= (fun () -> 
-    m_stmt a2 b2 
-    ))
-  | A.DoWhile(a0, a1, a2), B.DoWhile(b0, b1, b2) ->
-    m_tok a0 b0 >>= (fun () ->
-    m_stmt a1 b1 >>= (fun () -> 
-    m_expr a2 b2 
-    ))
-  | A.For(a0, a1, a2), B.For(b0, b1, b2) ->
-    m_tok a0 b0 >>= (fun () ->
-    m_for_header a1 b1 >>= (fun () -> 
-    m_stmt a2 b2 
-    ))
-  | A.Switch(at, a1, a2), B.Switch(bt, b1, b2) ->
-    m_tok at bt >>= (fun () -> 
-    m_option (m_expr) a1 b1 >>= (fun () -> 
-    (m_list m_case_and_body) a2 b2 
-    ))
   | A.Return(a0, a1), B.Return(b0, b1) ->
     m_tok a0 b0 >>= (fun () ->
     m_option_ellipsis_ok m_expr a1 b1 
     )
-  | A.Continue(a0, a1), B.Continue(b0, b1) ->
-    m_tok a0 b0 >>= (fun () ->
-    m_label_ident a1 b1 
-    )
-  | A.Break(a0, a1), B.Break(b0, b1) ->
-    m_tok a0 b0 >>= (fun () ->
-    m_label_ident a1 b1 
-    )
-  | A.Label(a1, a2), B.Label(b1, b2) ->
-    m_label a1 b1 >>= (fun () -> 
-    m_stmt a2 b2 
-    )
-  | A.Goto(a0, a1), B.Goto(b0, b1) ->
-    m_tok a0 b0 >>= (fun () ->
-    m_label a1 b1 
-    )
-  | A.Throw(a0, a1), B.Throw(b0, b1) ->
-    m_tok a0 b0 >>= (fun () ->
-    m_expr a1 b1 
-    )
-  | A.Try(a0, a1, a2, a3), B.Try(b0, b1, b2, b3) ->
-    m_tok a0 b0 >>= (fun () ->
-    m_stmt a1 b1 >>= (fun () -> 
-    (m_list m_catch) a2 b2 >>= (fun () -> 
-    (m_option m_finally) a3 b3 
-    )))
-  | A.Assert(a0, a1, a2), B.Assert(b0, b1, b2) ->
-    m_tok a0 b0 >>= (fun () ->
-    m_expr a1 b1 >>= (fun () -> 
-    (m_option m_expr) a2 b2 
-    ))
+  (* boilerplate *)
+  (*s: [[Generic_vs_generic.m_stmt]] boilerplate cases *)
+    | A.DefStmt(a1), B.DefStmt(b1) ->
+      m_definition a1 b1 
+    | A.DirectiveStmt(a1), B.DirectiveStmt(b1) ->
+      m_directive a1 b1 
 
-  | A.OtherStmt(a1, a2), B.OtherStmt(b1, b2) ->
-    m_other_stmt_operator a1 b1 >>= (fun () -> 
-    (m_list m_any) a2 b2 
-    )
-  | A.OtherStmtWithStmt(a1, a2, a3), B.OtherStmtWithStmt(b1, b2, b3) ->
-    m_other_stmt_with_stmt_operator a1 b1 >>= (fun () -> 
-    m_expr a2 b2 >>= (fun () -> 
-    m_stmt a3 b3 
-    ))
+    | A.While(a0, a1, a2), B.While(b0, b1, b2) ->
+      m_tok a0 b0 >>= (fun () ->
+      m_expr a1 b1 >>= (fun () -> 
+      m_stmt a2 b2 
+      ))
+    | A.DoWhile(a0, a1, a2), B.DoWhile(b0, b1, b2) ->
+      m_tok a0 b0 >>= (fun () ->
+      m_stmt a1 b1 >>= (fun () -> 
+      m_expr a2 b2 
+      ))
+    | A.For(a0, a1, a2), B.For(b0, b1, b2) ->
+      m_tok a0 b0 >>= (fun () ->
+      m_for_header a1 b1 >>= (fun () -> 
+      m_stmt a2 b2 
+      ))
+    | A.Switch(at, a1, a2), B.Switch(bt, b1, b2) ->
+      m_tok at bt >>= (fun () -> 
+      m_option (m_expr) a1 b1 >>= (fun () -> 
+      (m_list m_case_and_body) a2 b2 
+      ))
 
-  | A.ExprStmt _, _  | A.DefStmt _, _  | A.DirectiveStmt _, _
-  | A.Block _, _  | A.If _, _  | A.While _, _  | A.DoWhile _, _  | A.For _, _
-  | A.Switch _, _  | A.Return _, _  | A.Continue _, _  | A.Break _, _
-  | A.Label _, _  | A.Goto _, _  | A.Throw _, _  | A.Try _, _  | A.Assert _, _
-  | A.OtherStmt _, _ | A.OtherStmtWithStmt _, _
-   -> fail ()
+    | A.Continue(a0, a1), B.Continue(b0, b1) ->
+      m_tok a0 b0 >>= (fun () ->
+      m_label_ident a1 b1 
+      )
+    | A.Break(a0, a1), B.Break(b0, b1) ->
+      m_tok a0 b0 >>= (fun () ->
+      m_label_ident a1 b1 
+      )
+    | A.Label(a1, a2), B.Label(b1, b2) ->
+      m_label a1 b1 >>= (fun () -> 
+      m_stmt a2 b2 
+      )
+    | A.Goto(a0, a1), B.Goto(b0, b1) ->
+      m_tok a0 b0 >>= (fun () ->
+      m_label a1 b1 
+      )
+    | A.Throw(a0, a1), B.Throw(b0, b1) ->
+      m_tok a0 b0 >>= (fun () ->
+      m_expr a1 b1 
+      )
+    | A.Try(a0, a1, a2, a3), B.Try(b0, b1, b2, b3) ->
+      m_tok a0 b0 >>= (fun () ->
+      m_stmt a1 b1 >>= (fun () -> 
+      (m_list m_catch) a2 b2 >>= (fun () -> 
+      (m_option m_finally) a3 b3 
+      )))
+    | A.Assert(a0, a1, a2), B.Assert(b0, b1, b2) ->
+      m_tok a0 b0 >>= (fun () ->
+      m_expr a1 b1 >>= (fun () -> 
+      (m_option m_expr) a2 b2 
+      ))
+
+    | A.OtherStmt(a1, a2), B.OtherStmt(b1, b2) ->
+      m_other_stmt_operator a1 b1 >>= (fun () -> 
+      (m_list m_any) a2 b2 
+      )
+    | A.OtherStmtWithStmt(a1, a2, a3), B.OtherStmtWithStmt(b1, b2, b3) ->
+      m_other_stmt_with_stmt_operator a1 b1 >>= (fun () -> 
+      m_expr a2 b2 >>= (fun () -> 
+      m_stmt a3 b3 
+      ))
+
+    | A.ExprStmt _, _  | A.DefStmt _, _  | A.DirectiveStmt _, _
+    | A.Block _, _  | A.If _, _  | A.While _, _  | A.DoWhile _, _  | A.For _, _
+    | A.Switch _, _  | A.Return _, _  | A.Continue _, _  | A.Break _, _
+    | A.Label _, _  | A.Goto _, _  | A.Throw _, _  | A.Try _, _  | A.Assert _, _
+    | A.OtherStmt _, _ | A.OtherStmtWithStmt _, _
+     -> fail ()
+  (*e: [[Generic_vs_generic.m_stmt]] boilerplate cases *)
 (*e: function [[Generic_vs_generic.m_stmt]] *)
 
 (*s: function [[Generic_vs_generic.m_for_header]] *)
@@ -1440,60 +1483,62 @@ and m_pattern a b =
        with Ast.NotAnExpr ->
         envf (str, tok) (B.P b2)
       )
-
-  | A.PatId(a1, a2), B.PatId(b1, b2) ->
-    m_ident a1 b1 >>= (fun () -> 
-    m_id_info a2 b2 
-    )
-  | A.PatLiteral(a1), B.PatLiteral(b1) ->
-    m_literal a1 b1 
-  | A.PatType(a1), B.PatType(b1) ->
-    m_type_ a1 b1 
-  | A.PatConstructor(a1, a2), B.PatConstructor(b1, b2) ->
-    m_name a1 b1 >>= (fun () -> 
-    (m_list m_pattern) a2 b2 
-    )
-  | A.PatTuple(a1), B.PatTuple(b1) ->
-    (m_list m_pattern) a1 b1 
-  | A.PatList(a1), B.PatList(b1) ->
-    m_bracket (m_list m_pattern) a1 b1 
-  | A.PatRecord(a1), B.PatRecord(b1) ->
-    m_bracket (m_list m_field_pattern) a1 b1 
-  | A.PatKeyVal(a1, a2), B.PatKeyVal(b1, b2) ->
-    m_pattern a1 b1 >>= (fun () -> 
-    m_pattern a2 b2 
-    )
-  | A.PatUnderscore(a1), B.PatUnderscore(b1) ->
-    m_tok a1 b1 
-  | A.PatDisj(a1, a2), B.PatDisj(b1, b2) ->
-    m_pattern a1 b1 >>= (fun () -> 
-    m_pattern a2 b2 
-    )
-  | A.PatAs(a1, (a2, a3)), B.PatAs(b1, (b2, b3)) ->
-    m_pattern a1 b1 >>= (fun () -> 
-    m_ident_and_id_info_add_in_env_Expr (a2, a3) (b2, b3)
-    )
-  | A.PatTyped(a1, a2), B.PatTyped(b1, b2) ->
-    m_pattern a1 b1 >>= (fun () -> 
-    m_type_ a2 b2  
-    )
-  | A.PatVar(a1, a2), B.PatVar(b1, b2) ->
-    m_type_ a1 b1 >>= (fun () -> 
-    m_option m_ident_and_id_info_add_in_env_Expr a2 b2 
-    )
-  | A.PatWhen(a1, a2), B.PatWhen(b1, b2) ->
-    m_pattern a1 b1 >>= (fun () -> 
-    m_expr a2 b2 
-    )
-  | A.OtherPat(a1, a2), B.OtherPat(b1, b2) ->
-    m_other_pattern_operator a1 b1 >>= (fun () -> 
-    (m_list m_any) a2 b2 
-    )
-  | A.PatId _, _  | A.PatLiteral _, _  | A.PatConstructor _, _
-  | A.PatTuple _, _  | A.PatList _, _  | A.PatRecord _, _  | A.PatKeyVal _, _
-  | A.PatUnderscore _, _  | A.PatDisj _, _  | A.PatWhen _, _  | A.PatAs _, _
-  | A.PatTyped _, _  | A.OtherPat _, _ | A.PatType _, _ | A.PatVar _, _
-   -> fail ()
+  (* boilerplate *)
+  (*s: [[Generic_vs_generic.m_pattern]] boilerplate cases *)
+    | A.PatId(a1, a2), B.PatId(b1, b2) ->
+      m_ident a1 b1 >>= (fun () -> 
+      m_id_info a2 b2 
+      )
+    | A.PatLiteral(a1), B.PatLiteral(b1) ->
+      m_literal a1 b1 
+    | A.PatType(a1), B.PatType(b1) ->
+      m_type_ a1 b1 
+    | A.PatConstructor(a1, a2), B.PatConstructor(b1, b2) ->
+      m_name a1 b1 >>= (fun () -> 
+      (m_list m_pattern) a2 b2 
+      )
+    | A.PatTuple(a1), B.PatTuple(b1) ->
+      (m_list m_pattern) a1 b1 
+    | A.PatList(a1), B.PatList(b1) ->
+      m_bracket (m_list m_pattern) a1 b1 
+    | A.PatRecord(a1), B.PatRecord(b1) ->
+      m_bracket (m_list m_field_pattern) a1 b1 
+    | A.PatKeyVal(a1, a2), B.PatKeyVal(b1, b2) ->
+      m_pattern a1 b1 >>= (fun () -> 
+      m_pattern a2 b2 
+      )
+    | A.PatUnderscore(a1), B.PatUnderscore(b1) ->
+      m_tok a1 b1 
+    | A.PatDisj(a1, a2), B.PatDisj(b1, b2) ->
+      m_pattern a1 b1 >>= (fun () -> 
+      m_pattern a2 b2 
+      )
+    | A.PatAs(a1, (a2, a3)), B.PatAs(b1, (b2, b3)) ->
+      m_pattern a1 b1 >>= (fun () -> 
+      m_ident_and_id_info_add_in_env_Expr (a2, a3) (b2, b3)
+      )
+    | A.PatTyped(a1, a2), B.PatTyped(b1, b2) ->
+      m_pattern a1 b1 >>= (fun () -> 
+      m_type_ a2 b2  
+      )
+    | A.PatVar(a1, a2), B.PatVar(b1, b2) ->
+      m_type_ a1 b1 >>= (fun () -> 
+      m_option m_ident_and_id_info_add_in_env_Expr a2 b2 
+      )
+    | A.PatWhen(a1, a2), B.PatWhen(b1, b2) ->
+      m_pattern a1 b1 >>= (fun () -> 
+      m_expr a2 b2 
+      )
+    | A.OtherPat(a1, a2), B.OtherPat(b1, b2) ->
+      m_other_pattern_operator a1 b1 >>= (fun () -> 
+      (m_list m_any) a2 b2 
+      )
+    | A.PatId _, _  | A.PatLiteral _, _  | A.PatConstructor _, _
+    | A.PatTuple _, _  | A.PatList _, _  | A.PatRecord _, _  | A.PatKeyVal _, _
+    | A.PatUnderscore _, _  | A.PatDisj _, _  | A.PatWhen _, _  | A.PatAs _, _
+    | A.PatTyped _, _  | A.OtherPat _, _ | A.PatType _, _ | A.PatVar _, _
+     -> fail ()
+  (*e: [[Generic_vs_generic.m_pattern]] boilerplate cases *)
 (*e: function [[Generic_vs_generic.m_pattern]] *)
 
 (*s: function [[Generic_vs_generic.m_field_pattern]] *)
@@ -2007,6 +2052,8 @@ and m_directive_basic a b =
     m_module_name_prefix a1 b1 >>= (fun () -> 
     m_tok a2 b2 
     ))
+  (* boilerplate *)
+  (*s: [[Generic_vs_generic.m_directive_basic]] boilerplate cases *)
   | A.Package(a0, a1), B.Package(b0, b1) ->
     m_tok a0 b0 >>= (fun () ->
     m_dotted_name a1 b1 
@@ -2020,6 +2067,7 @@ and m_directive_basic a b =
   | A.ImportFrom _, _ | A.ImportAs _, _ | A.OtherDirective _, _
   | A.ImportAll _, _ | A.Package _, _ | A.PackageEnd _, _
    -> fail ()
+  (*e: [[Generic_vs_generic.m_directive_basic]] boilerplate cases *)
 (*e: function [[Generic_vs_generic.m_directive_basic]] *)
 
 (*s: function [[Generic_vs_generic.m_other_directive_operator]] *)
@@ -2032,7 +2080,6 @@ and m_other_directive_operator = m_other_xxx
 
 (*s: function [[Generic_vs_generic.m_item]] *)
 and m_item a b = m_stmt a b
-
 (*e: function [[Generic_vs_generic.m_item]] *)
 
 (*s: function [[Generic_vs_generic.m_program]] *)
@@ -2048,6 +2095,14 @@ and m_program a b =
 (*s: function [[Generic_vs_generic.m_any]] *)
 and m_any a b = 
   match a, b with
+  | A.Ss(a1), B.Ss(b1) ->
+    m_stmts_deep a1 b1 
+  | A.E(a1), B.E(b1) ->
+    m_expr a1 b1 
+  | A.S(a1), B.S(b1) ->
+    m_stmt a1 b1 
+  (* boilerplate *)
+  (*s: [[Generic_vs_generic.m_any]] boilerplate cases *)
   | A.N(a1), B.N(b1) ->
     m_name a1 b1 
   | A.Tk(a1), B.Tk(b1) ->
@@ -2056,10 +2111,6 @@ and m_any a b =
     m_dotted_name a1 b1 
   | A.En(a1), B.En(b1) ->
     m_entity a1 b1 
-  | A.E(a1), B.E(b1) ->
-    m_expr a1 b1 
-  | A.S(a1), B.S(b1) ->
-    m_stmt a1 b1 
   | A.T(a1), B.T(b1) ->
     m_type_ a1 b1 
   | A.P(a1), B.P(b1) ->
@@ -2082,12 +2133,11 @@ and m_any a b =
     m_program a1 b1 
   | A.I(a1), B.I(b1) ->
     m_ident a1 b1 
-  | A.Ss(a1), B.Ss(b1) ->
-    m_stmts_deep a1 b1 
   | A.I _, _  | A.N _, _  | A.Di _, _  | A.En _, _  | A.E _, _
   | A.S _, _  | A.T _, _  | A.P _, _  | A.Def _, _  | A.Dir _, _
   | A.Pa _, _  | A.Ar _, _  | A.At _, _  | A.Dk _, _ | A.Pr _, _
   | A.Fld _, _ | A.Ss _, _ | A.Tk _, _
    -> fail ()
+  (*e: [[Generic_vs_generic.m_any]] boilerplate cases *)
 (*e: function [[Generic_vs_generic.m_any]] *)
 (*e: semgrep/matching/generic_vs_generic.ml *)
