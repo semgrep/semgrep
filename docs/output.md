@@ -8,6 +8,7 @@ Contents:
 
 * [Default](#default)
 * [JSON](#json)
+* [SARIF (JSON)](#sarif-json)
 
 ## Default
 
@@ -140,5 +141,72 @@ The following is example output from an [r2c rule](https://github.com/returntoco
         }
     ],
     "errors": []
+}
+```
+
+## SARIF (JSON)
+
+You can set the `--sarif` flag to request output as SARIF-compliant JSON.
+[SARIF](https://docs.oasis-open.org/sarif/sarif/v2.1.0/cs01/sarif-v2.1.0-cs01.html)
+is a standard for representing static analysis results as JSON.
+We recommend using the regular `--json` formatting flag
+unless you want integrate with a tool that gathers results
+from multiple SARIF-compatible static analysis tools.
+
+The following is example output from an [r2c rule](https://github.com/returntocorp/semgrep-rules):
+
+```json
+{
+  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+  "results": [
+    {
+      "locations": [
+        {
+          "physicalLocation": {
+            "artifactLocation": {
+              "uri": "targets/basic/test.py",
+              "uriBaseId": "%SRCROOT%"
+            },
+            "region": {
+              "endColumn": 26,
+              "endLine": 3,
+              "startColumn": 12,
+              "startLine": 3
+            }
+          }
+        }
+      ],
+      "message": {
+        "text": "useless comparison operation `a+b == a+b` or `a+b != a+b`; possible bug?"
+      },
+      "ruleId": "rules.eqeq-is-bad"
+    }
+  ],
+  "tool": {
+    "driver": {
+      "name": "semgrep",
+      "rules": [
+        {
+          "defaultConfiguration": {
+            "level": "error"
+          },
+          "fullDescription": {
+            "text": "useless comparison operation `$X == $X` or `$X != $X`; possible bug?"
+          },
+          "id": "rules.eqeq-is-bad",
+          "name": "rules.eqeq-is-bad",
+          "properties": {
+            "precision": "very-high",
+            "tags": []
+          },
+          "shortDescription": {
+            "text": "useless comparison operation `$X == $X` or `$X != $X`; possible bug?"
+          }
+        }
+      ],
+      "semanticVersion": "0.6.1"
+    }
+  },
+  "version": "2.1.0"
 }
 ```
