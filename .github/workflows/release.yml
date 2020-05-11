@@ -9,7 +9,7 @@ jobs:
     strategy:
       matrix:
         # The os doesn't actually matter anymore. We build a static binary linked with musl that is manylinux compatible.
-        os: ['ubuntu-16.04', 'ubuntu-20.04']
+        os: ['ubuntu-16.04']
     runs-on: ubuntu-latest
     container: returntocorp/sgrep-build:${{ matrix.os }}
     steps:
