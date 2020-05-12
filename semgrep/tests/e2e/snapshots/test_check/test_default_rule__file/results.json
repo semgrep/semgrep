@@ -11,6 +11,25 @@
         "lines": "    return a + b == a + b",
         "message": "useless comparison operation `a+b == a+b` or `a+b != a+b`; possible bug?",
         "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "a+b",
+            "end": {
+              "col": 17,
+              "line": 3,
+              "offset": 60
+            },
+            "start": {
+              "col": 12,
+              "line": 3,
+              "offset": 55
+            },
+            "unique_id": {
+              "md5sum": "07d71d85769e594dba9d7ae3d295c01f",
+              "type": "AST"
+            }
+          }
+        },
         "severity": "ERROR"
       },
       "path": "targets/basic/stupid.py",
@@ -29,6 +48,27 @@
         "lines": "console.log(x == x)",
         "message": "useless comparison",
         "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "x",
+            "end": {
+              "col": 14,
+              "line": 3,
+              "offset": 25
+            },
+            "start": {
+              "col": 13,
+              "line": 3,
+              "offset": 24
+            },
+            "unique_id": {
+              "kind": "Global",
+              "sid": 1,
+              "type": "id",
+              "value": "x"
+            }
+          }
+        },
         "severity": "ERROR"
       },
       "path": "targets/basic/stupid.js",

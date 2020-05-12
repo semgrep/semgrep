@@ -11,6 +11,25 @@
         "lines": "    return a + b == a + b",
         "message": "useless comparison operation `a+b == a+b` or `a+b != a+b`; if testing for floating point NaN, use `math.isnan`, or `cmath.isnan` if the number is complex.",
         "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "a+b",
+            "end": {
+              "col": 17,
+              "line": 3,
+              "offset": 60
+            },
+            "start": {
+              "col": 12,
+              "line": 3,
+              "offset": 55
+            },
+            "unique_id": {
+              "md5sum": "07d71d85769e594dba9d7ae3d295c01f",
+              "type": "AST"
+            }
+          }
+        },
         "severity": "ERROR"
       },
       "path": "targets/basic/stupid.py",

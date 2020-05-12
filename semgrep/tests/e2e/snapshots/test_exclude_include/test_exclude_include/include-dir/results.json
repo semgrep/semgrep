@@ -11,6 +11,27 @@
         "lines": "console.log(x == x)",
         "message": "useless comparison",
         "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "x",
+            "end": {
+              "col": 14,
+              "line": 3,
+              "offset": 25
+            },
+            "start": {
+              "col": 13,
+              "line": 3,
+              "offset": 24
+            },
+            "unique_id": {
+              "kind": "Global",
+              "sid": 1,
+              "type": "id",
+              "value": "x"
+            }
+          }
+        },
         "severity": "ERROR"
       },
       "path": "targets/exclude_include/included/excluded.js",
@@ -29,6 +50,27 @@
         "lines": "console.log(x == x)",
         "message": "useless comparison",
         "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "x",
+            "end": {
+              "col": 14,
+              "line": 3,
+              "offset": 25
+            },
+            "start": {
+              "col": 13,
+              "line": 3,
+              "offset": 24
+            },
+            "unique_id": {
+              "kind": "Global",
+              "sid": 1,
+              "type": "id",
+              "value": "x"
+            }
+          }
+        },
         "severity": "ERROR"
       },
       "path": "targets/exclude_include/included/included.js",
