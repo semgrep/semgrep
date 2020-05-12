@@ -92,8 +92,10 @@ class RuleMatch:
         return self._severity in {"WARNING", "ERROR"}
 
     def to_json(self) -> Dict[str, Any]:
-        json_obj = self._pattern_match._raw_json
+        json_obj: Dict[str, Any] = {"extra": {}}
+
         json_obj["check_id"] = self._id
+        json_obj["path"] = str(self._path)
         json_obj["extra"]["message"] = self._message
         json_obj["extra"]["metadata"] = self._metadata
         json_obj["extra"]["severity"] = self._severity
