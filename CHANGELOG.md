@@ -9,6 +9,11 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   for targeting specific paths with command line options.
   The behavior of these flags mimics `grep`'s behavior.
 
+### Added
+- A `--sarif` flag to receive output formatted according to the
+  [SARIF v2.1.0](https://docs.oasis-open.org/sarif/sarif/v2.1.0/cs01/sarif-v2.1.0-cs01.html)
+  specification for static analysis tools.
+
 ## [0.6.1](https://github.com/returntocorp/semgrep/releases/tag/v0.6.1) - 2020-05-06
 
 ### Fix

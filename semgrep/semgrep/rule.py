@@ -114,6 +114,26 @@ class Rule:
         return str(self._raw["severity"])
 
     @property
+    def sarif_severity(self) -> str:
+        """
+        SARIF v2.1.0-compliant severity string.
+
+        See https://github.com/oasis-tcs/sarif-spec/blob/a6473580/Schemata/sarif-schema-2.1.0.json#L1566
+        """
+        mapping = {"INFO": "note", "ERROR": "error", "WARNING": "warning"}
+        return mapping[self.severity]
+
+    @property
+    def sarif_tags(self) -> Iterator[str]:
+        """
+        Tags to display on SARIF-compliant UIs, such as GitHub security scans.
+        """
+        if "cwe" in self.metadata:
+            yield "cwe"
+        if "owasp" in self.metadata:
+            yield "owasp"
+
+    @property
     def languages(self) -> List[str]:
         languages: List[str] = self._raw["languages"]
         return languages
@@ -144,6 +164,16 @@ class Rule:
 
     def to_json(self) -> Dict[str, Any]:
         return self._raw
+
+    def to_sarif(self) -> Dict[str, Any]:
+        return {
+            "id": self.id,
+            "name": self.id,
+            "shortDescription": {"text": self.message},
+            "fullDescription": {"text": self.message},
+            "defaultConfiguration": {"level": self.sarif_severity},
+            "properties": {"precision": "very-high", "tags": list(self.sarif_tags)},
+        }
 
     def __repr__(self) -> str:
         return json.dumps(self.to_json())

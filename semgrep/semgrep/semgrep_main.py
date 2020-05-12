@@ -13,6 +13,7 @@ import semgrep.config_resolver
 from semgrep.autofix import apply_fixes
 from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import ID_KEY
+from semgrep.constants import OutputFormat
 from semgrep.constants import RULES_KEY
 from semgrep.core_runner import CoreRunner
 from semgrep.output import build_output
@@ -276,27 +277,36 @@ def main(args: argparse.Namespace) -> str:
             INVALID_CODE_EXIT_CODE,
         )
 
-    rule_matches = flatten_rule_matches(rule_matches_by_rule)
-    output = handle_output(rule_matches, semgrep_errors, args)
+    output = handle_output(rule_matches_by_rule, semgrep_errors, args)
     if args.autofix:
         apply_fixes(rule_matches_by_rule)
 
     return output
 
 
-def flatten_rule_matches(
-    rule_matches_by_rule: Dict[Rule, List[RuleMatch]],
-) -> List[RuleMatch]:
-    rule_matches: List[RuleMatch] = []
-    for rule_match in rule_matches_by_rule.values():
-        rule_matches.extend(rule_match)
-    return rule_matches
+def _output_format(args: Any) -> OutputFormat:
+    if args.sarif:
+        return OutputFormat.SARIF
+    elif args.json:
+        return OutputFormat.JSON
+    else:
+        return OutputFormat.TEXT
 
 
 def handle_output(
-    rule_matches: List[RuleMatch], semgrep_errors: List[Any], args: Any
+    rule_matches_by_rule: Dict[Rule, List[RuleMatch]],
+    semgrep_errors: List[Any],
+    args: Any,
 ) -> str:
-    output = build_output(rule_matches, semgrep_errors, args.json, not args.output)
+    rules = frozenset(rule_matches_by_rule.keys())
+    rule_matches = [
+        match
+        for matches_of_one_rule in rule_matches_by_rule.values()
+        for match in matches_of_one_rule
+    ]
+    output = build_output(
+        rule_matches, rules, semgrep_errors, _output_format(args), not args.output
+    )
     if not args.quiet:
         if output:
             print(output)

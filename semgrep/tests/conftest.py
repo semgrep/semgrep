@@ -17,7 +17,7 @@ def _run_semgrep(
     *,
     target_name: str = "basic",
     options: Optional[List[Union[str, Path]]] = None,
-    use_json: bool = True,
+    output_format: str = "json",
     stderr: bool = False,
 ) -> str:
     """Run the semgrep CLI.
@@ -25,7 +25,7 @@ def _run_semgrep(
     :param config: what to pass as --config's value
     :param target_name: which directory within ./e2e/targets/ to scan
     :param options: additional CLI flags to add
-    :param use_json: whether to add --json and pretty-format the stdout
+    :param output_format: which format to use, valid options are normal, json, and sarif
     :param stderr: whether to merge stderr into the returned string
     """
     if options is None:
@@ -36,8 +36,10 @@ def _run_semgrep(
     if config is not None:
         options.extend(["--config", config])
 
-    if use_json:
+    if output_format == "json":
         options.append("--json")
+    elif output_format == "sarif":
+        options.append("--sarif")
 
     output = subprocess.check_output(
         ["python3", "-m", "semgrep", *options, Path("targets") / target_name],
@@ -45,7 +47,7 @@ def _run_semgrep(
         stderr=subprocess.STDOUT if stderr else None,
     )
 
-    if use_json and not stderr:
+    if output_format in {"json", "sarif"} and not stderr:
         output = json.dumps(json.loads(output), indent=2, sort_keys=True)
 
     return output
