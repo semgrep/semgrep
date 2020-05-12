@@ -80,3 +80,7 @@ def test_default_rule__folder(run_semgrep_in_tmp, snapshot):
     Path(".semgrep/.semgrep.yml").symlink_to(Path("rules/eqeq.yaml").resolve())
 
     snapshot.assert_match(run_semgrep_in_tmp(), "results.json")
+
+
+def test_regex_rule(run_semgrep_in_tmp, snapshot):
+    snapshot.assert_match(run_semgrep_in_tmp("rules/regex.yaml"), "results.json")

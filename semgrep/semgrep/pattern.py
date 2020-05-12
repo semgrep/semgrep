@@ -22,12 +22,17 @@ class Pattern:
         # which is nice and all but the semgrep YAML parser doesn't support that
         self._languages = languages.copy()
         self._severity = severity
+        self._expression = expression
         self._pattern = expression.operand
         self._message = "<internalonly>"
 
     @property
     def languages(self) -> List[str]:
         return self._languages
+
+    @property
+    def expression(self) -> BooleanRuleExpression:  # type: ignore
+        return self._expression
 
     def to_json(self) -> Dict[str, Any]:
         return {

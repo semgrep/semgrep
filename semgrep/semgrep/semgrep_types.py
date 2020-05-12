@@ -20,6 +20,7 @@ class OPERATORS:
     WHERE_PYTHON: Operator = Operator("where_python")
     FIX: Operator = Operator("fix")
     EQUIVALENCES: Operator = Operator("equivalences")
+    REGEX: Operator = Operator("regex")
 
 
 OPERATORS_WITH_CHILDREN = [OPERATORS.AND_ALL, OPERATORS.AND_EITHER]
@@ -34,6 +35,7 @@ OPERATOR_PATTERN_NAMES_MAP = {
     OPERATORS.WHERE_PYTHON: ["pattern-where-python"],
     OPERATORS.FIX: ["fix"],
     OPERATORS.EQUIVALENCES: ["equivalences"],
+    OPERATORS.REGEX: ["pattern-regex"],
 }
 
 # These are the only valid top-level keys
@@ -45,6 +47,7 @@ YAML_VALID_TOP_LEVEL_OPERATORS = {
     OPERATORS.AND_EITHER,
     OPERATORS.FIX,
     OPERATORS.EQUIVALENCES,
+    OPERATORS.REGEX,
 }
 YAML_ALL_VALID_RULE_KEYS = (
     {

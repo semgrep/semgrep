@@ -87,7 +87,8 @@ def _evaluate_single_expression(
                     output_ranges.add(pattern_match.range)
         debug_print(f"after filter `{expression.operator}`: {output_ranges}")
         return output_ranges
-
+    elif expression.operator == OPERATORS.REGEX:
+        return ranges_left
     else:
         raise NotImplementedError(f"unknown operator {expression.operator}")
 

@@ -97,11 +97,15 @@ class RuleMatch:
         json_obj["extra"]["message"] = self._message
         json_obj["extra"]["metadata"] = self._metadata
         json_obj["extra"]["severity"] = self._severity
+
         if self._fix:
             json_obj["extra"]["fix"] = self._fix
+
         json_obj["start"] = self._start
         json_obj["end"] = self._end
-        json_obj["extra"]["lines"] = "\n".join(self.lines).rstrip()
+
+        if "line" in self.start and "line" in self.end:
+            json_obj["extra"]["lines"] = "\n".join(self.lines).rstrip()
 
         return json_obj
 

@@ -1,5 +1,9 @@
 import collections
+import functools
 import json
+import multiprocessing
+import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -13,6 +17,7 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 
+from semgrep.constants import LANGUAGE_EXTENSIONS
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import SEMGREP_PATH
 from semgrep.equivalences import Equivalence
@@ -26,8 +31,30 @@ from semgrep.semgrep_types import BooleanRuleExpression
 from semgrep.semgrep_types import OPERATORS
 from semgrep.util import debug_print
 from semgrep.util import INVALID_PATTERN_EXIT_CODE
+from semgrep.util import partition
 from semgrep.util import print_error
 from semgrep.util import print_error_exit
+
+
+RegexResult = collections.namedtuple("RegexResult", ["pattern", "path", "match"])
+
+
+def get_re_matches(patterns: Dict, path: str) -> List:
+    with open(path) as fd:
+        contents = fd.read()
+
+    return [
+        RegexResult(
+            pattern=pattern,
+            path=path,
+            match={
+                "span": match.span(),
+                "contents": contents[match.start() : match.end()],
+            },
+        )
+        for pattern in patterns
+        for match in re.finditer(pattern["pattern"], contents)
+    ]
 
 
 class CoreRunner:
@@ -159,12 +186,63 @@ class CoreRunner:
             for language, all_patterns_for_language in self._group_patterns_by_language(
                 rules
             ).items():
-                with tempfile.NamedTemporaryFile("w") as fout:
-                    # very important not to sort keys here
-                    patterns_json = [p.to_json() for p in all_patterns_for_language]
-                    yaml_as_str = yaml.safe_dump(
-                        {"rules": patterns_json}, sort_keys=False
+                # semgrep-core doesn't know about OPERATORS.REGEX - this is
+                # strictly a semgrep Python feature. Regex filtering is
+                # performed purely in Python code.
+                patterns_regex, patterns = partition(
+                    lambda p: p.expression.operator == OPERATORS.REGEX,
+                    all_patterns_for_language,
+                )
+                if patterns_regex:
+                    file_extensions = LANGUAGE_EXTENSIONS[language]
+                    filepaths = [
+                        str(target)
+                        for target in targets
+                        if target.is_file()
+                        and any(
+                            str(target).endswith(extension)
+                            for extension in file_extensions
+                        )
+                    ]
+                    filepaths.extend(
+                        os.path.join(dirpath, filename)
+                        for target in targets
+                        if target.is_dir()
+                        for dirpath, _, filenames in os.walk(str(target))
+                        for filename in filenames
+                        if any(
+                            os.path.join(dirpath, filename).endswith(extension)
+                            for extension in file_extensions
+                        )
                     )
+                    re_fn = functools.partial(
+                        get_re_matches,
+                        [pattern.to_json() for pattern in patterns_regex],
+                    )
+                    with multiprocessing.Pool(self._jobs) as pool:
+                        matches = pool.map(re_fn, filepaths)
+
+                    outputs.extend(
+                        PatternMatch(
+                            {
+                                "check_id": match.pattern["id"],
+                                "path": match.path,
+                                "start": {"offset": match.match["span"][0]},
+                                "end": {"offset": match.match["span"][1]},
+                                "extra": {"contents": match.match["contents"]},
+                            }
+                        )
+                        for file_matches in matches
+                        for match in file_matches
+                    )
+
+                    # Only consider OPERATORS.REGEX xor OPERATORS.AND for now
+                    continue
+
+                patterns_json = [p.to_json() for p in patterns]
+                # very important not to sort keys here
+                yaml_as_str = yaml.safe_dump({"rules": patterns_json}, sort_keys=False)
+                with tempfile.NamedTemporaryFile("w") as fout:
                     fout.write(yaml_as_str)
                     fout.flush()
                     cmd = [SEMGREP_PATH] + [
