@@ -25,7 +25,7 @@
               "offset": 55
             },
             "unique_id": {
-              "md5sum": "07d71d85769e594dba9d7ae3d295c01f",
+              "md5sum": "<masked in tests>",
               "type": "AST"
             }
           }
@@ -62,7 +62,7 @@
               "offset": 168
             },
             "unique_id": {
-              "md5sum": "02261a07b0c19b56dcb29221e6eeea72",
+              "md5sum": "<masked in tests>",
               "type": "AST"
             }
           }
@@ -99,7 +99,7 @@
               "offset": 260
             },
             "unique_id": {
-              "md5sum": "02261a07b0c19b56dcb29221e6eeea72",
+              "md5sum": "<masked in tests>",
               "type": "AST"
             }
           }
