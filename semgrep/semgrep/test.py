@@ -186,6 +186,7 @@ def invoke_semgrep(
                 pattern=None,
                 validate=False,
                 json=True,
+                sarif=False,
                 exclude_tests=False,
                 jobs=1,
                 exclude=[],

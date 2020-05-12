@@ -7,6 +7,7 @@ import sys
 import semgrep.config_resolver
 import semgrep.semgrep_main
 import semgrep.test
+from semgrep import __VERSION__
 from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import RCE_RULE_FLAG
@@ -14,8 +15,6 @@ from semgrep.constants import SEMGREP_URL
 from semgrep.dump_ast import dump_parsed_ast
 from semgrep.util import print_error
 from semgrep.util import print_error_exit
-
-__VERSION__ = "0.6.1"
 
 try:
     CPU_COUNT = multiprocessing.cpu_count()
@@ -172,6 +171,9 @@ def cli() -> None:
     )
     output.add_argument(
         "--json", action="store_true", help="Output results in JSON format."
+    )
+    output.add_argument(
+        "--sarif", action="store_true", help="Output results in SARIF format."
     )
     output.add_argument("--test", action="store_true", help="Run test suite.")
     parser.add_argument(

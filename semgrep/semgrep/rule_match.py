@@ -104,3 +104,25 @@ class RuleMatch:
         json_obj["extra"]["lines"] = "\n".join(self.lines).rstrip()
 
         return json_obj
+
+    def to_sarif(self) -> Dict[str, Any]:
+        return {
+            "ruleId": self.id,
+            "message": {"text": self.message},
+            "locations": [
+                {
+                    "physicalLocation": {
+                        "artifactLocation": {
+                            "uri": str(self.path),
+                            "uriBaseId": "%SRCROOT%",
+                        },
+                        "region": {
+                            "startLine": self.start["line"],
+                            "startColumn": self.start["col"],
+                            "endLine": self.end["line"],
+                            "endColumn": self.end["col"],
+                        },
+                    }
+                }
+            ],
+        }
