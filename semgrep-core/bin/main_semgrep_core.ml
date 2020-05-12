@@ -87,8 +87,8 @@ let equivalences_file = ref ""
 let lang = ref "unset"
 (*e: constant [[Main_semgrep_core.lang]] *)
 
-(*s: constant [[Main_semgrep_core.excludes]] *)
 (* similar to grep options (see man grep) *)
+(*s: constant [[Main_semgrep_core.excludes]] *)
 let excludes = ref []
 (*e: constant [[Main_semgrep_core.excludes]] *)
 (*s: constant [[Main_semgrep_core.includes]] *)
@@ -97,8 +97,9 @@ let includes = ref []
 (*s: constant [[Main_semgrep_core.exclude_dirs]] *)
 let exclude_dirs = ref []
 (*e: constant [[Main_semgrep_core.exclude_dirs]] *)
-
+(*s: constant [[Main_semgrep_core.include_dirs]] *)
 let include_dirs = ref []
+(*e: constant [[Main_semgrep_core.include_dirs]] *)
 
 (*s: constant [[Main_semgrep_core.output_format_json]] *)
 let output_format_json = ref false
@@ -175,14 +176,6 @@ let map f xs =
     Parmap.parmap ~ncores:!ncores ~chunksize f (Parmap.L xs)
 (*e: function [[Main_semgrep_core.map]] *)
 
-(*s: function [[Main_semgrep_core.mk_one_info_from_multiple_infos]] *)
-(* TODO? could do slicing of function relative to the pattern, so 
- * would see where the parameters come from :)
- *)
-let mk_one_info_from_multiple_infos xs =
-  List.hd xs
-(*e: function [[Main_semgrep_core.mk_one_info_from_multiple_infos]] *)
-
 (*s: constant [[Main_semgrep_core._matching_tokens]] *)
 (* for -gen_layer *)
 let _matching_tokens = ref []
@@ -193,10 +186,10 @@ let print_match mvars mvar_binding ii_of_any tokens_matched_code =
   (* there are a few fake tokens in the generic ASTs now (e.g., 
    * for DotAccess generated outside the grammar) *)
   let toks = tokens_matched_code |> List.filter PI.is_origintok in
-  (match mvars with
-  | [] ->
-      Matching_report.print_match ~format:!match_format toks
-  | xs ->
+  (if mvars = []
+  then Matching_report.print_match ~format:!match_format toks
+  (*s: [[Main_semgrep_core.print_match()]] when non empty [[mvars]] *)
+  else begin
       (* similar to the code of Lib_matcher.print_match, maybe could
        * factorize code a bit.
        *)
@@ -206,7 +199,7 @@ let print_match mvars mvar_binding ii_of_any tokens_matched_code =
         PI.file_of_info mini, PI.line_of_info mini in
 
       let strings_metavars =
-        xs |> List.map (fun x ->
+        mvars |> List.map (fun x ->
           match Common2.assoc_opt x mvar_binding with
           | Some any ->
               ii_of_any any
@@ -217,14 +210,13 @@ let print_match mvars mvar_binding ii_of_any tokens_matched_code =
           )
       in
       pr (spf "%s:%d: %s" file line (Common.join ":" strings_metavars));
+  end
+  (*e: [[Main_semgrep_core.print_match()]] when non empty [[mvars]] *)
   );
+  (*s: [[Main_semgrep_core.print_match()]] hook *)
   toks |> List.iter (fun x -> Common.push x _matching_tokens)
+  (*e: [[Main_semgrep_core.print_match()]] hook *)
 (*e: function [[Main_semgrep_core.print_match]] *)
-
-(*s: function [[Main_semgrep_core.print_simple_match]] *)
-let print_simple_match tokens_matched_code =
-  print_match [] [] tokens_matched_code
-(*e: function [[Main_semgrep_core.print_simple_match]] *)
 
 
 (*s: function [[Main_semgrep_core.gen_layer]] *)
@@ -267,16 +259,20 @@ let gen_layer ~root ~query file =
 (*s: function [[Main_semgrep_core.parse_generic]] *)
 (* coupling: you need also to modify tests/test.ml *)
 let parse_generic lang file = 
+  (*s: [[Main_semgrep_core.parse_generic()]] use standard macros if parsing C *)
   if lang = Lang.C && Sys.file_exists !Flag_parsing_cpp.macros_h
   then Parse_cpp.init_defs !Flag_parsing_cpp.macros_h;
+  (*e: [[Main_semgrep_core.parse_generic()]] use standard macros if parsing C *)
 
   let ast = Parse_generic.parse_with_lang lang file in
+  (*s: [[Main_semgrep_core.parse_generic()]] resolve names in the AST *)
   (* to be deterministic, reset the gensym; anyway right now sgrep is
    * used only for local per-file analysis, so no need to have a unique ID
    * among a set of files in a project like codegraph.
    *)
   Ast_generic.gensym_counter := 0;
   Naming_ast.resolve lang ast;
+  (*e: [[Main_semgrep_core.parse_generic()]] resolve names in the AST *)
   ast
 (*e: function [[Main_semgrep_core.parse_generic]] *)
 
@@ -300,7 +296,9 @@ let unsupported_language_message some_lang =
 (*s: type [[Main_semgrep_core.ast]] *)
 type ast =
   | Gen of Ast_generic.program * Lang.t
+  (*s: [[Main_semgrep_core.ast]] other cases *)
   | Fuzzy of Ast_fuzzy.trees
+  (*e: [[Main_semgrep_core.ast]] other cases *)
   | NoAST
 (*e: type [[Main_semgrep_core.ast]] *)
 
@@ -308,18 +306,22 @@ type ast =
 let create_ast file =
   match Lang.lang_of_string_opt !lang with
   | Some lang -> Gen (parse_generic lang file, lang)
+  (*s: [[Main_semgrep_core.create_ast()]] when not a supported language *)
   | None ->
     (match Lang_fuzzy.lang_of_string_opt !lang with
     | Some _ -> Fuzzy (Parse_fuzzy.parse file)
     | None -> failwith (unsupported_language_message !lang)
     )
+  (*e: [[Main_semgrep_core.create_ast()]] when not a supported language *)
 (*e: function [[Main_semgrep_core.create_ast]] *)
   
 
 (*s: type [[Main_semgrep_core.pattern]] *)
 type pattern =
-  | PatFuzzy of Ast_fuzzy.tree list
   | PatGen of Rule.pattern
+  (*s: [[Main_semgrep_core.pattern]] other cases *)
+  | PatFuzzy of Ast_fuzzy.tree list
+  (*e: [[Main_semgrep_core.pattern]] other cases *)
 (*e: type [[Main_semgrep_core.pattern]] *)
 
 (*s: function [[Main_semgrep_core.parse_pattern]] *)
@@ -328,11 +330,13 @@ let parse_pattern str =
   Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
    match Lang.lang_of_string_opt !lang with
    | Some lang -> PatGen (Check_semgrep.parse_check_pattern lang str)
+   (*s: [[Main_semgrep_core.parse_pattern()]] when not a supported language *)
    | None ->
      (match Lang_fuzzy.lang_of_string_opt !lang with
      | Some lang -> PatFuzzy (Parse_fuzzy.parse_pattern lang str)
      | None -> failwith (unsupported_language_message !lang)
      )
+   (*e: [[Main_semgrep_core.parse_pattern()]] when not a supported language *)
   ))
   with exn ->
       raise (Parse_rules.InvalidPatternException ("no-id", str, !lang, (Common.exn_to_s exn)))
@@ -349,19 +353,23 @@ let sgrep_ast pattern file any_ast =
       languages = [lang] 
     } in
     Semgrep_generic.check
+      (*s: [[Main_semgrep_core.sgrep_ast()]] [[hook]] argument to [[check]] *)
       ~hook:(fun env matched_tokens ->
         let xs = Lazy.force matched_tokens in
         print_match !mvars env Lib_ast.ii_of_any xs
       )
+      (*e: [[Main_semgrep_core.sgrep_ast()]] [[hook]] argument to [[check]] *)
       [rule] (parse_equivalences ())
       file ast |> ignore;
 
+  (*s: [[Main_semgrep_core.sgrep_ast()]] match [[pattern]] and [[any_ast]] other cases *)
   | PatFuzzy pattern, Fuzzy ast ->
     Semgrep_fuzzy.sgrep
       ~hook:(fun env matched_tokens ->
         print_match !mvars env Lib_ast_fuzzy.toks_of_trees matched_tokens
       )
       pattern ast
+  (*e: [[Main_semgrep_core.sgrep_ast()]] match [[pattern]] and [[any_ast]] other cases *)
 
   | _ ->
     failwith ("unsupported  combination or " ^ (unsupported_language_message !lang))
@@ -413,8 +421,10 @@ let iter_generic_ast_of_files_and_get_matches_and_exn_to_errors f files =
               failwith (spf "can not extract generic AST from %s" file)
          in
          let ast = parse_generic lang file in
+
          (* calling the hook *)
          f file lang ast, []
+
        with exn -> 
          [], [Error_code.exn_to_error file exn]
     )
@@ -468,23 +478,31 @@ let sgrep_with_one_pattern xs =
   let files = 
     match Lang.lang_of_string_opt !lang with
     | Some lang -> Lang.files_of_dirs_or_files lang xs
+    (*s: [[Main_semgrep_core.sgrep_with_one_pattern()]] no [[lang]] specified *)
     (* should remove at some point *)
     | None -> Find_source.files_of_dir_or_files ~lang:!lang xs
+    (*e: [[Main_semgrep_core.sgrep_with_one_pattern()]] no [[lang]] specified *)
   in
+  (*s: [[Main_semgrep_core.sgrep_with_one_pattern()]] filter [[files]] *)
   let files = filter_files files in
+  (*e: [[Main_semgrep_core.sgrep_with_one_pattern()]] filter [[files]] *)
   
   files |> List.iter (fun file ->
+    (*s: [[Main_semgrep_core.sgrep_with_one_pattern()]] if [[verbose]] *)
     if !verbose 
     then pr2 (spf "processing: %s" file);
+    (*e: [[Main_semgrep_core.sgrep_with_one_pattern()]] if [[verbose]] *)
     let process file = sgrep_ast pattern file (create_ast file) in
+
     if not !error_recovery
     then E.try_with_print_exn_and_reraise file (fun () -> process file)
     else E.try_with_exn_to_error file (fun () -> process file)
   );
 
+  (*s: [[Main_semgrep_core.sgrep_with_one_pattern()]] display error count *)
   let n = List.length !E.g_errors in
   if n > 0 then pr2 (spf "error count: %d" n);
-
+  (*e: [[Main_semgrep_core.sgrep_with_one_pattern()]] display error count *)
   (*s: [[Main_semgrep_core.sgrep_with_one_pattern()]] optional layer generation *)
   !layer_file |> Common.do_option (fun file ->
     let root = Common2.common_prefix_of_files_or_dirs xs in
@@ -503,11 +521,12 @@ let sgrep_with_one_pattern xs =
  * sgrep_with_one_pattern now.
  *)
 let sgrep_with_rules rules_file xs =
-
+  (*s: [[Main_semgrep_core.sgrep_with_rules()]] if [[verbose]] *)
   if !verbose then pr2 (spf "Parsing %s" rules_file);
+  (*e: [[Main_semgrep_core.sgrep_with_rules()]] if [[verbose]] *)
   let rules = Parse_rules.parse rules_file in
-
   let files = get_final_files xs in
+
   let matches, errs = 
      files |> iter_generic_ast_of_files_and_get_matches_and_exn_to_errors 
        (fun file lang ast ->
@@ -676,18 +695,26 @@ let dump_tainting_rules file =
 
 (*s: function [[Main_semgrep_core.all_actions]] *)
 let all_actions () = [
-  "--validate-pattern-stdin", " you also need to pass -lang",
-  Common.mk_action_0_arg validate_pattern;
-  "-dump_pattern", " <file>",
-  Common.mk_action_1_arg dump_pattern;
-  "-dump_ast", " <file>",
-  Common.mk_action_1_arg dump_ast;
-  "-dump_equivalences", " <file>",
-  Common.mk_action_1_arg dump_equivalences;
-  "-dump_tainting_rules", " <file>",
-  Common.mk_action_1_arg dump_tainting_rules;
+  (*s: [[Main_semgrep_core.all_actions]] dumper cases *)
   "-dump_extensions", " print file extension to language mapping",
   Common.mk_action_0_arg dump_ext_of_lang;
+  (*x: [[Main_semgrep_core.all_actions]] dumper cases *)
+  "-dump_pattern", " <file>",
+  Common.mk_action_1_arg dump_pattern;
+  (*x: [[Main_semgrep_core.all_actions]] dumper cases *)
+  "-dump_ast", " <file>",
+  Common.mk_action_1_arg dump_ast;
+  (*x: [[Main_semgrep_core.all_actions]] dumper cases *)
+  "-dump_equivalences", " <file>",
+  Common.mk_action_1_arg dump_equivalences;
+  (*x: [[Main_semgrep_core.all_actions]] dumper cases *)
+  "-dump_tainting_rules", " <file>",
+  Common.mk_action_1_arg dump_tainting_rules;
+  (*e: [[Main_semgrep_core.all_actions]] dumper cases *)
+  (*s: [[Main_semgrep_core.all_actions]] other cases *)
+  "--validate-pattern-stdin", " you also need to pass -lang",
+  Common.mk_action_0_arg validate_pattern;
+  (*e: [[Main_semgrep_core.all_actions]] other cases *)
  ]
 (*e: function [[Main_semgrep_core.all_actions]] *)
 
@@ -700,15 +727,15 @@ let options () =
     " <file> obtain pattern from file (need -lang)";
     "-rules_file", Arg.Set_string rules_file,
     " <file> obtain list of patterns from YAML file";
-    "-tainting_rules_file", Arg.Set_string tainting_rules_file,
-    " <file> obtain source/sink/sanitizer patterns from YAML file";
 
     "-lang", Arg.Set_string lang, 
     (spf " <str> choose language (valid choices: %s)" supported_langs);
 
+    (*s: [[Main_semgrep_core.options]] user-defined equivalences case *)
     "-equivalences", Arg.Set_string equivalences_file,
     " <file> obtain list of code equivalences from YAML file";
-
+    (*e: [[Main_semgrep_core.options]] user-defined equivalences case *)
+    (*s: [[Main_semgrep_core.options]] file filters cases *)
     "-exclude", Arg.String (fun s -> Common.push s excludes),
     " <GLOB> skip files whose basename matches GLOB";
     "-include", Arg.String (fun s -> Common.push s includes),
@@ -717,27 +744,36 @@ let options () =
     " <DIR> exclude directories matching the pattern DIR";
     "-include-dir", Arg.String (fun s -> Common.push s include_dirs),
     " <DIR> search only in directories matching the pattern DIR";
-
+    (*e: [[Main_semgrep_core.options]] file filters cases *)
+    (*s: [[Main_semgrep_core.options]] [[-j]] case *)
     "-j", Arg.Set_int ncores, 
     " <int> number of cores to use (default = 1)";
-
-    "-json", Arg.Set output_format_json, 
-    " output JSON format";
+    (*e: [[Main_semgrep_core.options]] [[-j]] case *)
+    (*s: [[Main_semgrep_core.options]] report match mode cases *)
     "-emacs", Arg.Unit (fun () -> match_format := Matching_report.Emacs ),
     " print matches on the same line than the match position";
     "-oneline", Arg.Unit (fun () -> match_format := Matching_report.OneLine),
     " print matches on one line, in normalized form";
-
+    (*x: [[Main_semgrep_core.options]] report match mode cases *)
+    "-json", Arg.Set output_format_json, 
+    " output JSON format";
+    (*e: [[Main_semgrep_core.options]] report match mode cases *)
+    (*s: [[Main_semgrep_core.options]] other cases *)
     "-pvar", Arg.String (fun s -> mvars := Common.split "," s),
     " <metavars> print the metavariables, not the matched code";
-
+    (*x: [[Main_semgrep_core.options]] other cases *)
     "-gen_layer", Arg.String (fun s -> layer_file := Some s),
     " <file> save result in a codemap layer file";
-
+    (*x: [[Main_semgrep_core.options]] other cases *)
+    "-tainting_rules_file", Arg.Set_string tainting_rules_file,
+    " <file> obtain source/sink/sanitizer patterns from YAML file";
+    (*x: [[Main_semgrep_core.options]] other cases *)
     "-error_recovery", Arg.Unit (fun () ->
         error_recovery := true;
         Flag_parsing.error_recovery := true;
     ),  
+    (*e: [[Main_semgrep_core.options]] other cases *)
+
     " do not stop at first parsing error with -e/-f";
     "-verbose", Arg.Unit (fun () -> 
       verbose := true;
@@ -747,13 +783,20 @@ let options () =
     "-debug", Arg.Set debug,
     " add debugging information in the output (e.g., tracing)";
   ] @
-  Error_code.options () @
-  Common.options_of_actions action (all_actions()) @
+  (*s: [[Main_semgrep_core.options]] concatenated flags *)
   Flag_parsing_cpp.cmdline_flags_macrofile () @
-  Meta_parse_info.cmdline_flags_precision () @
+  (*x: [[Main_semgrep_core.options]] concatenated flags *)
   Common2.cmdline_flags_devel () @
+  (*x: [[Main_semgrep_core.options]] concatenated flags *)
+  Meta_parse_info.cmdline_flags_precision () @
+  (*x: [[Main_semgrep_core.options]] concatenated flags *)
+  Error_code.options () @
+  (*e: [[Main_semgrep_core.options]] concatenated flags *)
+  (*s: [[Main_semgrep_core.options]] concatenated actions *)
+  Common.options_of_actions action (all_actions()) @
+  (*e: [[Main_semgrep_core.options]] concatenated actions *)
   [ "-version",   Arg.Unit (fun () -> 
-    pr2 (spf "sgrep version: %s" Config_pfff.version);
+    pr2 (spf "semgrep-core version: %s" Config_pfff.version);
     exit 0;
     ), "  guess what"; 
   ]
