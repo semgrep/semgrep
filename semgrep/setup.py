@@ -113,7 +113,7 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/returntocorp/semgrep",
-    install_requires=["colorama==0.4.3", "pyyaml==5.3", "requests==2.22.0"],
+    install_requires=["colorama>=0.4.3", "pyyaml>=5.3", "requests>=2.22.0"],
     entry_points={"console_scripts": ["semgrep=semgrep.__main__:main"]},
     packages=setuptools.find_packages(),
     classifiers=[
