@@ -14,8 +14,9 @@ type ('a, 'b) matcher = 'a -> 'b ->
   Metavars_generic.metavars_binding list
 (*e: type [[Semgrep_generic.matcher]] *)
 
+(* used by tainting *)
+
 (*s: signature [[Semgrep_generic.match_e_e]] *)
-(* for tainting *)
 val match_e_e: (Ast_generic.expr, Ast_generic.expr) matcher
 (*e: signature [[Semgrep_generic.match_e_e]] *)
 

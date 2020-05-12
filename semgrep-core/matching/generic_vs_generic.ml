@@ -689,6 +689,7 @@ and m_name_info a b =
 (*s: function [[Generic_vs_generic.m_container_operator]] *)
 and m_container_operator a b = 
   match a, b with
+  (* boilerplate *)
   | A.Array, B.Array ->
     return ()
   | A.List, B.List ->
@@ -745,12 +746,16 @@ and m_list__m_xml_attr
   match xsa, xsb with
   | [], [] ->
       return ()
+
+  (*s: [[Generic_vs_generic.m_list__m_xml_attr]] empty list vs list case *)
   (* less-is-ok: *)
   | [], _::_ ->
       return ()
+  (*e: [[Generic_vs_generic.m_list__m_xml_attr]] empty list vs list case *)
   (* todo? allow '...'? *)
 
   | (((s1, _), _) as a)::xsa, xsb ->
+     (*s: [[Generic_vs_generic.m_list__m_xml_attr]] if metavar attribute *)
      if MV.is_metavar_name s1
      then
         let candidates = all_elem_and_rest_of_list xsb in
@@ -763,6 +768,7 @@ and m_list__m_xml_attr
               >||> aux xs
         in
         aux candidates
+     (*e: [[Generic_vs_generic.m_list__m_xml_attr]] if metavar attribute *)
      else
       (try 
         let (before, there, after) = xsb |> Common2.split_when (function
@@ -849,7 +855,7 @@ and m_list__m_argument (xsa: A.argument list) (xsb: A.argument list) =
   match xsa, xsb with
   | [], [] ->
       return ()
-
+  (*s: [[Generic_vs_generic.m_list__m_argument()]] ellipsis cases *)
   (* dots: ..., can also match no argument *)
   | [A.Arg (A.Ellipsis _i)], [] ->
       return ()
@@ -859,10 +865,11 @@ and m_list__m_argument (xsa: A.argument list) (xsb: A.argument list) =
       (m_list__m_argument xsa (xb::xsb)) >||>
       (* can match more *)
       (m_list__m_argument ((A.Arg (A.Ellipsis i))::xsa) xsb)
-
-  (*s: [[Generic_vs_generic.m_list__m_argument]] keyword argument case *)
+  (*e: [[Generic_vs_generic.m_list__m_argument()]] ellipsis cases *)
+  (*s: [[Generic_vs_generic.m_list__m_argument()]] [[ArgKwd]] pattern case *)
   (* unordered kwd argument matching *)
   | (A.ArgKwd ((s, _tok) as ida, ea) as a)::xsa, xsb ->
+     (*s: [[Generic_vs_generic.m_list__m_argument()]] if metavar keyword argument *)
      if MV.is_metavar_name s
      then
         let candidates = all_elem_and_rest_of_list xsb in
@@ -875,6 +882,7 @@ and m_list__m_argument (xsa: A.argument list) (xsb: A.argument list) =
               >||> aux xs
         in
         aux candidates
+     (*e: [[Generic_vs_generic.m_list__m_argument()]] if metavar keyword argument *)
      else
       (try 
         let (before, there, after) = xsb |> Common2.split_when (function
@@ -890,8 +898,7 @@ and m_list__m_argument (xsa: A.argument list) (xsb: A.argument list) =
         )
       with Not_found -> fail ()
       )
-  (*e: [[Generic_vs_generic.m_list__m_argument]] keyword argument case *)
-
+  (*e: [[Generic_vs_generic.m_list__m_argument()]] [[ArgKwd]] pattern case *)
   (* the general case *)
   | xa::aas, xb::bbs ->
       m_argument xa xb >>= (fun () ->
@@ -911,7 +918,7 @@ and m_arguments_concat a b =
   match a,b with
   | [], [] ->
       return ()
-  
+  (*s: [[Generic_vs_generic.m_arguments_concat()]] ellipsis cases *)
   (* dots '...' for string literal, can also match no argument *)
   | [A.Arg (A.L (A.String("...", _a)))], [] ->
       return ()
@@ -927,7 +934,7 @@ and m_arguments_concat a b =
       | None ->
         (m_arguments_concat xsa (B.Arg(bexpr)::xsb))
       )
-
+  (*e: [[Generic_vs_generic.m_arguments_concat()]] ellipsis cases *)
   (* the general case *)
   | xa::aas, xb::bbs ->
       m_argument xa xb >>= (fun () ->
@@ -991,10 +998,6 @@ and m_type_ a b =
     (m_option m_expr) a1 b1 >>= (fun () -> 
     m_type_ a2 b2 
     )
-  | A.TyPointer(a0, a1), B.TyPointer(b0, b1) ->
-    m_tok a0 b0 >>= (fun () -> 
-    m_type_ a1 b1 
-    )
   | A.TyTuple(a1), B.TyTuple(b1) ->
     (*TODO: m_list__m_type_ ? *)
     (m_bracket (m_list m_type_)) a1 b1 
@@ -1008,6 +1011,11 @@ and m_type_ a b =
       )
     | A.TyVar(a1), B.TyVar(b1) ->
       m_ident a1 b1 
+
+    | A.TyPointer(a0, a1), B.TyPointer(b0, b1) ->
+      m_tok a0 b0 >>= (fun () -> 
+      m_type_ a1 b1 
+      )
 
     | A.TyQuestion(a1, a2), B.TyQuestion(b1, b2) ->
       m_type_ a1 b1 >>= (fun () -> 
@@ -1077,12 +1085,11 @@ and m_list__m_attribute (xsa: A.attribute list) (xsb: A.attribute list) =
   match xsa, xsb with
   | [], [] ->
       return ()
-
   (*s: [[Generic_vs_generic.m_list__m_attribute]] empty list vs list case *)
   (* less-is-ok: *)
   | [], _ -> return ()
   (*e: [[Generic_vs_generic.m_list__m_attribute]] empty list vs list case *)
-
+  (*s: [[Generic_vs_generic.m_list__m_attribute]] [[KeywordAttr]] pattern case *)
   | ((A.KeywordAttr (k, tok)) as a)::xsa, xsb ->
       (try 
         let (before, there, after) = xsb |> Common2.split_when (function
@@ -1095,6 +1102,7 @@ and m_list__m_attribute (xsa: A.attribute list) (xsb: A.attribute list) =
               )
         | _ -> raise Impossible
         )
+      (*s: [[Generic_vs_generic.m_list__m_attribute]] [[KeywordAttr]] case when [[Not_found]] *)
       with Not_found -> 
         (* we now allow some attribute (e.g., Var) to match other (e..g, Let),
          * so we should try all combinations.
@@ -1109,8 +1117,10 @@ and m_list__m_attribute (xsa: A.attribute list) (xsb: A.attribute list) =
              >||> aux xs
         in
         aux candidates
+      (*e: [[Generic_vs_generic.m_list__m_attribute]] [[KeywordAttr]] case when [[Not_found]] *)
        )
-
+  (*e: [[Generic_vs_generic.m_list__m_attribute]] [[KeywordAttr]] pattern case *)
+  (*s: [[Generic_vs_generic.m_list__m_attribute]] [[NamedAttr]] pattern case *)
   | A.NamedAttr ((s, _) as ida, idinfoa, argsa)::xsa, xsb ->
       (try 
         let (before, there, after) = xsb |> Common2.split_when (function
@@ -1129,13 +1139,12 @@ and m_list__m_attribute (xsa: A.attribute list) (xsb: A.attribute list) =
         )
       with Not_found -> fail ()
       )
-
+  (*e: [[Generic_vs_generic.m_list__m_attribute]] [[NamedAttr]] pattern case *)
   (* the general case *)
   | xa::aas, xb::bbs ->
       m_attribute xa xb >>= (fun () ->
       m_list__m_attribute aas bbs 
       )
-
   | _::_, _ ->
       fail ()
 (*e: function [[Generic_vs_generic.m_list__m_attribute]] *)
@@ -1226,13 +1235,13 @@ and _m_stmts (xsa: A.stmt list) (xsb: A.stmt list) =
 (* TODO: factorize with m_list_and_dots less_is_ok = true *)
 (*s: function [[Generic_vs_generic.m_list__m_stmt]] *)
 and m_list__m_stmt (xsa: A.stmt list) (xsb: A.stmt list) =
+  (*s: [[Generic_vs_generic.m_list__m_stmt]] if [[debug]] *)
   if !Flag.debug
   then pr2 (spf "%d vs %d" (List.length xsa) (List.length xsb));
-
+  (*e: [[Generic_vs_generic.m_list__m_stmt]] if [[debug]] *)
   match xsa, xsb with
   | [], [] ->
       return ()
-
   (*s: [[Generic_vs_generic.m_list__m_stmt()]] empty list vs list case *)
   (* less-is-ok:
    * it's ok to have statements after in the concrete code as long as we
@@ -1245,7 +1254,7 @@ and m_list__m_stmt (xsa: A.stmt list) (xsb: A.stmt list) =
   | [], _::_ ->
       return ()
   (*e: [[Generic_vs_generic.m_list__m_stmt()]] empty list vs list case *)
-
+  (*s: [[Generic_vs_generic.m_list__m_stmt()]] ellipsis cases *)
   (* dots: '...', can also match no statement *)
   | [A.ExprStmt (A.Ellipsis _i)], [] ->
       return ()
@@ -1255,8 +1264,7 @@ and m_list__m_stmt (xsa: A.stmt list) (xsb: A.stmt list) =
       (m_list__m_stmt xsa (xb::xsb)) >||>
       (* can match more *)
       (m_list__m_stmt ((A.ExprStmt (A.Ellipsis i))::xsa) xsb)
-
-
+  (*e: [[Generic_vs_generic.m_list__m_stmt()]] ellipsis cases *)
   (* the general case *)
   | xa::aas, xb::bbs ->
       m_stmt xa xb >>= (fun () ->
@@ -1785,7 +1793,6 @@ and m_list__m_field (xsa: A.field list) (xsb: A.field list) =
   match xsa, xsb with
   | [], [] ->
       return ()
-
   (*s: [[Generic_vs_generic.m_list__m_field()]] empty list vs list case *)
   (* less-is-ok:
    * it's ok to have fields after in the concrete code as long as we
@@ -1797,7 +1804,6 @@ and m_list__m_field (xsa: A.field list) (xsb: A.field list) =
   | [], _::_ ->
       return ()
   (*e: [[Generic_vs_generic.m_list__m_field()]] empty list vs list case *)
-
   (*s: [[Generic_vs_generic.m_list__m_field()]] ellipsis cases *)
   (* dots: '...', can also match no more fields *)
   | [A.FieldStmt (A.ExprStmt (A.Ellipsis _i))], [] ->
@@ -1809,9 +1815,10 @@ and m_list__m_field (xsa: A.field list) (xsb: A.field list) =
       (* can match more *)
       (m_list__m_field ((A.FieldStmt (A.ExprStmt (A.Ellipsis i)))::xsa) xsb)
   (*e: [[Generic_vs_generic.m_list__m_field()]] ellipsis cases *)
-
+  (*s: [[Generic_vs_generic.m_list__m_field()]] [[DefStmt]] pattern case *)
   | (A.FieldStmt (A.DefStmt (({A.name = (s1, _); _}, _) as adef)) as a)::xsa,
      xsb ->
+     (*s: [[Generic_vs_generic.m_list__m_field()]] in [[DefStmt]] case if metavar field *)
      if MV.is_metavar_name s1 || Matching_generic.is_regexp_string s1
      then
         let candidates = all_elem_and_rest_of_list xsb in
@@ -1824,6 +1831,7 @@ and m_list__m_field (xsa: A.field list) (xsb: A.field list) =
               >||> aux xs
         in
         aux candidates
+     (*e: [[Generic_vs_generic.m_list__m_field()]] in [[DefStmt]] case if metavar field *)
      else
       (try 
         let (before, there, after) = xsb |> Common2.split_when (function
@@ -1840,8 +1848,7 @@ and m_list__m_field (xsa: A.field list) (xsb: A.field list) =
         )
       with Not_found -> fail ()
       )
-
-
+  (*e: [[Generic_vs_generic.m_list__m_field()]] [[DefStmt]] pattern case *)
   (* the general case *)
   | xa::aas, xb::bbs ->
       m_field xa xb >>= (fun () ->

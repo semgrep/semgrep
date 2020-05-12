@@ -87,8 +87,8 @@ let equivalences_file = ref ""
 let lang = ref "unset"
 (*e: constant [[Main_semgrep_core.lang]] *)
 
-(*s: constant [[Main_semgrep_core.excludes]] *)
 (* similar to grep options (see man grep) *)
+(*s: constant [[Main_semgrep_core.excludes]] *)
 let excludes = ref []
 (*e: constant [[Main_semgrep_core.excludes]] *)
 (*s: constant [[Main_semgrep_core.includes]] *)
@@ -97,8 +97,9 @@ let includes = ref []
 (*s: constant [[Main_semgrep_core.exclude_dirs]] *)
 let exclude_dirs = ref []
 (*e: constant [[Main_semgrep_core.exclude_dirs]] *)
-
+(*s: constant [[Main_semgrep_core.include_dirs]] *)
 let include_dirs = ref []
+(*e: constant [[Main_semgrep_core.include_dirs]] *)
 
 (*s: constant [[Main_semgrep_core.output_format_json]] *)
 let output_format_json = ref false
@@ -175,14 +176,6 @@ let map f xs =
     Parmap.parmap ~ncores:!ncores ~chunksize f (Parmap.L xs)
 (*e: function [[Main_semgrep_core.map]] *)
 
-(*s: function [[Main_semgrep_core.mk_one_info_from_multiple_infos]] *)
-(* TODO? could do slicing of function relative to the pattern, so 
- * would see where the parameters come from :)
- *)
-let mk_one_info_from_multiple_infos xs =
-  List.hd xs
-(*e: function [[Main_semgrep_core.mk_one_info_from_multiple_infos]] *)
-
 (*s: constant [[Main_semgrep_core._matching_tokens]] *)
 (* for -gen_layer *)
 let _matching_tokens = ref []
@@ -193,10 +186,10 @@ let print_match mvars mvar_binding ii_of_any tokens_matched_code =
   (* there are a few fake tokens in the generic ASTs now (e.g., 
    * for DotAccess generated outside the grammar) *)
   let toks = tokens_matched_code |> List.filter PI.is_origintok in
-  (match mvars with
-  | [] ->
-      Matching_report.print_match ~format:!match_format toks
-  | xs ->
+  (if mvars = []
+  then Matching_report.print_match ~format:!match_format toks
+  (*s: [[Main_semgrep_core.print_match()]] when non empty [[mvars]] *)
+  else begin
       (* similar to the code of Lib_matcher.print_match, maybe could
        * factorize code a bit.
        *)
@@ -217,14 +210,13 @@ let print_match mvars mvar_binding ii_of_any tokens_matched_code =
           )
       in
       pr (spf "%s:%d: %s" file line (Common.join ":" strings_metavars));
+  end
+  (*e: [[Main_semgrep_core.print_match()]] when non empty [[mvars]] *)
   );
+  (*s: [[Main_semgrep_core.print_match()]] hook *)
   toks |> List.iter (fun x -> Common.push x _matching_tokens)
+  (*e: [[Main_semgrep_core.print_match()]] hook *)
 (*e: function [[Main_semgrep_core.print_match]] *)
-
-(*s: function [[Main_semgrep_core.print_simple_match]] *)
-let print_simple_match tokens_matched_code =
-  print_match [] [] tokens_matched_code
-(*e: function [[Main_semgrep_core.print_simple_match]] *)
 
 
 (*s: function [[Main_semgrep_core.gen_layer]] *)
@@ -501,6 +493,7 @@ let sgrep_with_one_pattern xs =
     then pr2 (spf "processing: %s" file);
     (*e: [[Main_semgrep_core.sgrep_with_one_pattern()]] if [[verbose]] *)
     let process file = sgrep_ast pattern file (create_ast file) in
+
     if not !error_recovery
     then E.try_with_print_exn_and_reraise file (fun () -> process file)
     else E.try_with_exn_to_error file (fun () -> process file)
@@ -742,7 +735,6 @@ let options () =
     "-equivalences", Arg.Set_string equivalences_file,
     " <file> obtain list of code equivalences from YAML file";
     (*e: [[Main_semgrep_core.options]] user-defined equivalences case *)
-
     (*s: [[Main_semgrep_core.options]] file filters cases *)
     "-exclude", Arg.String (fun s -> Common.push s excludes),
     " <GLOB> skip files whose basename matches GLOB";
@@ -753,12 +745,10 @@ let options () =
     "-include-dir", Arg.String (fun s -> Common.push s include_dirs),
     " <DIR> search only in directories matching the pattern DIR";
     (*e: [[Main_semgrep_core.options]] file filters cases *)
-
     (*s: [[Main_semgrep_core.options]] [[-j]] case *)
     "-j", Arg.Set_int ncores, 
     " <int> number of cores to use (default = 1)";
     (*e: [[Main_semgrep_core.options]] [[-j]] case *)
-
     (*s: [[Main_semgrep_core.options]] report match mode cases *)
     "-emacs", Arg.Unit (fun () -> match_format := Matching_report.Emacs ),
     " print matches on the same line than the match position";
@@ -768,7 +758,6 @@ let options () =
     "-json", Arg.Set output_format_json, 
     " output JSON format";
     (*e: [[Main_semgrep_core.options]] report match mode cases *)
-
     (*s: [[Main_semgrep_core.options]] other cases *)
     "-pvar", Arg.String (fun s -> mvars := Common.split "," s),
     " <metavars> print the metavariables, not the matched code";
@@ -795,10 +784,13 @@ let options () =
     " add debugging information in the output (e.g., tracing)";
   ] @
   (*s: [[Main_semgrep_core.options]] concatenated flags *)
-  Error_code.options () @
   Flag_parsing_cpp.cmdline_flags_macrofile () @
-  Meta_parse_info.cmdline_flags_precision () @
+  (*x: [[Main_semgrep_core.options]] concatenated flags *)
   Common2.cmdline_flags_devel () @
+  (*x: [[Main_semgrep_core.options]] concatenated flags *)
+  Meta_parse_info.cmdline_flags_precision () @
+  (*x: [[Main_semgrep_core.options]] concatenated flags *)
+  Error_code.options () @
   (*e: [[Main_semgrep_core.options]] concatenated flags *)
   (*s: [[Main_semgrep_core.options]] concatenated actions *)
   Common.options_of_actions action (all_actions()) @
