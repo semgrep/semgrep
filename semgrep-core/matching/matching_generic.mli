@@ -24,9 +24,9 @@ type ('a, 'b) matcher = 'a -> 'b -> tin -> tout
 (*e: type [[Matching_generic.matcher]] *)
 
 (* monadic combinators *)
-(*s: signature [[Matching_generic.TODOOPERATOR]] *)
+(*s: signature [[Matching_generic.monadic_bind]] *)
 val ( >>= ) : (tin -> tout) -> (unit -> tin -> tout) -> tin -> tout
-(*e: signature [[Matching_generic.TODOOPERATOR]] *)
+(*e: signature [[Matching_generic.monadic_bind]] *)
 (*s: signature [[Matching_generic.TODOOPERATOR2]] *)
 val ( >||> ) : (tin -> tout) -> (tin -> tout) -> tin -> tout
 (*e: signature [[Matching_generic.TODOOPERATOR2]] *)
@@ -55,8 +55,8 @@ val check_and_add_metavar_binding :
   tin -> tin option
 (*e: signature [[Matching_generic.check_and_add_metavar_binding]] *)
 
-(*s: signature [[Matching_generic.has_ellipsis_stmts]] *)
 (* helpers *)
+(*s: signature [[Matching_generic.has_ellipsis_stmts]] *)
 val has_ellipsis_stmts : Ast_generic.stmt list -> bool
 (*e: signature [[Matching_generic.has_ellipsis_stmts]] *)
 (*s: signature [[Matching_generic.all_elem_and_rest_of_list]] *)
@@ -74,9 +74,8 @@ val str_of_any : Ast_generic.any -> string
 val equal_ast_binded_code : Ast_generic.any -> Ast_generic.any -> bool
 *)
 
-(*s: signature [[Matching_generic.m_option]] *)
 (* generic matchers *)
-
+(*s: signature [[Matching_generic.m_option]] *)
 val m_option : ('a, 'b) matcher -> ('a option, 'b option) matcher
 (*e: signature [[Matching_generic.m_option]] *)
 (*s: signature [[Matching_generic.m_option_ellipsis_ok]] *)

@@ -1,7 +1,7 @@
 (*s: semgrep/matching/generic_vs_generic.mli *)
 
-(*s: signature [[Generic_vs_generic.m_expr]] *)
 (* entry points, used in the sgrep_generic visitors *)
+(*s: signature [[Generic_vs_generic.m_expr]] *)
 val m_expr : (Ast.expr, Ast.expr) Matching_generic.matcher
 (*e: signature [[Generic_vs_generic.m_expr]] *)
 (*s: signature [[Generic_vs_generic.m_stmt]] *)

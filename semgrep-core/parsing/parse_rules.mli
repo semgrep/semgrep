@@ -20,9 +20,9 @@ exception UnparsableYamlException of string
 exception InvalidYamlException of string
 (*e: exception [[Parse_rules.InvalidYamlException]] *)
 
-(*s: signature [[Parse_rules.parse_languages]] *)
 (* internals used by other parsers (e.g., parse_tainting_rules.ml) *)
 
+(*s: signature [[Parse_rules.parse_languages]] *)
 val parse_languages: id:string -> Yaml.value list -> Lang.t list * Lang.t
 (*e: signature [[Parse_rules.parse_languages]] *)
 (*s: signature [[Parse_rules.parse_severity]] *)
