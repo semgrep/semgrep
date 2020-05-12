@@ -13,7 +13,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   specification for static analysis tools.
 
 ### Fixed
-- Correctly parse python files ending with a comment
 - Correclty parse implicit tuples in python f-strings
 - Correctly parse `%` token in python f-string format
 - Correctly parse python fstrings with spaces in interpolants
