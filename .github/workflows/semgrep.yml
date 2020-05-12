@@ -10,17 +10,20 @@ jobs:
     name: with r2c registry
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v1
       - name: Semgrep
         id: semgrep
         uses: returntocorp/semgrep-action@v1
         with:
           config: r/r2c
+          slackWebhookURL: ${{ secrets.BENTO_SLACK_WEBHOOK_URL }}
   run-local-rules:
     name: with local rules
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v1
       - name: Semgrep
         id: semgrep
         uses: returntocorp/semgrep-action@v1
+        with:
+          slackWebhookURL: ${{ secrets.BENTO_SLACK_WEBHOOK_URL }}
