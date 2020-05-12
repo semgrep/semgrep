@@ -199,7 +199,7 @@ let print_match mvars mvar_binding ii_of_any tokens_matched_code =
         PI.file_of_info mini, PI.line_of_info mini in
 
       let strings_metavars =
-        xs |> List.map (fun x ->
+        mvars |> List.map (fun x ->
           match Common2.assoc_opt x mvar_binding with
           | Some any ->
               ii_of_any any
