@@ -12,6 +12,19 @@ import pytest
 TESTS_PATH = Path(__file__).parent
 
 
+def _clean_output_json(output_json: str) -> str:
+    """Make semgrep's output deterministic and nicer to read."""
+    output = json.loads(output_json)
+    for result in output["results"]:
+        if "extra" not in result:
+            continue
+        for metavar in result["extra"]["metavars"].values():
+            if "md5sum" in metavar["unique_id"]:
+                metavar["unique_id"]["md5sum"] = "<masked in tests>"
+
+    return json.dumps(output, indent=2, sort_keys=True)
+
+
 def _run_semgrep(
     config: Optional[Union[str, Path]] = None,
     *,
@@ -48,7 +61,7 @@ def _run_semgrep(
     )
 
     if output_format in {"json", "sarif"} and not stderr:
-        output = json.dumps(json.loads(output), indent=2, sort_keys=True)
+        output = _clean_output_json(output)
 
     return output
 
