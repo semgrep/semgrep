@@ -105,7 +105,7 @@ class PostInstallCommand(install):
 
 setup(
     name="semgrep",  # Replace with your own username
-    version="0.6.1",
+    version="0.7.0b1",
     author="Russell & Return 2 Corp",
     author_email="support@r2c.dev",
     description="Fast and syntax-aware semantic code pattern search for many languages: like grep but for code",
