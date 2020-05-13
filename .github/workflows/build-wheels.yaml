@@ -48,12 +48,16 @@ jobs:
   test-wheels-manylinux:
     needs: ['build-wheels-manylinux']
     runs-on: 'ubuntu-16.04'
-    container: 'quay.io/pypa/manylinux1_x86_64'
     steps:
       - uses: actions/download-artifact@v1
         with:
           name: manylinux-wheel
           path: manylinux-wheel
+      - name: Setup Python
+        uses: actions/setup-python@v1
+        with:
+          # This is just the Python version to build the wheels
+          python-version: 3.7
       - name: unzip dist
         run: unzip ./manylinux-wheel/dist.zip
       - name: install package
