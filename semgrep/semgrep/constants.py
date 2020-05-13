@@ -1,3 +1,6 @@
+import os
+import sys
+
 from enum import auto
 from enum import Enum
 
@@ -14,8 +17,15 @@ DEFAULT_CONFIG_FOLDER = f".{DEFAULT_SEMGREP_CONFIG_NAME}"
 
 YML_EXTENSIONS = {".yml", ".yaml"}
 
-SEMGREP_PATH = "semgrep-core"
+def compute_semgrep_path():
+    exec_name = "semgrep-core"
+    if os.system(f'{exec_name} --version') != 0:
+        # look for something in the same dir as the Python interpreter
+        relative_path = os.path.join(os.path.dirname(sys.executable), exec_name)
+        if os.path.exists(relative_path):
+            exec_name = relative_path
 
+SEMGREP_PATH = compute_semgrep_path()
 
 class OutputFormat(Enum):
     TEXT = auto()
