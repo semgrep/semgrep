@@ -43,6 +43,13 @@ class bdist_wheel(_bdist_wheel):
         if "macosx" in plat:
             plat = f"macosx_{MIN_OSX_VERSION}_x86_64.whl"
 
+        # The binary we build is statically linked & manylinux compatible, so change platform
+        # accordingly
+        if plat == "linux_x86_64.whl":
+            plat = "manylinux1_x86_64.whl"
+        elif plat == "linux_i686.whl":
+            plat = "manylinux1_i686.whl"
+
         return python, abi, plat
 
 
@@ -70,7 +77,7 @@ class PostInstallCommand(install):
         # take the advice from that comment, and move over after install
         source_dir = os.path.dirname(os.path.abspath(__file__))
 
-        if os.environ.get("PRECOMILED_LOCATION"):
+        if os.environ.get("PRECOMPILED_LOCATION"):
             source = os.environ["PRECOMPILED_LOCATION"]
         else:
             repo_root = os.path.dirname(source_dir)
@@ -86,16 +93,11 @@ class PostInstallCommand(install):
                     )
                     source = os.path.join(repo_root, "semgrep-files/semgrep-core")
 
-        ## setuptools_rust doesn't seem to let me specify a musl cross compilation target
-        ## so instead just build ourselves here =(.
-        # if os.system("cargo build --release %s" % compile_args):
-        #    raise ValueError("Failed to compile!")
-
-        ## run this after trying to build with cargo (as otherwise this leaves
+        ## run this after trying to build (as otherwise this leaves
         ## venv in a bad state: https://github.com/benfred/py-spy/issues/69)
         install.run(self)
 
-        ## we're going to install the py-spy executable into the scripts directory
+        ## we're going to install the semgrep-core executable into the scripts directory
         ## but first make sure the scripts directory exists
         if not os.path.isdir(self.install_scripts):
             os.makedirs(self.install_scripts)
