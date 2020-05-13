@@ -53,11 +53,6 @@ jobs:
         with:
           name: manylinux-wheel
           path: manylinux-wheel
-      - name: Setup Python
-        uses: actions/setup-python@v1
-        with:
-          # This is just the Python version to build the wheels
-          python-version: 3.7
       - name: unzip dist
         run: unzip ./manylinux-wheel/dist.zip
       - name: install package
@@ -66,8 +61,8 @@ jobs:
         working-directory: /opt/python/cp36-cp36m/bin/
         run: ./semgrep --version
       - name: test core
-        run: semgrep-core --version
+        run: ./semgrep-core -version
         working-directory: /opt/python/cp36-cp36m/bin/
       - name: e2e test
         working-directory: /opt/python/cp36-cp36m/bin/
-        run: ./semgrep -l python readelf.py -e '$1 == $1'
+        run: ./semgrep -l python ../lib/python3.6/code.py -e '$X == $X'
