@@ -63,11 +63,11 @@ jobs:
       - name: install package
         run: /opt/python/cp36-cp36m/bin/pip install dist/*.whl
       - name: test package
-        workdir: /opt/python/cp36-cp36m/bin/
+        working-directory: /opt/python/cp36-cp36m/bin/
         run: ./semgrep --version
       - name: test core
         run: semgrep-core --version
-        workdir: /opt/python/cp36-cp36m/bin/
+        working-directory: /opt/python/cp36-cp36m/bin/
       - name: e2e test
-        workdir: /opt/python/cp36-cp36m/bin/
+        working-directory: /opt/python/cp36-cp36m/bin/
         run: ./semgrep -l python readelf.py -e '$1 == $1'
