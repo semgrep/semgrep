@@ -45,10 +45,10 @@ class bdist_wheel(_bdist_wheel):
 
         # The binary we build is statically linked & manylinux compatible, so change platform
         # accordingly
-        if plat == "linux_x86_64.whl":
-            plat = "manylinux1_x86_64.whl"
-        elif plat == "linux_i686.whl":
-            plat = "manylinux1_i686.whl"
+        if plat == "linux_x86_64":
+            plat = "manylinux1_x86_64"
+        elif plat == "linux_i686":
+            plat = "manylinux1_i686"
 
         return python, abi, plat
 
