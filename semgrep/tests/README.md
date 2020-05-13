@@ -95,4 +95,8 @@ You can add any additional CLI flag you'd like like so:
 
 To call semgrep without the `--json` flag:
 
-```run_semgrep_in_tmp("r2c/python", use_json=False)```
+```run_semgrep_in_tmp("r2c/python", output_format="normal")```
+
+To call semgrep with `--sarif` instead of `--json`:
+
+```run_semgrep_in_tmp("r2c/python", output_format="sarif")```

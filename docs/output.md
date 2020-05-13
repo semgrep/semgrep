@@ -8,6 +8,7 @@ Contents:
 
 * [Default](#default)
 * [JSON](#json)
+* [SARIF (JSON)](#sarif-json)
 
 ## Default
 
@@ -40,105 +41,172 @@ more verbose and provides the full context around a finding.
 
 JSON output looks like:
 
-```
+```json
 {
-    "results": [
-        {
-            "check_id": <rule-id>,
-            "path": <finding-file-path>,
-            "extra": {
-                "lines": <finding-line-code>,
-                "message": <rule-message>,
-                "metadata": {},
-                "metavars": {
-                    <metavariable-name>: {
-                        "abstract_content": <metavariable-content>,
-                        "start": {
-                            "col": <finding-line-column-start>,
-                            "line": <finding-line-number-start>,
-                            "offset": <finding-byte-offset-start>
-                        },
-                        "end": {
-                            "col": <finding-line-column-end>,
-                            "line": <finding-line-number-end>,
-                            "offset": <finding-byte-offset-end>
-                        },
-                        "unique_id": {
-                            "md5sum": <finding-unique-idenfier>,
-                            "type": "AST"|"id"
-                        }
-                    }
-                },
-                "severity": "WARNING"|"ERROR"
-            },
+  "results": [
+    {
+      "check_id": <rule-id>,
+      "path": <finding-file-path>,
+      "extra": {
+        "lines": <finding-line-code>,
+        "message": <rule-message>,
+        "metadata": {},
+        "metavars": {
+          <metavariable-name>: {
+            "abstract_content": <metavariable-content>,
             "start": {
-                "col": <finding-line-column-start>,
-                "line": <finding-line-number-start>
+              "col": <finding-line-column-start>,
+              "line": <finding-line-number-start>,
+              "offset": <finding-byte-offset-start>
             },
             "end": {
-                "col": <finding-line-column-end>,
-                "line": <finding-line-number-end>
+              "col": <finding-line-column-end>,
+              "line": <finding-line-number-end>,
+              "offset": <finding-byte-offset-end>
+            },
+            "unique_id": {
+              "md5sum": <finding-unique-idenfier>,
+              "type": "AST"|"id"
             }
+          }
         },
-        {
-            "check_id": <rule-id>,
-            ...
-        },
-        ...
-    ],
-    "errors": [
-        {
-            "message": "SemgrepCoreRuntimeErrors",
-            "data": <error-data>
-        },
-        ...
-    ]
+        "severity": "WARNING"|"ERROR"
+      },
+      "start": {
+        "col": <finding-line-column-start>,
+        "line": <finding-line-number-start>
+      },
+      "end": {
+        "col": <finding-line-column-end>,
+        "line": <finding-line-number-end>
+      }
+    },
+    {
+      "check_id": <rule-id>,
+      ...
+    },
+    ...
+  ],
+  "errors": [
+    {
+      "message": "SemgrepCoreRuntimeErrors",
+      "data": <error-data>
+    },
+    ...
+  ]
 }
 ```
 
 The following is example output from an [r2c rule](https://github.com/returntocorp/semgrep-rules):
 
-```
+```json
 {
-    "results": [
-        {
-            "check_id": "python.deadcode.eqeq-is-bad",
-            "path": "targets/basic/test.py",
-            "extra": {
-                "lines": "    return a + b == a + b",
-                "message": "useless comparison operation `a+b == a+b` or `a+b != a+b`; if testing for floating point NaN, use `math.isnan`, or `cmath.isnan` if the number is complex.",
-                "metadata": {},
-                "metavars": {
-                    "$X": {
-                        "abstract_content": "a+b",
-                        "start": {
-                            "col": 12,
-                            "line": 3,
-                            "offset": 55
-                        },
-                        "end": {
-                            "col": 17,
-                            "line": 3,
-                            "offset": 60
-                        },
-                        "unique_id": {
-                            "md5sum": "07d71d85769e594dba9d7ae3d295c01f",
-                            "type": "AST"
-                        }
-                    }
-                },
-                "severity": "ERROR"
-            },
+  "results": [
+    {
+      "check_id": "python.deadcode.eqeq-is-bad",
+      "path": "targets/basic/test.py",
+      "extra": {
+        "lines": "    return a + b == a + b",
+        "message": "useless comparison operation `a+b == a+b` or `a+b != a+b`; if testing for floating point NaN, use `math.isnan`, or `cmath.isnan` if the number is complex.",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "a+b",
             "start": {
-                "col": 12,
-                "line": 3
+              "col": 12,
+              "line": 3,
+              "offset": 55
             },
             "end": {
-                "col": 26,
-                "line": 3
+              "col": 17,
+              "line": 3,
+              "offset": 60
+            },
+            "unique_id": {
+              "md5sum": "07d71d85769e594dba9d7ae3d295c01f",
+              "type": "AST"
             }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "start": {
+        "col": 12,
+        "line": 3
+      },
+      "end": {
+        "col": 26,
+        "line": 3
+      }
+    }
+  ],
+  "errors": []
+}
+```
+
+## SARIF (JSON)
+
+You can set the `--sarif` flag to request output as SARIF-compliant JSON.
+[SARIF](https://docs.oasis-open.org/sarif/sarif/v2.1.0/cs01/sarif-v2.1.0-cs01.html)
+is a standard for representing static analysis results as JSON.
+We recommend using the regular `--json` formatting flag
+unless you want integrate with a tool that gathers results
+from multiple SARIF-compatible static analysis tools.
+
+The following is example output from an [r2c rule](https://github.com/returntocorp/semgrep-rules):
+
+```json
+{
+  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+  "results": [
+    {
+      "locations": [
+        {
+          "physicalLocation": {
+            "artifactLocation": {
+              "uri": "targets/basic/test.py",
+              "uriBaseId": "%SRCROOT%"
+            },
+            "region": {
+              "endColumn": 26,
+              "endLine": 3,
+              "startColumn": 12,
+              "startLine": 3
+            }
+          }
         }
-    ],
-    "errors": []
+      ],
+      "message": {
+        "text": "useless comparison operation `a+b == a+b` or `a+b != a+b`; possible bug?"
+      },
+      "ruleId": "rules.eqeq-is-bad"
+    }
+  ],
+  "tool": {
+    "driver": {
+      "name": "semgrep",
+      "rules": [
+        {
+          "defaultConfiguration": {
+            "level": "error"
+          },
+          "fullDescription": {
+            "text": "useless comparison operation `$X == $X` or `$X != $X`; possible bug?"
+          },
+          "id": "rules.eqeq-is-bad",
+          "name": "rules.eqeq-is-bad",
+          "properties": {
+            "precision": "very-high",
+            "tags": []
+          },
+          "shortDescription": {
+            "text": "useless comparison operation `$X == $X` or `$X != $X`; possible bug?"
+          }
+        }
+      ],
+      "semanticVersion": "0.7.0"
+    }
+  },
+  "version": "2.1.0"
 }
 ```

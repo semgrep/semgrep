@@ -192,7 +192,7 @@ let apply_equivalences equivs any =
 (*s: function [[Semgrep_generic.check2]] *)
 let check2 ~hook rules equivs file ast =
 
-   let matches = ref [] in
+  let matches = ref [] in
 
   (* rewrite code, e.g., A != B is rewritten as !(A == B) 
    * update: this is less necessary once you have user-defined
@@ -203,17 +203,23 @@ let check2 ~hook rules equivs file ast =
   let expr_rules = ref [] in
   let stmt_rules = ref [] in
   let stmts_rules = ref [] in
+  (*s: [[Semgrep_generic.check2()]] populate [[expr_rules]] and other *)
   rules |> List.iter (fun rule ->
     (* less: normalize the pattern? *)
-    let any = apply_equivalences equivs rule.R.pattern in
+    let any = rule.R.pattern in
+    (*s: [[Semgrep_generic.check2()]] apply equivalences to rule pattern [[any]] *)
+    let any = apply_equivalences equivs any in
+    (*e: [[Semgrep_generic.check2()]] apply equivalences to rule pattern [[any]] *)
     match any with
     | E pattern  -> Common.push (pattern, rule) expr_rules
     | S pattern -> Common.push (pattern, rule) stmt_rules
     | Ss pattern -> Common.push (pattern, rule) stmts_rules
     | _ -> failwith "only expr, stmt, and stmts patterns are supported"
   );
+  (*e: [[Semgrep_generic.check2()]] populate [[expr_rules]] and other *)
 
   let visitor = V.mk_visitor { V.default_visitor with
+    (*s: [[Semgrep_generic.check2()]] visitor fields *)
     V.kexpr = (fun (k, _) x ->
       (* this could be quite slow ... we match many sgrep patterns
        * against an expression recursively
@@ -233,7 +239,7 @@ let check2 ~hook rules equivs file ast =
        * matched code itself *)
       k x
     );
-
+    (*x: [[Semgrep_generic.check2()]] visitor fields *)
     (* mostly copy paste of expr code but with the _st functions *)
     V.kstmt = (fun (k, _) x ->
       !stmt_rules |> List.iter (fun (pattern, rule) -> 
@@ -249,7 +255,7 @@ let check2 ~hook rules equivs file ast =
       (* try the rules on substatements and subexpressions *)
       k x
     );
-
+    (*x: [[Semgrep_generic.check2()]] visitor fields *)
     V.kstmts = (fun (k, _) x ->
       (* this is potentially slower than what we did in Coccinelle with
        * CTL. We try every sequences. Hopefully the first statement in
@@ -268,6 +274,7 @@ let check2 ~hook rules equivs file ast =
       );
       k x
     );
+    (*e: [[Semgrep_generic.check2()]] visitor fields *)
   }
   in
   (* later: opti: dont analyze certain ASTs if they do not contain
@@ -276,6 +283,7 @@ let check2 ~hook rules equivs file ast =
    * constants (name of function, field, etc.).
    *)
   visitor prog;
+
   !matches |> List.rev
 (*e: function [[Semgrep_generic.check2]] *)
 

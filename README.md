@@ -15,18 +15,18 @@ use `semgrep` to write code with confidence.
 Language support:
 
 | **Python** | **Javascript** | **Go &nbsp; &nbsp; &nbsp;** | **Java &nbsp;** | **C &nbsp; &nbsp; &nbsp; &nbsp;** | **Typescript** | **PHP &nbsp; &nbsp;** |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| ✅ | ✅ | ✅ | ✅ | ✅ | Coming... | Coming... |
+|:-----------|:---------------|:----------------------------|:----------------|:----------------------------------|:---------------|:----------------------|
+| ✅          | ✅              | ✅                           | ✅               | ✅                                 | Coming...      | Coming...             |
 
 Example patterns:
 
-| **Pattern** | **Matches** |
-| :--- | :--- |
-| [`$X == $X`](https://semgrep.live/20B) | `if (node.id == node.id): ...` |
-| [`requests.get(..., verify=False, ...)`](https://semgrep.live/jqn) | `requests.get(url, timeout=3, verify=False)` |
-| [`os.system(...)`](https://semgrep.live/1W5) | `from os import system; system('echo semgrep')` |
-| [`$ELEMENT.innerHTML`](https://semgrep.live/9ze) | ``el.innerHTML = "<img src='x' onerror='alert(`XSS`)'>";`` |
-| [`$TOKEN.SignedString([]byte("..."))`](https://semgrep.live/rXW) | `ss, err := token.SignedString([]byte("HARDCODED KEY"))` |
+| **Pattern**                                                        | **Matches**                                                |
+|:-------------------------------------------------------------------|:-----------------------------------------------------------|
+| [`$X == $X`](https://semgrep.live/20B)                             | `if (node.id == node.id): ...`                             |
+| [`requests.get(..., verify=False, ...)`](https://semgrep.live/jqn) | `requests.get(url, timeout=3, verify=False)`               |
+| [`os.system(...)`](https://semgrep.live/1W5)                       | `from os import system; system('echo semgrep')`            |
+| [`$ELEMENT.innerHTML`](https://semgrep.live/9ze)                   | ``el.innerHTML = "<img src='x' onerror='alert(`XSS`)'>";`` |
+| [`$TOKEN.SignedString([]byte("..."))`](https://semgrep.live/rXW)   | `ss, err := token.SignedString([]byte("HARDCODED KEY"))`   |
 
 → [see more example patterns in the semgrep-rules repository](https://github.com/returntocorp/semgrep-rules)
 
@@ -38,9 +38,9 @@ On macOS, binaries are available via [Homebrew](https://brew.sh/):
 brew install returntocorp/semgrep/semgrep
 ```
 
-On Ubuntu, an install script is available on each release [here](https://github.com/returntocorp/semgrep/releases/download/v0.6.1/semgrep-v0.6.1-ubuntu-generic.sh)
+On Ubuntu, an install script is available on each release [here](https://github.com/returntocorp/semgrep/releases/download/v0.7.0/semgrep-v0.7.0-ubuntu-generic.sh)
 ```bash
-./semgrep-v0.6.1-ubuntu-generic.sh
+./semgrep-v0.7.0-ubuntu-generic.sh
 ```
 
 To try `semgrep` without installation, you can also run it via [Docker](https://docs.docker.com/install/):
@@ -171,12 +171,23 @@ using our [analysis platform](https://app.r2c.dev).
 semgrep --config r2c
 ```
 
+### Programmatic Usage
+
+To integrate semgrep's results with other tools,
+you can get results in machine-readable JSON format with the `--json` option,
+or formatted according to the
+[SARIF standard](https://docs.oasis-open.org/sarif/sarif/v2.1.0/cs01/sarif-v2.1.0-cs01.html)
+with the `--sarif` flag.
+
+See our [output documentation](docs/output.md) for details.
+
 ## Resources
 
 * [`semgrep` presentation at HellaSecure](https://www.youtube.com/watch?v=M586wePrwYs) and [slides](https://bit.ly/hella-secure-semgrep)
 * [Pattern features documentation](docs/pattern-features.md)
 * [Configuration files documentation](docs/configuration-files.md)
 * [Integrations](docs/integrations.md)
+* [Output](docs/output.md)
 * [Development](docs/development.md)
 * [Bug reports](https://github.com/returntocorp/semgrep/issues)
 

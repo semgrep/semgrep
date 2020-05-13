@@ -12,12 +12,25 @@ import pytest
 TESTS_PATH = Path(__file__).parent
 
 
+def _clean_output_json(output_json: str) -> str:
+    """Make semgrep's output deterministic and nicer to read."""
+    output = json.loads(output_json)
+    for result in output["results"]:
+        if "extra" not in result:
+            continue
+        for metavar in result["extra"]["metavars"].values():
+            if "md5sum" in metavar["unique_id"]:
+                metavar["unique_id"]["md5sum"] = "<masked in tests>"
+
+    return json.dumps(output, indent=2, sort_keys=True)
+
+
 def _run_semgrep(
     config: Optional[Union[str, Path]] = None,
     *,
     target_name: str = "basic",
     options: Optional[List[Union[str, Path]]] = None,
-    use_json: bool = True,
+    output_format: str = "json",
     stderr: bool = False,
 ) -> str:
     """Run the semgrep CLI.
@@ -25,7 +38,7 @@ def _run_semgrep(
     :param config: what to pass as --config's value
     :param target_name: which directory within ./e2e/targets/ to scan
     :param options: additional CLI flags to add
-    :param use_json: whether to add --json and pretty-format the stdout
+    :param output_format: which format to use, valid options are normal, json, and sarif
     :param stderr: whether to merge stderr into the returned string
     """
     if options is None:
@@ -36,8 +49,10 @@ def _run_semgrep(
     if config is not None:
         options.extend(["--config", config])
 
-    if use_json:
+    if output_format == "json":
         options.append("--json")
+    elif output_format == "sarif":
+        options.append("--sarif")
 
     output = subprocess.check_output(
         ["python3", "-m", "semgrep", *options, Path("targets") / target_name],
@@ -45,8 +60,8 @@ def _run_semgrep(
         stderr=subprocess.STDOUT if stderr else None,
     )
 
-    if use_json and not stderr:
-        output = json.dumps(json.loads(output), indent=2, sort_keys=True)
+    if output_format in {"json", "sarif"} and not stderr:
+        output = _clean_output_json(output)
 
     return output
 

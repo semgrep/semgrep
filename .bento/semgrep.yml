@@ -1,0 +1,18 @@
+rules:
+  - id: slow-import-on-module-level
+    patterns:
+      - pattern-not-inside: |
+          def $FUNC(...) -> ...:
+            ...
+      - pattern-not-inside: |
+          def $FUNC(...):
+            ...
+      - pattern-either:
+        - pattern: import requests
+        - pattern: import yaml
+    message: >
+      Importing this module incurs a performance penalty
+      even if the user is only running something simple, like --version.
+      Move the import inside the function that needs it.
+    languages: [python]
+    severity: ERROR

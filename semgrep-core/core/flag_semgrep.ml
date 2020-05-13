@@ -17,12 +17,10 @@ let debug_with_full_position = ref false
 (*s: constant [[Flag_semgrep.go_deeper_expr]] *)
 (* should be used with DeepEllipsis; do it implicitely has issues *)
 let go_deeper_expr = ref true
-(* this ultimately should go away once '...' works on the CFG *)
 (*e: constant [[Flag_semgrep.go_deeper_expr]] *)
 (*s: constant [[Flag_semgrep.go_deeper_stmt]] *)
 (* this ultimately should go away once '...' works on the CFG *)
 let go_deeper_stmt = ref true
-(* not sure we want that ... *)
 (*e: constant [[Flag_semgrep.go_deeper_stmt]] *)
 (*s: constant [[Flag_semgrep.go_really_deeper_stmt]] *)
 (* not sure we want that ... *)

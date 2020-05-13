@@ -188,8 +188,7 @@ let (return : tin -> tout) = fun tin ->
 (*s: function [[Matching_generic.fail]] *)
 let (fail : tin -> tout) = fun _tin ->
   if !Flag.debug
-  then failwith "Generic_vs_generic.fail: Match failure"
-  else
+  then failwith "Generic_vs_generic.fail: Match failure";
   []
 (*e: function [[Matching_generic.fail]] *)
       
@@ -255,12 +254,16 @@ let (envf: (MV.mvar Ast.wrap, Ast.any) matcher) =
  fun (mvar, _imvar) any  -> fun tin ->
   match check_and_add_metavar_binding (mvar, any) tin with
   | None ->
+      (*s: [[Matching_generic.envf]] if [[verbose]] when fail *)
       if !Flag.verbose 
       then pr2 (spf "envf: fail, %s (%s)" mvar (str_of_any any));
+      (*e: [[Matching_generic.envf]] if [[verbose]] when fail *)
       fail tin
   | Some new_binding ->
+      (*s: [[Matching_generic.envf]] if [[verbose]] when success *)
       if !Flag.verbose 
       then pr2 (spf "envf: success, %s (%s)" mvar (str_of_any any));
+      (*e: [[Matching_generic.envf]] if [[verbose]] when success *)
       return new_binding
 (*e: function [[Matching_generic.envf]] *)
 
@@ -416,11 +419,12 @@ let rec m_list_with_dots f is_dots less_is_ok xsa xsb =
     match xsa, xsb with
   | [], [] ->
       return ()
-
+  (*s: [[Matching_generic.m_list_with_dots()]]> empty list vs list case *)
   (* less-is-ok: empty list can sometimes match non-empty list *)
   | [], _::_ when less_is_ok -> 
     return ()
-
+  (*e: [[Matching_generic.m_list_with_dots()]]> empty list vs list case *)
+  (*s: [[Matching_generic.m_list_with_dots()]]> ellipsis cases *)
   (* dots: '...', can also match no argument *)
   | [a], []  when is_dots a ->
       return ()
@@ -430,7 +434,7 @@ let rec m_list_with_dots f is_dots less_is_ok xsa xsb =
       (m_list_with_dots f is_dots less_is_ok xsa (xb::xsb)) >||>
       (* can match more *)
       (m_list_with_dots f is_dots less_is_ok (a::xsa) xsb)
-
+  (*e: [[Matching_generic.m_list_with_dots()]]> ellipsis cases *)
   (* the general case *)
   | xa::aas, xb::bbs ->
       f xa xb >>= (fun () ->

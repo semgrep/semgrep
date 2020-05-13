@@ -2,12 +2,20 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## Next Release
+## [0.7.0](https://github.com/returntocorp/semgrep/releases/tag/v0.7.0) - 2020-05-12
 
 ### Added
 - `--exclude`, `--include`, `--exclude-dir`, and `--include-dir` flags
   for targeting specific paths with command line options.
   The behavior of these flags mimics `grep`'s behavior.
+- A `--sarif` flag to receive output formatted according to the
+  [SARIF v2.1.0](https://docs.oasis-open.org/sarif/sarif/v2.1.0/cs01/sarif-v2.1.0-cs01.html)
+  specification for static analysis tools.
+
+### Fixed
+- Correclty parse implicit tuples in python f-strings
+- Correctly parse `%` token in python f-string format
+- Correctly parse python fstrings with spaces in interpolants
 
 ## [0.6.1](https://github.com/returntocorp/semgrep/releases/tag/v0.6.1) - 2020-05-06
 

@@ -60,6 +60,10 @@ class PostInstallCommand(install):
         if "TOX_ENV_NAME" in os.environ:
             print("Not attempting to install binary while running under tox")
             return
+        if "HOMEBREW_SYSTEM" in os.environ:
+            print("Not attempting to install binary while running under homebrew")
+            install.run(self)
+            return
         # So ths builds the executable, and even installs it
         # but we can't install to the bin directory:
         #     https://github.com/pypa/setuptools/issues/210#issuecomment-216657975
@@ -105,7 +109,7 @@ class PostInstallCommand(install):
 
 setup(
     name="semgrep",  # Replace with your own username
-    version="0.6.1",
+    version="0.7.0",
     author="Russell & Return 2 Corp",
     author_email="support@r2c.dev",
     description="Fast and syntax-aware semantic code pattern search for many languages: like grep but for code",
@@ -113,7 +117,7 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/returntocorp/semgrep",
-    install_requires=["colorama==0.4.3", "pyyaml==5.3", "requests==2.22.0"],
+    install_requires=["colorama>=0.4.3", "pyyaml>=5.3", "requests>=2.22.0"],
     entry_points={"console_scripts": ["semgrep=semgrep.__main__:main"]},
     packages=setuptools.find_packages(),
     classifiers=[
