@@ -46,7 +46,7 @@ jobs:
           name: manylinux-wheel
           path: semgrep/dist.zip
   test-wheels-manylinux:
-    depends_on: ['build-wheels-manylinux']
+    needs: ['build-wheels-manylinux']
     runs-on: 'ubuntu-16.04'
     container: 'quay.io/pypa/manylinux1_x86_64'
     steps:
