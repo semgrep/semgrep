@@ -48,6 +48,7 @@ jobs:
   test-wheels-manylinux:
     needs: ['build-wheels-manylinux']
     runs-on: 'ubuntu-16.04'
+    container: 'quay.io/pypa/manylinux1_x86_64'
     steps:
       - uses: actions/download-artifact@v1
         with:
