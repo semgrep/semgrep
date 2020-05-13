@@ -72,6 +72,7 @@ class CoreRunner:
         include: List[str],
         exclude_dir: List[str],
         include_dir: List[str],
+        pattern_regex_all: bool,
     ):
         self._allow_exec = allow_exec
         self._jobs = jobs
@@ -79,6 +80,7 @@ class CoreRunner:
         self._include = include
         self._exclude_dir = exclude_dir
         self._include_dir = include_dir
+        self._pattern_regex_all = pattern_regex_all
 
     def _flatten_rule_patterns(self, rules: List[Rule]) -> Iterator[Pattern]:
         """
@@ -199,7 +201,8 @@ class CoreRunner:
                         str(target)
                         for target in targets
                         if target.is_file()
-                        and any(
+                        and self._pattern_regex_all
+                        or any(
                             str(target).endswith(extension)
                             for extension in file_extensions
                         )
@@ -210,7 +213,8 @@ class CoreRunner:
                         if target.is_dir()
                         for dirpath, _, filenames in os.walk(str(target))
                         for filename in filenames
-                        if any(
+                        if self._pattern_regex_all
+                        or any(
                             os.path.join(dirpath, filename).endswith(extension)
                             for extension in file_extensions
                         )

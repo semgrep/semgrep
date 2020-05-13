@@ -137,6 +137,14 @@ def cli() -> None:
             "to the number of CPUs on the system."
         ),
     )
+    config.add_argument(
+        "--pattern-regex-all",
+        action="store_true",
+        help=(
+            "Consider all files in the target directory, not just those "
+            "corresponding to the rule language's file extension."
+        ),
+    )
 
     # output options
     output = parser.add_argument_group("output")

@@ -5,7 +5,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## Next Release
 
 ### Added
-- `pattern-regex` functionality - see docs for more information
+- `--exclude`, `--include`, `--exclude-dir`, and `--include-dir` flags
+  for targeting specific paths with command line options.
+  The behavior of these flags mimics `grep`'s behavior.
+- `pattern-regex` functionality - see docs for more information.
 
 ### Changed
 - fstring pattern will only match fstrings in Python:
