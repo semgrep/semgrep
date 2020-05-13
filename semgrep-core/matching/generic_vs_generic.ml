@@ -415,9 +415,11 @@ and m_expr a b =
    * otherwise regular call patterns like foo("...") would match code like
    * foo().
    *)
-  | A.Call(A.IdSpecial(A.Concat, _a1), a2), 
-    B.Call(B.IdSpecial(B.Concat, _b1), b2) ->
+  | A.Call(A.IdSpecial(A.ConcatString akind, _a1), a2), 
+    B.Call(B.IdSpecial(B.ConcatString bkind, _b1), b2) ->
+    m_concat_string_kind akind bkind >>= (fun () ->
     m_arguments_concat a2 b2
+    )
   (*e: [[Generic_vs_generic.m_expr()]] interpolated strings case *)
 
   (* boilerplate *)
@@ -656,8 +658,8 @@ and m_special a b =
     return ()
   | A.New, B.New ->
     return ()
-  | A.Concat, B.Concat ->
-    return ()
+  | A.ConcatString a, B.ConcatString b ->
+    m_concat_string_kind a b
   | A.Spread, B.Spread ->
     return ()
   | A.ArithOp(a1), B.ArithOp(b1) ->
@@ -670,10 +672,18 @@ and m_special a b =
     )
   | A.This, _  | A.Super, _  | A.Self, _  | A.Parent, _  | A.Eval, _
   | A.Typeof, _  | A.Instanceof, _  | A.Sizeof, _  | A.New, _
-  | A.Concat, _  | A.Spread, _  | A.ArithOp _, _  | A.IncrDecr _, _
+  | A.ConcatString _, _  | A.Spread, _  | A.ArithOp _, _  | A.IncrDecr _, _
   | A.EncodedString _, _
    -> fail ()
 (*e: function [[Generic_vs_generic.m_special]] *)
+
+(* fstring pattern should match only fstring *)
+and m_concat_string_kind a b =
+  match a, b with
+  | A.FString, B.FString -> return ()
+  | A.FString, _ -> fail ()
+  (* less-is-more: *)
+  | _ -> return ()
 
 (*s: function [[Generic_vs_generic.m_name_info]] *)
 and m_name_info a b = 
