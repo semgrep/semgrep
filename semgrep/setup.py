@@ -60,6 +60,9 @@ class PostInstallCommand(install):
         if "TOX_ENV_NAME" in os.environ:
             print("Not attempting to install binary while running under tox")
             return
+        if "HOMEBREW_SYSTEM" in os.environ:
+            print("Not attempting to install binary while running under homebrew")
+            return
         # So ths builds the executable, and even installs it
         # but we can't install to the bin directory:
         #     https://github.com/pypa/setuptools/issues/210#issuecomment-216657975
