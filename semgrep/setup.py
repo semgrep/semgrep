@@ -62,6 +62,7 @@ class PostInstallCommand(install):
             return
         if "HOMEBREW_SYSTEM" in os.environ:
             print("Not attempting to install binary while running under homebrew")
+            install.run(self)
             return
         # So ths builds the executable, and even installs it
         # but we can't install to the bin directory:
