@@ -24,12 +24,9 @@ jobs:
         with:
           name: osx-wheel
           path: semgrep/dist.zip
-  build-wheels-ubuntu:
-    strategy:
-      matrix:
-        os: ['ubuntu-16.04']
-    runs-on: "${{ matrix.os }}"
-    container: 'returntocorp/sgrep-build:${{ matrix.os }}'
+  build-wheels-manylinux:
+    runs-on: 'ubuntu-16.04'
+    container: 'returntocorp/sgrep-build:ubuntu-16.04'
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -46,5 +43,22 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
-          name: ubuntu-wheel-${{ matrix.os }}
+          name: manylinux-wheel
           path: semgrep/dist.zip
+  test-wheels-manylinux:
+    depends_on: ['build-wheels-manylinux']
+    runs-on: 'ubuntu-16.04'
+    container: 'quay.io/pypa/manylinux1_x86_64'
+    steps:
+      - uses: actions/download-artifact@v1
+        with:
+          name: manylinux-wheel
+          path: manylinux-wheel
+      - name: unzip dist
+        run: unzip ./manylinux-wheel/dist.zip
+      - name: install package
+        run: pip install dist/*.whl
+      - name: test package
+        run: semgrep --version
+      - name: test core
+        run: semgrep-core --version
