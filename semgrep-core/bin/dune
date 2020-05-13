@@ -32,8 +32,14 @@
  )
  ; for ocamldebug
  (modes byte)
- (flags (-ccopt -static))
+ (flags (:include flags.sexp))
 )
+
+
+; use bin/flags.sh to generate the OS specific build flags 
+(rule
+ (targets flags.sexp)
+ (action (run %{workspace_root}/bin/flags.sh)))
 
 
 (install
