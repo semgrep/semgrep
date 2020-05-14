@@ -17,6 +17,9 @@ jobs:
         with:
           config: r/r2c
           slackWebhookURL: ${{ secrets.BENTO_SLACK_WEBHOOK_URL }}
+          publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}
+          publishDeployment: ${{ secrets.SEMGREP_APP_DEPLOYMENT_ID }}
+
   run-local-rules:
     name: with local rules
     runs-on: ubuntu-latest
@@ -27,3 +30,5 @@ jobs:
         uses: returntocorp/semgrep-action@v1
         with:
           slackWebhookURL: ${{ secrets.BENTO_SLACK_WEBHOOK_URL }}
+          publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}
+          publishDeployment: ${{ secrets.SEMGREP_APP_DEPLOYMENT_ID }}
