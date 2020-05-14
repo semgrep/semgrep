@@ -71,5 +71,6 @@ def set_flags(debug: bool, quiet: bool) -> None:
 
 
 def partition(pred: Callable, iterable: Iterable) -> Tuple[List, List]:
+    """E.g. partition(is_odd, range(10)) -> 1 3 5 7 9  and  0 2 4 6 8"""
     i1, i2 = itertools.tee(iterable)
     return list(filter(pred, i1)), list(itertools.filterfalse(pred, i2))

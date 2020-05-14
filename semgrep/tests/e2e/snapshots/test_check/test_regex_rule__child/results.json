@@ -5,7 +5,7 @@
       "check_id": "rules.test-regex",
       "end": {},
       "extra": {
-        "contents": "123.123.123.123",
+        "lines": "123.123.123.123",
         "message": "test regex message",
         "metadata": {},
         "severity": "ERROR"

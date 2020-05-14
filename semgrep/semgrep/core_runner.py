@@ -2,7 +2,6 @@ import collections
 import functools
 import json
 import multiprocessing
-import os
 import re
 import subprocess
 import sys
@@ -17,7 +16,6 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 
-from semgrep.constants import LANGUAGE_EXTENSIONS
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import SEMGREP_PATH
 from semgrep.equivalences import Equivalence
@@ -36,25 +34,48 @@ from semgrep.util import print_error
 from semgrep.util import print_error_exit
 
 
-RegexResult = collections.namedtuple("RegexResult", ["pattern", "path", "match"])
-
-
-def get_re_matches(patterns: Dict, path: str) -> List:
-    with open(path) as fd:
-        contents = fd.read()
+def get_re_matches(patterns: Dict, path: Path) -> List[PatternMatch]:
+    contents = path.read_text()
 
     return [
-        RegexResult(
-            pattern=pattern,
-            path=path,
-            match={
-                "span": match.span(),
-                "contents": contents[match.start() : match.end()],
-            },
+        PatternMatch(
+            {
+                "check_id": pattern["id"],
+                "path": str(path),
+                "start": {"offset": match.start()},
+                "end": {"offset": match.end()},
+                "extra": {"lines": [contents[match.start() : match.end()]]},
+            }
         )
         for pattern in patterns
         for match in re.finditer(pattern["pattern"], contents)
     ]
+
+
+def get_target_files(
+    targets: List[Path], exclude: List[str], include: List[str]
+) -> List[Path]:
+    if not include:
+        # Default to all files
+        include = ["*"]
+
+    filepaths = [
+        target
+        for target in targets
+        if target.is_file()
+        and any(target.match(i) for i in include)
+        and not any(target.match(e) for e in exclude)
+    ]
+    filepaths.extend(
+        path
+        for target in targets
+        if target.is_dir()
+        for path in target.rglob("*")
+        if any(path.match(i) for i in include)
+        and not any(path.match(e) for e in exclude)
+    )
+
+    return filepaths
 
 
 class CoreRunner:
@@ -72,7 +93,6 @@ class CoreRunner:
         include: List[str],
         exclude_dir: List[str],
         include_dir: List[str],
-        pattern_regex_all: bool,
     ):
         self._allow_exec = allow_exec
         self._jobs = jobs
@@ -80,7 +100,6 @@ class CoreRunner:
         self._include = include
         self._exclude_dir = exclude_dir
         self._include_dir = include_dir
-        self._pattern_regex_all = pattern_regex_all
 
     def _flatten_rule_patterns(self, rules: List[Rule]) -> Iterator[Pattern]:
         """
@@ -190,35 +209,14 @@ class CoreRunner:
             ).items():
                 # semgrep-core doesn't know about OPERATORS.REGEX - this is
                 # strictly a semgrep Python feature. Regex filtering is
-                # performed purely in Python code.
+                # performed purely in Python code then compared against
+                # semgrep-core's results for other patterns.
                 patterns_regex, patterns = partition(
                     lambda p: p.expression.operator == OPERATORS.REGEX,
                     all_patterns_for_language,
                 )
                 if patterns_regex:
-                    file_extensions = LANGUAGE_EXTENSIONS[language]
-                    filepaths = [
-                        str(target)
-                        for target in targets
-                        if target.is_file()
-                        and self._pattern_regex_all
-                        or any(
-                            str(target).endswith(extension)
-                            for extension in file_extensions
-                        )
-                    ]
-                    filepaths.extend(
-                        os.path.join(dirpath, filename)
-                        for target in targets
-                        if target.is_dir()
-                        for dirpath, _, filenames in os.walk(str(target))
-                        for filename in filenames
-                        if self._pattern_regex_all
-                        or any(
-                            os.path.join(dirpath, filename).endswith(extension)
-                            for extension in file_extensions
-                        )
-                    )
+                    filepaths = get_target_files(targets, self._exclude, self._include)
                     re_fn = functools.partial(
                         get_re_matches,
                         [pattern.to_json() for pattern in patterns_regex],
@@ -227,21 +225,10 @@ class CoreRunner:
                         matches = pool.map(re_fn, filepaths)
 
                     outputs.extend(
-                        PatternMatch(
-                            {
-                                "check_id": match.pattern["id"],
-                                "path": match.path,
-                                "start": {"offset": match.match["span"][0]},
-                                "end": {"offset": match.match["span"][1]},
-                                "extra": {"contents": match.match["contents"]},
-                            }
-                        )
+                        single_match
                         for file_matches in matches
-                        for match in file_matches
+                        for single_match in file_matches
                     )
-
-                    # Only consider OPERATORS.REGEX xor OPERATORS.AND for now
-                    continue
 
                 patterns_json = [p.to_json() for p in patterns]
                 # very important not to sort keys here

@@ -252,7 +252,6 @@ def main(args: argparse.Namespace) -> str:
         include=args.include,
         exclude_dir=args.exclude_dir,
         include_dir=args.include_dir,
-        pattern_regex_all=args.pattern_regex_all,
     ).invoke_semgrep(targets, all_rules)
 
     if args.exclude_tests:

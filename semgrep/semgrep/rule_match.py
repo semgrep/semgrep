@@ -82,6 +82,9 @@ class RuleMatch:
 
             Assumes file exists.  Note that start/end line is one-indexed
         """
+        if "lines" in self.extra:
+            return self.extra["lines"]
+
         with self.path.open(
             buffering=1, errors="replace"
         ) as fin:  # buffering=1 turns on line-level reads
@@ -97,15 +100,11 @@ class RuleMatch:
         json_obj["extra"]["message"] = self._message
         json_obj["extra"]["metadata"] = self._metadata
         json_obj["extra"]["severity"] = self._severity
-
         if self._fix:
             json_obj["extra"]["fix"] = self._fix
-
         json_obj["start"] = self._start
         json_obj["end"] = self._end
-
-        if "line" in self.start and "line" in self.end:
-            json_obj["extra"]["lines"] = "\n".join(self.lines).rstrip()
+        json_obj["extra"]["lines"] = "\n".join(self.lines).rstrip()
 
         return json_obj
 

@@ -16,13 +16,6 @@ DEFAULT_CONFIG_FILE = f".{DEFAULT_SEMGREP_CONFIG_NAME}.yml"
 DEFAULT_CONFIG_FOLDER = f".{DEFAULT_SEMGREP_CONFIG_NAME}"
 
 YML_EXTENSIONS = {".yml", ".yaml"}
-LANGUAGE_EXTENSIONS = {
-    "c": [".c"],
-    "go": [".go"],
-    "java": [".java"],
-    "javascript": [".js"],
-    "python": [".py"],
-}
 
 try:
     from semgrep.version import version  # type: ignore

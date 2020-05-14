@@ -193,7 +193,6 @@ def invoke_semgrep(
                 include=[],
                 exclude_dir=[],
                 include_dir=[],
-                pattern_regex_all=False,
                 output=None,
                 error=False,
                 autofix=False,
