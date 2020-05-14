@@ -1,1 +1,3 @@
 Dockerfile
+semgrep/build
+semgrep/dist

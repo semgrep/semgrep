@@ -17,6 +17,13 @@ DEFAULT_CONFIG_FOLDER = f".{DEFAULT_SEMGREP_CONFIG_NAME}"
 
 YML_EXTENSIONS = {".yml", ".yaml"}
 
+try:
+    from semgrep.version import version  # type: ignore
+
+    __VERSION__ = version
+except ModuleNotFoundError:
+    __VERSION__ = "local"
+
 
 def compute_semgrep_path() -> str:
     exec_name = "semgrep-core"
