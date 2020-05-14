@@ -7,7 +7,7 @@ import sys
 import semgrep.config_resolver
 import semgrep.semgrep_main
 import semgrep.test
-from semgrep import __VERSION__
+from semgrep.constants import __VERSION__
 from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import RCE_RULE_FLAG
@@ -16,12 +16,6 @@ from semgrep.dump_ast import dump_parsed_ast
 from semgrep.util import print_error
 from semgrep.util import print_error_exit
 
-try:
-    from semgrep.version import version  # type: ignore
-
-    __VERSION__ = version
-except ModuleNotFoundError:
-    __VERSION__ = "local"
 
 try:
     CPU_COUNT = multiprocessing.cpu_count()
