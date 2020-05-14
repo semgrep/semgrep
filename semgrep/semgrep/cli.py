@@ -16,23 +16,13 @@ from semgrep.dump_ast import dump_parsed_ast
 from semgrep.util import print_error
 from semgrep.util import print_error_exit
 
-<<<<<<< HEAD
-=======
 try:
-    from importlib import metadata
-except ImportError:
-    pass
+    from semgrep.version import version  # type: ignore
 
-try:
-    # The standard try/except/fallback pattern doesn't work with nuitka
-    # Fallback import of importlib backport for Python < 3.8
-    import importlib_metadata as metadata  # type: ignore
-except ImportError:
-    pass
+    __VERSION__ = version
+except ModuleNotFoundError:
+    __VERSION__ = "local"
 
-__VERSION__ = metadata.version("semgrep")  # type: ignore
-
->>>>>>> Use importlib to load the version
 try:
     CPU_COUNT = multiprocessing.cpu_count()
 except NotImplementedError:

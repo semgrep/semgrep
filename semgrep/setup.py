@@ -112,16 +112,16 @@ class PostInstallCommand(install):
 
 setup(
     name="semgrep",
-    use_scm_version={"relative_to": source_dir},
-    setup_requires=["setuptools_scm"],
-    author="Russell & Return 2 Corp",
+    use_scm_version={"relative_to": source_dir, "write_to": "semgrep/version.py"},
+    setup_requires=["setuptools_scm", "setuptools_scm_git_archive"],
+    author="Return To Corporation",
     author_email="support@r2c.dev",
     description="Fast and syntax-aware semantic code pattern search for many languages: like grep but for code",
     cmdclass={"install": PostInstallCommand, "bdist_wheel": bdist_wheel},
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/returntocorp/semgrep",
-    install_requires=["colorama>=0.4.3", "pyyaml>=5.3", "requests>=2.22.0", 'importlib-metadata ~= 1.0 ; python_version < "3.8"'],
+    install_requires=["colorama>=0.4.3", "pyyaml>=5.3", "requests>=2.22.0"],
     entry_points={"console_scripts": ["semgrep=semgrep.__main__:main"]},
     packages=setuptools.find_packages(),
     classifiers=[
