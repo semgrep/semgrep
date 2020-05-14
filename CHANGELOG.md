@@ -2,6 +2,22 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## Next Release
+
+### Changed
+- fstring pattern will only match fstrings in Python:
+  ```
+  f"..."
+  ```
+  will match
+  ```python
+  f"foo {1 + 1}"
+  ```
+  but not
+  ```python
+  "foo"
+  ```
+
 ## [0.7.0](https://github.com/returntocorp/semgrep/releases/tag/v0.7.0) - 2020-05-12
 
 ### Added
