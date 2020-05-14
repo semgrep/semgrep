@@ -100,7 +100,7 @@ if __name__ == "__main__":
         "develop",
     ]
     branches: List[str] = [b for b in branch_options if b]
-    workflow = os.environ.get("WORKFLOW", "release-ubuntu-16-04")
+    workflow = os.environ.get("WORKFLOW", "release-ubuntu")
     for branch in branches:
         print(f"Downloading the semgrep-core binary for {branch}", file=sys.stderr)
         url = get_latest_artifact_url(branch, workflow)
