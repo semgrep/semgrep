@@ -795,8 +795,8 @@ let options () =
   (*s: [[Main_semgrep_core.options]] concatenated actions *)
   Common.options_of_actions action (all_actions()) @
   (*e: [[Main_semgrep_core.options]] concatenated actions *)
-  [ "-version",   Arg.Unit (fun () -> 
-    pr2 (spf "semgrep-core version: %s" Config_pfff.version);
+  [ "-version",   Arg.Unit (fun () ->
+    pr2 (spf "semgrep-core version: %%VERSION%%, pfff: %s" Config_pfff.version);
     exit 0;
     ), "  guess what"; 
   ]
