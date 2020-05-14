@@ -11,16 +11,40 @@ import pytest
 
 TESTS_PATH = Path(__file__).parent
 
+MASKED_KEYS = [
+    "tool.driver.semanticVersion",
+    "results.extra.metavars.*.unique_id.md5sum",
+]
+
+
+def mark_masked(obj, path):
+    _mark_masked(obj, path.split("."))
+
+
+def _mark_masked(obj, path_items):
+    key = path_items[0]
+    if len(path_items) == 1 and key in obj:
+        obj[key] = "<masked in tests>"
+    else:
+        if key == "*":
+            next_obj = list(obj.values())
+        else:
+            next_obj = obj.get(key)
+        if next_obj is None:
+            next_objs = []
+        elif not isinstance(next_obj, list):
+            next_objs = [next_obj]
+        else:
+            next_objs = next_obj
+        for o in next_objs:
+            _mark_masked(o, path_items[1:])
+
 
 def _clean_output_json(output_json: str) -> str:
     """Make semgrep's output deterministic and nicer to read."""
     output = json.loads(output_json)
-    for result in output["results"]:
-        if "extra" not in result:
-            continue
-        for metavar in result["extra"]["metavars"].values():
-            if "md5sum" in metavar["unique_id"]:
-                metavar["unique_id"]["md5sum"] = "<masked in tests>"
+    for path in MASKED_KEYS:
+        mark_masked(output, path)
 
     return json.dumps(output, indent=2, sort_keys=True)
 
