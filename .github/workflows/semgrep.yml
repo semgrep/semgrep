@@ -16,9 +16,13 @@ jobs:
         uses: returntocorp/semgrep-action@v1
         with:
           config: r/r2c
+          generateSarif: "1"
           slackWebhookURL: ${{ secrets.BENTO_SLACK_WEBHOOK_URL }}
           publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}
           publishDeployment: ${{ secrets.SEMGREP_APP_DEPLOYMENT_ID }}
+      - uses: github/codeql-action/upload-sarif@v1
+        with:
+          sarif_file: semgrep.sarif
 
   run-local-rules:
     name: with local rules
@@ -30,5 +34,9 @@ jobs:
         uses: returntocorp/semgrep-action@v1
         with:
           slackWebhookURL: ${{ secrets.BENTO_SLACK_WEBHOOK_URL }}
+          generateSarif: "1"
           publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}
           publishDeployment: ${{ secrets.SEMGREP_APP_DEPLOYMENT_ID }}
+      - uses: github/codeql-action/upload-sarif@v1
+        with:
+          sarif_file: semgrep.sarif
