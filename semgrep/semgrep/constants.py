@@ -1,4 +1,5 @@
 import os
+import subprocess
 import sys
 from enum import auto
 from enum import Enum
@@ -19,7 +20,7 @@ YML_EXTENSIONS = {".yml", ".yaml"}
 
 def compute_semgrep_path() -> str:
     exec_name = "semgrep-core"
-    if os.system(f"{exec_name} --version") != 0:
+    if subprocess.run(["which", exec_name]).returncode != 0:
         # look for something in the same dir as the Python interpreter
         relative_path = os.path.join(os.path.dirname(sys.executable), exec_name)
         if os.path.exists(relative_path):
