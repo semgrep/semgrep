@@ -1,3 +1,14 @@
+## semgrep build
+
+FROM python:3.7.7-alpine3.11 as build-semgrep
+RUN apk add --no-cache python3-dev build-base chrpath git
+# The Python builder loads the tag info from git
+COPY .git /home/pythonbuild/.git
+COPY semgrep /home/pythonbuild/semgrep/
+WORKDIR /home/pythonbuild/semgrep
+RUN make all
+RUN ls -al /home/pythonbuild/semgrep/build/semgrep.dist/
+
 ## semgrep-core build
 
 FROM ocaml/opam2:alpine@sha256:4c2ce9a181b4b12442a68fc221d0b753959ec80e24eae3bf788eeca4dcb9a293 as build-semgrep-core
@@ -17,16 +28,6 @@ RUN eval $(opam env) && opam install -y ./pfff
 RUN eval $(opam env) && cd semgrep-core && opam install -y . && make all
 RUN semgrep-core/_build/default/bin/main_semgrep_core.exe -version
 
-## semgrep build
-
-FROM python:3.7.7-alpine3.11 as build-semgrep
-RUN apk add --no-cache python3-dev build-base chrpath git
-# The Python builder loads the tag info from git
-COPY .git /home/pythonbuild/.git
-COPY semgrep /home/pythonbuild/semgrep/
-WORKDIR /home/pythonbuild/semgrep
-RUN make all
-RUN ls -al /home/pythonbuild/semgrep/build/semgrep.dist/
 
 ## final output, combining both
 
