@@ -79,7 +79,7 @@ let rec eval x =
   | L x -> Some x
   | Id (_, { id_const_literal = {contents = Some x}; _}) -> Some x
 
-  | Call(IdSpecial((ArithOp(Plus) | Concat), _), args) ->
+  | Call(IdSpecial((ArithOp(Plus | Concat) | ConcatString _), _), args)->
     let literals = args |> Common.map_filter (fun (arg) ->
       match arg with 
         | Arg e -> eval e
