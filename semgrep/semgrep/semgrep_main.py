@@ -136,8 +136,11 @@ def post_output(output_url: str, output: str) -> None:
     import requests  # here for faster startup times
 
     print_msg(f"posting to {output_url}...")
-    r = requests.post(output_url, data=output, timeout=10)
-    debug_print(f"posted to {output_url} and got status_code:{r.status_code}")
+    try:
+        r = requests.post(output_url, data=output, timeout=10)
+        debug_print(f"posted to {output_url} and got status_code:{r.status_code}")
+    except requests.exceptions.Timeout:
+        print_error_exit(f"posting output to {output_url} timed out")
 
 
 def save_output(destination: str, output: str) -> None:
