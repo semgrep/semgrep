@@ -421,6 +421,23 @@ and m_expr a b =
     m_arguments_concat a2 b2
     )
   (*e: [[Generic_vs_generic.m_expr()]] interpolated strings case *)
+  (* The pattern '$X = 1 + 2 + ...' is parsed as '$X = (1 + 2) + ...', but 
+   * if the concrete code is 'foo = 1 + 2 + 3 + 4', this will naively not
+   * match because (1+2)+... will be matched against ((1+2)+3)+4 and fails.
+   * The ellipsis operator with binary operators should be more flexible
+   * and allows any number of additional arguments, which when translated
+   * in Call() means we need to go deeper.
+   *)
+
+  | A.Call(A.IdSpecial(A.ArithOp aop, _toka), 
+      [A.Arg a1;A.Arg(A.Ellipsis _tdots)]), 
+    B.Call(B.IdSpecial(B.ArithOp bop, _tokb), 
+      [B.Arg b1; B.Arg _b2]) ->
+     m_arithmetic_operator aop bop >>= (fun () ->
+       m_expr a1 b1 >!> (fun () ->
+         (* try again deeper on b1 *)
+         m_expr a b1
+     ))
 
   (* boilerplate *)
   | A.Id(a1, a2), B.Id(b1, b2) ->

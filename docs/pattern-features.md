@@ -214,6 +214,19 @@ pattern: requests.get("=~/.*dev\.corp\.com.*/")
 requests.get("api.dev.corp.com")  # Oops, development API left in
 ```
 
+#### Binary operations
+
+The ellipsis operator can be used to match any number of arguments to
+binary operations.
+
+```text
+pattern: $X = 1 + 2 + ...
+```
+
+```python
+foo = 1 + 2 + 3 + 4
+```
+
 #### Arrays
 
 The ellipsis operator can be used to match literal arrays:
