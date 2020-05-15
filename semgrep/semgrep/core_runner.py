@@ -34,21 +34,21 @@ from semgrep.util import print_error
 from semgrep.util import print_error_exit
 
 
-def get_re_matches(patterns: Dict, path: Path) -> List[PatternMatch]:
+def get_re_matches(patterns_re: List[Tuple], path: Path) -> List[PatternMatch]:
     contents = path.read_text()
 
     return [
         PatternMatch(
             {
-                "check_id": pattern["id"],
+                "check_id": pattern_id,
                 "path": str(path),
                 "start": {"offset": match.start()},
                 "end": {"offset": match.end()},
                 "extra": {"lines": [contents[match.start() : match.end()]]},
             }
         )
-        for pattern in patterns
-        for match in re.finditer(pattern["pattern"], contents)
+        for pattern_id, pattern in patterns_re
+        for match in re.finditer(pattern, contents)
     ]
 
 
@@ -217,10 +217,17 @@ class CoreRunner:
                 )
                 if patterns_regex:
                     filepaths = get_target_files(targets, self._exclude, self._include)
-                    re_fn = functools.partial(
-                        get_re_matches,
-                        [pattern.to_json() for pattern in patterns_regex],
-                    )
+                    patterns_json = [pattern.to_json() for pattern in patterns_regex]
+
+                    try:
+                        patterns_re = [
+                            (pattern["id"], re.compile(pattern["pattern"]))
+                            for pattern in patterns_json
+                        ]
+                    except re.error as err:
+                        print_error_exit(f"invalid regular expression specified: {err}")
+
+                    re_fn = functools.partial(get_re_matches, patterns_re)
                     with multiprocessing.Pool(self._jobs) as pool:
                         matches = pool.map(re_fn, filepaths)
 
