@@ -6,6 +6,15 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 - `pattern-regex` functionality - see docs for more information.
+- Ellipsis used in the final position of a sequence of binary operations
+  will match any number of additional arguments:
+  ```
+  $X = 1 + 2 + ...
+  ```
+  will match
+  ```python
+  foo = 1 + 2 + 3 + 4
+  ```
 
 ### Changed
 - fstring pattern will only match fstrings in Python:
