@@ -72,6 +72,13 @@ class Rule:
                     OPERATORS.AND, rule_raw["id"], None, rule_raw[pattern_name]
                 )
 
+        for pattern_name in pattern_names_for_operator(OPERATORS.REGEX):
+            pattern = rule_raw.get(pattern_name)
+            if pattern:
+                return BooleanRuleExpression(
+                    OPERATORS.REGEX, rule_raw["id"], None, rule_raw[pattern_name]
+                )
+
         for pattern_name in pattern_names_for_operator(OPERATORS.AND_ALL):
             patterns = rule_raw.get(pattern_name)
             if patterns:

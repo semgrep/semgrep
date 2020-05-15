@@ -1,5 +1,8 @@
 import collections
+import functools
 import json
+import multiprocessing
+import re
 import subprocess
 import sys
 import tempfile
@@ -26,8 +29,53 @@ from semgrep.semgrep_types import BooleanRuleExpression
 from semgrep.semgrep_types import OPERATORS
 from semgrep.util import debug_print
 from semgrep.util import INVALID_PATTERN_EXIT_CODE
+from semgrep.util import partition
 from semgrep.util import print_error
 from semgrep.util import print_error_exit
+
+
+def get_re_matches(patterns: Dict, path: Path) -> List[PatternMatch]:
+    contents = path.read_text()
+
+    return [
+        PatternMatch(
+            {
+                "check_id": pattern["id"],
+                "path": str(path),
+                "start": {"offset": match.start()},
+                "end": {"offset": match.end()},
+                "extra": {"lines": [contents[match.start() : match.end()]]},
+            }
+        )
+        for pattern in patterns
+        for match in re.finditer(pattern["pattern"], contents)
+    ]
+
+
+def get_target_files(
+    targets: List[Path], exclude: List[str], include: List[str]
+) -> List[Path]:
+    if not include:
+        # Default to all files
+        include = ["*"]
+
+    filepaths = [
+        target
+        for target in targets
+        if target.is_file()
+        and any(target.match(i) for i in include)
+        and not any(target.match(e) for e in exclude)
+    ]
+    filepaths.extend(
+        path
+        for target in targets
+        if target.is_dir()
+        for path in target.rglob("*")
+        if any(path.match(i) for i in include)
+        and not any(path.match(e) for e in exclude)
+    )
+
+    return filepaths
 
 
 class CoreRunner:
@@ -159,12 +207,33 @@ class CoreRunner:
             for language, all_patterns_for_language in self._group_patterns_by_language(
                 rules
             ).items():
-                with tempfile.NamedTemporaryFile("w") as fout:
-                    # very important not to sort keys here
-                    patterns_json = [p.to_json() for p in all_patterns_for_language]
-                    yaml_as_str = yaml.safe_dump(
-                        {"rules": patterns_json}, sort_keys=False
+                # semgrep-core doesn't know about OPERATORS.REGEX - this is
+                # strictly a semgrep Python feature. Regex filtering is
+                # performed purely in Python code then compared against
+                # semgrep-core's results for other patterns.
+                patterns_regex, patterns = partition(
+                    lambda p: p.expression.operator == OPERATORS.REGEX,
+                    all_patterns_for_language,
+                )
+                if patterns_regex:
+                    filepaths = get_target_files(targets, self._exclude, self._include)
+                    re_fn = functools.partial(
+                        get_re_matches,
+                        [pattern.to_json() for pattern in patterns_regex],
                     )
+                    with multiprocessing.Pool(self._jobs) as pool:
+                        matches = pool.map(re_fn, filepaths)
+
+                    outputs.extend(
+                        single_match
+                        for file_matches in matches
+                        for single_match in file_matches
+                    )
+
+                patterns_json = [p.to_json() for p in patterns]
+                # very important not to sort keys here
+                yaml_as_str = yaml.safe_dump({"rules": patterns_json}, sort_keys=False)
+                with tempfile.NamedTemporaryFile("w") as fout:
                     fout.write(yaml_as_str)
                     fout.flush()
                     cmd = [SEMGREP_PATH] + [

@@ -4,6 +4,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Next Release
 
+### Added
+- `pattern-regex` functionality - see docs for more information.
+
 ### Changed
 - fstring pattern will only match fstrings in Python:
   ```

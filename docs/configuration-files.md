@@ -17,6 +17,7 @@ Contents:
   * [`pattern`](configuration-files.md#pattern)
   * [`patterns`](configuration-files.md#patterns)
   * [`pattern-either`](configuration-files.md#pattern-either)
+  * [`pattern-regex`](configuration-files.md#pattern-regex)
   * [`pattern-not`](configuration-files.md#pattern-not)
   * [`pattern-inside`](configuration-files.md#pattern-inside)
   * [`pattern-not-inside`](configuration-files.md#pattern-not-inside)
@@ -82,12 +83,13 @@ All required fields must be present at the top-level of a rule. I.e. immediately
 | `id` | `string` | Unique, descriptive identifier . e.g. `no-unused-variable`. |
 | `message` | `string` | Message highlighting why this rule fired and how to remediate the issue. |
 | `severity` | `string` | One of: `WARNING`, `ERROR`. |
-| `languages` | `array` | Any of: `python`, `javascript`, or `go`. |
+| `languages` | `array` | Any of: `c`, `go`, `java`, `javascript`, or `python`. |
 | [`pattern`](configuration-files.md#pattern)_\*_ | `string` | Find code matching this expression. |
 | [`patterns`](configuration-files.md#patterns)_\*_ | `array` | Logical AND of multiple patterns. |
 | [`pattern-either`](configuration-files.md#pattern-either)_\*_ | `array` | Logical OR of multiple patterns. |
+| [`pattern-regex`](configuration-files.md#pattern-regex)_\*_ | `string` | Search files for [Python `re`](https://docs.python.org/3/library/re.html) compatible expressions. |
 
-_\* Only one of `pattern`, `patterns`, or `pattern-either` is required._
+* _\* Only one of `pattern`, `patterns`, `pattern-either`, or `pattern-regex` is required._
 
 **Optional:**
 
@@ -153,6 +155,36 @@ rules:
 ```
 
 This rule looks for usage of the Python standard library functions `hashlib.md5` **or** `hashlib.sha1`. Depending on their usage, these hashing functions are [considered insecure](https://shattered.io/).
+
+### `pattern-regex`
+
+The `pattern-regex` operator searches files for a [Python `re`](https://docs.python.org/3/library/re.html) compatible expression. This is useful for migrating existing regular expression code search functionality to `semgrep`.
+
+**Example**
+
+The `pattern-regex` operator can be combined with other pattern operators:
+
+```yaml
+rules:
+  - id: boto-client-ip
+    patterns:
+      - pattern-inside: boto3.client(host="...")
+      - pattern-regex: '\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}'
+    message: "boto client using IP address"
+    languages: [python]
+    severity: ERROR
+```
+
+It can also be used as a standalone, top-level operator:
+
+```yaml
+rules:
+  - id: legacy-eval-search
+    pattern-regex: "eval\("
+    message: "insecure code execution"
+    languages: [javascript]
+    severity: ERROR
+```
 
 ### `pattern-not`
 

@@ -42,14 +42,20 @@ def finding_to_line(rule_match: RuleMatch, color_output: bool) -> Iterator[str]:
     end_line = rule_match.end.get("line")
     start_col = rule_match.start.get("col")
     end_col = rule_match.end.get("col")
-    if path and start_line:
-        file_lines = rule_match.lines
-        if file_lines:
-            for i, line in enumerate(file_lines):
+    if path:
+        for i, line in enumerate(rule_match.lines):
+            line = line.rstrip()
+            line_number = ""
+            if start_line:
                 if color_output:
-                    yield f"{colorama.Fore.GREEN}{start_line + i}{colorama.Style.RESET_ALL}:{color_line(line.rstrip(), start_line + i, start_line, start_col, end_line, end_col)}"  # type: ignore
+                    line = color_line(
+                        line, start_line + i, start_line, start_col, end_line, end_col  # type: ignore
+                    )
+                    line_number = f"{colorama.Fore.GREEN}{start_line + i}{colorama.Style.RESET_ALL}"
                 else:
-                    yield f"{start_line + i}:{line.rstrip()}"
+                    line_number = f"{start_line + i}"
+
+            yield f"{line_number}:{line}" if line_number else f"{line}"
 
 
 def build_normal_output(
