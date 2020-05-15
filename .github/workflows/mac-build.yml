@@ -2,7 +2,7 @@ name: mac-build
 
 on:
   push:
-    branches: [master, develop]
+    branches: [master, develop, '**-test-release']
 
 jobs:
   mac-build-test:

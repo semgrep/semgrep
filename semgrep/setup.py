@@ -82,13 +82,13 @@ class PostInstallCommand(install):
         if os.environ.get("PRECOMPILED_LOCATION"):
             source = os.environ["PRECOMPILED_LOCATION"]
         else:
+            os.putenv("SKIP_NUITKA", "TRUE")
             if "osx" in distutils.util.get_platform():
                 with chdir(repo_root):
                     os.system(os.path.join(repo_root, "release-scripts/osx-release.sh"))
                     source = os.path.join(repo_root, "artifacts/semgrep-core")
             else:
                 with chdir(repo_root):
-                    os.putenv("SKIP_NUITKA", "TRUE")
                     os.system(
                         os.path.join(repo_root, "release-scripts/ubuntu-release.sh")
                     )
