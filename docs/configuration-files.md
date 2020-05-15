@@ -87,10 +87,9 @@ All required fields must be present at the top-level of a rule. I.e. immediately
 | [`pattern`](configuration-files.md#pattern)_\*_ | `string` | Find code matching this expression. |
 | [`patterns`](configuration-files.md#patterns)_\*_ | `array` | Logical AND of multiple patterns. |
 | [`pattern-either`](configuration-files.md#pattern-either)_\*_ | `array` | Logical OR of multiple patterns. |
-| [`pattern-regex`](configuration-files.md#pattern-regex)_\*†_ | `string` | Search files for [Python `re`](https://docs.python.org/3/library/re.html) compatible expressions. |
+| [`pattern-regex`](configuration-files.md#pattern-regex)_\*_ | `string` | Search files for [Python `re`](https://docs.python.org/3/library/re.html) compatible expressions. |
 
 * _\* Only one of `pattern`, `patterns`, `pattern-either`, or `pattern-regex` is required._
-* _† The `pattern-regex` field may not be combined with other patterns._
 
 **Optional:**
 
@@ -162,6 +161,21 @@ This rule looks for usage of the Python standard library functions `hashlib.md5`
 The `pattern-regex` operator searches files for a [Python `re`](https://docs.python.org/3/library/re.html) compatible expression. This is useful for migrating existing regular expression code search functionality to `semgrep`.
 
 **Example**
+
+The `pattern-regex` operator can be combined with other pattern operators:
+
+```yaml
+rules:
+  - id: boto-client-ip
+    patterns:
+      - pattern-inside: boto3.client(host="...")
+      - pattern-regex: '\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}'
+    message: "boto client using IP address"
+    languages: [python]
+    severity: ERROR
+```
+
+It can also be used as a standalone, top-level operator:
 
 ```yaml
 rules:

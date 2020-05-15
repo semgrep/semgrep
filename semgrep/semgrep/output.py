@@ -98,9 +98,6 @@ def build_normal_output(
                     severity_prepend = f"{severity} "
             yield f"{severity_prepend}{YELLOW_COLOR}rule:{check_id}: {message}{RESET_COLOR}"
 
-        if extra.get("contents"):
-            yield f"{extra.get('contents')}"
-
         last_file = current_file
         last_message = message
         yield from finding_to_line(rule_match, color_output)
