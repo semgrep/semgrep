@@ -28,7 +28,7 @@ Example patterns:
 | [`$ELEMENT.innerHTML`](https://semgrep.live/9ze)                   | ``el.innerHTML = "<img src='x' onerror='alert(`XSS`)'>";`` |
 | [`$TOKEN.SignedString([]byte("..."))`](https://semgrep.live/rXW)   | `ss, err := token.SignedString([]byte("HARDCODED KEY"))`   |
 
-→ [see more example patterns in the semgrep-rules repository](https://github.com/returntocorp/semgrep-rules)
+→ [see more example patterns in the live registry viewer](https://semgrep.live/registry)
 
 ## Installation
 
