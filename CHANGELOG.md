@@ -15,6 +15,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   ```python
   foo = 1 + 2 + 3 + 4
   ```
+- Per rule configuration of paths to include/exclude. See docs for more information.
 
 ### Changed
 - fstring pattern will only match fstrings in Python:

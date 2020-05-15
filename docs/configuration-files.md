@@ -25,6 +25,7 @@ Contents:
 * [Optional Fields](configuration-files.md#optional-fields)
   * [`fix`](configuration-files.md#fix)
   * [`metadata`](configuration-files.md#metadata)
+  * [`paths`](configuration-files.md#paths)
 * [Other Examples](configuration-files.md#other-examples)
   * [Complete Useless Comparison](configuration-files.md#complete-useless-comparison)
 
@@ -96,6 +97,7 @@ All required fields must be present at the top-level of a rule. I.e. immediately
 | Field | Type | Description |
 | :--- | :--- | :--- |
 | [`metadata`](advanced.md#metadata) | `object` | Arbitrary user-provided data. Use to attach data to rules without affecting semgrep's behavior |
+| [`paths`](configuration-files.md#paths) | `object` | Paths to run this check on, or to ignore this check in. See [examples](advanced.md#paths). |
 
 The below optional fields must reside underneath a `patterns` or `pattern-either` field.
 
@@ -307,6 +309,72 @@ rules:
 ```
 
 The metadata will also be reproduced in semgrep's output if you're running it with `--json`.
+
+### `paths`
+
+#### Excluding a Rule in Paths
+
+To ignore a specific rule on specific files, set a `paths:` key with one or more filters like so:
+
+```yaml
+rules:
+  - id: eqeq-is-bad
+    pattern: $X == $X
+    paths:
+      exclude:
+        - "*.jinja2"
+        - "*_test.go"
+        - "project/tests"
+        - project/static/*.js
+```
+
+When invoked with `semgrep -f rule.yaml project/`,
+this rule will run on files inside `project/`,
+but no results will be returned for:
+
+- any file with a `.jinja2` file extension
+- any file whose name ends in `_test.go`, such as `project/backend/server_test.go`
+- any file inside `project/tests` or its subdirectories
+- any file matching the `project/static/*.js` glob pattern
+
+**Note:** the glob syntax is [the one in Python's `pathlib`](https://docs.python.org/3/library/pathlib.html#pathlib.PurePath.match),
+which is used to match against the given file and all its parent directories.
+
+#### Limiting a Rule to Paths
+
+Conversely, to run a rule *only* on specific files, set a `paths:` key with one or more of these filters:
+
+```yaml
+rules:
+  - id: eqeq-is-bad
+    pattern: $X == $X
+    paths:
+      include:
+        - "*_test.go"
+        - "project/server"
+        - "project/schemata"
+        - "project/static/*.js"
+```
+
+When invoked with `semgrep -f rule.yaml project/`,
+this rule will run on files inside `project/`,
+but results will be returned only for:
+
+- files whose name ends in `_test.go`, such as `project/backend/server_test.go`
+- files inside `project/server`, `project/schemata`, or their subdirectories
+- files matching the `project/static/*.js` glob pattern
+
+**Note:** when mixing inclusion and exclusion filters, the exclusion ones take precedence.
+
+For example a rule that specifies these paths:
+
+```yaml
+paths:
+  include: "project/schemata"
+  excludedocs/configuration-files.md: "*_internal.py"
+```
+
+Would return results from `project/schemata/scan.py`, but not from `project/schemata/scan_internal.py`.
 
 ## Other Examples
 
