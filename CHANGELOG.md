@@ -6,6 +6,15 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 - `pattern-regex` functionality - see docs for more information.
+- Ellipsis used in the final position of a sequence of binary operations
+  will match any number of additional arguments:
+  ```
+  $X = 1 + 2 + ...
+  ```
+  will match
+  ```python
+  foo = 1 + 2 + 3 + 4
+  ```
 
 ### Changed
 - fstring pattern will only match fstrings in Python:
@@ -24,15 +33,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## [0.7.0](https://github.com/returntocorp/semgrep/releases/tag/v0.7.0) - 2020-05-12
 
 ### Added
-- Ellipsis used in the final position of a sequence of binary operations 
-  will match any number of additional arguments:
-  ```
-  $X = 1 + 2 + ...
-  ```
-  will match
-  ```python
-  foo = 1 + 2 + 3 + 4
-  ```
 - `--exclude`, `--include`, `--exclude-dir`, and `--include-dir` flags
   for targeting specific paths with command line options.
   The behavior of these flags mimics `grep`'s behavior.
