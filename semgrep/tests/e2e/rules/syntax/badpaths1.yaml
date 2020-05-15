@@ -1,0 +1,12 @@
+rules:
+  - id: arg-reassign
+    pattern-either:
+      - pattern: $X = 1
+      - pattern: $X = 2
+    paths:
+      # bad syntax: these should be under an object, i.e. `exclude:`
+      - "*.py"
+      - "test/*"
+    message: "$X is being assigned to one or two"
+    languages: [python]
+    severity: WARNING

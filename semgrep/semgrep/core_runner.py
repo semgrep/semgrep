@@ -307,6 +307,8 @@ class CoreRunner:
         for rule, paths in outputs.items():
             findings = []
             for filepath, pattern_matches in paths.items():
+                if not rule.globs.match_path(filepath):
+                    continue
                 debug_print(f"-------- rule ({rule.id} ------ filepath: {filepath}")
 
                 findings.extend(evaluate(rule, pattern_matches, self._allow_exec))
