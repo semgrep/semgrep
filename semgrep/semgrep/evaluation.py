@@ -260,7 +260,7 @@ def enumerate_patterns_in_boolean_expression(
     """
     if expr.children is not None:
         # we need to preserve this parent of multiple children, but it has no corresponding pattern
-        yield BooleanRuleExpression(expr.operator, None, None, None)
+        yield BooleanRuleExpression(expr.operator, None, None, None, expr.span)
         # now yield all the children
         for c in expr.children:
             yield from enumerate_patterns_in_boolean_expression(c)
