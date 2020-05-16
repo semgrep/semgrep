@@ -128,6 +128,7 @@ setup(
         "pyyaml>=5.3",
         "requests>=2.22.0",
         "attrs>=19.3.0",
+        "glom>=20.5.0",
     ],
     entry_points={"console_scripts": ["semgrep=semgrep.__main__:main"]},
     packages=setuptools.find_packages(),

@@ -13,10 +13,15 @@ from semgrep.util import print_error_exit
 def dump_parsed_ast(
     to_json: bool, language: str, pattern: Optional[str], targets_str: List[str]
 ) -> None:
+    print(parsed_ast(to_json, language, pattern, targets_str))
+
+
+def parsed_ast(
+    to_json: bool, language: str, pattern: Optional[str], targets_str: List[str]
+) -> str:
     targets = semgrep.config_resolver.resolve_targets(targets_str)
 
     with tempfile.NamedTemporaryFile("w") as fout:
-        args = []
         if pattern:
             fout.write(pattern)
             fout.flush()
@@ -36,4 +41,4 @@ def dump_parsed_ast(
         except subprocess.CalledProcessError as ex:
             print_error(f"error invoking semgrep with:\n\t{' '.join(cmd)}\n{ex}")
             print_error_exit(f"\n\n{PLEASE_FILE_ISSUE_TEXT}")
-        print(output.decode())
+        return output.decode()
