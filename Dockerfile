@@ -1,13 +1,12 @@
 ## semgrep build
 
 FROM python:3.7.7-alpine3.11 as build-semgrep
-RUN apk add --no-cache python3-dev build-base chrpath git
-# The Python builder loads the tag info from git
+RUN apk add git
 COPY .git /home/pythonbuild/.git
 COPY semgrep /home/pythonbuild/semgrep/
 WORKDIR /home/pythonbuild/semgrep
-RUN make all
-RUN ls -al /home/pythonbuild/semgrep/build/semgrep.dist/
+RUN HOMEBREW_SYSTEM='NOCORE' pip install --user .
+RUN /root/.local/bin/semgrep --version
 
 ## semgrep-core build
 
@@ -31,25 +30,19 @@ RUN semgrep-core/_build/default/bin/main_semgrep_core.exe -version
 
 ## final output, combining both
 
-FROM alpine:3.11.3@sha256:ddba4d27a7ffc3f86dd6c2f92041af252a1f23a8e742c90e6e1297bfa1bc0c45
+FROM python:3.7.7-alpine3.11
 LABEL maintainer="sgrep@r2c.dev"
 
 ENV PYTHONUNBUFFERED=1
 
-COPY --from=build-semgrep /home/pythonbuild/semgrep/build/semgrep.dist/* /bin/semgrep-files/
-RUN ln -s /bin/semgrep-files/semgrep /bin/semgrep
-
-RUN ls -al  /bin/semgrep-files/cacert.pem
-RUN mkdir /bin/semgrep-files/certifi/
-RUN ln -sfn /bin/semgrep-files/cacert.pem  /bin/semgrep-files/certifi/cacert.pem
-RUN ls -al /bin/semgrep-files/
+COPY --from=build-semgrep /root/.local /root/.local
+# Make sure scripts in .local are usable:
+ENV PATH=/root/.local/bin:$PATH
 
 RUN semgrep --help
 COPY --from=build-semgrep-core /home/opam/sgrep/semgrep-core/_build/default/bin/main_semgrep_core.exe /bin/semgrep-core
 RUN semgrep-core --help
-RUN semgrep --config=r2c /bin/semgrep-files/
-
 
 ENV SEMGREP_IN_DOCKER=1
 ENV PYTHONIOENCODING=utf8
-ENTRYPOINT [ "/bin/semgrep" ]
+ENTRYPOINT [ "/root/.local/bin/semgrep" ]
