@@ -11,6 +11,9 @@ from typing import Dict
 from typing import List
 from typing import Optional
 
+from yaml import Node
+from yaml import SafeLoader
+
 from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import DEFAULT_CONFIG_FOLDER
 from semgrep.constants import DEFAULT_SEMGREP_CONFIG_NAME
@@ -102,8 +105,15 @@ def parse_config_string(
 ) -> Dict[str, Optional[Dict[str, Any]]]:
     import yaml  # here for faster startup times
 
+    class SafeLineLoader(SafeLoader):
+        def construct_mapping(self, node: Node, deep: bool = False) -> Dict[str, Any]:
+            mapping: Dict[str, Any] = super(SafeLineLoader, self).construct_mapping(node, deep=deep)  # type: ignore
+            # Add 1 so line numbering starts at 1
+            mapping["__line__"] = node.start_mark.line + 1
+            return mapping
+
     try:
-        return {config_id: yaml.safe_load(contents)}
+        return {config_id: yaml.load(contents, Loader=SafeLineLoader)}
     except yaml.parser.ParserError as se:
         print_error(f"Invalid yaml file {config_id}:\n{indent(str(se))}")
         return {config_id: None}

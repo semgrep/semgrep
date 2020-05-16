@@ -45,7 +45,7 @@ OPERATOR_PATTERN_NAMES_MAP = {
 
 # These are the only valid top-level keys
 YAML_MUST_HAVE_KEYS = {"id", "message", "languages", "severity"}
-YAML_OPTIONAL_KEYS = {"metadata", "paths"}
+YAML_OPTIONAL_KEYS = {"metadata", "paths", "__line__"}
 YAML_VALID_TOP_LEVEL_OPERATORS = {
     OPERATORS.AND,
     OPERATORS.AND_ALL,
@@ -69,6 +69,10 @@ class InvalidRuleSchema(BaseException):
     pass
 
 
+class Span(NamedTuple):
+    start_line: int
+
+
 @attr.s(auto_attribs=True, frozen=True)
 class BooleanRuleExpression:
     operator: Operator
@@ -77,6 +81,8 @@ class BooleanRuleExpression:
     # https://github.com/python/mypy/issues/8320
     children: Optional[List[Any]] = None
     operand: Optional[str] = None
+
+    span: Optional[Span] = None
 
     def __attrs_post_init__(self) -> None:
         self._validate()

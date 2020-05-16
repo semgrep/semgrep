@@ -16,6 +16,7 @@ from semgrep.semgrep_types import pattern_names_for_operator
 from semgrep.semgrep_types import pattern_names_for_operators
 from semgrep.semgrep_types import PatternId
 from semgrep.semgrep_types import RuleGlobs
+from semgrep.semgrep_types import Span
 from semgrep.semgrep_types import YAML_VALID_TOP_LEVEL_OPERATORS
 
 
@@ -26,7 +27,10 @@ class Rule:
         self._globs = self._build_globs(raw)
 
     def _parse_boolean_expression(
-        self, rule_patterns: List[Dict[str, Any]], pattern_id: int = 0, prefix: str = ""
+        self,
+        rule_patterns: List[Dict[str, Any]],
+        pattern_id: int = 0,
+        prefix: str = "",
     ) -> Iterator[BooleanRuleExpression]:
         """
         Move through the expression from the YML, yielding tuples of (operator, unique-id-for-pattern, pattern)
@@ -40,14 +44,21 @@ class Rule:
                 raise InvalidRuleSchema(
                     f"invalid type for pattern {pattern}: {type(pattern)} is not a dict"
                 )
+            line = pattern.get("__line__")
+            if line:
+                span: Optional[Span] = Span(start_line=line)
+            else:
+                span = None
             for boolean_operator, pattern_text in pattern.items():
+                if boolean_operator.startswith("__"):
+                    continue
                 operator = operator_for_pattern_name(boolean_operator)
                 if isinstance(pattern_text, list):
                     sub_expression = self._parse_boolean_expression(
                         pattern_text, 0, f"{prefix}.{pattern_id}"
                     )
                     yield BooleanRuleExpression(
-                        operator, None, list(sub_expression), None
+                        operator, None, list(sub_expression), None, span=span
                     )
                 elif isinstance(pattern_text, str):
                     yield BooleanRuleExpression(
@@ -55,6 +66,7 @@ class Rule:
                         PatternId(f"{prefix}.{pattern_id}"),
                         None,
                         pattern_text,
+                        span=span,
                     )
                     pattern_id += 1
                 else:
@@ -69,18 +81,31 @@ class Rule:
         Build a boolean expression from the yml lines in the rule
 
         """
+        line = rule_raw.get("__line__")
+        if line:
+            span: Optional[Span] = Span(start_line=line)
+        else:
+            span = None
         for pattern_name in pattern_names_for_operator(OPERATORS.AND):
             pattern = rule_raw.get(pattern_name)
             if pattern:
                 return BooleanRuleExpression(
-                    OPERATORS.AND, rule_raw["id"], None, rule_raw[pattern_name]
+                    OPERATORS.AND,
+                    rule_raw["id"],
+                    None,
+                    rule_raw[pattern_name],
+                    span=span,
                 )
 
         for pattern_name in pattern_names_for_operator(OPERATORS.REGEX):
             pattern = rule_raw.get(pattern_name)
             if pattern:
                 return BooleanRuleExpression(
-                    OPERATORS.REGEX, rule_raw["id"], None, rule_raw[pattern_name]
+                    OPERATORS.REGEX,
+                    rule_raw["id"],
+                    None,
+                    rule_raw[pattern_name],
+                    span=span,
                 )
 
         for pattern_name in pattern_names_for_operator(OPERATORS.AND_ALL):
@@ -91,6 +116,7 @@ class Rule:
                     None,
                     list(self._parse_boolean_expression(patterns)),
                     None,
+                    span=span,
                 )
 
         for pattern_name in pattern_names_for_operator(OPERATORS.AND_EITHER):
@@ -101,6 +127,7 @@ class Rule:
                     None,
                     list(self._parse_boolean_expression(patterns)),
                     None,
+                    span=span,
                 )
 
         valid_top_level_keys = list(YAML_VALID_TOP_LEVEL_OPERATORS)

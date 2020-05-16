@@ -11,8 +11,11 @@ from semgrep.constants import __VERSION__
 from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import RCE_RULE_FLAG
+from semgrep.constants import RULES_KEY
 from semgrep.constants import SEMGREP_URL
 from semgrep.dump_ast import dump_parsed_ast
+from semgrep.pattern_lints import lint
+from semgrep.rule import Rule
 from semgrep.util import print_error
 from semgrep.util import print_error_exit
 
@@ -78,6 +81,13 @@ def cli() -> None:
         action="store_true",
         help="Validate configuration file(s). No search is performed.",
     )
+
+    config.add_argument(
+        "--lint",
+        action="store_true",
+        help="Lint configuration files against common issues. No search is performed.",
+    )
+
     config.add_argument(
         "--strict",
         action="store_true",
@@ -253,6 +263,23 @@ def cli() -> None:
             _, invalid_configs = semgrep.semgrep_main.get_config(
                 args.generate_config, args.pattern, args.lang, args.config
             )
+            if invalid_configs:
+                print_error_exit(
+                    f"run with --validate and there were {len(invalid_configs)} errors loading configs"
+                )
+            else:
+                print_error("Config is valid")
+        elif args.lint:
+            valid_configs, invalid_configs = semgrep.semgrep_main.get_config(args)
+            print_error(f"{len(invalid_configs)} were invalid and not linted.")
+            for config, raw_data in valid_configs.items():
+                for rule_raw in raw_data.get(RULES_KEY):
+                    rule = Rule(rule_raw)
+                    errors = lint(rule.expression)
+                    print_error(f"{len(errors)} lint warnings found.")
+                    for err in errors:
+                        print_error(err.msg.replace("\n", "\n  "))
+
             if invalid_configs:
                 print_error_exit(
                     f"run with --validate and there were {len(invalid_configs)} errors loading configs"
