@@ -1,12 +1,12 @@
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
+from typing import NamedTuple
 
 import pytest
 
 
-@dataclass
-class RepoCase:
+class RepoCase(NamedTuple):
     url: str
     sha: str
     language: str
