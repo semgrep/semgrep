@@ -12,7 +12,6 @@ pytest-benchmark = "*"
 
 [packages]
 semgrep = {editable = true,path = "."}
-attrs = "*"
 
 [requires]
 python_version = "3.7"

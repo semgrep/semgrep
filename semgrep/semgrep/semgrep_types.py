@@ -5,6 +5,7 @@ from typing import Mapping
 from typing import NamedTuple
 from typing import NewType
 from typing import Optional
+from typing import Set
 
 import attr
 
