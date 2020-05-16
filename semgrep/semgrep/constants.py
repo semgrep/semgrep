@@ -18,7 +18,7 @@ DEFAULT_CONFIG_FOLDER = f".{DEFAULT_SEMGREP_CONFIG_NAME}"
 YML_EXTENSIONS = {".yml", ".yaml"}
 
 try:
-    from semgrep.version import version  # type: ignore
+    from semgrep.version import version
 
     __VERSION__ = version
 except ModuleNotFoundError:
