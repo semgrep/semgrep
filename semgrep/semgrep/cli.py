@@ -275,10 +275,15 @@ def cli() -> None:
             for config, raw_data in valid_configs.items():
                 for rule_raw in raw_data.get(RULES_KEY):
                     rule = Rule(rule_raw)
-                    errors = lint(rule.expression)
+                    if rule.languages:
+                        errors = lint(rule.expression, rule.languages[0])
+                    else:
+                        # ignoring rules with no languages currently.
+                        pass
+                        errors = []
                     print_error(f"{len(errors)} lint warnings found.")
                     for err in errors:
-                        print_error(err.msg.replace("\n", "\n  "))
+                        print_error(err.emit())
 
             if invalid_configs:
                 print_error_exit(

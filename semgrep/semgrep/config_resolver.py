@@ -21,6 +21,10 @@ from semgrep.constants import ID_KEY
 from semgrep.constants import RULES_KEY
 from semgrep.constants import SEMGREP_USER_AGENT
 from semgrep.constants import YML_EXTENSIONS
+from semgrep.semgrep_types import END_LINE
+from semgrep.semgrep_types import FILE
+from semgrep.semgrep_types import RAW
+from semgrep.semgrep_types import START_LINE
 from semgrep.util import debug_print
 from semgrep.util import is_url
 from semgrep.util import print_error
@@ -94,22 +98,27 @@ def parse_config_at_path(
         config_id = str(loc).replace(str(base_path), "")
     try:
         with loc.open() as f:
-            return parse_config_string(config_id, f.read())
+            return parse_config_string(config_id, f.read(), str(loc))
     except FileNotFoundError:
         print_error(f"YAML file at {loc} not found")
         return {str(loc): None}
 
 
 def parse_config_string(
-    config_id: str, contents: str
+    config_id: str, contents: str, filename: Optional[str] = None,
 ) -> Dict[str, Optional[Dict[str, Any]]]:
     import yaml  # here for faster startup times
+
+    lines = contents.splitlines()
 
     class SafeLineLoader(SafeLoader):
         def construct_mapping(self, node: Node, deep: bool = False) -> Dict[str, Any]:
             mapping: Dict[str, Any] = super(SafeLineLoader, self).construct_mapping(node, deep=deep)  # type: ignore
             # Add 1 so line numbering starts at 1
-            mapping["__line__"] = node.start_mark.line + 1
+            mapping[START_LINE] = node.start_mark.line
+            mapping[END_LINE] = node.end_mark.line
+            mapping[FILE] = filename
+            mapping[RAW] = lines
             return mapping
 
     try:
@@ -197,7 +206,9 @@ def download_config(config_url: str) -> Dict[str, Optional[Dict[str, Any]]]:
             content_type = r.headers.get("Content-Type")
             if content_type and "text/plain" in content_type:
                 print_msg(SCANNING_MESSAGE)
-                return parse_config_string("remote-url", r.content.decode("utf-8"))
+                return parse_config_string(
+                    "remote-url", r.content.decode("utf-8"), config_url
+                )
             elif content_type and content_type == "application/x-gzip":
                 with tempfile.TemporaryDirectory() as fname:
                     with tarfile.open(fileobj=r.raw, mode="r:gz") as tar:

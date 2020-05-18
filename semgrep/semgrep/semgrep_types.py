@@ -1,13 +1,12 @@
 from pathlib import Path
 from typing import Any
+from typing import Dict
 from typing import List
 from typing import Mapping
 from typing import NamedTuple
 from typing import NewType
 from typing import Optional
 from typing import Set
-
-import attr
 
 import attr
 
@@ -43,9 +42,16 @@ OPERATOR_PATTERN_NAMES_MAP = {
     OPERATORS.REGEX: ["pattern-regex"],
 }
 
+START_LINE = "__line__"
+END_LINE = "__endline__"
+FILE = "__file__"
+RAW = "__raw__"
+
+SPAN_HINTS = {START_LINE, END_LINE, FILE, RAW}
+
 # These are the only valid top-level keys
 YAML_MUST_HAVE_KEYS = {"id", "message", "languages", "severity"}
-YAML_OPTIONAL_KEYS = {"metadata", "paths", "__line__"}
+YAML_OPTIONAL_KEYS = {"metadata", "paths", *SPAN_HINTS}
 YAML_VALID_TOP_LEVEL_OPERATORS = {
     OPERATORS.AND,
     OPERATORS.AND_ALL,
@@ -70,7 +76,24 @@ class InvalidRuleSchema(BaseException):
 
 
 class Span(NamedTuple):
-    start_line: int
+    start_line: int  # 0 indexed
+    end_line: int  # 0 indexed
+    file: Optional[str]
+    raw: List[str]  # all lines in the file this span is in
+
+    @classmethod
+    def from_dict(cls, d: Dict[str, Any]) -> Optional["Span"]:  # type: ignore
+        start_line = d.get(START_LINE)
+        end_line = d.get(END_LINE)
+        file = d.get(FILE)
+        raw = d.get(RAW)
+        if start_line is not None and end_line is not None:
+            return Span(start_line, end_line, file, raw)  # type: ignore
+        else:
+            return None
+
+
+DUMMY_SPAN = Span(start_line=0, end_line=0, file=None, raw=["I am a dummy span."])
 
 
 @attr.s(auto_attribs=True, frozen=True)
@@ -82,6 +105,7 @@ class BooleanRuleExpression:
     children: Optional[List[Any]] = None
     operand: Optional[str] = None
 
+    # For tests, eg. don't force people to make spans
     span: Optional[Span] = None
 
     def __attrs_post_init__(self) -> None:
