@@ -99,10 +99,6 @@ def parse_config_at_path(
         return {str(loc): None}
 
 
-class ListWithMetadata(list):
-    pass
-
-
 def parse_config_string(
     config_id: str, contents: str, filename: Optional[str] = None,
 ) -> Dict[str, Optional[Dict[str, Any]]]:
