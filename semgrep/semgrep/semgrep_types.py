@@ -7,6 +7,8 @@ from typing import NewType
 from typing import Optional
 from typing import Set
 
+import attr
+
 PatternId = NewType("PatternId", str)
 Operator = NewType("Operator", str)
 
@@ -65,7 +67,8 @@ class InvalidRuleSchema(BaseException):
     pass
 
 
-class BooleanRuleExpression(NamedTuple):
+@attr.s(auto_attribs=True, frozen=True)
+class BooleanRuleExpression:
     operator: Operator
     pattern_id: Optional[PatternId] = None
     # This is a recursive member but mypy is a half-baked dumpster fire.
@@ -73,7 +76,7 @@ class BooleanRuleExpression(NamedTuple):
     children: Optional[List[Any]] = None
     operand: Optional[str] = None
 
-    def __post_init__(self) -> None:
+    def __attrs_post_init__(self) -> None:
         self._validate()
 
     def _validate(self) -> None:
@@ -169,7 +172,7 @@ class Range(NamedTuple):
         return all(self.vars[v] == rhs.vars[v] for v in to_match)
 
     def __repr__(self) -> str:
-        return f"{self.start}-{self.end} { {m: self.vars.get(m, 'None') for m in self.vars} }"
+        return f"{self.start}-{self.end} {{m: self.vars.get(m, 'None') for m in self.vars}}"
 
     def __hash__(self) -> int:
         return hash((self.start, self.end))

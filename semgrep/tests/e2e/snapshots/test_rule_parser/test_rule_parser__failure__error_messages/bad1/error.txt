@@ -1,26 +1,2 @@
-Traceback (most recent call last):
-  File "/Users/underyx/.pyenv/versions/3.7.7/lib/python3.7/runpy.py", line 193, in _run_module_as_main
-    "__main__", mod_spec)
-  File "/Users/underyx/.pyenv/versions/3.7.7/lib/python3.7/runpy.py", line 85, in _run_code
-    exec(code, run_globals)
-  File "/Users/underyx/r2c/semgrep/semgrep/semgrep/__main__.py", line 21, in <module>
-    main()
-  File "/Users/underyx/r2c/semgrep/semgrep/semgrep/__main__.py", line 11, in main
-    cli()
-  File "/Users/underyx/r2c/semgrep/semgrep/semgrep/cli.py", line 264, in cli
-    semgrep.semgrep_main.main(args)
-  File "/Users/underyx/r2c/semgrep/semgrep/semgrep/semgrep_main.py", line 262, in main
-    ).invoke_semgrep(targets, all_rules)
-  File "/Users/underyx/r2c/semgrep/semgrep/semgrep/core_runner.py", line 268, in invoke_semgrep
-    findings_by_rule = self._resolve_output(outputs)
-  File "/Users/underyx/r2c/semgrep/semgrep/semgrep/core_runner.py", line 238, in _resolve_output
-    findings.extend(evaluate(rule, pattern_matches, self._allow_exec))
-  File "/Users/underyx/r2c/semgrep/semgrep/semgrep/evaluation.py", line 156, in evaluate
-    flags={RCE_RULE_FLAG: allow_exec},
-  File "/Users/underyx/r2c/semgrep/semgrep/semgrep/evaluation.py", line 206, in evaluate_expression
-    expression, pattern_ids_to_pattern_matches, ranges_left, flags
-  File "/Users/underyx/r2c/semgrep/semgrep/semgrep/evaluation.py", line 238, in _evaluate_expression
-    expr, pattern_ids_to_pattern_matches, ranges_left.copy(), flags
-  File "/Users/underyx/r2c/semgrep/semgrep/semgrep/evaluation.py", line 246, in _evaluate_expression
-    ), f"only `{pattern_names_for_operator(OPERATORS.AND_EITHER)}` or `{pattern_names_for_operator(OPERATORS.AND_ALL)}` expressions can have multiple subpatterns"
-AssertionError: only `['pattern-either']` or `['patterns']` expressions can have multiple subpatterns
+rules/syntax/bad1.yaml: inside rule id eqeq-is-bad, pattern fields can't look like this: only ['pattern-inside', 'pattern-not-inside', 'pattern-either', 'pattern-not', 'pattern', 'patterns', 'pattern-where-python', 'fix', 'equivalences', 'pattern-regex'] operators can have children, but found `['pattern-inside']` with children
+run with --strict and there were 1 errors loading configs

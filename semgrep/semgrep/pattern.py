@@ -31,7 +31,7 @@ class Pattern:
         return self._languages
 
     @property
-    def expression(self) -> BooleanRuleExpression:  # type: ignore
+    def expression(self) -> BooleanRuleExpression:
         return self._expression
 
     def to_json(self) -> Dict[str, Any]:
