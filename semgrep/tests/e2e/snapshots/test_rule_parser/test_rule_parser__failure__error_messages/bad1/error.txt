@@ -1,2 +1,14 @@
-only ['pattern-inside', 'pattern-not-inside', 'pattern-either', 'pattern-not', 'pattern', 'patterns', 'pattern-where-python', 'fix', 'equivalences', 'pattern-regex'] operators can have children, but found `['pattern-inside']` with children
+error: pattern-inside cannot have children
+  --> rules/syntax/bad1.yaml:4
+4 |       - pattern-inside:
+5 |         - pattern: $X == $X
+6 |         - pattern: $X != $X
+7 |         - patterns:
+8 |           - pattern-inside: |
+9 |               def __init__(...):
+10 |                   ...
+11 |           - pattern: self.$X == self.$X
+
+only ['patterns', 'pattern-either'] operators can have children
+
 run with --strict and there were 1 errors loading configs

@@ -144,9 +144,15 @@ class BooleanRuleExpression:
                 )
         else:
             if self.children is not None:
-                raise InvalidRuleSchema(
-                    f"only {pattern_names_for_operators(OPERATORS_WITH_CHILDREN)} operators can have children, but found `{pattern_names_for_operator(self.operator)}` with children"
+                from semgrep.error import SemgrepLangError
+
+                err = SemgrepLangError(
+                    short_msg=f"{pattern_names_for_operator(self.operator)[0]} cannot have children",
+                    long_msg=f"only {pattern_names_for_operators(OPERATORS_WITH_CHILDREN)} operators can have children",
+                    spans=[self.span or DUMMY_SPAN],
+                    level="error",
                 )
+                raise InvalidRuleSchema(err.emit())
 
             if self.operand is None:
                 raise InvalidRuleSchema(
@@ -181,9 +187,7 @@ def pattern_names_for_operator(operator: Operator) -> List[str]:
 
 
 def pattern_names_for_operators(operators: List[Operator]) -> List[str]:
-    return sum(
-        (pattern_names_for_operator(op) for op in OPERATOR_PATTERN_NAMES_MAP), []
-    )
+    return sum((pattern_names_for_operator(op) for op in operators), [])
 
 
 class RuleGlobs(NamedTuple):
