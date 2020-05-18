@@ -44,11 +44,7 @@ class Rule:
                 raise InvalidRuleSchema(
                     f"invalid type for pattern {pattern}: {type(pattern)} is not a dict"
                 )
-            line = pattern.get("__line__")
-            if line:
-                span: Optional[Span] = Span(start_line=line)
-            else:
-                span = None
+            span = Span.from_dict(pattern)
             for boolean_operator, pattern_text in pattern.items():
                 if boolean_operator.startswith("__"):
                     continue
@@ -81,11 +77,7 @@ class Rule:
         Build a boolean expression from the yml lines in the rule
 
         """
-        line = rule_raw.get("__line__")
-        if line:
-            span: Optional[Span] = Span(start_line=line)
-        else:
-            span = None
+        span = Span.from_dict(rule_raw)
         for pattern_name in pattern_names_for_operator(OPERATORS.AND):
             pattern = rule_raw.get(pattern_name)
             if pattern:
