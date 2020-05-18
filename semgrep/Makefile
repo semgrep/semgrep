@@ -13,3 +13,11 @@ install:
 .PHONY: qa-test
 qa-test:
 	pipenv run pytest tests/ --qa
+
+.PHONY: benchmark
+benchmark:
+	pipenv run pytest tests/ --benchmark-only $(ARGS)
+
+.PHONY: benchmark-snapshot
+benchmark-snapshot:
+	pipenv run pytest tests/ --benchmark-only --benchmark-autosave $(ARGS)
