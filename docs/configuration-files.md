@@ -297,7 +297,7 @@ or the name of the security engineer that came up with the rule.
 
 You can use the `metadata:` key in these cases, like so:
 
-```
+```yaml
 rules:
   - id: eqeq-is-bad
     patterns:
