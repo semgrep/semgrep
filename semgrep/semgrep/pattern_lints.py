@@ -1,49 +1,19 @@
 import itertools
 import json
-import textwrap
 from enum import Enum
 from typing import Any
 from typing import Dict
 from typing import List
 from typing import NamedTuple
-from typing import Optional
-from typing import Tuple
 
-from colorama import Fore
 from glom import glom  # type: ignore
 from glom import PathAccessError
 
 from semgrep.dump_ast import parsed_ast
+from semgrep.error import SemgrepLangError
 from semgrep.semgrep_types import BooleanRuleExpression
 from semgrep.semgrep_types import DUMMY_SPAN
 from semgrep.semgrep_types import OPERATORS
-from semgrep.semgrep_types import Span
-
-
-class LintError(NamedTuple):
-    short_msg: str
-    long_msg: Optional[str]
-    level: str
-    help: Optional[str]
-    spans: List[Span]
-
-    def emit(self) -> str:
-        # NOTE: this isn't perfect -- eg. alignment will be broken crossing from 2 digit numbers to 3 digit numbers
-        header = f"{self.level}: {self.short_msg}"
-        snippets = []
-        for span in self.spans:
-            location_hint = f"  --> {span.file}:{span.start_line + 1}"
-            snippet = [location_hint]
-            for line in range(span.start_line, span.end_line):
-                snippet.append(f"{line + 1} | {span.raw[line]}")
-
-            snippets.append("\n".join(snippet))
-        snippet_str = "\n".join(snippets)
-        if self.help:
-            help = f"= help: {self.help}"
-        else:
-            help = ""
-        return f"{header}\n{snippet_str}\n{Fore.BLUE}{help}{Fore.RESET}\n{Fore.RED}{self.long_msg}{Fore.RESET}\n"
 
 
 class ParsedPattern(NamedTuple):
@@ -61,7 +31,7 @@ def pattern_to_json(pattern: str, lang: str) -> Dict[str, Any]:
 
 def check_equivalent_patterns(
     pattern_either: BooleanRuleExpression, lang: str = "python"
-) -> List[LintError]:
+) -> List[SemgrepLangError]:
     equivalent_patterns = []
 
     json_patterns = [
@@ -75,7 +45,7 @@ def check_equivalent_patterns(
         if equivalence != EquivalentPatterns.Different:
             equivalent_patterns.append((equivalence, patterns))
     return [
-        LintError(
+        SemgrepLangError(
             short_msg="redundant patterns",
             long_msg=f"These patterns are redundant ({equivalence.value})",
             level="lint",
@@ -132,8 +102,8 @@ def assignment_matches_return(expr: Dict[str, Any], ret: Dict[str, Any]) -> bool
 LINTS = {OPERATORS.AND_EITHER: [check_equivalent_patterns]}
 
 
-def lint(rule: BooleanRuleExpression, lang: str) -> List[LintError]:
-    lint_results: List[LintError] = []
+def lint(rule: BooleanRuleExpression, lang: str) -> List[SemgrepLangError]:
+    lint_results: List[SemgrepLangError] = []
     linters = LINTS.get(rule.operator, [])
     for linter in linters:
         lint_results += linter(rule, lang)

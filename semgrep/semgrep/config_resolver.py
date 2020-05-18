@@ -1,6 +1,4 @@
-import base64
 import os
-import shutil
 import sys
 import tarfile
 import tempfile
@@ -10,9 +8,6 @@ from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
-
-from yaml import Node
-from yaml import SafeLoader
 
 from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import DEFAULT_CONFIG_FOLDER
@@ -103,17 +98,25 @@ def parse_config_at_path(
         return {str(loc): None}
 
 
+class ListWithMetadata(list):
+    pass
+
+
 def parse_config_string(
     config_id: str, contents: str, filename: Optional[str] = None,
 ) -> Dict[str, Optional[Dict[str, Any]]]:
     import yaml  # here for faster startup times
+    from yaml import Node
+    from yaml import SafeLoader
 
     lines = contents.splitlines()
 
     class SafeLineLoader(SafeLoader):
+        # NOTE! Overriding construct_sequence to add metadata doesn't work because
+        # yaml will eventually do:
+        # x = []; x.extend(self.construct_sequence...)
         def construct_mapping(self, node: Node, deep: bool = False) -> Dict[str, Any]:
             mapping: Dict[str, Any] = super(SafeLineLoader, self).construct_mapping(node, deep=deep)  # type: ignore
-            # Add 1 so line numbering starts at 1
             mapping[START_LINE] = node.start_mark.line
             mapping[END_LINE] = node.end_mark.line
             mapping[FILE] = filename

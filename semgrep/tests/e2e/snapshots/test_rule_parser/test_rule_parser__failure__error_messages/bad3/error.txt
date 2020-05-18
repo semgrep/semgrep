@@ -1,2 +1,12 @@
-rules/syntax/bad3.yaml: inside rule id test-pattern, pattern fields can't look like this: operand of operators `['pattern']` must have type string, but is <class 'list'>: [{'pattern': '$D = {}'}]
+error: invalid type
+  --> rules/syntax/bad3.yaml:2
+2 |   - id: test-pattern
+3 |     pattern:
+4 |         - pattern: "$D = {}"
+5 |     message: "test"
+6 |     languages: [python]
+7 |     severity: WARNING
+[34m[39m
+[31mvalue for operator `pattern` must be a string, but was list[39m
+
 run with --strict and there were 1 errors loading configs
