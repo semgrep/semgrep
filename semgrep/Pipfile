@@ -8,6 +8,7 @@ pytest = "*"
 wheel = "*"
 tox = "*"
 pytest-snapshot = "*"
+pytest-benchmark = "*"
 
 [packages]
 semgrep = {editable = true,path = "."}
