@@ -28,6 +28,7 @@ from semgrep.util import MISSING_CONFIG_EXIT_CODE
 from semgrep.util import print_error
 from semgrep.util import print_error_exit
 from semgrep.util import print_msg
+from semgrep.util import tty_sensitive_print
 
 MISSING_RULE_ID = "no-rule-id"
 
@@ -341,7 +342,7 @@ def handle_output(
     )
     if not quiet:
         if output:
-            print(output)
+            tty_sensitive_print(output, file=sys.stdout)
 
     if output_destination:
         save_output(output_destination, output)

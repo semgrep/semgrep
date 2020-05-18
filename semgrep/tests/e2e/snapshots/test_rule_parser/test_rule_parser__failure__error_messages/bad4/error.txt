@@ -5,7 +5,7 @@ error: invalid type for `patterns`
 5 |             def foo($X):
 6 |                 ...
 7 |         pattern: $X = 1
-[34m= help: perhaps your YAML is missing a `-`?[39m
-[31minvalid type for `patterns` (expected list, found dict)[39m
+= help: perhaps your YAML is missing a `-`?
+invalid type for `patterns` (expected list, found dict)
 
 run with --strict and there were 1 errors loading configs

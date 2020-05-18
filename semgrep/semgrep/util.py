@@ -1,5 +1,8 @@
 import itertools
+import os
+import re
 import sys
+import typing
 from typing import Any
 from typing import Callable
 from typing import Iterable
@@ -30,20 +33,30 @@ def is_url(url: str) -> bool:
         return False
 
 
+def tty_sensitive_print(msg: str, file: typing.IO, **kwargs: Any) -> None:
+    """
+    Strip ANSI escape sequences before printing, if `file` is not a TTY
+    """
+    if not file.isatty():
+        ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+        msg = ansi_escape.sub("", msg)
+    print(msg, file=file, **kwargs)
+
+
 def print_error(e: str) -> None:
     if not QUIET:
-        print(e, file=sys.stderr)
+        tty_sensitive_print(e, file=sys.stderr)
 
 
 def print_error_exit(msg: str, exit_code: int = FATAL_EXIT_CODE) -> None:
     if not QUIET:
-        print(msg, file=sys.stderr)
+        tty_sensitive_print(msg, file=sys.stderr)
     sys.exit(exit_code)
 
 
 def print_msg(msg: str, **kwargs: Any) -> None:
     if not QUIET:
-        print(msg, file=sys.stderr, **kwargs)
+        tty_sensitive_print(msg, file=sys.stderr, **kwargs)
 
 
 def debug_print(msg: str) -> None:
