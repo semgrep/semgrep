@@ -44,14 +44,15 @@ OPERATOR_PATTERN_NAMES_MAP = {
 
 START_LINE = "__line__"
 END_LINE = "__endline__"
-FILE = "__file__"
+FILE = "__sourcefile__"
 RAW = "__raw__"
 
 SPAN_HINTS = {START_LINE, END_LINE, FILE, RAW}
 
 # These are the only valid top-level keys
 YAML_MUST_HAVE_KEYS = {"id", "message", "languages", "severity"}
-YAML_OPTIONAL_KEYS = {"metadata", "paths", *SPAN_HINTS}
+YAML_OPTIONAL_KEYS = {"metadata", "paths"}
+YAML_INTERNAL_KEYS = SPAN_HINTS
 YAML_VALID_TOP_LEVEL_OPERATORS = {
     OPERATORS.AND,
     OPERATORS.AND_ALL,
@@ -68,7 +69,10 @@ YAML_ALL_VALID_RULE_KEYS = (
     }
     | YAML_MUST_HAVE_KEYS
     | YAML_OPTIONAL_KEYS
+    | YAML_INTERNAL_KEYS
 )
+
+YAML_DISPLAY_VALID_RULE_KEYS = YAML_ALL_VALID_RULE_KEYS - YAML_INTERNAL_KEYS
 
 
 class InvalidRuleSchema(BaseException):
@@ -81,19 +85,39 @@ class Span(NamedTuple):
     file: Optional[str]
     raw: List[str]  # all lines in the file this span is in
 
+    context_start: int
+    context_end: int
+
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> Optional["Span"]:  # type: ignore
+    def from_dict(cls, d: Dict[str, Any], before_context=0, after_context=0) -> Optional["Span"]:  # type: ignore
         start_line = d.get(START_LINE)
         end_line = d.get(END_LINE)
         file = d.get(FILE)
-        raw = d.get(RAW)
+        raw: List[str] = d.get(RAW)  # type: ignore
+
         if start_line is not None and end_line is not None:
-            return Span(start_line, end_line, file, raw)  # type: ignore
+            context_start = max(start_line - before_context, 0)
+            context_end = min(end_line + after_context, len(raw))
+            return Span(
+                start_line,
+                end_line,
+                file,
+                raw,
+                context_start=context_start,
+                context_end=context_end,
+            )
         else:
             return None
 
 
-DUMMY_SPAN = Span(start_line=0, end_line=0, file=None, raw=["I am a dummy span."])
+DUMMY_SPAN = Span(
+    start_line=0,
+    end_line=0,
+    file=None,
+    raw=["I am a dummy span."],
+    context_start=0,
+    context_end=0,
+)
 
 
 @attr.s(auto_attribs=True, frozen=True)
@@ -107,6 +131,7 @@ class BooleanRuleExpression:
 
     # For tests, eg. don't force people to make spans
     span: Optional[Span] = None
+    raw: Optional[Dict[str, Any]] = None
 
     def __attrs_post_init__(self) -> None:
         self._validate()
@@ -129,9 +154,15 @@ class BooleanRuleExpression:
                 )
             else:
                 if type(self.operand) != str:
-                    raise InvalidRuleSchema(
-                        f"operand of operators `{pattern_names_for_operator(self.operator)}` must have type string, but is {type(self.operand)}: {self.operand}"
+                    from semgrep.error import SemgrepLangError
+
+                    err = SemgrepLangError(
+                        short_msg="invalid type",
+                        long_msg=f"value for operator `{pattern_names_for_operator(self.operator)[0]}` must be a string, but was {type(self.operand).__name__}",
+                        spans=[self.span or DUMMY_SPAN],
+                        level="error",
                     )
+                    raise InvalidRuleSchema(err.emit())
 
 
 def operator_for_pattern_name(pattern_name: str) -> Operator:

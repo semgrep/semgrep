@@ -1,2 +1,2 @@
-rules/syntax/bad1.yaml: inside rule id eqeq-is-bad, pattern fields can't look like this: only ['pattern-inside', 'pattern-not-inside', 'pattern-either', 'pattern-not', 'pattern', 'patterns', 'pattern-where-python', 'fix', 'equivalences', 'pattern-regex'] operators can have children, but found `['pattern-inside']` with children
+only ['pattern-inside', 'pattern-not-inside', 'pattern-either', 'pattern-not', 'pattern', 'patterns', 'pattern-where-python', 'fix', 'equivalences', 'pattern-regex'] operators can have children, but found `['pattern-inside']` with children
 run with --strict and there were 1 errors loading configs

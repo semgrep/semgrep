@@ -18,6 +18,7 @@ from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.semgrep_types import InvalidRuleSchema
 from semgrep.semgrep_types import YAML_ALL_VALID_RULE_KEYS
+from semgrep.semgrep_types import YAML_DISPLAY_VALID_RULE_KEYS
 from semgrep.semgrep_types import YAML_MUST_HAVE_KEYS
 from semgrep.util import debug_print
 from semgrep.util import FINDINGS_EXIT_CODE
@@ -47,15 +48,13 @@ def validate_single_rule(config_id: str, rule: Dict[str, Any]) -> bool:
     if not rule_keys.issubset(YAML_ALL_VALID_RULE_KEYS):
         extra_keys = rule_keys - YAML_ALL_VALID_RULE_KEYS
         print_error(
-            f"{config_id} has invalid rule key {extra_keys} at rule id {rule_id_err_msg}, can only have: {YAML_ALL_VALID_RULE_KEYS}"
+            f"{config_id} has invalid rule key {extra_keys} at rule id {rule_id_err_msg}, can only have: {YAML_DISPLAY_VALID_RULE_KEYS}"
         )
         return False
     try:
         _ = Rule.from_json(rule).expression
     except InvalidRuleSchema as ex:
-        print_error(
-            f"{config_id}: inside rule id {rule_id_err_msg}, pattern fields can't look like this: {ex}"
-        )
+        print_error(str(ex))
         return False
     try:
         _ = Rule.from_json(rule).globs
