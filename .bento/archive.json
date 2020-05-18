@@ -1,6 +1,14 @@
 {
   "bandit": {
     "violations": {
+      "997ed2dbfab1051ab8e97c1e4a5bb9d6": {
+        "tool_id": "bandit",
+        "check_id": "yaml-load",
+        "path": "semgrep/semgrep/config_resolver.py",
+        "message": "Use of unsafe yaml load. Allows instantiation of arbitrary objects. Consider yaml.safe_load().",
+        "severity": 1,
+        "syntactic_context": "return {config_id: yaml.load(contents, Loader=SafeLineLoader)}"
+      },
       "3d0e53b239ed4229f9a0cc161e437fc3": {
         "tool_id": "bandit",
         "check_id": "start-process-with-a-shell",
@@ -71,6 +79,9 @@
     "violations": {}
   },
   "r2c.requests": {
+    "violations": {}
+  },
+  "semgrep": {
     "violations": {}
   },
   "shellcheck": {
