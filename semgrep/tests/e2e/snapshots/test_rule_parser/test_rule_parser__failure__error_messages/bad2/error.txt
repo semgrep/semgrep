@@ -1,2 +1,2 @@
-rules/syntax/bad2.yaml has invalid rule key {'pattern-inside'} at rule id eqeq-is-bad, can only have: {'pattern-either', 'severity', 'fix', 'languages', 'equivalences', 'pattern', 'message', 'metadata', 'paths', 'patterns', 'id'}
+rules/syntax/bad2.yaml has invalid rule key {'pattern-inside'} at rule id eqeq-is-bad, can only have: {'pattern-either', 'metadata', 'severity', 'id', 'languages', 'pattern', 'equivalences', 'fix', 'patterns', 'message', 'pattern-regex'}
 run with --strict and there were 1 errors loading configs
