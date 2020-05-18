@@ -6,7 +6,7 @@ error: invalid type
 5 |     message: "test"
 6 |     languages: [python]
 7 |     severity: WARNING
-[34m[39m
-[31mvalue for operator `pattern` must be a string, but was list[39m
+
+value for operator `pattern` must be a string, but was list
 
 run with --strict and there were 1 errors loading configs
