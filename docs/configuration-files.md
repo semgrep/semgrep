@@ -340,12 +340,13 @@ The configuration:
     - pattern: bar($X)
     - pattern: baz($X)
 ```
-will match both of:
+will match:
 ```python
-bar(z)
+bar(something)
 ```
-and
+and will produce two matches (one for each line) in:
 ```python
+bar(something)
 baz(something_else)
 ```
 
@@ -367,17 +368,17 @@ The configuration:
 ```
 will match both of:
 ```python
-def foo(z):
-    bar(z)
+def foo(something):
+    bar(something)
 ```
 and
 ```python
-def foo(z):
-    baz(z)
+def foo(something):
+    baz(something)
 ```
 but not
 ```python
-def foo(z):
+def foo(something):
    bar(something_else)
 ```
 
