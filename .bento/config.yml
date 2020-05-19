@@ -69,7 +69,7 @@ tools:
     run: true
   semgrep:
     ignore: []
-    run: true
+    run: false
   shellcheck:
     ignore:
     - SC1004
