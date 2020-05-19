@@ -270,7 +270,9 @@ def cli() -> None:
             else:
                 print_error("Config is valid")
         elif args.lint:
-            valid_configs, invalid_configs = semgrep.semgrep_main.get_config(args)
+            valid_configs, invalid_configs = semgrep.semgrep_main.get_config(
+                args.generate_config, args.pattern, args.lang, args.config
+            )
             print_error(f"{len(invalid_configs)} were invalid and not linted.")
             for config, raw_data in valid_configs.items():
                 for rule_raw in raw_data.get(RULES_KEY):
