@@ -53,7 +53,7 @@ If you want to test semgrep on a directory with a set of given rules, run:
 ```bash
 cp ./semgrep_core/_build/default/bin/main_semgrep_core.exe /usr/local/bin/semgrep_core
 cd semgrep
-pipenv install
+pipenv install --dev
 # You need to BYO semgrep-core -- You can either:
 # - Build it yourself (as you did above. Put it on your path somewhere as semgrep-core)
 # - Download it from a release
@@ -99,4 +99,3 @@ When you're confident in the changes and you want to overwrite the `*.expected.j
 ```bash
 OVERRIDE_EXPECTED=1 make test
 ```
-
