@@ -7,10 +7,11 @@ from typing import List
 from typing import Optional
 
 from semgrep.equivalences import Equivalence
-from semgrep.error import SemgrepLangError
+from semgrep.rule_lang import DUMMY_SPAN
+from semgrep.rule_lang import RuleLangError
+from semgrep.rule_lang import Span
 from semgrep.semgrep_types import ALLOWED_GLOB_TYPES
 from semgrep.semgrep_types import BooleanRuleExpression
-from semgrep.semgrep_types import DUMMY_SPAN
 from semgrep.semgrep_types import InvalidRuleSchema
 from semgrep.semgrep_types import operator_for_pattern_name
 from semgrep.semgrep_types import OPERATORS
@@ -18,7 +19,6 @@ from semgrep.semgrep_types import pattern_names_for_operator
 from semgrep.semgrep_types import pattern_names_for_operators
 from semgrep.semgrep_types import PatternId
 from semgrep.semgrep_types import RuleGlobs
-from semgrep.semgrep_types import Span
 from semgrep.semgrep_types import YAML_VALID_TOP_LEVEL_OPERATORS
 
 
@@ -44,7 +44,7 @@ class Rule:
             else:
                 span = Span.from_dict(parent)
 
-            err = SemgrepLangError(
+            err = RuleLangError(
                 short_msg="invalid type for `patterns`",
                 long_msg=f"invalid type for `patterns` (expected list, found {type(rule_patterns).__name__})",
                 level="error",

@@ -10,9 +10,9 @@ from glom import glom  # type: ignore
 from glom import PathAccessError
 
 from semgrep.dump_ast import parsed_ast
-from semgrep.error import SemgrepLangError
+from semgrep.rule_lang import DUMMY_SPAN
+from semgrep.rule_lang import RuleLangError
 from semgrep.semgrep_types import BooleanRuleExpression
-from semgrep.semgrep_types import DUMMY_SPAN
 from semgrep.semgrep_types import OPERATORS
 
 
@@ -30,8 +30,8 @@ def pattern_to_json(pattern: str, lang: str) -> Dict[str, Any]:
 
 
 def check_equivalent_patterns(
-    pattern_either: BooleanRuleExpression, lang: str = "python"
-) -> List[SemgrepLangError]:
+    pattern_either: BooleanRuleExpression, lang: str
+) -> List[RuleLangError]:
     equivalent_patterns = []
 
     json_patterns = [
@@ -45,7 +45,7 @@ def check_equivalent_patterns(
         if equivalence != EquivalentPatterns.Different:
             equivalent_patterns.append((equivalence, patterns))
     return [
-        SemgrepLangError(
+        RuleLangError(
             short_msg="redundant patterns",
             long_msg=f"These patterns are redundant ({equivalence.value})",
             level="lint",
@@ -102,8 +102,8 @@ def assignment_matches_return(expr: Dict[str, Any], ret: Dict[str, Any]) -> bool
 LINTS = {OPERATORS.AND_EITHER: [check_equivalent_patterns]}
 
 
-def lint(rule: BooleanRuleExpression, lang: str) -> List[SemgrepLangError]:
-    lint_results: List[SemgrepLangError] = []
+def lint(rule: BooleanRuleExpression, lang: str) -> List[RuleLangError]:
+    lint_results: List[RuleLangError] = []
     linters = LINTS.get(rule.operator, [])
     for linter in linters:
         lint_results += linter(rule, lang)

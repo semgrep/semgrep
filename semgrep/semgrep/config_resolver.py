@@ -16,10 +16,11 @@ from semgrep.constants import ID_KEY
 from semgrep.constants import RULES_KEY
 from semgrep.constants import SEMGREP_USER_AGENT
 from semgrep.constants import YML_EXTENSIONS
-from semgrep.semgrep_types import END_LINE
-from semgrep.semgrep_types import FILE
-from semgrep.semgrep_types import RAW
-from semgrep.semgrep_types import START_LINE
+from semgrep.rule_lang import END_LINE
+from semgrep.rule_lang import FILE
+from semgrep.rule_lang import parse_yaml_with_spans
+from semgrep.rule_lang import RAW
+from semgrep.rule_lang import START_LINE
 from semgrep.util import debug_print
 from semgrep.util import is_url
 from semgrep.util import print_error
@@ -101,26 +102,11 @@ def parse_config_at_path(
 def parse_config_string(
     config_id: str, contents: str, filename: Optional[str] = None,
 ) -> Dict[str, Optional[Dict[str, Any]]]:
-    import yaml  # here for faster startup times
-    from yaml import Node
-    from yaml import SafeLoader
-
-    lines = contents.splitlines()
-
-    class SafeLineLoader(SafeLoader):
-        # NOTE! Overriding construct_sequence to add metadata doesn't work because
-        # yaml will eventually do:
-        # x = []; x.extend(self.construct_sequence...)
-        def construct_mapping(self, node: Node, deep: bool = False) -> Dict[str, Any]:
-            mapping: Dict[str, Any] = super(SafeLineLoader, self).construct_mapping(node, deep=deep)  # type: ignore
-            mapping[START_LINE] = node.start_mark.line
-            mapping[END_LINE] = node.end_mark.line
-            mapping[FILE] = filename
-            mapping[RAW] = lines
-            return mapping
+    import yaml.parser
+    import yaml.scanner
 
     try:
-        return {config_id: yaml.load(contents, Loader=SafeLineLoader)}
+        return {config_id: parse_yaml_with_spans(contents=contents, filename=filename)}
     except yaml.parser.ParserError as se:
         print_error(f"Invalid yaml file {config_id}:\n{indent(str(se))}")
         return {config_id: None}

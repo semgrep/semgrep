@@ -5,6 +5,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## Next Release
 
 ### Added
+- Improved error messages for common yaml rule syntax errors
+- Experimental `--lint` option to check rules against a few issues (currently will warn on equivalent patterns that can be combined)
 - `pattern-regex` functionality - see docs for more information.
 - Ellipsis used in the final position of a sequence of binary operations
   will match any number of additional arguments:
