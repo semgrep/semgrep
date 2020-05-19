@@ -169,35 +169,30 @@ def confusion_matrix_to_string(confusion: List[int]) -> str:
 
 
 def invoke_semgrep(
-    verbose: bool, strict: bool, test_files: List[Path], config: Path, unsafe: bool
+    strict: bool, test_files: List[Path], config: Path, unsafe: bool
 ) -> Any:
     return json.loads(
         semgrepmain(
-            argparse.Namespace(
-                verbose=verbose,
-                strict=strict,
-                dump_ast=False,
-                no_rewrite_rule_ids=True,
-                dangerously_allow_arbitrary_code_execution_from_rules=unsafe,
-                config=str(config),
-                quiet=True,
-                precommit=False,
-                generate_config=False,
-                pattern=None,
-                validate=False,
-                json=True,
-                sarif=False,
-                exclude_tests=False,
-                jobs=1,
-                exclude=[],
-                include=[],
-                exclude_dir=[],
-                include_dir=[],
-                output=None,
-                error=False,
-                autofix=False,
-                target=[str(t) for t in test_files],
-            )
+            target=[str(t) for t in test_files],
+            pattern="",
+            lang="",
+            config=str(config),
+            generate_config=False,
+            no_rewrite_rule_ids=True,
+            jobs=1,
+            include=[],
+            include_dir=[],
+            exclude=[],
+            exclude_dir=[],
+            exclude_tests=False,
+            json_format=True,
+            sarif=False,
+            output_destination="",
+            quiet=True,
+            strict=strict,
+            exit_on_error=False,
+            autofix=False,
+            dangerously_allow_arbitrary_code_execution_from_rules=unsafe,
         )
     )
 
@@ -235,9 +230,7 @@ def generate_file_pairs(
                 continue
             # invoke semgrep
             try:
-                output_json = invoke_semgrep(
-                    semgrep_verbose, strict, test_files, filename, unsafe
-                )
+                output_json = invoke_semgrep(strict, test_files, filename, unsafe)
                 tested.append(
                     (filename, score_output_json(output_json, test_files, ignore_todo))
                 )

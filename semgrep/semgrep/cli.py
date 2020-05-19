@@ -250,7 +250,9 @@ def cli() -> None:
             else:
                 dump_parsed_ast(args.json, args.lang, args.pattern, args.target)
         elif args.validate:
-            _, invalid_configs = semgrep.semgrep_main.get_config(args)
+            _, invalid_configs = semgrep.semgrep_main.get_config(
+                args.generate_config, args.pattern, args.lang, args.config
+            )
             if invalid_configs:
                 print_error_exit(
                     f"run with --validate and there were {len(invalid_configs)} errors loading configs"
@@ -261,7 +263,28 @@ def cli() -> None:
         elif args.test:
             semgrep.test.test_main(args)
         else:
-            semgrep.semgrep_main.main(args)
+            semgrep.semgrep_main.main(
+                target=args.target,
+                pattern=args.pattern,
+                lang=args.lang,
+                config=args.config,
+                generate_config=args.generate_config,
+                no_rewrite_rule_ids=args.no_rewrite_rule_ids,
+                jobs=args.jobs,
+                include=args.include,
+                include_dir=args.include_dir,
+                exclude=args.exclude,
+                exclude_dir=args.exclude_dir,
+                exclude_tests=args.exclude_tests,
+                json_format=args.json,
+                sarif=args.sarif,
+                output_destination=args.output,
+                quiet=args.quiet,
+                strict=args.strict,
+                exit_on_error=args.error,
+                autofix=args.autofix,
+                dangerously_allow_arbitrary_code_execution_from_rules=args.dangerously_allow_arbitrary_code_execution_from_rules,
+            )
     except NotImplementedError as ex:
         print_error_exit(
             f"semgrep encountered an error: {ex}; this is not your fault. {PLEASE_FILE_ISSUE_TEXT}"
