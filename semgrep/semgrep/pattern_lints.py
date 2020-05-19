@@ -38,7 +38,6 @@ def check_equivalent_patterns(
         ParsedPattern(raw=p, parsed=pattern_to_json(pattern=p.operand, lang=lang),)
         for p in pattern_either.children or []
     ]
-    print(f"Comparing {len(json_patterns)} patterns")
     for pair in itertools.combinations(json_patterns, 2):
         patterns = pair
         equivalence = patterns_are_equivalent(patterns[0].parsed, patterns[1].parsed)
