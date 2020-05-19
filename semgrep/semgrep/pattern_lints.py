@@ -23,8 +23,10 @@ class ParsedPattern(NamedTuple):
 
 def pattern_to_json(pattern: str, lang: str) -> Dict[str, Any]:
     # thanks for nothing, mypy
+    if not pattern:
+        return {}
     obj: Dict[str, Any] = json.loads(
-        parsed_ast(to_json=True, language=lang, pattern=pattern, targets_str=[])
+        parsed_ast(to_json=True, language=lang, pattern=pattern, targets=[])
     )
     return obj
 
@@ -33,6 +35,10 @@ def check_equivalent_patterns(
     pattern_either: BooleanRuleExpression, lang: str
 ) -> List[RuleLangError]:
     equivalent_patterns = []
+
+    # Only test a rule where all the operands are regular strings.
+    if [p for p in pattern_either.children or [] if not isinstance(p.operand, str)]:
+        return []
 
     json_patterns = [
         ParsedPattern(raw=p, parsed=pattern_to_json(pattern=p.operand, lang=lang),)
@@ -48,7 +54,10 @@ def check_equivalent_patterns(
             short_msg="redundant patterns",
             long_msg=f"These patterns are redundant ({equivalence.value})",
             level="lint",
-            spans=[p[0].raw.span or DUMMY_SPAN, p[1].raw.span or DUMMY_SPAN],
+            spans=[
+                p[0].raw.provenance or DUMMY_SPAN,
+                p[1].raw.provenance or DUMMY_SPAN,
+            ],
             help="remove one"
             if equivalence == EquivalentPatterns.ExactMatch
             else "remove the first and delete `return` from the second",
