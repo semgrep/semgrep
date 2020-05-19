@@ -234,7 +234,7 @@ def semgrep_rules_repo(request, tmp_path_factory):
         ["git", "clone", "https://github.com/returntocorp/semgrep-rules", repo_path]
     )
     subprocess.check_output(
-        ["git", "--git-dir", repo_path / ".git", "checkout", "c3196b4"]  # May 16, 2020
+        ["git", "checkout", "c3196b4"], cwd=repo_path  # May 16, 2020
     )
 
     return repo_path
