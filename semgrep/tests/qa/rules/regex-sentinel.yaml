@@ -1,0 +1,7 @@
+rules:
+  - id: test-regex
+    patterns:
+      - pattern-regex: '. = 87518275812375164'
+    message: "test regex message"
+    languages: [python, javascript]
+    severity: ERROR
