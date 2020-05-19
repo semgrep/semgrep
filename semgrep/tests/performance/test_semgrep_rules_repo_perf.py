@@ -221,20 +221,27 @@ python/sqlalchemy/performance/performance-improvements.yaml
 
 
 @pytest.fixture(scope="session")
-def semgrep_rules_repo(tmp_path_factory):
+def semgrep_rules_repo(request, tmp_path_factory):
     repo_path = tmp_path_factory.mktemp("repo")
+
+    getoption = request.config.getoption
+    is_disabled = getoption("benchmark_skip") or getoption("benchmark_disable")
+    is_force_enabled = getoption("benchmark_enable") or getoption("benchmark_only")
+    if is_disabled and not is_force_enabled:
+        return repo_path  # not cloning since we're not gonna run benchmarks
+
     subprocess.check_output(
         ["git", "clone", "https://github.com/returntocorp/semgrep-rules", repo_path]
     )
     subprocess.check_output(
-        ["git", "--git-dir", repo_path / ".git", "checkout", "c3196b4"]  # May 16, 2020
+        ["git", "checkout", "c3196b4"], cwd=repo_path  # May 16, 2020
     )
 
-    yield repo_path
+    return repo_path
 
 
 @pytest.fixture(params=RULE_PATHS.strip().splitlines())
-def semgrep_rules_rule(semgrep_rules_repo, request, tmp_path):
+def semgrep_rules_rule(semgrep_rules_repo, request, tmp_path, benchmark):
     rule_path = semgrep_rules_repo / Path(request.param)
 
     # we gather the rule and any non-rule files, which each might be unit tests
