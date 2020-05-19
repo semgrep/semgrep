@@ -60,7 +60,12 @@ def xfail_repo(url, *, reason=None):
         ),
     ],
 )
-def test_semgrep_on_repo(run_semgrep_in_tmp, repo_url):
+def test_semgrep_on_repo(monkeypatch, tmp_path, repo_url):
+    TESTS_PATH = Path(__file__).parent.parent
+    monkeypatch.setenv("PYTHONPATH", str(TESTS_PATH.parent.resolve()))
+    (tmp_path / "rules").symlink_to(Path(TESTS_PATH / "qa" / "rules").resolve())
+    monkeypatch.chdir(tmp_path)
+
     subprocess.check_output(
         [
             "git",
@@ -109,3 +114,19 @@ def test_semgrep_on_repo(run_semgrep_in_tmp, repo_url):
         assert output["errors"] == []
         assert len(output["results"]) == 1
         assert output["results"][0]["path"] == str(sentinel_path)
+
+    output = subprocess.check_output(
+        [
+            "python3",
+            "-m",
+            "semgrep",
+            "--config=rules/regex-sentinel.yaml",
+            "--strict",
+            "--json",
+            "repo",
+        ],
+        encoding="utf-8",
+    )
+    output = json.loads(output)
+    assert len(output["results"]) == 2
+    assert len(output["errors"]) == 0
