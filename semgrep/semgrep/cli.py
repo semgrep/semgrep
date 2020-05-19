@@ -281,9 +281,10 @@ def cli() -> None:
                         # ignoring rules with no languages currently.
                         pass
                         errors = []
-                    print_error(f"{len(errors)} lint warnings found.")
-                    for err in errors:
-                        print_error(err.emit())
+                    if errors:
+                        print_error(f"{config}: {len(errors)} lint warnings found.")
+                        for err in errors:
+                            print_error(err.emit())
 
             if invalid_configs:
                 print_error_exit(
