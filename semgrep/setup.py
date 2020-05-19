@@ -36,8 +36,10 @@ class bdist_wheel(_bdist_wheel):
         # note: we're only doing this for windows right now (causes packaging issues
         # with osx)
         _, _, plat = _bdist_wheel.get_tag(self)
-        # We don't need cPython
-        python = ".".join(["py36", "py37", "py38"])
+        # to debug "ERROR: *.whl is not a supported wheel on this platform.":
+        # from setuptools.pep425tags import get_supported
+        # get_supported()
+        python = ".".join(["cp36", "cp37", "cp38", "py36", "py37", "py38"])
         abi = "none"
 
         if "macosx" in plat:
