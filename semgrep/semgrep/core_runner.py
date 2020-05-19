@@ -35,7 +35,11 @@ from semgrep.util import print_error_exit
 
 
 def get_re_matches(patterns_re: List[Tuple], path: Path) -> List[PatternMatch]:
-    contents = path.read_text()
+    try:
+        contents = path.read_text()
+    except UnicodeDecodeError:
+        debug_print(f"regex matcher skipping binary file at {path}")
+        return []
 
     return [
         PatternMatch(
@@ -71,7 +75,8 @@ def get_target_files(
         for target in targets
         if target.is_dir()
         for path in target.rglob("*")
-        if any(path.match(i) for i in include)
+        if path.is_file()
+        and any(path.match(i) for i in include)
         and not any(path.match(e) for e in exclude)
     )
 
