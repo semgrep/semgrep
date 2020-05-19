@@ -16,11 +16,7 @@ from semgrep.constants import ID_KEY
 from semgrep.constants import RULES_KEY
 from semgrep.constants import SEMGREP_USER_AGENT
 from semgrep.constants import YML_EXTENSIONS
-from semgrep.rule_lang import END_LINE
-from semgrep.rule_lang import FILE
 from semgrep.rule_lang import parse_yaml_with_spans
-from semgrep.rule_lang import RAW
-from semgrep.rule_lang import START_LINE
 from semgrep.util import debug_print
 from semgrep.util import is_url
 from semgrep.util import print_error
