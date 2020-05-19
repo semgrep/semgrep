@@ -53,15 +53,15 @@ If you want to test semgrep on a directory with a set of given rules, run:
 ```bash
 cp ./semgrep_core/_build/default/bin/main_semgrep_core.exe /usr/local/bin/semgrep_core
 cd semgrep
-make && make install
-semgrep --config <YAML_FILE_OR_DIRECTORY> <code to check>
-```
+pipenv install
+# You need to BYO semgrep-core -- You can either:
+# - Build it yourself (as you did above. Put it on your path somewhere as semgrep-core)
+# - Download it from a release
+# - Grab it from pip (pip install semgrep), then steal the binary and put it somewhere.
 
-It is also possible to run semgrep from source:
-
-```text
-cd semgrep
-python3 -m semgrep
+# Especially if you have multiple versions installed, use `pipenv run` to be sure you're running the
+# semgrep you're trying to modify
+pipenv run semgrep --config <YAML_FILE_OR_DIRECTORY> <code to check>
 ```
 
 ## Development Environment
@@ -81,6 +81,8 @@ dune        --version # just checking dune is in your PATH
 ocamlmerlin -version  # just checking ocamlmerlin is in your PATH
 code .
 ```
+
+For Python, Pycharm is good.
 
 ## Debugging code
 
