@@ -32,7 +32,7 @@ Example patterns:
 
 ## Installation
 
-On macOS, binaries are available via [Homebrew](https://brew.sh/):
+On macOS, binaries are available via [Homebrew](https://formulae.brew.sh/formula/semgrep):
 
 ```bash
 brew install returntocorp/semgrep/semgrep
