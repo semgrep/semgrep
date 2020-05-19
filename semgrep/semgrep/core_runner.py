@@ -71,7 +71,8 @@ def get_target_files(
         for target in targets
         if target.is_dir()
         for path in target.rglob("*")
-        if any(path.match(i) for i in include)
+        if path.is_file()
+        and any(path.match(i) for i in include)
         and not any(path.match(e) for e in exclude)
     )
 
