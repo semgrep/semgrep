@@ -33,7 +33,7 @@ TEMPLATE_YAML_URL = (
 )
 
 RULES_REGISTRY = {
-    "r2c": "https://github.com/returntocorp/semgrep-rules/tarball/master",
+    "r2c": "https://semgrep.live/c/r/all",
     "r2c-develop": "https://github.com/returntocorp/semgrep-rules/tarball/develop",
 }
 DEFAULT_REGISTRY_KEY = "r2c"
