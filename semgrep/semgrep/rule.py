@@ -69,7 +69,7 @@ class Rule:
                         prefix=f"{prefix}.{pattern_id}",
                     )
                     yield BooleanRuleExpression(
-                        operator, None, list(sub_expression), None, span=span
+                        operator, None, list(sub_expression), None, provenance=span
                     )
                 elif isinstance(pattern_text, str):
                     yield BooleanRuleExpression(
@@ -77,7 +77,7 @@ class Rule:
                         PatternId(f"{prefix}.{pattern_id}"),
                         None,
                         pattern_text,
-                        span=span,
+                        provenance=span,
                     )
                     pattern_id += 1
                 else:
@@ -101,7 +101,7 @@ class Rule:
                     rule_raw["id"],
                     None,
                     rule_raw[pattern_name],
-                    span=span,
+                    provenance=span,
                 )
 
         for pattern_name in pattern_names_for_operator(OPERATORS.REGEX):
@@ -112,7 +112,7 @@ class Rule:
                     rule_raw["id"],
                     None,
                     rule_raw[pattern_name],
-                    span=span,
+                    provenance=span,
                 )
 
         for pattern_name in pattern_names_for_operator(OPERATORS.AND_ALL):
@@ -123,7 +123,7 @@ class Rule:
                     None,
                     list(self._parse_boolean_expression(patterns, parent=rule_raw)),
                     None,
-                    span=span,
+                    provenance=span,
                 )
 
         for pattern_name in pattern_names_for_operator(OPERATORS.AND_EITHER):
@@ -134,7 +134,7 @@ class Rule:
                     None,
                     list(self._parse_boolean_expression(patterns, parent=rule_raw)),
                     None,
-                    span=span,
+                    provenance=span,
                 )
 
         valid_top_level_keys = list(YAML_VALID_TOP_LEVEL_OPERATORS)

@@ -84,8 +84,7 @@ class BooleanRuleExpression:
     operand: Optional[str] = None
 
     # For tests, eg. don't force people to make spans
-    span: Optional[rule_lang.Span] = None
-    raw: Optional[Dict[str, Any]] = None
+    provenance: Optional[rule_lang.Span] = None
 
     def __attrs_post_init__(self) -> None:
         self._validate()
@@ -101,7 +100,7 @@ class BooleanRuleExpression:
                 err = rule_lang.RuleLangError(
                     short_msg=f"{pattern_names_for_operator(self.operator)[0]} cannot have children",
                     long_msg=f"only {pattern_names_for_operators(OPERATORS_WITH_CHILDREN)} operators can have children",
-                    spans=[self.span or rule_lang.DUMMY_SPAN],
+                    spans=[self.provenance or rule_lang.DUMMY_SPAN],
                     level="error",
                 )
                 raise InvalidRuleSchema(err.emit())
@@ -115,7 +114,7 @@ class BooleanRuleExpression:
                     err = rule_lang.RuleLangError(
                         short_msg="invalid type",
                         long_msg=f"value for operator `{pattern_names_for_operator(self.operator)[0]}` must be a string, but was {type(self.operand).__name__}",
-                        spans=[self.span or rule_lang.DUMMY_SPAN],
+                        spans=[self.provenance or rule_lang.DUMMY_SPAN],
                         level="error",
                     )
                     raise InvalidRuleSchema(err.emit())
