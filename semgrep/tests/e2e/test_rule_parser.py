@@ -20,22 +20,7 @@ def test_rule_parser__failure(run_semgrep_in_tmp, snapshot, filename):
 
 @pytest.mark.parametrize(
     "filename",
-    [
-        pytest.param(
-            "bad1",
-            marks=pytest.mark.xfail(
-                reason="https://github.com/returntocorp/semgrep/issues/678"
-            ),
-        ),
-        pytest.param(
-            "bad2", marks=pytest.mark.xfail(reason="prints set with arbitrary order")
-        ),
-        "bad3",
-        "bad4",
-        "badpattern",
-        "badpaths1",
-        "badpaths2",
-    ],
+    ["bad1", "bad2" "bad3", "bad4", "badpattern", "badpaths1", "badpaths2",],
 )
 def test_rule_parser__failure__error_messages(run_semgrep_in_tmp, snapshot, filename):
     with pytest.raises(CalledProcessError) as excinfo:
