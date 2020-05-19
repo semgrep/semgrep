@@ -83,10 +83,7 @@ def cli() -> None:
     )
 
     config.add_argument(
-        "--lint",
-        action="store_true",
-        help="Lint configuration files against common issues. No search is performed. This feature is experimental. "
-        "Errors may not be correct.",
+        "--lint", action="store_true", help=argparse.SUPPRESS,
     )
 
     config.add_argument(
