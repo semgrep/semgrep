@@ -22,6 +22,7 @@ Contents:
   * [`pattern-inside`](configuration-files.md#pattern-inside)
   * [`pattern-not-inside`](configuration-files.md#pattern-not-inside)
   * [`pattern-where-python`](configuration-files.md#pattern-where-python)
+* [Metavariable matching](configuration-files.md#metavariable-matching)
 * [Optional Fields](configuration-files.md#optional-fields)
   * [`fix`](configuration-files.md#fix)
   * [`metadata`](configuration-files.md#metadata)
@@ -270,6 +271,117 @@ rules:
 ```
 
 This rule looks for usage of Django's [`FloatField`](https://docs.djangoproject.com/en/3.0/ref/models/fields/#django.db.models.FloatField) model when storing currency information. `FloatField` can lead to rounding errors and should be avoided in favor of [`DecimalField`](https://docs.djangoproject.com/en/3.0/ref/models/fields/#django.db.models.DecimalField) when dealing with currency. Here the `pattern-where-python` operator allows us to utilize the Python `in` statement to filter findings that look like currency.
+
+## Metavariable matching
+
+### Metavariables in logical inclusions
+
+Patterns' matched metavariable values are enforced to be identical when performing logical inclusion operations (`patterns`, `pattern-inside`) on matches.
+
+**Example**
+
+Consider the configuration:
+```yaml
+  patterns:
+    - pattern-inside: |
+        def $F($X):
+            ...
+    - pattern: open($X)
+```
+
+This configuration will match this Python code:
+```python
+def foo(path):
+    open(path)
+```
+
+But will not match this code:
+```python
+def foo(path):
+    open(something_else)
+```
+
+### Metavariables in logical negations
+
+"Not" operations also apply to metavariable matches.
+
+**Example**
+
+The configuration:
+```yaml
+  patterns:
+    - pattern-not-inside: |
+        def $F($X):
+            ...
+    - pattern: open($X)
+```
+
+will _not_ match this Python code:
+```python
+def foo(path):
+    open(path)
+```
+
+But _will_ match this code:
+```python
+def foo(path):
+    open(something_else)
+```
+
+### Metavariables in logical unions
+
+Metavariable matching does not affect the matching of logical unions (`pattern-either`).
+
+**Example**
+
+The configuration:
+```yaml
+  pattern-either:
+    - pattern: bar($X)
+    - pattern: baz($X)
+```
+will match:
+```python
+bar(something)
+```
+and will produce two matches (one for each line) in:
+```python
+bar(something)
+baz(something_else)
+```
+
+### Metavariables in complex logic
+
+A union's resulting matched metavariable value still affects further logical combinations.
+
+**Example**
+
+The configuration:
+```yaml
+  patterns:
+    - pattern-inside: |
+        def $F($X):
+          ...
+    - pattern-either:
+        - pattern: bar($X)
+        - pattern: baz($X)
+```
+will match both of:
+```python
+def foo(something):
+    bar(something)
+```
+and
+```python
+def foo(something):
+    baz(something)
+```
+but not
+```python
+def foo(something):
+   bar(something_else)
+```
+
 
 ## Optional Fields
 
