@@ -1,8 +1,5 @@
-import argparse
-import json
 import sys
 from pathlib import Path
-from pathlib import PurePath
 from typing import Any
 from typing import Dict
 from typing import List
@@ -165,24 +162,22 @@ def save_output(destination: str, output: str) -> None:
             fout.write(output)
 
 
-def get_config(args: Any) -> Any:
+def get_config(generate_config: bool, pattern: str, lang: str, config: str) -> Any:
     # first check if user asked to generate a config
-    if args.generate_config:
+    if generate_config:
         semgrep.config_resolver.generate_config()
 
     # let's check for a pattern
-    elif args.pattern:
+    elif pattern:
         # and a language
-        if not args.lang:
+        if not lang:
             print_error_exit("language must be specified when a pattern is passed")
-        lang = args.lang
-        pattern = args.pattern
 
         # TODO for now we generate a manual config. Might want to just call semgrep -e ... -l ...
         configs = semgrep.config_resolver.manual_config(pattern, lang)
     else:
         # else let's get a config. A config is a dict from config_id -> config. Config Id is not well defined at this point.
-        configs = semgrep.config_resolver.resolve_config(args.config)
+        configs = semgrep.config_resolver.resolve_config(config)
 
     # if we can't find a config, use default r2c rules
     if not configs:
@@ -212,26 +207,52 @@ def should_exclude_this_path(path: Path) -> bool:
     return any("test" in p or "example" in p for p in path.parts)
 
 
-def main(args: argparse.Namespace) -> str:
-    """ main function that parses args and runs semgrep """
+def main(
+    target: List[str],
+    pattern: str,
+    lang: str,
+    config: str,
+    generate_config: bool,
+    no_rewrite_rule_ids: bool,
+    jobs: int,
+    include: List[str],
+    include_dir: List[str],
+    exclude: List[str],
+    exclude_dir: List[str],
+    exclude_tests: bool,
+    json_format: bool,
+    sarif: bool,
+    output_destination: str,
+    quiet: bool,
+    strict: bool,
+    exit_on_error: bool,
+    autofix: bool,
+    dangerously_allow_arbitrary_code_execution_from_rules: bool,
+) -> str:
     # get the proper paths for targets i.e. handle base path of /home/repo when it exists in docker
-    targets = semgrep.config_resolver.resolve_targets(args.target)
-    valid_configs, invalid_configs = get_config(args)
+    targets = semgrep.config_resolver.resolve_targets(target)
+    valid_configs, invalid_configs = get_config(generate_config, pattern, lang, config)
 
-    if invalid_configs and args.strict:
+    output_format = OutputFormat.TEXT
+    if json_format:
+        output_format = OutputFormat.JSON
+    elif sarif:
+        output_format = OutputFormat.SARIF
+
+    if invalid_configs and strict:
         print_error_exit(
             f"run with --strict and there were {len(invalid_configs)} errors loading configs",
             MISSING_CONFIG_EXIT_CODE,
         )
 
-    if not args.no_rewrite_rule_ids:
+    if not no_rewrite_rule_ids:
         # re-write the configs to have the hierarchical rule ids
         valid_configs = rename_rule_ids(valid_configs)
 
     # extract just the rules from valid configs
     all_rules = flatten_configs(valid_configs)
 
-    if not args.pattern:
+    if not pattern:
         plural = "s" if len(valid_configs) > 1 else ""
         config_id_if_single = (
             list(valid_configs.keys())[0] if len(valid_configs) == 1 else ""
@@ -253,15 +274,15 @@ def main(args: argparse.Namespace) -> str:
 
     # actually invoke semgrep
     rule_matches_by_rule, semgrep_errors = CoreRunner(
-        allow_exec=args.dangerously_allow_arbitrary_code_execution_from_rules,
-        jobs=args.jobs,
-        exclude=args.exclude,
-        include=args.include,
-        exclude_dir=args.exclude_dir,
-        include_dir=args.include_dir,
+        allow_exec=dangerously_allow_arbitrary_code_execution_from_rules,
+        jobs=jobs,
+        exclude=exclude,
+        include=include,
+        exclude_dir=exclude_dir,
+        include_dir=include_dir,
     ).invoke_semgrep(targets, all_rules)
 
-    if args.exclude_tests:
+    if exclude_tests:
         ignored_in_tests = 0
         filtered_findings_by_rule = {}
         for rule, rule_matches in rule_matches_by_rule.items():
@@ -281,32 +302,33 @@ def main(args: argparse.Namespace) -> str:
     for finding in semgrep_errors:
         print_error(f"semgrep: {finding['path']}: {finding['check_id']}")
 
-    if args.strict and len(semgrep_errors):
+    if strict and len(semgrep_errors):
         print_error_exit(
             f"run with --strict and {len(semgrep_errors)} errors occurred during semgrep run; exiting",
             INVALID_CODE_EXIT_CODE,
         )
 
-    output = handle_output(rule_matches_by_rule, semgrep_errors, args)
-    if args.autofix:
+    output = handle_output(
+        rule_matches_by_rule,
+        semgrep_errors,
+        output_format,
+        quiet,
+        output_destination,
+        exit_on_error,
+    )
+    if autofix:
         apply_fixes(rule_matches_by_rule)
 
     return output
 
 
-def _output_format(args: Any) -> OutputFormat:
-    if args.sarif:
-        return OutputFormat.SARIF
-    elif args.json:
-        return OutputFormat.JSON
-    else:
-        return OutputFormat.TEXT
-
-
 def handle_output(
     rule_matches_by_rule: Dict[Rule, List[RuleMatch]],
     semgrep_errors: List[Any],
-    args: Any,
+    output_format: OutputFormat,
+    quiet: bool = False,
+    output_destination: Optional[str] = None,
+    exit_on_error: bool = False,
 ) -> str:
     rules = frozenset(rule_matches_by_rule.keys())
     rule_matches = [
@@ -314,17 +336,18 @@ def handle_output(
         for matches_of_one_rule in rule_matches_by_rule.values()
         for match in matches_of_one_rule
     ]
+
     output = build_output(
-        rule_matches, rules, semgrep_errors, _output_format(args), not args.output
+        rule_matches, rules, semgrep_errors, output_format, not output_destination
     )
-    if not args.quiet:
+    if not quiet:
         if output:
             print(output)
 
-    if args.output:
-        save_output(args.output, output)
+    if output_destination:
+        save_output(output_destination, output)
 
-    if args.error and any(match.should_fail_run for match in rule_matches):
+    if exit_on_error and any(match.should_fail_run for match in rule_matches):
         sys.exit(FINDINGS_EXIT_CODE)
 
     # TODO tests still rely on this but it is unnecessary
