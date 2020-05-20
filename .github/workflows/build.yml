@@ -25,7 +25,7 @@ jobs:
       - name: Prepare artifacts
         run: |
           mkdir -p artifacts/bin/sgrep-lint-files
-          cp ./semgrep-core/_build/default/bin/main_semgrep_core.exe artifacts/semgrep-core
+          cp ./semgrep-core/_build/default/bin/Main.exe artifacts/semgrep-core
           cp -r ./semgrep/build/semgrep.dist/* artifacts
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
