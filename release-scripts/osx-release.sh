@@ -12,5 +12,5 @@ if [[ -z "$SKIP_NUITKA" ]]; then
   cd semgrep && sudo make all && cd ..
   cp -r ./semgrep/build/semgrep.dist/* artifacts/
 fi
-cp ./semgrep-core/_build/default/bin/main_semgrep_core.exe artifacts/semgrep-core
+cp ./semgrep-core/_build/default/bin/Main.exe artifacts/semgrep-core
 zip -r artifacts.zip artifacts
