@@ -17,7 +17,6 @@ from semgrep.semgrep_types import PatternId
 from semgrep.semgrep_types import Range
 from semgrep.util import debug_print
 from semgrep.util import flatten
-from semgrep.util import NEED_ARBITRARY_CODE_EXEC_EXIT_CODE
 from semgrep.util import print_error
 from semgrep.util import print_error_exit
 
@@ -66,10 +65,10 @@ def _evaluate_single_expression(
         return output_ranges
     elif expression.operator == OPERATORS.WHERE_PYTHON:
         if not flags or flags[RCE_RULE_FLAG] != True:
-            print_error_exit(
-                f"at least one rule needs to execute arbitrary code; this is dangerous! if you want to continue, enable the flag: {RCE_RULE_FLAG}",
-                NEED_ARBITRARY_CODE_EXEC_EXIT_CODE,
+            print_error(
+                f"at least one rule needs to execute arbitrary code; this is dangerous! Skipping rule... if you want to run this rule, enable the flag: {RCE_RULE_FLAG}",
             )
+            return set()
         assert expression.operand, "must have operand for this operator type"
 
         output_ranges = set()
