@@ -34,6 +34,20 @@ from semgrep.util import print_error
 from semgrep.util import print_error_exit
 
 
+def _offset_to_line_no(offset: int, buff: str) -> int:
+    """
+        Given string buffer return one indexed line number associated with byte offset
+    """
+    return buff.count("\n", 0, offset) + 1
+
+
+def _offset_to_col_no(offset: int, buff: str) -> int:
+    """
+        Return one indexed col number associated with byte offset
+    """
+    return offset - buff.rfind("\n", 0, offset)
+
+
 def get_re_matches(patterns_re: List[Tuple], path: Path) -> List[PatternMatch]:
     try:
         contents = path.read_text()
@@ -46,8 +60,16 @@ def get_re_matches(patterns_re: List[Tuple], path: Path) -> List[PatternMatch]:
             {
                 "check_id": pattern_id,
                 "path": str(path),
-                "start": {"offset": match.start()},
-                "end": {"offset": match.end()},
+                "start": {
+                    "offset": match.start(),
+                    "line": _offset_to_line_no(match.start(), contents),
+                    "col": _offset_to_col_no(match.start(), contents),
+                },
+                "end": {
+                    "offset": match.end(),
+                    "line": _offset_to_line_no(match.end(), contents),
+                    "col": _offset_to_col_no(match.end(), contents),
+                },
                 "extra": {"lines": [contents[match.start() : match.end()]]},
             }
         )
@@ -132,7 +154,7 @@ class CoreRunner:
         return by_lang
 
     def _semgrep_error_json_to_message_then_exit(
-        self, error_json: Dict[str, Any],
+        self, error_json: Dict[str, Any]
     ) -> None:
         """
         See format_output_exception in semgrep O'Caml for details on schema
@@ -257,10 +279,7 @@ class CoreRunner:
 
                     if equivalences:
                         cmd += ["-equivalences", equiv_fout.name]
-                    cmd += [
-                        "-j",
-                        str(self._jobs),
-                    ]
+                    cmd += ["-j", str(self._jobs)]
                     cmd += [*self.targeting_options, *[str(path) for path in targets]]
 
                     try:
@@ -302,7 +321,7 @@ class CoreRunner:
         return by_rule_index, errors
 
     def _resolve_output(
-        self, outputs: Dict[Rule, Dict[Path, List[PatternMatch]]],
+        self, outputs: Dict[Rule, Dict[Path, List[PatternMatch]]]
     ) -> Dict[Rule, List[RuleMatch]]:
         """
             Takes output of all running all patterns and rules and returns Findings
@@ -338,7 +357,7 @@ class CoreRunner:
             yield from ["-include-dir", pattern]
 
     def invoke_semgrep(
-        self, targets: List[Path], rules: List[Rule],
+        self, targets: List[Path], rules: List[Rule]
     ) -> Tuple[Dict[Rule, List[RuleMatch]], List[Any]]:
         """
             Takes in rules and targets and retuns object with findings

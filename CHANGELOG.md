@@ -32,6 +32,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   ```python
   "foo"
   ```
+- Change location of r2c rule config to https://semgrep.live/c/r/all which filters out
+  pattern-where-python rules
 
 ## [0.7.0](https://github.com/returntocorp/semgrep/releases/tag/v0.7.0) - 2020-05-12
 

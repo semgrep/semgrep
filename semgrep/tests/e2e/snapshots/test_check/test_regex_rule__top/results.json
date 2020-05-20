@@ -3,7 +3,10 @@
   "results": [
     {
       "check_id": "rules.test-regex",
-      "end": {},
+      "end": {
+        "col": 35,
+        "line": 2
+      },
       "extra": {
         "lines": "123.123.123.123",
         "message": "test regex message",
@@ -11,7 +14,10 @@
         "severity": "ERROR"
       },
       "path": "targets/basic/regex.py",
-      "start": {}
+      "start": {
+        "col": 20,
+        "line": 2
+      }
     }
   ]
 }
