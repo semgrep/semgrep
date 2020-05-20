@@ -1,5 +1,5 @@
 (executables
- (names main_semgrep_core main_spatch )
+ (names Main main_spatch )
  (libraries 
     bigarray
     threads          ;; needed for json-wheel (Condition?)
@@ -45,5 +45,5 @@
 (install
  (package semgrep)
  (section bin)
- (files (main_semgrep_core.exe as semgrep-core) (main_spatch.exe as spatch))
+ (files (Main.exe as semgrep-core) (main_spatch.exe as spatch))
 )
