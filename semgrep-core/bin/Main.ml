@@ -360,7 +360,7 @@ let sgrep_ast pattern file any_ast =
       )
       (*e: [[Main_semgrep_core.sgrep_ast()]] [[hook]] argument to [[check]] *)
       [rule] (parse_equivalences ())
-      file ast |> ignore;
+      file lang ast |> ignore;
 
   (*s: [[Main_semgrep_core.sgrep_ast()]] match [[pattern]] and [[any_ast]] other cases *)
   | PatFuzzy pattern, Fuzzy ast ->
@@ -534,7 +534,7 @@ let sgrep_with_rules rules_file xs =
             rules |> List.filter (fun r -> List.mem lang r.R.languages) in
          Semgrep_generic.check ~hook:(fun _ _ -> ()) 
             rules (parse_equivalences ())
-            file ast
+            file lang ast
        )
   in
   print_matches_and_errors files matches errs
@@ -796,7 +796,7 @@ let options () =
   Common.options_of_actions action (all_actions()) @
   (*e: [[Main_semgrep_core.options]] concatenated actions *)
   [ "-version",   Arg.Unit (fun () ->
-    pr2 (spf "semgrep-core version: %%VERSION%%, pfff: %s" Config_pfff.version);
+    pr2 (spf "semgrep-core version: v0.7.0-43-gefdd403, pfff: %s" Config_pfff.version);
     exit 0;
     ), "  guess what"; 
   ]

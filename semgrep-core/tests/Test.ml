@@ -104,7 +104,7 @@ let regression_tests_for_lang files lang =
         let (minii, _maxii) = Parse_info.min_max_ii_by_pos toks in
         Error_code.error minii (Error_code.SgrepLint ("",""))
       )
-      [rule] equiv file ast |> ignore;
+      [rule] equiv file lang ast |> ignore;
 
     let actual = !Error_code.g_errors in
     let expected = Error_code.expected_error_lines_of_files [file] in
@@ -175,7 +175,7 @@ let lint_regression_tests =
   test_files |> List.iter (fun file ->
     E.try_with_exn_to_error file (fun () ->
     let ast = Parse_generic.parse_with_lang lang file in
-    Semgrep_generic.check ~hook:(fun _ _ -> ()) rules equivs file ast 
+    Semgrep_generic.check ~hook:(fun _ _ -> ()) rules equivs file lang ast 
       |> List.iter JSON_report.match_to_error;
   ));
 

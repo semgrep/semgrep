@@ -4,8 +4,11 @@
 val check: 
   hook:(Metavars_generic.metavars_binding -> Parse_info.t list Lazy.t -> unit)
   ->
-  Rule.rules -> Equivalence.equivalences ->
-  Common.filename -> AST_generic.program -> 
+  Rule.rules ->
+  Equivalence.equivalences ->
+  Common.filename ->
+  Lang.t ->
+  AST_generic.program ->
   Match_result.t list
 (*e: signature [[Semgrep_generic.check]] *)
 

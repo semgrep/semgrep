@@ -190,7 +190,7 @@ let apply_equivalences equivs any =
 (*****************************************************************************)
 
 (*s: function [[Semgrep_generic.check2]] *)
-let check2 ~hook rules equivs file ast =
+let check2 ~hook rules equivs file lang ast =
 
   let matches = ref [] in
 
@@ -198,7 +198,7 @@ let check2 ~hook rules equivs file ast =
    * update: this is less necessary once you have user-defined
    * code equivalences (see Equivalence.ml).
    *)
-  let prog = Normalize_AST.normalize (Pr ast) in
+  let prog = Normalize_AST.normalize (Pr ast) lang in
 
   let expr_rules = ref [] in
   let stmt_rules = ref [] in
@@ -288,7 +288,9 @@ let check2 ~hook rules equivs file ast =
 (*e: function [[Semgrep_generic.check2]] *)
 
 (*s: function [[Semgrep_generic.check]] *)
-let check ~hook a b c =
-  Common.profile_code "Sgrep_generic.check" (fun () -> check2 ~hook a b c)
+let check ~hook rules equivs file lang =
+  Common.profile_code "Sgrep_generic.check" (
+    fun () -> check2 ~hook rules equivs file lang
+  )
 (*e: function [[Semgrep_generic.check]] *)
 (*e: semgrep/matching/Semgrep_generic.ml *)
