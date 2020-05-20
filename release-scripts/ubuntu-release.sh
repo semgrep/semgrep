@@ -14,7 +14,7 @@ if [[ -z "$SKIP_NUITKA" ]]; then
   eval "$(opam env --root /home/opam/.opam --set-root)" && cd semgrep && export PATH=/github/home/.local/bin:$PATH && sudo make all && cd ..
 fi
 mkdir -p semgrep-files
-cp ./semgrep-core/_build/default/bin/main_semgrep_core.exe semgrep-files/semgrep-core
+cp ./semgrep-core/_build/default/bin/Main.exe semgrep-files/semgrep-core
 cp -r ./semgrep/build/semgrep.dist/* semgrep-files
 ls semgrep-files
 chmod +x semgrep-files/semgrep-core
