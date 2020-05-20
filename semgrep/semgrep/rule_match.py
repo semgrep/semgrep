@@ -6,6 +6,7 @@ from typing import Iterable
 from typing import Optional
 
 from semgrep.pattern_match import PatternMatch
+from semgrep.semgrep_types import YAML_INTERNAL_KEYS
 
 
 class RuleMatch:
@@ -25,7 +26,9 @@ class RuleMatch:
     ) -> None:
         self._id = id
         self._message = message
-        self._metadata = metadata
+        self._metadata = {
+            k: v for k, v in metadata.items() if k not in YAML_INTERNAL_KEYS
+        }
         self._severity = severity
         self._fix = fix
 
