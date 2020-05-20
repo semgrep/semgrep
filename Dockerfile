@@ -5,6 +5,9 @@ RUN apk add --no-cache git
 COPY .git /home/pythonbuild/.git
 COPY semgrep /home/pythonbuild/semgrep/
 WORKDIR /home/pythonbuild/semgrep
+# downgrade to 20.1 since 20.1.1 reverts building in place
+# https://github.com/pypa/pip/issues/7555
+RUN pip install pip==20.1
 RUN HOMEBREW_SYSTEM='NOCORE' pip install --user .
 RUN /root/.local/bin/semgrep --version
 
