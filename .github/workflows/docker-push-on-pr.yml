@@ -18,6 +18,9 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
           repository: returntocorp/semgrep
           tags: ${{ github.event.pull_request.head.sha }}
-        if: ${{ secrets.DOCKER_USERNAME != 0 }}
+        if: ${{github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name }}
+      - name: explain no push
+        if: ${{github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name }}
+        run: echo "Skipping push to docker because pull request comes from a fork"
       - name: update semgrep.live
         run: curl --fail -X POST https://semgrep.live/api/admin/update-docker
