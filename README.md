@@ -91,6 +91,30 @@ handles a multitude of input configuration types:
 In the absence of this flag, a default configuration is loaded from `.semgrep.yml`
 or multiple files matching `.semgrep/**/*.yml`.
 
+### Registry
+
+As mentioned above, you may also specify a `registry_name` as configuration.
+[r2c](https://r2c.dev) provides a [registry](https://github.com/returntocorp/semgrep-rules)
+of configuration files. These rules have been tuned on thousands of repositories
+using our [analysis platform](https://app.r2c.dev).
+
+You can browse the registry at https://semgrep.live/r. To run a set of rules, use a rule ID or namespace.
+
+```bash
+# Run a specific rule
+semgrep --config=https://semgrep.live/c/r/java.spring.security.audit.cookie-missing-samesite
+
+# Run a set of rules
+semgrep --config=https://semgrep.live/c/r/java.spring.security
+```
+
+The registry features rules for many programming errors, including security issues and correctness bugs. Security rules are annotated with CWE and OWASP metadata when applicable. OWASP rule coverage per language is displayed below.
+
+<p align="center">
+    <img width="600" src="https://web-assets.r2c.dev/semgrep-rules-owasp-coverage-20200520.png" style="max-width:100%;" />
+</p>
+
+
 #### Pattern Features
 
 `semgrep` patterns make use of two primary features:
@@ -159,17 +183,6 @@ result = sub_popen("ls")
 
 For a full list of `semgrep` feature support by language see the
 [language matrix](docs/matrix.md).
-
-### Registry
-
-As mentioned above, you may also specify a registry name as configuration.
-[r2c](https://r2c.dev) provides a [registry](https://github.com/returntocorp/semgrep-rules)
-of configuration files. These rules have been tuned on thousands of repositories
-using our [analysis platform](https://app.r2c.dev).
-
-```bash
-semgrep --config r2c
-```
 
 ### Programmatic Usage
 
