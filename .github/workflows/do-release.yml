@@ -7,19 +7,6 @@ on:
 name: Create draft release
 
 jobs:
-  verify-version:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Get version printed out by semgrep --version
-        run: (cd semgrep && python3 -m semgrep --version) | tee semgrep_version
-      - name: Get Tagged Version
-        id: get_version
-        run: echo ${GITHUB_REF/refs\/tags\/v/} | tee tagged_version
-      - name: Check tagged_version and semgrep_version are the same
-        run: diff tagged_version semgrep_version
-
   create_release:
     name: Create the Github Release
     runs-on: ubuntu-latest
@@ -126,7 +113,6 @@ jobs:
   release-docker:
     name: Build and Push Semgrep Docker Container
     runs-on: ubuntu-latest
-    needs: [verify-version]
     steps:
       - uses: actions/checkout@v2
       - name: Get the version without leading v
@@ -145,12 +131,16 @@ jobs:
   release-osx:
     name: Build the OSX binaries
     runs-on: macos-latest
-    needs: [verify-version]
     steps:
       - name: Install System Deps
         run: brew install opam pkg-config coreutils
       - name: Checkout
         uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v1
+        with:
+          # This is just the Python version used to build the Nuitka executable
+          python-version: 3.7
       - name: Run OSX release script
         run: ./release-scripts/osx-release.sh
       - name: Upload artifacts
@@ -159,7 +149,6 @@ jobs:
           name: semgrep-osx-${{ github.sha }}
           path: artifacts.zip
   release-ubuntu-16-04:
-    needs: [verify-version]
     runs-on: ubuntu-latest
     container: returntocorp/sgrep-build:ubuntu-16.04
     steps:

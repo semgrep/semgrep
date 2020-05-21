@@ -2,7 +2,6 @@
 import contextlib
 import distutils.util
 import os
-import sys
 
 import setuptools
 from setuptools import setup
@@ -114,7 +113,11 @@ class PostInstallCommand(install):
 
 setup(
     name="semgrep",
-    use_scm_version={"relative_to": source_dir, "write_to": "semgrep/version.py"},
+    use_scm_version={
+        "relative_to": source_dir,
+        "write_to": "semgrep/version.py",
+        "fallback_version": "0.8.0",
+    },
     setup_requires=["setuptools_scm", "setuptools_scm_git_archive"],
     author="Return To Corporation",
     author_email="support@r2c.dev",
