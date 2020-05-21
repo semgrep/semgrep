@@ -1,4 +1,4 @@
-name: Semgrep Python Tests
+name: Tests
 
 on:
   pull_request:
@@ -32,6 +32,7 @@ jobs:
         run: echo "This job runs with the most recent binary from the develop branch for semgrep-core. If you are using bleeding edge features, you may need to wait for a build"
 
   build-test:
+    name: semgrep-core make test and semgrep make test/qa-test
     runs-on: ubuntu-latest
     container: returntocorp/sgrep-build:2.7
     steps:
@@ -47,6 +48,7 @@ jobs:
         run: eval $(opam  env --root /home/opam/.opam --set-root) && cd semgrep && export PATH=/github/home/.local/bin:$PATH && pip3 install pipenv && pipenv install --dev && make test && make qa-test && make all
 
   mac-build-test:
+    name: Check builds for macOS
     runs-on: macos-latest
     steps:
       - name: Checkout
@@ -65,6 +67,7 @@ jobs:
           path: artifacts
 
   release-ubuntu:
+    name: Check builds for ubuntu
     strategy:
       matrix:
         # The os doesn't actually matter anymore. We build a static binary linked with musl that is manylinux compatible.
