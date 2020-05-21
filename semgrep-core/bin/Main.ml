@@ -360,7 +360,7 @@ let sgrep_ast pattern file any_ast =
       )
       (*e: [[Main_semgrep_core.sgrep_ast()]] [[hook]] argument to [[check]] *)
       [rule] (parse_equivalences ())
-      file ast |> ignore;
+      file lang ast |> ignore;
 
   (*s: [[Main_semgrep_core.sgrep_ast()]] match [[pattern]] and [[any_ast]] other cases *)
   | PatFuzzy pattern, Fuzzy ast ->
@@ -534,7 +534,7 @@ let sgrep_with_rules rules_file xs =
             rules |> List.filter (fun r -> List.mem lang r.R.languages) in
          Semgrep_generic.check ~hook:(fun _ _ -> ()) 
             rules (parse_equivalences ())
-            file ast
+            file lang ast
        )
   in
   print_matches_and_errors files matches errs

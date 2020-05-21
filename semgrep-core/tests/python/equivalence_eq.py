@@ -5,7 +5,7 @@ def test_equal():
     if a + b == a + b:
         return 1
 
-    # ERROR: match
+    # OK
     if a + b != a + b:
         return 1
     return 0
