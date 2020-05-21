@@ -5,6 +5,7 @@ equivalences:
     languages: [python, javascript, c, go, java]
   - id: eq-to-no-eq
     pattern: $X == $X ==> $X != $X
+    # python is excluded, as != is sometimes interpreted as a call to .__ne__
     languages: [javascript, c, go, java]
 #  - id: if-commute
 #    pattern: if $E: $S1 else: $S2 <==> if !$E: $S2 else: $S1
