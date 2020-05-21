@@ -98,7 +98,7 @@ As mentioned above, you may also specify a `registry_name` as configuration.
 of configuration files. These rules have been tuned on thousands of repositories
 using our [analysis platform](https://app.r2c.dev).
 
-You can browse the registry at https://semgrep.live/r. To run a set of rules, use a rule ID or namespace.
+You can browse the registry at [semgrep.live/r](https://semgrep.live/r). To run a set of rules, use a rule ID or namespace.
 
 ```bash
 # Run a specific rule
