@@ -116,7 +116,7 @@ setup(
     use_scm_version={
         "relative_to": source_dir,
         "write_to": "semgrep/version.py",
-        "fallback_version": "0.8.0b1",
+        "fallback_version": "0.8.0",
     },
     setup_requires=["setuptools_scm", "setuptools_scm_git_archive"],
     author="Return To Corporation",
