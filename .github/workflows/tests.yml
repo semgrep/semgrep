@@ -34,12 +34,14 @@ jobs:
   build-test:
     name: semgrep-core make test and semgrep make test/qa-test
     runs-on: ubuntu-latest
-    container: returntocorp/sgrep-build:ubuntu-16.04
+    container: returntocorp/sgrep-build:2.7
     steps:
+      - name: Adjust permissions
+        run: sudo chmod -R 777 . /github
       - name: Checkout
         uses: actions/checkout@v2
-        with:
-          submodules: 'recursive'
+      - name: Install submodules
+        run: git submodule update --init --recursive
       - name: Install pfff
         run: eval $(opam  env --root /home/opam/.opam --set-root) && opam install -y ./pfff
       - name: Install and test semgrep-core
