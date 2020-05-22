@@ -8,7 +8,6 @@
  *    May you share freely, never taking more than you give.
  *)
 open Common
-open Version
 
 module Flag = Flag_parsing
 module PI = Parse_info
@@ -797,7 +796,7 @@ let options () =
   Common.options_of_actions action (all_actions()) @
   (*e: [[Main_semgrep_core.options]] concatenated actions *)
   [ "-version",   Arg.Unit (fun () ->
-    pr2 (spf "semgrep-core version: %s, pfff: %s" version Config_pfff.version);
+    pr2 (spf "semgrep-core version: %s, pfff: %s" Version.version Config_pfff.version);
     exit 0;
     ), "  guess what";
   ]
