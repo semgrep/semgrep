@@ -94,8 +94,8 @@ or multiple files matching `.semgrep/**/*.yml`.
 ### Registry
 
 As mentioned above, you may also specify a `registry_name` as configuration.
-[r2c](https://r2c.dev) provides a [registry](https://github.com/returntocorp/semgrep-rules)
-of configuration files. These rules have been tuned on thousands of repositories
+[r2c](https://r2c.dev) provides a [registry](https://semgrep.live/r)
+of rules. These rules have been tuned on thousands of repositories
 using our [analysis platform](https://app.r2c.dev).
 
 You can browse the registry at [semgrep.live/r](https://semgrep.live/r). To run a set of rules, use a rule ID or namespace.
