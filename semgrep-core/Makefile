@@ -1,6 +1,6 @@
 all:
     # Update output of semgrep-core -version
-	sed -i'' -e "s/%%VERSION%%/$(shell git describe --dirty --tags --long)/g" ./bin/Main.ml
+	echo 'let version = "$(shell git describe --dirty --tags --long)"' > ./bin/version.ml
 
 	dune build
 	dune build ./_build/default/tests/test.bc
