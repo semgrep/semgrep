@@ -27,7 +27,7 @@ WORKDIR /home/opam/sgrep
 
 RUN git submodule update --init --recursive
 RUN eval $(opam env) && opam install -y ./pfff
-RUN eval $(opam env) && cd semgrep-core && opam install -y . && make all
+RUN eval $(opam env) && cd semgrep-core && opam install --deps-only -y . && make all
 RUN semgrep-core/_build/default/bin/Main.exe -version
 
 

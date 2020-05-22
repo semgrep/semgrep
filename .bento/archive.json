@@ -35,6 +35,22 @@
   },
   "hadolint": {
     "violations": {
+      "71a8303902a1c09d0903c531d9d6d982": {
+        "tool_id": "hadolint",
+        "check_id": "DL3003",
+        "path": "Dockerfile",
+        "message": "Use WORKDIR to switch to a directory",
+        "severity": 1,
+        "syntactic_context": "RUN eval $(opam env) && cd semgrep-core && opam install --deps-only -y . && make all\n"
+      },
+      "eaa1f323d1db6328b0a7014c9dff326d": {
+        "tool_id": "hadolint",
+        "check_id": "SC2046",
+        "path": "Dockerfile",
+        "message": "Quote this to prevent word splitting.",
+        "severity": 1,
+        "syntactic_context": "RUN eval $(opam env) && cd semgrep-core && opam install --deps-only -y . && make all\n"
+      },
       "142d6e5f77de7ecb6cc818a63c935c03": {
         "tool_id": "hadolint",
         "check_id": "DL3003",
@@ -71,6 +87,9 @@
     "violations": {}
   },
   "r2c.requests": {
+    "violations": {}
+  },
+  "semgrep": {
     "violations": {}
   },
   "shellcheck": {
