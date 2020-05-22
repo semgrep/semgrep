@@ -179,7 +179,7 @@ and m_arguments xsa xsb =
         xsa,
         xsb
       )
-    else failwith 
+    else failwith
       ("transformation (minus or plus) on '...' not allowed, " ^
        "rewrite your spatch")
 
@@ -202,10 +202,10 @@ and m_arguments xsa xsb =
         xsa,
         xsb
       )
-    else failwith 
+    else failwith
       ("transformation (minus or plus) on ',' not allowed when used with " ^
        "'...'. Rewrite your spatch: put your trailing comma on the line " ^
-       "with the '...'. See also " ^ 
+       "with the '...'. See also " ^
        "https://github.com/facebook/pfff/wiki/Spatch#wiki-spacing-issues")
 
   | [Right _; Left [A.Dots _i]], _bbs ->
@@ -230,7 +230,7 @@ and m_arguments xsa xsb =
 and m_either_m_argument a b =
   match a, b with
   | Left [A.Metavar (s, tok)], Left b ->
-    X.envf (s, tok) b >>= (function 
+    X.envf (s, tok) b >>= (function
     | ((s, _a), b) ->
       return (
         Left [A.Metavar (s, tok)],
@@ -251,7 +251,7 @@ and m_either_m_argument a b =
   | Left _, Right _
   | Right _, Left _ ->
     fail ()
-      
+
 
 (* ---------------------------------------------------------------------- *)
 (* tree *)
@@ -260,7 +260,7 @@ and m_tree a b =
   match a, b with
 
   | A.Metavar (s, tok), b ->
-    let ok = 
+    let ok =
       match b with
       | B.Parens _ -> true
       (* we don't want metavars to match symbols *)
@@ -270,7 +270,7 @@ and m_tree a b =
       | _ -> false
     in
     if ok then
-     X.envf (s, tok) [b] >>= (function 
+     X.envf (s, tok) [b] >>= (function
      | ((s, _a), [b]) ->
       return (
         A.Metavar (s, tok),
@@ -285,7 +285,7 @@ and m_tree a b =
     m_trees a2 b2 >>= (fun (a2, b2) ->
     m_tok a3 b3 >>= (fun (a3, b3) ->
       return (
-        A.Braces (a1, a2, a3), 
+        A.Braces (a1, a2, a3),
         B.Braces (b1, b2, b3)
       )
     )))
@@ -294,7 +294,7 @@ and m_tree a b =
     m_trees a2 b2 >>= (fun (a2, b2) ->
     m_tok a3 b3 >>= (fun (a3, b3) ->
       return (
-        A.Bracket (a1, a2, a3), 
+        A.Bracket (a1, a2, a3),
         B.Bracket (b1, b2, b3)
       )
     )))
@@ -303,7 +303,7 @@ and m_tree a b =
     m_arguments a2 b2 >>= (fun (a2, b2) ->
     m_tok a3 b3 >>= (fun (a3, b3) ->
       return (
-        A.Parens (a1, a2, a3), 
+        A.Parens (a1, a2, a3),
         B.Parens (b1, b2, b3)
       )
     )))
@@ -312,7 +312,7 @@ and m_tree a b =
     m_trees a2 b2 >>= (fun (a2, b2) ->
     m_tok a3 b3 >>= (fun (a3, b3) ->
       return (
-        A.Angle (a1, a2, a3), 
+        A.Angle (a1, a2, a3),
         B.Angle (b1, b2, b3)
       )
     )))

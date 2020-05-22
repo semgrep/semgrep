@@ -39,18 +39,18 @@ open AST_generic
  *)
 
 let full_module_name is_pattern from_module_name import_opt =
-  match from_module_name, import_opt with 
-  | DottedName idents, Some (import_ident_name) -> 
+  match from_module_name, import_opt with
+  | DottedName idents, Some (import_ident_name) ->
       let new_module_name: dotted_ident = idents @ [import_ident_name] in
       Some (DottedName new_module_name)
-  | DottedName idents, None -> 
+  | DottedName idents, None ->
       Some (DottedName idents)
-  | FileName s, None -> 
+  | FileName s, None ->
       Some (FileName s)
-  | FileName s, _ when not is_pattern -> 
+  | FileName s, _ when not is_pattern ->
     (* bugfix: for languages such as JS, 'import x from "path"' should not
      * be converted in just "path". We should return None here as it
-     * does not make sense to allow this pattern to match 
+     * does not make sense to allow this pattern to match
      * import y from "path". Use just 'import "path"' if you just want
      * to check you vaguely imported a package.
      *)
@@ -63,9 +63,9 @@ let normalize_import_opt is_pattern i =
   match i with
   | ImportFrom(t, module_name, m, _alias_opt) ->
      full_module_name is_pattern module_name (Some m)>>= (fun x -> Some (t, x))
-  | ImportAs(t, module_name, _alias_opt) -> 
+  | ImportAs(t, module_name, _alias_opt) ->
      full_module_name is_pattern module_name None >>= (fun x -> Some (t, x))
-  | ImportAll(t, module_name, _t2) -> 
+  | ImportAll(t, module_name, _t2) ->
      full_module_name is_pattern module_name None >>= (fun x -> Some (t, x))
   | Package _
   | PackageEnd _
@@ -81,11 +81,11 @@ let rec eval x =
 
   | Call(IdSpecial((ArithOp(Plus | Concat) | ConcatString _), _), args)->
     let literals = args |> Common.map_filter (fun (arg) ->
-      match arg with 
+      match arg with
         | Arg e -> eval e
         | _ -> None
-    ) in 
-    let strs = literals |> Common.map_filter (fun (lit) -> 
+    ) in
+    let strs = literals |> Common.map_filter (fun (lit) ->
       match lit with
         | String (s1, _) -> Some s1
         | _ -> None

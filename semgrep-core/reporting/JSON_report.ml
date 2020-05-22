@@ -103,7 +103,7 @@ let json_range min max =
 (*e: function [[JSON_report.json_range]] *)
 
 (*s: function [[JSON_report.range_of_any]] *)
-let range_of_any any = 
+let range_of_any any =
   let ii = Lib_AST.ii_of_any any in
   let ii = ii |> List.filter PI.is_origintok in
   let (min, max) = PI.min_max_ii_by_pos ii in
@@ -113,11 +113,11 @@ let range_of_any any =
 
 (*s: function [[JSON_report.json_metavar]] *)
 let json_metavar x startp (s, any) =
-  let (startp, endp) = 
-    try 
-      range_of_any any 
+  let (startp, endp) =
+    try
+      range_of_any any
     with Parse_info.NoTokenLocation exn ->
-     failwith (spf 
+     failwith (spf
       "NoTokenLocation %s exn while processing %s for rule %s, with metavar %s, close location = %s"
         exn x.file x.rule.R.id  s (Json_io.string_of_json startp))
   in
@@ -128,13 +128,13 @@ let json_metavar x startp (s, any) =
       any
       |> Lib_AST.ii_of_any |> List.filter PI.is_origintok
       |> List.sort Parse_info.compare_pos
-      |> List.map PI.str_of_info 
+      |> List.map PI.str_of_info
       |> Matching_report.join_with_space_if_needed
     );
   "unique_id", unique_id any
   ]
 (*e: function [[JSON_report.json_metavar]] *)
-  
+
 
 (*s: function [[JSON_report.match_to_json]] *)
 (* similar to pfff/h_program-lang/R2c.ml *)
@@ -157,7 +157,7 @@ let match_to_json x =
 (* Error *)
 (*****************************************************************************)
 (*s: function [[JSON_report.error]] *)
-(* this is used only in the testing code, to reuse the 
+(* this is used only in the testing code, to reuse the
  * Error_code.compare_actual_to_expected
  *)
 let error tok rule =
@@ -171,7 +171,7 @@ let error tok rule =
 (*e: function [[JSON_report.error]] *)
 
 (*s: function [[JSON_report.match_to_error]] *)
-let match_to_error x = 
+let match_to_error x =
   let toks = Lib_AST.ii_of_any x.code |> List.filter PI.is_origintok in
   let tok = List.hd toks in
   error tok x.rule

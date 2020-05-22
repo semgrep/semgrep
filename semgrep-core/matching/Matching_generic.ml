@@ -32,7 +32,7 @@ module Flag = Flag_semgrep
  *
  * todo:
  *  - factorize code in m_list__in_any_order at some point:
- *     * m_list__m_field 
+ *     * m_list__m_field
  *     * m_list__m_attribute
  *     * m_list__m_xml_attr
  *     * m_list__m_argument (harder)
@@ -44,32 +44,32 @@ module Flag = Flag_semgrep
 (*****************************************************************************)
 
 (* ------------------------------------------------------------------------*)
-(* Combinators history *) 
+(* Combinators history *)
 (* ------------------------------------------------------------------------*)
 (*
- * version0: 
+ * version0:
  *   type ('a, 'b) matcher = 'a -> 'b -> bool
- * 
+ *
  *   This just lets you know if you matched something.
- * 
+ *
  * version1:
  *   type ('a, 'b) matcher = 'a -> 'b -> unit -> ('a, 'b) option
- * 
+ *
  *   The Maybe monad.
- * 
+ *
  * version2:
  *   type ('a, 'b) matcher = 'a -> 'b -> binding -> binding list
- * 
+ *
  *   Why not returning a binding option ? because we need sometimes
  *   to return multiple possible bindings for one matching code.
  *   For instance with the pattern do 'f(..., $X, ...)', $X could be binded
  *   to different parts of the code.
- * 
+ *
  *   Note that the empty list means a match failure.
  *
  * version3:
  *   type ('a, 'b) matcher = 'a -> 'b -> tin -> ('a,'b) tout
- * 
+ *
  * version4: back to simpler
  *   type ('a, 'b) matcher = 'a -> 'b -> tin -> tout
  *)
@@ -92,7 +92,7 @@ type tout = tin list
  * represent a match between element A and B.
  *)
 (* currently 'a and 'b are usually the same type as we use the
- * same language for the host language and pattern language 
+ * same language for the host language and pattern language
  *)
 type ('a, 'b) matcher = 'a -> 'b -> tin -> tout
 (*e: type [[Matching_generic.matcher]] *)
@@ -106,7 +106,7 @@ type ('a, 'b) matcher = 'a -> 'b -> tin -> tout
 (* Debugging *)
 (*****************************************************************************)
 (*s: function [[Matching_generic.str_of_any]] *)
-let str_of_any any = 
+let str_of_any any =
   if !Flag.debug && !Flag.debug_with_full_position
   then Meta_parse_info._current_precision :=
     { Meta_parse_info.default_dumper_precision with Meta_parse_info.
@@ -143,13 +143,13 @@ let ((>>=):
   (unit -> (tin -> tout)) ->
   (tin -> tout)) = fun m1 m2 ->
   fun tin ->
-    (* let's get a list of possible environment match (could be 
+    (* let's get a list of possible environment match (could be
      * the empty list when it didn't match, playing the role None
      * had before)
      *)
     let xs = m1 tin in
     (* try m2 on each possible returned bindings *)
-    let xxs = xs |> List.map (fun binding -> 
+    let xxs = xs |> List.map (fun binding ->
       m2 () binding
     ) in
     List.flatten xxs
@@ -191,7 +191,7 @@ let (fail : tin -> tout) = fun _tin ->
   then failwith "Generic_vs_generic.fail: Match failure";
   []
 (*e: function [[Matching_generic.fail]] *)
-      
+
 (*****************************************************************************)
 (* Environment *)
 (*****************************************************************************)
@@ -204,8 +204,8 @@ let equal_ast_binded_code (a: AST.any) (b: AST.any) : bool =
   match a, b with
   | A.I _, A.I _
   | A.N _, A.N _
-  | A.E _, A.E _ 
-  | A.P _, A.P _ 
+  | A.E _, A.E _
+  | A.P _, A.P _
   | A.S _, A.S _
   | A.T _, A.T _
     ->
@@ -215,7 +215,7 @@ let equal_ast_binded_code (a: AST.any) (b: AST.any) : bool =
        * generic '=' OCaml operator as 'a' and 'b' may represent
        * the same code but they will contain leaves in their AST
        * with different position information. So before doing
-       * the comparison we just need to remove/abstract-away 
+       * the comparison we just need to remove/abstract-away
        * the line number information in each ASTs.
        *)
       let a = Lib.abstract_position_info_any a in
@@ -228,7 +228,7 @@ let equal_ast_binded_code (a: AST.any) (b: AST.any) : bool =
       end;
       res
 
-  | _, _ -> 
+  | _, _ ->
       false
 (*e: function [[Matching_generic.equal_ast_binded_code]] *)
 
@@ -255,13 +255,13 @@ let (envf: (MV.mvar AST.wrap, AST.any) matcher) =
   match check_and_add_metavar_binding (mvar, any) tin with
   | None ->
       (*s: [[Matching_generic.envf]] if [[verbose]] when fail *)
-      if !Flag.verbose 
+      if !Flag.verbose
       then pr2 (spf "envf: fail, %s (%s)" mvar (str_of_any any));
       (*e: [[Matching_generic.envf]] if [[verbose]] when fail *)
       fail tin
   | Some new_binding ->
       (*s: [[Matching_generic.envf]] if [[verbose]] when success *)
-      if !Flag.verbose 
+      if !Flag.verbose
       then pr2 (spf "envf: success, %s (%s)" mvar (str_of_any any));
       (*e: [[Matching_generic.envf]] if [[verbose]] when success *)
       return new_binding
@@ -277,7 +277,7 @@ let empty_environment () = []
 
 (*s: function [[Matching_generic.has_ellipsis_stmts]] *)
 (* guard for deep stmt matching *)
-let has_ellipsis_stmts xs = 
+let has_ellipsis_stmts xs =
   xs |> List.exists (function
     | A.ExprStmt (A.Ellipsis _) -> true
     | _ -> false
@@ -312,15 +312,15 @@ let is_regexp_string s =
  s =~ regexp_regexp_string
 (*e: function [[Matching_generic.is_regexp_string]] *)
 (*s: function [[Matching_generic.regexp_of_regexp_string]] *)
-let regexp_of_regexp_string s = 
+let regexp_of_regexp_string s =
   if s =~ regexp_regexp_string
-  then 
+  then
     let x = Common.matched1 s in
 (* TODO
       let rex = Pcre.regexp s in
       if Pcre.pmatch ~rex sb
 *)
-    Str.regexp x 
+    Str.regexp x
   else
     failwith (spf "This is not a regexp_string: " ^ s)
 (*e: function [[Matching_generic.regexp_of_regexp_string]] *)
@@ -337,7 +337,7 @@ let (m_option: ('a,'b) matcher -> ('a option,'b option) matcher) = fun f a b ->
   match a, b with
   | None, None -> return ()
   | Some xa, Some xb ->
-      f xa xb 
+      f xa xb
   | None, _
   | Some _, _
       -> fail ()
@@ -345,7 +345,7 @@ let (m_option: ('a,'b) matcher -> ('a option,'b option) matcher) = fun f a b ->
 
 (*s: function [[Matching_generic.m_option_ellipsis_ok]] *)
 (* dots: *)
-let m_option_ellipsis_ok f a b = 
+let m_option_ellipsis_ok f a b =
   match a, b with
   | None, None -> return ()
 
@@ -353,7 +353,7 @@ let m_option_ellipsis_ok f a b =
   | Some (A.Ellipsis _), None -> return ()
 
   | Some xa, Some xb ->
-      f xa xb 
+      f xa xb
   | None, _
   | Some _, _
       -> fail ()
@@ -367,7 +367,7 @@ let m_option_none_can_match_some f a b =
   | None, _ -> return ()
 
   | Some xa, Some xb ->
-      f xa xb 
+      f xa xb
   | Some _, _
       -> fail ()
 (*e: function [[Matching_generic.m_option_none_can_match_some]] *)
@@ -379,7 +379,7 @@ let m_option_none_can_match_some f a b =
 let (m_ref: ('a,'b) matcher -> ('a ref,'b ref) matcher) = fun f a b ->
   match a, b with
   { contents = xa}, { contents = xb} ->
-    f xa xb 
+    f xa xb
 (*e: function [[Matching_generic.m_ref]] *)
 
 (* ---------------------------------------------------------------------- *)
@@ -393,7 +393,7 @@ let rec m_list f a b =
       return ()
   | xa::aas, xb::bbs ->
       f xa xb >>= (fun () ->
-      m_list f aas bbs 
+      m_list f aas bbs
       )
   | [], _
   | _::_, _ ->
@@ -407,7 +407,7 @@ let rec m_list_prefix f a b =
       return ()
   | xa::aas, xb::bbs ->
       f xa xb >>= (fun () ->
-      m_list_prefix f aas bbs 
+      m_list_prefix f aas bbs
       )
   | [], _ -> return ()
   | _::_, _ ->
@@ -421,7 +421,7 @@ let rec m_list_with_dots f is_dots less_is_ok xsa xsb =
       return ()
   (*s: [[Matching_generic.m_list_with_dots()]]> empty list vs list case *)
   (* less-is-ok: empty list can sometimes match non-empty list *)
-  | [], _::_ when less_is_ok -> 
+  | [], _::_ when less_is_ok ->
     return ()
   (*e: [[Matching_generic.m_list_with_dots()]]> empty list vs list case *)
   (*s: [[Matching_generic.m_list_with_dots()]]> ellipsis cases *)
@@ -438,7 +438,7 @@ let rec m_list_with_dots f is_dots less_is_ok xsa xsb =
   (* the general case *)
   | xa::aas, xb::bbs ->
       f xa xb >>= (fun () ->
-      m_list_with_dots f is_dots less_is_ok aas bbs 
+      m_list_with_dots f is_dots less_is_ok aas bbs
       )
   | [], _
   | _::_, _ ->
@@ -450,12 +450,12 @@ let rec m_list_with_dots f is_dots less_is_ok xsa xsb =
 (* ---------------------------------------------------------------------- *)
 
 (*s: function [[Matching_generic.m_bool]] *)
-let m_bool a b = 
+let m_bool a b =
   if a = b then return () else fail ()
 (*e: function [[Matching_generic.m_bool]] *)
 
 (*s: function [[Matching_generic.m_int]] *)
-let m_int a b = 
+let m_int a b =
   if a =|= b then return () else fail ()
 (*e: function [[Matching_generic.m_int]] *)
 
@@ -499,12 +499,12 @@ let m_wrap f a b =
   match a, b with
   ((xaa, ainfo), (xbb, binfo)) ->
     f xaa xbb >>= (fun () ->
-    m_info ainfo binfo 
+    m_info ainfo binfo
     )
 (*e: function [[Matching_generic.m_wrap]] *)
 
 (*s: function [[Matching_generic.m_bracket]] *)
-let m_bracket f (a1, a2, a3) (b1, b2, b3) = 
+let m_bracket f (a1, a2, a3) (b1, b2, b3) =
    m_info a1 b1 >>= (fun () ->
    f a2 b2 >>= (fun () ->
    m_info a3 b3
@@ -516,7 +516,7 @@ let m_bracket f (a1, a2, a3) (b1, b2, b3) =
 (* ---------------------------------------------------------------------- *)
 
 (*s: function [[Matching_generic.m_other_xxx]] *)
-let m_other_xxx a b = 
+let m_other_xxx a b =
   match a, b with
   | a, b when a =*= b -> return ()
   | _ -> fail ()

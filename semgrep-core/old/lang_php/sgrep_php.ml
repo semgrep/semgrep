@@ -6,7 +6,7 @@
  * modify it under the terms of the GNU Lesser General Public License
  * version 2.1 as published by the Free Software Foundation, with the
  * special exception on linking described in file license.txt.
- * 
+ *
  * This library is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
@@ -20,7 +20,7 @@ module V = Visitor_php
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* See https://github.com/facebook/pfff/wiki/Sgrep 
+(* See https://github.com/facebook/pfff/wiki/Sgrep
  *
  * todo? many things are easier in sgrep than in spatch. For instance
  * many isomorphisms are ok to do in sgrep but would result in badly
@@ -48,7 +48,7 @@ type pattern = Cst_php.any
 (* We can't have Flag_parsing_php.case_sensitive set to false here
  * because metavariables in sgrep patterns are in uppercase
  * and we don't want to lowercase them.
- * 
+ *
  * We actually can't use Flag_parsing_php.case_sensitive at all
  * because we also want the Foo() pattern to match foo() code
  * so we have anyway to do some case insensitive string
@@ -64,7 +64,7 @@ let parse str =
 (*****************************************************************************)
 
 let sgrep_ast ?(case_sensitive=false) ~hook pattern ast =
-  (* coupling: copy paste with lang_php/matcher/spatch_php.ml 
+  (* coupling: copy paste with lang_php/matcher/spatch_php.ml
    * coupling: copy paste with sgrep_lint
    *)
   let hook =
@@ -158,8 +158,8 @@ let sgrep_ast ?(case_sensitive=false) ~hook pattern ast =
   )
 
 let sgrep ?(case_sensitive=false) ~hook pattern file =
-  let ast = 
-    try 
+  let ast =
+    try
       Parse_php.parse_program file
     with Parse_php.Parse_error _err ->
       (* we usually do sgrep on a set of files or directories,
@@ -170,4 +170,3 @@ let sgrep ?(case_sensitive=false) ~hook pattern file =
       []
   in
   sgrep_ast ~case_sensitive ~hook pattern ast
-

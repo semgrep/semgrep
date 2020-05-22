@@ -18,7 +18,7 @@ type tout = tin list
  * represent a match between element A and B.
  *)
 (* currently 'a and 'b are usually the same type as we use the
- * same language for the host language and pattern language 
+ * same language for the host language and pattern language
  *)
 type ('a, 'b) matcher = 'a -> 'b -> tin -> tout
 (*e: type [[Matching_generic.matcher]] *)

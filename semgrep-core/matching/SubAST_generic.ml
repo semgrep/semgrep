@@ -32,9 +32,9 @@ module V = Visitor_AST
 
 (*s: function [[SubAST_generic.subexprs_of_expr]] *)
 (* used for deep expression matching *)
-let subexprs_of_expr e = 
+let subexprs_of_expr e =
   match e with
-  | L _ 
+  | L _
   | Id _ | IdQualified _  | IdSpecial _
   | Ellipsis _ | TypedMetavar _
     -> []
@@ -42,15 +42,15 @@ let subexprs_of_expr e =
   | DotAccess (e, _, _) | Await (_, e) | Cast (_, e)
   | Ref (_, e) | DeRef (_, e) | DeepEllipsis (_, e, _)
     -> [e]
-  | Assign (e1, _, e2) | AssignOp (e1, _, e2) 
+  | Assign (e1, _, e2) | AssignOp (e1, _, e2)
   | ArrayAccess (e1, e2)
     (* not sure we always want to return 'e1' here *)
-    -> [e1;e2] 
-  | Conditional (e1, e2, e3) 
+    -> [e1;e2]
+  | Conditional (e1, e2, e3)
     -> [e1;e2;e3]
   | Tuple xs | Seq xs
     -> xs
-  | Container (_, xs) 
+  | Container (_, xs)
     -> unbracket xs
 
 
@@ -58,12 +58,12 @@ let subexprs_of_expr e =
       (* not sure we want to return 'e' here *)
       e::
       (args |> Common.map_filter (function
-        | Arg e | ArgKwd (_, e) -> Some e 
+        | Arg e | ArgKwd (_, e) -> Some e
         | ArgType _ | ArgOther _ -> None
       ))
   | SliceAccess (e1, e2opt, e3opt, e4opt) ->
       e1::([e2opt;e3opt;e4opt] |> List.map Common.opt_to_list |> List.flatten)
-  | Yield (_, eopt, _) -> Common.opt_to_list eopt 
+  | Yield (_, eopt, _) -> Common.opt_to_list eopt
   | OtherExpr (_, anys) ->
       (* in theory we should go deeper in any *)
       anys |> Common.map_filter (function
@@ -72,9 +72,9 @@ let subexprs_of_expr e =
       )
 
   (* currently skipped over but could recurse *)
-  | Record _ 
-  | Constructor _ 
-  | Lambda _ 
+  | Record _
+  | Constructor _
+  | Lambda _
   | AnonClass _
   | Xml _
   | LetPattern _ | MatchPattern _
@@ -88,7 +88,7 @@ let subexprs_of_expr e =
 
 (*s: function [[SubAST_generic.subexprs_of_stmt]] *)
 (* used for really deep statement matching *)
-let subexprs_of_stmt st = 
+let subexprs_of_stmt st =
     match st with
     (* 1 *)
     | ExprStmt e
@@ -135,11 +135,11 @@ let subexprs_of_stmt st =
 
 (*s: function [[SubAST_generic.substmts_of_stmt]] *)
 (* used for deep statement matching *)
-let substmts_of_stmt st = 
+let substmts_of_stmt st =
     match st with
     (* 0 *)
     | DirectiveStmt _
-    | ExprStmt _ 
+    | ExprStmt _
     | Return _ | Continue _ | Break _ | Goto _
     | Throw _
     | Assert _
@@ -147,18 +147,18 @@ let substmts_of_stmt st =
     -> []
 
     (* 1 *)
-    | While (_, _, st) | DoWhile (_, st, _) 
+    | While (_, _, st) | DoWhile (_, st, _)
     | For (_, _, st)
     | Label (_, st)
     | OtherStmtWithStmt (_, _, st)
     -> [st]
 
     (* 2 *)
-    | If (_, _, st1, st2) 
+    | If (_, _, st1, st2)
     -> [st1; st2]
 
     (* n *)
-    | Block xs -> 
+    | Block xs ->
         xs
     | Switch (_, _, xs) ->
         xs |> List.map snd
@@ -175,7 +175,7 @@ let substmts_of_stmt st =
        then []
        else
          (match def with
-         | VarDef _ 
+         | VarDef _
          | TypeDef _
          | MacroDef _
          | Signature _
@@ -208,7 +208,7 @@ let do_visit_with_ref mk_hooks = fun any ->
 (*e: function [[SubAST_generic.do_visit_with_ref]] *)
 
 (*s: function [[SubAST_generic.lambdas_in_expr]] *)
-let lambdas_in_expr e = 
+let lambdas_in_expr e =
   do_visit_with_ref (fun aref -> { V.default_visitor with
     V.kexpr = (fun (k, _) e ->
       match e with
@@ -224,13 +224,13 @@ let lambdas_in_expr e =
 
 (*s: function [[SubAST_generic.flatten_substmts_of_stmts]] *)
 let flatten_substmts_of_stmts xs =
-  let rec aux x = 
+  let rec aux x =
     let xs = substmts_of_stmt x in
     (* getting deeply nested lambdas stmts *)
-    let extras = 
+    let extras =
        if not !Flag_semgrep.go_really_deeper_stmt
        then []
-       else 
+       else
          let es = subexprs_of_stmt x in
          let lambdas = es |> List.map lambdas_in_expr |> List.flatten in
          lambdas |> List.map (fun def -> def.fbody)

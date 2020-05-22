@@ -2,19 +2,19 @@
 (* PHP vs PHP *)
 (*****************************************************************************)
 
-module type PARAM = 
-  sig 
+module type PARAM =
+  sig
     type tin
     type 'x tout
     type ('a, 'b) matcher = 'a -> 'b  -> tin -> ('a * 'b) tout
-    val (>>=): 
-      (tin -> ('a * 'b) tout)  -> 
-      ('a * 'b -> (tin -> ('c * 'd) tout)) -> 
+    val (>>=):
+      (tin -> ('a * 'b) tout)  ->
+      ('a * 'b -> (tin -> ('c * 'd) tout)) ->
       (tin -> ('c * 'd) tout)
 
-    val (>||>) : 
+    val (>||>) :
       (tin -> 'x tout) ->
-      (tin -> 'x tout) -> 
+      (tin -> 'x tout) ->
       (tin -> 'x tout)
 
     (* The classical monad combinators *)
@@ -34,7 +34,7 @@ module type PARAM =
     (* Environment manipulation. Extract info from tin, the "something" *)
     (* -------------------------------------------------------------------- *)
     val envf : (Metavars_php.mvar Cst_php.wrap, Cst_php.any) matcher
-    val envf2 : 
+    val envf2 :
       (Metavars_php.mvar Cst_php.wrap, Cst_php.any * Cst_php.any) matcher
   end
 
@@ -49,7 +49,7 @@ val case_sensitive: bool ref
 (*****************************************************************************)
 
 module PHP_VS_PHP :
-  functor (X : PARAM) -> 
+  functor (X : PARAM) ->
     sig
       type ('a, 'b) matcher = 'a -> 'b -> X.tin -> ('a * 'b) X.tout
 
@@ -58,7 +58,7 @@ module PHP_VS_PHP :
       val m_xhp_html : (Cst_php.xhp_html, Cst_php.xhp_html) matcher
       val m_hint_type : (Cst_php.hint_type, Cst_php.hint_type) matcher
 
-      (* there are far more functions in this functor but they 
-       * do not have to be exported 
+      (* there are far more functions in this functor but they
+       * do not have to be exported
        *)
     end

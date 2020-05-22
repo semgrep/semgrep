@@ -8,7 +8,7 @@
  * modify it under the terms of the GNU Lesser General Public License
  * version 2.1 as published by the Free Software Foundation, with the
  * special exception on linking described in file license.txt.
- * 
+ *
  * This library is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
@@ -56,28 +56,28 @@ type ('a, 'b) matcher = 'a -> 'b ->
 (*****************************************************************************)
 (* Matchers *)
 (*****************************************************************************)
- 
+
 (*s: function [[Semgrep_generic.match_e_e]] *)
-let match_e_e pattern e = 
+let match_e_e pattern e =
   let env = Matching_generic.empty_environment () in
   GG.m_expr pattern e env
 (*e: function [[Semgrep_generic.match_e_e]] *)
 
 (*s: function [[Semgrep_generic.match_st_st]] *)
-let match_st_st pattern e = 
+let match_st_st pattern e =
   let env = Matching_generic.empty_environment () in
   GG.m_stmt pattern e env
 (*e: function [[Semgrep_generic.match_st_st]] *)
 
 (*s: function [[Semgrep_generic.match_sts_sts]] *)
-let match_sts_sts pattern e = 
+let match_sts_sts pattern e =
   let env = Matching_generic.empty_environment () in
   GG.m_stmts_deep pattern e env
 (*e: function [[Semgrep_generic.match_sts_sts]] *)
 
 (*s: function [[Semgrep_generic.match_any_any]] *)
 (* for unit testing *)
-let match_any_any pattern e = 
+let match_any_any pattern e =
   let env = Matching_generic.empty_environment () in
   GG.m_any pattern e env
 (*e: function [[Semgrep_generic.match_any_any]] *)
@@ -99,16 +99,16 @@ let match_e_e_for_equivalences a b =
 (* Substituters *)
 (*****************************************************************************)
 (*s: function [[Semgrep_generic.subst_e]] *)
-let subst_e (bindings: MV.metavars_binding) e = 
+let subst_e (bindings: MV.metavars_binding) e =
   let visitor = M.mk_visitor { M.default_visitor with
-    M.kexpr = (fun (k, _) x -> 
+    M.kexpr = (fun (k, _) x ->
       match x with
       | AST.Id ((str,_tok), _id_info) when MV.is_metavar_name str ->
           (match List.assoc_opt str bindings with
-          | Some (AST.E e) -> 
+          | Some (AST.E e) ->
               (* less: abstract-line? *)
               e
-          | Some _ -> 
+          | Some _ ->
              failwith (spf "incompatible metavar: %s, was expecting an expr"
                       str)
           | None ->
@@ -117,7 +117,7 @@ let subst_e (bindings: MV.metavars_binding) e =
           )
       | _ -> k x
     );
-   } 
+   }
   in
   visitor.M.vexpr e
 (*e: function [[Semgrep_generic.subst_e]] *)
@@ -133,15 +133,15 @@ let apply_equivalences equivs any =
 
   equivs |> List.iter (fun {Eq. left; op; right; _ } ->
     match left, op, right with
-    | E l, Eq.Equiv, E r -> 
+    | E l, Eq.Equiv, E r ->
           Common.push (l, r) expr_rules;
           Common.push (r, l) expr_rules;
-    | E l, Eq.Imply, E r -> 
+    | E l, Eq.Imply, E r ->
           Common.push (l, r) expr_rules;
-    | S l, Eq.Equiv, S r -> 
+    | S l, Eq.Equiv, S r ->
           Common.push (l, r) stmt_rules;
           Common.push (r, l) stmt_rules;
-    | S l, Eq.Imply, S r -> 
+    | S l, Eq.Imply, S r ->
           Common.push (l, r) stmt_rules;
     | _ -> failwith "only expr and stmt equivalence patterns are supported"
   );
@@ -150,13 +150,13 @@ let apply_equivalences equivs any =
   let _stmt_rulesTODO = List.rev !stmt_rules in
 
   let visitor = M.mk_visitor { M.default_visitor with
-    M.kexpr = (fun (k, _) x -> 
+    M.kexpr = (fun (k, _) x ->
        (* transform the children *)
        let x' = k x in
 
        let rec aux xs =
          match xs with
-         | [] -> x' 
+         | [] -> x'
          | (l, r)::xs ->
            (* look for a match on original x, not x' *)
            let matches_with_env = match_e_e_for_equivalences l x in
@@ -194,7 +194,7 @@ let check2 ~hook rules equivs file lang ast =
 
   let matches = ref [] in
 
-  (* rewrite code, e.g., A != B is rewritten as !(A == B) 
+  (* rewrite code, e.g., A != B is rewritten as !(A == B)
    * update: this is less necessary once you have user-defined
    * code equivalences (see Equivalence.ml).
    *)
@@ -224,7 +224,7 @@ let check2 ~hook rules equivs file lang ast =
       (* this could be quite slow ... we match many sgrep patterns
        * against an expression recursively
        *)
-      !expr_rules |> List.iter (fun (pattern, rule) -> 
+      !expr_rules |> List.iter (fun (pattern, rule) ->
          let matches_with_env = match_e_e pattern x in
          if matches_with_env <> []
          then (* Found a match *)
@@ -242,7 +242,7 @@ let check2 ~hook rules equivs file lang ast =
     (*x: [[Semgrep_generic.check2()]] visitor fields *)
     (* mostly copy paste of expr code but with the _st functions *)
     V.kstmt = (fun (k, _) x ->
-      !stmt_rules |> List.iter (fun (pattern, rule) -> 
+      !stmt_rules |> List.iter (fun (pattern, rule) ->
          let matches_with_env = match_st_st pattern x in
          if matches_with_env <> []
          then (* Found a match *)
@@ -262,7 +262,7 @@ let check2 ~hook rules equivs file lang ast =
        * the pattern will filter lots of sequences so we need to do
        * the heavy stuff (e.g., handling '...' between statements) rarely.
        *)
-      !stmts_rules |> List.iter (fun (pattern, rule) -> 
+      !stmts_rules |> List.iter (fun (pattern, rule) ->
          let matches_with_env = match_sts_sts pattern x in
          if matches_with_env <> []
          then (* Found a match *)

@@ -15,26 +15,26 @@ module R = Refactoring_code
 (*****************************************************************************)
 (* Purpose *)
 (*****************************************************************************)
-(* 
+(*
  * A syntactical patch. https://github.com/facebook/pfff/wiki/Spatch
- * Right now there is support for PHP, C/C++/ObjectiveC, OCaml, Java, and 
+ * Right now there is support for PHP, C/C++/ObjectiveC, OCaml, Java, and
  * Javascript.
- * 
+ *
  * opti: git grep xxx | xargs spatch -e 's/foo()/bar()/'
- * 
- * 
- * Alternatives: 
- *  - you could also just write a sgrep that put a special mark to the 
- *    place where it matched and then do the transformation using an 
+ *
+ *
+ * Alternatives:
+ *  - you could also just write a sgrep that put a special mark to the
+ *    place where it matched and then do the transformation using an
  *    emacs macro leveraging those marks.
- * 
+ *
  * history:
  *  - coccinelle for C
  *  - expression restricted spatch for PHP
  *  - generalized spatch for PHP, C++, and other using ast_fuzzy parsing
  *    technique, see h_program-lang/ast_fuzzy.ml top comment
- * 
- * related: 
+ *
+ * related:
  *  - sed, perl, codemod
  *  - http://www.jetbrains.com/idea/documentation/ssr.html
  *  - go has a replace option in its formating tool http://golang.org/cmd/gofmt/
@@ -71,23 +71,23 @@ let action = ref ""
 (*****************************************************************************)
 (* Wrappers *)
 (*****************************************************************************)
-let pr2 s = 
+let pr2 s =
   if !verbose then Common.pr2 s
 
 (*****************************************************************************)
 (* Language specific *)
 (*****************************************************************************)
- 
+
 let parse_pattern file =
   match Lang_fuzzy.lang_of_string_opt !lang with
   | Some lang ->
-      Right (Spatch_fuzzy.parse 
+      Right (Spatch_fuzzy.parse
                 ~pattern_of_string:(Parse_fuzzy.parse_pattern lang)
                 ~ii_of_pattern:Lib_ast_fuzzy.toks_of_trees
                 file)
   | None ->
     (match !lang with
-    | "php" -> 
+    | "php" ->
         raise Todo
 (*        Left (Spatch_php.parse file) *)
     | _ -> failwith ("unsupported language for the pattern: " ^ !lang)
@@ -97,7 +97,7 @@ let spatch pattern file =
  try (
   match Lang_fuzzy.lang_of_string_opt !lang, pattern with
   | Some lang, Right pattern ->
-     let trees, toks = Parse_fuzzy.parse_and_tokens_with_lang lang file in 
+     let trees, toks = Parse_fuzzy.parse_and_tokens_with_lang lang file in
      let was_modified = Spatch_fuzzy.spatch pattern trees in
      if was_modified
      then Some (Lib_unparser.string_of_toks_using_transfo toks)
@@ -105,9 +105,9 @@ let spatch pattern file =
 
   | None, Left _pattern ->
     (match !lang with
-    | "php" -> 
+    | "php" ->
 (*
-      (try 
+      (try
         Spatch_php.spatch ~case_sensitive:!case_sensitive pattern file
       with Parse_php.Parse_error tok ->
         failwith ("PARSING PB: " ^ Parse_info.error_message_info tok);
@@ -127,7 +127,7 @@ let spatch pattern file =
 (*****************************************************************************)
 
 let main_action xs =
-  let spatch_file = 
+  let spatch_file =
     match !spatch_file, !sed_string with
     | "", "" ->
       failwith "I need a semantic patch file; use -f"
@@ -141,14 +141,14 @@ let main_action xs =
           let tmpfile = Common.new_temp_file "spatch" ".spatch" in
           Common.with_open_outfile tmpfile (fun (pr, _chan) ->
             pr (spf "- %s\n" before);
-            if after <> "" 
+            if after <> ""
             then pr (spf "+ %s\n" after);
           );
           tmpfile
-        end 
+        end
         else failwith ("wrong format, use s/.../.../ not: " ^ s)
     | _s, "" ->
-        !spatch_file 
+        !spatch_file
     | _s1, _s2 ->
         failwith "Can't use -f and -e at the same time"
   in
@@ -157,7 +157,7 @@ let main_action xs =
   let files =
     Find_source.files_of_dir_or_files ~lang:!lang xs in
 
-  files |> Console.progress ~show:!verbose (fun k -> 
+  files |> Console.progress ~show:!verbose (fun k ->
    List.iter (fun file->
     k();
     let resopt = spatch pattern file in
@@ -173,10 +173,10 @@ let main_action xs =
 Unparse_pretty_print_mix.pretty_print_when_need_it
              ~oldfile:file ~newfile:tmpfile;
 *)
-      
+
       let diff = Common2.unix_diff file tmpfile in
       diff |> List.iter pr;
-      if !apply_patch 
+      if !apply_patch
       then Common.write_file ~file:file (Common.read_file tmpfile);
     )
   ))
@@ -214,7 +214,7 @@ let apply_transfo transfo xs =
     pr2 (spf "processing: %s" file);
     k();
 
-    let worth_trying = 
+    let worth_trying =
       match transfo.grep_keywords with
       | None -> true
       | Some xs -> Common2.contain_any_token_with_egrep xs file
@@ -222,8 +222,8 @@ let apply_transfo transfo xs =
     if not worth_trying then ()
     else
     try (
-    let (ast, toks) = 
-      try 
+    let (ast, toks) =
+      try
         Parse_php.parse file |> fst
       with Parse_info.Parsing_error _err ->
         Common.pr2 (spf "warning: parsing problem in %s" file);
@@ -231,24 +231,24 @@ let apply_transfo transfo xs =
     in
     let was_modified = transfo.trans_func ast in
 
-    (* old: 
-     * let patch = Patch.generate_patch !edition_cmds 
+    (* old:
+     * let patch = Patch.generate_patch !edition_cmds
      * ~filename_in_project:file file in
      * patch +> List.iter pr
      *)
 
-    if was_modified then begin 
-      let s = 
-        Unparse_php.string_of_program_with_comments_using_transfo (ast, toks) 
+    if was_modified then begin
+      let s =
+        Unparse_php.string_of_program_with_comments_using_transfo (ast, toks)
       in
-    
+
       let tmpfile = Common.new_temp_file "trans" ".php" in
       Common.write_file ~file:tmpfile s;
-      
+
       let diff = Common2.unix_diff file tmpfile in
       diff |> List.iter pr;
 
-      if !apply_patch 
+      if !apply_patch
       then Common.write_file ~file:file s;
     end
     ) with exn ->
@@ -258,17 +258,17 @@ let apply_transfo transfo xs =
 
 let apply_refactoring _refactoring file =
   let _ast_and_toks, _ = Parse_php.parse file in
-  let s = 
+  let s =
   (*  Refactoring_code_php.refactor [refactoring] ast_and_toks  *) raise Todo
   in
   let tmpfile = Common.new_temp_file "trans" ".spatch" in
   Common.write_file ~file:tmpfile s;
   let diff = Common2.unix_diff file tmpfile in
   diff |> List.iter pr;
-  if !apply_patch 
+  if !apply_patch
   then Common.write_file ~file:file (Common.read_file tmpfile);
   ()
-  
+
 (*****************************************************************************)
 (* Extra actions *)
 (*****************************************************************************)
@@ -281,7 +281,7 @@ module V = Visitor_php
 (* -------------------------------------------------------------------------*)
 
 (* see also demos/simple_refactoring.ml *)
-let simple_transfo xs = 
+let simple_transfo xs =
 
   let files = Lib_parsing_php.find_source_files_of_dir_or_files xs in
 
@@ -297,7 +297,7 @@ let simple_transfo xs =
         match x with
         | Call(Id(XName[QI (Name ("foo", info_foo))]), (_, _args, _)) ->
             pr2 "found match";
-            
+
             let ii = Lib_parsing_php.ii_of_any (Expr x) in
             ii |> List.iter (fun info ->
               info.transfo <- Remove
@@ -310,12 +310,12 @@ let simple_transfo xs =
     in
     (Visitor_php.mk_visitor hook) (Program ast);
 
-    let s = 
+    let s =
       Unparse_php.string_of_program_with_comments_using_transfo (ast, toks) in
-    
+
     let tmpfile = Common.new_temp_file "trans" ".php" in
     Common.write_file ~file:tmpfile s;
-    
+
     let diff = Common2.unix_diff file tmpfile in
     diff |> List.iter pr;
   );
@@ -323,10 +323,10 @@ let simple_transfo xs =
 (* -------------------------------------------------------------------------*)
 (* Trailing comma transformation *)
 (* -------------------------------------------------------------------------*)
-let all_different xs = 
+let all_different xs =
   List.length xs = (xs |> Common.sort |> Common2.uniq |> List.length)
 
-(* todo: 
+(* todo:
  * - julien thinks we should transform even if some commas
  *   are on the same line, as long as the last ')' is on a different line.
  * - we should also transform function decl and use() lists.
@@ -337,7 +337,7 @@ let add_trailing_comma_multiline_funcalls ast =
     V.karguments = (fun (k, _) (lp, args, rp) ->
       if List.length args >= 1 then begin
         let (args, commas) = Common.partition_either (fun x -> x) args in
-        let lines_commas = 
+        let lines_commas =
           commas |> List.map Parse_info.line_of_info
         in
         let line_rp = Parse_info.line_of_info rp in
@@ -347,7 +347,7 @@ let add_trailing_comma_multiline_funcalls ast =
           Parse_info.min_max_ii_by_pos ii in
         let line_last_expr = Parse_info.line_of_info max in
 
-        if List.length args > 2 && 
+        if List.length args > 2 &&
           all_different (line_last_expr::line_rp::lines_commas) then
           begin
             max.transfo <- AddAfter (AddStr ",");
@@ -372,11 +372,11 @@ let trailing_comma_transfo = {
 
 (*
  * The transformation below can be encoded via this syntactical patch:
- * 
+ *
  * <ui:section-header
  * -   border=X
  * ></ui:section-header>
- * 
+ *
  * There are nevertheless currenty a few limitations in spatch which
  * will cause this syntactical patch to fail to transform all the
  * relevant code (e.g. because of some XHP isomorphisms not yet
@@ -388,7 +388,7 @@ let trailing_comma_transfo = {
 let remove_border_attribute ast =
   let was_modified = ref false in
 
-  (* $ ./pfff -dump_php_ml tests/php/spatch/border_var.php 
+  (* $ ./pfff -dump_php_ml tests/php/spatch/border_var.php
    *
    * [StmtList(
    *  [ExprStmt(
@@ -441,10 +441,10 @@ let remove_border_attribute_transfo = {
 (* Add action attribute to <ui:form> *)
 (* -------------------------------------------------------------------------*)
 
-(* 
+(*
  * Here is the spatch (disjunction are currently not supported in spatch
  * so have to do things manually):
- * 
+ *
  *   <ui:form
  * (
  *  action=...
@@ -452,27 +452,27 @@ let remove_border_attribute_transfo = {
  *  + action="#"
  * )
  *  >
- * 
+ *
  * todo: maybe we could generalize this transformation and add to
- * spatch some command lines like: 
+ * spatch some command lines like:
  *  *  -add_xhp_attribute_if_not_there "ui:form" "action='#'"
  *  *  -remove_xhp_attribute "ui:form" "border"
  * a la lex-pass. Or maybe it's better to add support in the DSL directly
  * so one can write the syntactical patch above.
  *)
-let add_action_ui_form_transfo_func ast = 
+let add_action_ui_form_transfo_func ast =
   let was_modified = ref false in
   let visitor = V.mk_visitor { V.default_visitor with
     V.kxhp_html = (fun (k, _) xhp ->
       (* mostly copy paste of: pfff -dump_php tests/.../ui_form.php *)
       match xhp with
       | XhpSingleton((["ui"; "form"], info_tag), attributes, _)
-      | Xhp ((["ui"; "form"], info_tag), attributes, _, _, _) 
+      | Xhp ((["ui"; "form"], info_tag), attributes, _, _, _)
         ->
-          if not (attributes |> 
+          if not (attributes |>
                   List.exists (fun ((attr_name,_), _tok, _attr_val) ->
                     attr_name = "action"
-          )) 
+          ))
           then begin
             was_modified := true;
             info_tag.PI.transfo <- PI.AddAfter (PI.AddStr " action=\"#\"");
@@ -498,7 +498,7 @@ let test_pp file =
   let _tokens = Parse_php.tokens file in
   let _ast = Parse_php.parse_program file in
 
-  let _ast = 
+  let _ast =
     (*Ast_pp_build.program_with_comments tokens ast  *) raise Todo
   in
 
@@ -525,10 +525,10 @@ let juju_refactoring spec_file =
    * before unparsing as the refactoring spec use line/col position
    * that refers to the original file
    *)
-  let xxs = 
-    xs |> List.map (fun x -> 
+  let xxs =
+    xs |> List.map (fun x ->
       match x with
-      | (_a, Some pos) -> 
+      | (_a, Some pos) ->
         pos.Refactoring_code.file, x
       | _ -> failwith "no file position"
     )
@@ -536,7 +536,7 @@ let juju_refactoring spec_file =
   in
   xxs |> List.iter (fun (file, _refactorings) ->
     let (_ast2, _stat) = Parse_php.parse file in
-    let s = 
+    let s =
     (*  Refactoring_code_php.refactor refactorings ast2  *) raise Todo
     in
 
@@ -546,10 +546,10 @@ let juju_refactoring spec_file =
     if !pretty_printer
     then (* Unparse_pretty_print_mix.pretty_print_when_need_it
       ~oldfile:file ~newfile:tmpfile; *) raise Todo;
-      
+
     let diff = Common2.unix_diff file tmpfile in
     diff |> List.iter pr;
-    if !apply_patch 
+    if !apply_patch
     then Common.write_file ~file:file (Common.read_file tmpfile);
   );
   ()
@@ -567,13 +567,13 @@ let case_refactoring pfff_log =
   let simple_rename =
     xs |> Common.map_filter (fun s ->
    (*ex: CASE SENSITIVITY: SmsConst instead of SMSConst at /path/file:176:18 *)
-      if s =~ 
+      if s =~
         ("CASE SENSITIVITY: \\([A-Za-z_0-9\\.]+\\) " ^
          "instead of \\([A-Za-z_0-9\\.]+\\) " ^
          "at \\([^:]+\\):\\([0-9]+\\):\\([0-9]+\\)")
       then
         let (actual, expected, file, line, col) = Common.matched5 s in
-        if file =~ 
+        if file =~
           (match 0 with
           | 0 -> ".*/www-git/"
           | 1 -> ".*/www-git/\\(lib\\|scripts\\|tests\\)/*"
@@ -595,8 +595,8 @@ let case_refactoring pfff_log =
     (match xs, ys with
     | [a1], [b1]  ->
       pr2_gen actual;
-      Common.command2 (spf 
-        "%s/spatch -lang phpfuzzy --apply-patch -e 's/%s/%s/' %s" 
+      Common.command2 (spf
+        "%s/spatch -lang phpfuzzy --apply-patch -e 's/%s/%s/' %s"
         Config_pfff.path
         a1 b1 file);
     | [a1;_a2], [b1;_b2] when a1 <> b1 ->
@@ -606,20 +606,20 @@ let case_refactoring pfff_log =
        * uppercased a URL (see D867035). So use spatch, safer.
        *)
       pr2_gen actual;
-      Common.command2 (spf 
-        "%s/spatch -lang phpfuzzy --apply-patch -e 's/%s/%s/' %s" 
+      Common.command2 (spf
+        "%s/spatch -lang phpfuzzy --apply-patch -e 's/%s/%s/' %s"
         Config_pfff.path
         a1 b1 file);
       ()
     | [a1;a2], [b1;b2] when a1 = b1 && a2 <> b2 ->
-      Common.command2 (spf 
-        "%s/spatch -lang phpfuzzy --apply-patch -e 's/%s/%s/' %s" 
+      Common.command2 (spf
+        "%s/spatch -lang phpfuzzy --apply-patch -e 's/%s/%s/' %s"
         Config_pfff.path
         a2 b2 file);
 
     | _ ->
       ()
-     
+
   )
   )
 
@@ -638,7 +638,7 @@ let remove_undefined_xhp_field (xhp_class_str, field) ast=
           when (xhp_class_str = string_of_xhp_tag xhp_class) ->
         attributes |> List.iter (fun attr ->
           match attr with
-          | ((s, _), _, _) when (s = field) ->              
+          | ((s, _), _, _) when (s = field) ->
             let ii = Lib_parsing_php.ii_of_any (XhpAttribute attr) in
             ii |> List.iter (fun info ->
               info.transfo <- Remove
@@ -658,7 +658,7 @@ let read_log_undefined_xhp_field pfff_log =
   let undefined_xhp_field =
     xs |> Common.map_filter (fun s ->
       (* PB: lookup fail on Field:<x:misc>.xnosuchstr= (at xhp_use.php:9) *)
-      if s =~ 
+      if s =~
         ("PB: lookup fail on Field:\\(<[A-Za-z_0-9:-]+>\\)\\." ^
             "\\([A-Za-z_0-9-]+\\)= " ^
             "(at \\([^:]+\\):\\([0-9]+\\))")
@@ -673,7 +673,7 @@ let read_log_undefined_xhp_field pfff_log =
       let transfo ={
         trans_func = remove_undefined_xhp_field (xhp_class_str, field);
         grep_keywords = None;
-      } in      
+      } in
       apply_transfo transfo [filename]
     )
 
@@ -711,7 +711,7 @@ let array_to_int_array_ptc logfile =
       apply_transfo (array_to_int_array_transfo line replacment) [file]
     else failwith (spf "wrong format, expect a string * int: %s" s)
   )
-    
+
 (*---------------------------------------------------------------------------*)
 (* regression testing *)
 (*---------------------------------------------------------------------------*)
@@ -764,7 +764,7 @@ let spatch_extra_actions () = [
   "-add_interface", " <class>:<interface> <file>",
   Common.mk_action_2_arg (fun str file ->
     if str =~ "\\(.*\\):\\(.*\\)"
-    then 
+    then
       let (classname, interface) = Common.matched2 str in
       let refactoring = R.AddInterface (Some classname, interface), None in
       apply_refactoring refactoring file
@@ -773,7 +773,7 @@ let spatch_extra_actions () = [
   "-remove_interface", " <class>:<interface> <file>",
   Common.mk_action_2_arg (fun str file ->
     if str =~ "\\(.*\\):\\(.*\\)"
-    then 
+    then
       let (classname, interface) = Common.matched2 str in
       let refactoring = R.RemoveInterface (Some classname, interface), None in
       apply_refactoring refactoring file;
@@ -794,26 +794,26 @@ let spatch_extra_actions () = [
 (* The options *)
 (*****************************************************************************)
 
-let all_actions () = 
+let all_actions () =
  spatch_extra_actions()@
  []
 
-let options () = 
+let options () =
   [
-    "-lang", Arg.Set_string lang, 
+    "-lang", Arg.Set_string lang,
     (spf " <str> choose language (default = %s)" !lang);
 
-    "-f", Arg.Set_string spatch_file, 
+    "-f", Arg.Set_string spatch_file,
     " <spatch_file>";
     "-e", Arg.Set_string sed_string,
     " <s/before/after/>, sed mode";
 
     "--apply-patch", Arg.Set apply_patch,
     " ";
-    "--pretty-printer", Arg.Set pretty_printer, 
+    "--pretty-printer", Arg.Set pretty_printer,
     " reindent the modified code (fragile)";
 
-    "--case-sensitive", Arg.Set case_sensitive, 
+    "--case-sensitive", Arg.Set case_sensitive,
     " match code in a case sensitive manner\n";
 
   ] @
@@ -821,14 +821,14 @@ let options () =
   Common.options_of_actions action (all_actions()) @
   Common2.cmdline_flags_devel () @
   [
-    "--verbose", Arg.Set verbose, 
+    "--verbose", Arg.Set verbose,
     " ";
-    "-v", Arg.Set verbose, 
+    "-v", Arg.Set verbose,
     " shortcut for --verbose";
-    "-version",   Arg.Unit (fun () -> 
+    "-version",   Arg.Unit (fun () ->
       Common.pr2 (spf "spatch version: %s" Config_pfff.version);
       exit 0;
-    ), 
+    ),
     "  guess what";
   ]
 
@@ -836,9 +836,9 @@ let options () =
 (* Main entry point *)
 (*****************************************************************************)
 
-let main () = 
+let main () =
 
-  let usage_msg = 
+  let usage_msg =
     spf "Usage: %s [options] <file or dir> \nDoc: %s\nOptions:"
       (Common2.basename Sys.argv.(0))
       "https://github.com/facebook/pfff/wiki/Spatch"
@@ -847,35 +847,35 @@ let main () =
   let args = Common.parse_options (options()) usage_msg Sys.argv in
 
   (* must be done after Arg.parse, because Common.profile is set by it *)
-  Common.profile_code "Main total" (fun () -> 
+  Common.profile_code "Main total" (fun () ->
 
     (match args with
-   
+
     (* --------------------------------------------------------- *)
     (* actions, useful to debug subpart *)
     (* --------------------------------------------------------- *)
-    | xs when List.mem !action (Common.action_list (all_actions())) -> 
+    | xs when List.mem !action (Common.action_list (all_actions())) ->
         Common.do_action !action xs (all_actions())
 
-    | _ when not (Common.null_string !action) -> 
+    | _ when not (Common.null_string !action) ->
         failwith ("unrecognized action or wrong params: " ^ !action)
 
     (* --------------------------------------------------------- *)
     (* main entry *)
     (* --------------------------------------------------------- *)
-    | x::xs -> 
+    | x::xs ->
         main_action (x::xs)
 
     (* --------------------------------------------------------- *)
     (* empty entry *)
     (* --------------------------------------------------------- *)
-    | [] -> 
+    | [] ->
         Common.usage usage_msg (options())
     )
   )
 
 (*****************************************************************************)
 let _ =
-  Common.main_boilerplate (fun () -> 
+  Common.main_boilerplate (fun () ->
       main ();
   )

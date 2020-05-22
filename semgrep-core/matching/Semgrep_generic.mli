@@ -1,7 +1,7 @@
 (*s: semgrep/matching/Semgrep_generic.mli *)
 
 (*s: signature [[Semgrep_generic.check]] *)
-val check: 
+val check:
   hook:(Metavars_generic.metavars_binding -> Parse_info.t list Lazy.t -> unit)
   ->
   Rule.rules ->

@@ -13,20 +13,20 @@ let unittest ~any_gen_of_string =
     (* spec: pattern string, code string, should_match boolean *)
     let triples = [
       (* right now any_gen_of_string use the Python sgrep_spatch_pattern
-       * parser so the syntax below must be valid Python code  
+       * parser so the syntax below must be valid Python code
        *)
 
       (* ------------ *)
-      (* spacing *)  
+      (* spacing *)
       (* ------------ *)
-   
+
       (* basic string-match of course *)
       "foo(1,2)", "foo(1,2)", true;
       "foo(1,3)", "foo(1,2)", false;
 
       (* matches even when space or newline differs *)
       "foo(1,2)", "foo(1,     2)", true;
-      "foo(1,2)", "foo(1,     
+      "foo(1,2)", "foo(1,
                         2)", true;
       (* matches even when have comments in the middle *)
       "foo(1,2)", "foo(1, #foo
@@ -141,7 +141,7 @@ let unittest ~any_gen_of_string =
     ]
     in
     triples |> List.iter (fun (spattern, scode, should_match) ->
-     try 
+     try
       let pattern = any_gen_of_string spattern in
       let code    = any_gen_of_string scode in
       let matches_with_env = Semgrep_generic.match_any_any pattern code in
@@ -153,7 +153,7 @@ let unittest ~any_gen_of_string =
         assert_bool (spf "pattern:|%s| should not match |%s" spattern scode)
           (matches_with_env = [])
      with
-      Parsing.Parse_error -> 
+      Parsing.Parse_error ->
               failwith (spf "problem parsing %s or %s" spattern scode)
     )
   )
