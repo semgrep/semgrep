@@ -6,7 +6,7 @@
  * modify it under the terms of the GNU Lesser General Public License
  * version 2.1 as published by the Free Software Foundation, with the
  * special exception on linking described in file license.txt.
- * 
+ *
  * This library is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
@@ -23,21 +23,21 @@ module V = Lib_ast_fuzzy
 (*****************************************************************************)
 (*
  * See https://github.com/facebook/pfff/wiki/Spatch
- * 
+ *
  * Here is an example of a spatch file:
- * 
- *    foo(2, 
+ *
+ *    foo(2,
  * -      bar(2)
  * +      foobar(4)
  *       )
- * 
+ *
  * This will replace all calls to bar(2) by foobar(4) when
  * the function call is the second argument of a call to
  * foo where its first argument is 2.
- * 
- * 
+ *
+ *
  * note: can we produce syntactically incorrect code? Yes ...
- * 
+ *
  * less: mostly copy paste of spatch_php.ml
  *)
 
@@ -47,7 +47,7 @@ module V = Lib_ast_fuzzy
 
 type pattern = Ast_fuzzy.trees
 
-type line_kind = 
+type line_kind =
   | Context
   | Plus of string
   | Minus
@@ -60,19 +60,19 @@ type line_kind =
 (* Parsing *)
 (*****************************************************************************)
 
-(* 
+(*
  * Algorithm to parse a spatch file:
  *  - take lines of the file, index the lines
  *  - replace the + lines by an empty line and remember in a line_env
  *    the line and its index
  *  - remove the - in the first column and remember in a line_env
  *    that is was a minus line
- *  - unlines the filtered lines into a new string 
+ *  - unlines the filtered lines into a new string
  *  - call the parser on this new string
  *  - go through all tokens and adjust its transfo field using the
  *    information in line_env
  *)
-let parse 
+let parse
   ~pattern_of_string
   ~ii_of_pattern
   file =
@@ -87,7 +87,7 @@ let parse
      * add the correct amount of indentation when it's processing
      * a token.
      *)
-    | _ when s =~ "^\\+[ \t]*\\(.*\\)" -> 
+    | _ when s =~ "^\\+[ \t]*\\(.*\\)" ->
         let rest_line = Common.matched1 s in
         Hashtbl.add hline_env lineno (Plus rest_line);
         ""
@@ -108,7 +108,7 @@ let parse
   (* need adjust the tokens in it now *)
   let toks = ii_of_pattern pattern in
 
-  (* adjust with Minus info *)  
+  (* adjust with Minus info *)
   toks |> List.iter (fun tok ->
     let line = PI.line_of_info tok in
 
@@ -116,7 +116,7 @@ let parse
     (match annot with
     | Context -> ()
     | Minus -> tok.PI.transfo <- PI.Remove;
-    | Plus _ -> 
+    | Plus _ ->
         (* normally impossible since we removed the elements in the
          * plus line, except the newline. should assert it's only newline
          *)
@@ -134,7 +134,7 @@ let parse
    * The preceding and next line could also be a minus line itself.
    * Also it could be possible to have multiple + line in which
    * case we want to concatenate them together.
-   * 
+   *
    * TODO: for now I just associate it with the previous line ...
    * what if the spatch is:
    *   + foo();
@@ -142,9 +142,9 @@ let parse
    * then there is no previous line ...
    *)
 
-  let grouped_by_lines = 
+  let grouped_by_lines =
     toks |> Common.group_by_mapped_key (fun tok -> PI.line_of_info tok) in
-  let rec aux xs = 
+  let rec aux xs =
     match xs with
     | (line, toks_at_line)::rest ->
 
@@ -152,8 +152,8 @@ let parse
          * on this line
          *)
         (match Common2.hfind_option (line+1) hline_env with
-        | None -> 
-            (* probably because was last line *) 
+        | None ->
+            (* probably because was last line *)
             ()
         | Some (Plus toadd) ->
             (* todo? what if there is no token on this line ? *)
@@ -165,7 +165,7 @@ let parse
               | ";" -> "\n" ^ toadd
               | _ -> toadd
             in
-              
+
             (match last_tok.PI.transfo with
             | Remove -> last_tok.PI.transfo <- Replace (AddStr toadd)
             | NoTransfo -> last_tok.PI.transfo <- AddAfter (AddStr toadd)
@@ -221,7 +221,7 @@ let spatch pattern ast =
             k rest
           end
         end
-        else 
+        else
           (* at least recurse *)
           k xs
       );
@@ -229,5 +229,3 @@ let spatch pattern ast =
   in
   (V.mk_visitor hook) ast;
   !was_modifed
-
-

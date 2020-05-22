@@ -3,21 +3,21 @@
 (* Ast_fuzzy vs Ast_fuzzy *)
 (*****************************************************************************)
 
-module type PARAM = 
-  sig 
+module type PARAM =
+  sig
     type tin
     type 'x tout
 
     type ('a, 'b) matcher = 'a -> 'b  -> tin -> ('a * 'b) tout
 
-    val (>>=): 
-      (tin -> ('a * 'b) tout)  -> 
-      ('a * 'b -> (tin -> ('c * 'd) tout)) -> 
+    val (>>=):
+      (tin -> ('a * 'b) tout)  ->
+      ('a * 'b -> (tin -> ('c * 'd) tout)) ->
       (tin -> ('c * 'd) tout)
 
-    val (>||>) : 
+    val (>||>) :
       (tin -> 'x tout) ->
-      (tin -> 'x tout) -> 
+      (tin -> 'x tout) ->
       (tin -> 'x tout)
 
     (* The classical monad combinators *)
@@ -45,7 +45,7 @@ module type PARAM =
 (*****************************************************************************)
 
 module X_VS_X :
-  functor (X : PARAM) -> 
+  functor (X : PARAM) ->
     sig
       type ('a, 'b) matcher = 'a -> 'b -> X.tin -> ('a * 'b) X.tout
 

@@ -25,7 +25,7 @@ open Parse_rules (* for the exns *)
 (*****************************************************************************)
 
 (*s: function [[Parse_tainting_rules.parse_patterns]] *)
-let parse_patterns ~id ~lang xs = 
+let parse_patterns ~id ~lang xs =
   xs |> List.map (function
    | `String s -> Parse_rules.parse_pattern ~id ~lang s
    | x ->
@@ -71,32 +71,32 @@ let parse file =
 
             (* ugly: use sort so id/languages are before the source/sink/...
              * which need an id and lang set
-             *) 
+             *)
              xs |> Common.sort_by_key_lowfirst |> List.iter (fun x ->
                match x with
-               | "id", `String s -> 
+               | "id", `String s ->
                   id := Some s
                | "languages", `A langs ->
-                  let a, b = 
+                  let a, b =
                      Parse_rules.parse_languages ~id:(current_id()) langs
                   in
                   languages := Some a;
                   lang := Some b;
-               | "message", `String s -> 
+               | "message", `String s ->
                   message := s
-               | "severity", `String s -> 
-                  severity := Some 
+               | "severity", `String s ->
+                  severity := Some
                       (Parse_rules.parse_severity ~id:(current_id()) s)
                | "pattern-sources", `A xs ->
-                  sources := parse_patterns 
+                  sources := parse_patterns
                               ~id:(current_id()) ~lang:(current_lang()) xs
                | "pattern-sinks", `A xs ->
-                  sinks := parse_patterns 
+                  sinks := parse_patterns
                               ~id:(current_id()) ~lang:(current_lang()) xs
                | "pattern-sanitizers", `A xs ->
-                  sanitizers := parse_patterns 
+                  sanitizers := parse_patterns
                               ~id:(current_id()) ~lang:(current_lang()) xs
-               | x -> 
+               | x ->
                  pr2_gen x;
                  raise (InvalidYamlException "wrong rule field")
 
@@ -109,11 +109,11 @@ let parse file =
              let severity = match !severity with Some x -> x | None ->
                           raise Todo in
              let source = match !sources with _::_ -> !sources | [] ->
-                    raise Todo in 
+                    raise Todo in
              let sink = match !sinks with _::_ -> !sinks | [] ->
                     raise Todo in
              let sanitizer = !sanitizers in
-             { R.id; message; languages; severity; 
+             { R.id; message; languages; severity;
                 source; sink; sanitizer }
 
           | x ->

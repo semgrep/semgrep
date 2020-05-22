@@ -21,8 +21,8 @@ module R = Rule
 (* Prelude *)
 (*****************************************************************************)
 (* This is a spin-off of Rule.ml but specialized for tainting analysis.
- * 
- * At some point we may want tainting to be integrated and queryable 
+ *
+ * At some point we may want tainting to be integrated and queryable
  * directly from regular semgrep rules, but for now it's simpler
  * to have a specialized type and format.
  *)
@@ -42,7 +42,7 @@ type rule = {
   id: string;
 
   (* the list below are used to express disjunction *)
-  source: pattern list; 
+  source: pattern list;
   sanitizer: pattern list;
   sink: pattern list;
 

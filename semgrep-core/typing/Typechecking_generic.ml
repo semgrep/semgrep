@@ -22,7 +22,7 @@ open AST_generic
 (*****************************************************************************)
 (* Poor's man typechecker on literals (for now).
  *
- * todo: 
+ * todo:
  *  - local type inference on AST generic? good coverage?
  *  - we could allow metavars on the type itself, as in
  *    foo($X: $T) ... $T x; ...

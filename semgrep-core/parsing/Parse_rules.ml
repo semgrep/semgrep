@@ -39,7 +39,7 @@ exception InvalidYamlException of string
 
 (*s: function [[Parse_rules.parse_severity]] *)
 (* also used in Parse_tainting_rules.ml *)
-let parse_severity ~id s = 
+let parse_severity ~id s =
   match s with
  | "ERROR" -> R.Error
  | "WARNING" -> R.Warning
@@ -52,12 +52,12 @@ let parse_pattern ~id ~lang pattern =
   (* todo? call Normalize_ast.normalize here? *)
   try Check_semgrep.parse_check_pattern lang pattern
   with exn ->
-   raise (InvalidPatternException (id, pattern, (Lang.string_of_lang lang), 
+   raise (InvalidPatternException (id, pattern, (Lang.string_of_lang lang),
           (Common.exn_to_s exn)))
 (*e: function [[Parse_rules.parse_pattern]] *)
 
 (*s: function [[Parse_rules.parse_languages]] *)
-let parse_languages ~id langs = 
+let parse_languages ~id langs =
   let languages = langs |> List.map (function
     | `String s ->
       (match Lang.lang_of_string_opt s with
@@ -65,7 +65,7 @@ let parse_languages ~id langs =
       | Some l -> l
       )
     | _ -> raise (InvalidRuleException (id, (spf "expecting a string for languages")))
-   ) 
+   )
   in
   let lang =
     match languages with

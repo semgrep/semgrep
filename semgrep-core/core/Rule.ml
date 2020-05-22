@@ -50,7 +50,7 @@ type rule = {
 (*s: type [[Rule.rules]] *)
  and rules = rule list
 (*e: type [[Rule.rules]] *)
- 
+
 (* TODO? just reuse Error_code.severity *)
 (*s: type [[Rule.severity]] *)
  and severity = Error | Warning | Info

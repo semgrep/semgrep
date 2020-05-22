@@ -34,7 +34,7 @@ let tok_pos_equal_refactor_pos tok refactoring_opt =
   | Some refactoring ->
     PI.line_of_info tok = refactoring.R.line &&
     PI.col_of_info tok = refactoring.R.col
-  
+
 let string_of_class_var_modifier modifiers =
   match modifiers with
   | NoModifiers _ -> "var"
@@ -50,7 +50,7 @@ let last_token_classes classnames =
     let any = Cst_php.Hint2 classname in
     let toks = Lib_parsing_php.ii_of_any any in
     Common2.list_last toks
-      
+
 (*****************************************************************************)
 (* Main entry point *)
 (*****************************************************************************)
@@ -227,22 +227,22 @@ let refactor refactorings (ast, tokens) =
                 failwith "no interface to remove"
               | Some (tok, interfaces) ->
                 (match interfaces with
-                | [Left classname] 
+                | [Left classname]
                   when Ast.str_of_class_name classname =$= interface ->
                   tok.PI.transfo <- PI.Remove;
-                  (Hint2 classname) 
-                  |> Lib_parsing_php.ii_of_any 
+                  (Hint2 classname)
+                  |> Lib_parsing_php.ii_of_any
                   |> List.iter (fun tok -> tok.PI.transfo <- PI.Remove);
                   was_modifed := true;
                 | xs ->
-                  let rec aux xs = 
+                  let rec aux xs =
                     match xs with
                     | [] -> failwith "no interface to remove"
-                    | Left classname::Right comma::_rest 
+                    | Left classname::Right comma::_rest
                     | Right comma::Left classname::_rest
                       when Ast.str_of_class_name classname =$= interface ->
-                        (Hint2 classname) 
-                        |> Lib_parsing_php.ii_of_any 
+                        (Hint2 classname)
+                        |> Lib_parsing_php.ii_of_any
                         |> List.iter (fun tok -> tok.PI.transfo <- PI.Remove);
                         comma.PI.transfo <- PI.Remove;
                         was_modifed := true;

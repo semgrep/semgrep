@@ -61,12 +61,12 @@ let match_pat_instr pat =
 
 
 (*s: function [[Tainting_generic.config_of_rule]] *)
-let config_of_rule found_tainted_sink rule = 
+let config_of_rule found_tainted_sink rule =
   { Dataflow_tainting.
     is_source = match_pat_instr rule.R.source;
     is_sanitizer = match_pat_instr rule.R.sanitizer;
     is_sink = match_pat_instr rule.R.sink;
-    
+
     found_tainted_sink;
   }
 (*e: function [[Tainting_generic.config_of_rule]] *)
@@ -81,7 +81,7 @@ let check2 rules file ast =
 
   let v = V.mk_visitor { V.default_visitor with
       V.kfunction_definition = (fun (_k, _) def ->
-          let xs = AST_to_IL.stmt def.AST.fbody in 
+          let xs = AST_to_IL.stmt def.AST.fbody in
           let flow = CFG_build.cfg_of_stmts xs in
 
           rules |> List.iter (fun rule ->

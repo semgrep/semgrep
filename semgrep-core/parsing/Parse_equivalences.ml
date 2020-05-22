@@ -62,7 +62,7 @@ let parse file =
                  | x::_xs -> x
                in
                let left, op, right =
-                 let xs = Str.full_split 
+                 let xs = Str.full_split
                                 (Str.regexp "<==>\\|==>") str in
                  match xs with
                  | [Str.Text a; Str.Delim "<==>"; Str.Text b] ->
@@ -71,13 +71,13 @@ let parse file =
                     a, Eq.Imply, b
                  | _ -> error (spf "could not parse the equivalence: %s" str)
                in
-               let left = 
+               let left =
                  try Parse_generic.parse_pattern lang left
                  with exn ->
                   error (spf "could not parse the left pattern: %s (exn = %s)"
                             left (Common.exn_to_s exn))
                in
-               let right = 
+               let right =
                  try Parse_generic.parse_pattern lang right
                  with exn ->
                   error (spf "could not parse the right pattern: %s (exn = %s)"

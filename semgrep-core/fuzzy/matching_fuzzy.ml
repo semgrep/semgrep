@@ -6,7 +6,7 @@
  * modify it under the terms of the GNU Lesser General Public License
  * version 2.1 as published by the Free Software Foundation, with the
  * special exception on linking described in file license.txt.
- * 
+ *
  * This library is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
@@ -35,27 +35,27 @@ let pr2, _pr2_once = Common2.mk_pr2_wrappers Flag_fuzzy.verbose
 
 module XMATCH = struct
   (* ------------------------------------------------------------------------*)
-  (* Combinators history *) 
+  (* Combinators history *)
   (* ------------------------------------------------------------------------*)
   (*
-   * version0: 
+   * version0:
    *   type ('a, 'b) matcher = 'a -> 'b -> bool
-   * 
+   *
    *   This just lets you know if you matched something.
-   * 
+   *
    * version1:
    *   type ('a, 'b) matcher = 'a -> 'b -> unit -> ('a, 'b) option
-   * 
+   *
    *   The Maybe monad.
-   * 
+   *
    * version2:
    *   type ('a, 'b) matcher = 'a -> 'b -> binding -> binding list
-   * 
+   *
    *   Why not returning a binding option ? because I may need at some
    *   point to return multiple possible bindings for one matching code.
    *   For instance with the pattern do 'f(..., X, ...)', X could be binded
    *   to different parts of the code.
-   * 
+   *
    *   Note that the empty list means a match failure.
    *)
 
@@ -64,9 +64,9 @@ module XMATCH = struct
   type ('a, 'b) matcher = 'a -> 'b  -> tin -> ('a * 'b) tout
 
   let ((>>=):
-          (tin -> ('a * 'b) tout)  -> 
-          (('a * 'b) -> (tin -> ('c * 'd) tout)) -> 
-          (tin -> ('c * 'd) tout)) = 
+          (tin -> ('a * 'b) tout)  ->
+          (('a * 'b) -> (tin -> ('c * 'd) tout)) ->
+          (tin -> ('c * 'd) tout)) =
     fun m1 m2 ->
       fun tin ->
         (* old:
@@ -75,13 +75,13 @@ module XMATCH = struct
            | Some (a,b) ->
            m2 (a, b) tin
         *)
-        (* let's get a list of possible environment match (could be 
+        (* let's get a list of possible environment match (could be
          * the empty list when it didn't match, playing the role None
          * had before)
          *)
         let xs = m1 tin in
         (* try m2 on each possible returned bindings *)
-        let xxs = xs |> List.map (fun ((a,b), binding) -> 
+        let xxs = xs |> List.map (fun ((a,b), binding) ->
           m2 (a, b) binding
         ) in
         List.flatten xxs
@@ -97,20 +97,20 @@ module XMATCH = struct
     (* opti? use set instead of list *)
     m1 tin @ m2 tin
 
-           
+
   let return (a,b) = fun tin ->
     (* old: Some (a,b) *)
     [(a,b), tin]
-      
+
   let fail = fun _tin ->
     (* old: None *)
     []
 
   (* ------------------------------------------------------------------------*)
-  (* Environment *) 
+  (* Environment *)
   (* ------------------------------------------------------------------------*)
 
-  let tokenf a b = 
+  let tokenf a b =
     let a1 = Parse_info.str_of_info a in
     let b1 = Parse_info.str_of_info b in
     if a1 =$= b1
@@ -134,9 +134,9 @@ module XMATCH = struct
      * generic '=' OCaml operator as 'a' and 'b' may represent
      * the same code but they will contain leaves in their AST
      * with different position information. So before doing
-     * the comparison we just need to remove/abstract-away 
+     * the comparison we just need to remove/abstract-away
      * the line number information in each ASTs.
-     * 
+     *
      * less: optimize by caching the abstract_lined ?
      *)
     let a = Lib_ast_fuzzy.abstract_position_trees a in
@@ -172,7 +172,7 @@ module XMATCH = struct
 end
 
 (*****************************************************************************)
-(* Entry point  *) 
+(* Entry point  *)
 (*****************************************************************************)
 
 module MATCH = Fuzzy_vs_fuzzy.X_VS_X (XMATCH)

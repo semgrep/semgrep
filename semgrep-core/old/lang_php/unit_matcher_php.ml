@@ -10,7 +10,7 @@ open Cst_php
 (* See https://github.com/facebook/pfff/wiki/Sgrep *)
 
 (* run by sgrep -test *)
-let sgrep_unittest = 
+let sgrep_unittest =
   "sgrep php" >::: [
 
   "sgrep features" >:: (fun () ->
@@ -18,7 +18,7 @@ let sgrep_unittest =
     let triples = [
 
       (* ------------ *)
-      (* spacing *)  
+      (* spacing *)
       (* ------------ *)
 
       (* basic string match of course *)
@@ -113,7 +113,7 @@ let sgrep_unittest =
       (* interaction of ... and trailing comma *)
       "foo(A, ...);", "foo(1);", true;
       "foo(A, ...);", "foo(1,);", true;
-  
+
       (* we want sgrep/spatch to be case insensitive, like PHP *)
       "foo(...);", "Foo(true);", true;
       "Foo(...);", "foo(true);", true;
@@ -134,23 +134,23 @@ let sgrep_unittest =
       (* ------------ *)
 
       (* order does not matter *)
-      "return <x:frag border=\"1\" foo=\"2\" ></x:frag>;", 
-      "return <x:frag foo=\"2\" border=\"1\" ></x:frag>;", 
+      "return <x:frag border=\"1\" foo=\"2\" ></x:frag>;",
+      "return <x:frag foo=\"2\" border=\"1\" ></x:frag>;",
       true;
-      "return <x:frag border=\"1\" foo=\"2\" ></x:frag>;", 
-      "return <x:frag foo=\"3\" border=\"1\" ></x:frag>;", 
+      "return <x:frag border=\"1\" foo=\"2\" ></x:frag>;",
+      "return <x:frag foo=\"3\" border=\"1\" ></x:frag>;",
       false;
 
       (* concrete code can have more fields *)
-      "return <x:frag border=\"1\"></x:frag>;", 
-      "return <x:frag foo=\"2\" border=\"1\" ></x:frag>;", 
+      "return <x:frag border=\"1\"></x:frag>;",
+      "return <x:frag foo=\"2\" border=\"1\" ></x:frag>;",
       true;
 
       "return <x:frag />;", "return <x:frag border=\"1\" />;", true;
 
       (* concrete code can have a body *)
-      "return <x:frag border=\"1\"></x:frag>;", 
-      "return <x:frag border=\"1\" >this is text</x:frag>;", 
+      "return <x:frag border=\"1\"></x:frag>;",
+      "return <x:frag border=\"1\" >this is text</x:frag>;",
       true;
 
       (* metavariable on xhp tag *)
@@ -171,8 +171,8 @@ let sgrep_unittest =
 *)
       (* TODO:
        *  Xhp should also match XhpSingleton or optional closing tag
-       * "return <x:frag></x:frag>;", "return <x:frag />;", true; 
-       * "return <x:frag></x:frag>;", "return <x:frag></>;", true; 
+       * "return <x:frag></x:frag>;", "return <x:frag />;", true;
+       * "return <x:frag></x:frag>;", "return <x:frag></>;", true;
        *)
     ] in
     triples |> List.iter (fun (spattern, scode, should_match) ->
@@ -235,7 +235,7 @@ let spatch_unittest =
 
     let testdir = Filename.concat Config_pfff.path "tests/php/spatch/" in
     let expfiles = Common2.glob (testdir ^ "*.exp") in
-  
+
     expfiles |> List.iter (fun expfile ->
       (* todo: this regexp should just be .*? but ocaml regexp do not
        * have the greedy feature :( Also note that expfile is a fullpath
@@ -245,16 +245,16 @@ let spatch_unittest =
         let (prefix, variant) = Common.matched2 expfile in
         let spatchfile = prefix ^ ".spatch" in
         let phpfile = prefix ^ variant ^ ".php" in
-        
+
         let pattern = Spatch_php.parse spatchfile in
-        let resopt = 
-          try Spatch_php.spatch pattern phpfile 
+        let resopt =
+          try Spatch_php.spatch pattern phpfile
           with Failure s ->
             assert_failure (spf "spatch on %s have resulted in exn = %s"
                                phpfile s)
         in
-        
-        let file_res = 
+
+        let file_res =
           match resopt with
           | None -> phpfile
           | Some s ->
@@ -266,11 +266,11 @@ let spatch_unittest =
         diff |> List.iter pr;
         if List.length diff > 1
         then assert_failure
-          (spf "spatch %s on %s should have resulted in %s" 
+          (spf "spatch %s on %s should have resulted in %s"
               (Filename.basename spatchfile)
               (Filename.basename phpfile)
               (Filename.basename expfile))
-      end 
+      end
       else failwith ("wrong format for expfile: " ^ expfile)
     )
   )
@@ -282,7 +282,7 @@ let refactoring_unittest =
   "refactoring php" >::: [
     "adding return type" >:: (fun () ->
     let file_content = "function foo() { }" in
-    let refactoring = Refactoring_code.AddReturnType "int", 
+    let refactoring = Refactoring_code.AddReturnType "int",
       Some { Refactoring_code.
         file = "";
         (* line 2 because tmp_php_file_from_string below add a leading
@@ -326,7 +326,7 @@ let refactoring_unittest =
    *)
   "adding return type and closure" >:: (fun () ->
     let file_content = "function foo() { $x = function() { }; }" in
-    let refactoring = Refactoring_code.AddReturnType "int", Some 
+    let refactoring = Refactoring_code.AddReturnType "int", Some
       { Refactoring_code.
         file = ""; line = 2; col = 9;
       }
@@ -371,7 +371,7 @@ class X {
     let ast_and_toks = Parse_php.ast_and_tokens file in
     let res = Refactoring_code_php.refactor [refactoring] ast_and_toks in
     assert_equal res "<?php\nclass X implements B, I { }";
-  );    
+  );
   "remove interface" >:: (fun () ->
     let file_content = "class X implements I { }" in
     let refactoring = Refactoring_code.RemoveInterface (Some "X", "I"), None in
@@ -402,12 +402,12 @@ let unparser_unittest =
     let file_content = "function foo() { $x = printf(\"%s %d\", ); }" in
     let file = Parse_php.tmp_php_file_from_string file_content in
     let (ast, toks) = Parse_php.ast_and_tokens file in
-    toks |> List.iter (fun tok -> 
+    toks |> List.iter (fun tok ->
       match tok with
       | Parser_php.TCPAR info when (Parse_info.str_of_info info = ")") ->
         info.Parse_info.transfo <- Parse_info.AddArgsBefore ["str"; "1"]
       | _ -> ());
-    let res = Unparse_php.string_of_program_with_comments_using_transfo 
+    let res = Unparse_php.string_of_program_with_comments_using_transfo
       (ast, toks) in
     assert_equal
       "<?php\nfunction foo(str, 1) { $x = printf(\"%s %d\", str, 1); }"
@@ -417,7 +417,7 @@ let unparser_unittest =
     let file_content = "$x = <div a=\"1\" b=\"2\">foo</div>;" in
     let file = Parse_php.tmp_php_file_from_string file_content in
     let (ast, toks) = Parse_php.ast_and_tokens file in
-    let res = Unparse_php.string_of_program_with_comments_using_transfo 
+    let res = Unparse_php.string_of_program_with_comments_using_transfo
       (ast, toks) in
     assert_equal
       "<?php\n$x = <div a=\"1\" b=\"2\">foo</div>;"
@@ -429,10 +429,10 @@ let unparser_unittest =
     let e = Parse_php.expr_of_string str in
     let str2 = Unparse_php.string_of_expr e in
     assert_equal str str2;
-  );      
+  );
 
  ]
-  
+
 (*****************************************************************************)
 (* Final suite *)
 (*****************************************************************************)

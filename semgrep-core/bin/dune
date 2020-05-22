@@ -1,6 +1,6 @@
 (executables
  (names Main main_spatch )
- (libraries 
+ (libraries
     bigarray
     threads          ;; needed for json-wheel (Condition?)
     json-wheel       ;; Json_io, Json_type
@@ -8,7 +8,7 @@
     parmap
 
     commons commons_core commons_ocollection
-    pfff-config 
+    pfff-config
     pfff-h_program-lang
     pfff-lang_python pfff-lang_python-analyze
     pfff-lang_js pfff-lang_js-analyze
@@ -21,7 +21,7 @@
     pfff-lang_lisp
     pfff-lang_skip
     pfff-lang_FUZZY
-    
+
     semgrep_core
     semgrep_fuzzy
     semgrep_finding
@@ -36,7 +36,7 @@
 )
 
 
-; use bin/flags.sh to generate the OS specific build flags 
+; use bin/flags.sh to generate the OS specific build flags
 (rule
  (targets flags.sexp)
  (action (run %{workspace_root}/bin/flags.sh)))

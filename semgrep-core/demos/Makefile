@@ -15,4 +15,3 @@ simple_refactoring: simple_refactoring.ml
           simple_refactoring.ml
 clean::
 	rm -f simple_refactoring
-

@@ -6,7 +6,7 @@
  * modify it under the terms of the GNU Lesser General Public License
  * version 2.1 as published by the Free Software Foundation, with the
  * special exception on linking described in file license.txt.
- * 
+ *
  * This library is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
@@ -23,10 +23,10 @@ module PI = Parse_info
 (* Prelude *)
 (*****************************************************************************)
 (*
- * This module makes it possible to match and transform one PHP AST 
- * against another PHP AST providing a kind of patch but at a 
+ * This module makes it possible to match and transform one PHP AST
+ * against another PHP AST providing a kind of patch but at a
  * syntactical level.
- * 
+ *
  * To understand the logic behind this code it may help to first read
  * this: http://coccinelle.lip6.fr/papers/eurosys08.pdf
  * See also https://github.com/facebook/pfff/wiki/Spatch#wiki-spacing-issues
@@ -38,22 +38,22 @@ module PI = Parse_info
 
 module XMATCH = struct
   (* ------------------------------------------------------------------------*)
-  (* Combinators history *) 
+  (* Combinators history *)
   (* ------------------------------------------------------------------------*)
   (*
-   * version0: 
+   * version0:
    *   type ('a, 'b) matcher = 'a -> 'b -> bool
-   * 
+   *
    *   This just lets you know if you matched something.
-   * 
+   *
    * version1:
    *   type ('a, 'b) matcher = 'a -> 'b -> unit -> ('a, 'b) option
-   * 
+   *
    *   The Maybe monad.
-   * 
+   *
    * version2:
    *   type ('a, 'b) matcher = 'a -> 'b -> binding -> binding list
-   * 
+   *
    *   Why not returning a binding option ? because I may need at some
    *   point to return multiple possible bindings for one matching code.
    *   For instance with the pattern do 'f(..., X, ...)', X could be binded
@@ -66,9 +66,9 @@ module XMATCH = struct
   type ('a, 'b) matcher = 'a -> 'b  -> tin -> ('a * 'b) tout
 
   let ((>>=):
-          (tin -> ('a * 'b) tout)  -> 
-          (('a * 'b) -> (tin -> ('c * 'd) tout)) -> 
-          (tin -> ('c * 'd) tout)) = 
+          (tin -> ('a * 'b) tout)  ->
+          (('a * 'b) -> (tin -> ('c * 'd) tout)) ->
+          (tin -> ('c * 'd) tout)) =
     fun m1 m2 ->
       fun tin ->
         (* old:
@@ -77,13 +77,13 @@ module XMATCH = struct
            | Some (a,b) ->
            m2 (a, b) tin
         *)
-        (* let's get a list of possible environment match (could be 
+        (* let's get a list of possible environment match (could be
          * the empty list when it didn't match, playing the role None
          * had before)
          *)
         let xs = m1 tin in
         (* try m2 on each possible returned bindings *)
-        let xxs = xs |> List.map (fun ((a,b), binding) -> 
+        let xxs = xs |> List.map (fun ((a,b), binding) ->
           m2 (a, b) binding
         ) in
         List.flatten xxs
@@ -98,17 +98,17 @@ module XMATCH = struct
     (* opti? use set instead of list *)
     m1 tin @ m2 tin
 
-           
+
   let return (a,b) = fun tin ->
     (* old: Some (a,b) *)
     [(a,b), tin]
-      
+
   let fail = fun _tin ->
     (* old: None *)
     []
 
   (* ------------------------------------------------------------------------*)
-  (* Environment *) 
+  (* Environment *)
   (* ------------------------------------------------------------------------*)
 
   (* pre: both 'a' and 'b' contains only regular PHP code. There is no
@@ -129,7 +129,7 @@ module XMATCH = struct
          * generic '=' OCaml operator as 'a' and 'b' may represent
          * the same code but they will contain leaves in their AST
          * with different position information. So before doing
-         * the comparison we just need to remove/abstract-away 
+         * the comparison we just need to remove/abstract-away
          * the line number information in each ASTs.
          *)
         let a = Lib_parsing_php.abstract_position_info_any a in
@@ -138,8 +138,8 @@ module XMATCH = struct
 
     | _, _ -> false
 
-  (* This is quite similar to the code in matching_php.ml 
-   * 
+  (* This is quite similar to the code in matching_php.ml
+   *
    * Note that in spatch we actually first calls match_x_x to get the
    * environment and then we redo another pass by calling transform_x_x.
    * So tin will be already populated with all metavariables so
@@ -164,22 +164,22 @@ module XMATCH = struct
 
 
   let subst_metavars env add =
-    let env = 
+    let env =
       env |> List.map (fun (mvar, any) -> mvar, Unparse_php.string_of_any any)
     in
     match add with
-    | PI.AddNewlineAndIdent -> 
+    | PI.AddNewlineAndIdent ->
         PI.AddNewlineAndIdent
     | PI.AddStr s ->
         (* transforming first metavar variable ($X) and then
          * mevar (X)
          *)
-        let s = 
+        let s =
          s |> Common2.global_replace_regexp MV.metavar_variable_regexp_string
          (fun matched ->
           try List.assoc matched env
-          with Not_found -> 
-            failwith (spf "metavariable %s was not found in environment" 
+          with Not_found ->
+            failwith (spf "metavariable %s was not found in environment"
                          matched)
          )
         in
@@ -187,24 +187,24 @@ module XMATCH = struct
         let s = s |> Common2.global_replace_regexp MV.metavar_regexp_string
          (fun matched ->
           try List.assoc matched env
-          with Not_found -> 
-            failwith (spf "metavariable %s was not found in environment" 
+          with Not_found ->
+            failwith (spf "metavariable %s was not found in environment"
                          matched)
          )
         in
         PI.AddStr s
 
-  (* when a transformation contains a '+' part, as in 
+  (* when a transformation contains a '+' part, as in
    * - 2
    * + bar(X)
-   * 
+   *
    * then before applying the transformation we need first to
    * substitute all metavariables by their actual binded value
    * in the environment.
    *)
-  let adjust_transfo_with_env env transfo = 
+  let adjust_transfo_with_env env transfo =
      match transfo with
-     | PI.NoTransfo 
+     | PI.NoTransfo
      | PI.Remove -> transfo
 
      | PI.AddBefore add ->
@@ -215,13 +215,13 @@ module XMATCH = struct
          PI.Replace (subst_metavars env add)
      | PI.AddArgsBefore _ -> raise Todo
 
-  (* 
+  (*
    * Sometimes a metavariable like X will match an expression made of
-   * multiple tokens  like  '1*2'. 
+   * multiple tokens  like  '1*2'.
    * This metavariable may have a transformation associated with it,
    * like  '- X',  in which case we want to propagate the removal
    * transformation to all the tokens in the matched expression.
-   * 
+   *
    * In some cases the transformation may also contains a +, as in
    *   - X
    *   + 3
@@ -232,7 +232,7 @@ module XMATCH = struct
    * part only to the very last matched token by X (here '2').
    *)
 
-  let distribute_transfo transfo any env = 
+  let distribute_transfo transfo any env =
     let ii = Lib_parsing_php.ii_of_any any in
 
     (match transfo with
@@ -281,13 +281,13 @@ module XMATCH = struct
   (* propagate the transformation info *)
   let tokenf a b = fun tin ->
     let transfo = a.PI.transfo in
-    b.PI.transfo <- adjust_transfo_with_env tin transfo;   
+    b.PI.transfo <- adjust_transfo_with_env tin transfo;
     return (a, b) tin
-    
+
 end
 
 (*****************************************************************************)
-(* Entry point  *) 
+(* Entry point  *)
 (*****************************************************************************)
 
 module MATCH  = Php_vs_php.PHP_VS_PHP (XMATCH)
@@ -295,13 +295,13 @@ module MATCH  = Php_vs_php.PHP_VS_PHP (XMATCH)
 type ('a, 'b) transformer = 'a -> 'b ->
   Metavars_php.metavars_binding list
 
-let transform_e_e pattern e   env = 
+let transform_e_e pattern e   env =
   ignore (MATCH.m_expr pattern e   env)
 
-let transform_st_st pattern e   env = 
+let transform_st_st pattern e   env =
   ignore (MATCH.m_stmt pattern e   env)
 
-let transform_xhp_xhp pattern e   env = 
+let transform_xhp_xhp pattern e   env =
   ignore (MATCH.m_xhp_html pattern e   env)
 
 let transform_hint_hint pattern e   env =
