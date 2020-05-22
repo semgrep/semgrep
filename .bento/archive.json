@@ -73,6 +73,9 @@
   "r2c.requests": {
     "violations": {}
   },
+  "semgrep": {
+    "violations": {}
+  },
   "shellcheck": {
     "violations": {}
   }
