@@ -31,7 +31,7 @@ open Common
  * for error reporting on pattern itself? so use a 'string AST_generic.wrap'?
  *)
 (*s: type [[Metavars_generic.mvar]] *)
-type mvar = string 
+type mvar = string
 (*e: type [[Metavars_generic.mvar]] *)
 
 (*s: type [[Metavars_generic.metavars_binding]] *)
@@ -42,25 +42,25 @@ type metavars_binding = (mvar, AST_generic.any) Common.assoc
 (*e: type [[Metavars_generic.metavars_binding]] *)
 
 (*s: constant [[Metavars_generic.metavar_regexp_string]] *)
-(* ex: $X, $FAIL, $VAR2, $_ 
+(* ex: $X, $FAIL, $VAR2, $_
  * Note that some languages such as PHP or Javascript allows '$' in identifier
  * names, so forcing metavariables to have uppercase letters at least allow
  * us to match specifically also identifiers in lower case (e.g., $foo will
  * only match the $foo identifiers in some concrete code; this is not a
  * metavariable).
- * 
+ *
 *)
-let metavar_regexp_string = 
+let metavar_regexp_string =
   "^\\(\\$[A-Z_][A-Z_0-9]*\\)$"
 (*e: constant [[Metavars_generic.metavar_regexp_string]] *)
 
 (*s: function [[Metavars_generic.is_metavar_name]] *)
-(* 
+(*
  * Hacks abusing existing constructs to encode extra constructions.
  * One day we will have a pattern_ast.ml that mimics mostly
  * AST.ml and extends it with special sgrep constructs.
  *)
-let is_metavar_name s = 
+let is_metavar_name s =
   s =~ metavar_regexp_string
 (*e: function [[Metavars_generic.is_metavar_name]] *)
 (*e: semgrep/core/Metavars_generic.ml *)

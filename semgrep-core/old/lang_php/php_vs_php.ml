@@ -2515,7 +2515,7 @@ and m_hint_type a b =
       return (A.HintTypeConst(a1, a2, a3),
               B.HintTypeConst(b1, b2, b3)
       ))))
-  | A.HintVariadic (a1, a2), B.HintVariadic (b1, b2) -> 
+  | A.HintVariadic (a1, a2), B.HintVariadic (b1, b2) ->
     m_tok a1 b1 >>= (fun (a1, b1) ->
     m_option m_hint_type a2 b2 >>= (fun (a2, b2) ->
       return (

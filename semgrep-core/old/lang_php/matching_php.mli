@@ -4,8 +4,8 @@
  * is empty (because your pattern didn't contain any metavariable for
  * instance).
  *)
-type ('a, 'b) matcher = 
-  'a -> 'b -> 
+type ('a, 'b) matcher =
+  'a -> 'b ->
   Metavars_php.metavars_binding list
 
 (* right now it does not do side effects on the first argument

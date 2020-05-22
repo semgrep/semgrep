@@ -12,15 +12,15 @@ let sgrep_fuzzy_unittest ~ast_fuzzy_of_string =
     let triples = [
 
       (* ------------ *)
-      (* spacing *)  
+      (* spacing *)
       (* ------------ *)
-   
+
       (* basic string match of course *)
       "foo(1,2);", "foo(1,2);", true;
       "foo(1,3);", "foo(1,2);", false;
       (* matches even when space or newline differs *)
       "foo(1,2);", "foo(1,     2);", true;
-      "foo(1,2);", "foo(1,     
+      "foo(1,2);", "foo(1,
                         2);", true;
       (* matches even when have comments in the middle *)
       "foo(1,2);", "foo(1, /* foo */ 2);", true;
@@ -118,7 +118,7 @@ let sgrep_fuzzy_unittest ~ast_fuzzy_of_string =
 (* See https://github.com/facebook/pfff/wiki/Spatch *)
 
 (* run by spatch -test *)
-let spatch_fuzzy_unittest ~ast_fuzzy_of_string ~parse_file = 
+let spatch_fuzzy_unittest ~ast_fuzzy_of_string ~parse_file =
   "spatch regressions files" >:: (fun () ->
 
     let testdir = Filename.concat Config_pfff.path "tests/fuzzy/spatch/" in
@@ -140,7 +140,7 @@ let spatch_fuzzy_unittest ~ast_fuzzy_of_string ~parse_file =
             ~ii_of_pattern:Lib_ast_fuzzy.toks_of_trees
             spatchfile
         in
-        let trees, toks = 
+        let trees, toks =
           parse_file srcfile
         in
         let was_modified = Spatch_fuzzy.spatch pattern trees in
@@ -150,7 +150,7 @@ let spatch_fuzzy_unittest ~ast_fuzzy_of_string ~parse_file =
           else None
         in
 
-        let file_res = 
+        let file_res =
           match resopt with
           | None -> srcfile
           | Some s ->
@@ -162,11 +162,11 @@ let spatch_fuzzy_unittest ~ast_fuzzy_of_string ~parse_file =
         diff |> List.iter pr;
         if List.length diff > 1
         then assert_failure
-          (spf "spatch %s on %s should have resulted in %s" 
+          (spf "spatch %s on %s should have resulted in %s"
               (Filename.basename spatchfile)
               (Filename.basename srcfile)
               (Filename.basename expfile))
-      end 
+      end
       else failwith ("wrong format for expfile: " ^ expfile)
     )
   )

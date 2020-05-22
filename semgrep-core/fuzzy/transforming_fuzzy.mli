@@ -1,6 +1,6 @@
 
-type ('a, 'b) transformer = 
-  'a -> 'b -> 
+type ('a, 'b) transformer =
+  'a -> 'b ->
   Metavars_fuzzy.fuzzy_binding list
 
 (* this works by side effect on the second argument and its .transfo field *)

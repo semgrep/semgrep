@@ -6,7 +6,7 @@
  * modify it under the terms of the GNU Lesser General Public License
  * version 2.1 as published by the Free Software Foundation, with the
  * special exception on linking described in file license.txt.
- * 
+ *
  * This library is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
@@ -18,7 +18,7 @@ module V = Lib_ast_fuzzy
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* See https://github.com/facebook/pfff/wiki/Sgrep 
+(* See https://github.com/facebook/pfff/wiki/Sgrep
 *)
 
 (*****************************************************************************)
@@ -52,7 +52,7 @@ let sgrep ~hook pattern ast =
             (* recurse on sublists *)
             k xs
           else begin
-            (* could also recurse to find nested matching inside 
+            (* could also recurse to find nested matching inside
              * the matched code itself
              *)
             let matched_tokens = Lib_ast_fuzzy.toks_of_trees shorter in
@@ -62,7 +62,7 @@ let sgrep ~hook pattern ast =
             k rest
           end
         end
-        else 
+        else
           (* at least recurse *)
           k xs
       );

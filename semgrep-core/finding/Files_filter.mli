@@ -21,7 +21,7 @@ exception GlobSyntaxError of string
 (*e: exception [[Files_filter.GlobSyntaxError]] *)
 (*s: signature [[Files_filter.mk_filters]] *)
 (* may raise GlobSyntaxError *)
-val mk_filters: 
+val mk_filters:
   excludes: string list -> includes: string list -> exclude_dirs: string list -> include_dirs: string list ->
   filters
 (*e: signature [[Files_filter.mk_filters]] *)

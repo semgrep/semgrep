@@ -7,7 +7,7 @@
  * modify it under the terms of the GNU Lesser General Public License
  * version 2.1 as published by the Free Software Foundation, with the
  * special exception on linking described in file license.txt.
- * 
+ *
  * This library is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
@@ -51,12 +51,12 @@ type match_format =
  * '$x = print FOO' would then be transformed into $x=printFOO, hence
  * this function
  *)
-let rec join_with_space_if_needed xs = 
+let rec join_with_space_if_needed xs =
   match xs with
   | [] -> ""
   | [x] -> x
   | x::y::xs ->
-      if x =~ ".*[a-zA-Z0-9_]$" && 
+      if x =~ ".*[a-zA-Z0-9_]$" &&
          y =~ "^[a-zA-Z0-9_]"
       then x ^ " " ^ (join_with_space_if_needed (y::xs))
       else x ^ (join_with_space_if_needed (y::xs))
@@ -66,15 +66,15 @@ let rec join_with_space_if_needed xs =
 (* Entry point *)
 (*****************************************************************************)
 (*s: function [[Matching_report.print_match]] *)
-let print_match ?(format = Normal) ii = 
+let print_match ?(format = Normal) ii =
  try
   let (mini, maxi) = PI.min_max_ii_by_pos ii in
-  let (file, line) = 
+  let (file, line) =
     PI.file_of_info mini, PI.line_of_info mini in
   let prefix = spf "%s:%d" file line in
   let arr = Common2.cat_array file in
   let lines = Common2.enum (PI.line_of_info mini) (PI.line_of_info maxi) in
-  
+
   (match format with
   | Normal ->
       pr prefix;
@@ -83,7 +83,7 @@ let print_match ?(format = Normal) ii =
   | Emacs ->
       pr (prefix ^ ": " ^ arr.(List.hd lines))
   | OneLine ->
-      pr (prefix ^ ": " ^ (ii |> List.map PI.str_of_info 
+      pr (prefix ^ ": " ^ (ii |> List.map PI.str_of_info
                             |> join_with_space_if_needed))
   )
  with Failure "get_pos: Ab or FakeTok" ->
