@@ -8,7 +8,7 @@ sudo apt-get install -y --no-install-recommends libcurl4-openssl-dev libexpat1-d
 opam switch create --root /home/opam/.opam 4.10.0+musl+static+flambda;
 
 eval "$(opam env --root /home/opam/.opam --set-root)" && opam install -y ./pfff
-eval "$(opam env --root /home/opam/.opam --set-root)" && cd semgrep-core && opam install -y . && make all && cd ..
+eval "$(opam env --root /home/opam/.opam --set-root)" && cd semgrep-core && opam install --deps-only -y . && make all && cd ..
 
 if [[ -z "$SKIP_NUITKA" ]]; then
   eval "$(opam env --root /home/opam/.opam --set-root)" && cd semgrep && export PATH=/github/home/.local/bin:$PATH && sudo make all && cd ..
