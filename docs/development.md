@@ -32,7 +32,7 @@ eval $(opam env) && opam install -y ./pfff
 Then you can compile the program with:
 
 ```bash
-cd semgrep_core
+cd semgrep-core
 make all
 ```
 
