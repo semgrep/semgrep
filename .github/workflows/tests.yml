@@ -1,0 +1,90 @@
+name: Tests
+
+on:
+  pull_request:
+  push:
+    branches: [master, develop]
+
+jobs:
+  tox-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: [3.6, 3.7, 3.8]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v1
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install semgrep-core from develop
+        run: sudo -E ./install-scripts/latest-artifact-for-branch.py
+        env:
+          AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install Tox and any other packages
+        run: pip install tox wheel setuptools pipenv
+      - name: Run Tox
+        run: |
+          cd semgrep
+          tox -e py  # Run tox using the version of Python in `PATH`
+      - name: Failure hint
+        if: ${{ failure() }}
+        run: echo "This job runs with the most recent binary from the develop branch for semgrep-core. If you are using bleeding edge features, you may need to wait for a build"
+
+  build-test:
+    name: semgrep-core make test and semgrep make test/qa-test
+    runs-on: ubuntu-latest
+    container: returntocorp/sgrep-build:2.7
+    steps:
+      - name: Adjust permissions
+        run: sudo chmod -R 777 . /github
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install submodules
+        run: git submodule update --init --recursive
+      - name: Install pfff
+        run: eval $(opam  env --root /home/opam/.opam --set-root) && opam install -y ./pfff
+      - name: Install and test semgrep-core
+        run: eval $(opam  env --root /home/opam/.opam --set-root) && cd semgrep-core && opam install --deps-only -y . && make all && make test && make install
+      - name: Install and test semgrep
+        run: eval $(opam  env --root /home/opam/.opam --set-root) && cd semgrep && export PATH=/github/home/.local/bin:$PATH && pip3 install pipenv && pipenv install --dev && make test && make qa-test && make all
+
+  mac-build-test:
+    name: Check builds for macOS
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v1
+        with:
+          # This is just the Python version used to build the Nuitka executable
+          python-version: 3.7
+      - name: Run OSX build
+        run: ./release-scripts/osx-release.sh
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v1
+        with:
+          name: semgrep-osx-${{ github.sha }}
+          path: artifacts
+
+  release-ubuntu:
+    name: Check builds for ubuntu
+    strategy:
+      matrix:
+        # The os doesn't actually matter anymore. We build a static binary linked with musl that is manylinux compatible.
+        os: ['ubuntu-16.04']
+    runs-on: ubuntu-latest
+    container: returntocorp/sgrep-build:${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+      - name: Run Ubuntu build script
+        run: ./release-scripts/ubuntu-release.sh
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v1
+        with:
+          name: semgrep-${{ matrix.os }}-${{ github.sha }}
+          path: artifacts.tar.gz

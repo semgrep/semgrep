@@ -7,7 +7,7 @@ opam switch 4.10.0;
 git submodule update --init --recursive
 eval "$(opam env)" && opam install -y ./pfff
 mkdir -p artifacts
-cd semgrep-core && eval "$(opam env)" && opam install -y . && make all && make test && make install && cd ..
+cd semgrep-core && eval "$(opam env)" && opam install --deps-only -y . && make all && make test && make install && cd ..
 if [[ -z "$SKIP_NUITKA" ]]; then
   cd semgrep && sudo make all && cd ..
   cp -r ./semgrep/build/semgrep.dist/* artifacts/

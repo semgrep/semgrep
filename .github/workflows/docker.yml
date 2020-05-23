@@ -1,8 +1,10 @@
 name: docker-push-pr
 
 on:
+  push:
+    branches:
+      - develop
   pull_request:
-    branches: [develop, master]
 
 jobs:
   docker-build:
@@ -11,7 +13,16 @@ jobs:
       - uses: actions/checkout@v2
       - name: Build the Docker image
         run: docker build .
-      - name: build-and-push
+      - name: Push Develop Image if on develop branch
+        if: ${{ github.event_name == 'push' && github.ref == 'develop' }}
+        uses: docker/build-push-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+          repository: returntocorp/semgrep
+          tags: develop
+      - name: Push Commit Hash if PR
+        if: ${{ github.event_name == 'pull_request' }}
         uses: docker/build-push-action@v1
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
