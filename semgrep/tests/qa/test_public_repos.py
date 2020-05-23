@@ -109,7 +109,10 @@ def test_semgrep_on_repo(monkeypatch, tmp_path, repo_url):
     for language, file_ext in languages.items():
         sentinel_path = Path("repo") / f"sentinel.{file_ext}"
         with sentinel_path.open("w") as sentinel_file:
-            sentinel_file.write(f"x = {SENTINEL_VALUE}")
+            if language == "go":
+                sentinel_file.write(f"package Foo\nconst x = {SENTINEL_VALUE}")
+            else:
+                sentinel_file.write(f"x = {SENTINEL_VALUE}")
 
         semgrep_run = subprocess.run(
             [
