@@ -158,5 +158,5 @@ def test_semgrep_on_repo(monkeypatch, tmp_path, repo_url):
         encoding="utf-8",
     )
     output = json.loads(output)
-    assert len(output["results"]) == 2
+    assert len(output["results"]) == 3
     assert len(output["errors"]) == 0
