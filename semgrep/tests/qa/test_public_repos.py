@@ -103,6 +103,7 @@ def test_semgrep_on_repo(monkeypatch, tmp_path, repo_url):
     )
     languages = {
         "python": "py",
+        "go": "go",
         "javascript": "js",
     }
     for language, file_ext in languages.items():
