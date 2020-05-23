@@ -15,6 +15,32 @@ def xfail_repo(url, *, reason=None):
 @pytest.mark.parametrize(
     "repo_url",
     [
+        "https://github.com/coinbase/react-coinbase-commerce",
+        "https://github.com/coinbase/coinbase-commerce-node",
+        "https://github.com/coinbase/multisig-tool",
+        "https://github.com/coinbase/bittip",
+        "https://github.com/coinbase/coinbase-exchange-node",
+        "https://github.com/coinbase/coinbase-pro-node",
+        "https://github.com/coinbase/coinbase-node",
+        "https://github.com/coinbase/pwnbot",
+        "https://github.com/coinbase/solidity-workshop",
+        "https://github.com/coinbase/gtt-ui",
+        "https://github.com/coinbase/node-process-lock",
+        "https://github.com/coinbase/coinbase-javascript-sdk",
+        "https://github.com/coinbase/self-service-iam",
+        "https://github.com/coinbase/coinbase-tip-discourse",
+        "https://github.com/coinbase/bip38",
+        "https://github.com/coinbase/rosetta-sdk-go",
+        "https://github.com/coinbase/protoc-gen-rbi",
+        "https://github.com/coinbase/rosetta-cli",
+        "https://github.com/coinbase/odin",
+        "https://github.com/coinbase/step",
+        "https://github.com/coinbase/fenrir",
+        "https://github.com/coinbase/bifrost",
+        "https://github.com/coinbase/step-asg-deployer",
+        "https://github.com/coinbase/watchdog",
+        "https://github.com/coinbase/dexter",
+        "https://github.com/coinbase/btcexport",
         "https://github.com/Airtable/airtable.js",
         "https://github.com/seemoo-lab/opendrop",
         "https://github.com/lightstep/lightstep-tracer-python",
@@ -77,12 +103,16 @@ def test_semgrep_on_repo(monkeypatch, tmp_path, repo_url):
     )
     languages = {
         "python": "py",
+        "go": "go",
         "javascript": "js",
     }
     for language, file_ext in languages.items():
         sentinel_path = Path("repo") / f"sentinel.{file_ext}"
         with sentinel_path.open("w") as sentinel_file:
-            sentinel_file.write(f"x = {SENTINEL_VALUE}")
+            if language == "go":
+                sentinel_file.write(f"package Foo\nconst x = {SENTINEL_VALUE}")
+            else:
+                sentinel_file.write(f"x = {SENTINEL_VALUE}")
 
         semgrep_run = subprocess.run(
             [
@@ -128,5 +158,5 @@ def test_semgrep_on_repo(monkeypatch, tmp_path, repo_url):
         encoding="utf-8",
     )
     output = json.loads(output)
-    assert len(output["results"]) == 2
+    assert len(output["results"]) == 3
     assert len(output["errors"]) == 0
