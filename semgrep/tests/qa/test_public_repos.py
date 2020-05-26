@@ -60,6 +60,7 @@ def xfail_repo(url, *, reason=None):
         "https://github.com/vstinner/pyperf",
         "https://github.com/mysql/mysql-connector-python",
         "https://github.com/Netflix/lemur",
+        "https://github.com/OWASP/NodeGoat",
         xfail_repo("https://github.com/highcharts/highcharts"),
         xfail_repo(
             "https://github.com/lodash/lodash",
