@@ -101,7 +101,7 @@ an uppercase character or `_`. Names like `$x` or `$some_value` are
 invalid.  Metavariables are used to track a variable across a specific code
 scope.
 * **The `...` (ellipsis) operator.** The ellipsis operator abstracts away
-sequences of zero or more arguments, statements, or characters.
+sequences of zero or more arguments, statements, characters, [and more](docs/pattern-features.md).
 
 For example,
 ```yaml
