@@ -110,6 +110,24 @@ $FILE = open(...)
 will find all occurrences in your code where the result of an `open()` call is assigned
 to a variable.
 
+##### Deep Expression Operator
+
+You may want to match an expression that could be nested deep within another expression. An example of this is looking for a pattern anywhere within an if statement. To do this, use the deep expression operator: `<... [your_pattern] ...>`. This will match your pattern in the current expression context and recursively in any subexpressions.
+
+For example, this pattern:
+
+```yaml
+if <... $USER.is_admin() ...>:
+  ...
+```
+
+will match:
+
+```python
+if user.authenticated() and user.is_admin() and user.has_group(gid):
+  ...
+```
+
 #### Composing Patterns
 
 You can also construct rules by composing multiple patterns together.
