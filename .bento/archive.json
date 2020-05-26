@@ -102,6 +102,23 @@
     "violations": {}
   },
   "shellcheck": {
-    "violations": {}
+    "violations": {
+      "271da9f6f6e2b1f634102d17367ec28c": {
+        "tool_id": "shellcheck",
+        "check_id": "SC2086",
+        "path": "semgrep/tests/run-perf-tests.sh",
+        "message": "Double quote to prevent globbing and word splitting.",
+        "severity": 0,
+        "syntactic_context": "$HYPERFINE --export-markdown ${THIS_DIR}/testsuite.md \"${CMDA}\" \"${CMDB}\"\n"
+      },
+      "ead34c4fb69597117dccbbde1236c834": {
+        "tool_id": "shellcheck",
+        "check_id": "SC2086",
+        "path": "semgrep/tests/run-perf-tests.sh",
+        "message": "Double quote to prevent globbing and word splitting.",
+        "severity": 0,
+        "syntactic_context": "cat ${THIS_DIR}/testsuite.md\n"
+      }
+    }
   }
 }

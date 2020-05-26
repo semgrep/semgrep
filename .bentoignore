@@ -33,4 +33,4 @@
 :include .gitignore
 semgrep-core/tests/
 pfff/
-semgrep/tests/
+semgrep/tests/e2e/targets/
