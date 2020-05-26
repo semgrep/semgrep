@@ -113,12 +113,7 @@ class PostInstallCommand(install):
 
 setup(
     name="semgrep",
-    use_scm_version={
-        "relative_to": source_dir,
-        "write_to": "semgrep/version.py",
-        "fallback_version": "0.8.0",
-    },
-    setup_requires=["setuptools_scm", "setuptools_scm_git_archive"],
+    version="0.8.1",
     author="Return To Corporation",
     author_email="support@r2c.dev",
     description="Fast and syntax-aware semantic code pattern search for many languages: like grep but for code",
