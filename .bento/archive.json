@@ -31,7 +31,16 @@
     "violations": {}
   },
   "flake8": {
-    "violations": {}
+    "violations": {
+      "ee01425a1f333ac3407713ce553fd1a0": {
+        "tool_id": "flake8",
+        "check_id": "unused-variable",
+        "path": "semgrep/semgrep/evaluation.py",
+        "message": "local variable 'vars' is assigned to but never used",
+        "severity": 2,
+        "syntactic_context": "vars = {k: v[\"abstract_content\"] for k, v in metavars.items()}"
+      }
+    }
   },
   "hadolint": {
     "violations": {

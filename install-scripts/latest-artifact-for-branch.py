@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import hashlib
 import json
 import os
 import sys
@@ -9,8 +8,6 @@ import urllib.request
 from pathlib import Path
 from shutil import copyfile
 from typing import Any
-from typing import Callable
-from typing import Dict
 from typing import List
 from typing import Optional
 from zipfile import ZipFile
