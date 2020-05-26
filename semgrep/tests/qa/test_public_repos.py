@@ -15,7 +15,7 @@ def xfail_repo(url, *, reason=None):
 @pytest.mark.parametrize(
     "repo_url",
     [
-        "https://github.com/coinbase/react-coinbase-commerce",
+        xfail_repo("https://github.com/coinbase/react-coinbase-commerce"),
         "https://github.com/coinbase/coinbase-commerce-node",
         "https://github.com/coinbase/multisig-tool",
         "https://github.com/coinbase/bittip",
@@ -23,7 +23,7 @@ def xfail_repo(url, *, reason=None):
         "https://github.com/coinbase/coinbase-pro-node",
         "https://github.com/coinbase/coinbase-node",
         "https://github.com/coinbase/pwnbot",
-        "https://github.com/coinbase/solidity-workshop",
+        xfail_repo("https://github.com/coinbase/solidity-workshop"),
         "https://github.com/coinbase/gtt-ui",
         "https://github.com/coinbase/node-process-lock",
         "https://github.com/coinbase/coinbase-javascript-sdk",
@@ -60,6 +60,10 @@ def xfail_repo(url, *, reason=None):
         "https://github.com/vstinner/pyperf",
         "https://github.com/mysql/mysql-connector-python",
         "https://github.com/Netflix/lemur",
+        xfail_repo(
+            "https://github.com/OWASP/NodeGoat",
+            reason="https://github.com/returntocorp/semgrep/issues/814",
+        ),
         xfail_repo("https://github.com/highcharts/highcharts"),
         xfail_repo(
             "https://github.com/lodash/lodash",
@@ -93,13 +97,7 @@ def test_semgrep_on_repo(monkeypatch, tmp_path, repo_url):
     monkeypatch.chdir(tmp_path)
 
     subprocess.check_output(
-        [
-            "git",
-            "clone",
-            "--depth=1",
-            "https://github.com/returntocorp/semgrep-rules",
-            "repo",
-        ]
+        ["git", "clone", "--depth=1", repo_url, "repo",]
     )
     languages = {
         "python": "py",
