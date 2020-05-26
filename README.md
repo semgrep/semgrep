@@ -97,17 +97,17 @@ or multiple files matching `.semgrep/**/*.yml`.
 
 * **Metavariables like `$X`, `$WIDGET`, or `$USERS_2`.** Metavariable names can
 only contain uppercase characters, or `_`, or digits, and must start with
-an uppercase character or `_` - names like `$x` or `$some_value` are
+an uppercase character or `_`. Names like `$x` or `$some_value` are
 invalid.  Metavariables are used to track a variable across a specific code
 scope.
 * **The `...` (ellipsis) operator.** The ellipsis operator abstracts away
-sequences so you don't have to sweat the details of a particular code pattern.
+sequences of zero or more arguments, statements, characters, [and more](docs/pattern-features.md).
 
 For example,
 ```yaml
 $FILE = open(...)
 ```
-will find all occurrences in your code where the result of an `open()` call is assigned
+will find all occurrences in your code where the result of an `open()` call with zero or more arguments is assigned
 to a variable.
 
 #### Composing Patterns
