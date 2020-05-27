@@ -1,13 +1,18 @@
 # Development
 
-[![CircleCI](https://circleci.com/gh/returntocorp/semgrep.svg?style=svg)](https://circleci.com/gh/returntocorp/semgrep)
-
 ## Pre-Commit
 
 semgrep uses [pre-commit](https://pre-commit.com/). [Install pre-commit](https://pre-commit.com/#installation) then:
 
 ```bash
 pre-commit install
+```
+
+We also use [bento](https://github.com/returntocorp/bento) to run a variety of linting tools
+
+```
+pip3 install bento-cli
+bento init
 ```
 
 ## Installation from source
@@ -91,6 +96,17 @@ Set the OCAMLRUNPARAM environment variable to 'b' for backtrace. You will get be
 ```bash
 export OCAMLRUNPARAM=b
 ```
+
+## Testing
+
+### semgrep-core
+
+`make test` in the `semgrep-core` directory will run tests that check code is correctly parsed
+and patterns perform as expected. To add a test in an appropriate lannguage subdirectory, `semgrep-core/tests/LANGUAGE`, create a target file (expected file extension given language) and a .sgrep file with a pattern. The testing suite will check that all places with a comment with `ERROR` were matches found by the .sgrep file. See existing tests for more clarity.
+
+### semgrep
+
+`make test` will run unit tests while `make qa-tests` will run semgrep over a set of github repositories to check that there are no parse errors.
 
 ## Overriding expected integration test outputs
 
