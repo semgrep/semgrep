@@ -90,7 +90,7 @@ let match_sts_sts pattern e =
    * nested calls to m_stmts_deep to polluate our metavar? We need
    * to pass the key to m_stmts_deep?
    *)
-  let key = "!STMTS!" in
+  let key = MV.matched_statements_special_mvar in
   let env = (key, Ss [])::env in
 
   let res = GG.m_stmts_deep pattern e env in
@@ -98,6 +98,10 @@ let match_sts_sts pattern e =
   res |> List.map (fun tin ->
     match List.assoc_opt key tin with
     | Some (Ss xs) ->
+          (* we use List.rev because Generic_vs_generic.env_add_matched_stmt
+           * adds the matched statements gradually at the beginning
+           * of the list
+           *)
           List.remove_assoc key tin, (Ss (List.rev xs))
     | _ -> raise Impossible
   )

@@ -86,7 +86,7 @@ let m_string_xhp_text sa sb =
 
 (* ugly, see comment in Semgrep_generic.match_sts_sts *)
 let env_add_matched_stmt st tin =
-  let key = "!STMTS!" in
+  let key = MV.matched_statements_special_mvar in
   match List.assoc_opt key tin with
   | None -> [tin]
   | Some (B.Ss xs) ->
