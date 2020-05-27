@@ -73,7 +73,6 @@ def build_normal_output(
 
         current_file = rule_match.path
         check_id = rule_match.id
-        extra = rule_match.extra
         message = rule_match.message
         severity = rule_match.severity
         fix = rule_match.fix

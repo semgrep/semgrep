@@ -1,5 +1,4 @@
 import json
-from collections import namedtuple
 from typing import Any
 from typing import Dict
 from typing import Iterator

@@ -34,13 +34,7 @@ tools:
     run: true
   flake8:
     ignore:
-    - bad-wildcard-import
     - bare-except-bugbear
-    - no-getattr
-    - no-setattr
-    - unused-loop-variable
-    - unused-module
-    - unused-variable
     run: true
   hadolint:
     ignore:
