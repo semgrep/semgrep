@@ -235,8 +235,9 @@ You may want to match an expression that could be nested deep within another exp
 For example, this pattern:
 
 ```yaml
-if <... $USER.is_admin() ...>:
-  ...
+pattern: |
+  if <... $USER.is_admin() ...>:
+    ...
 ```
 
 will match:
@@ -250,6 +251,7 @@ The deep expression operator will work in:
 * if statements -- `if <... $X ...>:`
 * nested calls -- `sql.query(<... $X ...>)`
 * operands of a binary expression -- `"..." + <... $X ...>`
+* and any other expression context.
 
 #### Arrays
 
