@@ -2,6 +2,7 @@
 
 ![Homebrew](https://github.com/returntocorp/homebrew-semgrep/workflows/homebrew/badge.svg)
 [![r2c Community Slack](https://img.shields.io/badge/r2c_slack-join-brightgreen?style=flat&logo=slack&labelColor=4A154B)](https://join.slack.com/t/r2c-community/shared_invite/enQtNjU0NDYzMjAwODY4LWE3NTg1MGNhYTAwMzk5ZGRhMjQ2MzVhNGJiZjI1ZWQ0NjQ2YWI4ZGY3OGViMGJjNzA4ODQ3MjEzOWExNjZlNTA)
+[![r2c Twitter](https://img.shields.io/twitter/follow/r2cdev?label=Follow%20r2cdev&style=social&color=blue)](https://twitter.com/intent/follow?screen_name=r2cdev)
 
 `semgrep` is a tool for easily detecting and preventing bugs and anti-patterns in
 your codebase. It combines the convenience of `grep` with the correctness of
