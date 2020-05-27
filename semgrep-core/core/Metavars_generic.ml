@@ -34,6 +34,14 @@ open Common
 type mvar = string
 (*e: type [[Metavars_generic.mvar]] *)
 
+(* See the comment on Semgrep_generic.match_sts_sts for more information.
+ * This is ugly, and we should probably use a variant for mvar
+ * to differentiate semgrep metavariables from this special metavariable
+ * used internally to help return correct statements ranges, but I'm
+ * lazy.
+ *)
+let matched_statements_special_mvar = "!STMT!"
+
 (*s: type [[Metavars_generic.metavars_binding]] *)
 (* note that the AST_generic.any acts as the value of the metavar and also
  * as its concrete code "witness". You can get position information from it,

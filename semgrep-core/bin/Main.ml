@@ -870,6 +870,11 @@ let main () =
         | _ when !rules_file <> "" ->
            (try  sgrep_with_rules !rules_file (x::xs)
             with exn -> begin
+             if Sys.getenv_opt "SEMGREP_CORE_DEBUG" <> None then begin
+               let tmp = Filename.temp_file "semgrep_core_rule-" ".yaml" in
+               pr2 (spf "saving rule file leading to the error in: %s" tmp);
+               Common.write_file ~file:tmp (Common.read_file !rules_file);
+             end;
              pr (format_output_exception exn);
              exit 2
              end

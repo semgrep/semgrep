@@ -72,7 +72,39 @@ let match_st_st pattern e =
 (*s: function [[Semgrep_generic.match_sts_sts]] *)
 let match_sts_sts pattern e =
   let env = Matching_generic.empty_environment () in
-  GG.m_stmts_deep pattern e env
+  (* When matching statements, we need not only to report whether
+   * there is match, but also the actual statements that were matched.
+   * Indeed, even if we want the implicit '...' at the end of
+   * a sequence of statements pattern (AST_generic.Ss) to match all
+   * the rest, we don't want to report the whole Ss as a match but just
+   * the actually matched subset.
+   * To do so would require to change the interface of a matcher
+   * to not only return the matched environment but also the matched
+   * statements. This would require in turn to provide new versions
+   * for >>=, >||>, etc.
+   * Instead, we can abuse the environment to also record the
+   * matched statements! This is a bit ugly, but the alternative might
+   * be worse.
+   *
+   * TODO? do we need to generate unique key? we don't want
+   * nested calls to m_stmts_deep to polluate our metavar? We need
+   * to pass the key to m_stmts_deep?
+   *)
+  let key = MV.matched_statements_special_mvar in
+  let env = (key, Ss [])::env in
+
+  let res = GG.m_stmts_deep pattern e env in
+
+  res |> List.map (fun tin ->
+    match List.assoc_opt key tin with
+    | Some (Ss xs) ->
+          (* we use List.rev because Generic_vs_generic.env_add_matched_stmt
+           * adds the matched statements gradually at the beginning
+           * of the list
+           *)
+          List.remove_assoc key tin, (Ss (List.rev xs))
+    | _ -> raise Impossible
+  )
 (*e: function [[Semgrep_generic.match_sts_sts]] *)
 
 (*s: function [[Semgrep_generic.match_any_any]] *)
@@ -266,9 +298,11 @@ let check2 ~hook rules equivs file lang ast =
          let matches_with_env = match_sts_sts pattern x in
          if matches_with_env <> []
          then (* Found a match *)
-           matches_with_env |> List.iter (fun env ->
-             Common.push { Res. rule; file; env; code = Ss x } matches;
-             let matched_tokens = lazy (Lib_AST.ii_of_any (Ss x)) in
+           matches_with_env |> List.iter (fun (env, matched_statements) ->
+             Common.push { Res. rule; file; env; code = matched_statements }
+               matches;
+             let matched_tokens = lazy (Lib_AST.ii_of_any matched_statements)
+             in
              hook env matched_tokens
            )
       );

@@ -3,8 +3,12 @@ open Common
 open OUnit
 
 (*****************************************************************************)
-(* Sgrep Unit tests *)
+(* Semgrep Unit tests *)
 (*****************************************************************************)
+(* TODO:
+ *  - we could add unit tests for the range returned by match_sts_sts
+ *  - we could add unit tests for the code dealing with equivalences
+ *)
 
 (*s: function [[Unit_matcher.unittest]] *)
 let unittest ~any_gen_of_string =
