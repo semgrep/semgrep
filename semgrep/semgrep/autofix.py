@@ -1,8 +1,6 @@
 from pathlib import Path
-from typing import Any
 from typing import Dict
 from typing import List
-from typing import Optional
 from typing import Set
 
 from semgrep.rule import Rule
@@ -44,7 +42,7 @@ def apply_fixes(rule_matches_by_rule: Dict[Rule, List[RuleMatch]]) -> None:
     """
     modified_files: Set[Path] = set()
 
-    for rule, rule_matches in rule_matches_by_rule.items():
+    for _, rule_matches in rule_matches_by_rule.items():
         for rule_match in rule_matches:
             fix = rule_match.fix
             if fix:
