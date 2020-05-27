@@ -16,8 +16,9 @@ Contents:
     * [Function Definitions](#function-definitions)
     * [Class Definitions](#class-definitions)
     * [Strings](#strings)
-	* [Arrays](#arrays)
+    * [Arrays](#arrays)
     * [Conditionals and Loops](#conditionals-and-loops)
+  * [Deep Expression Operator](#deep-expression-operator)
   * [Equivalences](#equivalences)
     * [Imports](#imports)
     * [Constants](#constants)
@@ -226,6 +227,29 @@ pattern: $X = 1 + 2 + ...
 ```python
 foo = 1 + 2 + 3 + 4
 ```
+
+### Deep Expression Operator
+
+You may want to match an expression that could be nested deep within another expression. An example of this is looking for a pattern anywhere within an if statement. To do this, use the deep expression operator: `<... [your_pattern] ...>`. This will match your pattern in the current expression context and recursively in any subexpressions.
+
+For example, this pattern:
+
+```yaml
+if <... $USER.is_admin() ...>:
+  ...
+```
+
+will match:
+
+```python
+if user.authenticated() and user.is_admin() and user.has_group(gid):
+  ...
+```
+
+The deep expression operator will work in:
+* if statements -- `if <... $X ...>:`
+* nested calls -- `sql.query(<... $X ...>)`
+* operands of a binary expression -- `"..." + <... $X ...>`
 
 #### Arrays
 
