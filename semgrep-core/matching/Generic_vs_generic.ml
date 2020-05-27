@@ -84,6 +84,18 @@ let m_string_xhp_text sa sb =
   else fail ()
 (*e: function [[Generic_vs_generic.m_string_xhp_text]] *)
 
+(* ugly, see comment in Semgrep_generic.match_sts_sts *)
+let env_add_matched_stmt st tin =
+  let key = MV.matched_statements_special_mvar in
+  match List.assoc_opt key tin with
+  | None -> [tin]
+  | Some (B.Ss xs) ->
+      let xs' = st::xs in
+      let tin = (key, B.Ss xs')::(List.remove_assoc key tin) in
+      [tin]
+  | Some _ -> raise Impossible
+
+
 (*****************************************************************************)
 (* Name *)
 (*****************************************************************************)
@@ -1290,13 +1302,16 @@ and m_list__m_stmt (xsa: A.stmt list) (xsb: A.stmt list) =
       (* can match nothing *)
       (m_list__m_stmt xsa (xb::xsb)) >||>
       (* can match more *)
-      (m_list__m_stmt ((A.ExprStmt (A.Ellipsis i))::xsa) xsb)
+      (env_add_matched_stmt xb >>= (fun () ->
+       (m_list__m_stmt ((A.ExprStmt (A.Ellipsis i))::xsa) xsb)
+      ))
   (*e: [[Generic_vs_generic.m_list__m_stmt()]] ellipsis cases *)
   (* the general case *)
   | xa::aas, xb::bbs ->
       m_stmt xa xb >>= (fun () ->
-      m_list__m_stmt aas bbs
-      )
+        env_add_matched_stmt xb >>= (fun () ->
+        m_list__m_stmt aas bbs
+      ))
   | _::_, _ ->
       fail ()
 (*e: function [[Generic_vs_generic.m_list__m_stmt]] *)
