@@ -58,19 +58,23 @@ type ('a, 'b) matcher = 'a -> 'b ->
 (*****************************************************************************)
 
 (*s: function [[Semgrep_generic.match_e_e]] *)
-let match_e_e pattern e =
+let match_e_e2 pattern e =
   let env = Matching_generic.empty_environment () in
   GG.m_expr pattern e env
 (*e: function [[Semgrep_generic.match_e_e]] *)
+let match_e_e a b = Common.profile_code "Semgrep.match_e_e" (fun () ->
+      match_e_e2 a b)
 
 (*s: function [[Semgrep_generic.match_st_st]] *)
-let match_st_st pattern e =
+let match_st_st2 pattern e =
   let env = Matching_generic.empty_environment () in
   GG.m_stmt pattern e env
 (*e: function [[Semgrep_generic.match_st_st]] *)
+let match_st_st a b = Common.profile_code "Semgrep.match_st_st" (fun () ->
+      match_st_st2 a b)
 
 (*s: function [[Semgrep_generic.match_sts_sts]] *)
-let match_sts_sts pattern e =
+let match_sts_sts2 pattern e =
   let env = Matching_generic.empty_environment () in
   (* When matching statements, we need not only to report whether
    * there is match, but also the actual statements that were matched.
@@ -106,6 +110,8 @@ let match_sts_sts pattern e =
     | _ -> raise Impossible
   )
 (*e: function [[Semgrep_generic.match_sts_sts]] *)
+let match_sts_sts a b = Common.profile_code "Semgrep.match_sts_sts" (fun () ->
+      match_sts_sts2 a b)
 
 (*s: function [[Semgrep_generic.match_any_any]] *)
 (* for unit testing *)
@@ -159,7 +165,7 @@ let subst_e (bindings: MV.metavars_binding) e =
 (*****************************************************************************)
 
 (*s: function [[Semgrep_generic.apply_equivalences]] *)
-let apply_equivalences equivs any =
+let apply_equivalences2 equivs any =
   let expr_rules = ref [] in
   let stmt_rules = ref [] in
 
@@ -215,7 +221,9 @@ let apply_equivalences equivs any =
    } in
   visitor.M.vany any
 (*e: function [[Semgrep_generic.apply_equivalences]] *)
-
+let apply_equivalences a b =
+  Common.profile_code "Semgrep.apply_equivalences" (fun () ->
+      apply_equivalences2 a b)
 
 (*****************************************************************************)
 (* Main entry point *)
@@ -322,9 +330,7 @@ let check2 ~hook rules equivs file lang ast =
 (*e: function [[Semgrep_generic.check2]] *)
 
 (*s: function [[Semgrep_generic.check]] *)
-let check ~hook rules equivs file lang =
-  Common.profile_code "Sgrep_generic.check" (
-    fun () -> check2 ~hook rules equivs file lang
-  )
+let check ~hook a b c d e =
+  Common.profile_code "Semgrep.check" (fun () -> check2 ~hook a b c d e)
 (*e: function [[Semgrep_generic.check]] *)
 (*e: semgrep/matching/Semgrep_generic.ml *)

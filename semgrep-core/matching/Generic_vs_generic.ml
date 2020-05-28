@@ -1259,13 +1259,74 @@ and m_other_attribute_operator = m_other_xxx
 
 (*s: function [[Generic_vs_generic.m_stmts_deep]] *)
 and m_stmts_deep (xsa: A.stmt list) (xsb: A.stmt list) =
-  if !Flag.go_deeper_stmt && (has_ellipsis_stmts xsa)
-  then
-    m_list__m_stmt xsa xsb >!> (fun () ->
-      let xsb' = SubAST_generic.flatten_substmts_of_stmts xsb in
-      m_list__m_stmt xsa xsb'
-    )
-  else m_list__m_stmt xsa xsb
+  (* opti: this was the old code:
+   *   if !Flag.go_deeper_stmt && (has_ellipsis_stmts xsa)
+   *   then
+   *   m_list__m_stmt xsa xsb >!> (fun () ->
+   *     let xsb' = SubAST_generic.flatten_substmts_of_stmts xsb in
+   *     m_list__m_stmt xsa xsb'
+   *   )
+   *   else m_list__m_stmt xsa xsb
+   *
+   * but this was really slow on huge files because with a pattern like
+   * 'foo(); ...; bar();' we would call flatten_substmts_of_stmts
+   * on each sequences in the program, even though foo(); was not
+   * matched first.
+   * Better to first match the first element, and if it matches and
+   * we have a '...' that was not matched on the current sequence,
+   * then we try with flatten_substmts_of_stmts.
+   *
+   * The code below is mostly a copy paste of m_list__m_stmt. We could
+   * factorize, but I prefer to control and limit the number of places
+   * where we call m_stmts_deep. Once we call m_list__m_stmt, we
+   * are in a simpler world where the list of stmts will not grow.
+   *)
+  match xsa, xsb with
+  | [], [] ->
+      return ()
+  (*s: [[Generic_vs_generic.m_list__m_stmt()]] empty list vs list case *)
+  (* less-is-ok:
+   * it's ok to have statements after in the concrete code as long as we
+   * matched all the statements in the pattern (there is an implicit
+   * '...' at the end, in addition to implicit '...' at the beginning
+   * handled by kstmts calling the pattern for each subsequences).
+   * TODO: sgrep_generic though then display the whole sequence as a match
+   * instead of just the relevant part.
+   *)
+  | [], _::_ ->
+      return ()
+  (*e: [[Generic_vs_generic.m_list__m_stmt()]] empty list vs list case *)
+
+  (* dots: '...', can also match no statement *)
+  | [A.ExprStmt (A.Ellipsis _i)], [] ->
+      return ()
+
+  | (A.ExprStmt (A.Ellipsis i))::xsa, xb::xsb ->
+    (* let's first try the without going deep *)
+     (
+      (* can match nothing *)
+      (m_list__m_stmt xsa (xb::xsb)) >||>
+      (* can match more *)
+      (env_add_matched_stmt xb >>= (fun () ->
+       (m_list__m_stmt ((A.ExprStmt (A.Ellipsis i))::xsa) xsb)
+      ))
+     ) >!> (fun () ->
+        if !Flag.go_deeper_stmt
+        then
+          let xsb' = SubAST_generic.flatten_substmts_of_stmts (xb::xsb) in
+          m_list__m_stmt ((A.ExprStmt (A.Ellipsis i))::xsa) xsb'
+        else fail ()
+     )
+
+  (* the general case *)
+  | xa::aas, xb::bbs ->
+      m_stmt xa xb >>= (fun () ->
+        env_add_matched_stmt xb >>= (fun () ->
+        m_stmts_deep aas bbs
+      ))
+  | _::_, _ ->
+      fail ()
+
 (*e: function [[Generic_vs_generic.m_stmts_deep]] *)
 
 and _m_stmts (xsa: A.stmt list) (xsb: A.stmt list) =

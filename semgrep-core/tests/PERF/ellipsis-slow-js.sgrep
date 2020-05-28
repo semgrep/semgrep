@@ -1,0 +1,4 @@
+// this is slower, because the first line will match many places
+$X = $Y;
+...
+$X = $Z;
