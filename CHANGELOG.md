@@ -2,6 +2,16 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## Next
+
+### Fixed 
+
+- Support "print expr," in Python 2.X
+- Support "async" keyword on inner arrow functions for ECMAScript 7+
+- Support optional catch bindings for ECMAScript 2019+
+- Support non-ASCII Unicode whitespace code points as lexical whitespace in JavaScript code
+- Support assignment expressions in Python 3.8
+
 ## [0.8.1](https://github.com/returntocorp/semgrep/releases/tag/v0.8.1) - 2020-05-26
 
 ### Fixed
