@@ -22,7 +22,10 @@ Contents:
   * [`pattern-inside`](configuration-files.md#pattern-inside)
   * [`pattern-not-inside`](configuration-files.md#pattern-not-inside)
   * [`pattern-where-python`](configuration-files.md#pattern-where-python)
-* [Metavariable matching](configuration-files.md#metavariable-matching)
+* [Metavariable Matching](configuration-files.md#metavariable-matching)
+  * [Metavariables in Logical ANDs](configuration-files.md#metavariables-in-logical-ands)
+  * [Metavariables in Logical ORs](configuration-files.md#metavariables-in-logical-ors)
+  * [Metavariables in Complex Logic](configuration-files.md#metavariables-in-complex-logic)
 * [Optional Fields](configuration-files.md#optional-fields)
   * [`fix`](configuration-files.md#fix)
   * [`metadata`](configuration-files.md#metadata)
@@ -91,14 +94,15 @@ All required fields must be present at the top-level of a rule. I.e. immediately
 | [`pattern-either`](configuration-files.md#pattern-either)_\*_ | `array` | Logical OR of multiple patterns. |
 | [`pattern-regex`](configuration-files.md#pattern-regex)_\*_ | `string` | Search files for [Python `re`](https://docs.python.org/3/library/re.html) compatible expressions. |
 
-* _\* Only one of `pattern`, `patterns`, `pattern-either`, or `pattern-regex` is required._
+_\* Only one of `pattern`, `patterns`, `pattern-either`, or `pattern-regex` is required._
 
 **Optional:**
 
 | Field | Type | Description |
 | :--- | :--- | :--- |
-| [`metadata`](advanced.md#metadata) | `object` | Arbitrary user-provided data. Use to attach data to rules without affecting semgrep's behavior |
-| [`paths`](configuration-files.md#paths) | `object` | Paths to run this check on, or to ignore this check in. See [examples](advanced.md#paths). |
+| [`fix`](configuration-files.md#fix) | `object` | Simple search-and-replace autofix functionality. |
+| [`metadata`](configuration-files.md#metadata) | `object` | Arbitrary user-provided data. Attach data to rules without affecting semgrep's behavior. |
+| [`paths`](configuration-files.md#paths) | `object` | Paths to include or exclude when running this check. |
 
 The below optional fields must reside underneath a `patterns` or `pattern-either` field.
 
@@ -272,91 +276,90 @@ rules:
 
 This rule looks for usage of Django's [`FloatField`](https://docs.djangoproject.com/en/3.0/ref/models/fields/#django.db.models.FloatField) model when storing currency information. `FloatField` can lead to rounding errors and should be avoided in favor of [`DecimalField`](https://docs.djangoproject.com/en/3.0/ref/models/fields/#django.db.models.DecimalField) when dealing with currency. Here the `pattern-where-python` operator allows us to utilize the Python `in` statement to filter findings that look like currency.
 
-## Metavariable matching
+## Metavariable Matching
 
-### Metavariables in logical inclusions
+Metavariable matching operates differently for logical AND (`patterns`)
+and logical OR (`pattern-either`) parent operators. Note that the behavior is
+consistent across all child operators: `pattern`, `pattern-not`,
+`pattern-regex`, `pattern-inside`, `pattern-not-inside`.
 
-Patterns' matched metavariable values are enforced to be identical when performing logical inclusion operations (`patterns`, `pattern-inside`) on matches.
+### Metavariables in Logical ANDs
+
+Metavariable values must be identical across sub-patterns when performing
+logical AND operations with the `patterns` operator.
 
 **Example**
 
-Consider the configuration:
+Consider the following rule:
+
 ```yaml
-  patterns:
-    - pattern-inside: |
-        def $F($X):
-            ...
-    - pattern: open($X)
+rules:
+  - id: function-args-to-open
+    patterns:
+      - pattern-inside: |
+          def $F($X):
+              ...
+      - pattern: open($X)
+    message: "Function argument passed to open() builtin"
+    languages: [python]
+    severity: ERROR
 ```
 
-This configuration will match this Python code:
+This rule will match the following code:
+
 ```python
 def foo(path):
     open(path)
 ```
 
 But will not match this code:
+
 ```python
 def foo(path):
     open(something_else)
 ```
 
-### Metavariables in logical negations
+### Metavariables in Logical ORs
 
-"Not" operations also apply to metavariable matches.
+Metavariable matching does not affect the matching of logical OR operations
+with the `pattern-either` operator.
 
 **Example**
 
-The configuration:
+Consider the following rule:
+
 ```yaml
-  patterns:
-    - pattern-not-inside: |
-        def $F($X):
-            ...
-    - pattern: open($X)
+rules:
+  - id: insecure-function-call
+    pattern-either:
+      - pattern: insecure_func1($X)
+      - pattern: insecure_func2($X)
+    message: "Insecure function use"
+    languages: [python]
+    severity: ERROR
 ```
 
-will _not_ match this Python code:
+This rule will match both examples below:
+
 ```python
-def foo(path):
-    open(path)
+insecure_func1(something)
+insecure_func2(something)
 ```
 
-But _will_ match this code:
 ```python
-def foo(path):
-    open(something_else)
+insecure_func1(something)
+insecure_func2(something_else)
 ```
 
-### Metavariables in logical unions
+### Metavariables in Complex Logic
 
-Metavariable matching does not affect the matching of logical unions (`pattern-either`).
+Metavariable matching still affects subsequent logical ORs if the parent is a
+logical AND.
 
 **Example**
 
-The configuration:
-```yaml
-  pattern-either:
-    - pattern: bar($X)
-    - pattern: baz($X)
-```
-will match:
-```python
-bar(something)
-```
-and will produce two matches (one for each line) in:
-```python
-bar(something)
-baz(something_else)
-```
+Consider the following rule:
 
-### Metavariables in complex logic
-
-A union's resulting matched metavariable value still affects further logical combinations.
-
-**Example**
-
-The configuration:
 ```yaml
   patterns:
     - pattern-inside: |
@@ -366,22 +369,25 @@ The configuration:
         - pattern: bar($X)
         - pattern: baz($X)
 ```
-will match both of:
+
+This rule matches both examples below:
+
 ```python
 def foo(something):
     bar(something)
 ```
-and
+
 ```python
 def foo(something):
     baz(something)
 ```
-but not
+
+But will not match this code::
+
 ```python
 def foo(something):
-   bar(something_else)
+    bar(something_else)
 ```
-
 
 ## Optional Fields
 
