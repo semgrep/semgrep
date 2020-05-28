@@ -48,12 +48,20 @@ module J = Json_type
 (* Flags *)
 (*****************************************************************************)
 
+(* You can set those environment variables to enable debugging/profiling
+ * instead of using -debug or -profile. This is useful when you don't call
+ * directly semgrep-core but instead use the semgrep Python wrapper.
+ *)
+let env_debug = "SEMGREP_CORE_DEBUG"
+let env_profile = "SEMGREP_CORE_PROFILE"
+
 (*s: constant [[Main_semgrep_core.verbose]] *)
 let verbose = ref false
 (*e: constant [[Main_semgrep_core.verbose]] *)
 (*s: constant [[Main_semgrep_core.debug]] *)
 let debug = ref false
 (*e: constant [[Main_semgrep_core.debug]] *)
+let profile = ref false
 (*s: constant [[Main_semgrep_core.error_recovery]] *)
 (* try to continue processing files, even if one has a parse error with -e/f.
  * note that -rules_file does its own error recovery.
@@ -420,6 +428,7 @@ let iter_generic_ast_of_files_and_get_matches_and_exn_to_errors f files =
            | [] ->
               failwith (spf "can not extract generic AST from %s" file)
          in
+         if !debug then pr2 (spf "PARSING: %s" file);
          let ast = parse_generic lang file in
 
          (* calling the hook *)
@@ -539,6 +548,16 @@ let sgrep_with_rules rules_file xs =
   in
   print_matches_and_errors files matches errs
 (*e: function [[Main_semgrep_core.sgrep_with_rules]] *)
+
+(* when called from semgrep-python, error messages in semgrep-core or
+ * certain profiling statistics may refer to rule id that are generated
+ * by semgrep-python, making it hard to know what the problem is.
+ * At least we can save this generated rule file to help debugging.
+ *)
+let save_rules_file_in_tmp () =
+  let tmp = Filename.temp_file "semgrep_core_rule-" ".yaml" in
+  pr2 (spf "saving rules file for debugging in: %s" tmp);
+  Common.write_file ~file:tmp (Common.read_file !rules_file)
 
 (*****************************************************************************)
 (* Semgrep -tainting_rules_file *)
@@ -786,7 +805,15 @@ let options () =
   (*s: [[Main_semgrep_core.options]] concatenated flags *)
   Flag_parsing_cpp.cmdline_flags_macrofile () @
   (*x: [[Main_semgrep_core.options]] concatenated flags *)
-  Common2.cmdline_flags_devel () @
+  (* inlining of: Common2.cmdline_flags_devel () @ *)
+  [ "-debugger",         Arg.Set Common.debugger,
+    " option to set if launched inside ocamldebug";
+    "-profile",          Arg.Unit (fun () ->
+        Common.profile := Common.ProfAll;
+        profile := true;
+    ),
+    " output profiling information";
+  ] @
   (*x: [[Main_semgrep_core.options]] concatenated flags *)
   Meta_parse_info.cmdline_flags_precision () @
   (*x: [[Main_semgrep_core.options]] concatenated flags *)
@@ -843,8 +870,25 @@ let main () =
     spf "Usage: %s [options] <pattern> <files_or_dirs> \nOptions:"
       (Filename.basename Sys.argv.(0))
   in
+
+  let argv =
+   (Array.to_list Sys.argv) @
+   (if Sys.getenv_opt "SEMGREP_CORE_DEBUG" <> None then ["-debug"] else[])@
+   (if Sys.getenv_opt "SEMGREP_CORE_PROFILE" <> None then ["-profile"] else[])
+  in
+
   (* does side effect on many global flags *)
-  let args = Common.parse_options (options()) usage_msg Sys.argv in
+  let args = Common.parse_options (options()) usage_msg (Array.of_list argv) in
+
+  if !debug then begin
+    pr2 "Debug mode On";
+    pr2 (spf "Executed as: %s" (Sys.argv|>Array.to_list|> String.concat " "));
+  end;
+  if !profile then begin
+    pr2 "Profile mode On";
+    pr2 "disabling -j when in profiling mode";
+    ncores := 1;
+  end;
 
   (* must be done after Arg.parse, because Common.profile is set by it *)
   Common.profile_code "Main total" (fun () ->
@@ -868,13 +912,11 @@ let main () =
         (match () with
         (*s: [[Main_semgrep_core.main()]] main entry match cases *)
         | _ when !rules_file <> "" ->
-           (try  sgrep_with_rules !rules_file (x::xs)
+           (try
+               sgrep_with_rules !rules_file (x::xs);
+               if !profile then save_rules_file_in_tmp ();
             with exn -> begin
-             if Sys.getenv_opt "SEMGREP_CORE_DEBUG" <> None then begin
-               let tmp = Filename.temp_file "semgrep_core_rule-" ".yaml" in
-               pr2 (spf "saving rule file leading to the error in: %s" tmp);
-               Common.write_file ~file:tmp (Common.read_file !rules_file);
-             end;
+             if !debug then save_rules_file_in_tmp ();
              pr (format_output_exception exn);
              exit 2
              end
