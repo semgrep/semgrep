@@ -184,7 +184,7 @@ See our [output documentation](docs/output.md) for details.
 
 ## Resources
 
-* [`semgrep` presentation at HellaSecure](https://www.youtube.com/watch?v=M586wePrwYs) and [slides](https://bit.ly/hella-secure-semgrep)
+* [Semgrep presentation](https://www.youtube.com/watch?v=pul1bRIOYc8) and [slides](https://web-assets.r2c.dev/presentations/r2c-semgrep-OWASP-BayArea-21-May-2020.pdf) at Bay Area OWASP meetup. Check out the [r2c YouTube channel](https://www.youtube.com/channel/UC5ahcFBorwzUTqPipFhjkWg) for more videos.
 * [Pattern features documentation](docs/pattern-features.md)
 * [Configuration files documentation](docs/configuration-files.md)
 * [Integrations](docs/integrations.md)
