@@ -110,8 +110,6 @@ $FILE = open(...)
 will find all occurrences in your code where the result of an `open()` call is assigned
 to a variable.
 
-
-
 #### Composing Patterns
 
 You can also construct rules by composing multiple patterns together.
