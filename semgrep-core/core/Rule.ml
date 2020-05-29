@@ -34,7 +34,7 @@
 
 (*s: type [[Rule.pattern]] *)
 (* right now only Expr, Stmt, and Stmts are supported *)
-type pattern = AST.any
+type pattern = Pattern.t
 (*e: type [[Rule.pattern]] *)
 
 (*s: type [[Rule.rule]] *)
