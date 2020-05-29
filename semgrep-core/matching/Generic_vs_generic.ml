@@ -1284,7 +1284,6 @@ and m_stmts_deep (xsa: A.stmt list) (xsb: A.stmt list) =
   match xsa, xsb with
   | [], [] ->
       return ()
-  (*s: [[Generic_vs_generic.m_list__m_stmt()]] empty list vs list case *)
   (* less-is-ok:
    * it's ok to have statements after in the concrete code as long as we
    * matched all the statements in the pattern (there is an implicit
@@ -1295,7 +1294,6 @@ and m_stmts_deep (xsa: A.stmt list) (xsb: A.stmt list) =
    *)
   | [], _::_ ->
       return ()
-  (*e: [[Generic_vs_generic.m_list__m_stmt()]] empty list vs list case *)
 
   (* dots: '...', can also match no statement *)
   | [A.ExprStmt (A.Ellipsis _i)], [] ->

@@ -16,4 +16,9 @@
  *)
 (*e: pad/r2c copyright *)
 
+(*s: type [[Pattern.t]] *)
+(* right now only Expr, Stmt, and Stmts are supported *)
+type t = AST_generic.any
+(*e: type [[Pattern.t]] *)
+
 (*e: semgrep/core/Pattern.ml *)
