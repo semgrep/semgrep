@@ -94,7 +94,13 @@ let regression_tests_for_lang files lang =
     let rule = { R.
       id = "unit testing"; pattern; message = ""; severity = R.Error; 
       languages = [lang] } in
-    let equiv = [] in
+    let equiv = 
+     (* Python == is not the same than !(==) *)
+     if lang <> Lang.Python
+     then Parse_equivalences.parse 
+       (Filename.concat data_path "basic_equivalences.yml")
+     else []
+    in
     Semgrep_generic.check
       ~hook:(fun _env matched_tokens ->
       (* there are a few fake tokens in the generic ASTs now (e.g., 
