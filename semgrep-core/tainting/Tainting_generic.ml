@@ -54,7 +54,8 @@ let match_pat_instr pat =
     let pat = Common2.foldl1 (fun x acc -> AST.DisjExpr (x, acc)) xs in
     (fun instr ->
        let eorig = instr.IL.iorig in
-       let matches_with_env = Semgrep_generic.match_e_e pat eorig in
+       let matches_with_env = Semgrep_generic.match_e_e "<tainting>" pat eorig
+          in
        matches_with_env <> []
     )
 (*e: function [[Tainting_generic.match_pat_instr]] *)

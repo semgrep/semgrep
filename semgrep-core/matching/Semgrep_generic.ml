@@ -58,19 +58,27 @@ type ('a, 'b) matcher = 'a -> 'b ->
 (*****************************************************************************)
 
 (*s: function [[Semgrep_generic.match_e_e]] *)
-let match_e_e pattern e =
+let match_e_e2 pattern e =
   let env = Matching_generic.empty_environment () in
   GG.m_expr pattern e env
 (*e: function [[Semgrep_generic.match_e_e]] *)
+let match_e_e ruleid a b =
+ Common.profile_code "Semgrep.match_e_e" (fun () ->
+    Common.profile_code ("rule:" ^ ruleid) (fun () ->
+      match_e_e2 a b))
 
 (*s: function [[Semgrep_generic.match_st_st]] *)
-let match_st_st pattern e =
+let match_st_st2 pattern e =
   let env = Matching_generic.empty_environment () in
   GG.m_stmt pattern e env
 (*e: function [[Semgrep_generic.match_st_st]] *)
+let match_st_st ruleid a b =
+  Common.profile_code "Semgrep.match_st_st" (fun () ->
+    Common.profile_code ("rule:" ^ ruleid) (fun () ->
+      match_st_st2 a b))
 
 (*s: function [[Semgrep_generic.match_sts_sts]] *)
-let match_sts_sts pattern e =
+let match_sts_sts2 pattern e =
   let env = Matching_generic.empty_environment () in
   (* When matching statements, we need not only to report whether
    * there is match, but also the actual statements that were matched.
@@ -106,6 +114,10 @@ let match_sts_sts pattern e =
     | _ -> raise Impossible
   )
 (*e: function [[Semgrep_generic.match_sts_sts]] *)
+let match_sts_sts ruleid a b =
+  Common.profile_code "Semgrep.match_sts_sts" (fun () ->
+    Common.profile_code ("rule:" ^ ruleid) (fun () ->
+      match_sts_sts2 a b))
 
 (*s: function [[Semgrep_generic.match_any_any]] *)
 (* for unit testing *)
@@ -119,11 +131,11 @@ let match_any_any pattern e =
 (*****************************************************************************)
 
 (*s: function [[Semgrep_generic.match_e_e_for_equivalences]] *)
-let match_e_e_for_equivalences a b =
+let match_e_e_for_equivalences ruleid a b =
   Common.save_excursion Flag.equivalence_mode true (fun () ->
   Common.save_excursion Flag.go_deeper_expr false (fun () ->
   Common.save_excursion Flag.go_deeper_stmt false (fun () ->
-    match_e_e a b
+    match_e_e ruleid a b
   )))
 (*e: function [[Semgrep_generic.match_e_e_for_equivalences]] *)
 
@@ -159,7 +171,7 @@ let subst_e (bindings: MV.metavars_binding) e =
 (*****************************************************************************)
 
 (*s: function [[Semgrep_generic.apply_equivalences]] *)
-let apply_equivalences equivs any =
+let apply_equivalences2 equivs any =
   let expr_rules = ref [] in
   let stmt_rules = ref [] in
 
@@ -191,7 +203,8 @@ let apply_equivalences equivs any =
          | [] -> x'
          | (l, r)::xs ->
            (* look for a match on original x, not x' *)
-           let matches_with_env = match_e_e_for_equivalences l x in
+           let matches_with_env = match_e_e_for_equivalences "<equivalence>"
+                    l x in
            (match matches_with_env with
            (* todo: should generate a Disj for each possibilities? *)
            | env::_xs ->
@@ -215,7 +228,9 @@ let apply_equivalences equivs any =
    } in
   visitor.M.vany any
 (*e: function [[Semgrep_generic.apply_equivalences]] *)
-
+let apply_equivalences a b =
+  Common.profile_code "Semgrep.apply_equivalences" (fun () ->
+      apply_equivalences2 a b)
 
 (*****************************************************************************)
 (* Main entry point *)
@@ -264,7 +279,7 @@ let check2 ~hook rules equivs file _lang ast =
        * against an expression recursively
        *)
       !expr_rules |> List.iter (fun (pattern, rule) ->
-         let matches_with_env = match_e_e pattern x in
+         let matches_with_env = match_e_e rule.R.id pattern x in
          if matches_with_env <> []
          then (* Found a match *)
            matches_with_env |> List.iter (fun env ->
@@ -282,7 +297,7 @@ let check2 ~hook rules equivs file _lang ast =
     (* mostly copy paste of expr code but with the _st functions *)
     V.kstmt = (fun (k, _) x ->
       !stmt_rules |> List.iter (fun (pattern, rule) ->
-         let matches_with_env = match_st_st pattern x in
+         let matches_with_env = match_st_st rule.R.id pattern x in
          if matches_with_env <> []
          then (* Found a match *)
            matches_with_env |> List.iter (fun env ->
@@ -302,7 +317,7 @@ let check2 ~hook rules equivs file _lang ast =
        * the heavy stuff (e.g., handling '...' between statements) rarely.
        *)
       !stmts_rules |> List.iter (fun (pattern, rule) ->
-         let matches_with_env = match_sts_sts pattern x in
+         let matches_with_env = match_sts_sts rule.R.id pattern x in
          if matches_with_env <> []
          then (* Found a match *)
            matches_with_env |> List.iter (fun (env, matched_statements) ->
@@ -329,9 +344,7 @@ let check2 ~hook rules equivs file _lang ast =
 (*e: function [[Semgrep_generic.check2]] *)
 
 (*s: function [[Semgrep_generic.check]] *)
-let check ~hook rules equivs file lang =
-  Common.profile_code "Sgrep_generic.check" (
-    fun () -> check2 ~hook rules equivs file lang
-  )
+let check ~hook a b c d e =
+  Common.profile_code "Semgrep.check" (fun () -> check2 ~hook a b c d e)
 (*e: function [[Semgrep_generic.check]] *)
 (*e: semgrep/matching/Semgrep_generic.ml *)

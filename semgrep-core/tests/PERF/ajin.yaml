@@ -1,0 +1,52 @@
+rules:
+  - id: cpu_kill
+    patterns:
+      - pattern-either:
+          - pattern: |
+              var $PARSER = new libxmljs.SaxParser();
+              ...
+              $PARSER.parseString(..., <... $REQ.$QUERY ...>, ...);
+          - pattern: |
+              var $PARSER = new libxmljs.SaxParser();
+              ...
+              $PARSER.foo(...);
+          - pattern: |
+              var $PARSER = new libxmljs.SaxParser();
+              ...
+              $PARSER.bar(...);
+          - pattern: |
+              var $PARSER = new libxmljs.SaxParser();
+              ...
+              $PARSER.again(...);
+          - pattern: |
+              var $PARSER = new libxmljs.SaxParser();
+              ...
+              $PARSER.again(...);
+          - pattern: |
+              var $PARSER = new libxmljs.SaxParser();
+              ...
+              $PARSER.blaa(...);
+          - pattern: |
+              var $PARSER = new libxmljs.SaxParser();
+              ...
+              $PARSER.fo(...);
+          - pattern: |
+              var $PARSER = new libxmljs.SaxParser();
+              ...
+              $PARSER.ell(...);
+          - pattern: |
+              var $PARSER = new libxmljs.SaxParser();
+              ...
+              $PARSER.nothing(...);
+          - pattern: |
+              var $PARSER = new libxmljs.SaxParser();
+              ...
+              $PARSER.again(...);
+          - pattern: |
+              var $PARSER = new libxmljs.SaxParser();
+              ...
+              $PARSER.fance(...);
+    message: CPU gone!
+    languages:
+      - javascript
+    severity: ERROR
