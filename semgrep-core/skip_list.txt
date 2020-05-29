@@ -1,2 +1,3 @@
 dir: _build
 file: docs/Semgrep.tex
+dir: tests/PERF

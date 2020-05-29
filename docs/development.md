@@ -97,6 +97,60 @@ Set the OCAMLRUNPARAM environment variable to 'b' for backtrace. You will get be
 export OCAMLRUNPARAM=b
 ```
 
+## Profiling code
+
+You can pass the -profile command-line argument to semgrep-core to get
+a short profile of the code, for example:
+``` bash
+cd semgrep_core
+./_build/default/bin/Main.exe -profile -e foo tests/python
+---------------------
+profiling result
+---------------------
+Main total                               :      1.975 sec          1 count
+Parse_python.parse                       :      0.828 sec          1 count
+...
+```
+
+You can also instead set the environment variable SEMGREP_CORE_PROFILE to 1 to get the same information:
+
+``` bash
+cd semgrep_core
+export SEMGREP_CORE_PROFILE=1
+./_build/default/bin/Main.exe -e foo tests/python
+---------------------
+profiling result
+---------------------
+Main total                               :      1.975 sec          1 count
+Parse_python.parse                       :      0.828 sec          1 count
+...
+```
+
+This is especially useful when you don't call directly semgrep-core, but
+instead use the python wrapper semgrep.
+
+You can also use the SEMGREP_CORE_DEBUG environment variable to add debugging
+information, for example:
+```bash
+export SEMGREP_CORE_DEBUG=1
+export SEMGREP_CORE_PROFILE=1
+pipenv run semgrep -f ../semgrep-core/tests/PERF/ajin.yaml ../semgrep-core/tests/PERF/three.js
+Debug mode On
+Executed as: semgrep-core -lang javascript -rules_file /tmp/tmpy5pzp3p_ -j 8 ../semgrep-core/tests/PERF/three.js
+Profile mode On
+disabling -j when in profiling mode
+PARSING: ../semgrep-core/tests/PERF/three.js
+saving rules file for debugging in: /tmp/semgrep_core_rule-97ae74.yaml
+---------------------
+profiling result
+---------------------
+Main total                               :      1.975 sec          1 count
+Parse_js.parse                           :      0.828 sec          1 count
+Semgrep.check                            :      0.791 sec          1 count
+Semgrep.match_sts_sts                    :      0.559 sec     185064 count
+...
+```
+
 ## Testing
 
 ### semgrep-core

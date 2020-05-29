@@ -20,7 +20,7 @@ type ('a, 'b) matcher = 'a -> 'b ->
 (* used by tainting *)
 
 (*s: signature [[Semgrep_generic.match_e_e]] *)
-val match_e_e: (AST_generic.expr, AST_generic.expr) matcher
+val match_e_e: string -> (AST_generic.expr, AST_generic.expr) matcher
 (*e: signature [[Semgrep_generic.match_e_e]] *)
 
 (*s: signature [[Semgrep_generic.match_any_any]] *)
