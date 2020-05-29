@@ -55,6 +55,23 @@
             "level": "error"
           },
           "fullDescription": {
+            "text": "possibly useless comparison but in eq function"
+          },
+          "id": "rules.assert-eqeq-is-ok",
+          "name": "rules.assert-eqeq-is-ok",
+          "properties": {
+            "precision": "very-high",
+            "tags": []
+          },
+          "shortDescription": {
+            "text": "possibly useless comparison but in eq function"
+          }
+        },
+        {
+          "defaultConfiguration": {
+            "level": "error"
+          },
+          "fullDescription": {
             "text": "useless comparison operation `$X == $X` or `$X != $X`; possible bug?"
           },
           "id": "rules.eqeq-is-bad",
@@ -82,6 +99,23 @@
           },
           "shortDescription": {
             "text": "useless comparison"
+          }
+        },
+        {
+          "defaultConfiguration": {
+            "level": "error"
+          },
+          "fullDescription": {
+            "text": "this function is only available on Python 3.7+"
+          },
+          "id": "rules.python37-compatability-os-module",
+          "name": "rules.python37-compatability-os-module",
+          "properties": {
+            "precision": "very-high",
+            "tags": []
+          },
+          "shortDescription": {
+            "text": "this function is only available on Python 3.7+"
           }
         }
       ],

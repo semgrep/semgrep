@@ -200,28 +200,15 @@ class CoreRunner:
         fp.write(yaml.safe_dump({"equivalences": [e.to_json() for e in equivalences]}))
         fp.flush()
 
-    def _run_rules(
-        self, rules: List[Rule], targets: List[Path]
-    ) -> Tuple[Dict[Rule, Dict[Path, List[PatternMatch]]], List[Any]]:
-        """
-            Run all rules on targets and return list of all places that match patterns, ... todo errors
-        """
-        import yaml  # here for faster startup times
+    def _run_rule(
+        self, rule: Rule, targets: List[Path]
+    ) -> Tuple[List[RuleMatch], List[Any]]:
+        import yaml
 
         outputs: List[PatternMatch] = []  # multiple invocations per language
         errors: List[Any] = []
-
-        # This will need to be addressed in the future. Since we flatten all the patterns,
-        # there's no way to tell semgrep which equivalences apply to which rules.
-        # So, my approach here is a naive implementation which likewise flattens all equivalences...
-        # Here there be dragons.... :-(
-        #  .>   )\;`a__
-        # (  _ _)/ /-." ~~
-        #  `( )_ )/
-        #   <_  <_ sb/dwb
-        equivalences = self._flatten_all_equivalences(rules)
+        equivalences = rule.equivalences
         with tempfile.NamedTemporaryFile("w") as equiv_fout:
-
             if equivalences:
                 try:
                     self._write_equivalences_file(equiv_fout, equivalences)
@@ -232,7 +219,7 @@ class CoreRunner:
                     equivalences = []
 
             for language, all_patterns_for_language in self._group_patterns_by_language(
-                rules
+                [rule]
             ).items():
                 # semgrep-core doesn't know about OPERATORS.REGEX - this is
                 # strictly a semgrep Python feature. Regex filtering is
@@ -308,38 +295,28 @@ class CoreRunner:
                     errors.extend(output_json["errors"])
                     outputs.extend([PatternMatch(m) for m in output_json["matches"]])
 
-        # group output; we want to see all of the same rule ids on the same file path
-        by_rule_index: Dict[
-            Rule, Dict[Path, List[PatternMatch]]
-        ] = collections.defaultdict(lambda: collections.defaultdict(list))
+                    # group output; we want to see all of the same rule ids on the same file path
+        return (
+            [
+                r
+                for r in evaluate(rule, outputs, self._allow_exec)
+                if rule.globs.match_path(r.path)
+            ],
+            errors,
+        )
 
-        for pattern_match in outputs:
-            rule_index = pattern_match.rule_index
-            rule = rules[rule_index]
-            by_rule_index[rule][pattern_match.path].append(pattern_match)
-
-        return by_rule_index, errors
-
-    def _resolve_output(
-        self, outputs: Dict[Rule, Dict[Path, List[PatternMatch]]]
-    ) -> Dict[Rule, List[RuleMatch]]:
-        """
-            Takes output of all running all patterns and rules and returns Findings
-        """
+    def _run_rules(
+        self, rules: List[Rule], targets: List[Path]
+    ) -> Tuple[Dict[Rule, List[RuleMatch]], List[Any]]:
         findings_by_rule: Dict[Rule, List[RuleMatch]] = {}
+        all_errors = []
 
-        for rule, paths in outputs.items():
-            findings = []
-            for filepath, pattern_matches in paths.items():
-                if not rule.globs.match_path(filepath):
-                    continue
-                debug_print(f"-------- rule ({rule.id} ------ filepath: {filepath}")
+        for rule in rules:
+            rule_matches, errors = self._run_rule(rule, targets)
+            findings_by_rule[rule] = rule_matches
+            all_errors.extend(errors)
 
-                findings.extend(evaluate(rule, pattern_matches, self._allow_exec))
-
-            findings_by_rule[rule] = dedup_output(findings)
-
-        return findings_by_rule
+        return findings_by_rule, all_errors
 
     @property
     def targeting_options(self) -> Iterator[str]:
@@ -364,8 +341,7 @@ class CoreRunner:
         """
         start = datetime.now()
 
-        outputs, errors = self._run_rules(rules, targets)
-        findings_by_rule = self._resolve_output(outputs)
+        findings_by_rule, errors = self._run_rules(rules, targets)
 
         debug_print(f"semgrep ran in {datetime.now() - start}")
 
