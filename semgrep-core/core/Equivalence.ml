@@ -57,8 +57,8 @@
 (*****************************************************************************)
 
 (*s: type [[Equivalence.pattern]] *)
-(* right now only Expr, Stmt, and Stmts are supported *)
-type pattern = AST.any
+(* right now only Expr is supported *)
+type pattern = Pattern.t
 (*e: type [[Equivalence.pattern]] *)
 
 (*s: type [[Equivalence.equivalence_kind]] *)

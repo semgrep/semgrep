@@ -18,7 +18,6 @@ open Common
 open AST_generic
 
 module V = Visitor_AST
-module M = Map_AST
 module AST = AST_generic
 module Err = Error_code
 module PI = Parse_info
@@ -127,112 +126,6 @@ let match_any_any pattern e =
 (*e: function [[Semgrep_generic.match_any_any]] *)
 
 (*****************************************************************************)
-(* Matchers for code equivalence mode *)
-(*****************************************************************************)
-
-(*s: function [[Semgrep_generic.match_e_e_for_equivalences]] *)
-let match_e_e_for_equivalences ruleid a b =
-  Common.save_excursion Flag.equivalence_mode true (fun () ->
-  Common.save_excursion Flag.go_deeper_expr false (fun () ->
-  Common.save_excursion Flag.go_deeper_stmt false (fun () ->
-    match_e_e ruleid a b
-  )))
-(*e: function [[Semgrep_generic.match_e_e_for_equivalences]] *)
-
-(*****************************************************************************)
-(* Substituters *)
-(*****************************************************************************)
-(*s: function [[Semgrep_generic.subst_e]] *)
-let subst_e (bindings: MV.metavars_binding) e =
-  let visitor = M.mk_visitor { M.default_visitor with
-    M.kexpr = (fun (k, _) x ->
-      match x with
-      | AST.Id ((str,_tok), _id_info) when MV.is_metavar_name str ->
-          (match List.assoc_opt str bindings with
-          | Some (AST.E e) ->
-              (* less: abstract-line? *)
-              e
-          | Some _ ->
-             failwith (spf "incompatible metavar: %s, was expecting an expr"
-                      str)
-          | None ->
-             failwith (spf "could not find metavariable %s in environment"
-                      str)
-          )
-      | _ -> k x
-    );
-   }
-  in
-  visitor.M.vexpr e
-(*e: function [[Semgrep_generic.subst_e]] *)
-
-(*****************************************************************************)
-(* Applying code equivalences *)
-(*****************************************************************************)
-
-(*s: function [[Semgrep_generic.apply_equivalences]] *)
-let apply_equivalences2 equivs any =
-  let expr_rules = ref [] in
-  let stmt_rules = ref [] in
-
-  equivs |> List.iter (fun {Eq. left; op; right; _ } ->
-    match left, op, right with
-    | E l, Eq.Equiv, E r ->
-          Common.push (l, r) expr_rules;
-          Common.push (r, l) expr_rules;
-    | E l, Eq.Imply, E r ->
-          Common.push (l, r) expr_rules;
-    | S l, Eq.Equiv, S r ->
-          Common.push (l, r) stmt_rules;
-          Common.push (r, l) stmt_rules;
-    | S l, Eq.Imply, S r ->
-          Common.push (l, r) stmt_rules;
-    | _ -> failwith "only expr and stmt equivalence patterns are supported"
-  );
-  (* the order matters, keep the original order reverting Common.push *)
-  let expr_rules = List.rev !expr_rules in
-  let _stmt_rulesTODO = List.rev !stmt_rules in
-
-  let visitor = M.mk_visitor { M.default_visitor with
-    M.kexpr = (fun (k, _) x ->
-       (* transform the children *)
-       let x' = k x in
-
-       let rec aux xs =
-         match xs with
-         | [] -> x'
-         | (l, r)::xs ->
-           (* look for a match on original x, not x' *)
-           let matches_with_env = match_e_e_for_equivalences "<equivalence>"
-                    l x in
-           (match matches_with_env with
-           (* todo: should generate a Disj for each possibilities? *)
-           | env::_xs ->
-           (* Found a match *)
-             let alt = subst_e env r (* recurse on r? *) in
-             if Lib_AST.abstract_position_info_any (AST.E x) =*=
-                Lib_AST.abstract_position_info_any (AST.E alt)
-             then x'
-             (* disjunction (if different) *)
-             else AST.DisjExpr (x', alt)
-
-           (* no match yet, trying another equivalence *)
-           | [] -> aux xs
-           )
-        in
-        aux expr_rules
-    );
-    M.kstmt = (fun (_k, _) x ->
-      x
-    );
-   } in
-  visitor.M.vany any
-(*e: function [[Semgrep_generic.apply_equivalences]] *)
-let apply_equivalences a b =
-  Common.profile_code "Semgrep.apply_equivalences" (fun () ->
-      apply_equivalences2 a b)
-
-(*****************************************************************************)
 (* Main entry point *)
 (*****************************************************************************)
 
@@ -262,7 +155,7 @@ let check2 ~hook rules equivs file _lang ast =
     (* less: normalize the pattern? *)
     let any = rule.R.pattern in
     (*s: [[Semgrep_generic.check2()]] apply equivalences to rule pattern [[any]] *)
-    let any = apply_equivalences equivs any in
+    let any = Apply_equivalences.apply equivs any in
     (*e: [[Semgrep_generic.check2()]] apply equivalences to rule pattern [[any]] *)
     match any with
     | E pattern  -> Common.push (pattern, rule) expr_rules
