@@ -14,7 +14,7 @@ jobs:
       - name: Build the Docker image
         run: docker build .
       - name: Push Develop Image if on develop branch
-        if: ${{ github.event_name == 'push' && github.ref == 'develop' }}
+        if: ${{ github.event_name == 'push'}}
         uses: docker/build-push-action@v1
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
