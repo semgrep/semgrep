@@ -3,7 +3,7 @@ all:
 clean:
 	rm -rf ./build/
 test:
-	pipenv run pytest tests/
+	pipenv run pytest -v --tb=short tests/
 regenerate-tests:
 	pipenv run pytest tests/ --snapshot-update
 install:
@@ -12,7 +12,7 @@ install:
 
 .PHONY: qa-test
 qa-test:
-	pipenv run pytest tests/ --qa
+	pipenv run pytest -v --tb=short tests/ --qa
 
 .PHONY: benchmark
 benchmark:
