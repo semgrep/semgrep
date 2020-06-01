@@ -38,7 +38,7 @@ Then you can compile the program with:
 
 ```bash
 cd semgrep-core
-opam install --deps-only -y . # This is only necessary the first time you are building locallypip
+opam install --deps-only -y . # This is only necessary the first time you are building locally
 make all
 make install # Run this if you want to add newly built binary to path
 ```
