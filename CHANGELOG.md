@@ -57,6 +57,16 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - A `--sarif` flag to receive output formatted according to the
   [SARIF v2.1.0](https://docs.oasis-open.org/sarif/sarif/v2.1.0/cs01/sarif-v2.1.0-cs01.html)
   specification for static analysis tools.
+- Metavariables are now checked for equality across pattern clauses. For example, in the following pattern, `$REQ` must be the same variable name for this to match:
+  ```yaml
+  - patterns:
+    - pattern-inside: |
+        $TYPE $METHOD(..., HttpServletRequest $REQ, ...) {
+          ...
+        }
+    - pattern: $REQ.getQueryString(...);
+  ```
+
 
 ### Fixed
 - Correclty parse implicit tuples in python f-strings
