@@ -260,25 +260,32 @@ and m_ident_and_id_info_add_in_env_Expr (a1, a2) (b1, b2) =
 (*s: function [[Generic_vs_generic.m_id_info]] *)
 and m_id_info a b =
   match a, b with
-  { A. id_resolved = _a1; id_type = a2; id_const_literal = _a3 },
-  { B. id_resolved = _b1; id_type = b2; id_const_literal = _b3 }
+  { A. id_resolved = _a1; id_type = _a2; id_const_literal = _a3 },
+  { B. id_resolved = _b1; id_type = _b2; id_const_literal = _b3 }
    ->
-
-     (* TODO:
-      * right now doing import flask in a file means every reference
+     (* old: (m_ref m_resolved_name) a3 b3  >>= (fun () ->
+      * but doing import flask in a source file means every reference
       * to flask.xxx will be tagged with a ImportedEntity, but
-      * sgrep pattern might use flask.xxx without this tag, which prevents
-      * matching, hence the comment for now. We need to correctly resolve
-      * names and always compare with the resolved_name instead of the
-      * name used in the code (which can be an alias)
+      * semgrep pattern will use flask.xxx directly, without the preceding
+      * import, without this tag, which would prevent
+      * matching. We need to correctly resolve names and always compare with
+      * the resolved_name instead of the name used in the code
+      * (which can be an alias)
       *
       * Note that is is independent of the check done in equal_ast to check
       * that two $X refers to the same code. In that case we are using
       * the id_resolved tag and sid.
       *)
-      (* (m_ref m_resolved_name) a3 b3  >>= (fun () ->  *)
-
-    (m_ref (m_option m_type_)) a2 b2
+     (* old: (m_ref (m_option m_type_)) a2 b2
+      * the same is true for types! Now we sometimes propagate type annotations
+      * in Naming_AST.ml, but we do that in the source file, not the pattern,
+      * which would prevent a match.
+      * More generally, id_info is something populated and used on the
+      * generic AST of the source, not on the pattern, hence we should
+      * not use it as a condition for matching here. Instead use
+      * the information in the caller.
+      *)
+      return ()
 (*e: function [[Generic_vs_generic.m_id_info]] *)
 
 (*****************************************************************************)
@@ -1411,10 +1418,8 @@ and m_stmt a b =
   (*e: [[Generic_vs_generic.m_stmt()]] deep matching cases *)
   (*s: [[Generic_vs_generic.m_stmt()]] builtin equivalences cases *)
   (* equivalence: vardef ==> assign, and go deep *)
-  | A.ExprStmt a1,
-    B.DefStmt ({ B.info={B.id_resolved={contents=resolved }; _}; _ } as ent,
-      B.VarDef ({B.vinit = Some _; _} as def)) ->
-      let b1 = AST.vardef_to_assign (ent, def) resolved in
+  | A.ExprStmt a1, B.DefStmt (ent, B.VarDef ({B.vinit = Some _; _} as def)) ->
+      let b1 = AST.vardef_to_assign (ent, def) in
       m_expr_deep a1 b1
   (*x: [[Generic_vs_generic.m_stmt()]] builtin equivalences cases *)
   (* equivalence: *)
