@@ -72,26 +72,32 @@ def test_default_packs(run_semgrep_in_tmp, benchmark, repo_case):
 
     # In general, aim for 1ksloc / rule. The packs are "special" though -- composed of rules we know will run
     # fast and give great UX
-    DEFAULT_PACK_MIN_SPEED_KSLOCS = 0.5
+    DEFAULT_PACK_MIN_SPEED_KSLOCS = 0.1
     timeout = max(repo_ksloc / DEFAULT_PACK_MIN_SPEED_KSLOCS, 5)
     print(
         f"checking with timeout of {timeout} (required analysis speed of {repo_ksloc / timeout} kslocs"
     )
 
-    benchmark(
-        subprocess.check_output,
-        [
-            "python3",
-            "-m",
-            "semgrep",
-            "--jobs",
-            "1",
-            "--config",
-            f"https://semgrep.live/c/p/{repo_case.language}",
-            "repo",
-        ],
-        timeout=timeout,
-    )
+    def run_benchmark():
+        try:
+            subprocess.check_output(
+                [
+                    "python3",
+                    "-m",
+                    "semgrep",
+                    "--jobs",
+                    "1",
+                    "--config",
+                    f"https://semgrep.live/c/p/{repo_case.language}",
+                    "repo",
+                ],
+                timeout=timeout,
+            )
+        except subprocess.TimeoutExpired:
+            # Avoid a giant and useless pytest stack trace
+            pytest.fail(f"check-pack benchmark timed out (running {repo_case})")
+
+    benchmark(run_benchmark)
 
 
 @pytest.mark.parametrize(
