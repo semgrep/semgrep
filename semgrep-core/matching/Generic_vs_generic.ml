@@ -1418,10 +1418,8 @@ and m_stmt a b =
   (*e: [[Generic_vs_generic.m_stmt()]] deep matching cases *)
   (*s: [[Generic_vs_generic.m_stmt()]] builtin equivalences cases *)
   (* equivalence: vardef ==> assign, and go deep *)
-  | A.ExprStmt a1,
-    B.DefStmt ({ B.info={B.id_resolved={contents=resolved }; _}; _ } as ent,
-      B.VarDef ({B.vinit = Some _; _} as def)) ->
-      let b1 = AST.vardef_to_assign (ent, def) resolved in
+  | A.ExprStmt a1, B.DefStmt (ent, B.VarDef ({B.vinit = Some _; _} as def)) ->
+      let b1 = AST.vardef_to_assign (ent, def) in
       m_expr_deep a1 b1
   (*x: [[Generic_vs_generic.m_stmt()]] builtin equivalences cases *)
   (* equivalence: *)
