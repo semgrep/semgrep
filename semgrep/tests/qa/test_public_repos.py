@@ -139,9 +139,19 @@ def test_semgrep_on_repo(monkeypatch, tmp_path, repo_url):
                 + semgrep_run.stderr
             )
 
-        assert output["errors"] == []
-        assert len(output["results"]) == 1
-        assert output["results"][0]["path"] == str(sentinel_path)
+        if output["errors"] != []:
+            pytest.fail(
+                f"Running on {repo_url} with lang {language} had errors: "
+                + json.dumps(output["errors"], indent=4)
+            )
+
+        if len(output["results"]) != 1 or output["results"][0]["path"] != str(
+            sentinel_path
+        ):
+            pytest.fail(
+                f"Running on {repo_url} with lang {language} expected to have one results instead found result: "
+                + json.dumps(output["results"], indent=4)
+            )
 
     output = subprocess.check_output(
         [
@@ -156,5 +166,9 @@ def test_semgrep_on_repo(monkeypatch, tmp_path, repo_url):
         encoding="utf-8",
     )
     output = json.loads(output)
-    assert len(output["results"]) == 3
-    assert len(output["errors"]) == 0
+
+    if len(output["results"]) != 3 or len(output["errors"]) != 0:
+        pytest.fail(
+            f"Running on {repo_url} with regex rules. Expect 3 results and no errors but got: "
+            + json.dumps(output, indent=4)
+        )

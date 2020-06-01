@@ -45,10 +45,14 @@ jobs:
         run: git submodule update --init --recursive
       - name: Install pfff
         run: eval $(opam  env --root /home/opam/.opam --set-root) && opam install -y ./pfff
-      - name: Install and test semgrep-core
-        run: eval $(opam  env --root /home/opam/.opam --set-root) && cd semgrep-core && opam install --deps-only -y . && make all && make test && make install
-      - name: Install and test semgrep
-        run: eval $(opam  env --root /home/opam/.opam --set-root) && cd semgrep && export PATH=/github/home/.local/bin:$PATH && pip3 install pipenv && pipenv install --dev && make test && make qa-test && make all
+      - name: Install semgrep-core
+        run: eval $(opam  env --root /home/opam/.opam --set-root) && cd semgrep-core && opam install --deps-only -y . && make all && make install
+      - name: Test semgrep-core
+        run: eval $(opam  env --root /home/opam/.opam --set-root) && cd semgrep-core && make test
+      - name: Install semgrep
+        run: eval $(opam  env --root /home/opam/.opam --set-root) && cd semgrep && export PATH=/github/home/.local/bin:$PATH && pip3 install pipenv && pipenv install --dev && make test && make qa-test
+      - name: Test semgrep
+        run: eval $(opam  env --root /home/opam/.opam --set-root) && cd semgrep && export PATH=/github/home/.local/bin:$PATH && make test && make qa-test
 
   mac-build-test:
     name: Check builds for macOS
