@@ -100,7 +100,7 @@ let match_sts_sts2 pattern e =
   let key = MV.matched_statements_special_mvar in
   let env = (key, Ss [])::env in
 
-  let res = GG.m_stmts_deep pattern e env in
+  let res = GG.m_stmts_deep ~less_is_ok:true pattern e env in
 
   res |> List.map (fun tin ->
     match List.assoc_opt key tin with
