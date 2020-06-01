@@ -8,7 +8,8 @@ val m_expr : (AST.expr, AST.expr) Matching_generic.matcher
 val m_stmt : (AST.stmt, AST.stmt) Matching_generic.matcher
 (*e: signature [[Generic_vs_generic.m_stmt]] *)
 (*s: signature [[Generic_vs_generic.m_stmts_deep]] *)
-val m_stmts_deep : (AST.stmt list, AST.stmt list) Matching_generic.matcher
+val m_stmts_deep : less_is_ok:bool->
+  (AST.stmt list, AST.stmt list) Matching_generic.matcher
 (*e: signature [[Generic_vs_generic.m_stmts_deep]] *)
 
 (*s: signature [[Generic_vs_generic.m_any]] *)

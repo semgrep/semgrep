@@ -1265,7 +1265,7 @@ and m_other_attribute_operator = m_other_xxx
 (* experimental! *)
 
 (*s: function [[Generic_vs_generic.m_stmts_deep]] *)
-and m_stmts_deep (xsa: A.stmt list) (xsb: A.stmt list) =
+and m_stmts_deep ~less_is_ok (xsa: A.stmt list) (xsb: A.stmt list) =
   (* opti: this was the old code:
    *   if !Flag.go_deeper_stmt && (has_ellipsis_stmts xsa)
    *   then
@@ -1300,7 +1300,7 @@ and m_stmts_deep (xsa: A.stmt list) (xsb: A.stmt list) =
    * instead of just the relevant part.
    *)
   | [], _::_ ->
-      return ()
+      if less_is_ok then return () else fail ()
 
   (* dots: '...', can also match no statement *)
   | [A.ExprStmt (A.Ellipsis _i)], [] ->
@@ -1327,7 +1327,7 @@ and m_stmts_deep (xsa: A.stmt list) (xsb: A.stmt list) =
   | xa::aas, xb::bbs ->
       m_stmt xa xb >>= (fun () ->
         env_add_matched_stmt xb >>= (fun () ->
-        m_stmts_deep aas bbs
+        m_stmts_deep ~less_is_ok aas bbs
       ))
   | _::_, _ ->
       fail ()
@@ -1414,7 +1414,7 @@ and m_stmt a b =
   (*x: [[Generic_vs_generic.m_stmt()]] deep matching cases *)
   (* TODO: ... should also allow a subset of stmts *)
   | A.Block(a1), B.Block(b1) ->
-    m_stmts_deep a1 b1
+    m_stmts_deep ~less_is_ok:false a1 b1
   (*e: [[Generic_vs_generic.m_stmt()]] deep matching cases *)
   (*s: [[Generic_vs_generic.m_stmt()]] builtin equivalences cases *)
   (* equivalence: vardef ==> assign, and go deep *)
@@ -1433,7 +1433,8 @@ and m_stmt a b =
     (* too many regressions doing m_expr_deep by default; Use DeepEllipsis *)
     m_expr a1 b1 >>= (fun () ->
     m_stmt a2 b2 >>= (fun () ->
-    m_stmt a3 b3
+    (* less-is-more: *)
+    m_option_none_can_match_some m_stmt a3 b3
     )))
 
   | A.While(a0, a1, a2), B.While(b0, b1, b2) ->
@@ -2260,7 +2261,7 @@ and m_program a b =
 and m_any a b =
   match a, b with
   | A.Ss(a1), B.Ss(b1) ->
-    m_stmts_deep a1 b1
+    m_stmts_deep ~less_is_ok:true a1 b1
   | A.E(a1), B.E(b1) ->
     m_expr a1 b1
   | A.S(a1), B.S(b1) ->

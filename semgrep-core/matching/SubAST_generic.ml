@@ -157,7 +157,7 @@ let substmts_of_stmt st =
 
     (* 2 *)
     | If (_, _, st1, st2)
-    -> [st1; st2]
+    -> st1::(Common.opt_to_list st2)
 
     (* n *)
     | Block xs ->
