@@ -22,8 +22,8 @@ To compile semgrep, you first need to [install OCaml](https://opam.ocaml.org/doc
 ```bash
 brew install opam
 opam init
-opam switch create 4.07.1
-opam switch 4.07.1
+opam switch create 4.10.0
+opam switch 4.10.0
 eval $(opam env)
 ```
 
@@ -38,7 +38,9 @@ Then you can compile the program with:
 
 ```bash
 cd semgrep-core
+opam install --deps-only -y . # This is only necessary the first time you are building locally
 make all
+make install # Run this if you want to add newly built binary to path
 ```
 
 You can also use the Dockerfile in this directory to build semgrep inside a container.
@@ -68,6 +70,9 @@ pipenv install --dev
 # semgrep you're trying to modify
 pipenv run semgrep --config <YAML_FILE_OR_DIRECTORY> <code to check>
 ```
+
+Note pipenv run command must be run from semgrep directory. If you want to run on other directories
+run `pipenv shell` to enter pipenv virtual environment.
 
 ## Development Environment
 
