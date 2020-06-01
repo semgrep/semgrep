@@ -297,11 +297,13 @@ class CoreRunner:
 
                     # group output; we want to see all of the same rule ids on the same file path
         return (
-            [
-                r
-                for r in evaluate(rule, outputs, self._allow_exec)
-                if rule.globs.match_path(r.path)
-            ],
+            dedup_output(
+                [
+                    r
+                    for r in evaluate(rule, outputs, self._allow_exec)
+                    if rule.globs.match_path(r.path)
+                ]
+            ),
             errors,
         )
 
