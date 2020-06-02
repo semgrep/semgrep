@@ -88,6 +88,18 @@ def xfail_repo(url, *, reason=None):
                 "https://github.com/returntocorp/semgrep/issues/582"
             ),
         ),
+        "https://github.com/mpirnat/lets-be-bad-guys",
+        "https://github.com/nVisium/django.nV",
+        "https://github.com/we45/Vulnerable-Flask-App",
+        "https://github.com/JasonHinds13/hackable",
+        "https://github.com/ab-smith/gruyere",
+        xfail_repo(
+            "https://github.com/bkimminich/juice-shop",
+            reason="https://github.com/returntocorp/semgrep/issues/581",
+        ),
+        "https://github.com/DevSlop/Pixi",
+        "https://github.com/0c34/govwa",
+        "https://github.com/digininja/vuLnDAP",
     ],
 )
 def test_semgrep_on_repo(monkeypatch, tmp_path, repo_url):
