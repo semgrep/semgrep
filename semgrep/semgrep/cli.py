@@ -119,11 +119,6 @@ def cli() -> None:
     )
 
     config.add_argument(
-        "--exclude-tests",
-        action="store_true",
-        help="Exclude tests, documentation, and examples based on filename/path.",
-    )
-    config.add_argument(
         "--precommit", action="store_true", help=argparse.SUPPRESS,
     )
     config.add_argument(
@@ -181,11 +176,6 @@ def cli() -> None:
         "--test-ignore-todo",
         action="store_true",
         help="Ignore rules marked as '#todoruleid:' in test files.",
-    )
-    output.add_argument(
-        "--r2c",
-        action="store_true",
-        help="Output json in r2c platform format (https://app.r2c.dev).",
     )
     output.add_argument(
         "--dump-ast",
@@ -275,7 +265,6 @@ def cli() -> None:
                 include_dir=args.include_dir,
                 exclude=args.exclude,
                 exclude_dir=args.exclude_dir,
-                exclude_tests=args.exclude_tests,
                 json_format=args.json,
                 sarif=args.sarif,
                 output_destination=args.output,
