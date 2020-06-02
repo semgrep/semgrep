@@ -200,13 +200,6 @@ def flatten_configs(transformed_configs: Dict[str, Any]) -> List[Rule]:
     ]
 
 
-def should_exclude_this_path(path: Path) -> bool:
-    """
-        Return true if "test" or "example" are anywhere in path
-    """
-    return any("test" in p or "example" in p for p in path.parts)
-
-
 def main(
     target: List[str],
     pattern: str,
@@ -219,7 +212,6 @@ def main(
     include_dir: List[str],
     exclude: List[str],
     exclude_dir: List[str],
-    exclude_tests: bool,
     json_format: bool,
     sarif: bool,
     output_destination: str,
@@ -281,23 +273,6 @@ def main(
         exclude_dir=exclude_dir,
         include_dir=include_dir,
     ).invoke_semgrep(targets, all_rules)
-
-    if exclude_tests:
-        ignored_in_tests = 0
-        filtered_findings_by_rule = {}
-        for rule, rule_matches in rule_matches_by_rule.items():
-            filtered = []
-            for rule_match in rule_matches:
-                if should_exclude_this_path(Path(rule_match.path)):
-                    ignored_in_tests += 1
-                else:
-                    filtered.append(rule_match)
-            filtered_findings_by_rule[rule] = filtered
-        rule_matches_by_rule = filtered_findings_by_rule
-        if ignored_in_tests > 0:
-            print_error(
-                f"warning: ignored {ignored_in_tests} results in tests due to --exclude-tests option"
-            )
 
     for finding in semgrep_errors:
         print_error(f"semgrep: {finding['path']}: {finding['check_id']}")
