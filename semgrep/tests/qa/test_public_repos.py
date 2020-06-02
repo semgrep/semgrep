@@ -23,7 +23,7 @@ def xfail_repo(url, *, reason=None):
         "https://github.com/coinbase/coinbase-pro-node",
         "https://github.com/coinbase/coinbase-node",
         "https://github.com/coinbase/pwnbot",
-        xfail_repo("https://github.com/coinbase/solidity-workshop"),
+        "https://github.com/coinbase/solidity-workshop",
         "https://github.com/coinbase/gtt-ui",
         "https://github.com/coinbase/node-process-lock",
         "https://github.com/coinbase/coinbase-javascript-sdk",
@@ -60,27 +60,16 @@ def xfail_repo(url, *, reason=None):
         "https://github.com/vstinner/pyperf",
         "https://github.com/mysql/mysql-connector-python",
         "https://github.com/Netflix/lemur",
-        xfail_repo(
-            "https://github.com/OWASP/NodeGoat",
-            reason="https://github.com/returntocorp/semgrep/issues/814",
-        ),
+        "https://github.com/OWASP/NodeGoat",
+        "https://github.com/zulip/zulip",
+        "https://github.com/home-assistant/home-assistant",
+        "https://github.com/signalapp/Signal-Desktop",
         xfail_repo("https://github.com/highcharts/highcharts"),
         xfail_repo(
             "https://github.com/lodash/lodash",
             reason="https://github.com/returntocorp/semgrep/issues/580",
         ),
-        xfail_repo("https://github.com/signalapp/Signal-Desktop"),
         xfail_repo("https://github.com/opensourceactivismtech/call-power"),
-        xfail_repo("https://github.com/zulip/zulip"),
-        xfail_repo(
-            "https://github.com/home-assistant/home-assistant",
-            reason=(
-                "https://github.com/returntocorp/semgrep/issues/599, "
-                "https://github.com/returntocorp/semgrep/issues/600, "
-                "https://github.com/returntocorp/semgrep/issues/601, "
-                "https://github.com/returntocorp/semgrep/issues/602"
-            ),
-        ),
         xfail_repo(
             "https://github.com/apache/incubator-superset",
             reason=(
