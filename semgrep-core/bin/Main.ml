@@ -136,6 +136,17 @@ let supported_langs: string = String.concat ", " keys
 let ncores = ref 1
 (*e: constant [[Main_semgrep_core.ncores]] *)
 
+(* TODO: we may need to put that in AST_generic.ml at some point
+ * and people should bump this number each time they make a modification
+ * to the generic AST (or to some analysis such as Naming_AST.ml which
+ * will have an impact on the marshalled AST). Otherwise, we may
+ * get some segmentation fault as OCaml marshalling is not entirely
+ * type-safe!!
+ *)
+let ast_version = 2
+
+let use_parsing_cache = ref false
+
 (*s: constant [[Main_semgrep_core.action]] *)
 (* action mode *)
 let action = ref ""
@@ -264,6 +275,55 @@ let gen_layer ~root ~query file =
   ()
 (*e: function [[Main_semgrep_core.gen_layer]] *)
 
+let filemtime file =
+  (Unix.stat file).Unix.st_mtime
+
+(* The function below is mostly a copy-paste of Common.cache_computation.
+ * This function is slightly more flexible because we can put the cache file
+ * anywhere thanks to the argument 'cache_file_of_file'.
+ * We also try to be a bit more type-safe by using the version tag above.
+ * TODO: merge in pfff/commons/Common.ml at some point
+ *)
+let cache_computation file cache_file_of_file f =
+  if not !use_parsing_cache
+  then f ()
+  else begin
+    if not (Sys.file_exists file)
+    then begin
+      pr2 ("WARNING: cache_computation: can't find file "  ^ file);
+      pr2 ("defaulting to calling the function");
+      f ()
+    end else begin
+    profile_code "Main.cache_computation" (fun () ->
+
+      let file_cache = cache_file_of_file file in
+      if Sys.file_exists file_cache && filemtime file_cache >= filemtime file
+      then begin
+        if !verbose then pr2 ("using cache: " ^ file_cache);
+        let (version, res) = Common2.get_value file_cache in
+        if version != ast_version
+        then failwith (spf "Version mismatch! Clean the cache file %s"
+                      file_cache);
+        res
+      end
+      else begin
+        let res = f () in
+        Common2.write_value (ast_version, res) file_cache;
+        res
+      end
+      )
+    end
+  end
+
+
+let cache_file_of_file filename =
+  let dir = spf "/tmp/semgrep_core_cache_%d" (Unix.getuid()) in
+  if not (Sys.file_exists dir)
+  then Unix.mkdir dir 0o700;
+  (* hopefully there will be no collision *)
+  let md5 = Digest.string filename in
+  Filename.concat dir (spf "%s.ast_cache" (Digest.to_hex md5))
+
 (*s: function [[Main_semgrep_core.parse_generic]] *)
 (* coupling: you need also to modify tests/Test.ml *)
 let parse_generic lang file =
@@ -272,6 +332,17 @@ let parse_generic lang file =
   then Parse_cpp.init_defs !Flag_parsing_cpp.macros_h;
   (*e: [[Main_semgrep_core.parse_generic()]] use standard macros if parsing C *)
 
+  cache_computation file (fun file ->
+    (* we may use different parsers for the same file (e.g., in Python3 or
+     * Python2 mode), so put the lang as part of the cache "dependency".
+     * We also add ast_version here so bumping the version will not
+     * try to use the old cache file (which should generate an exception).
+     *)
+     let full_filename = spf "%s__%s__%d"
+      file (Lang.string_of_lang lang) ast_version
+     in
+     cache_file_of_file full_filename)
+ (fun () ->
   let ast = Parse_generic.parse_with_lang lang file in
   (*s: [[Main_semgrep_core.parse_generic()]] resolve names in the AST *)
   (* to be deterministic, reset the gensym; anyway right now sgrep is
@@ -282,6 +353,7 @@ let parse_generic lang file =
   Naming_AST.resolve lang ast;
   (*e: [[Main_semgrep_core.parse_generic()]] resolve names in the AST *)
   ast
+  )
 (*e: function [[Main_semgrep_core.parse_generic]] *)
 
 (*s: function [[Main_semgrep_core.parse_equivalences]] *)
@@ -791,9 +863,11 @@ let options () =
         error_recovery := true;
         Flag_parsing.error_recovery := true;
     ),
-    (*e: [[Main_semgrep_core.options]] other cases *)
-
     " do not stop at first parsing error with -e/-f";
+    (*e: [[Main_semgrep_core.options]] other cases *)
+    "-use_parsing_cache", Arg.Set use_parsing_cache,
+    " save and use parsed ASTs in a cache";
+
     "-verbose", Arg.Unit (fun () ->
       verbose := true;
       Flag_semgrep.verbose := true;
