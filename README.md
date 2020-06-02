@@ -4,20 +4,306 @@
 [![r2c Community Slack](https://img.shields.io/badge/r2c_slack-join-brightgreen?style=flat&logo=slack&labelColor=4A154B)](https://join.slack.com/t/r2c-community/shared_invite/enQtNjU0NDYzMjAwODY4LWE3NTg1MGNhYTAwMzk5ZGRhMjQ2MzVhNGJiZjI1ZWQ0NjQ2YWI4ZGY3OGViMGJjNzA4ODQ3MjEzOWExNjZlNTA)
 [![r2c Twitter](https://img.shields.io/twitter/follow/r2cdev?label=Follow%20r2cdev&style=social&color=blue)](https://twitter.com/intent/follow?screen_name=r2cdev)
 
-`semgrep` is a tool for easily detecting and preventing bugs and anti-patterns in
-your codebase. It combines the convenience of `grep` with the correctness of
-syntactical and semantic search. Developers, DevOps engineers, and security engineers
-use `semgrep` to write code with confidence.
+<p align="center">
+  <a href="#overview">Overview</a>
+  <span> · </span>
+  <a href="#installation">Installation</a>
+  <span> · </span>
+  <a href="#usage">Usage</a>
+  <br/>
+  <a href="#resources">Resources</a>
+  <span> · </span>
+  <a href="#contributing">Contributing</a>
+  <span> · </span>
+  <a href="#commercial-support">Commercial Support</a>
+</p>
 
-**Try it now:** [https://semgrep.live](https://semgrep.live/)
+<h3 align="center">
+  A fast, lightweight static analysis tool that lets you search code like you’d write it.
+</h3>  
+<h3 align="center">
+  Find security bugs. Enforce coding standards. Scan every PR.
+</h3>
+<h3 align="center">  
+  Easily block bad code so you can get back to building the next great thing.
+</h3>
+
+`semgrep` is a tool for easily detecting and preventing bugs and anti-patterns
+in your codebase. It combines the convenience and rapid iteration speed of
+`grep`, but is "code-aware"; that is, you can easily match function calls, class
+or method definitions, and more.
+
+## Quickstart
+
+After [installing semgrep](#installation), run the default set of checks with:
+
+```bash
+$ semgrep --config=r2c path/to/repo
+```
+
+
+
+Or try `semgrep` in your browser: [https://semgrep.live](https://semgrep.live/).
 
 ## Overview
 
-Language support:
+### Key features
 
-| **Python** | **Javascript** | **Go &nbsp; &nbsp; &nbsp;** | **Java &nbsp;** | **C &nbsp; &nbsp; &nbsp; &nbsp;** | **Typescript** | **PHP &nbsp; &nbsp;** |
-|:-----------|:---------------|:----------------------------|:----------------|:----------------------------------|:---------------|:----------------------|
-| ✅          | ✅              | ✅                           | ✅               | ✅                                 | Coming...      | Coming...             |
+* **Language aware**: `semgrep` parses source code into Abstract Syntax Trees (ASTs), so it understands function calls, method and class definitions, conditionals, and more. 
+  * Unlike regexes, `semgrep` won't get tripped up matching things you don't care about in comments or string literals.
+* **Fast**: Static analysis should take seconds to minutes, not hours or days.
+* Does **not** require compilation, run on source code directly. 
+* **Handles multiple languages**: No need to learn and maintain multiple tools for your polyglot environment (e.g. ESLint, find-sec-bugs, rubocop, gosec, ...) 
+* **Intuitive rule syntax**: Don't spend hours or days learning a tool's complicated DSL syntax. `semgrep` lets you search for code like you'd write it, with a few helpful abstractions.  
+* **Easy to integrate**: Run `semgrep` in your CI/CD pipeline regardless of what tools and services you use. Run via CLI or Docker and output `--json`.
+
+### Language support
+
+| **Python** | **Javascript** | **Go &nbsp; &nbsp; &nbsp;** | **Java &nbsp;** | **C &nbsp; &nbsp; &nbsp; &nbsp;** | **Ruby** | **Typescript** | **PHP &nbsp; &nbsp;** |
+|:-----------|:---------------|:----------------------------|:----------------|:----------------------------------|:---------|:---------------|:----------------------|
+| ✅          | ✅              | ✅                           | ✅               | ✅                                 | 🚧 |  Coming...      | Coming...             |
+
+... and many more coming.
+
+### Pattern Syntax Teaser
+
+One of the most unique and useful things about `semgrep` is how easy it is to write and iterate on queries. 
+
+The goal is to make it as *easy as possible* to go from an idea in your head to finding the code patterns you intend to.
+
+**Example**: Let's say you want to find all calls to a function named `exec`, and you don't care about the arguments. With `semgrep`, you could simply supply the pattern `exec(...)` and you'd match:
+
+~~~python
+# Simple cases grep could find
+exec("ls")
+exec(some_var)
+
+# But you don't have to worry about whitespace
+exec (foo)
+
+# Or calls across multiple lines
+exec (
+    bar
+)
+~~~
+
+Importantly, `semgrep` would *not* match the following:
+
+~~~python
+# grep would match this, but semgrep ignores it because 
+# it doesn't have the right function name
+other_exec(bar)
+
+# semgrep ignores commented out lines
+# exec(foo)
+
+# and hard-coded strings
+print("exec(bar)")
+~~~
+
+`semgrep` can even do fancy things like matching aliased imports:
+
+~~~python
+# Semgrep knows that safe_function refers to exec so it
+# will still match!
+#   Oof, try finding this with grep
+import exec as safe_function
+safe_function(tricksy)
+~~~
+
+Play with this example in your browser here: https://semgrep.live/QrkD.
+
+For more info on what you can do in patterns, see the [pattern features
+docs](docs/pattern-features.md).
+
+## Installation
+
+On macOS, binaries are available via [Homebrew](https://formulae.brew.sh/formula/semgrep):
+
+```bash
+$ brew install returntocorp/semgrep/semgrep
+```
+
+On Ubuntu, an install script is available on each release [here](https://github.com/returntocorp/semgrep/releases/download/v0.8.1/semgrep-v0.8.1-ubuntu-generic.sh)
+```bash
+$ ./semgrep-v0.8.1-ubuntu-generic.sh
+```
+
+To try `semgrep` without installation, you can also run it via [Docker](https://docs.docker.com/install/):
+
+```
+$ docker run --rm -v "${PWD}:/home/repo" returntocorp/semgrep --help
+```
+
+## Usage
+
+Generally when you're using `semgrep` you're going to be doing one of three things:
+
+1. Manually scanning your source code using existing rules.
+1. Running `semgrep` in CI so every pull request (PR) is checked.
+1. Writing new rules.
+
+
+The following sections cover each in more detail.
+
+### 🔍 1. Run Existing Rules
+
+The easiest way to get started with `semgrep` (other than [semgrep.live](https://semgrep.live/)) is to scan your code with an existing set of rules.
+
+You can use one our existing [Check Packs](https://semgrep.live/packs), that contain sets of rules grouped by language and/or framework:
+
+```bash
+$ semgrep --config=https://semgrep.live/c/p/java
+$ semgrep --config=https://semgrep.live/c/p/python
+$ semgrep --config=https://semgrep.live/c/p/golang
+$ semgrep --config=https://semgrep.live/c/p/javascript
+...
+```
+
+Or you can run all of our default rules for all languages as appropriate (note: each rule says what language it's for, so `semgrep` won't try to run a Python rule on Java code).
+
+```bash
+$ semgrep --config=r2c
+```
+
+You can also run a specific rule or group of rules:
+
+```bash
+# Run a specific rule
+$ semgrep --config=https://semgrep.live/c/r/java.spring.security.audit.cookie-missing-samesite
+
+# Run a set of rules
+$ semgrep --config=https://semgrep.live/c/r/java.spring.security
+```
+
+All `semgrep` rules can be viewed on the [Rule Registry page](https://semgrep.live/r), which pulls the rules from YAML files defined in the [semgrep-rules](https://github.com/returntocorp/semgrep-rules) GitHub repo.
+
+
+### 🛡️ 2. Integrate into CI
+
+`semgrep` can be run via CLI or Docker and output results as JSON (via the `--json` flag), so it can be inserted into any CI pipeline and have its results processed by whatever tools you're using.
+
+`semgrep` is aware of *diffs*, so it can report only findings that occur in newly added code, for example, in a commit or pull request.
+
+Currently, the easiest way to integrate `semgrep` into CI is via a GitHub action we've built. See the [integrations docs](docs/integrations.md) for more details.
+
+`semgrep` can also output results in the standardized Static Analysis Results Interchange Format ([SARIF](https://docs.oasis-open.org/sarif/sarif/v2.1.0/cs01/sarif-v2.1.0-cs01.html)) with the `--sarif` flag, if you use tools that accept this format. 
+
+### ✍️ 3. Writing Rules
+
+One of the strengths of `semgrep` is how easy it is to write rules.
+
+This makes it possible to:
+* Quickly port rules from other tools.
+* Think of an interesting code pattern, and then find instances of it in your
+    code.
+* Find code base or org-specific bugs and antipatterns - things that built-in
+    checks for existing tools won't find because they're unique to you.
+* and more!
+
+#### Simple Rules
+
+For iterating on simple patterns, you can use the `--lang` and `--pattern`
+flags.
+
+```bash
+$ semgrep --lang javascript --pattern 'eval(...)' path/to/file.js
+```
+
+The `--lang` flag tells `semgrep` which language you're targeting and `--pattern` is the code pattern to search for.
+
+#### Advanced Rules
+
+Some rules need more than one line of pattern to express.Sometimes you want to express code patterns, like: `X` must be true AND `Y` must be too, or `X` but NOT `Y`, or `X` must occur inside a block of code that `Y` matches.
+
+For these cases, `semgrep` has a more powerful and flexible [YAML syntax](docs/configuration-files.md).
+
+You can run a single rule or directory of rules specified in YAML by:
+```bash
+$ semgrep --config my_rule.yml path/to/dir_or_file
+
+$ semgrep --config yaml_dir/ path/to/dir_or_file
+```
+
+**Example Advanced Rule**
+
+Let's say we are building a financial trading application in which every `Transaction` object must first be passed to `verify_transaction()` before being passed to `make_transaction()`, or it's a business logic bug.
+
+We can express this behavior with the following `semgrep` YAML pattern:
+
+```yaml
+rules:
+- id: find-unverified-transactions
+  patterns:
+    - pattern: |
+        public $RETURN $METHOD(...){
+            ...
+            make_transaction($T);
+            ...
+        }
+    - pattern-not: |
+        public $RETURN $METHOD(...){
+            ...
+            verify_transaction($T);
+            ...
+            make_transaction($T);
+            ...
+        }        
+  message: |
+    In $METHOD, there's a call to make_transaction() without first calling verify_transaction() on the Transaction object.
+```
+
+* `$RETURN`, `$METHOD`, and `$T` are *metavariables*, an abstraction that `semgrep` provides when you want to match something but you don't know exactly what it is ahead of time. 
+  * You can think of *metavariables* like a [capture group](https://regexone.com/lesson/capturing_groups) in regular expressions.
+* The `pattern` clause defines what we're looking for: any method that calls `make_transaction()`.
+* The `pattern-not` clause *filters out* matches we don't want; in this case, methods where a transaction (`$T`) is passed to `verify_transaction()` before `make_transaction()`.
+* The `message` is what's returned in `semgrep` output, either to STDOUT or as a comment on the pull request on GitHub or other systems. 
+  * Note that *metavariables* can be used to customize messages and make them
+    contextually relevant. Here we're helpfully telling the user the method
+    where we've identified the bug.
+
+You can play with this transaction example here: https://semgrep.live/4b4g.
+
+**Learn More**
+
+* See the [pattern features docs](docs/pattern-features.md) for more info and
+  examples on the flexibility and power of `semgrep` patterns.
+* See the [YAML configuration file docs](docs/configuration-files.md) for
+  details on all of the keys that can be used and how they work.
+
+## Resources
+
+Learn more:
+* [Semgrep presentation](https://www.youtube.com/watch?v=pul1bRIOYc8) and [slides](https://web-assets.r2c.dev/presentations/r2c-semgrep-OWASP-BayArea-21-May-2020.pdf) from the Bay Area OWASP meetup. Check out the [r2c YouTube channel](https://www.youtube.com/channel/UC5ahcFBorwzUTqPipFhjkWg) for more videos.
+* More detailed [semgrep docs](docs/README.md)
+
+Get in touch:
+* Submit a [bug report](https://github.com/returntocorp/semgrep/issues)
+* Join our [community Slack](https://join.slack.com/t/r2c-community/shared_invite/enQtNjU0NDYzMjAwODY4LWE3NTg1MGNhYTAwMzk5ZGRhMjQ2MzVhNGJiZjI1ZWQ0NjQ2YWI4ZGY3OGViMGJjNzA4ODQ3MjEzOWExNjZlNTA) to say "hi" or ask questions
+
+## Contributing
+
+`semgrep` is LGPL-licensed, feel free to help out: [CONTRIBUTING](https://github.com/returntocorp/semgrep/blob/develop/CONTRIBUTING.md).
+
+`semgrep` is a frontend to a larger program analysis library named [`pfff`](https://github.com/returntocorp/pfff/). `pfff` began and was open-sourced at [Facebook](https://github.com/facebookarchive/pfff) but is now archived. The primary maintainer now works at [r2c](https://r2c.dev). `semgrep` was originally named `sgrep` and was renamed to avoid collisons with existing projects.
+
+## Commercial Support
+
+`semgrep` is proudly supported by [r2c](https://r2c.dev). We're hiring!
+
+Interested in a fully-supported, hosted version of semgrep? [Drop your email](https://forms.gle/dpUUvSo1WtELL8DW6) and we'll ping you!
+
+--------------
+
+-----------
+
+----------
+
+
+## TODO: the below will be cut and/or moved into other doc files
+
+
+
 
 Example patterns:
 
@@ -31,26 +317,7 @@ Example patterns:
 
 → [see more example patterns in the live registry viewer](https://semgrep.live/registry)
 
-## Installation
 
-On macOS, binaries are available via [Homebrew](https://formulae.brew.sh/formula/semgrep):
-
-```bash
-brew install returntocorp/semgrep/semgrep
-```
-
-On Ubuntu, an install script is available on each release [here](https://github.com/returntocorp/semgrep/releases/download/v0.8.1/semgrep-v0.8.1-ubuntu-generic.sh)
-```bash
-./semgrep-v0.8.1-ubuntu-generic.sh
-```
-
-To try `semgrep` without installation, you can also run it via [Docker](https://docs.docker.com/install/):
-
-```
-docker run --rm -v "${PWD}:/home/repo" returntocorp/semgrep --help
-```
-
-## Usage
 
 ### Example Usage
 
@@ -194,25 +461,3 @@ or formatted according to the
 with the `--sarif` flag.
 
 See our [output documentation](docs/output.md) for details.
-
-## Resources
-
-* [Semgrep presentation](https://www.youtube.com/watch?v=pul1bRIOYc8) and [slides](https://web-assets.r2c.dev/presentations/r2c-semgrep-OWASP-BayArea-21-May-2020.pdf) at Bay Area OWASP meetup. Check out the [r2c YouTube channel](https://www.youtube.com/channel/UC5ahcFBorwzUTqPipFhjkWg) for more videos.
-* [Pattern features documentation](docs/pattern-features.md)
-* [Configuration files documentation](docs/configuration-files.md)
-* [Integrations](docs/integrations.md)
-* [Output](docs/output.md)
-* [Development](docs/development.md)
-* [Bug reports](https://github.com/returntocorp/semgrep/issues)
-
-## Contribution
-
-`semgrep` is LGPL-licensed, feel free to help out: [CONTRIBUTING](https://github.com/returntocorp/semgrep/blob/develop/CONTRIBUTING.md).
-
-`semgrep` is a frontend to a larger program analysis library named [`pfff`](https://github.com/returntocorp/pfff/). `pfff` began and was open-sourced at [Facebook](https://github.com/facebookarchive/pfff) but is now archived. The primary maintainer now works at [r2c](https://r2c.dev). `semgrep` was originally named `sgrep` and was renamed to avoid collisons with existing projects.
-
-## Commercial Support
-
-`semgrep` is proudly supported by [r2c](https://r2c.dev). We're hiring!
-
-Interested in a fully-supported, hosted version of semgrep? [Drop your email](https://forms.gle/dpUUvSo1WtELL8DW6) and we'll ping you!
