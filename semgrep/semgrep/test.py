@@ -184,7 +184,6 @@ def invoke_semgrep(
             include_dir=[],
             exclude=[],
             exclude_dir=[],
-            exclude_tests=False,
             json_format=True,
             sarif=False,
             output_destination="",
