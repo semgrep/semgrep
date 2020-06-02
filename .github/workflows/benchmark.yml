@@ -48,7 +48,8 @@ jobs:
       - name: run benchmarks
         run: |
           cd semgrep
-          pipenv run pytest -k test_ci_perf tests/ --benchmark-only --benchmark-autosave --benchmark-storage benchmarks --benchmark-compare
+          # Only require 1 run for some of these tests -- they take >1m
+          pipenv run pytest -k test_ci_perf tests/ --benchmark-only --benchmark-autosave --benchmark-min-rounds 1 --benchmark-storage benchmarks --benchmark-compare
       - name: Upload benchmark results
         uses: actions/upload-artifact@v1
         with:
