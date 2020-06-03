@@ -9,6 +9,8 @@ from typing import Set
 
 import attr
 
+from semgrep.error import InvalidPatternNameError
+
 PatternId = NewType("PatternId", str)
 Operator = NewType("Operator", str)
 
@@ -63,10 +65,6 @@ YAML_ALL_VALID_RULE_KEYS = (
 )
 
 
-class InvalidRuleSchema(BaseException):
-    pass
-
-
 @attr.s(auto_attribs=True, frozen=True)
 class BooleanRuleExpression:
     operator: Operator
@@ -81,7 +79,7 @@ def operator_for_pattern_name(pattern_name: str) -> Operator:
             return op
 
     valid_pattern_names: List[str] = sum(OPERATOR_PATTERN_NAMES_MAP.values(), [])
-    raise NotImplementedError(
+    raise InvalidPatternNameError(
         f"invalid pattern name: {pattern_name}, valid pattern names are {valid_pattern_names}"
     )
 

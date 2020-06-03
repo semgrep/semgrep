@@ -7,6 +7,7 @@ from typing import Optional
 from typing import Set
 
 from semgrep.constants import RCE_RULE_FLAG
+from semgrep.error import UnknownOperatorError
 from semgrep.pattern_match import PatternMatch
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
@@ -91,7 +92,7 @@ def _evaluate_single_expression(
         # remove all ranges that don't equal the ranges for this pattern
         return ranges_left.intersection(results_for_pattern)
     else:
-        raise NotImplementedError(f"unknown operator {expression.operator}")
+        raise UnknownOperatorError(f"unknown operator {expression.operator}")
 
 
 # Given a `where-python` expression as a string and currently matched metavars,

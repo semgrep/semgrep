@@ -13,10 +13,10 @@ from semgrep.constants import ID_KEY
 from semgrep.constants import OutputFormat
 from semgrep.constants import RULES_KEY
 from semgrep.core_runner import CoreRunner
+from semgrep.error import InvalidRuleSchemaError
 from semgrep.output import build_output
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
-from semgrep.semgrep_types import InvalidRuleSchema
 from semgrep.semgrep_types import YAML_ALL_VALID_RULE_KEYS
 from semgrep.semgrep_types import YAML_MUST_HAVE_KEYS
 from semgrep.util import debug_print
@@ -52,14 +52,14 @@ def validate_single_rule(config_id: str, rule: Dict[str, Any]) -> bool:
         return False
     try:
         _ = Rule.from_json(rule).expression
-    except InvalidRuleSchema as ex:
+    except InvalidRuleSchemaError as ex:
         print_error(
             f"{config_id}: inside rule id {rule_id_err_msg}, pattern fields can't look like this: {ex}"
         )
         return False
     try:
         _ = Rule.from_json(rule).globs
-    except InvalidRuleSchema as ex:
+    except InvalidRuleSchemaError as ex:
         print_error(
             f"{config_id}: inside rule id {rule_id_err_msg}, path fields can't look like this: {ex}"
         )
