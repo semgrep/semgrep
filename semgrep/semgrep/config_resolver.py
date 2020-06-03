@@ -18,7 +18,6 @@ from semgrep.constants import ID_KEY
 from semgrep.constants import RULES_KEY
 from semgrep.constants import SEMGREP_USER_AGENT
 from semgrep.constants import YML_EXTENSIONS
-from semgrep.rule_lang import parse_yaml
 from semgrep.rule_lang import parse_yaml_preserve_spans
 from semgrep.rule_lang import YamlTree
 from semgrep.util import debug_print
