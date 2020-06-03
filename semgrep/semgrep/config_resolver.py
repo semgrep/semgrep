@@ -1,6 +1,5 @@
 import os
 import sys
-import tarfile
 import tempfile
 import time
 from pathlib import Path
@@ -31,7 +30,7 @@ TEMPLATE_YAML_URL = (
 )
 
 RULES_REGISTRY = {
-    "r2c": "https://semgrep.live/c/r/all",
+    "r2c": "https://semgrep.live/c/p/r2c",
 }
 DEFAULT_REGISTRY_KEY = "r2c"
 
@@ -185,15 +184,6 @@ def download_config(config_url: str) -> Dict[str, Optional[Dict[str, Any]]]:
             if content_type and "text/plain" in content_type:
                 print_msg(SCANNING_MESSAGE)
                 return parse_config_string("remote-url", r.content.decode("utf-8"))
-            elif content_type and content_type == "application/x-gzip":
-                with tempfile.TemporaryDirectory() as fname:
-                    with tarfile.open(fileobj=r.raw, mode="r:gz") as tar:
-                        tar.extractall(fname)
-                    extracted = Path(fname)
-                    for path in extracted.iterdir():
-                        # get first folder in extracted folder (this is how GH does it)
-                        print_msg(SCANNING_MESSAGE)
-                        return parse_config_folder(path, relative=True)
             else:
                 print_error_exit(
                     f"unknown content-type: {content_type} returned by config url: {config_url}. Can not parse"
