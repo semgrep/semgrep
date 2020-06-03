@@ -228,31 +228,6 @@ pattern: $X = 1 + 2 + ...
 foo = 1 + 2 + 3 + 4
 ```
 
-### Deep Expression Operator
-
-You may want to match an expression that could be nested deep within another expression. An example of this is looking for a pattern anywhere within an if statement. To do this, use the deep expression operator: `<... [your_pattern] ...>`. This will match your pattern in the current expression context and recursively in any subexpressions.
-
-For example, this pattern:
-
-```yaml
-pattern: |
-  if <... $USER.is_admin() ...>:
-    ...
-```
-
-will match:
-
-```python
-if user.authenticated() and user.is_admin() and user.has_group(gid):
-  ...
-```
-
-The deep expression operator will work in:
-* if statements -- `if <... $X ...>:`
-* nested calls -- `sql.query(<... $X ...>)`
-* operands of a binary expression -- `"..." + <... $X ...>`
-* and any other expression context.
-
 #### Arrays
 
 The ellipsis operator can be used to match literal arrays:
@@ -301,6 +276,35 @@ if can_make_request:
 **Note you can’t match a half statement; both of the examples above must
 specify the contents of the condition's body (e.g. `$BODY` or `...`),
 otherwise they are not valid patterns.**
+
+### Deep Expression Operator
+
+You may want to match an expression that could be nested deep within another
+expression. An example of this is looking for a pattern anywhere within an if
+statement. To do this, use the deep expression operator:
+`<... [your_pattern] ...>`. This will match your pattern in the current
+expression context and recursively in any subexpressions.
+
+For example, this pattern:
+
+```yaml
+pattern: |
+  if <... $USER.is_admin() ...>:
+    ...
+```
+
+will match:
+
+```python
+if user.authenticated() and user.is_admin() and user.has_group(gid):
+  ...
+```
+
+The deep expression operator will work in:
+* if statements -- `if <... $X ...>:`
+* nested calls -- `sql.query(<... $X ...>)`
+* operands of a binary expression -- `"..." + <... $X ...>`
+* and any other expression context.
 
 ### Equivalences
 
