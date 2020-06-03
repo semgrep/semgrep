@@ -181,7 +181,14 @@ def download_config(config_url: str) -> Dict[str, Optional[Dict[str, Any]]]:
         r = requests.get(config_url, stream=True, headers=headers, timeout=10)
         if r.status_code == requests.codes.ok:
             content_type = r.headers.get("Content-Type")
-            if content_type and "text/plain" in content_type:
+            yaml_types = [
+                "text/plain",
+                "application/x-yaml",
+                "text/x-yaml",
+                "text/yaml",
+                "text/vnd.yaml",
+            ]
+            if content_type and any((ct in content_type for ct in yaml_types)):
                 print_msg(SCANNING_MESSAGE)
                 return parse_config_string("remote-url", r.content.decode("utf-8"))
             else:
