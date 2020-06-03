@@ -81,7 +81,10 @@ def validate_configs(
         if not config_yaml_tree:
             errors[config_id] = config_yaml_tree
             continue
-        config_any = config_yaml_tree.unroll()
+        if isinstance(config_yaml_tree, YamlTree):
+            config_any = config_yaml_tree.unroll()
+        else:
+            config_any = config_yaml_tree
         if not isinstance(config_any, dict):
             print_error(f"{config_id} was not a mapping")
             errors[config_id] = config_any
