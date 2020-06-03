@@ -644,6 +644,8 @@ and m_literal a b =
     (m_wrap m_string) a1 b1
   | A.Char(a1), B.Char(b1) ->
     (m_wrap m_string) a1 b1
+  | A.Regexp(("/.../", a)), B.Regexp((_s, b)) ->
+    m_info a b
   | A.Regexp(a1), B.Regexp(b1) ->
     (m_wrap m_string) a1 b1
   | A.Null(a1), B.Null(b1) ->
