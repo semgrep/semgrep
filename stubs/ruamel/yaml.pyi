@@ -13,6 +13,7 @@ class RoundTripConstructor:
 
 class YAML:
     Constructor: Any
+    representer: Any
     def load(self, stream: Any) -> Any:
         ...
 

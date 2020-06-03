@@ -194,12 +194,9 @@ class CoreRunner:
     def _write_equivalences_file(self, fp: IO, equivalences: List[Equivalence]) -> None:
         # I don't even know why this is a thing.
         # cf. https://stackoverflow.com/questions/51272814/python-yaml-dumping-pointer-references
-        import yaml  # here for faster startup times
-
-        yaml.SafeDumper.ignore_aliases = (  # type: ignore
-            lambda *args: True
-        )
-        fp.write(yaml.safe_dump({"equivalences": [e.to_json() for e in equivalences]}))
+        yaml = YAML()
+        yaml.representer.ignore_aliases = lambda *data: True
+        yaml.dump({"equivalences": [e.to_json() for e in equivalences]}, fp)
         fp.flush()
 
     def _run_rules(
@@ -223,13 +220,7 @@ class CoreRunner:
         with tempfile.NamedTemporaryFile("w") as equiv_fout:
 
             if equivalences:
-                try:
-                    self._write_equivalences_file(equiv_fout, equivalences)
-                except Exception as e:
-                    print_error(
-                        f"could not write equivalences file. will continue without equivalences. {e}"
-                    )
-                    equivalences = []
+                self._write_equivalences_file(equiv_fout, equivalences)
 
             for language, all_patterns_for_language in self._group_patterns_by_language(
                 rules
