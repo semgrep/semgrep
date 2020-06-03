@@ -10,7 +10,6 @@ from typing import Set
 import attr
 
 from semgrep.error import InvalidPatternNameError
-from semgrep.error import InvalidRuleSchemaError
 
 PatternId = NewType("PatternId", str)
 Operator = NewType("Operator", str)
