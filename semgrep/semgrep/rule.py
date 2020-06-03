@@ -6,9 +6,9 @@ from typing import List
 from typing import Optional
 
 from semgrep.equivalences import Equivalence
+from semgrep.error import InvalidRuleSchemaError
 from semgrep.semgrep_types import ALLOWED_GLOB_TYPES
 from semgrep.semgrep_types import BooleanRuleExpression
-from semgrep.semgrep_types import InvalidRuleSchema
 from semgrep.semgrep_types import operator_for_pattern_name
 from semgrep.semgrep_types import OPERATORS
 from semgrep.semgrep_types import OPERATORS_WITH_CHILDREN
@@ -32,12 +32,12 @@ class Rule:
         Move through the expression from the YML, yielding tuples of (operator, unique-id-for-pattern, pattern)
         """
         if not isinstance(rule_patterns, list):
-            raise InvalidRuleSchema(
+            raise InvalidRuleSchemaError(
                 f"invalid type for patterns in rule: {type(rule_patterns)} is not a list; perhaps your YAML is missing a `-` before {rule_patterns}?"
             )
         for pattern in rule_patterns:
             if not isinstance(pattern, dict):
-                raise InvalidRuleSchema(
+                raise InvalidRuleSchemaError(
                     f"invalid type for pattern {pattern}: {type(pattern)} is not a dict"
                 )
             for boolean_operator, pattern_text in pattern.items():
@@ -54,7 +54,7 @@ class Rule:
                             operand=None,
                         )
                     else:
-                        raise InvalidRuleSchema(
+                        raise InvalidRuleSchemaError(
                             f"operator {operator} must have children"
                         )
                 else:
@@ -67,14 +67,14 @@ class Rule:
                         )
                         pattern_id += 1
                     else:
-                        raise InvalidRuleSchema(
+                        raise InvalidRuleSchemaError(
                             f"operand of {operator} must be a string, but instead was {type(pattern_text).__name__}"
                         )
 
     @staticmethod
     def _validate_operand(operand: Any) -> str:  # type: ignore
         if not isinstance(operand, str):
-            raise InvalidRuleSchema(
+            raise InvalidRuleSchemaError(
                 f"type of `pattern` must be a string, but it was a {type(operand).__name__}"
             )
         return operand
@@ -123,7 +123,7 @@ class Rule:
                 )
 
         valid_top_level_keys = list(YAML_VALID_TOP_LEVEL_OPERATORS)
-        raise InvalidRuleSchema(
+        raise InvalidRuleSchemaError(
             f"missing a pattern type in rule, expected one of {pattern_names_for_operators(valid_top_level_keys)}"
         )
 
@@ -142,13 +142,13 @@ class Rule:
 
         paths_raw = rule_raw.get("paths", {})
         if not isinstance(paths_raw, dict):
-            raise InvalidRuleSchema(
+            raise InvalidRuleSchemaError(
                 f"the `paths:` targeting rules must be an object with at least one of {ALLOWED_GLOB_TYPES}"
             )
 
         for rule_type, rule in rule_raw.get("paths", {}).items():
             if rule_type not in ALLOWED_GLOB_TYPES:
-                raise InvalidRuleSchema(
+                raise InvalidRuleSchemaError(
                     f"the `paths:` targeting rules must each be one of {ALLOWED_GLOB_TYPES}"
                 )
 

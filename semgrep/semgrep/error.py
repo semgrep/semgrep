@@ -1,7 +1,4 @@
-from typing import Optional
-
-
-class SemgrepException(Exception):
+class SemgrepError(Exception):
     """
     Parent class of all exceptions we anticipate in Semgrep commands
 
@@ -9,12 +6,19 @@ class SemgrepException(Exception):
     are displayed to the user.
     """
 
-    def __init__(self) -> None:
-        self.msg: Optional[str] = None
-        self.code = 1
+    def __init__(self, *args: object, code: int = 1) -> None:
+        self.code = code
+
+        super().__init__(*args)
 
 
-class OutdatedPythonException(SemgrepException):
-    def __init__(self) -> None:
-        super().__init__()
-        self.msg = "Semgrep requires Python 3.5+. Please ensure you are using Python3.5+ to run semgrep."
+class InvalidRuleSchemaError(SemgrepError):
+    pass
+
+
+class InvalidPatternNameError(SemgrepError):
+    pass
+
+
+class UnknownOperatorError(SemgrepError):
+    pass
