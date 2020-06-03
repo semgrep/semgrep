@@ -11,6 +11,7 @@ from semgrep.semgrep_types import BooleanRuleExpression
 from semgrep.semgrep_types import InvalidRuleSchema
 from semgrep.semgrep_types import operator_for_pattern_name
 from semgrep.semgrep_types import OPERATORS
+from semgrep.semgrep_types import OPERATORS_WITH_CHILDREN
 from semgrep.semgrep_types import pattern_names_for_operator
 from semgrep.semgrep_types import pattern_names_for_operators
 from semgrep.semgrep_types import PatternId
@@ -41,65 +42,84 @@ class Rule:
                 )
             for boolean_operator, pattern_text in pattern.items():
                 operator = operator_for_pattern_name(boolean_operator)
-                if isinstance(pattern_text, list):
-                    sub_expression = self._parse_boolean_expression(
-                        pattern_text, 0, f"{prefix}.{pattern_id}"
-                    )
-                    yield BooleanRuleExpression(
-                        operator, None, list(sub_expression), None
-                    )
-                elif isinstance(pattern_text, str):
-                    yield BooleanRuleExpression(
-                        operator,
-                        PatternId(f"{prefix}.{pattern_id}"),
-                        None,
-                        pattern_text,
-                    )
-                    pattern_id += 1
+                if operator in set(OPERATORS_WITH_CHILDREN):
+                    if isinstance(pattern_text, list):
+                        sub_expression = self._parse_boolean_expression(
+                            pattern_text, 0, f"{prefix}.{pattern_id}"
+                        )
+                        yield BooleanRuleExpression(
+                            operator=operator,
+                            pattern_id=None,
+                            children=list(sub_expression),
+                            operand=None,
+                        )
+                    else:
+                        raise InvalidRuleSchema(
+                            f"operator {operator} must have children"
+                        )
                 else:
-                    raise InvalidRuleSchema(
-                        f"invalid type for pattern {pattern}: {type(pattern_text)}"
-                    )
+                    if isinstance(pattern_text, str):
+                        yield BooleanRuleExpression(
+                            operator=operator,
+                            pattern_id=PatternId(f"{prefix}.{pattern_id}"),
+                            children=None,
+                            operand=pattern_text,
+                        )
+                        pattern_id += 1
+                    else:
+                        raise InvalidRuleSchema(
+                            f"operand of {operator} must be a string, but instead was {type(pattern_text).__name__}"
+                        )
+
+    @staticmethod
+    def _validate_operand(operand: Any) -> str:  # type: ignore
+        if not isinstance(operand, str):
+            raise InvalidRuleSchema(
+                f"type of `pattern` must be a string, but it was a {type(operand).__name__}"
+            )
+        return operand
 
     def _build_boolean_expression(
         self, rule_raw: Dict[str, Any]
     ) -> BooleanRuleExpression:
         """
         Build a boolean expression from the yml lines in the rule
-
         """
         for pattern_name in pattern_names_for_operator(OPERATORS.AND):
             pattern = rule_raw.get(pattern_name)
             if pattern:
                 return BooleanRuleExpression(
-                    OPERATORS.AND, rule_raw["id"], None, rule_raw[pattern_name]
+                    OPERATORS.AND, rule_raw["id"], None, self._validate_operand(pattern)
                 )
 
         for pattern_name in pattern_names_for_operator(OPERATORS.REGEX):
             pattern = rule_raw.get(pattern_name)
             if pattern:
                 return BooleanRuleExpression(
-                    OPERATORS.REGEX, rule_raw["id"], None, rule_raw[pattern_name]
+                    OPERATORS.REGEX,
+                    rule_raw["id"],
+                    None,
+                    self._validate_operand(pattern),
                 )
 
         for pattern_name in pattern_names_for_operator(OPERATORS.AND_ALL):
             patterns = rule_raw.get(pattern_name)
             if patterns:
                 return BooleanRuleExpression(
-                    OPERATORS.AND_ALL,
-                    None,
-                    list(self._parse_boolean_expression(patterns)),
-                    None,
+                    operator=OPERATORS.AND_ALL,
+                    pattern_id=None,
+                    children=list(self._parse_boolean_expression(patterns)),
+                    operand=None,
                 )
 
         for pattern_name in pattern_names_for_operator(OPERATORS.AND_EITHER):
             patterns = rule_raw.get(pattern_name)
             if patterns:
                 return BooleanRuleExpression(
-                    OPERATORS.AND_EITHER,
-                    None,
-                    list(self._parse_boolean_expression(patterns)),
-                    None,
+                    operator=OPERATORS.AND_EITHER,
+                    pattern_id=None,
+                    children=list(self._parse_boolean_expression(patterns)),
+                    operand=None,
                 )
 
         valid_top_level_keys = list(YAML_VALID_TOP_LEVEL_OPERATORS)
