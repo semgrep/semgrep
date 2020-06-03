@@ -15,6 +15,7 @@ from semgrep.constants import RULES_KEY
 from semgrep.core_runner import CoreRunner
 from semgrep.output import build_output
 from semgrep.rule import Rule
+from semgrep.rule_lang import YamlTree
 from semgrep.rule_match import RuleMatch
 from semgrep.semgrep_types import InvalidRuleSchema
 from semgrep.semgrep_types import YAML_ALL_VALID_RULE_KEYS
@@ -69,17 +70,23 @@ def validate_single_rule(config_id: str, rule: Dict[str, Any]) -> bool:
 
 
 def validate_configs(
-    configs: Dict[str, Optional[Dict[str, Any]]]
+    configs: Dict[str, Optional[YamlTree]]
 ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     """
         Take configs and separate into valid and invalid ones
     """
-    errors = {}
-    valid = {}
-    for config_id, config in configs.items():
-        if not config:
-            errors[config_id] = config
+    errors: Dict[str, Any] = {}
+    valid: Dict[str, Any] = {}
+    for config_id, config_yaml_tree in configs.items():
+        if not config_yaml_tree:
+            errors[config_id] = config_yaml_tree
             continue
+        config_any = config_yaml_tree.unroll()
+        if not isinstance(config_any, dict):
+            print_error(f"{config_id} was not a mapping")
+            errors[config_id] = config_any
+            continue
+        config: Dict[str, Any] = config_any
         if RULES_KEY not in config:
             print_error(f"{config_id} is missing `{RULES_KEY}` as top-level key")
             errors[config_id] = config

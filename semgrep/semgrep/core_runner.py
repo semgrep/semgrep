@@ -16,6 +16,8 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 
+from ruamel.yaml import YAML
+
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import SEMGREP_PATH
 from semgrep.equivalences import Equivalence
@@ -206,8 +208,6 @@ class CoreRunner:
         """
             Run all rules on targets and return list of all places that match patterns, ... todo errors
         """
-        import yaml  # here for faster startup times
-
         outputs: List[PatternMatch] = []  # multiple invocations per language
         errors: List[Any] = []
 
@@ -266,9 +266,9 @@ class CoreRunner:
 
                 patterns_json = [p.to_json() for p in patterns]
                 # very important not to sort keys here
-                yaml_as_str = yaml.safe_dump({"rules": patterns_json}, sort_keys=False)
                 with tempfile.NamedTemporaryFile("w") as fout:
-                    fout.write(yaml_as_str)
+                    yaml = YAML()
+                    yaml.dump({"rules": patterns_json}, fout)
                     fout.flush()
                     cmd = [SEMGREP_PATH] + [
                         "-lang",
