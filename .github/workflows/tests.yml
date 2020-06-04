@@ -48,7 +48,7 @@ jobs:
       - name: Install semgrep-core
         run: eval $(opam  env --root /home/opam/.opam --set-root) && cd semgrep-core && opam install --deps-only -y . && make all && make install
       - name: Test semgrep-core
-        run: eval $(opam  env --root /home/opam/.opam --set-root) && cd semgrep-core && make test
+        run: eval $(opam  env --root /home/opam/.opam --set-root) && cd semgrep-core && make test && make e2etest
       - name: Install semgrep
         run: eval $(opam  env --root /home/opam/.opam --set-root) && cd semgrep && export PATH=/github/home/.local/bin:$PATH && pip3 install pipenv && pipenv install --dev && make test && make qa-test
       - name: Test semgrep
