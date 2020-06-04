@@ -32,7 +32,6 @@ from semgrep.semgrep_types import BooleanRuleExpression
 from semgrep.semgrep_types import OPERATORS
 from semgrep.util import debug_print
 from semgrep.util import partition
-from semgrep.util import print_error
 
 
 def _offset_to_line_no(offset: int, buff: str) -> int:
