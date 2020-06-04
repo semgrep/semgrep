@@ -10,7 +10,7 @@ def test_rule_parser__success(run_semgrep_in_tmp, snapshot, filename):
 
 @pytest.mark.parametrize(
     "filename",
-    ["bad1", "bad2", "bad3", "bad4", "badpattern", "badpaths1", "badpaths2"],
+    ["bad1", "bad2", "bad3", "bad4", "badpattern", "badpaths1", "badpaths2", "invalid"],
 )
 def test_rule_parser__failure(run_semgrep_in_tmp, snapshot, filename):
     with pytest.raises(CalledProcessError) as excinfo:
@@ -35,6 +35,7 @@ def test_rule_parser__failure(run_semgrep_in_tmp, snapshot, filename):
         "badpattern",
         "badpaths1",
         "badpaths2",
+        "invalid",
     ],
 )
 def test_rule_parser__failure__error_messages(run_semgrep_in_tmp, snapshot, filename):

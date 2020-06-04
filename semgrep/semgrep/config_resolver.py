@@ -9,6 +9,8 @@ from typing import Dict
 from typing import List
 from typing import Optional
 
+from ruamel.yaml import YAMLError
+
 from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import DEFAULT_CONFIG_FOLDER
 from semgrep.constants import DEFAULT_SEMGREP_CONFIG_NAME
@@ -16,6 +18,8 @@ from semgrep.constants import ID_KEY
 from semgrep.constants import RULES_KEY
 from semgrep.constants import SEMGREP_USER_AGENT
 from semgrep.constants import YML_EXTENSIONS
+from semgrep.rule_lang import parse_yaml_preserve_spans
+from semgrep.rule_lang import YamlTree
 from semgrep.util import debug_print
 from semgrep.util import is_url
 from semgrep.util import print_error
@@ -82,36 +86,32 @@ def indent(msg: str) -> str:
 
 def parse_config_at_path(
     loc: Path, base_path: Optional[Path] = None
-) -> Dict[str, Optional[Dict[str, Any]]]:
+) -> Dict[str, Optional[YamlTree]]:
     config_id = str(loc)
     if base_path:
         config_id = str(loc).replace(str(base_path), "")
     try:
         with loc.open() as f:
-            return parse_config_string(config_id, f.read())
+            return parse_config_string(config_id, f.read(), str(loc))
     except FileNotFoundError:
         print_error(f"YAML file at {loc} not found")
         return {str(loc): None}
 
 
 def parse_config_string(
-    config_id: str, contents: str
-) -> Dict[str, Optional[Dict[str, Any]]]:
-    import yaml  # here for faster startup times
-
+    config_id: str, contents: str, filename: Optional[str]
+) -> Dict[str, Optional[YamlTree]]:
     try:
-        return {config_id: yaml.safe_load(contents)}
-    except yaml.parser.ParserError as se:
-        print_error(f"Invalid yaml file {config_id}:\n{indent(str(se))}")
-        return {config_id: None}
-    except yaml.scanner.ScannerError as se:
+        data = parse_yaml_preserve_spans(contents, filename)
+        return {config_id: data}
+    except YAMLError as se:
         print_error(f"Invalid yaml file {config_id}:\n{indent(str(se))}")
         return {config_id: None}
 
 
 def parse_config_folder(
     loc: Path, relative: bool = False
-) -> Dict[str, Optional[Dict[str, Any]]]:
+) -> Dict[str, Optional[YamlTree]]:
     configs = {}
     for l in loc.rglob("*"):
         # Allow manually specified paths with ".", but don't auto-expand them
@@ -136,7 +136,7 @@ def _is_hidden_config(loc: Path) -> bool:
 
 def load_config_from_local_path(
     location: Optional[str] = None,
-) -> Dict[str, Optional[Dict[str, Any]]]:
+) -> Dict[str, Optional[YamlTree]]:
     """
         Return config file(s) as dictionary object
     """
@@ -169,7 +169,7 @@ def load_config_from_local_path(
     raise Exception
 
 
-def download_config(config_url: str) -> Dict[str, Optional[Dict[str, Any]]]:
+def download_config(config_url: str) -> Dict[str, Optional[YamlTree]]:
     import requests  # here for faster startup times
 
     DOWNLOADING_MESSAGE = "downloading config..."
@@ -184,7 +184,9 @@ def download_config(config_url: str) -> Dict[str, Optional[Dict[str, Any]]]:
             content_type = r.headers.get("Content-Type")
             if content_type and "text/plain" in content_type:
                 print_msg(SCANNING_MESSAGE)
-                return parse_config_string("remote-url", r.content.decode("utf-8"))
+                return parse_config_string(
+                    "remote-url", r.content.decode("utf-8"), filename=None
+                )
             elif content_type and content_type == "application/x-gzip":
                 with tempfile.TemporaryDirectory() as fname:
                     with tarfile.open(fileobj=r.raw, mode="r:gz") as tar:
@@ -207,7 +209,7 @@ def download_config(config_url: str) -> Dict[str, Optional[Dict[str, Any]]]:
     return {config_url: None}
 
 
-def resolve_config(config_str: Optional[str]) -> Dict[str, Optional[Dict[str, Any]]]:
+def resolve_config(config_str: Optional[str]) -> Dict[str, Optional[YamlTree]]:
     """ resolves if config arg is a registry entry, a url, or a file, folder, or loads from defaults if None"""
     start_t = time.time()
     if config_str is None:
