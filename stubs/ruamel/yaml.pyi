@@ -14,6 +14,10 @@ class RoundTripConstructor:
 class YAML:
     Constructor: Any
     representer: Any
+
+    def __init__(self, typ: str = 'rt'):
+        ...
+
     def load(self, stream: Any) -> Any:
         ...
 

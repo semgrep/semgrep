@@ -10,6 +10,8 @@ from ruamel.yaml import Node
 from ruamel.yaml import RoundTripConstructor
 from ruamel.yaml import YAML
 
+from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
+
 
 class Position(NamedTuple):
     line: int
@@ -71,11 +73,13 @@ class YamlTree:
 
 
 def parse_yaml(contents: str) -> Dict[str, Any]:
-    yaml = YAML()
+    # this uses the `RoundTripConstructor` which inherits from `SafeConstructor`
+    yaml = YAML(typ="rt")
     return yaml.load(StringIO(contents))  # type: ignore
 
 
 def parse_yaml_preserve_spans(contents: str, filename: Optional[str]) -> YamlTree:
+    # this uses the `RoundTripConstructor` which inherits from `SafeConstructor`
     class SpanPreservingRuamelConstructor(RoundTripConstructor):
         def construct_object(self, node: Node, deep: bool = False) -> YamlTree:
             r = super().construct_object(node, deep)
@@ -85,5 +89,7 @@ def parse_yaml_preserve_spans(contents: str, filename: Optional[str]) -> YamlTre
     yaml.Constructor = SpanPreservingRuamelConstructor
     data = yaml.load(StringIO(contents))
     if not isinstance(data, YamlTree):
-        raise Exception("Something has gone horribly wrong in the YAML parser")
+        raise Exception(
+            f"Something went wrong parsing Yaml (expected a YamlTree as output): {PLEASE_FILE_ISSUE_TEXT}"
+        )
     return data
