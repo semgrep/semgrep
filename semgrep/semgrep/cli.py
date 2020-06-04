@@ -2,7 +2,6 @@
 import argparse
 import multiprocessing
 import os
-import sys
 
 import semgrep.config_resolver
 import semgrep.semgrep_main
@@ -12,8 +11,8 @@ from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import RCE_RULE_FLAG
 from semgrep.constants import SEMGREP_URL
 from semgrep.dump_ast import dump_parsed_ast
-from semgrep.util import print_error
-from semgrep.util import print_error_exit
+from semgrep.error import SemgrepError
+from semgrep.util import print_msg
 
 
 try:
@@ -221,10 +220,13 @@ def cli() -> None:
     args = parser.parse_args()
     if args.version:
         print(__VERSION__)
-        sys.exit(0)
+        return
 
     if args.pattern and not args.lang:
         parser.error("-e/--pattern and -l/--lang must both be specified")
+
+    if args.dump_ast and not args.lang:
+        parser.error("--dump-ast and -l/--lang must both be specified")
 
     # set the flags
     semgrep.util.set_flags(args.verbose, args.quiet)
@@ -233,20 +235,17 @@ def cli() -> None:
     semgrep.config_resolver.adjust_for_docker(args.precommit)
 
     if args.dump_ast:
-        if not args.lang:
-            print_error_exit("language must be specified to dump ASTs")
-        else:
-            dump_parsed_ast(args.json, args.lang, args.pattern, args.target)
+        dump_parsed_ast(args.json, args.lang, args.pattern, args.target)
     elif args.validate:
         _, invalid_configs = semgrep.semgrep_main.get_config(
             args.generate_config, args.pattern, args.lang, args.config
         )
         if invalid_configs:
-            print_error_exit(
+            raise SemgrepError(
                 f"run with --validate and there were {len(invalid_configs)} errors loading configs"
             )
         else:
-            print_error("Config is valid")
+            print_msg("Config is valid")
 
     elif args.test:
         semgrep.test.test_main(args)

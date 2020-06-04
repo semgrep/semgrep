@@ -7,6 +7,8 @@ from typing import Optional
 from typing import Set
 
 from semgrep.constants import RCE_RULE_FLAG
+from semgrep.error import NEED_ARBITRARY_CODE_EXEC_EXIT_CODE
+from semgrep.error import SemgrepError
 from semgrep.error import UnknownOperatorError
 from semgrep.pattern_match import PatternMatch
 from semgrep.rule import Rule
@@ -18,9 +20,7 @@ from semgrep.semgrep_types import PatternId
 from semgrep.semgrep_types import Range
 from semgrep.util import debug_print
 from semgrep.util import flatten
-from semgrep.util import NEED_ARBITRARY_CODE_EXEC_EXIT_CODE
 from semgrep.util import print_error
-from semgrep.util import print_error_exit
 
 
 def _evaluate_single_expression(
@@ -67,9 +67,9 @@ def _evaluate_single_expression(
         return output_ranges
     elif expression.operator == OPERATORS.WHERE_PYTHON:
         if not flags or flags[RCE_RULE_FLAG] != True:
-            print_error_exit(
+            raise SemgrepError(
                 f"at least one rule needs to execute arbitrary code; this is dangerous! if you want to continue, enable the flag: {RCE_RULE_FLAG}",
-                NEED_ARBITRARY_CODE_EXEC_EXIT_CODE,
+                code=NEED_ARBITRARY_CODE_EXEC_EXIT_CODE,
             )
         assert expression.operand, "must have operand for this operator type"
 
@@ -115,7 +115,7 @@ def _where_python_statement_matches(
         )
 
     if type(output) != type(True):  # type: ignore
-        print_error_exit(
+        raise SemgrepError(
             f"python where expression needs boolean output but got: {output} for {where_expression}"  # type: ignore
         )
     return output == True  # type: ignore

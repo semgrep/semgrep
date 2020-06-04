@@ -55,7 +55,7 @@ class Rule:
                         )
                     else:
                         raise InvalidRuleSchemaError(
-                            f"operator {operator} must have children"
+                            f"operator {boolean_operator} must have children"
                         )
                 else:
                     if isinstance(pattern_text, str):
@@ -68,7 +68,7 @@ class Rule:
                         pattern_id += 1
                     else:
                         raise InvalidRuleSchemaError(
-                            f"operand of {operator} must be a string, but instead was {type(pattern_text).__name__}"
+                            f"operand {boolean_operator} must be a string, but instead was {type(pattern_text).__name__}"
                         )
 
     @staticmethod
