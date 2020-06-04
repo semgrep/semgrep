@@ -3,9 +3,9 @@ from typing import Dict
 from typing import List
 from typing import Set
 
+from semgrep.error import SemgrepError
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
-from semgrep.util import print_error_exit
 from semgrep.util import print_msg
 
 
@@ -51,7 +51,7 @@ def apply_fixes(rule_matches_by_rule: Dict[Rule, List[RuleMatch]]) -> None:
                     _modify_file(rule_match, fix)
                     modified_files.add(filepath)
                 except Exception as e:
-                    print_error_exit(f"unable to modify file: {filepath}: {e}")
+                    raise SemgrepError(f"unable to modify file {filepath}: {e}")
     num_modified = len(modified_files)
     print_msg(
         f"Successfully modified {num_modified} file{'s' if num_modified > 1 else ''}."
