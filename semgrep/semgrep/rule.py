@@ -244,3 +244,8 @@ class Rule:
 
     def __repr__(self) -> str:
         return json.dumps(self.to_json())
+
+    def with_id(self, new_id: str) -> "Rule":
+        cloned = dict(self._raw)
+        cloned["id"] = new_id
+        return Rule(cloned)
