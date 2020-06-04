@@ -201,3 +201,7 @@ def test_performance_bugs(benchmark, perf_bug):
             TESTS_PATH / "performance" / perf_bug.file,
         ],
     )
+
+
+def test_version(benchmark):
+    benchmark(subprocess.check_output, ["python3", "-m", "semgrep", "--version"])
