@@ -1,8 +1,6 @@
 import os
-import sys
 import time
 from pathlib import Path
-from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -13,12 +11,13 @@ from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import DEFAULT_CONFIG_FOLDER
 from semgrep.constants import DEFAULT_SEMGREP_CONFIG_NAME
 from semgrep.constants import ID_KEY
+from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import RULES_KEY
 from semgrep.constants import SEMGREP_USER_AGENT
 from semgrep.constants import YML_EXTENSIONS
 from semgrep.error import SemgrepError
-from semgrep.rule_lang import parse_yaml_preserve_spans
 from semgrep.rule_lang import YamlTree
+from semgrep.rule_lang import parse_yaml_preserve_spans
 from semgrep.util import debug_print
 from semgrep.util import is_url
 from semgrep.util import print_error
@@ -38,20 +37,27 @@ RULES_REGISTRY = {
 DEFAULT_REGISTRY_KEY = "r2c"
 
 
-def manual_config(pattern: str, lang: str) -> Dict[str, Any]:
+def manual_config(pattern: str, lang: str) -> Dict[str, Optional[YamlTree]]:
     # TODO remove when using sgrep -e ... -l ... instead of this hacked config
+    pattern_tree = parse_yaml_preserve_spans(pattern, filename=None)
+    we_messed_up_span = parse_yaml_preserve_spans(
+        f"Semgrep bug generating manual config {PLEASE_FILE_ISSUE_TEXT}", filename=None
+    ).span
     return {
-        "manual": {
-            RULES_KEY: [
-                {
-                    ID_KEY: "-",
-                    "pattern": pattern,
-                    "message": pattern,
-                    "languages": [lang],
-                    "severity": "ERROR",
-                }
-            ]
-        }
+        "manual": YamlTree.wrap(
+            {
+                RULES_KEY: [
+                    {
+                        ID_KEY: "-",
+                        "pattern": pattern_tree,
+                        "message": pattern,
+                        "languages": [lang],
+                        "severity": "ERROR",
+                    }
+                ]
+            },
+            span=we_messed_up_span,
+        )
     }
 
 
@@ -251,6 +257,5 @@ def generate_config() -> None:
         with open(DEFAULT_CONFIG_FILE, "w") as template:
             template.write(template_str)
             print_msg(f"Template config successfully written to {DEFAULT_CONFIG_FILE}")
-            sys.exit(0)
     except Exception as e:
         raise SemgrepError(str(e))

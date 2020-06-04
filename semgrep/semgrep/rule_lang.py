@@ -36,6 +36,8 @@ class Span(NamedTuple):
         return f"{self.start}-{self.end}"
 
 
+EmptySpan = Span(start=Position(0, 0), end=Position(0, 0), file=None)
+
 # Actually recursive but mypy is unhelpful
 YamlValue = Union[str, int, List[Any], Dict[str, Any]]
 LocatedYamlValue = Union[str, int, List["YamlTree"], Dict["YamlTree", "YamlTree"]]
@@ -58,6 +60,14 @@ class YamlTree:
     def __repr__(self) -> str:
         return f"{self.span}: ---> {self.value}"
 
+    def unroll_dict(self) -> Dict[str, Any]:
+        ret = self.unroll()
+        if not isinstance(ret, dict):
+            raise ValueError(
+                f"unroll_dict called but object was actually {type(ret).__name__}"
+            )
+        return ret
+
     def unroll(self) -> YamlValue:
         """
         Recursively expand the `self.value`, converting back to a normal datastructure
@@ -70,6 +80,28 @@ class YamlTree:
             return self.value.unroll()
         else:
             return self.value
+
+    @classmethod
+    def wrap(cls, value: YamlValue, span: Span) -> "YamlTree":
+        """
+        Wraps a value in a YamlTree and attaches the span everywhere.
+        This exists so you can take generate a datastructure from user input, but track all the errors within that
+        datastructure back to the user input
+        """
+        if isinstance(value, list):
+            return YamlTree(value=[YamlTree.wrap(x, span) for x in value], span=span)
+        elif isinstance(value, dict):
+            return YamlTree(
+                value={
+                    YamlTree.wrap(k, span): YamlTree.wrap(v, span)
+                    for k, v in value.items()
+                },
+                span=span,
+            )
+        elif isinstance(value, YamlTree):
+            return value
+        else:
+            return YamlTree(value, span)
 
 
 def parse_yaml(contents: str) -> Dict[str, Any]:
