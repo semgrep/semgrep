@@ -9,15 +9,14 @@ from typing import Tuple
 import semgrep.config_resolver
 from semgrep.autofix import apply_fixes
 from semgrep.constants import DEFAULT_CONFIG_FILE
-from semgrep.constants import ID_KEY
 from semgrep.constants import OutputFormat
 from semgrep.constants import RULES_KEY
 from semgrep.core_runner import CoreRunner
+from semgrep.error import InvalidRuleSchemaError
 from semgrep.output import build_output
 from semgrep.rule import Rule
 from semgrep.rule_lang import YamlTree
 from semgrep.rule_match import RuleMatch
-from semgrep.semgrep_types import InvalidRuleSchema
 from semgrep.semgrep_types import YAML_ALL_VALID_RULE_KEYS
 from semgrep.semgrep_types import YAML_MUST_HAVE_KEYS
 from semgrep.util import debug_print
@@ -32,7 +31,7 @@ from semgrep.util import print_msg
 MISSING_RULE_ID = "no-rule-id"
 
 
-def validate_single_rule(config_id: str, rule: Dict[str, Any]) -> bool:
+def validate_single_rule(config_id: str, rule: Dict[str, Any]) -> Optional[Rule]:
     """
         Validate that a rule dictionary contains all necessary keys
         and can be correctly parsed
@@ -44,34 +43,26 @@ def validate_single_rule(config_id: str, rule: Dict[str, Any]) -> bool:
         print_error(
             f"{config_id} is missing required keys {missing_keys} at rule id {rule_id_err_msg}"
         )
-        return False
+        return None
     if not rule_keys.issubset(YAML_ALL_VALID_RULE_KEYS):
         extra_keys = rule_keys - YAML_ALL_VALID_RULE_KEYS
         print_error(
             f"{config_id} has invalid rule key {extra_keys} at rule id {rule_id_err_msg}, can only have: {YAML_ALL_VALID_RULE_KEYS}"
         )
-        return False
+        return None
     try:
-        _ = Rule.from_json(rule).expression
-    except InvalidRuleSchema as ex:
+        return Rule.from_json(rule)
+    except InvalidRuleSchemaError as ex:
         print_error(
             f"{config_id}: inside rule id {rule_id_err_msg}, pattern fields can't look like this: {ex}"
         )
-        return False
-    try:
-        _ = Rule.from_json(rule).globs
-    except InvalidRuleSchema as ex:
-        print_error(
-            f"{config_id}: inside rule id {rule_id_err_msg}, path fields can't look like this: {ex}"
-        )
-        return False
-
-    return True
+        return None
 
 
 def validate_configs(
     configs: Dict[str, Optional[YamlTree]]
-) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+) -> Tuple[Dict[str, List[Rule]], Dict[str, Any]]:
+
     """
         Take configs and separate into valid and invalid ones
     """
@@ -97,16 +88,17 @@ def validate_configs(
         rules = config.get(RULES_KEY)
         valid_rules = []
         invalid_rules = []
-        for rule in rules:  # type: ignore
-            if validate_single_rule(config_id, rule):
+        for rule_dict in rules:  # type: ignore
+            rule = validate_single_rule(config_id, rule_dict)
+            if rule:
                 valid_rules.append(rule)
             else:
-                invalid_rules.append(rule)
+                invalid_rules.append(rule_dict)
 
         if invalid_rules:
             errors[config_id] = {**config, "rules": invalid_rules}
         if valid_rules:
-            valid[config_id] = {**config, "rules": valid_rules}
+            valid[config_id] = valid_rules
     return valid, errors
 
 
@@ -128,18 +120,15 @@ def convert_config_id_to_prefix(config_id: str) -> str:
     return prefix
 
 
-def rename_rule_ids(valid_configs: Dict[str, Any]) -> Dict[str, Any]:
+def rename_rule_ids(valid_configs: Dict[str, List[Rule]]) -> Dict[str, List[Rule]]:
     transformed = {}
-    for config_id, config in valid_configs.items():
-        rules = config.get(RULES_KEY, [])
-        transformed_rules = [
-            {
-                **rule,
-                ID_KEY: f"{convert_config_id_to_prefix(config_id)}{rule.get(ID_KEY, MISSING_RULE_ID)}",
-            }
+    for config_id, rules in valid_configs.items():
+        transformed[config_id] = [
+            rule.with_id(
+                f"{convert_config_id_to_prefix(config_id)}{rule.id or MISSING_RULE_ID}"
+            )
             for rule in rules
         ]
-        transformed[config_id] = {**config, RULES_KEY: transformed_rules}
     return transformed
 
 
@@ -172,7 +161,9 @@ def save_output(destination: str, output: str) -> None:
             fout.write(output)
 
 
-def get_config(generate_config: bool, pattern: str, lang: str, config: str) -> Any:
+def get_config(
+    generate_config: bool, pattern: str, lang: str, config: str
+) -> Tuple[Dict[str, List[Rule]], Dict[str, Any]]:
     # first check if user asked to generate a config
     if generate_config:
         semgrep.config_resolver.generate_config()
@@ -202,12 +193,8 @@ def get_config(generate_config: bool, pattern: str, lang: str, config: str) -> A
     return valid_configs, invalid_configs
 
 
-def flatten_configs(transformed_configs: Dict[str, Any]) -> List[Rule]:
-    return [
-        Rule.from_json(rule)
-        for config in transformed_configs.values()
-        for rule in config.get(RULES_KEY, [])
-    ]
+def flatten_configs(transformed_configs: Dict[str, List[Rule]]) -> List[Rule]:
+    return [rule for rules in transformed_configs.values() for rule in rules]
 
 
 def main(

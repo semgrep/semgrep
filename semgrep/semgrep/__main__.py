@@ -2,7 +2,7 @@
 import sys
 
 from semgrep.cli import cli
-from semgrep.error import SemgrepException
+from semgrep.error import SemgrepError
 from semgrep.util import print_error
 
 
@@ -11,9 +11,8 @@ def main() -> None:
         cli()
     # Catch custom exceptions, output the right message and exit.
     # Note: this doesn't catch all Exceptions and lets them bubble up.
-    except SemgrepException as e:
-        if e.msg:
-            print_error(e.msg)
+    except SemgrepError as e:
+        print_error(str(e))
         sys.exit(e.code)
 
 
