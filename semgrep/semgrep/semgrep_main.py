@@ -12,8 +12,11 @@ from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import OutputFormat
 from semgrep.constants import RULES_KEY
 from semgrep.core_runner import CoreRunner
+from semgrep.error import FINDINGS_EXIT_CODE
+from semgrep.error import INVALID_CODE_EXIT_CODE
 from semgrep.error import InvalidPatternNameError
 from semgrep.error import InvalidRuleSchemaError
+from semgrep.error import MISSING_CONFIG_EXIT_CODE
 from semgrep.error import SemgrepError
 from semgrep.output import build_output
 from semgrep.rule import Rule
@@ -22,10 +25,7 @@ from semgrep.rule_match import RuleMatch
 from semgrep.semgrep_types import YAML_ALL_VALID_RULE_KEYS
 from semgrep.semgrep_types import YAML_MUST_HAVE_KEYS
 from semgrep.util import debug_print
-from semgrep.util import FINDINGS_EXIT_CODE
-from semgrep.util import INVALID_CODE_EXIT_CODE
 from semgrep.util import is_url
-from semgrep.util import MISSING_CONFIG_EXIT_CODE
 from semgrep.util import print_error
 from semgrep.util import print_msg
 
@@ -48,7 +48,7 @@ def validate_single_rule(config_id: str, rule: Dict[str, Any]) -> Optional[Rule]
     if not rule_keys.issubset(YAML_ALL_VALID_RULE_KEYS):
         extra_keys = rule_keys - YAML_ALL_VALID_RULE_KEYS
         print_error(
-            f"{config_id} has invalid rule key {extra_keys} at rule id {rule_id_err_msg}, can only have: {YAML_ALL_VALID_RULE_KEYS}"
+            f"{config_id} has an invalid top-level rule key {extra_keys} at rule id {rule_id_err_msg}, can only have: {sorted(YAML_ALL_VALID_RULE_KEYS)}"
         )
         return None
     try:

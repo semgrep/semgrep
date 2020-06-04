@@ -20,6 +20,7 @@ from ruamel.yaml import YAML
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import SEMGREP_PATH
 from semgrep.equivalences import Equivalence
+from semgrep.error import INVALID_PATTERN_EXIT_CODE
 from semgrep.error import SemgrepError
 from semgrep.evaluation import enumerate_patterns_in_boolean_expression
 from semgrep.evaluation import evaluate
@@ -30,7 +31,6 @@ from semgrep.rule_match import RuleMatch
 from semgrep.semgrep_types import BooleanRuleExpression
 from semgrep.semgrep_types import OPERATORS
 from semgrep.util import debug_print
-from semgrep.util import INVALID_PATTERN_EXIT_CODE
 from semgrep.util import partition
 from semgrep.util import print_error
 
@@ -289,11 +289,11 @@ class CoreRunner:
                                 )
                             else:
                                 raise SemgrepError(
-                                    f"unexpected non-json output while invoking semgrep-core with:\n\t{' '.join(cmd)}\n\t{ex}\n{PLEASE_FILE_ISSUE_TEXT}"
+                                    f"unexpected non-json output while invoking semgrep-core:\n\t{ex}\n{PLEASE_FILE_ISSUE_TEXT}"
                                 )
                         except Exception as e:
                             raise SemgrepError(
-                                f"non-zero return code while invoking semgrep-core with:\n\t{' '.join(cmd)}\n\t{e}\n{PLEASE_FILE_ISSUE_TEXT}"
+                                f"non-zero return code while invoking semgrep-core:\n\t{e}\n{PLEASE_FILE_ISSUE_TEXT}"
                             )
                     output_json = json.loads((output.decode("utf-8", "replace")))
                     errors.extend(output_json["errors"])

@@ -7,6 +7,7 @@ from typing import Optional
 from typing import Set
 
 from semgrep.constants import RCE_RULE_FLAG
+from semgrep.error import NEED_ARBITRARY_CODE_EXEC_EXIT_CODE
 from semgrep.error import SemgrepError
 from semgrep.error import UnknownOperatorError
 from semgrep.pattern_match import PatternMatch
@@ -19,7 +20,6 @@ from semgrep.semgrep_types import PatternId
 from semgrep.semgrep_types import Range
 from semgrep.util import debug_print
 from semgrep.util import flatten
-from semgrep.util import NEED_ARBITRARY_CODE_EXEC_EXIT_CODE
 from semgrep.util import print_error
 
 

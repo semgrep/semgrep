@@ -2,8 +2,8 @@
 import sys
 
 from semgrep.cli import cli
+from semgrep.error import OK_EXIT_CODE
 from semgrep.error import SemgrepError
-from semgrep.util import OK_EXIT_CODE
 from semgrep.util import print_error
 
 
