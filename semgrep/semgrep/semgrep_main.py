@@ -12,7 +12,9 @@ from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import OutputFormat
 from semgrep.constants import RULES_KEY
 from semgrep.core_runner import CoreRunner
+from semgrep.error import InvalidPatternNameError
 from semgrep.error import InvalidRuleSchemaError
+from semgrep.error import SemgrepError
 from semgrep.output import build_output
 from semgrep.rule import Rule
 from semgrep.rule_lang import YamlTree
@@ -25,7 +27,6 @@ from semgrep.util import INVALID_CODE_EXIT_CODE
 from semgrep.util import is_url
 from semgrep.util import MISSING_CONFIG_EXIT_CODE
 from semgrep.util import print_error
-from semgrep.util import print_error_exit
 from semgrep.util import print_msg
 
 MISSING_RULE_ID = "no-rule-id"
@@ -52,7 +53,7 @@ def validate_single_rule(config_id: str, rule: Dict[str, Any]) -> Optional[Rule]
         return None
     try:
         return Rule.from_json(rule)
-    except InvalidRuleSchemaError as ex:
+    except (InvalidPatternNameError, InvalidRuleSchemaError) as ex:
         print_error(
             f"{config_id}: inside rule id {rule_id_err_msg}, pattern fields can't look like this: {ex}"
         )
@@ -143,7 +144,7 @@ def post_output(output_url: str, output: str) -> None:
         r = requests.post(output_url, data=output, timeout=10)
         debug_print(f"posted to {output_url} and got status_code:{r.status_code}")
     except requests.exceptions.Timeout:
-        print_error_exit(f"posting output to {output_url} timed out")
+        raise SemgrepError(f"posting output to {output_url} timed out")
 
 
 def save_output(destination: str, output: str) -> None:
@@ -172,7 +173,7 @@ def get_config(
     elif pattern:
         # and a language
         if not lang:
-            print_error_exit("language must be specified when a pattern is passed")
+            raise SemgrepError("language must be specified when a pattern is passed")
 
         # TODO for now we generate a manual config. Might want to just call semgrep -e ... -l ...
         configs = semgrep.config_resolver.manual_config(pattern, lang)
@@ -182,7 +183,7 @@ def get_config(
 
     # if we can't find a config, use default r2c rules
     if not configs:
-        print_error_exit(
+        raise SemgrepError(
             f"No config given and {DEFAULT_CONFIG_FILE} was not found. Try running with --help to debug or if you want to download a default config, try running with --config r2c"
         )
 
@@ -229,9 +230,9 @@ def main(
         output_format = OutputFormat.SARIF
 
     if invalid_configs and strict:
-        print_error_exit(
+        raise SemgrepError(
             f"run with --strict and there were {len(invalid_configs)} errors loading configs",
-            MISSING_CONFIG_EXIT_CODE,
+            code=MISSING_CONFIG_EXIT_CODE,
         )
 
     if not no_rewrite_rule_ids:
@@ -256,9 +257,9 @@ def main(
         )
 
         if len(valid_configs) == 0:
-            print_error_exit(
+            raise SemgrepError(
                 f"no valid configuration file found ({len(invalid_configs)} configs were invalid)",
-                MISSING_CONFIG_EXIT_CODE,
+                code=MISSING_CONFIG_EXIT_CODE,
             )
 
     # actually invoke semgrep
@@ -275,9 +276,9 @@ def main(
         print_error(f"semgrep: {finding['path']}: {finding['check_id']}")
 
     if strict and len(semgrep_errors):
-        print_error_exit(
+        raise SemgrepError(
             f"run with --strict and {len(semgrep_errors)} errors occurred during semgrep run; exiting",
-            INVALID_CODE_EXIT_CODE,
+            code=INVALID_CODE_EXIT_CODE,
         )
 
     output = handle_output(
