@@ -1,3 +1,4 @@
+import json
 import sys
 from pathlib import Path
 from typing import Any
@@ -274,8 +275,9 @@ def main(
         include_dir=include_dir,
     ).invoke_semgrep(targets, all_rules)
 
-    for finding in semgrep_errors:
-        print_error(f"semgrep: {finding['path']}: {finding['check_id']}")
+    if output_format == OutputFormat.TEXT:
+        for error in semgrep_errors:
+            print_error(pretty_error(error))
 
     if strict and len(semgrep_errors):
         print_error_exit(
@@ -295,6 +297,21 @@ def main(
         apply_fixes(rule_matches_by_rule)
 
     return output
+
+
+def pretty_error(error: Dict[str, Any]) -> str:
+    try:
+        if {"path", "start", "end", "extra"}.difference(error.keys()) == set():
+            header = f"{error['extra']['message']}\n--> {error['path']}:{error['start']['line']}"
+            line_1 = error["extra"]["line"]
+            start_col = error["start"]["col"]
+            line_2 = " " * (start_col - 1) + "^"
+            line_3 = f"= note: If the code is correct, this could be a semgrep bug -- please help us fix this by filing an an issue at https://semgrep.dev"
+            return "\n".join([header, line_1, line_2, line_3])
+        else:
+            return f"semgrep-core error: {json.dumps(error,indent=2)}"
+    except KeyError:
+        return f"semgrep-core error: {json.dumps(error, indent=2)}"
 
 
 def handle_output(
