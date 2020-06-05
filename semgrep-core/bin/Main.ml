@@ -136,6 +136,8 @@ let supported_langs: string = String.concat ", " keys
 let ncores = ref 1
 (*e: constant [[Main_semgrep_core.ncores]] *)
 
+let target_file = ref ""
+
 (*s: constant [[Main_semgrep_core.action]] *)
 (* action mode *)
 let action = ref ""
@@ -801,6 +803,8 @@ let options () =
     " ";
     "-debug", Arg.Set debug,
     " add debugging information in the output (e.g., tracing)";
+    "-target_file", Arg.Set_string target_file,
+    " <file> obtain list of targets to run patterns on";
   ] @
   (*s: [[Main_semgrep_core.options]] concatenated flags *)
   Flag_parsing_cpp.cmdline_flags_macrofile () @
@@ -879,6 +883,12 @@ let main () =
 
   (* does side effect on many global flags *)
   let args = Common.parse_options (options()) usage_msg (Array.of_list argv) in
+  let args = if !target_file="" then args else
+  begin
+    let s = Common.read_file !target_file in
+    String.split_on_char '\n' s
+  end
+  in
 
   if !debug then begin
     pr2 "Debug mode On";
