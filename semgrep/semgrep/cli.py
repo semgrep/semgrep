@@ -167,6 +167,11 @@ def cli() -> None:
         "--json", action="store_true", help="Output results in JSON format."
     )
     output.add_argument(
+        "--debugging-json",
+        action="store_true",
+        help="Output JSON with extra debugging information.",
+    )
+    output.add_argument(
         "--sarif", action="store_true", help="Output results in SARIF format."
     )
     output.add_argument("--test", action="store_true", help="Run test suite.")
@@ -263,6 +268,7 @@ def cli() -> None:
             exclude=args.exclude,
             exclude_dir=args.exclude_dir,
             json_format=args.json,
+            debugging_json=args.debugging_json,
             sarif=args.sarif,
             output_destination=args.output,
             quiet=args.quiet,
