@@ -2,6 +2,28 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [next release]
+
+### Fixed
+
+- Support immediately indexed arrays with initializers in Java
+- Support object rest parameters in ECMAScript 6+
+- Support various array destructuring calls with ommitted arguments in
+  ECMAScript 6+
+- Fix an issue where an error was raised when matching to Python else
+  blocks with a metavariable
+
+### Added
+
+- Java imports can now be searched with patterns written like `import
+  javax.crypto.$ANYTHING` 
+
+### Changed
+
+- Pattern matches now distinguish between conditionals without `else` blocks
+  and those with empty `else` blocks; write two patterns to capture both
+  possibilities
+
 ## [0.9.0](https://github.com/returntocorp/semgrep/releases/tag/v0.9.0) - 2020-06-02
 
 ### Fixed
