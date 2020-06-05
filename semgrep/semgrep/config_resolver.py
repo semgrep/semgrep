@@ -1,7 +1,5 @@
 import os
 import sys
-import tarfile
-import tempfile
 import time
 from pathlib import Path
 from typing import Any
@@ -35,7 +33,7 @@ TEMPLATE_YAML_URL = (
 )
 
 RULES_REGISTRY = {
-    "r2c": "https://semgrep.live/c/r/all",
+    "r2c": "https://semgrep.live/c/p/r2c",
 }
 DEFAULT_REGISTRY_KEY = "r2c"
 
@@ -172,9 +170,12 @@ def load_config_from_local_path(
 def download_config(config_url: str) -> Dict[str, Optional[YamlTree]]:
     import requests  # here for faster startup times
 
-    DOWNLOADING_MESSAGE = "downloading config..."
-    SCANNING_MESSAGE = "scanning code...     "  # needs to have same number of chars as DOWNLOADING_MESSAGE
+    DOWNLOADING_MESSAGE = f"downloading config..."
+    SCANNING_MESSAGE = "scanning code...\033[K"
     debug_print(f"trying to download from {config_url}")
+    print_msg(
+        f"using config from {config_url}. See https://semgrep.live/registry for more options."
+    )
     print_msg(DOWNLOADING_MESSAGE, end="\r")
     headers = {"User-Agent": SEMGREP_USER_AGENT}
 
@@ -182,20 +183,18 @@ def download_config(config_url: str) -> Dict[str, Optional[YamlTree]]:
         r = requests.get(config_url, stream=True, headers=headers, timeout=10)
         if r.status_code == requests.codes.ok:
             content_type = r.headers.get("Content-Type")
-            if content_type and "text/plain" in content_type:
+            yaml_types = [
+                "text/plain",
+                "application/x-yaml",
+                "text/x-yaml",
+                "text/yaml",
+                "text/vnd.yaml",
+            ]
+            if content_type and any((ct in content_type for ct in yaml_types)):
                 print_msg(SCANNING_MESSAGE)
                 return parse_config_string(
                     "remote-url", r.content.decode("utf-8"), filename=None
                 )
-            elif content_type and content_type == "application/x-gzip":
-                with tempfile.TemporaryDirectory() as fname:
-                    with tarfile.open(fileobj=r.raw, mode="r:gz") as tar:
-                        tar.extractall(fname)
-                    extracted = Path(fname)
-                    for path in extracted.iterdir():
-                        # get first folder in extracted folder (this is how GH does it)
-                        print_msg(SCANNING_MESSAGE)
-                        return parse_config_folder(path, relative=True)
             else:
                 raise SemgrepError(
                     f"unknown content-type: {content_type} returned by config url: {config_url}. Can not parse"
