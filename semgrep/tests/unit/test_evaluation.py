@@ -26,7 +26,7 @@ def evaluate_expression(
 ) -> Set[Range]:
     # convert it to an implicit and
     e = BooleanRuleExpression(OPERATORS.AND_ALL, None, exprs, None)
-    return raw_evaluate_expression(e, pattern_ids_to_pattern_matches, flags)
+    return raw_evaluate_expression(e, pattern_ids_to_pattern_matches, [], flags)
 
 
 def PatternMatchMock(
