@@ -413,7 +413,7 @@ let get_final_files xs =
     )
   in
 
-  files @ explicit_files
+  Common2.uniq_eff (files @ explicit_files)
 (*e: function [[Main_semgrep_core.get_final_files]] *)
 
 (*s: function [[Main_semgrep_core.iter_generic_ast_of_files_and_get_matches_and_exn_to_errors]] *)
