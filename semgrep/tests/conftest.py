@@ -1,10 +1,14 @@
+import contextlib
 import json
+import os
+import shutil
 import subprocess
 from pathlib import Path
 from typing import List
 from typing import Optional
 from typing import Union
 
+import appdirs
 import pytest
 
 TESTS_PATH = Path(__file__).parent
@@ -86,6 +90,86 @@ def _run_semgrep(
         output = _clean_output_json(output)
 
     return output
+
+
+REPO_CACHE = Path(
+    os.path.expanduser(
+        os.environ.get("GITHUB_REPO_CACHE", appdirs.user_cache_dir("semgrep-tests"))
+    )
+)
+
+
+@pytest.fixture()
+def clone_github_repo():
+    yield _github_repo_retry_wrapper
+
+
+@contextlib.contextmanager
+def chdir(dirname=None):
+    curdir = os.getcwd()
+    try:
+        if dirname is not None:
+            os.chdir(dirname)
+        yield
+    finally:
+        os.chdir(curdir)
+
+
+def _github_repo_retry_wrapper(
+    repo_url: str, sha: Optional[str] = None, retries: int = 3
+):
+    sha_str = sha or "latest"
+    repo_dir = "-".join(repo_url.split("/")[-2:]) + "-" + sha_str
+    repo_destination = REPO_CACHE / repo_dir
+    try:
+        return _github_repo(repo_url, sha, repo_destination)
+    except (GitError, subprocess.CalledProcessError) as ex:
+        print(f"Failed to clone github repo for tests {ex}")
+        if repo_destination.exists():
+            shutil.rmtree(repo_destination)
+        if retries == 0:
+            raise
+        else:
+            return _github_repo_retry_wrapper(repo_url, sha, retries - 1)
+
+
+class GitError(BaseException):
+    pass
+
+
+def _github_repo(repo_url: str, sha: Optional[str], repo_destination: Path):
+    if not repo_destination.exists():
+        if sha is None:
+            subprocess.check_output(
+                ["git", "clone", "--depth=1", repo_url, repo_destination]
+            )
+        else:
+            repo_destination.mkdir()
+            # Sadly, no fast way to clone a specific commit without a super
+            # modern git client
+            subprocess.check_output(["git", "clone", repo_url, repo_destination])
+            with chdir(repo_destination):
+                subprocess.check_output(["git", "checkout", sha])
+
+    # validate that the repo seems setup properly
+    with chdir(repo_destination):
+        # some tests modify it, lets put everything back to normal
+        subprocess.check_output(["git", "clean", "-fd"])
+        subprocess.check_output(["git", "reset", "--hard"])
+        all_clean = (
+            subprocess.check_output(["git", "status", "--porcelain"]).strip() == b""
+        )
+        if not all_clean:
+            raise GitError("Couldn't clean the repo, something is wrong. Deleting.")
+        repo_sha = subprocess.check_output(["git", "rev-parse", "HEAD"])
+        if sha:
+            if not repo_sha.startswith(sha.encode("utf-8")):
+                shutil.rmtree(repo_destination)
+                raise GitError(
+                    f"Github repo is broken (not set to correct sha: {repo_sha}"
+                )
+
+    return repo_destination
 
 
 @pytest.fixture
