@@ -2,19 +2,17 @@
 import argparse
 import multiprocessing
 import os
-import sys
 
 import semgrep.config_resolver
 import semgrep.semgrep_main
 import semgrep.test
 from semgrep.constants import __VERSION__
 from semgrep.constants import DEFAULT_CONFIG_FILE
-from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import RCE_RULE_FLAG
 from semgrep.constants import SEMGREP_URL
 from semgrep.dump_ast import dump_parsed_ast
-from semgrep.util import print_error
-from semgrep.util import print_error_exit
+from semgrep.error import SemgrepError
+from semgrep.util import print_msg
 
 
 try:
@@ -222,10 +220,13 @@ def cli() -> None:
     args = parser.parse_args()
     if args.version:
         print(__VERSION__)
-        sys.exit(0)
+        return
 
     if args.pattern and not args.lang:
         parser.error("-e/--pattern and -l/--lang must both be specified")
+
+    if args.dump_ast and not args.lang:
+        parser.error("--dump-ast and -l/--lang must both be specified")
 
     # set the flags
     semgrep.util.set_flags(args.verbose, args.quiet)
@@ -233,48 +234,40 @@ def cli() -> None:
     # change cwd if using docker
     semgrep.config_resolver.adjust_for_docker(args.precommit)
 
-    try:
-        if args.dump_ast:
-            if not args.lang:
-                print_error_exit("language must be specified to dump ASTs")
-            else:
-                dump_parsed_ast(args.json, args.lang, args.pattern, args.target)
-        elif args.validate:
-            _, invalid_configs = semgrep.semgrep_main.get_config(
-                args.generate_config, args.pattern, args.lang, args.config
+    if args.dump_ast:
+        dump_parsed_ast(args.json, args.lang, args.pattern, args.target)
+    elif args.validate:
+        _, invalid_configs = semgrep.semgrep_main.get_config(
+            args.generate_config, args.pattern, args.lang, args.config
+        )
+        if invalid_configs:
+            raise SemgrepError(
+                f"run with --validate and there were {len(invalid_configs)} errors loading configs"
             )
-            if invalid_configs:
-                print_error_exit(
-                    f"run with --validate and there were {len(invalid_configs)} errors loading configs"
-                )
-            else:
-                print_error("Config is valid")
-
-        elif args.test:
-            semgrep.test.test_main(args)
         else:
-            semgrep.semgrep_main.main(
-                target=args.target,
-                pattern=args.pattern,
-                lang=args.lang,
-                config=args.config,
-                generate_config=args.generate_config,
-                no_rewrite_rule_ids=args.no_rewrite_rule_ids,
-                jobs=args.jobs,
-                include=args.include,
-                include_dir=args.include_dir,
-                exclude=args.exclude,
-                exclude_dir=args.exclude_dir,
-                json_format=args.json,
-                sarif=args.sarif,
-                output_destination=args.output,
-                quiet=args.quiet,
-                strict=args.strict,
-                exit_on_error=args.error,
-                autofix=args.autofix,
-                dangerously_allow_arbitrary_code_execution_from_rules=args.dangerously_allow_arbitrary_code_execution_from_rules,
-            )
-    except NotImplementedError as ex:
-        print_error_exit(
-            f"semgrep encountered an error: {ex}; this is not your fault. {PLEASE_FILE_ISSUE_TEXT}"
+            print_msg("Config is valid")
+
+    elif args.test:
+        semgrep.test.test_main(args)
+    else:
+        semgrep.semgrep_main.main(
+            target=args.target,
+            pattern=args.pattern,
+            lang=args.lang,
+            config=args.config,
+            generate_config=args.generate_config,
+            no_rewrite_rule_ids=args.no_rewrite_rule_ids,
+            jobs=args.jobs,
+            include=args.include,
+            include_dir=args.include_dir,
+            exclude=args.exclude,
+            exclude_dir=args.exclude_dir,
+            json_format=args.json,
+            sarif=args.sarif,
+            output_destination=args.output,
+            quiet=args.quiet,
+            strict=args.strict,
+            exit_on_error=args.error,
+            autofix=args.autofix,
+            dangerously_allow_arbitrary_code_execution_from_rules=args.dangerously_allow_arbitrary_code_execution_from_rules,
         )

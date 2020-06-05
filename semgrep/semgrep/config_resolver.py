@@ -8,6 +8,8 @@ from typing import Dict
 from typing import List
 from typing import Optional
 
+from ruamel.yaml import YAMLError
+
 from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import DEFAULT_CONFIG_FOLDER
 from semgrep.constants import DEFAULT_SEMGREP_CONFIG_NAME
@@ -15,10 +17,12 @@ from semgrep.constants import ID_KEY
 from semgrep.constants import RULES_KEY
 from semgrep.constants import SEMGREP_USER_AGENT
 from semgrep.constants import YML_EXTENSIONS
+from semgrep.error import SemgrepError
+from semgrep.rule_lang import parse_yaml_preserve_spans
+from semgrep.rule_lang import YamlTree
 from semgrep.util import debug_print
 from semgrep.util import is_url
 from semgrep.util import print_error
-from semgrep.util import print_error_exit
 from semgrep.util import print_msg
 
 IN_DOCKER = "SEMGREP_IN_DOCKER" in os.environ
@@ -64,7 +68,7 @@ def adjust_for_docker(in_precommit: bool = False) -> None:
     # change into this folder so that all paths are relative to it
     if IN_DOCKER and not IN_GH_ACTION and not in_precommit:
         if not Path(REPO_HOME_DOCKER).exists():
-            print_error_exit(
+            raise SemgrepError(
                 f'you are running semgrep in docker, but you forgot to mount the current directory in Docker: missing: -v "${{PWD}}:{REPO_HOME_DOCKER}"'
             )
     if Path(REPO_HOME_DOCKER).exists():
@@ -81,36 +85,32 @@ def indent(msg: str) -> str:
 
 def parse_config_at_path(
     loc: Path, base_path: Optional[Path] = None
-) -> Dict[str, Optional[Dict[str, Any]]]:
+) -> Dict[str, Optional[YamlTree]]:
     config_id = str(loc)
     if base_path:
         config_id = str(loc).replace(str(base_path), "")
     try:
         with loc.open() as f:
-            return parse_config_string(config_id, f.read())
+            return parse_config_string(config_id, f.read(), str(loc))
     except FileNotFoundError:
         print_error(f"YAML file at {loc} not found")
         return {str(loc): None}
 
 
 def parse_config_string(
-    config_id: str, contents: str
-) -> Dict[str, Optional[Dict[str, Any]]]:
-    import yaml  # here for faster startup times
-
+    config_id: str, contents: str, filename: Optional[str]
+) -> Dict[str, Optional[YamlTree]]:
     try:
-        return {config_id: yaml.safe_load(contents)}
-    except yaml.parser.ParserError as se:
-        print_error(f"Invalid yaml file {config_id}:\n{indent(str(se))}")
-        return {config_id: None}
-    except yaml.scanner.ScannerError as se:
+        data = parse_yaml_preserve_spans(contents, filename)
+        return {config_id: data}
+    except YAMLError as se:
         print_error(f"Invalid yaml file {config_id}:\n{indent(str(se))}")
         return {config_id: None}
 
 
 def parse_config_folder(
     loc: Path, relative: bool = False
-) -> Dict[str, Optional[Dict[str, Any]]]:
+) -> Dict[str, Optional[YamlTree]]:
     configs = {}
     for l in loc.rglob("*"):
         # Allow manually specified paths with ".", but don't auto-expand them
@@ -135,7 +135,7 @@ def _is_hidden_config(loc: Path) -> bool:
 
 def load_config_from_local_path(
     location: Optional[str] = None,
-) -> Dict[str, Optional[Dict[str, Any]]]:
+) -> Dict[str, Optional[YamlTree]]:
     """
         Return config file(s) as dictionary object
     """
@@ -157,18 +157,18 @@ def load_config_from_local_path(
             elif loc.is_dir():
                 return parse_config_folder(loc)
             else:
-                print_error_exit(f"config location `{loc}` is not a file or folder!")
+                raise SemgrepError(f"config location `{loc}` is not a file or folder!")
         else:
             addendum = ""
             if IN_DOCKER:
                 addendum = " (since you are running in docker, you cannot specify arbitary paths on the host; they must be mounted into the container)"
-            print_error_exit(
+            raise SemgrepError(
                 f"unable to find a config; path `{loc}` does not exist{addendum}"
             )
     raise Exception
 
 
-def download_config(config_url: str) -> Dict[str, Optional[Dict[str, Any]]]:
+def download_config(config_url: str) -> Dict[str, Optional[YamlTree]]:
     import requests  # here for faster startup times
 
     DOWNLOADING_MESSAGE = f"downloading config..."
@@ -193,13 +193,15 @@ def download_config(config_url: str) -> Dict[str, Optional[Dict[str, Any]]]:
             ]
             if content_type and any((ct in content_type for ct in yaml_types)):
                 print_msg(SCANNING_MESSAGE)
-                return parse_config_string("remote-url", r.content.decode("utf-8"))
+                return parse_config_string(
+                    "remote-url", r.content.decode("utf-8"), filename=None
+                )
             else:
-                print_error_exit(
+                raise SemgrepError(
                     f"unknown content-type: {content_type} returned by config url: {config_url}. Can not parse"
                 )
         else:
-            print_error_exit(
+            raise SemgrepError(
                 f"bad status code: {r.status_code} returned by config url: {config_url}"
             )
     except Exception as e:
@@ -207,7 +209,7 @@ def download_config(config_url: str) -> Dict[str, Optional[Dict[str, Any]]]:
     return {config_url: None}
 
 
-def resolve_config(config_str: Optional[str]) -> Dict[str, Optional[Dict[str, Any]]]:
+def resolve_config(config_str: Optional[str]) -> Dict[str, Optional[YamlTree]]:
     """ resolves if config arg is a registry entry, a url, or a file, folder, or loads from defaults if None"""
     start_t = time.time()
     if config_str is None:
@@ -228,7 +230,7 @@ def generate_config() -> None:
 
     # defensive coding
     if Path(DEFAULT_CONFIG_FILE).exists():
-        print_error_exit(
+        raise SemgrepError(
             f"{DEFAULT_CONFIG_FILE} already exists. Please remove and try again"
         )
     try:
@@ -252,4 +254,4 @@ def generate_config() -> None:
             print_msg(f"Template config successfully written to {DEFAULT_CONFIG_FILE}")
             sys.exit(0)
     except Exception as e:
-        print_error_exit(str(e))
+        raise SemgrepError(str(e))

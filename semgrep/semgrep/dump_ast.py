@@ -6,8 +6,7 @@ from typing import Optional
 import semgrep.config_resolver
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import SEMGREP_PATH
-from semgrep.util import print_error
-from semgrep.util import print_error_exit
+from semgrep.error import SemgrepError
 
 
 def dump_parsed_ast(
@@ -23,7 +22,7 @@ def dump_parsed_ast(
             args = ["-lang", language, "-dump_pattern", fout.name]
         else:
             if len(targets) != 1:
-                print_error_exit("exactly one target file is required with this option")
+                raise SemgrepError("--dump-ast requires exactly one target file")
             target = targets[0]
             args = ["-lang", language, "-dump_ast", str(target)]
 
@@ -34,6 +33,7 @@ def dump_parsed_ast(
         try:
             output = subprocess.check_output(cmd, shell=False)
         except subprocess.CalledProcessError as ex:
-            print_error(f"error invoking semgrep with:\n\t{' '.join(cmd)}\n{ex}")
-            print_error_exit(f"\n\n{PLEASE_FILE_ISSUE_TEXT}")
+            raise SemgrepError(
+                f"error invoking semgrep with:\n\t{' '.join(cmd)}\n\t{ex}\n{PLEASE_FILE_ISSUE_TEXT}"
+            )
         print(output.decode())

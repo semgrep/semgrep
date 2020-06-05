@@ -357,8 +357,21 @@ and m_expr a b =
       {contents = Some ( ( B.ImportedEntity dotted
                          | B.ImportedModule (B.DottedName dotted)
                          ), _sid)}; _}) ->
-
     m_expr a (make_dotted dotted)
+  (* Put this before the next case to prevent overly eager dealiasing *)
+  | A.IdQualified(a1, a2), B.IdQualified(b1, b2) ->
+    m_name a1 b1 >>= (fun () ->
+    m_id_info a2 b2
+    )
+  (* Matches pattern
+   *   a.b.C.x
+   * to code
+   *   import a.b.C
+   *   C.x
+   *)
+  | A.IdQualified ((alabel, { A.name_qualifier = Some(names); _ }), _id_info), b ->
+    let full = names @ [alabel] in
+    m_expr (make_dotted full) b
   (*e: [[Generic_vs_generic.m_expr()]] resolving alias case *)
   (*s: [[Generic_vs_generic.m_expr()]] metavariable case *)
   (*s: [[Generic_vs_generic.m_expr()]] forbidden metavariable case *)
@@ -497,10 +510,6 @@ and m_expr a b =
       return ())
     | A.AnonClass(a1), B.AnonClass(b1) ->
       m_class_definition a1 b1
-    | A.IdQualified(a1, a2), B.IdQualified(b1, b2) ->
-      m_name a1 b1 >>= (fun () ->
-      m_id_info a2 b2
-      )
     | A.IdSpecial(a1), B.IdSpecial(b1) ->
       m_wrap m_special a1 b1
 

@@ -2,14 +2,18 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## Next
+## [0.9.0](https://github.com/returntocorp/semgrep/releases/tag/v0.9.0) - 2020-06-02
 
-### Fixed 
+### Fixed
+- Performance optimizations in deep statement matching
+- Disable normalization of != ==> !(==)
+- Support empty variable declaration in javasript
 - Support "print expr," in Python 2.X
 - Support "async" keyword on inner arrow functions for ECMAScript 7+
 - Support optional catch bindings for ECMAScript 2019+
 - Support non-ASCII Unicode whitespace code points as lexical whitespace in JavaScript code
 - Support assignment expressions in Python 3.8
+- Emtpty block in if will only match empty blocks
 
 ### Removed
 - `--exclude-tests` flag - prefer `--exclude` or `--exclude-dir`
