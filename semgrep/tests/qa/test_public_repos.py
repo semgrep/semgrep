@@ -89,7 +89,7 @@ def xfail_repo(url, *, reason=None):
         "https://github.com/dropbox/mypy-protobuf",
         "https://github.com/dropbox/nautilus-dropbox",
         "https://github.com/dropbox/nodegallerytutorial",
-        "https://github.com/dropbox/notouch",
+        xfail_repo("https://github.com/dropbox/notouch"),
         "https://github.com/dropbox/nsot",
         "https://github.com/dropbox/othw",
         "https://github.com/dropbox/pem-converter-maven-plugin",
