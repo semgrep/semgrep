@@ -275,12 +275,16 @@ class CoreRunner:
                     cmd += ["-j", str(self._jobs)]
                     cmd += [*self.targeting_options, *[str(path) for path in targets]]
 
-                    try:
-                        output = subprocess.check_output(cmd, shell=False)
-                    except subprocess.CalledProcessError as ex:
+                    core_run = subprocess.run(
+                        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+                    )
+
+                    debug_print(core_run.stderr.decode("utf-8", "replace"))
+
+                    if core_run.returncode != 0:
                         try:
                             # see if semgrep output a JSON error that we can decode
-                            semgrep_output = ex.output.decode("utf-8", "replace")
+                            semgrep_output = core_run.stdout.decode("utf-8", "replace")
                             output_json = json.loads(semgrep_output)
                             if "error" in output_json:
                                 self._semgrep_error_json_to_message_then_exit(
@@ -288,13 +292,16 @@ class CoreRunner:
                                 )
                             else:
                                 raise SemgrepError(
-                                    f"unexpected non-json output while invoking semgrep-core:\n\t{ex}\n{PLEASE_FILE_ISSUE_TEXT}"
+                                    f"unexpected non-json output while invoking semgrep-core:\n{PLEASE_FILE_ISSUE_TEXT}"
                                 )
                         except Exception as e:
                             raise SemgrepError(
                                 f"non-zero return code while invoking semgrep-core:\n\t{e}\n{PLEASE_FILE_ISSUE_TEXT}"
                             )
-                    output_json = json.loads((output.decode("utf-8", "replace")))
+
+                    output_json = json.loads(
+                        (core_run.stdout.decode("utf-8", "replace"))
+                    )
                     errors.extend(output_json["errors"])
                     outputs.extend([PatternMatch(m) for m in output_json["matches"]])
 
