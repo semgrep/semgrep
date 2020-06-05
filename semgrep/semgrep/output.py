@@ -74,7 +74,7 @@ def build_normal_output(
         current_file = rule_match.path
         check_id = rule_match.id
         message = rule_match.message
-        severity = rule_match.severity
+        severity = rule_match.severity.lower()
         fix = rule_match.fix
         if last_file is None or last_file != current_file:
             if last_file is not None:
@@ -89,12 +89,12 @@ def build_normal_output(
         ):
             severity_prepend = ""
             if severity:
-                if severity == "ERROR":
-                    severity_prepend = f"{RED_COLOR}{severity} "
-                elif severity == "WARNING":
-                    severity_prepend = f"{YELLOW_COLOR}{severity} "
+                if severity == "error":
+                    severity_prepend = f"{RED_COLOR}severity:{severity} "
+                elif severity == "warning":
+                    severity_prepend = f"{YELLOW_COLOR}severity:{severity} "
                 else:
-                    severity_prepend = f"{severity} "
+                    severity_prepend = f"severity:{severity} "
             yield f"{severity_prepend}{YELLOW_COLOR}rule:{check_id}: {message}{RESET_COLOR}"
 
         last_file = current_file
