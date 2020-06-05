@@ -16,6 +16,7 @@ from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.semgrep_types import BooleanRuleExpression
 from semgrep.semgrep_types import OPERATORS
+from semgrep.semgrep_types import pattern_name_for_operator
 from semgrep.semgrep_types import pattern_names_for_operator
 from semgrep.semgrep_types import PatternId
 from semgrep.semgrep_types import Range
@@ -43,7 +44,16 @@ def _evaluate_single_expression(
     elif expression.operator == OPERATORS.AND_NOT:
         # remove all ranges that DO equal the ranges for this pattern
         # difference_update = Remove all elements of another set from this set.
-        return ranges_left.difference(results_for_pattern)
+        output_ranges = ranges_left.difference(results_for_pattern)
+        debug_print(f"after filter `{expression.operator}`: {output_ranges}")
+        steps_for_debugging.append(
+            {
+                "filter": pattern_name_for_operator(expression.operator),
+                "pattern_id": expression.pattern_id,
+                "ranges": list(output_ranges),
+            }
+        )
+        return output_ranges
     elif expression.operator == OPERATORS.AND_INSIDE:
         # remove all ranges (not enclosed by) or (not equal to) the inside ranges
         output_ranges = set()
@@ -57,7 +67,11 @@ def _evaluate_single_expression(
                     break  # found a match, no need to keep going
         debug_print(f"after filter `{expression.operator}`: {output_ranges}")
         steps_for_debugging.append(
-            {"filter": expression.operator, "ranges": list(ranges_left)}
+            {
+                "filter": pattern_name_for_operator(expression.operator),
+                "pattern_id": expression.pattern_id,
+                "ranges": list(output_ranges),
+            }
         )
         return output_ranges
     elif expression.operator == OPERATORS.AND_NOT_INSIDE:
@@ -70,7 +84,11 @@ def _evaluate_single_expression(
                     break
         debug_print(f"after filter `{expression.operator}`: {output_ranges}")
         steps_for_debugging.append(
-            {"filter": expression.operator, "ranges": list(ranges_left)}
+            {
+                "filter": pattern_name_for_operator(expression.operator),
+                "pattern_id": expression.pattern_id,
+                "ranges": list(output_ranges),
+            }
         )
         return output_ranges
     elif expression.operator == OPERATORS.WHERE_PYTHON:
@@ -96,12 +114,25 @@ def _evaluate_single_expression(
                     output_ranges.add(pattern_match.range)
         debug_print(f"after filter `{expression.operator}`: {output_ranges}")
         steps_for_debugging.append(
-            {"filter": expression.operator, "ranges": list(ranges_left)}
+            {
+                "filter": pattern_name_for_operator(expression.operator),
+                "pattern_id": expression.pattern_id,
+                "ranges": list(output_ranges),
+            }
         )
         return output_ranges
     elif expression.operator == OPERATORS.REGEX:
         # remove all ranges that don't equal the ranges for this pattern
-        return ranges_left.intersection(results_for_pattern)
+        output_ranges = ranges_left.intersection(results_for_pattern)
+        debug_print(f"after filter `{expression.operator}`: {output_ranges}")
+        steps_for_debugging.append(
+            {
+                "filter": pattern_name_for_operator(expression.operator),
+                "pattern_id": expression.pattern_id,
+                "ranges": list(output_ranges),
+            }
+        )
+        return output_ranges
     else:
         raise UnknownOperatorError(f"unknown operator {expression.operator}")
 
@@ -167,8 +198,9 @@ def evaluate(
     steps_for_debugging = [
         {
             "filter": "initial",
+            "pattern_id": None,
             "ranges": {
-                k: [vv.range for vv in v]
+                k: list(set(vv.range for vv in v))
                 for k, v in pattern_ids_to_pattern_matches.items()
             },
         }
@@ -184,9 +216,7 @@ def evaluate(
     # only output matches which are inside these offsets!
     debug_print(f"compiled result {valid_ranges_to_output}")
     debug_print("-" * 80)
-    steps_for_debugging.append(
-        {"filter": "final", "ranges": list(valid_ranges_to_output)}  # type:ignore
-    )
+
     for pattern_match in pattern_matches:
         if pattern_match.range in valid_ranges_to_output:
             message = interpolate_message_metavariables(rule, pattern_match)
@@ -283,7 +313,11 @@ def _evaluate_expression(
 
         debug_print(f"after filter `{expression.operator}`: {ranges_left}")
         steps_for_debugging.append(
-            {"filter": expression.operator, "ranges": list(ranges_left)}
+            {
+                "filter": f"{pattern_name_for_operator(expression.operator)}",
+                "pattern_id": None,
+                "ranges": list(ranges_left),
+            }
         )
     else:
         assert (
