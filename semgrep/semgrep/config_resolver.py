@@ -171,9 +171,12 @@ def load_config_from_local_path(
 def download_config(config_url: str) -> Dict[str, Optional[Dict[str, Any]]]:
     import requests  # here for faster startup times
 
-    DOWNLOADING_MESSAGE = "downloading config..."
-    SCANNING_MESSAGE = "scanning code...     "  # needs to have same number of chars as DOWNLOADING_MESSAGE
+    DOWNLOADING_MESSAGE = f"downloading config..."
+    SCANNING_MESSAGE = "scanning code...\033[K"
     debug_print(f"trying to download from {config_url}")
+    print_msg(
+        f"using config from {config_url}. See https://semgrep.live/registry for more options."
+    )
     print_msg(DOWNLOADING_MESSAGE, end="\r")
     headers = {"User-Agent": SEMGREP_USER_AGENT}
 
