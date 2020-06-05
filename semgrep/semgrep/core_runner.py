@@ -276,7 +276,9 @@ class CoreRunner:
                     cmd += [*self.targeting_options, *[str(path) for path in targets]]
 
                     try:
-                        output = subprocess.check_output(cmd, shell=False)
+                        output = subprocess.check_output(
+                            cmd, shell=False, stderr=subprocess.DEVNULL
+                        )
                     except subprocess.CalledProcessError as ex:
                         try:
                             # see if semgrep output a JSON error that we can decode
