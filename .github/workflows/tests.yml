@@ -136,6 +136,10 @@ jobs:
           cd semgrep
           export PATH=/github/home/.local/bin:$PATH
           pipenv run semgrep --version
+      - uses: actions/cache@v1
+        with:
+          path: ~/.cache/semgrep-cache
+          key: semgrep-git-cache
       - name: run benchmarks
         run: |
           cd semgrep
@@ -143,6 +147,8 @@ jobs:
           eval $(opam  env --root /home/opam/.opam --set-root)
           export PATH=/github/home/.local/bin:$PATH
           pipenv run pytest -k test_ci_perf tests/ --benchmark-min-rounds 1 --benchmark-only --benchmark-autosave --benchmark-storage benchmarks
+        env:
+          GITHUB_REPO_CACHE: ~/.cache/semgrep-cache
       - name: Compare to previous benchmark result
         run: |
           cd semgrep
