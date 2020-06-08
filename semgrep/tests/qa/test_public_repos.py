@@ -188,22 +188,21 @@ def xfail_repo(url, *, reason=None):
         "https://github.com/digininja/vuLnDAP",
     ],
 )
-def test_semgrep_on_repo(monkeypatch, tmp_path, repo_url):
+def test_semgrep_on_repo(monkeypatch, clone_github_repo, tmp_path, repo_url):
     TESTS_PATH = Path(__file__).parent.parent
     monkeypatch.setenv("PYTHONPATH", str(TESTS_PATH.parent.resolve()))
     (tmp_path / "rules").symlink_to(Path(TESTS_PATH / "qa" / "rules").resolve())
     monkeypatch.chdir(tmp_path)
 
-    subprocess.check_output(
-        ["git", "clone", "--depth=1", repo_url, "repo",]
-    )
+    repo_path = clone_github_repo(repo_url=repo_url)
+
     languages = {
         "python": "py",
         "go": "go",
         "javascript": "js",
     }
     for language, file_ext in languages.items():
-        sentinel_path = Path("repo") / f"sentinel.{file_ext}"
+        sentinel_path = repo_path / f"sentinel.{file_ext}"
         with sentinel_path.open("w") as sentinel_file:
             if language == "go":
                 sentinel_file.write(f"package Foo\nconst x = {SENTINEL_VALUE}")
@@ -220,7 +219,7 @@ def test_semgrep_on_repo(monkeypatch, tmp_path, repo_url):
                 "--lang",
                 language,
                 "--json",
-                "repo",
+                repo_path,
             ],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -259,7 +258,7 @@ def test_semgrep_on_repo(monkeypatch, tmp_path, repo_url):
             "--config=rules/regex-sentinel.yaml",
             "--strict",
             "--json",
-            "repo",
+            repo_path,
         ],
         encoding="utf-8",
     )

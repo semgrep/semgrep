@@ -38,7 +38,11 @@ jobs:
     container: returntocorp/sgrep-build:2.8
     steps:
       - name: Adjust permissions
-        run: sudo chmod -R 777 . /github
+        run: |
+          sudo chmod -R 777 . /github
+          # github cache dir
+          sudo mkdir -p /__w/
+          sudo chmod -R 777 /__w/
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install submodules
@@ -51,8 +55,17 @@ jobs:
         run: eval $(opam  env --root /home/opam/.opam --set-root) && cd semgrep-core && make test && make e2etest
       - name: Install semgrep
         run: eval $(opam  env --root /home/opam/.opam --set-root) && cd semgrep && export PATH=/github/home/.local/bin:$PATH && pip3 install pipenv && pipenv install --dev
+      - uses: actions/cache@v2
+        with:
+          path: ~/.cache/semgrep-cache
+          key: semgrep-repo-cache-test
+      - name: create cache dir if not exists
+        run: mkdir -p ~/.cache/semgrep-cache
+      - run: touch ~/.cache/semgrep-cache/ok
       - name: Test semgrep
         run: eval $(opam  env --root /home/opam/.opam --set-root) && cd semgrep && export PATH=/github/home/.local/bin:$PATH && make test && make qa-test
+        env:
+          GITHUB_REPO_CACHE: ~/.cache/semgrep-cache
 
   mac-build-test:
     name: Check builds for macOS
@@ -130,13 +143,20 @@ jobs:
           cd semgrep
           export PATH=/github/home/.local/bin:$PATH
           pipenv run semgrep --version
+      - uses: actions/cache@v2
+        with:
+          path: ~/.cache/semgrep-cache
+          key: semgrep-repo-cache-bench
       - name: run benchmarks
         run: |
           cd semgrep
+          mkdir -p ~/.cache/semgrep-cache
           # TODO: figure out what checks we want to run on PRs
           eval $(opam  env --root /home/opam/.opam --set-root)
           export PATH=/github/home/.local/bin:$PATH
           pipenv run pytest -k test_ci_perf tests/ --benchmark-min-rounds 1 --benchmark-only --benchmark-autosave --benchmark-storage benchmarks
+        env:
+          GITHUB_REPO_CACHE: ~/.cache/semgrep-cache
       - name: Compare to previous benchmark result
         run: |
           cd semgrep
