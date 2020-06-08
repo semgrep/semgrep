@@ -212,6 +212,7 @@ def main(
     exclude: List[str],
     exclude_dir: List[str],
     json_format: bool,
+    debugging_json: bool,
     sarif: bool,
     output_destination: str,
     quiet: bool,
@@ -227,6 +228,8 @@ def main(
     output_format = OutputFormat.TEXT
     if json_format:
         output_format = OutputFormat.JSON
+    elif debugging_json:
+        output_format = OutputFormat.JSON_DEBUG
     elif sarif:
         output_format = OutputFormat.SARIF
 
@@ -264,7 +267,7 @@ def main(
             )
 
     # actually invoke semgrep
-    rule_matches_by_rule, semgrep_errors = CoreRunner(
+    rule_matches_by_rule, debug_steps_by_rule, semgrep_errors = CoreRunner(
         allow_exec=dangerously_allow_arbitrary_code_execution_from_rules,
         jobs=jobs,
         exclude=exclude,
@@ -287,6 +290,7 @@ def main(
         rule_matches_by_rule,
         semgrep_errors,
         output_format,
+        debug_steps_by_rule,
         quiet,
         output_destination,
         exit_on_error,
@@ -316,6 +320,7 @@ def handle_output(
     rule_matches_by_rule: Dict[Rule, List[RuleMatch]],
     semgrep_errors: List[Any],
     output_format: OutputFormat,
+    debug_steps_by_rule: Dict[Rule, List[Dict[str, Any]]],
     quiet: bool = False,
     output_destination: Optional[str] = None,
     exit_on_error: bool = False,
@@ -328,7 +333,12 @@ def handle_output(
     ]
 
     output = build_output(
-        rule_matches, rules, semgrep_errors, output_format, not output_destination
+        rule_matches,
+        debug_steps_by_rule,
+        rules,
+        semgrep_errors,
+        output_format,
+        not output_destination,
     )
     if not quiet:
         if output:

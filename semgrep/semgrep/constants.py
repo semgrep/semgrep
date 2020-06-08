@@ -36,4 +36,5 @@ SEMGREP_PATH = compute_semgrep_path()
 class OutputFormat(Enum):
     TEXT = auto()
     JSON = auto()
+    JSON_DEBUG = auto()
     SARIF = auto()

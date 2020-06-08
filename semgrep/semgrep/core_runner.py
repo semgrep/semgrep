@@ -319,11 +319,12 @@ class CoreRunner:
 
     def _resolve_output(
         self, outputs: Dict[Rule, Dict[Path, List[PatternMatch]]]
-    ) -> Dict[Rule, List[RuleMatch]]:
+    ) -> Tuple[Dict[Rule, List[RuleMatch]], Dict[Rule, List[Dict[str, Any]]]]:
         """
             Takes output of all running all patterns and rules and returns Findings
         """
         findings_by_rule: Dict[Rule, List[RuleMatch]] = {}
+        debugging_steps_by_rule: Dict[Rule, List[Dict[str, Any]]] = {}
 
         for rule, paths in outputs.items():
             findings = []
@@ -332,11 +333,16 @@ class CoreRunner:
                     continue
                 debug_print(f"-------- rule ({rule.id} ------ filepath: {filepath}")
 
-                findings.extend(evaluate(rule, pattern_matches, self._allow_exec))
+                findings_for_rule, debugging_steps = evaluate(
+                    rule, pattern_matches, self._allow_exec
+                )
+                findings.extend(findings_for_rule)
+                # debugging steps are only tracked for a single file, just overwrite
+                debugging_steps_by_rule[rule] = debugging_steps
 
             findings_by_rule[rule] = dedup_output(findings)
 
-        return findings_by_rule
+        return findings_by_rule, debugging_steps_by_rule
 
     @property
     def targeting_options(self) -> Iterator[str]:
@@ -355,18 +361,20 @@ class CoreRunner:
 
     def invoke_semgrep(
         self, targets: List[Path], rules: List[Rule]
-    ) -> Tuple[Dict[Rule, List[RuleMatch]], List[Any]]:
+    ) -> Tuple[
+        Dict[Rule, List[RuleMatch]], Dict[Rule, List[Dict[str, Any]]], List[Any]
+    ]:
         """
             Takes in rules and targets and retuns object with findings
         """
         start = datetime.now()
 
         outputs, errors = self._run_rules(rules, targets)
-        findings_by_rule = self._resolve_output(outputs)
+        findings_by_rule, debug_steps_by_rule = self._resolve_output(outputs)
 
         debug_print(f"semgrep ran in {datetime.now() - start}")
 
-        return findings_by_rule, errors
+        return findings_by_rule, debug_steps_by_rule, errors
 
 
 def dedup_output(outputs: List[RuleMatch]) -> List[RuleMatch]:
