@@ -114,13 +114,11 @@ def test_default_packs(run_semgrep_in_tmp, benchmark, repo_case):
         ),
         RepoCase("https://github.com/secdev/scapy", "41862d7", language="python"),
         RepoCase(
-            "https://github.com/coinbase/rosetta-sdk-go.git", "26ae7bd", language="go"
+            "https://github.com/coinbase/rosetta-sdk-go", "26ae7bd", language="go"
         ),
         # NOTE: this repo is mostly typescript
         RepoCase(
-            "https://github.com/coinbase/rest-hooks.git",
-            "d5cf9c7",
-            language="javascript",
+            "https://github.com/coinbase/rest-hooks", "d5cf9c7", language="javascript",
         )
         # "https://github.com/getsentry/sentry-python",
         # "https://github.com/apache/airflow",
@@ -141,16 +139,16 @@ def test_default_packs(run_semgrep_in_tmp, benchmark, repo_case):
 @pytest.mark.parametrize(
     "language", ["python", "java", "go", "javascript"], ids=lambda lang: lang
 )
-def test_trivial_pattern(run_semgrep_in_tmp, benchmark, repo_case, language):
+def test_trivial_pattern(
+    run_semgrep_in_tmp, clone_github_repo, benchmark, repo_case, language
+):
     """
     This test runs a trivial pattern over the repo, essentially tracking our performance of parsing the language code.
     We run every repo for all the primary languages. This allows us to also track off-language results (how fast do
     we detect that we don't need to scan this repo)
     """
-    subprocess.check_output(["git", "clone", repo_case.url, "repo"])
-    subprocess.check_output(
-        ["git", "--git-dir", "repo/.git", "checkout", repo_case.sha]
-    )
+    repo_path = clone_github_repo(repo_url=repo_case.url, sha=repo_case.sha)
+    print(repo_path)
     benchmark(
         subprocess.check_output,
         [
@@ -163,7 +161,7 @@ def test_trivial_pattern(run_semgrep_in_tmp, benchmark, repo_case, language):
             "$X = 156128578192758",
             "--lang",
             language,
-            "repo",
+            repo_path,
         ],
     )
 
