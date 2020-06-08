@@ -51,10 +51,10 @@ jobs:
         run: eval $(opam  env --root /home/opam/.opam --set-root) && cd semgrep-core && make test && make e2etest
       - name: Install semgrep
         run: eval $(opam  env --root /home/opam/.opam --set-root) && cd semgrep && export PATH=/github/home/.local/bin:$PATH && pip3 install pipenv && pipenv install --dev
-      - uses: actions/cache@v1
+      - uses: actions/cache@v2
         with:
           path: ~/.cache/semgrep-cache
-          key: semgrep-git-cache
+          key: semgrep-repo-cache
       - name: Test semgrep
         run: eval $(opam  env --root /home/opam/.opam --set-root) && cd semgrep && export PATH=/github/home/.local/bin:$PATH && make test && make qa-test
         env:
@@ -136,10 +136,10 @@ jobs:
           cd semgrep
           export PATH=/github/home/.local/bin:$PATH
           pipenv run semgrep --version
-      - uses: actions/cache@v1
+      - uses: actions/cache@v2
         with:
           path: ~/.cache/semgrep-cache
-          key: semgrep-git-cache
+          key: semgrep-repo-cache
       - name: run benchmarks
         run: |
           cd semgrep
