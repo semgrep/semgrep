@@ -84,6 +84,11 @@ def operator_for_pattern_name(pattern_name: str) -> Operator:
     )
 
 
+def pattern_name_for_operator(operator: Operator) -> str:
+    # TODO
+    return pattern_names_for_operator(operator)[0]
+
+
 def pattern_names_for_operator(operator: Operator) -> List[str]:
     return OPERATOR_PATTERN_NAMES_MAP[operator]
 
