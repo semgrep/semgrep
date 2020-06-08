@@ -16,8 +16,8 @@ from semgrep.constants import RULES_KEY
 from semgrep.constants import SEMGREP_USER_AGENT
 from semgrep.constants import YML_EXTENSIONS
 from semgrep.error import SemgrepError
-from semgrep.rule_lang import YamlTree
 from semgrep.rule_lang import parse_yaml_preserve_spans
+from semgrep.rule_lang import YamlTree
 from semgrep.util import debug_print
 from semgrep.util import is_url
 from semgrep.util import print_error
@@ -40,7 +40,7 @@ DEFAULT_REGISTRY_KEY = "r2c"
 def manual_config(pattern: str, lang: str) -> Dict[str, Optional[YamlTree]]:
     # TODO remove when using sgrep -e ... -l ... instead of this hacked config
     pattern_tree = parse_yaml_preserve_spans(pattern, filename=None)
-    we_messed_up_span = parse_yaml_preserve_spans(
+    error_span = parse_yaml_preserve_spans(
         f"Semgrep bug generating manual config {PLEASE_FILE_ISSUE_TEXT}", filename=None
     ).span
     return {
@@ -56,7 +56,7 @@ def manual_config(pattern: str, lang: str) -> Dict[str, Optional[YamlTree]]:
                     }
                 ]
             },
-            span=we_messed_up_span,
+            span=error_span,
         )
     }
 
