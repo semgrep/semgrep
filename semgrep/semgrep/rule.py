@@ -7,6 +7,8 @@ from typing import Optional
 
 from semgrep.equivalences import Equivalence
 from semgrep.error import InvalidRuleSchemaError
+from semgrep.rule_lang import EmptySpan
+from semgrep.rule_lang import YamlTree
 from semgrep.semgrep_types import ALLOWED_GLOB_TYPES
 from semgrep.semgrep_types import BooleanRuleExpression
 from semgrep.semgrep_types import operator_for_pattern_name
@@ -20,10 +22,11 @@ from semgrep.semgrep_types import YAML_VALID_TOP_LEVEL_OPERATORS
 
 
 class Rule:
-    def __init__(self, raw: Dict[str, Any]) -> None:
-        self._raw = raw
-        self._expression = self._build_boolean_expression(raw)
-        self._globs = self._build_globs(raw)
+    def __init__(self, raw: YamlTree) -> None:
+        self._yaml = raw
+        self._raw: Dict[str, Any] = raw.unroll()  # type: ignore
+        self._expression = self._build_boolean_expression(self._raw)
+        self._globs = self._build_globs(self._raw)
 
     def _parse_boolean_expression(
         self, rule_patterns: List[Dict[str, Any]], pattern_id: int = 0, prefix: str = ""
@@ -227,7 +230,12 @@ class Rule:
 
     @classmethod
     def from_json(cls, rule_json: Dict[str, Any]) -> "Rule":  # type: ignore
-        return cls(rule_json)
+        yaml = YamlTree.wrap(rule_json, EmptySpan)
+        return cls(yaml)
+
+    @classmethod
+    def from_yamltree(cls, rule_yaml: YamlTree) -> "Rule":
+        return cls(rule_yaml)
 
     def to_json(self) -> Dict[str, Any]:
         return self._raw
@@ -246,6 +254,6 @@ class Rule:
         return json.dumps(self.to_json())
 
     def with_id(self, new_id: str) -> "Rule":
-        cloned = dict(self._raw)
-        cloned["id"] = new_id
-        return Rule(cloned)
+        new_yaml = YamlTree(value=dict(self._yaml.value), span=self._yaml.span)  # type: ignore
+        new_yaml.value["id"] = YamlTree(value=new_id, span=new_yaml.value["id"].span)  # type: ignore
+        return Rule(new_yaml)
