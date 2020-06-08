@@ -1,21 +1,127 @@
 # Integrations
 
-> Note that all integrations are currently under development and are not officially supported. Please contact semgrep@r2c.dev or [join our slack](https://join.slack.com/t/r2c-community/shared_invite/enQtNjU0NDYzMjAwODY4LWE3NTg1MGNhYTAwMzk5ZGRhMjQ2MzVhNGJiZjI1ZWQ0NjQ2YWI4ZGY3OGViMGJjNzA4ODQ3MjEzOWExNjZlNTA) for help getting started
+This document describes integrating `semgrep` into other pieces of software.
 
-## Github Action
+Contents:
 
-See our [semgrep](https://github.com/marketplace/actions/semgrep-action) action for easy use of `semgrep` in CI. We dogfood it [here](https://github.com/returntocorp/semgrep/tree/develop/.github/workflows/semgrep-action.yml)
+* [Pre-Commit Hook](#pre-commit-hook)
+* [Continuous Integration](#continuous-integration)
+  * [AppVeyor](#appveyor)
+  * [CircleCI](#circleci)
+  * [TravisCI](#travisci)
+  * [GitHub Actions](#github-actions)
+  * [GitLab](#gitlab)
 
 ## Pre-Commit Hook
 
-You can run `semgrep` as a pre-commit hook using [pre-commit](https://pre-commit.com)
+Include `semgrep` as a pre-commit hook using [pre-commit](https://pre-commit.com).
 
 ```yaml
 repos:
-  - repo: https://github.com/returntocorp/semgrep
-    rev: '0.5.0'
-    hooks:
-      - id: semgrep
-        args: ['--precommit', '--error'] # exit 1
+    - repo: https://github.com/returntocorp/semgrep
+      rev: '0.9.0'
+      hooks:
+          - id: semgrep
+            args: ['--config', 'https://semgrep.live/p/r2c', '--precommit', '--error']
 ```
 
+## Continuous Integration
+
+This section describes integrating `semgrep` into your continuous integration
+(CI) system. This allows you to continuously search your codebase for bugs,
+anti-patterns, and security issues.
+
+### AppVeyor
+
+Include `semgrep` in your `.appveyor.yml` configuration file:
+
+```yaml
+build: off
+environment:
+    matrix:
+        - PYTHON: "C:\\Python36"
+        - PYTHON: "C:\\Python37"
+        - ...
+install:
+    - python -m pip install semgrep
+test_script:
+    - semgrep --config https://semgrep.live/p/r2c /path/to/code
+```
+
+This will default to using the [`r2c` rule pack](https://semgrep.live/p/r2c).
+To choose another rule pack see https://semgrep.live/packs.
+
+### CircleCI
+
+Include `semgrep` in your `.circleci/config.yml` configuration file:
+
+```yaml
+version: 2
+jobs:
+    build:
+        docker:
+            - image: circleci/python
+        steps:
+            - checkout
+            - run: python -m pip install semgrep
+            - run: semgrep --config https://semgrep.live/p/r2c /path/to/code
+```
+
+This will default to using the [`r2c` rule pack](https://semgrep.live/p/r2c).
+To choose another rule pack see https://semgrep.live/packs.
+
+### TravisCI
+
+Include `semgrep` in your `.travis.yml` configuration file:
+
+```yaml
+language: python
+install:
+    - python -m pip install semgrep
+script:
+    - semgrep --config https://semgrep.live/p/r2c /path/to/code
+```
+
+This will default to using the [`r2c` rule pack](https://semgrep.live/p/r2c).
+To choose another rule pack see https://semgrep.live/packs.
+
+### GitHub Actions
+
+Include `semgrep` in your `.github/workflows/semgrep.yml` configuration file:
+
+```yaml
+name: Semgrep
+on: [push, pull_request]
+jobs:
+    semgrep:
+        runs-on: ubuntu-latest
+        name: Check
+        steps:
+            - uses: actions/checkout@master
+            - uses: returntocorp/semgrep-action@v1
+              with:
+                config: https://semgrep.live/p/r2c
+```
+
+This will default to using the [`r2c` rule pack](https://semgrep.live/p/r2c).
+To choose another rule pack see https://semgrep.live/packs.
+
+For more information on the GitHub Action see https://github.com/marketplace/actions/semgrep-action.
+
+### GitLab
+
+Include `semgrep` in your `.gitlab-ci.yml` configuration file:
+
+```yaml
+stages:
+    - test
+test:
+    image: python
+    before_script:
+        - python -m pip install semgrep
+    script:
+        - semgrep --config https://semgrep.live/p/r2c /path/to/code
+```
+
+This will default to using the [`r2c` rule pack](https://semgrep.live/p/r2c).
+To choose another rule pack see https://semgrep.live/packs.
