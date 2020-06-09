@@ -6,6 +6,7 @@ from typing import Any
 from typing import Callable
 from typing import Iterable
 from typing import List
+from typing import Set
 from typing import Tuple
 from urllib.parse import urlparse
 
@@ -82,6 +83,12 @@ def partition(pred: Callable, iterable: Iterable) -> Tuple[List, List]:
     """E.g. partition(is_odd, range(10)) -> 1 3 5 7 9  and  0 2 4 6 8"""
     i1, i2 = itertools.tee(iterable)
     return list(filter(pred, i1)), list(itertools.filterfalse(pred, i2))
+
+
+def partition_set(pred: Callable, iterable: Iterable) -> Tuple[Set, Set]:
+    """E.g. partition(is_odd, range(10)) -> 1 3 5 7 9  and  0 2 4 6 8"""
+    i1, i2 = itertools.tee(iterable)
+    return set(filter(pred, i1)), set(itertools.filterfalse(pred, i2))
 
 
 def with_color(color: str, text: str, bold: bool = False) -> str:
