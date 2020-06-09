@@ -36,6 +36,8 @@ def test_rule_parser__failure(run_semgrep_in_tmp, snapshot, filename):
         "badpaths1",
         "badpaths2",
         "invalid",
+        "missing-toplevel",
+        "missing-field",
     ],
 )
 def test_rule_parser__failure__error_messages(run_semgrep_in_tmp, snapshot, filename):

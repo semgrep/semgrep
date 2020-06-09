@@ -1,0 +1,18 @@
+[31merror[39m: missing keys
+  --> rules/syntax/missing-field.yaml:2
+[94m2  | [39m- id: flask-secure-set-cookie
+[94m3  | [39m  languages: [python]
+[94m4  | [39m  patterns:
+[94m5  | [39m    - pattern-not: |
+[94m6  | [39m        flask.response.set_cookie(..., httponly=True, secure=True,...)
+[94m7  | [39m    - pattern: |
+[94m8  | [39m        flask.response.set_cookie(....)
+[94m9  | [39m  message: |
+[94m10 | [39m    Flask cookies should be handled securely by setting secure=True, httponly=True, and samesite='Lax' in  response.set_cookie(...). If your situation calls for different settings, explicitly disable the setting.
+[94m11 | [39m    If you want to send the cookie over http, set secure=False.  If you want to let client-side JavaScript
+[94m12 | [39m    read the cookie, set httponly=False. If you want to attach cookies to requests for external sites,
+[94m13 | [39m    set samesite=None.
+
+[31mrules/syntax/missing-field.yaml is missing required keys {'severity'}[39m
+
+run with --strict and there were 1 errors loading configs

@@ -5,6 +5,7 @@ from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import Set
 from typing import Tuple
 
 import semgrep.config_resolver
@@ -13,6 +14,7 @@ from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import OutputFormat
 from semgrep.constants import RULES_KEY
 from semgrep.core_runner import CoreRunner
+from semgrep.error import ErrorWithContext
 from semgrep.error import FINDINGS_EXIT_CODE
 from semgrep.error import INVALID_CODE_EXIT_CODE
 from semgrep.error import InvalidPatternNameError
@@ -43,14 +45,27 @@ def validate_single_rule(config_id: str, rule_yaml: YamlTree) -> Optional[Rule]:
     rule_keys = set(rule.keys())
     if not rule_keys.issuperset(YAML_MUST_HAVE_KEYS):
         missing_keys = YAML_MUST_HAVE_KEYS - rule_keys
+        # TODO: return the error messages so we can emit nice JSON errors
         print_error(
-            f"{config_id} is missing required keys {missing_keys} at rule id {rule_id_err_msg}"
+            ErrorWithContext(
+                short_msg="missing keys",
+                long_msg=f"{config_id} is missing required keys {missing_keys}",
+                level="error",
+                spans=[rule_yaml.span],
+            ).emit_str()
         )
         return None
     if not rule_keys.issubset(YAML_ALL_VALID_RULE_KEYS):
-        extra_keys = rule_keys - YAML_ALL_VALID_RULE_KEYS
+        extra_keys: Set[YamlTree] = rule_keys - YAML_ALL_VALID_RULE_KEYS  # type: ignore
+
         print_error(
-            f"{config_id} has an invalid top-level rule key {extra_keys} at rule id {rule_id_err_msg}, can only have: {sorted(YAML_ALL_VALID_RULE_KEYS)}"
+            ErrorWithContext(
+                short_msg="extra top-level key",
+                long_msg=f"{config_id} has an invalid top-level rule key: {[k.unroll() for k in extra_keys]}",
+                help=f"Only {sorted(YAML_ALL_VALID_RULE_KEYS)} are valid keys",
+                spans=[k.span.with_context(before=2, after=2) for k in extra_keys],
+                level="error",
+            ).emit_str()
         )
         return None
     try:
@@ -81,7 +96,14 @@ def validate_configs(
             continue
         rules = config.get(RULES_KEY)  # type: ignore
         if rules is None:
-            print_error(f"{config_id} is missing `{RULES_KEY}` as top-level key")
+            print_error(
+                ErrorWithContext(
+                    short_msg="missing keys",
+                    long_msg=f"{config_id} is missing `{RULES_KEY}` as top-level key",
+                    level="error",
+                    spans=[config_yaml_tree.span.truncate(lines=5)],
+                ).emit_str()
+            )  # TODO: shorten the span, we don't need to see the whole rule to see that it's missing a top level key
             errors[config_id] = config_yaml_tree.unroll()
             continue
         valid_rules = []
@@ -311,7 +333,7 @@ def pretty_error(error: Dict[str, Any]) -> str:
             line_3 = f"= note: If the code is correct, this could be a semgrep bug -- please help us fix this by filing an an issue at https://semgrep.dev"
             return "\n".join([header, line_1, line_2, line_3])
         else:
-            return f"semgrep-core error: {json.dumps(error,indent=2)}"
+            return f"semgrep-core error: {json.dumps(error, indent=2)}"
     except KeyError:
         return f"semgrep-core error: {json.dumps(error, indent=2)}"
 
