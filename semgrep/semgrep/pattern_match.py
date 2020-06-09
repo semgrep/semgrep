@@ -2,7 +2,6 @@ from pathlib import Path
 from typing import Any
 from typing import Dict
 
-from semgrep.error import SemgrepError
 from semgrep.semgrep_types import PatternId
 from semgrep.semgrep_types import Range
 
@@ -37,16 +36,8 @@ class PatternMatch:
 
     @property
     def vars(self) -> Dict[str, Any]:
-        def get_identifier(metavariable: str, uid: Dict) -> str:
-            try:
-                return uid.get("sid", uid["md5sum"])
-            except KeyError:
-                raise SemgrepError(
-                    f"metavariable missing unique identifier: {metavariable}"
-                )
-
         metavars = {v: data.get("unique_id", {}) for v, data in self.metavars.items()}
-        return {v: get_identifier(v, uid) for v, uid in metavars.items()}
+        return {v: uid.get("sid", uid.get("md5sum")) for v, uid in metavars.items()}
 
     @property
     def range(self) -> Range:
