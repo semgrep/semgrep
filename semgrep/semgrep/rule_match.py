@@ -129,3 +129,6 @@ class RuleMatch:
                 }
             ],
         }
+
+    def __repr__(self) -> str:
+        return f"<{self.__class__.__name__} id={self.id} start={str(self.start)} end={str(self.end)}>"

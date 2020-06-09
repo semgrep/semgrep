@@ -148,7 +148,7 @@ class Range(NamedTuple):
         return all(self.vars[v] == rhs.vars[v] for v in to_match)
 
     def __repr__(self) -> str:
-        return f"{self.start}-{self.end} {{m: self.vars.get(m, 'None') for m in self.vars}}"
+        return f"<{self.__class__.__name__} start={self.start} end={self.end} vars={ {m: self.vars.get(m, 'None') for m in self.vars} }>"
 
     def __hash__(self) -> int:
         return hash((self.start, self.end))

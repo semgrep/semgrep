@@ -108,3 +108,9 @@ def test_regex_rule__invalid_expression(run_semgrep_in_tmp, snapshot):
         run_semgrep_in_tmp("rules/regex-invalid.yaml", stderr=True)
     assert excinfo.value.returncode == 2
     snapshot.assert_match(excinfo.value.output, "error.txt")
+
+
+def test_nested_patterns_rule(run_semgrep_in_tmp, snapshot):
+    snapshot.assert_match(
+        run_semgrep_in_tmp("rules/nested-patterns.yaml"), "results.json"
+    )
