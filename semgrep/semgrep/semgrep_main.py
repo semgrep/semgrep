@@ -280,12 +280,6 @@ def main(
         for error in semgrep_errors:
             print_error(pretty_error(error))
 
-    if strict and len(semgrep_errors):
-        raise SemgrepError(
-            f"run with --strict and {len(semgrep_errors)} errors occurred during semgrep run; exiting",
-            code=INVALID_CODE_EXIT_CODE,
-        )
-
     output = handle_output(
         rule_matches_by_rule,
         semgrep_errors,
@@ -297,6 +291,12 @@ def main(
     )
     if autofix:
         apply_fixes(rule_matches_by_rule)
+
+    if strict and len(semgrep_errors):
+        raise SemgrepError(
+            f"run with --strict and {len(semgrep_errors)} errors occurred during semgrep run; exiting",
+            code=INVALID_CODE_EXIT_CODE,
+        )
 
     return output
 
