@@ -9,6 +9,7 @@ wheel = "*"
 tox = "*"
 pytest-snapshot = "*"
 pytest-benchmark = "*"
+appdirs = "*"
 
 [packages]
 semgrep = {editable = true,path = "."}
