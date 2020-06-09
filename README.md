@@ -38,7 +38,7 @@ or method definitions, and more.
 After [installing semgrep](#installation), run the default set of checks with:
 
 ```bash
-$ semgrep --config=r2c path/to/repo
+semgrep --config=r2c path/to/repo
 ```
 
 Or try Semgrep in your browser: [https://semgrep.live](https://semgrep.live/).
@@ -113,6 +113,18 @@ safe_function(tricksy)
 
 Play with this example in your browser here: https://semgrep.live/QrkD.
 
+More example patterns:
+
+| **Pattern**                                                        | **Matches**                                                |
+|:-------------------------------------------------------------------|:-----------------------------------------------------------|
+| [`$X == $X`](https://semgrep.live/20B)                             | `if (node.id == node.id): ...`                             |
+| [`requests.get(..., verify=False, ...)`](https://semgrep.live/jqn) | `requests.get(url, timeout=3, verify=False)`               |
+| [`os.system(...)`](https://semgrep.live/1W5)                       | `from os import system; system('echo semgrep')`            |
+| [`$ELEMENT.innerHTML`](https://semgrep.live/9ze)                   | ``el.innerHTML = "<img src='x' onerror='alert(`XSS`)'>";`` |
+| [`$TOKEN.SignedString([]byte("..."))`](https://semgrep.live/rXW)   | `ss, err := token.SignedString([]byte("HARDCODED KEY"))`   |
+
+→ [see more example patterns in the live registry viewer](https://semgrep.live/registry).
+
 For more info on what you can do in patterns, see the [pattern features
 docs](docs/pattern-features.md).
 
@@ -121,7 +133,7 @@ docs](docs/pattern-features.md).
 On macOS, binaries are available via [Homebrew](https://formulae.brew.sh/formula/semgrep):
 
 ```bash
-$ brew install returntocorp/semgrep/semgrep
+brew install returntocorp/semgrep/semgrep
 ```
 
 On Ubuntu, an install script is available on each release [here](https://github.com/returntocorp/semgrep/releases/download/v0.9.0/semgrep-v0.9.0-ubuntu-generic.sh)
@@ -132,7 +144,7 @@ On Ubuntu, an install script is available on each release [here](https://github.
 To try Semgrep without installation, you can also run it via [Docker](https://docs.docker.com/install/):
 
 ```
-$ docker run --rm -v "${PWD}:/home/repo" returntocorp/semgrep --help
+docker run --rm -v "${PWD}:/home/repo" returntocorp/semgrep --help
 ```
 
 ## Terminology
@@ -166,27 +178,27 @@ The [Semgrep rule registry](https://semgrep.live/r) contains rules for many prog
 You can use an existing [Check Packs](https://semgrep.live/packs), that contain sets of rules grouped by language and/or framework:
 
 ```bash
-$ semgrep --config=https://semgrep.live/c/p/java
-$ semgrep --config=https://semgrep.live/c/p/python
-$ semgrep --config=https://semgrep.live/c/p/golang
-$ semgrep --config=https://semgrep.live/c/p/javascript
+semgrep --config=https://semgrep.live/c/p/java
+semgrep --config=https://semgrep.live/c/p/python
+semgrep --config=https://semgrep.live/c/p/golang
+semgrep --config=https://semgrep.live/c/p/javascript
 ...
 ```
 
 Or you can run all of our default rules for all languages as appropriate (note: each rule says what language it's for, so Semgrep won't try to run a Python rule on Java code).
 
 ```bash
-$ semgrep --config=r2c
+semgrep --config=r2c
 ```
 
 You can also run a specific rule or group of rules:
 
 ```bash
 # Run a specific rule
-$ semgrep --config=https://semgrep.live/c/r/java.spring.security.audit.cookie-missing-samesite
+semgrep --config=https://semgrep.live/c/r/java.spring.security.audit.cookie-missing-samesite
 
 # Run a set of rules
-$ semgrep --config=https://semgrep.live/c/r/java.spring.security
+semgrep --config=https://semgrep.live/c/r/java.spring.security
 ```
 
 All Semgrep rules can be viewed on the [Rule Registry page](https://semgrep.live/r), which pulls the rules from YAML files defined in the [semgrep-rules](https://github.com/returntocorp/semgrep-rules) GitHub repo.
@@ -227,7 +239,7 @@ For iterating on simple patterns, you can use the `--lang` and `--pattern`
 flags.
 
 ```bash
-$ semgrep --lang javascript --pattern 'eval(...)' path/to/file.js
+semgrep --lang javascript --pattern 'eval(...)' path/to/file.js
 ```
 
 The `--lang` flag tells Semgrep which language you're targeting and `--pattern` is the code pattern to search for.
@@ -240,9 +252,9 @@ For these cases, Semgrep has a more powerful and flexible [YAML syntax](docs/con
 
 You can run a single rule or directory of rules specified in YAML by:
 ```bash
-$ semgrep --config my_rule.yml path/to/dir_or_file
+semgrep --config my_rule.yml path/to/dir_or_file
 
-$ semgrep --config yaml_dir/ path/to/dir_or_file
+semgrep --config yaml_dir/ path/to/dir_or_file
 ```
 
 **Example Advanced Rule**
