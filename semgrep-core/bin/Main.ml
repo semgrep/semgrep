@@ -407,7 +407,13 @@ let get_final_files xs =
     | Some lang -> Lang.files_of_dirs_or_files lang xs
   in
   let files = filter_files files in
-  files
+
+  let explicit_files = xs |> List.filter(fun file ->
+      Sys.file_exists file && not (Sys.is_directory file)
+    )
+  in
+
+  Common2.uniq_eff (files @ explicit_files)
 (*e: function [[Main_semgrep_core.get_final_files]] *)
 
 (*s: function [[Main_semgrep_core.iter_generic_ast_of_files_and_get_matches_and_exn_to_errors]] *)
@@ -417,18 +423,10 @@ let iter_generic_ast_of_files_and_get_matches_and_exn_to_errors f files =
        if !verbose then pr2 (spf "Analyzing %s" file);
        try
          let lang =
-           match Lang.langs_of_filename file with
-           | [lang] -> lang
-           | x::_xs ->
-               (match Lang.lang_of_string_opt !lang with
-               | Some lang -> lang
-               | None ->
-                 pr2 (spf "no language specified, defaulting to %s for %s"
-                      (Lang.string_of_lang x) file);
-                 x
-               )
-           | [] ->
-              failwith (spf "can not extract generic AST from %s" file)
+           match Lang.lang_of_string_opt !lang with
+            | Some lang -> lang
+            | _ ->
+               failwith (spf "no language specified")
          in
          if !debug then pr2 (spf "PARSING: %s" file);
          let ast = parse_generic lang file in
