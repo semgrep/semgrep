@@ -23,7 +23,6 @@ from typing import Tuple
 from semgrep.constants import YML_EXTENSIONS
 from semgrep.semgrep_main import main as semgrepmain
 from semgrep.util import debug_print
-from semgrep.util import print_error_exit
 
 
 def normalize_rule_id(line: str) -> str:
@@ -184,8 +183,8 @@ def invoke_semgrep(
             include_dir=[],
             exclude=[],
             exclude_dir=[],
-            exclude_tests=False,
             json_format=True,
+            debugging_json=False,
             sarif=False,
             output_destination="",
             quiet=True,
@@ -308,7 +307,7 @@ def main(
 def test_main(args: argparse.Namespace) -> None:
     _test_compute_confusion_matrix()
     if len(args.target) != 1:
-        print_error_exit("only one target directory allowed for tests")
+        raise Exception("only one target directory allowed for tests")
     target = Path(args.target[0])
     main(
         target,

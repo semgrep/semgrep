@@ -1,7 +1,14 @@
-from typing import Optional
+OK_EXIT_CODE = 0
+FINDINGS_EXIT_CODE = 1
+FATAL_EXIT_CODE = 2
+INVALID_CODE_EXIT_CODE = 3
+INVALID_PATTERN_EXIT_CODE = 4
+UNPARSEABLE_YAML_EXIT_CODE = 5
+NEED_ARBITRARY_CODE_EXEC_EXIT_CODE = 6
+MISSING_CONFIG_EXIT_CODE = 7
 
 
-class SemgrepException(Exception):
+class SemgrepError(Exception):
     """
     Parent class of all exceptions we anticipate in Semgrep commands
 
@@ -9,12 +16,19 @@ class SemgrepException(Exception):
     are displayed to the user.
     """
 
-    def __init__(self) -> None:
-        self.msg: Optional[str] = None
-        self.code = 1
+    def __init__(self, *args: object, code: int = FATAL_EXIT_CODE) -> None:
+        self.code = code
+
+        super().__init__(*args)
 
 
-class OutdatedPythonException(SemgrepException):
-    def __init__(self) -> None:
-        super().__init__()
-        self.msg = "Semgrep requires Python 3.5+. Please ensure you are using Python3.5+ to run semgrep."
+class InvalidRuleSchemaError(SemgrepError):
+    pass
+
+
+class InvalidPatternNameError(SemgrepError):
+    pass
+
+
+class UnknownOperatorError(SemgrepError):
+    pass

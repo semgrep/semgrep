@@ -5,27 +5,31 @@ from typing import Iterable
 from typing import List
 from typing import Optional
 from typing import Set
+from typing import Tuple
 
 from semgrep.constants import RCE_RULE_FLAG
+from semgrep.error import NEED_ARBITRARY_CODE_EXEC_EXIT_CODE
+from semgrep.error import SemgrepError
+from semgrep.error import UnknownOperatorError
 from semgrep.pattern_match import PatternMatch
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.semgrep_types import BooleanRuleExpression
 from semgrep.semgrep_types import OPERATORS
+from semgrep.semgrep_types import pattern_name_for_operator
 from semgrep.semgrep_types import pattern_names_for_operator
 from semgrep.semgrep_types import PatternId
 from semgrep.semgrep_types import Range
 from semgrep.util import debug_print
 from semgrep.util import flatten
-from semgrep.util import NEED_ARBITRARY_CODE_EXEC_EXIT_CODE
 from semgrep.util import print_error
-from semgrep.util import print_error_exit
 
 
 def _evaluate_single_expression(
     expression: BooleanRuleExpression,
     pattern_ids_to_pattern_matches: Dict[PatternId, List[PatternMatch]],
     ranges_left: Set[Range],
+    steps_for_debugging: List[Dict[str, Any]],
     flags: Optional[Dict[str, Any]] = None,
 ) -> Set[Range]:
 
@@ -40,7 +44,16 @@ def _evaluate_single_expression(
     elif expression.operator == OPERATORS.AND_NOT:
         # remove all ranges that DO equal the ranges for this pattern
         # difference_update = Remove all elements of another set from this set.
-        return ranges_left.difference(results_for_pattern)
+        output_ranges = ranges_left.difference(results_for_pattern)
+        debug_print(f"after filter `{expression.operator}`: {output_ranges}")
+        steps_for_debugging.append(
+            {
+                "filter": pattern_name_for_operator(expression.operator),
+                "pattern_id": expression.pattern_id,
+                "ranges": list(output_ranges),
+            }
+        )
+        return output_ranges
     elif expression.operator == OPERATORS.AND_INSIDE:
         # remove all ranges (not enclosed by) or (not equal to) the inside ranges
         output_ranges = set()
@@ -53,6 +66,13 @@ def _evaluate_single_expression(
                     output_ranges.add(arange)
                     break  # found a match, no need to keep going
         debug_print(f"after filter `{expression.operator}`: {output_ranges}")
+        steps_for_debugging.append(
+            {
+                "filter": pattern_name_for_operator(expression.operator),
+                "pattern_id": expression.pattern_id,
+                "ranges": list(output_ranges),
+            }
+        )
         return output_ranges
     elif expression.operator == OPERATORS.AND_NOT_INSIDE:
         # remove all ranges enclosed by or equal to
@@ -63,12 +83,19 @@ def _evaluate_single_expression(
                     output_ranges.remove(arange)
                     break
         debug_print(f"after filter `{expression.operator}`: {output_ranges}")
+        steps_for_debugging.append(
+            {
+                "filter": pattern_name_for_operator(expression.operator),
+                "pattern_id": expression.pattern_id,
+                "ranges": list(output_ranges),
+            }
+        )
         return output_ranges
     elif expression.operator == OPERATORS.WHERE_PYTHON:
         if not flags or flags[RCE_RULE_FLAG] != True:
-            print_error_exit(
+            raise SemgrepError(
                 f"at least one rule needs to execute arbitrary code; this is dangerous! if you want to continue, enable the flag: {RCE_RULE_FLAG}",
-                NEED_ARBITRARY_CODE_EXEC_EXIT_CODE,
+                code=NEED_ARBITRARY_CODE_EXEC_EXIT_CODE,
             )
         assert expression.operand, "must have operand for this operator type"
 
@@ -86,12 +113,28 @@ def _evaluate_single_expression(
                 ):
                     output_ranges.add(pattern_match.range)
         debug_print(f"after filter `{expression.operator}`: {output_ranges}")
+        steps_for_debugging.append(
+            {
+                "filter": pattern_name_for_operator(expression.operator),
+                "pattern_id": expression.pattern_id,
+                "ranges": list(output_ranges),
+            }
+        )
         return output_ranges
     elif expression.operator == OPERATORS.REGEX:
         # remove all ranges that don't equal the ranges for this pattern
-        return ranges_left.intersection(results_for_pattern)
+        output_ranges = ranges_left.intersection(results_for_pattern)
+        debug_print(f"after filter `{expression.operator}`: {output_ranges}")
+        steps_for_debugging.append(
+            {
+                "filter": pattern_name_for_operator(expression.operator),
+                "pattern_id": expression.pattern_id,
+                "ranges": list(output_ranges),
+            }
+        )
+        return output_ranges
     else:
-        raise NotImplementedError(f"unknown operator {expression.operator}")
+        raise UnknownOperatorError(f"unknown operator {expression.operator}")
 
 
 # Given a `where-python` expression as a string and currently matched metavars,
@@ -114,7 +157,7 @@ def _where_python_statement_matches(
         )
 
     if type(output) != type(True):  # type: ignore
-        print_error_exit(
+        raise SemgrepError(
             f"python where expression needs boolean output but got: {output} for {where_expression}"  # type: ignore
         )
     return output == True  # type: ignore
@@ -143,24 +186,37 @@ def should_exclude_this_path(path: Path) -> bool:
 
 def evaluate(
     rule: Rule, pattern_matches: List[PatternMatch], allow_exec: bool
-) -> List[RuleMatch]:
+) -> Tuple[List[RuleMatch], List[Dict[str, Any]]]:
     """
         Takes a Rule and list of pattern matches from a single file and
         handles the boolean expression evaluation of the Rule's patterns
         Returns a list of RuleMatches.
     """
     output = []
+
     pattern_ids_to_pattern_matches = group_by_pattern_id(pattern_matches)
+    steps_for_debugging = [
+        {
+            "filter": "initial",
+            "pattern_id": None,
+            "ranges": {
+                k: list(set(vv.range for vv in v))
+                for k, v in pattern_ids_to_pattern_matches.items()
+            },
+        }
+    ]
     debug_print(str(pattern_ids_to_pattern_matches))
     valid_ranges_to_output = evaluate_expression(
         rule.expression,
         pattern_ids_to_pattern_matches,
         flags={RCE_RULE_FLAG: allow_exec},
+        steps_for_debugging=steps_for_debugging,
     )
 
     # only output matches which are inside these offsets!
     debug_print(f"compiled result {valid_ranges_to_output}")
     debug_print("-" * 80)
+
     for pattern_match in pattern_matches:
         if pattern_match.range in valid_ranges_to_output:
             message = interpolate_message_metavariables(rule, pattern_match)
@@ -175,7 +231,7 @@ def evaluate(
             )
             output.append(rule_match)
 
-    return output
+    return output, steps_for_debugging
 
 
 def interpolate_message_metavariables(rule: Rule, pattern_match: PatternMatch) -> str:
@@ -199,13 +255,18 @@ def interpolate_fix_metavariables(
 def evaluate_expression(
     expression: BooleanRuleExpression,
     pattern_ids_to_pattern_matches: Dict[PatternId, List[PatternMatch]],
+    steps_for_debugging: List[Dict[str, Any]],
     flags: Optional[Dict[str, Any]] = None,
 ) -> Set[Range]:
     ranges_left = set(
         [x.range for x in flatten(pattern_ids_to_pattern_matches.values())]
     )
     return _evaluate_expression(
-        expression, pattern_ids_to_pattern_matches, ranges_left, flags
+        expression,
+        pattern_ids_to_pattern_matches,
+        ranges_left,
+        steps_for_debugging,
+        flags=flags,
     )
 
 
@@ -213,6 +274,7 @@ def _evaluate_expression(
     expression: BooleanRuleExpression,
     pattern_ids_to_pattern_matches: Dict[PatternId, List[PatternMatch]],
     ranges_left: Set[Range],
+    steps_for_debugging: List[Dict[str, Any]],
     flags: Optional[Dict[str, Any]] = None,
 ) -> Set[Range]:
     if (
@@ -228,7 +290,11 @@ def _evaluate_expression(
             # remove anything that does not equal one of these ranges
             evaluated_ranges = [
                 _evaluate_expression(
-                    expr, pattern_ids_to_pattern_matches, ranges_left.copy(), flags
+                    expr,
+                    pattern_ids_to_pattern_matches,
+                    ranges_left.copy(),
+                    steps_for_debugging,
+                    flags=flags,
                 )
                 for expr in expression.children
             ]
@@ -237,17 +303,32 @@ def _evaluate_expression(
             # chain intersection eagerly; intersect for every AND'ed child
             for expr in expression.children:
                 remainining_ranges = _evaluate_expression(
-                    expr, pattern_ids_to_pattern_matches, ranges_left.copy(), flags
+                    expr,
+                    pattern_ids_to_pattern_matches,
+                    ranges_left.copy(),
+                    steps_for_debugging,
+                    flags=flags,
                 )
                 ranges_left.intersection_update(remainining_ranges)
 
         debug_print(f"after filter `{expression.operator}`: {ranges_left}")
+        steps_for_debugging.append(
+            {
+                "filter": f"{pattern_name_for_operator(expression.operator)}",
+                "pattern_id": None,
+                "ranges": list(ranges_left),
+            }
+        )
     else:
         assert (
             expression.children is None
         ), f"only `{pattern_names_for_operator(OPERATORS.AND_EITHER)}` or `{pattern_names_for_operator(OPERATORS.AND_ALL)}` expressions can have multiple subpatterns"
         ranges_left = _evaluate_single_expression(
-            expression, pattern_ids_to_pattern_matches, ranges_left, flags
+            expression,
+            pattern_ids_to_pattern_matches,
+            ranges_left,
+            steps_for_debugging,
+            flags=flags,
         )
     return ranges_left
 

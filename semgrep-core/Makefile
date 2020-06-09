@@ -7,7 +7,9 @@ all:
 clean:
 	dune clean
 test:
-	dune runtest
+	dune runtest -f
+e2etest:
+	python3 tests/e2e/test_target_file.py
 install:
 	dune install
 dump:

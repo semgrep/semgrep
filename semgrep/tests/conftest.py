@@ -7,7 +7,6 @@ from typing import Union
 
 import pytest
 
-
 TESTS_PATH = Path(__file__).parent
 
 MASKED_KEYS = [

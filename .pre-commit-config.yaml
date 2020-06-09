@@ -6,6 +6,7 @@ repos:
     hooks:
       - id: check-yaml
         args: [--allow-multiple-documents]
+        exclude: ^semgrep/tests/.+$
       - id: end-of-file-fixer
       - id: trailing-whitespace
         args: [--markdown-linebreak-ext=md]

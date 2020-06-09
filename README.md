@@ -124,9 +124,9 @@ On macOS, binaries are available via [Homebrew](https://formulae.brew.sh/formula
 $ brew install returntocorp/semgrep/semgrep
 ```
 
-On Ubuntu, an install script is available on each release [here](https://github.com/returntocorp/semgrep/releases/download/v0.8.1/semgrep-v0.8.1-ubuntu-generic.sh)
+On Ubuntu, an install script is available on each release [here](https://github.com/returntocorp/semgrep/releases/download/v0.9.0/semgrep-v0.9.0-ubuntu-generic.sh)
 ```bash
-$ ./semgrep-v0.8.1-ubuntu-generic.sh
+./semgrep-v0.9.0-ubuntu-generic.sh
 ```
 
 To try `semgrep` without installation, you can also run it via [Docker](https://docs.docker.com/install/):
@@ -461,3 +461,26 @@ or formatted according to the
 with the `--sarif` flag.
 
 See our [output documentation](docs/output.md) for details.
+
+## Resources
+
+* [Semgrep presentation](https://www.youtube.com/watch?v=pul1bRIOYc8) and [slides](https://web-assets.r2c.dev/presentations/r2c-semgrep-OWASP-BayArea-21-May-2020.pdf) at Bay Area OWASP meetup. Check out the [r2c YouTube channel](https://www.youtube.com/channel/UC5ahcFBorwzUTqPipFhjkWg) for more videos.
+* [Documentation](/docs)
+  * [Pattern Features](docs/pattern-features.md)
+  * [Configuration Files](docs/configuration-files.md)
+  * [Integrations](docs/integrations.md)
+  * [Output](docs/output.md)
+  * [Development](docs/development.md)
+* [Bug reports](https://github.com/returntocorp/semgrep/issues)
+
+## Contribution
+
+`semgrep` is LGPL-licensed, feel free to help out: [CONTRIBUTING](https://github.com/returntocorp/semgrep/blob/develop/CONTRIBUTING.md).
+
+`semgrep` is a frontend to a larger program analysis library named [`pfff`](https://github.com/returntocorp/pfff/). `pfff` began and was open-sourced at [Facebook](https://github.com/facebookarchive/pfff) but is now archived. The primary maintainer now works at [r2c](https://r2c.dev). `semgrep` was originally named `sgrep` and was renamed to avoid collisons with existing projects.
+
+## Commercial Support
+
+`semgrep` is proudly supported by [r2c](https://r2c.dev). We're hiring!
+
+Interested in a fully-supported, hosted version of semgrep? [Drop your email](https://forms.gle/dpUUvSo1WtELL8DW6) and we'll ping you!
