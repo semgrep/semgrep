@@ -136,15 +136,6 @@ let supported_langs: string = String.concat ", " keys
 let ncores = ref 1
 (*e: constant [[Main_semgrep_core.ncores]] *)
 
-(* TODO: we may need to put that in AST_generic.ml at some point
- * and people should bump this number each time they make a modification
- * to the generic AST (or to some analysis such as Naming_AST.ml which
- * will have an impact on the marshalled AST). Otherwise, we may
- * get some segmentation fault as OCaml marshalling is not entirely
- * type-safe!!
- *)
-let ast_version = 2
-
 let use_parsing_cache = ref false
 let target_file = ref ""
 
@@ -301,15 +292,20 @@ let cache_computation file cache_file_of_file f =
       if Sys.file_exists file_cache && filemtime file_cache >= filemtime file
       then begin
         if !verbose then pr2 ("using cache: " ^ file_cache);
-        let (version, res) = Common2.get_value file_cache in
-        if version != ast_version
+        let (version, file2, res) = Common2.get_value file_cache in
+        if version <> Version.version
         then failwith (spf "Version mismatch! Clean the cache file %s"
                       file_cache);
+        if file <> file2
+        then failwith (spf
+          "Not the same file! Md5sum collision! Clean the cache file %s"
+                      file_cache);
+
         res
       end
       else begin
         let res = f () in
-        Common2.write_value (ast_version, res) file_cache;
+        Common2.write_value (Version.version, file, res) file_cache;
         res
       end
       )
@@ -318,7 +314,9 @@ let cache_computation file cache_file_of_file f =
 
 
 let cache_file_of_file filename =
-  let dir = spf "/tmp/semgrep_core_cache_%d" (Unix.getuid()) in
+  let dir = spf "%s/semgrep_core_cache_%d"
+      (Filename.get_temp_dir_name ())
+      (Unix.getuid()) in
   if not (Sys.file_exists dir)
   then Unix.mkdir dir 0o700;
   (* hopefully there will be no collision *)
@@ -339,8 +337,8 @@ let parse_generic lang file =
      * We also add ast_version here so bumping the version will not
      * try to use the old cache file (which should generate an exception).
      *)
-     let full_filename = spf "%s__%s__%d"
-      file (Lang.string_of_lang lang) ast_version
+     let full_filename = spf "%s__%s__%s"
+      file (Lang.string_of_lang lang) Version.version
      in
      cache_file_of_file full_filename)
  (fun () ->
