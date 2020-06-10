@@ -2,7 +2,7 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [next release]
+## [0.10.0](https://github.com/returntocorp/semgrep/releases/tag/v0.10.0) - 2020-06-09
 
 ### Fixed
 
@@ -12,17 +12,21 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   ECMAScript 6+
 - Fix an issue where an error was raised when matching to Python else
   blocks with a metavariable
+- Don't filter out files that are explicitly passed as arguments to semgrep
+  even if they do not have expected extension
 
 ### Added
 
 - Java imports can now be searched with patterns written like `import
-  javax.crypto.$ANYTHING` 
+  javax.crypto.$ANYTHING`
+- `--debugging-json` flag for use on semgrep.live
 
 ### Changed
 
 - Pattern matches now distinguish between conditionals without `else` blocks
   and those with empty `else` blocks; write two patterns to capture both
   possibilities
+- Print output before exiting when using --strict
 
 ## [0.9.0](https://github.com/returntocorp/semgrep/releases/tag/v0.9.0) - 2020-06-02
 
