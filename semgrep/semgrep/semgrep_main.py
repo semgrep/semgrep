@@ -14,7 +14,7 @@ from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import OutputFormat
 from semgrep.constants import RULES_KEY
 from semgrep.core_runner import CoreRunner
-from semgrep.error import ErrorWithContext
+from semgrep.error import ErrorWithSpan
 from semgrep.error import FINDINGS_EXIT_CODE
 from semgrep.error import INVALID_CODE_EXIT_CODE
 from semgrep.error import InvalidPatternNameError
@@ -45,13 +45,14 @@ def validate_single_rule(config_id: str, rule_yaml: YamlTree) -> Optional[Rule]:
     rule_keys = set(rule.keys())
     if not rule_keys.issuperset(YAML_MUST_HAVE_KEYS):
         missing_keys = YAML_MUST_HAVE_KEYS - rule_keys
-        # TODO: return the error messages so we can emit nice JSON errors
+        # TODO(https://github.com/returntocorp/semgrep/issues/746): return the error messages instead of
+        #  immediately printing them so we can emit nice JSON errors to semgrep.live
         print_error(
-            ErrorWithContext(
+            ErrorWithSpan(
                 short_msg="missing keys",
                 long_msg=f"{config_id} is missing required keys {missing_keys}",
                 level="error",
-                spans=[rule_yaml.span],
+                spans=[rule_yaml.span.truncate(lines=5)],
             ).emit_str()
         )
         return None
@@ -59,7 +60,7 @@ def validate_single_rule(config_id: str, rule_yaml: YamlTree) -> Optional[Rule]:
         extra_keys: Set[YamlTree] = rule_keys - YAML_ALL_VALID_RULE_KEYS  # type: ignore
 
         print_error(
-            ErrorWithContext(
+            ErrorWithSpan(
                 short_msg="extra top-level key",
                 long_msg=f"{config_id} has an invalid top-level rule key: {[k.unroll() for k in extra_keys]}",
                 help=f"Only {sorted(YAML_ALL_VALID_RULE_KEYS)} are valid keys",
@@ -97,13 +98,13 @@ def validate_configs(
         rules = config.get(RULES_KEY)  # type: ignore
         if rules is None:
             print_error(
-                ErrorWithContext(
+                ErrorWithSpan(
                     short_msg="missing keys",
                     long_msg=f"{config_id} is missing `{RULES_KEY}` as top-level key",
                     level="error",
                     spans=[config_yaml_tree.span.truncate(lines=5)],
                 ).emit_str()
-            )  # TODO: shorten the span, we don't need to see the whole rule to see that it's missing a top level key
+            )
             errors[config_id] = config_yaml_tree.unroll()
             continue
         valid_rules = []

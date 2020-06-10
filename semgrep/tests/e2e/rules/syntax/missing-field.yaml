@@ -1,3 +1,4 @@
+## Missing rules[0].severity
 rules:
 - id: flask-secure-set-cookie
   languages: [python]

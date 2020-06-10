@@ -221,6 +221,12 @@ def cli() -> None:
         "--version", action="store_true", help="Show the version and exit."
     )
 
+    parser.add_argument(
+        "--force-color",
+        action="store_true",
+        help="Always include ANSI color in the output, even if not writing to a TTY",
+    )
+
     ### Parse and validate
     args = parser.parse_args()
     if args.version:
@@ -234,7 +240,7 @@ def cli() -> None:
         parser.error("--dump-ast and -l/--lang must both be specified")
 
     # set the flags
-    semgrep.util.set_flags(args.verbose, args.quiet)
+    semgrep.util.set_flags(args.verbose, args.quiet, args.force_color)
 
     # change cwd if using docker
     semgrep.config_resolver.adjust_for_docker(args.precommit)

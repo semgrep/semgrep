@@ -1,3 +1,4 @@
+# top level key should be "rules"
 rule:
 - id: flask-secure-set-cookie
   languages: [python]

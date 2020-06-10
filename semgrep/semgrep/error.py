@@ -9,6 +9,7 @@ from colorama import Fore
 from semgrep.constants import OutputFormat
 from semgrep.rule_lang import Span
 from semgrep.rule_lang import SpanBuilder
+from semgrep.util import with_color
 
 OK_EXIT_CODE = 0
 FINDINGS_EXIT_CODE = 1
@@ -46,11 +47,30 @@ class UnknownOperatorError(SemgrepError):
     pass
 
 
-class ErrorWithContext(SemgrepError):
+class ErrorWithSpan(SemgrepError):
     """
     Error which will print context from the Span. You should provide the most specific span possible,
     eg. if the error is an invalid key, provide exactly the span for that key. You can then expand what's printed
-    with span.with_context(...)
+    with span.with_context(...). Conversely, if you don't want to display the entire span, you can use `span.truncate`
+
+    Here is what the generated error will look like:
+
+        <level>: <short_msg>
+          --> <span.filename>:<span.start.line>
+        1 | rules:
+        2 |   - id: eqeq-is-bad
+        3 |     pattern-inside: foo(...)
+          |     ^^^^^^^^^^^^^^
+        4 |     patterns:
+        5 |       - pattern-not: 1 == 1
+        = help: <help>
+        <long_msg>
+
+    :param short_msg: 1 or 2 word description of the problem (eg. missing key)
+    :param level: How bad is the problem? error,warn, etc.
+    :param spans: A list of spans to display for context.
+    :help help: An optional hint about how to fix the problem
+    :cause cause: The underlying exception
     """
 
     def __init__(
@@ -62,6 +82,7 @@ class ErrorWithContext(SemgrepError):
         help: Optional[str] = None,
         cause: Optional[Exception] = None,
     ):
+
         self.short_msg = short_msg
         self.long_msg = long_msg
         self.level = level
@@ -76,7 +97,7 @@ class ErrorWithContext(SemgrepError):
     @staticmethod
     def _format_line_number(span: Span, line_number: Optional[int]) -> str:
         # line numbers are 0 indexed
-        width = ErrorWithContext._line_number_width(span)
+        width = ErrorWithSpan._line_number_width(span)
         if line_number is not None:
             base_str = str(line_number + 1)
             assert len(base_str) < width
@@ -138,14 +159,3 @@ class ErrorWithContext(SemgrepError):
             )
         else:
             return self.emit_str()
-
-
-def with_color(color: str, text: str, bold: bool = False) -> str:
-    """
-    Wrap text in color & reset
-    """
-    reset = Fore.RESET
-    if bold:
-        color = color + "\033[1m"
-        reset += "\033[0m"
-    return f"{color}{text}{reset}"
