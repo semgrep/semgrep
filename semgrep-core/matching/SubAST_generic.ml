@@ -98,6 +98,7 @@ let subexprs_of_stmt st =
     | While (_, e, _)
     | DoWhile (_, _, e)
     | DefStmt (_, VarDef { vinit = Some e; _ })
+    | DefStmt (_, FieldDef { vinit = Some e; _ })
     | For (_, ForEach (_, _, e), _)
     | Continue (_, LDynamic e)
     | Break (_, LDynamic e)
@@ -177,7 +178,7 @@ let substmts_of_stmt st =
        then []
        else
          (match def with
-         | VarDef _
+         | VarDef _ | FieldDef _
          | TypeDef _
          | MacroDef _
          | Signature _
