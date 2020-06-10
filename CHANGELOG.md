@@ -2,15 +2,48 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## Next
+## [0.10.0](https://github.com/returntocorp/semgrep/releases/tag/v0.10.0) - 2020-06-09
 
-### Fixed 
+### Fixed
 
+- Support immediately indexed arrays with initializers in Java
+- Support object rest parameters in ECMAScript 6+
+- Support various array destructuring calls with ommitted arguments in
+  ECMAScript 6+
+- Fix an issue where an error was raised when matching to Python else
+  blocks with a metavariable
+- Don't filter out files that are explicitly passed as arguments to semgrep
+  even if they do not have expected extension
+
+### Added
+
+- Java imports can now be searched with patterns written like `import
+  javax.crypto.$ANYTHING`
+- `--debugging-json` flag for use on semgrep.live
+
+### Changed
+
+- Pattern matches now distinguish between conditionals without `else` blocks
+  and those with empty `else` blocks; write two patterns to capture both
+  possibilities
+- Print output before exiting when using --strict
+
+## [0.9.0](https://github.com/returntocorp/semgrep/releases/tag/v0.9.0) - 2020-06-02
+
+### Fixed
+- Performance optimizations in deep statement matching
+- Disable normalization of != ==> !(==)
+- Support empty variable declaration in javasript
 - Support "print expr," in Python 2.X
 - Support "async" keyword on inner arrow functions for ECMAScript 7+
 - Support optional catch bindings for ECMAScript 2019+
 - Support non-ASCII Unicode whitespace code points as lexical whitespace in JavaScript code
 - Support assignment expressions in Python 3.8
+- Emtpty block in if will only match empty blocks
+
+### Removed
+- `--exclude-tests` flag - prefer `--exclude` or `--exclude-dir`
+- `--r2c` flag - this was completely unused
 
 ## [0.8.1](https://github.com/returntocorp/semgrep/releases/tag/v0.8.1) - 2020-05-26
 

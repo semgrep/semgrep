@@ -41,68 +41,6 @@
       }
     },
     {
-      "check_id": "python.django.security.injection.path-traversal.path-traversal-open.path-traversal-open",
-      "end": {
-        "col": 14,
-        "line": 4
-      },
-      "extra": {
-        "lines": "    path = request.get(\"unsafe\")\n\n    open(path)",
-        "message": "Found request data in a call to 'open'. Ensure the request data is validated or sanitized, otherwise it could result in path traversal attacks.",
-        "metadata": {
-          "cwe": "CWE-22: Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
-          "owasp": "A1: Injection",
-          "references": [
-            "https://owasp.org/www-community/attacks/Path_Traversal"
-          ]
-        },
-        "metavars": {
-          "$DATA": {
-            "abstract_content": "path",
-            "end": {
-              "col": 9,
-              "line": 3,
-              "offset": 57
-            },
-            "start": {
-              "col": 5,
-              "line": 3,
-              "offset": 53
-            },
-            "unique_id": {
-              "kind": "Local",
-              "sid": 2,
-              "type": "id",
-              "value": "path"
-            }
-          },
-          "$W": {
-            "abstract_content": "get",
-            "end": {
-              "col": 23,
-              "line": 3,
-              "offset": 71
-            },
-            "start": {
-              "col": 20,
-              "line": 3,
-              "offset": 68
-            },
-            "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
-            }
-          }
-        },
-        "severity": "WARNING"
-      },
-      "path": "targets/basic/inside.py",
-      "start": {
-        "col": 5,
-        "line": 3
-      }
-    },
-    {
       "check_id": "python.lang.correctness.useless-eqeq.useless-eqeq",
       "end": {
         "col": 26,

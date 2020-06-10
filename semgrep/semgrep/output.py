@@ -4,6 +4,7 @@ from typing import Dict
 from typing import FrozenSet
 from typing import Iterator
 from typing import List
+from typing import Optional
 
 import colorama
 
@@ -74,7 +75,7 @@ def build_normal_output(
         current_file = rule_match.path
         check_id = rule_match.id
         message = rule_match.message
-        severity = rule_match.severity
+        severity = rule_match.severity.lower()
         fix = rule_match.fix
         if last_file is None or last_file != current_file:
             if last_file is not None:
@@ -89,12 +90,12 @@ def build_normal_output(
         ):
             severity_prepend = ""
             if severity:
-                if severity == "ERROR":
-                    severity_prepend = f"{RED_COLOR}{severity} "
-                elif severity == "WARNING":
-                    severity_prepend = f"{YELLOW_COLOR}{severity} "
+                if severity == "error":
+                    severity_prepend = f"{RED_COLOR}severity:{severity} "
+                elif severity == "warning":
+                    severity_prepend = f"{YELLOW_COLOR}severity:{severity} "
                 else:
-                    severity_prepend = f"{severity} "
+                    severity_prepend = f"severity:{severity} "
             yield f"{severity_prepend}{YELLOW_COLOR}rule:{check_id}: {message}{RESET_COLOR}"
 
         last_file = current_file
@@ -104,11 +105,19 @@ def build_normal_output(
             yield f"{BLUE_COLOR}autofix:{RESET_COLOR} {fix}"
 
 
-def build_output_json(rule_matches: List[RuleMatch], semgrep_errors: List[Any]) -> str:
+def build_output_json(
+    rule_matches: List[RuleMatch],
+    semgrep_errors: List[Any],
+    debug_steps_by_rule: Optional[Dict[Rule, List[Dict[str, Any]]]] = None,
+) -> str:
     # wrap errors under "data" entry to be compatible with
     # https://docs.r2c.dev/en/latest/api/output.html#errors
     output_json = {}
     output_json["results"] = [rm.to_json() for rm in rule_matches]
+    if debug_steps_by_rule:
+        output_json["debug"] = [
+            {r.id: steps for r, steps in debug_steps_by_rule.items()}
+        ]
     output_json["errors"] = [
         {"data": e, "message": "SemgrepCoreRuntimeErrors"} for e in semgrep_errors
     ]
@@ -145,11 +154,14 @@ def build_sarif_output(
 
 def build_output(
     rule_matches: List[RuleMatch],
+    debug_steps_by_rule: Dict[Rule, List[Dict[str, Any]]],
     rules: FrozenSet[Rule],
     semgrep_errors: List[Any],
     output_format: OutputFormat,
     color_output: bool,
 ) -> str:
+    if output_format == OutputFormat.JSON_DEBUG:
+        return build_output_json(rule_matches, semgrep_errors, debug_steps_by_rule)
     if output_format == OutputFormat.JSON:
         return build_output_json(rule_matches, semgrep_errors)
     elif output_format == OutputFormat.SARIF:

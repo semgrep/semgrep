@@ -9,7 +9,7 @@ RULES_KEY = "rules"
 SEMGREP_USER_AGENT = "semgrep-give-me-yaml"
 ID_KEY = "id"
 SEMGREP_URL = "https://semgrep.dev/"
-PLEASE_FILE_ISSUE_TEXT = "An error occurred while invoking the semgrep engine; please help us fix this by filing an an issue at https://semgrep.dev"
+PLEASE_FILE_ISSUE_TEXT = "An error occurred while invoking the semgrep engine; please help us fix this by creating an issue at https://semgrep.dev"
 
 DEFAULT_SEMGREP_CONFIG_NAME = "semgrep"
 DEFAULT_CONFIG_FILE = f".{DEFAULT_SEMGREP_CONFIG_NAME}.yml"
@@ -17,7 +17,7 @@ DEFAULT_CONFIG_FOLDER = f".{DEFAULT_SEMGREP_CONFIG_NAME}"
 
 YML_EXTENSIONS = {".yml", ".yaml"}
 
-__VERSION__ = "0.8.1"
+__VERSION__ = "0.10.0"
 
 
 def compute_semgrep_path() -> str:
@@ -36,4 +36,5 @@ SEMGREP_PATH = compute_semgrep_path()
 class OutputFormat(Enum):
     TEXT = auto()
     JSON = auto()
+    JSON_DEBUG = auto()
     SARIF = auto()

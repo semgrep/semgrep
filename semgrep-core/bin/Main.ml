@@ -146,6 +146,7 @@ let ncores = ref 1
 let ast_version = 2
 
 let use_parsing_cache = ref false
+let target_file = ref ""
 
 (*s: constant [[Main_semgrep_core.action]] *)
 (* action mode *)
@@ -477,7 +478,13 @@ let get_final_files xs =
     | Some lang -> Lang.files_of_dirs_or_files lang xs
   in
   let files = filter_files files in
-  files
+
+  let explicit_files = xs |> List.filter(fun file ->
+      Sys.file_exists file && not (Sys.is_directory file)
+    )
+  in
+
+  Common2.uniq_eff (files @ explicit_files)
 (*e: function [[Main_semgrep_core.get_final_files]] *)
 
 (*s: function [[Main_semgrep_core.iter_generic_ast_of_files_and_get_matches_and_exn_to_errors]] *)
@@ -487,18 +494,10 @@ let iter_generic_ast_of_files_and_get_matches_and_exn_to_errors f files =
        if !verbose then pr2 (spf "Analyzing %s" file);
        try
          let lang =
-           match Lang.langs_of_filename file with
-           | [lang] -> lang
-           | x::_xs ->
-               (match Lang.lang_of_string_opt !lang with
-               | Some lang -> lang
-               | None ->
-                 pr2 (spf "no language specified, defaulting to %s for %s"
-                      (Lang.string_of_lang x) file);
-                 x
-               )
-           | [] ->
-              failwith (spf "can not extract generic AST from %s" file)
+           match Lang.lang_of_string_opt !lang with
+            | Some lang -> lang
+            | _ ->
+               failwith (spf "no language specified")
          in
          if !debug then pr2 (spf "PARSING: %s" file);
          let ast = parse_generic lang file in
@@ -875,6 +874,8 @@ let options () =
     " ";
     "-debug", Arg.Set debug,
     " add debugging information in the output (e.g., tracing)";
+    "-target_file", Arg.Set_string target_file,
+    " <file> obtain list of targets to run patterns on";
   ] @
   (*s: [[Main_semgrep_core.options]] concatenated flags *)
   Flag_parsing_cpp.cmdline_flags_macrofile () @
@@ -953,6 +954,12 @@ let main () =
 
   (* does side effect on many global flags *)
   let args = Common.parse_options (options()) usage_msg (Array.of_list argv) in
+  let args = if !target_file="" then args else
+  begin
+    let s = Common.read_file !target_file in
+    String.split_on_char '\n' s
+  end
+  in
 
   if !debug then begin
     pr2 "Debug mode On";

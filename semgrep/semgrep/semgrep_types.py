@@ -9,6 +9,8 @@ from typing import Set
 
 import attr
 
+from semgrep.error import InvalidPatternNameError
+
 PatternId = NewType("PatternId", str)
 Operator = NewType("Operator", str)
 
@@ -63,43 +65,12 @@ YAML_ALL_VALID_RULE_KEYS = (
 )
 
 
-class InvalidRuleSchema(BaseException):
-    pass
-
-
 @attr.s(auto_attribs=True, frozen=True)
 class BooleanRuleExpression:
     operator: Operator
     pattern_id: Optional[PatternId] = None
-    # This is a recursive member but mypy is a half-baked dumpster fire.
-    # https://github.com/python/mypy/issues/8320
-    children: Optional[List[Any]] = None
+    children: Optional[List["BooleanRuleExpression"]] = None
     operand: Optional[str] = None
-
-    def __attrs_post_init__(self) -> None:
-        self._validate()
-
-    def _validate(self) -> None:
-        if self.operator in set(OPERATORS_WITH_CHILDREN):
-            if self.operand is not None:
-                raise InvalidRuleSchema(
-                    f"operators `{pattern_names_for_operator(self.operator)}` cannot have operand but found {self.operand}"
-                )
-        else:
-            if self.children is not None:
-                raise InvalidRuleSchema(
-                    f"only {pattern_names_for_operators(OPERATORS_WITH_CHILDREN)} operators can have children, but found `{pattern_names_for_operator(self.operator)}` with children"
-                )
-
-            if self.operand is None:
-                raise InvalidRuleSchema(
-                    f"operators `{pattern_names_for_operator(self.operator)}` must have operand"
-                )
-            else:
-                if type(self.operand) != str:
-                    raise InvalidRuleSchema(
-                        f"operand of operators `{pattern_names_for_operator(self.operator)}` must have type string, but is {type(self.operand)}: {self.operand}"
-                    )
 
 
 def operator_for_pattern_name(pattern_name: str) -> Operator:
@@ -108,9 +79,14 @@ def operator_for_pattern_name(pattern_name: str) -> Operator:
             return op
 
     valid_pattern_names: List[str] = sum(OPERATOR_PATTERN_NAMES_MAP.values(), [])
-    raise NotImplementedError(
+    raise InvalidPatternNameError(
         f"invalid pattern name: {pattern_name}, valid pattern names are {valid_pattern_names}"
     )
+
+
+def pattern_name_for_operator(operator: Operator) -> str:
+    # TODO
+    return pattern_names_for_operator(operator)[0]
 
 
 def pattern_names_for_operator(operator: Operator) -> List[str]:

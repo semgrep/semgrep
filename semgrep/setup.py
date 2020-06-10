@@ -113,7 +113,7 @@ class PostInstallCommand(install):
 
 setup(
     name="semgrep",
-    version="0.8.1",
+    version="0.10.0",
     author="Return To Corporation",
     author_email="support@r2c.dev",
     description="Fast and syntax-aware semantic code pattern search for many languages: like grep but for code",
@@ -123,7 +123,8 @@ setup(
     url="https://github.com/returntocorp/semgrep",
     install_requires=[
         "colorama>=0.4.3",
-        "pyyaml>=5.3",
+        # exact version because of unstable API
+        "ruamel.yaml==0.16.10",
         "requests>=2.22.0",
         "attrs>=19.3.0",
     ],

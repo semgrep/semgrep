@@ -4,7 +4,6 @@ import json
 import multiprocessing
 import re
 import subprocess
-import sys
 import tempfile
 from datetime import datetime
 from pathlib import Path
@@ -16,9 +15,13 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 
+from ruamel.yaml import YAML
+
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import SEMGREP_PATH
 from semgrep.equivalences import Equivalence
+from semgrep.error import INVALID_PATTERN_EXIT_CODE
+from semgrep.error import SemgrepError
 from semgrep.evaluation import enumerate_patterns_in_boolean_expression
 from semgrep.evaluation import evaluate
 from semgrep.pattern import Pattern
@@ -28,10 +31,7 @@ from semgrep.rule_match import RuleMatch
 from semgrep.semgrep_types import BooleanRuleExpression
 from semgrep.semgrep_types import OPERATORS
 from semgrep.util import debug_print
-from semgrep.util import INVALID_PATTERN_EXIT_CODE
 from semgrep.util import partition
-from semgrep.util import print_error
-from semgrep.util import print_error_exit
 
 
 def _offset_to_line_no(offset: int, buff: str) -> int:
@@ -161,17 +161,17 @@ class CoreRunner:
         """
         error_type = error_json["error"]
         if error_type == "invalid language":
-            print_error_exit(f'invalid language {error_json["language"]}')
+            raise SemgrepError(f'invalid language {error_json["language"]}')
         elif error_type == "invalid pattern":
-            print_error(
-                f'invalid pattern "{error_json["pattern"]}": {error_json["message"]}'
+            raise SemgrepError(
+                f'invalid pattern "{error_json["pattern"]}": {error_json["message"]}',
+                code=INVALID_PATTERN_EXIT_CODE,
             )
-            sys.exit(INVALID_PATTERN_EXIT_CODE)
         # no special formatting ought to be required for the other types; the semgrep python should be performing
         # validation for them. So if any other type of error occurs, ask the user to file an issue
         else:
-            print_error_exit(
-                f'an internal error occured while invoking the semgrep engine: {error_type}: {error_json.get("message", "")}.\n\n{PLEASE_FILE_ISSUE_TEXT}'
+            raise SemgrepError(
+                f'an internal error occured while invoking semgrep-core:\n\t{error_type}: {error_json.get("message", "no message")}\n{PLEASE_FILE_ISSUE_TEXT}'
             )
 
     def _flatten_all_equivalences(self, rules: List[Rule]) -> List[Equivalence]:
@@ -185,19 +185,18 @@ class CoreRunner:
             try:
                 equivalences.extend(rule.equivalences)
             except Exception as e:
-                print_error_exit(f"could not get equivalences for rule {rule.id}; {e}")
+                raise SemgrepError(
+                    f"could not get equivalences for rule {rule.id}: {e}"
+                )
 
         return equivalences
 
     def _write_equivalences_file(self, fp: IO, equivalences: List[Equivalence]) -> None:
         # I don't even know why this is a thing.
         # cf. https://stackoverflow.com/questions/51272814/python-yaml-dumping-pointer-references
-        import yaml  # here for faster startup times
-
-        yaml.SafeDumper.ignore_aliases = (  # type: ignore
-            lambda *args: True
-        )
-        fp.write(yaml.safe_dump({"equivalences": [e.to_json() for e in equivalences]}))
+        yaml = YAML()
+        yaml.representer.ignore_aliases = lambda *data: True
+        yaml.dump({"equivalences": [e.to_json() for e in equivalences]}, fp)
         fp.flush()
 
     def _run_rules(
@@ -206,8 +205,6 @@ class CoreRunner:
         """
             Run all rules on targets and return list of all places that match patterns, ... todo errors
         """
-        import yaml  # here for faster startup times
-
         outputs: List[PatternMatch] = []  # multiple invocations per language
         errors: List[Any] = []
 
@@ -223,13 +220,7 @@ class CoreRunner:
         with tempfile.NamedTemporaryFile("w") as equiv_fout:
 
             if equivalences:
-                try:
-                    self._write_equivalences_file(equiv_fout, equivalences)
-                except Exception as e:
-                    print_error(
-                        f"could not write equivalences file. will continue without equivalences. {e}"
-                    )
-                    equivalences = []
+                self._write_equivalences_file(equiv_fout, equivalences)
 
             for language, all_patterns_for_language in self._group_patterns_by_language(
                 rules
@@ -252,7 +243,9 @@ class CoreRunner:
                             for pattern in patterns_json
                         ]
                     except re.error as err:
-                        print_error_exit(f"invalid regular expression specified: {err}")
+                        raise SemgrepError(
+                            f"invalid regular expression specified: {err}"
+                        )
 
                     re_fn = functools.partial(get_re_matches, patterns_re)
                     with multiprocessing.Pool(self._jobs) as pool:
@@ -266,9 +259,9 @@ class CoreRunner:
 
                 patterns_json = [p.to_json() for p in patterns]
                 # very important not to sort keys here
-                yaml_as_str = yaml.safe_dump({"rules": patterns_json}, sort_keys=False)
                 with tempfile.NamedTemporaryFile("w") as fout:
-                    fout.write(yaml_as_str)
+                    yaml = YAML()
+                    yaml.dump({"rules": patterns_json}, fout)
                     fout.flush()
                     cmd = [SEMGREP_PATH] + [
                         "-lang",
@@ -282,29 +275,33 @@ class CoreRunner:
                     cmd += ["-j", str(self._jobs)]
                     cmd += [*self.targeting_options, *[str(path) for path in targets]]
 
-                    try:
-                        output = subprocess.check_output(cmd, shell=False)
-                    except subprocess.CalledProcessError as ex:
+                    core_run = subprocess.run(
+                        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+                    )
+
+                    debug_print(core_run.stderr.decode("utf-8", "replace"))
+
+                    if core_run.returncode != 0:
                         try:
                             # see if semgrep output a JSON error that we can decode
-                            semgrep_output = ex.output.decode("utf-8", "replace")
+                            semgrep_output = core_run.stdout.decode("utf-8", "replace")
                             output_json = json.loads(semgrep_output)
                             if "error" in output_json:
                                 self._semgrep_error_json_to_message_then_exit(
                                     output_json
                                 )
                             else:
-                                print_error(
-                                    f"unexpected non-json output while invoking semgrep core with {' '.join(cmd)} \n {ex}"
+                                raise SemgrepError(
+                                    f"unexpected non-json output while invoking semgrep-core:\n{PLEASE_FILE_ISSUE_TEXT}"
                                 )
-                                print_error_exit(f"\n{PLEASE_FILE_ISSUE_TEXT}")
-                                raise ex  # let our general exception handler take care of this
                         except Exception as e:
-                            print_error(
-                                f"non-zero return code while invoking semgrep with:\n\t{' '.join(cmd)}\n{ex} {e}"
+                            raise SemgrepError(
+                                f"non-zero return code while invoking semgrep-core:\n\t{e}\n{PLEASE_FILE_ISSUE_TEXT}"
                             )
-                            print_error_exit(f"\n\n{PLEASE_FILE_ISSUE_TEXT}")
-                    output_json = json.loads((output.decode("utf-8", "replace")))
+
+                    output_json = json.loads(
+                        (core_run.stdout.decode("utf-8", "replace"))
+                    )
                     errors.extend(output_json["errors"])
                     outputs.extend([PatternMatch(m) for m in output_json["matches"]])
 
@@ -322,11 +319,12 @@ class CoreRunner:
 
     def _resolve_output(
         self, outputs: Dict[Rule, Dict[Path, List[PatternMatch]]]
-    ) -> Dict[Rule, List[RuleMatch]]:
+    ) -> Tuple[Dict[Rule, List[RuleMatch]], Dict[Rule, List[Dict[str, Any]]]]:
         """
             Takes output of all running all patterns and rules and returns Findings
         """
         findings_by_rule: Dict[Rule, List[RuleMatch]] = {}
+        debugging_steps_by_rule: Dict[Rule, List[Dict[str, Any]]] = {}
 
         for rule, paths in outputs.items():
             findings = []
@@ -335,11 +333,16 @@ class CoreRunner:
                     continue
                 debug_print(f"-------- rule ({rule.id} ------ filepath: {filepath}")
 
-                findings.extend(evaluate(rule, pattern_matches, self._allow_exec))
+                findings_for_rule, debugging_steps = evaluate(
+                    rule, pattern_matches, self._allow_exec
+                )
+                findings.extend(findings_for_rule)
+                # debugging steps are only tracked for a single file, just overwrite
+                debugging_steps_by_rule[rule] = debugging_steps
 
             findings_by_rule[rule] = dedup_output(findings)
 
-        return findings_by_rule
+        return findings_by_rule, debugging_steps_by_rule
 
     @property
     def targeting_options(self) -> Iterator[str]:
@@ -358,18 +361,20 @@ class CoreRunner:
 
     def invoke_semgrep(
         self, targets: List[Path], rules: List[Rule]
-    ) -> Tuple[Dict[Rule, List[RuleMatch]], List[Any]]:
+    ) -> Tuple[
+        Dict[Rule, List[RuleMatch]], Dict[Rule, List[Dict[str, Any]]], List[Any]
+    ]:
         """
             Takes in rules and targets and retuns object with findings
         """
         start = datetime.now()
 
         outputs, errors = self._run_rules(rules, targets)
-        findings_by_rule = self._resolve_output(outputs)
+        findings_by_rule, debug_steps_by_rule = self._resolve_output(outputs)
 
         debug_print(f"semgrep ran in {datetime.now() - start}")
 
-        return findings_by_rule, errors
+        return findings_by_rule, debug_steps_by_rule, errors
 
 
 def dedup_output(outputs: List[RuleMatch]) -> List[RuleMatch]:

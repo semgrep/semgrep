@@ -357,8 +357,21 @@ and m_expr a b =
       {contents = Some ( ( B.ImportedEntity dotted
                          | B.ImportedModule (B.DottedName dotted)
                          ), _sid)}; _}) ->
-
     m_expr a (make_dotted dotted)
+  (* Put this before the next case to prevent overly eager dealiasing *)
+  | A.IdQualified(a1, a2), B.IdQualified(b1, b2) ->
+    m_name a1 b1 >>= (fun () ->
+    m_id_info a2 b2
+    )
+  (* Matches pattern
+   *   a.b.C.x
+   * to code
+   *   import a.b.C
+   *   C.x
+   *)
+  | A.IdQualified ((alabel, { A.name_qualifier = Some(names); _ }), _id_info), b ->
+    let full = names @ [alabel] in
+    m_expr (make_dotted full) b
   (*e: [[Generic_vs_generic.m_expr()]] resolving alias case *)
   (*s: [[Generic_vs_generic.m_expr()]] metavariable case *)
   (*s: [[Generic_vs_generic.m_expr()]] forbidden metavariable case *)
@@ -497,10 +510,6 @@ and m_expr a b =
       return ())
     | A.AnonClass(a1), B.AnonClass(b1) ->
       m_class_definition a1 b1
-    | A.IdQualified(a1, a2), B.IdQualified(b1, b2) ->
-      m_name a1 b1 >>= (fun () ->
-      m_id_info a2 b2
-      )
     | A.IdSpecial(a1), B.IdSpecial(b1) ->
       m_wrap m_special a1 b1
 
@@ -644,6 +653,8 @@ and m_literal a b =
     (m_wrap m_string) a1 b1
   | A.Char(a1), B.Char(b1) ->
     (m_wrap m_string) a1 b1
+  | A.Regexp(("/.../", a)), B.Regexp((_s, b)) ->
+    m_info a b
   | A.Regexp(a1), B.Regexp(b1) ->
     (m_wrap m_string) a1 b1
   | A.Null(a1), B.Null(b1) ->
@@ -1519,6 +1530,9 @@ and m_stmt a b =
 (*s: function [[Generic_vs_generic.m_for_header]] *)
 and m_for_header a b =
   match a, b with
+  (* dots: *)
+  | A.ForEllipsis _, _ -> return ()
+
   | A.ForClassic(a1, a2, a3), B.ForClassic(b1, b2, b3) ->
     (m_list m_for_var_or_expr) a1 b1 >>= (fun () ->
     m_option m_expr a2 b2 >>= (fun () ->
@@ -1740,6 +1754,8 @@ and m_definition_kind a b =
     m_function_definition a1 b1
   | A.VarDef(a1), B.VarDef(b1) ->
     m_variable_definition a1 b1
+  | A.FieldDef(a1), B.FieldDef(b1) ->
+    m_variable_definition a1 b1
   | A.ClassDef(a1), B.ClassDef(b1) ->
     m_class_definition a1 b1
   (*s: [[Generic_vs_generic.m_definition_kind]] boilerplate cases *)
@@ -1756,6 +1772,7 @@ and m_definition_kind a b =
   | A.FuncDef _, _ | A.VarDef _, _  | A.ClassDef _, _  | A.TypeDef _, _
   | A.ModuleDef _, _  | A.MacroDef _, _  | A.Signature _, _
   | A.UseOuterDecl _, _
+  | A.FieldDef _, _
    -> fail ()
   (*e: [[Generic_vs_generic.m_definition_kind]] boilerplate cases *)
 (*e: function [[Generic_vs_generic.m_definition_kind]] *)

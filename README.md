@@ -39,9 +39,9 @@ On macOS, binaries are available via [Homebrew](https://formulae.brew.sh/formula
 brew install returntocorp/semgrep/semgrep
 ```
 
-On Ubuntu, an install script is available on each release [here](https://github.com/returntocorp/semgrep/releases/download/v0.8.1/semgrep-v0.8.1-ubuntu-generic.sh)
+On Ubuntu, an install script is available on each release [here](https://github.com/returntocorp/semgrep/releases/download/v0.10.0/semgrep-v0.10.0-ubuntu-generic.sh)
 ```bash
-./semgrep-v0.8.1-ubuntu-generic.sh
+./semgrep-v0.10.0-ubuntu-generic.sh
 ```
 
 To try `semgrep` without installation, you can also run it via [Docker](https://docs.docker.com/install/):
@@ -198,11 +198,12 @@ See our [output documentation](docs/output.md) for details.
 ## Resources
 
 * [Semgrep presentation](https://www.youtube.com/watch?v=pul1bRIOYc8) and [slides](https://web-assets.r2c.dev/presentations/r2c-semgrep-OWASP-BayArea-21-May-2020.pdf) at Bay Area OWASP meetup. Check out the [r2c YouTube channel](https://www.youtube.com/channel/UC5ahcFBorwzUTqPipFhjkWg) for more videos.
-* [Pattern features documentation](docs/pattern-features.md)
-* [Configuration files documentation](docs/configuration-files.md)
-* [Integrations](docs/integrations.md)
-* [Output](docs/output.md)
-* [Development](docs/development.md)
+* [Documentation](/docs)
+  * [Pattern Features](docs/pattern-features.md)
+  * [Configuration Files](docs/configuration-files.md)
+  * [Integrations](docs/integrations.md)
+  * [Output](docs/output.md)
+  * [Development](docs/development.md)
 * [Bug reports](https://github.com/returntocorp/semgrep/issues)
 
 ## Contribution

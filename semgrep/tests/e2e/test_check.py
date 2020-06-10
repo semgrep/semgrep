@@ -15,6 +15,19 @@ def test_basic_rule__relative(run_semgrep_in_tmp, snapshot):
     )
 
 
+def test_noextension_filtering(run_semgrep_in_tmp, snapshot):
+    """
+        Check that semgrep does not filter out files without extensions when
+        said file is explicitly passed
+    """
+    snapshot.assert_match(
+        run_semgrep_in_tmp(
+            "rules/eqeq-python.yaml", target_name="basic/stupid_no_extension"
+        ),
+        "results.json",
+    )
+
+
 def test_basic_rule__absolute(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(Path.cwd() / "rules" / "eqeq.yaml"), "results.json",
