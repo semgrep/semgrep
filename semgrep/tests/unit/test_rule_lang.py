@@ -25,26 +25,26 @@ def test_span_tracking():
 
     # basic spans
     assert data.span == test_span(
-        start=Position(line=1, column=0), end=Position(line=9, column=0),
+        start=Position(line=2, column=1), end=Position(line=10, column=1),
     )
 
     # values act like dictionaries
     assert data.value["a"].span == test_span(
-        start=Position(line=2, column=2), end=Position(line=9, column=0),
+        start=Position(line=3, column=3), end=Position(line=10, column=1),
     )
 
     # values act like lists
-    assert data.value["a"].value[0].span == test_span(
-        start=Position(line=2, column=4), end=Position(line=2, column=5),
+    assert data.value["a"].value[1].span == test_span(
+        start=Position(line=4, column=5), end=Position(line=4, column=6),
     )
 
-    assert data.value["a"].value[0].value == 1
+    assert data.value["a"].value[1].value == 2
 
     # spans are also attached to keys
     kvs = list(data.value.items())
     key, value = kvs[0]
     assert key.span == test_span(
-        start=Position(line=1, column=0), end=Position(line=1, column=1),
+        start=Position(line=2, column=1), end=Position(line=2, column=2),
     )
 
     # unrolling is equivalent

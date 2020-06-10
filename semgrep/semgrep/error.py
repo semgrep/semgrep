@@ -3,8 +3,9 @@ from typing import Optional
 
 from colorama import Fore
 
+from semgrep.rule_lang import Position
+from semgrep.rule_lang import SourceTracker
 from semgrep.rule_lang import Span
-from semgrep.rule_lang import SpanBuilder
 from semgrep.util import with_color
 
 OK_EXIT_CODE = 0
@@ -49,6 +50,7 @@ class ErrorWithSpan(SemgrepError):
     eg. if the error is an invalid key, provide exactly the span for that key. You can then expand what's printed
     with span.with_context(...). Conversely, if you don't want to display the entire span, you can use `span.truncate`
 
+    The __repr__ method produces the pretty-printed error.
     Here is what the generated error will look like:
 
         <level>: <short_msg>
@@ -88,42 +90,48 @@ class ErrorWithSpan(SemgrepError):
 
     @staticmethod
     def _line_number_width(span: Span) -> int:
-        return len(str((span.context_end or span.end).line + 1)) + 1
+        return len(str((span.context_end or span.end).line)) + 1
 
     @staticmethod
     def _format_line_number(span: Span, line_number: Optional[int]) -> str:
+        """
+        Produce a string like:
+        ` 10 |`
+
+        The amount of padding is set for printing within `span` (so it handles up to `context_end.line`)
+        """
         # line numbers are 0 indexed
         width = ErrorWithSpan._line_number_width(span)
         if line_number is not None:
-            base_str = str(line_number + 1)
+            base_str = str(line_number)
             assert len(base_str) < width
             return with_color(Fore.LIGHTBLUE_EX, base_str.ljust(width) + "| ")
         else:
             return with_color(Fore.LIGHTBLUE_EX, "".ljust(width) + "| ")
 
     def _format_code_segment(
-        self, start_line: int, end_line: int, source: List[str], span: Span
+        self, start: Position, end: Position, source: List[str], part_of_span: Span
     ) -> List[str]:
         """
         Line by line output for a snippet of code from `start_line` to `end_line`
         Each line will be annotated with a line number, properly spaced according to
         the highest line number required to render `span`
 
-        :param start_line: First LOC, 0 indexed into the file to format
-        :param end_line: Last LOC, inclusive, 0 indexed into the file to format
+        :param start: start position
+        :param end: end position
 
         :returns A list of strings, suitable to be combined with `'\n'.join(...)`
-
-        >>> code_segment(5, 6, [...], span)
+        eg:
         List[
             "5  | def my_func():",
             "6  |   return True"
         ]
         """
-        code_segment = source[start_line : end_line + 1]
+        # -1 because positions are 1-indexed
+        code_segment = source[start.line - 1 : end.line]
         snippet = []
-        for line_num, line in zip(range(start_line, end_line + 1), code_segment):
-            snippet.append(f"{self._format_line_number(span, line_num)}{line}")
+        for line_num, line in zip(range(start.line, end.line + 1), code_segment):
+            snippet.append(f"{self._format_line_number(part_of_span, line_num)}{line}")
         return snippet
 
     def __repr__(self) -> str:
@@ -133,20 +141,21 @@ class ErrorWithSpan(SemgrepError):
         header = f"{with_color(Fore.RED, self.level)}: {self.short_msg}"
         snippets = []
         for span in self.spans:
-            location_hint = f"  --> {span.file}:{span.start.line + 1}"
+            location_hint = f"  --> {span.file}:{span.start.line}"
             snippet = [location_hint]
-            source = SpanBuilder().source(span.source_hash)
+
+            # all the lines of code in the file this comes from
+            source: List[str] = SourceTracker.source(span.source_hash)
+
             # First, print the span from `context_start` to `start`
             # Next, sprint the focus of the span from `start` to `end`
             # If the actual span is only 1 line long, use `column` information to highlight the exact problem
             # Finally, print end context from `end` to `context_end`
             if span.context_start:
                 snippet += self._format_code_segment(
-                    span.context_start.line, span.start.line - 1, source, span
+                    span.context_start, span.start.previous_line(), source, span
                 )
-            snippet += self._format_code_segment(
-                span.start.line, span.end.line, source, span
-            )
+            snippet += self._format_code_segment(span.start, span.end, source, span)
             # Currently, only span highlighting if it's a one line span
             if span.start.line == span.end.line:
                 error = with_color(
@@ -159,7 +168,7 @@ class ErrorWithSpan(SemgrepError):
                 )
             if span.context_end:
                 snippet += self._format_code_segment(
-                    span.end.line + 1, span.context_end.line, source, span
+                    span.end.next_line(), span.context_end, source, span
                 )
 
             snippets.append("\n".join(snippet))

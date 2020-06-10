@@ -18,7 +18,7 @@ from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 SourceFileHash = NewType("SourceFileHash", str)
 
 
-class SpanBuilder:
+class SourceTracker:
     """
     Singleton class tracking mapping from filehashes -> file contents to support
     building error messages from Spans
@@ -45,14 +45,33 @@ class SpanBuilder:
 
 
 class Position(NamedTuple):
+    """
+    Position within a file.
+    :param line: 1-indexed line number
+    :param column: 1-indexed column number
+
+    line & column are 0 indexed for compatibility with semgrep-core which also produces 1-indexed results
+    """
+
     line: int
     column: int
+
+    def next_line(self) -> "Position":
+        return self._replace(line=self.line + 1)
+
+    def previous_line(self) -> "Position":
+        return self._replace(line=self.line - 1)
 
     def __repr__(self) -> str:
         return f"{self.line}:{self.column}"
 
 
 class Span(NamedTuple):
+    """
+    Spans are immutable objects, representing segments of code. They have a central focus area, and
+    optionally can contain surrounding context.
+    """
+
     start: Position
     end: Position
     source_hash: SourceFileHash
@@ -64,21 +83,30 @@ class Span(NamedTuple):
     def from_node(
         cls, node: Node, source_hash: SourceFileHash, filename: Optional[str]
     ) -> "Span":
-        start = Position(line=node.start_mark.line, column=node.start_mark.column)
-        end = Position(line=node.end_mark.line, column=node.end_mark.column)
+        start = Position(
+            line=node.start_mark.line + 1, column=node.start_mark.column + 1
+        )
+        end = Position(line=node.end_mark.line + 1, column=node.end_mark.column + 1)
         return Span(start=start, end=end, file=filename, source_hash=source_hash)
 
     def truncate(self, lines: int) -> "Span":
         """
-        Shorten this span to at most `lines`
+        Produce a new span truncated to at most `lines` starting from the start line.
+        - start_context is not considered.
+        - end_context is removed
         """
         if self.end.line - self.start.line > lines:
-            return self._replace(end=Position(line=self.start.line + lines, column=0))
+            return self._replace(
+                end=Position(line=self.start.line + lines, column=0), context_end=None
+            )
         return self
 
     def with_context(
         self, before: Optional[int] = None, after: Optional[int] = None
     ) -> "Span":
+        """
+        Expand
+        """
         new = self
         if before is not None:
             new = new._replace(
@@ -87,7 +115,13 @@ class Span(NamedTuple):
 
         if after is not None:
             new = new._replace(
-                context_end=Position(column=0, line=self.end.line + after)
+                context_end=Position(
+                    column=0,
+                    line=min(
+                        len(SourceTracker.source(self.source_hash)),
+                        self.end.line + after,
+                    ),
+                )
             )
         return new
 
@@ -121,6 +155,9 @@ class YamlTree:
         return f"{self.span}: ---> {self.value}"
 
     def unroll_dict(self) -> Dict[str, Any]:
+        """
+        Helper wrapper mostly for mypy when you know it contains a dictionary
+        """
         ret = self.unroll()
         if not isinstance(ret, dict):
             raise ValueError(
@@ -171,8 +208,12 @@ def parse_yaml(contents: str) -> Dict[str, Any]:
 
 
 def parse_yaml_preserve_spans(contents: str, filename: Optional[str]) -> YamlTree:
+    """
+    parse yaml into a YamlTree object. The resulting spans are tracked in SourceTracker
+    so they can be used later when constructing error messages or displaying context.
+    """
     # this uses the `RoundTripConstructor` which inherits from `SafeConstructor`
-    source_hash = SpanBuilder().add_source(contents)
+    source_hash = SourceTracker.add_source(contents)
 
     class SpanPreservingRuamelConstructor(RoundTripConstructor):
         def construct_object(self, node: Node, deep: bool = False) -> YamlTree:
