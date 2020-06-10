@@ -138,6 +138,7 @@ let ncores = ref 1
 
 let use_parsing_cache = ref false
 let target_file = ref ""
+let timeout = ref 0
 
 (*s: constant [[Main_semgrep_core.action]] *)
 (* action mode *)
@@ -267,6 +268,10 @@ let gen_layer ~root ~query file =
   ()
 (*e: function [[Main_semgrep_core.gen_layer]] *)
 
+(*****************************************************************************)
+(* Caching *)
+(*****************************************************************************)
+
 let filemtime file =
   (Unix.stat file).Unix.st_mtime
 
@@ -323,6 +328,24 @@ let cache_file_of_file filename =
   let md5 = Digest.string filename in
   Filename.concat dir (spf "%s.ast_cache" (Digest.to_hex md5))
 
+(*****************************************************************************)
+(* Timeout *)
+(*****************************************************************************)
+
+(* subtle: You have to make sure that Timeout is not intercepted, so
+ * avoid exn handler such as try (...) with _ -> otherwise Timeout will
+ * not bubble up enough. In such case, add a case before such as
+ * with Timeout -> raise Timeout | _ -> ...
+ *)
+let timeout_function = fun f ->
+  if !timeout <= 0
+  then f ()
+  else Common.timeout_function ~verbose:!verbose !timeout f
+
+(*****************************************************************************)
+(* Parsing *)
+(*****************************************************************************)
+
 (*s: function [[Main_semgrep_core.parse_generic]] *)
 (* coupling: you need also to modify tests/Test.ml *)
 let parse_generic lang file =
@@ -341,7 +364,7 @@ let parse_generic lang file =
       file (Lang.string_of_lang lang) Version.version
      in
      cache_file_of_file full_filename)
- (fun () ->
+ (fun () -> timeout_function (fun () ->
   let ast = Parse_generic.parse_with_lang lang file in
   (*s: [[Main_semgrep_core.parse_generic()]] resolve names in the AST *)
   (* to be deterministic, reset the gensym; anyway right now sgrep is
@@ -352,7 +375,7 @@ let parse_generic lang file =
   Naming_AST.resolve lang ast;
   (*e: [[Main_semgrep_core.parse_generic()]] resolve names in the AST *)
   ast
-  )
+  ))
 (*e: function [[Main_semgrep_core.parse_generic]] *)
 
 (*s: function [[Main_semgrep_core.parse_equivalences]] *)
@@ -503,8 +526,11 @@ let iter_generic_ast_of_files_and_get_matches_and_exn_to_errors f files =
          (* calling the hook *)
          f file lang ast, []
 
-       with exn ->
-         [], [Error_code.exn_to_error file exn]
+       with
+         | Common.Timeout ->
+           let loc = Parse_info.first_loc_of_file file in
+           [], [{E. loc; typ = E.FatalError ("Timeout"); sev = E.Error}]
+         | exn -> [], [Error_code.exn_to_error file exn]
     )
   in
   let matches = matches_and_errors |> List.map fst |> List.flatten in
@@ -864,7 +890,6 @@ let options () =
     (*e: [[Main_semgrep_core.options]] other cases *)
     "-use_parsing_cache", Arg.Set use_parsing_cache,
     " save and use parsed ASTs in a cache";
-
     "-verbose", Arg.Unit (fun () ->
       verbose := true;
       Flag_semgrep.verbose := true;
@@ -874,6 +899,8 @@ let options () =
     " add debugging information in the output (e.g., tracing)";
     "-target_file", Arg.Set_string target_file,
     " <file> obtain list of targets to run patterns on";
+    "-timeout", Arg.Set_int timeout,
+    " <int> timeout for parsing";
   ] @
   (*s: [[Main_semgrep_core.options]] concatenated flags *)
   Flag_parsing_cpp.cmdline_flags_macrofile () @
