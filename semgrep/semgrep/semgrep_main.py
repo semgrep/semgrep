@@ -163,15 +163,10 @@ def save_output(destination: str, output: str) -> None:
 
 
 def get_config(
-    generate_config: bool, pattern: str, lang: str, config: str
+    pattern: str, lang: str, config: str
 ) -> Tuple[Dict[str, List[Rule]], Dict[str, Any]]:
-    # first check if user asked to generate a config
-    if generate_config:
-        semgrep.config_resolver.generate_config()
-        sys.exit(0)
-
     # let's check for a pattern
-    elif pattern:
+    if pattern:
         # and a language
         if not lang:
             raise SemgrepError("language must be specified when a pattern is passed")
@@ -204,7 +199,6 @@ def main(
     pattern: str,
     lang: str,
     config: str,
-    generate_config: bool,
     no_rewrite_rule_ids: bool,
     jobs: int,
     include: List[str],
@@ -223,7 +217,7 @@ def main(
 ) -> str:
     # get the proper paths for targets i.e. handle base path of /home/repo when it exists in docker
     targets = semgrep.config_resolver.resolve_targets(target)
-    valid_configs, invalid_configs = get_config(generate_config, pattern, lang, config)
+    valid_configs, invalid_configs = get_config(pattern, lang, config)
 
     output_format = OutputFormat.TEXT
     if json_format:

@@ -243,7 +243,7 @@ def cli() -> None:
         dump_parsed_ast(args.json, args.lang, args.pattern, args.target)
     elif args.validate:
         _, invalid_configs = semgrep.semgrep_main.get_config(
-            args.generate_config, args.pattern, args.lang, args.config
+            args.pattern, args.lang, args.config
         )
         if invalid_configs:
             raise SemgrepError(
@@ -251,7 +251,8 @@ def cli() -> None:
             )
         else:
             print_msg("Config is valid")
-
+    elif args.generate_config:
+        semgrep.config_resolver.generate_config()
     elif args.test:
         semgrep.test.test_main(args)
     else:
@@ -260,7 +261,6 @@ def cli() -> None:
             pattern=args.pattern,
             lang=args.lang,
             config=args.config,
-            generate_config=args.generate_config,
             no_rewrite_rule_ids=args.no_rewrite_rule_ids,
             jobs=args.jobs,
             include=args.include,
