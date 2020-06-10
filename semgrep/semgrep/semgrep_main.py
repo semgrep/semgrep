@@ -53,7 +53,7 @@ def validate_single_rule(config_id: str, rule_yaml: YamlTree) -> Optional[Rule]:
                 long_msg=f"{config_id} is missing required keys {missing_keys}",
                 level="error",
                 spans=[rule_yaml.span.truncate(lines=5)],
-            ).emit_str()
+            ).__repr__()
         )
         return None
     if not rule_keys.issubset(YAML_ALL_VALID_RULE_KEYS):
@@ -66,7 +66,7 @@ def validate_single_rule(config_id: str, rule_yaml: YamlTree) -> Optional[Rule]:
                 help=f"Only {sorted(YAML_ALL_VALID_RULE_KEYS)} are valid keys",
                 spans=[k.span.with_context(before=2, after=2) for k in extra_keys],
                 level="error",
-            ).emit_str()
+            ).__repr__()
         )
         return None
     try:
@@ -103,7 +103,7 @@ def validate_configs(
                     long_msg=f"{config_id} is missing `{RULES_KEY}` as top-level key",
                     level="error",
                     spans=[config_yaml_tree.span.truncate(lines=5)],
-                ).emit_str()
+                ).__repr__()
             )
             errors[config_id] = config_yaml_tree.unroll()
             continue

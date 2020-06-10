@@ -1,12 +1,8 @@
-from typing import Any
-from typing import Dict
 from typing import List
 from typing import Optional
-from typing import Union
 
 from colorama import Fore
 
-from semgrep.constants import OutputFormat
 from semgrep.rule_lang import Span
 from semgrep.rule_lang import SpanBuilder
 from semgrep.util import with_color
@@ -105,27 +101,52 @@ class ErrorWithSpan(SemgrepError):
         else:
             return with_color(Fore.LIGHTBLUE_EX, "".ljust(width) + "| ")
 
-    def _code_segment(
+    def _format_code_segment(
         self, start_line: int, end_line: int, source: List[str], span: Span
     ) -> List[str]:
+        """
+        Line by line output for a snippet of code from `start_line` to `end_line`
+        Each line will be annotated with a line number, properly spaced according to
+        the highest line number required to render `span`
+
+        :param start_line: First LOC, 0 indexed into the file to format
+        :param end_line: Last LOC, inclusive, 0 indexed into the file to format
+
+        :returns A list of strings, suitable to be combined with `'\n'.join(...)`
+
+        >>> code_segment(5, 6, [...], span)
+        List[
+            "5  | def my_func():",
+            "6  |   return True"
+        ]
+        """
         code_segment = source[start_line : end_line + 1]
         snippet = []
         for line_num, line in zip(range(start_line, end_line + 1), code_segment):
             snippet.append(f"{self._format_line_number(span, line_num)}{line}")
         return snippet
 
-    def emit_str(self) -> str:
+    def __repr__(self) -> str:
+        """
+        Format this exception into a pretty string with context and color
+        """
         header = f"{with_color(Fore.RED, self.level)}: {self.short_msg}"
         snippets = []
         for span in self.spans:
             location_hint = f"  --> {span.file}:{span.start.line + 1}"
             snippet = [location_hint]
             source = SpanBuilder().source(span.source_hash)
+            # First, print the span from `context_start` to `start`
+            # Next, sprint the focus of the span from `start` to `end`
+            # If the actual span is only 1 line long, use `column` information to highlight the exact problem
+            # Finally, print end context from `end` to `context_end`
             if span.context_start:
-                snippet += self._code_segment(
+                snippet += self._format_code_segment(
                     span.context_start.line, span.start.line - 1, source, span
                 )
-            snippet += self._code_segment(span.start.line, span.end.line, source, span)
+            snippet += self._format_code_segment(
+                span.start.line, span.end.line, source, span
+            )
             # Currently, only span highlighting if it's a one line span
             if span.start.line == span.end.line:
                 error = with_color(
@@ -137,7 +158,7 @@ class ErrorWithSpan(SemgrepError):
                     + error
                 )
             if span.context_end:
-                snippet += self._code_segment(
+                snippet += self._format_code_segment(
                     span.end.line + 1, span.context_end.line, source, span
                 )
 
@@ -148,14 +169,3 @@ class ErrorWithSpan(SemgrepError):
         else:
             help_str = ""
         return f"{header}\n{snippet_str}\n{help_str}\n{with_color(Fore.RED, self.long_msg or '')}\n"
-
-    def emit(self, output_format: OutputFormat) -> Union[Dict[str, Any], str]:
-        if output_format in {OutputFormat.JSON, OutputFormat.JSON_DEBUG}:
-            return dict(
-                short_msg=self.short_msg,
-                long_msg=self.long_msg,
-                level=self.level,
-                spans=[span.as_dict() for span in self.spans],
-            )
-        else:
-            return self.emit_str()
