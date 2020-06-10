@@ -1530,6 +1530,9 @@ and m_stmt a b =
 (*s: function [[Generic_vs_generic.m_for_header]] *)
 and m_for_header a b =
   match a, b with
+  (* dots: *)
+  | A.ForEllipsis _, _ -> return ()
+
   | A.ForClassic(a1, a2, a3), B.ForClassic(b1, b2, b3) ->
     (m_list m_for_var_or_expr) a1 b1 >>= (fun () ->
     m_option m_expr a2 b2 >>= (fun () ->

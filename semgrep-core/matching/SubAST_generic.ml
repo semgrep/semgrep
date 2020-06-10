@@ -126,6 +126,7 @@ let subexprs_of_stmt st =
     (* 0 *)
     | DirectiveStmt _
     | Block _
+    | For (_, ForEllipsis _, _)
     | Continue _ | Break _
     | Label _ | Goto _
     | Try _
