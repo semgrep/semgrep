@@ -6,50 +6,69 @@ on:
       - "master"
     tags:
       - "v*" # Push events to matching v*, i.e. v1.0, v20.15.10
+  pull_request:
+    branches: ["develop"]
 
+      # This string is matched in `latest-artifact-for-branch.py`
 name: Incorporate Benchmark Data
 jobs:
   benchmark-persist:
     runs-on: ubuntu-latest
+    container: returntocorp/sgrep-build:2.8
     steps:
-      - uses: actions/checkout@v2
-      - name: Setup Python
-        uses: actions/setup-python@v1
-        with:
-          python-version: 3.7
-        # TODO: once the job is working, build semgrep-core from source
-      - name: Install semgrep-core from develop
-        run: sudo -E ./install-scripts/latest-artifact-for-branch.py
-        env:
-          SEMGREP_CORE: "y"
-          AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Adjust permissions
+        run: sudo chmod -R 777 . /github
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install submodules
+        run: git submodule update --init --recursive
       - name: Retrieve the latest performance run
         run: ./install-scripts/latest-artifact-for-branch.py
         env:
           AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BENCHMARK: "y"
-          # TODO: don't hardcode
           BRANCH: "develop"
           OUT_DIR: "semgrep/benchmarks"
-      - name: Previous benches
-        run: find semgrep/benchmarks
-      - name: Check status
-        run: ls -l
-      - name: Install Tox and any other packages
-        run: pip install pipenv==2018.11.26 wheel==0.34.2
+      - name: Install pfff
+        run: eval $(opam  env --root /home/opam/.opam --set-root) && opam install -y ./pfff
+      - name: Install semgrep-core
+        run: eval $(opam  env --root /home/opam/.opam --set-root) && cd semgrep-core && opam install --deps-only -y . && make all && make install
+      - name: Install bootstrapping packages for Python
+        run: |
+          export PATH=/github/home/.local/bin:$PATH
+          pip3 install pipenv==2018.11.26 wheel==0.34.2
       - name: Install semgrep
         run: |
           cd semgrep
+          export PATH=/github/home/.local/bin:$PATH
           pipenv install --dev
       - name: check semgrep
         run: |
           cd semgrep
+          export PATH=/github/home/.local/bin:$PATH
           pipenv run semgrep --version
+      - uses: actions/cache@v2
+        with:
+          path: ~/.cache/semgrep-cache
+          key: semgrep-repo-cache-bench
       - name: run benchmarks
         run: |
           cd semgrep
-          # Only require 1 run for some of these tests -- they take >1m
-          pipenv run pytest -k test_ci_perf tests/ --benchmark-only --benchmark-autosave --benchmark-min-rounds 1 --benchmark-storage benchmarks --benchmark-compare
+          mkdir -p ~/.cache/semgrep-cache
+          # TODO: figure out what checks we want to run on PRs
+          eval $(opam  env --root /home/opam/.opam --set-root)
+          export PATH=/github/home/.local/bin:$PATH
+          pipenv run pytest -k test_ci_perf tests/ --benchmark-min-rounds 1 --benchmark-only --benchmark-autosave --benchmark-storage benchmarks
+        env:
+          GITHUB_REPO_CACHE: ~/.cache/semgrep-cache
+      - name: Compare to previous benchmark result
+        run: |
+          cd semgrep
+          eval $(opam  env --root /home/opam/.opam --set-root)
+          export PATH=/github/home/.local/bin:$PATH
+          pipenv run py.test-benchmark compare benchmarks/Linux-*/* --group-by name --sort name
+        # compare to previous runs, even if we had a timeout or a test failure
+        if: ${{ always() }}
       - name: Upload benchmark results
         uses: actions/upload-artifact@v1
         with:
