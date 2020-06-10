@@ -43,9 +43,18 @@ foo(1 + func(42)) + bar()
 
 ### Metavariables
 
+**Metavariables** are an abstraction that Semgrep provides when you want to
+match something but you don't know exactly what it is ahead of time. You can
+think of *metavariables* like a [capture
+group](https://regexone.com/lesson/capturing_groups) in regular expressions.
+
 Metavariables are used to track a value across a specific code scope. This
 includes variables, functions, arguments, classes, object methods, imports,
 exceptions, and more.
+
+Metavariable names look like `$X`, `$WIDGET`, or `$USERS_2`. They can only
+contain uppercase characters, or `_`, or digits, and must start with an
+uppercase character or `_`. Names like `$x` or `$some_value` are invalid.
 
 This pattern will match the following pieces of code:
 
@@ -89,14 +98,17 @@ initial_value = get_initial_value()
 
 ### Ellipsis Operator
 
-The ellipsis operator (`...`) abstracts away sequences. In other words, it
-allows you to gloss over the details so you can focus on what's important.
+The **ellipsis operator** (`...`) abstracts away sequences of zero or more
+arguments, statements, characters, and more.
+
+In other words, it allows you to gloss over the details so you can focus on
+what's important.
 
 #### Function Calls
 
 The ellipsis operator can be used to search for specific function calls or
 function calls with specific arguments. To search for all calls to a specific
-function:
+function, regardless of its arguments:
 
 ```text
 pattern: insecure_function(...)
@@ -308,7 +320,8 @@ The deep expression operator will work in:
 
 ### Equivalences
 
-`semgrep` will handle certain types of equivalent code.
+Equivalences are another key Semgrep concept. Semgrep automatically searches
+for code that is semantically equivalent.
 
 #### Imports
 
