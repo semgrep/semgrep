@@ -222,7 +222,7 @@ def cli() -> None:
     )
 
     ### Parse and validate
-    args = parser.parse_args()
+    args = parser.parse_known_args()
     if args.version:
         print(__VERSION__)
         return
