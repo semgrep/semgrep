@@ -18,7 +18,7 @@ class Position(NamedTuple):
     column: int
 
     def __repr__(self) -> str:
-        return f"{self.line}:{self.column}"
+        return f"<{self.__class__.__name__} line={self.line} column={self.column}>"
 
 
 class Span(NamedTuple):
@@ -33,7 +33,7 @@ class Span(NamedTuple):
         return Span(start=start, end=end, file=file)
 
     def __repr__(self) -> str:
-        return f"{self.start}-{self.end}"
+        return f"<{self.__class__.__name__} start={self.start} end={self.end}>"
 
 
 EmptySpan = Span(start=Position(0, 0), end=Position(0, 0), file=None)
@@ -58,7 +58,7 @@ class YamlTree:
         return hash(self.value)
 
     def __repr__(self) -> str:
-        return f"{self.span}: ---> {self.value}"
+        return f"<{self.__class__.__name__} span={self.span} value={self.value}>"
 
     def unroll_dict(self) -> Dict[str, Any]:
         ret = self.unroll()

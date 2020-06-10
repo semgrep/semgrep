@@ -37,7 +37,7 @@ class PatternMatch:
     @property
     def vars(self) -> Dict[str, Any]:
         metavars = {v: data.get("unique_id", {}) for v, data in self.metavars.items()}
-        return {v: uid.get("sid", "md5sum") for v, uid in metavars.items()}
+        return {v: uid.get("sid", uid.get("md5sum")) for v, uid in metavars.items()}
 
     @property
     def range(self) -> Range:
@@ -63,5 +63,5 @@ class PatternMatch:
             del end["offset"]
         return end
 
-    # def __repr__(self) -> str:
-    #     return f"{self.range}-{self.metavars}"
+    def __repr__(self) -> str:
+        return f"<{self.__class__.__name__} id={self.id} range={self.range}>"

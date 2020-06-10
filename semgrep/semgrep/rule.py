@@ -1,4 +1,3 @@
-import json
 from typing import Any
 from typing import Dict
 from typing import Iterator
@@ -38,7 +37,7 @@ class Rule:
             raise InvalidRuleSchemaError(
                 f"invalid type for patterns in rule: {type(rule_patterns)} is not a list; perhaps your YAML is missing a `-` before {rule_patterns}?"
             )
-        for pattern in rule_patterns:
+        for rule_index, pattern in enumerate(rule_patterns):
             if not isinstance(pattern, dict):
                 raise InvalidRuleSchemaError(
                     f"invalid type for pattern {pattern}: {type(pattern)} is not a dict"
@@ -48,7 +47,7 @@ class Rule:
                 if operator in set(OPERATORS_WITH_CHILDREN):
                     if isinstance(pattern_text, list):
                         sub_expression = self._parse_boolean_expression(
-                            pattern_text, 0, f"{prefix}.{pattern_id}"
+                            pattern_text, 0, f"{prefix}.{rule_index}.{pattern_id}"
                         )
                         yield BooleanRuleExpression(
                             operator=operator,
@@ -251,7 +250,7 @@ class Rule:
         }
 
     def __repr__(self) -> str:
-        return json.dumps(self.to_json())
+        return f"<{self.__class__.__name__} id={self.id}>"
 
     def with_id(self, new_id: str) -> "Rule":
         new_yaml = YamlTree(value=dict(self._yaml.value), span=self._yaml.span)  # type: ignore
