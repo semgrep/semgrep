@@ -199,31 +199,22 @@ class CoreRunner:
         yaml.dump({"equivalences": [e.to_json() for e in equivalences]}, fp)
         fp.flush()
 
-    def _run_rules(
-        self, rules: List[Rule], targets: List[Path]
-    ) -> Tuple[Dict[Rule, Dict[Path, List[PatternMatch]]], List[Any]]:
+    def _run_rule(
+        self, rule: Rule, targets: List[Path]
+    ) -> Tuple[List[RuleMatch], List[Dict[str, Any]], List[Any]]:
         """
             Run all rules on targets and return list of all places that match patterns, ... todo errors
         """
         outputs: List[PatternMatch] = []  # multiple invocations per language
         errors: List[Any] = []
-
-        # This will need to be addressed in the future. Since we flatten all the patterns,
-        # there's no way to tell semgrep which equivalences apply to which rules.
-        # So, my approach here is a naive implementation which likewise flattens all equivalences...
-        # Here there be dragons.... :-(
-        #  .>   )\;`a__
-        # (  _ _)/ /-." ~~
-        #  `( )_ )/
-        #   <_  <_ sb/dwb
-        equivalences = self._flatten_all_equivalences(rules)
+        equivalences = rule.equivalences
         with tempfile.NamedTemporaryFile("w") as equiv_fout:
 
             if equivalences:
                 self._write_equivalences_file(equiv_fout, equivalences)
 
             for language, all_patterns_for_language in self._group_patterns_by_language(
-                rules
+                [rule]
             ).items():
                 # semgrep-core doesn't know about OPERATORS.REGEX - this is
                 # strictly a semgrep Python feature. Regex filtering is
@@ -311,23 +302,11 @@ class CoreRunner:
         ] = collections.defaultdict(lambda: collections.defaultdict(list))
 
         for pattern_match in outputs:
-            rule_index = pattern_match.rule_index
-            rule = rules[rule_index]
             by_rule_index[rule][pattern_match.path].append(pattern_match)
 
-        return by_rule_index, errors
-
-    def _resolve_output(
-        self, outputs: Dict[Rule, Dict[Path, List[PatternMatch]]]
-    ) -> Tuple[Dict[Rule, List[RuleMatch]], Dict[Rule, List[Dict[str, Any]]]]:
-        """
-            Takes output of all running all patterns and rules and returns Findings
-        """
-        findings_by_rule: Dict[Rule, List[RuleMatch]] = {}
-        debugging_steps_by_rule: Dict[Rule, List[Dict[str, Any]]] = {}
-
-        for rule, paths in outputs.items():
-            findings = []
+        findings = []
+        debugging_steps: List[Any] = []
+        for rule, paths in by_rule_index.items():
             for filepath, pattern_matches in paths.items():
                 if not rule.globs.match_path(filepath):
                     continue
@@ -337,10 +316,37 @@ class CoreRunner:
                     rule, pattern_matches, self._allow_exec
                 )
                 findings.extend(findings_for_rule)
-                # debugging steps are only tracked for a single file, just overwrite
-                debugging_steps_by_rule[rule] = debugging_steps
 
-            findings_by_rule[rule] = dedup_output(findings)
+        findings = dedup_output(findings)
+
+        # debugging steps are only tracked for a single file, just overwrite
+        return findings, debugging_steps, errors
+
+    def _run_rules(
+        self, rules: List[Rule], target: List[Path]
+    ) -> Tuple[
+        Dict[Rule, List[RuleMatch]], Dict[Rule, List[Dict[str, Any]]], List[Any]
+    ]:
+        findings_by_rule: Dict[Rule, List[RuleMatch]] = {}
+        debugging_steps_by_rule: Dict[Rule, List[Dict[str, Any]]] = {}
+        all_errors = []
+
+        for rule in rules:
+            rule_matches, debugging_steps, errors = self._run_rule(rule, target)
+            findings_by_rule[rule] = rule_matches
+            debugging_steps_by_rule[rule] = debugging_steps
+            all_errors.extend(errors)
+
+        return findings_by_rule, debugging_steps_by_rule, all_errors
+
+    def _resolve_output(
+        self, outputs: Dict[Rule, Dict[Path, List[PatternMatch]]]
+    ) -> Tuple[Dict[Rule, List[RuleMatch]], Dict[Rule, List[Dict[str, Any]]]]:
+        """
+            Takes output of all running all patterns and rules and returns Findings
+        """
+        findings_by_rule: Dict[Rule, List[RuleMatch]] = {}
+        debugging_steps_by_rule: Dict[Rule, List[Dict[str, Any]]] = {}
 
         return findings_by_rule, debugging_steps_by_rule
 
@@ -369,8 +375,7 @@ class CoreRunner:
         """
         start = datetime.now()
 
-        outputs, errors = self._run_rules(rules, targets)
-        findings_by_rule, debug_steps_by_rule = self._resolve_output(outputs)
+        findings_by_rule, debug_steps_by_rule, errors = self._run_rules(rules, targets)
 
         debug_print(f"semgrep ran in {datetime.now() - start}")
 
