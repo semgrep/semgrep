@@ -41,7 +41,11 @@ def get_latest_artifact_url(
     workflow_runs = download_json(f"/actions/workflows/{workflow_obj['id']}/runs")[
         "workflow_runs"
     ]
-    successful_runs = [run for run in workflow_runs if run["head_branch"] == branch]
+    successful_runs = [
+        run
+        for run in workflow_runs
+        if run["conclusion"] == "success" and run["head_branch"] == branch
+    ]
     if not successful_runs:
         return None
 
