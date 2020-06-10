@@ -6,32 +6,6 @@ on:
     branches: [master, develop]
 
 jobs:
-  tox-tests:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python: [3.6, 3.7, 3.8]
-    steps:
-      - uses: actions/checkout@v2
-      - name: Setup Python
-        uses: actions/setup-python@v1
-        with:
-          python-version: ${{ matrix.python }}
-      - name: Install semgrep-core from develop
-        run: sudo -E ./install-scripts/latest-artifact-for-branch.py
-        env:
-          AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SEMGREP_CORE: y
-      - name: Install Tox and any other packages
-        run: pip install pipenv==2018.11.26 wheel==0.34.2 tox==3.15.0
-      - name: Run Tox
-        run: |
-          cd semgrep
-          tox -e py  # Run tox using the version of Python in `PATH`
-      - name: Failure hint
-        if: ${{ failure() }}
-        run: echo "This job runs with the most recent binary from the develop branch for semgrep-core. If you are using bleeding edge features, you may need to wait for a build"
-
   build-test:
     name: semgrep-core make test and semgrep make test/qa-test
     runs-on: ubuntu-latest
