@@ -1,4 +1,6 @@
-# Semgrep
+<p align="center">
+    <img src="semgrep.svg" height="100" alt="Semgrep logo"/>
+</p>
 
 <h3 align="center">
   Fast and customizable static analysis for many languages. Find code matches the way you'd write them.
@@ -26,6 +28,16 @@ Semgrep is a tool for easily detecting and preventing bugs and anti-patterns
 in your codebase. It combines the convenience and rapid iteration speed of
 `grep`, but is "code-aware"; that is, you can easily match function calls, class
 or method definitions, and more.
+
+## Motivation
+
+We're building Semgrep because:
+* It’s hard to write secure code
+* We believe the future of security is guiding developers to a “paved road” made of default-safe frameworks (i.e. React or ORMs)
+* `grep` isn’t expressive enough, while traditional static analysis tools (SAST) are too complicated/slow for enforcement
+
+We need a tool that is fast, easy to use, code-aware, multi-lingual, and open
+source!
 
 ## Overview
 
