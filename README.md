@@ -48,7 +48,7 @@ Semgrep combines the convenient and iterative style of `grep` with the powerful 
 Visit [Installation](#installation) and [Usage](#usage) to get started.
 
 ## Installation
-> Want to skip installation? You can run Semgrep via a live editor at [semgrep.live](https://semgrep.live/).
+> Want to skip installation? You can run Semgrep via our interactive live editor at [semgrep.live](https://semgrep.live/editor).
 
 On macOS, binaries are available via Homebrew:
 
