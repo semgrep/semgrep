@@ -2,9 +2,9 @@
     <img src="semgrep.svg" height="100" alt="Semgrep logo"/>
 </p>
 <h3 align="center">
-  Fast and customizable static analysis for many languages.
+  Lightweight static analysis for many languages.
   </br>
-  Find code matches the way you'd write them.
+  Find and block bug variants with rules that look like source code.
 </h3>
 
 <p align="center">
@@ -41,9 +41,11 @@
   </a>
 </p>
 
-Semgrep is a simple and highly customizable [command-line](#installation) and [online](https://semgrep.live/) tool for static code and variant analysis. Find bugs and anti-patterns in your codebase using pre-built or custom checks, across many languages.
+Semgrep is a simple and flexible [command-line](#installation) and [online](https://semgrep.live/) tool for static analysis. Use pre-built or custom rules to enforce code and security standards in your codebase.
 
-Semgrep combines the convenience and rapid iteration speed of `grep`, but is "code-aware"; you can easily match function calls, class or method definitions, and more with simple patterns. See [Installation](#installation) and [Usage](#usage) to get started.
+Semgrep combines the convenient and iterative style of `grep` with the powerful features of an Abstract Syntax Tree (AST) matcher. Easily find function calls, class or method definitions, and more without having to understand ASTs or wrestle with regexes.
+
+Visit [Installation](#installation) and [Usage](#usage) to get started.
 
 ## Installation
 > Want to skip installation? You can run Semgrep online via [semgrep.live](https://semgrep.live/).
@@ -80,15 +82,13 @@ The AppSec, Developer, and DevOps community deserves a static analysis tool that
 
 ## Overview
 
-### Key Features
+Semgrep is optimized for:
 
-* **Language aware**: Semgrep parses source code into Abstract Syntax Trees (ASTs), so it understands function calls, method and class definitions, conditionals, and more. Unlike regexes, Semgrep won't get tripped up matching things you don't care about in comments or string literals.
-* **Fast**: Speedy enough to run on every build, commit, or file save.
-* **Batteries included**: Leverage hundreds of pre-built rules for popular languages and frameworks in the [Semgrep Registry](https://semgrep.live/r), including coverage for the [OWASP Top 10](https://owasp.org/www-project-top-ten/).
-* **Handles multiple languages**: No need to learn and maintain multiple tools for your polyglot environment (e.g. ESLint, find-sec-bugs, rubocop, gosec, ...).
-* **Easy to tweak**: Rules look like the code you’re searching, no static analysis PhD required.
-* **Runs on source code**: Semgrep doesn’t require compilation because it runs on source code directly.
-* **Easy to integrate**: Highly portable and many CI and git hook integrations already exist. Run via CLI or Docker, output `--json` and pipe results into whatever system you want.
+* **Speed**: Fast enough to run on every build, commit, or file save
+* **Finding bugs that matter**: Run your own specialized rules or choose OWASP 10 checks from the [Semgrep Registry](https://semgrep.live/r). Rules match source code at the Abstract Syntax Tree (AST) level, unlike regexes that match strings and aren't semantically aware.
+* **Ease of customization**: Rules look like the code you’re searching, no static analysis PhD required. They don't require compiled code, only source, reducing iteration time.
+* **Ease of integration**. Highly portable and many CI and git-hook integrations already exist. Output `--json` and pipe results into your existing systems.
+* **Polyglot environments**: Don't learn and maintain multiple tools for your polyglot environment (e.g. ESLint, find-sec-bugs, RuboCop, Gosec). Use the same syntax and concepts independent of language.
 
 
 ### Language Support
