@@ -1,7 +1,8 @@
 rules:
   - id: file-excluded
     paths:
-      exclude: excluded.*
+      exclude:
+        - excluded.*
     patterns:
       - pattern: "$X == $X"
     message: "possibly useless comparison but in eq function"
@@ -9,7 +10,8 @@ rules:
     severity: ERROR
   - id: file-included
     paths:
-      include: included.*
+      include:
+        - included.*
     patterns:
       - pattern: "$X == $X"
     message: "possibly useless comparison but in eq function"
@@ -17,7 +19,8 @@ rules:
     severity: ERROR
   - id: directory-excluded
     paths:
-      exclude: excluded/
+      exclude:
+        - excluded/
     patterns:
       - pattern: "$X == $X"
     message: "possibly useless comparison but in eq function"
@@ -25,7 +28,8 @@ rules:
     severity: ERROR
   - id: directory-included
     paths:
-      include: included/
+      include:
+        - included/
     patterns:
       - pattern: "$X == $X"
     message: "possibly useless comparison but in eq function"
@@ -53,8 +57,10 @@ rules:
     severity: ERROR
   - id: file-excluded-directory-included
     paths:
-      exclude: excluded.*
-      include: included/
+      exclude:
+        - excluded.*
+      include:
+        - included/
     patterns:
       - pattern: "$X == $X"
     message: "possibly useless comparison but in eq function"
@@ -62,8 +68,10 @@ rules:
     severity: ERROR
   - id: directory-excluded-file-included
     paths:
-      exclude: excluded/
-      include: included.*
+      exclude:
+        - excluded/
+      include:
+        - included.*
     patterns:
       - pattern: "$X == $X"
     message: "possibly useless comparison but in eq function"

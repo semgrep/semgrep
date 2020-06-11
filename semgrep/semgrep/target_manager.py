@@ -5,7 +5,31 @@ from typing import List
 from typing import Set
 
 from semgrep.error import NotGitProjectError
+from semgrep.error import UnknownLanguageError
 from semgrep.util import partition_set
+
+
+def lang_to_exts(language: str) -> List[str]:
+    """
+        Convert language to expected file extensions
+
+        If language is not a supported semgrep language then
+        raises UnknownLanguageError
+    """
+    if language in ["python", "python2", "python3", "py"]:
+        return ["py", "pyi"]
+    elif language in ["js", "javascript"]:
+        return ["js"]
+    elif language in ["java"]:
+        return ["java"]
+    elif language in ["c"]:
+        return ["c"]
+    elif language in ["go", "golang"]:
+        return ["go"]
+    elif language in ["ml", "ocaml"]:
+        return ["mli", "ml", "mly", "mll"]
+    else:
+        raise UnknownLanguageError(f"Unsupported Language: {language}")
 
 
 class TargetManager:
@@ -14,7 +38,7 @@ class TargetManager:
         includes: List[str],
         excludes: List[str],
         targets: List[str],
-        visible_to_git_only: bool = True,
+        visible_to_git_only: bool = False,
     ) -> None:
         """
             Handles all file include/exclude logic for semgrep
@@ -41,48 +65,73 @@ class TargetManager:
             for target in targets
         )
 
-    def _expand_dir(self, curr_dir: Path, lang: str) -> Set[Path]:
+    def _expand_dir(self, curr_dir: Path, language: str) -> Set[Path]:
         """
             Recursively go through a directory and return list of all files with
             default file extention of language
         """
-        ext = "py"
-        if self._visible_to_git_only:
-            try:
-                # Tracked files
-                tracked_output = subprocess.check_output(
-                    ["git", "ls-files", f"*.{ext}"],
-                    cwd=curr_dir.resolve(),
+        extensions = lang_to_exts(language)
+        expanded: Set[Path] = set()
+
+        for ext in extensions:
+            if self._visible_to_git_only:
+                try:
+                    # Tracked files
+                    tracked_output = subprocess.check_output(
+                        ["git", "ls-files", f"*.{ext}"],
+                        cwd=curr_dir.resolve(),
+                        encoding="utf-8",
+                        stderr=subprocess.DEVNULL,
+                    )
+
+                    # Untracked but not ignored files
+                    untracked_output = subprocess.check_output(
+                        [
+                            "git",
+                            "ls-files",
+                            "--other",
+                            "--exclude-standard",
+                            f"*.{ext}",
+                        ],
+                        cwd=curr_dir.resolve(),
+                        encoding="utf-8",
+                        stderr=subprocess.DEVNULL,
+                    )
+                except subprocess.CalledProcessError:
+                    raise NotGitProjectError(
+                        f"{curr_dir.resolve()} is not a git repository."
+                    )
+
+                tracked = set()
+                if tracked_output:
+                    tracked = set(
+                        Path(curr_dir) / elem
+                        for elem in tracked_output.strip().split("\n")
+                    )
+
+                untracked_unignored = set()
+                if untracked_output:
+                    untracked_unignored = set(
+                        Path(curr_dir) / elem
+                        for elem in untracked_output.strip().split("\n")
+                    )
+
+                expanded = expanded.union(tracked)
+                expanded = expanded.union(untracked_unignored)
+
+            else:
+                output = subprocess.run(
+                    ["find", curr_dir, "-type", "f", "-name", f"*.{ext}"],
                     encoding="utf-8",
-                    stderr=subprocess.DEVNULL,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
                 )
-
-                # Untracked but not ignored files
-                untracked_output = subprocess.check_output(
-                    ["git", "ls-files", "--other", "--exclude-standard", f"*.{ext}"],
-                    cwd=curr_dir.resolve(),
-                    encoding="utf-8",
-                    stderr=subprocess.DEVNULL,
+                ext_files = set(
+                    Path(elem) for elem in output.stdout.strip().split("\n")
                 )
-            except subprocess.CalledProcessError:
-                raise NotGitProjectError(
-                    f"{curr_dir.resolve()} is not a git repository."
-                )
+                expanded = expanded.union(ext_files)
 
-            tracked = set(Path(elem) for elem in tracked_output.strip().split("\n"))
-            untracked_unignored = set(
-                Path(elem) for elem in untracked_output.strip().split("\n")
-            )
-            return tracked.union(untracked_unignored)
-
-        else:
-            output = subprocess.run(
-                ["find", curr_dir, "-type", "f", "-name", f"*.{ext}"],
-                encoding="utf-8",
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-            )
-            return set(Path(elem) for elem in output.stdout.strip().split("\n"))
+        return expanded
 
     def expand_targets(self, targets: Set[Path], lang: str) -> Set[Path]:
         """
