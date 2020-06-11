@@ -54,7 +54,7 @@ source!
 
 ### Language support
 
-| **Python** | **Javascript** | **Go &nbsp; &nbsp; &nbsp;** | **Java &nbsp;** | **C &nbsp; &nbsp; &nbsp; &nbsp;** | **Ruby** | **Typescript** | **PHP &nbsp; &nbsp;** |
+| **Python** | **JavaScript** | **Go &nbsp; &nbsp; &nbsp;** | **Java &nbsp;** | **C &nbsp; &nbsp; &nbsp; &nbsp;** | **Ruby** | **TypeScript** | **PHP &nbsp; &nbsp;** |
 |:-----------|:---------------|:----------------------------|:----------------|:----------------------------------|:---------|:---------------|:----------------------|
 | ✅          | ✅              | ✅                           | ✅               | ✅                                 | 🚧 |  Coming...      | Coming...             |
 
