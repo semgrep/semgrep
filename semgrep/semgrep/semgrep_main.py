@@ -324,7 +324,7 @@ def main(
             )
 
     # Start a progress writer. This will print dots until .stop() is called.
-    progress = StoppableProgressWriter(stream=sys.stderr)
+    progress = StoppableProgressWriter(stream=sys.stderr, interval=1 / 4)
     progress.start()
 
     try:
