@@ -124,11 +124,11 @@ exec (
 Importantly, Semgrep would *not* match the following:
 
 ~~~python
-# grep would match this, but semgrep ignores it because
+# grep would match this, but Semgrep ignores it because
 # it doesn't have the right function name
 other_exec(bar)
 
-# semgrep ignores commented out lines
+# Semgrep ignores commented out lines
 # exec(foo)
 
 # and hard-coded strings
@@ -168,15 +168,15 @@ docs](docs/pattern-features.md).
 
 ## Usage
 
-Generally when you're using Semgrep you're going to be doing one of three things:
+Semgrep supports three primary workflows:
 
-1. Manually scanning your source code using existing rules.
-1. Running Semgrep in CI so every pull request (PR) is scanned.
-1. Writing new rules.
+* Run pre-built rules
+* Writing custom rules
+* Run Semgrep continously in CI
 
 The following sections cover each in more detail.
 
-### 🔍 1. Run Existing Rules
+### Run Pre-Built Rules
 
 The easiest way to get started with Semgrep (other than [semgrep.live](https://semgrep.live/)) is to scan your code with pre-built rules.
 
@@ -221,18 +221,7 @@ Here are some sample vulnerable repos to test on:
 * NodeJS: [OWASP Juice Shop](https://github.com/bkimminich/juice-shop), [DevSlop Pixi](https://github.com/DevSlop/Pixi)
 * Golang: [GoVWA](https://github.com/0c34/govwa)
 
-
-### 🛡️ 2. Integrate into CI
-
-Semgrep can be run via CLI or Docker and output results as JSON (via the `--json` flag), so it can be inserted into any CI pipeline and have its results processed by whatever tools you're using.
-
-Semgrep is aware of *diffs*, so it can report only findings that occur in newly added code, for example, in a commit or pull request.
-
-Currently, the easiest way to integrate Semgrep into CI is via a GitHub action we've built. See the [integrations docs](docs/integrations.md) for more details.
-
-Semgrep can also output results in the standardized Static Analysis Results Interchange Format ([SARIF](https://docs.oasis-open.org/sarif/sarif/v2.1.0/cs01/sarif-v2.1.0-cs01.html)) with the `--sarif` flag, if you use tools that accept this format.
-
-### ✍️ 3. Writing Rules
+### Writing Custom Rules
 
 One of the strengths of Semgrep is how easy it is to write rules.
 
@@ -314,11 +303,22 @@ You can play with this transaction example here: https://semgrep.live/4b4g.
 * See the [YAML configuration file docs](docs/configuration-files.md) for
   details on all of the keys that can be used and how they work.
 
+### Run Semgrep Continously in CI
+
+Semgrep can be run via CLI or Docker and output results as JSON (via the `--json` flag), so it can be inserted into any CI pipeline and have its results processed by whatever tools you're using.
+
+Semgrep is aware of *diffs*, so it can report only findings that occur in newly added code, for example, in a commit or pull request.
+
+Currently, the easiest way to integrate Semgrep into CI is via a GitHub action we've built. See the [integrations docs](docs/integrations.md) for more details.
+
+Semgrep can also output results in the standardized Static Analysis Results Interchange Format ([SARIF](https://docs.oasis-open.org/sarif/sarif/v2.1.0/cs01/sarif-v2.1.0-cs01.html)) with the `--sarif` flag, if you use tools that accept this format.
+
 ## Resources
 
 Learn more:
-* [Semgrep presentation](https://www.youtube.com/watch?v=pul1bRIOYc8) and [slides](https://web-assets.r2c.dev/presentations/r2c-semgrep-OWASP-BayArea-21-May-2020.pdf) from the Bay Area OWASP meetup. Check out the [r2c YouTube channel](https://www.youtube.com/channel/UC5ahcFBorwzUTqPipFhjkWg) for more videos.
-* More detailed [semgrep docs](docs/README.md)
+* [Semgrep presentation](https://www.youtube.com/watch?v=pul1bRIOYc8) and [slides](https://web-assets.r2c.dev/presentations/r2c-semgrep-OWASP-BayArea-21-May-2020.pdf) from the Bay Area OWASP meetup. 
+* Check out the [r2c YouTube channel](https://www.youtube.com/channel/UC5ahcFBorwzUTqPipFhjkWg) for more videos.
+* More detailed [Semgrep docs](docs/README.md)
 
 Get in touch:
 * Submit a [bug report](https://github.com/returntocorp/semgrep/issues)
