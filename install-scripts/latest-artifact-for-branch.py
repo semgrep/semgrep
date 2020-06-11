@@ -41,22 +41,18 @@ def get_latest_artifact_url(
     workflow_runs = download_json(f"/actions/workflows/{workflow_obj['id']}/runs")[
         "workflow_runs"
     ]
-    successful_runs = [
-        run
-        for run in workflow_runs
-        if run["conclusion"] == "success" and run["head_branch"] == branch
-    ]
-    if not successful_runs:
-        return None
+    successful_runs = [run for run in workflow_runs if run["head_branch"] == branch]
 
-    last_successful_run = successful_runs[0]
-    print(f'Found a release from {last_successful_run["created_at"]}', file=sys.stderr)
-    artifacts = download_json(last_successful_run["artifacts_url"])["artifacts"]
-    if artifact_name:
-        artifacts = [a for a in artifacts if a["name"].startswith(artifact_name)]
-    if not artifacts:
-        return None
-    return str(artifacts[0]["archive_download_url"])
+    for run in successful_runs:
+        print(f'Found a release from {run["created_at"]}', file=sys.stderr)
+        artifacts = download_json(run["artifacts_url"])["artifacts"]
+        if artifact_name:
+            artifacts = [a for a in artifacts if a["name"].startswith(artifact_name)]
+        if artifacts:
+            return str(artifacts[0]["archive_download_url"])
+        else:
+            print("No artifacts found with name, looking at the previous run...")
+    return None
 
 
 def make_executable(path: str) -> None:

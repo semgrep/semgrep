@@ -46,6 +46,15 @@ let compatible_type t e =
     L (Float _) -> true
   | OtherType (OT_Expr, [E (Id (("str", _tok), _idinfo))]),
     L (String _) -> true
+  | TyBuiltin ((t1, _)), Id (_, {id_type; _}) ->
+      (match !id_type with Some (TyBuiltin ((t2, _))) -> t1 = t2
+                          | _ -> false)
+  | TyName ((t1, _), _), Id(_, {id_type; _}) ->
+      (match !id_type with Some (TyName (((t2, _), _))) -> t1 = t2
+                          | _ -> false)
+  | TyArray (_, TyName((t1, _), _)), Id (_, {id_type; _}) ->
+      (match !id_type with Some (TyArray (_, TyName((t2, _), _))) -> t1 = t2
+                          | _ -> false)
 
   | _ -> false
 (*e: function [[Typechecking_generic.compatible_type]] *)
