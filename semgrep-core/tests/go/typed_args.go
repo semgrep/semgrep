@@ -5,10 +5,11 @@ func bar() {
     var y, z int = 2, 4
     var d bool = true
 
-    foo(1, d, 2)
+    //TODO maybe we want this one to be caught
+    foo(1, d)
 
     //ERROR:
-    foo(x, d)
+    foo(x, d, 2)
 
     //ERROR:
     foo (y, d)
