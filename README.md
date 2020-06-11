@@ -31,6 +31,9 @@
     <img alt="PyPI" src="https://img.shields.io/pypi/v/semgrep?style=flat-square&color=blue">
   </a>
   <a href="https://r2c.dev/slack">
+    <img src="https://img.shields.io/badge/slack-join-green?style=flat-square" alt="Issues welcome!" />
+  </a>
+  <a href="https://github.com/returntocorp/semgrep/issues/new/choose">
     <img src="https://img.shields.io/badge/issues-welcome-green?style=flat-square" alt="Issues welcome!" />
   </a>
   <a href="https://twitter.com/intent/follow?screen_name=r2cdev">
