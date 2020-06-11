@@ -39,9 +39,9 @@ On macOS, binaries are available via [Homebrew](https://formulae.brew.sh/formula
 brew install returntocorp/semgrep/semgrep
 ```
 
-On Ubuntu, an install script is available on each release [here](https://github.com/returntocorp/semgrep/releases/download/v0.10.0/semgrep-v0.10.0-ubuntu-generic.sh)
+On Ubuntu, an install script is available on each release [here](https://github.com/returntocorp/semgrep/releases/download/v0.10.1/semgrep-v0.10.1-ubuntu-generic.sh)
 ```bash
-./semgrep-v0.10.0-ubuntu-generic.sh
+./semgrep-v0.10.1-ubuntu-generic.sh
 ```
 
 To try `semgrep` without installation, you can also run it via [Docker](https://docs.docker.com/install/):
