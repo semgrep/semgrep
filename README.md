@@ -2,7 +2,9 @@
     <img src="semgrep.svg" height="100" alt="Semgrep logo"/>
 </p>
 <h3 align="center">
-  Fast and customizable static analysis for many languages. Find code matches the way you'd write them.
+  Fast and customizable static analysis for many languages.
+  </br>
+  Find code matches the way you'd write them.
 </h3>
 
 <p align="center">
