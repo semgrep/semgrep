@@ -34,18 +34,19 @@
   </a>
 </p>
 
-Semgrep is a command-line tool for easily detecting and preventing bugs and anti-patterns
-in your codebase. It combines the convenience and rapid iteration speed of
-`grep`, but is "code-aware"; that is, you can easily match function calls, class
-or method definitions, and more.
+Semgrep is a simple and highly customizable [command-line](#installation) and [online](https://semgrep.live/) tool for static code and variant analysis. Find bugs and anti-patterns in your codebase using pre-built or custom checks, across many languages.
 
-We're building Semgrep because:
-1. It’s hard to write secure code
-2. We believe the future of security is guiding developers to a “paved road” made of default-safe frameworks (i.e. React or ORMs)
-3. `grep` isn’t expressive enough, while traditional static analysis tools (SAST) are too complicated/slow for enforcement
+Semgrep combines the convenience and rapid iteration speed of `grep`, but is "code-aware"; you can easily match function calls, class or method definitions, and more with simple patterns. See [Installation](#installation) and [Usage](#usage) to get started.
 
-We need a tool that is fast, easy to use, code-aware, multi-lingual, and open
-source!
+# Motivation
+
+Semgrep exists because:
+
+1. Insecure code is easy to write
+2. The future of security involves automatically guiding developers towards a “paved road” made of default-safe frameworks (i.e. [React](https://reactjs.org/) or Object-relational Mappers)
+3. `grep` isn’t expressive enough and traditional static analysis tools (SAST) are too complicated/slow for paved road automation
+
+The AppSec, Developer, and DevOps community deserves a static analysis tool that is fast, easy to use, code-aware, multi-lingual, and open source!
 
 ## Overview
 
