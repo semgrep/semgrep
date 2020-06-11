@@ -176,7 +176,6 @@ def invoke_semgrep(
             pattern="",
             lang="",
             config=str(config),
-            generate_config=False,
             no_rewrite_rule_ids=True,
             jobs=1,
             include=[],
