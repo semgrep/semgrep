@@ -76,7 +76,7 @@ The AppSec, Developer, and DevOps community deserves a static analysis tool that
 
 ## Overview
 
-### Key features
+### Key Features
 
 * **Language aware**: Semgrep parses source code into Abstract Syntax Trees (ASTs), so it understands function calls, method and class definitions, conditionals, and more. Unlike regexes, Semgrep won't get tripped up matching things you don't care about in comments or string literals.
 * **Fast**: Speedy enough to run on every build, commit, or file save.
@@ -87,7 +87,7 @@ The AppSec, Developer, and DevOps community deserves a static analysis tool that
 * **Easy to integrate**: Highly portable and many CI and git hook integrations already exist. Run via CLI or Docker, output `--json` and pipe results into whatever system you want.
 
 
-### Language support
+### Language Support
 
 | **Python** | **JavaScript** | **Go &nbsp; &nbsp; &nbsp;** | **Java &nbsp;** | **C &nbsp; &nbsp; &nbsp; &nbsp;** | **Ruby** | **TypeScript** | **PHP &nbsp; &nbsp;** |
 |:-----------|:---------------|:----------------------------|:----------------|:----------------------------------|:---------|:---------------|:----------------------|
