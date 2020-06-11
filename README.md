@@ -80,7 +80,7 @@ The AppSec, Developer, and DevOps community deserves a static analysis tool that
 
 * **Language aware**: Semgrep parses source code into Abstract Syntax Trees (ASTs), so it understands function calls, method and class definitions, conditionals, and more. Unlike regexes, Semgrep won't get tripped up matching things you don't care about in comments or string literals.
 * **Fast**: Speedy enough to run on every build, commit, or file save.
-* **Batteries included**: Leverage hundreds of pre-built rules for popular languages and frameworks in the community [registry](https://semgrep.live/r), including coverage for the [OWASP Top 10](https://owasp.org/www-project-top-ten/).
+* **Batteries included**: Leverage hundreds of pre-built rules for popular languages and frameworks in the [Semgrep Registry](https://semgrep.live/r), including coverage for the [OWASP Top 10](https://owasp.org/www-project-top-ten/).
 * **Handles multiple languages**: No need to learn and maintain multiple tools for your polyglot environment (e.g. ESLint, find-sec-bugs, rubocop, gosec, ...).
 * **Easy to tweak**: Rules look like the code you’re searching, no static analysis PhD required.
 * **Runs on source code**: Semgrep doesn’t require compilation because it runs on source code directly.
@@ -157,7 +157,7 @@ More example patterns:
 | [`$ELEMENT.innerHTML`](https://semgrep.live/9ze)                   | ``el.innerHTML = "<img src='x' onerror='alert(`XSS`)'>";`` |
 | [`$TOKEN.SignedString([]byte("..."))`](https://semgrep.live/rXW)   | `ss, err := token.SignedString([]byte("HARDCODED KEY"))`   |
 
-→ [see more example patterns in the Semgrep registry](https://semgrep.live/registry).
+→ [see more example patterns in the Semgrep Registry](https://semgrep.live/registry).
 
 For more info on what you can do in patterns, see the [pattern features
 docs](docs/pattern-features.md).
@@ -183,7 +183,7 @@ The following sections cover each in more detail.
 
 The easiest way to get started with Semgrep (other than [semgrep.live](https://semgrep.live/)) is to scan your code with pre-built rules.
 
-The [Semgrep rule registry](https://semgrep.live/r) contains rules for many programming errors, including security issues and correctness bugs. Security rules are annotated with CWE and OWASP metadata when applicable. OWASP rule coverage per language is displayed below.
+The [Semgrep Registry](https://semgrep.live/r) contains rules for many programming errors, including security issues and correctness bugs. Security rules are annotated with CWE and OWASP metadata when applicable. OWASP rule coverage per language is displayed below.
 
 <p align="center">
     <img width="600" src="https://web-assets.r2c.dev/semgrep-rules-owasp-coverage-20200520.png" style="max-width:100%;" />
@@ -215,7 +215,7 @@ $ semgrep --config=https://semgrep.live/c/r/java.spring.security.audit.cookie-mi
 $ semgrep --config=https://semgrep.live/c/r/java.spring.security
 ```
 
-All Semgrep rules can be viewed on the [Rule Registry page](https://semgrep.live/r), which pulls the rules from YAML files defined in the [semgrep-rules](https://github.com/returntocorp/semgrep-rules) GitHub repo.
+All public Semgrep rules can be viewed on the [Registry](https://semgrep.live/r), which pulls the rules from YAML files defined in the [semgrep-rules](https://github.com/returntocorp/semgrep-rules) GitHub repo.
 
 Here are some sample vulnerable repos to test on:
 * Django: [lets-be-bad-guys](https://github.com/mpirnat/lets-be-bad-guys), [django.nV](https://github.com/nVisium/django.nV)
