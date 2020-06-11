@@ -1,8 +1,10 @@
+import hashlib
 from io import StringIO
 from typing import Any
 from typing import Dict
 from typing import List
 from typing import NamedTuple
+from typing import NewType
 from typing import Optional
 from typing import Union
 
@@ -12,31 +14,123 @@ from ruamel.yaml import YAML
 
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 
+# Do not construct directly, use `SpanBuilder().add_source`
+SourceFileHash = NewType("SourceFileHash", str)
+
+
+class SourceTracker:
+    """
+    Singleton class tracking mapping from filehashes -> file contents to support
+    building error messages from Spans
+    """
+
+    # sources are a class variable to share state
+    sources: Dict[SourceFileHash, List[str]] = {}
+
+    @classmethod
+    def add_source(cls, source: str) -> SourceFileHash:
+        file_hash = cls._src_to_hash(source)
+        cls.sources[file_hash] = source.splitlines()
+        return file_hash
+
+    @classmethod
+    def source(cls, source_hash: SourceFileHash) -> List[str]:
+        return cls.sources[source_hash]
+
+    @staticmethod
+    def _src_to_hash(contents: Union[str, bytes]) -> SourceFileHash:
+        if isinstance(contents, str):
+            contents = contents.encode("utf-8")
+        return SourceFileHash(hashlib.sha256(contents).hexdigest())
+
 
 class Position(NamedTuple):
+    """
+    Position within a file.
+    :param line: 1-indexed line number
+    :param column: 1-indexed column number
+
+    line & column are 0 indexed for compatibility with semgrep-core which also produces 1-indexed results
+    """
+
     line: int
     column: int
+
+    def next_line(self) -> "Position":
+        return self._replace(line=self.line + 1)
+
+    def previous_line(self) -> "Position":
+        return self._replace(line=self.line - 1)
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} line={self.line} column={self.column}>"
 
 
 class Span(NamedTuple):
+    """
+    Spans are immutable objects, representing segments of code. They have a central focus area, and
+    optionally can contain surrounding context.
+    """
+
     start: Position
     end: Position
+    source_hash: SourceFileHash
     file: Optional[str]
+    context_start: Optional[Position] = None
+    context_end: Optional[Position] = None
 
     @classmethod
-    def from_node(cls, node: Node, file: Optional[str]) -> "Span":
-        start = Position(line=node.start_mark.line, column=node.start_mark.column)
-        end = Position(line=node.end_mark.line, column=node.end_mark.column)
-        return Span(start=start, end=end, file=file)
+    def from_node(
+        cls, node: Node, source_hash: SourceFileHash, filename: Optional[str]
+    ) -> "Span":
+        start = Position(
+            line=node.start_mark.line + 1, column=node.start_mark.column + 1
+        )
+        end = Position(line=node.end_mark.line + 1, column=node.end_mark.column + 1)
+        return Span(start=start, end=end, file=filename, source_hash=source_hash)
+
+    def truncate(self, lines: int) -> "Span":
+        """
+        Produce a new span truncated to at most `lines` starting from the start line.
+        - start_context is not considered.
+        - end_context is removed
+        """
+        if self.end.line - self.start.line > lines:
+            return self._replace(
+                end=Position(line=self.start.line + lines, column=0), context_end=None
+            )
+        return self
+
+    def with_context(
+        self, before: Optional[int] = None, after: Optional[int] = None
+    ) -> "Span":
+        """
+        Expand
+        """
+        new = self
+        if before is not None:
+            new = new._replace(
+                context_start=Position(column=0, line=max(0, self.start.line - before))
+            )
+
+        if after is not None:
+            new = new._replace(
+                context_end=Position(
+                    column=0,
+                    line=min(
+                        len(SourceTracker.source(self.source_hash)),
+                        self.end.line + after,
+                    ),
+                )
+            )
+        return new
+
+    def as_dict(self) -> Dict[str, Any]:
+        return dict(start=self.start._asdict(), end=self.end._asdict(), file=self.file)
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} start={self.start} end={self.end}>"
 
-
-EmptySpan = Span(start=Position(0, 0), end=Position(0, 0), file=None)
 
 # Actually recursive but mypy is unhelpful
 YamlValue = Union[str, int, List[Any], Dict[str, Any]]
@@ -61,6 +155,9 @@ class YamlTree:
         return f"<{self.__class__.__name__} span={self.span} value={self.value}>"
 
     def unroll_dict(self) -> Dict[str, Any]:
+        """
+        Helper wrapper mostly for mypy when you know it contains a dictionary
+        """
         ret = self.unroll()
         if not isinstance(ret, dict):
             raise ValueError(
@@ -111,11 +208,19 @@ def parse_yaml(contents: str) -> Dict[str, Any]:
 
 
 def parse_yaml_preserve_spans(contents: str, filename: Optional[str]) -> YamlTree:
+    """
+    parse yaml into a YamlTree object. The resulting spans are tracked in SourceTracker
+    so they can be used later when constructing error messages or displaying context.
+    """
     # this uses the `RoundTripConstructor` which inherits from `SafeConstructor`
+    source_hash = SourceTracker.add_source(contents)
+
     class SpanPreservingRuamelConstructor(RoundTripConstructor):
         def construct_object(self, node: Node, deep: bool = False) -> YamlTree:
             r = super().construct_object(node, deep)
-            return YamlTree(r, Span.from_node(node, filename))
+            return YamlTree(
+                r, Span.from_node(node, source_hash=source_hash, filename=filename)
+            )
 
     yaml = YAML()
     yaml.Constructor = SpanPreservingRuamelConstructor
@@ -125,3 +230,6 @@ def parse_yaml_preserve_spans(contents: str, filename: Optional[str]) -> YamlTre
             f"Something went wrong parsing Yaml (expected a YamlTree as output): {PLEASE_FILE_ISSUE_TEXT}"
         )
     return data
+
+
+EmptySpan = parse_yaml_preserve_spans("a: b", None).span
