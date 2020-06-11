@@ -221,6 +221,12 @@ def cli() -> None:
         "--version", action="store_true", help="Show the version and exit."
     )
 
+    parser.add_argument(
+        "--force-color",
+        action="store_true",
+        help="Always include ANSI color in the output, even if not writing to a TTY",
+    )
+
     ### Parse and validate
     args = parser.parse_args()
     if args.version:
@@ -234,7 +240,7 @@ def cli() -> None:
         parser.error("--dump-ast and -l/--lang must both be specified")
 
     # set the flags
-    semgrep.util.set_flags(args.verbose, args.quiet)
+    semgrep.util.set_flags(args.verbose, args.quiet, args.force_color)
 
     # change cwd if using docker
     semgrep.config_resolver.adjust_for_docker(args.precommit)
@@ -243,7 +249,7 @@ def cli() -> None:
         dump_parsed_ast(args.json, args.lang, args.pattern, args.target)
     elif args.validate:
         _, invalid_configs = semgrep.semgrep_main.get_config(
-            args.generate_config, args.pattern, args.lang, args.config
+            args.pattern, args.lang, args.config
         )
         if invalid_configs:
             raise SemgrepError(
@@ -251,7 +257,8 @@ def cli() -> None:
             )
         else:
             print_msg("Config is valid")
-
+    elif args.generate_config:
+        semgrep.config_resolver.generate_config()
     elif args.test:
         semgrep.test.test_main(args)
     else:
@@ -260,7 +267,6 @@ def cli() -> None:
             pattern=args.pattern,
             lang=args.lang,
             config=args.config,
-            generate_config=args.generate_config,
             no_rewrite_rule_ids=args.no_rewrite_rule_ids,
             jobs=args.jobs,
             include=args.include,

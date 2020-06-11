@@ -5,6 +5,7 @@ from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import Set
 from typing import Tuple
 
 import semgrep.config_resolver
@@ -13,6 +14,7 @@ from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import OutputFormat
 from semgrep.constants import RULES_KEY
 from semgrep.core_runner import CoreRunner
+from semgrep.error import ErrorWithSpan
 from semgrep.error import FINDINGS_EXIT_CODE
 from semgrep.error import INVALID_CODE_EXIT_CODE
 from semgrep.error import InvalidPatternNameError
@@ -43,14 +45,28 @@ def validate_single_rule(config_id: str, rule_yaml: YamlTree) -> Optional[Rule]:
     rule_keys = set(rule.keys())
     if not rule_keys.issuperset(YAML_MUST_HAVE_KEYS):
         missing_keys = YAML_MUST_HAVE_KEYS - rule_keys
+        # TODO(https://github.com/returntocorp/semgrep/issues/746): return the error messages instead of
+        #  immediately printing them so we can emit nice JSON errors to semgrep.live
         print_error(
-            f"{config_id} is missing required keys {missing_keys} at rule id {rule_id_err_msg}"
+            ErrorWithSpan(
+                short_msg="missing keys",
+                long_msg=f"{config_id} is missing required keys {missing_keys}",
+                level="error",
+                spans=[rule_yaml.span.truncate(lines=5)],
+            ).__repr__()
         )
         return None
     if not rule_keys.issubset(YAML_ALL_VALID_RULE_KEYS):
-        extra_keys = rule_keys - YAML_ALL_VALID_RULE_KEYS
+        extra_keys: Set[YamlTree] = rule_keys - YAML_ALL_VALID_RULE_KEYS  # type: ignore
+
         print_error(
-            f"{config_id} has an invalid top-level rule key {extra_keys} at rule id {rule_id_err_msg}, can only have: {sorted(YAML_ALL_VALID_RULE_KEYS)}"
+            ErrorWithSpan(
+                short_msg="extra top-level key",
+                long_msg=f"{config_id} has an invalid top-level rule key: {[k.unroll() for k in extra_keys]}",
+                help=f"Only {sorted(YAML_ALL_VALID_RULE_KEYS)} are valid keys",
+                spans=[k.span.with_context(before=2, after=2) for k in extra_keys],
+                level="error",
+            ).__repr__()
         )
         return None
     try:
@@ -81,7 +97,14 @@ def validate_configs(
             continue
         rules = config.get(RULES_KEY)  # type: ignore
         if rules is None:
-            print_error(f"{config_id} is missing `{RULES_KEY}` as top-level key")
+            print_error(
+                ErrorWithSpan(
+                    short_msg="missing keys",
+                    long_msg=f"{config_id} is missing `{RULES_KEY}` as top-level key",
+                    level="error",
+                    spans=[config_yaml_tree.span.truncate(lines=5)],
+                ).__repr__()
+            )
             errors[config_id] = config_yaml_tree.unroll()
             continue
         valid_rules = []
@@ -163,15 +186,10 @@ def save_output(destination: str, output: str) -> None:
 
 
 def get_config(
-    generate_config: bool, pattern: str, lang: str, config: str
+    pattern: str, lang: str, config: str
 ) -> Tuple[Dict[str, List[Rule]], Dict[str, Any]]:
-    # first check if user asked to generate a config
-    if generate_config:
-        semgrep.config_resolver.generate_config()
-        sys.exit(0)
-
     # let's check for a pattern
-    elif pattern:
+    if pattern:
         # and a language
         if not lang:
             raise SemgrepError("language must be specified when a pattern is passed")
@@ -204,7 +222,6 @@ def main(
     pattern: str,
     lang: str,
     config: str,
-    generate_config: bool,
     no_rewrite_rule_ids: bool,
     jobs: int,
     include: List[str],
@@ -223,7 +240,7 @@ def main(
 ) -> str:
     # get the proper paths for targets i.e. handle base path of /home/repo when it exists in docker
     targets = semgrep.config_resolver.resolve_targets(target)
-    valid_configs, invalid_configs = get_config(generate_config, pattern, lang, config)
+    valid_configs, invalid_configs = get_config(pattern, lang, config)
 
     output_format = OutputFormat.TEXT
     if json_format:
@@ -311,7 +328,7 @@ def pretty_error(error: Dict[str, Any]) -> str:
             line_3 = f"= note: If the code is correct, this could be a semgrep bug -- please help us fix this by filing an an issue at https://semgrep.dev"
             return "\n".join([header, line_1, line_2, line_3])
         else:
-            return f"semgrep-core error: {json.dumps(error,indent=2)}"
+            return f"semgrep-core error: {json.dumps(error, indent=2)}"
     except KeyError:
         return f"semgrep-core error: {json.dumps(error, indent=2)}"
 
