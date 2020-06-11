@@ -8,6 +8,7 @@ from typing import Any
 from typing import Callable
 from typing import Iterable
 from typing import List
+from typing import Optional
 from typing import TextIO
 from typing import Tuple
 from urllib.parse import urlparse
@@ -94,13 +95,15 @@ class StoppableProgressWriter(threading.Thread):
         self,
         stream: TextIO = sys.stderr,
         interval: float = 1.0,
-        spinner: List[str] = ["\\", "|", "/", "-"],
+        spinner: Optional[List[str]] = None,
         done_msg: str = "finished!",
         **kwargs: Any,
     ):
         super(StoppableProgressWriter, self).__init__(**kwargs)
         self.stream = stream
         self.interval = interval
+        if not spinner:
+            spinner = ["\\", "|", "/", "-"]
         self.spinner = itertools.cycle(spinner)
         self.done_msg = done_msg
         self.event = threading.Event()
