@@ -250,7 +250,15 @@ rules:
     severity: ERROR
 ```
 
-This rule looks for calls to the Python `open` function without a corresponding `close`. Without a `close` call the file will be left open which can lead to resource exhaustion.
+This rule looks for files that are opened but never closed, which can lead to
+resource exhaustion. It accomplishes this by looking for the `open(...)` pattern
+_and not_ a following `close()` pattern.
+
+The `$FILE` metavariable ensures that the same variable name is used in the
+`open` and `close` calls. The ellipsis operator allows for any arguments to be
+passed to `open` and any sequence of code statements in-between the `open` and
+`close` calls. We don't care how `open` is called or what happens up to a
+`close` call, we just need to make sure `close` is called.
 
 ### `pattern-where-python`
 
