@@ -180,7 +180,7 @@ def download_config(config_url: str) -> Dict[str, Optional[YamlTree]]:
     SCANNING_MESSAGE = "scanning code...\033[K"
     debug_print(f"trying to download from {config_url}")
     print_msg(
-        f"using config from {config_url}. See https://semgrep.live/registry for more options."
+        f"using config from {config_url}. Visit https://semgrep.live/registry to see all public rules."
     )
     print_msg(DOWNLOADING_MESSAGE, end="\r")
     headers = {"User-Agent": SEMGREP_USER_AGENT}

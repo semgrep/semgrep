@@ -29,6 +29,7 @@ from semgrep.util import debug_print
 from semgrep.util import is_url
 from semgrep.util import print_error
 from semgrep.util import print_msg
+from semgrep.util import StoppableProgressWriter
 
 MISSING_RULE_ID = "no-rule-id"
 
@@ -194,6 +195,43 @@ def flatten_configs(transformed_configs: Dict[str, List[Rule]]) -> List[Rule]:
     return [rule for rules in transformed_configs.values() for rule in rules]
 
 
+def notify_user_of_work(
+    all_rules: List[Rule],
+    include: List[str],
+    include_dir: List[str],
+    exclude: List[str],
+    exclude_dir: List[str],
+    verbose: bool = False,
+) -> None:
+    """
+    Notify user of what semgrep is about to do, including:
+    - number of rules
+    - which rules? <- not yet, too cluttered
+    - which dirs are excluded, etc.
+    """
+    if include:
+        print_msg(f"including files:")
+        for inc in include:
+            print_msg(f"- {inc}")
+    if include_dir:
+        print_msg(f"including directories:")
+        for inc in include_dir:
+            print_msg(f"- {inc}")
+    if exclude:
+        print_msg(f"excluding files:")
+        for exc in exclude:
+            print_msg(f"- {exc}")
+    if exclude_dir:
+        print_msg(f"excluding directories:")
+        for exc in exclude_dir:
+            print_msg(f"- {exc}")
+    print_msg(f"running {len(all_rules)} rules...")
+    if verbose:
+        print_msg("rules:")
+        for rule in all_rules:
+            print_msg(f"- {rule.id}")
+
+
 def main(
     target: List[str],
     pattern: str,
@@ -254,21 +292,32 @@ def main(
             f"running {len(all_rules)} rules from {len(valid_configs)} config{plural} {config_id_if_single} {invalid_msg}"
         )
 
+        notify_user_of_work(all_rules, include, include_dir, exclude, exclude_dir)
+
         if len(valid_configs) == 0:
             raise SemgrepError(
                 f"no valid configuration file found ({len(invalid_configs)} configs were invalid)",
                 code=MISSING_CONFIG_EXIT_CODE,
             )
 
-    # actually invoke semgrep
-    rule_matches_by_rule, debug_steps_by_rule, semgrep_errors = CoreRunner(
-        allow_exec=dangerously_allow_arbitrary_code_execution_from_rules,
-        jobs=jobs,
-        exclude=exclude,
-        include=include,
-        exclude_dir=exclude_dir,
-        include_dir=include_dir,
-    ).invoke_semgrep(targets, all_rules)
+    # Start a progress writer. This will print dots until .stop() is called.
+    progress = StoppableProgressWriter(stream=sys.stderr)
+    progress.start()
+
+    try:
+        # actually invoke semgrep
+        rule_matches_by_rule, debug_steps_by_rule, semgrep_errors = CoreRunner(
+            allow_exec=dangerously_allow_arbitrary_code_execution_from_rules,
+            jobs=jobs,
+            exclude=exclude,
+            include=include,
+            exclude_dir=exclude_dir,
+            include_dir=include_dir,
+        ).invoke_semgrep(targets, all_rules)
+        progress.stop(fail=False)  # Stop dots
+    except Exception as e:
+        progress.stop(fail=True)
+        raise e
 
     if output_format == OutputFormat.TEXT:
         for error in semgrep_errors:
@@ -337,6 +386,8 @@ def handle_output(
     if not quiet:
         if output:
             print(output)
+        else:
+            print_msg("semgrep found no results.")
 
     if output_destination:
         save_output(output_destination, output)
