@@ -114,10 +114,11 @@ class StoppableProgressWriter(threading.Thread):
         self.stream.flush()
 
     def stop(self, fail: bool = False) -> None:
-        self._clear_line()
-        if not fail:
-            self.stream.write(self.done_msg + "\n")
-            self.stream.flush()
+        if self.stream.isatty():
+            self._clear_line()
+            if not fail:
+                self.stream.write(self.done_msg + "\n")
+                self.stream.flush()
         self.event.set()
 
     def run(self) -> None:

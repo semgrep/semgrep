@@ -323,7 +323,8 @@ def main(
                 code=MISSING_CONFIG_EXIT_CODE,
             )
 
-    # Start a progress writer. This will print dots until .stop() is called.
+    # Start a progress writer. This will print a spinner and elapsed time until .stop() is called.
+    # If you don't call .stop(), this will run forever!
     progress = StoppableProgressWriter(stream=sys.stderr, interval=1 / 4)
     progress.start()
 
@@ -337,7 +338,7 @@ def main(
             exclude_dir=exclude_dir,
             include_dir=include_dir,
         ).invoke_semgrep(targets, all_rules)
-        progress.stop(fail=False)  # Stop dots
+        progress.stop(fail=False)  # Stop progress writer.
     except Exception as e:
         progress.stop(fail=True)
         raise e
