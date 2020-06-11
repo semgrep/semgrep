@@ -68,6 +68,8 @@ To try Semgrep without installation, you can also run it via [Docker](https://do
 $ docker run --rm -v "${PWD}:/home/repo" returntocorp/semgrep --help
 ``` 
 
+See [Usage](#usage) to learn about running pre-built rules and writing custom ones.
+
 ## Overview
 
 ### Key features
@@ -160,7 +162,7 @@ docs](docs/pattern-features.md).
 
 A **rule** (or *check*) is a Semgrep pattern that can be used to find source code of interest.
 
-A **rule pack** (*check pack*) is a collection of Semgrep rules bundled
+A **rule pack** (or *check pack*) is a collection of Semgrep rules bundled
 together. For example, "Here are a bunch of Java checks I want to run."
 
 ## Usage
