@@ -337,10 +337,17 @@ let cache_file_of_file filename =
  * not bubble up enough. In such case, add a case before such as
  * with Timeout -> raise Timeout | _ -> ...
  *)
-let timeout_function = fun f ->
-  if !timeout <= 0
+let timeout_function lang = fun f ->
+  let timeout =
+      (* TODO: remove at some point, but this is to stay
+       * "backward compatible" with the previous behavior *)
+      if lang = Lang.Javascript && !timeout = 0
+      then 5
+      else !timeout
+  in
+  if timeout <= 0
   then f ()
-  else Common.timeout_function ~verbose:!verbose !timeout f
+  else Common.timeout_function ~verbose:!verbose timeout f
 
 (*****************************************************************************)
 (* Parsing *)
@@ -364,7 +371,7 @@ let parse_generic lang file =
       file (Lang.string_of_lang lang) Version.version
      in
      cache_file_of_file full_filename)
- (fun () -> timeout_function (fun () ->
+ (fun () -> timeout_function lang (fun () ->
   let ast = Parse_generic.parse_with_lang lang file in
   (*s: [[Main_semgrep_core.parse_generic()]] resolve names in the AST *)
   (* to be deterministic, reset the gensym; anyway right now sgrep is
@@ -526,11 +533,10 @@ let iter_generic_ast_of_files_and_get_matches_and_exn_to_errors f files =
          (* calling the hook *)
          f file lang ast, []
 
-       with
-         | Common.Timeout ->
-           let loc = Parse_info.first_loc_of_file file in
-           [], [{E. loc; typ = E.FatalError ("Timeout"); sev = E.Error}]
-         | exn -> [], [Error_code.exn_to_error file exn]
+       (* note that Error_code.exn_to_error now recognized Timeout
+        * and will generate a TimeoutError code for it
+        *)
+       with exn -> [], [Error_code.exn_to_error file exn]
     )
   in
   let matches = matches_and_errors |> List.map fst |> List.flatten in
