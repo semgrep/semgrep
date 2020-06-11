@@ -136,6 +136,7 @@ let supported_langs: string = String.concat ", " keys
 let ncores = ref 1
 (*e: constant [[Main_semgrep_core.ncores]] *)
 
+let use_parsing_cache = ref false
 let target_file = ref ""
 
 (*s: constant [[Main_semgrep_core.action]] *)
@@ -266,6 +267,62 @@ let gen_layer ~root ~query file =
   ()
 (*e: function [[Main_semgrep_core.gen_layer]] *)
 
+let filemtime file =
+  (Unix.stat file).Unix.st_mtime
+
+(* The function below is mostly a copy-paste of Common.cache_computation.
+ * This function is slightly more flexible because we can put the cache file
+ * anywhere thanks to the argument 'cache_file_of_file'.
+ * We also try to be a bit more type-safe by using the version tag above.
+ * TODO: merge in pfff/commons/Common.ml at some point
+ *)
+let cache_computation file cache_file_of_file f =
+  if not !use_parsing_cache
+  then f ()
+  else begin
+    if not (Sys.file_exists file)
+    then begin
+      pr2 ("WARNING: cache_computation: can't find file "  ^ file);
+      pr2 ("defaulting to calling the function");
+      f ()
+    end else begin
+    profile_code "Main.cache_computation" (fun () ->
+
+      let file_cache = cache_file_of_file file in
+      if Sys.file_exists file_cache && filemtime file_cache >= filemtime file
+      then begin
+        if !verbose then pr2 ("using cache: " ^ file_cache);
+        let (version, file2, res) = Common2.get_value file_cache in
+        if version <> Version.version
+        then failwith (spf "Version mismatch! Clean the cache file %s"
+                      file_cache);
+        if file <> file2
+        then failwith (spf
+          "Not the same file! Md5sum collision! Clean the cache file %s"
+                      file_cache);
+
+        res
+      end
+      else begin
+        let res = f () in
+        Common2.write_value (Version.version, file, res) file_cache;
+        res
+      end
+      )
+    end
+  end
+
+
+let cache_file_of_file filename =
+  let dir = spf "%s/semgrep_core_cache_%d"
+      (Filename.get_temp_dir_name ())
+      (Unix.getuid()) in
+  if not (Sys.file_exists dir)
+  then Unix.mkdir dir 0o700;
+  (* hopefully there will be no collision *)
+  let md5 = Digest.string filename in
+  Filename.concat dir (spf "%s.ast_cache" (Digest.to_hex md5))
+
 (*s: function [[Main_semgrep_core.parse_generic]] *)
 (* coupling: you need also to modify tests/Test.ml *)
 let parse_generic lang file =
@@ -274,6 +331,17 @@ let parse_generic lang file =
   then Parse_cpp.init_defs !Flag_parsing_cpp.macros_h;
   (*e: [[Main_semgrep_core.parse_generic()]] use standard macros if parsing C *)
 
+  cache_computation file (fun file ->
+    (* we may use different parsers for the same file (e.g., in Python3 or
+     * Python2 mode), so put the lang as part of the cache "dependency".
+     * We also add ast_version here so bumping the version will not
+     * try to use the old cache file (which should generate an exception).
+     *)
+     let full_filename = spf "%s__%s__%s"
+      file (Lang.string_of_lang lang) Version.version
+     in
+     cache_file_of_file full_filename)
+ (fun () ->
   let ast = Parse_generic.parse_with_lang lang file in
   (*s: [[Main_semgrep_core.parse_generic()]] resolve names in the AST *)
   (* to be deterministic, reset the gensym; anyway right now sgrep is
@@ -284,6 +352,7 @@ let parse_generic lang file =
   Naming_AST.resolve lang ast;
   (*e: [[Main_semgrep_core.parse_generic()]] resolve names in the AST *)
   ast
+  )
 (*e: function [[Main_semgrep_core.parse_generic]] *)
 
 (*s: function [[Main_semgrep_core.parse_equivalences]] *)
@@ -407,7 +476,13 @@ let get_final_files xs =
     | Some lang -> Lang.files_of_dirs_or_files lang xs
   in
   let files = filter_files files in
-  files
+
+  let explicit_files = xs |> List.filter(fun file ->
+      Sys.file_exists file && not (Sys.is_directory file)
+    )
+  in
+
+  Common2.uniq_eff (files @ explicit_files)
 (*e: function [[Main_semgrep_core.get_final_files]] *)
 
 (*s: function [[Main_semgrep_core.iter_generic_ast_of_files_and_get_matches_and_exn_to_errors]] *)
@@ -417,18 +492,10 @@ let iter_generic_ast_of_files_and_get_matches_and_exn_to_errors f files =
        if !verbose then pr2 (spf "Analyzing %s" file);
        try
          let lang =
-           match Lang.langs_of_filename file with
-           | [lang] -> lang
-           | x::_xs ->
-               (match Lang.lang_of_string_opt !lang with
-               | Some lang -> lang
-               | None ->
-                 pr2 (spf "no language specified, defaulting to %s for %s"
-                      (Lang.string_of_lang x) file);
-                 x
-               )
-           | [] ->
-              failwith (spf "can not extract generic AST from %s" file)
+           match Lang.lang_of_string_opt !lang with
+            | Some lang -> lang
+            | _ ->
+               failwith (spf "no language specified")
          in
          if !debug then pr2 (spf "PARSING: %s" file);
          let ast = parse_generic lang file in
@@ -793,9 +860,11 @@ let options () =
         error_recovery := true;
         Flag_parsing.error_recovery := true;
     ),
-    (*e: [[Main_semgrep_core.options]] other cases *)
-
     " do not stop at first parsing error with -e/-f";
+    (*e: [[Main_semgrep_core.options]] other cases *)
+    "-use_parsing_cache", Arg.Set use_parsing_cache,
+    " save and use parsed ASTs in a cache";
+
     "-verbose", Arg.Unit (fun () ->
       verbose := true;
       Flag_semgrep.verbose := true;

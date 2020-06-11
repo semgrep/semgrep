@@ -9,7 +9,7 @@ import pytest
 def test_rule_parser__failure__error_messages(run_semgrep_in_tmp, snapshot, filename):
     with pytest.raises(CalledProcessError) as excinfo:
         run_semgrep_in_tmp(
-            config="rules/eqeq.yaml",
+            config="rules/eqeq-python.yaml",
             target_name=f"bad/{filename}",
             output_format="text",
             stderr=True,
