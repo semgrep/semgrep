@@ -331,6 +331,7 @@ class CoreRunner:
             debugging_steps_by_rule[rule] = debugging_steps
             all_errors.extend(errors)
 
+        all_errors = dedup_errors(all_errors)
         return findings_by_rule, debugging_steps_by_rule, all_errors
 
     def _resolve_output(
@@ -365,6 +366,24 @@ class CoreRunner:
 
 def dedup_output(outputs: List[RuleMatch]) -> List[RuleMatch]:
     return list({uniq_id(r): r for r in outputs}.values())
+
+
+def dedup_errors(errors: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def uniq_error_id(
+        error: Dict[str, Any]
+    ) -> Tuple[str, str, Optional[int], Optional[int], Optional[int], Optional[int]]:
+        start = error.get("start", {})
+        end = error.get("end", {})
+        return (
+            error.get("check_id"),  # type: ignore
+            error.get("path"),
+            start.get("line"),
+            start.get("col"),
+            end.get("line"),
+            end.get("col"),
+        )
+
+    return list({uniq_error_id(r): r for r in errors}.values())
 
 
 def uniq_id(

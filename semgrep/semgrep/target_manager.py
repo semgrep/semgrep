@@ -65,6 +65,18 @@ class TargetManager:
             for target in targets
         )
 
+    def _parse_output(self, output: str, curr_dir: Path) -> Set[Path]:
+        """
+            Convert a newline delimited list of files to a set of path objects
+            prepends curr_dir to all paths in said list
+
+            If list is empty then returns an empty set
+        """
+        files: Set[Path] = set()
+        if output:
+            files = set(Path(curr_dir) / elem for elem in output.strip().split("\n"))
+        return files
+
     def _expand_dir(self, curr_dir: Path, language: str) -> Set[Path]:
         """
             Recursively go through a directory and return list of all files with
@@ -102,19 +114,8 @@ class TargetManager:
                         f"{curr_dir.resolve()} is not a git repository."
                     )
 
-                tracked = set()
-                if tracked_output:
-                    tracked = set(
-                        Path(curr_dir) / elem
-                        for elem in tracked_output.strip().split("\n")
-                    )
-
-                untracked_unignored = set()
-                if untracked_output:
-                    untracked_unignored = set(
-                        Path(curr_dir) / elem
-                        for elem in untracked_output.strip().split("\n")
-                    )
+                tracked = self._parse_output(tracked_output, curr_dir)
+                untracked_unignored = self._parse_output(untracked_output, curr_dir)
 
                 expanded = expanded.union(tracked)
                 expanded = expanded.union(untracked_unignored)
@@ -126,9 +127,9 @@ class TargetManager:
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
                 )
-                ext_files = set(
-                    Path(elem) for elem in output.stdout.strip().split("\n")
-                )
+
+                # Note find already gives paths relative to pwd so no need to prepend curr_dir
+                ext_files = self._parse_output(output.stdout, Path("."))
                 expanded = expanded.union(ext_files)
 
         return expanded

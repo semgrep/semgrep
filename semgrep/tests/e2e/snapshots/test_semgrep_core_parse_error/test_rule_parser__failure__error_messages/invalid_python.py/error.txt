@@ -3,9 +3,4 @@ Syntax error
 def foo(a)
           ^
 = note: If the code is correct, this could be a semgrep bug -- please help us fix this by filing an an issue at https://semgrep.dev
-Syntax error
---> targets/bad/invalid_python.py:1
-def foo(a)
-          ^
-= note: If the code is correct, this could be a semgrep bug -- please help us fix this by filing an an issue at https://semgrep.dev
-run with --strict and 2 errors occurred during semgrep run; exiting
+run with --strict and 1 errors occurred during semgrep run; exiting
