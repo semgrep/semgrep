@@ -118,7 +118,7 @@ class StoppableProgressWriter(threading.Thread):
         self.event.set()
 
     def run(self) -> None:
-        if self.stream.isatty:
+        if self.stream.isatty():
             start = time.time()
             while not self.event.is_set():
                 self._clear_line()
