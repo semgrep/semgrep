@@ -46,11 +46,12 @@ Semgrep is a simple and highly customizable [command-line](#installation) and [o
 Semgrep combines the convenience and rapid iteration speed of `grep`, but is "code-aware"; you can easily match function calls, class or method definitions, and more with simple patterns. See [Installation](#installation) and [Usage](#usage) to get started.
 
 ## Installation
+> Want to skip installation? You can run Semgrep online via [semgrep.live](https://semgrep.live/).
 
-On macOS, binaries are available via [Homebrew](https://formulae.brew.sh/formula/semgrep):
+On macOS, binaries are available via Homebrew:
 
 ```bash
-$ brew install returntocorp/semgrep/semgrep
+$ brew install semgrep
 ```
 
 On Ubuntu, an install script is available with each [release](https://github.com/returntocorp/semgrep/releases/download/v0.10.1/semgrep-v0.10.1-ubuntu-generic.sh)
@@ -59,7 +60,7 @@ On Ubuntu, an install script is available with each [release](https://github.com
 $ ./semgrep-v0.10.1-ubuntu-generic.sh
 ```
 
-To try Semgrep without installation, you can also run it via [Docker](https://docs.docker.com/install/):
+To try Semgrep without installation, you can also run it via Docker:
 
 ```
 $ docker run --rm -v "${PWD}:/home/repo" returntocorp/semgrep --help
