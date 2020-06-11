@@ -1,17 +1,31 @@
+import contextlib
 import json
+import sys
+from pathlib import Path
 from typing import Any
 from typing import Dict
 from typing import FrozenSet
+from typing import Generator
+from typing import IO
 from typing import Iterator
 from typing import List
+from typing import NamedTuple
 from typing import Optional
 
 import colorama
 
+from semgrep import config_resolver
 from semgrep.constants import __VERSION__
 from semgrep.constants import OutputFormat
+from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
+from semgrep.error import FATAL_EXIT_CODE
+from semgrep.error import SemgrepError
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
+from semgrep.util import debug_print
+from semgrep.util import is_url
+from semgrep.util import print_error
+from semgrep.util import print_msg
 
 
 def color_line(
@@ -173,3 +187,178 @@ def build_output(
     else:
         # https://github.com/python/mypy/issues/6366
         raise RuntimeError(f"Unhandled output format: {type(output_format).__name__}")
+
+
+class OutputSettings(NamedTuple):
+    output_format: OutputFormat
+    output_destination: Optional[str]
+    quiet: bool
+    error_on_findings: bool
+
+
+@contextlib.contextmanager
+def managed_output(output_settings: OutputSettings) -> Generator:  # type: ignore
+    handler = OutputHandler(output_settings)
+    try:
+        yield handler
+    except Exception as ex:
+        handler.handle_unhandled_exception(ex)
+    finally:
+        exit_code = handler.close()
+        sys.exit(exit_code)
+
+
+class OutputHandler:
+    """
+    Handle all output in a central location. Rather than calling `print_error` directly,
+    you should call `handle_*` as appropriate.
+
+    In normal usage, it should be constructed via the contextmanager, `managed_output`. It ensures that everything
+    is handled properly if exceptions are thrown.
+
+    If you need to stop execution immediately (think carefully if you really want this!), throw an exception.
+    If this is normal behavior, the exception _must_ inherit from `SemgrepError`.
+
+    If you want execution to continue, _report_ the exception via the appropriate `handle_*` method.
+    """
+
+    def __init__(
+        self,
+        output_settings: OutputSettings,
+        stderr: IO = sys.stderr,
+        stdout: IO = sys.stdout,
+    ):
+        self.settings = output_settings
+        self.stderr = stderr
+        self.stdout = stdout
+
+        self.rule_matches: List[RuleMatch] = []
+        self.debug_steps_by_rule: Dict[Rule, List[Dict[str, Any]]] = {}
+        self.rules: FrozenSet[Rule] = frozenset()
+        self.semgrep_core_errors: List[Dict[str, Any]] = []
+        self.semgrep_rule_errors: List[SemgrepError] = []
+        self.has_output = False
+
+        self.exit_code = 0
+        self.final_error: Optional[Exception] = None
+
+    def handle_semgrep_core_errors(self, semgrep_errors: List[Dict[str, Any]]) -> None:
+        """
+        Report errors coming directly from semgrep-core (raw JSON objects)
+        """
+        self.semgrep_core_errors += semgrep_errors
+        if self.settings.output_format == OutputFormat.TEXT:
+            for error in semgrep_errors:
+                print_error(pretty_error(error))
+
+    def handle_semgrep_rule_errors(self, error: SemgrepError) -> None:
+        """
+        Report parse errors from semgrep rules. Either:
+        - when the pattern fails to parse in semgrep-core
+        - when the YAML or YAML structure is invalid
+        """
+        self.semgrep_rule_errors.append(error)
+        self._output_exception(error)
+
+    def handle_semgrep_core_output(
+        self,
+        rule_matches_by_rule: Dict[Rule, List[RuleMatch]],
+        debug_steps_by_rule: Dict[Rule, List[Dict[str, Any]]],
+    ) -> None:
+        self.has_output = True
+        self.rules = self.rules.union(rule_matches_by_rule.keys())
+        self.rule_matches += [
+            match
+            for matches_of_one_rule in rule_matches_by_rule.values()
+            for match in matches_of_one_rule
+        ]
+
+        self.debug_steps_by_rule.update(debug_steps_by_rule)
+
+    def handle_unhandled_exception(self, ex: Exception) -> None:
+        """
+        This is called by the context manager upon an unhandled exception. If you want to record a final
+        error & set the exit code, but keep executing to perform cleanup tasks, call this method.
+        """
+        if isinstance(ex, SemgrepError):
+            self.exit_code = ex.code
+        else:
+            self.exit_code = FATAL_EXIT_CODE
+        self.final_error = ex
+
+    def _output_exception(self, ex: Exception) -> None:
+        if isinstance(ex, SemgrepError):
+            print_error(str(ex))
+        else:
+            # If it isn't a known SemgrepError, bail hard.
+            print_error(PLEASE_FILE_ISSUE_TEXT)
+            raise ex
+
+    def close(self) -> int:
+        """
+        Close the output handler.
+
+        This will write any output that hasn't been written so far. It returns
+        the exit code of the program.
+        """
+        # TODO: incorporate final_error into JSON output (https://github.com/returntocorp/semgrep/issues/746)
+        if self.final_error:
+            self._output_exception(self.final_error)
+
+        if self.has_output:
+            output = build_output(
+                self.rule_matches,
+                self.debug_steps_by_rule,
+                self.rules,
+                self.semgrep_core_errors,
+                self.settings.output_format,
+                self.settings.output_destination is None,
+            )
+            if not self.settings.quiet and output:
+                print(output, file=self.stdout)
+
+            if self.settings.output_destination:
+                self.save_output(self.settings.output_destination, output)
+
+        return self.exit_code
+
+    @classmethod
+    def save_output(cls, destination: str, output: str) -> None:
+        if is_url(destination):
+            cls.post_output(destination, output)
+        else:
+            if Path(destination).is_absolute():
+                save_path = Path(destination)
+            else:
+                base_path = config_resolver.get_base_path()
+                save_path = base_path.joinpath(destination)
+            # create the folders if not exists
+            save_path.parent.mkdir(parents=True, exist_ok=True)
+            with save_path.open(mode="w") as fout:
+                fout.write(output)
+
+    @classmethod
+    def post_output(cls, output_url: str, output: str) -> None:
+        import requests  # here for faster startup times
+
+        print_msg(f"posting to {output_url}...")
+        try:
+            r = requests.post(output_url, data=output, timeout=10)
+            debug_print(f"posted to {output_url} and got status_code:{r.status_code}")
+        except requests.exceptions.Timeout:
+            raise SemgrepError(f"posting output to {output_url} timed out")
+
+
+def pretty_error(error: Dict[str, Any]) -> str:
+    try:
+        if {"path", "start", "end", "extra"}.difference(error.keys()) == set():
+            header = f"{error['extra']['message']}\n--> {error['path']}:{error['start']['line']}"
+            line_1 = error["extra"]["line"]
+            start_col = error["start"]["col"]
+            line_2 = " " * (start_col - 1) + "^"
+            line_3 = f"= note: If the code is correct, this could be a semgrep bug -- please help us fix this by filing an an issue at https://semgrep.dev"
+            return "\n".join([header, line_1, line_2, line_3])
+        else:
+            return f"semgrep-core error: {json.dumps(error, indent=2)}"
+    except KeyError:
+        return f"semgrep-core error: {json.dumps(error, indent=2)}"

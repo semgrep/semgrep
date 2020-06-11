@@ -13,6 +13,7 @@ import argparse
 import collections
 import json
 import sys
+from io import StringIO
 from pathlib import Path
 from typing import Any
 from typing import Dict
@@ -20,7 +21,10 @@ from typing import List
 from typing import Set
 from typing import Tuple
 
+from semgrep.constants import OutputFormat
 from semgrep.constants import YML_EXTENSIONS
+from semgrep.output import OutputHandler
+from semgrep.output import OutputSettings
 from semgrep.semgrep_main import main as semgrepmain
 from semgrep.util import debug_print
 
@@ -170,29 +174,35 @@ def confusion_matrix_to_string(confusion: List[int]) -> str:
 def invoke_semgrep(
     strict: bool, test_files: List[Path], config: Path, unsafe: bool
 ) -> Any:
-    return json.loads(
-        semgrepmain(
-            target=[str(t) for t in test_files],
-            pattern="",
-            lang="",
-            config=str(config),
-            no_rewrite_rule_ids=True,
-            jobs=1,
-            include=[],
-            include_dir=[],
-            exclude=[],
-            exclude_dir=[],
-            json_format=True,
-            debugging_json=False,
-            sarif=False,
-            output_destination="",
-            quiet=True,
-            strict=strict,
-            exit_on_error=False,
-            autofix=False,
-            dangerously_allow_arbitrary_code_execution_from_rules=unsafe,
-        )
+    io_capture = StringIO()
+    output_handler = OutputHandler(
+        OutputSettings(
+            output_format=OutputFormat.JSON,
+            output_destination=None,
+            quiet=False,
+            error_on_findings=False,
+        ),
+        stdout=io_capture,
     )
+    semgrepmain(
+        output_handler=output_handler,
+        target=[str(t) for t in test_files],
+        pattern="",
+        lang="",
+        config=str(config),
+        no_rewrite_rule_ids=True,
+        jobs=1,
+        include=[],
+        include_dir=[],
+        exclude=[],
+        exclude_dir=[],
+        strict=strict,
+        autofix=False,
+        dangerously_allow_arbitrary_code_execution_from_rules=unsafe,
+    )
+    code = output_handler.close()
+    assert code == 0
+    return json.loads(io_capture.getvalue())
 
 
 def generate_file_pairs(
