@@ -38,7 +38,7 @@ Semgrep is a simple and highly customizable [command-line](#installation) and [o
 
 Semgrep combines the convenience and rapid iteration speed of `grep`, but is "code-aware"; you can easily match function calls, class or method definitions, and more with simple patterns. See [Installation](#installation) and [Usage](#usage) to get started.
 
-# Motivation
+## Motivation
 
 Semgrep exists because:
 
@@ -47,6 +47,26 @@ Semgrep exists because:
 3. `grep` isn’t expressive enough and traditional static analysis tools (SAST) are too complicated/slow for paved road automation
 
 The AppSec, Developer, and DevOps community deserves a static analysis tool that is fast, easy to use, code-aware, multi-lingual, and open source!
+
+## Installation
+
+On macOS, binaries are available via [Homebrew](https://formulae.brew.sh/formula/semgrep):
+
+```bash
+$ brew install returntocorp/semgrep/semgrep
+```
+
+On Ubuntu, an install script is available with each [release](https://github.com/returntocorp/semgrep/releases/download/v0.10.1/semgrep-v0.10.1-ubuntu-generic.sh)
+
+```bash
+$ ./semgrep-v0.10.1-ubuntu-generic.sh
+```
+
+To try Semgrep without installation, you can also run it via [Docker](https://docs.docker.com/install/):
+
+```
+$ docker run --rm -v "${PWD}:/home/repo" returntocorp/semgrep --help
+``` 
 
 ## Overview
 
@@ -135,25 +155,6 @@ More example patterns:
 
 For more info on what you can do in patterns, see the [pattern features
 docs](docs/pattern-features.md).
-
-## Installation
-
-On macOS, binaries are available via [Homebrew](https://formulae.brew.sh/formula/semgrep):
-
-```bash
-$ brew install returntocorp/semgrep/semgrep
-```
-
-On Ubuntu, an install script is available on each release [here](https://github.com/returntocorp/semgrep/releases/download/v0.10.1/semgrep-v0.10.1-ubuntu-generic.sh)
-```bash
-./semgrep-v0.10.1-ubuntu-generic.sh
-```
-
-To try Semgrep without installation, you can also run it via [Docker](https://docs.docker.com/install/):
-
-```
-$ docker run --rm -v "${PWD}:/home/repo" returntocorp/semgrep --help
-```
 
 ## Terminology
 
