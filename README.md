@@ -41,14 +41,14 @@
   </a>
 </p>
 
-Semgrep is a simple and flexible [command-line](#installation) and [online](https://semgrep.live/) tool for static analysis. Use pre-built or custom rules to enforce code and security standards in your codebase.
+Semgrep is a [command-line](#installation) tool for offline static analysis. Use pre-built or custom rules to enforce code and security standards in your codebase. You can try it now with our [interactive live editor](https://semgrep.live/).
 
-Semgrep combines the convenient and iterative style of `grep` with the powerful features of an Abstract Syntax Tree (AST) matcher. Easily find function calls, class or method definitions, and more without having to understand ASTs or wrestle with regexes.
+Semgrep combines the convenient and iterative style of `grep` with the powerful features of an Abstract Syntax Tree (AST) matcher and limited dataflow. Easily find function calls, class or method definitions, and more without having to understand ASTs or wrestle with regexes.
 
 Visit [Installation](#installation) and [Usage](#usage) to get started.
 
 ## Installation
-> Want to skip installation? You can run Semgrep online via [semgrep.live](https://semgrep.live/).
+> Want to skip installation? You can run Semgrep via a live editor at [semgrep.live](https://semgrep.live/).
 
 On macOS, binaries are available via Homebrew:
 
@@ -78,7 +78,7 @@ Semgrep exists because:
 2. The future of security involves automatically guiding developers towards a “paved road” made of default-safe frameworks (i.e. [React](https://reactjs.org/) or Object-relational Mappers)
 3. `grep` isn’t expressive enough and traditional static analysis tools (SAST) are too complicated/slow for paved road automation
 
-The AppSec, Developer, and DevOps community deserves a static analysis tool that is fast, easy to use, code-aware, multi-lingual, and open source!
+The AppSec, Developer, and DevOps communities deserves a static analysis tool that is fast, easy to use, code-aware, multi-lingual, and open source!
 
 ## Overview
 
@@ -97,7 +97,7 @@ Semgrep is optimized for:
 |:-----------|:---------------|:----------------------------|:----------------|:----------------------------------|:---------|:---------------|:----------------------|
 | ✅          | ✅              | ✅                           | ✅               | ✅                                 | 🚧 |  Coming...      | Coming...             |
 
-Missing support for a language? Let us know by filing a ticket or emailing [support@r2c.dev](mailto:support@rc2.dev?subject=Language%20Support:).
+Missing support for a language? Let us know by filing a ticket, joining our Slack, or emailing [support@r2c.dev](mailto:support@rc2.dev?subject=Language%20Support:).
 
 ### Pattern Syntax Teaser
 
