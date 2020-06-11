@@ -184,3 +184,7 @@ class ErrorWithSpan(SemgrepError):
 
 class NotGitProjectError(SemgrepError):
     pass
+
+
+class UnknownLanguageError(SemgrepError):
+    pass

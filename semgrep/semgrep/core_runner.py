@@ -30,6 +30,7 @@ from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.semgrep_types import BooleanRuleExpression
 from semgrep.semgrep_types import OPERATORS
+from semgrep.target_manager import TargetManager
 from semgrep.util import debug_print
 from semgrep.util import partition
 
@@ -113,20 +114,10 @@ class CoreRunner:
     """
 
     def __init__(
-        self,
-        allow_exec: bool,
-        jobs: int,
-        exclude: List[str],
-        include: List[str],
-        exclude_dir: List[str],
-        include_dir: List[str],
+        self, allow_exec: bool, jobs: int,
     ):
         self._allow_exec = allow_exec
         self._jobs = jobs
-        self._exclude = exclude
-        self._include = include
-        self._exclude_dir = exclude_dir
-        self._include_dir = include_dir
 
     def _flatten_rule_patterns(self, rules: List[Rule]) -> Iterator[Pattern]:
         """
@@ -200,7 +191,7 @@ class CoreRunner:
         fp.flush()
 
     def _run_rule(
-        self, rule: Rule, targets: List[Path]
+        self, rule: Rule, target_manager: TargetManager
     ) -> Tuple[List[RuleMatch], List[Dict[str, Any]], List[Any]]:
         """
             Run all rules on targets and return list of all places that match patterns, ... todo errors
@@ -216,6 +207,12 @@ class CoreRunner:
             for language, all_patterns_for_language in self._group_patterns_by_language(
                 [rule]
             ).items():
+                targets = target_manager.get_files(
+                    language, rule.includes, rule.excludes
+                )
+                if targets == []:
+                    continue
+
                 # semgrep-core doesn't know about OPERATORS.REGEX - this is
                 # strictly a semgrep Python feature. Regex filtering is
                 # performed purely in Python code then compared against
@@ -225,7 +222,6 @@ class CoreRunner:
                     all_patterns_for_language,
                 )
                 if patterns_regex:
-                    filepaths = get_target_files(targets, self._exclude, self._include)
                     patterns_json = [pattern.to_json() for pattern in patterns_regex]
 
                     try:
@@ -240,7 +236,7 @@ class CoreRunner:
 
                     re_fn = functools.partial(get_re_matches, patterns_re)
                     with multiprocessing.Pool(self._jobs) as pool:
-                        matches = pool.map(re_fn, filepaths)
+                        matches = pool.map(re_fn, targets)
 
                     outputs.extend(
                         single_match
@@ -264,7 +260,7 @@ class CoreRunner:
                     if equivalences:
                         cmd += ["-equivalences", equiv_fout.name]
                     cmd += ["-j", str(self._jobs)]
-                    cmd += [*self.targeting_options, *[str(path) for path in targets]]
+                    cmd += [str(path) for path in targets]
 
                     debug_print(f"Running semgrep... '{cmd}'")
                     core_run = subprocess.run(
@@ -309,8 +305,6 @@ class CoreRunner:
         debugging_steps: List[Any] = []
         for rule, paths in by_rule_index.items():
             for filepath, pattern_matches in paths.items():
-                if not rule.globs.match_path(filepath):
-                    continue
                 debug_print(f"----- rule ({rule.id}) ----- filepath: {filepath}")
 
                 findings_for_rule, debugging_steps = evaluate(
@@ -324,7 +318,7 @@ class CoreRunner:
         return findings, debugging_steps, errors
 
     def _run_rules(
-        self, rules: List[Rule], target: List[Path]
+        self, rules: List[Rule], target_manager: TargetManager
     ) -> Tuple[
         Dict[Rule, List[RuleMatch]], Dict[Rule, List[Dict[str, Any]]], List[Any]
     ]:
@@ -333,7 +327,7 @@ class CoreRunner:
         all_errors = []
 
         for rule in rules:
-            rule_matches, debugging_steps, errors = self._run_rule(rule, target)
+            rule_matches, debugging_steps, errors = self._run_rule(rule, target_manager)
             findings_by_rule[rule] = rule_matches
             debugging_steps_by_rule[rule] = debugging_steps
             all_errors.extend(errors)
@@ -351,23 +345,8 @@ class CoreRunner:
 
         return findings_by_rule, debugging_steps_by_rule
 
-    @property
-    def targeting_options(self) -> Iterator[str]:
-        """
-            Yields include/exclude CLI options to call semgrep-core with.
-            This is based on the arguments given to semgrep.
-        """
-        for pattern in self._exclude:
-            yield from ["-exclude", pattern]
-        for pattern in self._include:
-            yield from ["-include", pattern]
-        for pattern in self._exclude_dir:
-            yield from ["-exclude-dir", pattern]
-        for pattern in self._include_dir:
-            yield from ["-include-dir", pattern]
-
     def invoke_semgrep(
-        self, targets: List[Path], rules: List[Rule]
+        self, target_manager: TargetManager, rules: List[Rule]
     ) -> Tuple[
         Dict[Rule, List[RuleMatch]], Dict[Rule, List[Dict[str, Any]]], List[Any]
     ]:
@@ -376,7 +355,9 @@ class CoreRunner:
         """
         start = datetime.now()
 
-        findings_by_rule, debug_steps_by_rule, errors = self._run_rules(rules, targets)
+        findings_by_rule, debug_steps_by_rule, errors = self._run_rules(
+            rules, target_manager
+        )
 
         debug_print(f"semgrep ran in {datetime.now() - start}")
 
