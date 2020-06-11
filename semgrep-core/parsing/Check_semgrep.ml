@@ -7,7 +7,7 @@ let lang_has_no_dollar_ids = Lang.(function
   | Java
   | Go
   | C
-  | ML
+  | OCaml
   -> true
   | Javascript
   -> false)

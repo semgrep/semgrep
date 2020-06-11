@@ -125,34 +125,40 @@ let regression_tests_for_lang files lang =
 (*s: constant [[Test.lang_regression_tests]] *)
 let lang_regression_tests = 
  "lang regression testing" >::: [
-  "sgrep Python" >::: (
+  "semgrep Python" >::: (
     let dir = Filename.concat tests_path "python" in
     let files = Common2.glob (spf "%s/*.py" dir) in
     let lang = Lang.Python in
     regression_tests_for_lang files lang
   );
-  "sgrep Javascript" >::: (
+  "semgrep Javascript" >::: (
     let dir = Filename.concat tests_path "js" in
     let files = Common2.glob (spf "%s/*.js" dir) in
     let lang = Lang.Javascript in
     regression_tests_for_lang files lang
   );
-  "sgrep Java" >::: (
+  "semgrep Java" >::: (
     let dir = Filename.concat tests_path "java" in
     let files = Common2.glob (spf "%s/*.java" dir) in
     let lang = Lang.Java in
     regression_tests_for_lang files lang
   );
-  "sgrep C" >::: (
+  "semgrep C" >::: (
     let dir = Filename.concat tests_path "c" in
     let files = Common2.glob (spf "%s/*.c" dir) in
     let lang = Lang.C in
     regression_tests_for_lang files lang
   );
-  "sgrep Go" >::: (
+  "semgrep Go" >::: (
     let dir = Filename.concat tests_path "go" in
     let files = Common2.glob (spf "%s/*.go" dir) in
     let lang = Lang.Go in
+    regression_tests_for_lang files lang
+  );
+  "semgrep OCaml" >::: (
+    let dir = Filename.concat tests_path "ocaml" in
+    let files = Common2.glob (spf "%s/*.ml" dir) in
+    let lang = Lang.OCaml in
     regression_tests_for_lang files lang
   );
  ]
