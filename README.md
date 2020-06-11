@@ -166,13 +166,6 @@ More example patterns:
 For more info on what you can do in patterns, see the [pattern features
 docs](docs/pattern-features.md).
 
-## Terminology
-
-A **rule** (or *check*) is a Semgrep pattern that can be used to find source code of interest.
-
-A **rule pack** (or *check pack*) is a collection of Semgrep rules bundled
-together. For example, "Here are a bunch of Java checks I want to run."
-
 ## Usage
 
 Generally when you're using Semgrep you're going to be doing one of three things:
