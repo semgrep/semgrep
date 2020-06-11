@@ -1,15 +1,14 @@
 <p align="center">
     <img src="semgrep.svg" height="100" alt="Semgrep logo"/>
 </p>
-
 <h3 align="center">
   Fast and customizable static analysis for many languages. Find code matches the way you'd write them.
 </h3>
 
 <p align="center">
-  <a href="#overview">Overview</a>
-  <span> · </span>
   <a href="#installation">Installation</a>
+  <span> · </span>
+  <a href="#overview">Overview</a>
   <span> · </span>
   <a href="#usage">Usage</a>
   <br/>
@@ -20,21 +19,30 @@
   <a href="#commercial-support">Commercial Support</a>
 </p>
 
-![Homebrew](https://github.com/returntocorp/homebrew-semgrep/workflows/homebrew/badge.svg)
-[![r2c Community Slack](https://img.shields.io/badge/r2c_slack-join-brightgreen?style=flat&logo=slack&labelColor=4A154B)](https://join.slack.com/t/r2c-community/shared_invite/enQtNjU0NDYzMjAwODY4LWE3NTg1MGNhYTAwMzk5ZGRhMjQ2MzVhNGJiZjI1ZWQ0NjQ2YWI4ZGY3OGViMGJjNzA4ODQ3MjEzOWExNjZlNTA)
-[![r2c Twitter](https://img.shields.io/twitter/follow/r2cdev?label=Follow%20r2cdev&style=social&color=blue)](https://twitter.com/intent/follow?screen_name=r2cdev)
+<p align="center">
+  <a href="https://formulae.brew.sh/formula/semgrep">
+    <img src="https://img.shields.io/homebrew/v/semgrep?style=flat-square" alt="Homebrew" />
+  </a>
+  <a href="https://pypi.org/project/semgrep/">
+    <img alt="PyPI" src="https://img.shields.io/pypi/v/semgrep?style=flat-square&color=blue">
+  </a>
+  <a href="https://r2c.dev/slack">
+    <img src="https://img.shields.io/badge/issues-welcome-green?style=flat-square" alt="Issues welcome!" />
+  </a>
+  <a href="https://twitter.com/intent/follow?screen_name=r2cdev">
+    <img src="https://img.shields.io/twitter/follow/r2cdev?label=Follow%20r2cdev&style=social&color=blue" alt="Follow @r2cdev" />
+  </a>
+</p>
 
-Semgrep is a tool for easily detecting and preventing bugs and anti-patterns
+Semgrep is a command-line tool for easily detecting and preventing bugs and anti-patterns
 in your codebase. It combines the convenience and rapid iteration speed of
 `grep`, but is "code-aware"; that is, you can easily match function calls, class
 or method definitions, and more.
 
-## Motivation
-
 We're building Semgrep because:
-* It’s hard to write secure code
-* We believe the future of security is guiding developers to a “paved road” made of default-safe frameworks (i.e. React or ORMs)
-* `grep` isn’t expressive enough, while traditional static analysis tools (SAST) are too complicated/slow for enforcement
+1. It’s hard to write secure code
+2. We believe the future of security is guiding developers to a “paved road” made of default-safe frameworks (i.e. React or ORMs)
+3. `grep` isn’t expressive enough, while traditional static analysis tools (SAST) are too complicated/slow for enforcement
 
 We need a tool that is fast, easy to use, code-aware, multi-lingual, and open
 source!
