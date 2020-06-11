@@ -1,6 +1,8 @@
+running 2 rules...
 Syntax error
 --> targets/bad/invalid_python.py:1
 def foo(a)
           ^
 = note: If the code is correct, this could be a semgrep bug -- please help us fix this by filing an an issue at https://semgrep.dev
+semgrep found no results.
 run with --strict and 1 errors occurred during semgrep run; exiting
