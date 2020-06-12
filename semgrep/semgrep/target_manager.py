@@ -65,7 +65,8 @@ class TargetManager:
             for target in targets
         )
 
-    def _parse_output(self, output: str, curr_dir: Path) -> Set[Path]:
+    @staticmethod
+    def _parse_output(output: str, curr_dir: Path) -> Set[Path]:
         """
             Convert a newline delimited list of files to a set of path objects
             prepends curr_dir to all paths in said list
@@ -77,7 +78,10 @@ class TargetManager:
             files = set(Path(curr_dir) / elem for elem in output.strip().split("\n"))
         return files
 
-    def _expand_dir(self, curr_dir: Path, language: str) -> Set[Path]:
+    @staticmethod
+    def _expand_dir(
+        curr_dir: Path, language: str, visible_to_git_only: bool
+    ) -> Set[Path]:
         """
             Recursively go through a directory and return list of all files with
             default file extention of language
@@ -86,7 +90,7 @@ class TargetManager:
         expanded: Set[Path] = set()
 
         for ext in extensions:
-            if self._visible_to_git_only:
+            if visible_to_git_only:
                 try:
                     # Tracked files
                     tracked_output = subprocess.check_output(
@@ -114,8 +118,10 @@ class TargetManager:
                         f"{curr_dir.resolve()} is not a git repository."
                     )
 
-                tracked = self._parse_output(tracked_output, curr_dir)
-                untracked_unignored = self._parse_output(untracked_output, curr_dir)
+                tracked = TargetManager._parse_output(tracked_output, curr_dir)
+                untracked_unignored = TargetManager._parse_output(
+                    untracked_output, curr_dir
+                )
 
                 expanded = expanded.union(tracked)
                 expanded = expanded.union(untracked_unignored)
@@ -129,12 +135,15 @@ class TargetManager:
                 )
 
                 # Note find already gives paths relative to pwd so no need to prepend curr_dir
-                ext_files = self._parse_output(output.stdout, Path("."))
+                ext_files = TargetManager._parse_output(output.stdout, Path("."))
                 expanded = expanded.union(ext_files)
 
         return expanded
 
-    def expand_targets(self, targets: Set[Path], lang: str) -> Set[Path]:
+    @staticmethod
+    def expand_targets(
+        targets: Set[Path], lang: str, visible_to_git_only: bool
+    ) -> Set[Path]:
         """
             Explore all directories. Remove duplicates
         """
@@ -144,7 +153,9 @@ class TargetManager:
                 continue
 
             if target.is_dir():
-                expanded.update(self._expand_dir(target, lang))
+                expanded.update(
+                    TargetManager._expand_dir(target, lang, visible_to_git_only)
+                )
             else:
                 expanded.add(target)
 
@@ -188,7 +199,7 @@ class TargetManager:
 
         targets = self.resolve_targets(self._targets)
         explicit_files, directories = partition_set(lambda p: not p.is_dir(), targets)
-        targets = self.expand_targets(directories, lang)
+        targets = self.expand_targets(directories, lang, self._visible_to_git_only)
         targets = self.filter_includes(targets, self._includes)
         targets = self.filter_excludes(targets, self._excludes)
 
