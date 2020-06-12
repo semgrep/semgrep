@@ -173,14 +173,28 @@ def load_config_from_local_path(
     raise Exception
 
 
+def nice_semgrep_url(url: str) -> str:
+    """
+    Alters semgrep.live urls to let user
+    click through to the nice display page instead
+    of raw YAML.
+    Replaces '/c/' in semgrep urls with '/'.
+    """
+    import urllib
+
+    parsed = urllib.parse.urlparse(url)
+    if "semgrep.live" in parsed.netloc and parsed.path.startswith("/c"):
+        return url.replace("/c/", "/")
+    return url
+
+
 def download_config(config_url: str) -> Dict[str, Optional[YamlTree]]:
     import requests  # here for faster startup times
 
     DOWNLOADING_MESSAGE = f"downloading config..."
-    SCANNING_MESSAGE = "scanning code...\033[K"
     debug_print(f"trying to download from {config_url}")
     print_msg(
-        f"using config from {config_url}. Visit https://semgrep.live/registry to see all public rules."
+        f"using config from {nice_semgrep_url(config_url)}. Visit https://semgrep.live/registry to see all public rules."
     )
     print_msg(DOWNLOADING_MESSAGE, end="\r")
     headers = {"User-Agent": SEMGREP_USER_AGENT}
@@ -197,7 +211,6 @@ def download_config(config_url: str) -> Dict[str, Optional[YamlTree]]:
                 "text/vnd.yaml",
             ]
             if content_type and any((ct in content_type for ct in yaml_types)):
-                print_msg(SCANNING_MESSAGE)
                 return parse_config_string(
                     "remote-url", r.content.decode("utf-8"), filename=None
                 )
