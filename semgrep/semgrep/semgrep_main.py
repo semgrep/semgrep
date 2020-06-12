@@ -24,6 +24,7 @@ from semgrep.semgrep_types import YAML_ALL_VALID_RULE_KEYS
 from semgrep.semgrep_types import YAML_MUST_HAVE_KEYS
 from semgrep.util import debug_print
 from semgrep.util import print_error
+from semgrep.util import print_msg
 
 MISSING_RULE_ID = "no-rule-id"
 
@@ -190,6 +191,43 @@ def flatten_configs(transformed_configs: Dict[str, List[Rule]]) -> List[Rule]:
     return [rule for rules in transformed_configs.values() for rule in rules]
 
 
+def notify_user_of_work(
+    all_rules: List[Rule],
+    include: List[str],
+    include_dir: List[str],
+    exclude: List[str],
+    exclude_dir: List[str],
+    verbose: bool = False,
+) -> None:
+    """
+    Notify user of what semgrep is about to do, including:
+    - number of rules
+    - which rules? <- not yet, too cluttered
+    - which dirs are excluded, etc.
+    """
+    if include:
+        print_msg(f"including files:")
+        for inc in include:
+            print_msg(f"- {inc}")
+    if include_dir:
+        print_msg(f"including directories:")
+        for inc in include_dir:
+            print_msg(f"- {inc}")
+    if exclude:
+        print_msg(f"excluding files:")
+        for exc in exclude:
+            print_msg(f"- {exc}")
+    if exclude_dir:
+        print_msg(f"excluding directories:")
+        for exc in exclude_dir:
+            print_msg(f"- {exc}")
+    print_msg(f"running {len(all_rules)} rules...")
+    if verbose:
+        print_msg("rules:")
+        for rule in all_rules:
+            print_msg(f"- {rule.id}")
+
+
 def main(
     output_handler: OutputHandler,
     target: List[str],
@@ -236,6 +274,8 @@ def main(
         debug_print(
             f"running {len(all_rules)} rules from {len(valid_configs)} config{plural} {config_id_if_single} {invalid_msg}"
         )
+
+        notify_user_of_work(all_rules, include, include_dir, exclude, exclude_dir)
 
         if len(valid_configs) == 0:
             raise SemgrepError(
