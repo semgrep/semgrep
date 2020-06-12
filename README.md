@@ -142,54 +142,6 @@ One of the most unique and useful things about Semgrep is how easy it is to writ
 
 The goal is to make it as *easy as possible* to go from an idea in your head to finding the code patterns you intend to.
 
-**Example**: Say you want to find all calls to a function named `exec`, and you don't care about the arguments. With Semgrep, you could simply supply the pattern `exec(...)` and you'd match:
-
-~~~python
-# Simple cases grep finds
-exec("ls")
-exec(some_var)
-
-# But you don't have to worry about whitespace
-exec (foo)
-
-# Or calls across multiple lines
-exec (
-    bar
-)
-~~~
-
-Importantly, Semgrep would *not* match the following:
-
-~~~python
-# grep would match this, but Semgrep ignores it because
-# it doesn't have the right function name
-other_exec(bar)
-
-# Semgrep ignores commented out lines
-# exec(foo)
-
-# and hard-coded strings
-print("exec(bar)")
-~~~
-
-Semgrep will even match aliased imports:
-
-~~~python
-# Semgrep knows that safe_function refers to exec so it
-# will still match!
-#   Oof, try finding this with grep
-import exec as safe_function
-safe_function(tricksy)
-~~~
-
-Play with this example in your browser [here](https://semgrep.live/QrkD), or copy the above code into a file locally (`exec.py`) and run:
-
-~~~python
-$ semgrep -l python -e "exec(...)" /path/to/exec.py
-~~~
-
-More example patterns:
-
 | **Pattern**                                                        | **Matches**                                                |
 |:-------------------------------------------------------------------|:-----------------------------------------------------------|
 | [`$X == $X`](https://semgrep.live/20B)                             | `if (node.id == node.id): ...`                             |
@@ -342,13 +294,11 @@ You can play with this transaction example here: https://semgrep.live/4b4g.
 
 ### Run Semgrep Continously in CI
 
-Semgrep can be run via CLI or Docker and output results as JSON (via the `--json` flag), so it can be inserted into any CI pipeline and have its results processed by whatever tools you're using.
+Many integrations already exist and are documented in [docs/integrations.md](docs/integrations.md).
 
-Semgrep is aware of *diffs*, so it can report only findings that occur in newly added code, for example, in a commit or pull request.
+Semgrep provides a CLI, binaries, and Docker images to be portable and easily consumed across environments. It supports JSON output with the `--json` flag and the standardized Static Analysis Results Interchange Format ([SARIF](https://docs.oasis-open.org/sarif/sarif/v2.1.0/cs01/sarif-v2.1.0-cs01.html)) with the `--sarif` flag.
 
-Currently, the easiest way to integrate Semgrep into CI is via a GitHub action we've built. See the [integrations docs](docs/integrations.md) for more details.
-
-Semgrep can also output results in the standardized Static Analysis Results Interchange Format ([SARIF](https://docs.oasis-open.org/sarif/sarif/v2.1.0/cs01/sarif-v2.1.0-cs01.html)) with the `--sarif` flag, if you use tools that accept this format.
+The easiest way to integrate Semgrep into GitHub hosted projects is with the [Semgrep GitHub Action](https://github.com/marketplace/actions/semgrep-action). This action is configured to only report issues *newly* introduced by a pull request, not pre-existing issues. This significantly increases the liklihood people fix the issues they're shown in CI. 
 
 ## Resources
 
