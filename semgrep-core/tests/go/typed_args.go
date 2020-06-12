@@ -5,7 +5,7 @@ func bar() {
     var y, z int = 2, 4
     var d bool = true
 
-    //TODO maybe we want this one to be caught
+    //ERROR:
     foo(1, d)
 
     //ERROR:

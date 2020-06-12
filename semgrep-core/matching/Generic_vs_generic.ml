@@ -844,15 +844,22 @@ and m_list__m_xml_attr
 
 and m_compatible_type matching t e =
   match t, e with
+  (* for python literal checking *)
   | A.OtherType (A.OT_Expr, [A.E (A.Id (("int", _tok), _idinfo))]),
     B.L (B.Int _) -> envf matching (B.E e)
   | A.OtherType (A.OT_Expr, [A.E (A.Id (("float", _tok), _idinfo))]),
     B.L (B.Float _) -> envf matching (B.E e)
   | A.OtherType (A.OT_Expr, [A.E (A.Id (("str", _tok), _idinfo))]),
     B.L (B.String _) -> envf matching (B.E e)
+  (* for java literals *)
   | A.TyBuiltin (("int", _)),  B.L (B.Int _) -> envf matching (B.E e)
   | A.TyBuiltin (("float", _)),  B.L (B.Float _) -> envf matching (B.E e)
   | A.TyName (("String", _), _), B.L (B.String _) -> envf matching (B.E e)
+  (* for java literals *)
+  | A.TyName (("int", _), _), B.L (B.Int _) -> envf matching (B.E e)
+  | A.TyName (("float", _), _), B.L (B.Float _) -> envf matching (B.E e)
+  | A.TyName (("str", _), _), B.L (B.String _) -> envf matching (B.E e)
+  (* for matching ids *)
   | t1, B.Id (_, {B.id_type; _}) ->
       (match !id_type with Some (t2) -> m_type_ t1 t2
                          | _ -> fail ())
