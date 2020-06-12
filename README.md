@@ -51,23 +51,22 @@ For example, to audit for all calls to `exec` in your Python codebase, run:
 $ semgrep -e 'exec(...)' --lang py .
 ```
 
-This will match on code like the following:
+This matches on code like the following:
 
 ```py
-# Simple cases grep finds
-exec("ls")
+# Semgrep matches simple cases that grep also finds
 exec(some_var)
 
-# But you don't have to worry about whitespace
+# Semgrep also matches code with whitespace that grep misses
 exec (foo)
 
-# Or calls across multiple lines
+# And Semgrep matches calls across multiple lines that grep also misses
 exec (
     bar
 )
 ```
 
-A multi-pattern YAML syntax then let's you combine simple patterns using boolean logic to create powerful rules for continuous scanning:
+A multi-pattern YAML syntax then lets you combine simple patterns using boolean logic to create powerful rules for continuous scanning:
 
 ```yaml
 id: flask-insecure-cookie
@@ -78,9 +77,10 @@ message: |
   Flask cookies should be handled securely by setting `secure=True`, `httponly=True`, and `samesite='Lax'`.
 ```
 
-Learn more about this rule on the [Live Editor](https://semgrep.live/JDeR) or visit [Installation](#installation) and [Usage](#usage) to get started.
+Learn more about this rule on the [live editor](https://semgrep.live/JDeR) or visit [Installation](#installation) and [Usage](#usage) to get started.
 
 ## Installation
+
 > Want to skip installation? You can run Semgrep online via [semgrep.live](https://semgrep.live/).
 
 On macOS, binaries are available via Homebrew:
@@ -89,7 +89,7 @@ On macOS, binaries are available via Homebrew:
 $ brew install semgrep
 ```
 
-On Ubuntu, an install script is available with each [release](https://github.com/returntocorp/semgrep/releases/download/v0.10.1/semgrep-v0.10.1-ubuntu-generic.sh)
+On Ubuntu, an install script is available with each [release](https://github.com/returntocorp/semgrep/releases/download/v0.10.1/semgrep-v0.10.1-ubuntu-generic.sh):
 
 ```bash
 $ ./semgrep-v0.10.1-ubuntu-generic.sh
@@ -99,7 +99,7 @@ To try Semgrep without installation, you can also run it via Docker:
 
 ```
 $ docker run --rm -v "${PWD}:/home/repo" returntocorp/semgrep --help
-``` 
+```
 
 See [Usage](#usage) to learn about running pre-built rules and writing custom ones.
 
@@ -121,26 +121,25 @@ Semgrep and its concepts are not new. They began as a Facebook project called sg
 
 Semgrep is optimized for:
 
-* **Speed**: Fast enough to run on every build, commit, or file save
-* **Finding bugs that matter**: Run your own specialized rules or choose OWASP 10 checks from the [Semgrep Registry](https://semgrep.live/r). Rules match source code at the Abstract Syntax Tree (AST) level, unlike regexes that match strings and aren't semantically aware.
-* **Ease of customization**: Rules look like the code you’re searching, no static analysis PhD required. They don't require compiled code, only source, reducing iteration time.
-* **Ease of integration**. Highly portable and many CI and git-hook integrations already exist. Output `--json` and pipe results into your existing systems.
-* **Polyglot environments**: Don't learn and maintain multiple tools for your polyglot environment (e.g. ESLint, find-sec-bugs, RuboCop, Gosec). Use the same syntax and concepts independent of language.
-
+- **Speed**: Fast enough to run on every build, commit, or file save
+- **Finding bugs that matter**: Run your own specialized rules or choose OWASP 10 checks from the [Semgrep Registry](https://semgrep.live/r). Rules match source code at the Abstract Syntax Tree (AST) level, unlike regexes that match strings and aren't semantically aware.
+- **Ease of customization**: Rules look like the code you’re searching, no static analysis PhD required. They don't require compiled code, only source, reducing iteration time.
+- **Ease of integration**. Highly portable and many CI and git-hook integrations already exist. Output `--json` and pipe results into your existing systems.
+- **Polyglot environments**: Don't learn and maintain multiple tools for your polyglot environment (e.g. ESLint, find-sec-bugs, RuboCop, Gosec). Use the same syntax and concepts independent of language.
 
 ### Language Support
 
 | **Python** | **JavaScript** | **Go &nbsp; &nbsp; &nbsp;** | **Java &nbsp;** | **C &nbsp; &nbsp; &nbsp; &nbsp;** | **Ruby** | **TypeScript** | **PHP &nbsp; &nbsp;** |
-|:-----------|:---------------|:----------------------------|:----------------|:----------------------------------|:---------|:---------------|:----------------------|
-| ✅          | ✅              | ✅                           | ✅               | ✅                                 | 🚧 |  Coming...      | Coming...             |
+| :--------- | :------------- | :-------------------------- | :-------------- | :-------------------------------- | :------- | :------------- | :-------------------- |
+| ✅         | ✅             | ✅                          | ✅              | ✅                                | 🚧       | Coming...      | Coming...             |
 
-Missing support for a language? Let us know by filing a ticket or emailing [support@r2c.dev](mailto:support@rc2.dev?subject=Language%20Support:).
+Missing support for a language? Let us know by [filing a ticket](https://github.com/returntocorp/semgrep/issues/new/choose) or emailing [support@r2c.dev](mailto:support@rc2.dev?subject=Language%20Support:).
 
 ### Pattern Syntax Teaser
 
 One of the most unique and useful things about Semgrep is how easy it is to write and iterate on queries.
 
-The goal is to make it as *easy as possible* to go from an idea in your head to finding the code patterns you intend to.
+The goal is to make it as _easy as possible_ to go from an idea in your head to finding the code patterns you intend to.
 
 | **Pattern**                                                        | **Matches**                                                |
 |:-------------------------------------------------------------------|:-----------------------------------------------------------|
@@ -159,9 +158,9 @@ docs](docs/pattern-features.md).
 
 Semgrep supports three primary workflows:
 
-* Run pre-built rules
-* Writing custom rules
-* Run Semgrep continously in CI
+- Run pre-built rules
+- Writing custom rules
+- Run Semgrep continously in CI
 
 The following sections cover each in more detail.
 
@@ -204,23 +203,25 @@ $ semgrep --config=https://semgrep.live/c/r/java.spring.security
 All public Semgrep rules can be viewed on the [Registry](https://semgrep.live/r), which pulls the rules from YAML files defined in the [semgrep-rules](https://github.com/returntocorp/semgrep-rules) GitHub repo.
 
 Here are some sample vulnerable repos to test on:
-* Django: [lets-be-bad-guys](https://github.com/mpirnat/lets-be-bad-guys), [django.nV](https://github.com/nVisium/django.nV)
-* Flask: [Vulnerable-Flask-App](https://github.com/we45/Vulnerable-Flask-App)
-* Java: [WebGoat](https://github.com/WebGoat/WebGoat), [OWASP Benchmark](https://github.com/OWASP/Benchmark)
-* NodeJS: [OWASP Juice Shop](https://github.com/bkimminich/juice-shop), [DevSlop Pixi](https://github.com/DevSlop/Pixi)
-* Golang: [GoVWA](https://github.com/0c34/govwa)
+
+- Django: [lets-be-bad-guys](https://github.com/mpirnat/lets-be-bad-guys), [django.nV](https://github.com/nVisium/django.nV)
+- Flask: [Vulnerable-Flask-App](https://github.com/we45/Vulnerable-Flask-App)
+- Java: [WebGoat](https://github.com/WebGoat/WebGoat), [OWASP Benchmark](https://github.com/OWASP/Benchmark)
+- NodeJS: [OWASP Juice Shop](https://github.com/bkimminich/juice-shop), [DevSlop Pixi](https://github.com/DevSlop/Pixi)
+- Golang: [GoVWA](https://github.com/0c34/govwa)
 
 ### Writing Custom Rules
 
 One of the strengths of Semgrep is how easy it is to write rules.
 
 This makes it possible to:
-* Quickly port rules from other tools.
-* Think of an interesting code pattern, and then find instances of it in your
-    code.
-* Find code base or org-specific bugs and antipatterns - things that built-in
-    checks for existing tools won't find because they're unique to you.
-* and more!
+
+- Quickly port rules from other tools.
+- Think of an interesting code pattern, and then find instances of it in your
+  code.
+- Find code base or org-specific bugs and antipatterns - things that built-in
+  checks for existing tools won't find because they're unique to you.
+- and more!
 
 #### Simple Rules
 
@@ -240,6 +241,7 @@ Some rules need more than one line of pattern to express. Sometimes you want to 
 For these cases, Semgrep has a more powerful and flexible [YAML syntax](docs/configuration-files.md).
 
 You can run a single rule or directory of rules specified in YAML by:
+
 ```bash
 $ semgrep --config my_rule.yml path/to/dir_or_file
 
@@ -254,32 +256,32 @@ You can express this behavior with the following Semgrep YAML pattern:
 
 ```yaml
 rules:
-- id: find-unverified-transactions
-  patterns:
-    - pattern: |
-        public $RETURN $METHOD(...){
-            ...
-            make_transaction($T);
-            ...
-        }
-    - pattern-not: |
-        public $RETURN $METHOD(...){
-            ...
-            verify_transaction($T);
-            ...
-            make_transaction($T);
-            ...
-        }
-  message: |
-    In $METHOD, there's a call to make_transaction() without first calling verify_transaction() on the Transaction object.
+  - id: find-unverified-transactions
+    patterns:
+      - pattern: |
+          public $RETURN $METHOD(...){
+              ...
+              make_transaction($T);
+              ...
+          }
+      - pattern-not: |
+          public $RETURN $METHOD(...){
+              ...
+              verify_transaction($T);
+              ...
+              make_transaction($T);
+              ...
+          }
+    message: |
+      In $METHOD, there's a call to make_transaction() without first calling verify_transaction() on the Transaction object.
 ```
 
-* `$RETURN`, `$METHOD`, and `$T` are *metavariables*, an abstraction that Semgrep provides when you want to match something but you don't know exactly what it is ahead of time.
-  * You can think of *metavariables* like a [capture group](https://regexone.com/lesson/capturing_groups) in regular expressions.
-* The `pattern` clause defines what we're looking for: any method that calls `make_transaction()`.
-* The `pattern-not` clause *filters out* matches we don't want; in this case, methods where a transaction (`$T`) is passed to `verify_transaction()` before `make_transaction()`.
-* The `message` is what's returned in Semgrep output, either to STDOUT or as a comment on the pull request on GitHub or other systems.
-  * Note that *metavariables* can be used to customize messages and make them
+- `$RETURN`, `$METHOD`, and `$T` are _metavariables_, an abstraction that Semgrep provides when you want to match something but you don't know exactly what it is ahead of time.
+  - You can think of _metavariables_ like a [capture group](https://regexone.com/lesson/capturing_groups) in regular expressions.
+- The `pattern` clause defines what we're looking for: any method that calls `make_transaction()`.
+- The `pattern-not` clause _filters out_ matches we don't want; in this case, methods where a transaction (`$T`) is passed to `verify_transaction()` before `make_transaction()`.
+- The `message` is what's returned in Semgrep output, either to STDOUT or as a comment on the pull request on GitHub or other systems.
+  - Note that _metavariables_ can be used to customize messages and make them
     contextually relevant. Here we're helpfully telling the user the method
     where we've identified the bug.
 
@@ -287,9 +289,9 @@ You can play with this transaction example here: https://semgrep.live/4b4g.
 
 **Learn More**
 
-* See the [pattern features docs](docs/pattern-features.md) for more info and
+- See the [pattern features docs](docs/pattern-features.md) for more info and
   examples on the flexibility and power of Semgrep patterns.
-* See the [YAML configuration file docs](docs/configuration-files.md) for
+- See the [YAML configuration file docs](docs/configuration-files.md) for
   details on all of the keys that can be used and how they work.
 
 ### Run Semgrep Continously in CI
@@ -303,13 +305,15 @@ The easiest way to integrate Semgrep into GitHub hosted projects is with the [Se
 ## Resources
 
 Learn more:
-* [Semgrep presentation](https://www.youtube.com/watch?v=pul1bRIOYc8) and [slides](https://web-assets.r2c.dev/presentations/r2c-semgrep-OWASP-BayArea-21-May-2020.pdf) from the Bay Area OWASP meetup. 
-* Check out the [r2c YouTube channel](https://www.youtube.com/channel/UC5ahcFBorwzUTqPipFhjkWg) for more videos.
-* More detailed [Semgrep docs](docs/README.md)
+
+- [Semgrep presentation](https://www.youtube.com/watch?v=pul1bRIOYc8) and [slides](https://web-assets.r2c.dev/presentations/r2c-semgrep-OWASP-BayArea-21-May-2020.pdf) from the Bay Area OWASP meetup.
+- Check out the [r2c YouTube channel](https://www.youtube.com/channel/UC5ahcFBorwzUTqPipFhjkWg) for more videos.
+- More detailed [Semgrep docs](docs/README.md)
 
 Get in touch:
-* Submit a [bug report](https://github.com/returntocorp/semgrep/issues)
-* Join our [community Slack](https://join.slack.com/t/r2c-community/shared_invite/enQtNjU0NDYzMjAwODY4LWE3NTg1MGNhYTAwMzk5ZGRhMjQ2MzVhNGJiZjI1ZWQ0NjQ2YWI4ZGY3OGViMGJjNzA4ODQ3MjEzOWExNjZlNTA) to say "hi" or ask questions
+
+- Submit a [bug report](https://github.com/returntocorp/semgrep/issues)
+- Join our [community Slack](https://join.slack.com/t/r2c-community/shared_invite/enQtNjU0NDYzMjAwODY4LWE3NTg1MGNhYTAwMzk5ZGRhMjQ2MzVhNGJiZjI1ZWQ0NjQ2YWI4ZGY3OGViMGJjNzA4ODQ3MjEzOWExNjZlNTA) to say "hi" or ask questions
 
 ## Contributing
 
