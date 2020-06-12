@@ -850,6 +850,9 @@ and m_compatible_type matching t e =
     B.L (B.Float _) -> envf matching (B.E e)
   | A.OtherType (A.OT_Expr, [A.E (A.Id (("str", _tok), _idinfo))]),
     B.L (B.String _) -> envf matching (B.E e)
+  | A.TyBuiltin (("int", _)),  B.L (B.Int _) -> envf matching (B.E e)
+  | A.TyBuiltin (("float", _)),  B.L (B.Float _) -> envf matching (B.E e)
+  | A.TyName (("String", _), _), B.L (B.String _) -> envf matching (B.E e)
   | t1, B.Id (_, {B.id_type; _}) ->
       (match !id_type with Some (t2) -> m_type_ t1 t2
                          | _ -> fail ())
