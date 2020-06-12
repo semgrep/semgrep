@@ -257,6 +257,10 @@ and m_ident_and_id_info_add_in_env_Expr (a1, a2) (b1, b2) =
   | (a, b) -> (m_wrap m_string) a b
 (*e: function [[Generic_vs_generic.m_ident_and_id_info_add_in_env_Expr]] *)
 
+and m_ident_and_empty_id_info_add_in_env_Expr a1 b1 =
+  let empty = AST.empty_id_info () in
+  m_ident_and_id_info_add_in_env_Expr (a1, empty) (b1, empty)
+
 (*s: function [[Generic_vs_generic.m_id_info]] *)
 and m_id_info a b =
   match a, b with
@@ -2220,13 +2224,15 @@ and m_directive_basic a b =
   | A.ImportFrom(a0, a1, a2, a3), B.ImportFrom(b0, b1, b2, b3) ->
     m_tok a0 b0 >>= (fun () ->
     m_module_name_prefix a1 b1 >>= (fun () ->
-    m_ident a2 b2 >>= (fun () ->
-    (m_option_none_can_match_some m_ident) a3 b3
+    m_ident_and_empty_id_info_add_in_env_Expr a2 b2 >>= (fun () ->
+    (m_option_none_can_match_some m_ident_and_empty_id_info_add_in_env_Expr)
+                  a3 b3
     )))
   | A.ImportAs(a0, a1, a2), B.ImportAs(b0, b1, b2) ->
     m_tok a0 b0 >>= (fun () ->
     m_module_name_prefix a1 b1 >>= (fun () ->
-    (m_option_none_can_match_some m_ident) a2 b2
+    (m_option_none_can_match_some m_ident_and_empty_id_info_add_in_env_Expr)
+              a2 b2
     ))
   | A.ImportAll(a0, a1, a2), B.ImportAll(b0, b1, b2) ->
     m_tok a0 b0 >>= (fun () ->

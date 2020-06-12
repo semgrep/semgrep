@@ -1,0 +1,3 @@
+import { $X } from 'dependency';
+...
+$X(...);
