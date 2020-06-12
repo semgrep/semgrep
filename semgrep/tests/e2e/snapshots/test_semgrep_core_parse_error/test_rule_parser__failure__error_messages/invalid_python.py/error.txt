@@ -1,3 +1,4 @@
+running 2 rules...
 Syntax error
 --> targets/bad/invalid_python.py:1
 def foo(a)

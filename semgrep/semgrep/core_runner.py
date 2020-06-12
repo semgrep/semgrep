@@ -275,6 +275,7 @@ class CoreRunner:
                     cmd += ["-j", str(self._jobs)]
                     cmd += [*self.targeting_options, *[str(path) for path in targets]]
 
+                    debug_print(f"Running semgrep... '{cmd}'")
                     core_run = subprocess.run(
                         cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
                     )
