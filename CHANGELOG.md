@@ -2,10 +2,22 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## Latest
+
+### Added
+- Support for another programming language: OCaml. You can now write 
+  OCaml semgrep patterns with -lang ocaml
+
+## [0.10.1](https://github.com/returntocorp/semgrep/releases/tag/v0.10.1) - 2020-06-10
 
 ### Fixed
 - Value of `pattern_id` when using nested pattern operators [#828](https://github.com/returntocorp/semgrep/issues/828)
+- `...` now works inside for loops in javascript
+- Metavariable
+- Infinite loop in python [#923](https://github.com/returntocorp/semgrep/issues/923)
+- Treat field definition (`{x: 1}`) differently from assignment (`{x = 1}`)
+- Support triple-quoted f-strings in python
+- Fix ubuntu build error [#965](https://github.com/returntocorp/semgrep/pull/965)
 
 ## [0.10.0](https://github.com/returntocorp/semgrep/releases/tag/v0.10.0) - 2020-06-09
 
