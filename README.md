@@ -67,18 +67,18 @@ exec (
 )
 ```
 
-A multi-pattern YAML syntax let's you combine simple patterns using boolean logic to create powerful rules:
+A multi-pattern YAML syntax then let's you combine simple patterns using boolean logic to create powerful rules for continuous scanning:
 
 ```yaml
 id: flask-insecure-cookie
 patterns:
   - pattern: flask.response.set_cookie(...)
-  - pattern-not: flask.response.set_cookie(..., httponly=True, secure=True, ...)
+  - pattern-not: flask.response.set_cookie(..., httponly=True, secure=True, samesite='Lax', ...)
 message: |
   Flask cookies should be handled securely by setting `secure=True`, `httponly=True`, and `samesite='Lax'`.
 ```
 
-Visit [Installation](#installation) and [Usage](#usage) to learn more and get started.
+Learn more about this rule on the [Live Editor](https://semgrep.live/JDeR) or visit [Installation](#installation) and [Usage](#usage) to get started.
 
 ## Installation
 > Want to skip installation? You can run Semgrep online via [semgrep.live](https://semgrep.live/).
