@@ -72,7 +72,7 @@ def finding_to_line(rule_match: RuleMatch, color_output: bool) -> Iterator[str]:
 
 
 def build_normal_output(
-    rule_matches: List[RuleMatch], semgrep_errors: List[Any], color_output: bool
+    rule_matches: List[RuleMatch], color_output: bool
 ) -> Iterator[str]:
     RESET_COLOR = colorama.Style.RESET_ALL if color_output else ""
     GREEN_COLOR = colorama.Fore.GREEN if color_output else ""
@@ -120,6 +120,7 @@ def build_normal_output(
 def build_output_json(
     rule_matches: List[RuleMatch],
     semgrep_errors: List[Any],
+    structured_errors: List[SemgrepError],
     debug_steps_by_rule: Optional[Dict[Rule, List[Dict[str, Any]]]] = None,
 ) -> str:
     # wrap errors under "data" entry to be compatible with
@@ -133,6 +134,8 @@ def build_output_json(
     output_json["errors"] = [
         {"data": e, "message": "SemgrepCoreRuntimeErrors"} for e in semgrep_errors
     ]
+
+    output_json["structured_errors"] = [err.to_dict() for err in structured_errors]
     return json.dumps(output_json)
 
 
@@ -140,9 +143,7 @@ def _sarif_tool_info() -> Dict[str, Any]:
     return {"name": "semgrep", "semanticVersion": __VERSION__}
 
 
-def build_sarif_output(
-    rule_matches: List[RuleMatch], rules: FrozenSet[Rule], semgrep_errors: List[Any]
-) -> str:
+def build_sarif_output(rule_matches: List[RuleMatch], rules: FrozenSet[Rule]) -> str:
     """
     Format matches in SARIF v2.1.0 formatted JSON.
 
@@ -162,29 +163,6 @@ def build_sarif_output(
         "results": [match.to_sarif() for match in rule_matches],
     }
     return json.dumps(output_dict)
-
-
-def build_output(
-    rule_matches: List[RuleMatch],
-    debug_steps_by_rule: Dict[Rule, List[Dict[str, Any]]],
-    rules: FrozenSet[Rule],
-    semgrep_errors: List[Any],
-    output_format: OutputFormat,
-    color_output: bool,
-) -> str:
-    if output_format == OutputFormat.JSON_DEBUG:
-        return build_output_json(rule_matches, semgrep_errors, debug_steps_by_rule)
-    if output_format == OutputFormat.JSON:
-        return build_output_json(rule_matches, semgrep_errors)
-    elif output_format == OutputFormat.SARIF:
-        return build_sarif_output(rule_matches, rules, semgrep_errors)
-    elif output_format == OutputFormat.TEXT:
-        return "\n".join(
-            build_normal_output(rule_matches, semgrep_errors, color_output)
-        )
-    else:
-        # https://github.com/python/mypy/issues/6366
-        raise RuntimeError(f"Unhandled output format: {type(output_format).__name__}")
 
 
 class OutputSettings(NamedTuple):
@@ -256,6 +234,7 @@ class OutputHandler:
         - when the pattern fails to parse in semgrep-core
         - when the YAML or YAML structure is invalid
         """
+        self.has_output = True
         self.semgrep_rule_errors.append(error)
         print_error(str(error))
 
@@ -289,14 +268,7 @@ class OutputHandler:
         the exit code of the program.
         """
         if self.has_output:
-            output = build_output(
-                self.rule_matches,
-                self.debug_steps_by_rule,
-                self.rules,
-                self.semgrep_core_errors,
-                self.settings.output_format,
-                self.settings.output_destination is None,
-            )
+            output = self.build_output(self.settings.output_destination is None,)
             if not self.settings.quiet and output:
                 print(output, file=self.stdout)
 
@@ -308,6 +280,30 @@ class OutputHandler:
             if isinstance(self.final_error, SemgrepError):
                 print_error(str(self.final_error))
             raise self.final_error
+
+    def build_output(self, color_output: bool) -> str:
+        output_format = self.settings.output_format
+        debug_info = (
+            self.debug_steps_by_rule
+            if output_format == OutputFormat.JSON_DEBUG
+            else None
+        )
+        if output_format in {OutputFormat.JSON_DEBUG, OutputFormat.JSON}:
+            return build_output_json(
+                self.rule_matches,
+                self.semgrep_core_errors,
+                self.semgrep_rule_errors,
+                debug_info,
+            )
+        elif output_format == OutputFormat.SARIF:
+            return build_sarif_output(self.rule_matches, self.rules)
+        elif output_format == OutputFormat.TEXT:
+            return "\n".join(build_normal_output(self.rule_matches, color_output))
+        else:
+            # https://github.com/python/mypy/issues/6366
+            raise RuntimeError(
+                f"Unhandled output format: {type(output_format).__name__}"
+            )
 
     @classmethod
     def save_output(cls, destination: str, output: str) -> None:

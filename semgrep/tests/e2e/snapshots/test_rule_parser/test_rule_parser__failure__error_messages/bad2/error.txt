@@ -1,3 +1,4 @@
+{"results": [], "errors": [], "structured_errors": [{"type": "RuleLangError", "short_msg": "extra top-level key", "long_msg": "rules/syntax/bad2.yaml has an invalid top-level rule key: ['pattern-inside']", "level": "error", "help": "Only ['equivalences', 'fix', 'id', 'languages', 'message', 'metadata', 'paths', 'pattern', 'pattern-either', 'pattern-regex', 'patterns', 'severity'] are valid keys", "spans": [{"start": {"line": 3, "col": 5}, "end": {"line": 3, "col": 19}, "source_hash": "6ebef770ea281e5e811acfd1d5b219adb3a0ae87f6613ae0a8cfc593ad126dd2", "file": "rules/syntax/bad2.yaml", "context_start": {"line": 1, "col": 0}, "context_end": {"line": 5, "col": 0}}]}]}
 error: extra top-level key
   --> rules/syntax/bad2.yaml:3
 1 | rules:

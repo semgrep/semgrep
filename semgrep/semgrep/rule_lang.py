@@ -2,12 +2,14 @@ import hashlib
 from io import StringIO
 from typing import Any
 from typing import Dict
+from typing import Generic
 from typing import List
-from typing import NamedTuple
 from typing import NewType
 from typing import Optional
+from typing import TypeVar
 from typing import Union
 
+import attr
 from ruamel.yaml import Node
 from ruamel.yaml import RoundTripConstructor
 from ruamel.yaml import YAML
@@ -44,7 +46,8 @@ class SourceTracker:
         return SourceFileHash(hashlib.sha256(contents).hexdigest())
 
 
-class Position(NamedTuple):
+@attr.s(auto_attribs=True, frozen=True)
+class Position:
     """
     Position within a file.
     :param line: 1-indexed line number
@@ -54,19 +57,20 @@ class Position(NamedTuple):
     """
 
     line: int
-    column: int
+    col: int
 
     def next_line(self) -> "Position":
-        return self._replace(line=self.line + 1)
+        return attr.evolve(self, line=self.line + 1)
 
     def previous_line(self) -> "Position":
-        return self._replace(line=self.line - 1)
+        return attr.evolve(self, line=self.line - 1)
 
     def __repr__(self) -> str:
-        return f"<{self.__class__.__name__} line={self.line} column={self.column}>"
+        return f"<{self.__class__.__name__} line={self.line} col={self.col}>"
 
 
-class Span(NamedTuple):
+@attr.s(auto_attribs=True, frozen=True)
+class Span:
     """
     Spans are immutable objects, representing segments of code. They have a central focus area, and
     optionally can contain surrounding context.
@@ -83,10 +87,8 @@ class Span(NamedTuple):
     def from_node(
         cls, node: Node, source_hash: SourceFileHash, filename: Optional[str]
     ) -> "Span":
-        start = Position(
-            line=node.start_mark.line + 1, column=node.start_mark.column + 1
-        )
-        end = Position(line=node.end_mark.line + 1, column=node.end_mark.column + 1)
+        start = Position(line=node.start_mark.line + 1, col=node.start_mark.column + 1)
+        end = Position(line=node.end_mark.line + 1, col=node.end_mark.column + 1)
         return Span(start=start, end=end, file=filename, source_hash=source_hash)
 
     def truncate(self, lines: int) -> "Span":
@@ -96,8 +98,10 @@ class Span(NamedTuple):
         - end_context is removed
         """
         if self.end.line - self.start.line > lines:
-            return self._replace(
-                end=Position(line=self.start.line + lines, column=0), context_end=None
+            return attr.evolve(
+                self,
+                end=Position(line=self.start.line + lines, col=0),
+                context_end=None,
             )
         return self
 
@@ -109,24 +113,23 @@ class Span(NamedTuple):
         """
         new = self
         if before is not None:
-            new = new._replace(
-                context_start=Position(column=0, line=max(0, self.start.line - before))
+            new = attr.evolve(
+                new,
+                context_start=Position(col=0, line=max(0, self.start.line - before)),
             )
 
         if after is not None:
-            new = new._replace(
+            new = attr.evolve(
+                new,
                 context_end=Position(
-                    column=0,
+                    col=0,
                     line=min(
                         len(SourceTracker.source(self.source_hash)),
                         self.end.line + after,
                     ),
-                )
+                ),
             )
         return new
-
-    def as_dict(self) -> Dict[str, Any]:
-        return dict(start=self.start._asdict(), end=self.end._asdict(), file=self.file)
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} start={self.start} end={self.end}>"
@@ -136,11 +139,17 @@ class Span(NamedTuple):
 YamlValue = Union[str, int, List[Any], Dict[str, Any]]
 LocatedYamlValue = Union[str, int, List["YamlTree"], Dict["YamlTree", "YamlTree"]]
 
+T = TypeVar("T")
 
-class YamlTree:
+
+class YamlTree(Generic[T]):
     def __init__(self, value: LocatedYamlValue, span: Span):
-        self.value = value
+        self._value = value
         self.span = span
+
+    @property
+    def value(self) -> T:
+        return self._value  # type: ignore
 
     # __eq__ and _hash__ delegate to value to support `value['a']` working properly.
     # otherwise, since the key is _actually_ a `Located` object you'd need to give the
@@ -154,6 +163,15 @@ class YamlTree:
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} span={self.span} value={self.value}>"
 
+    def unroll_str(self) -> str:
+        ret = self.unroll()
+
+        if not isinstance(ret, str):
+            raise ValueError(
+                f"unroll_dict called but object was actually {type(ret).__name__}"
+            )
+        return ret
+
     def unroll_dict(self) -> Dict[str, Any]:
         """
         Helper wrapper mostly for mypy when you know it contains a dictionary
@@ -165,21 +183,21 @@ class YamlTree:
             )
         return ret
 
-    def unroll(self) -> YamlValue:
+    def unroll(self) -> T:
         """
         Recursively expand the `self.value`, converting back to a normal datastructure
         """
         if isinstance(self.value, list):
-            return [x.unroll() for x in self.value]
+            return [x.unroll() for x in self.value]  # type: ignore
         elif isinstance(self.value, dict):
-            return {str(k.unroll()): v.unroll() for k, v in self.value.items()}
+            return {str(k.unroll()): v.unroll() for k, v in self.value.items()}  # type: ignore
         elif isinstance(self.value, YamlTree):
-            return self.value.unroll()
+            return self.value.unroll()  # type: ignore
         else:
             return self.value
 
     @classmethod
-    def wrap(cls, value: YamlValue, span: Span) -> "YamlTree":
+    def wrap(cls, value: YamlValue, span: Span) -> "YamlTree":  # type: ignore
         """
         Wraps a value in a YamlTree and attaches the span everywhere.
         This exists so you can take generate a datastructure from user input, but track all the errors within that

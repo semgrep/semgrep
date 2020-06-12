@@ -1,4 +1,8 @@
 running 1 rules...
-non-zero return code while invoking semgrep-core:
-	invalid pattern "$X == $X 3": Parsing.Parse_error
-An error occurred while invoking the semgrep engine; please help us fix this by creating an issue at https://semgrep.dev
+error: invalid pattern
+  --> rules/syntax/badpattern.yaml:4
+4 |       - pattern: $X == $X 3
+  |                  ^^^^^^^^^^
+
+Pattern could not be parsed as Python
+

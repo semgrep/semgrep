@@ -1,6 +1,9 @@
+from typing import Any
+from typing import Dict
 from typing import List
 from typing import Optional
 
+import attr
 from colorama import Fore
 
 from semgrep.rule_lang import Position
@@ -32,6 +35,17 @@ class SemgrepError(Exception):
         self.code = code
 
         super().__init__(*args)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {"type": self.__class__.__name__, **self.to_dict_base()}
+
+    def to_dict_base(self) -> Dict[str, Any]:
+        """
+        Default implementation. Subclasses should override to provide custom information.
+
+        All values returned must be JSON serializable.
+        """
+        return {"message": str(self), "code": self.code}
 
 
 class InvalidRuleSchemaError(SemgrepError):
@@ -89,6 +103,15 @@ class ErrorWithSpan(SemgrepError):
         self.spans = spans
         self.help = help
         self.__cause__ = cause
+
+    def to_dict_base(self) -> Dict[str, Any]:
+        return dict(
+            short_msg=self.short_msg,
+            long_msg=self.long_msg,
+            level=self.level,
+            help=self.help,
+            spans=[attr.asdict(s) for s in self.spans],
+        )
 
     @staticmethod
     def _line_number_width(span: Span) -> int:
@@ -160,12 +183,10 @@ class ErrorWithSpan(SemgrepError):
             snippet += self._format_code_segment(span.start, span.end, source, span)
             # Currently, only span highlighting if it's a one line span
             if span.start.line == span.end.line:
-                error = with_color(
-                    Fore.RED, (span.end.column - span.start.column) * "^"
-                )
+                error = with_color(Fore.RED, (span.end.col - span.start.col) * "^")
                 snippet.append(
                     self._format_line_number(span, None)
-                    + " " * span.start.column
+                    + " " * (span.start.col - 1)
                     + error
                 )
             if span.context_end:
@@ -188,3 +209,7 @@ class NotGitProjectError(SemgrepError):
 
 class UnknownLanguageError(SemgrepError):
     pass
+
+
+class RuleLangError(ErrorWithSpan):
+    code = INVALID_PATTERN_EXIT_CODE

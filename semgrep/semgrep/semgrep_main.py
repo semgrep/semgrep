@@ -11,11 +11,11 @@ from semgrep.autofix import apply_fixes
 from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import RULES_KEY
 from semgrep.core_runner import CoreRunner
-from semgrep.error import ErrorWithSpan
 from semgrep.error import INVALID_CODE_EXIT_CODE
 from semgrep.error import InvalidPatternNameError
 from semgrep.error import InvalidRuleSchemaError
 from semgrep.error import MISSING_CONFIG_EXIT_CODE
+from semgrep.error import RuleLangError
 from semgrep.error import SemgrepError
 from semgrep.output import OutputHandler
 from semgrep.rule import Rule
@@ -37,7 +37,7 @@ def validate_single_rule(
         Validate that a rule dictionary contains all necessary keys
         and can be correctly parsed
     """
-    rule: Dict[str, Any] = rule_yaml.value  # type: ignore
+    rule: Dict[str, Any] = rule_yaml.value
     rule_id_err_msg = f'{rule.get("id", MISSING_RULE_ID).unroll()}'
     rule_keys = set(rule.keys())
     if not rule_keys.issuperset(YAML_MUST_HAVE_KEYS):
@@ -45,7 +45,7 @@ def validate_single_rule(
         # TODO(https://github.com/returntocorp/semgrep/issues/746): return the error messages instead of
         #  immediately printing them so we can emit nice JSON errors to semgrep.live
         output_handler.handle_semgrep_rule_errors(
-            ErrorWithSpan(
+            RuleLangError(
                 short_msg="missing keys",
                 long_msg=f"{config_id} is missing required keys {missing_keys}",
                 level="error",
@@ -57,7 +57,7 @@ def validate_single_rule(
         extra_keys: Set[YamlTree] = rule_keys - YAML_ALL_VALID_RULE_KEYS  # type: ignore
 
         output_handler.handle_semgrep_rule_errors(
-            ErrorWithSpan(
+            RuleLangError(
                 short_msg="extra top-level key",
                 long_msg=f"{config_id} has an invalid top-level rule key: {[k.unroll() for k in extra_keys]}",
                 help=f"Only {sorted(YAML_ALL_VALID_RULE_KEYS)} are valid keys",
@@ -95,10 +95,10 @@ def validate_configs(
             print_error(f"{config_id} was not a mapping")
             errors[config_id] = config_yaml_tree.unroll()
             continue
-        rules = config.get(RULES_KEY)  # type: ignore
+        rules = config.get(RULES_KEY)
         if rules is None:
             output_handler.handle_semgrep_rule_errors(
-                ErrorWithSpan(
+                RuleLangError(
                     short_msg="missing keys",
                     long_msg=f"{config_id} is missing `{RULES_KEY}` as top-level key",
                     level="error",
@@ -289,7 +289,9 @@ def main(
 
     # actually invoke semgrep
     rule_matches_by_rule, debug_steps_by_rule, semgrep_errors = CoreRunner(
-        allow_exec=dangerously_allow_arbitrary_code_execution_from_rules, jobs=jobs,
+        allow_exec=dangerously_allow_arbitrary_code_execution_from_rules,
+        jobs=jobs,
+        output_handler=output_handler,
     ).invoke_semgrep(target_manager, all_rules)
 
     output_handler.handle_semgrep_core_output(rule_matches_by_rule, debug_steps_by_rule)

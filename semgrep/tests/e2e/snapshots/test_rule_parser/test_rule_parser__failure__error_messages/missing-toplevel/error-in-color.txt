@@ -1,3 +1,4 @@
+{"results": [], "errors": [], "structured_errors": [{"type": "RuleLangError", "short_msg": "missing keys", "long_msg": "rules/syntax/missing-toplevel.yaml is missing `rules` as top-level key", "level": "error", "help": null, "spans": [{"start": {"line": 2, "col": 1}, "end": {"line": 7, "col": 0}, "source_hash": "c72a97211dabcaa3065612fb9c52d6a344855414a6d9f1eb5adea4305d4c47da", "file": "rules/syntax/missing-toplevel.yaml", "context_start": null, "context_end": null}]}]}
 [31merror[39m: missing keys
   --> rules/syntax/missing-toplevel.yaml:2
 [94m2 | [39mrule:

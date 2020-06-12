@@ -38,15 +38,18 @@ def test_rule_parser__failure(run_semgrep_in_tmp, snapshot, filename):
         "invalid",
         "missing-toplevel",
         "missing-field",
+        "badlanguage",
     ],
 )
 def test_rule_parser__failure__error_messages(run_semgrep_in_tmp, snapshot, filename):
     with pytest.raises(CalledProcessError) as excinfo:
-        run_semgrep_in_tmp(f"rules/syntax/{filename}.yaml", stderr=True)
+        run_semgrep_in_tmp(
+            f"rules/syntax/{filename}.yaml", stderr=True,
+        )
 
     with pytest.raises(CalledProcessError) as excinfo_in_color:
         run_semgrep_in_tmp(
-            f"rules/syntax/{filename}.yaml", options=["--force-color"], stderr=True
+            f"rules/syntax/{filename}.yaml", options=["--force-color"], stderr=True,
         )
     snapshot.assert_match(excinfo.value.output, "error.txt")
 

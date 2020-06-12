@@ -1,3 +1,4 @@
+{"results": [], "errors": [], "structured_errors": [{"type": "RuleLangError", "short_msg": "missing keys", "long_msg": "rules/syntax/missing-field.yaml is missing required keys {'severity'}", "level": "error", "help": null, "spans": [{"start": {"line": 3, "col": 3}, "end": {"line": 8, "col": 0}, "source_hash": "52c8055ff5d4555128113f2ad1b4f03c1227c339ee9b6992d9bbc18548d4e645", "file": "rules/syntax/missing-field.yaml", "context_start": null, "context_end": null}]}]}
 error: missing keys
   --> rules/syntax/missing-field.yaml:3
 3 | - id: flask-secure-set-cookie

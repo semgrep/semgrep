@@ -80,6 +80,8 @@ def _run_semgrep(
     elif output_format == "sarif":
         options.append("--sarif")
 
+    # helpful for debugging failed tests
+    print("Semgrep run with options: ", options)
     output = subprocess.check_output(
         ["python3", "-m", "semgrep", *options, Path("targets") / target_name],
         encoding="utf-8",

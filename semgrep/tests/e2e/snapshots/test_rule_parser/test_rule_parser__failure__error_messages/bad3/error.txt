@@ -1,2 +1,3 @@
+{"results": [], "errors": [], "structured_errors": [{"type": "SemgrepError", "message": "rules/syntax/bad3.yaml: inside rule id test-pattern, pattern fields can't look like this: type of `pattern` must be a string, but it was a list", "code": 2}]}
 rules/syntax/bad3.yaml: inside rule id test-pattern, pattern fields can't look like this: type of `pattern` must be a string, but it was a list
 run with --strict and there were 1 errors loading configs

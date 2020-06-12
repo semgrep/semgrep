@@ -1,2 +1,3 @@
+{"results": [], "errors": [], "structured_errors": [{"type": "SemgrepError", "message": "rules/syntax/bad1.yaml: inside rule id eqeq-is-bad, pattern fields can't look like this: operand pattern-inside must be a string, but instead was list", "code": 2}]}
 rules/syntax/bad1.yaml: inside rule id eqeq-is-bad, pattern fields can't look like this: operand pattern-inside must be a string, but instead was list
 run with --strict and there were 1 errors loading configs

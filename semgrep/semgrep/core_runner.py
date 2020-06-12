@@ -20,10 +20,12 @@ from ruamel.yaml import YAML
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import SEMGREP_PATH
 from semgrep.equivalences import Equivalence
-from semgrep.error import INVALID_PATTERN_EXIT_CODE
+from semgrep.error import RuleLangError
 from semgrep.error import SemgrepError
+from semgrep.error import UnknownLanguageError
 from semgrep.evaluation import enumerate_patterns_in_boolean_expression
 from semgrep.evaluation import evaluate
+from semgrep.output import OutputHandler
 from semgrep.pattern import Pattern
 from semgrep.pattern_match import PatternMatch
 from semgrep.rule import Rule
@@ -114,10 +116,11 @@ class CoreRunner:
     """
 
     def __init__(
-        self, allow_exec: bool, jobs: int,
+        self, allow_exec: bool, jobs: int, output_handler: OutputHandler,
     ):
         self._allow_exec = allow_exec
         self._jobs = jobs
+        self._output_handler = output_handler
 
     def _flatten_rule_patterns(self, rules: List[Rule]) -> Iterator[Pattern]:
         """
@@ -131,7 +134,15 @@ class CoreRunner:
                 if not should_send_to_semgrep_core(expr):
                     continue
 
-                yield Pattern(rule_index, expr, rule.severity, rule.languages)
+                yield Pattern(
+                    rule_index,
+                    expr,
+                    rule.severity,
+                    rule.languages,
+                    span=rule.pattern_spans[expr.pattern_id]
+                    if expr.pattern_id
+                    else None,
+                )
 
     def _group_patterns_by_language(
         self, rules: List[Rule]
@@ -143,27 +154,6 @@ class CoreRunner:
             for language in pattern.languages:
                 by_lang[language].append(pattern)
         return by_lang
-
-    def _semgrep_error_json_to_message_then_exit(
-        self, error_json: Dict[str, Any]
-    ) -> None:
-        """
-        See format_output_exception in semgrep O'Caml for details on schema
-        """
-        error_type = error_json["error"]
-        if error_type == "invalid language":
-            raise SemgrepError(f'invalid language {error_json["language"]}')
-        elif error_type == "invalid pattern":
-            raise SemgrepError(
-                f'invalid pattern "{error_json["pattern"]}": {error_json["message"]}',
-                code=INVALID_PATTERN_EXIT_CODE,
-            )
-        # no special formatting ought to be required for the other types; the semgrep python should be performing
-        # validation for them. So if any other type of error occurs, ask the user to file an issue
-        else:
-            raise SemgrepError(
-                f'an internal error occured while invoking semgrep-core:\n\t{error_type}: {error_json.get("message", "no message")}\n{PLEASE_FILE_ISSUE_TEXT}'
-            )
 
     def _flatten_all_equivalences(self, rules: List[Rule]) -> List[Equivalence]:
         """
@@ -207,9 +197,18 @@ class CoreRunner:
             for language, all_patterns_for_language in self._group_patterns_by_language(
                 [rule]
             ).items():
-                targets = target_manager.get_files(
-                    language, rule.includes, rule.excludes
-                )
+                try:
+                    targets = target_manager.get_files(
+                        language, rule.includes, rule.excludes
+                    )
+                except UnknownLanguageError as ex:
+                    raise RuleLangError(
+                        short_msg="invalid language",
+                        long_msg=f"unsupported language {language}",
+                        spans=[rule.languages_span.with_context(before=1, after=1)],
+                        level="error",
+                    ) from ex
+
                 if targets == []:
                     continue
 
@@ -270,21 +269,41 @@ class CoreRunner:
                     debug_print(core_run.stderr.decode("utf-8", "replace"))
 
                     if core_run.returncode != 0:
-                        try:
-                            # see if semgrep output a JSON error that we can decode
-                            semgrep_output = core_run.stdout.decode("utf-8", "replace")
-                            output_json = json.loads(semgrep_output)
-                            if "error" in output_json:
-                                self._semgrep_error_json_to_message_then_exit(
-                                    output_json
-                                )
-                            else:
-                                raise SemgrepError(
-                                    f"unexpected non-json output while invoking semgrep-core:\n{PLEASE_FILE_ISSUE_TEXT}"
-                                )
-                        except Exception as e:
+                        # see if semgrep output a JSON error that we can decode
+                        semgrep_output = core_run.stdout.decode("utf-8", "replace")
+                        output_json = json.loads(semgrep_output)
+
+                        error = output_json.get("error")
+                        if error == "invalid pattern":
+                            matching_span = [
+                                p
+                                for p in patterns
+                                if p._id == output_json["pattern_id"]
+                            ][0].span
+                            raise RuleLangError(
+                                short_msg=error,
+                                long_msg=f"Pattern could not be parsed as {output_json['language']}",
+                                spans=[matching_span],
+                                level="error",
+                                help=None,
+                            )
+                        elif error == "invalid language":
+                            long_error = f"{output_json['language']}; your version of semgrep-core did not support this language. {PLEASE_FILE_ISSUE_TEXT}"
+                            raise RuleLangError(
+                                short_msg=error,
+                                long_msg=long_error,
+                                spans=[
+                                    rule.languages_span.with_context(before=1, after=1)
+                                ],
+                                level="error",
+                            )
+                        elif "error" in output_json:
                             raise SemgrepError(
-                                f"non-zero return code while invoking semgrep-core:\n\t{e}\n{PLEASE_FILE_ISSUE_TEXT}"
+                                f'an internal error occured while invoking semgrep-core:\n\t{output_json["error"]}: {output_json.get("message", "no message")}\n{PLEASE_FILE_ISSUE_TEXT}'
+                            )
+                        else:
+                            raise SemgrepError(
+                                f"semgrep-core has errored in an unexpected way. {PLEASE_FILE_ISSUE_TEXT}"
                             )
 
                     output_json = json.loads(
