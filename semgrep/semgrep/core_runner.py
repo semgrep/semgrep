@@ -260,6 +260,7 @@ class CoreRunner:
                     if equivalences:
                         cmd += ["-equivalences", equiv_fout.name]
                     cmd += ["-j", str(self._jobs)]
+                    cmd += ["-use_parsing_cache"]
                     cmd += [str(path) for path in targets]
 
                     core_run = subprocess.run(
