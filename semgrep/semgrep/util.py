@@ -1,15 +1,11 @@
 import itertools
 import re
 import sys
-import threading
-import time
 import typing
 from typing import Any
 from typing import Callable
 from typing import Iterable
 from typing import List
-from typing import Optional
-from typing import TextIO
 from typing import Tuple
 from urllib.parse import urlparse
 
