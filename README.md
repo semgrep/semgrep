@@ -113,6 +113,10 @@ Semgrep exists because:
 
 The AppSec, Developer, and DevOps community deserves a static analysis tool that is fast, easy to use, code-aware, multi-lingual, and open source!
 
+Semgrep and its concepts are not new. They began as a Facebook project called sgrep and pfff in 2009. Facebook used these tools to enforce nearly 1000 paved road rules on their codebase.
+
+[r2c](https://r2c.dev/) revitalized the project after its original author, Yoann Padioleau ([@aryx](https://github.com/aryx)), joined the group in 2019. Semgrep continues the work of the sgrep, pfff, and [coccinelle.lip6.fr](http://coccinelle.lip6.fr/) projects.
+
 ## Overview
 
 Semgrep is optimized for:
