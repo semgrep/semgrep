@@ -390,9 +390,8 @@ and m_expr a b =
   (*s: [[Generic_vs_generic.m_expr()]] typed metavariable case *)
   (* metavar: typed! *)
   | A.TypedMetavar ((str, tok), _, t), e2
-      when MV.is_metavar_name str &&
-           Typechecking_generic.compatible_type t e2 ->
-      envf (str, tok) (B.E e2)
+      when MV.is_metavar_name str ->
+           m_compatible_type (str, tok) t e2
   (*e: [[Generic_vs_generic.m_expr()]] typed metavariable case *)
   (*s: [[Generic_vs_generic.m_expr()]] ellipsis cases *)
   (* dots: should be patterned-match before in arguments, or statements,
@@ -841,7 +840,21 @@ and m_list__m_xml_attr
         )
       with Not_found -> fail ()
       )
+(* type matching *)
 
+and m_compatible_type matching t e =
+  match t, e with
+  | A.OtherType (A.OT_Expr, [A.E (A.Id (("int", _tok), _idinfo))]),
+    B.L (B.Int _) -> envf matching (B.E e)
+  | A.OtherType (A.OT_Expr, [A.E (A.Id (("float", _tok), _idinfo))]),
+    B.L (B.Float _) -> envf matching (B.E e)
+  | A.OtherType (A.OT_Expr, [A.E (A.Id (("str", _tok), _idinfo))]),
+    B.L (B.String _) -> envf matching (B.E e)
+  | t1, B.Id (_, {B.id_type; _}) ->
+      (match !id_type with Some (t2) -> m_type_ t1 t2
+                         | _ -> fail ())
+
+  | _ -> fail ()
 
   (* the general case *)
 (*
