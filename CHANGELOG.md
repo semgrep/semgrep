@@ -2,6 +2,12 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## Latest
+
+### Added
+- Support for another programming language: OCaml. You can now write 
+  OCaml semgrep patterns with -lang ocaml
+
 ## [0.10.1](https://github.com/returntocorp/semgrep/releases/tag/v0.10.1) - 2020-06-10
 
 ### Fixed
