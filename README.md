@@ -67,13 +67,15 @@ exec (
 )
 ```
 
-Semgrep's multi-pattern YAML syntax then lets you combine, using boolean logic, collections of simple patterns to create powerful rules that find meaningful bugs:
+A multi-pattern YAML syntax let's you combine simple patterns using boolean logic to create powerful rules:
 
 ```yaml
 id: flask-insecure-cookie
 patterns:
   - pattern: flask.response.set_cookie(...)
   - pattern-not: flask.response.set_cookie(..., httponly=True, secure=True, ...)
+message: |
+  Flask cookies should be handled securely by setting `secure=True`, `httponly=True`, and `samesite='Lax'`.
 ```
 
 Visit [Installation](#installation) and [Usage](#usage) to learn more and get started.
