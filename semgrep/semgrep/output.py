@@ -17,8 +17,6 @@ import colorama
 from semgrep import config_resolver
 from semgrep.constants import __VERSION__
 from semgrep.constants import OutputFormat
-from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
-from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error import SemgrepError
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
@@ -198,14 +196,16 @@ class OutputSettings(NamedTuple):
 
 @contextlib.contextmanager
 def managed_output(output_settings: OutputSettings) -> Generator:  # type: ignore
-    handler = OutputHandler(output_settings)
+    """
+    Context manager to capture uncaught exceptions &
+    """
+    output_handler = OutputHandler(output_settings)
     try:
-        yield handler
+        yield output_handler
     except Exception as ex:
-        handler.handle_unhandled_exception(ex)
+        output_handler.handle_unhandled_exception(ex)
     finally:
-        exit_code = handler.close()
-        sys.exit(exit_code)
+        output_handler.close()
 
 
 class OutputHandler:
@@ -239,7 +239,6 @@ class OutputHandler:
         self.semgrep_rule_errors: List[SemgrepError] = []
         self.has_output = False
 
-        self.exit_code = 0
         self.final_error: Optional[Exception] = None
 
     def handle_semgrep_core_errors(self, semgrep_errors: List[Dict[str, Any]]) -> None:
@@ -258,7 +257,7 @@ class OutputHandler:
         - when the YAML or YAML structure is invalid
         """
         self.semgrep_rule_errors.append(error)
-        self._output_exception(error)
+        print_error(str(error))
 
     def handle_semgrep_core_output(
         self,
@@ -280,31 +279,15 @@ class OutputHandler:
         This is called by the context manager upon an unhandled exception. If you want to record a final
         error & set the exit code, but keep executing to perform cleanup tasks, call this method.
         """
-        if isinstance(ex, SemgrepError):
-            self.exit_code = ex.code
-        else:
-            self.exit_code = FATAL_EXIT_CODE
         self.final_error = ex
 
-    def _output_exception(self, ex: Exception) -> None:
-        if isinstance(ex, SemgrepError):
-            print_error(str(ex))
-        else:
-            # If it isn't a known SemgrepError, bail hard.
-            print_error(PLEASE_FILE_ISSUE_TEXT)
-            raise ex
-
-    def close(self) -> int:
+    def close(self) -> None:
         """
         Close the output handler.
 
         This will write any output that hasn't been written so far. It returns
         the exit code of the program.
         """
-        # TODO: incorporate final_error into JSON output (https://github.com/returntocorp/semgrep/issues/746)
-        if self.final_error:
-            self._output_exception(self.final_error)
-
         if self.has_output:
             output = build_output(
                 self.rule_matches,
@@ -320,7 +303,11 @@ class OutputHandler:
             if self.settings.output_destination:
                 self.save_output(self.settings.output_destination, output)
 
-        return self.exit_code
+        if self.final_error:
+            # We are responsible to outputting all SemgrepErrors
+            if isinstance(self.final_error, SemgrepError):
+                print_error(str(self.final_error))
+            raise self.final_error
 
     @classmethod
     def save_output(cls, destination: str, output: str) -> None:

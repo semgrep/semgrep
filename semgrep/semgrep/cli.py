@@ -262,10 +262,15 @@ def cli() -> None:
         error_on_findings=args.error,
     )
 
-    if args.dump_ast:
-        dump_parsed_ast(args.json, args.lang, args.pattern, args.target)
-    elif args.validate:
-        with managed_output(output_settings) as output_handler:
+    if args.test:
+        # the test code (which isn't a "test" per se but is actually machinery to evaluate semgrep performance)
+        # uses managed_output internally
+        semgrep.test.test_main(args)
+
+    with managed_output(output_settings) as output_handler:
+        if args.dump_ast:
+            dump_parsed_ast(args.json, args.lang, args.pattern, args.target)
+        elif args.validate:
             _, invalid_configs = semgrep.semgrep_main.get_config(
                 args.pattern, args.lang, args.config, output_handler=output_handler
             )
@@ -275,13 +280,9 @@ def cli() -> None:
                 )
             else:
                 print_msg("Config is valid")
-    elif args.generate_config:
-        semgrep.config_resolver.generate_config()
-    elif args.test:
-        semgrep.test.test_main(args)
-    else:
-
-        with managed_output(output_settings) as output_handler:
+        elif args.generate_config:
+            semgrep.config_resolver.generate_config()
+        else:
             semgrep.semgrep_main.main(
                 output_handler=output_handler,
                 target=args.target,

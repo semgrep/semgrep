@@ -200,8 +200,7 @@ def invoke_semgrep(
         autofix=False,
         dangerously_allow_arbitrary_code_execution_from_rules=unsafe,
     )
-    code = output_handler.close()
-    assert code == 0
+    output_handler.close()
     return json.loads(io_capture.getvalue())
 
 
