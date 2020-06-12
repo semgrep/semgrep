@@ -24,6 +24,8 @@ class SemgrepError(Exception):
 
     All Semgrep Exceptions are caught and their error messages
     are displayed to the user.
+
+    For pretty-printing, exceptions should override `__str__`.
     """
 
     def __init__(self, *args: object, code: int = FATAL_EXIT_CODE) -> None:
@@ -134,7 +136,7 @@ class ErrorWithSpan(SemgrepError):
             snippet.append(f"{self._format_line_number(part_of_span, line_num)}{line}")
         return snippet
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         """
         Format this exception into a pretty string with context and color
         """

@@ -8,12 +8,14 @@ import semgrep.semgrep_main
 import semgrep.test
 from semgrep.constants import __VERSION__
 from semgrep.constants import DEFAULT_CONFIG_FILE
+from semgrep.constants import OutputFormat
 from semgrep.constants import RCE_RULE_FLAG
 from semgrep.constants import SEMGREP_URL
 from semgrep.dump_ast import dump_parsed_ast
 from semgrep.error import SemgrepError
+from semgrep.output import managed_output
+from semgrep.output import OutputSettings
 from semgrep.util import print_msg
-
 
 try:
     CPU_COUNT = multiprocessing.cpu_count()
@@ -245,41 +247,55 @@ def cli() -> None:
     # change cwd if using docker
     semgrep.config_resolver.adjust_for_docker(args.precommit)
 
-    if args.dump_ast:
-        dump_parsed_ast(args.json, args.lang, args.pattern, args.target)
-    elif args.validate:
-        _, invalid_configs = semgrep.semgrep_main.get_config(
-            args.pattern, args.lang, args.config
-        )
-        if invalid_configs:
-            raise SemgrepError(
-                f"run with --validate and there were {len(invalid_configs)} errors loading configs"
-            )
-        else:
-            print_msg("Config is valid")
-    elif args.generate_config:
-        semgrep.config_resolver.generate_config()
-    elif args.test:
+    output_format = OutputFormat.TEXT
+    if args.json:
+        output_format = OutputFormat.JSON
+    elif args.debugging_json:
+        output_format = OutputFormat.JSON_DEBUG
+    elif args.sarif:
+        output_format = OutputFormat.SARIF
+
+    output_settings = OutputSettings(
+        output_format=output_format,
+        output_destination=args.output,
+        quiet=args.quiet,
+        error_on_findings=args.error,
+    )
+
+    if args.test:
+        # the test code (which isn't a "test" per se but is actually machinery to evaluate semgrep performance)
+        # uses managed_output internally
         semgrep.test.test_main(args)
-    else:
-        semgrep.semgrep_main.main(
-            target=args.target,
-            pattern=args.pattern,
-            lang=args.lang,
-            config=args.config,
-            no_rewrite_rule_ids=args.no_rewrite_rule_ids,
-            jobs=args.jobs,
-            include=args.include,
-            include_dir=args.include_dir,
-            exclude=args.exclude,
-            exclude_dir=args.exclude_dir,
-            json_format=args.json,
-            debugging_json=args.debugging_json,
-            sarif=args.sarif,
-            output_destination=args.output,
-            quiet=args.quiet,
-            strict=args.strict,
-            exit_on_error=args.error,
-            autofix=args.autofix,
-            dangerously_allow_arbitrary_code_execution_from_rules=args.dangerously_allow_arbitrary_code_execution_from_rules,
-        )
+
+    with managed_output(output_settings) as output_handler:
+        if args.dump_ast:
+            dump_parsed_ast(args.json, args.lang, args.pattern, args.target)
+        elif args.validate:
+            _, invalid_configs = semgrep.semgrep_main.get_config(
+                args.pattern, args.lang, args.config, output_handler=output_handler
+            )
+            if invalid_configs:
+                raise SemgrepError(
+                    f"run with --validate and there were {len(invalid_configs)} errors loading configs"
+                )
+            else:
+                print_msg("Config is valid")
+        elif args.generate_config:
+            semgrep.config_resolver.generate_config()
+        else:
+            semgrep.semgrep_main.main(
+                output_handler=output_handler,
+                target=args.target,
+                pattern=args.pattern,
+                lang=args.lang,
+                config=args.config,
+                no_rewrite_rule_ids=args.no_rewrite_rule_ids,
+                jobs=args.jobs,
+                include=args.include,
+                include_dir=args.include_dir,
+                exclude=args.exclude,
+                exclude_dir=args.exclude_dir,
+                strict=args.strict,
+                autofix=args.autofix,
+                dangerously_allow_arbitrary_code_execution_from_rules=args.dangerously_allow_arbitrary_code_execution_from_rules,
+            )
