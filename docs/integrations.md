@@ -70,6 +70,21 @@ jobs:
 This will default to using the [`r2c` rule pack](https://semgrep.live/p/r2c).
 To choose another rule pack see https://semgrep.live/packs.
 
+Another way to do it is to use the official Semgrep [Docker Image](https://hub.docker.com/r/returntocorp/semgrep)
+
+```yaml
+version: 2
+jobs:
+    build:
+        docker:
+            - image: returntocorp/semgrep:latest
+        working_directory: /home/repo
+        steps:
+            - checkout
+            - run: semgrep --error --config https://semgrep.live/p/r2c .
+```
+
+
 ### TravisCI
 
 Include `semgrep` in your `.travis.yml` configuration file:
