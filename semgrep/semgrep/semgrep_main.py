@@ -1,5 +1,3 @@
-import json
-import sys
 from pathlib import Path
 from typing import Any
 from typing import Dict
@@ -11,31 +9,28 @@ from typing import Tuple
 import semgrep.config_resolver
 from semgrep.autofix import apply_fixes
 from semgrep.constants import DEFAULT_CONFIG_FILE
-from semgrep.constants import OutputFormat
 from semgrep.constants import RULES_KEY
 from semgrep.core_runner import CoreRunner
 from semgrep.error import ErrorWithSpan
-from semgrep.error import FINDINGS_EXIT_CODE
 from semgrep.error import INVALID_CODE_EXIT_CODE
 from semgrep.error import InvalidPatternNameError
 from semgrep.error import InvalidRuleSchemaError
 from semgrep.error import MISSING_CONFIG_EXIT_CODE
 from semgrep.error import SemgrepError
-from semgrep.output import build_output
+from semgrep.output import OutputHandler
 from semgrep.rule import Rule
 from semgrep.rule_lang import YamlTree
-from semgrep.rule_match import RuleMatch
 from semgrep.semgrep_types import YAML_ALL_VALID_RULE_KEYS
 from semgrep.semgrep_types import YAML_MUST_HAVE_KEYS
 from semgrep.util import debug_print
-from semgrep.util import is_url
 from semgrep.util import print_error
-from semgrep.util import print_msg
 
 MISSING_RULE_ID = "no-rule-id"
 
 
-def validate_single_rule(config_id: str, rule_yaml: YamlTree) -> Optional[Rule]:
+def validate_single_rule(
+    config_id: str, rule_yaml: YamlTree, output_handler: OutputHandler
+) -> Optional[Rule]:
     """
         Validate that a rule dictionary contains all necessary keys
         and can be correctly parsed
@@ -47,39 +42,42 @@ def validate_single_rule(config_id: str, rule_yaml: YamlTree) -> Optional[Rule]:
         missing_keys = YAML_MUST_HAVE_KEYS - rule_keys
         # TODO(https://github.com/returntocorp/semgrep/issues/746): return the error messages instead of
         #  immediately printing them so we can emit nice JSON errors to semgrep.live
-        print_error(
+        output_handler.handle_semgrep_rule_errors(
             ErrorWithSpan(
                 short_msg="missing keys",
                 long_msg=f"{config_id} is missing required keys {missing_keys}",
                 level="error",
                 spans=[rule_yaml.span.truncate(lines=5)],
-            ).__repr__()
+            )
         )
         return None
     if not rule_keys.issubset(YAML_ALL_VALID_RULE_KEYS):
         extra_keys: Set[YamlTree] = rule_keys - YAML_ALL_VALID_RULE_KEYS  # type: ignore
 
-        print_error(
+        output_handler.handle_semgrep_rule_errors(
             ErrorWithSpan(
                 short_msg="extra top-level key",
                 long_msg=f"{config_id} has an invalid top-level rule key: {[k.unroll() for k in extra_keys]}",
                 help=f"Only {sorted(YAML_ALL_VALID_RULE_KEYS)} are valid keys",
                 spans=[k.span.with_context(before=2, after=2) for k in extra_keys],
                 level="error",
-            ).__repr__()
+            )
         )
         return None
     try:
         return Rule.from_yamltree(rule_yaml)
     except (InvalidPatternNameError, InvalidRuleSchemaError) as ex:
-        print_error(
-            f"{config_id}: inside rule id {rule_id_err_msg}, pattern fields can't look like this: {ex}"
+        output_handler.handle_semgrep_rule_errors(
+            SemgrepError(
+                f"{config_id}: inside rule id {rule_id_err_msg}, pattern fields can't look like this: {ex}"
+            )
         )
+
         return None
 
 
 def validate_configs(
-    configs: Dict[str, Optional[YamlTree]]
+    configs: Dict[str, Optional[YamlTree]], output_handler: OutputHandler
 ) -> Tuple[Dict[str, List[Rule]], Dict[str, Any]]:
     """
         Take configs and separate into valid and invalid ones
@@ -97,20 +95,22 @@ def validate_configs(
             continue
         rules = config.get(RULES_KEY)  # type: ignore
         if rules is None:
-            print_error(
+            output_handler.handle_semgrep_rule_errors(
                 ErrorWithSpan(
                     short_msg="missing keys",
                     long_msg=f"{config_id} is missing `{RULES_KEY}` as top-level key",
                     level="error",
                     spans=[config_yaml_tree.span.truncate(lines=5)],
-                ).__repr__()
+                )
             )
             errors[config_id] = config_yaml_tree.unroll()
             continue
         valid_rules = []
         invalid_rules = []
         for rule_dict in rules.value:
-            rule = validate_single_rule(config_id, rule_dict)
+            rule = validate_single_rule(
+                config_id, rule_dict, output_handler=output_handler
+            )
             if rule:
                 valid_rules.append(rule)
             else:
@@ -156,37 +156,8 @@ def rename_rule_ids(valid_configs: Dict[str, List[Rule]]) -> Dict[str, List[Rule
     return transformed
 
 
-### Handle output
-
-
-def post_output(output_url: str, output: str) -> None:
-    import requests  # here for faster startup times
-
-    print_msg(f"posting to {output_url}...")
-    try:
-        r = requests.post(output_url, data=output, timeout=10)
-        debug_print(f"posted to {output_url} and got status_code:{r.status_code}")
-    except requests.exceptions.Timeout:
-        raise SemgrepError(f"posting output to {output_url} timed out")
-
-
-def save_output(destination: str, output: str) -> None:
-    if is_url(destination):
-        post_output(destination, output)
-    else:
-        if Path(destination).is_absolute():
-            save_path = Path(destination)
-        else:
-            base_path = semgrep.config_resolver.get_base_path()
-            save_path = base_path.joinpath(destination)
-        # create the folders if not exists
-        save_path.parent.mkdir(parents=True, exist_ok=True)
-        with save_path.open(mode="w") as fout:
-            fout.write(output)
-
-
 def get_config(
-    pattern: str, lang: str, config: str
+    pattern: str, lang: str, config: str, output_handler: OutputHandler
 ) -> Tuple[Dict[str, List[Rule]], Dict[str, Any]]:
     # let's check for a pattern
     if pattern:
@@ -209,7 +180,9 @@ def get_config(
     # let's split our configs into valid and invalid configs.
     # It's possible that a config_id exists in both because we check valid rules and invalid rules
     # instead of just hard failing for that config if mal-formed
-    valid_configs, invalid_configs = validate_configs(configs)
+    valid_configs, invalid_configs = validate_configs(
+        configs, output_handler=output_handler
+    )
     return valid_configs, invalid_configs
 
 
@@ -218,6 +191,7 @@ def flatten_configs(transformed_configs: Dict[str, List[Rule]]) -> List[Rule]:
 
 
 def main(
+    output_handler: OutputHandler,
     target: List[str],
     pattern: str,
     lang: str,
@@ -228,27 +202,13 @@ def main(
     include_dir: List[str],
     exclude: List[str],
     exclude_dir: List[str],
-    json_format: bool,
-    debugging_json: bool,
-    sarif: bool,
-    output_destination: str,
-    quiet: bool,
     strict: bool,
-    exit_on_error: bool,
     autofix: bool,
     dangerously_allow_arbitrary_code_execution_from_rules: bool,
-) -> str:
+) -> None:
     # get the proper paths for targets i.e. handle base path of /home/repo when it exists in docker
     targets = semgrep.config_resolver.resolve_targets(target)
-    valid_configs, invalid_configs = get_config(pattern, lang, config)
-
-    output_format = OutputFormat.TEXT
-    if json_format:
-        output_format = OutputFormat.JSON
-    elif debugging_json:
-        output_format = OutputFormat.JSON_DEBUG
-    elif sarif:
-        output_format = OutputFormat.SARIF
+    valid_configs, invalid_configs = get_config(pattern, lang, config, output_handler)
 
     if invalid_configs and strict:
         raise SemgrepError(
@@ -293,21 +253,8 @@ def main(
         include_dir=include_dir,
     ).invoke_semgrep(targets, all_rules)
 
-    if output_format == OutputFormat.TEXT:
-        for error in semgrep_errors:
-            print_error(pretty_error(error))
-
-    output = handle_output(
-        rule_matches_by_rule,
-        semgrep_errors,
-        output_format,
-        debug_steps_by_rule,
-        quiet,
-        output_destination,
-        exit_on_error,
-    )
-    if autofix:
-        apply_fixes(rule_matches_by_rule)
+    output_handler.handle_semgrep_core_output(rule_matches_by_rule, debug_steps_by_rule)
+    output_handler.handle_semgrep_core_errors(semgrep_errors)
 
     if strict and len(semgrep_errors):
         raise SemgrepError(
@@ -315,57 +262,5 @@ def main(
             code=INVALID_CODE_EXIT_CODE,
         )
 
-    return output
-
-
-def pretty_error(error: Dict[str, Any]) -> str:
-    try:
-        if {"path", "start", "end", "extra"}.difference(error.keys()) == set():
-            header = f"{error['extra']['message']}\n--> {error['path']}:{error['start']['line']}"
-            line_1 = error["extra"]["line"]
-            start_col = error["start"]["col"]
-            line_2 = " " * (start_col - 1) + "^"
-            line_3 = f"= note: If the code is correct, this could be a semgrep bug -- please help us fix this by filing an an issue at https://semgrep.dev"
-            return "\n".join([header, line_1, line_2, line_3])
-        else:
-            return f"semgrep-core error: {json.dumps(error, indent=2)}"
-    except KeyError:
-        return f"semgrep-core error: {json.dumps(error, indent=2)}"
-
-
-def handle_output(
-    rule_matches_by_rule: Dict[Rule, List[RuleMatch]],
-    semgrep_errors: List[Any],
-    output_format: OutputFormat,
-    debug_steps_by_rule: Dict[Rule, List[Dict[str, Any]]],
-    quiet: bool = False,
-    output_destination: Optional[str] = None,
-    exit_on_error: bool = False,
-) -> str:
-    rules = frozenset(rule_matches_by_rule.keys())
-    rule_matches = [
-        match
-        for matches_of_one_rule in rule_matches_by_rule.values()
-        for match in matches_of_one_rule
-    ]
-
-    output = build_output(
-        rule_matches,
-        debug_steps_by_rule,
-        rules,
-        semgrep_errors,
-        output_format,
-        not output_destination,
-    )
-    if not quiet:
-        if output:
-            print(output)
-
-    if output_destination:
-        save_output(output_destination, output)
-
-    if exit_on_error and any(match.should_fail_run for match in rule_matches):
-        sys.exit(FINDINGS_EXIT_CODE)
-
-    # TODO tests still rely on this but it is unnecessary
-    return output
+    if autofix:
+        apply_fixes(rule_matches_by_rule)
