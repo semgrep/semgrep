@@ -1,1 +1,1 @@
-f((int $X));
+f((int $X), (float $Y), (String $Z));
