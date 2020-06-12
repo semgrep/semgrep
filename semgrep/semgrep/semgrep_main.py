@@ -31,7 +31,6 @@ from semgrep.util import debug_print
 from semgrep.util import is_url
 from semgrep.util import print_error
 from semgrep.util import print_msg
-from semgrep.util import StoppableProgressWriter
 
 MISSING_RULE_ID = "no-rule-id"
 
@@ -323,25 +322,15 @@ def main(
                 code=MISSING_CONFIG_EXIT_CODE,
             )
 
-    # Start a progress writer. This will print a spinner and elapsed time until .stop() is called.
-    # If you don't call .stop(), this will run forever!
-    progress = StoppableProgressWriter(stream=sys.stderr, interval=1 / 4)
-    progress.start()
-
-    try:
-        # actually invoke semgrep
-        rule_matches_by_rule, debug_steps_by_rule, semgrep_errors = CoreRunner(
-            allow_exec=dangerously_allow_arbitrary_code_execution_from_rules,
-            jobs=jobs,
-            exclude=exclude,
-            include=include,
-            exclude_dir=exclude_dir,
-            include_dir=include_dir,
-        ).invoke_semgrep(targets, all_rules)
-        progress.stop(fail=False)  # Stop progress writer.
-    except Exception as e:
-        progress.stop(fail=True)
-        raise e
+    # actually invoke semgrep
+    rule_matches_by_rule, debug_steps_by_rule, semgrep_errors = CoreRunner(
+        allow_exec=dangerously_allow_arbitrary_code_execution_from_rules,
+        jobs=jobs,
+        exclude=exclude,
+        include=include,
+        exclude_dir=exclude_dir,
+        include_dir=include_dir,
+    ).invoke_semgrep(targets, all_rules)
 
     if output_format == OutputFormat.TEXT:
         for error in semgrep_errors:

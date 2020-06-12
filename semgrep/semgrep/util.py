@@ -88,51 +88,6 @@ def partition(pred: Callable, iterable: Iterable) -> Tuple[List, List]:
     return list(filter(pred, i1)), list(itertools.filterfalse(pred, i2))
 
 
-class StoppableProgressWriter(threading.Thread):
-    # cf. https://code.activestate.com/recipes/535141-console-progress-dots-using-threads-and-a-context-/
-
-    def __init__(
-        self,
-        stream: TextIO = sys.stderr,
-        interval: float = 1.0,
-        spinner: Optional[List[str]] = None,
-        done_msg: str = "finished!",
-        **kwargs: Any,
-    ):
-        super(StoppableProgressWriter, self).__init__(**kwargs)
-        self.stream = stream
-        self.interval = interval
-        if not spinner:
-            spinner = ["\\", "|", "/", "-"]
-        self.spinner = itertools.cycle(spinner)
-        self.done_msg = done_msg
-        self.event = threading.Event()
-
-    def _clear_line(self) -> None:
-        self.stream.write("\r")  # Put cursor at beginning of line
-        self.stream.write("\033[K")  # Clear to end of line
-        self.stream.flush()
-
-    def stop(self, fail: bool = False) -> None:
-        if self.stream.isatty():
-            self._clear_line()
-            if not fail:
-                self.stream.write(self.done_msg + "\n")
-                self.stream.flush()
-        self.event.set()
-
-    def run(self) -> None:
-        if self.stream.isatty():
-            start = time.time()
-            while not self.event.is_set():
-                self._clear_line()
-                message = f" scanning... {round(time.time() - start, 3)}s elapsed"
-                self.stream.write(next(self.spinner))
-                self.stream.write(message)
-                self.stream.flush()
-                time.sleep(self.interval)
-
-
 def with_color(color: str, text: str, bold: bool = False) -> str:
     """
     Wrap text in color & reset
