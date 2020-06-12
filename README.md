@@ -45,38 +45,7 @@ Semgrep is a simple and flexible [command-line](#installation) and [online](http
 
 Semgrep combines the convenient and iterative style of `grep` with the powerful features of an Abstract Syntax Tree (AST) matcher. Easily find function calls, class or method definitions, and more without having to understand ASTs or wrestle with regexes.
 
-For example, to audit for all calls to `exec` in your Python codebase, run:
-
-```bash
-$ semgrep -e 'exec(...)' --lang py .
-```
-
-This will match on code like the following:
-
-```py
-# Simple cases grep finds
-exec("ls")
-exec(some_var)
-
-# But you don't have to worry about whitespace
-exec (foo)
-
-# Or calls across multiple lines
-exec (
-    bar
-)
-```
-
-Semgrep's multi-pattern YAML syntax then lets you combine, using boolean logic, collections of simple patterns to create powerful rules that find meaningful bugs:
-
-```yaml
-id: flask-insecure-cookie
-patterns:
-  - pattern: flask.response.set_cookie(...)
-  - pattern-not: flask.response.set_cookie(..., httponly=True, secure=True, ...)
-```
-
-Visit [Installation](#installation) and [Usage](#usage) to learn more and get started.
+Visit [Installation](#installation) and [Usage](#usage) to get started.
 
 ## Installation
 > Want to skip installation? You can run Semgrep online via [semgrep.live](https://semgrep.live/).
