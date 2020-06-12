@@ -41,7 +41,7 @@
   </a>
 </p>
 
-Semgrep is a simple and flexible [command-line](#installation) and [online](https://semgrep.live/) tool for static analysis. Use pre-built or custom rules to enforce code and security standards in your codebase.
+Semgrep is a simple and flexible [command-line](#installation) and [WYSIWYG](https://semgrep.live/) tool for static analysis. Use pre-built or custom rules to enforce code and security standards in your codebase.
 
 Semgrep combines the convenient and iterative style of `grep` with the powerful features of an Abstract Syntax Tree (AST) matcher. Easily find function calls, class or method definitions, and more without having to understand ASTs or wrestle with regexes.
 
