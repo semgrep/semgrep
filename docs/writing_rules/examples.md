@@ -117,7 +117,7 @@ https://semgrep.live/nJ9d
 
 Sometimes you may wish to enforce the specific use of a function's API. There are many examples of this, such as `subprocess.call(..., shell=True, ...)` above; you may wish to match and fail any commit where `shell=True`. This is easy to do in Semgrep, as seen in the above section.
 
-However, there are also function APIs that are insecure by default--or insecure depending on context, such as Jinja2, which does [not enable autoescaping by default](https://github.com/pallets/jinja/blob/2a8515d2e53a2be475d9df3fe44e308501201a95/src/jinja2/environment.py#L296). Jinja2 is an arbitrary templating engine, so this makes sense in non-web contexts. This may not be obvious, and if you are working directly with the Jinja2 engine in a web context you want to make sure `autoescape=True`.
+However, there are also function APIs that are insecure by default--or insecure depending on context, such as Jinja2, which does [not enable autoescaping by default](https://github.com/pallets/jinja/blob/2a8515d2e53a2be475d9df3fe44e308501201a95/src/jinja2/environment.py#L296). Jinja2 is an arbitrary templating engine, so this makes sense in non-web contexts. This may not be obvious, though, and if you are working directly with the Jinja2 engine in a web context you want to make sure `autoescape=True`.
 
 (Not to scare anyone: Flask, for instance, [autoescapes templates with the '.html' extension](https://github.com/pallets/jinja/blob/2a8515d2e53a2be475d9df3fe44e308501201a95/src/jinja2/environment.py#L296).)
 
@@ -143,19 +143,86 @@ This can be generalized with the following approach:
 1. Match the function call by name.
 2. Filter out good patterns.
 
-Another example of this approach is [setting secure cookies](https://semgrep.live/EwB5).
+### Secure Cookies in Flask
 
+Another example of this approach is [setting secure cookies in Flask](https://semgrep.live/EwB5).
 
+```yaml
+patterns:
+- pattern-not: flask.response.set_cookie(..., httponly=True, secure=True,...)
+- pattern: flask.response.set_cookie(...)
+```
 
 ## Ensure One Function is Called Before Another
 
-1. Match function call by name.
-2. Filter out when the good function is above.
+You can ensure one function is called before another in Semgrep by utilizing the `pattern-not-inside` clause. The approach will be:
 
-### Java Cookie
+1. Match the last function call by name.
+2. Filter out when the right function is called above.
 
-1. Match addCookie(...).
-2. Filter out when setSecure(...) is called.
+**Match the last function call by name.** Let's use [this Java example from semgrep.live](https://semgrep.live/7K9G). We want to make sure `verify_transaction` is called before `make_transaction`. First, match the function call that should be called last. In this case, it's `make_transaction`. (Yes, they're normally called "methods." Stick with me.)
+
+```yaml
+patterns:
+- pattern: make_transaction(...);
+```
+
+https://semgrep.live/QrbJ
+
+**Filter out when the right function is called above.** Next, we can filter out the case where `verify_transaction` appears above. To do this, we will use the `pattern-not-inside` clause. `pattern-not-inside` will filter out **ranges**, inclusive of the ellpisis operator. The patterns look like this:
+
+```yaml
+patterns:
+- pattern-not-inside: |
+    verify_transaction(...);
+    ...
+- pattern: make_transaction(...);
+```
+
+(The pipe (`|`) is YAML syntax that permits a multi-line string.)
+
+If I were to describe this pattern in English, it would read: Filter out any matches inside statements after `verify_transaction`, otherwise match `make_transaction`. Written another way: match `make_transaction` only when `verify_transaction` is not above.
+
+https://semgrep.live/8Gzg
+
+**Bonus: Ensure the same variable is used in both functions.** The above patterns has three matches in the given examples. There is a fourth case to match where the *wrong* `Transaction` object is verified. To match only when the same variable is used in both functions, we can use a metavariable. Just like variables, a Semgrep pattern will match only when the metavariables are the same wherever it is used. We can augment the pattern like this to catch the fourth case:
+
+```yaml
+patterns:
+- pattern-not-inside: |
+    verify_transaction($TRANSACTION);
+    ...
+- pattern: make_transaction($TRANSACTION);
+```
+
+https://semgrep.live/gxRR
+
+### Secure Cookies in Java
+
+A real example of this is setting the secure flag on cookies in Java. `Cookie` objects are added to `HttpServletResponse` objects, and to set the secure flag, `setSecure(true)` must be called on the `Cookie` object prior to its addition.
+
+```java
+Cookie cookie = new Cookie("key", "value");
+cookie.setSecure(true);
+response.addCookie(cookie);
+```
+
+Matching this is the same approach as `make_transaction` above.
+
+1. Match `response.addCookie(...)`.
+2. Filter out when `setSecure(true)` is called.
+
+Since we can't know the name of the variables in advance, we can use metavariables for the `Cookie` and `HttpServletResponse` objects. The patterns look like this:
+
+```yaml
+patterns:
+- pattern-not-inside: |
+    $COOKIE.setSecure(true);
+    ...
+- pattern: $RESP.addCookie($COOKIE);
+```
+
+https://semgrep.live/L1gX
 
 ## Find All Routes in an Application
 
