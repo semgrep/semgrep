@@ -136,7 +136,7 @@ patterns:
 - pattern: jinja2.Environment(...)
 ```
 
-TODO: semgrep.live link
+🚧🚧 Coming soon: semgrep.live link 🚧🚧
 
 This can be generalized with the following approach:
 
@@ -225,6 +225,8 @@ patterns:
 https://semgrep.live/L1gX
 
 ## Find All Routes in an Application
+
+🚧🚧 Coming soon 🚧🚧
 
 1. Specify the route pattern (annotations).
 2. Use metavariables to match specific components.
