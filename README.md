@@ -78,7 +78,7 @@ Semgrep exists because:
 2. The future of security involves automatically guiding developers towards a “paved road” made of default-safe frameworks (i.e. [React](https://reactjs.org/) or Object-relational Mappers)
 3. `grep` isn’t expressive enough and traditional static analysis tools (SAST) are too complicated/slow for paved road automation
 
-The AppSec, Developer, and DevOps communities deserves a static analysis tool that is fast, easy to use, code-aware, multi-lingual, and open source!
+The AppSec, Developer, and DevOps communities deserve a static analysis tool that is fast, easy to use, code-aware, multi-lingual, and open source!
 
 ## Overview
 
