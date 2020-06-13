@@ -1,0 +1,4 @@
+import $X from 'foo';
+...
+$X.sign(...);
+
