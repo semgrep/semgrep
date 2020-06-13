@@ -4,7 +4,6 @@ from typing import Dict
 from typing import List
 from typing import Set
 
-from semgrep.error import NotGitProjectError
 from semgrep.error import UnknownLanguageError
 from semgrep.util import partition_set
 
@@ -38,18 +37,18 @@ class TargetManager:
         includes: List[str],
         excludes: List[str],
         targets: List[str],
-        visible_to_git_only: bool = False,
+        respect_git_ignore: bool,
     ) -> None:
         """
             Handles all file include/exclude logic for semgrep
 
-            If visible_to_git_only is true then will only consider files that are
+            If respect_git_ignore is true then will only consider files that are
             tracked or (untracked but not ignored) by git
         """
         self._targets = targets
         self._includes = includes
         self._excludes = excludes
-        self._visible_to_git_only = visible_to_git_only
+        self._respect_git_ignore = respect_git_ignore
 
         self._filtered_targets: Dict[str, Set[Path]] = {}
 
@@ -66,31 +65,47 @@ class TargetManager:
         )
 
     @staticmethod
-    def _parse_output(output: str, curr_dir: Path) -> Set[Path]:
-        """
-            Convert a newline delimited list of files to a set of path objects
-            prepends curr_dir to all paths in said list
-
-            If list is empty then returns an empty set
-        """
-        files: Set[Path] = set()
-        if output:
-            files = set(Path(curr_dir) / elem for elem in output.strip().split("\n"))
-        return files
-
-    @staticmethod
     def _expand_dir(
-        curr_dir: Path, language: str, visible_to_git_only: bool
+        curr_dir: Path, language: str, respect_git_ignore: bool
     ) -> Set[Path]:
         """
             Recursively go through a directory and return list of all files with
             default file extention of language
         """
+
+        def _parse_output(output: str, curr_dir: Path) -> Set[Path]:
+            """
+                Convert a newline delimited list of files to a set of path objects
+                prepends curr_dir to all paths in said list
+
+                If list is empty then returns an empty set
+            """
+            files: Set[Path] = set()
+            if output:
+                files = set(
+                    Path(curr_dir) / elem for elem in output.strip().split("\n")
+                )
+            return files
+
+        def run_find(curr_dir: Path, extention: str) -> Set[Path]:
+            """
+                Use 'find' to return set of files with given extension in a directory
+            """
+            output = subprocess.run(
+                ["find", curr_dir, "-type", "f", "-name", f"*.{ext}"],
+                encoding="utf-8",
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+
+            # Note find already gives paths relative to pwd so no need to prepend curr_dir
+            return _parse_output(output.stdout, Path("."))
+
         extensions = lang_to_exts(language)
         expanded: Set[Path] = set()
 
         for ext in extensions:
-            if visible_to_git_only:
+            if respect_git_ignore:
                 try:
                     # Tracked files
                     tracked_output = subprocess.check_output(
@@ -113,36 +128,26 @@ class TargetManager:
                         encoding="utf-8",
                         stderr=subprocess.DEVNULL,
                     )
+
+                    tracked = _parse_output(tracked_output, curr_dir)
+                    untracked_unignored = _parse_output(untracked_output, curr_dir)
+
+                    expanded = expanded.union(tracked)
+                    expanded = expanded.union(untracked_unignored)
                 except subprocess.CalledProcessError:
-                    raise NotGitProjectError(
-                        f"{curr_dir.resolve()} is not a git repository."
-                    )
-
-                tracked = TargetManager._parse_output(tracked_output, curr_dir)
-                untracked_unignored = TargetManager._parse_output(
-                    untracked_output, curr_dir
-                )
-
-                expanded = expanded.union(tracked)
-                expanded = expanded.union(untracked_unignored)
+                    # Not a git directory fallback to using find
+                    ext_files = run_find(curr_dir, ext)
+                    expanded = expanded.union(ext_files)
 
             else:
-                output = subprocess.run(
-                    ["find", curr_dir, "-type", "f", "-name", f"*.{ext}"],
-                    encoding="utf-8",
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                )
-
-                # Note find already gives paths relative to pwd so no need to prepend curr_dir
-                ext_files = TargetManager._parse_output(output.stdout, Path("."))
+                ext_files = run_find(curr_dir, ext)
                 expanded = expanded.union(ext_files)
 
         return expanded
 
     @staticmethod
     def expand_targets(
-        targets: Set[Path], lang: str, visible_to_git_only: bool
+        targets: Set[Path], lang: str, respect_git_ignore: bool
     ) -> Set[Path]:
         """
             Explore all directories. Remove duplicates
@@ -154,7 +159,7 @@ class TargetManager:
 
             if target.is_dir():
                 expanded.update(
-                    TargetManager._expand_dir(target, lang, visible_to_git_only)
+                    TargetManager._expand_dir(target, lang, respect_git_ignore)
                 )
             else:
                 expanded.add(target)
@@ -199,7 +204,7 @@ class TargetManager:
 
         targets = self.resolve_targets(self._targets)
         explicit_files, directories = partition_set(lambda p: not p.is_dir(), targets)
-        targets = self.expand_targets(directories, lang, self._visible_to_git_only)
+        targets = self.expand_targets(directories, lang, self._respect_git_ignore)
         targets = self.filter_includes(targets, self._includes)
         targets = self.filter_excludes(targets, self._excludes)
 
@@ -224,11 +229,3 @@ class TargetManager:
         targets = self.filter_includes(targets, includes)
         targets = self.filter_excludes(targets, excludes)
         return list(targets)
-
-
-if __name__ == "__main__":
-    try:
-        target_manager = TargetManager(includes=[], excludes=["tests"], targets=["."])
-        target_manager.get_files("python", [], [])
-    except Exception as e:
-        print(str(e))

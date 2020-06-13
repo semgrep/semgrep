@@ -108,6 +108,11 @@ def cli() -> None:
         default=[],
         help="Scan only directories with this name; --include-dir=doc will include doc/ as well as src/doc. Can add multiple times.",
     )
+    parser.add_argument(
+        "--no-git-ignore",
+        action="store_true",
+        help="Scan all files even those ignored by a projects gitignore(s)",
+    )
 
     config.add_argument(
         RCE_RULE_FLAG,
@@ -298,4 +303,5 @@ def cli() -> None:
                 strict=args.strict,
                 autofix=args.autofix,
                 dangerously_allow_arbitrary_code_execution_from_rules=args.dangerously_allow_arbitrary_code_execution_from_rules,
+                no_git_ignore=args.no_git_ignore,
             )
