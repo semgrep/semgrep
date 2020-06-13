@@ -16,7 +16,6 @@ from semgrep.semgrep_types import OPERATORS_WITH_CHILDREN
 from semgrep.semgrep_types import pattern_names_for_operator
 from semgrep.semgrep_types import pattern_names_for_operators
 from semgrep.semgrep_types import PatternId
-from semgrep.semgrep_types import RuleGlobs
 from semgrep.semgrep_types import YAML_VALID_TOP_LEVEL_OPERATORS
 
 
@@ -24,8 +23,26 @@ class Rule:
     def __init__(self, raw: YamlTree) -> None:
         self._yaml = raw
         self._raw: Dict[str, Any] = raw.unroll()  # type: ignore
+
+        paths = self._raw.get("paths", {})
+        if not isinstance(paths, dict):
+            raise InvalidRuleSchemaError(
+                f"the `paths:` targeting rules must be an object with at least one of {ALLOWED_GLOB_TYPES}"
+            )
+        for key, value in paths.items():
+            if key not in ALLOWED_GLOB_TYPES:
+                raise InvalidRuleSchemaError(
+                    f"the `paths:` targeting rules must each be one of {ALLOWED_GLOB_TYPES}"
+                )
+            if not isinstance(value, list):
+                raise InvalidRuleSchemaError(
+                    f"the `paths:` targeting rule values must be lists"
+                )
+
+        self._includes = paths.get("include", [])
+        self._excludes = paths.get("exclude", [])
+
         self._expression = self._build_boolean_expression(self._raw)
-        self._globs = self._build_globs(self._raw)
 
     def _parse_boolean_expression(
         self, rule_patterns: List[Dict[str, Any]], pattern_id: int = 0, prefix: str = ""
@@ -129,38 +146,13 @@ class Rule:
             f"missing a pattern type in rule, expected one of {pattern_names_for_operators(valid_top_level_keys)}"
         )
 
-    @staticmethod
-    def _build_globs(rule_raw: Dict[str, Any]) -> RuleGlobs:  # type: ignore
-        """
-        Return a list of globs to be included and excluded for the given `paths:` rules.
+    @property
+    def includes(self) -> List[str]:
+        return self._includes  # type: ignore
 
-        Glob conversion works as follows
-
-        - path: tests/*.py -> tests/*.py
-        - directory: tests -> tests/**
-        - filename: *.js -> **/*.js
-        """
-        globs = RuleGlobs(set(), set())
-
-        paths_raw = rule_raw.get("paths", {})
-        if not isinstance(paths_raw, dict):
-            raise InvalidRuleSchemaError(
-                f"the `paths:` targeting rules must be an object with at least one of {ALLOWED_GLOB_TYPES}"
-            )
-
-        for rule_type, rule in rule_raw.get("paths", {}).items():
-            if rule_type not in ALLOWED_GLOB_TYPES:
-                raise InvalidRuleSchemaError(
-                    f"the `paths:` targeting rules must each be one of {ALLOWED_GLOB_TYPES}"
-                )
-
-            glob_set = globs.exclude if rule_type == "exclude" else globs.include
-            rule_values = [rule] if isinstance(rule, str) else rule
-
-            for rule_value in rule_values:
-                glob_set.add(rule_value)
-
-        return globs
+    @property
+    def excludes(self) -> List[str]:
+        return self._excludes  # type: ignore
 
     @property
     def id(self) -> str:
@@ -210,10 +202,6 @@ class Rule:
     @property
     def expression(self) -> BooleanRuleExpression:
         return self._expression
-
-    @property
-    def globs(self) -> RuleGlobs:
-        return self._globs
 
     @property
     def fix(self) -> Optional[str]:
