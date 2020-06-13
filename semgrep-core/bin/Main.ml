@@ -136,7 +136,7 @@ let supported_langs: string = String.concat ", " keys
 let ncores = ref 1
 (*e: constant [[Main_semgrep_core.ncores]] *)
 
-let use_parsing_cache = ref false
+let use_parsing_cache = ref ""
 let target_file = ref ""
 let timeout = ref 0
 
@@ -282,7 +282,7 @@ let filemtime file =
  * TODO: merge in pfff/commons/Common.ml at some point
  *)
 let cache_computation file cache_file_of_file f =
-  if not !use_parsing_cache
+  if !use_parsing_cache=""
   then f ()
   else begin
     if not (Sys.file_exists file)
@@ -320,7 +320,7 @@ let cache_computation file cache_file_of_file f =
 
 let cache_file_of_file filename =
   let dir = spf "%s/semgrep_core_cache_%d"
-      (Filename.get_temp_dir_name ())
+      (!use_parsing_cache)
       (Unix.getuid()) in
   if not (Sys.file_exists dir)
   then Unix.mkdir dir 0o700;
@@ -894,7 +894,7 @@ let options () =
     ),
     " do not stop at first parsing error with -e/-f";
     (*e: [[Main_semgrep_core.options]] other cases *)
-    "-use_parsing_cache", Arg.Set use_parsing_cache,
+    "-use_parsing_cache", Arg.Set_string use_parsing_cache,
     " save and use parsed ASTs in a cache";
     "-verbose", Arg.Unit (fun () ->
       verbose := true;
