@@ -22,6 +22,7 @@ from semgrep.rule import Rule
 from semgrep.rule_lang import YamlTree
 from semgrep.semgrep_types import YAML_ALL_VALID_RULE_KEYS
 from semgrep.semgrep_types import YAML_MUST_HAVE_KEYS
+from semgrep.target_manager import TargetManager
 from semgrep.util import debug_print
 from semgrep.util import print_error
 from semgrep.util import print_msg
@@ -244,8 +245,9 @@ def main(
     autofix: bool,
     dangerously_allow_arbitrary_code_execution_from_rules: bool,
 ) -> None:
-    # get the proper paths for targets i.e. handle base path of /home/repo when it exists in docker
-    targets = semgrep.config_resolver.resolve_targets(target)
+    include.extend(include_dir)
+    exclude.extend(exclude_dir)
+
     valid_configs, invalid_configs = get_config(pattern, lang, config, output_handler)
 
     if invalid_configs and strict:
@@ -283,15 +285,12 @@ def main(
                 code=MISSING_CONFIG_EXIT_CODE,
             )
 
+    target_manager = TargetManager(includes=include, excludes=exclude, targets=target)
+
     # actually invoke semgrep
     rule_matches_by_rule, debug_steps_by_rule, semgrep_errors = CoreRunner(
-        allow_exec=dangerously_allow_arbitrary_code_execution_from_rules,
-        jobs=jobs,
-        exclude=exclude,
-        include=include,
-        exclude_dir=exclude_dir,
-        include_dir=include_dir,
-    ).invoke_semgrep(targets, all_rules)
+        allow_exec=dangerously_allow_arbitrary_code_execution_from_rules, jobs=jobs,
+    ).invoke_semgrep(target_manager, all_rules)
 
     output_handler.handle_semgrep_core_output(rule_matches_by_rule, debug_steps_by_rule)
     output_handler.handle_semgrep_core_errors(semgrep_errors)
