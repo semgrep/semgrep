@@ -127,6 +127,7 @@ setup(
         "ruamel.yaml==0.16.10",
         "requests>=2.22.0",
         "attrs>=19.3.0",
+        "tqdm>=4.46.1",
     ],
     entry_points={"console_scripts": ["semgrep=semgrep.__main__:main"]},
     packages=setuptools.find_packages(),
