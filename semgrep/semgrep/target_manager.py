@@ -87,19 +87,11 @@ class TargetManager:
                 )
             return files
 
-        def run_find(curr_dir: Path, extention: str) -> Set[Path]:
+        def _find_files_with_extention(curr_dir: Path, extension: str) -> Set[Path]:
             """
-                Use 'find' to return set of files with given extension in a directory
+                Return set of all files in curr_dir with given extension
             """
-            output = subprocess.run(
-                ["find", curr_dir, "-type", "f", "-name", f"*.{ext}"],
-                encoding="utf-8",
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-            )
-
-            # Note find already gives paths relative to pwd so no need to prepend curr_dir
-            return _parse_output(output.stdout, Path("."))
+            return set(p for p in curr_dir.rglob(f"*.{ext}") if p.is_file())
 
         extensions = lang_to_exts(language)
         expanded: Set[Path] = set()
@@ -128,19 +120,18 @@ class TargetManager:
                         encoding="utf-8",
                         stderr=subprocess.DEVNULL,
                     )
-
+                except (subprocess.CalledProcessError, FileNotFoundError):
+                    # Not a git directory or git not installed. Fallback to using rglob
+                    ext_files = _find_files_with_extention(curr_dir, ext)
+                    expanded = expanded.union(ext_files)
+                else:
                     tracked = _parse_output(tracked_output, curr_dir)
                     untracked_unignored = _parse_output(untracked_output, curr_dir)
-
                     expanded = expanded.union(tracked)
                     expanded = expanded.union(untracked_unignored)
-                except subprocess.CalledProcessError:
-                    # Not a git directory fallback to using find
-                    ext_files = run_find(curr_dir, ext)
-                    expanded = expanded.union(ext_files)
 
             else:
-                ext_files = run_find(curr_dir, ext)
+                ext_files = _find_files_with_extention(curr_dir, ext)
                 expanded = expanded.union(ext_files)
 
         return expanded
