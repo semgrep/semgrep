@@ -23,6 +23,7 @@ def download_json(url: str) -> Any:
     if not url.startswith("https"):
         url = f"{API_BASE_URL}{url}"
 
+    print(f"Downloading from {url}", file=sys.stderr)
     request = urllib.request.Request(
         url=url, headers={"authorization": f"Bearer {GITHUB_TOKEN}"}
     )
@@ -51,7 +52,10 @@ def get_latest_artifact_url(
         if artifacts:
             return str(artifacts[0]["archive_download_url"])
         else:
-            print("No artifacts found with name, looking at the previous run...")
+            print(
+                "No artifacts found with name, looking at the previous run...",
+                file=sys.stderr,
+            )
     return None
 
 
@@ -63,6 +67,7 @@ def make_executable(path: str) -> None:
 
 def download_artifact(url: str) -> str:
     tempdir = tempfile.mkdtemp()
+    print(f"Downloading from {url}", file=sys.stderr)
     request = urllib.request.Request(
         url=url, headers={"authorization": f"Bearer {GITHUB_TOKEN}"}
     )
