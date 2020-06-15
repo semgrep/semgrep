@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import attr
+
 from semgrep.rule_lang import parse_yaml
 from semgrep.rule_lang import parse_yaml_preserve_spans
 from semgrep.rule_lang import Position
@@ -21,7 +23,7 @@ def test_span_tracking():
     data = parse_yaml_preserve_spans(test_yaml, Path("filename"))
 
     def test_span(start: Position, end: Position) -> Span:
-        return data.span._replace(start=start, end=end)
+        return attr.evolve(data.span, start=start, end=end)
 
     # basic spans
     assert data.span == test_span(

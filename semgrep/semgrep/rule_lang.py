@@ -8,6 +8,7 @@ from typing import NewType
 from typing import Optional
 from typing import Union
 
+import attr
 from ruamel.yaml import Node
 from ruamel.yaml import RoundTripConstructor
 from ruamel.yaml import YAML
@@ -44,11 +45,12 @@ class SourceTracker:
         return SourceFileHash(hashlib.sha256(contents).hexdigest())
 
 
-class Position(NamedTuple):
+@attr.s(auto_attribs=True, frozen=True, repr=False)
+class Position:
     """
     Position within a file.
     :param line: 1-indexed line number
-    :param column: 1-indexed column number
+    :param col: 1-indexed column number
 
     line & column are 0 indexed for compatibility with semgrep-core which also produces 1-indexed results
     """
@@ -57,16 +59,17 @@ class Position(NamedTuple):
     col: int
 
     def next_line(self) -> "Position":
-        return self._replace(line=self.line + 1)
+        return attr.evolve(self, line=self.line + 1)
 
     def previous_line(self) -> "Position":
-        return self._replace(line=self.line - 1)
+        return attr.evolve(self, line=self.line - 1)
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} line={self.line} col={self.col}>"
 
 
-class Span(NamedTuple):
+@attr.s(auto_attribs=True, frozen=True, repr=False)
+class Span:
     """
     Spans are immutable objects, representing segments of code. They have a central focus area, and
     optionally can contain surrounding context.
@@ -94,8 +97,10 @@ class Span(NamedTuple):
         - end_context is removed
         """
         if self.end.line - self.start.line > lines:
-            return self._replace(
-                end=Position(line=self.start.line + lines, col=0), context_end=None
+            return attr.evolve(
+                self,
+                end=Position(line=self.start.line + lines, col=0),
+                context_end=None,
             )
         return self
 
@@ -107,24 +112,23 @@ class Span(NamedTuple):
         """
         new = self
         if before is not None:
-            new = new._replace(
-                context_start=Position(col=0, line=max(0, self.start.line - before))
+            new = attr.evolve(
+                new,
+                context_start=Position(col=0, line=max(0, self.start.line - before)),
             )
 
         if after is not None:
-            new = new._replace(
+            new = attr.evolve(
+                new,
                 context_end=Position(
                     col=0,
                     line=min(
                         len(SourceTracker.source(self.source_hash)),
                         self.end.line + after,
                     ),
-                )
+                ),
             )
         return new
-
-    def as_dict(self) -> Dict[str, Any]:
-        return dict(start=self.start._asdict(), end=self.end._asdict(), file=self.file)
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} start={self.start} end={self.end}>"
