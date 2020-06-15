@@ -19,6 +19,7 @@ from semgrep.error import MISSING_CONFIG_EXIT_CODE
 from semgrep.error import SemgrepError
 from semgrep.output import OutputHandler
 from semgrep.rule import Rule
+from semgrep.rule_lang import YamlMap
 from semgrep.rule_lang import YamlTree
 from semgrep.semgrep_types import YAML_ALL_VALID_RULE_KEYS
 from semgrep.semgrep_types import YAML_MUST_HAVE_KEYS
@@ -31,15 +32,15 @@ MISSING_RULE_ID = "no-rule-id"
 
 
 def validate_single_rule(
-    config_id: str, rule_yaml: YamlTree, output_handler: OutputHandler
+    config_id: str, rule_yaml: YamlTree[YamlMap], output_handler: OutputHandler,
 ) -> Optional[Rule]:
     """
         Validate that a rule dictionary contains all necessary keys
         and can be correctly parsed
     """
-    rule: Dict[str, Any] = rule_yaml.value  # type: ignore
-    rule_id_err_msg = f'{rule.get("id", MISSING_RULE_ID).unroll()}'
-    rule_keys = set(rule.keys())
+    rule: YamlMap = rule_yaml.value
+
+    rule_keys = set({k.value for k in rule.keys()})
     if not rule_keys.issuperset(YAML_MUST_HAVE_KEYS):
         missing_keys = YAML_MUST_HAVE_KEYS - rule_keys
         # TODO(https://github.com/returntocorp/semgrep/issues/746): return the error messages instead of
@@ -54,14 +55,15 @@ def validate_single_rule(
         )
         return None
     if not rule_keys.issubset(YAML_ALL_VALID_RULE_KEYS):
-        extra_keys: Set[YamlTree] = rule_keys - YAML_ALL_VALID_RULE_KEYS  # type: ignore
+        extra_keys: Set[str] = rule_keys - YAML_ALL_VALID_RULE_KEYS
+        extra_key_spans = sorted([rule.key_tree(k) for k in extra_keys])
 
         output_handler.handle_semgrep_rule_errors(
             ErrorWithSpan(
                 short_msg="extra top-level key",
-                long_msg=f"{config_id} has an invalid top-level rule key: {[k.unroll() for k in extra_keys]}",
+                long_msg=f"{config_id} has an invalid top-level rule key: {sorted([k for k in extra_keys])}",
                 help=f"Only {sorted(YAML_ALL_VALID_RULE_KEYS)} are valid keys",
-                spans=[k.span.with_context(before=2, after=2) for k in extra_keys],
+                spans=[k.span.with_context(before=2, after=2) for k in extra_key_spans],
                 level="error",
             )
         )
@@ -69,6 +71,12 @@ def validate_single_rule(
     try:
         return Rule.from_yamltree(rule_yaml)
     except (InvalidPatternNameError, InvalidRuleSchemaError) as ex:
+        rule_id = rule.get("id")
+        if not rule_id:
+            rule_id_str = MISSING_RULE_ID
+        else:
+            rule_id_str = rule_id.value
+        rule_id_err_msg = f"{rule_id_str}"
         output_handler.handle_semgrep_rule_errors(
             SemgrepError(
                 f"{config_id}: inside rule id {rule_id_err_msg}, pattern fields can't look like this: {ex}"
@@ -91,11 +99,11 @@ def validate_configs(
             errors[config_id] = config_yaml_tree
             continue
         config = config_yaml_tree.value
-        if not isinstance(config, dict):
+        if not isinstance(config, YamlMap):
             print_error(f"{config_id} was not a mapping")
             errors[config_id] = config_yaml_tree.unroll()
             continue
-        rules = config.get(RULES_KEY)  # type: ignore
+        rules = config.get(RULES_KEY)
         if rules is None:
             output_handler.handle_semgrep_rule_errors(
                 ErrorWithSpan(
