@@ -54,7 +54,7 @@ class Position(NamedTuple):
     """
 
     line: int
-    column: int
+    col: int
 
     def next_line(self) -> "Position":
         return self._replace(line=self.line + 1)
@@ -63,7 +63,7 @@ class Position(NamedTuple):
         return self._replace(line=self.line - 1)
 
     def __repr__(self) -> str:
-        return f"<{self.__class__.__name__} line={self.line} column={self.column}>"
+        return f"<{self.__class__.__name__} line={self.line} col={self.col}>"
 
 
 class Span(NamedTuple):
@@ -83,10 +83,8 @@ class Span(NamedTuple):
     def from_node(
         cls, node: Node, source_hash: SourceFileHash, filename: Optional[str]
     ) -> "Span":
-        start = Position(
-            line=node.start_mark.line + 1, column=node.start_mark.column + 1
-        )
-        end = Position(line=node.end_mark.line + 1, column=node.end_mark.column + 1)
+        start = Position(line=node.start_mark.line + 1, col=node.start_mark.column + 1)
+        end = Position(line=node.end_mark.line + 1, col=node.end_mark.column + 1)
         return Span(start=start, end=end, file=filename, source_hash=source_hash)
 
     def truncate(self, lines: int) -> "Span":
@@ -97,7 +95,7 @@ class Span(NamedTuple):
         """
         if self.end.line - self.start.line > lines:
             return self._replace(
-                end=Position(line=self.start.line + lines, column=0), context_end=None
+                end=Position(line=self.start.line + lines, col=0), context_end=None
             )
         return self
 
@@ -110,13 +108,13 @@ class Span(NamedTuple):
         new = self
         if before is not None:
             new = new._replace(
-                context_start=Position(column=0, line=max(0, self.start.line - before))
+                context_start=Position(col=0, line=max(0, self.start.line - before))
             )
 
         if after is not None:
             new = new._replace(
                 context_end=Position(
-                    column=0,
+                    col=0,
                     line=min(
                         len(SourceTracker.source(self.source_hash)),
                         self.end.line + after,
