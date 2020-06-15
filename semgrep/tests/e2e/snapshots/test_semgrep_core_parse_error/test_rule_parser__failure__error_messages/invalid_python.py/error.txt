@@ -1,8 +1,8 @@
 running 2 rules...
 
-  0%|          | 0/2 [00:00<?, ?it/s]
-100%|██████████| 2/2 [00:00<00:00, 11.55it/s]
-                                             
+  0%|          |0/2
+100%|██████████|2/2
+100%|██████████|2/2
 Syntax error
 --> targets/bad/invalid_python.py:1
 def foo(a)
