@@ -255,13 +255,15 @@ class CoreRunner:
                     language,
                     "-rules_file",
                     pattern_file.name,
+                    "-j",
+                    str(self._jobs),
+                    "-target_file",
+                    target_file.name,
                 ]
 
                 if equivalences:
                     self._write_equivalences_file(equiv_file, equivalences)
                     cmd += ["-equivalences", equiv_file.name]
-
-                cmd += ["-j", str(self._jobs), "-target_file", target_file.name]
 
                 debug_print(f"Running semgrep... '{cmd}'")
                 core_run = subprocess.run(
