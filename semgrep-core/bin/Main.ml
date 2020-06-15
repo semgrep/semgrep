@@ -319,9 +319,7 @@ let cache_computation file cache_file_of_file f =
 
 
 let cache_file_of_file filename =
-  let dir = spf "%s/semgrep_core_cache_%d"
-      (!use_parsing_cache)
-      (Unix.getuid()) in
+  let dir = !use_parsing_cache in
   if not (Sys.file_exists dir)
   then Unix.mkdir dir 0o700;
   (* hopefully there will be no collision *)
@@ -895,7 +893,7 @@ let options () =
     " do not stop at first parsing error with -e/-f";
     (*e: [[Main_semgrep_core.options]] other cases *)
     "-use_parsing_cache", Arg.Set_string use_parsing_cache,
-    " save and use parsed ASTs in a cache";
+    " <dir> save and use parsed ASTs in a cache at given directory. Caller responsiblity to clear cache";
     "-verbose", Arg.Unit (fun () ->
       verbose := true;
       Flag_semgrep.verbose := true;
