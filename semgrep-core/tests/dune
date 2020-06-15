@@ -5,6 +5,7 @@
     threads          ;; needed for json-wheel (Condition?)
     json-wheel       ;; Json_io, Json_type
     dyp
+    ppx_deriving.runtime
 
     commons commons_core
     pfff-config 

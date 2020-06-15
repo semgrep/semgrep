@@ -6,6 +6,7 @@
     json-wheel       ;; Json_io, Json_type
     dyp
     parmap
+    ppx_deriving.runtime
 
     commons commons_core commons_ocollection
     pfff-config
