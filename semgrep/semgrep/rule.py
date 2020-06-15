@@ -7,6 +7,7 @@ from typing import Optional
 from semgrep.equivalences import Equivalence
 from semgrep.error import InvalidRuleSchemaError
 from semgrep.rule_lang import EmptySpan
+from semgrep.rule_lang import YamlMap
 from semgrep.rule_lang import YamlTree
 from semgrep.semgrep_types import ALLOWED_GLOB_TYPES
 from semgrep.semgrep_types import BooleanRuleExpression
@@ -20,11 +21,11 @@ from semgrep.semgrep_types import YAML_VALID_TOP_LEVEL_OPERATORS
 
 
 class Rule:
-    def __init__(self, raw: YamlTree) -> None:
+    def __init__(self, raw: YamlTree[YamlMap]) -> None:
         self._yaml = raw
-        self._raw: Dict[str, Any] = raw.unroll()  # type: ignore
+        self._raw: Dict[str, Any] = raw.unroll_dict()
 
-        paths = self._raw.get("paths", {})
+        paths: Dict[str, Any] = self._raw.get("paths", {})
         if not isinstance(paths, dict):
             raise InvalidRuleSchemaError(
                 f"the `paths:` targeting rules must be an object with at least one of {ALLOWED_GLOB_TYPES}"
@@ -221,7 +222,7 @@ class Rule:
         return cls(yaml)
 
     @classmethod
-    def from_yamltree(cls, rule_yaml: YamlTree) -> "Rule":
+    def from_yamltree(cls, rule_yaml: YamlTree[YamlMap]) -> "Rule":
         return cls(rule_yaml)
 
     def to_json(self) -> Dict[str, Any]:
@@ -241,6 +242,10 @@ class Rule:
         return f"<{self.__class__.__name__} id={self.id}>"
 
     def with_id(self, new_id: str) -> "Rule":
-        new_yaml = YamlTree(value=dict(self._yaml.value), span=self._yaml.span)  # type: ignore
-        new_yaml.value["id"] = YamlTree(value=new_id, span=new_yaml.value["id"].span)  # type: ignore
+        new_yaml = YamlTree(
+            value=YamlMap(dict(self._yaml.value._internal)), span=self._yaml.span
+        )
+        new_yaml.value[self._yaml.value.key_tree("id")] = YamlTree(
+            value=new_id, span=new_yaml.value["id"].span
+        )
         return Rule(new_yaml)

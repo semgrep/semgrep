@@ -160,13 +160,9 @@ class ErrorWithSpan(SemgrepError):
             snippet += self._format_code_segment(span.start, span.end, source, span)
             # Currently, only span highlighting if it's a one line span
             if span.start.line == span.end.line:
-                error = with_color(
-                    Fore.RED, (span.end.column - span.start.column) * "^"
-                )
+                error = with_color(Fore.RED, (span.end.col - span.start.col) * "^")
                 snippet.append(
-                    self._format_line_number(span, None)
-                    + " " * span.start.column
-                    + error
+                    self._format_line_number(span, None) + " " * span.start.col + error
                 )
             if span.context_end:
                 snippet += self._format_code_segment(
