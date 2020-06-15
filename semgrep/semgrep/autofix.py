@@ -58,7 +58,7 @@ def _parse_regex_fix(sed_string: str) -> Tuple[str, str]:
     Return the second and third elements of a sed-like string:
     E.g., s/one/two/g returns (one, two)
     """
-    splitstr = sed_string.split("/")[1:3]  # Do it this way to satisfy mypy
+    splitstr = sed_string.split("/")  # Do it this way to satisfy mypy
     return splitstr[1], splitstr[2]
 
 
