@@ -2,10 +2,13 @@ import hashlib
 from io import StringIO
 from typing import Any
 from typing import Dict
+from typing import Generic
+from typing import ItemsView
+from typing import KeysView
 from typing import List
-from typing import NamedTuple
 from typing import NewType
 from typing import Optional
+from typing import TypeVar
 from typing import Union
 
 import attr
@@ -136,22 +139,15 @@ class Span:
 
 # Actually recursive but mypy is unhelpful
 YamlValue = Union[str, int, List[Any], Dict[str, Any]]
-LocatedYamlValue = Union[str, int, List["YamlTree"], Dict["YamlTree", "YamlTree"]]
+LocatedYamlValue = Union[str, int, List["YamlTree"], "YamlMap"]
+
+T = TypeVar("T", bound=LocatedYamlValue)
 
 
-class YamlTree:
-    def __init__(self, value: LocatedYamlValue, span: Span):
+class YamlTree(Generic[T]):
+    def __init__(self, value: T, span: Span):
         self.value = value
         self.span = span
-
-    # __eq__ and _hash__ delegate to value to support `value['a']` working properly.
-    # otherwise, since the key is _actually_ a `Located` object you'd need to give the
-    # span to pull it out of the dictionary.
-    def __eq__(self, other: Any) -> bool:
-        return self.value.__eq__(other)
-
-    def __hash__(self) -> int:
-        return hash(self.value)
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} span={self.span} value={self.value}>"
@@ -173,15 +169,17 @@ class YamlTree:
         """
         if isinstance(self.value, list):
             return [x.unroll() for x in self.value]
-        elif isinstance(self.value, dict):
+        elif isinstance(self.value, YamlMap):
             return {str(k.unroll()): v.unroll() for k, v in self.value.items()}
         elif isinstance(self.value, YamlTree):
             return self.value.unroll()
-        else:
+        elif isinstance(self.value, str) or isinstance(self.value, int):
             return self.value
+        else:
+            raise ValueError("Invalid YAML tree structure")
 
     @classmethod
-    def wrap(cls, value: YamlValue, span: Span) -> "YamlTree":
+    def wrap(cls, value: YamlValue, span: Span) -> "YamlTree":  # type: ignore
         """
         Wraps a value in a YamlTree and attaches the span everywhere.
         This exists so you can take generate a datastructure from user input, but track all the errors within that
@@ -191,16 +189,50 @@ class YamlTree:
             return YamlTree(value=[YamlTree.wrap(x, span) for x in value], span=span)
         elif isinstance(value, dict):
             return YamlTree(
-                value={
-                    YamlTree.wrap(k, span): YamlTree.wrap(v, span)
-                    for k, v in value.items()
-                },
+                value=YamlMap(
+                    {
+                        YamlTree.wrap(k, span): YamlTree.wrap(v, span)
+                        for k, v in value.items()
+                    }
+                ),
                 span=span,
             )
         elif isinstance(value, YamlTree):
             return value
         else:
             return YamlTree(value, span)
+
+
+class YamlMap:
+    """
+    To preserve span information for keys, which we commonly use in error messages,
+    make a custom map type that is indexable by str, but provides views into all
+    necessary spans
+    """
+
+    def __init__(self, internal: Dict[YamlTree[str], YamlTree]):
+        self._internal = internal
+
+    def __getitem__(self, key: str) -> YamlTree:
+        return next(v for k, v in self._internal.items() if k.value == key)
+
+    def __setitem__(self, key: YamlTree[str], value: YamlTree) -> None:
+        self._internal[key] = value
+
+    def items(self) -> ItemsView[YamlTree[str], YamlTree]:
+        return self._internal.items()
+
+    def key_tree(self, key: str) -> YamlTree[str]:
+        return next(k for k, v in self._internal.items() if k.value == key)
+
+    def get(self, key: str) -> Optional[YamlTree]:
+        match = [v for k, v in self._internal.items() if k.value == key]
+        if match:
+            return match[0]
+        return None
+
+    def keys(self) -> KeysView[YamlTree[str]]:
+        return self._internal.keys()
 
 
 def parse_yaml(contents: str) -> Dict[str, Any]:
@@ -220,6 +252,8 @@ def parse_yaml_preserve_spans(contents: str, filename: Optional[str]) -> YamlTre
     class SpanPreservingRuamelConstructor(RoundTripConstructor):
         def construct_object(self, node: Node, deep: bool = False) -> YamlTree:
             r = super().construct_object(node, deep)
+            if isinstance(r, dict):
+                r = YamlMap(r)
             return YamlTree(
                 r, Span.from_node(node, source_hash=source_hash, filename=filename)
             )
