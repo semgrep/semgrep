@@ -16,6 +16,7 @@ from typing import Optional
 from typing import Tuple
 
 from ruamel.yaml import YAML
+from tqdm import tqdm
 
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import SEMGREP_PATH
@@ -265,7 +266,6 @@ class CoreRunner:
                     self._write_equivalences_file(equiv_file, equivalences)
                     cmd += ["-equivalences", equiv_file.name]
 
-                debug_print(f"Running semgrep... '{cmd}'")
                 core_run = subprocess.run(
                     cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
                 )
@@ -325,7 +325,8 @@ class CoreRunner:
         debugging_steps_by_rule: Dict[Rule, List[Dict[str, Any]]] = {}
         all_errors = []
 
-        for rule in rules:
+        for rule in tqdm(rules, leave=False):
+            debug_print(f"Running rule {rule._raw.get('id')}")
             rule_matches, debugging_steps, errors = self._run_rule(rule, target_manager)
             findings_by_rule[rule] = rule_matches
             debugging_steps_by_rule[rule] = debugging_steps
