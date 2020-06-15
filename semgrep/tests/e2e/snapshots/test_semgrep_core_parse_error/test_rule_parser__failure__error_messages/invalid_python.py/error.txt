@@ -1,8 +1,4 @@
 running 2 rules...
-
-  0%|          |0/2
-100%|██████████|2/2
-100%|██████████|2/2
 Syntax error
 --> targets/bad/invalid_python.py:1
 def foo(a)

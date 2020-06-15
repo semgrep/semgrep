@@ -1,5 +1,2 @@
 running 1 rules...
-
-  0%|          |0/1
-  0%|          |0/1
 invalid regular expression specified: missing ), unterminated subpattern at position 0

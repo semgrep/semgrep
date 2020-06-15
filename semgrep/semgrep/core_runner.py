@@ -4,6 +4,7 @@ import json
 import multiprocessing
 import re
 import subprocess
+import sys
 import tempfile
 from datetime import datetime
 from pathlib import Path
@@ -34,6 +35,16 @@ from semgrep.semgrep_types import OPERATORS
 from semgrep.target_manager import TargetManager
 from semgrep.util import debug_print
 from semgrep.util import partition
+
+
+def _progress_bar(iterable: List[Rule], file: IO = sys.stderr, **kwargs: Any) -> Any:
+    """
+    Return tqdm-wrapped iterable if output stream is a tty;
+    else return iterable without tqdm.
+    """
+    if file.isatty():
+        return tqdm(iterable, file=file, **kwargs)
+    return iterable
 
 
 def _offset_to_line_no(offset: int, buff: str) -> int:
@@ -326,7 +337,7 @@ class CoreRunner:
         all_errors = []
 
         # cf. for bar_format: https://tqdm.github.io/docs/tqdm/
-        for rule in tqdm(rules, bar_format="{l_bar}{bar}|{n_fmt}/{total_fmt}"):
+        for rule in _progress_bar(rules, bar_format="{l_bar}{bar}|{n_fmt}/{total_fmt}"):
             debug_print(f"Running rule {rule._raw.get('id')}")
             rule_matches, debugging_steps, errors = self._run_rule(rule, target_manager)
             findings_by_rule[rule] = rule_matches
