@@ -237,7 +237,6 @@ class CoreRunner:
                 )
 
             patterns_json = [p.to_json() for p in patterns]
-            # very important not to sort keys here
             with tempfile.NamedTemporaryFile(
                 "w"
             ) as pattern_file, tempfile.NamedTemporaryFile(
@@ -248,13 +247,13 @@ class CoreRunner:
                 yaml = YAML()
                 yaml.dump({"rules": patterns_json}, pattern_file)
                 pattern_file.flush()
-                target_file.write("\n".join([str(t) for t in targets]))
+                target_file.write("\n".join(str(t) for t in targets))
                 target_file.flush()
 
                 cmd = [SEMGREP_PATH] + [
                     "-lang",
                     language,
-                    f"-rules_file",
+                    "-rules_file",
                     pattern_file.name,
                 ]
 
@@ -262,8 +261,7 @@ class CoreRunner:
                     self._write_equivalences_file(equiv_file, equivalences)
                     cmd += ["-equivalences", equiv_file.name]
 
-                cmd += ["-j", str(self._jobs)]
-                cmd += ["-target_file", target_file.name]
+                cmd += ["-j", str(self._jobs), "-target_file", target_file.name]
 
                 debug_print(f"Running semgrep... '{cmd}'")
                 core_run = subprocess.run(
@@ -290,7 +288,7 @@ class CoreRunner:
 
                 output_json = json.loads((core_run.stdout.decode("utf-8", "replace")))
                 errors.extend(output_json["errors"])
-                outputs.extend([PatternMatch(m) for m in output_json["matches"]])
+                outputs.extend(PatternMatch(m) for m in output_json["matches"])
 
         # group output; we want to see all of the same rule ids on the same file path
         by_rule_index: Dict[
