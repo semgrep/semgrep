@@ -4,13 +4,20 @@ import sys
 import typing
 from typing import Any
 from typing import Callable
+from typing import cast
+from typing import IO
 from typing import Iterable
 from typing import List
 from typing import Set
 from typing import Tuple
+from typing import TypeVar
+from typing import Union
 from urllib.parse import urlparse
 
 from colorama import Fore
+from tqdm import tqdm
+
+T = TypeVar("T")
 
 global DEBUG
 global QUIET
@@ -53,6 +60,11 @@ def print_msg(msg: str, **kwargs: Any) -> None:
 def debug_print(msg: str) -> None:
     if DEBUG:
         tty_sensitive_print(msg, file=sys.stderr)
+
+
+def debug_tqdm_write(msg: str, file: IO = sys.stderr) -> None:
+    if DEBUG:
+        tqdm.write(msg, file=file)
 
 
 def flatten(L: Iterable[Iterable[Any]]) -> Iterable[Any]:
@@ -100,3 +112,17 @@ def with_color(color: str, text: str, bold: bool = False) -> str:
         color = color + "\033[1m"
         reset += "\033[0m"
     return f"{color}{text}{reset}"
+
+
+def progress_bar(
+    iterable: Iterable[T], file: IO = sys.stderr, **kwargs: Any
+) -> Iterable[T]:
+    """
+    Return tqdm-wrapped iterable if output stream is a tty;
+    else return iterable without tqdm.
+    """
+    if file.isatty():
+        # mypy doesn't seem to want to follow tqdm imports. Do this to placate.
+        wrapped: Iterable[T] = tqdm(iterable, file=file, **kwargs)
+        return wrapped
+    return iterable
