@@ -41,16 +41,32 @@
   </a>
 </p>
 
-Semgrep is a command-line tool for static analysis. Quickly write custom rules or use pre-built checks to enforce code and security standards in your project. Semgrep runs locally and in CI; it never sends your code anywhere.
+Semgrep is a command-line tool for static analysis. Quickly write custom rules or use pre-built checks to enforce code and security standards in your project. Semgrep runs locally and in CI; it works offline and never sends your code anywhere.
 
-Get started quickly with these sections:
+Quickly get started with Semgrep:
 
 1. [Installation]()
-1. [Run pre-built rules]()
 1. [Writing custom rules]()
+1. [Run pre-built rules]()
 1. [Run Semgrep continously in CI]()
 
-Semgrep combines the convenient and iterative style of `grep` with the powerful features of an Abstract Syntax Tree (AST) matcher and dataflows. Easily find function calls, class or method definitions, and more without having to understand ASTs or wrestle with regexes.
+## Overview
+
+Semgrep combines the convenient and iterative style of `grep` with the powerful features of an Abstract Syntax Tree (AST) matcher and intra-file dataflows. Easily find function calls, class or method definitions, and more without having to understand ASTs or wrestle with a regex.
+
+It began as a Facebook project called [pfff](https://github.com/facebookarchive/pfff) in 2009, where it was used to enforce nearly 1000 "paved road" rules on Facebook's codebases. Fast forward to 2019 when [r2c](https://r2c.dev/) revitalized the project after its original author, Yoann Padioleau ([@aryx](https://github.com/aryx)), joined the team. Since its revitalization Semgrep has grown to support many languages including Python, Golang, JavaScript, and Java. It's the latest in a long line of variant analysis and code automation tools with a lineage that connects to [Coccinelle](http://coccinelle.lip6.fr/).
+
+Semgrep exists because:
+
+1. Insecure code is easy to write
+2. The future of security involves automatically guiding developers towards a “paved road” made of default-safe frameworks (i.e. [React](https://reactjs.org/) or Object-relational Mappers)
+3. `grep` isn’t expressive enough and traditional static analysis tools (SAST) are too complicated/slow for paved road automation
+
+The AppSec, Developer, and DevOps community deserves a static analysis tool that is fast, easy to use, code-aware, multi-lingual, and open source!
+
+## Usage
+
+It's designed for both quick one-off audits and "production ready" rules that run in the development workflow.
 
 For example, to audit for all calls to `exec` in your Python codebase, run:
 
@@ -73,7 +89,7 @@ exec (
 )
 ```
 
-A multi-pattern YAML syntax then lets you combine simple patterns using boolean logic to create powerful rules for continuous scanning:
+A [multi-pattern YAML syntax]() then lets you combine simple patterns using boolean logic to create powerful rules for continuous scanning:
 
 ```yaml
 id: flask-insecure-cookie
@@ -84,47 +100,9 @@ message: |
   Flask cookies should be handled securely by setting `secure=True`, `httponly=True`, and `samesite='Lax'`.
 ```
 
-Learn more about this rule on the [live editor](https://semgrep.live/JDeR) or visit [Installation](#installation) and [Usage](#usage) to get started.
+Learn more about this rule on the [live editor](https://semgrep.live/JDeR). See [Installation](#installation) and [Workflows](#workflows) to get started.
 
-## Installation
-
-> Want to skip installation? You can run Semgrep online via [semgrep.live](https://semgrep.live/).
-
-On macOS, binaries are available via Homebrew:
-
-```bash
-$ brew install semgrep
-```
-
-On Ubuntu, an install script is available with each [release](https://github.com/returntocorp/semgrep/releases/download/v0.10.1/semgrep-v0.10.1-ubuntu-generic.sh):
-
-```bash
-$ ./semgrep-v0.10.1-ubuntu-generic.sh
-```
-
-To try Semgrep without installation, you can also run it via Docker:
-
-```
-$ docker run --rm -v "${PWD}:/home/repo" returntocorp/semgrep --help
-```
-
-See [Usage](#usage) to learn about running pre-built rules and writing custom ones.
-
-## Motivation
-
-Semgrep exists because:
-
-1. Insecure code is easy to write
-2. The future of security involves automatically guiding developers towards a “paved road” made of default-safe frameworks (i.e. [React](https://reactjs.org/) or Object-relational Mappers)
-3. `grep` isn’t expressive enough and traditional static analysis tools (SAST) are too complicated/slow for paved road automation
-
-The AppSec, Developer, and DevOps community deserves a static analysis tool that is fast, easy to use, code-aware, multi-lingual, and open source!
-
-Semgrep and its concepts are not new. They began as a Facebook project called sgrep and pfff in 2009. Facebook used these tools to enforce nearly 1000 paved road rules on their codebase.
-
-[r2c](https://r2c.dev/) revitalized the project after its original author, Yoann Padioleau ([@aryx](https://github.com/aryx)), joined the group in 2019. Semgrep continues the work of the sgrep, pfff, and [coccinelle.lip6.fr](http://coccinelle.lip6.fr/) projects.
-
-## Overview
+## Design
 
 Semgrep is optimized for:
 
