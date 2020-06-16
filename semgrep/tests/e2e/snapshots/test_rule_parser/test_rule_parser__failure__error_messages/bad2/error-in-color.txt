@@ -3,7 +3,7 @@
 [94m1 | [39mrules:
 [94m2 | [39m  - id: eqeq-is-bad
 [94m3 | [39m    pattern-inside: foo(...)
-[94m  | [39m     [31m^^^^^^^^^^^^^^[39m
+[94m  | [39m    [31m^^^^^^^^^^^^^^[39m
 [94m4 | [39m    patterns:
 [94m5 | [39m      - pattern-not: 1 == 1
 = [36m[1mhelp[39m[0m: Only ['equivalences', 'fix', 'id', 'languages', 'message', 'metadata', 'paths', 'pattern', 'pattern-either', 'pattern-regex', 'patterns', 'severity'] are valid keys
