@@ -3,6 +3,7 @@
  (flags (:standard -w -27))
  (libraries
    bigarray str
+   uucp uutf
 
    commons
    pfff-h_program-lang

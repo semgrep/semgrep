@@ -6,6 +6,7 @@
     json-wheel       ;; Json_io, Json_type
     dyp
     ppx_deriving.runtime
+    uutf uucp
 
     commons commons_core
     pfff-config 

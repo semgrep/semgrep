@@ -24,6 +24,8 @@ depends: [
   "conf-perl"
   "yaml"
   "grain_dypgen"
+  "uucp"
+  "uutf"
   "menhir"
   "parmap"
   "dune-glob"
