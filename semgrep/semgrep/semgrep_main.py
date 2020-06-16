@@ -366,11 +366,16 @@ def main(
     output_handler.handle_semgrep_core_output(rule_matches_by_rule, debug_steps_by_rule)
     output_handler.handle_semgrep_core_errors(semgrep_errors)
 
-    if strict and len(semgrep_errors):
-        raise SemgrepError(
-            f"run with --strict and {len(semgrep_errors)} errors occurred during semgrep run; exiting",
-            code=INVALID_CODE_EXIT_CODE,
-        )
+    if len(semgrep_errors):
+        if strict:
+            raise SemgrepError(
+                f"run with --strict and {len(semgrep_errors)} errors occurred during semgrep run; exiting",
+                code=INVALID_CODE_EXIT_CODE,
+            )
+        else:
+            print_error(
+                "Run with --strict to exit with non-zero exit code when errors exist"
+            )
 
     if autofix:
         apply_fixes(rule_matches_by_rule)
