@@ -102,7 +102,6 @@ def apply_fixes(rule_matches_by_rule: Dict[Rule, List[RuleMatch]]) -> None:
                     _regex_replace(rule_match, from_str, to_str)
                     modified_files.add(filepath)
                 except Exception as e:
-                    raise e
                     raise SemgrepError(
                         f"unable to use regex to modify file {filepath}: {e}"
                     )
