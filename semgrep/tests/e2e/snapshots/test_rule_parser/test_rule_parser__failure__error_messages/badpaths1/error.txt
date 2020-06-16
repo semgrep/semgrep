@@ -1,2 +1,12 @@
-rules/syntax/badpaths1.yaml: inside rule id arg-reassign, pattern fields can't look like this: the `paths:` targeting rules must be an object with at least one of ('include', 'exclude')
+error: invalid paths
+  --> rules/syntax/badpaths1.yaml:6
+6  |     paths:
+   |     ^^^^^
+7  |       # bad syntax: these should be under an object, i.e. `exclude:`
+8  |       - "*.py"
+9  |       - "test/*"
+10 |     message: "$X is being assigned to one or two"
+= help: remove the `-` to convert the list into a mapping
+the `paths:` targeting rules must be an object with at least one of ('include', 'exclude')
+
 run with --strict and there were 1 errors loading configs

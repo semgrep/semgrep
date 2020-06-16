@@ -94,9 +94,7 @@ def pattern_names_for_operator(operator: Operator) -> List[str]:
 
 
 def pattern_names_for_operators(operators: List[Operator]) -> List[str]:
-    return sum(
-        (pattern_names_for_operator(op) for op in OPERATOR_PATTERN_NAMES_MAP), []
-    )
+    return sum((pattern_names_for_operator(op) for op in operators), [])
 
 
 class RuleGlobs(NamedTuple):

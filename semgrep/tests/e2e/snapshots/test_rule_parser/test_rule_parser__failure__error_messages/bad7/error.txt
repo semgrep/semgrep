@@ -1,0 +1,8 @@
+error: invalid id
+  --> rules/syntax/bad7.yaml:3
+3 |   - id: 123
+  |         ^^^
+
+rule id must be a string, but was int
+
+run with --strict and there were 1 errors loading configs
