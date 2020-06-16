@@ -263,7 +263,7 @@ class OutputHandler:
                 )
 
                 print_error(
-                    f"{len(files_with_parse_errors)} files failed to parse: {files_with_parse_errors}"
+                    f"{len(files_with_parse_errors)} files failed to parse: {', '.join(files_with_parse_errors)}"
                 )
 
                 if semgrep.util.DEBUG:
