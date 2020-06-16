@@ -203,7 +203,7 @@ class CoreRunner:
         fp.flush()
 
     def _run_rule(
-        self, rule: Rule, target_manager: TargetManager
+        self, rule: Rule, target_manager: TargetManager, cache_dir: str
     ) -> Tuple[List[RuleMatch], List[Dict[str, Any]], List[Any]]:
         """
             Run all rules on targets and return list of all places that match patterns, ... todo errors
@@ -271,6 +271,8 @@ class CoreRunner:
                     str(self._jobs),
                     "-target_file",
                     target_file.name,
+                    "-use_parsing_cache",
+                    cache_dir,
                 ]
 
                 if equivalences:
@@ -337,12 +339,15 @@ class CoreRunner:
         all_errors = []
 
         # cf. for bar_format: https://tqdm.github.io/docs/tqdm/
-        for rule in _progress_bar(rules, bar_format="{l_bar}{bar}|{n_fmt}/{total_fmt}"):
-            debug_print(f"Running rule {rule._raw.get('id')}")
-            rule_matches, debugging_steps, errors = self._run_rule(rule, target_manager)
-            findings_by_rule[rule] = rule_matches
-            debugging_steps_by_rule[rule] = debugging_steps
-            all_errors.extend(errors)
+        with tempfile.TemporaryDirectory() as semgrep_core_ast_cache_dir:
+            for rule in _progress_bar(rules, bar_format="{l_bar}{bar}|{n_fmt}/{total_fmt}"):
+                debug_print(f"Running rule {rule._raw.get('id')}")
+                rule_matches, debugging_steps, errors = self._run_rule(
+                    rule, target_manager, semgrep_core_ast_cache_dir
+                )
+                findings_by_rule[rule] = rule_matches
+                debugging_steps_by_rule[rule] = debugging_steps
+                all_errors.extend(errors)
 
         all_errors = dedup_errors(all_errors)
         return findings_by_rule, debugging_steps_by_rule, all_errors
