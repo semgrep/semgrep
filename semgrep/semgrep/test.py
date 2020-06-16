@@ -198,6 +198,7 @@ def invoke_semgrep(
         exclude_dir=[],
         strict=strict,
         autofix=False,
+        disable_nosem=False,
         dangerously_allow_arbitrary_code_execution_from_rules=unsafe,
         no_git_ignore=True,
     )

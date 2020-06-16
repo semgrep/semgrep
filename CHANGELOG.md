@@ -7,6 +7,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Added
 - Support for another programming language: OCaml. You can now write 
   OCaml semgrep patterns with -lang ocaml
+- Inline whitelisting capabilities via `nosem` comments and the
+  `--disable-nosem` flag [#900](https://github.com/returntocorp/semgrep/issues/900)
 
 ## [0.10.1](https://github.com/returntocorp/semgrep/releases/tag/v0.10.1) - 2020-06-10
 

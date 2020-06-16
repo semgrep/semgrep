@@ -1,4 +1,5 @@
 import os
+import re
 import subprocess
 import sys
 from enum import auto
@@ -38,3 +39,24 @@ class OutputFormat(Enum):
     JSON = auto()
     JSON_DEBUG = auto()
     SARIF = auto()
+
+
+# Inline 'noqa' implementation modified from flake8:
+# https://github.com/PyCQA/flake8/blob/master/src/flake8/defaults.py
+NOSEM_INLINE_RE = re.compile(
+    # We're looking for items that look like this:
+    # ' nosem'
+    # ' nosem: example-pattern-id'
+    # ' nosem: pattern-id1,pattern-id2'
+    # ' NOSEM:pattern-id1,pattern-id2'
+    #
+    # * We do not want to capture the ': ' that follows 'nosem'
+    # * We do not care about the casing of 'nosem'
+    # * We want a comma-separated list of ids
+    # * We want multi-language support, so we cannot strictly look for
+    #   Python comments that begin with '# '
+    #
+    r" nosem(?::[\s]?(?P<ids>([^,\s](?:[,\s]+)?)+))?",
+    re.IGNORECASE,
+)
+COMMA_SEPARATED_LIST_RE = re.compile(r"[,\s]")
