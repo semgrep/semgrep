@@ -1,2 +1,10 @@
-rules/syntax/badpaths2.yaml: inside rule id arg-reassign, pattern fields can't look like this: the `paths:` targeting rules must each be one of ('include', 'exclude')
+error: invalid targeting rules
+  --> rules/syntax/badpaths2.yaml:8
+7 |       # bad syntax: key name should be `include:`
+8 |       filename: "*.py"
+  |       ^^^^^^^^
+9 |     message: "$X is being assigned to one or two"
+
+the `paths:` targeting rules must each be one of ('include', 'exclude')
+
 run with --strict and there were 1 errors loading configs

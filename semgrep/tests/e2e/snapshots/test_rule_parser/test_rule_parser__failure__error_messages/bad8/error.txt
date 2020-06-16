@@ -1,0 +1,11 @@
+error: missing key
+  --> rules/syntax/bad8.yaml:2
+2 |   - id: arg-reassign
+3 |     # missing a pattern
+4 |     message: "$X is being assigned to one or two"
+5 |     languages: [python]
+6 |     severity: WARNING
+
+missing a pattern type in rule, expected one of ['patterns', 'pattern-either', 'pattern-regex', 'pattern']
+
+run with --strict and there were 1 errors loading configs

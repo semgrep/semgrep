@@ -10,7 +10,6 @@ from semgrep.rule_lang import EmptySpan
 from semgrep.rule_lang import Span
 from semgrep.rule_lang import YamlMap
 from semgrep.rule_lang import YamlTree
-from semgrep.rule_lang import YamlValue
 from semgrep.semgrep_types import ALLOWED_GLOB_TYPES
 from semgrep.semgrep_types import BooleanRuleExpression
 from semgrep.semgrep_types import operator_for_pattern_name
@@ -19,7 +18,6 @@ from semgrep.semgrep_types import OPERATORS_WITH_CHILDREN
 from semgrep.semgrep_types import pattern_names_for_operator
 from semgrep.semgrep_types import pattern_names_for_operators
 from semgrep.semgrep_types import PatternId
-from semgrep.semgrep_types import YAML_VALID_TOP_LEVEL_OPERATORS
 
 
 class Rule:
@@ -29,25 +27,40 @@ class Rule:
         # For tracking errors from semgrep-core
         self._pattern_spans: Dict[PatternId, Span] = {}
 
-        paths: Dict[str, Any] = self._raw.get("paths", {})
-        if not isinstance(paths, dict):
-            raise InvalidRuleSchemaError(
-                f"the `paths:` targeting rules must be an object with at least one of {ALLOWED_GLOB_TYPES}"
-            )
-        for key, value in paths.items():
-            if key not in ALLOWED_GLOB_TYPES:
+        paths_tree: Optional[YamlTree] = self._yaml.value.get("paths")
+        if paths_tree is None:
+            path_dict = {}
+        else:
+            paths, paths_span = paths_tree.value, paths_tree.span
+            if not isinstance(paths, YamlMap):
+                path_key = self._yaml.value.key_tree("paths").span
+                help_str: Optional[str] = None
+                if isinstance(paths, list):
+                    help_str = "remove the `-` to convert the list into a mapping"
                 raise InvalidRuleSchemaError(
-                    f"the `paths:` targeting rules must each be one of {ALLOWED_GLOB_TYPES}"
+                    short_msg="invalid paths",
+                    long_msg=f"the `paths:` targeting rules must be an object with at least one of {ALLOWED_GLOB_TYPES}",
+                    spans=[path_key.extend_to(paths_span)],
+                    help=help_str,
                 )
-            if not isinstance(value, list):
-                raise InvalidRuleSchemaError(
-                    f"the `paths:` targeting rule values must be lists"
-                )
+            for key, value in paths.items():
+                if key.value not in ALLOWED_GLOB_TYPES:
+                    raise InvalidRuleSchemaError(
+                        short_msg="invalid targeting rules",
+                        long_msg=f"the `paths:` targeting rules must each be one of {ALLOWED_GLOB_TYPES}",
+                        spans=[key.span.with_context(before=1, after=1)],
+                    )
+                if not isinstance(value.value, list):
+                    raise InvalidRuleSchemaError(
+                        short_msg="invalid target value",
+                        long_msg=f"the `paths:` targeting rule values must be lists",
+                        spans=[value.span],
+                    )
+            path_dict = paths_tree.unroll_dict()
+        self._includes = path_dict.get("include", [])
+        self._excludes = path_dict.get("exclude", [])
 
-        self._includes = paths.get("include", [])
-        self._excludes = paths.get("exclude", [])
-
-        self._expression = self._build_boolean_expression(self._yaml.value)
+        self._expression = self._build_boolean_expression(self._yaml)
 
     def _parse_boolean_expression(
         self,
@@ -60,13 +73,19 @@ class Rule:
         """
         if not isinstance(rule_patterns.value, list):
             raise InvalidRuleSchemaError(
-                f"invalid type for patterns in rule: {type(rule_patterns.unroll()).__name__} is not a list; perhaps your YAML is missing a `-` before {rule_patterns.unroll()}?"
+                short_msg="invalid patterns",
+                long_msg=f"invalid type for patterns; expected a list, but found {type(rule_patterns.unroll()).__name__}",
+                spans=[rule_patterns.span.with_context(before=1).truncate(5)],
+                help=f"perhaps your YAML is missing a `-` on line {rule_patterns.span.start.line}?",
             )
         for rule_index, pattern_tree in enumerate(rule_patterns.value):
             pattern = pattern_tree.value
             if not isinstance(pattern, YamlMap):
                 raise InvalidRuleSchemaError(
-                    f"invalid type for pattern {pattern}: {type(pattern)} is not a dict"
+                    short_msg="invalid pattern",
+                    long_msg=f"invalid type for pattern expected dict but found {type(pattern).__name__}",
+                    spans=[pattern_tree.span],
+                    help=f"Did you mean `pattern: {pattern}`?",
                 )
             for boolean_operator_yaml, sub_pattern in pattern.items():
                 boolean_operator: str = boolean_operator_yaml.value
@@ -84,7 +103,11 @@ class Rule:
                         )
                     else:
                         raise InvalidRuleSchemaError(
-                            f"operator {boolean_operator} must have children"
+                            short_msg="missing children",
+                            long_msg=f"operator {boolean_operator} must have children",
+                            spans=[
+                                boolean_operator_yaml.span.extend_to(sub_pattern.span)
+                            ],
                         )
                 else:
                     pattern_text, pattern_span = sub_pattern.value, sub_pattern.span
@@ -100,25 +123,38 @@ class Rule:
                         pattern_id_idx += 1
                     else:
                         raise InvalidRuleSchemaError(
-                            f"operand {boolean_operator} must be a string, but instead was {type(sub_pattern.unroll()).__name__}"
+                            short_msg="invalid operand",
+                            long_msg=f"operand for {boolean_operator} must be a string, but instead was {type(sub_pattern.unroll()).__name__}",
+                            spans=[
+                                boolean_operator_yaml.span.extend_to(
+                                    pattern_span
+                                ).truncate(5)
+                            ],
                         )
 
     @staticmethod
-    def _validate_operand(operand: YamlValue) -> str:
-        if not isinstance(operand, str):
+    def _validate_operand(operand: YamlTree) -> str:  # type: ignore
+        if not isinstance(operand.value, str):
             raise InvalidRuleSchemaError(
-                f"type of `pattern` must be a string, but it was a {type(operand).__name__}"
+                short_msg="invalid operand",
+                long_msg=f"type of `pattern` must be a string, but it was a {type(operand.unroll()).__name__}",
+                spans=[operand.span.with_context(before=1, after=1)],
             )
-        return operand
+        return operand.value
 
-    def _build_boolean_expression(self, rule_raw: YamlMap) -> BooleanRuleExpression:
+    def _build_boolean_expression(
+        self, rule: YamlTree[YamlMap]
+    ) -> BooleanRuleExpression:
         """
         Build a boolean expression from the yml lines in the rule
         """
+        rule_raw = rule.value
         _rule_id = rule_raw["id"].unroll()
         if not isinstance(_rule_id, str):
             raise InvalidRuleSchemaError(
-                f"rule id must be a string, but was {type(_rule_id).__name__}"
+                short_msg="invalid id",
+                long_msg=f"rule id must be a string, but was {type(_rule_id).__name__}",
+                spans=[rule_raw["id"].span],
             )
         rule_id = PatternId(_rule_id)
         for pattern_name in pattern_names_for_operator(OPERATORS.AND):
@@ -126,10 +162,7 @@ class Rule:
             if pattern:
                 self._pattern_spans[rule_id] = pattern.span
                 return BooleanRuleExpression(
-                    OPERATORS.AND,
-                    rule_id,
-                    None,
-                    self._validate_operand(pattern.unroll()),
+                    OPERATORS.AND, rule_id, None, self._validate_operand(pattern),
                 )
 
         for pattern_name in pattern_names_for_operator(OPERATORS.REGEX):
@@ -137,10 +170,7 @@ class Rule:
             if pattern:
                 self._pattern_spans[rule_id] = pattern.span
                 return BooleanRuleExpression(
-                    OPERATORS.REGEX,
-                    rule_id,
-                    None,
-                    self._validate_operand(pattern.unroll()),
+                    OPERATORS.REGEX, rule_id, None, self._validate_operand(pattern),
                 )
 
         for pattern_name in pattern_names_for_operator(OPERATORS.AND_ALL):
@@ -163,9 +193,17 @@ class Rule:
                     operand=None,
                 )
 
-        valid_top_level_keys = list(YAML_VALID_TOP_LEVEL_OPERATORS)
+        required_operator = [
+            OPERATORS.AND_ALL,
+            OPERATORS.AND_EITHER,
+            OPERATORS.REGEX,
+            OPERATORS.AND,
+        ]
+
         raise InvalidRuleSchemaError(
-            f"missing a pattern type in rule, expected one of {pattern_names_for_operators(valid_top_level_keys)}"
+            short_msg="missing key",
+            long_msg=f"missing a pattern type in rule, expected one of {pattern_names_for_operators(required_operator)}",
+            spans=[rule.span.truncate(10)],
         )
 
     @property

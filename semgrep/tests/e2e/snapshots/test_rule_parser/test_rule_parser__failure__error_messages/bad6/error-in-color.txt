@@ -1,0 +1,8 @@
+[31merror[39m: missing children
+  --> rules/syntax/bad6.yaml:5
+[94m5 | [39m      - pattern-either: "$X == $X"
+[94m  | [39m        [31m^^^^^^^^^^^^^^[39m
+
+[31moperator pattern-either must have children[39m
+
+run with --strict and there were 1 errors loading configs

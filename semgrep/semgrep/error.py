@@ -34,10 +34,6 @@ class SemgrepError(Exception):
         super().__init__(*args)
 
 
-class InvalidRuleSchemaError(SemgrepError):
-    pass
-
-
 class InvalidPatternNameError(SemgrepError):
     pass
 
@@ -77,8 +73,8 @@ class ErrorWithSpan(SemgrepError):
         self,
         short_msg: str,
         long_msg: Optional[str],
-        level: str,
         spans: List[Span],
+        level: str = "error",
         help: Optional[str] = None,
         cause: Optional[Exception] = None,
     ):
@@ -181,6 +177,10 @@ class ErrorWithSpan(SemgrepError):
 
 
 class InvalidPatternError(ErrorWithSpan):
+    code = INVALID_PATTERN_EXIT_CODE
+
+
+class InvalidRuleSchemaError(ErrorWithSpan):
     code = INVALID_PATTERN_EXIT_CODE
 
 

@@ -1,0 +1,8 @@
+error: invalid pattern
+  --> rules/syntax/bad5.yaml:5
+5 |       - "4"
+  |         ^^^
+= help: Did you mean `pattern: 4`?
+invalid type for pattern expected dict but found str
+
+run with --strict and there were 1 errors loading configs

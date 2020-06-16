@@ -1,17 +1,21 @@
 from subprocess import CalledProcessError
 
 import pytest
+from tests.conftest import TESTS_PATH
+
+syntax_dir = TESTS_PATH / "e2e" / "rules" / "syntax"
+syntax_passes = [f.with_suffix("").name for f in syntax_dir.glob("good*.yaml")]
+syntax_fails = [
+    f.with_suffix("").name for f in syntax_dir.glob("*.yaml") if "good" not in f.name
+]
 
 
-@pytest.mark.parametrize("filename", ["good", "good_info_severity", "good_metadata"])
+@pytest.mark.parametrize("filename", syntax_passes)
 def test_rule_parser__success(run_semgrep_in_tmp, snapshot, filename):
     run_semgrep_in_tmp(f"rules/syntax/{filename}.yaml")
 
 
-@pytest.mark.parametrize(
-    "filename",
-    ["bad1", "bad2", "bad3", "bad4", "badpattern", "badpaths1", "badpaths2", "invalid"],
-)
+@pytest.mark.parametrize("filename", syntax_fails)
 def test_rule_parser__failure(run_semgrep_in_tmp, snapshot, filename):
     with pytest.raises(CalledProcessError) as excinfo:
         run_semgrep_in_tmp(f"rules/syntax/{filename}.yaml")
@@ -19,28 +23,7 @@ def test_rule_parser__failure(run_semgrep_in_tmp, snapshot, filename):
     snapshot.assert_match(str(excinfo.value.returncode), "returncode.txt")
 
 
-@pytest.mark.parametrize(
-    "filename",
-    [
-        pytest.param(
-            "bad1",
-            marks=pytest.mark.xfail(
-                reason="https://github.com/returntocorp/semgrep/issues/678"
-            ),
-        ),
-        pytest.param(
-            "bad2", marks=pytest.mark.xfail(reason="prints set with arbitrary order")
-        ),
-        "bad3",
-        "bad4",
-        "badpattern",
-        "badpaths1",
-        "badpaths2",
-        "invalid",
-        "missing-toplevel",
-        "missing-field",
-    ],
-)
+@pytest.mark.parametrize("filename", syntax_fails)
 def test_rule_parser__failure__error_messages(run_semgrep_in_tmp, snapshot, filename):
     with pytest.raises(CalledProcessError) as excinfo:
         run_semgrep_in_tmp(f"rules/syntax/{filename}.yaml", stderr=True)

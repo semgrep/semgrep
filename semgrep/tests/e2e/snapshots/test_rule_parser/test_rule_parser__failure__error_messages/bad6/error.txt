@@ -1,0 +1,8 @@
+error: missing children
+  --> rules/syntax/bad6.yaml:5
+5 |       - pattern-either: "$X == $X"
+  |         ^^^^^^^^^^^^^^
+
+operator pattern-either must have children
+
+run with --strict and there were 1 errors loading configs

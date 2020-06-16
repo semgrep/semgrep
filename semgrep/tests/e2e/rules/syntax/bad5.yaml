@@ -1,0 +1,8 @@
+rules:
+  - id: arg-reassign
+    patterns:
+      # should be a dict, not a string
+      - "4"
+    message: "$X is being reassigned"
+    languages: [python]
+    severity: WARNING
