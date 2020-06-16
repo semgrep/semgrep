@@ -275,19 +275,20 @@ class CoreRunner:
                 debug_print(core_run.stderr.decode("utf-8", "replace"))
 
                 if core_run.returncode != 0:
+                    # see if semgrep output a JSON error that we can decode
+                    semgrep_output = core_run.stdout.decode("utf-8", "replace")
                     try:
-                        # see if semgrep output a JSON error that we can decode
-                        semgrep_output = core_run.stdout.decode("utf-8", "replace")
                         output_json = json.loads(semgrep_output)
-                        if "error" in output_json:
-                            self._semgrep_error_json_to_message_then_exit(output_json)
-                        else:
-                            raise SemgrepError(
-                                f"unexpected non-json output while invoking semgrep-core:\n{PLEASE_FILE_ISSUE_TEXT}"
-                            )
-                    except Exception as e:
+                    except ValueError:
                         raise SemgrepError(
-                            f"non-zero return code while invoking semgrep-core:\n\t{e}\n{PLEASE_FILE_ISSUE_TEXT}"
+                            f"unexpected non-json output while invoking semgrep-core:\n{PLEASE_FILE_ISSUE_TEXT}"
+                        )
+
+                    if "error" in output_json:
+                        self._semgrep_error_json_to_message_then_exit(output_json)
+                    else:
+                        raise SemgrepError(
+                            f"unexpected json output while invoking semgrep-core:\n{PLEASE_FILE_ISSUE_TEXT}"
                         )
 
                 output_json = json.loads((core_run.stdout.decode("utf-8", "replace")))
