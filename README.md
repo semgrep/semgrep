@@ -41,9 +41,16 @@
   </a>
 </p>
 
-Semgrep is a simple and flexible [command-line](#installation) and [WYSIWYG](https://semgrep.live/) tool for static analysis. Use pre-built or custom rules to enforce code and security standards in your codebase.
+Semgrep is a command-line tool for static analysis. Quickly write custom rules or use pre-built checks to enforce code and security standards in your project. Semgrep runs locally and in CI; it never sends your code anywhere.
 
-Semgrep combines the convenient and iterative style of `grep` with the powerful features of an Abstract Syntax Tree (AST) matcher. Easily find function calls, class or method definitions, and more without having to understand ASTs or wrestle with regexes.
+Get started quickly with these sections:
+
+1. [Installation]()
+1. [Run pre-built rules]()
+1. [Writing custom rules]()
+1. [Run Semgrep continously in CI]()
+
+Semgrep combines the convenient and iterative style of `grep` with the powerful features of an Abstract Syntax Tree (AST) matcher and dataflows. Easily find function calls, class or method definitions, and more without having to understand ASTs or wrestle with regexes.
 
 For example, to audit for all calls to `exec` in your Python codebase, run:
 
