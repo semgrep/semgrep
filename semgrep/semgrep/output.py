@@ -11,9 +11,11 @@ from typing import Iterator
 from typing import List
 from typing import NamedTuple
 from typing import Optional
+from typing import Set
 
 import colorama
 
+import semgrep.util
 from semgrep import config_resolver
 from semgrep.constants import __VERSION__
 from semgrep.constants import OutputFormat
@@ -22,6 +24,7 @@ from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.util import debug_print
 from semgrep.util import is_url
+from semgrep.util import partition
 from semgrep.util import print_error
 from semgrep.util import print_msg
 
@@ -247,8 +250,31 @@ class OutputHandler:
         """
         self.semgrep_core_errors += semgrep_errors
         if self.settings.output_format == OutputFormat.TEXT:
-            for error in semgrep_errors:
+            parse_errors, other_errors = partition(
+                lambda e: e["check_id"] == "ParseError", semgrep_errors
+            )
+
+            for error in other_errors:
                 print_error(pretty_error(error))
+
+            if len(parse_errors) > 0:
+                files_with_parse_errors: Set[str] = set(
+                    e.get("path") for e in parse_errors if "path" in e
+                )
+
+                print_error(
+                    f"{len(files_with_parse_errors)} files failed to parse: {files_with_parse_errors}"
+                )
+
+                if semgrep.util.DEBUG:
+                    debug_print("ParseErrors:")
+                    for error in parse_errors:
+                        debug_print(pretty_error(error))
+                    debug_print(
+                        "= note: If the code is correct, this could be a semgrep bug -- please help us fix this by filing an an issue at https://semgrep.dev"
+                    )
+                else:
+                    print_error("Run with --verbose to see parse errors")
 
     def handle_semgrep_rule_errors(self, error: SemgrepError) -> None:
         """
@@ -339,12 +365,11 @@ class OutputHandler:
 def pretty_error(error: Dict[str, Any]) -> str:
     try:
         if {"path", "start", "end", "extra"}.difference(error.keys()) == set():
-            header = f"{error['extra']['message']}\n--> {error['path']}:{error['start']['line']}"
+            header = f"--> {error['path']}:{error['start']['line']}"
             line_1 = error["extra"]["line"]
             start_col = error["start"]["col"]
             line_2 = " " * (start_col - 1) + "^"
-            line_3 = f"= note: If the code is correct, this could be a semgrep bug -- please help us fix this by filing an an issue at https://semgrep.dev"
-            return "\n".join([header, line_1, line_2, line_3])
+            return "\n".join([header, line_1, line_2])
         else:
             return f"semgrep-core error: {json.dumps(error, indent=2)}"
     except KeyError:
