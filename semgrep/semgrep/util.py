@@ -4,14 +4,12 @@ import sys
 import typing
 from typing import Any
 from typing import Callable
-from typing import cast
 from typing import IO
 from typing import Iterable
 from typing import List
 from typing import Set
 from typing import Tuple
 from typing import TypeVar
-from typing import Union
 from urllib.parse import urlparse
 
 from colorama import Fore

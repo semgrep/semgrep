@@ -4,7 +4,6 @@ import json
 import multiprocessing
 import re
 import subprocess
-import sys
 import tempfile
 from datetime import datetime
 from pathlib import Path
@@ -17,7 +16,6 @@ from typing import Optional
 from typing import Tuple
 
 from ruamel.yaml import YAML
-from tqdm import tqdm
 
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import SEMGREP_PATH
