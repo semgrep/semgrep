@@ -75,11 +75,27 @@ def _regex_replace(rule_match: RuleMatch, from_str: str, to_str: str) -> None:
     before_lines = lines[:start_line]
     after_lines = lines[end_line + 1 :]
 
+    print("====")
+    print("\n".join(lines[start_line:end_line]))
+    print("====")
+
     match_context_prior = lines[start_line][:start_col]
     match_context_after = lines[end_line][end_col + 1 :]
-    match_context = "".join(lines[start_line : end_line + 1])[start_col : end_col + 1]
+    match_context = "\n".join(
+        [lines[start_line][start_col:]]
+        + lines[start_line + 1 : end_line]
+        + [lines[end_line][: end_col + 1]]
+    )
+
+    print("====")
+    print(match_context)
+    print("====")
 
     fix = re.sub(from_str, to_str, match_context)
+
+    print("====")
+    print(fix)
+    print("====")
 
     modified_context = (match_context_prior + fix + match_context_after).splitlines()
 
@@ -96,6 +112,7 @@ def apply_fixes(rule_matches_by_rule: Dict[Rule, List[RuleMatch]]) -> None:
 
     for _, rule_matches in rule_matches_by_rule.items():
         for rule_match in rule_matches:
+            print(rule_match)
             fix = rule_match.fix
             filepath = rule_match.path
             if fix and fix.startswith("s/"):  # Regex-style fix
@@ -104,6 +121,7 @@ def apply_fixes(rule_matches_by_rule: Dict[Rule, List[RuleMatch]]) -> None:
                     _regex_replace(rule_match, from_str, to_str)
                     modified_files.add(filepath)
                 except Exception as e:
+                    raise e
                     raise SemgrepError(
                         f"unable to use regex to modify file {filepath}: {e}"
                     )
