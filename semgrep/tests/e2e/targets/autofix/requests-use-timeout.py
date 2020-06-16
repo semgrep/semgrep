@@ -8,7 +8,8 @@ r = requests.get(url)
 # ruleid: use-timeout
 r = requests.post(url)
 
-r = requests.request("GET", url, timeout=30)
+# ruleid: use-timeout
+r = requests.request("GET", url)
 
 # ok
 r = requests.get(url, timeout=50)

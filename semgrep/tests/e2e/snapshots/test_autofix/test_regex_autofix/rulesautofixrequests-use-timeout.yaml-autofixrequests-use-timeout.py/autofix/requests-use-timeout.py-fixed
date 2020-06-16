@@ -4,12 +4,11 @@ url = "www.github.com"
 
 # ruleid: use-timeout
 r = requests.get(url, timeout=30)
-r = requests.get(url, timeout=30)
 
 # ruleid: use-timeout
-# ruleid: use-timeout
-r = requests.post(url)
+r = requests.post(url, timeout=30)
 
+# ruleid: use-timeout
 r = requests.request("GET", url, timeout=30)
 
 # ok
@@ -21,7 +20,7 @@ def from_import_test1(url):
     r = get(url, timeout=3)
 
     # ruleid: use-timeout
-    r = post(url)
+    r = post(url, timeout=30)
 
 def test2():
     """Perform a requests.get and default headers set"""
