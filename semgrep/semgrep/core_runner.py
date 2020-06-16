@@ -125,9 +125,7 @@ class CoreRunner:
         This includes properly invoking semgrep-core and parsing the output
     """
 
-    def __init__(
-        self, allow_exec: bool, jobs: int,
-    ):
+    def __init__(self, allow_exec: bool, jobs: int):
         self._allow_exec = allow_exec
         self._jobs = jobs
 
@@ -340,7 +338,9 @@ class CoreRunner:
 
         # cf. for bar_format: https://tqdm.github.io/docs/tqdm/
         with tempfile.TemporaryDirectory() as semgrep_core_ast_cache_dir:
-            for rule in _progress_bar(rules, bar_format="{l_bar}{bar}|{n_fmt}/{total_fmt}"):
+            for rule in _progress_bar(
+                rules, bar_format="{l_bar}{bar}|{n_fmt}/{total_fmt}"
+            ):
                 debug_print(f"Running rule {rule._raw.get('id')}")
                 rule_matches, debugging_steps, errors = self._run_rule(
                     rule, target_manager, semgrep_core_ast_cache_dir
