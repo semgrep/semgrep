@@ -2,7 +2,7 @@
   "errors": [],
   "results": [
     {
-      "check_id": "rules.use-dict-get",
+      "check_id": "rules.autofix.use-dict-get",
       "end": {
         "col": 11,
         "line": 5
@@ -61,7 +61,7 @@
       }
     },
     {
-      "check_id": "rules.use-dict-get",
+      "check_id": "rules.autofix.use-dict-get",
       "end": {
         "col": 18,
         "line": 6

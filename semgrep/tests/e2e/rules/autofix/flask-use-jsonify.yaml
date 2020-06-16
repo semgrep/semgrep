@@ -1,0 +1,14 @@
+rules:
+- id: python.flask.best-practice.use-jsonify.use-jsonify
+  patterns:
+  - pattern-inside: |
+      @app.route(...)
+      def $X():
+        ...
+  - pattern-either:
+    - pattern: json.dumps(...)
+  fix: s/(json\.){0,1}dumps/flask.jsonify/g
+  message: flask.jsonify() is a Flask helper method which handles the correct settings
+    for returning JSON from Flask routes
+  languages: [python]
+  severity: ERROR

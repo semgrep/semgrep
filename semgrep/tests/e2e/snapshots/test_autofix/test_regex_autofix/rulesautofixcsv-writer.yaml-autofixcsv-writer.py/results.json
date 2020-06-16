@@ -1,0 +1,31 @@
+{
+  "errors": [],
+  "results": [
+    {
+      "check_id": "rules.autofix.python.lang.security.unquoted-csv-writer.unquoted-csv-writer",
+      "end": {
+        "col": 49,
+        "line": 4
+      },
+      "extra": {
+        "fix": "s/\\)/, quoting=csv.QUOTE_ALL)/g",
+        "lines": "csv.writer(csvfile, delimiter=',', quotechar='\"')",
+        "message": "Found an unquoted CSV writer. This is susceptible to injection. Use 'quoting=csv.QUOTE_ALL'.",
+        "metadata": {
+          "cwe": "CWE-1236: Improper Neutralization of Formula Elements in a CSV File",
+          "owasp": "A1: Injection",
+          "references": [
+            "https://affinity-it-security.com/how-to-prevent-csv-injection/"
+          ]
+        },
+        "metavars": {},
+        "severity": "ERROR"
+      },
+      "path": "targets/autofix/csv-writer.py",
+      "start": {
+        "col": 1,
+        "line": 4
+      }
+    }
+  ]
+}
