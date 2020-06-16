@@ -199,6 +199,7 @@ def invoke_semgrep(
         strict=strict,
         autofix=False,
         dangerously_allow_arbitrary_code_execution_from_rules=unsafe,
+        no_git_ignore=True,
     )
     output_handler.close()
     return json.loads(io_capture.getvalue())
