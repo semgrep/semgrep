@@ -162,7 +162,9 @@ class ErrorWithSpan(SemgrepError):
             if span.start.line == span.end.line:
                 error = with_color(Fore.RED, (span.end.col - span.start.col) * "^")
                 snippet.append(
-                    self._format_line_number(span, None) + " " * span.start.col + error
+                    self._format_line_number(span, None)
+                    + " " * (span.start.col - 1)
+                    + error
                 )
             if span.context_end:
                 snippet += self._format_code_segment(
@@ -176,6 +178,10 @@ class ErrorWithSpan(SemgrepError):
         else:
             help_str = ""
         return f"{header}\n{snippet_str}\n{help_str}\n{with_color(Fore.RED, self.long_msg or '')}\n"
+
+
+class InvalidPatternError(ErrorWithSpan):
+    code = INVALID_PATTERN_EXIT_CODE
 
 
 class UnknownLanguageError(SemgrepError):
