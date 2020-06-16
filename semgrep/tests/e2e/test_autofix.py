@@ -20,6 +20,10 @@ def test_autofix(run_semgrep_in_tmp, snapshot):
         ("rules/autofix/defaulthttpclient.yaml", "autofix/defaulthttpclient.java"),
         ("rules/autofix/flask-use-jsonify.yaml", "autofix/flask-use-jsonify.py"),
         ("rules/autofix/requests-use-timeout.yaml", "autofix/requests-use-timeout.py"),
+        (
+            "rules/autofix/django-none-password-default.yaml",
+            "autofix/django-none-password-default.py",
+        ),
     ],
 )
 def test_regex_autofix(run_semgrep_in_tmp, snapshot, rule, target):
