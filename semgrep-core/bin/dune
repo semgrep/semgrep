@@ -7,6 +7,7 @@
     dyp
     parmap
     ppx_deriving.runtime
+    uucp uutf
 
     commons commons_core commons_ocollection
     pfff-config
