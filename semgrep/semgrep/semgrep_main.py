@@ -16,7 +16,6 @@ from semgrep.core_runner import CoreRunner
 from semgrep.error import ErrorWithSpan
 from semgrep.error import INVALID_CODE_EXIT_CODE
 from semgrep.error import InvalidPatternNameError
-from semgrep.error import InvalidRuleSchemaError
 from semgrep.error import MISSING_CONFIG_EXIT_CODE
 from semgrep.error import SemgrepError
 from semgrep.output import OutputHandler
@@ -73,7 +72,10 @@ def validate_single_rule(
         return None
     try:
         return Rule.from_yamltree(rule_yaml)
-    except (InvalidPatternNameError, InvalidRuleSchemaError) as ex:
+    except ErrorWithSpan as ex:
+        output_handler.handle_semgrep_rule_errors(ex)
+        return None
+    except InvalidPatternNameError as ex:
         rule_id = rule.get("id")
         if not rule_id:
             rule_id_str = MISSING_RULE_ID

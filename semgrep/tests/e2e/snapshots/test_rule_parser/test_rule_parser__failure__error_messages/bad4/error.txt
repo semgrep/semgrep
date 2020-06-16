@@ -1,2 +1,12 @@
-rules/syntax/bad4.yaml: inside rule id arg-reassign, pattern fields can't look like this: invalid type for patterns in rule: dict is not a list; perhaps your YAML is missing a `-` before {'pattern-inside': 'def foo($X):\n    ...\n', 'pattern': '$X = 1'}?
+error: invalid patterns
+  --> rules/syntax/bad4.yaml:4
+3 |     patterns:
+4 |         pattern-inside: |
+5 |             def foo($X):
+6 |                 ...
+7 |         pattern: $X = 1
+8 |     message: "$X is being reassigned"
+= help: perhaps your YAML is missing a `-` on line 4?
+invalid type for patterns; expected a list, but found dict
+
 run with --strict and there were 1 errors loading configs

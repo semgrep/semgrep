@@ -1,0 +1,6 @@
+rules:
+  - id: arg-reassign
+    # missing a pattern
+    message: "$X is being assigned to one or two"
+    languages: [python]
+    severity: WARNING

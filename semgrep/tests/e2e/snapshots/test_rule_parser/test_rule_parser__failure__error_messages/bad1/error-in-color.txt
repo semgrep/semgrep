@@ -1,0 +1,16 @@
+[31merror[39m: invalid operand
+  --> rules/syntax/bad1.yaml:4
+[94m4  | [39m      - pattern-inside:
+[94m   | [39m        [31m^^^^^^^^^^^^^^[39m
+[94m5  | [39m        - pattern: $X == $X
+[94m6  | [39m        - pattern: $X != $X
+[94m7  | [39m        - patterns:
+[94m8  | [39m          - pattern-inside: |
+[94m9  | [39m              def __init__(...):
+[94m10 | [39m                  ...
+[94m11 | [39m          - pattern: self.$X == self.$X
+[94m12 | [39m      - pattern-not: 1 == 1
+
+[31moperand for pattern-inside must be a string, but instead was list[39m
+
+run with --strict and there were 1 errors loading configs

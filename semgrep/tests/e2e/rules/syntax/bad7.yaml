@@ -1,0 +1,9 @@
+rules:
+  # id must be a string
+  - id: 123
+    pattern-either:
+      - pattern: $X = 1
+      - pattern: $X = 2
+    message: "$X is being assigned to one or two"
+    languages: [python]
+    severity: WARNING
