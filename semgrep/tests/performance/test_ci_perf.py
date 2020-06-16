@@ -59,16 +59,13 @@ class RepoCase(NamedTuple):
     ],
     ids=lambda case: case.test_id,
 )
-def test_default_packs(run_semgrep_in_tmp, benchmark, repo_case):
+def test_default_packs(run_semgrep_in_tmp, clone_github_repo, benchmark, repo_case):
     """
     This test _intentionally_ depends on the composition of the packs. If we add a slow check to a pack, we want to know
     about it!
     """
-    subprocess.check_output(["git", "clone", repo_case.url, "repo"])
-    subprocess.check_output(
-        ["git", "--git-dir", "repo/.git", "checkout", repo_case.sha]
-    )
-    repo_ksloc = sloc("repo", extension=EXTENSIONS[repo_case.language]) / 1000
+    repo_path = clone_github_repo(repo_url=repo_case.url, sha=repo_case.sha)
+    repo_ksloc = sloc(str(repo_path), extension=EXTENSIONS[repo_case.language]) / 1000
 
     # In general, aim for 1ksloc / rule. The packs are "special" though -- composed of rules we know will run
     # fast and give great UX
@@ -89,7 +86,7 @@ def test_default_packs(run_semgrep_in_tmp, benchmark, repo_case):
                     "1",
                     "--config",
                     f"https://semgrep.live/c/p/{repo_case.language}",
-                    "repo",
+                    str(repo_path),
                 ],
                 timeout=timeout,
             )
