@@ -11,4 +11,4 @@ rules:
   severity: WARNING
   languages: [java]
   pattern: new DefaultHttpClient(...);
-  fix: s/DefaultHttpClient/SystemDefaultHttpClient/
+  fix: s/DefaultHttpClient\(/SystemDefaultHttpClient(/

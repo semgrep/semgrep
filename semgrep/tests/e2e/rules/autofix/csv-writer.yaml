@@ -3,7 +3,7 @@ rules:
   patterns:
   - pattern-not: csv.writer(..., quoting=csv.QUOTE_ALL, ...)
   - pattern: csv.writer(...)
-  fix: s/\)/, quoting=csv.QUOTE_ALL)/g
+  fix: s/(.*)\)/\1, quoting=csv.QUOTE_ALL)/g
   metadata:
     cwe: 'CWE-1236: Improper Neutralization of Formula Elements in a CSV File'
     owasp: 'A1: Injection'

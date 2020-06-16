@@ -8,7 +8,7 @@
         "line": 10
       },
       "extra": {
-        "fix": "s/(json\\.){0,1}dumps/flask.jsonify/g",
+        "fix": "s/(json\\.){0,1}dumps/flask.jsonify/1",
         "lines": "    return json.dumps(user_dict)",
         "message": "flask.jsonify() is a Flask helper method which handles the correct settings for returning JSON from Flask routes",
         "metadata": {},
@@ -28,7 +28,7 @@
         "line": 18
       },
       "extra": {
-        "fix": "s/(json\\.){0,1}dumps/flask.jsonify/g",
+        "fix": "s/(json\\.){0,1}dumps/flask.jsonify/1",
         "lines": "    return dumps(user_dict)",
         "message": "flask.jsonify() is a Flask helper method which handles the correct settings for returning JSON from Flask routes",
         "metadata": {},

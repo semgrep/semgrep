@@ -11,7 +11,7 @@ rules:
     - pattern: requests.delete(...)
     - pattern: requests.head(...)
     - pattern: requests.patch(...)
-  fix: s/\)/, timeout=30)/g
+  fix: s/(.*)\)/\1, timeout=30)/g
   message: |
     'requests' calls default to waiting until the connection is closed.
     This means a 'requests' call without a timeout will hang the program

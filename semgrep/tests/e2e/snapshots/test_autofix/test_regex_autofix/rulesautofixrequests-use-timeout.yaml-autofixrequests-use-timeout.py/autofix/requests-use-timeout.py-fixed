@@ -11,6 +11,12 @@ r = requests.post(url, timeout=30)
 # ruleid: use-timeout
 r = requests.request("GET", url, timeout=30)
 
+def return_url():
+    return url
+
+# ruleid: use-timeout
+r = requests.request("GET", return_url(), timeout=30)
+
 # ok
 r = requests.get(url, timeout=50)
 
