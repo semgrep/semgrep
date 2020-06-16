@@ -1,3 +1,4 @@
 dir: _build
 file: docs/Semgrep.tex
 dir: tests/PERF
+file: tests/java/perf_fields.java
