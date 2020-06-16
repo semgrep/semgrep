@@ -2,7 +2,7 @@ import itertools
 from pathlib import Path
 from typing import Any
 from typing import Dict
-from typing import Iterable
+from typing import List
 from typing import Optional
 
 from semgrep.pattern_match import PatternMatch
@@ -76,7 +76,7 @@ class RuleMatch:
         return self._end
 
     @property
-    def lines(self) -> Iterable[str]:
+    def lines(self) -> List[str]:
         """
             Return lines in file that this RuleMatch is referring to.
 

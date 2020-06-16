@@ -32,6 +32,7 @@ Contents:
   * [`paths`](configuration-files.md#paths)
 * [Other Examples](configuration-files.md#other-examples)
   * [Complete Useless Comparison](configuration-files.md#complete-useless-comparison)
+* [Ignoring Findings](configuration-files.md#ignoring-findings)
 
 ## Simple Example
 
@@ -531,3 +532,49 @@ rules:
 ```
 
 This rule makes use of many of the operators above. It uses `pattern-either`, `patterns`, `pattern`, and `pattern-inside` to carefully consider different cases, and uses `pattern-not-inside` and `pattern-not` to whitelist certain useless comparisons.
+
+## Ignoring Findings
+
+`semgrep` allows for ignoring, or whitelisting, findings inline in code. This
+is achieved by specifying a `nosem` comment on the line of the finding. For
+example, consider the following rule:
+
+```yaml
+rules:
+  - id: bad-func-is-insecure
+    pattern: bad_func(...)
+    message: "bad_func usage is insecure"
+    languages: [javascript]
+    severity: ERROR
+```
+
+We can ignore specific findings of this rule with the following comments:
+
+```javascript
+bad_func() // nosem
+bad_func() // nosem: bad-func-is-insecure
+```
+
+A naked `nosem` comment will ignore all `semgrep` findings on this line. A
+`nosem` comment specifying a specific rule ID will only ignore that rule.
+Multiple rules can be ignored using a comma-delimited list like:
+
+```javascript
+func() // nosem: pattern-id1, pattern-id2
+```
+
+Note that `nosem` comments must appear on the first line of a finding. This
+means the following will not work:
+
+```javascript
+bad_func(
+    arg // nosem: bad-func-is-insecure
+)
+```
+
+`nosem` functionality works across languages. For example, the following code
+will work just as well for Python:
+
+```python
+bad_func()  # nosem: bad-func-is-insecure
+```

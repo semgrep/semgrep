@@ -114,3 +114,16 @@ def test_nested_patterns_rule(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp("rules/nested-patterns.yaml"), "results.json"
     )
+
+
+def test_nosem_rule(run_semgrep_in_tmp, snapshot):
+    snapshot.assert_match(run_semgrep_in_tmp("rules/nosem.yaml"), "results.json")
+
+
+def test_nosem_rule__invalid_id(run_semgrep_in_tmp, snapshot):
+    with pytest.raises(CalledProcessError) as excinfo:
+        run_semgrep_in_tmp(
+            "rules/nosem.yaml", target_name="nosem_invalid_id", stderr=True
+        )
+    assert excinfo.value.returncode == 2
+    snapshot.assert_match(excinfo.value.output, "error.txt")
