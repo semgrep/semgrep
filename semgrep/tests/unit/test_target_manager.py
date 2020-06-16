@@ -319,3 +319,41 @@ def test_expand_targets_not_git(tmp_path, monkeypatch):
     assert cmp_path_sets(
         TargetManager.expand_targets([Path("../foo/bar")], "python", False), in_foo_bar
     )
+
+
+def test_explicit_path(tmp_path, monkeypatch):
+    foo = tmp_path / "foo"
+    foo.mkdir()
+    (foo / "a.go").touch()
+    (foo / "b.go").touch()
+    foo_noext = foo / "noext"
+    foo_noext.touch()
+    foo_a = foo / "a.py"
+    foo_a.touch()
+    foo_b = foo / "b.py"
+    foo_b.touch()
+
+    monkeypatch.chdir(tmp_path)
+
+    # Should include explicitly passed python file
+    foo_a = foo_a.relative_to(tmp_path)
+    assert foo_a in TargetManager([], [], ["foo/a.py"], False).get_files(
+        "python", [], []
+    )
+
+    # Should include explicitly passed python file even if is in excludes
+    assert foo_a not in TargetManager([], ["foo/a.py"], ["."], False).get_files(
+        "python", [], []
+    )
+    assert foo_a in TargetManager([], ["foo/a.py"], [".", "foo/a.py"], False).get_files(
+        "python", [], []
+    )
+
+    # Should ignore expliclty passed .go file when requesting python
+    assert TargetManager([], [], ["foo/a.go"], False).get_files("python", [], []) == []
+
+    # Should include explicitly passed file with unknown extension
+    assert cmp_path_sets(
+        set(TargetManager([], [], ["foo/noext"], False).get_files("python", [], [])),
+        {foo_noext},
+    )

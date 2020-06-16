@@ -7,6 +7,21 @@ from typing import Set
 from semgrep.error import UnknownLanguageError
 from semgrep.util import partition_set
 
+PYTHON_EXTENSIONS = ["py", "pyi"]
+JAVASCRIPT_EXTENSIONS = ["js"]
+JAVA_EXTENSIONS = ["java"]
+C_EXTENSIONS = ["c"]
+GO_EXTENSIONS = ["go"]
+ML_EXTENSIONS = ["mli", "ml", "mly", "mll"]
+ALL_EXTENSIONS = (
+    PYTHON_EXTENSIONS
+    + JAVASCRIPT_EXTENSIONS
+    + JAVA_EXTENSIONS
+    + C_EXTENSIONS
+    + GO_EXTENSIONS
+    + ML_EXTENSIONS
+)
+
 
 def lang_to_exts(language: str) -> List[str]:
     """
@@ -16,17 +31,17 @@ def lang_to_exts(language: str) -> List[str]:
         raises UnknownLanguageError
     """
     if language in ["python", "python2", "python3", "py"]:
-        return ["py", "pyi"]
+        return PYTHON_EXTENSIONS
     elif language in ["js", "javascript"]:
-        return ["js"]
+        return JAVASCRIPT_EXTENSIONS
     elif language in ["java"]:
-        return ["java"]
+        return JAVA_EXTENSIONS
     elif language in ["c"]:
-        return ["c"]
+        return C_EXTENSIONS
     elif language in ["go", "golang"]:
-        return ["go"]
+        return GO_EXTENSIONS
     elif language in ["ml", "ocaml"]:
-        return ["mli", "ml", "mly", "mll"]
+        return ML_EXTENSIONS
     else:
         raise UnknownLanguageError(f"Unsupported Language: {language}")
 
@@ -189,12 +204,26 @@ class TargetManager:
             Return all files that are decendants of any directory in TARGET that have
             an extension matching LANG that match any pattern in INCLUDES and do not
             match any pattern in EXCLUDES. Any file in TARGET bypasses excludes and includes.
+            If a file in TARGET has a known extension that is not for langugage LANG then
+            it is also filtered out
         """
         if lang in self._filtered_targets:
             return self._filtered_targets[lang]
 
         targets = self.resolve_targets(self._targets)
         explicit_files, directories = partition_set(lambda p: not p.is_dir(), targets)
+
+        # Remove explicit_files with known extensions. Remove non-existent files
+        explicit_files = set(
+            f
+            for f in explicit_files
+            if f.is_file
+            and (
+                any(f.match(f"*.{ext}") for ext in lang_to_exts(lang))
+                or not any(f.match(f"*.{ext}") for ext in ALL_EXTENSIONS)
+            )
+        )
+
         targets = self.expand_targets(directories, lang, self._respect_git_ignore)
         targets = self.filter_includes(targets, self._includes)
         targets = self.filter_excludes(targets, self._excludes)
