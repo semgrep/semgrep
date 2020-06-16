@@ -252,6 +252,7 @@ def main(
     strict: bool,
     autofix: bool,
     dangerously_allow_arbitrary_code_execution_from_rules: bool,
+    no_git_ignore: bool,
 ) -> None:
     include.extend(include_dir)
     exclude.extend(exclude_dir)
@@ -293,7 +294,13 @@ def main(
                 code=MISSING_CONFIG_EXIT_CODE,
             )
 
-    target_manager = TargetManager(includes=include, excludes=exclude, targets=target)
+    respect_git_ignore = not no_git_ignore
+    target_manager = TargetManager(
+        includes=include,
+        excludes=exclude,
+        targets=target,
+        respect_git_ignore=respect_git_ignore,
+    )
 
     # actually invoke semgrep
     rule_matches_by_rule, debug_steps_by_rule, semgrep_errors = CoreRunner(

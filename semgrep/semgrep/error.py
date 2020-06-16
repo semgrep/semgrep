@@ -178,9 +178,5 @@ class ErrorWithSpan(SemgrepError):
         return f"{header}\n{snippet_str}\n{help_str}\n{with_color(Fore.RED, self.long_msg or '')}\n"
 
 
-class NotGitProjectError(SemgrepError):
-    pass
-
-
 class UnknownLanguageError(SemgrepError):
     pass
