@@ -32,7 +32,9 @@ from semgrep.semgrep_types import BooleanRuleExpression
 from semgrep.semgrep_types import OPERATORS
 from semgrep.target_manager import TargetManager
 from semgrep.util import debug_print
+from semgrep.util import debug_tqdm_write
 from semgrep.util import partition
+from semgrep.util import progress_bar
 
 
 def _offset_to_line_no(offset: int, buff: str) -> int:
@@ -113,9 +115,7 @@ class CoreRunner:
         This includes properly invoking semgrep-core and parsing the output
     """
 
-    def __init__(
-        self, allow_exec: bool, jobs: int,
-    ):
+    def __init__(self, allow_exec: bool, jobs: int):
         self._allow_exec = allow_exec
         self._jobs = jobs
 
@@ -288,7 +288,6 @@ class CoreRunner:
                     self._write_equivalences_file(equiv_file, equivalences)
                     cmd += ["-equivalences", equiv_file.name]
 
-                debug_print(f"Running semgrep... '{cmd}'")
                 core_run = subprocess.run(
                     cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
                 )
@@ -351,8 +350,12 @@ class CoreRunner:
         debugging_steps_by_rule: Dict[Rule, List[Dict[str, Any]]] = {}
         all_errors = []
 
+        # cf. for bar_format: https://tqdm.github.io/docs/tqdm/
         with tempfile.TemporaryDirectory() as semgrep_core_ast_cache_dir:
-            for rule in rules:
+            for rule in progress_bar(
+                rules, bar_format="{l_bar}{bar}|{n_fmt}/{total_fmt}"
+            ):
+                debug_tqdm_write(f"Running rule {rule._raw.get('id')}")
                 rule_matches, debugging_steps, errors = self._run_rule(
                     rule, target_manager, semgrep_core_ast_cache_dir
                 )
