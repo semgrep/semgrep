@@ -16,6 +16,7 @@ def test_rule_parser__failure(run_semgrep_in_tmp, snapshot, filename):
     with pytest.raises(CalledProcessError) as excinfo:
         run_semgrep_in_tmp(f"rules/syntax/{filename}.yaml")
     assert excinfo.value.returncode != 0
+    snapshot.assert_match(str(excinfo.value.returncode), "returncode.txt")
 
 
 @pytest.mark.parametrize(
