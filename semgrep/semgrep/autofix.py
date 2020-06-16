@@ -53,19 +53,42 @@ def _modify_file(rule_match: RuleMatch, fix: str) -> None:
     p.write_text(contents_after_fix_str)
 
 
-def _parse_regex_fix(sed_string: str) -> Tuple[str, str]:
+def _parse_regex_count_flag(sed_string: str) -> int:
+    """
+    Returns the number of times to do the replacment,
+    from left to right. Follows
+    https://www.gnu.org/software/sed/manual/html_node/The-_0022s_0022-Command.html
+    """
+    splitstr = sed_string.split("/")
+    count = 1
+    try:
+        flag = splitstr[3]
+        if flag == "g":  # Replace all occurrences
+            count = 0
+        elif flag.isnumeric():  # Replace N occurrences
+            count = int(flag)
+    except Exception:
+        count = 1  # If all else fails, replace 1
+    return count
+
+
+def _parse_regex_fix(sed_string: str) -> Tuple[str, str, int]:
     """
     Return the second and third elements of a sed-like string:
     E.g., s/one/two/g returns (one, two)
     """
     splitstr = sed_string.split("/")  # Do it this way to satisfy mypy
-    return splitstr[1], splitstr[2]
+    count = _parse_regex_count_flag(sed_string)
+    return splitstr[1], splitstr[2], count
 
 
-def _regex_replace(rule_match: RuleMatch, from_str: str, to_str: str) -> None:
+def _regex_replace(
+    rule_match: RuleMatch, from_str: str, to_str: str, count: int = 1
+) -> None:
     """
     Use a regular expression to autofix.
-    Replaces from_str to to_str.
+    Replaces from_str to to_str, starting from the left,
+    exactly `count` times.
     """
     path = Path(rule_match.path)
     lines = _get_lines(path)
@@ -77,7 +100,7 @@ def _regex_replace(rule_match: RuleMatch, from_str: str, to_str: str) -> None:
 
     match_context = lines[start_line : end_line + 1]
 
-    fix = re.sub(from_str, to_str, "\n".join(match_context))
+    fix = re.sub(from_str, to_str, "\n".join(match_context), count)
 
     modified_context = fix.splitlines()
 
@@ -98,12 +121,12 @@ def apply_fixes(rule_matches_by_rule: Dict[Rule, List[RuleMatch]]) -> None:
             filepath = rule_match.path
             if fix and fix.startswith("s/"):  # Regex-style fix
                 try:
-                    from_str, to_str = _parse_regex_fix(fix)
-                    _regex_replace(rule_match, from_str, to_str)
+                    from_str, to_str, count = _parse_regex_fix(fix)
+                    _regex_replace(rule_match, from_str, to_str, count)
                     modified_files.add(filepath)
                 except Exception as e:
                     raise SemgrepError(
-                        f"unable to use regex to modify file {filepath}: {e}"
+                        f"unable to use regex to modify file {filepath} with fix '{fix}': {e}"
                     )
             elif fix:  # Old style fix
                 try:
