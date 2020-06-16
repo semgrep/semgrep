@@ -1,0 +1,6 @@
+rules:
+- id: test-nosem
+  message: test-nosem-message
+  severity: WARNING
+  languages: [javascript]
+  pattern: nosem_func(...)

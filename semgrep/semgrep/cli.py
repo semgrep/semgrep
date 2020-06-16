@@ -205,6 +205,14 @@ def cli() -> None:
             "flag. Make sure your files are stored in a version control system."
         ),
     )
+    output.add_argument(
+        "--disable-nosem",
+        action="store_true",
+        help=(
+            "Disable the effect of 'nosem'. This will report findings on lines "
+            "containing a 'nosem' comment at the end."
+        ),
+    )
 
     # logging options
     logging = parser.add_argument_group("logging")
@@ -297,5 +305,6 @@ def cli() -> None:
                 exclude_dir=args.exclude_dir,
                 strict=args.strict,
                 autofix=args.autofix,
+                disable_nosem=args.disable_nosem,
                 dangerously_allow_arbitrary_code_execution_from_rules=args.dangerously_allow_arbitrary_code_execution_from_rules,
             )

@@ -8,7 +8,9 @@ from typing import Tuple
 
 import semgrep.config_resolver
 from semgrep.autofix import apply_fixes
+from semgrep.constants import COMMA_SEPARATED_LIST_RE
 from semgrep.constants import DEFAULT_CONFIG_FILE
+from semgrep.constants import NOSEM_INLINE_RE
 from semgrep.constants import RULES_KEY
 from semgrep.core_runner import CoreRunner
 from semgrep.error import ErrorWithSpan
@@ -21,6 +23,7 @@ from semgrep.output import OutputHandler
 from semgrep.rule import Rule
 from semgrep.rule_lang import YamlMap
 from semgrep.rule_lang import YamlTree
+from semgrep.rule_match import RuleMatch
 from semgrep.semgrep_types import YAML_ALL_VALID_RULE_KEYS
 from semgrep.semgrep_types import YAML_MUST_HAVE_KEYS
 from semgrep.target_manager import TargetManager
@@ -237,6 +240,48 @@ def notify_user_of_work(
             print_msg(f"- {rule.id}")
 
 
+def rule_match_nosem(rule_match: RuleMatch, strict: bool) -> bool:
+    if not rule_match.lines:
+        return False
+
+    # Only consider the first line of a match. This will keep consistent
+    # behavior on where we expect a 'nosem' comment to exist. If we allow these
+    # comments on any line of a match it will get confusing as to what finding
+    # the 'nosem' is referring to.
+    re_match = NOSEM_INLINE_RE.search(rule_match.lines[0])
+    if re_match is None:
+        return False
+
+    ids_str = re_match.groupdict()["ids"]
+    if ids_str is None:
+        debug_print(
+            f"found 'nosem' comment, skipping rule '{rule_match.id}' on line {rule_match.start['line']}"
+        )
+        return True
+
+    pattern_ids = {
+        pattern_id.strip()
+        for pattern_id in COMMA_SEPARATED_LIST_RE.split(ids_str)
+        if pattern_id.strip()
+    }
+
+    result = False
+    for pattern_id in pattern_ids:
+        if rule_match.id == pattern_id:
+            debug_print(
+                f"found 'nosem' comment with id '{pattern_id}', skipping rule '{rule_match.id}' on line {rule_match.start['line']}"
+            )
+            result = result or True
+        else:
+            message = f"found 'nosem' comment with id '{pattern_id}', but no corresponding rule trying '{rule_match.id}'"
+            if strict:
+                raise SemgrepError(message)
+            else:
+                debug_print(message)
+
+    return result
+
+
 def main(
     output_handler: OutputHandler,
     target: List[str],
@@ -251,6 +296,7 @@ def main(
     exclude_dir: List[str],
     strict: bool,
     autofix: bool,
+    disable_nosem: bool,
     dangerously_allow_arbitrary_code_execution_from_rules: bool,
 ) -> None:
     include.extend(include_dir)
@@ -299,6 +345,16 @@ def main(
     rule_matches_by_rule, debug_steps_by_rule, semgrep_errors = CoreRunner(
         allow_exec=dangerously_allow_arbitrary_code_execution_from_rules, jobs=jobs,
     ).invoke_semgrep(target_manager, all_rules)
+
+    if not disable_nosem:
+        rule_matches_by_rule = {
+            rule: [
+                rule_match
+                for rule_match in rule_matches
+                if not rule_match_nosem(rule_match, strict)
+            ]
+            for rule, rule_matches in rule_matches_by_rule.items()
+        }
 
     output_handler.handle_semgrep_core_output(rule_matches_by_rule, debug_steps_by_rule)
     output_handler.handle_semgrep_core_errors(semgrep_errors)
