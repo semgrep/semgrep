@@ -8,13 +8,13 @@
 </h3>
 
 <p align="center">
-  <a href="#installation">Installation</a>
-  <span> · </span>
-  <a href="#motivation">Motivation</a>
-  <span> · </span>
   <a href="#overview">Overview</a>
   <span> · </span>
+  <a href="#installation">Installation</a>
+  <span> · </span>
   <a href="#usage">Usage</a>
+  <span> · </span>
+  <a href="#workflows">Workflows</a>
   <br/>
   <a href="#resources">Resources</a>
   <span> · </span>
@@ -41,7 +41,7 @@
   </a>
 </p>
 
-Semgrep is a command-line tool for static analysis. Quickly write custom rules or use pre-built checks to enforce code and security standards in your project. Semgrep runs locally and in CI; it works offline and never sends your code anywhere.
+Semgrep is a command-line tool for static analysis. Quickly write custom rules or use [pre-built checks]() to enforce code and security standards in your project. Semgrep runs locally and in CI; it works offline and never sends your code anywhere.
 
 Quickly get started with Semgrep:
 
@@ -64,9 +64,31 @@ Semgrep exists because:
 
 The AppSec, Developer, and DevOps community deserves a static analysis tool that is fast, easy to use, code-aware, multi-lingual, and open source!
 
-## Usage
+### Design Choices
 
-It's designed for both quick one-off audits and "production ready" rules that run in the development workflow.
+Semgrep is optimized for:
+
+- **Speed**: Fast enough to run on every build, commit, or file save
+- **Finding bugs that matter**: Run your own specialized rules or choose OWASP 10 checks from the [Semgrep Registry](https://semgrep.live/r). Rules match source code at the Abstract Syntax Tree (AST) level, unlike regexes that match strings and aren't semantically aware.
+- **Ease of customization**: Rules look like the code you’re searching, no static analysis PhD required. They don't require compiled code, only source, reducing iteration time.
+- **Ease of integration**. Highly portable and many CI and git-hook integrations already exist. Output `--json` and pipe results into your existing systems.
+- **Polyglot environments**: Don't learn and maintain multiple tools for your polyglot environment (e.g. ESLint, find-sec-bugs, RuboCop, Gosec). Use the same syntax and concepts independent of language.
+
+Semgrep emphasis on speed has led to its focus on per-file analysis. As a result, Semgrep doesn't support complex interprocedural dataflows, which are time intensive and costly to compute. 
+
+TODO - GOOGLE PAPER, INSTAGRAM GRAPHIC
+
+### Language Support
+
+| **Python** | **JavaScript** | **Go &nbsp; &nbsp; &nbsp;** | **Java &nbsp;** | **C &nbsp; &nbsp; &nbsp; &nbsp;** | **Ruby** | **TypeScript** | **PHP &nbsp; &nbsp;** |
+| :--------- | :------------- | :-------------------------- | :-------------- | :-------------------------------- | :------- | :------------- | :-------------------- |
+| ✅         | ✅             | ✅                          | ✅              | ✅                                | 🚧       | Coming...      | Coming...             |
+
+Missing support for a language? Let us know by [filing a ticket](https://github.com/returntocorp/semgrep/issues/new/choose) or emailing [support@r2c.dev](mailto:support@rc2.dev?subject=Language%20Support:).
+
+### Pattern Syntax
+
+One of the most unique features of Semgrep is its simple rule writing. Its goal is to make it as _easy as possible_ to go from an idea to finding instances of code that match your thinking. Quick one-off searches can then be made "production ready" and added to the development workflow via pre-commit or CI (see [integrations]()).
 
 For example, to audit for all calls to `exec` in your Python codebase, run:
 
@@ -89,6 +111,17 @@ exec (
 )
 ```
 
+This can be taken further with additional syntax, such as:
+
+| **Pattern**                                                        | **Match**                                                |
+|:-------------------------------------------------------------------|:-----------------------------------------------------------|
+| [`$X == $X`](https://semgrep.live/20B)                             | `if (node.id == node.id): ...`                             |
+| [`requests.get(..., verify=False, ...)`](https://semgrep.live/jqn) | `requests.get(url, timeout=3, verify=False)`               |
+| [`os.system(...)`](https://semgrep.live/1W5)                       | `from os import system; system('echo semgrep')`            |
+| [`$ELEMENT.innerHTML`](https://semgrep.live/9ze)                   | ``el.innerHTML = "<img src='x' onerror='alert(`XSS`)'>";`` |
+| [`$TOKEN.SignedString([]byte("..."))`](https://semgrep.live/rXW)   | `ss, err := token.SignedString([]byte("HARDCODED KEY"))`   |
+
+
 A [multi-pattern YAML syntax]() then lets you combine simple patterns using boolean logic to create powerful rules for continuous scanning:
 
 ```yaml
@@ -100,46 +133,70 @@ message: |
   Flask cookies should be handled securely by setting `secure=True`, `httponly=True`, and `samesite='Lax'`.
 ```
 
-Learn more about this rule on the [live editor](https://semgrep.live/JDeR). See [Installation](#installation) and [Workflows](#workflows) to get started.
+See [Installation](#installation) and [Workflows](#workflows) to learn more.
 
-## Design
+## Installation
 
-Semgrep is optimized for:
-
-- **Speed**: Fast enough to run on every build, commit, or file save
-- **Finding bugs that matter**: Run your own specialized rules or choose OWASP 10 checks from the [Semgrep Registry](https://semgrep.live/r). Rules match source code at the Abstract Syntax Tree (AST) level, unlike regexes that match strings and aren't semantically aware.
-- **Ease of customization**: Rules look like the code you’re searching, no static analysis PhD required. They don't require compiled code, only source, reducing iteration time.
-- **Ease of integration**. Highly portable and many CI and git-hook integrations already exist. Output `--json` and pipe results into your existing systems.
-- **Polyglot environments**: Don't learn and maintain multiple tools for your polyglot environment (e.g. ESLint, find-sec-bugs, RuboCop, Gosec). Use the same syntax and concepts independent of language.
-
-### Language Support
-
-| **Python** | **JavaScript** | **Go &nbsp; &nbsp; &nbsp;** | **Java &nbsp;** | **C &nbsp; &nbsp; &nbsp; &nbsp;** | **Ruby** | **TypeScript** | **PHP &nbsp; &nbsp;** |
-| :--------- | :------------- | :-------------------------- | :-------------- | :-------------------------------- | :------- | :------------- | :-------------------- |
-| ✅         | ✅             | ✅                          | ✅              | ✅                                | 🚧       | Coming...      | Coming...             |
-
-Missing support for a language? Let us know by [filing a ticket](https://github.com/returntocorp/semgrep/issues/new/choose) or emailing [support@r2c.dev](mailto:support@rc2.dev?subject=Language%20Support:).
-
-### Pattern Syntax Teaser
-
-One of the most unique and useful things about Semgrep is how easy it is to write and iterate on queries.
-
-The goal is to make it as _easy as possible_ to go from an idea in your head to finding the code patterns you intend to.
-
-| **Pattern**                                                        | **Matches**                                                |
-|:-------------------------------------------------------------------|:-----------------------------------------------------------|
-| [`$X == $X`](https://semgrep.live/20B)                             | `if (node.id == node.id): ...`                             |
-| [`requests.get(..., verify=False, ...)`](https://semgrep.live/jqn) | `requests.get(url, timeout=3, verify=False)`               |
-| [`os.system(...)`](https://semgrep.live/1W5)                       | `from os import system; system('echo semgrep')`            |
-| [`$ELEMENT.innerHTML`](https://semgrep.live/9ze)                   | ``el.innerHTML = "<img src='x' onerror='alert(`XSS`)'>";`` |
-| [`$TOKEN.SignedString([]byte("..."))`](https://semgrep.live/rXW)   | `ss, err := token.SignedString([]byte("HARDCODED KEY"))`   |
-
-→ [see more example patterns in the Semgrep Registry](https://semgrep.live/registry).
-
-For more info on what you can do in patterns, see the [pattern features
-docs](docs/pattern-features.md).
+TODO
 
 ## Usage
+
+### Command Line Options
+
+```bash
+$ semgrep --help
+
+semgrep CLI. For more information about semgrep, go to https://semgrep.dev/
+
+positional arguments:
+  target                Search these files or directories. Defaults to entire current working directory. Implied argument if piping to semgrep.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --exclude EXCLUDE     Skip any file with this name; --exclude='*.py' will ignore foo.py as well as src/foo.py. Can add multiple times. Overrides includes.
+  --include INCLUDE     Scan only files with this name, such as --include='*.jsx'. Can add multiple times.
+  --version             Show the version and exit.
+
+config:
+  -f CONFIG, --config CONFIG
+                        YAML configuration file, directory of YAML files ending in .yml|.yaml, URL of a configuration file, or semgrep registry entry name. See README for
+                        information on configuration file format.
+  -e PATTERN, --pattern PATTERN
+                        Code search pattern. See README for information on pattern features.
+  -l LANG, --lang LANG  Parse pattern and all files in specified language. Must be used with -e/--pattern.
+  --validate            Validate configuration file(s). No search is performed.
+  --strict              Only invoke semgrep if configuration files(s) are valid.
+  --dangerously-allow-arbitrary-code-execution-from-rules
+                        WARNING: allow rules to run arbitrary code. ONLY ENABLE IF YOU TRUST THE SOURCE OF ALL RULES IN YOUR CONFIGURATION.
+  -j JOBS, --jobs JOBS  Number of subprocesses to use to run checks in parallel. Defaults to the number of CPUs on the system.
+
+output:
+  -q, --quiet           Do not print anything to stdout. Results can be saved to an output file via -o/--output. Exit code provides success status.
+  --no-rewrite-rule-ids
+                        Do not rewrite rule ids when they appear in nested sub-directories (by default, rule 'foo' in test/rules.yaml will be renamed 'test.foo').
+  -o OUTPUT, --output OUTPUT
+                        Save search results to a file or post to URL. Default is to print to stdout.
+  --json                Output results in JSON format.
+  --debugging-json      Output JSON with extra debugging information.
+  --sarif               Output results in SARIF format.
+  --test                Run test suite.
+  --dump-ast            Show AST of the input file or passed expression and then exit (can use --json).
+  --error               Exit 1 if there are findings. Useful for CI and scripts.
+  -a, --autofix         Apply the autofix patches. WARNING: data loss can occur with this flag. Make sure your files are stored in a version control system.
+
+logging:
+  -v, --verbose         Set the logging level to verbose. E.g. statements about which files are being processed will be printed.
+```
+
+### Exit Codes
+
+`semgrep` may exit with the following exit codes:
+
+* `0`: Semgrep ran successfully and found no errors
+* `1`: Semgrep ran successfully and found issues in your code
+* \>=`2`: Semgrep failed to run
+
+## Workflows
 
 Semgrep supports three primary workflows:
 
