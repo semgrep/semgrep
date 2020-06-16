@@ -1919,12 +1919,20 @@ and m_variable_definition a b =
 (* ------------------------------------------------------------------------- *)
 
 (* As opposed to statements, the order of fields should not matter.
- * todo? maybe we should not even use '...' and use a less-is-ok approach?
- * todo? opti? if there is no metavar involved, we could sort by key the
- *  fields in the pattern and code and just zip-and-match.
+ *
+ * We actually filter the '...' and use a less-is-ok approach.
+ * Indeed '...' are not really useful, and in some patological cases they
+ * were actually leading to the use a tons of memory. Indeed, in certain
+ * files containing a long list of fields (like 3000 static fields),
+ * the classic use of >||> to handle Ellipsis variations were stressing
+ * a lot the engine. Simpler to just filter them.
  *)
 (*s: function [[Generic_vs_generic.m_fields]] *)
 and m_fields (xsa: A.field list) (xsb: A.field list) =
+  (* let's filter the '...' *)
+  let xsa = xsa |> Common.exclude (function
+      | A.FieldStmt (A.ExprStmt (A.Ellipsis _)) -> true
+      | _ -> false) in
   m_list__m_field xsa xsb
 (*e: function [[Generic_vs_generic.m_fields]] *)
 
@@ -1937,24 +1945,15 @@ and m_list__m_field (xsa: A.field list) (xsb: A.field list) =
   (*s: [[Generic_vs_generic.m_list__m_field()]] empty list vs list case *)
   (* less-is-ok:
    * it's ok to have fields after in the concrete code as long as we
-   * matched all the fields in the pattern?
+   * matched all the fields in the pattern.
    * TODO? should we impose to use '...' if you allow extra fields?
-   * TODO: sgrep_generic though then displays the whole sequence as a match
-   * instead of just the relevant part.
    *)
   | [], _::_ ->
       return ()
   (*e: [[Generic_vs_generic.m_list__m_field()]] empty list vs list case *)
   (*s: [[Generic_vs_generic.m_list__m_field()]] ellipsis cases *)
-  (* dots: '...', can also match no more fields *)
-  | [A.FieldStmt (A.ExprStmt (A.Ellipsis _i))], [] ->
-      return ()
-
-  | (A.FieldStmt (A.ExprStmt (A.Ellipsis i)))::xsa, xb::xsb ->
-      (* can match nothing *)
-      (m_list__m_field xsa (xb::xsb)) >||>
-      (* can match more *)
-      (m_list__m_field ((A.FieldStmt (A.ExprStmt (A.Ellipsis i)))::xsa) xsb)
+  | (A.FieldStmt (A.ExprStmt (A.Ellipsis _)))::_, _ ->
+      raise Impossible
   (*e: [[Generic_vs_generic.m_list__m_field()]] ellipsis cases *)
   (*s: [[Generic_vs_generic.m_list__m_field()]] [[DefStmt]] pattern case *)
   | (A.FieldStmt (A.DefStmt (({A.name = (s1, _); _}, _) as adef)) as a)::xsa,
