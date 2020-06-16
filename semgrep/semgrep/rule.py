@@ -7,8 +7,10 @@ from typing import Optional
 from semgrep.equivalences import Equivalence
 from semgrep.error import InvalidRuleSchemaError
 from semgrep.rule_lang import EmptySpan
+from semgrep.rule_lang import Span
 from semgrep.rule_lang import YamlMap
 from semgrep.rule_lang import YamlTree
+from semgrep.rule_lang import YamlValue
 from semgrep.semgrep_types import ALLOWED_GLOB_TYPES
 from semgrep.semgrep_types import BooleanRuleExpression
 from semgrep.semgrep_types import operator_for_pattern_name
@@ -24,6 +26,8 @@ class Rule:
     def __init__(self, raw: YamlTree[YamlMap]) -> None:
         self._yaml = raw
         self._raw: Dict[str, Any] = raw.unroll_dict()
+        # For tracking errors from semgrep-core
+        self._pattern_spans: Dict[PatternId, Span] = {}
 
         paths: Dict[str, Any] = self._raw.get("paths", {})
         if not isinstance(paths, dict):
@@ -43,29 +47,34 @@ class Rule:
         self._includes = paths.get("include", [])
         self._excludes = paths.get("exclude", [])
 
-        self._expression = self._build_boolean_expression(self._raw)
+        self._expression = self._build_boolean_expression(self._yaml.value)
 
     def _parse_boolean_expression(
-        self, rule_patterns: List[Dict[str, Any]], pattern_id: int = 0, prefix: str = ""
+        self,
+        rule_patterns: YamlTree[List[YamlTree]],
+        pattern_id_idx: int = 0,
+        prefix: str = "",
     ) -> Iterator[BooleanRuleExpression]:
         """
         Move through the expression from the YML, yielding tuples of (operator, unique-id-for-pattern, pattern)
         """
-        if not isinstance(rule_patterns, list):
+        if not isinstance(rule_patterns.value, list):
             raise InvalidRuleSchemaError(
-                f"invalid type for patterns in rule: {type(rule_patterns)} is not a list; perhaps your YAML is missing a `-` before {rule_patterns}?"
+                f"invalid type for patterns in rule: {type(rule_patterns.unroll()).__name__} is not a list; perhaps your YAML is missing a `-` before {rule_patterns.unroll()}?"
             )
-        for rule_index, pattern in enumerate(rule_patterns):
-            if not isinstance(pattern, dict):
+        for rule_index, pattern_tree in enumerate(rule_patterns.value):
+            pattern = pattern_tree.value
+            if not isinstance(pattern, YamlMap):
                 raise InvalidRuleSchemaError(
                     f"invalid type for pattern {pattern}: {type(pattern)} is not a dict"
                 )
-            for boolean_operator, pattern_text in pattern.items():
+            for boolean_operator_yaml, sub_pattern in pattern.items():
+                boolean_operator: str = boolean_operator_yaml.value
                 operator = operator_for_pattern_name(boolean_operator)
                 if operator in set(OPERATORS_WITH_CHILDREN):
-                    if isinstance(pattern_text, list):
+                    if isinstance(sub_pattern.value, list):
                         sub_expression = self._parse_boolean_expression(
-                            pattern_text, 0, f"{prefix}.{rule_index}.{pattern_id}"
+                            sub_pattern, 0, f"{prefix}.{rule_index}.{pattern_id_idx}"
                         )
                         yield BooleanRuleExpression(
                             operator=operator,
@@ -78,48 +87,60 @@ class Rule:
                             f"operator {boolean_operator} must have children"
                         )
                 else:
+                    pattern_text, pattern_span = sub_pattern.value, sub_pattern.span
                     if isinstance(pattern_text, str):
+                        pattern_id = PatternId(f"{prefix}.{pattern_id_idx}")
+                        self._pattern_spans[pattern_id] = pattern_span
                         yield BooleanRuleExpression(
                             operator=operator,
-                            pattern_id=PatternId(f"{prefix}.{pattern_id}"),
+                            pattern_id=pattern_id,
                             children=None,
                             operand=pattern_text,
                         )
-                        pattern_id += 1
+                        pattern_id_idx += 1
                     else:
                         raise InvalidRuleSchemaError(
-                            f"operand {boolean_operator} must be a string, but instead was {type(pattern_text).__name__}"
+                            f"operand {boolean_operator} must be a string, but instead was {type(sub_pattern.unroll()).__name__}"
                         )
 
     @staticmethod
-    def _validate_operand(operand: Any) -> str:  # type: ignore
+    def _validate_operand(operand: YamlValue) -> str:
         if not isinstance(operand, str):
             raise InvalidRuleSchemaError(
                 f"type of `pattern` must be a string, but it was a {type(operand).__name__}"
             )
         return operand
 
-    def _build_boolean_expression(
-        self, rule_raw: Dict[str, Any]
-    ) -> BooleanRuleExpression:
+    def _build_boolean_expression(self, rule_raw: YamlMap) -> BooleanRuleExpression:
         """
         Build a boolean expression from the yml lines in the rule
         """
+        _rule_id = rule_raw["id"].unroll()
+        if not isinstance(_rule_id, str):
+            raise InvalidRuleSchemaError(
+                f"rule id must be a string, but was {type(_rule_id).__name__}"
+            )
+        rule_id = PatternId(_rule_id)
         for pattern_name in pattern_names_for_operator(OPERATORS.AND):
             pattern = rule_raw.get(pattern_name)
             if pattern:
+                self._pattern_spans[rule_id] = pattern.span
                 return BooleanRuleExpression(
-                    OPERATORS.AND, rule_raw["id"], None, self._validate_operand(pattern)
+                    OPERATORS.AND,
+                    rule_id,
+                    None,
+                    self._validate_operand(pattern.unroll()),
                 )
 
         for pattern_name in pattern_names_for_operator(OPERATORS.REGEX):
             pattern = rule_raw.get(pattern_name)
             if pattern:
+                self._pattern_spans[rule_id] = pattern.span
                 return BooleanRuleExpression(
                     OPERATORS.REGEX,
-                    rule_raw["id"],
+                    rule_id,
                     None,
-                    self._validate_operand(pattern),
+                    self._validate_operand(pattern.unroll()),
                 )
 
         for pattern_name in pattern_names_for_operator(OPERATORS.AND_ALL):
@@ -249,3 +270,7 @@ class Rule:
             value=new_id, span=new_yaml.value["id"].span
         )
         return Rule(new_yaml)
+
+    @property
+    def pattern_spans(self) -> Dict[PatternId, Span]:
+        return self._pattern_spans

@@ -1,2 +1,8 @@
 running 1 rules...
-invalid pattern "$X == $X 3": Parsing.Parse_error
+error: invalid pattern
+  --> rules/syntax/badpattern.yaml:4
+4 |       - pattern: $X == $X 3
+  |                  ^^^^^^^^^^
+
+Pattern could not be parsed as Python
+

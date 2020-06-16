@@ -3,7 +3,7 @@ error: extra top-level key
 1 | rules:
 2 |   - id: eqeq-is-bad
 3 |     pattern-inside: foo(...)
-  |      ^^^^^^^^^^^^^^
+  |     ^^^^^^^^^^^^^^
 4 |     patterns:
 5 |       - pattern-not: 1 == 1
 = help: Only ['equivalences', 'fix', 'id', 'languages', 'message', 'metadata', 'paths', 'pattern', 'pattern-either', 'pattern-regex', 'patterns', 'severity'] are valid keys

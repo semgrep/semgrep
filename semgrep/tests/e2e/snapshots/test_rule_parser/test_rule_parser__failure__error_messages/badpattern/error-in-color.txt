@@ -1,0 +1,8 @@
+running 1 rules...
+[31merror[39m: invalid pattern
+  --> rules/syntax/badpattern.yaml:4
+[94m4 | [39m      - pattern: $X == $X 3
+[94m  | [39m                 [31m^^^^^^^^^^[39m
+
+[31mPattern could not be parsed as Python[39m
+

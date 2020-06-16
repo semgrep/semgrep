@@ -20,7 +20,7 @@ from ruamel.yaml import YAML
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import SEMGREP_PATH
 from semgrep.equivalences import Equivalence
-from semgrep.error import INVALID_PATTERN_EXIT_CODE
+from semgrep.error import InvalidPatternError
 from semgrep.error import SemgrepError
 from semgrep.evaluation import enumerate_patterns_in_boolean_expression
 from semgrep.evaluation import evaluate
@@ -131,13 +131,21 @@ class CoreRunner:
                 if not should_send_to_semgrep_core(expr):
                     continue
 
-                yield Pattern(rule_index, expr, rule.severity, rule.languages)
+                span = (
+                    rule.pattern_spans.get(expr.pattern_id)
+                    if expr.pattern_id is not None
+                    else None
+                )
+
+                yield Pattern(
+                    rule_index, expr, rule.severity, rule.languages, span,
+                )
 
     def _group_patterns_by_language(
         self, rules: List[Rule]
     ) -> Dict[str, List[Pattern]]:
         # a rule can have multiple patterns inside it. Flatten these so we can send semgrep a single yml file list of patterns
-        patterns = list(self._flatten_rule_patterns(rules))
+        patterns: List[Pattern] = list(self._flatten_rule_patterns(rules))
         by_lang: Dict[str, List[Pattern]] = collections.defaultdict(list)
         for pattern in patterns:
             for language in pattern.languages:
@@ -145,7 +153,7 @@ class CoreRunner:
         return by_lang
 
     def _semgrep_error_json_to_message_then_exit(
-        self, error_json: Dict[str, Any]
+        self, error_json: Dict[str, Any], patterns: List[Pattern]
     ) -> None:
         """
         See format_output_exception in semgrep O'Caml for details on schema
@@ -154,9 +162,22 @@ class CoreRunner:
         if error_type == "invalid language":
             raise SemgrepError(f'invalid language {error_json["language"]}')
         elif error_type == "invalid pattern":
-            raise SemgrepError(
-                f'invalid pattern "{error_json["pattern"]}": {error_json["message"]}',
-                code=INVALID_PATTERN_EXIT_CODE,
+
+            matching_pattern = next(
+                (p for p in patterns if p._id == error_json["pattern_id"]), None
+            )
+            if matching_pattern is None or matching_pattern.span is None:
+                raise SemgrepError(
+                    f"Pattern id from semgrep-core was missing in pattern spans. {PLEASE_FILE_ISSUE_TEXT}"
+                )
+            matching_span = matching_pattern.span
+
+            raise InvalidPatternError(
+                short_msg=error_type,
+                long_msg=f"Pattern could not be parsed as {error_json['language']}",
+                spans=[matching_span],
+                level="error",
+                help=None,
             )
         # no special formatting ought to be required for the other types; the semgrep python should be performing
         # validation for them. So if any other type of error occurs, ask the user to file an issue
@@ -285,7 +306,9 @@ class CoreRunner:
                         )
 
                     if "error" in output_json:
-                        self._semgrep_error_json_to_message_then_exit(output_json)
+                        self._semgrep_error_json_to_message_then_exit(
+                            output_json, patterns
+                        )
                     else:
                         raise SemgrepError(
                             f"unexpected json output while invoking semgrep-core:\n{PLEASE_FILE_ISSUE_TEXT}"
