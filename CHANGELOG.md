@@ -9,10 +9,15 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   OCaml semgrep patterns with -lang ocaml
 - Inline whitelisting capabilities via `nosem` comments and the
   `--disable-nosem` flag [#900](https://github.com/returntocorp/semgrep/issues/900)
+- Show a progress bar when using semgrep in an interactive shell
+- More understandable error messages
 
-## Changed
+### Changed
 - If scanning a directory in a git project then skip files that are ignored by the
   project unless `--no-git-ignore` flag is used
+
+### Fixed
+- Handle parsing unicode characters
 
 ## [0.10.1](https://github.com/returntocorp/semgrep/releases/tag/v0.10.1) - 2020-06-10
 
