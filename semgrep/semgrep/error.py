@@ -1,6 +1,9 @@
+from typing import Any
+from typing import Dict
 from typing import List
 from typing import Optional
 
+import attr
 from colorama import Fore
 
 from semgrep.rule_lang import Position
@@ -34,6 +37,20 @@ class SemgrepError(Exception):
         self.code = code
 
         super().__init__(*args)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "type": self.__class__.__name__,
+            "code": self.code,
+            **self.to_dict_base(),
+        }
+
+    def to_dict_base(self) -> Dict[str, Any]:
+        """
+        Default implementation. Subclasses should override to provide custom information.
+        All values returned must be JSON serializable.
+        """
+        return {"message": str(self)}
 
 
 class SemgrepInternalError(Exception):
@@ -94,19 +111,21 @@ class ErrorWithSpan(SemgrepError):
         self.level = level
         self.spans = spans
         self.help = help
+        assert hasattr(
+            self, "code"
+        ), "Inheritors of SemgrepError must define an exit code"
 
-    @property
-    def code(self) -> int:  # type: ignore
-        """
-        If we explicitly set a code, return that.
-        Otherwise, if the cause sets a code, return that.
-        Otherwise, return a generic FATAL_EXIT_CODE
-        """
-        return (
-            self.__dict__.get("code")
-            or getattr(self.__cause__, "code", None)
-            or FATAL_EXIT_CODE
+    def to_dict_base(self) -> Dict[str, Any]:
+        base = dict(
+            short_msg=self.short_msg,
+            long_msg=self.long_msg,
+            level=self.level,
+            spans=[attr.asdict(s) for s in self.spans],
         )
+        # otherwise, we end up with `help: null` in JSON
+        if self.help:
+            base["help"] = self.help
+        return base
 
     @staticmethod
     def _line_number_width(span: Span) -> int:

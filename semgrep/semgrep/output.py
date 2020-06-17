@@ -75,7 +75,7 @@ def finding_to_line(rule_match: RuleMatch, color_output: bool) -> Iterator[str]:
 
 
 def build_normal_output(
-    rule_matches: List[RuleMatch], semgrep_errors: List[Any], color_output: bool
+    rule_matches: List[RuleMatch], color_output: bool
 ) -> Iterator[str]:
     RESET_COLOR = colorama.Style.RESET_ALL if color_output else ""
     GREEN_COLOR = colorama.Fore.GREEN if color_output else ""
@@ -123,6 +123,7 @@ def build_normal_output(
 def build_output_json(
     rule_matches: List[RuleMatch],
     semgrep_errors: List[Any],
+    semgrep_structured_errors: List[SemgrepError],
     debug_steps_by_rule: Optional[Dict[Rule, List[Dict[str, Any]]]] = None,
 ) -> str:
     # wrap errors under "data" entry to be compatible with
@@ -135,7 +136,7 @@ def build_output_json(
         ]
     output_json["errors"] = [
         {"data": e, "message": "SemgrepCoreRuntimeErrors"} for e in semgrep_errors
-    ]
+    ] + [e.to_dict() for e in semgrep_structured_errors]
     return json.dumps(output_json)
 
 
@@ -143,9 +144,7 @@ def _sarif_tool_info() -> Dict[str, Any]:
     return {"name": "semgrep", "semanticVersion": __VERSION__}
 
 
-def build_sarif_output(
-    rule_matches: List[RuleMatch], rules: FrozenSet[Rule], semgrep_errors: List[Any]
-) -> str:
+def build_sarif_output(rule_matches: List[RuleMatch], rules: FrozenSet[Rule]) -> str:
     """
     Format matches in SARIF v2.1.0 formatted JSON.
 
@@ -165,29 +164,6 @@ def build_sarif_output(
         "results": [match.to_sarif() for match in rule_matches],
     }
     return json.dumps(output_dict)
-
-
-def build_output(
-    rule_matches: List[RuleMatch],
-    debug_steps_by_rule: Dict[Rule, List[Dict[str, Any]]],
-    rules: FrozenSet[Rule],
-    semgrep_errors: List[Any],
-    output_format: OutputFormat,
-    color_output: bool,
-) -> str:
-    if output_format == OutputFormat.JSON_DEBUG:
-        return build_output_json(rule_matches, semgrep_errors, debug_steps_by_rule)
-    if output_format == OutputFormat.JSON:
-        return build_output_json(rule_matches, semgrep_errors)
-    elif output_format == OutputFormat.SARIF:
-        return build_sarif_output(rule_matches, rules, semgrep_errors)
-    elif output_format == OutputFormat.TEXT:
-        return "\n".join(
-            build_normal_output(rule_matches, semgrep_errors, color_output)
-        )
-    else:
-        # https://github.com/python/mypy/issues/6366
-        raise RuntimeError(f"Unhandled output format: {type(output_format).__name__}")
 
 
 class OutputSettings(NamedTuple):
@@ -239,7 +215,7 @@ class OutputHandler:
         self.debug_steps_by_rule: Dict[Rule, List[Dict[str, Any]]] = {}
         self.rules: FrozenSet[Rule] = frozenset()
         self.semgrep_core_errors: List[Dict[str, Any]] = []
-        self.semgrep_rule_errors: List[SemgrepError] = []
+        self.semgrep_structured_errors: List[SemgrepError] = []
         self.has_output = False
 
         self.final_error: Optional[Exception] = None
@@ -276,13 +252,12 @@ class OutputHandler:
                 else:
                     print_error("Run with --verbose to see parse errors")
 
-    def handle_semgrep_rule_errors(self, error: SemgrepError) -> None:
+    def handle_semgrep_error(self, error: SemgrepError) -> None:
         """
-        Report parse errors from semgrep rules. Either:
-        - when the pattern fails to parse in semgrep-core
-        - when the YAML or YAML structure is invalid
+        Reports generic exceptions that extend SemgrepError
         """
-        self.semgrep_rule_errors.append(error)
+        self.has_output = True
+        self.semgrep_structured_errors.append(error)
         print_error(str(error))
 
     def handle_semgrep_core_output(
@@ -305,6 +280,9 @@ class OutputHandler:
         This is called by the context manager upon an unhandled exception. If you want to record a final
         error & set the exit code, but keep executing to perform cleanup tasks, call this method.
         """
+
+        if isinstance(ex, SemgrepError):
+            self.handle_semgrep_error(ex)
         self.final_error = ex
 
     def close(self) -> None:
@@ -315,14 +293,7 @@ class OutputHandler:
         the exit code of the program.
         """
         if self.has_output:
-            output = build_output(
-                self.rule_matches,
-                self.debug_steps_by_rule,
-                self.rules,
-                self.semgrep_core_errors,
-                self.settings.output_format,
-                self.settings.output_destination is None,
-            )
+            output = self.build_output(self.settings.output_destination is None,)
             if not self.settings.quiet and output:
                 print(output, file=self.stdout)
 
@@ -330,9 +301,6 @@ class OutputHandler:
                 self.save_output(self.settings.output_destination, output)
 
         if self.final_error:
-            # We are responsible to outputting all SemgrepErrors
-            if isinstance(self.final_error, SemgrepError):
-                print_error(str(self.final_error))
             raise self.final_error
 
     @classmethod
@@ -360,6 +328,28 @@ class OutputHandler:
             debug_print(f"posted to {output_url} and got status_code:{r.status_code}")
         except requests.exceptions.Timeout:
             raise SemgrepError(f"posting output to {output_url} timed out")
+
+    def build_output(self, color_output: bool,) -> str:
+        output_format = self.settings.output_format
+        debug_steps = None
+        if output_format == OutputFormat.JSON_DEBUG:
+            debug_steps = self.debug_steps_by_rule
+        if output_format.is_json():
+            return build_output_json(
+                self.rule_matches,
+                self.semgrep_core_errors,
+                self.semgrep_structured_errors,
+                debug_steps,
+            )
+        elif output_format == OutputFormat.SARIF:
+            return build_sarif_output(self.rule_matches, self.rules)
+        elif output_format == OutputFormat.TEXT:
+            return "\n".join(build_normal_output(self.rule_matches, color_output))
+        else:
+            # https://github.com/python/mypy/issues/6366
+            raise RuntimeError(
+                f"Unhandled output format: {type(output_format).__name__}"
+            )
 
 
 def pretty_error(error: Dict[str, Any]) -> str:

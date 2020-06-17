@@ -1,0 +1,36 @@
+{
+  "errors": [
+    {
+      "code": 4,
+      "level": "error",
+      "long_msg": "operator pattern-either must have children",
+      "short_msg": "missing children",
+      "spans": [
+        {
+          "context_end": {
+            "col": 35,
+            "line": 5
+          },
+          "context_start": null,
+          "end": {
+            "col": 23,
+            "line": 5
+          },
+          "file": "rules/syntax/bad6.yaml",
+          "source_hash": "ebcad6ecc6d2264e00fcdeeee54e8997c92b2862d3fb66a0066b2bbdde796b2e",
+          "start": {
+            "col": 9,
+            "line": 5
+          }
+        }
+      ],
+      "type": "InvalidRuleSchemaError"
+    },
+    {
+      "code": 7,
+      "message": "run with --strict and there were 1 errors loading configs",
+      "type": "SemgrepError"
+    }
+  ],
+  "results": []
+}

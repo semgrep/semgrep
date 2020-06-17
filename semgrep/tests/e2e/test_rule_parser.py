@@ -1,3 +1,4 @@
+import json
 from subprocess import CalledProcessError
 
 import pytest
@@ -26,13 +27,19 @@ def test_rule_parser__failure(run_semgrep_in_tmp, snapshot, filename):
 @pytest.mark.parametrize("filename", syntax_fails)
 def test_rule_parser__failure__error_messages(run_semgrep_in_tmp, snapshot, filename):
     with pytest.raises(CalledProcessError) as excinfo:
-        run_semgrep_in_tmp(f"rules/syntax/{filename}.yaml", stderr=True)
+        run_semgrep_in_tmp(f"rules/syntax/{filename}.yaml")
+
+    json_output = json.loads(excinfo.value.stdout)
+    # Something went wrong, so there had better be an error, and we asked for JSON so there had better be some output...
+    assert json_output["errors"] != []
 
     with pytest.raises(CalledProcessError) as excinfo_in_color:
-        run_semgrep_in_tmp(
-            f"rules/syntax/{filename}.yaml", options=["--force-color"], stderr=True
-        )
-    snapshot.assert_match(excinfo.value.output, "error.txt")
+        run_semgrep_in_tmp(f"rules/syntax/{filename}.yaml", options=["--force-color"])
 
-    if excinfo_in_color.value.output != excinfo.value.output:
-        snapshot.assert_match(excinfo_in_color.value.output, "error-in-color.txt")
+    snapshot.assert_match(excinfo.value.stderr, "error.txt")
+    snapshot.assert_match(
+        json.dumps(json_output, indent=2, sort_keys=True), "error.json"
+    )
+
+    if excinfo_in_color.value.stderr != excinfo.value.stderr:
+        snapshot.assert_match(excinfo_in_color.value.stderr, "error-in-color.txt")

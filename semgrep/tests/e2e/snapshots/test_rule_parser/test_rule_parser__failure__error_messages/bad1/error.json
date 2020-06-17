@@ -1,0 +1,36 @@
+{
+  "errors": [
+    {
+      "code": 4,
+      "level": "error",
+      "long_msg": "operand for pattern-inside must be a string, but instead was list",
+      "short_msg": "invalid operand",
+      "spans": [
+        {
+          "context_end": {
+            "col": 7,
+            "line": 12
+          },
+          "context_start": null,
+          "end": {
+            "col": 23,
+            "line": 4
+          },
+          "file": "rules/syntax/bad1.yaml",
+          "source_hash": "2eb1bb9f87d22d182e19161640dcf8c967f142004c395a4ffb5c97e5909c5f7a",
+          "start": {
+            "col": 9,
+            "line": 4
+          }
+        }
+      ],
+      "type": "InvalidRuleSchemaError"
+    },
+    {
+      "code": 7,
+      "message": "run with --strict and there were 1 errors loading configs",
+      "type": "SemgrepError"
+    }
+  ],
+  "results": []
+}
