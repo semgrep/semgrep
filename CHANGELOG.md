@@ -15,6 +15,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Changed
 - If scanning a directory in a git project then skip files that are ignored by the
   project unless `--no-git-ignore` flag is used
+- Show aggregate parse errors unless `--verbose` flag is used
 
 ### Fixed
 - Handle parsing unicode characters
