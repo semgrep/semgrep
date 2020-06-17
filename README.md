@@ -56,17 +56,17 @@ On macOS, binaries are available via Homebrew:
 $ brew install semgrep
 ```
 
-On Ubuntu, an install script is available with each [release](https://github.com/returntocorp/semgrep/releases/download/v0.10.1/semgrep-v0.10.1-ubuntu-generic.sh)
+On Ubuntu, an install script is available with each [release](https://github.com/returntocorp/semgrep/releases/download/v0.11.0/semgrep-v0.11.0-ubuntu-generic.sh)
 
 ```bash
-$ ./semgrep-v0.10.1-ubuntu-generic.sh
+$ ./semgrep-v0.11.0-ubuntu-generic.sh
 ```
 
 To try Semgrep without installation, you can also run it via Docker:
 
 ```
 $ docker run --rm -v "${PWD}:/home/repo" returntocorp/semgrep --help
-``` 
+```
 
 See [Usage](#usage) to learn about running pre-built rules and writing custom ones.
 
