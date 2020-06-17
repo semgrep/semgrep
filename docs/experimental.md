@@ -67,7 +67,72 @@ rules:
 
 See it live at https://semgrep.live/AEL.
 
-Please file issues with autofix [here](https://github.com/returntocorp/semgrep/issues) and include the `feature:equivalences` tag.
+Please file issues with equivalences [here](https://github.com/returntocorp/semgrep/issues) and include the `feature:equivalences` tag.
+
+## Typed Metavariables
+
+  Experimental support for typed metavariables is available for Java and Go in semgrep. Typed metavariables specify that the metavariable is only matched if it is of a specific type. For example, you may want to specifically check that == is never used for Strings:
+
+  ```
+ (String $X) == $Y
+ ```
+
+  In Java, you could do this with a rule such as
+
+  ```yaml
+ rules:
+   - id: no-string-cmp
+     languages: [java]
+     patterns:
+       - pattern: $X == (String $Y)
+     message: "Strings should not be compared with =="
+     severity: WARNING
+ ```
+
+  If we had the code
+
+  ```java
+ public class Example {
+     public int foo(String a, int b) {
+         //ERROR: this one is matched
+         if (a == "hello") return 1;
+         // This one is not
+         if (b == 2) return -1;
+     }
+ }
+ ```
+
+  only the string comparison would result in an error.
+
+  Similarly, in Go, we could use the rule
+
+  ```yaml
+ rules:
+   - id: no-string-cmp
+     languages: [go]
+     patterns:
+       - pattern: "$X == ($Y : str)"
+     message: "Strings should not be compared with =="
+     severity: WARNING
+ ```
+
+  though this check is less relevant in Go.
+
+  See it live at https://semgrep.live/WADZ
+
+  Limitations:
+
+  Currently, since matching happens within a single file, this is only guaranteed to work for local variables and arguments. Additionally, it only understands types on the most shallow level. For example, if you have int[] A, it will not recognize A[0] as an integer. If you have a class with fields, you will not be able to use typechecking on field accesses, and it will not recognize the class's field as the expected type. Literal types are understood to a limited extent.
+
+  Go currently does not recognize the type of all variables when declared on the same line. That is, if you have 
+
+  ```go
+ var a, b = 1
+ ```
+
+  it will not take both a and b as ints.
+
+  Please file issues with type matching [here](https://github.com/returntocorp/semgrep/issues) and include the `feature:typematching` tag.
 
 ## Taint Tracking
 
