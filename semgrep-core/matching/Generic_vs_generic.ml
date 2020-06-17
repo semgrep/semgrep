@@ -95,6 +95,13 @@ let env_add_matched_stmt st tin =
       [tin]
   | Some _ -> raise Impossible
 
+(* less: could be made more general by taking is_dots function parameter *)
+let has_ellipis_and_filter_ellispis xs =
+  let has_ellipsis = ref false in
+  let ys = xs |> Common.exclude (function
+    | A.Ellipsis _ -> has_ellipsis := true; true
+    | _ -> false) in
+  !has_ellipsis, ys
 
 (*****************************************************************************)
 (* Name *)
@@ -433,10 +440,9 @@ and m_expr a b =
   | A.Tuple(a1), B.Tuple(b1) ->
     m_container_ordered_elements a1 b1
   (*e: [[Generic_vs_generic.m_expr()]] sequencable container cases *)
-  | A.Container(a1, a2), B.Container(b1, b2) ->
-    m_container_operator a1 b1 >>= (fun () ->
-    (m_bracket (m_list m_expr)) a2 b2
-    )
+  | A.Container((A.Set | A.Dict) as a1, (_, a2, _)),
+    B.Container((B.Set | B.Dict) as b1, (_, b2, _)) ->
+    m_container_set_or_dict_unordered_elements (a1, a2) (b1, b2)
 
   (*s: [[Generic_vs_generic.m_expr()]] interpolated strings case *)
   (* dots '...' for string literal:
@@ -717,8 +723,8 @@ and m_special a b =
   | A.EncodedString(a1), B.EncodedString(b1) ->
     m_wrap m_string a1 b1
   | A.IncrDecr(a1, a2), B.IncrDecr(b1, b2) ->
-    m_bool a1 b1 >>= (fun () ->
-    m_bool a2 b2
+    m_eq a1 b1 >>= (fun () ->
+    m_eq a2 b2
     )
   | A.This, _  | A.Super, _  | A.Self, _  | A.Parent, _  | A.Eval, _
   | A.Typeof, _  | A.Instanceof, _  | A.Sizeof, _  | A.New, _
@@ -746,7 +752,28 @@ and m_name_info a b =
     )
 (*e: function [[Generic_vs_generic.m_name_info]] *)
 
+and m_container_set_or_dict_unordered_elements (a1, a2) (b1, b2) =
+  match ((a1, a2), (b1, b2)) with
+  (* those rules should be applied only for python? *)
+  | ((A.Dict | A.Set), []),             ((A.Dict | A.Set), []) -> return ()
+  | ((A.Dict | A.Set), [A.Ellipsis _]), ((A.Dict | A.Set), _) -> return ()
+  | (A.Set, a2), (B.Set, b2) ->
+        let has_ellipsis, a2 = has_ellipis_and_filter_ellispis a2 in
+        m_list_in_any_order ~less_is_ok:has_ellipsis m_expr a2 b2
+  | (A.Dict, a2), (B.Dict, b2) ->
+        let has_ellipsis, a2 = has_ellipis_and_filter_ellispis a2 in
+        m_list_in_any_order ~less_is_ok:has_ellipsis m_expr a2 b2
+  | _, _ ->
+    (* less: could return fail () *)
+    m_container_operator a1 b1 >>= (fun () ->
+    m_list m_expr a2 b2
+    )
+
 (*s: function [[Generic_vs_generic.m_container_operator]] *)
+(* coupling: if you add a constructor in AST_generic.container,
+ * you probrably need to update m_container_set_or_dict_unordered_elements
+ * and m_expr to handle this new kind of container.
+ *)
 and m_container_operator a b =
   match a, b with
   (* boilerplate *)
@@ -799,7 +826,7 @@ and m_bodies a b =
   m_list__m_body a b
 (*e: function [[Generic_vs_generic.m_bodies]] *)
 
-(* todo: factorize in m_list_unordered_keys_no_dots *)
+(* less: use m_list_in_any_order? move split_when in it? *)
 (*s: function [[Generic_vs_generic.m_list__m_xml_attr]] *)
 and m_list__m_xml_attr
  (xsa: A.xml_attribute list) (xsb: A.xml_attribute list) =
@@ -812,7 +839,7 @@ and m_list__m_xml_attr
   | [], _::_ ->
       return ()
   (*e: [[Generic_vs_generic.m_list__m_xml_attr]] empty list vs list case *)
-  (* todo? allow '...'? *)
+  (* less: allow '...'? *)
 
   | (((s1, _), _) as a)::xsa, xsb ->
      (*s: [[Generic_vs_generic.m_list__m_xml_attr]] if metavar attribute *)
@@ -933,7 +960,7 @@ and m_arguments a b =
   (a, b) -> (m_list__m_argument) a b
 (*e: function [[Generic_vs_generic.m_arguments]] *)
 
-(* todo: factorize in m_list_and_dots? but also has unordered for kwd args *)
+(* less: factorize in m_list_and_dots? but also has unordered for kwd args *)
 (*s: function [[Generic_vs_generic.m_list__m_argument]] *)
 and m_list__m_argument (xsa: A.argument list) (xsb: A.argument list) =
   match xsa, xsb with
@@ -994,7 +1021,7 @@ and m_list__m_argument (xsa: A.argument list) (xsb: A.argument list) =
 (*e: function [[Generic_vs_generic.m_list__m_argument]] *)
 
 (* special case m_arguments when inside a Call(Special(Concat,_), ...)
- * todo: factorize with m_list_with_dots? hard because of the special
+ * less: factorize with m_list_with_dots? hard because of the special
  * call to Normalize_generic below.
  *)
 (*s: function [[Generic_vs_generic.m_arguments_concat]] *)
@@ -1162,8 +1189,7 @@ and m_other_type_argument_operator = m_other_xxx
 (* Attribute *)
 (*****************************************************************************)
 
-(* todo: factorize m_list_unordered_keys? but two "keys" here *)
-
+(* less: factorize m_list_unordered_keys? but two "keys" here *)
 (*s: function [[Generic_vs_generic.m_list__m_attribute]] *)
 and m_list__m_attribute (xsa: A.attribute list) (xsb: A.attribute list) =
   match xsa, xsb with
@@ -1946,7 +1972,7 @@ and m_fields (xsa: A.field list) (xsb: A.field list) =
   m_list__m_field xsa xsb
 (*e: function [[Generic_vs_generic.m_fields]] *)
 
-(* todo: mix of m_list_and_dots and m_list_unordered_keys *)
+(* less: mix of m_list_and_dots and m_list_unordered_keys, hard to factorize *)
 (*s: function [[Generic_vs_generic.m_list__m_field]] *)
 and m_list__m_field (xsa: A.field list) (xsb: A.field list) =
   match xsa, xsb with

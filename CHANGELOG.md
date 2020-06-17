@@ -2,6 +2,12 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+### Added
+- Support for '...' inside set and dictionaries
+
+### Fixed
+- Do not convert certain parenthesized expressions in tuples in Python
+
 ## [0.11.0](https://github.com/returntocorp/semgrep/releases/tag/v0.11.0) - 2020-06-16
 
 ### Added

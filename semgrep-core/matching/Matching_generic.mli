@@ -93,26 +93,28 @@ val m_ref : ('a, 'b) matcher -> ('a ref, 'b ref) matcher
 (*e: signature [[Matching_generic.m_ref]] *)
 
 (*s: signature [[Matching_generic.m_list]] *)
-val m_list : ('a -> 'b -> tin -> tout) -> 'a list -> 'b list -> tin -> tout
+val m_list : ('a, 'b) matcher -> ('a list,'b list) matcher
 (*e: signature [[Matching_generic.m_list]] *)
 (*s: signature [[Matching_generic.m_list_prefix]] *)
-val m_list_prefix :
-  ('a -> 'b -> tin -> tout) -> 'a list -> 'b list -> tin -> tout
+val m_list_prefix : ('a, 'b) matcher -> ('a list,'b list) matcher
 (*e: signature [[Matching_generic.m_list_prefix]] *)
 (*s: signature [[Matching_generic.m_list_with_dots]] *)
 val m_list_with_dots :
-  ('a -> 'b -> tin -> tout) ->
-  ('a -> bool) -> bool -> 'a list -> 'b list -> tin -> tout
+  ('a,'b) matcher -> ('a -> bool) -> bool -> ('a list, 'b list) matcher
 (*e: signature [[Matching_generic.m_list_with_dots]] *)
+val m_list_in_any_order:
+  less_is_ok:bool -> ('a,'b) matcher -> ('a list, 'b list) matcher
 
+(* use = *)
+val m_eq : ('a, 'a) matcher
 (*s: signature [[Matching_generic.m_bool]] *)
-val m_bool : 'a -> 'a -> tin -> tout
+val m_bool : (bool, bool) matcher
 (*e: signature [[Matching_generic.m_bool]] *)
 (*s: signature [[Matching_generic.m_int]] *)
-val m_int : int -> int -> tin -> tout
+val m_int : (int, int) matcher
 (*e: signature [[Matching_generic.m_int]] *)
 (*s: signature [[Matching_generic.m_string]] *)
-val m_string : string -> string -> tin -> tout
+val m_string : (string, string) matcher
 (*e: signature [[Matching_generic.m_string]] *)
 (*s: signature [[Matching_generic.string_is_prefix]] *)
 val string_is_prefix : string -> string -> bool
