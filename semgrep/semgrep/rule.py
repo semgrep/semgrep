@@ -256,6 +256,10 @@ class Rule:
         return languages
 
     @property
+    def languages_span(self) -> Span:
+        return self._yaml.value["languages"].span
+
+    @property
     def raw(self) -> Dict[str, Any]:  # type: ignore
         return self._raw
 

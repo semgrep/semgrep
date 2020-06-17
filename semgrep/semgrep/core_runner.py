@@ -20,8 +20,10 @@ from ruamel.yaml import YAML
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import SEMGREP_PATH
 from semgrep.equivalences import Equivalence
+from semgrep.error import ErrorWithSpan
 from semgrep.error import InvalidPatternError
 from semgrep.error import SemgrepError
+from semgrep.error import UnknownLanguageError
 from semgrep.evaluation import enumerate_patterns_in_boolean_expression
 from semgrep.evaluation import evaluate
 from semgrep.pattern import Pattern
@@ -153,14 +155,16 @@ class CoreRunner:
         return by_lang
 
     def _semgrep_error_json_to_message_then_exit(
-        self, error_json: Dict[str, Any], patterns: List[Pattern]
+        self, error_json: Dict[str, Any], patterns: List[Pattern],
     ) -> None:
         """
         See format_output_exception in semgrep O'Caml for details on schema
         """
         error_type = error_json["error"]
         if error_type == "invalid language":
-            raise SemgrepError(f'invalid language {error_json["language"]}')
+            raise SemgrepError(
+                f'{error_json["language"]} was accepted by semgrep but rejected by semgrep-core. {PLEASE_FILE_ISSUE_TEXT}'
+            )
         elif error_type == "invalid pattern":
 
             matching_pattern = next(
@@ -224,7 +228,18 @@ class CoreRunner:
         for language, all_patterns_for_language in self._group_patterns_by_language(
             [rule]
         ).items():
-            targets = target_manager.get_files(language, rule.includes, rule.excludes)
+            try:
+                targets = target_manager.get_files(
+                    language, rule.includes, rule.excludes
+                )
+            except UnknownLanguageError as ex:
+                raise ErrorWithSpan(
+                    short_msg="invalid language",
+                    long_msg=f"unsupported language {language}",
+                    spans=[rule.languages_span.with_context(before=1, after=1)],
+                    level="error",
+                ) from ex
+
             if targets == []:
                 continue
 
