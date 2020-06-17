@@ -7,7 +7,7 @@ echo "Installing via homebrew"
 brew install returntocorp/semgrep/semgrep
 
 echo "Running homebrew recipe checks"
-brew test semgrep
+brew test returntocorp/semgrep/semgrep
 
 
 brew info semgrep --json | jq -r '.[0].installed[0].version' | tee brew-version
