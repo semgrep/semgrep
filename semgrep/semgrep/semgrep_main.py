@@ -13,9 +13,9 @@ from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import NOSEM_INLINE_RE
 from semgrep.constants import RULES_KEY
 from semgrep.core_runner import CoreRunner
-from semgrep.error import ErrorWithSpan
 from semgrep.error import INVALID_CODE_EXIT_CODE
 from semgrep.error import InvalidPatternNameError
+from semgrep.error import InvalidRuleSchemaError
 from semgrep.error import MISSING_CONFIG_EXIT_CODE
 from semgrep.error import SemgrepError
 from semgrep.output import OutputHandler
@@ -48,7 +48,7 @@ def validate_single_rule(
         # TODO(https://github.com/returntocorp/semgrep/issues/746): return the error messages instead of
         #  immediately printing them so we can emit nice JSON errors to semgrep.live
         output_handler.handle_semgrep_rule_errors(
-            ErrorWithSpan(
+            InvalidRuleSchemaError(
                 short_msg="missing keys",
                 long_msg=f"{config_id} is missing required keys {missing_keys}",
                 level="error",
@@ -61,7 +61,7 @@ def validate_single_rule(
         extra_key_spans = sorted([rule.key_tree(k) for k in extra_keys])
 
         output_handler.handle_semgrep_rule_errors(
-            ErrorWithSpan(
+            InvalidRuleSchemaError(
                 short_msg="extra top-level key",
                 long_msg=f"{config_id} has an invalid top-level rule key: {sorted([k for k in extra_keys])}",
                 help=f"Only {sorted(YAML_ALL_VALID_RULE_KEYS)} are valid keys",
@@ -72,7 +72,7 @@ def validate_single_rule(
         return None
     try:
         return Rule.from_yamltree(rule_yaml)
-    except ErrorWithSpan as ex:
+    except InvalidRuleSchemaError as ex:
         output_handler.handle_semgrep_rule_errors(ex)
         return None
     except InvalidPatternNameError as ex:
@@ -111,7 +111,7 @@ def validate_configs(
         rules = config.get(RULES_KEY)
         if rules is None:
             output_handler.handle_semgrep_rule_errors(
-                ErrorWithSpan(
+                InvalidRuleSchemaError(
                     short_msg="missing keys",
                     long_msg=f"{config_id} is missing `{RULES_KEY}` as top-level key",
                     level="error",

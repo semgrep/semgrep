@@ -17,6 +17,8 @@ UNPARSEABLE_YAML_EXIT_CODE = 5
 NEED_ARBITRARY_CODE_EXEC_EXIT_CODE = 6
 MISSING_CONFIG_EXIT_CODE = 7
 
+INVALID_LANGUAGE_EXIT_CODE = 8
+
 
 class SemgrepError(Exception):
     """
@@ -34,7 +36,13 @@ class SemgrepError(Exception):
         super().__init__(*args)
 
 
-class InvalidPatternNameError(SemgrepError):
+class SemgrepInternalError(Exception):
+    """
+    Parent class of internal semgrep exceptions that should be handled internally and converted into `SemgrepError`s
+
+    Classes that inherit from SemgrepInternalError should begin with `_`
+    """
+
     pass
 
 
@@ -44,6 +52,9 @@ class UnknownOperatorError(SemgrepError):
 
 class ErrorWithSpan(SemgrepError):
     """
+    In general, you should not be constructing ErrorWithSpan directly, and instead be constructing a subclass
+    that sets the code.
+
     Error which will print context from the Span. You should provide the most specific span possible,
     eg. if the error is an invalid key, provide exactly the span for that key. You can then expand what's printed
     with span.with_context(...). Conversely, if you don't want to display the entire span, you can use `span.truncate`
@@ -76,7 +87,6 @@ class ErrorWithSpan(SemgrepError):
         spans: List[Span],
         level: str = "error",
         help: Optional[str] = None,
-        cause: Optional[Exception] = None,
     ):
 
         self.short_msg = short_msg
@@ -84,7 +94,19 @@ class ErrorWithSpan(SemgrepError):
         self.level = level
         self.spans = spans
         self.help = help
-        self.__cause__ = cause
+
+    @property
+    def code(self) -> int:  # type: ignore
+        """
+        If we explicitly set a code, return that.
+        Otherwise, if the cause sets a code, return that.
+        Otherwise, return a generic FATAL_EXIT_CODE
+        """
+        return (
+            self.__dict__.get("code")
+            or getattr(self.__cause__, "code", None)
+            or FATAL_EXIT_CODE
+        )
 
     @staticmethod
     def _line_number_width(span: Span) -> int:
@@ -184,5 +206,13 @@ class InvalidRuleSchemaError(ErrorWithSpan):
     code = INVALID_PATTERN_EXIT_CODE
 
 
-class UnknownLanguageError(SemgrepError):
+class UnknownLanguageError(ErrorWithSpan):
+    code = INVALID_LANGUAGE_EXIT_CODE
+
+
+class InvalidPatternNameError(InvalidRuleSchemaError):
+    pass
+
+
+class _UnknownLanguageError(SemgrepInternalError):
     pass

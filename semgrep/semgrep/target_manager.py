@@ -4,7 +4,7 @@ from typing import Dict
 from typing import List
 from typing import Set
 
-from semgrep.error import UnknownLanguageError
+from semgrep.error import _UnknownLanguageError
 from semgrep.util import partition_set
 
 PYTHON_EXTENSIONS = ["py", "pyi"]
@@ -28,7 +28,7 @@ def lang_to_exts(language: str) -> List[str]:
         Convert language to expected file extensions
 
         If language is not a supported semgrep language then
-        raises UnknownLanguageError
+        raises _UnknownLanguageError
     """
     if language in ["python", "python2", "python3", "py"]:
         return PYTHON_EXTENSIONS
@@ -43,7 +43,7 @@ def lang_to_exts(language: str) -> List[str]:
     elif language in ["ml", "ocaml"]:
         return ML_EXTENSIONS
     else:
-        raise UnknownLanguageError(f"Unsupported Language: {language}")
+        raise _UnknownLanguageError(f"Unsupported Language: {language}")
 
 
 class TargetManager:
