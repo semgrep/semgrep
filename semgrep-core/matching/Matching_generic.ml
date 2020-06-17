@@ -31,12 +31,11 @@ module Flag = Flag_semgrep
  * See Generic_vs_generic.ml top comment for more information.
  *
  * todo:
- *  - factorize code in m_list__in_any_order at some point:
+ *  - use m_list_in_any_order at some point for:
  *     * m_list__m_field
  *     * m_list__m_attribute
  *     * m_list__m_xml_attr
  *     * m_list__m_argument (harder)
- *
  *)
 
 (*****************************************************************************)
@@ -445,9 +444,35 @@ let rec m_list_with_dots f is_dots less_is_ok xsa xsb =
       fail ()
 (*e: function [[Matching_generic.m_list_with_dots]] *)
 
+(* todo? opti? try to go faster to the one with split_when?
+ * need reflect tin so we can call the matcher and query whether there
+ * was a match. Maybe a <??> monadic operator?
+ *)
+let rec m_list_in_any_order ~less_is_ok f xsa xsb =
+  match xsa, xsb with
+  | [], [] ->
+      return ()
+  (* less-is-ok: empty list can sometimes match non-empty list *)
+  | [], _::_ -> if less_is_ok then return () else fail ()
+
+  | a::xsa, xsb ->
+      let candidates = all_elem_and_rest_of_list xsb in
+      (* less: could use a fold *)
+      let rec aux xs =
+        match xs with
+        | [] -> fail ()
+        | (b, xsb)::xs ->
+            (f a b >>= (fun () -> m_list_in_any_order ~less_is_ok f xsa xsb))
+            >||> aux xs
+      in
+      aux candidates
+
 (* ---------------------------------------------------------------------- *)
 (* stdlib: bool/int/string/... *)
 (* ---------------------------------------------------------------------- *)
+
+let m_eq a b =
+  if a = b then return () else fail ()
 
 (*s: function [[Matching_generic.m_bool]] *)
 let m_bool a b =
