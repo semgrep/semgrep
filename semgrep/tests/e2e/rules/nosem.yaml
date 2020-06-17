@@ -2,5 +2,10 @@ rules:
 - id: test-nosem
   message: test-nosem-message
   severity: WARNING
-  languages: [javascript]
-  pattern: nosem_func(...)
+  languages: [c, go, javascript, python]
+  pattern: test_nosem_func(...)
+- id: test-nosem-java
+  message: test-nosem-message-java
+  severity: WARNING
+  languages: [java]
+  pattern: test_nosem_func(...)

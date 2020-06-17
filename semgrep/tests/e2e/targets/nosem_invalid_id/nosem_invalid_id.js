@@ -1,1 +1,1 @@
-nosem_func() // nosem: rules.test-nosem-invalid
+test_nosem_func() // nosem: rules.test-nosem-invalid
