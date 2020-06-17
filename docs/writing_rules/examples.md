@@ -178,7 +178,7 @@ patterns:
 
 https://semgrep.live/QrbJ
 
-**Filter out when the right function is called above.** Next, we can filter out the case where `verify_transaction` appears above. To do this, we will use the `pattern-not-inside` clause. `pattern-not-inside` will filter out **ranges**, inclusive of the ellpisis operator. The patterns look like this:
+**Filter out when the right function is called above.** Next, we can filter out the case where `verify_transaction` appears above. To do this, we will use the [`pattern-not-inside` clause](https://github.com/returntocorp/semgrep/blob/develop/docs/configuration-files.md#pattern-not-inside). `pattern-not-inside` will filter out **ranges**, inclusive of the ellpisis operator. The patterns look like this:
 
 ```yaml
 patterns:
