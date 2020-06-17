@@ -21,7 +21,6 @@ from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import SEMGREP_PATH
 from semgrep.equivalences import Equivalence
 from semgrep.error import _UnknownLanguageError
-from semgrep.error import ErrorWithSpan
 from semgrep.error import InvalidPatternError
 from semgrep.error import SemgrepError
 from semgrep.error import UnknownLanguageError
