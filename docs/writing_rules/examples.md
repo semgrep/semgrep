@@ -1,4 +1,5 @@
 
+
 ## Auditing Dangerous Function Use
 
 Using Semgrep to audit dangerous function calls is easy.
@@ -50,7 +51,9 @@ subprocess.run("grep -R {} .".format(sys.argv[1]), shell=True) # Doesn't match h
 
 https://semgrep.live/v8X8
 
-**Look explicitly for dangerous keyword arguments.** You may want to match only when [certain keyword arguments are present](https://docs.python.org/3/library/subprocess.html#security-considerations). We can write keyword arguments just like in Python into our pattern. Combined with the ellipsis operator, this pattern will match if `shell=True` appears at the end of the sequence of arguments.
+**Look explicitly for dangerous keyword arguments.** You may want to match only when [certain keyword arguments are present](https://docs.python.org/3/library/subprocess.html#security-considerations). For example, when subprocess.call is passed the keyword argument shell=True, Python won't auto-escape shell metacharacters that are passed in, which, if an attacker has control over the input, may lead to them being able to run arbitrary shell commands.
+
+We can match keyword arguments just like in Python into our pattern. Combined with the ellipsis operator, this pattern will match if `shell=True` appears at the end of the sequence of arguments.
 
 ```yaml
 patterns:
@@ -71,7 +74,7 @@ subprocess.run("grep -R {} .".format(sys.argv[1]), shell=True) # Doesn't match h
 
 https://semgrep.live/d8J6
 
-Semgrep will match `(..., shell=True)` only when `shell=True` is the last argument. To fix this, we can use the ellipsis operator on both sides of `shell=True`.
+Semgrep will match `(..., shell=True)` only when `shell=True` is the last argument, but that's not what we want, as `shell=True` is dangerous regardless of the order in which it's passed in. We can update our pattern to handle cases where `shell=True` is a keyword argument regardless of the order it's passed in by using the ellipsis operator on both sides of `shell=True`.
 
 ```yaml
 patterns:
@@ -92,7 +95,11 @@ subprocess.run("grep -R {} .".format(sys.argv[1]), shell=True) # Doesn't match h
 
 https://semgrep.live/ZqKW
 
-**Bonus: Match any `subprocess` function with `shell=True`.** As you probably noticed, `subprocess.run` is subject to the same issue as `subprocess.call`. `subprocess.run` [was made available in Python 3.5](https://docs.python.org/3/library/subprocess.html#older-high-level-api). We can match both `subprocess.call` and `subprocess.run` by using **metavariables**. Metavariables let you match any code expression. To use metavariables in Semgrep, use the dollar sign as a prefix and all capital letters. In this example, we will use `subprocess.$FUNC`. The name can be anything -- it's just a like a variable in a normal language and will "hold" the expression it matches.
+**Bonus: Match any `subprocess` function with `shell=True`.** As you probably noticed, `subprocess.run` is subject to the same issue as `subprocess.call`. `subprocess.run` [was made available in Python 3.5](https://docs.python.org/3/library/subprocess.html#older-high-level-api). We can match both `subprocess.call` and `subprocess.run` by using **metavariables**. 
+
+Metavariables let you match any code expression. To use metavariables in Semgrep, use the dollar sign as a prefix and all capital letters. In this example, we will use `subprocess.$FUNC`. The name can be anything -- it's just a like a variable in a normal language and will "hold" the expression it matches.
+
+To learn more about metavariables, visit the [primary documentation](https://github.com/returntocorp/semgrep/pattern-features.md#metavariables). 
 
 ```yaml
 patterns:
@@ -115,9 +122,9 @@ https://semgrep.live/nJ9d
 
 ## Enforce Specific Use of an API
 
-Sometimes you may wish to enforce the specific use of a function's API. There are many examples of this, such as `subprocess.call(..., shell=True, ...)` above; you may wish to match and fail any commit where `shell=True`. This is easy to do in Semgrep, as seen in the above section.
+Sometimes you may wish to enforce the specific use of an API. There are many examples of this, such as `subprocess.call(..., shell=True, ...)` above; you may wish to match and fail any commit where `shell=True`. This is easy to do in Semgrep, as seen in the above section.
 
-However, there are also function APIs that are insecure by default--or insecure depending on context, such as Jinja2, which does [not enable autoescaping by default](https://github.com/pallets/jinja/blob/2a8515d2e53a2be475d9df3fe44e308501201a95/src/jinja2/environment.py#L296). Jinja2 is an arbitrary templating engine, so this makes sense in non-web contexts. This may not be obvious, though, and if you are working directly with the Jinja2 engine in a web context you want to make sure `autoescape=True`.
+However, there are also APIs that are insecure by default--or insecure depending on context, such as Jinja2, which does [not enable autoescaping by default](https://github.com/pallets/jinja/blob/2a8515d2e53a2be475d9df3fe44e308501201a95/src/jinja2/environment.py#L296). Jinja2 is an arbitrary templating engine, so this makes sense in non-web contexts. This may not be obvious, though, and if you are working directly with the Jinja2 engine in a web context, you want to make sure to include `autoescape=True`.
 
 (Not to scare anyone: Flask, for instance, [autoescapes templates with the '.html' extension](https://github.com/pallets/jinja/blob/2a8515d2e53a2be475d9df3fe44e308501201a95/src/jinja2/environment.py#L296).)
 
@@ -145,13 +152,15 @@ This can be generalized with the following approach:
 
 ### Secure Cookies in Flask
 
-Another example of this approach is [setting secure cookies in Flask](https://semgrep.live/EwB5).
+Another example of this approach is [setting secure cookies in Flask](https://flask.palletsprojects.com/en/1.1.x/security/#set-cookie-options).
 
 ```yaml
 patterns:
 - pattern-not: flask.response.set_cookie(..., httponly=True, secure=True,...)
 - pattern: flask.response.set_cookie(...)
 ```
+
+https://semgrep.live/EwB5
 
 ## Ensure One Function is Called Before Another
 
