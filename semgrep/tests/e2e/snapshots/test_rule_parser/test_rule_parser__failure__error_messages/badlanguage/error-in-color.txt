@@ -1,0 +1,10 @@
+running 1 rules...
+[31merror[39m: invalid language
+  --> rules/syntax/badlanguage.yaml:7
+[94m6 | [39m    message: "$X is being assigned to one or two"
+[94m7 | [39m    languages: [rust]
+[94m  | [39m               [31m^^^^^^[39m
+[94m8 | [39m    severity: WARNING
+
+[31munsupported language rust[39m
+
