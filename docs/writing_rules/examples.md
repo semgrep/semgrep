@@ -1,3 +1,13 @@
+# Writing Rules
+
+This document illustrates some examples and approaches for writing Semgrep rules.
+
+- [Auditing Dangerous Function Use](#auditing-dangerous-function-use)
+- [Enforce Specific Use of an API](#enforce-specific-use-of-an-api)
+  * [Secure Cookies in Flask](#secure-cookies-in-flask)
+- [Ensure One Function is Called Before Another](#ensure-one-function-is-called-before-another)
+  * [Secure Cookies in Java](#secure-cookies-in-java)
+- [Find All Routes in an Application](#find-all-routes-in-an-application)
 
 
 ## Auditing Dangerous Function Use
