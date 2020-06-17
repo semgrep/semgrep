@@ -5,6 +5,7 @@ from typing import List
 from typing import Optional
 
 from semgrep.equivalences import Equivalence
+from semgrep.error import InvalidPatternNameError
 from semgrep.error import InvalidRuleSchemaError
 from semgrep.rule_lang import EmptySpan
 from semgrep.rule_lang import Span
@@ -12,12 +13,14 @@ from semgrep.rule_lang import YamlMap
 from semgrep.rule_lang import YamlTree
 from semgrep.semgrep_types import ALLOWED_GLOB_TYPES
 from semgrep.semgrep_types import BooleanRuleExpression
-from semgrep.semgrep_types import operator_for_pattern_name
+from semgrep.semgrep_types import Operator
+from semgrep.semgrep_types import OPERATOR_PATTERN_NAMES_MAP
 from semgrep.semgrep_types import OPERATORS
 from semgrep.semgrep_types import OPERATORS_WITH_CHILDREN
 from semgrep.semgrep_types import pattern_names_for_operator
 from semgrep.semgrep_types import pattern_names_for_operators
 from semgrep.semgrep_types import PatternId
+from semgrep.util import flatten
 
 
 class Rule:
@@ -89,7 +92,7 @@ class Rule:
                 )
             for boolean_operator_yaml, sub_pattern in pattern.items():
                 boolean_operator: str = boolean_operator_yaml.value
-                operator = operator_for_pattern_name(boolean_operator)
+                operator = operator_for_pattern_name(boolean_operator_yaml)
                 if operator in set(OPERATORS_WITH_CHILDREN):
                     if isinstance(sub_pattern.value, list):
                         sub_expression = self._parse_boolean_expression(
@@ -316,3 +319,19 @@ class Rule:
     @property
     def pattern_spans(self) -> Dict[PatternId, Span]:
         return self._pattern_spans
+
+
+def operator_for_pattern_name(pattern_name: YamlTree[str]) -> Operator:
+    for op, pattern_names in OPERATOR_PATTERN_NAMES_MAP.items():
+        if pattern_name.value in pattern_names:
+            return op
+
+    valid_pattern_names: List[str] = list(
+        sorted(flatten(OPERATOR_PATTERN_NAMES_MAP.values()))
+    )
+    raise InvalidPatternNameError(
+        short_msg="invalid pattern name",
+        long_msg=f"invalid pattern name: {pattern_name.value}",
+        help=f"valid pattern names are {valid_pattern_names}",
+        spans=[pattern_name.span.with_context(before=1, after=1)],
+    )

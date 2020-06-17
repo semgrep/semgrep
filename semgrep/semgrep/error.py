@@ -36,7 +36,13 @@ class SemgrepError(Exception):
         super().__init__(*args)
 
 
-class InvalidPatternNameError(SemgrepError):
+class SemgrepInternalError(Exception):
+    """
+    Parent class of internal semgrep exceptions that should be handled internally and converted into `SemgrepError`s
+
+    Classes that inherit from SemgrepInternalError should begin with `_`
+    """
+
     pass
 
 
@@ -47,11 +53,7 @@ class UnknownOperatorError(SemgrepError):
 class ErrorWithSpan(SemgrepError):
     """
     In general, you should not be constructing ErrorWithSpan directly, and instead be constructing a subclass
-    that sets the code. If you're adding context to an existing Exception, use `from` to chain the error:
-    >>> try:
-    >>>   call_func()
-    >>> except SemgrepError as ex:
-    >>>   raise ErrorWithSpan(short_msg='a problem', ...) from ex
+    that sets the code.
 
     Error which will print context from the Span. You should provide the most specific span possible,
     eg. if the error is an invalid key, provide exactly the span for that key. You can then expand what's printed
@@ -204,6 +206,13 @@ class InvalidRuleSchemaError(ErrorWithSpan):
     code = INVALID_PATTERN_EXIT_CODE
 
 
-class UnknownLanguageError(SemgrepError):
-    def __init__(self, *args: object):
-        super().__init__(*args, code=INVALID_LANGUAGE_EXIT_CODE)
+class UnknownLanguageError(ErrorWithSpan):
+    code = INVALID_LANGUAGE_EXIT_CODE
+
+
+class InvalidPatternNameError(InvalidRuleSchemaError):
+    pass
+
+
+class _UnknownLanguageError(SemgrepInternalError):
+    pass

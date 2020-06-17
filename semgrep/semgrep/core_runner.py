@@ -20,6 +20,7 @@ from ruamel.yaml import YAML
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import SEMGREP_PATH
 from semgrep.equivalences import Equivalence
+from semgrep.error import _UnknownLanguageError
 from semgrep.error import ErrorWithSpan
 from semgrep.error import InvalidPatternError
 from semgrep.error import SemgrepError
@@ -232,8 +233,8 @@ class CoreRunner:
                 targets = target_manager.get_files(
                     language, rule.includes, rule.excludes
                 )
-            except UnknownLanguageError as ex:
-                raise ErrorWithSpan(
+            except _UnknownLanguageError as ex:
+                raise UnknownLanguageError(
                     short_msg="invalid language",
                     long_msg=f"unsupported language {language}",
                     spans=[rule.languages_span.with_context(before=1, after=1)],
