@@ -57,7 +57,7 @@ let subexprs_of_expr2 e =
   | Call (e, args) ->
       (* not sure we want to return 'e' here *)
       e::
-      (args |> Common.map_filter (function
+      (args |> unbracket |> Common.map_filter (function
         | Arg e | ArgKwd (_, e) -> Some e
         | ArgType _ | ArgOther _ -> None
       ))
@@ -162,7 +162,7 @@ let substmts_of_stmt st =
     -> st1::(Common.opt_to_list st2)
 
     (* n *)
-    | Block xs ->
+    | Block (_, xs, _) ->
         xs
     | Switch (_, _, xs) ->
         xs |> List.map snd

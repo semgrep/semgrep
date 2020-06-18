@@ -4,6 +4,7 @@
  (libraries
    bigarray str
    uucp uutf
+   ppx_deriving.runtime
 
    commons
    pfff-h_program-lang
