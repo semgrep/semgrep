@@ -119,7 +119,13 @@ def progress_bar(
     Return tqdm-wrapped iterable if output stream is a tty;
     else return iterable without tqdm.
     """
-    if file.isatty():
+    # Conditions:
+    # file.isatty() - only show bar if this is an interactive terminal
+    # len(iterable) > 1 - don't show progress bar when using -e on command-line. This
+    #   is a hack, so it will only show the progress bar if there is more than 1 rule to run.
+    # not DEBUG - don't show progress bar with debug
+    # not QUIET - don't show progress bar with quiet
+    if file.isatty() and len(list(iterable)) > 1 and not DEBUG and not QUIET:
         # mypy doesn't seem to want to follow tqdm imports. Do this to placate.
         wrapped: Iterable[T] = tqdm(iterable, file=file, **kwargs)
         return wrapped
