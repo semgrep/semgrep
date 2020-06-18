@@ -15,6 +15,7 @@ from semgrep.dump_ast import dump_parsed_ast
 from semgrep.error import SemgrepError
 from semgrep.output import managed_output
 from semgrep.output import OutputSettings
+from semgrep.util import print_error
 from semgrep.util import print_msg
 
 try:
@@ -258,7 +259,11 @@ def cli() -> None:
     semgrep.util.set_flags(args.verbose, args.quiet, args.force_color)
 
     # change cwd if using docker
-    semgrep.config_resolver.adjust_for_docker(args.precommit)
+    try:
+        semgrep.config_resolver.adjust_for_docker(args.precommit)
+    except SemgrepError as e:
+        print_error(str(e))
+        raise e
 
     output_format = OutputFormat.TEXT
     if args.json:
