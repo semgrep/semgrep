@@ -1,0 +1,33 @@
+{
+  "errors": [
+    {
+      "code": 4,
+      "level": "error",
+      "long_msg": "rules/syntax/missing-field.yaml is missing required keys {'severity'}",
+      "short_msg": "missing keys",
+      "spans": [
+        {
+          "context_end": null,
+          "context_start": null,
+          "end": {
+            "col": 0,
+            "line": 8
+          },
+          "file": "rules/syntax/missing-field.yaml",
+          "source_hash": "52c8055ff5d4555128113f2ad1b4f03c1227c339ee9b6992d9bbc18548d4e645",
+          "start": {
+            "col": 3,
+            "line": 3
+          }
+        }
+      ],
+      "type": "InvalidRuleSchemaError"
+    },
+    {
+      "code": 7,
+      "message": "run with --strict and there were 1 errors loading configs",
+      "type": "SemgrepError"
+    }
+  ],
+  "results": []
+}

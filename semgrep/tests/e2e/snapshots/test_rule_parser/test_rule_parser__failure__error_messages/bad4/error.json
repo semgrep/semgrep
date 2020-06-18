@@ -1,0 +1,37 @@
+{
+  "errors": [
+    {
+      "code": 4,
+      "help": "perhaps your YAML is missing a `-` on line 4?",
+      "level": "error",
+      "long_msg": "invalid type for patterns; expected a list, but found dict",
+      "short_msg": "invalid patterns",
+      "spans": [
+        {
+          "context_end": null,
+          "context_start": {
+            "col": 0,
+            "line": 3
+          },
+          "end": {
+            "col": 5,
+            "line": 8
+          },
+          "file": "rules/syntax/bad4.yaml",
+          "source_hash": "156e59613c09e6fd9edd1e4c4240b15559a486bcfae658b3afc13989701f5391",
+          "start": {
+            "col": 9,
+            "line": 4
+          }
+        }
+      ],
+      "type": "InvalidRuleSchemaError"
+    },
+    {
+      "code": 7,
+      "message": "run with --strict and there were 1 errors loading configs",
+      "type": "SemgrepError"
+    }
+  ],
+  "results": []
+}

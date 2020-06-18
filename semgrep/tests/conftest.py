@@ -83,7 +83,7 @@ def _run_semgrep(
     output = subprocess.check_output(
         ["python3", "-m", "semgrep", *options, Path("targets") / target_name],
         encoding="utf-8",
-        stderr=subprocess.STDOUT if stderr else None,
+        stderr=subprocess.STDOUT if stderr else subprocess.PIPE,
     )
 
     if output_format in {"json", "sarif"} and not stderr:
