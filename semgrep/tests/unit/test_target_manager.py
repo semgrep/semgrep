@@ -111,6 +111,34 @@ def test_delete_git(tmp_path, monkeypatch):
     )
 
 
+def test_expand_targets_git_in_git(tmp_path, monkeypatch):
+    """
+        Test that running semgrep in a git repo scans nested git repos
+    """
+    foo = tmp_path / "foo"
+    bar = tmp_path / "bar"
+    foo.mkdir()
+    bar.mkdir()
+
+    subprocess.run(["git", "init"], cwd=tmp_path)
+    subprocess.run(["git", "init"], cwd=foo)
+    subprocess.run(["git", "init"], cwd=bar)
+
+    foo_a_go = foo / "a.go"
+    foo_a_go.touch()
+    (foo / "b.go").touch()
+    (foo / "py").touch()
+    foo_a = foo / "a.py"
+    foo_a.touch()
+    foo_b = foo / "b.py"
+    foo_b.touch()
+
+    monkeypatch.chdir(tmp_path)
+    assert cmp_path_sets(
+        TargetManager.expand_targets([Path(".")], "python", True), {foo_a, foo_b}
+    )
+
+
 def test_expand_targets_git(tmp_path, monkeypatch):
     """
         Test TargetManager with visible_to_git_only flag on in a git repository
