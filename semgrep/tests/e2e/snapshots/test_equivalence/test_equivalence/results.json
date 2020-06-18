@@ -4,7 +4,7 @@
     {
       "check_id": "rules.open-redirect",
       "end": {
-        "col": 44,
+        "col": 46,
         "line": 9
       },
       "extra": {
@@ -41,7 +41,7 @@
     {
       "check_id": "rules.open-redirect",
       "end": {
-        "col": 37,
+        "col": 40,
         "line": 14
       },
       "extra": {
