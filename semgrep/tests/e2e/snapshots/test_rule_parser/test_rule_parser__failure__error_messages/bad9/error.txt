@@ -4,7 +4,7 @@ error: invalid pattern name
 4 |       - patter: $X = 1
   |         ^^^^^^
 5 |       - pattern: $X = 2
-= help: valid pattern names are ['equivalences', 'fix', 'pattern', 'pattern-either', 'pattern-inside', 'pattern-not', 'pattern-not-inside', 'pattern-regex', 'pattern-where-python', 'patterns']
+= help: valid pattern names are ['equivalences', 'fix', 'fix-regex', 'pattern', 'pattern-either', 'pattern-inside', 'pattern-not', 'pattern-not-inside', 'pattern-regex', 'pattern-where-python', 'patterns']
 invalid pattern name: patter
 
 run with --strict and there were 1 errors loading configs
