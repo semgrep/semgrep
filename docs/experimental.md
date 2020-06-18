@@ -104,7 +104,7 @@ Please file issues with equivalences [here](https://github.com/returntocorp/semg
 
   only the string comparison would result in an error.
 
-  Similarly, in Go, we could use the rule
+  The syntax for Go is a little different, reflecting the different syntax for type declaration in Go. The same rule in Go would be written as
 
   ```yaml
  rules:
@@ -116,7 +116,7 @@ Please file issues with equivalences [here](https://github.com/returntocorp/semg
      severity: WARNING
  ```
 
-  though this check is less relevant in Go.
+  though this check is less relevant here.
 
   See it live at https://semgrep.live/WADZ
 
