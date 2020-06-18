@@ -6,7 +6,7 @@
 [94m  | [39m    [31m^^^^^^^^^^^^^^[39m
 [94m4 | [39m    patterns:
 [94m5 | [39m      - pattern-not: 1 == 1
-= [36m[1mhelp[39m[0m: Only ['equivalences', 'fix', 'id', 'languages', 'message', 'metadata', 'paths', 'pattern', 'pattern-either', 'pattern-regex', 'patterns', 'severity'] are valid keys
+= [36m[1mhelp[39m[0m: Only ['equivalences', 'fix', 'fix-regex', 'id', 'languages', 'message', 'metadata', 'paths', 'pattern', 'pattern-either', 'pattern-regex', 'patterns', 'severity'] are valid keys
 [31mrules/syntax/bad2.yaml has an invalid top-level rule key: ['pattern-inside'][39m
 
 run with --strict and there were 1 errors loading configs

@@ -6,7 +6,7 @@ error: extra top-level key
   |     ^^^^^^^^^^^^^^
 4 |     patterns:
 5 |       - pattern-not: 1 == 1
-= help: Only ['equivalences', 'fix', 'id', 'languages', 'message', 'metadata', 'paths', 'pattern', 'pattern-either', 'pattern-regex', 'patterns', 'severity'] are valid keys
+= help: Only ['equivalences', 'fix', 'fix-regex', 'id', 'languages', 'message', 'metadata', 'paths', 'pattern', 'pattern-either', 'pattern-regex', 'patterns', 'severity'] are valid keys
 rules/syntax/bad2.yaml has an invalid top-level rule key: ['pattern-inside']
 
 run with --strict and there were 1 errors loading configs
