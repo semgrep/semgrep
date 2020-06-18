@@ -1,0 +1,39 @@
+{
+  "errors": [
+    {
+      "code": 4,
+      "level": "error",
+      "long_msg": "the `paths:` targeting rules must each be one of ('include', 'exclude')",
+      "short_msg": "invalid targeting rules",
+      "spans": [
+        {
+          "context_end": {
+            "col": 0,
+            "line": 9
+          },
+          "context_start": {
+            "col": 0,
+            "line": 7
+          },
+          "end": {
+            "col": 15,
+            "line": 8
+          },
+          "file": "rules/syntax/badpaths2.yaml",
+          "source_hash": "e8a29e15677c634a77353a6099e2c0acf18909672c87d06292a1caece7cd4d3c",
+          "start": {
+            "col": 7,
+            "line": 8
+          }
+        }
+      ],
+      "type": "InvalidRuleSchemaError"
+    },
+    {
+      "code": 7,
+      "message": "run with --strict and there were 1 errors loading configs",
+      "type": "SemgrepError"
+    }
+  ],
+  "results": []
+}

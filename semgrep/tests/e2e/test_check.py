@@ -78,9 +78,10 @@ def test_hidden_rule__explicit(run_semgrep_in_tmp, snapshot):
 
 def test_hidden_rule__implicit(run_semgrep_in_tmp, snapshot):
     with pytest.raises(CalledProcessError) as excinfo:
-        run_semgrep_in_tmp("rules/hidden", stderr=True)
+        run_semgrep_in_tmp("rules/hidden")
     assert excinfo.value.returncode == 2
-    snapshot.assert_match(excinfo.value.output, "error.txt")
+    snapshot.assert_match(excinfo.value.stderr, "error.txt")
+    snapshot.assert_match(excinfo.value.stdout, "error.json")
 
 
 def test_default_rule__file(run_semgrep_in_tmp, snapshot):
@@ -105,9 +106,10 @@ def test_regex_rule__child(run_semgrep_in_tmp, snapshot):
 
 def test_regex_rule__invalid_expression(run_semgrep_in_tmp, snapshot):
     with pytest.raises(CalledProcessError) as excinfo:
-        run_semgrep_in_tmp("rules/regex-invalid.yaml", stderr=True)
+        run_semgrep_in_tmp("rules/regex-invalid.yaml")
     assert excinfo.value.returncode == 2
-    snapshot.assert_match(excinfo.value.output, "error.txt")
+    snapshot.assert_match(excinfo.value.stderr, "error.txt")
+    snapshot.assert_match(excinfo.value.stdout, "error.json")
 
 
 def test_nested_patterns_rule(run_semgrep_in_tmp, snapshot):
@@ -122,8 +124,7 @@ def test_nosem_rule(run_semgrep_in_tmp, snapshot):
 
 def test_nosem_rule__invalid_id(run_semgrep_in_tmp, snapshot):
     with pytest.raises(CalledProcessError) as excinfo:
-        run_semgrep_in_tmp(
-            "rules/nosem.yaml", target_name="nosem_invalid_id", stderr=True
-        )
+        run_semgrep_in_tmp("rules/nosem.yaml", target_name="nosem_invalid_id")
     assert excinfo.value.returncode == 2
-    snapshot.assert_match(excinfo.value.output, "error.txt")
+    snapshot.assert_match(excinfo.value.stderr, "error.txt")
+    snapshot.assert_match(excinfo.value.stdout, "error.json")

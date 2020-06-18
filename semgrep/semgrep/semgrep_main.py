@@ -47,7 +47,7 @@ def validate_single_rule(
         missing_keys = YAML_MUST_HAVE_KEYS - rule_keys
         # TODO(https://github.com/returntocorp/semgrep/issues/746): return the error messages instead of
         #  immediately printing them so we can emit nice JSON errors to semgrep.live
-        output_handler.handle_semgrep_rule_errors(
+        output_handler.handle_semgrep_error(
             InvalidRuleSchemaError(
                 short_msg="missing keys",
                 long_msg=f"{config_id} is missing required keys {missing_keys}",
@@ -60,7 +60,7 @@ def validate_single_rule(
         extra_keys: Set[str] = rule_keys - YAML_ALL_VALID_RULE_KEYS
         extra_key_spans = sorted([rule.key_tree(k) for k in extra_keys])
 
-        output_handler.handle_semgrep_rule_errors(
+        output_handler.handle_semgrep_error(
             InvalidRuleSchemaError(
                 short_msg="extra top-level key",
                 long_msg=f"{config_id} has an invalid top-level rule key: {sorted([k for k in extra_keys])}",
@@ -73,7 +73,7 @@ def validate_single_rule(
     try:
         return Rule.from_yamltree(rule_yaml)
     except InvalidRuleSchemaError as ex:
-        output_handler.handle_semgrep_rule_errors(ex)
+        output_handler.handle_semgrep_error(ex)
         return None
     except InvalidPatternNameError as ex:
         rule_id = rule.get("id")
@@ -82,7 +82,7 @@ def validate_single_rule(
         else:
             rule_id_str = rule_id.value
         rule_id_err_msg = f"{rule_id_str}"
-        output_handler.handle_semgrep_rule_errors(
+        output_handler.handle_semgrep_error(
             SemgrepError(
                 f"{config_id}: inside rule id {rule_id_err_msg}, pattern fields can't look like this: {ex}"
             )
@@ -110,7 +110,7 @@ def validate_configs(
             continue
         rules = config.get(RULES_KEY)
         if rules is None:
-            output_handler.handle_semgrep_rule_errors(
+            output_handler.handle_semgrep_error(
                 InvalidRuleSchemaError(
                     short_msg="missing keys",
                     long_msg=f"{config_id} is missing `{RULES_KEY}` as top-level key",

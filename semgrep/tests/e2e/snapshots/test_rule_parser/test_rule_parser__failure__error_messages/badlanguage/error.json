@@ -1,0 +1,34 @@
+{
+  "errors": [
+    {
+      "code": 8,
+      "level": "error",
+      "long_msg": "unsupported language rust",
+      "short_msg": "invalid language",
+      "spans": [
+        {
+          "context_end": {
+            "col": 0,
+            "line": 8
+          },
+          "context_start": {
+            "col": 0,
+            "line": 6
+          },
+          "end": {
+            "col": 22,
+            "line": 7
+          },
+          "file": "rules/syntax/badlanguage.yaml",
+          "source_hash": "f6b249e5598500966b21d2584b6c6ec9385fceee05c5efb3f90f4a012d1c0163",
+          "start": {
+            "col": 16,
+            "line": 7
+          }
+        }
+      ],
+      "type": "UnknownLanguageError"
+    }
+  ],
+  "results": []
+}

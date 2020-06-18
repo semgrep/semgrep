@@ -1,0 +1,39 @@
+{
+  "errors": [
+    {
+      "code": 4,
+      "level": "error",
+      "long_msg": "type of `pattern` must be a string, but it was a list",
+      "short_msg": "invalid operand",
+      "spans": [
+        {
+          "context_end": {
+            "col": 0,
+            "line": 6
+          },
+          "context_start": {
+            "col": 0,
+            "line": 3
+          },
+          "end": {
+            "col": 5,
+            "line": 5
+          },
+          "file": "rules/syntax/bad3.yaml",
+          "source_hash": "b5c10ec06e8348dfbfe2dc7fe5431da300c68b6cbdb249519596ac9e96f0cee1",
+          "start": {
+            "col": 9,
+            "line": 4
+          }
+        }
+      ],
+      "type": "InvalidRuleSchemaError"
+    },
+    {
+      "code": 7,
+      "message": "run with --strict and there were 1 errors loading configs",
+      "type": "SemgrepError"
+    }
+  ],
+  "results": []
+}

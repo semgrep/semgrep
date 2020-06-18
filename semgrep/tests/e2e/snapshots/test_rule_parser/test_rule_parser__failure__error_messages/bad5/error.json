@@ -1,0 +1,34 @@
+{
+  "errors": [
+    {
+      "code": 4,
+      "help": "Did you mean `pattern: 4`?",
+      "level": "error",
+      "long_msg": "invalid type for pattern expected dict but found str",
+      "short_msg": "invalid pattern",
+      "spans": [
+        {
+          "context_end": null,
+          "context_start": null,
+          "end": {
+            "col": 12,
+            "line": 5
+          },
+          "file": "rules/syntax/bad5.yaml",
+          "source_hash": "5c4f00f11940b0b9526ec7832ba2b1b539877e705bc7d73a4421db5a7006eba9",
+          "start": {
+            "col": 9,
+            "line": 5
+          }
+        }
+      ],
+      "type": "InvalidRuleSchemaError"
+    },
+    {
+      "code": 7,
+      "message": "run with --strict and there were 1 errors loading configs",
+      "type": "SemgrepError"
+    }
+  ],
+  "results": []
+}

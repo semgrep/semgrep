@@ -40,6 +40,9 @@ class OutputFormat(Enum):
     JSON_DEBUG = auto()
     SARIF = auto()
 
+    def is_json(self) -> bool:
+        return self == OutputFormat.JSON or self == OutputFormat.JSON_DEBUG
+
 
 # Inline 'noqa' implementation modified from flake8:
 # https://github.com/PyCQA/flake8/blob/master/src/flake8/defaults.py

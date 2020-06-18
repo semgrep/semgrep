@@ -1,0 +1,33 @@
+{
+  "errors": [
+    {
+      "code": 4,
+      "level": "error",
+      "long_msg": "missing a pattern type in rule, expected one of ['patterns', 'pattern-either', 'pattern-regex', 'pattern']",
+      "short_msg": "missing key",
+      "spans": [
+        {
+          "context_end": null,
+          "context_start": null,
+          "end": {
+            "col": 1,
+            "line": 7
+          },
+          "file": "rules/syntax/bad8.yaml",
+          "source_hash": "f821234ba9175efc8d66b3226996144ba05bdc0aea35a50321cbb9c6f349f6a0",
+          "start": {
+            "col": 5,
+            "line": 2
+          }
+        }
+      ],
+      "type": "InvalidRuleSchemaError"
+    },
+    {
+      "code": 7,
+      "message": "run with --strict and there were 1 errors loading configs",
+      "type": "SemgrepError"
+    }
+  ],
+  "results": []
+}
