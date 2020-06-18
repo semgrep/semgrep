@@ -22,6 +22,7 @@ class OPERATORS:
     AND_NOT_INSIDE: Operator = Operator("and_not_inside")
     WHERE_PYTHON: Operator = Operator("where_python")
     FIX: Operator = Operator("fix")
+    FIX_REGEX: Operator = Operator("fix_regex")
     EQUIVALENCES: Operator = Operator("equivalences")
     REGEX: Operator = Operator("regex")
 
@@ -37,6 +38,7 @@ OPERATOR_PATTERN_NAMES_MAP = {
     OPERATORS.AND_ALL: ["patterns"],
     OPERATORS.WHERE_PYTHON: ["pattern-where-python"],
     OPERATORS.FIX: ["fix"],
+    OPERATORS.FIX_REGEX: ["fix-regex"],
     OPERATORS.EQUIVALENCES: ["equivalences"],
     OPERATORS.REGEX: ["pattern-regex"],
 }
@@ -49,6 +51,7 @@ YAML_VALID_TOP_LEVEL_OPERATORS = {
     OPERATORS.AND_ALL,
     OPERATORS.AND_EITHER,
     OPERATORS.FIX,
+    OPERATORS.FIX_REGEX,
     OPERATORS.EQUIVALENCES,
     OPERATORS.REGEX,
 }
