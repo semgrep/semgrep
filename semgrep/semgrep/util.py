@@ -125,8 +125,11 @@ def progress_bar(
     #   is a hack, so it will only show the progress bar if there is more than 1 rule to run.
     # not DEBUG - don't show progress bar with debug
     # not QUIET - don't show progress bar with quiet
-    if file.isatty() and len(list(iterable)) > 1 and not DEBUG and not QUIET:
+    listified = list(
+        iterable
+    )  # Consume iterable once so we can check length and then use in tqdm.
+    if file.isatty() and len(listified) > 1 and not DEBUG and not QUIET:
         # mypy doesn't seem to want to follow tqdm imports. Do this to placate.
-        wrapped: Iterable[T] = tqdm(iterable, file=file, **kwargs)
+        wrapped: Iterable[T] = tqdm(listified, file=file, **kwargs)
         return wrapped
-    return iterable
+    return listified
