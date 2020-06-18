@@ -53,35 +53,6 @@ def _modify_file(rule_match: RuleMatch, fix: str) -> None:
     p.write_text(contents_after_fix_str)
 
 
-def _parse_regex_count_flag(sed_string: str) -> int:
-    """
-    Returns the number of times to do the replacment,
-    from left to right. Follows
-    https://www.gnu.org/software/sed/manual/html_node/The-_0022s_0022-Command.html
-    """
-    splitstr = sed_string.split("/")
-    count = 1
-    try:
-        flag = splitstr[3]
-        if flag == "g":  # Replace all occurrences
-            count = 0
-        elif flag.isnumeric():  # Replace N occurrences
-            count = int(flag)
-    except Exception:
-        count = 1  # If all else fails, replace 1
-    return count
-
-
-def _parse_regex_fix(sed_string: str) -> Tuple[str, str, int]:
-    """
-    Return the second and third elements of a sed-like string:
-    E.g., s/one/two/g returns (one, two)
-    """
-    splitstr = sed_string.split("/")  # Do it this way to satisfy mypy
-    count = _parse_regex_count_flag(sed_string)
-    return splitstr[1], splitstr[2], count
-
-
 def _regex_replace(
     rule_match: RuleMatch, from_str: str, to_str: str, count: int = 1
 ) -> None:
@@ -118,22 +89,35 @@ def apply_fixes(rule_matches_by_rule: Dict[Rule, List[RuleMatch]]) -> None:
     for _, rule_matches in rule_matches_by_rule.items():
         for rule_match in rule_matches:
             fix = rule_match.fix
+            fix_regex = rule_match.fix_regex
             filepath = rule_match.path
-            if fix and fix.startswith("s/"):  # Regex-style fix
-                try:
-                    from_str, to_str, count = _parse_regex_fix(fix)
-                    _regex_replace(rule_match, from_str, to_str, count)
-                    modified_files.add(filepath)
-                except Exception as e:
-                    raise SemgrepError(
-                        f"unable to use regex to modify file {filepath} with fix '{fix}': {e}"
-                    )
-            elif fix:  # Old style fix
+            if fix:
                 try:
                     _modify_file(rule_match, fix)
                     modified_files.add(filepath)
                 except Exception as e:
                     raise SemgrepError(f"unable to modify file {filepath}: {e}")
+            elif fix_regex:
+                regex = fix_regex.get("regex")
+                replacement = fix_regex.get("replacement")
+                count = fix_regex.get("count", 0)
+                if not regex or not replacement:
+                    raise SemgrepError(
+                        "'regex' and 'replacement' values required when using 'fix-regex'"
+                    )
+                try:
+                    count = int(count)
+                except ValueError:
+                    raise SemgrepError(
+                        "optional 'count' value must be an integer when using 'fix-regex'"
+                    )
+                try:
+                    _regex_replace(rule_match, regex, replacement, count)
+                    modified_files.add(filepath)
+                except Exception as e:
+                    raise SemgrepError(
+                        f"unable to use regex to modify file {filepath} with fix '{fix}': {e}"
+                    )
     num_modified = len(modified_files)
     print_msg(
         f"Successfully modified {num_modified} file{'s' if num_modified > 1 else ''}."

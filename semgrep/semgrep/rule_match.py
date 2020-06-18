@@ -22,12 +22,14 @@ class RuleMatch:
         metadata: Dict[str, Any],
         severity: str,
         fix: Optional[str],
+        fix_regex: Optional[Dict[str, Any]],
     ) -> None:
         self._id = id
         self._message = message
         self._metadata = metadata
         self._severity = severity
         self._fix = fix
+        self._fix_regex = fix_regex
 
         self._path = pattern_match.path
         self._start = pattern_match.start
@@ -58,6 +60,10 @@ class RuleMatch:
     @property
     def fix(self) -> Optional[str]:
         return self._fix
+
+    @property
+    def fix_regex(self) -> Optional[Dict[str, Any]]:
+        return self._fix_regex
 
     @property
     def message(self) -> str:
@@ -102,6 +108,8 @@ class RuleMatch:
         json_obj["extra"]["severity"] = self._severity
         if self._fix:
             json_obj["extra"]["fix"] = self._fix
+        if self._fix_regex:
+            json_obj["extra"]["fix_regex"] = self._fix_regex
         json_obj["start"] = self._start
         json_obj["end"] = self._end
         json_obj["extra"]["lines"] = "\n".join(self.lines).rstrip()

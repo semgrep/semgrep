@@ -11,4 +11,6 @@ rules:
   severity: WARNING
   languages: [java]
   pattern: new DefaultHttpClient(...);
-  fix: s/DefaultHttpClient\(/SystemDefaultHttpClient(/
+  fix-regex:
+    regex: 'DefaultHttpClient\('
+    replacement: 'SystemDefaultHttpClient('

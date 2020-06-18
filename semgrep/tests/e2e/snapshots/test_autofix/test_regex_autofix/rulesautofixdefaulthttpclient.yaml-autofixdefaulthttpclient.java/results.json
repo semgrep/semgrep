@@ -8,7 +8,10 @@
         "line": 15
       },
       "extra": {
-        "fix": "s/DefaultHttpClient\\(/SystemDefaultHttpClient(/",
+        "fix_regex": {
+          "regex": "DefaultHttpClient\\(",
+          "replacement": "SystemDefaultHttpClient("
+        },
         "lines": "\t\tHttpClient client = new DefaultHttpClient();",
         "message": "DefaultHttpClient is deprecated. Further, it does not support connections\nusing TLS1.2, which makes using DefaultHttpClient a security hazard.\nUse SystemDefaultHttpClient instead, which supports TLS1.2.\n",
         "metadata": {

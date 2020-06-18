@@ -8,7 +8,10 @@
         "line": 6
       },
       "extra": {
-        "fix": "s/(.*)\\)/\\1, timeout=30)/g",
+        "fix_regex": {
+          "regex": "(.*)\\)",
+          "replacement": "\\1, timeout=30)"
+        },
         "lines": "r = requests.get(url)",
         "message": "'requests' calls default to waiting until the connection is closed.\nThis means a 'requests' call without a timeout will hang the program\nif a response is never received. Consider setting a timeout for all\n'requests'.\n",
         "metadata": {},
@@ -28,7 +31,10 @@
         "line": 9
       },
       "extra": {
-        "fix": "s/(.*)\\)/\\1, timeout=30)/g",
+        "fix_regex": {
+          "regex": "(.*)\\)",
+          "replacement": "\\1, timeout=30)"
+        },
         "lines": "r = requests.post(url)",
         "message": "'requests' calls default to waiting until the connection is closed.\nThis means a 'requests' call without a timeout will hang the program\nif a response is never received. Consider setting a timeout for all\n'requests'.\n",
         "metadata": {},
@@ -48,7 +54,10 @@
         "line": 12
       },
       "extra": {
-        "fix": "s/(.*)\\)/\\1, timeout=30)/g",
+        "fix_regex": {
+          "regex": "(.*)\\)",
+          "replacement": "\\1, timeout=30)"
+        },
         "lines": "r = requests.request(\"GET\", url)",
         "message": "'requests' calls default to waiting until the connection is closed.\nThis means a 'requests' call without a timeout will hang the program\nif a response is never received. Consider setting a timeout for all\n'requests'.\n",
         "metadata": {},
@@ -68,7 +77,10 @@
         "line": 18
       },
       "extra": {
-        "fix": "s/(.*)\\)/\\1, timeout=30)/g",
+        "fix_regex": {
+          "regex": "(.*)\\)",
+          "replacement": "\\1, timeout=30)"
+        },
         "lines": "r = requests.request(\"GET\", return_url())",
         "message": "'requests' calls default to waiting until the connection is closed.\nThis means a 'requests' call without a timeout will hang the program\nif a response is never received. Consider setting a timeout for all\n'requests'.\n",
         "metadata": {},
@@ -88,7 +100,10 @@
         "line": 29
       },
       "extra": {
-        "fix": "s/(.*)\\)/\\1, timeout=30)/g",
+        "fix_regex": {
+          "regex": "(.*)\\)",
+          "replacement": "\\1, timeout=30)"
+        },
         "lines": "    r = post(url)",
         "message": "'requests' calls default to waiting until the connection is closed.\nThis means a 'requests' call without a timeout will hang the program\nif a response is never received. Consider setting a timeout for all\n'requests'.\n",
         "metadata": {},
