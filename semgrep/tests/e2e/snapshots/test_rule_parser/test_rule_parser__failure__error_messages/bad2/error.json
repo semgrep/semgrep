@@ -2,7 +2,7 @@
   "errors": [
     {
       "code": 4,
-      "help": "Only ['equivalences', 'fix', 'id', 'languages', 'message', 'metadata', 'paths', 'pattern', 'pattern-either', 'pattern-regex', 'patterns', 'severity'] are valid keys",
+      "help": "Only ['equivalences', 'fix', 'fix-regex', 'id', 'languages', 'message', 'metadata', 'paths', 'pattern', 'pattern-either', 'pattern-regex', 'patterns', 'severity'] are valid keys",
       "level": "error",
       "long_msg": "rules/syntax/bad2.yaml has an invalid top-level rule key: ['pattern-inside']",
       "short_msg": "extra top-level key",

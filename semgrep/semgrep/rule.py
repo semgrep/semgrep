@@ -275,6 +275,10 @@ class Rule:
         return self._raw.get("fix")
 
     @property
+    def fix_regex(self) -> Optional[Dict[str, Any]]:  # type: ignore
+        return self._raw.get("fix-regex")
+
+    @property
     def equivalences(self) -> List[Equivalence]:
         # Use 'i' to make equivalence id's unique
         return [

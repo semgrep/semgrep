@@ -228,6 +228,7 @@ def evaluate(
                 metadata=rule.metadata,
                 severity=rule.severity,
                 fix=fix,
+                fix_regex=rule.fix_regex,
             )
             output.append(rule_match)
 
