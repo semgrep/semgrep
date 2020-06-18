@@ -89,25 +89,17 @@ def cli() -> None:
         "--exclude",
         action="append",
         default=[],
-        help="Skip any file with this name; --exclude='*.py' will ignore foo.py as well as src/foo.py. Can add multiple times. Overrides includes.",
+        help="Skip any file or directory that matches this pattern; --exclude='*.py' will ignore"
+        " the following: foo.py, src/foo.py, foo.py/bar.sh. --exclude='tests' will ignore tests/foo.py"
+        " as well as a/b/tests/c/foo.py. Can add multiple times. Overrides includes.",
     )
     parser.add_argument(
         "--include",
         action="append",
         default=[],
-        help="Scan only files with this name, such as --include='*.jsx'. Can add multiple times.",
-    )
-    parser.add_argument(
-        "--exclude-dir",
-        action="append",
-        default=[],
-        help="Skip any directory with this name; --exclude-dir=doc will ignore doc/ as well as src/doc. Can add multiple times. Overrides includes.",
-    )
-    parser.add_argument(
-        "--include-dir",
-        action="append",
-        default=[],
-        help="Scan only directories with this name; --include-dir=doc will include doc/ as well as src/doc. Can add multiple times.",
+        help="Scan only files or directories that match this pattern; --include='*.jsx' will scan"
+        " the following: foo.jsx, src/foo.jsx, foo.jsx/bar.sh. --include='src' will scan src/foo.py"
+        " as well as a/b/src/c/foo.py. Can add multiple times.",
     )
     parser.add_argument(
         "--no-git-ignore",
@@ -310,9 +302,7 @@ def cli() -> None:
                 no_rewrite_rule_ids=args.no_rewrite_rule_ids,
                 jobs=args.jobs,
                 include=args.include,
-                include_dir=args.include_dir,
                 exclude=args.exclude,
-                exclude_dir=args.exclude_dir,
                 strict=args.strict,
                 autofix=args.autofix,
                 disable_nosem=args.disable_nosem,
