@@ -13,6 +13,7 @@
     pfff-h_program-lang
     pfff-lang_python pfff-lang_python-analyze
     pfff-lang_js pfff-lang_js-analyze
+    pfff-lang_json
     pfff-lang_cpp pfff-lang_cpp-analyze
     pfff-lang_c pfff-lang_c-analyze
     pfff-lang_ml pfff-lang_ml-analyze
