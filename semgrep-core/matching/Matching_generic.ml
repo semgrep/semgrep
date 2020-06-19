@@ -111,8 +111,7 @@ let str_of_any any =
     { Meta_parse_info.default_dumper_precision with Meta_parse_info.
       full_info = true };
 
-  let v = Meta_AST.vof_any any in
-  let s = OCaml.string_of_v v in
+  let s = AST_generic.show_any any in
   s
 (*e: function [[Matching_generic.str_of_any]] *)
 

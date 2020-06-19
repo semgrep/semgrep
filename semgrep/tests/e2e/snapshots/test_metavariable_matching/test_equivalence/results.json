@@ -4,7 +4,7 @@
     {
       "check_id": "rules.open-from-request",
       "end": {
-        "col": 14,
+        "col": 15,
         "line": 4
       },
       "extra": {

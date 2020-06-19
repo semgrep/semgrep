@@ -4,7 +4,7 @@
     {
       "check_id": "rules.test-nosem",
       "end": {
-        "col": 20,
+        "col": 22,
         "line": 3
       },
       "extra": {
@@ -23,7 +23,7 @@
     {
       "check_id": "rules.test-nosem",
       "end": {
-        "col": 17,
+        "col": 19,
         "line": 5
       },
       "extra": {
@@ -42,11 +42,11 @@
     {
       "check_id": "rules.test-nosem",
       "end": {
-        "col": 17,
-        "line": 6
+        "col": 2,
+        "line": 7
       },
       "extra": {
-        "lines": "test_nosem_func(\n\n    invalid_line // nosem: rules.test-nosem",
+        "lines": "test_nosem_func(\n\n    invalid_line // nosem: rules.test-nosem\n\n)",
         "message": "test-nosem-message",
         "metadata": {},
         "metavars": {},
@@ -61,7 +61,7 @@
     {
       "check_id": "rules.test-nosem",
       "end": {
-        "col": 16,
+        "col": 18,
         "line": 9
       },
       "extra": {
@@ -80,7 +80,7 @@
     {
       "check_id": "rules.test-nosem",
       "end": {
-        "col": 16,
+        "col": 18,
         "line": 2
       },
       "extra": {
@@ -99,7 +99,7 @@
     {
       "check_id": "rules.test-nosem-java",
       "end": {
-        "col": 24,
+        "col": 26,
         "line": 4
       },
       "extra": {
