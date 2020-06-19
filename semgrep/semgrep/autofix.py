@@ -29,17 +29,12 @@ def _get_match_context(rule_match: RuleMatch) -> Tuple[int, int, int, int]:
     return start_line, start_col, end_line, end_col
 
 
-def _modify_file(rule_match: RuleMatch, fix: str) -> None:
-    p = Path(rule_match.path)
+def _basic_fix(rule_match: RuleMatch, fix: str) -> str:
+    p = rule_match.path
     lines = _get_lines(p)
 
     # get the start and end points
-    start_obj = rule_match.start
-    start_line = start_obj.get("line", 1) - 1  # start_line is 1 indexed
-    start_col = start_obj.get("col", 1) - 1  # start_col is 1 indexed
-    end_obj = rule_match.end
-    end_line = end_obj.get("line", 1) - 1  # end_line is 1 indexed
-    end_col = end_obj.get("col", 1) - 1  # end_line is 1 indexed
+    start_line, start_col, end_line, end_col = _get_match_context(rule_match)
 
     # break into before, to modify, after
     before_lines = lines[:start_line]
@@ -49,19 +44,18 @@ def _modify_file(rule_match: RuleMatch, fix: str) -> None:
     after_lines = lines[end_line + 1 :]  # next line after end of match
     contents_after_fix = before_lines + modified_lines + after_lines
 
-    contents_after_fix_str = SPLIT_CHAR.join(contents_after_fix)
-    p.write_text(contents_after_fix_str)
+    return SPLIT_CHAR.join(contents_after_fix)
 
 
 def _regex_replace(
     rule_match: RuleMatch, from_str: str, to_str: str, count: int = 1
-) -> None:
+) -> str:
     """
     Use a regular expression to autofix.
     Replaces from_str to to_str, starting from the left,
     exactly `count` times.
     """
-    path = Path(rule_match.path)
+    path = rule_match.path
     lines = _get_lines(path)
 
     start_line, _, end_line, _ = _get_match_context(rule_match)
@@ -76,10 +70,16 @@ def _regex_replace(
     modified_context = fix.splitlines()
 
     modified_contents = before_lines + modified_context + after_lines
-    path.write_text(SPLIT_CHAR.join(modified_contents))
+    return SPLIT_CHAR.join(modified_contents)
 
 
-def apply_fixes(rule_matches_by_rule: Dict[Rule, List[RuleMatch]]) -> None:
+def _write_contents(path: Path, contents: str) -> None:
+    path.write_text(contents)
+
+
+def apply_fixes(
+    rule_matches_by_rule: Dict[Rule, List[RuleMatch]], dryrun: bool = False
+) -> None:
     """
         Modify files in place for all files with findings from rules with an
         autofix configuration
@@ -93,8 +93,10 @@ def apply_fixes(rule_matches_by_rule: Dict[Rule, List[RuleMatch]]) -> None:
             filepath = rule_match.path
             if fix:
                 try:
-                    _modify_file(rule_match, fix)
-                    modified_files.add(filepath)
+                    modified_contents = _basic_fix(rule_match, fix)
+                    if not dryrun:
+                        _write_contents(Path(rule_match.path), modified_contents)
+                        modified_files.add(filepath)
                 except Exception as e:
                     raise SemgrepError(f"unable to modify file {filepath}: {e}")
             elif fix_regex:
@@ -112,8 +114,12 @@ def apply_fixes(rule_matches_by_rule: Dict[Rule, List[RuleMatch]]) -> None:
                         "optional 'count' value must be an integer when using 'fix-regex'"
                     )
                 try:
-                    _regex_replace(rule_match, regex, replacement, count)
-                    modified_files.add(filepath)
+                    modified_contents = _regex_replace(
+                        rule_match, regex, replacement, count
+                    )
+                    if not dryrun:
+                        _write_contents(rule_match.path, modified_contents)
+                        modified_files.add(filepath)
                 except Exception as e:
                     raise SemgrepError(
                         f"unable to use regex to modify file {filepath} with fix '{fix}': {e}"

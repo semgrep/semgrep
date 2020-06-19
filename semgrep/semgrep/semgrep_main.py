@@ -298,6 +298,7 @@ def main(
     exclude_dir: List[str],
     strict: bool,
     autofix: bool,
+    dryrun: bool,
     disable_nosem: bool,
     dangerously_allow_arbitrary_code_execution_from_rules: bool,
     no_git_ignore: bool,
@@ -380,4 +381,4 @@ def main(
             )
 
     if autofix:
-        apply_fixes(rule_matches_by_rule)
+        apply_fixes(rule_matches_by_rule, dryrun)
