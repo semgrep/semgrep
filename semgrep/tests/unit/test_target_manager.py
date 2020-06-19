@@ -89,6 +89,28 @@ def test_filter_exclude():
     assert len(TargetManager.filter_excludes(all_files, ["foo/*.go"])) == 17
 
 
+def test_delete_git(tmp_path, monkeypatch):
+    """
+        Check that deleted files are not included in expanded targets
+    """
+    foo = tmp_path / "foo.py"
+    bar = tmp_path / "bar.py"
+    foo.touch()
+    bar.touch()
+
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init"])
+    subprocess.run(["git", "add", foo])
+    subprocess.run(["git", "commit", "-m", "first commit"])
+
+    foo.unlink()
+    subprocess.run(["git", "status"])
+
+    assert cmp_path_sets(
+        TargetManager.expand_targets([Path(".")], "python", True), {bar}
+    )
+
+
 def test_expand_targets_git(tmp_path, monkeypatch):
     """
         Test TargetManager with visible_to_git_only flag on in a git repository
