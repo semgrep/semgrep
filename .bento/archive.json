@@ -1,6 +1,14 @@
 {
   "bandit": {
     "violations": {
+      "c46dcb8acc122f2aa992b69fc0c9d1f8": {
+        "tool_id": "bandit",
+        "check_id": "exec-used",
+        "path": "semgrep/semgrep/evaluation.py",
+        "message": "Use of exec detected.",
+        "severity": 1,
+        "syntactic_context": "exec(f\"global output; {to_eval}\")"
+      },
       "3d0e53b239ed4229f9a0cc161e437fc3": {
         "tool_id": "bandit",
         "check_id": "start-process-with-a-shell",
@@ -92,13 +100,7 @@
   "r2c.flask": {
     "violations": {}
   },
-  "r2c.registry.latest": {
-    "violations": {}
-  },
   "r2c.requests": {
-    "violations": {}
-  },
-  "semgrep": {
     "violations": {}
   },
   "shellcheck": {

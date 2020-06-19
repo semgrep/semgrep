@@ -150,7 +150,12 @@ def _where_python_statement_matches(
     # be careful my friend
     vars = {k: v["abstract_content"] for k, v in metavars.items()}
     try:
-        exec(f"global output; output = {where_expression}")
+        cleaned_where_expression = where_expression.strip()
+        lines = cleaned_where_expression.split("\n")
+        new_last_line = f"output = {lines[-1]}"
+        lines[-1] = new_last_line
+        to_eval = "\n".join(lines)
+        exec(f"global output; {to_eval}")
     except Exception as ex:
         print_error(
             f"error evaluating a where-python expression: `{where_expression}`: {ex}"
