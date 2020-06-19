@@ -1,0 +1,9 @@
+[31merror[39m: missing value
+  --> rules/syntax/bad10.yaml:8
+[94m7 | [39m    # This key is missing a value
+[94m8 | [39m    pattern-either:
+[94m  | [39m    [31m^^^^^^^^^^^^^^[39m
+[94m9 | [39m    languages: [python]
+= [36m[1mhelp[39m[0m: Did you forget to include a value for pattern-either?
+[31mIn semgrep YAML configuration, all keys must have a corresponding value[39m
+

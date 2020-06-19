@@ -19,6 +19,7 @@ from ruamel.yaml import YAML
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 
 # Do not construct directly, use `SpanBuilder().add_source`
+
 SourceFileHash = NewType("SourceFileHash", str)
 
 
@@ -185,10 +186,16 @@ class YamlTree(Generic[T]):
             return {str(k.unroll()): v.unroll() for k, v in self.value.items()}
         elif isinstance(self.value, YamlTree):
             return self.value.unroll()
-        elif isinstance(self.value, str) or isinstance(self.value, int):
+        elif (
+            isinstance(self.value, str)
+            or isinstance(self.value, int)
+            or self.value is None
+        ):
             return self.value
         else:
-            raise ValueError("Invalid YAML tree structure")
+            raise ValueError(
+                f"Invalid YAML tree structure (expected a list, dict, tree, int or str, found: {type(self.value).__name__}: {self.value}"
+            )
 
     @classmethod
     def wrap(cls, value: YamlValue, span: Span) -> "YamlTree":  # type: ignore
@@ -224,9 +231,22 @@ class YamlMap:
 
     def __init__(self, internal: Dict[YamlTree[str], YamlTree]):
         self._internal = internal
+        for k, v in self._internal.items():
+            if v.value is None:
+                from semgrep.error import InvalidRuleSchemaError
+
+                raise InvalidRuleSchemaError(
+                    short_msg="missing value",
+                    long_msg="In semgrep YAML configuration, all keys must have a corresponding value",
+                    spans=[k.span.with_context(before=1, after=1)],
+                    help=f"Did you forget to include a value for {k.unroll()}?",
+                )
 
     def __getitem__(self, key: str) -> YamlTree:
-        return next(v for k, v in self._internal.items() if k.value == key)
+        try:
+            return next(v for k, v in self._internal.items() if k.value == key)
+        except StopIteration:
+            raise KeyError(key)
 
     def __setitem__(self, key: YamlTree[str], value: YamlTree) -> None:
         self._internal[key] = value
@@ -236,6 +256,13 @@ class YamlMap:
 
     def key_tree(self, key: str) -> YamlTree[str]:
         return next(k for k, v in self._internal.items() if k.value == key)
+
+    def __contains__(self, item: str) -> bool:
+        try:
+            _ = self[item]
+            return True
+        except KeyError:
+            return False
 
     def get(self, key: str) -> Optional[YamlTree]:
         match = [v for k, v in self._internal.items() if k.value == key]

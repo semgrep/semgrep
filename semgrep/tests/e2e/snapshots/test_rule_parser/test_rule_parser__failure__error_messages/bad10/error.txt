@@ -1,0 +1,9 @@
+error: missing value
+  --> rules/syntax/bad10.yaml:8
+7 |     # This key is missing a value
+8 |     pattern-either:
+  |     ^^^^^^^^^^^^^^
+9 |     languages: [python]
+= help: Did you forget to include a value for pattern-either?
+In semgrep YAML configuration, all keys must have a corresponding value
+

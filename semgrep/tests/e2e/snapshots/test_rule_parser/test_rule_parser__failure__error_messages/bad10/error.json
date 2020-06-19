@@ -1,0 +1,35 @@
+{
+  "errors": [
+    {
+      "code": 4,
+      "help": "Did you forget to include a value for pattern-either?",
+      "level": "error",
+      "long_msg": "In semgrep YAML configuration, all keys must have a corresponding value",
+      "short_msg": "missing value",
+      "spans": [
+        {
+          "context_end": {
+            "col": 0,
+            "line": 9
+          },
+          "context_start": {
+            "col": 0,
+            "line": 7
+          },
+          "end": {
+            "col": 19,
+            "line": 8
+          },
+          "file": "rules/syntax/bad10.yaml",
+          "source_hash": "9bf69aa52b0a57d7f67b6200f2434646c150331285aa0e3903c2a92d4dc9bbb3",
+          "start": {
+            "col": 5,
+            "line": 8
+          }
+        }
+      ],
+      "type": "InvalidRuleSchemaError"
+    }
+  ],
+  "results": []
+}
