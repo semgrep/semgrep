@@ -33,69 +33,58 @@ MISSING_RULE_ID = "no-rule-id"
 
 
 def validate_single_rule(
-    config_id: str, rule_yaml: YamlTree[YamlMap], output_handler: OutputHandler,
+    config_id: str, rule_yaml: YamlTree[YamlMap],
 ) -> Optional[Rule]:
     """
         Validate that a rule dictionary contains all necessary keys
-        and can be correctly parsed
+        and can be correctly parsed.
+
+        Returns Rule object if valid otherwise raises InvalidRuleSchemaError
     """
     rule: YamlMap = rule_yaml.value
 
     rule_keys = set({k.value for k in rule.keys()})
     if not rule_keys.issuperset(YAML_MUST_HAVE_KEYS):
         missing_keys = YAML_MUST_HAVE_KEYS - rule_keys
-        # TODO(https://github.com/returntocorp/semgrep/issues/746): return the error messages instead of
-        #  immediately printing them so we can emit nice JSON errors to semgrep.live
-        output_handler.handle_semgrep_error(
-            InvalidRuleSchemaError(
-                short_msg="missing keys",
-                long_msg=f"{config_id} is missing required keys {missing_keys}",
-                level="error",
-                spans=[rule_yaml.span.truncate(lines=5)],
-            )
+        raise InvalidRuleSchemaError(
+            short_msg="missing keys",
+            long_msg=f"{config_id} is missing required keys {missing_keys}",
+            level="error",
+            spans=[rule_yaml.span.truncate(lines=5)],
         )
-        return None
+
     if not rule_keys.issubset(YAML_ALL_VALID_RULE_KEYS):
         extra_keys: Set[str] = rule_keys - YAML_ALL_VALID_RULE_KEYS
         extra_key_spans = sorted([rule.key_tree(k) for k in extra_keys])
-
-        output_handler.handle_semgrep_error(
-            InvalidRuleSchemaError(
-                short_msg="extra top-level key",
-                long_msg=f"{config_id} has an invalid top-level rule key: {sorted([k for k in extra_keys])}",
-                help=f"Only {sorted(YAML_ALL_VALID_RULE_KEYS)} are valid keys",
-                spans=[k.span.with_context(before=2, after=2) for k in extra_key_spans],
-                level="error",
-            )
+        raise InvalidRuleSchemaError(
+            short_msg="extra top-level key",
+            long_msg=f"{config_id} has an invalid top-level rule key: {sorted([k for k in extra_keys])}",
+            help=f"Only {sorted(YAML_ALL_VALID_RULE_KEYS)} are valid keys",
+            spans=[k.span.with_context(before=2, after=2) for k in extra_key_spans],
+            level="error",
         )
-        return None
-    try:
-        return Rule.from_yamltree(rule_yaml)
-    except InvalidRuleSchemaError as ex:
-        output_handler.handle_semgrep_error(ex)
-        return None
+
+    # Raises InvalidRuleSchemaError if fails to parse
+    return Rule.from_yamltree(rule_yaml)
 
 
 def validate_configs(
-    configs: Dict[str, Optional[YamlTree]], output_handler: OutputHandler
-) -> Tuple[Dict[str, List[Rule]], Dict[str, Any]]:
+    configs: Dict[str, YamlTree],
+) -> Tuple[Dict[str, List[Rule]], List[SemgrepError]]:
     """
-        Take configs and separate into valid and invalid ones
+        Take configs and separate into valid and list of errors parsing the invalid ones
     """
-    errors: Dict[str, Any] = {}
+    errors: List[SemgrepError] = []
     valid: Dict[str, Any] = {}
     for config_id, config_yaml_tree in configs.items():
-        if not config_yaml_tree:
-            errors[config_id] = config_yaml_tree
-            continue
         config = config_yaml_tree.value
         if not isinstance(config, YamlMap):
-            print_error(f"{config_id} was not a mapping")
-            errors[config_id] = config_yaml_tree.unroll()
+            errors.append(SemgrepError(f"{config_id} was not a mapping"))
             continue
+
         rules = config.get(RULES_KEY)
         if rules is None:
-            output_handler.handle_semgrep_error(
+            errors.append(
                 InvalidRuleSchemaError(
                     short_msg="missing keys",
                     long_msg=f"{config_id} is missing `{RULES_KEY}` as top-level key",
@@ -103,24 +92,17 @@ def validate_configs(
                     spans=[config_yaml_tree.span.truncate(lines=5)],
                 )
             )
-            errors[config_id] = config_yaml_tree.unroll()
             continue
         valid_rules = []
-        invalid_rules = []
         for rule_dict in rules.value:
-            rule = validate_single_rule(
-                config_id, rule_dict, output_handler=output_handler
-            )
-            if rule:
-                valid_rules.append(rule)
-            else:
-                invalid_rules.append(rule_dict)
 
-        if invalid_rules:
-            errors[config_id] = {
-                **config_yaml_tree.unroll_dict(),
-                "rules": invalid_rules,
-            }
+            try:
+                rule = validate_single_rule(config_id, rule_dict)
+            except (InvalidRuleSchemaError, InvalidPatternNameError) as ex:
+                errors.append(ex)
+            else:
+                valid_rules.append(rule)
+
         if valid_rules:
             valid[config_id] = valid_rules
     return valid, errors
@@ -157,8 +139,8 @@ def rename_rule_ids(valid_configs: Dict[str, List[Rule]]) -> Dict[str, List[Rule
 
 
 def get_config(
-    pattern: str, lang: str, config: str, output_handler: OutputHandler
-) -> Tuple[Dict[str, List[Rule]], Dict[str, Any]]:
+    pattern: str, lang: str, config: str
+) -> Tuple[Dict[str, List[Rule]], List[SemgrepError]]:
     # let's check for a pattern
     if pattern:
         # and a language
@@ -169,7 +151,10 @@ def get_config(
         configs = semgrep.config_resolver.manual_config(pattern, lang)
     else:
         # else let's get a config. A config is a dict from config_id -> config. Config Id is not well defined at this point.
-        configs = semgrep.config_resolver.resolve_config(config)
+        try:
+            configs = semgrep.config_resolver.resolve_config(config)
+        except SemgrepError as e:
+            return {}, [e]
 
     # if we can't find a config, use default r2c rules
     if not configs:
@@ -177,13 +162,8 @@ def get_config(
             f"No config given and {DEFAULT_CONFIG_FILE} was not found. Try running with --help to debug or if you want to download a default config, try running with --config r2c"
         )
 
-    # let's split our configs into valid and invalid configs.
-    # It's possible that a config_id exists in both because we check valid rules and invalid rules
-    # instead of just hard failing for that config if mal-formed
-    valid_configs, invalid_configs = validate_configs(
-        configs, output_handler=output_handler
-    )
-    return valid_configs, invalid_configs
+    valid_configs, error = validate_configs(configs)
+    return valid_configs, error
 
 
 def flatten_configs(transformed_configs: Dict[str, List[Rule]]) -> List[Rule]:
@@ -276,11 +256,14 @@ def main(
     dangerously_allow_arbitrary_code_execution_from_rules: bool,
     no_git_ignore: bool,
 ) -> None:
-    valid_configs, invalid_configs = get_config(pattern, lang, config, output_handler)
+    valid_configs, config_errors = get_config(pattern, lang, config)
 
-    if invalid_configs and strict:
+    for e in config_errors:
+        output_handler.handle_semgrep_error(e)
+
+    if config_errors and strict:
         raise SemgrepError(
-            f"run with --strict and there were {len(invalid_configs)} errors loading configs",
+            f"run with --strict and there were {len(config_errors)} errors loading configs",
             code=MISSING_CONFIG_EXIT_CODE,
         )
 
@@ -297,8 +280,8 @@ def main(
             list(valid_configs.keys())[0] if len(valid_configs) == 1 else ""
         )
         invalid_msg = (
-            f"({len(invalid_configs)} config files were invalid)"
-            if len(invalid_configs)
+            f"({len(config_errors)} config files were invalid)"
+            if len(config_errors)
             else ""
         )
         debug_print(
@@ -309,7 +292,7 @@ def main(
 
         if len(valid_configs) == 0:
             raise SemgrepError(
-                f"no valid configuration file found ({len(invalid_configs)} configs were invalid)",
+                f"no valid configuration file found ({len(config_errors)} configs were invalid)",
                 code=MISSING_CONFIG_EXIT_CODE,
             )
 

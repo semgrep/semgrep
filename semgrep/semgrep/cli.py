@@ -292,7 +292,7 @@ def cli() -> None:
             dump_parsed_ast(args.json, args.lang, args.pattern, args.target)
         elif args.validate:
             _, invalid_configs = semgrep.semgrep_main.get_config(
-                args.pattern, args.lang, args.config, output_handler=output_handler
+                args.pattern, args.lang, args.config
             )
             if invalid_configs:
                 raise SemgrepError(

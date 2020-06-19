@@ -16,11 +16,11 @@ from semgrep.constants import RULES_KEY
 from semgrep.constants import SEMGREP_USER_AGENT
 from semgrep.constants import YML_EXTENSIONS
 from semgrep.error import SemgrepError
+from semgrep.error import UNPARSEABLE_YAML_EXIT_CODE
 from semgrep.rule_lang import parse_yaml_preserve_spans
 from semgrep.rule_lang import YamlTree
 from semgrep.util import debug_print
 from semgrep.util import is_url
-from semgrep.util import print_error
 from semgrep.util import print_msg
 
 IN_DOCKER = "SEMGREP_IN_DOCKER" in os.environ
@@ -37,7 +37,7 @@ RULES_REGISTRY = {
 DEFAULT_REGISTRY_KEY = "r2c"
 
 
-def manual_config(pattern: str, lang: str) -> Dict[str, Optional[YamlTree]]:
+def manual_config(pattern: str, lang: str) -> Dict[str, YamlTree]:
     # TODO remove when using sgrep -e ... -l ... instead of this hacked config
     pattern_tree = parse_yaml_preserve_spans(pattern, filename=None)
     error_span = parse_yaml_preserve_spans(
@@ -90,37 +90,38 @@ def indent(msg: str) -> str:
 
 def parse_config_at_path(
     loc: Path, base_path: Optional[Path] = None
-) -> Dict[str, Optional[YamlTree]]:
+) -> Dict[str, YamlTree]:
+    """
+        Assumes file at loc exists
+    """
     config_id = str(loc)
     if base_path:
         config_id = str(loc).replace(str(base_path), "")
-    try:
-        with loc.open() as f:
-            return parse_config_string(config_id, f.read(), str(loc))
-    except FileNotFoundError:
-        print_error(f"YAML file at {loc} not found")
-        return {str(loc): None}
+
+    with loc.open() as f:
+        return parse_config_string(config_id, f.read(), str(loc))
 
 
 def parse_config_string(
     config_id: str, contents: str, filename: Optional[str]
-) -> Dict[str, Optional[YamlTree]]:
+) -> Dict[str, YamlTree]:
     try:
         data = parse_yaml_preserve_spans(contents, filename)
         return {config_id: data}
     except YAMLError as se:
-        print_error(f"Invalid yaml file {config_id}:\n{indent(str(se))}")
-        return {config_id: None}
+        raise SemgrepError(
+            f"Invalid yaml file {config_id}:\n{indent(str(se))}",
+            code=UNPARSEABLE_YAML_EXIT_CODE,
+        )
 
 
-def parse_config_folder(
-    loc: Path, relative: bool = False
-) -> Dict[str, Optional[YamlTree]]:
+def parse_config_folder(loc: Path, relative: bool = False) -> Dict[str, YamlTree]:
     configs = {}
     for l in loc.rglob("*"):
         # Allow manually specified paths with ".", but don't auto-expand them
         if not _is_hidden_config(l.relative_to(loc)) and l.suffix in YML_EXTENSIONS:
-            configs.update(parse_config_at_path(l, loc if relative else None))
+            if l.is_file():
+                configs.update(parse_config_at_path(l, loc if relative else None))
     return configs
 
 
@@ -138,9 +139,7 @@ def _is_hidden_config(loc: Path) -> bool:
     )
 
 
-def load_config_from_local_path(
-    location: Optional[str] = None,
-) -> Dict[str, Optional[YamlTree]]:
+def load_config_from_local_path(location: Optional[str] = None,) -> Dict[str, YamlTree]:
     """
         Return config file(s) as dictionary object
     """
@@ -188,7 +187,7 @@ def nice_semgrep_url(url: str) -> str:
     return url
 
 
-def download_config(config_url: str) -> Dict[str, Optional[YamlTree]]:
+def download_config(config_url: str) -> Dict[str, YamlTree]:
     import requests  # here for faster startup times
 
     DOWNLOADING_MESSAGE = f"downloading config..."
@@ -223,11 +222,12 @@ def download_config(config_url: str) -> Dict[str, Optional[YamlTree]]:
                 f"bad status code: {r.status_code} returned by config url: {config_url}"
             )
     except Exception as e:
-        print_error(str(e))
-    return {config_url: None}
+        raise SemgrepError(f"Failed to download config from {config_url}: {str(e)}")
+
+    return None
 
 
-def resolve_config(config_str: Optional[str]) -> Dict[str, Optional[YamlTree]]:
+def resolve_config(config_str: Optional[str]) -> Dict[str, YamlTree]:
     """ resolves if config arg is a registry entry, a url, or a file, folder, or loads from defaults if None"""
     start_t = time.time()
     if config_str is None:
