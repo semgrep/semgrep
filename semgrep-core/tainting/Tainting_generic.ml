@@ -38,7 +38,7 @@ module DataflowY = Dataflow.Make (struct
   type node = F2.node
   type edge = F2.edge
   type flow = (node, edge) Ograph_extended.ograph_mutable
-  let short_string_of_node n = Meta_IL.short_string_of_node_kind n.F2.n
+  let short_string_of_node n = Display_IL.short_string_of_node_kind n.F2.n
 end)
 
 (*s: function [[Tainting_generic.match_pat_instr]] *)

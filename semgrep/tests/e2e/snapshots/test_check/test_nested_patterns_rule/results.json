@@ -4,7 +4,7 @@
     {
       "check_id": "rules.test",
       "end": {
-        "col": 34,
+        "col": 35,
         "line": 2
       },
       "extra": {
@@ -23,7 +23,7 @@
     {
       "check_id": "rules.test",
       "end": {
-        "col": 34,
+        "col": 35,
         "line": 3
       },
       "extra": {

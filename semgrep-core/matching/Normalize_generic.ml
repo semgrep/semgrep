@@ -80,7 +80,7 @@ let rec eval x =
   | Id (_, { id_const_literal = {contents = Some x}; _}) -> Some x
 
   | Call(IdSpecial((ArithOp(Plus | Concat) | ConcatString _), _), args)->
-    let literals = args |> Common.map_filter (fun (arg) ->
+    let literals = args |> unbracket |> Common.map_filter (fun (arg) ->
       match arg with
         | Arg e -> eval e
         | _ -> None
@@ -91,7 +91,8 @@ let rec eval x =
         | _ -> None
     ) in
     let concated = String.concat "" strs in
-    let all_args_are_string = List.length strs == List.length args in
+    let all_args_are_string = List.length strs ==
+                              List.length (unbracket args) in
     (match List.nth_opt literals 0 with
       | Some(String(_s1, t1)) when all_args_are_string -> Some(String(concated, t1))
       | _ -> None

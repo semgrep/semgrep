@@ -459,7 +459,7 @@ and m_expr a b =
   | A.Call(A.IdSpecial(A.ConcatString akind, _a1), a2),
     B.Call(B.IdSpecial(B.ConcatString bkind, _b1), b2) ->
     m_concat_string_kind akind bkind >>= (fun () ->
-    m_arguments_concat a2 b2
+    m_bracket m_arguments_concat a2 b2
     )
   (*e: [[Generic_vs_generic.m_expr()]] interpolated strings case *)
   (* The pattern '$X = 1 + 2 + ...' is parsed as '$X = (1 + 2) + ...', but
@@ -471,9 +471,9 @@ and m_expr a b =
    *)
 
   | A.Call(A.IdSpecial(A.ArithOp aop, _toka),
-      [A.Arg a1;A.Arg(A.Ellipsis _tdots)]),
+      (_, [A.Arg a1;A.Arg(A.Ellipsis _tdots)], _)),
     B.Call(B.IdSpecial(B.ArithOp bop, _tokb),
-      [B.Arg b1; B.Arg _b2]) ->
+      (_, [B.Arg b1; B.Arg _b2], _)) ->
      m_arithmetic_operator aop bop >>= (fun () ->
        m_expr a1 b1 >!> (fun () ->
          (* try again deeper on b1 *)
@@ -957,7 +957,7 @@ and m_body a b =
 (*s: function [[Generic_vs_generic.m_arguments]] *)
 and m_arguments a b =
   match a, b with
-  (a, b) -> (m_list__m_argument) a b
+  (a, b) -> m_bracket (m_list__m_argument) a b
 (*e: function [[Generic_vs_generic.m_arguments]] *)
 
 (* less: factorize in m_list_and_dots? but also has unordered for kwd args *)
@@ -1242,7 +1242,7 @@ and m_list__m_attribute (xsa: A.attribute list) (xsb: A.attribute list) =
               m_ident ida idb >>= (fun () ->
               (* less: should use m_ident_and_id_info_add_in_env_Expr? *)
               m_id_info idinfoa idinfob >>= (fun () ->
-              m_list__m_argument argsa argsb >>= (fun () ->
+              m_bracket m_list__m_argument argsa argsb >>= (fun () ->
               m_list__m_attribute xsa (before @ after)
               )))
         | _ -> raise Impossible
@@ -1288,7 +1288,7 @@ and m_attribute a b =
     m_ident a1 b1 >>= (fun () ->
     (* less: should use m_ident_and_id_info_add_in_env_Expr? *)
     m_id_info ida idb >>= (fun () ->
-    (m_list__m_argument) a2 b2
+    m_bracket m_list__m_argument a2 b2
     ))
   | A.OtherAttribute(a1, a2), B.OtherAttribute(b1, b2) ->
     m_other_attribute_operator a1 b1 >>= (fun () ->
@@ -1478,7 +1478,7 @@ and m_stmt a b =
   (*x: [[Generic_vs_generic.m_stmt()]] deep matching cases *)
   (* TODO: ... should also allow a subset of stmts *)
   | A.Block(a1), B.Block(b1) ->
-    m_stmts_deep ~less_is_ok:false a1 b1
+    m_bracket (m_stmts_deep ~less_is_ok:false) a1 b1
   (*e: [[Generic_vs_generic.m_stmt()]] deep matching cases *)
   (*s: [[Generic_vs_generic.m_stmt()]] builtin equivalences cases *)
   (* equivalence: vardef ==> assign, and go deep *)
