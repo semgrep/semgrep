@@ -93,9 +93,9 @@ Semgrep is optimized for:
 
 ### Language Support
 
-| **Python** | **JavaScript** | **Go &nbsp; &nbsp; &nbsp;** | **Java &nbsp;** | **C &nbsp; &nbsp; &nbsp; &nbsp;** | **Ruby** | **TypeScript** | **PHP &nbsp; &nbsp;** |
-|:-----------|:---------------|:----------------------------|:----------------|:----------------------------------|:---------|:---------------|:----------------------|
-| ✅          | ✅              | ✅                           | ✅               | ✅                                 | 🚧 |  Coming...      | Coming...             |
+| **Python** | **JavaScript** | **Go &nbsp; &nbsp; &nbsp;** | **Java &nbsp;** | **C &nbsp; &nbsp; &nbsp; &nbsp;** | **Ruby** | **OCaml** | **TypeScript** | **PHP &nbsp; &nbsp;** |
+|:-----------|:---------------|:----------------------------|:----------------|:----------------------------------|:---------|:----------|:---------------|:----------------------|
+| ✅          | ✅              | ✅                           | ✅               | ✅                            | 🚧       |🚧        |  Coming...      | Coming...             |
 
 Missing support for a language? Let us know by filing a ticket, joining our Slack, or emailing [support@r2c.dev](mailto:support@rc2.dev?subject=Language%20Support:).
 
