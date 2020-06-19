@@ -153,7 +153,8 @@ patterns:
 - pattern: jinja2.Environment(...)
 ```
 
-🚧🚧 Coming soon: semgrep.live link 🚧🚧
+The full version of this rule, which filters out additional cases, looks like this: https://semgrep.live/WADz.
+
 
 This can be generalized with the following approach:
 
