@@ -188,11 +188,14 @@ It can also be used as a standalone, top-level operator:
 ```yaml
 rules:
   - id: legacy-eval-search
-    pattern-regex: "eval\("
+    pattern-regex: 'eval\('
     message: "insecure code execution"
     languages: [javascript]
     severity: ERROR
 ```
+
+*Note that single (`'`) and double (`"`) quotes [behave differently](https://docs.octoprint.org/en/master/configuration/yaml.html#scalars)
+in YAML syntax. Single quotes are typically preferred when using backslashes (`\`) with `pattern-regex`.*
 
 ### `pattern-not`
 
