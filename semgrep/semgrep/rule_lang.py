@@ -229,8 +229,7 @@ class YamlMap:
     """
 
     def __init__(self, internal: Dict[YamlTree[str], YamlTree]):
-        self._internal = internal
-        for k, v in self._internal.items():
+        for k, v in internal.items():
             if v.value is None:
                 from semgrep.error import InvalidRuleSchemaError
 
@@ -240,6 +239,8 @@ class YamlMap:
                     spans=[k.span.with_context(before=1, after=1)],
                     help=f"Did you forget to include a value for {k.unroll()}?",
                 )
+
+        self._internal = internal
 
     def __getitem__(self, key: str) -> YamlTree:
         try:
