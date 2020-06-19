@@ -13,6 +13,7 @@ JAVA_EXTENSIONS = ["java"]
 C_EXTENSIONS = ["c"]
 GO_EXTENSIONS = ["go"]
 ML_EXTENSIONS = ["mli", "ml", "mly", "mll"]
+JSON_EXTENSIONS = ["json"]
 ALL_EXTENSIONS = (
     PYTHON_EXTENSIONS
     + JAVASCRIPT_EXTENSIONS
@@ -20,6 +21,7 @@ ALL_EXTENSIONS = (
     + C_EXTENSIONS
     + GO_EXTENSIONS
     + ML_EXTENSIONS
+    + JSON_EXTENSIONS
 )
 
 
@@ -30,18 +32,20 @@ def lang_to_exts(language: str) -> List[str]:
         If language is not a supported semgrep language then
         raises _UnknownLanguageError
     """
-    if language in ["python", "python2", "python3", "py"]:
+    if language in {"python", "python2", "python3", "py"}:
         return PYTHON_EXTENSIONS
-    elif language in ["js", "javascript"]:
+    elif language in {"js", "javascript"}:
         return JAVASCRIPT_EXTENSIONS
-    elif language in ["java"]:
+    elif language in {"java"}:
         return JAVA_EXTENSIONS
-    elif language in ["c"]:
+    elif language in {"c"}:
         return C_EXTENSIONS
-    elif language in ["go", "golang"]:
+    elif language in {"go", "golang"}:
         return GO_EXTENSIONS
-    elif language in ["ml", "ocaml"]:
+    elif language in {"ml", "ocaml"}:
         return ML_EXTENSIONS
+    elif language in {"json", "JSON", "Json"}:
+        return JSON_EXTENSIONS
     else:
         raise _UnknownLanguageError(f"Unsupported Language: {language}")
 
