@@ -4,7 +4,7 @@
     {
       "check_id": "rules.autofix.python.flask.best-practice.use-jsonify.use-jsonify",
       "end": {
-        "col": 32,
+        "col": 33,
         "line": 10
       },
       "extra": {
@@ -28,7 +28,7 @@
     {
       "check_id": "rules.autofix.python.flask.best-practice.use-jsonify.use-jsonify",
       "end": {
-        "col": 27,
+        "col": 28,
         "line": 18
       },
       "extra": {

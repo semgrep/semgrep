@@ -4,7 +4,7 @@
     {
       "check_id": "rules.autofix.python.django.security.passwords.use-none-for-password-default.use-none-for-password-default",
       "end": {
-        "col": 18,
+        "col": 20,
         "line": 63
       },
       "extra": {

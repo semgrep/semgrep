@@ -4,7 +4,7 @@
     {
       "check_id": "rules.autofix.python.requests.best-practice.use-timeout.use-timeout",
       "end": {
-        "col": 21,
+        "col": 22,
         "line": 6
       },
       "extra": {
@@ -27,7 +27,7 @@
     {
       "check_id": "rules.autofix.python.requests.best-practice.use-timeout.use-timeout",
       "end": {
-        "col": 22,
+        "col": 23,
         "line": 9
       },
       "extra": {
@@ -50,7 +50,7 @@
     {
       "check_id": "rules.autofix.python.requests.best-practice.use-timeout.use-timeout",
       "end": {
-        "col": 32,
+        "col": 33,
         "line": 12
       },
       "extra": {
@@ -73,7 +73,7 @@
     {
       "check_id": "rules.autofix.python.requests.best-practice.use-timeout.use-timeout",
       "end": {
-        "col": 39,
+        "col": 42,
         "line": 18
       },
       "extra": {
@@ -96,7 +96,7 @@
     {
       "check_id": "rules.autofix.python.requests.best-practice.use-timeout.use-timeout",
       "end": {
-        "col": 17,
+        "col": 18,
         "line": 29
       },
       "extra": {
