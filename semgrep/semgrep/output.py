@@ -59,7 +59,8 @@ def finding_to_line(rule_match: RuleMatch, color_output: bool) -> Iterator[str]:
     start_col = rule_match.start.get("col")
     end_col = rule_match.end.get("col")
     if path:
-        for i, line in enumerate(rule_match.lines):
+        lines = rule_match.extra.get("fixed_lines") or rule_match.lines
+        for i, line in enumerate(lines):
             line = line.rstrip()
             line_number = ""
             if start_line:
@@ -118,6 +119,9 @@ def build_normal_output(
         yield from finding_to_line(rule_match, color_output)
         if fix:
             yield f"{BLUE_COLOR}autofix:{RESET_COLOR} {fix}"
+        elif rule_match.fix_regex:
+            fix_regex = rule_match.fix_regex
+            yield f"{BLUE_COLOR}autofix:{RESET_COLOR} s/{fix_regex.get('regex')}/{fix_regex.get('replacement')}/{fix_regex.get('count', 'g')}"
 
 
 def build_output_json(

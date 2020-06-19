@@ -13,6 +13,12 @@ from semgrep.util import print_msg
 SPLIT_CHAR = "\n"
 
 
+class Fix:
+    def __init__(self, fixed_contents: str, fixed_lines: List[str]):
+        self.fixed_contents = fixed_contents
+        self.fixed_lines = fixed_lines
+
+
 def _get_lines(path: Path) -> List[str]:
     contents = path.read_text()
     lines = contents.split(SPLIT_CHAR)
@@ -29,7 +35,7 @@ def _get_match_context(rule_match: RuleMatch) -> Tuple[int, int, int, int]:
     return start_line, start_col, end_line, end_col
 
 
-def _basic_fix(rule_match: RuleMatch, fix: str) -> str:
+def _basic_fix(rule_match: RuleMatch, fix: str) -> Fix:
     p = rule_match.path
     lines = _get_lines(p)
 
@@ -44,12 +50,12 @@ def _basic_fix(rule_match: RuleMatch, fix: str) -> str:
     after_lines = lines[end_line + 1 :]  # next line after end of match
     contents_after_fix = before_lines + modified_lines + after_lines
 
-    return SPLIT_CHAR.join(contents_after_fix)
+    return Fix(SPLIT_CHAR.join(contents_after_fix), modified_lines)
 
 
 def _regex_replace(
     rule_match: RuleMatch, from_str: str, to_str: str, count: int = 1
-) -> str:
+) -> Fix:
     """
     Use a regular expression to autofix.
     Replaces from_str to to_str, starting from the left,
@@ -66,11 +72,10 @@ def _regex_replace(
     match_context = lines[start_line : end_line + 1]
 
     fix = re.sub(from_str, to_str, "\n".join(match_context), count)
-
     modified_context = fix.splitlines()
-
     modified_contents = before_lines + modified_context + after_lines
-    return SPLIT_CHAR.join(modified_contents)
+
+    return Fix(SPLIT_CHAR.join(modified_contents), modified_context)
 
 
 def _write_contents(path: Path, contents: str) -> None:
@@ -93,10 +98,7 @@ def apply_fixes(
             filepath = rule_match.path
             if fix:
                 try:
-                    modified_contents = _basic_fix(rule_match, fix)
-                    if not dryrun:
-                        _write_contents(Path(rule_match.path), modified_contents)
-                        modified_files.add(filepath)
+                    fixobj = _basic_fix(rule_match, fix)
                 except Exception as e:
                     raise SemgrepError(f"unable to modify file {filepath}: {e}")
             elif fix_regex:
@@ -114,17 +116,24 @@ def apply_fixes(
                         "optional 'count' value must be an integer when using 'fix-regex'"
                     )
                 try:
-                    modified_contents = _regex_replace(
-                        rule_match, regex, replacement, count
-                    )
-                    if not dryrun:
-                        _write_contents(rule_match.path, modified_contents)
-                        modified_files.add(filepath)
+                    fixobj = _regex_replace(rule_match, regex, replacement, count)
                 except Exception as e:
                     raise SemgrepError(
                         f"unable to use regex to modify file {filepath} with fix '{fix}': {e}"
                     )
+            # endif
+            if not dryrun:
+                _write_contents(rule_match.path, fixobj.fixed_contents)
+                modified_files.add(filepath)
+            else:
+                rule_match.extra[
+                    "fixed_lines"
+                ] = fixobj.fixed_lines  # Monkey patch in fixed lines
+
     num_modified = len(modified_files)
-    print_msg(
-        f"Successfully modified {num_modified} file{'s' if num_modified > 1 else ''}."
-    )
+    if len(modified_files):
+        print_msg(
+            f"successfully modified {num_modified} file{'s' if num_modified > 1 else ''}."
+        )
+    else:
+        print_msg(f"no files modified.")
