@@ -18,8 +18,7 @@ from ruamel.yaml import YAML
 
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 
-# Do not construct directly, use `SpanBuilder().add_source`
-
+# Do not construct SourceFileHash directly, use `SpanBuilder().add_source`
 SourceFileHash = NewType("SourceFileHash", str)
 
 
