@@ -137,6 +137,12 @@ let lang_regression_tests =
     let lang = Lang.Javascript in
     regression_tests_for_lang files lang
   );
+  "semgrep JSON" >::: (
+    let dir = Filename.concat tests_path "json" in
+    let files = Common2.glob (spf "%s/*.json" dir) in
+    let lang = Lang.JSON in
+    regression_tests_for_lang files lang
+  );
   "semgrep Java" >::: (
     let dir = Filename.concat tests_path "java" in
     let files = Common2.glob (spf "%s/*.java" dir) in

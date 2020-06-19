@@ -8,6 +8,7 @@ let lang_has_no_dollar_ids = Lang.(function
   | Go
   | C
   | OCaml
+  | JSON
   -> true
   | Javascript
   -> false)

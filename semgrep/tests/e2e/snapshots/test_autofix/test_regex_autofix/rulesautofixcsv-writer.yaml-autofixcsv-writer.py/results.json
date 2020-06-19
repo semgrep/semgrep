@@ -4,7 +4,7 @@
     {
       "check_id": "rules.autofix.python.lang.security.unquoted-csv-writer.unquoted-csv-writer",
       "end": {
-        "col": 49,
+        "col": 50,
         "line": 9
       },
       "extra": {
@@ -33,7 +33,7 @@
     {
       "check_id": "rules.autofix.python.lang.security.unquoted-csv-writer.unquoted-csv-writer",
       "end": {
-        "col": 52,
+        "col": 53,
         "line": 12
       },
       "extra": {
