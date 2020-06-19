@@ -291,12 +291,12 @@ def cli() -> None:
         if args.dump_ast:
             dump_parsed_ast(args.json, args.lang, args.pattern, args.target)
         elif args.validate:
-            _, invalid_configs = semgrep.semgrep_main.get_config(
+            _, config_errors = semgrep.semgrep_main.get_config(
                 args.pattern, args.lang, args.config
             )
-            if invalid_configs:
+            if config_errors:
                 raise SemgrepError(
-                    f"run with --validate and there were {len(invalid_configs)} errors loading configs"
+                    f"run with --validate and there were {len(config_errors)} errors loading configs"
                 )
             else:
                 print_msg("Config is valid")
