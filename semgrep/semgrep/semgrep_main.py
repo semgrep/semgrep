@@ -208,9 +208,7 @@ def flatten_configs(transformed_configs: Dict[str, List[Rule]]) -> List[Rule]:
 def notify_user_of_work(
     all_rules: List[Rule],
     include: List[str],
-    include_dir: List[str],
     exclude: List[str],
-    exclude_dir: List[str],
     verbose: bool = False,
 ) -> None:
     """
@@ -223,17 +221,9 @@ def notify_user_of_work(
         print_msg(f"including files:")
         for inc in include:
             print_msg(f"- {inc}")
-    if include_dir:
-        print_msg(f"including directories:")
-        for inc in include_dir:
-            print_msg(f"- {inc}")
     if exclude:
         print_msg(f"excluding files:")
         for exc in exclude:
-            print_msg(f"- {exc}")
-    if exclude_dir:
-        print_msg(f"excluding directories:")
-        for exc in exclude_dir:
             print_msg(f"- {exc}")
     print_msg(f"running {len(all_rules)} rules...")
     if verbose:
@@ -293,18 +283,13 @@ def main(
     no_rewrite_rule_ids: bool,
     jobs: int,
     include: List[str],
-    include_dir: List[str],
     exclude: List[str],
-    exclude_dir: List[str],
     strict: bool,
     autofix: bool,
     disable_nosem: bool,
     dangerously_allow_arbitrary_code_execution_from_rules: bool,
     no_git_ignore: bool,
 ) -> None:
-    include.extend(include_dir)
-    exclude.extend(exclude_dir)
-
     valid_configs, invalid_configs = get_config(pattern, lang, config, output_handler)
 
     if invalid_configs and strict:
@@ -334,7 +319,7 @@ def main(
             f"running {len(all_rules)} rules from {len(valid_configs)} config{plural} {config_id_if_single} {invalid_msg}"
         )
 
-        notify_user_of_work(all_rules, include, include_dir, exclude, exclude_dir)
+        notify_user_of_work(all_rules, include, exclude)
 
         if len(valid_configs) == 0:
             raise SemgrepError(
