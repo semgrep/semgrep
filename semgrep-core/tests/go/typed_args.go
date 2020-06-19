@@ -1,8 +1,8 @@
 package Foo
 
 func bar() {
-    var x int = 1
-    var b float = 2
+    var x = 1
+    var b = 2.2
     var c str
     var y, z int = 2, 4
     var d bool = true
