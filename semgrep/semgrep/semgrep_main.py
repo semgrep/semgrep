@@ -14,7 +14,6 @@ from semgrep.constants import NOSEM_INLINE_RE
 from semgrep.constants import RULES_KEY
 from semgrep.core_runner import CoreRunner
 from semgrep.error import INVALID_CODE_EXIT_CODE
-from semgrep.error import InvalidPatternNameError
 from semgrep.error import InvalidRuleSchemaError
 from semgrep.error import MISSING_CONFIG_EXIT_CODE
 from semgrep.error import SemgrepError
@@ -74,20 +73,6 @@ def validate_single_rule(
         return Rule.from_yamltree(rule_yaml)
     except InvalidRuleSchemaError as ex:
         output_handler.handle_semgrep_error(ex)
-        return None
-    except InvalidPatternNameError as ex:
-        rule_id = rule.get("id")
-        if not rule_id:
-            rule_id_str = MISSING_RULE_ID
-        else:
-            rule_id_str = rule_id.value
-        rule_id_err_msg = f"{rule_id_str}"
-        output_handler.handle_semgrep_error(
-            SemgrepError(
-                f"{config_id}: inside rule id {rule_id_err_msg}, pattern fields can't look like this: {ex}"
-            )
-        )
-
         return None
 
 
