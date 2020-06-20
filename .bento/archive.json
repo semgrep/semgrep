@@ -1,6 +1,14 @@
 {
   "bandit": {
     "violations": {
+      "57b3b5ea9aad4782fc23a8585d1d4591": {
+        "tool_id": "bandit",
+        "check_id": "exec-used",
+        "path": "semgrep/semgrep/evaluation.py",
+        "message": "Use of exec detected.",
+        "severity": 1,
+        "syntactic_context": "exec(to_eval, scope)"
+      },
       "c46dcb8acc122f2aa992b69fc0c9d1f8": {
         "tool_id": "bandit",
         "check_id": "exec-used",
@@ -40,6 +48,38 @@
   },
   "flake8": {
     "violations": {
+      "2b99b80b8dd9dc0b9d0c3549f8d11bcb": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "test-redos.py",
+        "message": "undefined name 're'",
+        "severity": 2,
+        "syntactic_context": "safe = re.complie(r\"\"\".*\"\"\")"
+      },
+      "3e4ff261c05674877102502d2c97d083": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "test-redos.py",
+        "message": "undefined name 'parts'",
+        "severity": 2,
+        "syntactic_context": "for part in parts:"
+      },
+      "56a50d68fa5615936aa2c67ed0180437": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "test-redos.py",
+        "message": "undefined name 're'",
+        "severity": 2,
+        "syntactic_context": "flags=re.U"
+      },
+      "75c7191339db7c0317a2454bb2c480dc": {
+        "tool_id": "flake8",
+        "check_id": "undefined-name",
+        "path": "test-redos.py",
+        "message": "undefined name 're'",
+        "severity": 2,
+        "syntactic_context": "gauntlet = re.compile("
+      },
       "ee01425a1f333ac3407713ce553fd1a0": {
         "tool_id": "flake8",
         "check_id": "unused-variable",
