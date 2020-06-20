@@ -204,6 +204,16 @@ def cli() -> None:
         ),
     )
     output.add_argument(
+        "--dryrun",
+        action="store_true",
+        help=(
+            "Do autofixes, but don't write them to a file. "
+            "This will print the changes to the console. "
+            "This lets you see the changes before you commit to them. "
+            "Only works with the --autofix flag. Otherwise does nothing."
+        ),
+    )
+    output.add_argument(
         "--disable-nosem",
         action="store_true",
         help=(
@@ -305,6 +315,7 @@ def cli() -> None:
                 exclude=args.exclude,
                 strict=args.strict,
                 autofix=args.autofix,
+                dryrun=args.dryrun,
                 disable_nosem=args.disable_nosem,
                 dangerously_allow_arbitrary_code_execution_from_rules=args.dangerously_allow_arbitrary_code_execution_from_rules,
                 no_git_ignore=args.no_git_ignore,
