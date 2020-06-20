@@ -143,29 +143,31 @@ def _where_python_statement_matches(
     where_expression: str, metavars: Dict[str, Any]
 ) -> bool:
     # TODO: filter out obvious dangerous things here
-    global output
-    output = None  # type: ignore
+    output_var = None  # type: ignore
 
     # HACK: we're executing arbitrary Python in the where-python,
     # be careful my friend
     vars = {k: v["abstract_content"] for k, v in metavars.items()}
+    RETURN_VAR = "semgrep_pattern_return"
     try:
         cleaned_where_expression = where_expression.strip()
         lines = cleaned_where_expression.split("\n")
-        new_last_line = f"output = {lines[-1]}"
+        new_last_line = f"{RETURN_VAR} = {lines[-1]}"
         lines[-1] = new_last_line
         to_eval = "\n".join(lines)
-        exec(f"global output; {to_eval}")
+        scope = {"vars": vars}
+        exec(to_eval, scope)
+        output_var = scope[RETURN_VAR]
     except Exception as ex:
         print_error(
             f"error evaluating a where-python expression: `{where_expression}`: {ex}"
         )
 
-    if type(output) != type(True):  # type: ignore
+    if type(output_var) != type(True):  # type: ignore
         raise SemgrepError(
-            f"python where expression needs boolean output but got: {output} for {where_expression}"  # type: ignore
+            f"python where expression needs boolean output but got: {output_var} for {where_expression}"  # type: ignore
         )
-    return output == True  # type: ignore
+    return output_var == True  # type: ignore
 
 
 def group_by_pattern_id(
