@@ -68,7 +68,7 @@ def xfail_repo(url, *, reason=None):
         "https://github.com/dropbox/dropbox_hook",
         "https://github.com/dropbox/emmer",
         "https://github.com/dropbox/firebase-dropbox-oauth",
-        "https://github.com/dropbox/gallerywithtagstutorial",
+        xfail_repo("https://github.com/dropbox/gallerywithtagstutorial"),
         "https://github.com/dropbox/git-rbr",
         xfail_repo("https://github.com/dropbox/godropbox"),
         "https://github.com/dropbox/goebpf",
