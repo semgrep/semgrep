@@ -24,12 +24,17 @@ from semgrep.equivalences import Equivalence
 from semgrep.error import _UnknownLanguageError
 from semgrep.error import InvalidPatternError
 from semgrep.error import SemgrepError
+from semgrep.error import SourceParseError
 from semgrep.error import UnknownLanguageError
 from semgrep.evaluation import enumerate_patterns_in_boolean_expression
 from semgrep.evaluation import evaluate
+from semgrep.output import OutputHandler
 from semgrep.pattern import Pattern
 from semgrep.pattern_match import PatternMatch
 from semgrep.rule import Rule
+from semgrep.rule_lang import Position
+from semgrep.rule_lang import SourceTracker
+from semgrep.rule_lang import Span
 from semgrep.rule_match import RuleMatch
 from semgrep.semgrep_types import BooleanRuleExpression
 from semgrep.semgrep_types import Language
@@ -120,9 +125,10 @@ class CoreRunner:
         This includes properly invoking semgrep-core and parsing the output
     """
 
-    def __init__(self, allow_exec: bool, jobs: int):
+    def __init__(self, allow_exec: bool, jobs: int, output_handler: OutputHandler):
         self._allow_exec = allow_exec
         self._jobs = jobs
+        self._output_handler = output_handler
 
     def _flatten_rule_patterns(self, rules: List[Rule]) -> Iterator[Pattern]:
         """
@@ -183,7 +189,6 @@ class CoreRunner:
                 short_msg=error_type,
                 long_msg=f"Pattern could not be parsed as a {error_json['language']} semgrep pattern",
                 spans=[matching_span],
-                level="error",
                 help=None,
             )
         # no special formatting ought to be required for the other types; the semgrep python should be performing
@@ -218,6 +223,28 @@ class CoreRunner:
         yaml.dump({"equivalences": [e.to_json() for e in equivalences]}, fp)
         fp.flush()
 
+    @staticmethod
+    def _convert_semgrep_core_error(  # type: ignore
+        error: Dict[str, Any], language: str
+    ) -> Optional[SemgrepError]:
+        if {"path", "start", "end", "extra"}.difference(error.keys()) == set():
+            with open(error["path"]) as f:
+                file_hash = SourceTracker.add_source(f.read())
+            start, end = [
+                Position(line=error[k]["line"], col=error[k]["col"])
+                for k in ("start", "end")
+            ]
+            error_span = Span(
+                start=start, end=end, source_hash=file_hash, file=error["path"]
+            )
+            return SourceParseError(
+                short_msg="parse error",
+                long_msg=f'Could not parse {error["path"]} as {language}',
+                spans=[error_span],
+                help="If the code appears to be valid, this may be a semgrep bug.",
+            )
+        return None
+
     def _run_rule(
         self, rule: Rule, target_manager: TargetManager, cache_dir: str
     ) -> Tuple[List[RuleMatch], List[Dict[str, Any]], List[CoreException]]:
@@ -240,7 +267,6 @@ class CoreRunner:
                     short_msg="invalid language",
                     long_msg=f"unsupported language {language}",
                     spans=[rule.languages_span.with_context(before=1, after=1)],
-                    level="error",
                 ) from ex
 
             if targets == []:

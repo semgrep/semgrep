@@ -1,4 +1,8 @@
 running 2 rules...
-1 file(s) failed to parse: targets/bad/invalid_python.py
-Run with --verbose to see parse errors
-run with --strict and 1 errors occurred during semgrep run; exiting
+warn: parse error
+  --> targets/bad/invalid_python.py:1
+1 | def foo(a)
+  |           ^^^^^
+= help: If the code appears to be valid, this may be a semgrep bug.
+Could not parse targets/bad/invalid_python.py as python
+
