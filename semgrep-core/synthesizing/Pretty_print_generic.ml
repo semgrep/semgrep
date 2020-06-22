@@ -22,8 +22,8 @@ open AST_generic
  * This will be useful for the pattern-from-code synthesizing project but
  * also for correct autofixing.
  *
- * Pretty printing library to use?
- *  - OCaml Format lib
+ * TODO: Pretty printing library to use:
+ *  - OCaml Format lib? see pfff/commons/OCaml.string_of_v for an example
  *  - Martin's easy-format?
  *  - Wadler's pretty-printer combinators?
  *)
