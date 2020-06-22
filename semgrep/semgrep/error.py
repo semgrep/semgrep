@@ -76,7 +76,7 @@ class ErrorWithSpan(SemgrepError):
     eg. if the error is an invalid key, provide exactly the span for that key. You can then expand what's printed
     with span.with_context(...). Conversely, if you don't want to display the entire span, you can use `span.truncate`
 
-    The __repr__ method produces the pretty-printed error.
+    The __str__ method produces the pretty-printed error.
     Here is what the generated error will look like:
 
         <level>: <short_msg>

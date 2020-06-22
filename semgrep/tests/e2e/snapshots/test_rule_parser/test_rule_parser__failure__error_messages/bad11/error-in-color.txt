@@ -1,0 +1,9 @@
+[31merror[39m: null values prohibited
+  --> rules/syntax/bad11.yaml:2
+[94m1 | [39mrules:
+[94m2 | [39m  - null
+[94m  | [39m    [31m^^^^[39m
+[94m3 | [39m  - id: rule-with-null-values
+
+[31mIn semgrep YAML configuration, null values are prohibited[39m
+

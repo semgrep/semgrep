@@ -170,7 +170,6 @@ def load_config_from_local_path(
             raise SemgrepError(
                 f"unable to find a config; path `{loc}` does not exist{addendum}"
             )
-    raise Exception
 
 
 def nice_semgrep_url(url: str) -> str:
@@ -212,7 +211,9 @@ def download_config(config_url: str) -> Dict[str, Optional[YamlTree]]:
             ]
             if content_type and any((ct in content_type for ct in yaml_types)):
                 return parse_config_string(
-                    "remote-url", r.content.decode("utf-8"), filename=None
+                    "remote-url",
+                    r.content.decode("utf-8"),
+                    filename=f"{config_url[:20]}...",
                 )
             else:
                 raise SemgrepError(

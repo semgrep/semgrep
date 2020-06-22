@@ -1,0 +1,15 @@
+rules:
+  - id: rule-with-null-keys
+    message: This rule has a null value
+    metadata:
+      category: "route"
+      type: "broken"
+    # This key is missing a value
+    pattern-either:
+    languages: [python]
+    severity: WARNING
+    patterns:
+      - pattern-either:
+          - pattern-inside: |
+              import django.urls.path
+              ...
