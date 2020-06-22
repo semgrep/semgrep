@@ -42,7 +42,7 @@ class bdist_wheel(_bdist_wheel):
         abi = "none"
 
         if "macosx" in plat:
-            plat = f"macosx_{MIN_OSX_VERSION}_x86_64.whl"
+            plat = f"macosx_{MIN_OSX_VERSION}_x86_64"
 
         # The binary we build is statically linked & manylinux compatible, so change platform
         # accordingly
