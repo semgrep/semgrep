@@ -1,0 +1,9 @@
+error: null values prohibited
+  --> rules/syntax/bad11.yaml:2
+1 | rules:
+2 |   - null
+  |     ^^^^
+3 |   - id: rule-with-null-values
+
+In semgrep YAML configuration, null values are prohibited
+

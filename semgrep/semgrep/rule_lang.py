@@ -91,7 +91,28 @@ class Span:
     ) -> "Span":
         start = Position(line=node.start_mark.line + 1, col=node.start_mark.column + 1)
         end = Position(line=node.end_mark.line + 1, col=node.end_mark.column + 1)
-        return Span(start=start, end=end, file=filename, source_hash=source_hash)
+        return Span(start=start, end=end, file=filename, source_hash=source_hash).fix()
+
+    def fix(self) -> "Span":
+        # some issues in ruamel lead to bad spans
+        # correct empty spans by rewinding to the last non-whitespace character:
+        if self.start == self.end:
+            src = SourceTracker.source(self.source_hash)
+            cur_line = self.start.line - 1
+            cur_col = self.start.col - 2
+            while cur_line > 0:
+                while cur_col > 0:
+                    cur_char = src[cur_line][cur_col]
+                    if cur_char.isspace():
+                        cur_col -= 1
+                    else:
+                        # assign the span to the whitespace
+                        start = Position(cur_line + 1, cur_col + 2)
+                        end = attr.evolve(start, col=cur_col + 3)
+                        return attr.evolve(self, start=start, end=end)
+                cur_line -= 1
+                cur_col = len(src[cur_line]) - 1
+        return self
 
     def truncate(self, lines: int) -> "Span":
         """
@@ -185,11 +206,7 @@ class YamlTree(Generic[T]):
             return {str(k.unroll()): v.unroll() for k, v in self.value.items()}
         elif isinstance(self.value, YamlTree):
             return self.value.unroll()
-        elif (
-            isinstance(self.value, str)
-            or isinstance(self.value, int)
-            or self.value is None
-        ):
+        elif isinstance(self.value, str) or isinstance(self.value, int):
             return self.value
         else:
             raise ValueError(
@@ -229,17 +246,6 @@ class YamlMap:
     """
 
     def __init__(self, internal: Dict[YamlTree[str], YamlTree]):
-        for k, v in internal.items():
-            if v.value is None:
-                from semgrep.error import InvalidRuleSchemaError
-
-                raise InvalidRuleSchemaError(
-                    short_msg="missing value",
-                    long_msg="In semgrep YAML configuration, all keys must have a corresponding value",
-                    spans=[k.span.with_context(before=1, after=1)],
-                    help=f"Did you forget to include a value for {k.unroll()}?",
-                )
-
         self._internal = internal
 
     def __getitem__(self, key: str) -> YamlTree:
@@ -285,12 +291,26 @@ def parse_yaml_preserve_spans(contents: str, filename: Optional[str]) -> YamlTre
     parse yaml into a YamlTree object. The resulting spans are tracked in SourceTracker
     so they can be used later when constructing error messages or displaying context.
     """
-    # this uses the `RoundTripConstructor` which inherits from `SafeConstructor`
     source_hash = SourceTracker.add_source(contents)
 
+    # this uses the `RoundTripConstructor` which inherits from `SafeConstructor`
     class SpanPreservingRuamelConstructor(RoundTripConstructor):
         def construct_object(self, node: Node, deep: bool = False) -> YamlTree:
             r = super().construct_object(node, deep)
+            if r is None:
+                from semgrep.error import InvalidRuleSchemaError
+
+                Span.from_node(node, source_hash=source_hash, filename=filename)
+                raise InvalidRuleSchemaError(
+                    short_msg="null values prohibited",
+                    long_msg="In semgrep YAML configuration, null values are prohibited",
+                    spans=[
+                        Span.from_node(
+                            node, source_hash=source_hash, filename=filename
+                        ).with_context(before=1, after=1)
+                    ],
+                )
+
             if isinstance(r, dict):
                 r = YamlMap(r)
             return YamlTree(
