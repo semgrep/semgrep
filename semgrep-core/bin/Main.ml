@@ -19,11 +19,11 @@ module J = Json_type
 (*****************************************************************************)
 (* Purpose *)
 (*****************************************************************************)
-(* A syntactical grep. https://sgrep.dev/
- * Right now there is good support for Python, Javascript, Java, Go, and C
- * and partial support for PHP, C++, and OCaml.
+(* A semantic grep. https://semgrep.dev/
+ * Right now there is good support for Python, Javascript (and JSON), Java,
+ * Go, and C and partial support for PHP, C++, and OCaml.
  *
- * opti: git grep foo | xargs sgrep -e 'foo(...)'
+ * opti: git grep foo | xargs semgrep -e 'foo(...)'
  *
  * related:
  *  - Structural Search and Replace (SSR) in Jetbrains IDE
@@ -808,6 +808,16 @@ let dump_tainting_rules file =
 (*e: function [[Main_semgrep_core.dump_tainting_rules]] *)
 
 (*****************************************************************************)
+(* Experiments *)
+(*****************************************************************************)
+
+let expr_at_range _s _file =
+  raise Todo
+
+let synthesize_patterns _s _file =
+  raise Todo
+
+(*****************************************************************************)
 (* The options *)
 (*****************************************************************************)
 
@@ -833,6 +843,10 @@ let all_actions () = [
   "--validate-pattern-stdin", " you also need to pass -lang",
   Common.mk_action_0_arg validate_pattern;
   (*e: [[Main_semgrep_core.all_actions]] other cases *)
+  "-expr_at_range", " <l:c-l:c> <file>",
+  Common.mk_action_2_arg expr_at_range;
+  "-synthesize_patterns", " <l:c-l:c> <file>",
+  Common.mk_action_2_arg synthesize_patterns;
  ]
 (*e: function [[Main_semgrep_core.all_actions]] *)
 
