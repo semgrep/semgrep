@@ -93,6 +93,14 @@ class Span:
         end = Position(line=node.end_mark.line + 1, col=node.end_mark.column + 1)
         return Span(start=start, end=end, file=filename, source_hash=source_hash).fix()
 
+    @classmethod
+    def from_string(cls, s: str, filename: Optional[str] = None) -> "Span":
+        src_hash = SourceTracker.add_source(s)
+        start = Position(1, 1)
+        lines = s.splitlines()
+        end = Position(line=len(lines), col=len(lines[-1]))
+        return Span(start=start, end=end, file=filename, source_hash=src_hash)
+
     def fix(self) -> "Span":
         # some issues in ruamel lead to bad spans
         # correct empty spans by rewinding to the last non-whitespace character:
@@ -322,7 +330,7 @@ def parse_yaml_preserve_spans(contents: str, filename: Optional[str]) -> YamlTre
     data = yaml.load(StringIO(contents))
     if not isinstance(data, YamlTree):
         raise Exception(
-            f"Something went wrong parsing Yaml (expected a YamlTree as output): {PLEASE_FILE_ISSUE_TEXT}"
+            f"Something went wrong parsing Yaml (expected a YamlTree as output, but got {type(data).__name__}): {PLEASE_FILE_ISSUE_TEXT}"
         )
     return data
 

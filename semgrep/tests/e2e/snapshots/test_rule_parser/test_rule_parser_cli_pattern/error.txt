@@ -1,0 +1,7 @@
+error: invalid pattern
+  --> CLI Input:1
+1 | #include $X
+  | ^^^^^^^^^^
+
+Pattern could not be parsed as C
+

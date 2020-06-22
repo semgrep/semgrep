@@ -1,0 +1,28 @@
+{
+  "errors": [
+    {
+      "code": 4,
+      "level": "error",
+      "long_msg": "Pattern could not be parsed as C",
+      "short_msg": "invalid pattern",
+      "spans": [
+        {
+          "context_end": null,
+          "context_start": null,
+          "end": {
+            "col": 11,
+            "line": 1
+          },
+          "file": "CLI Input",
+          "source_hash": "420525e8e16fbbef2e5558f91905d129b6d1e8c9d818204b3a823e4829196719",
+          "start": {
+            "col": 1,
+            "line": 1
+          }
+        }
+      ],
+      "type": "InvalidPatternError"
+    }
+  ],
+  "results": []
+}

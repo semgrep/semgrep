@@ -44,3 +44,16 @@ def test_rule_parser__failure__error_messages(run_semgrep_in_tmp, snapshot, file
 
     if excinfo_in_color.value.stderr != excinfo.value.stderr:
         snapshot.assert_match(excinfo_in_color.value.stderr, "error-in-color.txt")
+
+
+# https://github.com/returntocorp/semgrep/issues/1095
+def test_rule_parser_cli_pattern(run_semgrep_in_tmp, snapshot):
+    # This test should eventually pass once this pattern is handled by semgrep-core, but for now,
+    # getting a proper error from semgrep-core is an improvement
+    with pytest.raises(CalledProcessError) as excinfo:
+        run_semgrep_in_tmp(options=["-e", "#include $X", "-l", "c"])
+    snapshot.assert_match(excinfo.value.stderr, "error.txt")
+    json_output = json.loads(excinfo.value.stdout)
+    snapshot.assert_match(
+        json.dumps(json_output, indent=2, sort_keys=True), "error.json"
+    )
