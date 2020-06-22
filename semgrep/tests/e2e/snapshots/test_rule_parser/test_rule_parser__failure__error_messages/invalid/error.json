@@ -1,6 +1,11 @@
 {
   "errors": [
     {
+      "code": 5,
+      "message": "Invalid yaml file rules/syntax/invalid.yaml:\n\tmapping values are not allowed here\n\t  in \"<file>\", line 2, column 7",
+      "type": "SemgrepError"
+    },
+    {
       "code": 7,
       "message": "run with --strict and there were 1 errors loading configs",
       "type": "SemgrepError"
