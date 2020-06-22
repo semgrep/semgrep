@@ -28,6 +28,11 @@
         }
       ],
       "type": "InvalidRuleSchemaError"
+    },
+    {
+      "code": 7,
+      "message": "run with --strict and there were 1 errors loading configs",
+      "type": "SemgrepError"
     }
   ],
   "results": []
