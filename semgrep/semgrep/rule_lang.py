@@ -18,7 +18,7 @@ from ruamel.yaml import YAML
 
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 
-# Do not construct directly, use `SpanBuilder().add_source`
+# Do not construct SourceFileHash directly, use `SpanBuilder().add_source`
 SourceFileHash = NewType("SourceFileHash", str)
 
 
@@ -91,7 +91,28 @@ class Span:
     ) -> "Span":
         start = Position(line=node.start_mark.line + 1, col=node.start_mark.column + 1)
         end = Position(line=node.end_mark.line + 1, col=node.end_mark.column + 1)
-        return Span(start=start, end=end, file=filename, source_hash=source_hash)
+        return Span(start=start, end=end, file=filename, source_hash=source_hash).fix()
+
+    def fix(self) -> "Span":
+        # some issues in ruamel lead to bad spans
+        # correct empty spans by rewinding to the last non-whitespace character:
+        if self.start == self.end:
+            src = SourceTracker.source(self.source_hash)
+            cur_line = self.start.line - 1
+            cur_col = self.start.col - 2
+            while cur_line > 0:
+                while cur_col > 0:
+                    cur_char = src[cur_line][cur_col]
+                    if cur_char.isspace():
+                        cur_col -= 1
+                    else:
+                        # assign the span to the whitespace
+                        start = Position(cur_line + 1, cur_col + 2)
+                        end = attr.evolve(start, col=cur_col + 3)
+                        return attr.evolve(self, start=start, end=end)
+                cur_line -= 1
+                cur_col = len(src[cur_line]) - 1
+        return self
 
     def truncate(self, lines: int) -> "Span":
         """
@@ -188,7 +209,9 @@ class YamlTree(Generic[T]):
         elif isinstance(self.value, str) or isinstance(self.value, int):
             return self.value
         else:
-            raise ValueError("Invalid YAML tree structure")
+            raise ValueError(
+                f"Invalid YAML tree structure (expected a list, dict, tree, int or str, found: {type(self.value).__name__}: {self.value}"
+            )
 
     @classmethod
     def wrap(cls, value: YamlValue, span: Span) -> "YamlTree":  # type: ignore
@@ -226,7 +249,10 @@ class YamlMap:
         self._internal = internal
 
     def __getitem__(self, key: str) -> YamlTree:
-        return next(v for k, v in self._internal.items() if k.value == key)
+        try:
+            return next(v for k, v in self._internal.items() if k.value == key)
+        except StopIteration:
+            raise KeyError(key)
 
     def __setitem__(self, key: YamlTree[str], value: YamlTree) -> None:
         self._internal[key] = value
@@ -236,6 +262,13 @@ class YamlMap:
 
     def key_tree(self, key: str) -> YamlTree[str]:
         return next(k for k, v in self._internal.items() if k.value == key)
+
+    def __contains__(self, item: str) -> bool:
+        try:
+            _ = self[item]
+            return True
+        except KeyError:
+            return False
 
     def get(self, key: str) -> Optional[YamlTree]:
         match = [v for k, v in self._internal.items() if k.value == key]
@@ -258,12 +291,26 @@ def parse_yaml_preserve_spans(contents: str, filename: Optional[str]) -> YamlTre
     parse yaml into a YamlTree object. The resulting spans are tracked in SourceTracker
     so they can be used later when constructing error messages or displaying context.
     """
-    # this uses the `RoundTripConstructor` which inherits from `SafeConstructor`
     source_hash = SourceTracker.add_source(contents)
 
+    # this uses the `RoundTripConstructor` which inherits from `SafeConstructor`
     class SpanPreservingRuamelConstructor(RoundTripConstructor):
         def construct_object(self, node: Node, deep: bool = False) -> YamlTree:
             r = super().construct_object(node, deep)
+            if r is None:
+                from semgrep.error import InvalidRuleSchemaError
+
+                Span.from_node(node, source_hash=source_hash, filename=filename)
+                raise InvalidRuleSchemaError(
+                    short_msg="null values prohibited",
+                    long_msg="In semgrep YAML configuration, null values are prohibited",
+                    spans=[
+                        Span.from_node(
+                            node, source_hash=source_hash, filename=filename
+                        ).with_context(before=1, after=1)
+                    ],
+                )
+
             if isinstance(r, dict):
                 r = YamlMap(r)
             return YamlTree(
