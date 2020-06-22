@@ -9,5 +9,5 @@ type named_variants =
   (string * Pattern.t) list
 
 (* limited to expressions for now *)
-val patterns_from_code:
+val from_expr:
   AST_generic.expr -> named_variants

@@ -11,7 +11,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * file license.txt for more details.
  *)
-open Common
+open AST_generic
 
 (*****************************************************************************)
 (* Prelude *)
@@ -29,8 +29,28 @@ type named_variants =
   (string * Pattern.t) list
 
 (*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+let fk = Parse_info.fake_info "fake"
+let _bk f (lp,x,rp) = (lp, f x, rp)
+
+(*****************************************************************************)
+(* Algorithm *)
+(*****************************************************************************)
+
+(* TODO: look if Call, and propose $ on each argument, ...,
+ * propose also typed metavars, and resolved id in the call, etc.
+ *)
+let generalize e =
+  match e with
+  | Call (e, (lp, _es, rp)) ->
+      ["dots", E (Call (e, (lp, [Arg (Ellipsis fk)], rp)))]
+  | _ -> []
+
+(*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
-let patterns_from_code _e =
-  raise Todo
+let from_expr e =
+  ("exact match", E e)::
+  generalize e
