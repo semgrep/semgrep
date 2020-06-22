@@ -98,7 +98,7 @@ def validate_configs(
 
             try:
                 rule = validate_single_rule(config_id, rule_dict)
-            except (InvalidRuleSchemaError, InvalidPatternNameError) as ex:
+            except InvalidRuleSchemaError as ex:
                 errors.append(ex)
             else:
                 valid_rules.append(rule)
