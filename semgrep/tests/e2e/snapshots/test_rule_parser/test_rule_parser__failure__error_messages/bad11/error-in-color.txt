@@ -7,3 +7,4 @@
 
 [31mIn semgrep YAML configuration, null values are prohibited[39m
 
+run with --strict and there were 1 errors loading configs
