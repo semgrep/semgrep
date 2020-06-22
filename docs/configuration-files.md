@@ -501,7 +501,7 @@ For example a rule that specifies these paths:
 ```yaml
 paths:
   include: "project/schemata"
-  excludedocs/configuration-files.md: "*_internal.py"
+  exclude: "*_internal.py"
 ```
 
 Would return results from `project/schemata/scan.py`, but not from `project/schemata/scan_internal.py`.
