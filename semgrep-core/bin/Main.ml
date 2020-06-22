@@ -19,11 +19,11 @@ module J = Json_type
 (*****************************************************************************)
 (* Purpose *)
 (*****************************************************************************)
-(* A syntactical grep. https://sgrep.dev/
- * Right now there is good support for Python, Javascript, Java, Go, and C
- * and partial support for PHP, C++, and OCaml.
+(* A semantic grep. https://semgrep.dev/
+ * Right now there is good support for Python, Javascript (and JSON), Java,
+ * Go, and C and partial support for PHP, C++, and OCaml.
  *
- * opti: git grep foo | xargs sgrep -e 'foo(...)'
+ * opti: git grep foo | xargs semgrep -e 'foo(...)'
  *
  * related:
  *  - Structural Search and Replace (SSR) in Jetbrains IDE
@@ -808,6 +808,38 @@ let dump_tainting_rules file =
 (*e: function [[Main_semgrep_core.dump_tainting_rules]] *)
 
 (*****************************************************************************)
+(* Experiments *)
+(*****************************************************************************)
+
+let expr_at_range s file =
+  let r = Range.range_of_linecol_spec s file in
+  pr2_gen r;
+  let ast = Parse_generic.parse_program file in
+  (* just to see if it works with Naming on *)
+  let lang = Lang.langs_of_filename file |> List.hd in
+  Naming_AST.resolve lang ast;
+  let e_opt = Range_to_AST.expr_at_range r ast in
+  (match e_opt with
+  | Some e -> pr (AST_generic.show_expr e)
+  | None -> failwith (spf "could not find an expr at range %s in %s" s file)
+  )
+
+let synthesize_patterns s file =
+  let r = Range.range_of_linecol_spec s file in
+  let ast = Parse_generic.parse_program file in
+  let lang = Lang.langs_of_filename file |> List.hd in
+  let e_opt = Range_to_AST.expr_at_range r ast in
+  (match e_opt with
+  | Some e ->
+      let options = Pattern_from_Code.from_expr e in
+      options |> List.iter (fun (s, pat) ->
+        pr (spf "%s: %s" s (Pretty_print_generic.pattern_to_string lang pat))
+      );
+  | None -> failwith (spf "could not find an expr at range %s in %s" s file)
+  )
+
+
+(*****************************************************************************)
 (* The options *)
 (*****************************************************************************)
 
@@ -833,6 +865,10 @@ let all_actions () = [
   "--validate-pattern-stdin", " you also need to pass -lang",
   Common.mk_action_0_arg validate_pattern;
   (*e: [[Main_semgrep_core.all_actions]] other cases *)
+  "-expr_at_range", " <l:c-l:c> <file>",
+  Common.mk_action_2_arg expr_at_range;
+  "-synthesize_patterns", " <l:c-l:c> <file>",
+  Common.mk_action_2_arg synthesize_patterns;
  ]
 (*e: function [[Main_semgrep_core.all_actions]] *)
 
