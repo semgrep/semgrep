@@ -139,6 +139,13 @@ class TargetManager:
                         encoding="utf-8",
                         stderr=subprocess.DEVNULL,
                     )
+
+                    deleted_output = subprocess.check_output(
+                        ["git", "ls-files", "--deleted", f"*.{ext}",],
+                        cwd=curr_dir.resolve(),
+                        encoding="utf-8",
+                        stderr=subprocess.DEVNULL,
+                    )
                 except (subprocess.CalledProcessError, FileNotFoundError):
                     # Not a git directory or git not installed. Fallback to using rglob
                     ext_files = _find_files_with_extention(curr_dir, ext)
@@ -146,8 +153,10 @@ class TargetManager:
                 else:
                     tracked = _parse_output(tracked_output, curr_dir)
                     untracked_unignored = _parse_output(untracked_output, curr_dir)
+                    deleted = _parse_output(deleted_output, curr_dir)
                     expanded = expanded.union(tracked)
                     expanded = expanded.union(untracked_unignored)
+                    expanded = expanded.difference(deleted)
 
             else:
                 ext_files = _find_files_with_extention(curr_dir, ext)
