@@ -32,6 +32,7 @@
     semgrep_matching
     semgrep_tainting
     semgrep_reporting
+    semgrep_synthesizing
  )
  ; for ocamldebug
  (modes byte)

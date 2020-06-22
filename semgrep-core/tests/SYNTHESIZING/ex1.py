@@ -1,3 +1,4 @@
 from metrics import send
 def foo():
-   send('my-report-id')
+   bar()
+   bar + send('my-report-id') + bar()

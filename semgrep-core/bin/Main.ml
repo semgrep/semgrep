@@ -811,8 +811,15 @@ let dump_tainting_rules file =
 (* Experiments *)
 (*****************************************************************************)
 
-let expr_at_range _s _file =
-  raise Todo
+let expr_at_range s file =
+  let r = Range.range_of_linecol_spec s file in
+  pr2_gen r;
+  let ast = Parse_generic.parse_program file in
+  let e_opt = Range_to_AST.expr_at_range r ast in
+  (match e_opt with
+  | Some e -> pr (AST_generic.show_expr e)
+  | None -> failwith (spf "could not find an expr at range %s in %s" s file)
+  )
 
 let synthesize_patterns _s _file =
   raise Todo
