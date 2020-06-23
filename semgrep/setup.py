@@ -130,6 +130,7 @@ setup(
         "requests>=2.22.0",
         "attrs>=19.3.0",
         "tqdm>=4.46.1",
+        "packaging>=20.4",
     ],
     entry_points={"console_scripts": ["semgrep=semgrep.__main__:main"]},
     packages=setuptools.find_packages(),
