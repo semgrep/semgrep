@@ -11,9 +11,7 @@ Validate that the output is annotated in the source file with by looking for a c
  """
 import argparse
 import collections
-import json
 import sys
-from io import StringIO
 from pathlib import Path
 from typing import Any
 from typing import Dict
@@ -21,11 +19,8 @@ from typing import List
 from typing import Set
 from typing import Tuple
 
-from semgrep.constants import OutputFormat
 from semgrep.constants import YML_EXTENSIONS
-from semgrep.output import OutputHandler
-from semgrep.output import OutputSettings
-from semgrep.semgrep_main import main as semgrepmain
+from semgrep.semgrep_main import invoke_semgrep
 from semgrep.util import debug_print
 
 
@@ -171,40 +166,6 @@ def confusion_matrix_to_string(confusion: List[int]) -> str:
     return f"TP: {tp}\tTN:{tn}\t FP: {fp}\t FN: {fn}"
 
 
-def invoke_semgrep(
-    strict: bool, test_files: List[Path], config: Path, unsafe: bool
-) -> Any:
-    io_capture = StringIO()
-    output_handler = OutputHandler(
-        OutputSettings(
-            output_format=OutputFormat.JSON,
-            output_destination=None,
-            quiet=False,
-            error_on_findings=False,
-        ),
-        stdout=io_capture,
-    )
-    semgrepmain(
-        output_handler=output_handler,
-        target=[str(t) for t in test_files],
-        pattern="",
-        lang="",
-        config=str(config),
-        no_rewrite_rule_ids=True,
-        jobs=1,
-        include=[],
-        exclude=[],
-        strict=strict,
-        autofix=False,
-        dryrun=False,
-        disable_nosem=False,
-        dangerously_allow_arbitrary_code_execution_from_rules=unsafe,
-        no_git_ignore=True,
-    )
-    output_handler.close()
-    return json.loads(io_capture.getvalue())
-
-
 def generate_file_pairs(
     location: Path, ignore_todo: bool, strict: bool, semgrep_verbose: bool, unsafe: bool
 ) -> None:
@@ -238,7 +199,14 @@ def generate_file_pairs(
                 continue
             # invoke semgrep
             try:
-                output_json = invoke_semgrep(strict, test_files, filename, unsafe)
+                output_json = invoke_semgrep(
+                    filename,
+                    test_files,
+                    no_git_ignore=True,
+                    no_rewrite_rule_ids=True,
+                    strict=strict,
+                    dangerously_allow_arbitrary_code_execution_from_rules=unsafe,
+                )
                 tested.append(
                     (filename, score_output_json(output_json, test_files, ignore_todo))
                 )
