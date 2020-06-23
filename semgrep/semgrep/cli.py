@@ -3,8 +3,6 @@ import argparse
 import multiprocessing
 import os
 
-import requests
-
 import semgrep.config_resolver
 import semgrep.semgrep_main
 import semgrep.test
@@ -296,6 +294,8 @@ def cli() -> None:
             "VERSION_CHECK_URL", "https://semgrep.live/api/check-version"
         )
         try:
+            import requests
+
             resp = requests.get(
                 endpoint,
                 headers={"User-Agent": f"Semgrep/{__VERSION__}"},
