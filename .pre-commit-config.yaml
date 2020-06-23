@@ -47,7 +47,6 @@ repos:
         language: docker_image
         entry: koalaman/shellcheck:v0.7.1
         files: ".sh"
-        args: ["--exclude=SC1004,SC1008,SC1009,SC1047,SC1050,SC1062,SC1071,SC1072,SC1090,SC1091,SC1105,SC1107,SC1123,SC1124,SC1126,SC2001,SC2002,SC2003,SC2004,SC2005,SC2006,SC2007,SC2009,SC2034,SC2035,SC2039,SC2155,SC2164,SC2181,SC2186,SC2196,SC2197,SC2230"]
 
   - repo: local
     hooks:
@@ -56,4 +55,4 @@ repos:
         language: docker_image
         files: "Dockerfile"
         entry: hadolint/hadolint:v1.18.0 hadolint
-        args: ["--ignore", "DL3008", "--ignore", "DL3010", "--ignore", "DL3012", "--ignore", "DL3018", "--ignore", "DL3020", "--ignore", "DL3022", "--ignore", "DL3027", "--ignore", "DL4001"]
+        args: ["--ignore", "DL3008", "--ignore", "DL3018"]

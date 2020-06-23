@@ -36,13 +36,6 @@ tools:
     ignore:
     - bare-except-bugbear
     run: true
-  r2c.click:
-    ignore:
-    - names-are-well-formed
-    run: true
-  r2c.flask:
-    ignore: []
-    run: true
   r2c.registry.latest:
     ignore: []
     run: true

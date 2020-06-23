@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import NamedTuple
 
 import pytest
+
 from tests.conftest import TESTS_PATH
 
 EXTENSIONS = {

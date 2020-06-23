@@ -2,7 +2,7 @@
 set -e
 
 echo "Loading version from file: $(cat version)"
-cat version | sed 's/^v//' > release-version
+sed 's/^v//' version > release-version
 echo "Installing via homebrew"
 brew install returntocorp/semgrep/semgrep
 

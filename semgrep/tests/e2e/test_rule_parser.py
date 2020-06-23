@@ -2,6 +2,7 @@ import json
 from subprocess import CalledProcessError
 
 import pytest
+
 from tests.conftest import TESTS_PATH
 
 syntax_dir = TESTS_PATH / "e2e" / "rules" / "syntax"
