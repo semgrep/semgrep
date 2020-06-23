@@ -15,7 +15,6 @@ repos:
       - id: check-executables-have-shebangs
       - id: check-merge-conflict
       - id: check-symlinks
-      - id: requirements-txt-fixer
 
   - repo: https://github.com/psf/black
     rev: 19.10b0
