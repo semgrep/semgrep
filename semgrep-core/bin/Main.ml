@@ -829,6 +829,7 @@ let synthesize_patterns s file =
   let ast = Parse_generic.parse_program file in
   let lang = Lang.langs_of_filename file |> List.hd in
   let e_opt = Range_to_AST.expr_at_range r ast in
+  Naming_AST.resolve lang ast;
   (match e_opt with
   | Some e ->
       let options = Pattern_from_Code.from_expr e in

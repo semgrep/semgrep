@@ -47,6 +47,8 @@ let todo any =
 
 let token tok = Parse_info.str_of_info tok
 
+let ident (s, _) = s
+
 let arithop env (op, tok) =
   match op with
       | Plus -> "+"
@@ -80,7 +82,7 @@ let arithop env (op, tok) =
 let rec expr env =
 let ppf = F.sprintf in
 function
-  | Id ((s,_), _idinfo) -> s
+  | Id ((s,_), idinfo) -> id env (s, idinfo)
   | IdSpecial (sp, tok) -> special env (sp, tok)
   | Call (e, (_, es, _)) ->
       ppf "%s(%s)" (expr env e) (arguments env es)
@@ -90,7 +92,13 @@ function
   | SliceAccess (e, o1, o2, o3) -> slice_access env e (o1, o2) o3
   | DotAccess (e, tok, fi) -> dot_access env (e, tok, fi)
   | Ellipsis _ -> "..."
+  | Conditional (e1, e2, e3) -> cond env (e1, e2, e3)
   | x -> todo (E x)
+
+and id env (s, {id_resolved; _}) =
+   match !id_resolved with
+       | Some (ImportedEntity ents, _) -> dotted_access env ents
+       | _ -> s
 
 and special env = function
   | (ArithOp op, tok) -> arithop env (op, tok)
@@ -126,6 +134,11 @@ and tuple env = function
   | [x] -> expr env x
   | x::y::xs -> expr env x ^ ", " ^ tuple env (y::xs)
 
+and dotted_access env = function
+  | [] -> ""
+  | [x] -> ident x
+  | x::y::xs -> ident x ^ "." ^ dotted_access env (y::xs)
+
 and slice_access env e (o1, o2) = function
   | None -> F.sprintf "%s[%s:%s]" (expr env e) (option env o1) (option env o2)
   | Some e1 -> F.sprintf "%s[%s:%s:%s]" (expr env e) (option env o1) (option env o2) (expr env e1)
@@ -142,6 +155,18 @@ and field_ident env fi =
        | FId (s, _) -> s
        | FName ((s, _), _) -> s
        | FDynamic e -> expr env e
+
+and cond env (e1, e2, e3) =
+  let s1 = expr env e1 in
+  let s2 = expr env e2 in
+  let s3 = expr env e3 in
+  match env.lang with
+     | Lang.Python -> F.sprintf "%s if %s else %s" s2 s1 s3
+     | Lang.OCaml -> F.sprintf "if %s then %s else %s" s1 s2 s3
+     | Lang.Java -> F.sprintf "%s ? %s : %s" s1 s2 s3
+     | _ -> todo (E(Conditional(e1, e2, e3)))
+
+
 
 (*****************************************************************************)
 (* Entry point *)
