@@ -302,6 +302,12 @@ You can play with this transaction example here: https://semgrep.live/4b4g.
   examples on the flexibility and power of Semgrep patterns.
 * See the [YAML configuration file docs](docs/configuration-files.md) for
   details on all of the keys that can be used and how they work.
+* See [Semgrep rule writing methodology](docs/writing_rules/README.md) for
+  details on the thought process behind writing and rolling out a new Semgrep
+  rule sucessfully, and see [these docs](docs/writing_rules/examples.md) for
+  walkthroughs of writing rules from scratch.
+* There's also an interactive, example-based Semgrep rule writing tutorial here:
+  https://semgrep.live/learn.
 
 ### Run Semgrep Continously in CI
 
@@ -316,7 +322,7 @@ Semgrep can also output results in the standardized Static Analysis Results Inte
 ## Resources
 
 Learn more:
-* [Semgrep presentation](https://www.youtube.com/watch?v=pul1bRIOYc8) and [slides](https://web-assets.r2c.dev/presentations/r2c-semgrep-OWASP-BayArea-21-May-2020.pdf) from the Bay Area OWASP meetup. 
+* [Semgrep presentation](https://www.youtube.com/watch?v=pul1bRIOYc8) and [slides](https://web-assets.r2c.dev/presentations/r2c-semgrep-OWASP-BayArea-21-May-2020.pdf) from the Bay Area OWASP meetup.
 * Check out the [r2c YouTube channel](https://www.youtube.com/channel/UC5ahcFBorwzUTqPipFhjkWg) for more videos.
 * More detailed [Semgrep docs](docs/README.md)
 
