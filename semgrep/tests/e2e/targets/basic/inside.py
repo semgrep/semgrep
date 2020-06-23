@@ -8,8 +8,7 @@ def bar(request):
     path = "safe_path"
     open(path)
 
-# This _should_ be detected, but is not
-# due to semgrep#707
+# ERROR: open-from-request
 z = request.get("unsafe")
 def baz():
     open(z)
