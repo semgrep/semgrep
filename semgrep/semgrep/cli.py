@@ -3,6 +3,8 @@ import argparse
 import multiprocessing
 import os
 
+from packaging import version
+
 import semgrep.config_resolver
 import semgrep.semgrep_main
 import semgrep.test
@@ -313,8 +315,9 @@ def cli() -> None:
             except ValueError:
                 debug_print(f"Could not decode JSON object from version check URL.")
             else:
-                latest_version = resp_json["latest"]
-                if latest_version > __VERSION__:
+                latest_version = version.Version(resp_json["latest"])
+                installed_version = version.Version(__VERSION__)
+                if latest_version > installed_version:
                     print_msg(
                         "A new version of Semgrep is available. Please see https://github.com/returntocorp/semgrep#upgrading for more information."
                     )
