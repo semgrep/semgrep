@@ -93,7 +93,7 @@ let subexprs_of_expr a = Common.profile_code "Sub.subexprs_of_expr" (fun () ->
 let subexprs_of_stmt st =
     match st with
     (* 1 *)
-    | ExprStmt (e, _)
+    | ExprStmt e
     | If (_, e, _, _)
     | While (_, e, _)
     | DoWhile (_, _, e)
