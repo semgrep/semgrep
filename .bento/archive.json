@@ -1,45 +1,29 @@
 {
   "bandit": {
     "violations": {
-      "57b3b5ea9aad4782fc23a8585d1d4591": {
-        "tool_id": "bandit",
-        "check_id": "exec-used",
-        "path": "semgrep/semgrep/evaluation.py",
-        "message": "Use of exec detected.",
-        "severity": 1,
-        "syntactic_context": "exec(to_eval, scope)"
-      },
-      "c46dcb8acc122f2aa992b69fc0c9d1f8": {
-        "tool_id": "bandit",
-        "check_id": "exec-used",
-        "path": "semgrep/semgrep/evaluation.py",
-        "message": "Use of exec detected.",
-        "severity": 1,
-        "syntactic_context": "exec(f\"global output; {to_eval}\")"
-      },
-      "3d0e53b239ed4229f9a0cc161e437fc3": {
+      "4e0db4785748aff9799910743970a07b": {
         "tool_id": "bandit",
         "check_id": "start-process-with-a-shell",
         "path": "semgrep/setup.py",
         "message": "Starting a process with a shell, possible injection detected, security issue.",
         "severity": 2,
-        "syntactic_context": "os.system(\n    os.path.join(repo_root, \"release-scripts/ubuntu-release.sh\")"
+        "syntactic_context": "os.system(  # nosem: contrib.dlint.dlint-equivalent.insecure-os-exec-use\n    os.path.join(repo_root, \"release-scripts/ubuntu-release.sh\")"
       },
-      "ea9a33e97f911758b19908cde2b0e6b0": {
-        "tool_id": "bandit",
-        "check_id": "start-process-with-a-shell",
-        "path": "semgrep/setup.py",
-        "message": "Starting a process with a shell, possible injection detected, security issue.",
-        "severity": 2,
-        "syntactic_context": "os.system(os.path.join(repo_root, \"release-scripts/osx-release.sh\"))"
-      },
-      "a03ece7b789bad80c977f90f382c0fac": {
+      "54f98544761d0bae8b9ed0b9dc091c71": {
         "tool_id": "bandit",
         "check_id": "exec-used",
         "path": "semgrep/semgrep/evaluation.py",
         "message": "Use of exec detected.",
         "severity": 1,
-        "syntactic_context": "exec(f\"global output; output = {where_expression}\")"
+        "syntactic_context": "exec(to_eval, scope)  # nosem: contrib.dlint.dlint-equivalent.insecure-exec-use"
+      },
+      "5894895d3058ff58d8c75da279c6eced": {
+        "tool_id": "bandit",
+        "check_id": "start-process-with-a-shell",
+        "path": "semgrep/setup.py",
+        "message": "Starting a process with a shell, possible injection detected, security issue.",
+        "severity": 2,
+        "syntactic_context": "os.system(  # nosem: contrib.dlint.dlint-equivalent.insecure-os-exec-use\n    os.path.join(repo_root, \"release-scripts/osx-release.sh\")"
       }
     }
   },
@@ -47,92 +31,7 @@
     "violations": {}
   },
   "flake8": {
-    "violations": {
-      "2b99b80b8dd9dc0b9d0c3549f8d11bcb": {
-        "tool_id": "flake8",
-        "check_id": "undefined-name",
-        "path": "test-redos.py",
-        "message": "undefined name 're'",
-        "severity": 2,
-        "syntactic_context": "safe = re.complie(r\"\"\".*\"\"\")"
-      },
-      "3e4ff261c05674877102502d2c97d083": {
-        "tool_id": "flake8",
-        "check_id": "undefined-name",
-        "path": "test-redos.py",
-        "message": "undefined name 'parts'",
-        "severity": 2,
-        "syntactic_context": "for part in parts:"
-      },
-      "56a50d68fa5615936aa2c67ed0180437": {
-        "tool_id": "flake8",
-        "check_id": "undefined-name",
-        "path": "test-redos.py",
-        "message": "undefined name 're'",
-        "severity": 2,
-        "syntactic_context": "flags=re.U"
-      },
-      "75c7191339db7c0317a2454bb2c480dc": {
-        "tool_id": "flake8",
-        "check_id": "undefined-name",
-        "path": "test-redos.py",
-        "message": "undefined name 're'",
-        "severity": 2,
-        "syntactic_context": "gauntlet = re.compile("
-      },
-      "ee01425a1f333ac3407713ce553fd1a0": {
-        "tool_id": "flake8",
-        "check_id": "unused-variable",
-        "path": "semgrep/semgrep/evaluation.py",
-        "message": "local variable 'vars' is assigned to but never used",
-        "severity": 2,
-        "syntactic_context": "vars = {k: v[\"abstract_content\"] for k, v in metavars.items()}"
-      }
-    }
-  },
-  "hadolint": {
-    "violations": {
-      "71a8303902a1c09d0903c531d9d6d982": {
-        "tool_id": "hadolint",
-        "check_id": "DL3003",
-        "path": "Dockerfile",
-        "message": "Use WORKDIR to switch to a directory",
-        "severity": 1,
-        "syntactic_context": "RUN eval $(opam env) && cd semgrep-core && opam install --deps-only -y . && make all\n"
-      },
-      "eaa1f323d1db6328b0a7014c9dff326d": {
-        "tool_id": "hadolint",
-        "check_id": "SC2046",
-        "path": "Dockerfile",
-        "message": "Quote this to prevent word splitting.",
-        "severity": 1,
-        "syntactic_context": "RUN eval $(opam env) && cd semgrep-core && opam install --deps-only -y . && make all\n"
-      },
-      "142d6e5f77de7ecb6cc818a63c935c03": {
-        "tool_id": "hadolint",
-        "check_id": "DL3003",
-        "path": "Dockerfile",
-        "message": "Use WORKDIR to switch to a directory",
-        "severity": 1,
-        "syntactic_context": "RUN eval $(opam env) && cd semgrep-core && opam install -y . && make all\n"
-      },
-      "366097962bbe29586382e586fcb7ef6d": {
-        "tool_id": "hadolint",
-        "check_id": "SC2046",
-        "path": "Dockerfile",
-        "message": "Quote this to prevent word splitting.",
-        "severity": 1,
-        "syntactic_context": "RUN eval $(opam env) && opam install -y ./pfff\n"
-      },
-      "915f3d7f2403006041adee9e22b7a0f8": {
-        "tool_id": "hadolint",
-        "check_id": "SC2046",
-        "path": "Dockerfile",
-        "message": "Quote this to prevent word splitting.",
-        "severity": 1,
-        "syntactic_context": "RUN eval $(opam env) && cd semgrep-core && opam install -y . && make all\n"
-      }
-    }
+    "violations": {}
   },
   "r2c.click": {
     "violations": {}
@@ -140,27 +39,13 @@
   "r2c.flask": {
     "violations": {}
   },
+  "r2c.registry.latest": {
+    "violations": {}
+  },
   "r2c.requests": {
     "violations": {}
   },
-  "shellcheck": {
-    "violations": {
-      "271da9f6f6e2b1f634102d17367ec28c": {
-        "tool_id": "shellcheck",
-        "check_id": "SC2086",
-        "path": "semgrep/tests/run-perf-tests.sh",
-        "message": "Double quote to prevent globbing and word splitting.",
-        "severity": 0,
-        "syntactic_context": "$HYPERFINE --export-markdown ${THIS_DIR}/testsuite.md \"${CMDA}\" \"${CMDB}\"\n"
-      },
-      "ead34c4fb69597117dccbbde1236c834": {
-        "tool_id": "shellcheck",
-        "check_id": "SC2086",
-        "path": "semgrep/tests/run-perf-tests.sh",
-        "message": "Double quote to prevent globbing and word splitting.",
-        "severity": 0,
-        "syntactic_context": "cat ${THIS_DIR}/testsuite.md\n"
-      }
-    }
+  "semgrep": {
+    "violations": {}
   }
 }
