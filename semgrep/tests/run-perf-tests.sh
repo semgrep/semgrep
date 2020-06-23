@@ -29,8 +29,8 @@ test_sample_repos() {
     CMDB="${SGREP_B} --config=r2c --dangerously-allow-arbitrary-code-execution-from-rules --strict"
     #$CMDA
     #$CMDB
-    $HYPERFINE --export-markdown ${THIS_DIR}/testsuite.md "${CMDA}" "${CMDB}"
-    cat ${THIS_DIR}/testsuite.md
+    $HYPERFINE --export-markdown "${THIS_DIR}/testsuite.md" "${CMDA}" "${CMDB}"
+    cat "${THIS_DIR}/testsuite.md"
     cd -
 
 }
