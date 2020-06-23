@@ -13,6 +13,7 @@
  *)
 open Common
 open AST_generic
+module F = Format
 
 (*****************************************************************************)
 (* Prelude *)
@@ -44,25 +45,69 @@ let todo any =
   pr (show_any any);
   failwith "TODO"
 
+let token tok = Parse_info.str_of_info tok
+
+let arithop env (op, tok) =
+  match op with
+      | Plus -> "+"
+      | Minus -> "-"
+      | Mult -> "*"
+      | Div -> "/"
+      | Mod -> "%"
+      | Pow -> "^"
+      | Eq -> (match env.lang with
+                | Lang.OCaml -> "="
+                | _ -> "=="
+              )
+      | _ -> todo (E (IdSpecial (ArithOp op, tok)))
+      (*
+      | Pow | FloorDiv | MatMult (* Python *)
+      | LSL | LSR | ASR (* L = logic, A = Arithmetic, SL = shift left *)
+      | BitOr | BitXor | BitAnd | BitNot (* unary *) | BitClear (* Go *)
+      (* todo? rewrite in CondExpr? have special behavior *)
+      | And | Or (* also shortcut operator *) | Xor (* PHP*) | Not (* unary *)
+      | NotEq     (* less: could be desugared to Not Eq *)
+      | PhysEq (* '==' in OCaml, '===' in JS/... *)
+      | NotPhysEq (* less: could be desugared to Not PhysEq *)
+      | Lt | LtE | Gt | GtE  (* less: could be desugared to Or (Eq Lt) *)
+      | Cmp (* <=>, PHP *)
+      (* todo: not really an arithmetic operator, maybe rename the type *)
+      | Concat (* '.' PHP *) *)
+
 (*****************************************************************************)
 (* Pretty printer *)
 (*****************************************************************************)
-let rec expr env = function
+let rec expr env =
+let ppf = F.sprintf in
+function
   | Id ((s,_), _idinfo) -> s
+  | IdSpecial (sp, tok) -> special env (sp, tok)
   | Call (e, (_, es, _)) ->
-      expr env e ^ "(" ^ arguments env es ^ ")"
+      ppf "%s(%s)" (expr env e) (arguments env es)
   | L x -> literal env x
+  | Tuple es -> ppf "(%s)" (tuple env es)
+  | ArrayAccess (e1, e2) -> ppf "%s[%s]" (expr env e1) (expr env e2)
+  | SliceAccess (e, o1, o2, o3) -> slice_access env e (o1, o2) o3
+  | DotAccess (e, tok, fi) -> dot_access env (e, tok, fi)
   | Ellipsis _ -> "..."
   | x -> todo (E x)
 
+and special env = function
+  | (ArithOp op, tok) -> arithop env (op, tok)
+  | (sp, tok) -> todo (E (IdSpecial (sp, tok)))
 
 and literal env = function
+  | Bool ((b,_)) -> F.sprintf "%B" b
+  | Int ((s,_)) -> s
+  | Float ((s,_)) -> s
+  | Char ((s,_)) -> F.sprintf "'%s'" s
   | String ((s,_)) ->
       (match env.lang with
       | Lang.Python | Lang.Python2 | Lang.Python3 ->
             "'" ^ s ^ "'"
       | _ -> raise Todo
       )
+  | Regexp ((s,_)) -> s
   | x -> todo (E (L x))
 
 and arguments env xs =
@@ -75,6 +120,28 @@ and arguments env xs =
 and argument env = function
   | Arg e -> expr env e
   | x -> todo (Ar x)
+
+and tuple env = function
+  | [] -> ""
+  | [x] -> expr env x
+  | x::y::xs -> expr env x ^ ", " ^ tuple env (y::xs)
+
+and slice_access env e (o1, o2) = function
+  | None -> F.sprintf "%s[%s:%s]" (expr env e) (option env o1) (option env o2)
+  | Some e1 -> F.sprintf "%s[%s:%s:%s]" (expr env e) (option env o1) (option env o2) (expr env e1)
+
+and option env = function
+  | None -> ""
+  | Some e -> expr env e
+
+and dot_access env (e, tok, fi) =
+  F.sprintf "%s%s%s" (expr env e) (token tok) (field_ident env fi)
+
+and field_ident env fi =
+  match fi with
+       | FId (s, _) -> s
+       | FName ((s, _), _) -> s
+       | FDynamic e -> expr env e
 
 (*****************************************************************************)
 (* Entry point *)
