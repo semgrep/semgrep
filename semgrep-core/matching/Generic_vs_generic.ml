@@ -1231,14 +1231,14 @@ and m_list__m_attribute (xsa: A.attribute list) (xsb: A.attribute list) =
        )
   (*e: [[Generic_vs_generic.m_list__m_attribute]] [[KeywordAttr]] pattern case *)
   (*s: [[Generic_vs_generic.m_list__m_attribute]] [[NamedAttr]] pattern case *)
-  | A.NamedAttr ((s, _) as ida, idinfoa, argsa)::xsa, xsb ->
+  | A.NamedAttr (_, ((s, _) as ida), idinfoa, argsa)::xsa, xsb ->
       (try
         let (before, there, after) = xsb |> Common2.split_when (function
             (* todo: in theory we should resolve the possible alias s2 *)
-            | A.NamedAttr ((s2, _), _idinfoaliasTODO, _) when s =$= s2 -> true
+            | A.NamedAttr (_, (s2, _), _idinfoaliasTODO, _) when s =$= s2 -> true
             | _ -> false) in
         (match there with
-        | A.NamedAttr (idb, idinfob, argsb) ->
+        | A.NamedAttr (_, idb, idinfob, argsb) ->
               m_ident ida idb >>= (fun () ->
               (* less: should use m_ident_and_id_info_add_in_env_Expr? *)
               m_id_info idinfoa idinfob >>= (fun () ->
@@ -1273,23 +1273,24 @@ and m_attribute a b =
   match a, b with
   (*s: [[Generic_vs_generic.m_attribute]] resolving alias case *)
   (* equivalence: name resolving! *)
-  | a,   B.NamedAttr (_b1, { B.id_resolved =
+  | a,   B.NamedAttr (t1, _b1, { B.id_resolved =
       {contents = Some ( ( B.ImportedEntity dotted
                          | B.ImportedModule (B.DottedName dotted)
                          ), _sid)}; _}, b2) ->
     let exp = make_dotted dotted in
-    m_attribute a (B.OtherAttribute (B.OA_Expr, [B.E (B.Call (exp, b2))]))
+    m_attribute a (B.OtherAttribute (B.OA_Expr, [B.Tk t1; B.E (B.Call (exp, b2))]))
   (*e: [[Generic_vs_generic.m_attribute]] resolving alias case *)
 
   (* boilerplate *)
   | A.KeywordAttr(a1), B.KeywordAttr(b1) ->
     m_wrap m_keyword_attribute a1 b1
-  | A.NamedAttr(a1, ida, a2), B.NamedAttr(b1, idb, b2) ->
+  | A.NamedAttr(a0, a1, ida, a2), B.NamedAttr(b0, b1, idb, b2) ->
+    m_tok a0 b0 >>= (fun () ->
     m_ident a1 b1 >>= (fun () ->
     (* less: should use m_ident_and_id_info_add_in_env_Expr? *)
     m_id_info ida idb >>= (fun () ->
     m_bracket m_list__m_argument a2 b2
-    ))
+    )))
   | A.OtherAttribute(a1, a2), B.OtherAttribute(b1, b2) ->
     m_other_attribute_operator a1 b1 >>= (fun () ->
     (m_list m_any) a2 b2
@@ -1367,23 +1368,23 @@ and m_stmts_deep ~less_is_ok (xsa: A.stmt list) (xsb: A.stmt list) =
       if less_is_ok then return () else fail ()
 
   (* dots: '...', can also match no statement *)
-  | [A.ExprStmt (A.Ellipsis _i)], [] ->
+  | [A.ExprStmt (A.Ellipsis _i, _)], [] ->
       return ()
 
-  | (A.ExprStmt (A.Ellipsis i))::xsa, xb::xsb ->
+  | (A.ExprStmt (A.Ellipsis i, t))::xsa, xb::xsb ->
     (* let's first try the without going deep *)
      (
       (* can match nothing *)
       (m_list__m_stmt xsa (xb::xsb)) >||>
       (* can match more *)
       (env_add_matched_stmt xb >>= (fun () ->
-       (m_list__m_stmt ((A.ExprStmt (A.Ellipsis i))::xsa) xsb)
+       (m_list__m_stmt ((A.ExprStmt (A.Ellipsis i,t))::xsa) xsb)
       ))
      ) >!> (fun () ->
         if !Flag.go_deeper_stmt
         then
           let xsb' = SubAST_generic.flatten_substmts_of_stmts (xb::xsb) in
-          m_list__m_stmt ((A.ExprStmt (A.Ellipsis i))::xsa) xsb'
+          m_list__m_stmt ((A.ExprStmt (A.Ellipsis i, t))::xsa) xsb'
         else fail ()
      )
 
@@ -1425,15 +1426,15 @@ and m_list__m_stmt (xsa: A.stmt list) (xsb: A.stmt list) =
   (*e: [[Generic_vs_generic.m_list__m_stmt()]] empty list vs list case *)
   (*s: [[Generic_vs_generic.m_list__m_stmt()]] ellipsis cases *)
   (* dots: '...', can also match no statement *)
-  | [A.ExprStmt (A.Ellipsis _i)], [] ->
+  | [A.ExprStmt (A.Ellipsis _i, _)], [] ->
       return ()
 
-  | (A.ExprStmt (A.Ellipsis i))::xsa, xb::xsb ->
+  | (A.ExprStmt (A.Ellipsis i, t))::xsa, xb::xsb ->
       (* can match nothing *)
       (m_list__m_stmt xsa (xb::xsb)) >||>
       (* can match more *)
       (env_add_matched_stmt xb >>= (fun () ->
-       (m_list__m_stmt ((A.ExprStmt (A.Ellipsis i))::xsa) xsb)
+       (m_list__m_stmt ((A.ExprStmt (A.Ellipsis i, t))::xsa) xsb)
       ))
   (*e: [[Generic_vs_generic.m_list__m_stmt()]] ellipsis cases *)
   (* the general case *)
@@ -1457,13 +1458,13 @@ and m_stmt a b =
   (*e: [[Generic_vs_generic.m_stmt()]] disjunction case *)
   (*s: [[Generic_vs_generic.m_stmt()]] metavariable case *)
   (* metavar: *)
-  | A.ExprStmt(A.Id ((str,tok), _id_info)), b
+  | A.ExprStmt(A.Id ((str,tok), _id_info), _), b
      when MV.is_metavar_name str ->
       envf (str, tok) (B.S b)
   (*e: [[Generic_vs_generic.m_stmt()]] metavariable case *)
   (*s: [[Generic_vs_generic.m_stmt()]] ellipsis cases *)
   (* dots: '...' can to match any statememt *)
-  | A.ExprStmt(A.Ellipsis _i), _b ->
+  | A.ExprStmt(A.Ellipsis _i, _), _b ->
       return ()
   (*x: [[Generic_vs_generic.m_stmt()]] ellipsis cases *)
   | A.Return(a0, a1), B.Return(b0, b1) ->
@@ -1473,8 +1474,10 @@ and m_stmt a b =
   (*e: [[Generic_vs_generic.m_stmt()]] ellipsis cases *)
   (*s: [[Generic_vs_generic.m_stmt()]] deep matching cases *)
   (* deeper: go deep by default implicitly (no need for explicit <... ...>) *)
-  | A.ExprStmt(a1), B.ExprStmt(b1) ->
-    m_expr_deep a1 b1
+  | A.ExprStmt(a1, a2), B.ExprStmt(b1, b2) ->
+    m_expr_deep a1 b1 >>= (fun () ->
+    m_tok a2 b2
+    )
   (*x: [[Generic_vs_generic.m_stmt()]] deep matching cases *)
   (* TODO: ... should also allow a subset of stmts *)
   | A.Block(a1), B.Block(b1) ->
@@ -1482,12 +1485,13 @@ and m_stmt a b =
   (*e: [[Generic_vs_generic.m_stmt()]] deep matching cases *)
   (*s: [[Generic_vs_generic.m_stmt()]] builtin equivalences cases *)
   (* equivalence: vardef ==> assign, and go deep *)
-  | A.ExprStmt a1, B.DefStmt (ent, B.VarDef ({B.vinit = Some _; _} as def)) ->
+  | A.ExprStmt (a1, _),
+    B.DefStmt (ent, B.VarDef ({B.vinit = Some _; _} as def)) ->
       let b1 = AST.vardef_to_assign (ent, def) in
       m_expr_deep a1 b1
   (*x: [[Generic_vs_generic.m_stmt()]] builtin equivalences cases *)
   (* equivalence: *)
-  | A.ExprStmt(a1), B.Return (_, Some b1) ->
+  | A.ExprStmt(a1, _), B.Return (_, Some b1) ->
      m_expr_deep a1 b1
   (*e: [[Generic_vs_generic.m_stmt()]] builtin equivalences cases *)
 
@@ -1967,7 +1971,7 @@ and m_variable_definition a b =
 and m_fields (xsa: A.field list) (xsb: A.field list) =
   (* let's filter the '...' *)
   let xsa = xsa |> Common.exclude (function
-      | A.FieldStmt (A.ExprStmt (A.Ellipsis _)) -> true
+      | A.FieldStmt (A.ExprStmt (A.Ellipsis _, _)) -> true
       | _ -> false) in
   m_list__m_field xsa xsb
 (*e: function [[Generic_vs_generic.m_fields]] *)
@@ -1988,7 +1992,7 @@ and m_list__m_field (xsa: A.field list) (xsb: A.field list) =
       return ()
   (*e: [[Generic_vs_generic.m_list__m_field()]] empty list vs list case *)
   (*s: [[Generic_vs_generic.m_list__m_field()]] ellipsis cases *)
-  | (A.FieldStmt (A.ExprStmt (A.Ellipsis _)))::_, _ ->
+  | (A.FieldStmt (A.ExprStmt (A.Ellipsis _, _)))::_, _ ->
       raise Impossible
   (*e: [[Generic_vs_generic.m_list__m_field()]] ellipsis cases *)
   (*s: [[Generic_vs_generic.m_list__m_field()]] [[DefStmt]] pattern case *)
