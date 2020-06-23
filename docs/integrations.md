@@ -115,7 +115,7 @@ jobs:
             - uses: actions/checkout@master
             - uses: returntocorp/semgrep-action@v1
               with:
-                config: https://semgrep.live/p/r2c
+                config: p/r2c
 ```
 
 This will default to using the [`r2c` rule pack](https://semgrep.live/p/r2c).
@@ -128,14 +128,13 @@ For more information on the GitHub Action see https://github.com/marketplace/act
 Include `semgrep` in your `.gitlab-ci.yml` configuration file:
 
 ```yaml
-stages:
-    - test
-test:
-    image: python
-    before_script:
-        - python -m pip install semgrep
-    script:
-        - semgrep --config https://semgrep.live/p/r2c /path/to/code
+include:
+  - template: 'Workflows/MergeRequest-Pipelines.gitlab-ci.yml'
+
+semgrep:
+  image: returntocorp/semgrep-action:v1
+  script:
+    - python -m semgrep_agent --config p/r2c
 ```
 
 This will default to using the [`r2c` rule pack](https://semgrep.live/p/r2c).
