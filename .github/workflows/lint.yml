@@ -15,9 +15,12 @@ jobs:
         uses: actions/setup-python@v1
         with:
           python-version: 3.7
-      - name: Setup Bento
-        run: pip3 install bento-cli==0.12.0 && bento --version
       - run: pip3 --version
       - run: python3 --version
+      - run: pip3 install pip==20.1
+      - run: pip3 --version
+      - name: Setup Bento
+        run: pip3 install bento-cli==0.12.0 && bento --version
+
       - name: Run Bento Check --all
         run: bento --agree --email=semgrep-ci@r2c.dev check --all
