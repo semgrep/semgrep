@@ -3,6 +3,8 @@ import argparse
 import multiprocessing
 import os
 
+from packaging import version
+
 import semgrep.config_resolver
 import semgrep.semgrep_main
 import semgrep.test
@@ -15,6 +17,7 @@ from semgrep.dump_ast import dump_parsed_ast
 from semgrep.error import SemgrepError
 from semgrep.output import managed_output
 from semgrep.output import OutputSettings
+from semgrep.util import debug_print
 from semgrep.util import print_error
 from semgrep.util import print_msg
 
@@ -244,6 +247,11 @@ def cli() -> None:
         action="store_true",
         help="Always include ANSI color in the output, even if not writing to a TTY",
     )
+    parser.add_argument(
+        "--disable-version-check",
+        action="store_true",
+        help="Disable checking for latest version.",
+    )
 
     ### Parse and validate
     args = parser.parse_args()
@@ -281,6 +289,38 @@ def cli() -> None:
         quiet=args.quiet,
         error_on_findings=args.error,
     )
+
+    if not args.disable_version_check:
+        quick_timeout = 2  # Don't block user's too long
+        endpoint = os.environ.get(
+            "VERSION_CHECK_URL", "https://semgrep.live/api/check-version"
+        )
+        try:
+            import requests
+
+            resp = requests.get(
+                endpoint,
+                headers={"User-Agent": f"Semgrep/{__VERSION__}"},
+                timeout=quick_timeout,
+            )
+        except Exception as e:
+            debug_print(f"Could not connect to version check URL: {e}")
+        else:
+            if resp.status_code != requests.codes.OK:
+                debug_print(
+                    f"Received HTTP error code from version check URL: {resp.status_code}"
+                )
+            try:
+                resp_json = resp.json()
+            except ValueError:
+                debug_print(f"Could not decode JSON object from version check URL.")
+            else:
+                latest_version = version.Version(resp_json["latest"])
+                installed_version = version.Version(__VERSION__)
+                if latest_version > installed_version:
+                    print_msg(
+                        "A new version of Semgrep is available. Please see https://github.com/returntocorp/semgrep#upgrading for more information."
+                    )
 
     if args.test:
         # the test code (which isn't a "test" per se but is actually machinery to evaluate semgrep performance)
