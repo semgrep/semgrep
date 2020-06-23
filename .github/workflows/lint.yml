@@ -5,31 +5,6 @@ on:
     branches: [master, develop]
 
 jobs:
-  pre-commit:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-python@v1
-    - name: set PY
-      run: echo "::set-env name=PY::$(python --version --version | sha256sum | cut -d' ' -f1)"
-    - uses: actions/cache@v1
-      with:
-        path: ~/.cache/pre-commit
-        key: pre-commit|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
-    - uses: pre-commit/action@v1.0.1
-
-  bento-action:
-    name: Bento Check
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v1
-    - id: bento
-      name: Bento
-      uses: returntocorp/bento-action@v1
-      with:
-        acceptTermsWithEmail: test@returntocorp.com
-        slackWebhookURL: ${{ secrets.BENTO_SLACK_WEBHOOK_URL }}
-
   bento:
     name: bento
     runs-on: ubuntu-latest
@@ -42,62 +17,7 @@ jobs:
           python-version: 3.7
       - name: Setup Bento
         run: pip3 install bento-cli==0.12.0 && bento --version
+      - run: pip3 --version
+      - run: python3 --version
       - name: Run Bento Check --all
         run: bento --agree --email=semgrep-ci@r2c.dev check --all
-
-  semgrep-run-r2c-config:
-    name: semgrep with r2c registry
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v1
-      - name: Semgrep
-        id: semgrep
-        uses: returntocorp/semgrep-action@v1
-        with:
-          config: r/r2c
-          slackWebhookURL: ${{ secrets.BENTO_SLACK_WEBHOOK_URL }}
-          publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}
-          publishDeployment: ${{ secrets.SEMGREP_APP_DEPLOYMENT_ID }}
-
-  semgrep-run-local-rules:
-    name: semgrep with local rules
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v1
-      - name: Semgrep
-        id: semgrep
-        uses: returntocorp/semgrep-action@v1
-        with:
-          slackWebhookURL: ${{ secrets.BENTO_SLACK_WEBHOOK_URL }}
-          publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}
-          publishDeployment: ${{ secrets.SEMGREP_APP_DEPLOYMENT_ID }}
-
-  changelog-reminder:
-    name: Changelog Reminder
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-
-      - id: semgrep_diff
-        name: Get semgrep package diff
-        uses: technote-space/get-diff-action@v1
-        with:
-          PREFIX_FILTER: semgrep/semgrep
-      - id: changelog_diff
-        name: Get changelog diff
-        uses: technote-space/get-diff-action@v1
-        with:
-          PREFIX_FILTER: CHANGELOG.md
-
-      - name: Send reminder
-        uses: unsplash/comment-on-pr@v1.2.0
-        if: >
-          steps.semgrep_diff.outputs.insertions > 20
-          && steps.changelog_diff.outputs.insertions == 0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          msg: You added quite a few lines in semgrep, but didn't update the changelog. Consider doing so!
-          check_for_duplicate_msg: yes
