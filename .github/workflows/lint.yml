@@ -30,21 +30,6 @@ jobs:
         acceptTermsWithEmail: test@returntocorp.com
         slackWebhookURL: ${{ secrets.BENTO_SLACK_WEBHOOK_URL }}
 
-  bento:
-    name: bento
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Setup Python
-        uses: actions/setup-python@v1
-        with:
-          python-version: 3.7
-      - name: Setup Bento
-        run: pip3 install bento-cli==0.12.0 && bento --version
-      - name: Run Bento Check --all
-        run: bento --agree --email=semgrep-ci@r2c.dev check --all
-
   semgrep-run-r2c-config:
     name: semgrep with r2c registry
     runs-on: ubuntu-latest
