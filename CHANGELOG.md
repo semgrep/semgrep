@@ -10,7 +10,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Support for '...' inside set and dictionaries
 - Version check to recommend updating when out-of-date, disable with `--disable-version-check`
 - Support for multiline pattern-where-python
-- `--dry-run` flag to show result of autofixes without modifying any files
+- `--dryrun` flag to show result of autofixes without modifying any files
 - Add version check to recommend upgrading when applicable
 
 ### Fixed
