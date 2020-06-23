@@ -1,0 +1,57 @@
+on:
+  push:
+    # Sequence of patterns matched against refs/tags
+    tags:
+    - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
+
+name: Validate a release
+
+jobs:
+  sanity_check_release:
+    name: Sanity check the release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Validate the release
+        run: ./release-scripts/validate-release.py
+  verify_osx_release:
+    name: Verify the OSX brew package
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Get the version
+        id: get_version
+        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+      - name: write to a file
+        run: echo "${{ steps.get_version.outputs.VERSION }}" | tee version
+      - name: Install JQ
+        run: brew install jq
+      - name: Validate the release
+        run: VERSION=${{ steps.get_version.outputs.VERSION }} ./release-scripts/validate-osx-release.sh
+  verify_docker_release:
+    name: Verify the docker release works
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Validate docker release
+        run: ./release-scripts/validate-docker-release.sh
+
+  verify_ubuntu_release:
+    name: Verify the ubuntu release works
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Get the version
+        id: get_version
+        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\/v/}
+      - name: build tester image
+        uses: docker/build-push-action@v1
+        with:
+          push: false
+          path: install-scripts
+          dockerfile: install-scripts/Dockerfile.16.04
+          build_args: version=${{ steps.get_version.outputs.VERSION }}
