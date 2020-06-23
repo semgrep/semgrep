@@ -110,7 +110,7 @@ def parse_config_string(
         return {config_id: data}
     except YAMLError as se:
         raise SemgrepError(
-            f"Invalid yaml file {config_id}:\n{indent(str(se))}",
+            f"Invalid YAML file {config_id}:\n{indent(str(se))}",
             code=UNPARSEABLE_YAML_EXIT_CODE,
         )
 
