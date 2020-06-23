@@ -1,3 +1,5 @@
+import json
+from io import StringIO
 from pathlib import Path
 from typing import Any
 from typing import Dict
@@ -11,6 +13,7 @@ from semgrep.autofix import apply_fixes
 from semgrep.constants import COMMA_SEPARATED_LIST_RE
 from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import NOSEM_INLINE_RE
+from semgrep.constants import OutputFormat
 from semgrep.constants import RULES_KEY
 from semgrep.core_runner import CoreRunner
 from semgrep.error import INVALID_CODE_EXIT_CODE
@@ -18,6 +21,7 @@ from semgrep.error import InvalidRuleSchemaError
 from semgrep.error import MISSING_CONFIG_EXIT_CODE
 from semgrep.error import SemgrepError
 from semgrep.output import OutputHandler
+from semgrep.output import OutputSettings
 from semgrep.rule import Rule
 from semgrep.rule_lang import YamlMap
 from semgrep.rule_lang import YamlTree
@@ -239,23 +243,57 @@ def rule_match_nosem(rule_match: RuleMatch, strict: bool) -> bool:
     return result
 
 
+def invoke_semgrep(config: Path, targets: List[Path], **kwargs: Any) -> Any:
+    """
+        Call semgrep with config on targets and return result as a json object
+
+        Uses default arguments of MAIN unless overwritten with a kwarg
+    """
+    io_capture = StringIO()
+    output_handler = OutputHandler(
+        OutputSettings(
+            output_format=OutputFormat.JSON,
+            output_destination=None,
+            quiet=False,
+            error_on_findings=False,
+        ),
+        stdout=io_capture,
+    )
+    main(
+        output_handler=output_handler,
+        target=[str(t) for t in targets],
+        pattern="",
+        lang="",
+        config=str(config),
+        **kwargs,
+    )
+    output_handler.close()
+    return json.loads(io_capture.getvalue())
+
+
 def main(
     output_handler: OutputHandler,
     target: List[str],
     pattern: str,
     lang: str,
     config: str,
-    no_rewrite_rule_ids: bool,
-    jobs: int,
-    include: List[str],
-    exclude: List[str],
-    strict: bool,
-    autofix: bool,
-    dryrun: bool,
-    disable_nosem: bool,
-    dangerously_allow_arbitrary_code_execution_from_rules: bool,
-    no_git_ignore: bool,
+    no_rewrite_rule_ids: bool = False,
+    jobs: int = 1,
+    include: Optional[List[str]] = None,
+    exclude: Optional[List[str]] = None,
+    strict: bool = False,
+    autofix: bool = False,
+    dryrun: bool = False,
+    disable_nosem: bool = False,
+    dangerously_allow_arbitrary_code_execution_from_rules: bool = False,
+    no_git_ignore: bool = False,
 ) -> None:
+    if include is None:
+        include = []
+
+    if exclude is None:
+        exclude = []
+
     valid_configs, config_errors = get_config(pattern, lang, config)
 
     for e in config_errors:
