@@ -834,9 +834,16 @@ let synthesize_patterns s file =
   (match e_opt with
   | Some e ->
       let options = Pattern_from_Code.from_expr e in
-      options |> List.iter (fun (s, pat) ->
-        pr (spf "%s: %s" s (Pretty_print_generic.pattern_to_string lang pat))
-      );
+      let json_opts =
+        J.Object
+            (List.map (fun (k, v) -> (k, J.String (Pretty_print_generic.pattern_to_string lang v)))
+                      options) in
+      let s = Json_io.string_of_json json_opts in
+      pr s
+      (* options |> List.iter (fun (s, pat) ->
+        pr (spf "%s: %s" s (Pretty_print_generic.pattern_to_string lang pat));
+      ); *)
+
   | None -> failwith (spf "could not find an expr at range %s in %s" s file)
   )
 
