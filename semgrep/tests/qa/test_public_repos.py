@@ -4,6 +4,8 @@ from pathlib import Path
 
 import pytest
 
+from ..conftest import TESTS_PATH
+
 pytestmark = pytest.mark.qa
 SENTINEL_VALUE = 87518275812375164
 
@@ -189,9 +191,8 @@ def xfail_repo(url, *, reason=None):
     ],
 )
 def test_semgrep_on_repo(monkeypatch, clone_github_repo, tmp_path, repo_url):
-    TESTS_PATH = Path(__file__).parent.parent
-    monkeypatch.setenv("PYTHONPATH", str(TESTS_PATH.parent.resolve()))
     (tmp_path / "rules").symlink_to(Path(TESTS_PATH / "qa" / "rules").resolve())
+
     monkeypatch.chdir(tmp_path)
 
     repo_path = clone_github_repo(repo_url=repo_url)

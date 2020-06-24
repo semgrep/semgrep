@@ -195,8 +195,6 @@ def _github_repo(repo_url: str, sha: Optional[str], repo_destination: Path):
 
 @pytest.fixture
 def run_semgrep_in_tmp(monkeypatch, tmp_path):
-    monkeypatch.setenv("PYTHONPATH", str(TESTS_PATH.parent.resolve()))
-
     (tmp_path / "targets").symlink_to(Path(TESTS_PATH / "e2e" / "targets").resolve())
     (tmp_path / "rules").symlink_to(Path(TESTS_PATH / "e2e" / "rules").resolve())
 
