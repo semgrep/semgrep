@@ -4,5 +4,5 @@ error: invalid pattern
 4 |       - pattern: $X == $X 3
   |                  ^^^^^^^^^^
 
-Pattern could not be parsed as Python
+Pattern could not be parsed as a Python semgrep pattern
 
