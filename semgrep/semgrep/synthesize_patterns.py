@@ -14,9 +14,13 @@ def synthesize_patterns(
 ) -> None:
     targets = semgrep.config_resolver.resolve_targets(targets_str)
 
-    args = ["-synthesize_patterns", code_to_synthesize]
+    if len(targets) != 1:
+        raise SemgrepError("--synthesize-patterns requires exactly one target file")
 
-    cmd = [SEMGREP_PATH] + args + targets_str
+    target = targets[0]
+    args = ["-synthesize_patterns", code_to_synthesize, str(target)]
+
+    cmd = [SEMGREP_PATH] + args
     try:
         output = subprocess.check_output(cmd, shell=False)
     except subprocess.CalledProcessError as ex:

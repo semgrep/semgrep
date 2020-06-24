@@ -193,7 +193,7 @@ def cli() -> None:
         ),
     )
     output.add_argument(
-        "--synthesize-patterns", help=("Suggest pattern to user given a code range."),
+        "--synthesize-patterns", help=argparse.SUPPRESS,
     )
     output.add_argument(
         "--error",
