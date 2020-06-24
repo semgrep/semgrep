@@ -11,6 +11,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Version check to recommend updating when out-of-date, disable with `--disable-version-check`
 - Support for multiline pattern-where-python
 - `--dryrun` flag to show result of autofixes without modifying any files
+- Add capability to use regex replacement for autofixing. See documentaion [here](https://github.com/returntocorp/semgrep/blob/develop/docs/experimental.md#autofix-using-regular-expression-replacement)
 - Add version check to recommend upgrading when applicable
 
 ### Fixed
