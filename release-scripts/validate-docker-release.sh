@@ -14,6 +14,6 @@ echo " return a + b == a + b" >> test.py
 # shellcheck disable=SC2016
 docker run -v "${PWD}:/home/repo/" returntocorp/semgrep:"$docker_tag" ./test.py -l python -e '$X == $X' | tee output
 
-cat output | grep 'a + b == a + b'
+grep 'a + b == a + b' output
 
 echo "Docker image OK!"
