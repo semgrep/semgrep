@@ -3,7 +3,7 @@ from subprocess import CalledProcessError
 
 import pytest
 
-from tests.conftest import TESTS_PATH
+from ..conftest import TESTS_PATH
 
 syntax_dir = TESTS_PATH / "e2e" / "rules" / "syntax"
 syntax_passes = [f.with_suffix("").name for f in syntax_dir.glob("good*.yaml")]
