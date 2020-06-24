@@ -3,7 +3,7 @@
     {
       "code": 4,
       "level": "error",
-      "long_msg": "Pattern could not be parsed as Python",
+      "long_msg": "Pattern could not be parsed as a Python semgrep pattern",
       "short_msg": "invalid pattern",
       "spans": [
         {

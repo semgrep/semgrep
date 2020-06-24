@@ -3,18 +3,18 @@
     {
       "code": 4,
       "level": "error",
-      "long_msg": "Pattern could not be parsed as C",
+      "long_msg": "Pattern could not be parsed as a C semgrep pattern",
       "short_msg": "invalid pattern",
       "spans": [
         {
           "context_end": null,
           "context_start": null,
           "end": {
-            "col": 11,
+            "col": 23,
             "line": 1
           },
           "file": "CLI Input",
-          "source_hash": "420525e8e16fbbef2e5558f91905d129b6d1e8c9d818204b3a823e4829196719",
+          "source_hash": "7efe89db58e7a4017c5cd63dd547745a14f3e4c1fc32fd5e2051b53858d9e85d",
           "start": {
             "col": 1,
             "line": 1

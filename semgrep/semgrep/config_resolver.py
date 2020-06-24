@@ -18,7 +18,6 @@ from semgrep.constants import YML_EXTENSIONS
 from semgrep.error import SemgrepError
 from semgrep.error import UNPARSEABLE_YAML_EXIT_CODE
 from semgrep.rule_lang import parse_yaml_preserve_spans
-from semgrep.rule_lang import SourceTracker
 from semgrep.rule_lang import Span
 from semgrep.rule_lang import YamlTree
 from semgrep.util import debug_print
