@@ -22,6 +22,49 @@ rules:
 
 See it live at https://semgrep.live/R6g.
 
+## Autofix Using Regular Expression Replacement
+
+Semgrep can do regular expression replacement as an autofix. Use the `fix-regex` key to apply regular expression replacements to matches found by Semgrep.
+
+`fix-regex` has two required fields, `regex` and `replacement`. `regex` specifies the regular expression to replace within the match found by Semgrep. `replacement` specifies what to replace the regular expression with. 
+
+`fix-regex` also takes an optional `count` field, which specifies how many occurrences of `regex` to replace with `replacement`, from left-to-right and top-to-bottom. By default, `fix-regex` will replace all occurrences of `regex`. If `regex` does not match anything, no replacements are made.
+
+The replacement behavior is identical to the `re.sub` function in Python. See https://docs.python.org/3/library/re.html#re.sub for more information.
+
+An example rule with `fix-regex` is shown below. `regex` uses a capture group to greedily capture everything up to the final parenthesis in the match found by Semgrep. `replacement` replaces this with everything in the capture group (`\1`), a comma, `timeout=30`, and a closing parenthesis. Effectively, this adds `timeout=30` to the end of every match.
+
+```yaml
+rules:
+- id: python.requests.best-practice.use-timeout.use-timeout
+  patterns:
+  - pattern-not: requests.$W(..., timeout=$N, ...)
+  - pattern-not: requests.$W(..., **$KWARGS)
+  - pattern-either:
+    - pattern: requests.request(...)
+    - pattern: requests.get(...)
+    - pattern: requests.post(...)
+    - pattern: requests.put(...)
+    - pattern: requests.delete(...)
+    - pattern: requests.head(...)
+    - pattern: requests.patch(...)
+  fix-regex:
+    regex: '(.*)\)'
+    replacement: '\1, timeout=30)'
+  message: |
+    'requests' calls default to waiting until the connection is closed.
+    This means a 'requests' call without a timeout will hang the program
+    if a response is never received. Consider setting a timeout for all
+    'requests'.
+  languages: [python]
+  severity: WARNING
+```
+
+The autofix can be applied directly to the file using the `--autofix` flag, or you can use both the `--autofix` and `--dryrun` flags to test the autofix.
+
+<p align="center">
+  <img src="https://web-assets.r2c.dev/inline-autofix-regex.gif" width="100%" alt="Apply Semgrep autofix direclty to a file"/>
+</p>
 
 Please file issues with autofix [here](https://github.com/returntocorp/semgrep/issues) and include the `feature:autofix` tag.
 
