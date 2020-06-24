@@ -6,6 +6,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Support for a new configuration language: JSON. You can now write
   JSON semgrep patterns with -lang json
 - Support for '...' inside set and dictionaries
+- Version check to recommend updating when out-of-date, disable with `--disable-version-check`
 
 ### Fixed
 - Fix the range of function calls and statement blocks, which fixes the

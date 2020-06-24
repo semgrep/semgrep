@@ -313,6 +313,28 @@ Currently, the easiest way to integrate Semgrep into CI is via a GitHub action w
 
 Semgrep can also output results in the standardized Static Analysis Results Interchange Format ([SARIF](https://docs.oasis-open.org/sarif/sarif/v2.1.0/cs01/sarif-v2.1.0-cs01.html)) with the `--sarif` flag, if you use tools that accept this format.
 
+## Upgrading
+
+How you upgrade Semgrep will depend on how you installed it.
+
+From Homebrew:
+
+```bash
+$ brew upgrade semgrep
+```
+
+From PyPI:
+
+```bash
+$ python -m pip install --upgrade semgrep
+```
+
+From Docker:
+
+```bash
+$ docker pull returntocorp/semgrep:latest
+```
+
 ## Resources
 
 Learn more:

@@ -22,19 +22,20 @@ USER opam
 WORKDIR /home/opam/opam-repository
 RUN git pull && opam update && opam switch create 4.10.0+musl+static+flambda
 
-COPY --chown=opam . /home/opam/sgrep/
-WORKDIR /home/opam/sgrep
+COPY --chown=opam . /home/opam/semgrep/
+WORKDIR /home/opam/semgrep
 
 RUN git submodule update --init --recursive
-RUN eval $(opam env) && opam install -y ./pfff
-RUN eval $(opam env) && cd semgrep-core && opam install --deps-only -y . && make all
-RUN semgrep-core/_build/default/bin/Main.exe -version
+RUN eval "$(opam env)" && opam install -y ./pfff
+WORKDIR /home/opam/semgrep/semgrep-core
+RUN eval "$(opam env)" && opam install --deps-only -y . && make all
+RUN _build/default/bin/Main.exe -version
 
 
 ## final output, combining both
 
 FROM python:3.7.7-alpine3.11
-LABEL maintainer="sgrep@r2c.dev"
+LABEL maintainer="support@r2c.dev"
 
 ENV PYTHONUNBUFFERED=1
 
@@ -43,7 +44,7 @@ COPY --from=build-semgrep /root/.local /root/.local
 ENV PATH=/root/.local/bin:$PATH
 
 RUN semgrep --help
-COPY --from=build-semgrep-core /home/opam/sgrep/semgrep-core/_build/default/bin/Main.exe /bin/semgrep-core
+COPY --from=build-semgrep-core /home/opam/semgrep/semgrep-core/_build/default/bin/Main.exe /bin/semgrep-core
 RUN semgrep-core --help
 
 ENV SEMGREP_IN_DOCKER=1
