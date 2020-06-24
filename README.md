@@ -36,6 +36,9 @@
   <a href="https://github.com/returntocorp/semgrep/issues/new/choose">
     <img src="https://img.shields.io/badge/issues-welcome-green?style=flat-square" alt="Issues welcome!" />
   </a>
+      <a href="https://github.com/returntocorp/semgrep/actions?query=workflow%3ATests+branch%3Adevelop">
+      <img src="https://github.com/returntocorp/semgrep/workflows/Tests/badge.svg?branch=develop" alt="Test Status"/>
+  </a>
   <a href="https://twitter.com/intent/follow?screen_name=r2cdev">
     <img src="https://img.shields.io/twitter/follow/r2cdev?label=Follow%20r2cdev&style=social&color=blue" alt="Follow @r2cdev" />
   </a>
