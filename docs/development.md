@@ -33,6 +33,12 @@ Install `pkg-config` in your environment. On a mac this is
 brew install pkg-config
 ```
 
+Install tree-sitter's and ocaml-tree-sitter's runtime libraries:
+
+```bash
+./install-scripts/install-ocaml-tree-sitter
+```
+
 Then you can compile the program with:
 
 ```bash

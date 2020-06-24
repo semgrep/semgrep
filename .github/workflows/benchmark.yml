@@ -30,9 +30,11 @@ jobs:
           BRANCH: "develop"
           OUT_DIR: "semgrep/benchmarks"
       - name: Install pfff
-        run: eval $(opam  env --root /home/opam/.opam --set-root) && opam install -y ./pfff
+        run: eval $(opam env --root /home/opam/.opam --set-root) && opam install -y ./pfff
+      - name: Install ocaml-tree-sitter
+        run: eval $(opam env --root /home/opam/.opam --set-root) && ./install-scripts/install-ocaml-tree-sitter
       - name: Install semgrep-core
-        run: eval $(opam  env --root /home/opam/.opam --set-root) && cd semgrep-core && opam install --deps-only -y . && make all && make install
+        run: eval $(opam env --root /home/opam/.opam --set-root) && cd semgrep-core && opam install --deps-only -y . && make all && make install
       - name: Install bootstrapping packages for Python
         run: |
           export PATH=/github/home/.local/bin:$PATH
