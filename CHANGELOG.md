@@ -15,6 +15,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Add version check to recommend upgrading when applicable
 
 ### Fixed
+- Const propagation now works with Java 'final' keyword and for Python globals
+  which were assigned only once in the program
 - The range of function calls and statement blocks now includes the closing
   `}` and `)`. The range for expression statements now includes the closing
   ';' when there's one. The range of decorators now includes '@'.
