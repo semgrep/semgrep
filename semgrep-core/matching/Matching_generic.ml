@@ -277,7 +277,7 @@ let empty_environment () = []
 (* guard for deep stmt matching *)
 let has_ellipsis_stmts xs =
   xs |> List.exists (function
-    | A.ExprStmt (A.Ellipsis _) -> true
+    | A.ExprStmt (A.Ellipsis _, _) -> true
     | _ -> false
   )
 (*e: function [[Matching_generic.has_ellipsis_stmts]] *)

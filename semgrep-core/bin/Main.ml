@@ -378,6 +378,7 @@ let parse_generic lang file =
    *)
   AST_generic.gensym_counter := 0;
   Naming_AST.resolve lang ast;
+  Constant_propagation.propagate lang ast;
   (*e: [[Main_semgrep_core.parse_generic()]] resolve names in the AST *)
   ast
   ))
