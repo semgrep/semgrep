@@ -56,10 +56,10 @@ On macOS, binaries are available via Homebrew:
 $ brew install semgrep
 ```
 
-On Ubuntu, an install script is available with each [release](https://github.com/returntocorp/semgrep/releases/download/v0.11.0/semgrep-v0.11.0-ubuntu-generic.sh)
+On Ubuntu, an install script is available with each [release](https://github.com/returntocorp/semgrep/releases/download/v0.12.0/semgrep-v0.12.0-ubuntu-generic.sh)
 
 ```bash
-$ ./semgrep-v0.11.0-ubuntu-generic.sh
+$ ./semgrep-v0.12.0-ubuntu-generic.sh
 ```
 
 To try Semgrep without installation, you can also run it via Docker:
@@ -338,7 +338,7 @@ $ docker pull returntocorp/semgrep:latest
 ## Resources
 
 Learn more:
-* [Semgrep presentation](https://www.youtube.com/watch?v=pul1bRIOYc8) and [slides](https://web-assets.r2c.dev/presentations/r2c-semgrep-OWASP-BayArea-21-May-2020.pdf) from the Bay Area OWASP meetup. 
+* [Semgrep presentation](https://www.youtube.com/watch?v=pul1bRIOYc8) and [slides](https://web-assets.r2c.dev/presentations/r2c-semgrep-OWASP-BayArea-21-May-2020.pdf) from the Bay Area OWASP meetup.
 * Check out the [r2c YouTube channel](https://www.youtube.com/channel/UC5ahcFBorwzUTqPipFhjkWg) for more videos.
 * More detailed [Semgrep docs](docs/README.md)
 
