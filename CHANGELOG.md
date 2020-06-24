@@ -15,8 +15,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Add version check to recommend upgrading when applicable
 
 ### Fixed
-- Fix the range of function calls and statement blocks to include closing
-  `}` and `)`.
+- The range of function calls and statement blocks now includes the closing
+  `}` and `)`. The range for expression statements now includes the closing
+  ';' when there's one. The range of decorators now includes '@'.
+- The use of Python globals is now correctly resolved.
 - Do not convert certain parenthesized expressions in tuples in Python
 - Returned warning when improperly mounting volume in docker container
 - Correctly handle uncommited file deletions when using git aware file targeting
