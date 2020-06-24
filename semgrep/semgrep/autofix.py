@@ -14,6 +14,9 @@ SPLIT_CHAR = "\n"
 
 
 def _get_lines(path: Path) -> List[str]:
+    """
+        blah
+    """
     contents = path.read_text()
     lines = contents.split(SPLIT_CHAR)
     return lines
