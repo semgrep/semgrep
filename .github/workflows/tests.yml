@@ -37,7 +37,7 @@ jobs:
         run: mkdir -p ~/.cache/semgrep-cache
       - run: touch ~/.cache/semgrep-cache/ok
       - name: Test semgrep
-        run: eval $(opam  env --root /home/opam/.opam --set-root) && cd semgrep && export PATH=/github/home/.local/bin:$PATH && make qa-test
+        run: eval $(opam  env --root /home/opam/.opam --set-root) && cd semgrep && export PATH=/github/home/.local/bin:$PATH && make ci-test
         env:
           GITHUB_REPO_CACHE: ~/.cache/semgrep-cache
 
