@@ -34,6 +34,12 @@ git submodule init && git submodule update --init --recursive
 eval $(opam env) && opam install -y ./pfff
 ```
 
+Install tree-sitter's and ocaml-tree-sitter's runtime libraries:
+
+```bash
+./install-scripts/install-ocaml-tree-sitter
+```
+
 Then you can compile the program with:
 
 ```bash
