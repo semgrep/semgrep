@@ -141,15 +141,15 @@ $ semgrep --config my-rule-file.yml
 
 #### Break it down
 
-If you're writing a complex, multi-part pattern, rather than writing the whole pattern and then testing it, similar to writing a complex chunk of code, try building it in pieces, and testing each step along the way.
+If you're writing a complex, multi-part pattern, rather than writing the whole pattern (similar to writing a complex chunk of code), try building it in pieces, and testing each step along the way.
 
-**`pattern` and `pattern-not`**: If there are a number of cases for the code you're searching for that you want to filter out, first write an initial pattern (using `pattern`) that finds the general case, and ensure it works as you expect.
+**`pattern` and `pattern-not`**: If there are a number of cases for you want to filter out, first write an initial pattern (using `pattern`) that finds the general case, and ensure it works as you expect.
 
-Then, add a series of `pattern-not` clauses to filter out the cases that you *don't* want to match, that would cause your Semgrep rule to return "false positives."
+Then, add a series of `pattern-not` clauses to filter out the cases that you *don't* want to match. This is how Semgrep removes "false positives."
 
-**`pattern-either`**: If there are a series of code snippets you'd like to find that can't all be matched by the same pattern, create a test file with each of these code snippets, and then write a `pattern` clause for each.
+**`pattern-either`**: If there are a series of code snippets you'd like to find that can't all be matched by the same pattern, use `pattern-either`. `pattern-either` effectively OR's patterns together.
 
-Then, combine all of these clauses under a `pattern-either` clause, which will cause Semgrep to match code for which any subclause matches. Your Semgrep rule will look something like this:
+To test, for code variations, create a test file with each of these code snippets and then write a `pattern` clause for each. Then, combine all of these clauses under a `pattern-either` clause, which will cause Semgrep to match code for which any `pattern` clause matches. Your Semgrep rule will look something like this:
 
 ```yaml
 rules:
@@ -175,7 +175,7 @@ After you have a Semgrep rule that's been vetted against some test examples you 
 
 ### 4a. Test on One Repo
 
-Clone one repo locally, if you don't have one ready, and scan it:
+Clone one repo locally and scan it:
 
 ```yaml
 $ semgrep --config path/to/my-rules.yml path/to/repo
