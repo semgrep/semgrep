@@ -17,6 +17,7 @@ from semgrep.dump_ast import dump_parsed_ast
 from semgrep.error import SemgrepError
 from semgrep.output import managed_output
 from semgrep.output import OutputSettings
+from semgrep.synthesize_patterns import synthesize_patterns
 from semgrep.util import debug_print
 from semgrep.util import print_error
 from semgrep.util import print_msg
@@ -192,6 +193,9 @@ def cli() -> None:
         ),
     )
     output.add_argument(
+        "--synthesize-patterns", help=("Suggest pattern to user given a code range."),
+    )
+    output.add_argument(
         "--error",
         action="store_true",
         help="Exit 1 if there are findings. Useful for CI and scripts.",
@@ -330,6 +334,8 @@ def cli() -> None:
     with managed_output(output_settings) as output_handler:
         if args.dump_ast:
             dump_parsed_ast(args.json, args.lang, args.pattern, args.target)
+        elif args.synthesize_patterns:
+            synthesize_patterns(args.lang, args.synthesize_patterns, args.target)
         elif args.validate:
             _, config_errors = semgrep.semgrep_main.get_config(
                 args.pattern, args.lang, args.config
