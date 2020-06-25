@@ -231,7 +231,7 @@ class OutputHandler:
         self.semgrep_core_errors += semgrep_errors
         if self.settings.output_format == OutputFormat.TEXT:
             parse_errors, other_errors = partition(
-                lambda e: e._check_id == "ParseError", semgrep_errors
+                lambda e: e._check_id in {"ParseError", "FatalError"}, semgrep_errors
             )
 
             for error in other_errors:
