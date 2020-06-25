@@ -839,6 +839,37 @@ let synthesize_patterns s file =
   | None -> failwith (spf "could not find an expr at range %s in %s" s file)
   )
 
+(* mostly a copy paste of Test_parsing_ruby.test_parse in pfff but using
+ * here the tree-sitter ruby parser
+ *)
+let test_parse_ruby xs =
+    let xs = List.map Common.fullpath xs in
+
+  let fullxs =
+    Lib_parsing_ruby.find_source_files_of_dir_or_files xs
+    |> Skip_code.filter_files_if_skip_list ~root:xs
+  in
+
+  let stat_list = ref [] in
+  fullxs |> Console.progress (fun k -> List.iter (fun file ->
+    k();
+    if !verbose then pr2 (spf "processing %s" file);
+
+    let n = Common2.nblines_file file in
+    let stat = Parse_info.default_stat file in
+    (try
+       let _prog_opt = Tree_sitter_ruby.Parse.file file in
+       stat.PI.correct <- n
+    with exn ->
+        pr2 (spf "%s: exn = %s" file (Common.exn_to_s exn));
+        stat.PI.bad <- n
+    );
+    Common.push stat stat_list;
+  ));
+  flush stdout; flush stderr;
+
+  Parse_info.print_parsing_stat_list !stat_list;
+  ()
 
 (*****************************************************************************)
 (* The options *)
@@ -870,6 +901,9 @@ let all_actions () = [
   Common.mk_action_2_arg expr_at_range;
   "-synthesize_patterns", " <l:c-l:c> <file>",
   Common.mk_action_2_arg synthesize_patterns;
+
+  "-parse_ruby", " <files or dirs>",
+  Common.mk_action_n_arg test_parse_ruby;
  ]
 (*e: function [[Main_semgrep_core.all_actions]] *)
 
