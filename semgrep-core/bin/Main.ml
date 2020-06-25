@@ -352,7 +352,6 @@ let timeout_function lang = fun f ->
 (*****************************************************************************)
 
 (*s: function [[Main_semgrep_core.parse_generic]] *)
-(* coupling: you need also to modify tests/Test.ml *)
 let parse_generic lang file =
   (*s: [[Main_semgrep_core.parse_generic()]] use standard macros if parsing C *)
   if lang = Lang.C && Sys.file_exists !Flag_parsing_cpp.macros_h
@@ -372,15 +371,9 @@ let parse_generic lang file =
      cache_file_of_file full_filename)
  (fun () -> timeout_function lang (fun () ->
  try
+  (* finally calling the actual function *)
   let ast = Parse_generic.parse_with_lang lang file in
   (*s: [[Main_semgrep_core.parse_generic()]] resolve names in the AST *)
-  (* to be deterministic, reset the gensym; anyway right now sgrep is
-   * used only for local per-file analysis, so no need to have a unique ID
-   * among a set of files in a project like codegraph.
-   *)
-  AST_generic.gensym_counter := 0;
-  Naming_AST.resolve lang ast;
-  Constant_propagation.propagate lang ast;
   (*e: [[Main_semgrep_core.parse_generic()]] resolve names in the AST *)
   Left ast
  (* This is a bit subtle, but we now store in the cache whether we had
@@ -455,7 +448,7 @@ let parse_pattern str =
  try (
   Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
    match Lang.lang_of_string_opt !lang with
-   | Some lang -> PatGen (Check_semgrep.parse_check_pattern lang str)
+   | Some lang -> PatGen (Parse_pattern.parse_pattern lang str)
    (*s: [[Main_semgrep_core.parse_pattern()]] when not a supported language *)
    | None ->
      (match Lang_fuzzy.lang_of_string_opt !lang with
