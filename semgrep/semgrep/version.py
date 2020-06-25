@@ -22,7 +22,7 @@ VERSION_CHECK_TIMEOUT = int(
 VERSION_CACHE_PATH = Path(
     os.environ.get(
         "SEMGREP_VERSION_CACHE_PATH",
-        Path(os.path.expanduser("~/.cache")) / "semgrep_version",
+        Path(os.path.expanduser("~")) / ".cache" / "semgrep_version",
     )
 )
 
@@ -90,9 +90,7 @@ def _get_latest_version(version_cache_path: Path) -> Optional[str]:
             # Request timed out or invalid
             return None
 
-        if not version_cache_path.parent.is_dir():
-            version_cache_path.parent.mkdir(parents=True, exist_ok=True)
-
+        version_cache_path.parent.mkdir(parents=True, exist_ok=True)
         with version_cache_path.open("w") as f:
             # Integer time so no need to deal with str float conversions
             f.write(f"{int(time.time())}\n")
