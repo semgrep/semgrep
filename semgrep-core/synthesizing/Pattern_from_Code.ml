@@ -55,12 +55,20 @@ let default_id str =
   Id((str, fk),
    {id_resolved = ref None; id_type = ref None; id_const_literal = ref None})
 
+let count_to_id count =
+  let make_id ch = Format.sprintf "$%c" ch in
+  if count = 1 then make_id 'X'
+  else if count = 2 then make_id 'Y'
+  else if count = 3 then make_id 'Z'
+  else if count <= 26 then make_id (Char.chr (count - 4 + Char.code 'A'))
+  else Format.sprintf "$X%d" (count - 26)
+
 let get_id state e =
   let id = lookup state e in
   match id with
       Some x -> (state, x)
     | None ->
-        let new_id = default_id (Format.sprintf "$X%d" state.count) in
+        let new_id = default_id (count_to_id state.count) in
         ({ count = state.count + 1; mapping = (e, new_id)::(state.mapping) }, new_id)
 
 (*****************************************************************************)
@@ -96,8 +104,7 @@ let generalize_call state = function
 let generalize_exp e state =
   match e with
   | Call _ -> generalize_call state e
-  | Id ((_s, t1), info) ->
-      ["metavar", E (Id(("$X", t1), info))]
+  | Id _ -> let (_, id) = get_id state e in ["metavar", E id]
   | L _ -> let (_, id) = get_id state e in ["metavar", E id]
   | _ -> []
 
