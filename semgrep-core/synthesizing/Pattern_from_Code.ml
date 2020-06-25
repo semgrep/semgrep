@@ -28,14 +28,40 @@ open AST_generic
 type named_variants =
   (string * Pattern.t) list
 
+type global_state = { count : int; mapping : (expr * expr) list }
+
+(*****************************************************************************)
+(* State helpers *)
+(*****************************************************************************)
+
+(* TODO make mapping a map and use map lookup *)
+let lookup state e =
+let mapping = state.mapping in
+let rec look = function
+    | [] -> None
+    | (e1, e2)::xs ->
+      if Matching_generic.equal_ast_binded_code (E e) (E e1) then Some e2 else look xs
+in
+  look mapping
+
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 let fk = Parse_info.fake_info "fake"
 let _bk f (lp,x,rp) = (lp, f x, rp)
 
-(* let fst (x, _) = x *)
-let snd (_, x) = x
+let default_id str =
+  Id((str, fk),
+   {id_resolved = ref None; id_type = ref None; id_const_literal = ref None})
+
+let get_id state e =
+  let id = lookup state e in
+  match id with
+      Some x -> (state, x)
+    | None ->
+        let new_id = default_id (Format.sprintf "$X%d" state.count) in
+        ({ count = state.count + 1; mapping = (e, new_id)::(state.mapping) }, new_id)
 
 (*****************************************************************************)
 (* Algorithm *)
@@ -44,44 +70,39 @@ let snd (_, x) = x
  * propose also typed metavars, and resolved id in the call, etc.
  *)
 
-let default_id count =
-    (count + 1,
-     Id((Format.sprintf "$X%d" (count), Parse_info.fake_info " "),
-     {id_resolved = ref None; id_type = ref None; id_const_literal = ref None})
-    )
-
+(* Calls *)
 let shallow_dots (e, (lp, rp)) =
-   ("dots", E (Call (e, (lp, [Arg (Ellipsis fk)], rp))))
+  ("dots", E (Call (e, (lp, [Arg (Ellipsis fk)], rp))))
 
-let rec map_args count = function
-   | [] -> (count, [])
-   | _x::xs ->
-      let (c, new_id) = default_id count in
-      let (_, args) = map_args c xs in
-      (c, (Arg new_id)::args)
+let rec map_args state = function
+  | [] -> (state, [])
+  | (Arg x)::xs ->
+     let (c, new_id) = get_id state x in
+     let (_, args) = map_args c xs in
+     (c, (Arg new_id)::args)
+  | _ -> (state, []) (* TODO fail? *)
 
-let shallow_metavar (e, (lp, es, rp)) count =
-   let (_, replaced_args) = map_args count es in
-   ("metavars", E (Call (e, (lp, replaced_args, rp))))
+let shallow_metavar (e, (lp, es, rp)) state =
+  let (_, replaced_args) = map_args state es in
+  ("metavars", E (Call (e, (lp, replaced_args, rp))))
 
-
-let generalize_call count = function
-  | Call (IdSpecial e1, e2) -> (shallow_metavar (IdSpecial e1, e2) count) :: []
+let generalize_call state = function
+  | Call (IdSpecial e1, e2) -> (shallow_metavar (IdSpecial e1, e2) state) :: []
   | Call (e, (lp, es, rp)) ->
-      (shallow_dots (e, (lp, rp))) :: (shallow_metavar (e, (lp, es, rp)) count) :: []
+      (shallow_dots (e, (lp, rp))) :: (shallow_metavar (e, (lp, es, rp)) state) :: []
   | _ -> []
 
-let generalize_exp e count =
+(* All expressions *)
+let generalize_exp e state =
   match e with
-  | Call _ -> generalize_call count e
+  | Call _ -> generalize_call state e
   | Id ((_s, t1), info) ->
       ["metavar", E (Id(("$X", t1), info))]
-  | L _ -> ["metavar", E (snd (default_id count))]
+  | L _ -> let (_, id) = get_id state e in ["metavar", E id]
   | _ -> []
 
 let generalize e =
-  let count = 1 in
-  generalize_exp e count
+  generalize_exp e { count = 1; mapping = [] }
 
 (*****************************************************************************)
 (* Entry point *)

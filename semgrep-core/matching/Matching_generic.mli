@@ -69,9 +69,10 @@ val is_regexp_string: string -> bool
 val regexp_of_regexp_string: string -> Str.regexp
 (*e: signature [[Matching_generic.regexp_of_regexp_string]] *)
 
+val equal_ast_binded_code : AST_generic.any -> AST_generic.any -> bool
+
 (* internal:
 val str_of_any : AST_generic.any -> string
-val equal_ast_binded_code : AST_generic.any -> AST_generic.any -> bool
 *)
 
 (* generic matchers *)
