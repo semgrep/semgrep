@@ -31,13 +31,24 @@
     "violations": {}
   },
   "flake8": {
-    "violations": {}
-  },
-  "r2c.click": {
-    "violations": {}
-  },
-  "r2c.flask": {
-    "violations": {}
+    "violations": {
+      "f6a4282b4c97605d3748bc86b22bcfd2": {
+        "tool_id": "flake8",
+        "check_id": "unused-module",
+        "path": "semgrep/semgrep/synthesize_patterns.py",
+        "message": "'tempfile' imported but unused",
+        "severity": 2,
+        "syntactic_context": "import tempfile"
+      },
+      "f95465eaf67bc6ef0f0e218eb1ee6b4b": {
+        "tool_id": "flake8",
+        "check_id": "unused-module",
+        "path": "semgrep/semgrep/synthesize_patterns.py",
+        "message": "'typing.Optional' imported but unused",
+        "severity": 2,
+        "syntactic_context": "from typing import Optional"
+      }
+    }
   },
   "r2c.registry.latest": {
     "violations": {}
