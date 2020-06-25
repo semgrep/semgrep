@@ -15,33 +15,30 @@
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* Mostly a wrapper around pfff Parse_generic but which can also use
- * tree-sitter parsers if needed.
+(* Ruby parser using ocaml-tree-sitter-lang/ruby and converting
+ * to pfff/lang_ruby/parsing/ast_ruby.ml
+ * This can then be converted to the generic AST by using
+ * pfff/lang_ruby/analyze/ruby_to_generic.ml
  *)
 
 (*****************************************************************************)
-(* Helpers *)
+(* Boilerplate converter *)
 (*****************************************************************************)
-
-let just_parse_with_lang lang file =
-  match lang with
-  | Lang.Ruby ->
-      let ast = Parse_ruby_tree_sitter.parse file in
-      Ruby_to_generic.program ast
-  | _ -> Parse_generic.parse_with_lang lang file
+(* This was started by copying ocaml-tree-sitter-lang/ruby/Boilerplate.ml *)
 
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
-
-let parse_with_lang lang file =
-  let ast = just_parse_with_lang lang file in
-
-  (* to be deterministic, reset the gensym; anyway right now semgrep is
-   * used only for local per-file analysis, so no need to have a unique ID
-   * among a set of files in a project like codegraph.
+let parse file =
+  (* TODO: tree-sitter bindings are buggy so we cheat and fork to
+   * avoid segfaults to popup. See Main.ml test_parse_ruby function.
    *)
-  AST_generic.gensym_counter := 0;
-  Naming_AST.resolve lang ast;
-  Constant_propagation.propagate lang ast;
-  ast
+   let _cst =
+      if false
+      then Tree_sitter_ruby.Parse.file file
+      else begin
+         Parallel.backtrace_when_exn := false;
+         Parallel.invoke Tree_sitter_ruby.Parse.file file ()
+      end
+   in
+   failwith "Todo"

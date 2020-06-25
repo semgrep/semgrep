@@ -757,7 +757,7 @@ let dump_pattern (file: Common.filename) =
   match Lang.lang_of_string_opt !lang with
   | Some lang ->
     E.try_with_print_exn_and_reraise file (fun () ->
-      let any = Parse_generic.parse_pattern lang s in
+      let any = Parse_pattern.parse_pattern lang s in
       let v = Meta_AST.vof_any any in
       let s = dump_v_to_format v in
       pr s
@@ -770,7 +770,7 @@ let dump_pattern (file: Common.filename) =
 let dump_ast file =
   match Lang.langs_of_filename file with
   | lang::_ ->
-    let x = parse_generic lang file in
+    let x = Parse_code.parse_with_lang lang file in
     let v = Meta_AST.vof_any (AST_generic.Pr x) in
     let s = dump_v_to_format v in
     pr s
