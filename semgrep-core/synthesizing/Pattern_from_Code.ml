@@ -71,6 +71,8 @@ let get_id state e =
         let new_id = default_id (count_to_id state.count) in
         ({ count = state.count + 1; mapping = (e, new_id)::(state.mapping) }, new_id)
 
+let has_nested_call = List.find_opt (fun x -> match x with Arg(Call _) -> true | _ -> false)
+
 (*****************************************************************************)
 (* Algorithm *)
 (*****************************************************************************)
@@ -85,19 +87,44 @@ let shallow_dots (e, (lp, rp)) =
 let rec map_args state = function
   | [] -> (state, [])
   | (Arg x)::xs ->
-     let (c, new_id) = get_id state x in
-     let (_, args) = map_args c xs in
-     (c, (Arg new_id)::args)
+     let (state', new_id) = get_id state x in
+     let (_, args) = map_args state' xs in
+     (state', (Arg new_id)::args)
   | _ -> (state, []) (* TODO fail? *)
 
 let shallow_metavar (e, (lp, es, rp)) state =
   let (_, replaced_args) = map_args state es in
   ("metavars", E (Call (e, (lp, replaced_args, rp))))
 
+let rec deep_mv_call (e, (lp, es, rp)) state =
+  let (state', replaced_args) = deep_mv_args state es in
+  (state', Call (e, (lp, replaced_args, rp)))
+and deep_mv_args state = function
+  | [] -> (state, [])
+  | (Arg e)::xs -> (
+     let (state', new_e) =
+     match e with
+         | Call (e, (lp, es, rp)) -> deep_mv_call (e, (lp, es, rp)) state
+         | _ -> get_id state e
+     in
+     let (_, args) = deep_mv_args state' xs in
+     (state', (Arg new_e)::args)
+  )
+  | _ -> (state, [])
+
+let deep_metavar (e, (lp, es, rp)) state =
+  let (_, e') = deep_mv_call (e, (lp, es, rp)) state in ("deep metavars", E e')
+
 let generalize_call state = function
   | Call (IdSpecial e1, e2) -> (shallow_metavar (IdSpecial e1, e2) state) :: []
   | Call (e, (lp, es, rp)) ->
-      (shallow_dots (e, (lp, rp))) :: (shallow_metavar (e, (lp, es, rp)) state) :: []
+      (* only show the deep_metavar option if relevant *)
+      let d_mvar =
+        match (has_nested_call es) with
+            None -> []
+          | Some _ -> (deep_metavar (e, (lp, es, rp)) state) :: []
+       in
+       (shallow_dots (e, (lp, rp))) :: (shallow_metavar (e, (lp, es, rp)) state) :: d_mvar
   | _ -> []
 
 (* All expressions *)
