@@ -840,7 +840,7 @@ let synthesize_patterns s file =
   )
 
 (* mostly a copy paste of Test_parsing_ruby.test_parse in pfff but using
- * here the tree-sitter ruby parser
+ * the tree-sitter Ruby parser instead.
  *)
 let test_parse_ruby xs =
     let xs = List.map Common.fullpath xs in
@@ -858,7 +858,19 @@ let test_parse_ruby xs =
     let n = Common2.nblines_file file in
     let stat = Parse_info.default_stat file in
     (try
-       let _prog_opt = Tree_sitter_ruby.Parse.file file in
+       let _prog_opt =
+          (* TODO: to fix! if set to true, we get segfault! *)
+          if false
+          then Tree_sitter_ruby.Parse.file file
+          (* Execute in its own process, so GC bugs will not pop-out here.
+           * Slower, but safer for now, otherwise get segfaults probably
+           * because of bugs in tree-sitter OCaml bindings.
+           *)
+          else begin
+               Parallel.backtrace_when_exn := false;
+               Parallel.invoke Tree_sitter_ruby.Parse.file file ()
+           end;
+       in
        stat.PI.correct <- n
     with exn ->
         pr2 (spf "%s: exn = %s" file (Common.exn_to_s exn));
