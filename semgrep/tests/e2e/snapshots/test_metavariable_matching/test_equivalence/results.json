@@ -39,6 +39,45 @@
         "col": 5,
         "line": 4
       }
+    },
+    {
+      "check_id": "rules.open-from-request",
+      "end": {
+        "col": 12,
+        "line": 14
+      },
+      "extra": {
+        "lines": "    open(z)",
+        "message": "Unsafe open from request data",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "z",
+            "end": {
+              "col": 11,
+              "line": 14,
+              "offset": 261
+            },
+            "start": {
+              "col": 10,
+              "line": 14,
+              "offset": 260
+            },
+            "unique_id": {
+              "kind": "Global",
+              "sid": 6,
+              "type": "id",
+              "value": "z"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/basic/inside.py",
+      "start": {
+        "col": 5,
+        "line": 14
+      }
     }
   ]
 }

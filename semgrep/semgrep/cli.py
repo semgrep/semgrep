@@ -3,6 +3,8 @@ import argparse
 import multiprocessing
 import os
 
+from packaging import version
+
 import semgrep.config_resolver
 import semgrep.semgrep_main
 import semgrep.test
@@ -15,6 +17,8 @@ from semgrep.dump_ast import dump_parsed_ast
 from semgrep.error import SemgrepError
 from semgrep.output import managed_output
 from semgrep.output import OutputSettings
+from semgrep.synthesize_patterns import synthesize_patterns
+from semgrep.util import debug_print
 from semgrep.util import print_error
 from semgrep.util import print_msg
 
@@ -189,6 +193,9 @@ def cli() -> None:
         ),
     )
     output.add_argument(
+        "--synthesize-patterns", help=argparse.SUPPRESS,
+    )
+    output.add_argument(
         "--error",
         action="store_true",
         help="Exit 1 if there are findings. Useful for CI and scripts.",
@@ -244,6 +251,11 @@ def cli() -> None:
         action="store_true",
         help="Always include ANSI color in the output, even if not writing to a TTY",
     )
+    parser.add_argument(
+        "--disable-version-check",
+        action="store_true",
+        help="Disable checking for latest version.",
+    )
 
     ### Parse and validate
     args = parser.parse_args()
@@ -282,6 +294,38 @@ def cli() -> None:
         error_on_findings=args.error,
     )
 
+    if not args.disable_version_check:
+        quick_timeout = 2  # Don't block user's too long
+        endpoint = os.environ.get(
+            "VERSION_CHECK_URL", "https://semgrep.live/api/check-version"
+        )
+        try:
+            import requests
+
+            resp = requests.get(
+                endpoint,
+                headers={"User-Agent": f"Semgrep/{__VERSION__}"},
+                timeout=quick_timeout,
+            )
+        except Exception as e:
+            debug_print(f"Could not connect to version check URL: {e}")
+        else:
+            if resp.status_code != requests.codes.OK:
+                debug_print(
+                    f"Received HTTP error code from version check URL: {resp.status_code}"
+                )
+            try:
+                resp_json = resp.json()
+            except ValueError:
+                debug_print(f"Could not decode JSON object from version check URL.")
+            else:
+                latest_version = version.Version(resp_json["latest"])
+                installed_version = version.Version(__VERSION__)
+                if latest_version > installed_version:
+                    print_msg(
+                        "A new version of Semgrep is available. Please see https://github.com/returntocorp/semgrep#upgrading for more information."
+                    )
+
     if args.test:
         # the test code (which isn't a "test" per se but is actually machinery to evaluate semgrep performance)
         # uses managed_output internally
@@ -290,16 +334,20 @@ def cli() -> None:
     with managed_output(output_settings) as output_handler:
         if args.dump_ast:
             dump_parsed_ast(args.json, args.lang, args.pattern, args.target)
+        elif args.synthesize_patterns:
+            synthesize_patterns(args.lang, args.synthesize_patterns, args.target)
         elif args.validate:
-            _, config_errors = semgrep.semgrep_main.get_config(
+            configs, config_errors = semgrep.semgrep_main.get_config(
                 args.pattern, args.lang, args.config
             )
+            valid_str = "invalid" if config_errors else "valid"
+            print_msg(
+                f"Configuration is {valid_str} - found {len(configs)} valid configuration(s) and {len(config_errors)} configuration error(s)."
+            )
             if config_errors:
-                raise SemgrepError(
-                    f"run with --validate and there were {len(config_errors)} errors loading configs"
-                )
-            else:
-                print_msg("Config is valid")
+                for error in config_errors:
+                    output_handler.handle_semgrep_error(error)
+                raise SemgrepError("Please fix the above errors and try again.")
         elif args.generate_config:
             semgrep.config_resolver.generate_config()
         else:

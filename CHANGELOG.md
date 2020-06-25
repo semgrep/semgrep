@@ -2,15 +2,34 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [0.12.0](https://github.com/returntocorp/semgrep/releases/tag/v0.12.0) - 2020-06-23
+
 ### Added
 - Support for a new configuration language: JSON. You can now write
   JSON semgrep patterns with -lang json
 - Support for '...' inside set and dictionaries
+- Version check to recommend updating when out-of-date, disable with `--disable-version-check`
+- Support for multiline pattern-where-python
+- `--dryrun` flag to show result of autofixes without modifying any files
+- Add capability to use regex replacement for autofixing. See documentaion [here](https://github.com/returntocorp/semgrep/blob/develop/docs/experimental.md#autofix-using-regular-expression-replacement)
+- Add version check to recommend upgrading when applicable
 
 ### Fixed
-- Fix the range of function calls and statement blocks, which fixes the
-  many off-by-1 range error you could see in semgrep.live
+- Const propagation now works with Java 'final' keyword and for Python globals
+  which were assigned only once in the program
+- The range of function calls and statement blocks now includes the closing
+  `}` and `)`. The range for expression statements now includes the closing
+  ';' when there's one. The range of decorators now includes '@'.
+- The use of Python globals is now correctly resolved.
 - Do not convert certain parenthesized expressions in tuples in Python
+- Returned warning when improperly mounting volume in docker container
+- Correctly handle uncommited file deletions when using git aware file targeting
+
+### Changed
+- Progress bar only displays when in interactive terminal, more than one
+  rule is being run, and not being run with `-v` or `-q`
+- Colapsed `--include-dir` and `--exclude-dir` functionaity into `--include` and
+  `--exclude` respectively
 
 ## [0.11.0](https://github.com/returntocorp/semgrep/releases/tag/v0.11.0) - 2020-06-16
 

@@ -18,6 +18,7 @@ from semgrep.constants import YML_EXTENSIONS
 from semgrep.error import SemgrepError
 from semgrep.error import UNPARSEABLE_YAML_EXIT_CODE
 from semgrep.rule_lang import parse_yaml_preserve_spans
+from semgrep.rule_lang import Span
 from semgrep.rule_lang import YamlTree
 from semgrep.util import debug_print
 from semgrep.util import is_url
@@ -39,7 +40,8 @@ DEFAULT_REGISTRY_KEY = "r2c"
 
 def manual_config(pattern: str, lang: str) -> Dict[str, YamlTree]:
     # TODO remove when using sgrep -e ... -l ... instead of this hacked config
-    pattern_tree = parse_yaml_preserve_spans(pattern, filename=None)
+    pattern_span = Span.from_string(pattern, filename="CLI Input")
+    pattern_tree = YamlTree[str](value=pattern, span=pattern_span)
     error_span = parse_yaml_preserve_spans(
         f"Semgrep bug generating manual config {PLEASE_FILE_ISSUE_TEXT}", filename=None
     ).span
@@ -110,7 +112,7 @@ def parse_config_string(
         return {config_id: data}
     except YAMLError as se:
         raise SemgrepError(
-            f"Invalid yaml file {config_id}:\n{indent(str(se))}",
+            f"Invalid YAML file {config_id}:\n{indent(str(se))}",
             code=UNPARSEABLE_YAML_EXIT_CODE,
         )
 

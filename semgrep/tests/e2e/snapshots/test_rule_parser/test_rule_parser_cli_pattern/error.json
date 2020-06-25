@@ -3,21 +3,21 @@
     {
       "code": 4,
       "level": "error",
-      "long_msg": "Pattern could not be parsed as a Python semgrep pattern",
+      "long_msg": "Pattern could not be parsed as a C semgrep pattern",
       "short_msg": "invalid pattern",
       "spans": [
         {
           "context_end": null,
           "context_start": null,
           "end": {
-            "col": 28,
-            "line": 4
+            "col": 23,
+            "line": 1
           },
-          "file": "rules/syntax/badpattern.yaml",
-          "source_hash": "3721310e28daac277c2fc5496749be9e60441abcb6d2e3a99542a30f34628ee3",
+          "file": "CLI Input",
+          "source_hash": "7efe89db58e7a4017c5cd63dd547745a14f3e4c1fc32fd5e2051b53858d9e85d",
           "start": {
-            "col": 18,
-            "line": 4
+            "col": 1,
+            "line": 1
           }
         }
       ],

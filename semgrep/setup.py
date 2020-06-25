@@ -115,7 +115,7 @@ class PostInstallCommand(install):
 
 setup(
     name="semgrep",
-    version="0.11.0",
+    version="0.12.0",
     author="Return To Corporation",
     author_email="support@r2c.dev",
     description="Fast and syntax-aware semantic code pattern search for many languages: like grep but for code",
@@ -130,6 +130,7 @@ setup(
         "requests>=2.22.0",
         "attrs>=19.3.0",
         "tqdm>=4.46.1",
+        "packaging>=20.4",
     ],
     entry_points={"console_scripts": ["semgrep=semgrep.__main__:main"]},
     packages=setuptools.find_packages(),

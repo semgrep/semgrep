@@ -15,7 +15,6 @@ repos:
       - id: check-executables-have-shebangs
       - id: check-merge-conflict
       - id: check-symlinks
-      - id: requirements-txt-fixer
 
   - repo: https://github.com/psf/black
     rev: 19.10b0
@@ -39,3 +38,20 @@ repos:
     hooks:
       - id: flake8
         args: ["--select=E9,F63,F7,F82"]
+
+  - repo: local
+    hooks:
+      - id: shellcheck
+        name: shellcheck
+        language: docker_image
+        entry: koalaman/shellcheck:v0.7.1
+        files: ".sh"
+
+  - repo: local
+    hooks:
+      - id: hadolint
+        name: hadolint
+        language: docker_image
+        files: "Dockerfile"
+        entry: hadolint/hadolint:v1.18.0 hadolint
+        args: ["--ignore", "DL3008", "--ignore", "DL3018"]

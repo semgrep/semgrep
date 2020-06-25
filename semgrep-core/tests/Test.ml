@@ -52,6 +52,7 @@ let parse_generic file =
   let ast = Parse_generic.parse_program file in
   let lang = List.hd (Lang.langs_of_filename file) in
   Naming_AST.resolve lang ast;
+  Constant_propagation.propagate lang ast;
   ast
 (*e: function [[Test.parse_generic]] *)
 

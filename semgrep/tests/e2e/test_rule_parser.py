@@ -2,7 +2,8 @@ import json
 from subprocess import CalledProcessError
 
 import pytest
-from tests.conftest import TESTS_PATH
+
+from ..conftest import TESTS_PATH
 
 syntax_dir = TESTS_PATH / "e2e" / "rules" / "syntax"
 syntax_passes = [f.with_suffix("").name for f in syntax_dir.glob("good*.yaml")]
@@ -43,3 +44,14 @@ def test_rule_parser__failure__error_messages(run_semgrep_in_tmp, snapshot, file
 
     if excinfo_in_color.value.stderr != excinfo.value.stderr:
         snapshot.assert_match(excinfo_in_color.value.stderr, "error-in-color.txt")
+
+
+# https://github.com/returntocorp/semgrep/issues/1095
+def test_rule_parser_cli_pattern(run_semgrep_in_tmp, snapshot):
+    with pytest.raises(CalledProcessError) as excinfo:
+        run_semgrep_in_tmp(options=["-e", "#include<asdf><<>>><$X>", "-l", "c"])
+    snapshot.assert_match(excinfo.value.stderr, "error.txt")
+    json_output = json.loads(excinfo.value.stdout)
+    snapshot.assert_match(
+        json.dumps(json_output, indent=2, sort_keys=True), "error.json"
+    )

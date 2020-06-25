@@ -378,6 +378,7 @@ let parse_generic lang file =
    *)
   AST_generic.gensym_counter := 0;
   Naming_AST.resolve lang ast;
+  Constant_propagation.propagate lang ast;
   (*e: [[Main_semgrep_core.parse_generic()]] resolve names in the AST *)
   ast
   ))
@@ -829,12 +830,20 @@ let synthesize_patterns s file =
   let ast = Parse_generic.parse_program file in
   let lang = Lang.langs_of_filename file |> List.hd in
   let e_opt = Range_to_AST.expr_at_range r ast in
+  Naming_AST.resolve lang ast;
   (match e_opt with
   | Some e ->
       let options = Pattern_from_Code.from_expr e in
-      options |> List.iter (fun (s, pat) ->
-        pr (spf "%s: %s" s (Pretty_print_generic.pattern_to_string lang pat))
-      );
+      let json_opts =
+        J.Object
+            (List.map (fun (k, v) -> (k, J.String (Pretty_print_generic.pattern_to_string lang v)))
+                      options) in
+      let s = Json_io.string_of_json json_opts in
+      pr s
+      (* options |> List.iter (fun (s, pat) ->
+        pr (spf "%s: %s" s (Pretty_print_generic.pattern_to_string lang pat));
+      ); *)
+
   | None -> failwith (spf "could not find an expr at range %s in %s" s file)
   )
 

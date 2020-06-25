@@ -36,6 +36,9 @@
   <a href="https://github.com/returntocorp/semgrep/issues/new/choose">
     <img src="https://img.shields.io/badge/issues-welcome-green?style=flat-square" alt="Issues welcome!" />
   </a>
+      <a href="https://github.com/returntocorp/semgrep/actions?query=workflow%3ATests+branch%3Adevelop">
+      <img src="https://github.com/returntocorp/semgrep/workflows/Tests/badge.svg?branch=develop" alt="Test Status"/>
+  </a>
   <a href="https://twitter.com/intent/follow?screen_name=r2cdev">
     <img src="https://img.shields.io/twitter/follow/r2cdev?label=Follow%20r2cdev&style=social&color=blue" alt="Follow @r2cdev" />
   </a>
@@ -56,10 +59,10 @@ On macOS, binaries are available via Homebrew:
 $ brew install semgrep
 ```
 
-On Ubuntu, an install script is available with each [release](https://github.com/returntocorp/semgrep/releases/download/v0.11.0/semgrep-v0.11.0-ubuntu-generic.sh)
+On Ubuntu, an install script is available with each [release](https://github.com/returntocorp/semgrep/releases/download/v0.12.0/semgrep-v0.12.0-ubuntu-generic.sh)
 
 ```bash
-$ ./semgrep-v0.11.0-ubuntu-generic.sh
+$ ./semgrep-v0.12.0-ubuntu-generic.sh
 ```
 
 To try Semgrep without installation, you can also run it via Docker:
@@ -318,6 +321,28 @@ Semgrep is aware of *diffs*, so it can report only findings that occur in newly 
 Currently, the easiest way to integrate Semgrep into CI is via a GitHub action we've built. See the [integrations docs](docs/integrations.md) for more details.
 
 Semgrep can also output results in the standardized Static Analysis Results Interchange Format ([SARIF](https://docs.oasis-open.org/sarif/sarif/v2.1.0/cs01/sarif-v2.1.0-cs01.html)) with the `--sarif` flag, if you use tools that accept this format.
+
+## Upgrading
+
+How you upgrade Semgrep will depend on how you installed it.
+
+From Homebrew:
+
+```bash
+$ brew upgrade semgrep
+```
+
+From PyPI:
+
+```bash
+$ python -m pip install --upgrade semgrep
+```
+
+From Docker:
+
+```bash
+$ docker pull returntocorp/semgrep:latest
+```
 
 ## Resources
 
