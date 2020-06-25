@@ -38,13 +38,35 @@ let _bk f (lp,x,rp) = (lp, f x, rp)
 (* Algorithm *)
 (*****************************************************************************)
 
+let default_id count =
+    count := !count + 1;
+    Id((Format.sprintf "$%d" (!count), Parse_info.fake_info " "),
+    {id_resolved = ref None; id_type = ref None; id_const_literal = ref None})
 (* TODO: look if Call, and propose $ on each argument, ...,
  * propose also typed metavars, and resolved id in the call, etc.
  *)
+
+let shallow_dots (e, (lp, rp)) =
+   ("dots", E (Call (e, (lp, [Arg (Ellipsis fk)], rp))))
+
+let shallow_metavar (e, (lp, es, rp)) count =
+   let replaced_args = List.map (fun _ -> Arg (default_id count) ) es in
+   ("metavars", E (Call (e, (lp, replaced_args, rp))))
+
+
+let generalize_call count = function
+  | Call (IdSpecial _, _) -> []
+  | Call (e, (lp, es, rp)) ->
+      (shallow_dots (e, (lp, rp))) :: (shallow_metavar (e, (lp, es, rp)) count) :: []
+  | _ -> []
+
 let generalize e =
+  let count = ref 0 in
   match e with
-  | Call (e, (lp, _es, rp)) ->
-      ["dots", E (Call (e, (lp, [Arg (Ellipsis fk)], rp)))]
+  | Call _ -> generalize_call count e
+  | Id ((_s, t1), info) ->
+      ["metavar", E (Id(("$X", t1), info))]
+  | L _ -> ["metavar", E (default_id count)]
   | _ -> []
 
 (*****************************************************************************)
