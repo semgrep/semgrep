@@ -1,7 +1,5 @@
 import subprocess
-import tempfile
 from typing import List
-from typing import Optional
 
 import semgrep.config_resolver
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
