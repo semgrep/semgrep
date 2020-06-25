@@ -3,7 +3,6 @@ import time
 from pathlib import Path
 from typing import Optional
 
-import requests
 from packaging.version import InvalidVersion
 from packaging.version import Version
 
@@ -32,6 +31,8 @@ def _fetch_latest_version(
     url: str = VERSION_CHECK_URL, timeout: int = VERSION_CHECK_TIMEOUT
 ) -> Optional[str]:
     try:
+        import requests
+
         resp = requests.get(
             url,
             headers={"User-Agent": f"Semgrep/{constants.__VERSION__}"},
