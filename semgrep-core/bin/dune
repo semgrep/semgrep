@@ -9,6 +9,7 @@
     ppx_deriving.runtime
     uucp uutf
 
+    ; pfff deps
     commons commons_core commons_ocollection
     pfff-config
     pfff-h_program-lang
@@ -26,6 +27,10 @@
     pfff-lang_skip
     pfff-lang_FUZZY
 
+    ; tree-sitter deps
+    tree-sitter-lang.ruby
+
+    ; internal deps
     semgrep_core
     semgrep_fuzzy
     semgrep_finding
