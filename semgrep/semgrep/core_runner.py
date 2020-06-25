@@ -19,7 +19,7 @@ from ruamel.yaml import YAML
 
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import SEMGREP_PATH
-from semgrep.core_exception import CoreErrorInfo
+from semgrep.core_exception import CoreException
 from semgrep.equivalences import Equivalence
 from semgrep.error import _UnknownLanguageError
 from semgrep.error import InvalidPatternError
@@ -218,12 +218,12 @@ class CoreRunner:
 
     def _run_rule(
         self, rule: Rule, target_manager: TargetManager, cache_dir: str
-    ) -> Tuple[List[RuleMatch], List[Dict[str, Any]], List[CoreErrorInfo]]:
+    ) -> Tuple[List[RuleMatch], List[Dict[str, Any]], List[CoreException]]:
         """
             Run all rules on targets and return list of all places that match patterns, ... todo errors
         """
         outputs: List[PatternMatch] = []  # multiple invocations per language
-        errors: List[CoreErrorInfo] = []
+        errors: List[CoreException] = []
         equivalences = rule.equivalences
 
         for language, all_patterns_for_language in self._group_patterns_by_language(
@@ -331,7 +331,7 @@ class CoreRunner:
 
                 output_json = json.loads((core_run.stdout.decode("utf-8", "replace")))
                 errors.extend(
-                    CoreErrorInfo.from_json(e, language) for e in output_json["errors"]
+                    CoreException.from_json(e, language) for e in output_json["errors"]
                 )
                 outputs.extend(PatternMatch(m) for m in output_json["matches"])
 
@@ -364,11 +364,11 @@ class CoreRunner:
     ) -> Tuple[
         Dict[Rule, List[RuleMatch]],
         Dict[Rule, List[Dict[str, Any]]],
-        List[CoreErrorInfo],
+        List[CoreException],
     ]:
         findings_by_rule: Dict[Rule, List[RuleMatch]] = {}
         debugging_steps_by_rule: Dict[Rule, List[Dict[str, Any]]] = {}
-        all_errors: List[CoreErrorInfo] = []
+        all_errors: List[CoreException] = []
 
         # cf. for bar_format: https://tqdm.github.io/docs/tqdm/
         with tempfile.TemporaryDirectory() as semgrep_core_ast_cache_dir:
@@ -420,8 +420,8 @@ def dedup_output(outputs: List[RuleMatch]) -> List[RuleMatch]:
     return list({uniq_id(r): r for r in outputs}.values())
 
 
-def dedup_errors(errors: List[CoreErrorInfo]) -> List[CoreErrorInfo]:
-    def uniq_error_id(error: CoreErrorInfo) -> Tuple[str, str, int, int, int, int]:
+def dedup_errors(errors: List[CoreException]) -> List[CoreException]:
+    def uniq_error_id(error: CoreException) -> Tuple[str, str, int, int, int, int]:
         return (
             error._check_id,
             str(error._path),
