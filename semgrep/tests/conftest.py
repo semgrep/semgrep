@@ -70,7 +70,7 @@ def _run_semgrep(
     if options is None:
         options = []
 
-    options.append("--strict")
+    options.extend(["--strict", "--disable-version-check"])
 
     if config is not None:
         options.extend(["--config", config])
