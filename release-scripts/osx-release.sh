@@ -9,7 +9,7 @@ git submodule update --init --recursive
 eval "$(opam env)"
 
 opam install -y ./pfff
-mkdir -p artifacts
+./install-scripts/install-ocaml-tree-sitter
 
 (
   cd semgrep-core
@@ -19,6 +19,7 @@ mkdir -p artifacts
   make install
 )
 
+mkdir -p artifacts
 if [[ -z "$SKIP_NUITKA" ]]; then
   (
     cd semgrep
