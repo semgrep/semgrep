@@ -1,4 +1,4 @@
-Invalid yaml file rules/syntax/invalid.yaml:
+Invalid YAML file rules/syntax/invalid.yaml:
 	mapping values are not allowed here
 	  in "<file>", line 2, column 7
 run with --strict and there were 1 errors loading configs

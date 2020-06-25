@@ -337,15 +337,17 @@ def cli() -> None:
         elif args.synthesize_patterns:
             synthesize_patterns(args.lang, args.synthesize_patterns, args.target)
         elif args.validate:
-            _, config_errors = semgrep.semgrep_main.get_config(
+            configs, config_errors = semgrep.semgrep_main.get_config(
                 args.pattern, args.lang, args.config
             )
+            valid_str = "invalid" if config_errors else "valid"
+            print_msg(
+                f"Configuration is {valid_str} - found {len(configs)} valid configuration(s) and {len(config_errors)} configuration error(s)."
+            )
             if config_errors:
-                raise SemgrepError(
-                    f"run with --validate and there were {len(config_errors)} errors loading configs"
-                )
-            else:
-                print_msg("Config is valid")
+                for error in config_errors:
+                    output_handler.handle_semgrep_error(error)
+                raise SemgrepError("Please fix the above errors and try again.")
         elif args.generate_config:
             semgrep.config_resolver.generate_config()
         else:
