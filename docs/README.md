@@ -34,6 +34,14 @@ Semgrep YAML rule files enable you to combine patterns in powerful ways,
 
 You can write and share rules directly from the live editor at https://semgrep.live or run Semgrep via a standalone CLI or Docker.
 
+See [Semgrep rule writing methodology](writing_rules/README.md) for details on
+the thought process behind writing and rolling out a new Semgrep rule
+sucessfully, and see [these docs](writing_rules/examples.md) for walkthroughs of
+writing rules from scratch.
+
+There's also an interactive, example-based Semgrep rule writing tutorial here:
+https://semgrep.live/learn.
+
 ## Contributing to Semgrep
 
 We'd love your help! See [here](development.md) for detailed steps on getting your dev environment set up, building Semgrep, and more.
