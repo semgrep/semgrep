@@ -12,7 +12,10 @@
  * file license.txt for more details.
  *)
 open Common
+module AST = Ast_ruby
 module CST = Tree_sitter_ruby.CST
+module PI = Parse_info
+open Ast_ruby
 
 (*****************************************************************************)
 (* Prelude *)
@@ -24,6 +27,10 @@ module CST = Tree_sitter_ruby.CST
  *)
 
 (*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
+(*****************************************************************************)
 (* Boilerplate converter *)
 (*****************************************************************************)
 (* This was started by copying ocaml-tree-sitter-lang/ruby/Boilerplate.ml *)
@@ -31,14 +38,15 @@ module CST = Tree_sitter_ruby.CST
 (* Disable warnings against unused variables, unused value, unused rec *)
 [@@@warning "-26-27-32-39"]
 
+let token2 (_tok : Tree_sitter_run.Token.t) =
+  PI.fake_info "XXX"
+let fk = PI.fake_info "TODO"
+
 let token (_tok : Tree_sitter_run.Token.t) = failwith "not implemented"
 let blank () = failwith "not implemented"
 let todo x =
   pr2_gen x;
   failwith "not implemented"
-
-let uninterpreted (tok : CST.uninterpreted) =
-  token tok
 
 let binary_star (tok : CST.binary_star) =
   token tok
@@ -183,13 +191,13 @@ let string_start (tok : CST.string_start) =
 let identifier_hash_key (tok : CST.identifier_hash_key) =
   token tok
 
-let terminator (x : CST.terminator) =
+let terminator (x : CST.terminator) : unit =
   (match x with
-  | `Term_line_brk tok -> token tok
-  | `Term_SEMI tok -> token tok
+  | `Term_line_brk _tok -> ()
+  | `Term_SEMI _tok -> ()
   )
 
-let variable (x : CST.variable) =
+let variable (x : CST.variable) : AST.expr =
   (match x with
   | `Self tok -> token tok
   | `Super tok -> token tok
@@ -200,36 +208,36 @@ let variable (x : CST.variable) =
   | `Cst tok -> token tok
   )
 
-let do_ (x : CST.do_) =
+let do_ (x : CST.do_) : unit =
   (match x with
-  | `Do_do tok -> token tok
+  | `Do_do _tok -> ()
   | `Do_term x -> terminator x
   )
 
-let rec statements (x : CST.statements) =
+let rec statements (x : CST.statements) : AST.stmts =
   (match x with
   | `Stmts_rep1_choice_stmt_term_opt_stmt (v1, v2) ->
       let v1 =
-        List.map (fun x ->
+        v1 |> List.map (fun x ->
           (match x with
           | `Stmt_term (v1, v2) ->
               let v1 = statement v1 in
-              let v2 = terminator v2 in
-              todo (v1, v2)
-          | `Empty_stmt tok -> token tok
+              let _v2 = terminator v2 in
+              [v1]
+          | `Empty_stmt _tok -> []
           )
-        ) v1
+        ) |> List.flatten
       in
       let v2 =
         (match v2 with
-        | Some x -> statement x
-        | None -> todo ())
+        | Some x -> [statement x]
+        | None -> [])
       in
-      todo (v1, v2)
-  | `Stmts_stmt x -> statement x
+      v1 @ v2
+  | `Stmts_stmt x -> [statement x]
   )
 
-and statement (x : CST.statement) =
+and statement (x : CST.statement) : AST.expr (* TODO AST.stmt at some point *)=
   (match x with
   | `Stmt_undef (v1, v2, v3) ->
       let v1 = token v1 in
@@ -597,7 +605,7 @@ and body_statement ((v1, v2, v3) : CST.body_statement) =
   let v3 = token v3 in
   todo (v1, v2, v3)
 
-and expression (x : CST.expression) =
+and expression (x : CST.expression) : AST.expr =
   (match x with
   | `Exp_cmd_bin (v1, v2, v3) ->
       let v1 = expression v1 in
@@ -1134,7 +1142,7 @@ and call ((v1, v2, v3) : CST.call) =
   in
   todo (v1, v2, v3)
 
-and command_call (x : CST.command_call) =
+and command_call (x : CST.command_call) : AST.expr =
   (match x with
   | `Cmd_call_choice_var_cmd_arg_list (v1, v2) ->
       let v1 =
@@ -1145,7 +1153,7 @@ and command_call (x : CST.command_call) =
         )
       in
       let v2 = command_argument_list v2 in
-      todo (v1, v2)
+      Call (v1, v2, None, fk)
   | `Cmd_call_choice_var_cmd_arg_list_blk (v1, v2, v3) ->
       let v1 =
         (match v1 with
@@ -1156,7 +1164,7 @@ and command_call (x : CST.command_call) =
       in
       let v2 = command_argument_list v2 in
       let v3 = block v3 in
-      todo (v1, v2, v3)
+      Call (v1, v2, Some v3, fk)
   | `Cmd_call_choice_var_cmd_arg_list_do_blk (v1, v2, v3) ->
       let v1 =
         (match v1 with
@@ -1167,7 +1175,7 @@ and command_call (x : CST.command_call) =
       in
       let v2 = command_argument_list v2 in
       let v3 = do_block v3 in
-      todo (v1, v2, v3)
+      Call (v1, v2, Some v3, fk)
   )
 
 and method_call (x : CST.method_call) =
@@ -1226,7 +1234,7 @@ and method_call (x : CST.method_call) =
       todo (v1, v2)
   )
 
-and command_argument_list (x : CST.command_argument_list) =
+and command_argument_list (x : CST.command_argument_list) : AST.expr list =
   (match x with
   | `Cmd_arg_list_arg_rep_COMMA_arg (v1, v2) ->
       let v1 = argument v1 in
@@ -1238,7 +1246,7 @@ and command_argument_list (x : CST.command_argument_list) =
         ) v2
       in
       todo (v1, v2)
-  | `Cmd_arg_list_cmd_call x -> command_call x
+  | `Cmd_arg_list_cmd_call x -> [command_call x]
   )
 
 and argument_list ((v1, v2, v3) : CST.argument_list) =
@@ -1289,42 +1297,42 @@ and hash_splat_argument ((v1, v2) : CST.hash_splat_argument) =
   let v2 = arg v2 in
   todo (v1, v2)
 
-and do_block ((v1, v2, v3, v4) : CST.do_block) =
-  let v1 = token v1 in
-  let v2 =
+and do_block ((v1, v2, v3, v4) : CST.do_block) : AST.expr =
+  let tdo = token2 v1 in
+  let _v2 =
     (match v2 with
     | Some x -> terminator x
-    | None -> todo ())
+    | None -> ())
   in
-  let v3 =
+  let params_opt =
     (match v3 with
     | Some (v1, v2) ->
         let v1 = block_parameters v1 in
-        let v2 =
+        let _v2 =
           (match v2 with
           | Some x -> terminator x
-          | None -> todo ())
+          | None -> ())
         in
-        todo (v1, v2)
-    | None -> todo ())
+        Some v1
+    | None -> None)
   in
-  let v4 = body_statement v4 in
-  todo (v1, v2, v3, v4)
+  let (xs, tend) = body_statement v4 in
+  CodeBlock ((tdo, false, tend), params_opt, xs, fk)
 
 and block ((v1, v2, v3, v4) : CST.block) =
-  let v1 = token v1 in
-  let v2 =
+  let lb = token2 v1 in
+  let params_opt =
     (match v2 with
-    | Some x -> block_parameters x
-    | None -> todo ())
+    | Some x -> Some (block_parameters x)
+    | None -> None)
   in
   let v3 =
     (match v3 with
     | Some x -> statements x
-    | None -> todo ())
+    | None -> [])
   in
-  let v4 = token v4 in
-  todo (v1, v2, v3, v4)
+  let rb = token v4 in
+  CodeBlock ((lb,true,rb), params_opt, v3, fk)
 
 and assignment (x : CST.assignment) =
   (match x with
@@ -1654,22 +1662,10 @@ and pair (x : CST.pair) =
       todo (v1, v2, v3)
   )
 
-let program ((v1, v2) : CST.program) =
-  let v1 =
-    (match v1 with
-    | Some x -> statements x
-    | None -> todo ())
-  in
-  let v2 =
-    (match v2 with
-    | Some (v1, v2, v3) ->
-        let v1 = token v1 in
-        let v2 = token v2 in
-        let v3 = token v3 in
-        todo (v1, v2, v3)
-    | None -> todo ())
-  in
-  todo (v1, v2)
+let program ((v1, _v2interpreted) : CST.program) : AST.stmts  =
+  match v1 with
+  | Some x -> statements x
+  | None -> []
 
 
 (*****************************************************************************)
