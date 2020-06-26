@@ -776,28 +776,33 @@ and primary (x : CST.primary) : AST.expr =
         let (s, t) = str tok in
         Literal (String (Single s, t)) (* TODO Char *)
   | `Prim_chai_str (v1, v2) ->
-      let v1 = string_ v1 in
-      let v2 = List.map string_ v2 in
-      raise Todo
+      let (t1, v1, _) = string_ v1 in
+      let v2 = List.map (fun x ->
+              let (lp, x, _) = string_ x in
+              x
+        ) v2 |> List.flatten
+        in
+      Literal (String (Double (v1 @ v2), t1))
+
   | `Prim_regex (v1, v2, v3) ->
       let v1 = token v1 in
       let v2 =
         (match v2 with
         | Some x -> literal_contents x
-        | None -> todo ())
+        | None -> [])
       in
-      let v3 = token v3 in
-      todo (v1, v2, v3)
+      let _v3 = token v3 in
+      Literal (Regexp ((v2, "??"), v1))
   | `Prim_lamb (v1, v2, v3) ->
       let v1 = token v1 in
       let v2 =
         (match v2 with
         | Some x ->
-            (match x with
+            Some (match x with
             | `Params x -> parameters x |> G.unbracket
             | `Bare_params x -> bare_parameters x
             )
-        | None -> todo ())
+        | None -> None)
       in
       let v3 =
         (match v3 with
@@ -805,7 +810,8 @@ and primary (x : CST.primary) : AST.expr =
         | `Do_blk x -> do_block x
         )
       in
-      todo (v1, v2, v3)
+      let b = false in (* should have a third option for lambdas *)
+      CodeBlock ((v1, b, v1), v2, [v3], v1)
   | `Prim_meth (v1, v2) ->
       let v1 = token v1 in
       let (n, params, body_exn) = method_rest v2 in
