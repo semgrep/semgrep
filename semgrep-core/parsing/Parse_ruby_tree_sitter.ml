@@ -112,9 +112,9 @@ let terminator (x : CST.terminator) : unit =
 let variable (x : CST.variable) : AST.expr =
   (match x with
   | `Self tok -> let t = token2 tok in
-        Id (("self", t), ID_Lowercase)
+        Literal (Self t)
   | `Super tok -> let t = token2 tok in
-        Id (("super", t), ID_Lowercase)
+        Literal (Super t)
   | `Inst_var tok -> let t = token2 tok in
         Id (str tok, ID_Instance)
   | `Class_var tok -> let t = token2 tok in
