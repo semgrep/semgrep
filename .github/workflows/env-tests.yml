@@ -93,7 +93,7 @@ jobs:
       - name: Test semgrep-core
         run: semgrep-core -version
       - name: Install Tox and any other packages
-        run: pip install pipenv==2018.11.26 wheel==0.34.2
+        run: pip3 install pipenv==2018.11.26 wheel==0.34.2
       - name: Install semgrep
         run: |
           cd semgrep
