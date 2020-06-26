@@ -43,7 +43,7 @@ let token2 (_tok : Tree_sitter_run.Token.t) =
   PI.fake_info "XXX"
 let str (_tok : Tree_sitter_run.Token.t) =
   "STRXXX", PI.fake_info "XXX"
-let fk = PI.fake_info "TODO"
+let fk = PI.fake_info "fake"
 
 let token (_tok : Tree_sitter_run.Token.t) =
   failwith "not implemented"
@@ -160,72 +160,72 @@ let rec statements (x : CST.statements) : AST.stmts =
   | `Stmts_stmt x -> [statement x]
   )
 
-(* TODO1 *)
 and statement (x : CST.statement) : AST.expr (* TODO AST.stmt at some point *)=
   (match x with
   | `Stmt_undef (v1, v2, v3) ->
-      let v1 = token v1 in
+      let v1 = token2 v1 in
       let v2 = method_name v2 in
       let v3 =
         List.map (fun (v1, v2) ->
-          let _v1 = token v1 in
+          let _v1 = token2 v1 in
           let v2 = method_name v2 in
           v2
         ) v3
       in
       D (Undef (v1, (v2::v3)))
   | `Stmt_alias (v1, v2, v3) ->
-      let v1 = token v1 in
+      let v1 = token2 v1 in
       let v2 = method_name v2 in
       let v3 = method_name v3 in
       D (Alias (v1, v2, v3))
   | `Stmt_if_modi (v1, v2, v3) ->
       let v1 = statement v1 in
-      let v2 = token v2 in
+      let v2 = token2 v2 in
       let v3 = expression v3 in
       S (If (v2, v3, [v1], []))
   | `Stmt_unle_modi (v1, v2, v3) ->
       let v1 = statement v1 in
-      let v2 = token v2 in
+      let v2 = token2 v2 in
       let v3 = expression v3 in
       S (Unless (v2, v3, [v1], []))
   | `Stmt_while_modi (v1, v2, v3) ->
       let v1 = statement v1 in
-      let v2 = token v2 in
+      let v2 = token2 v2 in
       let v3 = expression v3 in
       let b = true (* ?? *) in
       S (While (v2, b, v3, [v1]))
   | `Stmt_until_modi (v1, v2, v3) ->
       let v1 = statement v1 in
-      let v2 = token v2 in
+      let v2 = token2 v2 in
       let v3 = expression v3 in
       S (Until (v2, true, v3, [v1]))
 
+  (* TODO *)
   | `Stmt_resc_modi (v1, v2, v3) ->
       let v1 = statement v1 in
-      let v2 = token v2 in
+      let v2 = token2 v2 in
       let v3 = expression v3 in
       todo (v1, v2, v3)
 
   | `Stmt_begin_blk (v1, v2, v3, v4) ->
-      let v1 = token v1 in
-      let v2 = token v2 in
+      let v1 = token2 v1 in
+      let v2 = token2 v2 in
       let v3 =
         (match v3 with
         | Some x -> statements x
         | None -> [])
       in
-      let v4 = token v4 in
+      let v4 = token2 v4 in
       D (BeginBlock (v1, (v2, v3, v4)))
   | `Stmt_end_blk (v1, v2, v3, v4) ->
-      let v1 = token v1 in
-      let v2 = token v2 in
+      let v1 = token2 v1 in
+      let v2 = token2 v2 in
       let v3 =
         (match v3 with
         | Some x -> statements x
         | None -> [])
       in
-      let v4 = token v4 in
+      let v4 = token2 v4 in
       D (EndBlock (v1, (v2, v3, v4)))
   | `Stmt_exp x -> expression x
   )
@@ -256,14 +256,14 @@ and method_rest ((v1, v2, v3) : CST.method_rest) =
   v1, v2, xs
 
 and parameters ((v1, v2, v3) : CST.parameters) : AST.formal_param list bracket=
-  let lp = token v1 in
+  let lp = token2 v1 in
   let v2 =
     (match v2 with
     | Some (v1, v2) ->
         let v1 = formal_parameter v1 in
         let v2 =
           List.map (fun (v1, v2) ->
-            let _v1 = token v1 in
+            let _v1 = token2 v1 in
             let v2 = formal_parameter v2 in
             v2
           ) v2
@@ -271,14 +271,14 @@ and parameters ((v1, v2, v3) : CST.parameters) : AST.formal_param list bracket=
         v1::v2
     | None -> [])
   in
-  let rp = token v3 in
+  let rp = token2 v3 in
   (lp, v2, rp)
 
 and bare_parameters ((v1, v2) : CST.bare_parameters) : AST.formal_param list =
   let v1 = simple_formal_parameter v1 in
   let v2 =
     List.map (fun (v1, v2) ->
-      let _v1 = token v1 in
+      let _v1 = token2 v1 in
       let v2 = formal_parameter v2 in
       v2
     ) v2
@@ -287,14 +287,14 @@ and bare_parameters ((v1, v2) : CST.bare_parameters) : AST.formal_param list =
 
 and block_parameters ((v1, v2, v3, v4, v5) : CST.block_parameters) :
   AST.formal_param list bracket =
-  let pipe1 = token v1 in
+  let pipe1 = token2 v1 in
   let v2 =
     (match v2 with
     | Some (v1, v2) ->
         let v1 = formal_parameter v1 in
         let v2 =
           List.map (fun (v1, v2) ->
-            let _v1 = token v1 in
+            let _v1 = token2 v1 in
             let v2 = formal_parameter v2 in
             v2
           ) v2
@@ -307,7 +307,7 @@ and block_parameters ((v1, v2, v3, v4, v5) : CST.block_parameters) :
     | Some tok -> ()
     | None -> ())
   in
-  let _v4TODOSEMICOLONPARAMS =
+  let _v4SEMICOLONPARAMS =
     (match v4 with
     | Some (v1, v2, v3) ->
         let _v1 = token2 v1 in
@@ -322,7 +322,7 @@ and block_parameters ((v1, v2, v3, v4, v5) : CST.block_parameters) :
          v2::v3
     | None -> todo ())
   in
-  let pipe2 = token v5 in
+  let pipe2 = token2 v5 in
   (pipe1, v2, pipe2)
 
 and formal_parameter (x : CST.formal_parameter) : AST.formal_param =
@@ -340,7 +340,7 @@ and simple_formal_parameter (x : CST.simple_formal_parameter) : AST.formal_param
         let id = str tok in
         Formal_id (Id (id, ID_Lowercase))
   | `Simple_form_param_splat_param (v1, v2) ->
-      let v1 = token v1 in
+      let v1 = token2 v1 in
         (match v2 with
         | Some tok -> let id = str tok in
            Formal_star (v1, id)
@@ -348,7 +348,7 @@ and simple_formal_parameter (x : CST.simple_formal_parameter) : AST.formal_param
            Formal_rest v1
         )
   | `Simple_form_param_hash_splat_param (v1, v2) ->
-      let v1 = token v1 in
+      let v1 = token2 v1 in
       let v2 =
         (match v2 with
         | Some tok -> Some (str tok)
@@ -356,12 +356,12 @@ and simple_formal_parameter (x : CST.simple_formal_parameter) : AST.formal_param
       in
       Formal_hash_splat (v1, v2)
   | `Simple_form_param_blk_param (v1, v2) ->
-      let v1 = token v1 in
+      let v1 = token2 v1 in
       let v2 = str v2 in
       Formal_amp (v1, v2)
   | `Simple_form_param_kw_param (v1, v2, v3) ->
       let v1 = str v1 in
-      let v2 = token v2 in
+      let v2 = token2 v2 in
       let v3 =
         (match v3 with
         | Some x -> Some (arg x)
@@ -370,28 +370,28 @@ and simple_formal_parameter (x : CST.simple_formal_parameter) : AST.formal_param
       Formal_kwd (v1, v2, v3)
   | `Simple_form_param_opt_param (v1, v2, v3) ->
       let v1 = str v1 in
-      let v2 = token v2 in
+      let v2 = token2 v2 in
       let v3 = arg v3 in
       Formal_default (v1, v2, v3)
   )
 
 and superclass ((v1, v2) : CST.superclass) =
-  let v1 = token v1 in
+  let v1 = token2 v1 in
   let v2 = arg v2 in
   (v1, v2)
 
 and in_ ((v1, v2) : CST.in_) =
-  let v1 = token v1 in
+  let v1 = token2 v1 in
   let v2 = arg v2 in
   (v1, v2)
 
 (* TODO *)
 and when_ ((v1, v2, v3, v4) : CST.when_) =
-  let v1 = token v1 in
+  let v1 = token2 v1 in
   let v2 = pattern v2 in
   let v3 =
     List.map (fun (v1, v2) ->
-      let v1 = token v1 in
+      let v1 = token2 v1 in
       let v2 = pattern v2 in
       todo (v1, v2)
     ) v3
@@ -412,7 +412,7 @@ and pattern (x : CST.pattern) =
 
 (* TODO *)
 and elsif ((v1, v2, v3, v4) : CST.elsif) =
-  let v1 = token v1 in
+  let v1 = token2 v1 in
   let v2 = statement v2 in
   let v3 =
     (match v3 with
@@ -433,7 +433,7 @@ and elsif ((v1, v2, v3, v4) : CST.elsif) =
 
 (* TODO *)
 and else_ ((v1, v2, v3) : CST.else_) =
-  let v1 = token v1 in
+  let v1 = token2 v1 in
   let v2 =
     (match v2 with
     | Some x -> terminator x
@@ -459,7 +459,7 @@ and then_ (x : CST.then_) =
         | Some x -> terminator x
         | None -> todo ())
       in
-      let v2 = token v2 in
+      let v2 = token2 v2 in
       let v3 =
         (match v3 with
         | Some x -> statements x
@@ -469,7 +469,7 @@ and then_ (x : CST.then_) =
   )
 
 and ensure ((v1, v2) : CST.ensure) =
-  let v1 = token v1 in
+  let v1 = token2 v1 in
   let v2 =
     (match v2 with
     | Some x -> statements x
@@ -479,7 +479,7 @@ and ensure ((v1, v2) : CST.ensure) =
 
 (* TODO *)
 and rescue ((v1, v2, v3, v4) : CST.rescue) =
-  let v1 = token v1 in
+  let v1 = token2 v1 in
   let v2 =
     (match v2 with
     | Some x -> exceptions x
@@ -508,7 +508,7 @@ and exceptions ((v1, v2) : CST.exceptions) =
   in
   let v2 =
     List.map (fun (v1, v2) ->
-      let v1 = token v1 in
+      let v1 = token2 v1 in
       let v2 =
         (match v2 with
         | `Arg x -> arg x
@@ -521,7 +521,7 @@ and exceptions ((v1, v2) : CST.exceptions) =
   todo (v1, v2)
 
 and exception_variable ((v1, v2) : CST.exception_variable) =
-  let v1 = token v1 in
+  let v1 = token2 v1 in
   let v2 = lhs v2 in
   todo (v1, v2)
 
@@ -543,7 +543,7 @@ and body_statement ((v1, v2, v3) : CST.body_statement) :
       )
     ) v2
   in
-  let tend = token v3 in
+  let tend = token2 v3 in
   let ensure_expr = List.flatten ensure_expr in
   { body_exprs = v1; rescue_exprs; else_expr; ensure_expr}, tend
 
@@ -569,7 +569,7 @@ and expression (x : CST.expression) : AST.expr =
         | `STAREQ tok -> Op_TIMES, token2 tok
         | `STARSTAREQ tok -> Op_POW, token2 tok
         | `SLASHEQ tok -> Op_DIV, token2 tok
-        | `BARBAREQ tok -> Op_OR, token tok
+        | `BARBAREQ tok -> Op_OR, token2 tok
         | `BAREQ tok -> Op_BOR, token2 tok
         | `AMPAMPEQ tok -> Op_AND, token2 tok
         | `AMPEQ tok -> Op_BAND, token2 tok
@@ -583,19 +583,19 @@ and expression (x : CST.expression) : AST.expr =
       Binop (v1, (Op_OP_ASGN op, tok), v3)
   | `Exp_cmd_call x -> command_call x
   | `Exp_ret_cmd (v1, v2) ->
-      let v1 = token v1 in
+      let v1 = token2 v1 in
       let v2 = command_argument_list v2 in
       S (Return (v1, v2))
   | `Exp_yield_cmd (v1, v2) ->
-      let v1 = token v1 in
+      let v1 = token2 v1 in
       let v2 = command_argument_list v2 in
       S (Yield (v1, v2))
   | `Exp_brk_cmd (v1, v2) ->
-      let v1 = token v1 in
+      let v1 = token2 v1 in
       let v2 = command_argument_list v2 in
       S (Break (v1, v2))
   | `Exp_next_cmd (v1, v2) ->
-      let v1 = token v1 in
+      let v1 = token2 v1 in
       let v2 = command_argument_list v2 in
       S (Next (v1, v2))
   | `Exp_arg x -> arg x
@@ -607,65 +607,68 @@ and arg (x : CST.arg) : AST.expr =
   | `Arg_assign x -> assignment x
   | `Arg_op_assign (v1, v2, v3) ->
       let v1 = lhs v1 in
-      let v2 =
+      let (op, tok) =
         (match v2 with
-        | `PLUSEQ tok -> token tok
-        | `DASHEQ tok -> token tok
-        | `STAREQ tok -> token tok
-        | `STARSTAREQ tok -> token tok
-        | `SLASHEQ tok -> token tok
-        | `BARBAREQ tok -> token tok
-        | `BAREQ tok -> token tok
-        | `AMPAMPEQ tok -> token tok
-        | `AMPEQ tok -> token tok
-        | `PERCEQ tok -> token tok
-        | `GTGTEQ tok -> token tok
-        | `LTLTEQ tok -> token tok
-        | `HATEQ tok -> token tok
+        | `PLUSEQ tok -> Op_PLUS, token2 tok
+        | `DASHEQ tok -> Op_MINUS, token2 tok
+        | `STAREQ tok -> Op_TIMES, token2 tok
+        | `STARSTAREQ tok -> Op_POW, token2 tok
+        | `SLASHEQ tok -> Op_DIV, token2 tok
+        | `BARBAREQ tok -> Op_OR, token2 tok
+        | `BAREQ tok -> Op_BOR, token2 tok
+        | `AMPAMPEQ tok -> Op_AND, token2 tok
+        | `AMPEQ tok -> Op_BAND, token2 tok
+        | `PERCEQ tok -> Op_REM, token2 tok
+        | `GTGTEQ tok -> Op_RSHIFT, token2 tok
+        | `LTLTEQ tok -> Op_LSHIFT, token2 tok
+        | `HATEQ tok -> Op_XOR, token2 tok
         )
       in
       let v3 = arg v3 in
-      todo (v1, v2, v3)
+      Binop (v1, (Op_OP_ASGN op, tok), v3)
   | `Arg_cond (v1, v2, v3, v4, v5) ->
       let v1 = arg v1 in
-      let v2 = token v2 in
+      let v2 = token2 v2 in
       let v3 = arg v3 in
-      let v4 = token v4 in
+      let v4 = token2 v4 in
       let v5 = arg v5 in
-      todo (v1, v2, v3, v4, v5)
+      Ternary (v1, v2, v3, v4, v5)
   | `Arg_range (v1, v2, v3) ->
       let v1 = arg v1 in
       let v2 =
         (match v2 with
-        | `DOTDOT tok -> token tok
-        | `DOTDOTDOT tok -> token tok
+        | `DOTDOT tok -> Op_DOT2, token2 tok
+        | `DOTDOTDOT tok -> Op_DOT3, token2 tok
         )
       in
       let v3 = arg v3 in
-      todo (v1, v2, v3)
+      Binop (v1, v2, v3)
   | `Arg_bin x -> binary x
   | `Arg_un x -> unary x
   )
 
 and primary (x : CST.primary) : AST.expr =
   (match x with
-  | `Prim_paren_stmts x -> parenthesized_statements x
+  | `Prim_paren_stmts x ->
+        let (lp, xs, _rp) = parenthesized_statements x in
+        S (Block (xs, lp))
   | `Prim_lhs x -> lhs x
   | `Prim_array (v1, v2, v3) ->
-      let v1 = token v1 in
+      let lb = token2 v1 in
       let v2 =
         (match v2 with
         | Some x -> argument_list_with_trailing_comma x
-        | None -> todo ())
+        | None -> [])
       in
-      let v3 = token v3 in
-      todo (v1, v2, v3)
+      let rb = token2 v3 in
+      Array (lb, v2, rb)
+  (* ?? *)
   | `Prim_str_array (v1, v2, v3, v4, v5) ->
-      let v1 = token v1 in
+      let v1 = token2 v1 in
       let v2 =
         (match v2 with
-        | Some () -> todo ()
-        | None -> todo ())
+        | Some () -> ()
+        | None -> ())
       in
       let v3 =
         (match v3 with
@@ -673,24 +676,24 @@ and primary (x : CST.primary) : AST.expr =
             let v1 = literal_contents v1 in
             let v2 =
               List.map (fun (v1, v2) ->
-                let v1 = blank v1 in
+                let _v1 = blank v1 in
                 let v2 = literal_contents v2 in
-                todo (v1, v2)
+                v2
               ) v2
             in
-            todo (v1, v2)
-        | None -> todo ())
+            v1::v2
+        | None -> [])
       in
-      let v4 =
+      let _v4 =
         (match v4 with
-        | Some () -> todo ()
-        | None -> todo ())
+        | Some () -> ()
+        | None -> ())
       in
-      let v5 = token v5 in
-      todo (v1, v2, v3, v4, v5)
+      let _v5 = token2 v5 in
+      Literal (String (Double (v3 |> List.flatten), v1)) (* Double? *)
   | `Prim_symb_array (v1, v2, v3, v4, v5) ->
-      let v1 = token v1 in
-      let v2 =
+      let v1 = token2 v1 in
+      let _v2 =
         (match v2 with
         | Some () -> todo ()
         | None -> todo ())
@@ -701,23 +704,23 @@ and primary (x : CST.primary) : AST.expr =
             let v1 = literal_contents v1 in
             let v2 =
               List.map (fun (v1, v2) ->
-                let v1 = blank v1 in
+                let _v1 = blank v1 in
                 let v2 = literal_contents v2 in
-                todo (v1, v2)
+                v2
               ) v2
             in
-            todo (v1, v2)
-        | None -> todo ())
+            v1::v2
+        | None -> [])
       in
-      let v4 =
+      let _v4 =
         (match v4 with
-        | Some () -> todo ()
-        | None -> todo ())
+        | Some () -> ()
+        | None -> ())
       in
-      let v5 = token v5 in
-      todo (v1, v2, v3, v4, v5)
+      let _v5 = token2 v5 in
+      Literal (Atom (v3 |> List.flatten, v1))
   | `Prim_hash (v1, v2, v3) ->
-      let v1 = token v1 in
+      let v1 = token2 v1 in
       let v2 =
         (match v2 with
         | Some (v1, v2, v3) ->
@@ -729,49 +732,53 @@ and primary (x : CST.primary) : AST.expr =
             in
             let v2 =
               List.map (fun (v1, v2) ->
-                let v1 = token v1 in
+                let _v1 = token2 v1 in
                 let v2 =
                   (match v2 with
                   | `Pair x -> pair x
                   | `Hash_splat_arg x -> hash_splat_argument x
                   )
                 in
-                todo (v1, v2)
+                v2
               ) v2
             in
-            let v3 =
+            let _v3 =
               (match v3 with
-              | Some tok -> token tok
-              | None -> todo ())
+              | Some _tok -> ()
+              | None -> ())
             in
-            todo (v1, v2, v3)
-        | None -> todo ())
+            v1::v2
+        | None -> [])
       in
-      let v3 = token v3 in
-      todo (v1, v2, v3)
+      let v3 = token2 v3 in
+      Hash (true, (v1, v2, v3))
   | `Prim_subs (v1, v2, v3) ->
-      let v1 = token v1 in
+      let v1 = token2 v1 in
       let v2 =
         (match v2 with
         | Some x -> literal_contents x
-        | None -> todo ())
+        | None -> [])
       in
-      let v3 = token v3 in
-      todo (v1, v2, v3)
+      let _v3 = token v3 in
+      Literal (String (Tick v2, v1)) (* Tick? *)
   | `Prim_symb x -> symbol x
-  | `Prim_int tok -> token tok
-  | `Prim_float tok -> token tok
-  | `Prim_comp tok -> token tok
+  | `Prim_int tok -> Literal (Num (str tok))
+  | `Prim_float tok -> Literal (Float (str tok))
+  | `Prim_comp tok -> Literal (Float (str tok)) (* Complex TODO *)
   | `Prim_rati (v1, v2) ->
-      let v1 = token v1 in
-      let v2 = token v2 in
-      todo (v1, v2)
-  | `Prim_str x -> Literal (String (string_ x))
-  | `Prim_char tok -> token tok
+      let v1 = str v1 in
+      let _v2 = token2 v2 in
+      Literal (Num (v1)) (* Rational TODO *)
+  | `Prim_str x ->
+        let (t1, xs, _t2) = string_ x in
+        Literal (String (Double xs, t1))
+  | `Prim_char tok ->
+        let (s, t) = str tok in
+        Literal (String (Single s, t)) (* TODO Char *)
   | `Prim_chai_str (v1, v2) ->
       let v1 = string_ v1 in
       let v2 = List.map string_ v2 in
-      todo (v1, v2)
+      raise Todo
   | `Prim_regex (v1, v2, v3) ->
       let v1 = token v1 in
       let v2 =
@@ -1039,14 +1046,14 @@ and primary (x : CST.primary) : AST.expr =
   )
 
 and parenthesized_statements ((v1, v2, v3) : CST.parenthesized_statements) =
-  let v1 = token v1 in
+  let v1 = token2 v1 in
   let v2 =
     (match v2 with
     | Some x -> statements x
-    | None -> todo ())
+    | None -> [])
   in
-  let v3 = token v3 in
-  todo (v1, v2, v3)
+  let v3 = token2 v3 in
+  (v1, v2, v3)
 
 and scope_resolution ((v1, v2) : CST.scope_resolution) =
   let v1 =
@@ -1553,15 +1560,15 @@ and interpolation ((v1, v2, v3) : CST.interpolation) : AST.expr AST.bracket =
   let rb = token v3 in
   (lb, v2, rb)
 
-and string_ ((v1, v2, v3) : CST.string_) : AST.string_kind AST.wrap =
-  let t1 = token2 v1 in
+and string_ ((v1, v2, v3) : CST.string_) : AST.string_contents list bracket =
+  let v1 = token2 v1 in
   let v2 =
     (match v2 with
     | Some x -> literal_contents x
     | None -> [])
   in
-  let _t2 = token2 v3 in
-  Double v2, t1
+  let v3 = token2 v3 in
+  v1, v2, v3
 
 and symbol (x : CST.symbol) =
   (match x with
@@ -1577,7 +1584,7 @@ and symbol (x : CST.symbol) =
       todo (v1, v2, v3)
   )
 
-and literal_contents (xs : CST.literal_contents) : AST.interp_string =
+and literal_contents (xs : CST.literal_contents) : AST.string_contents list =
   List.map (fun x ->
     (match x with
     | `Str_content tok ->
