@@ -10,6 +10,7 @@ from typing import Union
 
 import appdirs
 import pytest
+from tests import public_repos
 
 TESTS_PATH = Path(__file__).parent
 
@@ -220,3 +221,12 @@ def pytest_configure(config):
 def pytest_runtest_setup(item):
     if item.get_closest_marker("qa") and not item.config.getoption("--qa"):
         pytest.skip("skipping QA tests, add --qa flag to run them")
+
+
+# Add `public_repo_url` as a parameter to your test to use this. It generates 1 test case per repo url in `ALL_REPOS`
+def pytest_generate_tests(metafunc):
+    if "public_repo_url" in metafunc.fixturenames:
+        if metafunc.config.getoption("--qa"):
+            metafunc.parametrize("public_repo_url", public_repos.ALL_REPOS)
+        else:
+            metafunc.parametrize("public_repo_url", public_repos.PASSING_REPOS[:5])
