@@ -553,51 +553,51 @@ and expression (x : CST.expression) : AST.expr =
       let v1 = expression v1 in
       let v2 =
         (match v2 with
-        | `Or tok -> token tok
-        | `And tok -> token tok
+        | `Or tok -> Op_kOR, token2 tok
+        | `And tok -> Op_kAND, token2 tok
         )
       in
       let v3 = expression v3 in
-      todo (v1, v2, v3)
+      Binop (v1, v2, v3)
   | `Exp_cmd_assign x -> command_assignment x
   | `Exp_cmd_op_assign (v1, v2, v3) ->
       let v1 = lhs v1 in
-      let v2 =
+      let (op, tok) =
         (match v2 with
-        | `PLUSEQ tok -> token tok
-        | `DASHEQ tok -> token tok
-        | `STAREQ tok -> token tok
-        | `STARSTAREQ tok -> token tok
-        | `SLASHEQ tok -> token tok
-        | `BARBAREQ tok -> token tok
-        | `BAREQ tok -> token tok
-        | `AMPAMPEQ tok -> token tok
-        | `AMPEQ tok -> token tok
-        | `PERCEQ tok -> token tok
-        | `GTGTEQ tok -> token tok
-        | `LTLTEQ tok -> token tok
-        | `HATEQ tok -> token tok
+        | `PLUSEQ tok -> Op_PLUS, token2 tok
+        | `DASHEQ tok -> Op_MINUS, token2 tok
+        | `STAREQ tok -> Op_TIMES, token2 tok
+        | `STARSTAREQ tok -> Op_POW, token2 tok
+        | `SLASHEQ tok -> Op_DIV, token2 tok
+        | `BARBAREQ tok -> Op_OR, token tok
+        | `BAREQ tok -> Op_BOR, token2 tok
+        | `AMPAMPEQ tok -> Op_AND, token2 tok
+        | `AMPEQ tok -> Op_BAND, token2 tok
+        | `PERCEQ tok -> Op_REM, token2 tok
+        | `GTGTEQ tok -> Op_RSHIFT, token2 tok
+        | `LTLTEQ tok -> Op_LSHIFT, token2 tok
+        | `HATEQ tok -> Op_XOR, token2 tok
         )
       in
       let v3 = expression v3 in
-      todo (v1, v2, v3)
+      Binop (v1, (Op_OP_ASGN op, tok), v3)
   | `Exp_cmd_call x -> command_call x
   | `Exp_ret_cmd (v1, v2) ->
       let v1 = token v1 in
       let v2 = command_argument_list v2 in
-      todo (v1, v2)
+      S (Return (v1, v2))
   | `Exp_yield_cmd (v1, v2) ->
       let v1 = token v1 in
       let v2 = command_argument_list v2 in
-      todo (v1, v2)
+      S (Yield (v1, v2))
   | `Exp_brk_cmd (v1, v2) ->
       let v1 = token v1 in
       let v2 = command_argument_list v2 in
-      todo (v1, v2)
+      S (Break (v1, v2))
   | `Exp_next_cmd (v1, v2) ->
       let v1 = token v1 in
       let v2 = command_argument_list v2 in
-      todo (v1, v2)
+      S (Next (v1, v2))
   | `Exp_arg x -> arg x
   )
 
