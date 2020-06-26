@@ -19,6 +19,7 @@ import semgrep.util
 from semgrep import config_resolver
 from semgrep.constants import __VERSION__
 from semgrep.constants import OutputFormat
+from semgrep.core_exception import CoreException
 from semgrep.error import SemgrepError
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
@@ -217,28 +218,28 @@ class OutputHandler:
         self.rule_matches: List[RuleMatch] = []
         self.debug_steps_by_rule: Dict[Rule, List[Dict[str, Any]]] = {}
         self.rules: FrozenSet[Rule] = frozenset()
-        self.semgrep_core_errors: List[Dict[str, Any]] = []
+        self.semgrep_core_errors: List[CoreException] = []
         self.semgrep_structured_errors: List[SemgrepError] = []
         self.has_output = False
 
         self.final_error: Optional[Exception] = None
 
-    def handle_semgrep_core_errors(self, semgrep_errors: List[Dict[str, Any]]) -> None:
+    def handle_semgrep_core_errors(self, semgrep_errors: List[CoreException]) -> None:
         """
         Report errors coming directly from semgrep-core (raw JSON objects)
         """
         self.semgrep_core_errors += semgrep_errors
         if self.settings.output_format == OutputFormat.TEXT:
             parse_errors, other_errors = partition(
-                lambda e: e["check_id"] == "ParseError", semgrep_errors
+                lambda e: e._check_id in {"ParseError", "FatalError"}, semgrep_errors
             )
 
             for error in other_errors:
-                print_stderr(pretty_error(error))
+                print_stderr(str(error))
 
             if len(parse_errors) > 0:
                 files_with_parse_errors: Set[str] = set(
-                    e.get("path") for e in parse_errors if "path" in e
+                    str(e._path) for e in parse_errors
                 )
 
                 print_stderr(
@@ -248,7 +249,7 @@ class OutputHandler:
                 if semgrep.util.DEBUG:
                     debug_print("ParseErrors:")
                     for error in parse_errors:
-                        debug_print(pretty_error(error))
+                        debug_print(str(error))
                     debug_print(
                         "= note: If the code is correct, this could be a semgrep bug -- please help us fix this by filing an an issue at https://semgrep.dev"
                     )
@@ -353,17 +354,3 @@ class OutputHandler:
             raise RuntimeError(
                 f"Unhandled output format: {type(output_format).__name__}"
             )
-
-
-def pretty_error(error: Dict[str, Any]) -> str:
-    try:
-        if {"path", "start", "end", "extra"}.difference(error.keys()) == set():
-            header = f"--> {error['path']}:{error['start']['line']}"
-            line_1 = error["extra"]["line"]
-            start_col = error["start"]["col"]
-            line_2 = " " * (start_col - 1) + "^"
-            return "\n".join([header, line_1, line_2])
-        else:
-            return f"semgrep-core error: {json.dumps(error, indent=2)}"
-    except KeyError:
-        return f"semgrep-core error: {json.dumps(error, indent=2)}"
