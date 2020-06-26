@@ -25,8 +25,7 @@ from semgrep.rule_match import RuleMatch
 from semgrep.util import debug_print
 from semgrep.util import is_url
 from semgrep.util import partition
-from semgrep.util import print_error
-from semgrep.util import print_msg
+from semgrep.util import print_stderr
 
 
 def color_line(
@@ -193,7 +192,7 @@ def managed_output(output_settings: OutputSettings) -> Generator:  # type: ignor
 
 class OutputHandler:
     """
-    Handle all output in a central location. Rather than calling `print_error` directly,
+    Handle all output in a central location. Rather than calling `print_stderr` directly,
     you should call `handle_*` as appropriate.
 
     In normal usage, it should be constructed via the contextmanager, `managed_output`. It ensures that everything
@@ -235,14 +234,14 @@ class OutputHandler:
             )
 
             for error in other_errors:
-                print_error(pretty_error(error))
+                print_stderr(pretty_error(error))
 
             if len(parse_errors) > 0:
                 files_with_parse_errors: Set[str] = set(
                     e.get("path") for e in parse_errors if "path" in e
                 )
 
-                print_error(
+                print_stderr(
                     f"{len(files_with_parse_errors)} file(s) failed to parse: {', '.join(files_with_parse_errors)}"
                 )
 
@@ -254,7 +253,7 @@ class OutputHandler:
                         "= note: If the code is correct, this could be a semgrep bug -- please help us fix this by filing an an issue at https://semgrep.dev"
                     )
                 else:
-                    print_error("Run with --verbose to see parse errors")
+                    print_stderr("Run with --verbose to see parse errors")
 
     def handle_semgrep_error(self, error: SemgrepError) -> None:
         """
@@ -262,7 +261,7 @@ class OutputHandler:
         """
         self.has_output = True
         self.semgrep_structured_errors.append(error)
-        print_error(str(error))
+        print_stderr(str(error))
 
     def handle_semgrep_core_output(
         self,
@@ -326,7 +325,7 @@ class OutputHandler:
     def post_output(cls, output_url: str, output: str) -> None:
         import requests  # here for faster startup times
 
-        print_msg(f"posting to {output_url}...")
+        print_stderr(f"posting to {output_url}...")
         try:
             r = requests.post(output_url, data=output, timeout=10)
             debug_print(f"posted to {output_url} and got status_code:{r.status_code}")
