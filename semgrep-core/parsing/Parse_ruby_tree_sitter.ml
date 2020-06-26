@@ -40,6 +40,8 @@ open Ast_ruby
 
 let token2 (_tok : Tree_sitter_run.Token.t) =
   PI.fake_info "XXX"
+let str (_tok : Tree_sitter_run.Token.t) =
+  "STRXXX", PI.fake_info "XXX"
 let fk = PI.fake_info "TODO"
 
 let token (_tok : Tree_sitter_run.Token.t) = failwith "not implemented"
@@ -199,13 +201,20 @@ let terminator (x : CST.terminator) : unit =
 
 let variable (x : CST.variable) : AST.expr =
   (match x with
-  | `Self tok -> token tok
-  | `Super tok -> token tok
-  | `Inst_var tok -> token tok
-  | `Class_var tok -> token tok
-  | `Glob_var tok -> token tok
-  | `Id tok -> token tok
-  | `Cst tok -> token tok
+  | `Self tok -> let t = token2 tok in
+        Id (("self", t), ID_Lowercase)
+  | `Super tok -> let t = token2 tok in
+        Id (("super", t), ID_Lowercase)
+  | `Inst_var tok -> let t = token2 tok in
+        Id (str tok, ID_Instance)
+  | `Class_var tok -> let t = token2 tok in
+        Id (str tok, ID_Class)
+  | `Glob_var tok -> let t = token2 tok in
+        Id (str tok, ID_Global)
+  | `Id tok -> let t = token2 tok in
+        Id (str tok, ID_Lowercase) (* ?? *)
+  | `Cst tok -> let t = token2 tok in
+        Id (str tok, ID_Uppercase) (* ?? *)
   )
 
 let do_ (x : CST.do_) : unit =
@@ -659,7 +668,7 @@ and expression (x : CST.expression) : AST.expr =
   | `Exp_arg x -> arg x
   )
 
-and arg (x : CST.arg) =
+and arg (x : CST.arg) : AST.expr =
   (match x with
   | `Arg_prim x -> primary x
   | `Arg_assign x -> assignment x
@@ -705,7 +714,7 @@ and arg (x : CST.arg) =
   | `Arg_un x -> unary x
   )
 
-and primary (x : CST.primary) =
+and primary (x : CST.primary) : AST.expr =
   (match x with
   | `Prim_paren_stmts x -> parenthesized_statements x
   | `Prim_lhs x -> lhs x
@@ -824,7 +833,7 @@ and primary (x : CST.primary) =
       let v1 = token v1 in
       let v2 = token v2 in
       todo (v1, v2)
-  | `Prim_str x -> string_ x
+  | `Prim_str x -> Literal (String (string_ x))
   | `Prim_char tok -> token tok
   | `Prim_chai_str (v1, v2) ->
       let v1 = string_ v1 in
@@ -1240,12 +1249,12 @@ and command_argument_list (x : CST.command_argument_list) : AST.expr list =
       let v1 = argument v1 in
       let v2 =
         List.map (fun (v1, v2) ->
-          let v1 = token v1 in
+          let _t = token2 v1 in
           let v2 = argument v2 in
-          todo (v1, v2)
+          v2
         ) v2
       in
-      todo (v1, v2)
+      v1::v2
   | `Cmd_arg_list_cmd_call x -> [command_call x]
   )
 
@@ -1275,7 +1284,7 @@ and argument_list_with_trailing_comma ((v1, v2, v3) : CST.argument_list_with_tra
   in
   todo (v1, v2, v3)
 
-and argument (x : CST.argument) =
+and argument (x : CST.argument) : AST.expr =
   (match x with
   | `Arg_arg x -> arg x
   | `Arg_splat_arg x -> splat_argument x
@@ -1602,21 +1611,21 @@ and method_name (x : CST.method_name) =
   | `Meth_name_glob_var tok -> token tok
   )
 
-and interpolation ((v1, v2, v3) : CST.interpolation) =
-  let v1 = token v1 in
+and interpolation ((v1, v2, v3) : CST.interpolation) : AST.expr AST.bracket =
+  let lb = token v1 in
   let v2 = statement v2 in
-  let v3 = token v3 in
-  todo (v1, v2, v3)
+  let rb = token v3 in
+  (lb, v2, rb)
 
-and string_ ((v1, v2, v3) : CST.string_) =
-  let v1 = token v1 in
+and string_ ((v1, v2, v3) : CST.string_) : AST.string_kind AST.wrap =
+  let t1 = token2 v1 in
   let v2 =
     (match v2 with
     | Some x -> literal_contents x
-    | None -> todo ())
+    | None -> [])
   in
-  let v3 = token v3 in
-  todo (v1, v2, v3)
+  let _t2 = token2 v3 in
+  Double v2, t1
 
 and symbol (x : CST.symbol) =
   (match x with
@@ -1632,12 +1641,18 @@ and symbol (x : CST.symbol) =
       todo (v1, v2, v3)
   )
 
-and literal_contents (xs : CST.literal_contents) =
+and literal_contents (xs : CST.literal_contents) : AST.interp_string =
   List.map (fun x ->
     (match x with
-    | `Str_content tok -> token tok
-    | `Interp x -> interpolation x
-    | `Esc_seq tok -> token tok
+    | `Str_content tok ->
+            let (str, _t) = str tok in
+            StrChars str
+    | `Interp x ->
+            let (_lb, e, _rb) = interpolation x in
+            StrExpr e
+    | `Esc_seq tok ->
+            let (str, _t) = str tok in
+            StrChars str
     )
   ) xs
 
