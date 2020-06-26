@@ -381,17 +381,6 @@ class CoreRunner:
         all_errors = dedup_errors(all_errors)
         return findings_by_rule, debugging_steps_by_rule, all_errors
 
-    def _resolve_output(
-        self, outputs: Dict[Rule, Dict[Path, List[PatternMatch]]]
-    ) -> Tuple[Dict[Rule, List[RuleMatch]], Dict[Rule, List[Dict[str, Any]]]]:
-        """
-            Takes output of all running all patterns and rules and returns Findings
-        """
-        findings_by_rule: Dict[Rule, List[RuleMatch]] = {}
-        debugging_steps_by_rule: Dict[Rule, List[Dict[str, Any]]] = {}
-
-        return findings_by_rule, debugging_steps_by_rule
-
     def invoke_semgrep(
         self, target_manager: TargetManager, rules: List[Rule]
     ) -> Tuple[
