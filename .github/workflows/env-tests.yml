@@ -69,6 +69,12 @@ jobs:
     needs: [build-core]
     container: returntocorp/sgrep-build:2.8
     steps:
+      - name: Adjust permissions
+        run: |
+          sudo chmod -R 777 . /github
+          # github cache dir
+          sudo mkdir -p /__w/
+          sudo chmod -R 777 /__w/
       - name: Setup Python
         uses: actions/setup-python@v1
         with:
