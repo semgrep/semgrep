@@ -32,6 +32,7 @@ from semgrep.pattern_match import PatternMatch
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.semgrep_types import BooleanRuleExpression
+from semgrep.semgrep_types import Language
 from semgrep.semgrep_types import OPERATORS
 from semgrep.target_manager import TargetManager
 from semgrep.util import debug_print
@@ -147,10 +148,10 @@ class CoreRunner:
 
     def _group_patterns_by_language(
         self, rules: List[Rule]
-    ) -> Dict[str, List[Pattern]]:
+    ) -> Dict[Language, List[Pattern]]:
         # a rule can have multiple patterns inside it. Flatten these so we can send semgrep a single yml file list of patterns
         patterns: List[Pattern] = list(self._flatten_rule_patterns(rules))
-        by_lang: Dict[str, List[Pattern]] = collections.defaultdict(list)
+        by_lang: Dict[Language, List[Pattern]] = collections.defaultdict(list)
         for pattern in patterns:
             by_lang[pattern.language].append(pattern)
         return by_lang

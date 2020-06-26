@@ -4,6 +4,7 @@ from typing import Optional
 
 from semgrep.rule_lang import Span
 from semgrep.semgrep_types import BooleanRuleExpression
+from semgrep.semgrep_types import Language
 
 
 class Pattern:
@@ -16,7 +17,7 @@ class Pattern:
         rule_index: int,
         expression: BooleanRuleExpression,
         severity: str,
-        language: str,
+        language: Language,
         span: Optional[Span],
     ) -> None:
         self._id = f"{rule_index}.{expression.pattern_id}"
@@ -31,7 +32,7 @@ class Pattern:
         return self._span
 
     @property
-    def language(self) -> str:
+    def language(self) -> Language:
         return self._language
 
     @property

@@ -2,6 +2,8 @@ from typing import Any
 from typing import Dict
 from typing import List
 
+from semgrep.semgrep_types import Language
+
 
 class Equivalence:
     """
@@ -18,7 +20,7 @@ class Equivalence:
     '''
     """
 
-    def __init__(self, equiv_id: str, pattern: str, languages: List[str]):
+    def __init__(self, equiv_id: str, pattern: str, languages: List[Language]):
         self._id = equiv_id
         self._pattern = pattern
         self._languages = languages
