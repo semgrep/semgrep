@@ -17,6 +17,7 @@ jobs:
           # github cache dir
           sudo mkdir -p /__w/
           sudo chmod -R 777 /__w/
+          git --version
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install submodules
