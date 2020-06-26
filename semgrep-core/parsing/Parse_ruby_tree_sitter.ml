@@ -46,109 +46,24 @@ let str (_tok : Tree_sitter_run.Token.t) =
 let fk = PI.fake_info "TODO"
 
 let token (_tok : Tree_sitter_run.Token.t) = failwith "not implemented"
-let blank () = failwith "not implemented"
+let blank () = ()
 let todo x =
   pr2_gen x;
   failwith "not implemented"
 
-let binary_star (tok : CST.binary_star) =
-  token tok
 
-let singleton_class_left_angle_left_langle (tok : CST.singleton_class_left_angle_left_langle) =
-  token tok
-
-let instance_variable (tok : CST.instance_variable) =
-  token tok
-
-let binary_minus (tok : CST.binary_minus) =
-  token tok
-
-let simple_symbol (tok : CST.simple_symbol) =
-  token tok
-
-let complex (tok : CST.complex) =
-  token tok
-
-let character (tok : CST.character) =
-  token tok
-
-let escape_sequence (tok : CST.escape_sequence) =
-  token tok
-
-let false_ (x : CST.false_) =
+let false_ (x : CST.false_) : bool wrap =
   (match x with
-  | `False_false tok -> token tok
-  | `False_FALSE tok -> token tok
+  | `False_false tok -> false, token2 tok
+  | `False_FALSE tok -> false, token2 tok
   )
 
-let subshell_start (tok : CST.subshell_start) =
-  token tok
-
-let regex_start (tok : CST.regex_start) =
-  token tok
-
-let constant (tok : CST.constant) =
-  token tok
-
-let symbol_start (tok : CST.symbol_start) =
-  token tok
-
-let unary_minus (tok : CST.unary_minus) =
-  token tok
-
-let block_ampersand (tok : CST.block_ampersand) =
-  token tok
-
-let class_variable (tok : CST.class_variable) =
-  token tok
-
-let string_array_start (tok : CST.string_array_start) =
-  token tok
-
-let splat_star (tok : CST.splat_star) =
-  token tok
-
-let integer (tok : CST.integer) =
-  token tok
-
-let heredoc_content (tok : CST.heredoc_content) =
-  token tok
-
-let string_end (tok : CST.string_end) =
-  token tok
-
-let line_break (tok : CST.line_break) =
-  token tok
-
-let identifier (tok : CST.identifier) =
-  token tok
-
-let string_content (tok : CST.string_content) =
-  token tok
-
-let heredoc_end (tok : CST.heredoc_end) =
-  token tok
-
-let nil (x : CST.nil) =
+let nil (x : CST.nil) : tok =
   (match x with
-  | `Nil_nil tok -> token tok
-  | `Nil_NIL tok -> token tok
+  | `Nil_nil tok -> token2 tok
+  | `Nil_NIL tok -> token2 tok
   )
 
-let heredoc_beginning (tok : CST.heredoc_beginning) =
-  token tok
-
-let float_ (tok : CST.float_) =
-  token tok
-
-let global_variable (tok : CST.global_variable) =
-  token tok
-
-let symbol_array_start (tok : CST.symbol_array_start) =
-  token tok
-
-let heredoc_body_start (tok : CST.heredoc_body_start) =
-  token tok
 
 let operator (x : CST.operator) =
   (match x with
@@ -182,17 +97,11 @@ let operator (x : CST.operator) =
   | `Op_BQUOT tok -> token tok
   )
 
-let true_ (x : CST.true_) =
+let true_ (x : CST.true_) : bool wrap =
   (match x with
-  | `True_true tok -> token tok
-  | `True_TRUE tok -> token tok
+  | `True_true tok -> true, token2 tok
+  | `True_TRUE tok -> true, token2 tok
   )
-
-let string_start (tok : CST.string_start) =
-  token tok
-
-let identifier_hash_key (tok : CST.identifier_hash_key) =
-  token tok
 
 let terminator (x : CST.terminator) : unit =
   (match x with
@@ -247,6 +156,7 @@ let rec statements (x : CST.statements) : AST.stmts =
   | `Stmts_stmt x -> [statement x]
   )
 
+(* TODO1 *)
 and statement (x : CST.statement) : AST.expr (* TODO AST.stmt at some point *)=
   (match x with
   | `Stmt_undef (v1, v2, v3) ->
@@ -338,7 +248,7 @@ and method_rest ((v1, v2, v3) : CST.method_rest) =
   let v3 = body_statement v3 in
   todo (v1, v2, v3)
 
-and parameters ((v1, v2, v3) : CST.parameters) =
+and parameters ((v1, v2, v3) : CST.parameters) : AST.formal_param list bracket=
   let v1 = token v1 in
   let v2 =
     (match v2 with
@@ -357,7 +267,7 @@ and parameters ((v1, v2, v3) : CST.parameters) =
   let v3 = token v3 in
   todo (v1, v2, v3)
 
-and bare_parameters ((v1, v2) : CST.bare_parameters) =
+and bare_parameters ((v1, v2) : CST.bare_parameters) : AST.formal_param list =
   let v1 = simple_formal_parameter v1 in
   let v2 =
     List.map (fun (v1, v2) ->
@@ -368,7 +278,8 @@ and bare_parameters ((v1, v2) : CST.bare_parameters) =
   in
   todo (v1, v2)
 
-and block_parameters ((v1, v2, v3, v4, v5) : CST.block_parameters) =
+and block_parameters ((v1, v2, v3, v4, v5) : CST.block_parameters) :
+  AST.formal_param list bracket =
   let v1 = token v1 in
   let v2 =
     (match v2 with
@@ -597,7 +508,8 @@ and exception_variable ((v1, v2) : CST.exception_variable) =
   let v2 = lhs v2 in
   todo (v1, v2)
 
-and body_statement ((v1, v2, v3) : CST.body_statement) =
+and body_statement ((v1, v2, v3) : CST.body_statement) :
+ AST.body_exn * AST.tok =
   let v1 =
     (match v1 with
     | Some x -> statements x
@@ -855,7 +767,7 @@ and primary (x : CST.primary) : AST.expr =
         (match v2 with
         | Some x ->
             (match x with
-            | `Params x -> parameters x
+            | `Params x -> parameters x |> G.unbracket
             | `Bare_params x -> bare_parameters x
             )
         | None -> todo ())
@@ -1317,7 +1229,7 @@ and do_block ((v1, v2, v3, v4) : CST.do_block) : AST.expr =
   let params_opt =
     (match v3 with
     | Some (v1, v2) ->
-        let v1 = block_parameters v1 in
+        let v1 = block_parameters v1 |> G.unbracket in
         let _v2 =
           (match v2 with
           | Some x -> terminator x
@@ -1326,14 +1238,15 @@ and do_block ((v1, v2, v3, v4) : CST.do_block) : AST.expr =
         Some v1
     | None -> None)
   in
-  let (xs, tend) = body_statement v4 in
+  let (exn_block, tend) = body_statement v4 in
+  let xs = [S (ExnBlock (exn_block, tend))] in
   CodeBlock ((tdo, false, tend), params_opt, xs, fk)
 
 and block ((v1, v2, v3, v4) : CST.block) =
   let lb = token2 v1 in
   let params_opt =
     (match v2 with
-    | Some x -> Some (block_parameters x)
+    | Some x -> Some (block_parameters x |> G.unbracket)
     | None -> None)
   in
   let v3 =
@@ -1579,9 +1492,9 @@ and rest_assignment ((v1, v2) : CST.rest_assignment) =
 and lhs (x : CST.lhs) : AST.expr =
   (match x with
   | `Var x -> variable x
-  | `True x -> true_ x
-  | `False x -> false_ x
-  | `Nil x -> nil x
+  | `True x -> Literal (Bool (true_ x))
+  | `False x -> Literal (Bool (false_ x))
+  | `Nil x -> Literal (Nil (nil x))
   | `Scope_resol x -> scope_resolution x
   | `Elem_ref (v1, v2, v3, v4) ->
       let v1 = primary v1 in
