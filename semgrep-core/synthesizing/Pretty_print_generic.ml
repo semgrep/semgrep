@@ -49,6 +49,11 @@ let token tok = Parse_info.str_of_info tok
 
 let ident (s, _) = s
 
+let print_type = function
+  | TyBuiltin (s, _) -> s
+  | TyName (id, _) -> ident id
+  | x -> todo (T x)
+
 let arithop env (op, tok) =
   match op with
       | Plus -> "+"
@@ -91,6 +96,7 @@ function
   | DotAccess (e, tok, fi) -> dot_access env (e, tok, fi)
   | Ellipsis _ -> "..."
   | Conditional (e1, e2, e3) -> cond env (e1, e2, e3)
+  | TypedMetavar (id, _, typ) -> tyvar env (id, typ)
   | x -> todo (E x)
 
 and id env (s, {id_resolved; _}) =
@@ -159,6 +165,12 @@ and field_ident env fi =
        | FId id -> ident id
        | FName (id, _) -> ident id
        | FDynamic e -> expr env e
+
+and tyvar env (id, typ) =
+  match env.lang with
+    | Lang.Java -> F.sprintf "(%s %s)" (print_type typ) (ident id)
+    | Lang.Go -> F.sprintf "(%s : %s)" (ident id) (print_type typ)
+    | _ -> failwith "Not implemented for this language"
 
 and cond env (e1, e2, e3) =
   let s1 = expr env e1 in
