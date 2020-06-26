@@ -16,6 +16,7 @@ module AST = Ast_ruby
 module CST = Tree_sitter_ruby.CST
 module PI = Parse_info
 open Ast_ruby
+module G = AST_generic
 
 (*****************************************************************************)
 (* Prelude *)
@@ -1187,7 +1188,7 @@ and command_call (x : CST.command_call) : AST.expr =
       Call (v1, v2, Some v3, fk)
   )
 
-and method_call (x : CST.method_call) =
+and method_call (x : CST.method_call) : AST.expr =
   (match x with
   | `Meth_call_choice_var_arg_list (v1, v2) ->
       let v1 =
@@ -1197,8 +1198,8 @@ and method_call (x : CST.method_call) =
         | `Call x -> call x
         )
       in
-      let v2 = argument_list v2 in
-      todo (v1, v2)
+      let v2 = argument_list v2 |> G.unbracket in
+      Call (v1, v2, None, fk)
   | `Meth_call_choice_var_arg_list_blk (v1, v2, v3) ->
       let v1 =
         (match v1 with
@@ -1207,9 +1208,9 @@ and method_call (x : CST.method_call) =
         | `Call x -> call x
         )
       in
-      let v2 = argument_list v2 in
+      let v2 = argument_list v2 |> G.unbracket in
       let v3 = block v3 in
-      todo (v1, v2, v3)
+      Call (v1, v2, Some v3, fk)
   | `Meth_call_choice_var_arg_list_do_blk (v1, v2, v3) ->
       let v1 =
         (match v1 with
@@ -1218,9 +1219,9 @@ and method_call (x : CST.method_call) =
         | `Call x -> call x
         )
       in
-      let v2 = argument_list v2 in
+      let v2 = argument_list v2 |> G.unbracket in
       let v3 = do_block v3 in
-      todo (v1, v2, v3)
+      Call (v1, v2, Some v3, fk)
   | `Meth_call_choice_var_blk (v1, v2) ->
       let v1 =
         (match v1 with
@@ -1230,7 +1231,7 @@ and method_call (x : CST.method_call) =
         )
       in
       let v2 = block v2 in
-      todo (v1, v2)
+      Call (v1, [], Some v2, fk)
   | `Meth_call_choice_var_do_blk (v1, v2) ->
       let v1 =
         (match v1 with
@@ -1240,7 +1241,7 @@ and method_call (x : CST.method_call) =
         )
       in
       let v2 = do_block v2 in
-      todo (v1, v2)
+      Call (v1, [], Some v2, fk)
   )
 
 and command_argument_list (x : CST.command_argument_list) : AST.expr list =
@@ -1258,31 +1259,31 @@ and command_argument_list (x : CST.command_argument_list) : AST.expr list =
   | `Cmd_arg_list_cmd_call x -> [command_call x]
   )
 
-and argument_list ((v1, v2, v3) : CST.argument_list) =
-  let v1 = token v1 in
+and argument_list ((v1, v2, v3) : CST.argument_list) : AST.expr list AST.bracket =
+  let lp = token2 v1 in
   let v2 =
     (match v2 with
     | Some x -> argument_list_with_trailing_comma x
-    | None -> todo ())
+    | None -> [])
   in
-  let v3 = token v3 in
-  todo (v1, v2, v3)
+  let rp = token2 v3 in
+  (lp, v2, rp)
 
-and argument_list_with_trailing_comma ((v1, v2, v3) : CST.argument_list_with_trailing_comma) =
+and argument_list_with_trailing_comma ((v1, v2, v3) : CST.argument_list_with_trailing_comma) : AST.expr list =
   let v1 = argument v1 in
   let v2 =
     List.map (fun (v1, v2) ->
-      let v1 = token v1 in
+      let _ = token2 v1 in
       let v2 = argument v2 in
-      todo (v1, v2)
+      v2
     ) v2
   in
-  let v3 =
+  let _v3 =
     (match v3 with
-    | Some tok -> token tok
-    | None -> todo ())
+    | Some _tok -> ()
+    | None -> ())
   in
-  todo (v1, v2, v3)
+  v1::v2
 
 and argument (x : CST.argument) : AST.expr =
   (match x with
@@ -1575,7 +1576,7 @@ and rest_assignment ((v1, v2) : CST.rest_assignment) =
   in
   todo (v1, v2)
 
-and lhs (x : CST.lhs) =
+and lhs (x : CST.lhs) : AST.expr =
   (match x with
   | `Var x -> variable x
   | `True x -> true_ x
