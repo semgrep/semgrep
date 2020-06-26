@@ -45,7 +45,8 @@ let str (_tok : Tree_sitter_run.Token.t) =
   "STRXXX", PI.fake_info "XXX"
 let fk = PI.fake_info "TODO"
 
-let token (_tok : Tree_sitter_run.Token.t) = failwith "not implemented"
+let token (_tok : Tree_sitter_run.Token.t) =
+  failwith "not implemented"
 let blank () = ()
 let todo x =
   pr2_gen x;
@@ -67,34 +68,37 @@ let nil (x : CST.nil) : tok =
 
 let operator (x : CST.operator) =
   (match x with
-  | `Op_DOTDOT tok -> token tok
-  | `Op_BAR tok -> token tok
-  | `Op_HAT tok -> token tok
-  | `Op_AMP tok -> token tok
-  | `Op_LTEQGT tok -> token tok
-  | `Op_EQEQ tok -> token tok
-  | `Op_EQEQEQ tok -> token tok
-  | `Op_EQTILDE tok -> token tok
-  | `Op_GT tok -> token tok
-  | `Op_GTEQ tok -> token tok
-  | `Op_LT tok -> token tok
-  | `Op_LTEQ tok -> token tok
-  | `Op_PLUS tok -> token tok
-  | `Op_DASH tok -> token tok
-  | `Op_STAR tok -> token tok
-  | `Op_SLASH tok -> token tok
-  | `Op_PERC tok -> token tok
-  | `Op_BANG tok -> token tok
-  | `Op_BANGTILDE tok -> token tok
-  | `Op_STARSTAR tok -> token tok
-  | `Op_LTLT tok -> token tok
-  | `Op_GTGT tok -> token tok
-  | `Op_TILDE tok -> token tok
+
+  | `Op_DOTDOT tok -> Op_DOT2, (token2 tok)
+  | `Op_BAR tok -> Op_BOR, (token2 tok)
+  | `Op_HAT tok -> Op_XOR, (token2 tok)
+  | `Op_AMP tok -> Op_BAND, (token2 tok)
+  | `Op_LTEQGT tok -> Op_CMP, (token2 tok)
+  | `Op_EQEQ tok -> Op_EQ, (token2 tok)
+  | `Op_EQEQEQ tok -> Op_EQQ, (token2 tok)
+  | `Op_EQTILDE tok -> Op_MATCH, (token2 tok)
+  | `Op_GT tok -> Op_GT, (token2 tok)
+  | `Op_GTEQ tok -> Op_GEQ, (token2 tok)
+  | `Op_LT tok -> Op_LT, (token2 tok)
+  | `Op_LTEQ tok -> Op_LEQ, (token2 tok)
+  | `Op_PLUS tok -> Op_PLUS, (token2 tok)
+  | `Op_DASH tok -> Op_MINUS, (token2 tok)
+  | `Op_STAR tok -> Op_TIMES, (token2 tok)
+  | `Op_SLASH tok -> Op_DIV, (token2 tok)
+  | `Op_PERC tok -> Op_REM, (token2 tok)
+  | `Op_BANGTILDE tok -> Op_NMATCH, (token2 tok)
+  | `Op_STARSTAR tok -> Op_POW, (token2 tok)
+  | `Op_LTLT tok -> Op_LSHIFT, (token2 tok)
+  | `Op_GTGT tok -> Op_RSHIFT, (token2 tok)
+  | `Op_LBRACKRBRACK tok -> Op_AREF, (token2 tok)
+  | `Op_LBRACKRBRACKEQ tok -> Op_ASET, (token2 tok)
+
+  | `Op_BQUOT tok -> token tok
   | `Op_PLUSAT tok -> token tok
   | `Op_DASHAT tok -> token tok
-  | `Op_LBRACKRBRACK tok -> token tok
-  | `Op_LBRACKRBRACKEQ tok -> token tok
-  | `Op_BQUOT tok -> token tok
+
+  | `Op_TILDE tok -> token tok
+  | `Op_BANG tok -> token tok
   )
 
 let true_ (x : CST.true_) : bool wrap =
@@ -1057,7 +1061,9 @@ and call ((v1, v2, v3) : CST.call) =
   let v3 =
     (match v3 with
     | `Id tok -> token tok
-    | `Op x -> operator x
+    | `Op x ->
+          let _op = operator x in
+          todo x
     | `Cst tok -> token tok
     | `Arg_list x -> argument_list x
     )
@@ -1519,7 +1525,7 @@ and method_name (x : CST.method_name) =
       let v2 = token v2 in
       todo (v1, v2)
   | `Meth_name_symb x -> symbol x
-  | `Meth_name_op x -> operator x
+  | `Meth_name_op x -> let _op = operator x in todo x
   | `Meth_name_inst_var tok -> token tok
   | `Meth_name_class_var tok -> token tok
   | `Meth_name_glob_var tok -> token tok
