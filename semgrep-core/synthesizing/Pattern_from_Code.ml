@@ -83,8 +83,9 @@ let get_id ?(with_type=false) state e =
         if with_type then
           ( match e with
               | Id (_, {id_type; _}) ->
-                 (match !id_type with | None -> (notype_id, has_type)
-                                      | Some t -> (default_tyvar (count_to_id state.count) t), true)
+                 (match !id_type with
+                   | None -> (notype_id, has_type)
+                   | Some t -> (default_tyvar (count_to_id state.count) t), true)
               | _ -> (notype_id, has_type)
           )
         else (notype_id, has_type) in
@@ -95,9 +96,6 @@ let has_nested_call = List.find_opt (fun x -> match x with Arg(Call _) -> true |
 (*****************************************************************************)
 (* Algorithm *)
 (*****************************************************************************)
-(* TODO: look if Call, and propose $ on each argument, ...,
- * propose also typed metavars, and resolved id in the call, etc.
- *)
 
 (* Calls *)
 let shallow_dots (e, (lp, rp)) =
@@ -111,9 +109,14 @@ let rec map_args state = function
      (state', (Arg new_id)::args)
   | _ -> (state, []) (* TODO fail? *)
 
+let exact_metavar (e, (lp, es, rp)) state =
+  let (_, replaced_args) = map_args state es in
+  ("exact metavars", E (Call (e, (lp, replaced_args, rp))))
+
 let shallow_metavar (e, (lp, es, rp)) state =
   let (_, replaced_args) = map_args state es in
-  ("metavars", E (Call (e, (lp, replaced_args, rp))))
+  let args' = replaced_args @ [Arg (Ellipsis fk)] in
+  ("metavars", E (Call (e, (lp, args', rp))))
 
 let rec deep_mv_call (e, (lp, es, rp)) with_type state =
   let (state', replaced_args) = deep_mv_args with_type state es in
@@ -135,13 +138,12 @@ let deep_metavar (e, (lp, es, rp)) state =
   let (_, e') = deep_mv_call (e, (lp, es, rp)) false state in ("deep metavars", E e')
 
 let deep_typed_metavar (e, (lp, es, rp)) state =
-  let (state', e') = deep_mv_call (e, (lp, es, rp)) true state
-  in
+  let (state', e') = deep_mv_call (e, (lp, es, rp)) true state in
   if state'.has_type then Some ("typed metavars", E e') else None
 
 
 let generalize_call state = function
-  | Call (IdSpecial e1, e2) -> (shallow_metavar (IdSpecial e1, e2) state) :: []
+  | Call (IdSpecial e1, e2) -> (exact_metavar (IdSpecial e1, e2) state) :: []
   | Call (e, (lp, es, rp)) ->
       (* only show the deep_metavar and deep_typed_metavar options if relevant *)
       let d_mvar =
@@ -154,7 +156,8 @@ let generalize_call state = function
             None -> d_mvar
           | Some e' -> e' :: d_mvar
       in
-       (shallow_dots (e, (lp, rp))) :: (shallow_metavar (e, (lp, es, rp)) state) :: optional
+       (shallow_dots (e, (lp, rp))) :: (shallow_metavar (e, (lp, es, rp)) state) ::
+       (exact_metavar (e, (lp, es, rp)) state) :: optional
   | _ -> []
 
 (* All expressions *)
