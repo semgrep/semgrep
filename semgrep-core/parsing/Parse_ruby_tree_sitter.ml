@@ -168,62 +168,65 @@ and statement (x : CST.statement) : AST.expr (* TODO AST.stmt at some point *)=
       let v2 = method_name v2 in
       let v3 =
         List.map (fun (v1, v2) ->
-          let v1 = token v1 in
+          let _v1 = token v1 in
           let v2 = method_name v2 in
-          todo (v1, v2)
+          v2
         ) v3
       in
-      todo (v1, v2, v3)
+      D (Undef (v1, (v2::v3)))
   | `Stmt_alias (v1, v2, v3) ->
       let v1 = token v1 in
       let v2 = method_name v2 in
       let v3 = method_name v3 in
-      todo (v1, v2, v3)
+      D (Alias (v1, v2, v3))
   | `Stmt_if_modi (v1, v2, v3) ->
       let v1 = statement v1 in
       let v2 = token v2 in
       let v3 = expression v3 in
-      todo (v1, v2, v3)
+      S (If (v2, v3, [v1], []))
   | `Stmt_unle_modi (v1, v2, v3) ->
       let v1 = statement v1 in
       let v2 = token v2 in
       let v3 = expression v3 in
-      todo (v1, v2, v3)
+      S (Unless (v2, v3, [v1], []))
   | `Stmt_while_modi (v1, v2, v3) ->
       let v1 = statement v1 in
       let v2 = token v2 in
       let v3 = expression v3 in
-      todo (v1, v2, v3)
+      let b = true (* ?? *) in
+      S (While (v2, b, v3, [v1]))
   | `Stmt_until_modi (v1, v2, v3) ->
       let v1 = statement v1 in
       let v2 = token v2 in
       let v3 = expression v3 in
-      todo (v1, v2, v3)
+      S (Until (v2, true, v3, [v1]))
+
   | `Stmt_resc_modi (v1, v2, v3) ->
       let v1 = statement v1 in
       let v2 = token v2 in
       let v3 = expression v3 in
       todo (v1, v2, v3)
+
   | `Stmt_begin_blk (v1, v2, v3, v4) ->
       let v1 = token v1 in
       let v2 = token v2 in
       let v3 =
         (match v3 with
         | Some x -> statements x
-        | None -> todo ())
+        | None -> [])
       in
       let v4 = token v4 in
-      todo (v1, v2, v3, v4)
+      D (BeginBlock (v1, (v2, v3, v4)))
   | `Stmt_end_blk (v1, v2, v3, v4) ->
       let v1 = token v1 in
       let v2 = token v2 in
       let v3 =
         (match v3 with
         | Some x -> statements x
-        | None -> todo ())
+        | None -> [])
       in
       let v4 = token v4 in
-      todo (v1, v2, v3, v4)
+      D (EndBlock (v1, (v2, v3, v4)))
   | `Stmt_exp x -> expression x
   )
 
