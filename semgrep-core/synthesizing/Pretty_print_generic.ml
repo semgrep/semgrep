@@ -49,6 +49,11 @@ let token tok = Parse_info.str_of_info tok
 
 let ident (s, _) = s
 
+let print_type = function
+  | TyBuiltin (s, _) -> s
+  | TyName (id, _) -> ident id
+  | x -> todo (T x)
+
 let arithop env (op, tok) =
   match op with
       | Plus -> "+"
@@ -80,19 +85,18 @@ let arithop env (op, tok) =
 (* Pretty printer *)
 (*****************************************************************************)
 let rec expr env =
-let ppf = F.sprintf in
 function
   | Id ((s,_), idinfo) -> id env (s, idinfo)
   | IdSpecial (sp, tok) -> special env (sp, tok)
-  | Call (e, (_, es, _)) ->
-      ppf "%s(%s)" (expr env e) (arguments env es)
+  | Call (e1, e2) -> call env (e1, e2)
   | L x -> literal env x
-  | Tuple es -> ppf "(%s)" (tuple env es)
-  | ArrayAccess (e1, e2) -> ppf "%s[%s]" (expr env e1) (expr env e2)
+  | Tuple es -> F.sprintf "(%s)" (tuple env es)
+  | ArrayAccess (e1, e2) -> F.sprintf "%s[%s]" (expr env e1) (expr env e2)
   | SliceAccess (e, o1, o2, o3) -> slice_access env e (o1, o2) o3
   | DotAccess (e, tok, fi) -> dot_access env (e, tok, fi)
   | Ellipsis _ -> "..."
   | Conditional (e1, e2, e3) -> cond env (e1, e2, e3)
+  | TypedMetavar (id, _, typ) -> tyvar env (id, typ)
   | x -> todo (E x)
 
 and id env (s, {id_resolved; _}) =
@@ -103,6 +107,12 @@ and id env (s, {id_resolved; _}) =
 and special env = function
   | (ArithOp op, tok) -> arithop env (op, tok)
   | (sp, tok) -> todo (E (IdSpecial (sp, tok)))
+
+and call env (e, (_, es, _)) =
+  let s1 = expr env e in
+  match (e, es) with
+       | (IdSpecial(_), x::y::[]) -> F.sprintf "%s %s %s" (argument env x) s1 (argument env y)
+       | _ -> F.sprintf "%s(%s)" s1 (arguments env es)
 
 and literal env = function
   | Bool ((b,_)) -> F.sprintf "%B" b
@@ -152,9 +162,15 @@ and dot_access env (e, tok, fi) =
 
 and field_ident env fi =
   match fi with
-       | FId (s, _) -> s
-       | FName ((s, _), _) -> s
+       | FId id -> ident id
+       | FName (id, _) -> ident id
        | FDynamic e -> expr env e
+
+and tyvar env (id, typ) =
+  match env.lang with
+    | Lang.Java -> F.sprintf "(%s %s)" (print_type typ) (ident id)
+    | Lang.Go -> F.sprintf "(%s : %s)" (ident id) (print_type typ)
+    | _ -> failwith "Not implemented for this language"
 
 and cond env (e1, e2, e3) =
   let s1 = expr env e1 in
