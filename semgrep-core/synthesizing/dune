@@ -9,5 +9,6 @@
    pfff-lang_GENERIC
 
    semgrep_core
+   semgrep_matching
  )
 )
