@@ -72,7 +72,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v1
         with:
-          python-version: ${{ matrix.python }}
+          python-version: 3.7
       - name: Checkout
         uses: actions/checkout@v2
       - name: Download Artifact
