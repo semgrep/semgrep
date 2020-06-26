@@ -45,12 +45,7 @@ def tty_sensitive_print(msg: str, file: typing.IO, **kwargs: Any) -> None:
     print(msg, file=file, **kwargs)
 
 
-def print_error(e: str) -> None:
-    if not QUIET:
-        tty_sensitive_print(e, file=sys.stderr)
-
-
-def print_msg(msg: str, **kwargs: Any) -> None:
+def print_stderr(msg: str, **kwargs: Any) -> None:
     if not QUIET:
         tty_sensitive_print(msg, file=sys.stderr, **kwargs)
 

@@ -30,8 +30,7 @@ from semgrep.semgrep_types import YAML_ALL_VALID_RULE_KEYS
 from semgrep.semgrep_types import YAML_MUST_HAVE_KEYS
 from semgrep.target_manager import TargetManager
 from semgrep.util import debug_print
-from semgrep.util import print_error
-from semgrep.util import print_msg
+from semgrep.util import print_stderr
 
 MISSING_RULE_ID = "no-rule-id"
 
@@ -187,18 +186,18 @@ def notify_user_of_work(
     - which dirs are excluded, etc.
     """
     if include:
-        print_msg(f"including files:")
+        print_stderr(f"including files:")
         for inc in include:
-            print_msg(f"- {inc}")
+            print_stderr(f"- {inc}")
     if exclude:
-        print_msg(f"excluding files:")
+        print_stderr(f"excluding files:")
         for exc in exclude:
-            print_msg(f"- {exc}")
-    print_msg(f"running {len(all_rules)} rules...")
+            print_stderr(f"- {exc}")
+    print_stderr(f"running {len(all_rules)} rules...")
     if verbose:
-        print_msg("rules:")
+        print_stderr("rules:")
         for rule in all_rules:
-            print_msg(f"- {rule.id}")
+            print_stderr(f"- {rule.id}")
 
 
 def rule_match_nosem(rule_match: RuleMatch, strict: bool) -> bool:
@@ -367,7 +366,7 @@ def main(
                 code=INVALID_CODE_EXIT_CODE,
             )
         else:
-            print_error(
+            print_stderr(
                 "Run with --strict to exit with non-zero exit code when errors exist"
             )
 

@@ -22,7 +22,7 @@ from semgrep.rule_lang import Span
 from semgrep.rule_lang import YamlTree
 from semgrep.util import debug_print
 from semgrep.util import is_url
-from semgrep.util import print_msg
+from semgrep.util import print_stderr
 
 IN_DOCKER = "SEMGREP_IN_DOCKER" in os.environ
 IN_GH_ACTION = "GITHUB_WORKSPACE" in os.environ
@@ -193,10 +193,10 @@ def download_config(config_url: str) -> Dict[str, YamlTree]:
 
     DOWNLOADING_MESSAGE = f"downloading config..."
     debug_print(f"trying to download from {config_url}")
-    print_msg(
+    print_stderr(
         f"using config from {nice_semgrep_url(config_url)}. Visit https://semgrep.live/registry to see all public rules."
     )
-    print_msg(DOWNLOADING_MESSAGE, end="\r")
+    print_stderr(DOWNLOADING_MESSAGE, end="\r")
     headers = {"User-Agent": SEMGREP_USER_AGENT}
 
     try:
@@ -260,7 +260,7 @@ def generate_config() -> None:
         template_str = r.text
     except Exception as e:
         debug_print(str(e))
-        print_msg(
+        print_stderr(
             f"There was a problem downloading the latest template config. Using fallback template"
         )
         template_str = """rules:
@@ -272,6 +272,8 @@ def generate_config() -> None:
     try:
         with open(DEFAULT_CONFIG_FILE, "w") as template:
             template.write(template_str)
-            print_msg(f"Template config successfully written to {DEFAULT_CONFIG_FILE}")
+            print_stderr(
+                f"Template config successfully written to {DEFAULT_CONFIG_FILE}"
+            )
     except Exception as e:
         raise SemgrepError(str(e))
