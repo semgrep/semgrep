@@ -16,8 +16,8 @@ from typing import Set
 import colorama
 
 from semgrep import config_resolver
-from semgrep.constants import OutputFormat
 from semgrep.constants import __VERSION__
+from semgrep.constants import OutputFormat
 from semgrep.core_exception import CoreException
 from semgrep.error import FINDINGS_EXIT_CODE
 from semgrep.error import Level
@@ -240,7 +240,6 @@ class OutputHandler:
             for error in other_errors:
                 print_stderr(str(error))
 
-
     def handle_semgrep_error(self, error: SemgrepError) -> None:
         """
         Reports generic exceptions that extend SemgrepError
@@ -250,7 +249,7 @@ class OutputHandler:
         if error not in self.error_set:
             self.semgrep_structured_errors.append(error)
             self.error_set.add(error)
-            print_error(str(error))
+            print_stderr(str(error))
 
     def handle_semgrep_core_output(
         self,
@@ -288,7 +287,7 @@ class OutputHandler:
                     raise ex
                 print(
                     "Warnings exist. Run with `--strict` to turn warnings into errors.",
-                    self.stderr,
+                    file=self.stderr,
                 )
         else:
             raise ex

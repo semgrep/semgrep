@@ -125,10 +125,9 @@ class CoreRunner:
         This includes properly invoking semgrep-core and parsing the output
     """
 
-    def __init__(self, allow_exec: bool, jobs: int, output_handler: OutputHandler):
+    def __init__(self, allow_exec: bool, jobs: int):
         self._allow_exec = allow_exec
         self._jobs = jobs
-        self._output_handler = output_handler
 
     def _flatten_rule_patterns(self, rules: List[Rule]) -> Iterator[Pattern]:
         """
@@ -163,7 +162,7 @@ class CoreRunner:
             by_lang[pattern.language].append(pattern)
         return by_lang
 
-    def _semgrep_error_json_to_message_then_exit(
+    def _raise_semgrep_error_from_json(
         self, error_json: Dict[str, Any], patterns: List[Pattern],
     ) -> None:
         """
@@ -347,9 +346,7 @@ class CoreRunner:
                         )
 
                     if "error" in output_json:
-                        self._semgrep_error_json_to_message_then_exit(
-                            output_json, patterns
-                        )
+                        self._raise_semgrep_error_from_json(output_json, patterns)
                     else:
                         raise SemgrepError(
                             f"unexpected json output while invoking semgrep-core:\n{PLEASE_FILE_ISSUE_TEXT}"
@@ -415,7 +412,9 @@ class CoreRunner:
     def invoke_semgrep(
         self, target_manager: TargetManager, rules: List[Rule]
     ) -> Tuple[
-        Dict[Rule, List[RuleMatch]], Dict[Rule, List[Dict[str, Any]]], List[Any]
+        Dict[Rule, List[RuleMatch]],
+        Dict[Rule, List[Dict[str, Any]]],
+        List[CoreException],
     ]:
         """
             Takes in rules and targets and retuns object with findings

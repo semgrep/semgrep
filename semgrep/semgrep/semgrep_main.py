@@ -63,7 +63,8 @@ def validate_single_rule(
             short_msg="extra top-level key",
             long_msg=f"{config_id} has an invalid top-level rule key: {sorted([k for k in extra_keys])}",
             help=f"Only {sorted(YAML_ALL_VALID_RULE_KEYS)} are valid keys",
-            spans=[k.span.with_context(before=2, after=2) for k in extra_key_spans])
+            spans=[k.span.with_context(before=2, after=2) for k in extra_key_spans],
+        )
 
     # Raises InvalidRuleSchemaError if fails to parse
     return Rule.from_yamltree(rule_yaml)
@@ -252,6 +253,7 @@ def invoke_semgrep(config: Path, targets: List[Path], **kwargs: Any) -> Any:
             output_destination=None,
             quiet=False,
             error_on_findings=False,
+            strict=True,
         ),
         stdout=io_capture,
     )
@@ -340,9 +342,7 @@ def main(
 
     # actually invoke semgrep
     rule_matches_by_rule, debug_steps_by_rule, semgrep_errors = CoreRunner(
-        allow_exec=dangerously_allow_arbitrary_code_execution_from_rules,
-        jobs=jobs,
-        output_handler=output_handler,
+        allow_exec=dangerously_allow_arbitrary_code_execution_from_rules, jobs=jobs,
     ).invoke_semgrep(target_manager, all_rules)
 
     if not disable_nosem:
@@ -356,7 +356,8 @@ def main(
         }
 
     output_handler.handle_semgrep_core_output(rule_matches_by_rule, debug_steps_by_rule)
-    output_handler.handle_semgrep_core_errors(semgrep_errors)
+    for error in semgrep_errors:
+        output_handler.handle_semgrep_error(error.into_semgrep_error())
 
     if autofix:
         apply_fixes(rule_matches_by_rule, dryrun)
