@@ -856,11 +856,12 @@ and primary (x : CST.primary) : AST.expr =
       D (ClassDef (v1, v2, v3, v5))
   | `Prim_sing_class (v1, v2, v3, v4, v5) ->
       let v1 = token v1 in
-      let v2 = token v2 in
+      let v2 = str v2 in
       let v3 = arg v3 in
-      let v4 = terminator v4 in
-      let v5 = body_statement v5 in
-      todo (v1, v2, v3, v4, v5)
+      let _v4 = terminator v4 in
+      let (v5, _tend) = body_statement v5 in
+      let n = Id (v2, ID_Uppercase) in (* TODO? *)
+      D (ClassDef (v1, n, Some (Class_Inherit v3), v5))
   | `Prim_modu (v1, v2, v3) ->
       let v1 = token v1 in
       let v2 =
