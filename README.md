@@ -59,7 +59,7 @@ On macOS, binaries are available via Homebrew:
 $ brew install semgrep
 ```
 
-On Ubuntu, we recommend installing via pip
+On Ubuntu/WSL/linux, we recommend installing via `pip`
 
 ```bash
 $ pip3 install semgrep
