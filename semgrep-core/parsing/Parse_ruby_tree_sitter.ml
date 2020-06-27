@@ -1040,18 +1040,20 @@ and primary (x : CST.primary) : AST.expr =
   | `Prim_un_lit (v1, v2) ->
       let v1 =
         (match v1 with
-        | `Un_minus tok -> token tok
-        | `PLUS tok -> token tok
+        | `Un_minus tok -> Op_UMinus, (token2 tok)
+        | `PLUS tok -> Op_UPlus, (token2 tok)
         )
       in
       let v2 =
         (match v2 with
-        | `Int tok -> token tok
-        | `Float tok -> token tok
+        | `Int tok -> Literal (Num (str tok))
+        | `Float tok -> Literal (Float (str tok))
         )
       in
-      todo (v1, v2)
-  | `Prim_here_begin tok -> token tok
+      Unary (v1, v2)
+  | `Prim_here_begin tok ->
+    let (s, tok) = str tok in
+    Literal (String (Single s, tok))
   )
 
 and parenthesized_statements ((v1, v2, v3) : CST.parenthesized_statements) =
