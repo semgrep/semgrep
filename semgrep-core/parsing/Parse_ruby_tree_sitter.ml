@@ -892,25 +892,25 @@ and primary (x : CST.primary) : AST.expr =
   | `Prim_while (v1, v2, v3, v4, v5) ->
       let v1 = token v1 in
       let v2 = arg v2 in
-      let v3 = do_ v3 in
+      let _v3 = do_ v3 in
       let v4 =
         (match v4 with
         | Some x -> statements x
-        | None -> todo ())
+        | None -> [])
       in
-      let v5 = token v5 in
-      todo (v1, v2, v3, v4, v5)
+      let _tend = token2 v5 in
+      S (While (v1, true, v2, v4))
   | `Prim_until (v1, v2, v3, v4, v5) ->
       let v1 = token v1 in
       let v2 = arg v2 in
-      let v3 = do_ v3 in
+      let _v3 = do_ v3 in
       let v4 =
         (match v4 with
         | Some x -> statements x
-        | None -> todo ())
+        | None -> [])
       in
-      let v5 = token v5 in
-      todo (v1, v2, v3, v4, v5)
+      let _tend = token v5 in
+      S (Until (v1, true, v2, v4))
   | `Prim_if (v1, v2, v3, v4, v5) ->
       let v1 = token v1 in
       let v2 = statement v2 in
@@ -981,53 +981,53 @@ and primary (x : CST.primary) : AST.expr =
       let v7 = token v7 in
       todo (v1, v2, v3, v4, v5, v6, v7)
   | `Prim_ret (v1, v2) ->
-      let v1 = token v1 in
+      let v1 = token2 v1 in
       let v2 =
         (match v2 with
-        | Some x -> argument_list x
-        | None -> todo ())
+        | Some x -> argument_list x |> G.unbracket
+        | None -> [])
       in
-      todo (v1, v2)
+      S (Return (v1, v2))
   | `Prim_yield (v1, v2) ->
-      let v1 = token v1 in
+      let v1 = token2 v1 in
       let v2 =
         (match v2 with
-        | Some x -> argument_list x
-        | None -> todo ())
+        | Some x -> argument_list x |> G.unbracket
+        | None -> [])
       in
-      todo (v1, v2)
+      S (Yield (v1, v2))
   | `Prim_brk (v1, v2) ->
-      let v1 = token v1 in
+      let v1 = token2 v1 in
       let v2 =
         (match v2 with
-        | Some x -> argument_list x
-        | None -> todo ())
+        | Some x -> argument_list x |> G.unbracket
+        | None -> [])
       in
-      todo (v1, v2)
+      S (Break (v1, v2))
   | `Prim_next (v1, v2) ->
-      let v1 = token v1 in
+      let v1 = token2 v1 in
       let v2 =
         (match v2 with
-        | Some x -> argument_list x
-        | None -> todo ())
+        | Some x -> argument_list x |> G.unbracket
+        | None -> [])
       in
-      todo (v1, v2)
+      S (Next (v1, v2))
   | `Prim_redo (v1, v2) ->
-      let v1 = token v1 in
+      let v1 = token2 v1 in
       let v2 =
         (match v2 with
-        | Some x -> argument_list x
-        | None -> todo ())
+        | Some x -> argument_list x |> G.unbracket
+        | None -> [])
       in
-      todo (v1, v2)
+      S (Redo (v1, v2))
   | `Prim_retry (v1, v2) ->
-      let v1 = token v1 in
+      let v1 = token2 v1 in
       let v2 =
         (match v2 with
-        | Some x -> argument_list x
-        | None -> todo ())
+        | Some x -> argument_list x |> G.unbracket
+        | None -> [])
       in
-      todo (v1, v2)
+      S (Retry (v1, v2))
   | `Prim_paren_un (v1, v2) ->
       let v1 =
         (match v1 with
