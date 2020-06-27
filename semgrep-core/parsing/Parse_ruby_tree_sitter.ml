@@ -399,8 +399,8 @@ and when_ ((v1, v2, v3, v4) : CST.when_) =
   in
   let v4 =
     (match v4 with
-    | `Term x -> terminator x
-    | `Then x -> then_ x
+    | `Term x -> let _ = terminator x in []
+    | `Then x -> [S (then_ x)]
     )
   in
   todo (v1, v2, v3, v4)
@@ -412,13 +412,13 @@ and pattern (x : CST.pattern) =
   )
 
 (* TODO *)
-and elsif ((v1, v2, v3, v4) : CST.elsif) =
+and elsif ((v1, v2, v3, v4) : CST.elsif) : AST.stmt =
   let v1 = token2 v1 in
   let v2 = statement v2 in
   let v3 =
     (match v3 with
-    | `Term x -> terminator x
-    | `Then x -> then_ x
+    | `Term x -> let _ = terminator x in []
+    | `Then x -> [S (then_ x)]
     )
   in
   let v4 =
@@ -433,7 +433,7 @@ and elsif ((v1, v2, v3, v4) : CST.elsif) =
   todo (v1, v2, v3, v4)
 
 (* TODO *)
-and else_ ((v1, v2, v3) : CST.else_) =
+and else_ ((v1, v2, v3) : CST.else_) : AST.stmt =
   let v1 = token2 v1 in
   let _v2 =
     (match v2 with
@@ -448,7 +448,7 @@ and else_ ((v1, v2, v3) : CST.else_) =
   todo (v1, v2, v3)
 
 (* TODO *)
-and then_ (x : CST.then_) =
+and then_ (x : CST.then_) : AST.stmt =
   (match x with
   | `Then_term_stmts (v1, v2) ->
       let v1 = terminator v1 in
@@ -493,8 +493,8 @@ and rescue ((v1, v2, v3, v4) : CST.rescue) =
   in
   let v4 =
     (match v4 with
-    | `Term x -> terminator x
-    | `Then x -> then_ x
+    | `Term x -> let _ = terminator x in []
+    | `Then x -> [S (then_ x)]
     )
   in
   todo (v1, v2, v3, v4)
@@ -537,7 +537,7 @@ and body_statement ((v1, v2, v3) : CST.body_statement) :
     Common2.partition_either3 (fun x ->
       (match x with
       | `Resc x -> Common2.Left3 (rescue x)
-      | `Else x -> Common2.Middle3 (else_ x)
+      | `Else x -> Common2.Middle3 (S (else_ x))
       | `Ensu x ->
               let (_t, xs) = ensure x in
               Common2.Right3 (xs)
@@ -916,38 +916,38 @@ and primary (x : CST.primary) : AST.expr =
       let v2 = statement v2 in
       let v3 =
         (match v3 with
-        | `Term x -> terminator x
-        | `Then x -> then_ x
+        | `Term x -> let _ = terminator x in []
+        | `Then x -> [S (then_ x)]
         )
       in
       let v4 =
         (match v4 with
         | Some x ->
             (match x with
-            | `Else x -> else_ x
-            | `Elsif x -> elsif x
+            | `Else x -> [S (else_ x)]
+            | `Elsif x -> [S (elsif x)]
             )
-        | None -> todo ())
+        | None -> [])
       in
-      let v5 = token v5 in
-      todo (v1, v2, v3, v4, v5)
+      let _v5 = token v5 in
+      S (If (v1, v2, v3, v4))
   | `Prim_unle (v1, v2, v3, v4, v5) ->
       let v1 = token v1 in
       let v2 = statement v2 in
       let v3 =
         (match v3 with
-        | `Term x -> terminator x
-        | `Then x -> then_ x
+        | `Term x -> let _ = terminator x in []
+        | `Then x -> [S (then_ x)]
         )
       in
       let v4 =
         (match v4 with
         | Some x ->
             (match x with
-            | `Else x -> else_ x
-            | `Elsif x -> elsif x
+            | `Else x -> [S (else_ x)]
+            | `Elsif x -> [S (elsif x)]
             )
-        | None -> todo ())
+        | None -> [])
       in
       let v5 = token v5 in
       todo (v1, v2, v3, v4, v5)
