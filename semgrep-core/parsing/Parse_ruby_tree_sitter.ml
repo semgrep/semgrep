@@ -386,15 +386,14 @@ and in_ ((v1, v2) : CST.in_) =
   let v2 = arg v2 in
   (v1, v2)
 
-(* TODO *)
 and when_ ((v1, v2, v3, v4) : CST.when_) =
-  let v1 = token2 v1 in
+  let _twhen = token2 v1 in
   let v2 = pattern v2 in
   let v3 =
     List.map (fun (v1, v2) ->
-      let v1 = token2 v1 in
+      let _tcomma = token2 v1 in
       let v2 = pattern v2 in
-      todo (v1, v2)
+      v2
     ) v3
   in
   let v4 =
@@ -403,15 +402,14 @@ and when_ ((v1, v2, v3, v4) : CST.when_) =
     | `Then x -> (then_ x)
     )
   in
-  todo (v1, v2, v3, v4)
+  (v2::v3), v4
 
-and pattern (x : CST.pattern) =
+and pattern (x : CST.pattern) : AST.pattern =
   (match x with
   | `Pat_arg x -> arg x
   | `Pat_splat_arg x -> splat_argument x
   )
 
-(* TODO *)
 and elsif ((v1, v2, v3, v4) : CST.elsif) : AST.stmt =
   let v1 = token2 v1 in
   let v2 = statement v2 in
@@ -428,11 +426,10 @@ and elsif ((v1, v2, v3, v4) : CST.elsif) : AST.stmt =
         | `Else x -> else_ x
         | `Elsif x -> [S (elsif x)]
         )
-    | None -> todo ())
+    | None -> [])
   in
-  todo (v1, v2, v3, v4)
+  If (v1, v2, v3, v4)
 
-(* TODO *)
 and else_ ((v1, v2, v3) : CST.else_) : AST.stmts =
   let _v1 = token2 v1 in
   let _v2 =
