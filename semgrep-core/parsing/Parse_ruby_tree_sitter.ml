@@ -36,9 +36,6 @@ module G = AST_generic
 (*****************************************************************************)
 (* This was started by copying ocaml-tree-sitter-lang/ruby/Boilerplate.ml *)
 
-(* Disable warnings against unused variables, unused value, unused rec *)
-[@@@warning "-26-27-32-39"]
-
 let token2 (_tok : Tree_sitter_run.Token.t) =
   PI.fake_info "XXX"
 let str (_tok : Tree_sitter_run.Token.t) =
@@ -119,15 +116,15 @@ let variable (x : CST.variable) : AST.expr =
         Literal (Self t)
   | `Super tok -> let t = token2 tok in
         Literal (Super t)
-  | `Inst_var tok -> let t = token2 tok in
+  | `Inst_var tok ->
         Id (str tok, ID_Instance)
-  | `Class_var tok -> let t = token2 tok in
+  | `Class_var tok ->
         Id (str tok, ID_Class)
-  | `Glob_var tok -> let t = token2 tok in
+  | `Glob_var tok ->
         Id (str tok, ID_Global)
-  | `Id tok -> let t = token2 tok in
+  | `Id tok ->
         Id (str tok, ID_Lowercase) (* ?? *)
-  | `Cst tok -> let t = token2 tok in
+  | `Cst tok ->
         Id (str tok, ID_Uppercase) (* ?? *)
   )
 
@@ -304,7 +301,7 @@ and block_parameters ((v1, v2, v3, v4, v5) : CST.block_parameters) :
   in
   let _v3 =
     (match v3 with
-    | Some tok -> ()
+    | Some _tok -> ()
     | None -> ())
   in
   let _v4SEMICOLONPARAMS =
@@ -665,7 +662,7 @@ and primary (x : CST.primary) : AST.expr =
   (* ?? *)
   | `Prim_str_array (v1, v2, v3, v4, v5) ->
       let v1 = token2 v1 in
-      let v2 =
+      let _v2 =
         (match v2 with
         | Some () -> ()
         | None -> ())
@@ -778,7 +775,7 @@ and primary (x : CST.primary) : AST.expr =
   | `Prim_chai_str (v1, v2) ->
       let (t1, v1, _) = string_ v1 in
       let v2 = List.map (fun x ->
-              let (lp, x, _) = string_ x in
+              let (_lp, x, _) = string_ x in
               x
         ) v2 |> List.flatten
         in
