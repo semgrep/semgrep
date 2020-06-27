@@ -227,25 +227,15 @@ class OutputHandler:
 
         self.final_error: Optional[Exception] = None
 
-    def handle_semgrep_core_errors(self, semgrep_errors: List[CoreException]) -> None:
-        """
-        Report errors coming directly from semgrep-core
-        """
-        self.semgrep_core_errors += semgrep_errors
-        if self.settings.output_format == OutputFormat.TEXT:
-            _, other_errors = partition(
-                lambda e: e._check_id in {"ParseError", "FatalError"}, semgrep_errors
-            )
-
-            for error in other_errors:
-                print_stderr(str(error))
+    def handle_semgrep_errors(self, errors: List[SemgrepError]) -> None:
+        for err in errors:
+            self.handle_semgrep_error(err)
 
     def handle_semgrep_error(self, error: SemgrepError) -> None:
         """
         Reports generic exceptions that extend SemgrepError
         """
         self.has_output = True
-        self.semgrep_structured_errors.append(error)
         if error not in self.error_set:
             self.semgrep_structured_errors.append(error)
             self.error_set.add(error)
@@ -365,7 +355,3 @@ class OutputHandler:
             raise RuntimeError(
                 f"Unhandled output format: {type(output_format).__name__}"
             )
-
-
-def pretty_error(error: Dict[str, Any]) -> str:
-    return f"semgrep-core error: {json.dumps(error, indent=2)}"

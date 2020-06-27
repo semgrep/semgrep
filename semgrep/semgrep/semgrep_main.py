@@ -16,8 +16,6 @@ from semgrep.constants import NOSEM_INLINE_RE
 from semgrep.constants import OutputFormat
 from semgrep.constants import RULES_KEY
 from semgrep.core_runner import CoreRunner
-from semgrep.error import INVALID_CODE_EXIT_CODE
-from semgrep.error import InvalidPatternNameError
 from semgrep.error import InvalidRuleSchemaError
 from semgrep.error import MISSING_CONFIG_EXIT_CODE
 from semgrep.error import SemgrepError
@@ -294,8 +292,7 @@ def main(
 
     valid_configs, config_errors = get_config(pattern, lang, config)
 
-    for e in config_errors:
-        output_handler.handle_semgrep_error(e)
+    output_handler.handle_semgrep_errors(config_errors)
 
     if config_errors and strict:
         raise SemgrepError(
@@ -341,9 +338,12 @@ def main(
     )
 
     # actually invoke semgrep
-    rule_matches_by_rule, debug_steps_by_rule, semgrep_errors = CoreRunner(
+    rule_matches_by_rule, debug_steps_by_rule, semgrep_core_errors = CoreRunner(
         allow_exec=dangerously_allow_arbitrary_code_execution_from_rules, jobs=jobs,
     ).invoke_semgrep(target_manager, all_rules)
+
+    semgrep_errors = [e.into_semgrep_error() for e in semgrep_core_errors]
+    output_handler.handle_semgrep_errors(semgrep_errors)
 
     if not disable_nosem:
         rule_matches_by_rule = {
@@ -356,8 +356,6 @@ def main(
         }
 
     output_handler.handle_semgrep_core_output(rule_matches_by_rule, debug_steps_by_rule)
-    for error in semgrep_errors:
-        output_handler.handle_semgrep_error(error.into_semgrep_error())
 
     if autofix:
         apply_fixes(rule_matches_by_rule, dryrun)

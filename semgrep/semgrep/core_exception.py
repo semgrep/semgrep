@@ -1,7 +1,6 @@
 from pathlib import Path
 from typing import Any
 from typing import Dict
-from typing import Optional
 
 from semgrep.error import SemgrepError
 from semgrep.error import SourceParseError
@@ -66,7 +65,7 @@ class CoreException:
             language,
         )
 
-    def into_semgrep_error(self) -> SourceParseError:
+    def into_semgrep_error(self) -> SemgrepError:
         with open(self._path) as f:
             file_hash = SourceTracker.add_source(f.read())
         error_span = Span(

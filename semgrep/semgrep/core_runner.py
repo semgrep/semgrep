@@ -28,7 +28,6 @@ from semgrep.error import SourceParseError
 from semgrep.error import UnknownLanguageError
 from semgrep.evaluation import enumerate_patterns_in_boolean_expression
 from semgrep.evaluation import evaluate
-from semgrep.output import OutputHandler
 from semgrep.pattern import Pattern
 from semgrep.pattern_match import PatternMatch
 from semgrep.rule import Rule
@@ -221,28 +220,6 @@ class CoreRunner:
         yaml.representer.ignore_aliases = lambda *data: True
         yaml.dump({"equivalences": [e.to_json() for e in equivalences]}, fp)
         fp.flush()
-
-    @staticmethod
-    def _convert_semgrep_core_error(  # type: ignore
-        error: Dict[str, Any], language: str
-    ) -> Optional[SemgrepError]:
-        if {"path", "start", "end", "extra"}.difference(error.keys()) == set():
-            with open(error["path"]) as f:
-                file_hash = SourceTracker.add_source(f.read())
-            start, end = [
-                Position(line=error[k]["line"], col=error[k]["col"])
-                for k in ("start", "end")
-            ]
-            error_span = Span(
-                start=start, end=end, source_hash=file_hash, file=error["path"]
-            )
-            return SourceParseError(
-                short_msg="parse error",
-                long_msg=f'Could not parse {error["path"]} as {language}',
-                spans=[error_span],
-                help="If the code appears to be valid, this may be a semgrep bug.",
-            )
-        return None
 
     def _run_rule(
         self, rule: Rule, target_manager: TargetManager, cache_dir: str
