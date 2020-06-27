@@ -26,7 +26,6 @@ from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.util import debug_print
 from semgrep.util import is_url
-from semgrep.util import partition
 from semgrep.util import print_stderr
 
 

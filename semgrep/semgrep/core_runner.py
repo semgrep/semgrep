@@ -24,16 +24,12 @@ from semgrep.equivalences import Equivalence
 from semgrep.error import _UnknownLanguageError
 from semgrep.error import InvalidPatternError
 from semgrep.error import SemgrepError
-from semgrep.error import SourceParseError
 from semgrep.error import UnknownLanguageError
 from semgrep.evaluation import enumerate_patterns_in_boolean_expression
 from semgrep.evaluation import evaluate
 from semgrep.pattern import Pattern
 from semgrep.pattern_match import PatternMatch
 from semgrep.rule import Rule
-from semgrep.rule_lang import Position
-from semgrep.rule_lang import SourceTracker
-from semgrep.rule_lang import Span
 from semgrep.rule_match import RuleMatch
 from semgrep.semgrep_types import BooleanRuleExpression
 from semgrep.semgrep_types import Language
