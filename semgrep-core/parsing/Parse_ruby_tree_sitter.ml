@@ -23,7 +23,8 @@ module G = AST_generic
 (*****************************************************************************)
 (* Ruby parser using ocaml-tree-sitter-lang/ruby and converting
  * to pfff/lang_ruby/parsing/ast_ruby.ml
- * This can then be converted to the generic AST by using
+ *
+ * The resulting AST can then be converted to the generic AST by using
  * pfff/lang_ruby/analyze/ruby_to_generic.ml
  *)
 
@@ -54,6 +55,12 @@ let false_ (x : CST.false_) : bool wrap =
   (match x with
   | `False_false tok -> false, token2 tok
   | `False_FALSE tok -> false, token2 tok
+  )
+
+let true_ (x : CST.true_) : bool wrap =
+  (match x with
+  | `True_true tok -> true, token2 tok
+  | `True_TRUE tok -> true, token2 tok
   )
 
 let nil (x : CST.nil) : tok =
@@ -98,11 +105,6 @@ let operator (x : CST.operator) =
   | `Op_BANG tok -> token tok
   )
 
-let true_ (x : CST.true_) : bool wrap =
-  (match x with
-  | `True_true tok -> true, token2 tok
-  | `True_TRUE tok -> true, token2 tok
-  )
 
 let terminator (x : CST.terminator) : unit =
   (match x with
@@ -110,8 +112,9 @@ let terminator (x : CST.terminator) : unit =
   | `Term_SEMI _tok -> ()
   )
 
-let variable (x : CST.variable) : AST.expr =
+let variable (x : CST.variable) : AST.variable =
   (match x with
+  (* TODO: move this to variable type *)
   | `Self tok -> let t = token2 tok in
         Literal (Self t)
   | `Super tok -> let t = token2 tok in
@@ -123,9 +126,9 @@ let variable (x : CST.variable) : AST.expr =
   | `Glob_var tok ->
         Id (str tok, ID_Global)
   | `Id tok ->
-        Id (str tok, ID_Lowercase) (* ?? *)
+        Id (str tok, ID_Lowercase)
   | `Cst tok ->
-        Id (str tok, ID_Uppercase) (* ?? *)
+        Id (str tok, ID_Uppercase)
   )
 
 let do_ (x : CST.do_) : unit =
@@ -144,6 +147,7 @@ let rec statements (x : CST.statements) : AST.stmts =
               let v1 = statement v1 in
               let _v2 = terminator v2 in
               [v1]
+          (* TODO? use EmptyStmt in generic AST? *)
           | `Empty_stmt _tok -> []
           )
         ) |> List.flatten
@@ -317,7 +321,7 @@ and block_parameters ((v1, v2, v3, v4, v5) : CST.block_parameters) :
           ) v3
         in
          v2::v3
-    | None -> todo ())
+    | None -> [])
   in
   let pipe2 = token2 v5 in
   (pipe1, v2, pipe2)
@@ -431,15 +435,15 @@ and elsif ((v1, v2, v3, v4) : CST.elsif) =
 (* TODO *)
 and else_ ((v1, v2, v3) : CST.else_) =
   let v1 = token2 v1 in
-  let v2 =
+  let _v2 =
     (match v2 with
     | Some x -> terminator x
-    | None -> todo ())
+    | None -> ())
   in
   let v3 =
     (match v3 with
     | Some x -> statements x
-    | None -> todo ())
+    | None -> [])
   in
   todo (v1, v2, v3)
 
@@ -451,16 +455,16 @@ and then_ (x : CST.then_) =
       let v2 = statements v2 in
       todo (v1, v2)
   | `Then_opt_term_then_opt_stmts (v1, v2, v3) ->
-      let v1 =
+      let _v1 =
         (match v1 with
         | Some x -> terminator x
-        | None -> todo ())
+        | None -> ())
       in
       let v2 = token2 v2 in
       let v3 =
         (match v3 with
         | Some x -> statements x
-        | None -> todo ())
+        | None -> [])
       in
       todo (v1, v2, v3)
   )
@@ -692,8 +696,8 @@ and primary (x : CST.primary) : AST.expr =
       let v1 = token2 v1 in
       let _v2 =
         (match v2 with
-        | Some () -> todo ()
-        | None -> todo ())
+        | Some () -> ()
+        | None -> ())
       in
       let v3 =
         (match v3 with
@@ -819,36 +823,37 @@ and primary (x : CST.primary) : AST.expr =
         (match v2 with
         | `Var x -> variable x
         | `LPAR_arg_RPAR (v1, v2, v3) ->
-            let v1 = token v1 in
+            let _lp = token v1 in
             let v2 = arg v2 in
-            let v3 = token v3 in
-            todo (v1, v2, v3)
+            let _rp = token v3 in
+            v2
         )
       in
       let v3 =
         (match v3 with
-        | `DOT tok -> token tok
-        | `COLONCOLON tok -> token tok
+        | `DOT tok -> Op_DOT, token2 tok
+        | `COLONCOLON tok -> Op_SCOPE, token2 tok
         )
       in
-      let v4 = method_rest v4 in
-      todo (v1, v2, v3, v4)
+      let (n, params, body_exn) = method_rest v4 in
+      let n = Binop (v2, v3, n) in
+      D (MethodDef (v1, n, params, body_exn))
   | `Prim_class (v1, v2, v3, v4, v5) ->
       let v1 = token v1 in
       let v2 =
         (match v2 with
-        | `Cst tok -> token tok
+        | `Cst tok -> Id (str tok, ID_Uppercase)
         | `Scope_resol x -> scope_resolution x
         )
       in
       let v3 =
         (match v3 with
-        | Some x -> superclass x
-        | None -> todo ())
+        | Some x -> Some (Class_Inherit (superclass x |> snd))
+        | None -> None)
       in
-      let v4 = terminator v4 in
-      let v5 = body_statement v5 in
-      todo (v1, v2, v3, v4, v5)
+      let _v4 = terminator v4 in
+      let (v5, _tend) = body_statement v5 in
+      D (ClassDef (v1, v2, v3, v5))
   | `Prim_sing_class (v1, v2, v3, v4, v5) ->
       let v1 = token v1 in
       let v2 = token v2 in
