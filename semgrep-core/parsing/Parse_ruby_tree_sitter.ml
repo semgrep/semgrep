@@ -964,19 +964,19 @@ and primary (x : CST.primary) : AST.expr =
       let v1 = token v1 in
       let v2 =
         (match v2 with
-        | Some x -> arg x
-        | None -> todo ())
+        | Some x -> Some (arg x)
+        | None -> None)
       in
-      let v3 = terminator v3 in
-      let v4 = List.map token v4 in
+      let _v3 = terminator v3 in
+      let _v4 = List.map token v4 in (* ?? list of ';'?? *)
       let v5 = List.map when_ v5 in
       let v6 =
         (match v6 with
         | Some x -> else_ x
-        | None -> todo ())
+        | None -> [])
       in
-      let v7 = token v7 in
-      todo (v1, v2, v3, v4, v5, v6, v7)
+      let _v7 = token v7 in
+      S (Case (v1, { case_guard = v2; case_whens = v5; case_else = v6}))
   | `Prim_ret (v1, v2) ->
       let v1 = token2 v1 in
       let v2 =
@@ -1028,12 +1028,13 @@ and primary (x : CST.primary) : AST.expr =
   | `Prim_paren_un (v1, v2) ->
       let v1 =
         (match v1 with
-        | `Defi tok -> token tok
-        | `Not tok -> token tok
+        | `Defi tok -> Op_DefinedQuestion, token2 tok
+        | `Not tok -> Op_UNot, token2 tok
         )
       in
-      let v2 = parenthesized_statements v2 in
-      todo (v1, v2)
+      let (lp, v2, _rp) = parenthesized_statements v2 in
+      let block = S (Block (v2, lp)) in
+      Unary (v1, block)
   | `Prim_un_lit (v1, v2) ->
       let v1 =
         (match v1 with
@@ -1066,40 +1067,41 @@ and parenthesized_statements ((v1, v2, v3) : CST.parenthesized_statements) =
 and scope_resolution ((v1, v2) : CST.scope_resolution) =
   let v1 =
     (match v1 with
-    | `COLONCOLON tok -> token tok
+    | `COLONCOLON tok -> (fun e -> Unary ((Op_UScope, token2 tok), e))
     | `Prim_COLONCOLON (v1, v2) ->
         let v1 = primary v1 in
-        let v2 = token v2 in
-        todo (v1, v2)
+        let v2 = token2 v2 in
+        (fun e -> Binop (v1, (Op_SCOPE, v2), e))
     )
   in
   let v2 =
     (match v2 with
-    | `Id tok -> token tok
-    | `Cst tok -> token tok
+    | `Id tok -> Id (str tok, ID_Lowercase)
+    | `Cst tok -> Id (str tok, ID_Uppercase)
     )
   in
-  todo (v1, v2)
+  v1 v2
 
 and call ((v1, v2, v3) : CST.call) =
   let v1 = primary v1 in
   let v2 =
     (match v2 with
-    | `DOT tok -> token tok
-    | `AMPDOT tok -> token tok
+    | `DOT tok -> Op_DOT, token2 tok
+    | `AMPDOT tok -> Op_AMPDOT, token2 tok
     )
   in
   let v3 =
     (match v3 with
-    | `Id tok -> token tok
+    | `Id tok -> Id (str tok, ID_Lowercase)
     | `Op x ->
-          let _op = operator x in
-          todo x
-    | `Cst tok -> token tok
-    | `Arg_list x -> argument_list x
+          let op = operator x in
+          Operator op
+    | `Cst tok -> Id (str tok, ID_Uppercase)
+    | `Arg_list x -> (* ?? *)
+          Tuple ((argument_list x |> G.unbracket), fk)
     )
   in
-  todo (v1, v2, v3)
+  Binop (v1, v2, v3)
 
 and command_call (x : CST.command_call) : AST.expr =
   (match x with
@@ -1240,21 +1242,21 @@ and argument (x : CST.argument) : AST.expr =
   | `Arg_splat_arg x -> splat_argument x
   | `Arg_hash_splat_arg x -> hash_splat_argument x
   | `Arg_blk_arg (v1, v2) ->
-      let v1 = token v1 in
+      let v1 = token2 v1 in
       let v2 = arg v2 in
-      todo (v1, v2)
+      Unary ((Op_UAmper, v1), v2)
   | `Arg_pair x -> pair x
   )
 
 and splat_argument ((v1, v2) : CST.splat_argument) =
-  let v1 = token v1 in
+  let v1 = token2 v1 in
   let v2 = arg v2 in
-  todo (v1, v2)
+  Unary ((Op_UStar, v1), v2)
 
 and hash_splat_argument ((v1, v2) : CST.hash_splat_argument) =
-  let v1 = token v1 in
+  let v1 = token2 v1 in
   let v2 = arg v2 in
-  todo (v1, v2)
+  Unary ((Op_UStarStar, v1), v2)
 
 and do_block ((v1, v2, v3, v4) : CST.do_block) : AST.expr =
   let tdo = token2 v1 in
@@ -1303,7 +1305,7 @@ and assignment (x : CST.assignment) =
         | `Left_assign_list x -> left_assignment_list x
         )
       in
-      let v2 = token v2 in
+      let v2 = token2 v2 in
       let v3 =
         (match v3 with
         | `Arg x -> arg x
@@ -1311,7 +1313,7 @@ and assignment (x : CST.assignment) =
         | `Right_assign_list x -> right_assignment_list x
         )
       in
-      todo (v1, v2, v3)
+      Binop (v1, (Op_ASSIGN, v2), v3)
   )
 
 and command_assignment (x : CST.command_assignment) =
@@ -1325,41 +1327,41 @@ and command_assignment (x : CST.command_assignment) =
       in
       let v2 = token v2 in
       let v3 = expression v3 in
-      todo (v1, v2, v3)
+      Binop (v1, (Op_ASSIGN, v2), v3)
   )
 
 and binary (x : CST.binary) =
   (match x with
   | `Bin_arg_and_arg (v1, v2, v3) ->
       let v1 = arg v1 in
-      let v2 = token v2 in
+      let v2 = token2 v2 in
       let v3 = arg v3 in
-      todo (v1, v2, v3)
+      Binop (v1, (Op_kAND, v2), v3)
   | `Bin_arg_or_arg (v1, v2, v3) ->
       let v1 = arg v1 in
-      let v2 = token v2 in
+      let v2 = token2 v2 in
       let v3 = arg v3 in
-      todo (v1, v2, v3)
+      Binop (v1, (Op_kOR, v2), v3)
   | `Bin_arg_BARBAR_arg (v1, v2, v3) ->
       let v1 = arg v1 in
       let v2 = token v2 in
       let v3 = arg v3 in
-      todo (v1, v2, v3)
+      Binop (v1, (Op_OR, v2), v3)
   | `Bin_arg_AMPAMP_arg (v1, v2, v3) ->
       let v1 = arg v1 in
       let v2 = token v2 in
       let v3 = arg v3 in
-      todo (v1, v2, v3)
+      Binop (v1, (Op_AND, v2), v3)
   | `Bin_arg_choice_LTLT_arg (v1, v2, v3) ->
       let v1 = arg v1 in
       let v2 =
         (match v2 with
-        | `LTLT tok -> token tok
-        | `GTGT tok -> token tok
+        | `LTLT tok -> Op_LSHIFT, token2 tok
+        | `GTGT tok -> Op_RSHIFT, token2 tok
         )
       in
       let v3 = arg v3 in
-      todo (v1, v2, v3)
+      Binop (v1, v2, v3)
   | `Bin_arg_choice_LT_arg (v1, v2, v3) ->
       let v1 = arg v1 in
       let v2 =
@@ -1371,12 +1373,12 @@ and binary (x : CST.binary) =
         )
       in
       let v3 = arg v3 in
-      todo (v1, v2, v3)
+      Binop (v1, v2, v3)
   | `Bin_arg_AMP_arg (v1, v2, v3) ->
       let v1 = arg v1 in
       let v2 = token v2 in
       let v3 = arg v3 in
-      todo (v1, v2, v3)
+      Binop (v1, (Op_kAND, v2), v3)
   | `Bin_arg_choice_HAT_arg (v1, v2, v3) ->
       let v1 = arg v1 in
       let v2 =
@@ -1386,7 +1388,7 @@ and binary (x : CST.binary) =
         )
       in
       let v3 = arg v3 in
-      todo (v1, v2, v3)
+      Binop (v1, v2, v3)
   | `Bin_arg_choice_PLUS_arg (v1, v2, v3) ->
       let v1 = arg v1 in
       let v2 =
@@ -1396,7 +1398,7 @@ and binary (x : CST.binary) =
         )
       in
       let v3 = arg v3 in
-      todo (v1, v2, v3)
+      Binop (v1, v2, v3)
   | `Bin_arg_choice_SLASH_arg (v1, v2, v3) ->
       let v1 = arg v1 in
       let v2 =
@@ -1407,7 +1409,7 @@ and binary (x : CST.binary) =
         )
       in
       let v3 = arg v3 in
-      todo (v1, v2, v3)
+      Binop (v1, v2, v3)
   | `Bin_arg_choice_EQEQ_arg (v1, v2, v3) ->
       let v1 = arg v1 in
       let v2 =
@@ -1421,12 +1423,12 @@ and binary (x : CST.binary) =
         )
       in
       let v3 = arg v3 in
-      todo (v1, v2, v3)
+      Binop (v1, v2, v3)
   | `Bin_arg_STARSTAR_arg (v1, v2, v3) ->
       let v1 = arg v1 in
       let v2 = token v2 in
       let v3 = arg v3 in
-      todo (v1, v2, v3)
+      Binop (v1, (Op_kAND, v2), v3)
   )
 
 and unary (x : CST.unary) =
