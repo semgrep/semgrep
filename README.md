@@ -59,7 +59,13 @@ On macOS, binaries are available via Homebrew:
 $ brew install semgrep
 ```
 
-On Ubuntu, an install script is available with each [release](https://github.com/returntocorp/semgrep/releases/download/v0.12.0/semgrep-v0.12.0-ubuntu-generic.sh)
+On Ubuntu, we recommend installing via pip
+
+```bash
+$ pip3 install semgrep
+```
+
+An install script is also available with each [release](https://github.com/returntocorp/semgrep/releases/download/v0.12.0/semgrep-v0.12.0-ubuntu-generic.sh) if you want a native binary.
 
 ```bash
 $ ./semgrep-v0.12.0-ubuntu-generic.sh
