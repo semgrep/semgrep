@@ -400,7 +400,7 @@ and when_ ((v1, v2, v3, v4) : CST.when_) =
   let v4 =
     (match v4 with
     | `Term x -> let _ = terminator x in []
-    | `Then x -> [S (then_ x)]
+    | `Then x -> (then_ x)
     )
   in
   todo (v1, v2, v3, v4)
@@ -418,7 +418,7 @@ and elsif ((v1, v2, v3, v4) : CST.elsif) : AST.stmt =
   let v3 =
     (match v3 with
     | `Term x -> let _ = terminator x in []
-    | `Then x -> [S (then_ x)]
+    | `Then x -> (then_ x)
     )
   in
   let v4 =
@@ -426,15 +426,15 @@ and elsif ((v1, v2, v3, v4) : CST.elsif) : AST.stmt =
     | Some x ->
         (match x with
         | `Else x -> else_ x
-        | `Elsif x -> elsif x
+        | `Elsif x -> [S (elsif x)]
         )
     | None -> todo ())
   in
   todo (v1, v2, v3, v4)
 
 (* TODO *)
-and else_ ((v1, v2, v3) : CST.else_) : AST.stmt =
-  let v1 = token2 v1 in
+and else_ ((v1, v2, v3) : CST.else_) : AST.stmts =
+  let _v1 = token2 v1 in
   let _v2 =
     (match v2 with
     | Some x -> terminator x
@@ -445,28 +445,27 @@ and else_ ((v1, v2, v3) : CST.else_) : AST.stmt =
     | Some x -> statements x
     | None -> [])
   in
-  todo (v1, v2, v3)
+  v3
 
-(* TODO *)
-and then_ (x : CST.then_) : AST.stmt =
+and then_ (x : CST.then_) : AST.stmts =
   (match x with
   | `Then_term_stmts (v1, v2) ->
-      let v1 = terminator v1 in
+      let _v1 = terminator v1 in
       let v2 = statements v2 in
-      todo (v1, v2)
+      v2
   | `Then_opt_term_then_opt_stmts (v1, v2, v3) ->
       let _v1 =
         (match v1 with
         | Some x -> terminator x
         | None -> ())
       in
-      let v2 = token2 v2 in
+      let _v2 = token2 v2 in
       let v3 =
         (match v3 with
         | Some x -> statements x
         | None -> [])
       in
-      todo (v1, v2, v3)
+      v3
   )
 
 and ensure ((v1, v2) : CST.ensure) =
@@ -494,7 +493,7 @@ and rescue ((v1, v2, v3, v4) : CST.rescue) =
   let v4 =
     (match v4 with
     | `Term x -> let _ = terminator x in []
-    | `Then x -> [S (then_ x)]
+    | `Then x -> (then_ x)
     )
   in
   todo (v1, v2, v3, v4)
@@ -537,7 +536,7 @@ and body_statement ((v1, v2, v3) : CST.body_statement) :
     Common2.partition_either3 (fun x ->
       (match x with
       | `Resc x -> Common2.Left3 (rescue x)
-      | `Else x -> Common2.Middle3 (S (else_ x))
+      | `Else x -> Common2.Middle3 (else_ x)
       | `Ensu x ->
               let (_t, xs) = ensure x in
               Common2.Right3 (xs)
@@ -546,6 +545,7 @@ and body_statement ((v1, v2, v3) : CST.body_statement) :
   in
   let tend = token2 v3 in
   let ensure_expr = List.flatten ensure_expr in
+  let else_expr = List.flatten else_expr in
   { body_exprs = v1; rescue_exprs; else_expr; ensure_expr}, tend
 
 and expression (x : CST.expression) : AST.expr =
@@ -917,14 +917,14 @@ and primary (x : CST.primary) : AST.expr =
       let v3 =
         (match v3 with
         | `Term x -> let _ = terminator x in []
-        | `Then x -> [S (then_ x)]
+        | `Then x -> (then_ x)
         )
       in
       let v4 =
         (match v4 with
         | Some x ->
             (match x with
-            | `Else x -> [S (else_ x)]
+            | `Else x -> (else_ x)
             | `Elsif x -> [S (elsif x)]
             )
         | None -> [])
@@ -937,20 +937,20 @@ and primary (x : CST.primary) : AST.expr =
       let v3 =
         (match v3 with
         | `Term x -> let _ = terminator x in []
-        | `Then x -> [S (then_ x)]
+        | `Then x -> (then_ x)
         )
       in
       let v4 =
         (match v4 with
         | Some x ->
             (match x with
-            | `Else x -> [S (else_ x)]
+            | `Else x -> (else_ x)
             | `Elsif x -> [S (elsif x)]
             )
         | None -> [])
       in
-      let v5 = token v5 in
-      todo (v1, v2, v3, v4, v5)
+      let _v5 = token v5 in
+      S (Unless (v1, v2, v3, v4))
   | `Prim_for (v1, v2, v3, v4, v5, v6) ->
       let v1 = token v1 in
       let v2 = mlhs v2 in
