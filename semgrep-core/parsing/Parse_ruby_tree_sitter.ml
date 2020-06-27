@@ -866,29 +866,29 @@ and primary (x : CST.primary) : AST.expr =
       let v1 = token v1 in
       let v2 =
         (match v2 with
-        | `Cst tok -> token tok
+        | `Cst tok -> Id (str tok, ID_Uppercase)
         | `Scope_resol x -> scope_resolution x
         )
       in
-      let v3 =
+      let (v3, _tend) =
         (match v3 with
         | `Term_body_stmt (v1, v2) ->
-            let v1 = terminator v1 in
+            let _v1 = terminator v1 in
             let v2 = body_statement v2 in
-            todo (v1, v2)
-        | `End tok -> token tok
+            v2
+        | `End tok -> empty_body_exn, token2 tok
         )
       in
-      todo (v1, v2, v3)
+      D (ModuleDef (v1, v2, v3))
   | `Prim_begin (v1, v2, v3) ->
-      let v1 = token v1 in
-      let v2 =
+      let tbegin = token2 v1 in
+      let _v2 =
         (match v2 with
         | Some x -> terminator x
-        | None -> todo ())
+        | None -> ())
       in
-      let v3 = body_statement v3 in
-      todo (v1, v2, v3)
+      let (v3, tend) = body_statement v3 in
+      S (Block ([S (ExnBlock (v3, tend))], tbegin))
   | `Prim_while (v1, v2, v3, v4, v5) ->
       let v1 = token v1 in
       let v2 = arg v2 in
