@@ -45,8 +45,6 @@ let todo any =
   pr (show_any any);
   failwith "TODO"
 
-let token tok = Parse_info.str_of_info tok
-
 let ident (s, _) = s
 
 let print_type = function
@@ -157,8 +155,8 @@ and option env = function
   | None -> ""
   | Some e -> expr env e
 
-and dot_access env (e, tok, fi) =
-  F.sprintf "%s%s%s" (expr env e) (token tok) (field_ident env fi)
+and dot_access env (e, _tok, fi) =
+  F.sprintf "%s.%s" (expr env e) (field_ident env fi)
 
 and field_ident env fi =
   match fi with
