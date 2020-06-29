@@ -41,7 +41,7 @@ let fk = PI.fake_info "fake"
 let list_to_maybe_tuple = function
  | [] -> raise Impossible
  | [x] -> x
- | xs -> Tuple (xs, fk)
+ | xs -> Tuple (xs)
 
 (*****************************************************************************)
 (* Boilerplate converter *)
@@ -507,7 +507,7 @@ and rescue ((v1, v2, v3, v4) : CST.rescue) =
   in
   let e1 =
     v3 v2 in
-  (e1, S (Block (v4, fk)))
+  (e1, S (Block (v4)))
 
 and exceptions ((v1, v2) : CST.exceptions) : AST.expr list =
   let v1 =
@@ -661,8 +661,8 @@ and arg (x : CST.arg) : AST.expr =
 and primary (x : CST.primary) : AST.expr =
   (match x with
   | `Prim_paren_stmts x ->
-        let (lp, xs, _rp) = parenthesized_statements x in
-        S (Block (xs, lp))
+        let (_lp, xs, _rp) = parenthesized_statements x in
+        S (Block (xs))
   | `Prim_lhs x -> lhs x
   | `Prim_array (v1, v2, v3) ->
       let lb = token2 v1 in
@@ -891,14 +891,14 @@ and primary (x : CST.primary) : AST.expr =
       in
       D (ModuleDef (v1, v2, v3))
   | `Prim_begin (v1, v2, v3) ->
-      let tbegin = token2 v1 in
+      let _tbegin = token2 v1 in
       let _v2 =
         (match v2 with
         | Some x -> terminator x
         | None -> ())
       in
       let (v3, tend) = body_statement v3 in
-      S (Block ([S (ExnBlock (v3, tend))], tbegin))
+      S (Block ([S (ExnBlock (v3, tend))]))
   | `Prim_while (v1, v2, v3, v4, v5) ->
       let v1 = token2 v1 in
       let v2 = arg v2 in
@@ -1045,8 +1045,8 @@ and primary (x : CST.primary) : AST.expr =
         | `Not tok -> Op_UNot, token2 tok
         )
       in
-      let (lp, v2, _rp) = parenthesized_statements v2 in
-      let block = S (Block (v2, lp)) in
+      let (_lp, v2, _rp) = parenthesized_statements v2 in
+      let block = S (Block (v2)) in
       Unary (v1, block)
   | `Prim_un_lit (v1, v2) ->
       let v1 =
@@ -1114,7 +1114,7 @@ and call ((v1, v2, v3) : CST.call) =
           )
     | `Cst tok -> Id (str tok, ID_Uppercase)
     | `Arg_list x -> (* ?? *)
-          Tuple ((argument_list x |> G.unbracket), fk)
+          Tuple ((argument_list x |> G.unbracket))
     )
   in
   Binop (v1, v2, v3)
@@ -1130,7 +1130,7 @@ and command_call (x : CST.command_call) : AST.expr =
         )
       in
       let v2 = command_argument_list v2 in
-      Call (v1, v2, None, fk)
+      Call (v1, v2, None)
   | `Cmd_call_choice_var_cmd_arg_list_blk (v1, v2, v3) ->
       let v1 =
         (match v1 with
@@ -1141,7 +1141,7 @@ and command_call (x : CST.command_call) : AST.expr =
       in
       let v2 = command_argument_list v2 in
       let v3 = block v3 in
-      Call (v1, v2, Some v3, fk)
+      Call (v1, v2, Some v3)
   | `Cmd_call_choice_var_cmd_arg_list_do_blk (v1, v2, v3) ->
       let v1 =
         (match v1 with
@@ -1152,7 +1152,7 @@ and command_call (x : CST.command_call) : AST.expr =
       in
       let v2 = command_argument_list v2 in
       let v3 = do_block v3 in
-      Call (v1, v2, Some v3, fk)
+      Call (v1, v2, Some v3)
   )
 
 and method_call (x : CST.method_call) : AST.expr =
@@ -1166,7 +1166,7 @@ and method_call (x : CST.method_call) : AST.expr =
         )
       in
       let v2 = argument_list v2 |> G.unbracket in
-      Call (v1, v2, None, fk)
+      Call (v1, v2, None)
   | `Meth_call_choice_var_arg_list_blk (v1, v2, v3) ->
       let v1 =
         (match v1 with
@@ -1177,7 +1177,7 @@ and method_call (x : CST.method_call) : AST.expr =
       in
       let v2 = argument_list v2 |> G.unbracket in
       let v3 = block v3 in
-      Call (v1, v2, Some v3, fk)
+      Call (v1, v2, Some v3)
   | `Meth_call_choice_var_arg_list_do_blk (v1, v2, v3) ->
       let v1 =
         (match v1 with
@@ -1188,7 +1188,7 @@ and method_call (x : CST.method_call) : AST.expr =
       in
       let v2 = argument_list v2 |> G.unbracket in
       let v3 = do_block v3 in
-      Call (v1, v2, Some v3, fk)
+      Call (v1, v2, Some v3)
   | `Meth_call_choice_var_blk (v1, v2) ->
       let v1 =
         (match v1 with
@@ -1198,7 +1198,7 @@ and method_call (x : CST.method_call) : AST.expr =
         )
       in
       let v2 = block v2 in
-      Call (v1, [], Some v2, fk)
+      Call (v1, [], Some v2)
   | `Meth_call_choice_var_do_blk (v1, v2) ->
       let v1 =
         (match v1 with
@@ -1208,7 +1208,7 @@ and method_call (x : CST.method_call) : AST.expr =
         )
       in
       let v2 = do_block v2 in
-      Call (v1, [], Some v2, fk)
+      Call (v1, [], Some v2)
   )
 
 and command_argument_list (x : CST.command_argument_list) : AST.expr list =
@@ -1530,10 +1530,10 @@ and mlhs ((v1, v2, v3) : CST.mlhs) : AST.expr list =
   v1::v2
 
 and destructured_left_assignment ((v1, v2, v3) : CST.destructured_left_assignment) =
-  let lp = token2 v1 in
+  let _lp = token2 v1 in
   let v2 = mlhs v2 in
   let _rp = token2 v3 in
-  Tuple (v2, lp)
+  Tuple (v2)
 
 and rest_assignment ((v1, v2) : CST.rest_assignment) =
   let v1 = token2 v1 in
@@ -1562,7 +1562,7 @@ and lhs (x : CST.lhs) : AST.expr =
       in
       let _v4 = token2 v4 in
       let e = Binop (v1, (Op_DOT, v2), Operator (Op_AREF, v2)) in
-      Call (e, v3, None, fk)
+      Call (e, v3, None)
   | `Call x -> call x
   | `Meth_call x -> method_call x
   )
