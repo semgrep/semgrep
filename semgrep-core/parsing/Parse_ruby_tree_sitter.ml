@@ -49,13 +49,7 @@ let list_to_maybe_tuple = function
 (* This was started by copying ocaml-tree-sitter-lang/ruby/Boilerplate.ml *)
 
 
-let token (_tok : Tree_sitter_run.Token.t) =
-  failwith "not implemented"
 let blank () = ()
-let todo x =
-  pr2_gen x;
-  failwith "not implemented"
-
 
 let false_ (x : CST.false_) : bool wrap =
   (match x with
@@ -112,7 +106,9 @@ let operator (x : CST.operator) =
   | `Op_BANG tok -> Right Op_UBang, token2 tok
 
   (* TODO *)
-  | `Op_BQUOT tok -> token tok
+  | `Op_BQUOT tok ->
+        pr2_gen tok;
+        failwith "Op_BQUOT???"
   )
 
 
@@ -214,9 +210,15 @@ and statement (x : CST.statement) : AST.expr (* TODO AST.stmt at some point *)=
   (* TODO *)
   | `Stmt_resc_modi (v1, v2, v3) ->
       let v1 = statement v1 in
-      let v2 = token2 v2 in
+      let _v2 = token2 v2 in
       let v3 = expression v3 in
-      todo (v1, v2, v3)
+      S (ExnBlock ({
+         body_exprs = [v1];
+         rescue_exprs = [(S Empty), v3];
+         ensure_expr = [];
+         else_expr = [];
+        }, fk))
+
 
   | `Stmt_begin_blk (v1, v2, v3, v4) ->
       let v1 = token2 v1 in
@@ -484,18 +486,18 @@ and ensure ((v1, v2) : CST.ensure) =
   in
   (v1, v2)
 
-(* TODO *)
 and rescue ((v1, v2, v3, v4) : CST.rescue) =
-  let v1 = token2 v1 in
+  let _v1 = token2 v1 in
   let v2 =
     (match v2 with
-    | Some x -> exceptions x
-    | None -> todo ())
+    | Some x -> exceptions x |> list_to_maybe_tuple
+    | None -> Id (("StandardError", fk), ID_Uppercase)
+    )
   in
   let v3 =
     (match v3 with
     | Some x -> exception_variable x
-    | None -> todo ())
+    | None -> (fun y -> y))
   in
   let v4 =
     (match v4 with
@@ -503,10 +505,11 @@ and rescue ((v1, v2, v3, v4) : CST.rescue) =
     | `Then x -> (then_ x)
     )
   in
-  todo (v1, v2, v3, v4)
+  let e1 =
+    v3 v2 in
+  (e1, S (Block (v4, fk)))
 
-(* TODO *)
-and exceptions ((v1, v2) : CST.exceptions) =
+and exceptions ((v1, v2) : CST.exceptions) : AST.expr list =
   let v1 =
     (match v1 with
     | `Arg x -> arg x
@@ -515,22 +518,22 @@ and exceptions ((v1, v2) : CST.exceptions) =
   in
   let v2 =
     List.map (fun (v1, v2) ->
-      let v1 = token2 v1 in
+      let _v1 = token2 v1 in
       let v2 =
         (match v2 with
         | `Arg x -> arg x
         | `Splat_arg x -> splat_argument x
         )
       in
-      todo (v1, v2)
+      v2
     ) v2
   in
-  todo (v1, v2)
+  v1::v2
 
 and exception_variable ((v1, v2) : CST.exception_variable) =
   let v1 = token2 v1 in
   let v2 = lhs v2 in
-  todo (v1, v2)
+  (fun y -> Binop (y, (Op_ASSOC, v1), v2))
 
 and body_statement ((v1, v2, v3) : CST.body_statement) :
  AST.body_exn * AST.tok =
@@ -961,15 +964,15 @@ and primary (x : CST.primary) : AST.expr =
   | `Prim_for (v1, v2, v3, v4, v5, v6) ->
       let v1 = token2 v1 in
       let v2 = mlhs v2 in
-      let v3 = in_ v3 in
-      let v4 = do_ v4 in
+      let (t, e) = in_ v3 in
+      let _v4 = do_ v4 in
       let v5 =
         (match v5 with
         | Some x -> statements x
-        | None -> todo ())
+        | None -> [])
       in
-      let v6 = token2 v6 in
-      todo (v1, v2, v3, v4, v5, v6)
+      let _v6 = token2 v6 in
+      S (For2 (v1, v2 |> list_to_maybe_tuple, t, e, v5))
   | `Prim_case (v1, v2, v3, v4, v5, v6, v7) ->
       let v1 = token2 v1 in
       let v2 =
@@ -1483,7 +1486,7 @@ and right_assignment_list ((v1, v2) : CST.right_assignment_list) : AST.expr list
   in
   let v2 =
     List.map (fun (v1, v2) ->
-      let _v1 = token v1 in
+      let _v1 = token2 v1 in
       let v2 =
         (match v2 with
         | `Arg x -> arg x
@@ -1508,7 +1511,7 @@ and mlhs ((v1, v2, v3) : CST.mlhs) : AST.expr list =
   in
   let v2 =
     List.map (fun (v1, v2) ->
-      let v1 = token v1 in
+      let _v1 = token2 v1 in
       let v2 =
         (match v2 with
         | `Lhs x -> lhs x
@@ -1516,15 +1519,15 @@ and mlhs ((v1, v2, v3) : CST.mlhs) : AST.expr list =
         | `Dest_left_assign x -> destructured_left_assignment x
         )
       in
-      todo (v1, v2)
+      v2
     ) v2
   in
-  let v3 =
+  let _v3 =
     (match v3 with
-    | Some tok -> token tok
-    | None -> todo ())
+    | Some _tok -> ()
+    | None -> ())
   in
-  todo (v1, v2, v3)
+  v1::v2
 
 and destructured_left_assignment ((v1, v2, v3) : CST.destructured_left_assignment) =
   let lp = token2 v1 in
@@ -1551,37 +1554,42 @@ and lhs (x : CST.lhs) : AST.expr =
   | `Scope_resol x -> scope_resolution x
   | `Elem_ref (v1, v2, v3, v4) ->
       let v1 = primary v1 in
-      let v2 = token v2 in
+      let v2 = token2 v2 in
       let v3 =
         (match v3 with
         | Some x -> argument_list_with_trailing_comma x
-        | None -> todo ())
+        | None -> [])
       in
-      let v4 = token v4 in
-      todo (v1, v2, v3, v4)
+      let _v4 = token2 v4 in
+      let e = Binop (v1, (Op_DOT, v2), Operator (Op_AREF, v2)) in
+      Call (e, v3, None, fk)
   | `Call x -> call x
   | `Meth_call x -> method_call x
   )
 
-and method_name (x : CST.method_name) =
+and method_name (x : CST.method_name) : AST.method_name =
   (match x with
-  | `Meth_name_id tok -> token tok
-  | `Meth_name_cst tok -> token tok
+  | `Meth_name_id tok -> Id (str tok, ID_Lowercase)
+  | `Meth_name_cst tok -> Id (str tok, ID_Uppercase)
   | `Meth_name_sett (v1, v2) ->
-      let v1 = token v1 in
-      let v2 = token v2 in
-      todo (v1, v2)
+      let v1 = str v1 in
+      let _v2 = token2 v2 in
+      Id (v1, ID_Assign ID_Lowercase)
   | `Meth_name_symb x -> symbol x
-  | `Meth_name_op x -> let _op = operator x in todo x
-  | `Meth_name_inst_var tok -> token tok
-  | `Meth_name_class_var tok -> token tok
-  | `Meth_name_glob_var tok -> token tok
+  | `Meth_name_op x -> let op = operator x in
+        (match op with
+        | Left bin, t -> Operator (bin ,t)
+        | Right un, t -> UOperator (un, t)
+        )
+  | `Meth_name_inst_var tok -> Id (str tok, ID_Instance)
+  | `Meth_name_class_var tok -> Id (str tok, ID_Class)
+  | `Meth_name_glob_var tok -> Id (str tok, ID_Global)
   )
 
 and interpolation ((v1, v2, v3) : CST.interpolation) : AST.expr AST.bracket =
-  let lb = token v1 in
+  let lb = token2 v1 in
   let v2 = statement v2 in
-  let rb = token v3 in
+  let rb = token2 v3 in
   (lb, v2, rb)
 
 and string_ ((v1, v2, v3) : CST.string_) : AST.string_contents list bracket =
@@ -1596,16 +1604,17 @@ and string_ ((v1, v2, v3) : CST.string_) : AST.string_contents list bracket =
 
 and symbol (x : CST.symbol) =
   (match x with
-  | `Symb_simple_symb tok -> token tok
+  | `Symb_simple_symb tok -> let (s, t) = str tok in
+        Literal (Atom ([StrChars s], t))
   | `Symb_symb_start_opt_lit_content_str_end (v1, v2, v3) ->
-      let v1 = token v1 in
+      let v1 = token2 v1 in
       let v2 =
         (match v2 with
         | Some x -> literal_contents x
-        | None -> todo ())
+        | None -> [])
       in
-      let v3 = token v3 in
-      todo (v1, v2, v3)
+      let _v3 = token2 v3 in
+      Literal (Atom (v2, v1))
   )
 
 and literal_contents (xs : CST.literal_contents) : AST.string_contents list =
@@ -1627,21 +1636,23 @@ and pair (x : CST.pair) =
   (match x with
   | `Pair_arg_EQGT_arg (v1, v2, v3) ->
       let v1 = arg v1 in
-      let v2 = token v2 in
+      let v2 = token2 v2 in
       let v3 = arg v3 in
-      todo (v1, v2, v3)
+      Binop(v1, (Op_ASSOC, v2), v3)
   | `Pair_choice_id_hash_key_COLON_arg (v1, v2, v3) ->
       let v1 =
         (match v1 with
-        | `Id_hash_key tok -> token tok
-        | `Id tok -> token tok
-        | `Cst tok -> token tok
-        | `Str x -> string_ x
+        | `Id_hash_key tok -> Id (str tok, ID_Lowercase)
+        | `Id tok -> Id (str tok, ID_Lowercase)
+        | `Cst tok -> Id (str tok, ID_Uppercase)
+        | `Str x ->
+        let (t1, xs, _t2) = string_ x in
+        Literal (String (Double xs, t1))
         )
       in
-      let v2 = token v2 in
+      let v2 = token2 v2 in
       let v3 = arg v3 in
-      todo (v1, v2, v3)
+      Binop(v1, (Op_ASSOC, v2), v3)
   )
 
 let program ((v1, _v2interpreted) : CST.program) : AST.stmts  =
