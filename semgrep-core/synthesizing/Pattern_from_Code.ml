@@ -28,7 +28,7 @@ open AST_generic
 type named_variants =
   (string * Pattern.t) list
 
-type global_state = { count : int; mapping : (expr * expr) list;
+type environment = { count : int; mapping : (expr * expr) list;
                       has_type : bool }
 
 (*****************************************************************************)
@@ -36,8 +36,8 @@ type global_state = { count : int; mapping : (expr * expr) list;
 (*****************************************************************************)
 
 (* TODO make mapping a map and use map lookup *)
-let lookup state e =
-let mapping = state.mapping in
+let lookup env e =
+let mapping = env.mapping in
 let rec look = function
     | [] -> None
     | (e1, e2)::xs ->
@@ -61,35 +61,36 @@ let default_tyvar str typ =
 
 let count_to_id count =
   let make_id ch = Format.sprintf "$%c" ch in
-  if count = 1 then make_id 'X'
-  else if count = 2 then make_id 'Y'
-  else if count = 3 then make_id 'Z'
-  else if count <= 26 then make_id (Char.chr (count - 4 + Char.code 'A'))
-  else Format.sprintf "$X%d" (count - 26)
+  match count with
+    | 1 -> make_id 'X'
+    | 2 -> make_id 'Y'
+    | 3 -> make_id 'Z'
+    | _ when count <= 26 -> make_id (Char.chr (count - 4 + Char.code 'A'))
+    | _ -> Format.sprintf "$X%d" (count - 26)
 
-(* If the id is already in state, return that *)
+(* If the id is already in env, return that *)
 (* Otherwise, this depends on the with_type flag *)
 (* If with_type is true, if there is a type, try to generate a TypedMetavar *)
 (* In all other cases, generate an id *)
-(* Add to state's mapping and return it *)
-let get_id ?(with_type=false) state e =
-  let id = lookup state e in
+(* Add to env's mapping and return it *)
+let get_id ?(with_type=false) env e =
+  let id = lookup env e in
   match id with
-      Some x -> (state, x)
+      Some x -> (env, x)
     | None ->
-        let notype_id = default_id (count_to_id state.count) in
-        let has_type = state.has_type in
+        let notype_id = default_id (count_to_id env.count) in
+        let has_type = env.has_type in
         let (new_id, new_has_type) =
         if with_type then
           (match e with
               | Id (_, {id_type; _}) ->
                  (match !id_type with
                    | None -> (notype_id, has_type)
-                   | Some t -> (default_tyvar (count_to_id state.count) t), true)
+                   | Some t -> (default_tyvar (count_to_id env.count) t), true)
               | _ -> (notype_id, has_type)
           )
         else (notype_id, has_type) in
-        ({ count = state.count + 1; mapping = (e, new_id)::(state.mapping); has_type = new_has_type }, new_id)
+        ({ count = env.count + 1; mapping = (e, new_id)::(env.mapping); has_type = new_has_type }, new_id)
 
 let has_nested_call = List.find_opt (fun x -> match x with Arg(Call _) -> true | _ -> false)
 
@@ -98,76 +99,75 @@ let has_nested_call = List.find_opt (fun x -> match x with Arg(Call _) -> true |
 (*****************************************************************************)
 
 (* Calls *)
-let _shallow_dots (e, (lp, rp)) =
+let shallow_dots (e, (lp, rp)) =
   ("dots", E (Call (e, (lp, [Arg (Ellipsis fk)], rp))))
 
-let rec map_args state = function
-  | [] -> (state, [])
+let rec map_args env = function
+  | [] -> (env, [])
   | (Arg x)::xs ->
-     let (state', new_id) = get_id state x in
-     let (_, args) = map_args state' xs in
-     (state', (Arg new_id)::args)
-  | _ -> (state, []) (* TODO fail? *)
+     let (env', new_id) = get_id env x in
+     let (_, args) = map_args env' xs in
+     (env', (Arg new_id)::args)
+  | _ -> (env, []) (* TODO fail? *)
 
-let exact_metavar (e, (lp, es, rp)) state =
-  let (_, replaced_args) = map_args state es in
+let exact_metavar (e, (lp, es, rp)) env =
+  let (_, replaced_args) = map_args env es in
   ("exact metavars", E (Call (e, (lp, replaced_args, rp))))
 
-let _shallow_metavar (e, (lp, es, rp)) state =
-  let (_, replaced_args) = map_args state es in
+let shallow_metavar (e, (lp, es, rp)) env =
+  let (_, replaced_args) = map_args env es in
   let args' = replaced_args @ [Arg (Ellipsis fk)] in
   ("metavars", E (Call (e, (lp, args', rp))))
 
-let rec deep_mv_call (e, (lp, es, rp)) with_type state =
-  let (state', replaced_args) = deep_mv_args with_type state es in
-  (state', Call (e, (lp, replaced_args, rp)))
-and deep_mv_args with_type state = function
-  | [] -> (state, [])
+let rec deep_mv_call (e, (lp, es, rp)) with_type env =
+  let (env', replaced_args) = deep_mv_args with_type env es in
+  (env', Call (e, (lp, replaced_args, rp)))
+and deep_mv_args with_type env = function
+  | [] -> (env, [])
   | (Arg e)::xs -> (
-     let (state', new_e) =
+     let (env', new_e) =
      match e with
-         | Call (e, (lp, es, rp)) -> deep_mv_call (e, (lp, es, rp)) with_type state
-         | _ -> get_id ~with_type:with_type state e
+         | Call (e, (lp, es, rp)) -> deep_mv_call (e, (lp, es, rp)) with_type env
+         | _ -> get_id ~with_type:with_type env e
      in
-     let (state'', args) = deep_mv_args with_type state' xs in
+     let (env'', args) = deep_mv_args with_type env' xs in
 
-     (state'', (Arg new_e)::args)
+     (env'', (Arg new_e)::args)
   )
-  | _ -> (state, [])
+  | _ -> (env, [])
 
-let deep_metavar (e, (lp, es, rp)) state =
-  let (_, e') = deep_mv_call (e, (lp, es, rp)) false state in ("deep metavars", E e')
+let deep_metavar (e, (lp, es, rp)) env =
+  let (_, e') = deep_mv_call (e, (lp, es, rp)) false env in ("deep metavars", E e')
 
-let _deep_typed_metavar (e, (lp, es, rp)) state =
-  let (state', e') = deep_mv_call (e, (lp, es, rp)) true state in
-  if state'.has_type then Some ("typed metavars", E e') else None
+let deep_typed_metavar (e, (lp, es, rp)) env =
+  let (env', e') = deep_mv_call (e, (lp, es, rp)) true env in
+  if env'.has_type then Some ("typed metavars", E e') else None
 
 
-let generalize_call state = function
-  | Call (IdSpecial e1, e2) -> (exact_metavar (IdSpecial e1, e2) state) :: []
+let generalize_call env = function
+  | Call (IdSpecial e1, e2) -> (exact_metavar (IdSpecial e1, e2) env) :: []
   | Call (e, (lp, es, rp)) ->
       (* only show the deep_metavar and deep_typed_metavar options if relevant *)
       let d_mvar =
         match (has_nested_call es) with
             None -> []
-          | Some _ -> (deep_metavar (e, (lp, es, rp)) state) :: []
+          | Some _ -> (deep_metavar (e, (lp, es, rp)) env) :: []
       in
-      d_mvar
-      (* let optional =
-        match (deep_typed_metavar (e, (lp, es, rp)) state) with
+      let optional =
+        match (deep_typed_metavar (e, (lp, es, rp)) env) with
             None -> d_mvar
           | Some e' -> e' :: d_mvar
       in
-       (shallow_dots (e, (lp, rp))) :: (shallow_metavar (e, (lp, es, rp)) state) ::
-       (exact_metavar (e, (lp, es, rp)) state) :: optional *)
+       (shallow_dots (e, (lp, rp))) :: (shallow_metavar (e, (lp, es, rp)) env) ::
+       (exact_metavar (e, (lp, es, rp)) env) :: optional
   | _ -> []
 
 (* All expressions *)
-let generalize_exp e state =
+let generalize_exp e env =
   match e with
-  | Call _ -> generalize_call state e
-  | Id _ -> let (_, id) = get_id state e in ["metavar", E id]
-  | L _ -> let (_, id) = get_id state e in ["metavar", E id]
+  | Call _ -> generalize_call env e
+  | Id _ -> let (_, id) = get_id env e in ["metavar", E id]
+  | L _ -> let (_, id) = get_id env e in ["metavar", E id]
   | _ -> []
 
 let generalize e =
