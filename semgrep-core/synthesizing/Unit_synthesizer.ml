@@ -6,7 +6,7 @@ open OUnit
 (*****************************************************************************)
 
 let unittest =
-let test_path = "/Users/emma/workspace/semgrep/semgrep-core/tests/SYNTHESIZING/" in
+let test_path = "../../../tests/SYNTHESIZING/" in
   "pattern inference features" >:: (fun () ->
     let cases = [
           (* Python tests *)
