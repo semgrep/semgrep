@@ -67,7 +67,6 @@ PASSING_REPOS = [
     "https://github.com/dropbox/mypy-PyCharm-plugin",
     "https://github.com/dropbox/mypy-protobuf",
     "https://github.com/dropbox/nautilus-dropbox",
-    "https://github.com/dropbox/nodegallerytutorial",
     "https://github.com/dropbox/nsot",
     "https://github.com/dropbox/othw",
     "https://github.com/dropbox/pem-converter-maven-plugin",
@@ -128,7 +127,6 @@ PASSING_REPOS = [
     "https://github.com/dropbox/godropbox",
     "https://github.com/dropbox/trapperkeeper",
     "https://github.com/lodash/lodash",
-    "https://github.com/dropbox/gallerywithtagstutorial",
     "https://github.com/bkimminich/juice-shop",
 ]
 
