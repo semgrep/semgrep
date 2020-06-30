@@ -42,13 +42,13 @@ repos:
   - repo: https://github.com/returntocorp/semgrep
     rev: 'v0.12.0'
     hooks:
-      - id: semgrep
+      - id: semgrep-develop
         args: ['--config', 'https://semgrep.live/p/python', '--include', '*.py', '--precommit', '--error']
 
   - repo: https://github.com/returntocorp/semgrep
     rev: 'v0.12.0'
     hooks:
-      - id: semgrep
+      - id: semgrep-develop
         args: ['--config', '.bento/semgrep.yml', '--include', '*.py', '--precommit', '--error']
 
   - repo: local
