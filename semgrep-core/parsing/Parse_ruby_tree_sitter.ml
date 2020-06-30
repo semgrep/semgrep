@@ -349,7 +349,7 @@ and simple_formal_parameter (x : CST.simple_formal_parameter) : AST.formal_param
   (match x with
   | `Simple_form_param_id tok ->
         let id = str tok in
-        Formal_id (Id (id, ID_Lowercase))
+        Formal_id ((id, ID_Lowercase))
   | `Simple_form_param_splat_param (v1, v2) ->
       let v1 = token2 v1 in
         (match v2 with
