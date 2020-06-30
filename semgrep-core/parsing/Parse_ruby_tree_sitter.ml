@@ -37,7 +37,6 @@ let str (_tok : Tree_sitter_run.Token.t) =
   "STRXXX", PI.fake_info "XXX"
 let fk = PI.fake_info "fake"
 
-
 let list_to_maybe_tuple = function
  | [] -> raise Impossible
  | [x] -> x
@@ -121,20 +120,20 @@ let terminator (x : CST.terminator) : unit =
 let variable (x : CST.variable) : AST.variable =
   (match x with
   (* TODO: move this to variable type *)
-  | `Self tok -> let t = token2 tok in
-        Literal (Self t)
-  | `Super tok -> let t = token2 tok in
-        Literal (Super t)
+  | `Self tok ->
+        (str tok, ID_Self)
+  | `Super tok ->
+        (str tok, ID_Super)
   | `Inst_var tok ->
-        Id (str tok, ID_Instance)
+        (str tok, ID_Instance)
   | `Class_var tok ->
-        Id (str tok, ID_Class)
+        (str tok, ID_Class)
   | `Glob_var tok ->
-        Id (str tok, ID_Global)
+        (str tok, ID_Global)
   | `Id tok ->
-        Id (str tok, ID_Lowercase)
+        (str tok, ID_Lowercase)
   | `Cst tok ->
-        Id (str tok, ID_Uppercase)
+        (str tok, ID_Uppercase)
   )
 
 let do_ (x : CST.do_) : unit =
@@ -398,7 +397,7 @@ and in_ ((v1, v2) : CST.in_) =
   (v1, v2)
 
 and when_ ((v1, v2, v3, v4) : CST.when_) =
-  let _twhen = token2 v1 in
+  let twhen = token2 v1 in
   let v2 = pattern v2 in
   let v3 =
     List.map (fun (v1, v2) ->
@@ -413,7 +412,7 @@ and when_ ((v1, v2, v3, v4) : CST.when_) =
     | `Then x -> (then_ x)
     )
   in
-  (v2::v3), v4
+  twhen, (v2::v3), v4
 
 and pattern (x : CST.pattern) : AST.pattern =
   (match x with
@@ -829,7 +828,7 @@ and primary (x : CST.primary) : AST.expr =
       let v1 = token2 v1 in
       let v2 =
         (match v2 with
-        | `Var x -> variable x
+        | `Var x -> Id (variable x)
         | `LPAR_arg_RPAR (v1, v2, v3) ->
             let _lp = token2 v1 in
             let v2 = arg v2 in
@@ -1122,7 +1121,7 @@ and command_call (x : CST.command_call) : AST.expr =
   | `Cmd_call_choice_var_cmd_arg_list (v1, v2) ->
       let v1 =
         (match v1 with
-        | `Var x -> variable x
+        | `Var x -> Id (variable x)
         | `Scope_resol x -> scope_resolution x
         | `Call x -> call x
         )
@@ -1132,7 +1131,7 @@ and command_call (x : CST.command_call) : AST.expr =
   | `Cmd_call_choice_var_cmd_arg_list_blk (v1, v2, v3) ->
       let v1 =
         (match v1 with
-        | `Var x -> variable x
+        | `Var x -> Id (variable x)
         | `Scope_resol x -> scope_resolution x
         | `Call x -> call x
         )
@@ -1143,7 +1142,7 @@ and command_call (x : CST.command_call) : AST.expr =
   | `Cmd_call_choice_var_cmd_arg_list_do_blk (v1, v2, v3) ->
       let v1 =
         (match v1 with
-        | `Var x -> variable x
+        | `Var x -> Id (variable x)
         | `Scope_resol x -> scope_resolution x
         | `Call x -> call x
         )
@@ -1158,7 +1157,7 @@ and method_call (x : CST.method_call) : AST.expr =
   | `Meth_call_choice_var_arg_list (v1, v2) ->
       let v1 =
         (match v1 with
-        | `Var x -> variable x
+        | `Var x -> Id (variable x)
         | `Scope_resol x -> scope_resolution x
         | `Call x -> call x
         )
@@ -1168,7 +1167,7 @@ and method_call (x : CST.method_call) : AST.expr =
   | `Meth_call_choice_var_arg_list_blk (v1, v2, v3) ->
       let v1 =
         (match v1 with
-        | `Var x -> variable x
+        | `Var x -> Id (variable x)
         | `Scope_resol x -> scope_resolution x
         | `Call x -> call x
         )
@@ -1179,7 +1178,7 @@ and method_call (x : CST.method_call) : AST.expr =
   | `Meth_call_choice_var_arg_list_do_blk (v1, v2, v3) ->
       let v1 =
         (match v1 with
-        | `Var x -> variable x
+        | `Var x -> Id (variable x)
         | `Scope_resol x -> scope_resolution x
         | `Call x -> call x
         )
@@ -1190,7 +1189,7 @@ and method_call (x : CST.method_call) : AST.expr =
   | `Meth_call_choice_var_blk (v1, v2) ->
       let v1 =
         (match v1 with
-        | `Var x -> variable x
+        | `Var x -> Id (variable x)
         | `Scope_resol x -> scope_resolution x
         | `Call x -> call x
         )
@@ -1200,7 +1199,7 @@ and method_call (x : CST.method_call) : AST.expr =
   | `Meth_call_choice_var_do_blk (v1, v2) ->
       let v1 =
         (match v1 with
-        | `Var x -> variable x
+        | `Var x -> Id (variable x)
         | `Scope_resol x -> scope_resolution x
         | `Call x -> call x
         )
@@ -1545,7 +1544,7 @@ and rest_assignment ((v1, v2) : CST.rest_assignment) =
 
 and lhs (x : CST.lhs) : AST.expr =
   (match x with
-  | `Var x -> variable x
+  | `Var x -> Id (variable x)
   | `True x -> Literal (Bool (true_ x))
   | `False x -> Literal (Bool (false_ x))
   | `Nil x -> Literal (Nil (nil x))
