@@ -20,6 +20,7 @@ from semgrep import config_resolver
 from semgrep.constants import __VERSION__
 from semgrep.constants import OutputFormat
 from semgrep.core_exception import CoreException
+from semgrep.error import FINDINGS_EXIT_CODE
 from semgrep.error import SemgrepError
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
@@ -306,6 +307,10 @@ class OutputHandler:
 
         if self.final_error:
             raise self.final_error
+        elif self.rule_matches and self.settings.error_on_findings:
+            # This exception won't be visiable to the user, we're just
+            # using this to return a specific error code
+            raise SemgrepError("", code=FINDINGS_EXIT_CODE)
 
     @classmethod
     def save_output(cls, destination: str, output: str) -> None:

@@ -29,20 +29,7 @@ tools:
     - try-except-continue
     - urllib-urlopen
     run: true
-  dlint:
-    ignore: []
-    run: true
   flake8:
     ignore:
     - bare-except-bugbear
-    run: true
-  r2c.registry.latest:
-    ignore: []
-    run: true
-  r2c.requests:
-    ignore:
-    - use-timeout
-    run: true
-  semgrep:
-    ignore: []
     run: true
