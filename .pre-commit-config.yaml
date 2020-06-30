@@ -39,6 +39,18 @@ repos:
       - id: flake8
         args: ["--select=E9,F63,F7,F82"]
 
+  - repo: https://github.com/returntocorp/semgrep
+    rev: 'v0.12.0'
+    hooks:
+      - id: semgrep
+        args: ['--config', 'https://semgrep.live/p/python', '--include', '*.py', '--precommit', '--error']
+
+  - repo: https://github.com/returntocorp/semgrep
+    rev: 'v0.12.0'
+    hooks:
+      - id: semgrep
+        args: ['--config', '.bento/semgrep.yml', '--include', '*.py', '--precommit', '--error']
+
   - repo: local
     hooks:
       - id: shellcheck
