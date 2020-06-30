@@ -2,7 +2,7 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [0.13.0](https://github.com/returntocorp/semgrep/releases/tag/v0.12.0) - 2020-06-30
+## [0.13.0](https://github.com/returntocorp/semgrep/releases/tag/v0.13.0) - 2020-06-30
 
 ### Added
 - Const propagation now works with Java 'final' keyword and for Python globals
