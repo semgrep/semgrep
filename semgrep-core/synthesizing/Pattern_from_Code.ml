@@ -168,6 +168,7 @@ let generalize_exp e env =
   | Call _ -> generalize_call env e
   | Id _ -> let (_, id) = get_id env e in ["metavar", E id]
   | L _ -> let (_, id) = get_id env e in ["metavar", E id]
+  | DotAccess _ -> let (_, id) = get_id env e in ["metavar", E id]
   | _ -> []
 
 let generalize e =
