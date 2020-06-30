@@ -207,7 +207,6 @@ and statement (x : CST.statement) : AST.expr (* TODO AST.stmt at some point *)=
       let v3 = expression v3 in
       S (Until (v2, true, v3, [v1]))
 
-  (* TODO *)
   | `Stmt_resc_modi (v1, v2, v3) ->
       let v1 = statement v1 in
       let _v2 = token2 v2 in
@@ -775,17 +774,16 @@ and primary (x : CST.primary) : AST.expr =
   | `Prim_symb x -> symbol x
   | `Prim_int tok -> Literal (Num (str tok))
   | `Prim_float tok -> Literal (Float (str tok))
-  | `Prim_comp tok -> Literal (Float (str tok)) (* Complex TODO *)
+  | `Prim_comp tok -> Literal (Complex (str tok))
   | `Prim_rati (v1, v2) ->
       let v1 = str v1 in
-      let _v2 = token2 v2 in
-      Literal (Num (v1)) (* Rational TODO *)
+      let v2 = token2 v2 in
+      Literal (Rational (v1, v2))
   | `Prim_str x ->
         let (t1, xs, _t2) = string_ x in
         Literal (String (Double xs, t1))
   | `Prim_char tok ->
-        let (s, t) = str tok in
-        Literal (String (Single s, t)) (* TODO Char *)
+        Literal (Char (str tok))
   | `Prim_chai_str (v1, v2) ->
       let (t1, v1, _) = string_ v1 in
       let v2 = List.map (fun x ->
