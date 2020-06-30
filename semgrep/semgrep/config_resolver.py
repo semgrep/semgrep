@@ -27,6 +27,7 @@ from semgrep.util import print_stderr
 IN_DOCKER = "SEMGREP_IN_DOCKER" in os.environ
 IN_GH_ACTION = "GITHUB_WORKSPACE" in os.environ
 REPO_HOME_DOCKER = "/home/repo/"
+REPO_HOME_DOCKER_PRECOMMIT = "/src/"
 
 TEMPLATE_YAML_URL = (
     "https://raw.githubusercontent.com/returntocorp/semgrep-rules/develop/template.yaml"
@@ -72,14 +73,16 @@ def resolve_targets(targets: List[str]) -> List[Path]:
 
 
 def adjust_for_docker(in_precommit: bool = False) -> None:
+    repo_home = REPO_HOME_DOCKER_PRECOMMIT if in_precommit else REPO_HOME_DOCKER
+
     # change into this folder so that all paths are relative to it
-    if IN_DOCKER and not IN_GH_ACTION and not in_precommit:
-        if not Path(REPO_HOME_DOCKER).exists():
+    if IN_DOCKER and not IN_GH_ACTION:
+        if not Path(repo_home).exists():
             raise SemgrepError(
-                f'you are running semgrep in docker, but you forgot to mount the current directory in Docker: missing: -v "${{PWD}}:{REPO_HOME_DOCKER}"'
+                f'you are running semgrep in docker, but you forgot to mount the current directory in Docker: missing: -v "${{PWD}}:{repo_home}"'
             )
-    if Path(REPO_HOME_DOCKER).exists():
-        os.chdir(REPO_HOME_DOCKER)
+    if Path(repo_home).exists():
+        os.chdir(repo_home)
 
 
 def get_base_path() -> Path:

@@ -19,7 +19,7 @@ Include `semgrep` as a pre-commit hook using [pre-commit](https://pre-commit.com
 ```yaml
 repos:
     - repo: https://github.com/returntocorp/semgrep
-      rev: '0.9.0'
+      rev: '0.12.0'
       hooks:
           - id: semgrep
             args: ['--config', 'https://semgrep.live/p/r2c', '--precommit', '--error']
