@@ -217,7 +217,7 @@ and statement (x : CST.statement) : AST.expr (* TODO AST.stmt at some point *)=
          rescue_exprs = [(S Empty), v3];
          ensure_expr = [];
          else_expr = [];
-        }, fk))
+        }))
 
 
   | `Stmt_begin_blk (v1, v2, v3, v4) ->
@@ -822,7 +822,7 @@ and primary (x : CST.primary) : AST.expr =
         )
       in
       let b = false in (* should have a third option for lambdas *)
-      CodeBlock ((v1, b, v1), v2, [v3], v1)
+      CodeBlock ((v1, b, v1), v2, [v3])
   | `Prim_meth (v1, v2) ->
       let v1 = token2 v1 in
       let (n, params, body_exn) = method_rest v2 in
@@ -897,8 +897,8 @@ and primary (x : CST.primary) : AST.expr =
         | Some x -> terminator x
         | None -> ())
       in
-      let (v3, tend) = body_statement v3 in
-      S (Block ([S (ExnBlock (v3, tend))]))
+      let (v3, _tend) = body_statement v3 in
+      S (Block ([S (ExnBlock (v3))]))
   | `Prim_while (v1, v2, v3, v4, v5) ->
       let v1 = token2 v1 in
       let v2 = arg v2 in
@@ -1294,8 +1294,8 @@ and do_block ((v1, v2, v3, v4) : CST.do_block) : AST.expr =
     | None -> None)
   in
   let (exn_block, tend) = body_statement v4 in
-  let xs = [S (ExnBlock (exn_block, tend))] in
-  CodeBlock ((tdo, false, tend), params_opt, xs, fk)
+  let xs = [S (ExnBlock (exn_block))] in
+  CodeBlock ((tdo, false, tend), params_opt, xs)
 
 and block ((v1, v2, v3, v4) : CST.block) =
   let lb = token2 v1 in
@@ -1310,7 +1310,7 @@ and block ((v1, v2, v3, v4) : CST.block) =
     | None -> [])
   in
   let rb = token2 v4 in
-  CodeBlock ((lb,true,rb), params_opt, v3, fk)
+  CodeBlock ((lb,true,rb), params_opt, v3)
 
 and assignment (x : CST.assignment) =
   (match x with
