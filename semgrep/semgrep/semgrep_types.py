@@ -9,6 +9,8 @@ from typing import Set
 
 import attr
 
+
+Language = NewType("Language", str)
 PatternId = NewType("PatternId", str)
 Operator = NewType("Operator", str)
 

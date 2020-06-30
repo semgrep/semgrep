@@ -2,18 +2,29 @@ import subprocess
 from pathlib import Path
 from typing import Dict
 from typing import List
+from typing import NewType
 from typing import Set
 
 from semgrep.error import _UnknownLanguageError
+from semgrep.semgrep_types import Language
 from semgrep.util import partition_set
 
-PYTHON_EXTENSIONS = ["py", "pyi"]
-JAVASCRIPT_EXTENSIONS = ["js"]
-JAVA_EXTENSIONS = ["java"]
-C_EXTENSIONS = ["c"]
-GO_EXTENSIONS = ["go"]
-ML_EXTENSIONS = ["mli", "ml", "mly", "mll"]
-JSON_EXTENSIONS = ["json"]
+
+FileExtension = NewType("FileExtension", str)
+
+
+PYTHON_EXTENSIONS = [FileExtension("py"), FileExtension("pyi")]
+JAVASCRIPT_EXTENSIONS = [FileExtension("js")]
+JAVA_EXTENSIONS = [FileExtension("java")]
+C_EXTENSIONS = [FileExtension("c")]
+GO_EXTENSIONS = [FileExtension("go")]
+ML_EXTENSIONS = [
+    FileExtension("mli"),
+    FileExtension("ml"),
+    FileExtension("mly"),
+    FileExtension("mll"),
+]
+JSON_EXTENSIONS = [FileExtension("json")]
 ALL_EXTENSIONS = (
     PYTHON_EXTENSIONS
     + JAVASCRIPT_EXTENSIONS
@@ -25,7 +36,7 @@ ALL_EXTENSIONS = (
 )
 
 
-def lang_to_exts(language: str) -> List[str]:
+def lang_to_exts(language: Language) -> List[FileExtension]:
     """
         Convert language to expected file extensions
 
@@ -85,7 +96,7 @@ class TargetManager:
 
     @staticmethod
     def _expand_dir(
-        curr_dir: Path, language: str, respect_git_ignore: bool
+        curr_dir: Path, language: Language, respect_git_ignore: bool
     ) -> Set[Path]:
         """
             Recursively go through a directory and return list of all files with
@@ -106,11 +117,13 @@ class TargetManager:
                 )
             return files
 
-        def _find_files_with_extention(curr_dir: Path, extension: str) -> Set[Path]:
+        def _find_files_with_extention(
+            curr_dir: Path, extension: FileExtension
+        ) -> Set[Path]:
             """
                 Return set of all files in curr_dir with given extension
             """
-            return set(p for p in curr_dir.rglob(f"*.{ext}") if p.is_file())
+            return set(p for p in curr_dir.rglob(f"*.{extension}") if p.is_file())
 
         extensions = lang_to_exts(language)
         expanded: Set[Path] = set()
@@ -141,7 +154,7 @@ class TargetManager:
                     )
 
                     deleted_output = subprocess.check_output(
-                        ["git", "ls-files", "--deleted", f"*.{ext}",],
+                        ["git", "ls-files", "--deleted", f"*.{ext}"],
                         cwd=curr_dir.resolve(),
                         encoding="utf-8",
                         stderr=subprocess.DEVNULL,
@@ -166,7 +179,7 @@ class TargetManager:
 
     @staticmethod
     def expand_targets(
-        targets: Set[Path], lang: str, respect_git_ignore: bool
+        targets: Set[Path], lang: Language, respect_git_ignore: bool
     ) -> Set[Path]:
         """
             Explore all directories. Remove duplicates
@@ -212,7 +225,7 @@ class TargetManager:
         """
         return set(elem for elem in arr if not TargetManager.match_glob(elem, excludes))
 
-    def filtered_files(self, lang: str) -> Set[Path]:
+    def filtered_files(self, lang: Language) -> Set[Path]:
         """
             Return all files that are decendants of any directory in TARGET that have
             an extension matching LANG that match any pattern in INCLUDES and do not
@@ -245,7 +258,7 @@ class TargetManager:
         return self._filtered_targets[lang]
 
     def get_files(
-        self, lang: str, includes: List[str], excludes: List[str]
+        self, lang: Language, includes: List[str], excludes: List[str]
     ) -> List[Path]:
         """
             Returns list of files that should be analyzed for a LANG
