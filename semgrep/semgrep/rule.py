@@ -13,6 +13,7 @@ from semgrep.rule_lang import YamlMap
 from semgrep.rule_lang import YamlTree
 from semgrep.semgrep_types import ALLOWED_GLOB_TYPES
 from semgrep.semgrep_types import BooleanRuleExpression
+from semgrep.semgrep_types import Language
 from semgrep.semgrep_types import Operator
 from semgrep.semgrep_types import OPERATOR_PATTERN_NAMES_MAP
 from semgrep.semgrep_types import OPERATORS
@@ -27,6 +28,7 @@ class Rule:
     def __init__(self, raw: YamlTree[YamlMap]) -> None:
         self._yaml = raw
         self._raw: Dict[str, Any] = raw.unroll_dict()
+
         # For tracking errors from semgrep-core
         self._pattern_spans: Dict[PatternId, Span] = {}
 
@@ -62,7 +64,7 @@ class Rule:
             path_dict = paths_tree.unroll_dict()
         self._includes = path_dict.get("include", [])
         self._excludes = path_dict.get("exclude", [])
-
+        self._languages = [Language(l) for l in self._raw["languages"]]
         self._expression = self._build_boolean_expression(self._yaml)
 
     def _parse_boolean_expression(
@@ -254,9 +256,8 @@ class Rule:
             yield "owasp"
 
     @property
-    def languages(self) -> List[str]:
-        languages: List[str] = self._raw["languages"]
-        return languages
+    def languages(self) -> List[Language]:
+        return self._languages
 
     @property
     def languages_span(self) -> Span:
