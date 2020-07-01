@@ -389,8 +389,12 @@ let parse_generic lang file =
   * timeout for each rule, but we don't want to wait each time 5sec for each
   * rule. So here we store the exn in the cache, and below we reraise it
   * after we got it back from the cache.
+  *
+  * TODO: right now we just capture Timeout, but we should capture any exn.
+  *  However this introduces some weird regressions in CI so we focus on
+  *  just Timeout for now.
   *)
- with exn -> Right exn
+ with Timeout -> Right Timeout
   ))
   in
   match v with
