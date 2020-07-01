@@ -1266,7 +1266,7 @@ and argument (x : CST.argument) : AST.expr =
 and splat_argument ((v1, v2) : CST.splat_argument) =
   let v1 = token2 v1 in
   let v2 = arg v2 in
-  Unary ((Op_UStar, v1), v2)
+  Splat(v1, Some v2)
 
 and hash_splat_argument ((v1, v2) : CST.hash_splat_argument) =
   let v1 = token2 v1 in
@@ -1538,11 +1538,11 @@ and rest_assignment ((v1, v2) : CST.rest_assignment) =
   let v1 = token2 v1 in
   let v2 =
     (match v2 with
-    | Some x -> lhs x
-    | None -> Id (("_FAKE_", fk), ID_Lowercase)
+    | Some x -> Some (lhs x)
+    | None -> None
     )
   in
-  Unary ((Op_UStar, v1), v2)
+  Splat (v1, v2)
 
 and lhs (x : CST.lhs) : AST.expr =
   (match x with
