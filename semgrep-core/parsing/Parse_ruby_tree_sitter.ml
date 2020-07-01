@@ -208,11 +208,11 @@ and statement (x : CST.statement) : AST.expr (* TODO AST.stmt at some point *)=
 
   | `Stmt_resc_modi (v1, v2, v3) ->
       let v1 = statement v1 in
-      let _v2 = token2 v2 in
+      let v2 = token2 v2 in
       let v3 = expression v3 in
       S (ExnBlock ({
          body_exprs = [v1];
-         rescue_exprs = [(S Empty), v3];
+         rescue_exprs = [v2, (S Empty), v3];
          ensure_expr = [];
          else_expr = [];
         }))
@@ -485,7 +485,7 @@ and ensure ((v1, v2) : CST.ensure) =
   (v1, v2)
 
 and rescue ((v1, v2, v3, v4) : CST.rescue) =
-  let _v1 = token2 v1 in
+  let v1 = token2 v1 in
   let v2 =
     (match v2 with
     | Some x -> exceptions x |> list_to_maybe_tuple
@@ -505,7 +505,7 @@ and rescue ((v1, v2, v3, v4) : CST.rescue) =
   in
   let e1 =
     v3 v2 in
-  (e1, S (Block (v4)))
+  (v1, e1, S (Block (v4)))
 
 and exceptions ((v1, v2) : CST.exceptions) : AST.expr list =
   let v1 =
