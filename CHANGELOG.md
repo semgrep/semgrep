@@ -2,10 +2,29 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [0.13.0](https://github.com/returntocorp/semgrep/releases/tag/v0.13.0) - 2020-06-30
+
+### Added
+- Const propagation now works with Java 'final' keyword and for Python globals
+  which were assigned only once in the program
 
 ### Fixed
 - Parsing Ocaml open overriding
 - Parse raise in Python2 can take up to three arguments
+- Metavariable matching now works with variables with global scope:
+```yaml
+$CONST = "..."
+...
+def $FUNC(...):
+  return foo($CONST)
+```
+will match
+```python
+GLOBAL_CONST = "SOME_CONST"
+
+def fetch_global_const():
+    return foo(GLOBAL_CONST)
+```
 
 ### Changed
 - More clear Parse error message
@@ -23,12 +42,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Add version check to recommend upgrading when applicable
 
 ### Fixed
-- Const propagation now works with Java 'final' keyword and for Python globals
-  which were assigned only once in the program
 - The range of function calls and statement blocks now includes the closing
   `}` and `)`. The range for expression statements now includes the closing
   ';' when there's one. The range of decorators now includes '@'.
-- The use of Python globals is now correctly resolved.
 - Do not convert certain parenthesized expressions in tuples in Python
 - Returned warning when improperly mounting volume in docker container
 - Correctly handle uncommited file deletions when using git aware file targeting
