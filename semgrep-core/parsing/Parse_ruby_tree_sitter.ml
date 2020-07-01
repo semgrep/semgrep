@@ -573,19 +573,19 @@ and expression (x : CST.expression) : AST.expr =
       let v1 = lhs v1 in
       let (op, tok) =
         (match v2 with
-        | `PLUSEQ tok     -> Op_PLUS  , token2 tok
-        | `DASHEQ tok     -> Op_MINUS , token2 tok
-        | `STAREQ tok     -> Op_TIMES , token2 tok
-        | `STARSTAREQ tok -> Op_POW   , token2 tok
-        | `SLASHEQ tok    -> Op_DIV   , token2 tok
+        | `PLUSEQ tok     -> B Op_PLUS  , token2 tok
+        | `DASHEQ tok     -> B Op_MINUS , token2 tok
+        | `STAREQ tok     -> B Op_TIMES , token2 tok
+        | `STARSTAREQ tok -> B Op_POW   , token2 tok
+        | `SLASHEQ tok    -> B Op_DIV   , token2 tok
         | `BARBAREQ tok   -> Op_OR    , token2 tok
-        | `BAREQ tok      -> Op_BOR   , token2 tok
+        | `BAREQ tok      -> B Op_BOR   , token2 tok
         | `AMPAMPEQ tok   -> Op_AND   , token2 tok
-        | `AMPEQ tok      -> Op_BAND  , token2 tok
-        | `PERCEQ tok     -> Op_REM   , token2 tok
-        | `GTGTEQ tok     -> Op_RSHIFT, token2 tok
-        | `LTLTEQ tok     -> Op_LSHIFT, token2 tok
-        | `HATEQ tok      -> Op_XOR   , token2 tok
+        | `AMPEQ tok      -> B Op_BAND  , token2 tok
+        | `PERCEQ tok     -> B Op_REM   , token2 tok
+        | `GTGTEQ tok     -> B Op_RSHIFT, token2 tok
+        | `LTLTEQ tok     -> B Op_LSHIFT, token2 tok
+        | `HATEQ tok      -> B Op_XOR   , token2 tok
         )
       in
       let v3 = expression v3 in
@@ -618,19 +618,19 @@ and arg (x : CST.arg) : AST.expr =
       let v1 = lhs v1 in
       let (op, tok) =
         (match v2 with
-        | `PLUSEQ tok     -> Op_PLUS  , token2 tok
-        | `DASHEQ tok     -> Op_MINUS , token2 tok
-        | `STAREQ tok     -> Op_TIMES , token2 tok
-        | `STARSTAREQ tok -> Op_POW   , token2 tok
-        | `SLASHEQ tok    -> Op_DIV   , token2 tok
+        | `PLUSEQ tok     -> B Op_PLUS  , token2 tok
+        | `DASHEQ tok     -> B Op_MINUS , token2 tok
+        | `STAREQ tok     -> B Op_TIMES , token2 tok
+        | `STARSTAREQ tok -> B Op_POW   , token2 tok
+        | `SLASHEQ tok    -> B Op_DIV   , token2 tok
         | `BARBAREQ tok   -> Op_OR    , token2 tok
-        | `BAREQ tok      -> Op_BOR   , token2 tok
+        | `BAREQ tok      -> B Op_BOR   , token2 tok
         | `AMPAMPEQ tok   -> Op_AND   , token2 tok
-        | `AMPEQ tok      -> Op_BAND  , token2 tok
-        | `PERCEQ tok     -> Op_REM   , token2 tok
-        | `GTGTEQ tok     -> Op_RSHIFT, token2 tok
-        | `LTLTEQ tok     -> Op_LSHIFT, token2 tok
-        | `HATEQ tok      -> Op_XOR   , token2 tok
+        | `AMPEQ tok      -> B Op_BAND  , token2 tok
+        | `PERCEQ tok     -> B Op_REM   , token2 tok
+        | `GTGTEQ tok     -> B Op_RSHIFT, token2 tok
+        | `LTLTEQ tok     -> B Op_LSHIFT, token2 tok
+        | `HATEQ tok      -> B Op_XOR   , token2 tok
         )
       in
       let v3 = arg v3 in
@@ -646,7 +646,7 @@ and arg (x : CST.arg) : AST.expr =
       let v1 = arg v1 in
       let v2 =
         (match v2 with
-        | `DOTDOT tok -> Op_DOT2, token2 tok
+        | `DOTDOT tok -> B Op_DOT2, token2 tok
         | `DOTDOTDOT tok -> Op_DOT3, token2 tok
         )
       in
@@ -1049,8 +1049,8 @@ and primary (x : CST.primary) : AST.expr =
   | `Prim_un_lit (v1, v2) ->
       let v1 =
         (match v1 with
-        | `Un_minus tok -> Op_UMinus, (token2 tok)
-        | `PLUS tok -> Op_UPlus, (token2 tok)
+        | `Un_minus tok -> U Op_UMinus, (token2 tok)
+        | `PLUS tok -> U Op_UPlus, (token2 tok)
         )
       in
       let v2 =
@@ -1107,8 +1107,8 @@ and call ((v1, v2, v3) : CST.call) =
     | `Op x ->
           let op = operator x in
           (match op with
-          | Left bin, t -> MethodOperator (bin, t)
-          | Right un, t -> MethodUOperator (un, t)
+          | Left bin, t -> MethodOperator (B bin, t)
+          | Right un, t -> MethodUOperator (U un, t)
           )
     | `Cst tok -> MethodId (str tok, ID_Uppercase)
     | `Arg_list x -> (* ?? *)
@@ -1370,8 +1370,8 @@ and binary (x : CST.binary) =
       let v1 = arg v1 in
       let v2 =
         (match v2 with
-        | `LTLT tok -> Op_LSHIFT, token2 tok
-        | `GTGT tok -> Op_RSHIFT, token2 tok
+        | `LTLT tok -> B Op_LSHIFT, token2 tok
+        | `GTGT tok -> B Op_RSHIFT, token2 tok
         )
       in
       let v3 = arg v3 in
@@ -1380,10 +1380,10 @@ and binary (x : CST.binary) =
       let v1 = arg v1 in
       let v2 =
         (match v2 with
-        | `LT tok -> Op_LT, token2 tok
-        | `LTEQ tok -> Op_LEQ, token2 tok
-        | `GT tok -> Op_GT, token2 tok
-        | `GTEQ tok -> Op_GEQ, token2 tok
+        | `LT tok -> B Op_LT, token2 tok
+        | `LTEQ tok -> B Op_LEQ, token2 tok
+        | `GT tok -> B Op_GT, token2 tok
+        | `GTEQ tok -> B Op_GEQ, token2 tok
         )
       in
       let v3 = arg v3 in
@@ -1397,8 +1397,8 @@ and binary (x : CST.binary) =
       let v1 = arg v1 in
       let v2 =
         (match v2 with
-        | `HAT tok -> Op_XOR, token2 tok
-        | `BAR tok -> Op_BOR, token2 tok
+        | `HAT tok -> B Op_XOR, token2 tok
+        | `BAR tok -> B Op_BOR, token2 tok
         )
       in
       let v3 = arg v3 in
@@ -1407,8 +1407,8 @@ and binary (x : CST.binary) =
       let v1 = arg v1 in
       let v2 =
         (match v2 with
-        | `PLUS tok -> Op_PLUS, token2 tok
-        | `Bin_minus tok -> Op_MINUS, token2 tok
+        | `PLUS tok -> B Op_PLUS, token2 tok
+        | `Bin_minus tok -> B Op_MINUS, token2 tok
         )
       in
       let v3 = arg v3 in
@@ -1417,9 +1417,9 @@ and binary (x : CST.binary) =
       let v1 = arg v1 in
       let v2 =
         (match v2 with
-        | `SLASH tok -> Op_DIV, token2 tok
-        | `PERC tok -> Op_REM, token2 tok
-        | `Bin_star tok -> Op_TIMES, token2 tok
+        | `SLASH tok -> B Op_DIV, token2 tok
+        | `PERC tok -> B Op_REM, token2 tok
+        | `Bin_star tok -> B Op_TIMES, token2 tok
         )
       in
       let v3 = arg v3 in
@@ -1428,12 +1428,12 @@ and binary (x : CST.binary) =
       let v1 = arg v1 in
       let v2 =
         (match v2 with
-        | `EQEQ tok -> Op_EQ, token2 tok
-        | `BANGEQ tok -> Op_NEQ, token2 tok
-        | `EQEQEQ tok -> Op_EQQ, token2 tok
-        | `LTEQGT tok -> Op_CMP, token2 tok
-        | `EQTILDE tok -> Op_MATCH, token2 tok
-        | `BANGTILDE tok -> Op_NMATCH, token2 tok
+        | `EQEQ tok -> B Op_EQ, token2 tok
+        | `BANGEQ tok -> B Op_NEQ, token2 tok
+        | `EQEQEQ tok -> B Op_EQQ, token2 tok
+        | `LTEQGT tok -> B Op_CMP, token2 tok
+        | `EQTILDE tok -> B Op_MATCH, token2 tok
+        | `BANGTILDE tok -> B Op_NMATCH, token2 tok
         )
       in
       let v3 = arg v3 in
@@ -1458,8 +1458,8 @@ and unary (x : CST.unary) =
   | `Un_choice_un_minus_arg (v1, v2) ->
       let v1 =
         (match v1 with
-        | `Un_minus tok -> Op_UMinus, token2 tok
-        | `PLUS tok -> Op_UPlus, token2 tok
+        | `Un_minus tok -> U Op_UMinus, token2 tok
+        | `PLUS tok -> U Op_UPlus, token2 tok
         )
       in
       let v2 = arg v2 in
@@ -1467,8 +1467,8 @@ and unary (x : CST.unary) =
   | `Un_choice_BANG_arg (v1, v2) ->
       let v1 =
         (match v1 with
-        | `BANG tok -> Op_UBang, token2 tok
-        | `TILDE tok -> Op_UTilde, token2 tok
+        | `BANG tok -> U Op_UBang, token2 tok
+        | `TILDE tok -> U Op_UTilde, token2 tok
         )
       in
       let v2 = arg v2 in
@@ -1559,7 +1559,7 @@ and lhs (x : CST.lhs) : AST.expr =
         | None -> [])
       in
       let _v4 = token2 v4 in
-      let e = DotAccess (v1, (v2), MethodOperator (Op_AREF, v2)) in
+      let e = DotAccess (v1, (v2), MethodOperator (B Op_AREF, v2)) in
       Call (e, v3, None)
   | `Call x -> call x
   | `Meth_call x -> method_call x
@@ -1576,8 +1576,8 @@ and method_name (x : CST.method_name) : AST.method_name =
   | `Meth_name_symb x -> MethodAtom (symbol x)
   | `Meth_name_op x -> let op = operator x in
         (match op with
-        | Left bin, t -> MethodOperator (bin ,t)
-        | Right un, t -> MethodUOperator (un, t)
+        | Left bin, t -> MethodOperator (B bin ,t)
+        | Right un, t -> MethodUOperator (U un, t)
         )
   | `Meth_name_inst_var tok -> MethodId (str tok, ID_Instance)
   | `Meth_name_class_var tok -> MethodId (str tok, ID_Class)
