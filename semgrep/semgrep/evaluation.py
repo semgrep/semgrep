@@ -156,7 +156,9 @@ def _where_python_statement_matches(
         lines[-1] = new_last_line
         to_eval = "\n".join(lines)
         scope = {"vars": vars}
-        exec(to_eval, scope)  # nosem: contrib.dlint.dlint-equivalent.insecure-exec-use
+        # fmt: off
+        exec(to_eval, scope)  # nosem: contrib.dlint.dlint-equivalent.insecure-exec-use, python.lang.security.audit.exec-detected.exec-detected
+        # fmt: on
         output_var = scope[RETURN_VAR]
     except Exception as ex:
         print_stderr(

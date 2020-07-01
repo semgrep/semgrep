@@ -8,6 +8,7 @@ from typing import Set
 from semgrep.error import _UnknownLanguageError
 from semgrep.semgrep_types import Language
 from semgrep.util import partition_set
+from semgrep.util import sub_check_output
 
 
 FileExtension = NewType("FileExtension", str)
@@ -132,7 +133,7 @@ class TargetManager:
             if respect_git_ignore:
                 try:
                     # Tracked files
-                    tracked_output = subprocess.check_output(
+                    tracked_output = sub_check_output(
                         ["git", "ls-files", f"*.{ext}"],
                         cwd=curr_dir.resolve(),
                         encoding="utf-8",
@@ -140,7 +141,7 @@ class TargetManager:
                     )
 
                     # Untracked but not ignored files
-                    untracked_output = subprocess.check_output(
+                    untracked_output = sub_check_output(
                         [
                             "git",
                             "ls-files",
@@ -153,7 +154,7 @@ class TargetManager:
                         stderr=subprocess.DEVNULL,
                     )
 
-                    deleted_output = subprocess.check_output(
+                    deleted_output = sub_check_output(
                         ["git", "ls-files", "--deleted", f"*.{ext}"],
                         cwd=curr_dir.resolve(),
                         encoding="utf-8",
