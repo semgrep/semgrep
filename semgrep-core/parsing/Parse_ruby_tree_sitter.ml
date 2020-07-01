@@ -841,7 +841,7 @@ and primary (x : CST.primary) : AST.expr =
         | `DOT tok ->
                 (fun a b -> DotAccess(a, token2 tok, b))
         | `COLONCOLON tok ->
-                (fun a b -> Binop (a, (Op_SCOPE, token2 tok), methodexpr b))
+                (fun a b -> ScopedId(Scope(a, token2 tok, SM b)))
         )
       in
       let (n, params, body_exn) = method_rest v4 in
@@ -852,7 +852,7 @@ and primary (x : CST.primary) : AST.expr =
       let v2 =
         (match v2 with
         | `Cst tok -> Id (str tok, ID_Uppercase)
-        | `Scope_resol x -> scope_resolution x
+        | `Scope_resol x -> ScopedId (scope_resolution x)
         )
       in
       let v3 =
@@ -876,7 +876,7 @@ and primary (x : CST.primary) : AST.expr =
       let v2 =
         (match v2 with
         | `Cst tok -> Id (str tok, ID_Uppercase)
-        | `Scope_resol x -> scope_resolution x
+        | `Scope_resol x -> ScopedId (scope_resolution x)
         )
       in
       let (v3, _tend) =
@@ -1076,20 +1076,20 @@ and parenthesized_statements ((v1, v2, v3) : CST.parenthesized_statements) =
   let v3 = token2 v3 in
   (v1, v2, v3)
 
-and scope_resolution ((v1, v2) : CST.scope_resolution) =
+and scope_resolution ((v1, v2) : CST.scope_resolution) : AST.scope_resolution =
   let v1 =
     (match v1 with
-    | `COLONCOLON tok -> (fun e -> Unary ((Op_UScope, token2 tok), e))
+    | `COLONCOLON tok -> (fun e -> (TopScope(token2 tok, e)))
     | `Prim_COLONCOLON (v1, v2) ->
         let v1 = primary v1 in
         let v2 = token2 v2 in
-        (fun e -> Binop (v1, (Op_SCOPE, v2), e))
+        (fun e -> (Scope((v1, v2, SV e))))
     )
   in
   let v2 =
     (match v2 with
-    | `Id tok -> Id (str tok, ID_Lowercase)
-    | `Cst tok -> Id (str tok, ID_Uppercase)
+    | `Id tok -> (str tok, ID_Lowercase)
+    | `Cst tok -> (str tok, ID_Uppercase)
     )
   in
   v1 v2
@@ -1124,7 +1124,7 @@ and command_call (x : CST.command_call) : AST.expr =
       let v1 =
         (match v1 with
         | `Var x -> Id (variable x)
-        | `Scope_resol x -> scope_resolution x
+        | `Scope_resol x -> ScopedId (scope_resolution x)
         | `Call x -> call x
         )
       in
@@ -1134,7 +1134,7 @@ and command_call (x : CST.command_call) : AST.expr =
       let v1 =
         (match v1 with
         | `Var x -> Id (variable x)
-        | `Scope_resol x -> scope_resolution x
+        | `Scope_resol x -> ScopedId (scope_resolution x)
         | `Call x -> call x
         )
       in
@@ -1145,7 +1145,7 @@ and command_call (x : CST.command_call) : AST.expr =
       let v1 =
         (match v1 with
         | `Var x -> Id (variable x)
-        | `Scope_resol x -> scope_resolution x
+        | `Scope_resol x -> ScopedId (scope_resolution x)
         | `Call x -> call x
         )
       in
@@ -1160,7 +1160,7 @@ and method_call (x : CST.method_call) : AST.expr =
       let v1 =
         (match v1 with
         | `Var x -> Id (variable x)
-        | `Scope_resol x -> scope_resolution x
+        | `Scope_resol x -> ScopedId (scope_resolution x)
         | `Call x -> call x
         )
       in
@@ -1170,7 +1170,7 @@ and method_call (x : CST.method_call) : AST.expr =
       let v1 =
         (match v1 with
         | `Var x -> Id (variable x)
-        | `Scope_resol x -> scope_resolution x
+        | `Scope_resol x -> ScopedId (scope_resolution x)
         | `Call x -> call x
         )
       in
@@ -1181,7 +1181,7 @@ and method_call (x : CST.method_call) : AST.expr =
       let v1 =
         (match v1 with
         | `Var x -> Id (variable x)
-        | `Scope_resol x -> scope_resolution x
+        | `Scope_resol x -> ScopedId (scope_resolution x)
         | `Call x -> call x
         )
       in
@@ -1192,7 +1192,7 @@ and method_call (x : CST.method_call) : AST.expr =
       let v1 =
         (match v1 with
         | `Var x -> Id (variable x)
-        | `Scope_resol x -> scope_resolution x
+        | `Scope_resol x -> ScopedId (scope_resolution x)
         | `Call x -> call x
         )
       in
@@ -1202,7 +1202,7 @@ and method_call (x : CST.method_call) : AST.expr =
       let v1 =
         (match v1 with
         | `Var x -> Id (variable x)
-        | `Scope_resol x -> scope_resolution x
+        | `Scope_resol x -> ScopedId (scope_resolution x)
         | `Call x -> call x
         )
       in
@@ -1550,7 +1550,7 @@ and lhs (x : CST.lhs) : AST.expr =
   | `True x -> Literal (Bool (true_ x))
   | `False x -> Literal (Bool (false_ x))
   | `Nil x -> Literal (Nil (nil x))
-  | `Scope_resol x -> scope_resolution x
+  | `Scope_resol x -> ScopedId (scope_resolution x)
   | `Elem_ref (v1, v2, v3, v4) ->
       let v1 = primary v1 in
       let v2 = token2 v2 in
