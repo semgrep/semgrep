@@ -26,19 +26,6 @@ jobs:
           publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}
           publishDeployment: ${{ secrets.SEMGREP_APP_DEPLOYMENT_ID }}
 
-  semgrep-run-local-rules:
-    name: semgrep with local rules
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v1
-      - name: Semgrep
-        id: semgrep
-        uses: returntocorp/semgrep-action@v1
-        with:
-          slackWebhookURL: ${{ secrets.BENTO_SLACK_WEBHOOK_URL }}
-          publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}
-          publishDeployment: ${{ secrets.SEMGREP_APP_DEPLOYMENT_ID }}
-
   changelog-reminder:
     name: Changelog Reminder
     runs-on: ubuntu-latest

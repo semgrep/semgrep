@@ -46,7 +46,7 @@ repos:
       - id: semgrep-develop
         name: Semgrep Python
         types: [python]
-        exclude: "^semgrep/tests/.+$|^install-scripts/.+$|^release-scripts/.+$"
+        exclude: "^semgrep/tests/.+$|^install-scripts/.+$|^release-scripts/.+$|^semgrep/setup.py$"
         args: ['--config', 'https://semgrep.live/p/python', '--precommit', '--error']
 
   - repo: https://github.com/returntocorp/semgrep
@@ -55,7 +55,7 @@ repos:
       - id: semgrep-develop
         name: Semgrep Bandit
         types: [python]
-        exclude: "^semgrep/tests/.+$|^install-scripts/.+$|^release-scripts/.+$"
+        exclude: "^semgrep/tests/.+$|^install-scripts/.+$|^release-scripts/.+$|^semgrep/setup.py$"
         args: ['--config', 'https://semgrep.live/p/bandit', '--precommit', '--error']
 
   - repo: https://github.com/returntocorp/semgrep
@@ -64,7 +64,7 @@ repos:
       - id: semgrep-develop
         name: Semgrep Local
         types: [python]
-        exclude: "^semgrep/tests/.+$|^install-scripts/.+$|^release-scripts/.+$"
+        exclude: "^semgrep/tests/.+$|^install-scripts/.+$|^release-scripts/.+$|^semgrep/setup.py$"
         args: ['--config', 'semgrep-local.yaml', '--precommit', '--error']
 
   - repo: local

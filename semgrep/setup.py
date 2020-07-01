@@ -86,13 +86,11 @@ class PostInstallCommand(install):
             os.putenv("SKIP_NUITKA", "TRUE")
             if "osx" in distutils.util.get_platform():
                 with chdir(repo_root):
-                    os.system(  # nosem: contrib.dlint.dlint-equivalent.insecure-os-exec-use
-                        os.path.join(repo_root, "release-scripts/osx-release.sh")
-                    )
+                    os.system(os.path.join(repo_root, "release-scripts/osx-release.sh"))
                     source = os.path.join(repo_root, "artifacts/semgrep-core")
             else:
                 with chdir(repo_root):
-                    os.system(  # nosem: contrib.dlint.dlint-equivalent.insecure-os-exec-use
+                    os.system(
                         os.path.join(repo_root, "release-scripts/ubuntu-release.sh")
                     )
                     source = os.path.join(repo_root, "semgrep-files/semgrep-core")
