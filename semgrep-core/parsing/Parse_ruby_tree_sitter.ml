@@ -770,7 +770,7 @@ and primary (x : CST.primary) : AST.expr =
       in
       let _v3 = token2 v3 in
       Literal (String (Tick v2, v1)) (* Tick? *)
-  | `Prim_symb x -> symbol x
+  | `Prim_symb x -> Literal (Atom (symbol x))
   | `Prim_int tok -> Literal (Num (str tok))
   | `Prim_float tok -> Literal (Float (str tok))
   | `Prim_comp tok -> Literal (Complex (str tok))
@@ -823,7 +823,7 @@ and primary (x : CST.primary) : AST.expr =
   | `Prim_meth (v1, v2) ->
       let v1 = token2 v1 in
       let (n, params, body_exn) = method_rest v2 in
-      D (MethodDef (v1, n, params, body_exn))
+      D (MethodDef (v1, M n, params, body_exn))
   | `Prim_sing_meth (v1, v2, v3, v4) ->
       let v1 = token2 v1 in
       let v2 =
@@ -843,8 +843,8 @@ and primary (x : CST.primary) : AST.expr =
         )
       in
       let (n, params, body_exn) = method_rest v4 in
-      let n = Binop (v2, v3, n) in
-      D (MethodDef (v1, n, params, body_exn))
+      let n = Binop (v2, v3, methodexpr n) in
+      D (MethodDef (v1, SingletonM n, params, body_exn))
   | `Prim_class (v1, v2, v3, v4, v5) ->
       let v1 = token2 v1 in
       let v2 =
@@ -1566,21 +1566,21 @@ and lhs (x : CST.lhs) : AST.expr =
 
 and method_name (x : CST.method_name) : AST.method_name =
   (match x with
-  | `Meth_name_id tok -> Id (str tok, ID_Lowercase)
-  | `Meth_name_cst tok -> Id (str tok, ID_Uppercase)
+  | `Meth_name_id tok -> MethodId (str tok, ID_Lowercase)
+  | `Meth_name_cst tok -> MethodId (str tok, ID_Uppercase)
   | `Meth_name_sett (v1, v2) ->
       let v1 = str v1 in
-      let _v2 = token2 v2 in
-      Id (v1, ID_Assign ID_Lowercase)
-  | `Meth_name_symb x -> symbol x
+      let v2 = token2 v2 in
+      MethodIdAssign (v1, v2, ID_Lowercase)
+  | `Meth_name_symb x -> MethodAtom (symbol x)
   | `Meth_name_op x -> let op = operator x in
         (match op with
-        | Left bin, t -> Operator (bin ,t)
-        | Right un, t -> UOperator (un, t)
+        | Left bin, t -> MethodOperator (bin ,t)
+        | Right un, t -> MethodUOperator (un, t)
         )
-  | `Meth_name_inst_var tok -> Id (str tok, ID_Instance)
-  | `Meth_name_class_var tok -> Id (str tok, ID_Class)
-  | `Meth_name_glob_var tok -> Id (str tok, ID_Global)
+  | `Meth_name_inst_var tok -> MethodId (str tok, ID_Instance)
+  | `Meth_name_class_var tok -> MethodId (str tok, ID_Class)
+  | `Meth_name_glob_var tok -> MethodId (str tok, ID_Global)
   )
 
 and interpolation ((v1, v2, v3) : CST.interpolation) : AST.expr AST.bracket =
@@ -1599,10 +1599,10 @@ and string_ ((v1, v2, v3) : CST.string_) : AST.string_contents list bracket =
   let v3 = token2 v3 in
   v1, v2, v3
 
-and symbol (x : CST.symbol) =
+and symbol (x : CST.symbol) : AST.atom =
   (match x with
   | `Symb_simple_symb tok -> let (s, t) = str tok in
-        Literal (Atom ([StrChars s], t))
+        ([StrChars s], t)
   | `Symb_symb_start_opt_lit_content_str_end (v1, v2, v3) ->
       let v1 = token2 v1 in
       let v2 =
@@ -1611,7 +1611,7 @@ and symbol (x : CST.symbol) =
         | None -> [])
       in
       let _v3 = token2 v3 in
-      Literal (Atom (v2, v1))
+      (v2, v1)
   )
 
 and literal_contents (xs : CST.literal_contents) : AST.string_contents list =
