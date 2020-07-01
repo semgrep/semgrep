@@ -121,7 +121,8 @@ and literal env = function
       (match env.lang with
       | Lang.Python | Lang.Python2 | Lang.Python3 ->
             "'" ^ s ^ "'"
-      | _ -> raise Todo
+      | Lang.Java | Lang.Go | Lang.C | Lang.JSON | Lang.Javascript | Lang.OCaml ->
+            "\"" ^ s ^ "\""
       )
   | Regexp ((s,_)) -> s
   | x -> todo (E (L x))
