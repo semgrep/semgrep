@@ -1107,8 +1107,8 @@ and call ((v1, v2, v3) : CST.call) =
     | `Op x ->
           let op = operator x in
           (match op with
-          | Left bin, t -> MethodOperator (B bin, t)
-          | Right un, t -> MethodUOperator (U un, t)
+          | Left bin, t -> MethodOperator (bin, t)
+          | Right un, t -> MethodUOperator (un, t)
           )
     | `Cst tok -> MethodId (str tok, ID_Uppercase)
     | `Arg_list x -> (* ?? *)
@@ -1559,7 +1559,7 @@ and lhs (x : CST.lhs) : AST.expr =
         | None -> [])
       in
       let _v4 = token2 v4 in
-      let e = DotAccess (v1, (v2), MethodOperator (B Op_AREF, v2)) in
+      let e = DotAccess (v1, (v2), MethodOperator (Op_AREF, v2)) in
       Call (e, v3, None)
   | `Call x -> call x
   | `Meth_call x -> method_call x
@@ -1576,8 +1576,8 @@ and method_name (x : CST.method_name) : AST.method_name =
   | `Meth_name_symb x -> MethodAtom (symbol x)
   | `Meth_name_op x -> let op = operator x in
         (match op with
-        | Left bin, t -> MethodOperator (B bin ,t)
-        | Right un, t -> MethodUOperator (U un, t)
+        | Left bin, t -> MethodOperator (bin ,t)
+        | Right un, t -> MethodUOperator (un, t)
         )
   | `Meth_name_inst_var tok -> MethodId (str tok, ID_Instance)
   | `Meth_name_class_var tok -> MethodId (str tok, ID_Class)
