@@ -359,6 +359,7 @@ let parse_generic lang file =
   then Parse_cpp.init_defs !Flag_parsing_cpp.macros_h;
   (*e: [[Main_semgrep_core.parse_generic()]] use standard macros if parsing C *)
 
+  let v =
   cache_computation file (fun file ->
     (* we may use different parsers for the same file (e.g., in Python3 or
      * Python2 mode), so put the lang as part of the cache "dependency".
@@ -370,6 +371,7 @@ let parse_generic lang file =
      in
      cache_file_of_file full_filename)
  (fun () -> timeout_function lang (fun () ->
+ try
   let ast = Parse_generic.parse_with_lang lang file in
   (*s: [[Main_semgrep_core.parse_generic()]] resolve names in the AST *)
   (* to be deterministic, reset the gensym; anyway right now sgrep is
@@ -380,8 +382,20 @@ let parse_generic lang file =
   Naming_AST.resolve lang ast;
   Constant_propagation.propagate lang ast;
   (*e: [[Main_semgrep_core.parse_generic()]] resolve names in the AST *)
-  ast
+  Left ast
+ (* This is a bit subtle, but we now store in the cache whether we had
+  * a timeout on this file. Indeed, semgrep now calls semgrep-core
+  * per rule, and if one file timeout during parsing, it would timeout
+  * for each rule, but we don't want to wait each time 5sec for each rule.
+  * So here we store the exn in the cache, and below we reraise it
+  * after we got it back from the cache.
+  *)
+ with Timeout -> Right Timeout
   ))
+  in
+  match v with
+  | Left ast -> ast
+  | Right exn -> raise exn
 (*e: function [[Main_semgrep_core.parse_generic]] *)
 
 (*s: function [[Main_semgrep_core.parse_equivalences]] *)
