@@ -212,7 +212,7 @@ and statement (x : CST.statement) : AST.expr (* TODO AST.stmt at some point *)=
       let v3 = expression v3 in
       S (ExnBlock ({
          body_exprs = [v1];
-         rescue_exprs = [v2, (S Empty), v3];
+         rescue_exprs = [v2, (S Empty), [v3]];
          ensure_expr = [];
          else_expr = [];
         }))
@@ -505,7 +505,7 @@ and rescue ((v1, v2, v3, v4) : CST.rescue) =
   in
   let e1 =
     v3 v2 in
-  (v1, e1, S (Block (v4)))
+  (v1, e1, v4)
 
 and exceptions ((v1, v2) : CST.exceptions) : AST.expr list =
   let v1 =
