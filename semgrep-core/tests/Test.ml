@@ -220,6 +220,7 @@ let test regexp =
 
       (* just expression vs expression testing for one language (Python) *)
       Unit_matcher.unittest ~any_gen_of_string;
+      Unit_synthesizer.unittest ~any_gen_of_string;
       (* full testing for many languages *)
       lang_regression_tests;
       (* ugly: todo: use a toy fuzzy parser instead of the one in lang_cpp/ *)
