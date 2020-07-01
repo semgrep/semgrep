@@ -10,6 +10,7 @@ module PPG = Pretty_print_generic
 (*****************************************************************************)
 let test_path = "../../../tests/SYNTHESIZING/"
 
+(* Format: file, range of code to infer, expected patterns *)
 let python_tests = [
   "arrays_and_funcs.py", "3:3-3:23",
   ["exact match", "a.bar(f(x), y == f(x))";
@@ -82,9 +83,49 @@ let python_tests = [
    "exact metavars", "$X == $X"];
 ]
 
+let java_tests = [
+  "typed_funcs.java", "6:8-6:14",
+  ["exact match", "this.foo(a)";
+   "dots", "this.foo(...)";
+   "metavars", "this.foo($X, ...)";
+   "exact metavars", "this.foo($X)";
+   "typed metavars", "this.foo((int $X))"
+  ];
+
+  "typed_funcs.java", "7:8-7:42",
+  ["exact match", "this.foo(this.bar(this.car(a)), b, this.foo(b, c), d)";
+   "dots", "this.foo(...)";
+   "metavars", "this.foo($X, $Y, $Z, $A, ...)";
+   "exact metavars", "this.foo($X, $Y, $Z, $A)";
+   "typed metavars",
+     "this.foo(this.bar(this.car((int $X))), (String $Y), this.foo((String $Y), (bool $Z)), $A)";
+   "deep metavars", "this.foo(this.bar(this.car($X)), $Y, this.foo($Y, $Z), $A)"
+  ];
+
+  "typed_funcs.java", "6:8-6:14",
+  ["exact match", "this.foo(this.foo(a, b), c)";
+   "dots", "this.foo(...)";
+   "metavars", "this.foo($X, $Y, ...)";
+   "exact metavars", "this.foo($X, $Y)";
+   "typed metavars", "this.foo(this.foo((int $X), (String $Y)), (bool $Z))";
+   "deep metavars", "this.foo(this.foo($X, $Y), $Z)"
+  ];
+]
+
+(* Cases splits up the test cases by language.
+ * For each item in tests, this expects a filename, range, and solutions.
+ * Patterns will be inferred from the file at filename in the given range.
+ * The list of patterns will be checked against the expected solutions,
+ * which they should match exactly.
+ * They will then be matched against the code at the given range to make
+ * sure semgrep actually correctly matches the pattern to the code.
+ * Place test files in semgrep-core/tests/SYNTHESIZING
+ *)
+
 let unittest ~any_gen_of_string =
   "pattern inference features" >:: (fun () ->
     let cases = [Lang.Python, python_tests]
+    (* TODO: currently can't include java_tests because types don't parse *)
     in
     cases |> List.iter (fun (lang, tests) ->
     tests |> List.iter (fun (filename, range, sols) ->

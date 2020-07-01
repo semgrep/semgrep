@@ -162,11 +162,21 @@ let generalize_call env = function
        (exact_metavar (e, (lp, es, rp)) env) :: optional
   | _ -> []
 
+(* Id *)
+let generalize_id env e =
+  match e with
+  | Id _ ->
+     let (_, id) = get_id env e in
+     let (env', id_t) = get_id ~with_type:true env e in
+     if env'.has_type then ["metavar", E id; "typed metavar", E id_t]
+     else ["metavar", E id]
+  | _ -> []
+
 (* All expressions *)
 let generalize_exp e env =
   match e with
   | Call _ -> generalize_call env e
-  | Id _ -> let (_, id) = get_id env e in ["metavar", E id]
+  | Id _ -> generalize_id env e
   | L _ -> let (_, id) = get_id env e in ["metavar", E id]
   | DotAccess _ -> let (_, id) = get_id env e in ["metavar", E id]
   | _ -> []
