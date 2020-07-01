@@ -349,7 +349,7 @@ and simple_formal_parameter (x : CST.simple_formal_parameter) : AST.formal_param
   (match x with
   | `Simple_form_param_id tok ->
         let id = str tok in
-        Formal_id ((id, ID_Lowercase))
+        Formal_id ((id))
   | `Simple_form_param_splat_param (v1, v2) ->
       let v1 = token2 v1 in
         (match v2 with
@@ -838,12 +838,14 @@ and primary (x : CST.primary) : AST.expr =
       in
       let v3 =
         (match v3 with
-        | `DOT tok -> Op_DOT, token2 tok
-        | `COLONCOLON tok -> Op_SCOPE, token2 tok
+        | `DOT tok ->
+                (fun a b -> DotAccess(a, token2 tok, b))
+        | `COLONCOLON tok ->
+                (fun a b -> Binop (a, (Op_SCOPE, token2 tok), methodexpr b))
         )
       in
       let (n, params, body_exn) = method_rest v4 in
-      let n = Binop (v2, v3, methodexpr n) in
+      let n = v3 v2 n in
       D (MethodDef (v1, SingletonM n, params, body_exn))
   | `Prim_class (v1, v2, v3, v4, v5) ->
       let v1 = token2 v1 in
@@ -1096,25 +1098,25 @@ and call ((v1, v2, v3) : CST.call) =
   let v1 = primary v1 in
   let v2 =
     (match v2 with
-    | `DOT tok -> Op_DOT, token2 tok
-    | `AMPDOT tok -> Op_AMPDOT, token2 tok
+    | `DOT tok -> token2 tok
+    | `AMPDOT tok -> token2 tok
     )
   in
   let v3 =
     (match v3 with
-    | `Id tok -> Id (str tok, ID_Lowercase)
+    | `Id tok -> MethodId (str tok, ID_Lowercase)
     | `Op x ->
           let op = operator x in
           (match op with
-          | Left bin, t -> Operator (bin, t)
-          | Right un, t -> UOperator (un, t)
+          | Left bin, t -> MethodOperator (bin, t)
+          | Right un, t -> MethodUOperator (un, t)
           )
-    | `Cst tok -> Id (str tok, ID_Uppercase)
+    | `Cst tok -> MethodId (str tok, ID_Uppercase)
     | `Arg_list x -> (* ?? *)
-          Tuple ((argument_list x |> G.unbracket))
+          MethodDynamic (Tuple ((argument_list x |> G.unbracket)))
     )
   in
-  Binop (v1, v2, v3)
+  DotAccess (v1, v2, v3)
 
 and command_call (x : CST.command_call) : AST.expr =
   (match x with
@@ -1558,7 +1560,7 @@ and lhs (x : CST.lhs) : AST.expr =
         | None -> [])
       in
       let _v4 = token2 v4 in
-      let e = Binop (v1, (Op_DOT, v2), Operator (Op_AREF, v2)) in
+      let e = DotAccess (v1, (v2), MethodOperator (Op_AREF, v2)) in
       Call (e, v3, None)
   | `Call x -> call x
   | `Meth_call x -> method_call x
