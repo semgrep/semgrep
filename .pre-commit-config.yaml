@@ -34,22 +34,38 @@ repos:
         args: [--config, mypy.ini]
 
   - repo: https://gitlab.com/pycqa/flake8
-    rev: "3.7.9"
+    rev: "3.8.3"
     hooks:
       - id: flake8
-        args: ["--select=E9,F63,F7,F82"]
+        additional_dependencies: ["flake8-bugbear==20.1.4"]
+        args: ["--select=B,E9,F63,F7,F82"]
 
   - repo: https://github.com/returntocorp/semgrep
     rev: 'v0.12.0'
     hooks:
       - id: semgrep-develop
-        args: ['--config', 'https://semgrep.live/p/python', '--include', '*.py', '--precommit', '--error']
+        name: Semgrep Python
+        types: [python]
+        exclude: "^semgrep/tests/.+$|^install-scripts/.+$|^release-scripts/.+$"
+        args: ['--config', 'https://semgrep.live/p/python', '--precommit', '--error']
 
   - repo: https://github.com/returntocorp/semgrep
     rev: 'v0.12.0'
     hooks:
       - id: semgrep-develop
-        args: ['--config', '.bento/semgrep.yml', '--include', '*.py', '--precommit', '--error']
+        name: Semgrep Bandit
+        types: [python]
+        exclude: "^semgrep/tests/.+$|^install-scripts/.+$|^release-scripts/.+$"
+        args: ['--config', 'https://semgrep.live/p/bandit', '--precommit', '--error']
+
+  - repo: https://github.com/returntocorp/semgrep
+    rev: 'v0.12.0'
+    hooks:
+      - id: semgrep-develop
+        name: Semgrep Local
+        types: [python]
+        exclude: "^semgrep/tests/.+$|^install-scripts/.+$|^release-scripts/.+$"
+        args: ['--config', 'semgrep-local.yaml', '--precommit', '--error']
 
   - repo: local
     hooks:

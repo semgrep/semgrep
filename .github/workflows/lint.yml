@@ -12,18 +12,6 @@ jobs:
     - uses: actions/setup-python@v1
     - uses: pre-commit/action@v2.0.0
 
-  bento-action:
-    name: Bento Check
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v1
-    - id: bento
-      name: Bento
-      uses: returntocorp/bento-action@v1
-      with:
-        acceptTermsWithEmail: test@returntocorp.com
-        slackWebhookURL: ${{ secrets.BENTO_SLACK_WEBHOOK_URL }}
-
   semgrep-run-r2c-config:
     name: semgrep with r2c registry
     runs-on: ubuntu-latest

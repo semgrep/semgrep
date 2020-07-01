@@ -39,6 +39,7 @@ from semgrep.util import debug_print
 from semgrep.util import debug_tqdm_write
 from semgrep.util import partition
 from semgrep.util import progress_bar
+from semgrep.util import sub_run
 
 
 def _offset_to_line_no(offset: int, buff: str) -> int:
@@ -305,9 +306,7 @@ class CoreRunner:
                     self._write_equivalences_file(equiv_file, equivalences)
                     cmd += ["-equivalences", equiv_file.name]
 
-                core_run = subprocess.run(
-                    cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-                )
+                core_run = sub_run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
                 debug_print(core_run.stderr.decode("utf-8", "replace"))
 

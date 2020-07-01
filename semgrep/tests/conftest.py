@@ -10,7 +10,8 @@ from typing import Union
 
 import appdirs
 import pytest
-from tests import public_repos
+
+from . import public_repos
 
 TESTS_PATH = Path(__file__).parent
 
