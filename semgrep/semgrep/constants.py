@@ -1,9 +1,8 @@
-import os
 import re
-import subprocess
-import sys
 from enum import auto
 from enum import Enum
+
+from semgrep.util import compute_semgrep_path
 
 RCE_RULE_FLAG = "--dangerously-allow-arbitrary-code-execution-from-rules"
 RULES_KEY = "rules"
@@ -19,17 +18,6 @@ DEFAULT_CONFIG_FOLDER = f".{DEFAULT_SEMGREP_CONFIG_NAME}"
 YML_EXTENSIONS = {".yml", ".yaml"}
 
 __VERSION__ = "0.13.0"
-
-
-def compute_semgrep_path() -> str:
-    exec_name = "semgrep-core"
-    if subprocess.run(["which", exec_name], stdout=subprocess.DEVNULL).returncode != 0:
-        # look for something in the same dir as the Python interpreter
-        relative_path = os.path.join(os.path.dirname(sys.executable), exec_name)
-        if os.path.exists(relative_path):
-            exec_name = relative_path
-    return exec_name
-
 
 SEMGREP_PATH = compute_semgrep_path()
 

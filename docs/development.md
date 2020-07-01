@@ -8,13 +8,6 @@ semgrep uses [pre-commit](https://pre-commit.com/). [Install pre-commit](https:/
 pre-commit install
 ```
 
-We also use [bento](https://github.com/returntocorp/bento) to run a variety of linting tools
-
-```
-pip3 install bento-cli
-bento init
-```
-
 ## Installation from source
 
 To compile semgrep, you first need to [install OCaml](https://opam.ocaml.org/doc/Install.html) and its package manager OPAM. On macOS, it should simply consist in doing:

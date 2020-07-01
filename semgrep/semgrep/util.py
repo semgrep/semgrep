@@ -1,5 +1,7 @@
 import itertools
+import os
 import re
+import subprocess
 import sys
 import typing
 from typing import Any
@@ -128,3 +130,30 @@ def progress_bar(
         wrapped: Iterable[T] = tqdm(listified, file=file, **kwargs)
         return wrapped
     return listified
+
+
+def sub_run(cmd: List[str], **kwargs: Any) -> Any:
+    """A simple proxy function to minimize and centralize subprocess usage."""
+    # fmt: off
+    result = subprocess.run(cmd, **kwargs)  # nosem: python.lang.security.audit.dangerous-subprocess-use.dangerous-subprocess-use
+    # fmt: on
+    return result
+
+
+def sub_check_output(cmd: List[str], **kwargs: Any) -> Any:
+    """A simple proxy function to minimize and centralize subprocess usage."""
+    # fmt: off
+    result = subprocess.check_output(cmd, **kwargs)  # nosem: python.lang.security.audit.dangerous-subprocess-use.dangerous-subprocess-use
+    # fmt: on
+    return result
+
+
+def compute_semgrep_path() -> str:
+    exec_name = "semgrep-core"
+    which_core = sub_run(["which", exec_name], stdout=subprocess.DEVNULL)
+    if which_core.returncode != 0:
+        # look for something in the same dir as the Python interpreter
+        relative_path = os.path.join(os.path.dirname(sys.executable), exec_name)
+        if os.path.exists(relative_path):
+            exec_name = relative_path
+    return exec_name

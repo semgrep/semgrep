@@ -7,6 +7,7 @@ import semgrep.config_resolver
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import SEMGREP_PATH
 from semgrep.error import SemgrepError
+from semgrep.util import sub_check_output
 
 
 def dump_parsed_ast(
@@ -31,7 +32,7 @@ def dump_parsed_ast(
 
         cmd = [SEMGREP_PATH] + args
         try:
-            output = subprocess.check_output(cmd, shell=False)
+            output = sub_check_output(cmd)
         except subprocess.CalledProcessError as ex:
             raise SemgrepError(
                 f"error invoking semgrep with:\n\t{' '.join(cmd)}\n\t{ex}\n{PLEASE_FILE_ISSUE_TEXT}"
