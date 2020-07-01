@@ -384,13 +384,13 @@ let parse_generic lang file =
   (*e: [[Main_semgrep_core.parse_generic()]] resolve names in the AST *)
   Left ast
  (* This is a bit subtle, but we now store in the cache whether we had
-  * a timeout on this file. Indeed, semgrep now calls semgrep-core
-  * per rule, and if one file timeout during parsing, it would timeout
-  * for each rule, but we don't want to wait each time 5sec for each rule.
-  * So here we store the exn in the cache, and below we reraise it
+  * an exception on this file, especially Timeout. Indeed, semgrep now calls
+  * semgrep-core per rule, and if one file timeout during parsing, it would
+  * timeout for each rule, but we don't want to wait each time 5sec for each
+  * rule. So here we store the exn in the cache, and below we reraise it
   * after we got it back from the cache.
   *)
- with Timeout -> Right Timeout
+ with exn -> Right exn
   ))
   in
   match v with
