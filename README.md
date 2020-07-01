@@ -65,10 +65,10 @@ On Ubuntu/WSL/linux, we recommend installing via `pip`
 $ pip3 install semgrep
 ```
 
-An install script is also available with each [release](https://github.com/returntocorp/semgrep/releases/download/v0.12.0/semgrep-v0.12.0-ubuntu-generic.sh) if you want a native binary.
+An install script is also available with each [release](https://github.com/returntocorp/semgrep/releases/download/v0.13.0/semgrep-v0.13.0-ubuntu-generic.sh) if you want a native binary.
 
 ```bash
-$ ./semgrep-v0.12.0-ubuntu-generic.sh
+$ ./semgrep-v0.13.0-ubuntu-generic.sh
 ```
 
 To try Semgrep without installation, you can also run it via Docker:
