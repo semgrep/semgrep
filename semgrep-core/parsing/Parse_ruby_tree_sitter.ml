@@ -573,19 +573,19 @@ and expression (x : CST.expression) : AST.expr =
       let v1 = lhs v1 in
       let (op, tok) =
         (match v2 with
-        | `PLUSEQ tok -> Op_PLUS, token2 tok
-        | `DASHEQ tok -> Op_MINUS, token2 tok
-        | `STAREQ tok -> Op_TIMES, token2 tok
-        | `STARSTAREQ tok -> Op_POW, token2 tok
-        | `SLASHEQ tok -> Op_DIV, token2 tok
-        | `BARBAREQ tok -> Op_OR, token2 tok
-        | `BAREQ tok -> Op_BOR, token2 tok
-        | `AMPAMPEQ tok -> Op_AND, token2 tok
-        | `AMPEQ tok -> Op_BAND, token2 tok
-        | `PERCEQ tok -> Op_REM, token2 tok
-        | `GTGTEQ tok -> Op_RSHIFT, token2 tok
-        | `LTLTEQ tok -> Op_LSHIFT, token2 tok
-        | `HATEQ tok -> Op_XOR, token2 tok
+        | `PLUSEQ tok     -> Op_PLUS  , token2 tok
+        | `DASHEQ tok     -> Op_MINUS , token2 tok
+        | `STAREQ tok     -> Op_TIMES , token2 tok
+        | `STARSTAREQ tok -> Op_POW   , token2 tok
+        | `SLASHEQ tok    -> Op_DIV   , token2 tok
+        | `BARBAREQ tok   -> Op_OR    , token2 tok
+        | `BAREQ tok      -> Op_BOR   , token2 tok
+        | `AMPAMPEQ tok   -> Op_AND   , token2 tok
+        | `AMPEQ tok      -> Op_BAND  , token2 tok
+        | `PERCEQ tok     -> Op_REM   , token2 tok
+        | `GTGTEQ tok     -> Op_RSHIFT, token2 tok
+        | `LTLTEQ tok     -> Op_LSHIFT, token2 tok
+        | `HATEQ tok      -> Op_XOR   , token2 tok
         )
       in
       let v3 = expression v3 in
@@ -618,19 +618,19 @@ and arg (x : CST.arg) : AST.expr =
       let v1 = lhs v1 in
       let (op, tok) =
         (match v2 with
-        | `PLUSEQ tok -> Op_PLUS, token2 tok
-        | `DASHEQ tok -> Op_MINUS, token2 tok
-        | `STAREQ tok -> Op_TIMES, token2 tok
-        | `STARSTAREQ tok -> Op_POW, token2 tok
-        | `SLASHEQ tok -> Op_DIV, token2 tok
-        | `BARBAREQ tok -> Op_OR, token2 tok
-        | `BAREQ tok -> Op_BOR, token2 tok
-        | `AMPAMPEQ tok -> Op_AND, token2 tok
-        | `AMPEQ tok -> Op_BAND, token2 tok
-        | `PERCEQ tok -> Op_REM, token2 tok
-        | `GTGTEQ tok -> Op_RSHIFT, token2 tok
-        | `LTLTEQ tok -> Op_LSHIFT, token2 tok
-        | `HATEQ tok -> Op_XOR, token2 tok
+        | `PLUSEQ tok     -> Op_PLUS  , token2 tok
+        | `DASHEQ tok     -> Op_MINUS , token2 tok
+        | `STAREQ tok     -> Op_TIMES , token2 tok
+        | `STARSTAREQ tok -> Op_POW   , token2 tok
+        | `SLASHEQ tok    -> Op_DIV   , token2 tok
+        | `BARBAREQ tok   -> Op_OR    , token2 tok
+        | `BAREQ tok      -> Op_BOR   , token2 tok
+        | `AMPAMPEQ tok   -> Op_AND   , token2 tok
+        | `AMPEQ tok      -> Op_BAND  , token2 tok
+        | `PERCEQ tok     -> Op_REM   , token2 tok
+        | `GTGTEQ tok     -> Op_RSHIFT, token2 tok
+        | `LTLTEQ tok     -> Op_LSHIFT, token2 tok
+        | `HATEQ tok      -> Op_XOR   , token2 tok
         )
       in
       let v3 = arg v3 in
