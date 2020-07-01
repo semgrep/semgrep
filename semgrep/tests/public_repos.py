@@ -76,6 +76,7 @@ PASSING_REPOS = [
     "https://github.com/dropbox/pyannotate",
     "https://github.com/dropbox/pygerduty",
     "https://github.com/dropbox/pynsot",
+    "https://github.com/dropbox/pyston-testsuite",
     "https://github.com/dropbox/pytest-call-tracer",
     "https://github.com/dropbox/pytest-flakefinder",
     "https://github.com/dropbox/python-invariant",
@@ -144,7 +145,6 @@ FAILING_REPOS = [
     xfail_repo("https://github.com/dropbox/notouch"),
     xfail_repo("https://github.com/dropbox/pyston"),
     xfail_repo("https://github.com/dropbox/pyston-perf"),
-    xfail_repo("https://github.com/dropbox/pyston-testsuite"),
     xfail_repo("https://github.com/dropbox/pyxl"),
     xfail_repo("https://github.com/dropbox/questions"),
     xfail_repo(
