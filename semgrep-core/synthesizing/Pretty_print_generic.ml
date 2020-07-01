@@ -85,6 +85,7 @@ let arithop env (op, tok) =
 let rec expr env =
 function
   | Id ((s,_), idinfo) -> id env (s, idinfo)
+  | IdQualified(name, idinfo) -> id_qualified env (name, idinfo)
   | IdSpecial (sp, tok) -> special env (sp, tok)
   | Call (e1, e2) -> call env (e1, e2)
   | L x -> literal env x
@@ -101,6 +102,13 @@ and id env (s, {id_resolved; _}) =
    match !id_resolved with
        | Some (ImportedEntity ents, _) -> dotted_access env ents
        | _ -> s
+
+and id_qualified env ((id, {name_qualifier; _}), _idinfo) =
+  match name_qualifier with
+       | Some dot_ids ->
+            F.sprintf "%s.%s" (dotted_access env dot_ids) (ident id)
+       | None -> ident id
+
 
 and special env = function
   | (ArithOp op, tok) -> arithop env (op, tok)
