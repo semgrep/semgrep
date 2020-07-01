@@ -851,32 +851,31 @@ and primary (x : CST.primary) : AST.expr =
       let v1 = token2 v1 in
       let v2 =
         (match v2 with
-        | `Cst tok -> Id (str tok, ID_Uppercase)
-        | `Scope_resol x -> ScopedId (scope_resolution x)
+        | `Cst tok -> NameConstant (str tok)
+        | `Scope_resol x -> NameScope (scope_resolution x)
         )
       in
       let v3 =
         (match v3 with
-        | Some x -> Some (Class_Inherit (superclass x |> snd))
+        | Some x -> Some ((superclass x |> snd))
         | None -> None)
       in
       let _v4 = terminator v4 in
       let (v5, _tend) = body_statement v5 in
-      D (ClassDef (v1, v2, v3, v5))
+      D (ClassDef (v1, C (v2, v3), v5))
   | `Prim_sing_class (v1, v2, v3, v4, v5) ->
       let v1 = token2 v1 in
-      let v2 = str v2 in
+      let v2 = token2 v2 in
       let v3 = arg v3 in
       let _v4 = terminator v4 in
       let (v5, _tend) = body_statement v5 in
-      let n = Id (v2, ID_Uppercase) in (* TODO? *)
-      D (ClassDef (v1, n, Some (Class_Inherit v3), v5))
+      D (ClassDef (v1, SingletonC (v2, v3), v5))
   | `Prim_modu (v1, v2, v3) ->
       let v1 = token2 v1 in
       let v2 =
         (match v2 with
-        | `Cst tok -> Id (str tok, ID_Uppercase)
-        | `Scope_resol x -> ScopedId (scope_resolution x)
+        | `Cst tok -> NameConstant (str tok)
+        | `Scope_resol x -> NameScope (scope_resolution x)
         )
       in
       let (v3, _tend) =
