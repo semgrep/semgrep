@@ -1,5 +1,9 @@
 (*s: semgrep/matching/Unit_matcher.ml *)
+open Common
 open OUnit
+
+module A = AST_generic
+module PPG = Pretty_print_generic
 
 (*****************************************************************************)
 (* Semgrep Unit tests *)
@@ -78,37 +82,33 @@ let python_tests = [
    "exact metavars", "$X == $X"];
 ]
 
-let unittest =
+let unittest ~any_gen_of_string =
   "pattern inference features" >:: (fun () ->
-    let cases = python_tests
+    let cases = [Lang.Python, python_tests]
     in
-    cases |> List.iter (fun (file, range, sols) ->
-        let pats = Synthesizer.synthesize_patterns range (test_path ^ file) in
-        let check_pats = () (* todo check that they parse *) in
-        check_pats;
+    cases |> List.iter (fun (lang, tests) ->
+    tests |> List.iter (fun (filename, range, sols) ->
+        let file = test_path ^ filename in
+        let pats = Synthesizer.synthesize_patterns range file in
+        let code = Parse_generic.parse_program file in
+        let r = Range.range_of_linecol_spec range file in
+        Naming_AST.resolve lang code;
+        let check_pats (_, pat) =
+          try
+            let pattern = any_gen_of_string pat in
+            let e_opt = Range_to_AST.expr_at_range r code in
+               match e_opt with
+                 | Some e ->
+                    let matches_with_env = Semgrep_generic.match_any_any pattern (A.E e) in
+                    assert_bool (spf "pattern:|%s| should match |%s" pat (PPG.pattern_to_string lang (A.E e)))
+                    (matches_with_env <> [])
+                 | None -> failwith (spf "Couldn't find range %s in %s" range file)
+          with
+            Parsing.Parse_error ->
+            failwith (spf "problem parsing %s" pat)
+        in
+        pats |> List.iter check_pats;
         assert(pats = sols)
     )
+    )
   )
-(*
-(*s: function [[Unit_matcher.unittest]] *)
-let unittest ~any_gen_of_string =
-  "sgrep(generic) features" >:: (fun () ->
-
-    (* spec: pattern string, code string, should_match boolean *)
-    let cases = [
-          "ex1.py", "4:9-4:29"
-    ]
-    in
-    let check_pattern pat (file, range) =
-      (* TODO: Semgrep_generic.match_any_file_range is a hypothetical function that
-      checks whether pattern matches the file at the specified range *)
-      let matches_with_env = Semgrep_generic.match_any_file_range pattern (file, range) in
-        assert_bool (spf "pattern:|%s| should match |%s" spattern scode)
-          (matches_with_env <> [])
-    in
-    cases |> List.iter (fun (file, range) ->
-      let patterns = Synthesizer.synthesize_pattern range file in
-      List.map (fun (label, pat) -> check_pattern pat (file, range)) patterns
-  ) *)
-(*e: function [[Unit_matcher.unittest]] *)
-(*e: semgrep/matching/Unit_matcher.ml *)
