@@ -2,29 +2,37 @@
   "errors": [
     {
       "code": 4,
-      "help": "Only ['equivalences', 'fix', 'fix-regex', 'id', 'languages', 'message', 'metadata', 'paths', 'pattern', 'pattern-either', 'pattern-regex', 'patterns', 'severity'] are valid keys",
+      "help": "Unexpected keys {'severit'} found. Is one of these a typo of {'severity'}?",
       "level": "error",
-      "long_msg": "rules/syntax/bad2.yaml has an invalid top-level rule key: ['pattern-inside']",
-      "short_msg": "extra top-level key",
+      "long_msg": "rules/syntax/bad2.yaml is missing required keys {'severity'}",
+      "short_msg": "missing keys",
       "spans": [
         {
-          "context_end": {
-            "col": 0,
-            "line": 5
-          },
-          "context_start": {
-            "col": 0,
-            "line": 1
-          },
+          "context_end": null,
+          "context_start": null,
           "end": {
-            "col": 19,
-            "line": 3
+            "col": 0,
+            "line": 7
           },
           "file": "rules/syntax/bad2.yaml",
-          "source_hash": "6ebef770ea281e5e811acfd1d5b219adb3a0ae87f6613ae0a8cfc593ad126dd2",
+          "source_hash": "8861f46f4219927c24d0ba57521a2b46d60f7367eca308fa7efb623c5a8b17bc",
           "start": {
             "col": 5,
-            "line": 3
+            "line": 2
+          }
+        },
+        {
+          "context_end": null,
+          "context_start": null,
+          "end": {
+            "col": 12,
+            "line": 7
+          },
+          "file": "rules/syntax/bad2.yaml",
+          "source_hash": "8861f46f4219927c24d0ba57521a2b46d60f7367eca308fa7efb623c5a8b17bc",
+          "start": {
+            "col": 5,
+            "line": 7
           }
         }
       ],
