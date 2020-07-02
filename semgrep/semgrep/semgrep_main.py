@@ -49,22 +49,17 @@ def validate_single_rule(
     rule_keys = set({k.value for k in rule.keys()})
     if not rule_keys.issuperset(YAML_MUST_HAVE_KEYS):
         missing_keys = YAML_MUST_HAVE_KEYS - rule_keys
+        extra_keys: Set[str] = rule_keys - YAML_ALL_VALID_RULE_KEYS
+        extra_key_spans = sorted([rule.key_tree(k) for k in extra_keys])
+        help_msg = None
+        if extra_keys:
+            help_msg = f"Unexpected keys {extra_keys} found. Is one of these a typo of {missing_keys}?"
         raise InvalidRuleSchemaError(
             short_msg="missing keys",
             long_msg=f"{config_id} is missing required keys {missing_keys}",
-            level="error",
-            spans=[rule_yaml.span.truncate(lines=5)],
-        )
-
-    if not rule_keys.issubset(YAML_ALL_VALID_RULE_KEYS):
-        extra_keys: Set[str] = rule_keys - YAML_ALL_VALID_RULE_KEYS
-        extra_key_spans = sorted([rule.key_tree(k) for k in extra_keys])
-        raise InvalidRuleSchemaError(
-            short_msg="extra top-level key",
-            long_msg=f"{config_id} has an invalid top-level rule key: {sorted([k for k in extra_keys])}",
-            help=f"Only {sorted(YAML_ALL_VALID_RULE_KEYS)} are valid keys",
-            spans=[k.span.with_context(before=2, after=2) for k in extra_key_spans],
-            level="error",
+            spans=[rule_yaml.span.truncate(lines=5)]
+            + [e.span for e in extra_key_spans],
+            help=help_msg,
         )
 
     # Raises InvalidRuleSchemaError if fails to parse
