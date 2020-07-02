@@ -110,6 +110,22 @@ let java_tests = [
    "typed metavars", "this.foo(this.foo((int $X), (String $Y)), (bool $Z))";
    "deep metavars", "this.foo(this.foo($X, $Y), $Z)"
   ];
+
+   "typed_funcs.java", "6:12-6:14",
+   ["exact match", "a";
+     "metavar", "$X";
+     "typed metavar", "(int $X)"
+   ];
+
+  "typed_funcs.java", "10:8-10:30",
+  ["exact match", "System.out.print(\"A\")";
+   "dots", "System.out.print(...)";
+   "metavars", "System.out.print($X, ...)";
+   "exact metavars", "System.out.print($X)";
+  ];
+
+  "typed_funcs.java", "11:20-11:47",
+  ["exact match", "new Scanner(new File(), 1)"]
 ]
 
 (* Cases splits up the test cases by language.
