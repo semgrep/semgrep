@@ -92,7 +92,7 @@ def _evaluate_single_expression(
         )
         return output_ranges
     elif expression.operator == OPERATORS.WHERE_PYTHON:
-        if not flags or flags[RCE_RULE_FLAG] != True:
+        if not flags or not flags[RCE_RULE_FLAG]:
             raise SemgrepError(
                 f"at least one rule needs to execute arbitrary code; this is dangerous! if you want to continue, enable the flag: {RCE_RULE_FLAG}",
                 code=NEED_ARBITRARY_CODE_EXEC_EXIT_CODE,
@@ -137,17 +137,13 @@ def _evaluate_single_expression(
         raise UnknownOperatorError(f"unknown operator {expression.operator}")
 
 
-# Given a `where-python` expression as a string and currently matched metavars,
-# return whether the expression matches as a boolean
 def _where_python_statement_matches(
     where_expression: str, metavars: Dict[str, Any]
 ) -> bool:
     # TODO: filter out obvious dangerous things here
-    output_var = None
+    result = False
 
-    # HACK: we're executing arbitrary Python in the where-python,
-    # be careful my friend
-    vars = {k: v["abstract_content"] for k, v in metavars.items()}
+    local_vars = {k: v["abstract_content"] for k, v in metavars.items()}
     RETURN_VAR = "semgrep_pattern_return"
     try:
         cleaned_where_expression = where_expression.strip()
@@ -155,21 +151,21 @@ def _where_python_statement_matches(
         new_last_line = f"{RETURN_VAR} = {lines[-1]}"
         lines[-1] = new_last_line
         to_eval = "\n".join(lines)
-        scope = {"vars": vars}
+        scope = {"vars": local_vars}
         # fmt: off
         exec(to_eval, scope)  # nosem: contrib.dlint.dlint-equivalent.insecure-exec-use, python.lang.security.audit.exec-detected.exec-detected
         # fmt: on
-        output_var = scope[RETURN_VAR]
+        result = scope[RETURN_VAR]  # type: ignore
     except Exception as ex:
         print_stderr(
             f"error evaluating a where-python expression: `{where_expression}`: {ex}"
         )
 
-    if type(output_var) != type(True):
+    if not isinstance(result, bool):
         raise SemgrepError(
-            f"python where expression needs boolean output but got: {output_var} for {where_expression}"
+            f"python where expression needs boolean output but got: {result} for {where_expression}"
         )
-    return output_var == True
+    return result
 
 
 def group_by_pattern_id(
@@ -187,10 +183,6 @@ def safe_relative_to(a: Path, b: Path) -> Path:
     except ValueError:
         # paths had no common prefix; not possible to relativize
         return a
-
-
-def should_exclude_this_path(path: Path) -> bool:
-    return any("test" in p or "example" in p for p in path.parts)
 
 
 def evaluate(
