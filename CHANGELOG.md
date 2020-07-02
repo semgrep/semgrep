@@ -2,6 +2,16 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- Default Docker code mount point from `/home/repo` to `/src` - this is also
+  configurable via the `SEMGREP_SRC_DIRECTORY` environment variable
+
+### Removed
+- `--precommit` flag - this is no longer necessary after defaulting to
+  `pre-commit`'s code mount point `/src`
+
 ## [0.13.0](https://github.com/returntocorp/semgrep/releases/tag/v0.13.0) - 2020-06-30
 
 ### Added

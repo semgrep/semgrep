@@ -22,8 +22,8 @@ test_test_suite() {
 test_sample_repos() {
     rm -rf /tmp/sample && git clone --depth=1 https://github.com/apache/airflow /tmp/sample/
     cd /tmp/sample
-    SGREP_A="docker run --rm -v ${PWD}:/home/repo returntocorp/semgrep:${A_VERSION}"
-    SGREP_B="docker run --rm -v ${PWD}:/home/repo returntocorp/semgrep:${B_VERSION}"
+    SGREP_A="docker run --rm -v ${PWD}:/src returntocorp/semgrep:${A_VERSION}"
+    SGREP_B="docker run --rm -v ${PWD}:/src returntocorp/semgrep:${B_VERSION}"
 
     CMDA="${SGREP_A} --config=r2c --dangerously-allow-arbitrary-code-execution-from-rules --strict"
     CMDB="${SGREP_B} --config=r2c --dangerously-allow-arbitrary-code-execution-from-rules --strict"
