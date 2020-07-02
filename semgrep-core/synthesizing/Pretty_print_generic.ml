@@ -55,12 +55,12 @@ let print_type = function
 let print_bool env = function
   | true ->
      (match env.lang with
-         | Lang.Python -> "True"
-         | _ -> "true")
+         | Lang.Python | Lang.Python2 | Lang.Python3 -> "True"
+         | Lang.Java | Lang.Go | Lang.C | Lang.JSON | Lang.Javascript | Lang.OCaml -> "true")
   | false ->
      (match env.lang with
-         | Lang.Python -> "False"
-         | _ -> "false")
+         | Lang.Python | Lang.Python2 | Lang.Python3  -> "False"
+         | Lang.Java | Lang.Go | Lang.C | Lang.JSON | Lang.Javascript | Lang.OCaml -> "false")
 
 let arithop env (op, tok) =
   match op with
