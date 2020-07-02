@@ -984,7 +984,7 @@ and primary (x : CST.primary) : AST.expr =
         | None -> [])
       in
       let _v6 = token2 v6 in
-      S (For2 (v1, v2 |> list_to_maybe_tuple, t, e, v5))
+      S (For (v1, v2 |> list_to_maybe_tuple, t, e, v5))
   | `Prim_case (v1, v2, v3, v4, v5, v6, v7) ->
       let v1 = token2 v1 in
       let v2 =
