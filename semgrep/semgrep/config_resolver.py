@@ -1,3 +1,4 @@
+import logging
 import os
 import time
 from pathlib import Path
@@ -20,9 +21,9 @@ from semgrep.error import UNPARSEABLE_YAML_EXIT_CODE
 from semgrep.rule_lang import parse_yaml_preserve_spans
 from semgrep.rule_lang import Span
 from semgrep.rule_lang import YamlTree
-from semgrep.util import debug_print
 from semgrep.util import is_url
-from semgrep.util import print_stderr
+
+logger = logging.getLogger(__name__)
 
 IN_DOCKER = "SEMGREP_IN_DOCKER" in os.environ
 IN_GH_ACTION = "GITHUB_WORKSPACE" in os.environ
@@ -34,9 +35,7 @@ TEMPLATE_YAML_URL = (
     "https://raw.githubusercontent.com/returntocorp/semgrep-rules/develop/template.yaml"
 )
 
-RULES_REGISTRY = {
-    "r2c": "https://semgrep.live/c/p/r2c",
-}
+RULES_REGISTRY = {"r2c": "https://semgrep.live/c/p/r2c"}
 DEFAULT_REGISTRY_KEY = "r2c"
 
 
@@ -198,11 +197,11 @@ def download_config(config_url: str) -> Dict[str, YamlTree]:
     import requests  # here for faster startup times
 
     DOWNLOADING_MESSAGE = f"downloading config..."
-    debug_print(f"trying to download from {config_url}")
-    print_stderr(
+    logger.debug(f"trying to download from {config_url}")
+    logger.info(
         f"using config from {nice_semgrep_url(config_url)}. Visit https://semgrep.live/registry to see all public rules."
     )
-    print_stderr(DOWNLOADING_MESSAGE, end="\r")
+    logger.info(DOWNLOADING_MESSAGE)
     headers = {"User-Agent": SEMGREP_USER_AGENT}
 
     try:
@@ -248,7 +247,7 @@ def resolve_config(config_str: Optional[str]) -> Dict[str, YamlTree]:
     else:
         config = load_config_from_local_path(config_str)
     if config:
-        debug_print(f"loaded {len(config)} configs in {time.time() - start_t}")
+        logger.info(f"loaded {len(config)} configs in {time.time() - start_t}")
     return config
 
 
@@ -265,8 +264,8 @@ def generate_config() -> None:
         r.raise_for_status()
         template_str = r.text
     except Exception as e:
-        debug_print(str(e))
-        print_stderr(
+        logger.debug(str(e))
+        logger.warning(
             f"There was a problem downloading the latest template config. Using fallback template"
         )
         template_str = """rules:
@@ -278,7 +277,7 @@ def generate_config() -> None:
     try:
         with open(DEFAULT_CONFIG_FILE, "w") as template:
             template.write(template_str)
-            print_stderr(
+            logger.info(
                 f"Template config successfully written to {DEFAULT_CONFIG_FILE}"
             )
     except Exception as e:

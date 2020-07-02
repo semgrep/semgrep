@@ -11,6 +11,7 @@ Validate that the output is annotated in the source file with by looking for a c
  """
 import argparse
 import collections
+import logging
 import sys
 from pathlib import Path
 from typing import Any
@@ -21,7 +22,8 @@ from typing import Tuple
 
 from semgrep.constants import YML_EXTENSIONS
 from semgrep.semgrep_main import invoke_semgrep
-from semgrep.util import debug_print
+
+logger = logging.getLogger(__name__)
 
 
 def normalize_rule_id(line: str) -> str:
@@ -145,7 +147,7 @@ def score_output_json(
             reported = all_reported - ignored
 
             new_cm = compute_confusion_matrix(reported, expected)
-            debug_print(
+            logging.debug(
                 f"reported lines for check {check_id}: {sorted(reported)}, expected lines: {sorted(expected)} (ignored: {sorted(ignored)}, confusion matrix: {new_cm}"
             )
             expected_reported_by_check_id[check_id][file_path] = (expected, reported)
@@ -221,7 +223,7 @@ def generate_file_pairs(
         sys.exit(1)
 
     print(f"{len(no_tests)} yaml files missing tests")
-    debug_print(f"missing tests: {no_tests}")
+    logger.debug(f"missing tests: {no_tests}")
     print(f"{len(tested)} yaml files tested")
     print("check id scoring:")
     print("=" * 80)
