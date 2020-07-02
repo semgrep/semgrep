@@ -19,14 +19,15 @@ import semgrep.util
 from semgrep import config_resolver
 from semgrep.constants import __VERSION__
 from semgrep.constants import OutputFormat
+from semgrep.core_exception import CoreException
+from semgrep.error import FINDINGS_EXIT_CODE
 from semgrep.error import SemgrepError
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.util import debug_print
 from semgrep.util import is_url
 from semgrep.util import partition
-from semgrep.util import print_error
-from semgrep.util import print_msg
+from semgrep.util import print_stderr
 
 
 def color_line(
@@ -193,7 +194,7 @@ def managed_output(output_settings: OutputSettings) -> Generator:  # type: ignor
 
 class OutputHandler:
     """
-    Handle all output in a central location. Rather than calling `print_error` directly,
+    Handle all output in a central location. Rather than calling `print_stderr` directly,
     you should call `handle_*` as appropriate.
 
     In normal usage, it should be constructed via the contextmanager, `managed_output`. It ensures that everything
@@ -218,43 +219,43 @@ class OutputHandler:
         self.rule_matches: List[RuleMatch] = []
         self.debug_steps_by_rule: Dict[Rule, List[Dict[str, Any]]] = {}
         self.rules: FrozenSet[Rule] = frozenset()
-        self.semgrep_core_errors: List[Dict[str, Any]] = []
+        self.semgrep_core_errors: List[CoreException] = []
         self.semgrep_structured_errors: List[SemgrepError] = []
         self.has_output = False
 
         self.final_error: Optional[Exception] = None
 
-    def handle_semgrep_core_errors(self, semgrep_errors: List[Dict[str, Any]]) -> None:
+    def handle_semgrep_core_errors(self, semgrep_errors: List[CoreException]) -> None:
         """
         Report errors coming directly from semgrep-core (raw JSON objects)
         """
         self.semgrep_core_errors += semgrep_errors
         if self.settings.output_format == OutputFormat.TEXT:
             parse_errors, other_errors = partition(
-                lambda e: e["check_id"] == "ParseError", semgrep_errors
+                lambda e: e._check_id in {"ParseError", "FatalError"}, semgrep_errors
             )
 
             for error in other_errors:
-                print_error(pretty_error(error))
+                print_stderr(str(error))
 
             if len(parse_errors) > 0:
                 files_with_parse_errors: Set[str] = set(
-                    e.get("path") for e in parse_errors if "path" in e
+                    str(e._path) for e in parse_errors
                 )
 
-                print_error(
+                print_stderr(
                     f"{len(files_with_parse_errors)} file(s) failed to parse: {', '.join(files_with_parse_errors)}"
                 )
 
                 if semgrep.util.DEBUG:
                     debug_print("ParseErrors:")
                     for error in parse_errors:
-                        debug_print(pretty_error(error))
+                        debug_print(str(error))
                     debug_print(
                         "= note: If the code is correct, this could be a semgrep bug -- please help us fix this by filing an an issue at https://semgrep.dev"
                     )
                 else:
-                    print_error("Run with --verbose to see parse errors")
+                    print_stderr("Run with --verbose to see parse errors")
 
     def handle_semgrep_error(self, error: SemgrepError) -> None:
         """
@@ -262,7 +263,7 @@ class OutputHandler:
         """
         self.has_output = True
         self.semgrep_structured_errors.append(error)
-        print_error(str(error))
+        print_stderr(str(error))
 
     def handle_semgrep_core_output(
         self,
@@ -306,6 +307,10 @@ class OutputHandler:
 
         if self.final_error:
             raise self.final_error
+        elif self.rule_matches and self.settings.error_on_findings:
+            # This exception won't be visiable to the user, we're just
+            # using this to return a specific error code
+            raise SemgrepError("", code=FINDINGS_EXIT_CODE)
 
     @classmethod
     def save_output(cls, destination: str, output: str) -> None:
@@ -326,7 +331,7 @@ class OutputHandler:
     def post_output(cls, output_url: str, output: str) -> None:
         import requests  # here for faster startup times
 
-        print_msg(f"posting to {output_url}...")
+        print_stderr(f"posting to {output_url}...")
         try:
             r = requests.post(output_url, data=output, timeout=10)
             debug_print(f"posted to {output_url} and got status_code:{r.status_code}")
@@ -354,17 +359,3 @@ class OutputHandler:
             raise RuntimeError(
                 f"Unhandled output format: {type(output_format).__name__}"
             )
-
-
-def pretty_error(error: Dict[str, Any]) -> str:
-    try:
-        if {"path", "start", "end", "extra"}.difference(error.keys()) == set():
-            header = f"--> {error['path']}:{error['start']['line']}"
-            line_1 = error["extra"]["line"]
-            start_col = error["start"]["col"]
-            line_2 = " " * (start_col - 1) + "^"
-            return "\n".join([header, line_1, line_2])
-        else:
-            return f"semgrep-core error: {json.dumps(error, indent=2)}"
-    except KeyError:
-        return f"semgrep-core error: {json.dumps(error, indent=2)}"

@@ -1,10 +1,10 @@
 from typing import Any
 from typing import Dict
-from typing import List
 from typing import Optional
 
 from semgrep.rule_lang import Span
 from semgrep.semgrep_types import BooleanRuleExpression
+from semgrep.semgrep_types import Language
 
 
 class Pattern:
@@ -17,17 +17,14 @@ class Pattern:
         rule_index: int,
         expression: BooleanRuleExpression,
         severity: str,
-        languages: List[str],
+        language: Language,
         span: Optional[Span],
     ) -> None:
         self._id = f"{rule_index}.{expression.pattern_id}"
-        # if we don't copy an array (like `languages`), the yaml file will refer to it by reference (with an anchor)
-        # which is nice and all but the semgrep YAML parser doesn't support that
-        self._languages = languages.copy()
+        self._language = language
         self._severity = severity
         self._expression = expression
         self._pattern = expression.operand
-        self._message = "<internalonly>"
         self._span = span
 
     @property
@@ -35,20 +32,21 @@ class Pattern:
         return self._span
 
     @property
-    def languages(self) -> List[str]:
-        return self._languages
+    def language(self) -> Language:
+        return self._language
 
     @property
     def expression(self) -> BooleanRuleExpression:
         return self._expression
 
     def to_json(self) -> Dict[str, Any]:
+        # Note languages is a list as this is what semgrep-core expects
         return {
             "id": self._id,
             "pattern": self._pattern,
             "severity": self._severity,
-            "languages": self._languages,
-            "message": self._message,
+            "languages": [self._language],
+            "message": "<internalonly>",
         }
 
     def __repr__(self) -> str:

@@ -12,18 +12,6 @@ jobs:
     - uses: actions/setup-python@v1
     - uses: pre-commit/action@v2.0.0
 
-  bento-action:
-    name: Bento Check
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v1
-    - id: bento
-      name: Bento
-      uses: returntocorp/bento-action@v1
-      with:
-        acceptTermsWithEmail: test@returntocorp.com
-        slackWebhookURL: ${{ secrets.BENTO_SLACK_WEBHOOK_URL }}
-
   semgrep-run-r2c-config:
     name: semgrep with r2c registry
     runs-on: ubuntu-latest
@@ -33,20 +21,7 @@ jobs:
         id: semgrep
         uses: returntocorp/semgrep-action@v1
         with:
-          config: r/r2c
-          slackWebhookURL: ${{ secrets.BENTO_SLACK_WEBHOOK_URL }}
-          publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}
-          publishDeployment: ${{ secrets.SEMGREP_APP_DEPLOYMENT_ID }}
-
-  semgrep-run-local-rules:
-    name: semgrep with local rules
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v1
-      - name: Semgrep
-        id: semgrep
-        uses: returntocorp/semgrep-action@v1
-        with:
+          config: p/r2c
           slackWebhookURL: ${{ secrets.BENTO_SLACK_WEBHOOK_URL }}
           publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}
           publishDeployment: ${{ secrets.SEMGREP_APP_DEPLOYMENT_ID }}

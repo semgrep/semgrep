@@ -59,10 +59,16 @@ On macOS, binaries are available via Homebrew:
 $ brew install semgrep
 ```
 
-On Ubuntu, an install script is available with each [release](https://github.com/returntocorp/semgrep/releases/download/v0.12.0/semgrep-v0.12.0-ubuntu-generic.sh)
+On Ubuntu/WSL/linux, we recommend installing via `pip`
 
 ```bash
-$ ./semgrep-v0.12.0-ubuntu-generic.sh
+$ pip3 install semgrep
+```
+
+An install script is also available with each [release](https://github.com/returntocorp/semgrep/releases/download/v0.13.0/semgrep-v0.13.0-ubuntu-generic.sh) if you want a native binary.
+
+```bash
+$ ./semgrep-v0.13.0-ubuntu-generic.sh
 ```
 
 To try Semgrep without installation, you can also run it via Docker:
@@ -305,6 +311,12 @@ You can play with this transaction example here: https://semgrep.live/4b4g.
   examples on the flexibility and power of Semgrep patterns.
 * See the [YAML configuration file docs](docs/configuration-files.md) for
   details on all of the keys that can be used and how they work.
+* See [Semgrep rule writing methodology](docs/writing_rules/README.md) for
+  details on the thought process behind writing and rolling out a new Semgrep
+  rule sucessfully, and see [these docs](docs/writing_rules/examples.md) for
+  walkthroughs of writing rules from scratch.
+* There's also an interactive, example-based Semgrep rule writing tutorial here:
+  https://semgrep.live/learn.
 
 ### Run Semgrep Continously in CI
 

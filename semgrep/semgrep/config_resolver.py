@@ -22,11 +22,12 @@ from semgrep.rule_lang import Span
 from semgrep.rule_lang import YamlTree
 from semgrep.util import debug_print
 from semgrep.util import is_url
-from semgrep.util import print_msg
+from semgrep.util import print_stderr
 
 IN_DOCKER = "SEMGREP_IN_DOCKER" in os.environ
 IN_GH_ACTION = "GITHUB_WORKSPACE" in os.environ
 REPO_HOME_DOCKER = "/home/repo/"
+REPO_HOME_DOCKER_PRECOMMIT = "/src/"
 
 TEMPLATE_YAML_URL = (
     "https://raw.githubusercontent.com/returntocorp/semgrep-rules/develop/template.yaml"
@@ -72,14 +73,16 @@ def resolve_targets(targets: List[str]) -> List[Path]:
 
 
 def adjust_for_docker(in_precommit: bool = False) -> None:
+    repo_home = REPO_HOME_DOCKER_PRECOMMIT if in_precommit else REPO_HOME_DOCKER
+
     # change into this folder so that all paths are relative to it
-    if IN_DOCKER and not IN_GH_ACTION and not in_precommit:
-        if not Path(REPO_HOME_DOCKER).exists():
+    if IN_DOCKER and not IN_GH_ACTION:
+        if not Path(repo_home).exists():
             raise SemgrepError(
-                f'you are running semgrep in docker, but you forgot to mount the current directory in Docker: missing: -v "${{PWD}}:{REPO_HOME_DOCKER}"'
+                f'you are running semgrep in docker, but you forgot to mount the current directory in Docker: missing: -v "${{PWD}}:{repo_home}"'
             )
-    if Path(REPO_HOME_DOCKER).exists():
-        os.chdir(REPO_HOME_DOCKER)
+    if Path(repo_home).exists():
+        os.chdir(repo_home)
 
 
 def get_base_path() -> Path:
@@ -112,7 +115,7 @@ def parse_config_string(
         return {config_id: data}
     except YAMLError as se:
         raise SemgrepError(
-            f"Invalid yaml file {config_id}:\n{indent(str(se))}",
+            f"Invalid YAML file {config_id}:\n{indent(str(se))}",
             code=UNPARSEABLE_YAML_EXIT_CODE,
         )
 
@@ -193,10 +196,10 @@ def download_config(config_url: str) -> Dict[str, YamlTree]:
 
     DOWNLOADING_MESSAGE = f"downloading config..."
     debug_print(f"trying to download from {config_url}")
-    print_msg(
+    print_stderr(
         f"using config from {nice_semgrep_url(config_url)}. Visit https://semgrep.live/registry to see all public rules."
     )
-    print_msg(DOWNLOADING_MESSAGE, end="\r")
+    print_stderr(DOWNLOADING_MESSAGE, end="\r")
     headers = {"User-Agent": SEMGREP_USER_AGENT}
 
     try:
@@ -260,7 +263,7 @@ def generate_config() -> None:
         template_str = r.text
     except Exception as e:
         debug_print(str(e))
-        print_msg(
+        print_stderr(
             f"There was a problem downloading the latest template config. Using fallback template"
         )
         template_str = """rules:
@@ -272,6 +275,8 @@ def generate_config() -> None:
     try:
         with open(DEFAULT_CONFIG_FILE, "w") as template:
             template.write(template_str)
-            print_msg(f"Template config successfully written to {DEFAULT_CONFIG_FILE}")
+            print_stderr(
+                f"Template config successfully written to {DEFAULT_CONFIG_FILE}"
+            )
     except Exception as e:
         raise SemgrepError(str(e))

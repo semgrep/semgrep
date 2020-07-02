@@ -13,6 +13,7 @@
  *)
 open Common
 open AST_generic
+module F = Format
 
 (*****************************************************************************)
 (* Prelude *)
@@ -44,25 +45,85 @@ let todo any =
   pr (show_any any);
   failwith "TODO"
 
+let ident (s, _) = s
+
+let print_type = function
+  | TyBuiltin (s, _) -> s
+  | TyName (id, _) -> ident id
+  | x -> todo (T x)
+
+let arithop env (op, tok) =
+  match op with
+      | Plus -> "+"
+      | Minus -> "-"
+      | Mult -> "*"
+      | Div -> "/"
+      | Mod -> "%"
+      | Pow -> "^"
+      | Eq -> (match env.lang with
+                | Lang.OCaml -> "="
+                | _ -> "=="
+              )
+      | _ -> todo (E (IdSpecial (ArithOp op, tok)))
+      (*
+      | Pow | FloorDiv | MatMult (* Python *)
+      | LSL | LSR | ASR (* L = logic, A = Arithmetic, SL = shift left *)
+      | BitOr | BitXor | BitAnd | BitNot (* unary *) | BitClear (* Go *)
+      (* todo? rewrite in CondExpr? have special behavior *)
+      | And | Or (* also shortcut operator *) | Xor (* PHP*) | Not (* unary *)
+      | NotEq     (* less: could be desugared to Not Eq *)
+      | PhysEq (* '==' in OCaml, '===' in JS/... *)
+      | NotPhysEq (* less: could be desugared to Not PhysEq *)
+      | Lt | LtE | Gt | GtE  (* less: could be desugared to Or (Eq Lt) *)
+      | Cmp (* <=>, PHP *)
+      (* todo: not really an arithmetic operator, maybe rename the type *)
+      | Concat (* '.' PHP *) *)
+
 (*****************************************************************************)
 (* Pretty printer *)
 (*****************************************************************************)
-let rec expr env = function
-  | Id ((s,_), _idinfo) -> s
-  | Call (e, (_, es, _)) ->
-      expr env e ^ "(" ^ arguments env es ^ ")"
+let rec expr env =
+function
+  | Id ((s,_), idinfo) -> id env (s, idinfo)
+  | IdSpecial (sp, tok) -> special env (sp, tok)
+  | Call (e1, e2) -> call env (e1, e2)
   | L x -> literal env x
+  | Tuple es -> F.sprintf "(%s)" (tuple env es)
+  | ArrayAccess (e1, e2) -> F.sprintf "%s[%s]" (expr env e1) (expr env e2)
+  | SliceAccess (e, o1, o2, o3) -> slice_access env e (o1, o2) o3
+  | DotAccess (e, tok, fi) -> dot_access env (e, tok, fi)
   | Ellipsis _ -> "..."
+  | Conditional (e1, e2, e3) -> cond env (e1, e2, e3)
+  | TypedMetavar (id, _, typ) -> tyvar env (id, typ)
   | x -> todo (E x)
 
+and id env (s, {id_resolved; _}) =
+   match !id_resolved with
+       | Some (ImportedEntity ents, _) -> dotted_access env ents
+       | _ -> s
+
+and special env = function
+  | (ArithOp op, tok) -> arithop env (op, tok)
+  | (sp, tok) -> todo (E (IdSpecial (sp, tok)))
+
+and call env (e, (_, es, _)) =
+  let s1 = expr env e in
+  match (e, es) with
+       | (IdSpecial(_), x::y::[]) -> F.sprintf "%s %s %s" (argument env x) s1 (argument env y)
+       | _ -> F.sprintf "%s(%s)" s1 (arguments env es)
 
 and literal env = function
+  | Bool ((b,_)) -> F.sprintf "%B" b
+  | Int ((s,_)) -> s
+  | Float ((s,_)) -> s
+  | Char ((s,_)) -> F.sprintf "'%s'" s
   | String ((s,_)) ->
       (match env.lang with
       | Lang.Python | Lang.Python2 | Lang.Python3 ->
             "'" ^ s ^ "'"
       | _ -> raise Todo
       )
+  | Regexp ((s,_)) -> s
   | x -> todo (E (L x))
 
 and arguments env xs =
@@ -75,6 +136,51 @@ and arguments env xs =
 and argument env = function
   | Arg e -> expr env e
   | x -> todo (Ar x)
+
+and tuple env = function
+  | [] -> ""
+  | [x] -> expr env x
+  | x::y::xs -> expr env x ^ ", " ^ tuple env (y::xs)
+
+and dotted_access env = function
+  | [] -> ""
+  | [x] -> ident x
+  | x::y::xs -> ident x ^ "." ^ dotted_access env (y::xs)
+
+and slice_access env e (o1, o2) = function
+  | None -> F.sprintf "%s[%s:%s]" (expr env e) (option env o1) (option env o2)
+  | Some e1 -> F.sprintf "%s[%s:%s:%s]" (expr env e) (option env o1) (option env o2) (expr env e1)
+
+and option env = function
+  | None -> ""
+  | Some e -> expr env e
+
+and dot_access env (e, _tok, fi) =
+  F.sprintf "%s.%s" (expr env e) (field_ident env fi)
+
+and field_ident env fi =
+  match fi with
+       | FId id -> ident id
+       | FName (id, _) -> ident id
+       | FDynamic e -> expr env e
+
+and tyvar env (id, typ) =
+  match env.lang with
+    | Lang.Java -> F.sprintf "(%s %s)" (print_type typ) (ident id)
+    | Lang.Go -> F.sprintf "(%s : %s)" (ident id) (print_type typ)
+    | _ -> failwith "Not implemented for this language"
+
+and cond env (e1, e2, e3) =
+  let s1 = expr env e1 in
+  let s2 = expr env e2 in
+  let s3 = expr env e3 in
+  match env.lang with
+     | Lang.Python -> F.sprintf "%s if %s else %s" s2 s1 s3
+     | Lang.OCaml -> F.sprintf "if %s then %s else %s" s1 s2 s3
+     | Lang.Java -> F.sprintf "%s ? %s : %s" s1 s2 s3
+     | _ -> todo (E(Conditional(e1, e2, e3)))
+
+
 
 (*****************************************************************************)
 (* Entry point *)

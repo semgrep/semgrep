@@ -22,7 +22,7 @@ from semgrep.semgrep_types import PatternId
 from semgrep.semgrep_types import Range
 from semgrep.util import debug_print
 from semgrep.util import flatten
-from semgrep.util import print_error
+from semgrep.util import print_stderr
 
 
 def _evaluate_single_expression(
@@ -156,10 +156,12 @@ def _where_python_statement_matches(
         lines[-1] = new_last_line
         to_eval = "\n".join(lines)
         scope = {"vars": vars}
-        exec(to_eval, scope)  # nosem: contrib.dlint.dlint-equivalent.insecure-exec-use
+        # fmt: off
+        exec(to_eval, scope)  # nosem: contrib.dlint.dlint-equivalent.insecure-exec-use, python.lang.security.audit.exec-detected.exec-detected
+        # fmt: on
         output_var = scope[RETURN_VAR]
     except Exception as ex:
-        print_error(
+        print_stderr(
             f"error evaluating a where-python expression: `{where_expression}`: {ex}"
         )
 

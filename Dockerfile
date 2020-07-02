@@ -1,53 +1,40 @@
-## semgrep build
-
-FROM python:3.7.7-alpine3.11 as build-semgrep
-RUN apk add --no-cache git
-COPY .git /home/pythonbuild/.git
-COPY semgrep /home/pythonbuild/semgrep/
-WORKDIR /home/pythonbuild/semgrep
-# downgrade to 20.1 since 20.1.1 reverts building in place
-# https://github.com/pypa/pip/issues/7555
-RUN pip install pip==20.1
-RUN HOMEBREW_SYSTEM='NOCORE' pip install --user .
-RUN /root/.local/bin/semgrep --version
-
-## semgrep-core build
+# semgrep-core build
 
 FROM ocaml/opam2:alpine@sha256:4c2ce9a181b4b12442a68fc221d0b753959ec80e24eae3bf788eeca4dcb9a293 as build-semgrep-core
+
 USER root
 RUN apk add --no-cache perl m4
-
 USER opam
 
 WORKDIR /home/opam/opam-repository
 RUN git pull && opam update && opam switch create 4.10.0+musl+static+flambda
 
-COPY --chown=opam . /home/opam/semgrep/
-WORKDIR /home/opam/semgrep
+COPY --chown=opam .gitmodules /semgrep/.gitmodules
+COPY --chown=opam .git/ /semgrep/.git/
+COPY --chown=opam pfff/ /semgrep/pfff/
+COPY --chown=opam semgrep-core/ /semgrep/semgrep-core/
 
+WORKDIR /semgrep
 RUN git submodule update --init --recursive
-RUN eval "$(opam env)" && opam install -y ./pfff
+RUN eval "$(opam env)" && opam install -y pfff/
 RUN eval "$(opam env)" && ./install-scripts/install-ocaml-tree-sitter
-WORKDIR /home/opam/semgrep/semgrep-core
-RUN eval "$(opam env)" && opam install --deps-only -y . && make all
-RUN _build/default/bin/Main.exe -version
+RUN eval "$(opam env)" && opam install --deps-only -y semgrep-core/ && make -C semgrep-core/ all
 
-
-## final output, combining both
+# final output
 
 FROM python:3.7.7-alpine3.11
 LABEL maintainer="support@r2c.dev"
 
-ENV PYTHONUNBUFFERED=1
+COPY --from=build-semgrep-core /semgrep/semgrep-core/_build/default/bin/Main.exe /bin/semgrep-core
+RUN semgrep-core -version
 
-COPY --from=build-semgrep /root/.local /root/.local
-# Make sure scripts in .local are usable:
-ENV PATH=/root/.local/bin:$PATH
-
-RUN semgrep --help
-COPY --from=build-semgrep-core /home/opam/semgrep/semgrep-core/_build/default/bin/Main.exe /bin/semgrep-core
-RUN semgrep-core --help
+COPY semgrep /semgrep
+RUN HOMEBREW_SYSTEM='NOCORE' python -m pip install /semgrep
+RUN semgrep --version
 
 ENV SEMGREP_IN_DOCKER=1
+ENV SEMGREP_VERSION_CACHE_PATH=/tmp/.cache/semgrep_version
 ENV PYTHONIOENCODING=utf8
-ENTRYPOINT [ "/root/.local/bin/semgrep" ]
+ENV PYTHONUNBUFFERED=1
+ENTRYPOINT ["semgrep"]
+CMD ["--help"]

@@ -14,6 +14,17 @@ install:
 qa-test:
 	pipenv run pytest -v --tb=short tests/ --qa
 
+
+
+.PHONY: ci-test
+ci-test:
+ifeq ($(GITHUB_EVENT_NAME),push)
+	pipenv run pytest -n auto -v --tb=short tests/ --qa
+else
+	pipenv run pytest -n auto -v --tb=short tests/
+endif
+
+
 .PHONY: benchmark
 benchmark:
 	pipenv run pytest tests/ --benchmark-only $(ARGS)

@@ -358,6 +358,7 @@ let parse_generic lang file =
   then Parse_cpp.init_defs !Flag_parsing_cpp.macros_h;
   (*e: [[Main_semgrep_core.parse_generic()]] use standard macros if parsing C *)
 
+  let v =
   cache_computation file (fun file ->
     (* we may use different parsers for the same file (e.g., in Python3 or
      * Python2 mode), so put the lang as part of the cache "dependency".
@@ -369,11 +370,29 @@ let parse_generic lang file =
      in
      cache_file_of_file full_filename)
  (fun () -> timeout_function lang (fun () ->
+ try
   (* finally calling the actual function *)
-  Parse_code.parse_with_lang lang file
+  let ast = Parse_generic.parse_with_lang lang file in
   (*s: [[Main_semgrep_core.parse_generic()]] resolve names in the AST *)
   (*e: [[Main_semgrep_core.parse_generic()]] resolve names in the AST *)
+  Left ast
+ (* This is a bit subtle, but we now store in the cache whether we had
+  * an exception on this file, especially Timeout. Indeed, semgrep now calls
+  * semgrep-core per rule, and if one file timeout during parsing, it would
+  * timeout for each rule, but we don't want to wait each time 5sec for each
+  * rule. So here we store the exn in the cache, and below we reraise it
+  * after we got it back from the cache.
+  *
+  * TODO: right now we just capture Timeout, but we should capture any exn.
+  *  However this introduces some weird regressions in CI so we focus on
+  *  just Timeout for now.
+  *)
+ with Timeout -> Right Timeout
   ))
+  in
+  match v with
+  | Left ast -> ast
+  | Right exn -> raise exn
 (*e: function [[Main_semgrep_core.parse_generic]] *)
 
 (*s: function [[Main_semgrep_core.parse_equivalences]] *)
@@ -818,18 +837,12 @@ let expr_at_range s file =
   )
 
 let synthesize_patterns s file =
-  let r = Range.range_of_linecol_spec s file in
-  let ast = Parse_generic.parse_program file in
-  let lang = Lang.langs_of_filename file |> List.hd in
-  let e_opt = Range_to_AST.expr_at_range r ast in
-  (match e_opt with
-  | Some e ->
-      let options = Pattern_from_Code.from_expr e in
-      options |> List.iter (fun (s, pat) ->
-        pr (spf "%s: %s" s (Pretty_print_generic.pattern_to_string lang pat))
-      );
-  | None -> failwith (spf "could not find an expr at range %s in %s" s file)
-  )
+  let options = Synthesizer.synthesize_patterns s file in
+  let json_opts =
+      J.Object (List.map (fun (k, v) -> (k, J.String v)) options)
+  in
+  let s = Json_io.string_of_json json_opts in
+  pr s
 
 (* mostly a copy paste of Test_parsing_ruby.test_parse in pfff but using
  * the tree-sitter Ruby parser instead.

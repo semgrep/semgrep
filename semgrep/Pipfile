@@ -10,6 +10,7 @@ tox = "*"
 pytest-snapshot = "*"
 pytest-benchmark = "*"
 appdirs = "*"
+pytest-xdist = "*"
 
 [packages]
 semgrep = {editable = true,path = "."}

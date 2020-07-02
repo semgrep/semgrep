@@ -8,7 +8,7 @@ from typing import Tuple
 from semgrep.error import SemgrepError
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
-from semgrep.util import print_msg
+from semgrep.util import print_stderr
 
 SPLIT_CHAR = "\n"
 
@@ -132,8 +132,8 @@ def apply_fixes(
 
     num_modified = len(modified_files)
     if len(modified_files):
-        print_msg(
+        print_stderr(
             f"successfully modified {num_modified} file{'s' if num_modified > 1 else ''}."
         )
     else:
-        print_msg(f"no files modified.")
+        print_stderr(f"no files modified.")

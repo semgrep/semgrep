@@ -19,6 +19,7 @@ from ruamel.yaml import YAML
 
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import SEMGREP_PATH
+from semgrep.core_exception import CoreException
 from semgrep.equivalences import Equivalence
 from semgrep.error import _UnknownLanguageError
 from semgrep.error import InvalidPatternError
@@ -31,12 +32,14 @@ from semgrep.pattern_match import PatternMatch
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.semgrep_types import BooleanRuleExpression
+from semgrep.semgrep_types import Language
 from semgrep.semgrep_types import OPERATORS
 from semgrep.target_manager import TargetManager
 from semgrep.util import debug_print
 from semgrep.util import debug_tqdm_write
 from semgrep.util import partition
 from semgrep.util import progress_bar
+from semgrep.util import sub_run
 
 
 def _offset_to_line_no(offset: int, buff: str) -> int:
@@ -139,19 +142,19 @@ class CoreRunner:
                     else None
                 )
 
-                yield Pattern(
-                    rule_index, expr, rule.severity, rule.languages, span,
-                )
+                for lang in rule.languages:
+                    yield Pattern(
+                        rule_index, expr, rule.severity, lang, span,
+                    )
 
     def _group_patterns_by_language(
         self, rules: List[Rule]
-    ) -> Dict[str, List[Pattern]]:
+    ) -> Dict[Language, List[Pattern]]:
         # a rule can have multiple patterns inside it. Flatten these so we can send semgrep a single yml file list of patterns
         patterns: List[Pattern] = list(self._flatten_rule_patterns(rules))
-        by_lang: Dict[str, List[Pattern]] = collections.defaultdict(list)
+        by_lang: Dict[Language, List[Pattern]] = collections.defaultdict(list)
         for pattern in patterns:
-            for language in pattern.languages:
-                by_lang[language].append(pattern)
+            by_lang[pattern.language].append(pattern)
         return by_lang
 
     def _semgrep_error_json_to_message_then_exit(
@@ -217,12 +220,12 @@ class CoreRunner:
 
     def _run_rule(
         self, rule: Rule, target_manager: TargetManager, cache_dir: str
-    ) -> Tuple[List[RuleMatch], List[Dict[str, Any]], List[Any]]:
+    ) -> Tuple[List[RuleMatch], List[Dict[str, Any]], List[CoreException]]:
         """
             Run all rules on targets and return list of all places that match patterns, ... todo errors
         """
         outputs: List[PatternMatch] = []  # multiple invocations per language
-        errors: List[Any] = []
+        errors: List[CoreException] = []
         equivalences = rule.equivalences
 
         for language, all_patterns_for_language in self._group_patterns_by_language(
@@ -303,9 +306,7 @@ class CoreRunner:
                     self._write_equivalences_file(equiv_file, equivalences)
                     cmd += ["-equivalences", equiv_file.name]
 
-                core_run = subprocess.run(
-                    cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-                )
+                core_run = sub_run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
                 debug_print(core_run.stderr.decode("utf-8", "replace"))
 
@@ -329,7 +330,9 @@ class CoreRunner:
                         )
 
                 output_json = json.loads((core_run.stdout.decode("utf-8", "replace")))
-                errors.extend(output_json["errors"])
+                errors.extend(
+                    CoreException.from_json(e, language) for e in output_json["errors"]
+                )
                 outputs.extend(PatternMatch(m) for m in output_json["matches"])
 
         # group output; we want to see all of the same rule ids on the same file path
@@ -359,11 +362,13 @@ class CoreRunner:
     def _run_rules(
         self, rules: List[Rule], target_manager: TargetManager
     ) -> Tuple[
-        Dict[Rule, List[RuleMatch]], Dict[Rule, List[Dict[str, Any]]], List[Any]
+        Dict[Rule, List[RuleMatch]],
+        Dict[Rule, List[Dict[str, Any]]],
+        List[CoreException],
     ]:
         findings_by_rule: Dict[Rule, List[RuleMatch]] = {}
         debugging_steps_by_rule: Dict[Rule, List[Dict[str, Any]]] = {}
-        all_errors = []
+        all_errors: List[CoreException] = []
 
         # cf. for bar_format: https://tqdm.github.io/docs/tqdm/
         with tempfile.TemporaryDirectory() as semgrep_core_ast_cache_dir:
@@ -380,17 +385,6 @@ class CoreRunner:
 
         all_errors = dedup_errors(all_errors)
         return findings_by_rule, debugging_steps_by_rule, all_errors
-
-    def _resolve_output(
-        self, outputs: Dict[Rule, Dict[Path, List[PatternMatch]]]
-    ) -> Tuple[Dict[Rule, List[RuleMatch]], Dict[Rule, List[Dict[str, Any]]]]:
-        """
-            Takes output of all running all patterns and rules and returns Findings
-        """
-        findings_by_rule: Dict[Rule, List[RuleMatch]] = {}
-        debugging_steps_by_rule: Dict[Rule, List[Dict[str, Any]]] = {}
-
-        return findings_by_rule, debugging_steps_by_rule
 
     def invoke_semgrep(
         self, target_manager: TargetManager, rules: List[Rule]
@@ -415,19 +409,15 @@ def dedup_output(outputs: List[RuleMatch]) -> List[RuleMatch]:
     return list({uniq_id(r): r for r in outputs}.values())
 
 
-def dedup_errors(errors: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    def uniq_error_id(
-        error: Dict[str, Any]
-    ) -> Tuple[str, str, Optional[int], Optional[int], Optional[int], Optional[int]]:
-        start = error.get("start", {})
-        end = error.get("end", {})
+def dedup_errors(errors: List[CoreException]) -> List[CoreException]:
+    def uniq_error_id(error: CoreException) -> Tuple[str, str, int, int, int, int]:
         return (
-            error.get("check_id"),  # type: ignore
-            error.get("path"),
-            start.get("line"),
-            start.get("col"),
-            end.get("line"),
-            end.get("col"),
+            error._check_id,
+            str(error._path),
+            error._start.line,
+            error._start.col,
+            error._end.line,
+            error._end.col,
         )
 
     return list({uniq_error_id(r): r for r in errors}.values())

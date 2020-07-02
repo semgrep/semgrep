@@ -30,8 +30,7 @@ from semgrep.semgrep_types import YAML_ALL_VALID_RULE_KEYS
 from semgrep.semgrep_types import YAML_MUST_HAVE_KEYS
 from semgrep.target_manager import TargetManager
 from semgrep.util import debug_print
-from semgrep.util import print_error
-from semgrep.util import print_msg
+from semgrep.util import print_stderr
 
 MISSING_RULE_ID = "no-rule-id"
 
@@ -50,22 +49,17 @@ def validate_single_rule(
     rule_keys = set({k.value for k in rule.keys()})
     if not rule_keys.issuperset(YAML_MUST_HAVE_KEYS):
         missing_keys = YAML_MUST_HAVE_KEYS - rule_keys
+        extra_keys: Set[str] = rule_keys - YAML_ALL_VALID_RULE_KEYS
+        extra_key_spans = sorted([rule.key_tree(k) for k in extra_keys])
+        help_msg = None
+        if extra_keys:
+            help_msg = f"Unexpected keys {extra_keys} found. Is one of these a typo of {missing_keys}?"
         raise InvalidRuleSchemaError(
             short_msg="missing keys",
             long_msg=f"{config_id} is missing required keys {missing_keys}",
-            level="error",
-            spans=[rule_yaml.span.truncate(lines=5)],
-        )
-
-    if not rule_keys.issubset(YAML_ALL_VALID_RULE_KEYS):
-        extra_keys: Set[str] = rule_keys - YAML_ALL_VALID_RULE_KEYS
-        extra_key_spans = sorted([rule.key_tree(k) for k in extra_keys])
-        raise InvalidRuleSchemaError(
-            short_msg="extra top-level key",
-            long_msg=f"{config_id} has an invalid top-level rule key: {sorted([k for k in extra_keys])}",
-            help=f"Only {sorted(YAML_ALL_VALID_RULE_KEYS)} are valid keys",
-            spans=[k.span.with_context(before=2, after=2) for k in extra_key_spans],
-            level="error",
+            spans=[rule_yaml.span.truncate(lines=5)]
+            + [e.span for e in extra_key_spans],
+            help=help_msg,
         )
 
     # Raises InvalidRuleSchemaError if fails to parse
@@ -187,18 +181,18 @@ def notify_user_of_work(
     - which dirs are excluded, etc.
     """
     if include:
-        print_msg(f"including files:")
+        print_stderr(f"including files:")
         for inc in include:
-            print_msg(f"- {inc}")
+            print_stderr(f"- {inc}")
     if exclude:
-        print_msg(f"excluding files:")
+        print_stderr(f"excluding files:")
         for exc in exclude:
-            print_msg(f"- {exc}")
-    print_msg(f"running {len(all_rules)} rules...")
+            print_stderr(f"- {exc}")
+    print_stderr(f"running {len(all_rules)} rules...")
     if verbose:
-        print_msg("rules:")
+        print_stderr("rules:")
         for rule in all_rules:
-            print_msg(f"- {rule.id}")
+            print_stderr(f"- {rule.id}")
 
 
 def rule_match_nosem(rule_match: RuleMatch, strict: bool) -> bool:
@@ -367,7 +361,7 @@ def main(
                 code=INVALID_CODE_EXIT_CODE,
             )
         else:
-            print_error(
+            print_stderr(
                 "Run with --strict to exit with non-zero exit code when errors exist"
             )
 
