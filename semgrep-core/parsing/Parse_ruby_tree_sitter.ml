@@ -657,8 +657,8 @@ and arg (x : CST.arg) : AST.expr =
 and primary (x : CST.primary) : AST.expr =
   (match x with
   | `Prim_paren_stmts x ->
-        let (_lp, xs, _rp) = parenthesized_statements x in
-        S (Block (xs))
+        let (lp, xs, rp) = parenthesized_statements x in
+        S (Block (lp, xs, rp))
   | `Prim_lhs x -> lhs x
   | `Prim_array (v1, v2, v3) ->
       let lb = token2 v1 in
@@ -887,14 +887,14 @@ and primary (x : CST.primary) : AST.expr =
       in
       D (ModuleDef (v1, v2, v3))
   | `Prim_begin (v1, v2, v3) ->
-      let _tbegin = token2 v1 in
+      let tbegin = token2 v1 in
       let _v2 =
         (match v2 with
         | Some x -> terminator x
         | None -> ())
       in
-      let (v3, _tend) = body_statement v3 in
-      S (Block ([S (ExnBlock (v3))]))
+      let (v3, tend) = body_statement v3 in
+      S (Block (tbegin, [S (ExnBlock (v3))], tend))
   | `Prim_while (v1, v2, v3, v4, v5) ->
       let v1 = token2 v1 in
       let v2 = arg v2 in
@@ -1041,8 +1041,8 @@ and primary (x : CST.primary) : AST.expr =
         | `Not tok -> Op_UNot, token2 tok
         )
       in
-      let (_lp, v2, _rp) = parenthesized_statements v2 in
-      let block = S (Block (v2)) in
+      let (lp, v2, rp) = parenthesized_statements v2 in
+      let block = S (Block (lp, v2, rp)) in
       Unary (v1, block)
   | `Prim_un_lit (v1, v2) ->
       let v1 =
