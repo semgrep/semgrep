@@ -855,7 +855,7 @@ and primary (x : CST.primary) : AST.expr =
       in
       let v3 =
         (match v3 with
-        | Some x -> Some ((superclass x |> snd))
+        | Some x -> Some (superclass x)
         | None -> None)
       in
       let _v4 = terminator v4 in
