@@ -35,7 +35,6 @@ let token2 (_tok : Tree_sitter_run.Token.t) =
   PI.fake_info "XXX"
 let str (_tok : Tree_sitter_run.Token.t) =
   "STRXXX", PI.fake_info "XXX"
-let fk = PI.fake_info "fake"
 
 let list_to_maybe_tuple = function
  | [] -> raise Impossible
@@ -212,7 +211,7 @@ and statement (x : CST.statement) : AST.expr (* TODO AST.stmt at some point *)=
       let v3 = expression v3 in
       S (ExnBlock ({
          body_exprs = [v1];
-         rescue_exprs = [v2, (S Empty), [v3]];
+         rescue_exprs = [v2, [], None, [v3]];
          ensure_expr = [];
          else_expr = [];
         }))
@@ -488,14 +487,15 @@ and rescue ((v1, v2, v3, v4) : CST.rescue) =
   let v1 = token2 v1 in
   let v2 =
     (match v2 with
-    | Some x -> exceptions x |> list_to_maybe_tuple
-    | None -> Id (("StandardError", fk), ID_Uppercase)
+    | Some x -> exceptions x
+    | None -> []
     )
   in
   let v3 =
     (match v3 with
-    | Some x -> exception_variable x
-    | None -> (fun y -> y))
+    | Some x -> Some (exception_variable x)
+    | None -> None
+    )
   in
   let v4 =
     (match v4 with
@@ -503,9 +503,7 @@ and rescue ((v1, v2, v3, v4) : CST.rescue) =
     | `Then x -> (then_ x)
     )
   in
-  let e1 =
-    v3 v2 in
-  (v1, e1, v4)
+  (v1, v2, v3, v4)
 
 and exceptions ((v1, v2) : CST.exceptions) : AST.expr list =
   let v1 =
@@ -531,7 +529,7 @@ and exceptions ((v1, v2) : CST.exceptions) : AST.expr list =
 and exception_variable ((v1, v2) : CST.exception_variable) =
   let v1 = token2 v1 in
   let v2 = lhs v2 in
-  (fun y -> Binop (y, (Op_ASSOC, v1), v2))
+  v1, v2
 
 and body_statement ((v1, v2, v3) : CST.body_statement) :
  AST.body_exn * AST.tok =
