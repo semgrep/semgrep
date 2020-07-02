@@ -16,8 +16,8 @@ COPY --chown=opam semgrep-core/ /semgrep/semgrep-core/
 
 WORKDIR /semgrep
 RUN git submodule update --init --recursive
-RUN eval "$(opam env)" && opam install -y pfff/
 RUN eval "$(opam env)" && ./install-scripts/install-ocaml-tree-sitter
+RUN eval "$(opam env)" && opam install -y pfff/
 RUN eval "$(opam env)" && opam install --deps-only -y semgrep-core/ && make -C semgrep-core/ all
 
 # final output

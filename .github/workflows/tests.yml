@@ -21,10 +21,10 @@ jobs:
         uses: actions/checkout@v2
       - name: Install submodules
         run: git submodule update --init --recursive
-      - name: Install pfff
-        run: eval $(opam env --root /home/opam/.opam --set-root) && opam install -y ./pfff
       - name: Install ocaml-tree-sitter
         run: eval $(opam env --root /home/opam/.opam --set-root) && ./install-scripts/install-ocaml-tree-sitter
+      - name: Install pfff
+        run: eval $(opam env --root /home/opam/.opam --set-root) && opam install -y ./pfff
       - name: Install semgrep-core
         run: eval $(opam env --root /home/opam/.opam --set-root) && cd semgrep-core && opam install --deps-only -y . && make all && make install
       - name: Test semgrep-core
