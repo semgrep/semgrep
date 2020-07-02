@@ -15,18 +15,17 @@ from typing import Set
 
 import colorama
 
-import semgrep.util
 from semgrep import config_resolver
 from semgrep.constants import __VERSION__
 from semgrep.constants import OutputFormat
 from semgrep.core_exception import CoreException
 from semgrep.error import FINDINGS_EXIT_CODE
+from semgrep.error import Level
 from semgrep.error import SemgrepError
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.util import debug_print
 from semgrep.util import is_url
-from semgrep.util import partition
 from semgrep.util import print_stderr
 
 
@@ -176,6 +175,7 @@ class OutputSettings(NamedTuple):
     output_destination: Optional[str]
     quiet: bool
     error_on_findings: bool
+    strict: bool
 
 
 @contextlib.contextmanager
@@ -221,49 +221,24 @@ class OutputHandler:
         self.rules: FrozenSet[Rule] = frozenset()
         self.semgrep_core_errors: List[CoreException] = []
         self.semgrep_structured_errors: List[SemgrepError] = []
+        self.error_set: Set[SemgrepError] = set()
         self.has_output = False
 
         self.final_error: Optional[Exception] = None
 
-    def handle_semgrep_core_errors(self, semgrep_errors: List[CoreException]) -> None:
-        """
-        Report errors coming directly from semgrep-core (raw JSON objects)
-        """
-        self.semgrep_core_errors += semgrep_errors
-        if self.settings.output_format == OutputFormat.TEXT:
-            parse_errors, other_errors = partition(
-                lambda e: e._check_id in {"ParseError", "FatalError"}, semgrep_errors
-            )
-
-            for error in other_errors:
-                print_stderr(str(error))
-
-            if len(parse_errors) > 0:
-                files_with_parse_errors: Set[str] = set(
-                    str(e._path) for e in parse_errors
-                )
-
-                print_stderr(
-                    f"{len(files_with_parse_errors)} file(s) failed to parse: {', '.join(files_with_parse_errors)}"
-                )
-
-                if semgrep.util.DEBUG:
-                    debug_print("ParseErrors:")
-                    for error in parse_errors:
-                        debug_print(str(error))
-                    debug_print(
-                        "= note: If the code is correct, this could be a semgrep bug -- please help us fix this by filing an an issue at https://semgrep.dev"
-                    )
-                else:
-                    print_stderr("Run with --verbose to see parse errors")
+    def handle_semgrep_errors(self, errors: List[SemgrepError]) -> None:
+        for err in errors:
+            self.handle_semgrep_error(err)
 
     def handle_semgrep_error(self, error: SemgrepError) -> None:
         """
         Reports generic exceptions that extend SemgrepError
         """
         self.has_output = True
-        self.semgrep_structured_errors.append(error)
-        print_stderr(str(error))
+        if error not in self.error_set:
+            self.semgrep_structured_errors.append(error)
+            self.error_set.add(error)
+            print_stderr(str(error))
 
     def handle_semgrep_core_output(
         self,
@@ -290,6 +265,22 @@ class OutputHandler:
             self.handle_semgrep_error(ex)
         self.final_error = ex
 
+    def final_raise(self, ex: Optional[Exception]) -> None:
+        if ex is None:
+            return
+        if isinstance(ex, SemgrepError):
+            if ex.level == Level.ERROR:  # nosem: r2c.registry.latest useless-if-body
+                raise ex
+            else:
+                if self.settings.strict:
+                    raise ex
+                print(
+                    "Warnings exist. Run with `--strict` to turn warnings into errors.",
+                    file=self.stderr,
+                )
+        else:
+            raise ex
+
     def close(self) -> None:
         """
         Close the output handler.
@@ -305,12 +296,16 @@ class OutputHandler:
             if self.settings.output_destination:
                 self.save_output(self.settings.output_destination, output)
 
+        final_error = None
         if self.final_error:
-            raise self.final_error
+            final_error = self.final_error
         elif self.rule_matches and self.settings.error_on_findings:
             # This exception won't be visiable to the user, we're just
             # using this to return a specific error code
-            raise SemgrepError("", code=FINDINGS_EXIT_CODE)
+            final_error = SemgrepError("", code=FINDINGS_EXIT_CODE)
+        elif self.semgrep_structured_errors:
+            final_error = self.semgrep_structured_errors[-1]
+        self.final_raise(final_error)
 
     @classmethod
     def save_output(cls, destination: str, output: str) -> None:

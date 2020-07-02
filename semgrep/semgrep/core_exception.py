@@ -2,7 +2,11 @@ from pathlib import Path
 from typing import Any
 from typing import Dict
 
+from semgrep.error import SemgrepError
+from semgrep.error import SourceParseError
 from semgrep.rule_lang import Position
+from semgrep.rule_lang import SourceTracker
+from semgrep.rule_lang import Span
 
 
 class CoreException:
@@ -61,11 +65,18 @@ class CoreException:
             language,
         )
 
-    def __str__(self) -> str:
-        header = (
-            f"--> Failed to parse {self._path}:{self._start.line} as {self._language}"
+    def into_semgrep_error(self) -> SemgrepError:
+        with open(self._path) as f:
+            file_hash = SourceTracker.add_source(f.read())
+        error_span = Span(
+            start=self._start,
+            end=self._end,
+            source_hash=file_hash,
+            file=self._path.name,
         )
-        line_1 = self._extra["line"]
-        start_col = self._start.col
-        line_2 = " " * (start_col - 1) + "^"
-        return "\n".join([header, line_1, line_2])
+        return SourceParseError(
+            short_msg="parse error",
+            long_msg=f"Could not parse {self._path.name} as {self._language}",
+            spans=[error_span],
+            help="If the code appears to be valid, this may be a semgrep bug.",
+        )
