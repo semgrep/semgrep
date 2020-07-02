@@ -289,6 +289,7 @@ def cli() -> None:
         output_destination=args.output,
         quiet=args.quiet,
         error_on_findings=args.error,
+        strict=args.strict,
     )
 
     if not args.disable_version_check:

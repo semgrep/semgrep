@@ -157,7 +157,7 @@ class CoreRunner:
             by_lang[pattern.language].append(pattern)
         return by_lang
 
-    def _semgrep_error_json_to_message_then_exit(
+    def _raise_semgrep_error_from_json(
         self, error_json: Dict[str, Any], patterns: List[Pattern],
     ) -> None:
         """
@@ -183,7 +183,6 @@ class CoreRunner:
                 short_msg=error_type,
                 long_msg=f"Pattern could not be parsed as a {error_json['language']} semgrep pattern",
                 spans=[matching_span],
-                level="error",
                 help=None,
             )
         # no special formatting ought to be required for the other types; the semgrep python should be performing
@@ -240,7 +239,6 @@ class CoreRunner:
                     short_msg="invalid language",
                     long_msg=f"unsupported language {language}",
                     spans=[rule.languages_span.with_context(before=1, after=1)],
-                    level="error",
                 ) from ex
 
             if targets == []:
@@ -321,9 +319,7 @@ class CoreRunner:
                         )
 
                     if "error" in output_json:
-                        self._semgrep_error_json_to_message_then_exit(
-                            output_json, patterns
-                        )
+                        self._raise_semgrep_error_from_json(output_json, patterns)
                     else:
                         raise SemgrepError(
                             f"unexpected json output while invoking semgrep-core:\n{PLEASE_FILE_ISSUE_TEXT}"
@@ -389,7 +385,9 @@ class CoreRunner:
     def invoke_semgrep(
         self, target_manager: TargetManager, rules: List[Rule]
     ) -> Tuple[
-        Dict[Rule, List[RuleMatch]], Dict[Rule, List[Dict[str, Any]]], List[Any]
+        Dict[Rule, List[RuleMatch]],
+        Dict[Rule, List[Dict[str, Any]]],
+        List[CoreException],
     ]:
         """
             Takes in rules and targets and retuns object with findings

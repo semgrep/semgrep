@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import Any
 from typing import Dict
 from typing import List
@@ -23,6 +24,11 @@ MISSING_CONFIG_EXIT_CODE = 7
 INVALID_LANGUAGE_EXIT_CODE = 8
 
 
+class Level(Enum):
+    ERROR = 4  # Always an error
+    WARN = 3  # Only an error if "strict" is set
+
+
 class SemgrepError(Exception):
     """
     Parent class of all exceptions we anticipate in Semgrep commands
@@ -33,8 +39,11 @@ class SemgrepError(Exception):
     For pretty-printing, exceptions should override `__str__`.
     """
 
-    def __init__(self, *args: object, code: int = FATAL_EXIT_CODE) -> None:
+    def __init__(
+        self, *args: object, code: int = FATAL_EXIT_CODE, level: Level = Level.ERROR
+    ) -> None:
         self.code = code
+        self.level = level
 
         super().__init__(*args)
 
@@ -67,6 +76,7 @@ class UnknownOperatorError(SemgrepError):
     pass
 
 
+@attr.s(eq=True, hash=True, init=False)  # type: ignore
 class ErrorWithSpan(SemgrepError):
     """
     In general, you should not be constructing ErrorWithSpan directly, and instead be constructing a subclass
@@ -102,24 +112,23 @@ class ErrorWithSpan(SemgrepError):
         short_msg: str,
         long_msg: Optional[str],
         spans: List[Span],
-        level: str = "error",
         help: Optional[str] = None,
     ):
 
         self.short_msg = short_msg
         self.long_msg = long_msg
-        self.level = level
         self.spans = spans
         self.help = help
         assert hasattr(
             self, "code"
         ), "Inheritors of SemgrepError must define an exit code"
+        assert hasattr(self, "level"), "Inheritors of SemgrepError must define a level"
 
     def to_dict_base(self) -> Dict[str, Any]:
         base = dict(
             short_msg=self.short_msg,
             long_msg=self.long_msg,
-            level=self.level,
+            level=self.level.name.lower(),
             spans=[attr.asdict(s) for s in self.spans],
         )
         # otherwise, we end up with `help: null` in JSON
@@ -177,7 +186,7 @@ class ErrorWithSpan(SemgrepError):
         """
         Format this exception into a pretty string with context and color
         """
-        header = f"{with_color(Fore.RED, self.level)}: {self.short_msg}"
+        header = f"{with_color(Fore.RED, self.level.name.lower())}: {self.short_msg}"
         snippets = []
         for span in self.spans:
             location_hint = f"  --> {span.file}:{span.start.line}"
@@ -219,18 +228,26 @@ class ErrorWithSpan(SemgrepError):
 
 class InvalidPatternError(ErrorWithSpan):
     code = INVALID_PATTERN_EXIT_CODE
+    level = Level.ERROR
 
 
 class InvalidRuleSchemaError(ErrorWithSpan):
     code = INVALID_PATTERN_EXIT_CODE
+    level = Level.ERROR
 
 
 class UnknownLanguageError(ErrorWithSpan):
     code = INVALID_LANGUAGE_EXIT_CODE
+    level = Level.ERROR
 
 
 class InvalidPatternNameError(InvalidRuleSchemaError):
     pass
+
+
+class SourceParseError(ErrorWithSpan):
+    code = INVALID_CODE_EXIT_CODE
+    level = Level.WARN
 
 
 class _UnknownLanguageError(SemgrepInternalError):
