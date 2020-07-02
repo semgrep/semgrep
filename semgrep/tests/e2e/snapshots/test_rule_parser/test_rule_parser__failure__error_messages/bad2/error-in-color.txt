@@ -1,12 +1,15 @@
-[31merror[39m: extra top-level key
-  --> rules/syntax/bad2.yaml:3
-[94m1 | [39mrules:
+[31merror[39m: missing keys
+  --> rules/syntax/bad2.yaml:2
 [94m2 | [39m  - id: eqeq-is-bad
-[94m3 | [39m    pattern-inside: foo(...)
-[94m  | [39m    [31m^^^^^^^^^^^^^^[39m
-[94m4 | [39m    patterns:
-[94m5 | [39m      - pattern-not: 1 == 1
-= [36m[1mhelp[39m[0m: Only ['equivalences', 'fix', 'fix-regex', 'id', 'languages', 'message', 'metadata', 'paths', 'pattern', 'pattern-either', 'pattern-regex', 'patterns', 'severity'] are valid keys
-[31mrules/syntax/bad2.yaml has an invalid top-level rule key: ['pattern-inside'][39m
+[94m3 | [39m    patterns:
+[94m4 | [39m      - pattern-not: 1 == 1
+[94m5 | [39m    message: "useless comparison operation `$X == $X` or `$X != $X`; possible bug?"
+[94m6 | [39m    languages: [python]
+[94m7 | [39m    severit: ERROR
+  --> rules/syntax/bad2.yaml:7
+[94m7 | [39m    severit: ERROR
+[94m  | [39m    [31m^^^^^^^[39m
+= [36m[1mhelp[39m[0m: Unexpected keys {'severit'} found. Is one of these a typo of {'severity'}?
+[31mrules/syntax/bad2.yaml is missing required keys {'severity'}[39m
 
 run with --strict and there were 1 errors loading configs
