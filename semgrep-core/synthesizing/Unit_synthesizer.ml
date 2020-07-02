@@ -81,6 +81,14 @@ let python_tests = [
   "arrays_and_funcs.py", "19:3-19:32",
   ["exact match", "node.id == node.id";
    "exact metavars", "$X == $X"];
+
+   "arrays_and_funcs.py", "20:10-22:35",
+   ["exact match", "r.set_cookie('sessionid', generate_cookie_value('RANDOM-UUID'), secure=True)";
+    "dots", "r.set_cookie(...)";
+    "metavars", "r.set_cookie($X, $Y, secure=$Z, ...)";
+    "exact metavars", "r.set_cookie($X, $Y, secure=$Z)";
+    "deep metavars", "r.set_cookie($X, generate_cookie_value($Y), secure=$Z)"
+   ];
 ]
 
 let java_tests = [
@@ -156,6 +164,8 @@ let unittest =
                match e_opt with
                  | Some e ->
                     let matches_with_env = Semgrep_generic.match_any_any pattern (A.E e) in
+                    (* Debugging note: uses pattern_to_string for convenience, but really should *)
+                    (* match the code in the given file at the given range *)
                     assert_bool (spf "pattern:|%s| should match |%s" pat (PPG.pattern_to_string lang (A.E e)))
                     (matches_with_env <> [])
                  | None -> failwith (spf "Couldn't find range %s in %s" range file)
@@ -165,7 +175,8 @@ let unittest =
         in
         pats |> List.iter check_pats;
         let pats_str = List.fold_left (fun s (s1, s2) -> s ^ s1 ^ ": " ^ s2 ^ "\n") "" pats in
-        assert_bool (pats_str) (pats = sols)
+        assert_bool ("Patterns do not match solution, where inferred patterns are:\n" ^ pats_str)
+                    (pats = sols)
     )
     )
   )

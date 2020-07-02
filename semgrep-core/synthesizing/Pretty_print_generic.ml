@@ -52,6 +52,16 @@ let print_type = function
   | TyName (id, _) -> ident id
   | x -> todo (T x)
 
+let print_bool env = function
+  | true ->
+     (match env.lang with
+         | Lang.Python -> "True"
+         | _ -> "true")
+  | false ->
+     (match env.lang with
+         | Lang.Python -> "False"
+         | _ -> "false")
+
 let arithop env (op, tok) =
   match op with
       | Plus -> "+"
@@ -123,7 +133,7 @@ and call env (e, (_, es, _)) =
        | _ -> F.sprintf "%s(%s)" s1 (arguments env es)
 
 and literal env = function
-  | Bool ((b,_)) -> F.sprintf "%B" b
+  | Bool ((b,_)) -> print_bool env b
   | Int ((s,_)) -> s
   | Float ((s,_)) -> s
   | Char ((s,_)) -> F.sprintf "'%s'" s
@@ -147,6 +157,7 @@ and arguments env xs =
 and argument env = function
   | Arg e -> expr env e
   | ArgType t -> print_type t
+  | ArgKwd (id, e) -> F.sprintf "%s=%s" (ident id) (expr env e)
   | x -> todo (Ar x)
 
 and tuple env = function
