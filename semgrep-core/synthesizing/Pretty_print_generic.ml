@@ -112,12 +112,14 @@ and id_qualified env ((id, {name_qualifier; _}), _idinfo) =
 
 and special env = function
   | (ArithOp op, tok) -> arithop env (op, tok)
+  | (New, _) -> "new"
   | (sp, tok) -> todo (E (IdSpecial (sp, tok)))
 
 and call env (e, (_, es, _)) =
   let s1 = expr env e in
   match (e, es) with
-       | (IdSpecial(_), x::y::[]) -> F.sprintf "%s %s %s" (argument env x) s1 (argument env y)
+       | (IdSpecial(ArithOp _, _), x::y::[]) -> F.sprintf "%s %s %s" (argument env x) s1 (argument env y)
+       | (IdSpecial(New, _), x::ys) -> F.sprintf "%s %s(%s)" s1 (argument env x) (arguments env ys)
        | _ -> F.sprintf "%s(%s)" s1 (arguments env es)
 
 and literal env = function
@@ -144,6 +146,7 @@ and arguments env xs =
 
 and argument env = function
   | Arg e -> expr env e
+  | ArgType t -> print_type t
   | x -> todo (Ar x)
 
 and tuple env = function

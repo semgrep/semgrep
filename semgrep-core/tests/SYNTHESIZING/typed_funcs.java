@@ -7,5 +7,7 @@ class foo {
         foo(bar(car(a)), b, foo(b, c), d);
         foo(foo(a, b), c);
         bar(a);
+        System.out.print("(A) ");
+        Scanner s = new Scanner(new File(), 1);
     }
 }

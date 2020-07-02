@@ -145,6 +145,7 @@ let deep_typed_metavar (e, (lp, es, rp)) env =
 
 
 let generalize_call env = function
+  | Call (IdSpecial (New, _), _) -> []
   | Call (IdSpecial e1, e2) -> (exact_metavar (IdSpecial e1, e2) env) :: []
   | Call (e, (lp, es, rp)) ->
       (* only show the deep_metavar and deep_typed_metavar options if relevant *)
