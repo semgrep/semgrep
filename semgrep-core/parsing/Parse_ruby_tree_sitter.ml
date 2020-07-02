@@ -187,12 +187,12 @@ and statement (x : CST.statement) : AST.expr (* TODO AST.stmt at some point *)=
       let v1 = statement v1 in
       let v2 = token2 v2 in
       let v3 = expression v3 in
-      S (If (v2, v3, [v1], []))
+      S (If (v2, v3, [v1], None))
   | `Stmt_unle_modi (v1, v2, v3) ->
       let v1 = statement v1 in
       let v2 = token2 v2 in
       let v3 = expression v3 in
-      S (Unless (v2, v3, [v1], []))
+      S (Unless (v2, v3, [v1], None))
   | `Stmt_while_modi (v1, v2, v3) ->
       let v1 = statement v1 in
       let v2 = token2 v2 in
@@ -212,8 +212,8 @@ and statement (x : CST.statement) : AST.expr (* TODO AST.stmt at some point *)=
       S (ExnBlock ({
          body_exprs = [v1];
          rescue_exprs = [v2, [], None, [v3]];
-         ensure_expr = [];
-         else_expr = [];
+         ensure_expr = None;
+         else_expr = None;
         }))
 
 
@@ -419,7 +419,7 @@ and pattern (x : CST.pattern) : AST.pattern =
   | `Pat_splat_arg x -> splat_argument x
   )
 
-and elsif ((v1, v2, v3, v4) : CST.elsif) : AST.stmt =
+and elsif ((v1, v2, v3, v4) : CST.elsif) : AST.tok * AST.stmt =
   let v1 = token2 v1 in
   let v2 = statement v2 in
   let v3 =
@@ -431,16 +431,18 @@ and elsif ((v1, v2, v3, v4) : CST.elsif) : AST.stmt =
   let v4 =
     (match v4 with
     | Some x ->
-        (match x with
+        Some (match x with
         | `Else x -> else_ x
-        | `Elsif x -> [S (elsif x)]
+        | `Elsif x ->
+                let (t, s) = elsif x in
+                t, [S s]
         )
-    | None -> [])
+    | None -> None)
   in
-  If (v1, v2, v3, v4)
+  v1, If (v1, v2, v3, v4)
 
-and else_ ((v1, v2, v3) : CST.else_) : AST.stmts =
-  let _v1 = token2 v1 in
+and else_ ((v1, v2, v3) : CST.else_) : (AST.tok * AST.stmts) =
+  let v1 = token2 v1 in
   let _v2 =
     (match v2 with
     | Some x -> terminator x
@@ -451,7 +453,7 @@ and else_ ((v1, v2, v3) : CST.else_) : AST.stmts =
     | Some x -> statements x
     | None -> [])
   in
-  v3
+  v1, v3
 
 and then_ (x : CST.then_) : AST.stmts =
   (match x with
@@ -544,14 +546,24 @@ and body_statement ((v1, v2, v3) : CST.body_statement) :
       | `Resc x -> Common2.Left3 (rescue x)
       | `Else x -> Common2.Middle3 (else_ x)
       | `Ensu x ->
-              let (_t, xs) = ensure x in
-              Common2.Right3 (xs)
+              let (t, xs) = ensure x in
+              Common2.Right3 (t, xs)
       )
     ) v2
   in
   let tend = token2 v3 in
-  let ensure_expr = List.flatten ensure_expr in
-  let else_expr = List.flatten else_expr in
+  let ensure_expr =
+    match ensure_expr with
+    | [] -> None
+    | [x] -> Some x
+    | x::_ -> Some x (* TODO: weird, should have only one no? *)
+   in
+  let else_expr =
+    match else_expr with
+    | [] -> None
+    | [x] -> Some x
+    | x::_ -> Some x (* TODO: weird, should have only one no? *)
+   in
   { body_exprs = v1; rescue_exprs; else_expr; ensure_expr}, tend
 
 and expression (x : CST.expression) : AST.expr =
@@ -929,11 +941,13 @@ and primary (x : CST.primary) : AST.expr =
       let v4 =
         (match v4 with
         | Some x ->
-            (match x with
+            Some (match x with
             | `Else x -> (else_ x)
-            | `Elsif x -> [S (elsif x)]
+            | `Elsif x ->
+              let (t, s) =  elsif x in
+              t, [S s]
             )
-        | None -> [])
+        | None -> None)
       in
       let _v5 = token2 v5 in
       S (If (v1, v2, v3, v4))
@@ -949,11 +963,13 @@ and primary (x : CST.primary) : AST.expr =
       let v4 =
         (match v4 with
         | Some x ->
-            (match x with
+            Some (match x with
             | `Else x -> (else_ x)
-            | `Elsif x -> [S (elsif x)]
+            | `Elsif x ->
+                      let (t, s) = elsif x in
+                      t, [S s]
             )
-        | None -> [])
+        | None -> None)
       in
       let _v5 = token2 v5 in
       S (Unless (v1, v2, v3, v4))
@@ -981,8 +997,8 @@ and primary (x : CST.primary) : AST.expr =
       let v5 = List.map when_ v5 in
       let v6 =
         (match v6 with
-        | Some x -> else_ x
-        | None -> [])
+        | Some x -> Some (else_ x)
+        | None -> None)
       in
       let _v7 = token2 v7 in
       S (Case (v1, { case_guard = v2; case_whens = v5; case_else = v6}))
