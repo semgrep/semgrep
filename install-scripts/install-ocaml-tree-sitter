@@ -5,4 +5,5 @@
 set -eu
 
 cd ocaml-tree-sitter
+./configure
 ./scripts/install-runtime
