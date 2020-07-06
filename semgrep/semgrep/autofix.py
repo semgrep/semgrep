@@ -121,6 +121,8 @@ def apply_fixes(
                     raise SemgrepError(
                         f"unable to use regex to modify file {filepath} with fix '{fix}': {e}"
                     )
+            else:
+                continue
             # endif
             if not dryrun:
                 _write_contents(rule_match.path, fixobj.fixed_contents)
