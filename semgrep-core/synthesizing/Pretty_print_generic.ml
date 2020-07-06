@@ -52,6 +52,16 @@ let print_type = function
   | TyName (id, _) -> ident id
   | x -> todo (T x)
 
+let print_bool env = function
+  | true ->
+     (match env.lang with
+         | Lang.Python | Lang.Python2 | Lang.Python3 -> "True"
+         | Lang.Java | Lang.Go | Lang.C | Lang.JSON | Lang.Javascript | Lang.OCaml -> "true")
+  | false ->
+     (match env.lang with
+         | Lang.Python | Lang.Python2 | Lang.Python3  -> "False"
+         | Lang.Java | Lang.Go | Lang.C | Lang.JSON | Lang.Javascript | Lang.OCaml -> "false")
+
 let arithop env (op, tok) =
   match op with
       | Plus -> "+"
@@ -85,6 +95,7 @@ let arithop env (op, tok) =
 let rec expr env =
 function
   | Id ((s,_), idinfo) -> id env (s, idinfo)
+  | IdQualified(name, idinfo) -> id_qualified env (name, idinfo)
   | IdSpecial (sp, tok) -> special env (sp, tok)
   | Call (e1, e2) -> call env (e1, e2)
   | L x -> literal env x
@@ -102,18 +113,27 @@ and id env (s, {id_resolved; _}) =
        | Some (ImportedEntity ents, _) -> dotted_access env ents
        | _ -> s
 
+and id_qualified env ((id, {name_qualifier; _}), _idinfo) =
+  match name_qualifier with
+       | Some dot_ids ->
+            F.sprintf "%s.%s" (dotted_access env dot_ids) (ident id)
+       | None -> ident id
+
+
 and special env = function
   | (ArithOp op, tok) -> arithop env (op, tok)
+  | (New, _) -> "new"
   | (sp, tok) -> todo (E (IdSpecial (sp, tok)))
 
 and call env (e, (_, es, _)) =
   let s1 = expr env e in
   match (e, es) with
-       | (IdSpecial(_), x::y::[]) -> F.sprintf "%s %s %s" (argument env x) s1 (argument env y)
+       | (IdSpecial(ArithOp _, _), x::y::[]) -> F.sprintf "%s %s %s" (argument env x) s1 (argument env y)
+       | (IdSpecial(New, _), x::ys) -> F.sprintf "%s %s(%s)" s1 (argument env x) (arguments env ys)
        | _ -> F.sprintf "%s(%s)" s1 (arguments env es)
 
 and literal env = function
-  | Bool ((b,_)) -> F.sprintf "%B" b
+  | Bool ((b,_)) -> print_bool env b
   | Int ((s,_)) -> s
   | Float ((s,_)) -> s
   | Char ((s,_)) -> F.sprintf "'%s'" s
@@ -121,7 +141,8 @@ and literal env = function
       (match env.lang with
       | Lang.Python | Lang.Python2 | Lang.Python3 ->
             "'" ^ s ^ "'"
-      | _ -> raise Todo
+      | Lang.Java | Lang.Go | Lang.C | Lang.JSON | Lang.Javascript | Lang.OCaml ->
+            "\"" ^ s ^ "\""
       )
   | Regexp ((s,_)) -> s
   | x -> todo (E (L x))
@@ -135,6 +156,8 @@ and arguments env xs =
 
 and argument env = function
   | Arg e -> expr env e
+  | ArgType t -> print_type t
+  | ArgKwd (id, e) -> F.sprintf "%s=%s" (ident id) (expr env e)
   | x -> todo (Ar x)
 
 and tuple env = function

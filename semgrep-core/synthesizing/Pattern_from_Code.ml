@@ -108,6 +108,10 @@ let rec map_args env = function
      let (env', new_id) = get_id env x in
      let (_, args) = map_args env' xs in
      (env', (Arg new_id)::args)
+  | (ArgKwd (label, x))::xs ->
+    let (env', new_id) = get_id env x in
+    let (_, args) = map_args env' xs in
+    (env', (ArgKwd (label, new_id))::args)
   | _ -> (env, []) (* TODO fail? *)
 
 let exact_metavar (e, (lp, es, rp)) env =
@@ -122,19 +126,27 @@ let shallow_metavar (e, (lp, es, rp)) env =
 let rec deep_mv_call (e, (lp, es, rp)) with_type env =
   let (env', replaced_args) = deep_mv_args with_type env es in
   (env', Call (e, (lp, replaced_args, rp)))
-and deep_mv_args with_type env = function
-  | [] -> (env, [])
-  | (Arg e)::xs -> (
-     let (env', new_e) =
-     match e with
-         | Call (e, (lp, es, rp)) -> deep_mv_call (e, (lp, es, rp)) with_type env
-         | _ -> get_id ~with_type:with_type env e
-     in
-     let (env'', args) = deep_mv_args with_type env' xs in
-
-     (env'', (Arg new_e)::args)
-  )
-  | _ -> (env, [])
+and deep_mv_args with_type env args =
+  let get_new_arg (e, xs) =
+    let (env', new_e) =
+      match e with
+          | Call (e, (lp, es, rp)) -> deep_mv_call (e, (lp, es, rp)) with_type env
+          | _ -> get_id ~with_type:with_type env e
+      in
+      let (env'', args') = deep_mv_args with_type env' xs in
+      (env'', new_e, args')
+  in
+  match args with
+    | [] -> (env, [])
+    | (Arg e)::xs -> (
+       let (env'', new_e, args') = get_new_arg (e, xs) in
+       (env'', (Arg new_e)::args')
+    )
+    | (ArgKwd (label, e))::xs -> (
+       let (env'', new_e, args') = get_new_arg (e, xs) in
+       (env'', (ArgKwd (label, new_e))::args')
+    )
+    | _ -> (env, [])
 
 let deep_metavar (e, (lp, es, rp)) env =
   let (_, e') = deep_mv_call (e, (lp, es, rp)) false env in ("deep metavars", E e')
@@ -145,6 +157,7 @@ let deep_typed_metavar (e, (lp, es, rp)) env =
 
 
 let generalize_call env = function
+  | Call (IdSpecial (New, _), _) -> []
   | Call (IdSpecial e1, e2) -> (exact_metavar (IdSpecial e1, e2) env) :: []
   | Call (e, (lp, es, rp)) ->
       (* only show the deep_metavar and deep_typed_metavar options if relevant *)
