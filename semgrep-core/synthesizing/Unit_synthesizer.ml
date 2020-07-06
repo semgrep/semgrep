@@ -81,6 +81,14 @@ let python_tests = [
   "arrays_and_funcs.py", "19:3-19:32",
   ["exact match", "node.id == node.id";
    "exact metavars", "$X == $X"];
+
+   "arrays_and_funcs.py", "20:10-22:35",
+   ["exact match", "r.set_cookie('sessionid', generate_cookie_value('RANDOM-UUID'), secure=True)";
+    "dots", "r.set_cookie(...)";
+    "metavars", "r.set_cookie($X, $Y, secure=$Z, ...)";
+    "exact metavars", "r.set_cookie($X, $Y, secure=$Z)";
+    "deep metavars", "r.set_cookie($X, generate_cookie_value($Y), secure=$Z)"
+   ];
 ]
 
 let java_tests = [
@@ -102,7 +110,7 @@ let java_tests = [
    "deep metavars", "this.foo(this.bar(this.car($X)), $Y, this.foo($Y, $Z), $A)"
   ];
 
-  "typed_funcs.java", "6:8-6:14",
+  "typed_funcs.java", "8:8-8:26",
   ["exact match", "this.foo(this.foo(a, b), c)";
    "dots", "this.foo(...)";
    "metavars", "this.foo($X, $Y, ...)";
@@ -110,6 +118,22 @@ let java_tests = [
    "typed metavars", "this.foo(this.foo((int $X), (String $Y)), (bool $Z))";
    "deep metavars", "this.foo(this.foo($X, $Y), $Z)"
   ];
+
+   "typed_funcs.java", "6:12-6:14",
+   ["exact match", "a";
+     "metavar", "$X";
+     "typed metavar", "(int $X)"
+   ];
+
+  "typed_funcs.java", "10:8-10:30",
+  ["exact match", "System.out.print(\"A\")";
+   "dots", "System.out.print(...)";
+   "metavars", "System.out.print($X, ...)";
+   "exact metavars", "System.out.print($X)";
+  ];
+
+  "typed_funcs.java", "11:20-11:47",
+  ["exact match", "new Scanner(new File(), 1)"]
 ]
 
 (* Cases splits up the test cases by language.
@@ -122,10 +146,9 @@ let java_tests = [
  * Place test files in semgrep-core/tests/SYNTHESIZING
  *)
 
-let unittest ~any_gen_of_string =
+let unittest =
   "pattern inference features" >:: (fun () ->
-    let cases = [Lang.Python, python_tests]
-    (* TODO: currently can't include java_tests because types don't parse *)
+    let cases = [Lang.Python, python_tests; Lang.Java, java_tests]
     in
     cases |> List.iter (fun (lang, tests) ->
     tests |> List.iter (fun (filename, range, sols) ->
@@ -136,11 +159,13 @@ let unittest ~any_gen_of_string =
         Naming_AST.resolve lang code;
         let check_pats (_, pat) =
           try
-            let pattern = any_gen_of_string pat in
+            let pattern = Parse_generic.parse_pattern lang pat in
             let e_opt = Range_to_AST.expr_at_range r code in
                match e_opt with
                  | Some e ->
                     let matches_with_env = Semgrep_generic.match_any_any pattern (A.E e) in
+                    (* Debugging note: uses pattern_to_string for convenience, but really should *)
+                    (* match the code in the given file at the given range *)
                     assert_bool (spf "pattern:|%s| should match |%s" pat (PPG.pattern_to_string lang (A.E e)))
                     (matches_with_env <> [])
                  | None -> failwith (spf "Couldn't find range %s in %s" range file)
@@ -149,7 +174,9 @@ let unittest ~any_gen_of_string =
             failwith (spf "problem parsing %s" pat)
         in
         pats |> List.iter check_pats;
-        assert(pats = sols)
+        let pats_str = List.fold_left (fun s (s1, s2) -> s ^ s1 ^ ": " ^ s2 ^ "\n") "" pats in
+        assert_bool ("Patterns do not match solution, where inferred patterns are:\n" ^ pats_str)
+                    (pats = sols)
     )
     )
   )
