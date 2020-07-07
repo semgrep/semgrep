@@ -27,6 +27,12 @@ git submodule init && git submodule update --init --recursive
 eval $(opam env) && opam install -y ./pfff
 ```
 
+Install `pkg-config` in your environment. On a mac this is
+
+```bash
+brew install pkg-config
+```
+
 Then you can compile the program with:
 
 ```bash
