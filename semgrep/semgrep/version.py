@@ -21,8 +21,7 @@ VERSION_CHECK_TIMEOUT = int(
 )
 VERSION_CACHE_PATH = Path(
     os.environ.get(
-        "SEMGREP_VERSION_CACHE_PATH",
-        Path(os.path.expanduser("~")) / ".cache" / "semgrep_version",
+        "SEMGREP_VERSION_CACHE_PATH", Path.home() / ".cache" / "semgrep_version",
     )
 )
 

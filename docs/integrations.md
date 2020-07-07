@@ -22,7 +22,7 @@ repos:
       rev: '0.12.0'
       hooks:
           - id: semgrep
-            args: ['--config', 'https://semgrep.live/p/r2c', '--precommit', '--error']
+            args: ['--config', 'https://semgrep.live/p/r2c', '--error']
 ```
 
 ## Continuous Integration
@@ -78,7 +78,7 @@ jobs:
     build:
         docker:
             - image: returntocorp/semgrep:latest
-        working_directory: /home/repo
+        working_directory: /src
         steps:
             - checkout
             - run: semgrep --error --config https://semgrep.live/p/r2c .

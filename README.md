@@ -74,7 +74,7 @@ $ ./semgrep-v0.13.0-ubuntu-generic.sh
 To try Semgrep without installation, you can also run it via Docker:
 
 ```
-$ docker run --rm -v "${PWD}:/home/repo" returntocorp/semgrep --help
+$ docker run --rm -v "${PWD}:/src" returntocorp/semgrep --help
 ```
 
 See [Usage](#usage) to learn about running pre-built rules and writing custom ones.
