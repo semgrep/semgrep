@@ -158,7 +158,6 @@ let deep_typed_metavar (e, (lp, es, rp)) env =
 
 let generalize_call env = function
   | Call (IdSpecial (New, _), _) -> []
-  | Call (IdSpecial e1, e2) -> (exact_metavar (IdSpecial e1, e2) env) :: []
   | Call (e, (lp, es, rp)) ->
       (* only show the deep_metavar and deep_typed_metavar options if relevant *)
       let d_mvar =
@@ -171,8 +170,10 @@ let generalize_call env = function
             None -> d_mvar
           | Some e' -> e' :: d_mvar
       in
-       (shallow_dots (e, (lp, rp))) :: (shallow_metavar (e, (lp, es, rp)) env) ::
-       (exact_metavar (e, (lp, es, rp)) env) :: optional
+      (match e with
+        | IdSpecial _ -> (exact_metavar (e, (lp, es, rp)) env) :: optional
+        | _ -> (shallow_dots (e, (lp, rp))) :: (shallow_metavar (e, (lp, es, rp)) env) ::
+               (exact_metavar (e, (lp, es, rp)) env) :: optional)
   | _ -> []
 
 (* Id *)

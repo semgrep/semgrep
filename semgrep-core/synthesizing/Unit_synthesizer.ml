@@ -133,7 +133,14 @@ let java_tests = [
   ];
 
   "typed_funcs.java", "11:20-11:47",
-  ["exact match", "new Scanner(new File(), 1)"]
+  ["exact match", "new Scanner(new File(), 1)"];
+
+  "typed_funcs.java", "12:10-12:38",
+  ["exact match", "this.foo(this.bar(a)) == this.foo(this.bar(a))";
+  "exact metavars", "$X == $X";
+  "typed metavars", "this.foo(this.bar((int $X))) == this.foo(this.bar((int $X)))";
+  "deep metavars", "this.foo(this.bar($X)) == this.foo(this.bar($X))";
+ ];
 ]
 
 (* Cases splits up the test cases by language.
