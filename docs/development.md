@@ -27,6 +27,12 @@ git submodule init && git submodule update --init --recursive
 eval $(opam env) && opam install -y ./pfff
 ```
 
+Install `pkg-config` in your environment. On a mac this is
+
+```bash
+brew install pkg-config
+```
+
 Then you can compile the program with:
 
 ```bash
@@ -43,8 +49,8 @@ You can also use the Dockerfile in this directory to build semgrep inside a cont
 Then to test semgrep on a file, for example tests/GENERIC/test.py run:
 
 ```bash
-cd semgrep_core
-./_build/default/bin/Main.exe -e foo tests/python
+cd semgrep-core
+./_build/default/bin/Main.exe -e foo -l python tests/python
 ...
 ```
 
