@@ -56,11 +56,13 @@ let print_bool env = function
   | true ->
      (match env.lang with
          | Lang.Python | Lang.Python2 | Lang.Python3 -> "True"
-         | Lang.Java | Lang.Go | Lang.C | Lang.JSON | Lang.Javascript | Lang.OCaml -> "true")
+         | Lang.Java | Lang.Go | Lang.C | Lang.JSON | Lang.Javascript
+         | Lang.OCaml | Lang.Ruby | Lang.Typescript -> "true")
   | false ->
      (match env.lang with
          | Lang.Python | Lang.Python2 | Lang.Python3  -> "False"
-         | Lang.Java | Lang.Go | Lang.C | Lang.JSON | Lang.Javascript | Lang.OCaml -> "false")
+         | Lang.Java | Lang.Go | Lang.C | Lang.JSON | Lang.Javascript
+         | Lang.OCaml | Lang.Ruby | Lang.Typescript -> "false")
 
 let arithop env (op, tok) =
   match op with
@@ -141,7 +143,8 @@ and literal env = function
       (match env.lang with
       | Lang.Python | Lang.Python2 | Lang.Python3 ->
             "'" ^ s ^ "'"
-      | Lang.Java | Lang.Go | Lang.C | Lang.JSON | Lang.Javascript | Lang.OCaml ->
+      | Lang.Java | Lang.Go | Lang.C | Lang.JSON | Lang.Javascript
+      | Lang.OCaml | Lang.Ruby | Lang.Typescript ->
             "\"" ^ s ^ "\""
       )
   | Regexp ((s,_)) -> s
