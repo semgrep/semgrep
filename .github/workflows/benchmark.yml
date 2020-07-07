@@ -12,7 +12,7 @@ on:
       # This string is matched in `latest-artifact-for-branch.py`
 name: Incorporate Benchmark Data
 jobs:
-  build:
+  build-core:
     runs-on: ubuntu-latest
     container: ocaml/opam2:alpine
     steps:
