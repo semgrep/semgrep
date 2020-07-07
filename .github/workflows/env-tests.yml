@@ -18,6 +18,8 @@ jobs:
           sudo chmod -R 777 /__w/
       - name: Checkout
         uses: actions/checkout@v2
+      - name: Info
+        run: git log -1
       - name: Install missing packages
         run: sudo apk add --no-cache perl m4
       - name: Install submodules
