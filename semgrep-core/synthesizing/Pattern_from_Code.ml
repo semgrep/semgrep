@@ -22,6 +22,8 @@ open AST_generic
  *  - coccinelle spinfer?
  *)
 
+exception UnexpectedCase of string
+
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
@@ -186,13 +188,37 @@ let generalize_id env e =
      else ["metavar", E id]
   | _ -> []
 
+(* Assign *)
+let rec include_e2_patterns env (e1, tok, e2) =
+  let (env', id) = get_id env e1 in
+  let e2_patterns = generalize_exp e2 env' in
+  List.map (fun x -> match x with | (s, E pat) -> ("righthand " ^ s, E (Assign(id, tok, pat)))
+                                  | _ -> raise (UnexpectedCase "Must pass in an any of form E x"))
+           e2_patterns
+
+and generalize_assign env e =
+  match e with
+    | Assign (e1, tok, e2) ->
+      let (env1, id1) = get_id env e1 in
+      let (_, id2) = get_id env1 e2 in
+      let (env', id_t) = get_id ~with_type:true env e1 in
+      let e2_patterns = include_e2_patterns env (e1, tok, e2) in
+      let metavar_part =
+        if env'.has_type then ["metavars", E (Assign (id1, tok, id2));
+                               "typed metavars", E (Assign (id_t, tok, id2))]
+        else ["metavars", E (Assign (id1, tok, id2))]
+      in
+        ("dots", E (Assign (e1, tok, Ellipsis fk)))::(metavar_part @ e2_patterns)
+    | _ -> []
+
 (* All expressions *)
-let generalize_exp e env =
+and generalize_exp e env =
   match e with
   | Call _ -> generalize_call env e
   | Id _ -> generalize_id env e
   | L _ -> let (_, id) = get_id env e in ["metavar", E id]
   | DotAccess _ -> let (_, id) = get_id env e in ["metavar", E id]
+  | Assign _ -> generalize_assign env e
   | _ -> []
 
 let generalize e =
