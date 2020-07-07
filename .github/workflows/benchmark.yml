@@ -24,6 +24,8 @@ jobs:
         run: sudo apk add --no-cache perl m4
       - name: Install submodules
         run: git submodule update --init --recursive
+      - name: Install Python
+        run: sudo ./install-scripts/install-alpine-python
       - name: Retrieve the latest performance run
         run: ./install-scripts/latest-artifact-for-branch.py
         env:
