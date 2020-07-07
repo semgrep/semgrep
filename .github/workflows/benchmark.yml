@@ -47,7 +47,7 @@ jobs:
         run: |
           cd semgrep
           export PATH=/github/home/.local/bin:$PATH
-          pipenv install --dev
+          pipenv install --dev --python 3.8
       - name: check semgrep
         run: |
           cd semgrep
