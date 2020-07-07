@@ -35,28 +35,6 @@ def is_url(url: str) -> bool:
         return False
 
 
-ANSI_ESCAPE = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
-
-
-def tty_sensitive_print(msg: str, file: typing.IO, **kwargs: Any) -> None:
-    """
-    Strip ANSI escape sequences before printing, if `file` is not a TTY
-    """
-    if not file.isatty() and not FORCE_COLOR:
-        msg = ANSI_ESCAPE.sub("", msg)
-    print(msg, file=file, **kwargs)
-
-
-def print_stderr(msg: str, **kwargs: Any) -> None:
-    if not QUIET:
-        tty_sensitive_print(msg, file=sys.stderr, **kwargs)
-
-
-def debug_print(msg: str) -> None:
-    if DEBUG:
-        tty_sensitive_print(msg, file=sys.stderr)
-
-
 def debug_tqdm_write(msg: str, file: IO = sys.stderr) -> None:
     if DEBUG:
         tqdm.write(msg, file=file)
@@ -76,14 +54,14 @@ def set_flags(debug: bool, quiet: bool, force_color: bool) -> None:
     global FORCE_COLOR
     if debug:
         DEBUG = True
-        debug_print("DEBUG is on")
+        # debug_print("DEBUG is on")
     if quiet:
         QUIET = True
-        debug_print("QUIET is on")
+        # debug_print("QUIET is on")
 
     if force_color:
         FORCE_COLOR = True
-        debug_print("Output will use ANSI escapes, even if output is not a TTY")
+        # debug_print("Output will use ANSI escapes, even if output is not a TTY")
 
 
 def partition(pred: Callable, iterable: Iterable) -> Tuple[List, List]:
@@ -102,6 +80,9 @@ def with_color(color: str, text: str, bold: bool = False) -> str:
     """
     Wrap text in color & reset
     """
+    if not sys.stderr.isatty() and not FORCE_COLOR:
+        return text
+
     reset = Fore.RESET
     if bold:
         color = color + "\033[1m"
