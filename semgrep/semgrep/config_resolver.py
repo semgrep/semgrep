@@ -26,8 +26,9 @@ from semgrep.util import print_stderr
 
 IN_DOCKER = "SEMGREP_IN_DOCKER" in os.environ
 IN_GH_ACTION = "GITHUB_WORKSPACE" in os.environ
-REPO_HOME_DOCKER = "/home/repo/"
-REPO_HOME_DOCKER_PRECOMMIT = "/src/"
+
+SRC_DIRECTORY = Path(os.environ.get("SEMGREP_SRC_DIRECTORY", Path("/") / "src"))
+OLD_SRC_DIRECTORY = Path("/") / "home" / "repo"
 
 TEMPLATE_YAML_URL = (
     "https://raw.githubusercontent.com/returntocorp/semgrep-rules/develop/template.yaml"
@@ -72,17 +73,19 @@ def resolve_targets(targets: List[str]) -> List[Path]:
     ]
 
 
-def adjust_for_docker(in_precommit: bool = False) -> None:
-    repo_home = REPO_HOME_DOCKER_PRECOMMIT if in_precommit else REPO_HOME_DOCKER
-
+def adjust_for_docker() -> None:
     # change into this folder so that all paths are relative to it
     if IN_DOCKER and not IN_GH_ACTION:
-        if not Path(repo_home).exists():
+        if OLD_SRC_DIRECTORY.exists():
             raise SemgrepError(
-                f'you are running semgrep in docker, but you forgot to mount the current directory in Docker: missing: -v "${{PWD}}:{repo_home}"'
+                f"Detected Docker environment using old code volume, please use '{SRC_DIRECTORY}' instead of '{OLD_SRC_DIRECTORY}'"
             )
-    if Path(repo_home).exists():
-        os.chdir(repo_home)
+        if not SRC_DIRECTORY.exists():
+            raise SemgrepError(
+                f"Detected Docker environment without a code volume, please include '-v \"${{PWD}}:{SRC_DIRECTORY}\"'"
+            )
+    if SRC_DIRECTORY.exists():
+        os.chdir(SRC_DIRECTORY)
 
 
 def get_base_path() -> Path:

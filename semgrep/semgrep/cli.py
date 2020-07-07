@@ -118,9 +118,6 @@ def cli() -> None:
     )
 
     config.add_argument(
-        "--precommit", action="store_true", help=argparse.SUPPRESS,
-    )
-    config.add_argument(
         "-j",
         "--jobs",
         action="store",
@@ -271,7 +268,7 @@ def cli() -> None:
 
     # change cwd if using docker
     try:
-        semgrep.config_resolver.adjust_for_docker(args.precommit)
+        semgrep.config_resolver.adjust_for_docker()
     except SemgrepError as e:
         print_stderr(str(e))
         raise e
