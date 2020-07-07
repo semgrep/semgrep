@@ -14,12 +14,14 @@ name: Incorporate Benchmark Data
 jobs:
   benchmark-persist:
     runs-on: ubuntu-latest
-    container: returntocorp/sgrep-build:2.8
+    container: ocaml/opam2:alpine
     steps:
       - name: Adjust permissions
         run: sudo chmod -R 777 . /github
       - name: Checkout
         uses: actions/checkout@v2
+      - name: Install missing packages
+        run: sudo apk add --no-cache perl m4
       - name: Install submodules
         run: git submodule update --init --recursive
       - name: Retrieve the latest performance run

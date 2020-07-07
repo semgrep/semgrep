@@ -9,7 +9,7 @@ jobs:
   build-test:
     name: semgrep-core make test and semgrep make test/qa-test
     runs-on: ubuntu-latest
-    container: returntocorp/sgrep-build:2.8
+    container: ocaml/opam2:alpine
     steps:
       - name: Adjust permissions
         run: |
@@ -19,6 +19,8 @@ jobs:
           sudo chmod -R 777 /__w/
       - name: Checkout
         uses: actions/checkout@v2
+      - name: Install missing packages
+        run: sudo apk add --no-cache perl m4
       - name: Install submodules
         run: git submodule update --init --recursive
       - name: Install ocaml-tree-sitter
