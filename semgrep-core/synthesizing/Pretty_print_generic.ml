@@ -103,6 +103,7 @@ function
   | L x -> literal env x
   | Tuple es -> F.sprintf "(%s)" (tuple env es)
   | ArrayAccess (e1, e2) -> F.sprintf "%s[%s]" (expr env e1) (expr env e2)
+  | Assign (e1, _tok, e2) -> F.sprintf "%s = %s" (expr env e1) (expr env e2)
   | SliceAccess (e, o1, o2, o3) -> slice_access env e (o1, o2) o3
   | DotAccess (e, tok, fi) -> dot_access env (e, tok, fi)
   | Ellipsis _ -> "..."
