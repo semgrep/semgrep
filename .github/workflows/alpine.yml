@@ -10,6 +10,12 @@ jobs:
     runs-on: ubuntu-latest
     container: ocaml/opam2:alpine
     steps:
+      - name: Adjust permissions
+        run: |
+          sudo chmod -R 777 . /github
+          # github cache dir
+          sudo mkdir -p /__w/
+          sudo chmod -R 777 /__w/
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install submodules
