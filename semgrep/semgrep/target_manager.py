@@ -5,11 +5,16 @@ from typing import List
 from typing import NewType
 from typing import Set
 
+import attr
+
 from semgrep.error import _UnknownLanguageError
+from semgrep.error import FilesNotFoundError
+from semgrep.error import SemgrepError
+from semgrep.output import OutputHandler
 from semgrep.semgrep_types import Language
 from semgrep.util import partition_set
+from semgrep.util import print_stderr
 from semgrep.util import sub_check_output
-
 
 FileExtension = NewType("FileExtension", str)
 
@@ -62,26 +67,22 @@ def lang_to_exts(language: Language) -> List[FileExtension]:
         raise _UnknownLanguageError(f"Unsupported Language: {language}")
 
 
+@attr.s(auto_attribs=True)
 class TargetManager:
-    def __init__(
-        self,
-        includes: List[str],
-        excludes: List[str],
-        targets: List[str],
-        respect_git_ignore: bool,
-    ) -> None:
-        """
-            Handles all file include/exclude logic for semgrep
+    """
+        Handles all file include/exclude logic for semgrep
 
-            If respect_git_ignore is true then will only consider files that are
-            tracked or (untracked but not ignored) by git
-        """
-        self._targets = targets
-        self._includes = includes
-        self._excludes = excludes
-        self._respect_git_ignore = respect_git_ignore
+        If respect_git_ignore is true then will only consider files that are
+        tracked or (untracked but not ignored) by git
+    """
 
-        self._filtered_targets: Dict[str, Set[Path]] = {}
+    includes: List[str]
+    excludes: List[str]
+    targets: List[str]
+    respect_git_ignore: bool
+    output_handler: OutputHandler
+
+    _filtered_targets: Dict[str, Set[Path]] = attr.ib(factory=dict)
 
     @staticmethod
     def resolve_targets(targets: List[str]) -> Set[Path]:
@@ -237,23 +238,30 @@ class TargetManager:
         if lang in self._filtered_targets:
             return self._filtered_targets[lang]
 
-        targets = self.resolve_targets(self._targets)
-        explicit_files, directories = partition_set(lambda p: not p.is_dir(), targets)
+        targets = self.resolve_targets(self.targets)
+
+        files, directories = partition_set(lambda p: not p.is_dir(), targets)
+
+        # Error on non-existent files
+        explicit_files, nonexistent_files = partition_set(lambda p: p.is_file(), files)
+        if nonexistent_files:
+            self.output_handler.handle_semgrep_error(
+                FilesNotFoundError(tuple(nonexistent_files))
+            )
 
         # Remove explicit_files with known extensions. Remove non-existent files
         explicit_files = set(
             f
             for f in explicit_files
-            if f.is_file
-            and (
+            if (
                 any(f.match(f"*.{ext}") for ext in lang_to_exts(lang))
                 or not any(f.match(f"*.{ext}") for ext in ALL_EXTENSIONS)
             )
         )
 
-        targets = self.expand_targets(directories, lang, self._respect_git_ignore)
-        targets = self.filter_includes(targets, self._includes)
-        targets = self.filter_excludes(targets, self._excludes)
+        targets = self.expand_targets(directories, lang, self.respect_git_ignore)
+        targets = self.filter_includes(targets, self.includes)
+        targets = self.filter_excludes(targets, self.excludes)
 
         self._filtered_targets[lang] = targets.union(explicit_files)
         return self._filtered_targets[lang]
