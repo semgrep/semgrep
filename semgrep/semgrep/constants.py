@@ -17,7 +17,7 @@ DEFAULT_CONFIG_FOLDER = f".{DEFAULT_SEMGREP_CONFIG_NAME}"
 
 YML_EXTENSIONS = {".yml", ".yaml"}
 
-__VERSION__ = "0.13.0"
+__VERSION__ = "0.14.0b1"
 
 SEMGREP_PATH = compute_semgrep_path()
 

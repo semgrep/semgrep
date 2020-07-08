@@ -204,7 +204,7 @@ The following is example output from an [r2c rule](https://github.com/returntoco
           }
         }
       ],
-      "semanticVersion": "0.12.0"
+      "semanticVersion": "0.14.0"
     }
   },
   "version": "2.1.0"
