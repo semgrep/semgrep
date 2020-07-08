@@ -19,16 +19,8 @@ jobs:
           sudo chmod -R 777 /__w/
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Install missing packages
-        run: sudo apk add --no-cache perl m4
-      - name: Install submodules
-        run: git submodule update --init --recursive
-      - name: Install ocaml-tree-sitter
-        run: eval $(opam env --root /home/opam/.opam --set-root) && ./install-scripts/install-ocaml-tree-sitter
-      - name: Install pfff
-        run: eval $(opam env --root /home/opam/.opam --set-root) && opam install -y ./pfff
-      - name: Install semgrep-core
-        run: eval $(opam env --root /home/opam/.opam --set-root) && cd semgrep-core && opam install --deps-only -y . && make all && make install
+      - name: Build semgrep-core
+        run: ./install-scripts/install-alpine-semgrep-core
       - name: Test semgrep-core
         run: eval $(opam env --root /home/opam/.opam --set-root) && cd semgrep-core && make test && make e2etest
       - name: Install semgrep
