@@ -39,6 +39,8 @@ jobs:
       matrix:
         python: [3.7]
     steps:
+      - name: Checkout
+        uses: actions/checkout@v2
       - name: Setup Python
         uses: actions/setup-python@v1
         with:
@@ -105,6 +107,8 @@ jobs:
     runs-on: ubuntu-latest
     container: returntocorp/sgrep-build:${{ matrix.os }}
     steps:
+      - name: Checkout
+        uses: actions/checkout@v2
       - name: Download Artifact
         uses: actions/download-artifact@v1
         with:
