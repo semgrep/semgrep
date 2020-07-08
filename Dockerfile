@@ -7,12 +7,13 @@ RUN apk add --no-cache perl m4
 USER opam
 
 WORKDIR /home/opam/opam-repository
-RUN git pull && opam update && opam switch create 4.10.0+musl+static+flambda
+RUN git pull && opam update && opam switch create 4.10.0
 
 COPY --chown=opam .gitmodules /semgrep/.gitmodules
 COPY --chown=opam .git/ /semgrep/.git/
 COPY --chown=opam pfff/ /semgrep/pfff/
 COPY --chown=opam semgrep-core/ /semgrep/semgrep-core/
+COPY --chown=opam install-scripts /semgrep/install-scripts
 
 WORKDIR /semgrep
 RUN git submodule update --init --recursive
