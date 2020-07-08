@@ -28,7 +28,7 @@ jobs:
           path: artifacts/semgrep-core
       - name: Test semgrep-core
         run: |
-          eval $(opam env)
+          eval $(opam env --root /home/opam/.opam --set-root)
           cd semgrep-core
           make test
 
