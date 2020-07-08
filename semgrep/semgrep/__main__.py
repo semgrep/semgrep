@@ -6,7 +6,7 @@ from semgrep.cli import cli
 from semgrep.error import OK_EXIT_CODE
 from semgrep.error import SemgrepError
 
-formatter = logging.Formatter("%(message)")
+formatter = logging.Formatter("%(message)s")
 handler = logging.StreamHandler()
 handler.setLevel(logging.INFO)
 logger = logging.getLogger("semgrep")
