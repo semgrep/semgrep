@@ -2,7 +2,7 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.14.0](https://github.com/returntocorp/semgrep/releases/tag/v0.14.0) - 2020-07-07
 
 ### Changed
 - Default Docker code mount point from `/home/repo` to `/src` - this is also
@@ -17,6 +17,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Parse python2 tuple as parameter in function/lambda definition
 - Parse python3.8 positional only parameters (PEP 570)
 - Parse python2 implicit array in comprehension
+- Cache timeout errors in semgrep-core so running multiple rules does not
+  retry parsing
 
 ## [0.13.0](https://github.com/returntocorp/semgrep/releases/tag/v0.13.0) - 2020-06-30
 
