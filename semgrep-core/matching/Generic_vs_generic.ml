@@ -380,7 +380,7 @@ and m_expr a b =
    *   import a.b.C
    *   C.x
    *)
-  | A.IdQualified ((alabel, { A.name_qualifier = Some(names); _ }), _id_info), b ->
+  | A.IdQualified ((alabel, { A.name_qualifier = Some(A.QDots names); _ }), _id_info), b ->
     let full = names @ [alabel] in
     m_expr (make_dotted full) b
   (*e: [[Generic_vs_generic.m_expr()]] resolving alias case *)
@@ -470,9 +470,9 @@ and m_expr a b =
    * in Call() means we need to go deeper.
    *)
 
-  | A.Call(A.IdSpecial(A.ArithOp aop, _toka),
+  | A.Call(A.IdSpecial(A.Op aop, _toka),
       (_, [A.Arg a1;A.Arg(A.Ellipsis _tdots)], _)),
-    B.Call(B.IdSpecial(B.ArithOp bop, _tokb),
+    B.Call(B.IdSpecial(B.Op bop, _tokb),
       (_, [B.Arg b1; B.Arg _b2], _)) ->
      m_arithmetic_operator aop bop >>= (fun () ->
        m_expr a1 b1 >!> (fun () ->
@@ -660,6 +660,10 @@ and m_literal a b =
     (m_wrap m_string) a1 b1
   | A.Imag(a1), B.Imag(b1) ->
     (m_wrap m_string) a1 b1
+  | A.Ratio(a1), B.Ratio(b1) ->
+    (m_wrap m_string) a1 b1
+  | A.Atom(a1), B.Atom(b1) ->
+    (m_wrap m_string) a1 b1
   | A.Char(a1), B.Char(b1) ->
     (m_wrap m_string) a1 b1
   | A.Regexp(("/.../", a)), B.Regexp((_s, b)) ->
@@ -673,7 +677,7 @@ and m_literal a b =
 
   | A.Unit _, _  | A.Bool _, _  | A.Int _, _  | A.Float _, _  | A.Char _, _
   | A.String _, _  | A.Regexp _, _  | A.Null _, _  | A.Undefined _, _
-  | A.Imag _, _
+  | A.Imag _, _ | A.Ratio _, _ | A.Atom _, _
    -> fail ()
 (*e: function [[Generic_vs_generic.m_literal]] *)
 
@@ -714,11 +718,15 @@ and m_special a b =
     return ()
   | A.New, B.New ->
     return ()
+  | A.Defined, B.Defined ->
+    return ()
   | A.ConcatString a, B.ConcatString b ->
     m_concat_string_kind a b
   | A.Spread, B.Spread ->
     return ()
-  | A.ArithOp(a1), B.ArithOp(b1) ->
+  | A.HashSplat, B.HashSplat ->
+    return ()
+  | A.Op(a1), B.Op(b1) ->
     m_arithmetic_operator a1 b1
   | A.EncodedString(a1), B.EncodedString(b1) ->
     m_wrap m_string a1 b1
@@ -728,8 +736,8 @@ and m_special a b =
     )
   | A.This, _  | A.Super, _  | A.Self, _  | A.Parent, _  | A.Eval, _
   | A.Typeof, _  | A.Instanceof, _  | A.Sizeof, _  | A.New, _
-  | A.ConcatString _, _  | A.Spread, _  | A.ArithOp _, _  | A.IncrDecr _, _
-  | A.EncodedString _, _
+  | A.ConcatString _, _  | A.Spread, _  | A.Op _, _  | A.IncrDecr _, _
+  | A.EncodedString _, _ | A.HashSplat, _ | A.Defined, _
    -> fail ()
 (*e: function [[Generic_vs_generic.m_special]] *)
 
@@ -747,10 +755,21 @@ and m_name_info a b =
   { A. name_qualifier = a1; name_typeargs = a2; },
   { B. name_qualifier = b1; name_typeargs = b2; }
    ->
-    (m_option m_dotted_name) a1 b1 >>= (fun () ->
+    (m_option m_qualifier) a1 b1 >>= (fun () ->
     (m_option m_type_arguments) a2 b2
     )
 (*e: function [[Generic_vs_generic.m_name_info]] *)
+
+and m_qualifier a b =
+  match a, b with
+  | A.QDots a, B.QDots b -> m_dotted_name a b
+  | A.QTop a, B.QTop b -> m_tok a b
+  | A.QExpr (a1, a2), B.QExpr (b1, b2) ->
+      m_expr a1 b1 >>= (fun () ->
+      m_tok a2 b2
+      )
+  | A.QDots _, _ | A.QTop _, _ | A.QExpr _, _ -> fail ()
+
 
 and m_container_set_or_dict_unordered_elements (a1, a2) (b1, b2) =
   match ((a1, a2), (b1, b2)) with
