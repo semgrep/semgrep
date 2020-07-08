@@ -76,13 +76,13 @@ class TargetManager:
         tracked or (untracked but not ignored) by git
     """
 
-    targets: List[str]
     includes: List[str]
     excludes: List[str]
+    targets: List[str]
     respect_git_ignore: bool
     output_handler: OutputHandler
 
-    _filtered_targets: Dict[str, Set[Path]] = {}
+    _filtered_targets: Dict[str, Set[Path]] = attr.ib(factory=dict)
 
     @staticmethod
     def resolve_targets(targets: List[str]) -> Set[Path]:
@@ -245,7 +245,6 @@ class TargetManager:
         # Error on non-existent files
         explicit_files, nonexistent_files = partition_set(lambda p: p.is_file(), files)
         if nonexistent_files:
-            # TODO: change to use handler instead of raise
             self.output_handler.handle_semgrep_error(
                 FilesNotFoundError(tuple(nonexistent_files))
             )

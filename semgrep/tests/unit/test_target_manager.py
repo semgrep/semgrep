@@ -2,6 +2,9 @@ import subprocess
 from pathlib import Path
 from typing import Set
 
+from semgrep.constants import OutputFormat
+from semgrep.output import OutputHandler
+from semgrep.output import OutputSettings
 from semgrep.target_manager import TargetManager
 
 
@@ -359,23 +362,41 @@ def test_explicit_path(tmp_path, monkeypatch):
 
     # Should include explicitly passed python file
     foo_a = foo_a.relative_to(tmp_path)
-    assert foo_a in TargetManager([], [], ["foo/a.py"], False).get_files(
-        "python", [], []
+    output_settings = OutputSettings(
+        output_format=OutputFormat.TEXT,
+        output_destination=False,
+        quiet=True,
+        error_on_findings=False,
+        strict=False,
     )
+    defaulthandler = OutputHandler(output_settings)
+
+    assert foo_a in TargetManager(
+        [], [], ["foo/a.py"], False, defaulthandler
+    ).get_files("python", [], [])
 
     # Should include explicitly passed python file even if is in excludes
-    assert foo_a not in TargetManager([], ["foo/a.py"], ["."], False).get_files(
-        "python", [], []
-    )
-    assert foo_a in TargetManager([], ["foo/a.py"], [".", "foo/a.py"], False).get_files(
-        "python", [], []
-    )
+    assert foo_a not in TargetManager(
+        [], ["foo/a.py"], ["."], False, defaulthandler
+    ).get_files("python", [], [])
+    assert foo_a in TargetManager(
+        [], ["foo/a.py"], [".", "foo/a.py"], False, defaulthandler
+    ).get_files("python", [], [])
 
     # Should ignore expliclty passed .go file when requesting python
-    assert TargetManager([], [], ["foo/a.go"], False).get_files("python", [], []) == []
+    assert (
+        TargetManager([], [], ["foo/a.go"], False, defaulthandler).get_files(
+            "python", [], []
+        )
+        == []
+    )
 
     # Should include explicitly passed file with unknown extension
     assert cmp_path_sets(
-        set(TargetManager([], [], ["foo/noext"], False).get_files("python", [], [])),
+        set(
+            TargetManager([], [], ["foo/noext"], False, defaulthandler).get_files(
+                "python", [], []
+            )
+        ),
         {foo_noext},
     )
