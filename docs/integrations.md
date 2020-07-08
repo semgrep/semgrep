@@ -112,7 +112,7 @@ jobs:
         runs-on: ubuntu-latest
         name: Check
         steps:
-            - uses: actions/checkout@master
+            - uses: actions/checkout@v1
             - uses: returntocorp/semgrep-action@v1
               with:
                 config: p/r2c
