@@ -96,17 +96,25 @@ jobs:
 
   release-ubuntu:
     name: Check builds for ubuntu
+    needs: [build-core]
     strategy:
       matrix:
-        # The os doesn't actually matter anymore. We build a static binary linked with musl that is manylinux compatible.
+        # The os doesn't actually matter anymore. We build a static
+        # binary linked with musl that is manylinux compatible.
         os: ['ubuntu-16.04']
     runs-on: ubuntu-latest
     container: returntocorp/sgrep-build:${{ matrix.os }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
+      - name: Download Artifact
+        uses: actions/download-artifact@v1
         with:
-          submodules: 'recursive'
+          name: semgrep-core
+          path: semgrep-core-dir
+      - name: Install artifact
+        run: |
+          mkdir -p semgrep-files
+          cp semgrep-core-dir/semgrep-core semgrep-files
+          chmod +x semgrep-files/semgrep-core
       - name: Run Ubuntu build script
         run: ./release-scripts/ubuntu-release.sh
       - name: Upload artifacts
