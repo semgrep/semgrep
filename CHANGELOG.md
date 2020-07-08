@@ -66,6 +66,7 @@ def fetch_global_const():
 - Do not convert certain parenthesized expressions in tuples in Python
 - Returned warning when improperly mounting volume in docker container
 - Correctly handle uncommited file deletions when using git aware file targeting
+- Send informative error message when user tries to use semgrep on missing files
 
 ### Changed
 - Progress bar only displays when in interactive terminal, more than one

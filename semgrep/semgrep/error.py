@@ -1,8 +1,10 @@
 from enum import Enum
+from pathlib import Path
 from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import Sequence
 
 import attr
 from colorama import Fore
@@ -74,6 +76,17 @@ class SemgrepInternalError(Exception):
 
 class UnknownOperatorError(SemgrepError):
     pass
+
+
+@attr.s(auto_attribs=True, frozen=True)
+class FilesNotFoundError(SemgrepError):
+    level = Level.ERROR
+    code = FATAL_EXIT_CODE
+    paths: Sequence[Path]
+
+    def __str__(self) -> str:
+        lines = (f"File not found: {pathname}" for pathname in self.paths)
+        return "\n".join(lines)
 
 
 @attr.s(eq=True, hash=True, init=False)  # type: ignore

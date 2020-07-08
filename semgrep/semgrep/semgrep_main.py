@@ -333,6 +333,7 @@ def main(
         excludes=exclude,
         targets=target,
         respect_git_ignore=respect_git_ignore,
+        output_handler=output_handler,
     )
 
     # actually invoke semgrep
