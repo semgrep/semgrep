@@ -55,7 +55,9 @@ jobs:
           sudo cp semgrep-core-dir/semgrep-core /usr/bin/semgrep-core
           sudo chmod +x /usr/bin/semgrep-core
       - name: End-to-end tests
-        run: make e2etest
+        run: |
+          cd semgrep-core
+          make e2etest
       - name: Install semgrep
         run: |
           cd semgrep

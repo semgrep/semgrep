@@ -15,7 +15,7 @@ sudo apt-get install -y --no-install-recommends \
      libcurl4-openssl-dev libexpat1-dev gettext libz-dev libssl-dev \
      build-essential autoconf musl-tools
 
-if [[ -z "$SKIP_NUITKA" ]]; then
+if [[ -z "${SKIP_NUITKA+x}" ]]; then
   export PATH=/github/home/.local/bin:$PATH
   (
     cd semgrep
