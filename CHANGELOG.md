@@ -12,6 +12,12 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - `--precommit` flag - this is no longer necessary after defaulting to
   `pre-commit`'s code mount point `/src`
 
+### Fixed
+- Parse python files with trailing whitespace
+- Parse python2 tuple as parameter in function/lambda definition
+- Parse python3.8 positional only parameters (PEP 570)
+- Parse python2 implicit array in comprehension
+
 ## [0.13.0](https://github.com/returntocorp/semgrep/releases/tag/v0.13.0) - 2020-06-30
 
 ### Added
