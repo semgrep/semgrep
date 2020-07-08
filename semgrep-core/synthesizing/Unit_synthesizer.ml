@@ -82,13 +82,23 @@ let python_tests = [
   ["exact match", "node.id == node.id";
    "exact metavars", "$X == $X"];
 
-   "arrays_and_funcs.py", "20:10-22:35",
-   ["exact match", "r.set_cookie('sessionid', generate_cookie_value('RANDOM-UUID'), secure=True)";
-    "dots", "r.set_cookie(...)";
-    "metavars", "r.set_cookie($X, $Y, secure=$Z, ...)";
-    "exact metavars", "r.set_cookie($X, $Y, secure=$Z)";
-    "deep metavars", "r.set_cookie($X, generate_cookie_value($Y), secure=$Z)"
+   "set_cookie.py", "5:10-7:35",
+   ["exact match", "flask.response.set_cookie('sessionid', generate_cookie_value('RANDOM-UUID'), secure=True)";
+    "dots", "flask.response.set_cookie(...)";
+    "metavars", "flask.response.set_cookie($X, $Y, secure=$Z, ...)";
+    "exact metavars", "flask.response.set_cookie($X, $Y, secure=$Z)";
+    "deep metavars", "flask.response.set_cookie($X, generate_cookie_value($Y), secure=$Z)"
    ];
+
+   "set_cookie.py", "8:3-8:56",
+   [
+     "exact match", "resp = flask.response.set_cookie('sessionid', resp, 'RANDOM-UUID')";
+     "dots", "resp = ...";
+     "metavars", "$X = $Y";
+     "righthand dots", "$X = flask.response.set_cookie(...)";
+     "righthand metavars", "$X = flask.response.set_cookie($Y, $X, $Z, ...)";
+     "righthand exact metavars", "$X = flask.response.set_cookie($Y, $X, $Z)"
+   ]
 ]
 
 let java_tests = [
@@ -164,6 +174,7 @@ let unittest =
         let code = Parse_generic.parse_program file in
         let r = Range.range_of_linecol_spec range file in
         Naming_AST.resolve lang code;
+        Constant_propagation.propagate lang code;
         let check_pats (_, pat) =
           try
             let pattern = Parse_generic.parse_pattern lang pat in
