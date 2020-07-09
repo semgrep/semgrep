@@ -14,16 +14,24 @@ Contents:
 
 ## Pre-Commit Hook
 
-Include `semgrep` as a pre-commit hook using [pre-commit](https://pre-commit.com).
+The [pre-commit framework](https://pre-commit.com)
+can run `semgrep` on your code changes
+whenever you make a commit.
+To set this up,
+[install `pre-commit`](https://pre-commit.com/#install)
+and add this in your `.pre-commit-config.yaml`:
 
 ```yaml
 repos:
-    - repo: https://github.com/returntocorp/semgrep
-      rev: '0.12.0'
-      hooks:
-          - id: semgrep
-            args: ['--config', 'https://semgrep.live/p/r2c', '--error']
+- repo: https://github.com/returntocorp/semgrep
+  rev: 'v0.14.0'
+  hooks:
+    - id: semgrep
+      args: ['--config', 'https://semgrep.live/p/r2c', '--error']
 ```
+
+This will default to using the [`r2c` rule pack](https://semgrep.live/p/r2c).
+To choose another rule pack, see https://semgrep.live/packs.
 
 ## Continuous Integration
 
