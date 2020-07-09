@@ -159,13 +159,17 @@ def build_sarif_output(rule_matches: List[RuleMatch], rules: FrozenSet[Rule]) ->
     output_dict = {
         "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
         "version": "2.1.0",
-        "tool": {
-            "driver": {
-                **_sarif_tool_info(),
-                "rules": [rule.to_sarif() for rule in rules],
+        "runs": [
+            {
+                "tool": {
+                    "driver": {
+                        **_sarif_tool_info(),
+                        "rules": [rule.to_sarif() for rule in rules],
+                    }
+                },
+                "results": [match.to_sarif() for match in rule_matches],
             }
-        },
-        "results": [match.to_sarif() for match in rule_matches],
+        ],
     }
     return json.dumps(output_dict)
 
