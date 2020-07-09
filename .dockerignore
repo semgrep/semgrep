@@ -1,3 +1,6 @@
 Dockerfile
 semgrep/build
 semgrep/dist
+
+# Dune build products
+**/_build

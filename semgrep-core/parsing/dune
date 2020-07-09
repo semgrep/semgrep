@@ -3,10 +3,14 @@
  (wrapped false)
  (libraries
    yaml json-wheel
-   commons
+
+   tree-sitter-lang.ruby
+
+   commons commons_core
    pfff-config
    pfff-h_program-lang
    pfff-lang_GENERIC pfff-lang_GENERIC-analyze
+   pfff-lang_ruby pfff-lang_ruby-analyze
 
    semgrep_core
  )
