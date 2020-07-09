@@ -56,11 +56,13 @@ let print_bool env = function
   | true ->
      (match env.lang with
          | Lang.Python | Lang.Python2 | Lang.Python3 -> "True"
-         | Lang.Java | Lang.Go | Lang.C | Lang.JSON | Lang.Javascript | Lang.OCaml -> "true")
+         | Lang.Java | Lang.Go | Lang.C | Lang.JSON | Lang.Javascript
+         | Lang.OCaml | Lang.Ruby | Lang.Typescript -> "true")
   | false ->
      (match env.lang with
          | Lang.Python | Lang.Python2 | Lang.Python3  -> "False"
-         | Lang.Java | Lang.Go | Lang.C | Lang.JSON | Lang.Javascript | Lang.OCaml -> "false")
+         | Lang.Java | Lang.Go | Lang.C | Lang.JSON | Lang.Javascript
+         | Lang.OCaml | Lang.Ruby | Lang.Typescript -> "false")
 
 let arithop env (op, tok) =
   match op with
@@ -74,7 +76,7 @@ let arithop env (op, tok) =
                 | Lang.OCaml -> "="
                 | _ -> "=="
               )
-      | _ -> todo (E (IdSpecial (ArithOp op, tok)))
+      | _ -> todo (E (IdSpecial (Op op, tok)))
       (*
       | Pow | FloorDiv | MatMult (* Python *)
       | LSL | LSR | ASR (* L = logic, A = Arithmetic, SL = shift left *)
@@ -115,20 +117,23 @@ and id env (s, {id_resolved; _}) =
 
 and id_qualified env ((id, {name_qualifier; _}), _idinfo) =
   match name_qualifier with
-       | Some dot_ids ->
+       | Some (QDots dot_ids) ->
             F.sprintf "%s.%s" (dotted_access env dot_ids) (ident id)
+       | Some (QTop _t) ->
+            F.sprintf "::"
+       | Some (QExpr (e, _t)) -> expr env e ^ "::"
        | None -> ident id
 
 
 and special env = function
-  | (ArithOp op, tok) -> arithop env (op, tok)
+  | (Op op, tok) -> arithop env (op, tok)
   | (New, _) -> "new"
   | (sp, tok) -> todo (E (IdSpecial (sp, tok)))
 
 and call env (e, (_, es, _)) =
   let s1 = expr env e in
   match (e, es) with
-       | (IdSpecial(ArithOp _, _), x::y::[]) -> F.sprintf "%s %s %s" (argument env x) s1 (argument env y)
+       | (IdSpecial(Op _, _), x::y::[]) -> F.sprintf "%s %s %s" (argument env x) s1 (argument env y)
        | (IdSpecial(New, _), x::ys) -> F.sprintf "%s %s(%s)" s1 (argument env x) (arguments env ys)
        | _ -> F.sprintf "%s(%s)" s1 (arguments env es)
 
@@ -141,7 +146,8 @@ and literal env = function
       (match env.lang with
       | Lang.Python | Lang.Python2 | Lang.Python3 ->
             "'" ^ s ^ "'"
-      | Lang.Java | Lang.Go | Lang.C | Lang.JSON | Lang.Javascript | Lang.OCaml ->
+      | Lang.Java | Lang.Go | Lang.C | Lang.JSON | Lang.Javascript
+      | Lang.OCaml | Lang.Ruby | Lang.Typescript ->
             "\"" ^ s ^ "\""
       )
   | Regexp ((s,_)) -> s

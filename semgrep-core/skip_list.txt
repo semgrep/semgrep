@@ -2,3 +2,6 @@ dir: _build
 file: docs/Semgrep.tex
 dir: tests/PERF
 file: tests/java/perf_fields.java
+file: ocaml-tree-sitter-lang/ruby/lib/parser.c
+file: ocaml-tree-sitter-lang/ruby/lib/scanner.cc
+file: ocaml-tree-sitter-lang/ruby/lib/Parse.ml
