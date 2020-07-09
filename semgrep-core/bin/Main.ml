@@ -372,7 +372,8 @@ let parse_generic lang file =
  (fun () -> timeout_function lang (fun () ->
  try
   (* finally calling the actual function *)
-  let ast = Parse_generic.parse_with_lang lang file in
+  let ast = Parse_code.parse_and_resolve_name_use_pfff_or_treesitter lang file
+  in
   (*s: [[Main_semgrep_core.parse_generic()]] resolve names in the AST *)
   (*e: [[Main_semgrep_core.parse_generic()]] resolve names in the AST *)
   Left ast
@@ -789,7 +790,7 @@ let dump_pattern (file: Common.filename) =
 let dump_ast file =
   match Lang.langs_of_filename file with
   | lang::_ ->
-    let x = Parse_code.parse_with_lang lang file in
+    let x = Parse_code.parse_and_resolve_name_use_pfff_or_treesitter lang file in
     let v = Meta_AST.vof_any (AST_generic.Pr x) in
     let s = dump_v_to_format v in
     pr s

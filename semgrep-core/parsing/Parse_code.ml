@@ -34,7 +34,7 @@ let just_parse_with_lang lang file =
 (* Entry point *)
 (*****************************************************************************)
 
-let parse_with_lang lang file =
+let parse_and_resolve_name_use_pfff_or_treesitter lang file =
   let ast = just_parse_with_lang lang file in
 
   (* to be deterministic, reset the gensym; anyway right now semgrep is

@@ -50,7 +50,7 @@ let any_gen_of_string str =
 (*s: function [[Test.parse_generic]] *)
 let parse_generic file = 
   let lang = List.hd (Lang.langs_of_filename file) in
-  Parse_code.parse_with_lang lang file
+  Parse_code.parse_and_resolve_name_use_pfff_or_treesitter lang file
 (*e: function [[Test.parse_generic]] *)
 
 (*s: function [[Test.regression_tests_for_lang]] *)
