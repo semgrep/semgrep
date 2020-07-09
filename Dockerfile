@@ -22,6 +22,12 @@ COPY --chown=opam semgrep-core/ /semgrep/semgrep-core/
 COPY --chown=opam install-scripts /semgrep/install-scripts
 
 WORKDIR /semgrep
+
+# Protect against dirty environment during development.
+# (ideally, we should translate .gitignore to .dockerignore)
+RUN git clean -dfX
+RUN git submodule foreach --recursive git clean -dfX
+
 RUN git submodule update --init --recursive
 RUN eval "$(opam env)" && ./install-scripts/install-ocaml-tree-sitter
 RUN eval "$(opam env)" && opam install -y pfff/
