@@ -65,7 +65,36 @@ class Rule:
         self._includes = path_dict.get("include", [])
         self._excludes = path_dict.get("exclude", [])
         self._languages = [Language(l) for l in self._raw["languages"]]
-        self._expression = self._build_boolean_expression(self._yaml)
+
+        # check taint/search mode
+        self._expression = self._taint_or_search_validation(self._yaml)
+
+    def _taint_or_search_validation(
+        self, rule: YamlTree[YamlMap]
+    ) -> BooleanRuleExpression:
+
+        rule_raw = rule.value
+        _mode = rule_raw.get("mode")
+        if _mode:
+            self._mode = rule_raw["mode"].unroll()
+            if self._mode == "track":
+                # TODO: change this
+                return BooleanRuleExpression(
+                    None, None, None, None
+                )
+            elif self._mode == "search":
+                # Raises InvalidRuleSchemaError if fails to parse in search mode
+                return self._build_boolean_expression(rule)
+            else:
+                raise InvalidRuleSchemaError(
+                    short_msg="invalid mode",
+                    long_msg="The only supported modes are 'search' (default) and 'track'",
+                    spans=[rule_raw["mode"].span],
+                )
+
+        # Defaults to search mode if mode is not specified
+        self._mode = "search"
+        return self._build_boolean_expression(rule)
 
     def _parse_boolean_expression(
         self,

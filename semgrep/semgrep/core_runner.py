@@ -225,55 +225,11 @@ class CoreRunner:
         """
         outputs: List[PatternMatch] = []  # multiple invocations per language
         errors: List[CoreException] = []
-        equivalences = rule.equivalences
 
-        for language, all_patterns_for_language in self._group_patterns_by_language(
-            [rule]
-        ).items():
-            try:
-                targets = target_manager.get_files(
-                    language, rule.includes, rule.excludes
-                )
-            except _UnknownLanguageError as ex:
-                raise UnknownLanguageError(
-                    short_msg="invalid language",
-                    long_msg=f"unsupported language {language}",
-                    spans=[rule.languages_span.with_context(before=1, after=1)],
-                ) from ex
-
-            if targets == []:
-                continue
-
-            # semgrep-core doesn't know about OPERATORS.REGEX - this is
-            # strictly a semgrep Python feature. Regex filtering is
-            # performed purely in Python code then compared against
-            # semgrep-core's results for other patterns.
-            patterns_regex, patterns = partition(
-                lambda p: p.expression.operator == OPERATORS.REGEX,
-                all_patterns_for_language,
-            )
-            if patterns_regex:
-                patterns_json = [pattern.to_json() for pattern in patterns_regex]
-
-                try:
-                    patterns_re = [
-                        (pattern["id"], re.compile(pattern["pattern"]))
-                        for pattern in patterns_json
-                    ]
-                except re.error as err:
-                    raise SemgrepError(f"invalid regular expression specified: {err}")
-
-                re_fn = functools.partial(get_re_matches, patterns_re)
-                with multiprocessing.Pool(self._jobs) as pool:
-                    matches = pool.map(re_fn, targets)
-
-                outputs.extend(
-                    single_match
-                    for file_matches in matches
-                    for single_match in file_matches
-                )
-
-            patterns_json = [p.to_json() for p in patterns]
+        if rule._mode == "track":
+            language = "python"
+            targets = target_manager.get_files(language, rule.includes, rule.excludes)
+            patterns_json = rule._raw
             with tempfile.NamedTemporaryFile(
                 "w"
             ) as pattern_file, tempfile.NamedTemporaryFile(
@@ -282,7 +238,8 @@ class CoreRunner:
                 "w"
             ) as equiv_file:
                 yaml = YAML()
-                yaml.dump({"rules": patterns_json}, pattern_file)
+                del patterns_json["mode"]
+                yaml.dump({"rules": [patterns_json]}, pattern_file)
                 pattern_file.flush()
                 target_file.write("\n".join(str(t) for t in targets))
                 target_file.flush()
@@ -290,7 +247,7 @@ class CoreRunner:
                 cmd = [SEMGREP_PATH] + [
                     "-lang",
                     language,
-                    "-rules_file",
+                    "-tainting_rules_file",
                     pattern_file.name,
                     "-j",
                     str(self._jobs),
@@ -299,11 +256,6 @@ class CoreRunner:
                     "-use_parsing_cache",
                     cache_dir,
                 ]
-
-                if equivalences:
-                    self._write_equivalences_file(equiv_file, equivalences)
-                    cmd += ["-equivalences", equiv_file.name]
-
                 core_run = sub_run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
                 debug_print(core_run.stderr.decode("utf-8", "replace"))
@@ -324,12 +276,121 @@ class CoreRunner:
                         raise SemgrepError(
                             f"unexpected json output while invoking semgrep-core:\n{PLEASE_FILE_ISSUE_TEXT}"
                         )
-
                 output_json = json.loads((core_run.stdout.decode("utf-8", "replace")))
-                errors.extend(
-                    CoreException.from_json(e, language) for e in output_json["errors"]
+
+        else:
+            for language, all_patterns_for_language in self._group_patterns_by_language(
+                [rule]
+            ).items():
+                try:
+                    targets = target_manager.get_files(
+                        language, rule.includes, rule.excludes
+                    )
+                except _UnknownLanguageError as ex:
+                    raise UnknownLanguageError(
+                        short_msg="invalid language",
+                        long_msg=f"unsupported language {language}",
+                        spans=[rule.languages_span.with_context(before=1, after=1)],
+                    ) from ex
+
+                if targets == []:
+                    continue
+
+                # semgrep-core doesn't know about OPERATORS.REGEX - this is
+                # strictly a semgrep Python feature. Regex filtering is
+                # performed purely in Python code then compared against
+                # semgrep-core's results for other patterns.
+                patterns_regex, patterns = partition(
+                    lambda p: p.expression.operator == OPERATORS.REGEX,
+                    all_patterns_for_language,
                 )
-                outputs.extend(PatternMatch(m) for m in output_json["matches"])
+                if patterns_regex:
+                    patterns_json = [pattern.to_json() for pattern in patterns_regex]
+
+                    try:
+                        patterns_re = [
+                            (pattern["id"], re.compile(pattern["pattern"]))
+                            for pattern in patterns_json
+                        ]
+                    except re.error as err:
+                        raise SemgrepError(
+                            f"invalid regular expression specified: {err}"
+                        )
+
+                    re_fn = functools.partial(get_re_matches, patterns_re)
+                    with multiprocessing.Pool(self._jobs) as pool:
+                        matches = pool.map(re_fn, targets)
+
+                    outputs.extend(
+                        single_match
+                        for file_matches in matches
+                        for single_match in file_matches
+                    )
+
+                # if type(rule) = trackrule:
+                #    taint_json = [p.to_json() for p in patterns]
+                patterns_json = [p.to_json() for p in patterns]
+                with tempfile.NamedTemporaryFile(
+                    "w"
+                ) as pattern_file, tempfile.NamedTemporaryFile(
+                    "w"
+                ) as target_file, tempfile.NamedTemporaryFile(
+                    "w"
+                ) as equiv_file:
+                    yaml = YAML()
+                    yaml.dump({"rules": patterns_json}, pattern_file)
+                    pattern_file.flush()
+                    target_file.write("\n".join(str(t) for t in targets))
+                    target_file.flush()
+
+                    cmd = [SEMGREP_PATH] + [
+                        "-lang",
+                        language,
+                        "-rules_file",
+                        pattern_file.name,
+                        "-j",
+                        str(self._jobs),
+                        "-target_file",
+                        target_file.name,
+                        "-use_parsing_cache",
+                        cache_dir,
+                    ]
+
+                    equivalences = rule.equivalences
+                    if equivalences:
+                        self._write_equivalences_file(equiv_file, equivalences)
+                        cmd += ["-equivalences", equiv_file.name]
+
+                    core_run = sub_run(
+                        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+                    )
+
+                    debug_print(core_run.stderr.decode("utf-8", "replace"))
+
+                    if core_run.returncode != 0:
+                        # see if semgrep output a JSON error that we can decode
+                        semgrep_output = core_run.stdout.decode("utf-8", "replace")
+                        try:
+                            output_json = json.loads(semgrep_output)
+                        except ValueError:
+                            raise SemgrepError(
+                                f"unexpected non-json output while invoking semgrep-core:\n{PLEASE_FILE_ISSUE_TEXT}"
+                            )
+
+                        if "error" in output_json:
+                            self._raise_semgrep_error_from_json(output_json, patterns)
+                        else:
+                            raise SemgrepError(
+                                f"unexpected json output while invoking semgrep-core:\n{PLEASE_FILE_ISSUE_TEXT}"
+                            )
+
+                    output_json = json.loads(
+                        (core_run.stdout.decode("utf-8", "replace"))
+                    )
+        errors.extend(
+            CoreException.from_json(e, language) for e in output_json["errors"]
+        )
+        outputs.extend(PatternMatch(m) for m in output_json["matches"])
 
         # group output; we want to see all of the same rule ids on the same file path
         by_rule_index: Dict[

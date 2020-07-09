@@ -47,7 +47,7 @@ OPERATOR_PATTERN_NAMES_MAP = {
 
 # These are the only valid top-level keys
 YAML_MUST_HAVE_KEYS = {"id", "message", "languages", "severity"}
-YAML_OPTIONAL_KEYS = {"metadata", "paths"}
+YAML_OPTIONAL_KEYS = {"metadata", "paths", "mode"}
 YAML_VALID_TOP_LEVEL_OPERATORS = {
     OPERATORS.AND,
     OPERATORS.AND_ALL,
@@ -57,14 +57,18 @@ YAML_VALID_TOP_LEVEL_OPERATORS = {
     OPERATORS.EQUIVALENCES,
     OPERATORS.REGEX,
 }
+YAML_TOP_LEVEL_PATTERN_KEYS = {
+    pattern_name
+    for op in YAML_VALID_TOP_LEVEL_OPERATORS
+    for pattern_name in OPERATOR_PATTERN_NAMES_MAP[op]
+}
+YAML_TAINT_KEYS = {"pattern-sinks", "pattern-sources", "pattern-sanitizers"}
+
 YAML_ALL_VALID_RULE_KEYS = (
-    {
-        pattern_name
-        for op in YAML_VALID_TOP_LEVEL_OPERATORS
-        for pattern_name in OPERATOR_PATTERN_NAMES_MAP[op]
-    }
+    YAML_TOP_LEVEL_PATTERN_KEYS
     | YAML_MUST_HAVE_KEYS
     | YAML_OPTIONAL_KEYS
+    | YAML_TAINT_KEYS
 )
 
 

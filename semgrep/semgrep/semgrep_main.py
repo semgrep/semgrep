@@ -62,7 +62,7 @@ def validate_single_rule(
             help=help_msg,
         )
 
-    # Raises InvalidRuleSchemaError if fails to parse
+    # Defaults to search mode if mode is not specified
     return Rule.from_yamltree(rule_yaml)
 
 
