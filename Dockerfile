@@ -35,6 +35,7 @@ RUN eval "$(opam env)" && opam install -y pfff/
 WORKDIR /semgrep/semgrep-core
 RUN eval "$(opam env)" && opam install --deps-only -y . && make all
 RUN mkdir -p /usr/local/bin
+# hadolint ignore=DL3004
 RUN sudo cp _build/install/default/bin/semgrep-core /usr/local/bin
 RUN semgrep-core -version
 
