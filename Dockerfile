@@ -1,4 +1,10 @@
-# semgrep-core build
+#
+# First, build a static 'semgrep-core' binary on Alpine because it comes set up
+# for it (requires using musl rather than glibc).
+#
+# Then 'semgrep-core' alone is copied to a container with that takes care
+# of the 'semgrep' wrapping.
+#
 
 FROM ocaml/opam2:alpine@sha256:4c2ce9a181b4b12442a68fc221d0b753959ec80e24eae3bf788eeca4dcb9a293 as build-semgrep-core
 
@@ -7,7 +13,7 @@ RUN apk add --no-cache perl m4
 USER opam
 
 WORKDIR /home/opam/opam-repository
-RUN git pull && opam update && opam switch create 4.10.0
+RUN git pull && opam update && opam switch create 4.10.0+flambda
 
 COPY --chown=opam .gitmodules /semgrep/.gitmodules
 COPY --chown=opam .git/ /semgrep/.git/
@@ -19,15 +25,22 @@ WORKDIR /semgrep
 RUN git submodule update --init --recursive
 RUN eval "$(opam env)" && ./install-scripts/install-ocaml-tree-sitter
 RUN eval "$(opam env)" && opam install -y pfff/
-RUN eval "$(opam env)" && opam install --deps-only -y semgrep-core/ && make -C semgrep-core/ all
-RUN _build/default/bin/Main.exe -version
 
-# final output
+WORKDIR /semgrep/semgrep-core
+RUN eval "$(opam env)" && opam install --deps-only -y . && make all
+RUN mkdir -p /usr/local/bin
+RUN sudo cp _build/install/default/bin/semgrep-core /usr/local/bin
+RUN semgrep-core -version
+
+#
+# We change container, bringing only the 'semgrep-core' binary with us.
+#
 
 FROM python:3.7.7-alpine3.11
 LABEL maintainer="support@r2c.dev"
 
-COPY --from=build-semgrep-core /semgrep/semgrep-core/_build/default/bin/Main.exe /bin/semgrep-core
+COPY --from=build-semgrep-core \
+     /usr/local/bin/semgrep-core /usr/local/bin/semgrep-core
 RUN semgrep-core -version
 
 COPY semgrep /semgrep
