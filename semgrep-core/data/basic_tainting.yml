@@ -1,5 +1,6 @@
 rules:
   - id: classic
+    mode: track
     pattern-sources:
       - source(...)
       - source1(...)
@@ -11,5 +12,10 @@ rules:
       - sanitize(...)
       - sanitize1(...)
     message: A user input source() went into a dangerous sink()
+    languages: [python, javascript]
+    severity: WARNING
+  - id: stupid_equal
+    pattern: $X
+    message: Dude, $X is always true (Unless X is NAN ...)
     languages: [python, javascript]
     severity: WARNING
