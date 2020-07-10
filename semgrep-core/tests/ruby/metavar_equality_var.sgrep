@@ -1,0 +1,2 @@
+$V = open()
+close($V)

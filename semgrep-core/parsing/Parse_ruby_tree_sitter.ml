@@ -27,14 +27,66 @@ module G = AST_generic
  * The resulting AST can then be converted to the generic AST by using
  * pfff/lang_ruby/analyze/ruby_to_generic.ml
  *)
+(*****************************************************************************)
+(* Globals *)
+(*****************************************************************************)
+(* not very multicore friendly *)
+let global_file = ref ""
+let global_conv = ref (Hashtbl.create 0)
 
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-let token2 (_tok : Tree_sitter_run.Token.t) =
-  PI.fake_info "XXX"
-let str (_tok : Tree_sitter_run.Token.t) =
-  "STRXXX", PI.fake_info "XXX"
+
+(* mostly a copy of Parse_info.full_charpos_to_pos_large *)
+let line_col_to_pos = fun file ->
+
+    let chan = open_in file in
+    let size = Common2.filesize file + 2 in
+
+    let charpos   = ref 0 in
+    let line  = ref 0 in
+    let h = Hashtbl.create size in
+
+    let full_charpos_to_pos_aux () =
+      try
+        while true do begin
+          let s = (input_line chan) in
+          incr line;
+
+          (* '... +1 do'  cos input_line dont return the trailing \n *)
+          for i = 0 to (String.length s - 1) + 1 do
+            Hashtbl.add h (!line, i) (!charpos + i);
+          done;
+          charpos := !charpos + String.length s + 1;
+        end done
+     with End_of_file ->
+       Hashtbl.add h (!line, 0) !charpos;
+    in
+    full_charpos_to_pos_aux ();
+    close_in chan;
+    h
+
+
+
+let token2 (tok : Tree_sitter_run.Token.t) =
+  let (loc, str) = tok in
+  let h = !global_conv in
+  let start = loc.Tree_sitter_run.Loc.start in
+  (* Parse_info is 1-line based and 0-column based, like Emacs *)
+  let line = start.Tree_sitter_run.Loc.row + 1 in
+  let column = start.Tree_sitter_run.Loc.column in
+  let charpos =
+    try Hashtbl.find h (line, column)
+    with Not_found -> -1
+  in
+  let file = !global_file in
+  let tok_loc = { PI. str; charpos; line; column; file; } in
+  { PI.token = PI.OriginTok tok_loc; transfo = PI.NoTransfo }
+
+let str (tok : Tree_sitter_run.Token.t) =
+  let (_, s) = tok in
+  s, token2 tok
 
 let list_to_maybe_tuple = function
  | [] -> raise Impossible
@@ -1691,7 +1743,11 @@ let parse file =
    match cst_opt with
    | None -> failwith (spf "No CST returned for %s" file)
    | Some x ->
+      (*
       let sexp = CST.sexp_of_program x in
       let s = Sexplib.Sexp.to_string_hum sexp in
       pr s;
+      *)
+      global_file := file;
+      global_conv := line_col_to_pos file;
       program x
