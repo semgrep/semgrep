@@ -12,9 +12,9 @@ rules:
       - sanitize(...)
       - sanitize1(...)
     message: A user input source() went into a dangerous sink()
-    languages: [python, javascript]
+    languages: [python, python]
     severity: WARNING
-  - id: stupid_equal
+  - id: stupid
     pattern: $X
     message: Dude, $X is an expression in this file
     languages: [python, javascript]
