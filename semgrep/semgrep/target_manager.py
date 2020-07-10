@@ -1,5 +1,6 @@
 import subprocess
 from pathlib import Path
+from typing import Collection
 from typing import Dict
 from typing import List
 from typing import NewType
@@ -181,7 +182,7 @@ class TargetManager:
 
     @staticmethod
     def expand_targets(
-        targets: Set[Path], lang: Language, respect_git_ignore: bool
+        targets: Collection[Path], lang: Language, respect_git_ignore: bool
     ) -> Set[Path]:
         """
             Explore all directories. Remove duplicates
