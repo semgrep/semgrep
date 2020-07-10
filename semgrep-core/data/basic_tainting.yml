@@ -14,12 +14,12 @@ rules:
     message: A user input source() went into a dangerous sink()
     languages: [python, python]
     severity: WARNING
-  - id: stupid
+  - id: one-arg
     pattern: $X($Y)
-    message: Dude, $X is a function in this file with 1 arg
+    message: $X is a function in this file with 1 arg
     languages: [python, javascript]
     severity: WARNING
-  - id: stupid2
+  - id: empty-sanitize
     mode: search
     pattern: sanitize()
     message: Function called sanitize was called with no args

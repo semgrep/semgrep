@@ -220,6 +220,72 @@ class CoreRunner:
         yaml.dump({"equivalences": [e.to_json() for e in equivalences]}, fp)
         fp.flush()
 
+    def _run_core_command(
+        self,
+        patterns_json: List[Any],
+        patterns: List[Pattern],
+        targets: List[Path],
+        language: Language,
+        rule: Rule,
+        rules_flag: str,
+        cache_dir: str,
+    ) -> dict:
+        with tempfile.NamedTemporaryFile(
+            "w"
+        ) as pattern_file, tempfile.NamedTemporaryFile(
+            "w"
+        ) as target_file, tempfile.NamedTemporaryFile(
+            "w"
+        ) as equiv_file:
+            yaml = YAML()
+            yaml.dump({"rules": patterns_json}, pattern_file)
+            pattern_file.flush()
+            target_file.write("\n".join(str(t) for t in targets))
+            target_file.flush()
+
+            cmd = [SEMGREP_PATH] + [
+                "-lang",
+                language,
+                rules_flag,
+                pattern_file.name,
+                "-j",
+                str(self._jobs),
+                "-target_file",
+                target_file.name,
+                "-use_parsing_cache",
+                cache_dir,
+            ]
+
+            equivalences = rule.equivalences
+            if equivalences:
+                self._write_equivalences_file(equiv_file, equivalences)
+                cmd += ["-equivalences", equiv_file.name]
+
+            core_run = sub_run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+            debug_print(core_run.stderr.decode("utf-8", "replace"))
+
+            if core_run.returncode != 0:
+                # see if semgrep output a JSON error that we can decode
+                semgrep_output = core_run.stdout.decode("utf-8", "replace")
+                try:
+                    output_json: dict = json.loads(semgrep_output)
+                except ValueError:
+                    raise SemgrepError(
+                        f"unexpected non-json output while invoking semgrep-core:\n{PLEASE_FILE_ISSUE_TEXT}"
+                    )
+
+                if "error" in output_json:
+                    self._raise_semgrep_error_from_json(output_json, patterns)
+                else:
+                    raise SemgrepError(
+                        f"unexpected json output while invoking semgrep-core:\n{PLEASE_FILE_ISSUE_TEXT}"
+                    )
+
+            output_json = json.loads((core_run.stdout.decode("utf-8", "replace")))
+
+            return output_json
+
     def _run_rule(
         self, rule: Rule, target_manager: TargetManager, cache_dir: str
     ) -> Tuple[List[RuleMatch], List[Dict[str, Any]], List[CoreException]]:
@@ -235,57 +301,16 @@ class CoreRunner:
                     language, rule.includes, rule.excludes
                 )
                 pattern_json = rule._raw.copy()
-                with tempfile.NamedTemporaryFile(
-                    "w"
-                ) as pattern_file, tempfile.NamedTemporaryFile(
-                    "w"
-                ) as target_file, tempfile.NamedTemporaryFile(
-                    "w"
-                ) as equiv_file:
-                    yaml = YAML()
-                    del pattern_json["mode"]
-                    yaml.dump({"rules": [pattern_json]}, pattern_file)
-                    pattern_file.flush()
-                    target_file.write("\n".join(str(t) for t in targets))
-                    target_file.flush()
-
-                    cmd = [SEMGREP_PATH] + [
-                        "-lang",
-                        language,
-                        "-tainting_rules_file",
-                        pattern_file.name,
-                        "-j",
-                        str(self._jobs),
-                        "-target_file",
-                        target_file.name,
-                        "-use_parsing_cache",
-                        cache_dir,
-                    ]
-                    core_run = sub_run(
-                        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-                    )
-
-                    debug_print(core_run.stderr.decode("utf-8", "replace"))
-
-                    if core_run.returncode != 0:
-                        # see if semgrep output a JSON error that we can decode
-                        semgrep_output = core_run.stdout.decode("utf-8", "replace")
-                        try:
-                            output_json = json.loads(semgrep_output)
-                        except ValueError:
-                            raise SemgrepError(
-                                f"unexpected non-json output while invoking semgrep-core:\n{PLEASE_FILE_ISSUE_TEXT}"
-                            )
-
-                        if "error" in output_json:
-                            self._raise_semgrep_error_from_json(output_json, [])
-                        else:
-                            raise SemgrepError(
-                                f"unexpected json output while invoking semgrep-core:\n{PLEASE_FILE_ISSUE_TEXT}"
-                            )
-                    output_json = json.loads(
-                        (core_run.stdout.decode("utf-8", "replace"))
-                    )
+                del pattern_json["mode"]
+                output_json = self._run_core_command(
+                    [pattern_json],
+                    [],
+                    targets,
+                    language,
+                    rule,
+                    "-tainting_rules_file",
+                    cache_dir,
+                )
 
         else:
             for language, all_patterns_for_language in self._group_patterns_by_language(
@@ -336,66 +361,18 @@ class CoreRunner:
                         for single_match in file_matches
                     )
 
-                # if type(rule) = trackrule:
-                #    taint_json = [p.to_json() for p in patterns]
                 patterns_json = [p.to_json() for p in patterns]
-                with tempfile.NamedTemporaryFile(
-                    "w"
-                ) as pattern_file, tempfile.NamedTemporaryFile(
-                    "w"
-                ) as target_file, tempfile.NamedTemporaryFile(
-                    "w"
-                ) as equiv_file:
-                    yaml = YAML()
-                    yaml.dump({"rules": patterns_json}, pattern_file)
-                    pattern_file.flush()
-                    target_file.write("\n".join(str(t) for t in targets))
-                    target_file.flush()
 
-                    cmd = [SEMGREP_PATH] + [
-                        "-lang",
-                        language,
-                        "-rules_file",
-                        pattern_file.name,
-                        "-j",
-                        str(self._jobs),
-                        "-target_file",
-                        target_file.name,
-                        "-use_parsing_cache",
-                        cache_dir,
-                    ]
+                output_json = self._run_core_command(
+                    patterns_json,
+                    patterns,
+                    targets,
+                    language,
+                    rule,
+                    "-rules_file",
+                    cache_dir,
+                )
 
-                    equivalences = rule.equivalences
-                    if equivalences:
-                        self._write_equivalences_file(equiv_file, equivalences)
-                        cmd += ["-equivalences", equiv_file.name]
-
-                    core_run = sub_run(
-                        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-                    )
-
-                    debug_print(core_run.stderr.decode("utf-8", "replace"))
-
-                    if core_run.returncode != 0:
-                        # see if semgrep output a JSON error that we can decode
-                        semgrep_output = core_run.stdout.decode("utf-8", "replace")
-                        try:
-                            output_json = json.loads(semgrep_output)
-                        except ValueError:
-                            raise SemgrepError(
-                                f"unexpected non-json output while invoking semgrep-core:\n{PLEASE_FILE_ISSUE_TEXT}"
-                            )
-
-                        if "error" in output_json:
-                            self._raise_semgrep_error_from_json(output_json, patterns)
-                        else:
-                            raise SemgrepError(
-                                f"unexpected json output while invoking semgrep-core:\n{PLEASE_FILE_ISSUE_TEXT}"
-                            )
-
-                    output_json = json.loads(
-                        (core_run.stdout.decode("utf-8", "replace"))
-                    )
         errors.extend(
             CoreException.from_json(e, language) for e in output_json["errors"]
         )

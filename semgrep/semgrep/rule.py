@@ -69,10 +69,10 @@ class Rule:
         self._languages = [Language(l) for l in self._raw["languages"]]
 
         # check taint/search mode
-        self._expression, mode = self._taint_or_search_validation(self._yaml)
+        self._expression, mode = self._taint_or_search_patterns_validation(self._yaml)
         self._mode = mode
 
-    def _taint_or_search_validation(
+    def _taint_or_search_patterns_validation(
         self, rule: YamlTree[YamlMap]
     ) -> Tuple[BooleanRuleExpression, str]:
 
