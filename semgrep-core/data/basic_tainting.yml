@@ -21,7 +21,7 @@ rules:
     severity: WARNING
   - id: stupid2
     mode: search
-    pattern: sanitize(...)
-    message: Function called sanitize was called
+    pattern: sanitize()
+    message: Function called sanitize was called with no args
     languages: [python]
     severity: WARNING
