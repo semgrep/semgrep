@@ -6,7 +6,7 @@ from typing import Optional
 from packaging.version import InvalidVersion
 from packaging.version import Version
 
-from semgrep import constants
+from semgrep.constants import SEMGREP_USER_AGENT, __VERSION__
 from semgrep import util
 
 VERSION_CHECK_URL = str(
@@ -34,7 +34,7 @@ def _fetch_latest_version(
 
         resp = requests.get(
             url,
-            headers={"User-Agent": f"Semgrep/{constants.__VERSION__}"},
+            headers={"User-Agent": SEMGREP_USER_AGENT},
             timeout=timeout,
         )
     except Exception as e:
@@ -105,7 +105,7 @@ def is_running_latest(version_cache_path: Path = VERSION_CACHE_PATH) -> bool:
 
     try:
         latest_version = Version(latest_version_str)
-        current_version = Version(constants.__VERSION__)
+        current_version = Version(__VERSION__)
     except InvalidVersion as e:
         util.debug_print(f"Invalid version string: {e}")
         return False
