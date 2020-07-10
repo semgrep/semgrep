@@ -163,9 +163,6 @@ class CoreRunner:
         """
         See format_output_exception in semgrep O'Caml for details on schema
         """
-        import pdb
-
-        pdb.set_trace()
         error_type = error_json["error"]
         if error_type == "invalid language":
             raise SemgrepError(
@@ -302,9 +299,6 @@ class CoreRunner:
                 )
                 pattern_json = rule._raw.copy()
                 del pattern_json["mode"]
-                import pdb
-
-                pdb.set_trace()
                 patterns = [
                     Pattern(
                         0, rule.expression, rule.severity, language, rule._yaml.span
