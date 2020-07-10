@@ -4,8 +4,10 @@ all:
 
 	dune build
 	dune build ./_build/default/tests/test.bc
+	test -e bin || ln -s _build/install/default/bin .
 clean:
 	dune clean
+	rm -f bin
 test:
 	dune runtest -f
 e2etest:
