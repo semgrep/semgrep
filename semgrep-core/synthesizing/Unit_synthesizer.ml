@@ -82,13 +82,23 @@ let python_tests = [
   ["exact match", "node.id == node.id";
    "exact metavars", "$X == $X"];
 
-   "arrays_and_funcs.py", "20:10-22:35",
-   ["exact match", "r.set_cookie('sessionid', generate_cookie_value('RANDOM-UUID'), secure=True)";
-    "dots", "r.set_cookie(...)";
-    "metavars", "r.set_cookie($X, $Y, secure=$Z, ...)";
-    "exact metavars", "r.set_cookie($X, $Y, secure=$Z)";
-    "deep metavars", "r.set_cookie($X, generate_cookie_value($Y), secure=$Z)"
+   "set_cookie.py", "5:10-7:35",
+   ["exact match", "flask.response.set_cookie('sessionid', generate_cookie_value('RANDOM-UUID'), secure=True)";
+    "dots", "flask.response.set_cookie(...)";
+    "metavars", "flask.response.set_cookie($X, $Y, secure=$Z, ...)";
+    "exact metavars", "flask.response.set_cookie($X, $Y, secure=$Z)";
+    "deep metavars", "flask.response.set_cookie($X, generate_cookie_value($Y), secure=$Z)"
    ];
+
+   (* "set_cookie.py", "8:3-8:31",
+   [
+     "exact match", "a = set_cookie(1234, a, 123)";
+     "dots", "a = ...";
+     "metavars", "$X = $Y";
+     "righthand dots", "$X = set_cookie(...)";
+     "righthand metavars", "$X = set_cookie($Y, $X, $Z, ...)";
+     "righthand exact metavars", "$X = set_cookie($Y, $X, $Z)"
+   ] *)
 ]
 
 let java_tests = [
@@ -133,7 +143,14 @@ let java_tests = [
   ];
 
   "typed_funcs.java", "11:20-11:47",
-  ["exact match", "new Scanner(new File(), 1)"]
+  ["exact match", "new Scanner(new File(), 1)"];
+
+  "typed_funcs.java", "12:10-12:38",
+  ["exact match", "this.foo(this.bar(a)) == this.foo(this.bar(a))";
+  "exact metavars", "$X == $X";
+  "typed metavars", "this.foo(this.bar((int $X))) == this.foo(this.bar((int $X)))";
+  "deep metavars", "this.foo(this.bar($X)) == this.foo(this.bar($X))";
+ ];
 ]
 
 (* Cases splits up the test cases by language.
@@ -166,6 +183,8 @@ let unittest =
                     let matches_with_env = Semgrep_generic.match_any_any pattern (A.E e) in
                     (* Debugging note: uses pattern_to_string for convenience, but really should *)
                     (* match the code in the given file at the given range *)
+                    pr2 (AST_generic.show_any (A.E e));
+                    pr2 (AST_generic.show_any (pattern));
                     assert_bool (spf "pattern:|%s| should match |%s" pat (PPG.pattern_to_string lang (A.E e)))
                     (matches_with_env <> [])
                  | None -> failwith (spf "Couldn't find range %s in %s" range file)
