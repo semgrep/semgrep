@@ -8,6 +8,7 @@ from setuptools import setup
 from setuptools.command.install import install
 from wheel.bdist_wheel import bdist_wheel as _bdist_wheel
 
+print('i can has code')
 
 @contextlib.contextmanager
 def chdir(dirname=None):
