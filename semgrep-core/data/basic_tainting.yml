@@ -12,7 +12,7 @@ rules:
       - sanitize(...)
       - sanitize1(...)
     message: A user input source() went into a dangerous sink()
-    languages: [python, python]
+    languages: [python, go]
     severity: WARNING
   - id: one-arg
     pattern: $X($Y)

@@ -302,9 +302,17 @@ class CoreRunner:
                 )
                 pattern_json = rule._raw.copy()
                 del pattern_json["mode"]
+                import pdb
+
+                pdb.set_trace()
+                patterns = [
+                    Pattern(
+                        0, rule.expression, rule.severity, language, rule._yaml.span
+                    )
+                ]
                 output_json = self._run_core_command(
                     [pattern_json],
-                    [],
+                    patterns,
                     targets,
                     language,
                     rule,
