@@ -15,7 +15,13 @@ rules:
     languages: [python, python]
     severity: WARNING
   - id: stupid
-    pattern: $X
-    message: Dude, $X is an expression in this file
+    pattern: $X($Y)
+    message: Dude, $X is a function in this file with 1 arg
     languages: [python, javascript]
+    severity: WARNING
+  - id: stupid2
+    mode: search
+    pattern: sanitize(...)
+    message: Function called sanitize was called
+    languages: [python]
     severity: WARNING
