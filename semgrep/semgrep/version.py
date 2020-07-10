@@ -6,8 +6,9 @@ from typing import Optional
 from packaging.version import InvalidVersion
 from packaging.version import Version
 
-from semgrep.constants import SEMGREP_USER_AGENT, __VERSION__
 from semgrep import util
+from semgrep.constants import __VERSION__
+from semgrep.constants import SEMGREP_USER_AGENT
 
 VERSION_CHECK_URL = str(
     os.environ.get(
@@ -33,9 +34,7 @@ def _fetch_latest_version(
         import requests
 
         resp = requests.get(
-            url,
-            headers={"User-Agent": SEMGREP_USER_AGENT},
-            timeout=timeout,
+            url, headers={"User-Agent": SEMGREP_USER_AGENT}, timeout=timeout,
         )
     except Exception as e:
         util.debug_print(f"Fetching latest version failed to connect: {e}")
