@@ -61,7 +61,17 @@ def validate_single_rule(
             + [e.span for e in extra_key_spans],
             help=help_msg,
         )
-
+    else:
+        extra_keys = rule_keys - YAML_ALL_VALID_RULE_KEYS
+        extra_key_spans = sorted([rule.key_tree(k) for k in extra_keys])
+        if extra_keys:
+            help_msg = f"Unexpected keys {extra_keys} found"
+            raise InvalidRuleSchemaError(
+                short_msg="invalid keys",
+                long_msg=f"{config_id} has extra, un-interpretable keys: {extra_keys}",
+                spans=[e.span for e in extra_key_spans],
+                help=help_msg,
+            )
     # Defaults to search mode if mode is not specified
     return Rule.from_yamltree(rule_yaml)
 

@@ -16,6 +16,6 @@ rules:
     severity: WARNING
   - id: stupid_equal
     pattern: $X
-    message: Dude, $X is always true (Unless X is NAN ...)
+    message: Dude, $X is an expression in this file
     languages: [python, javascript]
     severity: WARNING
