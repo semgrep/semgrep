@@ -90,15 +90,15 @@ let python_tests = [
     "deep metavars", "flask.response.set_cookie($X, generate_cookie_value($Y), secure=$Z)"
    ];
 
-   "set_cookie.py", "8:3-8:56",
+   (* "set_cookie.py", "8:3-8:31",
    [
-     "exact match", "resp = flask.response.set_cookie('sessionid', resp, 'RANDOM-UUID')";
-     "dots", "resp = ...";
+     "exact match", "a = set_cookie(1234, a, 123)";
+     "dots", "a = ...";
      "metavars", "$X = $Y";
-     "righthand dots", "$X = flask.response.set_cookie(...)";
-     "righthand metavars", "$X = flask.response.set_cookie($Y, $X, $Z, ...)";
-     "righthand exact metavars", "$X = flask.response.set_cookie($Y, $X, $Z)"
-   ]
+     "righthand dots", "$X = set_cookie(...)";
+     "righthand metavars", "$X = set_cookie($Y, $X, $Z, ...)";
+     "righthand exact metavars", "$X = set_cookie($Y, $X, $Z)"
+   ] *)
 ]
 
 let java_tests = [
@@ -174,7 +174,6 @@ let unittest =
         let code = Parse_generic.parse_program file in
         let r = Range.range_of_linecol_spec range file in
         Naming_AST.resolve lang code;
-        Constant_propagation.propagate lang code;
         let check_pats (_, pat) =
           try
             let pattern = Parse_generic.parse_pattern lang pat in
@@ -184,6 +183,8 @@ let unittest =
                     let matches_with_env = Semgrep_generic.match_any_any pattern (A.E e) in
                     (* Debugging note: uses pattern_to_string for convenience, but really should *)
                     (* match the code in the given file at the given range *)
+                    pr2 (AST_generic.show_any (A.E e));
+                    pr2 (AST_generic.show_any (pattern));
                     assert_bool (spf "pattern:|%s| should match |%s" pat (PPG.pattern_to_string lang (A.E e)))
                     (matches_with_env <> [])
                  | None -> failwith (spf "Couldn't find range %s in %s" range file)
