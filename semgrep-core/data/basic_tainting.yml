@@ -12,10 +12,12 @@ rules:
       - sanitize(...)
       - sanitize1(...)
     message: A user input source() went into a dangerous sink()
-    languages: [python, go]
+    languages: [python, python]
     severity: WARNING
   - id: one-arg
-    pattern: $X($Y)
+    pattern-either:
+      - pattern: $X($Y)
+      - pattern: $X()
     message: $X is a function in this file with 1 arg
     languages: [python, javascript]
     severity: WARNING
