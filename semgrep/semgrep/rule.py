@@ -178,9 +178,6 @@ class Rule:
     @staticmethod
     def _validate_list_operand(field: str, operand: YamlTree) -> list:  # type: ignore
         if not isinstance(operand.value, list):
-            import pdb
-
-            pdb.set_trace()
             raise InvalidRuleSchemaError(
                 short_msg="invalid operand",
                 long_msg=f"type of {field} must be a list, but it was a {type(operand.unroll()).__name__}",
