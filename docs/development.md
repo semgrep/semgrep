@@ -10,7 +10,9 @@ pre-commit install
 
 ## Installation from source
 
-To compile semgrep, you first need to [install OCaml](https://opam.ocaml.org/doc/Install.html) and its package manager OPAM. On macOS, it should simply consist in doing:
+To compile semgrep, you first need to [install
+OCaml](https://opam.ocaml.org/doc/Install.html) and its package
+manager OPAM. On macOS, it should simply consist in doing:
 
 ```bash
 brew install opam
@@ -20,35 +22,42 @@ opam switch 4.10.0
 eval $(opam env)
 ```
 
-Install `pfff` which is a dependency of `semgrep`
-
-```bash
-git submodule init && git submodule update --init --recursive
-eval $(opam env) && opam install -y ./pfff
-```
-
 Install `pkg-config` in your environment. On a mac this is
 
 ```bash
 brew install pkg-config
 ```
 
-Install tree-sitter's and ocaml-tree-sitter's runtime libraries:
+The root `Makefile` contains targets that take care of building the
+right things. It is commented. Please refer to it and keep it
+up-to-date.
 
-```bash
-./install-scripts/install-ocaml-tree-sitter
+For a first installation or if you're told external dependencies have
+changed, run
+
+```
+make setup
 ```
 
-Then you can compile the program with:
+For a routine build after pulling in source code changes from git, run
 
-```bash
-cd semgrep-core
-opam install --deps-only -y . # This is only necessary the first time you are building locally
-make all
-make install # Run this if you want to add newly built binary to path
+```
+make rebuild
 ```
 
-You can also use the Dockerfile in this directory to build semgrep inside a container.
+If you're just editing source code locally, including code in the submodules,
+the following is sufficient:
+
+```
+make build  # or just 'make'
+```
+
+For a reference build that's known to work, consult the root `Dockerfile`
+to build semgrep inside a container. You can check that it builds with
+
+```
+docker build -t semgrep .
+```
 
 ## Run
 
@@ -56,14 +65,14 @@ Then to test semgrep on a file, for example tests/GENERIC/test.py run:
 
 ```bash
 cd semgrep-core
-./_build/default/bin/Main.exe -e foo -l python tests/python
+./bin/semgrep-core -e foo -l python tests/python
 ...
 ```
 
 If you want to test semgrep on a directory with a set of given rules, run:
 
 ```bash
-cp ./semgrep_core/_build/default/bin/Main.exe /usr/local/bin/semgrep_core
+sudo cp ./semgrep_core/bin/semgrep-core /usr/local/bin/semgrep_core
 cd semgrep
 pipenv install --dev
 # You need to BYO semgrep-core -- You can either:
