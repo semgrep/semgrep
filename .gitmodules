@@ -1,3 +1,9 @@
 [submodule "pfff"]
 	path = pfff
 	url = https://github.com/returntocorp/pfff.git
+[submodule "semgrep-core/ocaml-tree-sitter-lang"]
+	path = semgrep-core/ocaml-tree-sitter-lang
+	url = https://github.com/returntocorp/ocaml-tree-sitter-lang.git
+[submodule "ocaml-tree-sitter"]
+	path = ocaml-tree-sitter
+	url = https://github.com/returntocorp/ocaml-tree-sitter.git

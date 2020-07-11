@@ -383,6 +383,40 @@ const algorithm = "MD5"
 crypto.hash(algorithm, "text")
 ```
 
+**Python:**
+
+```text
+pattern: hashlib.new("MD5", ...).digest()
+```
+
+```python
+import hashlib
+
+ALGORITHM = "MD5"
+
+def get_digest(data):
+    return hashlib.new(ALGORITHM, data=data).digest()
+```
+
+**Java:**
+
+```text
+pattern: $MD.getInstance("MD5");
+```
+
+```java
+import java.security.MessageDigest;
+
+class Hash {
+
+    public final String algorithm = "MD5";
+
+    public static void main(String[] args) {
+        MessageDigest md = MessageDigest.getInstance(algorithm);
+    }
+}
+```
+
 ## Limitations
 
 ### Statements Types

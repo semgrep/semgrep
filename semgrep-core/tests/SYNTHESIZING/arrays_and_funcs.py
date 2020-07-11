@@ -17,6 +17,3 @@ def foo():
    "nice" if is_nice else "not nice"
    f(a, b(g(a, k)), c, c(k), a, c)
    if node.id== node.  id: foo()
-   resp = r.set_cookie("sessionid", 
-                       generate_cookie_value("RANDOM-UUID"), 
-                       secure=True)

@@ -352,7 +352,6 @@ let timeout_function lang = fun f ->
 (*****************************************************************************)
 
 (*s: function [[Main_semgrep_core.parse_generic]] *)
-(* coupling: you need also to modify tests/Test.ml *)
 let parse_generic lang file =
   (*s: [[Main_semgrep_core.parse_generic()]] use standard macros if parsing C *)
   if lang = Lang.C && Sys.file_exists !Flag_parsing_cpp.macros_h
@@ -372,15 +371,10 @@ let parse_generic lang file =
      cache_file_of_file full_filename)
  (fun () -> timeout_function lang (fun () ->
  try
-  let ast = Parse_generic.parse_with_lang lang file in
+  (* finally calling the actual function *)
+  let ast = Parse_code.parse_and_resolve_name_use_pfff_or_treesitter lang file
+  in
   (*s: [[Main_semgrep_core.parse_generic()]] resolve names in the AST *)
-  (* to be deterministic, reset the gensym; anyway right now sgrep is
-   * used only for local per-file analysis, so no need to have a unique ID
-   * among a set of files in a project like codegraph.
-   *)
-  AST_generic.gensym_counter := 0;
-  Naming_AST.resolve lang ast;
-  Constant_propagation.propagate lang ast;
   (*e: [[Main_semgrep_core.parse_generic()]] resolve names in the AST *)
   Left ast
  (* This is a bit subtle, but we now store in the cache whether we had
@@ -455,7 +449,7 @@ let parse_pattern str =
  try (
   Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
    match Lang.lang_of_string_opt !lang with
-   | Some lang -> PatGen (Check_semgrep.parse_check_pattern lang str)
+   | Some lang -> PatGen (Parse_pattern.parse_pattern lang str)
    (*s: [[Main_semgrep_core.parse_pattern()]] when not a supported language *)
    | None ->
      (match Lang_fuzzy.lang_of_string_opt !lang with
@@ -783,7 +777,7 @@ let dump_pattern (file: Common.filename) =
   match Lang.lang_of_string_opt !lang with
   | Some lang ->
     E.try_with_print_exn_and_reraise file (fun () ->
-      let any = Parse_generic.parse_pattern lang s in
+      let any = Parse_pattern.parse_pattern lang s in
       let v = Meta_AST.vof_any any in
       let s = dump_v_to_format v in
       pr s
@@ -796,7 +790,7 @@ let dump_pattern (file: Common.filename) =
 let dump_ast file =
   match Lang.langs_of_filename file with
   | lang::_ ->
-    let x = parse_generic lang file in
+    let x = Parse_code.parse_and_resolve_name_use_pfff_or_treesitter lang file in
     let v = Meta_AST.vof_any (AST_generic.Pr x) in
     let s = dump_v_to_format v in
     pr s
@@ -851,6 +845,49 @@ let synthesize_patterns s file =
   let s = Json_io.string_of_json json_opts in
   pr s
 
+(* mostly a copy paste of Test_parsing_ruby.test_parse in pfff but using
+ * the tree-sitter Ruby parser instead.
+ *)
+let test_parse_ruby xs =
+    let xs = List.map Common.fullpath xs in
+
+  let fullxs =
+    Lib_parsing_ruby.find_source_files_of_dir_or_files xs
+    |> Skip_code.filter_files_if_skip_list ~root:xs
+  in
+
+  let stat_list = ref [] in
+  fullxs |> Console.progress (fun k -> List.iter (fun file ->
+    k();
+    if !verbose then pr2 (spf "processing %s" file);
+
+    let n = Common2.nblines_file file in
+    let stat = Parse_info.default_stat file in
+    (try
+       let _prog_opt =
+          (* TODO: to fix! if set to true, we get segfault! *)
+          if false
+          then Tree_sitter_ruby.Parse.file file
+          (* Execute in its own process, so GC bugs will not pop-out here.
+           * Slower, but safer for now, otherwise get segfaults probably
+           * because of bugs in tree-sitter OCaml bindings.
+           *)
+          else begin
+               Parallel.backtrace_when_exn := false;
+               Parallel.invoke Tree_sitter_ruby.Parse.file file ()
+           end;
+       in
+       stat.PI.correct <- n
+    with exn ->
+        pr2 (spf "%s: exn = %s" file (Common.exn_to_s exn));
+        stat.PI.bad <- n
+    );
+    Common.push stat stat_list;
+  ));
+  flush stdout; flush stderr;
+
+  Parse_info.print_parsing_stat_list !stat_list;
+  ()
 
 (*****************************************************************************)
 (* The options *)
@@ -882,6 +919,9 @@ let all_actions () = [
   Common.mk_action_2_arg expr_at_range;
   "-synthesize_patterns", " <l:c-l:c> <file>",
   Common.mk_action_2_arg synthesize_patterns;
+
+  "-parse_ruby", " <files or dirs>",
+  Common.mk_action_n_arg test_parse_ruby;
  ]
 (*e: function [[Main_semgrep_core.all_actions]] *)
 
