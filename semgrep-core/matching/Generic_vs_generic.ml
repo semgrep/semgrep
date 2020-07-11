@@ -1590,7 +1590,7 @@ and m_stmt a b =
       )
     | A.OtherStmtWithStmt(a1, a2, a3), B.OtherStmtWithStmt(b1, b2, b3) ->
       m_other_stmt_with_stmt_operator a1 b1 >>= (fun () ->
-      m_expr a2 b2 >>= (fun () ->
+      m_option m_expr a2 b2 >>= (fun () ->
       m_stmt a3 b3
       ))
 
@@ -2392,10 +2392,14 @@ and m_any a b =
     m_program a1 b1
   | A.I(a1), B.I(b1) ->
     m_ident a1 b1
+  | A.Lbli(a1), B.Lbli(b1) ->
+    m_label_ident a1 b1
+  | A.Fldi(a1), B.Fldi(b1) ->
+    m_field_ident a1 b1
   | A.I _, _  | A.N _, _  | A.Di _, _  | A.En _, _  | A.E _, _
   | A.S _, _  | A.T _, _  | A.P _, _  | A.Def _, _  | A.Dir _, _
   | A.Pa _, _  | A.Ar _, _  | A.At _, _  | A.Dk _, _ | A.Pr _, _
-  | A.Fld _, _ | A.Ss _, _ | A.Tk _, _
+  | A.Fld _, _ | A.Ss _, _ | A.Tk _, _ | A.Lbli _, _ | A.Fldi _, _
    -> fail ()
   (*e: [[Generic_vs_generic.m_any]] boilerplate cases *)
 (*e: function [[Generic_vs_generic.m_any]] *)

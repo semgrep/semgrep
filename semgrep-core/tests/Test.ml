@@ -165,6 +165,12 @@ let lang_regression_tests =
     let lang = Lang.OCaml in
     regression_tests_for_lang files lang
   );
+  "semgrep Ruby" >::: (
+    let dir = Filename.concat tests_path "ruby" in
+    let files = Common2.glob (spf "%s/*.rb" dir) in
+    let lang = Lang.Ruby in
+    regression_tests_for_lang files lang
+  );
  ]
 (*e: constant [[Test.lang_regression_tests]] *)
 
