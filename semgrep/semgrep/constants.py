@@ -6,7 +6,6 @@ from semgrep.util import compute_semgrep_path
 
 RCE_RULE_FLAG = "--dangerously-allow-arbitrary-code-execution-from-rules"
 RULES_KEY = "rules"
-SEMGREP_USER_AGENT = "semgrep-give-me-yaml"
 ID_KEY = "id"
 SEMGREP_URL = "https://semgrep.dev/"
 PLEASE_FILE_ISSUE_TEXT = "An error occurred while invoking the semgrep engine; please help us fix this by creating an issue at https://semgrep.dev"
@@ -18,6 +17,7 @@ DEFAULT_CONFIG_FOLDER = f".{DEFAULT_SEMGREP_CONFIG_NAME}"
 YML_EXTENSIONS = {".yml", ".yaml"}
 
 __VERSION__ = "0.14.0"
+SEMGREP_USER_AGENT = f"Semgrep/{__VERSION__}"
 
 SEMGREP_PATH = compute_semgrep_path()
 
