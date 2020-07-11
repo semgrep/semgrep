@@ -9,7 +9,7 @@
       },
       "extra": {
         "lines": "console.log(x == x)",
-        "message": "useless comparison operation `x == x` or `x != x`; if testing for floating point NaN, use `math.isnan`, or `cmath.isnan` if the number is complex.",
+        "message": "Detected a useless comparison operation `x == x` or `x != x`. This \noperation is always true.\nIf testing for floating point NaN, use `math.isnan`, or\n`cmath.isnan` if the number is complex.\n",
         "metadata": {},
         "metavars": {
           "$X": {
@@ -48,7 +48,7 @@
       },
       "extra": {
         "lines": "    return a + b == a + b",
-        "message": "useless comparison operation `a+b == a+b` or `a+b != a+b`; if testing for floating point NaN, use `math.isnan(a+b)`, or `cmath.isnan(a+b)` if the number is complex.",
+        "message": "This is always True: `a+b == a+b` or `a+b != a+b`. If testing for floating point NaN, use `math.isnan(a+b)`,\nor `cmath.isnan(a+b)` if the number is complex.\n",
         "metadata": {},
         "metavars": {
           "$X": {
