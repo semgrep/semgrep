@@ -384,8 +384,7 @@ def test_explicit_path(tmp_path, monkeypatch):
     foo_a = foo_a.relative_to(tmp_path)
     output_settings = OutputSettings(
         output_format=OutputFormat.TEXT,
-        output_destination=None,
-        quiet=True,
+        output_destination=False,
         error_on_findings=False,
         strict=False,
     )
