@@ -24,6 +24,7 @@ JAVASCRIPT_EXTENSIONS = [FileExtension("js")]
 JAVA_EXTENSIONS = [FileExtension("java")]
 C_EXTENSIONS = [FileExtension("c")]
 GO_EXTENSIONS = [FileExtension("go")]
+RUBY_EXTENSIONS = [FileExtension("rb")]
 ML_EXTENSIONS = [
     FileExtension("mli"),
     FileExtension("ml"),
@@ -61,6 +62,8 @@ def lang_to_exts(language: Language) -> List[FileExtension]:
         return GO_EXTENSIONS
     elif language in {"ml", "ocaml"}:
         return ML_EXTENSIONS
+    elif language in {"rb", "ruby"}:
+        return RUBY_EXTENSIONS
     elif language in {"json", "JSON", "Json"}:
         return JSON_EXTENSIONS
     else:
