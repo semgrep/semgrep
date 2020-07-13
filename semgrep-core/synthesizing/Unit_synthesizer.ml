@@ -90,15 +90,15 @@ let python_tests = [
     "deep metavars", "flask.response.set_cookie($X, generate_cookie_value($Y), secure=$Z)"
    ];
 
-   (* "set_cookie.py", "8:3-8:31",
+   "set_cookie.py", "8:3-8:31",
    [
-     "exact match", "a = set_cookie(1234, a, 123)";
+     "exact match", "a = set_cookie(1234, b, 123)";
      "dots", "a = ...";
      "metavars", "$X = $Y";
      "righthand dots", "$X = set_cookie(...)";
-     "righthand metavars", "$X = set_cookie($Y, $X, $Z, ...)";
-     "righthand exact metavars", "$X = set_cookie($Y, $X, $Z)"
-   ] *)
+     "righthand metavars", "$X = set_cookie($Y, $Z, $A, ...)";
+     "righthand exact metavars", "$X = set_cookie($Y, $Z, $A)"
+   ];
 ]
 
 let java_tests = [
@@ -174,28 +174,40 @@ let unittest =
         let code = Parse_generic.parse_program file in
         let r = Range.range_of_linecol_spec range file in
         Naming_AST.resolve lang code;
-        let check_pats (_, pat) =
+        let check_pats (str, pat) =
           try
             let pattern = Parse_generic.parse_pattern lang pat in
             let e_opt = Range_to_AST.expr_at_range r code in
                match e_opt with
                  | Some e ->
-                    let matches_with_env = Semgrep_generic.match_any_any pattern (A.E e) in
-                    (* Debugging note: uses pattern_to_string for convenience, but really should *)
-                    (* match the code in the given file at the given range *)
-                    pr2 (AST_generic.show_any (A.E e));
-                    pr2 (AST_generic.show_any (pattern));
-                    assert_bool (spf "pattern:|%s| should match |%s" pat (PPG.pattern_to_string lang (A.E e)))
-                    (matches_with_env <> [])
-                 | None -> failwith (spf "Couldn't find range %s in %s" range file)
+                    let matches_with_env = Semgrep_generic.match_any_any
+                          pattern (A.E e) in
+                    (* Debugging note: uses pattern_to_string for convenience,
+                     * but really should match the code in the given file at
+                     * the given range *)
+                    if matches_with_env = []
+                    then begin
+                      pr2 str;
+                      pr2 (AST_generic.show_any (pattern));
+                      pr2 (AST_generic.show_any (A.E e));
+
+                    end;
+                    assert_bool (spf "pattern:|%s| should match |%s"
+                              pat
+                              (PPG.pattern_to_string lang (A.E e)))
+                           (matches_with_env <> [])
+
+                 | None ->
+                    failwith (spf "Couldn't find range %s in %s" range file)
           with
             Parsing.Parse_error ->
             failwith (spf "problem parsing %s" pat)
         in
         pats |> List.iter check_pats;
-        let pats_str = List.fold_left (fun s (s1, s2) -> s ^ s1 ^ ": " ^ s2 ^ "\n") "" pats in
+        let pats_str =
+           List.fold_left (fun s (s1, s2) -> s^s1^": "^s2^"\n") "" pats in
         assert_bool ("Patterns do not match solution, where inferred patterns are:\n" ^ pats_str)
-                    (pats = sols)
+              (pats = sols)
     )
     )
   )
