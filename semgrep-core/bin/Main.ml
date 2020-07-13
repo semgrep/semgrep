@@ -864,19 +864,20 @@ let test_parse_ruby xs =
     let n = Common2.nblines_file file in
     let stat = Parse_info.default_stat file in
     (try
-       let _prog_opt =
           (* TODO: to fix! if set to true, we get segfault! *)
-          if false
-          then Tree_sitter_ruby.Parse.file file
+          if true
+          then begin
+             let ast = Parse_ruby_tree_sitter.parse file in
+             Ruby_to_generic.program ast |> ignore
           (* Execute in its own process, so GC bugs will not pop-out here.
            * Slower, but safer for now, otherwise get segfaults probably
            * because of bugs in tree-sitter OCaml bindings.
            *)
-          else begin
-               Parallel.backtrace_when_exn := false;
-               Parallel.invoke Tree_sitter_ruby.Parse.file file ()
+          end else begin
+               (* just the CST parsing  *)
+               Parallel.backtrace_when_exn := true;
+               Parallel.invoke Tree_sitter_ruby.Parse.file file () |> ignore
            end;
-       in
        stat.PI.correct <- n
     with exn ->
         pr2 (spf "%s: exn = %s" file (Common.exn_to_s exn));
@@ -922,7 +923,8 @@ let all_actions () = [
 
   "-parse_ruby", " <files or dirs>",
   Common.mk_action_n_arg test_parse_ruby;
- ]
+ ] @ (Parse_ruby_tree_sitter.actions ())
+
 (*e: function [[Main_semgrep_core.all_actions]] *)
 
 (*s: function [[Main_semgrep_core.options]] *)

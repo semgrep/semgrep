@@ -183,8 +183,10 @@ let unittest =
                     let matches_with_env = Semgrep_generic.match_any_any pattern (A.E e) in
                     (* Debugging note: uses pattern_to_string for convenience, but really should *)
                     (* match the code in the given file at the given range *)
+(* TODO
                     pr2 (AST_generic.show_any (A.E e));
                     pr2 (AST_generic.show_any (pattern));
+*)
                     assert_bool (spf "pattern:|%s| should match |%s" pat (PPG.pattern_to_string lang (A.E e)))
                     (matches_with_env <> [])
                  | None -> failwith (spf "Couldn't find range %s in %s" range file)

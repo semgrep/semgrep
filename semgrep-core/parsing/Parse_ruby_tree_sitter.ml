@@ -1728,17 +1728,55 @@ let program ((v1, _v2interpreted) : CST.program) : AST.stmts  =
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
+
+let parse_ruby_cst_action file tmpfile =
+  let cst = Tree_sitter_ruby.Parse.file file in
+  Common.with_open_outfile tmpfile (fun (_pr, chan) ->
+    Marshal.to_channel chan cst []
+  )
+let actions () = [
+  "-parse_ruby_cst_action", " <file> <tmpfile>",
+  Common.mk_action_2_arg parse_ruby_cst_action;
+]
+
+
 let parse file =
   (* TODO: tree-sitter bindings are buggy so we cheat and fork to
    * avoid segfaults to popup. See Main.ml test_parse_ruby function.
    *)
    let cst_opt =
-      if false
-      then Tree_sitter_ruby.Parse.file file
-      else begin
+      match 2 with
+      (* segfault quite often *)
+      | 1 -> Tree_sitter_ruby.Parse.file file
+      (* segfault less, but as we fork from a more complex point where
+       * we allocated quite a few stuff, the probability to get a segfault
+       * in the child grows
+       *)
+      | 2 ->
          Parallel.backtrace_when_exn := false;
          Parallel.invoke Tree_sitter_ruby.Parse.file file ()
-      end
+      | _ ->
+        (* similar to Parallel.invoke, but we fork and execve and
+         * this execve start from a fresh empty memory state, which leads
+         * to less segfaults; However this is significantly slower. On rails:
+         * option 1: 23s, option 2: 1m, option 3: 2m
+         *)
+        let cmd = Sys.argv.(0) in
+        (* would be better to use a pipe *)
+        let tmpfile = Filename.temp_file "parse_ruby" "rb" in
+        (match Unix.fork() with
+        (* error, could not create process, well compute now then *)
+        | -1 -> failwith "Could not fork"
+        (* child *)
+        | 0 ->
+          Unix.execv cmd [|cmd; "-parse_ruby_cst_action"; file; tmpfile|]
+        (* parent *)
+        | pid ->
+          ignore (Unix.waitpid [] pid);
+          Common.with_open_infile tmpfile (fun chan ->
+            Marshal.from_channel chan
+          )
+        )
    in
    match cst_opt with
    | None -> failwith (spf "No CST returned for %s" file)
