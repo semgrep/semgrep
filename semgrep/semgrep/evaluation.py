@@ -207,7 +207,11 @@ def evaluate(
         }
     ]
     debug_print(str(pattern_ids_to_pattern_matches))
-    if rule._mode == "search":
+    if rule._mode == "track":
+        valid_ranges_to_output = {
+            pattern_match.range for pattern_match in pattern_matches
+        }
+    else:
         valid_ranges_to_output = evaluate_expression(
             rule.expression,
             pattern_ids_to_pattern_matches,
@@ -218,10 +222,6 @@ def evaluate(
         # only output matches which are inside these offsets!
         debug_print(f"compiled result {valid_ranges_to_output}")
         debug_print("-" * 80)
-    else:
-        valid_ranges_to_output = {
-            pattern_match.range for pattern_match in pattern_matches
-        }
 
     for pattern_match in pattern_matches:
         if pattern_match.range in valid_ranges_to_output:
