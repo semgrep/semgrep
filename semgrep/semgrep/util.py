@@ -1,9 +1,7 @@
 import itertools
 import os
-import re
 import subprocess
 import sys
-import typing
 from typing import Any
 from typing import Callable
 from typing import IO
