@@ -278,9 +278,8 @@ class OutputHandler:
             else:
                 if self.settings.strict:
                     raise ex
-                print(
+                logger.info(
                     "Warnings exist. Run with `--strict` to turn warnings into errors.",
-                    file=self.stderr,
                 )
         else:
             raise ex
