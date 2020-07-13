@@ -48,8 +48,8 @@ def test_sarif_output(run_semgrep_in_tmp, snapshot):
     # rules are logically a set so the JSON list's order doesn't matter
     # we make the order deterministic here so that snapshots match across runs
     # the proper solution will be https://github.com/joseph-roitman/pytest-snapshot/issues/14
-    sarif_output["tool"]["driver"]["rules"] = sorted(
-        sarif_output["tool"]["driver"]["rules"], key=lambda rule: rule["id"]
+    sarif_output["runs"][0]["tool"]["driver"]["rules"] = sorted(
+        sarif_output["runs"][0]["tool"]["driver"]["rules"], key=lambda rule: rule["id"]
     )
 
     snapshot.assert_match(

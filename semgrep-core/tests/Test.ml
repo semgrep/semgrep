@@ -49,11 +49,8 @@ let any_gen_of_string str =
 
 (*s: function [[Test.parse_generic]] *)
 let parse_generic file = 
-  let ast = Parse_generic.parse_program file in
   let lang = List.hd (Lang.langs_of_filename file) in
-  Naming_AST.resolve lang ast;
-  Constant_propagation.propagate lang ast;
-  ast
+  Parse_code.parse_and_resolve_name_use_pfff_or_treesitter lang file
 (*e: function [[Test.parse_generic]] *)
 
 (*s: function [[Test.regression_tests_for_lang]] *)
@@ -166,6 +163,12 @@ let lang_regression_tests =
     let dir = Filename.concat tests_path "ocaml" in
     let files = Common2.glob (spf "%s/*.ml" dir) in
     let lang = Lang.OCaml in
+    regression_tests_for_lang files lang
+  );
+  "semgrep Ruby" >::: (
+    let dir = Filename.concat tests_path "ruby" in
+    let files = Common2.glob (spf "%s/*.rb" dir) in
+    let lang = Lang.Ruby in
     regression_tests_for_lang files lang
   );
  ]

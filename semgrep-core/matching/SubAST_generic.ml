@@ -103,12 +103,12 @@ let subexprs_of_stmt st =
     | Continue (_, LDynamic e)
     | Break (_, LDynamic e)
     | Throw (_, e)
-    | OtherStmtWithStmt (_, e, _)
      -> [e]
 
     (* opt *)
     | Switch (_, eopt, _)
     | Return (_, eopt)
+    | OtherStmtWithStmt (_, eopt, _)
      -> Common.opt_to_list eopt
 
     (* n *)

@@ -9,5 +9,6 @@ class foo {
         bar(a);
         System.out.print("A");
         Scanner s = new Scanner(new File(), 1);
+        a(foo(bar(a)) == foo(bar(a)));
     }
 }

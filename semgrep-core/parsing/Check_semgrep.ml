@@ -10,7 +10,7 @@ let lang_has_no_dollar_ids = Lang.(function
   | OCaml
   | JSON
   -> true
-  | Javascript
+  | Javascript | Ruby | Typescript
   -> false)
 (*e: constant [[Check_semgrep.lang_has_no_dollar_ids]] *)
 
