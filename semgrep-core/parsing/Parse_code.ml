@@ -26,7 +26,15 @@
 let just_parse_with_lang lang file =
   match lang with
   | Lang.Ruby ->
-      let ast = Parse_ruby_tree_sitter.parse file in
+      let ast =
+        try
+          Parse_ruby_tree_sitter.parse file
+        with _exn ->
+          (* TODO: right now it's quite verbose and the token positions
+           * may be wrong, but maybe it's better than nothing.
+           *)
+          Parse_ruby.parse_program file
+      in
       Ruby_to_generic.program ast
   | _ -> Parse_generic.parse_with_lang lang file
 
