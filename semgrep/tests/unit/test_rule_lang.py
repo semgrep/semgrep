@@ -20,7 +20,7 @@ a:
 
 
 def test_span_tracking():
-    data = parse_yaml_preserve_spans(test_yaml, Path("filename"))
+    data = parse_yaml_preserve_spans(test_yaml, "filename")
 
     def test_span(start: Position, end: Position) -> Span:
         return attr.evolve(data.span, start=start, end=end)
