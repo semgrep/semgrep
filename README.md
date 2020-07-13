@@ -104,7 +104,7 @@ Semgrep is optimized for:
 
 | **Python** | **JavaScript** | **Go &nbsp; &nbsp; &nbsp;** | **Java &nbsp;** | **C &nbsp; &nbsp; &nbsp; &nbsp;** | **JSON** | **Ruby** | **OCaml** | **TypeScript** | **PHP &nbsp; &nbsp;** |
 |:-----------|:---------------|:----------------------------|:----------------|:----------------------------------|:---------|:---------|:----------|:---------------|:----------------------|
-| ✅          | ✅              | ✅                           | ✅               | ✅                            | ✅       | 🚧       |🚧        |  Coming...      | Coming...             |
+| ✅          | ✅              | ✅                           | ✅               | ✅                            | ✅       | alpha       |🚧        |  Coming...      | Coming...             |
 
 Missing support for a language? Let us know by filing a ticket, joining our Slack, or emailing [support@r2c.dev](mailto:support@rc2.dev?subject=Language%20Support:).
 
