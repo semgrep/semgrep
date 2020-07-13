@@ -30,9 +30,7 @@ ML_EXTENSIONS = [
     FileExtension("mly"),
     FileExtension("mll"),
 ]
-RUBY_EXTENSIONS = [
-    FileExtension("rb")
-]
+RUBY_EXTENSIONS = [FileExtension("rb")]
 JSON_EXTENSIONS = [FileExtension("json")]
 ALL_EXTENSIONS = (
     PYTHON_EXTENSIONS
