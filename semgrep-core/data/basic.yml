@@ -3,7 +3,7 @@ rules:
   - id: stupid_equal
     pattern: $X == $X
     message: Dude, $X == $X is always true (Unless X is NAN ...)
-    languages: [python, javascript]
+    languages: [python, javascript, ruby, c, go, ocaml]
     severity: WARNING
   - id: stupid_not_equal
     pattern: $X != $X
