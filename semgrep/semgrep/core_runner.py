@@ -312,6 +312,10 @@ class CoreRunner:
                     "-tainting_rules_file",
                     cache_dir,
                 )
+                errors.extend(
+                    CoreException.from_json(e, language) for e in output_json["errors"]
+                )
+                outputs.extend(PatternMatch(m) for m in output_json["matches"])
 
         else:
             for language, all_patterns_for_language in self._group_patterns_by_language(
@@ -374,10 +378,10 @@ class CoreRunner:
                     cache_dir,
                 )
 
-        errors.extend(
-            CoreException.from_json(e, language) for e in output_json["errors"]
-        )
-        outputs.extend(PatternMatch(m) for m in output_json["matches"])
+                errors.extend(
+                    CoreException.from_json(e, language) for e in output_json["errors"]
+                )
+                outputs.extend(PatternMatch(m) for m in output_json["matches"])
 
         # group output; we want to see all of the same rule ids on the same file path
         by_rule_index: Dict[
