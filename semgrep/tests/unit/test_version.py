@@ -1,6 +1,6 @@
 from unittest import mock
 
-import semgrep
+import semgrep.version
 
 
 def test_version_check_caching(tmp_path):
