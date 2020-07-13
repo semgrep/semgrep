@@ -71,7 +71,7 @@ def test_default_packs(run_semgrep_in_tmp, clone_github_repo, benchmark, repo_ca
     # In general, aim for 1ksloc / rule. The packs are "special" though -- composed of rules we know will run
     # fast and give great UX
     DEFAULT_PACK_MIN_SPEED_KSLOCS = 0.1
-    timeout = max(repo_ksloc / DEFAULT_PACK_MIN_SPEED_KSLOCS, 5)
+    timeout = max(repo_ksloc / DEFAULT_PACK_MIN_SPEED_KSLOCS, 20)
     print(
         f"checking with timeout of {timeout} (required analysis speed of {repo_ksloc / timeout} kslocs"
     )
