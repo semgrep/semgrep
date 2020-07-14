@@ -294,9 +294,11 @@ class CoreRunner:
 
         if rule._mode == "track":
             for language in rule._languages:
-                targets = target_manager.get_files(
-                    language, rule.includes, rule.excludes
-                )
+
+                targets = self.get_files_for_language(language, rule, target_manager)
+                if targets == []:
+                    continue
+
                 pattern_json = rule._raw.copy()
                 del pattern_json["mode"]
                 pattern = Pattern(
@@ -321,17 +323,8 @@ class CoreRunner:
             for language, all_patterns_for_language in self._group_patterns_by_language(
                 [rule]
             ).items():
-                try:
-                    targets = target_manager.get_files(
-                        language, rule.includes, rule.excludes
-                    )
-                except _UnknownLanguageError as ex:
-                    raise UnknownLanguageError(
-                        short_msg="invalid language",
-                        long_msg=f"unsupported language {language}",
-                        spans=[rule.languages_span.with_context(before=1, after=1)],
-                    ) from ex
 
+                targets = self.get_files_for_language(language, rule, target_manager)
                 if targets == []:
                     continue
 
@@ -406,6 +399,20 @@ class CoreRunner:
 
         # debugging steps are only tracked for a single file, just overwrite
         return findings, debugging_steps, errors
+
+    @staticmethod
+    def get_files_for_language(
+        language: Language, rule: Rule, target_manager: TargetManager
+    ) -> List[Path]:
+        try:
+            targets = target_manager.get_files(language, rule.includes, rule.excludes)
+        except _UnknownLanguageError as ex:
+            raise UnknownLanguageError(
+                short_msg="invalid language",
+                long_msg=f"unsupported language {language}",
+                spans=[rule.languages_span.with_context(before=1, after=1)],
+            ) from ex
+        return targets
 
     def _run_rules(
         self, rules: List[Rule], target_manager: TargetManager
