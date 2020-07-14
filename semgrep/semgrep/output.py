@@ -177,7 +177,6 @@ def build_sarif_output(rule_matches: List[RuleMatch], rules: FrozenSet[Rule]) ->
 class OutputSettings(NamedTuple):
     output_format: OutputFormat
     output_destination: Optional[str]
-    quiet: bool
     error_on_findings: bool
     strict: bool
 
@@ -294,7 +293,7 @@ class OutputHandler:
         """
         if self.has_output:
             output = self.build_output(self.settings.output_destination is None,)
-            if not self.settings.quiet and output:
+            if output:
                 print(output, file=self.stdout)
 
             if self.settings.output_destination:
