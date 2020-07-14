@@ -270,7 +270,7 @@ class Rule:
 
         raise InvalidRuleSchemaError(
             short_msg="missing key",
-            long_msg=f"missing a pattern type in rule, in expected one of {pattern_names_for_operators(required_operator)} or both of {YAML_TAINT_MUST_HAVE_KEYS} if track mode is specified",
+            long_msg=f"missing a pattern type in rule. Expected one of {pattern_names_for_operators(required_operator)} or both of {sorted(YAML_TAINT_MUST_HAVE_KEYS)} if track mode is specified",
             spans=[rule.span.truncate(10)],
         )
 

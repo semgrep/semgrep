@@ -6,6 +6,6 @@
 [94m5 | [39m    languages: [python]
 [94m6 | [39m    severity: WARNING
 
-[31mmissing a pattern type in rule, expected one of ['patterns', 'pattern-either', 'pattern-regex', 'pattern'][39m
+[31mmissing a pattern type in rule. Expected one of ['patterns', 'pattern-either', 'pattern-regex', 'pattern'] or both of ['pattern-sinks', 'pattern-sources'] if track mode is specified[39m
 
 run with --strict and there were 1 errors loading configs

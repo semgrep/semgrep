@@ -3,7 +3,7 @@
     {
       "code": 4,
       "level": "error",
-      "long_msg": "missing a pattern type in rule, expected one of ['patterns', 'pattern-either', 'pattern-regex', 'pattern']",
+      "long_msg": "missing a pattern type in rule. Expected one of ['patterns', 'pattern-either', 'pattern-regex', 'pattern'] or both of ['pattern-sinks', 'pattern-sources'] if track mode is specified",
       "short_msg": "missing key",
       "spans": [
         {
