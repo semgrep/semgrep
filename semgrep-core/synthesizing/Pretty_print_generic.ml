@@ -47,6 +47,10 @@ let todo any =
 
 let ident (s, _) = s
 
+let token default tok =
+  try Parse_info.str_of_info tok
+  with Parse_info.NoTokenLocation _ -> default
+
 let print_type = function
   | TyBuiltin (s, _) -> s
   | TyName (id, _) -> ident id
@@ -94,7 +98,12 @@ let arithop env (op, tok) =
 (*****************************************************************************)
 (* Pretty printer *)
 (*****************************************************************************)
-let rec expr env =
+let rec stmt env =
+function
+  | ExprStmt (e, tok) -> F.sprintf "%s%s" (expr env e) (token "" tok)
+  | x -> todo (S x)
+
+and expr env =
 function
   | Id ((s,_), idinfo) -> id env (s, idinfo)
   | IdQualified(name, idinfo) -> id_qualified env (name, idinfo)
@@ -108,6 +117,7 @@ function
   | DotAccess (e, tok, fi) -> dot_access env (e, tok, fi)
   | Ellipsis _ -> "..."
   | Conditional (e1, e2, e3) -> cond env (e1, e2, e3)
+  (* | OtherExpr (op, anys) -> *)
   | TypedMetavar (id, _, typ) -> tyvar env (id, typ)
   | x -> todo (E x)
 
@@ -219,10 +229,15 @@ let expr_to_string lang mvars e =
   let env = { lang; mvars } in
   expr env e
 
+let stmt_to_string lang mvars s =
+  let env = { lang; mvars } in
+  stmt env s
 
 let pattern_to_string lang any =
   let mvars = [] in
   match any with
   | E e -> expr_to_string lang mvars e
+  | S s -> stmt_to_string lang mvars s
   | _ ->
+      pr2 (AST_generic.show_any any);
       failwith "todo: only expression pattern can be pretty printed right now"

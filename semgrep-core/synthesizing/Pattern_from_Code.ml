@@ -221,13 +221,31 @@ and generalize_exp e env =
   | Assign _ -> generalize_assign env e
   | _ -> []
 
-let generalize e =
-  (generalize_exp e { count = 1; mapping = []; has_type = false })
+(* All statements *)
+and generalize_exprstmt (e, tok) env =
+  List.map (fun x -> match x with | (s, E e') -> (s, S (ExprStmt(e', tok)))
+                                  | _ -> raise (UnexpectedCase "Must pass in an any of form E x"))
+           (generalize_exp e env)
+
+and generalize_stmt s env =
+  match s with
+  | ExprStmt (e, tok) -> generalize_exprstmt (e, tok) env
+  | _ -> []
+
+(* All *)
+and generalize_any a env =
+   match a with
+   | E e -> generalize_exp e env
+   | S s -> generalize_stmt s env
+   | _ -> []
+
+let generalize a =
+  (generalize_any a { count = 1; mapping = []; has_type = false })
 
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
-let from_expr e =
-  ("exact match", E e)::
-  generalize e
+let from_any a =
+  ("exact match", a)::
+  generalize a

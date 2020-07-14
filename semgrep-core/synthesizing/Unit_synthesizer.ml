@@ -177,11 +177,11 @@ let unittest =
         let check_pats (str, pat) =
           try
             let pattern = Parse_generic.parse_pattern lang pat in
-            let e_opt = Range_to_AST.expr_at_range r code in
+            let e_opt = Range_to_AST.any_at_range r code in
                match e_opt with
                  | Some e ->
                     let matches_with_env = Semgrep_generic.match_any_any
-                          pattern (A.E e) in
+                          pattern e in
                     (* Debugging note: uses pattern_to_string for convenience,
                      * but really should match the code in the given file at
                      * the given range *)
