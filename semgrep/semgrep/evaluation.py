@@ -20,6 +20,7 @@ from semgrep.semgrep_types import pattern_name_for_operator
 from semgrep.semgrep_types import pattern_names_for_operator
 from semgrep.semgrep_types import PatternId
 from semgrep.semgrep_types import Range
+from semgrep.semgrep_types import TAINT_MODE
 from semgrep.util import debug_print
 from semgrep.util import flatten
 from semgrep.util import print_stderr
@@ -207,7 +208,7 @@ def evaluate(
         }
     ]
     debug_print(str(pattern_ids_to_pattern_matches))
-    if rule._mode == "taint":
+    if rule.mode == TAINT_MODE:
         valid_ranges_to_output = {
             pattern_match.range for pattern_match in pattern_matches
         }

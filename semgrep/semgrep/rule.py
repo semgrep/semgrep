@@ -14,7 +14,9 @@ from semgrep.rule_lang import YamlMap
 from semgrep.rule_lang import YamlTree
 from semgrep.semgrep_types import ALLOWED_GLOB_TYPES
 from semgrep.semgrep_types import BooleanRuleExpression
+from semgrep.semgrep_types import DEFAULT_MODE
 from semgrep.semgrep_types import Language
+from semgrep.semgrep_types import Mode
 from semgrep.semgrep_types import Operator
 from semgrep.semgrep_types import OPERATOR_PATTERN_NAMES_MAP
 from semgrep.semgrep_types import OPERATORS
@@ -22,6 +24,9 @@ from semgrep.semgrep_types import OPERATORS_WITH_CHILDREN
 from semgrep.semgrep_types import pattern_names_for_operator
 from semgrep.semgrep_types import pattern_names_for_operators
 from semgrep.semgrep_types import PatternId
+from semgrep.semgrep_types import SEARCH_MODE
+from semgrep.semgrep_types import SUPPORTED_MODES
+from semgrep.semgrep_types import TAINT_MODE
 from semgrep.semgrep_types import YAML_TAINT_MUST_HAVE_KEYS
 from semgrep.util import flatten
 
@@ -69,31 +74,33 @@ class Rule:
         self._languages = [Language(l) for l in self._raw["languages"]]
 
         # check taint/search mode
-        self._expression, mode = self._taint_or_search_patterns_validation(self._yaml)
-        self._mode = mode
+        self._expression, self._mode = self._taint_or_search_patterns_validation(
+            self._yaml
+        )
 
     def _taint_or_search_patterns_validation(
         self, rule: YamlTree[YamlMap]
-    ) -> Tuple[BooleanRuleExpression, str]:
+    ) -> Tuple[BooleanRuleExpression, Mode]:
 
         rule_raw = rule.value
         _mode = rule_raw.get("mode")
         if _mode:
-            mode = rule_raw["mode"].unroll()
-            if mode == "taint":
-                return self._build_taint_expression(rule), "taint"
-            elif mode == "search":
+            mode = Mode(str(rule_raw["mode"].unroll()))
+            if mode == TAINT_MODE:
                 # Raises InvalidRuleSchemaError if fails to parse in search mode
-                return self._build_boolean_expression(rule), "search"
+                return self._build_taint_expression(rule), mode
+            elif mode == SEARCH_MODE:
+                # Raises InvalidRuleSchemaError if fails to parse in search mode
+                return self._build_boolean_expression(rule), mode
             else:
                 raise InvalidRuleSchemaError(
                     short_msg="invalid mode",
-                    long_msg="The only supported modes are 'search' (default) and 'taint'",
+                    long_msg=f"The only supported modes are {SUPPORTED_MODES}",
                     spans=[rule_raw["mode"].span],
                 )
 
         # Defaults to search mode if mode is not specified
-        return self._build_boolean_expression(rule), "search"
+        return self._build_boolean_expression(rule), DEFAULT_MODE
 
     def _parse_boolean_expression(
         self,
@@ -203,7 +210,7 @@ class Rule:
             if not pattern:
                 raise InvalidRuleSchemaError(
                     short_msg=f"missing {pattern_name} key",
-                    long_msg=f"In taint mode, 'pattern-sources' and 'pattern-sinks' are both required",
+                    long_msg=f"In {TAINT_MODE} mode, 'pattern-sources' and 'pattern-sinks' are both required",
                     spans=[rule.span.truncate(10)],
                 )
             self._validate_list_operand(pattern_name, pattern)
@@ -270,7 +277,7 @@ class Rule:
 
         raise InvalidRuleSchemaError(
             short_msg="missing key",
-            long_msg=f"missing a pattern type in rule. Expected one of {pattern_names_for_operators(required_operator)} or both of {sorted(YAML_TAINT_MUST_HAVE_KEYS)} if taint mode is specified",
+            long_msg=f"missing a pattern type in rule. Expected one of {pattern_names_for_operators(required_operator)} or both of {sorted(YAML_TAINT_MUST_HAVE_KEYS)} if {TAINT_MODE} mode is specified",
             spans=[rule.span.truncate(10)],
         )
 
@@ -297,6 +304,10 @@ class Rule:
     @property
     def severity(self) -> str:
         return str(self._raw["severity"])
+
+    @property
+    def mode(self) -> str:
+        return self._mode
 
     @property
     def sarif_severity(self) -> str:

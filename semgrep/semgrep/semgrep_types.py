@@ -11,8 +11,13 @@ import attr
 
 
 Language = NewType("Language", str)
+Mode = NewType("Mode", str)
 PatternId = NewType("PatternId", str)
 Operator = NewType("Operator", str)
+
+TAINT_MODE = Mode("taint")
+SEARCH_MODE = DEFAULT_MODE = Mode("search")
+SUPPORTED_MODES = {TAINT_MODE, SEARCH_MODE}
 
 
 class OPERATORS:

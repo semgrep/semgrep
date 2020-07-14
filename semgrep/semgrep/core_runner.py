@@ -34,6 +34,7 @@ from semgrep.rule_match import RuleMatch
 from semgrep.semgrep_types import BooleanRuleExpression
 from semgrep.semgrep_types import Language
 from semgrep.semgrep_types import OPERATORS
+from semgrep.semgrep_types import TAINT_MODE
 from semgrep.target_manager import TargetManager
 from semgrep.util import debug_print
 from semgrep.util import debug_tqdm_write
@@ -152,7 +153,7 @@ class CoreRunner:
     ) -> Dict[Language, List[Pattern]]:
 
         by_lang: Dict[Language, List[Pattern]] = collections.defaultdict(list)
-        if rules[0]._mode == "taint":
+        if rules[0].mode == TAINT_MODE:
             for lang in rules[0]._languages:
                 by_lang[lang] = []
         else:
@@ -305,7 +306,7 @@ class CoreRunner:
             if targets == []:
                 continue
 
-            if rule._mode == "taint":
+            if rule.mode == TAINT_MODE:
                 pattern_json = rule._raw.copy()
                 del pattern_json["mode"]
                 pattern = Pattern(
