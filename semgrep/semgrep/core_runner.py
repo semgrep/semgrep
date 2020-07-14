@@ -148,17 +148,15 @@ class CoreRunner:
                         rule_index, expr, rule.severity, lang, span,
                     )
 
-    def _group_patterns_by_language(
-        self, rules: List[Rule]
-    ) -> Dict[Language, List[Pattern]]:
+    def _group_patterns_by_language(self, rule: Rule) -> Dict[Language, List[Pattern]]:
 
         by_lang: Dict[Language, List[Pattern]] = collections.defaultdict(list)
-        if rules[0].mode == TAINT_MODE:
-            for lang in rules[0]._languages:
+        if rule.mode == TAINT_MODE:
+            for lang in rule.languages:
                 by_lang[lang] = []
         else:
             # a rule can have multiple patterns inside it. Flatten these so we can send semgrep a single yml file list of patterns
-            patterns: List[Pattern] = list(self._flatten_rule_patterns(rules))
+            patterns: List[Pattern] = list(self._flatten_rule_patterns([rule]))
             for pattern in patterns:
                 by_lang[pattern.language].append(pattern)
         return by_lang
@@ -230,7 +228,7 @@ class CoreRunner:
         targets: List[Path],
         language: Language,
         rule: Rule,
-        rules_flag: str,
+        rules_file_flag: str,
         cache_dir: str,
     ) -> dict:
         with tempfile.NamedTemporaryFile(
@@ -249,7 +247,7 @@ class CoreRunner:
             cmd = [SEMGREP_PATH] + [
                 "-lang",
                 language,
-                rules_flag,
+                rules_file_flag,
                 pattern_file.name,
                 "-j",
                 str(self._jobs),
@@ -299,11 +297,11 @@ class CoreRunner:
         errors: List[CoreException] = []
 
         for language, all_patterns_for_language in self._group_patterns_by_language(
-            [rule]
+            rule
         ).items():
 
             targets = self.get_files_for_language(language, rule, target_manager)
-            if targets == []:
+            if not targets:
                 continue
 
             if rule.mode == TAINT_MODE:

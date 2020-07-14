@@ -17,8 +17,8 @@ rules:
   - id: one-arg
     pattern-either:
       - pattern: $X($Y)
-      - pattern: $X()
-    message: $X is a function in this file with 1 arg
+      - pattern: $X($Y, $ARG2)
+    message: $X is a function in this file with 1 or 2 args
     languages: [python, javascript]
     severity: WARNING
   - id: empty-sanitize
