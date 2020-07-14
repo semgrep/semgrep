@@ -1744,7 +1744,7 @@ let parse file =
   (* TODO: tree-sitter bindings are buggy so we cheat and fork to
    * avoid segfaults to popup. See Main.ml test_parse_ruby function.
    *)
-   let cst_opt =
+   let cst =
       match 2 with
       (* segfault quite often *)
       | 1 -> Tree_sitter_ruby.Parse.file file
@@ -1778,14 +1778,11 @@ let parse file =
           )
         )
    in
-   match cst_opt with
-   | None -> failwith (spf "No CST returned for %s" file)
-   | Some x ->
-      (*
-      let sexp = CST.sexp_of_program x in
-      let s = Sexplib.Sexp.to_string_hum sexp in
-      pr s;
-      *)
-      global_file := file;
-      global_conv := line_col_to_pos file;
-      program x
+   (*
+   let sexp = CST.sexp_of_program x in
+   let s = Sexplib.Sexp.to_string_hum sexp in
+   pr s;
+  *)
+   global_file := file;
+   global_conv := line_col_to_pos file;
+   program cst
