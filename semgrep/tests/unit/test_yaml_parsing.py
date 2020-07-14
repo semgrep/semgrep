@@ -18,7 +18,7 @@ rules:
     languages: [python, javascript]
     severity: WARNING
   - id: example_id
-    mode: track
+    mode: taint
     pattern-sources:
       - source(...)
       - source1(...)

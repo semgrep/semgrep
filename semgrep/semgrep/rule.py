@@ -80,15 +80,15 @@ class Rule:
         _mode = rule_raw.get("mode")
         if _mode:
             mode = rule_raw["mode"].unroll()
-            if mode == "track":
-                return self._build_taint_expression(rule), "track"
+            if mode == "taint":
+                return self._build_taint_expression(rule), "taint"
             elif mode == "search":
                 # Raises InvalidRuleSchemaError if fails to parse in search mode
                 return self._build_boolean_expression(rule), "search"
             else:
                 raise InvalidRuleSchemaError(
                     short_msg="invalid mode",
-                    long_msg="The only supported modes are 'search' (default) and 'track'",
+                    long_msg="The only supported modes are 'search' (default) and 'taint'",
                     spans=[rule_raw["mode"].span],
                 )
 
@@ -203,7 +203,7 @@ class Rule:
             if not pattern:
                 raise InvalidRuleSchemaError(
                     short_msg=f"missing {pattern_name} key",
-                    long_msg=f"In track mode, 'pattern-sources' and 'pattern-sinks' are both required",
+                    long_msg=f"In taint mode, 'pattern-sources' and 'pattern-sinks' are both required",
                     spans=[rule.span.truncate(10)],
                 )
             self._validate_list_operand(pattern_name, pattern)
@@ -270,7 +270,7 @@ class Rule:
 
         raise InvalidRuleSchemaError(
             short_msg="missing key",
-            long_msg=f"missing a pattern type in rule. Expected one of {pattern_names_for_operators(required_operator)} or both of {sorted(YAML_TAINT_MUST_HAVE_KEYS)} if track mode is specified",
+            long_msg=f"missing a pattern type in rule. Expected one of {pattern_names_for_operators(required_operator)} or both of {sorted(YAML_TAINT_MUST_HAVE_KEYS)} if taint mode is specified",
             spans=[rule.span.truncate(10)],
         )
 

@@ -1,6 +1,6 @@
 rules:
   - id: classic
-    mode: track
+    mode: taint
     pattern-sources:
       - source(...)
       - source1(...)
