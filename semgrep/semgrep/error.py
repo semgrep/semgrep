@@ -89,7 +89,7 @@ class FilesNotFoundError(SemgrepError):
         return "\n".join(lines)
 
 
-@attr.s(eq=True, hash=True, init=False)  # type: ignore
+@attr.s(eq=True, hash=True, init=False)
 class ErrorWithSpan(SemgrepError):
     """
     In general, you should not be constructing ErrorWithSpan directly, and instead be constructing a subclass
