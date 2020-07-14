@@ -36,6 +36,17 @@ let just_parse_with_lang lang file =
           Parse_ruby.parse_program file
       in
       Ruby_to_generic.program ast
+  | Lang.Java ->
+      let ast =
+        (* let's start with a pfff one; it's quite good and currently faster
+         * than the tree-sitter one because we need to wrap that one inside
+         * an invoke because of a segfault/memory-leak
+         *)
+        try Parse_java.parse_program file
+        with _exn -> Parse_java_tree_sitter.parse file
+       in
+       Java_to_generic.program ast
+
   | _ -> Parse_generic.parse_with_lang lang file
 
 (*****************************************************************************)

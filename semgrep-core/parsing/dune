@@ -5,12 +5,14 @@
    yaml json-wheel
 
    tree-sitter-lang.ruby
+   tree-sitter-lang.java
 
    commons commons_core
    pfff-config
    pfff-h_program-lang
    pfff-lang_GENERIC pfff-lang_GENERIC-analyze
    pfff-lang_ruby pfff-lang_ruby-analyze
+   pfff-lang_java pfff-lang_java-analyze
 
    semgrep_core
  )
