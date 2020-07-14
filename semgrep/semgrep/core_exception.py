@@ -66,7 +66,7 @@ class CoreException:
         )
 
     def into_semgrep_error(self) -> SemgrepError:
-        with open(self._path) as f:
+        with open(self._path, errors="replace") as f:
             file_hash = SourceTracker.add_source(f.read())
         error_span = Span(
             start=self._start,
