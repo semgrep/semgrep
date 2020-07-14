@@ -37,6 +37,7 @@ def _evaluate_single_expression(
     results_for_pattern = [
         x.range for x in pattern_ids_to_pattern_matches.get(expression.pattern_id, [])
     ]
+    output_ranges: Set[Range] = set()
 
     if expression.operator == OPERATORS.AND:
         # remove all ranges that don't equal the ranges for this pattern
@@ -56,7 +57,6 @@ def _evaluate_single_expression(
         return output_ranges
     elif expression.operator == OPERATORS.AND_INSIDE:
         # remove all ranges (not enclosed by) or (not equal to) the inside ranges
-        output_ranges = set()
         for arange in ranges_left:
             for keep_inside_this_range in results_for_pattern:
                 is_enclosed = keep_inside_this_range.is_enclosing_or_eq(arange)
@@ -99,7 +99,6 @@ def _evaluate_single_expression(
             )
         assert expression.operand, "must have operand for this operator type"
 
-        output_ranges = set()
         # Look through every range that hasn't been filtered yet
         for pattern_match in list(flatten(pattern_ids_to_pattern_matches.values())):
             # Only need to check where-python clause if the range hasn't already been filtered

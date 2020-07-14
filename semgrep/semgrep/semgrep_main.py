@@ -247,7 +247,6 @@ def invoke_semgrep(config: Path, targets: List[Path], **kwargs: Any) -> Any:
         OutputSettings(
             output_format=OutputFormat.JSON,
             output_destination=None,
-            quiet=False,
             error_on_findings=False,
             strict=True,
         ),
