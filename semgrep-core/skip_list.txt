@@ -8,3 +8,6 @@ file: ocaml-tree-sitter-lang/ruby/lib/Parse.ml
 file: ocaml-tree-sitter-lang/java/lib/parser.c
 file: ocaml-tree-sitter-lang/java/lib/scanner.cc
 file: ocaml-tree-sitter-lang/java/lib/Parse.ml
+file: ocaml-tree-sitter-lang/typescript/lib/parser.c
+file: ocaml-tree-sitter-lang/typescript/lib/scanner.cc
+file: ocaml-tree-sitter-lang/typescript/lib/Parse.ml

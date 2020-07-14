@@ -44,4 +44,4 @@ https://semgrep.live/learn.
 
 ## Contributing to Semgrep
 
-We'd love your help! See [here](development.md) for detailed steps on getting your dev environment set up, building Semgrep, and more.
+We'd love your help! See `CONTRIBUTING.md` for detailed steps on getting your dev environment set up, building Semgrep, and more.

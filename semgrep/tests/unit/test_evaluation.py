@@ -26,12 +26,15 @@ def evaluate_expression(
 ) -> Set[Range]:
     # convert it to an implicit and
     e = BooleanRuleExpression(OPERATORS.AND_ALL, None, exprs, None)
-    return raw_evaluate_expression(e, pattern_ids_to_pattern_matches, [], flags)
+    result: Set[Range] = raw_evaluate_expression(
+        e, pattern_ids_to_pattern_matches, [], flags
+    )
+    return result
 
 
 def PatternMatchMock(
     start: int, end: int, metavars: Optional[Dict[str, Any]] = None
-) -> MagicMock:
+) -> PatternMatch:
     mock = MagicMock()
     range_property = PropertyMock(return_value=Range(start, end, metavars or {}))
     type(mock).range = range_property
@@ -100,7 +103,7 @@ def testB() -> None:
         and-or (P2, P3) -->  remove any ranges not exactly == P2 or P3. (R2 stays)
         OUTPUT: R2
     """
-    results = {
+    results: Dict[PatternId, List[PatternMatch]] = {
         PatternId("pattern1"): [PatternMatchMock(0, 100)],
         PatternId("pattern2"): [PatternMatchMock(30, 70), PatternMatchMock(0, 100)],
         PatternId("pattern3"): [],

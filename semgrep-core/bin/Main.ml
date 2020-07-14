@@ -848,12 +848,13 @@ let synthesize_patterns s file =
 (* mostly a copy paste of Test_parsing_ruby.test_parse in pfff but using
  * the tree-sitter Ruby parser instead.
  *)
-let test_parse_ruby xs =
-    let xs = List.map Common.fullpath xs in
-
-  let fullxs =
-    Lib_parsing_ruby.find_source_files_of_dir_or_files xs
-    |> Skip_code.filter_files_if_skip_list ~root:xs
+let test_parse_lang xs =
+  let xs = List.map Common.fullpath xs in
+  let fullxs = get_final_files xs in
+  let lang =
+    match Lang.lang_of_string_opt !lang with
+    | Some l -> l
+    | None -> failwith "no language specified; use -lang"
   in
 
   let stat_list = ref [] in
@@ -864,19 +865,27 @@ let test_parse_ruby xs =
     let n = Common2.nblines_file file in
     let stat = Parse_info.default_stat file in
     (try
-       let _prog_opt =
-          (* TODO: to fix! if set to true, we get segfault! *)
-          if false
-          then Tree_sitter_ruby.Parse.file file
+       if true
+       then begin
+          (* use tree-sitter parser and converters *)
+          Parse_code.parse_and_resolve_name_use_pfff_or_treesitter lang file
+          |> ignore
+       end else begin
+          (* just the tree-sitter CST parsing  *)
           (* Execute in its own process, so GC bugs will not pop-out here.
            * Slower, but safer for now, otherwise get segfaults probably
            * because of bugs in tree-sitter OCaml bindings.
            *)
-          else begin
-               Parallel.backtrace_when_exn := false;
-               Parallel.invoke Tree_sitter_ruby.Parse.file file ()
-           end;
-       in
+           Parallel.backtrace_when_exn := true;
+           Parallel.invoke
+             (fun file ->
+              match lang with
+              | Lang.Ruby -> Tree_sitter_ruby.Parse.file file |> ignore
+              | Lang.Java -> Tree_sitter_java.Parse.file file |> ignore
+              | _ -> failwith "lang not supported by ocaml-tree-sitter"
+              )
+             file ()
+        end;
        stat.PI.correct <- n
     with exn ->
         pr2 (spf "%s: exn = %s" file (Common.exn_to_s exn));
@@ -920,9 +929,10 @@ let all_actions () = [
   "-synthesize_patterns", " <l:c-l:c> <file>",
   Common.mk_action_2_arg synthesize_patterns;
 
-  "-parse_ruby", " <files or dirs>",
-  Common.mk_action_n_arg test_parse_ruby;
+  "-test_parse_lang", " <files or dirs>",
+  Common.mk_action_n_arg test_parse_lang;
  ]
+
 (*e: function [[Main_semgrep_core.all_actions]] *)
 
 (*s: function [[Main_semgrep_core.options]] *)

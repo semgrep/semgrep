@@ -29,6 +29,7 @@
 
     ; tree-sitter deps
     tree-sitter-lang.ruby
+    tree-sitter-lang.java
 
     ; internal deps
     semgrep_core

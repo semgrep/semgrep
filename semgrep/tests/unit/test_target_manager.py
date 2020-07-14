@@ -5,11 +5,12 @@ from typing import Set
 from semgrep.constants import OutputFormat
 from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
+from semgrep.semgrep_types import Language
 from semgrep.target_manager import TargetManager
 
 
 def test_filter_include():
-    all_files = [
+    all_file_names = [
         "foo.py",
         "foo.go",
         "foo.java",
@@ -29,7 +30,7 @@ def test_filter_include():
         "bar/baz/qux/foo/a.py",
         "/foo/bar/baz/a.py",
     ]
-    all_files = set({Path(elem) for elem in all_files})
+    all_files = set({Path(elem) for elem in all_file_names})
 
     # All .py files
     assert len(TargetManager.filter_includes(all_files, ["*.py"])) == 9
@@ -51,7 +52,7 @@ def test_filter_include():
 
 
 def test_filter_exclude():
-    all_files = [
+    all_file_names = [
         "foo.py",
         "foo.go",
         "foo.java",
@@ -71,7 +72,7 @@ def test_filter_exclude():
         "bar/baz/qux/foo/a.py",
         "/foo/bar/baz/a.py",
     ]
-    all_files = set({Path(elem) for elem in all_files})
+    all_files = set({Path(elem) for elem in all_file_names})
 
     # Filter out .py files
     assert len(TargetManager.filter_excludes(all_files, ["*.py"])) == 9
@@ -110,7 +111,7 @@ def test_delete_git(tmp_path, monkeypatch):
     subprocess.run(["git", "status"])
 
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path(".")], "python", True), {bar}
+        TargetManager.expand_targets([Path(".")], Language("python"), True), {bar}
     )
 
 
@@ -158,47 +159,54 @@ def test_expand_targets_git(tmp_path, monkeypatch):
     in_bar = {bar_a, bar_b}
     in_all = in_foo.union(in_bar)
 
+    python_language = Language("python")
+
     monkeypatch.chdir(tmp_path)
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path(".")], "python", True), in_all
+        TargetManager.expand_targets([Path(".")], python_language, True), in_all
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("bar")], "python", True), in_bar
+        TargetManager.expand_targets([Path("bar")], python_language, True), in_bar
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("foo")], "python", True), in_foo
+        TargetManager.expand_targets([Path("foo")], python_language, True), in_foo
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("foo").resolve()], "python", True), in_foo
+        TargetManager.expand_targets([Path("foo").resolve()], python_language, True),
+        in_foo,
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("foo/bar")], "python", True), in_foo_bar
+        TargetManager.expand_targets([Path("foo/bar")], python_language, True),
+        in_foo_bar,
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("foo/bar").resolve()], "python", True),
+        TargetManager.expand_targets(
+            [Path("foo/bar").resolve()], python_language, True
+        ),
         in_foo_bar,
     )
     monkeypatch.chdir(foo)
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path(".")], "python", True), in_foo
+        TargetManager.expand_targets([Path(".")], python_language, True), in_foo
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("./foo")], "python", True), set()
+        TargetManager.expand_targets([Path("./foo")], python_language, True), set()
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("bar")], "python", True), in_foo_bar
+        TargetManager.expand_targets([Path("bar")], python_language, True), in_foo_bar
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("bar")], "python", True), in_foo_bar
+        TargetManager.expand_targets([Path("bar")], python_language, True), in_foo_bar
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("..")], "python", True), in_all
+        TargetManager.expand_targets([Path("..")], python_language, True), in_all
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("../bar")], "python", True), in_bar
+        TargetManager.expand_targets([Path("../bar")], python_language, True), in_bar
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("../foo/bar")], "python", True), in_foo_bar
+        TargetManager.expand_targets([Path("../foo/bar")], python_language, True),
+        in_foo_bar,
     )
 
     # Add bar/, foo/bar/a.py, foo/b.py to gitignores
@@ -217,45 +225,50 @@ def test_expand_targets_git(tmp_path, monkeypatch):
 
     monkeypatch.chdir(tmp_path)
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path(".")], "python", True), in_all
+        TargetManager.expand_targets([Path(".")], python_language, True), in_all
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("bar")], "python", True), in_bar
+        TargetManager.expand_targets([Path("bar")], python_language, True), in_bar
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("foo")], "python", True), in_foo
+        TargetManager.expand_targets([Path("foo")], python_language, True), in_foo
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("foo").resolve()], "python", True), in_foo
+        TargetManager.expand_targets([Path("foo").resolve()], python_language, True),
+        in_foo,
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("foo/bar")], "python", True), in_foo_bar
+        TargetManager.expand_targets([Path("foo/bar")], python_language, True),
+        in_foo_bar,
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("foo/bar").resolve()], "python", True),
+        TargetManager.expand_targets(
+            [Path("foo/bar").resolve()], python_language, True
+        ),
         in_foo_bar,
     )
     monkeypatch.chdir(foo)
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path(".")], "python", True), in_foo
+        TargetManager.expand_targets([Path(".")], python_language, True), in_foo
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("./foo")], "python", True), set()
+        TargetManager.expand_targets([Path("./foo")], python_language, True), set()
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("bar")], "python", True), in_foo_bar
+        TargetManager.expand_targets([Path("bar")], python_language, True), in_foo_bar
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("bar")], "python", True), in_foo_bar
+        TargetManager.expand_targets([Path("bar")], python_language, True), in_foo_bar
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("..")], "python", True), in_all
+        TargetManager.expand_targets([Path("..")], python_language, True), in_all
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("../bar")], "python", True), in_bar
+        TargetManager.expand_targets([Path("../bar")], python_language, True), in_bar
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("../foo/bar")], "python", True), in_foo_bar
+        TargetManager.expand_targets([Path("../foo/bar")], python_language, True),
+        in_foo_bar,
     )
 
 
@@ -301,48 +314,55 @@ def test_expand_targets_not_git(tmp_path, monkeypatch):
     in_bar = {bar_a, bar_b}
     in_all = in_foo.union(in_bar)
 
+    python_language = Language("python")
+
     monkeypatch.chdir(tmp_path)
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path(".")], "python", False), in_all
+        TargetManager.expand_targets([Path(".")], python_language, False), in_all
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("bar")], "python", False), in_bar
+        TargetManager.expand_targets([Path("bar")], python_language, False), in_bar
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("foo")], "python", False), in_foo
+        TargetManager.expand_targets([Path("foo")], python_language, False), in_foo
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("foo").resolve()], "python", False), in_foo
+        TargetManager.expand_targets([Path("foo").resolve()], python_language, False),
+        in_foo,
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("foo/bar")], "python", False), in_foo_bar
+        TargetManager.expand_targets([Path("foo/bar")], python_language, False),
+        in_foo_bar,
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("foo/bar").resolve()], "python", False),
+        TargetManager.expand_targets(
+            [Path("foo/bar").resolve()], python_language, False
+        ),
         in_foo_bar,
     )
 
     monkeypatch.chdir(foo)
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path(".")], "python", False), in_foo
+        TargetManager.expand_targets([Path(".")], python_language, False), in_foo
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("./foo")], "python", False), set()
+        TargetManager.expand_targets([Path("./foo")], python_language, False), set()
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("bar")], "python", False), in_foo_bar
+        TargetManager.expand_targets([Path("bar")], python_language, False), in_foo_bar
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("bar")], "python", False), in_foo_bar
+        TargetManager.expand_targets([Path("bar")], python_language, False), in_foo_bar
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("..")], "python", False), in_all
+        TargetManager.expand_targets([Path("..")], python_language, False), in_all
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("../bar")], "python", False), in_bar
+        TargetManager.expand_targets([Path("../bar")], python_language, False), in_bar
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("../foo/bar")], "python", False), in_foo_bar
+        TargetManager.expand_targets([Path("../foo/bar")], python_language, False),
+        in_foo_bar,
     )
 
 
@@ -364,29 +384,30 @@ def test_explicit_path(tmp_path, monkeypatch):
     foo_a = foo_a.relative_to(tmp_path)
     output_settings = OutputSettings(
         output_format=OutputFormat.TEXT,
-        output_destination=False,
-        quiet=True,
+        output_destination=None,
         error_on_findings=False,
         strict=False,
     )
     defaulthandler = OutputHandler(output_settings)
 
+    python_language = Language("python")
+
     assert foo_a in TargetManager(
         [], [], ["foo/a.py"], False, defaulthandler
-    ).get_files("python", [], [])
+    ).get_files(python_language, [], [])
 
     # Should include explicitly passed python file even if is in excludes
     assert foo_a not in TargetManager(
         [], ["foo/a.py"], ["."], False, defaulthandler
-    ).get_files("python", [], [])
+    ).get_files(python_language, [], [])
     assert foo_a in TargetManager(
         [], ["foo/a.py"], [".", "foo/a.py"], False, defaulthandler
-    ).get_files("python", [], [])
+    ).get_files(python_language, [], [])
 
     # Should ignore expliclty passed .go file when requesting python
     assert (
         TargetManager([], [], ["foo/a.go"], False, defaulthandler).get_files(
-            "python", [], []
+            python_language, [], []
         )
         == []
     )
@@ -395,7 +416,7 @@ def test_explicit_path(tmp_path, monkeypatch):
     assert cmp_path_sets(
         set(
             TargetManager([], [], ["foo/noext"], False, defaulthandler).get_files(
-                "python", [], []
+                python_language, [], []
             )
         ),
         {foo_noext},
