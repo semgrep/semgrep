@@ -207,7 +207,7 @@ def evaluate(
         }
     ]
     debug_print(str(pattern_ids_to_pattern_matches))
-    if rule._mode == "track":
+    if rule._mode == "taint":
         valid_ranges_to_output = {
             pattern_match.range for pattern_match in pattern_matches
         }
