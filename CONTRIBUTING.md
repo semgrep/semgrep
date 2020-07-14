@@ -229,7 +229,7 @@ Then to test semgrep on a file, for example tests/GENERIC/test.py run:
 
 ```bash
 $ cd semgrep-core
-$ ./_build/default/bin/Main.exe -e foo -l python tests/python
+$ ./_build/default/bin/Main.exe -e foo -lang python tests/python
 ```
 
 If you want to test semgrep on a directory with a set of given rules, run:
