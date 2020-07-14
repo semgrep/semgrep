@@ -284,7 +284,6 @@ def cli() -> None:
     output_settings = OutputSettings(
         output_format=output_format,
         output_destination=args.output,
-        quiet=args.quiet,
         error_on_findings=args.error,
         strict=args.strict,
     )
