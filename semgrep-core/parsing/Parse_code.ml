@@ -46,6 +46,12 @@ let just_parse_with_lang lang file =
         with _exn -> Parse_java_tree_sitter.parse file
        in
        Java_to_generic.program ast
+  | Lang.Go ->
+      let ast =
+        try Parse_go.parse_program file
+        with _exn -> Parse_go_tree_sitter.parse file
+      in
+      Go_to_generic.program ast
 
   | _ -> Parse_generic.parse_with_lang lang file
 
