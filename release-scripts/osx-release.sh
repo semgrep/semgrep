@@ -11,6 +11,11 @@ eval "$(opam env)"
 opam install -y ./pfff
 ./install-scripts/install-ocaml-tree-sitter
 
+# Remove dynamically linked libraries to force MacOS to use static ones
+rm /usr/local/lib/libtree-sitter.0.0.dylib
+rm /usr/local/lib/libtree-sitter.0.dylib
+rm /usr/local/lib/libtree-sitter.dylib
+
 (
   cd semgrep-core
   opam install --deps-only -y .

@@ -93,7 +93,6 @@ jobs:
       - name: Run OSX build
         run: |
           ./release-scripts/osx-release.sh
-          cp /usr/local/lib/libtree-sitter.0.dylib artifacts/libtree-sitter.0.dylib
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
@@ -113,7 +112,6 @@ jobs:
       - name: Test build artifact
         run: |
           chmod +x ./artifacts/semgrep-core
-          cp artifacts/libtree-sitter.0.dylib /usr/local/lib/libtree-sitter.0.dylib
           ./artifacts/semgrep-core -help
 
   release-ubuntu:
