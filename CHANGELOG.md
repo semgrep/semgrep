@@ -4,9 +4,18 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Next
 
-### Fixed
+### Added
+- Alpha level support for Ruby
 
+### Changed
+- Show semgrep rule matches even with --quiet flag
+
+### Fixed
 - Fixed a crash when running over a directory with binary files in it.
+- Fix SARIF output format
+- Parse nested  in javascript
+- True and False are not keywords in Python2
+- Send informative error message when user tries to use semgrep on missing files
 
 ## [0.14.0](https://github.com/returntocorp/semgrep/releases/tag/v0.14.0) - 2020-07-07
 
@@ -72,7 +81,6 @@ def fetch_global_const():
 - Do not convert certain parenthesized expressions in tuples in Python
 - Returned warning when improperly mounting volume in docker container
 - Correctly handle uncommited file deletions when using git aware file targeting
-- Send informative error message when user tries to use semgrep on missing files
 
 ### Changed
 - Progress bar only displays when in interactive terminal, more than one
