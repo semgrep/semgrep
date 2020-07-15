@@ -203,6 +203,12 @@ class Rule:
                 long_msg=f"rule id must be a string, but was {type(_rule_id).__name__}",
                 spans=[rule_raw["id"].span],
             )
+        if rule_raw.get("metadata"):
+            raise InvalidRuleSchemaError(
+                short_msg="invalid key",
+                long_msg=f"metadata is not supported in {TAINT_MODE} mode",
+                spans=[rule_raw.key_tree("metadata").span],
+            )
         rule_id = PatternId(_rule_id)
         for pattern_name in YAML_TAINT_MUST_HAVE_KEYS:
             pattern = rule_raw.get(pattern_name)
