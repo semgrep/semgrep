@@ -41,14 +41,9 @@
   </a>
 </p>
 
-Semgrep is a command-line tool for static analysis. Quickly write custom rules or use [pre-built checks]() to enforce code and security standards in your project. Semgrep runs locally and in CI; it works offline and never sends your code anywhere.
+Semgrep is a tool for quick and lightweight static analysis. Easily write your own rules or run community rule packs to enforce code and security standards. Semgrep runs locally or in your CI, never sending code or telemetry anywhere.
 
-Quickly get started with Semgrep:
-
-1. [Installation]()
-1. [Writing custom rules]()
-1. [Run pre-built rules]()
-1. [Run Semgrep continously in CI]()
+Get started locally running Semgrep via [Installation & Usage](). For community rule packs and CI integrations visit [semgrep.live]().
 
 ## Overview
 
@@ -74,7 +69,7 @@ Semgrep is optimized for:
 - **Ease of integration**. Highly portable and many CI and git-hook integrations already exist. Output `--json` and pipe results into your existing systems.
 - **Polyglot environments**: Don't learn and maintain multiple tools for your polyglot environment (e.g. ESLint, find-sec-bugs, RuboCop, Gosec). Use the same syntax and concepts independent of language.
 
-Semgrep emphasis on speed has led to its focus on per-file analysis. As a result, Semgrep doesn't support complex interprocedural dataflows, which are time intensive and costly to compute. 
+Semgrep emphasis on speed has led to its focus on per-file analysis. As a result, Semgrep doesn't support complex interprocedural dataflows, which are time intensive and costly to compute.
 
 TODO - GOOGLE PAPER, INSTAGRAM GRAPHIC
 
@@ -113,14 +108,13 @@ exec (
 
 This can be taken further with additional syntax, such as:
 
-| **Pattern**                                                        | **Match**                                                |
-|:-------------------------------------------------------------------|:-----------------------------------------------------------|
-| [`$X == $X`](https://semgrep.live/20B)                             | `if (node.id == node.id): ...`                             |
-| [`requests.get(..., verify=False, ...)`](https://semgrep.live/jqn) | `requests.get(url, timeout=3, verify=False)`               |
-| [`os.system(...)`](https://semgrep.live/1W5)                       | `from os import system; system('echo semgrep')`            |
-| [`$ELEMENT.innerHTML`](https://semgrep.live/9ze)                   | ``el.innerHTML = "<img src='x' onerror='alert(`XSS`)'>";`` |
-| [`$TOKEN.SignedString([]byte("..."))`](https://semgrep.live/rXW)   | `ss, err := token.SignedString([]byte("HARDCODED KEY"))`   |
-
+| **Pattern**                                                        | **Match**                                                    |
+| :----------------------------------------------------------------- | :----------------------------------------------------------- |
+| [`$X == $X`](https://semgrep.live/20B)                             | `if (node.id == node.id): ...`                               |
+| [`requests.get(..., verify=False, ...)`](https://semgrep.live/jqn) | `requests.get(url, timeout=3, verify=False)`                 |
+| [`os.system(...)`](https://semgrep.live/1W5)                       | `from os import system; system('echo semgrep')`              |
+| [`$ELEMENT.innerHTML`](https://semgrep.live/9ze)                   | `` el.innerHTML = "<img src='x' onerror='alert(`XSS`)'>"; `` |
+| [`$TOKEN.SignedString([]byte("..."))`](https://semgrep.live/rXW)   | `ss, err := token.SignedString([]byte("HARDCODED KEY"))`     |
 
 A [multi-pattern YAML syntax]() then lets you combine simple patterns using boolean logic to create powerful rules for continuous scanning:
 
@@ -192,9 +186,9 @@ logging:
 
 `semgrep` may exit with the following exit codes:
 
-* `0`: Semgrep ran successfully and found no errors
-* `1`: Semgrep ran successfully and found issues in your code
-* \>=`2`: Semgrep failed to run
+- `0`: Semgrep ran successfully and found no errors
+- `1`: Semgrep ran successfully and found issues in your code
+- \>=`2`: Semgrep failed to run
 
 ## Workflows
 
@@ -342,7 +336,7 @@ Many integrations already exist and are documented in [docs/integrations.md](doc
 
 Semgrep provides a CLI, binaries, and Docker images to be portable and easily consumed across environments. It supports JSON output with the `--json` flag and the standardized Static Analysis Results Interchange Format ([SARIF](https://docs.oasis-open.org/sarif/sarif/v2.1.0/cs01/sarif-v2.1.0-cs01.html)) with the `--sarif` flag.
 
-The easiest way to integrate Semgrep into GitHub hosted projects is with the [Semgrep GitHub Action](https://github.com/marketplace/actions/semgrep-action). This action is configured to only report issues *newly* introduced by a pull request, not pre-existing issues. This significantly increases the liklihood people fix the issues they're shown in CI. 
+The easiest way to integrate Semgrep into GitHub hosted projects is with the [Semgrep GitHub Action](https://github.com/marketplace/actions/semgrep-action). This action is configured to only report issues _newly_ introduced by a pull request, not pre-existing issues. This significantly increases the liklihood people fix the issues they're shown in CI.
 
 ## Resources
 
