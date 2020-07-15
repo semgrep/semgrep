@@ -17,6 +17,7 @@ module CST = Tree_sitter_java.CST
 module PI = Parse_info
 (* open Ast_java *)
 module G = AST_generic
+module H = Parse_tree_sitter_helpers
 
 (*****************************************************************************)
 (* Prelude *)
@@ -50,13 +51,11 @@ module G = AST_generic
 
 [@@@warning "-32"]
 
-type env = unit
+type env = H.env
 
-let token (env : env) (_tok : Tree_sitter_run.Token.t) =
-  failwith "not implemented"
+let token (env : env) (_tok : Tree_sitter_run.Token.t) = H.token
 
-let blank (env : env) () =
-  failwith "not implemented"
+let blank (env : env) () = ()
 
 let todo (env : env) _ =
    failwith "not implemented"
@@ -2062,11 +2061,15 @@ and method_declaration (env : env) ((v1, v2, v3) : CST.method_declaration) =
 let program (env : env) (xs : CST.program) =
   List.map (statement env) xs
 
+(*****************************************************************************)
+(* Entry point *)
+(*****************************************************************************)
 
 let parse file =
-  let cst =
+  let ast =
     Parallel.backtrace_when_exn := false;
     Parallel.invoke Tree_sitter_java.Parse.file file ()
   in
-  (* TODO *)
+  let env = { H.file; conv = H.line_col_to_pos file } in
+  let _x = program env ast in
   raise Todo

@@ -1,10 +1,43 @@
+(* Yoann Padioleau
+ *
+ * Copyright (C) 2020 r2c
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License (GPL)
+ * version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * file license.txt for more details.
+ *)
+open Common
+module AST = Ast_go
 module CST = Tree_sitter_go.CST
-[@@@warning "-32"]
+module PI = Parse_info
+(* open Ast_go *)
+module G = AST_generic
+module H = Parse_tree_sitter_helpers
 
-let parse _file =
-  raise Common.Todo
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+(* Go parser using ocaml-tree-sitter-lang/go and converting
+ * to pfff/lang_go/parsing/ast_go.ml
+ *
+ * The resulting AST can then be converted to the generic AST by using
+ * pfff/lang_go/analyze/go_to_generic.ml
+ *)
 
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
+(*****************************************************************************)
+(* Boilerplate converter *)
+(*****************************************************************************)
 (* This was started by copying ocaml-tree-sitter-lang/go/.../Boilerplate.ml *)
+
 (**
    Boilerplate to be used as a template when mapping the go CST
    to another type of tree.
@@ -16,14 +49,13 @@ let parse _file =
 (* Disable warning against unused 'rec' *)
 [@@@warning "-39"]
 
+[@@@warning "-32"]
 
-type env = unit
+type env = H.env
 
-let token (env : env) (_tok : Tree_sitter_run.Token.t) =
-  failwith "not implemented"
+let token (env : env) (_tok : Tree_sitter_run.Token.t) = H.token
 
-let blank (env : env) () =
-  failwith "not implemented"
+let blank (env : env) () = ()
 
 let todo (env : env) _ =
    failwith "not implemented"
@@ -1499,3 +1531,17 @@ let source_file (env : env) (xs : CST.source_file) =
         todo env (v1, v2)
     )
   ) xs
+
+
+(*****************************************************************************)
+(* Entry point *)
+(*****************************************************************************)
+
+let parse file =
+  let ast =
+    Parallel.backtrace_when_exn := false;
+    Parallel.invoke Tree_sitter_go.Parse.file file ()
+  in
+  let env = { H.file; conv = H.line_col_to_pos file } in
+  let _x = source_file env ast in
+  raise Todo
