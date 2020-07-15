@@ -69,7 +69,7 @@ YAML_TOP_LEVEL_PATTERN_KEYS = {
     for op in YAML_VALID_TOP_LEVEL_OPERATORS
     for pattern_name in OPERATOR_PATTERN_NAMES_MAP[op]
 }
-YAML_TAINT_KEYS = {"pattern-sinks", "pattern-sources", "pattern-sanitizers"}
+YAML_TAINT_KEYS = YAML_TAINT_MUST_HAVE_KEYS | {"pattern-sanitizers"}
 
 YAML_ALL_VALID_RULE_KEYS = (
     YAML_TOP_LEVEL_PATTERN_KEYS
