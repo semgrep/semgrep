@@ -824,79 +824,7 @@ let dump_tainting_rules file =
 (* Experiments *)
 (*****************************************************************************)
 
-let expr_at_range s file =
-  let r = Range.range_of_linecol_spec s file in
-  pr2_gen r;
-  let ast = Parse_generic.parse_program file in
-  (* just to see if it works with Naming on *)
-  let lang = Lang.langs_of_filename file |> List.hd in
-  Naming_AST.resolve lang ast;
-  let e_opt = Range_to_AST.expr_at_range r ast in
-  (match e_opt with
-  | Some e -> pr (AST_generic.show_expr e)
-  | None -> failwith (spf "could not find an expr at range %s in %s" s file)
-  )
 
-let synthesize_patterns s file =
-  let options = Synthesizer.synthesize_patterns s file in
-  let json_opts =
-      J.Object (List.map (fun (k, v) -> (k, J.String v)) options)
-  in
-  let s = Json_io.string_of_json json_opts in
-  pr s
-
-(* mostly a copy paste of Test_parsing_ruby.test_parse in pfff but using
- * the tree-sitter Ruby parser instead.
- *)
-let test_parse_lang xs =
-  let xs = List.map Common.fullpath xs in
-  let fullxs = get_final_files xs in
-  let lang =
-    match Lang.lang_of_string_opt !lang with
-    | Some l -> l
-    | None -> failwith "no language specified; use -lang"
-  in
-
-  let stat_list = ref [] in
-  fullxs |> Console.progress (fun k -> List.iter (fun file ->
-    k();
-    if !verbose then pr2 (spf "processing %s" file);
-
-    let n = Common2.nblines_file file in
-    let stat = Parse_info.default_stat file in
-    (try
-       if true
-       then begin
-          (* use tree-sitter parser and converters *)
-          Parse_code.parse_and_resolve_name_use_pfff_or_treesitter lang file
-          |> ignore
-       end else begin
-          (* just the tree-sitter CST parsing  *)
-          (* Execute in its own process, so GC bugs will not pop-out here.
-           * Slower, but safer for now, otherwise get segfaults probably
-           * because of bugs in tree-sitter OCaml bindings.
-           *)
-           Parallel.backtrace_when_exn := true;
-           Parallel.invoke
-             (fun file ->
-              match lang with
-              | Lang.Ruby -> Tree_sitter_ruby.Parse.file file |> ignore
-              | Lang.Java -> Tree_sitter_java.Parse.file file |> ignore
-              | _ -> failwith "lang not supported by ocaml-tree-sitter"
-              )
-             file ()
-        end;
-       stat.PI.correct <- n
-    with exn ->
-        pr2 (spf "%s: exn = %s" file (Common.exn_to_s exn));
-        stat.PI.bad <- n
-    );
-    Common.push stat stat_list;
-  ));
-  flush stdout; flush stderr;
-
-  Parse_info.print_parsing_stat_list !stat_list;
-  ()
 
 (*****************************************************************************)
 (* The options *)
@@ -925,12 +853,13 @@ let all_actions () = [
   Common.mk_action_0_arg validate_pattern;
   (*e: [[Main_semgrep_core.all_actions]] other cases *)
   "-expr_at_range", " <l:c-l:c> <file>",
-  Common.mk_action_2_arg expr_at_range;
+  Common.mk_action_2_arg Test_synthesizing.expr_at_range;
   "-synthesize_patterns", " <l:c-l:c> <file>",
-  Common.mk_action_2_arg synthesize_patterns;
+  Common.mk_action_2_arg Test_synthesizing.synthesize_patterns;
 
   "-test_parse_lang", " <files or dirs>",
-  Common.mk_action_n_arg test_parse_lang;
+  Common.mk_action_n_arg
+    (Test_parsing.test_parse_lang !verbose !lang get_final_files);
  ]
 
 (*e: function [[Main_semgrep_core.all_actions]] *)
