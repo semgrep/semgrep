@@ -8,15 +8,15 @@
 </h3>
 
 <p align="center">
-  <a href="#installation">Installation</a>
+  <a href="#getting-started">Getting Started</a>
   <span> · </span>
-  <a href="#usage">Usage</a>
+  <a href="#design-choices">Design Choices</a>
   <span> · </span>
-  <a href="#overview">Overview</a>
-  <span> · </span>
-  <a href="#workflows">Workflows</a>
+  <a href="#use-cases">Use Cases</a>
   <br/>
   <a href="#resources">Resources</a>
+  <span> · </span>
+  <a href="#usage">Usage</a>
   <span> · </span>
   <a href="#contributing">Contributing</a>
   <span> · </span>
