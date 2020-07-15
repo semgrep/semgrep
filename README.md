@@ -49,28 +49,50 @@ Semgrep supports:
 | :--------- | :------- | :----- | :------------- | :---- | :------- | :------------- | :-------- |
 | ✅         | ✅       | ✅     | ✅             | ✅    | 🚧       | Coming...      | Coming... |
 
+Semgrep is proudly supported by [r2c](https://r2c.dev). For a fully-supported, hosted version of Semgrep please visit [r2c.dev]().
+
 ## Getting Started
 
-TODO
+Running a Semgrep rule is as easy as:
 
-- start with rule writing: /learn + semgrep.live
-- want to run a rule or pack locally? install via brew/docker/pypi and run the default rule pack
+```sh
+$ brew install semgrep && semgrep -e '$X==$X' /path/to/src
+```
+
+The Semgrep rule `$X==$X` will find all cases where the left and right hand side of an equality comparison are the same.
+
+Semgrep patterns are very flexible. Learn how to write your own rules at [semgrep.live/learn]()
+
+Want to scan your code with a community rule pack? Install Semgrep and scan code with the default rule pack by running:
+
+```sh
+$ semgrep --config=default
+```
 
 ## Use Cases
 
-- codify Institutional Knowledge
-  - API usage expectations, business logic bugs, “this is how we do things”
-- Security Controls (“paved road”)
-  - Enforce use of a wrapper library (file parsing, authn/authz)
-  - Variant analysis to prevent known bugs from internal testing, bug bounty, pen tests
-- Config Auditing (JSON/what formats do you care about?)
-- Visibility
-  - Auditing routes and getting alerted on new ones
-    - e.g. looking for admin-related routes, routes that don’t do an authn/authz check
-  - Auditing security hotspots (crypto, shell exec, use of authn/authz, parsing XML, and more!)
-  - Measure adoption of security controls or APIs across code base
-- Code transformation
-  - Migrating APIs, deprecating APIs
+Search your code
+
+- Vulnerabilities
+- Audit security hotspots
+- Extract routes
+- Codify domain knowledge
+
+Guard your code
+
+- Secure defaults
+- Banned APIs
+- Best- and required- practices
+- Configuration file auditing
+
+Upgrade your code
+
+- Migrate from deprecated APIs
+- Apply automatic fixes
+
+Watch your code
+
+- See fixes over time
 
 ## Resources
 
