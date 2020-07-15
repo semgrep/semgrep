@@ -13,7 +13,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Fixed
 - Fixed a crash when running over a directory with binary files in it.
 - Fix SARIF output format
-- Parse nested  in javascript
+- Parse nested destructured parameters in JavaScript
 - True and False are not keywords in Python2
 - Send informative error message when user tries to use semgrep on missing files
 
