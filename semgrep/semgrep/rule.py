@@ -83,24 +83,23 @@ class Rule:
     ) -> Tuple[BooleanRuleExpression, Mode]:
 
         rule_raw = rule.value
-        _mode = rule_raw.get("mode")
-        if _mode:
-            mode = Mode(str(rule_raw["mode"].unroll()))
-            if mode == TAINT_MODE:
-                # Raises InvalidRuleSchemaError if fails to parse in search mode
-                return self._build_taint_expression(rule), mode
-            elif mode == SEARCH_MODE:
-                # Raises InvalidRuleSchemaError if fails to parse in search mode
-                return self._build_boolean_expression(rule), mode
-            else:
-                raise InvalidRuleSchemaError(
-                    short_msg="invalid mode",
-                    long_msg=f"The only supported modes are {SUPPORTED_MODES}",
-                    spans=[rule_raw["mode"].span],
-                )
-
-        # Defaults to search mode if mode is not specified
-        return self._build_boolean_expression(rule), DEFAULT_MODE
+        mode = (
+            Mode(str(rule_raw["mode"].unroll()))
+            if rule_raw.get("mode")
+            else DEFAULT_MODE
+        )
+        if mode == TAINT_MODE:
+            # Raises InvalidRuleSchemaError if fails to parse in search mode
+            return self._build_taint_expression(rule), mode
+        elif mode == SEARCH_MODE:
+            # Raises InvalidRuleSchemaError if fails to parse in search mode
+            return self._build_boolean_expression(rule), mode
+        else:
+            raise InvalidRuleSchemaError(
+                short_msg="invalid mode",
+                long_msg=f"The only supported modes are {SUPPORTED_MODES}",
+                spans=[rule_raw["mode"].span],
+            )
 
     def _parse_boolean_expression(
         self,
