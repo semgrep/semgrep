@@ -49,13 +49,13 @@ Semgrep supports:
 | :--------- | :------- | :----- | :------------- | :---- | :------- | :------------- | :-------- |
 | ✅         | ✅       | ✅     | ✅             | ✅    | 🚧       | Coming...      | Coming... |
 
-Semgrep is proudly supported by [r2c](https://r2c.dev). Learn more about a hosted version of Semgrep with an enterprise feature set at [r2c.dev]().
+Semgrep is proudly supported by r2c. Learn more about a hosted version of Semgrep with an enterprise feature set at [r2c.dev]().
 
 ## Getting Started
 
 The best place to start with Semgrep is with its online tour: [semgrep.live/tour](). If you skip the tour, [Use Cases]() will give you a high level sense of Semgrep's applications for DevSecOps.
 
-Semgrep can be installed locally or in CI using `brew`, `pip`, or Docker:
+Semgrep can be installed using `brew`, `pip`, or `docker`:
 
 ```sh
 # For macOS:
@@ -68,14 +68,14 @@ $ pip3 install semgrep
 $ docker run --rm -v "${PWD}:/src" returntocorp/semgrep --help
 ```
 
-Once installed, Semgrep can be run locally with quick patterns or entire rule packs:
+Once installed, Semgrep can be run with quick patterns or entire rule packs:
 
 ```sh
-# Check for equality comparison where left and right hand sides are the same
-$ semgrep -e `$X==$X` --lang=<language> <target>
+# Check for Python == where the left and right hand sides are the same (often a bug)
+$ semgrep -e `$X==$X` --lang=py path/to/src
 
 # Run the default rule pack with rules for many languages
-$ semgrep --config=default <target>
+$ semgrep --config=default path/to/src
 ```
 
 To learn more about Semgrep's rule syntax visit [TODO]().
