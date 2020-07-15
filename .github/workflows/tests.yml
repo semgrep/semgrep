@@ -101,13 +101,8 @@ jobs:
   release-ubuntu:
     name: Check builds for ubuntu
     needs: [build-core]
-    strategy:
-      matrix:
-        # The os doesn't actually matter anymore. We build a static
-        # binary linked with musl that is manylinux compatible.
-        os: ['ubuntu-16.04']
     runs-on: ubuntu-latest
-    container: returntocorp/sgrep-build:${{ matrix.os }}
+    container: returntocorp/sgrep-build:ubuntu-16.04
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -126,5 +121,5 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
-          name: semgrep-${{ matrix.os }}-${{ github.sha }}
+          name: semgrep-ubuntu-16.04-${{ github.sha }}
           path: artifacts.tar.gz
