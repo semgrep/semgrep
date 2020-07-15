@@ -5,7 +5,7 @@
       "help": "Unexpected keys {'severit'} found. Is one of these a typo of {'severity'}?",
       "level": "error",
       "long_msg": "rules/syntax/bad2.yaml is missing required keys {'severity'}",
-      "short_msg": "missing keys",
+      "short_msg": "incorrect keys",
       "spans": [
         {
           "context_end": null,

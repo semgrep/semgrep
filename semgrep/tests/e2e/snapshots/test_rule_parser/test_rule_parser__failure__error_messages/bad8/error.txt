@@ -6,6 +6,6 @@ error: missing key
 5 |     languages: [python]
 6 |     severity: WARNING
 
-missing a pattern type in rule, expected one of ['patterns', 'pattern-either', 'pattern-regex', 'pattern']
+missing a pattern type in rule. Expected one of ['patterns', 'pattern-either', 'pattern-regex', 'pattern'] or both of ['pattern-sinks', 'pattern-sources'] if taint mode is specified
 
 run with --strict and there were 1 errors loading configs

@@ -46,14 +46,21 @@ def validate_single_rule(
     rule: YamlMap = rule_yaml.value
 
     rule_keys = set({k.value for k in rule.keys()})
-    if not rule_keys.issuperset(YAML_MUST_HAVE_KEYS):
-        missing_keys = YAML_MUST_HAVE_KEYS - rule_keys
+    extra_keys = rule_keys - YAML_ALL_VALID_RULE_KEYS
+    extra_key_spans = sorted([rule.key_tree(k) for k in extra_keys])
+    missing_keys = YAML_MUST_HAVE_KEYS - rule_keys
 
-        extra_keys: Set[str] = rule_keys - YAML_ALL_VALID_RULE_KEYS
-        extra_key_spans = sorted([rule.key_tree(k) for k in extra_keys])
-        help_msg = None
-        if extra_keys:
-            help_msg = f"Unexpected keys {extra_keys} found. Is one of these a typo of {missing_keys}?"
+    if missing_keys and extra_keys:
+        help_msg = f"Unexpected keys {extra_keys} found. Is one of these a typo of {missing_keys}?"
+        raise InvalidRuleSchemaError(
+            short_msg="incorrect keys",
+            long_msg=f"{config_id} is missing required keys {missing_keys}",
+            spans=[rule_yaml.span.truncate(lines=5)]
+            + [e.span for e in extra_key_spans],
+            help=help_msg,
+        )
+    elif missing_keys:
+        help_msg = f"Add {missing_keys} to your config file."
         raise InvalidRuleSchemaError(
             short_msg="missing keys",
             long_msg=f"{config_id} is missing required keys {missing_keys}",
@@ -61,8 +68,15 @@ def validate_single_rule(
             + [e.span for e in extra_key_spans],
             help=help_msg,
         )
-
-    # Raises InvalidRuleSchemaError if fails to parse
+    elif extra_keys:
+        help_msg = f"Unexpected keys {extra_keys} found. Were you looking for any of these unused, valid keys?\n {sorted(YAML_ALL_VALID_RULE_KEYS - rule_keys)}"
+        raise InvalidRuleSchemaError(
+            short_msg="invalid keys",
+            long_msg=f"{config_id} has extra, un-interpretable keys: {extra_keys}",
+            spans=[e.span for e in extra_key_spans],
+            help=help_msg,
+        )
+    # Defaults to search mode if mode is not specified
     return Rule.from_yamltree(rule_yaml)
 
 

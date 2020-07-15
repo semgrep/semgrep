@@ -40,6 +40,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Added
 - Const propagation now works with Java 'final' keyword and for Python globals
   which were assigned only once in the program
+- Support for taint-tracking rules on CLI using the key-value pair 'mode: taint'
+  (defaults to 'mode: search')
 
 ### Fixed
 - Parsing Ocaml open overriding

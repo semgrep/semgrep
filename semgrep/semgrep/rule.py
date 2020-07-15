@@ -3,6 +3,7 @@ from typing import Dict
 from typing import Iterator
 from typing import List
 from typing import Optional
+from typing import Tuple
 
 from semgrep.equivalences import Equivalence
 from semgrep.error import InvalidPatternNameError
@@ -13,7 +14,9 @@ from semgrep.rule_lang import YamlMap
 from semgrep.rule_lang import YamlTree
 from semgrep.semgrep_types import ALLOWED_GLOB_TYPES
 from semgrep.semgrep_types import BooleanRuleExpression
+from semgrep.semgrep_types import DEFAULT_MODE
 from semgrep.semgrep_types import Language
+from semgrep.semgrep_types import Mode
 from semgrep.semgrep_types import Operator
 from semgrep.semgrep_types import OPERATOR_PATTERN_NAMES_MAP
 from semgrep.semgrep_types import OPERATORS
@@ -21,6 +24,10 @@ from semgrep.semgrep_types import OPERATORS_WITH_CHILDREN
 from semgrep.semgrep_types import pattern_names_for_operator
 from semgrep.semgrep_types import pattern_names_for_operators
 from semgrep.semgrep_types import PatternId
+from semgrep.semgrep_types import SEARCH_MODE
+from semgrep.semgrep_types import SUPPORTED_MODES
+from semgrep.semgrep_types import TAINT_MODE
+from semgrep.semgrep_types import YAML_TAINT_MUST_HAVE_KEYS
 from semgrep.util import flatten
 
 
@@ -65,7 +72,34 @@ class Rule:
         self._includes = path_dict.get("include", [])
         self._excludes = path_dict.get("exclude", [])
         self._languages = [Language(l) for l in self._raw["languages"]]
-        self._expression = self._build_boolean_expression(self._yaml)
+
+        # check taint/search mode
+        self._expression, self._mode = self._taint_or_search_patterns_validation(
+            self._yaml
+        )
+
+    def _taint_or_search_patterns_validation(
+        self, rule: YamlTree[YamlMap]
+    ) -> Tuple[BooleanRuleExpression, Mode]:
+
+        rule_raw = rule.value
+        mode = (
+            Mode(str(rule_raw["mode"].unroll()))
+            if rule_raw.get("mode")
+            else DEFAULT_MODE
+        )
+        if mode == TAINT_MODE:
+            # Raises InvalidRuleSchemaError if fails to parse in search mode
+            return self._build_taint_expression(rule), mode
+        elif mode == SEARCH_MODE:
+            # Raises InvalidRuleSchemaError if fails to parse in search mode
+            return self._build_boolean_expression(rule), mode
+        else:
+            raise InvalidRuleSchemaError(
+                short_msg="invalid mode",
+                long_msg=f"The only supported modes are {SUPPORTED_MODES}",
+                spans=[rule_raw["mode"].span],
+            )
 
     def _parse_boolean_expression(
         self,
@@ -147,6 +181,47 @@ class Rule:
             )
         return operand.value
 
+    @staticmethod
+    def _validate_list_operand(field: str, operand: YamlTree) -> list:  # type: ignore
+        if not isinstance(operand.value, list):
+            raise InvalidRuleSchemaError(
+                short_msg="invalid operand",
+                long_msg=f"type of {field} must be a list, but it was a {type(operand.unroll()).__name__}",
+                spans=[operand.span.with_context(before=1, after=1)],
+            )
+        return operand.value
+
+    def _build_taint_expression(self, rule: YamlTree[YamlMap]) -> BooleanRuleExpression:
+        """
+        Build an expression from the yml lines in the rule
+        """
+        rule_raw = rule.value
+        _rule_id = rule_raw["id"].unroll()
+        if not isinstance(_rule_id, str):
+            raise InvalidRuleSchemaError(
+                short_msg="invalid id",
+                long_msg=f"rule id must be a string, but was {type(_rule_id).__name__}",
+                spans=[rule_raw["id"].span],
+            )
+        if rule_raw.get("metadata"):
+            raise InvalidRuleSchemaError(
+                short_msg="invalid key",
+                long_msg=f"metadata is not supported in {TAINT_MODE} mode",
+                spans=[rule_raw.key_tree("metadata").span],
+            )
+        rule_id = PatternId(_rule_id)
+        for pattern_name in YAML_TAINT_MUST_HAVE_KEYS:
+            pattern = rule_raw.get(pattern_name)
+            if not pattern:
+                raise InvalidRuleSchemaError(
+                    short_msg=f"missing {pattern_name} key",
+                    long_msg=f"In {TAINT_MODE} mode, 'pattern-sources' and 'pattern-sinks' are both required",
+                    spans=[rule.span.truncate(10)],
+                )
+            self._validate_list_operand(pattern_name, pattern)
+            self._pattern_spans[rule_id] = pattern.span
+        return BooleanRuleExpression(OPERATORS.AND, rule_id, None, None,)
+
     def _build_boolean_expression(
         self, rule: YamlTree[YamlMap]
     ) -> BooleanRuleExpression:
@@ -207,7 +282,7 @@ class Rule:
 
         raise InvalidRuleSchemaError(
             short_msg="missing key",
-            long_msg=f"missing a pattern type in rule, expected one of {pattern_names_for_operators(required_operator)}",
+            long_msg=f"missing a pattern type in rule. Expected one of {pattern_names_for_operators(required_operator)} or both of {sorted(YAML_TAINT_MUST_HAVE_KEYS)} if {TAINT_MODE} mode is specified",
             spans=[rule.span.truncate(10)],
         )
 
@@ -234,6 +309,10 @@ class Rule:
     @property
     def severity(self) -> str:
         return str(self._raw["severity"])
+
+    @property
+    def mode(self) -> str:
+        return self._mode
 
     @property
     def sarif_severity(self) -> str:
