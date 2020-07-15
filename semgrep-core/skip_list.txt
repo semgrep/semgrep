@@ -11,3 +11,6 @@ file: ocaml-tree-sitter-lang/java/lib/Parse.ml
 file: ocaml-tree-sitter-lang/typescript/lib/parser.c
 file: ocaml-tree-sitter-lang/typescript/lib/scanner.cc
 file: ocaml-tree-sitter-lang/typescript/lib/Parse.ml
+file: ocaml-tree-sitter-lang/go/lib/parser.c
+file: ocaml-tree-sitter-lang/go/lib/scanner.cc
+file: ocaml-tree-sitter-lang/go/lib/Parse.ml

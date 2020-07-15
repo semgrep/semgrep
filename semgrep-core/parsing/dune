@@ -6,6 +6,7 @@
 
    tree-sitter-lang.ruby
    tree-sitter-lang.java
+   tree-sitter-lang.go
 
    commons commons_core
    pfff-config
@@ -13,6 +14,7 @@
    pfff-lang_GENERIC pfff-lang_GENERIC-analyze
    pfff-lang_ruby pfff-lang_ruby-analyze
    pfff-lang_java pfff-lang_java-analyze
+   pfff-lang_go pfff-lang_go-analyze
 
    semgrep_core
  )
