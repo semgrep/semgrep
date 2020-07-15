@@ -189,12 +189,12 @@ let unittest =
                     then begin
                       pr2 str;
                       pr2 (AST_generic.show_any (pattern));
-                      pr2 (AST_generic.show_any (A.E e));
+                      pr2 (AST_generic.show_any e);
 
                     end;
                     assert_bool (spf "pattern:|%s| should match |%s"
                               pat
-                              (PPG.pattern_to_string lang (A.E e)))
+                              (PPG.pattern_to_string lang e))
                            (matches_with_env <> [])
 
                  | None ->
