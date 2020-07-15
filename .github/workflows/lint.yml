@@ -21,7 +21,7 @@ jobs:
         id: semgrep
         uses: returntocorp/semgrep-action@v1
         with:
-          config: p/r2c
+          config: r/r2c
           publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}
           publishDeployment: "1"
 
