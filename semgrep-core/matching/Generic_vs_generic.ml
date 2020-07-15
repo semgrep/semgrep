@@ -1886,7 +1886,7 @@ and m_function_definition a b =
   { A. fparams = a1; frettype = a2; fbody = a3; },
   { B. fparams = b1; frettype = b2; fbody = b3; } ->
     m_parameters a1 b1 >>= (fun () ->
-    (m_option m_type_) a2 b2 >>= (fun () ->
+    (m_option_none_can_match_some m_type_) a2 b2 >>= (fun () ->
     m_stmt a3 b3
     ))
 (*e: function [[Generic_vs_generic.m_function_definition]] *)
