@@ -264,6 +264,11 @@ jobs:
         with:
           name: semgrep-core
           path: semgrep-core-dir
+      - name: Install artifact
+        run: |
+          mkdir -p semgrep-files
+          cp semgrep-core-dir/semgrep-core semgrep-files
+          chmod +x semgrep-files/semgrep-core
       - name: Setup Python
         run: |
           rm /usr/bin/python
@@ -271,7 +276,7 @@ jobs:
       - name: Install zip & musl-tools
         run: apt-get update && apt install -y zip musl-tools
       - name: Build the wheels
-        run: PRECOMPILED_LOCATION=$(realpath 'semgrep-core-dir/semgrep-core') ./release-scripts/build-wheels.sh
+        run: PRECOMPILED_LOCATION=$(realpath 'semgrep-files/semgrep-core') ./release-scripts/build-wheels.sh
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
