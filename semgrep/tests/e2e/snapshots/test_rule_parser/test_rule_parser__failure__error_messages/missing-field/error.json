@@ -2,6 +2,7 @@
   "errors": [
     {
       "code": 4,
+      "help": "Add {'severity'} to your config file.",
       "level": "error",
       "long_msg": "rules/syntax/missing-field.yaml is missing required keys {'severity'}",
       "short_msg": "missing keys",
