@@ -64,7 +64,7 @@ $ brew install semgrep
 # On Ubuntu/WSL/linux, we recommend installing via `pip`
 $ pip3 install semgrep
 
-# To try Semgrep without installation, you can also run it via Docker:
+# To try Semgrep without installation run via Docker
 $ docker run --rm -v "${PWD}:/src" returntocorp/semgrep --help
 ```
 
@@ -81,6 +81,20 @@ $ semgrep --config=default <target>
 To learn more about Semgrep's rule syntax visit [TODO]().
 
 To explore community rule packs and learn about CI integrations visit [TODO]()
+
+## Design Choices
+
+Semgrep is optimized for:
+
+- **Speed**: Fast enough to run on every build, commit, or file save
+- **Finding bugs that matter**: Run your rules or community rule packs from the [Semgrep Registry](_https://semgrep.live/packs). Rules match source code at the Abstract Syntax Tree (AST) level, unlike regexes that match strings and aren't semantically aware.
+- **Ease of customization**: Rules look like the code you’re searching, no static analysis PhD required. They don't require compiled code, only source, reducing iteration time.
+- **Ease of integration**. Highly portable and many CI and git-hook integrations already exist. Output `--json` and pipe results into your existing systems.
+- **Polyglot environments**: Don't learn and maintain multiple tools for your polyglot environment (e.g. ESLint, find-sec-bugs, RuboCop, Gosec). Use the same syntax and concepts independent of language.
+
+Semgrep emphasis on speed has led to its focus on per-file analysis. As a result, Semgrep doesn't support complex interprocedural dataflows, which are time intensive and costly to compute.
+
+TODO - GOOGLE PAPER, INSTAGRAM GRAPHIC
 
 ## Use Cases
 
