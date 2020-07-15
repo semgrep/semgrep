@@ -79,7 +79,7 @@ jobs:
         env:
           GITHUB_REPO_CACHE: ~/.cache/semgrep-cache
 
-  mac-build-test:
+  mac-build:
     name: Check builds for macOS
     runs-on: macos-latest
     steps:
@@ -102,7 +102,7 @@ jobs:
   mac-build-linking-test:
     name: Check that semgrep-core runs
     runs-on: macos-latest
-    needs: [mac-build-test]
+    needs: [mac-build]
     steps:
       - name: Download Artifact
         uses: actions/download-artifact@v1

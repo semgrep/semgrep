@@ -8,8 +8,10 @@ git submodule update --init --recursive
 
 eval "$(opam env)"
 
+make config
+make setup
 opam install -y ./pfff
-./install-scripts/install-ocaml-tree-sitter
+opam install -y ./ocaml-tree-sitter
 
 # Remove dynamically linked libraries to force MacOS to use static ones
 rm /usr/local/lib/libtree-sitter.0.0.dylib
