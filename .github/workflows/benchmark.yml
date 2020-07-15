@@ -6,11 +6,12 @@ on:
       - "master"
     tags:
       - "v*" # Push events to matching v*, i.e. v1.0, v20.15.10
-  pull_request:
-    branches: ["develop"]
-
-      # This string is matched in `latest-artifact-for-branch.py`
+    # Don't benchmark changes to markdown files
+    paths-ignore:
+      - '**.md'
 name: Incorporate Benchmark Data
+#     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+# This string is matched in `latest-artifact-for-branch.py`:
 jobs:
   build-core:
     runs-on: ubuntu-latest
