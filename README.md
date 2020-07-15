@@ -49,25 +49,38 @@ Semgrep supports:
 | :--------- | :------- | :----- | :------------- | :---- | :------- | :------------- | :-------- |
 | ✅         | ✅       | ✅     | ✅             | ✅    | 🚧       | Coming...      | Coming... |
 
-Semgrep is proudly supported by [r2c](https://r2c.dev). For a fully-supported, hosted version of Semgrep please visit [r2c.dev]().
+Semgrep is proudly supported by [r2c](https://r2c.dev). Learn more about a hosted version of Semgrep with an enterprise feature set at [r2c.dev]().
 
 ## Getting Started
 
-Running a Semgrep rule is as easy as:
+The best place to start with Semgrep is with its online tour: [semgrep.live/tour](). If you skip the tour, [Use Cases]() will give you a high level sense of Semgrep's applications for DevSecOps.
+
+Semgrep can be installed locally or in CI using `brew`, `pip`, or Docker:
 
 ```sh
-$ brew install semgrep && semgrep -e '$X==$X' /path/to/src
+# For macOS:
+$ brew install semgrep
+
+# On Ubuntu/WSL/linux, we recommend installing via `pip`
+$ pip3 install semgrep
+
+# To try Semgrep without installation, you can also run it via Docker:
+$ docker run --rm -v "${PWD}:/src" returntocorp/semgrep --help
 ```
 
-The Semgrep rule `$X==$X` will find all cases where the left and right hand side of an equality comparison are the same.
-
-Semgrep patterns are very flexible. Learn how to write your own rules at [semgrep.live/learn]()
-
-Want to scan your code with a community rule pack? Install Semgrep and scan code with the default rule pack by running:
+Once installed, Semgrep can be run locally with quick patterns or entire rule packs:
 
 ```sh
-$ semgrep --config=default
+# Check for equality comparison where left and right hand sides are the same
+$ semgrep -e `$X==$X` --lang=<language> <target>
+
+# Run the default rule pack with rules for many languages
+$ semgrep --config=default <target>
 ```
+
+To learn more about Semgrep's rule syntax visit [TODO]().
+
+To explore community rule packs and learn about CI integrations visit [TODO]()
 
 ## Use Cases
 
