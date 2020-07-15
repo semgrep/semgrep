@@ -36,8 +36,8 @@
   <a href="https://github.com/returntocorp/semgrep/issues/new/choose">
     <img src="https://img.shields.io/badge/issues-welcome-green?style=flat-square" alt="Issues welcome!" />
   </a>
-  <a href="https://twitter.com/intent/follow?screen_name=r2cdev">
-    <img src="https://img.shields.io/twitter/follow/r2cdev?label=Follow%20r2cdev&style=social&color=blue" alt="Follow @r2cdev" />
+  <a href="https://github.com/returntocorp/semgrep#readme">
+    <img src="https://img.shields.io/github/stars/returntocorp/semgrep?label=GitHub%20Stars&style=flat-square" alt="1000+ GitHub stars" />
   </a>
 </p>
 
