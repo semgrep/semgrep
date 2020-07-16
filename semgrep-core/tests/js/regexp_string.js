@@ -1,2 +1,2 @@
 //ERROR: match
-const path = "/location/1";
+path = "/location/1";
