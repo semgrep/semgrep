@@ -53,6 +53,8 @@ module H = Parse_tree_sitter_helpers
 
 type env = H.env
 
+let fake = G.fake
+
 let token = H.token
 let str = H.str
 
@@ -61,23 +63,16 @@ let blank (env : env) () = ()
 let todo (env : env) _ =
    failwith "not implemented"
 
+
+
+let identifier (env : env) (tok : CST.identifier) =
+  str env tok (* pattern [a-zA-Z_]\w* *)
+
 let floating_point_type (env : env) (x : CST.floating_point_type) =
   (match x with
   | `Floa_point_type_float tok -> TBasic ("float", token env tok) (* "float" *)
   | `Floa_point_type_doub tok -> TBasic ("double", token env tok) (* "double" *)
   )
-
-let octal_integer_literal (env : env) (tok : CST.octal_integer_literal) =
-  str env tok (* octal_integer_literal *)
-
-let binary_integer_literal (env : env) (tok : CST.binary_integer_literal) =
-  str env tok (* binary_integer_literal *)
-
-let identifier (env : env) (tok : CST.identifier) =
-  str env tok (* pattern [a-zA-Z_]\w* *)
-
-let hex_integer_literal (env : env) (tok : CST.hex_integer_literal) =
-  str env tok (* hex_integer_literal *)
 
 let integral_type (env : env) (x : CST.integral_type) =
   (match x with
@@ -88,20 +83,6 @@ let integral_type (env : env) (x : CST.integral_type) =
   | `Inte_type_char tok -> TBasic (str env tok) (* "char" *)
   )
 
-let decimal_floating_point_literal (env : env) (tok : CST.decimal_floating_point_literal) =
-  str env tok (* decimal_floating_point_literal *)
-
-let character_literal (env : env) (tok : CST.character_literal) =
-  str env tok (* character_literal *)
-
-let string_literal (env : env) (tok : CST.string_literal) =
-  str env tok (* string_literal *)
-
-let hex_floating_point_literal (env : env) (tok : CST.hex_floating_point_literal) =
-  str env tok (* hex_floating_point_literal *)
-
-let decimal_integer_literal (env : env) (tok : CST.decimal_integer_literal) =
-  str env tok (* decimal_integer_literal *)
 
 
 let requires_modifier (env : env) (x : CST.requires_modifier) =
@@ -127,36 +108,36 @@ and scoped_identifier (env : env) ((v1, v2, v3) : CST.scoped_identifier) =
 
 let inferred_parameters (env : env) ((v1, v2, v3, v4) : CST.inferred_parameters) =
   let v1 = token env v1 (* "(" *) in
-  let v2 = token env v2 (* pattern [a-zA-Z_]\w* *) in
+  let v2 = str env v2 (* pattern [a-zA-Z_]\w* *) in
   let v3 =
     List.map (fun (v1, v2) ->
-      let v1 = token env v1 (* "," *) in
-      let v2 = token env v2 (* pattern [a-zA-Z_]\w* *) in
-      todo env (v1, v2)
+      let _v1 = token env v1 (* "," *) in
+      let v2 = str env v2 (* pattern [a-zA-Z_]\w* *) in
+      v2
     ) v3
   in
   let v4 = token env v4 (* ")" *) in
-  todo env (v1, v2, v3, v4)
+  v1, v2::v3, v4
 
 let literal (env : env) (x : CST.literal) =
   (match x with
   | `Lit_deci_int_lit tok ->
-      token env tok (* decimal_integer_literal *)
+      Int (str env tok) (* decimal_integer_literal *)
   | `Lit_hex_int_lit tok ->
-      token env tok (* hex_integer_literal *)
+      Int (str env tok) (* hex_integer_literal *)
   | `Lit_octal_int_lit tok ->
-      token env tok (* octal_integer_literal *)
+      Int (str env tok) (* octal_integer_literal *)
   | `Lit_bin_int_lit tok ->
-      token env tok (* binary_integer_literal *)
+      Int (str env tok) (* binary_integer_literal *)
   | `Lit_deci_floa_point_lit tok ->
-      token env tok (* decimal_floating_point_literal *)
+      Float (str env tok) (* decimal_floating_point_literal *)
   | `Lit_hex_floa_point_lit tok ->
-      token env tok (* hex_floating_point_literal *)
-  | `Lit_true tok -> token env tok (* "true" *)
-  | `Lit_false tok -> token env tok (* "false" *)
-  | `Lit_char_lit tok -> token env tok (* character_literal *)
-  | `Lit_str_lit tok -> token env tok (* string_literal *)
-  | `Lit_null_lit tok -> token env tok (* "null" *)
+      Float (str env tok) (* hex_floating_point_literal *)
+  | `Lit_true tok -> Bool (true, token env tok) (* "true" *)
+  | `Lit_false tok -> Bool (false, token env tok) (* "false" *)
+  | `Lit_char_lit tok -> Char (str env tok) (* character_literal *)
+  | `Lit_str_lit tok -> String (str env tok) (* string_literal *)
+  | `Lit_null_lit tok -> Null (token env tok) (* "null" *)
   )
 
 let module_directive (env : env) ((v1, v2) : CST.module_directive) =
@@ -247,11 +228,11 @@ let rec expression (env : env) (x : CST.expression) =
   | `Exp_assign_exp (v1, v2, v3) ->
       let v1 =
         (match v1 with
-        | `Id tok -> token env tok (* pattern [a-zA-Z_]\w* *)
+        | `Id tok -> name_of_id env tok (* pattern [a-zA-Z_]\w* *)
         | `Choice_open x ->
             (match x with
-            | `Open tok -> token env tok (* "open" *)
-            | `Modu tok -> token env tok (* "module" *)
+            | `Open tok -> name_of_id env tok (* "open" *)
+            | `Modu tok -> name_of_id env tok (* "module" *)
             )
         | `Field_acce x -> field_access env x
         | `Array_acce x -> array_access env x
@@ -286,13 +267,16 @@ let rec expression (env : env) (x : CST.expression) =
         (match v1 with
         | `Id tok -> token env tok (* pattern [a-zA-Z_]\w* *)
         | `Form_params x -> formal_parameters env x
-        | `Infe_params x -> inferred_parameters env x
+        | `Infe_params x ->
+                let (_, xs, _) = inferred_parameters env x in
+                todo env xs
         )
       in
       let v2 = token env v2 (* "->" *) in
       let v3 =
         (match v3 with
-        | `Exp x -> expression env x
+        | `Exp x -> let x = expression env x in
+                Expr (x, fake ";")
         | `Blk x -> block env x
         )
       in
@@ -475,20 +459,30 @@ and basic_type_extra env = function
   | `Scop_type_id x -> scoped_type_identifier env x
   | `Gene_type x -> generic_type env x
 
+and name_of_id env tok =
+  Name ([[], str env tok])
+
+(* TODO: use a special at some point *)
+and this env tok =
+  name_of_id env tok
+and super env tok =
+  name_of_id env tok
+
 and primary (env : env) (x : CST.primary) =
   (match x with
-  | `Prim_lit x -> literal env x
+  | `Prim_lit x -> Literal (literal env x)
   | `Prim_class_lit (v1, v2, v3) ->
       let v1 = unannotated_type env v1 in
       let v2 = token env v2 (* "." *) in
       let v3 = token env v3 (* "class" *) in
       todo env (v1, v2, v3)
-  | `Prim_this tok -> token env tok (* "this" *)
-  | `Prim_id tok -> token env tok (* pattern [a-zA-Z_]\w* *)
+  | `Prim_this tok -> this env tok (* "this" *)
+  | `Prim_id tok -> name_of_id env tok (* pattern [a-zA-Z_]\w* *)
+
   | `Prim_choice_open x ->
       (match x with
-      | `Open tok -> token env tok (* "open" *)
-      | `Modu tok -> token env tok (* "module" *)
+      | `Open tok -> name_of_id env tok (* "open" *)
+      | `Modu tok -> name_of_id env tok (* "module" *)
       )
   | `Prim_paren_exp x -> parenthesized_expression env x
   | `Prim_obj_crea_exp x ->
@@ -511,7 +505,7 @@ and primary (env : env) (x : CST.primary) =
             let v1 =
               (match v1 with
               | `Prim x -> primary env x
-              | `Super tok -> token env tok (* "super" *)
+              | `Super tok -> super env tok (* "super" *)
               )
             in
             let v2 = token env v2 (* "." *) in
@@ -548,7 +542,7 @@ and primary (env : env) (x : CST.primary) =
         (match v1 with
         | `Type x -> type_ env x
         | `Prim x -> primary env x
-        | `Super tok -> token env tok (* "super" *)
+        | `Super tok -> super env tok (* "super" *)
         )
       in
       let v2 = token env v2 (* "::" *) in
@@ -637,7 +631,7 @@ and field_access (env : env) ((v1, v2, v3, v4) : CST.field_access) =
   let v1 =
     (match v1 with
     | `Prim x -> primary env x
-    | `Super tok -> token env tok (* "super" *)
+    | `Super tok -> super env tok (* "super" *)
     )
   in
   let v2 =
@@ -754,7 +748,7 @@ and dimensions (env : env) (xs : CST.dimensions) =
   ) xs
 
 
-and statement (env : env) (x : CST.statement) =
+and statement (env : env) (x : CST.statement) : Ast_java.stmt =
   (match x with
   | `Stmt_decl x -> declaration env x
   | `Stmt_exp_stmt (v1, v2) ->
@@ -848,7 +842,8 @@ and statement (env : env) (x : CST.statement) =
       let v9 = statement env v9 in
       todo env (v1, v2, v3, v4, v5, v6, v7, v8, v9)
   | `Stmt_blk x -> block env x
-  | `Stmt_SEMI tok -> token env tok (* ";" *)
+  | `Stmt_SEMI tok ->
+        let t = token env tok (* ";" *) in EmptyStmt t
   | `Stmt_asse_stmt x -> assert_statement env x
   | `Stmt_swit_stmt (v1, v2, v3) ->
       let v1 = token env v1 (* "switch" *) in
@@ -1050,12 +1045,14 @@ and resource (env : env) (x : CST.resource) =
       let v4 = token env v4 (* "=" *) in
       let v5 = expression env v5 in
       todo env (v1, v2, v3, v4, v5)
-  | `Reso_id tok -> token env tok (* pattern [a-zA-Z_]\w* *)
+  | `Reso_id tok ->
+        let x = str env tok (* pattern [a-zA-Z_]\w* *) in
+        todo env x
   | `Reso_field_acce x -> field_access env x
   )
 
 
-and annotation (env : env) (x : CST.annotation) =
+and annotation (env : env) (x : CST.annotation) : annotation =
   (match x with
   | `Anno_mark_anno (v1, v2) ->
       let v1 = token env v1 (* "@" *) in
@@ -1126,7 +1123,9 @@ and element_value (env : env) (x : CST.element_value) =
       in
       let v4 = token env v4 (* "}" *) in
       todo env (v1, v2, v3, v4)
-  | `Anno x -> annotation env x
+  | `Anno x ->
+        let x = annotation env x in
+        todo env x
   )
 
 
@@ -1221,23 +1220,22 @@ and enum_body (env : env) ((v1, v2, v3, v4, v5) : CST.enum_body) =
   todo env (v1, v2, v3, v4, v5)
 
 
+and class_body_decl env = function
+  | `Field_decl x -> field_declaration env x
+  | `Meth_decl x -> method_declaration env x
+  | `Class_decl x -> class_declaration env x
+  | `Inte_decl x -> interface_declaration env x
+  | `Anno_type_decl x -> annotation_type_declaration env x
+  | `Enum_decl x -> enum_declaration env x
+  | `Blk x -> let x = block env x in
+          todo env x
+  | `Stat_init x -> static_initializer env x
+  | `Cons_decl x -> constructor_declaration env x
+  | `SEMI tok -> EmptyStmt (token env tok) (* ";" *)
+
 and enum_body_declarations (env : env) ((v1, v2) : CST.enum_body_declarations) =
   let v1 = token env v1 (* ";" *) in
-  let v2 =
-    List.map (fun x ->
-      (match x with
-      | `Field_decl x -> field_declaration env x
-      | `Meth_decl x -> method_declaration env x
-      | `Class_decl x -> class_declaration env x
-      | `Inte_decl x -> interface_declaration env x
-      | `Anno_type_decl x -> annotation_type_declaration env x
-      | `Enum_decl x -> enum_declaration env x
-      | `Blk x -> block env x
-      | `Stat_init x -> static_initializer env x
-      | `Cons_decl x -> constructor_declaration env x
-      | `SEMI tok -> token env tok (* ";" *)
-      )
-    ) v2
+  let v2 = List.map (fun x -> class_body_decl env x) v2
   in
   todo env (v1, v2)
 
@@ -1292,19 +1290,19 @@ and class_declaration (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.class_decl
 and modifiers (env : env) (xs : CST.modifiers) =
   List.map (fun x ->
     (match x with
-    | `Anno x -> annotation env x
-    | `Publ tok -> token env tok (* "public" *)
-    | `Prot tok -> token env tok (* "protected" *)
-    | `Priv tok -> token env tok (* "private" *)
-    | `Abst tok -> token env tok (* "abstract" *)
-    | `Stat tok -> token env tok (* "static" *)
-    | `Final tok -> token env tok (* "final" *)
-    | `Stri tok -> token env tok (* "strictfp" *)
-    | `Defa tok -> token env tok (* "default" *)
-    | `Sync tok -> token env tok (* "synchronized" *)
-    | `Nati tok -> token env tok (* "native" *)
-    | `Tran tok -> token env tok (* "transient" *)
-    | `Vola tok -> token env tok (* "volatile" *)
+    | `Anno x -> Annotation (annotation env x), fake ""
+    | `Publ tok -> Public, token env tok (* "public" *)
+    | `Prot tok -> Protected, token env tok (* "protected" *)
+    | `Priv tok -> Private, token env tok (* "private" *)
+    | `Abst tok -> Abstract, token env tok (* "abstract" *)
+    | `Stat tok -> Static, token env tok (* "static" *)
+    | `Final tok -> Final, token env tok (* "final" *)
+    | `Stri tok -> StrictFP, token env tok (* "strictfp" *)
+    | `Defa tok -> DefaultModifier, token env tok (* "default" *)
+    | `Sync tok -> Synchronized, token env tok (* "synchronized" *)
+    | `Nati tok -> Native, token env tok (* "native" *)
+    | `Tran tok -> Transient, token env tok (* "transient" *)
+    | `Vola tok -> Volatile, token env tok (* "volatile" *)
     )
   ) xs
 
@@ -1373,22 +1371,7 @@ and interface_type_list (env : env) ((v1, v2) : CST.interface_type_list) =
 
 and class_body (env : env) ((v1, v2, v3) : CST.class_body) =
   let v1 = token env v1 (* "{" *) in
-  let v2 =
-    List.map (fun x ->
-      (match x with
-      | `Field_decl x -> field_declaration env x
-      | `Meth_decl x -> method_declaration env x
-      | `Class_decl x -> class_declaration env x
-      | `Inte_decl x -> interface_declaration env x
-      | `Anno_type_decl x -> annotation_type_declaration env x
-      | `Enum_decl x -> enum_declaration env x
-      | `Blk x -> block env x
-      | `Stat_init x -> static_initializer env x
-      | `Cons_decl x -> constructor_declaration env x
-      | `SEMI tok -> token env tok (* ";" *)
-      )
-    ) v2
-  in
+  let v2 = List.map (fun x -> class_body_decl env x) v2 in
   let v3 = token env v3 (* "}" *) in
   todo env (v1, v2, v3)
 
@@ -1586,7 +1569,7 @@ and interface_body (env : env) ((v1, v2, v3) : CST.interface_body) =
       | `Class_decl x -> class_declaration env x
       | `Inte_decl x -> interface_declaration env x
       | `Anno_type_decl x -> annotation_type_declaration env x
-      | `SEMI tok -> token env tok (* ";" *)
+      | `SEMI tok -> EmptyStmt (token env tok) (* ";" *)
       )
     ) v2
   in
@@ -1888,7 +1871,7 @@ and method_declaration (env : env) ((v1, v2, v3) : CST.method_declaration) =
   let v3 =
     (match v3 with
     | `Blk x -> block env x
-    | `SEMI tok -> token env tok (* ";" *)
+    | `SEMI tok -> EmptyStmt (token env tok) (* ";" *)
     )
   in
   todo env (v1, v2, v3)
