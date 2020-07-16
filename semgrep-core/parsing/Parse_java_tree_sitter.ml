@@ -473,9 +473,9 @@ and primary (env : env) (x : CST.primary) =
   | `Prim_lit x -> Literal (literal env x)
   | `Prim_class_lit (v1, v2, v3) ->
       let v1 = unannotated_type env v1 in
-      let v2 = token env v2 (* "." *) in
-      let v3 = token env v3 (* "class" *) in
-      todo env (v1, v2, v3)
+      let _v2 = token env v2 (* "." *) in
+      let _v3 = token env v3 (* "class" *) in
+      ClassLiteral v1
   | `Prim_this tok -> this env tok (* "this" *)
   | `Prim_id tok -> name_of_id env tok (* pattern [a-zA-Z_]\w* *)
 
@@ -540,7 +540,8 @@ and primary (env : env) (x : CST.primary) =
   | `Prim_meth_ref (v1, v2, v3, v4) ->
       let v1 =
         (match v1 with
-        | `Type x -> type_ env x
+        | `Type x -> let t = type_ env x in
+                todo env t
         | `Prim x -> primary env x
         | `Super tok -> super env tok (* "super" *)
         )
@@ -1673,7 +1674,7 @@ and array_initializer (env : env) ((v1, v2, v3, v4) : CST.array_initializer) =
   todo env (v1, v2, v3, v4)
 
 
-and type_ (env : env) (x : CST.type_) =
+and type_ (env : env) (x : CST.type_) : typ =
   (match x with
   | `Type_unan_type x -> unannotated_type env x
   | `Type_anno_type (v1, v2) ->
@@ -1683,7 +1684,7 @@ and type_ (env : env) (x : CST.type_) =
   )
 
 
-and unannotated_type (env : env) (x : CST.unannotated_type) =
+and unannotated_type (env : env) (x : CST.unannotated_type) : typ =
   (match x with
   | `Unan_type_choice_void_type x ->
         let t = basic_type_extra env x in
