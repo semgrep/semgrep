@@ -2,6 +2,22 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [0.16.0](https://github.com/returntocorp/semgrep/releases/tag/v0.16.0) - 2020-07-21
+
+### Added
+- Match file-name imports against metavariables using `import "$X"` (most
+  useful in Go)
+- Support for taint-tracking rules on CLI using the key-value pair 'mode: taint'
+  (defaults to 'mode: search')
+
+### Changed
+- Don't print out parse errors to stdout when using structured output formats
+
+### Fixed
+- Parse nested object properties in parameter destructuring in JavaScript
+- Parse binding patterns in ECMAScript 2021 catch expressions
+- Was mistakenly reporting only one of each type of issue even if multiple issues exist
+
 ## [0.15.0](https://github.com/returntocorp/semgrep/releases/tag/v0.15.0) - 2020-07-14
 
 ### Added
@@ -40,8 +56,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Added
 - Const propagation now works with Java 'final' keyword and for Python globals
   which were assigned only once in the program
-- Support for taint-tracking rules on CLI using the key-value pair 'mode: taint'
-  (defaults to 'mode: search')
 
 ### Fixed
 - Parsing Ocaml open overriding

@@ -16,3 +16,15 @@ rules:
       Move the import inside the function that needs it.
     languages: [python]
     severity: ERROR
+
+  - id: attr-manual-hash-set
+    pattern: |
+      @attr.s(..., hash=True, ...)
+      class $X(...):
+        ...
+    message: >
+      Setting hash explicitly can lead to unintended consequences. attrs
+      will do the right thing depending on how other flags are set. See
+      https://www.attrs.org/en/stable/hashing.html for more info.
+    languages: [python]
+    severity: ERROR
