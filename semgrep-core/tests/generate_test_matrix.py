@@ -1,5 +1,6 @@
 #! /usr/bin/env python3
 import os
+import json
 import collections
 import glob
 from typing import Dict, List, Any, Optional, Tuple
@@ -84,7 +85,7 @@ def generate_cheatsheet(root_dir: str):
                 sgrep_path = find_path(root_dir, lang, category, subcategory, 'sgrep')
                 code_path = find_path(root_dir, lang, category, subcategory, lang_dir_to_ext(lang))
                 
-                output[lang][category][subcategory].append((read_if_exists(sgrep_path), sgrep_path, read_if_exists(code_path), code_path))
+                output[lang][VERBOSE_FEATURE_NAME.get(category, category)][VERBOSE_SUBCATEGORY_NAME.get(subcategory, subcategory)].append((read_if_exists(sgrep_path), sgrep_path, read_if_exists(code_path), code_path))
 
     return output
 
@@ -172,8 +173,8 @@ def cheatsheet_to_html(cheatsheet: Dict[str, Any]):
                 
                 compiled_examples = [snippet_and_pattern_to_html(pattern, pattern_path, snippets) for (pattern, pattern_path), snippets in by_pattern.items()]
                 html = wrap_in_div(compiled_examples, className='pair')
-                examples.append(f'<div class="example"><h3>{VERBOSE_SUBCATEGORY_NAME.get(subcategory, subcategory)}</h3>{html}</div>')
-            s += f'<div class="example-category"><h2>{VERBOSE_FEATURE_NAME.get(category, category)}</h2><div class="examples">{"".join(examples)}</div></div>'
+                examples.append(f'<div class="example"><h3>{subcategory}</h3>{html}</div>')
+            s += f'<div class="example-category"><h2>{category}</h2><div class="examples">{"".join(examples)}</div></div>'
     s += '</body>'
     return s
 
@@ -240,6 +241,8 @@ def main(dir_name: str) -> None:
 
 if __name__ == "__main__":
     cheatsheet = generate_cheatsheet(THIS_DIR)
+    if 'ruby' not in cheatsheet:
+        cheatsheet['ruby'] = {} # TODO REMOVE
     with open('cheatsheet.html', 'w') as fout:
         fout.write(cheatsheet_to_html(cheatsheet))
     with open('cheatsheet.json', 'w') as fout:

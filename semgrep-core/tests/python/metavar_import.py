@@ -1,1 +1,2 @@
+#ERROR
 import foo.something
