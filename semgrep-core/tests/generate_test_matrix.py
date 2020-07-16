@@ -86,7 +86,7 @@ def generate_cheatsheet(root_dir: str):
                 
                 output[lang][category][subcategory].append((read_if_exists(sgrep_path), sgrep_path, read_if_exists(code_path), code_path))
 
-    return cheatsheet_to_html(output)
+    return output
 
 CSS = '''
 .pattern {
@@ -239,6 +239,9 @@ def main(dir_name: str) -> None:
 
 
 if __name__ == "__main__":
+    cheatsheet = generate_cheatsheet(THIS_DIR)
     with open('cheatsheet.html', 'w') as fout:
-        fout.write(generate_cheatsheet(THIS_DIR))
+        fout.write(cheatsheet_to_html(cheatsheet))
+    with open('cheatsheet.json', 'w') as fout:
+        fout.write(json.dumps(cheatsheet))
 #    main(THIS_DIR)
