@@ -1,4 +1,4 @@
-#! /usr/bin/env python3
+#!/usr/bin/env python3
 import os
 import json
 import collections
@@ -87,7 +87,7 @@ def generate_cheatsheet(root_dir: str):
                 sgrep_path = find_path(root_dir, lang, category, subcategory, 'sgrep')
                 code_path = find_path(root_dir, lang, category, subcategory, lang_dir_to_ext(lang))
                 
-                entry = (read_if_exists(sgrep_path), sgrep_path, read_if_exists(code_path), code_path)
+                entry = (read_if_exists(sgrep_path), sgrep_path,  read_if_exists(code_path), code_path)
                 print((lang, entry))
                 output[lang][VERBOSE_FEATURE_NAME.get(category, category)][VERBOSE_SUBCATEGORY_NAME.get(subcategory, subcategory)].append(entry)
 
