@@ -1,7 +1,7 @@
 package Foo
 
 func foo() {
-	//ERROR:
+	//ERROR: match
 	var path = "/location/1"
 	var d1 = "notamatch"
 }

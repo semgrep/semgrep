@@ -1,2 +1,2 @@
-#ERROR:
-path = "/location/1"
+#ERROR: match
+path = "/location/1";

@@ -1,6 +1,6 @@
 class Foo {
     void foo() {
-        //ERROR:
+        //ERROR: match
         path = "/location/1";
     }
 }

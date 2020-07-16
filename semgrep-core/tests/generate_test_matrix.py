@@ -16,7 +16,8 @@ VERBOSE_FEATURE_NAME = {
     "misc": "Others",
     "metavar_equality": "Automatic Equality Constraints on Metavariables",
     "concrete": "Concrete Syntax",
-    "regexp": "Inline Regular Expressions (OCaml Regex Syntax)"
+    "regexp": "Inline Regular Expressions (OCaml Regex Syntax)",
+    "deep": "Deep (Recursive) Matching"
 }
 
 VERBOSE_SUBCATEGORY_NAME = {
@@ -34,7 +35,8 @@ VERBOSE_SUBCATEGORY_NAME = {
     "naming_import": "Import Renaming/Aliasing",
     "constant_propagation": "Constant Propagation",
     "fieldname": "Field Names",
-    "syntax": "Exact AST Match"
+    "syntax": "Exact AST Match",
+    "exprstmt": "Expression and Statement",
 }
 
 EXCLUDE = ["TODO", "GENERIC", "fuzzy", "lint", 'EQUIV', 'e2e', 'SYNTHESIZING', 'NAMING', 'PERF', 'TAINTING']
@@ -71,8 +73,7 @@ def find_path(root_dir: str, lang: str, category: str, subcategory: str, extensi
     else:
         generic_base_path = os.path.join(root_dir, 'GENERIC', f'{category}_{subcategory}')
         joined = generic_base_path + '.' + extension
-        if os.path.exists(joined):
-            return os.path.relpath(joined, root_dir)
+        return os.path.relpath(joined, root_dir)
 
 def generate_cheatsheet(root_dir: str):
     # output : {'dots': {'arguments': ['foo(...)', 'foo(1)'], } }
@@ -85,7 +86,9 @@ def generate_cheatsheet(root_dir: str):
                 sgrep_path = find_path(root_dir, lang, category, subcategory, 'sgrep')
                 code_path = find_path(root_dir, lang, category, subcategory, lang_dir_to_ext(lang))
                 
-                output[lang][VERBOSE_FEATURE_NAME.get(category, category)][VERBOSE_SUBCATEGORY_NAME.get(subcategory, subcategory)].append((read_if_exists(sgrep_path), sgrep_path, read_if_exists(code_path), code_path))
+                entry = (read_if_exists(sgrep_path), sgrep_path, read_if_exists(code_path), code_path)
+                print((lang, entry))
+                output[lang][VERBOSE_FEATURE_NAME.get(category, category)][VERBOSE_SUBCATEGORY_NAME.get(subcategory, subcategory)].append(entry)
 
     return output
 
@@ -140,7 +143,6 @@ h3 {
 
 def snippet_and_pattern_to_html(sgrep_pattern: str, sgrep_path: str, code_snippets: List[Tuple[str, str]]):
     s = ''
-    print(code_snippets)
     if sgrep_pattern:
         s += f'<div class="pattern"><a href="{sgrep_path}"><pre>{sgrep_pattern}</pre></a></div>'
         if len([x for x in code_snippets if x[0]]):
@@ -167,7 +169,6 @@ def cheatsheet_to_html(cheatsheet: Dict[str, Any]):
             examples = []            
             for subcategory, entries in subcategories.items():
                 by_pattern = collections.defaultdict(list)
-                print(entries)
                 for (sgrep_pattern, sgrep_path, code_snippet, code_path) in entries:
                     by_pattern[(sgrep_pattern, sgrep_path)].append((code_snippet, code_path))
                 
