@@ -550,44 +550,44 @@ and primary (env : env) (x : CST.primary) =
       let v1 =
         (match v1 with
         | `Type x -> let t = type_ env x in
-                todo env t
-        | `Prim x -> primary env x
-        | `Super tok -> super env tok (* "super" *)
+                Left t
+        | `Prim x -> Right (primary env x)
+        | `Super tok -> Right (super env tok) (* "super" *)
         )
       in
       let v2 = token env v2 (* "::" *) in
       let v3 =
         (match v3 with
         | Some x -> type_arguments env x
-        | None -> todo env ())
+        | None -> [])
       in
       let v4 =
         (match v4 with
-        | `New tok -> token env tok (* "new" *)
-        | `Id tok -> token env tok (* pattern [a-zA-Z_]\w* *)
+        | `New tok -> str env tok (* "new" *)
+        | `Id tok -> str env tok (* pattern [a-zA-Z_]\w* *)
         )
       in
       todo env (v1, v2, v3, v4)
   | `Prim_array_crea_exp (v1, v2, v3) ->
       let v1 = token env v1 (* "new" *) in
       let v2 = basic_type_extra env v2 in
-      let v3 =
+      let (exprs, dims, init) =
         (match v3 with
         | `Rep1_dimens_expr_opt_dimens (v1, v2) ->
             let v1 = List.map (dimensions_expr env) v1 in
             let v2 =
               (match v2 with
               | Some x -> dimensions env x
-              | None -> todo env ())
+              | None -> [])
             in
-            todo env (v1, v2)
+            v1, v2, None
         | `Dimens_array_init (v1, v2) ->
             let v1 = dimensions env v1 in
             let v2 = array_initializer env v2 in
-            todo env (v1, v2)
+            [], v1, Some (ArrayInit v2)
         )
       in
-      todo env (v1, v2, v3)
+      NewArray (v1, v2, exprs, List.length dims, init)
   )
 
 
@@ -598,12 +598,20 @@ and dimensions_expr (env : env) ((v1, v2, v3, v4) : CST.dimensions_expr) =
   let v4 = token env v4 (* "]" *) in
   todo env (v1, v2, v3, v4)
 
+and dimensions (env : env) (xs : CST.dimensions) =
+  List.map (fun (v1, v2, v3) ->
+    let v1 = List.map (annotation env) v1 in
+    let v2 = token env v2 (* "[" *) in
+    let v3 = token env v3 (* "]" *) in
+    todo env (v1, v2, v3)
+  ) xs
+
 
 and parenthesized_expression (env : env) ((v1, v2, v3) : CST.parenthesized_expression) =
-  let v1 = token env v1 (* "(" *) in
+  let _v1 = token env v1 (* "(" *) in
   let v2 = expression env v2 in
-  let v3 = token env v3 (* ")" *) in
-  todo env (v1, v2, v3)
+  let _v3 = token env v3 (* ")" *) in
+  v2
 
 
 and object_creation_expression (env : env) (x : CST.object_creation_expression) =
@@ -749,13 +757,6 @@ and wildcard_bounds (env : env) (x : CST.wildcard_bounds) =
   )
 
 
-and dimensions (env : env) (xs : CST.dimensions) =
-  List.map (fun (v1, v2, v3) ->
-    let v1 = List.map (annotation env) v1 in
-    let v2 = token env v2 (* "[" *) in
-    let v3 = token env v3 (* "]" *) in
-    todo env (v1, v2, v3)
-  ) xs
 
 
 and statement (env : env) (x : CST.statement) : Ast_java.stmt =
@@ -1610,6 +1611,10 @@ and variable_declarator_list (env : env) ((v1, v2) : CST.variable_declarator_lis
   in
   todo env (v1, v2)
 
+and init_extra env = function
+  | `Exp x -> ExprInit (expression env x)
+  | `Array_init x -> ArrayInit (array_initializer env x)
+
 
 and variable_declarator (env : env) ((v1, v2) : CST.variable_declarator) =
   let v1 = variable_declarator_id env v1 in
@@ -1617,12 +1622,7 @@ and variable_declarator (env : env) ((v1, v2) : CST.variable_declarator) =
     (match v2 with
     | Some (v1, v2) ->
         let v1 = token env v1 (* "=" *) in
-        let v2 =
-          (match v2 with
-          | `Exp x -> expression env x
-          | `Array_init x -> array_initializer env x
-          )
-        in
+        let v2 = init_extra env v2 in
         todo env (v1, v2)
     | None -> todo env ())
   in
@@ -1644,34 +1644,24 @@ and array_initializer (env : env) ((v1, v2, v3, v4) : CST.array_initializer) =
   let v2 =
     (match v2 with
     | Some (v1, v2) ->
-        let v1 =
-          (match v1 with
-          | `Exp x -> expression env x
-          | `Array_init x -> array_initializer env x
-          )
-        in
+        let v1 = init_extra env v1 in
         let v2 =
           List.map (fun (v1, v2) ->
-            let v1 = token env v1 (* "," *) in
-            let v2 =
-              (match v2 with
-              | `Exp x -> expression env x
-              | `Array_init x -> array_initializer env x
-              )
-            in
-            todo env (v1, v2)
+            let _v1 = token env v1 (* "," *) in
+            let v2 = init_extra env v2 in
+            v2
           ) v2
         in
-        todo env (v1, v2)
-    | None -> todo env ())
+        v1::v2
+    | None -> [])
   in
-  let v3 =
+  let _v3_trailing =
     (match v3 with
-    | Some tok -> token env tok (* "," *)
-    | None -> todo env ())
+    | Some tok -> Some (token env tok) (* "," *)
+    | None -> None)
   in
   let v4 = token env v4 (* "}" *) in
-  todo env (v1, v2, v3, v4)
+  v1, v2, v4
 
 
 and type_ (env : env) (x : CST.type_) : typ =
