@@ -68,6 +68,7 @@ let todo (env : env) _ =
 let identifier (env : env) (tok : CST.identifier) =
   str env tok (* pattern [a-zA-Z_]\w* *)
 
+
 let floating_point_type (env : env) (x : CST.floating_point_type) =
   (match x with
   | `Floa_point_type_float tok -> TBasic ("float", token env tok) (* "float" *)
@@ -90,6 +91,15 @@ let requires_modifier (env : env) (x : CST.requires_modifier) =
   | `Requis_modi_tran tok -> token env tok (* "transitive" *)
   | `Requis_modi_stat tok -> token env tok (* "static" *)
   )
+
+let id_extra env = function
+  | `Id tok -> str env tok (* pattern [a-zA-Z_]\w* *)
+  | `Choice_open x ->
+      (match x with
+      | `Open tok -> str env tok (* "open" *)
+      | `Modu tok -> str env tok (* "module" *)
+      )
+
 
 let rec qualifier_extra env = function
   | `Id tok -> [str env tok] (* pattern [a-zA-Z_]\w* *)
@@ -144,84 +154,83 @@ let module_directive (env : env) ((v1, v2) : CST.module_directive) =
   let v1 =
     (match v1 with
     | `Requis_rep_requis_modi_choice_id (v1, v2, v3) ->
-        let v1 = token env v1 (* "requires" *) in
-        let v2 = List.map (requires_modifier env) v2 in
-        let v3 = qualifier_extra env v3 in
-        todo env (v1, v2, v3)
+        let _v1 = token env v1 (* "requires" *) in
+        let _v2 = List.map (requires_modifier env) v2 in
+        let _v3 = qualifier_extra env v3 in
+        ()
     | `Expors_choice_id_opt_to_opt_choice_id_rep_COMMA_choice_id (v1, v2, v3, v4, v5) ->
-        let v1 = token env v1 (* "exports" *) in
-        let v2 = qualifier_extra env v2 in
-        let v3 =
+        let _v1 = token env v1 (* "exports" *) in
+        let _v2 = qualifier_extra env v2 in
+        let _v3 =
           (match v3 with
-          | Some tok -> token env tok (* "to" *)
-          | None -> todo env ())
+          | Some tok -> Some (token env tok) (* "to" *)
+          | None -> None)
         in
-        let v4 =
+        let _v4 =
           (match v4 with
-          | Some x ->
-                  let x = qualifier_extra env x in
-                  todo env x
-          | None -> todo env ()
+          | Some x -> Some (qualifier_extra env x)
+          | None -> None
           )
         in
-        let v5 =
+        let _v5 =
           List.map (fun (v1, v2) ->
-            let v1 = token env v1 (* "," *) in
+            let _v1 = token env v1 (* "," *) in
             let v2 = qualifier_extra env v2 in
-            todo env (v1, v2)
+            v2
           ) v5
         in
-        todo env (v1, v2, v3, v4, v5)
+        ()
     | `Opens_choice_id_opt_to_opt_choice_id_rep_COMMA_choice_id (v1, v2, v3, v4, v5) ->
-        let v1 = token env v1 (* "opens" *) in
-        let v2 = qualifier_extra env v2 in
-        let v3 =
+        let _v1 = token env v1 (* "opens" *) in
+        let _v2 = qualifier_extra env v2 in
+        let _v3 =
           (match v3 with
-          | Some tok -> token env tok (* "to" *)
-          | None -> todo env ())
+          | Some tok -> Some (token env tok) (* "to" *)
+          | None -> None)
         in
         let v4 =
           (match v4 with
-          | Some x ->
-                  let x = qualifier_extra env x in
-                  todo env x
-          | None -> todo env ())
+          | Some x -> Some (qualifier_extra env x)
+          | None -> None)
         in
-        let v5 =
+        let _v5 =
           List.map (fun (v1, v2) ->
-            let v1 = token env v1 (* "," *) in
+            let _v1 = token env v1 (* "," *) in
             let v2 = qualifier_extra env v2 in
-            todo env (v1, v2)
+            v2
           ) v5
         in
-        todo env (v1, v2, v3, v4, v5)
+        ()
     | `Uses_choice_id (v1, v2) ->
-        let v1 = token env v1 (* "uses" *) in
-        let v2 = qualifier_extra env v2 in
-        todo env (v1, v2)
+        let _v1 = token env v1 (* "uses" *) in
+        let _v2 = qualifier_extra env v2 in
+        ()
     | `Provis_choice_id_with_choice_id_rep_COMMA_choice_id (v1, v2, v3, v4, v5) ->
-        let v1 = token env v1 (* "provides" *) in
-        let v2 = qualifier_extra env v2 in
-        let v3 = token env v3 (* "with" *) in
-        let v4 = qualifier_extra env v4 in
-        let v5 =
+        let _v1 = token env v1 (* "provides" *) in
+        let _v2 = qualifier_extra env v2 in
+        let _v3 = token env v3 (* "with" *) in
+        let _v4 = qualifier_extra env v4 in
+        let _v5 =
           List.map (fun (v1, v2) ->
-            let v1 = token env v1 (* "," *) in
+            let _v1 = token env v1 (* "," *) in
             let v2 = qualifier_extra env v2 in
-            todo env (v1, v2)
+            v2
           ) v5
         in
-        todo env (v1, v2, v3, v4, v5)
+        ()
     )
   in
-  let v2 = token env v2 (* ";" *) in
-  todo env (v1, v2)
+  let _v2 = token env v2 (* ";" *) in
+  ()
 
 let module_body (env : env) ((v1, v2, v3) : CST.module_body) =
-  let v1 = token env v1 (* "{" *) in
-  let v2 = List.map (module_directive env) v2 in
-  let v3 = token env v3 (* "}" *) in
-  todo env (v1, v2, v3)
+  let _v1 = token env v1 (* "{" *) in
+  let _v2 = List.map (module_directive env) v2 in
+  let _v3 = token env v3 (* "}" *) in
+  ()
+
+
+
 
 let rec expression (env : env) (x : CST.expression) =
   (match x with
@@ -240,36 +249,41 @@ let rec expression (env : env) (x : CST.expression) =
       in
       let v2 =
         (match v2 with
-        | `EQ tok -> token env tok (* "=" *)
-        | `PLUSEQ tok -> token env tok (* "+=" *)
-        | `DASHEQ tok -> token env tok (* "-=" *)
-        | `STAREQ tok -> token env tok (* "*=" *)
-        | `SLASHEQ tok -> token env tok (* "/=" *)
-        | `AMPEQ tok -> token env tok (* "&=" *)
-        | `BAREQ tok -> token env tok (* "|=" *)
-        | `HATEQ tok -> token env tok (* "^=" *)
-        | `PERCEQ tok -> token env tok (* "%=" *)
-        | `LTLTEQ tok -> token env tok (* "<<=" *)
-        | `GTGTEQ tok -> token env tok (* ">>=" *)
-        | `GTGTGTEQ tok -> token env tok (* ">>>=" *)
+        | `EQ tok -> Left (), token env tok (* "=" *)
+        | `PLUSEQ tok -> Right G.Plus, token env tok (* "+=" *)
+        | `DASHEQ tok -> Right G.Minus, token env tok (* "-=" *)
+        | `STAREQ tok -> Right G.Mult, token env tok (* "*=" *)
+        | `SLASHEQ tok -> Right G.Div, token env tok (* "/=" *)
+        | `AMPEQ tok -> Right G.BitAnd, token env tok (* "&=" *)
+        | `BAREQ tok -> Right G.BitOr, token env tok (* "|=" *)
+        | `HATEQ tok -> Right G.BitXor, token env tok (* "^=" *)
+        | `PERCEQ tok -> Right G.Mod, token env tok (* "%=" *)
+        | `LTLTEQ tok -> Right G.LSL, token env tok (* "<<=" *)
+        | `GTGTEQ tok -> Right G.LSR, token env tok (* ">>=" *)
+        | `GTGTGTEQ tok -> Right G.ASR, token env tok (* ">>>=" *)
         )
       in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      (match v2 with
+      | Left (), t -> Assign (v1, t, v3)
+      | Right op, t -> AssignOp (v1, (op, t), v3)
+      )
   | `Exp_bin_exp x -> binary_expression env x
   | `Exp_inst_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
-      let v2 = token env v2 (* "instanceof" *) in
+      let _v2 = token env v2 (* "instanceof" *) in
       let v3 = type_ env v3 in
-      todo env (v1, v2, v3)
+      InstanceOf (v1, v3)
   | `Exp_lamb_exp (v1, v2, v3) ->
       let v1 =
         (match v1 with
-        | `Id tok -> token env tok (* pattern [a-zA-Z_]\w* *)
+        | `Id tok ->
+            let id = str env tok (* pattern [a-zA-Z_]\w* *) in
+            [ParamClassic (AST.entity_of_id id)]
         | `Form_params x -> formal_parameters env x
         | `Infe_params x ->
                 let (_, xs, _) = inferred_parameters env x in
-                todo env xs
+                xs |> List.map (fun id -> ParamClassic (AST.entity_of_id id))
         )
       in
       let v2 = token env v2 (* "->" *) in
@@ -280,21 +294,22 @@ let rec expression (env : env) (x : CST.expression) =
         | `Blk x -> block env x
         )
       in
-      todo env (v1, v2, v3)
+      Lambda (v1, v3)
+
   | `Exp_tern_exp (v1, v2, v3, v4, v5) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "?" *) in
       let v3 = expression env v3 in
       let v4 = token env v4 (* ":" *) in
       let v5 = expression env v5 in
-      todo env (v1, v2, v3, v4, v5)
+      Conditional (v1, v3, v5)
   | `Exp_upda_exp x -> update_expression env x
   | `Exp_prim x -> primary env x
   | `Exp_un_exp x -> unary_expression env x
   | `Exp_cast_exp (v1, v2, v3, v4, v5) ->
       let v1 = token env v1 (* "(" *) in
       let v2 = type_ env v2 in
-      let v3 =
+      let _v3TODO =
         List.map (fun (v1, v2) ->
           let v1 = token env v1 (* "&" *) in
           let v2 = type_ env v2 in
@@ -303,7 +318,7 @@ let rec expression (env : env) (x : CST.expression) =
       in
       let v4 = token env v4 (* ")" *) in
       let v5 = expression env v5 in
-      todo env (v1, v2, v3, v4, v5)
+      Cast ((v1, v2, v4), v5)
   )
 
 
@@ -492,15 +507,7 @@ and primary (env : env) (x : CST.primary) =
   | `Prim_meth_invo (v1, v2) ->
       let v1 =
         (match v1 with
-        | `Choice_id x ->
-            (match x with
-            | `Id tok -> token env tok (* pattern [a-zA-Z_]\w* *)
-            | `Choice_open x ->
-                (match x with
-                | `Open tok -> token env tok (* "open" *)
-                | `Modu tok -> token env tok (* "module" *)
-                )
-            )
+        | `Choice_id x -> let id = id_extra env x in todo env id
         | `Choice_prim_DOT_opt_super_DOT_opt_type_args_choice_id (v1, v2, v3, v4, v5) ->
             let v1 =
               (match v1 with
@@ -522,16 +529,7 @@ and primary (env : env) (x : CST.primary) =
               | Some x -> type_arguments env x
               | None -> todo env ())
             in
-            let v5 =
-              (match v5 with
-              | `Id tok -> token env tok (* pattern [a-zA-Z_]\w* *)
-              | `Choice_open x ->
-                  (match x with
-                  | `Open tok -> token env tok (* "open" *)
-                  | `Modu tok -> token env tok (* "module" *)
-                  )
-              )
-            in
+            let v5 = id_extra env v5 in
             todo env (v1, v2, v3, v4, v5)
         )
       in
@@ -1621,16 +1619,7 @@ and variable_declarator (env : env) ((v1, v2) : CST.variable_declarator) =
 
 
 and variable_declarator_id (env : env) ((v1, v2) : CST.variable_declarator_id) =
-  let v1 =
-    (match v1 with
-    | `Id tok -> token env tok (* pattern [a-zA-Z_]\w* *)
-    | `Choice_open x ->
-        (match x with
-        | `Open tok -> token env tok (* "open" *)
-        | `Modu tok -> token env tok (* "module" *)
-        )
-    )
-  in
+  let v1 = id_extra env v1 in
   let v2 =
     (match v2 with
     | Some x -> dimensions env x
@@ -1745,16 +1734,7 @@ and method_header (env : env) ((v1, v2, v3, v4) : CST.method_header) =
 
 
 and method_declarator (env : env) ((v1, v2, v3) : CST.method_declarator) =
-  let v1 =
-    (match v1 with
-    | `Id tok -> token env tok (* pattern [a-zA-Z_]\w* *)
-    | `Choice_open x ->
-        (match x with
-        | `Open tok -> token env tok (* "open" *)
-        | `Modu tok -> token env tok (* "module" *)
-        )
-    )
-  in
+  let v1 = id_extra env v1 in
   let v2 = formal_parameters env v2 in
   let v3 =
     (match v3 with
