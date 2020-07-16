@@ -130,6 +130,32 @@ jobs:
       - name: update semgrep.live
         run: curl --fail -X POST https://semgrep.live/api/admin/update-docker
 
+  build-core:
+    name: semgrep-core make test and semgrep make test/qa-test
+    runs-on: ubuntu-latest
+    container: ocaml/opam2:alpine
+    steps:
+      - name: Adjust permissions
+        run: |
+          sudo chmod -R 777 . /github
+          # github cache dir
+          sudo mkdir -p /__w/
+          sudo chmod -R 777 /__w/
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Build semgrep-core
+        run: ./install-scripts/install-alpine-semgrep-core
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v1
+        with:
+          name: semgrep-core
+          path: artifacts/semgrep-core
+      - name: Test semgrep-core
+        run: |
+          eval $(opam env --root /home/opam/.opam --set-root)
+          cd semgrep-core
+          make test
+
   release-osx:
     name: Build the OSX binaries
     runs-on: macos-latest
@@ -153,11 +179,22 @@ jobs:
   release-ubuntu-16-04:
     runs-on: ubuntu-latest
     container: returntocorp/sgrep-build:ubuntu-16.04
+    needs: [build-core]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
         with:
           submodules: 'recursive'
+      - name: Download Artifact
+        uses: actions/download-artifact@v1
+        with:
+          name: semgrep-core
+          path: semgrep-core-dir
+      - name: Install artifact
+        run: |
+          mkdir -p semgrep-files
+          cp semgrep-core-dir/semgrep-core semgrep-files
+          chmod +x semgrep-files/semgrep-core
       - name: Run Ubuntu build script
         run: ./release-scripts/ubuntu-release.sh
       - name: Upload artifacts
@@ -216,11 +253,22 @@ jobs:
   build-wheels-manylinux:
     runs-on: 'ubuntu-16.04'
     container: 'returntocorp/sgrep-build:ubuntu-16.04'
+    needs: [build-core]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
         with:
           submodules: 'recursive'
+      - name: Download Artifact
+        uses: actions/download-artifact@v1
+        with:
+          name: semgrep-core
+          path: semgrep-core-dir
+      - name: Install artifact
+        run: |
+          mkdir -p semgrep-files
+          cp semgrep-core-dir/semgrep-core semgrep-files
+          chmod +x semgrep-files/semgrep-core
       - name: Setup Python
         run: |
           rm /usr/bin/python
@@ -228,7 +276,7 @@ jobs:
       - name: Install zip & musl-tools
         run: apt-get update && apt install -y zip musl-tools
       - name: Build the wheels
-        run: ./release-scripts/build-wheels.sh
+        run: PRECOMPILED_LOCATION=$(realpath 'semgrep-files/semgrep-core') ./release-scripts/build-wheels.sh
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
