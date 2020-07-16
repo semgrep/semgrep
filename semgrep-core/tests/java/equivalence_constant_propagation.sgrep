@@ -1,1 +1,1 @@
-MessageDigest $VAR = $MD.getInstance("MD5");
+foo("password")

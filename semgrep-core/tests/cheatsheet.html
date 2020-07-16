@@ -1,0 +1,976 @@
+<head><style>
+.pattern {
+    background-color: #0974d7;
+    color: white;
+    padding: 10px;
+}
+.match { 
+    background-color: white;
+    padding: 10px;
+    border: 1px solid #0974d7;
+    color: black;
+}
+.pair {
+    display: flex;
+    width: 100%;
+    font-family: Consolas,Bitstream Vera Sans Mono,Courier New,Courier,monospace;
+    font-size: 1em;
+}
+.example { 
+    padding: 10px;
+    margin: 10px;
+    border: 1px solid #ccc;
+}
+.examples {
+    display: flex;
+}
+
+ a {
+    text-decoration: none;
+    color: inherit;
+}
+
+pre { 
+    margin: 0;
+}
+.example-category {
+    width: fit-content;
+    border-top: 1px solid #ddd;
+}
+.notimplemented {
+    background-color: yellow;
+}
+
+h3 {
+    margin: 0;
+    margin-bottom: 10px;
+}
+</style></head><body><h2>ocaml</h2><div class="example-category"><h2>Concrete Syntax</h2><div class="examples"><div class="example"><h3>Exact AST Match</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/concrete_syntax.sgrep</div></div></div></div></div><div class="example-category"><h2>Ellipsis</h2><div class="examples"><div class="example"><h3>Strings</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/dots_string.sgrep</div></div></div><div class="example"><h3>Nested Statements</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/dots_nested_stmts.sgrep</div></div></div><div class="example"><h3>Statements</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/dots_stmts.sgrep</div></div></div><div class="example"><h3>Arguments</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/dots_args.sgrep</div></div></div></div></div><div class="example-category"><h2>Metavariables</h2><div class="examples"><div class="example"><h3>Function Call</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/metavar_call.sgrep</div></div></div><div class="example"><h3>Argument</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/metavar_arg.sgrep</div></div></div><div class="example"><h3>Conditionals</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/metavar_cond.sgrep</div></div></div><div class="example"><h3>Statement</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/metavar_stmt.sgrep</div></div></div><div class="example"><h3>Imports</h3><div class=pair></div></div></div></div><div class="example-category"><h2>Inline Regular Expressions (OCaml Regex Syntax)</h2><div class="examples"><div class="example"><h3>Strings</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/regexp_string.sgrep</div></div></div></div></div><div class="example-category"><h2>Automatic Equality Constraints on Metavariables</h2><div class="examples"><div class="example"><h3>Variables</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/metavar_equality_var.sgrep</div></div></div><div class="example"><h3>Statement</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/metavar_equality_stmt.sgrep</div></div></div><div class="example"><h3>Expressions</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/metavar_equality_expr.sgrep</div></div></div></div></div><div class="example-category"><h2>Equivalences</h2><div class="examples"><div class="example"><h3>Import Renaming/Aliasing</h3><div class=pair></div></div><div class="example"><h3>Constant Propagation</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/equivalence_constant_propagation.sgrep</div></div></div><div class="example"><h3>eq</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/equivalence_eq.sgrep</div></div></div></div></div><div class="example-category"><h2>deep</h2><div class="examples"><div class="example"><h3>exprstmt</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/deep_exprstmt.sgrep</div></div></div></div></div><h2>go</h2><div class="example-category"><h2>Concrete Syntax</h2><div class="examples"><div class="example"><h3>Exact AST Match</h3><div class=pair><div class="pattern"><a href="GENERIC/concrete_syntax.sgrep"><pre>foo(1, 2)</pre></a></div><div><div class="match"><a href="go/concrete_syntax.go"><pre>package Foo
+
+func foo() {
+    //ERROR:
+    foo(1,2);
+    
+    //ERROR:
+    foo(1,
+        2);
+    
+    //ERROR:
+    foo (1, // comment
+         2)
+    
+    foo(2,1)
+    
+}
+
+</pre></a></div></div></div></div></div></div><div class="example-category"><h2>Ellipsis</h2><div class="examples"><div class="example"><h3>Strings</h3><div class=pair><div class="pattern"><a href="GENERIC/dots_string.sgrep"><pre>foo("...")</pre></a></div><div><div class="match"><a href="go/dots_string.go"><pre>package Foo
+
+func bar () {
+    //ERROR:
+    foo("whatever sequence of chars")
+}
+
+</pre></a></div></div></div></div><div class="example"><h3>Nested Statements</h3><div class=pair><div class="pattern"><a href="go/dots_nested_stmts.sgrep"><pre>if $E {
+  ...
+}</pre></a></div><div><div class="match"><a href="go/dots_nested_stmts.go"><pre>package foo
+
+func foo() {
+     //ERROR: match
+     if 1 {
+        return 1
+     }
+}
+</pre></a></div></div></div></div><div class="example"><h3>Statements</h3><div class=pair><div class="pattern"><a href="go/dots_stmts.sgrep"><pre>$X = get()
+...
+eval($X)</pre></a></div><div><div class="match"><a href="go/dots_stmts.go"><pre>package Foo
+
+func foo() {
+    //ERROR:
+    user_data = get()
+    print("do stuff")
+    foobar()
+    eval(user_data)
+    foobar()
+}
+</pre></a></div></div></div></div><div class="example"><h3>Arguments</h3><div class=pair><div class="pattern"><a href="GENERIC/dots_args.sgrep"><pre>foo(..., 5)</pre></a></div><div><div class="match"><a href="go/dots_args.go"><pre>package Foo
+
+func bar() {
+    //ERROR:
+    foo(1,2,3,4,5)
+    //ERROR:
+    foo(5)
+}
+
+
+
+</pre></a></div></div></div></div></div></div><div class="example-category"><h2>Metavariables</h2><div class="examples"><div class="example"><h3>Function Call</h3><div class=pair><div class="pattern"><a href="GENERIC/metavar_call.sgrep"><pre>$F(1,2)</pre></a></div><div><div class="match"><a href="go/metavar_call.go"><pre>package Foo
+
+func foo() {
+    //ERROR:
+    foo(1,2)
+
+    return 1
+}
+
+
+
+</pre></a></div></div></div></div><div class="example"><h3>Argument</h3><div class=pair><div class="pattern"><a href="GENERIC/metavar_arg.sgrep"><pre>foo($X, 2)</pre></a></div><div><div class="match"><a href="go/metavar_arg.go"><pre>package Foo
+
+func bar() {
+    //ERROR:
+    foo(1,2)
+
+    //ERROR:
+    foo(a_very_long_constant_name,
+        2)
+
+    //ERROR:
+    foo (unsafe(), // indeed
+         2)
+
+    //ERROR:
+    foo(bar(1,3), 2)
+
+    foo(2,1)
+}
+
+
+</pre></a></div></div></div></div><div class="example"><h3>Conditionals</h3><div class=pair><div class="pattern"><a href="go/metavar_cond.sgrep"><pre>if ($E) { 
+  foo() 
+}</pre></a></div><div><div class="match"><a href="go/metavar_cond.go"><pre>package Foo
+
+func foo() {
+    x = 1
+    //ERROR:
+    if (x > 2) {
+        foo()
+    }
+}
+</pre></a></div></div></div></div><div class="example"><h3>Statement</h3><div class=pair><div class="pattern"><a href="GENERIC/metavar_stmt.sgrep"><pre>if ($X > $Y)
+   $S;
+
+</pre></a></div><div><div class="match"><a href="go/metavar_stmt.go"><pre>package Foo
+
+func bar() {
+    var a = 1
+    var b = 2
+    var c = 3
+    if (a > b) {
+        c = 0;
+    }
+}
+</pre></a></div></div></div></div><div class="example"><h3>Imports</h3><div class=pair><div class="pattern"><a href="go/metavar_import.sgrep"><pre>import (
+    "foo/$X"
+)</pre></a></div><div><div class="match"><a href="go/metavar_import.go"><pre>package Foo
+
+import (
+	"foo/something"
+)</pre></a></div></div></div></div></div></div><div class="example-category"><h2>Inline Regular Expressions (OCaml Regex Syntax)</h2><div class="examples"><div class="example"><h3>Strings</h3><div class=pair><div class="pattern"><a href="GENERIC/regexp_string.sgrep"><pre>$X = "=~/[lL]ocation.*/"</pre></a></div><div><div class="match"><a href="go/regexp_string.go"><pre>package Foo
+
+func foo() {
+	//ERROR:
+	var path = "/location/1"
+	var d1 = "notamatch"
+}
+</pre></a></div></div></div></div></div></div><div class="example-category"><h2>Automatic Equality Constraints on Metavariables</h2><div class="examples"><div class="example"><h3>Variables</h3><div class=pair><div class="pattern"><a href="GENERIC/metavar_equality_var.sgrep"><pre>$V = open();
+close($V);
+
+</pre></a></div><div><div class="match"><a href="go/metavar_equality_var.go"><pre>package Foo
+
+func foo() {
+   //ERROR:
+    myfile = open()
+    close(myfile)
+}
+</pre></a></div></div></div></div><div class="example"><h3>Statement</h3><div class=pair><div class="pattern"><a href="GENERIC/metavar_equality_stmt.sgrep"><pre>if ($E)
+  $S;
+else
+  $S;
+
+</pre></a></div><div><div class="match"><a href="go/metavar_equality_stmt.go"><pre>package foo
+
+func foo() {
+	//ERROR:
+	if x > 2 {
+		foo()
+		bar()
+	} else {
+		foo()
+		bar()
+	}
+
+	if x > 2 {
+		foo()
+		bar()
+	} else {
+		foo()
+	}
+}
+</pre></a></div></div></div></div><div class="example"><h3>Expressions</h3><div class=pair><div class="pattern"><a href="GENERIC/metavar_equality_expr.sgrep"><pre>$X == $X</pre></a></div><div><div class="match"><a href="go/metavar_equality_expr.go"><pre>package Foo
+
+func test_equal() {
+    a = 1
+    b = 2
+    //ERROR: match
+    if (a+b == a+b) {
+        return 1
+    }
+    return 0
+}
+</pre></a></div></div></div></div></div></div><div class="example-category"><h2>Equivalences</h2><div class="examples"><div class="example"><h3>Import Renaming/Aliasing</h3><div class=pair><div class="pattern"><a href="go/equivalence_naming_import.sgrep"><pre>subprocess.open(...)</pre></a></div><div><div class="match"><a href="go/equivalence_naming_import.go"><pre>package Foo
+
+import "a/subprocess"
+
+import sub "subprocess"
+
+func foo() {
+  //ERROR:
+  result = subprocess.open("ls")
+  //ERROR:
+  result = sub.open("ls")
+
+  result = sub.not_open("ls")
+
+}</pre></a></div></div></div></div><div class="example"><h3>Constant Propagation</h3><div class=pair><div class="pattern"><a href="GENERIC/equivalence_constant_propagation.sgrep"><pre>$F("password")</pre></a></div><div><div class="match"><a href="go/equivalence_constant_propagation.go"><pre>package Foo
+
+const Bar = "password"
+
+func foo() {
+     //ERROR: match!
+     dangerous1("password");
+
+     //ERROR: match!
+     dangerous2(Bar);
+}
+</pre></a></div></div></div></div><div class="example"><h3>eq</h3><div class=pair><div class="pattern"><a href="GENERIC/equivalence_eq.sgrep"><pre>$X == $X</pre></a></div><div><div class="match"><a href="go/equivalence_eq.go"><pre>package Foo
+
+func test_equal() {
+    a = 1
+    b = 2
+    //ERROR: match
+    if (a+b == a+b) {
+        return 1
+    }
+    //ERROR: match
+    if (a+b != a+b) {
+        return 1
+    }
+    return 0
+}
+</pre></a></div></div></div></div></div></div><div class="example-category"><h2>deep</h2><div class="examples"><div class="example"><h3>exprstmt</h3><div class=pair><div class="pattern"><a href="GENERIC/deep_exprstmt.sgrep"><pre>bar();
+</pre></a></div><div><div class="match"><a href="go/deep_exprstmt.go"><pre>package Foo
+
+function foo() {
+    //ERROR: match
+    bar();
+    //ERROR: match
+    x = bar();
+    //ERROR: match
+    foo2(bar());
+    //ERROR: match
+    return bar();
+}
+</pre></a></div></div></div></div></div></div><h2>python</h2><div class="example-category"><h2>Concrete Syntax</h2><div class="examples"><div class="example"><h3>Exact AST Match</h3><div class=pair><div class="pattern"><a href="GENERIC/concrete_syntax.sgrep"><pre>foo(1, 2)</pre></a></div><div><div class="match"><a href="python/concrete_syntax.py"><pre>def foo():
+    # ERROR:
+    foo(1,2)
+
+    # ERROR:
+    foo(1, 
+        2)
+
+    # ERROR:
+    foo(1,   # comment 
+        2)
+
+    foo(2, 1)
+</pre></a></div></div></div></div></div></div><div class="example-category"><h2>Ellipsis</h2><div class="examples"><div class="example"><h3>Strings</h3><div class=pair><div class="pattern"><a href="GENERIC/dots_string.sgrep"><pre>foo("...")</pre></a></div><div><div class="match"><a href="python/dots_string.py"><pre>def foo():
+    # ERROR:
+    foo("whatever sequence of chars")
+    # foo('whatever sequence of chars')
+</pre></a></div></div></div></div><div class="example"><h3>Nested Statements</h3><div class=pair><div class="pattern"><a href="GENERIC/dots_nested_stmts.sgrep"><pre>if (...)
+  ...
+
+</pre></a></div><div><div class="match"><a href="python/dots_nested_stmts.py"><pre>def foo():
+    # ERROR
+    if (x == some_cond):
+        print('matched')
+    else:
+        print('not matched')
+    
+
+</pre></a></div></div></div></div><div class="example"><h3>Statements</h3><div class=pair><div class="pattern"><a href="python/dots_stmts.sgrep"><pre>$V = get()
+...
+eval($V)
+</pre></a></div><div><div class="match"><a href="python/dots_stmts.py"><pre>def foo():
+
+    # ERROR:
+    user_data = get()
+    print("do stuff")
+    foobar()
+    eval(user_data)
+</pre></a></div></div></div></div><div class="example"><h3>Arguments</h3><div class=pair><div class="pattern"><a href="GENERIC/dots_args.sgrep"><pre>foo(..., 5)</pre></a></div><div><div class="match"><a href="python/dots_args.py"><pre>def foo():
+    # ERROR:
+    foo(1, 2, 3, 4, 5)
+    # ERROR:
+    foo(5)
+</pre></a></div></div></div></div></div></div><div class="example-category"><h2>Metavariables</h2><div class="examples"><div class="example"><h3>Function Call</h3><div class=pair><div class="pattern"><a href="GENERIC/metavar_call.sgrep"><pre>$F(1,2)</pre></a></div><div><div class="match"><a href="python/metavar_call.py"><pre>def foo():
+    # ERROR:
+    foo(1, 2)
+
+    return 1
+</pre></a></div></div></div></div><div class="example"><h3>Argument</h3><div class=pair><div class="pattern"><a href="GENERIC/metavar_arg.sgrep"><pre>foo($X, 2)</pre></a></div><div><div class="match"><a href="python/metavar_arg.py"><pre>def foo():
+    # ERROR:
+    foo(1, 2)
+
+    # ERROR:
+    foo(a_very_long_constant_name, 2)
+
+    # ERROR:
+    foo(unsafe(), 2)  # indeed
+
+    # ERROR:
+    foo(bar(1, 3), 2)
+
+    foo(2, 1)
+</pre></a></div></div></div></div><div class="example"><h3>Conditionals</h3><div class=pair><div class="pattern"><a href="python/metavar_cond.sgrep"><pre>if $E:
+   foo()
+</pre></a></div><div><div class="match"><a href="python/metavar_cond.py"><pre>def foo():
+    x = 1
+    # ERROR:
+    if x > 2:
+        foo()
+</pre></a></div></div></div></div><div class="example"><h3>Statement</h3><div class=pair><div class="pattern"><a href="python/metavar_stmt.sgrep"><pre>if $X > $Y:
+   $S
+</pre></a></div><div><div class="match"><a href="python/metavar_stmt.py"><pre>def foo():
+    var = 1
+    # ERROR:
+    if var > 2:
+        return 1
+</pre></a></div></div></div></div><div class="example"><h3>Imports</h3><div class=pair><div class="pattern"><a href="python/metavar_import.sgrep"><pre>import foo.$BAR</pre></a></div><div><div class="match"><a href="python/metavar_import.py"><pre>import foo.something</pre></a></div></div></div></div></div></div><div class="example-category"><h2>Inline Regular Expressions (OCaml Regex Syntax)</h2><div class="examples"><div class="example"><h3>Strings</h3><div class=pair><div class="pattern"><a href="GENERIC/regexp_string.sgrep"><pre>$X = "=~/[lL]ocation.*/"</pre></a></div><div><div class="match"><a href="python/regexp_string.py"><pre>//ERROR:
+path = "/location/1"</pre></a></div></div></div></div></div></div><div class="example-category"><h2>Automatic Equality Constraints on Metavariables</h2><div class="examples"><div class="example"><h3>Variables</h3><div class=pair><div class="pattern"><a href="python/metavar_equality_var.sgrep"><pre>$V = open()
+close($V)
+</pre></a></div><div><div class="match"><a href="python/metavar_equality_var.py"><pre>def foo():
+    # ERROR:
+    myfile = open()
+    close(myfile)
+</pre></a></div></div></div></div><div class="example"><h3>Statement</h3><div class=pair><div class="pattern"><a href="python/metavar_equality_stmt.sgrep"><pre>if $E:
+  $S
+else:
+  $S
+</pre></a></div><div><div class="match"><a href="python/metavar_equality_stmt.py"><pre>def foo():
+    # ERROR:
+    if x > 2:
+        foo()
+        bar()
+    else:
+        foo()
+        bar()
+
+    if x > 2:
+        foo()
+        bar()
+    else:
+        foo()
+</pre></a></div></div></div></div><div class="example"><h3>Expressions</h3><div class=pair><div class="pattern"><a href="GENERIC/metavar_equality_expr.sgrep"><pre>$X == $X</pre></a></div><div><div class="match"><a href="python/metavar_equality_expr.py"><pre>def test_equal():
+    a = 1
+    b = 2
+    # ERROR: match
+    if a + b == a + b:
+        return 1
+    return 0
+</pre></a></div></div></div></div></div></div><div class="example-category"><h2>Equivalences</h2><div class="examples"><div class="example"><h3>Import Renaming/Aliasing</h3><div class=pair><div class="pattern"><a href="python/equivalence_naming_import.sgrep"><pre>subprocess.open(...)</pre></a></div><div><div class="match"><a href="python/equivalence_naming_import.py"><pre>import subprocess.open
+from subprocess import open as sub_open
+
+import subprocess as sub
+
+
+# TODO
+# import os as subprocess
+
+
+def foo():
+    # ERROR:
+    result = subprocess.open("ls")
+    # ERROR:
+    result = sub_open("ls")
+    # ERROR:
+    result = sub.open("ls")
+
+    result = sub.not_open("ls")
+</pre></a></div></div></div></div><div class="example"><h3>Constant Propagation</h3><div class=pair><div class="pattern"><a href="python/equivalence_constant_propagation.sgrep"><pre>bar("secret")</pre></a></div><div><div class="match"><a href="python/equivalence_constant_propagation.py"><pre>CONST_GLOBAL = "secret"
+
+# this is modifed somewhere, so not inferred as a constant
+GLOBAL = "secret"
+
+def foo():
+    # ERROR: match
+    bar(CONST_GLOBAL)
+
+
+def bar():
+    global GLOBAL
+    GLOBAL="x"
+</pre></a></div></div></div></div><div class="example"><h3>eq</h3><div class=pair><div class="pattern"><a href="GENERIC/equivalence_eq.sgrep"><pre>$X == $X</pre></a></div><div><div class="match"><a href="python/equivalence_eq.py"><pre>def test_equal():
+    a = 1
+    b = 2
+    # ERROR: match
+    if a + b == a + b:
+        return 1
+
+    # OK
+    if a + b != a + b:
+        return 1
+    return 0
+</pre></a></div></div></div></div></div></div><div class="example-category"><h2>deep</h2><div class="examples"><div class="example"><h3>exprstmt</h3><div class=pair><div class="pattern"><a href="GENERIC/deep_exprstmt.sgrep"><pre>bar();
+</pre></a></div><div><div class="match"><a href="python/deep_exprstmt.py"><pre>def foo():
+    # ERROR: match
+    bar()
+    # ERROR: match
+    x = bar()
+    # ERROR: match
+    foo2(bar())
+    # ERROR: match
+    return bar()
+</pre></a></div></div></div></div></div></div><h2>js</h2><div class="example-category"><h2>Concrete Syntax</h2><div class="examples"><div class="example"><h3>Exact AST Match</h3><div class=pair><div class="pattern"><a href="GENERIC/concrete_syntax.sgrep"><pre>foo(1, 2)</pre></a></div><div><div class="match"><a href="js/concrete_syntax.js"><pre>function foo() {
+ //ERROR:
+    foo(1,2);
+
+ //ERROR:
+ foo(1,
+     2);
+
+ //ERROR:
+ foo (1, // comment
+      2);
+
+ foo(2,1)
+}
+
+
+</pre></a></div></div></div></div></div></div><div class="example-category"><h2>Ellipsis</h2><div class="examples"><div class="example"><h3>Strings</h3><div class=pair><div class="pattern"><a href="GENERIC/dots_string.sgrep"><pre>foo("...")</pre></a></div><div><div class="match"><a href="js/dots_string.js"><pre>function foo() {
+    //ERROR:
+    foo("whatever sequence of chars");
+    //ERROR:
+    foo('whatever sequence of chars');
+}
+
+</pre></a></div></div></div></div><div class="example"><h3>Nested Statements</h3><div class=pair><div class="pattern"><a href="GENERIC/dots_nested_stmts.sgrep"><pre>if (...)
+  ...
+
+</pre></a></div><div><div class="match"><a href="js/dots_nested_stmts.js"><pre>function foo() {
+
+    //ERROR: match
+    if (x == 1) 
+        return 2;
+}
+</pre></a></div></div></div></div><div class="example"><h3>Statements</h3><div class=pair><div class="pattern"><a href="GENERIC/dots_stmts.sgrep"><pre>$V = get();
+...
+eval($V);
+
+</pre></a></div><div><div class="match"><a href="js/dots_stmts.js"><pre>function foo() {
+
+    //ERROR:
+    user_data = get();
+    print("do stuff");
+    foobar();
+    eval(user_data);
+}
+
+
+</pre></a></div></div></div></div><div class="example"><h3>Arguments</h3><div class=pair><div class="pattern"><a href="GENERIC/dots_args.sgrep"><pre>foo(..., 5)</pre></a></div><div><div class="match"><a href="js/dots_args.js"><pre>function foo() {
+  //ERROR:
+    foo(1,2,3,4,5);
+  //ERROR:
+    foo(5);
+}
+
+</pre></a></div></div></div></div></div></div><div class="example-category"><h2>Metavariables</h2><div class="examples"><div class="example"><h3>Function Call</h3><div class=pair><div class="pattern"><a href="GENERIC/metavar_call.sgrep"><pre>$F(1,2)</pre></a></div><div><div class="match"><a href="js/metavar_call.js"><pre>function foo() {
+    //ERROR:
+    foo(1,2);
+
+    return 1;
+}
+
+</pre></a></div></div></div></div><div class="example"><h3>Argument</h3><div class=pair><div class="pattern"><a href="GENERIC/metavar_arg.sgrep"><pre>foo($X, 2)</pre></a></div><div><div class="match"><a href="js/metavar_arg.js"><pre>function foo() {
+    //ERROR:
+    foo(1,2);
+
+    //ERROR:
+    foo(a_very_long_constant_name,
+        2);
+
+    //ERROR:
+    foo (unsafe(), // indeed
+         2);
+
+    //ERROR:
+    foo(bar(1,3), 2);
+
+    foo(2,1);
+}
+
+</pre></a></div></div></div></div><div class="example"><h3>Conditionals</h3><div class=pair><div class="pattern"><a href="GENERIC/metavar_cond.sgrep"><pre>if ($E)
+   foo();
+</pre></a></div><div><div class="match"><a href="js/metavar_cond.js"><pre>function foo() {
+    x = 1;
+    //ERROR:
+    if (x > 2)
+        foo();
+}
+
+</pre></a></div></div></div></div><div class="example"><h3>Statement</h3><div class=pair><div class="pattern"><a href="GENERIC/metavar_stmt.sgrep"><pre>if ($X > $Y)
+   $S;
+
+</pre></a></div><div><div class="match"><a href="js/metavar_stmt.js"><pre>function foo() {
+    v = 1;
+    //ERROR:
+    if (v > 2)
+        return 1;
+}
+
+</pre></a></div></div></div></div><div class="example"><h3>Imports</h3><div class=pair><div class="pattern"><a href="js/metavar_import.sgrep"><pre>import $X from 'foo';
+</pre></a></div><div><div class="match"><a href="js/metavar_import.js"><pre>//ERROR: match
+import jwt from 'foo';
+let a = jwt.sign({}, 'a');
+</pre></a></div></div></div></div></div></div><div class="example-category"><h2>Inline Regular Expressions (OCaml Regex Syntax)</h2><div class="examples"><div class="example"><h3>Strings</h3><div class=pair><div class="pattern"><a href="GENERIC/regexp_string.sgrep"><pre>$X = "=~/[lL]ocation.*/"</pre></a></div><div><div class="match"><a href="js/regexp_string.js"><pre>//ERROR: match
+const path = "/location/1";</pre></a></div></div></div></div></div></div><div class="example-category"><h2>Automatic Equality Constraints on Metavariables</h2><div class="examples"><div class="example"><h3>Variables</h3><div class=pair><div class="pattern"><a href="GENERIC/metavar_equality_var.sgrep"><pre>$V = open();
+close($V);
+
+</pre></a></div><div><div class="match"><a href="js/metavar_equality_var.js"><pre>function foo() {
+  //ERROR:
+    myfile = open();
+    close(myfile);
+}
+
+
+
+</pre></a></div></div></div></div><div class="example"><h3>Statement</h3><div class=pair><div class="pattern"><a href="GENERIC/metavar_equality_stmt.sgrep"><pre>if ($E)
+  $S;
+else
+  $S;
+
+</pre></a></div><div><div class="match"><a href="js/metavar_equality_stmt.js"><pre>function foo() {
+    //ERROR:
+    if (x > 2) {
+        foo();
+        bar();
+    } else {
+        foo();
+        bar();
+    }
+
+    if (x > 2) {
+        foo();
+        bar();
+    } else {
+        foo();
+    }
+}
+
+
+
+</pre></a></div></div></div></div><div class="example"><h3>Expressions</h3><div class=pair><div class="pattern"><a href="GENERIC/metavar_equality_expr.sgrep"><pre>$X == $X</pre></a></div><div><div class="match"><a href="js/metavar_equality_expr.js"><pre>function test_equal() {
+    a = 1;
+    b = 2;
+    //ERROR: match
+    if (a+b == a+b)
+        return 1;
+    return 0;
+}
+
+</pre></a></div></div></div></div></div></div><div class="example-category"><h2>Equivalences</h2><div class="examples"><div class="example"><h3>Import Renaming/Aliasing</h3><div class=pair></div></div><div class="example"><h3>Constant Propagation</h3><div class=pair><div class="pattern"><a href="GENERIC/equivalence_constant_propagation.sgrep"><pre>$F("password")</pre></a></div><div><div class="match"><a href="js/equivalence_constant_propagation.js"><pre>const Bar = "password";
+
+function foo() {
+     //ERROR: match!
+     password(Bar);
+}
+</pre></a></div></div></div></div><div class="example"><h3>eq</h3><div class=pair><div class="pattern"><a href="GENERIC/equivalence_eq.sgrep"><pre>$X == $X</pre></a></div><div><div class="match"><a href="js/equivalence_eq.js"><pre>function test_equal() {
+    a = 1;
+    b = 2;
+    //ERROR: match
+    if (a+b == a+b)
+        return 1;
+
+    //ERROR: match
+    if (a+b != a+b)
+        return 1;
+    return 0;
+}
+
+//TODO: test also === vs !==, Javascript specific
+// 1+2 !== 1+2;
+function bar() {
+    var x;
+    if(1 === 2) {
+    }
+    if(1+2 === 1+2) {
+    }
+    if(1+2 === 1+2) {
+        foo();
+    }
+    if(x === x) {
+        foo();
+    }
+}
+</pre></a></div></div></div></div></div></div><div class="example-category"><h2>deep</h2><div class="examples"><div class="example"><h3>exprstmt</h3><div class=pair><div class="pattern"><a href="GENERIC/deep_exprstmt.sgrep"><pre>bar();
+</pre></a></div><div><div class="match"><a href="js/deep_exprstmt.js"><pre>function foo() {
+    //ERROR: match
+    bar();
+    //ERROR: match
+    x = bar();
+    //ERROR: match
+    print(bar());
+    //ERROR: match
+    return bar();
+}
+</pre></a></div></div></div></div></div></div><h2>java</h2><div class="example-category"><h2>Concrete Syntax</h2><div class="examples"><div class="example"><h3>Exact AST Match</h3><div class=pair><div class="pattern"><a href="GENERIC/concrete_syntax.sgrep"><pre>foo(1, 2)</pre></a></div><div><div class="match"><a href="java/concrete_syntax.java"><pre>class Foo {
+    void foo() {
+        //ERROR:
+        foo(1,2);
+
+        //ERROR:
+        foo(1,
+            2);
+
+        //ERROR:
+        foo (1, // comment
+             2);
+
+        foo(2,1);
+    }
+}
+</pre></a></div></div></div></div></div></div><div class="example-category"><h2>Ellipsis</h2><div class="examples"><div class="example"><h3>Strings</h3><div class=pair><div class="pattern"><a href="GENERIC/dots_string.sgrep"><pre>foo("...")</pre></a></div><div><div class="match"><a href="java/dots_string.java"><pre>class Foo { 
+  void bar () {
+    //ERROR:
+    foo("whatever sequence of chars");
+  }
+}
+</pre></a></div></div></div></div><div class="example"><h3>Nested Statements</h3><div class=pair><div class="pattern"><a href="GENERIC/dots_nested_stmts.sgrep"><pre>if (...)
+  ...
+
+</pre></a></div><div><div class="match"><a href="java/dots_nested_stmts.java"><pre>class Foo {
+  void main() {
+
+    //ERROR: match
+    if (x == 1) 
+        return 2; 
+  }
+}
+
+</pre></a></div></div></div></div><div class="example"><h3>Statements</h3><div class=pair><div class="pattern"><a href="GENERIC/dots_stmts.sgrep"><pre>$V = get();
+...
+eval($V);
+
+</pre></a></div><div><div class="match"><a href="java/dots_stmts.java"><pre>class Foo {
+void foo() {
+
+    //ERROR:
+    user_data = get();
+    print("do stuff");
+    foobar();
+    eval(user_data);
+}
+
+}
+
+
+</pre></a></div></div></div></div><div class="example"><h3>Arguments</h3><div class=pair><div class="pattern"><a href="GENERIC/dots_args.sgrep"><pre>foo(..., 5)</pre></a></div><div><div class="match"><a href="java/dots_args.java"><pre>class Foo {
+  void bar() {
+    //ERROR:
+    foo(1,2,3,4,5);
+    //ERROR:
+    foo(5);
+  }
+}
+
+
+</pre></a></div></div></div></div></div></div><div class="example-category"><h2>Metavariables</h2><div class="examples"><div class="example"><h3>Function Call</h3><div class=pair><div class="pattern"><a href="GENERIC/metavar_call.sgrep"><pre>$F(1,2)</pre></a></div><div><div class="match"><a href="java/metavar_call.java"><pre>class Foo {
+void foo() {
+    //ERROR:
+    foo(1,2);
+
+    return 1;
+}
+}
+
+
+</pre></a></div></div></div></div><div class="example"><h3>Argument</h3><div class=pair><div class="pattern"><a href="GENERIC/metavar_arg.sgrep"><pre>foo($X, 2)</pre></a></div><div><div class="match"><a href="java/metavar_arg.java"><pre>class Foo {
+  void bar() {
+    //ERROR:
+    foo(1,2);
+
+    //ERROR:
+    foo(a_very_long_constant_name,
+        2);
+
+    //ERROR:
+    foo (unsafe(), // indeed
+         2);
+
+    //ERROR:
+    foo(bar(1,3), 2);
+
+    foo(2,1);
+  }
+}
+
+</pre></a></div></div></div></div><div class="example"><h3>Conditionals</h3><div class=pair><div class="pattern"><a href="GENERIC/metavar_cond.sgrep"><pre>if ($E)
+   foo();
+</pre></a></div><div><div class="match"><a href="java/metavar_cond.java"><pre>class Foo {
+void foo() {
+    x = 1;
+    //ERROR:
+    if (x > 2)
+        foo();
+}
+
+}</pre></a></div></div></div></div><div class="example"><h3>Statement</h3><div class=pair><div class="pattern"><a href="GENERIC/metavar_stmt.sgrep"><pre>if ($X > $Y)
+   $S;
+
+</pre></a></div><div><div class="match"><a href="java/metavar_stmt.java"><pre>class Foo {
+void foo() {
+    v = 1;
+    //ERROR:
+    if (v > 2)
+        return 1;
+}
+}
+
+
+</pre></a></div></div></div></div><div class="example"><h3>Imports</h3><div class=pair></div></div></div></div><div class="example-category"><h2>Inline Regular Expressions (OCaml Regex Syntax)</h2><div class="examples"><div class="example"><h3>Strings</h3><div class=pair><div class="pattern"><a href="GENERIC/regexp_string.sgrep"><pre>$X = "=~/[lL]ocation.*/"</pre></a></div><div><div class="match"><a href="java/regexp_string.java"><pre>class Foo {
+    void foo() {
+        //ERROR:
+        path = "/location/1";
+    }
+}</pre></a></div></div></div></div></div></div><div class="example-category"><h2>Automatic Equality Constraints on Metavariables</h2><div class="examples"><div class="example"><h3>Variables</h3><div class=pair><div class="pattern"><a href="GENERIC/metavar_equality_var.sgrep"><pre>$V = open();
+close($V);
+
+</pre></a></div><div><div class="match"><a href="java/metavar_equality_var.java"><pre>class Foo {
+void foo() {
+   //ERROR:
+    myfile = open();
+    close(myfile);
+}
+}
+
+
+
+
+</pre></a></div></div></div></div><div class="example"><h3>Statement</h3><div class=pair><div class="pattern"><a href="GENERIC/metavar_equality_stmt.sgrep"><pre>if ($E)
+  $S;
+else
+  $S;
+
+</pre></a></div><div><div class="match"><a href="java/metavar_equality_stmt.java"><pre>class foo {
+
+void foo() {
+    //ERROR:
+    if (x > 2) {
+        foo();
+        bar();
+    } else {
+        foo();
+        bar();
+    }
+
+    if (x > 2) {
+        foo();
+        bar();
+    } else {
+        foo();
+    }
+}
+
+
+}</pre></a></div></div></div></div><div class="example"><h3>Expressions</h3><div class=pair><div class="pattern"><a href="GENERIC/metavar_equality_expr.sgrep"><pre>$X == $X</pre></a></div><div><div class="match"><a href="java/metavar_equality_expr.java"><pre>class Foo {
+void test_equal() {
+    a = 1;
+    b = 2;
+    //ERROR: match
+    if (a+b == a+b)
+        return 1;
+    return 0;
+}
+
+}
+</pre></a></div></div></div></div></div></div><div class="example-category"><h2>Equivalences</h2><div class="examples"><div class="example"><h3>Import Renaming/Aliasing</h3><div class=pair></div></div><div class="example"><h3>Constant Propagation</h3><div class=pair><div class="pattern"><a href="java/equivalence_constant_propagation.sgrep"><pre>foo("password")</pre></a></div><div><div class="match"><a href="java/equivalence_constant_propagation.java"><pre>class Foo {
+	final String pwd = "password";	
+ 	void main()	{
+        //ERROR: match
+		foo(pwd);
+	}
+}</pre></a></div></div></div></div><div class="example"><h3>eq</h3><div class=pair><div class="pattern"><a href="GENERIC/equivalence_eq.sgrep"><pre>$X == $X</pre></a></div><div><div class="match"><a href="java/equivalence_eq.java"><pre>class Foo { 
+  void test_equal() {
+    a = 1;
+    b = 2;
+    //ERROR: match
+    if (a+b == a+b)
+        return 1;
+
+    //ERROR: match
+    if (a+b != a+b)
+        return 1;
+    return 0;
+  }
+}
+</pre></a></div></div></div></div></div></div><div class="example-category"><h2>deep</h2><div class="examples"><div class="example"><h3>exprstmt</h3><div class=pair><div class="pattern"><a href="GENERIC/deep_exprstmt.sgrep"><pre>bar();
+</pre></a></div><div><div class="match"><a href="java/deep_exprstmt.java"><pre>class Foo {
+    void foo() {
+        //ERROR: match
+        bar();
+        //ERROR: match
+        x = bar();
+        //ERROR: match
+        foo2(bar());
+        //ERROR: match
+        return bar();
+      }
+  }
+      </pre></a></div></div></div></div></div></div><h2>php</h2><div class="example-category"><h2>Concrete Syntax</h2><div class="examples"><div class="example"><h3>Exact AST Match</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/concrete_syntax.sgrep</div></div></div></div></div><div class="example-category"><h2>Ellipsis</h2><div class="examples"><div class="example"><h3>Strings</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/dots_string.sgrep</div></div></div><div class="example"><h3>Nested Statements</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/dots_nested_stmts.sgrep</div></div></div><div class="example"><h3>Statements</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/dots_stmts.sgrep</div></div></div><div class="example"><h3>Arguments</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/dots_args.sgrep</div></div></div></div></div><div class="example-category"><h2>Metavariables</h2><div class="examples"><div class="example"><h3>Function Call</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/metavar_call.sgrep</div></div></div><div class="example"><h3>Argument</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/metavar_arg.sgrep</div></div></div><div class="example"><h3>Conditionals</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/metavar_cond.sgrep</div></div></div><div class="example"><h3>Statement</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/metavar_stmt.sgrep</div></div></div><div class="example"><h3>Imports</h3><div class=pair></div></div></div></div><div class="example-category"><h2>Inline Regular Expressions (OCaml Regex Syntax)</h2><div class="examples"><div class="example"><h3>Strings</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/regexp_string.sgrep</div></div></div></div></div><div class="example-category"><h2>Automatic Equality Constraints on Metavariables</h2><div class="examples"><div class="example"><h3>Variables</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/metavar_equality_var.sgrep</div></div></div><div class="example"><h3>Statement</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/metavar_equality_stmt.sgrep</div></div></div><div class="example"><h3>Expressions</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/metavar_equality_expr.sgrep</div></div></div></div></div><div class="example-category"><h2>Equivalences</h2><div class="examples"><div class="example"><h3>Import Renaming/Aliasing</h3><div class=pair></div></div><div class="example"><h3>Constant Propagation</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/equivalence_constant_propagation.sgrep</div></div></div><div class="example"><h3>eq</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/equivalence_eq.sgrep</div></div></div></div></div><div class="example-category"><h2>deep</h2><div class="examples"><div class="example"><h3>exprstmt</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/deep_exprstmt.sgrep</div></div></div></div></div><h2>json</h2><div class="example-category"><h2>Concrete Syntax</h2><div class="examples"><div class="example"><h3>Exact AST Match</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/concrete_syntax.sgrep</div></div></div></div></div><div class="example-category"><h2>Ellipsis</h2><div class="examples"><div class="example"><h3>Strings</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/dots_string.sgrep</div></div></div><div class="example"><h3>Nested Statements</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/dots_nested_stmts.sgrep</div></div></div><div class="example"><h3>Statements</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/dots_stmts.sgrep</div></div></div><div class="example"><h3>Arguments</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/dots_args.sgrep</div></div></div></div></div><div class="example-category"><h2>Metavariables</h2><div class="examples"><div class="example"><h3>Function Call</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/metavar_call.sgrep</div></div></div><div class="example"><h3>Argument</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/metavar_arg.sgrep</div></div></div><div class="example"><h3>Conditionals</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/metavar_cond.sgrep</div></div></div><div class="example"><h3>Statement</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/metavar_stmt.sgrep</div></div></div><div class="example"><h3>Imports</h3><div class=pair></div></div></div></div><div class="example-category"><h2>Inline Regular Expressions (OCaml Regex Syntax)</h2><div class="examples"><div class="example"><h3>Strings</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/regexp_string.sgrep</div></div></div></div></div><div class="example-category"><h2>Automatic Equality Constraints on Metavariables</h2><div class="examples"><div class="example"><h3>Variables</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/metavar_equality_var.sgrep</div></div></div><div class="example"><h3>Statement</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/metavar_equality_stmt.sgrep</div></div></div><div class="example"><h3>Expressions</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/metavar_equality_expr.sgrep</div></div></div></div></div><div class="example-category"><h2>Equivalences</h2><div class="examples"><div class="example"><h3>Import Renaming/Aliasing</h3><div class=pair></div></div><div class="example"><h3>Constant Propagation</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/equivalence_constant_propagation.sgrep</div></div></div><div class="example"><h3>eq</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/equivalence_eq.sgrep</div></div></div></div></div><div class="example-category"><h2>deep</h2><div class="examples"><div class="example"><h3>exprstmt</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/deep_exprstmt.sgrep</div></div></div></div></div><h2>cpp</h2><div class="example-category"><h2>Concrete Syntax</h2><div class="examples"><div class="example"><h3>Exact AST Match</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/concrete_syntax.sgrep</div></div></div></div></div><div class="example-category"><h2>Ellipsis</h2><div class="examples"><div class="example"><h3>Strings</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/dots_string.sgrep</div></div></div><div class="example"><h3>Nested Statements</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/dots_nested_stmts.sgrep</div></div></div><div class="example"><h3>Statements</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/dots_stmts.sgrep</div></div></div><div class="example"><h3>Arguments</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/dots_args.sgrep</div></div></div></div></div><div class="example-category"><h2>Metavariables</h2><div class="examples"><div class="example"><h3>Function Call</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/metavar_call.sgrep</div></div></div><div class="example"><h3>Argument</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/metavar_arg.sgrep</div></div></div><div class="example"><h3>Conditionals</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/metavar_cond.sgrep</div></div></div><div class="example"><h3>Statement</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/metavar_stmt.sgrep</div></div></div><div class="example"><h3>Imports</h3><div class=pair></div></div></div></div><div class="example-category"><h2>Inline Regular Expressions (OCaml Regex Syntax)</h2><div class="examples"><div class="example"><h3>Strings</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/regexp_string.sgrep</div></div></div></div></div><div class="example-category"><h2>Automatic Equality Constraints on Metavariables</h2><div class="examples"><div class="example"><h3>Variables</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/metavar_equality_var.sgrep</div></div></div><div class="example"><h3>Statement</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/metavar_equality_stmt.sgrep</div></div></div><div class="example"><h3>Expressions</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/metavar_equality_expr.sgrep</div></div></div></div></div><div class="example-category"><h2>Equivalences</h2><div class="examples"><div class="example"><h3>Import Renaming/Aliasing</h3><div class=pair></div></div><div class="example"><h3>Constant Propagation</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/equivalence_constant_propagation.sgrep</div></div></div><div class="example"><h3>eq</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/equivalence_eq.sgrep</div></div></div></div></div><div class="example-category"><h2>deep</h2><div class="examples"><div class="example"><h3>exprstmt</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/deep_exprstmt.sgrep</div></div></div></div></div><h2>c</h2><div class="example-category"><h2>Concrete Syntax</h2><div class="examples"><div class="example"><h3>Exact AST Match</h3><div class=pair><div class="pattern"><a href="GENERIC/concrete_syntax.sgrep"><pre>foo(1, 2)</pre></a></div><div><div class="match"><a href="c/concrete_syntax.c"><pre>void foo() {
+ //ERROR:
+    foo(1,2);
+
+ //ERROR:
+ foo(1,
+     2);
+
+ //ERROR:
+ foo (1, // comment
+      2);
+
+ foo(2,1);
+}
+
+
+</pre></a></div></div></div></div></div></div><div class="example-category"><h2>Ellipsis</h2><div class="examples"><div class="example"><h3>Strings</h3><div class=pair><div class="pattern"><a href="GENERIC/dots_string.sgrep"><pre>foo("...")</pre></a></div><div><div class="match"><a href="c/dots_string.c"><pre>void foo() {
+    //ERROR:
+    foo("whatever sequence of chars");
+}
+
+</pre></a></div></div></div></div><div class="example"><h3>Nested Statements</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/dots_nested_stmts.sgrep</div></div></div><div class="example"><h3>Statements</h3><div class=pair><div class="pattern"><a href="GENERIC/dots_stmts.sgrep"><pre>$V = get();
+...
+eval($V);
+
+</pre></a></div><div><div class="match"><a href="c/dots_stmts.c"><pre>void foo() {
+
+    //ERROR:
+    user_data = get();
+    print("do stuff");
+    foobar();
+    eval(user_data);
+}
+
+
+</pre></a></div></div></div></div><div class="example"><h3>Arguments</h3><div class=pair><div class="pattern"><a href="GENERIC/dots_args.sgrep"><pre>foo(..., 5)</pre></a></div><div><div class="match"><a href="c/dots_args.c"><pre>void foo() {
+  //ERROR:
+    foo(1,2,3,4,5);
+  //ERROR:
+    foo(5);
+}
+
+</pre></a></div></div></div></div></div></div><div class="example-category"><h2>Metavariables</h2><div class="examples"><div class="example"><h3>Function Call</h3><div class=pair><div class="pattern"><a href="GENERIC/metavar_call.sgrep"><pre>$F(1,2)</pre></a></div><div><div class="match"><a href="c/metavar_call.c"><pre>void foo() {
+    //ERROR:
+    foo(1,2);
+
+    return 1;
+}
+
+</pre></a></div></div></div></div><div class="example"><h3>Argument</h3><div class=pair><div class="pattern"><a href="GENERIC/metavar_arg.sgrep"><pre>foo($X, 2)</pre></a></div><div><div class="match"><a href="c/metavar_arg.c"><pre>void foo() {
+    //ERROR:
+    foo(1,2);
+
+    //ERROR:
+    foo(a_very_long_constant_name,
+        2);
+
+    //ERROR:
+    foo (unsafe(), // indeed
+         2);
+
+    //ERROR:
+    foo(bar(1,3), 2);
+
+    foo(2,1);
+}
+
+</pre></a></div></div></div></div><div class="example"><h3>Conditionals</h3><div class=pair><div class="pattern"><a href="GENERIC/metavar_cond.sgrep"><pre>if ($E)
+   foo();
+</pre></a></div><div><div class="match"><a href="c/metavar_cond.c"><pre>void foo() {
+    x = 1;
+    //ERROR:
+    if (x > 2)
+        foo();
+}
+
+</pre></a></div></div></div></div><div class="example"><h3>Statement</h3><div class=pair><div class="pattern"><a href="GENERIC/metavar_stmt.sgrep"><pre>if ($X > $Y)
+   $S;
+
+</pre></a></div><div><div class="match"><a href="c/metavar_stmt.c"><pre>void foo() {
+    v = 1;
+    //ERROR:
+    if (v > 2)
+        return 1;
+}
+
+</pre></a></div></div></div></div><div class="example"><h3>Imports</h3><div class=pair></div></div></div></div><div class="example-category"><h2>Inline Regular Expressions (OCaml Regex Syntax)</h2><div class="examples"><div class="example"><h3>Strings</h3><div class=pair><div class="pattern"><a href="GENERIC/regexp_string.sgrep"><pre>$X = "=~/[lL]ocation.*/"</pre></a></div><div><div class="match"><a href="c/regexp_string.c"><pre>void foo() {
+    char path = "/location/1";
+}
+
+</pre></a></div></div></div></div></div></div><div class="example-category"><h2>Automatic Equality Constraints on Metavariables</h2><div class="examples"><div class="example"><h3>Variables</h3><div class=pair><div class="pattern"><a href="GENERIC/metavar_equality_var.sgrep"><pre>$V = open();
+close($V);
+
+</pre></a></div><div><div class="match"><a href="c/metavar_equality_var.c"><pre>void foo() {
+  //ERROR:
+    myfile = open();
+    close(myfile);
+}
+
+
+
+</pre></a></div></div></div></div><div class="example"><h3>Statement</h3><div class=pair><div class="pattern"><a href="GENERIC/metavar_equality_stmt.sgrep"><pre>if ($E)
+  $S;
+else
+  $S;
+
+</pre></a></div><div><div class="match"><a href="c/metavar_equality_stmt.c"><pre>void foo() {
+    //ERROR:
+    if (x > 2) {
+        foo();
+        bar();
+    } else {
+        foo();
+        bar();
+    }
+
+    if (x > 2) {
+        foo();
+        bar();
+    } else {
+        foo();
+    }
+}
+
+
+
+</pre></a></div></div></div></div><div class="example"><h3>Expressions</h3><div class=pair><div class="pattern"><a href="GENERIC/metavar_equality_expr.sgrep"><pre>$X == $X</pre></a></div><div><div class="match"><a href="c/metavar_equality_expr.c"><pre>void test_equal() {
+    a = 1;
+    b = 2;
+    //ERROR: match
+    if (a+b == a+b)
+        return 1;
+    return 0;
+}
+
+</pre></a></div></div></div></div></div></div><div class="example-category"><h2>Equivalences</h2><div class="examples"><div class="example"><h3>Import Renaming/Aliasing</h3><div class=pair></div></div><div class="example"><h3>Constant Propagation</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/equivalence_constant_propagation.sgrep</div></div></div><div class="example"><h3>eq</h3><div class=pair><div class="pattern"><a href="GENERIC/equivalence_eq.sgrep"><pre>$X == $X</pre></a></div><div><div class="match"><a href="c/equivalence_eq.c"><pre>void test_equal() {
+    a = 1;
+    b = 2;
+    //ERROR: match
+    if (a+b == a+b)
+        return 1;
+
+    //ERROR: match
+    if (a+b != a+b)
+        return 1;
+    return 0;
+}
+</pre></a></div></div></div></div></div></div><div class="example-category"><h2>deep</h2><div class="examples"><div class="example"><h3>exprstmt</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/deep_exprstmt.sgrep</div></div></div></div></div><h2>ruby</h2><div class="example-category"><h2>Concrete Syntax</h2><div class="examples"><div class="example"><h3>Exact AST Match</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/concrete_syntax.sgrep</div></div></div></div></div><div class="example-category"><h2>Ellipsis</h2><div class="examples"><div class="example"><h3>Strings</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/dots_string.sgrep</div></div></div><div class="example"><h3>Nested Statements</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/dots_nested_stmts.sgrep</div></div></div><div class="example"><h3>Statements</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/dots_stmts.sgrep</div></div></div><div class="example"><h3>Arguments</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/dots_args.sgrep</div></div></div></div></div><div class="example-category"><h2>Metavariables</h2><div class="examples"><div class="example"><h3>Function Call</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/metavar_call.sgrep</div></div></div><div class="example"><h3>Argument</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/metavar_arg.sgrep</div></div></div><div class="example"><h3>Conditionals</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit ruby/metavar_cond.sgrep</div></div></div><div class="example"><h3>Statement</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit ruby/metavar_stmt.sgrep</div></div></div><div class="example"><h3>Imports</h3><div class=pair></div></div></div></div><div class="example-category"><h2>Inline Regular Expressions (OCaml Regex Syntax)</h2><div class="examples"><div class="example"><h3>Strings</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/regexp_string.sgrep</div></div></div></div></div><div class="example-category"><h2>Automatic Equality Constraints on Metavariables</h2><div class="examples"><div class="example"><h3>Variables</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit ruby/metavar_equality_var.sgrep</div></div></div><div class="example"><h3>Statement</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit ruby/metavar_equality_stmt.sgrep</div></div></div><div class="example"><h3>Expressions</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/metavar_equality_expr.sgrep</div></div></div></div></div><div class="example-category"><h2>Equivalences</h2><div class="examples"><div class="example"><h3>Import Renaming/Aliasing</h3><div class=pair></div></div><div class="example"><h3>Constant Propagation</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/equivalence_constant_propagation.sgrep</div></div></div><div class="example"><h3>eq</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/equivalence_eq.sgrep</div></div></div></div></div><div class="example-category"><h2>deep</h2><div class="examples"><div class="example"><h3>exprstmt</h3><div class=pair><div class="notimplemented">This is missing an example!<br/>Or it doesn't work yet for this language!<br/>Edit GENERIC/deep_exprstmt.sgrep</div></div></div></div></div></body>
