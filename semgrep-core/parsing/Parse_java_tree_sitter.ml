@@ -110,7 +110,7 @@ let rec qualifier_extra env = function
       )
   | `Scop_id x -> scoped_identifier env x
 
-and scoped_identifier (env : env) ((v1, v2, v3) : CST.scoped_identifier) =
+and scoped_identifier (env : env) ((v1, v2, v3) : CST.scoped_identifier) : qualified_ident =
   let v1 = qualifier_extra env v1 in
   let _v2 = token env v2 (* "." *) in
   let v3 = str env v3 (* pattern [a-zA-Z_]\w* *) in
@@ -311,9 +311,9 @@ let rec expression (env : env) (x : CST.expression) =
       let v2 = type_ env v2 in
       let _v3TODO =
         List.map (fun (v1, v2) ->
-          let v1 = token env v1 (* "&" *) in
+          let _v1 = token env v1 (* "&" *) in
           let v2 = type_ env v2 in
-          todo env (v1, v2)
+          v2
         ) v3
       in
       let v4 = token env v4 (* ")" *) in
@@ -328,97 +328,97 @@ and binary_expression (env : env) (x : CST.binary_expression) =
       let v1 = expression env v1 in
       let v2 = token env v2 (* ">" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Infix (v1, (G.Gt, v2), v3)
   | `Bin_exp_exp_LT_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "<" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Infix (v1, (G.Lt, v2), v3)
   | `Bin_exp_exp_EQEQ_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "==" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Infix (v1, (G.Eq, v2), v3)
   | `Bin_exp_exp_GTEQ_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* ">=" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Infix (v1, (G.GtE, v2), v3)
   | `Bin_exp_exp_LTEQ_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "<=" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Infix (v1, (G.LtE, v2), v3)
   | `Bin_exp_exp_BANGEQ_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "!=" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Infix (v1, (G.NotEq, v2), v3)
   | `Bin_exp_exp_AMPAMP_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "&&" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Infix (v1, (G.And, v2), v3)
   | `Bin_exp_exp_BARBAR_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "||" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Infix (v1, (G.Or, v2), v3)
   | `Bin_exp_exp_PLUS_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "+" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Infix (v1, (G.Plus, v2), v3)
   | `Bin_exp_exp_DASH_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "-" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Infix (v1, (G.Minus, v2), v3)
   | `Bin_exp_exp_STAR_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "*" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Infix (v1, (G.Mult, v2), v3)
   | `Bin_exp_exp_SLASH_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "/" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Infix (v1, (G.Div, v2), v3)
   | `Bin_exp_exp_AMP_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "&" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Infix (v1, (G.BitAnd, v2), v3)
   | `Bin_exp_exp_BAR_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "|" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Infix (v1, (G.BitOr, v2), v3)
   | `Bin_exp_exp_HAT_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "^" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Infix (v1, (G.BitXor, v2), v3)
   | `Bin_exp_exp_PERC_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "%" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Infix (v1, (G.Mod, v2), v3)
   | `Bin_exp_exp_LTLT_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "<<" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Infix (v1, (G.LSL, v2), v3)
   | `Bin_exp_exp_GTGT_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* ">>" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Infix (v1, (G.LSR, v2), v3)
   | `Bin_exp_exp_GTGTGT_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* ">>>" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Infix (v1, (G.ASR, v2), v3)
   )
 
 
@@ -427,19 +427,19 @@ and unary_expression (env : env) (x : CST.unary_expression) =
   | `Un_exp_PLUS_exp (v1, v2) ->
       let v1 = token env v1 (* "+" *) in
       let v2 = expression env v2 in
-      todo env (v1, v2)
+      Unary ((G.Plus, v1), v2)
   | `Un_exp_DASH_exp (v1, v2) ->
       let v1 = token env v1 (* "-" *) in
       let v2 = expression env v2 in
-      todo env (v1, v2)
+      Unary ((G.Minus, v1), v2)
   | `Un_exp_BANG_exp (v1, v2) ->
       let v1 = token env v1 (* "!" *) in
       let v2 = expression env v2 in
-      todo env (v1, v2)
+      Unary ((G.Not, v1), v2)
   | `Un_exp_TILDE_exp (v1, v2) ->
       let v1 = token env v1 (* "~" *) in
       let v2 = expression env v2 in
-      todo env (v1, v2)
+      Unary ((G.BitNot, v1), v2)
   )
 
 
@@ -448,19 +448,19 @@ and update_expression (env : env) (x : CST.update_expression) =
   | `Exp_PLUSPLUS (v1, v2) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "++" *) in
-      todo env (v1, v2)
+      Postfix(v1, (G.Incr, v2))
   | `Exp_DASHDASH (v1, v2) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "--" *) in
-      todo env (v1, v2)
+      Postfix(v1, (G.Decr, v2))
   | `PLUSPLUS_exp (v1, v2) ->
       let v1 = token env v1 (* "++" *) in
       let v2 = expression env v2 in
-      todo env (v1, v2)
+      Prefix ((G.Incr, v1), v2)
   | `DASHDASH_exp (v1, v2) ->
       let v1 = token env v1 (* "--" *) in
       let v2 = expression env v2 in
-      todo env (v1, v2)
+      Prefix ((G.Decr, v1), v2)
   )
 
 and basic_type_extra env = function
@@ -469,10 +469,14 @@ and basic_type_extra env = function
   | `Floa_point_type x -> floating_point_type env x
   | `Bool_type tok -> TBasic (str env tok) (* "boolean" *)
   | `Id tok ->
-          let (s, t) = str env tok (* pattern [a-zA-Z_]\w* *) in
-          todo env (s,t)
-  | `Scop_type_id x -> scoped_type_identifier env x
-  | `Gene_type x -> generic_type env x
+          let x = str env tok (* pattern [a-zA-Z_]\w* *) in
+          TClass [x, []]
+  | `Scop_type_id x ->
+      let x = scoped_type_identifier env x in
+      TClass x
+  | `Gene_type x ->
+      let x = generic_type env x in
+      TClass x
 
 and name_of_id env tok =
   Name ([[], str env tok])
@@ -482,6 +486,8 @@ and this env tok =
   name_of_id env tok
 and super env tok =
   name_of_id env tok
+and super_id_field env tok =
+  str env tok
 
 and primary (env : env) (x : CST.primary) =
   (match x with
@@ -507,7 +513,9 @@ and primary (env : env) (x : CST.primary) =
   | `Prim_meth_invo (v1, v2) ->
       let v1 =
         (match v1 with
-        | `Choice_id x -> let id = id_extra env x in todo env id
+        | `Choice_id x ->
+                let id = id_extra env x in
+                Name [[], id]
         | `Choice_prim_DOT_opt_super_DOT_opt_type_args_choice_id (v1, v2, v3, v4, v5) ->
             let v1 =
               (match v1 with
@@ -518,23 +526,26 @@ and primary (env : env) (x : CST.primary) =
             let v2 = token env v2 (* "." *) in
             let v3 =
               (match v3 with
-              | Some (v1, v2) ->
-                  let v1 = token env v1 (* "super" *) in
-                  let v2 = token env v2 (* "." *) in
-                  todo env (v1, v2)
-              | None -> todo env ())
+              | Some (v1bis, v2bis) ->
+                  let v1bis = super_id_field env v1bis (* "super" *) in
+                  let v2bis = token env v2bis (* "." *) in
+                  (fun v5 ->
+                     Dot (Dot (v1, v2, v1bis), v2bis, v5))
+
+              | None -> (fun v5 -> Dot (v1, v2, v5))
+              )
             in
-            let v4 =
+            let _v4 =
               (match v4 with
               | Some x -> type_arguments env x
-              | None -> todo env ())
+              | None -> [])
             in
             let v5 = id_extra env v5 in
-            todo env (v1, v2, v3, v4, v5)
+            v3 v5
         )
       in
       let v2 = argument_list env v2 in
-      todo env (v1, v2)
+      Call (v1, v2)
   | `Prim_meth_ref (v1, v2, v3, v4) ->
       let v1 =
         (match v1 with
