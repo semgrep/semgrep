@@ -15,7 +15,7 @@ open Common
 module AST = Ast_java
 module CST = Tree_sitter_java.CST
 module PI = Parse_info
-(* open Ast_java *)
+open Ast_java
 module G = AST_generic
 module H = Parse_tree_sitter_helpers
 
@@ -53,7 +53,8 @@ module H = Parse_tree_sitter_helpers
 
 type env = H.env
 
-let token (env : env) (_tok : Tree_sitter_run.Token.t) = H.token
+let token = H.token
+let str = H.str
 
 let blank (env : env) () = ()
 
@@ -62,8 +63,8 @@ let todo (env : env) _ =
 
 let floating_point_type (env : env) (x : CST.floating_point_type) =
   (match x with
-  | `Floa_point_type_float tok -> token env tok (* "float" *)
-  | `Floa_point_type_doub tok -> token env tok (* "double" *)
+  | `Floa_point_type_float tok -> TBasic ("float", token env tok) (* "float" *)
+  | `Floa_point_type_doub tok -> TBasic ("double", token env tok) (* "double" *)
   )
 
 let octal_integer_literal (env : env) (tok : CST.octal_integer_literal) =
@@ -80,11 +81,11 @@ let hex_integer_literal (env : env) (tok : CST.hex_integer_literal) =
 
 let integral_type (env : env) (x : CST.integral_type) =
   (match x with
-  | `Inte_type_byte tok -> token env tok (* "byte" *)
-  | `Inte_type_short tok -> token env tok (* "short" *)
-  | `Inte_type_int tok -> token env tok (* "int" *)
-  | `Inte_type_long tok -> token env tok (* "long" *)
-  | `Inte_type_char tok -> token env tok (* "char" *)
+  | `Inte_type_byte tok -> TBasic (str env tok) (* "byte" *)
+  | `Inte_type_short tok -> TBasic (str env tok) (* "short" *)
+  | `Inte_type_int tok -> TBasic (str env tok) (* "int" *)
+  | `Inte_type_long tok -> TBasic (str env tok) (* "long" *)
+  | `Inte_type_char tok -> TBasic (str env tok) (* "char" *)
   )
 
 let decimal_floating_point_literal (env : env) (tok : CST.decimal_floating_point_literal) =
@@ -566,6 +567,16 @@ and update_expression (env : env) (x : CST.update_expression) =
       todo env (v1, v2)
   )
 
+and basic_type_extra env = function
+  | `Void_type tok -> TBasic (str env tok) (* "void" *)
+  | `Inte_type x -> integral_type env x
+  | `Floa_point_type x -> floating_point_type env x
+  | `Bool_type tok -> TBasic (str env tok) (* "boolean" *)
+  | `Id tok ->
+          let (s, t) = str env tok (* pattern [a-zA-Z_]\w* *) in
+          todo env (s,t)
+  | `Scop_type_id x -> scoped_type_identifier env x
+  | `Gene_type x -> generic_type env x
 
 and primary (env : env) (x : CST.primary) =
   (match x with
@@ -658,17 +669,7 @@ and primary (env : env) (x : CST.primary) =
       todo env (v1, v2, v3, v4)
   | `Prim_array_crea_exp (v1, v2, v3) ->
       let v1 = token env v1 (* "new" *) in
-      let v2 =
-        (match v2 with
-        | `Void_type tok -> token env tok (* "void" *)
-        | `Inte_type x -> integral_type env x
-        | `Floa_point_type x -> floating_point_type env x
-        | `Bool_type tok -> token env tok (* "boolean" *)
-        | `Id tok -> token env tok (* pattern [a-zA-Z_]\w* *)
-        | `Scop_type_id x -> scoped_type_identifier env x
-        | `Gene_type x -> generic_type env x
-        )
-      in
+      let v2 = basic_type_extra env v2 in
       let v3 =
         (match v3 with
         | `Rep1_dimens_expr_opt_dimens (v1, v2) ->
@@ -725,17 +726,7 @@ and unqualified_object_creation_expression (env : env) ((v1, v2, v3, v4, v5) : C
     | Some x -> type_arguments env x
     | None -> todo env ())
   in
-  let v3 =
-    (match v3 with
-    | `Void_type tok -> token env tok (* "void" *)
-    | `Inte_type x -> integral_type env x
-    | `Floa_point_type x -> floating_point_type env x
-    | `Bool_type tok -> token env tok (* "boolean" *)
-    | `Id tok -> token env tok (* pattern [a-zA-Z_]\w* *)
-    | `Scop_type_id x -> scoped_type_identifier env x
-    | `Gene_type x -> generic_type env x
-    )
-  in
+  let v3 = basic_type_extra env v3 in
   let v4 = argument_list env v4 in
   let v5 =
     (match v5 with
@@ -1865,15 +1856,8 @@ and type_ (env : env) (x : CST.type_) =
 and unannotated_type (env : env) (x : CST.unannotated_type) =
   (match x with
   | `Unan_type_choice_void_type x ->
-      (match x with
-      | `Void_type tok -> token env tok (* "void" *)
-      | `Inte_type x -> integral_type env x
-      | `Floa_point_type x -> floating_point_type env x
-      | `Bool_type tok -> token env tok (* "boolean" *)
-      | `Id tok -> token env tok (* pattern [a-zA-Z_]\w* *)
-      | `Scop_type_id x -> scoped_type_identifier env x
-      | `Gene_type x -> generic_type env x
-      )
+        let t = basic_type_extra env x in
+        todo env t
   | `Unan_type_array_type (v1, v2) ->
       let v1 = unannotated_type env v1 in
       let v2 = dimensions env v2 in
@@ -1884,7 +1868,9 @@ and unannotated_type (env : env) (x : CST.unannotated_type) =
 and scoped_type_identifier (env : env) ((v1, v2, v3, v4) : CST.scoped_type_identifier) =
   let v1 =
     (match v1 with
-    | `Id tok -> token env tok (* pattern [a-zA-Z_]\w* *)
+    | `Id tok ->
+          let (s, t) = str env tok (* pattern [a-zA-Z_]\w* *) in
+          todo env (s,t)
     | `Scop_type_id x -> scoped_type_identifier env x
     | `Gene_type x -> generic_type env x
     )
@@ -1898,7 +1884,9 @@ and scoped_type_identifier (env : env) ((v1, v2, v3, v4) : CST.scoped_type_ident
 and generic_type (env : env) ((v1, v2) : CST.generic_type) =
   let v1 =
     (match v1 with
-    | `Id tok -> token env tok (* pattern [a-zA-Z_]\w* *)
+    | `Id tok ->
+          let (s, t) = str env tok (* pattern [a-zA-Z_]\w* *) in
+          todo env (s,t)
     | `Scop_type_id x -> scoped_type_identifier env x
     )
   in
