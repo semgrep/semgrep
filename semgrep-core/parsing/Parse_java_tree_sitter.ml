@@ -592,18 +592,18 @@ and primary (env : env) (x : CST.primary) =
 
 
 and dimensions_expr (env : env) ((v1, v2, v3, v4) : CST.dimensions_expr) =
-  let v1 = List.map (annotation env) v1 in
-  let v2 = token env v2 (* "[" *) in
+  let _v1TODO = List.map (annotation env) v1 in
+  let _v2 = token env v2 (* "[" *) in
   let v3 = expression env v3 in
-  let v4 = token env v4 (* "]" *) in
-  todo env (v1, v2, v3, v4)
+  let _v4 = token env v4 (* "]" *) in
+  v3
 
 and dimensions (env : env) (xs : CST.dimensions) =
   List.map (fun (v1, v2, v3) ->
-    let v1 = List.map (annotation env) v1 in
+    let _v1TODO = List.map (annotation env) v1 in
     let v2 = token env v2 (* "[" *) in
     let v3 = token env v3 (* "]" *) in
-    todo env (v1, v2, v3)
+    v2, (), v3
   ) xs
 
 
@@ -617,13 +617,17 @@ and parenthesized_expression (env : env) ((v1, v2, v3) : CST.parenthesized_expre
 and object_creation_expression (env : env) (x : CST.object_creation_expression) =
   (match x with
   | `Obj_crea_exp_unqu_obj_crea_exp x ->
-      unqualified_object_creation_expression env x
+      let (tnew, _targsTODO, typ, args, body_opt) =
+            unqualified_object_creation_expression env x in
+      NewClass (tnew, typ, args, body_opt)
+
   | `Obj_crea_exp_prim_DOT_unqu_obj_crea_exp (v1, v2, v3) ->
       let v1 = primary env v1 in
       let v2 = token env v2 (* "." *) in
       let v3 =
         unqualified_object_creation_expression env v3
       in
+      let (tnew, _targsTODO, typ, args, body_opt) = v3 in
       todo env (v1, v2, v3)
   )
 
@@ -633,16 +637,16 @@ and unqualified_object_creation_expression (env : env) ((v1, v2, v3, v4, v5) : C
   let v2 =
     (match v2 with
     | Some x -> type_arguments env x
-    | None -> todo env ())
+    | None -> [])
   in
   let v3 = basic_type_extra env v3 in
   let v4 = argument_list env v4 in
   let v5 =
     (match v5 with
-    | Some x -> class_body env x
-    | None -> todo env ())
+    | Some x -> Some (class_body env x)
+    | None -> None)
   in
-  todo env (v1, v2, v3, v4, v5)
+  (v1, v2, v3, v4, v5)
 
 
 and field_access (env : env) ((v1, v2, v3, v4) : CST.field_access) =
@@ -734,7 +738,7 @@ and type_arguments (env : env) ((v1, v2, v3) : CST.type_arguments) =
 
 
 and wildcard (env : env) ((v1, v2, v3) : CST.wildcard) =
-  let v1 = List.map (annotation env) v1 in
+  let _v1TODO = List.map (annotation env) v1 in
   let v2 = token env v2 (* "?" *) in
   let v3 =
     (match v3 with
