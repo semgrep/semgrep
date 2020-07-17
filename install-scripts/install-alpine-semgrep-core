@@ -30,23 +30,31 @@ fi
 echo "Install missing packages"
 sudo apk add --no-cache perl m4
 
-echo "Install submodules"
-git submodule update --init --recursive
+# echo "Install submodules"
+# git submodule update --init --recursive
+# 
+# echo "Install ocaml-tree-sitter"
+# eval $(opam env --root /home/opam/.opam --set-root)
+# ./install-scripts/install-ocaml-tree-sitter
+# 
+# echo "Install pfff"
+# opam install -y ./pfff
+# 
+# echo "Install semgrep-core"
+# (
+#   cd semgrep-core
+#   opam install --deps-only -y .
+#   make all
+#   make install
+# )
 
-echo "Install ocaml-tree-sitter"
-eval $(opam env --root /home/opam/.opam --set-root)
-./install-scripts/install-ocaml-tree-sitter
+opam init
+opam switch create 4.10.0
+opam switch 4.10.0
+eval $(opam env)
 
-echo "Install pfff"
-opam install -y ./pfff
-
-echo "Install semgrep-core"
-(
-  cd semgrep-core
-  opam install --deps-only -y .
-  make all
-  make install
-)
+make setup
+make rebuild
 
 echo "Copy semgrep-core to artifacts"
 mkdir -p artifacts
