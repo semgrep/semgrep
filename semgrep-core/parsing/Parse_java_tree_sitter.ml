@@ -768,7 +768,7 @@ and wildcard_bounds (env : env) (x : CST.wildcard_bounds) =
 
 and statement (env : env) (x : CST.statement) : Ast_java.stmt =
   (match x with
-  | `Stmt_decl x -> declaration env x
+  | `Stmt_decl x -> DeclStmt (declaration env x)
   | `Stmt_exp_stmt (v1, v2) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* ";" *) in
@@ -1147,7 +1147,7 @@ and element_value (env : env) (x : CST.element_value) =
   )
 
 
-and declaration (env : env) (x : CST.declaration) =
+and declaration (env : env) (x : CST.declaration) : AST.decl =
   (match x with
   | `Modu_decl (v1, v2, v3, v4, v5) ->
       let v1 = List.map (annotation env) v1 in
@@ -1249,7 +1249,7 @@ and class_body_decl env = function
           todo env x
   | `Stat_init x -> static_initializer env x
   | `Cons_decl x -> constructor_declaration env x
-  | `SEMI tok -> EmptyStmt (token env tok) (* ";" *)
+  | `SEMI tok -> EmptyDecl (token env tok) (* ";" *)
 
 and enum_body_declarations (env : env) ((v1, v2) : CST.enum_body_declarations) =
   let v1 = token env v1 (* ";" *) in
@@ -1587,7 +1587,7 @@ and interface_body (env : env) ((v1, v2, v3) : CST.interface_body) =
       | `Class_decl x -> class_declaration env x
       | `Inte_decl x -> interface_declaration env x
       | `Anno_type_decl x -> annotation_type_declaration env x
-      | `SEMI tok -> EmptyStmt (token env tok) (* ";" *)
+      | `SEMI tok -> EmptyDecl (token env tok) (* ";" *)
       )
     ) v2
   in
