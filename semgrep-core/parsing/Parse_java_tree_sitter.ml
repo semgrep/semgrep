@@ -940,8 +940,8 @@ and statement (env : env) (x : CST.statement) : Ast_java.stmt =
       let v4 = List.map (catch_clause env) v4 in
       let v5 =
         (match v5 with
-        | Some x -> finally_clause env x
-        | None -> todo env ())
+        | Some x -> Some (finally_clause env x)
+        | None -> None)
       in
       todo env (v1, v2, v3, v4, v5)
   )
@@ -1057,7 +1057,7 @@ and resource_specification (env : env) ((v1, v2, v3, v4, v5) : CST.resource_spec
   let v2 = resource env v2 in
   let v3 =
     List.map (fun (v1, v2) ->
-      let v1 = token env v1 (* ";" *) in
+      let _v1 = token env v1 (* ";" *) in
       let v2 = resource env v2 in
       v2
     ) v3
@@ -1068,7 +1068,7 @@ and resource_specification (env : env) ((v1, v2, v3, v4, v5) : CST.resource_spec
     | None -> None)
   in
   let v5 = token env v5 (* ")" *) in
-  todo env (v1, v2, v3, v4, v5)
+  v1, (v2::v3), v5
 
 
 and resource (env : env) (x : CST.resource) =
@@ -1083,11 +1083,13 @@ and resource (env : env) (x : CST.resource) =
       let v3 = variable_declarator_id env v3 in
       let v4 = token env v4 (* "=" *) in
       let v5 = expression env v5 in
-      todo env (v1, v2, v3, v4, v5)
+      let vdef = v3 v2 in
+      Left { f_var = vdef; f_init = Some (ExprInit v5) }
   | `Reso_id tok ->
         let x = str env tok (* pattern [a-zA-Z_]\w* *) in
         todo env x
-  | `Reso_field_acce x -> field_access env x
+  | `Reso_field_acce x ->
+     Right (field_access env x)
   )
 
 
@@ -1130,10 +1132,10 @@ and annotation_argument_list (env : env) ((v1, v2, v3) : CST.annotation_argument
 
 
 and element_value_pair (env : env) ((v1, v2, v3) : CST.element_value_pair) =
-  let v1 = token env v1 (* pattern [a-zA-Z_]\w* *) in
-  let v2 = token env v2 (* "=" *) in
+  let v1 = identifier env v1 (* pattern [a-zA-Z_]\w* *) in
+  let _v2 = token env v2 (* "=" *) in
   let v3 = element_value env v3 in
-  todo env (v1, v2, v3)
+  v1, v3
 
 
 and element_value (env : env) (x : CST.element_value) =
@@ -1220,25 +1222,26 @@ and declaration (env : env) (x : CST.declaration) : AST.stmt =
   | `Anno_type_decl x ->
         DeclStmt (annotation_type_declaration env x)
   | `Enum_decl x ->
-        DeclStmt (enum_declaration env x)
+        DeclStmt (Enum (enum_declaration env x))
   )
 
 
-and enum_declaration (env : env) ((v1, v2, v3, v4, v5) : CST.enum_declaration) =
+and enum_declaration (env : env) ((v1, v2, v3, v4, v5) : CST.enum_declaration)
+ : enum_decl =
   let v1 =
     (match v1 with
     | Some x -> modifiers env x
-    | None -> todo env ())
+    | None -> [])
   in
   let v2 = token env v2 (* "enum" *) in
-  let v3 = token env v3 (* pattern [a-zA-Z_]\w* *) in
+  let v3 = identifier env v3 (* pattern [a-zA-Z_]\w* *) in
   let v4 =
     (match v4 with
     | Some x -> super_interfaces env x
-    | None -> todo env ())
+    | None -> [])
   in
   let v5 = enum_body env v5 in
-  todo env (v1, v2, v3, v4, v5)
+  { en_name = v3; en_mods = v1; en_impls = v4; en_body = v5 }
 
 
 and enum_body (env : env) ((v1, v2, v3, v4, v5) : CST.enum_body) =
@@ -1249,26 +1252,26 @@ and enum_body (env : env) ((v1, v2, v3, v4, v5) : CST.enum_body) =
         let v1 = enum_constant env v1 in
         let v2 =
           List.map (fun (v1, v2) ->
-            let v1 = token env v1 (* "," *) in
+            let _v1 = token env v1 (* "," *) in
             let v2 = enum_constant env v2 in
-            todo env (v1, v2)
+            v2
           ) v2
         in
-        todo env (v1, v2)
-    | None -> todo env ())
+        v1::v2
+    | None -> [])
   in
-  let v3 =
+  let _v3 =
     (match v3 with
-    | Some tok -> token env tok (* "," *)
-    | None -> todo env ())
+    | Some tok -> Some (token env tok) (* "," *)
+    | None -> None)
   in
   let v4 =
     (match v4 with
     | Some x -> enum_body_declarations env x
-    | None -> todo env ())
+    | None -> [])
   in
   let v5 = token env v5 (* "}" *) in
-  todo env (v1, v2, v3, v4, v5)
+  v2, v4
 
 
 and class_body_decl env = function
@@ -1277,7 +1280,7 @@ and class_body_decl env = function
   | `Class_decl x -> class_declaration env x
   | `Inte_decl x -> interface_declaration env x
   | `Anno_type_decl x -> annotation_type_declaration env x
-  | `Enum_decl x -> enum_declaration env x
+  | `Enum_decl x -> Enum (enum_declaration env x)
   | `Blk x -> let x = block env x in
           todo env x
   | `Stat_init x -> static_initializer env x
@@ -1617,7 +1620,7 @@ and interface_body (env : env) ((v1, v2, v3) : CST.interface_body) =
     List.map (fun x ->
       (match x with
       | `Cst_decl x -> constant_declaration env x
-      | `Enum_decl x -> enum_declaration env x
+      | `Enum_decl x -> Enum (enum_declaration env x)
       | `Meth_decl x -> method_declaration env x
       | `Class_decl x -> class_declaration env x
       | `Inte_decl x -> interface_declaration env x
