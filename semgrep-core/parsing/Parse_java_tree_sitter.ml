@@ -1278,22 +1278,22 @@ and enum_body (env : env) ((v1, v2, v3, v4, v5) : CST.enum_body) =
 
 and class_body_decl env = function
   | `Field_decl x -> field_declaration env x
-  | `Meth_decl x -> method_declaration env x
-  | `Class_decl x -> Class (class_declaration env x)
-  | `Inte_decl x -> Class (interface_declaration env x)
-  | `Anno_type_decl x -> annotation_type_declaration env x
-  | `Enum_decl x -> Enum (enum_declaration env x)
+  | `Meth_decl x -> [method_declaration env x]
+  | `Class_decl x -> [Class (class_declaration env x)]
+  | `Inte_decl x -> [Class (interface_declaration env x)]
+  | `Anno_type_decl x -> [annotation_type_declaration env x]
+  | `Enum_decl x -> [Enum (enum_declaration env x)]
   | `Blk x -> let x = block env x in
-          Init (false, x)
-  | `Stat_init x -> static_initializer env x
-  | `Cons_decl x -> Method (constructor_declaration env x)
-  | `SEMI tok -> EmptyDecl (token env tok) (* ";" *)
+          [Init (false, x)]
+  | `Stat_init x -> [static_initializer env x]
+  | `Cons_decl x -> [Method (constructor_declaration env x)]
+  | `SEMI tok -> [EmptyDecl (token env tok) (* ";" *)]
 
 and enum_body_declarations (env : env) ((v1, v2) : CST.enum_body_declarations) =
   let _v1 = token env v1 (* ";" *) in
   let v2 = List.map (fun x -> class_body_decl env x) v2
   in
-  v2
+  List.flatten v2
 
 
 and enum_constant (env : env) ((v1, v2, v3, v4) : CST.enum_constant) =
@@ -1433,7 +1433,7 @@ and class_body (env : env) ((v1, v2, v3) : CST.class_body) =
   let v1 = token env v1 (* "{" *) in
   let v2 = List.map (fun x -> class_body_decl env x) v2 in
   let v3 = token env v3 (* "}" *) in
-  v1, v2, v3
+  v1, List.flatten v2, v3
 
 
 and static_initializer (env : env) ((v1, v2) : CST.static_initializer) =
@@ -1524,12 +1524,12 @@ and field_declaration (env : env) ((v1, v2, v3, v4) : CST.field_declaration) =
   let v1 =
     (match v1 with
     | Some x -> modifiers env x
-    | None -> todo env ())
+    | None -> [])
   in
   let v2 = unannotated_type env v2 in
   let v3 = variable_declarator_list env v3 in
-  let v4 = token env v4 (* ";" *) in
-  todo env (v1, v2, v3, v4)
+  let _v4 = token env v4 (* ";" *) in
+  decls (fun x -> Field x) v1 v2 v3
 
 
 and annotation_type_declaration (env : env) ((v1, v2, v3, v4) : CST.annotation_type_declaration) =
@@ -1667,7 +1667,7 @@ and init_extra env = function
   | `Array_init x -> ArrayInit (array_initializer env x)
 
 
-and variable_declarator (env : env) ((v1, v2) : CST.variable_declarator) : var_with_init =
+and variable_declarator (env : env) ((v1, v2) : CST.variable_declarator) : var_decl_id * init option =
   let v1 = variable_declarator_id env v1 in
   let v2 =
     (match v2 with
