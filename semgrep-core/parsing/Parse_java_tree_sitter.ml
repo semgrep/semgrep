@@ -768,7 +768,7 @@ and wildcard_bounds (env : env) (x : CST.wildcard_bounds) =
 
 and statement (env : env) (x : CST.statement) : Ast_java.stmt =
   (match x with
-  | `Stmt_decl x -> DeclStmt (declaration env x)
+  | `Stmt_decl x -> (declaration env x)
   | `Stmt_exp_stmt (v1, v2) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* ";" *) in
@@ -1096,12 +1096,12 @@ and annotation (env : env) (x : CST.annotation) : tok * annotation =
   | `Anno_mark_anno (v1, v2) ->
       let v1 = token env v1 (* "@" *) in
       let v2 = qualifier_extra env v2 in
-      todo env (v1, v2)
+      v1, (v1, (v2 |> List.map (fun id -> Id id)), None)
   | `Anno_anno_ (v1, v2, v3) ->
       let v1 = token env v1 (* "@" *) in
       let v2 = qualifier_extra env v2 in
       let v3 = annotation_argument_list env v3 in
-      todo env (v1, v2, v3)
+      v1, (v1, (v2 |> List.map (fun id -> Id id)), Some v3)
   )
 
 
@@ -1109,24 +1109,24 @@ and annotation_argument_list (env : env) ((v1, v2, v3) : CST.annotation_argument
   let v1 = token env v1 (* "(" *) in
   let v2 =
     (match v2 with
-    | `Elem_value x -> element_value env x
+    | `Elem_value x -> AnnotArgValue (element_value env x)
     | `Opt_elem_value_pair_rep_COMMA_elem_value_pair opt ->
         (match opt with
         | Some (v1, v2) ->
             let v1 = element_value_pair env v1 in
             let v2 =
               List.map (fun (v1, v2) ->
-                let v1 = token env v1 (* "," *) in
+                let _v1 = token env v1 (* "," *) in
                 let v2 = element_value_pair env v2 in
-                todo env (v1, v2)
+                v2
               ) v2
             in
-            todo env (v1, v2)
-        | None -> todo env ())
+            AnnotArgPairInit (v1::v2)
+        | None -> EmptyAnnotArg)
     )
   in
   let v3 = token env v3 (* ")" *) in
-  todo env (v1, v2, v3)
+  v1, v2, v3
 
 
 and element_value_pair (env : env) ((v1, v2, v3) : CST.element_value_pair) =
@@ -1138,77 +1138,89 @@ and element_value_pair (env : env) ((v1, v2, v3) : CST.element_value_pair) =
 
 and element_value (env : env) (x : CST.element_value) =
   (match x with
-  | `Exp x -> expression env x
+  | `Exp x -> AnnotExprInit (expression env x)
   | `Elem_value_array_init (v1, v2, v3, v4) ->
-      let v1 = token env v1 (* "{" *) in
+      let _v1 = token env v1 (* "{" *) in
       let v2 =
-        (match v2 with
+        AnnotArrayInit (match v2 with
         | Some (v1, v2) ->
             let v1 = element_value env v1 in
             let v2 =
               List.map (fun (v1, v2) ->
-                let v1 = token env v1 (* "," *) in
+                let _v1 = token env v1 (* "," *) in
                 let v2 = element_value env v2 in
-                todo env (v1, v2)
+                v2
               ) v2
             in
-            todo env (v1, v2)
-        | None -> todo env ())
+            v1::v2
+        | None -> [])
       in
-      let v3 =
+      let _v3 =
         (match v3 with
-        | Some tok -> token env tok (* "," *)
-        | None -> todo env ())
+        | Some tok -> Some (token env tok) (* "," *)
+        | None -> None)
       in
-      let v4 = token env v4 (* "}" *) in
-      todo env (v1, v2, v3, v4)
+      let _v4 = token env v4 (* "}" *) in
+      v2
   | `Anno x ->
-        let x = annotation env x in
-        todo env x
+        let (tok, x) = annotation env x in
+        AnnotNestedAnnot x
   )
 
 
-and declaration (env : env) (x : CST.declaration) : AST.decl =
+and declaration (env : env) (x : CST.declaration) : AST.stmt =
   (match x with
   | `Modu_decl (v1, v2, v3, v4, v5) ->
-      let v1 = List.map (annotation env) v1 in
-      let v2 =
+      let _v1 = List.map (annotation env) v1 in
+      let _v2 =
         (match v2 with
-        | Some tok -> token env tok (* "open" *)
-        | None -> todo env ())
+        | Some tok -> Some (token env tok) (* "open" *)
+        | None -> None)
       in
       let v3 = token env v3 (* "module" *) in
-      let v4 = qualifier_extra env v4 in
-      let v5 = module_body env v5 in
-      todo env (v1, v2, v3, v4, v5)
+      let _v4 = qualifier_extra env v4 in
+      let _v5 = module_body env v5 in
+      DirectiveStmt (ModuleTodo v3)
   | `Pack_decl (v1, v2, v3, v4) ->
       let v1 = List.map (annotation env) v1 in
       let v2 = token env v2 (* "package" *) in
       let v3 = qualifier_extra env v3 in
       let v4 = token env v4 (* ";" *) in
-      todo env (v1, v2, v3, v4)
+      DirectiveStmt (Package (v2, v3, v4))
   | `Impo_decl (v1, v2, v3, v4, v5) ->
       let v1 = token env v1 (* "import" *) in
       let v2 =
         (match v2 with
-        | Some tok -> token env tok (* "static" *)
-        | None -> todo env ())
+        | Some tok ->
+                let t = token env tok (* "static" *) in
+                true
+        | None -> false)
       in
       let v3 = qualifier_extra env v3 in
       let v4 =
         (match v4 with
-        | Some (v1, v2) ->
-            let v1 = token env v1 (* "." *) in
-            let v2 = token env v2 (* "*" *) in
-            todo env (v1, v2)
-        | None -> todo env ())
+        | Some (v1bis, v2bis) ->
+            let _v1bis = token env v1bis (* "." *) in
+            let v2bis = token env v2bis (* "*" *) in
+            ImportAll (v1, v3, v2bis)
+        | None ->
+            (match List.rev v3 with
+            | [] -> raise Impossible
+            | x::xs ->
+              ImportFrom (v1, List.rev xs, x)
+            )
+          )
       in
-      let v5 = token env v5 (* ";" *) in
-      todo env (v1, v2, v3, v4, v5)
-  | `Class_decl x -> class_declaration env x
-  | `Inte_decl x -> interface_declaration env x
-  | `Anno_type_decl x -> annotation_type_declaration env x
-  | `Enum_decl x -> enum_declaration env x
+      let _v5 = token env v5 (* ";" *) in
+      DirectiveStmt (Import (v2, v4))
+  | `Class_decl x ->
+        DeclStmt (class_declaration env x)
+  | `Inte_decl x ->
+        DeclStmt (interface_declaration env x)
+  | `Anno_type_decl x ->
+        DeclStmt (annotation_type_declaration env x)
+  | `Enum_decl x ->
+        DeclStmt (enum_declaration env x)
   )
 
 
