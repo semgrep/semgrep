@@ -1086,8 +1086,8 @@ and resource (env : env) (x : CST.resource) =
       let vdef = v3 v2 in
       Left { f_var = vdef; f_init = Some (ExprInit v5) }
   | `Reso_id tok ->
-        let x = str env tok (* pattern [a-zA-Z_]\w* *) in
-        todo env x
+        let x = name_of_id env tok (* pattern [a-zA-Z_]\w* *) in
+        Right x
   | `Reso_field_acce x ->
      Right (field_access env x)
   )
@@ -1216,9 +1216,9 @@ and declaration (env : env) (x : CST.declaration) : AST.stmt =
       let _v5 = token env v5 (* ";" *) in
       DirectiveStmt (Import (v2, v4))
   | `Class_decl x ->
-        DeclStmt (class_declaration env x)
+        DeclStmt (Class (class_declaration env x))
   | `Inte_decl x ->
-        DeclStmt (interface_declaration env x)
+        DeclStmt (Class (interface_declaration env x))
   | `Anno_type_decl x ->
         DeclStmt (annotation_type_declaration env x)
   | `Enum_decl x ->
@@ -1277,68 +1277,70 @@ and enum_body (env : env) ((v1, v2, v3, v4, v5) : CST.enum_body) =
 and class_body_decl env = function
   | `Field_decl x -> field_declaration env x
   | `Meth_decl x -> method_declaration env x
-  | `Class_decl x -> class_declaration env x
-  | `Inte_decl x -> interface_declaration env x
+  | `Class_decl x -> Class (class_declaration env x)
+  | `Inte_decl x -> Class (interface_declaration env x)
   | `Anno_type_decl x -> annotation_type_declaration env x
   | `Enum_decl x -> Enum (enum_declaration env x)
   | `Blk x -> let x = block env x in
-          todo env x
+          Init (false, x)
   | `Stat_init x -> static_initializer env x
   | `Cons_decl x -> constructor_declaration env x
   | `SEMI tok -> EmptyDecl (token env tok) (* ";" *)
 
 and enum_body_declarations (env : env) ((v1, v2) : CST.enum_body_declarations) =
-  let v1 = token env v1 (* ";" *) in
+  let _v1 = token env v1 (* ";" *) in
   let v2 = List.map (fun x -> class_body_decl env x) v2
   in
-  todo env (v1, v2)
+  v2
 
 
 and enum_constant (env : env) ((v1, v2, v3, v4) : CST.enum_constant) =
-  let v1 =
+  let _v1 =
     (match v1 with
     | Some x -> modifiers env x
-    | None -> todo env ())
+    | None -> [])
   in
   let v2 = token env v2 (* pattern [a-zA-Z_]\w* *) in
   let v3 =
     (match v3 with
-    | Some x -> argument_list env x
-    | None -> todo env ())
+    | Some x -> argument_list env x |> G.unbracket
+    | None -> [])
   in
   let v4 =
     (match v4 with
-    | Some x -> class_body env x
-    | None -> todo env ())
+    | Some x -> Some (class_body env x)
+    | None -> None)
   in
   todo env (v1, v2, v3, v4)
 
 
-and class_declaration (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.class_declaration) =
+and class_declaration (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.class_declaration) : class_decl =
   let v1 =
     (match v1 with
     | Some x -> modifiers env x
-    | None -> todo env ())
+    | None -> [])
   in
   let v2 = token env v2 (* "class" *) in
-  let v3 = token env v3 (* pattern [a-zA-Z_]\w* *) in
+  let v3 = identifier env v3 (* pattern [a-zA-Z_]\w* *) in
   let v4 =
     (match v4 with
     | Some x -> type_parameters env x
-    | None -> todo env ())
+    | None -> [])
   in
   let v5 =
     (match v5 with
-    | Some x -> superclass env x
-    | None -> todo env ())
+    | Some x -> Some (superclass env x)
+    | None -> None)
   in
   let v6 =
     (match v6 with
     | Some x -> super_interfaces env x
-    | None -> todo env ())
+    | None -> [])
   in
   let v7 = class_body env v7 in
-  todo env (v1, v2, v3, v4, v5, v6, v7)
+  { cl_name = v3; cl_kind = ClassRegular; cl_tparams = v4;
+    cl_mods = v1; cl_extends = v5; cl_impls = v6;
+    cl_body = v7 }
 
 
 and modifiers (env : env) (xs : CST.modifiers) =
@@ -1546,8 +1548,8 @@ and annotation_type_body (env : env) ((v1, v2, v3) : CST.annotation_type_body) =
       | `Anno_type_elem_decl x ->
           annotation_type_element_declaration env x
       | `Cst_decl x -> constant_declaration env x
-      | `Class_decl x -> class_declaration env x
-      | `Inte_decl x -> interface_declaration env x
+      | `Class_decl x -> Class (class_declaration env x)
+      | `Inte_decl x -> Class (interface_declaration env x)
       | `Anno_type_decl x -> annotation_type_declaration env x
       )
     ) v2
@@ -1586,7 +1588,7 @@ and default_value (env : env) ((v1, v2) : CST.default_value) =
   todo env (v1, v2)
 
 
-and interface_declaration (env : env) ((v1, v2, v3, v4, v5, v6) : CST.interface_declaration) =
+and interface_declaration (env : env) ((v1, v2, v3, v4, v5, v6) : CST.interface_declaration) : class_decl =
   let v1 =
     (match v1 with
     | Some x -> modifiers env x
@@ -1622,8 +1624,8 @@ and interface_body (env : env) ((v1, v2, v3) : CST.interface_body) =
       | `Cst_decl x -> constant_declaration env x
       | `Enum_decl x -> Enum (enum_declaration env x)
       | `Meth_decl x -> method_declaration env x
-      | `Class_decl x -> class_declaration env x
-      | `Inte_decl x -> interface_declaration env x
+      | `Class_decl x -> Class (class_declaration env x)
+      | `Inte_decl x -> Class (interface_declaration env x)
       | `Anno_type_decl x -> annotation_type_declaration env x
       | `SEMI tok -> EmptyDecl (token env tok) (* ";" *)
       )
