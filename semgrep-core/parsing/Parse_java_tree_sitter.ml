@@ -976,13 +976,27 @@ and switch_block (env : env) ((v1, v2, v3) : CST.switch_block) =
   let v2 =
     List.map (fun x ->
       (match x with
-      | `Swit_label x -> switch_label env x
-      | `Stmt x -> [], [statement env x]
+      | `Swit_label x -> Left (switch_label env x)
+      | `Stmt x -> Right (statement env x)
       )
     ) v2
   in
   let _v3 = token env v3 (* "}" *) in
-  v2
+  let rec aux acc_cases acc_stmts xs =
+    match xs with
+    | [] -> [List.rev acc_cases, List.rev acc_stmts]
+    | Left (case)::xs ->
+        if acc_stmts <> []
+        then
+          let before = (List.rev acc_cases, List.rev acc_stmts) in
+          let after = aux [case] [] xs in
+          before::after
+        else
+          aux (case::acc_cases) acc_stmts xs
+     | Right (st)::xs ->
+        aux acc_cases (st::acc_stmts) xs
+   in
+   aux [] [] v2
 
 
 and switch_label (env : env) (x : CST.switch_label) =
@@ -990,12 +1004,12 @@ and switch_label (env : env) (x : CST.switch_label) =
   | `Swit_label_case_exp_COLON (v1, v2, v3) ->
       let v1 = token env v1 (* "case" *) in
       let v2 = expression env v2 in
-      let v3 = token env v3 (* ":" *) in
-      todo env (v1, v2, v3)
+      let _v3 = token env v3 (* ":" *) in
+      Case (v1, v2)
   | `Swit_label_defa_COLON (v1, v2) ->
       let v1 = token env v1 (* "default" *) in
-      let v2 = token env v2 (* ":" *) in
-      todo env (v1, v2)
+      let _v2 = token env v2 (* ":" *) in
+      Default v1
   )
 
 
@@ -1005,36 +1019,37 @@ and catch_clause (env : env) ((v1, v2, v3, v4, v5) : CST.catch_clause) =
   let v3 = catch_formal_parameter env v3 in
   let v4 = token env v4 (* ")" *) in
   let v5 = block env v5 in
-  todo env (v1, v2, v3, v4, v5)
+  (v1, v3, v5)
 
 
 and catch_formal_parameter (env : env) ((v1, v2, v3) : CST.catch_formal_parameter) =
-  let v1 =
+  let _v1 =
     (match v1 with
     | Some x -> modifiers env x
-    | None -> todo env ())
+    | None -> [])
   in
-  let v2 = catch_type env v2 in
+  let (vtyp, vothertyps) = catch_type env v2 in
   let v3 = variable_declarator_id env v3 in
-  todo env (v1, v2, v3)
+  let vdef = v3 vtyp in
+  vdef, vothertyps
 
 
 and catch_type (env : env) ((v1, v2) : CST.catch_type) =
   let v1 = unannotated_type env v1 in
   let v2 =
     List.map (fun (v1, v2) ->
-      let v1 = token env v1 (* "|" *) in
+      let _v1 = token env v1 (* "|" *) in
       let v2 = unannotated_type env v2 in
-      todo env (v1, v2)
+      v2
     ) v2
   in
-  todo env (v1, v2)
+  v1, v2
 
 
 and finally_clause (env : env) ((v1, v2) : CST.finally_clause) =
   let v1 = token env v1 (* "finally" *) in
   let v2 = block env v2 in
-  todo env (v1, v2)
+  v1, v2
 
 
 and resource_specification (env : env) ((v1, v2, v3, v4, v5) : CST.resource_specification) =
@@ -1044,13 +1059,13 @@ and resource_specification (env : env) ((v1, v2, v3, v4, v5) : CST.resource_spec
     List.map (fun (v1, v2) ->
       let v1 = token env v1 (* ";" *) in
       let v2 = resource env v2 in
-      todo env (v1, v2)
+      v2
     ) v3
   in
   let v4 =
     (match v4 with
-    | Some tok -> token env tok (* ";" *)
-    | None -> todo env ())
+    | Some tok -> Some (token env tok) (* ";" *)
+    | None -> None)
   in
   let v5 = token env v5 (* ")" *) in
   todo env (v1, v2, v3, v4, v5)
@@ -1062,7 +1077,7 @@ and resource (env : env) (x : CST.resource) =
       let v1 =
         (match v1 with
         | Some x -> modifiers env x
-        | None -> todo env ())
+        | None -> [])
       in
       let v2 = unannotated_type env v2 in
       let v3 = variable_declarator_id env v3 in
@@ -1076,7 +1091,7 @@ and resource (env : env) (x : CST.resource) =
   )
 
 
-and annotation (env : env) (x : CST.annotation) : annotation =
+and annotation (env : env) (x : CST.annotation) : tok * annotation =
   (match x with
   | `Anno_mark_anno (v1, v2) ->
       let v1 = token env v1 (* "@" *) in
@@ -1314,7 +1329,9 @@ and class_declaration (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.class_decl
 and modifiers (env : env) (xs : CST.modifiers) =
   List.map (fun x ->
     (match x with
-    | `Anno x -> Annotation (annotation env x), fake ""
+    | `Anno x ->
+            let tok, annot = annotation env x in
+            Annotation annot, tok
     | `Publ tok -> Public, token env tok (* "public" *)
     | `Prot tok -> Protected, token env tok (* "protected" *)
     | `Priv tok -> Private, token env tok (* "private" *)
