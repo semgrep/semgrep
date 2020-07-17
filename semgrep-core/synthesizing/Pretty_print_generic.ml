@@ -66,6 +66,11 @@ let print_bool env = function
          | Lang.Java | Lang.Go | Lang.C | Lang.JSON | Lang.Javascript
          | Lang.OCaml | Lang.Ruby | Lang.Typescript -> "false")
 
+let no_paren_cond = F.sprintf "%s %s"
+let paren_cond = F.sprintf "%s(%s)"
+let colon_body = F.sprintf "%s:\n%s\n"
+let bracket_body = F.sprintf "%s{\n%s\n}\n"
+
 let arithop env (op, tok) =
   match op with
       | Plus -> "+"
@@ -99,40 +104,50 @@ let arithop env (op, tok) =
 
 (* statements *)
 
-let rec stmt env =
+let rec stmt env level =
 function
   | ExprStmt (e, tok) -> F.sprintf "%s%s" (expr env e) (token "" tok)
-  | Block (x) -> block env x
-  (*| If (tok, e, s, sopt) -> if_stmt env (tok, e, s, sopt) *)
+  | Block (x) -> block env x level
+  | If (tok, e, s, sopt) -> if_stmt env (token "if" tok, e, s, sopt)
   | x -> todo (S x)
 
-and block env (t1, ss, t2) =
+and block env (t1, ss, t2) level =
+  let rec indent =
+  function
+    | 0 -> ""
+    | n -> "    " ^ (indent (n - 1))
+  in
   let rec show_statements env =
     function
       | [] -> ""
-      | [x] -> F.sprintf "%s\n" (stmt env x)
-      | x::xs -> F.sprintf "%s%s" (stmt env x) (show_statements env xs)
+      | [x] -> F.sprintf "%s%s" (indent level) (stmt env level x)
+      | x::xs -> F.sprintf "%s%s\n%s" (indent level) (stmt env level x) (show_statements env xs)
    in
-     F.sprintf "%s%s%s" (token "" t1) (show_statements env ss) (token "" t2)
+     F.sprintf "%s%s%s%s" (indent level) (token "" t1) (show_statements env ss) (token "" t2)
 
-(* and if_stmt env (tok, e, s, sopt) =
-  let e_str = (expr env e) in
-  let s_str = (stmt env s) in
-  (match env.lang with
-  | Lang.Python | Lang.Python2 | Lang.Python3 ->
-        (match sopt with
-        | None -> F.sprintf "%s%s"
-        )
-  | Lang.Java | Lang.Go | Lang.C | Lang.JSON | Lang.Javascript
-  | Lang.OCaml | Lang.Ruby | Lang.Typescript ->
-        "\"" ^ s ^ "\""
-  ) *)
+(* todo sorry someone is going to hate me over this at some point*)
+and if_stmt env (tok, e, s, sopt) =
+  let (format_cond, elseif_str, format_block) =
+    (match env.lang with
+    | Lang.Python | Lang.Python2 | Lang.Python3 -> (no_paren_cond, "elif", colon_body)
+    | Lang.Java | Lang.Go | Lang.C | Lang.JSON | Lang.Javascript | Lang.Typescript -> (paren_cond, "else if", bracket_body)
+    | Lang.Ruby -> failwith "I don't want to deal with Ruby right now"
+    | Lang.OCaml -> failwith "Impossible; if statements should be expressions"
+    )
+  in
+  let e_str = format_cond tok (expr env e) in
+  let s_str = (stmt env 1 s) in
+  let if_stmt_prt = format_block e_str s_str in
+        match sopt with
+        | None -> if_stmt_prt
+        | Some (If (_, e', s', sopt')) -> F.sprintf "%s%s" if_stmt_prt (if_stmt env (elseif_str, e', s', sopt'))
+        | Some (body) -> F.sprintf "%s%s" if_stmt_prt (format_block "else" (stmt env 1 body))
 
 (* expressions *)
 
 and expr env =
 function
-  | Id ((s,_), idinfo) as x -> id env (s, idinfo)
+  | Id ((s,_), idinfo) -> id env (s, idinfo)
   | IdQualified(name, idinfo) -> id_qualified env (name, idinfo)
   | IdSpecial (sp, tok) -> special env (sp, tok)
   | Call (e1, e2) -> call env (e1, e2)
@@ -258,7 +273,7 @@ let expr_to_string lang mvars e =
 
 let stmt_to_string lang mvars s =
   let env = { lang; mvars } in
-  stmt env s
+  stmt env 0 s
 
 let pattern_to_string lang any =
   let mvars = [] in
