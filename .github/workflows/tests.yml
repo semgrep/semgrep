@@ -19,6 +19,8 @@ jobs:
           sudo chmod -R 777 /__w/
       - name: Checkout
         uses: actions/checkout@v2
+        with:
+          submodules: true
       - name: Build semgrep-core
         run: ./install-scripts/install-alpine-semgrep-core
       - name: Upload artifacts
@@ -41,6 +43,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+        with:
+          submodules: true
       - name: Setup Python
         uses: actions/setup-python@v1
         with:
@@ -85,6 +89,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+        with:
+          submodules: true
       - name: Setup Python
         uses: actions/setup-python@v1
         with:
@@ -111,6 +117,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+        with:
+          submodules: true
       - name: Download Artifact
         uses: actions/download-artifact@v1
         with:
