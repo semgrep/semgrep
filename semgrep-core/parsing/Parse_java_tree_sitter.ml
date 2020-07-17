@@ -851,7 +851,7 @@ and statement (env : env) (x : CST.statement) : Ast_java.stmt =
   | `Stmt_enha_for_stmt (v1, v2, v3, v4, v5, v6, v7, v8, v9) ->
       let v1 = token env v1 (* "for" *) in
       let _v2 = token env v2 (* "(" *) in
-      let _v3 =
+      let v3 =
         (match v3 with
         | Some x -> modifiers env x
         | None -> [])
@@ -862,7 +862,7 @@ and statement (env : env) (x : CST.statement) : Ast_java.stmt =
       let v7 = expression env v7 in
       let _v8 = token env v8 (* ")" *) in
       let v9 = statement env v9 in
-      let vdef = v5 v4 in
+      let vdef = canon_var v3 (Some v4) v5 in
       For (v1, Foreach (vdef, v7), v9)
 
   | `Stmt_blk x -> block env x
@@ -1025,14 +1025,14 @@ and catch_clause (env : env) ((v1, v2, v3, v4, v5) : CST.catch_clause) =
 
 
 and catch_formal_parameter (env : env) ((v1, v2, v3) : CST.catch_formal_parameter) =
-  let _v1 =
+  let v1 =
     (match v1 with
     | Some x -> modifiers env x
     | None -> [])
   in
   let (vtyp, vothertyps) = catch_type env v2 in
   let v3 = variable_declarator_id env v3 in
-  let vdef = v3 vtyp in
+  let vdef = canon_var v1 (Some vtyp) v3 in
   vdef, vothertyps
 
 
@@ -1085,7 +1085,7 @@ and resource (env : env) (x : CST.resource) =
       let v3 = variable_declarator_id env v3 in
       let v4 = token env v4 (* "=" *) in
       let v5 = expression env v5 in
-      let vdef = v3 v2 in
+      let vdef = canon_var v1 (Some v2) v3 in
       Left { f_var = vdef; f_init = Some (ExprInit v5) }
   | `Reso_id tok ->
         let x = name_of_id env tok (* pattern [a-zA-Z_]\w* *) in
@@ -1681,15 +1681,14 @@ and variable_declarator (env : env) ((v1, v2) : CST.variable_declarator) : var_w
 
 
 and variable_declarator_id (env : env) ((v1, v2) : CST.variable_declarator_id)
- : (typ -> var_definition) =
+ : var_decl_id =
   let v1 = id_extra env v1 in
   let v2 =
     (match v2 with
     | Some x -> dimensions env x
-    | None -> todo env ())
+    | None -> [])
   in
-  todo env (v1, v2)
-
+  List.fold_left (fun acc _e -> ArrayDecl acc) (IdentDecl v1) v2
 
 and array_initializer (env : env) ((v1, v2, v3, v4) : CST.array_initializer) =
   let v1 = token env v1 (* "{" *) in
