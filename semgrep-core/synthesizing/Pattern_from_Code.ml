@@ -242,16 +242,27 @@ and generalize_if s_in =
   let rec dots_in_cond s =
     match s with
       | If (tok, _, s, sopt) -> If (tok, Ellipsis fk, s, opt dots_in_cond sopt)
+      | Block (t1, [If _ as x], t2) -> Block(t1, [dots_in_cond x], t2)
       | x -> x
   in
   ["dots in body", S (dots_in_body s_in); "dots in cond", S (dots_in_cond s_in)]
 
+and generalize_block ss =
+  let rec get_last = function
+  | [] -> []
+  | [x] -> [x]
+  | _::xs -> get_last xs
+  in
+  match ss with
+  | [] | _::[] -> ss
+  | x::_::[] -> x::(ExprStmt(Ellipsis fk, fk))::[]
+  | x::y::z::zs -> x::(ExprStmt(Ellipsis fk, fk))::(get_last (y::z::zs))
 
 and generalize_stmt s env =
   match s with
   | ExprStmt (e, tok) -> generalize_exprstmt (e, tok) env
   | If _ -> generalize_if s
-  | Block _ -> ["dots", S (ExprStmt (Ellipsis fk, fk))]
+  | Block (t1, ss, t2) -> ["dots", S (Block ((t1, generalize_block ss, t2)))]
   | _ -> []
 
 (* All *)

@@ -67,9 +67,9 @@ let print_bool env = function
          | Lang.OCaml | Lang.Ruby | Lang.Typescript -> "false")
 
 let no_paren_cond = F.sprintf "%s %s"
-let paren_cond = F.sprintf "%s(%s)"
+let paren_cond = F.sprintf "%s (%s)"
 let colon_body = F.sprintf "%s:\n%s\n"
-let bracket_body = F.sprintf "%s{\n%s\n}\n"
+let bracket_body = F.sprintf "%s %s\n"
 
 let arithop env (op, tok) =
   match op with
@@ -127,7 +127,11 @@ and block env (t1, ss, t2) level =
       | [x] -> F.sprintf "%s%s" (indent level) (stmt env level x)
       | x::xs -> F.sprintf "%s%s\n%s" (indent level) (stmt env level x) (show_statements env xs)
    in
-     F.sprintf "%s%s%s%s" (indent level) (token "" t1) (show_statements env ss) (token "" t2)
+   let get_boundary t =
+     let t_str = token "" t in
+       match t_str with "" -> "" | "{" -> "{\n" | "}" -> "\n}" | _ -> t_str
+   in
+     F.sprintf "%s%s%s" (get_boundary t1) (show_statements env ss) (get_boundary t2)
 
 (* todo sorry someone is going to hate me over this at some point*)
 and if_stmt env (tok, e, s, sopt) =
@@ -144,7 +148,7 @@ and if_stmt env (tok, e, s, sopt) =
   let if_stmt_prt = format_block e_str s_str in
         match sopt with
         | None -> if_stmt_prt
-        | Some (If (_, e', s', sopt')) -> F.sprintf "%s%s" if_stmt_prt (if_stmt env (elseif_str, e', s', sopt'))
+        | Some (Block(_, [If (_, e', s', sopt')], _)) -> F.sprintf "%s%s" if_stmt_prt (if_stmt env (elseif_str, e', s', sopt'))
         | Some (body) -> F.sprintf "%s%s" if_stmt_prt (format_block "else" (stmt env 1 body))
 
 (* expressions *)
