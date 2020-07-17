@@ -488,6 +488,8 @@ and super env tok =
   name_of_id env tok
 and super_id_field env tok =
   str env tok
+and this_id_field env tok =
+  str env tok
 
 and primary (env : env) (x : CST.primary) =
   (match x with
@@ -657,34 +659,35 @@ and field_access (env : env) ((v1, v2, v3, v4) : CST.field_access) =
     )
   in
   let v2 =
-    (match v2 with
-    | Some (v1, v2) ->
-        let v1 = token env v1 (* "." *) in
-        let v2 = token env v2 (* "super" *) in
-        todo env (v1, v2)
-    | None -> todo env ())
+    match v2 with
+    | Some (v1bis, v2bis) ->
+        let v1bis = token env v1bis (* "." *) in
+        let v2bis = super_id_field env v2bis (* "super" *) in
+        (fun v3 v4 -> Dot (Dot (v1, v1bis, v2bis), v3, v4))
+    | None -> (fun v3 v4 -> Dot (v1, v3, v4))
   in
   let v3 = token env v3 (* "." *) in
+
   let v4 =
     (match v4 with
-    | `Id tok -> token env tok (* pattern [a-zA-Z_]\w* *)
+    | `Id tok -> str env tok (* pattern [a-zA-Z_]\w* *)
     | `Choice_open x ->
         (match x with
-        | `Open tok -> token env tok (* "open" *)
-        | `Modu tok -> token env tok (* "module" *)
+        | `Open tok -> str env tok (* "open" *)
+        | `Modu tok -> str env tok (* "module" *)
         )
-    | `This tok -> token env tok (* "this" *)
+    | `This tok -> this_id_field env tok (* "this" *)
     )
   in
-  todo env (v1, v2, v3, v4)
+  v2 v3 v4
 
 
 and array_access (env : env) ((v1, v2, v3, v4) : CST.array_access) =
   let v1 = primary env v1 in
-  let v2 = token env v2 (* "[" *) in
+  let _v2 = token env v2 (* "[" *) in
   let v3 = expression env v3 in
-  let v4 = token env v4 (* "]" *) in
-  todo env (v1, v2, v3, v4)
+  let _v4 = token env v4 (* "]" *) in
+  ArrayAccess (v1, v3)
 
 
 and argument_list (env : env) ((v1, v2, v3) : CST.argument_list) =
@@ -695,69 +698,69 @@ and argument_list (env : env) ((v1, v2, v3) : CST.argument_list) =
         let v1 = expression env v1 in
         let v2 =
           List.map (fun (v1, v2) ->
-            let v1 = token env v1 (* "," *) in
+            let _v1 = token env v1 (* "," *) in
             let v2 = expression env v2 in
-            todo env (v1, v2)
+            v2
           ) v2
         in
-        todo env (v1, v2)
-    | None -> todo env ())
+        v1::v2
+    | None -> [])
   in
   let v3 = token env v3 (* ")" *) in
-  todo env (v1, v2, v3)
+  (v1, v2, v3)
 
 
 and type_arguments (env : env) ((v1, v2, v3) : CST.type_arguments) =
-  let v1 = token env v1 (* "<" *) in
+  let _v1 = token env v1 (* "<" *) in
   let v2 =
     (match v2 with
     | Some (v1, v2) ->
         let v1 =
           (match v1 with
-          | `Type x -> type_ env x
-          | `Wild x -> wildcard env x
+          | `Type x -> TArgument (type_ env x)
+          | `Wild x -> TQuestion (wildcard env x)
           )
         in
         let v2 =
           List.map (fun (v1, v2) ->
-            let v1 = token env v1 (* "," *) in
+            let _v1 = token env v1 (* "," *) in
             let v2 =
               (match v2 with
-              | `Type x -> type_ env x
-              | `Wild x -> wildcard env x
+              | `Type x -> TArgument (type_ env x)
+              | `Wild x -> TQuestion (wildcard env x)
               )
             in
-            todo env (v1, v2)
+            v2
           ) v2
         in
-        todo env (v1, v2)
-    | None -> todo env ())
+        v1::v2
+    | None -> [])
   in
-  let v3 = token env v3 (* ">" *) in
-  todo env (v1, v2, v3)
+  let _v3 = token env v3 (* ">" *) in
+  v2
 
 
 and wildcard (env : env) ((v1, v2, v3) : CST.wildcard) =
   let _v1TODO = List.map (annotation env) v1 in
-  let v2 = token env v2 (* "?" *) in
+  let _v2 = token env v2 (* "?" *) in
   let v3 =
     (match v3 with
-    | Some x -> wildcard_bounds env x
-    | None -> todo env ())
+    | Some x -> Some (wildcard_bounds env x)
+    | None -> None)
   in
-  todo env (v1, v2, v3)
+  v3
 
 
 and wildcard_bounds (env : env) (x : CST.wildcard_bounds) =
   (match x with
   | `Wild_bounds_extens_type (v1, v2) ->
-      let v1 = token env v1 (* "extends" *) in
+      let _v1 = token env v1 (* "extends" *) in
       let v2 = type_ env v2 in
-      todo env (v1, v2)
+      false, v2
   | `Wild_bounds_super_type (v1, v2) ->
-      let v1 = token env v1 (* "super" *) in
+      let _v1 = token env v1 (* "super" *) in
       let v2 = type_ env v2 in
-      todo env (v1, v2)
+      true, v2
   )
 
 
