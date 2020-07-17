@@ -41,9 +41,7 @@ type env = {
 (* Helpers *)
 (*****************************************************************************)
 let todo any =
-  pr ("TODO");
-  pr (show_any any);
-  failwith "TODO"
+  pr (show_any any); " TODO "
 
 let ident (s, _) = s
 
@@ -98,14 +96,43 @@ let arithop env (op, tok) =
 (*****************************************************************************)
 (* Pretty printer *)
 (*****************************************************************************)
+
+(* statements *)
+
 let rec stmt env =
 function
   | ExprStmt (e, tok) -> F.sprintf "%s%s" (expr env e) (token "" tok)
+  | Block (x) -> block env x
+  (*| If (tok, e, s, sopt) -> if_stmt env (tok, e, s, sopt) *)
   | x -> todo (S x)
+
+and block env (t1, ss, t2) =
+  let rec show_statements env =
+    function
+      | [] -> ""
+      | [x] -> F.sprintf "%s\n" (stmt env x)
+      | x::xs -> F.sprintf "%s%s" (stmt env x) (show_statements env xs)
+   in
+     F.sprintf "%s%s%s" (token "" t1) (show_statements env ss) (token "" t2)
+
+(* and if_stmt env (tok, e, s, sopt) =
+  let e_str = (expr env e) in
+  let s_str = (stmt env s) in
+  (match env.lang with
+  | Lang.Python | Lang.Python2 | Lang.Python3 ->
+        (match sopt with
+        | None -> F.sprintf "%s%s"
+        )
+  | Lang.Java | Lang.Go | Lang.C | Lang.JSON | Lang.Javascript
+  | Lang.OCaml | Lang.Ruby | Lang.Typescript ->
+        "\"" ^ s ^ "\""
+  ) *)
+
+(* expressions *)
 
 and expr env =
 function
-  | Id ((s,_), idinfo) -> id env (s, idinfo)
+  | Id ((s,_), idinfo) as x -> id env (s, idinfo)
   | IdQualified(name, idinfo) -> id_qualified env (name, idinfo)
   | IdSpecial (sp, tok) -> special env (sp, tok)
   | Call (e1, e2) -> call env (e1, e2)
