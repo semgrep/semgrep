@@ -156,6 +156,8 @@ def build_sarif_output(rule_matches: List[RuleMatch], rules: FrozenSet[Rule]) ->
     - which links to this schema https://github.com/oasis-tcs/sarif-spec/blob/master/Schemata/sarif-schema-2.1.0.json
     - full spec is at https://docs.oasis-open.org/sarif/sarif/v2.1.0/cs01/sarif-v2.1.0-cs01.html
     """
+    # SARIF doesn't allow duplicate IDs, we dedupe here
+    rules_by_id = {rule.id: rule for rule in rules}
     output_dict = {
         "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
         "version": "2.1.0",
@@ -164,7 +166,7 @@ def build_sarif_output(rule_matches: List[RuleMatch], rules: FrozenSet[Rule]) ->
                 "tool": {
                     "driver": {
                         **_sarif_tool_info(),
-                        "rules": [rule.to_sarif() for rule in rules],
+                        "rules": [rule.to_sarif() for rule in rules_by_id.values()],
                     }
                 },
                 "results": [match.to_sarif() for match in rule_matches],
