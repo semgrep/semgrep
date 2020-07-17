@@ -491,6 +491,8 @@ and super_id_field env tok =
 and this_id_field env tok =
   str env tok
 
+
+
 and primary (env : env) (x : CST.primary) =
   (match x with
   | `Prim_lit x -> Literal (literal env x)
@@ -1485,18 +1487,18 @@ and explicit_constructor_invocation (env : env) ((v1, v2, v3) : CST.explicit_con
   let v1 =
     (match v1 with
     | `Opt_type_args_choice_this (v1, v2) ->
-        let v1 =
+        let _v1 =
           (match v1 with
           | Some x -> type_arguments env x
           | None -> [])
         in
         let v2 =
           (match v2 with
-          | `This tok -> token env tok (* "this" *)
-          | `Super tok -> token env tok (* "super" *)
+          | `This tok -> this env tok (* "this" *)
+          | `Super tok -> super env tok (* "super" *)
           )
         in
-        todo env (v1, v2)
+        v2
     | `Choice_prim_DOT_opt_type_args_super (v1, v2, v3, v4) ->
         let v1 =
           (match v1 with
@@ -1504,18 +1506,18 @@ and explicit_constructor_invocation (env : env) ((v1, v2, v3) : CST.explicit_con
           )
         in
         let v2 = token env v2 (* "." *) in
-        let v3 =
+        let _v3 =
           (match v3 with
           | Some x -> type_arguments env x
           | None -> [])
         in
-        let v4 = token env v4 (* "super" *) in
-        todo env (v1, v2, v3, v4)
+        let v4 = super_id_field env v4 (* "super" *) in
+        Dot (v1, v2, v4)
     )
   in
   let v2 = argument_list env v2 in
   let v3 = token env v3 (* ";" *) in
-  todo env (v1, v2, v3)
+  Expr (Call (v1, v2), v3)
 
 
 and field_declaration (env : env) ((v1, v2, v3, v4) : CST.field_declaration) =
