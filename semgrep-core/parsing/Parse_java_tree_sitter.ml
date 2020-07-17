@@ -1284,7 +1284,7 @@ and class_body_decl env = function
   | `Blk x -> let x = block env x in
           Init (false, x)
   | `Stat_init x -> static_initializer env x
-  | `Cons_decl x -> constructor_declaration env x
+  | `Cons_decl x -> Method (constructor_declaration env x)
   | `SEMI tok -> EmptyDecl (token env tok) (* ";" *)
 
 and enum_body_declarations (env : env) ((v1, v2) : CST.enum_body_declarations) =
@@ -1366,28 +1366,28 @@ and modifiers (env : env) (xs : CST.modifiers) =
 
 
 and type_parameters (env : env) ((v1, v2, v3, v4) : CST.type_parameters) =
-  let v1 = token env v1 (* "<" *) in
+  let _v1 = token env v1 (* "<" *) in
   let v2 = type_parameter env v2 in
   let v3 =
     List.map (fun (v1, v2) ->
-      let v1 = token env v1 (* "," *) in
+      let _v1 = token env v1 (* "," *) in
       let v2 = type_parameter env v2 in
-      todo env (v1, v2)
+      v2
     ) v3
   in
-  let v4 = token env v4 (* ">" *) in
-  todo env (v1, v2, v3, v4)
+  let _v4 = token env v4 (* ">" *) in
+  v2::v3
 
 
-and type_parameter (env : env) ((v1, v2, v3) : CST.type_parameter) =
-  let v1 = List.map (annotation env) v1 in
-  let v2 = token env v2 (* pattern [a-zA-Z_]\w* *) in
+and type_parameter (env : env) ((v1, v2, v3) : CST.type_parameter) : type_parameter =
+  let _v1 = List.map (annotation env) v1 in
+  let v2 = identifier env v2 (* pattern [a-zA-Z_]\w* *) in
   let v3 =
     (match v3 with
     | Some x -> type_bound env x
-    | None -> todo env ())
+    | None -> [])
   in
-  todo env (v1, v2, v3)
+  TParam (v2, v3)
 
 
 and type_bound (env : env) ((v1, v2, v3) : CST.type_bound) =
@@ -1395,88 +1395,90 @@ and type_bound (env : env) ((v1, v2, v3) : CST.type_bound) =
   let v2 = type_ env v2 in
   let v3 =
     List.map (fun (v1, v2) ->
-      let v1 = token env v1 (* "&" *) in
+      let _v1 = token env v1 (* "&" *) in
       let v2 = type_ env v2 in
-      todo env (v1, v2)
+      v2
     ) v3
   in
-  todo env (v1, v2, v3)
+  v2::v3
 
 
 and superclass (env : env) ((v1, v2) : CST.superclass) =
-  let v1 = token env v1 (* "extends" *) in
+  let _v1 = token env v1 (* "extends" *) in
   let v2 = type_ env v2 in
-  todo env (v1, v2)
+  v2
 
 
 and super_interfaces (env : env) ((v1, v2) : CST.super_interfaces) =
-  let v1 = token env v1 (* "implements" *) in
+  let _v1 = token env v1 (* "implements" *) in
   let v2 = interface_type_list env v2 in
-  todo env (v1, v2)
+  v2
 
 
 and interface_type_list (env : env) ((v1, v2) : CST.interface_type_list) =
   let v1 = type_ env v1 in
   let v2 =
     List.map (fun (v1, v2) ->
-      let v1 = token env v1 (* "," *) in
+      let _v1 = token env v1 (* "," *) in
       let v2 = type_ env v2 in
-      todo env (v1, v2)
+      v2
     ) v2
   in
-  todo env (v1, v2)
+  v1::v2
 
 
 and class_body (env : env) ((v1, v2, v3) : CST.class_body) =
   let v1 = token env v1 (* "{" *) in
   let v2 = List.map (fun x -> class_body_decl env x) v2 in
   let v3 = token env v3 (* "}" *) in
-  todo env (v1, v2, v3)
+  v1, v2, v3
 
 
 and static_initializer (env : env) ((v1, v2) : CST.static_initializer) =
-  let v1 = token env v1 (* "static" *) in
+  let _v1 = token env v1 (* "static" *) in
   let v2 = block env v2 in
-  todo env (v1, v2)
+  Init (true, v2)
 
 
-and constructor_declaration (env : env) ((v1, v2, v3, v4) : CST.constructor_declaration) =
+and constructor_declaration (env : env) ((v1, v2, v3, v4) : CST.constructor_declaration) : constructor_decl =
   let v1 =
     (match v1 with
     | Some x -> modifiers env x
-    | None -> todo env ())
+    | None -> [])
   in
   let v2 = constructor_declarator env v2 in
   let v3 =
     (match v3 with
     | Some x -> throws env x
-    | None -> todo env ())
+    | None -> [])
   in
+  let (_tparams, id, params) = v2 in
+  let vdef = { name = id; mods = v1; type_ = None } in
   let v4 = constructor_body env v4 in
-  todo env (v1, v2, v3, v4)
+  { m_var = vdef; m_formals = params; m_throws = v3; m_body = v4 }
 
 
 and constructor_declarator (env : env) ((v1, v2, v3) : CST.constructor_declarator) =
   let v1 =
     (match v1 with
     | Some x -> type_parameters env x
-    | None -> todo env ())
+    | None -> [])
   in
-  let v2 = token env v2 (* pattern [a-zA-Z_]\w* *) in
+  let v2 = identifier env v2 (* pattern [a-zA-Z_]\w* *) in
   let v3 = formal_parameters env v3 in
-  todo env (v1, v2, v3)
+  v1, v2, v3
 
 
 and constructor_body (env : env) ((v1, v2, v3, v4) : CST.constructor_body) =
   let v1 = token env v1 (* "{" *) in
   let v2 =
     (match v2 with
-    | Some x -> explicit_constructor_invocation env x
-    | None -> todo env ())
+    | Some x -> [explicit_constructor_invocation env x]
+    | None -> [])
   in
   let v3 = List.map (statement env) v3 in
   let v4 = token env v4 (* "}" *) in
-  todo env (v1, v2, v3, v4)
+  Block (v1, v2 @ v3, v4)
 
 
 and explicit_constructor_invocation (env : env) ((v1, v2, v3) : CST.explicit_constructor_invocation) =
@@ -1486,7 +1488,7 @@ and explicit_constructor_invocation (env : env) ((v1, v2, v3) : CST.explicit_con
         let v1 =
           (match v1 with
           | Some x -> type_arguments env x
-          | None -> todo env ())
+          | None -> [])
         in
         let v2 =
           (match v2 with
@@ -1505,7 +1507,7 @@ and explicit_constructor_invocation (env : env) ((v1, v2, v3) : CST.explicit_con
         let v3 =
           (match v3 with
           | Some x -> type_arguments env x
-          | None -> todo env ())
+          | None -> [])
         in
         let v4 = token env v4 (* "super" *) in
         todo env (v1, v2, v3, v4)
