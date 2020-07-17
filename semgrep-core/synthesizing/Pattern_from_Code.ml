@@ -227,9 +227,31 @@ and generalize_exprstmt (e, tok) env =
                                   | _ -> raise (UnexpectedCase "Must pass in an any of form E x"))
            (generalize_exp e env)
 
+and generalize_if s_in =
+  let opt f so =
+    match so with
+      | None -> None
+      | Some x -> Some (f x)
+  in
+  let rec dots_in_body s =
+    match s with
+      | If (tok, e, s, sopt) -> If (tok, e, dots_in_body s, opt dots_in_body sopt)
+      | Block (t1, _, t2) -> Block(t1, [ExprStmt (Ellipsis fk, fk)], t2)
+      | _ -> ExprStmt (Ellipsis fk, fk)
+  in
+  let rec dots_in_cond s =
+    match s with
+      | If (tok, _, s, sopt) -> If (tok, Ellipsis fk, s, opt dots_in_cond sopt)
+      | x -> x
+  in
+  ["dots in body", S (dots_in_body s_in); "dots in cond", S (dots_in_cond s_in)]
+
+
 and generalize_stmt s env =
   match s with
   | ExprStmt (e, tok) -> generalize_exprstmt (e, tok) env
+  | If _ -> generalize_if s
+  | Block _ -> ["dots", S (ExprStmt (Ellipsis fk, fk))]
   | _ -> []
 
 (* All *)

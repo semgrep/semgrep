@@ -83,6 +83,10 @@ let arithop env (op, tok) =
                 | Lang.OCaml -> "="
                 | _ -> "=="
               )
+      | Lt -> "<"
+      | LtE -> "<="
+      | Gt -> ">"
+      | GtE -> ">="
       | _ -> todo (E (IdSpecial (Op op, tok)))
       (*
       | Pow | FloorDiv | MatMult (* Python *)
