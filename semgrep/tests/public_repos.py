@@ -103,7 +103,6 @@ PASSING_REPOS = [
     "https://github.com/returntocorp/semgrep-action",
     "https://github.com/returntocorp/semgrep-rules",
     "https://github.com/coinbase/btcexport",
-    "https://github.com/Airtable/airtable.js",
     "https://github.com/seemoo-lab/opendrop",
     "https://github.com/lightstep/lightstep-tracer-python",
     "https://github.com/draios/sysdig-inspect",
