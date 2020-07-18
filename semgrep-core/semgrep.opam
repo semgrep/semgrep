@@ -32,4 +32,4 @@ depends: [
   "pfff"
 ]
 
-build: ["dune" "build" "-j" jobs]
+build: ["make"]
