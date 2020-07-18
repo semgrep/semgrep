@@ -23,13 +23,7 @@ from semgrep.semgrep_types import pattern_name_for_operator
 from semgrep.semgrep_types import pattern_names_for_operator
 from semgrep.semgrep_types import PatternId
 from semgrep.semgrep_types import Range
-<<<<<<< HEAD
 from semgrep.semgrep_types import TAINT_MODE
-from semgrep.util import debug_print
-||||||| merged common ancestors
-from semgrep.util import debug_print
-=======
->>>>>>> Use logging instead of print to output to stderr
 from semgrep.util import flatten
 
 

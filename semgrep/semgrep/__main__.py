@@ -6,11 +6,11 @@ from semgrep.cli import cli
 from semgrep.error import OK_EXIT_CODE
 from semgrep.error import SemgrepError
 
-handler = logging.StreamHandler()
-handler.setLevel(logging.INFO)
+# When running semgrep as a command line tool
+# silence root level logger otherwise logs higher
+# than warning are handled twice
 logger = logging.getLogger("semgrep")
-logger.addHandler(handler)
-logger.setLevel(logging.INFO)
+logger.propagate = False
 
 
 def main() -> int:

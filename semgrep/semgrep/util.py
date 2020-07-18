@@ -1,4 +1,5 @@
 import itertools
+import logging
 import os
 import subprocess
 import sys
@@ -44,13 +45,29 @@ def flatten(L: Iterable[Iterable[Any]]) -> Iterable[Any]:
             yield item
 
 
-def set_flags(debug: bool, quiet: bool, force_color: bool) -> None:
+def set_flags(verbose: bool, quiet: bool, force_color: bool) -> None:
     """Set the global DEBUG and QUIET flags"""
+    logger = logging.getLogger("semgrep")
+    logger.handlers = []
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter("%(message)s")
+    handler.setFormatter(formatter)
+
+    level = logging.INFO
+    if verbose:
+        level = logging.DEBUG
+    elif quiet:
+        level = logging.ERROR
+
+    handler.setLevel(level)
+    logger.addHandler(handler)
+    logger.setLevel(level)
+
     # TODO move to a proper logging framework
     global DEBUG
     global QUIET
     global FORCE_COLOR
-    if debug:
+    if verbose:
         DEBUG = True
         # debug_print("DEBUG is on")
     if quiet:

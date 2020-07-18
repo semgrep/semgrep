@@ -223,9 +223,9 @@ def cli() -> None:
     )
 
     # logging options
-    logging = parser.add_argument_group("logging")
+    logging_ = parser.add_argument_group("logging")
 
-    logging.add_argument(
+    logging_.add_argument(
         "-v",
         "--verbose",
         action="store_true",

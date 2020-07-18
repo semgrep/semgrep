@@ -242,7 +242,7 @@ class OutputHandler:
         if error not in self.error_set:
             self.semgrep_structured_errors.append(error)
             self.error_set.add(error)
-            logger.info(str(error))
+            logger.error(str(error))
 
     def handle_semgrep_core_output(
         self,
