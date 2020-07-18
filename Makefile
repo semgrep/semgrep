@@ -47,7 +47,7 @@ setup:
 	git submodule update --init --recursive
 	opam update -y
 	opam install -y --deps-only ./pfff
-	cd ocaml-tree-sitter && ./configure && ./scripts/install-tree-sitter-lib
+	cd ocaml-tree-sitter && ./scripts/install-tree-sitter-lib
 	opam install -y --deps-only ./ocaml-tree-sitter
 
 # This needs to run initially or when something changed in the external

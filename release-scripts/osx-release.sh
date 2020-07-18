@@ -8,8 +8,8 @@ git submodule update --init --recursive
 
 eval "$(opam env)"
 
-make config
 make setup
+make config
 
 # Remove dynamically linked libraries to force MacOS to use static ones
 rm /usr/local/lib/libtree-sitter.0.0.dylib
