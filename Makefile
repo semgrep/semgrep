@@ -8,9 +8,13 @@
 # development.
 #
 .PHONY: build
-build: build-pfff build-ocaml-tree-sitter
-	$(MAKE) -C semgrep-core
+build:
+	$(MAKE) -C build-core
 	cd semgrep && python3 -m pipenv install --dev
+
+.PHONY: build-core
+build-core: build-pfff build-ocaml-tree-sitter
+	$(MAKE) -C semgrep-core
 
 .PHONY: build-pfff
 build-pfff:

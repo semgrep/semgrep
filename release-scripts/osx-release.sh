@@ -15,16 +15,7 @@ make setup
 rm /usr/local/lib/libtree-sitter.0.0.dylib
 rm /usr/local/lib/libtree-sitter.dylib
 
-opam install -y ./pfff
-opam install -y ./ocaml-tree-sitter
-
-(
-  cd semgrep-core
-  opam install --deps-only -y .
-  make all
-  make test
-  make install
-)
+make build-core
 
 mkdir -p artifacts
 if [[ -z "$SKIP_NUITKA" ]]; then
