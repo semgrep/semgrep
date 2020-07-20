@@ -8,7 +8,7 @@ on:
 jobs:
   build-core:
     runs-on: ubuntu-latest
-    container: ocaml/opam2:alpine
+    container: mjambon/r2c-ocaml:alpine
     steps:
       - name: Adjust permissions
         run: |
