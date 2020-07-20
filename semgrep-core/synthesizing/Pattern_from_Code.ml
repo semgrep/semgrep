@@ -236,6 +236,7 @@ and generalize_if s_in =
   let rec dots_in_body s =
     match s with
       | If (tok, e, s, sopt) -> If (tok, e, dots_in_body s, opt dots_in_body sopt)
+      | Block (t1, [If _ as x], t2) -> Block(t1, [dots_in_body x], t2)
       | Block (t1, _, t2) -> Block(t1, [ExprStmt (Ellipsis fk, fk)], t2)
       | _ -> ExprStmt (Ellipsis fk, fk)
   in

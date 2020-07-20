@@ -41,7 +41,7 @@ type env = {
 (* Helpers *)
 (*****************************************************************************)
 let todo any =
-  pr (show_any any); " TODO "
+  pr (show_any any); "*TODO*"
 
 let ident (s, _) = s
 
@@ -66,11 +66,6 @@ let print_bool env = function
          | Lang.Java | Lang.Go | Lang.C | Lang.JSON | Lang.Javascript
          | Lang.OCaml | Lang.Ruby | Lang.Typescript -> "false")
 
-let no_paren_cond = F.sprintf "%s %s"
-let paren_cond = F.sprintf "%s (%s)"
-let colon_body = F.sprintf "%s:\n%s\n"
-let bracket_body = F.sprintf "%s %s\n"
-
 let arithop env (op, tok) =
   match op with
       | Plus -> "+"
@@ -78,7 +73,7 @@ let arithop env (op, tok) =
       | Mult -> "*"
       | Div -> "/"
       | Mod -> "%"
-      | Pow -> "^"
+      | Pow -> "**"
       | Eq -> (match env.lang with
                 | Lang.OCaml -> "="
                 | _ -> "=="
@@ -113,6 +108,8 @@ function
   | ExprStmt (e, tok) -> F.sprintf "%s%s" (expr env e) (token "" tok)
   | Block (x) -> block env x level
   | If (tok, e, s, sopt) -> if_stmt env (token "if" tok, e, s, sopt)
+  | While (tok, e, s) -> while_stmt env (tok, e, s)
+  | Return (tok, eopt) -> return env (tok, eopt)
   | x -> todo (S x)
 
 and block env (t1, ss, t2) level =
@@ -135,6 +132,11 @@ and block env (t1, ss, t2) level =
 
 (* todo sorry someone is going to hate me over this at some point*)
 and if_stmt env (tok, e, s, sopt) =
+  let no_paren_cond = F.sprintf "%s %s" in
+  let paren_cond = F.sprintf "%s (%s)" in
+  let colon_body = F.sprintf "%s:\n%s\n" in
+  let bracket_body = F.sprintf "%s %s\n"
+  in
   let (format_cond, elseif_str, format_block) =
     (match env.lang with
     | Lang.Python | Lang.Python2 | Lang.Python3 -> (no_paren_cond, "elif", colon_body)
@@ -150,6 +152,18 @@ and if_stmt env (tok, e, s, sopt) =
         | None -> if_stmt_prt
         | Some (Block(_, [If (_, e', s', sopt')], _)) -> F.sprintf "%s%s" if_stmt_prt (if_stmt env (elseif_str, e', s', sopt'))
         | Some (body) -> F.sprintf "%s%s" if_stmt_prt (format_block "else" (stmt env 1 body))
+
+and return env (tok, eopt) =
+  let to_return =
+  match eopt with
+  | None -> ""
+  | Some e -> expr env e
+  in
+  match env.lang with
+  | Lang.Java | Lang.C -> F.sprintf "%s %s;" (token "return" tok) to_return
+  | Lang.Python | Lang.Python2 | Lang.Python3
+  | Lang.Go | Lang.Ruby | Lang.OCaml
+  | Lang.JSON | Lang.Javascript | Lang.Typescript -> F.sprintf "%s %s" (token "return" tok) to_return
 
 (* expressions *)
 
@@ -167,7 +181,7 @@ function
   | DotAccess (e, tok, fi) -> dot_access env (e, tok, fi)
   | Ellipsis _ -> "..."
   | Conditional (e1, e2, e3) -> cond env (e1, e2, e3)
-  (* | OtherExpr (op, anys) -> *)
+  | OtherExpr (op, anys) -> other env (op, anys)
   | TypedMetavar (id, _, typ) -> tyvar env (id, typ)
   | x -> todo (E x)
 
@@ -244,6 +258,12 @@ and slice_access env e (o1, o2) = function
 and option env = function
   | None -> ""
   | Some e -> expr env e
+
+and other env (op, anys) =
+  match (op, anys) with
+      | OE_In, [E e1; E e2] -> F.sprintf "%s in %s" (expr env e1) (expr env e2)
+      | OE_NotIn, [E e1; E e2] -> F.sprintf "%s not in %s" (expr env e1) (expr env e2)
+      | _ -> todo (E (OtherExpr(op, anys)))
 
 and dot_access env (e, _tok, fi) =
   F.sprintf "%s.%s" (expr env e) (field_ident env fi)
