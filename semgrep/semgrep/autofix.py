@@ -1,3 +1,4 @@
+import logging
 import re
 from pathlib import Path
 from typing import Dict
@@ -8,7 +9,8 @@ from typing import Tuple
 from semgrep.error import SemgrepError
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
-from semgrep.util import print_stderr
+
+logger = logging.getLogger(__name__)
 
 SPLIT_CHAR = "\n"
 
@@ -134,8 +136,8 @@ def apply_fixes(
 
     num_modified = len(modified_files)
     if len(modified_files):
-        print_stderr(
+        logger.info(
             f"successfully modified {num_modified} file{'s' if num_modified > 1 else ''}."
         )
     else:
-        print_stderr(f"no files modified.")
+        logger.info(f"no files modified.")

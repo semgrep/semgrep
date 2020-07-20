@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import logging
 import multiprocessing
 import os
 
@@ -16,9 +17,9 @@ from semgrep.error import SemgrepError
 from semgrep.output import managed_output
 from semgrep.output import OutputSettings
 from semgrep.synthesize_patterns import synthesize_patterns
-from semgrep.util import print_stderr
 from semgrep.version import is_running_latest
 
+logger = logging.getLogger(__name__)
 try:
     CPU_COUNT = multiprocessing.cpu_count()
 except NotImplementedError:
@@ -186,9 +187,7 @@ def cli() -> None:
             "(can use --json)."
         ),
     )
-    output.add_argument(
-        "--synthesize-patterns", help=argparse.SUPPRESS,
-    )
+    output.add_argument("--synthesize-patterns", help=argparse.SUPPRESS)
     output.add_argument(
         "--error",
         action="store_true",
@@ -224,9 +223,9 @@ def cli() -> None:
     )
 
     # logging options
-    logging = parser.add_argument_group("logging")
+    logging_ = parser.add_argument_group("logging")
 
-    logging.add_argument(
+    logging_.add_argument(
         "-v",
         "--verbose",
         action="store_true",
@@ -270,7 +269,7 @@ def cli() -> None:
     try:
         semgrep.config_resolver.adjust_for_docker()
     except SemgrepError as e:
-        print_stderr(str(e))
+        logger.exception(str(e))
         raise e
 
     output_format = OutputFormat.TEXT
@@ -290,7 +289,7 @@ def cli() -> None:
 
     if not args.disable_version_check:
         if not is_running_latest():
-            print_stderr(
+            logger.warning(
                 "A new version of Semgrep is available. Please see https://github.com/returntocorp/semgrep#upgrading for more information."
             )
 
@@ -309,7 +308,7 @@ def cli() -> None:
                 args.pattern, args.lang, args.config
             )
             valid_str = "invalid" if config_errors else "valid"
-            print_stderr(
+            logger.info(
                 f"Configuration is {valid_str} - found {len(configs)} valid configuration(s) and {len(config_errors)} configuration error(s)."
             )
             if config_errors:
