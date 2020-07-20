@@ -38,6 +38,7 @@ set -x
 whoami
 pwd
 ls -lda
+ls -lda ~
 eval $(opam env)
 ./install-scripts/install-ocaml-tree-sitter
 
