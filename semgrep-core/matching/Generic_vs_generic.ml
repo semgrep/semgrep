@@ -161,10 +161,11 @@ let m_qualified_name a b =
 let m_module_name_prefix a b =
   match a, b with
   (* metavariable case *)
-  | A.FileName((a_str, _) as a1), B.FileName(_) as b_file
-    when MV.is_metavar_name a_str ->
-    let (b_file1, _) = b_file in
-    envf a1 (B.Modn b_file1)
+  | A.FileName((a_str, _) as a1), B.FileName(b1) when MV.is_metavar_name a_str ->
+    (* Bind as a literal string expression so that pretty-printing works.
+     * This also means that this metavar can match both literal strings and filenames
+     * with the same string content. *)
+    envf a1 (B.E (B.L (B.String b1)))
   | A.FileName(a1), B.FileName(b1) ->
     (* TODO figure out what prefix support means here *)
     (m_wrap m_string_prefix) a1 b1
