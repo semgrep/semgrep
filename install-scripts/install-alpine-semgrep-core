@@ -34,7 +34,7 @@ echo "Install submodules"
 git submodule update --init --recursive
 
 echo "Install ocaml-tree-sitter"
-eval $(opam env --root /home/opam/.opam --set-root)
+eval $(opam env)
 ./install-scripts/install-ocaml-tree-sitter
 
 echo "Install pfff"
