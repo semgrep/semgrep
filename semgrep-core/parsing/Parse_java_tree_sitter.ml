@@ -1849,7 +1849,7 @@ and formal_parameter (env : env) ((v1, v2, v3) : CST.formal_parameter) =
   let v1 =
     (match v1 with
     | Some x -> modifiers env x
-    | None -> todo env ())
+    | None -> [])
   in
   let v2 = unannotated_type env v2 in
   let v3 = variable_declarator_id env v3 in
@@ -1877,37 +1877,38 @@ and spread_parameter (env : env) ((v1, v2, v3, v4) : CST.spread_parameter) =
   let v1 =
     (match v1 with
     | Some x -> modifiers env x
-    | None -> todo env ())
+    | None -> [])
   in
   let v2 = unannotated_type env v2 in
   let v3 = token env v3 (* "..." *) in
   let v4 = variable_declarator env v4 in
-  todo env (v1, v2, v3, v4)
+  let (vdef, _init_optTODO) = v4 in
+  ParamSpread (v3, AST.canon_var v1 (Some v2) vdef)
 
 
-and throws (env : env) ((v1, v2, v3) : CST.throws) =
-  let v1 = token env v1 (* "throws" *) in
+and throws (env : env) ((v1, v2, v3) : CST.throws) : typ list =
+  let _v1 = token env v1 (* "throws" *) in
   let v2 = type_ env v2 in
   let v3 =
     List.map (fun (v1, v2) ->
-      let v1 = token env v1 (* "," *) in
+      let _v1 = token env v1 (* "," *) in
       let v2 = type_ env v2 in
-      todo env (v1, v2)
+      v2
     ) v3
   in
-  todo env (v1, v2, v3)
+  v2::v3
 
 
 and local_variable_declaration (env : env) ((v1, v2, v3, v4) : CST.local_variable_declaration) : var_with_init list =
   let v1 =
     (match v1 with
     | Some x -> modifiers env x
-    | None -> todo env ())
+    | None -> [])
   in
   let v2 = unannotated_type env v2 in
   let v3 = variable_declarator_list env v3 in
-  let v4 = token env v4 (* ";" *) in
-  todo env (v1, v2, v3, v4)
+  let _v4 = token env v4 (* ";" *) in
+  decls (fun x -> x) v1 v2 v3
 
 
 and method_declaration (env : env) ((v1, v2, v3) : CST.method_declaration) =
