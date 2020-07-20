@@ -10,12 +10,12 @@ jobs:
     runs-on: ubuntu-latest
     container: mjambon/r2c-ocaml:alpine
     steps:
-      - name: Adjust permissions
+      - name: Info
         run: |
-          sudo chmod -R 777 . /github
-          # github cache dir
-          sudo mkdir -p /__w/
-          sudo chmod -R 777 /__w/
+          echo "whoami: $(whoami)"
+          echo "pwd: $(pwd)"
+          echo "home: $HOME"
+          echo "ls -al: $ls -al"
       - name: Checkout
         uses: actions/checkout@v2
       - name: Build semgrep-core
