@@ -490,6 +490,8 @@ and super_id_field env tok =
   str env tok
 and this_id_field env tok =
   str env tok
+and new_id env tok =
+  str env tok
 
 
 
@@ -554,9 +556,9 @@ and primary (env : env) (x : CST.primary) =
       let v1 =
         (match v1 with
         | `Type x -> let t = type_ env x in
-                Left t
-        | `Prim x -> Right (primary env x)
-        | `Super tok -> Right (super env tok) (* "super" *)
+                Right t
+        | `Prim x -> Left (primary env x)
+        | `Super tok -> Left (super env tok) (* "super" *)
         )
       in
       let v2 = token env v2 (* "::" *) in
@@ -567,11 +569,11 @@ and primary (env : env) (x : CST.primary) =
       in
       let v4 =
         (match v4 with
-        | `New tok -> str env tok (* "new" *)
+        | `New tok -> new_id env tok (* "new" *)
         | `Id tok -> str env tok (* pattern [a-zA-Z_]\w* *)
         )
       in
-      todo env (v1, v2, v3, v4)
+      MethodRef (v1, v2, v3, v4)
   | `Prim_array_crea_exp (v1, v2, v3) ->
       let v1 = token env v1 (* "new" *) in
       let v2 = basic_type_extra env v2 in
@@ -1809,11 +1811,11 @@ and method_declarator (env : env) ((v1, v2, v3) : CST.method_declarator) =
 
 
 and formal_parameters (env : env) ((v1, v2, v3, v4) : CST.formal_parameters) =
-  let v1 = token env v1 (* "(" *) in
+  let _v1 = token env v1 (* "(" *) in
   let v2 =
     (match v2 with
-    | Some x -> receiver_parameter env x
-    | None -> todo env ())
+    | Some x -> [receiver_parameter env x]
+    | None -> [])
   in
   let v3 =
     (match v3 with
@@ -1826,21 +1828,21 @@ and formal_parameters (env : env) ((v1, v2, v3, v4) : CST.formal_parameters) =
         in
         let v2 =
           List.map (fun (v1, v2) ->
-            let v1 = token env v1 (* "," *) in
+            let _v1 = token env v1 (* "," *) in
             let v2 =
               (match v2 with
               | `Form_param x -> formal_parameter env x
               | `Spre_param x -> spread_parameter env x
               )
             in
-            todo env (v1, v2)
+            v2
           ) v2
         in
-        todo env (v1, v2)
-    | None -> todo env ())
+        v1::v2
+    | None -> [])
   in
-  let v4 = token env v4 (* ")" *) in
-  todo env (v1, v2, v3, v4)
+  let _v4 = token env v4 (* ")" *) in
+  v2 @ v3
 
 
 and formal_parameter (env : env) ((v1, v2, v3) : CST.formal_parameter) =
@@ -1851,22 +1853,24 @@ and formal_parameter (env : env) ((v1, v2, v3) : CST.formal_parameter) =
   in
   let v2 = unannotated_type env v2 in
   let v3 = variable_declarator_id env v3 in
-  todo env (v1, v2, v3)
+  ParamClassic (AST.canon_var v1 (Some v2) v3)
 
 
 and receiver_parameter (env : env) ((v1, v2, v3, v4) : CST.receiver_parameter) =
-  let v1 = List.map (annotation env) v1 in
+  let _v1TODO = List.map (annotation env) v1 in
   let v2 = unannotated_type env v2 in
   let v3 =
     (match v3 with
     | Some (v1, v2) ->
-        let v1 = token env v1 (* pattern [a-zA-Z_]\w* *) in
-        let v2 = token env v2 (* "." *) in
-        todo env (v1, v2)
-    | None -> todo env ())
+        (* TODO *)
+        let _v1 = token env v1 (* pattern [a-zA-Z_]\w* *) in
+        let _v2 = token env v2 (* "." *) in
+        ()
+
+    | None -> ())
   in
-  let v4 = token env v4 (* "this" *) in
-  todo env (v1, v2, v3, v4)
+  let v4 = this_id_field env v4 (* "this" *) in
+  ParamReceiver (AST.canon_var [] (Some v2) (IdentDecl v4))
 
 
 and spread_parameter (env : env) ((v1, v2, v3, v4) : CST.spread_parameter) =
