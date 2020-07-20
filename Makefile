@@ -42,6 +42,7 @@ rebuild:
 setup:
 	git submodule update --init --recursive
 	opam update -y
+	opam install -y --deps-only ./semgrep-core
 	opam install -y --deps-only ./pfff
 	cd ocaml-tree-sitter && ./configure && ./scripts/install-tree-sitter-lib
 	opam install -y --deps-only ./ocaml-tree-sitter
