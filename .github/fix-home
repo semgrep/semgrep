@@ -14,21 +14,6 @@ set -eu
 #
 user="user"
 
-# TODO: find out if and explain why we need this.
-if [[ -d /github ]]; then
-  sudo chmod -R 777 /github
-fi
-
-# TODO: find out and explain why we need this.
-github_cache_dir="/__w"
-cat <<EOF
-Set 0o777 permissions on GitHub cache directory 'github_cache_dir'.
-EOF
-if [[ -d "$github_cache_dir" ]]; then
-  sudo mkdir -p "$github_cache_dir"
-  sudo chmod -R 777 "$github_cache_dir"
-fi
-
 cat <<EOF
 Current directory: $(pwd)
 Current HOME: $HOME
