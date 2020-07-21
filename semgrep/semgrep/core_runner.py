@@ -1,6 +1,7 @@
 import collections
 import functools
 import json
+import logging
 import multiprocessing
 import re
 import subprocess
@@ -15,6 +16,7 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 
+logger = logging.getLogger(__name__)
 from ruamel.yaml import YAML
 
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
@@ -36,7 +38,6 @@ from semgrep.semgrep_types import Language
 from semgrep.semgrep_types import OPERATORS
 from semgrep.semgrep_types import TAINT_MODE
 from semgrep.target_manager import TargetManager
-from semgrep.util import debug_print
 from semgrep.util import debug_tqdm_write
 from semgrep.util import partition
 from semgrep.util import progress_bar
@@ -61,7 +62,7 @@ def get_re_matches(patterns_re: List[Tuple], path: Path) -> List[PatternMatch]:
     try:
         contents = path.read_text()
     except UnicodeDecodeError:
-        debug_print(f"regex matcher skipping binary file at {path}")
+        logger.debug(f"regex matcher skipping binary file at {path}")
         return []
 
     return [
@@ -144,9 +145,7 @@ class CoreRunner:
                 )
 
                 for lang in rule.languages:
-                    yield Pattern(
-                        rule_index, expr, rule.severity, lang, span,
-                    )
+                    yield Pattern(rule_index, expr, rule.severity, lang, span)
 
     def _group_patterns_by_language(self, rule: Rule) -> Dict[Language, List[Pattern]]:
 
@@ -264,7 +263,7 @@ class CoreRunner:
 
             core_run = sub_run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-            debug_print(core_run.stderr.decode("utf-8", "replace"))
+            logging.debug(core_run.stderr.decode("utf-8", "replace"))
 
             if core_run.returncode != 0:
                 # see if semgrep output a JSON error that we can decode
@@ -360,7 +359,7 @@ class CoreRunner:
         debugging_steps: List[Any] = []
         for rule, paths in by_rule_index.items():
             for filepath, pattern_matches in paths.items():
-                debug_print(f"----- rule ({rule.id}) ----- filepath: {filepath}")
+                logger.debug(f"----- rule ({rule.id}) ----- filepath: {filepath}")
 
                 findings_for_rule, debugging_steps = evaluate(
                     rule, pattern_matches, self._allow_exec
@@ -450,7 +449,7 @@ class CoreRunner:
             rules, target_manager
         )
 
-        debug_print(f"semgrep ran in {datetime.now() - start}")
+        logger.debug(f"semgrep ran in {datetime.now() - start}")
 
         return findings_by_rule, debug_steps_by_rule, errors
 

@@ -242,7 +242,7 @@ class Rule:
             if pattern:
                 self._pattern_spans[rule_id] = pattern.span
                 return BooleanRuleExpression(
-                    OPERATORS.AND, rule_id, None, self._validate_operand(pattern),
+                    OPERATORS.AND, rule_id, None, self._validate_operand(pattern)
                 )
 
         for pattern_name in pattern_names_for_operator(OPERATORS.REGEX):
@@ -250,7 +250,7 @@ class Rule:
             if pattern:
                 self._pattern_spans[rule_id] = pattern.span
                 return BooleanRuleExpression(
-                    OPERATORS.REGEX, rule_id, None, self._validate_operand(pattern),
+                    OPERATORS.REGEX, rule_id, None, self._validate_operand(pattern)
                 )
 
         for pattern_name in pattern_names_for_operator(OPERATORS.AND_ALL):

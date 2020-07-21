@@ -19,6 +19,8 @@ jobs:
           sudo chmod -R 777 /__w/
       - name: Checkout
         uses: actions/checkout@v2
+        with:
+          submodules: true
       - name: Build semgrep-core
         run: ./install-scripts/install-alpine-semgrep-core
       - name: Upload artifacts
@@ -41,6 +43,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+        with:
+          submodules: true
       - name: Setup Python
         uses: actions/setup-python@v1
         with:
@@ -79,12 +83,14 @@ jobs:
         env:
           GITHUB_REPO_CACHE: ~/.cache/semgrep-cache
 
-  mac-build-test:
+  mac-build:
     name: Check builds for macOS
     runs-on: macos-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+        with:
+          submodules: true
       - name: Setup Python
         uses: actions/setup-python@v1
         with:
@@ -95,22 +101,35 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
-          name: semgrep-osx-${{ github.sha }}
+          name: semgrep-osx
           path: artifacts
+
+  mac-build-linking-test:
+    name: Check that semgrep-core runs
+    runs-on: macos-latest
+    needs: [mac-build]
+    steps:
+      - name: Download Artifact
+        uses: actions/download-artifact@v1
+        with:
+          name: semgrep-osx
+          path: artifacts
+      - name: Test build artifact
+        run: |
+          chmod +x ./artifacts/semgrep-core
+          ./artifacts/semgrep-core -help
+
 
   release-ubuntu:
     name: Check builds for ubuntu
     needs: [build-core]
-    strategy:
-      matrix:
-        # The os doesn't actually matter anymore. We build a static
-        # binary linked with musl that is manylinux compatible.
-        os: ['ubuntu-16.04']
     runs-on: ubuntu-latest
-    container: returntocorp/sgrep-build:${{ matrix.os }}
+    container: returntocorp/sgrep-build:ubuntu-16.04
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+        with:
+          submodules: true
       - name: Download Artifact
         uses: actions/download-artifact@v1
         with:
@@ -126,5 +145,5 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
-          name: semgrep-${{ matrix.os }}-${{ github.sha }}
+          name: semgrep-ubuntu-16.04-${{ github.sha }}
           path: artifacts.tar.gz

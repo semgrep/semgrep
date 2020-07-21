@@ -1,4 +1,5 @@
 import json
+import logging
 from io import StringIO
 from pathlib import Path
 from typing import Any
@@ -28,14 +29,14 @@ from semgrep.rule_match import RuleMatch
 from semgrep.semgrep_types import YAML_ALL_VALID_RULE_KEYS
 from semgrep.semgrep_types import YAML_MUST_HAVE_KEYS
 from semgrep.target_manager import TargetManager
-from semgrep.util import debug_print
-from semgrep.util import print_stderr
+
+logger = logging.getLogger(__name__)
 
 MISSING_RULE_ID = "no-rule-id"
 
 
 def validate_single_rule(
-    config_id: str, rule_yaml: YamlTree[YamlMap],
+    config_id: str, rule_yaml: YamlTree[YamlMap]
 ) -> Optional[Rule]:
     """
         Validate that a rule dictionary contains all necessary keys
@@ -182,10 +183,7 @@ def flatten_configs(transformed_configs: Dict[str, List[Rule]]) -> List[Rule]:
 
 
 def notify_user_of_work(
-    all_rules: List[Rule],
-    include: List[str],
-    exclude: List[str],
-    verbose: bool = False,
+    all_rules: List[Rule], include: List[str], exclude: List[str], verbose: bool = False
 ) -> None:
     """
     Notify user of what semgrep is about to do, including:
@@ -194,18 +192,18 @@ def notify_user_of_work(
     - which dirs are excluded, etc.
     """
     if include:
-        print_stderr(f"including files:")
+        logger.info(f"including files:")
         for inc in include:
-            print_stderr(f"- {inc}")
+            logger.info(f"- {inc}")
     if exclude:
-        print_stderr(f"excluding files:")
+        logger.info(f"excluding files:")
         for exc in exclude:
-            print_stderr(f"- {exc}")
-    print_stderr(f"running {len(all_rules)} rules...")
+            logger.info(f"- {exc}")
+    logger.info(f"running {len(all_rules)} rules...")
     if verbose:
-        print_stderr("rules:")
+        logger.info("rules:")
         for rule in all_rules:
-            print_stderr(f"- {rule.id}")
+            logger.info(f"- {rule.id}")
 
 
 def rule_match_nosem(rule_match: RuleMatch, strict: bool) -> bool:
@@ -222,7 +220,7 @@ def rule_match_nosem(rule_match: RuleMatch, strict: bool) -> bool:
 
     ids_str = re_match.groupdict()["ids"]
     if ids_str is None:
-        debug_print(
+        logger.debug(
             f"found 'nosem' comment, skipping rule '{rule_match.id}' on line {rule_match.start['line']}"
         )
         return True
@@ -236,7 +234,7 @@ def rule_match_nosem(rule_match: RuleMatch, strict: bool) -> bool:
     result = False
     for pattern_id in pattern_ids:
         if rule_match.id == pattern_id:
-            debug_print(
+            logger.debug(
                 f"found 'nosem' comment with id '{pattern_id}', skipping rule '{rule_match.id}' on line {rule_match.start['line']}"
             )
             result = result or True
@@ -245,7 +243,7 @@ def rule_match_nosem(rule_match: RuleMatch, strict: bool) -> bool:
             if strict:
                 raise SemgrepError(message)
             else:
-                debug_print(message)
+                logger.debug(message)
 
     return result
 
@@ -328,7 +326,7 @@ def main(
             if len(config_errors)
             else ""
         )
-        debug_print(
+        logger.debug(
             f"running {len(all_rules)} rules from {len(valid_configs)} config{plural} {config_id_if_single} {invalid_msg}"
         )
 

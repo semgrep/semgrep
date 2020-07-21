@@ -2,7 +2,17 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## Next
+## [Next release]
+
+### Added
+- Match file-name imports against metavariables using `import "$X"` (most
+  useful in Go)
+
+### Fixed
+- Parse nested object properties in parameter destructuring in JavaScript
+- Parse binding patterns in ECMAScript 2021 catch expressions
+
+## [0.15.0](https://github.com/returntocorp/semgrep/releases/tag/v0.15.0) - 2020-07-14
 
 ### Added
 - Alpha level support for Ruby

@@ -160,6 +160,12 @@ let m_qualified_name a b =
  *)
 let m_module_name_prefix a b =
   match a, b with
+  (* metavariable case *)
+  | A.FileName((a_str, _) as a1), B.FileName(b1) when MV.is_metavar_name a_str ->
+    (* Bind as a literal string expression so that pretty-printing works.
+     * This also means that this metavar can match both literal strings and filenames
+     * with the same string content. *)
+    envf a1 (B.E (B.L (B.String b1)))
   | A.FileName(a1), B.FileName(b1) ->
     (* TODO figure out what prefix support means here *)
     (m_wrap m_string_prefix) a1 b1
@@ -2373,6 +2379,8 @@ and m_any a b =
   (*s: [[Generic_vs_generic.m_any]] boilerplate cases *)
   | A.N(a1), B.N(b1) ->
     m_name a1 b1
+  | A.Modn(a1), B.Modn(b1) ->
+    m_module_name a1 b1
   | A.Tk(a1), B.Tk(b1) ->
     m_tok a1 b1
   | A.Di(a1), B.Di(b1) ->
@@ -2405,7 +2413,7 @@ and m_any a b =
     m_label_ident a1 b1
   | A.Fldi(a1), B.Fldi(b1) ->
     m_field_ident a1 b1
-  | A.I _, _  | A.N _, _  | A.Di _, _  | A.En _, _  | A.E _, _
+  | A.I _, _  | A.N _, _  | A.Modn _, _ | A.Di _, _  | A.En _, _  | A.E _, _
   | A.S _, _  | A.T _, _  | A.P _, _  | A.Def _, _  | A.Dir _, _
   | A.Pa _, _  | A.Ar _, _  | A.At _, _  | A.Dk _, _ | A.Pr _, _
   | A.Fld _, _ | A.Ss _, _ | A.Tk _, _ | A.Lbli _, _ | A.Fldi _, _

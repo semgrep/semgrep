@@ -41,10 +41,10 @@ rebuild:
 .PHONY: setup
 setup:
 	git submodule update --init --recursive
-	opam update
-	opam install --deps-only pfff
+	opam update -y
+	opam install -y --deps-only ./pfff
 	cd ocaml-tree-sitter && ./configure && ./scripts/install-tree-sitter-lib
-	opam install --deps-only tree-sitter
+	opam install -y --deps-only ./ocaml-tree-sitter
 
 # This needs to run initially or when something changed in the external
 # build environment. This typically looks for the location of libraries
