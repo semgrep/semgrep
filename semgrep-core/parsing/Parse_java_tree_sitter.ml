@@ -303,7 +303,7 @@ let rec expression (env : env) (x : CST.expression) =
   | `Exp_cast_exp (v1, v2, v3, v4, v5) ->
       let v1 = token env v1 (* "(" *) in
       let v2 = type_ env v2 in
-      let _v3TODO =
+      let v3 =
         List.map (fun (v1, v2) ->
           let _v1 = token env v1 (* "&" *) in
           let v2 = type_ env v2 in
@@ -312,7 +312,7 @@ let rec expression (env : env) (x : CST.expression) =
       in
       let v4 = token env v4 (* ")" *) in
       let v5 = expression env v5 in
-      Cast ((v1, v2, v4), v5)
+      Cast ((v1, v2::v3, v4), v5)
   )
 
 
@@ -592,7 +592,7 @@ and primary (env : env) (x : CST.primary) =
 
 
 and dimensions_expr (env : env) ((v1, v2, v3, v4) : CST.dimensions_expr) =
-  let _v1TODO = List.map (annotation env) v1 in
+  let _v1 = List.map (annotation env) v1 in
   let _v2 = token env v2 (* "[" *) in
   let v3 = expression env v3 in
   let _v4 = token env v4 (* "]" *) in
@@ -600,7 +600,7 @@ and dimensions_expr (env : env) ((v1, v2, v3, v4) : CST.dimensions_expr) =
 
 and dimensions (env : env) (xs : CST.dimensions) =
   List.map (fun (v1, v2, v3) ->
-    let _v1TODO = List.map (annotation env) v1 in
+    let _v1 = List.map (annotation env) v1 in
     let v2 = token env v2 (* "[" *) in
     let v3 = token env v3 (* "]" *) in
     v2, (), v3
@@ -739,7 +739,7 @@ and type_arguments (env : env) ((v1, v2, v3) : CST.type_arguments) =
 
 
 and wildcard (env : env) ((v1, v2, v3) : CST.wildcard) =
-  let _v1TODO = List.map (annotation env) v1 in
+  let _v1 = List.map (annotation env) v1 in
   let _v2 = token env v2 (* "?" *) in
   let v3 =
     (match v3 with
@@ -1859,7 +1859,7 @@ and formal_parameter (env : env) ((v1, v2, v3) : CST.formal_parameter) =
 
 
 and receiver_parameter (env : env) ((v1, v2, v3, v4) : CST.receiver_parameter) =
-  let _v1TODO = List.map (annotation env) v1 in
+  let _v1 = List.map (annotation env) v1 in
   let v2 = unannotated_type env v2 in
   let _v3 =
     (match v3 with
