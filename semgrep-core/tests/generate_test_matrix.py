@@ -40,6 +40,15 @@ VERBOSE_SUBCATEGORY_NAME = {
     "exprstmt": "Expression and Statement",
 }
 
+LANGUAGE_EXCEPTIONS = {
+    "java": [
+        "naming_import",
+    ],
+    "c": [
+        "naming_import",
+    ]
+}
+
 EXCLUDE = ["TODO", "GENERIC", "fuzzy", "lint", 'EQUIV', 'e2e', 'SYNTHESIZING', 'NAMING', 'PERF', 'TAINTING']
 
 CHEATSHEET_ENTRIES = {
@@ -89,7 +98,14 @@ def generate_cheatsheet(root_dir: str):
                 
                 entry = (read_if_exists(sgrep_path), sgrep_path,  read_if_exists(code_path), code_path)
                 print((lang, entry))
-                output[lang][VERBOSE_FEATURE_NAME.get(category, category)][VERBOSE_SUBCATEGORY_NAME.get(subcategory, subcategory)].append(entry)
+                feature_name = VERBOSE_FEATURE_NAME.get(category, category)
+                subcategory_name = VERBOSE_SUBCATEGORY_NAME.get(subcategory, subcategory)
+                language_exception = (
+                    feature_name in LANGUAGE_EXCEPTIONS.get(lang, [])
+                    or subcategory in LANGUAGE_EXCEPTIONS.get(lang, [])
+                )
+                if not language_exception:
+                    output[lang][feature_name][subcategory_name].append(entry)
 
     return output
 
@@ -187,7 +203,7 @@ def read_if_exists(path: Optional[str]):
         return text
 
 def lang_dir_to_ext(lang: str):
-    LANG_DIR_TO_EXT = {"python": "py"}
+    LANG_DIR_TO_EXT = {"python": "py", "ruby": "rb"}
     return LANG_DIR_TO_EXT.get(lang, lang)
 
 
@@ -243,8 +259,6 @@ def main(dir_name: str) -> None:
 
 if __name__ == "__main__":
     cheatsheet = generate_cheatsheet(THIS_DIR)
-    if 'ruby' not in cheatsheet:
-        cheatsheet['ruby'] = {} # TODO REMOVE
     with open('cheatsheet.html', 'w') as fout:
         fout.write(cheatsheet_to_html(cheatsheet))
     with open('cheatsheet.json', 'w') as fout:
