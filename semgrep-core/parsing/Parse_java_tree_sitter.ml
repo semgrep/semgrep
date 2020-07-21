@@ -1936,5 +1936,4 @@ let parse file =
     Parallel.invoke Tree_sitter_java.Parse.file file ()
   in
   let env = { H.file; conv = H.line_col_to_pos file } in
-  let _x = program env ast in
-  raise Todo
+  program env ast
