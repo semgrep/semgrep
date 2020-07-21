@@ -11,6 +11,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Fixed
 - Parse nested object properties in parameter destructuring in JavaScript
 - Parse binding patterns in ECMAScript 2021 catch expressions
+- Was mistakenly reporting only one of each type of issue even if multiple issues exist
 
 ## [0.15.0](https://github.com/returntocorp/semgrep/releases/tag/v0.15.0) - 2020-07-14
 
