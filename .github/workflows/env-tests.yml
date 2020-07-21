@@ -12,7 +12,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: GHA Fixup
+      - name: GHA Fixup!
         run: ./.github/fix-home
       - name: Build semgrep-core
         run: ./install-scripts/install-alpine-semgrep-core
