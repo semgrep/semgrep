@@ -1306,18 +1306,18 @@ and enum_constant (env : env) ((v1, v2, v3, v4) : CST.enum_constant) =
     | Some x -> modifiers env x
     | None -> [])
   in
-  let v2 = token env v2 (* pattern [a-zA-Z_]\w* *) in
+  let v2 = identifier env v2 (* pattern [a-zA-Z_]\w* *) in
   let v3 =
     (match v3 with
-    | Some x -> argument_list env x |> G.unbracket
-    | None -> [])
+    | Some x -> Some (argument_list env x)
+    | None -> None)
   in
   let v4 =
     (match v4 with
     | Some x -> Some (class_body env x)
     | None -> None)
   in
-  todo env (v1, v2, v3, v4)
+  v2, v3, v4
 
 
 and class_declaration (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.class_declaration) : class_decl =
