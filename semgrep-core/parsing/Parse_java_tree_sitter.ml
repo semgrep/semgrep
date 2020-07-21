@@ -36,6 +36,10 @@ module H = Parse_tree_sitter_helpers
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
+type env = H.env
+let fake = G.fake
+let token = H.token
+let str = H.str
 
 (*****************************************************************************)
 (* Boilerplate converter *)
@@ -46,18 +50,6 @@ module H = Parse_tree_sitter_helpers
    Boilerplate to be used as a template when mapping the java CST
    to another type of tree.
 *)
-
-type env = H.env
-
-let fake = G.fake
-
-let token = H.token
-let str = H.str
-
-let todo (_env : env) _ =
-   failwith "not implemented"
-
-
 
 let identifier (env : env) (tok : CST.identifier) =
   str env tok (* pattern [a-zA-Z_]\w* *)
@@ -77,7 +69,6 @@ let integral_type (env : env) (x : CST.integral_type) =
   | `Inte_type_long tok -> TBasic (str env tok) (* "long" *)
   | `Inte_type_char tok -> TBasic (str env tok) (* "char" *)
   )
-
 
 
 let requires_modifier (env : env) (x : CST.requires_modifier) =
@@ -938,7 +929,7 @@ and statement_aux env x : Ast_java.stmt list =
         )
       in
       let (v3a, v3b) = v3 in
-      [Try (v1, v2, v3a, v3b)]
+      [Try (v1, None, v2, v3a, v3b)]
   | `Stmt_try_with_resous_stmt (v1, v2, v3, v4, v5) ->
       let v1 = token env v1 (* "try" *) in
       let v2 = resource_specification env v2 in
@@ -949,7 +940,7 @@ and statement_aux env x : Ast_java.stmt list =
         | Some x -> Some (finally_clause env x)
         | None -> None)
       in
-      [todo env (v1, v2, v3, v4, v5)]
+      [Try (v1, Some v2, v3, v4, v5)]
   )
 
 
