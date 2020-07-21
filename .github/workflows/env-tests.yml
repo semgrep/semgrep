@@ -11,17 +11,7 @@ jobs:
     container: mjambon/r2c-ocaml:alpine
     steps:
       - name: GHA Fixup
-        run: |
-          echo "whoami: $(whoami)"
-          echo "pwd: $(pwd)"
-          echo '$HOME'": $HOME"
-          echo "ls -al:"
-          ls -al
-          ln -s /home/user/.opam
-          sudo chmod -R 777 . /github
-          # github cache dir
-          sudo mkdir -p /__w/
-          sudo chmod -R 777 /__w/
+        run: ./.github/fix-home
       - name: Checkout
         uses: actions/checkout@v2
       - name: Build semgrep-core
