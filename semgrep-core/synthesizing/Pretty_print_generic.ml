@@ -108,7 +108,7 @@ function
   | ExprStmt (e, tok) -> F.sprintf "%s%s" (expr env e) (token "" tok)
   | Block (x) -> block env x level
   | If (tok, e, s, sopt) -> if_stmt env (token "if" tok, e, s, sopt)
-  | While (tok, e, s) -> while_stmt env (tok, e, s)
+  (* | While (tok, e, s) -> while_stmt env (tok, e, s) *)
   | Return (tok, eopt) -> return env (tok, eopt)
   | x -> todo (S x)
 
@@ -152,6 +152,9 @@ and if_stmt env (tok, e, s, sopt) =
         | None -> if_stmt_prt
         | Some (Block(_, [If (_, e', s', sopt')], _)) -> F.sprintf "%s%s" if_stmt_prt (if_stmt env (elseif_str, e', s', sopt'))
         | Some (body) -> F.sprintf "%s%s" if_stmt_prt (format_block "else" (stmt env 1 body))
+
+(* and while_stmt env (tok, e, s) = *)
+
 
 and return env (tok, eopt) =
   let to_return =
