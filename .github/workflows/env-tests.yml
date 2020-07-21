@@ -10,10 +10,10 @@ jobs:
     runs-on: ubuntu-latest
     container: mjambon/r2c-ocaml:alpine
     steps:
-      - name: GHA Fixup
-        run: ./.github/fix-home
       - name: Checkout
         uses: actions/checkout@v2
+      - name: GHA Fixup
+        run: ./.github/fix-home
       - name: Build semgrep-core
         run: ./install-scripts/install-alpine-semgrep-core
       - name: Upload artifacts
