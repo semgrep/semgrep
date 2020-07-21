@@ -627,8 +627,8 @@ and object_creation_expression (env : env) (x : CST.object_creation_expression) 
       let v3 =
         unqualified_object_creation_expression env v3
       in
-      let (_tnew, _targsTODO, _typ,__args, _body_opt) = v3 in
-      todo env (v1, v2, v3)
+      let (tnew, _targsTODO, typ, args, body_opt) = v3 in
+      NewQualifiedClass (v1, v2, tnew, typ, args, body_opt)
   )
 
 
