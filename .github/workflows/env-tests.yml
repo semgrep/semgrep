@@ -2,9 +2,10 @@ name: Env Tests
 
 on:
   pull_request:
+    paths-ignore:
+    - '**.md'
   push:
     branches: [master, develop]
-
 jobs:
   build-core:
     runs-on: ubuntu-latest
