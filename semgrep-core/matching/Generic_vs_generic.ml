@@ -1157,17 +1157,26 @@ and m_type_ a b =
       m_type_ a1 b1 >>= (fun () ->
       m_tok a2 b2
       )
-    | A.TyAnd(a1), B.TyAnd(b1) ->
+    | A.TyRecordAnon(a1), B.TyRecordAnon(b1) ->
       (m_bracket (m_list m_ident_and_type_)) a1 b1
-    | A.TyOr a1, B.TyOr b1 ->
-        m_list m_type_ a1 b1
+    | A.TyOr (a1, a2, a3), B.TyOr (b1, b2, b3) ->
+        m_type_ a1 b1 >>= (fun () ->
+        m_tok a2 b2 >>= (fun () ->
+        m_type_ a3 b3
+        ))
+    | A.TyAnd (a1, a2, a3), B.TyAnd (b1, b2, b3) ->
+        m_type_ a1 b1 >>= (fun () ->
+        m_tok a2 b2 >>= (fun () ->
+        m_type_ a3 b3
+        ))
+
     | A.OtherType(a1, a2), B.OtherType(b1, b2) ->
       m_other_type_operator a1 b1 >>= (fun () ->
       (m_list m_any) a2 b2
        )
     | A.TyBuiltin _, _  | A.TyFun _, _  | A.TyNameApply _, _  | A.TyVar _, _
     | A.TyArray _, _  | A.TyPointer _, _ | A.TyTuple _, _  | A.TyQuestion _, _
-    | A.TyName _, _ | A.TyOr _, _ | A.TyAnd _, _
+    | A.TyName _, _ | A.TyOr _, _ | A.TyAnd _, _ | A.TyRecordAnon _, _
     | A.OtherType _, _
      -> fail ()
   (*e: [[Generic_vs_generic.m_type_]] boilerplate cases *)
