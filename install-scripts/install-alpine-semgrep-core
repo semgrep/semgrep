@@ -7,6 +7,10 @@
 #
 set -eu
 
+# This is useful to locate 'dune' and for any build command not called
+# by opam.
+eval $(opam env)
+
 # Sanity check
 if [[ ! -e /etc/alpine-release ]]; then
   echo "Error: This doesn't look like an Alpine container." >&2
