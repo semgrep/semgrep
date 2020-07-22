@@ -16,6 +16,7 @@
  *)
 (*e: pad/r2c copyright *)
 open Common
+open List
 
 (* A is the pattern, and B the concrete source code. For now
  * we both use the same module but they may differ later
@@ -994,7 +995,17 @@ and m_list__m_argument (xsa: A.argument list) (xsb: A.argument list) =
   (* dots: ..., can also match no argument *)
   | [A.Arg (A.Ellipsis _i)], [] ->
       return ()
-
+  (* Fix to issue 1173. Case where there are ellipsis to the left and right of a statement.
+   * Order should not matter in this case, as we can see from the go structs example.
+   * However, there is an issue where this will match a correct line twice occasionally.
+   * Look into m_list_in_any_order for correction in this case. *)
+  | (A.Arg (A.Ellipsis _i))::xsa, xsb 
+    when let rev_xsa = rev xsa in
+        match rev_xsa with
+            | A.Arg (A.Ellipsis _i)::_ -> true
+            | _ -> false ->
+      (m_list__m_argument xsa xsb) >||>
+      m_list_in_any_order ~less_is_ok:true m_argument xsa xsb
   | A.Arg (A.Ellipsis i)::xsa, xb::xsb ->
       (* can match nothing *)
       (m_list__m_argument xsa (xb::xsb)) >||>
@@ -1037,9 +1048,8 @@ and m_list__m_argument (xsa: A.argument list) (xsb: A.argument list) =
   (* the general case *)
   | xa::aas, xb::bbs ->
       m_argument xa xb >>= (fun () ->
-      m_list__m_argument aas bbs
-      )
-  | [], _
+      m_list__m_argument aas bbs)
+  | [], _ 
   | _::_, _ ->
       fail ()
 (*e: function [[Generic_vs_generic.m_list__m_argument]] *)
@@ -1428,7 +1438,7 @@ and _m_stmts (xsa: A.stmt list) (xsb: A.stmt list) =
 
 (* TODO: factorize with m_list_and_dots less_is_ok = true *)
 (*s: function [[Generic_vs_generic.m_list__m_stmt]] *)
-and m_list__m_stmt (xsa: A.stmt list) (xsb: A.stmt list) =
+and m_list__m_stmt (xsa: A.stmt list) (xsb: A.stmt list) = 
   (*s: [[Generic_vs_generic.m_list__m_stmt]] if [[debug]] *)
   if !Flag.debug
   then pr2 (spf "%d vs %d" (List.length xsa) (List.length xsb));
@@ -1789,7 +1799,7 @@ and m_field_pattern a b =
   match a, b with
   | (a1, a2), (b1, b2) ->
     m_name a1 b1 >>= (fun () ->
-    m_pattern a2 b2
+        m_pattern a2 b2
     )
 (*e: function [[Generic_vs_generic.m_field_pattern]] *)
 
@@ -2094,7 +2104,7 @@ and m_type_definition a b =
   match a, b with
   { A. tbody = a1;},
   { B. tbody = b1; } ->
-    m_type_definition_kind a1 b1
+      m_type_definition_kind a1 b1
 (*e: function [[Generic_vs_generic.m_type_definition]] *)
 
 (*s: function [[Generic_vs_generic.m_type_definition_kind]] *)
