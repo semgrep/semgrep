@@ -6,7 +6,6 @@ on:
       - "master"
     tags:
       - "v*" # Push events to matching v*, i.e. v1.0, v20.15.10
-    # Don't benchmark changes to markdown files
 name: Incorporate Benchmark Data
 #     ^^^^^^^^^^^^^^^^^^^^^^^^^^
 # This string is matched in `latest-artifact-for-branch.py`:
