@@ -35,9 +35,12 @@ def test_rule_parser__failure__error_messages(run_semgrep_in_tmp, snapshot, file
     assert json_output["errors"] != []
 
     with pytest.raises(CalledProcessError) as excinfo_in_color:
-        run_semgrep_in_tmp(f"rules/syntax/{filename}.yaml", options=["--force-color"])
+        run_semgrep_in_tmp(
+            f"rules/syntax/{filename}.yaml",
+            options=["--force-color"],
+            output_format="normal",
+        )
 
-    snapshot.assert_match(excinfo.value.stderr, "error.txt")
     snapshot.assert_match(
         json.dumps(json_output, indent=2, sort_keys=True), "error.json"
     )
@@ -48,10 +51,17 @@ def test_rule_parser__failure__error_messages(run_semgrep_in_tmp, snapshot, file
 
 # https://github.com/returntocorp/semgrep/issues/1095
 def test_rule_parser_cli_pattern(run_semgrep_in_tmp, snapshot):
+    # Check json output
     with pytest.raises(CalledProcessError) as excinfo:
         run_semgrep_in_tmp(options=["-e", "#include<asdf><<>>><$X>", "-l", "c"])
-    snapshot.assert_match(excinfo.value.stderr, "error.txt")
     json_output = json.loads(excinfo.value.stdout)
     snapshot.assert_match(
         json.dumps(json_output, indent=2, sort_keys=True), "error.json"
     )
+
+    # Check pretty print output
+    with pytest.raises(CalledProcessError) as excinfo:
+        run_semgrep_in_tmp(
+            options=["-e", "#include<asdf><<>>><$X>", "-l", "c"], output_format="normal"
+        )
+    snapshot.assert_match(excinfo.value.stderr, "error.txt")
