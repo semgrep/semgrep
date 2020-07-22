@@ -5,8 +5,8 @@ on:
     branches:
       - develop
   pull_request:
-  paths-ignore:
-  - '**.md'
+    paths-ignore:
+    - '**.md'
 
 jobs:
   docker-build:
