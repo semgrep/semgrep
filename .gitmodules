@@ -7,3 +7,6 @@
 [submodule "ocaml-tree-sitter"]
 	path = ocaml-tree-sitter
 	url = https://github.com/returntocorp/ocaml-tree-sitter.git
+[submodule "setup-ocaml"]
+	path = setup-ocaml
+	url = https://github.com/returntocorp/setup-ocaml.git
