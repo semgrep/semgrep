@@ -2,10 +2,15 @@ name: Tests
 
 on:
   pull_request:
+    # Don't run on pull requests into the develop branch (b/c takes too long)
+    branches:
+      - master
     paths-ignore:
     - '**.md'
   push:
-    branches: [master, develop]
+    branches:
+      - master
+      - develop
 
 jobs:
   build-core:

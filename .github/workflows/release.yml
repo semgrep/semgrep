@@ -1,12 +1,18 @@
+name: Create Draft Release
+
 on:
-  push:
-    # Sequence of patterns matched against refs/tags
+  pull_request:
+    # Don't run on pull requests into the develop branch (b/c takes too long)
     branches:
+      - master
+  push:
+    branches:
+      - master
+      - develop
+      # Sequence of patterns matched against refs/tags
       - '**-test-release'
     tags:
       - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
-
-name: Create draft release
 
 jobs:
   create_release:

@@ -1,14 +1,22 @@
+name: Incorporate Benchmark Data
+#     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+# This string is matched in `latest-artifact-for-branch.py`:
+
 on:
   push:
     # Sequence of patterns matched against refs/tags
     branches:
-      - "develop"
-      - "master"
+      - develop
+      - master
     tags:
       - "v*" # Push events to matching v*, i.e. v1.0, v20.15.10
-name: Incorporate Benchmark Data
-#     ^^^^^^^^^^^^^^^^^^^^^^^^^^
-# This string is matched in `latest-artifact-for-branch.py`:
+  pull_request:
+    # Don't run on pull requests into the develop branch (b/c takes too long)
+    branches:
+      - master
+    paths-ignore:
+      - '**.md'
+
 jobs:
   build-core:
     runs-on: ubuntu-latest
