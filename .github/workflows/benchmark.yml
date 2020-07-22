@@ -14,12 +14,14 @@ name: Incorporate Benchmark Data
 jobs:
   build-core:
     runs-on: ubuntu-latest
-    container: ocaml/opam2:alpine
+    container: mjambon/r2c-ocaml:alpine
     steps:
-      - name: Adjust permissions
-        run: sudo chmod -R 777 . /github
+      - name: Pre-checkout fixes
+        run: sudo chmod -R 777 /github
       - name: Checkout
         uses: actions/checkout@v2
+      - name: Post-checkout fixes
+        run: ./.github/post-checkout
       - name: Build semgrep-core
         run: ./install-scripts/install-alpine-semgrep-core
       - name: Upload artifacts

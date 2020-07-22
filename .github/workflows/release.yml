@@ -133,16 +133,14 @@ jobs:
   build-core:
     name: semgrep-core make test and semgrep make test/qa-test
     runs-on: ubuntu-latest
-    container: ocaml/opam2:alpine
+    container: mjambon/r2c-ocaml:alpine
     steps:
-      - name: Adjust permissions
-        run: |
-          sudo chmod -R 777 . /github
-          # github cache dir
-          sudo mkdir -p /__w/
-          sudo chmod -R 777 /__w/
+      - name: Pre-checkout fixes
+        run: sudo chmod -R 777 /github
       - name: Checkout
         uses: actions/checkout@v2
+      - name: Post-checkout fixes
+        run: ./.github/post-checkout
       - name: Build semgrep-core
         run: ./install-scripts/install-alpine-semgrep-core
       - name: Upload artifacts
@@ -152,7 +150,7 @@ jobs:
           path: artifacts/semgrep-core
       - name: Test semgrep-core
         run: |
-          eval $(opam env --root /home/opam/.opam --set-root)
+          eval $(opam env)
           cd semgrep-core
           make test
 
