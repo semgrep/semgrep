@@ -2417,7 +2417,6 @@ and m_any a b =
   | A.S _, _  | A.T _, _  | A.P _, _  | A.Def _, _  | A.Dir _, _
   | A.Pa _, _  | A.Ar _, _  | A.At _, _  | A.Dk _, _ | A.Pr _, _
   | A.Fld _, _ | A.Ss _, _ | A.Tk _, _ | A.Lbli _, _ | A.Fldi _, _
-  | A.Modn _, _
    -> fail ()
   (*e: [[Generic_vs_generic.m_any]] boilerplate cases *)
 (*e: function [[Generic_vs_generic.m_any]] *)
