@@ -15,9 +15,7 @@ TREESITTER_LIBDIR ?= $(shell pkg-config --libs-only-L tree-sitter \
 export TREESITTER_LIBDIR
 
 all:
-    # Update output of semgrep-core -version
-	echo 'let version = "$(shell git describe --dirty --tags --long)"' > ./bin/version.ml
-
+	./scripts/make-version > ./bin/version.ml
 	dune build
 	dune build ./_build/default/tests/test.bc
 clean:
