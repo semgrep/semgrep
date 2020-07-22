@@ -2,10 +2,10 @@ name: Tests
 
 on:
   pull_request:
+    paths-ignore:
+    - '**.md'
   push:
     branches: [master, develop]
-  paths-ignore:
-  - '**.md'
 
 jobs:
   build-core:
