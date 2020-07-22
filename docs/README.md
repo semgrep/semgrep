@@ -20,7 +20,7 @@ It's easy to integrate Semgrep as a pre-commit hook or in one of many
 continuous integration (CI) systems.
 
 See [here](integrations.md) for example config files to run Semgrep using
-tools like AppVeyor, CircleCI, TravisCI, GitHub Actions, and Gitlab.
+tools like AppVeyor, CircleCI, TravisCI, GitHub Actions, and GitLab.
 
 ## Writing Rules
 
@@ -36,7 +36,7 @@ You can write and share rules directly from the live editor at https://semgrep.l
 
 See [Semgrep rule writing methodology](writing_rules/README.md) for details on
 the thought process behind writing and rolling out a new Semgrep rule
-sucessfully, and see [these docs](writing_rules/examples.md) for walkthroughs of
+successfully, and see [these docs](writing_rules/examples.md) for walkthroughs of
 writing rules from scratch.
 
 There's also an interactive, example-based Semgrep rule writing tutorial here:
