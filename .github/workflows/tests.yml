@@ -15,6 +15,8 @@ jobs:
         run: sudo chmod -R 777 /github
       - name: Checkout
         uses: actions/checkout@v2
+        with:
+          submodules: true
       - name: Post-checkout fixes
         run: ./.github/post-checkout
       - name: Build semgrep-core
@@ -39,6 +41,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+        with:
+          submodules: true
       - name: Setup Python
         uses: actions/setup-python@v1
         with:
@@ -83,6 +87,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+        with:
+          submodules: true
       - name: Setup Python
         uses: actions/setup-python@v1
         with:
@@ -120,6 +126,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+        with:
+          submodules: true
       - name: Download Artifact
         uses: actions/download-artifact@v1
         with:

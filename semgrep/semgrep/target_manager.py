@@ -10,11 +10,9 @@ import attr
 
 from semgrep.error import _UnknownLanguageError
 from semgrep.error import FilesNotFoundError
-from semgrep.error import SemgrepError
 from semgrep.output import OutputHandler
 from semgrep.semgrep_types import Language
 from semgrep.util import partition_set
-from semgrep.util import print_stderr
 from semgrep.util import sub_check_output
 
 FileExtension = NewType("FileExtension", str)

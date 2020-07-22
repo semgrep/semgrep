@@ -5,6 +5,7 @@ from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Sequence
+from typing import Tuple
 
 import attr
 from colorama import Fore
@@ -89,7 +90,15 @@ class FilesNotFoundError(SemgrepError):
         return "\n".join(lines)
 
 
-@attr.s(eq=True, hash=True, init=False)
+def span_list_to_tuple(spans: List[Span]) -> Tuple[Span, ...]:
+    """
+        Helper converter so mypy can track that we are converting
+        from list of spans to tuple of spans
+    """
+    return tuple(spans)
+
+
+@attr.s(auto_attribs=True, eq=True, frozen=True)
 class ErrorWithSpan(SemgrepError):
     """
     In general, you should not be constructing ErrorWithSpan directly, and instead be constructing a subclass
@@ -120,22 +129,17 @@ class ErrorWithSpan(SemgrepError):
     :cause cause: The underlying exception
     """
 
-    def __init__(
-        self,
-        short_msg: str,
-        long_msg: Optional[str],
-        spans: List[Span],
-        help: Optional[str] = None,
-    ):
+    short_msg: str = attr.ib()
+    long_msg: Optional[str] = attr.ib()
+    spans: List[Span] = attr.ib(converter=span_list_to_tuple)
+    help: Optional[str] = attr.ib(default=None)
 
-        self.short_msg = short_msg
-        self.long_msg = long_msg
-        self.spans = spans
-        self.help = help
-        assert hasattr(
-            self, "code"
-        ), "Inheritors of SemgrepError must define an exit code"
-        assert hasattr(self, "level"), "Inheritors of SemgrepError must define a level"
+    def __attrs_post_init__(self) -> None:
+        if not hasattr(self, "code"):
+            raise ValueError("Inheritors of SemgrepError must define an exit code")
+
+        if not hasattr(self, "level"):
+            raise ValueError("Inheritors of SemgrepError must define a level")
 
     def to_dict_base(self) -> Dict[str, Any]:
         base = dict(
@@ -239,25 +243,30 @@ class ErrorWithSpan(SemgrepError):
         return f"{header}\n{snippet_str}\n{help_str}\n{with_color(Fore.RED, self.long_msg or '')}\n"
 
 
+@attr.s(frozen=True, eq=True)
 class InvalidPatternError(ErrorWithSpan):
     code = INVALID_PATTERN_EXIT_CODE
     level = Level.ERROR
 
 
+@attr.s(frozen=True, eq=True)
 class InvalidRuleSchemaError(ErrorWithSpan):
     code = INVALID_PATTERN_EXIT_CODE
     level = Level.ERROR
 
 
+@attr.s(frozen=True, eq=True)
 class UnknownLanguageError(ErrorWithSpan):
     code = INVALID_LANGUAGE_EXIT_CODE
     level = Level.ERROR
 
 
+@attr.s(frozen=True, eq=True)
 class InvalidPatternNameError(InvalidRuleSchemaError):
     pass
 
 
+@attr.s(frozen=True, eq=True)
 class SourceParseError(ErrorWithSpan):
     code = INVALID_CODE_EXIT_CODE
     level = Level.WARN

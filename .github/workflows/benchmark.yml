@@ -20,6 +20,8 @@ jobs:
         run: sudo chmod -R 777 /github
       - name: Checkout
         uses: actions/checkout@v2
+        with:
+          submodules: true
       - name: Post-checkout fixes
         run: ./.github/post-checkout
       - name: Build semgrep-core

@@ -179,4 +179,28 @@ Please file issues with equivalences [here](https://github.com/returntocorp/semg
 
 ## Taint Tracking
 
-Experimental support for taint tracking will be available in semgrep soon.
+Python CLI support for taint tracking is now available! A taint-tracking rule uses the `mode: taint` key-value pair and replaces the typical [top-level pattern keys](https://github.com/returntocorp/semgrep/blob/develop/docs/configuration-files.md) with `pattern-sources` and `pattern-sinks` (required) and `pattern-sanitizers` (optional). For example:
+
+```yaml
+- id: rule_id
+  mode: taint
+  pattern-sources:
+    - source(...)
+    - source1(...)
+  pattern-sinks:
+    - sink(...)
+    - sink1(...)
+    - eval(...)
+  pattern-sanitizers:
+    - sanitize(...)
+    - sanitize1(...)
+  message: A user input source() went into a dangerous sink()
+  languages: [python]
+  severity: WARNING
+```
+
+A file containing the rule shown above can be found at `../semgrep-core/data/basic_tainting.yml`. To see this taint-tracking example in action, use the following command:
+
+```yaml
+semgrep --config ../semgrep-core/data/basic_tainting.yml ../semgrep-core/tests/TAINTING
+```
