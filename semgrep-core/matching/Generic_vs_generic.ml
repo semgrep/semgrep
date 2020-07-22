@@ -16,6 +16,7 @@
  *)
 (*e: pad/r2c copyright *)
 open Common
+open List
 
 (* A is the pattern, and B the concrete source code. For now
  * we both use the same module but they may differ later
@@ -995,7 +996,17 @@ and m_list__m_argument (xsa: A.argument list) (xsb: A.argument list) =
   (* dots: ..., can also match no argument *)
   | [A.Arg (A.Ellipsis _i)], [] ->
       return ()
-
+  (* Fix to issue 1173. Case where there are ellipsis to the left and right of a statement.
+    * Order should not matter in this case, as we can see from the go structs example.
+    * However, there is an issue where this will match a correct line twice occasionally.
+    * Look into m_list_in_any_order for correction in this case. *)
+   | (A.Arg (A.Ellipsis _i))::xsa, xsb
+     when let rev_xsa = rev xsa in
+         match rev_xsa with
+             | A.Arg (A.Ellipsis _i)::_ -> true
+             | _ -> false ->
+       (m_list__m_argument xsa xsb) >||>
+       m_list_in_any_order ~less_is_ok:true m_argument xsa xsb
   | A.Arg (A.Ellipsis i)::xsa, xb::xsb ->
       (* can match nothing *)
       (m_list__m_argument xsa (xb::xsb)) >||>
