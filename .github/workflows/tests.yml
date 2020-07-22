@@ -12,7 +12,11 @@ jobs:
     container: mjambon/r2c-ocaml:alpine
     steps:
       - name: Pre-checkout fixes
-        run: sudo chmod -R 777 /github
+        run: |
+          sudo chmod -R 777 /github
+          github_cache_dir="/__w"
+          sudo mkdir -p "$github_cache_dir"
+          sudo chmod -R 777 "$github_cache_dir"
       - name: Checkout
         uses: actions/checkout@v2
         with:
