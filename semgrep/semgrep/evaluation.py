@@ -13,7 +13,6 @@ logger = logging.getLogger(__name__)
 
 from semgrep.constants import RCE_RULE_FLAG
 from semgrep.error import NEED_ARBITRARY_CODE_EXEC_EXIT_CODE
-from semgrep.error import InvalidRuleSchemaError
 from semgrep.error import SemgrepError
 from semgrep.error import UnknownOperatorError
 from semgrep.pattern_match import PatternMatch
@@ -127,7 +126,7 @@ def _evaluate_single_expression(
                 code=NEED_ARBITRARY_CODE_EXEC_EXIT_CODE,
             )
         if not isinstance(expression.operand, str):
-            raise InvalidRuleSchemaError("pattern-where-python must have a string value")
+            raise SemgrepError("pattern-where-python must have a string value")
 
         # Look through every range that hasn't been filtered yet
         for pattern_match in list(flatten(pattern_ids_to_pattern_matches.values())):
@@ -168,7 +167,7 @@ def _evaluate_single_expression(
             or "metavariable" not in expression.operand
             or "regex" not in expression.operand
         ):
-            raise InvalidRuleSchemaError(
+            raise SemgrepError(
                 "'metavariable' and 'regex' keys required when using 'metavariable-regex' operator"
             )
         output_ranges = get_re_range_matches(

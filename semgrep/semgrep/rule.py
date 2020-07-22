@@ -183,7 +183,7 @@ class Rule:
         if not (isinstance(operand.value, str) or isinstance(operand.value, dict)):
             raise InvalidRuleSchemaError(
                 short_msg="invalid operand",
-                long_msg=f"type of `pattern` must be a string or dict, but it was a {type(operand.unroll()).__name__}",
+                long_msg=f"type of `operand` must be a string or dict, but it was a {type(operand.unroll()).__name__}",
                 spans=[operand.span.with_context(before=1, after=1)],
             )
         return operand.value
@@ -258,17 +258,6 @@ class Rule:
                 self._pattern_spans[rule_id] = pattern.span
                 return BooleanRuleExpression(
                     OPERATORS.REGEX, rule_id, None, self._validate_operand(pattern)
-                )
-
-        for pattern_name in pattern_names_for_operator(OPERATORS.METAVARIABLE_REGEX):
-            pattern = rule_raw.get(pattern_name)
-            if pattern:
-                self._pattern_spans[rule_id] = pattern.span
-                return BooleanRuleExpression(
-                    OPERATORS.METAVARIABLE_REGEX,
-                    rule_id,
-                    None,
-                    self._validate_operand(pattern),
                 )
 
         for pattern_name in pattern_names_for_operator(OPERATORS.AND_ALL):
