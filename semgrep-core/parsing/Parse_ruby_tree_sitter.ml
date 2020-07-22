@@ -1586,8 +1586,8 @@ and lhs (x : CST.lhs) : AST.expr =
         | Some x -> argument_list_with_trailing_comma x
         | None -> [])
       in
-      let _v4 = token2 v4 in
-      let e = DotAccess (v1, (v2), MethodOperator (Op_AREF, v2)) in
+      let v4 = token2 v4 in
+      let e = DotAccess (v1, v2, MethodOperator (Op_AREF, v4)) in
       Call (e, v3, None)
   | `Call x -> call x
   | `Meth_call x -> method_call x
