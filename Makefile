@@ -49,6 +49,7 @@ setup:
 	opam install -y --deps-only ./pfff
 	cd ocaml-tree-sitter && ./scripts/install-tree-sitter-lib
 	opam install -y --deps-only ./ocaml-tree-sitter
+	opam install -y --deps-only ./semgrep-core
 
 # This needs to run initially or when something changed in the external
 # build environment. This typically looks for the location of libraries
