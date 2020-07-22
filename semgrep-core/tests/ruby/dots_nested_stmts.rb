@@ -1,4 +1,4 @@
-def foo()
+def foo
     # ERROR:
     if 1 != 3 then
         foo()
