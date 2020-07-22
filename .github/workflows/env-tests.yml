@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     container: mjambon/r2c-ocaml:alpine
     steps:
-      # Cancel previous jobs. Useful when triggered by every push.
+      # Cancel previous jobs; Useful when triggered by every push.
       - name: Cancel Previous Runs
         uses: styfle/cancel-workflow-action@0.4.1
         with:
