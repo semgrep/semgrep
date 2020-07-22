@@ -246,11 +246,11 @@ run `pipenv shell` to enter pipenv virtual environment.
 
 ### Development Environment
 
-You can use Visual Studio Code \(vscode\) to edit the code of semgrep. The [reason-vscode](https://marketplace.visualstudio.com/items?itemName=jaredly.reason-vscode) Marketplace extension adds support for OCaml/Reason.
+You can use Visual Studio Code \(vscode\) to edit the code of Semgrep. The [reason-vscode](https://marketplace.visualstudio.com/items?itemName=jaredly.reason-vscode) Marketplace extension adds support for OCaml/Reason.
 
 The OCaml and Reason IDE extension by David Morrison is another valid extension, but it seems not as actively maintained as reason-vscode.
 
-The source of semgrep contains also a .vscode/ directory at its root containing a task file to automatically build semgrep from vscode.
+The source of Semgrep contains also a .vscode/ directory at its root containing a task file to automatically build Semgrep from vscode.
 
 Note that dune and ocamlmerlin must be in your PATH for vscode to correctly build and provide cross-reference on the code. In case of problems, do:
 
@@ -321,4 +321,4 @@ Semgrep.match_sts_sts                    :      0.559 sec     185064 count
 ### Testing
 
 `make test` in the `semgrep-core` directory will run tests that check code is correctly parsed
-and patterns perform as expected. To add a test in an appropriate lannguage subdirectory, `semgrep-core/tests/LANGUAGE`, create a target file (expected file extension given language) and a .sgrep file with a pattern. The testing suite will check that all places with a comment with `ERROR` were matches found by the .sgrep file. See existing tests for more clarity.
+and patterns perform as expected. To add a test in an appropriate language subdirectory, `semgrep-core/tests/LANGUAGE`, create a target file (expected file extension given language) and a .sgrep file with a pattern. The testing suite will check that all places with a comment with `ERROR` were matches found by the .sgrep file. See existing tests for more clarity.

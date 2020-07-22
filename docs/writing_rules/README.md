@@ -23,7 +23,7 @@ The following outlines a process we've found effective. At a high level, it's:
 1. Test your Semgrep rule and refine it by first running it on one real code
    repository, then across many
 1. After you're happy with your rule's performance, integrate it into your
-   continuous integration (CI) sytems so that it's run on every pull request to
+   continuous integration (CI) systems so that it's run on every pull request to
    ensure your code maintains a high quality bar.
 
 ### 1. Brainstorm What You Want to Find
