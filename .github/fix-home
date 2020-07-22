@@ -1,4 +1,4 @@
-#! /usr/bin/env
+#! /usr/bin/env bash
 #
 # Recover from changes made to our container by GitHub Actions.
 #
