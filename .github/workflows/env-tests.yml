@@ -9,16 +9,20 @@ on:
 jobs:
   build-core:
     runs-on: ubuntu-latest
-    container: ocaml/opam2:alpine
+    container: mjambon/r2c-ocaml:alpine
     steps:
-      - name: Adjust permissions
+      - name: Pre-checkout fixes
         run: |
-          sudo chmod -R 777 . /github
-          # github cache dir
-          sudo mkdir -p /__w/
-          sudo chmod -R 777 /__w/
+          sudo chmod -R 777 /github
+          github_cache_dir="/__w"
+          sudo mkdir -p "$github_cache_dir"
+          sudo chmod -R 777 "$github_cache_dir"
       - name: Checkout
         uses: actions/checkout@v2
+        with:
+          submodules: true
+      - name: Post-checkout fixes
+        run: ./.github/post-checkout
       - name: Build semgrep-core
         run: ./install-scripts/install-alpine-semgrep-core
       - name: Upload artifacts
