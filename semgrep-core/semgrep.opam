@@ -10,8 +10,8 @@ For more information see https://semsgrep.dev"""
 maintainer: "Yoann Padioleau <pad@r2c.dev>"
 authors: [ "Yoann Padioleau <pad@r2c.dev>" ]
 license: "LGPL-2.1"
-homepage: "https://semsgrep.dev"
-dev-repo: "git+https://github.com/returntocorp/semsgrep"
+homepage: "https://semgrep.dev"
+dev-repo: "git+https://github.com/returntocorp/semgrep"
 bug-reports: "https://github.com/returntocorp/semgrep/issues"
 
 depends: [
@@ -32,4 +32,4 @@ depends: [
   "pfff"
 ]
 
-build: ["make"]
+build: [make]
