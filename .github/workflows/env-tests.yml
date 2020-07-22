@@ -19,7 +19,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Post-checkout fixes
-        run: ./.github/fix-home
+        run: ./.github/post-checkout
       - name: Build semgrep-core
         run: ./install-scripts/install-alpine-semgrep-core
       - name: Upload artifacts
