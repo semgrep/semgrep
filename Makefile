@@ -8,9 +8,13 @@
 # development.
 #
 .PHONY: build
-build: build-pfff build-ocaml-tree-sitter
-	$(MAKE) -C semgrep-core
+build:
+	$(MAKE) -C build-core
 	cd semgrep && python3 -m pipenv install --dev
+
+.PHONY: build-core
+build-core: build-pfff build-ocaml-tree-sitter
+	$(MAKE) -C semgrep-core
 
 .PHONY: build-pfff
 build-pfff:
@@ -43,8 +47,9 @@ setup:
 	git submodule update --init --recursive
 	opam update -y
 	opam install -y --deps-only ./pfff
-	cd ocaml-tree-sitter && ./configure && ./scripts/install-tree-sitter-lib
+	cd ocaml-tree-sitter && ./scripts/install-tree-sitter-lib
 	opam install -y --deps-only ./ocaml-tree-sitter
+	opam install -y --deps-only ./semgrep-core
 
 # This needs to run initially or when something changed in the external
 # build environment. This typically looks for the location of libraries
