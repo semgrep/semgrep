@@ -1,8 +1,8 @@
-# Experimantal Features
+# Experimental Features
 
 ## Autofix
 
-Experimental support is available in semgrep using the `fix:` key in rule configuration files.
+Experimental support is available in Semgrep using the `fix:` key in rule configuration files.
 
 Example rule with autofix:
 
@@ -70,7 +70,7 @@ Please file issues with autofix [here](https://github.com/returntocorp/semgrep/i
 
 ## Equivalences
 
-Experimental support for equivalences is available in semgrep. Equivalences will define code patterns which semgrep should consider equivalent.  For example, you may wish to define the commutative property for the plus operator:
+Experimental support for equivalences is available in Semgrep. Equivalences will define code patterns which Semgrep should consider equivalent.  For example, you may wish to define the commutative property for the plus operator:
 
 ```
 $X + $Y <==> $Y + $X
@@ -114,7 +114,7 @@ Please file issues with equivalences [here](https://github.com/returntocorp/semg
 
 ## Typed Metavariables
 
-  Experimental support for typed metavariables is available for Java and Go in semgrep. Typed metavariables specify that the metavariable is only matched if it is of a specific type. For example, you may want to specifically check that == is never used for Strings:
+  Experimental support for typed metavariables is available for Java and Go in Semgrep. Typed metavariables specify that the metavariable is only matched if it is of a specific type. For example, you may want to specifically check that == is never used for Strings:
 
   ```
  (String $X) == $Y

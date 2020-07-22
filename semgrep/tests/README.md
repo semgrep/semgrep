@@ -19,7 +19,7 @@ This is the only directory that counts for test coverage.
 ### :construction: `unit/property/`
 
 This directory is for property-based tests
-which programatically generate a wide array of inputs to ensure
+which programmatically generate a wide array of inputs to ensure
 our general-purpose utils aren't tripped up by any kind of possible input.
 
 ### `e2e/`
@@ -39,7 +39,7 @@ and if it seems sensible, just update the snapshots with `make regenerate-tests`
 ### `qa/`
 
 QA tests are automated quality assurance scenarios,
-such as running semgrep on various real life repositories.
+such as running Semgrep on various real life repositories.
 
 These need to run only when doing QA for releases,
 and can be run with `make qa-test` instead of `make test`.
@@ -47,7 +47,7 @@ and can be run with `make qa-test` instead of `make test`.
 ### :construction: `performance/`
 
 This directory is for benchmarking tests
-that ensure that semgrep runs fast enough.
+that ensure that Semgrep runs fast enough.
 
 ## Fixtures
 
