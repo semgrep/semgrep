@@ -242,7 +242,10 @@ class OutputHandler:
         if error not in self.error_set:
             self.semgrep_structured_errors.append(error)
             self.error_set.add(error)
-            logger.error(str(error))
+            if self.settings.output_format == OutputFormat.TEXT:
+                # Only show errors on stderr when not using format
+                # that includes errors
+                logger.error(str(error))
 
     def handle_semgrep_core_output(
         self,

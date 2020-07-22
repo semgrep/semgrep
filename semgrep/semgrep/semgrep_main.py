@@ -260,7 +260,7 @@ def invoke_semgrep(config: Path, targets: List[Path], **kwargs: Any) -> Any:
             output_format=OutputFormat.JSON,
             output_destination=None,
             error_on_findings=False,
-            strict=True,
+            strict=False,
         ),
         stdout=io_capture,
     )
