@@ -6,8 +6,6 @@ on:
     - '**.md'
   push:
     branches: [master, develop]
-  
-
 jobs:
   build-core:
     runs-on: ubuntu-latest
