@@ -132,3 +132,21 @@ def test_nosem_rule__invalid_id(run_semgrep_in_tmp, snapshot):
     assert excinfo.value.returncode == 2
     snapshot.assert_match(excinfo.value.stderr, "error.txt")
     snapshot.assert_match(excinfo.value.stdout, "error.json")
+
+
+def test_metavariable_regex_rule(run_semgrep_in_tmp, snapshot):
+    snapshot.assert_match(
+        run_semgrep_in_tmp("rules/metavariable-regex.yaml"), "results.json"
+    )
+
+
+def test_metavariable_regex_multi_rule(run_semgrep_in_tmp, snapshot):
+    snapshot.assert_match(
+        run_semgrep_in_tmp("rules/metavariable-regex-multi-rule.yaml"), "results.json"
+    )
+
+
+def test_metavariable_multi_regex_rule(run_semgrep_in_tmp, snapshot):
+    snapshot.assert_match(
+        run_semgrep_in_tmp("rules/metavariable-regex-multi-regex.yaml"), "results.json"
+    )

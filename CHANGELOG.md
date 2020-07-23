@@ -2,6 +2,13 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- The `metavariable-regex` operator, which filters finding's by metavariable
+  value against a Python re.match compatible expression.
+
 ## [0.16.0](https://github.com/returntocorp/semgrep/releases/tag/v0.16.0) - 2020-07-21
 
 ### Added
