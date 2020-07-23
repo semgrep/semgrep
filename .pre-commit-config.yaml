@@ -50,28 +50,28 @@ repos:
         additional_dependencies: ["flake8-bugbear==20.1.4"]
         args: ["--select=B,E9,F63,F7,F82"]
 
-  - repo: https://github.com/returntocorp/semgrep
-    rev: 'v0.14.0'
+  - repo: https://github.com/returntocorp/semgrep-pre-commit
+    rev: 'v0.16.0'
     hooks:
-      - id: semgrep-develop
+      - id: semgrep
         name: Semgrep Python
         types: [python]
         exclude: "^semgrep/tests/.+$|^install-scripts/.+$|^release-scripts/.+$|^semgrep/setup.py$"
         args: ['--config', 'https://semgrep.live/p/python', '--error']
 
-  - repo: https://github.com/returntocorp/semgrep
-    rev: 'v0.14.0'
+  - repo: https://github.com/returntocorp/semgrep-pre-commit
+    rev: 'v0.16.0'
     hooks:
-      - id: semgrep-develop
+      - id: semgrep
         name: Semgrep Bandit
         types: [python]
         exclude: "^semgrep/tests/.+$|^install-scripts/.+$|^release-scripts/.+$|^semgrep/setup.py$"
         args: ['--config', 'https://semgrep.live/p/bandit', '--error']
 
-  - repo: https://github.com/returntocorp/semgrep
-    rev: 'v0.14.0'
+  - repo: https://github.com/returntocorp/semgrep-pre-commit
+    rev: 'v0.16.0'
     hooks:
-      - id: semgrep-develop
+      - id: semgrep
         name: Semgrep Local
         types: [python]
         exclude: "^semgrep/tests/.+$|^install-scripts/.+$|^release-scripts/.+$|^semgrep/setup.py$"
