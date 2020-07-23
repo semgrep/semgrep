@@ -3,7 +3,7 @@
     {
       "code": 4,
       "level": "error",
-      "long_msg": "operand for pattern-inside must be a string, but instead was list",
+      "long_msg": "operand for pattern-inside must be a string or dict, but instead was list",
       "short_msg": "invalid operand",
       "spans": [
         {

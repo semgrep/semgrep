@@ -4,6 +4,7 @@ from typing import Iterator
 from typing import List
 from typing import Optional
 from typing import Tuple
+from typing import Union
 
 from semgrep.equivalences import Equivalence
 from semgrep.error import InvalidPatternNameError
@@ -150,7 +151,13 @@ class Rule:
                         )
                 else:
                     pattern_text, pattern_span = sub_pattern.value, sub_pattern.span
-                    if isinstance(pattern_text, str):
+
+                    if isinstance(pattern_text, YamlMap):
+                        pattern_text = {
+                            k.value: v.value for k, v in pattern_text.items()
+                        }
+
+                    if isinstance(pattern_text, str) or isinstance(pattern_text, dict):
                         pattern_id = PatternId(f"{prefix}.{pattern_id_idx}")
                         self._pattern_spans[pattern_id] = pattern_span
                         yield BooleanRuleExpression(
@@ -163,7 +170,7 @@ class Rule:
                     else:
                         raise InvalidRuleSchemaError(
                             short_msg="invalid operand",
-                            long_msg=f"operand for {boolean_operator} must be a string, but instead was {type(sub_pattern.unroll()).__name__}",
+                            long_msg=f"operand for {boolean_operator} must be a string or dict, but instead was {type(sub_pattern.unroll()).__name__}",
                             spans=[
                                 boolean_operator_yaml.span.extend_to(
                                     pattern_span
@@ -172,11 +179,11 @@ class Rule:
                         )
 
     @staticmethod
-    def _validate_operand(operand: YamlTree) -> str:  # type: ignore
-        if not isinstance(operand.value, str):
+    def _validate_operand(operand: YamlTree) -> Union[str, dict]:  # type: ignore
+        if not (isinstance(operand.value, str) or isinstance(operand.value, dict)):
             raise InvalidRuleSchemaError(
                 short_msg="invalid operand",
-                long_msg=f"type of `pattern` must be a string, but it was a {type(operand.unroll()).__name__}",
+                long_msg=f"type of `operand` must be a string or dict, but it was a {type(operand.unroll()).__name__}",
                 spans=[operand.span.with_context(before=1, after=1)],
             )
         return operand.value
