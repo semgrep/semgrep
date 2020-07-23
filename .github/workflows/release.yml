@@ -1,12 +1,13 @@
+name: Create Draft Release
+
 on:
   push:
-    # Sequence of patterns matched against refs/tags
     branches:
+      - develop
+      # Sequence of patterns matched against refs/tags
       - '**-test-release'
     tags:
       - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
-
-name: Create draft release
 
 jobs:
   create_release:
