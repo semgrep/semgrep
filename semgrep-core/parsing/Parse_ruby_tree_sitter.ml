@@ -1662,7 +1662,7 @@ and pair (x : CST.pair) =
   (match x with
   | `Pair_arg_EQGT_arg (v1, v2, v3) ->
       let v1 = arg v1 in
-      let v2 = token2 v2 in
+      let v2 = token2 v2 in  (* => *)
       let v3 = arg v3 in
       Binop(v1, (Op_ASSOC, v2), v3)
   | `Pair_choice_id_hash_key_COLON_arg (v1, v2, v3) ->
@@ -1676,9 +1676,12 @@ and pair (x : CST.pair) =
         Literal (String (Double xs, t1))
         )
       in
-      let v2 = token2 v2 in
+      let v2 = token2 v2 in (* : *)
       let v3 = arg v3 in
-      Binop(v1, (Op_ASSOC, v2), v3)
+      (match v1 with
+      | Id (x, _) -> AST.keyword_arg_to_expr x v2 v3
+      | _ -> Binop(v1, (Op_ASSOC, v2), v3)
+      )
   )
 
 let program ((v1, _v2interpreted) : CST.program) : AST.stmts  =
