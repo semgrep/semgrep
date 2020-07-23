@@ -46,6 +46,9 @@ LANGUAGE_EXCEPTIONS = {
     ],
     "c": [
         "naming_import",
+    ],
+    "ruby": [
+        "naming_import",
     ]
 }
 
