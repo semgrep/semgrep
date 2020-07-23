@@ -18,6 +18,7 @@ Contents:
   * [`patterns`](configuration-files.md#patterns)
   * [`pattern-either`](configuration-files.md#pattern-either)
   * [`pattern-regex`](configuration-files.md#pattern-regex)
+  * [`metavariable-regex`](configuration-files.md#metavariable-regex)
   * [`pattern-not`](configuration-files.md#pattern-not)
   * [`pattern-inside`](configuration-files.md#pattern-inside)
   * [`pattern-not-inside`](configuration-files.md#pattern-not-inside)
@@ -109,6 +110,7 @@ The below optional fields must reside underneath a `patterns` or `pattern-either
 
 | Field | Type | Description |
 | :--- | :--- | :--- |
+| [`metavariable-regex`](configuration-files.md#metavariable-regex) | `map` | Search metavariables for [Python `re.match`](https://docs.python.org/3/library/re.html#re.match) compatible expressions. |
 | [`pattern-not`](configuration-files.md#pattern-not) | `string` | Logical NOT - remove findings matching this expression. |
 | [`pattern-inside`](configuration-files.md#pattern-inside) | `string` | Keep findings that lie inside this pattern. |
 | [`pattern-not-inside`](configuration-files.md#pattern-not-inside) | `string` | Keep findings that do not lie inside this pattern. |
@@ -196,6 +198,30 @@ rules:
 
 *Note that single (`'`) and double (`"`) quotes [behave differently](https://docs.octoprint.org/en/master/configuration/yaml.html#scalars)
 in YAML syntax. Single quotes are typically preferred when using backslashes (`\`) with `pattern-regex`.*
+
+### `metavariable-regex`
+
+The `metavariable-regex` operator searches metavariables for a [Python `re.match`](https://docs.python.org/3/library/re.html#re.match)
+compatible expression. This is useful for filtering results based on a [metavariable's](/docs/pattern-features.md#metavariables)
+value.
+
+**Example**
+
+The `metavariable-regex` operator is a mapping which requires the
+`metavariable` and `regex` keys. It can be combined with other pattern operators:
+
+```yaml
+rules:
+  - id: insecure-methods
+    patterns:
+      - pattern: module.$METHOD(...)
+      - metavariable-regex:
+          metavariable: '$METHOD'
+          regex: '(insecure1|insecure2|insecure3)'
+    message: "module using insecure method call"
+    languages: [python]
+    severity: ERROR
+```
 
 ### `pattern-not`
 
