@@ -86,14 +86,16 @@ class PostInstallCommand(install):
             os.putenv("SKIP_NUITKA", "TRUE")
             if "osx" in distutils.util.get_platform():
                 with chdir(repo_root):
-                    os.system(os.path.join(repo_root, "release-scripts/osx-release.sh"))
-                    source = os.path.join(repo_root, "artifacts/semgrep-core")
+                    os.system(
+                        os.path.join(repo_root, "release-scripts", "osx-release.sh")
+                    )
+                    source = os.path.join(repo_root, "artifacts", "semgrep-core")
             else:
                 with chdir(repo_root):
                     os.system(
-                        os.path.join(repo_root, "release-scripts/ubuntu-release.sh")
+                        os.path.join(repo_root, "release-scripts", "ubuntu-release.sh")
                     )
-                    source = os.path.join(repo_root, "semgrep-files/semgrep-core")
+                    source = os.path.join(repo_root, "semgrep-files", "semgrep-core")
 
         ## run this after trying to build (as otherwise this leaves
         ## venv in a bad state: https://github.com/benfred/py-spy/issues/69)
