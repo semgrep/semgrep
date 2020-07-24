@@ -107,8 +107,8 @@ let rec stmt env level =
 function
   | ExprStmt (e, tok) -> F.sprintf "%s%s" (expr env e) (token "" tok)
   | Block (x) -> block env x level
-  | If (tok, e, s, sopt) -> if_stmt env (token "if" tok, e, s, sopt)
-  (* | While (tok, e, s) -> while_stmt env (tok, e, s) *)
+  | If (tok, e, s, sopt) -> if_stmt env level (token "if" tok, e, s, sopt)
+  | While (tok, e, s) -> while_stmt env level (tok, e, s)
   | Return (tok, eopt) -> return env (tok, eopt)
   | x -> todo (S x)
 
@@ -130,12 +130,11 @@ and block env (t1, ss, t2) level =
    in
      F.sprintf "%s%s%s" (get_boundary t1) (show_statements env ss) (get_boundary t2)
 
-(* todo sorry someone is going to hate me over this at some point*)
-and if_stmt env (tok, e, s, sopt) =
-  let no_paren_cond = F.sprintf "%s %s" in
-  let paren_cond = F.sprintf "%s (%s)" in
-  let colon_body = F.sprintf "%s:\n%s\n" in
-  let bracket_body = F.sprintf "%s %s\n"
+and if_stmt env level (tok, e, s, sopt) =
+  let no_paren_cond = F.sprintf "%s %s" in (* if cond *)
+  let paren_cond = F.sprintf "%s (%s)" in (* if cond *)
+  let colon_body = F.sprintf "%s:\n%s\n" in (* (if cond) body *)
+  let bracket_body = F.sprintf "%s %s\n" (* (if cond) body *)
   in
   let (format_cond, elseif_str, format_block) =
     (match env.lang with
@@ -146,14 +145,29 @@ and if_stmt env (tok, e, s, sopt) =
     )
   in
   let e_str = format_cond tok (expr env e) in
-  let s_str = (stmt env 1 s) in
+  let s_str = (stmt env (level + 1) s) in
   let if_stmt_prt = format_block e_str s_str in
         match sopt with
         | None -> if_stmt_prt
-        | Some (Block(_, [If (_, e', s', sopt')], _)) -> F.sprintf "%s%s" if_stmt_prt (if_stmt env (elseif_str, e', s', sopt'))
-        | Some (body) -> F.sprintf "%s%s" if_stmt_prt (format_block "else" (stmt env 1 body))
+        | Some (Block(_, [If (_, e', s', sopt')], _)) -> F.sprintf "%s%s" if_stmt_prt (if_stmt env level (elseif_str, e', s', sopt'))
+        | Some (body) -> F.sprintf "%s%s" if_stmt_prt (format_block "else" (stmt env (level + 1) body))
 
-(* and while_stmt env (tok, e, s) = *)
+and while_stmt env level (tok, e, s) =
+   let ocaml_while = F.sprintf "%s %s do\n%s\ndone\n" in
+   let python_while = F.sprintf "%s %s:\n%s\n" in
+   let go_while = F.sprintf "%s %s %s\n" in
+   let c_while = F.sprintf "%s (%s) %s\n" in
+   let ruby_while = F.sprintf "%s %s\n %s\nend\n" in
+   let while_format =
+      (match env.lang with
+      | Lang.Python | Lang.Python2 | Lang.Python3 -> python_while
+      | Lang.Java | Lang.C | Lang.JSON | Lang.Javascript | Lang.Typescript -> c_while
+      | Lang.Go -> go_while
+      | Lang.Ruby -> ruby_while
+      | Lang.OCaml -> ocaml_while
+      )
+   in
+      while_format (token "while" tok) (expr env e) (stmt env (level + 1) s)
 
 
 and return env (tok, eopt) =

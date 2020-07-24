@@ -191,10 +191,7 @@ let generalize_id env e =
 (* Assign *)
 let rec include_e2_patterns env (e1, tok, e2) =
   let (env', id) = get_id env e1 in
-  let e2_patterns = generalize_exp e2 env' in
-  List.map (fun x -> match x with | (s, E pat) -> ("righthand " ^ s, E (Assign(id, tok, pat)))
-                                  | _ -> raise (UnexpectedCase "Must pass in an any of form E x"))
-           e2_patterns
+  add_expr e2 (fun (s, pat) -> ("righthand " ^ s, E (Assign(id, tok, pat)))) env'
 
 and generalize_assign env e =
   match e with
@@ -222,10 +219,13 @@ and generalize_exp e env =
   | _ -> []
 
 (* All statements *)
-and generalize_exprstmt (e, tok) env =
-  List.map (fun x -> match x with | (s, E e') -> (s, S (ExprStmt(e', tok)))
+and add_expr e f env =
+  List.map (fun x -> match x with | (s, E e') -> f (s, e')
                                   | _ -> raise (UnexpectedCase "Must pass in an any of form E x"))
            (generalize_exp e env)
+
+and generalize_exprstmt (e, tok) env =
+  add_expr e (fun (s, e') -> (s, S (ExprStmt (e', tok)))) env
 
 and generalize_if s_in =
   let opt f so =
@@ -248,6 +248,8 @@ and generalize_if s_in =
   in
   ["dots in body", S (dots_in_body s_in); "dots in cond", S (dots_in_cond s_in)]
 
+and generalize_while _ = []
+
 and generalize_block ss =
   let rec get_last = function
   | [] -> []
@@ -263,6 +265,7 @@ and generalize_stmt s env =
   match s with
   | ExprStmt (e, tok) -> generalize_exprstmt (e, tok) env
   | If _ -> generalize_if s
+  | While _ -> generalize_while s
   | Block (t1, ss, t2) -> ["dots", S (Block ((t1, generalize_block ss, t2)))]
   | _ -> []
 
