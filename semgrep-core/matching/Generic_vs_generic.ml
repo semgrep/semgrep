@@ -528,6 +528,17 @@ and m_expr a b =
     | A.IdSpecial(a1), B.IdSpecial(b1) ->
       m_wrap m_special a1 b1
 
+    (* This is mainly for Go which generates an AssignOp (Eq)
+     * for the x := a short variable declaration.
+     * TODO: this should be a configurable equivalence: $X = $Y ==> $X := $Y.
+     * Some people want it, some people may not want it.
+     * At least we dont do the opposite (AssignOp matching Assign) so
+     * using := in a pattern will not match code using just =
+     * (but pattern using = will match both code using = or :=).
+     *)
+    | A.Assign(a1, a2, a3), B.AssignOp (b1, (B.Eq,b2), b3) ->
+      m_expr (A.Assign(a1, a2, a3)) (B.Assign(b1, b2, b3))
+
     | A.AssignOp(a1, a2, a3), B.AssignOp(b1, b2, b3) ->
       m_expr a1 b1 >>= (fun () ->
       m_wrap m_arithmetic_operator a2 b2 >>= (fun () ->
