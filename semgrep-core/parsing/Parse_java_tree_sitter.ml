@@ -1217,7 +1217,7 @@ and declaration (env : env) (x : CST.declaration) : AST.stmt =
   | `Inte_decl x ->
         DeclStmt (Class (interface_declaration env x))
   | `Anno_type_decl x ->
-        DeclStmt (AnnotationType (annotation_type_declaration env x))
+        DeclStmt (Class (annotation_type_declaration env x))
   | `Enum_decl x ->
         DeclStmt (Enum (enum_declaration env x))
   )
@@ -1276,7 +1276,7 @@ and class_body_decl env = function
   | `Meth_decl x -> [Method (method_declaration env x)]
   | `Class_decl x -> [Class (class_declaration env x)]
   | `Inte_decl x -> [Class (interface_declaration env x)]
-  | `Anno_type_decl x -> [AnnotationType (annotation_type_declaration env x)]
+  | `Anno_type_decl x -> [Class (annotation_type_declaration env x)]
   | `Enum_decl x -> [Enum (enum_declaration env x)]
   | `Blk x -> let x = block env x in
           [Init (false, x)]
@@ -1527,16 +1527,18 @@ and field_declaration (env : env) ((v1, v2, v3, v4) : CST.field_declaration) =
   decls (fun x -> Field x) v1 v2 v3
 
 
-and annotation_type_declaration (env : env) ((v1, v2, v3, v4) : CST.annotation_type_declaration) : annotation_type_decl =
+and annotation_type_declaration (env : env) ((v1, v2, v3, v4) : CST.annotation_type_declaration) : class_decl =
   let v1 =
     (match v1 with
     | Some x -> modifiers env x
     | None -> [])
   in
-  let v2 = token env v2 (* "@interface" *) in
+  let _v2 = token env v2 (* "@interface" *) in
   let v3 = identifier env v3 (* pattern [a-zA-Z_]\w* *) in
   let v4 = annotation_type_body env v4 in
-  { an_tok = v2; an_mods = v1; an_name = v3; an_body = v4 }
+  { cl_mods = v1; cl_name = v3; cl_body = v4; cl_kind = AtInterface;
+    cl_tparams = []; cl_extends = None; cl_impls = [];
+  }
 
 
 and annotation_type_body (env : env) ((v1, v2, v3) : CST.annotation_type_body) =
@@ -1549,8 +1551,7 @@ and annotation_type_body (env : env) ((v1, v2, v3) : CST.annotation_type_body) =
       | `Cst_decl x -> constant_declaration env x
       | `Class_decl x -> [Class (class_declaration env x)]
       | `Inte_decl x -> [Class (interface_declaration env x)]
-      | `Anno_type_decl x ->
-              [AnnotationType (annotation_type_declaration env x)]
+      | `Anno_type_decl x -> [Class (annotation_type_declaration env x)]
       )
     ) v2
   in
@@ -1628,8 +1629,7 @@ and interface_body (env : env) ((v1, v2, v3) : CST.interface_body) =
       | `Meth_decl x -> [Method (method_declaration env x)]
       | `Class_decl x -> [Class (class_declaration env x)]
       | `Inte_decl x -> [Class (interface_declaration env x)]
-      | `Anno_type_decl x ->
-              [AnnotationType (annotation_type_declaration env x)]
+      | `Anno_type_decl x -> [Class (annotation_type_declaration env x)]
       | `SEMI tok -> [EmptyDecl (token env tok) (* ";" *)]
       )
     ) v2
