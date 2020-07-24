@@ -109,6 +109,7 @@ function
   | Block (x) -> block env x level
   | If (tok, e, s, sopt) -> if_stmt env level (token "if" tok, e, s, sopt)
   | While (tok, e, s) -> while_stmt env level (tok, e, s)
+  | DoWhile (_tok, s, e) -> do_while stmt env level (s, e)
   | Return (tok, eopt) -> return env (tok, eopt)
   | x -> todo (S x)
 
@@ -169,6 +170,20 @@ and while_stmt env level (tok, e, s) =
    in
       while_format (token "while" tok) (expr env e) (stmt env (level + 1) s)
 
+and do_while stmt env level (s, e) =
+   let c_do_while = F.sprintf "do %s\nwhile(%s)" in
+   let do_while_format =
+    (match env.lang with
+    | Lang.Java | Lang.C | Lang.Javascript | Lang.Typescript -> c_do_while
+    | Lang.Python | Lang.Python2 | Lang.Python3
+    | Lang.Go | Lang.JSON | Lang.OCaml -> failwith "impossible; no do while"
+    | Lang.Ruby -> failwith "ruby is so weird (here, do while loop)"
+    )
+   in
+      do_while_format (stmt env (level + 1) s) (expr env e)
+
+
+  (* For of tok (* 'for', 'foreach'*) * for_header * stmt *)
 
 and return env (tok, eopt) =
   let to_return =

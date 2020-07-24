@@ -78,7 +78,7 @@ let python_tests = [
    "deep metavars", "f($X, b(g($X, $Y)), $Z, c($Y), $X, $Z)"
   ];
 
-  "arrays_and_funcs.py", "19:3-19:32",
+  "arrays_and_funcs.py", "19:6-19:27",
   ["exact match", "node.id == node.id";
    "exact metavars", "$X == $X"];
 
@@ -103,30 +103,30 @@ let python_tests = [
 
 let java_tests = [
   "typed_funcs.java", "6:8-6:14",
-  ["exact match", "this.foo(a)";
-   "dots", "this.foo(...)";
-   "metavars", "this.foo($X, ...)";
-   "exact metavars", "this.foo($X)";
-   "typed metavars", "this.foo((int $X))"
+  ["exact match", "this.foo(a);";
+   "dots", "this.foo(...);";
+   "metavars", "this.foo($X, ...);";
+   "exact metavars", "this.foo($X);";
+   "typed metavars", "this.foo((int $X));"
   ];
 
   "typed_funcs.java", "7:8-7:42",
-  ["exact match", "this.foo(this.bar(this.car(a)), b, this.foo(b, c), d)";
-   "dots", "this.foo(...)";
-   "metavars", "this.foo($X, $Y, $Z, $A, ...)";
-   "exact metavars", "this.foo($X, $Y, $Z, $A)";
+  ["exact match", "this.foo(this.bar(this.car(a)), b, this.foo(b, c), d);";
+   "dots", "this.foo(...);";
+   "metavars", "this.foo($X, $Y, $Z, $A, ...);";
+   "exact metavars", "this.foo($X, $Y, $Z, $A);";
    "typed metavars",
-     "this.foo(this.bar(this.car((int $X))), (String $Y), this.foo((String $Y), (bool $Z)), $A)";
-   "deep metavars", "this.foo(this.bar(this.car($X)), $Y, this.foo($Y, $Z), $A)"
+     "this.foo(this.bar(this.car((int $X))), (String $Y), this.foo((String $Y), (bool $Z)), $A);";
+   "deep metavars", "this.foo(this.bar(this.car($X)), $Y, this.foo($Y, $Z), $A);"
   ];
 
   "typed_funcs.java", "8:8-8:26",
-  ["exact match", "this.foo(this.foo(a, b), c)";
-   "dots", "this.foo(...)";
-   "metavars", "this.foo($X, $Y, ...)";
-   "exact metavars", "this.foo($X, $Y)";
-   "typed metavars", "this.foo(this.foo((int $X), (String $Y)), (bool $Z))";
-   "deep metavars", "this.foo(this.foo($X, $Y), $Z)"
+  ["exact match", "this.foo(this.foo(a, b), c);";
+   "dots", "this.foo(...);";
+   "metavars", "this.foo($X, $Y, ...);";
+   "exact metavars", "this.foo($X, $Y);";
+   "typed metavars", "this.foo(this.foo((int $X), (String $Y)), (bool $Z));";
+   "deep metavars", "this.foo(this.foo($X, $Y), $Z);"
   ];
 
    "typed_funcs.java", "6:12-6:14",
@@ -136,10 +136,10 @@ let java_tests = [
    ];
 
   "typed_funcs.java", "10:8-10:30",
-  ["exact match", "System.out.print(\"A\")";
-   "dots", "System.out.print(...)";
-   "metavars", "System.out.print($X, ...)";
-   "exact metavars", "System.out.print($X)";
+  ["exact match", "System.out.print(\"A\");";
+   "dots", "System.out.print(...);";
+   "metavars", "System.out.print($X, ...);";
+   "exact metavars", "System.out.print($X);";
   ];
 
   "typed_funcs.java", "11:20-11:47",
@@ -179,9 +179,12 @@ let unittest =
             let pattern = Parse_generic.parse_pattern lang pat in
             let e_opt = Range_to_AST.any_at_range r code in
                match e_opt with
-                 | Some e ->
+                 | Some any ->
+                    let a = match (pattern, any) with
+                              | (A.E _, A.S (A.ExprStmt (e, _))) -> A.E e
+                              | (_, x) -> x in
                     let matches_with_env = Semgrep_generic.match_any_any
-                          pattern e in
+                          pattern a in
                     (* Debugging note: uses pattern_to_string for convenience,
                      * but really should match the code in the given file at
                      * the given range *)
@@ -189,12 +192,12 @@ let unittest =
                     then begin
                       pr2 str;
                       pr2 (AST_generic.show_any (pattern));
-                      pr2 (AST_generic.show_any e);
+                      pr2 (AST_generic.show_any a);
 
                     end;
                     assert_bool (spf "pattern:|%s| should match |%s"
                               pat
-                              (PPG.pattern_to_string lang e))
+                              (PPG.pattern_to_string lang a))
                            (matches_with_env <> [])
 
                  | None ->
