@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-import os
+from io import StringIO
+import os, subprocess, sys
+import tempfile
+import yaml
 import json
 import collections
 import glob
@@ -36,7 +39,7 @@ VERBOSE_SUBCATEGORY_NAME = {
     "naming_import": "Import Renaming/Aliasing",
     "constant_propagation": "Constant Propagation",
     "fieldname": "Field Names",
-    "syntax": "Exact AST Match",
+    "syntax": "Exact Syntax Match",
     "exprstmt": "Expression and Statement",
 }
 
@@ -88,6 +91,53 @@ def find_path(root_dir: str, lang: str, category: str, subcategory: str, extensi
         joined = generic_base_path + '.' + extension
         return os.path.relpath(joined, root_dir)
 
+def _single_pattern_to_dict(pattern: str, language: str) -> Dict[str, Any]:
+    pattern = pattern.strip()
+    if len(pattern.split("\n")) > 1:
+        pattern = (
+            pattern + "\n"
+        )  # make sure multi-line patterns end in new-line otherwise semgrep dies # TODO is this still true?
+
+    sgrep_config_default: Dict[str, Any] = {
+        "rules": [
+            {
+                "id": 'default-example',
+                "patterns": [{"pattern": pattern}],
+                "message": 'msg',
+                "languages": [language],
+                "severity": 'WARNING',
+            }
+        ]
+    }
+    sgrep_config_default["rules"][0]["patterns"][0]["pattern"] = pattern
+    return sgrep_config_default
+
+def _config_to_string(config: Any) -> str:
+    stream = StringIO()
+    yaml.dump(config, stream)
+    return stream.getvalue()
+
+def run_semgrep_on_example(lang: str, config_arg_str: str, code_path: str) -> str:
+    with tempfile.NamedTemporaryFile('w') as config:
+        pattern_text = open(config_arg_str).read()
+        config.write(_config_to_string(_single_pattern_to_dict(pattern_text, lang)))
+        config.flush()
+        cmd = [
+            "semgrep",
+            # "--verbose",
+            "--json",
+            f"--config={config.name}",
+        ] + [code_path]
+        # print_stderr(">>>" + ' '.join(cmd))
+        output = subprocess.run(cmd, capture_output=True)
+        if output.returncode == 0:
+            # if verbose:
+            print(output.stderr.decode("utf-8"))
+            return output.stdout.decode("utf-8")
+        else:
+            print(output.stderr)
+            sys.exit(1)
+
 def generate_cheatsheet(root_dir: str):
     # output : {'dots': {'arguments': ['foo(...)', 'foo(1)'], } }
     output = collections.defaultdict(lambda: collections.defaultdict(lambda: collections.defaultdict(list)))
@@ -99,8 +149,24 @@ def generate_cheatsheet(root_dir: str):
                 sgrep_path = find_path(root_dir, lang, category, subcategory, 'sgrep')
                 code_path = find_path(root_dir, lang, category, subcategory, lang_dir_to_ext(lang))
                 
-                entry = (read_if_exists(sgrep_path), sgrep_path,  read_if_exists(code_path), code_path)
-                print((lang, entry))
+                higlights = []
+                if os.path.exists(sgrep_path) and os.path.exists(code_path):
+                    ranges = run_semgrep_on_example(lang, sgrep_path, code_path)
+                    if ranges:
+                        j = json.loads(ranges)
+                        for entry in j['results']:
+                            higlights.append({'start': entry['start'], 'end': entry['end']})
+
+                entry = { 
+                    'pattern': read_if_exists(sgrep_path),
+                    'pattern_path': sgrep_path,
+                    'code': read_if_exists(code_path),
+                    'code_path': code_path,
+                     'highlights': higlights,
+                }
+               
+
+                #print((lang, entry))
                 feature_name = VERBOSE_FEATURE_NAME.get(category, category)
                 subcategory_name = VERBOSE_SUBCATEGORY_NAME.get(subcategory, subcategory)
                 language_exception = (
@@ -189,7 +255,7 @@ def cheatsheet_to_html(cheatsheet: Dict[str, Any]):
             examples = []            
             for subcategory, entries in subcategories.items():
                 by_pattern = collections.defaultdict(list)
-                for (sgrep_pattern, sgrep_path, code_snippet, code_path) in entries:
+                for (sgrep_pattern, sgrep_path, code_snippet, code_path, highlights) in entries:
                     by_pattern[(sgrep_pattern, sgrep_path)].append((code_snippet, code_path))
                 
                 compiled_examples = [snippet_and_pattern_to_html(pattern, pattern_path, snippets) for (pattern, pattern_path), snippets in by_pattern.items()]
@@ -202,7 +268,6 @@ def cheatsheet_to_html(cheatsheet: Dict[str, Any]):
 def read_if_exists(path: Optional[str]):
     if path and os.path.exists(path):        
         text = str(open(path).read())
-        print(text)
         return text
 
 def lang_dir_to_ext(lang: str):
