@@ -86,7 +86,9 @@ class PostInstallCommand(install):
             os.putenv("SKIP_NUITKA", "TRUE")
             if "osx" in distutils.util.get_platform():
                 with chdir(repo_root):
-                    os.system(os.path.join(repo_root, "release-scripts", "osx-release.sh"))
+                    os.system(
+                        os.path.join(repo_root, "release-scripts", "osx-release.sh")
+                    )
                     source = os.path.join(repo_root, "artifacts", "semgrep-core")
             else:
                 with chdir(repo_root):
