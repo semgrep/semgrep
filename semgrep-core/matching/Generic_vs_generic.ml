@@ -2214,7 +2214,9 @@ and m_class_kind a b =
     return ()
   | A.Trait, B.Trait ->
     return ()
-  | A.Class, _ | A.Interface, _ | A.Trait, _
+  | A.AtInterface, B.AtInterface ->
+    return ()
+  | A.Class, _ | A.Interface, _ | A.Trait, _ | A.AtInterface, _
    -> fail ()
 (*e: function [[Generic_vs_generic.m_class_kind]] *)
 
