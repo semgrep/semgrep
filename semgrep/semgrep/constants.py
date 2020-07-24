@@ -2,6 +2,7 @@ import re
 from enum import auto
 from enum import Enum
 
+from semgrep import __VERSION__
 from semgrep.util import compute_semgrep_path
 
 RCE_RULE_FLAG = "--dangerously-allow-arbitrary-code-execution-from-rules"
@@ -16,7 +17,6 @@ DEFAULT_CONFIG_FOLDER = f".{DEFAULT_SEMGREP_CONFIG_NAME}"
 
 YML_EXTENSIONS = {".yml", ".yaml"}
 
-__VERSION__ = "0.17.0"
 SEMGREP_USER_AGENT = f"Semgrep/{__VERSION__}"
 
 SEMGREP_PATH = compute_semgrep_path()

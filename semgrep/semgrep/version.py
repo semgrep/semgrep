@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 from packaging.version import InvalidVersion
 from packaging.version import Version
 
-from semgrep.constants import __VERSION__
+from semgrep import __VERSION__
 from semgrep.constants import SEMGREP_USER_AGENT
 
 VERSION_CHECK_URL = str(
