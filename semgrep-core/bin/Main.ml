@@ -603,6 +603,8 @@ let print_matches_and_errors files matches errs =
      "stats", stats
   ] in
   let s = Json_io.string_of_json json in
+  if !debug
+  then pr2 ("returned JSON: "^ s);
   pr s
 (*e: function [[Main_semgrep_core.print_matches_and_errors]] *)
 
@@ -1047,7 +1049,11 @@ let main () =
   let argv =
    (Array.to_list Sys.argv) @
    (if Sys.getenv_opt "SEMGREP_CORE_DEBUG" <> None then ["-debug"] else[])@
-   (if Sys.getenv_opt "SEMGREP_CORE_PROFILE" <> None then ["-profile"] else[])
+   (if Sys.getenv_opt "SEMGREP_CORE_PROFILE" <> None then ["-profile"] else[])@
+   (match Sys.getenv_opt "SEMGREP_CORE_EXTRA" with
+   | Some s -> Common.split "[ \t]+" s
+   | None -> []
+   )
   in
 
   (* does side effect on many global flags *)
