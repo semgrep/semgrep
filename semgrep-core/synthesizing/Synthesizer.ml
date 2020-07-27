@@ -7,6 +7,7 @@ let synthesize_patterns s file =
   let lang = Lang.langs_of_filename file |> List.hd in
   let a_opt = Range_to_AST.any_at_range r ast in
   Naming_AST.resolve lang ast;
+  Constant_propagation.propagate lang ast;
   match a_opt with
   | Some a ->
        let patterns = Pattern_from_Code.from_any a in

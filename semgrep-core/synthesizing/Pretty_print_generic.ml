@@ -220,6 +220,7 @@ function
 and id env (s, {id_resolved; _}) =
    match !id_resolved with
        | Some (ImportedEntity ents, _) -> dotted_access env ents
+       | Some (ImportedModule (DottedName ents), _) -> dotted_access env ents
        | _ -> s
 
 and id_qualified env ((id, {name_qualifier; _}), _idinfo) =
