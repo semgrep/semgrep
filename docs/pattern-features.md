@@ -420,7 +420,7 @@ class Hash {
 
 ### Typed Metavariables
 
-Typed metavariables only match a metavariable if it is of a specific type. For
+Typed metavariables only match a metavariable if it is declared as a specific type. For
 example, you may want to specifically check that `==` is never used for
 strings.
 
