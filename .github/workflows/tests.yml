@@ -131,12 +131,12 @@ jobs:
       - name: Clone Config
         uses: actions/checkout@v2
         with:
-          name: https://github.com/ajinabraham/njsscan.git
+          repository: ajinabraham/njsscan
           ref: bc50a3159cf8feb1f2261a1237c3893a1a9c36fc
       - name: Clone Target
         uses: actions/checkout@v2
         with:
-          name: https://github.com/bkimminich/juice-shop.git
+          repository: bkimminich/juice-shop
           ref: 928fbacff98c9a99e77d5de655459bea70caf44e
       - name: Setup Python
         uses: actions/setup-python@v1
