@@ -481,7 +481,7 @@ able to use typechecking on field accesses, and it will not recognize the
 class' field as the expected type. Literal types are understood to a limited
 extent.
 
-Go currently does not recognize the type of all variables when declared on the
+Semgrep for Go currently does not recognize the type of all variables when declared on the
 same line. That is, the following will not take both `a` and `b` as `int`s:
 
 ```go
