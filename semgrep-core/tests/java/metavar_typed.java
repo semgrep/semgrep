@@ -4,7 +4,7 @@ public class Foo {
         String y;
         int a;
         int b;
-	//ERROR: match
+        //ERROR: match
         if (x == y) x = y;
         if (a == b) a = b;
    }
