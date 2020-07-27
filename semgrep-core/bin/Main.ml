@@ -63,6 +63,8 @@ let debug = ref false
 (*e: constant [[Main_semgrep_core.debug]] *)
 let profile = ref false
 (*s: constant [[Main_semgrep_core.error_recovery]] *)
+(* to test things *)
+let test = ref false
 (* try to continue processing files, even if one has a parse error with -e/f.
  * note that -rules_file does its own error recovery.
  *)
@@ -96,6 +98,7 @@ let lang = ref "unset"
 (*e: constant [[Main_semgrep_core.lang]] *)
 
 (* similar to grep options (see man grep) *)
+(* TODO: can remove now that handled by semgrep-python? *)
 (*s: constant [[Main_semgrep_core.excludes]] *)
 let excludes = ref []
 (*e: constant [[Main_semgrep_core.excludes]] *)
@@ -136,10 +139,13 @@ let supported_langs: string = String.concat ", " keys
 let ncores = ref 1
 (*e: constant [[Main_semgrep_core.ncores]] *)
 
+(* path to cache (given by semgrep-python) *)
 let use_parsing_cache = ref ""
+(* take the list of files in a file (given by semgrep-python) *)
 let target_file = ref ""
-let timeout = ref 0
-let maxout = ref 4_000_000_000 (* 4 GB *)
+
+let timeout = ref 0 (* in seconds *)
+let max_memory = ref 0 (* in MB *)
 
 (*s: constant [[Main_semgrep_core.action]] *)
 (* action mode *)
@@ -349,22 +355,26 @@ let timeout_function lang = fun f ->
   else Common.timeout_function ~verbose:!verbose timeout f
 
 (* from https://discuss.ocaml.org/t/todays-trick-memory-limits-with-gc-alarms/4431 *)
-let run_with_memory_limit limit f =
-  let limit_memory () =
-    let mem = (Gc.quick_stat ()).Gc.heap_words in
-    if mem > limit / (Sys.word_size / 8)
-    then begin
-        if !verbose
-        then pr2 (spf "maxout allocated memory: %d"
-                      (mem * (Sys.word_size / 8)));
-        raise Out_of_memory
-      end
-  in
-  let alarm = Gc.create_alarm limit_memory in
-  Fun.protect f ~finally:(fun () ->
-      Gc.delete_alarm alarm;
-      Gc.compact ()
-  )
+let run_with_memory_limit limit_mb f =
+  if limit_mb = 0
+  then  f ()
+  else
+    let limit = limit_mb * 1024 * 1024 in
+    let limit_memory () =
+      let mem = (Gc.quick_stat ()).Gc.heap_words in
+      if mem > limit / (Sys.word_size / 8)
+      then begin
+          if !verbose
+          then pr2 (spf "maxout allocated memory: %d"
+                        (mem * (Sys.word_size / 8)));
+          raise Out_of_memory
+        end
+    in
+    let alarm = Gc.create_alarm limit_memory in
+    Fun.protect f ~finally:(fun () ->
+        Gc.delete_alarm alarm;
+        Gc.compact ()
+    )
 
 (*****************************************************************************)
 (* Parsing *)
@@ -561,15 +571,15 @@ let iter_generic_ast_of_files_and_get_matches_and_exn_to_errors f files =
          let ast = parse_generic lang file in
 
          (* calling the hook *)
-         run_with_memory_limit !maxout (fun () ->
+         run_with_memory_limit !max_memory (fun () ->
            (f file lang ast, [])
-           (* to test -maxout, you can uncomment the code below, to give
+           (* This is just to test -max_memory, to give
             * a chance to the Gc.create_alarm to run even if the program does
-            * noi even need to run the Gc. However, this has a slow perf
+            * not even need to run the Gc. However, this has a slow perf
             * penality on small programs, which is why it's better to keep
-            * it in comment when you're not testing -maxout.
+            * it guarded when you're not testing -max_memory.
             *)
-           (*|> (fun v -> Gc.full_major(); v) *)
+            |> (fun v -> (if !test then Gc.full_major()); v)
          )
 
        (* note that Error_code.exn_to_error now recognized Timeout
@@ -957,12 +967,14 @@ let options () =
     " ";
     "-debug", Arg.Set debug,
     " add debugging information in the output (e.g., tracing)";
+    "-test", Arg.Set test,
+    " test context";
     "-target_file", Arg.Set_string target_file,
     " <file> obtain list of targets to run patterns on";
     "-timeout", Arg.Set_int timeout,
-    " <int> timeout for parsing";
-    "-maxout", Arg.Set_int maxout,
-    " <int> max memory for matching";
+    " <int> timeout for parsing (in seconds)";
+    "-max_memory", Arg.Set_int max_memory,
+    " <int> maximum memory (in MB)";
   ] @
   (*s: [[Main_semgrep_core.options]] concatenated flags *)
   Flag_parsing_cpp.cmdline_flags_macrofile () @
