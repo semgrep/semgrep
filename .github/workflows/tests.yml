@@ -153,6 +153,7 @@ jobs:
         run: |
           pip3 install pipenv
           pipenv install
+          export PATH=/github/home/.local/bin:$PATH
       - name: Run timing
         run: |
-          time semgrep --config njsscan/njsscan/rules/semantic_grep juice-shop/frontend
+          time pipenv run semgrep --config njsscan/njsscan/rules/semantic_grep juice-shop/frontend
