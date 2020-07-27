@@ -398,7 +398,7 @@ let parse_generic lang file =
       file (Lang.string_of_lang lang) Version.version
      in
      cache_file_of_file full_filename)
- (fun () -> timeout_function lang (fun () ->
+ (fun () ->
  try
   (* finally calling the actual function *)
   let ast = Parse_code.parse_and_resolve_name_use_pfff_or_treesitter lang file
@@ -418,7 +418,7 @@ let parse_generic lang file =
   *  just Timeout for now.
   *)
  with Timeout -> Right Timeout
-  ))
+  )
   in
   match v with
   | Left ast -> ast
@@ -560,19 +560,19 @@ let iter_generic_ast_of_files_and_get_matches_and_exn_to_errors f files =
   let matches_and_errors =
     files |> map (fun file ->
        if !verbose then pr2 (spf "Analyzing %s" file);
+       let lang =
+          match Lang.lang_of_string_opt !lang with
+          | Some lang -> lang
+          | _ -> failwith (spf "no language specified")
+       in
+       if !debug then pr2 (spf "PARSING: %s" file);
        try
-         let lang =
-           match Lang.lang_of_string_opt !lang with
-            | Some lang -> lang
-            | _ ->
-               failwith (spf "no language specified")
-         in
-         if !debug then pr2 (spf "PARSING: %s" file);
-         let ast = parse_generic lang file in
-
-         (* calling the hook *)
          run_with_memory_limit !max_memory (fun () ->
-           (f file lang ast, [])
+         timeout_function lang (fun () ->
+          let ast = parse_generic lang file in
+          (* calling the hook *)
+          (f file lang ast, [])
+
            (* This is just to test -max_memory, to give
             * a chance to the Gc.create_alarm to run even if the program does
             * not even need to run the Gc. However, this has a slow perf
@@ -580,8 +580,7 @@ let iter_generic_ast_of_files_and_get_matches_and_exn_to_errors f files =
             * it guarded when you're not testing -max_memory.
             *)
             |> (fun v -> (if !test then Gc.full_major()); v)
-         )
-
+         ))
        (* note that Error_code.exn_to_error now recognized Timeout
         * and will generate a TimeoutError code for it
         *)
