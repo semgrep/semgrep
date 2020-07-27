@@ -99,6 +99,14 @@ let python_tests = [
      "righthand metavars", "$X = set_cookie($Y, $Z, $A, ...)";
      "righthand exact metavars", "$X = set_cookie($Y, $Z, $A)"
    ];
+
+   "import_as.py", "2:0-2:25",
+   [
+    "exact match", "exec(user_input)";
+    "dots", "exec(...)";
+    "metavars", "exec($X, ...)";
+    "exact metavars", "exec($X)"
+   ]
 ]
 
 let java_tests = [
