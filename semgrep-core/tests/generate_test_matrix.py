@@ -49,7 +49,14 @@ LANGUAGE_EXCEPTIONS = {
     ],
     "ruby": [
         "naming_import",
-    ]
+        "typed",
+    ],
+    "python": [
+        "typed",
+    ],
+    "js": [
+        "typed",
+    ],
 }
 
 EXCLUDE = ["TODO", "GENERIC", "fuzzy", "lint", 'EQUIV', 'e2e', 'SYNTHESIZING', 'NAMING', 'PERF', 'TAINTING']
@@ -65,6 +72,7 @@ CHEATSHEET_ENTRIES = {
         #"function-def", TODO
         #"class-def", TODO
         "import",
+        "typed",
     },
     "regexp": {"string"},
     "metavar_equality": {"expr", "stmt", "var"},
