@@ -97,7 +97,7 @@ let check2 rules file ast =
             ) in
             let config = config_of_rule found_tainted_sink rule in
             let mapping = Dataflow_tainting.fixpoint config flow in
-            if !Flag.verbose
+            if !Flag.debug
             then DataflowY.display_mapping flow mapping (fun () -> "()");
           )
       );

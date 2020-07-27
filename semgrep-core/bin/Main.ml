@@ -9,7 +9,7 @@
  *)
 open Common
 
-module Flag = Flag_parsing
+module Flag = Flag_semgrep
 module PI = Parse_info
 module S = Scope_code
 module E = Error_code
@@ -55,16 +55,16 @@ module J = Json_type
 let env_debug = "SEMGREP_CORE_DEBUG"
 let env_profile = "SEMGREP_CORE_PROFILE"
 
+(* see also verbose/... flags in Flag_semgrep.ml *)
+(* to test things *)
+let test = ref false
+
 (*s: constant [[Main_semgrep_core.verbose]] *)
-let verbose = ref false
 (*e: constant [[Main_semgrep_core.verbose]] *)
 (*s: constant [[Main_semgrep_core.debug]] *)
-let debug = ref false
 (*e: constant [[Main_semgrep_core.debug]] *)
 let profile = ref false
 (*s: constant [[Main_semgrep_core.error_recovery]] *)
-(* to test things *)
-let test = ref false
 (* try to continue processing files, even if one has a parse error with -e/f.
  * note that -rules_file does its own error recovery.
  *)
@@ -303,7 +303,7 @@ let cache_computation file cache_file_of_file f =
       let file_cache = cache_file_of_file file in
       if Sys.file_exists file_cache && filemtime file_cache >= filemtime file
       then begin
-        if !verbose then pr2 ("using cache: " ^ file_cache);
+        if !Flag.debug then pr2 ("using cache: " ^ file_cache);
         let (version, file2, res) = Common2.get_value file_cache in
         if version <> Version.version
         then failwith (spf "Version mismatch! Clean the cache file %s"
@@ -352,7 +352,7 @@ let timeout_function lang = fun f ->
   in
   if timeout <= 0
   then f ()
-  else Common.timeout_function ~verbose:!verbose timeout f
+  else Common.timeout_function ~verbose:!Flag.debug timeout f
 
 (* from https://discuss.ocaml.org/t/todays-trick-memory-limits-with-gc-alarms/4431 *)
 let run_with_memory_limit limit_mb f =
@@ -364,9 +364,8 @@ let run_with_memory_limit limit_mb f =
       let mem = (Gc.quick_stat ()).Gc.heap_words in
       if mem > limit / (Sys.word_size / 8)
       then begin
-          if !verbose
-          then pr2 (spf "maxout allocated memory: %d"
-                        (mem * (Sys.word_size / 8)));
+          if !Flag.debug
+          then pr2 (spf "maxout allocated memory: %d" (mem*(Sys.word_size/8)));
           raise Out_of_memory
         end
     in
@@ -559,13 +558,13 @@ let get_final_files xs =
 let iter_generic_ast_of_files_and_get_matches_and_exn_to_errors f files =
   let matches_and_errors =
     files |> map (fun file ->
-       if !verbose then pr2 (spf "Analyzing %s" file);
+       if !Flag.debug then pr2 (spf "Analyzing %s" file);
        let lang =
           match Lang.lang_of_string_opt !lang with
           | Some lang -> lang
           | _ -> failwith (spf "no language specified")
        in
-       if !debug then pr2 (spf "PARSING: %s" file);
+       if !Flag.debug then pr2 (spf "PARSING: %s" file);
        try
          run_with_memory_limit !max_memory (fun () ->
          timeout_function lang (fun () ->
@@ -603,7 +602,7 @@ let print_matches_and_errors files matches errs =
      "stats", stats
   ] in
   let s = Json_io.string_of_json json in
-  if !debug
+  if !Flag.debug
   then pr2 ("returned JSON: "^ s);
   pr s
 (*e: function [[Main_semgrep_core.print_matches_and_errors]] *)
@@ -649,7 +648,7 @@ let semgrep_with_one_pattern xs =
 
   files |> List.iter (fun file ->
     (*s: [[Main_semgrep_core.semgrep_with_one_pattern()]] if [[verbose]] *)
-    if !verbose
+    if !Flag.debug
     then pr2 (spf "processing: %s" file);
     (*e: [[Main_semgrep_core.semgrep_with_one_pattern()]] if [[verbose]] *)
     let process file = sgrep_ast pattern file (create_ast file) in
@@ -682,7 +681,7 @@ let semgrep_with_one_pattern xs =
  *)
 let semgrep_with_rules rules_file xs =
   (*s: [[Main_semgrep_core.semgrep_with_rules()]] if [[verbose]] *)
-  if !verbose then pr2 (spf "Parsing %s" rules_file);
+  if !Flag.debug then pr2 (spf "Parsing %s" rules_file);
   (*e: [[Main_semgrep_core.semgrep_with_rules()]] if [[verbose]] *)
   let rules = Parse_rules.parse rules_file in
   let files = get_final_files xs in
@@ -718,7 +717,7 @@ module TR = Tainting_rule
 
 (*s: function [[Main_semgrep_core.tainting_with_rules]] *)
 let tainting_with_rules rules_file xs =
-  if !verbose then pr2 (spf "Parsing %s" rules_file);
+  if !Flag.debug then pr2 (spf "Parsing %s" rules_file);
   let rules = Parse_tainting_rules.parse rules_file in
 
   let files = get_final_files xs in
@@ -898,7 +897,7 @@ let all_actions () = [
 
   "-test_parse_lang", " <files or dirs>",
   Common.mk_action_n_arg
-    (Test_parsing.test_parse_lang !verbose !lang get_final_files);
+    (Test_parsing.test_parse_lang !Flag.debug !lang get_final_files);
  ]
 
 (*e: function [[Main_semgrep_core.all_actions]] *)
@@ -961,15 +960,12 @@ let options () =
     (*e: [[Main_semgrep_core.options]] other cases *)
     "-use_parsing_cache", Arg.Set_string use_parsing_cache,
     " <dir> save and use parsed ASTs in a cache at given directory. Caller responsiblity to clear cache";
-    "-verbose", Arg.Unit (fun () ->
-      verbose := true;
-      Flag_semgrep.verbose := true;
-    ),
-    " ";
-    "-debug", Arg.Set debug,
-    " add debugging information in the output (e.g., tracing)";
+    "-debug", Arg.Set Flag.debug,
+    " add debugging information in the output (tracing)";
+    "-debug_matching", Arg.Set Flag.debug_matching,
+    " add more debugging information on matching";
     "-test", Arg.Set test,
-    " test context";
+    " (internal) set test context";
     "-target_file", Arg.Set_string target_file,
     " <file> obtain list of targets to run patterns on";
     "-timeout", Arg.Set_int timeout,
@@ -1065,7 +1061,7 @@ let main () =
   end
   in
 
-  if !debug then begin
+  if !Flag.debug then begin
     pr2 "Debug mode On";
     pr2 (spf "Executed as: %s" (Sys.argv|>Array.to_list|> String.concat " "));
   end;
@@ -1101,7 +1097,7 @@ let main () =
                semgrep_with_rules !rules_file (x::xs);
                if !profile then save_rules_file_in_tmp ();
             with exn -> begin
-             if !debug then save_rules_file_in_tmp ();
+             if !Flag.debug then save_rules_file_in_tmp ();
              pr (format_output_exception exn);
              exit 2
              end
