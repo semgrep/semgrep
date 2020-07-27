@@ -9,7 +9,7 @@
 #
 .PHONY: build
 build:
-	$(MAKE) -C build-core
+	$(MAKE) build-core
 	cd semgrep && python3 -m pipenv install --dev
 
 .PHONY: build-core
