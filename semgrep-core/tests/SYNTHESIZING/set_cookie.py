@@ -7,6 +7,19 @@ def foo():
                        secure=True)
    a = set_cookie(1234, b, 123)
 
+   if (x == y):
+      r.set_cookie("sessionid")
+      show_again()
+      show()
+   elif (x < y):
+      do()
+   else:
+      donot()
+
    if "TOX_ENV_NAME" in os.environ:
        print("Not attempting to install binary while running under tox")
        return
+
+   while a == b:
+       do_again()
+       if a: donot()
