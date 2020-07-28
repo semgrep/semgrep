@@ -1,0 +1,129 @@
+rules:
+- id: 0..0.0.0
+  pattern: |
+    $OBJ.$FUNC({$where: <... $REQ.$FOO.$BAR ...>}, ...);
+  severity: ERROR
+  languages:
+  - javascript
+  message: <internalonly>
+- id: 0..0.0.1
+  pattern: |
+    $OBJ.$FUNC({$where: <... $REQ.$QUERY ...>}, ...);
+  severity: ERROR
+  languages:
+  - javascript
+  message: <internalonly>
+- id: 0..0.0.2
+  pattern: |
+    $NSQL = <... $REQ.$QUERY.$...>;
+    ...
+    $OBJ.$FUNC({$where: <... $NSQL ...>}, ...);
+  severity: ERROR
+  languages:
+  - javascript
+  message: <internalonly>
+- id: 0..0.0.3
+  pattern: |
+    $NSQL = <... $REQ.$QUERY ...>;
+    ...
+    $OBJ.$FUNC({$where: <... $NSQL ...>}, ...);
+  severity: ERROR
+  languages:
+  - javascript
+  message: <internalonly>
+- id: 0..0.0.4
+  pattern: |
+    $INP = $REQ.$FOO.$BAR;
+    ...
+    $QRY = {$where: <... $INP ...>};
+    ...
+    $OBJ.$FUNC(<... $QRY ...>, ...);
+  severity: ERROR
+  languages:
+  - javascript
+  message: <internalonly>
+- id: 0..0.0.5
+  pattern: |
+    $INP = $REQ.$FOO;
+    ...
+    $QRY = {$where: <... $INP ...>};
+    ...
+    $OBJ.$FUNC(<... $QRY ...>, ...);
+  severity: ERROR
+  languages:
+  - javascript
+  message: <internalonly>
+- id: 0..0.0.6
+  pattern: |
+    $QRY = {};
+    ...
+    $QRY["$where"] = <... $REQ.$FOO ...>;
+    ...
+    $OBJ.$FUNC(<... $QRY ...>, ...);
+  severity: ERROR
+  languages:
+  - javascript
+  message: <internalonly>
+- id: 0..0.0.7
+  pattern: |
+    $QRY = {};
+    ...
+    $QRY["$where"] = <... $REQ.$FOO.$BAR ...>;
+    ...
+    $OBJ.$FUNC(<... $QRY ...>, ...);
+  severity: ERROR
+  languages:
+  - javascript
+  message: <internalonly>
+- id: 0..0.0.8
+  pattern: |
+    $INP = $REQ.$FOO;
+    ...
+    $QRY = {};
+    ...
+    $QRY["$where"] = <... $INP ...>;
+    ...
+    $OBJ.$FUNC(<... $QRY ...>, ...);
+  severity: ERROR
+  languages:
+  - javascript
+  message: <internalonly>
+- id: 0..0.0.9
+  pattern: |
+    $INP = $REQ.$FOO.$BAR;
+    ...
+    $QRY = {};
+    ...
+    $QRY["$where"] = <... $INP ...>;
+    ...
+    $OBJ.$FUNC(<... $QRY ...>, ...);
+  severity: ERROR
+  languages:
+  - javascript
+  message: <internalonly>
+- id: 0..0.0.10
+  pattern: |
+    $QRY = {};
+    ...
+    $INP = $REQ.$FOO;
+    ...
+    $QRY["$where"] = <... $INP ...>;
+    ...
+    $OBJ.$FUNC(<... $QRY ...>, ...);
+  severity: ERROR
+  languages:
+  - javascript
+  message: <internalonly>
+- id: 0..0.0.11
+  pattern: |
+    $QRY = {};
+    ...
+    $INP = $REQ.$FOO.$BAR;
+    ...
+    $QRY["$where"] = <... $INP ...>;
+    ...
+    $OBJ.$FUNC(<... $QRY ...>, ...);
+  severity: ERROR
+  languages:
+  - javascript
+  message: <internalonly>
