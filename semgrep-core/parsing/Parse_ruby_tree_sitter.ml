@@ -141,7 +141,7 @@ let variable (x : CST.variable) : AST.variable =
         (str tok, ID_Instance)
   | `Class_var tok ->
         (str tok, ID_Class)
-  | `Glob_var tok ->
+  | `Global_var tok ->
         (str tok, ID_Global)
   | `Id tok ->
         (str tok, ID_Lowercase)
@@ -202,7 +202,7 @@ and statement (x : CST.statement) : AST.expr (* TODO AST.stmt at some point *)=
       let v2 = token2 v2 in
       let v3 = expression v3 in
       S (If (v2, v3, [v1], None))
-  | `Unle_modi (v1, v2, v3) ->
+  | `Unless_modi (v1, v2, v3) ->
       let v1 = statement v1 in
       let v2 = token2 v2 in
       let v3 = expression v3 in
@@ -219,7 +219,7 @@ and statement (x : CST.statement) : AST.expr (* TODO AST.stmt at some point *)=
       let v3 = expression v3 in
       S (Until (v2, true, v3, [v1]))
 
-  | `Resc_modi (v1, v2, v3) ->
+  | `Rescue_modi (v1, v2, v3) ->
       let v1 = statement v1 in
       let v2 = token2 v2 in
       let v3 = expression v3 in
@@ -351,7 +351,7 @@ and block_parameters ((v1, v2, v3, v4, v5) : CST.block_parameters) :
 
 and formal_parameter (x : CST.formal_parameter) : AST.formal_param =
   (match x with
-  | `Simple_form_param x ->
+  | `Simple_formal_param x ->
       simple_formal_parameter x
   | `Params x ->
         let (lp, xs, rp) = parameters x in
@@ -557,9 +557,9 @@ and body_statement ((v1, v2, v3) : CST.body_statement) :
   let (rescue_exprs, else_expr, ensure_expr) =
     Common2.partition_either3 (fun x ->
       (match x with
-      | `Resc x -> Common2.Left3 (rescue x)
+      | `Rescue x -> Common2.Left3 (rescue x)
       | `Else x -> Common2.Middle3 (else_ x)
-      | `Ensu x ->
+      | `Ensure x ->
               let (t, xs) = ensure x in
               Common2.Right3 (t, xs)
       )
@@ -825,7 +825,7 @@ and primary (x : CST.primary) : AST.expr =
       in
       let _v3 = token2 v3 in
       Literal (Regexp ((v2, "??"), v1))
-  | `Lamb (v1, v2, v3) ->
+  | `Lambda (v1, v2, v3) ->
       let v1 = token2 v1 in
       let v2 =
         (match v2 with
@@ -894,7 +894,7 @@ and primary (x : CST.primary) : AST.expr =
       let _v4 = terminator v4 in
       let (v5, _tend) = body_statement v5 in
       D (ClassDef (v1, SingletonC (v2, v3), v5))
-  | `Modu (v1, v2, v3) ->
+  | `Module (v1, v2, v3) ->
       let v1 = token2 v1 in
       let v2 =
         (match v2 with
@@ -965,7 +965,7 @@ and primary (x : CST.primary) : AST.expr =
       in
       let _v5 = token2 v5 in
       S (If (v1, v2, v3, v4))
-  | `Unle (v1, v2, v3, v4, v5) ->
+  | `Unless (v1, v2, v3, v4, v5) ->
       let v1 = token2 v1 in
       let v2 = statement v2 in
       let v3 =
@@ -1597,7 +1597,7 @@ and method_name (x : CST.method_name) : AST.method_name =
   (match x with
   | `Id tok -> MethodId (str tok, ID_Lowercase)
   | `Cst tok -> MethodId (str tok, ID_Uppercase)
-  | `Sett (v1, v2) ->
+  | `Setter (v1, v2) ->
       let v1 = str v1 in
       let v2 = token2 v2 in
       MethodIdAssign (v1, v2, ID_Lowercase)
@@ -1609,7 +1609,7 @@ and method_name (x : CST.method_name) : AST.method_name =
         )
   | `Inst_var tok -> MethodId (str tok, ID_Instance)
   | `Class_var tok -> MethodId (str tok, ID_Class)
-  | `Glob_var tok -> MethodId (str tok, ID_Global)
+  | `Global_var tok -> MethodId (str tok, ID_Global)
   )
 
 and interpolation ((v1, v2, v3) : CST.interpolation) : AST.expr AST.bracket =
