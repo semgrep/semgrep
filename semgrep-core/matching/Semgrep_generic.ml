@@ -53,6 +53,25 @@ type ('a, 'b) matcher = 'a -> 'b ->
 (*e: type [[Semgrep_generic.matcher]] *)
 
 (*****************************************************************************)
+(* Debugging *)
+(*****************************************************************************)
+
+(* This is used to let the user know which rule the engine was using when
+ * a Timeout or OutOfMemory exn occured.
+ *)
+let (last_matched_rule: Rule.t option ref) = ref None
+
+let set_last_matched_rule rule f =
+  last_matched_rule := Some rule;
+  (* note that if this raise an exn, last_matched_rule will not be
+   * reset to None and that's what we want!
+   *)
+  let res = f() in
+  last_matched_rule := None;
+  res
+
+
+(*****************************************************************************)
 (* Matchers *)
 (*****************************************************************************)
 
@@ -61,20 +80,22 @@ let match_e_e2 pattern e =
   let env = Matching_generic.empty_environment () in
   GG.m_expr pattern e env
 (*e: function [[Semgrep_generic.match_e_e]] *)
-let match_e_e ruleid a b =
+let match_e_e rule a b =
  Common.profile_code "Semgrep.match_e_e" (fun () ->
-    Common.profile_code ("rule:" ^ ruleid) (fun () ->
-      match_e_e2 a b))
+    Common.profile_code ("rule:" ^ rule.R.id) (fun () ->
+     set_last_matched_rule rule (fun () ->
+      match_e_e2 a b)))
 
 (*s: function [[Semgrep_generic.match_st_st]] *)
 let match_st_st2 pattern e =
   let env = Matching_generic.empty_environment () in
   GG.m_stmt pattern e env
 (*e: function [[Semgrep_generic.match_st_st]] *)
-let match_st_st ruleid a b =
+let match_st_st rule a b =
   Common.profile_code "Semgrep.match_st_st" (fun () ->
-    Common.profile_code ("rule:" ^ ruleid) (fun () ->
-      match_st_st2 a b))
+    Common.profile_code ("rule:" ^ rule.R.id) (fun () ->
+     set_last_matched_rule rule (fun () ->
+      match_st_st2 a b)))
 
 (*s: function [[Semgrep_generic.match_sts_sts]] *)
 let match_sts_sts2 pattern e =
@@ -113,10 +134,11 @@ let match_sts_sts2 pattern e =
     | _ -> raise Impossible
   )
 (*e: function [[Semgrep_generic.match_sts_sts]] *)
-let match_sts_sts ruleid a b =
+let match_sts_sts rule a b =
   Common.profile_code "Semgrep.match_sts_sts" (fun () ->
-    Common.profile_code ("rule:" ^ ruleid) (fun () ->
-      match_sts_sts2 a b))
+    Common.profile_code ("rule:" ^ rule.R.id) (fun () ->
+     set_last_matched_rule rule (fun () ->
+      match_sts_sts2 a b)))
 
 (*s: function [[Semgrep_generic.match_any_any]] *)
 (* for unit testing *)
@@ -172,7 +194,7 @@ let check2 ~hook rules equivs file _lang ast =
        * against an expression recursively
        *)
       !expr_rules |> List.iter (fun (pattern, rule) ->
-         let matches_with_env = match_e_e rule.R.id pattern x in
+         let matches_with_env = match_e_e rule pattern x in
          if matches_with_env <> []
          then (* Found a match *)
            matches_with_env |> List.iter (fun env ->
@@ -190,7 +212,7 @@ let check2 ~hook rules equivs file _lang ast =
     (* mostly copy paste of expr code but with the _st functions *)
     V.kstmt = (fun (k, _) x ->
       !stmt_rules |> List.iter (fun (pattern, rule) ->
-         let matches_with_env = match_st_st rule.R.id pattern x in
+         let matches_with_env = match_st_st rule pattern x in
          if matches_with_env <> []
          then (* Found a match *)
            matches_with_env |> List.iter (fun env ->
@@ -210,7 +232,7 @@ let check2 ~hook rules equivs file _lang ast =
        * the heavy stuff (e.g., handling '...' between statements) rarely.
        *)
       !stmts_rules |> List.iter (fun (pattern, rule) ->
-         let matches_with_env = match_sts_sts rule.R.id pattern x in
+         let matches_with_env = match_sts_sts rule pattern x in
          if matches_with_env <> []
          then (* Found a match *)
            matches_with_env |> List.iter (fun (env, matched_statements) ->

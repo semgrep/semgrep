@@ -54,8 +54,11 @@ let match_pat_instr pat =
     let pat = Common2.foldl1 (fun x acc -> AST.DisjExpr (x, acc)) xs in
     (fun instr ->
        let eorig = instr.IL.iorig in
-       let matches_with_env = Semgrep_generic.match_e_e "<tainting>" pat eorig
-          in
+       (* the rule is just used by match_e_e for profiling stats *)
+       let rule = { Rule.id = "<tainting>"; pattern = AST.E pat; message = "";
+          severity = Rule.Error; languages = []; } in
+
+       let matches_with_env = Semgrep_generic.match_e_e rule pat eorig in
        matches_with_env <> []
     )
 (*e: function [[Tainting_generic.match_pat_instr]] *)
