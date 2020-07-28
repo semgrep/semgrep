@@ -449,7 +449,7 @@ public class Example {
 **Go:**
 
 ```text
-pattern: "$X == ($Y : str)"
+pattern: "$X == ($Y : string)"
 ```
 
 ```go
