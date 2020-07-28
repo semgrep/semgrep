@@ -52,6 +52,8 @@ in
 (* Helpers *)
 (*****************************************************************************)
 let fk = Parse_info.fake_info "fake"
+let fk_stmt = ExprStmt (Ellipsis fk, fk)
+let body_ellipsis t1 t2 = Block(t1, [fk_stmt], t2)
 let _bk f (lp,x,rp) = (lp, f x, rp)
 
 let default_id str =
@@ -191,10 +193,7 @@ let generalize_id env e =
 (* Assign *)
 let rec include_e2_patterns env (e1, tok, e2) =
   let (env', id) = get_id env e1 in
-  let e2_patterns = generalize_exp e2 env' in
-  List.map (fun x -> match x with | (s, E pat) -> ("righthand " ^ s, E (Assign(id, tok, pat)))
-                                  | _ -> raise (UnexpectedCase "Must pass in an any of form E x"))
-           e2_patterns
+  add_expr e2 (fun (s, pat) -> ("righthand " ^ s, E (Assign(id, tok, pat)))) env'
 
 and generalize_assign env e =
   match e with
@@ -221,13 +220,81 @@ and generalize_exp e env =
   | Assign _ -> generalize_assign env e
   | _ -> []
 
-let generalize e =
-  (generalize_exp e { count = 1; mapping = []; has_type = false })
+(* All statements *)
+and add_expr e f env =
+  List.map (fun x -> match x with | (s, E e') -> f (s, e')
+                                  | _ -> raise (UnexpectedCase "Must pass in an any of form E x"))
+           (generalize_exp e env)
+
+and generalize_exprstmt (e, tok) env =
+  add_expr e (fun (str, e') -> (str, S (ExprStmt (e', tok)))) env
+
+and generalize_if s_in =
+  let opt f so =
+    match so with
+      | None -> None
+      | Some x -> Some (f x)
+  in
+  let rec dots_in_body s =
+    match s with
+      | If (tok, e, s, sopt) -> If (tok, e, dots_in_body s, opt dots_in_body sopt)
+      | Block (t1, [If _ as x], t2) -> Block(t1, [dots_in_body x], t2)
+      | Block (t1, _, t2) -> body_ellipsis t1 t2
+      | _ -> fk_stmt
+  in
+  let rec dots_in_cond s =
+    match s with
+      | If (tok, _, s, sopt) -> If (tok, Ellipsis fk, s, opt dots_in_cond sopt)
+      | Block (t1, [If _ as x], t2) -> Block (t1, [dots_in_cond x], t2)
+      | x -> x
+  in
+  ["dots in body", S (dots_in_body s_in); "dots in cond", S (dots_in_cond s_in)]
+
+and generalize_while (tok, e, s) env =
+  let body_dots =
+    match s with
+      | Block (t1, _, t2) -> body_ellipsis t1 t2
+      | _ -> fk_stmt
+  in
+  let dots_in_cond = ("dots in condition", S (While (tok, Ellipsis fk, s))) in
+  let dots_in_body = ("dots in body", S (While (tok, e, body_dots))) in
+  let expr_choices_in_cond =
+    add_expr e (fun (str, e') -> ("condition " ^ str, S (While (tok, e', body_dots)))) env in
+  dots_in_cond :: dots_in_body :: expr_choices_in_cond
+
+and generalize_block ss =
+  let rec get_last = function
+  | [] -> []
+  | [x] -> [x]
+  | _::xs -> get_last xs
+  in
+  match ss with
+  | [] | _::[] -> ss
+  | x::_::[] -> x::(fk_stmt)::[]
+  | x::y::z::zs -> x::(fk_stmt)::(get_last (y::z::zs))
+
+and generalize_stmt s env =
+  match s with
+  | ExprStmt (e, tok) -> generalize_exprstmt (e, tok) env
+  | If _ -> generalize_if s
+  | While (tok, e, s) -> generalize_while (tok, e, s) env
+  | Block (t1, ss, t2) -> ["dots", S (Block ((t1, generalize_block ss, t2)))]
+  | _ -> []
+
+(* All *)
+and generalize_any a env =
+   match a with
+   | E e -> generalize_exp e env
+   | S s -> generalize_stmt s env
+   | _ -> []
+
+let generalize a =
+  (generalize_any a { count = 1; mapping = []; has_type = false })
 
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
-let from_expr e =
-  ("exact match", E e)::
-  generalize e
+let from_any a =
+  ("exact match", a)::
+  generalize a

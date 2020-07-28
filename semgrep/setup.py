@@ -86,14 +86,16 @@ class PostInstallCommand(install):
             os.putenv("SKIP_NUITKA", "TRUE")
             if "osx" in distutils.util.get_platform():
                 with chdir(repo_root):
-                    os.system(os.path.join(repo_root, "release-scripts/osx-release.sh"))
-                    source = os.path.join(repo_root, "artifacts/semgrep-core")
+                    os.system(
+                        os.path.join(repo_root, "release-scripts", "osx-release.sh")
+                    )
+                    source = os.path.join(repo_root, "artifacts", "semgrep-core")
             else:
                 with chdir(repo_root):
                     os.system(
-                        os.path.join(repo_root, "release-scripts/ubuntu-release.sh")
+                        os.path.join(repo_root, "release-scripts", "ubuntu-release.sh")
                     )
-                    source = os.path.join(repo_root, "semgrep-files/semgrep-core")
+                    source = os.path.join(repo_root, "semgrep-files", "semgrep-core")
 
         ## run this after trying to build (as otherwise this leaves
         ## venv in a bad state: https://github.com/benfred/py-spy/issues/69)
@@ -116,7 +118,7 @@ setup(
     version="0.16.0",
     author="Return To Corporation",
     author_email="support@r2c.dev",
-    description="Fast and syntax-aware semantic code pattern search for many languages: like grep but for code",
+    description="Lightweight static analysis for many languages. Find bug variants with patterns that look like source code.",
     cmdclass={"install": PostInstallCommand, "bdist_wheel": bdist_wheel},
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -133,9 +135,15 @@ setup(
     entry_points={"console_scripts": ["semgrep=semgrep.__main__:main"]},
     packages=setuptools.find_packages(),
     classifiers=[
-        "Programming Language :: Python :: 3",
+        "Environment :: Console",
         "License :: OSI Approved :: GNU Lesser General Public License v2 (LGPLv2)",
-        "Operating System :: OS Independent",
+        "Operating System :: MacOS",
+        "Operating System :: POSIX :: Linux",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Topic :: Security",
+        "Topic :: Software Development :: Quality Assurance",
     ],
     python_requires=">=3.6",
     zip_safe=False,

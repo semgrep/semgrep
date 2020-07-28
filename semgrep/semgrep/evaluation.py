@@ -208,14 +208,18 @@ def _where_python_statement_matches(
         exec(to_eval, scope)  # nosem: contrib.dlint.dlint-equivalent.insecure-exec-use, python.lang.security.audit.exec-detected.exec-detected
         # fmt: on
         result = scope[RETURN_VAR]  # type: ignore
+    except KeyError as ex:
+        logger.error(
+            f"could not find metavariable {ex} while evaluating where-python expression '{where_expression}', consider case where metavariable is missing"
+        )
     except Exception as ex:
         logger.error(
-            f"error evaluating a where-python expression: `{where_expression}`: {ex}"
+            f"received error '{repr(ex)}' while evaluating where-python expression '{where_expression}'"
         )
 
     if not isinstance(result, bool):
         raise SemgrepError(
-            f"python where expression needs boolean output but got: {result} for {where_expression}"
+            f"where-python expression '{where_expression}' needs boolean output but got {result}"
         )
     return result
 

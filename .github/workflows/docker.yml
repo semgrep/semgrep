@@ -1,4 +1,4 @@
-name: docker-push-pr
+name: Push Semgrep Docker Image
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
       - develop
   pull_request:
     paths-ignore:
-    - '**.md'
+      - '**.md'
 
 jobs:
   docker-build:
