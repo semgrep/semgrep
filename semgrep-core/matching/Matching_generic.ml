@@ -106,7 +106,7 @@ type ('a, 'b) matcher = 'a -> 'b -> tin -> tout
 (*****************************************************************************)
 (*s: function [[Matching_generic.str_of_any]] *)
 let str_of_any any =
-  if !Flag.debug && !Flag.debug_with_full_position
+  if !Flag.debug_matching && !Flag.debug_with_full_position
   then Meta_parse_info._current_precision :=
     { Meta_parse_info.default_dumper_precision with Meta_parse_info.
       full_info = true };
@@ -185,7 +185,7 @@ let (return : tin -> tout) = fun tin ->
 
 (*s: function [[Matching_generic.fail]] *)
 let (fail : tin -> tout) = fun _tin ->
-  if !Flag.debug
+  if !Flag.debug_matching
   then failwith "Generic_vs_generic.fail: Match failure";
   []
 (*e: function [[Matching_generic.fail]] *)
@@ -219,7 +219,7 @@ let equal_ast_binded_code (a: AST.any) (b: AST.any) : bool =
       let a = Lib.abstract_position_info_any a in
       let b = Lib.abstract_position_info_any b in
       let res = a =*= b in
-      if !Flag.verbose && not res
+      if !Flag.debug_matching && not res
       then begin
         pr2 (spf "A = %s" (str_of_any a));
         pr2 (spf "B = %s" (str_of_any b));
@@ -253,13 +253,13 @@ let (envf: (MV.mvar AST.wrap, AST.any) matcher) =
   match check_and_add_metavar_binding (mvar, any) tin with
   | None ->
       (*s: [[Matching_generic.envf]] if [[verbose]] when fail *)
-      if !Flag.verbose
+      if !Flag.debug
       then pr2 (spf "envf: fail, %s (%s)" mvar (str_of_any any));
       (*e: [[Matching_generic.envf]] if [[verbose]] when fail *)
       fail tin
   | Some new_binding ->
       (*s: [[Matching_generic.envf]] if [[verbose]] when success *)
-      if !Flag.verbose
+      if !Flag.debug
       then pr2 (spf "envf: success, %s (%s)" mvar (str_of_any any));
       (*e: [[Matching_generic.envf]] if [[verbose]] when success *)
       return new_binding

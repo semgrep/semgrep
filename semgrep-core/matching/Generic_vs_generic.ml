@@ -1451,7 +1451,7 @@ and _m_stmts (xsa: A.stmt list) (xsb: A.stmt list) =
 (*s: function [[Generic_vs_generic.m_list__m_stmt]] *)
 and m_list__m_stmt (xsa: A.stmt list) (xsb: A.stmt list) =
   (*s: [[Generic_vs_generic.m_list__m_stmt]] if [[debug]] *)
-  if !Flag.debug
+  if !Flag.debug_matching
   then pr2 (spf "%d vs %d" (List.length xsa) (List.length xsb));
   (*e: [[Generic_vs_generic.m_list__m_stmt]] if [[debug]] *)
   match xsa, xsb with
