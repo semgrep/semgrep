@@ -253,13 +253,13 @@ let (envf: (MV.mvar AST.wrap, AST.any) matcher) =
   match check_and_add_metavar_binding (mvar, any) tin with
   | None ->
       (*s: [[Matching_generic.envf]] if [[verbose]] when fail *)
-      if !Flag.debug
+      if !Flag.debug_matching
       then pr2 (spf "envf: fail, %s (%s)" mvar (str_of_any any));
       (*e: [[Matching_generic.envf]] if [[verbose]] when fail *)
       fail tin
   | Some new_binding ->
       (*s: [[Matching_generic.envf]] if [[verbose]] when success *)
-      if !Flag.debug
+      if !Flag.debug_matching
       then pr2 (spf "envf: success, %s (%s)" mvar (str_of_any any));
       (*e: [[Matching_generic.envf]] if [[verbose]] when success *)
       return new_binding

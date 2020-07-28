@@ -580,10 +580,25 @@ let iter_generic_ast_of_files_and_get_matches_and_exn_to_errors f files =
             *)
             |> (fun v -> (if !test then Gc.full_major()); v)
          ))
-       (* note that Error_code.exn_to_error now recognized Timeout
-        * and will generate a TimeoutError code for it
+       with
+       (* note that Error_code.exn_to_error already handles Timeout
+        * and would generate a TimeoutError code for it, but we intercept
+        * Timeout here to give a better diagnostic.
         *)
-       with exn -> [], [Error_code.exn_to_error file exn]
+        | (Timeout | Out_of_memory) as exn ->
+            let str_opt =
+              match !Semgrep_generic.last_matched_rule with
+              | None -> None
+              | Some rule -> Some (spf " with ruleid %s" rule.R.id)
+            in
+            let loc = Parse_info.first_loc_of_file file in
+            [], [Error_code.mk_error_loc loc
+              (match exn with
+              | Timeout -> Error_code.Timeout str_opt
+              | Out_of_memory -> Error_code.OutOfMemory str_opt
+              | _ -> raise Impossible
+              )]
+        | exn -> [], [Error_code.exn_to_error file exn]
     )
   in
   let matches = matches_and_errors |> List.map fst |> List.flatten in
