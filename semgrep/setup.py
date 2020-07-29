@@ -115,7 +115,7 @@ class PostInstallCommand(install):
 
 setup(
     name="semgrep",
-    version="0.16.0",
+    version="0.17.0",
     author="Return To Corporation",
     author_email="support@r2c.dev",
     description="Lightweight static analysis for many languages. Find bug variants with patterns that look like source code.",
