@@ -5,6 +5,6 @@
 [94m5 | [39m    message: "test"
 [94m6 | [39m    languages: [python]
 
-[31mtype of `pattern` must be a string, but it was a list[39m
+[31mtype of `operand` must be a string or dict, but it was a list[39m
 
 run with --strict and there were 1 errors loading configs

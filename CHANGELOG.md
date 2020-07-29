@@ -2,11 +2,32 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [Next release]
+## [Unreleased]
+
+### Added
+- Support Python 3.8 self-documenting fstrings
+
+## [0.17.0](https://github.com/returntocorp/semgrep/releases/tag/v0.17.0) - 2020-07-28
+
+### Added
+- The `metavariable-regex` operator, which filters finding's by metavariable
+  value against a Python re.match compatible expression.
+- `--timeout` flag to set maximum time a rule is applied to a file
+- Typed metavariables moved to official support. See [docs](https://github.com/returntocorp/semgrep/blob/develop/docs/pattern-features.md#typed-metavariables)
+
+### Changed
+- Improved `pattern-where-python` error messages
+
+## [0.16.0](https://github.com/returntocorp/semgrep/releases/tag/v0.16.0) - 2020-07-21
 
 ### Added
 - Match file-name imports against metavariables using `import "$X"` (most
   useful in Go)
+- Support for taint-tracking rules on CLI using the key-value pair 'mode: taint'
+  (defaults to 'mode: search')
+
+### Changed
+- Don't print out parse errors to stdout when using structured output formats
 
 ### Fixed
 - Parse nested object properties in parameter destructuring in JavaScript
@@ -51,8 +72,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Added
 - Const propagation now works with Java 'final' keyword and for Python globals
   which were assigned only once in the program
-- Support for taint-tracking rules on CLI using the key-value pair 'mode: taint'
-  (defaults to 'mode: search')
 
 ### Fixed
 - Parsing Ocaml open overriding

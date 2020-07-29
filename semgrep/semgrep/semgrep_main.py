@@ -260,7 +260,7 @@ def invoke_semgrep(config: Path, targets: List[Path], **kwargs: Any) -> Any:
             output_format=OutputFormat.JSON,
             output_destination=None,
             error_on_findings=False,
-            strict=True,
+            strict=False,
         ),
         stdout=io_capture,
     )
@@ -292,6 +292,7 @@ def main(
     disable_nosem: bool = False,
     dangerously_allow_arbitrary_code_execution_from_rules: bool = False,
     no_git_ignore: bool = False,
+    timeout: int = 0,
 ) -> None:
     if include is None:
         include = []
@@ -348,11 +349,12 @@ def main(
     )
 
     # actually invoke semgrep
-    rule_matches_by_rule, debug_steps_by_rule, semgrep_core_errors = CoreRunner(
-        allow_exec=dangerously_allow_arbitrary_code_execution_from_rules, jobs=jobs,
+    rule_matches_by_rule, debug_steps_by_rule, semgrep_errors = CoreRunner(
+        allow_exec=dangerously_allow_arbitrary_code_execution_from_rules,
+        jobs=jobs,
+        timeout=timeout,
     ).invoke_semgrep(target_manager, all_rules)
 
-    semgrep_errors = [e.into_semgrep_error() for e in semgrep_core_errors]
     output_handler.handle_semgrep_errors(semgrep_errors)
 
     if not disable_nosem:

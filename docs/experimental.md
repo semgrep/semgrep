@@ -1,8 +1,8 @@
-# Experimantal Features
+# Experimental Features
 
 ## Autofix
 
-Experimental support is available in semgrep using the `fix:` key in rule configuration files.
+Experimental support is available in Semgrep using the `fix:` key in rule configuration files.
 
 Example rule with autofix:
 
@@ -70,7 +70,7 @@ Please file issues with autofix [here](https://github.com/returntocorp/semgrep/i
 
 ## Equivalences
 
-Experimental support for equivalences is available in semgrep. Equivalences will define code patterns which semgrep should consider equivalent.  For example, you may wish to define the commutative property for the plus operator:
+Experimental support for equivalences is available in Semgrep. Equivalences will define code patterns which Semgrep should consider equivalent.  For example, you may wish to define the commutative property for the plus operator:
 
 ```
 $X + $Y <==> $Y + $X
@@ -112,71 +112,30 @@ See it live at https://semgrep.live/AEL.
 
 Please file issues with equivalences [here](https://github.com/returntocorp/semgrep/issues) and include the `feature:equivalences` tag.
 
-## Typed Metavariables
-
-  Experimental support for typed metavariables is available for Java and Go in semgrep. Typed metavariables specify that the metavariable is only matched if it is of a specific type. For example, you may want to specifically check that == is never used for Strings:
-
-  ```
- (String $X) == $Y
- ```
-
-  In Java, you could do this with a rule such as
-
-  ```yaml
- rules:
-   - id: no-string-cmp
-     languages: [java]
-     patterns:
-       - pattern: $X == (String $Y)
-     message: "Strings should not be compared with =="
-     severity: WARNING
- ```
-
-  If we had the code
-
-  ```java
- public class Example {
-     public int foo(String a, int b) {
-         //ERROR: this one is matched
-         if (a == "hello") return 1;
-         // This one is not
-         if (b == 2) return -1;
-     }
- }
- ```
-
-  only the string comparison would result in an error.
-
-  The syntax for Go is a little different, reflecting the different syntax for type declaration in Go. The same rule in Go would be written as
-
-  ```yaml
- rules:
-   - id: no-string-cmp
-     languages: [go]
-     patterns:
-       - pattern: "$X == ($Y : str)"
-     message: "Strings should not be compared with =="
-     severity: WARNING
- ```
-
-  though this check is less relevant here.
-
-  See it live at https://semgrep.live/WADZ
-
-  Limitations:
-
-  Currently, since matching happens within a single file, this is only guaranteed to work for local variables and arguments. Additionally, it only understands types on the most shallow level. For example, if you have int[] A, it will not recognize A[0] as an integer. If you have a class with fields, you will not be able to use typechecking on field accesses, and it will not recognize the class's field as the expected type. Literal types are understood to a limited extent.
-
-  Go currently does not recognize the type of all variables when declared on the same line. That is, if you have 
-
-  ```go
- var a, b = 1
- ```
-
-  it will not take both a and b as ints.
-
-  Please file issues with type matching [here](https://github.com/returntocorp/semgrep/issues) and include the `feature:typematching` tag.
-
 ## Taint Tracking
 
-Experimental support for taint tracking will be available in semgrep soon.
+Python CLI support for taint tracking is now available! A taint-tracking rule uses the `mode: taint` key-value pair and replaces the typical [top-level pattern keys](https://github.com/returntocorp/semgrep/blob/develop/docs/configuration-files.md) with `pattern-sources` and `pattern-sinks` (required) and `pattern-sanitizers` (optional). For example:
+
+```yaml
+- id: rule_id
+  mode: taint
+  pattern-sources:
+    - source(...)
+    - source1(...)
+  pattern-sinks:
+    - sink(...)
+    - sink1(...)
+    - eval(...)
+  pattern-sanitizers:
+    - sanitize(...)
+    - sanitize1(...)
+  message: A user input source() went into a dangerous sink()
+  languages: [python]
+  severity: WARNING
+```
+
+A file containing the rule shown above can be found at `../semgrep-core/data/basic_tainting.yml`. To see this taint-tracking example in action, use the following command:
+
+```yaml
+semgrep --config ../semgrep-core/data/basic_tainting.yml ../semgrep-core/tests/TAINTING
+```

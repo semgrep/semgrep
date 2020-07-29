@@ -6,14 +6,13 @@ from semgrep.cli import cli
 from semgrep.error import OK_EXIT_CODE
 from semgrep.error import SemgrepError
 
-# When running semgrep as a command line tool
-# silence root level logger otherwise logs higher
-# than warning are handled twice
-logger = logging.getLogger("semgrep")
-logger.propagate = False
-
 
 def main() -> int:
+    # When running semgrep as a command line tool
+    # silence root level logger otherwise logs higher
+    # than warning are handled twice
+    logger = logging.getLogger("semgrep")
+    logger.propagate = False
     try:
         cli()
     # Catch custom exceptions, output the right message and exit.

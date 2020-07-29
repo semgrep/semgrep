@@ -1,8 +1,0 @@
-running 1 rules...
-error: invalid pattern
-  --> rules/syntax/badpattern.yaml:4
-4 |       - pattern: $X == $X 3
-  |                  ^^^^^^^^^^
-
-Pattern could not be parsed as a Python semgrep pattern
-

@@ -19,7 +19,6 @@ import colorama
 from semgrep import config_resolver
 from semgrep.constants import __VERSION__
 from semgrep.constants import OutputFormat
-from semgrep.core_exception import CoreException
 from semgrep.error import FINDINGS_EXIT_CODE
 from semgrep.error import Level
 from semgrep.error import SemgrepError
@@ -127,7 +126,6 @@ def build_normal_output(
 
 def build_output_json(
     rule_matches: List[RuleMatch],
-    semgrep_errors: List[Any],
     semgrep_structured_errors: List[SemgrepError],
     debug_steps_by_rule: Optional[Dict[Rule, List[Dict[str, Any]]]] = None,
 ) -> str:
@@ -139,9 +137,7 @@ def build_output_json(
         output_json["debug"] = [
             {r.id: steps for r, steps in debug_steps_by_rule.items()}
         ]
-    output_json["errors"] = [
-        {"data": e, "message": "SemgrepCoreRuntimeErrors"} for e in semgrep_errors
-    ] + [e.to_dict() for e in semgrep_structured_errors]
+    output_json["errors"] = [e.to_dict() for e in semgrep_structured_errors]
     return json.dumps(output_json)
 
 
@@ -223,7 +219,6 @@ class OutputHandler:
         self.rule_matches: List[RuleMatch] = []
         self.debug_steps_by_rule: Dict[Rule, List[Dict[str, Any]]] = {}
         self.rules: FrozenSet[Rule] = frozenset()
-        self.semgrep_core_errors: List[CoreException] = []
         self.semgrep_structured_errors: List[SemgrepError] = []
         self.error_set: Set[SemgrepError] = set()
         self.has_output = False
@@ -242,7 +237,10 @@ class OutputHandler:
         if error not in self.error_set:
             self.semgrep_structured_errors.append(error)
             self.error_set.add(error)
-            logger.error(str(error))
+            if self.settings.output_format == OutputFormat.TEXT:
+                # Only show errors on stderr when not using format
+                # that includes errors
+                logger.error(str(error))
 
     def handle_semgrep_core_output(
         self,
@@ -345,10 +343,7 @@ class OutputHandler:
             debug_steps = self.debug_steps_by_rule
         if output_format.is_json():
             return build_output_json(
-                self.rule_matches,
-                self.semgrep_core_errors,
-                self.semgrep_structured_errors,
-                debug_steps,
+                self.rule_matches, self.semgrep_structured_errors, debug_steps,
             )
         elif output_format == OutputFormat.SARIF:
             return build_sarif_output(self.rule_matches, self.rules)

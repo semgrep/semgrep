@@ -65,10 +65,10 @@ On Ubuntu/WSL/linux, we recommend installing via `pip`
 $ pip3 install semgrep
 ```
 
-An install script is also available with each [release](https://github.com/returntocorp/semgrep/releases/download/v0.15.0/semgrep-v0.15.0-ubuntu-generic.sh) if you want a native binary.
+An install script is also available with each [release](https://github.com/returntocorp/semgrep/releases/download/v0.17.0/semgrep-v0.17.0-ubuntu-generic.sh) if you want a native binary.
 
 ```bash
-$ ./semgrep-v0.15.0-ubuntu-generic.sh
+$ ./semgrep-v0.17.0-ubuntu-generic.sh
 ```
 
 To try Semgrep without installation, you can also run it via Docker:
@@ -181,7 +181,7 @@ Semgrep supports three primary workflows:
 
 * Run pre-built rules
 * Writing custom rules
-* Run Semgrep continously in CI
+* Run Semgrep continuously in CI
 
 The following sections cover each in more detail.
 
@@ -313,12 +313,12 @@ You can play with this transaction example here: https://semgrep.live/4b4g.
   details on all of the keys that can be used and how they work.
 * See [Semgrep rule writing methodology](docs/writing_rules/README.md) for
   details on the thought process behind writing and rolling out a new Semgrep
-  rule sucessfully, and see [these docs](docs/writing_rules/examples.md) for
+  rule successfully, and see [these docs](docs/writing_rules/examples.md) for
   walkthroughs of writing rules from scratch.
 * There's also an interactive, example-based Semgrep rule writing tutorial here:
   https://semgrep.live/learn.
 
-### Run Semgrep Continously in CI
+### Run Semgrep Continuously in CI
 
 Semgrep can be run via CLI or Docker and output results as JSON (via the `--json` flag), so it can be inserted into any CI pipeline and have its results processed by whatever tools you're using.
 
@@ -365,10 +365,10 @@ Get in touch:
 
 Semgrep is LGPL-licensed, feel free to help out: [CONTRIBUTING](https://github.com/returntocorp/semgrep/blob/develop/CONTRIBUTING.md).
 
-Semgrep is a frontend to a larger program analysis library named [`pfff`](https://github.com/returntocorp/pfff/). `pfff` began and was open-sourced at [Facebook](https://github.com/facebookarchive/pfff) but is now archived. The primary maintainer now works at [r2c](https://r2c.dev). Semgrep was originally named `sgrep` and was renamed to avoid collisons with existing projects.
+Semgrep is a frontend to a larger program analysis library named [`pfff`](https://github.com/returntocorp/pfff/). `pfff` began and was open-sourced at [Facebook](https://github.com/facebookarchive/pfff) but is now archived. The primary maintainer now works at [r2c](https://r2c.dev). Semgrep was originally named `sgrep` and was renamed to avoid collisions with existing projects.
 
 ## Commercial Support
 
 Semgrep is proudly supported by [r2c](https://r2c.dev). We're hiring!
 
-Interested in a fully-supported, hosted version of semgrep? [Drop your email](https://forms.gle/dpUUvSo1WtELL8DW6) and we'll ping you!
+Interested in a fully-supported, hosted version of Semgrep? [Drop your email](https://forms.gle/dpUUvSo1WtELL8DW6) and we'll ping you!
