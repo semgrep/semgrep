@@ -10,8 +10,7 @@ def foo2():
   query = f"{select} from foo " + f"where name={name}"
 
 def foo2a():
-  # TODO:
-  # OK:
+  # ERROR:
   select = "select * "
   name = "foo"
   query = f"{select} from foo where name={name}"
