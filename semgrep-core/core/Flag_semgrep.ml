@@ -30,6 +30,8 @@ let go_deeper_stmt = ref true
 let go_really_deeper_stmt = ref true
 (*e: constant [[Flag_semgrep.go_really_deeper_stmt]] *)
 
+let filter_rules_regexp = ref true
+
 (*s: constant [[Flag_semgrep.equivalence_mode]] *)
 (* special mode to set before using generic_vs_generic to match
  * code equivalences.

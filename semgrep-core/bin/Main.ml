@@ -975,6 +975,8 @@ let options () =
     (*e: [[Main_semgrep_core.options]] other cases *)
     "-use_parsing_cache", Arg.Set_string use_parsing_cache,
     " <dir> save and use parsed ASTs in a cache at given directory. Caller responsiblity to clear cache";
+    "-no_filter_rules_regexp", Arg.Clear Flag.filter_rules_regexp,
+    " do not filter rules using regexp optimization";
     "-debug", Arg.Set Flag.debug,
     " add debugging information in the output (tracing)";
     "-debug_matching", Arg.Set Flag.debug_matching,
