@@ -130,6 +130,15 @@ def cli() -> None:
         ),
     )
 
+    config.add_argument(
+        "--timeout",
+        type=int,
+        default=0,
+        help=(
+            "Maximum time to spend running a rule on a single file in seconds. If set to 0 will not have time limit. Defaults to 0."
+        ),
+    )
+
     # output options
     output = parser.add_argument_group("output")
 
@@ -334,4 +343,5 @@ def cli() -> None:
                 disable_nosem=args.disable_nosem,
                 dangerously_allow_arbitrary_code_execution_from_rules=args.dangerously_allow_arbitrary_code_execution_from_rules,
                 no_git_ignore=args.no_git_ignore,
+                timeout=args.timeout,
             )
