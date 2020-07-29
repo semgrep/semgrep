@@ -1,0 +1,77 @@
+#! /usr/bin/env bash
+#
+# Recover from changes made to our container by GitHub Actions.
+#
+# The problem is: We specify our own base image in the job config
+# but the first thing GHA does is change the working directory and
+# the HOME variable for the user. This script is an attempt to recover
+# data from the original working directory.
+#
+set -eu
+
+# The original user of the container (USER line in the dockerfile)
+# before GitHub changes it.
+#
+user="user"
+
+cat <<EOF
+Current directory: $(pwd)
+Current HOME: $HOME
+Current user: $(whoami)
+EOF
+
+# GHA sets the new HOME to something like '/github/home' (sic).
+# Let's not fight it, but we'll import files from the old home.
+#
+if [[ "$HOME" != "$(pwd)" ]]; then
+  cat <<EOF
+Switching current directory from $(pwd) to $HOME (HOME)."
+EOF
+  cd
+fi
+
+if [[ "$(whoami)" != "$user" ]]; then
+  cat <<EOF
+Original/desired user: $user"
+Current user: $(whoami)
+OMG, we're a different user.
+EOF
+fi
+
+if [[ -d .opam ]]; then
+  cat <<EOF
+.opam exists in the current directory. Let's assume everything is fine.
+EOF
+else
+  user_home=$(eval "echo ~$user")
+  cat <<EOF
+.opam doesn't exist in the current directory.
+Let's try importing files from the old home '$user_home'.
+EOF
+  (
+    # The following may be as simple as creating a symlink to the old .opam
+    # and to .bashrc. There could be other config files, so we try to deal
+    # with them gracefully.
+    #
+    shopt -s dotglob nullglob
+    for orig in "$user_home"/*; do
+      echo "Create symlink to '$orig'."
+      if ! ln -s "$orig" . ; then
+        echo "Symlink to '$orig' failed."
+        local=$(basename "$orig")
+        if [[ -f "$orig" && -f "$local" ]]; then
+          echo "Inserting contents of '$orig' at the beginning of '$local'."
+          (cat "$orig"; echo; cat "$local") >> "$local".tmp
+          mv -f "$local".tmp "$local"
+        else
+          echo "Warning: Failed to import some file '$orig' into '$(pwd)'."
+        fi
+      fi
+    done
+  )
+fi
+
+cat <<EOF
+Here's what we got in $(pwd):
+EOF
+ls -al

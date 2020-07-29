@@ -7,6 +7,10 @@
 #
 set -eu
 
+# This is useful to locate 'dune' and for any build command not called
+# by opam.
+eval $(opam env)
+
 # Sanity check
 if [[ ! -e /etc/alpine-release ]]; then
   echo "Error: This doesn't look like an Alpine container." >&2
@@ -34,7 +38,6 @@ echo "Install submodules"
 git submodule update --init --recursive
 
 echo "Install ocaml-tree-sitter"
-eval $(opam env --root /home/opam/.opam --set-root)
 ./install-scripts/install-ocaml-tree-sitter
 
 echo "Install pfff"

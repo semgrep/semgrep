@@ -1,0 +1,104 @@
+name: Build Tests
+
+on:
+  pull_request:
+    paths-ignore:
+    - '**.md'
+  push:
+    branches:
+      - develop
+
+jobs:
+  build-core:
+    name: Build and Test semgrep-core
+    runs-on: ubuntu-latest
+    container: mjambon/r2c-ocaml:alpine
+    steps:
+      - name: Pre-checkout fixes
+        run: |
+          sudo chmod -R 777 /github
+          github_cache_dir="/__w"
+          sudo mkdir -p "$github_cache_dir"
+          sudo chmod -R 777 "$github_cache_dir"
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+      - name: Post-checkout fixes
+        run: ./.github/post-checkout
+      - name: Build semgrep-core
+        run: ./install-scripts/install-alpine-semgrep-core
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v1
+        with:
+          name: semgrep-core
+          path: artifacts/semgrep-core
+      - name: Test semgrep-core
+        run: |
+          eval $(opam env)
+          cd semgrep-core
+          make test
+
+  mac-build:
+    name: Check builds for macOS
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+      - name: Setup Python
+        uses: actions/setup-python@v1
+        with:
+          # This is just the Python version used to build the Nuitka executable
+          python-version: 3.7
+      - name: Run OSX build
+        run: ./release-scripts/osx-release.sh
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v1
+        with:
+          name: semgrep-osx
+          path: artifacts
+
+  mac-build-linking-test:
+    name: Check that semgrep-core runs
+    runs-on: macos-latest
+    needs: [mac-build]
+    steps:
+      - name: Download Artifact
+        uses: actions/download-artifact@v1
+        with:
+          name: semgrep-osx
+          path: artifacts
+      - name: Test build artifact
+        run: |
+          chmod +x ./artifacts/semgrep-core
+          ./artifacts/semgrep-core -help
+
+  release-ubuntu:
+    name: Check builds for ubuntu
+    needs: [build-core]
+    runs-on: ubuntu-latest
+    container: returntocorp/sgrep-build:ubuntu-16.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+      - name: Download Artifact
+        uses: actions/download-artifact@v1
+        with:
+          name: semgrep-core
+          path: semgrep-core-dir
+      - name: Install artifact
+        run: |
+          mkdir -p semgrep-files
+          cp semgrep-core-dir/semgrep-core semgrep-files
+          chmod +x semgrep-files/semgrep-core
+      - name: Run Ubuntu build script
+        run: ./release-scripts/ubuntu-release.sh
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v1
+        with:
+          name: semgrep-ubuntu-16.04-${{ github.sha }}
+          path: artifacts.tar.gz

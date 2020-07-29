@@ -331,6 +331,16 @@ class CoreRunner:
                 if patterns_regex:
                     self.handle_regex_patterns(outputs, patterns_regex, targets)
 
+                # semgrep-core doesn't know about OPERATORS.METAVARIABLE_REGEX -
+                # this is strictly a semgrep Python feature. Metavariable regex
+                # filtering is performed purely in Python code then compared
+                # against semgrep-core's results for other patterns.
+                patterns = [
+                    pattern
+                    for pattern in patterns
+                    if pattern.expression.operator != OPERATORS.METAVARIABLE_REGEX
+                ]
+
                 patterns_json = [p.to_json() for p in patterns]
 
                 output_json = self._run_core_command(
