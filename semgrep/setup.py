@@ -69,7 +69,7 @@ class PostInstallCommand(install):
     """Post-installation for installation mode."""
 
     def run(self):
-        if platform.system() == 'Windows':
+        if platform.system() == "Windows":
             print("Not attempting to install binary while running under windows")
             return
         if "TOX_ENV_NAME" in os.environ:
