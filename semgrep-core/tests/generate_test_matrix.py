@@ -10,13 +10,13 @@ THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 
 FEATURES = ["dots", "equivalence", "metavar", "misc"]
 VERBOSE_FEATURE_NAME = {
-    "dots": "Ellipsis",
+    "dots": "Wildcard Matches",
     "equivalence": "Equivalences",
-    "metavar": "Metavariables",
+    "metavar": "Named Placeholders",
     "misc": "Others",
-    "metavar_equality": "Automatic Equality Constraints on Metavariables",
-    "concrete": "Concrete Syntax",
-    "regexp": "Inline Regular Expressions (OCaml Regex Syntax)",
+    "metavar_equality": "Reused Expressions",
+    "concrete": "Exact Matches",
+    "regexp": "Regular Expressions",
     "deep": "Deep (Recursive) Matching"
 }
 
@@ -30,13 +30,13 @@ VERBOSE_SUBCATEGORY_NAME = {
     "arg": "Argument",
     "args": "Arguments",
     "import": "Imports",
-    "string": "Strings",
+    "string": "OCaml Syntax",
     "expr": "Expressions",
     "var": "Variables",
     "naming_import": "Import Renaming/Aliasing",
     "constant_propagation": "Constant Propagation",
     "fieldname": "Field Names",
-    "syntax": "Exact AST Match",
+    "syntax": "Single Statement",
     "exprstmt": "Expression and Statement",
 }
 
@@ -115,28 +115,32 @@ CSS = '''
     color: white;
     padding: 10px;
 }
+
 .match { 
     background-color: white;
     padding: 10px;
     border: 1px solid #0974d7;
     color: black;
 }
+
 .pair {
     display: flex;
     width: 100%;
-    font-family: Consolas,Bitstream Vera Sans Mono,Courier New,Courier,monospace;
+    font-family: Consolas, Bitstream Vera Sans Mono, Courier New, Courier, monospace;
     font-size: 1em;
 }
+
 .example { 
     padding: 10px;
     margin: 10px;
     border: 1px solid #ccc;
 }
+
 .examples {
     display: flex;
 }
 
- a {
+a {
     text-decoration: none;
     color: inherit;
 }
@@ -144,10 +148,12 @@ CSS = '''
 pre { 
     margin: 0;
 }
+
 .example-category {
     width: fit-content;
     border-top: 1px solid #ddd;
 }
+
 .notimplemented {
     background-color: yellow;
 }
