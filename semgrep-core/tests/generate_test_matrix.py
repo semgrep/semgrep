@@ -159,20 +159,20 @@ def generate_cheatsheet(root_dir: str):
                 sgrep_path = find_path(root_dir, lang, category, subcategory, 'sgrep')
                 code_path = find_path(root_dir, lang, category, subcategory, lang_dir_to_ext(lang))
                 
-                higlights = []
+                highlights = []
                 if os.path.exists(sgrep_path) and os.path.exists(code_path):
                     ranges = run_semgrep_on_example(lang, sgrep_path, code_path)
                     if ranges:
                         j = json.loads(ranges)
                         for entry in j['results']:
-                            higlights.append({'start': entry['start'], 'end': entry['end']})
+                            highlights.append({'start': entry['start'], 'end': entry['end']})
 
                 entry = { 
                     'pattern': read_if_exists(sgrep_path),
                     'pattern_path': sgrep_path,
                     'code': read_if_exists(code_path),
                     'code_path': code_path,
-                    'highlights': higlights,
+                    'highlights': highlights,
                 }
                
 
