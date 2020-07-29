@@ -23,7 +23,7 @@ VERBOSE_FEATURE_NAME = {
     "metavar_equality": "Reoccurring Expressions",
     "concrete": "Exact Matches",
     "regexp": "Regular Expressions",
-    "deep": "Reoccurring Expressions"
+    "deep": "Deep (Recursive) Matching"
 }
 
 VERBOSE_SUBCATEGORY_NAME = {
@@ -127,7 +127,6 @@ def _config_to_string(config: Any) -> str:
     return stream.getvalue()
 
 def run_semgrep_on_example(lang: str, config_arg_str: str, code_path: str) -> str:
-    subprocess.run(["semgrep", "--version"])
     with tempfile.NamedTemporaryFile('w') as config:
         pattern_text = open(config_arg_str).read()
         config.write(_config_to_string(_single_pattern_to_dict(pattern_text, lang)))
@@ -145,10 +144,9 @@ def run_semgrep_on_example(lang: str, config_arg_str: str, code_path: str) -> st
             print(output.stderr.decode("utf-8"))
             return output.stdout.decode("utf-8")
         else:
-            print(output.returncode)
+            print("ERROR: " + output.returncode)
             print(cmd)
-            print(output.stderr.decode("utf-8"))
-            # sys.exit(1)
+            sys.exit(1)
 
 def generate_cheatsheet(root_dir: str):
     # output : {'dots': {'arguments': ['foo(...)', 'foo(1)'], } }
