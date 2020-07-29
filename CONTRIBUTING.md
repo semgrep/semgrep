@@ -84,6 +84,12 @@ From here, you can operate inside the virtual environment by running:
 $ python -m pipenv shell
 ```
 
+From inside the virtual environment, run:
+```
+$ cd semgrep
+$ pip install -e .
+```
+
 At this point we can test our installation, but cannot run any analysis yet
 because we don't have an accompanying `semgrep-core`:
 
