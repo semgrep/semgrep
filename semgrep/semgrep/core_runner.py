@@ -122,9 +122,10 @@ class CoreRunner:
         This includes properly invoking semgrep-core and parsing the output
     """
 
-    def __init__(self, allow_exec: bool, jobs: int):
+    def __init__(self, allow_exec: bool, jobs: int, timeout: int):
         self._allow_exec = allow_exec
         self._jobs = jobs
+        self._timeout = timeout
 
     def _flatten_rule_patterns(self, rules: List[Rule]) -> Iterator[Pattern]:
         """
@@ -254,6 +255,8 @@ class CoreRunner:
                 target_file.name,
                 "-use_parsing_cache",
                 cache_dir,
+                "-timeout",
+                str(self._timeout),
             ]
 
             equivalences = rule.equivalences
@@ -288,12 +291,12 @@ class CoreRunner:
 
     def _run_rule(
         self, rule: Rule, target_manager: TargetManager, cache_dir: str
-    ) -> Tuple[List[RuleMatch], List[Dict[str, Any]], List[CoreException]]:
+    ) -> Tuple[List[RuleMatch], List[Dict[str, Any]], List[SemgrepError]]:
         """
             Run all rules on targets and return list of all places that match patterns, ... todo errors
         """
         outputs: List[PatternMatch] = []  # multiple invocations per language
-        errors: List[CoreException] = []
+        errors: List[SemgrepError] = []
 
         for language, all_patterns_for_language in self._group_patterns_by_language(
             rule
@@ -352,8 +355,10 @@ class CoreRunner:
                     "-rules_file",
                     cache_dir,
                 )
+
             errors.extend(
-                CoreException.from_json(e, language) for e in output_json["errors"]
+                CoreException.from_json(e, language, rule.id).into_semgrep_error()
+                for e in output_json["errors"]
             )
             outputs.extend(PatternMatch(m) for m in output_json["matches"])
 
@@ -421,11 +426,11 @@ class CoreRunner:
     ) -> Tuple[
         Dict[Rule, List[RuleMatch]],
         Dict[Rule, List[Dict[str, Any]]],
-        List[CoreException],
+        List[SemgrepError],
     ]:
         findings_by_rule: Dict[Rule, List[RuleMatch]] = {}
         debugging_steps_by_rule: Dict[Rule, List[Dict[str, Any]]] = {}
-        all_errors: List[CoreException] = []
+        all_errors: List[SemgrepError] = []
 
         # cf. for bar_format: https://tqdm.github.io/docs/tqdm/
         with tempfile.TemporaryDirectory() as semgrep_core_ast_cache_dir:
@@ -448,7 +453,7 @@ class CoreRunner:
     ) -> Tuple[
         Dict[Rule, List[RuleMatch]],
         Dict[Rule, List[Dict[str, Any]]],
-        List[CoreException],
+        List[SemgrepError],
     ]:
         """
             Takes in rules and targets and retuns object with findings
@@ -468,18 +473,8 @@ def dedup_output(outputs: List[RuleMatch]) -> List[RuleMatch]:
     return list({uniq_id(r): r for r in outputs}.values())
 
 
-def dedup_errors(errors: List[CoreException]) -> List[CoreException]:
-    def uniq_error_id(error: CoreException) -> Tuple[str, str, int, int, int, int]:
-        return (
-            error._check_id,
-            str(error._path),
-            error._start.line,
-            error._start.col,
-            error._end.line,
-            error._end.col,
-        )
-
-    return list({uniq_error_id(r): r for r in errors}.values())
+def dedup_errors(errors: List[SemgrepError]) -> List[SemgrepError]:
+    return list(set(errors))
 
 
 def uniq_id(
