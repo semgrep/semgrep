@@ -1,4 +1,5 @@
 import logging
+import re
 from pathlib import Path
 from typing import Any
 from typing import Dict
@@ -25,6 +26,31 @@ from semgrep.semgrep_types import PatternId
 from semgrep.semgrep_types import Range
 from semgrep.semgrep_types import TAINT_MODE
 from semgrep.util import flatten
+
+
+def get_re_range_matches(
+    metavariable: str,
+    regex: str,
+    ranges: Set[Range],
+    pattern_matches: List[PatternMatch],
+) -> Set[Range]:
+
+    result: Set[Range] = set()
+    for _range in ranges:
+        if metavariable not in _range.vars:
+            logger.debug(f"metavariable '{metavariable}' missing in range '{_range}'")
+            continue
+
+        any_matching_ranges = any(
+            pm.range == _range
+            and metavariable in pm.metavars
+            and re.match(regex, pm.metavars[metavariable]["abstract_content"])
+            for pm in pattern_matches
+        )
+        if any_matching_ranges:
+            result.add(_range)
+
+    return result
 
 
 def _evaluate_single_expression(
@@ -99,7 +125,8 @@ def _evaluate_single_expression(
                 f"at least one rule needs to execute arbitrary code; this is dangerous! if you want to continue, enable the flag: {RCE_RULE_FLAG}",
                 code=NEED_ARBITRARY_CODE_EXEC_EXIT_CODE,
             )
-        assert expression.operand, "must have operand for this operator type"
+        if not isinstance(expression.operand, str):
+            raise SemgrepError("pattern-where-python must have a string value")
 
         # Look through every range that hasn't been filtered yet
         for pattern_match in list(flatten(pattern_ids_to_pattern_matches.values())):
@@ -134,6 +161,30 @@ def _evaluate_single_expression(
             }
         )
         return output_ranges
+    elif expression.operator == OPERATORS.METAVARIABLE_REGEX:
+        if (
+            not isinstance(expression.operand, dict)
+            or "metavariable" not in expression.operand
+            or "regex" not in expression.operand
+        ):
+            raise SemgrepError(
+                "'metavariable' and 'regex' keys required when using 'metavariable-regex' operator"
+            )
+        output_ranges = get_re_range_matches(
+            expression.operand["metavariable"],
+            expression.operand["regex"],
+            ranges_left,
+            list(flatten(pattern_ids_to_pattern_matches.values())),
+        )
+        logger.debug(f"after filter `{expression.operator}`: {output_ranges}")
+        steps_for_debugging.append(
+            {
+                "filter": pattern_name_for_operator(expression.operator),
+                "pattern_id": expression.pattern_id,
+                "ranges": list(output_ranges),
+            }
+        )
+        return output_ranges
     else:
         raise UnknownOperatorError(f"unknown operator {expression.operator}")
 
@@ -157,14 +208,18 @@ def _where_python_statement_matches(
         exec(to_eval, scope)  # nosem: contrib.dlint.dlint-equivalent.insecure-exec-use, python.lang.security.audit.exec-detected.exec-detected
         # fmt: on
         result = scope[RETURN_VAR]  # type: ignore
+    except KeyError as ex:
+        logger.error(
+            f"could not find metavariable {ex} while evaluating where-python expression '{where_expression}', consider case where metavariable is missing"
+        )
     except Exception as ex:
         logger.error(
-            f"error evaluating a where-python expression: `{where_expression}`: {ex}"
+            f"received error '{repr(ex)}' while evaluating where-python expression '{where_expression}'"
         )
 
     if not isinstance(result, bool):
         raise SemgrepError(
-            f"python where expression needs boolean output but got: {result} for {where_expression}"
+            f"where-python expression '{where_expression}' needs boolean output but got {result}"
         )
     return result
 

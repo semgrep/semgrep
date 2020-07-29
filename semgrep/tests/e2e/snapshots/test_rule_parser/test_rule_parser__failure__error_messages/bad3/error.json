@@ -3,7 +3,7 @@
     {
       "code": 4,
       "level": "error",
-      "long_msg": "type of `pattern` must be a string, but it was a list",
+      "long_msg": "type of `operand` must be a string or dict, but it was a list",
       "short_msg": "invalid operand",
       "spans": [
         {

@@ -1,0 +1,79 @@
+{
+  "errors": [],
+  "results": [
+    {
+      "check_id": "rules.metavar-test",
+      "end": {
+        "col": 32,
+        "line": 1
+      },
+      "extra": {
+        "lines": "metavariable_regex_test(\"test\")",
+        "message": "Metavariable regex test",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "\"test\"",
+            "end": {
+              "col": 31,
+              "line": 1,
+              "offset": 30
+            },
+            "start": {
+              "col": 25,
+              "line": 1,
+              "offset": 24
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/basic/metavariable-regex.py",
+      "start": {
+        "col": 1,
+        "line": 1
+      }
+    },
+    {
+      "check_id": "rules.metavar-test",
+      "end": {
+        "col": 35,
+        "line": 2
+      },
+      "extra": {
+        "lines": "metavariable_regex_test(\"example\")",
+        "message": "Metavariable regex test",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "\"example\"",
+            "end": {
+              "col": 34,
+              "line": 2,
+              "offset": 65
+            },
+            "start": {
+              "col": 25,
+              "line": 2,
+              "offset": 56
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/basic/metavariable-regex.py",
+      "start": {
+        "col": 1,
+        "line": 2
+      }
+    }
+  ]
+}

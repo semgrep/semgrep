@@ -1,23 +1,32 @@
+name: Incorporate Benchmark Data
+#     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+# This string is matched in `latest-artifact-for-branch.py`:
+
 on:
   push:
     # Sequence of patterns matched against refs/tags
     branches:
-      - "develop"
-      - "master"
+      - develop
     tags:
       - "v*" # Push events to matching v*, i.e. v1.0, v20.15.10
-name: Incorporate Benchmark Data
-#     ^^^^^^^^^^^^^^^^^^^^^^^^^^
-# This string is matched in `latest-artifact-for-branch.py`:
+
 jobs:
   build-core:
     runs-on: ubuntu-latest
-    container: ocaml/opam2:alpine
+    container: mjambon/r2c-ocaml:alpine
     steps:
-      - name: Adjust permissions
-        run: sudo chmod -R 777 . /github
+      - name: Pre-checkout fixes
+        run:  |
+          sudo chmod -R 777 /github
+          github_cache_dir="/__w"
+          sudo mkdir -p "$github_cache_dir"
+          sudo chmod -R 777 "$github_cache_dir"
       - name: Checkout
         uses: actions/checkout@v2
+        with:
+          submodules: true
+      - name: Post-checkout fixes
+        run: ./.github/post-checkout
       - name: Build semgrep-core
         run: ./install-scripts/install-alpine-semgrep-core
       - name: Upload artifacts
