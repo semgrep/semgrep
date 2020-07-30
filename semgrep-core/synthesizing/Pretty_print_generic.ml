@@ -45,6 +45,10 @@ let todo any =
 
 let ident (s, _) = s
 
+let opt f = function
+  | None -> ""
+  | Some x -> f x
+
 let token default tok =
   try Parse_info.str_of_info tok
   with Parse_info.NoTokenLocation _ -> default
@@ -110,6 +114,7 @@ function
   | If (tok, e, s, sopt) -> if_stmt env level (token "if" tok, e, s, sopt)
   | While (tok, e, s) -> while_stmt env level (tok, e, s)
   | DoWhile (_tok, s, e) -> do_while stmt env level (s, e)
+  | For (tok, hdr, s) -> for_stmt env level (tok, hdr, s)
   | Return (tok, eopt) -> return env (tok, eopt)
   | x -> todo (S x)
 
@@ -127,7 +132,7 @@ and block env (t1, ss, t2) level =
    in
    let get_boundary t =
      let t_str = token "" t in
-       match t_str with "" -> "" | "{" -> "{\n" | "}" -> "\n}" | _ -> t_str
+       match t_str with "" -> "" | "{" -> "{\n" | "}" -> "\n} " | _ -> t_str
    in
      F.sprintf "%s%s%s" (get_boundary t1) (show_statements env ss) (get_boundary t2)
 
@@ -135,7 +140,7 @@ and if_stmt env level (tok, e, s, sopt) =
   let no_paren_cond = F.sprintf "%s %s" in (* if cond *)
   let paren_cond = F.sprintf "%s (%s)" in (* if cond *)
   let colon_body = F.sprintf "%s:\n%s\n" in (* (if cond) body *)
-  let bracket_body = F.sprintf "%s %s\n" (* (if cond) body *)
+  let bracket_body = F.sprintf "%s %s" (* (if cond) body *)
   in
   let (format_cond, elseif_str, format_block) =
     (match env.lang with
@@ -150,7 +155,8 @@ and if_stmt env level (tok, e, s, sopt) =
   let if_stmt_prt = format_block e_str s_str in
         match sopt with
         | None -> if_stmt_prt
-        | Some (Block(_, [If (_, e', s', sopt')], _)) -> F.sprintf "%s%s" if_stmt_prt (if_stmt env level (elseif_str, e', s', sopt'))
+        | Some (Block(_, [If (_, e', s', sopt')], _)) ->
+                 F.sprintf "%s%s" if_stmt_prt (if_stmt env level (elseif_str, e', s', sopt'))
         | Some (body) -> F.sprintf "%s%s" if_stmt_prt (format_block "else" (stmt env (level + 1) body))
 
 and while_stmt env level (tok, e, s) =
@@ -182,8 +188,36 @@ and do_while stmt env level (s, e) =
    in
       do_while_format (stmt env (level + 1) s) (expr env e)
 
-
-  (* For of tok (* 'for', 'foreach'*) * for_header * stmt *)
+and for_stmt env level (for_tok, hdr, s) =
+   let for_format =
+    (match env.lang with
+    | Lang.Java | Lang.C | Lang.Javascript | Lang.Typescript -> F.sprintf "%s (%s) %s\n"
+    | Lang.Go -> F.sprintf "%s %s %s\n"
+    | Lang.Python | Lang.Python2 | Lang.Python3 -> F.sprintf "%s %s:\n%s\n"
+    | Lang.Ruby -> F.sprintf "%s %s\ndo %s\nend\n"
+    | Lang.JSON | Lang.OCaml -> failwith "JSON/OCaml has for loops????"
+    )
+   in
+   let show_init = function
+   | ForInitVar (ent, var_def) -> F.sprintf "%s%s%s" (opt (fun x -> (print_type x) ^ " ") var_def.vtype)
+                                      (ident ent.name) (opt (fun x -> " = " ^ (expr env x)) var_def.vinit)
+   | ForInitExpr e_init -> expr env e_init
+   in
+   let rec show_init_list = function
+    | [] -> ""
+    | [x] -> show_init x
+    | x::xs -> (show_init x) ^ ", " ^ (show_init_list xs)
+   in
+   let opt_expr = opt (fun x -> expr env x) in
+   let hdr_str =
+    (match hdr with
+    | ForClassic (init, cond, next) -> F.sprintf "%s; %s; %s" (show_init_list init) (opt_expr cond) (opt_expr next)
+    | ForEach (pat, tok, e) -> F.sprintf "%s %s %s" (pattern env pat) (token "in" tok) (expr env e)
+    | ForEllipsis tok -> token "..." tok
+    )
+   in
+   let body_str = stmt env (level + 1) s in
+   for_format (token "for" for_tok) hdr_str body_str
 
 and return env (tok, eopt) =
   let to_return =
@@ -243,6 +277,11 @@ and call env (e, (_, es, _)) =
   match (e, es) with
        | (IdSpecial(Op _, _), x::y::[]) -> F.sprintf "%s %s %s" (argument env x) s1 (argument env y)
        | (IdSpecial(New, _), x::ys) -> F.sprintf "%s %s(%s)" s1 (argument env x) (arguments env ys)
+       | (IdSpecial(IncrDecr (i_d, pre_post), _), [x]) ->
+           let op_str = match i_d with | Incr -> "++" | Decr -> "--" in
+           (match pre_post with
+               | Prefix -> F.sprintf "%s%s" op_str (argument env x)
+               | Postfix -> F.sprintf "%s%s" (argument env x) op_str)
        | _ -> F.sprintf "%s(%s)" s1 (arguments env es)
 
 and literal env = function
@@ -323,7 +362,12 @@ and cond env (e1, e2, e3) =
      | Lang.Java -> F.sprintf "%s ? %s : %s" s1 s2 s3
      | _ -> todo (E(Conditional(e1, e2, e3)))
 
+(* patterns *)
 
+and pattern env = function
+  | PatLiteral l -> literal env l
+  | PatId (id, _id_info) -> ident id
+  | x -> todo (P x)
 
 (*****************************************************************************)
 (* Entry point *)
