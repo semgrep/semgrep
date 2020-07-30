@@ -354,7 +354,7 @@ def main(
         allow_exec=dangerously_allow_arbitrary_code_execution_from_rules,
         jobs=jobs,
         timeout=timeout,
-        max_memory=max_memory
+        max_memory=max_memory,
     ).invoke_semgrep(target_manager, all_rules)
 
     output_handler.handle_semgrep_errors(semgrep_errors)

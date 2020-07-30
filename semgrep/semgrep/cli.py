@@ -353,5 +353,5 @@ def cli() -> None:
                 dangerously_allow_arbitrary_code_execution_from_rules=args.dangerously_allow_arbitrary_code_execution_from_rules,
                 no_git_ignore=args.no_git_ignore,
                 timeout=args.timeout,
-                max_memory=args.max_memory
+                max_memory=args.max_memory,
             )
