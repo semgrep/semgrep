@@ -152,7 +152,17 @@ let match_any_any pattern e =
 (*****************************************************************************)
 
 (*s: function [[Semgrep_generic.check2]] *)
-let check2 ~hook rules equivs file _lang ast =
+let check2 ~hook rules equivs file lang ast =
+
+  let rules =
+    if !Flag.filter_irrelevant_rules
+    then Rules_filter.filter_rules_relevant_to_file_using_regexp
+           rules lang file
+    else rules
+  in
+  if rules = []
+  then []
+  else begin
 
   let matches = ref [] in
 
@@ -256,6 +266,7 @@ let check2 ~hook rules equivs file _lang ast =
   visitor prog;
 
   !matches |> List.rev
+  end
 (*e: function [[Semgrep_generic.check2]] *)
 
 (*s: function [[Semgrep_generic.check]] *)
