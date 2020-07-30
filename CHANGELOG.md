@@ -166,7 +166,7 @@ def fetch_global_const():
 
 - Java imports can now be searched with patterns written like `import
   javax.crypto.$ANYTHING`
-- `--debugging-json` flag for use on semgrep.live
+- `--debugging-json` flag for use on semgrep.dev
 
 ### Changed
 

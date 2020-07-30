@@ -38,7 +38,7 @@ subprocess.call("grep -R {} .".format(sys.argv[1]), shell=True, cwd="/home/user"
 subprocess.run("grep -R {} .".format(sys.argv[1]), shell=True) # Doesn't match here
 ```
 
-https://semgrep.live/eq5Z
+https://semgrep.dev/eq5Z
 
 **Filter out hardcoded strings.** The ellipsis operator can be used inside quotes to represent any string literal. We can filter out static strings by using this with the `pattern-not` clause.
 
@@ -59,7 +59,7 @@ subprocess.call("grep -R {} .".format(sys.argv[1]), shell=True, cwd="/home/user"
 subprocess.run("grep -R {} .".format(sys.argv[1]), shell=True) # Doesn't match here
 ```
 
-https://semgrep.live/v8X8
+https://semgrep.dev/v8X8
 
 **Look explicitly for dangerous keyword arguments.** You may want to match only when [certain keyword arguments are present](https://docs.python.org/3/library/subprocess.html#security-considerations). For example, when subprocess.call is passed the keyword argument shell=True, Python won't auto-escape shell metacharacters that are passed in, which, if an attacker has control over the input, may lead to them being able to run arbitrary shell commands.
 
@@ -82,7 +82,7 @@ subprocess.call("grep -R {} .".format(sys.argv[1]), shell=True, cwd="/home/user"
 subprocess.run("grep -R {} .".format(sys.argv[1]), shell=True) # Doesn't match here
 ```
 
-https://semgrep.live/d8J6
+https://semgrep.dev/d8J6
 
 Semgrep will match `(..., shell=True)` only when `shell=True` is the last argument, but that's not what we want, as `shell=True` is dangerous regardless of the order in which it's passed in. We can update our pattern to handle cases where `shell=True` is a keyword argument regardless of the order it's passed in by using the ellipsis operator on both sides of `shell=True`.
 
@@ -103,7 +103,7 @@ subprocess.call("grep -R {} .".format(sys.argv[1]), shell=True, cwd="/home/user"
 subprocess.run("grep -R {} .".format(sys.argv[1]), shell=True) # Doesn't match here
 ```
 
-https://semgrep.live/ZqKW
+https://semgrep.dev/ZqKW
 
 **Bonus: Match any `subprocess` function with `shell=True`.** As you probably noticed, `subprocess.run` is subject to the same issue as `subprocess.call`. `subprocess.run` [was made available in Python 3.5](https://docs.python.org/3/library/subprocess.html#older-high-level-api). We can match both `subprocess.call` and `subprocess.run` by using **metavariables**. 
 
@@ -128,7 +128,7 @@ subprocess.call("grep -R {} .".format(sys.argv[1]), shell=True, cwd="/home/user"
 subprocess.run("grep -R {} .".format(sys.argv[1]), shell=True) # Matches here too!
 ```
 
-https://semgrep.live/nJ9d
+https://semgrep.dev/nJ9d
 
 ## Enforce Specific Use of an API
 
@@ -153,7 +153,7 @@ patterns:
 - pattern: jinja2.Environment(...)
 ```
 
-The full version of this rule, which filters out additional cases, looks like this: https://semgrep.live/WADz.
+The full version of this rule, which filters out additional cases, looks like this: https://semgrep.dev/WADz.
 
 
 This can be generalized with the following approach:
@@ -171,7 +171,7 @@ patterns:
 - pattern: flask.response.set_cookie(...)
 ```
 
-https://semgrep.live/EwB5
+https://semgrep.dev/EwB5
 
 ## Ensure One Function is Called Before Another
 
@@ -180,14 +180,14 @@ You can ensure one function is called before another in Semgrep by utilizing the
 1. Match the last function call by name.
 2. Filter out when the right function is called above.
 
-**Match the last function call by name.** Let's use [this Java example from semgrep.live](https://semgrep.live/7K9G). We want to make sure `verify_transaction` is called before `make_transaction`. First, match the function call that should be called last. In this case, it's `make_transaction`. (Yes, they're normally called "methods." Stick with me.)
+**Match the last function call by name.** Let's use [this Java example from semgrep.dev](https://semgrep.dev/7K9G). We want to make sure `verify_transaction` is called before `make_transaction`. First, match the function call that should be called last. In this case, it's `make_transaction`. (Yes, they're normally called "methods." Stick with me.)
 
 ```yaml
 patterns:
 - pattern: make_transaction(...);
 ```
 
-https://semgrep.live/QrbJ
+https://semgrep.dev/QrbJ
 
 **Filter out when the right function is called above.** Next, we can filter out the case where `verify_transaction` appears above. To do this, we will use the [`pattern-not-inside` clause](https://github.com/returntocorp/semgrep/blob/develop/docs/configuration-files.md#pattern-not-inside). `pattern-not-inside` will filter out **ranges**, inclusive of the ellipsis operator. The patterns look like this:
 
@@ -203,7 +203,7 @@ patterns:
 
 If I were to describe this pattern in English, it would read: Filter out any matches inside statements after `verify_transaction`, otherwise match `make_transaction`. Written another way: match `make_transaction` only when `verify_transaction` is not above.
 
-https://semgrep.live/8Gzg
+https://semgrep.dev/8Gzg
 
 **Bonus: Ensure the same variable is used in both functions.** The above patterns has three matches in the given examples. There is a fourth case to match where the *wrong* `Transaction` object is verified. To match only when the same variable is used in both functions, we can use a metavariable. Just like variables, a Semgrep pattern will match only when the metavariables are the same wherever it is used. We can augment the pattern like this to catch the fourth case:
 
@@ -215,7 +215,7 @@ patterns:
 - pattern: make_transaction($TRANSACTION);
 ```
 
-https://semgrep.live/gxRR
+https://semgrep.dev/gxRR
 
 ### Secure Cookies in Java
 
@@ -242,7 +242,7 @@ patterns:
 - pattern: $RESP.addCookie($COOKIE);
 ```
 
-https://semgrep.live/L1gX
+https://semgrep.dev/L1gX
 
 ## Find All Routes in an Application
 

@@ -14,9 +14,7 @@ from semgrep.constants import __VERSION__
 from semgrep.constants import SEMGREP_USER_AGENT
 
 VERSION_CHECK_URL = str(
-    os.environ.get(
-        "SEMGREP_VERSION_CHECK_URL", "https://semgrep.live/api/check-version"
-    )
+    os.environ.get("SEMGREP_VERSION_CHECK_URL", "https://semgrep.dev/api/check-version")
 )
 VERSION_CHECK_TIMEOUT = int(
     os.environ.get(

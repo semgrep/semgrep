@@ -86,7 +86,7 @@ def test_default_packs(run_semgrep_in_tmp, clone_github_repo, benchmark, repo_ca
                     "--jobs",
                     "1",
                     "--config",
-                    f"https://semgrep.live/c/p/{repo_case.language}",
+                    f"https://semgrep.dev/c/p/{repo_case.language}",
                     str(repo_path),
                 ],
                 timeout=timeout,

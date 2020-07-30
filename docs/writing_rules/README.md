@@ -9,7 +9,7 @@ authoritative, detailed docs on:
 * YAML configuration options like `pattern-either`, `pattern-inside`, and more,
   [see here](../configuration-files.md).
 
-> **For walkthrough examples of writing rules, see [these docs](examples.md), or an interactive, example-based tutorial here: https://semgrep.live/learn.**
+> **For walkthrough examples of writing rules, see [these docs](examples.md), or an interactive, example-based tutorial here: https://semgrep.dev/learn.**
 
 ## A Rule Writing Methodology
 
@@ -130,7 +130,7 @@ Create an example test file, containing snippets of code that **should** and **s
 
 Fill out the `TODO` in the above YAML file with a Semgrep pattern, using various [pattern features](../pattern-features.md) and [additional pattern clauses](../configuration-files.md) as needed.
 
-For additional help, see [these docs](examples.md) for walkthrough rule writing examples, or an interactive, example-based tutorial here: https://semgrep.live/learn.
+For additional help, see [these docs](examples.md) for walkthrough rule writing examples, or an interactive, example-based tutorial here: https://semgrep.dev/learn.
 
 Check that the rule you're writing matches the example file by running:
 
@@ -167,7 +167,7 @@ rules:
     severity: ERROR
 ```
 
-See [here](https://semgrep.live/YG3X) for an example of using `pattern-either`.
+See [here](https://semgrep.dev/YG3X) for an example of using `pattern-either`.
 
 ### 4. Iterate and Refine
 
