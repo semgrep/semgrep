@@ -7,7 +7,7 @@ import os
 import semgrep.config_resolver
 import semgrep.semgrep_main
 import semgrep.test
-from semgrep.constants import __VERSION__
+from semgrep import __VERSION__
 from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import OutputFormat
 from semgrep.constants import RCE_RULE_FLAG
