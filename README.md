@@ -44,14 +44,14 @@
   </a>
 </p>
 
-Semgrep is a [command-line](#installation) tool for offline static analysis. Use pre-built or custom rules to enforce code and security standards in your codebase. You can try it now with our [interactive live editor](https://semgrep.live/editor).
+Semgrep is a [command-line](#installation) tool for offline static analysis. Use pre-built or custom rules to enforce code and security standards in your codebase. You can try it now with our [interactive live editor](https://semgrep.dev/editor).
 
 Semgrep combines the convenient and iterative style of `grep` with the powerful features of an Abstract Syntax Tree (AST) matcher and limited dataflow. Easily find function calls, class or method definitions, and more without having to understand ASTs or wrestle with regexes.
 
 Visit [Installation](#installation) and [Usage](#usage) to get started.
 
 ## Installation
-> Want to skip installation? You can run Semgrep via our interactive live editor at [semgrep.live](https://semgrep.live/editor).
+> Want to skip installation? You can run Semgrep via our interactive live editor at [semgrep.dev](https://semgrep.dev/editor).
 
 On macOS, binaries are available via Homebrew:
 
@@ -65,10 +65,10 @@ On Ubuntu/WSL/linux, we recommend installing via `pip`
 $ pip3 install semgrep
 ```
 
-An install script is also available with each [release](https://github.com/returntocorp/semgrep/releases/download/v0.16.0/semgrep-v0.16.0-ubuntu-generic.sh) if you want a native binary.
+An install script is also available with each [release](https://github.com/returntocorp/semgrep/releases/download/v0.17.0/semgrep-v0.17.0-ubuntu-generic.sh) if you want a native binary.
 
 ```bash
-$ ./semgrep-v0.16.0-ubuntu-generic.sh
+$ ./semgrep-v0.17.0-ubuntu-generic.sh
 ```
 
 To try Semgrep without installation, you can also run it via Docker:
@@ -94,7 +94,7 @@ The AppSec, Developer, and DevOps communities deserve a static analysis tool tha
 Semgrep is optimized for:
 
 * **Speed**: Fast enough to run on every build, commit, or file save
-* **Finding bugs that matter**: Run your own specialized rules or choose OWASP 10 checks from the [Semgrep Registry](https://semgrep.live/r). Rules match source code at the Abstract Syntax Tree (AST) level, unlike regexes that match strings and aren't semantically aware.
+* **Finding bugs that matter**: Run your own specialized rules or choose OWASP 10 checks from the [Semgrep Registry](https://semgrep.dev/r). Rules match source code at the Abstract Syntax Tree (AST) level, unlike regexes that match strings and aren't semantically aware.
 * **Ease of customization**: Rules look like the code you’re searching, no static analysis PhD required. They don't require compiled code, only source, reducing iteration time.
 * **Ease of integration**. Highly portable and many CI and git-hook integrations already exist. Output `--json` and pipe results into your existing systems.
 * **Polyglot environments**: Don't learn and maintain multiple tools for your polyglot environment (e.g. ESLint, find-sec-bugs, RuboCop, Gosec). Use the same syntax and concepts independent of language.
@@ -154,7 +154,7 @@ import exec as safe_function
 safe_function(tricksy)
 ~~~
 
-Play with this example in your browser [here](https://semgrep.live/QrkD), or copy the above code into a file locally (`exec.py`) and run:
+Play with this example in your browser [here](https://semgrep.dev/QrkD), or copy the above code into a file locally (`exec.py`) and run:
 
 ~~~python
 $ semgrep -l python -e "exec(...)" /path/to/exec.py
@@ -164,13 +164,13 @@ More example patterns:
 
 | **Pattern**                                                        | **Matches**                                                |
 |:-------------------------------------------------------------------|:-----------------------------------------------------------|
-| [`$X == $X`](https://semgrep.live/20B)                             | `if (node.id == node.id): ...`                             |
-| [`requests.get(..., verify=False, ...)`](https://semgrep.live/jqn) | `requests.get(url, timeout=3, verify=False)`               |
-| [`os.system(...)`](https://semgrep.live/1W5)                       | `from os import system; system('echo semgrep')`            |
-| [`$ELEMENT.innerHTML`](https://semgrep.live/9ze)                   | ``el.innerHTML = "<img src='x' onerror='alert(`XSS`)'>";`` |
-| [`$TOKEN.SignedString([]byte("..."))`](https://semgrep.live/rXW)   | `ss, err := token.SignedString([]byte("HARDCODED KEY"))`   |
+| [`$X == $X`](https://semgrep.dev/20B)                             | `if (node.id == node.id): ...`                             |
+| [`requests.get(..., verify=False, ...)`](https://semgrep.dev/jqn) | `requests.get(url, timeout=3, verify=False)`               |
+| [`os.system(...)`](https://semgrep.dev/1W5)                       | `from os import system; system('echo semgrep')`            |
+| [`$ELEMENT.innerHTML`](https://semgrep.dev/9ze)                   | ``el.innerHTML = "<img src='x' onerror='alert(`XSS`)'>";`` |
+| [`$TOKEN.SignedString([]byte("..."))`](https://semgrep.dev/rXW)   | `ss, err := token.SignedString([]byte("HARDCODED KEY"))`   |
 
-→ [see more example patterns in the Semgrep Registry](https://semgrep.live/registry).
+→ [see more example patterns in the Semgrep Registry](https://semgrep.dev/registry).
 
 For more info on what you can do in patterns, see the [pattern features
 docs](docs/pattern-features.md).
@@ -187,21 +187,21 @@ The following sections cover each in more detail.
 
 ### Run Pre-Built Rules
 
-The easiest way to get started with Semgrep (other than [semgrep.live](https://semgrep.live/)) is to scan your code with pre-built rules.
+The easiest way to get started with Semgrep (other than [semgrep.dev](https://semgrep.dev/)) is to scan your code with pre-built rules.
 
-The [Semgrep Registry](https://semgrep.live/r) contains rules for many programming errors, including security issues and correctness bugs. Security rules are annotated with CWE and OWASP metadata when applicable. OWASP rule coverage per language is displayed below.
+The [Semgrep Registry](https://semgrep.dev/r) contains rules for many programming errors, including security issues and correctness bugs. Security rules are annotated with CWE and OWASP metadata when applicable. OWASP rule coverage per language is displayed below.
 
 <p align="center">
     <img width="600" src="https://web-assets.r2c.dev/semgrep-rules-owasp-coverage-20200520.png" style="max-width:100%;" />
 </p>
 
-You can use pre-built [Rule Packs](https://semgrep.live/packs), that contain sets of rules grouped by language and/or framework:
+You can use pre-built [Rule Packs](https://semgrep.dev/packs), that contain sets of rules grouped by language and/or framework:
 
 ```bash
-$ semgrep --config=https://semgrep.live/c/p/java
-$ semgrep --config=https://semgrep.live/c/p/python
-$ semgrep --config=https://semgrep.live/c/p/golang
-$ semgrep --config=https://semgrep.live/c/p/javascript
+$ semgrep --config=https://semgrep.dev/c/p/java
+$ semgrep --config=https://semgrep.dev/c/p/python
+$ semgrep --config=https://semgrep.dev/c/p/golang
+$ semgrep --config=https://semgrep.dev/c/p/javascript
 ...
 ```
 
@@ -215,13 +215,13 @@ You can also run a specific rule or group of rules:
 
 ```bash
 # Run a specific rule
-$ semgrep --config=https://semgrep.live/c/r/java.spring.security.audit.cookie-missing-samesite
+$ semgrep --config=https://semgrep.dev/c/r/java.spring.security.audit.cookie-missing-samesite
 
 # Run a set of rules
-$ semgrep --config=https://semgrep.live/c/r/java.spring.security
+$ semgrep --config=https://semgrep.dev/c/r/java.spring.security
 ```
 
-All public Semgrep rules can be viewed on the [Registry](https://semgrep.live/r), which pulls the rules from YAML files defined in the [semgrep-rules](https://github.com/returntocorp/semgrep-rules) GitHub repo.
+All public Semgrep rules can be viewed on the [Registry](https://semgrep.dev/r), which pulls the rules from YAML files defined in the [semgrep-rules](https://github.com/returntocorp/semgrep-rules) GitHub repo.
 
 Here are some sample vulnerable repos to test on:
 * Django: [lets-be-bad-guys](https://github.com/mpirnat/lets-be-bad-guys), [django.nV](https://github.com/nVisium/django.nV)
@@ -303,7 +303,7 @@ rules:
     contextually relevant. Here we're helpfully telling the user the method
     where we've identified the bug.
 
-You can play with this transaction example here: https://semgrep.live/4b4g.
+You can play with this transaction example here: https://semgrep.dev/4b4g.
 
 **Learn More**
 
@@ -316,7 +316,7 @@ You can play with this transaction example here: https://semgrep.live/4b4g.
   rule successfully, and see [these docs](docs/writing_rules/examples.md) for
   walkthroughs of writing rules from scratch.
 * There's also an interactive, example-based Semgrep rule writing tutorial here:
-  https://semgrep.live/learn.
+  https://semgrep.dev/learn.
 
 ### Run Semgrep Continuously in CI
 

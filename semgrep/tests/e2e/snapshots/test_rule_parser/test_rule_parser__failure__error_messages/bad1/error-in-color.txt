@@ -11,6 +11,6 @@
 [94m11 | [39m          - pattern: self.$X == self.$X
 [94m12 | [39m      - pattern-not: 1 == 1
 
-[31moperand for pattern-inside must be a string, but instead was list[39m
+[31moperand for pattern-inside must be a string or dict, but instead was list[39m
 
 run with --strict and there were 1 errors loading configs

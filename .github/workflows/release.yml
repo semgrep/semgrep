@@ -1,12 +1,12 @@
+name: Create Draft Release
+
 on:
   push:
-    # Sequence of patterns matched against refs/tags
     branches:
+      # Sequence of patterns matched against refs/tags
       - '**-test-release'
     tags:
       - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
-
-name: Create draft release
 
 jobs:
   create_release:
@@ -127,8 +127,8 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
           repository: returntocorp/semgrep
           tags: ${{ steps.get_version.outputs.VERSION }}
-      - name: update semgrep.live
-        run: curl --fail -X POST https://semgrep.live/api/admin/update-docker
+      - name: update semgrep.dev
+        run: curl --fail -X POST https://semgrep.dev/api/admin/update-docker
 
   build-core:
     name: semgrep-core make test and semgrep make test/qa-test

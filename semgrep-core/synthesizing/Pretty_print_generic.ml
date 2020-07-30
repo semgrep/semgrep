@@ -41,11 +41,13 @@ type env = {
 (* Helpers *)
 (*****************************************************************************)
 let todo any =
-  pr ("TODO");
-  pr (show_any any);
-  failwith "TODO"
+  pr (show_any any); "*TODO*"
 
 let ident (s, _) = s
+
+let token default tok =
+  try Parse_info.str_of_info tok
+  with Parse_info.NoTokenLocation _ -> default
 
 let print_type = function
   | TyBuiltin (s, _) -> s
@@ -71,11 +73,15 @@ let arithop env (op, tok) =
       | Mult -> "*"
       | Div -> "/"
       | Mod -> "%"
-      | Pow -> "^"
+      | Pow -> "**"
       | Eq -> (match env.lang with
                 | Lang.OCaml -> "="
                 | _ -> "=="
               )
+      | Lt -> "<"
+      | LtE -> "<="
+      | Gt -> ">"
+      | GtE -> ">="
       | _ -> todo (E (IdSpecial (Op op, tok)))
       (*
       | Pow | FloorDiv | MatMult (* Python *)
@@ -94,7 +100,106 @@ let arithop env (op, tok) =
 (*****************************************************************************)
 (* Pretty printer *)
 (*****************************************************************************)
-let rec expr env =
+
+(* statements *)
+
+let rec stmt env level =
+function
+  | ExprStmt (e, tok) -> F.sprintf "%s%s" (expr env e) (token "" tok)
+  | Block (x) -> block env x level
+  | If (tok, e, s, sopt) -> if_stmt env level (token "if" tok, e, s, sopt)
+  | While (tok, e, s) -> while_stmt env level (tok, e, s)
+  | DoWhile (_tok, s, e) -> do_while stmt env level (s, e)
+  | Return (tok, eopt) -> return env (tok, eopt)
+  | x -> todo (S x)
+
+and block env (t1, ss, t2) level =
+  let rec indent =
+  function
+    | 0 -> ""
+    | n -> "    " ^ (indent (n - 1))
+  in
+  let rec show_statements env =
+    function
+      | [] -> ""
+      | [x] -> F.sprintf "%s%s" (indent level) (stmt env level x)
+      | x::xs -> F.sprintf "%s%s\n%s" (indent level) (stmt env level x) (show_statements env xs)
+   in
+   let get_boundary t =
+     let t_str = token "" t in
+       match t_str with "" -> "" | "{" -> "{\n" | "}" -> "\n}" | _ -> t_str
+   in
+     F.sprintf "%s%s%s" (get_boundary t1) (show_statements env ss) (get_boundary t2)
+
+and if_stmt env level (tok, e, s, sopt) =
+  let no_paren_cond = F.sprintf "%s %s" in (* if cond *)
+  let paren_cond = F.sprintf "%s (%s)" in (* if cond *)
+  let colon_body = F.sprintf "%s:\n%s\n" in (* (if cond) body *)
+  let bracket_body = F.sprintf "%s %s\n" (* (if cond) body *)
+  in
+  let (format_cond, elseif_str, format_block) =
+    (match env.lang with
+    | Lang.Python | Lang.Python2 | Lang.Python3 -> (no_paren_cond, "elif", colon_body)
+    | Lang.Java | Lang.Go | Lang.C | Lang.JSON | Lang.Javascript | Lang.Typescript -> (paren_cond, "else if", bracket_body)
+    | Lang.Ruby -> failwith "I don't want to deal with Ruby right now"
+    | Lang.OCaml -> failwith "Impossible; if statements should be expressions"
+    )
+  in
+  let e_str = format_cond tok (expr env e) in
+  let s_str = (stmt env (level + 1) s) in
+  let if_stmt_prt = format_block e_str s_str in
+        match sopt with
+        | None -> if_stmt_prt
+        | Some (Block(_, [If (_, e', s', sopt')], _)) -> F.sprintf "%s%s" if_stmt_prt (if_stmt env level (elseif_str, e', s', sopt'))
+        | Some (body) -> F.sprintf "%s%s" if_stmt_prt (format_block "else" (stmt env (level + 1) body))
+
+and while_stmt env level (tok, e, s) =
+   let ocaml_while = F.sprintf "%s %s do\n%s\ndone\n" in
+   let python_while = F.sprintf "%s %s:\n%s\n" in
+   let go_while = F.sprintf "%s %s %s\n" in
+   let c_while = F.sprintf "%s (%s) %s\n" in
+   let ruby_while = F.sprintf "%s %s\n %s\nend\n" in
+   let while_format =
+      (match env.lang with
+      | Lang.Python | Lang.Python2 | Lang.Python3 -> python_while
+      | Lang.Java | Lang.C | Lang.JSON | Lang.Javascript | Lang.Typescript -> c_while
+      | Lang.Go -> go_while
+      | Lang.Ruby -> ruby_while
+      | Lang.OCaml -> ocaml_while
+      )
+   in
+      while_format (token "while" tok) (expr env e) (stmt env (level + 1) s)
+
+and do_while stmt env level (s, e) =
+   let c_do_while = F.sprintf "do %s\nwhile(%s)" in
+   let do_while_format =
+    (match env.lang with
+    | Lang.Java | Lang.C | Lang.Javascript | Lang.Typescript -> c_do_while
+    | Lang.Python | Lang.Python2 | Lang.Python3
+    | Lang.Go | Lang.JSON | Lang.OCaml -> failwith "impossible; no do while"
+    | Lang.Ruby -> failwith "ruby is so weird (here, do while loop)"
+    )
+   in
+      do_while_format (stmt env (level + 1) s) (expr env e)
+
+
+  (* For of tok (* 'for', 'foreach'*) * for_header * stmt *)
+
+and return env (tok, eopt) =
+  let to_return =
+  match eopt with
+  | None -> ""
+  | Some e -> expr env e
+  in
+  match env.lang with
+  | Lang.Java | Lang.C -> F.sprintf "%s %s;" (token "return" tok) to_return
+  | Lang.Python | Lang.Python2 | Lang.Python3
+  | Lang.Go | Lang.Ruby | Lang.OCaml
+  | Lang.JSON | Lang.Javascript | Lang.Typescript -> F.sprintf "%s %s" (token "return" tok) to_return
+
+(* expressions *)
+
+and expr env =
 function
   | Id ((s,_), idinfo) -> id env (s, idinfo)
   | IdQualified(name, idinfo) -> id_qualified env (name, idinfo)
@@ -108,12 +213,14 @@ function
   | DotAccess (e, tok, fi) -> dot_access env (e, tok, fi)
   | Ellipsis _ -> "..."
   | Conditional (e1, e2, e3) -> cond env (e1, e2, e3)
+  | OtherExpr (op, anys) -> other env (op, anys)
   | TypedMetavar (id, _, typ) -> tyvar env (id, typ)
   | x -> todo (E x)
 
 and id env (s, {id_resolved; _}) =
    match !id_resolved with
        | Some (ImportedEntity ents, _) -> dotted_access env ents
+       | Some (ImportedModule (DottedName ents), _) -> dotted_access env ents
        | _ -> s
 
 and id_qualified env ((id, {name_qualifier; _}), _idinfo) =
@@ -185,6 +292,12 @@ and option env = function
   | None -> ""
   | Some e -> expr env e
 
+and other env (op, anys) =
+  match (op, anys) with
+      | OE_In, [E e1; E e2] -> F.sprintf "%s in %s" (expr env e1) (expr env e2)
+      | OE_NotIn, [E e1; E e2] -> F.sprintf "%s not in %s" (expr env e1) (expr env e2)
+      | _ -> todo (E (OtherExpr(op, anys)))
+
 and dot_access env (e, _tok, fi) =
   F.sprintf "%s.%s" (expr env e) (field_ident env fi)
 
@@ -219,10 +332,15 @@ let expr_to_string lang mvars e =
   let env = { lang; mvars } in
   expr env e
 
+let stmt_to_string lang mvars s =
+  let env = { lang; mvars } in
+  stmt env 0 s
 
 let pattern_to_string lang any =
   let mvars = [] in
   match any with
   | E e -> expr_to_string lang mvars e
+  | S s -> stmt_to_string lang mvars s
   | _ ->
+      pr2 (AST_generic.show_any any);
       failwith "todo: only expression pattern can be pretty printed right now"

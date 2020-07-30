@@ -2,6 +2,22 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Support Python 3.8 self-documenting fstrings
+
+## [0.17.0](https://github.com/returntocorp/semgrep/releases/tag/v0.17.0) - 2020-07-28
+
+### Added
+- The `metavariable-regex` operator, which filters finding's by metavariable
+  value against a Python re.match compatible expression.
+- `--timeout` flag to set maximum time a rule is applied to a file
+- Typed metavariables moved to official support. See [docs](https://github.com/returntocorp/semgrep/blob/develop/docs/pattern-features.md#typed-metavariables)
+
+### Changed
+- Improved `pattern-where-python` error messages
+
 ## [0.16.0](https://github.com/returntocorp/semgrep/releases/tag/v0.16.0) - 2020-07-21
 
 ### Added
@@ -150,7 +166,7 @@ def fetch_global_const():
 
 - Java imports can now be searched with patterns written like `import
   javax.crypto.$ANYTHING`
-- `--debugging-json` flag for use on semgrep.live
+- `--debugging-json` flag for use on semgrep.dev
 
 ### Changed
 

@@ -1,11 +1,13 @@
 from pathlib import Path
 from typing import Any
+from typing import Dict
 from typing import List
 from typing import Mapping
 from typing import NamedTuple
 from typing import NewType
 from typing import Optional
 from typing import Set
+from typing import Union
 
 import attr
 
@@ -32,6 +34,7 @@ class OPERATORS:
     FIX_REGEX: Operator = Operator("fix_regex")
     EQUIVALENCES: Operator = Operator("equivalences")
     REGEX: Operator = Operator("regex")
+    METAVARIABLE_REGEX: Operator = Operator("metavariable_regex")
 
 
 OPERATORS_WITH_CHILDREN = [OPERATORS.AND_ALL, OPERATORS.AND_EITHER]
@@ -48,6 +51,7 @@ OPERATOR_PATTERN_NAMES_MAP = {
     OPERATORS.FIX_REGEX: ["fix-regex"],
     OPERATORS.EQUIVALENCES: ["equivalences"],
     OPERATORS.REGEX: ["pattern-regex"],
+    OPERATORS.METAVARIABLE_REGEX: ["metavariable-regex"],
 }
 
 # These are the only valid top-level keys
@@ -84,7 +88,7 @@ class BooleanRuleExpression:
     operator: Operator
     pattern_id: Optional[PatternId] = None
     children: Optional[List["BooleanRuleExpression"]] = None
-    operand: Optional[str] = None
+    operand: Optional[Union[str, Dict]] = None
 
 
 def pattern_name_for_operator(operator: Operator) -> str:

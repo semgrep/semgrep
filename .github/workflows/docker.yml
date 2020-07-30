@@ -1,4 +1,4 @@
-name: docker-push-pr
+name: Push Semgrep Docker Image
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
       - develop
   pull_request:
     paths-ignore:
-    - '**.md'
+      - '**.md'
 
 jobs:
   docker-build:
@@ -31,5 +31,5 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
           repository: returntocorp/semgrep
           tags: ${{ github.event.pull_request.head.sha }}
-      - name: update semgrep.live
-        run: curl --fail -X POST https://semgrep.live/api/admin/update-docker
+      - name: update semgrep.dev
+        run: curl --fail -X POST https://semgrep.dev/api/admin/update-docker

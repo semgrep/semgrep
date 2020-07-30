@@ -22,6 +22,7 @@ Contents:
   * [Equivalences](#equivalences)
     * [Imports](#imports)
     * [Constants](#constants)
+  * [Typed Metavariables](#typed-metavariables)
 * [Limitations](#limitations)
   * [Statement Types](#statement-types)
   * [Partial Statements](#partial-statements)
@@ -415,6 +416,76 @@ class Hash {
         MessageDigest md = MessageDigest.getInstance(algorithm);
     }
 }
+```
+
+### Typed Metavariables
+
+Typed metavariables only match a metavariable if it is declared as a specific type. For
+example, you may want to specifically check that `==` is never used for
+strings.
+
+**Java:**
+
+```text
+pattern: $X == (String $Y)
+```
+
+```java
+public class Example {
+    public int foo(String a, int b) {
+        // Matched
+        if (a == "hello") {
+            return 1;
+        }
+
+        // Not matched
+        if (b == 2) {
+            return -1;
+        }
+    }
+}
+```
+
+**Go:**
+
+```text
+pattern: "$X == ($Y : string)"
+```
+
+```go
+func main() {
+    var x string
+    var y string
+    var a int
+    var b int
+
+    // Matched
+    if x == y {
+       x = y
+    }
+
+    // Not matched
+    if a == b {
+       a = b
+    }
+}
+```
+
+#### Limitations:
+
+Currently, since matching happens within a single file, this is only guaranteed
+to work for local variables and arguments. Additionally, it only understands
+types on a shallow level. For example, if you have `int[] A`, it will not
+recognize `A[0]` as an integer. If you have a class with fields, you will not be
+able to use typechecking on field accesses, and it will not recognize the
+class' field as the expected type. Literal types are understood to a limited
+extent.
+
+Semgrep for Go currently does not recognize the type of all variables when declared on the
+same line. That is, the following will not take both `a` and `b` as `int`s:
+
+```go
+var a, b = 1
 ```
 
 ## Limitations

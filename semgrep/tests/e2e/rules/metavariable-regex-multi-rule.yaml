@@ -1,0 +1,13 @@
+rules:
+  - id: metavar-test-multi-rule
+    patterns:
+      - pattern-inside: |
+          def func():
+              ...
+      - pattern: 'metavariable_regex_test.$X(...)'
+      - metavariable-regex:
+          metavariable: '$X'
+          regex: 'method'
+    message: "Metavariable regex test multi rule"
+    languages: [python]
+    severity: ERROR

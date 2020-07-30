@@ -7,7 +7,7 @@ import os
 import semgrep.config_resolver
 import semgrep.semgrep_main
 import semgrep.test
-from semgrep.constants import __VERSION__
+from semgrep import __VERSION__
 from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import OutputFormat
 from semgrep.constants import RCE_RULE_FLAG
@@ -127,6 +127,15 @@ def cli() -> None:
         help=(
             "Number of subprocesses to use to run checks in parallel. Defaults "
             "to the number of CPUs on the system."
+        ),
+    )
+
+    config.add_argument(
+        "--timeout",
+        type=int,
+        default=0,
+        help=(
+            "Maximum time to spend running a rule on a single file in seconds. If set to 0 will not have time limit. Defaults to 0."
         ),
     )
 
@@ -334,4 +343,5 @@ def cli() -> None:
                 disable_nosem=args.disable_nosem,
                 dangerously_allow_arbitrary_code_execution_from_rules=args.dangerously_allow_arbitrary_code_execution_from_rules,
                 no_git_ignore=args.no_git_ignore,
+                timeout=args.timeout,
             )

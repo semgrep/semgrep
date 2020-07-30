@@ -1,12 +1,15 @@
 (*s: semgrep/core/Flag_semgrep.ml *)
 (*s: constant [[Flag_semgrep.verbose]] *)
-let verbose = ref false
+(* unused for now *)
+let _verbose = ref false
 (*e: constant [[Flag_semgrep.verbose]] *)
+
+let debug = ref false
 
 (*s: constant [[Flag_semgrep.debug]] *)
 (* note that this will stop at the first fail(), but if you restrict
  * enough your pattern, this can help you debug your problem.*)
-let debug = ref false
+let debug_matching = ref false
 (*e: constant [[Flag_semgrep.debug]] *)
 (*s: constant [[Flag_semgrep.debug_with_full_position]] *)
 let debug_with_full_position = ref false
@@ -26,6 +29,8 @@ let go_deeper_stmt = ref true
 (* not sure we want that ... *)
 let go_really_deeper_stmt = ref true
 (*e: constant [[Flag_semgrep.go_really_deeper_stmt]] *)
+
+let filter_irrelevant_rules = ref false
 
 (*s: constant [[Flag_semgrep.equivalence_mode]] *)
 (* special mode to set before using generic_vs_generic to match
