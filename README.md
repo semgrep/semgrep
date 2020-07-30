@@ -43,20 +43,20 @@
 
 Semgrep tl;dr:
 
-* Semgrep is a customizable, lightweight, static analysis tool for finding bugs
-* Can run in CI, pre-commit, or in the editor
-* Batteries included with [hundreds of existing community rules]()
-* Combine the speed + customization of grep with the expressiveness of traditional/heavyweight static analysis tools
-* Runs offline, on uncompiled code, fast and open source!
-* No painful DSL, patterns look like the source code you’re targeting
+- A simple, customizable, and fast static analysis tool for finding bugs
+- Combines the speed and customization of `grep` with the precision of traditional (and often slow) static analysis tools
+- No painful DSL; patterns look like the source code you’re targeting
+- Batteries included with [hundreds of existing community rules](https://semgrep.dev/r) to use and learn from
+- Run it in CI, at pre-commit, or in the editor
+- Runs offline on uncompiled code
 
 Semgrep supports:
 
-| **Python** | **Java** | **Go** | **JavaScript** | **C** | **Ruby** | **TypeScript** | **PHP**   |
-| :--------- | :------- | :----- | :------------- | :---- | :------- | :------------- | :-------- |
-| ✅         | ✅       | ✅     | ✅             | ✅    | 🚧       | Coming...      | Coming... |
+| **Python** | **Java** | **Go** | **JavaScript** | **Ruby** | **TypeScript** | **C** |
+| :--------- | :------- | :----- | :------------- | :------- | :------------- | :---- |
+| ✅         | ✅       | ✅     | ✅             | 🚧       | 🚧             | 🚧    |
 
-Semgrep is proudly supported by r2c. Learn more about a hosted version of Semgrep with an enterprise feature set at [r2c.dev]().
+Semgrep is proudly supported by r2c. Learn more about a hosted version of Semgrep with an enterprise feature set at [r2c.dev](https://r2c.dev/).
 
 ## Getting Started
 
