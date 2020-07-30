@@ -4,8 +4,7 @@ def foo1():
   query = f"{select} from foo"
 
 def foo2():
-  # TODO
-  # OK:
+  # ERROR:
   select = "select * "
   # TODO:
   # OK:
@@ -41,9 +40,10 @@ def foo10():
   # TODO: 
   # OK:
   ww = "foo"
-  # TODO: 
+  # TODO:
   # OK:
   ww = "foo"
+  # ERROR:
   www = "bar"
   query = f"SELECT {www} and {ww}"
 

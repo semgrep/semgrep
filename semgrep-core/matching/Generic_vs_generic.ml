@@ -528,6 +528,17 @@ and m_expr a b =
     | A.IdSpecial(a1), B.IdSpecial(b1) ->
       m_wrap m_special a1 b1
 
+    (* This is mainly for Go which generates an AssignOp (Eq)
+     * for the x := a short variable declaration.
+     * TODO: this should be a configurable equivalence: $X = $Y ==> $X := $Y.
+     * Some people want it, some people may not want it.
+     * At least we dont do the opposite (AssignOp matching Assign) so
+     * using := in a pattern will not match code using just =
+     * (but pattern using = will match both code using = or :=).
+     *)
+    | A.Assign(a1, a2, a3), B.AssignOp (b1, (B.Eq,b2), b3) ->
+      m_expr (A.Assign(a1, a2, a3)) (B.Assign(b1, b2, b3))
+
     | A.AssignOp(a1, a2, a3), B.AssignOp(b1, b2, b3) ->
       m_expr a1 b1 >>= (fun () ->
       m_wrap m_arithmetic_operator a2 b2 >>= (fun () ->
@@ -1054,11 +1065,13 @@ and m_arguments_concat a b =
   match a,b with
   | [], [] ->
       return ()
+
   (*s: [[Generic_vs_generic.m_arguments_concat()]] ellipsis cases *)
-  (* dots '...' for string literal, can also match no argument *)
-  | [A.Arg (A.L (A.String("...", _a)))], [] ->
+  (* dots '...' for string literal, can match any number of arguments *)
+  | [A.Arg (A.L (A.String("...", _)))], _xsb ->
       return ()
 
+  (* specific case: f"...{$X}..." will properly extract $X from f"foo {bar} baz" *)
   | A.Arg (A.L (A.String("...", a)))::xsa, B.Arg(bexpr)::xsb ->
     (match Normalize_generic.constant_propagation_and_evaluate_literal bexpr
      with
@@ -1070,6 +1083,7 @@ and m_arguments_concat a b =
       | None ->
         (m_arguments_concat xsa (B.Arg(bexpr)::xsb))
       )
+
   (*e: [[Generic_vs_generic.m_arguments_concat()]] ellipsis cases *)
   (* the general case *)
   | xa::aas, xb::bbs ->
@@ -1440,7 +1454,7 @@ and _m_stmts (xsa: A.stmt list) (xsb: A.stmt list) =
 (*s: function [[Generic_vs_generic.m_list__m_stmt]] *)
 and m_list__m_stmt (xsa: A.stmt list) (xsb: A.stmt list) =
   (*s: [[Generic_vs_generic.m_list__m_stmt]] if [[debug]] *)
-  if !Flag.debug
+  if !Flag.debug_matching
   then pr2 (spf "%d vs %d" (List.length xsa) (List.length xsb));
   (*e: [[Generic_vs_generic.m_list__m_stmt]] if [[debug]] *)
   match xsa, xsb with
@@ -2214,7 +2228,9 @@ and m_class_kind a b =
     return ()
   | A.Trait, B.Trait ->
     return ()
-  | A.Class, _ | A.Interface, _ | A.Trait, _
+  | A.AtInterface, B.AtInterface ->
+    return ()
+  | A.Class, _ | A.Interface, _ | A.Trait, _ | A.AtInterface, _
    -> fail ()
 (*e: function [[Generic_vs_generic.m_class_kind]] *)
 
