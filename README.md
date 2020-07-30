@@ -10,7 +10,7 @@
 <p align="center">
   <a href="#getting-started">Getting Started</a>
   <span> · </span>
-  <a href="#use-cases">Use Cases</a>
+  <a href="#Examples">Examples</a>
   <span> · </span>
   <a href="#resources">Resources</a>
   <br/>
@@ -44,7 +44,7 @@ Semgrep tl;dr:
 - A simple, customizable, and fast static analysis tool for finding bugs
 - Combines the speed and customization of `grep` with the precision of traditional static analysis tools
 - No painful DSL; patterns look like the source code you’re targeting
-- Batteries included with [hundreds of existing community rules](https://semgrep.dev/r) to use and learn from
+- Batteries included with hundreds of existing community rules to use and learn from
 - Run it in CI, at pre-commit, or in the editor
 - Runs offline on uncompiled code
 
@@ -85,7 +85,7 @@ $ semgrep --config=default path/to/src
 
 Explore community rule packs and CI integrations at [semgrep.dev](https://semgrep.dev/packs).
 
-## Use Cases
+## Examples
 
 Search your code
 
