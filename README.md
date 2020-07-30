@@ -42,7 +42,7 @@
 Semgrep tl;dr:
 
 - A simple, customizable, and fast static analysis tool for finding bugs
-- Combines the speed and customization of `grep` with the precision of traditional (and often slow) static analysis tools
+- Combines the speed and customization of `grep` with the precision of traditional static analysis tools
 - No painful DSL; patterns look like the source code you’re targeting
 - Batteries included with [hundreds of existing community rules](https://semgrep.dev/r) to use and learn from
 - Run it in CI, at pre-commit, or in the editor
@@ -207,6 +207,6 @@ Semgrep is a frontend to a larger program analysis library named [`pfff`](https:
 
 ## Commercial Support
 
-Semgrep is proudly supported by [r2c](https://r2c.dev). We're hiring!
+Semgrep is supported by [r2c](https://r2c.dev). We're hiring!
 
 Interested in a fully-supported, hosted version of semgrep? [Drop your email](https://forms.gle/dpUUvSo1WtELL8DW6) and we'll be in touch!
