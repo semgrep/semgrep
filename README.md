@@ -60,12 +60,12 @@ Semgrep is proudly supported by r2c. Learn more about a hosted version of Semgre
 
 ## Getting Started
 
-The best place to start with Semgrep is its Quick Start: [semgrep.dev/editors](). If you skip the tour, [Use Cases]() will give you a high level sense of Semgrep's applications for DevSecOps.
+The best place to start with Semgrep is its [Quick Start](https://semgrep.dev/editors). For a more in-depth introduction, see the [Semgrep Tutorial](https://semgrep.dev/learn).
 
 Semgrep can be installed using `brew`, `pip`, or `docker`:
 
 ```sh
-# For macOS:
+# For macOS
 $ brew install semgrep
 
 # On Ubuntu/WSL/linux, we recommend installing via `pip`
@@ -85,9 +85,7 @@ $ semgrep -e `$X==$X` --lang=py path/to/src
 $ semgrep --config=default path/to/src
 ```
 
-To learn more about Semgrep's rule syntax visit [TODO]().
-
-To explore community rule packs and learn about CI integrations visit [TODO]()
+Explore community rule packs and CI integrations at [semgrep.dev](https://semgrep.dev/packs).
 
 ## Design Choices
 
