@@ -44,7 +44,7 @@ Semgrep tl;dr:
 - A simple, customizable, and fast static analysis tool for finding bugs
 - Combines the speed and customization of `grep` with the precision of traditional static analysis tools
 - No painful DSL; patterns look like the source code you’re targeting
-- Batteries included with hundreds of existing community rules to use and learn from
+- Batteries included with hundreds of existing community rules for OWASP 10 issues and common mistakes
 - Run it in CI, at pre-commit, or in the editor
 - Runs offline on uncompiled code
 
@@ -87,28 +87,20 @@ Explore community rule packs and CI integrations at [semgrep.dev](https://semgre
 
 ## Examples
 
-Search your code
+### Core Uses
 
-- Vulnerabilities
-- Audit security hotspots
-- Extract routes
-- Codify domain knowledge
+- Ban dangerous APIs [[1](https://semgrep.live/clintgibler:no-exec)]
+- Search routes and authentiation [[1](https://semgrep.live/clintgibler:spring-routes)]
+- Enforce the use secure defaults [[1](https://semgrep.dev/dlukeomalley:flask-set-cookie)]
+- Enforce project best-practices [[1](https://semgrep.dev/dlukeomalley:use-assertEqual-for-equality), [2](https://semgrep.dev/dlukeomalley:unchecked-subprocess-call)]
+- Codify project-specific knowledge [[1](https://semgrep.dev/dlukeomalley:verify-before-make)]
+- Audit security hotspots [[1](https://semgrep.live/ievans:airflow-xss), [2](https://semgrep.dev/dlukeomalley:hardcoded-credentials)]
+- Audit configuration files [[1](https://semgrep.dev/dlukeomalley:s3-arn-use)]
 
-Guard your code
+### Upgrading Code
 
-- Secure defaults
-- Banned APIs
-- Best- and required- practices
-- Configuration file auditing
-
-Upgrade your code
-
-- Migrate from deprecated APIs
-- Apply automatic fixes
-
-Watch your code
-
-- See fixes over time
+- Migrate from deprecated APIs [[1](https://semgrep.dev/editor?registry=java.lang.security.audit.crypto.des-is-deprecated), [2](https://semgrep.dev/editor?registry=python.bokeh.maintainability.deprecated.deprecated_apis), [3](https://semgrep.dev/editor?registry=python.flask.maintainability.deprecated.deprecated-apis)]
+- Apply automatic fixes [[1](https://semgrep.live/clintgibler:use-listenAndServeTLS), [2]()]
 
 ## Resources
 
