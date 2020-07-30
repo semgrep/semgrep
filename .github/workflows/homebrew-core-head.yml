@@ -1,0 +1,18 @@
+name: Verify Homebrew Core Formula Works
+
+on:
+  pull_request:
+  # schedule:
+  #   # * is a special character in YAML so you have to quote this string
+  #   - cron:  '0 12 * * *'
+
+  mac-build:
+    name: Check builds for macOS
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+      - name: Brew install
+        run: brew install semgrep --head
