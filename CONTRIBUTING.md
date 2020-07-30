@@ -58,7 +58,7 @@ later.
 
 ### Installing
 
-Most `semgrep` development will operate inside the `semgrep` directory:
+Most `semgrep` development will operate inside the `semgrep` directory (`semgrep/semgrep`):
 
 ```
 $ cd semgrep
