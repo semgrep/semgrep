@@ -259,7 +259,7 @@ class CoreRunner:
                 "-timeout",
                 str(self._timeout),
                 "-max_memory",
-                str(self._max_memory)
+                str(self._max_memory),
             ]
 
             equivalences = rule.equivalences
