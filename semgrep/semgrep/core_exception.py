@@ -3,6 +3,7 @@ from typing import Any
 from typing import Dict
 
 from semgrep.error import MatchTimeoutError
+from semgrep.error import OutOfMemoryError
 from semgrep.error import SemgrepError
 from semgrep.error import SourceParseError
 from semgrep.rule_lang import Position
@@ -81,6 +82,8 @@ class CoreException:
 
         if self._check_id == "Timeout":
             return MatchTimeoutError(self._path, self._rule_id)
+        elif self._check_id == "OutOfMemory":
+            return OutOfMemoryError(self._path, self._rule_id)
         else:
             error_span = Span(
                 start=self._start,

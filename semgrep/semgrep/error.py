@@ -291,5 +291,18 @@ class MatchTimeoutError(SemgrepError):
         }
 
 
+@attr.s(frozen=True, eq=True)
+class OutOfMemoryError(SemgrepError):
+    path: Path = attr.ib()
+    rule_id: str = attr.ib()
+
+    code = MATCH_TIMEOUT_EXIT_CODE
+    level = Level.WARN
+
+    def __str__(self) -> str:
+        msg = f"Warning: Semgrep exceeded memory when running {self.rule_id} on {self.path}. See `--max-memory` for more info."
+        return with_color(Fore.RED, msg)
+
+
 class _UnknownLanguageError(SemgrepInternalError):
     pass
