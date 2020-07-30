@@ -293,6 +293,7 @@ def main(
     dangerously_allow_arbitrary_code_execution_from_rules: bool = False,
     no_git_ignore: bool = False,
     timeout: int = 0,
+    max_memory: int = 0,
 ) -> None:
     if include is None:
         include = []
@@ -353,6 +354,7 @@ def main(
         allow_exec=dangerously_allow_arbitrary_code_execution_from_rules,
         jobs=jobs,
         timeout=timeout,
+        max_memory=max_memory
     ).invoke_semgrep(target_manager, all_rules)
 
     output_handler.handle_semgrep_errors(semgrep_errors)
