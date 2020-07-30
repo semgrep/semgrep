@@ -13,6 +13,8 @@
  * license.txt for more details.
  *)
 open Common
+module D = Datalog_fact
+open Datalog_fact
 
 (*****************************************************************************)
 (* Prelude *)
@@ -25,7 +27,30 @@ open Common
  *)
 
 (*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
+let string_of_value = function
+  | V x | F x | N x | I x -> spf "'%s'" x
+  | Z i -> spf "%d" i
+
+let csv_of_tuple xs =
+  (xs |> List.map string_of_value |> Common.join "," ) ^ "\n"
+
+(*****************************************************************************)
 (* Write *)
 (*****************************************************************************)
-let write_facts_for_doop _facts _dir =
-  raise Todo
+let write_facts_for_doop facts dir =
+
+  let facts = facts |> List.map D.meta_fact in
+  let groups =
+    facts |> Common.group_assoc_bykey_eff in
+  groups |> List.iter (fun (table, tuples) ->
+      let file = (Filename.concat dir table) ^ ".csv" in
+      pr2 (spf "generating tuples for %s" file);
+      Common.with_open_outfile file (fun (pr, _chan) ->
+          tuples |> List.iter (fun tuple ->
+            pr (csv_of_tuple tuple);
+          )
+      );
+  )

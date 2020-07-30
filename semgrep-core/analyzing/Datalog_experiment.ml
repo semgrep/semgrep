@@ -88,17 +88,42 @@ let dump_il file =
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-let _add env x =
+let add env x =
   Common.push x env.facts
+
+let todo any =
+  let s = IL.show_any any in
+  pr2 s;
+  failwith ("Datalog_experiment: TODO: IL element not handled (see above)")
+
+let var_of_name _env ((s, _tok), sid) =
+  spf "%s__%d" s sid
+
+let heap_of_int _env (s, _tok) =
+  spf "int %s" s
 
 (*****************************************************************************)
 (* Fact extractor *)
 (*****************************************************************************)
+(* See pfff/lang_c/analyze/datalog_c.ml for inspiration *)
 
-let stmt _env st =
-  match st.IL.s with
-  | MiscStmt _ -> raise Todo
-  | _ -> raise Todo
+let instr env x =
+  match x.i with
+  | Assign (lval, e) ->
+      (match lval, e.e with
+      | {base = Var n; offset = NoOffset},
+        Literal (AST.Int (s)) ->
+            let v = var_of_name env n in
+            let h = heap_of_int env s in
+            add env (D.PointTo (v, h))
+      | _ -> todo (I x)
+      )
+  | _ -> todo (I x)
+
+let stmt env x =
+  match x.IL.s with
+  | Instr x -> instr env x
+  | _ -> todo (S x)
 
 
 let facts_of_function def =
