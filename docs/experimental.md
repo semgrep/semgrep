@@ -20,7 +20,7 @@ rules:
   severity: WARNING
 ```
 
-See it live at https://semgrep.live/R6g.
+See it live at https://semgrep.dev/R6g.
 
 ## Autofix Using Regular Expression Replacement
 
@@ -108,7 +108,7 @@ rules:
     severity: WARNING
 ```
 
-See it live at https://semgrep.live/AEL.
+See it live at https://semgrep.dev/AEL.
 
 Please file issues with equivalences [here](https://github.com/returntocorp/semgrep/issues) and include the `feature:equivalences` tag.
 
@@ -161,7 +161,7 @@ Please file issues with equivalences [here](https://github.com/returntocorp/semg
 
   though this check is less relevant here.
 
-  See it live at https://semgrep.live/WADZ
+  See it live at https://semgrep.dev/WADZ
 
   Limitations:
 

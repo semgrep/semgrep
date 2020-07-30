@@ -57,7 +57,7 @@ repos:
         name: Semgrep Python
         types: [python]
         exclude: "^semgrep/tests/.+$|^install-scripts/.+$|^release-scripts/.+$|^semgrep/setup.py$"
-        args: ['--config', 'https://semgrep.live/p/python', '--error']
+        args: ['--config', 'https://semgrep.dev/p/python', '--error']
 
   - repo: https://github.com/returntocorp/semgrep
     rev: 'v0.14.0'
@@ -66,7 +66,7 @@ repos:
         name: Semgrep Bandit
         types: [python]
         exclude: "^semgrep/tests/.+$|^install-scripts/.+$|^release-scripts/.+$|^semgrep/setup.py$"
-        args: ['--config', 'https://semgrep.live/p/bandit', '--error']
+        args: ['--config', 'https://semgrep.dev/p/bandit', '--error']
 
   - repo: https://github.com/returntocorp/semgrep
     rev: 'v0.14.0'

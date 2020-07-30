@@ -32,7 +32,7 @@ Semgrep YAML rule files enable you to combine patterns in powerful ways,
   allowing you to find code patterns that do or don't match multiple sets of
   patterns. See the [config file spec](configuration-files.md) for more details.
 
-You can write and share rules directly from the live editor at https://semgrep.live or run Semgrep via a standalone CLI or Docker.
+You can write and share rules directly from the live editor at https://semgrep.dev or run Semgrep via a standalone CLI or Docker.
 
 See [Semgrep rule writing methodology](writing_rules/README.md) for details on
 the thought process behind writing and rolling out a new Semgrep rule
@@ -40,7 +40,7 @@ successfully, and see [these docs](writing_rules/examples.md) for walkthroughs o
 writing rules from scratch.
 
 There's also an interactive, example-based Semgrep rule writing tutorial here:
-https://semgrep.live/learn.
+https://semgrep.dev/learn.
 
 ## Contributing to Semgrep
 
