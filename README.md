@@ -58,7 +58,7 @@ The best place to start with Semgrep is with its online tour: [semgrep.live/tour
 Semgrep can be installed using `brew`, `pip`, or `docker`:
 
 ```sh
-# For macOS:
+# For macOS
 $ brew install semgrep
 
 # On Ubuntu/WSL/linux, we recommend installing via `pip`
