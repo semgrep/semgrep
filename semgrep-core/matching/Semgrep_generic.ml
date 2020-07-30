@@ -155,7 +155,7 @@ let match_any_any pattern e =
 let check2 ~hook rules equivs file lang ast =
 
   let rules =
-    if !Flag.filter_rules_regexp
+    if !Flag.filter_irrelevant_rules
     then Rules_filter.filter_rules_relevant_to_file_using_regexp
            rules lang file
     else rules
