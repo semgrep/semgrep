@@ -16,8 +16,8 @@ from typing import Set
 
 import colorama
 
+from semgrep import __VERSION__
 from semgrep import config_resolver
-from semgrep.constants import __VERSION__
 from semgrep.constants import OutputFormat
 from semgrep.error import FINDINGS_EXIT_CODE
 from semgrep.error import Level

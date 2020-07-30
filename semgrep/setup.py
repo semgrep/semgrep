@@ -8,6 +8,8 @@ from setuptools import setup
 from setuptools.command.install import install
 from wheel.bdist_wheel import bdist_wheel as _bdist_wheel
 
+from semgrep import __VERSION__
+
 
 @contextlib.contextmanager
 def chdir(dirname=None):
@@ -115,7 +117,7 @@ class PostInstallCommand(install):
 
 setup(
     name="semgrep",
-    version="0.17.0",
+    version=__VERSION__,
     author="Return To Corporation",
     author_email="support@r2c.dev",
     description="Lightweight static analysis for many languages. Find bug variants with patterns that look like source code.",
