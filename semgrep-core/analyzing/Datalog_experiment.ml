@@ -13,7 +13,10 @@
  * license.txt for more details.
  *)
 open Common
-(*open AST_generic*)
+open IL
+module AST = AST_generic
+module V = Visitor_AST
+module D = Datalog_fact
 
 (*****************************************************************************)
 (* Prelude *)
@@ -52,9 +55,80 @@ open Common
  -  [4] https://yanniss.github.io/ptaint-oopsla17-prelim.pdf
  *)
 
+(*****************************************************************************)
+(* Type *)
+(*****************************************************************************)
+type env = {
+  facts: Datalog_fact.t list ref;
+}
+
+(*****************************************************************************)
+(* Dumper *)
+(*****************************************************************************)
+
+(* mostly a copy paste of pfff/lang_GENERIC/analyze/Test_analyze_generic.ml *)
+let dump_il file =
+  let lang = List.hd (Lang.langs_of_filename file) in
+  let ast = Parse_generic.parse_program file in
+  Naming_AST.resolve lang ast;
+
+  let v = V.mk_visitor { V.default_visitor with
+      V.kfunction_definition = (fun (_k, _) def ->
+          let s = AST_generic.show_any (AST.S def.AST.fbody) in
+          pr2 s;
+          pr2 "==>";
+
+          let xs = AST_to_IL.stmt def.AST.fbody in
+          let s = IL.show_any (IL.Ss xs) in
+          pr2 s
+      );
+   } in
+  v (AST.Pr ast)
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+let _add env x =
+  Common.push x env.facts
+
+(*****************************************************************************)
+(* Fact extractor *)
+(*****************************************************************************)
+
+let stmt _env st =
+  match st.IL.s with
+  | MiscStmt _ -> raise Todo
+  | _ -> raise Todo
+
+
+let facts_of_function def =
+  let xs = AST_to_IL.stmt def.AST.fbody in
+  let env = { facts = ref [] } in
+
+  xs |> List.iter (stmt env);
+  List.rev !(env.facts)
 
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
-let gen_facts _file _outdir =
-  raise Todo
+let gen_facts file outdir =
+  let lang = List.hd (Lang.langs_of_filename file) in
+  let ast = Parse_generic.parse_program file in
+  Naming_AST.resolve lang ast;
+  (* less: use treesitter also later
+   *  Parse_code.parse_and_resolve_name_use_pfff_or_treesitter lang file in
+   *)
+
+  let facts = ref [] in
+
+  let v = V.mk_visitor { V.default_visitor with
+      V.kfunction_definition = (fun (_k, _) def ->
+          Common.push (facts_of_function def) facts
+      );
+   }
+   in
+   v (AST.Pr ast);
+
+   let facts = !facts |> List.rev |> List.flatten in
+   pr2 (spf "generating %d facts in %s" (List.length facts) outdir);
+   Datalog_io.write_facts_for_doop facts outdir

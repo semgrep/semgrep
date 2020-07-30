@@ -12,3 +12,20 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
+open Common
+
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+(* Writing/reading datalog facts on disk.
+ *
+ * This was started from pfff/h_program-lang/datalog_code.ml which
+ * handled the BDDBDDB and lui-based datalog engines.
+ * This file handles DOOP/Souffle.
+ *)
+
+(*****************************************************************************)
+(* Write *)
+(*****************************************************************************)
+let write_facts_for_doop _facts _dir =
+  raise Todo

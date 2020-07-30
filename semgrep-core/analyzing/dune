@@ -9,6 +9,7 @@
    pfff-lang_GENERIC pfff-lang_GENERIC-analyze
 
    semgrep_core
+   semgrep_parsing
    semgrep_matching
  )
 )
