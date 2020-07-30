@@ -41,7 +41,14 @@
   </a>
 </p>
 
-Semgrep is an open source (LGPL) static analysis tool for modern dev environments. It's used to enforce meaningful code and security standards ("the paved road") at file-save, commit, and build time. You can [write your own rules]() or run [community rule packs](). Either way, your code is never sent anywhere and is analyzed 100% locally.
+Semgrep tl;dr:
+
+* Semgrep is a customizable, lightweight, static analysis tool for finding bugs
+* Can run in CI, pre-commit, or in the editor
+* Batteries included with [hundreds of existing community rules]()
+* Combine the speed + customization of grep with the expressiveness of traditional/heavyweight static analysis tools
+* Runs offline, on uncompiled code, fast and open source!
+* No painful DSL, patterns look like the source code you’re targeting
 
 Semgrep supports:
 
@@ -58,7 +65,7 @@ The best place to start with Semgrep is with its online tour: [semgrep.live/tour
 Semgrep can be installed using `brew`, `pip`, or `docker`:
 
 ```sh
-# For macOS
+# For macOS:
 $ brew install semgrep
 
 # On Ubuntu/WSL/linux, we recommend installing via `pip`
