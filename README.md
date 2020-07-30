@@ -60,7 +60,7 @@ Semgrep is proudly supported by r2c. Learn more about a hosted version of Semgre
 
 ## Getting Started
 
-The best place to start with Semgrep is with its online tour: [semgrep.live/tour](). If you skip the tour, [Use Cases]() will give you a high level sense of Semgrep's applications for DevSecOps.
+The best place to start with Semgrep is its Quick Start: [semgrep.dev/editors](). If you skip the tour, [Use Cases]() will give you a high level sense of Semgrep's applications for DevSecOps.
 
 Semgrep can be installed using `brew`, `pip`, or `docker`:
 
@@ -94,7 +94,7 @@ To explore community rule packs and learn about CI integrations visit [TODO]()
 Semgrep is optimized for:
 
 - **Speed**: Fast enough to run on every build, commit, or file save
-- **Finding bugs that matter**: Run your rules or community rule packs from the [Semgrep Registry](_https://semgrep.live/packs). Rules match source code at the Abstract Syntax Tree (AST) level, unlike regexes that match strings and aren't semantically aware.
+- **Finding bugs that matter**: Run your rules or community rule packs from the [Semgrep Registry](_https://semgrep.dev/packs). Rules match source code at the Abstract Syntax Tree (AST) level, unlike regexes that match strings and aren't semantically aware.
 - **Ease of customization**: Rules look like the code you’re searching, no static analysis PhD required. They don't require compiled code, only source, reducing iteration time.
 - **Ease of integration**. Highly portable and many CI and git-hook integrations already exist. Output `--json` and pipe results into your existing systems.
 - **Polyglot environments**: Don't learn and maintain multiple tools for your polyglot environment (e.g. ESLint, find-sec-bugs, RuboCop, Gosec). Use the same syntax and concepts independent of language.
