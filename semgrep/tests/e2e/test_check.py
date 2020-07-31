@@ -172,6 +172,7 @@ def test_timeout(run_semgrep_in_tmp, snapshot):
             options=["--timeout", "1"],
             target_name="equivalence",
             strict=False,
+            stderr=True,
         ),
         "error.txt",
     )
