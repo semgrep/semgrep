@@ -73,7 +73,7 @@ $ pip3 install semgrep
 $ docker run --rm -v "${PWD}:/src" returntocorp/semgrep --help
 ```
 
-Once installed, Semgrep can be run with quick patterns or entire rule packs:
+Once installed, Semgrep can be run with single patterns or entire rule packs:
 
 ```sh
 # Check for Python == where the left and right hand sides are the same (often a bug)
