@@ -7,7 +7,7 @@ on:
 
 jobs:
   mac-build:
-    name: Check builds for macOS
+    name: Check brew install formula works for develop head
     runs-on: macos-latest
     steps:
       - name: Brew update
