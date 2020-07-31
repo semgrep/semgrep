@@ -332,25 +332,27 @@ and receive_statement (env : env) ((v1, v2) : CST.receive_statement) =
   let v2 = expression env v2 in
   v1, v2
 
-and field_declaration (env : env) ((v1, v2) : CST.field_declaration) =
+and field_declaration (env : env) ((v1, v2) : CST.field_declaration)
+ : struct_field list =
   let v1 =
     (match v1 with
     | `Id_rep_COMMA_id_choice_simple_type (v1, v2, v3) ->
-        let v1 = token env v1 (* identifier *) in
+        let v1 = identifier env v1 (* identifier *) in
         let v2 =
           List.map (fun (v1, v2) ->
-            let v1 = token env v1 (* "," *) in
-            let v2 = token env v2 (* identifier *) in
-            todo env (v1, v2)
+            let _v1 = token env v1 (* "," *) in
+            let v2 = identifier env v2 (* identifier *) in
+            v2
           ) v2
         in
         let v3 = type_ env v3 in
-        todo env (v1, v2, v3)
+        let xs = v1::v2 in
+        xs |> List.map (fun id -> Field (id, v3))
     | `Opt_STAR_choice_id (v1, v2) ->
         let v1 =
           (match v1 with
-          | Some tok -> token env tok (* "*" *)
-          | None -> todo env ())
+          | Some tok -> Some (token env tok) (* "*" *)
+          | None -> None)
         in
         let v2 =
           (match v2 with
@@ -358,15 +360,15 @@ and field_declaration (env : env) ((v1, v2) : CST.field_declaration) =
           | `Qual_type x -> qualified_type env x
           )
         in
-        todo env (v1, v2)
+        [EmbeddedField (v1, v2)]
     )
   in
   let v2 =
     (match v2 with
-    | Some x -> string_literal env x
-    | None -> todo env ())
+    | Some x -> Some (string_literal env x)
+    | None -> None)
   in
-  todo env (v1, v2)
+  v1 |> List.map (fun x -> x, v2)
 
 and special_argument_list (env : env) ((v1, v2, v3, v4, v5) : CST.special_argument_list) =
   let v1 = token env v1 (* "(" *) in
