@@ -1298,13 +1298,25 @@ and m_list__m_attribute (xsa: A.attribute list) (xsb: A.attribute list) =
       with Not_found -> fail ()
       )
   (*e: [[Generic_vs_generic.m_list__m_attribute]] [[NamedAttr]] pattern case *)
-  (* the general case *)
-  | xa::aas, xb::bbs ->
-      m_attribute xa xb >>= (fun () ->
-      m_list__m_attribute aas bbs
+  (*s: [[Generic_vs_generic.m_list__m_attribute]] [[OtherAttribute]] pattern case *)
+  (* Matches language-specific attributes
+   * In general, we assume we want to match these with less-is-ok and in any order.
+   * As a motivating example, see tests/python/misc_attributes.sgrep.
+   * The algorithm here is a super-cheap approach to accomplish this, but leaves behind the
+   * matched node from the right-hand-side, which means that node will be available for matching
+   * of other attributes. IMO this is a pretty rare edge case (essentially it only appears if the
+   * left-hand side declares the same attribute twice), so I'm leaving it as a TODO here.
+   * In the future, we should create a matching helper that delegates continued matching, using the
+   * unmatched remnants of the right-hand list. Creating such a helper would also help us DRY the
+   * KeywordAttr and NamedAttr matching code above.
+   * -- nbrahms July 2020
+   *)
+  | ((A.OtherAttribute _) as a)::xsa, xsb ->
+      m_list_in_any_order ~less_is_ok:true m_attribute [a] xsb >>= (fun () ->
+        (* TODO: remove b match from rhs *)
+        m_list__m_attribute xsa xsb
       )
-  | _::_, _ ->
-      fail ()
+  (*e: [[Generic_vs_generic.m_list__m_attribute]] [[OtherAttribute]] pattern case *)
 (*e: function [[Generic_vs_generic.m_list__m_attribute]] *)
 
 (*s: function [[Generic_vs_generic.m_keyword_attribute]] *)
