@@ -83,7 +83,7 @@ $ semgrep -e `$X==$X` --lang=py path/to/src
 $ semgrep --config=default path/to/src
 ```
 
-Explore community rule packs and CI integrations at [semgrep.dev](https://semgrep.dev/packs).
+Explore the Semgrep Registry of rules and CI integrations at [semgrep.dev](https://semgrep.dev/packs).
 
 ## Examples
 
