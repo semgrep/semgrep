@@ -106,8 +106,8 @@ let escape_sequence (env : env) (tok : CST.escape_sequence) =
 
 let anon_choice_EQ (env : env) (x : CST.anon_choice_EQ) =
   (match x with
-  | `EQ tok -> Left (token env tok) (* "=" *)
-  | `COLONEQ tok -> Right (token env tok) (* ":=" *)
+  | `EQ tok -> Left (),  (token env tok) (* "=" *)
+  | `COLONEQ tok -> Right(), (token env tok) (* ":=" *)
   )
 
 let anon_choice_LF (env : env) (x : CST.anon_choice_LF) =
@@ -174,23 +174,25 @@ let rec type_case (env : env) ((v1, v2, v3, v4, v5) : CST.type_case) =
   let v2 = type_ env v2 in
   let v3 =
     List.map (fun (v1, v2) ->
-      let v1 = token env v1 (* "," *) in
+      let _v1 = token env v1 (* "," *) in
       let v2 = type_ env v2 in
-      todo env (v1, v2)
+      v2
     ) v3
   in
-  let v4 = token env v4 (* ":" *) in
+  let _v4 = token env v4 (* ":" *) in
   let v5 =
     (match v5 with
     | Some x -> statement_list env x
-    | None -> todo env ())
+    | None -> [])
   in
-  todo env (v1, v2, v3, v4, v5)
+  let xs = v2::v3 in
+  CaseExprs (v1, (xs |> List.map (fun x -> Right x))), v5
 
 and simple_statement (env : env) (x : CST.simple_statement) : simple =
   (match x with
   | `Exp x -> ExprStmt (expression env x)
-  | `Send_stmt x -> send_statement env x
+  | `Send_stmt x ->
+        ExprStmt (send_statement env x)
   | `Inc_stmt (v1, v2) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "++" *) in
@@ -324,11 +326,11 @@ and receive_statement (env : env) ((v1, v2) : CST.receive_statement) =
     | Some (v1, v2) ->
         let v1 = expression_list env v1 in
         let v2 = anon_choice_EQ env v2 in
-        todo env (v1, v2)
-    | None -> todo env ())
+        Some (v1, v2)
+    | None -> None)
   in
   let v2 = expression env v2 in
-  todo env (v1, v2)
+  v1, v2
 
 and field_declaration (env : env) ((v1, v2) : CST.field_declaration) =
   let v1 =
@@ -850,7 +852,7 @@ and send_statement (env : env) ((v1, v2, v3) : CST.send_statement) =
   let v1 = expression env v1 in
   let v2 = token env v2 (* "<-" *) in
   let v3 = expression env v3 in
-  todo env (v1, v2, v3)
+  Send (v1, v2, v3)
 
 and field_declaration_list (env : env) ((v1, v2, v3) : CST.field_declaration_list) =
   let v1 = token env v1 (* "{" *) in
@@ -1168,17 +1170,25 @@ and communication_case (env : env) ((v1, v2, v3, v4) : CST.communication_case) =
   let v1 = token env v1 (* "case" *) in
   let v2 =
     (match v2 with
-    | `Send_stmt x -> send_statement env x
-    | `Rece_stmt x -> receive_statement env x
+    | `Send_stmt x ->
+          let e = send_statement env x in
+          CaseExprs (v1, [Left e])
+    | `Rece_stmt x ->
+          let (opt, e) = receive_statement env x in
+          (match opt with
+          | None -> CaseExprs (v1, [Left e])
+          | Some (xs, (_lr, tk)) ->
+                CaseAssign (v1, xs |> List.map (fun e -> Left e), tk, e)
+          )
     )
   in
-  let v3 = token env v3 (* ":" *) in
+  let _v3 = token env v3 (* ":" *) in
   let v4 =
     (match v4 with
     | Some x -> statement_list env x
-    | None -> todo env ())
+    | None -> [])
   in
-  todo env (v1, v2, v3, v4)
+  v2, v4
 
 and literal_value (env : env) ((v1, v2, v3) : CST.literal_value) =
   let v1 = token env v1 (* "{" *) in
