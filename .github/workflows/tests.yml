@@ -133,13 +133,17 @@ jobs:
         with:
           repository: ajinabraham/njsscan
           ref: bc50a3159cf8feb1f2261a1237c3893a1a9c36fc
+          path: njsscan
       - name: Clone Target
         uses: actions/checkout@v2
         with:
           repository: bkimminich/juice-shop
           ref: 928fbacff98c9a99e77d5de655459bea70caf44e
+          path: juice-shop
       - name: Setup Python
         uses: actions/setup-python@v1
+        with:
+          python-version: 3.7
       - name: Download Artifact
         uses: actions/download-artifact@v1
         with:
@@ -151,9 +155,13 @@ jobs:
           sudo chmod +x /usr/bin/semgrep-core
       - name: Install semgrep
         run: |
+          ls
+          ls ..
+          cd semgrep
           pip3 install pipenv
           pipenv install
           export PATH=/github/home/.local/bin:$PATH
       - name: Run timing
         run: |
-          time pipenv run semgrep --config njsscan/njsscan/rules/semantic_grep juice-shop/frontend
+          cd semgrep
+          time pipenv run semgrep --config ../njsscan/njsscan/rules/semantic_grep ../juice-shop/frontend
