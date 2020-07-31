@@ -876,29 +876,29 @@ and field_declaration_list (env : env) ((v1, v2, v3) : CST.field_declaration_lis
         let v1 = field_declaration env v1 in
         let v2 =
           List.map (fun (v1, v2) ->
-            let v1 = anon_choice_LF env v1 in
+            let _v1 = anon_choice_LF env v1 in
             let v2 = field_declaration env v2 in
-            todo env (v1, v2)
+            v2
           ) v2
         in
-        let v3 =
+        let _v3 =
           (match v3 with
-          | Some x -> anon_choice_LF env x
-          | None -> todo env ())
+          | Some x -> Some (anon_choice_LF env x)
+          | None -> None)
         in
-        todo env (v1, v2, v3)
-    | None -> todo env ())
+        v1 @ List.flatten v2
+    | None -> [])
   in
   let v3 = token env v3 (* "}" *) in
-  todo env (v1, v2, v3)
+  v1, v2, v3
 
 and map_type (env : env) ((v1, v2, v3, v4, v5) : CST.map_type) =
   let v1 = token env v1 (* "map" *) in
-  let v2 = token env v2 (* "[" *) in
+  let _v2 = token env v2 (* "[" *) in
   let v3 = type_ env v3 in
-  let v4 = token env v4 (* "]" *) in
+  let _v4 = token env v4 (* "]" *) in
   let v5 = type_ env v5 in
-  todo env (v1, v2, v3, v4, v5)
+  TMap (v1, v3, v5)
 
 and implicit_length_array_type (env : env) ((v1, v2, v3, v4) : CST.implicit_length_array_type) =
   let _v1 = token env v1 (* "[" *) in
@@ -914,9 +914,9 @@ and expression_case (env : env) ((v1, v2, v3, v4) : CST.expression_case) =
   let v4 =
     (match v4 with
     | Some x -> statement_list env x
-    | None -> todo env ())
+    | None -> [])
   in
-  todo env (v1, v2, v3, v4)
+  CaseExprs (v1, v2 |> List.map (fun x -> Left x)), stmt1 v4
 
 and argument_list (env : env) ((v1, v2, v3) : CST.argument_list) =
   let v1 = token env v1 (* "(" *) in
@@ -926,30 +926,30 @@ and argument_list (env : env) ((v1, v2, v3) : CST.argument_list) =
         let v1 = anon_choice_exp env v1 in
         let v2 =
           List.map (fun (v1, v2) ->
-            let v1 = token env v1 (* "," *) in
+            let _v1 = token env v1 (* "," *) in
             let v2 = anon_choice_exp env v2 in
-            todo env (v1, v2)
+            v2
           ) v2
         in
-        let v3 =
+        let _v3 =
           (match v3 with
-          | Some tok -> token env tok (* "," *)
-          | None -> todo env ())
+          | Some tok -> Some (token env tok) (* "," *)
+          | None -> None)
         in
-        todo env (v1, v2, v3)
-    | None -> todo env ())
+        v1::v2
+    | None -> [])
   in
   let v3 = token env v3 (* ")" *) in
-  todo env (v1, v2, v3)
+  v1, v2, v3
 
 and type_ (env : env) (x : CST.type_) =
   (match x with
   | `Simple_type x -> simple_type env x
   | `Paren_type (v1, v2, v3) ->
-      let v1 = token env v1 (* "(" *) in
+      let _v1 = token env v1 (* "(" *) in
       let v2 = type_ env v2 in
-      let v3 = token env v3 (* ")" *) in
-      todo env (v1, v2, v3)
+      let _v3 = token env v3 (* ")" *) in
+      v2
   )
 
 and const_spec (env : env) ((v1, v2, v3) : CST.const_spec) =
