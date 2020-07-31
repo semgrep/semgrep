@@ -258,6 +258,7 @@ class CoreRunner:
                 cache_dir,
                 "-timeout",
                 str(self._timeout),
+                "-test",
                 "-max_memory",
                 str(self._max_memory),
             ]

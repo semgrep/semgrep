@@ -25,6 +25,7 @@ NEED_ARBITRARY_CODE_EXEC_EXIT_CODE = 6
 MISSING_CONFIG_EXIT_CODE = 7
 INVALID_LANGUAGE_EXIT_CODE = 8
 MATCH_TIMEOUT_EXIT_CODE = 9
+MATCH_MAX_MEMORY_EXIT_CODE = 10
 
 
 class Level(Enum):
@@ -296,7 +297,7 @@ class OutOfMemoryError(SemgrepError):
     path: Path = attr.ib()
     rule_id: str = attr.ib()
 
-    code = MATCH_TIMEOUT_EXIT_CODE
+    code = MATCH_MAX_MEMORY_EXIT_CODE
     level = Level.WARN
 
     def __str__(self) -> str:
