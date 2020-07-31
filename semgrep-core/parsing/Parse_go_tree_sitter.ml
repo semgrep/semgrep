@@ -127,7 +127,7 @@ let empty_labeled_statement (env : env) ((v1, v2) : CST.empty_labeled_statement)
   let _v2 = token env v2 (* ":" *) in
   Label (v1, Empty)
 
-let field_name_list (env : env) ((v1, v2) : CST.field_name_list) =
+let field_name_list (env : env) ((v1, v2) : CST.field_name_list) : ident list =
   let v1 = identifier env v1 (* identifier *) in
   let v2 =
     List.map (fun (v1, v2) ->
@@ -169,7 +169,7 @@ let import_spec (env : env) ((v1, v2) : CST.import_spec) =
   let v2 = string_literal env v2 in
   v1, v2
 
-let rec type_case (env : env) ((v1, v2, v3, v4, v5) : CST.type_case) =
+let rec type_case (env : env) ((v1, v2, v3, v4, v5) : CST.type_case) : case_clause =
   let v1 = token env v1 (* "case" *) in
   let v2 = type_ env v2 in
   let v3 =
@@ -186,7 +186,7 @@ let rec type_case (env : env) ((v1, v2, v3, v4, v5) : CST.type_case) =
     | None -> [])
   in
   let xs = v2::v3 in
-  CaseExprs (v1, (xs |> List.map (fun x -> Right x))), v5
+  CaseExprs (v1, (xs |> List.map (fun x -> Right x))), stmt1 v5
 
 and simple_statement (env : env) (x : CST.simple_statement) : simple =
   (match x with
@@ -412,22 +412,25 @@ and for_clause (env : env) ((v1, v2, v3, v4, v5) : CST.for_clause) =
 and anon_choice_param_decl (env : env) (x : CST.anon_choice_param_decl) =
   (match x with
   | `Param_decl (v1, v2) ->
-      let v1 =
-        (match v1 with
-        | Some x -> field_name_list env x
-        | None -> [])
-      in
+
       let v2 = type_ env v2 in
-      todo env (v1, v2)
+
+        (match v1 with
+        | Some x ->
+           field_name_list env x |> List.map (fun id ->
+            ParamClassic {pname = Some id; ptype = v2; pdots = None })
+        | None -> [ParamClassic {pname = None; ptype = v2; pdots = None}]
+        )
+
   | `Vari_param_decl (v1, v2, v3) ->
       let v1 =
         (match v1 with
-        | Some tok -> token env tok (* identifier *)
-        | None -> todo env ())
+        | Some tok -> Some (identifier env tok) (* identifier *)
+        | None -> None)
       in
       let v2 = token env v2 (* "..." *) in
       let v3 = type_ env v3 in
-      todo env (v1, v2, v3)
+      [ParamClassic {pname = v1; ptype = v3; pdots = Some v2}]
   )
 
 and method_spec_list (env : env) ((v1, v2, v3) : CST.method_spec_list) =
@@ -470,7 +473,8 @@ and anon_choice_param_list (env : env) (x : CST.anon_choice_param_list)
   : parameter_binding list =
   (match x with
   | `Param_list x -> parameter_list env x
-  | `Simple_type x -> let _x = simple_type env x in raise Todo
+  | `Simple_type x -> let x = simple_type env x in
+        [ParamClassic {pname = None; ptype = x; pdots = None}]
   )
 
 and simple_type (env : env) (x : CST.simple_type) : type_ =
@@ -506,120 +510,119 @@ and call_expression (env : env) (x : CST.call_expression) =
   | `Choice_new_spec_arg_list (v1, v2) ->
       let v1 = anon_choice_new env v1 in
       let v2 = special_argument_list env v2 in
-      todo env (v1, v2)
+      Call (mk_Id v1, v2)
   | `Exp_arg_list (v1, v2) ->
       let v1 = expression env v1 in
       let v2 = argument_list env v2 in
-      todo env (v1, v2)
+      Call (v1, v2)
   )
 
-and default_case (env : env) ((v1, v2, v3) : CST.default_case) =
+and default_case (env : env) ((v1, v2, v3) : CST.default_case) : case_clause =
   let v1 = token env v1 (* "default" *) in
   let v2 = token env v2 (* ":" *) in
   let v3 =
     (match v3 with
     | Some x -> statement_list env x
-    | None -> todo env ())
+    | None -> [])
   in
-  todo env (v1, v2, v3)
+  CaseDefault v1, stmt1 v3
 
 and slice_type (env : env) ((v1, v2, v3) : CST.slice_type) =
-  let v1 = token env v1 (* "[" *) in
-  let v2 = token env v2 (* "]" *) in
+  let _v1 = token env v1 (* "[" *) in
+
+  let _v2 = token env v2 (* "]" *) in
   let v3 = type_ env v3 in
-  todo env (v1, v2, v3)
+  TSlice v3
 
 and expression_list (env : env) ((v1, v2) : CST.expression_list) =
   let v1 = expression env v1 in
   let v2 =
     List.map (fun (v1, v2) ->
-      let v1 = token env v1 (* "," *) in
+      let _v1 = token env v1 (* "," *) in
       let v2 = expression env v2 in
-      todo env (v1, v2)
+      v2
     ) v2
   in
-  todo env (v1, v2)
+  v1::v2
 
 and expression (env : env) (x : CST.expression) : expr =
   (match x with
   | `Un_exp (v1, v2) ->
-      let v1 =
-        (match v1 with
-        | `PLUS tok -> token env tok (* "+" *)
-        | `DASH tok -> token env tok (* "-" *)
-        | `BANG tok -> token env tok (* "!" *)
-        | `HAT tok -> token env tok (* "^" *)
-        | `STAR tok -> token env tok (* "*" *)
-        | `AMP tok -> token env tok (* "&" *)
-        | `LTDASH tok -> token env tok (* "<-" *)
-        )
-      in
       let v2 = expression env v2 in
-      todo env (v1, v2)
+
+        (match v1 with
+        | `PLUS tok -> Unary ((G.Plus, token env tok (* "+" *)), v2)
+        | `DASH tok -> Unary ((G.Minus, token env tok) (* "-" *), v2)
+        | `BANG tok -> Unary ((G.Not, token env tok) (* "!" *), v2)
+        | `HAT tok -> Unary ((G.Xor, token env tok (* "^" *)), v2)
+        | `STAR tok -> Deref (token env tok (* "*" *), v2)
+        | `AMP tok -> Ref (token env tok (* "&" *), v2)
+        | `LTDASH tok -> Receive (token env tok (* "<-" *), v2)
+        )
   | `Bin_exp x -> binary_expression env x
   | `Sele_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "." *) in
-      let v3 = token env v3 (* identifier *) in
-      todo env (v1, v2, v3)
+      let v3 = identifier env v3 (* identifier *) in
+      Selector (v1, v2, v3)
   | `Index_exp (v1, v2, v3, v4) ->
       let v1 = expression env v1 in
-      let v2 = token env v2 (* "[" *) in
+      let _v2 = token env v2 (* "[" *) in
       let v3 = expression env v3 in
-      let v4 = token env v4 (* "]" *) in
-      todo env (v1, v2, v3, v4)
+      let _v4 = token env v4 (* "]" *) in
+      Index (v1, v3)
   | `Slice_exp (v1, v2, v3, v4) ->
-      let v1 = expression env v1 in
-      let v2 = token env v2 (* "[" *) in
-      let v3 =
+      let v1top = expression env v1 in
+      let _v2 = token env v2 (* "[" *) in
+
+      let _v4 = token env v4 (* "]" *) in
+
         (match v3 with
         | `Opt_exp_COLON_opt_exp (v1, v2, v3) ->
             let v1 =
               (match v1 with
-              | Some x -> expression env x
-              | None -> todo env ())
+              | Some x -> Some (expression env x)
+              | None -> None)
             in
             let v2 = token env v2 (* ":" *) in
             let v3 =
               (match v3 with
-              | Some x -> expression env x
-              | None -> todo env ())
+              | Some x -> Some (expression env x)
+              | None -> None)
             in
-            todo env (v1, v2, v3)
+            Slice (v1top, (v1, v3, None))
         | `Opt_exp_COLON_exp_COLON_exp (v1, v2, v3, v4, v5) ->
             let v1 =
               (match v1 with
-              | Some x -> expression env x
-              | None -> todo env ())
+              | Some x -> Some (expression env x)
+              | None -> None)
             in
-            let v2 = token env v2 (* ":" *) in
+            let _v2 = token env v2 (* ":" *) in
             let v3 = expression env v3 in
-            let v4 = token env v4 (* ":" *) in
+            let _v4 = token env v4 (* ":" *) in
             let v5 = expression env v5 in
-            todo env (v1, v2, v3, v4, v5)
+            Slice (v1top, (v1, Some v3, Some v5))
         )
-      in
-      let v4 = token env v4 (* "]" *) in
-      todo env (v1, v2, v3, v4)
+
   | `Call_exp x -> call_expression env x
   | `Type_asse_exp (v1, v2, v3, v4, v5) ->
       let v1 = expression env v1 in
-      let v2 = token env v2 (* "." *) in
-      let v3 = token env v3 (* "(" *) in
+      let _v2 = token env v2 (* "." *) in
+      let _v3 = token env v3 (* "(" *) in
       let v4 = type_ env v4 in
-      let v5 = token env v5 (* ")" *) in
-      todo env (v1, v2, v3, v4, v5)
+      let _v5 = token env v5 (* ")" *) in
+      TypeAssert (v1, v4)
   | `Type_conv_exp (v1, v2, v3, v4, v5) ->
       let v1 = type_ env v1 in
-      let v2 = token env v2 (* "(" *) in
+      let _v2 = token env v2 (* "(" *) in
       let v3 = expression env v3 in
       let v4 =
         (match v4 with
-        | Some tok -> token env tok (* "," *)
-        | None -> todo env ())
+        | Some tok -> Some (token env tok (* "," *))
+        | None -> None)
       in
-      let v5 = token env v5 (* ")" *) in
-      todo env (v1, v2, v3, v4, v5)
+      let _v5 = token env v5 (* ")" *) in
+      Cast (v1, v3)
   | `Id tok -> mk_Id (identifier env tok) (* identifier *)
   | `Choice_new x -> mk_Id (anon_choice_new env x)
   | `Comp_lit (v1, v2) ->
@@ -636,17 +639,17 @@ and expression (env : env) (x : CST.expression) : expr =
         )
       in
       let v2 = literal_value env v2 in
-      todo env (v1, v2)
+      CompositeLit (v1, v2)
   | `Func_lit (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "func" *) in
       let v2 = parameter_list env v2 in
       let v3 =
         (match v3 with
         | Some x -> anon_choice_param_list env x
-        | None -> todo env ())
+        | None -> [])
       in
       let v4 = block env v4 in
-      todo env (v1, v2, v3, v4)
+      FuncLit ({fparams = v2; fresults = v3}, v4)
   | `Choice_raw_str_lit x -> BasicLit (String (string_literal env x))
   | `Int_lit tok -> BasicLit (Int (int_literal env tok)) (* int_literal *)
   | `Float_lit tok -> BasicLit (Float (float_literal env tok)) (* float_literal *)
@@ -656,10 +659,10 @@ and expression (env : env) (x : CST.expression) : expr =
   | `True tok -> mk_Id (identifier env tok) (* "true" *)
   | `False tok -> mk_Id (identifier env tok) (* "false" *)
   | `Paren_exp (v1, v2, v3) ->
-      let v1 = token env v1 (* "(" *) in
+      let _v1 = token env v1 (* "(" *) in
       let v2 = expression env v2 in
-      let v3 = token env v3 (* ")" *) in
-      todo env (v1, v2, v3)
+      let _v3 = token env v3 (* ")" *) in
+      v2
   )
 
 and type_switch_header (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.type_switch_header) =
@@ -667,30 +670,31 @@ and type_switch_header (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.type_swit
     (match v1 with
     | Some (v1, v2) ->
         let v1 = simple_statement env v1 in
-        let v2 = token env v2 (* ";" *) in
-        todo env (v1, v2)
-    | None -> todo env ())
+        let _v2 = token env v2 (* ";" *) in
+        Some v1
+    | None -> None)
   in
   let v2 =
     (match v2 with
     | Some (v1, v2) ->
         let v1 = expression_list env v1 in
         let v2 = token env v2 (* ":=" *) in
-        todo env (v1, v2)
-    | None -> todo env ())
+        (fun x -> DShortVars (v1, v2, [x]))
+    | None -> (fun x -> ExprStmt x) )
   in
   let v3 = expression env v3 in
-  let v4 = token env v4 (* "." *) in
-  let v5 = token env v5 (* "(" *) in
+  let _v4 = token env v4 (* "." *) in
+  let _v5 = token env v5 (* "(" *) in
   let v6 = token env v6 (* "type" *) in
-  let v7 = token env v7 (* ")" *) in
-  todo env (v1, v2, v3, v4, v5, v6, v7)
+  let _v7 = token env v7 (* ")" *) in
+  let e = TypeSwitchExpr (v3, v6) in
+  v1, v2 e
 
 and type_alias (env : env) ((v1, v2, v3) : CST.type_alias) =
-  let v1 = token env v1 (* identifier *) in
+  let v1 = identifier env v1 (* identifier *) in
   let v2 = token env v2 (* "=" *) in
   let v3 = type_ env v3 in
-  todo env (v1, v2, v3)
+  DTypeAlias (v1, v2, v3)
 
 and if_statement (env : env) ((v1, v2, v3, v4, v5) : CST.if_statement) : stmt =
   let v1 = token env v1 (* "if" *) in
@@ -698,39 +702,39 @@ and if_statement (env : env) ((v1, v2, v3, v4, v5) : CST.if_statement) : stmt =
     (match v2 with
     | Some (v1, v2) ->
         let v1 = simple_statement env v1 in
-        let v2 = token env v2 (* ";" *) in
-        todo env (v1, v2)
-    | None -> todo env ())
+        let _v2 = token env v2 (* ";" *) in
+        Some v1
+    | None -> None)
   in
   let v3 = expression env v3 in
   let v4 = block env v4 in
   let v5 =
     (match v5 with
     | Some (v1, v2) ->
-        let v1 = token env v1 (* "else" *) in
+        let _v1 = token env v1 (* "else" *) in
         let v2 =
           (match v2 with
           | `Blk x -> block env x
           | `If_stmt x -> if_statement env x
           )
         in
-        todo env (v1, v2)
-    | None -> todo env ())
+        Some v2
+    | None -> None)
   in
-  todo env (v1, v2, v3, v4, v5)
+  If (v1, v2, v3, v4, v5)
 
 and statement (env : env) (x : CST.statement) : stmt =
   (match x with
-  | `Decl x -> declaration env x
+  | `Decl x -> DeclStmts (declaration env x)
   | `Simple_stmt x -> SimpleStmt (simple_statement env x)
   | `Ret_stmt (v1, v2) ->
       let v1 = token env v1 (* "return" *) in
       let v2 =
         (match v2 with
-        | Some x -> expression_list env x
-        | None -> todo env ())
+        | Some x -> Some (expression_list env x)
+        | None -> None)
       in
-      todo env (v1, v2)
+      Return (v1, v2)
   | `Go_stmt (v1, v2) ->
       let v1 = token env v1 (* "go" *) in
       let v2 = expression env v2 in
@@ -765,16 +769,16 @@ and statement (env : env) (x : CST.statement) : stmt =
         (match v2 with
         | Some (v1, v2) ->
             let v1 = simple_statement env v1 in
-            let v2 = token env v2 (* ";" *) in
-            todo env (v1, v2)
-        | None -> todo env ())
+            let _v2 = token env v2 (* ";" *) in
+            Some v1
+        | None -> None)
       in
       let v3 =
         (match v3 with
-        | Some x -> expression env x
-        | None -> todo env ())
+        | Some x -> Some (ExprStmt (expression env x))
+        | None -> None)
       in
-      let v4 = token env v4 (* "{" *) in
+      let _v4 = token env v4 (* "{" *) in
       let v5 =
         List.map (fun x ->
           (match x with
@@ -783,8 +787,8 @@ and statement (env : env) (x : CST.statement) : stmt =
           )
         ) v5
       in
-      let v6 = token env v6 (* "}" *) in
-      todo env (v1, v2, v3, v4, v5, v6)
+      let _v6 = token env v6 (* "}" *) in
+      Switch (v1, v2, v3, v5)
   | `Type_switch_stmt (v1, v2, v3, v4, v5) ->
       let v1 = token env v1 (* "switch" *) in
       let v2 = type_switch_header env v2 in
@@ -797,11 +801,12 @@ and statement (env : env) (x : CST.statement) : stmt =
           )
         ) v4
       in
-      let v5 = token env v5 (* "}" *) in
-      todo env (v1, v2, v3, v4, v5)
+      let (a,b) = v2 in
+      let _v5 = token env v5 (* "}" *) in
+      Switch (v1, a, Some b, v4)
   | `Select_stmt (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "select" *) in
-      let v2 = token env v2 (* "{" *) in
+      let _v2 = token env v2 (* "{" *) in
       let v3 =
         List.map (fun x ->
           (match x with
@@ -810,34 +815,34 @@ and statement (env : env) (x : CST.statement) : stmt =
           )
         ) v3
       in
-      let v4 = token env v4 (* "}" *) in
-      todo env (v1, v2, v3, v4)
+      let _v4 = token env v4 (* "}" *) in
+      Select (v1, v3)
   | `Labe_stmt (v1, v2, v3) ->
-      let v1 = token env v1 (* identifier *) in
-      let v2 = token env v2 (* ":" *) in
+      let v1 = identifier env v1 (* identifier *) in
+      let _v2 = token env v2 (* ":" *) in
       let v3 = statement env v3 in
-      todo env (v1, v2, v3)
+      Label (v1, v3)
   | `Fall_stmt tok -> Fallthrough (token env tok) (* "fallthrough" *)
   | `Brk_stmt (v1, v2) ->
       let v1 = token env v1 (* "break" *) in
       let v2 =
         (match v2 with
-        | Some tok -> token env tok (* identifier *)
-        | None -> todo env ())
+        | Some tok -> Some (identifier env tok) (* identifier *)
+        | None -> None)
       in
-      todo env (v1, v2)
+      Break (v1, v2)
   | `Cont_stmt (v1, v2) ->
       let v1 = token env v1 (* "continue" *) in
       let v2 =
         (match v2 with
-        | Some tok -> token env tok (* identifier *)
-        | None -> todo env ())
+        | Some tok -> Some (identifier env tok) (* identifier *)
+        | None -> None)
       in
-      todo env (v1, v2)
+      Continue (v1, v2)
   | `Goto_stmt (v1, v2) ->
       let v1 = token env v1 (* "goto" *) in
-      let v2 = token env v2 (* identifier *) in
-      todo env (v1, v2)
+      let v2 = identifier env v2 (* identifier *) in
+      Goto (v1, v2)
   | `Blk x -> block env x
   | `Empty_stmt tok ->
         let _t = token env tok (* ";" *) in
@@ -850,12 +855,12 @@ and range_clause (env : env) ((v1, v2, v3) : CST.range_clause) =
     | Some (v1, v2) ->
         let v1 = expression_list env v1 in
         let v2 = anon_choice_EQ env v2 in
-        todo env (v1, v2)
-    | None -> todo env ())
+        Some (v1, snd v2)
+    | None -> None)
   in
   let v2 = token env v2 (* "range" *) in
   let v3 = expression env v3 in
-  todo env (v1, v2, v3)
+  v1, v2, v3
 
 and send_statement (env : env) ((v1, v2, v3) : CST.send_statement) =
   let v1 = expression env v1 in
@@ -1048,8 +1053,8 @@ and parameter_list (env : env) ((v1, v2, v3) : CST.parameter_list)
 
 and element (env : env) (x : CST.element) =
   (match x with
-  | `Exp x -> expression env x
-  | `Lit_value x -> literal_value env x
+  | `Exp x -> InitExpr (expression env x)
+  | `Lit_value x -> InitBraces (literal_value env x)
   )
 
 and var_spec (env : env) ((v1, v2, v3) : CST.var_spec) =
@@ -1198,9 +1203,11 @@ and communication_case (env : env) ((v1, v2, v3, v4) : CST.communication_case) =
     | Some x -> statement_list env x
     | None -> [])
   in
-  v2, v4
+  v2, stmt1 v4
 
-and literal_value (env : env) ((v1, v2, v3) : CST.literal_value) =
+and literal_value (env : env) ((v1, v2, v3) : CST.literal_value)
+ : init list bracket
+   =
   let v1 = token env v1 (* "{" *) in
   let v2 =
     (match v2 with
