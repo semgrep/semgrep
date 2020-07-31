@@ -35,7 +35,7 @@ jobs:
         name: Get semgrep package diff
         uses: technote-space/get-diff-action@v1
         with:
-          PREFIX_FILTER: semgrep/semgrep
+          PREFIX_FILTER: cli/semgrep
       - id: changelog_diff
         name: Get changelog diff
         uses: technote-space/get-diff-action@v1

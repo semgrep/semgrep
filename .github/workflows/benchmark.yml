@@ -69,12 +69,12 @@ jobs:
           pip3 install pipenv==2018.11.26 wheel==0.34.2
       - name: Install semgrep
         run: |
-          cd semgrep
+          cd cli
           export PATH=/github/home/.local/bin:$PATH
           pipenv install --dev
       - name: check semgrep
         run: |
-          cd semgrep
+          cd cli
           export PATH=/github/home/.local/bin:$PATH
           pipenv run semgrep --version
       - uses: actions/cache@v2
@@ -83,7 +83,7 @@ jobs:
           key: semgrep-repo-cache-bench
       - name: run benchmarks
         run: |
-          cd semgrep
+          cd cli
           mkdir -p ~/.cache/semgrep-cache
           # TODO: figure out what checks we want to run on PRs
           eval $(opam  env --root /home/opam/.opam --set-root)
@@ -93,7 +93,7 @@ jobs:
           GITHUB_REPO_CACHE: ~/.cache/semgrep-cache
       - name: Compare to previous benchmark result
         run: |
-          cd semgrep
+          cd cli
           eval $(opam  env --root /home/opam/.opam --set-root)
           export PATH=/github/home/.local/bin:$PATH
           pipenv run py.test-benchmark compare benchmarks/Linux-*/* --group-by name --sort name

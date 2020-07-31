@@ -18,7 +18,7 @@ sudo apt-get install -y --no-install-recommends \
 if [[ -z "${SKIP_NUITKA+x}" ]]; then
   export PATH=/github/home/.local/bin:$PATH
   (
-    cd semgrep
+    cd cli
     sudo make all
   )
 fi

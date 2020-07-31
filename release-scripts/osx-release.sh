@@ -20,7 +20,7 @@ make build-core
 mkdir -p artifacts
 if [[ -z "$SKIP_NUITKA" ]]; then
   (
-    cd semgrep
+    cd cli
     sudo make all
   )
   cp -r ./semgrep/build/semgrep.dist/* artifacts/

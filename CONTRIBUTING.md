@@ -58,10 +58,10 @@ later.
 
 ### Installing
 
-Most `semgrep` development will operate inside the `semgrep` directory (`semgrep/semgrep`):
+Most `semgrep` development will operate inside the `cli` directory:
 
 ```
-$ cd semgrep
+$ cd cli
 ```
 
 We use [`pipenv`](https://github.com/pypa/pipenv) to manage our virtual
@@ -236,7 +236,7 @@ If you want to test semgrep on a directory with a set of given rules, run:
 
 ```bash
 $ cp ./semgrep_core/_build/default/bin/Main.exe /usr/local/bin/semgrep_core
-$ cd semgrep
+$ cd cli
 $ pipenv install --dev
 $ pipenv run semgrep --config <YAML_FILE_OR_DIRECTORY> <code to check>
 ```

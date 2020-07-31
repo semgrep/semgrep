@@ -28,7 +28,7 @@ if [[ "$(basename "$(pwd)")" != semgrep ]]; then
   cd
   echo "Obtain semgrep sources"
   git clone https://github.com/returntocorp/semgrep.git
-  cd semgrep
+  cd cli
 fi
 
 echo "Install missing packages"
