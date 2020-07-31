@@ -304,6 +304,12 @@ class OutOfMemoryError(SemgrepError):
         msg = f"Warning: Semgrep exceeded memory when running {self.rule_id} on {self.path}. See `--max-memory` for more info."
         return with_color(Fore.RED, msg)
 
+    def to_dict_base(self) -> Dict[str, Any]:
+        return {
+            "path": str(self.path),
+            "rule_id": self.rule_id,
+        }
+
 
 class _UnknownLanguageError(SemgrepInternalError):
     pass
