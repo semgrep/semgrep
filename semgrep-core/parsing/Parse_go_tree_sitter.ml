@@ -449,10 +449,10 @@ and method_spec_list (env : env) ((v1, v2, v3) : CST.method_spec_list) =
           | None -> todo env ())
         in
         todo env (v1, v2, v3)
-    | None -> todo env ())
+    | None -> [])
   in
   let v3 = token env v3 (* "}" *) in
-  todo env (v1, v2, v3)
+  v1, v2, v3
 
 and array_type (env : env) ((v1, v2, v3, v4) : CST.array_type) =
   let _v1 = token env v1 (* "[" *) in
@@ -466,10 +466,11 @@ and struct_type (env : env) ((v1, v2) : CST.struct_type) =
   let v2 = field_declaration_list env v2 in
   TStruct (v1, v2)
 
-and anon_choice_param_list (env : env) (x : CST.anon_choice_param_list) =
+and anon_choice_param_list (env : env) (x : CST.anon_choice_param_list)
+  : parameter_binding list =
   (match x with
   | `Param_list x -> parameter_list env x
-  | `Simple_type x -> [simple_type env x]
+  | `Simple_type x -> let _x = simple_type env x in raise Todo
   )
 
 and simple_type (env : env) (x : CST.simple_type) : type_ =
@@ -479,25 +480,25 @@ and simple_type (env : env) (x : CST.simple_type) : type_ =
   | `Poin_type (v1, v2) ->
       let v1 = token env v1 (* "*" *) in
       let v2 = type_ env v2 in
-      todo env (v1, v2)
+      TPtr (v1, v2)
   | `Struct_type x -> struct_type env x
   | `Inte_type (v1, v2) ->
       let v1 = token env v1 (* "interface" *) in
       let v2 = method_spec_list env v2 in
-      todo env (v1, v2)
+      TInterface (v1, v2)
   | `Array_type x -> array_type env x
   | `Slice_type x -> slice_type env x
   | `Map_type x -> map_type env x
   | `Chan_type x -> channel_type env x
   | `Func_type (v1, v2, v3) ->
-      let v1 = token env v1 (* "func" *) in
+      let _v1 = token env v1 (* "func" *) in
       let v2 = parameter_list env v2 in
       let v3 =
         (match v3 with
         | Some x -> anon_choice_param_list env x
-        | None -> todo env ())
+        | None -> [])
       in
-      todo env (v1, v2, v3)
+      TFunc { fparams = v2; fresults = v3 }
   )
 
 and call_expression (env : env) (x : CST.call_expression) =
@@ -1014,7 +1015,8 @@ and channel_type (env : env) (x : CST.channel_type) =
       todo env (v1, v2, v3)
   )
 
-and parameter_list (env : env) ((v1, v2, v3) : CST.parameter_list) =
+and parameter_list (env : env) ((v1, v2, v3) : CST.parameter_list)
+ : parameter_binding list =
   let v1 = token env v1 (* "(" *) in
   let v2 =
     (match v2 with
