@@ -73,6 +73,9 @@ let expr1 xs =
   | [x] -> x
   | _ -> failwith "expr1: was expecting just one expression"
 
+let expr_to_call_expr = function
+  | Call x -> x
+  | _ -> failwith "expr_to_call_expr: was expecting a Call"
 
 let identifier (env : env) (tok : CST.identifier) =
   str env tok (* identifier *)
@@ -119,10 +122,10 @@ let qualified_type (env : env) ((v1, v2, v3) : CST.qualified_type) =
   let v3 = identifier env v3 (* identifier *) in
   [v1; v3]
 
-let empty_labeled_statement (env : env) ((v1, v2) : CST.empty_labeled_statement) =
-  let v1 = token env v1 (* identifier *) in
-  let v2 = token env v2 (* ":" *) in
-  v1, v2
+let empty_labeled_statement (env : env) ((v1, v2) : CST.empty_labeled_statement) : stmt =
+  let v1 = identifier env v1 (* identifier *) in
+  let _v2 = token env v2 (* ":" *) in
+  Label (v1, Empty)
 
 let field_name_list (env : env) ((v1, v2) : CST.field_name_list) =
   let v1 = identifier env v1 (* identifier *) in
@@ -228,11 +231,11 @@ and simple_statement (env : env) (x : CST.simple_statement) : simple =
 
 and anon_choice_exp (env : env) (x : CST.anon_choice_exp) =
   (match x with
-  | `Exp x -> expression env x
+  | `Exp x -> Arg (expression env x)
   | `Vari_arg (v1, v2) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "..." *) in
-      todo env (v1, v2)
+      ArgDots (v1, v2)
   )
 
 and binary_expression (env : env) (x : CST.binary_expression) =
@@ -241,53 +244,53 @@ and binary_expression (env : env) (x : CST.binary_expression) =
       let v1 = expression env v1 in
       let v2 =
         (match v2 with
-        | `STAR tok -> token env tok (* "*" *)
-        | `SLASH tok -> token env tok (* "/" *)
-        | `PERC tok -> token env tok (* "%" *)
-        | `LTLT tok -> token env tok (* "<<" *)
-        | `GTGT tok -> token env tok (* ">>" *)
-        | `AMP tok -> token env tok (* "&" *)
-        | `AMPHAT tok -> token env tok (* "&^" *)
+        | `STAR tok -> G.Mult, token env tok (* "*" *)
+        | `SLASH tok -> G.Div, token env tok (* "/" *)
+        | `PERC tok -> G.Mod, token env tok (* "%" *)
+        | `LTLT tok -> G.LSL, token env tok (* "<<" *)
+        | `GTGT tok -> G.LSR, token env tok (* ">>" *)
+        | `AMP tok -> G.BitAnd, token env tok (* "&" *)
+        | `AMPHAT tok -> G.BitClear, token env tok (* "&^" *)
         )
       in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Binary (v1, v2, v3)
   | `Exp_choice_PLUS_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 =
         (match v2 with
-        | `PLUS tok -> token env tok (* "+" *)
-        | `DASH tok -> token env tok (* "-" *)
-        | `BAR tok -> token env tok (* "|" *)
-        | `HAT tok -> token env tok (* "^" *)
+        | `PLUS tok -> G.Plus, token env tok (* "+" *)
+        | `DASH tok -> G.Minus, token env tok (* "-" *)
+        | `BAR tok -> G.BitOr, token env tok (* "|" *)
+        | `HAT tok -> G.BitXor, token env tok (* "^" *)
         )
       in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Binary (v1, v2, v3)
   | `Exp_choice_EQEQ_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 =
         (match v2 with
-        | `EQEQ tok -> token env tok (* "==" *)
-        | `BANGEQ tok -> token env tok (* "!=" *)
-        | `LT tok -> token env tok (* "<" *)
-        | `LTEQ tok -> token env tok (* "<=" *)
-        | `GT tok -> token env tok (* ">" *)
-        | `GTEQ tok -> token env tok (* ">=" *)
+        | `EQEQ tok -> G.Eq, token env tok (* "==" *)
+        | `BANGEQ tok -> G.NotEq, token env tok (* "!=" *)
+        | `LT tok -> G.Lt, token env tok (* "<" *)
+        | `LTEQ tok -> G.LtE, token env tok (* "<=" *)
+        | `GT tok -> G.Gt, token env tok (* ">" *)
+        | `GTEQ tok -> G.GtE, token env tok (* ">=" *)
         )
       in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Binary (v1, v2, v3)
   | `Exp_AMPAMP_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "&&" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Binary (v1, (G.And, v2), v3)
   | `Exp_BARBAR_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "||" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Binary (v1, (G.Or, v2), v3)
   )
 
 and anon_choice_type_id (env : env) (x : CST.anon_choice_type_id) =
@@ -310,10 +313,10 @@ and block (env : env) ((v1, v2, v3) : CST.block) =
   let v2 =
     (match v2 with
     | Some x -> statement_list env x
-    | None -> todo env ())
+    | None -> [])
   in
   let v3 = token env v3 (* "}" *) in
-  todo env (v1, v2, v3)
+  Block (v1, v2, v3)
 
 and receive_statement (env : env) ((v1, v2) : CST.receive_statement) =
   let v1 =
@@ -447,11 +450,11 @@ and method_spec_list (env : env) ((v1, v2, v3) : CST.method_spec_list) =
   todo env (v1, v2, v3)
 
 and array_type (env : env) ((v1, v2, v3, v4) : CST.array_type) =
-  let v1 = token env v1 (* "[" *) in
+  let _v1 = token env v1 (* "[" *) in
   let v2 = expression env v2 in
-  let v3 = token env v3 (* "]" *) in
+  let _v3 = token env v3 (* "]" *) in
   let v4 = type_ env v4 in
-  todo env (v1, v2, v3, v4)
+  TArray (v2, v4)
 
 and struct_type (env : env) ((v1, v2) : CST.struct_type) =
   let v1 = token env v1 (* "struct" *) in
@@ -683,7 +686,7 @@ and type_alias (env : env) ((v1, v2, v3) : CST.type_alias) =
   let v3 = type_ env v3 in
   todo env (v1, v2, v3)
 
-and if_statement (env : env) ((v1, v2, v3, v4, v5) : CST.if_statement) =
+and if_statement (env : env) ((v1, v2, v3, v4, v5) : CST.if_statement) : stmt =
   let v1 = token env v1 (* "if" *) in
   let v2 =
     (match v2 with
@@ -725,11 +728,11 @@ and statement (env : env) (x : CST.statement) : stmt =
   | `Go_stmt (v1, v2) ->
       let v1 = token env v1 (* "go" *) in
       let v2 = expression env v2 in
-      todo env (v1, v2)
+      Go (v1, expr_to_call_expr v2)
   | `Defer_stmt (v1, v2) ->
       let v1 = token env v1 (* "defer" *) in
       let v2 = expression env v2 in
-      todo env (v1, v2)
+      Defer (v1, expr_to_call_expr v2)
   | `If_stmt x -> if_statement env x
   | `For_stmt (v1, v2, v3) ->
       let v1 = token env v1 (* "for" *) in
@@ -882,11 +885,11 @@ and map_type (env : env) ((v1, v2, v3, v4, v5) : CST.map_type) =
   todo env (v1, v2, v3, v4, v5)
 
 and implicit_length_array_type (env : env) ((v1, v2, v3, v4) : CST.implicit_length_array_type) =
-  let v1 = token env v1 (* "[" *) in
+  let _v1 = token env v1 (* "[" *) in
   let v2 = token env v2 (* "..." *) in
-  let v3 = token env v3 (* "]" *) in
+  let _v3 = token env v3 (* "]" *) in
   let v4 = type_ env v4 in
-  todo env (v1, v2, v3, v4)
+  TArrayEllipsis (v2, v4)
 
 and expression_case (env : env) ((v1, v2, v3, v4) : CST.expression_case) =
   let v1 = token env v1 (* "case" *) in
@@ -1134,7 +1137,7 @@ and declaration (env : env) (x : CST.declaration) =
       todo env (v1, v2)
   )
 
-and statement_list (env : env) (x : CST.statement_list) =
+and statement_list (env : env) (x : CST.statement_list) : stmt list =
   (match x with
   | `Stmt_rep_choice_LF_stmt_opt_choice_LF_opt_empty_labe_stmt (v1, v2, v3) ->
       let v1 = statement env v1 in
@@ -1158,7 +1161,7 @@ and statement_list (env : env) (x : CST.statement_list) =
         | None -> todo env ())
       in
       todo env (v1, v2, v3)
-  | `Empty_labe_stmt x -> empty_labeled_statement env x
+  | `Empty_labe_stmt x -> [empty_labeled_statement env x]
   )
 
 and communication_case (env : env) ((v1, v2, v3, v4) : CST.communication_case) =
