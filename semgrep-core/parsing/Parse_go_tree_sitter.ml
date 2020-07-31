@@ -38,9 +38,6 @@ let token = H.token
 let str = H.str
 
 
-let combine_tokens_and_strings v1 v2 v3 =
-  "TODO", v1
-
 (*****************************************************************************)
 (* Boilerplate converter *)
 (*****************************************************************************)
@@ -64,43 +61,50 @@ let blank (env : env) () = ()
 let todo (env : env) _ =
    failwith "not implemented"
 
+let combine_tokens_and_strings v1 _v2 _v3 =
+  "TODO", v1
 
 (* TODO: need remove enclosing `` *)
 let raw_string_literal env tok =
   str env tok
+
+
 
 let identifier (env : env) (tok : CST.identifier) =
   str env tok (* identifier *)
 
 let anon_choice_new (env : env) (x : CST.anon_choice_new) =
   (match x with
-  | `New tok -> token env tok (* "new" *)
-  | `Make tok -> token env tok (* "make" *)
+  | `New tok -> str env tok (* "new" *)
+  | `Make tok -> str env tok (* "make" *)
   )
 
+
 let imaginary_literal (env : env) (tok : CST.imaginary_literal) =
-  token env tok (* imaginary_literal *)
+  str env tok (* imaginary_literal *)
 
 let float_literal (env : env) (tok : CST.float_literal) =
-  token env tok (* float_literal *)
+  str env tok (* float_literal *)
+
+let int_literal (env : env) (tok : CST.int_literal) =
+  str env tok (* int_literal *)
+
+let rune_literal (env : env) (tok : CST.rune_literal) =
+  str env tok (* rune_literal *)
+
+let escape_sequence (env : env) (tok : CST.escape_sequence) =
+  str env tok (* escape_sequence *)
+
+
 
 let anon_choice_EQ (env : env) (x : CST.anon_choice_EQ) =
   (match x with
-  | `EQ tok -> token env tok (* "=" *)
-  | `COLONEQ tok -> token env tok (* ":=" *)
+  | `EQ tok -> Left (token env tok) (* "=" *)
+  | `COLONEQ tok -> Right (token env tok) (* ":=" *)
   )
 
-let identifier (env : env) (tok : CST.identifier) =
-  token env tok (* identifier *)
 
-let escape_sequence (env : env) (tok : CST.escape_sequence) =
-  token env tok (* escape_sequence *)
 
-let int_literal (env : env) (tok : CST.int_literal) =
-  token env tok (* int_literal *)
-
-let rune_literal (env : env) (tok : CST.rune_literal) =
-  token env tok (* rune_literal *)
 
 let anon_choice_LF (env : env) (x : CST.anon_choice_LF) =
   (match x with
@@ -109,15 +113,15 @@ let anon_choice_LF (env : env) (x : CST.anon_choice_LF) =
   )
 
 let qualified_type (env : env) ((v1, v2, v3) : CST.qualified_type) =
-  let v1 = token env v1 (* identifier *) in
-  let v2 = token env v2 (* "." *) in
-  let v3 = token env v3 (* identifier *) in
-  todo env (v1, v2, v3)
+  let v1 = identifier env v1 (* identifier *) in
+  let _v2 = token env v2 (* "." *) in
+  let v3 = identifier env v3 (* identifier *) in
+  [v1; v3]
 
 let empty_labeled_statement (env : env) ((v1, v2) : CST.empty_labeled_statement) =
   let v1 = token env v1 (* identifier *) in
   let v2 = token env v2 (* ":" *) in
-  todo env (v1, v2)
+  v1, v2
 
 let field_name_list (env : env) ((v1, v2) : CST.field_name_list) =
   let v1 = token env v1 (* identifier *) in
@@ -132,14 +136,14 @@ let field_name_list (env : env) ((v1, v2) : CST.field_name_list) =
 
 let string_literal (env : env) (x : CST.string_literal) =
   (match x with
-  | `Raw_str_lit tok -> token env tok (* raw_string_literal *)
+  | `Raw_str_lit tok -> raw_string_literal env tok (* raw_string_literal *)
   | `Inte_str_lit (v1, v2, v3) ->
       let v1 = token env v1 (* "\"" *) in
       let v2 =
         List.map (fun x ->
           (match x with
           | `Blank () -> todo env ()
-          | `Esc_seq tok -> token env tok (* escape_sequence *)
+          | `Esc_seq tok -> escape_sequence env tok (* escape_sequence *)
           )
         ) v2
       in
@@ -179,9 +183,9 @@ let rec type_case (env : env) ((v1, v2, v3, v4, v5) : CST.type_case) =
   in
   todo env (v1, v2, v3, v4, v5)
 
-and simple_statement (env : env) (x : CST.simple_statement) =
+and simple_statement (env : env) (x : CST.simple_statement) : simple =
   (match x with
-  | `Exp x -> expression env x
+  | `Exp x -> ExprStmt (expression env x)
   | `Send_stmt x -> send_statement env x
   | `Inc_stmt (v1, v2) ->
       let v1 = expression env v1 in
@@ -284,8 +288,8 @@ and binary_expression (env : env) (x : CST.binary_expression) =
 
 and anon_choice_type_id (env : env) (x : CST.anon_choice_type_id) =
   (match x with
-  | `Id tok -> token env tok (* identifier *)
-  | `Qual_type x -> qualified_type env x
+  | `Id tok -> TName ([identifier env tok]) (* identifier *)
+  | `Qual_type x -> TName (qualified_type env x)
   | `Meth_spec (v1, v2, v3) ->
       let v1 = token env v1 (* identifier *) in
       let v2 = parameter_list env v2 in
@@ -341,7 +345,7 @@ and field_declaration (env : env) ((v1, v2) : CST.field_declaration) =
         in
         let v2 =
           (match v2 with
-          | `Id tok -> token env tok (* identifier *)
+          | `Id tok -> [identifier env tok] (* identifier *)
           | `Qual_type x -> qualified_type env x
           )
         in
@@ -458,8 +462,8 @@ and anon_choice_param_list (env : env) (x : CST.anon_choice_param_list) =
 
 and simple_type (env : env) (x : CST.simple_type) =
   (match x with
-  | `Id tok -> token env tok (* identifier *)
-  | `Qual_type x -> qualified_type env x
+  | `Id tok -> TName [identifier env tok] (* identifier *)
+  | `Qual_type x -> TName (qualified_type env x)
   | `Poin_type (v1, v2) ->
       let v1 = token env v1 (* "*" *) in
       let v2 = type_ env v2 in
@@ -523,7 +527,7 @@ and expression_list (env : env) ((v1, v2) : CST.expression_list) =
   in
   todo env (v1, v2)
 
-and expression (env : env) (x : CST.expression) =
+and expression (env : env) (x : CST.expression) : expr =
   (match x with
   | `Un_exp (v1, v2) ->
       let v1 =
@@ -603,8 +607,8 @@ and expression (env : env) (x : CST.expression) =
       in
       let v5 = token env v5 (* ")" *) in
       todo env (v1, v2, v3, v4, v5)
-  | `Id tok -> token env tok (* identifier *)
-  | `Choice_new x -> anon_choice_new env x
+  | `Id tok -> mk_Id (identifier env tok) (* identifier *)
+  | `Choice_new x -> mk_Id (anon_choice_new env x)
   | `Comp_lit (v1, v2) ->
       let v1 =
         (match v1 with
@@ -614,8 +618,8 @@ and expression (env : env) (x : CST.expression) =
         | `Impl_len_array_type x ->
             implicit_length_array_type env x
         | `Struct_type x -> struct_type env x
-        | `Id tok -> token env tok (* identifier *)
-        | `Qual_type x -> qualified_type env x
+        | `Id tok -> TName [identifier env tok] (* identifier *)
+        | `Qual_type x -> TName (qualified_type env x)
         )
       in
       let v2 = literal_value env v2 in
@@ -630,14 +634,14 @@ and expression (env : env) (x : CST.expression) =
       in
       let v4 = block env v4 in
       todo env (v1, v2, v3, v4)
-  | `Choice_raw_str_lit x -> string_literal env x
-  | `Int_lit tok -> token env tok (* int_literal *)
-  | `Float_lit tok -> token env tok (* float_literal *)
-  | `Imag_lit tok -> token env tok (* imaginary_literal *)
-  | `Rune_lit tok -> token env tok (* rune_literal *)
-  | `Nil tok -> token env tok (* "nil" *)
-  | `True tok -> token env tok (* "true" *)
-  | `False tok -> token env tok (* "false" *)
+  | `Choice_raw_str_lit x -> BasicLit (String (string_literal env x))
+  | `Int_lit tok -> BasicLit (Int (int_literal env tok)) (* int_literal *)
+  | `Float_lit tok -> BasicLit (Float (float_literal env tok)) (* float_literal *)
+  | `Imag_lit tok -> BasicLit (Imag (imaginary_literal env tok)) (* imaginary_literal *)
+  | `Rune_lit tok -> BasicLit (Rune (rune_literal env tok)) (* rune_literal *)
+  | `Nil tok -> mk_Id (identifier env tok) (* "nil" *)
+  | `True tok -> mk_Id (identifier env tok) (* "true" *)
+  | `False tok -> mk_Id (identifier env tok) (* "false" *)
   | `Paren_exp (v1, v2, v3) ->
       let v1 = token env v1 (* "(" *) in
       let v2 = expression env v2 in
@@ -702,10 +706,10 @@ and if_statement (env : env) ((v1, v2, v3, v4, v5) : CST.if_statement) =
   in
   todo env (v1, v2, v3, v4, v5)
 
-and statement (env : env) (x : CST.statement) =
+and statement (env : env) (x : CST.statement) : stmt =
   (match x with
   | `Decl x -> declaration env x
-  | `Simple_stmt x -> simple_statement env x
+  | `Simple_stmt x -> SimpleStmt (simple_statement env x)
   | `Ret_stmt (v1, v2) ->
       let v1 = token env v1 (* "return" *) in
       let v2 =
@@ -795,7 +799,7 @@ and statement (env : env) (x : CST.statement) =
       let v2 = token env v2 (* ":" *) in
       let v3 = statement env v3 in
       todo env (v1, v2, v3)
-  | `Fall_stmt tok -> token env tok (* "fallthrough" *)
+  | `Fall_stmt tok -> Fallthrough (token env tok) (* "fallthrough" *)
   | `Brk_stmt (v1, v2) ->
       let v1 = token env v1 (* "break" *) in
       let v2 =
@@ -817,7 +821,9 @@ and statement (env : env) (x : CST.statement) =
       let v2 = token env v2 (* identifier *) in
       todo env (v1, v2)
   | `Blk x -> block env x
-  | `Empty_stmt tok -> token env tok (* ";" *)
+  | `Empty_stmt tok ->
+        let _t = token env tok (* ";" *) in
+        Empty
   )
 
 and range_clause (env : env) ((v1, v2, v3) : CST.range_clause) =
