@@ -58,7 +58,7 @@ Semgrep is proudly supported by r2c. Learn more about a hosted version of Semgre
 
 ## Getting Started
 
-The best place to start with Semgrep is its [Quick Start](https://semgrep.dev/editors). For a more in-depth introduction, see the [Semgrep Tutorial](https://semgrep.dev/learn).
+The best place to start with Semgrep is its [Quick Start](https://semgrep.dev/editor). For a more in-depth introduction, see the [Semgrep Tutorial](https://semgrep.dev/learn).
 
 Semgrep can be installed using `brew`, `pip`, or `docker`:
 
