@@ -44,6 +44,7 @@ repos:
         alias: mypy-test
         name: mypy (test files)
         files: ^cli\/tests\/.+$
+        exclude: ^cli/tests/e2e/targets/.+$
         args: [--config, mypy-tests.ini]
 
   - repo: https://gitlab.com/pycqa/flake8
