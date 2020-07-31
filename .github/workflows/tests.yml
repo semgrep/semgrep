@@ -71,7 +71,7 @@ jobs:
         run: pip install pipenv==2018.11.26 wheel==0.34.2 tox==3.15.0
       - name: Run Tox
         run: |
-          cd semgrep
+          cd cli
           tox -e py  # Run tox using the version of Python in `PATH`
 
 
@@ -102,7 +102,7 @@ jobs:
           sudo chmod +x /usr/bin/semgrep-core
       - name: Install semgrep
         run: |
-          cd semgrep
+          cd cli
           export PATH=/github/home/.local/bin:$PATH
           pip3 install pipenv
           pipenv install --dev
@@ -115,7 +115,7 @@ jobs:
       - run: touch ~/.cache/semgrep-cache/ok
       - name: Test semgrep
         run: |
-          cd semgrep
+          cd cli
           export PATH=/github/home/.local/bin:$PATH
           make ci-test
         env:
