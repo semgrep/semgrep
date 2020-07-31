@@ -31,7 +31,7 @@ repos:
     rev: "v0.782"
     hooks:
       - id: mypy
-        exclude: ^semgrep\/tests\/.+$
+        exclude: ^cli\/tests\/.+$
         args: [--config, mypy.ini]
 
   - repo: https://github.com/pre-commit/mirrors-mypy
@@ -40,7 +40,7 @@ repos:
       - id: mypy
         alias: mypy-test
         name: mypy (test files)
-        files: ^semgrep\/tests\/.+$
+        files: ^cli\/tests\/.+$
         args: [--config, mypy-tests.ini]
 
   - repo: https://gitlab.com/pycqa/flake8
@@ -56,7 +56,7 @@ repos:
       - id: semgrep-develop
         name: Semgrep Python
         types: [python]
-        exclude: "^semgrep/tests/.+$|^install-scripts/.+$|^release-scripts/.+$|^semgrep/setup.py$"
+        exclude: "^cli/tests/.+$|^install-scripts/.+$|^release-scripts/.+$|^cli/setup.py$"
         args: ['--config', 'https://semgrep.dev/p/python', '--error']
 
   - repo: https://github.com/returntocorp/semgrep
@@ -65,7 +65,7 @@ repos:
       - id: semgrep-develop
         name: Semgrep Bandit
         types: [python]
-        exclude: "^semgrep/tests/.+$|^install-scripts/.+$|^release-scripts/.+$|^semgrep/setup.py$"
+        exclude: "^cli/tests/.+$|^install-scripts/.+$|^release-scripts/.+$|^cli/setup.py$"
         args: ['--config', 'https://semgrep.dev/p/bandit', '--error']
 
   - repo: https://github.com/returntocorp/semgrep
@@ -74,7 +74,7 @@ repos:
       - id: semgrep-develop
         name: Semgrep Local
         types: [python]
-        exclude: "^semgrep/tests/.+$|^install-scripts/.+$|^release-scripts/.+$|^semgrep/setup.py$"
+        exclude: "^cli/tests/.+$|^install-scripts/.+$|^release-scripts/.+$|^cli/setup.py$"
         args: ['--config', 'semgrep-local.yaml', '--error']
 
   - repo: local
@@ -82,6 +82,7 @@ repos:
       - id: shellcheck
         name: shellcheck
         language: docker_image
+        exclude: "^cli/tests/.+$"
         entry: koalaman/shellcheck:v0.7.1
         files: ".sh"
 
@@ -91,5 +92,6 @@ repos:
         name: hadolint
         language: docker_image
         files: "Dockerfile"
+        exclude: "^cli/tests/.+$"
         entry: hadolint/hadolint:v1.18.0 hadolint
         args: ["--ignore", "DL3008", "--ignore", "DL3018"]
