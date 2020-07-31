@@ -15,7 +15,7 @@ open Common
 module AST = Ast_go
 module CST = Tree_sitter_go.CST
 module PI = Parse_info
-(* open Ast_go *)
+open Ast_go
 module G = AST_generic
 module H = Parse_tree_sitter_helpers
 
@@ -32,6 +32,10 @@ module H = Parse_tree_sitter_helpers
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
+type env = H.env
+let _fake = G.fake
+let token = H.token
+let str = H.str
 
 (*****************************************************************************)
 (* Boilerplate converter *)
@@ -51,46 +55,26 @@ module H = Parse_tree_sitter_helpers
 
 [@@@warning "-32"]
 
-type env = H.env
-
-let token (env : env) (_tok : Tree_sitter_run.Token.t) = H.token
-
 let blank (env : env) () = ()
 
 let todo (env : env) _ =
    failwith "not implemented"
 
-let int_literal (env : env) (tok : CST.int_literal) =
-  token env tok (* int_literal *)
-
 let identifier (env : env) (tok : CST.identifier) =
-  token env tok (* identifier *)
+  str env tok (* identifier *)
 
-let raw_string_literal (env : env) (tok : CST.raw_string_literal) =
-  token env tok (* raw_string_literal *)
 
-let rune_literal (env : env) (tok : CST.rune_literal) =
-  token env tok (* rune_literal *)
-
-let float_literal (env : env) (tok : CST.float_literal) =
-  token env tok (* float_literal *)
-
-let imaginary_literal (env : env) (tok : CST.imaginary_literal) =
-  token env tok (* imaginary_literal *)
-
-let escape_sequence (env : env) (tok : CST.escape_sequence) =
-  token env tok (* escape_sequence *)
 
 let qualified_type (env : env) ((v1, v2, v3) : CST.qualified_type) =
-  let v1 = token env v1 (* identifier *) in
-  let v2 = token env v2 (* "." *) in
-  let v3 = token env v3 (* identifier *) in
-  todo env (v1, v2, v3)
+  let v1 = str env v1 (* identifier *) in
+  let _v2 = token env v2 (* "." *) in
+  let v3 = str env v3 (* identifier *) in
+  [v1; v3]
 
 let package_clause (env : env) ((v1, v2) : CST.package_clause) =
   let v1 = token env v1 (* "package" *) in
-  let v2 = token env v2 (* identifier *) in
-  todo env (v1, v2)
+  let v2 = str env v2 (* identifier *) in
+  Package (v1, v2)
 
 let empty_labeled_statement (env : env) ((v1, v2) : CST.empty_labeled_statement) =
   let v1 = token env v1 (* identifier *) in
@@ -409,8 +393,8 @@ and parenthesized_type (env : env) ((v1, v2, v3) : CST.parenthesized_type) =
 
 and simple_type (env : env) (x : CST.simple_type) =
   (match x with
-  | `Id tok -> token env tok (* identifier *)
-  | `Qual_type x -> qualified_type env x
+  | `Id tok -> TName [str env tok] (* identifier *)
+  | `Qual_type x -> TName (qualified_type env x)
   | `Poin_type (v1, v2) ->
       let v1 = token env v1 (* "*" *) in
       let v2 =
@@ -550,7 +534,7 @@ and field_declaration (env : env) ((v1, v2) : CST.field_declaration) =
         in
         let v2 =
           (match v2 with
-          | `Id tok -> token env tok (* identifier *)
+          | `Id tok -> [str env tok] (* identifier *)
           | `Qual_type x -> qualified_type env x
           )
         in
@@ -576,7 +560,7 @@ and method_spec_list (env : env) ((v1, v2, v3) : CST.method_spec_list) =
     | Some (v1, v2, v3) ->
         let v1 =
           (match v1 with
-          | `Id tok -> token env tok (* identifier *)
+          | `Id tok -> [str env tok] (* identifier *)
           | `Qual_type x -> qualified_type env x
           | `Meth_spec x -> method_spec env x
           )
@@ -591,7 +575,7 @@ and method_spec_list (env : env) ((v1, v2, v3) : CST.method_spec_list) =
             in
             let v2 =
               (match v2 with
-              | `Id tok -> token env tok (* identifier *)
+              | `Id tok -> [str env tok] (* identifier *)
               | `Qual_type x -> qualified_type env x
               | `Meth_spec x -> method_spec env x
               )
@@ -1184,8 +1168,8 @@ and expression (env : env) (x : CST.expression) =
         | `Impl_len_array_type x ->
             implicit_length_array_type env x
         | `Struct_type x -> struct_type env x
-        | `Id tok -> token env tok (* identifier *)
-        | `Qual_type x -> qualified_type env x
+        | `Id tok -> TName [str env tok] (* identifier *)
+        | `Qual_type x -> TName (qualified_type env x)
         )
       in
       let v2 = literal_value env v2 in
