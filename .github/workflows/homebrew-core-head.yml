@@ -11,5 +11,9 @@ jobs:
     name: Check builds for macOS
     runs-on: macos-latest
     steps:
-      - name: Brew install
-        run: brew update && brew install semgrep --head
+      - name: Brew update
+        run: brew update
+      - name: Brew Install
+        run: brew install semgrep --HEAD
+      - name: Check installed correctly
+        run: brew tests semgrep --HEAD
