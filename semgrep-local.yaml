@@ -28,3 +28,16 @@ rules:
       https://www.attrs.org/en/stable/hashing.html for more info.
     languages: [python]
     severity: ERROR
+
+  - id: using-root-logger
+    patterns:
+      - pattern: logging.$METHOD(...)
+      - metavariable-regex:
+          metavariable: '$METHOD'
+          regex: '(debug|info|warn|warning|error)'
+    message: >
+      Make sure to send logs to the appropriate module (logging.getLogger(__name__))
+      instead of the root. Semgrep module logger does not propagate errors to root
+      logger (which is where this module helper sends logs).
+    languages: [python]
+    severity: ERROR
