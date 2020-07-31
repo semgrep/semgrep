@@ -1298,25 +1298,13 @@ and m_list__m_attribute (xsa: A.attribute list) (xsb: A.attribute list) =
       with Not_found -> fail ()
       )
   (*e: [[Generic_vs_generic.m_list__m_attribute]] [[NamedAttr]] pattern case *)
-  (*s: [[Generic_vs_generic.m_list__m_attribute]] [[OtherAttribute]] pattern case *)
-  (* Matches language-specific attributes
-   * In general, we assume we want to match these with less-is-ok and in any order.
-   * As a motivating example, see tests/python/misc_attributes.sgrep.
-   * The algorithm here is a super-cheap approach to accomplish this, but leaves behind the
-   * matched node from the right-hand-side, which means that node will be available for matching
-   * of other attributes. IMO this is a pretty rare edge case (essentially it only appears if the
-   * left-hand side declares the same attribute twice), so I'm leaving it as a TODO here.
-   * In the future, we should create a matching helper that delegates continued matching, using the
-   * unmatched remnants of the right-hand list. Creating such a helper would also help us DRY the
-   * KeywordAttr and NamedAttr matching code above.
-   * -- nbrahms July 2020
-   *)
-  | ((A.OtherAttribute _) as a)::xsa, xsb ->
-      m_list_in_any_order ~less_is_ok:true m_attribute [a] xsb >>= (fun () ->
-        (* TODO: remove b match from rhs *)
-        m_list__m_attribute xsa xsb
+  (* the general case *)
+  | xa::aas, xb::bbs ->
+      m_attribute xa xb >>= (fun () ->
+      m_list__m_attribute aas bbs
       )
-  (*e: [[Generic_vs_generic.m_list__m_attribute]] [[OtherAttribute]] pattern case *)
+  | _::_, _ ->
+      fail ()
 (*e: function [[Generic_vs_generic.m_list__m_attribute]] *)
 
 (*s: function [[Generic_vs_generic.m_keyword_attribute]] *)
@@ -1858,7 +1846,7 @@ and m_entity a b =
   { A. name = a1; attrs = a2; tparams = a4; info = a5 },
   { B. name = b1; attrs = b2; tparams = b4; info = b5 } ->
     m_ident_and_id_info_add_in_env_Expr (a1, a5) (b1, b5) >>= (fun () ->
-    (m_list__m_attribute) a2 b2 >>= (fun () ->
+    (m_list_in_any_order ~less_is_ok:true m_attribute a2 b2) >>= (fun () ->
     (m_list m_type_parameter) a4 b4
     ))
 (*e: function [[Generic_vs_generic.m_entity]] *)
