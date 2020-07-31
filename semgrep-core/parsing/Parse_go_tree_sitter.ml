@@ -305,7 +305,7 @@ and anon_choice_type_id (env : env) (x : CST.anon_choice_type_id) =
       let v3 =
         (match v3 with
         | Some x -> anon_choice_param_list env x
-        | None -> todo env ())
+        | None -> [])
       in
       todo env (v1, v2, v3)
   )
@@ -375,38 +375,39 @@ and special_argument_list (env : env) ((v1, v2, v3, v4, v5) : CST.special_argume
   let v2 = type_ env v2 in
   let v3 =
     List.map (fun (v1, v2) ->
-      let v1 = token env v1 (* "," *) in
+      let _v1 = token env v1 (* "," *) in
       let v2 = expression env v2 in
-      todo env (v1, v2)
+      Arg v2
     ) v3
   in
-  let v4 =
+  let _v4 =
     (match v4 with
-    | Some tok -> token env tok (* "," *)
-    | None -> todo env ())
+    | Some tok -> Some (token env tok) (* "," *)
+    | None -> None)
   in
   let v5 = token env v5 (* ")" *) in
-  todo env (v1, v2, v3, v4, v5)
+   let args = (ArgType v2)::v3 in
+  v1, args, v5
 
 and for_clause (env : env) ((v1, v2, v3, v4, v5) : CST.for_clause) =
   let v1 =
     (match v1 with
-    | Some x -> simple_statement env x
-    | None -> todo env ())
+    | Some x -> Some (simple_statement env x)
+    | None -> None)
   in
-  let v2 = token env v2 (* ";" *) in
+  let _v2 = token env v2 (* ";" *) in
   let v3 =
     (match v3 with
-    | Some x -> expression env x
-    | None -> todo env ())
+    | Some x -> Some (expression env x)
+    | None -> None)
   in
-  let v4 = token env v4 (* ";" *) in
+  let _v4 = token env v4 (* ";" *) in
   let v5 =
     (match v5 with
-    | Some x -> simple_statement env x
-    | None -> todo env ())
+    | Some x -> Some (simple_statement env x)
+    | None -> None)
   in
-  todo env (v1, v2, v3, v4, v5)
+  v1, v3, v5
 
 and anon_choice_param_decl (env : env) (x : CST.anon_choice_param_decl) =
   (match x with
@@ -414,7 +415,7 @@ and anon_choice_param_decl (env : env) (x : CST.anon_choice_param_decl) =
       let v1 =
         (match v1 with
         | Some x -> field_name_list env x
-        | None -> todo env ())
+        | None -> [])
       in
       let v2 = type_ env v2 in
       todo env (v1, v2)
@@ -463,15 +464,15 @@ and array_type (env : env) ((v1, v2, v3, v4) : CST.array_type) =
 and struct_type (env : env) ((v1, v2) : CST.struct_type) =
   let v1 = token env v1 (* "struct" *) in
   let v2 = field_declaration_list env v2 in
-  todo env (v1, v2)
+  TStruct (v1, v2)
 
 and anon_choice_param_list (env : env) (x : CST.anon_choice_param_list) =
   (match x with
   | `Param_list x -> parameter_list env x
-  | `Simple_type x -> simple_type env x
+  | `Simple_type x -> [simple_type env x]
   )
 
-and simple_type (env : env) (x : CST.simple_type) =
+and simple_type (env : env) (x : CST.simple_type) : type_ =
   (match x with
   | `Id tok -> TName [identifier env tok] (* identifier *)
   | `Qual_type x -> TName (qualified_type env x)
@@ -740,18 +741,23 @@ and statement (env : env) (x : CST.statement) : stmt =
   | `If_stmt x -> if_statement env x
   | `For_stmt (v1, v2, v3) ->
       let v1 = token env v1 (* "for" *) in
-      let v2 =
+
+      let v3 = block env v3 in
+
         (match v2 with
         | Some x ->
             (match x with
-            | `Exp x -> expression env x
-            | `For_clause x -> for_clause env x
-            | `Range_clause x -> range_clause env x
+            | `Exp x ->
+                For (v1, (None, Some (expression env x), None), v3)
+            | `For_clause x ->
+                 For (v1, for_clause env x, v3)
+            | `Range_clause x ->
+                 let (a, b, c) = range_clause env x in
+                 Range (v1, a, b, c, v3)
             )
-        | None -> todo env ())
-      in
-      let v3 = block env v3 in
-      todo env (v1, v2, v3)
+        | None -> For (v1, (None, None, None), v3)
+      )
+
   | `Exp_switch_stmt (v1, v2, v3, v4, v5, v6) ->
       let v1 = token env v1 (* "switch" *) in
       let v2 =
