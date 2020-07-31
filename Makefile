@@ -68,7 +68,7 @@ clean:
 	$(MAKE) -C pfff clean
 	$(MAKE) -C ocaml-tree-sitter clean
 	$(MAKE) -C semgrep-core clean
-	$(MAKE) -C semgrep clean
+	$(MAKE) -C cli clean
 
 # Same as 'make clean' but may remove additional files, such as external
 # libraries installed locally.
