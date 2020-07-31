@@ -37,7 +37,6 @@ let _fake = G.fake
 let token = H.token
 let str = H.str
 
-
 (*****************************************************************************)
 (* Boilerplate converter *)
 (*****************************************************************************)
@@ -68,6 +67,11 @@ let combine_tokens_and_strings v1 _v2 _v3 =
 let raw_string_literal env tok =
   str env tok
 
+let expr1 xs =
+  match xs with
+  | [] -> raise Impossible
+  | [x] -> x
+  | _ -> failwith "expr1: was expecting just one expression"
 
 
 let identifier (env : env) (tok : CST.identifier) =
@@ -103,9 +107,6 @@ let anon_choice_EQ (env : env) (x : CST.anon_choice_EQ) =
   | `COLONEQ tok -> Right (token env tok) (* ":=" *)
   )
 
-
-
-
 let anon_choice_LF (env : env) (x : CST.anon_choice_LF) =
   (match x with
   | `LF tok -> token env tok (* "\n" *)
@@ -124,15 +125,15 @@ let empty_labeled_statement (env : env) ((v1, v2) : CST.empty_labeled_statement)
   v1, v2
 
 let field_name_list (env : env) ((v1, v2) : CST.field_name_list) =
-  let v1 = token env v1 (* identifier *) in
+  let v1 = identifier env v1 (* identifier *) in
   let v2 =
     List.map (fun (v1, v2) ->
-      let v1 = token env v1 (* "," *) in
-      let v2 = token env v2 (* identifier *) in
-      todo env (v1, v2)
+      let v1 = identifier env v1 (* "," *) in
+      let _v2 = token env v2 (* identifier *) in
+      v1
     ) v2
   in
-  todo env (v1, v2)
+  v1::v2
 
 let string_literal (env : env) (x : CST.string_literal) =
   (match x with
@@ -140,15 +141,15 @@ let string_literal (env : env) (x : CST.string_literal) =
   | `Inte_str_lit (v1, v2, v3) ->
       let v1 = token env v1 (* "\"" *) in
       let v2 =
-        List.map (fun x ->
+        Common.map_filter (fun x ->
           (match x with
-          | `Blank () -> todo env ()
-          | `Esc_seq tok -> escape_sequence env tok (* escape_sequence *)
+          | `Blank () -> None
+          | `Esc_seq tok -> Some (escape_sequence env tok) (* escape_sequence *)
           )
         ) v2
       in
       let v3 = token env v3 (* "\"" *) in
-      todo env (v1, v2, v3)
+      combine_tokens_and_strings v1 v2 v3
   )
 
 let import_spec (env : env) ((v1, v2) : CST.import_spec) =
@@ -156,14 +157,14 @@ let import_spec (env : env) ((v1, v2) : CST.import_spec) =
     (match v1 with
     | Some x ->
         (match x with
-        | `Dot tok -> token env tok (* "." *)
-        | `Blank_id tok -> token env tok (* "_" *)
-        | `Id tok -> token env tok (* identifier *)
+        | `Dot tok -> ImportDot (token env tok) (* "." *)
+        | `Blank_id tok -> ImportNamed (identifier env tok) (* "_" *)
+        | `Id tok -> ImportNamed (identifier env tok) (* identifier *)
         )
-    | None -> todo env ())
+    | None -> ImportOrig)
   in
   let v2 = string_literal env v2 in
-  todo env (v1, v2)
+  v1, v2
 
 let rec type_case (env : env) ((v1, v2, v3, v4, v5) : CST.type_case) =
   let v1 = token env v1 (* "case" *) in
@@ -190,36 +191,39 @@ and simple_statement (env : env) (x : CST.simple_statement) : simple =
   | `Inc_stmt (v1, v2) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "++" *) in
-      todo env (v1, v2)
+      IncDec (v1, (G.Incr, v2), G.Postfix)
   | `Dec_stmt (v1, v2) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "--" *) in
-      todo env (v1, v2)
+      IncDec (v1, (G.Decr, v2), G.Postfix)
   | `Assign_stmt (v1, v2, v3) ->
       let v1 = expression_list env v1 in
       let v2 =
         (match v2 with
-        | `STAREQ tok -> token env tok (* "*=" *)
-        | `SLASHEQ tok -> token env tok (* "/=" *)
-        | `PERCEQ tok -> token env tok (* "%=" *)
-        | `LTLTEQ tok -> token env tok (* "<<=" *)
-        | `GTGTEQ tok -> token env tok (* ">>=" *)
-        | `AMPEQ tok -> token env tok (* "&=" *)
-        | `AMPHATEQ tok -> token env tok (* "&^=" *)
-        | `PLUSEQ tok -> token env tok (* "+=" *)
-        | `DASHEQ tok -> token env tok (* "-=" *)
-        | `BAREQ tok -> token env tok (* "|=" *)
-        | `HATEQ tok -> token env tok (* "^=" *)
-        | `EQ tok -> token env tok (* "=" *)
+        | `STAREQ tok -> G.Mult, token env tok (* "*=" *)
+        | `SLASHEQ tok -> G.Div, token env tok (* "/=" *)
+        | `PERCEQ tok -> G.Mod, token env tok (* "%=" *)
+        | `LTLTEQ tok -> G.LSL, token env tok (* "<<=" *)
+        | `GTGTEQ tok -> G.LSR, token env tok (* ">>=" *)
+        | `AMPEQ tok -> G.BitAnd, token env tok (* "&=" *)
+        | `AMPHATEQ tok -> G.BitClear, token env tok (* "&^=" *)
+        | `PLUSEQ tok -> G.Plus, token env tok (* "+=" *)
+        | `DASHEQ tok -> G.Minus, token env tok (* "-=" *)
+        | `BAREQ tok -> G.BitOr, token env tok (* "|=" *)
+        | `HATEQ tok -> G.BitXor, token env tok (* "^=" *)
+        | `EQ tok -> G.Eq, token env tok (* "=" *)
         )
       in
       let v3 = expression_list env v3 in
-      todo env (v1, v2, v3)
+      (match v2 with
+      | G.Eq, t -> Assign (v1, t, v3)
+      | _ -> AssignOp (expr1 v1, v2, expr1 v3)
+      )
   | `Short_var_decl (v1, v2, v3) ->
       let v1 = expression_list env v1 in
       let v2 = token env v2 (* ":=" *) in
       let v3 = expression_list env v3 in
-      todo env (v1, v2, v3)
+      DShortVars (v1, v2, v3)
   )
 
 and anon_choice_exp (env : env) (x : CST.anon_choice_exp) =
