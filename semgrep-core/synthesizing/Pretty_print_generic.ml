@@ -133,11 +133,17 @@ and block env (t1, ss, t2) level =
    in
    let get_boundary t =
      let t_str = token "" t in
-       match t_str with "" -> "" | "{" -> "{\n" | "}" -> "\n} " | _ -> t_str
+       match t_str with "" -> "" | "{" -> "\n" ^ indent (level - 1) ^ "{\n"
+                      | "}" -> "\n" ^ indent (level - 1) ^ "}\n" | _ -> t_str
    in
      F.sprintf "%s%s%s" (get_boundary t1) (show_statements env ss) (get_boundary t2)
 
 and if_stmt env level (tok, e, s, sopt) =
+  let rec indent =
+  function
+    | 0 -> ""
+    | n -> "    " ^ (indent (n - 1))
+  in
   let no_paren_cond = F.sprintf "%s %s" in (* if cond *)
   let paren_cond = F.sprintf "%s (%s)" in (* if cond *)
   let colon_body = F.sprintf "%s:\n%s\n" in (* (if cond) body *)
@@ -156,16 +162,19 @@ and if_stmt env level (tok, e, s, sopt) =
   let if_stmt_prt = format_block e_str s_str in
         match sopt with
         | None -> if_stmt_prt
+        | Some (If (_, e', s', sopt')) ->
+                 F.sprintf "%s%s" if_stmt_prt (if_stmt env level (indent level ^ elseif_str, e', s', sopt'))
         | Some (Block(_, [If (_, e', s', sopt')], _)) ->
-                 F.sprintf "%s%s" if_stmt_prt (if_stmt env level (elseif_str, e', s', sopt'))
-        | Some (body) -> F.sprintf "%s%s" if_stmt_prt (format_block "else" (stmt env (level + 1) body))
+                 F.sprintf "%s%s" if_stmt_prt (if_stmt env level (indent level ^ elseif_str, e', s', sopt'))
+        | Some (body) ->
+                 F.sprintf "%s%s" if_stmt_prt (format_block ((indent level) ^ "else") (stmt env (level + 1) body))
 
 and while_stmt env level (tok, e, s) =
-   let ocaml_while = F.sprintf "%s %s do\n%s\ndone\n" in
-   let python_while = F.sprintf "%s %s:\n%s\n" in
-   let go_while = F.sprintf "%s %s %s\n" in
-   let c_while = F.sprintf "%s (%s) %s\n" in
-   let ruby_while = F.sprintf "%s %s\n %s\nend\n" in
+   let ocaml_while = F.sprintf "%s %s do\n%s\ndone" in
+   let python_while = F.sprintf "%s %s:\n%s" in
+   let go_while = F.sprintf "%s %s %s" in
+   let c_while = F.sprintf "%s (%s) %s" in
+   let ruby_while = F.sprintf "%s %s\n %s\nend" in
    let while_format =
       (match env.lang with
       | Lang.Python | Lang.Python2 | Lang.Python3 -> python_while
@@ -192,10 +201,10 @@ and do_while stmt env level (s, e) =
 and for_stmt env level (for_tok, hdr, s) =
    let for_format =
     (match env.lang with
-    | Lang.Java | Lang.C | Lang.Javascript | Lang.Typescript -> F.sprintf "%s (%s) %s\n"
-    | Lang.Go -> F.sprintf "%s %s %s\n"
-    | Lang.Python | Lang.Python2 | Lang.Python3 -> F.sprintf "%s %s:\n%s\n"
-    | Lang.Ruby -> F.sprintf "%s %s\ndo %s\nend\n"
+    | Lang.Java | Lang.C | Lang.Javascript | Lang.Typescript -> F.sprintf "%s (%s) %s"
+    | Lang.Go -> F.sprintf "%s %s %s"
+    | Lang.Python | Lang.Python2 | Lang.Python3 -> F.sprintf "%s %s:\n%s"
+    | Lang.Ruby -> F.sprintf "%s %s\ndo %s\nend"
     | Lang.JSON | Lang.OCaml -> failwith "JSON/OCaml has for loops????"
     )
    in
