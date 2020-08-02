@@ -116,6 +116,7 @@ function
   | DoWhile (_tok, s, e) -> do_while stmt env level (s, e)
   | For (tok, hdr, s) -> for_stmt env level (tok, hdr, s)
   | Return (tok, eopt) -> return env (tok, eopt)
+  | DefStmt (def) -> def_stmt env def
   | x -> todo (S x)
 
 and block env (t1, ss, t2) level =
@@ -219,6 +220,37 @@ and for_stmt env level (for_tok, hdr, s) =
    let body_str = stmt env (level + 1) s in
    for_format (token "for" for_tok) hdr_str body_str
 
+and def_stmt env (entity, def_kind) =
+  let var_def (ent, def) =
+    let (no_val, with_val) =
+      (match env.lang with
+       | Lang.Java | Lang.C -> (fun typ id _e -> F.sprintf "%s %s;" typ id),
+                               (fun typ id e -> F.sprintf "%s %s = %s;" typ id e)
+       | Lang.Javascript | Lang.Typescript -> (fun _typ id _e -> F.sprintf "var %s;" id),
+                                              (fun _typ id e -> F.sprintf "var %s = %s;" id e)
+       | Lang.Go -> (fun typ id _e -> F.sprintf "var %s %s" id typ),
+                    (fun typ id e -> F.sprintf "var %s %s = %s" id typ e) (* will have extra space if no type *)
+       | Lang.Python | Lang.Python2 | Lang.Python3
+       | Lang.Ruby -> (fun _typ id _e -> F.sprintf "%s" id),
+                      (fun _typ id e -> F.sprintf "%s = %s" id e)
+       | Lang.JSON | Lang.OCaml -> failwith "I think JSON/OCaml have no variable definitions"
+      )
+    in
+    let (typ, id) =
+    let {id_type; _} = ent.info in
+        match !id_type with
+        | None -> "", ident ent.name
+        | Some t -> print_type t, ident ent.name
+    in
+    match def.vinit with
+    | None -> no_val typ id ""
+    | Some e -> with_val typ id (expr env e)
+  in
+  match def_kind with
+  | VarDef def -> var_def (entity, def)
+  | _ -> todo (S (DefStmt(entity, def_kind)))
+
+
 and return env (tok, eopt) =
   let to_return =
   match eopt with
@@ -242,7 +274,8 @@ function
   | L x -> literal env x
   | Tuple es -> F.sprintf "(%s)" (tuple env es)
   | ArrayAccess (e1, e2) -> F.sprintf "%s[%s]" (expr env e1) (expr env e2)
-  | Assign (e1, _tok, e2) -> F.sprintf "%s = %s" (expr env e1) (expr env e2)
+  | Assign (e1, tok, e2) -> F.sprintf "%s %s %s" (expr env e1) (token "=" tok) (expr env e2)
+  | AssignOp (e1, op, e2) -> F.sprintf "%s %s= %s" (expr env e1) (arithop env op) (expr env e2)
   | SliceAccess (e, o1, o2, o3) -> slice_access env e (o1, o2) o3
   | DotAccess (e, tok, fi) -> dot_access env (e, tok, fi)
   | Ellipsis _ -> "..."
@@ -270,6 +303,7 @@ and id_qualified env ((id, {name_qualifier; _}), _idinfo) =
 and special env = function
   | (Op op, tok) -> arithop env (op, tok)
   | (New, _) -> "new"
+  | (IncrDecr _, _) -> "" (* should be captured in the call *)
   | (sp, tok) -> todo (E (IdSpecial (sp, tok)))
 
 and call env (e, (_, es, _)) =
