@@ -60,9 +60,6 @@ let rev = false
 
 let blank (env : env) () = ()
 
-let todo (env : env) _ =
-   failwith "not implemented"
-
 let combine_tokens_and_strings v1 _v2 _v3 =
   "TODO", v1
 
@@ -298,19 +295,20 @@ and binary_expression (env : env) (x : CST.binary_expression) =
       Binary (v1, (G.Or, v2), v3)
   )
 
-and anon_choice_type_id (env : env) (x : CST.anon_choice_type_id) =
+and anon_choice_type_id (env : env) (x : CST.anon_choice_type_id)
+ : interface_field =
   (match x with
-  | `Id tok -> TName ([identifier env tok]) (* identifier *)
-  | `Qual_type x -> TName (qualified_type env x)
+  | `Id tok -> EmbeddedInterface [identifier env tok] (* identifier *)
+  | `Qual_type x -> EmbeddedInterface (qualified_type env x)
   | `Meth_spec (v1, v2, v3) ->
-      let v1 = token env v1 (* identifier *) in
+      let v1 = identifier env v1 (* identifier *) in
       let v2 = parameter_list env v2 in
       let v3 =
         (match v3 with
         | Some x -> anon_choice_param_list env x
         | None -> [])
       in
-      todo env (v1, v2, v3)
+      Method (v1, {fparams = v2; fresults = v3})
   )
 
 and block (env : env) ((v1, v2, v3) : CST.block) =
@@ -454,8 +452,7 @@ and method_spec_list (env : env) ((v1, v2, v3) : CST.method_spec_list) =
           | Some x -> Some (anon_choice_LF env x)
           | None -> None)
         in
-        (* v1::v2 *)
-        todo env ()
+        v1::v2
     | None -> [])
   in
   let v3 = token env v3 (* "}" *) in
@@ -999,7 +996,8 @@ and anon_choice_elem (env : env) (x : CST.anon_choice_elem) =
         (* ??? *)
         | `Id_COLON x ->
               let _ = empty_labeled_statement env x in
-              todo env ()
+              (* TODO *)
+              InitBraces (AST_generic.fake_bracket [])
         )
       in
       v1
@@ -1334,5 +1332,5 @@ let parse file =
     Parallel.invoke Tree_sitter_go.Parse.file file ()
   in
   let env = { H.file; conv = H.line_col_to_pos file } in
-  let _x = source_file env ast in
-  raise Todo
+  let x = source_file env ast in
+  x
