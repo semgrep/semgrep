@@ -161,7 +161,6 @@ def test_timeout(run_semgrep_in_tmp, snapshot):
             options=["--timeout", "1"],
             target_name="equivalence",
             strict=False,
-
         ),
         "results.json",
     )
@@ -184,18 +183,17 @@ def test_max_memory(run_semgrep_in_tmp, snapshot):
 
     snapshot.assert_match(
         run_semgrep_in_tmp(
-            "rules/inside.yaml",
+            "rules/long.yaml",
             options=["--max-memory", "1"],
             target_name="equivalence",
             strict=False,
-
         ),
         "results.json",
     )
 
     snapshot.assert_match(
         run_semgrep_in_tmp(
-            "rules/inside.yaml",
+            "rules/long.yaml",
             output_format="normal",
             options=["--max-memory", "1"],
             target_name="equivalence",
