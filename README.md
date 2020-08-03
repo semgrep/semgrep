@@ -44,7 +44,7 @@ Semgrep tl;dr:
 - A simple, customizable, and fast static analysis tool for finding bugs
 - Combines the speed and customization of `grep` with the precision of traditional static analysis tools
 - No painful domain-specific language; Semgrep rules look like the source code you’re targeting
-- Batteries included with hundreds of existing community rules for OWASP 10 issues and common mistakes
+- Batteries included with hundreds of existing community rules for OWASP Top 10 issues and common mistakes
 - Run it in CI, at pre-commit, or in the editor
 - Runs offline on uncompiled code
 
