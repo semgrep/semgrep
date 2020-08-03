@@ -50,16 +50,6 @@ let rev = false
    to another type of tree.
 *)
 
-(* Disable warnings against unused variables *)
-[@@@warning "-26-27"]
-
-(* Disable warning against unused 'rec' *)
-[@@@warning "-39"]
-
-[@@@warning "-32"]
-
-let blank (env : env) () = ()
-
 let combine_tokens_and_strings v1 _v2 _v3 =
   "TODO", v1
 
@@ -520,7 +510,7 @@ and call_expression (env : env) (x : CST.call_expression) =
 
 and default_case (env : env) ((v1, v2, v3) : CST.default_case) : case_clause =
   let v1 = token env v1 (* "default" *) in
-  let v2 = token env v2 (* ":" *) in
+  let _v2 = token env v2 (* ":" *) in
   let v3 =
     (match v3 with
     | Some x -> statement_list env x
@@ -585,7 +575,7 @@ and expression (env : env) (x : CST.expression) : expr =
               | Some x -> Some (expression env x)
               | None -> None)
             in
-            let v2 = token env v2 (* ":" *) in
+            let _v2 = token env v2 (* ":" *) in
             let v3 =
               (match v3 with
               | Some x -> Some (expression env x)
@@ -617,7 +607,7 @@ and expression (env : env) (x : CST.expression) : expr =
       let v1 = type_ env v1 in
       let _v2 = token env v2 (* "(" *) in
       let v3 = expression env v3 in
-      let v4 =
+      let _v4 =
         (match v4 with
         | Some tok -> Some (token env tok (* "," *))
         | None -> None)
@@ -642,7 +632,7 @@ and expression (env : env) (x : CST.expression) : expr =
       let v2 = literal_value env v2 in
       CompositeLit (v1, v2)
   | `Func_lit (v1, v2, v3, v4) ->
-      let v1 = token env v1 (* "func" *) in
+      let _v1 = token env v1 (* "func" *) in
       let v2 = parameter_list env v2 in
       let v3 =
         (match v3 with
@@ -793,7 +783,7 @@ and statement (env : env) (x : CST.statement) : stmt =
   | `Type_switch_stmt (v1, v2, v3, v4, v5) ->
       let v1 = token env v1 (* "switch" *) in
       let v2 = type_switch_header env v2 in
-      let v3 = token env v3 (* "{" *) in
+      let _v3 = token env v3 (* "{" *) in
       let v4 =
         List.map (fun x ->
           (match x with
@@ -911,7 +901,7 @@ and implicit_length_array_type (env : env) ((v1, v2, v3, v4) : CST.implicit_leng
 and expression_case (env : env) ((v1, v2, v3, v4) : CST.expression_case) =
   let v1 = token env v1 (* "case" *) in
   let v2 = expression_list env v2 in
-  let v3 = token env v3 (* ":" *) in
+  let _v3 = token env v3 (* ":" *) in
   let v4 =
     (match v4 with
     | Some x -> statement_list env x
@@ -1016,14 +1006,14 @@ and channel_type (env : env) (x : CST.channel_type) =
       TChan (v1, TBidirectional, v2)
   | `Chan_LTDASH_choice_simple_type (v1, v2, v3) ->
       let v1 = token env v1 (* "chan" *) in
-      let v2 = token env v2 (* "<-" *) in
+      let _v2 = token env v2 (* "<-" *) in
       let v3 = type_ env v3 in
       TChan (v1, TRecv, v3)
   | `LTDASH_chan_choice_simple_type (v1, v2, v3) ->
-      let v1 = token env v1 (* "<-" *) in
+      let _v1 = token env v1 (* "<-" *) in
       let v2 = token env v2 (* "chan" *) in
       let v3 = type_ env v3 in
-      TChan (v1, TSend, v3)
+      TChan (v2, TSend, v3)
   )
 
 and parameter_list (env : env) ((v1, v2, v3) : CST.parameter_list)
@@ -1270,7 +1260,7 @@ let top_level_declaration (env : env) (x : CST.top_level_declaration)
       in
       [DFunc (v2, ({ fparams = v3; fresults = v4 }, v5))]
   | `Meth_decl (v1, v2, v3, v4, v5, v6) ->
-      let v1 = token env v1 (* "func" *) in
+      let _v1 = token env v1 (* "func" *) in
       let v2 = parameter_list env v2 in
       let v3 = identifier env v3 (* identifier *) in
       let v4 = parameter_list env v4 in
