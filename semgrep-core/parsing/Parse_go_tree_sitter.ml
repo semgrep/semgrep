@@ -1014,22 +1014,22 @@ and channel_type (env : env) (x : CST.channel_type) =
   | `Chan_choice_simple_type (v1, v2) ->
       let v1 = token env v1 (* "chan" *) in
       let v2 = type_ env v2 in
-      todo env (v1, v2)
+      TChan (v1, TBidirectional, v2)
   | `Chan_LTDASH_choice_simple_type (v1, v2, v3) ->
       let v1 = token env v1 (* "chan" *) in
       let v2 = token env v2 (* "<-" *) in
       let v3 = type_ env v3 in
-      todo env (v1, v2, v3)
+      TChan (v1, TRecv, v3)
   | `LTDASH_chan_choice_simple_type (v1, v2, v3) ->
       let v1 = token env v1 (* "<-" *) in
       let v2 = token env v2 (* "chan" *) in
       let v3 = type_ env v3 in
-      todo env (v1, v2, v3)
+      TChan (v1, TSend, v3)
   )
 
 and parameter_list (env : env) ((v1, v2, v3) : CST.parameter_list)
  : parameter_binding list =
-  let v1 = token env v1 (* "(" *) in
+  let _v1 = token env v1 (* "(" *) in
   let v2 =
     (match v2 with
     | Some (v1, v2) ->
@@ -1039,24 +1039,24 @@ and parameter_list (env : env) ((v1, v2, v3) : CST.parameter_list)
               let v1 = anon_choice_param_decl env v1 in
               let v2 =
                 List.map (fun (v1, v2) ->
-                  let v1 = token env v1 (* "," *) in
+                  let _v1 = token env v1 (* "," *) in
                   let v2 = anon_choice_param_decl env v2 in
-                  todo env (v1, v2)
+                  v2
                 ) v2
               in
-              todo env (v1, v2)
-          | None -> todo env ())
+              v1 @ List.flatten v2
+          | None -> [])
         in
-        let v2 =
+        let _v2 =
           (match v2 with
-          | Some tok -> token env tok (* "," *)
-          | None -> todo env ())
+          | Some tok -> Some (token env tok) (* "," *)
+          | None -> None)
         in
-        todo env (v1, v2)
-    | None -> todo env ())
+        v1
+    | None -> [])
   in
-  let v3 = token env v3 (* ")" *) in
-  todo env (v1, v2, v3)
+  let _v3 = token env v3 (* ")" *) in
+  v2
 
 and element (env : env) (x : CST.element) : init =
   (match x with
@@ -1068,9 +1068,9 @@ and var_spec (env : env) ((v1, v2, v3) : CST.var_spec) =
   let v1 = token env v1 (* identifier *) in
   let v2 =
     List.map (fun (v1, v2) ->
-      let v1 = token env v1 (* "," *) in
+      let _v1 = token env v1 (* "," *) in
       let v2 = token env v2 (* identifier *) in
-      todo env (v1, v2)
+      v2
     ) v2
   in
   let v3 =
@@ -1080,49 +1080,50 @@ and var_spec (env : env) ((v1, v2, v3) : CST.var_spec) =
         let v2 =
           (match v2 with
           | Some (v1, v2) ->
-              let v1 = token env v1 (* "=" *) in
+              let _v1 = token env v1 (* "=" *) in
               let v2 = expression_list env v2 in
-              todo env (v1, v2)
-          | None -> todo env ())
+              Some v2
+          | None -> None)
         in
-        todo env (v1, v2)
+        Some v1, v2
     | `EQ_exp_list (v1, v2) ->
-        let v1 = token env v1 (* "=" *) in
+        let _v1 = token env v1 (* "=" *) in
         let v2 = expression_list env v2 in
-        todo env (v1, v2)
+        None, Some v2
     )
   in
+  (* mk_vars_or_consts *)
   todo env (v1, v2, v3)
 
 and declaration (env : env) (x : CST.declaration) =
   (match x with
   | `Const_decl (v1, v2) ->
-      let v1 = token env v1 (* "const" *) in
+      let _v1 = token env v1 (* "const" *) in
       let v2 =
         (match v2 with
         | `Const_spec x -> const_spec env x
         | `LPAR_rep_const_spec_choice_LF_RPAR (v1, v2, v3) ->
-            let v1 = token env v1 (* "(" *) in
+            let _v1 = token env v1 (* "(" *) in
             let v2 =
               List.map (fun (v1, v2) ->
                 let v1 = const_spec env v1 in
-                let v2 = anon_choice_LF env v2 in
-                todo env (v1, v2)
+                let _v2 = anon_choice_LF env v2 in
+                v1
               ) v2
             in
-            let v3 = token env v3 (* ")" *) in
-            todo env (v1, v2, v3)
+            let _v3 = token env v3 (* ")" *) in
+            List.flatten v2
         )
       in
-      todo env (v1, v2)
+      v2
   | `Type_decl (v1, v2) ->
-      let v1 = token env v1 (* "type" *) in
+      let _v1 = token env v1 (* "type" *) in
       let v2 =
         (match v2 with
-        | `Type_spec x -> type_spec env x
-        | `Type_alias x -> type_alias env x
+        | `Type_spec x -> [type_spec env x]
+        | `Type_alias x -> [type_alias env x]
         | `LPAR_rep_choice_type_spec_choice_LF_RPAR (v1, v2, v3) ->
-            let v1 = token env v1 (* "(" *) in
+            let _v1 = token env v1 (* "(" *) in
             let v2 =
               List.map (fun (v1, v2) ->
                 let v1 =
@@ -1131,31 +1132,31 @@ and declaration (env : env) (x : CST.declaration) =
                   | `Type_alias x -> type_alias env x
                   )
                 in
-                let v2 = anon_choice_LF env v2 in
-                todo env (v1, v2)
+                let _v2 = anon_choice_LF env v2 in
+                v1
               ) v2
             in
-            let v3 = token env v3 (* ")" *) in
-            todo env (v1, v2, v3)
+            let _v3 = token env v3 (* ")" *) in
+            v2
         )
       in
       todo env (v1, v2)
   | `Var_decl (v1, v2) ->
-      let v1 = token env v1 (* "var" *) in
+      let _v1 = token env v1 (* "var" *) in
       let v2 =
         (match v2 with
         | `Var_spec x -> var_spec env x
         | `LPAR_rep_var_spec_choice_LF_RPAR (v1, v2, v3) ->
-            let v1 = token env v1 (* "(" *) in
+            let _v1 = token env v1 (* "(" *) in
             let v2 =
               List.map (fun (v1, v2) ->
                 let v1 = var_spec env v1 in
-                let v2 = anon_choice_LF env v2 in
-                todo env (v1, v2)
+                let _v2 = anon_choice_LF env v2 in
+                v1
               ) v2
             in
-            let v3 = token env v3 (* ")" *) in
-            todo env (v1, v2, v3)
+            let _v3 = token env v3 (* ")" *) in
+            List.flatten v2
         )
       in
       todo env (v1, v2)
@@ -1167,24 +1168,24 @@ and statement_list (env : env) (x : CST.statement_list) : stmt list =
       let v1 = statement env v1 in
       let v2 =
         List.map (fun (v1, v2) ->
-          let v1 = anon_choice_LF env v1 in
+          let _v1 = anon_choice_LF env v1 in
           let v2 = statement env v2 in
-          todo env (v1, v2)
+          v2
         ) v2
       in
       let v3 =
         (match v3 with
         | Some (v1, v2) ->
-            let v1 = anon_choice_LF env v1 in
+            let _v1 = anon_choice_LF env v1 in
             let v2 =
               (match v2 with
-              | Some x -> empty_labeled_statement env x
-              | None -> todo env ())
+              | Some x -> [empty_labeled_statement env x]
+              | None -> [])
             in
-            todo env (v1, v2)
-        | None -> todo env ())
+            v2
+        | None -> [])
       in
-      todo env (v1, v2, v3)
+      v1 :: (v2 @ v3)
   | `Empty_labe_stmt x -> [empty_labeled_statement env x]
   )
 
@@ -1222,99 +1223,108 @@ and literal_value (env : env) ((v1, v2, v3) : CST.literal_value)
         let v1 = anon_choice_elem env v1 in
         let v2 =
           List.map (fun (v1, v2) ->
-            let v1 = token env v1 (* "," *) in
+            let _v1 = token env v1 (* "," *) in
             let v2 = anon_choice_elem env v2 in
-            todo env (v1, v2)
+            v2
           ) v2
         in
-        let v3 =
+        let _v3 =
           (match v3 with
-          | Some tok -> token env tok (* "," *)
-          | None -> todo env ())
+          | Some tok -> Some (token env tok) (* "," *)
+          | None -> None)
         in
-        todo env (v1, v2, v3)
-    | None -> todo env ())
+        v1::v2
+    | None -> [])
   in
   let v3 = token env v3 (* "}" *) in
-  todo env (v1, v2, v3)
+  v1, v2, v3
 
 let import_spec_list (env : env) ((v1, v2, v3) : CST.import_spec_list) =
-  let v1 = token env v1 (* "(" *) in
+  let _v1 = token env v1 (* "(" *) in
   let v2 =
     List.map (fun (v1, v2) ->
       let v1 = import_spec env v1 in
-      let v2 = anon_choice_LF env v2 in
-      todo env (v1, v2)
+      let _v2 = anon_choice_LF env v2 in
+      v1
     ) v2
   in
-  let v3 = token env v3 (* ")" *) in
-  todo env (v1, v2, v3)
+  let _v3 = token env v3 (* ")" *) in
+  v2
 
-let top_level_declaration (env : env) (x : CST.top_level_declaration) =
+let top_level_declaration (env : env) (x : CST.top_level_declaration)
+ : top_decl list =
   (match x with
   | `Pack_clause (v1, v2) ->
       let v1 = token env v1 (* "package" *) in
-      let v2 = token env v2 (* identifier *) in
-      todo env (v1, v2)
+      let v2 = identifier env v2 (* identifier *) in
+      [Package (v1, v2)]
   | `Func_decl (v1, v2, v3, v4, v5) ->
-      let v1 = token env v1 (* "func" *) in
-      let v2 = token env v2 (* identifier *) in
+      let _v1 = token env v1 (* "func" *) in
+      let v2 = identifier env v2 (* identifier *) in
       let v3 = parameter_list env v3 in
       let v4 =
         (match v4 with
         | Some x -> anon_choice_param_list env x
-        | None -> todo env ())
+        | None -> [])
       in
       let v5 =
         (match v5 with
         | Some x -> block env x
-        | None -> todo env ())
+        | None -> Empty)
       in
-      todo env (v1, v2, v3, v4, v5)
+      [DFunc (v2, ({ fparams = v3; fresults = v4 }, v5))]
   | `Meth_decl (v1, v2, v3, v4, v5, v6) ->
       let v1 = token env v1 (* "func" *) in
       let v2 = parameter_list env v2 in
-      let v3 = token env v3 (* identifier *) in
+      let v3 = identifier env v3 (* identifier *) in
       let v4 = parameter_list env v4 in
       let v5 =
         (match v5 with
         | Some x -> anon_choice_param_list env x
-        | None -> todo env ())
+        | None -> [])
       in
       let v6 =
         (match v6 with
         | Some x -> block env x
-        | None -> todo env ())
+        | None -> Empty)
       in
-      todo env (v1, v2, v3, v4, v5, v6)
+      let receiver =
+         match v2 with
+         | [] -> raise Impossible
+         | [ParamClassic x] -> x
+         | _ -> failwith "expected one receiver"
+      in
+      [DMethod (v3, receiver, ({fparams = v4; fresults = v5}, v6))]
   | `Import_decl (v1, v2) ->
       let v1 = token env v1 (* "import" *) in
       let v2 =
         (match v2 with
-        | `Import_spec x -> import_spec env x
+        | `Import_spec x -> [import_spec env x]
         | `Import_spec_list x -> import_spec_list env x
         )
       in
-      todo env (v1, v2)
+      v2 |> List.map (fun (a, b) ->
+        Import ({i_tok = v1; i_path = b; i_kind = a})
+      )
   )
 
-let source_file (env : env) (xs : CST.source_file) =
+let source_file (env : env) (xs : CST.source_file) : program =
   List.map (fun x ->
     (match x with
     | `Stmt_choice_LF (v1, v2) ->
         let v1 = statement env v1 in
-        let v2 = anon_choice_LF env v2 in
-        todo env (v1, v2)
+        let _v2 = anon_choice_LF env v2 in
+        [STop v1]
     | `Choice_pack_clause_opt_choice_LF (v1, v2) ->
         let v1 = top_level_declaration env v1 in
-        let v2 =
+        let _v2 =
           (match v2 with
-          | Some x -> anon_choice_LF env x
-          | None -> todo env ())
+          | Some x -> Some (anon_choice_LF env x)
+          | None -> None)
         in
-        todo env (v1, v2)
+        v1
     )
-  ) xs
+  ) xs |> List.flatten
 
 (*****************************************************************************)
 (* Entry point *)
