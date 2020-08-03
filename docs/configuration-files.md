@@ -233,7 +233,7 @@ See the [`patterns`](configuration-files.md#patterns) example above.
 
 ### `pattern-inside`
 
-The `pattern-inside` operator keeps matched findings that reside within its expression. This is useful for finding code inside other pieces of code like functions or if blocks. At the moment, your rule can have at most one pattern-inside clause.
+The `pattern-inside` operator keeps matched findings that reside within its expression. This is useful for finding code inside other pieces of code like functions or if blocks.
 
 **Example**
 
