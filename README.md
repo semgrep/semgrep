@@ -50,9 +50,14 @@ Semgrep tl;dr:
 
 Semgrep supports:
 
-| **Python** | **Java** | **Go** | **JavaScript** | **Ruby** | **TypeScript** | **C** |
-| :--------- | :------- | :----- | :------------- | :------- | :------------- | :---- |
-| ✅         | ✅       | ✅     | ✅             | 🚧       | 🚧             | 🚧    |
+- C (beta)
+- Go
+- Java
+- JavaScript
+- JSON
+- OCaml
+- Python
+- Ruby (beta)
 
 Semgrep is proudly supported by r2c. Learn more about a hosted version of Semgrep with an enterprise feature set at [r2c.dev](https://r2c.dev/).
 
