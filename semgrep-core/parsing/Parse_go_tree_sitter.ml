@@ -441,17 +441,18 @@ and method_spec_list (env : env) ((v1, v2, v3) : CST.method_spec_list) =
         let v1 = anon_choice_type_id env v1 in
         let v2 =
           List.map (fun (v1, v2) ->
-            let v1 = anon_choice_LF env v1 in
+            let _v1 = anon_choice_LF env v1 in
             let v2 = anon_choice_type_id env v2 in
-            todo env (v1, v2)
+            v2
           ) v2
         in
-        let v3 =
+        let _v3 =
           (match v3 with
-          | Some x -> anon_choice_LF env x
-          | None -> todo env ())
+          | Some x -> Some (anon_choice_LF env x)
+          | None -> None)
         in
-        todo env (v1, v2, v3)
+        (* v1::v2 *)
+        todo env ()
     | None -> [])
   in
   let v3 = token env v3 (* "}" *) in
@@ -953,12 +954,12 @@ and type_ (env : env) (x : CST.type_) =
   )
 
 and const_spec (env : env) ((v1, v2, v3) : CST.const_spec) =
-  let v1 = token env v1 (* identifier *) in
+  let v1 = identifier env v1 (* identifier *) in
   let v2 =
     List.map (fun (v1, v2) ->
-      let v1 = token env v1 (* "," *) in
-      let v2 = token env v2 (* identifier *) in
-      todo env (v1, v2)
+      let _v1 = token env v1 (* "," *) in
+      let v2 = identifier env v2 (* identifier *) in
+      v2
     ) v2
   in
   let v3 =
@@ -966,41 +967,47 @@ and const_spec (env : env) ((v1, v2, v3) : CST.const_spec) =
     | Some (v1, v2, v3) ->
         let v1 =
           (match v1 with
-          | Some x -> type_ env x
-          | None -> todo env ())
+          | Some x -> Some (type_ env x)
+          | None -> None)
         in
-        let v2 = token env v2 (* "=" *) in
+        let _v2 = token env v2 (* "=" *) in
         let v3 = expression_list env v3 in
-        todo env (v1, v2, v3)
-    | None -> todo env ())
+        Some (v1, v3)
+    | None -> None)
   in
+  (* mk_vars_or_consts *)
   todo env (v1, v2, v3)
 
 and anon_choice_elem (env : env) (x : CST.anon_choice_elem) =
   (match x with
   | `Elem x -> element env x
   | `Keyed_elem (v1, v2) ->
+
+      let v2top = element env v2 in
+
       let v1 =
         (match v1 with
         | `Exp_COLON (v1, v2) ->
             let v1 = expression env v1 in
             let v2 = token env v2 (* ":" *) in
-            todo env (v1, v2)
+            InitKeyValue (InitExpr v1, v2, v2top)
         | `Lit_value_COLON (v1, v2) ->
             let v1 = literal_value env v1 in
             let v2 = token env v2 (* ":" *) in
-            todo env (v1, v2)
-        | `Id_COLON x -> empty_labeled_statement env x
+            InitKeyValue (InitBraces v1, v2, v2top)
+        (* ??? *)
+        | `Id_COLON x ->
+              let _ = empty_labeled_statement env x in
+              todo env ()
         )
       in
-      let v2 = element env v2 in
-      todo env (v1, v2)
+      v1
   )
 
 and type_spec (env : env) ((v1, v2) : CST.type_spec) =
-  let v1 = token env v1 (* identifier *) in
+  let v1 = identifier env v1 (* identifier *) in
   let v2 = type_ env v2 in
-  todo env (v1, v2)
+  DTypeDef (v1, v2)
 
 and channel_type (env : env) (x : CST.channel_type) =
   (match x with
@@ -1051,7 +1058,7 @@ and parameter_list (env : env) ((v1, v2, v3) : CST.parameter_list)
   let v3 = token env v3 (* ")" *) in
   todo env (v1, v2, v3)
 
-and element (env : env) (x : CST.element) =
+and element (env : env) (x : CST.element) : init =
   (match x with
   | `Exp x -> InitExpr (expression env x)
   | `Lit_value x -> InitBraces (literal_value env x)
