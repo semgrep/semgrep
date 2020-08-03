@@ -37,6 +37,9 @@ let _fake = G.fake
 let token = H.token
 let str = H.str
 
+(* for Ast_go.mk_vars_or_consts *)
+let rev = false
+
 (*****************************************************************************)
 (* Boilerplate converter *)
 (*****************************************************************************)
@@ -962,7 +965,7 @@ and const_spec (env : env) ((v1, v2, v3) : CST.const_spec) =
       v2
     ) v2
   in
-  let v3 =
+  let xs = v1::v2 in
     (match v3 with
     | Some (v1, v2, v3) ->
         let v1 =
@@ -972,11 +975,9 @@ and const_spec (env : env) ((v1, v2, v3) : CST.const_spec) =
         in
         let _v2 = token env v2 (* "=" *) in
         let v3 = expression_list env v3 in
-        Some (v1, v3)
-    | None -> None)
-  in
-  (* mk_vars_or_consts *)
-  todo env (v1, v2, v3)
+        mk_consts ~rev xs v1 (Some v3)
+    | None -> mk_consts ~rev xs None None
+   )
 
 and anon_choice_elem (env : env) (x : CST.anon_choice_elem) =
   (match x with
@@ -1065,15 +1066,15 @@ and element (env : env) (x : CST.element) : init =
   )
 
 and var_spec (env : env) ((v1, v2, v3) : CST.var_spec) =
-  let v1 = token env v1 (* identifier *) in
+  let v1 = identifier env v1 (* identifier *) in
   let v2 =
     List.map (fun (v1, v2) ->
       let _v1 = token env v1 (* "," *) in
-      let v2 = token env v2 (* identifier *) in
+      let v2 = identifier env v2 (* identifier *) in
       v2
     ) v2
   in
-  let v3 =
+  let xs = v1::v2 in
     (match v3 with
     | `Choice_simple_type_opt_EQ_exp_list (v1, v2) ->
         let v1 = type_ env v1 in
@@ -1085,15 +1086,12 @@ and var_spec (env : env) ((v1, v2, v3) : CST.var_spec) =
               Some v2
           | None -> None)
         in
-        Some v1, v2
+        mk_vars ~rev xs (Some v1) v2
     | `EQ_exp_list (v1, v2) ->
         let _v1 = token env v1 (* "=" *) in
         let v2 = expression_list env v2 in
-        None, Some v2
+        mk_vars ~rev xs None (Some v2)
     )
-  in
-  (* mk_vars_or_consts *)
-  todo env (v1, v2, v3)
 
 and declaration (env : env) (x : CST.declaration) =
   (match x with
@@ -1140,7 +1138,7 @@ and declaration (env : env) (x : CST.declaration) =
             v2
         )
       in
-      todo env (v1, v2)
+      v2
   | `Var_decl (v1, v2) ->
       let _v1 = token env v1 (* "var" *) in
       let v2 =
@@ -1159,7 +1157,7 @@ and declaration (env : env) (x : CST.declaration) =
             List.flatten v2
         )
       in
-      todo env (v1, v2)
+      v2
   )
 
 and statement_list (env : env) (x : CST.statement_list) : stmt list =
