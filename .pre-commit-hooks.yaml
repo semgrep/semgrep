@@ -1,4 +1,4 @@
-- id: semgrep-develop
+- id: semgrep-docker-develop
   name: semgrep
   description: This hook runs semgrep:develop
   language: docker_image
@@ -14,6 +14,3 @@
   name: semgrep
   entry: semgrep
   language: python
-  args: []
-  require_serial: false
-  additional_dependencies: []
