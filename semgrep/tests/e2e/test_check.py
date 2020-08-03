@@ -4,6 +4,8 @@ from subprocess import CalledProcessError
 
 import pytest
 
+from semgrep import __VERSION__
+
 
 def test_basic_rule__local(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(run_semgrep_in_tmp("rules/eqeq.yaml"), "results.json")
@@ -51,6 +53,11 @@ def test_sarif_output(run_semgrep_in_tmp, snapshot):
     sarif_output["runs"][0]["tool"]["driver"]["rules"] = sorted(
         sarif_output["runs"][0]["tool"]["driver"]["rules"], key=lambda rule: rule["id"]
     )
+
+    # Semgrep version is included in sarif output. Verify this independently so
+    # snapshot does not need to be updated on version bump
+    assert sarif_output["runs"][0]["tool"]["driver"]["semanticVersion"] == __VERSION__
+    sarif_output["runs"][0]["tool"]["driver"]["semanticVersion"] = "placeholder"
 
     snapshot.assert_match(
         json.dumps(sarif_output, indent=2, sort_keys=True), "results.sarif"
