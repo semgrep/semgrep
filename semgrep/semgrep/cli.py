@@ -139,6 +139,15 @@ def cli() -> None:
         ),
     )
 
+    config.add_argument(
+        "--max-memory",
+        type=int,
+        default=0,
+        help=(
+            "Maximum memory to use running a rule on a single file in MB. If set to 0 will not have memory limit. Defaults to 0."
+        ),
+    )
+
     # output options
     output = parser.add_argument_group("output")
 
@@ -344,4 +353,5 @@ def cli() -> None:
                 dangerously_allow_arbitrary_code_execution_from_rules=args.dangerously_allow_arbitrary_code_execution_from_rules,
                 no_git_ignore=args.no_git_ignore,
                 timeout=args.timeout,
+                max_memory=args.max_memory,
             )
