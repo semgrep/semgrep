@@ -126,7 +126,7 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
           repository: returntocorp/semgrep
-          tags: ${{ steps.get_version.outputs.VERSION }}
+          tags: ${{ steps.get_version.outputs.VERSION }}, latest
       - name: update semgrep.dev
         run: curl --fail -X POST https://semgrep.dev/api/admin/update-docker
 
