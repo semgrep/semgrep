@@ -100,12 +100,6 @@ def install_semgrep_core(url: str) -> None:
         sys.exit(1)
 
 
-def download_benchmarks(url: str, output: str) -> None:
-    tempdir = download_artifact(url)
-    assert os.path.exists(tempdir)
-    _mergedir(Path(tempdir), Path(output))
-
-
 def _mergedir(src: Path, target: Path) -> None:
     if target.is_dir():
         for path in os.listdir(src):
@@ -143,18 +137,6 @@ if __name__ == "__main__":
             f"Could not find a semgrep-core asset on any of {branches}", file=sys.stderr
         )
         sys.exit(1)
-    elif os.environ.get("BENCHMARK"):
-        branch = os.environ["BRANCH"]
-        workflow = os.environ.get("WORKFLOW", "Incorporate Benchmark Data")
-        output = os.environ.get("OUT_DIR", "benchmarks")
-        url = get_latest_artifact_url(branch, workflow, None)
-        if not os.path.exists(output):
-            os.mkdir(output)
-        if url is not None:
-            download_benchmarks(url, output)
-            print(f"saved benchmark data to {output}", file=sys.stderr)
-        else:
-            print(f"No benchmark data found", file=sys.stderr)
     else:
         print("Nothing to do.", file=sys.stderr)
         sys.exit(1)

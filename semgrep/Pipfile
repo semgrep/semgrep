@@ -8,7 +8,6 @@ pytest = "*"
 wheel = "*"
 tox = "*"
 pytest-snapshot = "*"
-pytest-benchmark = "*"
 appdirs = "*"
 pytest-xdist = "*"
 
