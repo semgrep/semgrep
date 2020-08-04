@@ -230,14 +230,14 @@ class OutputHandler:
     def handle_semgrep_errors(self, errors: List[SemgrepError]) -> None:
         timeout_errors = defaultdict(list)
         for err in errors:
-            if isinstance(err, MatchTimeoutError):
+            if isinstance(err, MatchTimeoutError) and err not in self.error_set:
                 self.semgrep_structured_errors.append(err)
                 self.error_set.add(err)
                 timeout_errors[err.path].append(err.rule_id)
             else:
                 self.handle_semgrep_error(err)
 
-        if timeout_errors:
+        if timeout_errors and self.settings.output_format == OutputFormat.TEXT:
             self.handle_semgrep_timeout_errors(timeout_errors)
 
     def handle_semgrep_timeout_errors(self, errors: Dict[Path, List[str]]) -> None:
