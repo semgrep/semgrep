@@ -24,7 +24,6 @@ def test_semgrep_on_repo(monkeypatch, clone_github_repo, tmp_path, public_repo_u
         "python": "py",
         "go": "go",
         "javascript": "js",
-        "ruby": "rb",
     }
     for language, file_ext in languages.items():
         sentinel_path = repo_path / f"sentinel.{file_ext}"
@@ -89,9 +88,8 @@ def test_semgrep_on_repo(monkeypatch, clone_github_repo, tmp_path, public_repo_u
     )
     output = json.loads(output)
 
-    expected_regex_len = len(languages)
-    if len(output["results"]) != expected_regex_len or len(output["errors"]) != 0:
+    if len(output["results"]) != 3 or len(output["errors"]) != 0:
         pytest.fail(
-            f"Running on {repo_url} with regex rules. Expect {expected_regex_len} results and no errors but got: "
+            f"Running on {repo_url} with regex rules. Expect 3 results and no errors but got: "
             + json.dumps(output, indent=4)
         )
