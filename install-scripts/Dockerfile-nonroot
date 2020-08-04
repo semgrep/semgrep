@@ -1,4 +1,4 @@
-FROM returntocorp/semgrep:latest
+FROM returntocorp/semgrep:02d41afd39f719ecdf7e6303062099275eef598b
 RUN adduser -D -u 1000 semgrep && chown -R 1000 /root
 RUN cp -R /root/.local/lib/python3.7/site-packages/* /usr/local/lib/python3.7/site-packages/
 USER 1000
