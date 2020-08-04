@@ -262,6 +262,16 @@ and generalize_while (tok, e, s) env =
     add_expr e (fun (str, e') -> ("condition " ^ str, S (While (tok, e', body_dots)))) env in
   dots_in_cond :: dots_in_body :: expr_choices_in_cond
 
+and generalize_for (tok, hdr, s) =
+  let body_dots =
+    match s with
+      | Block (t1, _, t2) -> body_ellipsis t1 t2
+      | _ -> fk_stmt
+  in
+  let dots_in_body = ("dots in body", S (For (tok, hdr, body_dots))) in
+  let dots_in_cond = ("dots in condition", S (For (tok, ForEllipsis fk, s))) in
+  dots_in_cond :: dots_in_body :: []
+
 and generalize_block ss =
   let rec get_last = function
   | [] -> []
@@ -278,6 +288,7 @@ and generalize_stmt s env =
   | ExprStmt (e, tok) -> generalize_exprstmt (e, tok) env
   | If _ -> generalize_if s
   | While (tok, e, s) -> generalize_while (tok, e, s) env
+  | For (tok, hdr, s) -> generalize_for (tok, hdr, s)
   | Block (t1, ss, t2) -> ["dots", S (Block ((t1, generalize_block ss, t2)))]
   | _ -> []
 
