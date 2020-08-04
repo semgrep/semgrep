@@ -128,11 +128,6 @@ PASSING_REPOS = [
     "https://github.com/dropbox/trapperkeeper",
     "https://github.com/lodash/lodash",
     "https://github.com/bkimminich/juice-shop",
-    "https://github.com/rails/rails",
-    "https://github.com/rapid7/metasploit-framework",
-    "https://github.com/jekyll/jekyll",
-    "https://github.com/Homebrew/brew",
-    "https://github.com/gitlabhq/gitlabhq",
 ]
 
 FAILING_REPOS = [
