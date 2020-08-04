@@ -241,6 +241,7 @@ class OutputHandler:
             self.handle_semgrep_timeout_errors(timeout_errors)
 
     def handle_semgrep_timeout_errors(self, errors: Dict[Path, List[str]]) -> None:
+        self.has_output = True
         separator = ", "
         for path in errors.keys():
             logger.error(
