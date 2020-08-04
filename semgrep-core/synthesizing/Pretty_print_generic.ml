@@ -136,7 +136,8 @@ and block env (t1, ss, t2) level =
        match t_str with "" -> "" | "{" -> "\n" ^ indent (level - 1) ^ "{\n"
                       | "}" -> "\n" ^ indent (level - 1) ^ "}\n" | _ -> t_str
    in
-     F.sprintf "%s%s%s" (get_boundary t1) (show_statements env ss) (get_boundary t2)
+      if level > 0 then F.sprintf "%s%s%s" (get_boundary t1) (show_statements env ss) (get_boundary t2)
+      else show_statements env ss
 
 and if_stmt env level (tok, e, s, sopt) =
   let rec indent =
