@@ -92,23 +92,21 @@ Explore the Semgrep Registry of rules and CI integrations at [semgrep.dev](https
 
 ## Examples
 
-### Core Uses
-
-- Ban dangerous APIs [[1](https://semgrep.live/clintgibler:no-exec)]
-- Search routes and authentiation [[1](https://semgrep.live/clintgibler:spring-routes)]
-- Enforce the use secure defaults [[1](https://semgrep.dev/dlukeomalley:flask-set-cookie)]
-- Enforce project best-practices [[1](https://semgrep.dev/dlukeomalley:use-assertEqual-for-equality), [2](https://semgrep.dev/dlukeomalley:unchecked-subprocess-call)]
-- Codify project-specific knowledge [[1](https://semgrep.dev/dlukeomalley:verify-before-make)]
-- Audit security hotspots [[1](https://semgrep.live/ievans:airflow-xss), [2](https://semgrep.dev/dlukeomalley:hardcoded-credentials)]
-- Audit configuration files [[1](https://semgrep.dev/dlukeomalley:s3-arn-use)]
-
-### Upgrading Code
-
-- Migrate from deprecated APIs [[1](https://semgrep.dev/editor?registry=java.lang.security.audit.crypto.des-is-deprecated), [2](https://semgrep.dev/editor?registry=python.bokeh.maintainability.deprecated.deprecated_apis), [3](https://semgrep.dev/editor?registry=python.flask.maintainability.deprecated.deprecated-apis)]
-- Apply automatic fixes [[1](https://semgrep.live/clintgibler:use-listenAndServeTLS), [2]()]
+| Use case                          | Semgrep rule                                                                                                                                                                                                                                                                                                                                           |
+| :-------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Ban dangerous APIs                | [Prevent use of exec](https://semgrep.live/clintgibler:no-exec)                                                                                                                                                                                                                                                                                        |
+| Search routes and authentiation   | [Extract Spring routes](https://semgrep.live/clintgibler:spring-routes)                                                                                                                                                                                                                                                                                |
+| Enforce the use secure defaults   | [Securely set Flask cookies](https://semgrep.dev/dlukeomalley:flask-set-cookie)                                                                                                                                                                                                                                                                        |
+| Enforce project best-practices    | [Use assertEqual for == checks](https://semgrep.dev/dlukeomalley:use-assertEqual-for-equality), [Always check subprocess calls](https://semgrep.dev/dlukeomalley:unchecked-subprocess-call)                                                                                                                                                            |
+| Codify project-specific knowledge | [Verify transactions before making them](https://semgrep.dev/dlukeomalley:verify-before-make)                                                                                                                                                                                                                                                          |
+| Audit security hotspots           | [Airflow XSS](https://semgrep.live/ievans:airflow-xss), [Hardcoded credentials](https://semgrep.dev/dlukeomalley:hardcoded-credentials)                                                                                                                                                                                                                |
+| Audit configuration files         | [Find S3 ARN uses](https://semgrep.dev/dlukeomalley:s3-arn-use)                                                                                                                                                                                                                                                                                        |
+| Migrate from deprecated APIs      | [DES is deprecated](https://semgrep.dev/editor?registry=java.lang.security.audit.crypto.des-is-deprecated), [Deprecated Flask APIs](https://semgrep.dev/editor?registry=python.flask.maintainability.deprecated.deprecated-apis), [Deprecated Bokeh APIs](https://semgrep.dev/editor?registry=python.bokeh.maintainability.deprecated.deprecated_apis) |
+| Apply automatic fixes             | [Use listenAndServeTLS](https://semgrep.live/clintgibler:use-listenAndServeTLS)                                                                                                                                                                                                                                                                        |
 
 ## Resources
 
+i
 Learn more:
 
 - [Live editor](https://semgrep.dev/editor)
