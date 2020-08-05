@@ -25,6 +25,7 @@ from semgrep.core_exception import CoreException
 from semgrep.equivalences import Equivalence
 from semgrep.error import _UnknownLanguageError
 from semgrep.error import InvalidPatternError
+from semgrep.error import MatchTimeoutError
 from semgrep.error import SemgrepError
 from semgrep.error import UnknownLanguageError
 from semgrep.evaluation import enumerate_patterns_in_boolean_expression
@@ -122,11 +123,19 @@ class CoreRunner:
         This includes properly invoking semgrep-core and parsing the output
     """
 
-    def __init__(self, allow_exec: bool, jobs: int, timeout: int, max_memory: int):
+    def __init__(
+        self,
+        allow_exec: bool,
+        jobs: int,
+        timeout: int,
+        max_memory: int,
+        max_timeouts: int,
+    ):
         self._allow_exec = allow_exec
         self._jobs = jobs
         self._timeout = timeout
         self._max_memory = max_memory
+        self._max_timeouts = max_timeouts
 
     def _flatten_rule_patterns(self, rules: List[Rule]) -> Iterator[Pattern]:
         """
@@ -292,7 +301,11 @@ class CoreRunner:
             return output_json
 
     def _run_rule(
-        self, rule: Rule, target_manager: TargetManager, cache_dir: str
+        self,
+        rule: Rule,
+        target_manager: TargetManager,
+        cache_dir: str,
+        max_timeout_files: List[Path],
     ) -> Tuple[List[RuleMatch], List[Dict[str, Any]], List[SemgrepError]]:
         """
             Run all rules on targets and return list of all places that match patterns, ... todo errors
@@ -305,6 +318,7 @@ class CoreRunner:
         ).items():
 
             targets = self.get_files_for_language(language, rule, target_manager)
+            targets = [target for target in targets if target not in max_timeout_files]
             if not targets:
                 continue
 
@@ -433,6 +447,8 @@ class CoreRunner:
         findings_by_rule: Dict[Rule, List[RuleMatch]] = {}
         debugging_steps_by_rule: Dict[Rule, List[Dict[str, Any]]] = {}
         all_errors: List[SemgrepError] = []
+        file_timeouts: Dict[Path, int] = collections.defaultdict(lambda: 0)
+        max_timeout_files: List[Path] = []
 
         # cf. for bar_format: https://tqdm.github.io/docs/tqdm/
         with tempfile.TemporaryDirectory() as semgrep_core_ast_cache_dir:
@@ -441,11 +457,19 @@ class CoreRunner:
             ):
                 debug_tqdm_write(f"Running rule {rule._raw.get('id')}")
                 rule_matches, debugging_steps, errors = self._run_rule(
-                    rule, target_manager, semgrep_core_ast_cache_dir
+                    rule, target_manager, semgrep_core_ast_cache_dir, max_timeout_files
                 )
                 findings_by_rule[rule] = rule_matches
                 debugging_steps_by_rule[rule] = debugging_steps
                 all_errors.extend(errors)
+                for err in errors:
+                    if isinstance(err, MatchTimeoutError):
+                        file_timeouts[err.path] += 1
+                        if (
+                            self._max_timeouts != 0
+                            and file_timeouts[err.path] == self._max_timeouts
+                        ):
+                            max_timeout_files.append(err.path)
 
         all_errors = dedup_errors(all_errors)
         return findings_by_rule, debugging_steps_by_rule, all_errors

@@ -27,6 +27,7 @@ from semgrep.error import SemgrepError
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.util import is_url
+from semgrep.util import with_color
 
 logger = logging.getLogger(__name__)
 
@@ -178,6 +179,7 @@ class OutputSettings(NamedTuple):
     output_destination: Optional[str]
     error_on_findings: bool
     strict: bool
+    max_timeouts: int = 3
 
 
 @contextlib.contextmanager
@@ -244,9 +246,11 @@ class OutputHandler:
         self.has_output = True
         separator = ", "
         for path in errors.keys():
-            logger.error(
-                f"Warning: {len(errors[path])} timeout error(s) in {path} when running the following rules: [{separator.join(errors[path])}]"
-            )
+            num_errs = len(errors[path])
+            error_msg = f"Warning: {num_errs} timeout error(s) in {path} when running the following rules: [{separator.join(errors[path])}]"
+            if num_errs == self.settings.max_timeouts:
+                error_msg += f"\nSemgrep stopped running rules on {path} after {num_errs} timeout error(s). See `--max-timeouts` for more info."
+            logger.error(with_color(colorama.Fore.RED, error_msg))
 
     def handle_semgrep_error(self, error: SemgrepError) -> None:
         """
