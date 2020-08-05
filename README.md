@@ -110,7 +110,7 @@ i
 Learn more:
 
 - [Live editor](https://semgrep.dev/editor)
-- [Community rule registry](https://semgrep.dev/r)
+- [Semgrep Registry](https://semgrep.dev/r)
 - [Documentation](docs/README.md)
 - [r2c YouTube channel](https://www.youtube.com/channel/UC5ahcFBorwzUTqPipFhjkWg) for more videos.
 
