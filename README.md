@@ -78,6 +78,12 @@ $ python3 -m pip install semgrep
 $ docker run --rm -v "${PWD}:/src" returntocorp/semgrep --help
 ```
 
+To confirm installation and get an overview of Semgrep's functionality run with `--help`:
+
+```
+$ semgrep --help
+```
+
 Once installed, Semgrep can be run with single rule patterns or entire rule packs:
 
 ```sh
@@ -122,69 +128,7 @@ Get in touch:
 
 ### Command Line Options
 
-```shell
-$ semgrep --help
-
-positional arguments:
-  target                Search these files or directories.
-                        Defaults to  entire current working directory.
-                        Implied argument if piping to semgrep.
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --exclude EXCLUDE     Skip any file with this name; --exclude='*.py'
-                        will ignore foo.py as well as src/foo.py.
-                        Can add multiple times. Overrides includes.
-  --include INCLUDE     Scan only files with this name,
-                        such as --include='*.jsx'. Can add multiple times.
-  --version             Show the version and exit.
-
-config:
-  -f CONFIG, --config CONFIG
-                        YAML configuration file, directory of YAML files
-                        ending in .yml|.yaml, URL of a configuration file,
-                        or semgrep registry entry name. See README for
-                        information on configuration file format.
-  -e PATTERN, --pattern PATTERN
-                        Code search pattern. See README for information
-                        on pattern features.
-  -l LANG, --lang LANG  Parse pattern and all files in specified language.
-                        Must be used with -e/--pattern.
-  --validate            Validate configuration file(s). No search is performed.
-  --strict              Only invoke semgrep if configuration files(s) are valid.
-  --dangerously-allow-arbitrary-code-execution-from-rules
-                        WARNING: allow rules to run arbitrary code.
-                        ONLY ENABLE IF YOU TRUST THE SOURCE OF ALL RULES IN YOUR CONFIGURATION.
-  -j JOBS, --jobs JOBS  Number of subprocesses to use to run checks in parallel.
-                        Defaults to the number of CPUs on the system.
-
-output:
-  -q, --quiet           Do not print anything to stdout. Results can be
-                        saved to an output file via -o/--output. Exit
-                        code provides success status.
-  --no-rewrite-rule-ids
-                        Do not rewrite rule ids when they appear in nested
-                        sub-directories (by default, rule 'foo' in
-                        test/rules.yaml will be renamed 'test.foo').
-  -o OUTPUT, --output OUTPUT
-                        Save search results to a file or post to URL.
-                        Default is to print to stdout.
-  --json                Output results in JSON format.
-  --debugging-json      Output JSON with extra debugging information.
-  --sarif               Output results in SARIF format.
-  --test                Run test suite.
-  --dump-ast            Show AST of the input file or passed expression and
-                        then exit (can use --json).
-  --error               Exit 1 if there are findings. Useful for CI and scripts.
-  -a, --autofix         Apply the autofix patches. WARNING: data loss can
-                        occur with this flag. Make sure your files are stored
-                        in a version control system.
-
-logging:
-  -v, --verbose         Set the logging level to verbose.
-                        E.g. statements about which files are being processed
-                        will be printed.
-```
+See `semgrep --help` for command line options.
 
 ### Exit Codes
 
