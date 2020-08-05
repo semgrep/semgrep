@@ -86,6 +86,7 @@ let arithop env (op, tok) =
       | LtE -> "<="
       | Gt -> ">"
       | GtE -> ">="
+      | NotEq -> "!="
       | _ -> todo (E (IdSpecial (Op op, tok)))
       (*
       | Pow | FloorDiv | MatMult (* Python *)
@@ -117,6 +118,8 @@ function
   | For (tok, hdr, s) -> for_stmt env level (tok, hdr, s)
   | Return (tok, eopt) -> return env (tok, eopt)
   | DefStmt (def) -> def_stmt env def
+  | Break (tok, lbl) -> break env (tok, lbl)
+  | Continue (tok, lbl) -> continue env (tok, lbl)
   | x -> todo (S x)
 
 and block env (t1, ss, t2) level =
@@ -260,7 +263,6 @@ and def_stmt env (entity, def_kind) =
   | VarDef def -> var_def (entity, def)
   | _ -> todo (S (DefStmt(entity, def_kind)))
 
-
 and return env (tok, eopt) =
   let to_return =
   match eopt with
@@ -272,6 +274,34 @@ and return env (tok, eopt) =
   | Lang.Python | Lang.Python2 | Lang.Python3
   | Lang.Go | Lang.Ruby | Lang.OCaml
   | Lang.JSON | Lang.Javascript | Lang.Typescript -> F.sprintf "%s %s" (token "return" tok) to_return
+
+and break env (tok, lbl) =
+  let lbl_str =
+    match lbl with
+        | LNone -> ""
+        | LId l -> F.sprintf " %s" (ident l)
+        | LInt (n, _) -> F.sprintf " %d" n
+        | LDynamic e -> F.sprintf " %s" (expr env e)
+  in
+  match env.lang with
+  | Lang.Java | Lang.C -> F.sprintf "%s%s;" (token "break" tok) lbl_str
+  | Lang.Python | Lang.Python2 | Lang.Python3
+  | Lang.Go | Lang.Ruby | Lang.OCaml
+  | Lang.JSON | Lang.Javascript | Lang.Typescript -> F.sprintf "%s%s" (token "break" tok) lbl_str
+
+and continue env (tok, lbl) =
+  let lbl_str =
+    match lbl with
+        | LNone -> ""
+        | LId l -> F.sprintf " %s" (ident l)
+        | LInt (n, _) -> F.sprintf " %d" n
+        | LDynamic e -> F.sprintf " %s" (expr env e)
+  in
+  match env.lang with
+  | Lang.Java | Lang.C -> F.sprintf "%s%s;" (token "continue" tok) lbl_str
+  | Lang.Python | Lang.Python2 | Lang.Python3
+  | Lang.Go | Lang.Ruby | Lang.OCaml
+  | Lang.JSON | Lang.Javascript | Lang.Typescript -> F.sprintf "%s%s" (token "continue" tok) lbl_str
 
 (* expressions *)
 
