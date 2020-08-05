@@ -1190,10 +1190,8 @@ and declaration (env : env) (x : CST.declaration) : AST.stmt =
       let v1 = token env v1 (* "import" *) in
       let v2 =
         (match v2 with
-        | Some tok ->
-                let _t = token env tok (* "static" *) in
-                true
-        | None -> false)
+        | Some tok -> Some (token env tok) (* "static" *)
+        | None -> None)
       in
       let v3 = qualifier_extra env v3 in
       let v4 =
@@ -1279,7 +1277,7 @@ and class_body_decl env = function
   | `Anno_type_decl x -> [Class (annotation_type_declaration env x)]
   | `Enum_decl x -> [Enum (enum_declaration env x)]
   | `Blk x -> let x = block env x in
-          [Init (false, x)]
+          [Init (None, x)]
   | `Static_init x -> [static_initializer env x]
   | `Cons_decl x -> [Method (constructor_declaration env x)]
   | `SEMI tok -> [EmptyDecl (token env tok) (* ";" *)]
@@ -1432,9 +1430,9 @@ and class_body (env : env) ((v1, v2, v3) : CST.class_body) =
 
 
 and static_initializer (env : env) ((v1, v2) : CST.static_initializer) =
-  let _v1 = token env v1 (* "static" *) in
+  let v1 = token env v1 (* "static" *) in
   let v2 = block env v2 in
-  Init (true, v2)
+  Init (Some v1, v2)
 
 
 and constructor_declaration (env : env) ((v1, v2, v3, v4) : CST.constructor_declaration) : constructor_decl =
