@@ -53,6 +53,7 @@ RUN semgrep-core -version
 COPY semgrep /semgrep
 RUN HOMEBREW_SYSTEM='NOCORE' python -m pip install /semgrep
 RUN semgrep --version
+
 RUN adduser -D -u 1000 semgrep
 USER 1000
 ENV SEMGREP_IN_DOCKER=1
