@@ -258,6 +258,11 @@ PASSING_REPOS = [
     {"repo": "https://github.com/dropbox/trapperkeeper", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/lodash/lodash", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/bkimminich/juice-shop", "languages": ALL_LANGUAGES},
+    {"repo": "https://github.com/rails/rails", "languages": ["ruby"]},
+    {"repo": "https://github.com/rapid7/metasploit-framework", "languages": ["ruby"]},
+    {"repo": "https://github.com/jekyll/jekyll", "languages": ["ruby"]},
+    {"repo": "https://github.com/Homebrew/brew", "languages": ["ruby"]},
+    {"repo": "https://github.com/gitlabhq/gitlabhq", "languages": ["ruby"]},
 ]
 
 FAILING_REPOS = [

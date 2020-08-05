@@ -22,6 +22,10 @@ LANGUAGE_SENTINELS = {
         "filename": "sentinel.js",
         "file_contents": f"sentinel = {SENTINEL_VALUE}",
     },
+    "ruby": {
+        "filename": "sentinel.rb",
+        "file_contents": f"sentinel = {SENTINEL_VALUE}",
+    },
 }
 SENTINEL_PATTERN = f"$SENTINEL = {SENTINEL_VALUE}"
 
