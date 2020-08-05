@@ -72,7 +72,7 @@ Semgrep can be installed using `brew`, `pip`, or `docker`:
 $ brew install semgrep
 
 # On Ubuntu/WSL/linux, we recommend installing via `pip`
-$ pip3 install semgrep
+$ python3 -m pip install semgrep
 
 # To try Semgrep without installation run via Docker
 $ docker run --rm -v "${PWD}:/src" returntocorp/semgrep --help
@@ -194,6 +194,21 @@ logging:
 - `0`: Semgrep ran successfully and found no errors
 - `1`: Semgrep ran successfully and found issues in your code
 - \>=`2`: Semgrep failed to run
+
+### Upgrading
+
+To upgrade, run the command below associated with how you installed Semgrep:
+
+```sh
+# Using HomeBrew
+$ brew upgrade semgrep
+
+# Using `pip`
+$ python3 -m pip install --upgrade semgrep
+
+# Using Docker
+$ docker pull returntocorp/semgrep:latest
+```
 
 ## Contributing
 
