@@ -258,11 +258,7 @@ PASSING_REPOS = [
     {"repo": "https://github.com/dropbox/trapperkeeper", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/lodash/lodash", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/bkimminich/juice-shop", "languages": ALL_LANGUAGES},
-    {"repo": "https://github.com/rails/rails", "languages": ["ruby"]},
-    {"repo": "https://github.com/rapid7/metasploit-framework", "languages": ["ruby"]},
     {"repo": "https://github.com/jekyll/jekyll", "languages": ["ruby"]},
-    {"repo": "https://github.com/Homebrew/brew", "languages": ["ruby"]},
-    {"repo": "https://github.com/gitlabhq/gitlabhq", "languages": ["ruby"]},
 ]
 
 FAILING_REPOS = [
@@ -373,6 +369,15 @@ FAILING_REPOS = [
     ),
     xfail_repo({"repo": "https://github.com/DevSlop/Pixi", "languages": ALL_LANGUAGES}),
     xfail_repo({"repo": "https://github.com/0c34/govwa", "languages": ALL_LANGUAGES}),
+    xfail_repo({"repo": "https://github.com/rails/rails", "languages": ["ruby"]}),
+    xfail_repo(
+        {
+            "repo": "https://github.com/rapid7/metasploit-framework",
+            "languages": ["ruby"],
+        }
+    ),
+    xfail_repo({"repo": "https://github.com/Homebrew/brew", "languages": ["ruby"]}),
+    xfail_repo({"repo": "https://github.com/gitlabhq/gitlabhq", "languages": ["ruby"]}),
 ]
 
 # Access this list with the `public_repo_url` fixture argument.

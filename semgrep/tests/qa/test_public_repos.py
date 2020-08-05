@@ -115,9 +115,7 @@ def test_semgrep_on_repo(monkeypatch, clone_github_repo, tmp_path, public_repo_u
     )
     output = json.loads(sub_output)
 
-    # This must also match the languages count in regex-sentinel.yaml
-    expected_results_count = len(LANGUAGE_SENTINELS)
-
+    expected_results_count = len(languages)
     if len(output["results"]) != expected_results_count or len(output["errors"]) != 0:
         pytest.fail(
             f"Running on {repo_url} with regex rules. Expect {expected_results_count} results and no errors but got: "
