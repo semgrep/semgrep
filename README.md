@@ -106,7 +106,6 @@ Explore the Semgrep Registry of rules and CI integrations at [semgrep.dev](https
 
 ## Resources
 
-i
 Learn more:
 
 - [Live editor](https://semgrep.dev/editor)
