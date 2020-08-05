@@ -245,7 +245,7 @@ class OutputHandler:
         separator = ", "
         for path in errors.keys():
             logger.error(
-                f"Warning: {len(errors[path])} timeout errors in {path} when running the following rules: [{separator.join(errors[path])}]"
+                f"Warning: {len(errors[path])} timeout error(s) in {path} when running the following rules: [{separator.join(errors[path])}]"
             )
 
     def handle_semgrep_error(self, error: SemgrepError) -> None:
