@@ -234,4 +234,4 @@ def pytest_generate_tests(metafunc):
         if metafunc.config.getoption("--qa"):
             metafunc.parametrize("public_repo_url", public_repos.ALL_REPOS)
         else:
-            metafunc.parametrize("public_repo_url", public_repos.PASSING_REPOS[:5])
+            metafunc.parametrize("public_repo_url", public_repos.PASSING_REPOS)
