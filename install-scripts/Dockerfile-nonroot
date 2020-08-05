@@ -1,3 +1,0 @@
-FROM returntocorp/semgrep:02d41afd39f719ecdf7e6303062099275eef598b
-RUN adduser -D -u 1000 semgrep
-USER 1000
