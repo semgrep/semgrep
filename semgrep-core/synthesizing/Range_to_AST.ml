@@ -12,7 +12,6 @@
  * file license.txt for more details.
  *)
 
-
 module V = Visitor_AST
 module Lib = Lib_AST
 module G = AST_generic
@@ -32,7 +31,6 @@ exception Found of G.any
 exception FoundExpr of G.expr
 
 let expr_at_range r1 ast =
-
   (* This could probably be implemented more efficiently ... but should be
    * good enough in practice.
    * todo? ideally every expression nodes in the AST would have range field
@@ -64,7 +62,6 @@ let expr_at_range r1 ast =
   with FoundExpr e -> Some e
 
   let any_at_range r1 ast =
-
     (* This could probably be implemented more efficiently ... but should be
      * good enough in practice.
      * todo? ideally every expression nodes in the AST would have range field
