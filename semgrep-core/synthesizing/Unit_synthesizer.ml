@@ -23,8 +23,8 @@ let python_tests = [
   "arrays_and_funcs.py", "4:9-4:29",
   ["exact match", "metrics.send('my-report-id')";
    "dots", "metrics.send(...)";
-   "metavars", "metrics.send($X, ...)";
-   "exact metavars", "metrics.send($X)"
+   "metavars", "metrics.send('...', ...)";
+   "exact metavars", "metrics.send('...')"
   ];
 
   "arrays_and_funcs.py", "5:4-5:11",
@@ -85,9 +85,9 @@ let python_tests = [
    "set_cookie.py", "5:10-7:35",
    ["exact match", "flask.response.set_cookie('sessionid', generate_cookie_value('RANDOM-UUID'), secure=True)";
     "dots", "flask.response.set_cookie(...)";
-    "metavars", "flask.response.set_cookie($X, $Y, secure=$Z, ...)";
-    "exact metavars", "flask.response.set_cookie($X, $Y, secure=$Z)";
-    "deep metavars", "flask.response.set_cookie($X, generate_cookie_value($Y), secure=$Z)"
+    "metavars", "flask.response.set_cookie('...', $Y, secure=$Z, ...)";
+    "exact metavars", "flask.response.set_cookie('...', $Y, secure=$Z)";
+    "deep metavars", "flask.response.set_cookie('...', generate_cookie_value('...'), secure=$Z)"
    ];
 
    "set_cookie.py", "8:3-8:31",
@@ -146,8 +146,8 @@ let java_tests = [
   "typed_funcs.java", "10:8-10:30",
   ["exact match", "System.out.print(\"A\");";
    "dots", "System.out.print(...);";
-   "metavars", "System.out.print($X, ...);";
-   "exact metavars", "System.out.print($X);";
+   "metavars", "System.out.print(\"...\", ...);";
+   "exact metavars", "System.out.print(\"...\");";
   ];
 
   "typed_funcs.java", "11:20-11:47",
