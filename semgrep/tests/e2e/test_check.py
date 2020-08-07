@@ -186,8 +186,6 @@ def test_timeout(run_semgrep_in_tmp, snapshot):
 
 
 def test_max_memory(run_semgrep_in_tmp, snapshot):
-    # Check that semgrep-core timeouts are properly handled
-
     snapshot.assert_match(
         run_semgrep_in_tmp(
             "rules/long.yaml",
@@ -211,13 +209,11 @@ def test_max_memory(run_semgrep_in_tmp, snapshot):
     )
 
 
-def test_max_timeouts(run_semgrep_in_tmp, snapshot):
-    # Check that semgrep-core timeouts are properly handled
-
+def test_timeout_retries(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(
-            "rules/long.yaml",
-            options=["--timeout", "1", "--max-timeouts", "1"],
+            "rules/multiple-long.yaml",
+            options=["--timeout", "1", "--timeout-retries", "1"],
             target_name="equivalence",
             strict=False,
         ),
@@ -226,12 +222,36 @@ def test_max_timeouts(run_semgrep_in_tmp, snapshot):
 
     snapshot.assert_match(
         run_semgrep_in_tmp(
-            "rules/long.yaml",
+            "rules/multiple-long.yaml",
             output_format="normal",
-            options=["--timeout", "1", "--max-timeouts", "1"],
+            options=["--timeout", "1", "--timeout-retries", "1"],
             target_name="equivalence",
             strict=False,
             stderr=True,
         ),
         "error.txt",
+    )
+
+    snapshot.assert_match(
+        run_semgrep_in_tmp(
+            "rules/multiple-long.yaml",
+            output_format="normal",
+            options=["--timeout", "1", "--timeout-retries", "0"],
+            target_name="equivalence",
+            strict=False,
+            stderr=True,
+        ),
+        "error_nomax.txt",
+    )
+
+    snapshot.assert_match(
+        run_semgrep_in_tmp(
+            "rules/multiple-long.yaml",
+            output_format="normal",
+            options=["--timeout", "1", "--timeout-retries", "2"],
+            target_name="equivalence",
+            strict=False,
+            stderr=True,
+        ),
+        "error_max2.txt",
     )

@@ -149,7 +149,7 @@ def cli() -> None:
     )
 
     config.add_argument(
-        "--max-timeouts",
+        "--timeout-retries",
         type=int,
         default=3,
         help=(
@@ -312,7 +312,7 @@ def cli() -> None:
         output_destination=args.output,
         error_on_findings=args.error,
         strict=args.strict,
-        max_timeouts=args.max_timeouts,
+        timeout_retries=args.timeout_retries,
     )
 
     if not args.disable_version_check:
@@ -364,5 +364,5 @@ def cli() -> None:
                 no_git_ignore=args.no_git_ignore,
                 timeout=args.timeout,
                 max_memory=args.max_memory,
-                max_timeouts=args.max_timeouts,
+                timeout_retries=args.timeout_retries,
             )

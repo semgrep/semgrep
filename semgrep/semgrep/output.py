@@ -179,7 +179,7 @@ class OutputSettings(NamedTuple):
     output_destination: Optional[str]
     error_on_findings: bool
     strict: bool
-    max_timeouts: int = 3
+    timeout_retries: int = 3
 
 
 @contextlib.contextmanager
@@ -247,9 +247,10 @@ class OutputHandler:
         separator = ", "
         for path in errors.keys():
             num_errs = len(errors[path])
+            errors[path].sort()
             error_msg = f"Warning: {num_errs} timeout error(s) in {path} when running the following rules: [{separator.join(errors[path])}]"
-            if num_errs == self.settings.max_timeouts:
-                error_msg += f"\nSemgrep stopped running rules on {path} after {num_errs} timeout error(s). See `--max-timeouts` for more info."
+            if num_errs == self.settings.timeout_retries:
+                error_msg += f"\nSemgrep stopped running rules on {path} after {num_errs} timeout error(s). See `--timeout-retries` for more info."
             logger.error(with_color(colorama.Fore.RED, error_msg))
 
     def handle_semgrep_error(self, error: SemgrepError) -> None:
