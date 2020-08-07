@@ -35,7 +35,7 @@
     <img src="https://img.shields.io/badge/issues-welcome-green?style=flat-square" alt="Issues welcome!" />
   </a>
   <a href="https://github.com/returntocorp/semgrep#readme">
-    <img src="https://img.shields.io/github/stars/returntocorp/semgrep?label=GitHub%20Stars&style=flat-square" alt="1000+ GitHub stars" />
+    <img src="https://img.shields.io/github/stars/returntocorp/semgrep?label=GitHub%20Stars&style=flat-square" alt="1500+ GitHub stars" />
   </a>
 </p>
 
@@ -50,13 +50,13 @@ Semgrep tl;dr:
 
 Semgrep supports:
 
-- C (beta)
 - Go
 - Java
 - JavaScript
 - JSON
 - OCaml
 - Python
+- C (beta)
 - Ruby (beta)
 
 Semgrep is proudly supported by r2c. Learn more about a hosted version of Semgrep with an enterprise feature set at [r2c.dev](https://r2c.dev/).
@@ -90,8 +90,8 @@ Once installed, Semgrep can be run with single rule patterns or entire rule pack
 # Check for Python == where the left and right hand sides are the same (often a bug)
 $ semgrep -e `$X==$X` --lang=py path/to/src
 
-# Run the default rule pack with rules for many languages
-$ semgrep --config=default path/to/src
+# Run a rule pack with rules for many languages
+$ semgrep --config=https://semgrep.dev/p/r2c-CI path/to/src
 ```
 
 Explore the Semgrep Registry of rules and CI integrations at [semgrep.dev](https://semgrep.dev/packs).
@@ -163,4 +163,4 @@ Semgrep is a frontend to a larger program analysis library named [`pfff`](https:
 
 Semgrep is supported by [r2c](https://r2c.dev). We're hiring!
 
-Interested in a fully-supported, hosted version of semgrep? [Drop your email](https://forms.gle/dpUUvSo1WtELL8DW6) and we'll be in touch!
+Interested in a fully-supported, hosted version of Semgrep? [Drop your email](https://forms.gle/dpUUvSo1WtELL8DW6) and we'll be in touch!
