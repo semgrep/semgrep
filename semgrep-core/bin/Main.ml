@@ -343,16 +343,9 @@ let cache_file_of_file filename =
  * with Timeout -> raise Timeout | _ -> ...
  *)
 let timeout_function lang = fun f ->
-  let timeout =
-      (* TODO: remove at some point, but this is to stay
-       * "backward compatible" with the previous behavior *)
-      if lang = Lang.Javascript && !timeout = 0
-      then 5
-      else !timeout
-  in
-  if timeout <= 0
+  if !timeout <= 0
   then f ()
-  else Common.timeout_function ~verbose:!Flag.debug timeout f
+  else Common.timeout_function ~verbose:!Flag.debug !timeout f
 
 (* from https://discuss.ocaml.org/t/todays-trick-memory-limits-with-gc-alarms/4431 *)
 let run_with_memory_limit limit_mb f =
