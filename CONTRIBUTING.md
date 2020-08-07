@@ -36,7 +36,11 @@ $ python -m pip install pre-commit
 
 Our `pre-commit` configuration uses Docker images. Please ensure you have
 [Docker installed](https://docs.docker.com/get-docker/) before running
-`pre-commit`.
+`pre-commit`. Install the `pre-commit` hooks with the following command:
+
+```
+$ pre-commit install
+```
 
 To ensure `pre-commit` is working as expected, run the following command:
 

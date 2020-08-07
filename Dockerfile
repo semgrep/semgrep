@@ -31,13 +31,8 @@ RUN git submodule foreach --recursive git clean -dfX
 RUN git submodule update --init --recursive
 RUN eval "$(opam env)" && ./install-scripts/install-ocaml-tree-sitter
 RUN eval "$(opam env)" && opam install -y pfff/
-
-WORKDIR /semgrep/semgrep-core
-RUN eval "$(opam env)" && opam install --deps-only -y . && make all
-RUN mkdir -p /usr/local/bin
-# hadolint ignore=DL3004
-RUN sudo cp _build/install/default/bin/semgrep-core /usr/local/bin
-RUN semgrep-core -version
+RUN eval "$(opam env)" && opam install --deps-only -y semgrep-core/ && make -C semgrep-core/ all
+RUN ./semgrep-core/_build/install/default/bin/semgrep-core -version
 
 #
 # We change container, bringing only the 'semgrep-core' binary with us.
@@ -47,13 +42,15 @@ FROM python:3.7.7-alpine3.11
 LABEL maintainer="support@r2c.dev"
 
 COPY --from=build-semgrep-core \
-     /usr/local/bin/semgrep-core /usr/local/bin/semgrep-core
+     /semgrep/semgrep-core/_build/install/default/bin/semgrep-core /usr/local/bin/semgrep-core
 RUN semgrep-core -version
 
 COPY semgrep /semgrep
 RUN HOMEBREW_SYSTEM='NOCORE' python -m pip install /semgrep
 RUN semgrep --version
 
+RUN adduser -D -u 1000 semgrep
+USER 1000
 ENV SEMGREP_IN_DOCKER=1
 ENV SEMGREP_VERSION_CACHE_PATH=/src/.cache/semgrep_version
 ENV PYTHONIOENCODING=utf8

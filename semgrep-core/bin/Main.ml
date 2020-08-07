@@ -913,6 +913,10 @@ let all_actions () = [
   "-test_parse_lang", " <files or dirs>",
   Common.mk_action_n_arg
     (Test_parsing.test_parse_lang !Flag.debug !lang get_final_files);
+  "-datalog_experiment", " <file> <dir>",
+  Common.mk_action_2_arg Datalog_experiment.gen_facts;
+  "-dump_il", " <file>",
+  Common.mk_action_1_arg Datalog_experiment.dump_il;
  ]
 
 (*e: function [[Main_semgrep_core.all_actions]] *)
@@ -979,6 +983,8 @@ let options () =
     " filter rules not containing any strings in target file";
     "-no_filter_irrelevant_rules", Arg.Clear Flag.filter_irrelevant_rules,
     " do not filter rules";
+    "-force_tree_sitter", Arg.Set Flag.force_tree_sitter,
+    " use tree-sitter-based parsers by default";
     "-debug", Arg.Set Flag.debug,
     " add debugging information in the output (tracing)";
     "-debug_matching", Arg.Set Flag.debug_matching,

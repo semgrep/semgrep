@@ -31,7 +31,7 @@ repos:
     rev: "v0.782"
     hooks:
       - id: mypy
-        exclude: ^semgrep\/tests\/.+$
+        exclude: ^semgrep\/tests\/.+$|^setup.py$
         args: [--config, mypy.ini]
 
   - repo: https://github.com/pre-commit/mirrors-mypy
@@ -51,7 +51,7 @@ repos:
         args: ["--select=B,E9,F63,F7,F82"]
 
   - repo: https://github.com/returntocorp/semgrep
-    rev: 'v0.14.0'
+    rev: 'v0.17.0'
     hooks:
       - id: semgrep-develop
         name: Semgrep Python
@@ -60,7 +60,7 @@ repos:
         args: ['--config', 'https://semgrep.dev/p/python', '--error']
 
   - repo: https://github.com/returntocorp/semgrep
-    rev: 'v0.14.0'
+    rev: 'v0.17.0'
     hooks:
       - id: semgrep-develop
         name: Semgrep Bandit
@@ -69,7 +69,7 @@ repos:
         args: ['--config', 'https://semgrep.dev/p/bandit', '--error']
 
   - repo: https://github.com/returntocorp/semgrep
-    rev: 'v0.14.0'
+    rev: 'v0.17.0'
     hooks:
       - id: semgrep-develop
         name: Semgrep Local

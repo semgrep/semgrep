@@ -1,0 +1,3 @@
+running 1 rules...
+Warning: 1 timeout error(s) in targets/equivalence/open_redirect.py when running the following rules: [rules.forcetimeout]
+Warnings exist. Run with `--strict` to turn warnings into errors.

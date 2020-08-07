@@ -147,7 +147,7 @@ def score_output_json(
             reported = all_reported - ignored
 
             new_cm = compute_confusion_matrix(reported, expected)
-            logging.debug(
+            logger.debug(
                 f"reported lines for check {check_id}: {sorted(reported)}, expected lines: {sorted(expected)} (ignored: {sorted(ignored)}, confusion matrix: {new_cm}"
             )
             expected_reported_by_check_id[check_id][file_path] = (expected, reported)

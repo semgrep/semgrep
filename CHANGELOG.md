@@ -4,8 +4,14 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## [Unreleased]
 
+## [0.18.0](https://github.com/returntocorp/semgrep/releases/tag/v0.18.0) - 2020-08-04
+
 ### Added
+- Match arbitrary content with `f"..."`
+- Performance improvements by filtering rules if file doesn't contain string needed for match
+- Match "OtherAttribute" attributes in any order
 - Support Python 3.8 self-documenting fstrings
+- `--max-memory` flag to set a maximum amount of memory that can be used to apply a rule to a file
 
 ## [0.17.0](https://github.com/returntocorp/semgrep/releases/tag/v0.17.0) - 2020-07-28
 

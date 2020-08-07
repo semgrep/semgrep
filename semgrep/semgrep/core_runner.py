@@ -122,10 +122,11 @@ class CoreRunner:
         This includes properly invoking semgrep-core and parsing the output
     """
 
-    def __init__(self, allow_exec: bool, jobs: int, timeout: int):
+    def __init__(self, allow_exec: bool, jobs: int, timeout: int, max_memory: int):
         self._allow_exec = allow_exec
         self._jobs = jobs
         self._timeout = timeout
+        self._max_memory = max_memory
 
     def _flatten_rule_patterns(self, rules: List[Rule]) -> Iterator[Pattern]:
         """
@@ -257,6 +258,8 @@ class CoreRunner:
                 cache_dir,
                 "-timeout",
                 str(self._timeout),
+                "-max_memory",
+                str(self._max_memory),
             ]
 
             equivalences = rule.equivalences
@@ -265,8 +268,7 @@ class CoreRunner:
                 cmd += ["-equivalences", equiv_file.name]
 
             core_run = sub_run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-            logging.debug(core_run.stderr.decode("utf-8", "replace"))
+            logger.debug(core_run.stderr.decode("utf-8", "replace"))
 
             if core_run.returncode != 0:
                 # see if semgrep output a JSON error that we can decode

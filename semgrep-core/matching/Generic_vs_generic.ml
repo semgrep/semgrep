@@ -1172,7 +1172,7 @@ and m_type_ a b =
       m_tok a2 b2
       )
     | A.TyRecordAnon(a1), B.TyRecordAnon(b1) ->
-      (m_bracket (m_list m_ident_and_type_)) a1 b1
+      m_bracket m_fields a1 b1
     | A.TyOr (a1, a2, a3), B.TyOr (b1, b2, b3) ->
         m_type_ a1 b1 >>= (fun () ->
         m_tok a2 b2 >>= (fun () ->
@@ -1197,12 +1197,6 @@ and m_type_ a b =
 (*e: function [[Generic_vs_generic.m_type_]] *)
 
 (*s: function [[Generic_vs_generic.m_ident_and_type_]] *)
-and m_ident_and_type_ a b =
-  match a, b with
-  | (a1, a2), (b1, b2) ->
-    m_ident a1 b1 >>= (fun () ->
-    m_type_ a2 b2
-    )
 (*e: function [[Generic_vs_generic.m_ident_and_type_]] *)
 
 (*s: function [[Generic_vs_generic.m_type_arguments]] *)
@@ -1846,7 +1840,7 @@ and m_entity a b =
   { A. name = a1; attrs = a2; tparams = a4; info = a5 },
   { B. name = b1; attrs = b2; tparams = b4; info = b5 } ->
     m_ident_and_id_info_add_in_env_Expr (a1, a5) (b1, b5) >>= (fun () ->
-    (m_list__m_attribute) a2 b2 >>= (fun () ->
+    (m_list_in_any_order ~less_is_ok:true m_attribute a2 b2) >>= (fun () ->
     (m_list m_type_parameter) a4 b4
     ))
 (*e: function [[Generic_vs_generic.m_entity]] *)

@@ -20,7 +20,9 @@ module PI = Parse_info
  *)
 let test_parse_lang verbose lang get_final_files xs =
   let xs = List.map Common.fullpath xs in
-  let fullxs = get_final_files xs in
+  let fullxs = get_final_files xs
+      |> Skip_code.filter_files_if_skip_list ~root:xs
+    in
   let lang =
     match Lang.lang_of_string_opt lang with
     | Some l -> l
@@ -53,6 +55,7 @@ let test_parse_lang verbose lang get_final_files xs =
               | Lang.Ruby -> Tree_sitter_ruby.Parse.file file |> ignore
               | Lang.Java -> Tree_sitter_java.Parse.file file |> ignore
               | Lang.Go   -> Tree_sitter_go.Parse.file file |> ignore
+              | Lang.Csharp -> Tree_sitter_csharp.Parse.file file |> ignore
               | _ -> failwith "lang not supported by ocaml-tree-sitter"
               )
              file ()

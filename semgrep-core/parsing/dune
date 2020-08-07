@@ -7,6 +7,7 @@
    tree-sitter-lang.ruby
    tree-sitter-lang.java
    tree-sitter-lang.go
+   tree-sitter-lang.csharp
 
    commons commons_core
    pfff-config
