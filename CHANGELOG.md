@@ -128,7 +128,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Match "OtherAttribute" attributes in any order
 - Support Python 3.8 self-documenting fstrings
 - `--max-memory` flag to set a maximum amount of memory that can be used to apply a rule to a file
-- Added supprot for the JUnit XML report format
+- Added support for the JUnit XML report format (`--junit-xml`)
 
 ## [0.17.0](https://github.com/returntocorp/semgrep/releases/tag/v0.17.0) - 2020-07-28
 
