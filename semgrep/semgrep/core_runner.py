@@ -129,13 +129,13 @@ class CoreRunner:
         jobs: int,
         timeout: int,
         max_memory: int,
-        timeout_retries: int,
+        timeout_threshold: int,
     ):
         self._allow_exec = allow_exec
         self._jobs = jobs
         self._timeout = timeout
         self._max_memory = max_memory
-        self._timeout_retries = timeout_retries
+        self._timeout_threshold = timeout_threshold
 
     def _flatten_rule_patterns(self, rules: List[Rule]) -> Iterator[Pattern]:
         """
@@ -466,8 +466,8 @@ class CoreRunner:
                     if isinstance(err, MatchTimeoutError):
                         file_timeouts[err.path] += 1
                         if (
-                            self._timeout_retries != 0
-                            and file_timeouts[err.path] == self._timeout_retries
+                            self._timeout_threshold != 0
+                            and file_timeouts[err.path] == self._timeout_threshold
                         ):
                             max_timeout_files.append(err.path)
 

@@ -179,7 +179,7 @@ class OutputSettings(NamedTuple):
     output_destination: Optional[str]
     error_on_findings: bool
     strict: bool
-    timeout_retries: int = 3
+    timeout_threshold: int = 0
 
 
 @contextlib.contextmanager
@@ -245,13 +245,25 @@ class OutputHandler:
     def handle_semgrep_timeout_errors(self, errors: Dict[Path, List[str]]) -> None:
         self.has_output = True
         separator = ", "
+        print_threshold_hint = False
         for path in errors.keys():
             num_errs = len(errors[path])
             errors[path].sort()
             error_msg = f"Warning: {num_errs} timeout error(s) in {path} when running the following rules: [{separator.join(errors[path])}]"
-            if num_errs == self.settings.timeout_retries:
-                error_msg += f"\nSemgrep stopped running rules on {path} after {num_errs} timeout error(s). See `--timeout-retries` for more info."
+            if num_errs == self.settings.timeout_threshold:
+                error_msg += f"\nSemgrep stopped running rules on {path} after {num_errs} timeout error(s). See `--timeout-threshold` for more info."
+            print_threshold_hint = print_threshold_hint or (
+                num_errs > 5 and not self.settings.timeout_threshold
+            )
             logger.error(with_color(colorama.Fore.RED, error_msg))
+
+        if print_threshold_hint:
+            logger.error(
+                with_color(
+                    colorama.Fore.RED,
+                    f"You can use the `--timeout-threshold` flag to set a number of timeouts after which a file will be skipped.",
+                )
+            )
 
     def handle_semgrep_error(self, error: SemgrepError) -> None:
         """

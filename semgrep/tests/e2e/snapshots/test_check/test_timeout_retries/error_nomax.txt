@@ -1,3 +1,0 @@
-running 3 rules...
-Warning: 3 timeout error(s) in targets/equivalence/open_redirect.py when running the following rules: [rules.forcetimeout, rules.forcetimeout2, rules.forcetimeout3]
-Warnings exist. Run with `--strict` to turn warnings into errors.
