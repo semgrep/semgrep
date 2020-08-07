@@ -97,6 +97,10 @@ To call semgrep without the `--json` flag:
 
 ```run_semgrep_in_tmp("r2c/python", output_format="normal")```
 
+To call semgrep without the `--junit-xml` flag:
+
+```run_semgrep_in_tmp("r2c/python", output_format="junit-xml")```
+
 To call semgrep with `--sarif` instead of `--json`:
 
 ```run_semgrep_in_tmp("r2c/python", output_format="sarif")```
