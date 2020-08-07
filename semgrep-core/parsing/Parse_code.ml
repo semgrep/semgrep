@@ -11,6 +11,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * file license.txt for more details.
  *)
+module Flag = Flag_semgrep
 
 (*****************************************************************************)
 (* Prelude *)
@@ -22,6 +23,11 @@
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
+
+let unless_tree_sitter f file =
+  if !Flag.force_tree_sitter
+  then failwith "Forced tree sitter"
+  else f file
 
 let just_parse_with_lang lang file =
   match lang with
@@ -42,13 +48,13 @@ let just_parse_with_lang lang file =
          * than the tree-sitter one because we need to wrap that one inside
          * an invoke because of a segfault/memory-leak
          *)
-        try Parse_java.parse_program file
+        try unless_tree_sitter Parse_java.parse_program file
         with _exn -> Parse_java_tree_sitter.parse file
        in
        Java_to_generic.program ast
   | Lang.Go ->
       let ast =
-        try Parse_go.parse_program file
+        try unless_tree_sitter Parse_go.parse_program file
         with _exn -> Parse_go_tree_sitter.parse file
       in
       Go_to_generic.program ast

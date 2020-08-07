@@ -30,7 +30,13 @@ let go_deeper_stmt = ref true
 let go_really_deeper_stmt = ref true
 (*e: constant [[Flag_semgrep.go_really_deeper_stmt]] *)
 
+(* look if identifiers in rule intersect with file using simple regexps *)
 let filter_irrelevant_rules = ref false
+
+(* we usually try first with the pfff parser and then with the tree-sitter
+ * parser if pfff fails. Here you can force to use tree-sitter first.
+ *)
+let force_tree_sitter = ref false
 
 (*s: constant [[Flag_semgrep.equivalence_mode]] *)
 (* special mode to set before using generic_vs_generic to match
