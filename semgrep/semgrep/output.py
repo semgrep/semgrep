@@ -154,7 +154,7 @@ def build_junit_xml_output(
     """
     test_cases = [match.to_junit_xml() for match in rule_matches]
     ts = TestSuite("semgrep results", test_cases)
-    return cast(str, TestSuite.to_xml_report_string([ts]))
+    return cast(str, TestSuite.to_xml_string([ts]))
 
 
 def _sarif_tool_info() -> Dict[str, Any]:
