@@ -83,7 +83,7 @@ repos:
         name: shellcheck
         language: docker_image
         entry: koalaman/shellcheck:v0.7.1
-        files: ".sh"
+        files: "[.]sh$"
 
   - repo: local
     hooks:
