@@ -45,6 +45,11 @@ def test_terminal_output(run_semgrep_in_tmp, snapshot):
 def test_multiline(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp("rules/eqeq.yaml", target_name="multiline"), "results.json",
+
+
+def test_junit_xml_output(run_semgrep_in_tmp, snapshot):
+    snapshot.assert_match(
+        run_semgrep_in_tmp("rules/eqeq.yaml", output_format="junit-xml"), "results.xml"
     )
 
 

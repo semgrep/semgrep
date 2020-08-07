@@ -204,6 +204,9 @@ def cli() -> None:
         help="Output JSON with extra debugging information.",
     )
     output.add_argument(
+        "--junit-xml", action="store_true", help="Output results in JUnit XML format."
+    )
+    output.add_argument(
         "--sarif", action="store_true", help="Output results in SARIF format."
     )
     output.add_argument("--test", action="store_true", help="Run test suite.")
@@ -310,6 +313,8 @@ def cli() -> None:
         output_format = OutputFormat.JSON
     elif args.debugging_json:
         output_format = OutputFormat.JSON_DEBUG
+    elif args.junit_xml:
+        output_format = OutputFormat.JUNIT_XML
     elif args.sarif:
         output_format = OutputFormat.SARIF
 
