@@ -13,6 +13,7 @@ pytest-xdist = "*"
 
 [packages]
 semgrep = {editable = true,path = "."}
+junit-xml = "*"
 
 [requires]
 python_version = "3.7"
