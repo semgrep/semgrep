@@ -124,21 +124,14 @@ setup(
     install_requires=[
         "attrs>=19.3.0",
         "colorama>=0.4.3",
-<<<<<<< HEAD
         "junit_xml==1.9",
-=======
-        "junit_xml>=1.9",
->>>>>>> Adding support for JUnit XML format (#1388)
         "packaging>=20.4",
         "requests>=2.22.0",
         # exact version because of unstable API
         "ruamel.yaml==0.16.10",
         "tqdm>=4.46.1",
-<<<<<<< HEAD
         "packaging>=20.4",
         "jsonschema~=3.2.0",
-=======
->>>>>>> Adding support for JUnit XML format (#1388)
     ],
     entry_points={"console_scripts": ["semgrep=semgrep.__main__:main"]},
     packages=setuptools.find_packages(),
