@@ -63,12 +63,12 @@ let print_bool env = function
      (match env.lang with
          | Lang.Python | Lang.Python2 | Lang.Python3 -> "True"
          | Lang.Java | Lang.Go | Lang.C | Lang.JSON | Lang.Javascript
-         | Lang.OCaml | Lang.Ruby | Lang.Typescript -> "true")
+         | Lang.OCaml | Lang.Ruby | Lang.Typescript | Lang.Csharp -> "true")
   | false ->
      (match env.lang with
          | Lang.Python | Lang.Python2 | Lang.Python3  -> "False"
          | Lang.Java | Lang.Go | Lang.C | Lang.JSON | Lang.Javascript
-         | Lang.OCaml | Lang.Ruby | Lang.Typescript -> "false")
+         | Lang.OCaml | Lang.Ruby | Lang.Typescript | Lang.Csharp -> "false")
 
 let arithop env (op, tok) =
   match op with
@@ -156,7 +156,9 @@ and if_stmt env level (tok, e, s, sopt) =
   let (format_cond, elseif_str, format_block) =
     (match env.lang with
     | Lang.Python | Lang.Python2 | Lang.Python3 -> (no_paren_cond, "elif", colon_body)
-    | Lang.Java | Lang.Go | Lang.C | Lang.JSON | Lang.Javascript | Lang.Typescript -> (paren_cond, "else if", bracket_body)
+    | Lang.Java | Lang.Go | Lang.C | Lang.Csharp
+    | Lang.JSON | Lang.Javascript | Lang.Typescript
+      -> (paren_cond, "else if", bracket_body)
     | Lang.Ruby -> failwith "I don't want to deal with Ruby right now"
     | Lang.OCaml -> failwith "Impossible; if statements should be expressions"
     )
@@ -182,7 +184,8 @@ and while_stmt env level (tok, e, s) =
    let while_format =
       (match env.lang with
       | Lang.Python | Lang.Python2 | Lang.Python3 -> python_while
-      | Lang.Java | Lang.C | Lang.JSON | Lang.Javascript | Lang.Typescript -> c_while
+      | Lang.Java | Lang.C | Lang.Csharp
+      | Lang.JSON | Lang.Javascript | Lang.Typescript -> c_while
       | Lang.Go -> go_while
       | Lang.Ruby -> ruby_while
       | Lang.OCaml -> ocaml_while
@@ -194,7 +197,8 @@ and do_while stmt env level (s, e) =
    let c_do_while = F.sprintf "do %s\nwhile(%s)" in
    let do_while_format =
     (match env.lang with
-    | Lang.Java | Lang.C | Lang.Javascript | Lang.Typescript -> c_do_while
+    | Lang.Java | Lang.C | Lang.Csharp
+    | Lang.Javascript | Lang.Typescript -> c_do_while
     | Lang.Python | Lang.Python2 | Lang.Python3
     | Lang.Go | Lang.JSON | Lang.OCaml -> failwith "impossible; no do while"
     | Lang.Ruby -> failwith "ruby is so weird (here, do while loop)"
@@ -205,7 +209,8 @@ and do_while stmt env level (s, e) =
 and for_stmt env level (for_tok, hdr, s) =
    let for_format =
     (match env.lang with
-    | Lang.Java | Lang.C | Lang.Javascript | Lang.Typescript -> F.sprintf "%s (%s) %s"
+    | Lang.Java | Lang.C | Lang.Csharp
+    | Lang.Javascript | Lang.Typescript -> F.sprintf "%s (%s) %s"
     | Lang.Go -> F.sprintf "%s %s %s"
     | Lang.Python | Lang.Python2 | Lang.Python3 -> F.sprintf "%s %s:\n%s"
     | Lang.Ruby -> F.sprintf "%s %s\ndo %s\nend"
@@ -237,8 +242,9 @@ and def_stmt env (entity, def_kind) =
   let var_def (ent, def) =
     let (no_val, with_val) =
       (match env.lang with
-       | Lang.Java | Lang.C -> (fun typ id _e -> F.sprintf "%s %s;" typ id),
-                               (fun typ id e -> F.sprintf "%s %s = %s;" typ id e)
+       | Lang.Java | Lang.C | Lang.Csharp
+          -> (fun typ id _e -> F.sprintf "%s %s;" typ id),
+             (fun typ id e -> F.sprintf "%s %s = %s;" typ id e)
        | Lang.Javascript | Lang.Typescript -> (fun _typ id _e -> F.sprintf "var %s;" id),
                                               (fun _typ id e -> F.sprintf "var %s = %s;" id e)
        | Lang.Go -> (fun typ id _e -> F.sprintf "var %s %s" id typ),
@@ -270,7 +276,8 @@ and return env (tok, eopt) =
   | Some e -> expr env e
   in
   match env.lang with
-  | Lang.Java | Lang.C -> F.sprintf "%s %s;" (token "return" tok) to_return
+  | Lang.Java | Lang.C | Lang.Csharp
+      -> F.sprintf "%s %s;" (token "return" tok) to_return
   | Lang.Python | Lang.Python2 | Lang.Python3
   | Lang.Go | Lang.Ruby | Lang.OCaml
   | Lang.JSON | Lang.Javascript | Lang.Typescript -> F.sprintf "%s %s" (token "return" tok) to_return
@@ -284,7 +291,8 @@ and break env (tok, lbl) =
         | LDynamic e -> F.sprintf " %s" (expr env e)
   in
   match env.lang with
-  | Lang.Java | Lang.C -> F.sprintf "%s%s;" (token "break" tok) lbl_str
+  | Lang.Java | Lang.C | Lang.Csharp
+    -> F.sprintf "%s%s;" (token "break" tok) lbl_str
   | Lang.Python | Lang.Python2 | Lang.Python3
   | Lang.Go | Lang.Ruby | Lang.OCaml
   | Lang.JSON | Lang.Javascript | Lang.Typescript -> F.sprintf "%s%s" (token "break" tok) lbl_str
@@ -298,7 +306,8 @@ and continue env (tok, lbl) =
         | LDynamic e -> F.sprintf " %s" (expr env e)
   in
   match env.lang with
-  | Lang.Java | Lang.C -> F.sprintf "%s%s;" (token "continue" tok) lbl_str
+  | Lang.Java | Lang.C | Lang.Csharp
+    -> F.sprintf "%s%s;" (token "continue" tok) lbl_str
   | Lang.Python | Lang.Python2 | Lang.Python3
   | Lang.Go | Lang.Ruby | Lang.OCaml
   | Lang.JSON | Lang.Javascript | Lang.Typescript -> F.sprintf "%s%s" (token "continue" tok) lbl_str
@@ -367,7 +376,8 @@ and literal env = function
       (match env.lang with
       | Lang.Python | Lang.Python2 | Lang.Python3 ->
             "'" ^ s ^ "'"
-      | Lang.Java | Lang.Go | Lang.C | Lang.JSON | Lang.Javascript
+      | Lang.Java | Lang.Go | Lang.C | Lang.Csharp
+      | Lang.JSON | Lang.Javascript
       | Lang.OCaml | Lang.Ruby | Lang.Typescript ->
             "\"" ^ s ^ "\""
       )
