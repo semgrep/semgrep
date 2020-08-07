@@ -122,11 +122,13 @@ setup(
     long_description_content_type="text/markdown",
     url="https://github.com/returntocorp/semgrep",
     install_requires=[
+        "attrs>=19.3.0",
         "colorama>=0.4.3",
+        "junit_xml>=1.9",
+        "packaging>=20.4",
+        "requests>=2.22.0",
         # exact version because of unstable API
         "ruamel.yaml==0.16.10",
-        "requests>=2.22.0",
-        "attrs>=19.3.0",
         "tqdm>=4.46.1",
         "packaging>=20.4",
         "jsonschema~=3.2.0",
