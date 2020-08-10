@@ -74,6 +74,13 @@ def _evaluate_single_expression(
         # remove all ranges that DO equal the ranges for this pattern
         # difference_update = Remove all elements of another set from this set.
         output_ranges = ranges_left.difference(results_for_pattern)
+
+        # fully eliminate duplicate matches, even ones with different
+        # variables but the same range.
+        for result_for_pattern in results_for_pattern:
+            output_ranges = set(filter(lambda output_range:
+                                       not output_range.is_range_eq(result_for_pattern), output_ranges))
+
         logger.debug(f"after filter `{expression.operator}`: {output_ranges}")
         steps_for_debugging.append(
             {
@@ -250,7 +257,6 @@ def evaluate(
         Returns a list of RuleMatches.
     """
     output = []
-
     pattern_ids_to_pattern_matches = group_by_pattern_id(pattern_matches)
     steps_for_debugging = [
         {
