@@ -198,8 +198,8 @@ let (fail : tin -> tout) = fun _tin ->
 (* pre: both 'a' and 'b' contains only regular code; there are no
  * metavariables inside them.
  *)
-let equal_ast_binded_code (a: AST.any) (b: AST.any) : bool =
-  match a, b with
+let rec equal_ast_binded_code (a: AST.any) (b: AST.any) : bool = (
+  let res = (match a, b with
   | A.I _, A.I _
   | A.N _, A.N _
   | A.E _, A.E _
@@ -218,16 +218,22 @@ let equal_ast_binded_code (a: AST.any) (b: AST.any) : bool =
        *)
       let a = Lib.abstract_position_info_any a in
       let b = Lib.abstract_position_info_any b in
-      let res = a =*= b in
-      if !Flag.debug_matching && not res
-      then begin
-        pr2 (spf "A = %s" (str_of_any a));
-        pr2 (spf "B = %s" (str_of_any b));
-      end;
-      res
-
+      a =*= b
+  | A.I _, A.E (A.Id (b_id, _)) ->
+    (* Allow identifier nodes to match pure identifier expressions *)
+      equal_ast_binded_code a (A.I b_id)
   | _, _ ->
       false
+  ) in
+
+  if !Flag.debug_matching && not res
+  then begin
+    pr2 (spf "A = %s" (str_of_any a));
+    pr2 (spf "B = %s" (str_of_any b));
+  end;
+
+  res
+)
 (*e: function [[Matching_generic.equal_ast_binded_code]] *)
 
 (*s: function [[Matching_generic.check_and_add_metavar_binding]] *)
