@@ -467,7 +467,7 @@ class CoreRunner:
                         file_timeouts[err.path] += 1
                         if (
                             self._timeout_threshold != 0
-                            and file_timeouts[err.path] == self._timeout_threshold
+                            and file_timeouts[err.path] >= self._timeout_threshold
                         ):
                             max_timeout_files.append(err.path)
 
