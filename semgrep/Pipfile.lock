@@ -1,7 +1,11 @@
 {
     "_meta": {
         "hash": {
+<<<<<<< HEAD
             "sha256": "f2e9065b66cddee9372bdbe048b3d25634659e6dfb93dabbd7dc1db95057109a"
+=======
+            "sha256": "c7b26f20b54d19ba8012c7273a2b8466f658720a9686c3df0fd819d38a74b579"
+>>>>>>> added new package
         },
         "pipfile-spec": 6,
         "requires": {
@@ -22,7 +26,11 @@
                 "sha256:fce7fc47dfc976152e82d53ff92fa0407700c21acd20886a13777a0d20e655dc"
             ],
             "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'",
+<<<<<<< HEAD
             "version": "==20.2.0"
+=======
+            "version": "==19.3.0"
+>>>>>>> added new package
         },
         "certifi": {
             "hashes": [
@@ -54,6 +62,7 @@
             "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'",
             "version": "==2.10"
         },
+<<<<<<< HEAD
         "importlib-metadata": {
             "hashes": [
                 "sha256:90bb658cdbbf6d1735b6341ce708fc7024a3e14e99ffdc5783edea9f9b077f83",
@@ -76,10 +85,13 @@
             ],
             "version": "==3.2.0"
         },
+=======
+>>>>>>> added new package
         "junit-xml": {
             "hashes": [
                 "sha256:ec5ca1a55aefdd76d28fcc0b135251d156c7106fa979686a4b48d62b761b4732"
             ],
+<<<<<<< HEAD
             "version": "==1.9"
         },
         "more-itertools": {
@@ -89,6 +101,10 @@
             ],
             "markers": "python_version >= '3.5'",
             "version": "==8.5.0"
+=======
+            "index": "pypi",
+            "version": "==1.9"
+>>>>>>> added new package
         },
         "packaging": {
             "hashes": [
@@ -154,6 +170,7 @@
         },
         "ruamel.yaml.clib": {
             "hashes": [
+<<<<<<< HEAD
                 "sha256:058a1cc3df2a8aecc12f983a48bda99315cebf55a3b3a5463e37bb599b05727b",
                 "sha256:2602e91bd5c1b874d6f93d3086f9830f3e907c543c7672cf293a97c3fabdcd91",
                 "sha256:28116f204103cb3a108dfd37668f20abe6e3cafd0d3fd40dba126c732457b3cc",
@@ -179,6 +196,30 @@
             ],
             "markers": "python_version < '3.9' and platform_python_implementation == 'CPython'",
             "version": "==0.2.2"
+=======
+                "sha256:1e77424825caba5553bbade750cec2277ef130647d685c2b38f68bc03453bac6",
+                "sha256:392b7c371312abf27fb549ec2d5e0092f7ef6e6c9f767bfb13e83cb903aca0fd",
+                "sha256:4d55386129291b96483edcb93b381470f7cd69f97585829b048a3d758d31210a",
+                "sha256:550168c02d8de52ee58c3d8a8193d5a8a9491a5e7b2462d27ac5bf63717574c9",
+                "sha256:57933a6986a3036257ad7bf283529e7c19c2810ff24c86f4a0cfeb49d2099919",
+                "sha256:615b0396a7fad02d1f9a0dcf9f01202bf9caefee6265198f252c865f4227fcc6",
+                "sha256:77556a7aa190be9a2bd83b7ee075d3df5f3c5016d395613671487e79b082d784",
+                "sha256:7aee724e1ff424757b5bd8f6c5bbdb033a570b2b4683b17ace4dbe61a99a657b",
+                "sha256:8073c8b92b06b572e4057b583c3d01674ceaf32167801fe545a087d7a1e8bf52",
+                "sha256:9c6d040d0396c28d3eaaa6cb20152cb3b2f15adf35a0304f4f40a3cf9f1d2448",
+                "sha256:a0ff786d2a7dbe55f9544b3f6ebbcc495d7e730df92a08434604f6f470b899c5",
+                "sha256:b1b7fcee6aedcdc7e62c3a73f238b3d080c7ba6650cd808bce8d7761ec484070",
+                "sha256:b66832ea8077d9b3f6e311c4a53d06273db5dc2db6e8a908550f3c14d67e718c",
+                "sha256:be018933c2f4ee7de55e7bd7d0d801b3dfb09d21dad0cce8a97995fd3e44be30",
+                "sha256:d0d3ac228c9bbab08134b4004d748cf9f8743504875b3603b3afbb97e3472947",
+                "sha256:d10e9dd744cf85c219bf747c75194b624cc7a94f0c80ead624b06bfa9f61d3bc",
+                "sha256:ea4362548ee0cbc266949d8a441238d9ad3600ca9910c3fe4e82ee3a50706973",
+                "sha256:ed5b3698a2bb241b7f5cbbe277eaa7fe48b07a58784fba4f75224fd066d253ad",
+                "sha256:f9dcc1ae73f36e8059589b601e8e4776b9976effd76c21ad6a855a74318efd6e"
+            ],
+            "markers": "python_version < '3.9' and platform_python_implementation == 'CPython'",
+            "version": "==0.2.0"
+>>>>>>> added new package
         },
         "semgrep": {
             "editable": true,
@@ -201,11 +242,19 @@
         },
         "tqdm": {
             "hashes": [
+<<<<<<< HEAD
                 "sha256:8f3c5815e3b5e20bc40463fa6b42a352178859692a68ffaa469706e6d38342a5",
                 "sha256:faf9c671bd3fad5ebaeee366949d969dca2b2be32c872a7092a1e1a9048d105b"
             ],
             "markers": "python_version >= '2.6' and python_version not in '3.0, 3.1, 3.2, 3.3'",
             "version": "==4.49.0"
+=======
+                "sha256:1a336d2b829be50e46b84668691e0a2719f26c97c62846298dd5ae2937e4d5cf",
+                "sha256:564d632ea2b9cb52979f7956e093e831c28d441c11751682f84c86fc46e4fd21"
+            ],
+            "markers": "python_version >= '2.6' and python_version not in '3.0, 3.1, 3.2, 3.3'",
+            "version": "==4.48.2"
+>>>>>>> added new package
         },
         "urllib3": {
             "hashes": [
@@ -214,6 +263,7 @@
             ],
             "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3, 3.4' and python_version < '4'",
             "version": "==1.25.10"
+<<<<<<< HEAD
         },
         "zipp": {
             "hashes": [
@@ -222,6 +272,8 @@
             ],
             "markers": "python_version >= '3.6'",
             "version": "==3.2.0"
+=======
+>>>>>>> added new package
         }
     },
     "develop": {
@@ -247,7 +299,11 @@
                 "sha256:fce7fc47dfc976152e82d53ff92fa0407700c21acd20886a13777a0d20e655dc"
             ],
             "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'",
+<<<<<<< HEAD
             "version": "==20.2.0"
+=======
+            "version": "==19.3.0"
+>>>>>>> added new package
         },
         "distlib": {
             "hashes": [
@@ -285,6 +341,7 @@
                 "sha256:e5f92f89355a67de0595932a6c6c02ab4afddc6fcdc0bfc5becd0d60884d3f69"
             ],
             "version": "==1.0.1"
+<<<<<<< HEAD
         },
         "lxml": {
             "hashes": [
@@ -322,6 +379,8 @@
             ],
             "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3, 3.4'",
             "version": "==4.5.2"
+=======
+>>>>>>> added new package
         },
         "more-itertools": {
             "hashes": [
@@ -329,7 +388,11 @@
                 "sha256:9b30f12df9393f0d28af9210ff8efe48d10c94f73e5daf886f10c4b0b0b4f03c"
             ],
             "markers": "python_version >= '3.5'",
+<<<<<<< HEAD
             "version": "==8.5.0"
+=======
+            "version": "==8.4.0"
+>>>>>>> added new package
         },
         "packaging": {
             "hashes": [
@@ -351,9 +414,21 @@
             "hashes": [
                 "sha256:366389d1db726cd2fcfc79732e75410e5fe4d31db13692115529d34069a043c2",
                 "sha256:9ca6883ce56b4e8da7e79ac18787889fa5206c79dcc67fb065376cd2fe03f342"
+<<<<<<< HEAD
             ],
             "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'",
             "version": "==1.9.0"
+=======
+            ],
+            "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'",
+            "version": "==1.9.0"
+        },
+        "py-cpuinfo": {
+            "hashes": [
+                "sha256:9aa2e49675114959697d25cf57fec41c29b55887bff3bc4809b44ac6f5730097"
+            ],
+            "version": "==7.0.0"
+>>>>>>> added new package
         },
         "pyparsing": {
             "hashes": [
@@ -365,11 +440,27 @@
         },
         "pytest": {
             "hashes": [
+<<<<<<< HEAD
                 "sha256:0e37f61339c4578776e090c3b8f6b16ce4db333889d65d0efb305243ec544b40",
                 "sha256:c8f57c2a30983f469bf03e68cdfa74dc474ce56b8f280ddcb080dfd91df01043"
             ],
             "index": "pypi",
             "version": "==6.0.2"
+=======
+                "sha256:85228d75db9f45e06e57ef9bf4429267f81ac7c0d742cc9ed63d09886a9fe6f4",
+                "sha256:8b6007800c53fdacd5a5c192203f4e531eb2a1540ad9c752e052ec0f7143dbad"
+            ],
+            "index": "pypi",
+            "version": "==6.0.1"
+        },
+        "pytest-benchmark": {
+            "hashes": [
+                "sha256:01f79d38d506f5a3a0a9ada22ded714537bbdfc8147a881a35c1655db07289d9",
+                "sha256:ad4314d093a3089701b24c80a05121994c7765ce373478c8f4ba8d23c9ba9528"
+            ],
+            "index": "pypi",
+            "version": "==3.2.3"
+>>>>>>> added new package
         },
         "pytest-forked": {
             "hashes": [
@@ -389,11 +480,19 @@
         },
         "pytest-xdist": {
             "hashes": [
+<<<<<<< HEAD
                 "sha256:7c629016b3bb006b88ac68e2b31551e7becf173c76b977768848e2bbed594d90",
                 "sha256:82d938f1a24186520e2d9d3a64ef7d9ac7ecdf1a0659e095d18e596b8cbd0672"
             ],
             "index": "pypi",
             "version": "==2.1.0"
+=======
+                "sha256:340e8e83e2a4c0d861bdd8d05c5d7b7143f6eea0aba902997db15c2a86be04ee",
+                "sha256:ba5d10729372d65df3ac150872f9df5d2ed004a3b0d499cc0164aafedd8c7b66"
+            ],
+            "index": "pypi",
+            "version": "==1.34.0"
+>>>>>>> added new package
         },
         "six": {
             "hashes": [
@@ -412,6 +511,7 @@
         },
         "tox": {
             "hashes": [
+<<<<<<< HEAD
                 "sha256:e6318f404aff16522ff5211c88cab82b39af121735a443674e4e2e65f4e4637b",
                 "sha256:eb629ddc60e8542fd4a1956b2462e3b8771d49f1ff630cecceacaa0fbfb7605a"
             ],
@@ -433,6 +533,21 @@
             ],
             "index": "pypi",
             "version": "==0.35.1"
+=======
+                "sha256:17e61a93afe5c49281fb969ab71f7a3f22d7586d1c56f9a74219910f356fe7d3",
+                "sha256:3d94b6921a0b6dc90fd8128df83741f30bb41ccd6cd52d131a6a6944ca8f16e6"
+            ],
+            "index": "pypi",
+            "version": "==3.19.0"
+        },
+        "virtualenv": {
+            "hashes": [
+                "sha256:7b54fd606a1b85f83de49ad8d80dbec08e983a2d2f96685045b262ebc7481ee5",
+                "sha256:8cd7b2a4850b003a11be2fc213e206419efab41115cc14bca20e69654f2ac08e"
+            ],
+            "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'",
+            "version": "==20.0.30"
+>>>>>>> added new package
         },
         "xmldiff": {
             "hashes": [
@@ -448,7 +563,11 @@
                 "sha256:b52f22895f4cfce194bc8172f3819ee8de7540aa6d873535a8668b730b8b411f"
             ],
             "markers": "python_version >= '3.6'",
+<<<<<<< HEAD
             "version": "==3.2.0"
+=======
+            "version": "==3.1.0"
+>>>>>>> added new package
         }
     }
 }
