@@ -288,10 +288,6 @@ def evaluate(
             )
             output.append(rule_match)
 
-    #print ("\n\nfinal")
-    #for entry in steps_for_debugging:
-    #    for key, val in entry.items():
-    #        print (key, val)
     return output, steps_for_debugging
 
 
