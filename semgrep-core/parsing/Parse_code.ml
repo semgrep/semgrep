@@ -59,6 +59,9 @@ let just_parse_with_lang lang file =
       in
       Go_to_generic.program ast
 
+  | Lang.Csharp ->
+      Parse_csharp_tree_sitter.parse file
+
   | _ -> Parse_generic.parse_with_lang lang file
 
 (*****************************************************************************)

@@ -294,6 +294,7 @@ def main(
     no_git_ignore: bool = False,
     timeout: int = 0,
     max_memory: int = 0,
+    timeout_threshold: int = 0,
 ) -> None:
     if include is None:
         include = []
@@ -355,6 +356,7 @@ def main(
         jobs=jobs,
         timeout=timeout,
         max_memory=max_memory,
+        timeout_threshold=timeout_threshold,
     ).invoke_semgrep(target_manager, all_rules)
 
     output_handler.handle_semgrep_errors(semgrep_errors)

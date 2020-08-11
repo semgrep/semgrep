@@ -148,6 +148,15 @@ def cli() -> None:
         ),
     )
 
+    config.add_argument(
+        "--timeout-threshold",
+        type=int,
+        default=0,
+        help=(
+            "Maximum number of rules that can timeout on a file before the file is skipped. If set to 0 will not have limit. Defaults to 0."
+        ),
+    )
+
     # output options
     output = parser.add_argument_group("output")
 
@@ -308,6 +317,7 @@ def cli() -> None:
         output_destination=args.output,
         error_on_findings=args.error,
         strict=args.strict,
+        timeout_threshold=args.timeout_threshold,
     )
 
     if not args.disable_version_check:
@@ -359,4 +369,5 @@ def cli() -> None:
                 no_git_ignore=args.no_git_ignore,
                 timeout=args.timeout,
                 max_memory=args.max_memory,
+                timeout_threshold=args.timeout_threshold,
             )

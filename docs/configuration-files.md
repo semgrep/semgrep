@@ -90,7 +90,7 @@ All required fields must be present at the top-level of a rule. I.e. immediately
 | `id` | `string` | Unique, descriptive identifier . e.g. `no-unused-variable`. |
 | `message` | `string` | Message highlighting why this rule fired and how to remediate the issue. |
 | `severity` | `string` | One of: `WARNING`, `ERROR`. |
-| `languages` | `array` | Any of: `c`, `go`, `java`, `javascript`, or `python`. |
+| `languages` | `array` | Any of: `c`, `go`, `java`, `javascript`, `python`, or `ruby`. |
 | [`pattern`](configuration-files.md#pattern)_\*_ | `string` | Find code matching this expression. |
 | [`patterns`](configuration-files.md#patterns)_\*_ | `array` | Logical AND of multiple patterns. |
 | [`pattern-either`](configuration-files.md#pattern-either)_\*_ | `array` | Logical OR of multiple patterns. |
