@@ -278,7 +278,7 @@ class TargetManager:
             of all descendant files of directories in TARGET that end in extension
             typical for LANG. If self.INCLUDES is non empty then all files will have an ancestor
             that matches a pattern in self.INCLUDES. Will not include any file that has
-            an ancestor that matches a pattern in self.EXCLUDES. Any explcilty named files
+            an ancestor that matches a pattern in self.EXCLUDES. Any explicitly named files
             in TARGET will bypass this global INCLUDE/EXCLUDE filter. The local INCLUDE/EXCLUDE
             filter is then applied.
         """
