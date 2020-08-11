@@ -45,7 +45,7 @@ Semgrep tl;dr:
 - Combines the speed and customization of `grep` with the precision of traditional static analysis tools
 - No painful domain-specific language; Semgrep rules look like the source code you’re targeting
 - Batteries included with hundreds of existing community rules for OWASP Top 10 issues and common mistakes
-- Run it in CI, at pre-commit, or in the editor
+- Runs in CI, at pre-commit, or in the editor
 - Runs offline on uncompiled code
 
 Semgrep supports:
@@ -83,7 +83,7 @@ Once installed, Semgrep can be run with single rule patterns or entire rule pack
 
 ```sh
 # Check for Python == where the left and right hand sides are the same (often a bug)
-$ semgrep -e `$X==$X` --lang=py path/to/src
+$ semgrep -e `$X == $X` --lang=py path/to/src
 
 # Run a rule pack with rules for many languages
 $ semgrep --config=https://semgrep.dev/p/r2c-CI path/to/src
@@ -100,7 +100,7 @@ Explore the Semgrep Registry of rules and CI integrations at [semgrep.dev](https
 | Enforce the use secure defaults   | [Securely set Flask cookies](https://semgrep.dev/dlukeomalley:flask-set-cookie)                                                                                                                                                                                                                                                                        |
 | Enforce project best-practices    | [Use assertEqual for == checks](https://semgrep.dev/dlukeomalley:use-assertEqual-for-equality), [Always check subprocess calls](https://semgrep.dev/dlukeomalley:unchecked-subprocess-call)                                                                                                                                                            |
 | Codify project-specific knowledge | [Verify transactions before making them](https://semgrep.dev/dlukeomalley:verify-before-make)                                                                                                                                                                                                                                                          |
-| Audit security hotspots           | [Airflow XSS](https://semgrep.live/ievans:airflow-xss), [Hardcoded credentials](https://semgrep.dev/dlukeomalley:hardcoded-credentials)                                                                                                                                                                                                                |
+| Audit security hotspots           | [Finding XSS in Apache Airflow](https://semgrep.live/ievans:airflow-xss), [Hardcoded credentials](https://semgrep.dev/dlukeomalley:hardcoded-credentials)                                                                                                                                                                                                                |
 | Audit configuration files         | [Find S3 ARN uses](https://semgrep.dev/dlukeomalley:s3-arn-use)                                                                                                                                                                                                                                                                                        |
 | Migrate from deprecated APIs      | [DES is deprecated](https://semgrep.dev/editor?registry=java.lang.security.audit.crypto.des-is-deprecated), [Deprecated Flask APIs](https://semgrep.dev/editor?registry=python.flask.maintainability.deprecated.deprecated-apis), [Deprecated Bokeh APIs](https://semgrep.dev/editor?registry=python.bokeh.maintainability.deprecated.deprecated_apis) |
 | Apply automatic fixes             | [Use listenAndServeTLS](https://semgrep.live/clintgibler:use-listenAndServeTLS)                                                                                                                                                                                                                                                                        |
@@ -109,7 +109,7 @@ Explore the Semgrep Registry of rules and CI integrations at [semgrep.dev](https
 
 Learn more:
 
-- [Live editor](https://semgrep.dev/editor)
+- [Live Editor](https://semgrep.dev/editor)
 - [Semgrep Registry](https://semgrep.dev/r)
 - [Documentation](docs/README.md)
 - [r2c YouTube channel](https://www.youtube.com/channel/UC5ahcFBorwzUTqPipFhjkWg) for more videos.
@@ -117,7 +117,7 @@ Learn more:
 Get in touch:
 
 - Submit a [bug report](https://github.com/returntocorp/semgrep/issues)
-- Join the [Semgrep Slack](https://join.slack.com/t/r2c-community/shared_invite/enQtNjU0NDYzMjAwODY4LWE3NTg1MGNhYTAwMzk5ZGRhMjQ2MzVhNGJiZjI1ZWQ0NjQ2YWI4ZGY3OGViMGJjNzA4ODQ3MjEzOWExNjZlNTA) to say "hi" or ask questions
+- Join the [Semgrep Slack](https://r2c.dev/slack) to say "hi" or ask questions
 
 ## Usage
 
