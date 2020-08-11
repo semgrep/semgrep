@@ -1,7 +1,7 @@
 import json
+from xmldiff import main
 from pathlib import Path
 from subprocess import CalledProcessError
-from xml.dom import minidom
 
 import pytest
 
@@ -49,13 +49,13 @@ def test_multiline(run_semgrep_in_tmp, snapshot):
 
 
 def test_junit_xml_output(run_semgrep_in_tmp, snapshot):
-    junit_xml_output = minidom.parseString(
-        run_semgrep_in_tmp("rules/eqeq.yaml", output_format="junit-xml")
-    )
+    actual_output = run_semgrep_in_tmp("rules/eqeq.yaml", output_format="junit-xml")
 
-    snapshot.assert_match(
-        junit_xml_output.toxml(), "results.xml"
-    )
+    f = open(str(snapshot.snapshot_dir) + '/results.xml', "r")
+    expected_output = f.read()
+    f.close()
+
+    assert len(main.diff_texts(expected_output, actual_output)) == 0
 
 
 def test_sarif_output(run_semgrep_in_tmp, snapshot):
