@@ -2,7 +2,7 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [0.19.0]
+## [0.19.0](https://github.com/returntocorp/semgrep/releases/tag/v0.19.0) - 2020-08-11
 
 ### Added
 - `--timeout-threshold` option to set the maximum number of times a file can timeout before it is skipped
