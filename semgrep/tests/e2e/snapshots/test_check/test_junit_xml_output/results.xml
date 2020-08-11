@@ -1,5 +1,4 @@
-<?xml version="1.0" ?>
-<testsuites disabled="0" errors="0" failures="2" tests="2" time="0.0">
+<?xml version="1.0" ?><testsuites disabled="0" errors="0" failures="2" tests="2" time="0.0">
 	<testsuite disabled="0" errors="0" failures="2" name="semgrep results" skipped="0" tests="2" time="0">
 		<testcase file="targets/basic/stupid.py" line="3" name="rules.eqeq-is-bad">
 			<failure message="useless comparison operation `a+b == a+b` or `a+b != a+b`; possible bug?" type="ERROR">['    return a + b == a + b\n']</failure>
@@ -9,4 +8,3 @@
 		</testcase>
 	</testsuite>
 </testsuites>
-
