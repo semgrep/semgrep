@@ -11,6 +11,7 @@ pytest-snapshot = "*"
 pytest-benchmark = "*"
 appdirs = "*"
 pytest-xdist = "*"
+xmldiff = "*"
 
 [packages]
 semgrep = {editable = true,path = "."}
