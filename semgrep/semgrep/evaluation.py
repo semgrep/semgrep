@@ -80,6 +80,9 @@ def get_metavar_debugging_info(
     # flatten list to be based on metavariable name.
     metavars_for_patterns = defaultdict()
     for entry in metavar_list_for_patterns:
+        if not bool(entry): # check if dictionary is empty. Don't call .items on it if it is empty.
+            continue
+
         for key, val in entry.items():
             if key in metavars_for_patterns.keys():
                 metavars_for_patterns[key].append(val)
