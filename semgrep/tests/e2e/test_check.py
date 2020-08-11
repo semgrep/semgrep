@@ -2,6 +2,7 @@ import json
 from xmldiff import main
 from pathlib import Path
 from subprocess import CalledProcessError
+from xml.dom import minidom
 
 import pytest
 
