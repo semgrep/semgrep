@@ -12,6 +12,7 @@ pytest-benchmark = "*"
 appdirs = "*"
 pytest-xdist = "*"
 xmldiff = "*"
+importlib-resources = {version = "*", markers = "python_version < '3.7'"}
 
 [packages]
 semgrep = {editable = true,path = "."}
