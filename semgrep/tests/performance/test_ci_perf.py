@@ -4,7 +4,7 @@ import time
 import pytest
 
 
-# @pytest.mark.qa
+@pytest.mark.qa
 def test_perf(clone_github_repo):
     """
         Simple test that njsscan finishes below a given threshold of time on juice-shop and dvna
