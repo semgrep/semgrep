@@ -108,6 +108,11 @@ def cli() -> None:
         action="store_true",
         help="Scan all files even those ignored by a projects gitignore(s)",
     )
+    parser.add_argument(
+        "--ignore_unknown_extentions",
+        action="store_true",
+        help="By default, explicity passed targets with an extension semgrep does not understand is treated as if it matches all languages. Setting this flag will have semgrep ignore such files.",
+    )
 
     config.add_argument(
         RCE_RULE_FLAG,
@@ -365,4 +370,5 @@ def cli() -> None:
                 timeout=args.timeout,
                 max_memory=args.max_memory,
                 timeout_threshold=args.timeout_threshold,
+                keep_explicit_unknown_extentions=(not args.ignore_unknown_extentions),
             )

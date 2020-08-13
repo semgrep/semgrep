@@ -76,6 +76,10 @@ class TargetManager:
 
         If respect_git_ignore is true then will only consider files that are
         tracked or (untracked but not ignored) by git
+
+        If keep_explicit_unknown_extentions is True then targets with extensions that are
+        not understood by semgrep will always be returned by get_files. Else will discard
+        targets with unknown extensions
     """
 
     includes: List[str]
@@ -83,6 +87,7 @@ class TargetManager:
     targets: List[str]
     respect_git_ignore: bool
     output_handler: OutputHandler
+    keep_explicit_unknown_extentions: bool
 
     _filtered_targets: Dict[str, Set[Path]] = attr.ib(factory=dict)
 
@@ -251,21 +256,23 @@ class TargetManager:
                 FilesNotFoundError(tuple(nonexistent_files))
             )
 
-        # Remove explicit_files with known extensions. Remove non-existent files
-        explicit_files = set(
-            f
-            for f in explicit_files
-            if (
-                any(f.match(f"*.{ext}") for ext in lang_to_exts(lang))
-                or not any(f.match(f"*.{ext}") for ext in ALL_EXTENSIONS)
-            )
-        )
-
         targets = self.expand_targets(directories, lang, self.respect_git_ignore)
         targets = self.filter_includes(targets, self.includes)
         targets = self.filter_excludes(targets, self.excludes)
 
-        self._filtered_targets[lang] = targets.union(explicit_files)
+        if self.keep_explicit_unknown_extentions:
+            # Remove explicit_files with known extensions
+            explicit_files = set(
+                f
+                for f in explicit_files
+                if (
+                    any(f.match(f"*.{ext}") for ext in lang_to_exts(lang))
+                    or not any(f.match(f"*.{ext}") for ext in ALL_EXTENSIONS)
+                )
+            )
+            targets = targets.union(explicit_files)
+
+        self._filtered_targets[lang] = targets
         return self._filtered_targets[lang]
 
     def get_files(
