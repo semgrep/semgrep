@@ -1,0 +1,44 @@
+{
+  "errors": [],
+  "results": [
+    {
+      "check_id": "rules.eqeq-is-bad",
+      "end": {
+        "col": 55,
+        "line": 8
+      },
+      "extra": {
+        "lines": "        SUPER_LONG_CONSTANT_TO_TRIGGER_A_LINE_BREAK\n        == SUPER_LONG_CONSTANT_TO_TRIGGER_A_LINE_BREAK",
+        "message": "useless comparison operation `SUPER_LONG_CONSTANT_TO_TRIGGER_A_LINE_BREAK == SUPER_LONG_CONSTANT_TO_TRIGGER_A_LINE_BREAK` or `SUPER_LONG_CONSTANT_TO_TRIGGER_A_LINE_BREAK != SUPER_LONG_CONSTANT_TO_TRIGGER_A_LINE_BREAK`; possible bug?",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "SUPER_LONG_CONSTANT_TO_TRIGGER_A_LINE_BREAK",
+            "end": {
+              "col": 52,
+              "line": 7,
+              "offset": 158
+            },
+            "start": {
+              "col": 9,
+              "line": 7,
+              "offset": 115
+            },
+            "unique_id": {
+              "kind": "Global",
+              "sid": 1,
+              "type": "id",
+              "value": "SUPER_LONG_CONSTANT_TO_TRIGGER_A_LINE_BREAK"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/multiline/stupid.py",
+      "start": {
+        "col": 9,
+        "line": 7
+      }
+    }
+  ]
+}
