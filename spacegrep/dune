@@ -1,0 +1,5 @@
+(env
+ (default
+  (flags (:standard)))
+ (static
+  (flags (:standard -ccopt -static))))
