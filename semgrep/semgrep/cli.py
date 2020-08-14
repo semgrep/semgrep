@@ -108,6 +108,11 @@ def cli() -> None:
         action="store_true",
         help="Scan all files even those ignored by a projects gitignore(s)",
     )
+    parser.add_argument(
+        "--skip-unknown-extensions",
+        action="store_true",
+        help="Scan only known file extensions, even if unrecognized ones are explicitly targeted.",
+    )
 
     config.add_argument(
         RCE_RULE_FLAG,
@@ -365,4 +370,5 @@ def cli() -> None:
                 timeout=args.timeout,
                 max_memory=args.max_memory,
                 timeout_threshold=args.timeout_threshold,
+                skip_unknown_extensions=args.skip_unknown_extensions,
             )

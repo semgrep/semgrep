@@ -2214,7 +2214,8 @@ and m_class_definition a b =
 (*e: function [[Generic_vs_generic.m_class_definition]] *)
 
 (*s: function [[Generic_vs_generic.m_class_kind]] *)
-and m_class_kind a b =
+and m_class_kind a b = m_wrap m_class_kind_bis a b
+and m_class_kind_bis a b =
   match a, b with
   | A.Class, B.Class ->
     return ()
