@@ -10,19 +10,6 @@ from typing import Dict
 from typing import List
 
 
-def check_release_notes(release: Dict[str, Any], version: str) -> List[str]:
-    if release["prerelease"]:
-        print("Not checking release notes on a pre-release")
-        return []
-    else:
-        errs = []
-        if not "Changed" in release["body"]:
-            errs.append('Missing "Changed" section in release notes')
-        if not "Added" in release["body"]:
-            errs.append('Missing "Added" section in release notes')
-        return errs
-
-
 def asset_for(
     release: Dict[str, Any], f: Callable[[Dict[str, Any]], Any]
 ) -> List[Dict[str, Any]]:
@@ -85,7 +72,6 @@ def validate_checksum(name: str, actual_url: str, checksum_url: str) -> List[str
 
 
 CHECKS = [
-    check_release_notes,
     check_ubuntu_binary,
     check_osx_binary,
     validate_checksums,
