@@ -295,6 +295,7 @@ def main(
     timeout: int = 0,
     max_memory: int = 0,
     timeout_threshold: int = 0,
+    skip_unknown_extensions: bool = False,
 ) -> None:
     if include is None:
         include = []
@@ -348,6 +349,7 @@ def main(
         targets=target,
         respect_git_ignore=respect_git_ignore,
         output_handler=output_handler,
+        skip_unknown_extensions=skip_unknown_extensions,
     )
 
     # actually invoke semgrep
