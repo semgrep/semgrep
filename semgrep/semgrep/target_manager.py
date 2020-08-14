@@ -77,7 +77,7 @@ class TargetManager:
         If respect_git_ignore is true then will only consider files that are
         tracked or (untracked but not ignored) by git
 
-        If keep_explicit_unknown_extentions is True then targets with extensions that are
+        If skip_unknown_extensions is False then targets with extensions that are
         not understood by semgrep will always be returned by get_files. Else will discard
         targets with unknown extensions
     """
@@ -87,7 +87,7 @@ class TargetManager:
     targets: List[str]
     respect_git_ignore: bool
     output_handler: OutputHandler
-    keep_explicit_unknown_extentions: bool
+    skip_unknown_extensions: bool
 
     _filtered_targets: Dict[str, Set[Path]] = attr.ib(factory=dict)
 
@@ -260,7 +260,7 @@ class TargetManager:
         targets = self.filter_includes(targets, self.includes)
         targets = self.filter_excludes(targets, self.excludes)
 
-        if self.keep_explicit_unknown_extentions:
+        if not self.skip_unknown_extensions:
             # Remove explicit_files with known extensions
             explicit_files = set(
                 f
