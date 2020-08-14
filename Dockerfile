@@ -49,6 +49,8 @@ COPY semgrep /semgrep
 RUN HOMEBREW_SYSTEM='NOCORE' python -m pip install /semgrep
 RUN semgrep --version
 
+RUN mkdir -p /src
+RUN chmod 777 /src
 RUN mkdir -p /tmp/.cache
 RUN chmod 777 /tmp/.cache
 
