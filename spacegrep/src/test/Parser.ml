@@ -163,7 +163,6 @@ Punct ')'
 Word 'c'
 ";
 
-
   "mismatched after",
   "\
 a ( ) b { ] c
@@ -182,6 +181,40 @@ Word 'c'
 ]
 
 let pretty_corpus = [
+  "text parens multiline",
+  "\
+Je t'aime (moi
+non plus).
+",
+  "\
+Je
+t
+'
+aime
+(
+moi
+non
+plus
+)
+.
+";
+
+  "text parens same line",
+  "\
+Je t'aime (moi non plus).
+",
+  "\
+Je
+t
+'
+aime
+  (
+  moi
+  non
+  plus
+  )
+.
+"
 ]
 
 let test =
