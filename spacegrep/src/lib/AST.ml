@@ -7,6 +7,8 @@ type atom =
   | Punct of char (* ascii punctuation, including braces *)
   | Byte of char (* everything else, excluding ascii whitespace *)
 
-type t =
+type node =
   | Atom of atom
-  | List of t list
+  | List of node list
+
+type t = node list

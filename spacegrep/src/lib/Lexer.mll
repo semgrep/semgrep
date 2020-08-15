@@ -46,10 +46,10 @@ and tokens = parse
 
   | '(' { Open_paren :: tokens lexbuf }
   | ')' { Close_paren :: tokens lexbuf }
-  | '[' { Open_paren :: tokens lexbuf }
-  | ']' { Close_paren :: tokens lexbuf }
-  | '{' { Open_paren :: tokens lexbuf }
-  | '}' { Close_paren :: tokens lexbuf }
+  | '[' { Open_bracket :: tokens lexbuf }
+  | ']' { Close_bracket :: tokens lexbuf }
+  | '{' { Open_curly :: tokens lexbuf }
+  | '}' { Close_curly :: tokens lexbuf }
   | punct as c { Atom (Punct c) :: tokens lexbuf }
   | newline { [] }
   | _ as c { Atom (Byte c) :: tokens lexbuf }

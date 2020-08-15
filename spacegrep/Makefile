@@ -6,7 +6,7 @@ export DUNE_PROFILE
 
 .PHONY: build
 build:
-	dune build @install --profile $(DUNE_PROFILE)
+	dune build --profile $(DUNE_PROFILE)
 	test -e bin || ln -s _build/install/default/bin .
 
 .PHONY: install

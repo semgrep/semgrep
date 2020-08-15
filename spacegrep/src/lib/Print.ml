@@ -17,28 +17,71 @@ let print_atom buf indent atom =
 let rec print_node buf indent node =
   match node with
   | Atom atom -> print_atom buf indent atom
-  | List nodes -> List.iter (print_node buf (indent ^ "  ")) nodes
+  | List nodes -> print_nodes buf (indent ^ "  ") nodes
 
-let print_root buf node =
-  match node with
-  | Atom _ -> print_node buf "" node
-  | List nodes -> List.iter (print_node buf "") nodes
+and print_nodes buf indent nodes =
+  List.iter (print_node buf indent) nodes
 
-let to_buffer buf node = print_root buf node
+let print_root buf nodes =
+  print_nodes buf "" nodes
 
-let to_string node =
+let to_buffer buf nodes = print_root buf nodes
+
+let to_string nodes =
   let buf = Buffer.create 1000 in
-  to_buffer buf node;
+  to_buffer buf nodes;
   Buffer.contents buf
 
-let to_channel oc node =
-  output_string oc (to_string node)
+let to_channel oc nodes =
+  output_string oc (to_string nodes)
 
-let to_stdout node =
-  to_channel stdout node
+let to_stdout nodes =
+  to_channel stdout nodes
 
-let to_file file node =
+let to_file file nodes =
   let oc = open_out file in
   Fun.protect
     ~finally:(fun () -> close_out_noerr oc)
-    (fun () -> to_channel oc)
+    (fun () -> to_channel oc nodes)
+
+(* Same but using unambiguous output format. *)
+module Debug = struct
+  let print_atom buf indent atom =
+    match atom with
+    | Word s -> bprintf buf "%sWord '%s'\n" indent (String.escaped s)
+    | Punct c -> bprintf buf "%sPunct %C\n" indent c
+    | Byte c -> bprintf buf "%sByte 0x%02x\n" indent (Char.code c)
+
+  let rec print_node buf indent node =
+    match node with
+    | Atom atom -> print_atom buf indent atom
+    | List nodes ->
+        bprintf buf "%sList (\n" indent;
+        print_nodes buf (indent ^ "  ") nodes;
+        bprintf buf "%s)\n" indent
+
+  and print_nodes buf indent nodes =
+    List.iter (print_node buf indent) nodes
+
+  let print_root buf nodes =
+    print_nodes buf "" nodes
+
+  let to_buffer buf nodes = print_root buf nodes
+
+  let to_string nodes =
+    let buf = Buffer.create 1000 in
+    to_buffer buf nodes;
+    Buffer.contents buf
+
+  let to_channel oc nodes =
+    output_string oc (to_string nodes)
+
+  let to_stdout nodes =
+    to_channel stdout nodes
+
+  let to_file file nodes =
+    let oc = open_out file in
+    Fun.protect
+      ~finally:(fun () -> close_out_noerr oc)
+      (fun () -> to_channel oc nodes)
+end

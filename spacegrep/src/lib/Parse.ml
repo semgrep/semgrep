@@ -8,9 +8,12 @@ open Lexer
 open AST
 
 let close_acc acc =
-  match List.rev acc with
-  | [node] -> node
-  | nodes -> List nodes
+  List.rev acc
+
+type pending_brace =
+  | Paren
+  | Bracket
+  | Curly
 
 (*
    Parse a line made of ordinary tokens and of opening and closing braces.
@@ -18,76 +21,76 @@ let close_acc acc =
    opening brace is treated as an ordinary token.
 *)
 let rec parse_line pending_braces acc (tokens : Lexer.token list)
-  : (AST.t * Lexer.token list) option =
+  : (AST.node list * pending_brace list * Lexer.token list) option =
   match tokens with
   | [] ->
       (match pending_braces with
-       | [] -> Some (close_acc acc, [])
+       | [] -> Some (close_acc acc, [], [])
        | _ -> None
       )
   | Atom atom :: tokens ->
       parse_line pending_braces (Atom atom :: acc) tokens
   | Open_paren :: tokens ->
       let res =
-        parse_line (Close_paren :: pending_braces) [Atom (Punct '(')] tokens
+        parse_line (Paren :: pending_braces) [Atom (Punct '(')] tokens
       in
       (match res with
        | None ->
            parse_line pending_braces (Atom (Punct '(') :: acc) tokens
-       | Some (node, tokens) ->
-           parse_line pending_braces (node :: acc) tokens
+       | Some (nodes, pending_braces, tokens) ->
+           parse_line pending_braces (List nodes :: acc) tokens
       )
   | Open_bracket :: tokens ->
       let res =
-        parse_line (Close_bracket :: pending_braces) [Atom (Punct '[')] tokens
+        parse_line (Bracket :: pending_braces) [Atom (Punct '[')] tokens
       in
       (match res with
        | None ->
            parse_line pending_braces (Atom (Punct '[') :: acc) tokens
-       | Some (node, tokens) ->
-           parse_line pending_braces (node :: acc) tokens
+       | Some (nodes, pending_braces, tokens) ->
+           parse_line pending_braces (List nodes :: acc) tokens
       )
   | Open_curly :: tokens ->
       let res =
-        parse_line (Close_curly :: pending_braces) [Atom (Punct '{')] tokens
+        parse_line (Curly :: pending_braces) [Atom (Punct '{')] tokens
       in
       (match res with
        | None ->
            parse_line pending_braces (Atom (Punct '{') :: acc) tokens
-       | Some (node, tokens) ->
-           parse_line pending_braces (node :: acc) tokens
+       | Some (nodes, pending_braces, tokens) ->
+           parse_line pending_braces (List nodes :: acc) tokens
       )
   | Close_paren :: tokens ->
       (match pending_braces with
-       | Close_paren :: pending_braces ->
-           Some (close_acc (Atom (Punct ')') :: acc), tokens)
+       | Paren :: pending_braces ->
+           Some (close_acc (Atom (Punct ')') :: acc), pending_braces, tokens)
+       | (Bracket | Curly) :: _ ->
+           None
        | [] ->
            parse_line pending_braces (Atom (Punct ')') :: acc) tokens
-       | _ ->
-           None
       )
   | Close_bracket :: tokens ->
       (match pending_braces with
-       | Close_bracket :: pending_braces ->
-           Some (close_acc (Atom (Punct ']') :: acc), tokens)
+       | Bracket :: pending_braces ->
+           Some (close_acc (Atom (Punct ']') :: acc), pending_braces, tokens)
+       | (Paren | Curly) :: _ ->
+           None
        | [] ->
            parse_line pending_braces (Atom (Punct ']') :: acc) tokens
-       | _ ->
-           None
       )
   | Close_curly :: tokens ->
       (match pending_braces with
-       | Close_curly :: pending_braces ->
-           Some (close_acc (Atom (Punct '}') :: acc), tokens)
+       | Curly :: pending_braces ->
+           Some (close_acc (Atom (Punct '}') :: acc), pending_braces, tokens)
+       | (Paren | Bracket) :: pending_braces ->
+           None
        | [] ->
            parse_line pending_braces (Atom (Punct '}') :: acc) tokens
-       | _ ->
-           None
       )
 
-let parse_line tokens =
+let parse_line tokens : AST.node list =
   match parse_line [] [] tokens with
-  | Some (node, []) -> node
+  | Some (nodes, [], []) -> nodes
   | Some _ -> assert false
   | None -> assert false
 
@@ -97,29 +100,36 @@ let parse_line tokens =
    More indentation starts a sub-block,
    Less indentation closes the current block.
 *)
-let rec parse_block ind acc lines =
+let rec parse_block ind (acc : AST.node list) (lines : Lexer.line list)
+  : AST.node list * Lexer.line list =
   match lines with
   | [] ->
       (close_acc acc, [])
   | line :: rem_lines ->
       let new_ind = line.indent in
       if new_ind = ind then
-        parse_block ind (parse_line line.tokens :: acc) rem_lines
+        parse_block ind
+          (List.rev_append (parse_line line.tokens) acc)
+          rem_lines
       else if new_ind < ind then
-        List (List.rev acc), lines
+        close_acc acc, lines
       else
-        let node, lines =
-          parse_block new_ind [parse_line line.tokens] rem_lines in
-        parse_block ind (node :: acc) lines
+        let nodes, lines =
+          parse_block new_ind (List.rev (parse_line line.tokens)) rem_lines in
+        parse_block ind (List nodes :: acc) lines
 
-let parse_block lines =
+let parse_root lines =
   match parse_block 0 [] lines with
-  | node, [] -> node
+  | nodes, [] -> nodes
   | _ -> assert false
 
 let of_lexbuf lexbuf =
   let lines = Lexer.lines lexbuf in
-  parse_block lines
+  parse_root lines
+
+let of_string s =
+  let lexbuf = Lexing.from_string s in
+  of_lexbuf lexbuf
 
 let of_channel ic =
   let lexbuf = Lexing.from_channel ic in
