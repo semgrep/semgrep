@@ -1,3 +1,7 @@
+(*
+   Document parsing.
+*)
+
 open Spacegrep
 
 let run_debug input expected_output =

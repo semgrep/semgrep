@@ -29,6 +29,14 @@ let punct = [
   '?' '@' '\\' '^' '`' '|' '~'
 ]
 
+let any_punct = [
+  '!' '"' '#' '$' '%' '&' '\'' '*' '+' ',' '-' '.' '/' ':' ';' '<' '=' '>'
+  '?' '@' '\\' '^' '`' '|' '~'
+  '(' ')'
+  '[' ']'
+  '{' '}'
+]
+
 rule lines = parse
   | indent as s {
       let indent = indent_of_string s in
@@ -53,4 +61,19 @@ and tokens = parse
   | punct as c { Atom (Punct c) :: tokens lexbuf }
   | newline { [] }
   | _ as c { Atom (Byte c) :: tokens lexbuf }
+  | eof { [] }
+
+and pattern = parse
+  | blank { pattern lexbuf }
+  | newline { pattern lexbuf }
+  | "...." '.'* as s { List.init
+                         (String.length s)
+                         (fun _ -> Pattern_AST.Punct '.')
+                       @ pattern lexbuf }
+  | "..." { Pattern_AST.Dots :: pattern lexbuf }
+  | "$"['A'-'Z']['A'-'Z' '0'-'9']* as s { Pattern_AST.Metavar s
+                                          :: pattern lexbuf }
+  | word as s { Pattern_AST.Word s :: pattern lexbuf }
+  | any_punct as c { Pattern_AST.Punct c :: pattern lexbuf }
+  | _ as c { Pattern_AST.Byte c :: pattern lexbuf }
   | eof { [] }
