@@ -33,39 +33,36 @@ let rec parse_line pending_braces acc (tokens : Lexer.token list)
       parse_line pending_braces (Atom atom :: acc) tokens
 
   | Open_paren :: tokens ->
-      let res =
-        parse_line (Paren :: pending_braces) [Atom (Punct '(')] tokens
-      in
+      let res = parse_line (Paren :: pending_braces) [] tokens in
       (match res with
        | None ->
            parse_line pending_braces (Atom (Punct '(') :: acc) tokens
        | Some (nodes, pending_braces, tokens) ->
-           parse_line pending_braces (List nodes :: acc) tokens
+           parse_line pending_braces
+             (Atom (Punct ')') :: List nodes :: Atom (Punct '(') :: acc) tokens
       )
   | Open_bracket :: tokens ->
-      let res =
-        parse_line (Bracket :: pending_braces) [Atom (Punct '[')] tokens
-      in
+      let res = parse_line (Bracket :: pending_braces) [] tokens in
       (match res with
        | None ->
            parse_line pending_braces (Atom (Punct '[') :: acc) tokens
        | Some (nodes, pending_braces, tokens) ->
-           parse_line pending_braces (List nodes :: acc) tokens
+           parse_line pending_braces
+             (Atom (Punct ']') :: List nodes :: Atom (Punct '[') :: acc) tokens
       )
   | Open_curly :: tokens ->
-      let res =
-        parse_line (Curly :: pending_braces) [Atom (Punct '{')] tokens
-      in
+      let res = parse_line (Curly :: pending_braces) [] tokens in
       (match res with
        | None ->
            parse_line pending_braces (Atom (Punct '{') :: acc) tokens
        | Some (nodes, pending_braces, tokens) ->
-           parse_line pending_braces (List nodes :: acc) tokens
+           parse_line pending_braces
+             (Atom (Punct '}') :: List nodes :: Atom (Punct '{') :: acc) tokens
       )
   | Close_paren :: tokens ->
       (match pending_braces with
        | Paren :: pending_braces ->
-           Some (close_acc (Atom (Punct ')') :: acc), pending_braces, tokens)
+           Some (close_acc acc, pending_braces, tokens)
        | (Bracket | Curly) :: _ ->
            None
        | [] ->
@@ -74,7 +71,7 @@ let rec parse_line pending_braces acc (tokens : Lexer.token list)
   | Close_bracket :: tokens ->
       (match pending_braces with
        | Bracket :: pending_braces ->
-           Some (close_acc (Atom (Punct ']') :: acc), pending_braces, tokens)
+           Some (close_acc acc, pending_braces, tokens)
        | (Paren | Curly) :: _ ->
            None
        | [] ->
@@ -83,7 +80,7 @@ let rec parse_line pending_braces acc (tokens : Lexer.token list)
   | Close_curly :: tokens ->
       (match pending_braces with
        | Curly :: pending_braces ->
-           Some (close_acc (Atom (Punct '}') :: acc), pending_braces, tokens)
+           Some (close_acc acc, pending_braces, tokens)
        | (Paren | Bracket) :: pending_braces ->
            None
        | [] ->

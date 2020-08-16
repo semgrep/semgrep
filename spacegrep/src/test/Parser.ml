@@ -71,20 +71,20 @@ a (b [c{}]) d
 ",
   "\
 Word 'a'
+Punct '('
 List (
-  Punct '('
   Word 'b'
+  Punct '['
   List (
-    Punct '['
     Word 'c'
+    Punct '{'
     List (
-      Punct '{'
-      Punct '}'
     )
-    Punct ']'
+    Punct '}'
   )
-  Punct ')'
+  Punct ']'
 )
+Punct ')'
 Word 'd'
 ";
 
@@ -140,11 +140,11 @@ a ( {b} ] c
   "\
 Word 'a'
 Punct '('
+Punct '{'
 List (
-  Punct '{'
   Word 'b'
-  Punct '}'
 )
+Punct '}'
 Punct ']'
 Word 'c'
 ";
@@ -183,10 +183,10 @@ a ( ) b { ] c
 ",
   "\
 Word 'a'
+Punct '('
 List (
-  Punct '('
-  Punct ')'
 )
+Punct ')'
 Word 'b'
 Punct '{'
 Punct ']'
@@ -222,11 +222,11 @@ Je
 t
 '
 aime
-  (
+(
   moi
   non
   plus
-  )
+)
 .
 "
 ]

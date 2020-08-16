@@ -59,11 +59,13 @@ c
 ",
   "a b c";
 
+  "just dots", true, "...", "a b";
   "dots", true, "a...b", "a x y b";
   "unnecessary dots", true, "a...b", "a b";
   "double dots", true, "a...b...c", "a x b x x c";
+  "trailing dots", true, "a ...", "a b";
 
-  "dots in block mismatch", false,
+  "dots in subblock mismatch", false,
   "\
 a
   ...
@@ -75,7 +77,7 @@ a
 b
 ";
 
-  "dots in block match", true,
+  "dots in subblock match", true,
   "\
 a
   ...
@@ -84,6 +86,19 @@ a
   "\
 a
   x
+  b
+  c
+d
+";
+
+  "trailing dots in subblock", true,
+  "\
+a
+  b
+  ...
+",
+  "\
+a
   b
   c
 d
