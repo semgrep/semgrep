@@ -150,6 +150,26 @@ function foo(x, y) {
 }
 ",
   "[ { a: 42 }, { b: 17 } ]";
+
+  "metavariable", true, "$X $X", "yo yo";
+  "metavariable mismatch", false, "$X $X", "a b";
+  "metavariable scope", true,
+  "\
+a
+  $X
+b
+  $X
+",
+  "\
+a
+  x
+b
+  x
+";
+
+  "multiple metavariables", true,
+  "$X $Y $X $Y",
+  "a b a b";
 ]
 
 let matcher_suite =
