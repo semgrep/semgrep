@@ -3,8 +3,16 @@ open Cmdliner
 open Spacegrep
 
 type config = {
+  is_pattern: bool;
   debug: bool;
 }
+
+let is_pattern_term =
+  let info =
+    Arg.info ["pattern"; "p"]
+      ~doc:"Interpret the input as a pattern rather than a document."
+  in
+  Arg.value (Arg.flag info)
 
 let debug_term =
   let info =
@@ -15,10 +23,11 @@ let debug_term =
   Arg.value (Arg.flag info)
 
 let cmdline_term =
-  let combine debug =
-    { debug }
+  let combine is_pattern debug =
+    { is_pattern; debug }
   in
   Term.(const combine
+        $ is_pattern_term
         $ debug_term
        )
 
@@ -49,14 +58,20 @@ let parse_command_line () =
   | `Ok config -> config
 
 let run config =
+  let pat =
+    if config.is_pattern then
+      Parse_pattern.of_stdin ~is_doc:false ()
+    else
+      Parse_pattern.of_stdin ~is_doc:true ()
+      |> Pattern_AST.as_doc
+  in
   let print =
     if config.debug then
       Print.Debug.to_stdout
     else
       Print.to_stdout
   in
-  Parse.of_stdin ()
-  |> print
+  print pat
 
 let main () =
   Printexc.record_backtrace true;

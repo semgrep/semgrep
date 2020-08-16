@@ -6,13 +6,15 @@
 *)
 
 open Printf
-open AST
+open Pattern_AST
 
 let print_atom buf indent atom =
   match atom with
   | Word s -> bprintf buf "%s%s\n" indent s
   | Punct c -> bprintf buf "%s%c\n" indent c
   | Byte c -> bprintf buf "%s0x%02x\n" indent (Char.code c)
+  | Dots -> bprintf buf "%s...\n" indent
+  | Metavar s -> bprintf buf "%s$%s\n" indent s
 
 let rec print_node buf indent node =
   match node with
@@ -51,6 +53,8 @@ module Debug = struct
     | Word s -> bprintf buf "%sWord '%s'\n" indent (String.escaped s)
     | Punct c -> bprintf buf "%sPunct %C\n" indent c
     | Byte c -> bprintf buf "%sByte 0x%02x\n" indent (Char.code c)
+    | Dots -> bprintf buf "%sDots\n" indent
+    | Metavar s -> bprintf buf "%sMetavar %s\n" indent s
 
   let rec print_node buf indent node =
     match node with

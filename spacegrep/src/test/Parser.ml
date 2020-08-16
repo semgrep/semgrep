@@ -5,11 +5,21 @@
 open Spacegrep
 
 let run_debug input expected_output =
-  let output = input |> Parse.of_string |> Print.Debug.to_string in
+  let output =
+    input
+    |> Parse_pattern.of_string ~is_doc:true
+    |> Pattern_AST.as_doc
+    |> Print.Debug.to_string
+  in
   Alcotest.(check string) "equal" expected_output output
 
 let run_pretty input expected_output =
-  let output = input |> Parse.of_string |> Print.to_string in
+  let output =
+    input
+    |> Parse_pattern.of_string ~is_doc:true
+    |> Pattern_AST.as_doc
+    |> Print.to_string
+  in
   Alcotest.(check string) "equal" expected_output output
 
 let debug_corpus = [

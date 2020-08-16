@@ -2,15 +2,39 @@
    AST for a pattern to be matched against a document.
 *)
 
-type node =
-  | Word of string
-  | Punct of char
-  | Byte of char
-  | Metavar of string
+type atom =
+  | Word of string (* ascii words [A-Za-z0-9_]+ *)
+  | Punct of char (* ascii punctuation, including braces *)
+  | Byte of char (* everything else, excluding ascii whitespace *)
   | Dots
+  | Metavar of string
+
+type node =
+  | Atom of atom
+  | List of node list
+
+type t = node list
 
 (*
-   A pattern is a flat sequence of tokens.
-   Indentation in the input pattern is ignored.
+   Ignore the special meaning of Dots and Metavars.
+   This is intended for pretty-printing documents using the same printer
+   as for patterns.
+   See also Doc_AST.of_pattern which does the same thing but maps to
+   a different type.
 *)
-type t = node list
+let rec as_doc (pat : t) : t =
+  match pat with
+  | [] -> []
+  | Atom atom :: pat ->
+      (match atom with
+       | Word s -> Atom (Word s) :: as_doc pat
+       | Punct c -> Atom (Punct c) :: as_doc pat
+       | Byte c -> Atom (Byte c) :: as_doc pat
+       | Dots ->
+           Atom (Punct '.') :: Atom (Punct '.') :: Atom (Punct '.')
+           :: as_doc pat
+       | Metavar s ->
+           Atom (Punct '$') :: Atom (Word s)
+           :: as_doc pat
+      )
+  | List pat1 :: pat2 -> List (as_doc pat1) :: as_doc pat2

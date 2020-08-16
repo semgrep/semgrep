@@ -1,6 +1,7 @@
 {
 type token =
-  | Atom of AST.atom
+  | Atom of Pattern_AST.atom
+
   | Open_paren | Close_paren
   | Open_bracket | Close_bracket
   | Open_curly | Close_curly
@@ -24,17 +25,10 @@ let indent = [' ' '\t']*
 let blank = [' ' '\t']+
 let newline = '\r'? '\n'
 let word = ['A'-'Z' 'a'-'z' '0'-'9' '_']+
+let capitalized_word = ['A'-'Z']['A'-'Z' 'a'-'z' '0'-'9' '_']*
 let punct = [
   '!' '"' '#' '$' '%' '&' '\'' '*' '+' ',' '-' '.' '/' ':' ';' '<' '=' '>'
   '?' '@' '\\' '^' '`' '|' '~'
-]
-
-let any_punct = [
-  '!' '"' '#' '$' '%' '&' '\'' '*' '+' ',' '-' '.' '/' ':' ';' '<' '=' '>'
-  '?' '@' '\\' '^' '`' '|' '~'
-  '(' ')'
-  '[' ']'
-  '{' '}'
 ]
 
 rule lines = parse
@@ -58,22 +52,15 @@ and tokens = parse
   | ']' { Close_bracket :: tokens lexbuf }
   | '{' { Open_curly :: tokens lexbuf }
   | '}' { Close_curly :: tokens lexbuf }
+  | "...." '.'* as s {
+      List.init
+        (String.length s)
+        (fun _ -> Atom (Punct '.'))
+      @ tokens lexbuf
+    }
+  | "..." { Atom Dots :: tokens lexbuf }
+  | '$' (capitalized_word as s) { Atom (Metavar s) :: tokens lexbuf }
   | punct as c { Atom (Punct c) :: tokens lexbuf }
   | newline { [] }
   | _ as c { Atom (Byte c) :: tokens lexbuf }
-  | eof { [] }
-
-and pattern = parse
-  | blank { pattern lexbuf }
-  | newline { pattern lexbuf }
-  | "...." '.'* as s { List.init
-                         (String.length s)
-                         (fun _ -> Pattern_AST.Punct '.')
-                       @ pattern lexbuf }
-  | "..." { Pattern_AST.Dots :: pattern lexbuf }
-  | "$"['A'-'Z']['A'-'Z' '0'-'9']* as s { Pattern_AST.Metavar s
-                                          :: pattern lexbuf }
-  | word as s { Pattern_AST.Word s :: pattern lexbuf }
-  | any_punct as c { Pattern_AST.Punct c :: pattern lexbuf }
-  | _ as c { Pattern_AST.Byte c :: pattern lexbuf }
   | eof { [] }
