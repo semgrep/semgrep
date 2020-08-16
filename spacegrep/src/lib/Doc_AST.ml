@@ -26,11 +26,11 @@ let rec of_pattern (pat : Pattern_AST.t) : t =
        | Word s -> Atom (Word s) :: of_pattern pat
        | Punct c -> Atom (Punct c) :: of_pattern pat
        | Byte c -> Atom (Byte c) :: of_pattern pat
-       | Dots ->
-           Atom (Punct '.') :: Atom (Punct '.') :: Atom (Punct '.')
-           :: of_pattern pat
        | Metavar s ->
            Atom (Punct '$') :: Atom (Word s)
            :: of_pattern pat
       )
+  | Dots :: pat ->
+      Atom (Punct '.') :: Atom (Punct '.') :: Atom (Punct '.')
+      :: of_pattern pat
   | List pat1 :: pat2 -> List (of_pattern pat1) :: of_pattern pat2

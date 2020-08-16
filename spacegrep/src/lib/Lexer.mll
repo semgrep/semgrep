@@ -1,7 +1,7 @@
 {
 type token =
   | Atom of Pattern_AST.atom
-
+  | Dots
   | Open_paren | Close_paren
   | Open_bracket | Close_bracket
   | Open_curly | Close_curly
@@ -58,7 +58,7 @@ and tokens = parse
         (fun _ -> Atom (Punct '.'))
       @ tokens lexbuf
     }
-  | "..." { Atom Dots :: tokens lexbuf }
+  | "..." { Dots :: tokens lexbuf }
   | '$' (capitalized_word as s) { Atom (Metavar s) :: tokens lexbuf }
   | punct as c { Atom (Punct c) :: tokens lexbuf }
   | newline { [] }

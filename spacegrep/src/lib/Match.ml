@@ -9,8 +9,8 @@
 
    i.e. if the user bothers indenting their pattern, we honor this constraint.
 
-   Example 1
-   ---------
+   Example
+   -------
 
    pattern:
 
@@ -32,31 +32,6 @@
      {
        a; }
 
-   Example 2
-   ---------
-
-   pattern:
-
-     f(x) {
-       a;
-     }
-
-   matching document:
-
-     f(x) {
-         a;
-     }
-
-   non-matching document:
-
-     f(x) { a; }
-
-   because the latter non-matching document is interpreted as:
-
-     f(a)
-       {
-       a;
-       }
 *)
 
 open Doc_AST
@@ -67,6 +42,13 @@ type match_result =
   | Incomplete of Pattern_AST.node list
   | Fail
 
+let rec is_empty_doc (doc : Doc_AST.node list) =
+  match doc with
+  | [] -> true
+  | Atom _ :: _ -> false
+  | List [] :: _ -> assert false
+  | List doc1 :: doc2 -> is_empty_doc doc1 && is_empty_doc doc2
+
 (*
    Match a pattern against a document tree.
 *)
@@ -75,7 +57,11 @@ let rec match_
     (pat : Pattern_AST.node list )
     (doc : Doc_AST.node list) : match_result =
   match pat, doc with
-  | [], _ -> Complete
+  | [], _ ->
+      if dots || is_empty_doc doc then
+        Complete
+      else
+        Fail
 
   | List pat1 :: pat2, List doc1 :: doc2 ->
       (* Indented block coincides with an indented block in the document.
@@ -97,6 +83,8 @@ let rec match_
       assert (pat1 <> []);
       Incomplete pat
 
+  | Dots :: next_pat, doc -> match_ ~dots:true next_pat doc
+
   | Atom p :: next_pat, doc ->
       match doc with
       | [] -> Incomplete pat
@@ -113,7 +101,6 @@ let rec match_
           )
       | Atom d :: next_doc ->
           match p, d with
-          | Dots, _ -> match_ ~dots:true next_pat doc
           | Metavar _, _ -> failwith "support for '$VAR' was not implemented"
           | Word a, Word b when a = b -> match_ ~dots:false next_pat next_doc
           | Punct a, Punct b when a = b -> match_ ~dots:false next_pat next_doc
@@ -127,7 +114,7 @@ let rec match_
                 Fail
 
 let search pat doc =
-  match match_ ~dots:true pat doc with
+  match match_ ~dots:true (pat @ [Dots]) doc with
   | Complete -> true
   | Incomplete _
   | Fail -> false

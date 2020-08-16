@@ -29,6 +29,9 @@ let rec parse_line pending_braces acc (tokens : Lexer.token list)
        | _ -> None
       )
 
+  | Dots :: tokens ->
+      parse_line pending_braces (Dots :: acc) tokens
+
   | Atom atom :: tokens ->
       parse_line pending_braces (Atom atom :: acc) tokens
 
@@ -100,6 +103,7 @@ let parse_pattern_line (tokens : Lexer.token list) : Pattern_AST.node list =
   List.map (fun (token : Lexer.token) ->
     match token with
     | Atom atom -> Atom atom
+    | Dots -> Dots
     | Open_paren -> Atom (Punct '(')
     | Close_paren -> Atom (Punct ')')
     | Open_bracket -> Atom (Punct '(')

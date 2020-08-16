@@ -23,9 +23,9 @@ $Var_0
       Atom (Word "Hello"); Atom (Punct ','); Atom (Punct '(');
       Atom (Word "world"); Atom (Punct ')'); Atom (Punct '.');
 
-      List [Atom (Word "foo"); Atom Dots; Atom (Word "bar")];
+      List [Atom (Word "foo"); Dots; Atom (Word "bar")];
 
-      Atom (Word "more"); Atom (Word "things"); Atom Dots;
+      Atom (Word "more"); Atom (Word "things"); Dots;
       Atom (Metavar "Var_0")
     ]
   )
@@ -62,6 +62,7 @@ c
   "just dots", true, "...", "a b";
   "dots", true, "a...b", "a x y b";
   "unnecessary dots", true, "a...b", "a b";
+  "overnumerous dots", true, "a ... ... c", "a b c";
   "double dots", true, "a...b...c", "a x b x x c";
   "trailing dots", true, "a ...", "a b";
 
@@ -87,8 +88,7 @@ a
 a
   x
   b
-  c
-d
+c
 ";
 
   "trailing dots in subblock", true,
@@ -96,6 +96,19 @@ d
 a
   b
   ...
+",
+  "\
+a
+  b
+  c
+d
+";
+
+  "missing trailing dots in subblock", false,
+  "\
+a
+  b
+d
 ",
   "\
 a
