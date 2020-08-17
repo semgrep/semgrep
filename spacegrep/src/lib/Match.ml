@@ -110,18 +110,18 @@ let rec match_
       match doc with
       | [] -> cont ~dots env pat
       | doc_head :: doc_tail ->
-          let match_result =
-            match doc_head with
-            | List sub_doc ->
-                (* Indented block in the document doesn't have to match
-                   indented block in the pattern. We just continue matching
-                   in the block. *)
-                match_ ~dots env pat sub_doc (fun ~dots env pat ->
-                  (* The sub-block was matched but some of the pattern wasn't
-                     consumed. We continue, in the sub-block's parent. *)
-                  match_ ~dots env pat doc_tail cont
-                )
-            | Atom d ->
+          match doc_head with
+          | List sub_doc ->
+              (* Indented block in the document doesn't have to match
+                 indented block in the pattern. We just continue matching
+                 in the block as if the document was flat. *)
+              match_ ~dots env pat sub_doc (fun ~dots env pat ->
+                (* The sub-block was matched but some of the pattern wasn't
+                   consumed. We continue, in the sub-block's parent. *)
+                match_ ~dots env pat doc_tail cont
+              )
+          | Atom d ->
+              let match_result =
                 match p, d with
                 | Metavar name, Word value ->
                     (match Env.find_opt name env with
@@ -148,16 +148,16 @@ let rec match_
                     match_ ~dots:false env pat_tail doc_tail cont
                 | _ ->
                     Fail
-          in
-          match match_result with
-          | Complete _ -> match_result
-          | Fail ->
-              (* Pattern doesn't match document.
-                 Skip document's head node if we're allowed to. *)
-              if dots then
-                match_ ~dots env pat doc_tail cont
-              else
-                Fail
+              in
+              match match_result with
+              | Complete _ -> match_result
+              | Fail ->
+                  (* Pattern doesn't match document.
+                     Skip document's head node if we're allowed to. *)
+                  if dots then
+                    match_ ~dots env pat doc_tail cont
+                  else
+                    Fail
 
 let search pat doc =
   match match_ ~dots:true Env.empty (pat @ [Dots]) doc full_match with
