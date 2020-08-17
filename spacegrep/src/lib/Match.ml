@@ -37,6 +37,8 @@
 open Doc_AST
 open Pattern_AST
 
+let debug = ref false
+
 (* Map from metavariables to their captured value, which is a Word. *)
 module Env = Map.Make (String)
 type env = string Env.t
@@ -70,6 +72,8 @@ let rec match_
     (doc : Doc_AST.node list)
     (cont : dots:bool -> env -> Pattern_AST.node list -> match_result)
   : match_result =
+  if !debug then
+    Print_match.print pat doc;
   match pat, doc with
   | [], _ ->
       if dots || doc = [] then
@@ -99,6 +103,7 @@ let rec match_
            else
              Fail
       )
+
   | Dots :: pat_tail, doc -> match_ ~dots:true env pat_tail doc cont
 
   | Atom p :: pat_tail, doc ->

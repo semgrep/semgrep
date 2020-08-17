@@ -7,15 +7,25 @@ open Cmdliner
 open Spacegrep
 
 type config = {
+  debug: bool;
   pattern: string;
 }
 
 let run config =
   let pat = Parse_pattern.of_string config.pattern in
   let doc = Parse_doc.of_stdin () in
+  if config.debug then
+    Match.debug := true;
   match Match.search pat doc with
   | true -> exit 0
   | false -> exit 1
+
+let debug_term =
+  let info =
+    Arg.info ["debug"]
+      ~doc:"Print debugging information during matching."
+  in
+  Arg.value (Arg.flag info)
 
 let pattern_term =
   let info =
@@ -43,10 +53,11 @@ let pattern_term =
   Arg.value (Arg.pos 0 Arg.string "" info)
 
 let cmdline_term =
-  let combine pattern =
-    { pattern }
+  let combine debug pattern =
+    { debug; pattern }
   in
   Term.(const combine
+        $ debug_term
         $ pattern_term
        )
 
