@@ -40,6 +40,7 @@ let matcher_corpus = [
   "word", true, "hello", "hello";
   "simple fail", false, "a", "ab cd";
   "sequence", true, "a b", "a b c";
+  "stutter", true, "a b", "a a b";
   "cover parenthesized block", true, "a (b c) d", "a (b c) d";
 
   "cover indented block", true, "a b c d e",
