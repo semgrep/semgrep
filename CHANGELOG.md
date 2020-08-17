@@ -2,6 +2,15 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## NEXT version
+
+### Added
+- support for JSX tag metavariables (e.g., <$TAG />) and ellipsis inside
+  JSX attributes (e.g., <foo attr=... />)
+
+### Fixed
+- Python patterns do not have to finish anymore with a newline
+
 ## [0.19.1](https://github.com/returntocorp/semgrep/releases/tag/v0.19.1) - 2020-08-13
 
 ### Fixed
