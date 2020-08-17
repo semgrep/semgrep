@@ -47,4 +47,4 @@ def test_perf(clone_github_repo):
     )
     duration = time.time() - start
     print(duration)
-    assert duration < 275
+    assert duration < 300
