@@ -1,3 +1,7 @@
+(*
+   Entrypoint for the 'spacecat' command.
+*)
+
 open Printf
 open Cmdliner
 open Spacegrep
@@ -43,6 +47,8 @@ let man = [
   `S Manpage.s_bugs;
   `P "Check out bug reports at \
       https://github.com/returntocorp/spacegrep/issues.";
+  `S Manpage.s_see_also;
+  `P "spacegrep(1)"
 ]
 
 let parse_command_line () =
