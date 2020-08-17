@@ -263,18 +263,20 @@ PASSING_REPOS = [
         "repo": "https://github.com/home-assistant/home-assistant",
         "languages": ALL_LANGUAGES,
     },
-    {
-        "repo": "https://github.com/dropbox/incubator-superset-internal",
-        "languages": ALL_LANGUAGES,
-    },
-    {
-        "repo": "https://github.com/apache/incubator-superset",
-        "languages": ALL_LANGUAGES,
-    },
     {"repo": "https://github.com/jekyll/jekyll", "languages": ["ruby"]},
 ]
 
 FAILING_REPOS = [
+    xfail_repo(
+        {
+            "repo": "https://github.com/dropbox/incubator-superset-internal",
+            "languages": ALL_LANGUAGES,
+        },
+        reason=(
+            "https://github.com/returntocorp/semgrep/issues/1518",
+            "https://github.com/returntocorp/semgrep/issues/1519",
+        ),
+    ),
     xfail_repo(
         {
             "repo": "https://github.com/coinbase/react-coinbase-commerce",
