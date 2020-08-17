@@ -221,6 +221,14 @@ let rec equal_ast_binded_code (a: AST.any) (b: AST.any) : bool = (
       a =*= b
   | A.I _, A.E (A.Id (b_id, _)) ->
     (* Allow identifier nodes to match pure identifier expressions *)
+
+    (* You should prefer to add metavar as expression (A.E), not id (A.I),
+     * (see Generic_vs_generic.m_ident_and_id_info_add_in_env_Expr)
+     * but in some cases you have no choice and you need to match an expression
+     * metavar with an id metavar.
+     * For example, we want the pattern 'const $X = foo.$X' to match 'const bar = foo.bar'
+     * (this is useful in the Javascript transpilation context of complex pattern parameter).
+     *)
       equal_ast_binded_code a (A.I b_id)
   | _, _ ->
       false
