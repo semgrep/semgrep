@@ -41,25 +41,23 @@ $Var_0
 let search pat doc_src doc =
   let matches = Match.search pat doc in
   Match.print doc_src matches;
-  match matches with
-  | [] -> false
-  | _ -> true
+  List.length matches
 
-let run matches pat_str doc_str =
+let run num_matches pat_str doc_str =
   let pat = Src_file.of_string pat_str |> Parse_pattern.of_src in
   let doc_src = Src_file.of_string doc_str in
   let doc = Parse_doc.of_src doc_src in
-  Alcotest.(check bool) "match" matches (search pat doc_src doc)
+  Alcotest.(check int) "number of matches" num_matches (search pat doc_src doc)
 
 let matcher_corpus = [
-  "empty pattern", true, "", "x";
-  "word", true, "hello", "hello";
-  "simple fail", false, "a", "ab cd";
-  "sequence", true, "a b", "a b c";
-  "stutter", true, "a b", "a a b";
-  "cover parenthesized block", true, "a (b c) d", "a (b c) d";
+  "empty pattern", 1, "", "x";
+  "word", 1, "hello", "hello";
+  "simple fail", 0, "a", "ab cd";
+  "sequence", 1, "a b", "a b c";
+  "stutter", 1, "a b", "a a b";
+  "cover parenthesized block", 1, "a (b c) d", "a (b c) d";
 
-  "cover indented block", true, "a b c d e",
+  "cover indented block", 1, "a b c d e",
   "\
 a
   b
@@ -68,7 +66,7 @@ a
 e
 ";
 
-  "indented pattern", false,
+  "indented pattern", 0,
   "\
 a
   b
@@ -76,14 +74,15 @@ c
 ",
   "a b c";
 
-  "just dots", true, "...", "a b";
-  "dots", true, "a...b", "a x y b";
-  "unnecessary dots", true, "a...b", "a b";
-  "overnumerous dots", true, "a ... ... c", "a b c";
-  "double dots", true, "a...b...c", "a x b x x c";
-  "trailing dots", true, "a ...", "a b";
+  "multiple matches", 3, "a", "a a a";
+  "just dots", 1, "...", "a b";
+  "dots", 1, "a...b", "a x y b";
+  "unnecessary dots", 1, "a...b", "a b";
+  "overnumerous dots", 1, "a ... ... c", "a b c";
+  "double dots", 1, "a...b...c", "a x b x x c";
+  "trailing dots", 1, "a ...", "a b";
 
-  "dots in subblock mismatch", false,
+  "dots in subblock mismatch", 0,
   "\
 a
   ...
@@ -95,7 +94,7 @@ a
 b
 ";
 
-  "dots in subblock match", true,
+  "dots in subblock match", 1,
   "\
 a
   ...
@@ -108,7 +107,7 @@ a
 c
 ";
 
-  "trailing dots in subblock", true,
+  "trailing dots in subblock", 1,
   "\
 a
   b
@@ -121,7 +120,7 @@ a
 d
 ";
 
-  "missing trailing dots in subblock", false,
+  "missing trailing dots in subblock", 0,
   "\
 a
   b
@@ -134,7 +133,7 @@ a
 d
 ";
 
-  "code match", true,
+  "code match", 1,
   "function foo(x, y) { x = 42; ... y = x + 3; ... }",
   "\
 /* This program does nothing useful. */
@@ -146,7 +145,7 @@ function foo(x, y) {
 }
 ";
 
-  "match in same block", true,
+  "match in same block", 1,
   "\
 {
   a: 42
@@ -155,9 +154,9 @@ function foo(x, y) {
   ...
 }
 ",
-  "[ { a: 42, x: true, b: 17 }, {} ]";
+  "[ { a: 42, x: 1, b: 17 }, {} ]";
 
-  "mismatch due to different blocks", false,
+  "mismatch due to different blocks", 0,
   "\
 {
   a: 42
@@ -168,9 +167,9 @@ function foo(x, y) {
 ",
   "[ { a: 42 }, { b: 17 } ]";
 
-  "metavariable", true, "$X $X", "yo yo";
-  "metavariable mismatch", false, "$X $X", "a b";
-  "metavariable scope", true,
+  "metavariable", 1, "$X $X", "yo yo";
+  "metavariable mismatch", 0, "$X $X", "a b";
+  "metavariable scope", 1,
   "\
 a
   $X
@@ -184,7 +183,7 @@ b
   x
 ";
 
-  "multiple metavariables", true,
+  "multiple metavariables", 1,
   "$X $Y $X $Y",
   "a b a b";
 ]

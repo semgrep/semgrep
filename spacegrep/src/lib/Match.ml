@@ -93,7 +93,10 @@ let rec match_
         Fail
 
   | [End], _ ->
-      Complete (env, last_loc)
+      if dots then
+        Complete (env, extend_last_loc last_loc doc)
+      else
+        Complete (env, last_loc)
 
   | End :: _, _ -> assert false
 
