@@ -7,6 +7,8 @@ let test_suites : unit Alcotest.test list = [
   Matcher.test;
 ]
 
-let main () = Alcotest.run "spacegrep" test_suites
+let main () =
+  Spacegrep.Match.debug := true;
+  Alcotest.run "spacegrep" test_suites
 
 let () = main ()

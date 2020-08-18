@@ -7,7 +7,8 @@ open Spacegrep
 let run_debug input expected_output =
   let output =
     input
-    |> Parse_pattern.of_string ~is_doc:true
+    |> Src_file.of_string
+    |> Parse_pattern.of_src ~is_doc:true
     |> Pattern_AST.as_doc
     |> Print.Debug.to_string
   in
@@ -16,7 +17,8 @@ let run_debug input expected_output =
 let run_pretty input expected_output =
   let output =
     input
-    |> Parse_pattern.of_string ~is_doc:true
+    |> Src_file.of_string
+    |> Parse_pattern.of_src ~is_doc:true
     |> Pattern_AST.as_doc
     |> Print.to_string
   in
@@ -241,4 +243,4 @@ let test =
       name, `Quick, (fun () -> run_pretty input expected_output)
     ) pretty_corpus
   in
- "Parser", suite
+  "Parser", suite

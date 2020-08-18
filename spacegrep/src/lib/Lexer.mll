@@ -47,14 +47,14 @@ rule lines = parse
 
 and tokens = parse
   | blank { tokens lexbuf }
-  | word as s { Atom (loc lexbuf, Word s) :: tokens lexbuf }
+  | word as s { let loc = loc lexbuf in Atom (loc, Word s) :: tokens lexbuf }
 
-  | '(' { Open_paren (loc lexbuf) :: tokens lexbuf }
-  | ')' { Close_paren (loc lexbuf) :: tokens lexbuf }
-  | '[' { Open_bracket (loc lexbuf) :: tokens lexbuf }
-  | ']' { Close_bracket (loc lexbuf) :: tokens lexbuf }
-  | '{' { Open_curly (loc lexbuf) :: tokens lexbuf }
-  | '}' { Close_curly (loc lexbuf) :: tokens lexbuf }
+  | '(' { let loc = loc lexbuf in Open_paren loc :: tokens lexbuf }
+  | ')' { let loc = loc lexbuf in Close_paren loc :: tokens lexbuf }
+  | '[' { let loc = loc lexbuf in Open_bracket loc :: tokens lexbuf }
+  | ']' { let loc = loc lexbuf in Close_bracket loc :: tokens lexbuf }
+  | '{' { let loc = loc lexbuf in Open_curly loc :: tokens lexbuf }
+  | '}' { let loc = loc lexbuf in Close_curly loc :: tokens lexbuf }
   | "...." '.'* as s {
       let pos0 = Lexing.lexeme_start_p lexbuf in
       List.init
@@ -64,11 +64,12 @@ and tokens = parse
            Atom (loc, Punct '.'))
       @ tokens lexbuf
     }
-  | "..." { Dots (loc lexbuf) :: tokens lexbuf }
+  | "..." { let loc = loc lexbuf in Dots loc :: tokens lexbuf }
   | '$' (capitalized_word as s) {
-      Atom (loc lexbuf, Metavar s) :: tokens lexbuf
+      let loc = loc lexbuf in
+      Atom (loc, Metavar s) :: tokens lexbuf
     }
-  | punct as c { Atom (loc lexbuf, Punct c) :: tokens lexbuf }
-  | newline { [] }
-  | _ as c { Atom (loc lexbuf, Byte c) :: tokens lexbuf }
+  | punct as c { let loc = loc lexbuf in Atom (loc, Punct c) :: tokens lexbuf }
+  | newline { Lexing.new_line lexbuf; [] }
+  | _ as c { let loc = loc lexbuf in Atom (loc, Byte c) :: tokens lexbuf }
   | eof { [] }

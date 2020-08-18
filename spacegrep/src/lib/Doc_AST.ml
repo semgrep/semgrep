@@ -21,6 +21,7 @@ type t = node list
 let rec of_pattern (pat : Pattern_AST.t) : t =
   match pat with
   | [] -> []
+  | End :: pat -> of_pattern pat
   | Atom (loc, atom) :: pat ->
       (match atom with
        | Word s -> Atom (loc, Word s) :: of_pattern pat

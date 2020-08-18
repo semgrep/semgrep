@@ -22,7 +22,8 @@ more things ...
 $Var_0
 "
   in
-  let pat = Parse_pattern.of_string pat_str in
+  let pat_src = Src_file.of_string pat_str in
+  let pat = Parse_pattern.of_src pat_src in
   assert (
     Pattern_AST.eq pat
       [
@@ -32,17 +33,26 @@ $Var_0
         List [word "foo"; dots; word "bar"];
 
         word "more"; word "things"; dots;
-        metavar "Var_0"
+        metavar "Var_0";
+        End;
       ]
   )
 
+let search pat doc_src doc =
+  let matches = Match.search pat doc in
+  Match.print doc_src matches;
+  match matches with
+  | [] -> false
+  | _ -> true
+
 let run matches pat_str doc_str =
-  let pat = Parse_pattern.of_string pat_str in
-  let doc = Parse_doc.of_string doc_str in
-  Alcotest.(check bool) "match" matches (Match.search pat doc)
+  let pat = Src_file.of_string pat_str |> Parse_pattern.of_src in
+  let doc_src = Src_file.of_string doc_str in
+  let doc = Parse_doc.of_src doc_src in
+  Alcotest.(check bool) "match" matches (search pat doc_src doc)
 
 let matcher_corpus = [
-  "empty", true, "", "";
+  "empty pattern", true, "", "x";
   "word", true, "hello", "hello";
   "simple fail", false, "a", "ab cd";
   "sequence", true, "a b", "a b c";

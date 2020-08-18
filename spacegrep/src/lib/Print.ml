@@ -20,6 +20,7 @@ let rec print_node buf indent node =
   | Atom (_loc, atom) -> print_atom buf indent atom
   | List nodes -> print_nodes buf (indent ^ "  ") nodes
   | Dots _loc -> bprintf buf "%s...\n" indent
+  | End -> ()
 
 and print_nodes buf indent nodes =
   List.iter (print_node buf indent) nodes
@@ -63,6 +64,7 @@ module Debug = struct
         print_nodes buf (indent ^ "  ") nodes;
         bprintf buf "%s)\n" indent
     | Dots _loc -> bprintf buf "%sDots\n" indent
+    | End -> bprintf buf "%sEnd\n" indent
 
   and print_nodes buf indent nodes =
     List.iter (print_node buf indent) nodes

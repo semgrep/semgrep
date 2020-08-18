@@ -12,13 +12,17 @@ type config = {
 }
 
 let run config =
-  let pat = Parse_pattern.of_string config.pattern in
-  let doc = Parse_doc.of_stdin () in
+  let pat_src = Src_file.of_string config.pattern in
+  let pat = Parse_pattern.of_src pat_src in
+  let doc_src = Src_file.of_stdin () in
+  let doc = Parse_doc.of_src doc_src in
   if config.debug then
     Match.debug := true;
-  match Match.search pat doc with
-  | true -> exit 0
-  | false -> exit 1
+  let matches = Match.search pat doc in
+  Match.print doc_src matches;
+  match matches with
+  | [] -> exit 1
+  | _ -> exit 0
 
 let debug_term =
   let info =

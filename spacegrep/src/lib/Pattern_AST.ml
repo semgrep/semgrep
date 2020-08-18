@@ -12,6 +12,8 @@ type node =
   | Atom of Loc.t * atom
   | List of node list
   | Dots of Loc.t
+  | End (* used to mark the end of the root pattern, so as to distinguish
+           it from the end of a sub-pattern. *)
 
 type t = node list
 
@@ -25,6 +27,7 @@ type t = node list
 let rec as_doc (pat : t) : t =
   match pat with
   | [] -> []
+  | End :: pat -> as_doc pat
   | Atom (loc, atom) :: pat ->
       (match atom with
        | Word s -> Atom (loc, Word s) :: as_doc pat
@@ -59,6 +62,7 @@ let rec eq a b =
        | Atom (_, a), Atom (_, b) -> a = b
        | List a, List b -> eq a b
        | Dots _, Dots _ -> true
+       | End, End -> true
        | _ -> false
       ) && eq a_tail b_tail
   | _ -> false

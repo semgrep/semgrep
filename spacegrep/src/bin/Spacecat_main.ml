@@ -64,11 +64,12 @@ let parse_command_line () =
   | `Ok config -> config
 
 let run config =
+  let src = Src_file.of_stdin () in
   let pat =
     if config.is_pattern then
-      Parse_pattern.of_stdin ~is_doc:false ()
+      Parse_pattern.of_src ~is_doc:false src
     else
-      Parse_pattern.of_stdin ~is_doc:true ()
+      Parse_pattern.of_src ~is_doc:true src
       |> Pattern_AST.as_doc
   in
   let print =

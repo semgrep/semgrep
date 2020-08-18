@@ -15,6 +15,7 @@ let rec show_pat_node (pat_node : Pattern_AST.node) =
   | Atom (_loc, Metavar s) -> sprintf "Metavar %s" s
   | List _ -> "List"
   | Dots _loc -> "Dots"
+  | End -> "End"
 
 let show_doc_node (doc_node : Doc_AST.node) =
   match doc_node with

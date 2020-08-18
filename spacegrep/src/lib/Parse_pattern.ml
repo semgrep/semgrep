@@ -159,25 +159,13 @@ let parse_root ~is_doc lines =
           parse_block ind (List nodes :: acc) lines
   in
   match parse_block 0 [] lines with
-  | nodes, [] -> nodes
+  | nodes, [] -> nodes @ [End]
   | _ -> assert false
 
 let of_lexbuf ?(is_doc = false) lexbuf =
   let lines = Lexer.lines lexbuf in
   parse_root ~is_doc lines
 
-let of_string ?(is_doc = false) s =
-  let lexbuf = Lexing.from_string s in
-  of_lexbuf ~is_doc lexbuf
-
-let of_channel ?(is_doc = false) ic =
-  let lexbuf = Lexing.from_channel ic in
-  of_lexbuf ~is_doc lexbuf
-
-let of_stdin ?(is_doc = false) () = of_channel ~is_doc stdin
-
-let of_file ?(is_doc = false) file =
-  let ic = open_in file in
-  Fun.protect
-    ~finally:(fun () -> close_in_noerr ic)
-    (fun () -> of_channel ~is_doc ic)
+let of_src ?is_doc src =
+  Src_file.to_lexbuf src
+  |> of_lexbuf ?is_doc
