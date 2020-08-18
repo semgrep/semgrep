@@ -9,18 +9,18 @@ open Doc_AST
 
 let rec show_pat_node (pat_node : Pattern_AST.node) =
   match pat_node with
-  | Atom (Word s) -> sprintf "Word '%s'" (String.escaped s)
-  | Atom (Punct c) -> sprintf "Punct %C" c
-  | Atom (Byte c) -> sprintf "Byte 0x%02x" (Char.code c)
-  | Atom (Metavar s) -> sprintf "Metavar %s" s
+  | Atom (_loc, Word s) -> sprintf "Word '%s'" (String.escaped s)
+  | Atom (_loc, Punct c) -> sprintf "Punct %C" c
+  | Atom (_loc, Byte c) -> sprintf "Byte 0x%02x" (Char.code c)
+  | Atom (_loc, Metavar s) -> sprintf "Metavar %s" s
   | List _ -> "List"
-  | Dots -> "Dots"
+  | Dots _loc -> "Dots"
 
 let show_doc_node (doc_node : Doc_AST.node) =
   match doc_node with
-  | Atom (Word s) -> sprintf "Word '%s'" (String.escaped s)
-  | Atom (Punct c) -> sprintf "Punct %C" c
-  | Atom (Byte c) -> sprintf "Byte 0x%02x" (Char.code c)
+  | Atom (_loc, Word s) -> sprintf "Word '%s'" (String.escaped s)
+  | Atom (_loc, Punct c) -> sprintf "Punct %C" c
+  | Atom (_loc, Byte c) -> sprintf "Byte 0x%02x" (Char.code c)
   | List _ -> "List"
 
 let show_pat pat =

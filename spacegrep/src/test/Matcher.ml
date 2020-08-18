@@ -4,6 +4,12 @@
 
 open Spacegrep
 
+let word s = Pattern_AST.(Atom (Loc.dummy, Word s))
+let punct c = Pattern_AST.(Atom (Loc.dummy, Punct c))
+let byte c = Pattern_AST.(Atom (Loc.dummy, Byte c))
+let dots = Pattern_AST.(Dots Loc.dummy)
+let metavar s = Pattern_AST.(Atom (Loc.dummy, Metavar s))
+
 let test_pattern_parser () =
   let open Pattern_AST in
   let pat_str = "\
@@ -18,16 +24,16 @@ $Var_0
   in
   let pat = Parse_pattern.of_string pat_str in
   assert (
-    pat =
-    [
-      Atom (Word "Hello"); Atom (Punct ','); Atom (Punct '(');
-      Atom (Word "world"); Atom (Punct ')'); Atom (Punct '.');
+    Pattern_AST.eq pat
+      [
+        word "Hello"; punct ','; punct '(';
+        word "world"; punct ')'; punct '.';
 
-      List [Atom (Word "foo"); Dots; Atom (Word "bar")];
+        List [word "foo"; dots; word "bar"];
 
-      Atom (Word "more"); Atom (Word "things"); Dots;
-      Atom (Metavar "Var_0")
-    ]
+        word "more"; word "things"; dots;
+        metavar "Var_0"
+      ]
   )
 
 let run matches pat_str doc_str =

@@ -1,10 +1,10 @@
 {
 type token =
-  | Atom of Pattern_AST.atom
-  | Dots
-  | Open_paren | Close_paren
-  | Open_bracket | Close_bracket
-  | Open_curly | Close_curly
+  | Atom of Loc.t * Pattern_AST.atom
+  | Dots of Loc.t
+  | Open_paren of Loc.t | Close_paren of Loc.t
+  | Open_bracket of Loc.t | Close_bracket of Loc.t
+  | Open_curly of Loc.t | Close_curly of Loc.t
 
 type line = {
   indent: int; (* counts 1 per space, 8 per tab *)
@@ -19,6 +19,9 @@ let indent_of_string s =
     | _ -> incr n
   done;
   !n
+
+let loc lexbuf : Loc.t =
+  (Lexing.lexeme_start_p lexbuf, Lexing.lexeme_end_p lexbuf)
 }
 
 let indent = [' ' '\t']*
@@ -44,23 +47,28 @@ rule lines = parse
 
 and tokens = parse
   | blank { tokens lexbuf }
-  | word as s { Atom (Word s) :: tokens lexbuf }
+  | word as s { Atom (loc lexbuf, Word s) :: tokens lexbuf }
 
-  | '(' { Open_paren :: tokens lexbuf }
-  | ')' { Close_paren :: tokens lexbuf }
-  | '[' { Open_bracket :: tokens lexbuf }
-  | ']' { Close_bracket :: tokens lexbuf }
-  | '{' { Open_curly :: tokens lexbuf }
-  | '}' { Close_curly :: tokens lexbuf }
+  | '(' { Open_paren (loc lexbuf) :: tokens lexbuf }
+  | ')' { Close_paren (loc lexbuf) :: tokens lexbuf }
+  | '[' { Open_bracket (loc lexbuf) :: tokens lexbuf }
+  | ']' { Close_bracket (loc lexbuf) :: tokens lexbuf }
+  | '{' { Open_curly (loc lexbuf) :: tokens lexbuf }
+  | '}' { Close_curly (loc lexbuf) :: tokens lexbuf }
   | "...." '.'* as s {
+      let pos0 = Lexing.lexeme_start_p lexbuf in
       List.init
         (String.length s)
-        (fun _ -> Atom (Punct '.'))
+        (fun i ->
+           let loc = (Loc.Pos.shift pos0 i, Loc.Pos.shift pos0 (i + 1)) in
+           Atom (loc, Punct '.'))
       @ tokens lexbuf
     }
-  | "..." { Dots :: tokens lexbuf }
-  | '$' (capitalized_word as s) { Atom (Metavar s) :: tokens lexbuf }
-  | punct as c { Atom (Punct c) :: tokens lexbuf }
+  | "..." { Dots (loc lexbuf) :: tokens lexbuf }
+  | '$' (capitalized_word as s) {
+      Atom (loc lexbuf, Metavar s) :: tokens lexbuf
+    }
+  | punct as c { Atom (loc lexbuf, Punct c) :: tokens lexbuf }
   | newline { [] }
-  | _ as c { Atom (Byte c) :: tokens lexbuf }
+  | _ as c { Atom (loc lexbuf, Byte c) :: tokens lexbuf }
   | eof { [] }

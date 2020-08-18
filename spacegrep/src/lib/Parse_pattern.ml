@@ -21,80 +21,94 @@ type pending_brace =
    opening brace is treated as an ordinary token.
 *)
 let rec parse_line pending_braces acc (tokens : Lexer.token list)
-  : (Pattern_AST.node list * pending_brace list * Lexer.token list) option =
+  : (Pattern_AST.node list
+     * pending_brace list
+     * Loc.t (* location of the closing brace, if any *)
+     * Lexer.token list) option =
   match tokens with
   | [] ->
       (match pending_braces with
-       | [] -> Some (close_acc acc, [], [])
+       | [] -> Some (close_acc acc, [], Loc.dummy, [])
        | _ -> None
       )
 
-  | Dots :: tokens ->
-      parse_line pending_braces (Dots :: acc) tokens
+  | Dots loc :: tokens ->
+      parse_line pending_braces (Dots loc :: acc) tokens
 
-  | Atom atom :: tokens ->
-      parse_line pending_braces (Atom atom :: acc) tokens
+  | Atom (loc, atom) :: tokens ->
+      parse_line pending_braces (Atom (loc, atom) :: acc) tokens
 
-  | Open_paren :: tokens ->
+  | Open_paren open_loc :: tokens ->
       let res = parse_line (Paren :: pending_braces) [] tokens in
       (match res with
        | None ->
-           parse_line pending_braces (Atom (Punct '(') :: acc) tokens
-       | Some (nodes, pending_braces, tokens) ->
+           parse_line pending_braces (Atom (open_loc, Punct '(') :: acc) tokens
+       | Some (nodes, pending_braces, close_loc, tokens) ->
            parse_line pending_braces
-             (Atom (Punct ')') :: List nodes :: Atom (Punct '(') :: acc) tokens
+             (Atom (close_loc, Punct ')')
+              :: List nodes
+              :: Atom (open_loc, Punct '(') :: acc)
+             tokens
       )
-  | Open_bracket :: tokens ->
+  | Open_bracket open_loc :: tokens ->
       let res = parse_line (Bracket :: pending_braces) [] tokens in
       (match res with
        | None ->
-           parse_line pending_braces (Atom (Punct '[') :: acc) tokens
-       | Some (nodes, pending_braces, tokens) ->
+           parse_line pending_braces (Atom (open_loc, Punct '[') :: acc) tokens
+       | Some (nodes, pending_braces, close_loc, tokens) ->
            parse_line pending_braces
-             (Atom (Punct ']') :: List nodes :: Atom (Punct '[') :: acc) tokens
+             (Atom (close_loc, Punct ']')
+              :: List nodes
+              :: Atom (open_loc, Punct '[') :: acc)
+             tokens
       )
-  | Open_curly :: tokens ->
+  | Open_curly open_loc :: tokens ->
       let res = parse_line (Curly :: pending_braces) [] tokens in
       (match res with
        | None ->
-           parse_line pending_braces (Atom (Punct '{') :: acc) tokens
-       | Some (nodes, pending_braces, tokens) ->
+           parse_line pending_braces (Atom (open_loc, Punct '{') :: acc) tokens
+       | Some (nodes, pending_braces, close_loc, tokens) ->
            parse_line pending_braces
-             (Atom (Punct '}') :: List nodes :: Atom (Punct '{') :: acc) tokens
+             (Atom (close_loc, Punct '}')
+              :: List nodes
+              :: Atom (open_loc, Punct '{') :: acc) tokens
       )
-  | Close_paren :: tokens ->
+  | Close_paren close_loc :: tokens ->
       (match pending_braces with
        | Paren :: pending_braces ->
-           Some (close_acc acc, pending_braces, tokens)
+           Some (close_acc acc, pending_braces, close_loc, tokens)
        | (Bracket | Curly) :: _ ->
            None
        | [] ->
-           parse_line pending_braces (Atom (Punct ')') :: acc) tokens
+           parse_line pending_braces
+             (Atom (close_loc, Punct ')') :: acc) tokens
       )
-  | Close_bracket :: tokens ->
+  | Close_bracket close_loc :: tokens ->
       (match pending_braces with
        | Bracket :: pending_braces ->
-           Some (close_acc acc, pending_braces, tokens)
+           Some (close_acc acc, pending_braces, close_loc, tokens)
        | (Paren | Curly) :: _ ->
            None
        | [] ->
-           parse_line pending_braces (Atom (Punct ']') :: acc) tokens
+           parse_line pending_braces
+             (Atom (close_loc, Punct ']') :: acc) tokens
       )
-  | Close_curly :: tokens ->
+  | Close_curly close_loc :: tokens ->
       (match pending_braces with
        | Curly :: pending_braces ->
-           Some (close_acc acc, pending_braces, tokens)
+           Some (close_acc acc, pending_braces, close_loc, tokens)
        | (Paren | Bracket) :: pending_braces ->
            None
        | [] ->
-           parse_line pending_braces (Atom (Punct '}') :: acc) tokens
+           parse_line pending_braces
+             (Atom (close_loc, Punct '}') :: acc) tokens
       )
 
 (* Try to match braces within the line. This is intended for documents, not
    for patterns. *)
 let parse_doc_line tokens : Pattern_AST.node list =
   match parse_line [] [] tokens with
-  | Some (nodes, [], []) -> nodes
+  | Some (nodes, [], _loc, []) -> nodes
   | Some _ -> assert false
   | None -> assert false
 
@@ -102,14 +116,14 @@ let parse_doc_line tokens : Pattern_AST.node list =
 let parse_pattern_line (tokens : Lexer.token list) : Pattern_AST.node list =
   List.map (fun (token : Lexer.token) ->
     match token with
-    | Atom atom -> Atom atom
-    | Dots -> Dots
-    | Open_paren -> Atom (Punct '(')
-    | Close_paren -> Atom (Punct ')')
-    | Open_bracket -> Atom (Punct '(')
-    | Close_bracket -> Atom (Punct ')')
-    | Open_curly -> Atom (Punct '{')
-    | Close_curly -> Atom (Punct '}')
+    | Atom (loc, atom) -> Atom (loc, atom)
+    | Dots loc -> Dots loc
+    | Open_paren loc -> Atom (loc, Punct '(')
+    | Close_paren loc -> Atom (loc, Punct ')')
+    | Open_bracket loc -> Atom (loc, Punct '(')
+    | Close_bracket loc -> Atom (loc, Punct ')')
+    | Open_curly loc -> Atom (loc, Punct '{')
+    | Close_curly loc -> Atom (loc, Punct '}')
   ) tokens
 
 (*

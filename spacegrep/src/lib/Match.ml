@@ -52,14 +52,12 @@ type match_result =
 let rec full_match ~dots env pat =
   match pat with
   | [] -> Complete env
-  | Dots :: pat -> full_match ~dots env pat
+  | Dots _loc :: pat -> full_match ~dots env pat
   | _ -> Fail
 
 (*
    Match a pattern against a document tree.
 
-   full = indicates we require the pattern to be matched completely when
-          reaching the end of the document or sub-document.
    dots = indicates we're allowed to skip the first document node if it doesn't
           match the pattern.
    cont = call to match the rest of the document against the rest of the
@@ -104,9 +102,9 @@ let rec match_
              Fail
       )
 
-  | Dots :: pat_tail, doc -> match_ ~dots:true env pat_tail doc cont
+  | Dots _ :: pat_tail, doc -> match_ ~dots:true env pat_tail doc cont
 
-  | Atom p :: pat_tail, doc ->
+  | Atom (_, p) :: pat_tail, doc ->
       match doc with
       | [] -> cont ~dots env pat
       | doc_head :: doc_tail ->
@@ -120,7 +118,7 @@ let rec match_
                    consumed. We continue, in the sub-block's parent. *)
                 match_ ~dots env pat doc_tail cont
               )
-          | Atom d ->
+          | Atom (loc, d) ->
               let match_result =
                 match p, d with
                 | Metavar name, Word value ->
@@ -160,6 +158,8 @@ let rec match_
                     Fail
 
 let search pat doc =
-  match match_ ~dots:true Env.empty (pat @ [Dots]) doc full_match with
+  match
+    match_ ~dots:true Env.empty (pat @ [Dots Loc.dummy]) doc full_match
+  with
   | Complete _env -> true
   | Fail -> false
