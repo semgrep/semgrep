@@ -82,6 +82,13 @@ let build_vars kwd vars =
         raise Todo
    )
 
+let stmt_of_stmts xs =
+  match xs with
+  | [] -> Block (fb [])
+  | [x] -> x
+  | xs -> Block (fb xs)
+
+
 let identifier (env : env) (tok : CST.identifier) : ident =
   str env tok (* identifier *)
 
@@ -512,6 +519,7 @@ and binary_expression (env : env) (x : CST.binary_expression) : expr =
       let v2 = token env v2 (* "??" *) in
       let v3 = expression env v3 in
       todo env (v1, v2, v3)
+
   | `Exp_inst_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "instanceof" *) in
@@ -699,9 +707,9 @@ and constructable_expression (env : env) (x : CST.constructable_expression) : ex
   | `False tok -> Bool (false, token env tok) (* "false" *)
   | `Null tok -> IdSpecial (Null, token env tok) (* "null" *)
   | `Unde tok -> IdSpecial (Undefined, token env tok) (* "undefined" *)
-  (* ?? TODO *)
+  (* ?? *)
   | `Import tok -> let id = identifier env tok (* import *) in
-          todo env id
+          idexp id
 
   | `Obj x -> let o = object_ env x in Obj o
   | `Array x -> array_ env x
@@ -1039,37 +1047,37 @@ and unary_expression (env : env) (x : CST.unary_expression) : expr =
   )
 
 and formal_parameters (env : env) ((v1, v2, v3) : CST.formal_parameters) : parameter list =
-  let v1 = token env v1 (* "(" *) in
+  let _v1 = token env v1 (* "(" *) in
   let v2 =
     (match v2 with
     | Some (v1, v2, v3) ->
         let v1 = formal_parameter env v1 in
         let v2 =
           List.map (fun (v1, v2) ->
-            let v1 = token env v1 (* "," *) in
+            let _v1 = token env v1 (* "," *) in
             let v2 = formal_parameter env v2 in
-            todo env (v1, v2)
+            v2
           ) v2
         in
-        let v3 =
+        let _v3 =
           (match v3 with
-          | Some tok -> token env tok (* "," *)
-          | None -> todo env ())
+          | Some tok -> Some (token env tok) (* "," *)
+          | None -> None)
         in
-        todo env (v1, v2, v3)
-    | None -> todo env ())
+        v1::v2
+    | None -> [])
   in
-  let v3 = token env v3 (* ")" *) in
-  todo env (v1, v2, v3)
+  let _v3 = token env v3 (* ")" *) in
+  v2
 
 and switch_default (env : env) ((v1, v2, v3) : CST.switch_default) =
   let v1 = token env v1 (* "default" *) in
-  let v2 = token env v2 (* ":" *) in
+  let _v2 = token env v2 (* ":" *) in
   let v3 = List.map (statement env) v3 in
-  todo env (v1, v2, v3)
+  Default (v1, stmt_of_stmts v3)
 
 and switch_body (env : env) ((v1, v2, v3) : CST.switch_body) =
-  let v1 = token env v1 (* "{" *) in
+  let _v1 = token env v1 (* "{" *) in
   let v2 =
     List.map (fun x ->
       (match x with
@@ -1078,8 +1086,8 @@ and switch_body (env : env) ((v1, v2, v3) : CST.switch_body) =
       )
     ) v2
   in
-  let v3 = token env v3 (* "}" *) in
-  todo env (v1, v2, v3)
+  let _v3 = token env v3 (* "}" *) in
+  v2
 
 and statement (env : env) (x : CST.statement) : stmt =
   (match x with
@@ -1098,9 +1106,9 @@ and statement (env : env) (x : CST.statement) : stmt =
       let v3 = semicolon env v3 in
       todo env (v1, v2, v3)
   | `Debu_stmt (v1, v2) ->
-      let v1 = token env v1 (* "debugger" *) in
+      let v1 = identifier env v1 (* "debugger" *) in
       let v2 = semicolon env v2 in
-      todo env (v1, v2)
+      ExprStmt (idexp v1, v2)
   | `Exp_stmt x -> expression_statement env x
   | `Decl x -> declaration env x
   | `Stmt_blk x -> statement_block env x
@@ -1113,15 +1121,15 @@ and statement (env : env) (x : CST.statement) : stmt =
         | Some (v1, v2) ->
             let v1 = token env v1 (* "else" *) in
             let v2 = statement env v2 in
-            todo env (v1, v2)
-        | None -> todo env ())
+            Some v2
+        | None -> None)
       in
-      todo env (v1, v2, v3, v4)
+      If (v1, v2, v3, v4)
   | `Switch_stmt (v1, v2, v3) ->
       let v1 = token env v1 (* "switch" *) in
       let v2 = parenthesized_expression env v2 in
       let v3 = switch_body env v3 in
-      todo env (v1, v2, v3)
+      Switch (v1, v2, v3)
   | `For_stmt (v1, v2, v3, v4, v5, v6, v7) ->
       let v1 = token env v1 (* "for" *) in
       let v2 = token env v2 (* "(" *) in
@@ -1163,28 +1171,28 @@ and statement (env : env) (x : CST.statement) : stmt =
       let v1 = token env v1 (* "while" *) in
       let v2 = parenthesized_expression env v2 in
       let v3 = statement env v3 in
-      todo env (v1, v2, v3)
+      While (v1, v2, v3)
   | `Do_stmt (v1, v2, v3, v4, v5) ->
       let v1 = token env v1 (* "do" *) in
       let v2 = statement env v2 in
-      let v3 = token env v3 (* "while" *) in
+      let _v3 = token env v3 (* "while" *) in
       let v4 = parenthesized_expression env v4 in
-      let v5 = semicolon env v5 in
-      todo env (v1, v2, v3, v4, v5)
+      let _v5 = semicolon env v5 in
+      Do (v1, v2, v4)
   | `Try_stmt (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "try" *) in
       let v2 = statement_block env v2 in
       let v3 =
         (match v3 with
-        | Some x -> catch_clause env x
-        | None -> todo env ())
+        | Some x -> Some (catch_clause env x)
+        | None -> None)
       in
       let v4 =
         (match v4 with
-        | Some x -> finally_clause env x
-        | None -> todo env ())
+        | Some x -> Some (finally_clause env x)
+        | None -> None)
       in
-      todo env (v1, v2, v3, v4)
+      Try (v1, v2, v3, v4)
   | `With_stmt (v1, v2, v3) ->
       let v1 = token env v1 (* "with" *) in
       let v2 = parenthesized_expression env v2 in
@@ -1194,40 +1202,40 @@ and statement (env : env) (x : CST.statement) : stmt =
       let v1 = token env v1 (* "break" *) in
       let v2 =
         (match v2 with
-        | Some tok -> identifier env tok (* identifier *)
-        | None -> todo env ())
+        | Some tok -> Some (identifier env tok) (* identifier *)
+        | None -> None)
       in
-      let v3 = semicolon env v3 in
-      todo env (v1, v2, v3)
+      let _v3 = semicolon env v3 in
+      Break (v1, v2)
   | `Cont_stmt (v1, v2, v3) ->
       let v1 = token env v1 (* "continue" *) in
       let v2 =
         (match v2 with
-        | Some tok -> identifier env tok (* identifier *)
-        | None -> todo env ())
+        | Some tok -> Some (identifier env tok) (* identifier *)
+        | None -> None)
       in
-      let v3 = semicolon env v3 in
-      todo env (v1, v2, v3)
+      let _v3 = semicolon env v3 in
+      Continue (v1, v2)
   | `Ret_stmt (v1, v2, v3) ->
       let v1 = token env v1 (* "return" *) in
       let v2 =
         (match v2 with
-        | Some x -> expressions env x
-        | None -> todo env ())
+        | Some x -> Some (expressions env x)
+        | None -> None)
       in
-      let v3 = semicolon env v3 in
-      todo env (v1, v2, v3)
+      let _v3 = semicolon env v3 in
+      Return (v1, v2)
   | `Throw_stmt (v1, v2, v3) ->
       let v1 = token env v1 (* "throw" *) in
       let v2 = expressions env v2 in
-      let v3 = semicolon env v3 in
-      todo env (v1, v2, v3)
+      let _v3 = semicolon env v3 in
+      Throw (v1, v2)
   | `Empty_stmt tok -> empty_stmt env tok (* ";" *)
   | `Labe_stmt (v1, v2, v3) ->
       let v1 = identifier_reference env v1 in
-      let v2 = token env v2 (* ":" *) in
+      let _v2 = token env v2 (* ":" *) in
       let v3 = statement env v3 in
-      todo env (v1, v2, v3)
+      Label (v1, v3)
   )
 
 and method_definition (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.method_definition) =
