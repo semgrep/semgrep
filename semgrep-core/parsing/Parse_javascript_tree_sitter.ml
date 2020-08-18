@@ -983,17 +983,21 @@ and expression (env : env) (x : CST.expression) : expr =
       let v1 = token env v1 (* "yield" *) in
       let v2 =
         (match v2 with
-        | `STAR_exp (v1, v2) ->
-            let v1 = token env v1 (* "*" *) in
+        | `STAR_exp (v1bis, v2) ->
+            let v1bis = token env v1bis (* "*" *) in
             let v2 = expression env v2 in
-            todo env (v1, v2)
+            Apply (IdSpecial (YieldStar, v1), fb [v2])
         | `Opt_exp opt ->
             (match opt with
-            | Some x -> expression env x
-            | None -> todo env ())
+            | Some x ->
+                let x = expression env x in
+                Apply (IdSpecial (Yield, v1), fb [x])
+            | None ->
+                Apply (IdSpecial (Yield, v1), fb [])
+          )
         )
       in
-      todo env (v1, v2)
+      v2
   )
 
 and anon_choice_paren_exp (env : env) (x : CST.anon_choice_paren_exp) : expr =
@@ -1007,31 +1011,31 @@ and unary_expression (env : env) (x : CST.unary_expression) : expr =
   | `BANG_exp (v1, v2) ->
       let v1 = token env v1 (* "!" *) in
       let v2 = expression env v2 in
-      todo env (v1, v2)
+      Apply (IdSpecial (ArithOp G.Not, v1), fb [v2])
   | `TILDE_exp (v1, v2) ->
       let v1 = token env v1 (* "~" *) in
       let v2 = expression env v2 in
-      todo env (v1, v2)
+      Apply (IdSpecial (ArithOp G.BitNot, v1), fb [v2])
   | `DASH_exp (v1, v2) ->
       let v1 = token env v1 (* "-" *) in
       let v2 = expression env v2 in
-      todo env (v1, v2)
+      Apply (IdSpecial (ArithOp G.Minus, v1), fb [v2])
   | `PLUS_exp (v1, v2) ->
       let v1 = token env v1 (* "+" *) in
       let v2 = expression env v2 in
-      todo env (v1, v2)
+      Apply (IdSpecial (ArithOp G.Plus, v1), fb [v2])
   | `Typeof_exp (v1, v2) ->
       let v1 = token env v1 (* "typeof" *) in
       let v2 = expression env v2 in
-      todo env (v1, v2)
+      Apply (IdSpecial (Typeof, v1), fb [v2])
   | `Void_exp (v1, v2) ->
       let v1 = token env v1 (* "void" *) in
       let v2 = expression env v2 in
-      todo env (v1, v2)
+      Apply (IdSpecial (Void, v1), fb [v2])
   | `Delete_exp (v1, v2) ->
       let v1 = token env v1 (* "delete" *) in
       let v2 = expression env v2 in
-      todo env (v1, v2)
+      Apply (IdSpecial (Delete, v1), fb [v2])
   )
 
 and formal_parameters (env : env) ((v1, v2, v3) : CST.formal_parameters) : parameter list =
