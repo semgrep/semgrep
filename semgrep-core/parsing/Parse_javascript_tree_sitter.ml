@@ -229,12 +229,12 @@ let export_clause (env : env) ((v1, v2, v3, v4) : CST.export_clause) =
     (match v2 with
     | Some x ->
         anon_import_export_spec_rep_COMMA_import_export_spec env x
-    | None -> todo env ())
+    | None -> [])
   in
   let v3 =
     (match v3 with
-    | Some tok -> token env tok (* "," *)
-    | None -> todo env ())
+    | Some tok -> Some (token env tok) (* "," *)
+    | None -> None)
   in
   let v4 = token env v4 (* "}" *) in
   todo env (v1, v2, v3, v4)
@@ -245,12 +245,12 @@ let named_imports (env : env) ((v1, v2, v3, v4) : CST.named_imports) =
     (match v2 with
     | Some x ->
         anon_import_export_spec_rep_COMMA_import_export_spec env x
-    | None -> todo env ())
+    | None -> [])
   in
-  let v3 =
+  let _v3 =
     (match v3 with
-    | Some tok -> token env tok (* "," *)
-    | None -> todo env ())
+    | Some tok -> Some (token env tok) (* "," *)
+    | None -> None)
   in
   let v4 = token env v4 (* "}" *) in
   todo env (v1, v2, v3, v4)
