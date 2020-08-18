@@ -47,7 +47,7 @@ NOSEM_INLINE_RE = re.compile(
     # * We want multi-language support, so we cannot strictly look for
     #   Python comments that begin with '# '
     #
-    r" nosem(?::[\s]?(?P<ids>([^,\s](?:[,\s]+)?)+))?",
+    r"(?:#|\/\/|\/\*)\s+nosem(?::[\s]?(?P<ids>(?:[^,\s](?:[,\s]+)?)+))?",
     re.IGNORECASE,
 )
 COMMA_SEPARATED_LIST_RE = re.compile(r"[,\s]")
