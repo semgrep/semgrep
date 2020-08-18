@@ -50,6 +50,7 @@ let rev = false
    to another type of tree.
 *)
 
+(* TODO: use H.combine_tokens *)
 let combine_tokens_and_strings v1 _v2 _v3 =
   "TODO", v1
 
