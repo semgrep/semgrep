@@ -15,7 +15,7 @@ open Common
 module CST = Tree_sitter_javascript.CST
 module AST = Ast_js
 module H = Parse_tree_sitter_helpers
-(*open Ast_js*)
+open Ast_js
 
 (*****************************************************************************)
 (* Prelude *)
@@ -58,28 +58,41 @@ let blank (env : env) () = ()
 let todo (env : env) _ =
    failwith "not implemented"
 
+
+let super env tok =
+  todo env tok
+let this env tok =
+  todo env tok
+let empty_stmt env tok =
+  todo env tok
+
+let identifier (env : env) (tok : CST.identifier) : ident =
+  str env tok (* identifier *)
+
+let reserved_identifier (env : env) (x : CST.reserved_identifier) : ident =
+  (match x with
+  | `Get tok -> identifier env tok (* "get" *)
+  | `Set tok -> identifier env tok (* "set" *)
+  | `Async tok -> identifier env tok (* "async" *)
+  | `Static tok -> identifier env tok (* "static" *)
+  )
+
+
+let jsx_identifier (env : env) (tok : CST.jsx_identifier) =
+  token env tok (* pattern [a-zA-Z_$][a-zA-Z\d_$]*-[a-zA-Z\d_$\-]* *)
+
+
 let regex_pattern (env : env) (tok : CST.regex_pattern) =
   token env tok (* regex_pattern *)
 
-let identifier (env : env) (tok : CST.identifier) =
-  token env tok (* identifier *)
 
 let number (env : env) (tok : CST.number) =
-  token env tok (* number *)
+  str env tok (* number *)
 
 let escape_sequence (env : env) (tok : CST.escape_sequence) =
   token env tok (* escape_sequence *)
 
-let reserved_identifier (env : env) (x : CST.reserved_identifier) =
-  (match x with
-  | `Get tok -> token env tok (* "get" *)
-  | `Set tok -> token env tok (* "set" *)
-  | `Async tok -> token env tok (* "async" *)
-  | `Static tok -> token env tok (* "static" *)
-  )
 
-let jsx_identifier (env : env) (tok : CST.jsx_identifier) =
-  token env tok (* pattern [a-zA-Z_$][a-zA-Z\d_$]*-[a-zA-Z\d_$\-]* *)
 
 let regex_flags (env : env) (tok : CST.regex_flags) =
   token env tok (* pattern [a-z]+ *)
@@ -140,13 +153,13 @@ let anon_choice_blank (env : env) (x : CST.anon_choice_blank) =
   | `Esc_seq tok -> token env tok (* escape_sequence *)
   )
 
-let anon_choice_rese_id (env : env) (x : CST.anon_choice_rese_id) =
+let anon_choice_rese_id (env : env) (x : CST.anon_choice_rese_id) : ident =
   (match x with
   | `Choice_get x -> reserved_identifier env x
   | `Id tok -> identifier env tok (* identifier *)
   )
 
-let identifier_reference (env : env) (x : CST.identifier_reference) =
+let identifier_reference (env : env) (x : CST.identifier_reference) : ident =
   (match x with
   | `Id tok -> identifier env tok (* identifier *)
   | `Choice_get x -> reserved_identifier env x
@@ -155,7 +168,7 @@ let identifier_reference (env : env) (x : CST.identifier_reference) =
 let jsx_identifier_ (env : env) (x : CST.jsx_identifier_) =
   (match x with
   | `Jsx_id tok ->
-      token env tok (* pattern [a-zA-Z_$][a-zA-Z\d_$]*-[a-zA-Z\d_$\-]* *)
+      str env tok (* pattern [a-zA-Z_$][a-zA-Z\d_$]*-[a-zA-Z\d_$\-]* *)
   | `Id tok -> identifier env tok (* identifier *)
   )
 
@@ -301,9 +314,11 @@ and jsx_opening_element (env : env) ((v1, v2, v3, v4) : CST.jsx_opening_element)
   let v4 = token env v4 (* ">" *) in
   todo env (v1, v2, v3, v4)
 
-and destructuring_pattern (env : env) (x : CST.destructuring_pattern) =
+and destructuring_pattern (env : env) (x : CST.destructuring_pattern) : pattern =
   (match x with
-  | `Obj x -> object_ env x
+  | `Obj x ->
+        let o = object_ env x in
+        Obj o
   | `Array x -> array_ env x
   )
 
@@ -537,13 +552,17 @@ and class_body (env : env) ((v1, v2, v3) : CST.class_body) =
   let v3 = token env v3 (* "}" *) in
   todo env (v1, v2, v3)
 
-and member_expression (env : env) ((v1, v2, v3) : CST.member_expression) =
+and member_expression (env : env) ((v1, v2, v3) : CST.member_expression) : expr =
   let v1 =
     (match v1 with
     | `Exp x -> expression env x
-    | `Id tok -> identifier env tok (* identifier *)
-    | `Super tok -> token env tok (* "super" *)
-    | `Choice_get x -> reserved_identifier env x
+    | `Id tok ->
+          let id = identifier env tok (* identifier *) in
+          todo env id
+    | `Super tok -> super env tok (* "super" *)
+    | `Choice_get x ->
+          let id = reserved_identifier env x in
+          todo env id
     )
   in
   let v2 = token env v2 (* "." *) in
@@ -553,7 +572,9 @@ and member_expression (env : env) ((v1, v2, v3) : CST.member_expression) =
 and assignment_pattern (env : env) ((v1, v2, v3) : CST.assignment_pattern) =
   let v1 =
     (match v1 with
-    | `Choice_choice_get x -> anon_choice_rese_id env x
+    | `Choice_choice_get x ->
+          let id = anon_choice_rese_id env x in
+          todo env id
     | `Choice_obj x -> destructuring_pattern env x
     )
   in
@@ -586,14 +607,16 @@ and anon_choice_pair (env : env) (x : CST.anon_choice_pair) =
   | `Spread_elem x -> spread_element env x
   | `Meth_defi x -> method_definition env x
   | `Assign_pat x -> assignment_pattern env x
-  | `Choice_id x -> identifier_reference env x
+  | `Choice_id x ->
+        let id = identifier_reference env x in
+        todo env id
   )
 
 and subscript_expression (env : env) ((v1, v2, v3, v4) : CST.subscript_expression) =
   let v1 =
     (match v1 with
     | `Exp x -> expression env x
-    | `Super tok -> token env tok (* "super" *)
+    | `Super tok -> super env tok (* "super" *)
     )
   in
   let v2 = token env v2 (* "[" *) in
@@ -606,12 +629,19 @@ and initializer_ (env : env) ((v1, v2) : CST.initializer_) =
   let v2 = expression env v2 in
   todo env (v1, v2)
 
-and constructable_expression (env : env) (x : CST.constructable_expression) =
+and constructable_expression (env : env) (x : CST.constructable_expression) : expr =
   (match x with
-  | `This tok -> token env tok (* "this" *)
-  | `Id tok -> identifier env tok (* identifier *)
-  | `Choice_get x -> reserved_identifier env x
-  | `Num tok -> token env tok (* number *)
+  | `This tok -> this env tok (* "this" *)
+  | `Id tok -> let id = identifier env tok (* identifier *) in
+        todo env id
+  | `Choice_get x ->
+        let id = reserved_identifier env x in
+        todo env id
+
+  | `Num tok ->
+        let n = number env tok (* number *) in
+        Num n
+
   | `Str x -> string_ env x
   | `Temp_str x -> template_string env x
   | `Regex (v1, v2, v3, v4) ->
@@ -624,12 +654,15 @@ and constructable_expression (env : env) (x : CST.constructable_expression) =
         | None -> todo env ())
       in
       todo env (v1, v2, v3, v4)
-  | `True tok -> token env tok (* "true" *)
-  | `False tok -> token env tok (* "false" *)
-  | `Null tok -> token env tok (* "null" *)
-  | `Unde tok -> token env tok (* "undefined" *)
-  | `Import tok -> token env tok (* import *)
-  | `Obj x -> object_ env x
+  | `True tok -> Bool (true, token env tok) (* "true" *)
+  | `False tok -> Bool (false, token env tok) (* "false" *)
+  | `Null tok -> IdSpecial (Null, token env tok) (* "null" *)
+  | `Unde tok -> IdSpecial (Undefined, token env tok) (* "undefined" *)
+  (* ?? *)
+  | `Import tok -> let id = identifier env tok (* import *) in
+          todo env id
+
+  | `Obj x -> let o = object_ env x in Obj o
   | `Array x -> array_ env x
   | `Func x -> function_ env x
   | `Arrow_func (v1, v2, v3, v4) ->
@@ -798,7 +831,7 @@ and for_header (env : env) ((v1, v2, v3, v4, v5, v6) : CST.for_header) =
   let v6 = token env v6 (* ")" *) in
   todo env (v1, v2, v3, v4, v5, v6)
 
-and expression (env : env) (x : CST.expression) =
+and expression (env : env) (x : CST.expression) : expr =
   (match x with
   | `Choice_this x -> constructable_expression env x
   | `Choice_jsx_elem x -> jsx_element_ env x
@@ -813,8 +846,12 @@ and expression (env : env) (x : CST.expression) =
         (match v1 with
         | `Member_exp x -> member_expression env x
         | `Subs_exp x -> subscript_expression env x
-        | `Choice_get x -> reserved_identifier env x
-        | `Id tok -> identifier env tok (* identifier *)
+        | `Choice_get x ->
+                let id = reserved_identifier env x in
+                todo env id
+        | `Id tok ->
+                let id = identifier env tok (* identifier *) in
+                todo env id
         | `Paren_exp x -> parenthesized_expression env x
         )
       in
@@ -854,7 +891,7 @@ and expression (env : env) (x : CST.expression) =
       let v1 =
         (match v1 with
         | `Exp x -> expression env x
-        | `Super tok -> token env tok (* "super" *)
+        | `Super tok -> super env tok (* "super" *)
         | `Func x -> function_ env x
         )
       in
@@ -1006,13 +1043,13 @@ and statement (env : env) (x : CST.statement) =
         | `Lexi_decl x -> lexical_declaration env x
         | `Var_decl x -> variable_declaration env x
         | `Exp_stmt x -> expression_statement env x
-        | `Empty_stmt tok -> token env tok (* ";" *)
+        | `Empty_stmt tok -> empty_stmt env tok (* ";" *)
         )
       in
       let v4 =
         (match v4 with
         | `Exp_stmt x -> expression_statement env x
-        | `Empty_stmt tok -> token env tok (* ";" *)
+        | `Empty_stmt tok -> empty_stmt env tok (* ";" *)
         )
       in
       let v5 =
@@ -1096,7 +1133,7 @@ and statement (env : env) (x : CST.statement) =
       let v2 = expressions env v2 in
       let v3 = semicolon env v3 in
       todo env (v1, v2, v3)
-  | `Empty_stmt tok -> token env tok (* ";" *)
+  | `Empty_stmt tok -> empty_stmt env tok (* ";" *)
   | `Labe_stmt (v1, v2, v3) ->
       let v1 = identifier_reference env v1 in
       let v2 = token env v2 (* ":" *) in
@@ -1247,7 +1284,9 @@ and property_name (env : env) (x : CST.property_name) =
   (match x with
   | `Choice_id x -> identifier_reference env x
   | `Str x -> string_ env x
-  | `Num tok -> token env tok (* number *)
+  | `Num tok ->
+        let n = number env tok (* number *) in
+        todo env n
   | `Comp_prop_name (v1, v2, v3) ->
       let v1 = token env v1 (* "[" *) in
       let v2 = expression env v2 in
@@ -1257,7 +1296,9 @@ and property_name (env : env) (x : CST.property_name) =
 
 and jsx_child (env : env) (x : CST.jsx_child) =
   (match x with
-  | `Jsx_text tok -> token env tok (* pattern [^{}<>]+ *)
+  | `Jsx_text tok ->
+        let s = str env tok (* pattern [^{}<>]+ *) in
+        todo env s
   | `Choice_jsx_elem x -> jsx_element_ env x
   | `Jsx_exp x -> jsx_expression env x
   )
@@ -1303,14 +1344,16 @@ and jsx_element_ (env : env) (x : CST.jsx_element_) =
 
 and anon_choice_id (env : env) (x : CST.anon_choice_id) =
   (match x with
-  | `Id tok -> identifier env tok (* identifier *)
+  | `Id tok ->
+        let id = identifier env tok (* identifier *) in
+        todo env id
   | `Choice_obj x -> destructuring_pattern env x
   )
 
 and call_signature (env : env) (v1 : CST.call_signature) =
   formal_parameters env v1
 
-and object_ (env : env) ((v1, v2, v3) : CST.object_) =
+and object_ (env : env) ((v1, v2, v3) : CST.object_) : obj_ =
   let v1 = token env v1 (* "{" *) in
   let v2 =
     (match v2 with
@@ -1341,8 +1384,12 @@ and lhs_expression (env : env) (x : CST.lhs_expression) =
   (match x with
   | `Member_exp x -> member_expression env x
   | `Subs_exp x -> subscript_expression env x
-  | `Id tok -> identifier env tok (* identifier *)
-  | `Choice_get x -> reserved_identifier env x
+  | `Id tok ->
+        let id = identifier env tok (* identifier *) in
+        todo env id
+  | `Choice_get x ->
+        let id = reserved_identifier env x in
+        todo env id
   | `Choice_obj x -> destructuring_pattern env x
   )
 
@@ -1420,10 +1467,18 @@ and declaration (env : env) (x : CST.declaration) =
 
 and formal_parameter (env : env) (x : CST.formal_parameter) =
   (match x with
-  | `Id tok -> identifier env tok (* identifier *)
-  | `Choice_get x -> reserved_identifier env x
-  | `Choice_obj x -> destructuring_pattern env x
-  | `Assign_pat x -> assignment_pattern env x
+  | `Id tok ->
+        let id = identifier env tok (* identifier *) in
+        todo env id
+  | `Choice_get x ->
+        let id = reserved_identifier env x in
+        todo env id
+  | `Choice_obj x ->
+        let pat = destructuring_pattern env x in
+        todo env pat
+  | `Assign_pat x ->
+        let pat = assignment_pattern env x in
+        todo env pat
   | `Rest_param (v1, v2) ->
       let v1 = token env v1 (* "..." *) in
       let v2 = anon_choice_id env v2 in
