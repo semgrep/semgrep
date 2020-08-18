@@ -1095,12 +1095,12 @@ and annotation (env : env) (x : CST.annotation) : tok * annotation =
   | `Marker_anno (v1, v2) ->
       let v1 = token env v1 (* "@" *) in
       let v2 = qualifier_extra env v2 in
-      v1, (v1, (v2 |> List.map (fun id -> Id id)), None)
+      v1, (v1, v2, None)
   | `Anno_ (v1, v2, v3) ->
       let v1 = token env v1 (* "@" *) in
       let v2 = qualifier_extra env v2 in
       let v3 = annotation_argument_list env v3 in
-      v1, (v1, (v2 |> List.map (fun id -> Id id)), Some v3)
+      v1, (v1, v2, Some v3)
   )
 
 

@@ -147,13 +147,6 @@ let m_dotted_name a b =
   (a, b) -> (m_list m_ident) a b
 (*e: function [[Generic_vs_generic.m_dotted_name]] *)
 
-
-(*s: function [[Generic_vs_generic.m_qualified_name]] *)
-let m_qualified_name a b =
-  match a, b with
-  (a, b) -> m_dotted_name a b
-(*e: function [[Generic_vs_generic.m_qualified_name]] *)
-
 (*s: function [[Generic_vs_generic.m_module_name_prefix]] *)
 (* less-is-ok: prefix matching is supported for imports, eg.:
  *  pattern: import foo.x should match: from foo.x.z.y
@@ -205,7 +198,7 @@ let m_resolved_name_kind a b =
   | A.Global, B.Global ->
       return ()
   | A.ImportedEntity(a1), B.ImportedEntity(b1) ->
-    m_qualified_name a1 b1
+    m_dotted_name a1 b1
   | A.ImportedModule(a1), B.ImportedModule(b1) ->
     m_module_name a1 b1
   | A.Macro, B.Macro ->
@@ -1231,76 +1224,6 @@ and m_other_type_argument_operator = m_other_xxx
 (* Attribute *)
 (*****************************************************************************)
 
-(* less: factorize m_list_unordered_keys? but two "keys" here *)
-(*s: function [[Generic_vs_generic.m_list__m_attribute]] *)
-and m_list__m_attribute (xsa: A.attribute list) (xsb: A.attribute list) =
-  match xsa, xsb with
-  | [], [] ->
-      return ()
-  (*s: [[Generic_vs_generic.m_list__m_attribute]] empty list vs list case *)
-  (* less-is-ok: *)
-  | [], _ -> return ()
-  (*e: [[Generic_vs_generic.m_list__m_attribute]] empty list vs list case *)
-  (*s: [[Generic_vs_generic.m_list__m_attribute]] [[KeywordAttr]] pattern case *)
-  | ((A.KeywordAttr (k, tok)) as a)::xsa, xsb ->
-      (try
-        let (before, there, after) = xsb |> Common2.split_when (function
-            | A.KeywordAttr (k2, _) when k =*= k2 -> true
-            | _ -> false) in
-        (match there with
-        | A.KeywordAttr (x) ->
-              m_wrap m_keyword_attribute (k, tok) x >>= (fun () ->
-              m_list__m_attribute xsa (before @ after)
-              )
-        | _ -> raise Impossible
-        )
-      (*s: [[Generic_vs_generic.m_list__m_attribute]] [[KeywordAttr]] case when [[Not_found]] *)
-      with Not_found ->
-        (* we now allow some attribute (e.g., Var) to match other (e..g, Let),
-         * so we should try all combinations.
-         * opti: give an order to each attribute and zip (like in JS AI) *)
-        let candidates = all_elem_and_rest_of_list xsb in
-        (* less: could use a fold *)
-        let rec aux xs =
-          match xs with
-          | [] -> fail ()
-          | (b, xsb)::xs ->
-            (m_attribute a b >>= (fun () -> m_list__m_attribute xsa xsb))
-             >||> aux xs
-        in
-        aux candidates
-      (*e: [[Generic_vs_generic.m_list__m_attribute]] [[KeywordAttr]] case when [[Not_found]] *)
-       )
-  (*e: [[Generic_vs_generic.m_list__m_attribute]] [[KeywordAttr]] pattern case *)
-  (*s: [[Generic_vs_generic.m_list__m_attribute]] [[NamedAttr]] pattern case *)
-  | A.NamedAttr (_, ((s, _) as ida), idinfoa, argsa)::xsa, xsb ->
-      (try
-        let (before, there, after) = xsb |> Common2.split_when (function
-            (* todo: in theory we should resolve the possible alias s2 *)
-            | A.NamedAttr (_, (s2, _), _idinfoaliasTODO, _) when s =$= s2 -> true
-            | _ -> false) in
-        (match there with
-        | A.NamedAttr (_, idb, idinfob, argsb) ->
-              m_ident ida idb >>= (fun () ->
-              (* less: should use m_ident_and_id_info_add_in_env_Expr? *)
-              m_id_info idinfoa idinfob >>= (fun () ->
-              m_bracket m_list__m_argument argsa argsb >>= (fun () ->
-              m_list__m_attribute xsa (before @ after)
-              )))
-        | _ -> raise Impossible
-        )
-      with Not_found -> fail ()
-      )
-  (*e: [[Generic_vs_generic.m_list__m_attribute]] [[NamedAttr]] pattern case *)
-  (* the general case *)
-  | xa::aas, xb::bbs ->
-      m_attribute xa xb >>= (fun () ->
-      m_list__m_attribute aas bbs
-      )
-  | _::_, _ ->
-      fail ()
-(*e: function [[Generic_vs_generic.m_list__m_attribute]] *)
-
 (*s: function [[Generic_vs_generic.m_keyword_attribute]] *)
 and m_keyword_attribute a b =
   match a, b with
@@ -1319,8 +1242,7 @@ and m_attribute a b =
       {contents = Some ( ( B.ImportedEntity dotted
                          | B.ImportedModule (B.DottedName dotted)
                          ), _sid)}; _}, b2) ->
-    let exp = make_dotted dotted in
-    m_attribute a (B.OtherAttribute (B.OA_Expr, [B.Tk t1; B.E (B.Call (exp, b2))]))
+    m_attribute a (B.NamedAttr (t1, dotted, B.empty_id_info(), b2))
   (*e: [[Generic_vs_generic.m_attribute]] resolving alias case *)
 
   (* boilerplate *)
@@ -1328,7 +1250,7 @@ and m_attribute a b =
     m_wrap m_keyword_attribute a1 b1
   | A.NamedAttr(a0, a1, ida, a2), B.NamedAttr(b0, b1, idb, b2) ->
     m_tok a0 b0 >>= (fun () ->
-    m_ident a1 b1 >>= (fun () ->
+    m_dotted_name a1 b1 >>= (fun () ->
     (* less: should use m_ident_and_id_info_add_in_env_Expr? *)
     m_id_info ida idb >>= (fun () ->
     m_bracket m_list__m_argument a2 b2
@@ -1960,7 +1882,7 @@ and m_parameter_classic a b =
      m_ident_and_id_info_add_in_env_Expr (a1, a5) (b1, b5) >>= (fun () ->
      (m_option m_expr) a2 b2 >>= (fun () ->
      (m_option_none_can_match_some m_type_) a3 b3 >>= (fun () ->
-     (m_list__m_attribute) a4 b4
+     (m_list_in_any_order ~less_is_ok:true m_attribute a4 b4)
      )))
   (*e: [[Generic_vs_generic.m_parameter_classic]] metavariable case *)
 
@@ -1970,7 +1892,7 @@ and m_parameter_classic a b =
     (m_option m_ident) a1 b1 >>= (fun () ->
     (m_option m_expr) a2 b2 >>= (fun () ->
     (m_option m_type_) a3 b3 >>= (fun () ->
-    (m_list__m_attribute) a4 b4 >>= (fun () ->
+    m_list_in_any_order ~less_is_ok:true m_attribute a4 b4 >>= (fun () ->
     m_id_info a5 b5
     ))))
 (*e: function [[Generic_vs_generic.m_parameter_classic]] *)
@@ -2089,7 +2011,7 @@ and m_field a b =
   (*s: [[Generic_vs_generic.m_field]] boilerplate cases *)
   | A.FieldDynamic(a1, a2, a3), B.FieldDynamic(b1, b2, b3) ->
     m_expr a1 b1 >>= (fun () ->
-    (m_list__m_attribute) a2 b2 >>= (fun () ->
+    m_list_in_any_order ~less_is_ok:true m_attribute a2 b2 >>= (fun () ->
     m_expr a3 b3
     ))
   | A.FieldSpread(a0, a1), B.FieldSpread(b0, b1) ->
