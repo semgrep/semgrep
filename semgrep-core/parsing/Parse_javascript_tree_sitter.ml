@@ -15,6 +15,7 @@ open Common
 module CST = Tree_sitter_javascript.CST
 module AST = Ast_js
 module H = Parse_tree_sitter_helpers
+module G = AST_generic
 open Ast_js
 
 (*****************************************************************************)
@@ -60,11 +61,12 @@ let todo (env : env) _ =
 
 
 let super env tok =
-  todo env tok
+  IdSpecial (Super, token env tok)
 let this env tok =
-  todo env tok
+  IdSpecial (This, token env tok)
 let empty_stmt env tok =
-  todo env tok
+  let t = token env tok in
+  Block (t, [], t)
 
 let identifier (env : env) (tok : CST.identifier) : ident =
   str env tok (* identifier *)
@@ -79,78 +81,73 @@ let reserved_identifier (env : env) (x : CST.reserved_identifier) : ident =
 
 
 let jsx_identifier (env : env) (tok : CST.jsx_identifier) =
-  token env tok (* pattern [a-zA-Z_$][a-zA-Z\d_$]*-[a-zA-Z\d_$\-]* *)
+  str env tok (* pattern [a-zA-Z_$][a-zA-Z\d_$]*-[a-zA-Z\d_$\-]* *)
 
 
 let regex_pattern (env : env) (tok : CST.regex_pattern) =
-  token env tok (* regex_pattern *)
+  str env tok (* regex_pattern *)
 
 
 let number (env : env) (tok : CST.number) =
   str env tok (* number *)
 
 let escape_sequence (env : env) (tok : CST.escape_sequence) =
-  token env tok (* escape_sequence *)
+  str env tok (* escape_sequence *)
 
 
 
 let regex_flags (env : env) (tok : CST.regex_flags) =
-  token env tok (* pattern [a-z]+ *)
+  str env tok (* pattern [a-z]+ *)
 
 let anon_choice_PLUSPLUS (env : env) (x : CST.anon_choice_PLUSPLUS) =
   (match x with
-  | `PLUSPLUS tok -> token env tok (* "++" *)
-  | `DASHDASH tok -> token env tok (* "--" *)
+  | `PLUSPLUS tok -> G.Incr, token env tok (* "++" *)
+  | `DASHDASH tok -> G.Decr, token env tok (* "--" *)
   )
 
 let template_chars (env : env) (tok : CST.template_chars) =
-  token env tok (* template_chars *)
+  str env tok (* template_chars *)
 
-let import (env : env) (tok : CST.import) =
-  token env tok (* import *)
-
-let hash_bang_line (env : env) (tok : CST.hash_bang_line) =
-  token env tok (* pattern #!.* *)
 
 let jsx_text (env : env) (tok : CST.jsx_text) =
-  token env tok (* pattern [^{}<>]+ *)
+  str env tok (* pattern [^{}<>]+ *)
 
 let automatic_semicolon (env : env) (tok : CST.automatic_semicolon) =
   token env tok (* automatic_semicolon *)
 
 let namespace_import (env : env) ((v1, v2, v3) : CST.namespace_import) =
-  let v1 = token env v1 (* "*" *) in
-  let v2 = token env v2 (* "as" *) in
+  let _v1 = token env v1 (* "*" *) in
+  let _v2 = token env v2 (* "as" *) in
   let v3 = identifier env v3 (* identifier *) in
-  todo env (v1, v2, v3)
+  v3
 
-let rec nested_identifier (env : env) ((v1, v2, v3) : CST.nested_identifier) =
+let rec nested_identifier (env : env) ((v1, v2, v3) : CST.nested_identifier) : ident list =
   let v1 =
     (match v1 with
-    | `Id tok -> identifier env tok (* identifier *)
+    | `Id tok -> [identifier env tok] (* identifier *)
     | `Nested_id x -> nested_identifier env x
     )
   in
-  let v2 = token env v2 (* "." *) in
+  let _v2 = token env v2 (* "." *) in
   let v3 = identifier env v3 (* identifier *) in
-  todo env (v1, v2, v3)
+  v1 @ [ v3]
 
 let import_export_specifier (env : env) ((v1, v2) : CST.import_export_specifier) =
   let v1 = identifier env v1 (* identifier *) in
   let v2 =
     (match v2 with
     | Some (v1, v2) ->
-        let v1 = token env v1 (* "as" *) in
+        let _v1 = token env v1 (* "as" *) in
         let v2 = identifier env v2 (* identifier *) in
-        todo env (v1, v2)
-    | None -> todo env ())
+        Some v2
+    | None -> None)
   in
-  todo env (v1, v2)
+  (v1, v2)
 
 let anon_choice_blank (env : env) (x : CST.anon_choice_blank) =
   (match x with
-  | `Blank () -> todo env ()
-  | `Esc_seq tok -> token env tok (* escape_sequence *)
+  | `Blank () -> None
+  | `Esc_seq tok -> Some (str env tok) (* escape_sequence *)
   )
 
 let anon_choice_rese_id (env : env) (x : CST.anon_choice_rese_id) : ident =
@@ -174,7 +171,7 @@ let jsx_identifier_ (env : env) (x : CST.jsx_identifier_) =
 
 let semicolon (env : env) (x : CST.semicolon) =
   (match x with
-  | `Auto_semi tok -> token env tok (* automatic_semicolon *)
+  | `Auto_semi tok -> automatic_semicolon env tok (* automatic_semicolon *)
   | `SEMI tok -> token env tok (* ";" *)
   )
 
@@ -182,23 +179,25 @@ let anon_import_export_spec_rep_COMMA_import_export_spec (env : env) ((v1, v2) :
   let v1 = import_export_specifier env v1 in
   let v2 =
     List.map (fun (v1, v2) ->
-      let v1 = token env v1 (* "," *) in
+      let _v1 = token env v1 (* "," *) in
       let v2 = import_export_specifier env v2 in
-      todo env (v1, v2)
+      v2
     ) v2
   in
-  todo env (v1, v2)
+  v1::v2
 
-let string_ (env : env) (x : CST.string_) =
+let string_ (env : env) (x : CST.string_) : string wrap =
   (match x with
   | `DQUOT_rep_choice_blank_DQUOT (v1, v2, v3) ->
       let v1 = token env v1 (* "\"" *) in
-      let v2 = List.map (anon_choice_blank env) v2 in
+      let v2 = Common.map_filter (anon_choice_blank env) v2 in
       let v3 = token env v3 (* "\"" *) in
-      todo env (v1, v2, v3)
+      let str = v2 |> List.map fst |> String.concat "" in
+      let toks = [v1] @ (v2 |> List.map snd) @ [v3] in
+      str, H.combine_infos env toks
   | `SQUOT_rep_choice_blank_SQUOT (v1, v2, v3) ->
       let v1 = token env v1 (* "'" *) in
-      let v2 = List.map (anon_choice_blank env) v2 in
+      let v2 = Common.map_filter (anon_choice_blank env) v2 in
       let v3 = token env v3 (* "'" *) in
       todo env (v1, v2, v3)
   )
@@ -268,7 +267,9 @@ let jsx_attribute_name (env : env) (x : CST.jsx_attribute_name) =
 let jsx_element_name (env : env) (x : CST.jsx_element_name) =
   (match x with
   | `Choice_jsx_id x -> jsx_identifier_ env x
-  | `Nested_id x -> nested_identifier env x
+  | `Nested_id x ->
+        let xs = nested_identifier env x in
+        todo env xs
   | `Jsx_name_name x -> jsx_namespace_name env x
   )
 
@@ -520,7 +521,8 @@ and sequence_expression (env : env) ((v1, v2, v3) : CST.sequence_expression) =
   in
   todo env (v1, v2, v3)
 
-and jsx_fragment (env : env) ((v1, v2, v3, v4, v5, v6) : CST.jsx_fragment) =
+and jsx_fragment (env : env) ((v1, v2, v3, v4, v5, v6) : CST.jsx_fragment)
+ : xml =
   let v1 = token env v1 (* "<" *) in
   let v2 = token env v2 (* ">" *) in
   let v3 = List.map (jsx_child env) v3 in
@@ -582,7 +584,7 @@ and assignment_pattern (env : env) ((v1, v2, v3) : CST.assignment_pattern) =
   let v3 = expression env v3 in
   todo env (v1, v2, v3)
 
-and jsx_expression (env : env) ((v1, v2, v3) : CST.jsx_expression) =
+and jsx_expression (env : env) ((v1, v2, v3) : CST.jsx_expression) : expr =
   let v1 = token env v1 (* "{" *) in
   let v2 =
     (match v2 with
@@ -642,7 +644,9 @@ and constructable_expression (env : env) (x : CST.constructable_expression) : ex
         let n = number env tok (* number *) in
         Num n
 
-  | `Str x -> string_ env x
+  | `Str x ->
+        let s = string_ env x in
+        String s
   | `Temp_str x -> template_string env x
   | `Regex (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "/" *) in
@@ -836,8 +840,12 @@ and for_header (env : env) ((v1, v2, v3, v4, v5, v6) : CST.for_header) =
 and expression (env : env) (x : CST.expression) : expr =
   (match x with
   | `Choice_this x -> constructable_expression env x
-  | `Choice_jsx_elem x -> jsx_element_ env x
-  | `Jsx_frag x -> jsx_fragment env x
+  | `Choice_jsx_elem x ->
+        let xml = jsx_element_ env x in
+        Xml xml
+  | `Jsx_frag x ->
+        let xml = jsx_fragment env x in
+        Xml xml
   | `Assign_exp (v1, v2, v3) ->
       let v1 = anon_choice_paren_exp env v1 in
       let v2 = token env v2 (* "=" *) in
@@ -1288,25 +1296,31 @@ and property_name (env : env) (x : CST.property_name) : property_name =
   (match x with
   | `Choice_id x ->
         let id = identifier_reference env x in
-        todo env id
-  | `Str x -> string_ env x
+        PN id
+  | `Str x ->
+        let s = string_ env x in
+        PN s
   | `Num tok ->
         let n = number env tok (* number *) in
-        todo env n
+        PN n
   | `Comp_prop_name (v1, v2, v3) ->
-      let v1 = token env v1 (* "[" *) in
+      let _v1 = token env v1 (* "[" *) in
       let v2 = expression env v2 in
-      let v3 = token env v3 (* "]" *) in
-      todo env (v1, v2, v3)
+      let _v3 = token env v3 (* "]" *) in
+      PN_Computed v2
   )
 
-and jsx_child (env : env) (x : CST.jsx_child) =
+and jsx_child (env : env) (x : CST.jsx_child) : xml_body =
   (match x with
   | `Jsx_text tok ->
         let s = str env tok (* pattern [^{}<>]+ *) in
-        todo env s
-  | `Choice_jsx_elem x -> jsx_element_ env x
-  | `Jsx_exp x -> jsx_expression env x
+        XmlText s
+  | `Choice_jsx_elem x ->
+        let xml = jsx_element_ env x in
+        XmlXml xml
+  | `Jsx_exp x ->
+        let e = jsx_expression env x in
+        XmlExpr e
   )
 
 and switch_case (env : env) ((v1, v2, v3, v4) : CST.switch_case) =
@@ -1332,7 +1346,7 @@ and finally_clause (env : env) ((v1, v2) : CST.finally_clause) =
   let v2 = statement_block env v2 in
   todo env (v1, v2)
 
-and jsx_element_ (env : env) (x : CST.jsx_element_) =
+and jsx_element_ (env : env) (x : CST.jsx_element_) : xml =
   (match x with
   | `Jsx_elem (v1, v2, v3) ->
       let v1 = jsx_opening_element env v1 in
@@ -1405,7 +1419,7 @@ and statement_block (env : env) ((v1, v2, v3, v4) : CST.statement_block) : stmt 
   let v3 = token env v3 (* "}" *) in
   let v4 =
     (match v4 with
-    | Some tok -> token env tok (* automatic_semicolon *)
+    | Some tok -> automatic_semicolon env tok (* automatic_semicolon *)
     | None -> todo env ())
   in
   todo env (v1, v2, v3, v4)
@@ -1430,7 +1444,7 @@ and declaration (env : env) (x : CST.declaration) =
       let v5 = statement_block env v5 in
       let v6 =
         (match v6 with
-        | Some tok -> token env tok (* automatic_semicolon *)
+        | Some tok -> automatic_semicolon env tok (* automatic_semicolon *)
         | None -> todo env ())
       in
       todo env (v1, v2, v3, v4, v5, v6)
@@ -1447,7 +1461,7 @@ and declaration (env : env) (x : CST.declaration) =
       let v6 = statement_block env v6 in
       let v7 =
         (match v7 with
-        | Some tok -> token env tok (* automatic_semicolon *)
+        | Some tok -> automatic_semicolon env tok (* automatic_semicolon *)
         | None -> todo env ())
       in
       todo env (v1, v2, v3, v4, v5, v6, v7)
@@ -1463,7 +1477,7 @@ and declaration (env : env) (x : CST.declaration) =
       let v5 = class_body env v5 in
       let v6 =
         (match v6 with
-        | Some tok -> token env tok (* automatic_semicolon *)
+        | Some tok -> automatic_semicolon env tok (* automatic_semicolon *)
         | None -> todo env ())
       in
       todo env (v1, v2, v3, v4, v5, v6)
@@ -1493,10 +1507,19 @@ and formal_parameter (env : env) (x : CST.formal_parameter) : parameter =
 
 and jsx_attribute_value (env : env) (x : CST.jsx_attribute_value) =
   (match x with
-  | `Str x -> string_ env x
-  | `Jsx_exp x -> jsx_expression env x
-  | `Choice_jsx_elem x -> jsx_element_ env x
-  | `Jsx_frag x -> jsx_fragment env x
+  | `Str x ->
+        let s = string_ env x in
+        String s
+  | `Jsx_exp x ->
+        let e = jsx_expression env x in
+        e
+  (* ?? an attribute value can be a jsx element? *)
+  | `Choice_jsx_elem x ->
+        let xml = jsx_element_ env x in
+        todo env xml
+  | `Jsx_frag x ->
+        let xml = jsx_fragment env x in
+        todo env xml
   )
 
 let program (env : env) ((v1, v2) : CST.program) : program =
