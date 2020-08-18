@@ -492,7 +492,7 @@ and binary_expression (env : env) (x : CST.binary_expression) =
       todo env (v1, v2, v3)
   )
 
-and arguments (env : env) ((v1, v2, v3) : CST.arguments) =
+and arguments (env : env) ((v1, v2, v3) : CST.arguments) : arguments =
   let v1 = token env v1 (* "(" *) in
   let v2 =
     anon_opt_opt_choice_exp_rep_COMMA_opt_choice_exp env v2
@@ -612,7 +612,7 @@ and anon_choice_pair (env : env) (x : CST.anon_choice_pair) =
         todo env id
   )
 
-and subscript_expression (env : env) ((v1, v2, v3, v4) : CST.subscript_expression) =
+and subscript_expression (env : env) ((v1, v2, v3, v4) : CST.subscript_expression) : expr =
   let v1 =
     (match v1 with
     | `Exp x -> expression env x
@@ -680,7 +680,9 @@ and constructable_expression (env : env) (x : CST.constructable_expression) : ex
       let v3 = token env v3 (* "=>" *) in
       let v4 =
         (match v4 with
-        | `Exp x -> expression env x
+        | `Exp x ->
+                let e = expression env x in
+                todo env e
         | `Stmt_blk x -> statement_block env x
         )
       in
@@ -897,7 +899,9 @@ and expression (env : env) (x : CST.expression) : expr =
       in
       let v2 =
         (match v2 with
-        | `Args x -> arguments env x
+        | `Args x ->
+                let args = arguments env x in
+                todo env args
         | `Temp_str x -> template_string env x
         )
       in
@@ -925,7 +929,7 @@ and anon_choice_paren_exp (env : env) (x : CST.anon_choice_paren_exp) =
   | `Choice_member_exp x -> lhs_expression env x
   )
 
-and unary_expression (env : env) (x : CST.unary_expression) =
+and unary_expression (env : env) (x : CST.unary_expression) : expr =
   (match x with
   | `BANG_exp (v1, v2) ->
       let v1 = token env v1 (* "!" *) in
@@ -994,7 +998,7 @@ and switch_body (env : env) ((v1, v2, v3) : CST.switch_body) =
   let v3 = token env v3 (* "}" *) in
   todo env (v1, v2, v3)
 
-and statement (env : env) (x : CST.statement) =
+and statement (env : env) (x : CST.statement) : stmt =
   (match x with
   | `Export_stmt x -> export_statement env x
   | `Import_stmt (v1, v2, v3) ->
@@ -1280,9 +1284,11 @@ and class_heritage (env : env) ((v1, v2) : CST.class_heritage) =
   let v2 = expression env v2 in
   todo env (v1, v2)
 
-and property_name (env : env) (x : CST.property_name) =
+and property_name (env : env) (x : CST.property_name) : property_name =
   (match x with
-  | `Choice_id x -> identifier_reference env x
+  | `Choice_id x ->
+        let id = identifier_reference env x in
+        todo env id
   | `Str x -> string_ env x
   | `Num tok ->
         let n = number env tok (* number *) in
@@ -1380,7 +1386,7 @@ and object_ (env : env) ((v1, v2, v3) : CST.object_) : obj_ =
   let v3 = token env v3 (* "}" *) in
   todo env (v1, v2, v3)
 
-and lhs_expression (env : env) (x : CST.lhs_expression) =
+and lhs_expression (env : env) (x : CST.lhs_expression) : expr =
   (match x with
   | `Member_exp x -> member_expression env x
   | `Subs_exp x -> subscript_expression env x
@@ -1393,7 +1399,7 @@ and lhs_expression (env : env) (x : CST.lhs_expression) =
   | `Choice_obj x -> destructuring_pattern env x
   )
 
-and statement_block (env : env) ((v1, v2, v3, v4) : CST.statement_block) =
+and statement_block (env : env) ((v1, v2, v3, v4) : CST.statement_block) : stmt =
   let v1 = token env v1 (* "{" *) in
   let v2 = List.map (statement env) v2 in
   let v3 = token env v3 (* "}" *) in
@@ -1465,7 +1471,7 @@ and declaration (env : env) (x : CST.declaration) =
   | `Var_decl x -> variable_declaration env x
   )
 
-and formal_parameter (env : env) (x : CST.formal_parameter) =
+and formal_parameter (env : env) (x : CST.formal_parameter) : parameter =
   (match x with
   | `Id tok ->
         let id = identifier env tok (* identifier *) in
@@ -1493,7 +1499,7 @@ and jsx_attribute_value (env : env) (x : CST.jsx_attribute_value) =
   | `Jsx_frag x -> jsx_fragment env x
   )
 
-let program (env : env) ((v1, v2) : CST.program) =
+let program (env : env) ((v1, v2) : CST.program) : program =
   let v1 =
     (match v1 with
     | Some tok -> token env tok (* pattern #!.* *)
