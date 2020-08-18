@@ -1328,16 +1328,16 @@ and decorator_call_expression (env : env) ((v1, v2) : CST.decorator_call_express
   let v2 = arguments env v2 in
   todo env (v1, v2)
 
-and update_expression (env : env) (x : CST.update_expression) =
+and update_expression (env : env) (x : CST.update_expression) : expr =
   (match x with
   | `Exp_choice_PLUSPLUS (v1, v2) ->
       let v1 = expression env v1 in
-      let v2 = anon_choice_PLUSPLUS env v2 in
-      todo env (v1, v2)
+      let (op, t) = anon_choice_PLUSPLUS env v2 in
+      Apply (IdSpecial (IncrDecr (op, G.Postfix), t), fb [v1])
   | `Choice_PLUSPLUS_exp (v1, v2) ->
-      let v1 = anon_choice_PLUSPLUS env v1 in
+      let (op, t) = anon_choice_PLUSPLUS env v1 in
       let v2 = expression env v2 in
-      todo env (v1, v2)
+      Apply (IdSpecial (IncrDecr (op, G.Prefix), t), fb [v2])
   )
 
 and public_field_definition (env : env) ((v1, v2, v3) : CST.public_field_definition) =
@@ -1373,9 +1373,9 @@ and lexical_declaration (env : env) ((v1, v2, v3, v4) : CST.lexical_declaration)
   todo env (v1, v2, v3, v4)
 
 and class_heritage (env : env) ((v1, v2) : CST.class_heritage) =
-  let v1 = token env v1 (* "extends" *) in
+  let _v1 = token env v1 (* "extends" *) in
   let v2 = expression env v2 in
-  todo env (v1, v2)
+  v2
 
 and property_name (env : env) (x : CST.property_name) : property_name =
   (match x with
