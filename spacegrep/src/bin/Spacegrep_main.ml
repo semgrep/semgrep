@@ -8,21 +8,40 @@ open Spacegrep
 
 type config = {
   debug: bool;
-  pattern: string;
+  pattern: string option;
+  pattern_files: string list;
+  doc_files: string list;
 }
 
+(*
+   Run all the patterns on all the documents.
+*)
+let run_all patterns docs =
+  List.iter (fun get_doc_src ->
+    let doc_src = get_doc_src () in
+    let doc = Parse_doc.of_src doc_src in
+    List.iter (fun pat ->
+      let matches = Match.search pat doc in
+      Match.print doc_src matches
+    ) patterns;
+  ) docs
+
 let run config =
-  let pat_src = Src_file.of_string config.pattern in
-  let pat = Parse_pattern.of_src pat_src in
-  let doc_src = Src_file.of_stdin () in
-  let doc = Parse_doc.of_src doc_src in
+  let patterns =
+    (match config.pattern with
+     | None -> []
+     | Some pat_str -> [Src_file.of_string pat_str]
+    ) @ List.map Src_file.of_file config.pattern_files
+    |> List.map Parse_pattern.of_src
+  in
+  let docs =
+    match config.doc_files with
+    | [] -> [Src_file.of_stdin]
+    | files -> List.map (fun file -> (fun () -> Src_file.of_file file)) files
+  in
   if config.debug then
     Match.debug := true;
-  let matches = Match.search pat doc in
-  Match.print doc_src matches;
-  match matches with
-  | [] -> exit 1
-  | _ -> exit 0
+  run_all patterns docs
 
 let debug_term =
   let info =
@@ -54,15 +73,34 @@ let pattern_term =
             or a pattern is interpreted by 'spacegrep'.
             "
   in
-  Arg.value (Arg.pos 0 Arg.string "" info)
+  Arg.value (Arg.pos 0 Arg.(some string) None info)
+
+let pattern_file_term =
+  let info =
+    Arg.info ["patfile"; "p"]
+      ~docv:"FILE"
+      ~doc:"Read a pattern from file $(docv)."
+  in
+  Arg.value (Arg.opt_all Arg.string [] info)
+
+let doc_file_term =
+  let info =
+    Arg.info ["docfile"; "d"]
+      ~docv:"FILE"
+      ~doc:"Read a document from file $(docv). This disables document input
+            from stdin."
+  in
+  Arg.value (Arg.opt_all Arg.string [] info)
 
 let cmdline_term =
-  let combine debug pattern =
-    { debug; pattern }
+  let combine debug pattern pattern_files doc_files =
+    { debug; pattern; pattern_files; doc_files }
   in
   Term.(const combine
         $ debug_term
         $ pattern_term
+        $ pattern_file_term
+        $ doc_file_term
        )
 
 let doc =
