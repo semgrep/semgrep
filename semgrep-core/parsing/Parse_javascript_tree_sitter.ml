@@ -108,27 +108,27 @@ let automatic_semicolon (env : env) (tok : CST.automatic_semicolon) =
 let namespace_import (env : env) ((v1, v2, v3) : CST.namespace_import) =
   let v1 = token env v1 (* "*" *) in
   let v2 = token env v2 (* "as" *) in
-  let v3 = token env v3 (* identifier *) in
+  let v3 = identifier env v3 (* identifier *) in
   todo env (v1, v2, v3)
 
 let rec nested_identifier (env : env) ((v1, v2, v3) : CST.nested_identifier) =
   let v1 =
     (match v1 with
-    | `Id tok -> token env tok (* identifier *)
+    | `Id tok -> identifier env tok (* identifier *)
     | `Nested_id x -> nested_identifier env x
     )
   in
   let v2 = token env v2 (* "." *) in
-  let v3 = token env v3 (* identifier *) in
+  let v3 = identifier env v3 (* identifier *) in
   todo env (v1, v2, v3)
 
 let import_export_specifier (env : env) ((v1, v2) : CST.import_export_specifier) =
-  let v1 = token env v1 (* identifier *) in
+  let v1 = identifier env v1 (* identifier *) in
   let v2 =
     (match v2 with
     | Some (v1, v2) ->
         let v1 = token env v1 (* "as" *) in
-        let v2 = token env v2 (* identifier *) in
+        let v2 = identifier env v2 (* identifier *) in
         todo env (v1, v2)
     | None -> todo env ())
   in
@@ -143,12 +143,12 @@ let anon_choice_blank (env : env) (x : CST.anon_choice_blank) =
 let anon_choice_rese_id (env : env) (x : CST.anon_choice_rese_id) =
   (match x with
   | `Choice_get x -> reserved_identifier env x
-  | `Id tok -> token env tok (* identifier *)
+  | `Id tok -> identifier env tok (* identifier *)
   )
 
 let identifier_reference (env : env) (x : CST.identifier_reference) =
   (match x with
-  | `Id tok -> token env tok (* identifier *)
+  | `Id tok -> identifier env tok (* identifier *)
   | `Choice_get x -> reserved_identifier env x
   )
 
@@ -156,7 +156,7 @@ let jsx_identifier_ (env : env) (x : CST.jsx_identifier_) =
   (match x with
   | `Jsx_id tok ->
       token env tok (* pattern [a-zA-Z_$][a-zA-Z\d_$]*-[a-zA-Z\d_$\-]* *)
-  | `Id tok -> token env tok (* identifier *)
+  | `Id tok -> identifier env tok (* identifier *)
   )
 
 let semicolon (env : env) (x : CST.semicolon) =
@@ -193,7 +193,7 @@ let string_ (env : env) (x : CST.string_) =
 let rec decorator_member_expression (env : env) ((v1, v2, v3) : CST.decorator_member_expression) =
   let v1 = anon_choice_id_ref env v1 in
   let v2 = token env v2 (* "." *) in
-  let v3 = token env v3 (* identifier *) in
+  let v3 = identifier env v3 (* identifier *) in
   todo env (v1, v2, v3)
 
 and anon_choice_id_ref (env : env) (x : CST.anon_choice_id_ref) =
@@ -264,7 +264,7 @@ let import_clause (env : env) (x : CST.import_clause) =
   | `Name_import x -> namespace_import env x
   | `Named_imports x -> named_imports env x
   | `Id_opt_COMMA_choice_name_import (v1, v2) ->
-      let v1 = token env v1 (* identifier *) in
+      let v1 = identifier env v1 (* identifier *) in
       let v2 =
         (match v2 with
         | Some (v1, v2) ->
@@ -329,7 +329,7 @@ and function_ (env : env) ((v1, v2, v3, v4, v5) : CST.function_) =
   let v2 = token env v2 (* "function" *) in
   let v3 =
     (match v3 with
-    | Some tok -> token env tok (* identifier *)
+    | Some tok -> identifier env tok (* identifier *)
     | None -> todo env ())
   in
   let v4 = formal_parameters env v4 in
@@ -541,13 +541,13 @@ and member_expression (env : env) ((v1, v2, v3) : CST.member_expression) =
   let v1 =
     (match v1 with
     | `Exp x -> expression env x
-    | `Id tok -> token env tok (* identifier *)
+    | `Id tok -> identifier env tok (* identifier *)
     | `Super tok -> token env tok (* "super" *)
     | `Choice_get x -> reserved_identifier env x
     )
   in
   let v2 = token env v2 (* "." *) in
-  let v3 = token env v3 (* identifier *) in
+  let v3 = identifier env v3 (* identifier *) in
   todo env (v1, v2, v3)
 
 and assignment_pattern (env : env) ((v1, v2, v3) : CST.assignment_pattern) =
@@ -609,7 +609,7 @@ and initializer_ (env : env) ((v1, v2) : CST.initializer_) =
 and constructable_expression (env : env) (x : CST.constructable_expression) =
   (match x with
   | `This tok -> token env tok (* "this" *)
-  | `Id tok -> token env tok (* identifier *)
+  | `Id tok -> identifier env tok (* identifier *)
   | `Choice_get x -> reserved_identifier env x
   | `Num tok -> token env tok (* number *)
   | `Str x -> string_ env x
@@ -662,7 +662,7 @@ and constructable_expression (env : env) (x : CST.constructable_expression) =
       let v3 = token env v3 (* "*" *) in
       let v4 =
         (match v4 with
-        | Some tok -> token env tok (* identifier *)
+        | Some tok -> identifier env tok (* identifier *)
         | None -> todo env ())
       in
       let v5 = formal_parameters env v5 in
@@ -673,7 +673,7 @@ and constructable_expression (env : env) (x : CST.constructable_expression) =
       let v2 = token env v2 (* "class" *) in
       let v3 =
         (match v3 with
-        | Some tok -> token env tok (* identifier *)
+        | Some tok -> identifier env tok (* identifier *)
         | None -> todo env ())
       in
       let v4 =
@@ -814,7 +814,7 @@ and expression (env : env) (x : CST.expression) =
         | `Member_exp x -> member_expression env x
         | `Subs_exp x -> subscript_expression env x
         | `Choice_get x -> reserved_identifier env x
-        | `Id tok -> token env tok (* identifier *)
+        | `Id tok -> identifier env tok (* identifier *)
         | `Paren_exp x -> parenthesized_expression env x
         )
       in
@@ -1068,7 +1068,7 @@ and statement (env : env) (x : CST.statement) =
       let v1 = token env v1 (* "break" *) in
       let v2 =
         (match v2 with
-        | Some tok -> token env tok (* identifier *)
+        | Some tok -> identifier env tok (* identifier *)
         | None -> todo env ())
       in
       let v3 = semicolon env v3 in
@@ -1077,7 +1077,7 @@ and statement (env : env) (x : CST.statement) =
       let v1 = token env v1 (* "continue" *) in
       let v2 =
         (match v2 with
-        | Some tok -> token env tok (* identifier *)
+        | Some tok -> identifier env tok (* identifier *)
         | None -> todo env ())
       in
       let v3 = semicolon env v3 in
@@ -1303,7 +1303,7 @@ and jsx_element_ (env : env) (x : CST.jsx_element_) =
 
 and anon_choice_id (env : env) (x : CST.anon_choice_id) =
   (match x with
-  | `Id tok -> token env tok (* identifier *)
+  | `Id tok -> identifier env tok (* identifier *)
   | `Choice_obj x -> destructuring_pattern env x
   )
 
@@ -1341,7 +1341,7 @@ and lhs_expression (env : env) (x : CST.lhs_expression) =
   (match x with
   | `Member_exp x -> member_expression env x
   | `Subs_exp x -> subscript_expression env x
-  | `Id tok -> token env tok (* identifier *)
+  | `Id tok -> identifier env tok (* identifier *)
   | `Choice_get x -> reserved_identifier env x
   | `Choice_obj x -> destructuring_pattern env x
   )
@@ -1372,7 +1372,7 @@ and declaration (env : env) (x : CST.declaration) =
         | None -> todo env ())
       in
       let v2 = token env v2 (* "function" *) in
-      let v3 = token env v3 (* identifier *) in
+      let v3 = identifier env v3 (* identifier *) in
       let v4 = formal_parameters env v4 in
       let v5 = statement_block env v5 in
       let v6 =
@@ -1389,7 +1389,7 @@ and declaration (env : env) (x : CST.declaration) =
       in
       let v2 = token env v2 (* "function" *) in
       let v3 = token env v3 (* "*" *) in
-      let v4 = token env v4 (* identifier *) in
+      let v4 = identifier env v4 (* identifier *) in
       let v5 = formal_parameters env v5 in
       let v6 = statement_block env v6 in
       let v7 =
@@ -1401,7 +1401,7 @@ and declaration (env : env) (x : CST.declaration) =
   | `Class_decl (v1, v2, v3, v4, v5, v6) ->
       let v1 = List.map (decorator env) v1 in
       let v2 = token env v2 (* "class" *) in
-      let v3 = token env v3 (* identifier *) in
+      let v3 = identifier env v3 (* identifier *) in
       let v4 =
         (match v4 with
         | Some x -> class_heritage env x
@@ -1420,7 +1420,7 @@ and declaration (env : env) (x : CST.declaration) =
 
 and formal_parameter (env : env) (x : CST.formal_parameter) =
   (match x with
-  | `Id tok -> token env tok (* identifier *)
+  | `Id tok -> identifier env tok (* identifier *)
   | `Choice_get x -> reserved_identifier env x
   | `Choice_obj x -> destructuring_pattern env x
   | `Assign_pat x -> assignment_pattern env x
