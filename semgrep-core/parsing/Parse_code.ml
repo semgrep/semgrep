@@ -59,6 +59,18 @@ let just_parse_with_lang lang file =
       in
       Go_to_generic.program ast
 
+  | Lang.Javascript ->
+      let ast =
+        try unless_tree_sitter
+            (fun file ->
+              let cst = Parse_js.parse_program file in
+              Ast_js_build.program cst
+            )
+            file
+        with _exn -> Parse_javascript_tree_sitter.parse file
+      in
+      Js_to_generic.program ast
+
   | Lang.Csharp ->
       Parse_csharp_tree_sitter.parse file
 
