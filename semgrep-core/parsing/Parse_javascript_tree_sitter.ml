@@ -70,6 +70,8 @@ let empty_stmt env tok =
   let t = token env tok in
   Block (t, [], t)
 
+let idexp id = Id (id, ref NotResolved)
+
 let build_vars kwd vars =
   vars |> List.map (fun (id_or_pat, initopt) ->
       match id_or_pat with
@@ -82,6 +84,10 @@ let build_vars kwd vars =
 
 let identifier (env : env) (tok : CST.identifier) : ident =
   str env tok (* identifier *)
+
+let identifier_exp (env : env) (tok : CST.identifier) : expr =
+  let id = identifier env tok in
+  idexp id
 
 let reserved_identifier (env : env) (x : CST.reserved_identifier) : ident =
   (match x with
@@ -561,51 +567,50 @@ and class_body (env : env) ((v1, v2, v3) : CST.class_body) =
       (match x with
       | `Meth_defi_opt_SEMI (v1, v2) ->
           let v1 = method_definition env v1 in
-          let v2 =
+          let _v2 =
             (match v2 with
-            | Some tok -> token env tok (* ";" *)
-            | None -> todo env ())
+            | Some tok -> Some (token env tok) (* ";" *)
+            | None -> None)
           in
-          todo env (v1, v2)
+          v1
       | `Public_field_defi_choice_auto_semi (v1, v2) ->
           let v1 = public_field_definition env v1 in
-          let v2 = semicolon env v2 in
-          todo env (v1, v2)
+          let _v2 = semicolon env v2 in
+          v1
       )
     ) v2
   in
   let v3 = token env v3 (* "}" *) in
-  todo env (v1, v2, v3)
+  v1, v2, v3
 
 and member_expression (env : env) ((v1, v2, v3) : CST.member_expression) : expr =
   let v1 =
     (match v1 with
     | `Exp x -> expression env x
     | `Id tok ->
-          let id = identifier env tok (* identifier *) in
-          todo env id
+          identifier_exp env tok (* identifier *)
     | `Super tok -> super env tok (* "super" *)
     | `Choice_get x ->
           let id = reserved_identifier env x in
-          todo env id
+          idexp id
     )
   in
   let v2 = token env v2 (* "." *) in
   let v3 = identifier env v3 (* identifier *) in
-  todo env (v1, v2, v3)
+  ObjAccess (v1, v2, PN v3)
 
 and assignment_pattern (env : env) ((v1, v2, v3) : CST.assignment_pattern) =
   let v1 =
     (match v1 with
     | `Choice_choice_get x ->
           let id = anon_choice_rese_id env x in
-          todo env id
+          idexp id
     | `Choice_obj x -> destructuring_pattern env x
     )
   in
   let v2 = token env v2 (* "=" *) in
   let v3 = expression env v3 in
-  todo env (v1, v2, v3)
+  Assign (v1, v2, v3)
 
 and jsx_expression (env : env) ((v1, v2, v3) : CST.jsx_expression) : expr =
   let v1 = token env v1 (* "{" *) in
