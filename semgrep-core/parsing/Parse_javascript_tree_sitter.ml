@@ -68,6 +68,16 @@ let empty_stmt env tok =
   let t = token env tok in
   Block (t, [], t)
 
+let build_vars kwd vars =
+  vars |> List.map (fun (id_or_pat, initopt) ->
+      match id_or_pat with
+      | Left id ->
+      { v_name = id; v_kind = (Var, kwd); v_init = initopt;
+        v_resolved = ref NotResolved }
+      | Right pat ->
+        raise Todo
+   )
+
 let identifier (env : env) (tok : CST.identifier) : ident =
   str env tok (* identifier *)
 
@@ -224,23 +234,7 @@ let jsx_namespace_name (env : env) ((v1, v2, v3) : CST.jsx_namespace_name) =
   v1, v3
 
 let export_clause (env : env) ((v1, v2, v3, v4) : CST.export_clause) =
-  let v1 = token env v1 (* "{" *) in
-  let v2 =
-    (match v2 with
-    | Some x ->
-        anon_import_export_spec_rep_COMMA_import_export_spec env x
-    | None -> [])
-  in
-  let v3 =
-    (match v3 with
-    | Some tok -> Some (token env tok) (* "," *)
-    | None -> None)
-  in
-  let v4 = token env v4 (* "}" *) in
-  todo env (v1, v2, v3, v4)
-
-let named_imports (env : env) ((v1, v2, v3, v4) : CST.named_imports) =
-  let v1 = token env v1 (* "{" *) in
+  let _v1 = token env v1 (* "{" *) in
   let v2 =
     (match v2 with
     | Some x ->
@@ -252,13 +246,29 @@ let named_imports (env : env) ((v1, v2, v3, v4) : CST.named_imports) =
     | Some tok -> Some (token env tok) (* "," *)
     | None -> None)
   in
-  let v4 = token env v4 (* "}" *) in
-  todo env (v1, v2, v3, v4)
+  let _v4 = token env v4 (* "}" *) in
+  v2
+
+let named_imports (env : env) ((v1, v2, v3, v4) : CST.named_imports) =
+  let _v1 = token env v1 (* "{" *) in
+  let v2 =
+    (match v2 with
+    | Some x ->
+        anon_import_export_spec_rep_COMMA_import_export_spec env x
+    | None -> [])
+  in
+  let _v3 =
+    (match v3 with
+    | Some tok -> Some (token env tok) (* "," *)
+    | None -> None)
+  in
+  let _v4 = token env v4 (* "}" *) in
+  v2
 
 let from_clause (env : env) ((v1, v2) : CST.from_clause) =
-  let v1 = token env v1 (* "from" *) in
+  let _v1 = token env v1 (* "from" *) in
   let v2 = string_ env v2 in
-  todo env (v1, v2)
+  v2
 
 let jsx_attribute_name (env : env) (x : CST.jsx_attribute_name) =
   (match x with
@@ -286,20 +296,24 @@ let jsx_element_name (env : env) (x : CST.jsx_element_name) : ident =
 let import_clause (env : env) (x : CST.import_clause) =
   (match x with
   | `Name_import x -> namespace_import env x
-  | `Named_imports x -> named_imports env x
+  | `Named_imports x ->
+        let aliases = named_imports env x in
+        todo env aliases
   | `Id_opt_COMMA_choice_name_import (v1, v2) ->
       let v1 = identifier env v1 (* identifier *) in
       let v2 =
         (match v2 with
         | Some (v1, v2) ->
-            let v1 = token env v1 (* "," *) in
+            let _v1 = token env v1 (* "," *) in
             let v2 =
               (match v2 with
               | `Name_import x -> namespace_import env x
-              | `Named_imports x -> named_imports env x
+              | `Named_imports x ->
+                        let aliases = named_imports env x in
+                        todo env aliases
               )
             in
-            todo env (v1, v2)
+            v2
         | None -> todo env ())
       in
       todo env (v1, v2)
@@ -338,37 +352,30 @@ and variable_declaration (env : env) ((v1, v2, v3, v4) : CST.variable_declaratio
   let v2 = variable_declarator env v2 in
   let v3 =
     List.map (fun (v1, v2) ->
-      let v1 = token env v1 (* "," *) in
+      let _v1 = token env v1 (* "," *) in
       let v2 = variable_declarator env v2 in
-      todo env (v1, v2)
+      v2
     ) v3
   in
   let _v4 = semicolon env v4 in
   let vars = v2::v3 in
-  vars |> List.map (fun (id_or_pat, initopt) ->
-      match id_or_pat with
-      | Left id ->
-      { v_name = id; v_kind = (Var, v1); v_init = initopt;
-        v_resolved = ref NotResolved }
-      | Right pat ->
-        raise Todo
-   )
+  build_vars v1 vars
 
-and function_ (env : env) ((v1, v2, v3, v4, v5) : CST.function_) =
+and function_ (env : env) ((v1, v2, v3, v4, v5) : CST.function_) : fun_ * ident option =
   let v1 =
     (match v1 with
-    | Some tok -> token env tok (* "async" *)
-    | None -> todo env ())
+    | Some tok -> [Async, token env tok] (* "async" *)
+    | None -> [])
   in
-  let v2 = token env v2 (* "function" *) in
+  let _v2 = token env v2 (* "function" *) in
   let v3 =
     (match v3 with
-    | Some tok -> identifier env tok (* identifier *)
-    | None -> todo env ())
+    | Some tok -> Some (identifier env tok) (* identifier *)
+    | None -> None)
   in
   let v4 = formal_parameters env v4 in
   let v5 = statement_block env v5 in
-  todo env (v1, v2, v3, v4, v5)
+  { f_props = v1; f_params = v4; f_body = v5 }, v3
 
 and anon_choice_exp (env : env) (x : CST.anon_choice_exp) =
   (match x with
@@ -686,7 +693,9 @@ and constructable_expression (env : env) (x : CST.constructable_expression) : ex
 
   | `Obj x -> let o = object_ env x in Obj o
   | `Array x -> array_ env x
-  | `Func x -> function_ env x
+  | `Func x ->
+        let f, idopt = function_ env x in
+        Fun (f, idopt)
   | `Arrow_func (v1, v2, v3, v4) ->
       let v1 =
         (match v1 with
@@ -926,7 +935,9 @@ and expression (env : env) (x : CST.expression) : expr =
         (match v1 with
         | `Exp x -> expression env x
         | `Super tok -> super env tok (* "super" *)
-        | `Func x -> function_ env x
+        | `Func x ->
+                let (f, idopt) = function_ env x in
+                Fun (f, idopt)
         )
       in
       let v2 =
@@ -993,7 +1004,7 @@ and unary_expression (env : env) (x : CST.unary_expression) : expr =
       todo env (v1, v2)
   )
 
-and formal_parameters (env : env) ((v1, v2, v3) : CST.formal_parameters) =
+and formal_parameters (env : env) ((v1, v2, v3) : CST.formal_parameters) : parameter list =
   let v1 = token env v1 (* "(" *) in
   let v2 =
     (match v2 with
@@ -1398,7 +1409,8 @@ and anon_choice_id (env : env) (x : CST.anon_choice_id) =
   )
 
 and call_signature (env : env) (v1 : CST.call_signature) =
-  formal_parameters env v1
+  let xs = formal_parameters env v1 in
+  todo env xs
 
 and object_ (env : env) ((v1, v2, v3) : CST.object_) : obj_ =
   let v1 = token env v1 (* "{" *) in
