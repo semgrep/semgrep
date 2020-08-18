@@ -392,14 +392,6 @@ and function_ (env : env) ((v1, v2, v3, v4, v5) : CST.function_) : fun_ * ident 
   let v5 = statement_block env v5 in
   { f_props = v1; f_params = v4; f_body = v5 }, v3
 
-and anon_choice_exp (env : env) (x : CST.anon_choice_exp) =
-  (match x with
-  | `Exp x -> expression env x
-  | `Spread_elem x ->
-        let (t, e) = spread_element env x in
-        Apply (IdSpecial (Spread, t), fb [e])
-  )
-
 and binary_expression (env : env) (x : CST.binary_expression) : expr =
   (match x with
   | `Exp_AMPAMP_exp (v1, v2, v3) ->
@@ -549,6 +541,15 @@ and variable_declarator (env : env) ((v1, v2) : CST.variable_declarator) =
     | None -> None)
   in
   v1, v2
+
+and anon_choice_id (env : env) (x : CST.anon_choice_id) =
+  (match x with
+  | `Id tok ->
+        let id = identifier env tok (* identifier *) in
+        Left id
+  | `Choice_obj x ->
+        Right (destructuring_pattern env x)
+  )
 
 and sequence_expression (env : env) ((v1, v2, v3) : CST.sequence_expression) =
   let v1 = expression env v1 in
@@ -814,6 +815,24 @@ and jsx_attribute_ (env : env) (x : CST.jsx_attribute_) =
         todo env e
   )
 
+and jsx_attribute_value (env : env) (x : CST.jsx_attribute_value) =
+  (match x with
+  | `Str x ->
+        let s = string_ env x in
+        String s
+  | `Jsx_exp x ->
+        let e = jsx_expression env x in
+        e
+  (* ?? an attribute value can be a jsx element? *)
+  | `Choice_jsx_elem x ->
+        let xml = jsx_element_ env x in
+        todo env xml
+  | `Jsx_frag x ->
+        let xml = jsx_fragment env x in
+        todo env xml
+  )
+
+
 and expression_statement (env : env) ((v1, v2) : CST.expression_statement) =
   let v1 = expressions env v1 in
   let v2 = semicolon env v2 in
@@ -870,7 +889,7 @@ and decorator (env : env) ((v1, v2) : CST.decorator) =
   in
   v1, v2
 
-and anon_opt_opt_choice_exp_rep_COMMA_opt_choice_exp (env : env) (opt : CST.anon_opt_opt_choice_exp_rep_COMMA_opt_choice_exp) =
+and anon_opt_opt_choice_exp_rep_COMMA_opt_choice_exp (env : env) (opt : CST.anon_opt_opt_choice_exp_rep_COMMA_opt_choice_exp) : expr list =
   (match opt with
   | Some (v1, v2) ->
       let v1 =
@@ -881,6 +900,26 @@ and anon_opt_opt_choice_exp_rep_COMMA_opt_choice_exp (env : env) (opt : CST.anon
       let v2 = anon_rep_COMMA_opt_choice_exp env v2 in
       todo env (v1, v2)
   | None -> todo env ())
+
+and anon_rep_COMMA_opt_choice_exp (env : env) (xs : CST.anon_rep_COMMA_opt_choice_exp) =
+  List.map (fun (v1, v2) ->
+    let v1 = token env v1 (* "," *) in
+    let v2 =
+      (match v2 with
+      | Some x -> anon_choice_exp env x
+      | None -> todo env ())
+    in
+    todo env (v1, v2)
+  ) xs
+
+and anon_choice_exp (env : env) (x : CST.anon_choice_exp) =
+  (match x with
+  | `Exp x -> expression env x
+  | `Spread_elem x ->
+        let (t, e) = spread_element env x in
+        Apply (IdSpecial (Spread, t), fb [e])
+  )
+
 
 and for_header (env : env) ((v1, v2, v3, v4, v5, v6) : CST.for_header) =
   let v1 = token env v1 (* "(" *) in
@@ -1238,32 +1277,34 @@ and statement (env : env) (x : CST.statement) : stmt =
       Label (v1, v3)
   )
 
-and method_definition (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.method_definition) =
-  let v1 = List.map (decorator env) v1 in
+and method_definition (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.method_definition) : property =
+  let _v1TODO = List.map (decorator env) v1 in
   let v2 =
     (match v2 with
-    | Some tok -> token env tok (* "static" *)
-    | None -> todo env ())
+    | Some tok -> [Static, token env tok] (* "static" *)
+    | None -> [])
   in
   let v3 =
     (match v3 with
-    | Some tok -> token env tok (* "async" *)
-    | None -> todo env ())
+    | Some tok -> [Async, token env tok] (* "async" *)
+    | None -> [])
   in
   let v4 =
     (match v4 with
     | Some x ->
         (match x with
-        | `Get tok -> token env tok (* "get" *)
-        | `Set tok -> token env tok (* "set" *)
-        | `STAR tok -> token env tok (* "*" *)
+        | `Get tok -> [Get, token env tok] (* "get" *)
+        | `Set tok -> [Set, token env tok] (* "set" *)
+        | `STAR tok -> [Generator, token env tok] (* "*" *)
         )
-    | None -> todo env ())
+    | None -> [])
   in
   let v5 = property_name env v5 in
   let v6 = formal_parameters env v6 in
   let v7 = statement_block env v7 in
-  todo env (v1, v2, v3, v4, v5, v6, v7)
+  let f = { f_props = v3 @ v4; f_params = v6; f_body = v7 } in
+  let e = Fun (f, None) in
+  Field (v5, v2, Some e)
 
 and array_ (env : env) ((v1, v2, v3) : CST.array_) =
   let v1 = token env v1 (* "[" *) in
@@ -1271,7 +1312,7 @@ and array_ (env : env) ((v1, v2, v3) : CST.array_) =
     anon_opt_opt_choice_exp_rep_COMMA_opt_choice_exp env v2
   in
   let v3 = token env v3 (* "]" *) in
-  todo env (v1, v2, v3)
+  Arr (v1, v2, v3)
 
 and export_statement (env : env) (x : CST.export_statement) =
   (match x with
@@ -1312,16 +1353,6 @@ and export_statement (env : env) (x : CST.export_statement) =
       todo env (v1, v2, v3)
   )
 
-and anon_rep_COMMA_opt_choice_exp (env : env) (xs : CST.anon_rep_COMMA_opt_choice_exp) =
-  List.map (fun (v1, v2) ->
-    let v1 = token env v1 (* "," *) in
-    let v2 =
-      (match v2 with
-      | Some x -> anon_choice_exp env x
-      | None -> todo env ())
-    in
-    todo env (v1, v2)
-  ) xs
 
 and decorator_call_expression (env : env) ((v1, v2) : CST.decorator_call_expression) =
   let v1 = anon_choice_id_ref env v1 in
@@ -1447,14 +1478,6 @@ and jsx_element_ (env : env) (x : CST.jsx_element_) : xml =
       todo env (v1, v2, v3, v4, v5)
   )
 
-and anon_choice_id (env : env) (x : CST.anon_choice_id) =
-  (match x with
-  | `Id tok ->
-        let id = identifier env tok (* identifier *) in
-        Left id
-  | `Choice_obj x ->
-        Right (destructuring_pattern env x)
-  )
 
 and call_signature (env : env) (v1 : CST.call_signature) : parameter list =
   let xs = formal_parameters env v1 in
@@ -1493,10 +1516,10 @@ and lhs_expression (env : env) (x : CST.lhs_expression) : expr =
   | `Subs_exp x -> subscript_expression env x
   | `Id tok ->
         let id = identifier env tok (* identifier *) in
-        todo env id
+        idexp id
   | `Choice_get x ->
         let id = reserved_identifier env x in
-        todo env id
+        idexp id
   | `Choice_obj x -> destructuring_pattern env x
   )
 
@@ -1578,10 +1601,10 @@ and formal_parameter (env : env) (x : CST.formal_parameter) : parameter =
   (match x with
   | `Id tok ->
         let id = identifier env tok (* identifier *) in
-        todo env id
+        ParamClassic { p_name = id; p_default = None; p_dots = None }
   | `Choice_get x ->
         let id = reserved_identifier env x in
-        todo env id
+        ParamClassic { p_name = id; p_default = None; p_dots = None }
   | `Choice_obj x ->
         let pat = destructuring_pattern env x in
         todo env pat
@@ -1591,34 +1614,27 @@ and formal_parameter (env : env) (x : CST.formal_parameter) : parameter =
   | `Rest_param (v1, v2) ->
       let v1 = token env v1 (* "..." *) in
       let v2 = anon_choice_id env v2 in
-      todo env (v1, v2)
+      (match v2 with
+      | Left id ->
+         ParamClassic { p_name = id; p_default = None; p_dots = Some v1 }
+      | Right pat ->
+         todo env pat
+      )
   )
 
-and jsx_attribute_value (env : env) (x : CST.jsx_attribute_value) =
-  (match x with
-  | `Str x ->
-        let s = string_ env x in
-        String s
-  | `Jsx_exp x ->
-        let e = jsx_expression env x in
-        e
-  (* ?? an attribute value can be a jsx element? *)
-  | `Choice_jsx_elem x ->
-        let xml = jsx_element_ env x in
-        todo env xml
-  | `Jsx_frag x ->
-        let xml = jsx_fragment env x in
-        todo env xml
-  )
+
+let toplevel env x =
+  let s = statement env x in
+  S (G.fake "", s)
 
 let program (env : env) ((v1, v2) : CST.program) : program =
-  let v1 =
+  let _v1 =
     (match v1 with
-    | Some tok -> token env tok (* pattern #!.* *)
-    | None -> todo env ())
+    | Some tok -> Some (token env tok) (* pattern #!.* *)
+    | None -> None)
   in
-  let v2 = List.map (statement env) v2 in
-  todo env (v1, v2)
+  let v2 = List.map (toplevel env) v2 in
+  v2
 
 
 (*****************************************************************************)
