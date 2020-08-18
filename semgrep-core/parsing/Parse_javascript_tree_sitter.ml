@@ -1149,7 +1149,9 @@ and statement (env : env) (x : CST.statement) : stmt =
       let v2 = semicolon env v2 in
       ExprStmt (idexp v1, v2)
   | `Exp_stmt x -> expression_statement env x
-  | `Decl x -> declaration env x
+  | `Decl x ->
+        let var = declaration env x in
+        VarDecl var
   | `Stmt_blk x -> statement_block env x
   | `If_stmt (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "if" *) in
@@ -1540,24 +1542,27 @@ and template_substitution (env : env) ((v1, v2, v3) : CST.template_substitution)
   let v3 = token env v3 (* "}" *) in
   todo env (v1, v2, v3)
 
-and declaration (env : env) (x : CST.declaration) =
+and declaration (env : env) (x : CST.declaration) : var =
   (match x with
   | `Func_decl (v1, v2, v3, v4, v5, v6) ->
       let v1 =
         (match v1 with
-        | Some tok -> token env tok (* "async" *)
-        | None -> todo env ())
+        | Some tok -> [Async, token env tok] (* "async" *)
+        | None -> [])
       in
       let v2 = token env v2 (* "function" *) in
       let v3 = identifier env v3 (* identifier *) in
       let v4 = formal_parameters env v4 in
       let v5 = statement_block env v5 in
-      let v6 =
+      let _v6 =
         (match v6 with
-        | Some tok -> automatic_semicolon env tok (* automatic_semicolon *)
-        | None -> todo env ())
+        | Some tok -> Some (automatic_semicolon env tok) (* automatic_semicolon *)
+        | None -> None)
       in
-      todo env (v1, v2, v3, v4, v5, v6)
+      let f = { f_props = v1; f_params = v4; f_body = v5 } in
+      { v_name = v3; v_kind = Const, v2;
+        v_init = Some (Fun (f, None)); v_resolved = ref NotResolved }
+
   | `Gene_func_decl (v1, v2, v3, v4, v5, v6, v7) ->
       let v1 =
         (match v1 with
@@ -1591,7 +1596,9 @@ and declaration (env : env) (x : CST.declaration) =
         | None -> todo env ())
       in
       todo env (v1, v2, v3, v4, v5, v6)
-  | `Lexi_decl x -> lexical_declaration env x
+  | `Lexi_decl x ->
+        let vars = lexical_declaration env x in
+        todo env vars
   | `Var_decl x ->
         let vars = variable_declaration env x in
         todo env vars
