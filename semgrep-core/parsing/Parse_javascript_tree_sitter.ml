@@ -37,6 +37,8 @@ let _fake = AST_generic.fake
 let token = H.token
 let str = H.str
 
+let fb = G.fake_bracket
+
 (*****************************************************************************)
 (* Boilerplate converter *)
 (*****************************************************************************)
@@ -383,124 +385,119 @@ and anon_choice_exp (env : env) (x : CST.anon_choice_exp) =
   | `Spread_elem x -> spread_element env x
   )
 
-and switch_default (env : env) ((v1, v2, v3) : CST.switch_default) =
-  let v1 = token env v1 (* "default" *) in
-  let v2 = token env v2 (* ":" *) in
-  let v3 = List.map (statement env) v3 in
-  todo env (v1, v2, v3)
-
-and binary_expression (env : env) (x : CST.binary_expression) =
+and binary_expression (env : env) (x : CST.binary_expression) : expr =
   (match x with
   | `Exp_AMPAMP_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "&&" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Apply (IdSpecial (ArithOp G.And, v2), fb [v1; v3])
   | `Exp_BARBAR_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "||" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Apply (IdSpecial (ArithOp G.Or, v2), fb [v1; v3])
   | `Exp_GTGT_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* ">>" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Apply (IdSpecial (ArithOp G.LSR, v2), fb [v1; v3])
   | `Exp_GTGTGT_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* ">>>" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Apply (IdSpecial (ArithOp G.ASR, v2), fb [v1; v3])
   | `Exp_LTLT_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "<<" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Apply (IdSpecial (ArithOp G.LSL, v2), fb [v1; v3])
   | `Exp_AMP_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "&" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Apply (IdSpecial (ArithOp G.BitAnd, v2), fb [v1; v3])
   | `Exp_HAT_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "^" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Apply (IdSpecial (ArithOp G.BitXor, v2), fb [v1; v3])
   | `Exp_BAR_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "|" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Apply (IdSpecial (ArithOp G.BitOr, v2), fb [v1; v3])
   | `Exp_PLUS_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "+" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Apply (IdSpecial (ArithOp G.Plus, v2), fb [v1; v3])
   | `Exp_DASH_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "-" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Apply (IdSpecial (ArithOp G.Minus, v2), fb [v1; v3])
   | `Exp_STAR_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "*" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Apply (IdSpecial (ArithOp G.Mult, v2), fb [v1; v3])
   | `Exp_SLASH_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "/" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Apply (IdSpecial (ArithOp G.Div, v2), fb [v1; v3])
   | `Exp_PERC_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "%" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Apply (IdSpecial (ArithOp G.Mod, v2), fb [v1; v3])
   | `Exp_STARSTAR_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "**" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Apply (IdSpecial (ArithOp G.Pow, v2), fb [v1; v3])
   | `Exp_LT_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "<" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Apply (IdSpecial (ArithOp G.Lt, v2), fb [v1; v3])
   | `Exp_LTEQ_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "<=" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Apply (IdSpecial (ArithOp G.LtE, v2), fb [v1; v3])
   | `Exp_EQEQ_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "==" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Apply (IdSpecial (ArithOp G.Eq, v2), fb [v1; v3])
   | `Exp_EQEQEQ_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "===" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Apply (IdSpecial (ArithOp G.PhysEq, v2), fb [v1; v3])
   | `Exp_BANGEQ_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "!=" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Apply (IdSpecial (ArithOp G.NotEq, v2), fb [v1; v3])
   | `Exp_BANGEQEQ_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "!==" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Apply (IdSpecial (ArithOp G.NotPhysEq, v2), fb [v1; v3])
   | `Exp_GTEQ_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* ">=" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Apply (IdSpecial (ArithOp G.GtE, v2), fb [v1; v3])
   | `Exp_GT_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* ">" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Apply (IdSpecial (ArithOp G.Gt, v2), fb [v1; v3])
+
   | `Exp_QMARKQMARK_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "??" *) in
@@ -510,12 +507,13 @@ and binary_expression (env : env) (x : CST.binary_expression) =
       let v1 = expression env v1 in
       let v2 = token env v2 (* "instanceof" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Apply (IdSpecial (Instanceof, v2), fb [v1; v3])
   | `Exp_in_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "in" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Apply (IdSpecial (In, v2), fb [v1; v3])
+
   )
 
 and arguments (env : env) ((v1, v2, v3) : CST.arguments) : arguments =
@@ -524,7 +522,7 @@ and arguments (env : env) ((v1, v2, v3) : CST.arguments) : arguments =
     anon_opt_opt_choice_exp_rep_COMMA_opt_choice_exp env v2
   in
   let v3 = token env v3 (* ")" *) in
-  todo env (v1, v2, v3)
+  v1, v2, v3
 
 and variable_declarator (env : env) ((v1, v2) : CST.variable_declarator) =
   let v1 = anon_choice_id env v1 in
@@ -544,17 +542,17 @@ and sequence_expression (env : env) ((v1, v2, v3) : CST.sequence_expression) =
     | `Exp x -> expression env x
     )
   in
-  todo env (v1, v2, v3)
+  Apply (IdSpecial (Seq, v2), fb [v1; v3])
 
 and jsx_fragment (env : env) ((v1, v2, v3, v4, v5, v6) : CST.jsx_fragment)
  : xml =
   let v1 = token env v1 (* "<" *) in
-  let v2 = token env v2 (* ">" *) in
+  let _v2 = token env v2 (* ">" *) in
   let v3 = List.map (jsx_child env) v3 in
-  let v4 = token env v4 (* "<" *) in
-  let v5 = token env v5 (* "/" *) in
-  let v6 = token env v6 (* ">" *) in
-  todo env (v1, v2, v3, v4, v5, v6)
+  let _v4 = token env v4 (* "<" *) in
+  let _v5 = token env v5 (* "/" *) in
+  let _v6 = token env v6 (* ">" *) in
+  { xml_tag = "", v1; xml_attrs = []; xml_body = v3 }
 
 and class_body (env : env) ((v1, v2, v3) : CST.class_body) =
   let v1 = token env v1 (* "{" *) in
@@ -1026,6 +1024,12 @@ and formal_parameters (env : env) ((v1, v2, v3) : CST.formal_parameters) : param
     | None -> todo env ())
   in
   let v3 = token env v3 (* ")" *) in
+  todo env (v1, v2, v3)
+
+and switch_default (env : env) ((v1, v2, v3) : CST.switch_default) =
+  let v1 = token env v1 (* "default" *) in
+  let v2 = token env v2 (* ":" *) in
+  let v3 = List.map (statement env) v3 in
   todo env (v1, v2, v3)
 
 and switch_body (env : env) ((v1, v2, v3) : CST.switch_body) =
