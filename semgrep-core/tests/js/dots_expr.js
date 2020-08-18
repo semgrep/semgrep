@@ -3,5 +3,5 @@ var x;
 //ERROR: match
 x = 2;
 
-//TODO? should match $X = ...?
+//ERROR: match
 var y = 1;

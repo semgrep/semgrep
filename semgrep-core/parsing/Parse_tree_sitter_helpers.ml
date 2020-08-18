@@ -80,3 +80,16 @@ let token env (tok : Tree_sitter_run.Token.t) =
 let str env (tok : Tree_sitter_run.Token.t) =
   let (_, s) = tok in
   s, token env tok
+
+let combine_tokens env xs =
+  match xs with
+  | [] -> failwith "combine_tokens: empty list"
+  | x::_xsTODO ->
+      let t = token env x in
+      t
+
+let combine_infos _env xs =
+  match xs with
+  | [] -> failwith "combine_infos: empty list"
+  | x::_xsTODO ->
+      x
