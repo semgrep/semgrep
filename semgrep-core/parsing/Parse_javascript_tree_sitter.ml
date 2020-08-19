@@ -470,7 +470,6 @@ and jsx_element_ (env : env) (x : CST.jsx_element_) : xml =
   )
 
 
-
 and destructuring_pattern (env : env) (x : CST.destructuring_pattern) : pattern =
   (match x with
   | `Obj x ->
@@ -998,7 +997,7 @@ and expression (env : env) (x : CST.expression) : expr =
         )
       in
       let v3 = expression env v3 in
-      (* todo: should use intermediate instead of repeating v1 *)
+      (* less: should use intermediate instead of repeating v1 *)
       Assign (v1, tok, Apply (IdSpecial (ArithOp op, tok), fb [v1;v3]))
   | `Await_exp (v1, v2) ->
       let v1 = token env v1 (* "await" *) in
@@ -1140,7 +1139,8 @@ and switch_body (env : env) ((v1, v2, v3) : CST.switch_body) =
 
 and statement (env : env) (x : CST.statement) : stmt =
   (match x with
-  | `Export_stmt x -> export_statement env x
+  | `Export_stmt x ->
+        export_statement env x
   | `Import_stmt (v1, v2, v3) ->
       let v1 = token env v1 (* "import" *) in
       let v2 =
