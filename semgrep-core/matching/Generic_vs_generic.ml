@@ -736,6 +736,8 @@ and m_special a b =
     return ()
   | A.HashSplat, B.HashSplat ->
     return ()
+  | A.ForOf, B.ForOf ->
+    return ()
   | A.Op(a1), B.Op(b1) ->
     m_arithmetic_operator a1 b1
   | A.EncodedString(a1), B.EncodedString(b1) ->
@@ -747,7 +749,7 @@ and m_special a b =
   | A.This, _  | A.Super, _  | A.Self, _  | A.Parent, _  | A.Eval, _
   | A.Typeof, _  | A.Instanceof, _  | A.Sizeof, _  | A.New, _
   | A.ConcatString _, _  | A.Spread, _  | A.Op _, _  | A.IncrDecr _, _
-  | A.EncodedString _, _ | A.HashSplat, _ | A.Defined, _
+  | A.EncodedString _, _ | A.HashSplat, _ | A.Defined, _ | A.ForOf, _
    -> fail ()
 (*e: function [[Generic_vs_generic.m_special]] *)
 
