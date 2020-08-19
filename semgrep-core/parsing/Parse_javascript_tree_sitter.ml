@@ -91,13 +91,7 @@ let build_vars kwd vars =
         raise Todo
    )
 
-let stmt_of_stmts xs =
-  match xs with
-  | [] -> Block (fb [])
-  | [x] -> x
-  | xs -> Block (fb xs)
-
-
+let stmt_of_stmts = Ast_js.stmt_of_stmts
 
 let identifier (env : env) (tok : CST.identifier) : ident =
   str env tok (* identifier *)
@@ -875,7 +869,7 @@ and constructable_expression (env : env) (x : CST.constructable_expression) : ex
 and expression_statement (env : env) ((v1, v2) : CST.expression_statement) =
   let v1 = expressions env v1 in
   let v2 = semicolon env v2 in
-  ExprStmt (v1, v2)
+  (v1, v2)
 
 and catch_clause (env : env) ((v1, v2, v3) : CST.catch_clause) =
   let v1 = token env v1 (* "catch" *) in
@@ -1171,7 +1165,9 @@ and statement (env : env) (x : CST.statement) : stmt =
       let v1 = identifier env v1 (* "debugger" *) in
       let v2 = semicolon env v2 in
       ExprStmt (idexp v1, v2)
-  | `Exp_stmt x -> expression_statement env x
+  | `Exp_stmt x ->
+        let (e, t) = expression_statement env x in
+        ExprStmt (e, t)
   | `Decl x ->
         let var = declaration env x in
         VarDecl var
@@ -1196,33 +1192,41 @@ and statement (env : env) (x : CST.statement) : stmt =
       Switch (v1, v2, v3)
   | `For_stmt (v1, v2, v3, v4, v5, v6, v7) ->
       let v1 = token env v1 (* "for" *) in
-      let v2 = token env v2 (* "(" *) in
+      let _v2 = token env v2 (* "(" *) in
       let v3 =
         (match v3 with
         | `Lexi_decl x ->
                 let vars = lexical_declaration env x in
-                todo env vars
+                Left vars
         | `Var_decl x ->
                 let vars = variable_declaration env x in
-                todo env vars
-        | `Exp_stmt x -> expression_statement env x
-        | `Empty_stmt tok -> empty_stmt env tok (* ";" *)
+                Left vars
+        | `Exp_stmt x ->
+                let (e, _t) = expression_statement env x in
+                Right e
+        | `Empty_stmt tok ->
+                let _ = empty_stmt env tok (* ";" *) in
+                Left []
         )
       in
       let v4 =
         (match v4 with
-        | `Exp_stmt x -> expression_statement env x
-        | `Empty_stmt tok -> empty_stmt env tok (* ";" *)
+        | `Exp_stmt x ->
+                let (e, _t) = expression_statement env x in
+                Some e
+        | `Empty_stmt tok ->
+                let _ = empty_stmt env tok (* ";" *) in
+                None
         )
       in
       let v5 =
         (match v5 with
-        | Some x -> expressions env x
-        | None -> todo env ())
+        | Some x -> Some (expressions env x)
+        | None -> None)
       in
-      let v6 = token env v6 (* ")" *) in
+      let _v6 = token env v6 (* ")" *) in
       let v7 = statement env v7 in
-      todo env (v1, v2, v3, v4, v5, v6, v7)
+      For (v1, ForClassic (v3, v4, v5), v7)
   | `For_in_stmt (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "for" *) in
       let _v2TODO =
