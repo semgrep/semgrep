@@ -732,7 +732,7 @@ and assignment_pattern (env : env) ((v1, v2, v3) : CST.assignment_pattern) =
   in
   let v2 = token env v2 (* "=" *) in
   let v3 = expression env v3 in
-  Assign (v1, v2, v3)
+  (v1, v2, v3)
 
 
 and subscript_expression (env : env) ((v1, v2, v3, v4) : CST.subscript_expression) : expr =
@@ -935,27 +935,35 @@ and decorator_call_expression (env : env) ((v1, v2) : CST.decorator_call_express
 
 
 and for_header (env : env) ((v1, v2, v3, v4, v5, v6) : CST.for_header) =
-  let v1 = token env v1 (* "(" *) in
+  let _v1 = token env v1 (* "(" *) in
   let v2 =
     (match v2 with
     | Some x ->
-        (match x with
-        | `Var tok -> token env tok (* "var" *)
-        | `Let tok -> token env tok (* "let" *)
-        | `Const tok -> token env tok (* "const" *)
+        Some (match x with
+        | `Var tok -> Var, token env tok (* "var" *)
+        | `Let tok -> Let, token env tok (* "let" *)
+        | `Const tok -> Const, token env tok (* "const" *)
         )
-    | None -> todo env ())
+    | None -> None)
   in
   let v3 = anon_choice_paren_exp env v3 in
+  let var_or_expr =
+    match v2 with
+    | None -> Right v3
+    | Some vkind ->
+        let var = Ast_js.var_pattern_to_var vkind v3 (snd vkind) None in
+        Left var
+  in
+
+  let v5 = expressions env v5 in
+  let _v6 = token env v6 (* ")" *) in
   let v4 =
     (match v4 with
-    | `In tok -> token env tok (* "in" *)
-    | `Of tok -> token env tok (* "of" *)
+    | `In tok -> ForIn (var_or_expr, token env tok, v5) (* "in" *)
+    | `Of tok -> ForOf (var_or_expr, token env tok, v5) (* "of" *)
     )
   in
-  let v5 = expressions env v5 in
-  let v6 = token env v6 (* ")" *) in
-  todo env (v1, v2, v3, v4, v5, v6)
+  v4
 
 and expression (env : env) (x : CST.expression) : expr =
   (match x with
@@ -1217,14 +1225,14 @@ and statement (env : env) (x : CST.statement) : stmt =
       todo env (v1, v2, v3, v4, v5, v6, v7)
   | `For_in_stmt (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "for" *) in
-      let v2 =
+      let _v2TODO =
         (match v2 with
-        | Some tok -> token env tok (* "await" *)
-        | None -> todo env ())
+        | Some tok -> Some (token env tok) (* "await" *)
+        | None -> None)
       in
       let v3 = for_header env v3 in
       let v4 = statement env v4 in
-      todo env (v1, v2, v3, v4)
+      For (v1, v3, v4)
   | `While_stmt (v1, v2, v3) ->
       let v1 = token env v1 (* "while" *) in
       let v2 = parenthesized_expression env v2 in
@@ -1547,8 +1555,8 @@ and anon_choice_pair (env : env) (x : CST.anon_choice_pair) : property =
         Field (PN id, [], Some (idexp id))
 
   | `Assign_pat x ->
-        let e = assignment_pattern env x in
-        let any = Expr e in
+        let (a,b,c) = assignment_pattern env x in
+        let any = Expr (Assign (a,b,c)) in
         let t = Lib_analyze_js.ii_of_any any |> List.hd in
         todo_any "`Assign_pat" t any
   )
@@ -1664,8 +1672,8 @@ and formal_parameter (env : env) (x : CST.formal_parameter) : parameter =
         let pat = destructuring_pattern env x in
         ParamPattern pat
   | `Assign_pat x ->
-        let pat = assignment_pattern env x in
-        ParamPattern pat
+        let (a,b,c) = assignment_pattern env x in
+        ParamPattern (Assign (a,b,c))
   | `Rest_param (v1, v2) ->
       let v1 = token env v1 (* "..." *) in
       let v2 = anon_choice_id env v2 in
