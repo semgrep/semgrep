@@ -1,0 +1,18 @@
+[31merror[39m: Invalid rule schema
+  --> rules/syntax/bad15.yaml:1
+[94m1  | [39mrules:
+[94m2  | [39m  - id: too many
+[94m3  | [39m    message: Hi
+[94m4  | [39m    languages: [python]
+[94m5  | [39m    severity: WARNING
+[94m6  | [39m    # Can't use pattern and patterns
+[94m7  | [39m    pattern: $X == $X
+[94m8  | [39m    patterns:
+[94m9  | [39m      - pattern: $X != $X
+
+[31m{'anyOf': [{'required': ['pattern']}, {'required': ['pattern-either']}, {'required': ['pattern-regex']}]} is not allowed for {'id': 'too many', 'message': 'Hi', 'languages': ['python'], 'severity': 'WARNING', 'pattern': '$X == $X', 'patterns': [{'pattern': '$X != $X'}]}
+{'anyOf': [{'required': ['pattern']}, {'required': ['patterns']}, {'required': ['pattern-either']}]} is not allowed for {'id': 'too many', 'message': 'Hi', 'languages': ['python'], 'severity': 'WARNING', 'pattern': '$X == $X', 'patterns': [{'pattern': '$X != $X'}]}
+{'anyOf': [{'required': ['pattern']}, {'required': ['patterns']}, {'required': ['pattern-regex']}]} is not allowed for {'id': 'too many', 'message': 'Hi', 'languages': ['python'], 'severity': 'WARNING', 'pattern': '$X == $X', 'patterns': [{'pattern': '$X != $X'}]}
+{'anyOf': [{'required': ['patterns']}, {'required': ['pattern-either']}, {'required': ['pattern-regex']}]} is not allowed for {'id': 'too many', 'message': 'Hi', 'languages': ['python'], 'severity': 'WARNING', 'pattern': '$X == $X', 'patterns': [{'pattern': '$X != $X'}]}[39m
+
+run with --strict and there were 1 errors loading configs

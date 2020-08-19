@@ -3,18 +3,15 @@
     {
       "code": 4,
       "level": "error",
-      "long_msg": "operator pattern-either must have children",
-      "short_msg": "missing children",
+      "long_msg": "'$X == $X' is not of type 'array'",
+      "short_msg": "Invalid rule schema",
       "spans": [
         {
-          "context_end": {
-            "col": 35,
-            "line": 5
-          },
+          "context_end": null,
           "context_start": null,
           "end": {
-            "col": 23,
-            "line": 5
+            "col": 5,
+            "line": 6
           },
           "file": "rules/syntax/bad6.yaml",
           "source_hash": "ebcad6ecc6d2264e00fcdeeee54e8997c92b2862d3fb66a0066b2bbdde796b2e",
