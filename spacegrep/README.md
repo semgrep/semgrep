@@ -22,7 +22,7 @@ Sample pattern `exec.pat`:
 exec(...)
 ```
 
-Sample document `exec.dot`:
+Sample document `exec.doc`:
 ```
 import exec as safe_function
 safe_function(user_input)
