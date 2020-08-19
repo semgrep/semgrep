@@ -489,11 +489,23 @@ and m_expr a b =
     m_arguments a2 b2
     )
 
-  | A.Assign(a1, at, a2), B.Assign(b1, bt, b2) ->
+  | (A.Assign(a1, at, a2)) as a, B.Assign(b1, bt, b2) ->
     m_expr a1 b1 >>= (fun () ->
     m_tok at bt >>= (fun () ->
     m_expr a2 b2
     ))
+    >||> (match (b1, b2) with 
+    | B.Tuple vars, B.Tuple vals 
+      when List.length vars = List.length vals ->
+        let create_assigns = fun expr1 expr2 -> B.Assign (expr1, bt, expr2) in
+        let mult_assigns = List.map2 create_assigns vars vals in
+        let rec aux xs =
+            match xs with
+            | [] -> fail ()
+            | x::xs ->
+              m_expr a x >||> aux xs
+        in aux mult_assigns
+    | _, _ -> fail ())
 
   | A.DotAccess(a1, at, a2), B.DotAccess(b1, bt, b2) ->
     m_expr a1 b1 >>= (fun () ->
@@ -593,7 +605,7 @@ and m_expr a b =
     | A.Constructor _, _  | A.Lambda _, _  | A.AnonClass _, _
     | A.Id _, _  | A.IdQualified _, _ | A.IdSpecial _, _
     | A.Call _, _  | A.Xml _, _
-    | A.Assign _, _  | A.AssignOp _, _  | A.LetPattern _, _  | A.DotAccess _, _
+    | A.Assign _, _ | A.AssignOp _, _  | A.LetPattern _, _  | A.DotAccess _, _
     | A.ArrayAccess _, _  | A.Conditional _, _  | A.MatchPattern _, _
     | A.Yield _, _  | A.Await _, _  | A.Cast _, _  | A.Seq _, _  | A.Ref _, _
     | A.DeRef _, _  | A.OtherExpr _, _
@@ -1648,7 +1660,7 @@ and m_other_stmt_with_stmt_operator = m_other_xxx
 (*****************************************************************************)
 
 (*s: function [[Generic_vs_generic.m_pattern]] *)
-and m_pattern a b =
+and m_pattern a b =  
   match a, b with
   (*s: [[Generic_vs_generic.m_pattern()]] disjunction case *)
   (* equivalence: user-defined equivalence! *)
