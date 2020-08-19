@@ -66,6 +66,9 @@ let blank (env : env) () = ()
 let todo (env : env) _ =
    failwith "not implemented"
 
+let todo_any str t any =
+  pr2 (AST.show_any any);
+  raise (Parse_info.Ast_builder_error (str, t))
 
 let super env tok =
   IdSpecial (Super, token env tok)
@@ -419,7 +422,9 @@ and jsx_attribute_ (env : env) (x : CST.jsx_attribute_) : xml_attribute =
   (* ?? TODO *)
   | `Jsx_exp x ->
         let e = jsx_expression env x in
-        todo env e
+        let any = Expr e in
+        let t = Lib_analyze_js.ii_of_any any |> List.hd in
+        todo_any "`Jsx_exp" t any
   )
 
 and jsx_attribute_value (env : env) (x : CST.jsx_attribute_value) =
@@ -1250,7 +1255,7 @@ and statement (env : env) (x : CST.statement) : stmt =
       let v1 = token env v1 (* "with" *) in
       let v2 = parenthesized_expression env v2 in
       let v3 = statement env v3 in
-      todo env (v1, v2, v3)
+      With (v1, v2, v3)
   | `Brk_stmt (v1, v2, v3) ->
       let v1 = token env v1 (* "break" *) in
       let v2 =
@@ -1543,7 +1548,9 @@ and anon_choice_pair (env : env) (x : CST.anon_choice_pair) : property =
 
   | `Assign_pat x ->
         let e = assignment_pattern env x in
-        todo env e
+        let any = Expr e in
+        let t = Lib_analyze_js.ii_of_any any |> List.hd in
+        todo_any "`Assign_pat" t any
   )
 
 
@@ -1655,10 +1662,10 @@ and formal_parameter (env : env) (x : CST.formal_parameter) : parameter =
         ParamClassic { p_name = id; p_default = None; p_dots = None }
   | `Choice_obj x ->
         let pat = destructuring_pattern env x in
-        todo env pat
+        ParamPattern pat
   | `Assign_pat x ->
         let pat = assignment_pattern env x in
-        todo env pat
+        ParamPattern pat
   | `Rest_param (v1, v2) ->
       let v1 = token env v1 (* "..." *) in
       let v2 = anon_choice_id env v2 in
@@ -1666,7 +1673,7 @@ and formal_parameter (env : env) (x : CST.formal_parameter) : parameter =
       | Left id ->
          ParamClassic { p_name = id; p_default = None; p_dots = Some v1 }
       | Right pat ->
-         todo env pat
+         todo_any "`Rest_param with pattern" v1 (Expr pat)
       )
   )
 
