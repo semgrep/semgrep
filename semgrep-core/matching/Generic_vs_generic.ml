@@ -1665,7 +1665,7 @@ and m_other_stmt_with_stmt_operator = m_other_xxx
 (*****************************************************************************)
 
 (*s: function [[Generic_vs_generic.m_pattern]] *)
-and m_pattern a b = 
+and m_pattern a b =
   match a, b with
   (*s: [[Generic_vs_generic.m_pattern()]] disjunction case *)
   (* equivalence: user-defined equivalence! *)
