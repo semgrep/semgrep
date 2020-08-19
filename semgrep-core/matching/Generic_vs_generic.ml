@@ -489,7 +489,7 @@ and m_expr a b =
     m_arguments a2 b2
     )
 
-  | (A.Assign(a1, at, a2)) as a, B.Assign(b1, bt, b2) ->
+  | A.Assign(a1, at, a2), B.Assign(b1, bt, b2) ->
     m_expr a1 b1 >>= (fun () ->
     m_tok at bt >>= (fun () ->
     m_expr a2 b2
