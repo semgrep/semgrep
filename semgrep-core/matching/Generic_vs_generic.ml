@@ -494,6 +494,11 @@ and m_expr a b =
     m_tok at bt >>= (fun () ->
     m_expr a2 b2
     ))
+    (* If the code has tuples as b1 and b2 and the lengths of
+     * the tuples are equal, create a tuple of (variable, value)
+     * pairs and try to match the pattern with each entry in the tuple.
+     * This should enable multiple assignments if the number of
+     * variables and values are equal. *)
     >||> (match (b1, b2) with 
     | B.Tuple vars, B.Tuple vals 
       when List.length vars = List.length vals ->
