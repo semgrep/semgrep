@@ -14,6 +14,7 @@ def test_perf(clone_github_repo):
         repo_url="https://github.com/ajinabraham/njsscan",
         sha="d1c5df41393ba512cbd362874a7a0bdc7dbf43fc",
     )
+    njsscan_rules_path = str(rules_path / "njsscan/rules/semantic_grep")
 
     # Dvna takes about 30 sec
     target_path = clone_github_repo(
@@ -21,7 +22,7 @@ def test_perf(clone_github_repo):
     )
     start = time.time()
     subprocess.check_output(
-        ["python3", "-m" "semgrep", "--config", str(rules_path), str(target_path)]
+        ["python3", "-m" "semgrep", "--config", njsscan_rules_path, str(target_path),]
     )
     duration = time.time() - start
     print(duration)
@@ -39,7 +40,7 @@ def test_perf(clone_github_repo):
             "python3",
             "-m" "semgrep",
             "--config",
-            str(rules_path / "njsscan/rules/semantic_grep"),
+            njsscan_rules_path,
             "--exclude",
             "three.js",
             str(target_path),
@@ -47,4 +48,4 @@ def test_perf(clone_github_repo):
     )
     duration = time.time() - start
     print(duration)
-    assert duration < 275
+    assert duration < 300
