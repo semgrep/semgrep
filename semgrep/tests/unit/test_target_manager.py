@@ -395,6 +395,9 @@ def test_explicit_path(tmp_path, monkeypatch):
     assert foo_a in TargetManager(
         [], [], ["foo/a.py"], False, defaulthandler, False
     ).get_files(python_language, [], [])
+    assert foo_a in TargetManager(
+        [], [], ["foo/a.py"], False, defaulthandler, True
+    ).get_files(python_language, [], [])
 
     # Should include explicitly passed python file even if is in excludes
     assert foo_a not in TargetManager(
@@ -430,4 +433,14 @@ def test_explicit_path(tmp_path, monkeypatch):
             )
         ),
         set(),
+    )
+
+    # Should include explicitly passed file with correct extension even if skip_unknown_extensions=True
+    assert cmp_path_sets(
+        set(
+            TargetManager(
+                [], [], ["foo/noext", "foo/a.py"], False, defaulthandler, True
+            ).get_files(python_language, [], [])
+        ),
+        {foo_a},
     )
