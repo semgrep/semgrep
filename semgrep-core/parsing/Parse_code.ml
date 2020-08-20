@@ -27,17 +27,22 @@ module Flag = Flag_semgrep
 let unless_tree_sitter f file =
   if !Flag.force_tree_sitter
   then failwith "Forced tree sitter"
-  else f file
+  else Common.save_excursion Flag_parsing.show_parsing_error false (fun () ->
+       f file
+    )
 
 let just_parse_with_lang lang file =
   match lang with
   | Lang.Ruby ->
+      (* for Ruby we start with the tree-sitter parser because the pfff parser
+       * is not great and some of the token positions may be wrong.
+       *)
       let ast =
         try
           Parse_ruby_tree_sitter.parse file
         with _exn ->
-          (* TODO: right now it's quite verbose and the token positions
-           * may be wrong, but maybe it's better than nothing.
+          (* right now the parser is verbose and the token positions
+           * may be wrong, but better than nothing.
            *)
           Parse_ruby.parse_program file
       in
@@ -46,7 +51,7 @@ let just_parse_with_lang lang file =
       let ast =
         (* let's start with a pfff one; it's quite good and currently faster
          * than the tree-sitter one because we need to wrap that one inside
-         * an invoke because of a segfault/memory-leak
+         * an invoke because of a segfault/memory-leak.
          *)
         try unless_tree_sitter Parse_java.parse_program file
         with _exn -> Parse_java_tree_sitter.parse file
@@ -60,6 +65,10 @@ let just_parse_with_lang lang file =
       Go_to_generic.program ast
 
   | Lang.Javascript ->
+      (* TODO: we should start directly with tree-sitter here, because
+       * the pfff parser is slow on minified fiels due to its (slow) error
+       * recovery strategy.
+       *)
       let ast =
         try unless_tree_sitter
             (fun file ->
@@ -72,8 +81,13 @@ let just_parse_with_lang lang file =
       Js_to_generic.program ast
 
   | Lang.Csharp ->
+      (* there is no pfff parser for C# so let's go directly to tree-sitter,
+       * and there's no ast_csharp.ml either so we directly generate
+       * a generic AST (no csharp_to_generic here)
+       *)
       Parse_csharp_tree_sitter.parse file
 
+  (* default to the one in pfff for the other languages *)
   | _ -> Parse_generic.parse_with_lang lang file
 
 (*****************************************************************************)
