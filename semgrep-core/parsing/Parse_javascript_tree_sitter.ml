@@ -1405,18 +1405,36 @@ and export_statement (env : env) (x : CST.export_statement) : toplevel list =
         (match v2 with
         | `STAR_from_clause_choice_auto_semi (v1, v2, v3) ->
             let v1 = token env v1 (* "*" *) in
-            let v2 = from_clause env v2 in
+            let (_tok2, path) = from_clause env v2 in
             let v3 = semicolon env v3 in
-            todo env (v1, v2, v3)
+            todo_any "Reexport namespace" v1 (Expr (idexp path))
         | `Export_clause_from_clause_choice_auto_semi (v1, v2, v3) ->
             let v1 = export_clause env v1 in
-            let v2 = from_clause env v2 in
-            let v3 = semicolon env v3 in
-            todo env (v1, v2, v3)
+            let (tok2, path) = from_clause env v2 in
+            let _v3 = semicolon env v3 in
+            v1 |> List.map (fun (n1, n2opt) ->
+               let tmpname = "!tmp_" ^ fst n1, snd n1 in
+               let import = Import (tok2, n1, Some tmpname, path) in
+               let e = idexp tmpname in
+               match n2opt with
+               | None ->
+                  let v = Ast_js.mk_const_var n1 e in
+                  [M import; V v; M (Export (tok, n1))]
+               | Some (n2) ->
+                  let v = Ast_js.mk_const_var n2 e in
+                  [M import; V v; M (Export (tok, n2))]
+            ) |> List.flatten
         | `Export_clause_choice_auto_semi (v1, v2) ->
             let v1 = export_clause env v1 in
-            let v2 = semicolon env v2 in
-            todo env (v1, v2)
+            let _v2 = semicolon env v2 in
+            v1 |> List.map (fun (n1, n2opt) ->
+               (match n2opt with
+               | None -> [M (Export (tok, n1))]
+               | Some n2 ->
+                  let v = Ast_js.mk_const_var n2 (idexp n1) in
+                  [V v; M (Export (tok, n2))]
+               )
+            ) |> List.flatten
         )
       in
       v2
