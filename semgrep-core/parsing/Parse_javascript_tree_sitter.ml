@@ -1602,10 +1602,8 @@ and anon_choice_pair (env : env) (x : CST.anon_choice_pair) : property =
 
   | `Assign_pat x ->
         let (a,b,c) = assignment_pattern env x in
-        let any = Expr (Assign (a,b,c)) in
-        let t = Lib_analyze_js.ii_of_any any |> List.hd in
-        (* TODO: should be a FieldAssignPat, only in pattern context *)
-        todo_any "`Assign_pat" t any
+        (* only in pattern context *)
+        FieldPatDefault (a, b, c)
   )
 
 
