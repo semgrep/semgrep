@@ -401,8 +401,9 @@ and jsx_expression (env : env) ((v1, v2, v3) : CST.jsx_expression) : expr =
                 let (t, e) = spread_element env x in
                 Apply (IdSpecial (Spread, t), fb [e])
         )
-    (* ?? TODO *)
-    | None -> IdSpecial (Null, v1))
+    | None ->
+          todo_any "JSX null expr" v1 (Expr (IdSpecial (Null, v1)))
+    )
   in
   let _v3 = token env v3 (* "}" *) in
   v2
