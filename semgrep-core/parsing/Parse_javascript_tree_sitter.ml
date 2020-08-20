@@ -213,7 +213,9 @@ let namespace_import (env : env) ((v1, v2, v3) : CST.namespace_import) =
   let _v1 = token env v1 (* "*" *) in
   let _v2 = token env v2 (* "as" *) in
   let v3 = identifier env v3 (* identifier *) in
-  v3
+  (fun tok path ->
+      [ModuleAlias (tok, v3, path)]
+  )
 
 let import_export_specifier (env : env) ((v1, v2) : CST.import_export_specifier) =
   let v1 = identifier env v1 (* identifier *) in
@@ -322,19 +324,21 @@ let named_imports (env : env) ((v1, v2, v3, v4) : CST.named_imports) =
     | None -> None)
   in
   let _v4 = token env v4 (* "}" *) in
-  v2
+  (fun tok path ->
+    v2 |> List.map (fun (n1, n2opt) -> Import (tok, n1, n2opt, path))
+  )
 
 let from_clause (env : env) ((v1, v2) : CST.from_clause) =
-  let _v1 = token env v1 (* "from" *) in
+  let v1 = token env v1 (* "from" *) in
   let v2 = string_ env v2 in
-  v2
+  v1, v2
 
 let import_clause (env : env) (x : CST.import_clause) =
   (match x with
-  | `Name_import x -> namespace_import env x
+  | `Name_import x ->
+        namespace_import env x
   | `Named_imports x ->
-        let aliases = named_imports env x in
-        todo env aliases
+        named_imports env x
   | `Id_opt_COMMA_choice_name_import (v1, v2) ->
       let v1 = identifier env v1 (* identifier *) in
       let v2 =
@@ -344,15 +348,18 @@ let import_clause (env : env) (x : CST.import_clause) =
             let v2 =
               (match v2 with
               | `Name_import x -> namespace_import env x
-              | `Named_imports x ->
-                        let aliases = named_imports env x in
-                        todo env aliases
+              | `Named_imports x -> named_imports env x
               )
             in
             v2
-        | None -> todo env ())
+        | None ->
+           (fun _t _path -> [])
+        )
       in
-      todo env (v1, v2)
+      (fun t path ->
+         let default = Import (t, (default_entity, snd v1), Some v1, path) in
+         default :: v2 t path
+      )
   )
 
 (*****************************************************************************)
@@ -1154,17 +1161,22 @@ and statement (env : env) (x : CST.statement) : stmt list =
         export_statement env x
   | `Import_stmt (v1, v2, v3) ->
       let v1 = token env v1 (* "import" *) in
+      let tok = v1 in
       let v2 =
         (match v2 with
         | `Import_clause_from_clause (v1, v2) ->
-            let v1 = import_clause env v1 in
-            let v2 = from_clause env v2 in
-            todo env (v1, v2)
-        | `Str x -> string_ env x
+            let f = import_clause env v1 in
+            let (_t, path) = from_clause env v2 in
+            f tok path
+        | `Str x ->
+            let file = string_ env x in
+            if (fst file =~ ".*\\.css$")
+            then [ImportCss (tok, file)]
+            else [ImportEffect (tok, file)]
         )
       in
-      let v3 = semicolon env v3 in
-      todo env (v1, v2, v3)
+      let _v3 = semicolon env v3 in
+      raise Todo
   | `Debu_stmt (v1, v2) ->
       let v1 = identifier env v1 (* "debugger" *) in
       let v2 = semicolon env v2 in
@@ -1350,30 +1362,31 @@ and array_ (env : env) ((v1, v2, v3) : CST.array_) =
   let v3 = token env v3 (* "]" *) in
   Arr (v1, v2, v3)
 
+(* TODO: should represent "elison" (holes, which is =~ '_' pattern in OCaml) *)
 and anon_opt_opt_choice_exp_rep_COMMA_opt_choice_exp (env : env) (opt : CST.anon_opt_opt_choice_exp_rep_COMMA_opt_choice_exp) : expr list =
   (match opt with
   | Some (v1, v2) ->
       let v1 =
         (match v1 with
-        | Some x -> anon_choice_exp env x
-        | None -> todo env ())
+        | Some x -> [anon_choice_exp env x]
+        | None -> [])
       in
       let v2 = anon_rep_COMMA_opt_choice_exp env v2 in
-      todo env (v1, v2)
-  | None -> todo env ())
+      v1 @ v2
+  | None -> [])
 
-and anon_rep_COMMA_opt_choice_exp (env : env) (xs : CST.anon_rep_COMMA_opt_choice_exp) =
+and anon_rep_COMMA_opt_choice_exp (env : env) (xs : CST.anon_rep_COMMA_opt_choice_exp) : expr list =
   List.map (fun (v1, v2) ->
     let v1 = token env v1 (* "," *) in
     let v2 =
       (match v2 with
-      | Some x -> anon_choice_exp env x
-      | None -> todo env ())
+      | Some x -> [anon_choice_exp env x]
+      | None -> [])
     in
-    todo env (v1, v2)
-  ) xs
+    v2
+  ) xs |> List.flatten
 
-and anon_choice_exp (env : env) (x : CST.anon_choice_exp) =
+and anon_choice_exp (env : env) (x : CST.anon_choice_exp) : expr =
   (match x with
   | `Exp x -> expression env x
   | `Spread_elem x ->
@@ -1567,6 +1580,7 @@ and anon_choice_pair (env : env) (x : CST.anon_choice_pair) : property =
         let (a,b,c) = assignment_pattern env x in
         let any = Expr (Assign (a,b,c)) in
         let t = Lib_analyze_js.ii_of_any any |> List.hd in
+        (* TODO: should be a FieldAssignPat, only in pattern context *)
         todo_any "`Assign_pat" t any
   )
 
