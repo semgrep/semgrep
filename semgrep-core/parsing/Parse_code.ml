@@ -27,7 +27,9 @@ module Flag = Flag_semgrep
 let unless_tree_sitter f file =
   if !Flag.force_tree_sitter
   then failwith "Forced tree sitter"
-  else f file
+  else Common.save_excursion Flag_parsing.show_parsing_error false (fun () ->
+       f file
+    )
 
 let just_parse_with_lang lang file =
   match lang with
