@@ -260,17 +260,21 @@ class TargetManager:
         targets = self.filter_includes(targets, self.includes)
         targets = self.filter_excludes(targets, self.excludes)
 
+        # Remove explicit_files with known extensions
+        explicit_files_with_lang_extension = set(
+            f
+            for f in explicit_files
+            if (any(f.match(f"*.{ext}") for ext in lang_to_exts(lang)))
+        )
+        targets = targets.union(explicit_files_with_lang_extension)
+
         if not self.skip_unknown_extensions:
-            # Remove explicit_files with known extensions
-            explicit_files = set(
+            explicit_files_with_unknown_extensions = set(
                 f
                 for f in explicit_files
-                if (
-                    any(f.match(f"*.{ext}") for ext in lang_to_exts(lang))
-                    or not any(f.match(f"*.{ext}") for ext in ALL_EXTENSIONS)
-                )
+                if not any(f.match(f"*.{ext}") for ext in ALL_EXTENSIONS)
             )
-            targets = targets.union(explicit_files)
+            targets = targets.union(explicit_files_with_unknown_extensions)
 
         self._filtered_targets[lang] = targets
         return self._filtered_targets[lang]
