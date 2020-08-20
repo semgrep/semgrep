@@ -91,7 +91,7 @@ let build_vars kwd vars =
       { v_name = id; v_kind = (kwd); v_init = initopt;
         v_resolved = ref NotResolved }
       | Right pat ->
-        raise Todo
+      Ast_js.var_pattern_to_var kwd pat (snd kwd) initopt
    )
 
 let identifier (env : env) (tok : CST.identifier) : ident =
