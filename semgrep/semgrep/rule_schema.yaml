@@ -171,7 +171,8 @@ properties:
             - regex
             - replacement
           additionalProperties: false
-        metadata: {}
+        metadata:
+          type: object
         pattern:
           type: string
         pattern-regex:
