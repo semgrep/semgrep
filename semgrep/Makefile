@@ -17,10 +17,11 @@ qa-test:
 .PHONY: ci-test
 ci-test:
 ifeq ($(GITHUB_EVENT_NAME),pull)
-ifeq ($(BRANCH_NAME), release-%.%.%)
+ifeq ($(BRANCH_NAME), test-release-%.%.%)
 	pipenv run pytest -n auto -v --tb=short tests/ --qa
 endif
-else ifeq ($(GITHUB_EVENT_NAME),push)
+else 
+ifeq ($(GITHUB_EVENT_NAME),push)
 	pipenv run pytest -n auto -v --tb=short tests/ --qa
 else
 	pipenv run pytest -n auto -v --tb=short tests/
