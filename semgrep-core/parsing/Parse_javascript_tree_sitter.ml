@@ -1400,7 +1400,7 @@ and anon_choice_exp (env : env) (x : CST.anon_choice_exp) : expr =
 and export_statement (env : env) (x : CST.export_statement) : toplevel list =
   (match x with
   | `Export_choice_STAR_from_clause_choice_auto_semi (v1, v2) ->
-      let v1 = token env v1 (* "export" *) in
+      let tok = token env v1 (* "export" *) in
       let v2 =
         (match v2 with
         | `STAR_from_clause_choice_auto_semi (v1, v2, v3) ->
@@ -1419,7 +1419,7 @@ and export_statement (env : env) (x : CST.export_statement) : toplevel list =
             todo env (v1, v2)
         )
       in
-      todo env (v1, v2)
+      v2
   | `Rep_deco_export_choice_decl (v1, v2, v3) ->
       let _v1TODO = List.map (decorator env) v1 in
       let tok = token env v2 (* "export" *) in
