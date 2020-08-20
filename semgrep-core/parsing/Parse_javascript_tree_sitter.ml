@@ -1405,9 +1405,9 @@ and export_statement (env : env) (x : CST.export_statement) : toplevel list =
         (match v2 with
         | `STAR_from_clause_choice_auto_semi (v1, v2, v3) ->
             let v1 = token env v1 (* "*" *) in
-            let (_tok2, path) = from_clause env v2 in
+            let (tok2, path) = from_clause env v2 in
             let v3 = semicolon env v3 in
-            todo_any "Reexport namespace" v1 (Expr (idexp path))
+            [M (ReExportNamespace (tok, v1, tok2, path))]
         | `Export_clause_from_clause_choice_auto_semi (v1, v2, v3) ->
             let v1 = export_clause env v1 in
             let (tok2, path) = from_clause env v2 in
