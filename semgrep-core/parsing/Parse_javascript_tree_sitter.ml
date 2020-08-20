@@ -63,7 +63,7 @@ let fb = G.fake_bracket
 
 let blank (env : env) () = ()
 
-let todo (env : env) _ =
+let _todo (env : env) _ =
    failwith "not implemented"
 
 let todo_any str t any =
@@ -1158,8 +1158,7 @@ and statement1 (env : env) (x : CST.statement) : stmt =
 and statement (env : env) (x : CST.statement) : stmt list =
   (match x with
   | `Export_stmt x ->
-        let toplevels = export_statement env x in
-        todo env toplevels
+        export_statement env x
   | `Import_stmt (v1, v2, v3) ->
       let v1 = token env v1 (* "import" *) in
       let tok = v1 in
@@ -1172,12 +1171,12 @@ and statement (env : env) (x : CST.statement) : stmt list =
         | `Str x ->
             let file = string_ env x in
             if (fst file =~ ".*\\.css$")
-            then [ImportCss (tok, file)]
-            else [ImportEffect (tok, file)]
+            then [(ImportCss (tok, file))]
+            else [(ImportEffect (tok, file))]
         )
       in
       let _v3 = semicolon env v3 in
-      todo env v2
+      v2 |> List.map (fun m -> M m)
   | `Debu_stmt (v1, v2) ->
       let v1 = identifier env v1 (* "debugger" *) in
       let v2 = semicolon env v2 in
@@ -1419,10 +1418,10 @@ and export_statement (env : env) (x : CST.export_statement) : toplevel list =
                match n2opt with
                | None ->
                   let v = Ast_js.mk_const_var n1 e in
-                  [M import; V v; M (Export (tok, n1))]
+                  [M import; VarDecl v; M (Export (tok, n1))]
                | Some (n2) ->
                   let v = Ast_js.mk_const_var n2 e in
-                  [M import; V v; M (Export (tok, n2))]
+                  [M import; VarDecl v; M (Export (tok, n2))]
             ) |> List.flatten
         | `Export_clause_choice_auto_semi (v1, v2) ->
             let v1 = export_clause env v1 in
@@ -1432,7 +1431,7 @@ and export_statement (env : env) (x : CST.export_statement) : toplevel list =
                | None -> [M (Export (tok, n1))]
                | Some n2 ->
                   let v = Ast_js.mk_const_var n2 (idexp n1) in
-                  [V v; M (Export (tok, n2))]
+                  [VarDecl v; M (Export (tok, n2))]
                )
             ) |> List.flatten
         )
@@ -1447,14 +1446,14 @@ and export_statement (env : env) (x : CST.export_statement) : toplevel list =
             let vars = declaration env x in
             vars |> List.map (fun var ->
               let n = var.v_name in
-              [V var; M (Export (tok, n))]
+              [VarDecl var; M (Export (tok, n))]
             ) |> List.flatten
         | `Defa_exp_choice_auto_semi (v1, v2, v3) ->
             let v1 = token env v1 (* "default" *) in
             let v2 = expression env v2 in
             let _v3 = semicolon env v3 in
             let var, n = Ast_js.mk_default_entity_var v1 v2 in
-            [V var; M (Export (v1, n))]
+            [VarDecl var; M (Export (v1, n))]
         )
       in
       v3
@@ -1734,9 +1733,7 @@ and formal_parameter (env : env) (x : CST.formal_parameter) : parameter =
   )
 
 
-let toplevel env x =
-  let s = statement1 env x in
-  S (G.fake "", s)
+let toplevel env x = statement env x
 
 let program (env : env) ((v1, v2) : CST.program) : program =
   let _v1 =
@@ -1744,7 +1741,7 @@ let program (env : env) ((v1, v2) : CST.program) : program =
     | Some tok -> Some (token env tok) (* pattern #!.* *)
     | None -> None)
   in
-  let v2 = List.map (toplevel env) v2 in
+  let v2 = List.map (toplevel env) v2 |> List.flatten in
   v2
 
 
