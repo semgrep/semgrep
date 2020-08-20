@@ -24,9 +24,11 @@ module Flag = Flag_semgrep
 (* Helpers *)
 (*****************************************************************************)
 
+exception ForceTreeSitter
+
 let unless_tree_sitter f file =
   if !Flag.force_tree_sitter
-  then failwith "Forced tree sitter"
+  then raise ForceTreeSitter
   else f file
 
 let just_parse_with_lang lang file =
@@ -67,7 +69,7 @@ let just_parse_with_lang lang file =
               Ast_js_build.program cst
             )
             file
-        with _exn -> Parse_javascript_tree_sitter.parse file
+        with ForceTreeSitter -> Parse_javascript_tree_sitter.parse file
       in
       Js_to_generic.program ast
 

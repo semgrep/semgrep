@@ -1706,10 +1706,13 @@ let parse file =
     program env ast
   with
     (Failure "not implemented") as exn ->
-      let s = Printexc.get_backtrace () in
-      pr2 "Some constructs are not handled yet";
-      pr2 "CST was:";
-      CST.dump_tree ast;
-      pr2 "Original backtrace:";
-      pr2 s;
+      (* This debugging output is not JSON and breaks core output
+       *
+       * let s = Printexc.get_backtrace () in
+       * pr2 "Some constructs are not handled yet";
+       * pr2 "CST was:";
+       * CST.dump_tree ast;
+       * pr2 "Original backtrace:";
+       * pr2 s;
+       *)
       raise exn
