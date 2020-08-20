@@ -494,6 +494,23 @@ and m_expr a b =
     m_tok at bt >>= (fun () ->
     m_expr a2 b2
     ))
+    (* If the code has tuples as b1 and b2 and the lengths of
+     * the tuples are equal, create a tuple of (variable, value)
+     * pairs and try to match the pattern with each entry in the tuple.
+     * This should enable multiple assignments if the number of
+     * variables and values are equal. *)
+    >||> (match (b1, b2) with 
+    | B.Tuple vars, B.Tuple vals 
+      when List.length vars = List.length vals ->
+        let create_assigns = fun expr1 expr2 -> B.Assign (expr1, bt, expr2) in
+        let mult_assigns = List.map2 create_assigns vars vals in
+        let rec aux xs =
+            match xs with
+            | [] -> fail ()
+            | x::xs ->
+              m_expr a x >||> aux xs
+        in aux mult_assigns
+    | _, _ -> fail ())
 
   | A.DotAccess(a1, at, a2), B.DotAccess(b1, bt, b2) ->
     m_expr a1 b1 >>= (fun () ->
