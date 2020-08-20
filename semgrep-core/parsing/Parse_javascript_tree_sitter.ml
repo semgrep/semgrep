@@ -1158,7 +1158,8 @@ and statement1 (env : env) (x : CST.statement) : stmt =
 and statement (env : env) (x : CST.statement) : stmt list =
   (match x with
   | `Export_stmt x ->
-        export_statement env x
+        let toplevels = export_statement env x in
+        todo env toplevels
   | `Import_stmt (v1, v2, v3) ->
       let v1 = token env v1 (* "import" *) in
       let tok = v1 in
@@ -1176,7 +1177,7 @@ and statement (env : env) (x : CST.statement) : stmt list =
         )
       in
       let _v3 = semicolon env v3 in
-      raise Todo
+      todo env v2
   | `Debu_stmt (v1, v2) ->
       let v1 = identifier env v1 (* "debugger" *) in
       let v2 = semicolon env v2 in
@@ -1396,7 +1397,7 @@ and anon_choice_exp (env : env) (x : CST.anon_choice_exp) : expr =
 
 
 
-and export_statement (env : env) (x : CST.export_statement) =
+and export_statement (env : env) (x : CST.export_statement) : toplevel list =
   (match x with
   | `Export_choice_STAR_from_clause_choice_auto_semi (v1, v2) ->
       let v1 = token env v1 (* "export" *) in
@@ -1420,19 +1421,25 @@ and export_statement (env : env) (x : CST.export_statement) =
       in
       todo env (v1, v2)
   | `Rep_deco_export_choice_decl (v1, v2, v3) ->
-      let v1 = List.map (decorator env) v1 in
-      let v2 = token env v2 (* "export" *) in
+      let _v1TODO = List.map (decorator env) v1 in
+      let tok = token env v2 (* "export" *) in
       let v3 =
         (match v3 with
-        | `Decl x -> declaration env x
+        | `Decl x ->
+            let vars = declaration env x in
+            vars |> List.map (fun var ->
+              let n = var.v_name in
+              [V var; M (Export (tok, n))]
+            ) |> List.flatten
         | `Defa_exp_choice_auto_semi (v1, v2, v3) ->
             let v1 = token env v1 (* "default" *) in
             let v2 = expression env v2 in
-            let v3 = semicolon env v3 in
-            todo env (v1, v2, v3)
+            let _v3 = semicolon env v3 in
+            let var, n = Ast_js.mk_default_entity_var v1 v2 in
+            [V var; M (Export (v1, n))]
         )
       in
-      todo env (v1, v2, v3)
+      v3
   )
 
 
