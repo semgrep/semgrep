@@ -172,6 +172,7 @@ jobs:
         run: |
           cd semgrep
           export PATH=/github/home/.local/bin:$PATH
-          python3 tests/performance/test_ci_perf.py
+          pipenv run semgrep --version
+          pipenv run python3 tests/performance/test_ci_perf.py
         env:
           GITHUB_REPO_CACHE: ~/.cache/semgrep-cache
