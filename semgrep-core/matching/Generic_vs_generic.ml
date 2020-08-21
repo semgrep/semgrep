@@ -1483,9 +1483,9 @@ and m_stmt a b =
     m_tok a0 b0 >>= (fun () ->
     (* too many regressions doing m_expr_deep by default; Use DeepEllipsis *)
     m_expr a1 b1 >>= (fun () ->
-    m_stmt a2 b2 >>= (fun () ->
+    m_block a2 b2 >>= (fun () ->
     (* less-is-more: *)
-    m_option_none_can_match_some m_stmt a3 b3
+    m_option_none_can_match_some m_block a3 b3
     )))
 
   | A.While(a0, a1, a2), B.While(b0, b1, b2) ->
@@ -1586,6 +1586,17 @@ and m_for_header a b =
   | A.ForClassic _, _  | A.ForEach _, _
    -> fail ()
 (*e: function [[Generic_vs_generic.m_for_header]] *)
+
+and m_block a b =
+  match a, b with
+  | A.Block _, B.Block _ ->
+    m_stmt a b
+  | A.Block (_, [a_stmt], _), _ ->
+    m_stmt a_stmt b
+  | _, B.Block (_, [b_stmt], _) ->
+    m_stmt a b_stmt
+  | _, _ ->
+    m_stmt a b
 
 (*s: function [[Generic_vs_generic.m_for_var_or_expr]] *)
 and m_for_var_or_expr a b =
