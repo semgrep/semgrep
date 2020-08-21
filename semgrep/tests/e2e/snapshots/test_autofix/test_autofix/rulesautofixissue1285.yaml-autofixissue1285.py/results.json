@@ -1,0 +1,170 @@
+{
+  "errors": [],
+  "results": [
+    {
+      "check_id": "rules.autofix.simple-assert",
+      "end": {
+        "col": 31,
+        "line": 5
+      },
+      "extra": {
+        "fix": "assert foo()==1\n",
+        "lines": "    self.assertEqual(foo(), 1)",
+        "message": "Simple assert statements are friendlier to pytest than self.assertEqual\n",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "foo()",
+            "end": {
+              "col": 27,
+              "line": 5,
+              "offset": 63
+            },
+            "start": {
+              "col": 22,
+              "line": 5,
+              "offset": 58
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          },
+          "$Y": {
+            "abstract_content": "1",
+            "end": {
+              "col": 30,
+              "line": 5,
+              "offset": 66
+            },
+            "start": {
+              "col": 29,
+              "line": 5,
+              "offset": 65
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
+        "severity": "WARNING"
+      },
+      "path": "targets/autofix/issue1285.py",
+      "start": {
+        "col": 5,
+        "line": 5
+      }
+    },
+    {
+      "check_id": "rules.autofix.simple-assert",
+      "end": {
+        "col": 36,
+        "line": 6
+      },
+      "extra": {
+        "fix": "assert foo'bar'==1\n",
+        "lines": "    self.assertEqual(foo['bar'], 1)",
+        "message": "Simple assert statements are friendlier to pytest than self.assertEqual\n",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "foo'bar'",
+            "end": {
+              "col": 31,
+              "line": 6,
+              "offset": 98
+            },
+            "start": {
+              "col": 22,
+              "line": 6,
+              "offset": 89
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          },
+          "$Y": {
+            "abstract_content": "1",
+            "end": {
+              "col": 35,
+              "line": 6,
+              "offset": 102
+            },
+            "start": {
+              "col": 34,
+              "line": 6,
+              "offset": 101
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
+        "severity": "WARNING"
+      },
+      "path": "targets/autofix/issue1285.py",
+      "start": {
+        "col": 5,
+        "line": 6
+      }
+    },
+    {
+      "check_id": "rules.autofix.simple-assert",
+      "end": {
+        "col": 6,
+        "line": 15
+      },
+      "extra": {
+        "fix": "assert response.json()'response'=={'a'1'b'2'c'[1 2 3]2}\n",
+        "lines": "    self.assertEqual(\n\n        response.json()['response'],\n\n        {\n\n            'a': 1,\n\n            'b': 2,\n\n            'c': [1,2,3][2],\n\n        }\n\n    )",
+        "message": "Simple assert statements are friendlier to pytest than self.assertEqual\n",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "response.json()'response'",
+            "end": {
+              "col": 35,
+              "line": 9,
+              "offset": 165
+            },
+            "start": {
+              "col": 9,
+              "line": 9,
+              "offset": 139
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          },
+          "$Y": {
+            "abstract_content": "{'a'1'b'2'c'[1 2 3]2}",
+            "end": {
+              "col": 10,
+              "line": 14,
+              "offset": 256
+            },
+            "start": {
+              "col": 9,
+              "line": 10,
+              "offset": 176
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
+        "severity": "WARNING"
+      },
+      "path": "targets/autofix/issue1285.py",
+      "start": {
+        "col": 5,
+        "line": 8
+      }
+    }
+  ]
+}

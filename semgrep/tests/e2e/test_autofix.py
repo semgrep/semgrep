@@ -4,12 +4,16 @@ from pathlib import Path
 import pytest
 
 
-def test_autofix(run_semgrep_in_tmp, snapshot):
+@pytest.mark.parametrize(
+    "rule,target",
+    [
+        ("rules/autofix/autofix.yaml", "autofix/autofix.py"),
+        ("rules/autofix/issue1285.yaml", "autofix/issue1285.py"),
+    ],
+)
+def test_autofix(run_semgrep_in_tmp, snapshot, rule, target):
     snapshot.assert_match(
-        run_semgrep_in_tmp(
-            "rules/autofix/autofix.yaml", target_name="autofix/autofix.py"
-        ),
-        "results.json",
+        run_semgrep_in_tmp(rule, target_name=target), "results.json",
     )
 
 

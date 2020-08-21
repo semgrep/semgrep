@@ -1,0 +1,11 @@
+rules:
+- id: simple-assert
+  pattern: |
+    self.assertEqual($X, $Y)
+  message: |
+    Simple assert statements are friendlier to pytest than self.assertEqual
+  fix: |
+    assert $X==$Y
+  severity: WARNING
+  languages:
+  - python
