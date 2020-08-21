@@ -137,6 +137,7 @@ setup(
     ],
     entry_points={"console_scripts": ["semgrep=semgrep.__main__:main"]},
     packages=setuptools.find_packages(),
+    include_package_data=True,
     classifiers=[
         "Environment :: Console",
         "License :: OSI Approved :: GNU Lesser General Public License v2 (LGPLv2)",
