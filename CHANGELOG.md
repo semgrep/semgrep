@@ -2,6 +2,11 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## NEXT VERSION
+
+### Fixed
+- `fix` does a better job handling square brackets. [Link: Issue](https://github.com/returntocorp/semgrep/issues/1285)
+
 ## [0.20.0]() - 2020-08-18
 
 ### Added
