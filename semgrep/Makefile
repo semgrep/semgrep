@@ -22,6 +22,8 @@ ifeq ($(GITHUB_EVENT_NAME),pull)
 else ifeq ($(GITHUB_EVENT_NAME),push)
 	pipenv run pytest -n auto -v --tb=short tests/ --qa
 else
+	echo $(GITHUB_EVENT_NAME)
+	echo $(GITHUB_REF)
 	if [[ "$(BRANCH)" =~ test-release-[0-9]+\.[0-9]+\.[0-9]+ ]]; \
 	then \
 		echo "qa"; pipenv run pytest -n auto -v --tb=short tests/ --qa;\
