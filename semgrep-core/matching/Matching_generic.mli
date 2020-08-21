@@ -81,8 +81,8 @@ val m_option : ('a, 'b) matcher -> ('a option, 'b option) matcher
 (*e: signature [[Matching_generic.m_option]] *)
 (*s: signature [[Matching_generic.m_option_ellipsis_ok]] *)
 val m_option_ellipsis_ok :
-  (AST_generic.xml_attr_value -> 'a -> tin -> tout) ->
-  AST_generic.xml_attr_value option -> 'a option -> tin -> tout
+  (AST_generic.expr -> 'a -> tin -> tout) ->
+  AST_generic.expr option -> 'a option -> tin -> tout
 (*e: signature [[Matching_generic.m_option_ellipsis_ok]] *)
 (*s: signature [[Matching_generic.m_option_none_can_match_some]] *)
 val m_option_none_can_match_some :

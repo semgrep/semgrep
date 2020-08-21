@@ -1,0 +1,9 @@
+rules:
+  - id: too many
+    message: Hi
+    languages: [python]
+    severity: WARNING
+    # Can't use pattern and patterns
+    pattern: $X == $X
+    patterns:
+      - pattern: $X != $X

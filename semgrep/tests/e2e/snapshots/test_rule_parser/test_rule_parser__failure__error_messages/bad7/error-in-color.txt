@@ -1,8 +1,8 @@
-[31merror[39m: invalid id
+[31merror[39m: Invalid rule schema
   --> rules/syntax/bad7.yaml:3
 [94m3 | [39m  - id: 123
 [94m  | [39m        [31m^^^[39m
 
-[31mrule id must be a string, but was int[39m
+[31m123 is not of type 'string'[39m
 
 run with --strict and there were 1 errors loading configs
