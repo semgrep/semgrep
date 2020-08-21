@@ -983,8 +983,8 @@ let options () =
     " filter rules not containing any strings in target file";
     "-no_filter_irrelevant_rules", Arg.Clear Flag.filter_irrelevant_rules,
     " do not filter rules";
-    "-force_tree_sitter", Arg.Set Flag.force_tree_sitter,
-    " use tree-sitter-based parsers by default";
+    "-tree_sitter_only", Arg.Set Flag.tree_sitter_only,
+    " only use tree-sitter-based parsers";
     "-debug", Arg.Set Flag.debug,
     " add debugging information in the output (tracing)";
     "-debug_matching", Arg.Set Flag.debug_matching,
