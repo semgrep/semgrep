@@ -55,6 +55,9 @@ OPERATOR_PATTERN_NAMES_MAP = {
     OPERATORS.REGEX: ["pattern-regex"],
     OPERATORS.METAVARIABLE_REGEX: ["metavariable-regex"],
 }
+PATTERN_NAMES_OPERATOR_MAP = {
+    v: k for k, vv in OPERATOR_PATTERN_NAMES_MAP.items() for v in vv
+}
 
 
 @attr.s(auto_attribs=True, frozen=True)
