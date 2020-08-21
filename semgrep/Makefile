@@ -15,6 +15,7 @@ qa-test:
 	pipenv run pytest -v --tb=short tests/ --qa
 
 .PHONY: ci-test
+# make sure to run the tests as bash.
 ci-test: SHELL:=/bin/bash
 ci-test:
 ifeq ($(GITHUB_EVENT_NAME),pull_request)
@@ -28,11 +29,5 @@ ifeq ($(GITHUB_EVENT_NAME),pull_request)
 else ifeq ($(GITHUB_EVENT_NAME),push)
 	pipenv run pytest -n auto -v --tb=short tests/ --qa
 else
-	if [[ "$(GITHUB_HEAD_REF)" =~ test-release-[0-9]+\.[0-9]+\.[0-9]+ ]]; \
-	then \
-		echo "qa"; pipenv run pytest -n auto -v --tb=short tests/ --qa;\
-	else \
-		echo "short"; pipenv run pytest -n auto -v --tb=short tests/;\
-	fi
 	pipenv run pytest -n auto -v --tb=short tests/
 endif
