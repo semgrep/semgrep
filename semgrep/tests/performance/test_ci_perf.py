@@ -11,29 +11,6 @@ from typing import Union
 
 from semgrep import util
 
-# import appdirs
-
-# import pytest
-
-# def clone_github_repo():
-#     """
-#     Fixture to clone a github repo. Usage:
-#     ```
-#     def my_test_function(clone_github_repo):
-#         repo_path = clone_github_repo(url="https://github.com/returntocorp/semgrep", sha="abdfe')
-#         subprocess.run(["ls", repo_path])
-#     ```
-
-#     :returns: A path to the repo, guaranteed to live at least until the end of the test
-#     """
-#     yield _github_repo_retry_wrapper
-
-# REPO_CACHE = Path(
-#     os.path.expanduser(
-#         os.environ.get("GITHUB_REPO_CACHE", appdirs.user_cache_dir("semgrep-tests"))
-#     )
-# )
-
 
 @contextlib.contextmanager
 def chdir(dirname=None):
@@ -48,7 +25,6 @@ def chdir(dirname=None):
 
 def clone_github_repo(repo_url: str, sha: Optional[str] = None, retries: int = 3):
     """
-    Internal fixture function. Do not use directly, use the `clone_github_repo` fixture.
     Wraps `_github_repo` function with retries. If the `_github_repo` throws an exception,
     it will delete `repo_destination` and retry up to `retries` times.
     """
