@@ -389,7 +389,7 @@ and jsx_fragment (env : env) ((v1, v2, v3, v4, v5, v6) : CST.jsx_fragment)
   let _v6 = token env v6 (* ">" *) in
   { xml_tag = "", v1; xml_attrs = []; xml_body = v3 }
 
-and jsx_expression (env : env) ((v1, v2, v3) : CST.jsx_expression) : expr =
+and jsx_expression (env : env) ((v1, v2, v3) : CST.jsx_expression) : expr bracket =
   let v1 = token env v1 (* "{" *) in
   let v2 =
     (match v2 with
@@ -401,12 +401,13 @@ and jsx_expression (env : env) ((v1, v2, v3) : CST.jsx_expression) : expr =
                 let (t, e) = spread_element env x in
                 Apply (IdSpecial (Spread, t), fb [e])
         )
+    (* abusing { } in XML to just add comments, e.g. { /* lint-ignore */ } *)
     | None ->
-          todo_any "JSX null expr" v1 (Expr (IdSpecial (Null, v1)))
+          IdSpecial (Null, v1)
     )
   in
-  let _v3 = token env v3 (* "}" *) in
-  v2
+  let v3 = token env v3 (* "}" *) in
+  v1, v2, v3
 
 and jsx_attribute_ (env : env) (x : CST.jsx_attribute_) : xml_attribute =
   (match x with
@@ -421,13 +422,11 @@ and jsx_attribute_ (env : env) (x : CST.jsx_attribute_) : xml_attribute =
          (* see https://www.reactenlightenment.com/react-jsx/5.7.html *)
         | None -> Bool (true, snd v1)
       in
-      v1, v2
-  (* ?? TODO *)
+      XmlAttr (v1, v2)
+  (* less: we could enforce that it's only a Spread operation *)
   | `Jsx_exp x ->
         let e = jsx_expression env x in
-        let any = Expr e in
-        let t = Lib_analyze_js.ii_of_any any |> List.hd in
-        todo_any "`Jsx_exp" t any
+        XmlAttrExpr e
   )
 
 and jsx_attribute_value (env : env) (x : CST.jsx_attribute_value) =
@@ -436,7 +435,7 @@ and jsx_attribute_value (env : env) (x : CST.jsx_attribute_value) =
         let s = string_ env x in
         String s
   | `Jsx_exp x ->
-        let e = jsx_expression env x in
+        let (_, e, _) = jsx_expression env x in
         e
   (* an attribute value can be a jsx element? *)
   | `Choice_jsx_elem x ->
@@ -456,7 +455,7 @@ and jsx_child (env : env) (x : CST.jsx_child) : xml_body =
         let xml = jsx_element_ env x in
         XmlXml xml
   | `Jsx_exp x ->
-        let e = jsx_expression env x in
+        let (_, e, _) = jsx_expression env x in
         XmlExpr e
   )
 
