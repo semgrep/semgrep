@@ -3,6 +3,7 @@ import re
 from pathlib import Path
 from typing import Dict
 from typing import List
+from typing import Optional
 from typing import Set
 from typing import Tuple
 
@@ -21,10 +22,18 @@ class Fix:
         self.fixed_lines = fixed_lines
 
 
-def _get_lines(path: Path) -> List[str]:
+def _get_lines(path: Path) -> Tuple[str, List[str]]:
     contents = path.read_text()
     lines = contents.split(SPLIT_CHAR)
-    return lines
+    return contents, lines
+
+
+def _interpolate_fix_metavariables(fix_str: str, rule_match: RuleMatch) -> str:
+    if fix_str is None:
+        return ""
+    for metavar, contents in rule_match.metavars.items():
+        fix_str = fix_str.replace(metavar, contents.get("raw_content", ""))
+    return fix_str
 
 
 def _get_match_context(rule_match: RuleMatch) -> Tuple[int, int, int, int]:
@@ -39,10 +48,26 @@ def _get_match_context(rule_match: RuleMatch) -> Tuple[int, int, int, int]:
 
 def _basic_fix(rule_match: RuleMatch, fix: str) -> Fix:
     p = rule_match.path
-    lines = _get_lines(p)
+    contents, lines = _get_lines(p)
 
     # get the start and end points
     start_line, start_col, end_line, end_col = _get_match_context(rule_match)
+
+    for metavar in rule_match.metavars.keys():
+        start_offset = (
+            rule_match.metavars.get(metavar, {}).get("start", {}).get("offset")
+        )
+        end_offset = rule_match.metavars.get(metavar, {}).get("end", {}).get("offset")
+        if start_offset and end_offset:
+            metavar_contents = contents[start_offset:end_offset]
+            # semgrep-core is off-by-one when square brackets are involved.
+            # Add one if the contents contain an open square bracket.
+            end_offset = end_offset + 1 if "[" in metavar_contents else end_offset
+            rule_match.metavars[metavar]["raw_content"] = contents[
+                start_offset:end_offset
+            ]
+
+    fix = _interpolate_fix_metavariables(fix, rule_match)
 
     # break into before, to modify, after
     before_lines = lines[:start_line]
@@ -64,7 +89,7 @@ def _regex_replace(
     exactly `count` times.
     """
     path = rule_match.path
-    lines = _get_lines(path)
+    _, lines = _get_lines(path)
 
     start_line, _, end_line, _ = _get_match_context(rule_match)
 
