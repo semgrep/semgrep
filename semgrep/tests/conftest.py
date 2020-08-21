@@ -1,7 +1,6 @@
 import contextlib
 import json
 import os
-import random
 import shutil
 import subprocess
 from pathlib import Path
@@ -236,6 +235,6 @@ def pytest_generate_tests(metafunc):
         repos = (
             public_repos.ALL_REPOS
             if metafunc.config.getoption("--qa")
-            else random.sample(public_repos.PASSING_REPOS, non_qa_smoketest_count)
+            else public_repos.PASSING_REPOS[:non_qa_smoketest_count]
         )
         metafunc.parametrize("public_repo_url", repos, ids=lambda r: r["repo"])
