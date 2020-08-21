@@ -499,8 +499,8 @@ and m_expr a b =
      * pairs and try to match the pattern with each entry in the tuple.
      * This should enable multiple assignments if the number of
      * variables and values are equal. *)
-    >||> (match (b1, b2) with 
-    | B.Tuple vars, B.Tuple vals 
+    >||> (match (b1, b2) with
+    | B.Tuple vars, B.Tuple vals
       when List.length vars = List.length vals ->
         let create_assigns = fun expr1 expr2 -> B.Assign (expr1, bt, expr2) in
         let mult_assigns = List.map2 create_assigns vars vals in
@@ -865,8 +865,9 @@ and m_xml a b =
 (*e: function [[Generic_vs_generic.m_xml]] *)
 
 (*s: function [[Generic_vs_generic.m_attrs]] *)
+(* less: allow '...'? or just have it implicit *)
 and m_attrs a b =
-  m_list__m_xml_attr a b
+  m_list_in_any_order ~less_is_ok:true m_xml_attr a b
 (*e: function [[Generic_vs_generic.m_attrs]] *)
 
 (*s: function [[Generic_vs_generic.m_bodies]] *)
@@ -874,52 +875,6 @@ and m_bodies a b =
   m_list__m_body a b
 (*e: function [[Generic_vs_generic.m_bodies]] *)
 
-(* less: use m_list_in_any_order? move split_when in it? *)
-(*s: function [[Generic_vs_generic.m_list__m_xml_attr]] *)
-and m_list__m_xml_attr
- (xsa: A.xml_attribute list) (xsb: A.xml_attribute list) =
-  match xsa, xsb with
-  | [], [] ->
-      return ()
-
-  (*s: [[Generic_vs_generic.m_list__m_xml_attr]] empty list vs list case *)
-  (* less-is-ok: *)
-  | [], _::_ ->
-      return ()
-  (*e: [[Generic_vs_generic.m_list__m_xml_attr]] empty list vs list case *)
-  (* less: allow '...'? *)
-
-  | (((s1, _), _) as a)::xsa, xsb ->
-     (*s: [[Generic_vs_generic.m_list__m_xml_attr]] if metavar attribute *)
-     if MV.is_metavar_name s1
-     then
-        let candidates = all_elem_and_rest_of_list xsb in
-        (* less: could use a fold *)
-        let rec aux xs =
-          match xs with
-          | [] -> fail ()
-          | (b, xsb)::xs ->
-              (m_xml_attr a b >>= (fun () -> m_list__m_xml_attr xsa xsb))
-              >||> aux xs
-        in
-        aux candidates
-     (*e: [[Generic_vs_generic.m_list__m_xml_attr]] if metavar attribute *)
-     else
-      (try
-        let (before, there, after) = xsb |> Common2.split_when (function
-            | ((s2, _), _) when s2 = s1 -> true
-            | _ -> false
-        ) in
-        (match there with
-        | b ->
-           m_xml_attr a b >>= (fun () ->
-           m_list__m_xml_attr xsa (before @ after)
-           )
-        (* | _ -> raise Impossible *)
-        )
-      with Not_found -> fail ()
-      )
-(* type matching *)
 
 and m_compatible_type typed_mvar t e =
   match t, e with
@@ -945,15 +900,6 @@ and m_compatible_type typed_mvar t e =
 
   | _ -> fail ()
 
-  (* the general case *)
-(*
-  | xa::aas, xb::bbs ->
-      m_xml_attr xa xb >>= (fun () ->
-      m_list__m_xml_attr aas bbs
-      )
-  | _::_, _ ->
-      fail ()
-*)
 (*e: function [[Generic_vs_generic.m_list__m_xml_attr]] *)
 
 (*s: function [[Generic_vs_generic.m_list__m_body]] *)
@@ -968,10 +914,15 @@ and m_list__m_body a b =
 (*s: function [[Generic_vs_generic.m_xml_attr]] *)
 and m_xml_attr a b =
   match a, b with
-  | (a1, a2), (b1, b2) ->
+  | A.XmlAttr (a1, a2), B.XmlAttr (b1, b2) ->
     m_ident a1 b1 >>= (fun () ->
     m_xml_attr_value a2 b2
     )
+  | A.XmlAttrExpr a1, B.XmlAttrExpr b1 ->
+      m_bracket m_expr a1 b1
+  | A.XmlAttr _, _
+  | A.XmlAttrExpr _, _
+   -> fail ()
 (*e: function [[Generic_vs_generic.m_xml_attr]] *)
 
 (*s: function [[Generic_vs_generic.m_xml_attr_value]] *)
