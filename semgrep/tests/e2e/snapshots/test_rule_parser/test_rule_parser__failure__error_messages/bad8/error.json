@@ -3,8 +3,8 @@
     {
       "code": 4,
       "level": "error",
-      "long_msg": "missing a pattern type in rule. Expected one of ['patterns', 'pattern-either', 'pattern-regex', 'pattern'] or both of ['pattern-sinks', 'pattern-sources'] if taint mode is specified",
-      "short_msg": "missing key",
+      "long_msg": "At least one of the following required properties is missing: 'pattern', 'pattern-either', 'pattern-regex', 'patterns'",
+      "short_msg": "Invalid rule schema",
       "spans": [
         {
           "context_end": null,
@@ -16,8 +16,8 @@
           "file": "rules/syntax/bad8.yaml",
           "source_hash": "f821234ba9175efc8d66b3226996144ba05bdc0aea35a50321cbb9c6f349f6a0",
           "start": {
-            "col": 5,
-            "line": 2
+            "col": 1,
+            "line": 1
           }
         }
       ],

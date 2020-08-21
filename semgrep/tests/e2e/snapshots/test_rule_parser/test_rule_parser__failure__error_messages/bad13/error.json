@@ -3,21 +3,21 @@
     {
       "code": 4,
       "level": "error",
-      "long_msg": "Additional properties are not allowed ('filename' was unexpected)",
+      "long_msg": "{'anyOf': [{'required': ['pattern']}, {'required': ['patterns']}, {'required': ['pattern-either']}, {'required': ['pattern-regex']}]} is not allowed for {'id': 'tainty', 'message': 'Hi', 'languages': ['python'], 'severity': 'WARNING', 'mode': 'taint', 'pattern': '$X == $X'}",
       "short_msg": "Invalid rule schema",
       "spans": [
         {
           "context_end": null,
           "context_start": null,
           "end": {
-            "col": 5,
+            "col": 1,
             "line": 9
           },
-          "file": "rules/syntax/badpaths2.yaml",
-          "source_hash": "e8a29e15677c634a77353a6099e2c0acf18909672c87d06292a1caece7cd4d3c",
+          "file": "rules/syntax/bad13.yaml",
+          "source_hash": "358a5e8907bbb75166d11a3e3347b3750abde97709ce141a6f5d67f82879822a",
           "start": {
-            "col": 7,
-            "line": 8
+            "col": 5,
+            "line": 2
           }
         }
       ],
