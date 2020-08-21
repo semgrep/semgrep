@@ -169,5 +169,6 @@ jobs:
           pipenv run semgrep-core --version
           pipenv run python3 tests/performance/test_ci_perf.py > timing.txt
           cat timing.txt
-        # env:
-        #   GITHUB_REPO_CACHE: ~/.cache/semgrep-cache
+      - name: Compare timing infos
+        run: |
+          .github/compare_perf_timing.py
