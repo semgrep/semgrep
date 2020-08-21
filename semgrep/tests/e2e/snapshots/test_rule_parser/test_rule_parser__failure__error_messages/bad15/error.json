@@ -1,0 +1,33 @@
+{
+  "errors": [
+    {
+      "code": 4,
+      "level": "error",
+      "long_msg": "{'anyOf': [{'required': ['pattern']}, {'required': ['pattern-either']}, {'required': ['pattern-regex']}]} is not allowed for {'id': 'too many', 'message': 'Hi', 'languages': ['python'], 'severity': 'WARNING', 'pattern': '$X == $X', 'patterns': [{'pattern': '$X != $X'}]}\n{'anyOf': [{'required': ['pattern']}, {'required': ['patterns']}, {'required': ['pattern-either']}]} is not allowed for {'id': 'too many', 'message': 'Hi', 'languages': ['python'], 'severity': 'WARNING', 'pattern': '$X == $X', 'patterns': [{'pattern': '$X != $X'}]}\n{'anyOf': [{'required': ['pattern']}, {'required': ['patterns']}, {'required': ['pattern-regex']}]} is not allowed for {'id': 'too many', 'message': 'Hi', 'languages': ['python'], 'severity': 'WARNING', 'pattern': '$X == $X', 'patterns': [{'pattern': '$X != $X'}]}\n{'anyOf': [{'required': ['patterns']}, {'required': ['pattern-either']}, {'required': ['pattern-regex']}]} is not allowed for {'id': 'too many', 'message': 'Hi', 'languages': ['python'], 'severity': 'WARNING', 'pattern': '$X == $X', 'patterns': [{'pattern': '$X != $X'}]}",
+      "short_msg": "Invalid rule schema",
+      "spans": [
+        {
+          "context_end": null,
+          "context_start": null,
+          "end": {
+            "col": 1,
+            "line": 10
+          },
+          "file": "rules/syntax/bad15.yaml",
+          "source_hash": "21e9affa6ddbf82df21c7daf4b11db6a72fe061d06794ab28f208f20461d666a",
+          "start": {
+            "col": 1,
+            "line": 1
+          }
+        }
+      ],
+      "type": "InvalidRuleSchemaError"
+    },
+    {
+      "code": 7,
+      "message": "run with --strict and there were 1 errors loading configs",
+      "type": "SemgrepError"
+    }
+  ],
+  "results": []
+}

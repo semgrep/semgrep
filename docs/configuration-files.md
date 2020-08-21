@@ -34,6 +34,7 @@ Contents:
 * [Other Examples](configuration-files.md#other-examples)
   * [Complete Useless Comparison](configuration-files.md#complete-useless-comparison)
 * [Ignoring Findings](configuration-files.md#ignoring-findings)
+* [Full Specification](configuration-files.md#full-specification)
 
 ## Simple Example
 
@@ -607,3 +608,8 @@ will work just as well for Python:
 ```python
 bad_func()  # nosem: bad-func-is-insecure
 ```
+
+## Full specification
+
+The [full configuration-file format](/semgrep/semgrep/rule_schema.yaml) is defined as
+a [jsonschema](http://json-schema.org/specification.html) object.

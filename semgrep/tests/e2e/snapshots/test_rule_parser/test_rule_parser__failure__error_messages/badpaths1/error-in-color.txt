@@ -1,12 +1,9 @@
-[31merror[39m: invalid paths
-  --> rules/syntax/badpaths1.yaml:6
-[94m6  | [39m    paths:
-[94m   | [39m    [31m^^^^^[39m
-[94m7  | [39m      # bad syntax: these should be under an object, i.e. `exclude:`
+[31merror[39m: Invalid rule schema
+  --> rules/syntax/badpaths1.yaml:8
 [94m8  | [39m      - "*.py"
 [94m9  | [39m      - "test/*"
 [94m10 | [39m    message: "$X is being assigned to one or two"
-= [36m[1mhelp[39m[0m: remove the `-` to convert the list into a mapping
-[31mthe `paths:` targeting rules must be an object with at least one of ('include', 'exclude')[39m
+
+[31m['*.py', 'test/*'] is not of type 'object'[39m
 
 run with --strict and there were 1 errors loading configs

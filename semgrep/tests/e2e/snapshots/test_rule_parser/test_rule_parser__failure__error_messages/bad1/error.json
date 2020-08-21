@@ -3,18 +3,15 @@
     {
       "code": 4,
       "level": "error",
-      "long_msg": "operand for pattern-inside must be a string or dict, but instead was list",
-      "short_msg": "invalid operand",
+      "long_msg": "[{'pattern': '$X == $X'}, {'pattern': '$X != $X'}, {'patterns': [{'pattern-inside': 'def __init__(...):\\n    ...\\n'}, {'pattern': 'self.$X == self.$X'}]}] is not of type 'string'",
+      "short_msg": "Invalid rule schema",
       "spans": [
         {
-          "context_end": {
-            "col": 7,
-            "line": 12
-          },
+          "context_end": null,
           "context_start": null,
           "end": {
-            "col": 23,
-            "line": 4
+            "col": 7,
+            "line": 12
           },
           "file": "rules/syntax/bad1.yaml",
           "source_hash": "2eb1bb9f87d22d182e19161640dcf8c967f142004c395a4ffb5c97e5909c5f7a",
