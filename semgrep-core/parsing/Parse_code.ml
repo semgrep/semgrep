@@ -74,13 +74,12 @@ let just_parse_with_lang lang file =
        * is not great and some of the token positions may be wrong.
        *)
       let ast =
-        try
-          Parse_ruby_tree_sitter.parse file
-        with exn ->
-          if !Flag.tree_sitter_only then raise exn
+        run file [
+          TreeSitter, Parse_ruby_tree_sitter.parse;
           (* right now the parser is verbose and the token positions
            * may be wrong, but better than nothing. *)
-          else Parse_ruby.parse_program file
+          Pfff, Parse_ruby.parse_program
+        ]
       in
       Ruby_to_generic.program ast
   | Lang.Java ->
