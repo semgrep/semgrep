@@ -5,12 +5,36 @@
 
 open Printf
 
+type source =
+  | File of string
+  | Stdin
+  | String
+  | Channel
+
 (* The contents of the source document. *)
-type t = string
+type t = {
+  source: source;
+  contents: string;
+}
 
-let of_string contents = contents
+let source x = x.source
 
-let of_channel ic =
+let show_source = function
+  | File s -> s
+  | Stdin -> "<stdin>"
+  | String -> "<string>"
+  | Channel -> "<channel>"
+
+let source_string x = x |> source |> show_source
+
+let contents x = x.contents
+
+let of_string ?(source = String) contents = {
+  source;
+  contents
+}
+
+let of_channel ?(source = Channel) ic =
   let buf = Buffer.create 10000 in
   (try
      while true do
@@ -18,19 +42,31 @@ let of_channel ic =
      done;
      assert false
    with End_of_file ->
-     Buffer.contents buf
+     let contents = Buffer.contents buf in
+     { source; contents }
   )
 
-let of_stdin () = of_channel stdin
+let of_stdin ?(source = Stdin) () = of_channel ~source stdin
 
-let of_file file =
+let of_file ?source file =
   let ic = open_in_bin file in
   Fun.protect
     ~finally:(fun () -> close_in_noerr ic)
-    (fun () -> really_input_string ic (in_channel_length ic))
+    (fun () ->
+       let contents = really_input_string ic (in_channel_length ic) in
+       let source =
+         match source with
+         | None -> File file
+         | Some x -> x
+       in
+       {
+         source;
+         contents;
+       }
+    )
 
-let to_lexbuf s =
-  Lexing.from_string s
+let to_lexbuf x =
+  Lexing.from_string x.contents
 
 (* Find the index (position from the beginning of the string)
    right after the end of the current line. *)
@@ -62,12 +98,13 @@ let safe_string_sub s orig_start orig_len =
   let len = max 0 (end_ - start) in
   String.sub s start len
 
-let lines_of_pos_range s start_pos end_pos =
+let lines_of_pos_range x start_pos end_pos =
+  let s = x.contents in
   let open Lexing in
   let start = start_pos.pos_bol in
   let end_ = find_end_of_line s end_pos.pos_bol in
   safe_string_sub s start (end_ - start)
   |> ensure_newline
 
-let lines_of_loc_range s (start_pos, _) (_, end_pos) =
-  lines_of_pos_range s start_pos end_pos
+let lines_of_loc_range x (start_pos, _) (_, end_pos) =
+  lines_of_pos_range x start_pos end_pos

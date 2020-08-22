@@ -5,12 +5,24 @@
 
 type t
 
-val of_string : string -> t
-val of_channel : in_channel -> t
-val of_stdin : unit -> t
-val of_file : string -> t
+type source =
+  | File of string
+  | Stdin
+  | String
+  | Channel
+
+val of_string : ?source:source -> string -> t
+val of_channel : ?source:source -> in_channel -> t
+val of_stdin : ?source:source -> unit -> t
+val of_file : ?source:source -> string -> t
 
 val to_lexbuf : t -> Lexing.lexbuf
+
+val source : t -> source
+val show_source : source -> string
+val source_string : t -> string
+
+val contents : t -> string
 
 (*
    Extract the lines containing a pair of positions.

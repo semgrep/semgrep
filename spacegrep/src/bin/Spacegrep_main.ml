@@ -16,32 +16,50 @@ type config = {
 (*
    Run all the patterns on all the documents.
 *)
-let run_all patterns docs =
+let run_all ~debug patterns docs =
   List.iter (fun get_doc_src ->
     let doc_src = get_doc_src () in
-    let doc = Parse_doc.of_src doc_src in
-    List.iter (fun pat ->
-      let matches = Match.search pat doc in
-      Match.print doc_src matches
-    ) patterns;
+    let doc_type = File_type.guess doc_src in
+    match doc_type with
+    | Gibberish ->
+        if debug then
+          printf "ignoring gibberish file %s.\n%!"
+            (Src_file.source_string doc_src)
+    | Text ->
+        if debug then
+          printf "read document %s.\n%!"
+            (Src_file.source_string doc_src);
+        let doc = Parse_doc.of_src doc_src in
+        List.iter (fun (pat_src, pat) ->
+          if debug then
+            printf "match document from %s against pattern from %s.\n%!"
+              (Src_file.source_string doc_src)
+              (Src_file.source_string pat_src);
+          let matches = Match.search pat doc in
+          Match.print doc_src matches
+        ) patterns;
   ) docs
 
 let run config =
   let patterns =
+    let pattern_files = Find_files.list config.pattern_files in
     (match config.pattern with
      | None -> []
      | Some pat_str -> [Src_file.of_string pat_str]
-    ) @ List.map Src_file.of_file config.pattern_files
-    |> List.map Parse_pattern.of_src
+    ) @ List.map Src_file.of_file pattern_files
+    |> List.map (fun pat_src -> (pat_src, Parse_pattern.of_src pat_src))
   in
   let docs =
     match config.doc_files with
-    | [] -> [Src_file.of_stdin]
-    | files -> List.map (fun file -> (fun () -> Src_file.of_file file)) files
+    | [] -> [fun () -> Src_file.of_stdin ()]
+    | roots ->
+        let files = Find_files.list roots in
+        List.map (fun file -> (fun () -> Src_file.of_file file)) files
   in
-  if config.debug then
+  let debug = config.debug in
+  if debug then
     Match.debug := true;
-  run_all patterns docs
+  run_all ~debug patterns docs
 
 let debug_term =
   let info =
@@ -79,7 +97,7 @@ let pattern_file_term =
   let info =
     Arg.info ["patfile"; "p"]
       ~docv:"FILE"
-      ~doc:"Read a pattern from file $(docv)."
+      ~doc:"Read a pattern from file or directory $(docv)."
   in
   Arg.value (Arg.opt_all Arg.string [] info)
 
@@ -87,8 +105,8 @@ let doc_file_term =
   let info =
     Arg.info ["docfile"; "d"]
       ~docv:"FILE"
-      ~doc:"Read a document from file $(docv). This disables document input
-            from stdin."
+      ~doc:"Read documents from file or directory $(docv).
+            This disables document input from stdin."
   in
   Arg.value (Arg.opt_all Arg.string [] info)
 

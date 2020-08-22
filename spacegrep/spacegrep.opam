@@ -11,10 +11,11 @@ build: [
 ]
 
 depends: [
+  "alcotest"
   "cmdliner"
   "dune" {>= "2.1"}
   "ocaml"
-  "alcotest"
+  "unix"
 ]
 
 synopsis: "Universal program parser and matcher."
