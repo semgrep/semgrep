@@ -8,7 +8,7 @@
         "line": 5
       },
       "extra": {
-        "fix": "assert foo()==1\n",
+        "fix": "assert $X==$Y\n",
         "lines": "    self.assertEqual(foo(), 1)",
         "message": "Simple assert statements are friendlier to pytest than self.assertEqual\n",
         "metadata": {},
@@ -63,7 +63,7 @@
         "line": 6
       },
       "extra": {
-        "fix": "assert foo'bar'==1\n",
+        "fix": "assert $X==$Y\n",
         "lines": "    self.assertEqual(foo['bar'], 1)",
         "message": "Simple assert statements are friendlier to pytest than self.assertEqual\n",
         "metadata": {},
@@ -118,8 +118,8 @@
         "line": 15
       },
       "extra": {
-        "fix": "assert response.json()'response'=={'a'1'b'2'c'[1 2 3]2}\n",
-        "lines": "    self.assertEqual(\n\n        response.json()['response'],\n\n        {\n\n            'a': 1,\n\n            'b': 2,\n\n            'c': [1,2,3][2],\n\n        }\n\n    )",
+        "fix": "assert $X==$Y\n",
+        "lines": "    self.assertEqual(\n        response.json()['response'],\n        {\n            'a': 1,\n            'b': 2,\n            'c': [1,2,3][2],\n        }\n    )",
         "message": "Simple assert statements are friendlier to pytest than self.assertEqual\n",
         "metadata": {},
         "metavars": {

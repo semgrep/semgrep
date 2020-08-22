@@ -8,7 +8,7 @@
         "line": 5
       },
       "extra": {
-        "fix": "inputs.get(x)",
+        "fix": "$DICT.get($KEY)",
         "lines": "  inputs[x] = 1",
         "message": "Use `.get()` method to avoid a KeyNotFound error",
         "metadata": {},
@@ -67,7 +67,7 @@
         "line": 6
       },
       "extra": {
-        "fix": "inputs.get(x+1)",
+        "fix": "$DICT.get($KEY)",
         "lines": "  if inputs[x + 1] == True:",
         "message": "Use `.get()` method to avoid a KeyNotFound error",
         "metadata": {},
