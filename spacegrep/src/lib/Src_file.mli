@@ -29,11 +29,15 @@ val contents : t -> string
    This includes the beginning of the first line and the end of the last line
    even if they're outside the requested range.
 *)
-val lines_of_pos_range : t -> Lexing.position -> Lexing.position -> string
+val lines_of_pos_range :
+  ?line_prefix:string ->
+  t -> Lexing.position -> Lexing.position -> string
 
 (*
    Extract the lines containing a pair of locations.
    A location itself is a range of positions, typically associated with
    an input token.
 *)
-val lines_of_loc_range : t -> Loc.t -> Loc.t -> string
+val lines_of_loc_range :
+  ?line_prefix:string ->
+  t -> Loc.t -> Loc.t -> string

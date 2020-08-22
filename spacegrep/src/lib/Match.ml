@@ -227,9 +227,14 @@ let search pat doc =
   |> List.rev
 
 let print src matches =
+  let line_prefix =
+    match Src_file.source src with
+    | File path -> sprintf "%s: " path
+    | Stdin | String | Channel -> ""
+  in
   List.iter (fun (start_loc, end_loc) ->
     if !debug then
       printf "match from %s to %s\n" (Loc.show start_loc) (Loc.show end_loc);
-    Src_file.lines_of_loc_range src start_loc end_loc
+    Src_file.lines_of_loc_range ~line_prefix src start_loc end_loc
     |> print_string
   ) matches

@@ -86,6 +86,22 @@ let ensure_newline s =
       else
         s
 
+let insert_line_prefix prefix s =
+  if prefix = "" then s
+  else
+    if s = "" then s
+    else
+      let buf = Buffer.create (2 * String.length s) in
+      Buffer.add_string buf prefix;
+      let len = String.length s in
+      for i = 0 to len - 1 do
+        let c = s.[i] in
+        Buffer.add_char buf c;
+        if c = '\n' && i < len - 1 then
+          Buffer.add_string buf prefix
+      done;
+      Buffer.contents buf
+
 (*
    Same as String.sub but shrink the requested range to a valid range
    if needed.
@@ -98,13 +114,16 @@ let safe_string_sub s orig_start orig_len =
   let len = max 0 (end_ - start) in
   String.sub s start len
 
-let lines_of_pos_range x start_pos end_pos =
+let lines_of_pos_range ?(line_prefix = "") x start_pos end_pos =
   let s = x.contents in
   let open Lexing in
   let start = start_pos.pos_bol in
   let end_ = find_end_of_line s end_pos.pos_bol in
-  safe_string_sub s start (end_ - start)
-  |> ensure_newline
+  let lines =
+    safe_string_sub s start (end_ - start)
+    |> ensure_newline
+  in
+  insert_line_prefix line_prefix lines
 
-let lines_of_loc_range x (start_pos, _) (_, end_pos) =
-  lines_of_pos_range x start_pos end_pos
+let lines_of_loc_range ?line_prefix x (start_pos, _) (_, end_pos) =
+  lines_of_pos_range ?line_prefix x start_pos end_pos

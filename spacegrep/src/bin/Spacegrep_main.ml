@@ -23,16 +23,16 @@ let run_all ~debug patterns docs =
     match doc_type with
     | Gibberish ->
         if debug then
-          printf "ignoring gibberish file %s.\n%!"
+          printf "ignore gibberish file: %s\n%!"
             (Src_file.source_string doc_src)
     | Text ->
         if debug then
-          printf "read document %s.\n%!"
+          printf "read document: %s\n%!"
             (Src_file.source_string doc_src);
         let doc = Parse_doc.of_src doc_src in
         List.iter (fun (pat_src, pat) ->
           if debug then
-            printf "match document from %s against pattern from %s.\n%!"
+            printf "match document from %s against pattern from %s\n%!"
               (Src_file.source_string doc_src)
               (Src_file.source_string pat_src);
           let matches = Match.search pat doc in
