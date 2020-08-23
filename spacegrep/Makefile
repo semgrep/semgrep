@@ -13,6 +13,10 @@ build:
 install:
 	dune install
 
+.PHONY: examples
+examples: build
+	./scripts/run-examples
+
 .PHONY: test
 test:
 	dune exec src/test/test.exe
