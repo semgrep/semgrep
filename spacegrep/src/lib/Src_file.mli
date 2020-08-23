@@ -30,6 +30,7 @@ val contents : t -> string
    even if they're outside the requested range.
 *)
 val lines_of_pos_range :
+  ?highlight:(string -> string) ->
   ?line_prefix:string ->
   t -> Lexing.position -> Lexing.position -> string
 
@@ -39,5 +40,9 @@ val lines_of_pos_range :
    an input token.
 *)
 val lines_of_loc_range :
+  ?highlight:(string -> string) ->
   ?line_prefix:string ->
   t -> Loc.t -> Loc.t -> string
+
+(* not for public use, only exposed to allow unit tests *)
+val insert_highlight : (string -> string) -> string -> int -> int -> string

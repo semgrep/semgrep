@@ -226,15 +226,27 @@ let search pat doc =
   )
   |> List.rev
 
-let print src matches =
+let ansi_highlight s =
+  match s with
+  | "" -> s
+  | s -> ANSITerminal.(sprintf [Bold; green] "%s" s)
+
+let print ?(highlight = false) src matches =
   let line_prefix =
     match Src_file.source src with
-    | File path -> sprintf "%s: " path
+    | File path -> sprintf "%s:" path
     | Stdin | String | Channel -> ""
+  in
+  let highlight_fun =
+    if highlight then Some ansi_highlight
+    else None
   in
   List.iter (fun (start_loc, end_loc) ->
     if !debug then
       printf "match from %s to %s\n" (Loc.show start_loc) (Loc.show end_loc);
-    Src_file.lines_of_loc_range ~line_prefix src start_loc end_loc
+    Src_file.lines_of_loc_range
+      ?highlight:highlight_fun
+      ~line_prefix
+      src start_loc end_loc
     |> print_string
   ) matches

@@ -12,6 +12,7 @@ build: [
 
 depends: [
   "alcotest"
+  "ansiterminal"
   "cmdliner"
   "dune" {>= "2.1"}
   "ocaml"

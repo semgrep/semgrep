@@ -102,6 +102,30 @@ let insert_line_prefix prefix s =
       done;
       Buffer.contents buf
 
+let insert_highlight highlight s start end_ =
+  let len = String.length s in
+  if start < 0 || end_ > len || start > end_ then
+    s
+  else
+    let buf = Buffer.create (2 * len) in
+    for i = 0 to start - 1 do
+      Buffer.add_char buf s.[i]
+    done;
+    let pos = ref start in
+    for i = start to end_ - 1 do
+      match s.[i] with
+      | '\n' ->
+          Buffer.add_string buf (highlight (String.sub s !pos (i - !pos)));
+          Buffer.add_char buf '\n';
+          pos := i + 1
+      | _ -> ()
+    done;
+    Buffer.add_string buf (highlight (String.sub s !pos (end_ - !pos)));
+    for i = end_ to len - 1 do
+      Buffer.add_char buf s.[i]
+    done;
+    Buffer.contents buf
+
 (*
    Same as String.sub but shrink the requested range to a valid range
    if needed.
@@ -114,16 +138,27 @@ let safe_string_sub s orig_start orig_len =
   let len = max 0 (end_ - start) in
   String.sub s start len
 
-let lines_of_pos_range ?(line_prefix = "") x start_pos end_pos =
+let lines_of_pos_range ?highlight ?(line_prefix = "") x start_pos end_pos =
   let s = x.contents in
   let open Lexing in
   let start = start_pos.pos_bol in
+  let match_start = start_pos.pos_cnum in
+  assert (match_start >= start);
   let end_ = find_end_of_line s end_pos.pos_bol in
+  let match_end = end_pos.pos_cnum in
+  assert (match_end <= end_);
   let lines =
     safe_string_sub s start (end_ - start)
     |> ensure_newline
   in
-  insert_line_prefix line_prefix lines
+  let with_highlight =
+    match highlight with
+    | None -> lines
+    | Some highlight ->
+        insert_highlight highlight lines
+          (match_start - start) (match_end - start)
+  in
+  insert_line_prefix line_prefix with_highlight
 
-let lines_of_loc_range ?line_prefix x (start_pos, _) (_, end_pos) =
-  lines_of_pos_range ?line_prefix x start_pos end_pos
+let lines_of_loc_range ?highlight ?line_prefix x (start_pos, _) (_, end_pos) =
+  lines_of_pos_range ?highlight ?line_prefix x start_pos end_pos

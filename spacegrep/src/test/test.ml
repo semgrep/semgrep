@@ -5,6 +5,7 @@
 let test_suites : unit Alcotest.test list = [
   Parser.test;
   Matcher.test;
+  Src_file.test;
 ]
 
 let main () =

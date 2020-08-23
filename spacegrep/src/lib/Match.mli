@@ -13,4 +13,6 @@ val search : Pattern_AST.t -> Doc_AST.t -> (Loc.t * Loc.t) list
 (*
    Print the matched lines to stdout in a human-readable format.
 *)
-val print : Src_file.t -> (Loc.t * Loc.t) list -> unit
+val print :
+  ?highlight:bool ->
+  Src_file.t -> (Loc.t * Loc.t) list -> unit

@@ -1,5 +1,5 @@
 (*
-   Document parsing.
+   Test document parsing.
 *)
 
 open Spacegrep
