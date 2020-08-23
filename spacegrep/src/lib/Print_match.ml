@@ -7,7 +7,7 @@ open Printf
 open Pattern_AST
 open Doc_AST
 
-let rec show_pat_node (pat_node : Pattern_AST.node) =
+let show_pat_node (pat_node : Pattern_AST.node) =
   match pat_node with
   | Atom (_loc, Word s) -> sprintf "Word '%s'" (String.escaped s)
   | Atom (_loc, Punct c) -> sprintf "Punct %C" c
