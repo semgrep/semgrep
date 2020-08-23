@@ -3,7 +3,6 @@
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-- `--timeout-threshold` flag to set the maximum number of times a file can timeout before it is skipped
 - Added support for the JUnit XML report format (`--fmt junit`)
 
 ## [0.20.0]((https://github.com/returntocorp/semgrep/releases/tag/v0.20.0)) - 2020-08-18
