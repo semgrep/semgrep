@@ -6,7 +6,8 @@ properties:
 
 * A document is interpreted as a nested sequence of ascii words,
   ascii punctuation, and other bytes.
-* `...` matches any sequence.
+* `...` allows skipping non-matching elements, up to 10 lines down the
+  last match.
 * `$X` matches any word.
 * The interpretation of a document can be inspected with the
   `spacecat` command.

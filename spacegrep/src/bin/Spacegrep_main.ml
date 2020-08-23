@@ -115,9 +115,8 @@ let pattern_term =
       ~docv:"PATTERN"
       ~doc:"$(docv) is a pattern. Any text is a valid pattern. The special
             constructs '...' and uppercase metavariables such as '$X'
-            are supported. '...' will match any input sequence lazily,
-            possibly extending until the end of the current block or into
-            sub-blocks.
+            are supported. Each '...' allows skipping non-matching input in the
+            same block or in sub-blocks, spanning at most 10 lines.
             Metavariables will capture words. If the same metavariable occurs
             in multiple places in the pattern, it must capture the same
             word everywhere.

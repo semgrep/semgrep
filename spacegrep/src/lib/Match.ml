@@ -58,46 +58,81 @@ let rec full_match ~dots env last_loc pat =
   | End :: _ -> assert false
   | _ -> Fail
 
-(* Find the rightmost location matching the dots (ellipsis). *)
-let rec extend_last_loc last_loc (doc : Doc_AST.node list) =
+let loc_lnum (loc : Loc.t) =
+  let pos, _ = loc in
+  pos.pos_lnum
+
+(*
+   Find the rightmost location in a document and return it only if it's
+   not too far (past the maximum line max_line_num).
+ *)
+let rec extend_last_loc ~max_line_num last_loc (doc : Doc_AST.node list) =
   match doc with
-  | [] -> last_loc
+  | [] -> Some last_loc
   | List doc1 :: doc2 ->
-      let last_loc = extend_last_loc last_loc doc1 in
-      extend_last_loc last_loc doc2
-  | Atom (loc, _) :: doc -> extend_last_loc loc doc
+      (match extend_last_loc ~max_line_num last_loc doc1 with
+       | None -> None
+       | Some last_loc ->
+           extend_last_loc ~max_line_num last_loc doc2
+      )
+  | Atom (loc, _) :: doc ->
+      if loc_lnum loc <= max_line_num then
+        extend_last_loc ~max_line_num loc doc
+      else
+        None
+
+let doc_matches_dots ~dots last_loc doc =
+  match dots, doc with
+  | None, [] -> Some last_loc
+  | None, _ -> None
+  | Some max_line_num, doc ->
+      if loc_lnum last_loc <= max_line_num then
+        extend_last_loc ~max_line_num last_loc doc
+      else
+        None
+
+let loc_matches_dots ~dots loc =
+  match dots with
+  | None -> false
+  | Some max_line_num ->
+      loc_lnum loc <= max_line_num
 
 (*
    Match a pattern against a document tree.
 
-   dots = indicates we're allowed to skip the first document node if it doesn't
-          match the pattern.
+   dots = Some max_line_num
+          indicates we're allowed to skip the first document node if it doesn't
+          match the pattern. The line number of the skipped node may not
+          be greater than the specified value.
    cont = call to match the rest of the document against the rest of the
           pattern when reaching the end of the current sub-document.
 *)
 let rec match_
-    ~dots
+    ~(dots:int option)
     (env : env)
     (last_loc : Loc.t)
     (pat : Pattern_AST.node list )
     (doc : Doc_AST.node list)
-    (cont : dots:bool -> env -> Loc.t -> Pattern_AST.node list -> match_result)
+    (cont : (dots:int option ->
+             env -> Loc.t -> Pattern_AST.node list -> match_result))
   : match_result =
   if !debug then
     Print_match.print pat doc;
   match pat, doc with
-  | [], _ ->
-      if dots || doc = [] then
-        Complete (env, extend_last_loc last_loc doc)
-      else
-        Fail
-
-  | [End], _ ->
-      if dots then
-        Complete (env, extend_last_loc last_loc doc)
-      else
-        Complete (env, last_loc)
-
+  | [], doc ->
+      (match doc_matches_dots ~dots last_loc doc with
+       | Some last_loc ->
+           Complete (env, last_loc)
+       | None ->
+           Fail
+      )
+  | [End], doc ->
+      (match doc_matches_dots ~dots last_loc doc with
+       | Some last_loc ->
+           Complete (env, last_loc)
+       | None ->
+           Complete (env, last_loc)
+      )
   | End :: _, _ -> assert false
 
   | List pat1 :: pat2, doc ->
@@ -109,23 +144,28 @@ let rec match_
        | List doc1 :: doc2 ->
            (* Indented block coincides with an indented block in the document.
               These blocks must match, independently from the rest. *)
-           (match match_ ~dots:false env last_loc pat1 doc1 full_match with
+           (match match_ ~dots:None env last_loc pat1 doc1 full_match with
             | Complete (env, last_loc) ->
-                match_ ~dots:false env last_loc pat2 doc2 cont
+                match_ ~dots:None env last_loc pat2 doc2 cont
             | Fail -> Fail
            )
-       | Atom _ :: doc_tail ->
+       | Atom (loc, _) :: doc_tail ->
            (* Indented block in pattern doesn't match in the document.
               Skip document node if allowed. *)
            assert (pat1 <> []);
-           if dots then
+           if loc_matches_dots ~dots loc then
              match_ ~dots env last_loc pat doc_tail cont
            else
              Fail
       )
 
   | Dots _ :: pat_tail, doc ->
-      match_ ~dots:true env last_loc pat_tail doc cont
+      let dots =
+        (* allow '...' to extend for at most 10 lines *)
+        let _, last_pos = last_loc in
+        Some (last_pos.pos_lnum + 10)
+      in
+      match_ ~dots env last_loc pat_tail doc cont
 
   | Atom (_, p) :: pat_tail, doc ->
       match doc with
@@ -151,21 +191,21 @@ let rec match_
                          (* First encounter of the metavariable,
                             store its value. *)
                          let env = Env.add name value env in
-                         match_ ~dots:false env loc pat_tail doc_tail cont
+                         match_ ~dots:None env loc pat_tail doc_tail cont
                      | Some value0 ->
                          (* Check if value matches previously captured
                             value. *)
                          if value = value0 then
-                           match_ ~dots:false env loc pat_tail doc_tail cont
+                           match_ ~dots:None env loc pat_tail doc_tail cont
                          else
                            Fail
                     )
                 | Word a, Word b when a = b ->
-                    match_ ~dots:false env loc pat_tail doc_tail cont
+                    match_ ~dots:None env loc pat_tail doc_tail cont
                 | Punct a, Punct b when a = b ->
-                    match_ ~dots:false env loc pat_tail doc_tail cont
+                    match_ ~dots:None env loc pat_tail doc_tail cont
                 | Byte a, Byte b when a = b ->
-                    match_ ~dots:false env loc pat_tail doc_tail cont
+                    match_ ~dots:None env loc pat_tail doc_tail cont
                 | _ ->
                     Fail
               in
@@ -174,7 +214,7 @@ let rec match_
               | Fail ->
                   (* Pattern doesn't match document.
                      Skip document's head node if we're allowed to. *)
-                  if dots then
+                  if loc_matches_dots ~dots loc then
                     match_ ~dots env last_loc pat doc_tail cont
                   else
                     Fail
@@ -217,7 +257,7 @@ let search pat doc =
     in
     if ok_loc then
       match
-        match_ ~dots:false Env.empty start_loc pat doc full_match
+        match_ ~dots:None Env.empty start_loc pat doc full_match
       with
       | Complete (_env, last_loc) -> (start_loc, last_loc) :: matches
       | Fail -> matches
@@ -248,5 +288,6 @@ let print ?(highlight = false) src matches =
       ?highlight:highlight_fun
       ~line_prefix
       src start_loc end_loc
-    |> print_string
+    |> print_string;
+    print_char '\n'
   ) matches
