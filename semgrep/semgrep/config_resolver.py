@@ -43,9 +43,9 @@ def manual_config(pattern: str, lang: str) -> Dict[str, YamlTree]:
     # TODO remove when using sgrep -e ... -l ... instead of this hacked config
     pattern_span = Span.from_string(pattern, filename="CLI Input")
     pattern_tree = YamlTree[str](value=pattern, span=pattern_span)
-    error_span = parse_yaml_preserve_spans(
+    error_span = Span.from_string(
         f"Semgrep bug generating manual config {PLEASE_FILE_ISSUE_TEXT}", filename=None
-    ).span
+    )
     return {
         "manual": YamlTree.wrap(
             {

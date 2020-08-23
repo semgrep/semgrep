@@ -393,31 +393,54 @@ def test_explicit_path(tmp_path, monkeypatch):
     python_language = Language("python")
 
     assert foo_a in TargetManager(
-        [], [], ["foo/a.py"], False, defaulthandler
+        [], [], ["foo/a.py"], False, defaulthandler, False
+    ).get_files(python_language, [], [])
+    assert foo_a in TargetManager(
+        [], [], ["foo/a.py"], False, defaulthandler, True
     ).get_files(python_language, [], [])
 
     # Should include explicitly passed python file even if is in excludes
     assert foo_a not in TargetManager(
-        [], ["foo/a.py"], ["."], False, defaulthandler
+        [], ["foo/a.py"], ["."], False, defaulthandler, False
     ).get_files(python_language, [], [])
     assert foo_a in TargetManager(
-        [], ["foo/a.py"], [".", "foo/a.py"], False, defaulthandler
+        [], ["foo/a.py"], [".", "foo/a.py"], False, defaulthandler, False
     ).get_files(python_language, [], [])
 
     # Should ignore expliclty passed .go file when requesting python
     assert (
-        TargetManager([], [], ["foo/a.go"], False, defaulthandler).get_files(
+        TargetManager([], [], ["foo/a.go"], False, defaulthandler, False).get_files(
             python_language, [], []
         )
         == []
     )
 
-    # Should include explicitly passed file with unknown extension
+    # Should include explicitly passed file with unknown extension if skip_unknown_extensions=False
     assert cmp_path_sets(
         set(
-            TargetManager([], [], ["foo/noext"], False, defaulthandler).get_files(
+            TargetManager(
+                [], [], ["foo/noext"], False, defaulthandler, False
+            ).get_files(python_language, [], [])
+        ),
+        {foo_noext},
+    )
+
+    # Should not include explicitly passed file with unknown extension if skip_unknown_extensions=True
+    assert cmp_path_sets(
+        set(
+            TargetManager([], [], ["foo/noext"], False, defaulthandler, True).get_files(
                 python_language, [], []
             )
         ),
-        {foo_noext},
+        set(),
+    )
+
+    # Should include explicitly passed file with correct extension even if skip_unknown_extensions=True
+    assert cmp_path_sets(
+        set(
+            TargetManager(
+                [], [], ["foo/noext", "foo/a.py"], False, defaulthandler, True
+            ).get_files(python_language, [], [])
+        ),
+        {foo_a},
     )

@@ -3,18 +3,12 @@
     {
       "code": 4,
       "level": "error",
-      "long_msg": "type of `operand` must be a string or dict, but it was a list",
-      "short_msg": "invalid operand",
+      "long_msg": "[{'pattern': '$D = {}'}] is not of type 'string'",
+      "short_msg": "Invalid rule schema",
       "spans": [
         {
-          "context_end": {
-            "col": 0,
-            "line": 6
-          },
-          "context_start": {
-            "col": 0,
-            "line": 3
-          },
+          "context_end": null,
+          "context_start": null,
           "end": {
             "col": 5,
             "line": 5

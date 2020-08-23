@@ -1,0 +1,33 @@
+{
+  "errors": [
+    {
+      "code": 4,
+      "level": "error",
+      "long_msg": "{'anyOf': [{'required': ['pattern']}, {'required': ['patterns']}, {'required': ['pattern-either']}, {'required': ['pattern-regex']}]} is not allowed for {'id': 'tainty', 'message': 'Hi', 'languages': ['python'], 'severity': 'WARNING', 'mode': 'taint', 'pattern-sinks': ['$X'], 'pattern-sources': ['$Y'], 'pattern': '$X == $X'}\n{'anyOf': [{'required': ['pattern-sinks']}, {'required': ['pattern-sources']}, {'required': ['pattern-sanitizers']}]} is not allowed for {'id': 'tainty', 'message': 'Hi', 'languages': ['python'], 'severity': 'WARNING', 'mode': 'taint', 'pattern-sinks': ['$X'], 'pattern-sources': ['$Y'], 'pattern': '$X == $X'}",
+      "short_msg": "Invalid rule schema",
+      "spans": [
+        {
+          "context_end": null,
+          "context_start": null,
+          "end": {
+            "col": 1,
+            "line": 13
+          },
+          "file": "rules/syntax/bad14.yaml",
+          "source_hash": "3288d50ef917f40d8e5d0bec082d910a53ea93465167f5b2efbaac7ed68efcb2",
+          "start": {
+            "col": 5,
+            "line": 2
+          }
+        }
+      ],
+      "type": "InvalidRuleSchemaError"
+    },
+    {
+      "code": 7,
+      "message": "run with --strict and there were 1 errors loading configs",
+      "type": "SemgrepError"
+    }
+  ],
+  "results": []
+}

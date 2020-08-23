@@ -26,8 +26,6 @@ from semgrep.rule import Rule
 from semgrep.rule_lang import YamlMap
 from semgrep.rule_lang import YamlTree
 from semgrep.rule_match import RuleMatch
-from semgrep.semgrep_types import YAML_ALL_VALID_RULE_KEYS
-from semgrep.semgrep_types import YAML_MUST_HAVE_KEYS
 from semgrep.target_manager import TargetManager
 
 logger = logging.getLogger(__name__)
@@ -41,42 +39,9 @@ def validate_single_rule(
     """
         Validate that a rule dictionary contains all necessary keys
         and can be correctly parsed.
-
-        Returns Rule object if valid otherwise raises InvalidRuleSchemaError
     """
     rule: YamlMap = rule_yaml.value
 
-    rule_keys = set({k.value for k in rule.keys()})
-    extra_keys = rule_keys - YAML_ALL_VALID_RULE_KEYS
-    extra_key_spans = sorted([rule.key_tree(k) for k in extra_keys])
-    missing_keys = YAML_MUST_HAVE_KEYS - rule_keys
-
-    if missing_keys and extra_keys:
-        help_msg = f"Unexpected keys {extra_keys} found. Is one of these a typo of {missing_keys}?"
-        raise InvalidRuleSchemaError(
-            short_msg="incorrect keys",
-            long_msg=f"{config_id} is missing required keys {missing_keys}",
-            spans=[rule_yaml.span.truncate(lines=5)]
-            + [e.span for e in extra_key_spans],
-            help=help_msg,
-        )
-    elif missing_keys:
-        help_msg = f"Add {missing_keys} to your config file."
-        raise InvalidRuleSchemaError(
-            short_msg="missing keys",
-            long_msg=f"{config_id} is missing required keys {missing_keys}",
-            spans=[rule_yaml.span.truncate(lines=5)]
-            + [e.span for e in extra_key_spans],
-            help=help_msg,
-        )
-    elif extra_keys:
-        help_msg = f"Unexpected keys {extra_keys} found. Were you looking for any of these unused, valid keys?\n {sorted(YAML_ALL_VALID_RULE_KEYS - rule_keys)}"
-        raise InvalidRuleSchemaError(
-            short_msg="invalid keys",
-            long_msg=f"{config_id} has extra, un-interpretable keys: {extra_keys}",
-            spans=[e.span for e in extra_key_spans],
-            help=help_msg,
-        )
     # Defaults to search mode if mode is not specified
     return Rule.from_yamltree(rule_yaml)
 
@@ -295,6 +260,7 @@ def main(
     timeout: int = 0,
     max_memory: int = 0,
     timeout_threshold: int = 0,
+    skip_unknown_extensions: bool = False,
 ) -> None:
     if include is None:
         include = []
@@ -348,6 +314,7 @@ def main(
         targets=target,
         respect_git_ignore=respect_git_ignore,
         output_handler=output_handler,
+        skip_unknown_extensions=skip_unknown_extensions,
     )
 
     # actually invoke semgrep

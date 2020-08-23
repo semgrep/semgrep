@@ -4,7 +4,41 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## [Unreleased]
 - `--timeout-threshold` flag to set the maximum number of times a file can timeout before it is skipped
-- Added support for the JUnit XML report format (`--junit-xml`)
+- Added support for the JUnit XML report format (`--fmt junit`)
+
+## [0.20.0]((https://github.com/returntocorp/semgrep/releases/tag/v0.20.0)) - 2020-08-18
+
+### Added
+- Support for JSX tag metavariables (e.g., <$TAG />) and ellipsis inside
+  JSX attributes (e.g., <foo attr=... />)
+- By default Semgrep treats explicitly passed files with unknown extension as possibly any language and so runs all rules on said files. Add a flag `--skip-unknown-extensions` so that Semgrep will treat these files as if they matched no language and will so run no rules on them. [Link: PR](https://github.com/returntocorp/semgrep/pull/1507)
+
+### Fixed
+- Python patterns do not have to end with a newline anymore.
+- Pattern `$X = '...';` in JavaScript matches `var $X = '...'`. Additionally, semicolon is no longer required to match. [Link: Issue](https://github.com/returntocorp/semgrep/issues/1497); [Link: Example](https://semgrep.dev/7g0Q?version=0.20.0)
+- In JavaScript, can now match destructured object properties inside functions. [Link: Issue](https://github.com/returntocorp/semgrep/issues/1005); [Link: Example](https://semgrep.dev/d72E/?version=0.20.0)
+- Java annotations can be matched with fully qualified names. [Link: Issue](https://github.com/returntocorp/semgrep/issues/1508); [Link: Example](https://semgrep.dev/vZqY/?version=0.20.0)
+- Ensure `/src` exists in Dockerfile; [Link: PR](https://github.com/returntocorp/semgrep/pull/1512)
+
+## [0.19.1](https://github.com/returntocorp/semgrep/releases/tag/v0.19.1) - 2020-08-13
+
+### Fixed
+- Update Docker container to run successfully without special volume
+  permissions
+
+## [0.19.0](https://github.com/returntocorp/semgrep/releases/tag/v0.19.0) - 2020-08-11
+
+### Added
+- `--timeout-threshold` option to set the maximum number of times a file can timeout before it is skipped
+- Alpha support for C#
+
+### Fixed
+- Match against JavaScript unparameterized catch blocks
+- Parse and match against Java generics
+- Add ability to match against JSX attributes using ellipses
+- Add ability to use ellipses in Go struct definitions
+- No longer convert Go expressions with a newline to a statement
+>>>>>>> upstream/develop
 
 ## [0.18.0](https://github.com/returntocorp/semgrep/releases/tag/v0.18.0) - 2020-08-04
 

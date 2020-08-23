@@ -53,6 +53,12 @@ def test_junit_xml_output(run_semgrep_in_tmp, snapshot):
     assert len(main.diff_texts(expected_output, actual_output)) == 0
 
 
+def test_multiline(run_semgrep_in_tmp, snapshot):
+    snapshot.assert_match(
+        run_semgrep_in_tmp("rules/eqeq.yaml", target_name="multiline"), "results.json",
+    )
+
+
 def test_sarif_output(run_semgrep_in_tmp, snapshot):
     sarif_output = json.loads(
         run_semgrep_in_tmp("rules/eqeq.yaml", output_format="sarif")

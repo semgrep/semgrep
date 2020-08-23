@@ -1095,12 +1095,12 @@ and annotation (env : env) (x : CST.annotation) : tok * annotation =
   | `Marker_anno (v1, v2) ->
       let v1 = token env v1 (* "@" *) in
       let v2 = qualifier_extra env v2 in
-      v1, (v1, (v2 |> List.map (fun id -> Id id)), None)
+      v1, (v1, v2, None)
   | `Anno_ (v1, v2, v3) ->
       let v1 = token env v1 (* "@" *) in
       let v2 = qualifier_extra env v2 in
       let v3 = annotation_argument_list env v3 in
-      v1, (v1, (v2 |> List.map (fun id -> Id id)), Some v3)
+      v1, (v1, v2, Some v3)
   )
 
 
@@ -1315,7 +1315,7 @@ and class_declaration (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.class_decl
     | Some x -> modifiers env x
     | None -> [])
   in
-  let _v2 = token env v2 (* "class" *) in
+  let v2 = token env v2 (* "class" *) in
   let v3 = identifier env v3 (* pattern [a-zA-Z_]\w* *) in
   let v4 =
     (match v4 with
@@ -1333,7 +1333,7 @@ and class_declaration (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.class_decl
     | None -> [])
   in
   let v7 = class_body env v7 in
-  { cl_name = v3; cl_kind = ClassRegular; cl_tparams = v4;
+  { cl_name = v3; cl_kind = (ClassRegular, v2); cl_tparams = v4;
     cl_mods = v1; cl_extends = v5; cl_impls = v6;
     cl_body = v7 }
 
@@ -1531,10 +1531,10 @@ and annotation_type_declaration (env : env) ((v1, v2, v3, v4) : CST.annotation_t
     | Some x -> modifiers env x
     | None -> [])
   in
-  let _v2 = token env v2 (* "@interface" *) in
+  let v2 = token env v2 (* "@interface" *) in
   let v3 = identifier env v3 (* pattern [a-zA-Z_]\w* *) in
   let v4 = annotation_type_body env v4 in
-  { cl_mods = v1; cl_name = v3; cl_body = v4; cl_kind = AtInterface;
+  { cl_mods = v1; cl_name = v3; cl_body = v4; cl_kind = (AtInterface, v2);
     cl_tparams = []; cl_extends = None; cl_impls = [];
   }
 
@@ -1593,7 +1593,7 @@ and interface_declaration (env : env) ((v1, v2, v3, v4, v5, v6) : CST.interface_
     | Some x -> modifiers env x
     | None -> [])
   in
-  let _v2 = token env v2 (* "interface" *) in
+  let v2 = token env v2 (* "interface" *) in
   let v3 = identifier env v3 (* pattern [a-zA-Z_]\w* *) in
   let v4 =
     (match v4 with
@@ -1606,7 +1606,7 @@ and interface_declaration (env : env) ((v1, v2, v3, v4, v5, v6) : CST.interface_
     | None -> [])
   in
   let v6 = interface_body env v6 in
-  { cl_name = v3; cl_kind = Interface; cl_tparams = v4;
+  { cl_name = v3; cl_kind = (Interface, v2); cl_tparams = v4;
     cl_mods = v1; cl_extends = None; cl_impls = v5;
     cl_body = v6 }
 
