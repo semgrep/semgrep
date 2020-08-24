@@ -1,9 +1,10 @@
 # Semgrep Integration Playbook
 
-This document describes common integration methods for including Semgrep in
-your workflows. This includes strategies for when and where to include Semgrep,
-advice on managing Semgrep in large codebases with many pre-existing issues,
-using Semgrep to help ensure the security of your organization, etc.
+This document describes common integration methods for you, the intrepid
+integrator, to include Semgrep in your organization's workflows. This includes,
+but is not limited to, strategies for when and where to include Semgrep, advice
+on managing Semgrep in large codebases with many pre-existing issues, using
+Semgrep to help ensure the security of your organization, etc.
 
 Contents:
 
@@ -13,6 +14,7 @@ Contents:
 * [Lifecycle Management](#lifecycle-management)
   * [Installing Semgrep](#installing-semgrep)
   * [Managing Rules](#managing-rules)
+  * [Performance Considerations](#performance-considerations)
 
 ## Integration Points
 
@@ -81,16 +83,21 @@ existing CI provider documentation:
 
 ### Security
 
-Security teams will naturally have an adversarial relationship with development.
-Security is blocking, not enabling. Security is a cost center, not a value
-producer. Security is fundamentally destructive, not constructive. It is for
-these reasons that security must help our friends in development by choosing
-solutions, technologies, tools, and products that reduce friction as much as
-possible. We must be available for questions and provide guidance, while not
-letting perfect be the enemy of good. Although we must sometimes be secretive,
-we must strive to be understandable and clear. We must enable confidence and
-take on the bulk of integration work since we are fundamentally the ones making
-a request.
+Historically, in many companies, there was periodic friction between
+engineering and security teams when developers wanted to push forward and
+release new features quickly, while the security teams wanted to slow down or
+stop new releases until it could be ensured that the new code met a certain
+security bar.
+
+But times have changed. Now, it's essential for modern security teams to enable
+the engineering teams they support to move quickly and securely, by choosing
+the right solutions, technologies, tools, and products that reduce friction as
+much as possible. This is what Semgreps aims to help security teams achieve:
+being business enablers with a seat at the table.
+
+Security teams must be available for questions and provide guidance, while not
+letting perfect be the enemy of good. We must enable confidence and take on the
+bulk of integration work since we are fundamentally the ones making a request.
 
 This section will take a different approach than the development section above.
 Security will often be making requests of development teams and thus will likely
@@ -150,8 +157,8 @@ some of the following trade-offs:
   * In-editor integration provides the fastest feedback, but may not be suitable
     for comprehensive analysis. Large rule sets will naturally take more time,
     which may interupt the development workflow.
-  * Editor choice is typically up to the individual developer. This means
-    in-editor integration would be a choice made by the developer as well.
+  * Editor choice, and thus in-editor integrations, is typically up to the
+    individual developer.
   * Security teams may not be able to influence applications used on
     development machines.
 * Git hooks integration vs. CI integration
@@ -162,6 +169,12 @@ some of the following trade-offs:
   * Security teams may not be able to influence what runs in CI. This means
     one-off analyses may be necessary. On the other hand, security teams may not
     have direct code access, and may have to use CI for this purpose.
+  * Git hooks or in-editor integrations will naturally have different
+    performance requirements vs. CI and/or nightly analysis jobs. Developers
+    cannot wait minutes or hours for their editor command or commit to finish,
+    but a comprehensive nightly job may be permitted this runtime. This
+    trade-off will be discussed in more detail below in
+    [Performance Considerations](#performance-considerations).
 
 There's no single solution for all teams or environments. Further, the above
 list is not an exhaustive list of trade-offs you may have to make. This is
@@ -184,5 +197,9 @@ TODO
 TODO
 
 ### Managing Rules
+
+TODO
+
+### Performance Considerations
 
 TODO
