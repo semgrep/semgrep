@@ -67,7 +67,8 @@ def validate_checksum(name: str, actual_url: str, checksum_url: str) -> List[str
     )
     digest = hashlib.sha256(actual_data).hexdigest()
     if digest != checksum_data:
-        return [f"Checksum for {name} was invalid {digest} != {checksum_data}"]
+        checksum_string = f"Checksum for {name} was invalid {digest} != {checksum_data}"
+        return [checksum_string]
     return []
 
 
