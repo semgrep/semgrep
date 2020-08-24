@@ -76,7 +76,7 @@ repos:
         types: [python]
         exclude: "^semgrep/tests/.+$|^scripts/.+$|^semgrep/setup.py$"
         # Managed at https://semgrep.dev/mschwager:semgrep-local
-        args: ['--config', 'https://semgrep.dev/c/mschwager:semgrep-local', '--error']
+        args: ['--config', 'https://semgrep.dev/mschwager:semgrep-local', '--error']
 
   - repo: local
     hooks:
@@ -126,5 +126,5 @@ repos:
         types: [python]
         exclude: "^semgrep/tests/.+$|^scripts/.+$|^semgrep/setup.py$"
         # Managed at https://semgrep.dev/mschwager:semgrep-local
-        args: ['--config', 'https://semgrep.dev/c/mschwager:semgrep-local', '--error']
+        args: ['--config', 'https://semgrep.dev/mschwager:semgrep-local', '--error']
         stages: [manual]
