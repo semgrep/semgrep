@@ -2295,8 +2295,12 @@ and m_any a b =
     m_name a1 b1
   | A.Modn(a1), B.Modn(b1) ->
     m_module_name a1 b1
+  | A.ModDk(a1), B.ModDk(b1) ->
+    m_module_definition_kind a1 b1
   | A.Tk(a1), B.Tk(b1) ->
     m_tok a1 b1
+  | A.TodoK(a1), B.TodoK(b1) ->
+    m_ident a1 b1
   | A.Di(a1), B.Di(b1) ->
     m_dotted_name a1 b1
   | A.En(a1), B.En(b1) ->
@@ -2331,6 +2335,7 @@ and m_any a b =
   | A.S _, _  | A.T _, _  | A.P _, _  | A.Def _, _  | A.Dir _, _
   | A.Pa _, _  | A.Ar _, _  | A.At _, _  | A.Dk _, _ | A.Pr _, _
   | A.Fld _, _ | A.Ss _, _ | A.Tk _, _ | A.Lbli _, _ | A.Fldi _, _
+  | A.ModDk _, _ | A.TodoK _, _
    -> fail ()
   (*e: [[Generic_vs_generic.m_any]] boilerplate cases *)
 (*e: function [[Generic_vs_generic.m_any]] *)
