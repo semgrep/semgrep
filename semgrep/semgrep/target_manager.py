@@ -27,8 +27,6 @@ RUBY_EXTENSIONS = [FileExtension("rb")]
 ML_EXTENSIONS = [
     FileExtension("mli"),
     FileExtension("ml"),
-    FileExtension("mly"),
-    FileExtension("mll"),
 ]
 JSON_EXTENSIONS = [FileExtension("json")]
 ALL_EXTENSIONS = (
