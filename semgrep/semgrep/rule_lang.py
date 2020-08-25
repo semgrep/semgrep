@@ -17,6 +17,7 @@ from typing import Union
 import attr
 import jsonschema.exceptions
 import ruamel.yaml
+from jsonschema.validators import Draft7Validator
 from ruamel.yaml import Node
 from ruamel.yaml import RoundTripConstructor
 from ruamel.yaml import YAML
@@ -404,7 +405,7 @@ def validate_yaml(data: YamlTree) -> None:
     from semgrep.error import InvalidRuleSchemaError
 
     try:
-        jsonschema.validate(data.unroll(), RuleSchema.get())
+        jsonschema.validate(data.unroll(), RuleSchema.get(), cls=Draft7Validator)
     except jsonschema.ValidationError as ve:
         message = _validation_error_message(ve)
         item = data

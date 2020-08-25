@@ -56,7 +56,7 @@ repos:
       - id: semgrep
         name: Semgrep Python
         types: [python]
-        exclude: "^semgrep/tests/.+$|^install-scripts/.+$|^release-scripts/.+$|^semgrep/setup.py$"
+        exclude: "^semgrep/tests/.+$|^scripts/.+$|^semgrep/setup.py$"
         args: ['--config', 'https://semgrep.dev/p/python', '--error']
 
   - repo: https://github.com/returntocorp/semgrep
@@ -65,7 +65,7 @@ repos:
       - id: semgrep
         name: Semgrep Bandit
         types: [python]
-        exclude: "^semgrep/tests/.+$|^install-scripts/.+$|^release-scripts/.+$|^semgrep/setup.py$"
+        exclude: "^semgrep/tests/.+$|^scripts/.+$|^semgrep/setup.py$"
         args: ['--config', 'https://semgrep.dev/p/bandit', '--error']
 
   - repo: https://github.com/returntocorp/semgrep
@@ -74,8 +74,9 @@ repos:
       - id: semgrep
         name: Semgrep Local
         types: [python]
-        exclude: "^semgrep/tests/.+$|^install-scripts/.+$|^release-scripts/.+$|^semgrep/setup.py$"
-        args: ['--config', 'semgrep-local.yaml', '--error']
+        exclude: "^semgrep/tests/.+$|^scripts/.+$|^semgrep/setup.py$"
+        # Managed at https://semgrep.dev/mschwager:semgrep-local
+        args: ['--config', 'https://semgrep.dev/mschwager:semgrep-local', '--error']
 
   - repo: local
     hooks:
@@ -103,7 +104,7 @@ repos:
       - id: semgrep-docker-develop
         name: Semgrep Develop Python
         types: [python]
-        exclude: "^semgrep/tests/.+$|^install-scripts/.+$|^release-scripts/.+$|^semgrep/setup.py$"
+        exclude: "^semgrep/tests/.+$|^scripts/.+$|^semgrep/setup.py$"
         args: ['--config', 'https://semgrep.dev/p/python', '--error']
         stages: [manual]
 
@@ -113,7 +114,7 @@ repos:
       - id: semgrep-docker-develop
         name: Semgrep Develop Bandit
         types: [python]
-        exclude: "^semgrep/tests/.+$|^install-scripts/.+$|^release-scripts/.+$|^semgrep/setup.py$"
+        exclude: "^semgrep/tests/.+$|^scripts/.+$|^semgrep/setup.py$"
         args: ['--config', 'https://semgrep.dev/p/bandit', '--error']
         stages: [manual]
 
@@ -123,6 +124,7 @@ repos:
       - id: semgrep-docker-develop
         name: Semgrep Develop Local
         types: [python]
-        exclude: "^semgrep/tests/.+$|^install-scripts/.+$|^release-scripts/.+$|^semgrep/setup.py$"
-        args: ['--config', 'semgrep-local.yaml', '--error']
+        exclude: "^semgrep/tests/.+$|^scripts/.+$|^semgrep/setup.py$"
+        # Managed at https://semgrep.dev/mschwager:semgrep-local
+        args: ['--config', 'https://semgrep.dev/mschwager:semgrep-local', '--error']
         stages: [manual]

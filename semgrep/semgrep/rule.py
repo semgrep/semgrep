@@ -19,10 +19,10 @@ from semgrep.semgrep_types import Language
 from semgrep.semgrep_types import Mode
 from semgrep.semgrep_types import NONE_LANGUAGE
 from semgrep.semgrep_types import Operator
-from semgrep.semgrep_types import OPERATOR_PATTERN_NAMES_MAP
 from semgrep.semgrep_types import OPERATORS
 from semgrep.semgrep_types import OPERATORS_WITH_CHILDREN
 from semgrep.semgrep_types import pattern_names_for_operator
+from semgrep.semgrep_types import PATTERN_NAMES_OPERATOR_MAP
 from semgrep.semgrep_types import PatternId
 from semgrep.semgrep_types import TAINT_MODE
 from semgrep.semgrep_types import YAML_TAINT_MUST_HAVE_KEYS
@@ -126,21 +126,17 @@ class Rule:
         for rule_index, pattern_tree in enumerate(rule_patterns.value):
             pattern = pattern_tree.value
             for boolean_operator_yaml, sub_pattern in pattern.items():
-                boolean_operator: str = boolean_operator_yaml.value
                 operator = operator_for_pattern_name(boolean_operator_yaml)
                 if operator in set(OPERATORS_WITH_CHILDREN):
-                    if isinstance(sub_pattern.value, list):
-                        sub_expression = self._parse_boolean_expression(
-                            sub_pattern, 0, f"{prefix}.{rule_index}.{pattern_id_idx}"
-                        )
-                        yield BooleanRuleExpression(
-                            operator=operator,
-                            pattern_id=None,
-                            children=list(sub_expression),
-                            operand=None,
-                        )
-                    else:
-                        raise Exception("Internal error: bad schema")
+                    sub_expression = self._parse_boolean_expression(
+                        sub_pattern, 0, f"{prefix}.{rule_index}.{pattern_id_idx}"
+                    )
+                    yield BooleanRuleExpression(
+                        operator=operator,
+                        pattern_id=None,
+                        children=list(sub_expression),
+                        operand=None,
+                    )
                 else:
                     pattern_text, pattern_span = sub_pattern.value, sub_pattern.span
 
@@ -219,13 +215,6 @@ class Rule:
                     children=list(self._parse_boolean_expression(patterns)),
                     operand=None,
                 )
-
-        required_operator = [
-            OPERATORS.AND_ALL,
-            OPERATORS.AND_EITHER,
-            OPERATORS.REGEX,
-            OPERATORS.AND,
-        ]
 
         raise Exception("Internal error: bad schema")
 
@@ -349,8 +338,4 @@ class Rule:
 
 
 def operator_for_pattern_name(pattern_name: YamlTree[str]) -> Operator:
-    for op, pattern_names in OPERATOR_PATTERN_NAMES_MAP.items():
-        if pattern_name.value in pattern_names:
-            return op
-
-    raise Exception("Internal error: bad schema")
+    return PATTERN_NAMES_OPERATOR_MAP[pattern_name.value]
