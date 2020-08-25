@@ -142,7 +142,7 @@ jobs:
         run: |
           pip3 install semgrep==0.17.0
           semgrep --version
-          semgrep-core --version
+          semgrep-core -version
           export PATH=/github/home/.local/bin:$PATH
           cd semgrep
           python3 tests/performance/test_ci_perf.py > baseline_timing.txt
@@ -166,7 +166,7 @@ jobs:
         run: |
           cd semgrep
           pipenv run semgrep --version
-          pipenv run semgrep-core --version
+          pipenv run semgrep-core -version
           pipenv run python3 tests/performance/test_ci_perf.py > timing.txt
           cat timing.txt
       - name: Compare timing infos
