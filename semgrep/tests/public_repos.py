@@ -276,10 +276,6 @@ PASSING_REPOS = [
         "languages": ALL_LANGUAGES,
     },
     {"repo": "https://github.com/DevSlop/Pixi", "languages": ALL_LANGUAGES},
-    {
-        "repo": "https://github.com/signalapp/Signal-Desktop",
-        "languages": ALL_LANGUAGES,
-    },
     {"repo": "https://github.com/jekyll/jekyll", "languages": ["ruby"]},
 ]
 
@@ -290,9 +286,16 @@ FAILING_REPOS = [
             "languages": ALL_LANGUAGES,
         },
         reason=(
-            "https://github.com/returntocorp/semgrep/issues/1518",
-            "https://github.com/returntocorp/semgrep/issues/1519",
+            "https://github.com/returntocorp/semgrep/issues/1518"
+            "https://github.com/returntocorp/semgrep/issues/1519"
         ),
+    ),
+    xfail_repo(
+        {
+            "repo": "https://github.com/signalapp/Signal-Desktop",
+            "languages": ALL_LANGUAGES,
+        },
+        reason="https://github.com/returntocorp/semgrep/issues/1496",
     ),
     xfail_repo(
         {
