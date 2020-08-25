@@ -19,7 +19,7 @@ COPY --chown=opam .gitmodules /semgrep/.gitmodules
 COPY --chown=opam .git/ /semgrep/.git/
 COPY --chown=opam pfff/ /semgrep/pfff/
 COPY --chown=opam semgrep-core/ /semgrep/semgrep-core/
-COPY --chown=opam install-scripts /semgrep/install-scripts
+COPY --chown=opam scripts /semgrep/scripts
 
 WORKDIR /semgrep
 
@@ -29,7 +29,7 @@ RUN git clean -dfX
 RUN git submodule foreach --recursive git clean -dfX
 
 RUN git submodule update --init --recursive
-RUN eval "$(opam env)" && ./install-scripts/install-ocaml-tree-sitter
+RUN eval "$(opam env)" && ./scripts/install-ocaml-tree-sitter
 RUN eval "$(opam env)" && opam install -y pfff/
 RUN eval "$(opam env)" && opam install --deps-only -y semgrep-core/ && make -C semgrep-core/ all
 RUN ./semgrep-core/_build/install/default/bin/semgrep-core -version
