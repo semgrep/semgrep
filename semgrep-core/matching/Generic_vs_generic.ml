@@ -1099,6 +1099,8 @@ and m_type_ a b =
      when MV.is_metavar_name str ->
       envf (str, tok) (B.T (t2))
   (*e: [[Generic_vs_generic.m_type_]] metavariable case *)
+  (* dots: *)
+  | A.TyEllipsis _, _ -> return ()
 
   (* boilerplate *)
   | A.TyBuiltin(a1), B.TyBuiltin(b1) ->
@@ -1646,6 +1648,9 @@ and m_pattern a b =
         envf (str, tok) (B.P b2)
       )
   (*e: [[Generic_vs_generic.m_pattern()]] metavariable case *)
+
+  (* dots: *)
+  | A.PatEllipsis _, _ -> return ()
 
   (* boilerplate *)
   (*s: [[Generic_vs_generic.m_pattern]] boilerplate cases *)
