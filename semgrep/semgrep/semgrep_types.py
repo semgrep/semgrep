@@ -23,7 +23,7 @@ SUPPORTED_MODES = {TAINT_MODE, SEARCH_MODE}
 
 YAML_TAINT_MUST_HAVE_KEYS = {"pattern-sinks", "pattern-sources"}
 
-NONE_LANGUAGE = "none"
+NONE_LANGUAGE = Language("none")
 
 
 class OPERATORS:
