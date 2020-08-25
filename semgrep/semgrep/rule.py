@@ -19,6 +19,7 @@ from semgrep.semgrep_types import Language
 from semgrep.semgrep_types import Mode
 from semgrep.semgrep_types import NONE_LANGUAGE
 from semgrep.semgrep_types import Operator
+from semgrep.semgrep_types import OPERATOR_PATTERN_NAMES_MAP
 from semgrep.semgrep_types import OPERATORS
 from semgrep.semgrep_types import OPERATORS_WITH_CHILDREN
 from semgrep.semgrep_types import pattern_names_for_operator
@@ -80,14 +81,12 @@ class Rule:
                 operator_key = OPERATOR_PATTERN_NAMES_MAP.get(
                     expression.operator, [""]
                 )[0]
+                doc = self._yaml.value.get(span_key)
+                span = doc.span if doc else self._yaml.span
                 raise InvalidRuleSchemaError(
                     short_msg=f"invalid pattern clause",
                     long_msg=f"invalid pattern clause '{operator_key}' with language '{NONE_LANGUAGE}'",
-                    spans=[
-                        self.pattern_spans.get(
-                            cast(PatternId, self.id), self._yaml.span
-                        )
-                    ],
+                    spans=[span],
                     help=f"use only patterns, pattern-regex, or pattern-either with language '{NONE_LANGUAGE}'",
                 )
             if expression.children:
