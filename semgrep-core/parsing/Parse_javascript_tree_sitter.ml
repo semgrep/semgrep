@@ -165,24 +165,30 @@ let regex_flags (env : env) (tok : CST.regex_flags) =
   str env tok (* pattern [a-z]+ *)
 
 
-let anon_choice_blank (env : env) (x : CST.anon_choice_blank) =
+let anon_choice_blank1 (env : env) (x) =
   (match x with
-  | `Blank () -> None
-  | `Esc_seq tok -> Some (str env tok) (* escape_sequence *)
+  | `Imm_tok_pat_de5d470 tok -> str env tok
+  | `Esc_seq tok -> str env tok (* escape_sequence *)
+  )
+
+let anon_choice_blank2 (env : env) (x) =
+  (match x with
+  | `Imm_tok_pat_3e57880 tok -> str env tok
+  | `Esc_seq tok -> str env tok (* escape_sequence *)
   )
 
 let string_ (env : env) (x : CST.string_) : string wrap =
   (match x with
-  | `DQUOT_rep_choice_blank_DQUOT (v1, v2, v3) ->
+  | `DQUOT_rep_choice_imm_tok_pat_de5d470_DQUOT (v1, v2, v3) ->
       let v1 = token env v1 (* "\"" *) in
-      let v2 = Common.map_filter (anon_choice_blank env) v2 in
+      let v2 = List.map (anon_choice_blank1 env) v2 in
       let v3 = token env v3 (* "\"" *) in
       let str = v2 |> List.map fst |> String.concat "" in
       let toks = [v1] @ (v2 |> List.map snd) @ [v3] in
       str, H.combine_infos env toks
-  | `SQUOT_rep_choice_blank_SQUOT (v1, v2, v3) ->
+  | `SQUOT_rep_choice_imm_tok_pat_3e57880_SQUOT (v1, v2, v3) ->
       let v1 = token env v1 (* "'" *) in
-      let v2 = Common.map_filter (anon_choice_blank env) v2 in
+      let v2 = List.map (anon_choice_blank2 env) v2 in
       let v3 = token env v3 (* "'" *) in
       let str = v2 |> List.map fst |> String.concat "" in
       let toks = [v1] @ (v2 |> List.map snd) @ [v3] in
@@ -969,6 +975,7 @@ and for_header (env : env) ((v1, v2, v3, v4, v5, v6) : CST.for_header) =
 
 and expression (env : env) (x : CST.expression) : expr =
   (match x with
+  | `Semg_dots t -> Ellipsis (token env t)
   | `Choice_this x -> constructable_expression env x
   | `Choice_jsx_elem x ->
         let xml = jsx_element_ env x in
