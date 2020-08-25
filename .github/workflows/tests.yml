@@ -141,6 +141,8 @@ jobs:
       - name: Run 0.17.0 Timing Benchmark
         run: |
           pip3 install semgrep==0.17.0
+          # if this is needed it means it's using new semgrep code
+          pip3 install jsonschema
           semgrep --version
           semgrep-core -version
           export PATH=/github/home/.local/bin:$PATH
