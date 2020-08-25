@@ -17,6 +17,7 @@ from semgrep.semgrep_types import BooleanRuleExpression
 from semgrep.semgrep_types import DEFAULT_MODE
 from semgrep.semgrep_types import Language
 from semgrep.semgrep_types import Mode
+from semgrep.semgrep_types import NONE_LANGUAGE
 from semgrep.semgrep_types import Operator
 from semgrep.semgrep_types import OPERATOR_PATTERN_NAMES_MAP
 from semgrep.semgrep_types import OPERATORS
@@ -58,6 +59,43 @@ class Rule:
 
         # check taint/search mode
         self._expression, self._mode = self._build_search_patterns_for_mode(self._yaml)
+
+        if any([lang == NONE_LANGUAGE for lang in self._languages]):
+            self._validate_none_language_rule()
+
+    def _validate_none_language_rule(self) -> None:
+        """
+        For "none" language rules, only patterns, pattern-either, and pattern-regex is valid.
+        """
+
+        def _validate(expression: BooleanRuleExpression, span_key: str = "") -> None:
+            """
+            Recursively validate expressions
+            """
+            if expression.operator not in {
+                OPERATORS.REGEX,
+                OPERATORS.AND_EITHER,
+                OPERATORS.AND_ALL,
+            }:
+                operator_key = OPERATOR_PATTERN_NAMES_MAP.get(
+                    expression.operator, [""]
+                )[0]
+                raise InvalidRuleSchemaError(
+                    short_msg=f"invalid pattern clause",
+                    long_msg=f"invalid pattern clause '{operator_key}' with language '{NONE_LANGUAGE}'",
+                    spans=[
+                        self.pattern_spans.get(
+                            cast(PatternId, self.id), self._yaml.span
+                        )
+                    ],
+                    help=f"use only patterns, pattern-regex, or pattern-either with language '{NONE_LANGUAGE}'",
+                )
+            if expression.children:
+                for child in expression.children:
+                    _validate(child, span_key)
+
+        top = OPERATOR_PATTERN_NAMES_MAP.get(self._expression.operator, [""])[0]
+        _validate(self._expression, span_key=top)
 
     def _build_search_patterns_for_mode(
         self, rule: YamlTree[YamlMap]

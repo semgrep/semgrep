@@ -12,6 +12,7 @@ from semgrep.error import _UnknownLanguageError
 from semgrep.error import FilesNotFoundError
 from semgrep.output import OutputHandler
 from semgrep.semgrep_types import Language
+from semgrep.semgrep_types import NONE_LANGUAGE
 from semgrep.util import partition_set
 from semgrep.util import sub_check_output
 
@@ -132,7 +133,7 @@ class TargetManager:
             """
             return set(p for p in curr_dir.rglob(f"*.{extension}") if p.is_file())
 
-        extensions = lang_to_exts(language)
+        extensions = "*" if language == NONE_LANGUAGE else lang_to_exts(language)
         expanded: Set[Path] = set()
 
         for ext in extensions:
@@ -255,16 +256,18 @@ class TargetManager:
             )
 
         targets = self.expand_targets(directories, lang, self.respect_git_ignore)
+
+        # Remove explicit_files with known extensions.
+        # If NONE_LANGUAGE, just use existing targets.
+        if lang != NONE_LANGUAGE:
+            explicit_files_with_lang_extension = set(
+                f
+                for f in explicit_files
+                if (any(f.match(f"*.{ext}") for ext in lang_to_exts(lang)))
+            )
+            targets = targets.union(explicit_files_with_lang_extension)
         targets = self.filter_includes(targets, self.includes)
         targets = self.filter_excludes(targets, self.excludes)
-
-        # Remove explicit_files with known extensions
-        explicit_files_with_lang_extension = set(
-            f
-            for f in explicit_files
-            if (any(f.match(f"*.{ext}") for ext in lang_to_exts(lang)))
-        )
-        targets = targets.union(explicit_files_with_lang_extension)
 
         if not self.skip_unknown_extensions:
             explicit_files_with_unknown_extensions = set(
