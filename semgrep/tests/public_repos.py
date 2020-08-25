@@ -276,10 +276,6 @@ PASSING_REPOS = [
         "languages": ALL_LANGUAGES,
     },
     {"repo": "https://github.com/DevSlop/Pixi", "languages": ALL_LANGUAGES},
-    {
-        "repo": "https://github.com/signalapp/Signal-Desktop",
-        "languages": ALL_LANGUAGES,
-    },
     {"repo": "https://github.com/jekyll/jekyll", "languages": ["ruby"]},
 ]
 
