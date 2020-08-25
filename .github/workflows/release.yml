@@ -148,7 +148,7 @@ jobs:
       - name: Post-checkout fixes
         run: ./.github/post-checkout
       - name: Build semgrep-core
-        run: ./install-scripts/install-alpine-semgrep-core
+        run: ./scripts/install-alpine-semgrep-core
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
@@ -174,7 +174,7 @@ jobs:
           # This is just the Python version used to build the Nuitka executable
           python-version: 3.7
       - name: Run OSX release script
-        run: ./release-scripts/osx-release.sh
+        run: ./scripts/osx-release.sh
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
@@ -200,7 +200,7 @@ jobs:
           cp semgrep-core-dir/semgrep-core semgrep-files
           chmod +x semgrep-files/semgrep-core
       - name: Run Ubuntu build script
-        run: ./release-scripts/ubuntu-release.sh
+        run: ./scripts/ubuntu-release.sh
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
@@ -225,14 +225,14 @@ jobs:
         id: checksum
       - name: Generate ubuntu release script
         run: |
-          cat ./install-scripts/ubuntu-generic.sh |\
+          cat ./scripts/ubuntu-generic.sh |\
           sed 's/version=".*"/version="${{ steps.get_version.outputs.VERSION }}"/' |\
-          sed 's/sha256=.*$/sha256="${{ steps.checksum.outputs.CHECKSUM }}"/'> install-scripts/installer.sh
+          sed 's/sha256=.*$/sha256="${{ steps.checksum.outputs.CHECKSUM }}"/'> scripts/installer.sh
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
           name: install-semgrep-ubuntu-generic-${{ github.sha }}
-          path: install-scripts/installer.sh
+          path: scripts/installer.sh
 
 
   build-wheels-osx:
@@ -248,7 +248,7 @@ jobs:
           # This is just the Python version to build the wheels
           python-version: 3.7
       - name: Build the wheels
-        run: ./release-scripts/build-wheels.sh
+        run: ./scripts/build-wheels.sh
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
@@ -280,7 +280,7 @@ jobs:
       - name: Install zip & musl-tools
         run: apt-get update && apt install -y zip musl-tools
       - name: Build the wheels
-        run: PRECOMPILED_LOCATION=$(realpath 'semgrep-files/semgrep-core') ./release-scripts/build-wheels.sh
+        run: PRECOMPILED_LOCATION=$(realpath 'semgrep-files/semgrep-core') ./scripts/build-wheels.sh
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
@@ -308,3 +308,16 @@ jobs:
       - name: e2e test
         working-directory: /opt/python/cp36-cp36m/bin/
         run: ./semgrep -l python ../lib/python3.6/code.py -e '$X == $X'
+
+  brew-build:
+    name: Check brew install formula works for develop head
+    runs-on: macos-latest
+    steps:
+      - name: Brew update
+        run: brew update
+      - name: Brew Install
+        run: brew install semgrep --HEAD
+      - name: Check semgrep-core version
+        run: semgrep-core -version
+      - name: Check installed correctly
+        run: brew test semgrep --HEAD

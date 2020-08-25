@@ -341,8 +341,9 @@ def cli() -> None:
                 args.pattern, args.lang, args.config
             )
             valid_str = "invalid" if config_errors else "valid"
+            rule_count = sum(len(rules) for rules in configs.values())
             logger.info(
-                f"Configuration is {valid_str} - found {len(configs)} valid configuration(s) and {len(config_errors)} configuration error(s)."
+                f"Configuration is {valid_str} - found {len(configs)} valid configuration(s), {len(config_errors)} configuration error(s), and {rule_count} rule(s)."
             )
             if config_errors:
                 for error in config_errors:

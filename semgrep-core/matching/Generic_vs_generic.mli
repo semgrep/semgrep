@@ -12,6 +12,9 @@ val m_stmts_deep : less_is_ok:bool->
   (AST.stmt list, AST.stmt list) Matching_generic.matcher
 (*e: signature [[Generic_vs_generic.m_stmts_deep]] *)
 
+val m_type_ :   (AST_generic.type_, AST_generic.type_) Matching_generic.matcher
+val m_pattern : (AST_generic.pattern, AST_generic.pattern) Matching_generic.matcher
+
 (*s: signature [[Generic_vs_generic.m_any]] *)
 (* used only for unit testing *)
 val m_any : (AST.any, AST.any) Matching_generic.matcher
