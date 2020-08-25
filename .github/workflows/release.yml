@@ -308,3 +308,16 @@ jobs:
       - name: e2e test
         working-directory: /opt/python/cp36-cp36m/bin/
         run: ./semgrep -l python ../lib/python3.6/code.py -e '$X == $X'
+
+  brew-build:
+    name: Check brew install formula works for develop head
+    runs-on: macos-latest
+    steps:
+      - name: Brew update
+        run: brew update
+      - name: Brew Install
+        run: brew install semgrep --HEAD
+      - name: Check semgrep-core version
+        run: semgrep-core -version
+      - name: Check installed correctly
+        run: brew test semgrep --HEAD
