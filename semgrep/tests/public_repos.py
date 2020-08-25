@@ -267,7 +267,6 @@ PASSING_REPOS = [
     {"repo": "https://github.com/coinbase/bittip", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/dropbox/questions", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/OWASP/NodeGoat", "languages": ALL_LANGUAGES},
-    {"repo": "https://github.com/nVisium/django.nV", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/coinbase/gtt-ui", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/coinbase/multisig-tool", "languages": ALL_LANGUAGES,},
     {"repo": "https://github.com/highcharts/highcharts", "languages": ALL_LANGUAGES,},
