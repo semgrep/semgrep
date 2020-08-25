@@ -263,15 +263,10 @@ PASSING_REPOS = [
         "repo": "https://github.com/home-assistant/home-assistant",
         "languages": ALL_LANGUAGES,
     },
-    {
-        "repo": "https://github.com/dropbox/incubator-superset-internal",
-        "languages": ALL_LANGUAGES,
-    },
     {"repo": "https://github.com/0c34/govwa", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/coinbase/bittip", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/dropbox/questions", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/OWASP/NodeGoat", "languages": ALL_LANGUAGES},
-    {"repo": "https://github.com/nVisium/django.nV", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/coinbase/gtt-ui", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/coinbase/multisig-tool", "languages": ALL_LANGUAGES,},
     {"repo": "https://github.com/highcharts/highcharts", "languages": ALL_LANGUAGES,},
@@ -284,6 +279,16 @@ PASSING_REPOS = [
 ]
 
 FAILING_REPOS = [
+    xfail_repo(
+        {
+            "repo": "https://github.com/dropbox/incubator-superset-internal",
+            "languages": ALL_LANGUAGES,
+        },
+        reason=(
+            "https://github.com/returntocorp/semgrep/issues/1518"
+            "https://github.com/returntocorp/semgrep/issues/1519"
+        ),
+    ),
     xfail_repo(
         {
             "repo": "https://github.com/coinbase/react-coinbase-commerce",
@@ -333,13 +338,6 @@ FAILING_REPOS = [
     xfail_repo(
         {"repo": "https://github.com/dropbox/pyston-perf", "languages": ALL_LANGUAGES},
         reason="templates",
-    ),
-    xfail_repo(
-        {
-            "repo": "https://github.com/signalapp/Signal-Desktop",
-            "languages": ALL_LANGUAGES,
-        },
-        reason="https://github.com/returntocorp/semgrep/issues/1496",
     ),
     xfail_repo(
         {
