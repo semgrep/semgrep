@@ -2,6 +2,11 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## NEXT VERSION
+
+### Added
+- The 'languages' key now supports 'none' for running `pattern-regex` on arbitrary files. See [this file](https://github.com/returntocorp/semgrep/blob/develop/semgrep/tests/e2e/rules/regex-any-language.yaml) for an example.
+
 ## [0.20.0]() - 2020-08-18
 
 ### Added
