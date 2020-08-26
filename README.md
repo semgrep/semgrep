@@ -105,6 +105,40 @@ Explore the Semgrep Registry of rules and CI integrations at [semgrep.dev](https
 | Migrate from deprecated APIs      | [DES is deprecated](https://semgrep.dev/editor?registry=java.lang.security.audit.crypto.des-is-deprecated), [Deprecated Flask APIs](https://semgrep.dev/editor?registry=python.flask.maintainability.deprecated.deprecated-apis), [Deprecated Bokeh APIs](https://semgrep.dev/editor?registry=python.bokeh.maintainability.deprecated.deprecated_apis) |
 | Apply automatic fixes             | [Use listenAndServeTLS](https://semgrep.live/clintgibler:use-listenAndServeTLS)                                                                                                                                                                                                                                                                        |
 
+### Try it out
+
+Give some rule packs a spin by running on known vulnerable repositories:
+
+```bash
+# juice-shop, a vulnerable Node.js + Express app
+$ git clone https://github.com/bkimminich/juice-shop
+$ semgrep -f https://semgrep.dev/p/r2c-security-audit juice-shop
+```
+
+```bash
+# railsgoat, a vulnerable Ruby on Rails app
+$ git clone https://github.com/OWASP/railsgoat
+$ semgrep -f https://semgrep.dev/p/r2c-security-audit railsgoat
+```
+
+```bash
+# govwa, a vulnerable Go app
+$ git clone https://github.com/0c34/govwa
+$ semgrep -f https://semgrep.dev/p/r2c-security-audit govwa
+```
+
+```bash
+# vulnerable Python+Flask app
+$ git clone https://github.com/we45/Vulnerable-Flask-App
+$ semgrep -f https://semgrep.dev/p/r2c-security-audit Vulnerable-Flask-App
+```
+
+```bash
+# WebGoat, a vulnerable Java+Sprint app
+$ git clone https://github.com/WebGoat/WebGoat
+$ semgrep -f https://semgrep.dev/p/r2c-security-audit WebGoat
+```
+
 ## Resources
 
 Learn more:

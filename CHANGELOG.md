@@ -2,7 +2,37 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [0.20.0]() - 2020-08-18
+## [0.21.0](https://github.com/returntocorp/semgrep/releases/tag/v0.21.0) - 2020-08-25
+
+### Added
+
+- Parsing JSX (JavaScript React) files is now supported as a beta feature! 
+  In this release, you need to target .jsx files one by one explicitly to have them be scanned.
+  We're planning to scan all .jsx files in targeted directories in our next release
+- We now bundle a [json-schema](https://json-schema.org/) spec for rules YAML syntax.
+
+### Changed
+
+- Our custom-made rules YAML validator has been replaced with a jsonschema standard one.
+  This results in more reliable and comprehensive error messages
+  to help you get back on track when bumping into validation issues.
+- Calling `semgrep --validate` now includes more information,
+  such as the number of rules validation ran on.
+
+### Fixed
+
+- Fixed a bug where multiple assignment,
+  also known as tuple unpacking assignment in Python,
+  such as `a, b = foo`,
+  could be misinterpreted by semgrep.
+- Fixed a bug that would cause a crash when trying to get debug steps output as JSON.
+- `.mly` and `.mll` files are no longer targeted implicitly by OCaml scans.
+- Fixed the `--skip-unknown-extensions` flag skipping files even with recognized extensions.
+- Fixed JavaScript conditionals without braces,
+  such as `if (true) return;`,
+  not being matched by patterns such as `if (true) { return; }`.
+
+## [0.20.0](https://github.com/returntocorp/semgrep/releases/tag/v0.20.0) - 2020-08-18
 
 ### Added
 - Support for JSX tag metavariables (e.g., <$TAG />) and ellipsis inside
