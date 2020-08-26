@@ -975,7 +975,6 @@ and for_header (env : env) ((v1, v2, v3, v4, v5, v6) : CST.for_header) =
 
 and expression (env : env) (x : CST.expression) : expr =
   (match x with
-  | `Semg_dots t -> Ellipsis (token env t)
   | `Choice_this x -> constructable_expression env x
   | `Choice_jsx_elem x ->
         let xml = jsx_element_ env x in

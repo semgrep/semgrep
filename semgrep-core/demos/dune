@@ -3,6 +3,7 @@
  (flags (:standard -w -27))
  (libraries
    bigarray str
+   threads
    uucp uutf
    ppx_deriving.runtime
 
