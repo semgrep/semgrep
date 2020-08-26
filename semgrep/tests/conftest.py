@@ -232,9 +232,5 @@ def pytest_runtest_setup(item):
 def pytest_generate_tests(metafunc):
     if "public_repo_url" in metafunc.fixturenames:
         non_qa_smoketest_count = 5  # Arbitrarily chosen
-        repos = (
-            public_repos.ALL_REPOS
-            if metafunc.config.getoption("--qa")
-            else public_repos.PASSING_REPOS[:non_qa_smoketest_count]
-        )
+        repos = public_repos.ALL_REPOS
         metafunc.parametrize("public_repo_url", repos, ids=lambda r: r["repo"])
