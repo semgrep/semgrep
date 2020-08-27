@@ -50,10 +50,6 @@ let rev = false
    to another type of tree.
 *)
 
-(* TODO: use H.combine_tokens *)
-let combine_tokens_and_strings v1 _v2 _v3 =
-  "TODO", v1
-
 (* TODO: need remove enclosing `` *)
 let raw_string_literal env tok =
   str env tok
@@ -135,15 +131,18 @@ let string_literal (env : env) (x : CST.string_literal) =
   | `Inte_str_lit (v1, v2, v3) ->
       let v1 = token env v1 (* "\"" *) in
       let v2 =
-        Common.map_filter (fun x ->
+        List.map (fun x ->
           (match x with
-          | `Blank () -> None
-          | `Esc_seq tok -> Some (escape_sequence env tok) (* escape_sequence *)
+          | `Imm_tok_pat_101b4f2 tok ->
+              str env tok (* pattern "[^\"\\n\\\\]+" *)
+          | `Esc_seq tok -> escape_sequence env tok (* escape_sequence *)
           )
         ) v2
       in
       let v3 = token env v3 (* "\"" *) in
-      combine_tokens_and_strings v1 v2 v3
+      let str = v2 |> List.map fst |> String.concat "" in
+      let toks = [v1] @ (v2 |> List.map snd) @ [v3] in
+      str, H.combine_infos env toks
   )
 
 let import_spec (env : env) ((v1, v2) : CST.import_spec) =
