@@ -61,8 +61,6 @@ let str x =
   let env = { H.file = !global_file; conv = !global_conv } in
   H.str env x
 
-let blank () = ()
-
 let false_ (x : CST.false_) : bool wrap =
   (match x with
   | `False tok -> false, token2 tok
@@ -680,6 +678,17 @@ and arg (x : CST.arg) : AST.expr =
   | `Un x -> unary x
   )
 
+and anon_lit_content_rep_pat_3d340f6_lit_content ((v1, v2) : CST.anon_lit_content_rep_pat_3d340f6_lit_content) =
+  let v1 = literal_contents v1 in
+  let v2 =
+    List.map (fun (v1, v2) ->
+      let _v1 = token2 v1 (* pattern \s+ *) in
+      let v2 = literal_contents v2 in
+      v2
+    ) v2
+  in
+  v1::v2
+
 and primary (x : CST.primary) : AST.expr =
   (match x with
   | `Paren_stmts x ->
@@ -697,58 +706,42 @@ and primary (x : CST.primary) : AST.expr =
       Array (lb, v2, rb)
   (* ?? *)
   | `Str_array (v1, v2, v3, v4, v5) ->
-      let v1 = token2 v1 in
+      let v1 = token2 v1 (* string_array_start *) in
       let _v2 =
         (match v2 with
-        | Some () -> ()
-        | None -> ())
+        | Some tok -> Some (token2 tok) (* pattern \s+ *)
+        | None -> None)
       in
       let v3 =
         (match v3 with
-        | Some (v1, v2) ->
-            let v1 = literal_contents v1 in
-            let v2 =
-              List.map (fun (v1, v2) ->
-                let _v1 = blank v1 in
-                let v2 = literal_contents v2 in
-                v2
-              ) v2
-            in
-            v1::v2
+        | Some x ->
+            (anon_lit_content_rep_pat_3d340f6_lit_content x)
         | None -> [])
       in
       let _v4 =
         (match v4 with
-        | Some () -> ()
-        | None -> ())
+        | Some tok -> Some (token2 tok)
+        | None -> None)
       in
-      let _v5 = token2 v5 in
+      let _v5 = token2 v5 (* string_end *) in
       Literal (String (Double (v3 |> List.flatten), v1)) (* Double? *)
   | `Symb_array (v1, v2, v3, v4, v5) ->
       let v1 = token2 v1 in
       let _v2 =
         (match v2 with
-        | Some () -> ()
-        | None -> ())
+        | Some tok -> Some (token2 tok)
+        | None -> None)
       in
       let v3 =
         (match v3 with
-        | Some (v1, v2) ->
-            let v1 = literal_contents v1 in
-            let v2 =
-              List.map (fun (v1, v2) ->
-                let _v1 = blank v1 in
-                let v2 = literal_contents v2 in
-                v2
-              ) v2
-            in
-            v1::v2
+        | Some x ->
+            (anon_lit_content_rep_pat_3d340f6_lit_content x)
         | None -> [])
       in
       let _v4 =
         (match v4 with
-        | Some () -> ()
-        | None -> ())
+        | Some tok -> Some (token2 tok)
+        | None -> None)
       in
       let _v5 = token2 v5 in
       Literal (Atom (v3 |> List.flatten, v1))
@@ -1107,7 +1100,7 @@ and scope_resolution ((v1, v2) : CST.scope_resolution) : AST.scope_resolution =
   let v1 =
     (match v1 with
     | `COLONCOLON tok -> (fun e -> (TopScope(token2 tok, e)))
-    | `Prim_COLONCOLON (v1, v2) ->
+    | `Prim_imm_tok_COLONCOLON (v1, v2) ->
         let v1 = primary v1 in
         let v2 = token2 v2 in
         (fun e -> (Scope((v1, v2, SV e))))
@@ -1665,7 +1658,7 @@ and pair (x : CST.pair) =
       let v2 = token2 v2 in  (* => *)
       let v3 = arg v3 in
       Binop(v1, (Op_ASSOC, v2), v3)
-  | `Choice_id_hash_key_COLON_arg (v1, v2, v3) ->
+  | `Choice_id_hash_key_imm_tok_COLON_arg (v1, v2, v3) ->
       let v1 =
         (match v1 with
         | `Id_hash_key tok -> Id (str tok, ID_Lowercase)
