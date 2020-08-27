@@ -6,14 +6,15 @@
 # of the 'semgrep' wrapping.
 #
 
-FROM ocaml/opam2:alpine@sha256:4c2ce9a181b4b12442a68fc221d0b753959ec80e24eae3bf788eeca4dcb9a293 as build-semgrep-core
+# Pinned version of ocaml/opam2:alpine-3.12-ocaml-4.10 as of 8/27/2020
+FROM ocaml/opam2@sha256:58d4f8d57b671b4f273c9e97466d1d594dae7ca2b3829a1573d5e97eba8597cb as build-semgrep-core
 
 USER root
 RUN apk add --no-cache perl m4
 USER opam
 
 WORKDIR /home/opam/opam-repository
-RUN git pull && opam update && opam switch create 4.10.0+flambda
+RUN opam update && opam switch create 4.10.0+flambda
 
 COPY --chown=opam .gitmodules /semgrep/.gitmodules
 COPY --chown=opam .git/ /semgrep/.git/
