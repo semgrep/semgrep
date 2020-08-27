@@ -40,8 +40,11 @@ git submodule update --init --recursive
 echo "Install ocaml-tree-sitter"
 ./scripts/install-ocaml-tree-sitter
 
-echo "Install pfff"
-opam install -y ./pfff
+echo "Install pfff dependencies"
+(
+  cd semgrep-core/pfff
+  opam install --deps-only -y .
+)
 
 echo "Install semgrep-core"
 (
