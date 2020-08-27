@@ -55,17 +55,6 @@ let fb = G.fake_bracket
    to another type of tree.
 *)
 
-(* Disable warnings against unused variables *)
-[@@@warning "-26-27"]
-
-(* Disable warning against unused 'rec' *)
-[@@@warning "-39"]
-
-let blank (env : env) () = ()
-
-let _todo (env : env) _ =
-   failwith "not implemented"
-
 let todo_any str t any =
   pr2 (AST.show_any any);
   raise (Parse_info.Ast_builder_error (str, t))
@@ -165,30 +154,34 @@ let regex_flags (env : env) (tok : CST.regex_flags) =
   str env tok (* pattern [a-z]+ *)
 
 
-let anon_choice_blank1 (env : env) (x) =
-  (match x with
-  | `Imm_tok_pat_de5d470 tok -> str env tok
-  | `Esc_seq tok -> str env tok (* escape_sequence *)
-  )
-
-let anon_choice_blank2 (env : env) (x) =
-  (match x with
-  | `Imm_tok_pat_3e57880 tok -> str env tok
-  | `Esc_seq tok -> str env tok (* escape_sequence *)
-  )
-
 let string_ (env : env) (x : CST.string_) : string wrap =
   (match x with
   | `DQUOT_rep_choice_imm_tok_pat_de5d470_DQUOT (v1, v2, v3) ->
       let v1 = token env v1 (* "\"" *) in
-      let v2 = List.map (anon_choice_blank1 env) v2 in
+      let v2 =
+        List.map (fun x ->
+          (match x with
+          | `Imm_tok_pat_de5d470 tok ->
+              str env tok (* pattern "[^\"\\\\\\n]+|\\\\\\r?\\n" *)
+          | `Esc_seq tok -> str env tok (* escape_sequence *)
+          )
+        ) v2
+      in
       let v3 = token env v3 (* "\"" *) in
       let str = v2 |> List.map fst |> String.concat "" in
       let toks = [v1] @ (v2 |> List.map snd) @ [v3] in
       str, H.combine_infos env toks
   | `SQUOT_rep_choice_imm_tok_pat_3e57880_SQUOT (v1, v2, v3) ->
       let v1 = token env v1 (* "'" *) in
-      let v2 = List.map (anon_choice_blank2 env) v2 in
+      let v2 =
+        List.map (fun x ->
+          (match x with
+          | `Imm_tok_pat_3e57880 tok ->
+              str env tok (* pattern "[^'\\\\\\n]+|\\\\\\r?\\n" *)
+          | `Esc_seq tok -> str env tok (* escape_sequence *)
+          )
+        ) v2
+      in
       let v3 = token env v3 (* "'" *) in
       let str = v2 |> List.map fst |> String.concat "" in
       let toks = [v1] @ (v2 |> List.map snd) @ [v3] in
@@ -756,7 +749,7 @@ and subscript_expression (env : env) ((v1, v2, v3, v4) : CST.subscript_expressio
   ArrAccess (v1, v3)
 
 and initializer_ (env : env) ((v1, v2) : CST.initializer_) =
-  let v1 = token env v1 (* "=" *) in
+  let _v1 = token env v1 (* "=" *) in
   let v2 = expression env v2 in
   v2
 
@@ -786,7 +779,7 @@ and constructable_expression (env : env) (x : CST.constructable_expression) : ex
         | None -> [])
       in
       let tok = H.combine_infos env ([v1; t; v3] @ v4) in
-      Regexp (s, t)
+      Regexp (s, tok)
   | `True tok -> Bool (true, token env tok) (* "true" *)
   | `False tok -> Bool (false, token env tok) (* "false" *)
   | `Null tok -> IdSpecial (Null, token env tok) (* "null" *)
@@ -831,7 +824,7 @@ and constructable_expression (env : env) (x : CST.constructable_expression) : ex
         | Some tok -> [Async, token env tok] (* "async" *)
         | None -> [])
       in
-      let v2 = token env v2 (* "function" *) in
+      let _v2 = token env v2 (* "function" *) in
       let v3 = [Generator, token env v3] (* "*" *) in
       let v4 =
         (match v4 with
@@ -1061,7 +1054,7 @@ and expression (env : env) (x : CST.expression) : expr =
       let v2 =
         (match v2 with
         | `STAR_exp (v1bis, v2) ->
-            let v1bis = token env v1bis (* "*" *) in
+            let _v1bis = token env v1bis (* "*" *) in
             let v2 = expression env v2 in
             Apply (IdSpecial (YieldStar, v1), fb [v2])
         | `Opt_exp opt ->
@@ -1201,7 +1194,7 @@ and statement (env : env) (x : CST.statement) : stmt list =
       let v4 =
         (match v4 with
         | Some (v1, v2) ->
-            let v1 = token env v1 (* "else" *) in
+            let _v1 = token env v1 (* "else" *) in
             let v2 = statement1 env v2 in
             Some v2
         | None -> None)
@@ -1383,7 +1376,7 @@ and anon_opt_opt_choice_exp_rep_COMMA_opt_choice_exp (env : env) (opt : CST.anon
 
 and anon_rep_COMMA_opt_choice_exp (env : env) (xs : CST.anon_rep_COMMA_opt_choice_exp) : expr list =
   List.map (fun (v1, v2) ->
-    let v1 = token env v1 (* "," *) in
+    let _v1 = token env v1 (* "," *) in
     let v2 =
       (match v2 with
       | Some x -> [anon_choice_exp env x]
@@ -1411,7 +1404,7 @@ and export_statement (env : env) (x : CST.export_statement) : toplevel list =
         | `STAR_from_clause_choice_auto_semi (v1, v2, v3) ->
             let v1 = token env v1 (* "*" *) in
             let (tok2, path) = from_clause env v2 in
-            let v3 = semicolon env v3 in
+            let _v3 = semicolon env v3 in
             [M (ReExportNamespace (tok, v1, tok2, path))]
         | `Export_clause_from_clause_choice_auto_semi (v1, v2, v3) ->
             let v1 = export_clause env v1 in
