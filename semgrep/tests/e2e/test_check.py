@@ -165,6 +165,36 @@ def test_metavariable_multi_regex_rule(run_semgrep_in_tmp, snapshot):
     )
 
 
+def test_regex_with_any_language_rule(run_semgrep_in_tmp, snapshot):
+    snapshot.assert_match(
+        run_semgrep_in_tmp(
+            "rules/regex-any-language.yaml", target_name="basic/regex-any-language.html"
+        ),
+        "results.json",
+    )
+
+
+def test_regex_with_any_language_multiple_rule(run_semgrep_in_tmp, snapshot):
+    snapshot.assert_match(
+        run_semgrep_in_tmp(
+            "rules/regex-any-language-multiple.yaml",
+            target_name="basic/regex-any-language.html",
+        ),
+        "results.json",
+    )
+
+
+def test_invalid_regex_with_any_language_rule(run_semgrep_in_tmp, snapshot):
+    with pytest.raises(CalledProcessError) as excinfo:
+        run_semgrep_in_tmp(
+            "rules/regex-any-language-invalid.yaml",
+            target_name="basic/regex-any-language.html",
+        )
+    assert excinfo.value.returncode not in (0, 1)
+    snapshot.assert_match(excinfo.value.stderr, "error.txt")
+    snapshot.assert_match(excinfo.value.stdout, "error.json")
+
+
 def test_timeout(run_semgrep_in_tmp, snapshot):
     # Check that semgrep-core timeouts are properly handled
 

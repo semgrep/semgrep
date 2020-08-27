@@ -37,6 +37,7 @@ from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.semgrep_types import BooleanRuleExpression
 from semgrep.semgrep_types import Language
+from semgrep.semgrep_types import NONE_LANGUAGE
 from semgrep.semgrep_types import OPERATORS
 from semgrep.semgrep_types import TAINT_MODE
 from semgrep.target_manager import TargetManager
@@ -353,6 +354,11 @@ class CoreRunner:
                 )
                 if patterns_regex:
                     self.handle_regex_patterns(outputs, patterns_regex, targets)
+
+                # 'none' language only supports OPERATORS.REGEX at the moment.
+                # Skip passing this rule to semgrep-core.
+                if language == NONE_LANGUAGE:
+                    continue
 
                 # semgrep-core doesn't know about OPERATORS.METAVARIABLE_REGEX -
                 # this is strictly a semgrep Python feature. Metavariable regex

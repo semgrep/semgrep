@@ -32,7 +32,7 @@ def normalize_rule_id(line: str) -> str:
     or `      // ruleid:foobar`
     return `foobar`
     """
-    return line.strip().split(":")[1].strip()
+    return line.strip().split(":")[1].strip().split(" ")[0].strip()
 
 
 def compute_confusion_matrix(
@@ -85,6 +85,8 @@ def line_has_rule(line: str) -> bool:
         or "# ruleid:" in line
         or "//ruleid:" in line
         or "// ruleid:" in line
+        or "<!--ruleid:" in line
+        or "<!-- ruleid:" in line
     )
 
 
