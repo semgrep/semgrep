@@ -63,26 +63,20 @@ let str x =
 
 let false_ (x : CST.false_) : bool wrap =
   (match x with
-  | tok -> false, token2 tok
-  )
-
-let todo _x =
-  failwith "TODO"
-
-let anon_choice_DOT (x : CST.anon_choice_DOT) =
-  (match x with
-  | `DOT tok -> token2 tok (* "." *)
-  | `AMPDOT tok -> token2 tok (* "&." *)
+  | `False tok -> false, token2 tok
+  | `FALSE tok -> false, token2 tok
   )
 
 let true_ (x : CST.true_) : bool wrap =
   (match x with
-  | tok -> true, token2 tok
+  | `True tok -> true, token2 tok
+  | `TRUE tok -> true, token2 tok
   )
 
 let nil (x : CST.nil) : tok =
   (match x with
-  | tok -> token2 tok
+  | `Nil tok -> token2 tok
+  | `NIL tok -> token2 tok
   )
 
 
@@ -151,6 +145,12 @@ let variable (x : CST.variable) : AST.variable =
         (str tok, ID_Lowercase)
   | `Cst tok ->
         (str tok, ID_Uppercase)
+  )
+
+let do_ (x : CST.do_) : unit =
+  (match x with
+  | `Do _tok -> ()
+  | `Term x -> terminator x
   )
 
 let rec statements (x : CST.statements) : AST.stmts =
@@ -578,62 +578,8 @@ and body_statement ((v1, v2, v3) : CST.body_statement) :
    in
   { body_exprs = v1; rescue_exprs; else_expr; ensure_expr}, tend
 
-
-and chained_command_call ((v1, v2, v3) : CST.chained_command_call) =
-  let v1 = command_call_with_block v1 in
-  let v2 = anon_choice_DOT v2 in
-  let v3 = anon_choice_id v3 in
-  todo (v1, v2, v3)
-
-and anon_choice_var (x : CST.anon_choice_var) =
-  (match x with
-  | `Var x ->
-        let x = variable x in
-        todo x
-  | `Scope_resol x ->
-        let x = scope_resolution x in
-        todo x
-  | `Call x ->
-        let x = call x in
-        todo x
-  )
-
-and command_call_with_block (x : CST.command_call_with_block) =
-  (match x with
-  | `Choice_var_cmd_arg_list_blk (v1, v2, v3) ->
-      let v1 = anon_choice_var v1 in
-      let v2 = command_argument_list v2 in
-      let v3 = block v3 in
-      todo (v1, v2, v3)
-  | `Choice_var_cmd_arg_list_do_blk (v1, v2, v3) ->
-      let v1 = anon_choice_var v1 in
-      let v2 = command_argument_list v2 in
-      let v3 = do_block v3 in
-      todo (v1, v2, v3)
-  )
-
-
-and anon_choice_id (x : CST.anon_choice_id) =
-  (match x with
-  | `Id tok ->
-        let t = token2 tok (* identifier *) in
-        todo t
-  | `Op x ->
-        let op = operator x in
-        todo op
-  | `Cst tok ->
-        let t = token2 tok (* constant *) in
-        todo t
-  | `Arg_list x ->
-        let args = argument_list x in
-        todo args
-  )
-
 and expression (x : CST.expression) : AST.expr =
   (match x with
-  | `Cmd_call_with_blk x -> command_call_with_block x
-  | `Chai_cmd_call x -> chained_command_call x
-
   | `Cmd_bin (v1, v2, v3) ->
       let v1 = expression v1 in
       let v2 =
@@ -732,33 +678,16 @@ and arg (x : CST.arg) : AST.expr =
   | `Un x -> unary x
   )
 
-and do_ ((v1, v2, v3) : CST.do_) =
-  let _v1 =
-    (match v1 with
-    | `Do tok -> let _ = token2 tok (* "do" *) in ()
-    | `Term x -> terminator x
-    )
-  in
-  let v2 =
-    (match v2 with
-    | Some x -> statements x
-    | None -> [])
-  in
-  let v3 = token2 v3 (* "end" *) in
-  v2, v3
-
 and anon_lit_content_rep_pat_3d340f6_lit_content ((v1, v2) : CST.anon_lit_content_rep_pat_3d340f6_lit_content) =
   let v1 = literal_contents v1 in
   let v2 =
     List.map (fun (v1, v2) ->
-      let v1 = token2 v1 (* pattern \s+ *) in
+      let _v1 = token2 v1 (* pattern \s+ *) in
       let v2 = literal_contents v2 in
-      todo (v1, v2)
+      v2
     ) v2
   in
-  todo (v1, v2)
-
-
+  v1::v2
 
 and primary (x : CST.primary) : AST.expr =
   (match x with
@@ -777,48 +706,45 @@ and primary (x : CST.primary) : AST.expr =
       Array (lb, v2, rb)
   (* ?? *)
   | `Str_array (v1, v2, v3, v4, v5) ->
-      let v1 = token2 v1  (* string_array_start *) in
+      let v1 = token2 v1 (* string_array_start *) in
       let _v2 =
         (match v2 with
-        | Some tok -> Some (token2 tok) (* TODO *)
+        | Some tok -> Some (token2 tok) (* pattern \s+ *)
         | None -> None)
       in
-
       let v3 =
         (match v3 with
         | Some x ->
-            Some (anon_lit_content_rep_pat_3d340f6_lit_content x)
-        | None -> None)
+            (anon_lit_content_rep_pat_3d340f6_lit_content x)
+        | None -> [])
       in
       let _v4 =
         (match v4 with
-        | Some tok -> Some (token2 tok) (* TODO *)
+        | Some tok -> Some (token2 tok)
         | None -> None)
       in
-      let _v5 = token2 v5 in
-      let x = todo v3 in (* was v3 |> List.flatten *)
-      Literal (String (Double (x), v1)) (* Double? *)
+      let _v5 = token2 v5 (* string_end *) in
+      Literal (String (Double (v3 |> List.flatten), v1)) (* Double? *)
   | `Symb_array (v1, v2, v3, v4, v5) ->
       let v1 = token2 v1 in
       let _v2 =
         (match v2 with
-        | Some tok -> Some (token2 tok) (* TODO *)
+        | Some tok -> Some (token2 tok)
         | None -> None)
       in
       let v3 =
         (match v3 with
         | Some x ->
-            Some (anon_lit_content_rep_pat_3d340f6_lit_content x)
-        | None -> None)
+            (anon_lit_content_rep_pat_3d340f6_lit_content x)
+        | None -> [])
       in
       let _v4 =
         (match v4 with
-        | Some tok -> Some (token2 tok) (* TODO *)
+        | Some tok -> Some (token2 tok)
         | None -> None)
       in
       let _v5 = token2 v5 in
-      let x = todo v3 in (* was v3 |> List.flatten *)
-      Literal (Atom (x, v1))
+      Literal (Atom (v3 |> List.flatten, v1))
   | `Hash (v1, v2, v3) ->
       let v1 = token2 v1 in
       let v2 =
@@ -988,15 +914,27 @@ and primary (x : CST.primary) : AST.expr =
       in
       let (v3, tend) = body_statement v3 in
       S (Block (tbegin, [S (ExnBlock (v3))], tend))
-  | `While (v1, v2, v3) ->
+  | `While (v1, v2, v3, v4, v5) ->
       let v1 = token2 v1 in
       let v2 = arg v2 in
-      let v4, _v5 = do_ v3 in
+      let _v3 = do_ v3 in
+      let v4 =
+        (match v4 with
+        | Some x -> statements x
+        | None -> [])
+      in
+      let _tend = token2 v5 in
       S (While (v1, true, v2, v4))
-  | `Until (v1, v2, v3) ->
+  | `Until (v1, v2, v3, v4, v5) ->
       let v1 = token2 v1 in
       let v2 = arg v2 in
-      let v4, _v5 = do_ v3 in
+      let _v3 = do_ v3 in
+      let v4 =
+        (match v4 with
+        | Some x -> statements x
+        | None -> [])
+      in
+      let _tend = token2 v5 in
       S (Until (v1, true, v2, v4))
   | `If (v1, v2, v3, v4, v5) ->
       let v1 = token2 v1 in
@@ -1042,20 +980,18 @@ and primary (x : CST.primary) : AST.expr =
       in
       let _v5 = token2 v5 in
       S (Unless (v1, v2, v3, v4))
-  | `For (v1, v2, v3, v4, v5) ->
+  | `For (v1, v2, v3, v4, v5, v6) ->
       let v1 = token2 v1 in
-      let v2 = anon_choice_lhs_ v2 in
-      let v3 =
-        List.map (fun (v1, v2) ->
-          let _v1 = token2 v1 (* "," *) in
-          let v2 = anon_choice_lhs_ v2 in
-          v2
-        ) v3
+      let v2 = mlhs v2 in
+      let (t, e) = in_ v3 in
+      let _v4 = do_ v4 in
+      let v5 =
+        (match v5 with
+        | Some x -> statements x
+        | None -> [])
       in
-      let mlhs = todo (v2::v3) in
-      let (t, e) = in_ v4 in
-      let xs, _ = do_ v5 in
-      S (For (v1, mlhs |> list_to_maybe_tuple, t, e, xs))
+      let _v6 = token2 v6 in
+      S (For (v1, v2 |> list_to_maybe_tuple, t, e, v5))
   | `Case (v1, v2, v3, v4, v5, v6, v7) ->
       let v1 = token2 v1 in
       let v2 =
@@ -1166,7 +1102,7 @@ and scope_resolution ((v1, v2) : CST.scope_resolution) : AST.scope_resolution =
     | `COLONCOLON tok -> (fun e -> (TopScope(token2 tok, e)))
     | `Prim_imm_tok_COLONCOLON (v1, v2) ->
         let v1 = primary v1 in
-        let v2 = token2 v2 in (* :: *)
+        let v2 = token2 v2 in
         (fun e -> (Scope((v1, v2, SV e))))
     )
   in
@@ -1202,28 +1138,6 @@ and call ((v1, v2, v3) : CST.call) =
   in
   DotAccess (v1, v2, v3)
 
-(* TODO *)
-and command_call ((v1, v2) : CST.command_call) =
-  let v1 =
-    (match v1 with
-    | `Var x ->
-          let x = variable x in
-          todo x
-    | `Scope_resol x ->
-          let x = scope_resolution x in
-          todo x
-    | `Call x ->
-          let x = call x in
-          todo x
-    | `Chai_cmd_call x ->
-          let x = chained_command_call x in
-          todo x
-    )
-  in
-  let v2 = command_argument_list v2 in
-  todo (v1, v2)
-
-(* TODO delete
 and command_call (x : CST.command_call) : AST.expr =
   (match x with
   | `Choice_var_cmd_arg_list (v1, v2) ->
@@ -1259,7 +1173,6 @@ and command_call (x : CST.command_call) : AST.expr =
       let v3 = do_block v3 in
       Call (v1, v2, Some v3)
   )
-*)
 
 and method_call (x : CST.method_call) : AST.expr =
   (match x with
@@ -1330,9 +1243,6 @@ and command_argument_list (x : CST.command_argument_list) : AST.expr list =
       in
       v1::v2
   | `Cmd_call x -> [command_call x]
-  | `Cmd_call_with_blk x ->
-        let x = command_call_with_block x in
-        todo x
   )
 
 and argument_list ((v1, v2, v3) : CST.argument_list) : AST.expr list AST.bracket =
@@ -1637,26 +1547,6 @@ and mlhs ((v1, v2, v3) : CST.mlhs) : AST.expr list =
     | None -> ())
   in
   v1::v2
-
-and anon_choice_lhs_ (x : CST.anon_choice_lhs_) =
-  (match x with
-  | `Lhs x -> lhs x
-  | `Rest_assign (v1, v2) ->
-      let v1 = token2 v1 (* "*" *) in
-      let v2 =
-        (match v2 with
-        | Some x -> Some (lhs x)
-        | None -> None)
-      in
-      todo (v1, v2)
-  | `Dest_left_assign (v1, v2, v3) ->
-      let v1 = token2 v1 (* "(" *) in
-      let v2 = left_assignment_list v2 in
-      let v3 = token2 v3 (* ")" *) in
-      todo (v1, v2, v3)
-  )
-
-
 
 and destructured_left_assignment ((v1, v2, v3) : CST.destructured_left_assignment) =
   let _lp = token2 v1 in
