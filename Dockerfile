@@ -17,7 +17,6 @@ RUN git pull && opam update && opam switch create 4.10.0+flambda
 
 COPY --chown=opam .gitmodules /semgrep/.gitmodules
 COPY --chown=opam .git/ /semgrep/.git/
-COPY --chown=opam pfff/ /semgrep/pfff/
 COPY --chown=opam semgrep-core/ /semgrep/semgrep-core/
 COPY --chown=opam scripts /semgrep/scripts
 
@@ -30,7 +29,7 @@ RUN git submodule foreach --recursive git clean -dfX
 
 RUN git submodule update --init --recursive
 RUN eval "$(opam env)" && ./scripts/install-ocaml-tree-sitter
-RUN eval "$(opam env)" && opam install -y pfff/
+RUN eval "$(opam env)" && opam install --deps-only -y semgrep-core/pfff/
 RUN eval "$(opam env)" && opam install --deps-only -y semgrep-core/ && make -C semgrep-core/ all
 RUN ./semgrep-core/_build/install/default/bin/semgrep-core -version
 
