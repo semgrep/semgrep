@@ -1,0 +1,93 @@
+
+The high-level structure of [[parse_php.ml]] has already
+been described in Section~\ref{sec:parse-php-ml-overview}.
+The previous chapters have also described some of the functions
+in [[parse_php.ml]] (for getting a stream of tokens and calling
+ocamlyacc parser).
+In this section we will mostly fill in the remaining holes.
+
+<<parse_php module aliases>>=
+module Ast  = Ast_php
+module Flag = Flag_parsing_php
+module TH   = Token_helpers_php
+
+open Ast_php
+@
+
+<<function program_of_program2>>=
+let program_of_program2 xs = 
+  xs +> List.map fst
+@
+
+<<parse_php helpers>>=
+let lexbuf_to_strpos lexbuf     = 
+  (Lexing.lexeme lexbuf, Lexing.lexeme_start lexbuf)    
+
+let token_to_strpos tok = 
+  (TH.str_of_tok tok, TH.pos_of_tok tok)
+@ 
+
+<<parse_php helpers>>=
+let mk_info_item2 filename toks = 
+  let buf = Buffer.create 100 in
+  let s = 
+    (* old: get_slice_file filename (line1, line2) *)
+    begin
+      toks +> List.iter (fun tok -> 
+        match TH.pinfo_of_tok tok with
+        | Parse_info.OriginTok _ 
+        | Parse_info.ExpandedTok _ ->
+            Buffer.add_string buf (TH.str_of_tok tok)
+
+        | Parse_info.Ab _ | Parse_info.FakeTokStr _ -> raise Impossible
+      );
+      Buffer.contents buf
+    end
+  in
+  (s, toks) 
+
+let mk_info_item a b = 
+  Common.profile_code "Parsing.mk_info_item" 
+    (fun () -> mk_info_item2 a b)
+@ 
+
+<<parse_php helpers>>=
+(* on very huge file, this function was previously segmentation fault
+ * in native mode because span was not tail call
+ *)
+let rec distribute_info_items_toplevel2 xs toks filename = 
+  match xs with
+  | [] -> raise Impossible
+  | [Ast_php.FinalDef e] -> 
+      (* assert (null toks) ??? no cos can have whitespace tokens *) 
+      let info_item = mk_info_item filename toks in
+      [Ast_php.FinalDef e, info_item]
+  | ast::xs ->
+      
+      let ii = Lib_parsing_php.ii_of_any (Ast.Toplevel ast) in
+      let (min, max) = Lib_parsing_php.min_max_ii_by_pos ii in
+
+      let toks_before_max, toks_after = 
+        Common.profile_code "spanning tokens" (fun () ->
+        toks +> Common.span_tail_call (fun tok ->
+          match Ast_php.compare_pos (TH.info_of_tok tok) max with
+          | -1 | 0 -> true
+          | 1 -> false
+          | _ -> raise Impossible
+        ))
+      in
+      let info_item = mk_info_item filename toks_before_max in
+      (ast, info_item)::distribute_info_items_toplevel2 xs toks_after filename
+
+let distribute_info_items_toplevel a b c = 
+  Common.profile_code "distribute_info_items" (fun () -> 
+    distribute_info_items_toplevel2 a b c
+  )
+@
+
+<<parse_php error diagnostic>>=
+let error_msg_tok tok = 
+  Parse_info.error_message_info (TH.info_of_tok tok)
+@
+
+% the stat functions that used to be here are now factorized in h_program-lang/

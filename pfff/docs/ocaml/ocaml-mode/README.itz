@@ -1,0 +1,177 @@
+DESCRIPTION:
+
+This directory contains files to help editing Caml code, running a
+Caml toplevel, and running the Caml debugger under the Gnu Emacs editor.
+
+AUTHORS:
+
+Ian T Zimmerman <itz@rahul.net> added indentation to caml mode, beefed
+up camldebug to work much like gud/gdb.
+
+Xavier Leroy (Xavier.Leroy@inria.fr), Jerome Vouillon (Jerome.Vouillon@ens.fr).
+camldebug.el is derived from FSF code.
+
+CONTENTS:
+
+    caml.el         A major mode for editing Caml code in Gnu Emacs
+    inf-caml.el     To run a Caml toplevel under Emacs, with input and
+                    output in an Emacs buffer.
+    camldebug.el    To run the Caml debugger under Emacs.
+
+
+NOTE FOR EMACS 18 USERS:
+
+This package will no longer work with Emacs 18.x. Sorry. You really
+should consider upgrading to Emacs 19.
+
+USAGE:
+
+Add the following lines to your .emacs file:
+
+(setq auto-mode-alist (cons '("\\.ml[iylp]?" . caml-mode) auto-mode-alist))
+(autoload 'caml-mode "caml" "Major mode for editing Caml code." t)
+(autoload 'run-caml "inf-caml" "Run an inferior Caml process." t)
+(autoload 'camldebug "camldebug" "Run the Caml debugger." t)
+
+The Caml major mode is triggered by visiting a file with extension .ml,
+.mli, .mly. .mll or .mlp, or manually by M-x caml-mode. It gives you the
+correct syntax table for the Caml language. For a brief description of
+the indentation capabilities, see below under NEWS.
+
+The Caml mode also allows you to run batch Caml compilations from
+Emacs (using M-x compile) and browse the errors (C-x `). Typing C-x `
+sets the point at the beginning of the erroneous program fragment, and
+the mark at the end. Under Emacs 19, the program fragment is
+temporarily highlighted.
+
+M-x run-caml starts a Caml toplevel with input and output in an Emacs
+buffer named *inferior-caml*. This gives you the full power of Emacs
+to edit the input to the Caml toplevel. This mode is based on comint
+so you get all the usual comint features, including command history.
+
+After M-x run-caml, typing C-c C-e or M-C-x in a buffer in Caml mode
+sends the current phrase (containing the point) to the Caml toplevel,
+and evaluates it.
+
+M-x camldebug FILE starts the Caml debugger camldebug on the executable
+FILE, with input and output in an Emacs buffer named *camldebug-FILE*.
+For a brief description of the commands available in this buffer, see
+NEWS below.
+
+NEWS:
+
+Ok, so this is the really important part of this file :-) I took the
+original package from the contrib subdirectory of the caml-light
+distribution, and hacked on it. First, I added real syntax dependent
+indentation to caml mode. Like Xavier has said, it was hard (and I
+knew it would be), but I refused to believe it was impossible, partly
+because I knew of a Standard ML mode with indentation (written by
+Matthew Morley).
+
+Indentation works pretty much like in other programming modes. C-j at
+the end of a line starts a new line properly indented. M-C-\ indents
+the current region (this may take a while :-)). I incorporated a
+slightly different TAB function, one that I use in other modes: if TAB
+is pressed while the point is not in line indentation, the line is
+indented to the column where point is (instead of just inserting a TAB
+character - you can always to that with C-q C-i). This way, you can
+indent a line any time, regardless of where the point lies, by hitting
+TAB twice in succession. If you don't like this behaviour (but you
+should), it's quite easy to add to your startup code like this:
+
+(defun caml-old-style-indent ()
+        (if (caml-in-indentation)
+                (caml-indent-command)
+                (insert "\t")))
+
+(add-hook 'caml-mode-hook
+        (function (lambda ()
+                (define-key 'caml-mode-map "\t"
+                        caml-old-style-indent))))
+
+You can customize the appearance of your caml code by twiddling the
+variables listed at the start of caml.el. Good luck. :-)
+
+Other news in caml mode are the various caml-insert-*-form commands. I
+believe they are self-explanatory - just do a C-h m in a caml buffer
+to see what you've got.
+
+The ohter major news is that I changed camldebug mode considerably. I
+took many clues from the gud "Grand Unified Debugger" mode distributed
+with modern versions of Emacs. The main benefit here is that you can
+do debugger commands _from your caml source buffer_. Commands with the
+C-c prefix in the debugger buffer have counterparts which do the same
+thing (well, a similar thing) in the source buffer, with the C-x C-a
+prefix.
+
+I made the existing debugger commands smarter in that they now attempt
+to guess the correct parameter to the underlying camldebug command. A
+numeric argument will always override that guess. For example, the
+guess for C-c C-b (camldebug-break) is to set a breakpoint at the
+current event (which was the only behaviour provided with the old
+camldebug.el). But C-u 1 C-c C-b will now send "break 1" to the
+camldebug process, setting a break at code address 1.
+
+This also allowed me to add many more commands for which the
+underlying camldebug commands require a parameter. The best way to
+learn about them is to do C-h m in the camldebug buffer, and then C-h
+f for the commands you'll see listed.
+
+Finally, I added command completion. To use it, you'll have to apply
+the provided patch to the debugger itself
+(contrib/debugger/command_line_interpreter.ml), and recompile it
+(you'll get one warning from the compiler; it is safe to ignore
+it). Then hitting TAB in the following situation, for example:
+
+(cdb) pri_
+
+will complete the "pri" to "print".
+
+CAVEATS:
+
+I don't use X and haven't tested this stuff under the X mode of
+emacs. It is entirely possible (though not very probable) that I
+introduced some undesirable interaction between X (fontification,
+highlighting,...) and caml mode. I will welcome reports of such
+problems (see REPORTING below), but I won't be able to do much about
+them unless you also provide a patch.
+
+I don't know if the informational messages produced by camldebug are
+internationalized. If they are, the debugger mode won't work unless
+you set the language to English. The mode uses the messages to
+synchronize with camldebug, and looks for fixed Emacs regular
+expressions that match them. This may be fixed (if necessary) in a
+future release.
+
+BUGS:
+
+In the debugger buffer, it's possible to overflow your mental stack by
+asking for help on help on help on help on help on help on help on
+help...
+
+THANKS:
+
+Xavier Leroy <Xavier.Leroy@inria.fr> for Caml-light. Used together with the
+Emacs interface, it is about the most pleasant programming environment
+I've known on any platform.
+
+Eric Raymond <esr@thyrsus.com> for gud, which camldebug mode apes.
+
+Barry Warsaw <bwarsaw@cen.com> for elp, without which I wouldn't have
+been able to get the indentation code to perform acceptably.
+
+Gareth Rees <Gareth.Rees@cl.cam.ac.uk> for suggestions how to speed up
+Emacs regular expression search, even if I didn't use them in the end.
+
+Bill Dubuque <wgd@martigny.ai.mit.edu> for alerting me to the
+necessity of guarding against C-g inside Emacs code which modifies
+syntax tables.
+
+REPORTING:
+
+Bug reports (preferably with patches), suggestions, donations etc. to:
+
+Ian T Zimmerman           +-------------------------------------------+
+Box 13445                 I    With so many executioners available,   I
+Berkeley CA 94712 USA     I suicide is a really foolish thing to do.  I
+mailto:itz@rahul.net      +-------------------------------------------+

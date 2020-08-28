@@ -1,0 +1,2337 @@
+\documentclass{report}
+
+%******************************************************************************
+% Prelude
+%******************************************************************************
+\newif\iffinal
+\newif\ifverbose
+\newif\iffacebook
+%\finalfalse\verbosetrue\facebooktrue
+\finaltrue\verbosefalse\facebooktrue
+
+%cf also some \newif below
+
+%------------------------------------------------------------------------------
+%note: document analyze/, parts of parsing/, 
+% and a little matcher/ and smpl/
+
+%------------------------------------------------------------------------------
+%history: 
+%------------------------------------------------------------------------------
+%thx to LP, changed for the better a few things :)
+
+%history LP-ization:
+% - include all mli in appendix
+% - think about TOC, to distribute the mli
+
+%------------------------------------------------------------------------------
+% Packages
+%------------------------------------------------------------------------------
+
+\usepackage{noweb}
+%\pagestyle{noweb}
+\noweboptions{}
+%allow chunk to be on different pages, so less white space at bottom of pages
+\def\nwendcode{\endtrivlist \endgroup}
+\let\nwdocspar=\par
+
+\usepackage{xspace}
+
+\usepackage{verbatim}
+%note: required by noweblatexpad for the \t \l \n in this file
+\usepackage{fancyvrb}
+
+\usepackage{url}
+\iffinal
+\usepackage{hyperref}
+\hypersetup{colorlinks=true}
+\fi
+
+\usepackage{shorttoc}
+
+\usepackage[pageref]{backref}
+\def\backref{{\footnotesize cited page(s)}~}%en: \def\backref{{\footnotesize cited page(s)}~}
+
+\usepackage{multirow}
+
+%define: \toprule
+\usepackage{booktabs} 
+\newcommand{\otoprule}{\midrule[\heavyrulewidth]}
+
+
+\usepackage{graphicx}
+%\usepackage{dot2texi}
+%\usepackage{tikz}
+
+%------------------------------------------------------------------------------
+% Macros
+%------------------------------------------------------------------------------
+\input{Macros}
+
+%------------------------------------------------------------------------------
+% Config
+%------------------------------------------------------------------------------
+\implemtrue
+\implemoverviewtrue
+\wantrepetitivecodefalse
+
+%******************************************************************************
+% Title
+%******************************************************************************
+\begin{document}
+
+\title{
+{\Huge Pfff part 2: Analyzing PHP}\\
+{Programmer's manual}
+\ifimplem
+and Implementation
+\fi
+}
+%Viewing, and Annotating  ?
+\author{
+Yoann Padioleau\\
+\texttt{yoann.padioleau@facebook.com}
+}
+
+\maketitle 
+
+%dup: with section Copyright
+\pagebreak
+\bigskip
+\bigskip
+\begin{quote}
+    Copyright \copyright{}  2009-2010 Facebook. \\
+    Permission is granted to copy, distribute and/or modify this document
+    under the terms of the GNU Free Documentation License, Version 1.3.
+\end{quote}
+\bigskip
+%\noindent Copyright (C) 2009 Yoann Padioleau\\
+%\noindent GNU Free Documentation License version 1.3
+
+%    or any later version published by the Free Software Foundation;
+%    with no Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.
+%    A copy of the license is included in the section entitled ``GNU
+%    Free Documentation License''.
+
+\pagebreak
+\iffinal
+\begingroup
+\hypersetup{colorlinks=true, linkcolor=blue}
+\shorttoc{Short Contents}{0}
+\tableofcontents
+\endgroup
+\else
+\shorttoc{Short Contents}{0}
+\tableofcontents
+\fi
+
+
+%******************************************************************************
+% Body
+%******************************************************************************
+
+\chapter{Introduction}
+
+#include "Analyze_php_intro.tex.nw"
+
+\ifimplem
+\part{Using \pfff}
+\fi 
+
+\chapter{Examples of Use}
+
+#include "Analyze_php_use.tex.nw"
+
+%reprendre basic ex of parsing ? at least show how parse and 
+% get CFG ? or simple AST matcher ? and visitor ?
+
+\chapter{Analysis Building Blocks}
+
+We now switch to a more systematic presentation of the \pfff API,
+starting with the building blocks on which most subsequent
+analysis are built. We recommend two books to understand
+most of the terminology used in this manual:
+%starting with its first entry point, the database.
+%building blocks, local analysis
+
+%mostly static analysis blocks
+
+\begin{itemize}
+  \item Modern Compiler Implementation in ML~\cite{modern-compiler-ml}, 
+    by A. Appel
+
+  \item Principles of Program Analysis~\cite{principles-program-analysis},
+    by F. Nielson, H.R. Nielson, and C. Hankin
+\end{itemize}
+
+
+\section{PHP Intermediate Language}
+
+\subsection{Introduction} 
+
+\subsection{Interface} 
+
+<<pil.mli>>=
+
+(* The goal is to be significantly smaller than ast_php.mli.
+ * See also controlflow_pil.mli
+*)
+
+type name = Ast_php.name
+type dname = Ast_php.dname
+
+(* todo: remove the self/parent sugar here *)
+type qualifier = Ast_php.qualifier
+
+type indirect = Ast_php.indirect
+type binaryOp = Ast_php.binaryOp
+type unaryOp = Ast_php.unaryOp
+type constant = Ast_php.constant
+type class_name_reference = Ast_php.class_name_reference
+type assignOp = Ast_php.assignOp
+type castOp = Ast_php.castOp
+type modifier = Ast_php.modifier
+
+type type_info = {
+  (* phptype is currently a list of types, to represent a union of types.
+   * By default it is thus set to the empty list when we don't have
+   * any type information.
+   *)
+  mutable t: Type_php.phptype;
+}
+
+type var = 
+  | Var of dname
+  | This of Ast_php.tok
+
+
+(* Note the lack of a function calls case in lvalue. This is intented *)
+type lvalue = lvaluebis * type_info
+ and lvaluebis = 
+   | VVar of var
+   | VQualifier of qualifier * var
+   | ArrayAccess of var * expr option
+   | ObjAccess of var * name
+   | DynamicObjAccess of var * var
+   | IndirectAccess of var * indirect
+   | TodoLvalue of Parse_info.info
+
+(* Enforce only very basic expressions. Assign and function calls are in
+ * the 'instr' type below.
+ *)
+and expr = exprbis * type_info
+ and exprbis =
+  | Lv of lvalue
+  | C of constant
+  | ClassConstant of (qualifier * name)
+
+  | Binary  of expr * binaryOp * expr
+  | Unary   of unaryOp * expr
+  | CondExpr of expr * expr * expr
+
+  | ConsArray of expr list 
+  | ConsHash  of (expr * expr) list 
+
+  | Cast of castOp * expr
+  | InstanceOf of expr * class_name_reference
+
+  | TodoExpr of Parse_info.info
+
+
+type instr =
+  | Assign of lvalue * assign_kind * expr
+  | AssignRef of lvalue * lvalue
+  (* Call(a,f,args) intuitively is an instruction a=f(args) *)
+  | Call of lvalue * call_kind * argument list
+  | Eval of expr
+
+  | TodoInstr of Parse_info.info
+
+  and assign_kind = 
+    | AssignEq
+    | AssignOp of assignOp 
+
+  and call_kind = 
+    | SimpleCall        of name
+    | StaticMethodCall  of qualifier * name
+    | MethodCall        of var * name
+    | DynamicCall       of qualifier option * var
+    | DynamicMethodCall of var * var
+
+    | New of class_name_reference 
+
+   and argument = 
+     | Arg of expr
+     | ArgRef of lvalue
+
+type stmt =
+  | Instr of instr
+  | Block of stmt list
+  | EmptyStmt 
+  | If of expr * stmt * stmt
+  | While of expr * stmt
+  | Break of expr option
+  | Continue of expr option
+  | Return of expr option
+  | Throw of expr
+  | Try of stmt * catch
+  | Echo of expr list
+
+  | TodoStmt of Parse_info.info
+
+ and catch = unit (* TODO *)
+
+type function_def = {
+   f_name: name;
+   f_params: parameter list;
+   f_ref: bool;
+   f_return_type: hint_type option;
+   f_body: stmt list;
+ }
+  and parameter = {
+    p_name: dname;
+    p_type: hint_type option;
+    p_ref: bool;
+    p_default: static_scalar option;
+  }
+ and static_scalar = expr
+ and hint_type = name
+
+
+type class_def = {
+  c_name: name;
+  c_type: class_type;
+  c_extends: name option;
+  c_implements: name list;
+  c_body: class_stmt list;
+ }
+ and class_type = 
+   | ClassRegular | ClassFinal | ClassAbstract 
+   | Interface 
+ and class_stmt =
+   | ClassConstantDef of name * static_scalar
+   | ClassVariable of 
+       modifier list * (* static-php-ext: *) hint_type option *
+       dname * static_scalar option
+   | Method of (modifier list * function_def)
+   | AbstractMethod of (modifier list * function_def)
+
+type require = unit (* TODO *)
+
+type toplevel = 
+  | Require of require
+  | TopStmt of stmt
+  | FunctionDef of function_def
+  | ClassDef of class_def
+
+type program = toplevel list
+
+(* type any is in controlflow_pil.ml now *)
+
+@ 
+
+<<pil_build.mli>>=
+
+(* main entry point *)
+val pil_of_program: Ast_php.program -> Pil.program
+
+(* helpers *)
+val linearize_expr: Ast_php.expr -> Pil.instr list * Pil.expr
+val linearize_stmt: Ast_php.stmt -> Pil.stmt list
+val linearize_body: Ast_php.stmt_and_def list -> Pil.stmt list
+
+
+@ 
+
+
+\section{Control flow graph}
+
+\subsection{Introduction} 
+
+Computing the control-flow graph (CFG) of a function is a necessary
+first step in many static analysis such as:
+
+\begin{itemize}
+  \item Deadcode paths detection
+
+  \item Data-flow fixpoint analysis (for class analysis, 
+    tainted analysis, type inference, etc)
+
+  \item Certain software metrics such as the cyclomatic complexity
+    of a function
+\end{itemize}
+
+% ex of cfg with ex of php program
+
+Figure~\ref{fig:cfg} presents the CFG of this simple PHP program:
+
+<<tests/cfg/while.php>>=
+<?php
+function foo() {
+  $x = 1;
+  while($x < 5) {
+    echo "$x\n";
+    $x++;
+  }
+  $x;
+}
+foo();
+@
+
+\begin{figure*}
+\begin{center}
+\resizebox{14cm}{14cm}{\includegraphics{pics/cfg_while}}
+%[angle=-90]
+\end{center}
+\caption{CFG of a toy program}
+\label{fig:cfg}
+\end{figure*}
+
+\subsection{Interface} 
+
+The interface for managing control-flow graphs in \pfff is splitted
+in two files, one containing mostly the types, 
+in [[controlflow_php.mli]], and one containing the function
+to build a CFG from a function or set of statements, in
+[[controlflow_build_php.mli]].
+
+
+Here is the overview of [[controlflow_php.mli]]:
+
+<<controlflow_php.mli>>=
+
+open Ast_php
+
+<<type node>>
+<<type node_kind>>
+
+<<type edge>>
+
+<<type flow>>
+
+<<controlflow helpers signatures>>
+
+<<function display_flow signature>>
+
+val short_string_of_node_kind: node_kind -> string
+
+@
+
+\noindent and here is the overview of [[controlflow_build_php.mli]]:
+
+<<controlflow_build_php.mli>>=
+
+<<controlflow builders signatures>>
+
+<<controlflow checkers signatures>>
+
+<<type Controlflow_build_php.error>>
+
+val string_of_error: error -> string
+val string_of_error_kind: error_kind -> string
+<<error exception and report_error signature>>
+@
+
+\noindent with the main entry points for the user being:
+
+<<controlflow builders signatures>>=
+val control_flow_graph_of_stmts: Ast_php.stmt list -> Controlflow_php.flow
+
+(* alias *)
+val cfg_of_stmts: Ast_php.stmt list -> Controlflow_php.flow
+
+val cfg_of_func:   Ast_php.func_def   -> Controlflow_php.flow
+val cfg_of_method: Ast_php.method_def -> Controlflow_php.flow
+@ 
+
+Another useful function for debugging is [[display_flow]]:
+
+<<function display_flow signature>>=
+(* using internally graphviz dot and ghostview on X11 *)
+val display_flow: flow -> unit
+@ 
+
+\subsection{[[pfff_db -cfg_php]]}
+
+You can easily test the CFG service of \pfff by using the [[-cfg_php]]
+command line action as in:
+
+\begin{verbatim}
+ $ ./pfff_db -cfg_php tests/cfg/while.php
+\end{verbatim}
+
+\noindent which should launch ghostview to graphically display
+the different CFGs of the different functions in the [[while.php]]
+file.
+
+
+<<test_analyze_php actions>>=
+  "-cfg_php",  " <file>",
+  Common.mk_action_1_arg test_cfg_php;
+@
+
+<<test_cfg_php>>=
+let test_cfg_php file =
+  let (ast2,_stat) = Parse_php.parse file in
+  let ast = Parse_php.program_of_program2 ast2 in
+  ast |> List.iter (function
+  | Ast_php.FuncDef def ->
+      (try
+        let flow = Controlflow_build_php.cfg_of_func def in
+        Controlflow_php.display_flow flow;
+      with Controlflow_build_php.Error err ->
+        Controlflow_build_php.report_error err
+      )
+  | _ -> ()
+  )
+
+@ 
+
+
+\subsection{The CFG type} 
+\label{sec:cfg-type}
+
+<<type flow>>=
+type flow = (node, edge) Ograph_extended.ograph_mutable
+@ 
+
+<<type node>>=
+type node = {
+  (* For now we just have node_kind, but later if we want to do some data-flow
+   * analysis or use temporal logic, we may want to add extra information
+   * in each CFG nodes. We could also record such extra
+   * information in an external table that maps Ograph_extended.nodei, 
+   * that is nodeid, to some information.
+   *)
+  n: node_kind;
+  (* for error report *)
+  i: Ast_php.info option;
+} 
+@ 
+
+<<type edge>>=
+(* For now there is just one kind of edge. Later we may have more, 
+ * see the ShadowNode idea of Julia Lawall.
+ *)
+type edge = Direct 
+@ 
+
+
+<<type node_kind>>=
+  and node_kind = 
+  <<node_kind constructors>>
+  <<node_kind aux types>>
+@ 
+
+<<node_kind constructors>>=
+    (* special fake cfg nodes *)
+    | Enter
+    | Exit 
+@
+
+<<node_kind constructors>>=
+    (* An alternative is to store such information in the edges, but
+     * experience shows it's easier to encode it via regular nodes
+     *)
+    | TrueNode
+    | FalseNode
+@ 
+
+%    (* the rest mimic what is in the Ast_php module and its stmt type *)
+
+<<node_kind constructors>>=
+  (* not used for now
+    | BlockStart of tok (* { *)
+    | BlockEnd of tok (* } *)
+  *)
+@ 
+
+<<node_kind constructors>>=
+    (* TODO add appropriate info for each of those nodes *)
+    | IfHeader
+    (* not used for now
+    | Else
+    | Elsif
+    *) 
+@ 
+
+<<node_kind constructors>>=
+    | WhileHeader
+    | DoHeader
+    | DoWhileTail
+    | ForHeader
+    | ForeachHeader
+
+@ 
+
+<<node_kind constructors>>=
+    | SwitchHeader
+    | SwitchEnd
+    | Case
+    | Default
+@ 
+
+<<node_kind constructors>>=
+    | Return
+@ 
+
+<<node_kind constructors>>=
+    | Break
+    | Continue
+
+    | TryHeader
+    | CatchStart
+    | Catch
+    | TryEnd
+    | Throw
+@ 
+
+<<node_kind constructors>>=
+    | Join
+    (* statements without multiple outgoing or ingoing edges, such
+     * as echo, expression statements, etc.
+     *)
+    | SimpleStmt of simple_stmt
+@ 
+
+<<node_kind aux types>>=
+   and simple_stmt = 
+       | ExprStmt of expr * tok
+       | TodoSimpleStmt
+       (* TODO? expr includes Exit, Eval, Include, etc which
+        * also have an influence on the control flow ...
+        * We may want to uplift those constructors here and have
+        * a better expr type
+        *)
+       (*
+
+       | EmptyStmt of expr * tok
+           
+       | Echo of tok * expr list * tok
+           
+       | Globals    of tok * global_var list * tok
+       | StaticVars of tok * static_var list * tok
+           
+       | InlineHtml of string wrap
+           
+       | Use of tok * use_filename * tok
+       | Unset of tok * variable list paren * tok
+       | Declare of tok * declare list paren * colon_stmt
+       *)
+@ 
+
+\subsection{Other functions} 
+
+<<controlflow checkers signatures>>=
+val deadcode_detection : Controlflow_php.flow -> unit
+@ 
+
+<<type Controlflow_build_php.error>>=
+type error = error_kind * Ast_php.info
+ and error_kind = 
+  | DeadCode of Controlflow_php.node_kind
+  | NoEnclosingLoop
+  | ColonSyntax
+  | NoMethodBody
+  | DynamicBreak
+@ 
+
+
+<<error exception and report_error signature>>=
+exception Error of error
+
+val report_error : error -> unit
+@ 
+
+
+<<controlflow helpers signatures>>=
+val first_node : flow -> Ograph_extended.nodei
+val mk_node: node_kind -> node
+@ 
+
+
+
+
+
+\section{Data flow fixpoint}
+
+<<dataflow_php.mli>>=
+
+type 'a env =
+  (Ast_php.dname, 'a) Common.assoc
+
+type 'a inout = {
+  in_env: 'a env;
+  out_env: 'a env;
+}
+
+type 'a mapping =
+  (Ograph_extended.nodei, 'a inout) Common.assoc
+
+
+val fixpoint:
+  Controlflow_php.flow ->
+  initial:('a mapping) ->
+  transfer:('a mapping (*in*) -> Ograph_extended.nodei ->'a mapping (*out*)) ->
+  join: ('a mapping list -> 'a mapping) ->
+  'a mapping
+
+
+
+val display_dflow:
+  Controlflow_php.flow -> 'a mapping -> ('a -> string) -> unit
+
+@
+
+<<dataflow_php_liveness.mli>>=
+val liveness_analysis: 
+  Controlflow_php.flow -> bool Dataflow_php.mapping
+@ 
+
+
+
+\section{Scope annotation}
+
+% recall the scope def in parsing_php !!!
+
+\subsection{Local/Globals}
+
+<<scoping_php.mli>>=
+
+val globals_builtins : string list
+
+(* !!Annotate via side effects!!. Fill in the scope information that
+ * was put to None during parsing. I return a program, but really it
+ * works by side effect. 
+ *)
+val annotate_toplevel: 
+  Ast_php.toplevel -> Ast_php.toplevel
+@
+
+\subsection{Free variables}
+
+<<freevars_php.mli>>=
+@
+
+\subsection{Namespace}
+
+<<namespace_php.mli>>=
+
+type nameS = 
+  | NameS of string
+  | NameQualifiedS of string * string
+
+type dnameS = 
+  | DNameS of string (* without the dollar *)
+
+
+val name_to_nameS_wrap: Ast_php.name -> nameS Ast_php.wrap
+
+val dnameS_of_dname: Ast_php.dname -> dnameS
+
+val nameS: nameS -> string
+val dnameS: dnameS -> string
+@
+
+
+\section{Types}
+
+% part 1, only simple stuff here 
+
+% recall the type def in parsing_php !!!
+
+<<typing_trivial_php.mli>>=
+
+(* assume an xdebug-expr, that is an expr with mostly concrete scalars *)
+val type_of_expr: Ast_php.expr -> Type_php.phptype
+
+(* may return an exception if not "union-able" *)
+val union_type: Type_php.phptype -> Type_php.phptype -> Type_php.phptype
+
+val is_normalized: Type_php.phptype -> bool
+
+@
+
+\section{Xdebug traces}
+% mv in building blocks ?
+
+% cf Xdebug section in parsing manual too.
+
+% could have done by source-to-source transfo 
+% 
+
+<<xdebug.mli>>=
+
+type call_trace = {
+  f_call: Callgraph_php.kind_call;
+  f_file: Common.filename;
+  f_line: int;
+  f_params: Ast_php.expr list;
+  f_return: Ast_php.expr option;
+
+  (* f_type: *)
+}
+val string_of_call_trace: call_trace -> string
+
+type config = {
+  auto_trace: int;
+  trace_options: int;
+
+  trace_format: int;
+  collect_params: params_mode;
+  collect_return: bool;
+
+  var_display_max_children: int;
+  val_display_max_data: int;
+  var_display_max_depth: int;
+}
+ and params_mode = 
+   | NoParam
+   | TypeAndArity
+   | TypeAndArityAndTooltip
+   | FullParam
+   | FullParamAndVar
+
+val default_config: config
+
+val php_has_xdebug_extension: unit -> bool
+
+val iter_dumpfile: 
+  ?config:config ->
+  ?show_progress:bool -> 
+  ?fatal_when_exn:bool ->
+  (call_trace -> unit) -> Common.filename -> unit
+
+val xdebug_main_name: string
+
+val php_cmd_with_xdebug_on: 
+  ?config:config ->
+  trace_file:Common.filename -> unit -> 
+  string
+@
+
+
+\section{Comment extraction}
+
+<<comment_php.mli>>=
+type comment = 
+  | DocBlock of 
+      string list (* without the leading ' * ' and '/**' and '*/' *) * 
+      bool
+  | MultiLineSlashStar of string list (* without the leading ' * ' *)
+  | SingleLineSlashStar of string (* without the  enclosing '/* ... */' *)
+  | SingleLineSlashSlash of string (* without the '// ' *)
+  | OtherStyle of string (* raw *)
+
+(* expect a single line of a comment, not the full comment *)
+val strip_comment_marks: string -> string
+
+val parse_comment: string -> comment
+val unparse_comment: ?indent:int -> comment -> string
+
+(* if need to add a line in a comment, what should be its leading string.
+ * "// ", " * " ? 
+ *)
+val comment_style_new_line: comment -> string
+
+val index_comment: comment -> (int * string) list
+
+val comments_of_file: Common.filename -> Ast_php.info list
+
+@
+
+<<comment_annotater_php.mli>>=
+@
+
+<<info_annotater_php.mli>>=
+@
+
+
+\section{Tag extraction}
+
+<<annotation_php.mli>>=
+type email = string
+type unixname = string
+
+type annotation = 
+  | Owner of unixname
+  | Emails of (email * notification_kind option) list
+  | Status of string
+
+  (* deprecated *)
+  | Author of string
+
+  | CalledFromPhpsh
+  | CalledOutsideTfb
+  | CalledDynamically
+  | NotDeadCode
+  | Have_THIS_FUNCTION_EXPIRES_ON
+
+  | DataProvider of method_callback
+
+  | Other of string
+ and notification_kind = 
+   | Immediate
+   | Consistent
+   | Daily
+ and method_callback =
+   | Method of string
+   | MethodExternal of string (* class *) * string
+
+(* main entry point *)
+val annotations_of_program_with_comments: 
+  Parse_php.program_with_comments -> (Ast_php.info * annotation) list
+
+(* helpers *)
+val extract_annotations: string -> annotation list
+
+val vof_annotation: annotation -> Ocaml.v
+val str_debug_of_annotation: annotation -> string
+
+@ 
+
+\section{AST simplication}
+
+<<normalize_php.mli>>=
+(*
+val normalize: 
+  Ast_php.toplevel list -> Ast_php.toplevel list
+*)
+@
+
+\section{Visitors}
+% part 2
+
+% forward ref to id_ast ? 
+% include CFG visitor here ?
+
+<<visitor2_php.mli>>=
+
+open Ast_php
+
+type visitor_out = {
+  vorigin: Visitor_php.visitor_out;
+  vid_ast: Ast_entity_php.id_ast -> unit;
+}
+
+val default_visitor : Visitor_php.visitor_in
+
+val mk_visitor: Visitor_php.visitor_in -> visitor_out
+
+val do_visit_with_ref:
+  ('a list ref -> Visitor_php.visitor_in) -> (visitor_out -> unit) -> 'a list
+@
+
+
+\chapter{The Code Database}
+
+% ok have seen building blocks. Other fundamental part used
+% by other modules or defining field in this  is database module.
+
+\section{Indexing the code}
+%Random access to ASTs
+
+%want fast access to code of func. need parse whole file ?
+% and if funcall, need know which file it is defined, so dont
+% want parse all code to find it. 
+
+<<database_php.mli>>=
+
+(* 
+ * The goal of database_php.ml is to give access to information computed
+ * by a set of global static and dynamic analysis such as what are the
+ * set of callers to a certain function (static) or what is the test 
+ * coverage of a file (dynamic).
+ * 
+ * The main type is 'database' defined below.
+ *)
+
+(* The database of code that we will build usually refers to a set of 
+ * source files belonging to a common project.
+ *)
+type project = 
+  Project of 
+    (* having a base directory allows when dealing with many files to 
+     * sometimes display those files relative to the root of the project *)
+    Common.dirname * 
+    (* name of project *)
+    string option 
+
+(* Most PHP entities such as functions, classes, methods are referenced
+ * through an id in the database of PHP code defined below.
+ *)
+type id     = Entity_php.id 
+
+(* The PHP entities can also be unambiguously referred via their 
+ * location in the code, e.g. a/b/foo.php:45. The 'fullid' type represents such
+ * a location. It's also possible from an id to get its corresponding
+ * fullid, see the fullid_of_id assoc in the database below.
+ *)
+type fullid = Entity_php.fullid 
+
+
+type id_kind   = Entity_php.id_kind
+type id_string = string
+
+(* aliases; could be good have stronge types here at some point *)
+type id_function = id
+type id_class = id
+type id_interface = id
+type id_method = id
+type id_define = id
+
+(* Remaining ids, e.g. serie of toplevel statements. See ast_entity_php.mli  *)
+type id_other = id 
+
+(* can be useful in gui to highlight part of text *)
+type range_pos = int * int (* charpos x charpos *)
+
+(* ---------------------------------------------------------------------- *)
+
+(* The PHP code database *)
+type database = {
+
+  (* used for instance in GUI to display files relative to their 
+   * project base, that is for readable paths. *)
+  project: project;
+
+  db_support: db_support;
+
+  mutable next_free_id: int;
+
+  (* opti: *)
+  fullid_of_id: (id, fullid) Oassoc.oassoc;
+  id_of_fullid: (fullid, id) Oassoc.oassoc;
+
+  (* The filename are stored in absolute path format. This is true 
+   * for all other references of filenames below except when indicated. 
+   * The ids are sorted in order of apperance in the file.
+   *)
+  file_to_topids: (Common.filename, id list) Oassoc.oassoc;
+  file_info: (Common.filename, file_info) Oassoc.oassoc;
+  
+  (* return Not_found for toplevel ids *)
+  enclosing_id: (id, id) Oassoc.oassoc;
+  (* method ids are inside other ids (class ids). Same for nested functions *)
+  children_ids: (id, id list) Oassoc.oassoc;
+
+  defs: database_defs;
+  uses: database_uses;
+
+  (* symbols, to build completion list in gui for instance (faster than defs) *)
+  symbols: (string, unit) Oassoc.oassoc; 
+
+  strings: (string, unit) Oassoc.oassoc; 
+
+  (* IO *)
+  flush_db: unit -> unit;
+  close_hook: unit -> unit;
+}
+   and database_defs = {
+     (* asts *)
+     toplevels:   (id, Ast_php.toplevel) Oassoc.oassoc;
+
+     (* NEVER USE THIS FIELD directly. Use the ast_of_id helper function! *)
+     asts: (id, Ast_php.entity) Oassoc.oassoc;
+
+     (* consider also using toks_of_topid_of_id wrapper func *)
+     str_of_topid:    (id, string)         Oassoc.oassoc;
+     tokens_of_topid: (id, Parser_php.token list) Oassoc.oassoc;
+     range_of_topid: (id, (Parse_info.parse_info * Parse_info.parse_info)) 
+       Oassoc.oassoc;
+
+     (* Not all ids have a name; for instance StmtList ASTs 
+      * really dont have one (well for now I gave them a __TOPSTMT__ name).
+      * So 'id_name' could be a partial assoc. Same for 'id_kind' 'id_phpname'.
+      *
+      * for 'id_name', see also name_of_id() helper.
+      *)
+     name_defs: (id_string, id list) Oassoc.oassoc;
+
+     id_kind: (id, id_kind)   Oassoc.oassoc;
+
+     (* computed statically or dynamically *)
+     id_type: (id, Type_php.phptype) Oassoc.oassoc;
+
+     (* shortcut, to avoid getting the ast to get the name of the entity *)
+     id_name: (id, id_string) Oassoc.oassoc;
+     id_phpname: (id, Ast_php.name) Oassoc.oassoc;
+
+     extra: (id, extra_id_info) Oassoc.oassoc;
+   }
+   and database_uses = {
+    callees_of_f: (id, Callgraph_php.callsites_opt list) Oassoc.oassoc;
+    callers_of_f: (id, Callgraph_php.callersinfo_opt list) Oassoc.oassoc; 
+
+    (* See also Class_php.static_new_of_ast for the opposite.
+     * One use a class either with 'new X', 'X::', or 'extends X'.
+     *)
+    users_of_class: (id_class, id list) Oassoc.oassoc;
+    users_of_define: (id_define, id list) Oassoc.oassoc;
+
+    extenders_of_class:        (id_class,     id_class list) Oassoc.oassoc;
+    implementers_of_interface: (id_interface, id_class list) Oassoc.oassoc;
+
+    (* This does mention only the direct includers or includees. 
+     * The filenames again are stored in absolute path format.
+     *)
+    includers_of_file: (Common.filename, Common.filename list) Oassoc.oassoc;
+    includees_of_file: (Common.filename, Common.filename list) Oassoc.oassoc;
+   }
+
+  and file_info = {
+    parsing_status: [`OK | `BAD];
+  }
+  and extra_id_info = {
+    tags: Annotation_php.annotation list;
+    partial_callers: bool;
+    partial_callees: bool;
+    todo: unit;
+  }
+ and db_support = 
+  | Disk of Common.dirname (* the path to the Berkeley DB meta data *)
+  | Mem
+
+
+(* ---------------------------------------------------------------------- *)
+type error = 
+  | ErrorDb of string
+val report_error: error -> string
+
+exception Error of error
+
+(* ---------------------------------------------------------------------- *)
+(* note that the open and closing of the database is now in 
+ * database_backend.ml to make database_php.ml independent
+ * of berkeley DB
+ *
+ * 
+ * note: create_db is in database_php_build.mli 
+ *)
+
+val check_db: database -> unit
+val open_db_mem: project -> database
+val close_db: database -> unit
+
+(* usually a berkeleyDb backend defined in database_php_storage.ml *)
+val _current_open_db_backend: (Common.dirname -> database) ref
+
+val with_db:  metapath:Common.dirname -> (database -> 'a) -> 'a
+
+(* ---------------------------------------------------------------------- *)
+(* xxx_of_id *)
+(* ---------------------------------------------------------------------- *)
+
+val name_of_id:  id -> database -> string
+(* put also the classname when the id is a method *)
+val complete_name_of_id: id -> database -> string
+
+val filename_of_id:          id -> database -> Common.filename
+val readable_filename_of_id: id -> database -> Common.filename
+
+val parse_info_of_id: id -> database -> Parse_info.info
+
+val line_of_id: id -> database -> int
+val col_of_id: id -> database -> int
+(* for debugging *) 
+val str_of_id:      id -> database -> string
+
+val kind_of_id: id -> database -> id_kind
+
+val ast_of_id:           id -> database -> Ast_php.entity
+val toks_of_topid_of_id: id -> database -> Parser_php.token list
+
+val is_top_id: id -> database -> bool
+val is_function_id: id -> database -> bool
+
+
+(* ---------------------------------------------------------------------- *)
+(* Entities relationships *)
+(* ---------------------------------------------------------------------- *)
+
+(* works for function and methods *)
+val callees_of_id: id -> database -> Callgraph_php.callsite list
+val callers_of_id: id_function -> database -> Callgraph_php.callerinfo list
+
+val class_users_of_id: id_class -> database -> id list
+
+(* inheritance tree *)
+val parent_name_of_id: id_class -> database -> string option
+
+val class_extenders_of_id: id_class -> database -> id_class list
+val class_implementers_of_id: id_interface -> database -> id_class list
+
+val classdef_of_nested_id_opt: id -> database -> Ast_php.class_def option
+val self_parent_of_nested_id: id -> database -> 
+  (string option * string option)
+  
+
+(* !!Use memoization so can be called many times for all the files
+ * in a database without being too slow. But that means it does
+ * side effects so take care!!
+ * 
+ * The filenames are in absolute path format.
+ *)
+val includees_rec_of_file: 
+  Common.filename -> database -> Common.filename list
+val includers_rec_of_file: 
+  Common.filename -> database -> Common.filename list
+
+val includees_graph_of_file:
+  ?depth_limit: int option ->
+  Common.filename -> database -> Common.filename Graph.graph
+val includers_graph_of_file:
+  ?depth_limit: int option ->
+  Common.filename -> database -> Common.filename Graph.graph
+
+
+(* ---------------------------------------------------------------------- *)
+(* id_of_xxx *)
+(* ---------------------------------------------------------------------- *)
+
+(* the ids returned should correspond to the order of appearance in the 
+ * file. *)
+val ids_in_file: Common.filename -> database -> id list
+
+val ids_with_kind__of_string: string -> database -> (id * id_kind) list 
+
+(* Entity accessor. The function returns a list of id because
+ * some entities, e.g. function foo, can be defined multiple
+ * times in a project.
+ *)
+val filter_ids_of_string: string -> id_kind -> database -> id list
+
+(* Shortcuts to filter_ids_of_string. *)
+val function_ids__of_string: string -> database -> id_function list
+val method_ids_of_string:    string -> database -> id_method list
+val class_ids_of_string:     string -> database -> id_class list
+val interface_ids_of_string: string -> database -> id_interface list
+
+(* Shortcuts when we know the entity is unambiguous *)
+val id_of_function: string -> database -> id_function
+val id_of_class:    string -> database -> id_class
+val id_of_interface:    string -> database -> id_interface
+val id_of_method:   theclass:string -> string -> database -> id_method
+
+val static_function_ids_of_strings: 
+  theclass:string -> string -> database -> id list
+
+
+(* get all entities *)
+val filter_ids_in_db: 
+  id_kind list -> database -> (string, id list) Common.assoc
+
+val functions_in_db: database -> (string, id_function list) Common.assoc
+val classes_in_db: database -> (string, id_class list) Common.assoc
+val methods_in_db: database -> (string, id_method list) Common.assoc
+
+val functions_or_static_methods_in_db: 
+  database -> (string, id list) Common.assoc
+
+
+val id_of_phpname:   Ast_php.name -> database -> id
+
+val id_of_kind_call: 
+  ?file_disambiguator:Common.filename ->
+  Callgraph_php.kind_call -> database -> id
+
+(* ---------------------------------------------------------------------- *)
+(* misc *)
+(* ---------------------------------------------------------------------- *)
+
+(* This is about recursing on nested entities, like functions inside 
+ * functions or methods inside classes. This is not about inheritance
+ * but about "enclosedness".
+ *)
+val recurse_children: (id -> unit) -> database -> id -> unit
+
+(* The returned list starts by the id itself and
+ * then its direct children and so on.
+ *)
+val all_children_ids: id -> database -> id list
+
+(* Opposite of children. The returned list starts by the id itself and
+ * then its enclosing and enclosing and so on.
+ *)
+val enclosing_ids: id -> database -> id list
+
+
+val all_files:
+  database -> Common.filename list
+
+val has_parsing_problem: 
+  Common.filename -> database -> bool
+
+(* ---------------------------------------------------------------------- *)
+(* file/path *)
+(* ---------------------------------------------------------------------- *)
+val path_of_project_in_database: database -> Common.dirname
+
+val absolute_to_readable_filename: 
+  Common.filename -> database -> Common.filename
+val readable_to_absolute_filename: 
+  Common.filename -> database -> Common.filename
+
+val path_of_project:             project -> Common.dirname
+val default_metapath_of_project:  project -> Common.dirname
+val normalize_project: project -> project
+val prj_of_dir: Common.dirname -> project
+
+val database_tag_filename: string
+val check_is_database_dir: Common.dirname -> unit
+
+val glimpse_metapath_of_database: database -> Common.dirname
+
+val default_extra_id_info : extra_id_info
+
+
+(* ---------------------------------------------------------------------- *)
+val actions: unit -> Common.cmdline_actions
+@
+
+
+<<database_php_build.mli>>=
+
+val _errors: string list ref
+
+(* main entry point, does the whole job *)
+val create_db : 
+  ?verbose_stats: bool ->
+  ?db_support:Database_php.db_support ->
+  ?phase:int -> 
+  ?files:Common.filename list option ->
+  Database_php.project -> 
+  Database_php.database
+
+(* use Include_require_php.recursive_included_files_of_file *)
+val fast_create_db_mem:
+  ?phase:int ->
+  Common.path list -> 
+  Database_php.database
+
+(* wrapper that makes it easier for some code to not depend on database_php *)
+val build_entity_finder: 
+  Database_php.database -> Entity_php.entity_finder
+
+val actions: unit -> Common.cmdline_actions
+
+val max_phase: int
+
+(* see also database_php_build2.mli for other analysis (e.g. method analysis *)
+
+
+(* helpers used internally that can be useful to other *)
+val iter_files: 
+  Database_php.database -> 
+  ((Common.filename * Database_php.id list) * 
+  int (* idx *) * int (* total *) -> unit) ->
+  unit
+
+val iter_files_and_topids :
+  Database_php.database -> string -> 
+  (Database_php.id -> Common.filename -> unit) -> 
+  unit
+
+val iter_files_and_ids :
+  Database_php.database -> string -> 
+  (Database_php.id -> Common.filename -> unit) -> 
+  unit
+@
+
+<<database_php_build2.mli>>=
+(* extra building index *)
+val index_db_xdebug: 
+  Database_php.database -> Common.filename (* trace file *) ->
+  unit
+
+(* If the environment is empty then use the project path stored in
+ * the database for PHP_ROOT.
+ *)
+val index_db_includes_requires:
+  ?hook_additional_includes:
+  (Common.filename -> Ast_php.program -> Common.filename list) ->
+  Env_php.env option ->
+  Database_php.database ->
+  unit
+
+(* Method/class analysis. Not very precise for the moment, which is why
+ * it is not build by default by create_db
+ *)
+val index_db_method: 
+  Database_php.database -> unit
+
+val actions: unit -> Common.cmdline_actions
+
+@ 
+
+\section{Entities, the database primary keys}
+
+<<entity_php.mli>>=
+
+type id = Id of int
+
+type fullid = filepos
+ and filepos = {
+  file: Common.filename;
+  line: int;
+  column: int;
+}
+
+type id_kind =
+  (* toplevels, which can also be nested *)
+  | Function
+  | Class
+  | Interface
+  | StmtList 
+
+  (* only at nested level, inside a class *)
+  | Method 
+  | ClassConstant
+  | ClassVariable
+  | XhpDecl
+  | StaticMethod 
+
+  | IdMisc
+
+(* Being able to access the definition of a class from a a program requires
+ * a global analysis to find where is the class. This should mean
+ * that each time some of the analyze_php/ functions need such thing they
+ * would need to know about database_php.ml which leads to too many
+ * dependencies. Enter 'entity_finder', which is usually build
+ * via a closure from a database, but which hides the database to the
+ * function using it. See database_php_build.build_entity_finder.
+ *)
+type entity_finder = (id_kind * string) -> Ast_php.entity list
+
+val str_of_id: id -> string
+val str_of_fullid: fullid -> string
+
+val fullid_regexp: string
+val fullid_of_string: string -> fullid
+
+val filepos_of_parse_info: Parse_info.parse_info -> filepos
+
+val string_of_id_kind: id_kind -> string
+
+val vof_filepos: filepos -> Ocaml.v
+@
+
+<<ast_entity_php.mli>>=
+@ 
+           
+
+\section{Defs}
+
+\section{Uses}
+
+\section{Misc}
+
+<<entities_php.mli>>=
+
+type idtree = Callgraph_php.idtree
+
+val tree_of_ids: ?sort:bool -> 
+  Entity_php.id list -> (Entity_php.id -> string) -> idtree
+
+val first_id_in_tree: idtree -> Entity_php.id
+
+
+@
+
+\chapter{Global Analysis}
+
+\section{Call graph}
+%caller/callees
+
+<<callgraph_php.mli>>=
+
+(* Used by xdebug.ml  *)
+type kind_call = 
+    | FunCall of string
+    | ObjectCall of string (* class *) * string (* method *)
+    | ClassCall of string (* module *) * string
+
+type call = Call of Entity_php.id (* from *) * 
+                    Entity_php.id (* to *) * 
+                    kind_call_and_pos 
+   and kind_call_and_pos = 
+     (* Direct encompasses function calls as well as static method calls as
+      * both are statically direct calls.
+      *)
+     | Direct     of Namespace_php.nameS Ast_php.wrap
+     | MethodCall of Namespace_php.nameS Ast_php.wrap * call_extra_info
+     | IndirectTodo (* of Ast.expression * call_extra_info *)
+
+     and call_extra_info = {
+       todo: unit;
+     }
+
+(* Specialized types used in database, to avoid storing each time one
+ * of the id as this id will already be the key of the table.
+ * For function call it also factorize things. We define two types
+ * because depending on the direction we can or not factorize things.
+ *)
+type callsites_opt = 
+  | DirectCallToOpt of 
+      Namespace_php.nameS * Ast_php.info list (* instances *) * 
+        Entity_php.id list (* candidates *)
+
+  (* For now we dont factorize method calls. Could. *)
+  | MethodCallToOpt of 
+      Entity_php.id * Namespace_php.nameS Ast_php.wrap * call_extra_info
+  | IndirectFuncPtCallToOptTodo
+      (* of Entity.id * Ast.expression * call_extra_info *)
+
+type callersinfo_opt = 
+  | DirectCallerIsOpt of 
+      Entity_php.id * Namespace_php.nameS * int (* nb instances *)
+  | MethodCallerIsOpt of 
+      Entity_php.id * Namespace_php.nameS Ast_php.wrap * call_extra_info
+  | IndirectFuncPtCallerIsOptTodo
+      (* of Entity.id * Ast.expression * call_extra_info *)
+
+
+(* types used mostly by callees_of_id and callers_of_id wrappers in
+ * database_php.ml *)
+type callsite = 
+  CallSite of Entity_php.id * kind_call_and_pos
+type callerinfo = 
+  CallerInfo of Entity_php.id * kind_call_and_pos
+
+(* ---------------------------------------------------------------------- *)
+val default_call_extra_info : call_extra_info
+
+type analysis_confidence = int
+val no_info_confidence: analysis_confidence
+
+type node = {
+  name: string;
+  id: Entity_php.id; (* can be interpreted as the caller or callee *)
+  extra: call option;
+  confidence: analysis_confidence;
+  gray: bool;
+}
+
+type idtree = node Common.treeref
+type calltree = node Common.treeref
+
+
+(* as argument for the building functions *)
+type calltree_preferences = {
+  squeeze_duplicate: bool; (* when want abstract about each instance call *)
+  squeeze_duplicate_graph: bool; 
+  filter_id: Entity_php.id -> bool; (* for instance to filter non-x86 entities *)
+  filter_confidence: analysis_confidence -> bool;
+  put_at_end_filtered_and_gray_ize: bool;
+}
+val default_calltree_preferences: calltree_preferences
+
+(* ---------------------------------------------------------------------- *)
+val s_of_kind_call: kind_call -> string
+
+(* ---------------------------------------------------------------------- *)
+val callerinfo_to_call: callerinfo -> Entity_php.id -> call
+val callsite_to_call: Entity_php.id -> callsite -> call
+
+val callsites_opt_to_callsites: 
+  callsites_opt -> callsite list
+val callersinfo_opt_to_callersinfo: 
+  callees_of_id:(Entity_php.id -> callsites_opt list) ->
+  Entity_php.id ->
+  callersinfo_opt -> callerinfo list
+
+val id_of_callerinfo:  callerinfo -> Entity_php.id
+val id_of_callsite:    callsite   -> Entity_php.id
+
+(* ---------------------------------------------------------------------- *)
+
+(* used mainly by gui *)
+val calltree_callers_of_f:
+  Entity_php.id ->
+  depth:int ->
+  parent_and_extra_opt: 
+    (Entity_php.id * kind_call_and_pos * analysis_confidence * bool) option ->
+  namefunc:(Entity_php.id -> string) ->
+  callersfunc:(Entity_php.id -> callerinfo list) -> 
+  fullid_info:(Entity_php.id -> Entity_php.fullid) ->
+  preferences:calltree_preferences -> 
+  calltree
+
+val calltree_callees_of_f:
+  Entity_php.id ->
+  depth:int ->
+  parent_and_extra_opt: 
+    (Entity_php.id * kind_call_and_pos * analysis_confidence * bool) option ->
+  namefunc:(Entity_php.id -> string) ->
+  calleesfunc:(Entity_php.id -> callsite list) -> 
+  fullid_info:(Entity_php.id -> Entity_php.fullid) ->
+  preferences:calltree_preferences -> 
+  calltree
+
+
+(* ---------------------------------------------------------------------- *)
+(* The function here returns only local information. For a full
+ * caller/callee analysis then need to use this local information and
+ * perform a global analysis. cf database.ml and functions below. 
+ *)
+val callees_of_any: 
+  Ast_php.any -> Namespace_php.nameS Ast_php.wrap list
+
+val method_callees_of_any: 
+  Ast_php.any -> Namespace_php.nameS Ast_php.wrap list
+
+
+(* pre: unsugar_self_parent *)
+val static_method_callees_of_any: 
+  Ast_php.any -> Namespace_php.nameS Ast_php.wrap list
+
+@
+
+
+\section{Include graph}
+%includers/includees
+
+
+<<dependencies_php.mli>>=
+
+val dir_to_dir_dependencies: 
+  Database_php.database -> unit
+@
+
+<<include_require_php.mli>>=
+@
+
+\section{Bottom-up analysis}
+
+<<graph_php.mli>>=
+@
+
+<<bottomup_analysis_php.mli>>=
+
+@
+
+\section{Handling built-in functions}
+
+<<builtins_php.mli>>=
+
+val generate_php_stdlib: 
+  src:Common.dirname (* dir with .idl.php files *) -> 
+  phpmanual_dir:Common.dirname (* dir with php manual xml files *) -> 
+  dest:Common.dirname (* e.g. data/php_stdlib/ *) ->
+  unit
+
+(* not used anymore *)
+
+type idl_type = 
+  | Boolean
+  | Byte
+  | Int16
+  | Int32
+  | Int64
+  | Double
+  | String
+  | Int64Vec
+  | StringVec
+  | VariantVec
+  | Int64Map
+  | StringMap
+  | VariantMap
+  | Object
+  | Resource
+  | Variant
+  | Numeric
+  | Primitive
+  | PlusOperand
+  | Sequence
+  | Any
+  | NULL
+  | Void
+
+type idl_param = {
+  p_name: string;
+  p_type: idl_type;
+  p_isref: bool;
+  p_default_val: string option;
+}
+
+type idl_entry = 
+  | Global of string * idl_type
+  | Function of 
+      string * idl_type * idl_param list * bool (* has variable arguments *)
+
+val actions: unit -> Common.cmdline_actions
+@
+
+\section{Call graph for dynamic calls, function aliasing}
+
+% indirect function pointer, but also object aliasing,
+
+<<aliasing_function_php.mli>>=
+
+val finding_function_pointer_prefix: 
+  string -> Ast_php.toplevel -> string list
+
+@
+
+\section{Call graph for method calls, object aliasing}
+
+\chapter{Static Analysis}
+
+%already described a few one 
+
+<<analysis_static_php.mli>>=
+@
+
+
+\section{Dead code}
+
+<<deadcode_php.mli>>=
+
+type hooks = {
+  (* to remove certain false positives *)
+  is_probable_dynamic_funcname: string -> bool;
+  is_probable_dynamic_classname: string -> bool;
+
+  (* to avoid generating patches for code which does not have a valid 
+   * git owner anymore
+   *)
+  is_valid_author: string -> bool;
+
+  (* to avoid generating patches for certain files, such as code in 
+   * third party libraries or auto generated code
+   *)
+  is_valid_file: Common.filename -> bool;
+
+  skip_revs:Lib_vcs.versionid list;
+
+  false_positive_deadcode_annotations: Annotation_php.annotation list;
+
+  (* config *)
+  print_diff: bool;
+  with_blame: bool;
+
+ (* deadcode_analysis may generate some .git_annot files in your 
+  * source directory to speedup things. *)
+  cache_git_blame: bool;
+  (* place where we would put the generated patches *)
+  patches_path: Common.dirname;
+  
+ (* patch generation can be long, can focus on certain files first *)
+ skip_patch_generation_for_file: Common.filename -> bool;
+
+}
+val default_hooks: hooks
+
+type dead_ids_by_file = 
+  (Common.filename * (string * Database_php.fullid * Database_php.id) list) list
+
+type deadcode_patch_info = {
+  file     : Common.filename; (* relative to the project *)
+  reviewer : string option;
+  cc       : string option;
+  date     : Common.date_dmy;
+}
+
+
+(* main entry point. Will generate data in hooks.patches_path *)
+val deadcode_analysis: hooks -> Database_php.database -> unit
+
+(* internal analysis functions *)
+val finding_dead_functions:
+  hooks -> Database_php.database -> (string * Database_php.id) list
+val finding_dead_classes:
+  hooks -> Database_php.database -> (string * Database_php.id) list
+
+val deadcode_fixpoint_per_file:
+  Database_php.id list (* original set of dead ids *) -> 
+  hooks -> Database_php.database ->
+  dead_ids_by_file
+
+(* path where resides all deacode patches *)
+val deadcode_stat: Common.dirname -> unit
+val deadcode_patch_info: Common.filename -> deadcode_patch_info
+
+(* helpers *)
+val group_ids_by_file: 
+  Database_php.id list -> Database_php.database -> dead_ids_by_file
+val ungroup_ids_by_file: 
+  dead_ids_by_file -> Database_php.id list
+
+val false_positive: 
+  Database_php.id -> hooks -> Database_php.database -> bool
+
+
+@
+
+\section{Type inference}
+
+<<type_annotater_php.mli>>=
+@
+
+<<typing_php.mli>>=
+
+(* cf also namespace.ml *)
+
+type environment = (Namespace_php.dnameS, Type_php.phptype) Hashtbl.t
+
+
+(* !!Annotate via side effects!!. Fill in the type information that
+ * was put to None during parsing. I return a program, but really it
+ * works by side effect. 
+ *)
+val annotate_toplevel: 
+  environment ref -> Ast_php.toplevel -> Ast_php.toplevel
+@
+
+
+<<typing_weak_php.mli>>=
+
+val extract_fields_per_var:
+  Ast_php.toplevel -> (Namespace_php.dnameS * string list) list
+@
+
+
+\section{Data flow for arrays}
+
+<<dataflow_php_array.mli>>=
+
+(* position information about a token of the AST *)
+type info = Entity_php.filepos
+
+type usage = (node, leaf) Common.tree
+ and leaf = 
+   | Get of info
+ and node = 
+   | Assign of info
+   (* interprocedural *)
+   | Return of info
+   | Call of info
+
+val track_function_result: 
+  string -> Database_php.database -> usage
+
+val print_usage: 
+  usage -> unit
+
+@ 
+
+
+\section{Tainted analysis}
+
+<<tainted_php.mli>>=
+
+type tainted = bool
+
+val tainted_analysis: 
+  Controlflow_php.flow -> tainted Dataflow_php.mapping
+
+val check_bad_echo: 
+  Controlflow_php.flow -> tainted Dataflow_php.mapping -> unit
+
+val display_tainted_flow: 
+  Controlflow_php.flow -> tainted Dataflow_php.mapping -> unit
+
+@
+
+\section{Static test coverage}
+
+<<coverage_static_php.mli>>=
+
+val mk_is_covered_by_test: 
+  is_test_file:(Common.filename -> bool) ->
+  Database_php.database -> (Entity_php.id -> bool)
+
+@ 
+
+\chapter{Dynamic Analysis}
+
+<<analysis_dynamic_php.mli>>=
+@
+
+\section{Type extractions}
+% not really inference :)
+
+\section{Value extractions}
+
+\section{PHPUnit}
+
+<<phpunit.mli>>=
+
+val is_phpunit_derived_class_heuristics: 
+  Ast_php.class_def -> bool
+
+(* todo: not yet implemented *)
+val is_phpunit_derived_class: 
+  Ast_php.class_def -> (*Database_php.database -> *) bool
+
+val find_testcase_class_if_any: 
+  is_phpunit_base_class_name:(string -> bool) ->
+  Ast_php.toplevel list -> Ast_php.class_def option
+
+
+(* a poor's man test result database ... *)
+
+type test_status = 
+  | Pass of int (* nb passing tests *) * int (* skipped *)
+  | Fail of int (* fail *) * int (* pass *)
+  | Fatal of string
+
+type test_result = {
+  t_file: Common.filename;
+
+  t_status: test_status;
+
+  t_time: int; (* seconds *)
+  t_memory: float; (* Mb *)
+  t_trace_nb_lines: int;
+
+  t_shimmed: int; (* # of "Creating new database shim" messages *)
+}
+
+val s_of_test_status: test_status -> string
+
+(* 
+ * When we run PHPUnit tests in a set of files, a single tests trace
+ * in a file will contain many test result entries. The first arg below
+ * is the trace file and the strings are the partial content of this
+ * file regarding one PHPUnit test file. We pass the filename mainly
+ * for error reporting and because of the needed t_file field. 
+ *)
+val parse_one_trace: 
+  Common.filename -> string list -> test_result
+
+(* a discrete view over t_time *)
+type test_speed = 
+  | Fast
+  | NormalSpeed
+  | Slow
+
+(* a discrete view over t_memory *)
+type test_space = 
+  | SmallMem
+  | NormalMem
+  | BigMem
+
+val threshold_slow_seconds : int ref
+val threshold_normal_seconds : int ref
+val threshold_big_mem : float ref
+val threshold_normal_mem : float ref
+
+val test_speed_of_int: int -> test_speed
+val test_space_of_float: float -> test_space
+
+(* 
+ * For regression testing we need to save the state of a past run in a file,
+ * a regression file in PFFF_HOME/tmp/ for instance. We want the filename
+ * to be dependent of the phpunit test "query", so that the next test run 
+ * with the same arguments will be compared to the appropriate regression
+ * file.
+ * 
+ * ex: gen_regression_filename ["foo/"; "bar/test.php"] will generate
+ * a filename like foo__bar__test_php_245ghhm.marshalled
+ *)
+val gen_regression_filename: 
+  Common.filename list -> string
+
+val regression: 
+  regression_file:Common.filename -> test_result list -> unit
+val regression_perf: 
+  regression_file:Common.filename -> test_result list -> unit
+
+val final_report: 
+  ?report_also_pass:bool ->
+  test_result list -> unit
+
+(* to load/save test results, again poor's man database persistence *)
+val json_of_test_results: test_result list -> Json_type.t
+val test_results_of_json: Json_type.t -> test_result list
+
+@ 
+
+\section{Test coverage}
+
+<<coverage_dynamic_php.mli>>=
+
+val mk_is_covered_by_test: 
+  Database_php.database -> (Entity_php.id -> bool)
+
+@ 
+
+\chapter{Finding Code}
+
+\section{Finding files}
+
+<<lib_analyze_php.mli>>=
+@
+
+
+<<database_php_query.mli>>=
+open Database_php
+
+(*
+val get_functions_ids__of_string: 
+  string -> database -> id list
+*)
+
+(* general queries, get files or ids *)
+val glimpse_get_matching_files: 
+  string -> database -> Common.filename list
+
+(* ---------------------------------------------------------------------- *)
+(* wrappers around callgraph functions *)
+val calltree_callers_of_f: 
+  depth:int -> preferences:Callgraph_php.calltree_preferences -> 
+  Entity_php.id -> Database_php.database -> 
+  Callgraph_php.calltree
+val calltree_callees_of_f: 
+  depth:int -> preferences:Callgraph_php.calltree_preferences -> 
+  Entity_php.id -> Database_php.database -> 
+  Callgraph_php.calltree
+
+
+
+(* ---------------------------------------------------------------------- *)
+val actions: unit -> Common.cmdline_actions
+@
+
+\section{Finding functions}
+
+\section{Finding expression positions}
+
+<<finder_php.mli>>=
+
+(* position based finder *)
+val info_at_pos: int -> Ast_php.toplevel -> Ast_php.info
+val expr_at_pos: int -> Ast_php.toplevel -> Ast_php.expr
+
+val info_at_pos_in_full_program: int -> Ast_php.program -> Ast_php.info
+@
+
+\section{[[sgrep_php]], syntactical grep}
+
+<<smpl_php.mli>>=
+@
+
+
+\chapter{Checking Code}
+
+<<checking_php.mli>>=
+
+val check_program: Ast_php.program -> unit
+
+type error = 
+  | TooManyArguments of (Common.parse_info * Ast_php.name (* def *))
+  | NotEnoughArguments of (Common.parse_info * Ast_php.name (* def *))
+exception Error of error
+
+val report_error : error -> unit
+
+@
+
+\section{Statistical bug finding}
+
+% cf engler 
+
+
+% dynamic
+% static
+
+\chapter{Transforming Code}
+
+% cf coccinelle 
+
+\chapter{Software Metrics}
+
+% here is regular statistics. The section below on 
+% db statistics is more about tracking what is not yet handled
+% by our analysis
+
+\section{Basic metrics} 
+
+% nb of callers, callees,  or includer/includees
+
+<<statistics_php.mli>>=
+@
+
+\section{Code rank} 
+
+<<code_rank_php.mli>>=
+
+type code_ranks = {
+  function_ranks: (Database_php.id, float) Oassoc.oassoc;
+}
+
+
+val build_code_ranks: 
+  Database_php.database -> code_ranks
+
+val build_naive_caller_ranks: 
+  Database_php.database -> code_ranks
+@
+
+\section{Cyclomatic complexity} 
+
+\subsection{Interface}
+
+<<cyclomatic_php.mli>>=
+val cyclomatic_complexity_func: 
+  ?verbose:bool ->
+  Ast_php.func_def -> int
+
+val cyclomatic_complexity_method: 
+  ?verbose:bool ->
+  Ast_php.method_def -> int
+
+(* internal *)
+val cyclomatic_complexity_flow: 
+  ?verbose:bool ->
+  Controlflow_php.flow -> int
+@ 
+
+
+\subsection{[[pfff_db -cyclomatic_php]]}
+
+<<test_analyze_php actions>>=
+  "-cyclomatic_php", " <file>",
+  Common.mk_action_1_arg test_cyclomatic_php;
+@
+
+<<test_cyclomatic_php>>=
+let test_cyclomatic_php file =
+  let (ast2,_stat) = Parse_php.parse file in
+  let ast = Parse_php.program_of_program2 ast2 in
+  ast |> List.iter (function
+  | Ast_php.FuncDef def ->
+      let name = Ast_php.name def.Ast_php.f_name in
+      let n = Cyclomatic_php.cyclomatic_complexity_func ~verbose:true def in
+      pr2 (spf "cyclomatic complexity for function %s is %d" name n);
+  | Ast_php.ClassDef def ->
+      let class_stmts = Ast_php.unbrace def.Ast_php.c_body in
+      let class_name = Ast_php.name def.Ast_php.c_name in
+      class_stmts |> List.iter (function
+      | Ast_php.Method def ->
+          let method_name = Ast_php.name def.Ast_php.m_name in
+          let n = Cyclomatic_php.cyclomatic_complexity_method ~verbose:true def
+          in
+          pr2 (spf "cyclomatic complexity for method %s::%s is %d"
+                  class_name method_name n);
+      | Ast_php.ClassConstants _ | Ast_php.ClassVariables _ ->
+          ()
+      | Ast_php.XhpDecl _ ->
+          ()
+      )
+  | _ -> ()
+  )
+@ 
+
+
+\chapter{Other Services}
+
+\section{Statistics}
+
+<<database_php_statistics.mli>>=
+
+val parsing_stat_db:   Database_php.database -> unit
+val typing_stat_db:    Database_php.database -> unit
+(*
+val callgraph_stat_db: Database_php.database -> unit
+val extra_stat_db:     Database_php.database -> unit
+*)
+val fields_stat_db: Database_php.database -> unit
+val includes_stat_db: Database_php.database -> unit
+
+val all_stat_db:      Database_php.database -> unit
+
+val actions: unit -> Common.cmdline_actions
+@
+
+
+\section{Testing}
+
+<<test_analyze_php.mli>>=
+
+(* This makes accessible the different test_xxx functions above from 
+ * the command line, e.g. '$ pfff_misc -cfg_php foo.php' will call the 
+ * test_cfg_php function.
+ *)
+val actions: unit -> Common.cmdline_actions
+
+@
+
+\section{Debugging}
+
+\ifimplem
+\part{Internals}
+\fi 
+
+%repeat same structure of previous part ? or just
+% flatten the things, so that if people want to know
+% how one thing described before is implemented, then
+% this part is a kind of reference that they can go through
+
+\ifimplemoverview
+\chapter{Implementation overview}
+\label{chapter:implem-overview}
+#include "Analyze_php_implem.tex.nw"
+
+\fi %ifimplemoverview
+
+\ifimplem
+
+\chapter{PHP Intermediate Language}
+
+%#include "foundation/pil.ml.nw"
+
+\chapter{Control Flow Graph}
+
+#include "foundation/controlflow_php.ml.nw"
+
+
+\chapter{Data Flow Analysis}
+
+%#include "foundation/dataflow_php.ml.nw"
+
+\chapter{Typing}
+
+\section{Trivial typing}
+
+%#include "typing/typing_trivial_php.ml.nw"
+
+% and more 
+
+\chapter{Xdebug traces}
+
+#include "tools/xdebug.ml.nw"
+
+
+%\chapter{Database building}
+
+%\chapter{Call graph}
+
+
+\chapter{Code Rank}
+
+#include "static_analysis/code_rank_php.ml.nw"
+
+\chapter{Cyclomatic Complexity}
+
+#include "static_analysis/cyclomatic_php.ml.nw"
+
+\chapter{Dead code}
+
+
+% put also here dead statements ?
+
+#include "static_analysis/deadcode_php.ml.nw"
+
+
+\chapter{Tainted string analysis}
+
+%#include "static_analysis/tainted_php.ml.nw"
+
+\chapter{Data flow for arrays}
+
+%#include "static_analysis/dataflow_php_array.ml.nw"
+
+\chapter{PHP Built-in Functions, Classes, and Globals}
+
+#include "foundation/builtins_php.ml.nw"
+
+\chapter{PHPUnit}
+
+#include "tools/phpunit.ml.nw"
+
+\chapter{Code coverage}
+
+\section{Static coverage}
+
+#include "static_analysis/coverage_static_php.ml.nw"
+
+\section{Dynamic coverage}
+
+#include "dynamic_analysis/coverage_dynamic_php.ml.nw"
+
+
+\chapter{Auxillary Code}
+
+\fi %\ifimplem far far away
+
+\chapter*{Conclusion}
+\addcontentsline{toc}{part}{Conclusion}
+
+\appendix
+
+\chapter{Testing sample code}
+
+#include "test_analyze_php.ml.nw"
+
+\chapter{Extra code}
+
+#include "allmli.mli.nw"
+
+
+\chapter{Indexes}
+
+%\subsection{Code Chunks}
+\nowebchunks
+
+%todo: need special support, cf smldefs 
+%\subsection{Identifiers}
+%\nowebindex
+
+\chapter{References} 
+
+%dup: partially with biblio in parsing manual
+\begin{thebibliography}{99}
+
+\bibitem[1]{wp-literate-programming} Donald Knuth,,
+{\em Literate Programming}, 
+\url{http://en.wikipedia.org/wiki/Literate\_Program}
+
+\bibitem[2]{noweb} Norman Ramsey,
+{\em Noweb}, 
+\url{http://www.cs.tufts.edu/~nr/noweb/}
+
+\bibitem[3]{syncweb} Yoann Padioleau,
+{\em Syncweb, literate programming meets unison}, 
+\url{http://padator.org/software/project-syncweb/readme.txt}
+
+
+
+\bibitem[4]{php-manual} Hannes Magnusson et al,
+{\em PHP Manual}, 
+\url{http://php.net/manual/en/index.php}
+% use php itself :)
+
+\bibitem[5]{dragon-book} Alfred Aho et al,
+{\em Compilers, Principles, Techniques, and tools}, 
+\url{http://en.wikipedia.org/wiki/Dragon_Book_(computer_science)}
+
+\bibitem[6]{modern-compiler-ml} Andrew Appel,
+{\em Modern Compilers in ML}, 
+Cambridge University Press
+
+\bibitem[7]{common-pad-manual} Yoann Padioleau,
+{\em Commons Pad OCaml Library}, 
+\url{http://padator.org/docs/Commons.pdf}
+
+\bibitem[8]{ocamltarzan} Yoann Padioleau,
+{\em OCamltarzan, code generation with and without camlp4}, 
+\url{http://padator.org/ocaml/ocamltarzan-0.1.tgz}
+
+
+
+\bibitem[22]{cil} George Necula,
+{\em CIL}, 
+CC. \url{http://manju.cs.berkeley.edu/cil/}
+
+\end{thebibliography}
+
+
+
+%******************************************************************************
+% Postlude
+%******************************************************************************
+
+\end{document}
+

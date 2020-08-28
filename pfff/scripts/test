@@ -1,0 +1,8 @@
+#! /usr/bin/env bash
+#
+# Run all the tests. Intended for CI.
+#
+set -eu
+
+eval $(opam env)
+PFFF_HOME=$(pwd) make test

@@ -1,0 +1,286 @@
+
+<<ast_php.ml>>=
+<<Facebook copyright>>
+
+open Common
+
+open Parse_info
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+(*
+ * This module defines an Abstract Syntax Tree for PHP 5.2 with
+ * a few PHP 5.3 and 5.4 extensions (e.g. closures, traits) as well
+ * as support for XHP.
+ *
+ * This is actually more a concrete syntax tree (CST) than an AST. This
+ * is convenient in a refactoring context or code visualization
+ * context, but if you need to do some heavy static analysis, consider
+ * instead lang_php/analyze/foundation/pil.ml which defines a
+ * PHP Intermediate Language a la CIL.
+ *
+ * todo: maybe even in a refactoring context a PIL+comment
+ * (see pretty/ast_pp.ml) would make more sense.
+ *
+ * NOTE: data from this type are often marshalled in berkeley DB tables
+ * which means that if you add new constructor or field in the types below,
+ * you must erase the berkeley DB databases otherwise pfff
+ * will probably finish with a segfault (OCaml serialization is not
+ * type-safe). A hacky solution is to add new constructors only at the end
+ * of the type definition.
+ *
+ * COUPLING: some programs in other languages (e.g. Python) may
+ * use some of the pfff binding, or JSON/sexp exporters, so if you
+ * change the name of constructors in this file, don't forget
+ * to regenerate the JSON/sexp exporters, but also to modify the
+ * dependent programs !!!! An easier solution is to not change this
+ * file, or to only add new constructors.
+ *
+ * todo:
+ *  - introduce QualifierDynamic and factorize things in lvalue type
+ *  - unify toplevel statement vs statements and stmt_and_def?
+ *  - unify expr and lvalue?
+ *)
+
+(*****************************************************************************)
+(* The AST related types *)
+(*****************************************************************************)
+(* ------------------------------------------------------------------------- *)
+(* Token/info *)
+(* ------------------------------------------------------------------------- *)
+<<AST info>>
+(* ------------------------------------------------------------------------- *)
+(* Name. See also analyze_php/namespace_php.ml  *)
+(* ------------------------------------------------------------------------- *)
+<<AST name>>
+(* ------------------------------------------------------------------------- *)
+(* Type. This is used in Cast. For type analysis see type_php.ml *)
+(* ------------------------------------------------------------------------- *)
+<<AST type>>
+(* ------------------------------------------------------------------------- *)
+(* Expression *)
+(* ------------------------------------------------------------------------- *)
+<<AST expression>>
+(* ------------------------------------------------------------------------- *)
+(* Variable (which in fact also contains function calls) *)
+(* ------------------------------------------------------------------------- *)
+<<AST lvalue>>
+(* ------------------------------------------------------------------------- *)
+(* Statement *)
+(* ------------------------------------------------------------------------- *)
+<<AST statement>>
+(* ------------------------------------------------------------------------- *)
+(* Function definition *)
+(* ------------------------------------------------------------------------- *)
+<<AST function definition>>
+<<AST lambda definition>>
+(* ------------------------------------------------------------------------- *)
+(* Class definition *)
+(* ------------------------------------------------------------------------- *)
+<<AST class definition>>
+(* ------------------------------------------------------------------------- *)
+(* Other declarations *)
+(* ------------------------------------------------------------------------- *)
+<<AST other declaration>>
+(* ------------------------------------------------------------------------- *)
+(* Stmt bis *)
+(* ------------------------------------------------------------------------- *)
+<<AST statement bis>>
+(* ------------------------------------------------------------------------- *)
+(* phpext: *)
+(* ------------------------------------------------------------------------- *)
+<<AST phpext>>
+(* ------------------------------------------------------------------------- *)
+(* The toplevels elements *)
+(* ------------------------------------------------------------------------- *)
+<<AST toplevel>>
+(* ------------------------------------------------------------------------- *)
+(* Entity and any *)
+(* ------------------------------------------------------------------------- *)
+<<AST entity>>
+<<AST any>>
+
+(*****************************************************************************)
+(* Comments *)
+(*****************************************************************************)
+@
+
+<<ast_php.ml>>=
+(*****************************************************************************)
+(* Some constructors *)
+(*****************************************************************************)
+let noScope () = ref (Scope_code.NoScope)
+
+let fakeInfo ?(next_to=None) str = {
+  token = FakeTokStr (str, next_to);
+  comments = ();
+  transfo = NoTransfo;
+  }
+@
+
+<<ast_php.ml>>=
+(*****************************************************************************)
+(* Wrappers *)
+(*****************************************************************************)
+
+let unwrap = fst
+
+let unparen (a,b,c) = b
+let unbrace = unparen
+let unbracket = unparen
+
+let uncomma xs = Common.map_filter (function
+  | Left e -> Some e
+  | Right info -> None
+  ) xs
+
+let uncomma_dots xs = Common.map_filter (function
+  | Left3 e -> Some e
+  | Right3 info | Middle3 info -> None
+  ) xs
+
+let map_paren f (lp, x, rp) = (lp, f x, rp)
+let map_comma_list f xs = List.map (fun x ->
+  match x with
+  | Left e -> Left (f e)
+  | Right tok -> Right tok
+  )
+  xs
+
+let unarg arg =
+  match arg with
+  | Arg e -> e
+  | ArgRef _ -> failwith "Found a ArgRef"
+
+let unargs xs =
+  uncomma xs +> Common.partition_either (function
+  | Arg e -> Left e
+  | ArgRef (t, e) -> Right (e)
+  )
+
+let unmodifiers class_vars =
+  match class_vars with
+  | NoModifiers _ -> []
+  | VModifiers xs -> List.map unwrap xs
+
+@
+
+
+<<ast_php.ml>>=
+@
+
+<<ast_php.ml>>=
+let parse_info_of_info = Parse_info.parse_info_of_info
+@
+
+<<ast_php.ml>>=
+(* todo: return a Real | Virt position ? *)
+let pos_of_info  ii = (parse_info_of_info ii).Parse_info.charpos
+
+let str_of_info  ii = (parse_info_of_info ii).Parse_info.str
+let file_of_info ii = (parse_info_of_info ii).Parse_info.file
+let line_of_info ii = (parse_info_of_info ii).Parse_info.line
+let col_of_info  ii = (parse_info_of_info ii).Parse_info.column
+@
+
+<<ast_php.ml>>=
+let pinfo_of_info = Parse_info.pinfo_of_info
+@
+
+<<ast_php.ml>>=
+let rewrap_str = Parse_info.rewrap_str
+@
+
+<<ast_php.ml>>=
+(* for error reporting *)
+let string_of_info ii =
+  Parse_info.string_of_parse_info (parse_info_of_info ii)
+
+let is_origintok = Parse_info.is_origintok
+
+type posrv = Parse_info.posrv
+
+let compare_pos ii1 ii2 =
+  let get_pos = function
+    | OriginTok pi -> Real pi
+    | FakeTokStr (s, Some (pi_orig, offset)) ->
+        Virt (pi_orig, offset)
+    | FakeTokStr _
+    | Ab
+      -> failwith "get_pos: Ab or FakeTok"
+    | ExpandedTok (pi_pp, pi_orig, offset) ->
+        Virt (pi_orig, offset)
+  in
+  let pos1 = get_pos (pinfo_of_info ii1) in
+  let pos2 = get_pos (pinfo_of_info ii2) in
+  match (pos1,pos2) with
+  | (Real p1, Real p2) ->
+      compare p1.Parse_info.charpos p2.Parse_info.charpos
+  | (Virt (p1,_), Real p2) ->
+      if (compare p1.Parse_info.charpos p2.Parse_info.charpos) =|= (-1)
+      then (-1)
+      else 1
+  | (Real p1, Virt (p2,_)) ->
+      if (compare p1.Parse_info.charpos p2.Parse_info.charpos) =|= 1
+      then 1
+      else (-1)
+  | (Virt (p1,o1), Virt (p2,o2)) ->
+      let poi1 = p1.Parse_info.charpos in
+      let poi2 = p2.Parse_info.charpos in
+      match compare poi1 poi2 with
+      |	-1 -> -1
+      |	0 -> compare o1 o2
+      |	1 -> 1
+      | _ -> raise Impossible
+@
+
+<<ast_php.ml>>=
+@
+
+<<ast_php.ml>>=
+(*****************************************************************************)
+(* Abstract line *)
+(*****************************************************************************)
+
+(* When we have extended the AST to add some info about the tokens,
+ * such as its line number in the file, we can not use anymore the
+ * ocaml '=' to compare Ast elements. To overcome this problem, to be
+ * able to use again '=', we just have to get rid of all those extra
+ * information, to "abstract those line" (al) information.
+ *)
+
+let al_info x =
+  { x with token = Ab }
+@
+
+<<ast_php.ml>>=
+(*****************************************************************************)
+(* Views *)
+(*****************************************************************************)
+
+(* examples:
+ * inline more static funcall in expr type or variable type
+ *
+ *)
+@
+
+<<ast_php.ml>>=
+(*****************************************************************************)
+(* Helpers, could also be put in lib_parsing.ml instead *)
+(*****************************************************************************)
+let name e =
+  match e with
+  | Name x -> unwrap x
+  | XhpName (xs, _tok) ->
+      ":" ^ (Common.join ":" xs)
+
+let dname (DName x) = unwrap x
+@
+
+<<ast_php.ml>>=
+let info_of_name e =
+  match e with
+  | (Name (x,y)) -> y
+  | (XhpName (x,y)) -> y
+let info_of_dname (DName (x,y)) = y
+@

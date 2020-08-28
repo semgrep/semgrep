@@ -1,0 +1,1 @@
+raise $CLASS, $ARGS, $LOC

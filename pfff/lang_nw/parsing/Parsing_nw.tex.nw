@@ -1,0 +1,7 @@
+
+We need to handle multiple languages in the same file:
+ - tex, because we need to recognize directives like chapter
+   to be able to highlight them in pfff_visual
+ - the noweb markup
+ - the ``client'' language, especially OCaml as that's the language
+   used by pfff

@@ -1,0 +1,4 @@
+description = "Java highlighter"
+requires = "unix num"
+archive(byte) = "lib.cma"
+archive(native) = "lib.cmxa"

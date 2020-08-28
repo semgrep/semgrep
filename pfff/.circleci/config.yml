@@ -1,0 +1,35 @@
+version: 2.1
+jobs:
+
+  build:
+    docker:
+      - image: returntocorp/sgrep-build:2.1
+    steps:
+      - checkout
+      - run:
+          name: Install opam dependencies
+          command: ./scripts/install-opam-deps
+      - run:
+          name: Build
+          command: ./scripts/build
+      - run:
+          name: Test
+          command: ./scripts/test
+      - run:
+          name: Install
+          command: ./scripts/install
+
+  semgrep:
+    docker:
+      - image: returntocorp/semgrep:develop
+    working_directory: /src
+    steps:
+      - checkout
+      - run: semgrep --config semgrep.yml --error --strict --exclude parsing_errors --exclude todo .
+
+workflows:
+  version: 2
+  build_and_semgrep:
+    jobs:
+      - build
+      - semgrep

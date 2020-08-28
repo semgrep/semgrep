@@ -1,0 +1,6 @@
+Yoann Padioleau <yoann.padioleau@gmail.com>
+
+Maybe some code was borrowed from Pixel (Pascal Rigaux)
+and Julia Lawall may have written a few helper functions.
+
+See also credits.txt.

@@ -1,0 +1,10 @@
+
+Figure~\ref{fig:api-ml-graph} presents the graph of dependencies
+between [[.ml]] files.
+
+\begin{figure*}
+\resizebox{8cm}{20cm}{\rotatebox{90}{\includegraphics{Fig_graph_ml}}}
+%[angle=-90]
+\caption{Dependency graph between [[ml]] files}
+\label{fig:api-ml-graph}
+\end{figure*}

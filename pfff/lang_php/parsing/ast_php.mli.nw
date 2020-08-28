@@ -1,0 +1,1935 @@
+% also contains type_php.mli and scope_php.mli 
+
+\section{Overview}
+
+\subsection{[[ast_php.mli]] structure}
+
+The [[Ast_php]] module defines all the types and constructors used to
+represent PHP code (the Abstract Syntax Tree of PHP). Any user of
+\pfff must thus understand and know those types as any code using the
+\pfff API will probably need to do some pattern matching over 
+those types.
+\l if dont remember, can use -dump_php to refresh memory
+
+Here is the toplevel structure of the [[Ast_php]] module:
+<<ast_php.mli>>=
+open Common
+
+(*****************************************************************************)
+(* The AST related types *)
+(*****************************************************************************)
+(* ------------------------------------------------------------------------- *)
+(* Token/info *)
+(* ------------------------------------------------------------------------- *)
+<<AST info>>
+(* ------------------------------------------------------------------------- *)
+(* Name *)
+(* ------------------------------------------------------------------------- *)
+<<AST name>>
+(* ------------------------------------------------------------------------- *)
+(* Type *)
+(* ------------------------------------------------------------------------- *)
+<<AST type>>
+(* ------------------------------------------------------------------------- *)
+(* Expression *)
+(* ------------------------------------------------------------------------- *)
+<<AST expression>>
+(* ------------------------------------------------------------------------- *)
+(* Expression bis, lvalue *)
+(* ------------------------------------------------------------------------- *)
+<<AST lvalue>>
+(* ------------------------------------------------------------------------- *)
+(* Statement *)
+(* ------------------------------------------------------------------------- *)
+<<AST statement>>
+(* ------------------------------------------------------------------------- *)
+(* Function definition *)
+(* ------------------------------------------------------------------------- *)
+<<AST function definition>>
+<<AST lambda definition>>
+(* ------------------------------------------------------------------------- *)
+(* Class definition *)
+(* ------------------------------------------------------------------------- *)
+<<AST class definition>>
+(* ------------------------------------------------------------------------- *)
+(* Other declarations *)
+(* ------------------------------------------------------------------------- *)
+<<AST other declaration>>
+(* ------------------------------------------------------------------------- *)
+(* Stmt bis *)
+(* ------------------------------------------------------------------------- *)
+<<AST statement bis>>
+(* ------------------------------------------------------------------------- *)
+(* phpext: *)
+(* ------------------------------------------------------------------------- *)
+<<AST phpext>>
+(* ------------------------------------------------------------------------- *)
+(* The toplevels elements *)
+(* ------------------------------------------------------------------------- *)
+<<AST toplevel>>
+(* ------------------------------------------------------------------------- *)
+(* Entity and any *)
+(* ------------------------------------------------------------------------- *)
+<<AST entity>>
+<<AST any>>
+
+  (* with tarzan *)
+
+(*****************************************************************************)
+(* AST helpers *)
+(*****************************************************************************)
+<<AST helpers interface>>
+@ 
+
+\subsection{AST example}
+
+Before explaining in details each of those AST types, 
+we will first see how look the full AST of a simple PHP program:
+\l just to get a feeling about the high level structure ?
+
+<<foo1.php>>=
+<?php
+function foo($a) {
+  echo $a;
+}
+foo("hello world");
+?>
+@ 
+
+One way to see the AST of this program is to use the OCaml interpreter
+and its builtin support for pretty printing OCaml values. First we
+need to build a custom interpreter [[pfff.top]] (using [[ocamlmktop]])
+containing all the necessary modules:
+
+\begin{verbatim}
+$ make pfff.top
+\end{verbatim}
+
+Once [[pfff.top]] is built, you can run it. You should get an OCaml prompt
+(the \#, not to confuse with the shell prompt \$):
+
+\begin{verbatim}
+$ ./pfff.top -I commons -I parsing_php
+        Objective Caml version 3.11.1
+# 
+\end{verbatim}
+\label{sec:use-pfff-dot-top}
+
+You can now call any \pfff functions (or any OCaml functions) directly.
+\l useful to debug. more on that later
+For instance to parse [[demos/foo1.php]] type:
+
+\begin{verbatim}
+# Parse_php.parse "demos/foo1.php";;
+\end{verbatim}
+
+
+Here is what the interpreter should display (some
+repetitive parts have been ellided):
+
+\begin{verbatim}
+- : Parse_php.program2 * Parse_php.parsing_stat =
+([(Ast_php.FuncDef
+    {Ast_php.f_tok =
+      {Ast_php.pinfo =
+        Ast_php.OriginTok
+         {Common.str = "function"; Common.charpos = 6; Common.line = 2;
+          Common.column = 0; Common.file = "demos/foo1.php"};
+       Ast_php.comments = ()};
+     Ast_php.f_ref = None;
+     Ast_php.f_name =
+      Ast_php.Name
+       ("foo",
+        {Ast_php.pinfo =
+          Ast_php.OriginTok
+           {Common.str = "foo"; Common.charpos = 15; Common.line = 2;
+            Common.column = 9; Common.file = "demos/foo1.php"};
+         Ast_php.comments = ()});
+     Ast_php.f_params =
+      ({Ast_php.pinfo =
+         Ast_php.OriginTok
+          {Common.str = "("; Common.charpos = 18; Common.line = 2;
+           Common.column = 12; Common.file = "demos/foo1.php"};
+    ...
+   ("<?php\nfunction foo($a) {\n  echo $a;\n}",
+
+    [Parser_php.T_OPEN_TAG
+      {Ast_php.pinfo =
+        Ast_php.OriginTok
+         {Common.str = "<?php\n"; Common.charpos = 0; Common.line = 1;
+          Common.column = 0; Common.file = "demos/foo1.php"};
+       Ast_php.comments = ()};
+     Parser_php.T_FUNCTION
+      {Ast_php.pinfo =
+        Ast_php.OriginTok
+         {Common.str = "function"; Common.charpos = 6; Common.line = 2;
+          Common.column = 0; Common.file = "demos/foo1.php"};
+       Ast_php.comments = ()};
+     Parser_php.T_WHITESPACE
+      {Ast_php.pinfo =
+        Ast_php.OriginTok
+         {Common.str = " "; Common.charpos = 14; Common.line = 2;
+          Common.column = 8; Common.file = "demos/foo1.php"};
+       Ast_php.comments = ()};
+     ...]));
+  ...],
+ ...)
+ 
+\end{verbatim}
+
+We can see on the first line the infered type
+([[Parse_php.program2 * Parse_php.parsing_stat]])
+mentionned in the previous chapter.
+Then there is one of the raw AST element ([[FuncDef ...]]), 
+its string representation, and the tokens it was made of 
+([[T_OPEN_TAG ...]]).
+As mentionned earlier, the AST contains the full information
+about the program, including the position of its different elements.
+This leads to all those [[OriginTok {... Common.line = ...}]] elements.
+To see a more compact representation of the AST, one can
+use the [[program_of_program2]] function mentionned in the previous
+chapter, as well as the 
+[[abstract_position_info_program]] function
+that replaces all the [[OriginTok]] elements by another constructor ([[Ab]]
+for abstract). See section~\ref{sec:abstract-line} for
+more information.
+\l note the T_WHITESPACE
+
+Here are the magic incantations:
+\begin{verbatim}
+# open Ast_php;;
+# let (prog2, _stat) = Parse_php.parse "demos/foo1.php";;
+val prog2 : Parse_php.program2 =
+...
+# let prog = Parse_php.program_of_program2 prog2;;
+...
+# Lib_parsing_php.abstract_position_info_program prog;;
+\end{verbatim}
+
+The OCaml interpreter should now display the following:
+
+\begin{verbatim}
+- : Ast_php.program =
+[FuncDef
+  {f_tok = {pinfo = Ab; comments = ()}; f_ref = None;
+   f_name = Name ("foo", {pinfo = Ab; comments = ()});
+   f_params =
+    ({pinfo = Ab; comments = ()},
+     [{p_type = None; p_ref = None;
+       p_name = DName ("a", {pinfo = Ab; comments = ()}); p_default = None}],
+     {pinfo = Ab; comments = ()});
+   f_body =
+    ({pinfo = Ab; comments = ()},
+     [Stmt
+       (Echo ({pinfo = Ab; comments = ()},
+         [(ExprVar
+            (Var (DName ("a", {pinfo = Ab; comments = ()}),
+              {contents = Scope_php.NoScope}),
+             {tvar = [Type_php.Unknown]}),
+           {t = [Type_php.Unknown]})],
+         {pinfo = Ab; comments = ()}))],
+     {pinfo = Ab; comments = ()});
+   f_type = Type_php.Function ([Type_php.Unknown], [])};
+ StmtList
+  [ExprStmt
+    ((ExprVar
+       (FunCallSimple (None, Name ("foo", {pinfo = Ab; comments = ()}),
+         ({pinfo = Ab; comments = ()},
+          [Arg
+            (Scalar
+              (Constant (String ("hello world", {pinfo = Ab; comments = ()}))),
+             {t = [Type_php.Unknown]})],
+          {pinfo = Ab; comments = ()})),
+        {tvar = [Type_php.Unknown]}),
+      {t = [Type_php.Unknown]}),
+    {pinfo = Ab; comments = ()})];
+ FinalDef {pinfo = Ab; comments = ()}]
+\end{verbatim}
+
+Another way to display the AST of a PHP program is to call
+the custom PHP AST pretty printer defined in [[sexp_ast_php.ml]]
+(see Chapter~\ref{chapter:unparsing})
+which can be accessed via the [[-dump_ast]] command line flag as in:
+
+\begin{verbatim}
+$ ./pfff -dump_ast demos/foo1.php
+\end{verbatim}
+
+This is arguably easier than using [[pfff.top]] which requires a little
+bit of gymnastic. Here is the output of the previous command:
+
+\begin{verbatim}
+((FuncDef
+  ((f_tok "") (f_ref ()) (f_name (Name ('foo' "")))
+   (f_params
+    ("" (((p_type ()) (p_ref ()) (p_name (DName ('a' ""))) (p_default ())))
+     ""))
+   (f_body
+    (""
+     ((Stmt
+       (Echo ""
+        (((ExprVar ((Var (DName ('a' "")) "") ((tvar (Unknown)))))
+          ((t (Unknown)))))
+        "")))
+     ""))
+   (f_type (Function (Unknown) ()))))
+ (StmtList
+  ((ExprStmt
+    ((ExprVar
+      ((FunCallSimple () (Name ('foo' ""))
+        (""
+         ((Arg
+           ((Scalar (Constant (String ("'hello world'" ""))))
+            ((t (Unknown))))))
+         ""))
+       ((tvar (Unknown)))))
+     ((t (Unknown))))
+    "")))
+ (FinalDef ""))
+\end{verbatim}
+\label{sec:use-dump-on-foo1}
+
+The ability to easily see the internal representation of 
+PHP programs in \pfff is very useful for beginners who may not
+be familiar with the more than 100 constructors defined
+in [[ast_php.mli]] (and detailed in the next sections). 
+Indeed, a common way to write a \pfff analysis is to write
+a few test PHP programs, see the corresponding constructors
+with the help of the [[pfff -dump_ast]] command, copy paste parts of the output
+in your code, and finally write the algorithm to handle
+those different constructors.
+
+
+\subsection{Conventions}
+
+In the AST definitions below I sometimes use the tag [[(* semantic: *)]] in
+comments which means that such information is not computed at parsing
+time but may be added later in some post processing stage (by code in
+[[pfff/analyze_php/]]).
+
+What follows is the full definition of the abstract syntax tree of PHP 5.2.
+\t PHP 5.3
+\t plus PHP extension such as XHP ?
+Right now we keep all the information in this AST, such as the tokens, 
+the parenthesis, keywords, etc, with the [[tok]] (a.k.a [[info]]) type used
+in many constructions (see Section~\ref{sec:ast-info}).
+This makes it easier to pretty print back
+this AST and to do source-to-source transformations. So it's actually
+more a Concrete Syntax Tree (CST) than an Abstract Syntax Tree (AST)
+\footnote{Maybe one day we will have a [[real_ast_php.ml]] 
+([[mini_php/ast_mini_php.ml]] can partly play this role to experiment
+with new algorithms for now)}
+\footnote{This is not either completely
+a CST. It does not follow exactly the grammar; there is not one constructor
+per grammar rule. Some grammar rules exist because of 
+the limitations of the LALR algorithm; the CST does not have to
+suffer from this. Moreover a few things were simplified, for instance
+compare the [[variable]] type and the [[variable]] grammar rule.
+}. 
+I sometimes annotate this [[tok]]
+type with a comment indicating to what concrete symbol the token
+corresponds to in the parsed file. For instance for this constructor
+[[| AssignRef of variable * tok (* = *) * tok (* & *) * variable]],
+the first [[tok]] will contain information regarding the '=' symbol
+in the parsed file, and the second [[tok]] information regarding '\&'.
+If at some point you want to give an error message regarding a certain
+token, then use the helper functions on [[tok]] (or [[info]]) described
+in Section~\ref{sec:ast-helper-tok}.
+
+\section{Expressions}
+\label{sec:ast-expr}
+\label{sec:ast-expr-var}
+
+<<AST expression>>=
+(* I used to have a 'type expr = exprbis * exp_type_info' but it complicates
+ * many patterns when working on expressions, and it turns out I never 
+ * implemented the type annotater. It's easier to do such annotater on
+ * a real AST like the PIL. So just have this file be a simple concrete
+ * syntax tree and no more.
+ *)
+type expr =
+  <<type exp_info>>
+  | Lv of lvalue
+
+  (* start of expr_without_variable in original PHP lexer/parser terminology *)
+  | Sc of scalar
+
+  <<exprbis other constructors>>
+
+  (* xhp: *)
+  | XhpHtml of xhp_html
+  (* php-facebook-ext: 
+   *
+   * todo: this should be at the statement level as there are only a few
+   * forms of yield that hphp support (e.g. yield <expr>; and 
+   * <lval> = yield <expr>). One could then have a YieldReturn and YieldAssign
+   * but this may change and none of the analysis in pfff need to
+   * understand yield so for now just make it simple and add yield
+   * at the expression level.
+   *)
+  | Yield of tok * expr
+  | YieldBreak of tok * tok
+
+  <<type exprbis hook>>
+
+  <<type scalar and constant and encaps>>
+
+  <<AST expression operators>>
+
+  <<AST expression rest>>
+
+ and xhp_html = 
+   | Xhp of xhp_tag wrap * xhp_attribute list * tok (* > *) * 
+       xhp_body list * xhp_tag option wrap
+   | XhpSingleton of xhp_tag wrap * xhp_attribute list * tok (* /> *)
+
+   and xhp_attribute = xhp_attr_name * tok (* = *) * xhp_attr_value
+    and xhp_attr_name = string wrap (* e.g. task-bar *)
+    and xhp_attr_value = 
+      | XhpAttrString of tok (* '"' *) * encaps list * tok (* '"' *)
+      | XhpAttrExpr of expr brace
+      (* sgrep: *)
+      | SgrepXhpAttrValueMvar of string wrap
+   and xhp_body = 
+     | XhpText of string wrap
+     | XhpExpr of expr brace
+     | XhpNested of xhp_html
+
+@ 
+
+The [[ExprVar]] constructor is explained later. It corresponds
+essentially to lvalue expressions (variables, but also function calls).
+Scalars are described in the next section, followed by the description of the
+remaining expression constructions (e.g. additions).
+
+\footnote{
+The [[expr_without_variable]] grammar element is merged 
+with [[expr]] in the AST
+as most of the time in the grammar they use both a case for 
+[[expr_without_variable]] and a case for [[variable]]. The only difference
+is in [[Foreach]] so it's not worthwhile to complicate things just for 
+[[Foreach]].
+}
+
+
+\subsection{Scalars, constants, encapsulated strings} 
+
+<<type scalar and constant and encaps>>=
+  and scalar = 
+    | C of constant
+    | ClassConstant of qualifier * name
+        
+    | Guil    of tok (* '"' or b'"' *) * encaps list * tok (* '"' *)
+    | HereDoc of 
+        tok (* < < < EOF, or b < < < EOF *) * 
+        encaps list * 
+        tok  (* EOF; *)
+    (* | StringVarName??? *)
+
+ <<type constant>>
+ <<type encaps>>
+@ 
+
+\subsubsection{Constants} 
+
+<<type constant>>=
+    and constant = 
+    <<constant constructors>>
+    <<type constant hook>>
+    <<constant rest>>
+@ 
+
+Here are the basic constants, numbers:
+<<constant constructors>>=
+ | Int of string wrap
+ | Double of string wrap
+@ 
+
+I put [[string]] for [[Int]] (and [[Double]]) because [[int]] would not
+be enough as OCaml ints are only 31 bits. So it is simpler to use strings. 
+%C: Same reason to have string instead of int list for the String case.
+
+Note that [[-2]] is not a constant; it is the unary operator [[-]]
+([[Unary (UnMinus ...)]]) applied to the constant 2. 
+So the string in [[Int]] must represent a positive integer only. 
+
+\t wrap ??
+
+Strings in PHP comes in two forms: constant strings
+and dynamic strings (aka interpolated or encapsulated strings).
+In this section we are concerned only with the former. 
+\l The later is described later.
+%in Section~\ref{sec:encaps-strings}.
+
+<<constant constructors>>=
+ (* see also Guil for interpolated strings 
+  * The string does not contain the enclosing '"' or "'".
+  * It does not contain either the possible 'b' prefix
+  *)
+ | String of string wrap 
+@ 
+
+
+The [[string]] part does not include the enclosing guillemet 
+[['"']] or quote [[']].
+The info itself (in [[wrap]]) will usually contain
+it, but not
+always! Indeed if the constant we build is part of a bigger encapsulated
+strings as in  [[echo "$x[foo]"]] then the [[foo]] will be parsed
+as a [[String]], even if in the text it appears as a name.
+\t So this token is kind of a FakeTok sometimes.
+\footnote{If at some point you want to do some program transformation,
+you may have to normalize this [[string wrap]] before moving it
+in another context !!!}
+\t it can even be an integer ... cf T_NUM_STRING in the lexer and grammar
+
+
+Some identifiers have special meaning in PHP such as [[true]],
+[[false]], [[null]]. They are parsed as [[CName]]:
+<<constant constructors>>=
+ | CName of name (* true, false, null,  or defined constant *)
+@ 
+\t use fore more ?
+
+PHP also supports [[__FILE__]] and other directives inspired by
+the C preprocessor [[cpp]]:
+
+<<constant constructors>>=
+ | PreProcess of cpp_directive wrap
+@ 
+
+<<constant rest>>=
+ <<type cpp_directive>>
+@ 
+
+<<type cpp_directive>>=
+(* http://php.net/manual/en/language.constants.predefined.php *)
+  and cpp_directive = 
+      | Line  | File | Dir
+      | ClassC | TraitC 
+      | MethodC  | FunctionC
+@ 
+
+
+\subsubsection{Encapsulated strings}
+\label{sec:encaps-strings}
+
+Strings interpolation in PHP is complicated and documented here:
+\url{http://php.net/manual/en/language.types.string.php}
+in the "variable parsing" section.
+
+<<type encaps>>=
+    and encaps = 
+      <<encaps constructors>>
+@ 
+<<encaps constructors>>=
+ | EncapsString of string wrap
+@
+
+\begin{verbatim}
+ (* for "xx $beer". I put EncapsVar variable, but if you look 
+  * at the grammar it's  actually a subset of variable, but I didn't 
+  * want to duplicate subparts of variable here. 
+  *)
+\end{verbatim}
+
+<<encaps constructors>>=
+ | EncapsVar of lvalue
+@ 
+
+<<encaps constructors>>=
+ (* for "xx {$beer}s" *)
+ | EncapsCurly of tok * lvalue * tok
+@ 
+
+<<encaps constructors>>=
+ (* for "xx ${beer}s" *)
+ | EncapsDollarCurly of tok (* '${' *) * lvalue * tok
+@ 
+
+<<encaps constructors>>=
+ | EncapsExpr of tok * expr * tok
+@ 
+
+
+\subsection{Basic expressions} 
+
+PHP supports the usual arithmetic ([[+]], [[-]], etc)
+and logic expressions inherited from C:
+
+<<exprbis other constructors>>=
+| Binary  of expr * binaryOp wrap * expr
+| Unary   of unaryOp wrap * expr
+@ 
+
+<<AST expression operators>>=
+ and fixOp    = Dec | Inc 
+ and binaryOp    = Arith of arithOp | Logical of logicalOp 
+   <<php concat operator>>
+       and arithOp   = 
+         | Plus | Minus | Mul | Div | Mod
+         | DecLeft | DecRight 
+         | And | Or | Xor
+
+       and logicalOp = 
+         | Inf | Sup | InfEq | SupEq 
+         | Eq | NotEq 
+         <<php identity operators>>
+         | AndLog | OrLog | XorLog
+         | AndBool | OrBool (* diff with AndLog ? short-circuit operators ? *)
+ and assignOp = AssignOpArith of arithOp  
+  <<php assign concat operator>>
+ and unaryOp = 
+   | UnPlus | UnMinus
+   | UnBang | UnTilde
+
+@ 
+\l lexer crossref ?
+
+It also defines new operators for string concatenation
+<<php concat operator>>=
+ | BinaryConcat (* . *)
+@ 
+<<php assign concat operator>>=
+ | AssignConcat (* .= *)
+@ 
+
+and object comparisons:
+<<php identity operators>>=
+| Identical (* === *) | NotIdentical (* !== *)
+@ 
+
+It also inherits the [[+=]], [[++]] and other
+side effect expression (that really should not be
+expression):
+
+<<exprbis other constructors>>=
+(* should be a statement ... *)
+| Assign    of lvalue * tok (* = *) * expr
+| AssignOp  of lvalue * assignOp wrap * expr
+| Postfix of rw_variable   * fixOp wrap
+| Infix   of fixOp wrap    * rw_variable
+@ 
+
+The ugly conditional ternary operator:
+
+<<exprbis other constructors>>=
+(* PHP 5.3 allow 'expr ?: expr' hence the 'option' type below
+ * from www.php.net/manual/en/language.operators.comparison.php#language.operators.comparison.ternary:
+ * "Since PHP 5.3, it is possible to leave out the middle part of the
+ * ternary operator. Expression 
+ * expr1 ?: expr3 returns expr1 if expr1 evaluates to TRUE, and expr3
+ * otherwise."
+ *)
+| CondExpr of expr * tok (* ? *) * expr option * tok (* : *) * expr
+@ 
+
+
+\subsection{Value constructions} 
+
+<<exprbis other constructors>>=
+| AssignList  of tok (* list *)  * list_assign comma_list paren * 
+      tok (* = *) * expr
+| ArrayLong of tok (* array *) * array_pair  comma_list paren
+(* php 5.4: https://wiki.php.net/rfc/shortsyntaxforarrays *)
+| ArrayShort of array_pair comma_list bracket
+@ 
+
+<<AST expression rest>>=
+ and list_assign = 
+   | ListVar of lvalue
+   | ListList of tok * list_assign comma_list paren
+   | ListEmpty
+@ 
+
+<<AST expression rest>>=
+ and array_pair = 
+   | ArrayExpr of expr
+   | ArrayRef of tok (* & *) * lvalue
+   | ArrayArrowExpr of expr * tok (* => *) * expr
+   | ArrayArrowRef of expr * tok (* => *) * tok (* & *) * lvalue
+@ 
+
+\subsection{Object constructions} 
+
+<<exprbis other constructors>>=
+| New of tok * class_name_reference * argument comma_list paren option
+| Clone of tok * expr
+@ 
+
+<<exprbis other constructors>>=
+| AssignRef of lvalue * tok (* = *) * tok (* & *) * lvalue
+| AssignNew of lvalue * tok (* = *) * tok (* & *) * tok (* new *) * 
+      class_name_reference * 
+      argument comma_list paren option
+@ 
+\l related to Assign
+
+<<AST expression rest>>=
+ and class_name_reference = 
+   | ClassNameRefStatic of class_name_or_kwd
+   | ClassNameRefDynamic of lvalue * obj_prop_access list
+
+   and obj_prop_access = tok (* -> *) * obj_property
+@ 
+\l (* originally base_ *) variable for ClassNameRefDynamic
+
+
+\subsection{Cast} 
+
+<<exprbis other constructors>>=
+| Cast of castOp wrap * expr 
+| CastUnset of tok * expr (* ??? *)
+@ 
+
+<<AST expression operators>>=
+ and castOp = ptype
+@
+
+<<exprbis other constructors>>=
+| InstanceOf of expr * tok * class_name_reference
+@ 
+
+\subsection{Eval}
+
+<<exprbis other constructors>>=
+(* !The evil eval! *)
+| Eval of tok * expr paren
+@ 
+
+
+\subsection{Anonymous functions (PHP 5.3)}
+
+<<exprbis other constructors>>=
+(* Woohoo, viva PHP 5.3 *)
+| Lambda of lambda_def
+@ 
+
+<<AST lambda definition>>=
+and lambda_def = {
+ l_tok: tok; (* function *)
+ l_ref: is_ref;
+ (* no l_name, anonymous *)
+ l_params: parameter comma_list_dots paren;
+ l_use:  lexical_vars option;
+ l_body: stmt_and_def list brace;
+}
+  and lexical_vars = tok (* use *) * lexical_var comma_list paren 
+  and lexical_var = 
+    | LexicalVar of is_ref * dname
+
+@ 
+
+
+\subsection{Misc}
+
+<<exprbis other constructors>>=
+(* should be a statement ... *)
+| Exit of tok * (expr option paren) option
+| At of tok (* @ *) * expr
+| Print of tok * expr 
+@ 
+
+<<exprbis other constructors>>=
+| BackQuote of tok * encaps list * tok
+@ 
+
+<<exprbis other constructors>>=
+(* should be at toplevel *)
+| Include     of tok * expr
+| IncludeOnce of tok * expr
+| Require     of tok * expr
+| RequireOnce of tok * expr
+@ 
+
+<<exprbis other constructors>>=
+| Empty of tok * lvalue paren
+| Isset of tok * lvalue comma_list paren
+@ 
+
+
+
+
+\section{Lvalue expressions}
+
+% called variable in PHP grammar, but really lvalue
+
+The [[lvalue]] type below allows a superset of what the PHP grammar actually
+permits. See the [[variable2]] type in [[parser_php.mly]] for a more precise,
+but far less convenient type to use. 
+\footnote{Note that with XHP, we are less a superset 
+because XHP also relaxed some constraints.}
+
+<<AST lvalue>>=
+and lvalue =
+  <<type lvalue_info>>
+  <<lvaluebis constructors>>
+
+  <<type lvalue aux>>
+
+(* semantic: those grammar rule names were used in the original PHP 
+ * lexer/parser but not enforced. It's just comments. *)
+and rw_variable = lvalue
+and r_variable = lvalue
+and w_variable = lvalue
+
+@ 
+
+
+\subsection{Basic variables}
+
+Here is the constructor for simple variables, as in [[$foo]]:
+<<lvaluebis constructors>>=
+  | Var of dname * 
+   <<scope_php annotation>>
+@
+\t hence lvalue type, dname for dollar name
+The 'd' in [[dname]] stands for dollar (dollar name).
+
+<<lvaluebis constructors>>=
+  | This of tok
+  (* xhp: normally we can not have a FunCall in the lvalue of VArrayAccess,
+   * but with xhp we can.
+   * 
+   * todo? a VArrayAccessSimple with Constant string in expr ? 
+   *)
+  | VArrayAccess of lvalue * expr option bracket
+  | VArrayAccessXhp of expr * expr option bracket
+@ 
+
+\subsection{Indirect variables}
+
+<<lvaluebis constructors>>=
+  | VBrace       of tok    * expr brace
+  | VBraceAccess of lvalue * expr brace
+@ 
+
+<<lvaluebis constructors>>=
+  (* on the left of var *)
+  | Indirect  of lvalue * indirect 
+@ 
+
+<<type lvalue aux>>=
+  and indirect = Dollar of tok
+@ 
+
+<<lvaluebis constructors>>=
+  (* Note that even if A::$v['fld'] was parsed in the grammar
+   * as a Qualifier(A, ArrayAccess($v, 'fld') we
+   * generate a ArrayAccess(Qualifier(A, $v), 'fld').
+   * todo? could merge 3 cases if qualifier allow some dname.
+   *)
+  | VQualifier of qualifier * lvalue
+  (* note that can be a late static class var since php 5.3 *)
+  | ClassVar of qualifier * dname
+  (* used to be lvalue * dname but can have code like $class::$$prop *)
+  | DynamicClassVar of lvalue * tok (* :: *) * lvalue
+@
+
+\subsection{Function calls}
+\label{sec:funcall}
+
+Function calls are considered as part of the [[lvalue]]
+category in the original PHP grammar. 
+This is probably because functions can return
+reference to variables (whereas additions can't).
+
+<<lvaluebis constructors>>=
+  | FunCallSimple of name                      * argument comma_list paren
+  (* DynamicFunCall *)
+  | FunCallVar    of qualifier option * lvalue * argument comma_list paren
+@ 
+
+<<type lvalue aux>>=
+  and argument = 
+    | Arg    of expr
+    | ArgRef of tok * w_variable
+@
+
+
+%\paragraph{Redundant but convenient constructors}
+A few constructs have [[Simple]] as a suffix. They just correspond to 
+inlined version of other constructs that were put in their own 
+constructor because they occur very often or are conceptually important
+and deserve their own constructor (for instance [[FunCallSimple]]
+%in Section~\ref{sec:funcall}
+which otherwise would force the programmer to match over more nested 
+constructors to check if a [[Funcall]] has a static name). On one hand
+it makes it easier to match specific construct, on the other hand
+when you write an algorithm it forces you to do a little duplication. 
+But usually I first write the algorithm to handle the easy cases anyway
+and I end up not coding the complex one so ...
+
+\subsection{Method and object accesses}
+
+\begin{verbatim}
+  (* TODO go further by having a dname for the variable ? or make a 
+   * type simple_dvar = dname * Scope_php.phpscope ref and 
+   * put here a simple_dvar ?
+   *)
+\end{verbatim}
+
+<<lvaluebis constructors>>=
+  (* note that can be a late static call since php 5.3 *)
+  | StaticMethodCallSimple of qualifier * name * argument comma_list paren
+  | MethodCallSimple of lvalue * tok * name    * argument comma_list paren
+  (* PHP 5.3 *)
+  | StaticMethodCallVar of lvalue * tok (* :: *) * name *
+      argument comma_list paren
+  | StaticObjCallVar of lvalue * tok (* :: *) * lvalue *
+      argument comma_list paren
+@ 
+
+<<lvaluebis constructors>>=
+  | ObjAccessSimple of lvalue * tok (* -> *) * name
+  | ObjAccess of lvalue * obj_access
+@ 
+
+<<type lvalue aux>>=
+  and obj_access = 
+   tok (* -> *) * obj_property * argument comma_list paren option
+
+  and obj_property = 
+    | ObjProp of obj_dim
+    | ObjPropVar of lvalue (* was originally var_without_obj *)
+
+    (* I would like to remove OName from here, as I inline most of them 
+     * in the MethodCallSimple and ObjAccessSimple above, but they 
+     * can also be mentionned in OArrayAccess in the obj_dim, so 
+     * I keep it
+     *)
+    and obj_dim = 
+      | OName of name
+      | OBrace of expr brace
+      | OArrayAccess of obj_dim * expr option bracket
+      | OBraceAccess of obj_dim * expr brace
+@ 
+
+
+\section{Statements}
+\label{sec:ast-stmt}
+
+<<AST statement>>=
+(* By introducing Lambda, expr and stmt are now mutually recursive *)
+and stmt = 
+  <<stmt constructors>>
+    (* static-php-ext: *)
+    | TypedDeclaration of hint_type * lvalue * (tok * expr) option * tok
+    (* PHP 5.3, see http://us.php.net/const *)
+    | DeclConstant of tok * name * tok (* = *) * static_scalar * tok (* ; *)
+
+  <<AST statement rest>>
+@ 
+
+\subsection{Basic statements}
+\label{sec:ast-expr-stmt}
+
+<<stmt constructors>>=
+  | ExprStmt of expr * tok (* ; *)
+  | EmptyStmt of tok  (* ; *)
+@
+
+<<stmt constructors>>=
+  | Block of stmt_and_def list brace
+@ 
+
+<<stmt constructors>>=
+  | If      of tok * expr paren * stmt * 
+      (* elseif *) if_elseif list *
+      (* else *)   if_else option
+  <<ifcolon>>
+  | While of tok * expr paren * colon_stmt
+  | Do of tok * stmt * tok * expr paren * tok 
+  | For of tok * tok * 
+      for_expr * tok *
+      for_expr * tok *
+      for_expr *
+      tok * 
+      colon_stmt
+  | Switch of tok * expr paren * switch_case_list
+@ 
+
+<<AST statement rest>>=
+  and switch_case_list = 
+    | CaseList      of 
+        tok (* { *) * tok option (* ; *) * case list * tok (* } *)
+    | CaseColonList of 
+        tok (* : *) * tok option (* ; *) * case list * 
+        tok (* endswitch *) * tok (* ; *)
+    and case = 
+      | Case    of tok * expr * tok * stmt_and_def list
+      | Default of tok * tok * stmt_and_def list
+
+ and if_elseif = tok * expr paren * stmt
+ and if_else = (tok * stmt)
+@ 
+
+<<stmt constructors>>=
+  (* if it's a expr_without_variable, the second arg must be a Right variable,
+   * otherwise if it's a variable then it must be a foreach_variable
+   *)
+  | Foreach of tok * tok * expr * tok * foreach_var_either *
+      foreach_arrow option * tok * 
+      colon_stmt
+    (* example: foreach(expr as $lvalue) { colon_stmt }
+     *          foreach(expr as $foreach_varialbe => $lvalue) { colon_stmt}
+     *) 
+@ 
+
+<<AST statement rest>>=
+  and for_expr = expr comma_list (* can be empty *)
+  and foreach_arrow = tok * foreach_variable
+  and foreach_variable = is_ref * lvalue
+  and foreach_var_either = (foreach_variable, lvalue) Common.either
+@ 
+
+
+<<stmt constructors>>=
+  | Break    of tok * expr option * tok
+  | Continue of tok * expr option * tok
+  | Return of tok * expr option * tok 
+@ 
+
+<<stmt constructors>>=
+  | Throw of tok * expr * tok
+  | Try of tok * stmt_and_def list brace * catch * catch list
+@ 
+
+<<AST statement rest>>=
+  and catch = 
+    tok * (fully_qualified_class_name * dname) paren * stmt_and_def list brace
+@ 
+
+<<stmt constructors>>=
+  | Echo of tok * expr comma_list * tok
+@ 
+%and print
+
+
+\t see also expression, where things should be statement
+
+\subsection{Globals and static}
+% should be in declaration, not statement
+
+<<stmt constructors>>=
+  | Globals    of tok * global_var comma_list * tok
+  | StaticVars of tok * static_var comma_list * tok
+@
+
+<<AST other declaration>>=
+and global_var = 
+  | GlobalVar of dname
+  | GlobalDollar of tok * r_variable
+  | GlobalDollarExpr of tok * expr brace
+@ 
+
+<<AST other declaration>>=
+and static_var = dname * static_scalar_affect option
+@ 
+
+<<AST other declaration>>=
+  (* static_scalar used to be a special type allowing constants and
+   * a restricted form of expressions. But it was yet
+   * another type and it turned out it was making things like spatch
+   * and visitors more complicated because stuff like "+ 1" could
+   * be an expr or a static_scalar. We don't need this "isomorphism".
+   * I never leveraged the specificities of static_scalar (maybe a compiler
+   * would, but my checker/refactorers/... don't).
+   * 
+   * Note that it's not 'type static_scalar = scalar' because static_scalar
+   * actually allows arrays (why the heck they called it a scalar then ....)
+   * and plus/minus which are only in expr.
+   *)
+  and static_scalar = expr
+  <<type static_scalar hook>>
+@ 
+
+So PHP offers some support for compile-time constant expressions
+evaluation, but it is very limited (to additions and substractions).
+
+<<AST other declaration>>=
+   and static_scalar_affect = tok (* = *) * static_scalar
+@ 
+\l often = XXX, so convenient typedef
+
+
+<<AST other declaration>>=
+@ 
+
+\subsection{Inline HTML}
+
+PHP allows to freely mix PHP and HTML code in the same file. 
+This was arguably what made PHP successful, providing 
+a smooth transition from static HTML to partially dynamic HTML.
+\l (by embedding PHP code inside HTML pages).
+In practice, using inline HTML is probably not the best approach 
+for website development as it intermixes business and display
+in the same file. It is usually better to separate concerns,
+for instance by using template technology.
+XHP could be seen as going back to this inline style, while
+avoiding some of its disadvantages.
+
+From the point of view of the parser, HTML snippets
+are always viewed as embeded in a PHP code, and not
+the way around, and are represented by the following construct:
+
+<<stmt constructors>>=
+  | InlineHtml of string wrap
+@ 
+
+So, on this PHP file:
+<<tests/inline_html.php>>=
+<html>
+<?php
+echo "foo";
+?>
+</html>
+@ 
+
+this is what [[pfff -dump_ast]] will output: 
+
+\begin{verbatim}
+((StmtList
+  ((InlineHtml ("'<html>\n'" ""))
+   (Echo "" (((Scalar (Constant (String ('foo' "")))) ((t (Unknown))))) "")
+   (InlineHtml ("'</html>\n'" ""))))
+ (FinalDef ""))
+\end{verbatim}
+\label{sec:use-dump-on-inline}
+
+In fact we could go one step further and internally transforms
+all those [[InlineHtml]] into [[Echo]] statements, so further analysis
+does not need to be aware of this \co{syntactic sugar} provided by PHP.
+Nevertheless in a refactoring context, it is useful to represent
+internally exactly as-is the PHP program, so I prefer to keep
+[[InlineHtml]].
+
+\subsection{Misc statements}
+
+<<stmt constructors>>=
+  | Use of tok * use_filename * tok
+  | Unset of tok * lvalue comma_list paren * tok
+  | Declare of tok * declare comma_list paren * colon_stmt
+@ 
+
+<<AST statement rest>>=
+  and use_filename = 
+    | UseDirect of string wrap
+    | UseParen  of string wrap paren
+@ 
+
+<<AST statement rest>>=
+  and declare = name * static_scalar_affect
+@
+
+\subsection{Colon statement syntax}
+
+\l put in repetitive section ?
+
+PHP allows two different forms for sequence of statements.
+The regular one and the one using a colon [[:]]
+(see \url{http://php.net/manual/en/control-structures.alternative-syntax.php}):
+
+<<AST statement rest>>=
+  and colon_stmt = 
+    | SingleStmt of stmt
+    | ColonStmt of tok (* : *) * stmt_and_def list * tok (* endxxx *) * tok (* ; *)
+@ 
+
+<<ifcolon>>=
+| IfColon of tok * expr paren * 
+      tok * stmt_and_def list * new_elseif list * new_else option * 
+      tok * tok
+  (* if(cond):
+   *   stmts; defs;
+   * elseif(cond):
+   *   stmts;..
+   * else(cond):
+   *   defs; stmst;
+   * endif; *)
+@ 
+
+<<AST statement rest>>=
+  and new_elseif = tok * expr paren * tok * stmt_and_def list
+  and new_else = tok * tok * stmt_and_def list
+@ 
+
+
+\section{Function and class definitions}
+
+\subsection{Function definition}
+
+<<AST function definition>>=
+and func_def = {
+  f_tok: tok; (* function *)
+  f_ref: is_ref;
+  f_name: name;
+  f_params: parameter comma_list_dots paren;
+  (* static-php-ext: *)
+  f_return_type: hint_type option;
+  f_body: stmt_and_def list brace;
+  <<f_type mutable field>>
+}
+  <<AST function definition rest>>
+@ 
+
+<<AST function definition rest>>=
+  and parameter = {
+    p_type: hint_type option;
+    p_ref: is_ref;
+    p_name: dname;
+    p_default: static_scalar_affect option;
+  }
+@
+
+<<AST function definition rest>>=
+    and hint_type = 
+      | Hint of class_name_or_kwd (* only self/parent, no static *)
+      | HintArray  of tok
+@
+\fbnote{plug here for a better type system for HPHP, with 
+more complex annotation. Right now
+type annotation in PHP works only for classes, not for basic types.
+The parser can parse [[function foo(int x) {}]] but 
+nothing will be enforced I believe.
+}
+
+
+<<AST function definition rest>>=
+  and is_ref = tok (* bool wrap ? *) option
+@ 
+
+\subsection{Class definition}
+
+<<AST class definition>>=
+(* I used to have a class_def and interface_def because interface_def
+ * didn't allow certain forms of statements (methods with a body), but
+ * with the introduction of traits, it does not make that much sense
+ * to be so specific, so I factorized things. Classes/interfaces/traits
+ * are not that different. Interfaces are really just abstract traits.
+ *)
+and class_def = {
+  c_type: class_type;
+  c_name: name;
+  (* PHP uses single inheritance. Interfaces can also use 'extends'
+   * but we use the c_implements field for that (because it can be a list).
+   *)
+  c_extends: extend option;
+  (* For classes it's a list of interfaces, for interface a list of other
+   * interfaces it extends, and for traits it must be empty.
+   *)
+  c_implements: interface option;
+  (* The class_stmt for interfaces are restricted to only abstract methods.
+   * The class_stmt seems to be unrestricted for traits; can even 
+   * have some 'use' *)
+  c_body: class_stmt list brace;
+}
+  <<type class_type>>
+  <<type extend>>
+  <<type interface>>
+@ 
+
+<<type class_type>>=
+  and class_type = 
+    | ClassRegular  of tok (* class *)
+    | ClassFinal    of tok * tok (* final class *)
+    | ClassAbstract of tok * tok (* abstract class *)
+
+    | Interface of tok (* interface *)
+    (* PHP 5.4 traits: http://php.net/manual/en/language.oop5.traits.php 
+     * Allow to mixin behaviors and data so it's really just
+     * multiple inheritance with a cooler name.
+     * 
+     * note: traits are allowed only at toplevel.
+     *)
+    | Trait of tok (* trait *)
+@ 
+
+PHP supports only single inheritance, hence the single name
+below:
+<<type extend>>=
+  and extend =    tok * fully_qualified_class_name
+@ 
+
+PHP nevertheless supports multiple interfaces, hence the [[list]]
+below:
+<<type interface>>=
+  and interface = tok * fully_qualified_class_name comma_list
+@ 
+
+\subsection{Interface definition}
+
+<<AST class definition>>=
+@ 
+
+\subsection{Class variables and constants}
+
+<<AST class definition>>=
+  and class_stmt = 
+    | ClassConstants of tok (* const *) * class_constant comma_list * tok (*;*)
+    | ClassVariables of 
+        class_var_modifier * 
+         (* static-php-ext: *)
+          hint_type option *
+        class_variable comma_list * tok (* ; *)
+    | Method of method_def
+
+    | XhpDecl of xhp_decl
+    (* php 5.4, 'use' can appear in classes/traits (but not interface) *)
+    | UseTrait of tok (*use*) * name comma_list * 
+        (tok (* ; *), trait_rule list brace) Common.either
+
+    <<class_stmt types>>
+ and xhp_decl = 
+    | XhpAttributesDecl of 
+        tok (* attribute *) * xhp_attribute_decl comma_list * tok (*;*)
+    (* there is normally only one 'children' declaration in a class *)
+    | XhpChildrenDecl of 
+        tok (* children *) * xhp_children_decl * tok (*;*)
+    | XhpCategoriesDecl of 
+        tok (* category *) * xhp_category_decl comma_list * tok (*;*)
+
+ and xhp_attribute_decl = 
+   | XhpAttrInherit of xhp_tag wrap
+   | XhpAttrDecl of xhp_attribute_type * xhp_attr_name * 
+       xhp_value_affect option * tok option (* is required *)
+   and xhp_attribute_type = 
+     | XhpAttrType of name (* e.g. float, bool, var, array, :foo *)
+     | XhpAttrEnum of tok (* enum *) * constant comma_list brace
+  and xhp_value_affect = tok (* = *) * static_scalar
+
+ (* Regexp-like syntax. The grammar actually restricts what kinds of
+  * regexps can be written. For instance pcdata must be nested. But
+  * here I simplified the type.
+  *)
+ and xhp_children_decl = 
+   | XhpChild of xhp_tag wrap (* :x:frag *)
+   | XhpChildCategory of xhp_tag wrap (* %x:frag *)
+
+   | XhpChildAny of tok
+   | XhpChildEmpty of tok
+   | XhpChildPcdata of tok
+
+   | XhpChildSequence    of xhp_children_decl * tok (*,*) * xhp_children_decl
+   | XhpChildAlternative of xhp_children_decl * tok (*|*) * xhp_children_decl
+
+   | XhpChildMul    of xhp_children_decl * tok (* * *)
+   | XhpChildOption of xhp_children_decl * tok (* ? *)
+   | XhpChildPlus   of xhp_children_decl * tok (* + *)
+
+   | XhpChildParen of xhp_children_decl paren
+
+ and xhp_category_decl = xhp_tag wrap (* %x:frag *)
+
+(* todo: as and insteadof, but those are bad features ... noone should
+ * use them.
+ *)
+and trait_rule = unit
+
+@ 
+
+<<class_stmt types>>=
+    and class_constant = name * static_scalar_affect
+@ 
+
+<<class_stmt types>>=
+    and class_variable = dname * static_scalar_affect option
+@ 
+
+<<class_stmt types>>=
+    and class_var_modifier = 
+      | NoModifiers of tok (* 'var' *)
+      | VModifiers of modifier wrap list
+@ 
+
+
+\subsection{Method definitions}
+
+<<class_stmt types>>=
+    (* a few special names: __construct, __call, __callStatic *)
+    and method_def = {
+      m_modifiers: modifier wrap list;
+      m_tok: tok; (* function *)
+      m_ref: is_ref;
+      m_name: name;
+      m_params: parameter comma_list_dots paren;
+     (* static-php-ext: *)
+      m_return_type: hint_type option;
+      m_body: method_body;
+    }
+@ 
+
+<<class_stmt types>>=
+      and modifier = 
+        | Public  | Private | Protected
+        | Static  | Abstract | Final
+@ 
+
+<<class_stmt types>>=
+      and method_body = 
+        | AbstractMethod of tok
+        | MethodBody of stmt_and_def list brace
+@ 
+
+\section{Types (or the lack of them)}
+
+The following type is used only for the cast operations
+(as in [[echo (int) $x]]).
+
+<<AST type>>=
+type ptype =
+  | BoolTy 
+  | IntTy 
+  | DoubleTy (* float *)
+
+  | StringTy 
+
+  | ArrayTy 
+  | ObjectTy
+ <<tarzan annotation>>
+@ 
+
+For a real type analysis, see [[type_php.ml]] 
+and the type annotations on expressions and variables in 
+Section~\ref{sec:ast-type-annot}, as well as the type inference
+algorithm in [[pfff/analysis_php]].
+
+
+\section{Toplevel constructions}
+\label{sec:ast-toplevel}
+
+<<AST toplevel>>=
+and toplevel = 
+  <<toplevel constructors>>
+ and program = toplevel list
+ <<tarzan annotation>>
+
+@ 
+<<toplevel constructors>>=
+  | StmtList of stmt list
+  | FuncDef of func_def
+  | ClassDef of class_def
+ (* old:  | Halt of tok * unit paren * tok (* __halt__ ; *) *)
+@ 
+%  (* TODO? Define by lifting it up from a regular function call? *)
+
+<<toplevel constructors>>=
+  | NotParsedCorrectly of tok list (* when Flag.error_recovery = true *)
+@ 
+
+<<toplevel constructors>>=
+  | FinalDef of tok (* EOF *)
+@ 
+
+<<AST statement bis>>=
+(* Was originally called toplevel, but for parsing reasons and estet I think
+ * it's better to differentiate nested func and top func. Also better to
+ * group the toplevel statements together (StmtList below), so that
+ * in the database later they share the same id.
+ * 
+ * Note that nested functions are usually under a if(defined(...)) at
+ * the toplevel. There is no ifdef in PHP so they reuse if.
+ *)
+and stmt_and_def = 
+  | Stmt of stmt
+  | FuncDefNested of func_def
+  | ClassDefNested of class_def
+@ 
+
+\section{Names}
+\label{sec:ast-name}
+
+%See also analyze_php/namespace_php.ml 
+
+<<AST name>>=
+ <<type name>>
+ (* for :x:foo the list is ["x";"foo"] *)
+ and xhp_tag = string list
+
+ <<type dname>>
+
+ <<qualifiers>>
+ <<tarzan annotation>>
+@ 
+
+<<type name>>=
+(* T_STRING, which are really just LABEL, see the lexer. *)
+type name = 
+   | Name of string wrap 
+   <<type name hook>>
+@ 
+
+<<type dname>>=
+(* D for dollar. Was called T_VARIABLE in the original PHP parser/lexer.
+ * The string does not contain the '$'. The info itself will usually 
+ * contain it, but not always! Indeed if the variable we build comes 
+ * from an encapsulated strings as in  echo "${x[foo]}" then the 'x' 
+ * will be parsed as a T_STRING_VARNAME, and eventually lead to a DName, 
+ * even if in the text it appears as a name.
+ * So this token is kind of a FakeTok sometimes.
+ * 
+ * So if at some point you want to do some program transformation,
+ * you may have to normalize this string wrap before moving it
+ * in another context !!!
+ *)
+and dname = 
+  | DName of string wrap 
+@ 
+
+<<qualifiers>>=
+and qualifier = class_name_or_kwd * tok (* :: *)
+ and class_name_or_kwd =
+  | ClassName of fully_qualified_class_name
+  (* Could also transform at parsing time all occurences of self:: and
+   * parent:: by their respective names. But I prefer to have all the 
+   * PHP features somehow explicitely represented in the AST.
+   *)
+  | Self   of tok
+  | Parent of tok
+  (* php 5.3 late static binding (no idea why it's useful ...) *)
+  | LateStatic of tok
+  (* todo? Put ClassVar of dname here so can factorize some of the
+   * StaticDynamicCall stuff in lvalue?
+   *)
+and fully_qualified_class_name = name
+@ 
+
+
+\section{Tokens, [[info]] and [[unwrap]]}
+\label{sec:ast-info}
+\label{sec:ast-position}
+\label{sec:abstract-line}
+
+% not really tokens 
+
+<<AST info>>=
+(* Contains among other things the position of the token through
+ * the Common.parse_info embedded inside it, as well as the
+ * the transformation field that makes possible spatch.
+ *)
+type tok = Parse_info.info
+and info = tok
+@ 
+
+<<AST info>>=
+(* a shortcut to annotate some information with token/position information *)
+and 'a wrap = 'a * tok
+@ 
+
+<<AST info>>=
+and 'a paren   = tok * 'a * tok
+and 'a brace   = tok * 'a * tok
+and 'a bracket = tok * 'a * tok 
+and 'a comma_list = ('a, tok (* the comma *)) Common.either list
+and 'a comma_list_dots = 
+  ('a, tok (* ... for sgrep *), tok (* the comma *)) Common.either3 list
+@ 
+
+<<AST info>>=
+ <<tarzan annotation>>
+@ 
+
+For rerefence, here is the definition of [[Common.parse_info]]:
+
+\begin{verbatim}
+type parse_info = {
+    str: string;
+    charpos: int;
+
+    line: int;
+    column: int;
+    file: filename;
+  } 
+\end{verbatim}
+
+\l see al_info function later 
+
+\section{Semantic annotations}
+\label{sec:annotations}
+
+\subsection{Type annotations}
+\label{sec:ast-type-annot}
+
+<<type exp_info>>=
+@ 
+<<type lvalue_info>>=
+@ 
+
+\begin{verbatim}
+(* 
+ * PHP 'pad' type system. Inspired by union types, soft typing, etc.
+ * 
+ * history: I Moved the Union out of phptype, to make phptype a phtypebis list
+ * with the intuition that it's so important that it should be "builtin" 
+ * and be really part of every type definitions.
+ * 
+ * Example of a phptype: [Object "A", Null].
+ * The list is sorted to make is easier for unify_type to work
+ * efficiently.
+ * 
+ * Add null to phptype ? I think yes, so that can do some null
+ * analysis at the same time.
+ * 
+ * Add Ref of phptype ?? Should ref be part of the type system ?
+ * I think no. In fact there was some paper about that.
+ * 
+ *)
+\end{verbatim}
+
+\label{sec:type-php-mli}
+
+<<type_php.mli>>=
+
+<<type phptype>>
+
+exception BadType of string
+
+@ 
+
+<<type phptype>>=
+type phptype = phptypebis list  (* sorted list, cf typing_php.ml *)
+   (* old: | Union of phptype list *)
+
+  and phptypebis = 
+    | Basic       of basictype
+
+    | ArrayFamily of arraytype
+
+    (* duck typing style, dont care too much about the name of the class 
+     * TODO qualified name ?phpmethod_type list * string list ? *)
+    | Object      of string list (* sorted list, class names *)
+
+    (* opened file or mysql connection *)
+    | Resource 
+
+    (* PHP 5.3 has closure *)
+    | Function of  
+        phptype option (* when have default value *) list * 
+        phptype (* return type *)
+
+    | Null
+
+    (* TypeVar is used by the type inference and unifier algorithn.
+     * It should use a counter for fresh typevariables but it's
+     * better to use a string so can give readable type variable like 
+     * x_1 for the typevar of the $x parameter.
+     *)
+    | TypeVar of string
+
+    (* kind of bottom *)
+    | Unknown
+    (* Top aka Variant, but should never be used *)
+    | Top 
+@ 
+      
+<<type phptype>>=
+    and basictype =
+      | Bool
+      | Int
+      | Float
+      | String
+          
+      (* in PHP certain expressions are really more statements *)
+      | Unit 
+@ 
+
+<<type phptype>>=
+    and arraytype = 
+      | Array  of phptype
+      | Hash   of phptype
+      (* duck typing style, ordered list by fieldname *)
+      | Record of (string * phptype) list
+
+ <<tarzan annotation>>
+@
+
+
+<<f_type mutable field>>=
+@ 
+
+<<type phpfunction_type>>=
+ <<tarzan annotation>>
+@ 
+
+<<type_php.mli>>=
+val string_of_phptype: phptype -> string
+@ 
+
+\t (* the rest of the code, like unify_type is in analyze_php/ *)
+
+\t more in book on analyzis_php
+
+\subsection{Scope annotations}
+
+<<scope_php annotation>>=
+Scope_php.phpscope ref
+@ 
+\t for Var
+
+<<scope_php.mli>>=
+<<type phpscope>>
+
+val s_of_phpscope: phpscope -> string
+@ 
+
+<<type phpscope>>=
+type phpscope = Scope_code.scope
+
+ <<tarzan annotation>>
+@ 
+
+
+% (* could also have a    phpscope option as an annotation *)
+
+\section{Support for syntactical/semantic  [[grep]]}
+
+<<type exprbis hook>>=
+| SgrepExprDots of tok
+@ 
+
+\section{Support for source-to-source transformations}
+\label{sec:coccitag}
+
+As explained earlier, we want to keep in the AST as much
+information as possible, and be as faithful as possible
+to the original PHP constructions,
+so one can modify this AST and 
+pretty print back while still preserving the style (indentation,
+comments) of the original file. 
+%
+The approach generally used in compilers is on the opposite to
+get an AST that is a simplification of the original program
+(hence the A for ``abstract'' in AST)
+by removing syntactic sugar, or by transforming at parsing-time certain
+constructions into simpler one, 
+for instance by replacing
+all [[while]], [[do]], [[switch]], [[if]], or [[foreach]] into series
+of [[goto]] statements. This makes some further analysis simpler
+because they have to deal with a smaller set of constructions
+(only [[goto]]s), but
+it makes it hard to do source-to-source style-preserving 
+transformations. Indeed, having done the transformation
+on the [[goto]]s, one would still need to back-propagate such transformation
+in the original file, which contains the [[while]], [[do]], etc.
+One can not generate a file with [[goto]]s because a programmer
+would not like to further work on such file.
+
+So to builting tools like refactorers using \pfff,
+we need to be faithful to the original file. This led to all those [[tok]] 
+types embeded in the AST to store information about
+the tokens with their precise location in the original file.
+This also forces us to retain in the AST the tokens
+forming the parenthesis in expressions (which in typical frontends are
+removed as the tree data structures of the AST already encodes the
+priority of elements), hence the following extension to the [[exprbis]] 
+type:
+
+<<type exprbis hook>>=
+(* unparser: *)
+| ParenExpr of expr paren
+@ 
+
+
+% (* old: mutable transfo: transformation; now in parse_info.ml *)
+ 
+
+\section{Support for Xdebug}
+\label{sec:ast-xdebug}
+
+Xdebug is a great debugger/profiler/tracer for PHP. 
+It can among other things generate function call traces of running code,
+including types and concrete values of parameters. There are
+many things you can do using such information, such as trivial
+type inference feedback in a IDE, or type-based bug checking. 
+Here is an example of a trace file: 
+
+\begin{verbatim}
+TRACE START [2010-02-08 00:24:28]
+    0.0009      99800   -> {main}() /home/pad/mobile/project-facebook/pfff/tests/xdebug/basic_values.php:0
+    0.0009      99800     -> main() /home/pad/mobile/project-facebook/pfff/tests/xdebug/basic_values.php:41
+    0.0009      99968       -> foo_int(4) /home/pad/mobile/project-facebook/pfff/tests/xdebug/basic_values.php:31
+                             >=> 8
+    0.0010     100160       -> foo_string('ici') /home/pad/mobile/project-facebook/pfff/tests/xdebug/basic_values.php:33
+                             >=> 'icifoo_string'
+    0.0010     100320       -> foo_array(array ()) /home/pad/mobile/project-facebook/pfff/tests/xdebug/basic_values.php:35
+                             >=> array ('foo_array' => 'foo')
+    0.0011     100632       -> foo_nested_array() /home/pad/mobile/project-facebook/pfff/tests/xdebug/basic_values.php:37
+                             >=> array ('key1' => 1, 'key2' => TRUE, 'key3' => 'astring', 'key4' => array ('subkey1' => 2, 'subkey2' => 3))
+                           >=> NULL
+                         >=> 1
+    0.0012      41208
+TRACE END   [2010-02-08 00:24:28]
+\end{verbatim}
+
+As you can see, those traces contain regular PHP function calls and 
+expressions and so can be parsed  by the \pfff expression parser. 
+
+Xdebug traces also sometimes contain certain constructs that
+are not regular PHP constructs. For instance \verb+...+ is sometimes
+used in arrays arguments to indicate that the value was too big
+to be included in the trace. Resources such as file handler
+are also displayed in a non traditional way, as well
+as objects. So to parse such traces, it is quite simple
+to extend the grammar and AST to include such extensions:
+
+<<type constant hook>>=
+ | XdebugClass of name * class_stmt list
+ | XdebugResource
+@
+
+<<type static_scalar hook>>=
+@
+
+
+
+\section{XHP extensions}
+\label{sec:ast-xhp}
+
+\l mention here also discussion about f()->xxx but already
+\l handled before. Just add in grammar
+
+<<type name hook>>=
+(* xhp: for :x:foo the list is ["x";"foo"] *)
+| XhpName of xhp_tag wrap
+@ 
+
+<<AST phpext>>=
+@ 
+
+
+
+
+
+\section{AST accessors, extractors, wrappers}
+
+\t constructor cools, but limited when modify stuff sometimes
+
+<<AST helpers interface>>=
+val parse_info_of_info : tok -> Parse_info.parse_info
+@ 
+<<AST helpers interface>>=
+val pinfo_of_info : tok -> Parse_info.token
+@ 
+
+\label{sec:ast-helper-tok}
+<<AST helpers interface>>=
+val pos_of_info : tok -> int
+val str_of_info : tok -> string
+val file_of_info : tok -> Common.filename
+val line_of_info : tok -> int
+val col_of_info : tok -> int
+@ 
+
+<<AST helpers interface>>=
+val string_of_info : tok -> string
+@ 
+
+<<AST helpers interface>>=
+val name : name -> string
+val dname : dname -> string
+@ 
+
+<<AST helpers interface>>=
+val info_of_name : name -> tok
+val info_of_dname : dname -> tok
+@
+
+
+<<AST helpers interface>>=
+val unwrap : 'a wrap -> 'a
+@ 
+
+<<AST helpers interface>>=
+val unparen : tok * 'a * tok -> 'a
+val unbrace : tok * 'a * tok -> 'a
+val unbracket : tok * 'a * tok -> 'a
+val uncomma: 'a comma_list -> 'a list
+val uncomma_dots: 'a comma_list_dots -> 'a list
+
+val map_paren: ('a -> 'b) -> 'a paren -> 'b paren
+val map_comma_list: ('a -> 'b) -> 'a comma_list -> 'b comma_list
+
+val unarg: argument -> expr
+val unmodifiers: class_var_modifier -> modifier list
+val unargs: argument comma_list -> expr list * w_variable list 
+@ 
+
+<<AST helpers interface>>=
+@ 
+\label{sec:ast-extractor-unxxx}
+
+<<AST helpers interface>>=
+@ 
+
+
+
+<<AST helpers interface>>=
+val rewrap_str : string -> tok -> tok
+val is_origintok : tok -> bool
+val al_info : tok -> tok
+val compare_pos : tok -> tok -> int
+@ 
+
+<<AST helpers interface>>=
+val noScope : unit -> Scope_php.phpscope ref
+
+val fakeInfo: ?next_to:(Parse_info.parse_info * int) option -> string -> tok
+@ 
+
+\section{Entity and any}
+
+<<AST entity>>=
+(* The goal of the entity type is to lift up important entities which
+ * are originally nested in the AST such as methods.
+ * 
+ * history: was in ast_entity_php.ml before but better to put everything
+ * in one file.
+ *)
+type entity = 
+  | FunctionE of func_def
+  | ClassE of class_def
+  | StmtListE of stmt list
+
+  | MethodE of method_def
+
+  | ClassConstantE of class_constant
+  | ClassVariableE of class_variable * modifier list
+  | XhpAttrE of xhp_attribute_decl
+
+  | MiscE of tok list
+@ 
+
+<<AST any>>=
+type any = 
+  | Lvalue of lvalue
+  | Expr of expr
+  | Stmt2 of stmt
+  | StmtAndDef of stmt_and_def
+  | StmtAndDefs of stmt_and_def list
+  | Toplevel of toplevel
+  | Program of program
+  | Entity of entity
+
+  | Argument of argument
+  | Parameter of parameter
+  | Parameters of parameter comma_list_dots paren
+  | Body of stmt_and_def list brace
+
+  | ClassStmt of class_stmt
+  | ClassConstant2 of class_constant
+  | ClassVariable of class_variable
+  | ListAssign of list_assign
+  | ColonStmt2 of colon_stmt
+  | Case2 of case
+ 
+  | XhpAttribute of xhp_attribute
+  | XhpAttrValue of xhp_attr_value
+  | XhpHtml2 of xhp_html
+
+  | Info of tok
+  | InfoList of tok list
+
+  | Name2 of name
+@ 
+
+

@@ -1,0 +1,1 @@
+exception X of string

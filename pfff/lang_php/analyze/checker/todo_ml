@@ -1,0 +1,81 @@
+      (* If inherits, then must grab the public and protected variables
+       * from the parent. If find_entity raise Not_found
+       * then it may be because of legitimate errors, but 
+       * such error reporting will be done in check_class_php.ml
+       * 
+       * todo: actually need to get the protected/public of the full
+       * ancestors (but I think it's bad to access some variables
+       * from an inherited class far away ... I hate OO for that kind of stuff)
+       * 
+       * todo: move that in check_classes_php.ml instead? fields are
+       * not really variables ... But
+       *)
+      x.c_extends +> Common.do_option (fun (tok, name_class_parent) ->
+        (* todo: ugly to have to "cast" *)
+
+              let vars = 
+                Class_php.get_public_or_protected_vars_of_class def2 in
+              (* we put 1 as use_count because we are not interested
+               * in error message related to the parent.
+               * Moreover it's legitimate to not use the parent
+               * var in a children class
+               *)
+              vars +> List.iter (fun dname ->
+                add_binding dname (S.Class, ref 1);
+              )
+          | _ -> raise Impossible
+          )
+      ));
+      (* must reorder the class_stmts as we want class variables defined
+       * after the method to be considered first for scope/variable
+       * analysis
+       *)
+      let x' = Class_php.class_variables_reorder_first x in
+
+      )
+
+    V.kclass_stmt = (fun (k, _) x ->
+      match x with
+      | ClassVariables (_modifier, _opt_ty, class_vars, _tok) ->
+          (* could use opt_ty to do type checking but this is better done
+           * in typing_php.ml *)
+
+          (* todo: add the modifier in the scope ? *)
+          class_vars |> Ast.uncomma |> List.iter (fun (dname, affect_opt) ->
+            add_binding dname (S.Class, ref 0);
+            (* todo? recurse on the affect *)
+          )
+      | _ -> k x
+    );
+
+
+      | ObjAccessSimple (lval, tok, name) ->
+          (match Ast.untype lval with
+          | This _ ->
+              (* access to $this->fld, have to look for $fld in
+               * the environment, with a Class scope.
+               *
+               * This is mostly a copy-paste of check_use_against_env
+               * but we additionnally check the scope.
+               * 
+               * TODO: but to be correct it requires entity_finder
+               * because the field may have been defined in the parent.
+               *)
+              let s = Ast.name name in
+              (match lookup_env_opt_for_class s !_scoped_env with
+              | None -> 
+                  E.fatal (Ast.info_of_name name) (E.UseOfUndefinedMember s)
+
+              | Some (scope, aref) ->
+                  if (scope <> S.Class)
+                  then 
+                    pr2 ("WEIRD, scope <> Class, " ^ (Ast.string_of_info tok));
+                    
+                  incr aref
+              )
+          (* todo: the other cases would require a complex class analysis ...
+           * maybe some simple dataflow can do the trick for 90% of the code.
+           * Just look for a new Xxx above in the CFG.
+           *)
+          | _ -> k x
+          )

@@ -1,0 +1,5 @@
+//remove_second_arg_foo.spatch
+  foo(X
+-    ,Y
+     )
+

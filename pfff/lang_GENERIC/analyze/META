@@ -1,0 +1,4 @@
+description = "Generic analyzer"
+requires = "unix num"
+archive(byte) = "lib.cma"
+archive(native) = "lib.cmxa"

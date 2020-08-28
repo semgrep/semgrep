@@ -1,0 +1,22 @@
+Analyze php/javascript/css/sql as well as their interactions, holistically.
+Analyze ocaml code so can apply the ideas to my own code :)
+Analyze deeply, lexing, parsing, typing, linking, and flowing!
+(even though there is dimininushing return at each step for the developer)
+
+Analyze statically and dynamically.
+Mine all code artifacts: code, git, org, mailing lists, documentation
+ for useful specifications, coupling, etc.
+
+Visualize/Search/Navigate/Analyze.
+
+Big TODOs:
+ - dataflow
+ - interprocedural analysis
+ - context sensitive analysis
+ - type inference
+
+inspiration:
+ - OCaml environment. Good library, good tools.
+ - DrScheme. Make it easy to learn the language and excellent API
+   documentation.
+ - Perl. Good documentation, with examples of use for each func.

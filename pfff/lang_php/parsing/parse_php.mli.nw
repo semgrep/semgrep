@@ -1,0 +1,266 @@
+
+\section{The main entry point of \pfff, [[Parse_php.parse]]}
+
+The [[parse_php.mli]] file defines the main function
+to parse a PHP file:
+
+<<parse_php.mli>>=
+
+<<type program2>>
+
+exception Parse_error of Parse_info.info
+
+val _hmemo_parse_php: 
+  (Common.filename, program2 * Parse_info.parsing_stat) Hashtbl.t
+
+(* This is the main function. raise Parse_error when not Flag.error_recovery.
+ *
+ * !It can cache the parsing result in _hmemo_parse_php if Flag.caching_parsing
+ * is set.
+ *)
+val parse : 
+  ?pp:string option -> 
+  Common.filename -> (program2 * Parse_info.parsing_stat)
+
+val parse_program:
+  ?pp:string option ->
+  Common.filename -> Ast_php.program
+
+
+(* for sgrep/spatch patterns *)
+val parse_any:
+  Common.filename -> Ast_php.any
+
+<<extra parse function signature>>
+@ 
+
+The parser does not just return the AST of the file 
+(normally a [[Ast_php.program]] type, an alias
+for [[Ast_php.toplevel list]])
+but also the tokens associated with each toplevel elements and its string 
+representation (the [[program2]] type below), as well as parsing
+statistics (the [[parsing_stat]] type defined in the next section).
+
+<<type program2>>=
+type program2 = toplevel2 list
+  and toplevel2 = 
+    Ast_php.toplevel * info_item
+     (* the token list contains also the comment-tokens *)
+     and info_item = (string * Parser_php.token list)
+type program_with_comments = program2
+@ 
+\footnote{
+The previous snippet contains a note about the [[NotParsedCorrectly]] 
+constructor which was originally used to provide error recovery
+in the parser. This is not used any more but it may be back in the futur.
+}
+
+Returning also the tokens is useful as the AST
+itself by default does not contain the comment or whitespace tokens
+(except when one call the [[comment_annotate_php]] function
+in [[pfff/analyzis_php/]]) but  some later processing
+phases may need such information. For instance the \pfff
+semantic code visualizer ([[pfff_browser]] in [[pfff/gui/]]) need
+those information to colorize not only the code but also the comments.
+
+If one does not care about those extra information, the
+[[program_of_program2]] function helps getting only the ``raw'' AST:
+
+<<parse_php.mli>>=
+val program_of_program2 : program2 -> Ast_php.program
+val program_of_program_with_comments : program_with_comments -> Ast_php.program
+@ 
+
+See the definition of [[Ast_php.program]] in the next
+chapter.
+
+The [[pp]] argument of [[parse]], for PHP preprocessing support,
+will be explained in Section~\ref{sec:pp}. 
+\iffacebook
+By default it will be equal to [[Some "xhpize"]] so that
+the file is preprocessed by XHP first and then parsed by \pfff.
+\fi
+
+The [[parse_php.mli]] defines also a PHP tokenizer, a subpart
+of the parser that may be useful on its own.
+\l to redo mark slee checkModule, or simply to help debug the full parser
+
+<<parse_php.mli>>=
+val tokens: 
+  ?init_state:Lexer_php.state_mode ->
+  Common.filename -> Parser_php.token list
+@ 
+
+%(*val parse_piece_by_piece : Common.filename -> (program2 * parsing_stat)*)
+
+\section{Parsing statistics}
+
+Parsing statistics are available via functions in [[h_program-lang/]].
+
+\section{[[pfff -parse_php]]}
+
+You can test the parsing capability of \pfff by calling it
+with the [[-parse_php]] command line argument:
+
+<<test_parsing_php actions>>=
+  "-parse_php", "   <file or dir>", 
+  Common.mk_action_n_arg test_parse_php;
+@ 
+
+<<test_parse_php>>=
+let test_parse_php xs  =
+  let ext = ".*\\.\\(php\\|phpt\\)$" in
+
+  (* could now use Lib_parsing_php.find_php_files_of_dir_or_files *)
+  let fullxs = Common.files_of_dir_or_files_no_vcs_post_filter ext xs in
+
+  let stat_list = ref [] in
+  <<initialize -parse_php regression testing hash>>
+
+  Common.check_stack_nbfiles (List.length fullxs);
+
+  fullxs +> List.iter (fun file -> 
+    pr2 ("PARSING: " ^ file);
+
+    let (xs, stat) = 
+    Common.save_excursion Flag_parsing_php.error_recovery true (fun () ->
+      Parse_php.parse file 
+    )
+    in
+
+    Common.push2 stat stat_list;
+    <<add stat for regression testing in hash>>
+  );
+
+  Parse_info.print_parsing_stat_list !stat_list;
+  <<print regression testing results>>
+@ 
+
+
+
+<<initialize -parse_php regression testing hash>>=
+let newscore  = Common.empty_score () in
+@
+
+<<add stat for regression testing in hash>>=
+    let s = sprintf "bad = %d" stat.Parse_info.bad in
+    if stat.Parse_info.bad = 0
+    then Hashtbl.add newscore file (Common.Ok)
+    else Hashtbl.add newscore file (Common.Pb s)
+    ;
+@
+
+<<print regression testing results>>=
+  let dirname_opt = 
+    match xs with
+    | [x] when is_directory x -> Some x
+    | _ -> None
+  in
+  let score_path = Filename.concat Config.path "tmp" in
+  dirname_opt +> Common.do_option (fun dirname -> 
+    pr2 "--------------------------------";
+    pr2 "regression testing  information";
+    pr2 "--------------------------------";
+    let str = Str.global_replace (Str.regexp "/") "__" dirname in
+    Common.regression_testing newscore 
+      (Filename.concat score_path
+       ("score_parsing__" ^str ^ ext ^ ".marshalled"))
+  );
+  ()
+@ 
+
+\section{Preprocessing support, [[pfff -pp]]}
+\label{sec:pp}
+
+It is not uncommon for programmers to extend their programming
+language by using preprocessing tools such as [[cpp]] or [[m4]]. \pfff
+by default will probably not be able to parse such files as they may
+contain constructs which are not proper PHP constructs (but [[cpp]] or
+[[m4]] constructs). A solution is to first call your preprocessor on
+your file and feed the result to \pfff. Some little support is provided
+by \pfff to make it easy to call your preprocessor on-the-fly by accepting
+a [[-pp]] command line argument.
+\l #line ?
+\l Expanded \ref{sec:ast-virtual-elements}
+
+
+<<flag_parsing_php.ml pp related flags>>=
+
+let caching_parsing = ref false
+
+open Common
+let sgrep_mode = ref false
+(* coupling: copy paste of Php_vs_php *)
+let is_metavar_name s = 
+  s =~ "[A-Z]\\([0-9]?_[A-Z]*\\)?"
+
+let cmdline_flags_pp () = [
+  "-pp", Arg.String (fun s -> pp_default := Some s),
+  " <cmd> optional preprocessor (e.g. xhpize)";
+  "-verbose_pp", Arg.Set verbose_pp, 
+  " ";
+  <<other cmdline_flags_pp>>
+]
+@ 
+
+\section{XHP support, [[pfff -parse_xhp]]}
+
+A useful PHP preprocessor is XHP\cite{XHP}. Some special
+support for XHP is provided in \pfff:
+XHP is something between a programmatic UI library and a full templating system.
+
+<<other cmdline_flags_pp>>=
+"-xhp", Arg.Set xhp_builtin,
+" parsing XHP constructs (default)";
+"-xhp_with_xhpize", Arg.Unit (fun () -> 
+  xhp_builtin := false;
+  pp_default := Some xhp_command),
+"  parsing XHP using xhpize as a preprocessor";
+"-no_xhp", Arg.Clear xhp_builtin,
+" ";
+"-no_fb_ext", Arg.Clear facebook_lang_extensions,
+" ";
+@
+
+One can either use the [[-pp xhpize]]  or [[-xhp]]
+command line options as a first
+way to handle PHP files using XHP. Here is how to use it:
+\begin{verbatim}
+ $ ./pfff -pp xhpize foo_with_xhp_construct.php
+or
+ $ ./pfff -xhp foo_with_xhp_construct.php
+\end{verbatim}
+
+Note that this is only a partial solution to the management of XHP
+or other extensions. Indeed, in a refactoring context, one would
+prefer to have in the AST a direct representation of the actual
+source file. So, \pfff also supports certain extensions directly
+in the AST as explained in Section~\ref{sec:ast-xhp}.
+
+\section{Xdebug traces parsing}
+
+As explained later in Section~\ref{sec:ast-xdebug}, \pfff
+provides some support to parse xdebug traces. The grammar and ASTs
+have been extended to handle certain xdebug constructs used
+in the traces. Moreover, a faster version of [[Parse_php.parse]]
+specialized to the parsing of PHP expressions in those traces
+is provided:
+
+<<extra parse function signature>>=
+val xdebug_expr_of_string: string -> Ast_php.expr 
+val class_def_of_string: string -> Ast_php.class_def
+@
+
+
+\section{Other parsing functions}
+
+<<extra parse function signature>>=
+val expr_of_string: string -> Ast_php.expr
+val program_of_string: string -> Ast_php.program
+val tokens_of_string: string -> Parser_php.token list
+val any_of_string:  string -> Ast_php.any
+val tmp_php_file_from_string: string -> Common.filename
+@ 
+
+
+

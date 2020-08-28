@@ -1,0 +1,373 @@
+
+\section{Motivations}
+
+Why this module ? The problem is that one often needs to write
+analysis that needs only to specify actions for a few
+specific cases, such as the function call case, and recurse for the
+other cases, but writing the recursion code of those other cases
+is actually what can take the most time. It is mostly
+boilerplate code, but it still takes time to write it 
+(and to not make typo).
+
+Here is a simplification of an AST (of C, but the motivations
+are the same for PHP) to illustrate the problem:
+
+\begin{verbatim}
+type ctype = 
+ | Basetype of ...
+ | Pointer of ctype
+ | Array of expression option * ctype
+ | ...
+and expression = 
+ | Ident of string
+ | FunCall of expression * expression list
+ | Postfix of ...
+ | RecordAccess of ..
+ | ...
+and statement = 
+ ...
+and declaration =
+ ...
+and program = 
+ ...
+\end{verbatim}
+
+What we want is really write code like 
+
+\begin{verbatim}
+ let my_analysis program = 
+   analyze_all_expressions program (fun expr ->
+     match expr with
+     | FunCall (e, es) -> do_something()
+     | _ -> <find_a_way_to_recurse_for_all_the_other_cases> 
+     )
+\end{verbatim}
+
+The problem is how to write [[analyze_all_expressions]]
+and [[find_a_way_to_recurse_for_all_the_other_cases]] ?
+Our solution is to mix the ideas of visitor, pattern matching, 
+and continuation. 
+\l ref
+Here is how it looks like using our hybrid technique: 
+
+\begin{verbatim}
+    let my_analysis program = 
+     Visitor.visit_iter program {
+       Visitor.kexpr = (fun k e -> 
+        match e with
+        | FunCall (e, es) -> do_something()
+        | _ -> k e
+       );
+      }
+\end{verbatim}
+
+You can of course also give action \co{hooks} for 
+[[kstatement]], [[ktype]], etc,  but we don't overuse
+visitors and so it would be stupid to provide
+[[kfunction_call]], [[kident]], [[kpostfix]] hooks as one can just
+use pattern matching with [[kexpr]] to achieve the same effect.
+
+
+\section{Quick glance at the implementation}
+
+It's quite tricky to implement the [[visit_xxx]] functions. The control
+flow can gets quite complicated with continuations. Here
+is an old but simpler version that will allow us to understand more easily
+the final version:
+
+\begin{verbatim}
+let (iter_expr:((expr -> unit) -> expr -> unit) -> expr -> unit)
+ = fun f expr ->
+  let rec k e = 
+    match e with
+    | Constant c -> ()
+    | FunCall  (e, es)         ->  f k e; List.iter (f k) es
+    | CondExpr (e1, e2, e3)    -> f k e1; f k e2; f k e3
+    | Sequence (e1, e2)        -> f k e1; f k e2;
+    | Assignment (e1, op, e2)  -> f k e1; f k e2;
+        
+    | Postfix  (e, op) -> f k e
+    | Infix    (e, op) -> f k e
+    | Unary    (e, op) -> f k e
+    | Binary   (e1, op, e2) -> f k e1; f k  e2;
+        
+    | ArrayAccess    (e1, e2) -> f k e1; f k e2;
+    | RecordAccess   (e, s) -> f k e
+    | RecordPtAccess (e, s) -> f k e
+
+    | SizeOfExpr  e -> f k e
+    | SizeOfType  t -> ()
+
+  in f k expr
+\end{verbatim}
+
+We first define a default continuation function [[k]] and pass it
+to the [[f]] function passed itself as a parameter to the visitor
+[[iter_expr]] function. Here is how to use our visitor generator:
+
+\begin{verbatim}
+let ex1 = Sequence (Sequence (Constant (Ident "1"), Constant (Ident "2")), 
+                             Constant (Ident "4"))
+
+let test_visit = 
+  iter_expr (fun k e ->  match e with
+  | Constant (Ident x) -> Common.pr2 x
+  | rest -> k rest
+  ) ex1 
+\end{verbatim}
+
+The output should be
+\begin{verbatim}
+1
+2
+4
+\end{verbatim}
+
+That is with only 4 lines of code (the code of [[test_visit]]),
+we were able to visit any ASTs and most of the boilerplate handling
+code for recursing on the appropriate constructors is managed for us.
+
+\ifwantalternatives
+\begin{verbatim}
+ * Alternatives: from the caml mailing list:
+ *  "You should have a look at the Camlp4 metaprogramming facilities :
+ *   http://brion.inria.fr/gallium/index.php/Camlp4MapGenerator
+ *   You would write something like" :
+ *     let my_analysis program =
+ *     let analysis = object (self)
+ *      inherit fold as super
+ *       method expr = function
+ *       | FunCall (e, es) -> do_something (); self
+ *       | other -> super#expr other
+ *      end in analysis#expr
+ * 
+ * The problem is that you don't have control about what is generated 
+ * and in our case we sometimes dont want to visit too much. For instance
+ * our visitor don't recurse on the type annotation of expressions
+ * Ok, this could be worked around, but the pb remains, you 
+ * don't have control and at some point you may want. In the same
+ * way we want to enforce a certain order in the visit (ok this is not good,
+ * but it's convenient) of ast elements. For instance first
+ * processing the left part 'e' of a Funcall(e,es), then the arguments 'es'.
+\end{verbatim}
+\fi
+
+\ifwanthistorycode
+\begin{verbatim}
+ * --------------------------------------------------------------------
+ * 
+ * Visitor based on continuation. Cleaner than the one based on mutable 
+ * pointer functions that I had before. 
+ * src: based on a (vague) idea from Remy Douence.
+ * 
+ * 
+ * 
+ * Diff with Julia's visitor ? She does:
+ * 
+ * let ident r k i =
+ *  ...
+ * let expression r k e =
+ *  ... 
+ *   ... (List.map r.V0.combiner_expression expr_list) ...
+ *  ...
+ * let res = V0.combiner bind option_default 
+ *   mcode mcode mcode mcode mcode mcode mcode mcode mcode mcode mcode
+ *   donothing donothing donothing donothing
+ *   ident expression typeC donothing parameter declaration statement
+ *   donothing in
+ * ...
+ * collect_unitary_nonunitary
+ *   (List.concat (List.map res.V0.combiner_top_level t))
+ * 
+ * 
+ * 
+ * So she has to remember at which position you must put the 'expression'
+ * function. I use record which is easier. 
+ * 
+ * When she calls recursively, her res.V0.combiner_xxx does not take bigf
+ * in param whereas I do 
+ *   | F.Decl decl -> Visitor_c.vk_decl bigf decl 
+ * And with the record she gets, she does not have to do my
+ * multiple defs of function such as 'let al_type = V0.vk_type_s bigf'
+ * 
+ * The code of visitor.ml is cleaner with julia because mutual recursive calls
+ * are clean such as ... 'expression e' ... and not  'f (k, bigf) e'
+ * or 'vk_expr bigf e'.
+ * 
+ * So it is very dual:
+ * - I give a record but then I must handle bigf.
+ * - She gets a record, and gives a list of function
+ * 
+ * 
+ * Update 2009: I now first auto generate a first draft of the visitor 
+ * using camplp4 and I use a technique that take the best of julia and me.
+ * I pass a record to the mk_visitor function, and this function returns
+ * me a vector so I don't have to define all those vk_xxx in the .mli
+ * The transformation is then simple, cf the stmt case with the
+ * 
+ *    let k xxx = match xxx with ... 
+ *    vin.kstmt (k,all_functions) xxx
+ * 
+ * 
+ * (was in visitor_c.ml before)
+ *) 
+
+\end{verbatim}
+\fi
+
+The preceding code works fine for visiting one type, but usually
+an AST is a set of mutually recursive types (statements, 
+expressions, definitions). So we need a way to define 
+mutliple hooks, hence the use of a record with one field
+per type: [[kexpr]], [[kstatement]], etc. We must then define
+multiple continuations functions [[k]] that take care to 
+call each other. See the implementation code for more details.
+
+\t the note about take care to not use k directly on subelements
+%\begin{verbatim}
+% * 
+% * Note: when want to apply recursively, always apply the continuator
+% * on the toplevel expression, otherwise may miss some intermediate steps.
+% * Do
+% *         match expr with
+% *         | FunCall (e, es) -> ...
+% *             k expr
+% * Or
+% *         match expr with
+% *         | FunCall (e, es) -> ...
+% *             Visitor_c.vk_expr bigf e
+% * Not
+% *         match expr with
+% *         | FunCall (e, es) -> ...
+% *             k e
+%\end{verbatim}
+
+
+\section{Iterator visitor}
+
+Here is the high level structure of [[visitor_php.mli]]:
+<<visitor_php.mli>>=
+open Ast_php
+
+<<type visitor_in>>
+<<type visitor_out>>
+
+<<visitor functions>>
+@ 
+
+
+<<type visitor_in>>=
+(* the hooks *)
+type visitor_in = {
+  kexpr: (expr  -> unit) * visitor_out -> expr  -> unit;
+  kstmt: (stmt  -> unit) * visitor_out -> stmt  -> unit;
+  ktop: (toplevel -> unit) * visitor_out -> toplevel  -> unit;
+  klvalue: (lvalue -> unit) * visitor_out -> lvalue  -> unit;
+  kconstant: (constant -> unit) * visitor_out -> constant  -> unit;
+  kscalar: (scalar -> unit) * visitor_out -> scalar  -> unit;
+  kstmt_and_def: (stmt_and_def -> unit) * visitor_out -> stmt_and_def  -> unit;
+  kencaps: (encaps -> unit) * visitor_out -> encaps -> unit;
+  kclass_stmt: (class_stmt -> unit) * visitor_out -> class_stmt -> unit;
+  kparameter: (parameter -> unit) * visitor_out -> parameter -> unit;
+  kargument: (argument -> unit) * visitor_out -> argument -> unit;
+  kcatch: (catch -> unit) * visitor_out -> catch -> unit;
+
+  kobj_dim: (obj_dim -> unit) * visitor_out -> obj_dim -> unit;
+
+  (* xhp: *)
+  kxhp_html: (xhp_html -> unit) * visitor_out -> xhp_html -> unit;
+  kxhp_tag: (xhp_tag wrap -> unit) * visitor_out -> xhp_tag wrap -> unit;
+  kxhp_attribute: 
+    (xhp_attribute -> unit) * visitor_out -> xhp_attribute -> unit;
+
+  kxhp_attr_decl:
+    (xhp_attribute_decl -> unit) * visitor_out -> xhp_attribute_decl -> unit;
+  kxhp_children_decl:
+    (xhp_children_decl -> unit) * visitor_out -> xhp_children_decl -> unit;
+
+  (* Helps abstracting away whether a function/class... is defined in
+   * nested way or at the toplevel (e.g. FuncDefNested vs FuncDef)
+   *)
+  kfunc_def:  (func_def -> unit) * visitor_out -> func_def -> unit;
+  kclass_def:  (class_def -> unit) * visitor_out -> class_def -> unit;
+
+  kmethod_def: (method_def -> unit) * visitor_out -> method_def -> unit;
+
+  (* Helps intercepting all the new blocks that in a real language should
+   * defined a new scope
+   *)
+  kstmt_and_def_list_scope: 
+    (stmt_and_def list -> unit) * visitor_out -> stmt_and_def list  -> unit;
+
+  kfully_qualified_class_name: 
+    (fully_qualified_class_name -> unit) * visitor_out -> 
+    fully_qualified_class_name -> unit;
+  kclass_name_reference:
+    (class_name_reference -> unit) * visitor_out -> 
+    class_name_reference -> unit;
+  khint_type: (hint_type -> unit) * visitor_out -> hint_type -> unit;
+  kqualifier: (qualifier -> unit) * visitor_out -> qualifier -> unit;
+  kclass_name_or_kwd:
+    (class_name_or_kwd -> unit) * visitor_out -> class_name_or_kwd -> unit;
+  karray_pair: (array_pair -> unit) * visitor_out -> array_pair -> unit;
+
+  kcomma: (tok -> unit) * visitor_out -> tok -> unit; 
+  kinfo: (tok -> unit)  * visitor_out -> tok  -> unit;
+}
+@ 
+
+<<visitor functions>>=
+val default_visitor : visitor_in
+@ 
+
+<<visitor functions>>=
+val mk_visitor: visitor_in -> visitor_out
+@ 
+
+
+<<type visitor_out>>=
+and visitor_out = any -> unit
+@ 
+
+<<visitor functions>>=
+val do_visit_with_ref:
+  ('a list ref -> visitor_in) -> any -> 'a list
+@ 
+
+\section{[[pfff -visit_php]]}
+
+<<test_parsing_php actions>>=
+  "-visit_php", "   <file>", 
+    Common.mk_action_1_arg test_visit_php;
+@ 
+
+<<test_visit_php>>=
+let test_visit_php file = 
+  let (ast2,_stat) = Parse_php.parse file in
+  let ast = Parse_php.program_of_program2 ast2 in
+
+  let hooks = { Visitor_php.default_visitor with
+    Visitor_php.kinfo = (fun (k, vx) info ->
+      let s = Ast_php.str_of_info info in
+      pr2 s;
+    );
+
+    Visitor_php.kexpr = (fun (k, vx) e -> 
+      match e with
+      | Ast_php.Sc x ->
+          pr2 "scalar";
+          k e
+      | _ -> k e
+    );
+  } in
+  let visitor = Visitor_php.mk_visitor hooks in
+  visitor (Ast.Program ast)
+@ 
+
+
+\ifwantrepetitivecode
+\section{Misc}
+\fi
+
+%\section{Fold visitor}
+

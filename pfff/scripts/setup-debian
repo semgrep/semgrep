@@ -1,0 +1,51 @@
+#! /usr/bin/env bash
+#
+# Sets up opam and other prerequisites to compile ocaml code.
+# Assumes a Debian-like package manager.
+#
+set -eu
+
+progname=$(basename "$0")
+
+usage() {
+  cat <<EOF
+Usage: $progname [OPTIONS]
+
+Set up opam and other prerequisites to compile ocaml code on a Debian or
+Ubuntu system. If opam is already installed, nothing is done.
+
+Options:
+  --help
+      Show this message and exit.
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Unsupported argument '$1'. Try '$progname --help'." >&2
+      exit 1
+  esac
+  shift
+done
+
+if opam_version=$(opam --version 2>/dev/null); then
+  echo "Found opam $opam_version."
+else
+  echo "Installing opam."
+  sh <(curl -sL https://raw.githubusercontent.com/ocaml/opam/master/shell/install.sh)
+fi
+
+# Install potentially-missing Debian/Ubuntu packages.
+#
+sudo apt-get update
+
+# Needed by some opam package
+sudo apt-get install m4 -y
+
+# Needed for running the pfff tests
+sudo apt-get install swi-prolog -y

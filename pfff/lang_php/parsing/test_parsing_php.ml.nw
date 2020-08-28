@@ -1,0 +1,91 @@
+
+<<test_parsing_php.ml>>=
+open Common
+
+open Ast_php
+module Ast = Ast_php
+
+(*****************************************************************************)
+(* Subsystem testing *)
+(*****************************************************************************)
+<<test_tokens_php>>
+<<test_parse_php>>
+<<test_sexp_php>>
+<<test_json_php>>
+
+let test_dump_php file =
+  let ast = Parse_php.parse_program file in
+  let s = Export_ast_php.ml_pattern_string_of_program ast in
+  pr s
+
+<<test_visit_php>>
+
+let test_unparse_php file = 
+  let (ast2, stat) = Parse_php.parse file in
+  let tmpfile = Common.new_temp_file "unparse_php" ".php" in
+  let s = Unparse_php.string_of_program2_using_transfo ast2 in
+  Common.write_file ~file:tmpfile s;
+  let xs = Common.unix_diff file tmpfile in
+  xs |> List.iter pr2;
+  ()
+
+let test_pretty_print_php file = 
+  let (ast2, stat) = Parse_php.parse file in
+  let _ast = Parse_php.program_of_program2 ast2 in
+  raise Todo
+  (* Pretty_print_php.pretty_print_program ast *)
+
+(* note that pfff can now parse XHP files without calling xhpize *)
+let test_parse_xhp_with_xhpize file = 
+  let pp_cmd = "xhpize" in
+  let (ast2, stat) = Parse_php.parse ~pp:(Some pp_cmd) file in
+  let ast = Parse_php.program_of_program2 ast2 in
+  Export_ast_php.show_info := false;
+  let s = Export_ast_php.sexp_string_of_program ast in
+  pr2 s;
+  let s = Unparse_php.string_of_program2_using_transfo ast2 in
+  pr2 s;
+  ()
+
+let test_parse_xdebug_expr s = 
+  let e = Parse_php.xdebug_expr_of_string s in
+  Export_ast_php.show_info := false;
+  let s = Export_ast_php.sexp_string_of_expr e in
+  pr2 s;
+  ()
+
+(*****************************************************************************)
+(* Main entry for Arg *)
+(*****************************************************************************)
+let actions () = [
+  <<test_parsing_php actions>>
+
+    "-unparse_php", "   <file>", 
+    Common.mk_action_1_arg test_unparse_php;
+    "-pretty_print_php", "   <file>", 
+    Common.mk_action_1_arg test_pretty_print_php;
+    "-parse_xdebug_expr", "   <string>", 
+    Common.mk_action_1_arg test_parse_xdebug_expr;
+    "-parse_xhp_with_xhpize", "   <file>", 
+    Common.mk_action_1_arg test_parse_xhp_with_xhpize;
+]
+@ 
+
+<<test_parsing_php actions>>=
+  "-tokens_php", "   <file>", 
+  Common.mk_action_1_arg test_tokens_php;
+@
+
+<<test_tokens_php>>=
+let test_tokens_php file = 
+  if not (file =~ ".*\\.php") 
+  then pr2 "warning: seems not a .php file";
+
+  Flag_parsing_php.verbose_lexing := true;
+  Flag_parsing_php.verbose_parsing := true;
+
+  let toks = Parse_php.tokens file in
+  toks +> List.iter (fun x -> pr2_gen x);
+  ()
+
+@ 

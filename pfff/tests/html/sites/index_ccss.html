@@ -1,0 +1,215 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+
+<head profile="http://www.w3.org/2005/11/profile">
+	<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+	<title>CCSS</title>
+	<link rel="stylesheet" type="text/css" href="default.css" title="Default CSS" media="all"/>
+</head>
+
+<body>
+
+<div id="root">
+
+	<div id="header">
+		<h1><span>CCSS: CSS + Variables + Arithmetic</span></h1>
+	</div>
+
+	<div id="canvas">
+
+		<h1>About CCSS</h1>
+
+		<p>
+		CCSS is a preprocessor/pretty-printer for CSS (Cascading Style Sheets).
+		It extends the CSS language with support for declaration of variables and
+		basic arithmetic operations (addition, subtraction, multiplication, division).
+		The programme is supposed to be used as a filter: it reads the CSS source
+		from stdin and outputs its result on stdout.
+		</p>
+
+		<p>
+		While it does not claim to support all the dark corners of CSS,
+		in practice CCSS handles most CSS found in the wild, including CSS3
+		constructs.  Its primary advantage over similar preprocessors is speed:
+		the project is implemented in <a href="http://caml.inria.fr/">Ocaml</a>,
+		a language renowned for producing native-code executables of blazing
+		performance.
+		</p>
+
+		<p>
+		CCSS is developed by <a href="mailto:let (a,b,c,d) = (dario, teixeira, yahoo, com) in a.b@c.d">Dario Teixeira</a>
+		and is licensed under the terms of the <a href="http://www.gnu.org/licenses/old-licenses/gpl-2.0.html">GNU GPL 2.0</a>.
+		</p>
+
+		<h1>Features</h1>
+
+		<dl>
+
+		<dt>Variables:</dt>
+
+		<dd>
+
+		<p>
+		With CCSS, you may declare and use variables in your CSS code (in fact,
+		CCSS variables are actually constants, since they are assigned upon
+		declaration and may not be changed).  Variable identifiers must begin
+		with an uppercase letter, and be followed by any combination of letters,
+		numbers, and the characters '<code>-</code>' (dash) and '<code>_</code>'
+		(underscore).  The value assigned to a variable may be any CSS expression
+		&mdash; not only quantities &mdash; as the code below demonstrates:
+		</p>
+
+<pre>
+Foo: 20em;
+Bar: 1px solid black;
+
+h1	{
+	width: Foo;
+	border: Bar;
+	}
+</pre>
+		</dd>
+
+		<dt>Arithmetic:</dt>
+
+		<dd>
+		<p>
+		CCSS extends CSS expressions with basic arithmetic operations (addition,
+		subtraction, multiplication, and division).  The operands must be CSS
+		quantities (either dimensionless or with an attached unit), or other
+		expressions that ultimately resolve into a quantity.  Moreover, variables
+		whose value is a quantity (or an expression which resolves into a quantity)
+		may also be used as operand.
+		</p>
+
+		<p>
+		The operators are '<code>+</code>', '<code>-</code>', '<code>*</code>',
+		and '<code>÷</code>'.	Note that multiplication and division have
+		precedence over addition and subtraction, but you may use parentheses
+		to group operations.  Consider thus the following input:
+		</p>
+
+<pre>
+Left: 10em;
+Right: 5em;
+Total: Left + Right;
+
+h1	{
+	padding: (1.5em + 0.5em) * 2;
+	width: 2 * Total;
+	}
+</pre>
+
+		<p>
+		CCSS will produce the following output:
+		</p>
+<pre>
+h1
+	{
+	padding: 4em;
+	width: 30em;
+	}
+</pre>
+
+		<p>
+		The reader will have noticed that CCSS must be unit-aware when performing
+		arithmetic.  As a matter of fact, the programme performs a basic sanity
+		check of units, and will complain if you try, for example, to add
+		'<code>1em</code>' with '<code>10px</code>'.  By default, CCSS will
+		not make any attempt to convert units even if they are convertible,
+		such '<code>cm</code>' and '<code>mm</code>'.  If you wish for CCSS to
+		attempt unit conversion, please provide option '<code>--convert</code>'
+		on the command line (short version '<code>-c</code>').
+		</p>
+
+		<p>
+		Units can be grouped into four categories, and conversion is possible if
+		the units belong to the same category.	Upon conversion, the result will
+		be the same unit as the first operand.	The categories and corresponding
+		units are as follows:
+		</p>
+
+		<dl>
+			<dt>length:</dt><dd>mm, cm, in, pt, pc</dd>
+			<dt>angle:</dt><dd>deg, grad, rad</dd>
+			<dt>time:</dt><dd>ms, s</dd>
+			<dt>frequency:</dt><dd>hz, khz</dd>
+		</dl>
+
+		<p>
+		As an illustration of unit conversion, the result for all the following
+		arithmetic operations is the same, '<code>2in</code>':
+		</p>
+
+<pre>
+h1
+	{
+	foo1: 1in + 1in;
+	foo2: 1in + 2.54cm;
+	foo3: 1in + 25.4mm;
+	foo4: 1in + 72pt;
+	foo5: 1in + 6pc;
+	}
+</pre>
+
+	</dd>
+
+	<h1>Dependencies</h1>
+
+	<p>
+	<a href="http://cristal.inria.fr/~fpottier/menhir/">Menhir</a>
+	is used as the parser generator, while scanning is done with
+	<a href="http://www.cduce.org/download.html">Ulex</a>.  Other
+	requirements are <a href="http://code.google.com/p/ocaml-extlib/">ExtLib</a> and
+	<a href="http://www.ocaml.info/home/ocaml_sources.html#pcre-ocaml">Pcre-ocaml</a>.
+	</p>
+
+	<h1>Downloads</h1>
+
+	<p>
+	CCSS is distributed in source-code form.  You can get all releases from
+	the <a href="http://forge.ocamlcore.org/projects/ccss">project's page</a>
+	at the <a href="http://forge.ocamlcore.org/">Ocaml Forge</a>.  The latest release
+	is <a href="http://forge.ocamlcore.org/frs/download.php/374/ccss-1.2.tgz">CCSS 1.2</a>.
+	</p>
+
+	<h1>Building and installing</h1>
+
+	<p>
+	The build system relies on Ocamlbuild.  Enter '<code>make</code>' in the
+	'<code>src</code>' directory for building the bytecode and native binaries.
+	</p>
+
+	<h1>Links</h1>
+
+	<ul>
+		<li><a href="http://cristal.inria.fr/~fpottier/menhir/">Menhir homepage</a></li>
+
+		<li><a href="http://www.cduce.org/download.html">Ulex homepage</a></li>
+
+		<li><a href="http://code.google.com/p/ocaml-extlib/">ExtLib homepage</a></li>
+
+		<li><a href="http://www.ocaml.info/home/ocaml_sources.html#pcre-ocaml">Pcre-ocaml homepage</a></li>
+
+		<li><a href="http://caml.inria.fr/">Caml language home</a></li>
+
+		<li><a href="http://forge.ocamlcore.org/">Ocaml Forge</a>
+		(CCSS is kindly hosted by Ocaml Forge)</li>
+
+		<li>Dario Teixeira's <a href="http://dario.dse.nl/">homepage</a>
+		and <a href="http://nleyten.com/">blog</a>.
+
+	</ul>
+
+<div id="footer">
+</div>
+
+</div>
+
+</div>
+
+</body>
+
+</html>
+

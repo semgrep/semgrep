@@ -1,0 +1,424 @@
+
+\section{Introduction}
+
+The goal of this document is not to explain how a compiler frontend works,
+or how to use Lex and Yacc, but just how the \pfff parser is 
+concretely implemented. We assume a basic knowledge
+of the literature on compilers such as ~\cite{dragon-book} or 
+\cite{modern-compiler-ml}.
+
+\section{Code organization} 
+
+Figure~\ref{fig:api-ml-graph} presents the graph of dependencies
+between ml files.
+
+\begin{figure*}
+\includegraphics[width=16cm]{Fig_graph_ml}
+%height=7cm
+\caption{API dependency graph between [[ml]] files}
+\label{fig:api-ml-graph}
+\end{figure*}
+\l subgraph ? with just the module related to parsing 
+
+\section{[[parse_php.ml]]}
+
+The code of the parser is quite straightforward as it mostly
+consists of Lex and Yacc specifications. 
+%
+The few subtelities are:
+
+\begin{itemize}
+
+  \item the need for contextual lexing and state management in the lexer
+    to cope with the fact that one can embed HTML in PHP code
+    and vice versa which in principle requires two different 
+    lexers and parsers. In practice our HTML lexer is very simple
+    and just returns a RAW string for the whole HTML snippet (no
+    tree) and we have slightly hacked around [[ocamllex]] to makes
+    the two lexers work together. In fact the need 
+    for interpolated strings and HereDocs ([[<<<EOF]] constructs)
+    also imposes some constraints on the lexer.
+
+  \item this free mixing of HTML and PHP should normally also 
+    have consequences on the grammar and the AST, with the need for mutually
+    recursive rules and types. In practice the parser internally transforms
+    HTML snippets in sort of [[echo]] statements so that the AST 
+    is almost oblivious to this PHP syntactic sugar.
+
+  \item the need to remember the position information (line 
+    and column numbrers) of the different PHP elements in the AST
+    imposed another small hack  around [[ocamllex]] which by default
+    offer very few support for that.
+
+  \item managing XHP is not yet done
+\end{itemize}
+
+%main code
+% code from "parse_php.ml.nw", high level overview
+
+In the following
+chapters we describe almost the full code of the \pfff parser.
+\ifwantrepetitivecode
+\else
+To avoid some repetitions, and because some code are really
+boring, we sometimes use the literate programming prefix
+[[repetitive]] in chunk names to mean code that mostly
+follow the structure of the code you just seen but
+handle other similar constructs.
+\fi.
+
+Here is the high-level structure of [[parse_php.ml]]: 
+\label{sec:parse-php-ml-overview}
+
+<<parse_php.ml>>=
+<<Facebook copyright>>
+
+open Common 
+
+<<parse_php module aliases>>
+
+module PI = Parse_info
+
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+
+(*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+
+<<type program2>>
+
+<<function program_of_program2>>
+let program_of_program_with_comments a = program_of_program2 a
+
+(*****************************************************************************)
+(* Wrappers *)
+(*****************************************************************************)
+let pr2_err, pr2_once = Common.mk_pr2_wrappers Flag.verbose_parsing 
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+<<parse_php helpers>>
+
+(*****************************************************************************)
+(* Error diagnostic  *)
+(*****************************************************************************)
+<<parse_php error diagnostic>>
+
+(*****************************************************************************)
+(* Stat *)
+(*****************************************************************************)
+
+(*****************************************************************************)
+(* Lexing only *)
+(*****************************************************************************)
+<<function tokens>>
+
+(*****************************************************************************)
+(* Helper for main entry point *)
+(*****************************************************************************)
+<<parse tokens_state helper>>
+
+(*****************************************************************************)
+(* Main entry point *)
+(*****************************************************************************)
+<<Parse_php.parse>>
+
+let parse_program ?pp file = 
+  let (ast2, _stat) = parse ?pp file in
+  program_of_program2 ast2
+
+(*****************************************************************************)
+(* Sub parsers *)
+(*****************************************************************************)
+
+let parse_any filename =
+  let toks = tokens ~init_state:Lexer_php.ST_IN_SCRIPTING filename in
+
+  let tr = PI.mk_tokens_state toks in
+  let lexbuf_fake = Lexing.from_function (fun buf n -> raise Impossible) in
+  
+  try 
+    Parser_php.sgrep_spatch_pattern (lexer_function tr) lexbuf_fake
+  with exn ->
+    let cur = tr.PI.current in
+    if !Flag.show_parsing_error
+    then 
+    (match exn with
+     (* Lexical is not anymore launched I think *)
+     | Lexer_php.Lexical s -> 
+         pr2 ("lexical error " ^s^ "\n =" ^ error_msg_tok cur)
+     | Parsing.Parse_error -> 
+         pr2 ("parse error \n = " ^ error_msg_tok cur)
+    (* | Semantic_java.Semantic (s, i) -> 
+         pr2 ("semantic error " ^s^ "\n ="^ error_msg_tok tr.current)
+    *)
+     | _ -> raise exn
+    );
+    raise exn
+    
+let any_of_string s =
+  let tmpfile = Common.new_temp_file "pfff_any_of_s" "php" in
+  Common.write_file tmpfile s;
+  let res = parse_any tmpfile in
+  Common.erase_this_temp_file tmpfile;
+  res
+
+(* 
+ * todo: obsolete now with parse_any ? just redirect to parse_any ?
+ * 
+ * This function is useful not only to test but also in our own code
+ * as a shortcut to build complex expressions
+ *)
+let (expr_of_string: string -> Ast_php.expr) = fun s ->
+  let tmpfile = Common.new_temp_file "pfff_expr_of_s" "php" in
+  Common.write_file tmpfile ("<?php \n" ^ s ^ ";\n");
+
+  let (ast2, _stat) = parse tmpfile in
+  let ast = program_of_program2 ast2 in
+
+  let res = 
+    (match ast with
+    | [Ast.StmtList [Ast.ExprStmt (e, _tok)];Ast.FinalDef _] -> e
+  | _ -> failwith "only expr pattern are supported for now"
+  )
+  in
+  Common.erase_this_temp_file tmpfile;
+  res
+
+(* It is clearer for our testing code to programmatically build source files
+ * so that all the information about a test is in the same
+ * file. You don't have to open extra files to understand the test
+ * data. This function is useful mostly for our unit tests 
+*)
+let (program_of_string: string -> Ast_php.program) = fun s -> 
+  let tmpfile = Common.new_temp_file "pfff_expr_of_s" "php" in
+  Common.write_file tmpfile ("<?php \n" ^ s ^ "\n");
+  let (ast2, _stat) = parse tmpfile in
+  let ast = program_of_program2 ast2 in
+  Common.erase_this_temp_file tmpfile;
+  ast
+
+(* use program_of_string when you can *)
+let tmp_php_file_from_string s =
+  let tmp_file = Common.new_temp_file "test" ".php" in
+  Common.write_file ~file:tmp_file ("<?php\n" ^ s);
+  tmp_file
+
+
+(* this function is useful mostly for our unit tests *)
+let (tokens_of_string: string -> Parser_php.token list) = fun s -> 
+  let tmpfile = Common.new_temp_file "pfff_tokens_of_s" "php" in
+  Common.write_file tmpfile ("<?php \n" ^ s ^ "\n");
+  let toks = tokens tmpfile in
+  Common.erase_this_temp_file tmpfile;
+  toks
+  
+
+(* 
+ * The regular lexer 'tokens' at the beginning of this file is quite
+ * complicated because it has to maintain a state (for the HereDoc, 
+ * interpolated string, HTML switching mode, etc) and it also takes 
+ * a file not a string because it annotates tokens with file position.
+ * Sometimes we need only a simple and faster lexer and one that can 
+ * take a string hence this function.
+ *)
+let rec basic_lexer_skip_comments lexbuf = 
+  let tok = Lexer_php.st_in_scripting lexbuf in
+  if TH.is_comment tok 
+  then basic_lexer_skip_comments lexbuf
+  else tok
+
+(* A fast-path parser of xdebug expressions in xdebug dumpfiles. 
+ * See xdebug.ml *)
+let (xdebug_expr_of_string: string -> Ast_php.expr) = fun s ->
+  let lexbuf = Lexing.from_string s in
+  let expr = Parser_php.expr basic_lexer_skip_comments lexbuf in
+  expr
+
+let (class_def_of_string: string -> Ast_php.class_def) = fun s ->
+  let lexbuf = Lexing.from_string s in
+  Parser_php.class_declaration_statement basic_lexer_skip_comments lexbuf
+
+@ 
+
+
+\t a control-flow graph or stack trace of a call to the parser ?
+
+Here is the skeleton of the main entry point:
+
+<<Parse_php.parse>>=
+
+(* could move that in h_program-lang/, but maybe clearer to put it closer
+ * to the parsing function.
+ *)
+exception Parse_error of Parse_info.info
+
+let parse2 ?(pp=(!Flag.pp_default)) filename =
+
+  let orig_filename = filename in
+  let filename =
+    (* note that now that pfff support XHP constructs directly, 
+     * this code is not that needed.
+     *)
+    match pp with
+    | None -> orig_filename
+    | Some cmd ->
+        Common.profile_code "Parse_php.pp_maybe" (fun () ->
+
+          let pp_flag = if !Flag.verbose_pp then "-v" else "" in
+
+          (* The following requires the preprocessor command to
+           * support the -q command line flag.
+           * 
+           * Maybe a little bit specific to XHP and xhpize ... But
+           * because I use as a convention that 0 means no_need_pp, if
+           * the preprocessor does not support -q, it should return an
+           * error code, in which case we will fall back to the regular
+           * case. *)
+          let cmd_need_pp = 
+            spf "%s -q %s %s" cmd pp_flag filename in
+          if !Flag.verbose_pp then pr2 (spf "executing %s" cmd_need_pp);
+          let ret = Sys.command cmd_need_pp in
+          if ret = 0 
+          then orig_filename
+          else begin
+            Common.profile_code "Parse_php.pp" (fun () ->
+            let tmpfile = Common.new_temp_file "pp" ".pphp" in
+            let fullcmd = 
+              spf "%s %s %s > %s" cmd pp_flag filename tmpfile in
+            if !Flag.verbose_pp then pr2 (spf "executing %s" fullcmd);
+            let ret = Sys.command fullcmd in
+            if ret <> 0
+            then failwith "The preprocessor command returned an error code";
+            tmpfile
+            )
+          end
+        )
+  in
+
+  let stat = Parse_info.default_stat filename in
+  let filelines = Common.cat_array filename in
+
+  let toks = tokens filename in
+  (* note that now that pfff support XHP constructs directly, 
+   * this code is not that needed.
+   *)
+  let toks = 
+    if filename = orig_filename
+    then toks
+    else Pp_php.adapt_tokens_pp ~tokenizer:tokens ~orig_filename toks
+  in
+
+  let tr = Parse_info.mk_tokens_state toks in
+
+  let checkpoint = TH.line_of_tok tr.PI.current in
+
+  let lexbuf_fake = Lexing.from_function (fun buf n -> raise Impossible) in
+  let elems = 
+    try (
+      (* -------------------------------------------------- *)
+      (* Call parser *)
+      (* -------------------------------------------------- *)
+      Left 
+        (Common.profile_code "Parser_php.main" (fun () ->
+          (Parser_php.main (lexer_function tr) lexbuf_fake)
+        ))
+    ) with e ->
+
+      let line_error = TH.line_of_tok tr.PI.current in
+
+      let _passed_before_error = tr.PI.passed in
+      let current = tr.PI.current in
+
+      (* no error recovery, the whole file is discarded *)
+      tr.PI.passed <- List.rev toks;
+
+      let info_of_bads = Common.map_eff_rev TH.info_of_tok tr.PI.passed in 
+
+      Right (info_of_bads, line_error, current, e)
+  in
+
+  match elems with
+  | Left xs ->
+      stat.PI.correct <- (Common.cat filename +> List.length);
+
+      distribute_info_items_toplevel xs toks filename, 
+      stat
+  | Right (info_of_bads, line_error, cur, exn) ->
+
+      if not !Flag.error_recovery 
+      then raise (Parse_error (TH.info_of_tok cur));
+
+      (match exn with
+      | Lexer_php.Lexical _ 
+      | Parsing.Parse_error 
+          (*| Semantic_c.Semantic _  *)
+        -> ()
+      | e -> raise e
+      );
+
+      if !Flag.show_parsing_error
+      then 
+        (match exn with
+        (* Lexical is not anymore launched I think *)
+        | Lexer_php.Lexical s -> 
+            pr2 ("lexical error " ^s^ "\n =" ^ error_msg_tok cur)
+        | Parsing.Parse_error -> 
+            pr2 ("parse error \n = " ^ error_msg_tok cur)
+              (* | Semantic_java.Semantic (s, i) -> 
+                 pr2 ("semantic error " ^s^ "\n ="^ error_msg_tok tr.current)
+          *)
+        | e -> raise Impossible
+        );
+      let checkpoint2 = Common.cat filename +> List.length in
+
+      if !Flag.show_parsing_error
+      then Parse_info.print_bad line_error (checkpoint, checkpoint2) filelines;
+
+      stat.PI.bad     <- Common.cat filename +> List.length;
+
+      let info_item = mk_info_item filename (List.rev tr.PI.passed) in 
+      [Ast.NotParsedCorrectly info_of_bads, info_item], 
+      stat
+@ 
+
+
+<<Parse_php.parse>>=
+
+let _hmemo_parse_php = Hashtbl.create 101
+
+let parse_memo ?pp file = 
+  if not !Flag.caching_parsing
+  then parse2 ?pp file
+  else
+    Common.memoized _hmemo_parse_php file (fun () -> 
+      Common.profile_code "Parse_php.parse_no_memo" (fun () ->
+        parse2 ?pp file
+      )
+    )
+
+let parse ?pp a = 
+  Common.profile_code "Parse_php.parse" (fun () -> parse_memo ?pp a)
+@
+
+The important parts are the calls to [[tokens]],
+a wrapper around the [[ocamllex]] lexer,
+and to [[Parser_php.main]], the toplevel grammar rule automatically
+generated by [[ocamlyacc]]. This last function
+takes as parameters a function
+providing a stream of tokens and a lexing buffer. Because we had
+to hack around [[ocamllex]], the streaming function and buffer
+do not come directly from a call to [[Lexing.from_channel]] 
+coupled with an [[ocamllex]] rule specified in [[lexer_php.mll]],
+which is how things are usually done. Instead we pass 
+a custom build steaming function [[lexer_function]] and a fake
+buffer.
+Both [[tokens]] and [[lexer_function]] will be explained in 
+Chapter~\ref{chapter:lexer} while [[Parser_php.main]] 
+will be explained in~\ref{chapter:grammar}. The remaining code
+used in the code above will be finally described in
+Chapter~\ref{chapter:parser}.
+

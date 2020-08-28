@@ -1,0 +1,2 @@
+Copyright (C) 2004 John Whaley <jwhaley@alum.mit.edu>
+Licensed under the terms of the GNU LGPL; see COPYING for details.

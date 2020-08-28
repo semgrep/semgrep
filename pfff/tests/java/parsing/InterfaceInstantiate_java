@@ -1,0 +1,13 @@
+bad: public class ApiMethodServiceHandler<PARAMS, RESULT> implements OrcaServiceHandler {
+BAD:!!!!!   public static interface ParamGetter<PARAMS> {
+bad:     PARAMS getParams(Bundle bundle);
+bad:   }
+bad:   public static interface ResultConverter<RESULT> {
+bad:     /**
+bad:      * Convert RESULT object from ApiMethod to OperationResult.
+bad:      *
+bad:      * @param result the result from ApiMethod
+bad:      * @return the OperationResult
+bad:      */
+bad:     OperationResult forResult(RESULT result);
+bad:   }

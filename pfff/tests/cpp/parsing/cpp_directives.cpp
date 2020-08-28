@@ -1,0 +1,5 @@
+
+#pragma once
+
+void main() {
+}

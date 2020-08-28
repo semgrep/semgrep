@@ -1,0 +1,17 @@
+To install pfff, you must first install recent versions of:
+ - OCaml (at least 4.02.3)
+   see http://caml.inria.fr/download.en.html
+ - SWI-prolog
+   if you want the interactive code query tool
+ - Java (for bddbddb)
+   if you want the datalog pointer analysis
+
+If you want most of the good things just type:
+
+  $ ./configure
+  $ make depend
+  $ make
+  $ make opt
+
+This should generate a few binaries at the toplevel directory such
+as pfff.
