@@ -1,0 +1,2 @@
+This was extracted from go/doc/go_spec.html by just
+keeping the grammar and ebnf parts (via some emacs macros).

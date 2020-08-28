@@ -1,0 +1,4 @@
+@Annot(...)
+public class Foo {
+
+}

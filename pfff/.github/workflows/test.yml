@@ -1,0 +1,22 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [master, develop]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Install System Deps
+      run: sudo add-apt-repository ppa:avsm/ppa && sudo apt update && sudo apt-get install -y --no-install-recommends m4 perl wget swi-prolog mercurial ocaml opam
+    - name: debugging
+      run: opam --version
+    - name: Install pfff
+      run: opam init && opam switch create 4.07.1 && opam switch 4.07.1 && eval $(opam env) && opam install -y ocaml-migrate-parsetree ocaml-migrate-parsetree.1.3.1 && opam install -y menhir grain_dypgen ppx_deriving uucp uutf && opam install -y pfff
+    - name: Run Tests
+      run: eval $(opam env); export PFFF_HOME=`pwd`; ./configure -novisual && make depend && make test

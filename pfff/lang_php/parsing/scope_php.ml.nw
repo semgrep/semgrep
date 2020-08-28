@@ -1,0 +1,23 @@
+<<scope_php.ml>>=
+<<Facebook copyright>>
+
+open Common
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+(* 
+ * It would be more convenient to move this file elsewhere like in analyse_php/
+ * but we want our AST to contain scope annotations so it's convenient to 
+ * have the type definition of PHP scope here in parsing_php/. 
+ * See also type_php.ml
+ *)
+
+(*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+<<type phpscope>>
+
+let s_of_phpscope = Scope_code.string_of_scope
+
+@ 
+

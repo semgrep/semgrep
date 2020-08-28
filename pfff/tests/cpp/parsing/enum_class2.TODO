@@ -1,0 +1,6 @@
+enum class TableSelectionMode : uint32_t;
+
+enum class AtkStringConvertFlags : uint32_t {
+  None = 0,
+  ConvertTextToAsterisks = 1 << 0,
+};

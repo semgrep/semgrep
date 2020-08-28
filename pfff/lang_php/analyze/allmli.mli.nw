@@ -1,0 +1,395 @@
+
+\section{[[aliasing_function_php.mli]]}
+
+<<aliasing_function_php.mli>>=
+@
+
+
+\section{[[analysis_dynamic_php.mli]]}
+
+<<analysis_dynamic_php.mli>>=
+@
+
+
+\section{[[analysis_static_php.mli]]}
+
+<<analysis_static_php.mli>>=
+@
+
+
+\section{[[annotation_php.mli]]}
+
+<<annotation_php.mli>>=
+@
+
+\section{[[ast_entity_php.mli]]}
+
+<<ast_entity_php.mli>>=
+open Ast_php
+
+type id_ast = 
+  | Function of func_def
+  | Class of class_def
+  | Interface of interface_def
+  | StmtList of stmt list
+
+  | Method of method_def
+
+  | ClassConstant of class_constant
+  | ClassVariable of class_variable * modifier list
+
+  | XhpDecl of xhp_decl
+
+  | Misc of info list
+
+val toplevel_to_idast: toplevel -> id_ast
+
+(* Being able to access the definition of a class from a a program requires
+ * a global analysis to find where is the class. This should mean
+ * that each time some of the analyze_php/ functions need such thing they
+ * would need to know about database_php.ml which leads to too many
+ * dependencies. Enter 'entity_finder', which is usually build
+ * via a closure from a database, but which hides the database to the
+ * function using it. See database_php_build.build_entity_finder.
+ *)
+type entity_finder = (Entity_php.id_kind * string) -> id_ast
+
+@ 
+
+
+\section{[[bottomup_analysis_php.mli]]}
+
+<<bottomup_analysis_php.mli>>=
+
+@
+
+
+\section{[[builtins_php.mli]]}
+
+<<builtins_php.mli>>=
+@
+
+\section{[[callgraph_php.mli]]}
+
+<<callgraph_php.mli>>=
+@ 
+
+
+\section{[[checking_php.mli]]}
+
+<<checking_php.mli>>=
+@ 
+
+
+\section{[[code_rank_php.mli]]}
+
+<<code_rank_php.mli>>=
+@ 
+
+
+
+\section{[[comment_annotater_php.mli]]}
+
+<<comment_annotater_php.mli>>=
+@
+
+
+\section{[[controlflow_php.mli]]}
+
+<<controlflow_php.mli>>=
+@ 
+
+
+
+\section{[[controlflow_build_php.mli]]}
+
+<<controlflow_build_php.mli>>=
+@ 
+
+
+
+
+\section{[[database_php.mli]]}
+
+<<database_php.mli>>=
+@ 
+
+
+
+\section{[[database_php_build.mli]]}
+
+<<database_php_build.mli>>=
+@ 
+
+
+
+\section{[[database_php_query.mli]]}
+
+<<database_php_query.mli>>=
+@ 
+
+
+
+
+\section{[[database_php_statistics.mli]]}
+
+<<database_php_statistics.mli>>=
+@ 
+
+
+\section{[[dataflow_php.mli]]}
+
+<<dataflow_php.mli>>=
+@ 
+
+
+
+\section{[[deadcode_php.mli]]}
+
+<<deadcode_php.mli>>=
+@ 
+
+
+
+\section{[[dependencies_php.mli]]}
+
+<<dependencies_php.mli>>=
+@ 
+
+
+
+\section{[[entities_php.mli]]}
+
+<<entities_php.mli>>=
+@ 
+
+
+
+\section{[[entity_php.mli]]}
+
+<<entity_php.mli>>=
+@ 
+
+
+
+\section{[[finder_php.mli]]}
+
+<<finder_php.mli>>=
+@ 
+
+
+
+\section{[[freevars_php.mli]]}
+
+<<freevars_php.mli>>=
+@
+
+
+\section{[[graph_php.mli]]}
+
+<<graph_php.mli>>=
+
+type id_graph = Entity_php.id Graph.graph
+
+
+(* for debugging simple analysis; only direct function calls are included *)
+val build_simple_callgraph:
+  Database_php.database -> id_graph
+
+(* the database contains the name of the ids *)
+val display_with_gv: 
+  id_graph -> Database_php.database -> unit
+
+(* can be used for regular callgraph but also for use of entities like class *)
+val build_entities_graph: 
+  all_ids: Entity_php.id list ->
+  successors: (Entity_php.id -> Entity_php.id list) ->
+  id_graph
+
+@
+
+
+\section{[[include_require_php.mli]]}
+
+<<include_require_php.mli>>=
+type increq = 
+  increq_kind * Ast_php.tok * increq_expr 
+
+ and increq_expr = 
+   | Direct of Common.filename 
+   | ConcatVar of Ast_php.dname * Common.filename
+   | ConcatConstant of Ast_php.name * Common.filename
+   | ConcatArrrayVar of Ast_php.dname * string * Common.filename
+   | ConcatDirname of Common.filename
+   | ConcatRealpathDirname of Common.filename
+
+   | SimpleVar of Ast_php.dname
+   | Other of Ast_php.expr
+
+ and increq_kind = 
+   | Include
+   | IncludeOnce
+   | Require
+   | RequireOnce
+
+val top_increq_of_program: Ast_php.program -> increq list
+val all_increq_of_any: Ast_php.any -> increq list
+
+val increq_expr_of_expr: Ast_php.expr -> increq_expr
+
+val resolve_path: 
+  Env_php.env * Common.dirname (* pwd of file *) -> increq_expr -> 
+  Common.filename option
+
+val includes_of_file: 
+  Env_php.env -> Common.filename -> Common.filename list
+
+val recursive_included_files_of_file:
+ (* this hook is to let reuse this code by having another "includers"
+  * preprocessor, for instance one that understand facebook flib specificities
+  * like require_module() directives.
+  *)
+ ?verbose:bool -> ?depth_limit: int option ->
+ ?includes_of_file:(Env_php.env -> Common.filename -> Common.filename list) ->
+ Env_php.env -> Common.filename -> Common.filename list
+
+@
+
+
+\section{[[info_annotater_php.mli]]}
+
+<<info_annotater_php.mli>>=
+@
+
+
+\section{[[lib_analyze_php.mli]]}
+
+<<lib_analyze_php.mli>>=
+@ 
+
+
+
+\section{[[namespace_php.mli]]}
+
+<<namespace_php.mli>>=
+@ 
+
+
+
+\section{[[normalize_php.mli]]}
+
+<<normalize_php.mli>>=
+@ 
+
+
+
+\section{[[scoping_php.mli]]}
+
+<<scoping_php.mli>>=
+@ 
+
+
+
+\section{[[smpl_php.mli]]}
+
+<<smpl_php.mli>>=
+@
+
+
+\section{[[statistics_php.mli]]}
+
+<<statistics_php.mli>>=
+type stat = {
+  mutable functions: int;
+  mutable classes: int;
+  mutable toplevels_funcalls: int;
+  mutable toplevels_assign: int;
+  mutable toplevels_other: int;
+  mutable toplevels_include_requires: int;
+
+  mutable toplevels_funcalls_kinds: (string * int) list;
+  (* toplevels_assign_kinds? *)
+}
+type php_file_kind =
+  | LibFile
+  | IncluderFile
+  | ScriptOrEndpointFile
+
+val default_stat: unit -> stat
+
+val string_of_stat: stat -> string
+
+val stat_of_program: Ast_php.program -> stat
+
+(* helpers *)
+val kind_of_file_using_stat: stat -> php_file_kind
+
+@
+
+
+
+
+\section{[[test_analyze_php.mli]]}
+
+<<test_analyze_php.mli>>=
+@ 
+
+\section{[[test_analyze_db_php.mli]]}
+
+<<test_analyze_db_php.mli>>=
+(* This makes accessible the different test_xxx functions above from 
+ * the command line, e.g. '$ pfff_misc -cfg_php foo.php' will call the 
+ * test_cfg_php function.
+ *)
+val actions: unit -> Common.cmdline_actions
+
+(* helpers used also in unit_analyze_php.ml *)
+val db_of_files_or_dirs: Common.path list -> Database_php.database
+
+
+@ 
+
+
+
+\section{[[type_annotater_php.mli]]}
+
+<<type_annotater_php.mli>>=
+@
+
+
+\section{[[typing_php.mli]]}
+
+<<typing_php.mli>>=
+@ 
+
+
+
+\section{[[typing_trivial_php.mli]]}
+
+<<typing_trivial_php.mli>>=
+@ 
+
+
+
+\section{[[typing_weak_php.mli]]}
+
+<<typing_weak_php.mli>>=
+@ 
+
+
+
+\section{[[visitor2_php.mli]]}
+
+<<visitor2_php.mli>>=
+@ 
+
+
+
+\section{[[xdebug.mli]]}
+
+<<xdebug.mli>>=
+@ 
+
+
+
+

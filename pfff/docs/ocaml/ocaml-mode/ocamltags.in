@@ -1,0 +1,142 @@
+":" ; @EMACS@ -batch -l $0 "$@" ; status=$? ; : '--*-Emacs-Lisp-*--' <<';'
+
+;(***********************************************************************)
+;(*                                                                     *)
+;(*                           Objective Caml                            *)
+;(*                                                                     *)
+;(*                Jacques Garrigue and Ian T Zimmerman                 *)
+;(*                                                                     *)
+;(*  Copyright 1998 Institut National de Recherche en Informatique et   *)
+;(*  en Automatique.  All rights reserved.  This file is distributed    *)
+;(*  under the terms of the GNU General Public License.                 *)
+;(*                                                                     *)
+;(***********************************************************************)
+
+;(* $Id: ocamltags.in,v 1.6 2004/08/20 17:04:35 doligez Exp $ *)
+
+;; Copyright (C) 1998 Ian Zimmerman <itz@transbay.net>
+;;  This program is free software; you can redistribute it and/or
+;;  modify it under the terms of the GNU General Public License as
+;;  published by the Free Software Foundation; either version 2 of the
+;;  License, or (at your option) any later version.
+
+;;  This program is distributed in the hope that it will be useful,
+;;  but WITHOUT ANY WARRANTY; without even the implied warranty of
+;;  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;;  General Public License for more details.
+;; $Id: ocamltags.in,v 1.6 2004/08/20 17:04:35 doligez Exp $
+
+(require 'caml)
+
+;;itz Fri Oct 30 13:08:37 PST 1998 support for creating TAGS files
+;; itz Sun Dec 27 10:26:08 PST 1998 adapted very slightly from
+;; Jacques' caml-create-index-function
+(defun caml-tags-create-index-function ()
+  (let (all-alist index)
+    (goto-char (point-max))
+    ;; collect definitions
+    (while (caml-prev-index-position-function)
+      (if (looking-at "[ \t]*val") nil
+        (setq index (cons (caml-match-string 5) (point)))
+        (setq all-alist (cons index all-alist))))
+    all-alist))
+
+(defun caml-tags-file (filename)
+  (let* ((output-buffer (current-buffer))
+         (basename (file-name-nondirectory filename))
+         (backpatch (prog2
+                        (insert "\n" basename)
+                        (point))))
+    (find-file-read-only filename)
+    (caml-mode)
+    (let ((all-alist (caml-tags-create-index-function))
+          (done nil)
+          (current-line 1)
+          (last-point (point-min)))
+      (mapcar
+       (lambda (pair)
+         (let ((tag-name (car pair)) (tag-pos (cdr pair)))
+           (goto-char tag-pos)
+           (setq current-line
+                 (+ current-line (count-lines last-point (point))))
+           (setq last-point (point))
+           (end-of-line 1)
+           (let ((output-line (format "%s%s%d,%d\n"
+                                      (buffer-substring last-point (point))
+                                      tag-name current-line tag-pos)))
+             (save-excursion
+               (set-buffer output-buffer)
+               (insert output-line)))))
+       all-alist))
+    (kill-buffer (current-buffer))
+    (set-buffer output-buffer)
+    (let ((index-size (- (point) backpatch)))
+      (goto-char backpatch)
+      (insert "," (int-to-string index-size) "\n")
+      (goto-char (point-max)))))
+
+(defsubst prefix-p (prefix str)
+  (and (<= (length prefix) (length str))
+       (string= prefix (substring str 0 (length prefix)))))
+
+(defsubst eat-args (n)
+  (setq command-line-args-left (nthcdr n command-line-args-left)))
+
+;; see Emacs source file print.c
+(defun print-error-message (data)
+  (let ((errname (car data)) errmsg is-file-error tail i)
+    (if (eq errname 'error)
+        (progn
+          (setq data (cdr data))
+          (if (not (consp data)) (setq data nil))
+          (setq errmsg (car data))
+          (setq is-file-error nil))
+      (setq errmsg (get errname 'error-message))
+      (setq is-file-error (memq 'file-error (get errname 'error-conditions))))
+    (setq tail (cdr-safe data))
+    (if (and is-file-error tail)
+        (setq errmsg (car tail) tail (cdr tail)))
+    (if (stringp errmsg) (princ errmsg)
+      (princ "peculiar error"))
+    (setq i 0)
+    (while (consp tail)
+      (princ (if (eq i 0) ": " ", "))
+      (if is-file-error (princ (car tail))
+        (prin1 (car tail)))
+      (setq tail (cdr tail) i (1+ i)))
+    (princ "\n")))
+
+
+(setq gc-cons-threshold 1000000)
+
+(setq output-file "TAGS")
+(setq append-flag nil)
+(setq status 0)
+
+(condition-case foobar
+    (progn
+      (while (and command-line-args-left
+                  (let ((arg (car command-line-args-left)))
+                    (cond
+                     ((prefix-p arg "-output-file")
+                      (setq output-file (nth 1 command-line-args-left))
+                      (eat-args 2) t)
+                     ((prefix-p arg "-append")
+                      (setq append-flag t)
+                      (eat-args 1) t)
+                     (t nil)))))
+
+      (find-file output-file)
+      (if append-flag (goto-char (point-max))
+        (erase-buffer))
+      (while command-line-args-left
+        (caml-tags-file (car command-line-args-left))
+        (setq command-line-args-left (cdr command-line-args-left)))
+      (save-buffer 0))
+  (error (setq status 1) (print-error-message foobar)))
+
+(kill-emacs status)
+
+;
+
+":" ; exit $status

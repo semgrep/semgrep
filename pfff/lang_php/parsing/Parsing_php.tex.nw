@@ -1,0 +1,398 @@
+\documentclass{report}
+
+%******************************************************************************
+% Prelude
+%******************************************************************************
+\newif\iffinal
+\newif\ifverbose
+\newif\iffacebook
+%\finalfalse\verbosetrue\facebooktrue
+\finaltrue\verbosefalse\facebooktrue
+
+%cf also some \newif below
+
+%------------------------------------------------------------------------------
+%history: 
+%------------------------------------------------------------------------------
+%thx to LP, changed for the better a few things :)
+% - have a ast_php.mli, as no more copy paste problem :)
+% - factorized copyright
+% - TODO factorise lexer code in different rules. Enable reproduce
+%   features from flex.
+%   TODO grouped eof stuff, AOP
+% - TODO better separation of concern for tags like cocci_tag, comment_tag, 
+%   and type tag in expression. Closer to their related code (AOP style)
+% - in AST, types are closer. Can put type alias closer to their
+%    related constructors
+% - clearer understanding of AST types, for instance static_scalar does
+%   not have to be in expression, in can be closer to its 'declare'
+% - in lexer, mix the regexp aliases with their respective rules for 
+%   the other stuff
+
+% - in lexer, the regexp aliases and rules are closer to each other
+
+%history LP-ization:
+% - intergrate ast.mli (and ast.ml as had to cos shared code)
+% - integrate other user-oriented .mli (public API)
+% - integrate grammar and lexer
+% - wrote the intro
+% - integrate auxillary .ml files
+
+%could mix the ast def and grammar rules now that use LP.
+
+%------------------------------------------------------------------------------
+% Packages
+%------------------------------------------------------------------------------
+\usepackage{noweb}
+\noweboptions{}
+%note: allow chunk to be on different pages, so less white space at
+%  bottom of pages
+\def\nwendcode{\endtrivlist \endgroup}
+\let\nwdocspar=\par
+
+\usepackage{xspace}
+
+\usepackage{verbatim}
+%note: required by noweblatexpad for the \t \l \n in this file
+\usepackage{fancyvrb}
+
+\usepackage{url}
+\iffinal
+\usepackage{hyperref}
+\hypersetup{colorlinks=true}
+\fi
+
+\usepackage{shorttoc}
+
+\usepackage[pageref]{backref}
+\def\backref{{\footnotesize cited page(s)}~}%en: \def\backref{{\footnotesize cited page(s)}~}
+
+
+\usepackage{multirow}
+
+%define: \toprule
+\usepackage{booktabs} 
+%?\usepackage{ctable}
+\newcommand{\otoprule}{\midrule[\heavyrulewidth]}
+
+%define: \includegraphics
+\usepackage{graphicx}
+
+%\usepackage{dot2texi}
+%\usepackage{tikz}
+
+%------------------------------------------------------------------------------
+% Macros
+%------------------------------------------------------------------------------
+\input{Macros}
+
+%------------------------------------------------------------------------------
+% Config
+%------------------------------------------------------------------------------
+\implemtrue
+\implemoverviewtrue
+\wantrepetitivecodefalse
+
+%******************************************************************************
+% Title
+%******************************************************************************
+\begin{document}
+
+\title{
+{\Huge Pfff: Parsing PHP}\\
+{Programmer's Manual}
+\ifimplem
+and Implementation
+\fi
+}
+\author{
+Yoann Padioleau\\
+\texttt{pad@fb.com}
+}
+%dup: authors.txt
+
+\maketitle 
+
+%dup: with section Copyright
+\pagebreak
+\hrule
+\begin{quote}
+    Copyright \copyright{}  2009-2010 Facebook \\
+    Permission is granted to copy, distribute and/or modify this document
+    under the terms of the GNU Free Documentation License, Version 1.3.
+\end{quote}
+\hrule
+\pagebreak
+% if implem is included, then the doc contains the full source code
+% so the copyright should be GPL ?
+
+\iffinal
+\begingroup
+\hypersetup{colorlinks=true, linkcolor=blue}
+\shorttoc{Short Contents}{0}
+\tableofcontents
+\endgroup
+\else
+\shorttoc{Short Contents}{0}
+\tableofcontents
+\fi
+
+
+%******************************************************************************
+% Body
+%******************************************************************************
+
+\chapter{Introduction}
+%\addcontentsline{toc}{part}{Conclusion}
+\t test todo
+\l test less
+\n test note
+
+#include "Parsing_php_intro.tex.nw"
+
+\ifimplem
+\part{Using \pfff}
+\fi 
+
+\chapter{Examples of Use}
+
+#include "Parsing_php_use.tex.nw"
+
+\chapter{Parsing Services}
+\label{chapter:parse-entry-point}
+
+We now switch to a more systematic presentation of the \pfff API
+starting with its first entry point, the parser.
+
+#include "parse_php.mli.nw"
+
+\chapter{The AST}
+\label{chapter:ast} 
+#include "ast_php.mli.nw"
+
+\chapter{The Visitor Interface}
+\label{chapter:visitor}
+#include "visitor_php.mli.nw"
+
+#include "map_php.mli.nw"
+
+\chapter{Unparsing Services}
+\label{chapter:unparsing}
+#include "unparse_php.mli.nw"
+
+#include "export_ast_php.mli.nw"
+
+\chapter{Other Services}
+\label{chapter:other-services} 
+
+This chapter describes the other services provided by
+files in [[parsing_php/]]. For the static analysis
+services of \pfff (
+%copy paste of Parsing_php_intro:
+control-flow and data-flow graphs, 
+caller/callee graphs, 
+module dependencies, 
+type inference, 
+source-to-source transformations, 
+PHP code pattern matching, etc),
+see the [[Analysis_php.pdf]] manual.
+For explanations about the semantic PHP source code
+visualizer and explorer [[pfff_browser]], see
+the [[Gui_php.pdf]] manual.
+
+\section{Extra accessors, extractors, wrappers}
+\label{section:lib-parsing}
+#include "lib_parsing_php.mli.nw"
+
+\t pfff.top ?
+
+\section{Debugging \pfff, [[pfff -<flags>]]}
+\label{section:flag-parsing}
+#include "flag_parsing_php.ml.nw"
+
+\section{Testing \pfff components}
+\label{section:test-parsing}
+
+#include "test_parsing_php.mli.nw"
+
+#include "unit_parsing_php.mli.nw"
+
+\section{[[pfff.top]]}
+
+\section{Meta}
+
+#include "meta_ast_php.mli.nw"
+
+
+\section{Interoperability (JSON and thrift)}
+
+We have already described in Section~\ref{sec:unparsing-json}
+that \pfff can export the JSON or sexp of an AST. This makes it possible to 
+somehow interoperate with other programming languages.
+
+TODO thrift so better typed interoperability
+
+See also [[pfff/ffi/]].
+
+\ifimplem
+\part{\pfff Internals}
+\fi
+
+\ifimplemoverview
+\chapter{Implementation Overview}
+\label{chapter:implem-overview}
+#include "Parsing_php_implem.tex.nw"
+\fi %ifimplemoverview
+
+\ifimplem
+
+\chapter{Lexer}
+\label{chapter:lexer}
+#include "lexer_php.mll.nw"
+
+\chapter{Grammar}
+\label{chapter:grammar}
+#include "parser_php.mly.nw"
+
+\chapter{Parser glue code}
+\label{chapter:parser}
+#include "parse_php.ml.nw"
+
+\chapter{Style preserving unparsing}
+\label{chapter:unparser}
+#include "unparse_php.ml.nw"
+
+
+\chapter{Auxillary parsing code}
+
+\section{[[ast_php.ml]]}
+#include "ast_php.ml.nw"
+
+%meta_ast_php.ml mostly autogenerated
+
+\section{[[lib_parsing_php.ml]]}
+#include "lib_parsing_php.ml.nw"
+
+\section{[[export_ast_php.ml]]}
+#include "export_ast_php.ml.nw"
+
+\section{[[type_php.ml]]}
+%ifwant repetitive ...
+#include "type_php.ml.nw"
+
+\section{[[scope_php.ml]]}
+#include "scope_php.ml.nw"
+
+\section{misc}
+
+<<basic pfff module open and aliases>>=
+open Ast_php 
+
+module Ast = Ast_php
+module Flag = Flag_parsing_php
+@ 
+
+\fi %\ifimplem far far away
+
+\chapter*{Conclusion}
+\addcontentsline{toc}{chapter}{Conclusion}
+
+\appendix
+
+\chapter{Remaining Testing Sample Code}
+
+#include "test_parsing_php.ml.nw"
+
+#include "unit_parsing_php.ml.nw"
+
+\chapter*{Indexes}
+\addcontentsline{toc}{chapter}{Index}
+
+%todo_lp: separate index with letters
+%\subsection{Code Chunks}
+\nowebchunks
+
+%todo: need special support, cf smldefs 
+%\subsection{Identifiers}
+%\nowebindex
+
+
+%\chapter{References} 
+\addcontentsline{toc}{chapter}{References}
+
+\begin{thebibliography}{99}
+
+\bibitem[1]{wp-literate-programming} Donald Knuth,,
+{\em Literate Programming}, 
+\url{http://en.wikipedia.org/wiki/Literate\_Program}
+
+\bibitem[2]{noweb} Norman Ramsey,
+{\em Noweb}, 
+\url{http://www.cs.tufts.edu/~nr/noweb/}
+
+\bibitem[3]{syncweb} Yoann Padioleau,
+{\em Syncweb, literate programming meets unison}, 
+\url{http://padator.org/software/project-syncweb/readme.txt}
+
+
+
+\bibitem[4]{php-manual} Hannes Magnusson et al,
+{\em PHP Manual}, 
+\url{http://php.net/manual/en/index.php}
+% use php itself :)
+
+\bibitem[5]{dragon-book} Alfred Aho et al,
+{\em Compilers, Principles, Techniques, and tools}, 
+\url{http://en.wikipedia.org/wiki/Dragon_Book_(computer_science)}
+
+\bibitem[6]{modern-compiler-ml} Andrew Appel,
+{\em Modern Compilers in ML}, 
+Cambridge University Press
+
+\bibitem[7]{common-pad-manual} Yoann Padioleau,
+{\em Commons Pad OCaml Library}, 
+\url{http://padator.org/docs/Commons.pdf}
+
+\bibitem[8]{ocamltarzan} Yoann Padioleau,
+{\em OCamltarzan, code generation with and without camlp4}, 
+\url{http://padator.org/ocaml/ocamltarzan-0.1.tgz}
+
+
+\bibitem[9]{design-pattern-book} Eric Gamma et al,
+{\em Design Patterns},
+Addison-Wesley
+
+\bibitem[10]{design-pattern-norvig} Peter Norvig,
+{\em Design Patterns in Dynamic Programming},
+\url{http://norvig.com/design-patterns/}
+
+
+\bibitem[11]{coccinelle-eurosys} Yoann Padioleau, Julia Lawall, 
+Gilles Muller, Rene Rydhof Hansen,
+{\em Documenting and Automating Collateral Evolutions in Linux Device Drivers}
+Eurosys 2008
+
+\bibitem[12]{coccinelle-website} 
+{\em Coccinelle: A Program Matching and Transformation Tool for Systems Code},
+\url{http://coccinelle.lip6.fr/}
+
+
+
+\bibitem[13]{xhp} 
+{\em XHP},
+\url{http://wiki.github.com/facebook/xhp/}
+
+
+
+\bibitem[12]{cil} George Necula,
+{\em CIL}, 
+CC.
+\url{http://manju.cs.berkeley.edu/cil/}
+
+\end{thebibliography}
+
+%******************************************************************************
+% Postlude
+%******************************************************************************
+
+\end{document}

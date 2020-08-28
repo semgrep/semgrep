@@ -1,0 +1,4 @@
+description = "lisp/analyze"
+requires = "unix num str bigarray"
+archive(byte) = "lib.cma"
+archive(native) = "lib.cmxa"

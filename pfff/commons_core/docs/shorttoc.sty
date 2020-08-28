@@ -1,0 +1,66 @@
+%%
+%% This is file `shorttoc.sty',
+%% generated with the docstrip utility.
+%%
+%% The original source files were:
+%%
+%% shorttoc.dtx  (with options: `package')
+%% 
+%% IMPORTANT NOTICE:
+%% This file is a stripped version of `shorttoc.dtx',
+%% copyright (c) 1997, 1998, 1999 by Jean-Pierre Drucbert (drucbert@onecert.fr)
+%% 
+%% 
+%% You are not allowed to distribute this file.
+%% For distribution of the original source see
+%% the copyright notice in the source file.
+%% 
+%% Package `shorttoc' to use with LaTeX 2e
+%% Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002 Jean-Pierre F. Drucbert, all rights reserved
+%%
+%% You may use and distribute this file freely, provided that
+%% you don't pretend that you wrote it.
+\NeedsTeXFormat{LaTeX2e}[1996/06/01]
+\ProvidesPackage{shorttoc}
+         [2002/08/20 v1.3 Short table of contents (JPFD)]
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\def\@startshorttoc#1{\bgroup
+  \makeatletter
+  \@input{\jobname.#1}%
+  \global\@nobreakfalse \egroup}
+\def\sht@startshorttoc#1#2{\bgroup
+  \makeatletter
+  \@input{#2.#1}%
+  \global\@nobreakfalse \egroup}
+\newif\if@tightshtoc \@tightshtocfalse
+\def\shorttableofcontents#1#2{\bgroup\c@tocdepth=#2\@restonecolfalse
+  \if@tightshtoc
+     \parsep\z@
+  \fi
+  \if@twocolumn\@restonecoltrue\onecolumn\fi
+  \@ifundefined{chapter}%
+  {\section*{{#1}
+        \@mkboth{\uppercase{#1}}{\uppercase{#1}}}}%
+  {\chapter*{{#1}
+        \@mkboth{\uppercase{#1}}{\uppercase{#1}}}}%
+  \@startshorttoc{toc}\if@restonecol\twocolumn\fi\egroup}
+\newcommand{\anothertableofcontents}[4][toc]{\bgroup\c@tocdepth=#4\@restonecolfalse
+  \if@tightshtoc
+     \parsep\z@
+  \fi
+  \if@twocolumn\@restonecoltrue\onecolumn\fi
+  \@ifundefined{chapter}%
+  {\section*{{#3}
+        \@mkboth{\uppercase{#3}}{\uppercase{#3}}}}%
+  {\chapter*{{#3}
+        \@mkboth{\uppercase{#3}}{\uppercase{#3}}}}%
+  \sht@startshorttoc{#1}{#2}\if@restonecol\twocolumn\fi\egroup}
+     \let\shorttoc\shorttableofcontents
+     \let\anothertoc\anothertableofcontents
+     \DeclareOption{tight}{\@tightshtoctrue}
+     \DeclareOption{loose}{\@tightshtocfalse}
+     \ExecuteOptions{loose}
+     \ProcessOptions*
+\endinput
+%%
+%% End of file `shorttoc.sty'.

@@ -1,0 +1,49 @@
+from Evan Priestley at 
+https://www.facebook.com/home.php?sk=group_154539484584952&view=permalink&id=197228706982696
+
+Suppose you want to make IceCream. There are a few ways you can make
+IceCream: say you can make it from $cow or you can make it from $milk,
+but you can't make it from thin air.
+
+You might initially build it with public __construct(), public
+instance method makeFromCow($cow), and public instance method
+makeFromMilk($milk), but this has a lot of downsides. Principally, it
+means it's possible to have IceCream in an invalid/unusable state, and
+it means you'll have to do extra work every time you want to
+instantiate one, and your API is nonstandard and awkward so callers
+may forget to use it correctly or try to call make* methods on objects
+which have already been made.
+
+One way to avoid these issues is to use static constructors. You make
+__construct() protected or private, and then expose methods like
+$ice_cream = IceCream::newFromCow(Cow $cow) and $ice_cream =
+IceCream::newFromMilk(Milk $milk). Your object can now construct into
+a valid state from either set of data, without violating encapsulation
+and without ever existing in an intermediate or partially defined
+state. And your API is pretty sensible looking and reasonably compact,
+and impossible to get wrong.
+
+Now, suppose you have VanillaIceCream and ChocolateIceCream. Assume
+that the properties of these flavors are significantly different and
+that subclassing is the correct approach to take in the domain. You
+can still make them from $cow or from $milk, but when you call
+ChocolateIceCream::newFromCow($cow), you get an IceCream back when you
+wanted a ChocolateIceCream, since the method can not determine which
+subclass to instantiate.
+
+To get around this without late static binding, you have to build some
+kind of IceCreamChurner and call
+IceCreamChurner::newFlavorFromCow('ChocolateIceCream', $cow). This is
+messy and turns a class name symbol into a string literal, which
+hiders static analysis. And you won't want to do all that extra
+typing, so pretty soon you'll have ICC::cow('Chocolate', $cow) which
+is gross but doesn't require so much verbosity. This is basically
+where a bunch of the DataTypes and Ent code is today: it relies on
+substrings of class names to figure out which subclass to instantiate.
+
+With late static binding, you can just write
+IceCream::newFromMilk($milk) so that it works correctly for
+subclasses, by inspecting the static class context.
+
+
+See also php.net/manual/en/language.oop5.late-static-bindings.php.

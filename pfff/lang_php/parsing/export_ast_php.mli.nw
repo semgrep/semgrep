@@ -1,0 +1,260 @@
+\section{Exporting JSON data}
+\label{sec:unparsing-json}
+
+\pfff can also export the JSON representation of a PHP AST,
+programmatically via [[json_ast_php.ml]] or interactively
+via [[pfff -json]].
+One can then import this data in other languages with JSON
+support such as Python (or PHP).
+Here is an excerpt of the exported JSON of [[demos/foo1.php]]:
+
+\begin{verbatim}
+$ ./pfff -json demos/foo1.php
+[
+  [
+    "FuncDef",
+    {
+      "f_tok": {
+        "pinfo": [
+          "OriginTok",
+          {
+            "str": "function",
+            "charpos": 6,
+            "line": 2,
+            "column": 0,
+            "file": "demos/foo1.php"
+          }
+        ],
+        "comments": []
+      },
+      "f_ref": [],
+      "f_name": [
+        "Name",
+        [
+          "'foo'",
+ ...
+\end{verbatim}
+
+The JSON pretty printer is automatically generated from
+[[ast_php.mli]] so there is an exact correspondance between
+the constructor names in the OCaml types and the strings or fields
+in the JSON data. One can thus use the types documentation in 
+this manual to translate that into JSON. For instance here
+is a port of [[show_function_calls.ml]] seen in 
+Section~\ref{sec:show-funcall-ex} in Python:
+
+<<show_function_calls.py>>=
+TODO basic version. Search for nodes with FunCallSimple
+and extract position information from children.
+Is there a visitor library for JSON data in Python or PHP ?
+Is there XPATH for JSON ?
+@ 
+
+While \pfff makes it possible to analyze PHP code in other
+languages, thanks to JSON, we strongly discourage coding complex
+static analysis or transformations in other languages. 
+The big advantage of OCaml (or Haskell) and so of \pfff is its strong
+pattern matching capability and type checking which
+are ideal for such tasks. 
+%The full JSON output for [[demos/foo1.php]]
+%is more than 300 lines of long, has a depth of more than 10,
+%you do not want to analyze it in dynamic languages.
+Moreover \pfff provides more than just an AST manipulation
+library. Indeed [[pfff/analyzis_php]] gives access to more
+services such as 
+control-flow graphs, caller/callee analysis (inluding for
+virtual methods using object aliasing analysis), etc.
+
+
+Here are the functions defined by [[json_ast_php.mli]]:
+
+<<json_ast_php.mli>>=
+
+<<json_ast_php flags>>
+val json_string_of_program:  Ast_php.program  -> string
+val json_string_of_toplevel: Ast_php.toplevel -> string
+val json_string_of_expr:     Ast_php.expr     -> string
+(* The outputted JSON is not pretty printed, it's more compact,
+ * so less readable, but it's faster. 
+ *)
+val json_string_of_program_fast:  Ast_php.program  -> string
+@ 
+
+<<json_ast_php flags>>=
+@ 
+
+
+\section{[[pfff -json]]}
+
+<<test_parsing_php actions>>=
+  (* an alias for -sexp_php *)
+  "-json", "   <file> export the AST of file into JSON", 
+    Common.mk_action_1_arg test_json_php;
+  "-json_fast", "   <file> export the AST of file into a compact JSON", 
+    Common.mk_action_1_arg test_json_fast_php;
+@ 
+
+<<test_json_php>>=
+let test_json_php file = 
+  let (ast2,_stat) = Parse_php.parse file in
+  let ast = Parse_php.program_of_program2 ast2 in
+
+  let s = Export_ast_php.json_string_of_program ast in
+  pr s;
+  ()
+
+let test_json_fast_php file = 
+  let (ast2,_stat) = Parse_php.parse file in
+  let ast = Parse_php.program_of_program2 ast2 in
+
+  let s = Export_ast_php.json_string_of_program_fast ast in
+  pr s;
+  ()
+@ 
+
+\section{Raw AST printing}
+\label{sec:unparsing-sexp}
+
+We have already mentionned in 
+Sections~\ref{sec:use-dump-on-foo1} and \ref{sec:use-dump-on-inline}
+the use of the PHP AST pretty printer, callable
+through [[pfff -dump_ast]]. Here is a reminder:
+
+\begin{verbatim}
+$ ./pfff -dump_ast tests/inline_html.php
+((StmtList
+  ((InlineHtml ("'<html>\n'" ""))
+   (Echo "" (((Scalar (Constant (String ('foo' "")))) ((t (Unknown))))) "")
+   (InlineHtml ("'</html>\n'" ""))))
+ (FinalDef ""))
+\end{verbatim}
+
+One can also use [[pfff.top]] to leverage the builtin 
+pretty printer of OCaml (Section~\ref{sec:use-pfff-dot-top}).
+
+The actual functions used by [[-dump_ast]]
+are in the [[sexp_ast_php.mli]] file. The word sexp is for
+s-expression (see \f{http://en.wikipedia.org/wiki/S-expression}), which is
+the way LISP code and data are usually
+encoded\footnote{s-expressions are the ASTs of LISP, 
+if that was not confusing enough already}, 
+which is also a convenient and compact way to
+print complex hierarchical structures (and a better
+way than the very verbose XML).
+\l and JSON ?
+
+Here are the functions:
+<<sexp_ast_php.mli>>=
+
+<<sexp_ast_php flags>>
+val sexp_string_of_program:  Ast_php.program  -> string
+val sexp_string_of_toplevel: Ast_php.toplevel -> string
+val sexp_string_of_expr:     Ast_php.expr     -> string
+val sexp_string_of_phptype:  Type_php.phptype  -> string
+<<sexp_ast_php raw sexp>>
+@ 
+
+The pretty printer can be configured through global variables:
+
+<<sexp_ast_php flags>>=
+val show_info:      bool ref
+val show_expr_info: bool ref
+val show_annot: bool ref
+@ 
+
+to show or hide certain information. For instance [[-dump_ast]]
+by default does not show the concrete position information
+of the tokens and so set [[show_info]] to false before calling
+[[string_of_program]].
+
+
+\label{sec:tarzan}
+Note that the code in [[sexp_ast_php.ml]] is mostly auto-generated
+from [[ast_php.mli]]. Indeed it is very tedious to manually write 
+such code. I have written a small program called
+[[ocamltarzan]] (see \cite{ocamltarzan})
+to auto generate the code
+(which then uses a library called [[sexplib]], included in [[commons/]]).
+[[ocamltarzan]] assumes the presence of special marks
+in type definitions\footnote{For those familiar with Haskell, this
+is similar to the use of the [[deriving]] keyword}, 
+hence the use of the following snippet in diffent places in the code:
+
+<<tarzan annotation>>=
+ (* with tarzan *)
+@
+
+\l old: before need to link with more than [[parsing_php.cma]], but now lib-sexp in commons/
+
+As the generated code  is included in the source, you don't have
+to install [[ocamltarzan]] to compile \pfff. You may need it only if you
+modify [[ast_php.mli]] in a complex way and you want to refresh
+the pretty printer code. If the change is small, you can usually
+hack directly the generated code and extend it.
+
+<<sexp_ast_php raw sexp>>=
+@ 
+
+\l could be better if the .mli didn't expose the sexp so that dont need
+\l to have some -I lib-sexp
+
+\section{[[pfff -dump_ast]]}
+
+<<test_parsing_php actions>>=
+  (* an alias for -sexp_php *)
+  "-dump_php", "   <file>", 
+  Common.mk_action_1_arg test_dump_php;
+  "-dump_php_sexp", "   <file>", 
+    Common.mk_action_1_arg test_sexp_php;
+  "-dump_php_ml", "   <file>", 
+  Common.mk_action_1_arg test_dump_php;
+@ 
+
+<<test_parsing_php actions>>=
+  "-sexp_php", "   <file>", 
+    Common.mk_action_1_arg test_sexp_php;
+@ 
+
+
+<<test_sexp_php>>=
+let test_sexp_php file = 
+  let (ast2,_stat) = Parse_php.parse file in
+  let ast = Parse_php.program_of_program2 ast2 in
+  (* let _ast = Type_annoter.annotate_program !Type_annoter.initial_env ast *) 
+
+  Export_ast_php.show_info := false;
+  let s = Export_ast_php.sexp_string_of_program ast in
+  pr2 s;
+  ()
+@ 
+
+<<test_parsing_php actions>>=
+  (* an alias for -sexp_php *)
+  "-dump_full_ast", "   <file>", 
+    Common.mk_action_1_arg test_sexp_full_php;
+@ 
+
+<<test_sexp_php>>=
+let test_sexp_full_php file = 
+  let (ast2,_stat) = Parse_php.parse file in
+  let ast = Parse_php.program_of_program2 ast2 in
+
+  Export_ast_php.show_info := true;
+  let s = Export_ast_php.sexp_string_of_program ast in
+  pr2 s;
+  ()
+@ 
+
+
+\section{AST printing for copy-pasting}
+\label{sec:export-ast}
+
+<<export_ast_php.mli>>=
+
+<<json_ast_php.mli>>
+
+<<sexp_ast_php.mli>>
+val ml_pattern_string_of_program: Ast_php.program -> string
+val ml_pattern_string_of_expr:    Ast_php.expr -> string
+val ml_pattern_string_of_any:     Ast_php.any -> string
+@ 

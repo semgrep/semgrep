@@ -1,0 +1,575 @@
+
+This chapter describes how to write OCaml programs,
+to be linked with the [[parsing_php.cma]] library, to perform some
+simple PHP analysis.
+\t or simple style-preserving source-to-source transformations.
+
+\t assume basic knowledge of OCaml ? points to documentation ?
+
+\section{Function calls statistics}
+\label{sec:simple-ex}
+\label{sec:show-funcall-ex}
+
+The goal of our first example using the \pfff API is 
+to print some information about function calls
+in a PHP program.
+
+\subsection{Basic version}
+
+Here is the toplevel structure of [[pfff/demos/show_function_calls1.ml]]:
+
+<<show_function_calls1.ml>>=
+<<basic pfff modules open>>
+
+<<show_function_calls v1>>
+
+let main = 
+  show_function_calls Sys.argv.(1)
+@ 
+%(* to compile: 
+%ocamlc -I ../commons/ -I ../parsing_php/ ../commons/lib.cma ../parsing_php/parsing_php.cma show_function_calls.ml -o show_function_calls
+%*)
+
+To compile and test do:
+\begin{verbatim}
+$ cd demos/
+$ ocamlc -I ../commons/ -I ../parsing_php/ \ 
+    ../commons/lib.cma ../parsing_php/parsing_php.cma \
+    show_function_calls1.ml -o show_function_calls 
+$ ./show_function_calls foo.php
+\end{verbatim}
+% could use LP for that makefile ?
+
+You should then see on stdout some information on the function calls
+in [[foo.php]] (binded to [[Sys.argv.(1)]] in the previous code):
+
+\begin{verbatim}
+Call to foo  at line 11
+Call to foo2 at line 12
+\end{verbatim}
+
+We now describe gradually the different parts of this program.
+%
+We first open some modules:
+
+<<basic pfff modules open>>=
+open Common
+open Ast_php
+@
+
+Normally you should avoid the use of [[open]] directives in your program,
+as it makes the program more complicated to understand,
+except for very common libraries, or when your program
+predominantely uses a single module defining lots of types (which
+is the case here with [[Ast_php]] as you will see later).
+
+The [[Common]] module is not part of the standard OCaml library.
+It is a library I have developed (see~\cite{common-pad-manual} for its
+full documentation) in the last 10 years or so. It defines many
+functions not provided by default in the standard OCaml library
+but are standard in other programming languages (e.g. Haskell, Scheme, F\#).
+
+\l use [[Ast_php]], [[Parse_php]]
+
+<<show_function_calls v1>>=
+let show_function_calls file = 
+  let (asts2, _stat) = Parse_php.parse file in
+  let asts = Parse_php.program_of_program2 asts2 in
+
+  <<iter on asts manually>>
+@ 
+\l note that Parse_php not mentionned in open
+
+The [[Parse_php.parse]] function returns in addition to the AST
+some statistics and extra information attached to each toplevel
+construct in the program (see Chapter~\ref{chapter:parse-entry-point}).
+The [[Parse_php.program_of_program2]] function trims down
+those extra information to get just the AST.
+
+We are now ready to visit the AST:
+
+<<iter on asts manually>>=
+  asts |> List.iter (fun toplevel ->
+
+    match toplevel with
+    | StmtList stmts ->
+        <<iter on stmts>>
+
+    | (FuncDef _|ClassDef _|InterfaceDef _|Halt _
+        |NotParsedCorrectly _| FinalDef _)
+      -> ()
+  )
+@ 
+
+The [[show_function_calls1.ml]] program will just process the toplevel
+statements in a PHP file, here represented by the 
+AST constructor [[StmtList]] (see Section~\ref{sec:ast-toplevel}),
+and will ignore other constructions such as function definitions 
+([[FuncDef]]), classes ([[ClassDef]]), etc. The next
+section will present a better algorithm processing (visiting)
+all constructions.
+
+%common:
+The [[|>]] operator is not a standard operator. It's part
+of [[Common]]. Its semantic is:
+[[data |> f]] $\equiv$ [[f data]], which allows to
+see first the data and then the function that will operate on the data.
+This is useful when the function is a long anonymous
+block of code. For instance in the previous code, 
+[[asts |> List.iter (fun ...)]] 
+$\equiv$ [[List.iter (fun ...) asts]].
+It is somehow reminescent of object oriented style.
+% #include "Common_short_intro.tex.nw" ?
+
+We will now go deeper into the AST to process all toplevel function
+calls:
+
+<<iter on stmts>>=
+stmts |> List.iter (fun stmt ->
+  (match stmt with
+  | ExprStmt (e, _semicolon) ->
+      
+      (match Ast_php.untype e with
+      | ExprVar var ->
+          
+          (match Ast_php.untype var with
+          | FunCallSimple (qu_opt, funcname, args) ->
+              <<print funcname>>
+          | _ -> ()
+          )
+      | _ -> ()
+      )
+  | _ -> ()
+  )
+)
+@ 
+
+The [[Ast_php.untype]] function is an ``extractor'' used
+to abstract away the type information attached to parts
+of the AST (expressions and variables, see 
+Section~\ref{sec:ast-type-annot} and Section~\ref{sec:ast-extractor-unxxx}).
+The [[ExprStmt]], [[ExprVar]] and [[FunCallSimple]] are
+constructors explained respectively in 
+Section~\ref{sec:ast-expr-stmt}, \ref{sec:ast-expr-var},
+and \ref{sec:funcall}.
+
+Now that we have matched the function call site, we can
+finally print information about it:
+
+<<print funcname>>=
+let s = Ast_php.name funcname in
+let info = Ast_php.info_of_name funcname in
+let line = Ast_php.line_of_info info in
+pr2 (spf "Call to %s at line %d" s line);
+@ 
+
+The type of the [[funcname]] variable is not [[string]] but [[name]]. This
+is because we want not only the content of an identifier, but
+also its position in the source file 
+(see Section~\ref{sec:ast-name} and \ref{sec:ast-position}).
+The [[Ast_php.name]], [[Ast_php.info_of_name]] and 
+[[Ast_php.line_of_info]] functions are extractors, 
+\l or accessors ?
+to get respectively the content, some position
+information, and the line position
+of the identifier.
+
+%common:
+The function [[pr2]] is also part of [[Common]]. It's for
+printing on stderr (stderr is usually bound to 
+file descriptor 2, hence [[pr2]]). [[spf]] is an alias
+for [[Printf.sprintf]].
+
+\subsection{Using a visitor}
+\label{sec:simple-ex}
+
+The previous program was printing information only about
+function calls at the toplevel. For instance on this program
+
+<<foo2.php>>=
+<?php
+function foo($a) {
+  bar($a);
+}
+function bar($a) {
+  echo $a;
+}
+foo("hello world");
+?>
+@ 
+
+the output will be:
+
+\begin{verbatim}
+$ ./show_function_calls1 foo2.php
+Call to foo at line 8
+\end{verbatim}
+
+which does not include the call to [[bar]] nested in the
+function definition of [[foo]]. 
+
+Processing [[StmtList]] is not
+enough. Nevertheless manually specifying all the cases is 
+really tedious, especially as [[Ast_php]] defines more than 100
+constructors, spreaded over more than 5 types.
+A common solution to this kinds of a problem is to use
+the Visitor design pattern (see
+\url{http://en.wikipedia.org/wiki/Visitor_pattern}
+and \cite{design-pattern-book, design-pattern-norvig}) that we have
+adapted for \pfff in OCaml in the [[Visitor_php]] module
+(see Chapter~\ref{chapter:visitor}).
+
+Here is the new [[pfff/demos/show_function_calls2.ml]] program:
+<<show_function_calls2.ml>>=
+
+<<basic pfff modules open>>
+module V = Visitor_php
+
+<<show_function_calls v2>>
+
+let main = 
+  show_function_calls Sys.argv.(1)
+@ 
+
+The module aliasing of [[V]] allows to not use the evil [[open]] while still
+avoiding to repeat long names in the code.
+
+As before a first step is to get the ASTs:
+
+<<show_function_calls v2>>=
+let show_function_calls file = 
+  let (asts2, _stat) = Parse_php.parse file in
+  let asts = Parse_php.program_of_program2 asts2 in
+
+  <<create visitor>>
+  <<iter on asts using visitor>>
+@
+
+
+We are now ready to visit:
+
+<<create visitor>>=
+  let visitor = V.mk_visitor 
+   { V.default_visitor with
+     V.klvalue = (fun (k, _) var ->
+
+      match Ast_php.untype var with
+      | FunCallSimple (qu_opt, funcname, args) ->
+          <<print funcname>>
+
+      | _ -> 
+          <<visitor recurse using k>>
+    );
+  }
+  in
+@
+
+The previous code may look a little bit cryptic.
+For more discussions about visitors and visitors in OCaml
+see Chapter~\ref{chapter:visitor}. The trick is to
+first specify \co{hooks} on certain constructions,
+here the [[klvalue]] hook that will be called at
+each lvalue site, and to specify a default
+behavior for the rest (the [[V.default_visitor]]).
+Note that in the PHP terminology, function calls are
+part of the [[lvalue]] type
+\l because they can return variables ?
+which is a restricted
+form of expressions (see Section\ref{sec:funcall}), 
+hence the use of [[klvalue]]
+and not [[kexpr]]. One can also use the [[kstmt]], 
+[[kinfo]], and [[ktoplevel]] hooks (and more).
+
+The use of the prefix [[k]] is a convention used
+in Scheme to represent continations 
+(see \url{http://en.wikipedia.org/wiki/Continuation})
+which is somehow what the [[Visitor_php]] module provides.
+Indeed, every hooks (here [[klvalue]]) get passed
+as a parameter a function ([[k]]) which can be called
+to ``continue'' visiting the AST or not. 
+
+So, for the other constructors of the [[lvalue]] type
+(the [[| _ ->]] pattern in the code above), we do:
+<<visitor recurse using k>>=
+   k var
+@ 
+
+Finally, once the visitor is created, we can use it
+to process the AST:
+
+<<iter on asts using visitor>>=
+  asts |> List.iter visitor.V.vtop
+@
+
+Here the [[asts]] variable contains toplevel elements,
+hence the use of [[vtop]]
+(for visiting top). One can also use [[vstmt]], [[vexpr]] (and more)
+to process respectively statements or expressions.
+\l also hooks ?
+
+The output on [[foo2.php]] should now be:
+\begin{verbatim}
+$ ./show_function_calls2 foo2.php
+Call to bar at line 3
+Call to foo at line 8
+\end{verbatim}
+\l why report bar before foo ? because recursive
+
+
+\subsection{Arity statistics}
+\label{sec:simple-ex}
+
+\n similar to lovro query 
+
+\t most used func
+
+<<show_function_calls3.ml>>=
+<<basic pfff modules open>>
+module V = Visitor_php
+
+<<show_function_calls v3>>
+
+let main = 
+  show_function_calls Sys.argv.(1)
+
+@ 
+
+<<show_function_calls v3>>=
+let show_function_calls file = 
+  let (asts2, _stat) = Parse_php.parse file in
+  let asts = Parse_php.program_of_program2 asts2 in
+
+  <<initialize hfuncs>>
+
+  <<iter on asts using visitor, updating hfuncs>>
+
+  <<display hfuncs to user>>
+@
+
+<<initialize hfuncs>>=
+  let hfuncs = Common.hash_with_default (fun () ->
+    Common.hash_with_default (fun () -> 0)
+  )
+  in
+@ 
+
+<<iter on asts using visitor, updating hfuncs>>=
+  let visitor = V.mk_visitor
+   { V.default_visitor with
+     V.klvalue = (fun (k, _) var ->
+      match Ast_php.untype var with
+      | FunCallSimple (qu_opt, funcname, args) ->
+
+          <<print funcname and nbargs>>
+
+          <<update hfuncs for name with nbargs>>
+            
+      | _ -> 
+          k var
+    );
+  }
+  in
+  asts |> List.iter visitor.V.vtop;
+@
+
+<<print funcname and nbargs>>=
+let f = Ast_php.name funcname in
+let nbargs = List.length (Ast_php.unparen args) in
+pr2 (spf "Call to %s with %d arguments" f nbargs);
+@ 
+
+<<update hfuncs for name with nbargs>>=
+(* hfuncs[f][nbargs]++ *)
+hfuncs#update f (fun hcount -> 
+  hcount#update nbargs (fun x -> x + 1);
+  hcount
+)
+@
+
+
+<<display hfuncs to user>>=
+  (* printing statistics *)
+  hfuncs#to_list |> List.iter (fun (f, hcount) ->
+    pr2 (spf "statistics for %s" f);
+    hcount#to_list |> Common.sort_by_key_highfirst
+      |> List.iter (fun (nbargs, nbcalls_at_nbargs) ->
+        pr2 (spf " when # of args is %d: found %d call sites" 
+                nbargs nbcalls_at_nbargs)
+      )
+  )
+@
+
+\subsection{Object statistics}
+\t include demos/justin.ml ?
+
+\l illustrate the use of ocamltarzan :) 
+
+\l also illustrate my process ? that I have ast_php.ml in another buffer
+\l that I start with simple code, and gradually add stuff
+\l the use of C-c C-t, the addition in the makefile
+
+<<justin.php>>=
+<?php
+function dashboard_getNews($uid, $appId, $news_ids = null) {
+  return prep(new DashboardAppData($uid, $appId))->getNews($news_ids);
+}
+?>
+@
+
+ 
+\begin{verbatim}
+$ /home/pad/c-pfff/demos/justin.byte  /home/pad/c-pfff/tests/justin.php
+((dashboard_getNews
+ ((line: 3)
+  (parameters:
+   ((uid ()) (appId ())
+    (news_ids ((StaticConstant (CName (Name ('null' ""))))))))
+  (function_calls: (prep)) (method_calls: (getNews))
+  (instantiations: (DashboardAppData)))))
+\end{verbatim}
+
+
+\section{Code matching, \cmd{phpgrep}}
+
+%indirect function calls stats, number of ugly dynamic funcall
+
+%using regexps ? \$\w+\( ? 
+% but if on multiple lines ?
+% if inside html ?
+% => sometimes regexp are cool and enough (cf codemod)
+
+% simple bug finder, and say that can do commit hook with it 
+
+\section{A PHP transducer}
+\n LFS :) shameless plug
+
+
+
+
+\iffacebook
+\section{[[flib]] module dependencies}
+
+In this section we will port the PHP implementation of a program to
+print dependencies between files
+([[flib/_bin/dumpDependencyTree.php]] by Justin Bishop). 
+This will help relate
+different approaches to the same problem, one using PHP
+and one using OCaml. 
+Note that on this example, the PHP approach is shorter.
+
+Here is the original PHP program:
+
+<<dumpDependencyTree.php>>=
+#!/usr/bin/env php
+<?php
+
+$_SERVER['PHP_ROOT'] = realpath(dirname(__FILE__).'/../..');
+$GLOBALS['THRIFT_ROOT'] = $_SERVER['PHP_ROOT'].'/lib/thrift';
+
+<<require_xxx redefinitions>>
+
+function _require($require_type, $dependency) {
+  global $current_module, $module_dependencies;
+  if (!isset($module_dependencies[$current_module][$require_type])) {
+    $module_dependencies[$current_module][$require_type] = array();
+  }
+  $module_dependencies[$current_module][$require_type][] = $dependency;
+}
+
+<<function add_all_modules>>
+<<function is_module>>
+<<function is_test_module>>
+
+$all_modules = array();
+add_all_modules('', $all_modules);
+
+$module_dependencies = array();
+$current_module = null;
+foreach ($all_modules as $module) {
+  $current_module = $module;
+  $module_dependencies[$module] = array();
+  // @style-override allow flib include
+  require_once $_SERVER['PHP_ROOT'].'/flib/'.$module.'/__init__.php';
+}
+
+echo json_encode($module_dependencies);
+@ 
+
+<<require_xxx redefinitions>>=
+function require_module($module) {
+  _require('module', $module);
+}
+function require_thrift($file='thrift') {
+  _require('thrift', $file);
+}
+function require_thrift_package($package, $component=null) {
+  if (isset($component)) {
+    _require('thrift_package', $package.'/'.$component);
+  } else {
+    _require('thrift_package', $package);
+  }
+}
+function require_thrift_component($component, $name) {
+  _require('thrift_component', $component.'/'.$name);
+}
+@ 
+
+<<require_xxx redefinitions>>=
+function require_test($path, $public=true) {}
+function require_conf($path) {}
+function require_source($path, $public=true) {}
+function require_external_source($path) {}
+@ 
+
+<<function add_all_modules>>=
+function add_all_modules($root, &$modules) {
+  $path = $_SERVER['PHP_ROOT'].'/flib/'.$root;
+  foreach (scandir($path) as $file) {
+    if (($file[0] != '.') && is_dir($path.'/'.$file)) {
+      $mod = $root.$file;
+      if (is_module($path.'/'.$file) &&
+          !is_test_module($path.'/'.$file)) {
+        $modules[$mod] = $mod;
+      }
+      add_all_modules($mod.'/', $modules);
+    }
+  }
+}
+@ 
+
+<<function is_module>>=
+function is_module($path) {
+  return file_exists($path.'/__init__.php');
+}
+@ 
+<<function is_test_module>>=
+function is_test_module($module) {
+  return in_array('__tests__', explode('/', $module));
+}
+@ 
+
+
+The whole program is remarquably short and makes very good use of PHP
+ability to dynamically load code and redefine functions (notably with the
+[[require_once]] line). In some sense it is using the builtin PHP
+parser in the PHP interpreter. With \pfff things will be different and
+we will need to process ASTs more manually.
+
+
+
+
+<<dump_dependency_tree.ml>>=
+TODO ocaml version
+do CFC and maybe remove some graph transitivities, to get less arrows, 
+(using ocamlgraph/)
+@ 
+
+%\section{A commit hook}
+
+
+\fi % facebook
+
+%\section{Other examples}
+\t does have nested func ? inside if's ?
+\t source transformation ?
+\l  and do the identity parsing/unparsing program before trying transfo

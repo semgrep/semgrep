@@ -1,0 +1,21 @@
+extend AST
+CEs (meta, visitor, sgrep/spatch, etc)
+extend grammar
+pretty printer or unparser
+
+extend patterns reported by ocaml (thx to exhaustive pattern checks)
+
+defs/uses update
+tags support
+ocaml db
+prolog db
+scheck/cmf
+
+analysis, e.g. abstract interpreter, type inference, cfg
+
+cmf --fix
+cmf --fix when new def in DIFF (git grep must find it)
+
+sgrep/spatch isos
+reaper
+codemap highlighter

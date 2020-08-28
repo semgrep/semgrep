@@ -1,0 +1,404 @@
+
+\section{Why another PHP analyzer ?}
+
+%dup: similar in previous manual, but sligthly different
+%dup: in wiki page on pfff
+\pfff (PHP Frontend For Fun) is mainly an OCaml API to write static analysis,
+dynamic analysis, code visualizations, code navigations,
+or style-preserving source-to-source transformations such as refactorings
+on PHP source code.
+%
+I have described in a previous manual~\cite{pfff-manual}
+\fbnote{in [[~pad/pfff/docs/manual/Parsing_php.pdf]]}
+the parsing frontend part of \pfff 
+(corresponding to the code located in [[parsing_php/]]).
+Parsing is only one part of a
+programming language analysis infrastructure. This manual
+\fbnote{in [[~pad/pfff/docs/manual/Analyze_php.pdf]]}
+describes the second part with the different {analysis}, static or dynamic,
+provided by \pfff (with code located in [[analysis_php/]]).
+
+There are already multiple projects that makes it possible
+to analyze PHP code. For static analysis there is:
+
+\begin{itemize}
+  \item Etiennes Kneuss type inference~\cite{kneuss} (written in Scala)
+  \item Patrick Camphuiksen soft typing~\cite{php-type-inference}
+  \item Minamide incorrect embeded HTML detector~\cite{minimanide-php}
+  \item Pixy cross-scripting attack detector~\cite{pixy-xss-php}
+  \item Sebastian bergmann deadcode detector, clone detector, and various 
+    software metrics~\cite{bergmann-tool-website}
+    % see also other links of bergmann
+
+  \item HPHP global callgraph analysis and type inference 
+    (and of course all its compiler related technology optimisations)
+    ~\cite{hphp}
+  \item The analysis in PHC~\cite{phc}
+  \item Daniel Corson lex-pass refactorer~\cite{lex-pass}
+  \item Many tools (ab)using the PHP tokenizer to provide bug-finder
+    or coding-style checkers
+    % checkModule, luke shepard
+\end{itemize}
+
+For dynamic analysis there is:
+
+\begin{itemize}
+  \item xdebug debugger, profiler, and tracer~\cite{xdebug-website}
+  \item xhprof profiler~\cite{xhprof}
+  \item HPHP monitoring for memory leak, lock contention, infinite
+    recursion detection, and cpu~\cite{hphp}
+    % more ?
+  \item The reflective library of PHP~\cite{reflective-lib-php}
+  \item Many tools which are thin wrapper over xdebug, such 
+    as the code coverage in PHP unit~\cite{php-unit}, or 
+    phptracer~\cite{phptracer}.
+\end{itemize}
+
+
+%dup: parsing manual
+I have decided to write yet another PHP analyzer, in OCaml, because I think
+OCaml is a better language to write programming language analysis tools
+(for bugs finding, refactoring assistance, type inference, compilers, IDEs,
+etc) and because I wanted to {\bf integrate in a single infrastructure
+both static and dynamic analysis} so they can fruitfully be combined.
+Moreover, by also integrating information from version control systems,
+and databases (for instance to know the types of data in database
+schemas, or how developers are related to 
+each other in a company), we can make certain analysis even more useful. 
+To summarize:
+
+\begin{center}
+ static info + dynamic info + time info + developer info + db info = cool
+\end{center}
+% + tests with recent phpunit.ml
+
+\section{Features} 
+
+\t hmm kind of duplication with the tools part below
+Here are the current analysis supported by \pfff: 
+\begin{itemize}
+  \item Control-flow graph (CFG)
+  \item TODO Data-flow analysis 
+  \item Callgraph (callers/callees)
+  \item SEMI File/module dependencies
+  \item SEMI Type annotations
+  \item Scope annotations
+  \item Code pattern matcher
+
+  \item Dead code (functions, TODO  classes, methods, statements)
+  \item Software metrics such as CodeRank~\cite{code-rank} or 
+    cyclomatic complexity~\cite{cyclomatic-complexity-ieee}.
+\end{itemize}
+
+%dup: wiki page
+Here are the tools currently built using the \pfff infrastructure:
+\begin{itemize}
+  \item [[reaper]], a deadcode detector
+  \item [[sgrep_php]], a syntactical grep
+  \item TODO An emacs mode with type inference feedback to developer, 
+        using both dynamic and static information
+        (could also be used by a compiler to optimize things)
+  \item Feedback from unit test to the developer about concrete values
+        passed or returned by functions. It helps understanding one function.
+    
+  \item [[pfff_browser]], a multi-purpose GUI including:
+    \begin{itemize}
+      \item A semantic source code visualizer. 
+        It helps understanding one file or module. 
+      \item A semantic architecture visualizer using Treemaps~\cite{wp-treemap}.
+        It helps understanding the organisation of the whole source code.
+      \item A code navigator with caller/callees, go to definition a la ctags
+        (but more accurate).
+    \end{itemize}
+\end{itemize}
+
+
+\section{Copyright} 
+
+The source code of \pfff is governed by the following copyright:
+<<Facebook copyright>>=
+(* Yoann Padioleau
+ * 
+ * Copyright (C) 2009, 2010, 2011 Facebook
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * version 2.1 as published by the Free Software Foundation, with the
+ * special exception on linking described in file license.txt.
+ * 
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
+ * license.txt for more details.
+ *)
+@ 
+
+This manual is copyright \copyright{} 2009-2010 Facebook,
+and distributed under the terms of the 
+GNU Free Documentation License version 1.3.
+
+\section{Getting started} 
+
+\subsection{Requirements}
+
+Compiling the analysis part of \pfff requires to install
+more libraries than what was required for the parsing part, which
+uses mostly the standard OCaml library.
+% and commons
+For instance, 
+performing expensive global analysis on millions of lines of PHP code 
+requires to store on the disk the result of intermediate computations
+and also to store its final result. The same is true for tools
+such as [[ctags]] which stores meta-data in [[TAGS]] files. 
+In the case of \pfff, the meta-data are stored in Berkeley DB~\cite{bdb}
+B-trees, and accessed through its OCaml binding ([[ocamlbdb]] by Tao Stein).
+\l of facebook hehe
+In the same way, to use the code visualizer
+and navigator of \pfff, you will need to install GTK. 
+
+In some cases
+the OCaml bindings to those libraries are directly included
+in the source of \pfff (``batteries are included'' in [[external/]])
+as they don't require any configuration.
+In other cases you will have to install them by hand.
+So, in addition to [[ocaml]] and [[make]]\fbnote{
+OCaml is also already installed in  [[/home/pad/packages/bin]] so
+you just have to [[source env.sh]] from the \pfff source directory.
+Note that it should work only for CentOS 5.2 machines, so ask ops
+to upgrade your dev machine
+}, you will need to install
+the runtine and development libraries for:
+
+\begin{itemize}
+   \item Berkeley DB 4.3 (its OCaml binding is in
+     in [[external/ocamlbdb]]), for instance on CentOS 5.2 with:
+
+\begin{verbatim}
+$ yum install db4-devel
+\end{verbatim}
+
+   \item Perl posix regular expressions PCRE 
+     (its OCaml binding is in [[external/ocamlpcre]]), for instance with:
+\begin{verbatim}
+$ yum install pcre-devel
+\end{verbatim}
+
+   \item MySQL 
+     (its OCaml binding is in [[external/ocamlmysql]]), for instance with:
+\begin{verbatim}
+$ yum install mysql-devel
+
+\end{verbatim}
+
+
+   \item Ghostview and Graphviz if you want to visualize control flow
+     graphs of PHP programs, for instance with:
+\begin{verbatim}
+$ yum install gv 
+$ yum install graphviz
+\end{verbatim}
+
+   \item GTK and its LablGTK OCaml binding, for instance with:
+\begin{verbatim}
+$ yum install gtk2-devel
+$ yum install libgnomecanvas-devel
+$ yum install libglade2-devel
+$ yum install libart_lgpl-devel
+\end{verbatim}
+\footnote{
+       On CentOS and 64 machines, the [[yum]] package management 
+       tool is not very good and does not always install
+       the 64 bit version of the libary. So even if you think 
+       the installation of automatic dependencies are OK, you 
+       may have to manually re-install certain dependencies again, 
+       for instance: [[libgnomecanvas-devel]], 
+       [[libglade2-devel]], [[libart_lgpl-devel]]
+       %lablgtk (with gnome for the graph viewer stuff)
+       }
+
+   \item TODO The Thrift IDL
+\end{itemize}
+
+\t Can also use godi, \iffacebook or just /home/pad/env.sh \fi
+
+
+\subsection{Compiling}
+
+%dup: parsing manual
+The source code of \pfff is available at 
+\url{http://padator.org/software/project-pfff/}.
+\fbnote{The source of \pfff are currently managed by git. to git it just do
+[[git clone /home/engshare/git/projects/pfff]]
+}
+%fun: to "git" it :)
+%
+%dup: readme.txt
+To compile \pfff, see the instructions in [[install.txt]].
+It should mainly consists in doing:
+\t env.sh
+
+
+%dup: install.txt
+\begin{verbatim}
+$ cd <pfff_src_directory>
+$ ./configure --with-all
+$ make depend
+$ make
+\end{verbatim}
+\l configure flags
+
+If you don't want the GUI, add [[--no-gui]] to the end of the [[configure]]
+command line (after [[-with-all]]). 
+This reduced the number of dependencies and make it easier to compile \pfff.
+
+If you want to embed the analysis library in your own application,
+you will need to copy the [[commons/]], [[parsing_php/]],
+and [[analyze_php/]] directories as well as a few external
+dependencies (in [[externals/]])
+in your own project directory, add a
+recursive make that goes in those directories, and then link
+your application with the different [[.cma]] library files
+(see also \f{pfff/demos/Makefile}).
+
+
+It is also possible to use \pfff services without writing
+OCaml code by:
+\begin{itemize}
+  \item Interacting with its different command line tools, 
+    TODO as shown by the PHP emacs mode included in [[emacs/]]
+\l see chapter ?
+
+  \item Using its JSON exporters and importers,  
+    SEMI as shown by the Python ``binding'' to \pfff in [[meta/python]]
+\l see chapter ?
+
+  \item TODO Calling \pfff servers through Thrift
+\l see chapter ?
+
+\end{itemize}
+
+
+
+
+\subsection{Quick example of use}
+
+TODO
+
+\subsection{The [[pfff_db]] command-line tool}
+
+The compilation process, in addition to building the [[analyze_php.cma]] 
+library, also builds binary programs such as [[pfff_db]] that can let you
+evaluate among other things
+how good the \pfff analysis are. For instance, to test \pfff on the 
+PhpBB (\url{http://www.phpbb.com/},
+a popular internet forum package written in PHP)
+source code, just do:
+
+\begin{verbatim}
+$ cd /tmp
+$ wget http://d10xg45o6p6dbl.cloudfront.net/projects/p/phpbb/phpBB-3.0.6.tar.bz2
+$ tar xvfj phpBB-3.0.6.tar.bz2
+$ cd <pfff_src_directory>
+$ ./pfff_db -metapath /tmp/pfff_data    /tmpphpBB3/
+\end{verbatim}
+
+The [[pfff_db]] program should then iterate over all PHP source code files
+([[.php]] files), and run the parser on each of those files and
+index information from those files (the ASTs, caller, callees, types,
+etc) in [[/tmp/pfff_data]]. At the
+end, [[pfff_db]] will output some statistics showing what \pfff was not
+able to handle. 
+%On the PhpBB source code the messages are:
+
+One can then perform different analysis on the code, using the 
+indexing information built in the previous stage. For instance
+to perform a deadcode analysis, do:
+
+\begin{verbatim}
+$ ./pfff_db -deadcode_detector   /tmp/pfff_data 
+\end{verbatim}
+
+
+\subsection{The [[pfff_browser]] GUI}
+
+\begin{verbatim}
+$ ./pfff_browser /tmp/pfff_data
+\end{verbatim}
+
+
+% screenshot!!!
+Figure~\ref{fig:pfff-browser-screen} shows a screenshot of the 
+[[pfff_browser]] tool in action.
+
+\begin{figure*}
+\resizebox{14cm}{20cm}{\rotatebox{90}{\includegraphics{../../docs/manual/pfff_browser_screen}}}
+%[angle=-90]
+\caption{GUI browser screenshot}
+%screenshit :)
+\label{fig:pfff-browser-screen}
+\end{figure*}
+
+\section{Source organization} 
+
+%clone: same in parsing manual
+Table~\ref{tab:chapters-modules} presents a short description
+of the modules in the [[analyze_php/]] directory
+of the \pfff source distribution as well
+as the corresponding chapters the module is 
+\ifimplem
+discussed.
+\else
+discussed when the module is part of the public API of \pfff. Indeed, 
+some modules are only used as helpers for other modules; they do not provide
+any services to the user.
+\fi
+
+
+\begin{table*}[tbh!]
+\begin{tabular}{lll}
+\toprule
+{\bf Function} & {\bf Chapter} & {\bf Modules} \\
+\otoprule
+Database entry point 
+       & \ref{chapter:database-entry-point} & [[database_php.mli]] \\
+\midrule
+%\multirow{2}{*}{Abstract Syntax Tree} 
+% & \ref{chapter:ast} & [[ast_php.mli]] \\
+% & \ref{sec:annotations} & [[type_php.mli]], [[scope_php.mli]] \\
+\midrule
+\bottomrule
+\end{tabular}
+\caption{Chapters and modules}
+\label{tab:chapters-modules}
+\end{table*}
+
+\section{API organization} 
+
+Figure~\ref{fig:api-mli-graph} presents the graph of dependencies
+between [[.mli]] files.
+
+\begin{figure*}
+\resizebox{8cm}{20cm}{\rotatebox{90}{\includegraphics{Fig_graph_mli}}}
+%[angle=-90]
+\caption{API dependency graph between [[mli]] files}
+\label{fig:api-mli-graph}
+\end{figure*}
+
+\section{Plan} 
+
+\ifimplem
+Part 1 explains the interface of \pfff, that is mainly the [[.mli]] files.
+Part 2 explains the code, the [[.ml]] files.
+\fi
+
+Note that the goal of this document is not to explain 
+what is a control-flow graph or how a programming language frontend works,
+but just how to use the \pfff API and how the \pfff
+frontend is concretely implemented. We assume a basic knowledge
+of the literature on compilers such as ~\cite{dragon-book} or 
+\cite{modern-compiler-ml}.
+
+\section{About this document}
+
+#include "About.tex.nw"
+

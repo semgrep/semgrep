@@ -1,0 +1,62 @@
+
+\t verbose, debug, info
+
+<<flag_parsing_php.ml>>=
+let verbose_lexing = ref true
+let verbose_parsing = ref true
+@ 
+
+<<flag_parsing_php.ml>>=
+let cmdline_flags_verbose () = [
+  "-no_verbose_lexing", Arg.Clear verbose_lexing , "  ";
+  "-no_verbose_parsing", Arg.Clear verbose_parsing , "  ";
+]
+@ 
+
+<<flag_parsing_php.ml>>=
+let debug_lexer   = ref false
+@ 
+
+<<flag_parsing_php.ml>>=
+let cmdline_flags_debugging () = [
+  "-debug_lexer",        Arg.Set  debug_lexer , " ";
+]
+@ 
+
+<<flag_parsing_php.ml>>=
+let show_parsing_error = ref true
+(* Do not raise an exn when a parse error but use NotParsedCorrectly.
+ * Now that the PHP parser is quite complete, it's better to set 
+ * error_recovery to false by default and raise a true ParseError exn.
+ *)
+let error_recovery = ref false
+@ 
+
+
+<<flag_parsing_php.ml>>=
+let short_open_tag = ref true
+@ 
+
+% pp related stuff in parse_php.mli.nw
+<<flag_parsing_php.ml>>=
+
+(* e.g. yield *)
+let facebook_lang_extensions = ref true
+
+let type_hints_extension = ref false
+
+(* in facebook context, we want xhp support by default *)
+let xhp_builtin = ref true
+
+let verbose_pp = ref false
+(* Alternative way to get xhp by calling xhpize as a preprocessor.
+ * Slower than builtin_xhp and have some issues where the comments
+ * are removed, unless you use the experimental_merge_tokens_xhp
+ * but which has some issues itself. 
+ *)
+let pp_default = ref (None: string option)
+let xhp_command = "xhpize" 
+let obsolete_merge_tokens_xhp = ref false
+
+<<flag_parsing_php.ml pp related flags>>
+@ 

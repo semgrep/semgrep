@@ -1,0 +1,1 @@
+void prototype() throw();

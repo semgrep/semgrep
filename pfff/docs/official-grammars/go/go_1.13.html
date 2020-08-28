@@ -1,0 +1,677 @@
+<!--{
+	"Title": "The Go Programming Language Specification",
+	"Subtitle": "Version of Sep 4, 2019",
+	"Path": "/ref/spec"
+}-->
+
+<h2 id="Introduction">Conventions</h2>
+
+<pre class="grammar">
+Production  = production_name "=" [ Expression ] "." .
+Expression  = Alternative { "|" Alternative } .
+Alternative = Term { Term } .
+Term        = production_name | token [ "…" token ] | Group | Option | Repetition .
+Group       = "(" Expression ")" .
+Option      = "[" Expression "]" .
+Repetition  = "{" Expression "}" .
+</pre>
+
+<pre class="grammar">
+|   alternation
+()  grouping
+[]  option (0 or 1 times)
+{}  repetition (0 to n times)
+</pre>
+
+<h2 id="Introduction">Lexer</h2>
+
+
+<pre class="ebnf">
+newline        = /* the Unicode code point U+000A */ .
+unicode_char   = /* an arbitrary Unicode code point except newline */ .
+unicode_letter = /* a Unicode code point classified as "Letter" */ .
+unicode_digit  = /* a Unicode code point classified as "Number, decimal digit" */ .
+</pre>
+
+<pre class="ebnf">
+letter        = unicode_letter | "_" .
+decimal_digit = "0" … "9" .
+binary_digit  = "0" | "1" .
+octal_digit   = "0" … "7" .
+hex_digit     = "0" … "9" | "A" … "F" | "a" … "f" .
+</pre>
+
+<pre class="ebnf">
+identifier = letter { letter | unicode_digit } .
+</pre>
+
+<pre class="grammar">
+break        default      func         interface    select
+case         defer        go           map          struct
+chan         else         goto         package      switch
+const        fallthrough  if           range        type
+continue     for          import       return       var
+</pre>
+
+<pre class="grammar">
++    &amp;     +=    &amp;=     &amp;&amp;    ==    !=    (    )
+-    |     -=    |=     ||    &lt;     &lt;=    [    ]
+*    ^     *=    ^=     &lt;-    &gt;     &gt;=    {    }
+/    &lt;&lt;    /=    &lt;&lt;=    ++    =     :=    ,    ;
+%    &gt;&gt;    %=    &gt;&gt;=    --    !     ...   .    :
+     &amp;^          &amp;^=
+</pre>
+
+<pre class="ebnf">
+int_lit        = decimal_lit | binary_lit | octal_lit | hex_lit .
+decimal_lit    = "0" | ( "1" … "9" ) [ [ "_" ] decimal_digits ] .
+binary_lit     = "0" ( "b" | "B" ) [ "_" ] binary_digits .
+octal_lit      = "0" [ "o" | "O" ] [ "_" ] octal_digits .
+hex_lit        = "0" ( "x" | "X" ) [ "_" ] hex_digits .
+
+decimal_digits = decimal_digit { [ "_" ] decimal_digit } .
+binary_digits  = binary_digit { [ "_" ] binary_digit } .
+octal_digits   = octal_digit { [ "_" ] octal_digit } .
+hex_digits     = hex_digit { [ "_" ] hex_digit } .
+</pre>
+
+
+<pre class="ebnf">
+float_lit         = decimal_float_lit | hex_float_lit .
+
+decimal_float_lit = decimal_digits "." [ decimal_digits ] [ decimal_exponent ] |
+                    decimal_digits decimal_exponent |
+                    "." decimal_digits [ decimal_exponent ] .
+decimal_exponent  = ( "e" | "E" ) [ "+" | "-" ] decimal_digits .
+
+hex_float_lit     = "0" ( "x" | "X" ) hex_mantissa hex_exponent .
+hex_mantissa      = [ "_" ] hex_digits "." [ hex_digits ] |
+                    [ "_" ] hex_digits |
+                    "." hex_digits .
+hex_exponent      = ( "p" | "P" ) [ "+" | "-" ] decimal_digits .
+</pre>
+
+
+<pre class="ebnf">
+imaginary_lit = (decimal_digits | int_lit | float_lit) "i" .
+</pre>
+
+
+<pre class="grammar">
+\a   U+0007 alert or bell
+\b   U+0008 backspace
+\f   U+000C form feed
+\n   U+000A line feed or newline
+\r   U+000D carriage return
+\t   U+0009 horizontal tab
+\v   U+000b vertical tab
+\\   U+005c backslash
+\'   U+0027 single quote  (valid escape only within rune literals)
+\"   U+0022 double quote  (valid escape only within string literals)
+</pre>
+
+<pre class="ebnf">
+rune_lit         = "'" ( unicode_value | byte_value ) "'" .
+unicode_value    = unicode_char | little_u_value | big_u_value | escaped_char .
+byte_value       = octal_byte_value | hex_byte_value .
+octal_byte_value = `\` octal_digit octal_digit octal_digit .
+hex_byte_value   = `\` "x" hex_digit hex_digit .
+little_u_value   = `\` "u" hex_digit hex_digit hex_digit hex_digit .
+big_u_value      = `\` "U" hex_digit hex_digit hex_digit hex_digit
+                           hex_digit hex_digit hex_digit hex_digit .
+escaped_char     = `\` ( "a" | "b" | "f" | "n" | "r" | "t" | "v" | `\` | "'" | `"` ) .
+</pre>
+
+
+<pre class="ebnf">
+string_lit             = raw_string_lit | interpreted_string_lit .
+raw_string_lit         = "`" { unicode_char | newline } "`" .
+interpreted_string_lit = `"` { unicode_value | byte_value } `"` .
+</pre>
+
+
+
+
+<h2 id="Introduction">Grammar</h2>
+
+<h3>Types</h3>
+
+<pre class="ebnf">
+Type      = TypeName | TypeLit | "(" Type ")" .
+TypeName  = identifier | QualifiedIdent .
+TypeLit   = ArrayType | StructType | PointerType | FunctionType | InterfaceType |
+	    SliceType | MapType | ChannelType .
+</pre>
+
+
+<pre class="grammar">
+uint8       the set of all unsigned  8-bit integers (0 to 255)
+uint16      the set of all unsigned 16-bit integers (0 to 65535)
+uint32      the set of all unsigned 32-bit integers (0 to 4294967295)
+uint64      the set of all unsigned 64-bit integers (0 to 18446744073709551615)
+
+int8        the set of all signed  8-bit integers (-128 to 127)
+int16       the set of all signed 16-bit integers (-32768 to 32767)
+int32       the set of all signed 32-bit integers (-2147483648 to 2147483647)
+int64       the set of all signed 64-bit integers (-9223372036854775808 to 9223372036854775807)
+
+float32     the set of all IEEE-754 32-bit floating-point numbers
+float64     the set of all IEEE-754 64-bit floating-point numbers
+
+complex64   the set of all complex numbers with float32 real and imaginary parts
+complex128  the set of all complex numbers with float64 real and imaginary parts
+
+byte        alias for uint8
+rune        alias for int32
+</pre>
+
+<pre class="grammar">
+uint     either 32 or 64 bits
+int      same size as uint
+uintptr  an unsigned integer large enough to store the uninterpreted bits of a pointer value
+</pre>
+
+<pre class="ebnf">
+ArrayType   = "[" ArrayLength "]" ElementType .
+ArrayLength = Expression .
+ElementType = Type .
+</pre>
+
+
+<pre class="ebnf">
+SliceType = "[" "]" ElementType .
+</pre>
+
+
+
+
+<pre class="ebnf">
+StructType    = "struct" "{" { FieldDecl ";" } "}" .
+FieldDecl     = (IdentifierList Type | EmbeddedField) [ Tag ] .
+EmbeddedField = [ "*" ] TypeName .
+Tag           = string_lit .
+</pre>
+
+
+
+
+
+
+
+
+<pre class="ebnf">
+PointerType = "*" BaseType .
+BaseType    = Type .
+</pre>
+
+
+<pre class="ebnf">
+FunctionType   = "func" Signature .
+Signature      = Parameters [ Result ] .
+Result         = Parameters | Type .
+Parameters     = "(" [ ParameterList [ "," ] ] ")" .
+ParameterList  = ParameterDecl { "," ParameterDecl } .
+ParameterDecl  = [ IdentifierList ] [ "..." ] Type .
+</pre>
+
+
+<pre class="ebnf">
+InterfaceType      = "interface" "{" { ( MethodSpec | InterfaceTypeName ) ";" } "}" .
+MethodSpec         = MethodName Signature .
+MethodName         = identifier .
+InterfaceTypeName  = TypeName .
+</pre>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<pre class="ebnf">
+MapType     = "map" "[" KeyType "]" ElementType .
+KeyType     = Type .
+</pre>
+
+
+
+
+<pre class="ebnf">
+ChannelType = ( "chan" | "chan" "&lt;-" | "&lt;-" "chan" ) ElementType .
+</pre>
+
+
+<h3>Declarations</h3>
+
+
+<pre class="ebnf">
+Block = "{" StatementList "}" .
+StatementList = { Statement ";" } .
+</pre>
+
+<pre class="ebnf">
+Declaration   = ConstDecl | TypeDecl | VarDecl .
+TopLevelDecl  = Declaration | FunctionDecl | MethodDecl .
+</pre>
+
+<pre class="grammar">
+Types:
+	bool byte complex64 complex128 error float32 float64
+	int int8 int16 int32 int64 rune string
+	uint uint8 uint16 uint32 uint64 uintptr
+
+Constants:
+	true false iota
+
+Zero value:
+	nil
+
+Functions:
+	append cap close complex copy delete imag len
+	make new panic print println real recover
+</pre>
+
+<pre class="ebnf">
+ConstDecl      = "const" ( ConstSpec | "(" { ConstSpec ";" } ")" ) .
+ConstSpec      = IdentifierList [ [ Type ] "=" ExpressionList ] .
+
+IdentifierList = identifier { "," identifier } .
+ExpressionList = Expression { "," Expression } .
+</pre>
+
+
+
+
+
+
+
+
+<pre class="ebnf">
+TypeDecl = "type" ( TypeSpec | "(" { TypeSpec ";" } ")" ) .
+TypeSpec = AliasDecl | TypeDef .
+</pre>
+
+<pre class="ebnf">
+AliasDecl = identifier "=" Type .
+</pre>
+
+
+<pre class="ebnf">
+TypeDef = identifier Type .
+</pre>
+
+
+
+
+
+
+<pre class="ebnf">
+VarDecl     = "var" ( VarSpec | "(" { VarSpec ";" } ")" ) .
+VarSpec     = IdentifierList ( Type [ "=" ExpressionList ] | "=" ExpressionList ) .
+</pre>
+
+
+
+
+<pre class="ebnf">
+ShortVarDecl = IdentifierList ":=" ExpressionList .
+</pre>
+<pre class="grammar">
+"var" IdentifierList = ExpressionList .
+</pre>
+
+
+
+
+<pre class="ebnf">
+FunctionDecl = "func" FunctionName Signature [ FunctionBody ] .
+FunctionName = identifier .
+FunctionBody = Block .
+</pre>
+
+
+
+
+<pre class="ebnf">
+MethodDecl = "func" Receiver MethodName Signature [ FunctionBody ] .
+Receiver   = Parameters .
+</pre>
+
+<h3>Expressions</h3>
+
+
+
+<pre class="ebnf">
+Operand     = Literal | OperandName | "(" Expression ")" .
+Literal     = BasicLit | CompositeLit | FunctionLit .
+BasicLit    = int_lit | float_lit | imaginary_lit | rune_lit | string_lit .
+OperandName = identifier | QualifiedIdent.
+</pre>
+<pre class="ebnf">
+QualifiedIdent = PackageName "." identifier .
+</pre>
+
+
+<pre class="ebnf">
+CompositeLit  = LiteralType LiteralValue .
+LiteralType   = StructType | ArrayType | "[" "..." "]" ElementType |
+                SliceType | MapType | TypeName .
+LiteralValue  = "{" [ ElementList [ "," ] ] "}" .
+ElementList   = KeyedElement { "," KeyedElement } .
+KeyedElement  = [ Key ":" ] Element .
+Key           = FieldName | Expression | LiteralValue .
+FieldName     = identifier .
+Element       = Expression | LiteralValue .
+</pre>
+
+
+
+
+
+<pre class="ebnf">
+FunctionLit = "func" Signature FunctionBody .
+</pre>
+
+
+
+<pre class="ebnf">
+PrimaryExpr =
+	Operand |
+	Conversion |
+	MethodExpr |
+	PrimaryExpr Selector |
+	PrimaryExpr Index |
+	PrimaryExpr Slice |
+	PrimaryExpr TypeAssertion |
+	PrimaryExpr Arguments .
+
+Selector       = "." identifier .
+Index          = "[" Expression "]" .
+Slice          = "[" [ Expression ] ":" [ Expression ] "]" |
+                 "[" [ Expression ] ":" Expression ":" Expression "]" .
+TypeAssertion  = "." "(" Type ")" .
+Arguments      = "(" [ ( ExpressionList | Type [ "," ExpressionList ] ) [ "..." ] [ "," ] ] ")" .
+</pre>
+
+
+<pre class="ebnf">
+MethodExpr    = ReceiverType "." MethodName .
+ReceiverType  = Type .
+</pre>
+
+
+
+
+
+
+
+<pre class="ebnf">
+Expression = UnaryExpr | Expression binary_op Expression .
+UnaryExpr  = PrimaryExpr | unary_op UnaryExpr .
+
+binary_op  = "||" | "&amp;&amp;" | rel_op | add_op | mul_op .
+rel_op     = "==" | "!=" | "&lt;" | "&lt;=" | ">" | ">=" .
+add_op     = "+" | "-" | "|" | "^" .
+mul_op     = "*" | "/" | "%" | "&lt;&lt;" | "&gt;&gt;" | "&amp;" | "&amp;^" .
+
+unary_op   = "+" | "-" | "!" | "^" | "*" | "&amp;" | "&lt;-" .
+</pre>
+
+
+<pre class="grammar">
+Precedence    Operator
+    5             *  /  %  &lt;&lt;  &gt;&gt;  &amp;  &amp;^
+    4             +  -  |  ^
+    3             ==  !=  &lt;  &lt;=  &gt;  &gt;=
+    2             &amp;&amp;
+    1             ||
+</pre>
+
+
+<pre class="grammar">
++    sum                    integers, floats, complex values, strings
+-    difference             integers, floats, complex values
+*    product                integers, floats, complex values
+/    quotient               integers, floats, complex values
+%    remainder              integers
+
+&amp;    bitwise AND            integers
+|    bitwise OR             integers
+^    bitwise XOR            integers
+&amp;^   bit clear (AND NOT)    integers
+
+&lt;&lt;   left shift             integer &lt;&lt; unsigned integer
+&gt;&gt;   right shift            integer &gt;&gt; unsigned integer
+</pre>
+
+
+
+
+
+
+
+
+<pre class="grammar">
++x                          is 0 + x
+-x    negation              is 0 - x
+^x    bitwise complement    is m ^ x  with m = "all bits set to 1" for unsigned x
+                                      and  m = -1 for signed x
+</pre>
+
+
+
+
+<pre class="grammar">
+==    equal
+!=    not equal
+&lt;     less
+&lt;=    less or equal
+&gt;     greater
+&gt;=    greater or equal
+</pre>
+
+
+<pre class="grammar">
+&amp;&amp;    conditional AND    p &amp;&amp; q  is  "if p then q else false"
+||    conditional OR     p || q  is  "if p then true else q"
+!     NOT                !p      is  "not p"
+</pre>
+
+
+<pre class="ebnf">
+Conversion = Type "(" Expression [ "," ] ")" .
+</pre>
+
+
+<h3>Statements</h3>
+
+
+<pre class="ebnf">
+Statement =
+	Declaration | LabeledStmt | SimpleStmt |
+	GoStmt | ReturnStmt | BreakStmt | ContinueStmt | GotoStmt |
+	FallthroughStmt | Block | IfStmt | SwitchStmt | SelectStmt | ForStmt |
+	DeferStmt .
+
+SimpleStmt = EmptyStmt | ExpressionStmt | SendStmt | IncDecStmt | Assignment | ShortVarDecl .
+</pre>
+<pre class="ebnf">
+EmptyStmt = .
+</pre>
+<pre class="ebnf">
+LabeledStmt = Label ":" Statement .
+Label       = identifier .
+</pre>
+
+
+<pre class="ebnf">
+ExpressionStmt = Expression .
+</pre>
+
+
+
+
+<pre class="ebnf">
+SendStmt = Channel "&lt;-" Expression .
+Channel  = Expression .
+</pre>
+
+
+<pre class="ebnf">
+IncDecStmt = Expression ( "++" | "--" ) .
+</pre>
+
+<pre class="grammar">
+IncDec statement    Assignment
+x++                 x += 1
+x--                 x -= 1
+</pre>
+
+<pre class="ebnf">
+Assignment = ExpressionList assign_op ExpressionList .
+
+assign_op = [ add_op | mul_op ] "=" .
+</pre>
+
+
+
+<pre class="ebnf">
+IfStmt = "if" [ SimpleStmt ";" ] Expression Block [ "else" ( IfStmt | Block ) ] .
+</pre>
+
+
+
+
+<pre class="ebnf">
+SwitchStmt = ExprSwitchStmt | TypeSwitchStmt .
+</pre>
+<pre class="ebnf">
+ExprSwitchStmt = "switch" [ SimpleStmt ";" ] [ Expression ] "{" { ExprCaseClause } "}" .
+ExprCaseClause = ExprSwitchCase ":" StatementList .
+ExprSwitchCase = "case" ExpressionList | "default" .
+</pre>
+
+
+
+
+<pre class="ebnf">
+TypeSwitchStmt  = "switch" [ SimpleStmt ";" ] TypeSwitchGuard "{" { TypeCaseClause } "}" .
+TypeSwitchGuard = [ identifier ":=" ] PrimaryExpr "." "(" "type" ")" .
+TypeCaseClause  = TypeSwitchCase ":" StatementList .
+TypeSwitchCase  = "case" TypeList | "default" .
+TypeList        = Type { "," Type } .
+</pre>
+
+
+
+
+<pre class="ebnf">
+ForStmt = "for" [ Condition | ForClause | RangeClause ] Block .
+Condition = Expression .
+</pre>
+
+
+<pre class="ebnf">
+ForClause = [ InitStmt ] ";" [ Condition ] ";" [ PostStmt ] .
+InitStmt = SimpleStmt .
+PostStmt = SimpleStmt .
+</pre>
+
+
+
+
+<pre class="ebnf">
+RangeClause = [ ExpressionList "=" | IdentifierList ":=" ] "range" Expression .
+</pre>
+<pre class="grammar">
+Range expression                          1st value          2nd value
+
+array or slice  a  [n]E, *[n]E, or []E    index    i  int    a[i]       E
+string          s  string type            index    i  int    see below  rune
+map             m  map[K]V                key      k  K      m[k]       V
+channel         c  chan E, &lt;-chan E       element  e  E
+</pre>
+
+
+<pre class="ebnf">
+GoStmt = "go" Expression .
+</pre>
+
+
+<pre class="ebnf">
+SelectStmt = "select" "{" { CommClause } "}" .
+CommClause = CommCase ":" StatementList .
+CommCase   = "case" ( SendStmt | RecvStmt ) | "default" .
+RecvStmt   = [ ExpressionList "=" | IdentifierList ":=" ] RecvExpr .
+RecvExpr   = Expression .
+</pre>
+
+
+<pre class="ebnf">
+ReturnStmt = "return" [ ExpressionList ] .
+</pre>
+
+
+
+
+<pre class="ebnf">
+BreakStmt = "break" [ Label ] .
+</pre>
+
+
+<pre class="ebnf">
+ContinueStmt = "continue" [ Label ] .
+</pre>
+
+
+<pre class="ebnf">
+GotoStmt = "goto" Label .
+</pre>
+
+
+
+
+<pre class="ebnf">
+FallthroughStmt = "fallthrough" .
+</pre>
+<pre class="ebnf">
+DeferStmt = "defer" Expression .
+</pre>
+
+
+
+
+<h3>Source file</h3>
+
+
+<pre class="ebnf">
+SourceFile       = PackageClause ";" { ImportDecl ";" } { TopLevelDecl ";" } .
+</pre>
+
+<pre class="ebnf">
+PackageClause  = "package" PackageName .
+PackageName    = identifier .
+</pre>
+
+
+<pre class="ebnf">
+ImportDecl       = "import" ( ImportSpec | "(" { ImportSpec ";" } ")" ) .
+ImportSpec       = [ "." | PackageName ] ImportPath .
+ImportPath       = string_lit .
+</pre>
+
+<pre class="grammar">
+Import declaration          Local name of Sin
+
+import   "lib/math"         math.Sin
+import m "lib/math"         m.Sin
+import . "lib/math"         Sin
+</pre>

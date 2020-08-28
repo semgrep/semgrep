@@ -1,0 +1,2 @@
+
+void*	lookupkey(Intmap*, ulong);

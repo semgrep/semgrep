@@ -1,0 +1,3 @@
+char *schedstatename[] = {
+ 	[SReady] =	"Ready"
+};
