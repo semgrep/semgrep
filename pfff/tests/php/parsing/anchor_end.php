@@ -1,3 +1,0 @@
-<?php
-// some comment
-?>

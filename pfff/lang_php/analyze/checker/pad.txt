@@ -1,3 +1,0 @@
-This directory has been superceded by pfff/linter/.
-You should port all PHP checks in this directory to the generic AST
-so it can benefit all languages, not just PHP.

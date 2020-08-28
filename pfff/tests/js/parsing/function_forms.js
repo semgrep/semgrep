@@ -1,4 +1,0 @@
-function foo() {}
-
-f = function() { };
-

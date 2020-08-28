@@ -1,2 +1,0 @@
-
-(* see archimedes instead *)
