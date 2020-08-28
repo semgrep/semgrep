@@ -32,36 +32,40 @@ def normalize_rule_id(line: str) -> str:
     or `      // ruleid:foobar`
     return `foobar`
     """
-    return line.strip().split(":")[1].strip()
+    return line.strip().split(":")[1].strip().split(" ")[0].strip()
 
 
 def compute_confusion_matrix(
-    reported: Set[Any], expected: Set[Any]
+    reported: Set[Any], expected: Set[Any], oked: Set[Any]
 ) -> Tuple[int, int, int, int]:
     true_positives = len(expected.intersection(reported))
     false_positives = len(reported - expected)
-    true_negatives = 0  # we have no way to label "ok"
+    true_negatives = len(oked)
     false_negatives = len(expected - reported)
 
     return (true_positives, true_negatives, false_positives, false_negatives)
 
 
 def _test_compute_confusion_matrix() -> None:
-    tp, tn, fp, fn = compute_confusion_matrix(set([1, 2, 3, 4]), set([1]))
+    tp, tn, fp, fn = compute_confusion_matrix(set([1, 2, 3, 4]), set([1]), set())
     assert tp == 1
     assert tn == 0
     assert fp == 3
     assert fn == 0
 
-    tp, tn, fp, fn = compute_confusion_matrix(set([1, 2, 3, 4]), set([1, 2, 3, 4]))
+    tp, tn, fp, fn = compute_confusion_matrix(
+        set([1, 2, 3, 4]), set([1, 2, 3, 4]), set([1])
+    )
     assert tp == 4
-    assert tn == 0
+    assert tn == 1
     assert fp == 0
     assert fn == 0
 
-    tp, tn, fp, fn = compute_confusion_matrix(set([2, 3]), set([1, 2, 3, 4]))
+    tp, tn, fp, fn = compute_confusion_matrix(
+        set([2, 3]), set([1, 2, 3, 4]), set([7, 8])
+    )
     assert tp == 2
-    assert tn == 0
+    assert tn == 2
     assert fp == 0
     assert fn == 2
 
@@ -81,7 +85,13 @@ def line_has_rule(line: str) -> bool:
         or "# ruleid:" in line
         or "//ruleid:" in line
         or "// ruleid:" in line
+        or "<!--ruleid:" in line
+        or "<!-- ruleid:" in line
     )
+
+
+def line_has_ok(line: str) -> bool:
+    return "#ok:" in line or "# ok:" in line or "//ok:" in line or "// ok:" in line
 
 
 def line_has_todo_ok(line: str) -> bool:
@@ -97,6 +107,9 @@ def score_output_json(
     json_out: Dict[str, Any], test_files: List[Path], ignore_todo: bool
 ) -> Tuple[Dict[str, List[int]], Dict[str, Dict[str, Any]], int]:
     comment_lines: Dict[str, Dict[str, List[int]]] = collections.defaultdict(
+        lambda: collections.defaultdict(list)
+    )
+    ok_lines: Dict[str, Dict[str, List[int]]] = collections.defaultdict(
         lambda: collections.defaultdict(list)
     )
     reported_lines: Dict[str, Dict[str, List[int]]] = collections.defaultdict(
@@ -119,12 +132,19 @@ def score_output_json(
                 # +1 because we are 0 based and semgrep output is not, plus skip the comment line
                 effective_line_num = i + 2
 
+                rule_in_line = line_has_rule(line)
+                ok_in_line = line_has_ok(line)
                 todo_in_line = line_has_todo_rule(line)
                 todo_ok_in_line = line_has_todo_ok(line)
+
                 if todo_in_line:
                     num_todo += 1
-                if (not ignore_todo and todo_in_line) or line_has_rule(line):
+                if (not ignore_todo and todo_in_line) or rule_in_line:
                     comment_lines[test_file_resolved][normalize_rule_id(line)].append(
+                        effective_line_num
+                    )
+                if (not ignore_todo and todo_in_line) or ok_in_line:
+                    ok_lines[test_file_resolved][normalize_rule_id(line)].append(
                         effective_line_num
                     )
                 if ignore_todo and todo_ok_in_line:
@@ -142,11 +162,18 @@ def score_output_json(
         for check_id in join_keys(comment_lines[file_path], reported_lines[file_path]):
             all_reported = set(reported_lines[file_path][check_id])
             expected = set(comment_lines[file_path][check_id])
+            oked = set(ok_lines[file_path][check_id])
             ignored = set(ignore_lines[file_path])
+
+            reported_oked_lines = oked.intersection(all_reported)
+            if reported_oked_lines:
+                raise Exception(
+                    f"found results on ok'ed lines - lines={reported_oked_lines} path={file_path}"
+                )
 
             reported = all_reported - ignored
 
-            new_cm = compute_confusion_matrix(reported, expected)
+            new_cm = compute_confusion_matrix(reported, expected, oked)
             logger.debug(
                 f"reported lines for check {check_id}: {sorted(reported)}, expected lines: {sorted(expected)} (ignored: {sorted(ignored)}, confusion matrix: {new_cm}"
             )
@@ -165,7 +192,7 @@ def score_output_json(
 
 def confusion_matrix_to_string(confusion: List[int]) -> str:
     tp, tn, fp, fn = confusion[0], confusion[1], confusion[2], confusion[3]
-    return f"TP: {tp}\tTN:{tn}\t FP: {fp}\t FN: {fn}"
+    return f"TP: {tp}\tTN: {tn}\tFP: {fp}\tFN: {fn}"
 
 
 def generate_file_pairs(

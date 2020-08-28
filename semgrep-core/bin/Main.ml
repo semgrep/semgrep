@@ -915,6 +915,8 @@ let all_actions () = [
     (Test_parsing.test_parse_lang !Flag.debug !lang get_final_files);
   "-dump_tree_sitter_cst", " <file>",
   Common.mk_action_1_arg Test_parsing.dump_tree_sitter_cst;
+  "-dump_ast_pfff", " <file>",
+  Common.mk_action_1_arg Test_parsing.dump_ast_pfff;
   "-datalog_experiment", " <file> <dir>",
   Common.mk_action_2_arg Datalog_experiment.gen_facts;
   "-dump_il", " <file>",
