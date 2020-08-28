@@ -1,5 +1,0 @@
-<?php
-
-function test_spacing() {
-if(true){return 1;}else{return 2;}
-}

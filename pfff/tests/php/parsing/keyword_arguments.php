@@ -1,4 +1,0 @@
-<?php
-
-foo($x=true);
-

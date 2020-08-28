@@ -1,4 +1,0 @@
-<?php
-
-$x = function($y) {
-};
