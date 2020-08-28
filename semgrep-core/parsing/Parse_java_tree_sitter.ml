@@ -1112,15 +1112,15 @@ and annotation_argument_list (env : env) ((v1, v2, v3) : CST.annotation_argument
     | `Opt_elem_value_pair_rep_COMMA_elem_value_pair opt ->
         (match opt with
         | Some (v1, v2) ->
-            let v1 = element_value_pair env v1 in
+            let v1 =  AnnotPair (element_value_pair env v1) in
             let v2 =
               List.map (fun (v1, v2) ->
                 let _v1 = token env v1 (* "," *) in
-                let v2 = element_value_pair env v2 in
+                let v2 = AnnotPair (element_value_pair env v2) in
                 v2
               ) v2
             in
-            AnnotArgPairInit (v1::v2)
+            AnnotArgPairInit ((v1)::v2)
         | None -> EmptyAnnotArg)
     )
   in
