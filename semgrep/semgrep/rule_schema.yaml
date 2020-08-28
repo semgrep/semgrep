@@ -21,6 +21,7 @@ definitions:
       - $ref: '#/definitions/pattern-inside'
       - $ref: '#/definitions/pattern'
       - $ref: '#/definitions/pattern-regex'
+      - $ref: '#/definitions/metavariable-regex'
   taint-content:
     type: array
     items:
