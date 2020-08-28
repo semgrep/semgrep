@@ -14,6 +14,7 @@
 open Common
 
 module PI = Parse_info
+module G = AST_generic
 
 (* less: could infer lang from filename *)
 let dump_tree_sitter_cst_lang lang file =
@@ -39,6 +40,16 @@ let dump_tree_sitter_cst_lang lang file =
 let dump_tree_sitter_cst file =
   match Lang.langs_of_filename file with
   | [l] -> dump_tree_sitter_cst_lang l file
+  | [] -> failwith (spf "no language detected for %s" file)
+  | _::_::_ -> failwith (spf "too many languages detected for %s" file)
+
+let dump_ast_pfff file =
+  match Lang.langs_of_filename file with
+  | [lang] ->
+      let x = Parse_generic.parse_with_lang lang file in
+      let v = Meta_AST.vof_any (G.Pr x) in
+      let s = OCaml.string_of_v v in
+      pr2 s
   | [] -> failwith (spf "no language detected for %s" file)
   | _::_::_ -> failwith (spf "too many languages detected for %s" file)
 

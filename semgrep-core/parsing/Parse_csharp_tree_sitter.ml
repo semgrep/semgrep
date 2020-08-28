@@ -49,8 +49,6 @@ let str = H.str
 (* Disable warning against unused 'rec' *)
 [@@@warning "-39"]
 
-let blank (env : env) () = ()
-
 let todo (env : env) _ =
    failwith "not implemented"
 
@@ -175,12 +173,12 @@ let modifier (env : env) (x : CST.modifier) =
 
 let interpolation_format_clause (env : env) ((v1, v2) : CST.interpolation_format_clause) =
   let v1 = token env v1 (* ":" *) in
-  let v2 = blank env v2 in
+  let v2 = token env v2 (* pattern "[^}\"]+" *) in
   todo env (v1, v2)
 
 let interpolated_verbatim_string_text (env : env) (x : CST.interpolated_verbatim_string_text) =
   (match x with
-  | `Blank () -> todo env ()
+  | `Pat_6d9db72 tok -> token env tok (* pattern "[^{\"]+" *)
   | `DQUOTDQUOT tok -> token env tok (* "\"\"" *)
   )
 
@@ -197,16 +195,11 @@ let identifier (env : env) (tok : CST.identifier) =
 let _preproc_directive_end (env : env) (tok : CST.preproc_directive_end) =
   token env tok (* preproc_directive_end *)
 
-let anon_choice_blank (env : env) (x : CST.anon_choice_blank) =
-  (match x with
-  | `Blank () -> todo env ()
-  | `Esc_seq tok -> escape_sequence env tok (* escape_sequence *)
-  )
-
 let interpolated_string_text (env : env) (x : CST.interpolated_string_text) =
   (match x with
   | `LCURLLCURL tok -> token env tok (* "{{" *)
-  | `Blank () -> todo env ()
+  | `Imm_tok_pat_2755817 tok ->
+      token env tok (* pattern "[^{\"\\\\\\n]+" *)
   | `Esc_seq tok -> escape_sequence env tok (* escape_sequence *)
   )
 
@@ -280,14 +273,28 @@ let literal (env : env) (x : CST.literal) =
   | `Bool_lit x -> boolean_literal env x
   | `Char_lit (v1, v2, v3) ->
       let v1 = token env v1 (* "'" *) in
-      let v2 = anon_choice_blank env v2 in
+      let v2 =
+        (match v2 with
+        | `Imm_tok_pat_684220d tok ->
+            token env tok (* pattern "[^'\\\\]" *)
+        | `Esc_seq tok -> token env tok (* escape_sequence *)
+        )
+      in
       let v3 = token env v3 (* "'" *) in
       todo env (v1, v2, v3)
   | `Real_lit tok -> real_literal env tok (* real_literal *)
   | `Int_lit tok -> integer_literal env tok (* integer_literal *)
   | `Str_lit (v1, v2, v3) ->
       let v1 = token env v1 (* "\"" *) in
-      let v2 = List.map (anon_choice_blank env) v2 in
+      let v2 =
+        List.map (fun x ->
+          (match x with
+          | `Imm_tok_pat_5a6fa79 tok ->
+              token env tok (* pattern "[^\"\\\\\\n]+" *)
+          | `Esc_seq tok -> token env tok (* escape_sequence *)
+          )
+        ) v2
+      in
       let v3 = token env v3 (* "\"" *) in
       todo env (v1, v2, v3)
   | `Verb_str_lit tok ->
