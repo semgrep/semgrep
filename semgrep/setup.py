@@ -88,15 +88,11 @@ class PostInstallCommand(install):
             os.putenv("SKIP_NUITKA", "TRUE")
             if "osx" in distutils.util.get_platform():
                 with chdir(repo_root):
-                    os.system(
-                        os.path.join(repo_root, "release-scripts", "osx-release.sh")
-                    )
+                    os.system(os.path.join(repo_root, "scripts", "osx-release.sh"))
                     source = os.path.join(repo_root, "artifacts", "semgrep-core")
             else:
                 with chdir(repo_root):
-                    os.system(
-                        os.path.join(repo_root, "release-scripts", "ubuntu-release.sh")
-                    )
+                    os.system(os.path.join(repo_root, "scripts", "ubuntu-release.sh"))
                     source = os.path.join(repo_root, "semgrep-files", "semgrep-core")
 
         ## run this after trying to build (as otherwise this leaves
@@ -133,9 +129,11 @@ setup(
         "attrs>=19.3.0",
         "tqdm>=4.46.1",
         "packaging>=20.4",
+        "jsonschema~=3.2.0",
     ],
     entry_points={"console_scripts": ["semgrep=semgrep.__main__:main"]},
     packages=setuptools.find_packages(),
+    include_package_data=True,
     classifiers=[
         "Environment :: Console",
         "License :: OSI Approved :: GNU Lesser General Public License v2 (LGPLv2)",

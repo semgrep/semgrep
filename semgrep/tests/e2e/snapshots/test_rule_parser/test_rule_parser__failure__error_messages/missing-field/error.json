@@ -2,17 +2,16 @@
   "errors": [
     {
       "code": 4,
-      "help": "Add {'severity'} to your config file.",
       "level": "error",
-      "long_msg": "rules/syntax/missing-field.yaml is missing required keys {'severity'}",
-      "short_msg": "missing keys",
+      "long_msg": "{'anyOf': [{'required': ['pattern']}, {'required': ['patterns']}, {'required': ['pattern-either']}, {'required': ['pattern-regex']}]} is not allowed for {'id': 'flask-secure-set-cookie', 'languages': ['python'], 'patterns': [{'pattern-not': 'flask.response.set_cookie(..., httponly=True, secure=True,...)\\n'}, {'pattern': 'flask.response.set_cookie(....)\\n'}], 'message': \"Flask cookies should be handled securely by setting secure=True, httponly=True, and samesite='Lax' in  response.set_cookie(...). If your situation calls for different settings, explicitly disable the setting.\\nIf you want to send the cookie over http, set secure=False.  If you want to let client-side JavaScript\\nread the cookie, set httponly=False. If you want to attach cookies to requests for external sites,\\nset samesite=None.\\n\"}",
+      "short_msg": "Invalid rule schema",
       "spans": [
         {
           "context_end": null,
           "context_start": null,
           "end": {
-            "col": 0,
-            "line": 8
+            "col": 1,
+            "line": 15
           },
           "file": "rules/syntax/missing-field.yaml",
           "source_hash": "52c8055ff5d4555128113f2ad1b4f03c1227c339ee9b6992d9bbc18548d4e645",

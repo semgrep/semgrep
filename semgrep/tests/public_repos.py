@@ -263,6 +263,18 @@ PASSING_REPOS = [
         "repo": "https://github.com/home-assistant/home-assistant",
         "languages": ALL_LANGUAGES,
     },
+    {"repo": "https://github.com/0c34/govwa", "languages": ALL_LANGUAGES},
+    {"repo": "https://github.com/coinbase/bittip", "languages": ALL_LANGUAGES},
+    {"repo": "https://github.com/dropbox/questions", "languages": ALL_LANGUAGES},
+    {"repo": "https://github.com/OWASP/NodeGoat", "languages": ALL_LANGUAGES},
+    {"repo": "https://github.com/coinbase/gtt-ui", "languages": ALL_LANGUAGES},
+    {"repo": "https://github.com/coinbase/multisig-tool", "languages": ALL_LANGUAGES,},
+    {"repo": "https://github.com/highcharts/highcharts", "languages": ALL_LANGUAGES,},
+    {
+        "repo": "https://github.com/we45/Vulnerable-Flask-App",
+        "languages": ALL_LANGUAGES,
+    },
+    {"repo": "https://github.com/DevSlop/Pixi", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/jekyll/jekyll", "languages": ["ruby"]},
 ]
 
@@ -273,8 +285,8 @@ FAILING_REPOS = [
             "languages": ALL_LANGUAGES,
         },
         reason=(
-            "https://github.com/returntocorp/semgrep/issues/1518",
-            "https://github.com/returntocorp/semgrep/issues/1519",
+            "https://github.com/returntocorp/semgrep/issues/1518"
+            "https://github.com/returntocorp/semgrep/issues/1519"
         ),
     ),
     xfail_repo(
@@ -310,7 +322,6 @@ FAILING_REPOS = [
         {"repo": "https://github.com/dropbox/pyston", "languages": ALL_LANGUAGES},
         reason=("fail to parse page break 0x0c in python"),
     ),
-    xfail_repo({"repo": "https://github.com/0c34/govwa", "languages": ALL_LANGUAGES}),
     xfail_repo({"repo": "https://github.com/rails/rails", "languages": ["ruby"]}),
     xfail_repo(
         {
@@ -320,73 +331,20 @@ FAILING_REPOS = [
     ),
     xfail_repo({"repo": "https://github.com/Homebrew/brew", "languages": ["ruby"]}),
     xfail_repo({"repo": "https://github.com/gitlabhq/gitlabhq", "languages": ["ruby"]}),
-    # Below fail due to minified/large js files
     xfail_repo(
         {"repo": "https://github.com/dropbox/changes", "languages": ALL_LANGUAGES},
-        reason="react, https://github.com/returntocorp/semgrep/issues/1496",
-    ),
-    xfail_repo(
-        {"repo": "https://github.com/coinbase/bittip", "languages": ALL_LANGUAGES},
-        reason="https://github.com/returntocorp/semgrep/issues/1496",
-    ),
-    xfail_repo(
-        {"repo": "https://github.com/dropbox/questions", "languages": ALL_LANGUAGES},
-        reason="https://github.com/returntocorp/semgrep/issues/1496",
-    ),
-    xfail_repo(
-        {"repo": "https://github.com/OWASP/NodeGoat", "languages": ALL_LANGUAGES},
-        reason="https://github.com/returntocorp/semgrep/issues/1496",
-    ),
-    xfail_repo(
-        {"repo": "https://github.com/nVisium/django.nV", "languages": ALL_LANGUAGES},
-        reason="https://github.com/returntocorp/semgrep/issues/1496",
-    ),
-    xfail_repo(
-        {"repo": "https://github.com/coinbase/gtt-ui", "languages": ALL_LANGUAGES},
-        reason="https://github.com/returntocorp/semgrep/issues/1496",
-    ),
-    xfail_repo(
-        {
-            "repo": "https://github.com/coinbase/multisig-tool",
-            "languages": ALL_LANGUAGES,
-        },
-        reason="https://github.com/returntocorp/semgrep/issues/1496",
+        reason="react",
     ),
     xfail_repo(
         {"repo": "https://github.com/dropbox/pyston-perf", "languages": ALL_LANGUAGES},
-        reason="templates, https://github.com/returntocorp/semgrep/issues/1496",
-    ),
-    xfail_repo(
-        {
-            "repo": "https://github.com/signalapp/Signal-Desktop",
-            "languages": ALL_LANGUAGES,
-        },
-        reason="https://github.com/returntocorp/semgrep/issues/1496",
-    ),
-    xfail_repo(
-        {
-            "repo": "https://github.com/highcharts/highcharts",
-            "languages": ALL_LANGUAGES,
-        },
-        reason="https://github.com/returntocorp/semgrep/issues/1496",
+        reason="templates",
     ),
     xfail_repo(
         {
             "repo": "https://github.com/opensourceactivismtech/call-power",
             "languages": ALL_LANGUAGES,
         },
-        reason="templates, https://github.com/returntocorp/semgrep/issues/1496",
-    ),
-    xfail_repo(
-        {
-            "repo": "https://github.com/we45/Vulnerable-Flask-App",
-            "languages": ALL_LANGUAGES,
-        },
-        reason="https://github.com/returntocorp/semgrep/issues/1496",
-    ),
-    xfail_repo(
-        {"repo": "https://github.com/DevSlop/Pixi", "languages": ALL_LANGUAGES},
-        reason="https://github.com/returntocorp/semgrep/issues/1496",
+        reason="templates",
     ),
 ]
 

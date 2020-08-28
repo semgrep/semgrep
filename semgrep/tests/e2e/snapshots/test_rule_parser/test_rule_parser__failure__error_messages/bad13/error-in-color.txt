@@ -1,0 +1,13 @@
+[31merror[39m: Invalid rule schema
+  --> rules/syntax/bad13.yaml:2
+[94m2 | [39m  - id: tainty
+[94m3 | [39m    message: Hi
+[94m4 | [39m    languages: [python]
+[94m5 | [39m    severity: WARNING
+[94m6 | [39m    mode: taint
+[94m7 | [39m    # Can't use taint
+[94m8 | [39m    pattern: $X == $X
+
+[31m{'anyOf': [{'required': ['pattern']}, {'required': ['patterns']}, {'required': ['pattern-either']}, {'required': ['pattern-regex']}]} is not allowed for {'id': 'tainty', 'message': 'Hi', 'languages': ['python'], 'severity': 'WARNING', 'mode': 'taint', 'pattern': '$X == $X'}[39m
+
+run with --strict and there were 1 errors loading configs

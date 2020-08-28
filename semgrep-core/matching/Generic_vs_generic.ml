@@ -494,6 +494,23 @@ and m_expr a b =
     m_tok at bt >>= (fun () ->
     m_expr a2 b2
     ))
+    (* If the code has tuples as b1 and b2 and the lengths of
+     * the tuples are equal, create a tuple of (variable, value)
+     * pairs and try to match the pattern with each entry in the tuple.
+     * This should enable multiple assignments if the number of
+     * variables and values are equal. *)
+    >||> (match (b1, b2) with
+    | B.Tuple vars, B.Tuple vals
+      when List.length vars = List.length vals ->
+        let create_assigns = fun expr1 expr2 -> B.Assign (expr1, bt, expr2) in
+        let mult_assigns = List.map2 create_assigns vars vals in
+        let rec aux xs =
+            match xs with
+            | [] -> fail ()
+            | x::xs ->
+              m_expr a x >||> aux xs
+        in aux mult_assigns
+    | _, _ -> fail ())
 
   | A.DotAccess(a1, at, a2), B.DotAccess(b1, bt, b2) ->
     m_expr a1 b1 >>= (fun () ->
@@ -848,8 +865,9 @@ and m_xml a b =
 (*e: function [[Generic_vs_generic.m_xml]] *)
 
 (*s: function [[Generic_vs_generic.m_attrs]] *)
+(* less: allow '...'? or just have it implicit *)
 and m_attrs a b =
-  m_list__m_xml_attr a b
+  m_list_in_any_order ~less_is_ok:true m_xml_attr a b
 (*e: function [[Generic_vs_generic.m_attrs]] *)
 
 (*s: function [[Generic_vs_generic.m_bodies]] *)
@@ -857,52 +875,6 @@ and m_bodies a b =
   m_list__m_body a b
 (*e: function [[Generic_vs_generic.m_bodies]] *)
 
-(* less: use m_list_in_any_order? move split_when in it? *)
-(*s: function [[Generic_vs_generic.m_list__m_xml_attr]] *)
-and m_list__m_xml_attr
- (xsa: A.xml_attribute list) (xsb: A.xml_attribute list) =
-  match xsa, xsb with
-  | [], [] ->
-      return ()
-
-  (*s: [[Generic_vs_generic.m_list__m_xml_attr]] empty list vs list case *)
-  (* less-is-ok: *)
-  | [], _::_ ->
-      return ()
-  (*e: [[Generic_vs_generic.m_list__m_xml_attr]] empty list vs list case *)
-  (* less: allow '...'? *)
-
-  | (((s1, _), _) as a)::xsa, xsb ->
-     (*s: [[Generic_vs_generic.m_list__m_xml_attr]] if metavar attribute *)
-     if MV.is_metavar_name s1
-     then
-        let candidates = all_elem_and_rest_of_list xsb in
-        (* less: could use a fold *)
-        let rec aux xs =
-          match xs with
-          | [] -> fail ()
-          | (b, xsb)::xs ->
-              (m_xml_attr a b >>= (fun () -> m_list__m_xml_attr xsa xsb))
-              >||> aux xs
-        in
-        aux candidates
-     (*e: [[Generic_vs_generic.m_list__m_xml_attr]] if metavar attribute *)
-     else
-      (try
-        let (before, there, after) = xsb |> Common2.split_when (function
-            | ((s2, _), _) when s2 = s1 -> true
-            | _ -> false
-        ) in
-        (match there with
-        | b ->
-           m_xml_attr a b >>= (fun () ->
-           m_list__m_xml_attr xsa (before @ after)
-           )
-        (* | _ -> raise Impossible *)
-        )
-      with Not_found -> fail ()
-      )
-(* type matching *)
 
 and m_compatible_type typed_mvar t e =
   match t, e with
@@ -928,15 +900,6 @@ and m_compatible_type typed_mvar t e =
 
   | _ -> fail ()
 
-  (* the general case *)
-(*
-  | xa::aas, xb::bbs ->
-      m_xml_attr xa xb >>= (fun () ->
-      m_list__m_xml_attr aas bbs
-      )
-  | _::_, _ ->
-      fail ()
-*)
 (*e: function [[Generic_vs_generic.m_list__m_xml_attr]] *)
 
 (*s: function [[Generic_vs_generic.m_list__m_body]] *)
@@ -951,10 +914,15 @@ and m_list__m_body a b =
 (*s: function [[Generic_vs_generic.m_xml_attr]] *)
 and m_xml_attr a b =
   match a, b with
-  | (a1, a2), (b1, b2) ->
+  | A.XmlAttr (a1, a2), B.XmlAttr (b1, b2) ->
     m_ident a1 b1 >>= (fun () ->
     m_xml_attr_value a2 b2
     )
+  | A.XmlAttrExpr a1, B.XmlAttrExpr b1 ->
+      m_bracket m_expr a1 b1
+  | A.XmlAttr _, _
+  | A.XmlAttrExpr _, _
+   -> fail ()
 (*e: function [[Generic_vs_generic.m_xml_attr]] *)
 
 (*s: function [[Generic_vs_generic.m_xml_attr_value]] *)
@@ -1131,6 +1099,8 @@ and m_type_ a b =
      when MV.is_metavar_name str ->
       envf (str, tok) (B.T (t2))
   (*e: [[Generic_vs_generic.m_type_]] metavariable case *)
+  (* dots: *)
+  | A.TyEllipsis _, _ -> return ()
 
   (* boilerplate *)
   | A.TyBuiltin(a1), B.TyBuiltin(b1) ->
@@ -1466,9 +1436,9 @@ and m_stmt a b =
     m_tok a0 b0 >>= (fun () ->
     (* too many regressions doing m_expr_deep by default; Use DeepEllipsis *)
     m_expr a1 b1 >>= (fun () ->
-    m_stmt a2 b2 >>= (fun () ->
+    m_block a2 b2 >>= (fun () ->
     (* less-is-more: *)
-    m_option_none_can_match_some m_stmt a3 b3
+    m_option_none_can_match_some m_block a3 b3
     )))
 
   | A.While(a0, a1, a2), B.While(b0, b1, b2) ->
@@ -1570,6 +1540,17 @@ and m_for_header a b =
    -> fail ()
 (*e: function [[Generic_vs_generic.m_for_header]] *)
 
+and m_block a b =
+  match a, b with
+  | A.Block _, B.Block _ ->
+    m_stmt a b
+  | A.Block (_, [a_stmt], _), _ ->
+    m_stmt a_stmt b
+  | _, B.Block (_, [b_stmt], _) ->
+    m_stmt a b_stmt
+  | _, _ ->
+    m_stmt a b
+
 (*s: function [[Generic_vs_generic.m_for_var_or_expr]] *)
 and m_for_var_or_expr a b =
   match a, b with
@@ -1667,6 +1648,9 @@ and m_pattern a b =
         envf (str, tok) (B.P b2)
       )
   (*e: [[Generic_vs_generic.m_pattern()]] metavariable case *)
+
+  (* dots: *)
+  | A.PatEllipsis _, _ -> return ()
 
   (* boilerplate *)
   (*s: [[Generic_vs_generic.m_pattern]] boilerplate cases *)
@@ -2316,8 +2300,12 @@ and m_any a b =
     m_name a1 b1
   | A.Modn(a1), B.Modn(b1) ->
     m_module_name a1 b1
+  | A.ModDk(a1), B.ModDk(b1) ->
+    m_module_definition_kind a1 b1
   | A.Tk(a1), B.Tk(b1) ->
     m_tok a1 b1
+  | A.TodoK(a1), B.TodoK(b1) ->
+    m_ident a1 b1
   | A.Di(a1), B.Di(b1) ->
     m_dotted_name a1 b1
   | A.En(a1), B.En(b1) ->
@@ -2352,6 +2340,7 @@ and m_any a b =
   | A.S _, _  | A.T _, _  | A.P _, _  | A.Def _, _  | A.Dir _, _
   | A.Pa _, _  | A.Ar _, _  | A.At _, _  | A.Dk _, _ | A.Pr _, _
   | A.Fld _, _ | A.Ss _, _ | A.Tk _, _ | A.Lbli _, _ | A.Fldi _, _
+  | A.ModDk _, _ | A.TodoK _, _
    -> fail ()
   (*e: [[Generic_vs_generic.m_any]] boilerplate cases *)
 (*e: function [[Generic_vs_generic.m_any]] *)

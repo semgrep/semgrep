@@ -9,6 +9,7 @@ import tempfile
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+from typing import cast
 from typing import Dict
 from typing import IO
 from typing import Iterator
@@ -36,6 +37,7 @@ from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.semgrep_types import BooleanRuleExpression
 from semgrep.semgrep_types import Language
+from semgrep.semgrep_types import NONE_LANGUAGE
 from semgrep.semgrep_types import OPERATORS
 from semgrep.semgrep_types import TAINT_MODE
 from semgrep.target_manager import TargetManager
@@ -280,14 +282,7 @@ class CoreRunner:
             logger.debug(core_run.stderr.decode("utf-8", "replace"))
 
             if core_run.returncode != 0:
-                # see if semgrep output a JSON error that we can decode
-                semgrep_output = core_run.stdout.decode("utf-8", "replace")
-                try:
-                    output_json: dict = json.loads(semgrep_output)
-                except ValueError:
-                    raise SemgrepError(
-                        f"unexpected non-json output while invoking semgrep-core:\n{PLEASE_FILE_ISSUE_TEXT}"
-                    )
+                output_json = self._parse_core_output(core_run.stdout)
 
                 if "error" in output_json:
                     self._raise_semgrep_error_from_json(output_json, patterns)
@@ -296,9 +291,19 @@ class CoreRunner:
                         f"unexpected json output while invoking semgrep-core:\n{PLEASE_FILE_ISSUE_TEXT}"
                     )
 
-            output_json = json.loads((core_run.stdout.decode("utf-8", "replace")))
+            output_json = self._parse_core_output(core_run.stdout)
 
             return output_json
+
+    def _parse_core_output(self, core_run_out: bytes) -> Dict[str, Any]:
+        # see if semgrep output a JSON error that we can decode
+        semgrep_output = core_run_out.decode("utf-8", "replace")
+        try:
+            return cast(Dict[str, Any], json.loads(semgrep_output))
+        except ValueError:
+            raise SemgrepError(
+                f"unexpected non-json output while invoking semgrep-core:\n{semgrep_output}\n\n{PLEASE_FILE_ISSUE_TEXT}"
+            )
 
     def _run_rule(
         self,
@@ -349,6 +354,11 @@ class CoreRunner:
                 )
                 if patterns_regex:
                     self.handle_regex_patterns(outputs, patterns_regex, targets)
+
+                # 'none' language only supports OPERATORS.REGEX at the moment.
+                # Skip passing this rule to semgrep-core.
+                if language == NONE_LANGUAGE:
+                    continue
 
                 # semgrep-core doesn't know about OPERATORS.METAVARIABLE_REGEX -
                 # this is strictly a semgrep Python feature. Metavariable regex

@@ -12,6 +12,7 @@ from semgrep.error import _UnknownLanguageError
 from semgrep.error import FilesNotFoundError
 from semgrep.output import OutputHandler
 from semgrep.semgrep_types import Language
+from semgrep.semgrep_types import NONE_LANGUAGE
 from semgrep.util import partition_set
 from semgrep.util import sub_check_output
 
@@ -27,8 +28,6 @@ RUBY_EXTENSIONS = [FileExtension("rb")]
 ML_EXTENSIONS = [
     FileExtension("mli"),
     FileExtension("ml"),
-    FileExtension("mly"),
-    FileExtension("mll"),
 ]
 JSON_EXTENSIONS = [FileExtension("json")]
 ALL_EXTENSIONS = (
@@ -65,6 +64,8 @@ def lang_to_exts(language: Language) -> List[FileExtension]:
         return RUBY_EXTENSIONS
     elif language in {"json", "JSON", "Json"}:
         return JSON_EXTENSIONS
+    elif language in {NONE_LANGUAGE}:
+        return [FileExtension("*")]
     else:
         raise _UnknownLanguageError(f"Unsupported Language: {language}")
 
@@ -260,17 +261,21 @@ class TargetManager:
         targets = self.filter_includes(targets, self.includes)
         targets = self.filter_excludes(targets, self.excludes)
 
+        # Remove explicit_files with known extensions.
+        explicit_files_with_lang_extension = set(
+            f
+            for f in explicit_files
+            if (any(f.match(f"*.{ext}") for ext in lang_to_exts(lang)))
+        )
+        targets = targets.union(explicit_files_with_lang_extension)
+
         if not self.skip_unknown_extensions:
-            # Remove explicit_files with known extensions
-            explicit_files = set(
+            explicit_files_with_unknown_extensions = set(
                 f
                 for f in explicit_files
-                if (
-                    any(f.match(f"*.{ext}") for ext in lang_to_exts(lang))
-                    or not any(f.match(f"*.{ext}") for ext in ALL_EXTENSIONS)
-                )
+                if not any(f.match(f"*.{ext}") for ext in ALL_EXTENSIONS)
             )
-            targets = targets.union(explicit_files)
+            targets = targets.union(explicit_files_with_unknown_extensions)
 
         self._filtered_targets[lang] = targets
         return self._filtered_targets[lang]

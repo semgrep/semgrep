@@ -1,0 +1,12 @@
+rules:
+  - id: tainty
+    message: Hi
+    languages: [python]
+    severity: WARNING
+    mode: taint
+    pattern-sinks:
+      - $X
+    pattern-sources:
+      - $Y
+    # Can't use pattern in taint
+    pattern: $X == $X
