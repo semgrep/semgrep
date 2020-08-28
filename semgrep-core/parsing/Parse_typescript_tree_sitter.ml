@@ -30,8 +30,8 @@ let fb = G.fake_bracket
    We extend the javascript parsing module. Types are
    partially compatible.
 *)
-module JS_CST = Parse_javascript_tree_sitter_priv.CST
-module JS = Parse_javascript_tree_sitter_priv
+module JS_CST = Parse_javascript_tree_sitter.CST
+module JS = Parse_javascript_tree_sitter
 module CST = Tree_sitter_typescript.CST
 
 let todo (env : env) _ =
