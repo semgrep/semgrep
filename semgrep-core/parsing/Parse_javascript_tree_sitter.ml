@@ -196,8 +196,10 @@ let anon_choice_PLUSPLUS (env : env) (x : CST.anon_choice_PLUSPLUS) =
   | `DASHDASH tok -> G.Decr, token env tok (* "--" *)
   )
 
-let automatic_semicolon (env : env) (tok : CST.automatic_semicolon) =
-  token env tok (* automatic_semicolon *)
+let automatic_semicolon (_env : env) (_tok : CST.automatic_semicolon) =
+  (* do like in pfff: *)
+  Parse_info.fake_info ";"
+  (* token env tok (* automatic_semicolon *) *)
 
 let semicolon (env : env) (x : CST.semicolon) =
   (match x with

@@ -56,7 +56,11 @@ let line_col_to_pos = fun file ->
           charpos := !charpos + String.length s + 1;
         end done
      with End_of_file ->
-       Hashtbl.add h (!line, 0) !charpos;
+       (* bugfix: this is wrong:  Hashtbl.add h (!line, 0) !charpos;
+        * because an ident on the last line would get
+        * the last charpos.
+        *)
+        ()
     in
     full_charpos_to_pos_aux ();
     close_in chan;
@@ -71,7 +75,7 @@ let token env (tok : Tree_sitter_run.Token.t) =
   let column = start.Tree_sitter_run.Loc.column in
   let charpos =
     try Hashtbl.find h (line, column)
-    with Not_found -> -1
+    with Not_found -> -1 (* TODO? more strict? raise exn? *)
   in
   let file = env.file in
   let tok_loc = { PI. str; charpos; line; column; file; } in
