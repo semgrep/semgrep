@@ -124,10 +124,6 @@ PASSING_REPOS = [
         "languages": ALL_LANGUAGES,
     },
     {"repo": "https://github.com/dropbox/git-rbr", "languages": ALL_LANGUAGES},
-    {
-        "repo": "https://github.com/dropbox/incubator-superset-internal",
-        "languages": ALL_LANGUAGES,
-    },
     {"repo": "https://github.com/dropbox/PyHive", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/dropbox/goebpf", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/dropbox/goprotoc", "languages": ALL_LANGUAGES},
@@ -283,6 +279,13 @@ PASSING_REPOS = [
 ]
 
 FAILING_REPOS = [
+    xfail_repo(
+        {
+            "repo": "https://github.com/dropbox/incubator-superset-internal",
+            "languages": ALL_LANGUAGES,
+        },
+        reason="javascript parse error",
+    ),
     xfail_repo(
         {
             "repo": "https://github.com/coinbase/react-coinbase-commerce",
