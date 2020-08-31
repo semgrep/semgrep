@@ -208,7 +208,7 @@ def invoke_semgrep_multi(filename, *args, **kwargs):
 
 
 def generate_file_pairs(
-    location: Path, ignore_todo: bool, strict: bool, semgrep_verbose: bool, unsafe: bool
+    location: Path, ignore_todo: bool, strict: bool, unsafe: bool
 ) -> None:
     print("starting tests...")
 
@@ -316,27 +316,16 @@ def generate_file_pairs(
         sys.exit(0)
 
 
-def main(
-    location: Path,
-    ignore_todo: bool,
-    verbose: bool,
-    strict: bool,
-    semgrep_verbose: bool,
-    unsafe: bool,
-) -> None:
-    generate_file_pairs(location, ignore_todo, strict, semgrep_verbose, unsafe)
-
-
 def test_main(args: argparse.Namespace) -> None:
     _test_compute_confusion_matrix()
+
     if len(args.target) != 1:
         raise Exception("only one target directory allowed for tests")
     target = Path(args.target[0])
-    main(
+
+    generate_file_pairs(
         target,
         args.test_ignore_todo,
-        args.verbose,
         args.strict,
-        args.verbose,
         args.dangerously_allow_arbitrary_code_execution_from_rules,
     )
