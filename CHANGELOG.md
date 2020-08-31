@@ -12,6 +12,11 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - A groups of rules are now called "Rulesets" in the Semgrep ecosystem,
   instead of their previous name, "Packs".
 
+### Removed
+
+- Install script installation procedure (semgrep-<version>-ubuntu-generic.sh).
+  Please use 'pip install' for equivalent Linux installation.
+
 ## [0.21.0](https://github.com/returntocorp/semgrep/releases/tag/v0.21.0) - 2020-08-25
 
 ### Added
