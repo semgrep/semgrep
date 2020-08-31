@@ -1,7 +1,3 @@
-all:
-	./build.sh ./build/
-clean:
-	rm -rf ./build/
 test:
 	pipenv run pytest -v --tb=short tests/
 regenerate-tests:

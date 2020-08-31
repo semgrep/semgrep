@@ -15,14 +15,6 @@ sudo apt-get install -y --no-install-recommends \
      libcurl4-openssl-dev libexpat1-dev gettext libz-dev libssl-dev \
      build-essential autoconf musl-tools
 
-if [[ -z "${SKIP_NUITKA+x}" ]]; then
-  export PATH=/github/home/.local/bin:$PATH
-  (
-    cd semgrep
-    sudo make all
-  )
-fi
-
 mkdir -p semgrep-files
 cp -r ./semgrep/build/semgrep.dist/* semgrep-files
 ls semgrep-files

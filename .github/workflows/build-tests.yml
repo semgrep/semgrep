@@ -49,9 +49,6 @@ jobs:
           submodules: true
       - name: Setup Python
         uses: actions/setup-python@v1
-        with:
-          # This is just the Python version used to build the Nuitka executable
-          python-version: 3.7
       - name: Run OSX build
         run: ./scripts/osx-release.sh
       - name: Upload artifacts
