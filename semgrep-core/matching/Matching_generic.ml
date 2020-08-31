@@ -338,13 +338,9 @@ let regexp_matcher_of_regexp_string s =
       | "m" -> [`MULTILINE]
       | _ -> failwith (spf "This is not a valid PCRE regexp flag: %s" flags)
     in
-(* TODO
-    let re = Str.regexp x in
-    (fun s -> Str.string_match re s 0)
-*)
+    (* old: let re = Str.regexp x in (fun s -> Str.string_match re s 0) *)
     let re = Re.Pcre.regexp ~flags x in
     (fun s -> Re.Pcre.pmatch ~rex:re s)
-
   else
     failwith (spf "This is not a PCRE-compatible regexp: " ^ s)
 (*e: function [[Matching_generic.regexp_of_regexp_string]] *)
