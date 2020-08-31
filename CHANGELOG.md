@@ -7,6 +7,11 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Added
 - The 'languages' key now supports 'none' for running `pattern-regex` on arbitrary files. See [this file](https://github.com/returntocorp/semgrep/blob/develop/semgrep/tests/e2e/rules/regex-any-language.yaml) for an example.
 
+### Changed
+
+- A groups of rules are now called "Rulesets" in the Semgrep ecosystem,
+  instead of their previous name, "Packs".
+
 ## [0.21.0](https://github.com/returntocorp/semgrep/releases/tag/v0.21.0) - 2020-08-25
 
 ### Added
