@@ -284,10 +284,7 @@ FAILING_REPOS = [
             "repo": "https://github.com/dropbox/incubator-superset-internal",
             "languages": ALL_LANGUAGES,
         },
-        reason=(
-            "https://github.com/returntocorp/semgrep/issues/1518"
-            "https://github.com/returntocorp/semgrep/issues/1519"
-        ),
+        reason="javascript parse error",
     ),
     xfail_repo(
         {
