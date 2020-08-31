@@ -317,24 +317,32 @@ let fail () = fail
 (*e: function [[Matching_generic.fail_bis]] *)
 
 (*s: constant [[Matching_generic.regexp_regexp_string]] *)
-let regexp_regexp_string = "^=~/\\(.*\\)/$"
+let regexp_regexp_string = "^=~/\\(.*\\)/\\([mi]?\\)$"
 (*e: constant [[Matching_generic.regexp_regexp_string]] *)
 (*s: function [[Matching_generic.is_regexp_string]] *)
 let is_regexp_string s =
  s =~ regexp_regexp_string
 (*e: function [[Matching_generic.is_regexp_string]] *)
+
+type regexp = Re.re (* old: Str.regexp *)
+
 (*s: function [[Matching_generic.regexp_of_regexp_string]] *)
-let regexp_of_regexp_string s =
+let regexp_matcher_of_regexp_string s =
   if s =~ regexp_regexp_string
   then
-    let x = Common.matched1 s in
-(* TODO
-      let rex = Pcre.regexp s in
-      if Pcre.pmatch ~rex sb
-*)
-    Str.regexp x
+    let x, flags = Common.matched2 s in
+    let flags =
+      match flags with
+      | "" -> []
+      | "i" -> [`CASELESS]
+      | "m" -> [`MULTILINE]
+      | _ -> failwith (spf "This is not a valid PCRE regexp flag: %s" flags)
+    in
+    (* old: let re = Str.regexp x in (fun s -> Str.string_match re s 0) *)
+    let re = Re.Pcre.regexp ~flags x in
+    (fun s -> Re.Pcre.pmatch ~rex:re s)
   else
-    failwith (spf "This is not a regexp_string: " ^ s)
+    failwith (spf "This is not a PCRE-compatible regexp: " ^ s)
 (*e: function [[Matching_generic.regexp_of_regexp_string]] *)
 
 (*****************************************************************************)

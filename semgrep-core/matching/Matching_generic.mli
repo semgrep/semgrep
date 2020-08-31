@@ -65,8 +65,9 @@ val all_elem_and_rest_of_list : 'a list -> ('a * 'a list) list
 (*s: signature [[Matching_generic.is_regexp_string]] *)
 val is_regexp_string: string -> bool
 (*e: signature [[Matching_generic.is_regexp_string]] *)
+type regexp = Re.re
 (*s: signature [[Matching_generic.regexp_of_regexp_string]] *)
-val regexp_of_regexp_string: string -> Str.regexp
+val regexp_matcher_of_regexp_string: string -> (string -> bool)
 (*e: signature [[Matching_generic.regexp_of_regexp_string]] *)
 
 val equal_ast_binded_code : AST_generic.any -> AST_generic.any -> bool
