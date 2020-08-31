@@ -426,9 +426,14 @@ class CoreRunner:
             ]
         except re.error as err:
             raise SemgrepError(f"invalid regular expression specified: {err}")
-        re_fn = functools.partial(get_re_matches, patterns_re)
-        with multiprocessing.Pool(self._jobs) as pool:
-            matches = pool.map(re_fn, targets)
+
+        if len(targets) > 1:
+            re_fn = functools.partial(get_re_matches, patterns_re)
+            with multiprocessing.Pool(self._jobs) as pool:
+                matches = pool.map(re_fn, targets)
+        else:
+            matches = [get_re_matches(patterns_re, targets[0])]
+
         outputs.extend(
             single_match for file_matches in matches for single_match in file_matches
         )
