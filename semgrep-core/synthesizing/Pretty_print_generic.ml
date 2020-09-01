@@ -322,7 +322,8 @@ function
   | Call (e1, e2) -> call env (e1, e2)
   | L x -> literal env x
   | Tuple es -> F.sprintf "(%s)" (tuple env es)
-  | ArrayAccess (e1, e2) -> F.sprintf "%s[%s]" (expr env e1) (expr env e2)
+  | ArrayAccess (e1, (_, e2, _)) ->
+      F.sprintf "%s[%s]" (expr env e1) (expr env e2)
   | Assign (e1, tok, e2) -> F.sprintf "%s %s %s" (expr env e1) (token "=" tok) (expr env e2)
   | AssignOp (e1, op, e2) -> F.sprintf "%s %s= %s" (expr env e1) (arithop env op) (expr env e2)
   | SliceAccess (e, o1, o2, o3) -> slice_access env e (o1, o2) o3
