@@ -4,13 +4,32 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## NEXT VERSION
 
+### Breaking changes
+- Regular expressions in semgrep string patterns (e.g., '"=~/foo/"') are
+  now using the PCRE (Perl Compatible Regular Expressions) syntax instead of 
+  the OCaml syntax. This means you should not escape parenthesis for grouping
+  or escape pipes for dijunctions (e.g., use simply '"=~/foo|bar/"' instead of 
+  '"=~/foo\|bar/"'). You can also use more advanced regexp features available
+  in PCRE such as case-insensitive regexps with '/i' (e.g., "=~/foo/i").
+  The semantic of matching changes also to look for the regexp anywhere
+  in the string, not just at the beginning, which means if you want to
+  enforce a format for the whole string, you will now need to use the '^' anchor
+  character (e.g., "=~/^o+$/" to check if a string contains only a sequence
+  of 'o').
+
 ### Added
 - The 'languages' key now supports 'none' for running `pattern-regex` on arbitrary files. See [this file](https://github.com/returntocorp/semgrep/blob/develop/semgrep/tests/e2e/rules/regex-any-language.yaml) for an example.
+- You can now use the '...' ellipsis operator in OCaml.
 
 ### Changed
 
 - A groups of rules are now called "Rulesets" in the Semgrep ecosystem,
   instead of their previous name, "Packs".
+- We now use also the tree-sitter-javascript Javascript parser, which
+  can parse quickly minified files. Thus, we also removed the 5 seconds
+  parsing timeout we were using for Javascript.
+- We should correctly report ranges when matching array access expressions
+  (e.g., 'foo[$X]').
 
 ### Removed
 
