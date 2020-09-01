@@ -4,11 +4,25 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## NEXT VERSION
 
-### Breaking changes
-- Regular expressions in semgrep string patterns (e.g., '"=~/foo/"') are
-  now using the PCRE (Perl Compatible Regular Expressions) syntax instead of 
+## [0.22.0](https://github.com/returntocorp/semgrep/releases/tag/v0.22.0) - 2020-09-01
+
+### Added
+- The 'languages' key now supports 'none' for running `pattern-regex` on arbitrary files. See [this file](https://github.com/returntocorp/semgrep/blob/develop/semgrep/tests/e2e/rules/regex-any-language.yaml) for an example.
+- You can now use the '...' ellipsis operator in OCaml.
+- True negatives to '--test' functionality via the 'ok:<rule-id>' annotation.
+
+### Changed
+- A groups of rules are now called "Rulesets" in the Semgrep ecosystem,
+  instead of their previous name, "Packs".
+- We now use also the tree-sitter-javascript Javascript parser, which
+  can parse quickly minified files. Thus, we also removed the 5 seconds
+  parsing timeout we were using for Javascript.
+- We should correctly report ranges when matching array access expressions
+  (e.g., 'foo[$X]').
+- Breaking: regular expressions in semgrep string patterns (e.g., '"=~/foo/"')
+  are now using the PCRE (Perl Compatible Regular Expressions) syntax instead of
   the OCaml syntax. This means you should not escape parenthesis for grouping
-  or escape pipes for dijunctions (e.g., use simply '"=~/foo|bar/"' instead of 
+  or escape pipes for dijunctions (e.g., use simply '"=~/foo|bar/"' instead of
   '"=~/foo\|bar/"'). You can also use more advanced regexp features available
   in PCRE such as case-insensitive regexps with '/i' (e.g., "=~/foo/i").
   The semantic of matching changes also to look for the regexp anywhere
@@ -17,36 +31,19 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   character (e.g., "=~/^o+$/" to check if a string contains only a sequence
   of 'o').
 
-### Added
-- The 'languages' key now supports 'none' for running `pattern-regex` on arbitrary files. See [this file](https://github.com/returntocorp/semgrep/blob/develop/semgrep/tests/e2e/rules/regex-any-language.yaml) for an example.
-- You can now use the '...' ellipsis operator in OCaml.
-
-### Changed
-
-- A groups of rules are now called "Rulesets" in the Semgrep ecosystem,
-  instead of their previous name, "Packs".
-- We now use also the tree-sitter-javascript Javascript parser, which
-  can parse quickly minified files. Thus, we also removed the 5 seconds
-  parsing timeout we were using for Javascript.
-- We should correctly report ranges when matching array access expressions
-  (e.g., 'foo[$X]').
-
 ### Removed
-
-- Install script installation procedure (semgrep-<version>-ubuntu-generic.sh).
+- Breaking: install script installation procedure (semgrep-<version>-ubuntu-generic.sh).
   Please use 'pip install' for equivalent Linux installation.
 
 ## [0.21.0](https://github.com/returntocorp/semgrep/releases/tag/v0.21.0) - 2020-08-25
 
 ### Added
-
 - Parsing JSX (JavaScript React) files is now supported as a beta feature! 
   In this release, you need to target .jsx files one by one explicitly to have them be scanned.
   We're planning to scan all .jsx files in targeted directories in our next release
 - We now bundle a [json-schema](https://json-schema.org/) spec for rules YAML syntax.
 
 ### Changed
-
 - Our custom-made rules YAML validator has been replaced with a jsonschema standard one.
   This results in more reliable and comprehensive error messages
   to help you get back on track when bumping into validation issues.
@@ -54,7 +51,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   such as the number of rules validation ran on.
 
 ### Fixed
-
 - Fixed a bug where multiple assignment,
   also known as tuple unpacking assignment in Python,
   such as `a, b = foo`,
