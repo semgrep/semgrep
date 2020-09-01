@@ -673,10 +673,10 @@ and field_access (env : env) ((v1, v2, v3, v4) : CST.field_access) =
 
 and array_access (env : env) ((v1, v2, v3, v4) : CST.array_access) =
   let v1 = primary env v1 in
-  let _v2 = token env v2 (* "[" *) in
+  let v2 = token env v2 (* "[" *) in
   let v3 = expression env v3 in
-  let _v4 = token env v4 (* "]" *) in
-  ArrayAccess (v1, v3)
+  let v4 = token env v4 (* "]" *) in
+  ArrayAccess (v1, (v2, v3, v4))
 
 
 and argument_list (env : env) ((v1, v2, v3) : CST.argument_list) =
