@@ -558,10 +558,10 @@ and expression (env : env) (x : CST.expression) : expr =
       Selector (v1, v2, v3)
   | `Index_exp (v1, v2, v3, v4) ->
       let v1 = expression env v1 in
-      let _v2 = token env v2 (* "[" *) in
+      let v2 = token env v2 (* "[" *) in
       let v3 = expression env v3 in
-      let _v4 = token env v4 (* "]" *) in
-      Index (v1, v3)
+      let v4 = token env v4 (* "]" *) in
+      Index (v1, (v2, v3, v4))
   | `Slice_exp (v1, v2, v3, v4) ->
       let v1top = expression env v1 in
       let _v2 = token env v2 (* "[" *) in

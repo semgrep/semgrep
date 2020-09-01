@@ -520,7 +520,7 @@ and m_expr a b =
 
   | A.ArrayAccess(a1, a2), B.ArrayAccess(b1, b2) ->
     m_expr a1 b1 >>= (fun () ->
-    m_expr a2 b2
+    m_bracket m_expr a2 b2
     )
 
   (*s: [[Generic_vs_generic.m_expr()]] boilerplate cases *)

@@ -43,7 +43,7 @@ let subexprs_of_expr2 e =
   | Ref (_, e) | DeRef (_, e) | DeepEllipsis (_, e, _)
     -> [e]
   | Assign (e1, _, e2) | AssignOp (e1, _, e2)
-  | ArrayAccess (e1, e2)
+  | ArrayAccess (e1, (_, e2, _))
     (* not sure we always want to return 'e1' here *)
     -> [e1;e2]
   | Conditional (e1, e2, e3)
