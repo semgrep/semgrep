@@ -24,7 +24,7 @@ and add this in your `.pre-commit-config.yaml`:
 ```yaml
 repos:
 - repo: https://github.com/returntocorp/semgrep
-  rev: 'v0.21.0'
+  rev: 'v0.22.0'
   hooks:
     - id: semgrep
       args: ['--config', 'https://semgrep.dev/p/r2c', '--error']
