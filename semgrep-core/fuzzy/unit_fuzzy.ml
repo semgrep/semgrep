@@ -121,7 +121,7 @@ let sgrep_fuzzy_unittest ~ast_fuzzy_of_string =
 let spatch_fuzzy_unittest ~ast_fuzzy_of_string ~parse_file =
   "spatch regressions files" >:: (fun () ->
 
-    let testdir = Filename.concat Config_pfff.path "tests/fuzzy/spatch/" in
+    let testdir = Config_pfff.tests_path "fuzzy/spatch/" in
     let expfiles = Common2.glob (testdir ^ "*.exp") in
 
     expfiles |> List.iter (fun expfile ->

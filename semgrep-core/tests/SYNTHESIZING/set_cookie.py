@@ -23,3 +23,7 @@ def foo():
    while a == b:
        do_again()
        if a: donot()
+
+   for i in range(1, 10):
+       run()
+       print(i, tab=" ")

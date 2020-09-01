@@ -1,6 +1,9 @@
 import hashlib
+import re
 from io import StringIO
+from pathlib import Path
 from typing import Any
+from typing import cast
 from typing import Dict
 from typing import Generic
 from typing import ItemsView
@@ -12,6 +15,9 @@ from typing import TypeVar
 from typing import Union
 
 import attr
+import jsonschema.exceptions
+import ruamel.yaml
+from jsonschema.validators import Draft7Validator
 from ruamel.yaml import Node
 from ruamel.yaml import RoundTripConstructor
 from ruamel.yaml import YAML
@@ -20,6 +26,23 @@ from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 
 # Do not construct SourceFileHash directly, use `SpanBuilder().add_source`
 SourceFileHash = NewType("SourceFileHash", str)
+
+
+class RuleSchema:
+    _schema: Dict[str, Any] = {}
+
+    @classmethod
+    def get(cls) -> Dict[str, Any]:  # type: ignore
+        """
+        Returns the rule schema
+
+        Not thread safe.
+        """
+        if not cls._schema:
+            schema_path = Path(__file__).parent / "rule_schema.yaml"
+            with schema_path.open() as fd:
+                cls._schema = ruamel.yaml.safe_load(fd)  # type: ignore
+        return cls._schema
 
 
 class SourceTracker:
@@ -178,6 +201,8 @@ class Span:
         return f"<{self.__class__.__name__} start={self.start} end={self.end}>"
 
 
+EmptySpan = Span.from_string("a: b")
+
 # Actually recursive but mypy is unhelpful
 YamlValue = Union[str, int, List[Any], Dict[str, Any]]
 LocatedYamlValue = Union[str, int, List["YamlTree"], "YamlMap"]
@@ -298,7 +323,10 @@ def parse_yaml_preserve_spans(contents: str, filename: Optional[str]) -> YamlTre
     """
     parse yaml into a YamlTree object. The resulting spans are tracked in SourceTracker
     so they can be used later when constructing error messages or displaying context.
+
+    :raise jsonschema.exceptions.SchemaError: if config is invalid
     """
+
     source_hash = SourceTracker.add_source(contents)
 
     # this uses the `RoundTripConstructor` which inherits from `SafeConstructor`
@@ -328,6 +356,9 @@ def parse_yaml_preserve_spans(contents: str, filename: Optional[str]) -> YamlTre
     yaml = YAML()
     yaml.Constructor = SpanPreservingRuamelConstructor
     data = yaml.load(StringIO(contents))
+
+    validate_yaml(data)
+
     if not isinstance(data, YamlTree):
         raise Exception(
             f"Something went wrong parsing Yaml (expected a YamlTree as output, but got {type(data).__name__}): {PLEASE_FILE_ISSUE_TEXT}"
@@ -335,4 +366,52 @@ def parse_yaml_preserve_spans(contents: str, filename: Optional[str]) -> YamlTre
     return data
 
 
-EmptySpan = parse_yaml_preserve_spans("a: b", None).span
+REQUIRE_REGEX = re.compile(r"('.*') is a required property")
+
+
+def _validation_error_message(error: jsonschema.exceptions.ValidationError) -> str:  # type: ignore
+    """
+    Heuristic that returns meaningful error messages in all examples from
+    tests/e2e/rules/syntax/badXXX.yaml
+    """
+    contexts = list(error.parent.context) if error.parent else [error]
+    bad_type = set()
+    invalid_keys = set()
+    required = set()
+    banned = set()
+    for m in (c.message for c in contexts):
+        if "is not of type" in m:
+            bad_type.add(m)
+        if "is not allowed for" in m:
+            invalid_keys.add(m)
+        if m.startswith("Additional properties are not allowed"):
+            banned.add(m)
+        require_matches = REQUIRE_REGEX.match(m)
+        if require_matches:
+            required.add(require_matches[1])
+
+    if invalid_keys:
+        return "\n".join(sorted(invalid_keys))
+    if bad_type:
+        return "\n".join(sorted(bad_type))
+    if banned:
+        return "\n".join(sorted(banned))
+    elif required:
+        return f"At least one of the following required properties is missing: {', '.join(sorted(required))}"
+    return cast(str, contexts[0].message)
+
+
+def validate_yaml(data: YamlTree) -> None:
+    from semgrep.error import InvalidRuleSchemaError
+
+    try:
+        jsonschema.validate(data.unroll(), RuleSchema.get(), cls=Draft7Validator)
+    except jsonschema.ValidationError as ve:
+        message = _validation_error_message(ve)
+        item = data
+        for el in (ve.parent or ve).relative_path:
+            item = item.value[el]
+
+        raise InvalidRuleSchemaError(
+            short_msg="Invalid rule schema", long_msg=message, spans=[item.span],
+        )

@@ -128,8 +128,8 @@ let m_ident a b =
    * (e.g., {"=~/.*field/": $X}).
    *)
   | (stra, _), (strb, _) when Matching_generic.is_regexp_string stra ->
-      let re = Matching_generic.regexp_of_regexp_string stra in
-      if Str.string_match re strb 0
+      let re_match = Matching_generic.regexp_matcher_of_regexp_string stra in
+      if re_match strb
       then return ()
       else fail ()
 
@@ -146,13 +146,6 @@ let m_dotted_name a b =
   (* TODO: [$X] should match any list *)
   (a, b) -> (m_list m_ident) a b
 (*e: function [[Generic_vs_generic.m_dotted_name]] *)
-
-
-(*s: function [[Generic_vs_generic.m_qualified_name]] *)
-let m_qualified_name a b =
-  match a, b with
-  (a, b) -> m_dotted_name a b
-(*e: function [[Generic_vs_generic.m_qualified_name]] *)
 
 (*s: function [[Generic_vs_generic.m_module_name_prefix]] *)
 (* less-is-ok: prefix matching is supported for imports, eg.:
@@ -205,7 +198,7 @@ let m_resolved_name_kind a b =
   | A.Global, B.Global ->
       return ()
   | A.ImportedEntity(a1), B.ImportedEntity(b1) ->
-    m_qualified_name a1 b1
+    m_dotted_name a1 b1
   | A.ImportedModule(a1), B.ImportedModule(b1) ->
     m_module_name a1 b1
   | A.Macro, B.Macro ->
@@ -260,8 +253,8 @@ and m_ident_and_id_info_add_in_env_Expr (a1, a2) (b1, b2) =
    * (e.g., {"=~/.*field/": $X}).
    *)
   | (stra, _), (strb, _) when Matching_generic.is_regexp_string stra ->
-      let re = Matching_generic.regexp_of_regexp_string stra in
-      if Str.string_match re strb 0
+      let f = Matching_generic.regexp_matcher_of_regexp_string stra in
+      if f strb
       then return ()
       else fail ()
 
@@ -501,6 +494,23 @@ and m_expr a b =
     m_tok at bt >>= (fun () ->
     m_expr a2 b2
     ))
+    (* If the code has tuples as b1 and b2 and the lengths of
+     * the tuples are equal, create a tuple of (variable, value)
+     * pairs and try to match the pattern with each entry in the tuple.
+     * This should enable multiple assignments if the number of
+     * variables and values are equal. *)
+    >||> (match (b1, b2) with
+    | B.Tuple vars, B.Tuple vals
+      when List.length vars = List.length vals ->
+        let create_assigns = fun expr1 expr2 -> B.Assign (expr1, bt, expr2) in
+        let mult_assigns = List.map2 create_assigns vars vals in
+        let rec aux xs =
+            match xs with
+            | [] -> fail ()
+            | x::xs ->
+              m_expr a x >||> aux xs
+        in aux mult_assigns
+    | _, _ -> fail ())
 
   | A.DotAccess(a1, at, a2), B.DotAccess(b1, bt, b2) ->
     m_expr a1 b1 >>= (fun () ->
@@ -510,7 +520,7 @@ and m_expr a b =
 
   | A.ArrayAccess(a1, a2), B.ArrayAccess(b1, b2) ->
     m_expr a1 b1 >>= (fun () ->
-    m_expr a2 b2
+    m_bracket m_expr a2 b2
     )
 
   (*s: [[Generic_vs_generic.m_expr()]] boilerplate cases *)
@@ -657,10 +667,9 @@ and m_literal a b =
   (* regexp matching *)
   | A.String(name, info_name), B.String(sb, info_sb)
       when Matching_generic.is_regexp_string name ->
-      let re = Matching_generic.regexp_of_regexp_string name in
-      if Str.string_match re sb 0
-      then
-        m_info info_name info_sb
+      let f = Matching_generic.regexp_matcher_of_regexp_string name in
+      if f sb
+      then m_info info_name info_sb
       else fail ()
   (*e: [[Generic_vs_generic.m_literal()]] regexp case *)
 
@@ -743,6 +752,8 @@ and m_special a b =
     return ()
   | A.HashSplat, B.HashSplat ->
     return ()
+  | A.ForOf, B.ForOf ->
+    return ()
   | A.Op(a1), B.Op(b1) ->
     m_arithmetic_operator a1 b1
   | A.EncodedString(a1), B.EncodedString(b1) ->
@@ -754,7 +765,7 @@ and m_special a b =
   | A.This, _  | A.Super, _  | A.Self, _  | A.Parent, _  | A.Eval, _
   | A.Typeof, _  | A.Instanceof, _  | A.Sizeof, _  | A.New, _
   | A.ConcatString _, _  | A.Spread, _  | A.Op _, _  | A.IncrDecr _, _
-  | A.EncodedString _, _ | A.HashSplat, _ | A.Defined, _
+  | A.EncodedString _, _ | A.HashSplat, _ | A.Defined, _ | A.ForOf, _
    -> fail ()
 (*e: function [[Generic_vs_generic.m_special]] *)
 
@@ -853,8 +864,9 @@ and m_xml a b =
 (*e: function [[Generic_vs_generic.m_xml]] *)
 
 (*s: function [[Generic_vs_generic.m_attrs]] *)
+(* less: allow '...'? or just have it implicit *)
 and m_attrs a b =
-  m_list__m_xml_attr a b
+  m_list_in_any_order ~less_is_ok:true m_xml_attr a b
 (*e: function [[Generic_vs_generic.m_attrs]] *)
 
 (*s: function [[Generic_vs_generic.m_bodies]] *)
@@ -862,52 +874,6 @@ and m_bodies a b =
   m_list__m_body a b
 (*e: function [[Generic_vs_generic.m_bodies]] *)
 
-(* less: use m_list_in_any_order? move split_when in it? *)
-(*s: function [[Generic_vs_generic.m_list__m_xml_attr]] *)
-and m_list__m_xml_attr
- (xsa: A.xml_attribute list) (xsb: A.xml_attribute list) =
-  match xsa, xsb with
-  | [], [] ->
-      return ()
-
-  (*s: [[Generic_vs_generic.m_list__m_xml_attr]] empty list vs list case *)
-  (* less-is-ok: *)
-  | [], _::_ ->
-      return ()
-  (*e: [[Generic_vs_generic.m_list__m_xml_attr]] empty list vs list case *)
-  (* less: allow '...'? *)
-
-  | (((s1, _), _) as a)::xsa, xsb ->
-     (*s: [[Generic_vs_generic.m_list__m_xml_attr]] if metavar attribute *)
-     if MV.is_metavar_name s1
-     then
-        let candidates = all_elem_and_rest_of_list xsb in
-        (* less: could use a fold *)
-        let rec aux xs =
-          match xs with
-          | [] -> fail ()
-          | (b, xsb)::xs ->
-              (m_xml_attr a b >>= (fun () -> m_list__m_xml_attr xsa xsb))
-              >||> aux xs
-        in
-        aux candidates
-     (*e: [[Generic_vs_generic.m_list__m_xml_attr]] if metavar attribute *)
-     else
-      (try
-        let (before, there, after) = xsb |> Common2.split_when (function
-            | ((s2, _), _) when s2 = s1 -> true
-            | _ -> false
-        ) in
-        (match there with
-        | b ->
-           m_xml_attr a b >>= (fun () ->
-           m_list__m_xml_attr xsa (before @ after)
-           )
-        (* | _ -> raise Impossible *)
-        )
-      with Not_found -> fail ()
-      )
-(* type matching *)
 
 and m_compatible_type typed_mvar t e =
   match t, e with
@@ -933,15 +899,6 @@ and m_compatible_type typed_mvar t e =
 
   | _ -> fail ()
 
-  (* the general case *)
-(*
-  | xa::aas, xb::bbs ->
-      m_xml_attr xa xb >>= (fun () ->
-      m_list__m_xml_attr aas bbs
-      )
-  | _::_, _ ->
-      fail ()
-*)
 (*e: function [[Generic_vs_generic.m_list__m_xml_attr]] *)
 
 (*s: function [[Generic_vs_generic.m_list__m_body]] *)
@@ -956,10 +913,15 @@ and m_list__m_body a b =
 (*s: function [[Generic_vs_generic.m_xml_attr]] *)
 and m_xml_attr a b =
   match a, b with
-  | (a1, a2), (b1, b2) ->
+  | A.XmlAttr (a1, a2), B.XmlAttr (b1, b2) ->
     m_ident a1 b1 >>= (fun () ->
     m_xml_attr_value a2 b2
     )
+  | A.XmlAttrExpr a1, B.XmlAttrExpr b1 ->
+      m_bracket m_expr a1 b1
+  | A.XmlAttr _, _
+  | A.XmlAttrExpr _, _
+   -> fail ()
 (*e: function [[Generic_vs_generic.m_xml_attr]] *)
 
 (*s: function [[Generic_vs_generic.m_xml_attr_value]] *)
@@ -1136,6 +1098,8 @@ and m_type_ a b =
      when MV.is_metavar_name str ->
       envf (str, tok) (B.T (t2))
   (*e: [[Generic_vs_generic.m_type_]] metavariable case *)
+  (* dots: *)
+  | A.TyEllipsis _, _ -> return ()
 
   (* boilerplate *)
   | A.TyBuiltin(a1), B.TyBuiltin(b1) ->
@@ -1172,7 +1136,7 @@ and m_type_ a b =
       m_tok a2 b2
       )
     | A.TyRecordAnon(a1), B.TyRecordAnon(b1) ->
-      (m_bracket (m_list m_ident_and_type_)) a1 b1
+      m_bracket m_fields a1 b1
     | A.TyOr (a1, a2, a3), B.TyOr (b1, b2, b3) ->
         m_type_ a1 b1 >>= (fun () ->
         m_tok a2 b2 >>= (fun () ->
@@ -1197,12 +1161,6 @@ and m_type_ a b =
 (*e: function [[Generic_vs_generic.m_type_]] *)
 
 (*s: function [[Generic_vs_generic.m_ident_and_type_]] *)
-and m_ident_and_type_ a b =
-  match a, b with
-  | (a1, a2), (b1, b2) ->
-    m_ident a1 b1 >>= (fun () ->
-    m_type_ a2 b2
-    )
 (*e: function [[Generic_vs_generic.m_ident_and_type_]] *)
 
 (*s: function [[Generic_vs_generic.m_type_arguments]] *)
@@ -1237,76 +1195,6 @@ and m_other_type_argument_operator = m_other_xxx
 (* Attribute *)
 (*****************************************************************************)
 
-(* less: factorize m_list_unordered_keys? but two "keys" here *)
-(*s: function [[Generic_vs_generic.m_list__m_attribute]] *)
-and m_list__m_attribute (xsa: A.attribute list) (xsb: A.attribute list) =
-  match xsa, xsb with
-  | [], [] ->
-      return ()
-  (*s: [[Generic_vs_generic.m_list__m_attribute]] empty list vs list case *)
-  (* less-is-ok: *)
-  | [], _ -> return ()
-  (*e: [[Generic_vs_generic.m_list__m_attribute]] empty list vs list case *)
-  (*s: [[Generic_vs_generic.m_list__m_attribute]] [[KeywordAttr]] pattern case *)
-  | ((A.KeywordAttr (k, tok)) as a)::xsa, xsb ->
-      (try
-        let (before, there, after) = xsb |> Common2.split_when (function
-            | A.KeywordAttr (k2, _) when k =*= k2 -> true
-            | _ -> false) in
-        (match there with
-        | A.KeywordAttr (x) ->
-              m_wrap m_keyword_attribute (k, tok) x >>= (fun () ->
-              m_list__m_attribute xsa (before @ after)
-              )
-        | _ -> raise Impossible
-        )
-      (*s: [[Generic_vs_generic.m_list__m_attribute]] [[KeywordAttr]] case when [[Not_found]] *)
-      with Not_found ->
-        (* we now allow some attribute (e.g., Var) to match other (e..g, Let),
-         * so we should try all combinations.
-         * opti: give an order to each attribute and zip (like in JS AI) *)
-        let candidates = all_elem_and_rest_of_list xsb in
-        (* less: could use a fold *)
-        let rec aux xs =
-          match xs with
-          | [] -> fail ()
-          | (b, xsb)::xs ->
-            (m_attribute a b >>= (fun () -> m_list__m_attribute xsa xsb))
-             >||> aux xs
-        in
-        aux candidates
-      (*e: [[Generic_vs_generic.m_list__m_attribute]] [[KeywordAttr]] case when [[Not_found]] *)
-       )
-  (*e: [[Generic_vs_generic.m_list__m_attribute]] [[KeywordAttr]] pattern case *)
-  (*s: [[Generic_vs_generic.m_list__m_attribute]] [[NamedAttr]] pattern case *)
-  | A.NamedAttr (_, ((s, _) as ida), idinfoa, argsa)::xsa, xsb ->
-      (try
-        let (before, there, after) = xsb |> Common2.split_when (function
-            (* todo: in theory we should resolve the possible alias s2 *)
-            | A.NamedAttr (_, (s2, _), _idinfoaliasTODO, _) when s =$= s2 -> true
-            | _ -> false) in
-        (match there with
-        | A.NamedAttr (_, idb, idinfob, argsb) ->
-              m_ident ida idb >>= (fun () ->
-              (* less: should use m_ident_and_id_info_add_in_env_Expr? *)
-              m_id_info idinfoa idinfob >>= (fun () ->
-              m_bracket m_list__m_argument argsa argsb >>= (fun () ->
-              m_list__m_attribute xsa (before @ after)
-              )))
-        | _ -> raise Impossible
-        )
-      with Not_found -> fail ()
-      )
-  (*e: [[Generic_vs_generic.m_list__m_attribute]] [[NamedAttr]] pattern case *)
-  (* the general case *)
-  | xa::aas, xb::bbs ->
-      m_attribute xa xb >>= (fun () ->
-      m_list__m_attribute aas bbs
-      )
-  | _::_, _ ->
-      fail ()
-(*e: function [[Generic_vs_generic.m_list__m_attribute]] *)
-
 (*s: function [[Generic_vs_generic.m_keyword_attribute]] *)
 and m_keyword_attribute a b =
   match a, b with
@@ -1325,8 +1213,7 @@ and m_attribute a b =
       {contents = Some ( ( B.ImportedEntity dotted
                          | B.ImportedModule (B.DottedName dotted)
                          ), _sid)}; _}, b2) ->
-    let exp = make_dotted dotted in
-    m_attribute a (B.OtherAttribute (B.OA_Expr, [B.Tk t1; B.E (B.Call (exp, b2))]))
+    m_attribute a (B.NamedAttr (t1, dotted, B.empty_id_info(), b2))
   (*e: [[Generic_vs_generic.m_attribute]] resolving alias case *)
 
   (* boilerplate *)
@@ -1334,7 +1221,7 @@ and m_attribute a b =
     m_wrap m_keyword_attribute a1 b1
   | A.NamedAttr(a0, a1, ida, a2), B.NamedAttr(b0, b1, idb, b2) ->
     m_tok a0 b0 >>= (fun () ->
-    m_ident a1 b1 >>= (fun () ->
+    m_dotted_name a1 b1 >>= (fun () ->
     (* less: should use m_ident_and_id_info_add_in_env_Expr? *)
     m_id_info ida idb >>= (fun () ->
     m_bracket m_list__m_argument a2 b2
@@ -1548,9 +1435,9 @@ and m_stmt a b =
     m_tok a0 b0 >>= (fun () ->
     (* too many regressions doing m_expr_deep by default; Use DeepEllipsis *)
     m_expr a1 b1 >>= (fun () ->
-    m_stmt a2 b2 >>= (fun () ->
+    m_block a2 b2 >>= (fun () ->
     (* less-is-more: *)
-    m_option_none_can_match_some m_stmt a3 b3
+    m_option_none_can_match_some m_block a3 b3
     )))
 
   | A.While(a0, a1, a2), B.While(b0, b1, b2) ->
@@ -1652,6 +1539,17 @@ and m_for_header a b =
    -> fail ()
 (*e: function [[Generic_vs_generic.m_for_header]] *)
 
+and m_block a b =
+  match a, b with
+  | A.Block _, B.Block _ ->
+    m_stmt a b
+  | A.Block (_, [a_stmt], _), _ ->
+    m_stmt a_stmt b
+  | _, B.Block (_, [b_stmt], _) ->
+    m_stmt a b_stmt
+  | _, _ ->
+    m_stmt a b
+
 (*s: function [[Generic_vs_generic.m_for_var_or_expr]] *)
 and m_for_var_or_expr a b =
   match a, b with
@@ -1750,6 +1648,9 @@ and m_pattern a b =
       )
   (*e: [[Generic_vs_generic.m_pattern()]] metavariable case *)
 
+  (* dots: *)
+  | A.PatEllipsis _, _ -> return ()
+
   (* boilerplate *)
   (*s: [[Generic_vs_generic.m_pattern]] boilerplate cases *)
     | A.PatId(a1, a2), B.PatId(b1, b2) ->
@@ -1846,7 +1747,7 @@ and m_entity a b =
   { A. name = a1; attrs = a2; tparams = a4; info = a5 },
   { B. name = b1; attrs = b2; tparams = b4; info = b5 } ->
     m_ident_and_id_info_add_in_env_Expr (a1, a5) (b1, b5) >>= (fun () ->
-    (m_list__m_attribute) a2 b2 >>= (fun () ->
+    (m_list_in_any_order ~less_is_ok:true m_attribute a2 b2) >>= (fun () ->
     (m_list m_type_parameter) a4 b4
     ))
 (*e: function [[Generic_vs_generic.m_entity]] *)
@@ -1966,7 +1867,7 @@ and m_parameter_classic a b =
      m_ident_and_id_info_add_in_env_Expr (a1, a5) (b1, b5) >>= (fun () ->
      (m_option m_expr) a2 b2 >>= (fun () ->
      (m_option_none_can_match_some m_type_) a3 b3 >>= (fun () ->
-     (m_list__m_attribute) a4 b4
+     (m_list_in_any_order ~less_is_ok:true m_attribute a4 b4)
      )))
   (*e: [[Generic_vs_generic.m_parameter_classic]] metavariable case *)
 
@@ -1976,7 +1877,7 @@ and m_parameter_classic a b =
     (m_option m_ident) a1 b1 >>= (fun () ->
     (m_option m_expr) a2 b2 >>= (fun () ->
     (m_option m_type_) a3 b3 >>= (fun () ->
-    (m_list__m_attribute) a4 b4 >>= (fun () ->
+    m_list_in_any_order ~less_is_ok:true m_attribute a4 b4 >>= (fun () ->
     m_id_info a5 b5
     ))))
 (*e: function [[Generic_vs_generic.m_parameter_classic]] *)
@@ -2095,7 +1996,7 @@ and m_field a b =
   (*s: [[Generic_vs_generic.m_field]] boilerplate cases *)
   | A.FieldDynamic(a1, a2, a3), B.FieldDynamic(b1, b2, b3) ->
     m_expr a1 b1 >>= (fun () ->
-    (m_list__m_attribute) a2 b2 >>= (fun () ->
+    m_list_in_any_order ~less_is_ok:true m_attribute a2 b2 >>= (fun () ->
     m_expr a3 b3
     ))
   | A.FieldSpread(a0, a1), B.FieldSpread(b0, b1) ->
@@ -2220,7 +2121,8 @@ and m_class_definition a b =
 (*e: function [[Generic_vs_generic.m_class_definition]] *)
 
 (*s: function [[Generic_vs_generic.m_class_kind]] *)
-and m_class_kind a b =
+and m_class_kind a b = m_wrap m_class_kind_bis a b
+and m_class_kind_bis a b =
   match a, b with
   | A.Class, B.Class ->
     return ()
@@ -2397,8 +2299,12 @@ and m_any a b =
     m_name a1 b1
   | A.Modn(a1), B.Modn(b1) ->
     m_module_name a1 b1
+  | A.ModDk(a1), B.ModDk(b1) ->
+    m_module_definition_kind a1 b1
   | A.Tk(a1), B.Tk(b1) ->
     m_tok a1 b1
+  | A.TodoK(a1), B.TodoK(b1) ->
+    m_ident a1 b1
   | A.Di(a1), B.Di(b1) ->
     m_dotted_name a1 b1
   | A.En(a1), B.En(b1) ->
@@ -2433,6 +2339,7 @@ and m_any a b =
   | A.S _, _  | A.T _, _  | A.P _, _  | A.Def _, _  | A.Dir _, _
   | A.Pa _, _  | A.Ar _, _  | A.At _, _  | A.Dk _, _ | A.Pr _, _
   | A.Fld _, _ | A.Ss _, _ | A.Tk _, _ | A.Lbli _, _ | A.Fldi _, _
+  | A.ModDk _, _ | A.TodoK _, _
    -> fail ()
   (*e: [[Generic_vs_generic.m_any]] boilerplate cases *)
 (*e: function [[Generic_vs_generic.m_any]] *)

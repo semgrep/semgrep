@@ -1,0 +1,267 @@
+$schema: http://github.com/returntocorp/semgrep/semgrep/semgrep/rule_schema.yaml
+definitions:
+  patterns-content:
+    type: array
+    items:
+      anyOf:
+      - $ref: '#/definitions/patterns'
+      - $ref: '#/definitions/pattern-either'
+      - $ref: '#/definitions/pattern-inside'
+      - $ref: '#/definitions/pattern-not-inside'
+      - $ref: '#/definitions/pattern-not'
+      - $ref: '#/definitions/pattern'
+      - $ref: '#/definitions/pattern-regex'
+      - $ref: '#/definitions/pattern-where-python'
+      - $ref: '#/definitions/metavariable-regex'
+  pattern-either-content:
+    type: array
+    items:
+      anyOf:
+      - $ref: '#/definitions/patterns'
+      - $ref: '#/definitions/pattern-inside'
+      - $ref: '#/definitions/pattern'
+      - $ref: '#/definitions/pattern-regex'
+  taint-content:
+    type: array
+    items:
+      anyOf:
+      - type: string
+  metavariable-regex:
+    type: object
+    properties:
+      metavariable-regex:
+        type: object
+        properties:
+          metavariable:
+            type: string
+          regex:
+            type: string
+        required:
+          - metavariable
+          - regex
+        additionalProperties: false
+    required:
+    - metavariable-regex
+    additionalProperties: false
+  pattern:
+    type: object
+    properties:
+      pattern:
+        type: string
+    required:
+    - pattern
+    additionalProperties: false
+  pattern-regex:
+    type: object
+    properties:
+      pattern-regex:
+        type: string
+    required:
+    - pattern-regex
+    additionalProperties: false
+  patterns:
+    type: object
+    properties:
+      patterns:
+        $ref: '#/definitions/patterns-content'
+    required:
+    - patterns
+    additionalProperties: false
+  pattern-either:
+    type: object
+    properties:
+      pattern-either:
+        $ref: '#/definitions/pattern-either-content'
+    required:
+    - pattern-either
+    additionalProperties: false
+  pattern-inside:
+    type: object
+    properties:
+      pattern-inside:
+        type: string
+    required:
+    - pattern-inside
+    additionalProperties: false
+  pattern-not-inside:
+    type: object
+    properties:
+      pattern-not-inside:
+        type: string
+    required:
+    - pattern-not-inside
+    additionalProperties: false
+  pattern-not:
+    type: object
+    properties:
+      pattern-not:
+        type: string
+    required:
+    - pattern-not
+    additionalProperties: false
+  pattern-where-python:
+    type: object
+    properties:
+      pattern-where-python:
+        type: string
+    required:
+      - pattern-where-python
+    additionalProperties: false
+  path-array:
+    type: array
+    items:
+      type: string
+type: object
+properties:
+  rules:
+    type: array
+    items:
+      type: object
+      properties:
+        equivalences:
+          type: array
+          items:
+            type: object
+            properties:
+              equivalence:
+                type: string
+        id:
+          type: string
+        message:
+          type: string
+        mode:
+          enum:
+          - search
+          - taint
+        languages:
+          type: array
+          items:
+            type: string
+        paths:
+          type: object
+          properties:
+            include:
+              $ref: '#/definitions/path-array'
+            exclude:
+              $ref: '#/definitions/path-array'
+          additionalProperties: false
+        severity:
+          enum:
+          - ERROR
+          - WARNING
+          - INFO
+        pattern-sinks:
+          $ref: '#/definitions/taint-content'
+        pattern-sources:
+          $ref: '#/definitions/taint-content'
+        pattern-sanitizers:
+          $ref: '#/definitions/taint-content'
+        fix:
+          type: string
+        fix-regex:
+          type: object
+          properties:
+            count:
+              type: integer
+            regex:
+              type: string
+            replacement:
+              type: string
+          required:
+            - regex
+            - replacement
+          additionalProperties: false
+        metadata:
+          type: object
+        pattern:
+          type: string
+        pattern-regex:
+          type: string
+        patterns:
+          $ref: '#/definitions/patterns-content'
+        pattern-either:
+          $ref: '#/definitions/pattern-either-content'
+
+      additionalProperties: false
+
+      anyOf:
+        - properties:
+            mode:
+              const: taint
+          required:
+            - id
+            - message
+            - mode
+            - languages
+            - severity
+            - pattern-sinks
+            - pattern-sources
+          not:
+            anyOf:
+              - required:
+                - pattern
+              - required:
+                - patterns
+              - required:
+                - pattern-either
+              - required:
+                - pattern-regex
+
+        - properties:
+            mode:
+              const: search
+          required:
+            - id
+            - message
+            - languages
+            - severity
+          anyOf:
+            - required:
+                - pattern
+              not:
+                anyOf:
+                  - required:
+                    - patterns
+                  - required:
+                    - pattern-either
+                  - required:
+                    - pattern-regex
+            - required:
+                - patterns
+              not:
+                anyOf:
+                  - required:
+                      - pattern
+                  - required:
+                      - pattern-either
+                  - required:
+                      - pattern-regex
+            - required:
+                - pattern-either
+              not:
+                anyOf:
+                  - required:
+                      - pattern
+                  - required:
+                      - patterns
+                  - required:
+                      - pattern-regex
+            - required:
+                - pattern-regex
+              not:
+                anyOf:
+                  - required:
+                      - pattern
+                  - required:
+                      - patterns
+                  - required:
+                      - pattern-either
+          not:
+            anyOf:
+              - required:
+                - pattern-sinks
+              - required:
+                - pattern-sources
+              - required:
+                - pattern-sanitizers
+additionalProperties: false

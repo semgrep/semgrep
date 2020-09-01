@@ -45,6 +45,10 @@ let todo any =
 
 let ident (s, _) = s
 
+let opt f = function
+  | None -> ""
+  | Some x -> f x
+
 let token default tok =
   try Parse_info.str_of_info tok
   with Parse_info.NoTokenLocation _ -> default
@@ -59,12 +63,12 @@ let print_bool env = function
      (match env.lang with
          | Lang.Python | Lang.Python2 | Lang.Python3 -> "True"
          | Lang.Java | Lang.Go | Lang.C | Lang.JSON | Lang.Javascript
-         | Lang.OCaml | Lang.Ruby | Lang.Typescript -> "true")
+         | Lang.OCaml | Lang.Ruby | Lang.Typescript | Lang.Csharp -> "true")
   | false ->
      (match env.lang with
          | Lang.Python | Lang.Python2 | Lang.Python3  -> "False"
          | Lang.Java | Lang.Go | Lang.C | Lang.JSON | Lang.Javascript
-         | Lang.OCaml | Lang.Ruby | Lang.Typescript -> "false")
+         | Lang.OCaml | Lang.Ruby | Lang.Typescript | Lang.Csharp -> "false")
 
 let arithop env (op, tok) =
   match op with
@@ -82,6 +86,7 @@ let arithop env (op, tok) =
       | LtE -> "<="
       | Gt -> ">"
       | GtE -> ">="
+      | NotEq -> "!="
       | _ -> todo (E (IdSpecial (Op op, tok)))
       (*
       | Pow | FloorDiv | MatMult (* Python *)
@@ -110,7 +115,11 @@ function
   | If (tok, e, s, sopt) -> if_stmt env level (token "if" tok, e, s, sopt)
   | While (tok, e, s) -> while_stmt env level (tok, e, s)
   | DoWhile (_tok, s, e) -> do_while stmt env level (s, e)
+  | For (tok, hdr, s) -> for_stmt env level (tok, hdr, s)
   | Return (tok, eopt) -> return env (tok, eopt)
+  | DefStmt (def) -> def_stmt env def
+  | Break (tok, lbl) -> break env (tok, lbl)
+  | Continue (tok, lbl) -> continue env (tok, lbl)
   | x -> todo (S x)
 
 and block env (t1, ss, t2) level =
@@ -127,20 +136,29 @@ and block env (t1, ss, t2) level =
    in
    let get_boundary t =
      let t_str = token "" t in
-       match t_str with "" -> "" | "{" -> "{\n" | "}" -> "\n}" | _ -> t_str
+       match t_str with "" -> "" | "{" -> "\n" ^ indent (level - 1) ^ "{\n"
+                      | "}" -> "\n" ^ indent (level - 1) ^ "}\n" | _ -> t_str
    in
-     F.sprintf "%s%s%s" (get_boundary t1) (show_statements env ss) (get_boundary t2)
+      if level > 0 then F.sprintf "%s%s%s" (get_boundary t1) (show_statements env ss) (get_boundary t2)
+      else show_statements env ss
 
 and if_stmt env level (tok, e, s, sopt) =
+  let rec indent =
+  function
+    | 0 -> ""
+    | n -> "    " ^ (indent (n - 1))
+  in
   let no_paren_cond = F.sprintf "%s %s" in (* if cond *)
   let paren_cond = F.sprintf "%s (%s)" in (* if cond *)
   let colon_body = F.sprintf "%s:\n%s\n" in (* (if cond) body *)
-  let bracket_body = F.sprintf "%s %s\n" (* (if cond) body *)
+  let bracket_body = F.sprintf "%s %s" (* (if cond) body *)
   in
   let (format_cond, elseif_str, format_block) =
     (match env.lang with
     | Lang.Python | Lang.Python2 | Lang.Python3 -> (no_paren_cond, "elif", colon_body)
-    | Lang.Java | Lang.Go | Lang.C | Lang.JSON | Lang.Javascript | Lang.Typescript -> (paren_cond, "else if", bracket_body)
+    | Lang.Java | Lang.Go | Lang.C | Lang.Csharp
+    | Lang.JSON | Lang.Javascript | Lang.Typescript
+      -> (paren_cond, "else if", bracket_body)
     | Lang.Ruby -> failwith "I don't want to deal with Ruby right now"
     | Lang.OCaml -> failwith "Impossible; if statements should be expressions"
     )
@@ -150,19 +168,24 @@ and if_stmt env level (tok, e, s, sopt) =
   let if_stmt_prt = format_block e_str s_str in
         match sopt with
         | None -> if_stmt_prt
-        | Some (Block(_, [If (_, e', s', sopt')], _)) -> F.sprintf "%s%s" if_stmt_prt (if_stmt env level (elseif_str, e', s', sopt'))
-        | Some (body) -> F.sprintf "%s%s" if_stmt_prt (format_block "else" (stmt env (level + 1) body))
+        | Some (If (_, e', s', sopt')) ->
+                 F.sprintf "%s%s" if_stmt_prt (if_stmt env level (indent level ^ elseif_str, e', s', sopt'))
+        | Some (Block(_, [If (_, e', s', sopt')], _)) ->
+                 F.sprintf "%s%s" if_stmt_prt (if_stmt env level (indent level ^ elseif_str, e', s', sopt'))
+        | Some (body) ->
+                 F.sprintf "%s%s" if_stmt_prt (format_block ((indent level) ^ "else") (stmt env (level + 1) body))
 
 and while_stmt env level (tok, e, s) =
-   let ocaml_while = F.sprintf "%s %s do\n%s\ndone\n" in
-   let python_while = F.sprintf "%s %s:\n%s\n" in
-   let go_while = F.sprintf "%s %s %s\n" in
-   let c_while = F.sprintf "%s (%s) %s\n" in
-   let ruby_while = F.sprintf "%s %s\n %s\nend\n" in
+   let ocaml_while = F.sprintf "%s %s do\n%s\ndone" in
+   let python_while = F.sprintf "%s %s:\n%s" in
+   let go_while = F.sprintf "%s %s %s" in
+   let c_while = F.sprintf "%s (%s) %s" in
+   let ruby_while = F.sprintf "%s %s\n %s\nend" in
    let while_format =
       (match env.lang with
       | Lang.Python | Lang.Python2 | Lang.Python3 -> python_while
-      | Lang.Java | Lang.C | Lang.JSON | Lang.Javascript | Lang.Typescript -> c_while
+      | Lang.Java | Lang.C | Lang.Csharp
+      | Lang.JSON | Lang.Javascript | Lang.Typescript -> c_while
       | Lang.Go -> go_while
       | Lang.Ruby -> ruby_while
       | Lang.OCaml -> ocaml_while
@@ -174,7 +197,8 @@ and do_while stmt env level (s, e) =
    let c_do_while = F.sprintf "do %s\nwhile(%s)" in
    let do_while_format =
     (match env.lang with
-    | Lang.Java | Lang.C | Lang.Javascript | Lang.Typescript -> c_do_while
+    | Lang.Java | Lang.C | Lang.Csharp
+    | Lang.Javascript | Lang.Typescript -> c_do_while
     | Lang.Python | Lang.Python2 | Lang.Python3
     | Lang.Go | Lang.JSON | Lang.OCaml -> failwith "impossible; no do while"
     | Lang.Ruby -> failwith "ruby is so weird (here, do while loop)"
@@ -182,8 +206,68 @@ and do_while stmt env level (s, e) =
    in
       do_while_format (stmt env (level + 1) s) (expr env e)
 
+and for_stmt env level (for_tok, hdr, s) =
+   let for_format =
+    (match env.lang with
+    | Lang.Java | Lang.C | Lang.Csharp
+    | Lang.Javascript | Lang.Typescript -> F.sprintf "%s (%s) %s"
+    | Lang.Go -> F.sprintf "%s %s %s"
+    | Lang.Python | Lang.Python2 | Lang.Python3 -> F.sprintf "%s %s:\n%s"
+    | Lang.Ruby -> F.sprintf "%s %s\ndo %s\nend"
+    | Lang.JSON | Lang.OCaml -> failwith "JSON/OCaml has for loops????"
+    )
+   in
+   let show_init = function
+   | ForInitVar (ent, var_def) -> F.sprintf "%s%s%s" (opt (fun x -> (print_type x) ^ " ") var_def.vtype)
+                                      (ident ent.name) (opt (fun x -> " = " ^ (expr env x)) var_def.vinit)
+   | ForInitExpr e_init -> expr env e_init
+   in
+   let rec show_init_list = function
+    | [] -> ""
+    | [x] -> show_init x
+    | x::xs -> (show_init x) ^ ", " ^ (show_init_list xs)
+   in
+   let opt_expr = opt (fun x -> expr env x) in
+   let hdr_str =
+    (match hdr with
+    | ForClassic (init, cond, next) -> F.sprintf "%s; %s; %s" (show_init_list init) (opt_expr cond) (opt_expr next)
+    | ForEach (pat, tok, e) -> F.sprintf "%s %s %s" (pattern env pat) (token "in" tok) (expr env e)
+    | ForEllipsis tok -> token "..." tok
+    )
+   in
+   let body_str = stmt env (level + 1) s in
+   for_format (token "for" for_tok) hdr_str body_str
 
-  (* For of tok (* 'for', 'foreach'*) * for_header * stmt *)
+and def_stmt env (entity, def_kind) =
+  let var_def (ent, def) =
+    let (no_val, with_val) =
+      (match env.lang with
+       | Lang.Java | Lang.C | Lang.Csharp
+          -> (fun typ id _e -> F.sprintf "%s %s;" typ id),
+             (fun typ id e -> F.sprintf "%s %s = %s;" typ id e)
+       | Lang.Javascript | Lang.Typescript -> (fun _typ id _e -> F.sprintf "var %s;" id),
+                                              (fun _typ id e -> F.sprintf "var %s = %s;" id e)
+       | Lang.Go -> (fun typ id _e -> F.sprintf "var %s %s" id typ),
+                    (fun typ id e -> F.sprintf "var %s %s = %s" id typ e) (* will have extra space if no type *)
+       | Lang.Python | Lang.Python2 | Lang.Python3
+       | Lang.Ruby -> (fun _typ id _e -> F.sprintf "%s" id),
+                      (fun _typ id e -> F.sprintf "%s = %s" id e)
+       | Lang.JSON | Lang.OCaml -> failwith "I think JSON/OCaml have no variable definitions"
+      )
+    in
+    let (typ, id) =
+    let {id_type; _} = ent.info in
+        match !id_type with
+        | None -> "", ident ent.name
+        | Some t -> print_type t, ident ent.name
+    in
+    match def.vinit with
+    | None -> no_val typ id ""
+    | Some e -> with_val typ id (expr env e)
+  in
+  match def_kind with
+  | VarDef def -> var_def (entity, def)
+  | _ -> todo (S (DefStmt(entity, def_kind)))
 
 and return env (tok, eopt) =
   let to_return =
@@ -192,10 +276,41 @@ and return env (tok, eopt) =
   | Some e -> expr env e
   in
   match env.lang with
-  | Lang.Java | Lang.C -> F.sprintf "%s %s;" (token "return" tok) to_return
+  | Lang.Java | Lang.C | Lang.Csharp
+      -> F.sprintf "%s %s;" (token "return" tok) to_return
   | Lang.Python | Lang.Python2 | Lang.Python3
   | Lang.Go | Lang.Ruby | Lang.OCaml
   | Lang.JSON | Lang.Javascript | Lang.Typescript -> F.sprintf "%s %s" (token "return" tok) to_return
+
+and break env (tok, lbl) =
+  let lbl_str =
+    match lbl with
+        | LNone -> ""
+        | LId l -> F.sprintf " %s" (ident l)
+        | LInt (n, _) -> F.sprintf " %d" n
+        | LDynamic e -> F.sprintf " %s" (expr env e)
+  in
+  match env.lang with
+  | Lang.Java | Lang.C | Lang.Csharp
+    -> F.sprintf "%s%s;" (token "break" tok) lbl_str
+  | Lang.Python | Lang.Python2 | Lang.Python3
+  | Lang.Go | Lang.Ruby | Lang.OCaml
+  | Lang.JSON | Lang.Javascript | Lang.Typescript -> F.sprintf "%s%s" (token "break" tok) lbl_str
+
+and continue env (tok, lbl) =
+  let lbl_str =
+    match lbl with
+        | LNone -> ""
+        | LId l -> F.sprintf " %s" (ident l)
+        | LInt (n, _) -> F.sprintf " %d" n
+        | LDynamic e -> F.sprintf " %s" (expr env e)
+  in
+  match env.lang with
+  | Lang.Java | Lang.C | Lang.Csharp
+    -> F.sprintf "%s%s;" (token "continue" tok) lbl_str
+  | Lang.Python | Lang.Python2 | Lang.Python3
+  | Lang.Go | Lang.Ruby | Lang.OCaml
+  | Lang.JSON | Lang.Javascript | Lang.Typescript -> F.sprintf "%s%s" (token "continue" tok) lbl_str
 
 (* expressions *)
 
@@ -207,8 +322,10 @@ function
   | Call (e1, e2) -> call env (e1, e2)
   | L x -> literal env x
   | Tuple es -> F.sprintf "(%s)" (tuple env es)
-  | ArrayAccess (e1, e2) -> F.sprintf "%s[%s]" (expr env e1) (expr env e2)
-  | Assign (e1, _tok, e2) -> F.sprintf "%s = %s" (expr env e1) (expr env e2)
+  | ArrayAccess (e1, (_, e2, _)) ->
+      F.sprintf "%s[%s]" (expr env e1) (expr env e2)
+  | Assign (e1, tok, e2) -> F.sprintf "%s %s %s" (expr env e1) (token "=" tok) (expr env e2)
+  | AssignOp (e1, op, e2) -> F.sprintf "%s %s= %s" (expr env e1) (arithop env op) (expr env e2)
   | SliceAccess (e, o1, o2, o3) -> slice_access env e (o1, o2) o3
   | DotAccess (e, tok, fi) -> dot_access env (e, tok, fi)
   | Ellipsis _ -> "..."
@@ -236,6 +353,7 @@ and id_qualified env ((id, {name_qualifier; _}), _idinfo) =
 and special env = function
   | (Op op, tok) -> arithop env (op, tok)
   | (New, _) -> "new"
+  | (IncrDecr _, _) -> "" (* should be captured in the call *)
   | (sp, tok) -> todo (E (IdSpecial (sp, tok)))
 
 and call env (e, (_, es, _)) =
@@ -243,6 +361,11 @@ and call env (e, (_, es, _)) =
   match (e, es) with
        | (IdSpecial(Op _, _), x::y::[]) -> F.sprintf "%s %s %s" (argument env x) s1 (argument env y)
        | (IdSpecial(New, _), x::ys) -> F.sprintf "%s %s(%s)" s1 (argument env x) (arguments env ys)
+       | (IdSpecial(IncrDecr (i_d, pre_post), _), [x]) ->
+           let op_str = match i_d with | Incr -> "++" | Decr -> "--" in
+           (match pre_post with
+               | Prefix -> F.sprintf "%s%s" op_str (argument env x)
+               | Postfix -> F.sprintf "%s%s" (argument env x) op_str)
        | _ -> F.sprintf "%s(%s)" s1 (arguments env es)
 
 and literal env = function
@@ -254,7 +377,8 @@ and literal env = function
       (match env.lang with
       | Lang.Python | Lang.Python2 | Lang.Python3 ->
             "'" ^ s ^ "'"
-      | Lang.Java | Lang.Go | Lang.C | Lang.JSON | Lang.Javascript
+      | Lang.Java | Lang.Go | Lang.C | Lang.Csharp
+      | Lang.JSON | Lang.Javascript
       | Lang.OCaml | Lang.Ruby | Lang.Typescript ->
             "\"" ^ s ^ "\""
       )
@@ -323,7 +447,12 @@ and cond env (e1, e2, e3) =
      | Lang.Java -> F.sprintf "%s ? %s : %s" s1 s2 s3
      | _ -> todo (E(Conditional(e1, e2, e3)))
 
+(* patterns *)
 
+and pattern env = function
+  | PatLiteral l -> literal env l
+  | PatId (id, _id_info) -> ident id
+  | x -> todo (P x)
 
 (*****************************************************************************)
 (* Entry point *)

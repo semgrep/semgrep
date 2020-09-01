@@ -60,6 +60,7 @@ def _run_semgrep(
     options: Optional[List[Union[str, Path]]] = None,
     output_format: str = "json",
     stderr: bool = False,
+    strict: bool = True,
 ) -> str:
     """Run the semgrep CLI.
 
@@ -72,7 +73,10 @@ def _run_semgrep(
     if options is None:
         options = []
 
-    options.extend(["--strict", "--disable-version-check"])
+    if strict:
+        options.append("--strict")
+
+    options.append("--disable-version-check")
 
     if config is not None:
         options.extend(["--config", config])
@@ -227,7 +231,5 @@ def pytest_runtest_setup(item):
 # Add `public_repo_url` as a parameter to your test to use this. It generates 1 test case per repo url in `ALL_REPOS`
 def pytest_generate_tests(metafunc):
     if "public_repo_url" in metafunc.fixturenames:
-        if metafunc.config.getoption("--qa"):
-            metafunc.parametrize("public_repo_url", public_repos.ALL_REPOS)
-        else:
-            metafunc.parametrize("public_repo_url", public_repos.PASSING_REPOS[:5])
+        repos = public_repos.ALL_REPOS
+        metafunc.parametrize("public_repo_url", repos, ids=lambda r: r["repo"])

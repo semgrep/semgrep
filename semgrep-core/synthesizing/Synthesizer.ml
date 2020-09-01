@@ -1,4 +1,5 @@
 open Common
+
 module J = Json_type
 
 let synthesize_patterns s file =

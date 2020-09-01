@@ -2,7 +2,7 @@
 (* Yoann Padioleau
  *
  * Copyright (C) 2011 Facebook
- * Copyright (C) 2019 r2c
+ * Copyright (C) 2019, 2020 r2c
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -147,12 +147,58 @@ let match_any_any pattern e =
   GG.m_any pattern e env
 (*e: function [[Semgrep_generic.match_any_any]] *)
 
+let match_t_t2 pattern e =
+  let env = Matching_generic.empty_environment () in
+  GG.m_type_ pattern e env
+let match_t_t rule a b =
+  Common.profile_code "Semgrep.match_t_t" (fun () ->
+    Common.profile_code ("rule:" ^ rule.R.id) (fun () ->
+     set_last_matched_rule rule (fun () ->
+      match_t_t2 a b)))
+
+let match_p_p2 pattern e =
+  let env = Matching_generic.empty_environment () in
+  GG.m_pattern pattern e env
+let match_p_p rule a b =
+  Common.profile_code "Semgrep.match_p_p" (fun () ->
+    Common.profile_code ("rule:" ^ rule.R.id) (fun () ->
+     set_last_matched_rule rule (fun () ->
+      match_p_p2 a b)))
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
+let match_rules_and_recurse (file, hook, matches) rules matcher k any x =
+  rules |> List.iter (fun (pattern, rule) ->
+    let matches_with_env = matcher rule pattern x in
+    if matches_with_env <> []
+    then (* Found a match *)
+        matches_with_env |> List.iter (fun env ->
+           Common.push { Res. rule; file; env; code = any x } matches;
+           let matched_tokens = lazy (Lib_AST.ii_of_any (any x)) in
+           hook env matched_tokens
+        )
+  );
+  (* try the rules on substatements and subexpressions *)
+  k x
+
 (*****************************************************************************)
 (* Main entry point *)
 (*****************************************************************************)
 
 (*s: function [[Semgrep_generic.check2]] *)
-let check2 ~hook rules equivs file _lang ast =
+let check2 ~hook rules equivs file lang ast =
+
+  let rules =
+    if !Flag.filter_irrelevant_rules
+    then Rules_filter.filter_rules_relevant_to_file_using_regexp
+           rules lang file
+    else rules
+  in
+  if rules = []
+  then []
+  else begin
 
   let matches = ref [] in
 
@@ -172,6 +218,8 @@ let check2 ~hook rules equivs file _lang ast =
   let expr_rules = ref [] in
   let stmt_rules = ref [] in
   let stmts_rules = ref [] in
+  let type_rules = ref [] in
+  let pattern_rules = ref [] in
   (*s: [[Semgrep_generic.check2()]] populate [[expr_rules]] and other *)
   rules |> List.iter (fun rule ->
     (* less: normalize the pattern? *)
@@ -183,7 +231,9 @@ let check2 ~hook rules equivs file _lang ast =
     | E pattern  -> Common.push (pattern, rule) expr_rules
     | S pattern -> Common.push (pattern, rule) stmt_rules
     | Ss pattern -> Common.push (pattern, rule) stmts_rules
-    | _ -> failwith "only expr, stmt, and stmts patterns are supported"
+    | T pattern -> Common.push (pattern, rule) type_rules
+    | P pattern -> Common.push (pattern, rule) pattern_rules
+    | _ -> failwith "only expr/stmt/stmts/type/pattern patterns are supported"
   );
   (*e: [[Semgrep_generic.check2()]] populate [[expr_rules]] and other *)
 
@@ -211,18 +261,8 @@ let check2 ~hook rules equivs file _lang ast =
     (*x: [[Semgrep_generic.check2()]] visitor fields *)
     (* mostly copy paste of expr code but with the _st functions *)
     V.kstmt = (fun (k, _) x ->
-      !stmt_rules |> List.iter (fun (pattern, rule) ->
-         let matches_with_env = match_st_st rule pattern x in
-         if matches_with_env <> []
-         then (* Found a match *)
-           matches_with_env |> List.iter (fun env ->
-             Common.push { Res. rule; file; env; code = S x } matches;
-             let matched_tokens = lazy (Lib_AST.ii_of_any (S x)) in
-             hook env matched_tokens
-           )
-      );
-      (* try the rules on substatements and subexpressions *)
-      k x
+         match_rules_and_recurse (file, hook, matches)
+              !stmt_rules match_st_st k (fun x -> S x) x
     );
     (*x: [[Semgrep_generic.check2()]] visitor fields *)
     V.kstmts = (fun (k, _) x ->
@@ -230,7 +270,12 @@ let check2 ~hook rules equivs file _lang ast =
        * CTL. We try every sequences. Hopefully the first statement in
        * the pattern will filter lots of sequences so we need to do
        * the heavy stuff (e.g., handling '...' between statements) rarely.
+       *
+       * we can't factorize with match_rules_and_recurse because we
+       * do things a little bit different with the matched_statements also
+       * in matches_with_env here.
        *)
+
       !stmts_rules |> List.iter (fun (pattern, rule) ->
          let matches_with_env = match_sts_sts rule pattern x in
          if matches_with_env <> []
@@ -246,6 +291,15 @@ let check2 ~hook rules equivs file _lang ast =
       k x
     );
     (*e: [[Semgrep_generic.check2()]] visitor fields *)
+
+    V.ktype_ = (fun (k, _) x ->
+      match_rules_and_recurse (file, hook, matches)
+         !type_rules match_t_t k (fun x -> T x) x
+    );
+    V.kpattern = (fun (k, _) x ->
+      match_rules_and_recurse (file, hook, matches)
+         !pattern_rules match_p_p k (fun x -> P x) x
+    );
   }
   in
   (* later: opti: dont analyze certain ASTs if they do not contain
@@ -256,6 +310,7 @@ let check2 ~hook rules equivs file _lang ast =
   visitor prog;
 
   !matches |> List.rev
+  end
 (*e: function [[Semgrep_generic.check2]] *)
 
 (*s: function [[Semgrep_generic.check]] *)

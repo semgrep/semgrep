@@ -3,21 +3,15 @@
     {
       "code": 4,
       "level": "error",
-      "long_msg": "the `paths:` targeting rules must each be one of ('include', 'exclude')",
-      "short_msg": "invalid targeting rules",
+      "long_msg": "Additional properties are not allowed ('filename' was unexpected)",
+      "short_msg": "Invalid rule schema",
       "spans": [
         {
-          "context_end": {
-            "col": 0,
-            "line": 9
-          },
-          "context_start": {
-            "col": 0,
-            "line": 7
-          },
+          "context_end": null,
+          "context_start": null,
           "end": {
-            "col": 15,
-            "line": 8
+            "col": 5,
+            "line": 9
           },
           "file": "rules/syntax/badpaths2.yaml",
           "source_hash": "e8a29e15677c634a77353a6099e2c0acf18909672c87d06292a1caece7cd4d3c",

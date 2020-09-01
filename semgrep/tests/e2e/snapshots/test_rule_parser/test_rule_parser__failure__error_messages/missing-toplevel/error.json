@@ -3,15 +3,15 @@
     {
       "code": 4,
       "level": "error",
-      "long_msg": "rules/syntax/missing-toplevel.yaml is missing `rules` as top-level key",
-      "short_msg": "missing keys",
+      "long_msg": "Additional properties are not allowed ('rule' was unexpected)",
+      "short_msg": "Invalid rule schema",
       "spans": [
         {
           "context_end": null,
           "context_start": null,
           "end": {
-            "col": 0,
-            "line": 7
+            "col": 1,
+            "line": 16
           },
           "file": "rules/syntax/missing-toplevel.yaml",
           "source_hash": "c72a97211dabcaa3065612fb9c52d6a344855414a6d9f1eb5adea4305d4c47da",
