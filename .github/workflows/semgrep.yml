@@ -1,0 +1,11 @@
+name: Semgrep
+on: [push, pull_request]
+jobs:
+  semgrep:
+    runs-on: ubuntu-latest
+    name: Check
+    steps:
+    - uses: actions/checkout@master
+    - uses: returntocorp/semgrep-action@v1
+      with:
+        config: https://semgrep.dev/p/r2c-ci
