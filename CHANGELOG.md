@@ -4,6 +4,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## NEXT VERSION
 
+### Added
+- Ability to read target contents from stdin by specifying "-" target.
+
 ## [0.22.0](https://github.com/returntocorp/semgrep/releases/tag/v0.22.0) - 2020-09-01
 
 ### Added

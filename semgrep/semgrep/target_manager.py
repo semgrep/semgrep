@@ -1,4 +1,8 @@
+import contextlib
+import os
 import subprocess
+import sys
+import tempfile
 from pathlib import Path
 from typing import Collection
 from typing import Dict
@@ -68,6 +72,23 @@ def lang_to_exts(language: Language) -> List[FileExtension]:
         return [FileExtension("*")]
     else:
         raise _UnknownLanguageError(f"Unsupported Language: {language}")
+
+
+@contextlib.contextmanager
+def optional_stdin_target(target: List[str]) -> List[str]:
+    """
+    Read target input from stdin if "-" is specified
+    """
+    if target == ["-"]:
+        try:
+            with tempfile.NamedTemporaryFile(delete=False) as fd:
+                fd.write(sys.stdin.buffer.read())
+                target = fd.name
+            yield [target]
+        finally:
+            os.remove(target)
+    else:
+        yield target
 
 
 @attr.s(auto_attribs=True)

@@ -17,6 +17,7 @@ from semgrep.error import SemgrepError
 from semgrep.output import managed_output
 from semgrep.output import OutputSettings
 from semgrep.synthesize_patterns import synthesize_patterns
+from semgrep.target_manager import optional_stdin_target
 from semgrep.version import is_running_latest
 
 logger = logging.getLogger(__name__)
@@ -331,11 +332,16 @@ def cli() -> None:
         # uses managed_output internally
         semgrep.test.test_main(args)
 
-    with managed_output(output_settings) as output_handler:
+    # The 'optional_stdin_target' context manager must remain before
+    # 'managed_output'. Output depends on file contents so we cannot have
+    # already deleted the temporary stdin file.
+    with optional_stdin_target(args.target) as target, managed_output(
+        output_settings
+    ) as output_handler:
         if args.dump_ast:
-            dump_parsed_ast(args.json, args.lang, args.pattern, args.target)
+            dump_parsed_ast(args.json, args.lang, args.pattern, target)
         elif args.synthesize_patterns:
-            synthesize_patterns(args.lang, args.synthesize_patterns, args.target)
+            synthesize_patterns(args.lang, args.synthesize_patterns, target)
         elif args.validate:
             configs, config_errors = semgrep.semgrep_main.get_config(
                 args.pattern, args.lang, args.config
@@ -354,7 +360,7 @@ def cli() -> None:
         else:
             semgrep.semgrep_main.main(
                 output_handler=output_handler,
-                target=args.target,
+                target=target,
                 pattern=args.pattern,
                 lang=args.lang,
                 config=args.config,
