@@ -65,7 +65,7 @@ let subst_e (bindings: MV.metavars_binding) e =
 (*e: function [[Apply_equivalences.subst_e]] *)
 
 (*s: function [[Apply_equivalences.apply]] *)
-let apply2 equivs any =
+let apply equivs any =
   let expr_rules = ref [] in
   let stmt_rules = ref [] in
 
@@ -121,9 +121,7 @@ let apply2 equivs any =
     );
    } in
   visitor.M.vany any
+[@@profiling]
 (*e: function [[Apply_equivalences.apply]] *)
-let apply a b =
-  Common.profile_code "Apply_equivalences.apply" (fun () ->
-      apply2 a b)
 
 (*e: semgrep/matching/Apply_equivalences.ml *)

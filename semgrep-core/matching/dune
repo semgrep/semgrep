@@ -13,4 +13,5 @@
    semgrep_core
    semgrep_typing
  )
+ (preprocess (pps ppx_deriving.show ppx_profiling))
 )
