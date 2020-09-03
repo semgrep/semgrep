@@ -50,17 +50,16 @@ open AST_generic
 let regexp_matching_str s =
   Re.str s
 let compile_regexp t =
-  Common.profile_code "Re.compile_regexp" (fun () -> Re.compile t)
+  Re.compile t
 let run_regexp re str =
-  Common.profile_code "Re.run_regexp" (fun () -> Re.execp re str)
+  Re.execp re str
 *)
 
 let regexp_matching_str s =
   Str.regexp_string s
-let compile_regexp t =
-  Common.profile_code "Re.compile_regexp" (fun () -> t)
+let compile_regexp t = t
+[@@profiling]
 let run_regexp re str =
-  Common.profile_code "Re.run_regexp" (fun () ->
    (* bugfix:
     * this does not work!:  Str.string_match re str 0
     * because you need to add ".*" in front to make it work,
@@ -70,7 +69,7 @@ let run_regexp re str =
    try
      Str.search_forward re str 0 |> ignore; true
    with Not_found -> false
-  )
+[@@profiling]
 
 let reserved_id lang str =
   Metavars_generic.is_metavar_name str ||
@@ -119,7 +118,7 @@ let extract_specific_strings lang any =
 (* Entry point *)
 (*****************************************************************************)
 
-let filter_rules_relevant_to_file_using_regexp2 rules lang file =
+let filter_rules_relevant_to_file_using_regexp rules lang file =
   let str = Common.read_file file in
   rules |> List.filter (fun rule ->
     let pat = rule.R.pattern in
@@ -149,7 +148,4 @@ let filter_rules_relevant_to_file_using_regexp2 rules lang file =
     then pr2 (spf "filtering rule %s" rule.R.id);
     match_
     )
-
-let filter_rules_relevant_to_file_using_regexp a b =
-  Common.profile_code "Rules_filter.filter" (fun () ->
-      filter_rules_relevant_to_file_using_regexp2 a b)
+[@@profiling "Rules_filter.filter"]

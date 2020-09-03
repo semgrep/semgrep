@@ -5,4 +5,5 @@
    dune-glob
    commons
  )
+ (preprocess (pps ppx_profiling))
 )

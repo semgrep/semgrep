@@ -11,6 +11,7 @@
    pfff-h_program-lang
    pfff-lang_php
  )
+ (preprocess (pps ppx_profiling))
  ; for ocamldebug
  (modes byte)
 )

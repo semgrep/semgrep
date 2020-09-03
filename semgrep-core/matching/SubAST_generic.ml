@@ -32,7 +32,7 @@ module V = Visitor_AST
 
 (*s: function [[SubAST_generic.subexprs_of_expr]] *)
 (* used for deep expression matching *)
-let subexprs_of_expr2 e =
+let subexprs_of_expr e =
   match e with
   | L _
   | Id _ | IdQualified _  | IdSpecial _
@@ -80,9 +80,8 @@ let subexprs_of_expr2 e =
   | LetPattern _ | MatchPattern _
     -> []
   | DisjExpr _ -> raise Common.Impossible
+[@@profiling]
 (*e: function [[SubAST_generic.subexprs_of_expr]] *)
-let subexprs_of_expr a = Common.profile_code "Sub.subexprs_of_expr" (fun () ->
-      subexprs_of_expr2 a)
 
 (*****************************************************************************)
 (* Statements *)
@@ -212,7 +211,7 @@ let do_visit_with_ref mk_hooks = fun any ->
 (*e: function [[SubAST_generic.do_visit_with_ref]] *)
 
 (*s: function [[SubAST_generic.lambdas_in_expr]] *)
-let lambdas_in_expr2 e =
+let lambdas_in_expr e =
   do_visit_with_ref (fun aref -> { V.default_visitor with
     V.kexpr = (fun (k, _) e ->
       match e with
@@ -220,9 +219,8 @@ let lambdas_in_expr2 e =
       | _ -> k e
     );
   }) (E e)
+[@@profiling]
 (*e: function [[SubAST_generic.lambdas_in_expr]] *)
-let lambdas_in_expr a = Common.profile_code "Sub.lambdas_in_expr" (fun () ->
-      lambdas_in_expr2 a)
 
 (* opti: using memoization speed things up a bit too
  * (but again, this is still slow when called many many times).
@@ -232,17 +230,16 @@ let lambdas_in_expr a = Common.profile_code "Sub.lambdas_in_expr" (fun () ->
  * return a unique identifier to each expression to remove the hashing cost.
  *)
 let hmemo = Hashtbl.create 101
-let lambdas_in_expr_memo2 a =
+let lambdas_in_expr_memo a =
   Common.memoized hmemo a (fun () -> lambdas_in_expr a)
-let lambdas_in_expr_memo a = Common.profile_code "Sub.lambdas_in_expr_memo"
- (fun () -> lambdas_in_expr_memo2 a)
+[@@profiling]
 
 (*****************************************************************************)
 (* Really substmts_of_stmts *)
 (*****************************************************************************)
 
 (*s: function [[SubAST_generic.flatten_substmts_of_stmts]] *)
-let flatten_substmts_of_stmts2 xs =
+let flatten_substmts_of_stmts xs =
   (* opti: using a ref, List.iter, and Common.push instead of a mix of
    * List.map, List.flatten and @ below speed things up
    * (but it is still slow when called many many times)
@@ -271,9 +268,7 @@ let flatten_substmts_of_stmts2 xs =
   in
   xs |> List.iter aux;
   List.rev !res
+[@@profiling]
 (*e: function [[SubAST_generic.flatten_substmts_of_stmts]] *)
-let flatten_substmts_of_stmts a =
-  Common.profile_code "Sub.flatten_substmts_of_stmts" (fun () ->
-      flatten_substmts_of_stmts2 a)
 
 (*e: semgrep/matching/SubAST_generic.ml *)
