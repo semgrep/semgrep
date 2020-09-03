@@ -298,7 +298,7 @@ let cache_computation file cache_file_of_file f =
       pr2 ("defaulting to calling the function");
       f ()
     end else begin
-    profile_code "Main.cache_computation" (fun () ->
+    Common.profile_code "Main.cache_computation" (fun () ->
 
       let file_cache = cache_file_of_file file in
       if Sys.file_exists file_cache && filemtime file_cache >= filemtime file
@@ -342,14 +342,8 @@ let cache_file_of_file filename =
  * not bubble up enough. In such case, add a case before such as
  * with Timeout -> raise Timeout | _ -> ...
  *)
-let timeout_function lang = fun f ->
-  let timeout =
-      (* TODO: remove at some point, but this is to stay
-       * "backward compatible" with the previous behavior *)
-      if lang = Lang.Javascript && !timeout = 0
-      then 5
-      else !timeout
-  in
+let timeout_function = fun f ->
+  let timeout = !timeout in
   if timeout <= 0
   then f ()
   else Common.timeout_function ~verbose:!Flag.debug timeout f
@@ -570,7 +564,7 @@ let iter_generic_ast_of_files_and_get_matches_and_exn_to_errors f files =
        if !Flag.debug then pr2 (spf "PARSING: %s" file);
        try
          run_with_memory_limit !max_memory (fun () ->
-         timeout_function lang (fun () ->
+         timeout_function (fun () ->
           let ast = parse_generic lang file in
           (* calling the hook *)
           (f file lang ast, [])

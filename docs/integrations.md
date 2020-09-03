@@ -24,14 +24,14 @@ and add this in your `.pre-commit-config.yaml`:
 ```yaml
 repos:
 - repo: https://github.com/returntocorp/semgrep
-  rev: 'v0.21.0'
+  rev: 'v0.22.0'
   hooks:
     - id: semgrep
       args: ['--config', 'https://semgrep.dev/p/r2c', '--error']
 ```
 
-This will default to using the [`r2c` rule pack](https://semgrep.dev/p/r2c).
-To choose another rule pack, see https://semgrep.dev/packs.
+This will default to using the [`r2c` ruleset](https://semgrep.dev/p/r2c).
+To choose another ruleset, see https://semgrep.dev/packs.
 
 ## Continuous Integration
 
@@ -56,8 +56,8 @@ test_script:
     - semgrep --config https://semgrep.dev/p/r2c /path/to/code
 ```
 
-This will default to using the [`r2c` rule pack](https://semgrep.dev/p/r2c).
-To choose another rule pack see https://semgrep.dev/packs.
+This will default to using the [`r2c` ruleset](https://semgrep.dev/p/r2c).
+To choose another ruleset see https://semgrep.dev/packs.
 
 ### CircleCI
 
@@ -75,8 +75,8 @@ jobs:
             - run: semgrep --config https://semgrep.dev/p/r2c /path/to/code
 ```
 
-This will default to using the [`r2c` rule pack](https://semgrep.dev/p/r2c).
-To choose another rule pack see https://semgrep.dev/packs.
+This will default to using the [`r2c` ruleset](https://semgrep.dev/p/r2c).
+To choose another ruleset see https://semgrep.dev/packs.
 
 Another way to do it is to use the official Semgrep [Docker Image](https://hub.docker.com/r/returntocorp/semgrep)
 
@@ -105,8 +105,8 @@ script:
     - semgrep --config https://semgrep.dev/p/r2c /path/to/code
 ```
 
-This will default to using the [`r2c` rule pack](https://semgrep.dev/p/r2c).
-To choose another rule pack see https://semgrep.dev/packs.
+This will default to using the [`r2c` ruleset](https://semgrep.dev/p/r2c).
+To choose another ruleset see https://semgrep.dev/packs.
 
 ### GitHub Actions
 
@@ -126,8 +126,8 @@ jobs:
                 config: p/r2c
 ```
 
-This will default to using the [`r2c` rule pack](https://semgrep.dev/p/r2c).
-To choose another rule pack see https://semgrep.dev/packs.
+This will default to using the [`r2c` ruleset](https://semgrep.dev/p/r2c).
+To choose another ruleset see https://semgrep.dev/packs.
 
 For more information on the GitHub Action see https://github.com/marketplace/actions/semgrep-action.
 
@@ -145,5 +145,5 @@ semgrep:
     - python -m semgrep_agent --config p/r2c
 ```
 
-This will default to using the [`r2c` rule pack](https://semgrep.dev/p/r2c).
-To choose another rule pack see https://semgrep.dev/packs.
+This will default to using the [`r2c` ruleset](https://semgrep.dev/p/r2c).
+To choose another ruleset see https://semgrep.dev/packs.

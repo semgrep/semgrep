@@ -2,7 +2,7 @@
  (public_name semgrep_matching)
  (wrapped false)
  (libraries
-   yaml json-wheel ppx_deriving.runtime
+   yaml json-wheel ppx_deriving.runtime re
    commons
    pfff-config
    pfff-h_program-lang
@@ -13,4 +13,5 @@
    semgrep_core
    semgrep_typing
  )
+ (preprocess (pps ppx_deriving.show ppx_profiling))
 )

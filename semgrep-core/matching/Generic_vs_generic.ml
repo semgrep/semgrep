@@ -128,8 +128,8 @@ let m_ident a b =
    * (e.g., {"=~/.*field/": $X}).
    *)
   | (stra, _), (strb, _) when Matching_generic.is_regexp_string stra ->
-      let re = Matching_generic.regexp_of_regexp_string stra in
-      if Str.string_match re strb 0
+      let re_match = Matching_generic.regexp_matcher_of_regexp_string stra in
+      if re_match strb
       then return ()
       else fail ()
 
@@ -253,8 +253,8 @@ and m_ident_and_id_info_add_in_env_Expr (a1, a2) (b1, b2) =
    * (e.g., {"=~/.*field/": $X}).
    *)
   | (stra, _), (strb, _) when Matching_generic.is_regexp_string stra ->
-      let re = Matching_generic.regexp_of_regexp_string stra in
-      if Str.string_match re strb 0
+      let f = Matching_generic.regexp_matcher_of_regexp_string stra in
+      if f strb
       then return ()
       else fail ()
 
@@ -520,7 +520,7 @@ and m_expr a b =
 
   | A.ArrayAccess(a1, a2), B.ArrayAccess(b1, b2) ->
     m_expr a1 b1 >>= (fun () ->
-    m_expr a2 b2
+    m_bracket m_expr a2 b2
     )
 
   (*s: [[Generic_vs_generic.m_expr()]] boilerplate cases *)
@@ -667,10 +667,9 @@ and m_literal a b =
   (* regexp matching *)
   | A.String(name, info_name), B.String(sb, info_sb)
       when Matching_generic.is_regexp_string name ->
-      let re = Matching_generic.regexp_of_regexp_string name in
-      if Str.string_match re sb 0
-      then
-        m_info info_name info_sb
+      let f = Matching_generic.regexp_matcher_of_regexp_string name in
+      if f sb
+      then m_info info_name info_sb
       else fail ()
   (*e: [[Generic_vs_generic.m_literal()]] regexp case *)
 

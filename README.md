@@ -85,7 +85,7 @@ Once installed, Semgrep can be run with single rule patterns or entire rule pack
 # Check for Python == where the left and right hand sides are the same (often a bug)
 $ semgrep -e '$X == $X' --lang=py path/to/src
 
-# Run a rule pack with rules for many languages
+# Run a ruleset with rules for many languages
 $ semgrep --config=https://semgrep.dev/p/r2c-CI path/to/src
 ```
 

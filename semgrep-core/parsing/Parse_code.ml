@@ -110,11 +110,11 @@ let just_parse_with_lang lang file =
        *)
       let ast =
         run file [
+          TreeSitter, Parse_javascript_tree_sitter.parse;
           Pfff, (fun file ->
               let cst = Parse_js.parse_program file in
               Ast_js_build.program cst
             );
-          TreeSitter, Parse_javascript_tree_sitter.parse
           ]
       in
       Js_to_generic.program ast

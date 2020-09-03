@@ -261,6 +261,7 @@ def main(
     max_memory: int = 0,
     timeout_threshold: int = 0,
     skip_unknown_extensions: bool = False,
+    testing: bool = False,
 ) -> None:
     if include is None:
         include = []
@@ -324,6 +325,7 @@ def main(
         timeout=timeout,
         max_memory=max_memory,
         timeout_threshold=timeout_threshold,
+        testing=testing,
     ).invoke_semgrep(target_manager, all_rules)
 
     output_handler.handle_semgrep_errors(semgrep_errors)

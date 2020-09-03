@@ -1,5 +1,5 @@
 [submodule "pfff"]
-	path = pfff
+	path = semgrep-core/pfff
 	url = https://github.com/returntocorp/pfff.git
 [submodule "semgrep-core/ocaml-tree-sitter-lang"]
 	path = semgrep-core/ocaml-tree-sitter-lang

@@ -22,4 +22,5 @@
 
    semgrep_core
  )
+ (preprocess (pps ppx_profiling))
 )

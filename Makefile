@@ -13,14 +13,8 @@ build:
 	cd semgrep && python3 -m pipenv install --dev
 
 .PHONY: build-core
-build-core: build-pfff build-ocaml-tree-sitter
+build-core: build-ocaml-tree-sitter
 	$(MAKE) -C semgrep-core
-
-.PHONY: build-pfff
-build-pfff:
-	$(MAKE) -C pfff
-	$(MAKE) -C pfff opt
-	$(MAKE) -C pfff reinstall-libs
 
 .PHONY: build-ocaml-tree-sitter
 build-ocaml-tree-sitter:
@@ -29,7 +23,7 @@ build-ocaml-tree-sitter:
 
 # Update and rebuild everything within the project.
 #
-# At the moment, this is useful when pfff or ocaml-tree-sitter get updated,
+# At the moment, this is useful when ocaml-tree-sitter get updated,
 # since semgrep-core is not rebuilt automatically when they change.
 #
 .PHONY: rebuild
@@ -46,7 +40,7 @@ rebuild:
 setup:
 	git submodule update --init --recursive
 	opam update -y
-	opam install -y --deps-only ./pfff
+	opam install -y --deps-only ./semgrep-core/pfff
 	cd ocaml-tree-sitter && ./scripts/install-tree-sitter-lib
 	opam install -y --deps-only ./ocaml-tree-sitter
 	opam install -y --deps-only ./semgrep-core
@@ -57,7 +51,6 @@ setup:
 #
 .PHONY: config
 config:
-	cd pfff && ./configure && $(MAKE) depend
 	cd ocaml-tree-sitter && ./configure
 
 # Remove from the project tree everything that's not under source control
@@ -65,7 +58,6 @@ config:
 #
 .PHONY: clean
 clean:
-	-$(MAKE) -C pfff clean
 	-$(MAKE) -C ocaml-tree-sitter clean
 	-$(MAKE) -C semgrep-core clean
 	-$(MAKE) -C semgrep clean

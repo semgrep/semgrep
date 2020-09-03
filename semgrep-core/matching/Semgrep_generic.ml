@@ -81,10 +81,10 @@ let match_e_e2 pattern e =
   GG.m_expr pattern e env
 (*e: function [[Semgrep_generic.match_e_e]] *)
 let match_e_e rule a b =
- Common.profile_code "Semgrep.match_e_e" (fun () ->
-    Common.profile_code ("rule:" ^ rule.R.id) (fun () ->
+     Common.profile_code ("rule:" ^ rule.R.id) (fun () ->
      set_last_matched_rule rule (fun () ->
-      match_e_e2 a b)))
+      match_e_e2 a b))
+[@@profiling]
 
 (*s: function [[Semgrep_generic.match_st_st]] *)
 let match_st_st2 pattern e =
@@ -92,10 +92,10 @@ let match_st_st2 pattern e =
   GG.m_stmt pattern e env
 (*e: function [[Semgrep_generic.match_st_st]] *)
 let match_st_st rule a b =
-  Common.profile_code "Semgrep.match_st_st" (fun () ->
     Common.profile_code ("rule:" ^ rule.R.id) (fun () ->
      set_last_matched_rule rule (fun () ->
-      match_st_st2 a b)))
+      match_st_st2 a b))
+[@@profiling]
 
 (*s: function [[Semgrep_generic.match_sts_sts]] *)
 let match_sts_sts2 pattern e =
@@ -135,10 +135,10 @@ let match_sts_sts2 pattern e =
   )
 (*e: function [[Semgrep_generic.match_sts_sts]] *)
 let match_sts_sts rule a b =
-  Common.profile_code "Semgrep.match_sts_sts" (fun () ->
     Common.profile_code ("rule:" ^ rule.R.id) (fun () ->
      set_last_matched_rule rule (fun () ->
-      match_sts_sts2 a b)))
+      match_sts_sts2 a b))
+[@@profiling]
 
 (*s: function [[Semgrep_generic.match_any_any]] *)
 (* for unit testing *)
@@ -151,19 +151,19 @@ let match_t_t2 pattern e =
   let env = Matching_generic.empty_environment () in
   GG.m_type_ pattern e env
 let match_t_t rule a b =
-  Common.profile_code "Semgrep.match_t_t" (fun () ->
     Common.profile_code ("rule:" ^ rule.R.id) (fun () ->
      set_last_matched_rule rule (fun () ->
-      match_t_t2 a b)))
+      match_t_t2 a b))
+[@@profiling]
 
 let match_p_p2 pattern e =
   let env = Matching_generic.empty_environment () in
   GG.m_pattern pattern e env
 let match_p_p rule a b =
-  Common.profile_code "Semgrep.match_p_p" (fun () ->
     Common.profile_code ("rule:" ^ rule.R.id) (fun () ->
      set_last_matched_rule rule (fun () ->
-      match_p_p2 a b)))
+      match_p_p2 a b))
+[@@profiling]
 
 (*****************************************************************************)
 (* Helpers *)
@@ -313,8 +313,8 @@ let check2 ~hook rules equivs file lang ast =
   end
 (*e: function [[Semgrep_generic.check2]] *)
 
-(*s: function [[Semgrep_generic.check]] *)
+(* TODO: cant use [@@profile] because it does not handle yet label params *)
 let check ~hook a b c d e =
   Common.profile_code "Semgrep.check" (fun () -> check2 ~hook a b c d e)
-(*e: function [[Semgrep_generic.check]] *)
+
 (*e: semgrep/matching/Semgrep_generic.ml *)

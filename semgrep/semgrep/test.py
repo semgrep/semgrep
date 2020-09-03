@@ -11,7 +11,9 @@ Validate that the output is annotated in the source file with by looking for a c
  """
 import argparse
 import collections
+import functools
 import logging
+import multiprocessing
 import sys
 from pathlib import Path
 from typing import Any
@@ -22,6 +24,7 @@ from typing import Tuple
 
 from semgrep.constants import YML_EXTENSIONS
 from semgrep.semgrep_main import invoke_semgrep
+from semgrep.util import partition
 
 logger = logging.getLogger(__name__)
 
@@ -195,62 +198,76 @@ def confusion_matrix_to_string(confusion: List[int]) -> str:
     return f"TP: {tp}\tTN: {tn}\tFP: {fp}\tFN: {fn}"
 
 
+def invoke_semgrep_multi(filename, *args, **kwargs):
+    try:
+        output = invoke_semgrep(filename, *args, **kwargs)
+    except Exception as error:
+        return (filename, error, {})
+    else:
+        return (filename, None, output)
+
+
 def generate_file_pairs(
-    location: Path, ignore_todo: bool, strict: bool, semgrep_verbose: bool, unsafe: bool
+    location: Path, ignore_todo: bool, strict: bool, unsafe: bool
 ) -> None:
-    filenames = list(location.rglob("*"))
-    no_tests = []
-    tested = []
-    semgrep_error = []
     print("starting tests...")
-    for filename in filenames:
-        if (
-            filename.suffix in YML_EXTENSIONS
-            and not filename.name.startswith(".")
-            and not filename.parent.name.startswith(".")
-        ):
-            # find all filenames that have the same name but not extension, or are in a folder with the same name as a the yaml file
-            yaml_file_name_without_ext = filename.with_suffix("")
 
-            children_test_files = [
-                p
-                for p in filenames
-                if str(p.with_suffix("")) == (str(yaml_file_name_without_ext))
-            ]
-            # remove yaml files from the test lists
-            test_files = [
-                path
-                for path in children_test_files
-                if path.suffix not in YML_EXTENSIONS and path.is_file()
-            ]
-            if not len(test_files):
-                no_tests.append(filename)
-                continue
-            # invoke semgrep
-            try:
-                output_json = invoke_semgrep(
-                    filename,
-                    test_files,
-                    no_git_ignore=True,
-                    no_rewrite_rule_ids=True,
-                    strict=strict,
-                    dangerously_allow_arbitrary_code_execution_from_rules=unsafe,
-                )
-                tested.append(
-                    (filename, score_output_json(output_json, test_files, ignore_todo))
-                )
-            except Exception as ex:
-                print(
-                    f"semgrep error running with config {filename} on {test_files}:\n{ex}"
-                )
-                semgrep_error.append(filename)
+    filenames = list(location.rglob("*"))
+    config_filenames = [
+        filename
+        for filename in filenames
+        if filename.suffix in YML_EXTENSIONS
+        and not filename.name.startswith(".")
+        and not filename.parent.name.startswith(".")
+    ]
+    config_test_filenames = {
+        config_filename: [
+            inner_filename
+            for inner_filename in filenames
+            if inner_filename.with_suffix("") == config_filename.with_suffix("")
+            and inner_filename.is_file()
+            and inner_filename.suffix not in YML_EXTENSIONS
+        ]
+        for config_filename in config_filenames
+    }
+    config_with_tests, config_without_tests = partition(
+        lambda c: c[1], config_test_filenames.items()
+    )
+    if config_without_tests:
+        print("The following config files are missing tests:")
+        print("\t" + "\n\t".join(str(c[0]) for c in config_without_tests))
 
-    if len(semgrep_error) and strict:
-        print("exiting due to semgrep/config errors and strict flag")
-        sys.exit(1)
+    invoke_semgrep_fn = functools.partial(
+        invoke_semgrep_multi,
+        no_git_ignore=True,
+        no_rewrite_rule_ids=True,
+        strict=strict,
+        dangerously_allow_arbitrary_code_execution_from_rules=unsafe,
+        testing=True,
+    )
+    with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
+        results = pool.starmap(invoke_semgrep_fn, config_with_tests)
 
-    print(f"{len(no_tests)} yaml files missing tests")
-    logger.debug(f"missing tests: {no_tests}")
+    config_with_errors, config_without_errors = partition(lambda r: r[1], results)
+    if config_with_errors:
+        print("The following config files produced errors:")
+        print(
+            "\t"
+            + "\n\t".join(
+                f"{filename}: {error}" for filename, error, _ in config_with_errors
+            )
+        )
+        if strict:
+            sys.exit(1)
+
+    tested = [
+        (
+            filename,
+            score_output_json(output, config_test_filenames[filename], ignore_todo),
+        )
+        for filename, _, output in config_without_errors
+    ]
+
     print(f"{len(tested)} yaml files tested")
     print("check id scoring:")
     print("=" * 80)
@@ -299,27 +316,16 @@ def generate_file_pairs(
         sys.exit(0)
 
 
-def main(
-    location: Path,
-    ignore_todo: bool,
-    verbose: bool,
-    strict: bool,
-    semgrep_verbose: bool,
-    unsafe: bool,
-) -> None:
-    generate_file_pairs(location, ignore_todo, strict, semgrep_verbose, unsafe)
-
-
 def test_main(args: argparse.Namespace) -> None:
     _test_compute_confusion_matrix()
+
     if len(args.target) != 1:
         raise Exception("only one target directory allowed for tests")
     target = Path(args.target[0])
-    main(
+
+    generate_file_pairs(
         target,
         args.test_ignore_todo,
-        args.verbose,
         args.strict,
-        args.verbose,
         args.dangerously_allow_arbitrary_code_execution_from_rules,
     )

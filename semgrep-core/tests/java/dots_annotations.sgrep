@@ -1,0 +1,2 @@
+@RequestMapping(..., method=$M, ...)
+public $RETURN $METHOD(...) { ... }
