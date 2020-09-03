@@ -80,7 +80,7 @@ let config_of_rule found_tainted_sink rule =
 (*****************************************************************************)
 
 (*s: function [[Tainting_generic.check2]] *)
-let check2 rules file ast =
+let check rules file ast =
   let matches = ref [] in
 
   let v = V.mk_visitor { V.default_visitor with
@@ -108,11 +108,7 @@ let check2 rules file ast =
   v (AST.Pr ast);
 
    !matches
+[@@profiling]
 (*e: function [[Tainting_generic.check2]] *)
-
-(*s: function [[Tainting_generic.check]] *)
-let check a b c =
-  Common.profile_code "Tainting_generic.check" (fun () -> check2 a b c)
-(*e: function [[Tainting_generic.check]] *)
 
 (*e: semgrep/tainting/Tainting_generic.ml *)

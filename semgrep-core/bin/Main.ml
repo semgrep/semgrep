@@ -298,7 +298,7 @@ let cache_computation file cache_file_of_file f =
       pr2 ("defaulting to calling the function");
       f ()
     end else begin
-    profile_code "Main.cache_computation" (fun () ->
+    Common.profile_code "Main.cache_computation" (fun () ->
 
       let file_cache = cache_file_of_file file in
       if Sys.file_exists file_cache && filemtime file_cache >= filemtime file
