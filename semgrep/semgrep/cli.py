@@ -60,14 +60,14 @@ def cli() -> None:
         help=(
             "YAML configuration file, directory of YAML files ending in "
             ".yml|.yaml, URL of a configuration file, or semgrep registry entry "
-            "name. See docs/configuration-files.md for information on configuration file format."
+            "name. See https://github.com/returntocorp/semgrep/blob/develop/docs/configuration-files.md for information on configuration file format."
         ),
     )
 
     config_ex.add_argument(
         "-e",
         "--pattern",
-        help="Code search pattern. See docs/pattern-features.md for information on pattern features.",
+        help="Code search pattern. See https://github.com/returntocorp/semgrep/blob/develop/docs/pattern-features.md for information on pattern features.",
     )
     config.add_argument(
         "-l",
