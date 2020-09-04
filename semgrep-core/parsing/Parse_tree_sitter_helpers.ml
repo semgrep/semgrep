@@ -92,8 +92,6 @@ let combine_tokens env xs =
       let t = token env x in
       t
 
-let combine_infos _env xs =
-  match xs with
-  | [] -> failwith "combine_infos: empty list"
-  | x::_xsTODO ->
-      x
+let combine_infos _env x xs =
+  let str = xs |> List.map PI.str_of_info |> String.concat "" in
+  PI.tok_add_s str x
