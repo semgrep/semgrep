@@ -1,0 +1,4 @@
+running 3 rules...
+Warning: 1 timeout error(s) in targets/equivalence/open_redirect.py when running the following rules: [rules.forcetimeout]
+Semgrep stopped running rules on targets/equivalence/open_redirect.py after 1 timeout error(s). See `--timeout-threshold` for more info.
+Warnings exist. Run with `--strict` to turn warnings into errors.

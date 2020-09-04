@@ -7,4 +7,4 @@ rules:
     languages: [python]
     severity: ERROR
     metadata:
-      - foo: bar
+      foo: bar

@@ -1,4 +1,4 @@
-// from https://sgrep.live/1nQ
+// from https://sgrep.dev/1nQ
 $SESS, $ERR := store.Get(...)
 ...
 $VAR := $SESS.$VAL[$STR]

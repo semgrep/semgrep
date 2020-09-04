@@ -35,7 +35,7 @@ TEMPLATE_YAML_URL = (
     "https://raw.githubusercontent.com/returntocorp/semgrep-rules/develop/template.yaml"
 )
 
-RULES_REGISTRY = {"r2c": "https://semgrep.live/c/p/r2c"}
+RULES_REGISTRY = {"r2c": "https://semgrep.dev/c/p/r2c"}
 DEFAULT_REGISTRY_KEY = "r2c"
 
 
@@ -43,9 +43,9 @@ def manual_config(pattern: str, lang: str) -> Dict[str, YamlTree]:
     # TODO remove when using sgrep -e ... -l ... instead of this hacked config
     pattern_span = Span.from_string(pattern, filename="CLI Input")
     pattern_tree = YamlTree[str](value=pattern, span=pattern_span)
-    error_span = parse_yaml_preserve_spans(
+    error_span = Span.from_string(
         f"Semgrep bug generating manual config {PLEASE_FILE_ISSUE_TEXT}", filename=None
-    ).span
+    )
     return {
         "manual": YamlTree.wrap(
             {
@@ -180,7 +180,7 @@ def load_config_from_local_path(location: Optional[str] = None,) -> Dict[str, Ya
 
 def nice_semgrep_url(url: str) -> str:
     """
-    Alters semgrep.live urls to let user
+    Alters semgrep.dev urls to let user
     click through to the nice display page instead
     of raw YAML.
     Replaces '/c/' in semgrep urls with '/'.
@@ -188,7 +188,7 @@ def nice_semgrep_url(url: str) -> str:
     import urllib
 
     parsed = urllib.parse.urlparse(url)
-    if "semgrep.live" in parsed.netloc and parsed.path.startswith("/c"):
+    if "semgrep.dev" in parsed.netloc and parsed.path.startswith("/c"):
         return url.replace("/c/", "/")
     return url
 
@@ -199,7 +199,7 @@ def download_config(config_url: str) -> Dict[str, YamlTree]:
     DOWNLOADING_MESSAGE = f"downloading config..."
     logger.debug(f"trying to download from {config_url}")
     logger.info(
-        f"using config from {nice_semgrep_url(config_url)}. Visit https://semgrep.live/registry to see all public rules."
+        f"using config from {nice_semgrep_url(config_url)}. Visit https://semgrep.dev/registry to see all public rules."
     )
     logger.info(DOWNLOADING_MESSAGE)
     headers = {"User-Agent": SEMGREP_USER_AGENT}

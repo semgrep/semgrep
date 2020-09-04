@@ -11,6 +11,8 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * file license.txt for more details.
  *)
+open Common
+module Flag = Flag_semgrep
 
 (*****************************************************************************)
 (* Prelude *)
@@ -23,37 +25,110 @@
 (* Helpers *)
 (*****************************************************************************)
 
+type parser_kind = Pfff | TreeSitter
+ and 'ast parser = parser_kind * (Common.filename -> 'ast)
+
+let rec (run_either: Common.filename -> 'ast parser list ->
+ ('ast, exn) Common.either)
+ = fun file xs ->
+   match xs with
+   | [] -> Right (Failure (spf "no parser found for %s" file))
+   | (_kind, f)::xs ->
+      let f file =
+          if xs <> []
+          then Common.save_excursion Flag_parsing.show_parsing_error false
+               (fun () -> f file)
+          else f file
+      in
+      let res =
+        try Left (f file)
+        with exn -> Right exn
+      in
+      match res with
+      | Left ast -> Left ast
+      | Right exn ->
+        let res = run_either file xs in
+        (match res with
+        | Left ast -> Left ast
+        (* prefer the first error *)
+        | Right _exn2 -> Right exn
+        )
+
+let run file xs =
+  let xs =
+    if !Flag.tree_sitter_only
+    then xs |> Common.exclude (fun (a, _b) -> a = Pfff)
+    else xs
+   in
+   (match run_either file xs with
+   | Left ast -> ast
+   | Right exn -> raise exn
+   )
+
+
+
 let just_parse_with_lang lang file =
   match lang with
   | Lang.Ruby ->
+      (* for Ruby we start with the tree-sitter parser because the pfff parser
+       * is not great and some of the token positions may be wrong.
+       *)
       let ast =
-        try
-          Parse_ruby_tree_sitter.parse file
-        with _exn ->
-          (* TODO: right now it's quite verbose and the token positions
-           * may be wrong, but maybe it's better than nothing.
-           *)
-          Parse_ruby.parse_program file
+        run file [
+          TreeSitter, Parse_ruby_tree_sitter.parse;
+          (* right now the parser is verbose and the token positions
+           * may be wrong, but better than nothing. *)
+          Pfff, Parse_ruby.parse_program
+        ]
       in
       Ruby_to_generic.program ast
   | Lang.Java ->
       let ast =
         (* let's start with a pfff one; it's quite good and currently faster
          * than the tree-sitter one because we need to wrap that one inside
-         * an invoke because of a segfault/memory-leak
+         * an invoke because of a segfault/memory-leak.
          *)
-        try Parse_java.parse_program file
-        with _exn -> Parse_java_tree_sitter.parse file
+        run file [
+          Pfff, Parse_java.parse_program;
+          TreeSitter, Parse_java_tree_sitter.parse;
+          ]
        in
        Java_to_generic.program ast
   | Lang.Go ->
       let ast =
-        try Parse_go.parse_program file
-        with _exn -> Parse_go_tree_sitter.parse file
+        run file [
+        Pfff, Parse_go.parse_program;
+        TreeSitter, Parse_go_tree_sitter.parse;
+        ]
       in
       Go_to_generic.program ast
 
-  | _ -> Parse_generic.parse_with_lang lang file
+  | Lang.Javascript ->
+      (* TODO: we should start directly with tree-sitter here, because
+       * the pfff parser is slow on minified fiels due to its (slow) error
+       * recovery strategy.
+       *)
+      let ast =
+        run file [
+          TreeSitter, Parse_javascript_tree_sitter.parse;
+          Pfff, (fun file ->
+              let cst = Parse_js.parse_program file in
+              Ast_js_build.program cst
+            );
+          ]
+      in
+      Js_to_generic.program ast
+
+  | Lang.Csharp ->
+      (* there is no pfff parser for C# so let's go directly to tree-sitter,
+       * and there's no ast_csharp.ml either so we directly generate
+       * a generic AST (no csharp_to_generic here)
+       *)
+      run file [TreeSitter, Parse_csharp_tree_sitter.parse]
+
+  (* default to the one in pfff for the other languages *)
+  | _ ->
+      run file [Pfff, (Parse_generic.parse_with_lang lang)]
 
 (*****************************************************************************)
 (* Entry point *)

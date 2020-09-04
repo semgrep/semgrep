@@ -1,11 +1,12 @@
-[31merror[39m: missing key
-  --> rules/syntax/bad8.yaml:2
+[31merror[39m: Invalid rule schema
+  --> rules/syntax/bad8.yaml:1
+[94m1 | [39mrules:
 [94m2 | [39m  - id: arg-reassign
 [94m3 | [39m    # missing a pattern
 [94m4 | [39m    message: "$X is being assigned to one or two"
 [94m5 | [39m    languages: [python]
 [94m6 | [39m    severity: WARNING
 
-[31mmissing a pattern type in rule. Expected one of ['patterns', 'pattern-either', 'pattern-regex', 'pattern'] or both of ['pattern-sinks', 'pattern-sources'] if taint mode is specified[39m
+[31mAt least one of the following required properties is missing: 'pattern', 'pattern-either', 'pattern-regex', 'patterns'[39m
 
 run with --strict and there were 1 errors loading configs

@@ -91,9 +91,15 @@ let get_id ?(with_type=false) env e =
                  (match !id_type with
                    | None -> (notype_id, has_type)
                    | Some t -> (default_tyvar (count_to_id env.count) t), true)
+              | L (String ((_, tag))) -> (L (String (("...", tag))), false)
               | _ -> (notype_id, has_type)
           )
-        else (notype_id, has_type) in
+        else
+          (match e with
+            | L (String ((_, tag))) -> (L (String (("...", tag))), false)
+            | _ -> (notype_id, has_type)
+          )
+        in
         ({ count = env.count + 1; mapping = (e, new_id)::(env.mapping); has_type = new_has_type }, new_id)
 
 let has_nested_call = List.find_opt (fun x -> match x with Arg(Call _) -> true | _ -> false)
@@ -220,12 +226,19 @@ and generalize_exp e env =
   | Assign _ -> generalize_assign env e
   | _ -> []
 
-(* All statements *)
+(* Helper functions to make it easier to add all variations *)
+(* Generalizes e, then applies the same transformation f to each *)
 and add_expr e f env =
-  List.map (fun x -> match x with | (s, E e') -> f (s, e')
+  List.map (fun x -> match x with | (str, E e') -> f (str, e')
                                   | _ -> raise (UnexpectedCase "Must pass in an any of form E x"))
            (generalize_exp e env)
 
+and add_stmt s f env =
+  List.map (fun x -> match x with | (str, S s') -> f (str, s')
+                                  | _ -> raise (UnexpectedCase "Must pass in an any of form S x"))
+           (generalize_stmt s env)
+
+(* All statements *)
 and generalize_exprstmt (e, tok) env =
   add_expr e (fun (str, e') -> (str, S (ExprStmt (e', tok)))) env
 
@@ -262,23 +275,36 @@ and generalize_while (tok, e, s) env =
     add_expr e (fun (str, e') -> ("condition " ^ str, S (While (tok, e', body_dots)))) env in
   dots_in_cond :: dots_in_body :: expr_choices_in_cond
 
-and generalize_block ss =
+and generalize_for (tok, hdr, s) =
+  let body_dots =
+    match s with
+      | Block (t1, _, t2) -> body_ellipsis t1 t2
+      | _ -> fk_stmt
+  in
+  let dots_in_body = ("dots in body", S (For (tok, hdr, body_dots))) in
+  let dots_in_cond = ("dots in condition", S (For (tok, ForEllipsis fk, s))) in
+  dots_in_cond :: dots_in_body :: []
+
+and generalize_block (t1, ss, t2) env =
   let rec get_last = function
   | [] -> []
   | [x] -> [x]
   | _::xs -> get_last xs
   in
   match ss with
-  | [] | _::[] -> ss
-  | x::_::[] -> x::(fk_stmt)::[]
-  | x::y::z::zs -> x::(fk_stmt)::(get_last (y::z::zs))
+  | [] -> []
+  | x::[] -> add_stmt x (fun (str, s') -> ("with " ^ str, S (Block ((t1, [s'], t2))))) env
+  | x::_::[] -> ["dots", S (Block ((t1, x::(fk_stmt)::[], t2)))]
+  | x::y::z::zs -> ["dots", S (Block ((t1, x::(fk_stmt)::(get_last (y::z::zs)), t2)))]
+  (* All statements *)
 
 and generalize_stmt s env =
   match s with
   | ExprStmt (e, tok) -> generalize_exprstmt (e, tok) env
   | If _ -> generalize_if s
   | While (tok, e, s) -> generalize_while (tok, e, s) env
-  | Block (t1, ss, t2) -> ["dots", S (Block ((t1, generalize_block ss, t2)))]
+  | For (tok, hdr, s) -> generalize_for (tok, hdr, s)
+  | Block (t1, ss, t2) -> generalize_block (t1, ss, t2) env
   | _ -> []
 
 (* All *)

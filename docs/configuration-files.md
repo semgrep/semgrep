@@ -34,6 +34,7 @@ Contents:
 * [Other Examples](configuration-files.md#other-examples)
   * [Complete Useless Comparison](configuration-files.md#complete-useless-comparison)
 * [Ignoring Findings](configuration-files.md#ignoring-findings)
+* [Full Specification](configuration-files.md#full-specification)
 
 ## Simple Example
 
@@ -90,7 +91,7 @@ All required fields must be present at the top-level of a rule. I.e. immediately
 | `id` | `string` | Unique, descriptive identifier . e.g. `no-unused-variable`. |
 | `message` | `string` | Message highlighting why this rule fired and how to remediate the issue. |
 | `severity` | `string` | One of: `WARNING`, `ERROR`. |
-| `languages` | `array` | Any of: `c`, `go`, `java`, `javascript`, or `python`. |
+| `languages` | `array` | Any of: `c`, `go`, `java`, `javascript`, `python`, or `ruby`. |
 | [`pattern`](configuration-files.md#pattern)_\*_ | `string` | Find code matching this expression. |
 | [`patterns`](configuration-files.md#patterns)_\*_ | `array` | Logical AND of multiple patterns. |
 | [`pattern-either`](configuration-files.md#pattern-either)_\*_ | `array` | Logical OR of multiple patterns. |
@@ -233,7 +234,7 @@ See the [`patterns`](configuration-files.md#patterns) example above.
 
 ### `pattern-inside`
 
-The `pattern-inside` operator keeps matched findings that reside within its expression. This is useful for finding code inside other pieces of code like functions or if blocks. At the moment, your rule can have at most one pattern-inside clause.
+The `pattern-inside` operator keeps matched findings that reside within its expression. This is useful for finding code inside other pieces of code like functions or if blocks.
 
 **Example**
 
@@ -607,3 +608,8 @@ will work just as well for Python:
 ```python
 bad_func()  # nosem: bad-func-is-insecure
 ```
+
+## Full specification
+
+The [full configuration-file format](/semgrep/semgrep/rule_schema.yaml) is defined as
+a [jsonschema](http://json-schema.org/specification.html) object.

@@ -3,5 +3,5 @@ rules:
     patterns:
       - pattern-regex: '. = 87518275812375164'
     message: "test regex message"
-    languages: [python, javascript, go]
+    languages: [python, javascript, go, ruby]
     severity: ERROR

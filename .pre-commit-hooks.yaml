@@ -1,11 +1,16 @@
-- id: semgrep-develop
+- id: semgrep-docker-develop
   name: semgrep
   description: This hook runs semgrep:develop
   language: docker_image
   entry: returntocorp/semgrep:develop
 
-- id: semgrep
+- id: semgrep-docker
   name: semgrep
   description: This hook runs semgrep
   language: docker_image
   entry: returntocorp/semgrep:latest
+
+- id: semgrep
+  name: semgrep
+  entry: semgrep
+  language: python

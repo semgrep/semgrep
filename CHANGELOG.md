@@ -2,10 +2,110 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## NEXT VERSION
 
 ### Added
+- Ability to read target contents from stdin by specifying "-" target.
+
+## [0.22.0](https://github.com/returntocorp/semgrep/releases/tag/v0.22.0) - 2020-09-01
+
+### Added
+- The 'languages' key now supports 'none' for running `pattern-regex` on arbitrary files. See [this file](https://github.com/returntocorp/semgrep/blob/develop/semgrep/tests/e2e/rules/regex-any-language.yaml) for an example.
+- You can now use the '...' ellipsis operator in OCaml.
+- True negatives to '--test' functionality via the 'ok:<rule-id>' annotation.
+
+### Changed
+- A groups of rules are now called "Rulesets" in the Semgrep ecosystem,
+  instead of their previous name, "Packs".
+- We now use also the tree-sitter-javascript Javascript parser, which
+  can parse quickly minified files. Thus, we also removed the 5 seconds
+  parsing timeout we were using for Javascript.
+- We should correctly report ranges when matching array access expressions
+  (e.g., 'foo[$X]').
+- Breaking: regular expressions in semgrep string patterns (e.g., '"=~/foo/"')
+  are now using the PCRE (Perl Compatible Regular Expressions) syntax instead of
+  the OCaml syntax. This means you should not escape parenthesis for grouping
+  or escape pipes for dijunctions (e.g., use simply '"=~/foo|bar/"' instead of
+  '"=~/foo\|bar/"'). You can also use more advanced regexp features available
+  in PCRE such as case-insensitive regexps with '/i' (e.g., "=~/foo/i").
+  The semantic of matching changes also to look for the regexp anywhere
+  in the string, not just at the beginning, which means if you want to
+  enforce a format for the whole string, you will now need to use the '^' anchor
+  character (e.g., "=~/^o+$/" to check if a string contains only a sequence
+  of 'o').
+
+### Removed
+- Breaking: install script installation procedure (semgrep-<version>-ubuntu-generic.sh).
+  Please use 'pip install' for equivalent Linux installation.
+
+## [0.21.0](https://github.com/returntocorp/semgrep/releases/tag/v0.21.0) - 2020-08-25
+
+### Added
+- Parsing JSX (JavaScript React) files is now supported as a beta feature! 
+  In this release, you need to target .jsx files one by one explicitly to have them be scanned.
+  We're planning to scan all .jsx files in targeted directories in our next release
+- We now bundle a [json-schema](https://json-schema.org/) spec for rules YAML syntax.
+
+### Changed
+- Our custom-made rules YAML validator has been replaced with a jsonschema standard one.
+  This results in more reliable and comprehensive error messages
+  to help you get back on track when bumping into validation issues.
+- Calling `semgrep --validate` now includes more information,
+  such as the number of rules validation ran on.
+
+### Fixed
+- Fixed a bug where multiple assignment,
+  also known as tuple unpacking assignment in Python,
+  such as `a, b = foo`,
+  could be misinterpreted by semgrep.
+- Fixed a bug that would cause a crash when trying to get debug steps output as JSON.
+- `.mly` and `.mll` files are no longer targeted implicitly by OCaml scans.
+- Fixed the `--skip-unknown-extensions` flag skipping files even with recognized extensions.
+- Fixed JavaScript conditionals without braces,
+  such as `if (true) return;`,
+  not being matched by patterns such as `if (true) { return; }`.
+
+## [0.20.0](https://github.com/returntocorp/semgrep/releases/tag/v0.20.0) - 2020-08-18
+
+### Added
+- Support for JSX tag metavariables (e.g., <$TAG />) and ellipsis inside
+  JSX attributes (e.g., <foo attr=... />)
+- By default Semgrep treats explicitly passed files with unknown extension as possibly any language and so runs all rules on said files. Add a flag `--skip-unknown-extensions` so that Semgrep will treat these files as if they matched no language and will so run no rules on them. [Link: PR](https://github.com/returntocorp/semgrep/pull/1507)
+
+### Fixed
+- Python patterns do not have to end with a newline anymore.
+- Pattern `$X = '...';` in JavaScript matches `var $X = '...'`. Additionally, semicolon is no longer required to match. [Link: Issue](https://github.com/returntocorp/semgrep/issues/1497); [Link: Example](https://semgrep.dev/7g0Q?version=0.20.0)
+- In JavaScript, can now match destructured object properties inside functions. [Link: Issue](https://github.com/returntocorp/semgrep/issues/1005); [Link: Example](https://semgrep.dev/d72E/?version=0.20.0)
+- Java annotations can be matched with fully qualified names. [Link: Issue](https://github.com/returntocorp/semgrep/issues/1508); [Link: Example](https://semgrep.dev/vZqY/?version=0.20.0)
+- Ensure `/src` exists in Dockerfile; [Link: PR](https://github.com/returntocorp/semgrep/pull/1512)
+
+## [0.19.1](https://github.com/returntocorp/semgrep/releases/tag/v0.19.1) - 2020-08-13
+
+### Fixed
+- Update Docker container to run successfully without special volume
+  permissions
+
+## [0.19.0](https://github.com/returntocorp/semgrep/releases/tag/v0.19.0) - 2020-08-11
+
+### Added
+- `--timeout-threshold` option to set the maximum number of times a file can timeout before it is skipped
+- Alpha support for C#
+
+### Fixed
+- Match against JavaScript unparameterized catch blocks
+- Parse and match against Java generics
+- Add ability to match against JSX attributes using ellipses
+- Add ability to use ellipses in Go struct definitions
+- No longer convert Go expressions with a newline to a statement
+
+## [0.18.0](https://github.com/returntocorp/semgrep/releases/tag/v0.18.0) - 2020-08-04
+
+### Added
+- Match arbitrary content with `f"..."`
+- Performance improvements by filtering rules if file doesn't contain string needed for match
+- Match "OtherAttribute" attributes in any order
 - Support Python 3.8 self-documenting fstrings
+- `--max-memory` flag to set a maximum amount of memory that can be used to apply a rule to a file
 
 ## [0.17.0](https://github.com/returntocorp/semgrep/releases/tag/v0.17.0) - 2020-07-28
 
@@ -166,7 +266,7 @@ def fetch_global_const():
 
 - Java imports can now be searched with patterns written like `import
   javax.crypto.$ANYTHING`
-- `--debugging-json` flag for use on semgrep.live
+- `--debugging-json` flag for use on semgrep.dev
 
 ### Changed
 

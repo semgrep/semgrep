@@ -6,4 +6,5 @@
    pfff-config
    pfff-h_program-lang
  )
+ (preprocess (pps ppx_profiling))
 )

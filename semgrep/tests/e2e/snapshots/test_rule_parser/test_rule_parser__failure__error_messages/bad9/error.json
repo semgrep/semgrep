@@ -2,23 +2,16 @@
   "errors": [
     {
       "code": 4,
-      "help": "valid pattern names are ['equivalences', 'fix', 'fix-regex', 'metavariable-regex', 'pattern', 'pattern-either', 'pattern-inside', 'pattern-not', 'pattern-not-inside', 'pattern-regex', 'pattern-where-python', 'patterns']",
       "level": "error",
-      "long_msg": "invalid pattern name: patter",
-      "short_msg": "invalid pattern name",
+      "long_msg": "Additional properties are not allowed ('patter' was unexpected)",
+      "short_msg": "Invalid rule schema",
       "spans": [
         {
-          "context_end": {
-            "col": 0,
-            "line": 5
-          },
-          "context_start": {
-            "col": 0,
-            "line": 3
-          },
+          "context_end": null,
+          "context_start": null,
           "end": {
-            "col": 15,
-            "line": 4
+            "col": 7,
+            "line": 5
           },
           "file": "rules/syntax/bad9.yaml",
           "source_hash": "22b38817e2ddc7b6ad25b80aaf6a01451159c7a0233eaef3ed58642355a05379",
@@ -28,7 +21,7 @@
           }
         }
       ],
-      "type": "InvalidPatternNameError"
+      "type": "InvalidRuleSchemaError"
     },
     {
       "code": 7,

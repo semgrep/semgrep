@@ -1,0 +1,3 @@
+if (conditional) {} else {
+  return x;
+}

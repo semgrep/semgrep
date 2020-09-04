@@ -2,37 +2,22 @@
   "errors": [
     {
       "code": 4,
-      "help": "Unexpected keys {'severit'} found. Is one of these a typo of {'severity'}?",
       "level": "error",
-      "long_msg": "rules/syntax/bad2.yaml is missing required keys {'severity'}",
-      "short_msg": "incorrect keys",
+      "long_msg": "Additional properties are not allowed ('severit' was unexpected)",
+      "short_msg": "Invalid rule schema",
       "spans": [
         {
           "context_end": null,
           "context_start": null,
           "end": {
-            "col": 0,
-            "line": 7
+            "col": 1,
+            "line": 8
           },
           "file": "rules/syntax/bad2.yaml",
           "source_hash": "8861f46f4219927c24d0ba57521a2b46d60f7367eca308fa7efb623c5a8b17bc",
           "start": {
             "col": 5,
             "line": 2
-          }
-        },
-        {
-          "context_end": null,
-          "context_start": null,
-          "end": {
-            "col": 12,
-            "line": 7
-          },
-          "file": "rules/syntax/bad2.yaml",
-          "source_hash": "8861f46f4219927c24d0ba57521a2b46d60f7367eca308fa7efb623c5a8b17bc",
-          "start": {
-            "col": 5,
-            "line": 7
           }
         }
       ],

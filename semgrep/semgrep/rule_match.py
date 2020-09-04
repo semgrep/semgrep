@@ -112,7 +112,8 @@ class RuleMatch:
             json_obj["extra"]["fix_regex"] = self._fix_regex
         json_obj["start"] = self._start
         json_obj["end"] = self._end
-        json_obj["extra"]["lines"] = "\n".join(self.lines).rstrip()
+        # self.lines already contains \n at the end of each line
+        json_obj["extra"]["lines"] = "".join(self.lines).rstrip()
 
         return json_obj
 

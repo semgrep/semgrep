@@ -1,0 +1,11 @@
+{
+  "errors": [
+    {
+      "code": 10,
+      "path": "targets/equivalence/open_redirect.py",
+      "rule_id": "rules.forcetimeout",
+      "type": "OutOfMemoryError"
+    }
+  ],
+  "results": []
+}

@@ -1,4 +1,8 @@
+import contextlib
+import os
 import subprocess
+import sys
+import tempfile
 from pathlib import Path
 from typing import Collection
 from typing import Dict
@@ -12,6 +16,7 @@ from semgrep.error import _UnknownLanguageError
 from semgrep.error import FilesNotFoundError
 from semgrep.output import OutputHandler
 from semgrep.semgrep_types import Language
+from semgrep.semgrep_types import NONE_LANGUAGE
 from semgrep.util import partition_set
 from semgrep.util import sub_check_output
 
@@ -27,8 +32,6 @@ RUBY_EXTENSIONS = [FileExtension("rb")]
 ML_EXTENSIONS = [
     FileExtension("mli"),
     FileExtension("ml"),
-    FileExtension("mly"),
-    FileExtension("mll"),
 ]
 JSON_EXTENSIONS = [FileExtension("json")]
 ALL_EXTENSIONS = (
@@ -65,8 +68,27 @@ def lang_to_exts(language: Language) -> List[FileExtension]:
         return RUBY_EXTENSIONS
     elif language in {"json", "JSON", "Json"}:
         return JSON_EXTENSIONS
+    elif language in {NONE_LANGUAGE}:
+        return [FileExtension("*")]
     else:
         raise _UnknownLanguageError(f"Unsupported Language: {language}")
+
+
+@contextlib.contextmanager
+def optional_stdin_target(target: List[str]) -> List[str]:
+    """
+    Read target input from stdin if "-" is specified
+    """
+    if target == ["-"]:
+        try:
+            with tempfile.NamedTemporaryFile(delete=False) as fd:
+                fd.write(sys.stdin.buffer.read())
+                target = fd.name
+            yield [target]
+        finally:
+            os.remove(target)
+    else:
+        yield target
 
 
 @attr.s(auto_attribs=True)
@@ -76,6 +98,10 @@ class TargetManager:
 
         If respect_git_ignore is true then will only consider files that are
         tracked or (untracked but not ignored) by git
+
+        If skip_unknown_extensions is False then targets with extensions that are
+        not understood by semgrep will always be returned by get_files. Else will discard
+        targets with unknown extensions
     """
 
     includes: List[str]
@@ -83,6 +109,7 @@ class TargetManager:
     targets: List[str]
     respect_git_ignore: bool
     output_handler: OutputHandler
+    skip_unknown_extensions: bool
 
     _filtered_targets: Dict[str, Set[Path]] = attr.ib(factory=dict)
 
@@ -251,21 +278,27 @@ class TargetManager:
                 FilesNotFoundError(tuple(nonexistent_files))
             )
 
-        # Remove explicit_files with known extensions. Remove non-existent files
-        explicit_files = set(
-            f
-            for f in explicit_files
-            if (
-                any(f.match(f"*.{ext}") for ext in lang_to_exts(lang))
-                or not any(f.match(f"*.{ext}") for ext in ALL_EXTENSIONS)
-            )
-        )
-
         targets = self.expand_targets(directories, lang, self.respect_git_ignore)
         targets = self.filter_includes(targets, self.includes)
         targets = self.filter_excludes(targets, self.excludes)
 
-        self._filtered_targets[lang] = targets.union(explicit_files)
+        # Remove explicit_files with known extensions.
+        explicit_files_with_lang_extension = set(
+            f
+            for f in explicit_files
+            if (any(f.match(f"*.{ext}") for ext in lang_to_exts(lang)))
+        )
+        targets = targets.union(explicit_files_with_lang_extension)
+
+        if not self.skip_unknown_extensions:
+            explicit_files_with_unknown_extensions = set(
+                f
+                for f in explicit_files
+                if not any(f.match(f"*.{ext}") for ext in ALL_EXTENSIONS)
+            )
+            targets = targets.union(explicit_files_with_unknown_extensions)
+
+        self._filtered_targets[lang] = targets
         return self._filtered_targets[lang]
 
     def get_files(
@@ -278,7 +311,7 @@ class TargetManager:
             of all descendant files of directories in TARGET that end in extension
             typical for LANG. If self.INCLUDES is non empty then all files will have an ancestor
             that matches a pattern in self.INCLUDES. Will not include any file that has
-            an ancestor that matches a pattern in self.EXCLUDES. Any explcilty named files
+            an ancestor that matches a pattern in self.EXCLUDES. Any explicitly named files
             in TARGET will bypass this global INCLUDE/EXCLUDE filter. The local INCLUDE/EXCLUDE
             filter is then applied.
         """

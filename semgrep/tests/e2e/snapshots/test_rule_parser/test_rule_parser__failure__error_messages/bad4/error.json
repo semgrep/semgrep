@@ -2,17 +2,13 @@
   "errors": [
     {
       "code": 4,
-      "help": "perhaps your YAML is missing a `-` on line 4?",
       "level": "error",
-      "long_msg": "invalid type for patterns; expected a list, but found dict",
-      "short_msg": "invalid patterns",
+      "long_msg": "{'pattern-inside': 'def foo($X):\\n    ...\\n', 'pattern': '$X = 1'} is not of type 'array'",
+      "short_msg": "Invalid rule schema",
       "spans": [
         {
           "context_end": null,
-          "context_start": {
-            "col": 0,
-            "line": 3
-          },
+          "context_start": null,
           "end": {
             "col": 5,
             "line": 8

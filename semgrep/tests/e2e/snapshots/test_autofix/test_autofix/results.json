@@ -4,7 +4,7 @@
     {
       "check_id": "rules.autofix.use-dict-get",
       "end": {
-        "col": 11,
+        "col": 12,
         "line": 5
       },
       "extra": {
@@ -63,7 +63,7 @@
     {
       "check_id": "rules.autofix.use-dict-get",
       "end": {
-        "col": 18,
+        "col": 19,
         "line": 6
       },
       "extra": {

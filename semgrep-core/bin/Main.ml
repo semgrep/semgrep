@@ -298,7 +298,7 @@ let cache_computation file cache_file_of_file f =
       pr2 ("defaulting to calling the function");
       f ()
     end else begin
-    profile_code "Main.cache_computation" (fun () ->
+    Common.profile_code "Main.cache_computation" (fun () ->
 
       let file_cache = cache_file_of_file file in
       if Sys.file_exists file_cache && filemtime file_cache >= filemtime file
@@ -342,14 +342,8 @@ let cache_file_of_file filename =
  * not bubble up enough. In such case, add a case before such as
  * with Timeout -> raise Timeout | _ -> ...
  *)
-let timeout_function lang = fun f ->
-  let timeout =
-      (* TODO: remove at some point, but this is to stay
-       * "backward compatible" with the previous behavior *)
-      if lang = Lang.Javascript && !timeout = 0
-      then 5
-      else !timeout
-  in
+let timeout_function = fun f ->
+  let timeout = !timeout in
   if timeout <= 0
   then f ()
   else Common.timeout_function ~verbose:!Flag.debug timeout f
@@ -432,10 +426,17 @@ let parse_equivalences () =
 (*e: function [[Main_semgrep_core.parse_equivalences]] *)
 
 (*s: function [[Main_semgrep_core.unsupported_language_message]] *)
-let unsupported_language_message some_lang =
-  spf "unsupported language: %s; supported language tags are: %s"
-      some_lang supported_langs
+let unsupported_language_message lang =
+  if lang = "unset"
+  then "no language specified; use -lang"
+  else spf "unsupported language: %s; supported language tags are: %s"
+      lang supported_langs
 (*e: function [[Main_semgrep_core.unsupported_language_message]] *)
+
+let lang_of_string s =
+  match Lang.lang_of_string_opt s with
+  | Some x -> x
+  | None -> failwith (unsupported_language_message s)
 
 (*****************************************************************************)
 (* Language specific *)
@@ -559,15 +560,11 @@ let iter_generic_ast_of_files_and_get_matches_and_exn_to_errors f files =
   let matches_and_errors =
     files |> map (fun file ->
        if !Flag.debug then pr2 (spf "Analyzing %s" file);
-       let lang =
-          match Lang.lang_of_string_opt !lang with
-          | Some lang -> lang
-          | _ -> failwith (spf "no language specified")
-       in
+       let lang = lang_of_string !lang in
        if !Flag.debug then pr2 (spf "PARSING: %s" file);
        try
          run_with_memory_limit !max_memory (fun () ->
-         timeout_function lang (fun () ->
+         timeout_function (fun () ->
           let ast = parse_generic lang file in
           (* calling the hook *)
           (f file lang ast, [])
@@ -827,16 +824,13 @@ let dump_v_to_format (v: OCaml.v) =
 let dump_pattern (file: Common.filename) =
   let s = Common.read_file file in
   (* mostly copy-paste of parse_pattern above, but with better error report *)
-  match Lang.lang_of_string_opt !lang with
-  | Some lang ->
+  let lang = lang_of_string !lang in
     E.try_with_print_exn_and_reraise file (fun () ->
       let any = Parse_pattern.parse_pattern lang s in
       let v = Meta_AST.vof_any any in
       let s = dump_v_to_format v in
       pr s
-    )
-  | None ->
-     failwith (unsupported_language_message !lang)
+  )
 (*e: function [[Main_semgrep_core.dump_pattern]] *)
 
 (*s: function [[Main_semgrep_core.dump_ast]] *)
@@ -913,6 +907,16 @@ let all_actions () = [
   "-test_parse_lang", " <files or dirs>",
   Common.mk_action_n_arg
     (Test_parsing.test_parse_lang !Flag.debug !lang get_final_files);
+  "-dump_tree_sitter_cst", " <file>",
+  Common.mk_action_1_arg Test_parsing.dump_tree_sitter_cst;
+  "-dump_ast_pfff", " <file>",
+  Common.mk_action_1_arg Test_parsing.dump_ast_pfff;
+  "-diff_pfff_tree_sitter", " <file>",
+  Common.mk_action_n_arg Test_parsing.diff_pfff_tree_sitter;
+  "-datalog_experiment", " <file> <dir>",
+  Common.mk_action_2_arg Datalog_experiment.gen_facts;
+  "-dump_il", " <file>",
+  Common.mk_action_1_arg Datalog_experiment.dump_il;
  ]
 
 (*e: function [[Main_semgrep_core.all_actions]] *)
@@ -975,6 +979,12 @@ let options () =
     (*e: [[Main_semgrep_core.options]] other cases *)
     "-use_parsing_cache", Arg.Set_string use_parsing_cache,
     " <dir> save and use parsed ASTs in a cache at given directory. Caller responsiblity to clear cache";
+    "-filter_irrelevant_rules", Arg.Set Flag.filter_irrelevant_rules,
+    " filter rules not containing any strings in target file";
+    "-no_filter_irrelevant_rules", Arg.Clear Flag.filter_irrelevant_rules,
+    " do not filter rules";
+    "-tree_sitter_only", Arg.Set Flag.tree_sitter_only,
+    " only use tree-sitter-based parsers";
     "-debug", Arg.Set Flag.debug,
     " add debugging information in the output (tracing)";
     "-debug_matching", Arg.Set Flag.debug_matching,

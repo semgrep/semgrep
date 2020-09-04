@@ -597,7 +597,7 @@ let case_refactoring pfff_log =
       pr2_gen actual;
       Common.command2 (spf
         "%s/spatch -lang phpfuzzy --apply-patch -e 's/%s/%s/' %s"
-        Config_pfff.path
+        Config_pfff.path_pfff_home
         a1 b1 file);
     | [a1;_a2], [b1;_b2] when a1 <> b1 ->
       (* old:
@@ -608,13 +608,13 @@ let case_refactoring pfff_log =
       pr2_gen actual;
       Common.command2 (spf
         "%s/spatch -lang phpfuzzy --apply-patch -e 's/%s/%s/' %s"
-        Config_pfff.path
+        Config_pfff.path_pfff_home
         a1 b1 file);
       ()
     | [a1;a2], [b1;b2] when a1 = b1 && a2 <> b2 ->
       Common.command2 (spf
         "%s/spatch -lang phpfuzzy --apply-patch -e 's/%s/%s/' %s"
-        Config_pfff.path
+        Config_pfff.path_pfff_home
         a2 b2 file);
 
     | _ ->

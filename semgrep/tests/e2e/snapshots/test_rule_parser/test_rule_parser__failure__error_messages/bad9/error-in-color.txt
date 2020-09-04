@@ -1,10 +1,8 @@
-[31merror[39m: invalid pattern name
+[31merror[39m: Invalid rule schema
   --> rules/syntax/bad9.yaml:4
-[94m3 | [39m    pattern-either:
 [94m4 | [39m      - patter: $X = 1
-[94m  | [39m        [31m^^^^^^[39m
 [94m5 | [39m      - pattern: $X = 2
-= [36m[1mhelp[39m[0m: valid pattern names are ['equivalences', 'fix', 'fix-regex', 'metavariable-regex', 'pattern', 'pattern-either', 'pattern-inside', 'pattern-not', 'pattern-not-inside', 'pattern-regex', 'pattern-where-python', 'patterns']
-[31minvalid pattern name: patter[39m
+
+[31mAdditional properties are not allowed ('patter' was unexpected)[39m
 
 run with --strict and there were 1 errors loading configs

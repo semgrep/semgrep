@@ -65,8 +65,9 @@ val all_elem_and_rest_of_list : 'a list -> ('a * 'a list) list
 (*s: signature [[Matching_generic.is_regexp_string]] *)
 val is_regexp_string: string -> bool
 (*e: signature [[Matching_generic.is_regexp_string]] *)
+type regexp = Re.re
 (*s: signature [[Matching_generic.regexp_of_regexp_string]] *)
-val regexp_of_regexp_string: string -> Str.regexp
+val regexp_matcher_of_regexp_string: string -> (string -> bool)
 (*e: signature [[Matching_generic.regexp_of_regexp_string]] *)
 
 val equal_ast_binded_code : AST_generic.any -> AST_generic.any -> bool
@@ -81,8 +82,8 @@ val m_option : ('a, 'b) matcher -> ('a option, 'b option) matcher
 (*e: signature [[Matching_generic.m_option]] *)
 (*s: signature [[Matching_generic.m_option_ellipsis_ok]] *)
 val m_option_ellipsis_ok :
-  (AST_generic.xml_attr_value -> 'a -> tin -> tout) ->
-  AST_generic.xml_attr_value option -> 'a option -> tin -> tout
+  (AST_generic.expr -> 'a -> tin -> tout) ->
+  AST_generic.expr option -> 'a option -> tin -> tout
 (*e: signature [[Matching_generic.m_option_ellipsis_ok]] *)
 (*s: signature [[Matching_generic.m_option_none_can_match_some]] *)
 val m_option_none_can_match_some :

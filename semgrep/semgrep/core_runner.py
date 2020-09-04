@@ -9,6 +9,7 @@ import tempfile
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+from typing import cast
 from typing import Dict
 from typing import IO
 from typing import Iterator
@@ -25,6 +26,7 @@ from semgrep.core_exception import CoreException
 from semgrep.equivalences import Equivalence
 from semgrep.error import _UnknownLanguageError
 from semgrep.error import InvalidPatternError
+from semgrep.error import MatchTimeoutError
 from semgrep.error import SemgrepError
 from semgrep.error import UnknownLanguageError
 from semgrep.evaluation import enumerate_patterns_in_boolean_expression
@@ -35,6 +37,7 @@ from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.semgrep_types import BooleanRuleExpression
 from semgrep.semgrep_types import Language
+from semgrep.semgrep_types import NONE_LANGUAGE
 from semgrep.semgrep_types import OPERATORS
 from semgrep.semgrep_types import TAINT_MODE
 from semgrep.target_manager import TargetManager
@@ -122,10 +125,21 @@ class CoreRunner:
         This includes properly invoking semgrep-core and parsing the output
     """
 
-    def __init__(self, allow_exec: bool, jobs: int, timeout: int):
+    def __init__(
+        self,
+        allow_exec: bool,
+        jobs: int,
+        timeout: int,
+        max_memory: int,
+        timeout_threshold: int,
+        testing: bool = False,
+    ):
         self._allow_exec = allow_exec
         self._jobs = jobs
         self._timeout = timeout
+        self._max_memory = max_memory
+        self._timeout_threshold = timeout_threshold
+        self._testing = testing
 
     def _flatten_rule_patterns(self, rules: List[Rule]) -> Iterator[Pattern]:
         """
@@ -257,6 +271,8 @@ class CoreRunner:
                 cache_dir,
                 "-timeout",
                 str(self._timeout),
+                "-max_memory",
+                str(self._max_memory),
             ]
 
             equivalences = rule.equivalences
@@ -265,18 +281,10 @@ class CoreRunner:
                 cmd += ["-equivalences", equiv_file.name]
 
             core_run = sub_run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-            logging.debug(core_run.stderr.decode("utf-8", "replace"))
+            logger.debug(core_run.stderr.decode("utf-8", "replace"))
 
             if core_run.returncode != 0:
-                # see if semgrep output a JSON error that we can decode
-                semgrep_output = core_run.stdout.decode("utf-8", "replace")
-                try:
-                    output_json: dict = json.loads(semgrep_output)
-                except ValueError:
-                    raise SemgrepError(
-                        f"unexpected non-json output while invoking semgrep-core:\n{PLEASE_FILE_ISSUE_TEXT}"
-                    )
+                output_json = self._parse_core_output(core_run.stdout)
 
                 if "error" in output_json:
                     self._raise_semgrep_error_from_json(output_json, patterns)
@@ -285,12 +293,26 @@ class CoreRunner:
                         f"unexpected json output while invoking semgrep-core:\n{PLEASE_FILE_ISSUE_TEXT}"
                     )
 
-            output_json = json.loads((core_run.stdout.decode("utf-8", "replace")))
+            output_json = self._parse_core_output(core_run.stdout)
 
             return output_json
 
+    def _parse_core_output(self, core_run_out: bytes) -> Dict[str, Any]:
+        # see if semgrep output a JSON error that we can decode
+        semgrep_output = core_run_out.decode("utf-8", "replace")
+        try:
+            return cast(Dict[str, Any], json.loads(semgrep_output))
+        except ValueError:
+            raise SemgrepError(
+                f"unexpected non-json output while invoking semgrep-core:\n{semgrep_output}\n\n{PLEASE_FILE_ISSUE_TEXT}"
+            )
+
     def _run_rule(
-        self, rule: Rule, target_manager: TargetManager, cache_dir: str
+        self,
+        rule: Rule,
+        target_manager: TargetManager,
+        cache_dir: str,
+        max_timeout_files: List[Path],
     ) -> Tuple[List[RuleMatch], List[Dict[str, Any]], List[SemgrepError]]:
         """
             Run all rules on targets and return list of all places that match patterns, ... todo errors
@@ -303,6 +325,7 @@ class CoreRunner:
         ).items():
 
             targets = self.get_files_for_language(language, rule, target_manager)
+            targets = [target for target in targets if target not in max_timeout_files]
             if not targets:
                 continue
 
@@ -333,6 +356,11 @@ class CoreRunner:
                 )
                 if patterns_regex:
                     self.handle_regex_patterns(outputs, patterns_regex, targets)
+
+                # 'none' language only supports OPERATORS.REGEX at the moment.
+                # Skip passing this rule to semgrep-core.
+                if language == NONE_LANGUAGE:
+                    continue
 
                 # semgrep-core doesn't know about OPERATORS.METAVARIABLE_REGEX -
                 # this is strictly a semgrep Python feature. Metavariable regex
@@ -400,9 +428,17 @@ class CoreRunner:
             ]
         except re.error as err:
             raise SemgrepError(f"invalid regular expression specified: {err}")
-        re_fn = functools.partial(get_re_matches, patterns_re)
-        with multiprocessing.Pool(self._jobs) as pool:
-            matches = pool.map(re_fn, targets)
+
+        if self._testing:
+            # Testing functionality runs in a multiprocessing.Pool. We cannot run
+            # a Pool inside a Pool, so we have to avoid multiprocessing when testing.
+            # https://stackoverflow.com/questions/6974695/python-process-pool-non-daemonic
+            matches = [get_re_matches(patterns_re, target) for target in targets]
+        else:
+            re_fn = functools.partial(get_re_matches, patterns_re)
+            with multiprocessing.Pool(self._jobs) as pool:
+                matches = pool.map(re_fn, targets)
+
         outputs.extend(
             single_match for file_matches in matches for single_match in file_matches
         )
@@ -431,6 +467,8 @@ class CoreRunner:
         findings_by_rule: Dict[Rule, List[RuleMatch]] = {}
         debugging_steps_by_rule: Dict[Rule, List[Dict[str, Any]]] = {}
         all_errors: List[SemgrepError] = []
+        file_timeouts: Dict[Path, int] = collections.defaultdict(lambda: 0)
+        max_timeout_files: List[Path] = []
 
         # cf. for bar_format: https://tqdm.github.io/docs/tqdm/
         with tempfile.TemporaryDirectory() as semgrep_core_ast_cache_dir:
@@ -439,11 +477,19 @@ class CoreRunner:
             ):
                 debug_tqdm_write(f"Running rule {rule._raw.get('id')}")
                 rule_matches, debugging_steps, errors = self._run_rule(
-                    rule, target_manager, semgrep_core_ast_cache_dir
+                    rule, target_manager, semgrep_core_ast_cache_dir, max_timeout_files
                 )
                 findings_by_rule[rule] = rule_matches
                 debugging_steps_by_rule[rule] = debugging_steps
                 all_errors.extend(errors)
+                for err in errors:
+                    if isinstance(err, MatchTimeoutError):
+                        file_timeouts[err.path] += 1
+                        if (
+                            self._timeout_threshold != 0
+                            and file_timeouts[err.path] >= self._timeout_threshold
+                        ):
+                            max_timeout_files.append(err.path)
 
         all_errors = dedup_errors(all_errors)
         return findings_by_rule, debugging_steps_by_rule, all_errors

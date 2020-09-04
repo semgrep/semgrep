@@ -11,7 +11,7 @@ assignees: ''
 A clear and concise description of what the bug is.
 
 **To Reproduce**
-Steps to reproduce the behavior, ideally a link to https://semgrep.live:
+Steps to reproduce the behavior, ideally a link to https://semgrep.dev:
 
 **Expected behavior**
 A clear and concise description of what you expected to happen.
@@ -20,4 +20,4 @@ A clear and concise description of what you expected to happen.
 If applicable, add screenshots to help explain your problem.
 
 **Environment**
-If not using semgrep.live: are you running off docker, an official binary, a local build?
+If not using semgrep.dev: are you running off docker, an official binary, a local build?

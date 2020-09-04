@@ -1,5 +1,6 @@
 import logging
 import re
+from collections import defaultdict
 from pathlib import Path
 from typing import Any
 from typing import Dict
@@ -53,6 +54,52 @@ def get_re_range_matches(
     return result
 
 
+def add_debugging_info(
+    expression: BooleanRuleExpression,
+    output_ranges: Set[Range],
+    metavars_for_patterns: Dict[str, List[Any]],
+    steps_for_debugging: List[Dict[str, Any]],
+) -> None:
+    logger.debug(f"after filter `{expression.operator}`: {output_ranges}")
+    steps_for_debugging.append(
+        {
+            "filter": pattern_name_for_operator(expression.operator),
+            "pattern_id": expression.pattern_id,
+            "ranges": list(output_ranges),
+            "metavar_ranges": metavars_for_patterns,
+        }
+    )
+
+
+def get_metavar_debugging_info(
+    expression: BooleanRuleExpression,
+    pattern_ids_to_pattern_matches: Dict[PatternId, List[PatternMatch]],
+) -> Dict[str, List[Any]]:
+    # get all metavariable information into steps_for_debugging
+    if expression.pattern_id is not None:
+        metavar_list_for_patterns = [
+            pattern.metavars
+            for pattern in pattern_ids_to_pattern_matches.get(expression.pattern_id, [])
+        ]
+    else:
+        return {}
+
+    # flatten list to be based on metavariable name.
+    metavars_for_patterns: Dict[str, List[PatternMatch]] = defaultdict()
+    for entry in metavar_list_for_patterns:
+        if not bool(
+            entry
+        ):  # check if dictionary is empty. Don't call .items on it if it is empty.
+            continue
+
+        for key, val in entry.items():
+            if key in metavars_for_patterns.keys():
+                metavars_for_patterns[key].append(val)
+            else:
+                metavars_for_patterns[key] = [val]
+    return metavars_for_patterns
+
+
 def _evaluate_single_expression(
     expression: BooleanRuleExpression,
     pattern_ids_to_pattern_matches: Dict[PatternId, List[PatternMatch]],
@@ -66,21 +113,22 @@ def _evaluate_single_expression(
         x.range for x in pattern_ids_to_pattern_matches.get(expression.pattern_id, [])
     ]
     output_ranges: Set[Range] = set()
+    metavars_for_patterns = get_metavar_debugging_info(
+        expression, pattern_ids_to_pattern_matches
+    )
 
     if expression.operator == OPERATORS.AND:
+        add_debugging_info(
+            expression, output_ranges, metavars_for_patterns, steps_for_debugging
+        )
         # remove all ranges that don't equal the ranges for this pattern
         return ranges_left.intersection(results_for_pattern)
     elif expression.operator == OPERATORS.AND_NOT:
         # remove all ranges that DO equal the ranges for this pattern
         # difference_update = Remove all elements of another set from this set.
         output_ranges = ranges_left.difference(results_for_pattern)
-        logger.debug(f"after filter `{expression.operator}`: {output_ranges}")
-        steps_for_debugging.append(
-            {
-                "filter": pattern_name_for_operator(expression.operator),
-                "pattern_id": expression.pattern_id,
-                "ranges": list(output_ranges),
-            }
+        add_debugging_info(
+            expression, output_ranges, metavars_for_patterns, steps_for_debugging
         )
         return output_ranges
     elif expression.operator == OPERATORS.AND_INSIDE:
@@ -93,13 +141,9 @@ def _evaluate_single_expression(
                 if is_enclosed:
                     output_ranges.add(arange)
                     break  # found a match, no need to keep going
-        logger.debug(f"after filter `{expression.operator}`: {output_ranges}")
-        steps_for_debugging.append(
-            {
-                "filter": pattern_name_for_operator(expression.operator),
-                "pattern_id": expression.pattern_id,
-                "ranges": list(output_ranges),
-            }
+
+        add_debugging_info(
+            expression, output_ranges, metavars_for_patterns, steps_for_debugging
         )
         return output_ranges
     elif expression.operator == OPERATORS.AND_NOT_INSIDE:
@@ -110,13 +154,8 @@ def _evaluate_single_expression(
                 if keep_inside_this_range.is_enclosing_or_eq(arange):
                     output_ranges.remove(arange)
                     break
-        logger.debug(f"after filter `{expression.operator}`: {output_ranges}")
-        steps_for_debugging.append(
-            {
-                "filter": pattern_name_for_operator(expression.operator),
-                "pattern_id": expression.pattern_id,
-                "ranges": list(output_ranges),
-            }
+        add_debugging_info(
+            expression, output_ranges, metavars_for_patterns, steps_for_debugging
         )
         return output_ranges
     elif expression.operator == OPERATORS.WHERE_PYTHON:
@@ -140,25 +179,15 @@ def _evaluate_single_expression(
                     expression.operand, pattern_match.metavars
                 ):
                     output_ranges.add(pattern_match.range)
-        logger.debug(f"after filter `{expression.operator}`: {output_ranges}")
-        steps_for_debugging.append(
-            {
-                "filter": pattern_name_for_operator(expression.operator),
-                "pattern_id": expression.pattern_id,
-                "ranges": list(output_ranges),
-            }
+        add_debugging_info(
+            expression, output_ranges, metavars_for_patterns, steps_for_debugging
         )
         return output_ranges
     elif expression.operator == OPERATORS.REGEX:
         # remove all ranges that don't equal the ranges for this pattern
         output_ranges = ranges_left.intersection(results_for_pattern)
-        logger.debug(f"after filter `{expression.operator}`: {output_ranges}")
-        steps_for_debugging.append(
-            {
-                "filter": pattern_name_for_operator(expression.operator),
-                "pattern_id": expression.pattern_id,
-                "ranges": list(output_ranges),
-            }
+        add_debugging_info(
+            expression, output_ranges, metavars_for_patterns, steps_for_debugging
         )
         return output_ranges
     elif expression.operator == OPERATORS.METAVARIABLE_REGEX:
@@ -176,13 +205,8 @@ def _evaluate_single_expression(
             ranges_left,
             list(flatten(pattern_ids_to_pattern_matches.values())),
         )
-        logger.debug(f"after filter `{expression.operator}`: {output_ranges}")
-        steps_for_debugging.append(
-            {
-                "filter": pattern_name_for_operator(expression.operator),
-                "pattern_id": expression.pattern_id,
-                "ranges": list(output_ranges),
-            }
+        add_debugging_info(
+            expression, output_ranges, metavars_for_patterns, steps_for_debugging
         )
         return output_ranges
     else:
@@ -250,7 +274,6 @@ def evaluate(
         Returns a list of RuleMatches.
     """
     output = []
-
     pattern_ids_to_pattern_matches = group_by_pattern_id(pattern_matches)
     steps_for_debugging = [
         {
