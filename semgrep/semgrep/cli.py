@@ -7,7 +7,7 @@ import os
 import semgrep.config_resolver
 import semgrep.semgrep_main
 import semgrep.test
-from semgrep.constants import __VERSION__
+from semgrep import __VERSION__
 from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import OutputFormat
 from semgrep.constants import RCE_RULE_FLAG
@@ -17,6 +17,7 @@ from semgrep.error import SemgrepError
 from semgrep.output import managed_output
 from semgrep.output import OutputSettings
 from semgrep.synthesize_patterns import synthesize_patterns
+from semgrep.target_manager import optional_stdin_target
 from semgrep.version import is_running_latest
 
 logger = logging.getLogger(__name__)
@@ -108,6 +109,11 @@ def cli() -> None:
         action="store_true",
         help="Scan all files even those ignored by a projects gitignore(s)",
     )
+    parser.add_argument(
+        "--skip-unknown-extensions",
+        action="store_true",
+        help="Scan only known file extensions, even if unrecognized ones are explicitly targeted.",
+    )
 
     config.add_argument(
         RCE_RULE_FLAG,
@@ -136,6 +142,24 @@ def cli() -> None:
         default=0,
         help=(
             "Maximum time to spend running a rule on a single file in seconds. If set to 0 will not have time limit. Defaults to 0."
+        ),
+    )
+
+    config.add_argument(
+        "--max-memory",
+        type=int,
+        default=0,
+        help=(
+            "Maximum memory to use running a rule on a single file in MB. If set to 0 will not have memory limit. Defaults to 0."
+        ),
+    )
+
+    config.add_argument(
+        "--timeout-threshold",
+        type=int,
+        default=0,
+        help=(
+            "Maximum number of rules that can timeout on a file before the file is skipped. If set to 0 will not have limit. Defaults to 0."
         ),
     )
 
@@ -294,6 +318,7 @@ def cli() -> None:
         output_destination=args.output,
         error_on_findings=args.error,
         strict=args.strict,
+        timeout_threshold=args.timeout_threshold,
     )
 
     if not args.disable_version_check:
@@ -307,18 +332,24 @@ def cli() -> None:
         # uses managed_output internally
         semgrep.test.test_main(args)
 
-    with managed_output(output_settings) as output_handler:
+    # The 'optional_stdin_target' context manager must remain before
+    # 'managed_output'. Output depends on file contents so we cannot have
+    # already deleted the temporary stdin file.
+    with optional_stdin_target(args.target) as target, managed_output(
+        output_settings
+    ) as output_handler:
         if args.dump_ast:
-            dump_parsed_ast(args.json, args.lang, args.pattern, args.target)
+            dump_parsed_ast(args.json, args.lang, args.pattern, target)
         elif args.synthesize_patterns:
-            synthesize_patterns(args.lang, args.synthesize_patterns, args.target)
+            synthesize_patterns(args.lang, args.synthesize_patterns, target)
         elif args.validate:
             configs, config_errors = semgrep.semgrep_main.get_config(
                 args.pattern, args.lang, args.config
             )
             valid_str = "invalid" if config_errors else "valid"
+            rule_count = sum(len(rules) for rules in configs.values())
             logger.info(
-                f"Configuration is {valid_str} - found {len(configs)} valid configuration(s) and {len(config_errors)} configuration error(s)."
+                f"Configuration is {valid_str} - found {len(configs)} valid configuration(s), {len(config_errors)} configuration error(s), and {rule_count} rule(s)."
             )
             if config_errors:
                 for error in config_errors:
@@ -329,7 +360,7 @@ def cli() -> None:
         else:
             semgrep.semgrep_main.main(
                 output_handler=output_handler,
-                target=args.target,
+                target=target,
                 pattern=args.pattern,
                 lang=args.lang,
                 config=args.config,
@@ -344,4 +375,7 @@ def cli() -> None:
                 dangerously_allow_arbitrary_code_execution_from_rules=args.dangerously_allow_arbitrary_code_execution_from_rules,
                 no_git_ignore=args.no_git_ignore,
                 timeout=args.timeout,
+                max_memory=args.max_memory,
+                timeout_threshold=args.timeout_threshold,
+                skip_unknown_extensions=args.skip_unknown_extensions,
             )

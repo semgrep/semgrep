@@ -38,9 +38,11 @@
     semgrep_parsing
     semgrep_matching
     semgrep_tainting
+    semgrep_analyzing
     semgrep_reporting
     semgrep_synthesizing
  )
+ (preprocess (pps ppx_profiling))
  ; for ocamldebug
  (modes byte)
  (flags (:include flags.sexp))

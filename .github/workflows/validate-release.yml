@@ -14,22 +14,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Validate the release
-        run: ./release-scripts/validate-release.py
-  verify_osx_release:
-    name: Verify the OSX brew package
-    runs-on: macos-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Get the version
-        id: get_version
-        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
-      - name: write to a file
-        run: echo "${{ steps.get_version.outputs.VERSION }}" | tee version
-      - name: Install JQ
-        run: brew install jq
-      - name: Validate the release
-        run: VERSION=${{ steps.get_version.outputs.VERSION }} ./release-scripts/validate-osx-release.sh
+        run: ./scripts/validate-release.py
+
   verify_docker_release:
     name: Verify the docker release works
     runs-on: ubuntu-latest
@@ -37,7 +23,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Validate docker release
-        run: ./release-scripts/validate-docker-release.sh
+        run: ./scripts/validate-docker-release.sh
 
   verify_ubuntu_release:
     name: Verify the ubuntu release works
@@ -52,6 +38,6 @@ jobs:
         uses: docker/build-push-action@v1
         with:
           push: false
-          path: install-scripts
-          dockerfile: install-scripts/Dockerfile.16.04
+          path: scripts
+          dockerfile: scripts/Dockerfile.16.04
           build_args: version=${{ steps.get_version.outputs.VERSION }}

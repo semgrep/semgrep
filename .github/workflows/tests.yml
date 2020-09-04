@@ -1,6 +1,7 @@
 name: Tests
 
 on:
+  workflow_dispatch:
   pull_request:
     paths-ignore:
       - '**.md'
@@ -29,7 +30,7 @@ jobs:
       - name: Post-checkout fixes
         run: ./.github/post-checkout
       - name: Build semgrep-core
-        run: ./install-scripts/install-alpine-semgrep-core
+        run: ./scripts/install-alpine-semgrep-core
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:

@@ -1,4 +1,4 @@
-// simplified from https://sgrep.live/1nQ
+// simplified from https://sgrep.dev/1nQ
 package main
 
 func MyHandler(w http.ResponseWriter, r *http.Request) {

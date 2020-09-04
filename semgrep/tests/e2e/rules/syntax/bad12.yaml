@@ -1,0 +1,8 @@
+rules:
+  - id: bad12
+    pattern-either:
+      - pattern: $X
+      - pattern-not: $Y
+    severity: ERROR
+    languages: [python]
+    message: Hi

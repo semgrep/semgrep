@@ -1,6 +1,7 @@
 name: Build Tests
 
 on:
+  workflow_dispatch:
   pull_request:
     paths-ignore:
     - '**.md'
@@ -27,7 +28,7 @@ jobs:
       - name: Post-checkout fixes
         run: ./.github/post-checkout
       - name: Build semgrep-core
-        run: ./install-scripts/install-alpine-semgrep-core
+        run: ./scripts/install-alpine-semgrep-core
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
@@ -49,11 +50,8 @@ jobs:
           submodules: true
       - name: Setup Python
         uses: actions/setup-python@v1
-        with:
-          # This is just the Python version used to build the Nuitka executable
-          python-version: 3.7
       - name: Run OSX build
-        run: ./release-scripts/osx-release.sh
+        run: ./scripts/osx-release.sh
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
@@ -96,7 +94,7 @@ jobs:
           cp semgrep-core-dir/semgrep-core semgrep-files
           chmod +x semgrep-files/semgrep-core
       - name: Run Ubuntu build script
-        run: ./release-scripts/ubuntu-release.sh
+        run: ./scripts/ubuntu-release.sh
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:

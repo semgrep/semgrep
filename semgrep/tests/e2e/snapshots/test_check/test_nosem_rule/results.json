@@ -65,7 +65,7 @@
         "line": 7
       },
       "extra": {
-        "lines": "test_nosem_func(\n\n    invalid_line // nosem: rules.test-nosem\n\n)",
+        "lines": "test_nosem_func(\n    invalid_line // nosem: rules.test-nosem\n)",
         "message": "test-nosem-message",
         "metadata": {},
         "metavars": {},

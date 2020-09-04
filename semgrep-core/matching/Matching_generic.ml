@@ -198,8 +198,8 @@ let (fail : tin -> tout) = fun _tin ->
 (* pre: both 'a' and 'b' contains only regular code; there are no
  * metavariables inside them.
  *)
-let equal_ast_binded_code (a: AST.any) (b: AST.any) : bool =
-  match a, b with
+let rec equal_ast_binded_code (a: AST.any) (b: AST.any) : bool = (
+  let res = (match a, b with
   | A.I _, A.I _
   | A.N _, A.N _
   | A.E _, A.E _
@@ -218,16 +218,30 @@ let equal_ast_binded_code (a: AST.any) (b: AST.any) : bool =
        *)
       let a = Lib.abstract_position_info_any a in
       let b = Lib.abstract_position_info_any b in
-      let res = a =*= b in
-      if !Flag.debug_matching && not res
-      then begin
-        pr2 (spf "A = %s" (str_of_any a));
-        pr2 (spf "B = %s" (str_of_any b));
-      end;
-      res
+      a =*= b
+  | A.I _, A.E (A.Id (b_id, _)) ->
+    (* Allow identifier nodes to match pure identifier expressions *)
 
+    (* You should prefer to add metavar as expression (A.E), not id (A.I),
+     * (see Generic_vs_generic.m_ident_and_id_info_add_in_env_Expr)
+     * but in some cases you have no choice and you need to match an expression
+     * metavar with an id metavar.
+     * For example, we want the pattern 'const $X = foo.$X' to match 'const bar = foo.bar'
+     * (this is useful in the Javascript transpilation context of complex pattern parameter).
+     *)
+      equal_ast_binded_code a (A.I b_id)
   | _, _ ->
       false
+  ) in
+
+  if !Flag.debug_matching && not res
+  then begin
+    pr2 (spf "A = %s" (str_of_any a));
+    pr2 (spf "B = %s" (str_of_any b));
+  end;
+
+  res
+)
 (*e: function [[Matching_generic.equal_ast_binded_code]] *)
 
 (*s: function [[Matching_generic.check_and_add_metavar_binding]] *)
@@ -303,24 +317,32 @@ let fail () = fail
 (*e: function [[Matching_generic.fail_bis]] *)
 
 (*s: constant [[Matching_generic.regexp_regexp_string]] *)
-let regexp_regexp_string = "^=~/\\(.*\\)/$"
+let regexp_regexp_string = "^=~/\\(.*\\)/\\([mi]?\\)$"
 (*e: constant [[Matching_generic.regexp_regexp_string]] *)
 (*s: function [[Matching_generic.is_regexp_string]] *)
 let is_regexp_string s =
  s =~ regexp_regexp_string
 (*e: function [[Matching_generic.is_regexp_string]] *)
+
+type regexp = Re.re (* old: Str.regexp *)
+
 (*s: function [[Matching_generic.regexp_of_regexp_string]] *)
-let regexp_of_regexp_string s =
+let regexp_matcher_of_regexp_string s =
   if s =~ regexp_regexp_string
   then
-    let x = Common.matched1 s in
-(* TODO
-      let rex = Pcre.regexp s in
-      if Pcre.pmatch ~rex sb
-*)
-    Str.regexp x
+    let x, flags = Common.matched2 s in
+    let flags =
+      match flags with
+      | "" -> []
+      | "i" -> [`CASELESS]
+      | "m" -> [`MULTILINE]
+      | _ -> failwith (spf "This is not a valid PCRE regexp flag: %s" flags)
+    in
+    (* old: let re = Str.regexp x in (fun s -> Str.string_match re s 0) *)
+    let re = Re.Pcre.regexp ~flags x in
+    (fun s -> Re.Pcre.pmatch ~rex:re s)
   else
-    failwith (spf "This is not a regexp_string: " ^ s)
+    failwith (spf "This is not a PCRE-compatible regexp: " ^ s)
 (*e: function [[Matching_generic.regexp_of_regexp_string]] *)
 
 (*****************************************************************************)

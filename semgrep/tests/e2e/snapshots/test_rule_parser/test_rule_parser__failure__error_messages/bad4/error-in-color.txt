@@ -1,12 +1,11 @@
-[31merror[39m: invalid patterns
+[31merror[39m: Invalid rule schema
   --> rules/syntax/bad4.yaml:4
-[94m3 | [39m    patterns:
 [94m4 | [39m        pattern-inside: |
 [94m5 | [39m            def foo($X):
 [94m6 | [39m                ...
 [94m7 | [39m        pattern: $X = 1
 [94m8 | [39m    message: "$X is being reassigned"
-= [36m[1mhelp[39m[0m: perhaps your YAML is missing a `-` on line 4?
-[31minvalid type for patterns; expected a list, but found dict[39m
+
+[31m{'pattern-inside': 'def foo($X):\n    ...\n', 'pattern': '$X = 1'} is not of type 'array'[39m
 
 run with --strict and there were 1 errors loading configs

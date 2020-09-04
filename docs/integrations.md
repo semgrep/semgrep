@@ -24,14 +24,14 @@ and add this in your `.pre-commit-config.yaml`:
 ```yaml
 repos:
 - repo: https://github.com/returntocorp/semgrep
-  rev: 'v0.14.0'
+  rev: 'v0.22.0'
   hooks:
     - id: semgrep
-      args: ['--config', 'https://semgrep.live/p/r2c', '--error']
+      args: ['--config', 'https://semgrep.dev/p/r2c', '--error']
 ```
 
-This will default to using the [`r2c` rule pack](https://semgrep.live/p/r2c).
-To choose another rule pack, see https://semgrep.live/packs.
+This will default to using the [`r2c` ruleset](https://semgrep.dev/p/r2c).
+To choose another ruleset, see https://semgrep.dev/packs.
 
 ## Continuous Integration
 
@@ -53,11 +53,11 @@ environment:
 install:
     - python -m pip install semgrep
 test_script:
-    - semgrep --config https://semgrep.live/p/r2c /path/to/code
+    - semgrep --config https://semgrep.dev/p/r2c /path/to/code
 ```
 
-This will default to using the [`r2c` rule pack](https://semgrep.live/p/r2c).
-To choose another rule pack see https://semgrep.live/packs.
+This will default to using the [`r2c` ruleset](https://semgrep.dev/p/r2c).
+To choose another ruleset see https://semgrep.dev/packs.
 
 ### CircleCI
 
@@ -72,11 +72,11 @@ jobs:
         steps:
             - checkout
             - run: python -m pip install semgrep
-            - run: semgrep --config https://semgrep.live/p/r2c /path/to/code
+            - run: semgrep --config https://semgrep.dev/p/r2c /path/to/code
 ```
 
-This will default to using the [`r2c` rule pack](https://semgrep.live/p/r2c).
-To choose another rule pack see https://semgrep.live/packs.
+This will default to using the [`r2c` ruleset](https://semgrep.dev/p/r2c).
+To choose another ruleset see https://semgrep.dev/packs.
 
 Another way to do it is to use the official Semgrep [Docker Image](https://hub.docker.com/r/returntocorp/semgrep)
 
@@ -89,7 +89,7 @@ jobs:
         working_directory: /src
         steps:
             - checkout
-            - run: semgrep --error --config https://semgrep.live/p/r2c .
+            - run: semgrep --error --config https://semgrep.dev/p/r2c .
 ```
 
 
@@ -102,11 +102,11 @@ language: python
 install:
     - python -m pip install semgrep
 script:
-    - semgrep --config https://semgrep.live/p/r2c /path/to/code
+    - semgrep --config https://semgrep.dev/p/r2c /path/to/code
 ```
 
-This will default to using the [`r2c` rule pack](https://semgrep.live/p/r2c).
-To choose another rule pack see https://semgrep.live/packs.
+This will default to using the [`r2c` ruleset](https://semgrep.dev/p/r2c).
+To choose another ruleset see https://semgrep.dev/packs.
 
 ### GitHub Actions
 
@@ -126,8 +126,8 @@ jobs:
                 config: p/r2c
 ```
 
-This will default to using the [`r2c` rule pack](https://semgrep.live/p/r2c).
-To choose another rule pack see https://semgrep.live/packs.
+This will default to using the [`r2c` ruleset](https://semgrep.dev/p/r2c).
+To choose another ruleset see https://semgrep.dev/packs.
 
 For more information on the GitHub Action see https://github.com/marketplace/actions/semgrep-action.
 
@@ -145,5 +145,5 @@ semgrep:
     - python -m semgrep_agent --config p/r2c
 ```
 
-This will default to using the [`r2c` rule pack](https://semgrep.live/p/r2c).
-To choose another rule pack see https://semgrep.live/packs.
+This will default to using the [`r2c` ruleset](https://semgrep.dev/p/r2c).
+To choose another ruleset see https://semgrep.dev/packs.

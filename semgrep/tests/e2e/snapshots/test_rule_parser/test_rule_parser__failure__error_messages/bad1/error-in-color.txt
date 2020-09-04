@@ -1,7 +1,6 @@
-[31merror[39m: invalid operand
+[31merror[39m: Invalid rule schema
   --> rules/syntax/bad1.yaml:4
 [94m4  | [39m      - pattern-inside:
-[94m   | [39m        [31m^^^^^^^^^^^^^^[39m
 [94m5  | [39m        - pattern: $X == $X
 [94m6  | [39m        - pattern: $X != $X
 [94m7  | [39m        - patterns:
@@ -11,6 +10,6 @@
 [94m11 | [39m          - pattern: self.$X == self.$X
 [94m12 | [39m      - pattern-not: 1 == 1
 
-[31moperand for pattern-inside must be a string or dict, but instead was list[39m
+[31m[{'pattern': '$X == $X'}, {'pattern': '$X != $X'}, {'patterns': [{'pattern-inside': 'def __init__(...):\n    ...\n'}, {'pattern': 'self.$X == self.$X'}]}] is not of type 'string'[39m
 
 run with --strict and there were 1 errors loading configs

@@ -1,10 +1,8 @@
-[31merror[39m: invalid targeting rules
+[31merror[39m: Invalid rule schema
   --> rules/syntax/badpaths2.yaml:8
-[94m7 | [39m      # bad syntax: key name should be `include:`
 [94m8 | [39m      filename: "*.py"
-[94m  | [39m      [31m^^^^^^^^[39m
 [94m9 | [39m    message: "$X is being assigned to one or two"
 
-[31mthe `paths:` targeting rules must each be one of ('include', 'exclude')[39m
+[31mAdditional properties are not allowed ('filename' was unexpected)[39m
 
 run with --strict and there were 1 errors loading configs

@@ -21,6 +21,10 @@ TAINT_MODE = Mode("taint")
 SEARCH_MODE = DEFAULT_MODE = Mode("search")
 SUPPORTED_MODES = {TAINT_MODE, SEARCH_MODE}
 
+YAML_TAINT_MUST_HAVE_KEYS = {"pattern-sinks", "pattern-sources"}
+
+NONE_LANGUAGE = Language("none")
+
 
 class OPERATORS:
     AND_ALL: Operator = Operator("and_all")
@@ -53,34 +57,9 @@ OPERATOR_PATTERN_NAMES_MAP = {
     OPERATORS.REGEX: ["pattern-regex"],
     OPERATORS.METAVARIABLE_REGEX: ["metavariable-regex"],
 }
-
-# These are the only valid top-level keys
-YAML_MUST_HAVE_KEYS = {"id", "message", "languages", "severity"}
-YAML_TAINT_MUST_HAVE_KEYS = {"pattern-sinks", "pattern-sources"}
-
-YAML_OPTIONAL_KEYS = {"metadata", "paths", "mode"}
-YAML_VALID_TOP_LEVEL_OPERATORS = {
-    OPERATORS.AND,
-    OPERATORS.AND_ALL,
-    OPERATORS.AND_EITHER,
-    OPERATORS.FIX,
-    OPERATORS.FIX_REGEX,
-    OPERATORS.EQUIVALENCES,
-    OPERATORS.REGEX,
+PATTERN_NAMES_OPERATOR_MAP = {
+    v: k for k, vv in OPERATOR_PATTERN_NAMES_MAP.items() for v in vv
 }
-YAML_TOP_LEVEL_PATTERN_KEYS = {
-    pattern_name
-    for op in YAML_VALID_TOP_LEVEL_OPERATORS
-    for pattern_name in OPERATOR_PATTERN_NAMES_MAP[op]
-}
-YAML_TAINT_KEYS = YAML_TAINT_MUST_HAVE_KEYS | {"pattern-sanitizers"}
-
-YAML_ALL_VALID_RULE_KEYS = (
-    YAML_TOP_LEVEL_PATTERN_KEYS
-    | YAML_MUST_HAVE_KEYS
-    | YAML_OPTIONAL_KEYS
-    | YAML_TAINT_KEYS
-)
 
 
 @attr.s(auto_attribs=True, frozen=True)

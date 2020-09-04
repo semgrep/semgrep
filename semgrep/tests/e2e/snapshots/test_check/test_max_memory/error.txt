@@ -1,0 +1,3 @@
+running 1 rules...
+Warning: Semgrep exceeded memory when running rules.forcetimeout on targets/equivalence/open_redirect.py. See `--max-memory` for more info.
+Warnings exist. Run with `--strict` to turn warnings into errors.

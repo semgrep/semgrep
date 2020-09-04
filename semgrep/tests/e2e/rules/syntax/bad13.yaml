@@ -1,0 +1,8 @@
+rules:
+  - id: tainty
+    message: Hi
+    languages: [python]
+    severity: WARNING
+    mode: taint
+    # Can't use taint
+    pattern: $X == $X

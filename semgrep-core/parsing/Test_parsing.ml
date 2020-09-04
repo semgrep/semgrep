@@ -14,13 +14,53 @@
 open Common
 
 module PI = Parse_info
+module G = AST_generic
+
+(* less: could infer lang from filename *)
+let dump_tree_sitter_cst_lang lang file =
+   match lang with
+   | Lang.Ruby ->
+      Tree_sitter_ruby.Parse.file file
+      |> Tree_sitter_ruby.CST.dump_tree
+   | Lang.Java ->
+      Tree_sitter_java.Parse.file file
+      |> Tree_sitter_java.CST.dump_tree
+   | Lang.Go   ->
+      Tree_sitter_go.Parse.file file
+      |> Tree_sitter_go.CST.dump_tree
+   | Lang.Csharp ->
+      Tree_sitter_csharp.Parse.file file
+      |> Tree_sitter_csharp.CST.dump_tree
+   | Lang.Javascript ->
+      Tree_sitter_javascript.Parse.file file
+      |> Tree_sitter_javascript.CST.dump_tree
+
+   | _ -> failwith "lang not supported by ocaml-tree-sitter"
+
+let dump_tree_sitter_cst file =
+  match Lang.langs_of_filename file with
+  | [l] -> dump_tree_sitter_cst_lang l file
+  | [] -> failwith (spf "no language detected for %s" file)
+  | _::_::_ -> failwith (spf "too many languages detected for %s" file)
+
+let dump_ast_pfff file =
+  match Lang.langs_of_filename file with
+  | [lang] ->
+      let x = Parse_generic.parse_with_lang lang file in
+      let v = Meta_AST.vof_any (G.Pr x) in
+      let s = OCaml.string_of_v v in
+      pr2 s
+  | [] -> failwith (spf "no language detected for %s" file)
+  | _::_::_ -> failwith (spf "too many languages detected for %s" file)
 
 (* mostly a copy paste of Test_parsing_ruby.test_parse in pfff but using
  * the tree-sitter Ruby parser instead.
  *)
 let test_parse_lang verbose lang get_final_files xs =
   let xs = List.map Common.fullpath xs in
-  let fullxs = get_final_files xs in
+  let fullxs = get_final_files xs
+      |> Skip_code.filter_files_if_skip_list ~root:xs
+    in
   let lang =
     match Lang.lang_of_string_opt lang with
     | Some l -> l
@@ -31,9 +71,7 @@ let test_parse_lang verbose lang get_final_files xs =
   fullxs |> Console.progress (fun k -> List.iter (fun file ->
     k();
     if verbose then pr2 (spf "processing %s" file);
-
-    let n = Common2.nblines_file file in
-    let stat = Parse_info.default_stat file in
+    let stat =
     (try
        if true
        then begin
@@ -48,23 +86,39 @@ let test_parse_lang verbose lang get_final_files xs =
            *)
            Parallel.backtrace_when_exn := true;
            Parallel.invoke
-             (fun file ->
-              match lang with
-              | Lang.Ruby -> Tree_sitter_ruby.Parse.file file |> ignore
-              | Lang.Java -> Tree_sitter_java.Parse.file file |> ignore
-              | Lang.Go   -> Tree_sitter_go.Parse.file file |> ignore
-              | _ -> failwith "lang not supported by ocaml-tree-sitter"
-              )
+             (fun file -> dump_tree_sitter_cst_lang lang file)
              file ()
         end;
-       stat.PI.correct <- n
+       PI.correct_stat file
     with exn ->
         pr2 (spf "%s: exn = %s" file (Common.exn_to_s exn));
-        stat.PI.bad <- n
-    );
+        PI.bad_stat file
+    )
+    in
     Common.push stat stat_list;
   ));
   flush stdout; flush stderr;
 
   Parse_info.print_parsing_stat_list !stat_list;
   ()
+
+let diff_pfff_tree_sitter xs =
+  pr2 "NOTE: consider using -full_token_info to get also diff on tokens";
+  xs |> List.iter (fun file ->
+  match Lang.langs_of_filename file with
+  | [lang] ->
+    let ast1 = Parse_generic.parse_with_lang lang file in
+    let ast2 =
+        Common.save_excursion Flag_semgrep.tree_sitter_only true (fun () ->
+            Parse_code.just_parse_with_lang lang file
+        ) in
+    let s1 = AST_generic.show_program ast1 in
+    let s2 = AST_generic.show_program ast2 in
+    Common2.with_tmp_file ~str:s1 ~ext:"x" (fun file1 ->
+    Common2.with_tmp_file ~str:s2 ~ext:"x" (fun file2 ->
+      let xs = Common2.unix_diff file1 file2 in
+      xs |> List.iter pr2
+    ))
+
+  | _ -> failwith (spf "can't detect single language for %s" file)
+  )

@@ -36,7 +36,11 @@ $ python -m pip install pre-commit
 
 Our `pre-commit` configuration uses Docker images. Please ensure you have
 [Docker installed](https://docs.docker.com/get-docker/) before running
-`pre-commit`.
+`pre-commit`. Install the `pre-commit` hooks with the following command:
+
+```
+$ pre-commit install
+```
 
 To ensure `pre-commit` is working as expected, run the following command:
 
@@ -58,7 +62,7 @@ later.
 
 ### Installing
 
-Most `semgrep` development will operate inside the `semgrep` directory:
+Most `semgrep` development will operate inside the `semgrep` directory (`semgrep/semgrep`):
 
 ```
 $ cd semgrep
@@ -235,7 +239,7 @@ $ ./_build/default/bin/Main.exe -e foo -lang python tests/python
 If you want to test semgrep on a directory with a set of given rules, run:
 
 ```bash
-$ cp ./semgrep_core/_build/default/bin/Main.exe /usr/local/bin/semgrep_core
+$ cp ./semgrep-core/_build/default/bin/Main.exe /usr/local/bin/semgrep_core
 $ cd semgrep
 $ pipenv install --dev
 $ pipenv run semgrep --config <YAML_FILE_OR_DIRECTORY> <code to check>
@@ -268,7 +272,7 @@ You can pass the -profile command-line argument to semgrep-core to get
 a short profile of the code, for example:
 
 ``` bash
-$ cd semgrep_core
+$ cd semgrep-core
 $ ./_build/default/bin/Main.exe -profile -e foo tests/python
 ---------------------
 profiling result
@@ -281,7 +285,7 @@ Parse_python.parse                       :      0.828 sec          1 count
 You can also instead set the environment variable SEMGREP_CORE_PROFILE to 1 to get the same information:
 
 ```bash
-cd semgrep_core
+cd semgrep-core
 export SEMGREP_CORE_PROFILE=1
 ./_build/default/bin/Main.exe -e foo tests/python
 ---------------------

@@ -11,4 +11,5 @@
    semgrep_core
    semgrep_matching
  )
+ (preprocess (pps ppx_profiling))
 )

@@ -1,0 +1,18 @@
+[31merror[39m: Invalid rule schema
+  --> rules/syntax/bad14.yaml:2
+[94m2  | [39m  - id: tainty
+[94m3  | [39m    message: Hi
+[94m4  | [39m    languages: [python]
+[94m5  | [39m    severity: WARNING
+[94m6  | [39m    mode: taint
+[94m7  | [39m    pattern-sinks:
+[94m8  | [39m      - $X
+[94m9  | [39m    pattern-sources:
+[94m10 | [39m      - $Y
+[94m11 | [39m    # Can't use pattern in taint
+[94m12 | [39m    pattern: $X == $X
+
+[31m{'anyOf': [{'required': ['pattern']}, {'required': ['patterns']}, {'required': ['pattern-either']}, {'required': ['pattern-regex']}]} is not allowed for {'id': 'tainty', 'message': 'Hi', 'languages': ['python'], 'severity': 'WARNING', 'mode': 'taint', 'pattern-sinks': ['$X'], 'pattern-sources': ['$Y'], 'pattern': '$X == $X'}
+{'anyOf': [{'required': ['pattern-sinks']}, {'required': ['pattern-sources']}, {'required': ['pattern-sanitizers']}]} is not allowed for {'id': 'tainty', 'message': 'Hi', 'languages': ['python'], 'severity': 'WARNING', 'mode': 'taint', 'pattern-sinks': ['$X'], 'pattern-sources': ['$Y'], 'pattern': '$X == $X'}[39m
+
+run with --strict and there were 1 errors loading configs

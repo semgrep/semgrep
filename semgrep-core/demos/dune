@@ -3,6 +3,7 @@
  (flags (:standard -w -27))
  (libraries
    bigarray str
+   threads
    uucp uutf
    ppx_deriving.runtime
 
@@ -10,6 +11,7 @@
    pfff-h_program-lang
    pfff-lang_php
  )
+ (preprocess (pps ppx_profiling))
  ; for ocamldebug
  (modes byte)
 )

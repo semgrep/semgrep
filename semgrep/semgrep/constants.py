@@ -2,13 +2,14 @@ import re
 from enum import auto
 from enum import Enum
 
+from semgrep import __VERSION__
 from semgrep.util import compute_semgrep_path
 
 RCE_RULE_FLAG = "--dangerously-allow-arbitrary-code-execution-from-rules"
 RULES_KEY = "rules"
 ID_KEY = "id"
 SEMGREP_URL = "https://semgrep.dev/"
-PLEASE_FILE_ISSUE_TEXT = "An error occurred while invoking the semgrep engine; please help us fix this by creating an issue at https://semgrep.dev"
+PLEASE_FILE_ISSUE_TEXT = "An error occurred while invoking the semgrep engine; please help us fix this by creating an issue at https://github.com/returntocorp/semgrep"
 
 DEFAULT_SEMGREP_CONFIG_NAME = "semgrep"
 DEFAULT_CONFIG_FILE = f".{DEFAULT_SEMGREP_CONFIG_NAME}.yml"
@@ -16,7 +17,6 @@ DEFAULT_CONFIG_FOLDER = f".{DEFAULT_SEMGREP_CONFIG_NAME}"
 
 YML_EXTENSIONS = {".yml", ".yaml"}
 
-__VERSION__ = "0.17.0"
 SEMGREP_USER_AGENT = f"Semgrep/{__VERSION__}"
 
 SEMGREP_PATH = compute_semgrep_path()

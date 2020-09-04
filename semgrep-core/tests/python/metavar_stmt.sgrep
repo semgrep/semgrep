@@ -1,2 +1,2 @@
-if $X > $Y:
+if var > 2:
    $S

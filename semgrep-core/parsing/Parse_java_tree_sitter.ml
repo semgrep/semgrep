@@ -673,10 +673,10 @@ and field_access (env : env) ((v1, v2, v3, v4) : CST.field_access) =
 
 and array_access (env : env) ((v1, v2, v3, v4) : CST.array_access) =
   let v1 = primary env v1 in
-  let _v2 = token env v2 (* "[" *) in
+  let v2 = token env v2 (* "[" *) in
   let v3 = expression env v3 in
-  let _v4 = token env v4 (* "]" *) in
-  ArrayAccess (v1, v3)
+  let v4 = token env v4 (* "]" *) in
+  ArrayAccess (v1, (v2, v3, v4))
 
 
 and argument_list (env : env) ((v1, v2, v3) : CST.argument_list) =
@@ -1095,12 +1095,12 @@ and annotation (env : env) (x : CST.annotation) : tok * annotation =
   | `Marker_anno (v1, v2) ->
       let v1 = token env v1 (* "@" *) in
       let v2 = qualifier_extra env v2 in
-      v1, (v1, (v2 |> List.map (fun id -> Id id)), None)
+      v1, (v1, v2, None)
   | `Anno_ (v1, v2, v3) ->
       let v1 = token env v1 (* "@" *) in
       let v2 = qualifier_extra env v2 in
       let v3 = annotation_argument_list env v3 in
-      v1, (v1, (v2 |> List.map (fun id -> Id id)), Some v3)
+      v1, (v1, v2, Some v3)
   )
 
 
@@ -1112,15 +1112,15 @@ and annotation_argument_list (env : env) ((v1, v2, v3) : CST.annotation_argument
     | `Opt_elem_value_pair_rep_COMMA_elem_value_pair opt ->
         (match opt with
         | Some (v1, v2) ->
-            let v1 = element_value_pair env v1 in
+            let v1 =  AnnotPair (element_value_pair env v1) in
             let v2 =
               List.map (fun (v1, v2) ->
                 let _v1 = token env v1 (* "," *) in
-                let v2 = element_value_pair env v2 in
+                let v2 = AnnotPair (element_value_pair env v2) in
                 v2
               ) v2
             in
-            AnnotArgPairInit (v1::v2)
+            AnnotArgPairInit ((v1)::v2)
         | None -> EmptyAnnotArg)
     )
   in
@@ -1190,10 +1190,8 @@ and declaration (env : env) (x : CST.declaration) : AST.stmt =
       let v1 = token env v1 (* "import" *) in
       let v2 =
         (match v2 with
-        | Some tok ->
-                let _t = token env tok (* "static" *) in
-                true
-        | None -> false)
+        | Some tok -> Some (token env tok) (* "static" *)
+        | None -> None)
       in
       let v3 = qualifier_extra env v3 in
       let v4 =
@@ -1279,7 +1277,7 @@ and class_body_decl env = function
   | `Anno_type_decl x -> [Class (annotation_type_declaration env x)]
   | `Enum_decl x -> [Enum (enum_declaration env x)]
   | `Blk x -> let x = block env x in
-          [Init (false, x)]
+          [Init (None, x)]
   | `Static_init x -> [static_initializer env x]
   | `Cons_decl x -> [Method (constructor_declaration env x)]
   | `SEMI tok -> [EmptyDecl (token env tok) (* ";" *)]
@@ -1317,7 +1315,7 @@ and class_declaration (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.class_decl
     | Some x -> modifiers env x
     | None -> [])
   in
-  let _v2 = token env v2 (* "class" *) in
+  let v2 = token env v2 (* "class" *) in
   let v3 = identifier env v3 (* pattern [a-zA-Z_]\w* *) in
   let v4 =
     (match v4 with
@@ -1335,7 +1333,7 @@ and class_declaration (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.class_decl
     | None -> [])
   in
   let v7 = class_body env v7 in
-  { cl_name = v3; cl_kind = ClassRegular; cl_tparams = v4;
+  { cl_name = v3; cl_kind = (ClassRegular, v2); cl_tparams = v4;
     cl_mods = v1; cl_extends = v5; cl_impls = v6;
     cl_body = v7 }
 
@@ -1432,9 +1430,9 @@ and class_body (env : env) ((v1, v2, v3) : CST.class_body) =
 
 
 and static_initializer (env : env) ((v1, v2) : CST.static_initializer) =
-  let _v1 = token env v1 (* "static" *) in
+  let v1 = token env v1 (* "static" *) in
   let v2 = block env v2 in
-  Init (true, v2)
+  Init (Some v1, v2)
 
 
 and constructor_declaration (env : env) ((v1, v2, v3, v4) : CST.constructor_declaration) : constructor_decl =
@@ -1533,10 +1531,10 @@ and annotation_type_declaration (env : env) ((v1, v2, v3, v4) : CST.annotation_t
     | Some x -> modifiers env x
     | None -> [])
   in
-  let _v2 = token env v2 (* "@interface" *) in
+  let v2 = token env v2 (* "@interface" *) in
   let v3 = identifier env v3 (* pattern [a-zA-Z_]\w* *) in
   let v4 = annotation_type_body env v4 in
-  { cl_mods = v1; cl_name = v3; cl_body = v4; cl_kind = AtInterface;
+  { cl_mods = v1; cl_name = v3; cl_body = v4; cl_kind = (AtInterface, v2);
     cl_tparams = []; cl_extends = None; cl_impls = [];
   }
 
@@ -1595,7 +1593,7 @@ and interface_declaration (env : env) ((v1, v2, v3, v4, v5, v6) : CST.interface_
     | Some x -> modifiers env x
     | None -> [])
   in
-  let _v2 = token env v2 (* "interface" *) in
+  let v2 = token env v2 (* "interface" *) in
   let v3 = identifier env v3 (* pattern [a-zA-Z_]\w* *) in
   let v4 =
     (match v4 with
@@ -1608,7 +1606,7 @@ and interface_declaration (env : env) ((v1, v2, v3, v4, v5, v6) : CST.interface_
     | None -> [])
   in
   let v6 = interface_body env v6 in
-  { cl_name = v3; cl_kind = Interface; cl_tparams = v4;
+  { cl_name = v3; cl_kind = (Interface, v2); cl_tparams = v4;
     cl_mods = v1; cl_extends = None; cl_impls = v5;
     cl_body = v6 }
 

@@ -8,6 +8,8 @@ from setuptools import setup
 from setuptools.command.install import install
 from wheel.bdist_wheel import bdist_wheel as _bdist_wheel
 
+from semgrep import __VERSION__
+
 
 @contextlib.contextmanager
 def chdir(dirname=None):
@@ -83,18 +85,13 @@ class PostInstallCommand(install):
         if os.environ.get("PRECOMPILED_LOCATION"):
             source = os.environ["PRECOMPILED_LOCATION"]
         else:
-            os.putenv("SKIP_NUITKA", "TRUE")
             if "osx" in distutils.util.get_platform():
                 with chdir(repo_root):
-                    os.system(
-                        os.path.join(repo_root, "release-scripts", "osx-release.sh")
-                    )
+                    os.system(os.path.join(repo_root, "scripts", "osx-release.sh"))
                     source = os.path.join(repo_root, "artifacts", "semgrep-core")
             else:
                 with chdir(repo_root):
-                    os.system(
-                        os.path.join(repo_root, "release-scripts", "ubuntu-release.sh")
-                    )
+                    os.system(os.path.join(repo_root, "scripts", "ubuntu-release.sh"))
                     source = os.path.join(repo_root, "semgrep-files", "semgrep-core")
 
         ## run this after trying to build (as otherwise this leaves
@@ -115,7 +112,7 @@ class PostInstallCommand(install):
 
 setup(
     name="semgrep",
-    version="0.17.0",
+    version=__VERSION__,
     author="Return To Corporation",
     author_email="support@r2c.dev",
     description="Lightweight static analysis for many languages. Find bug variants with patterns that look like source code.",
@@ -131,9 +128,11 @@ setup(
         "attrs>=19.3.0",
         "tqdm>=4.46.1",
         "packaging>=20.4",
+        "jsonschema~=3.2.0",
     ],
     entry_points={"console_scripts": ["semgrep=semgrep.__main__:main"]},
     packages=setuptools.find_packages(),
+    include_package_data=True,
     classifiers=[
         "Environment :: Console",
         "License :: OSI Approved :: GNU Lesser General Public License v2 (LGPLv2)",

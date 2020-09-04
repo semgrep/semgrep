@@ -1,0 +1,8 @@
+[31merror[39m: Invalid rule schema
+  --> rules/syntax/bad12.yaml:5
+[94m5 | [39m      - pattern-not: $Y
+[94m6 | [39m    severity: ERROR
+
+[31mAdditional properties are not allowed ('pattern-not' was unexpected)[39m
+
+run with --strict and there were 1 errors loading configs

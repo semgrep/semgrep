@@ -44,7 +44,7 @@ let parse_severity ~id s =
  | "ERROR" -> R.Error
  | "WARNING" -> R.Warning
  | "INFO" -> R.Info
- | s -> raise (InvalidRuleException (id, (spf "Bad severity: %s" s)))
+ | s -> raise (InvalidRuleException (id, (spf "Bad severity: %s (expected ERROR, WARNING or INFO)" s)))
 (*e: function [[Parse_rules.parse_severity]] *)
 
 (*s: function [[Parse_rules.parse_pattern]] *)

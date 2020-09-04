@@ -12,14 +12,17 @@ THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 
 
 FEATURES = ["dots", "equivalence", "metavar", "misc"]
+
+VERBOSE_REGEXP_SYNTAX = "OCaml Syntax: \"=~/<regexp>/\""
+
 VERBOSE_FEATURE_NAME = {
-    "dots": "Ellipsis",
-    "equivalence": "Equivalences",
-    "metavar": "Metavariables",
+    "dots": "Wildcard Matches (...)",
+    "equivalence": "Helpful Features",
+    "metavar": "Named Placeholders ($X)",
     "misc": "Others",
-    "metavar_equality": "Automatic Equality Constraints on Metavariables",
-    "concrete": "Concrete Syntax",
-    "regexp": "Inline Regular Expressions (OCaml Regex Syntax)",
+    "metavar_equality": "Reoccurring Expressions",
+    "concrete": "Exact Matches",
+    "regexp": "Regular Expressions",
     "deep": "Deep (Recursive) Matching"
 }
 
@@ -39,7 +42,7 @@ VERBOSE_SUBCATEGORY_NAME = {
     "naming_import": "Import Renaming/Aliasing",
     "constant_propagation": "Constant Propagation",
     "fieldname": "Field Names",
-    "syntax": "Exact Syntax Match",
+    "syntax": "Single Statements",
     "exprstmt": "Expression and Statement",
 }
 
@@ -65,9 +68,9 @@ LANGUAGE_EXCEPTIONS = {
 EXCLUDE = ["TODO", "GENERIC", "fuzzy", "lint", 'EQUIV', 'e2e', 'SYNTHESIZING', 'NAMING', 'PERF', 'TAINTING']
 
 CHEATSHEET_ENTRIES = {
-    "concrete": {"syntax"}, 
-    "dots": {"args", "string", "stmts", "nested_stmts"}, #"function-body", "class-body"}, TODO
-    "metavar": {
+    "concrete": ["syntax"],
+    "dots": ["args", "string", "stmts", "nested_stmts"], #"function-body", "class-body"}, TODO
+    "metavar": [
         "call",
         "arg",
         "stmt",
@@ -76,17 +79,15 @@ CHEATSHEET_ENTRIES = {
         #"class-def", TODO
         "import",
         "typed",
-    },
-    "regexp": {"string"},
-    "metavar_equality": {"expr", "stmt", "var"},
-    "equivalence": {
-        "eq",
+    ],
+    "regexp": ["string"],
+    "metavar_equality": ["expr", "stmt", "var"],
+    "equivalence": [
         "naming_import",
         # "field-order", TODO
         # "arg-order", TODO
         "constant_propagation",
-    },
-    "deep": {"exprstmt"}, # TODO, "nested-conditional", "nested-call", "binary-expression"},
+    ]
 }
 
 def find_path(root_dir: str, lang: str, category: str, subcategory: str, extension: str):
@@ -143,7 +144,8 @@ def run_semgrep_on_example(lang: str, config_arg_str: str, code_path: str) -> st
             print(output.stderr.decode("utf-8"))
             return output.stdout.decode("utf-8")
         else:
-            print(output.stderr)
+            print("ERROR: " + output.returncode)
+            print(cmd)
             sys.exit(1)
 
 def generate_cheatsheet(root_dir: str):
@@ -157,26 +159,28 @@ def generate_cheatsheet(root_dir: str):
                 sgrep_path = find_path(root_dir, lang, category, subcategory, 'sgrep')
                 code_path = find_path(root_dir, lang, category, subcategory, lang_dir_to_ext(lang))
                 
-                higlights = []
+                highlights = []
                 if os.path.exists(sgrep_path) and os.path.exists(code_path):
                     ranges = run_semgrep_on_example(lang, sgrep_path, code_path)
                     if ranges:
                         j = json.loads(ranges)
                         for entry in j['results']:
-                            higlights.append({'start': entry['start'], 'end': entry['end']})
+                            highlights.append({'start': entry['start'], 'end': entry['end']})
 
                 entry = { 
                     'pattern': read_if_exists(sgrep_path),
                     'pattern_path': sgrep_path,
                     'code': read_if_exists(code_path),
                     'code_path': code_path,
-                     'highlights': higlights,
+                    'highlights': highlights,
                 }
                
 
                 #print((lang, entry))
                 feature_name = VERBOSE_FEATURE_NAME.get(category, category)
                 subcategory_name = VERBOSE_SUBCATEGORY_NAME.get(subcategory, subcategory)
+                if (category == "regexp" and subcategory == "string"):
+                    subcategory_name = VERBOSE_REGEXP_SYNTAX
                 language_exception = (
                     feature_name in LANGUAGE_EXCEPTIONS.get(lang, [])
                     or subcategory in LANGUAGE_EXCEPTIONS.get(lang, [])
@@ -192,28 +196,32 @@ CSS = '''
     color: white;
     padding: 10px;
 }
+
 .match { 
     background-color: white;
     padding: 10px;
     border: 1px solid #0974d7;
     color: black;
 }
+
 .pair {
     display: flex;
     width: 100%;
-    font-family: Consolas,Bitstream Vera Sans Mono,Courier New,Courier,monospace;
+    font-family: Consolas, Bitstream Vera Sans Mono, Courier New, Courier, monospace;
     font-size: 1em;
 }
+
 .example { 
     padding: 10px;
     margin: 10px;
     border: 1px solid #ccc;
 }
+
 .examples {
     display: flex;
 }
 
- a {
+a {
     text-decoration: none;
     color: inherit;
 }
@@ -221,10 +229,12 @@ CSS = '''
 pre { 
     margin: 0;
 }
+
 .example-category {
     width: fit-content;
     border-top: 1px solid #ddd;
 }
+
 .notimplemented {
     background-color: yellow;
 }
