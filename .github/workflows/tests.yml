@@ -146,7 +146,7 @@ jobs:
           python3 -m semgrep --version
           export PATH=/github/home/.local/bin:$PATH
 
-          python3 semgrep/tests/performance/test_ci_perf.py > semgrep/baseline_timing.txt
+          python3 scripts/calculate_ci_perf.py > semgrep/baseline_timing.txt
           cat semgrep/baseline_timing.txt
           pip3 uninstall -y semgrep
       - name: Download Artifact
@@ -169,7 +169,7 @@ jobs:
           pipenv run semgrep --version
           pipenv run python -m semgrep --version
           pipenv run semgrep-core -version
-          pipenv run python3 tests/performance/test_ci_perf.py > timing.txt
+          pipenv run python3 scripts/calculate_ci_perf.py > timing.txt
           cat timing.txt
       # - name: Compare timing infos
       #   run: |
