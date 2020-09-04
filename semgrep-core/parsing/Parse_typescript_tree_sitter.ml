@@ -142,7 +142,13 @@ and nested_identifier (env : env) ((v1, v2, v3) : CST.nested_identifier) =
 
 let concat_nested_identifier env (idents : ident list) : ident =
   let str = idents |> List.map fst |> String.concat "." in
-  str, H.combine_infos env (idents |> List.map snd)
+  let tokens = List.map snd idents in
+  let first_token =
+    match tokens with
+    | [] -> assert false
+    | x :: _ -> x
+  in
+  str, H.combine_infos env first_token tokens
 
 (* TODO: 'require(...)' to AST?
 
@@ -727,7 +733,7 @@ and constructable_expression (env : env) (x : CST.constructable_expression) : ex
         | Some tok -> [JS.token env tok] (* pattern [a-z]+ *)
         | None -> [])
       in
-      let tok = H.combine_infos env ([v1; t; v3] @ v4) in
+      let tok = H.combine_infos env v1 ([v1; t; v3] @ v4) in
       Regexp (s, tok)
   | `True tok -> Bool (true, JS.token env tok) (* "true" *)
   | `False tok -> Bool (false, JS.token env tok) (* "false" *)
@@ -810,7 +816,7 @@ and constructable_expression (env : env) (x : CST.constructable_expression) : ex
       let v1 = JS.token env v1 (* "new" *) in
       let v2 = JS.token env v2 (* "." *) in
       let v3 = JS.token env v3 (* "target" *) in
-      let t = H.combine_infos env [v1;v2;v3] in
+      let t = H.combine_infos env v1 [v1;v2;v3] in
       IdSpecial (NewTarget, t)
   | `New_exp (v1, v2, v3, v4) ->
       let v1 = JS.token env v1 (* "new" *) in
