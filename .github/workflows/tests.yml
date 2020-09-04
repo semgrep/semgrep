@@ -143,10 +143,11 @@ jobs:
           pip3 install semgrep==0.17.0
           semgrep --version
           semgrep-core -version
+          python3 -m semgrep --version
           export PATH=/github/home/.local/bin:$PATH
-          # cd semgrep
-          python3 semgrep/tests/performance/test_ci_perf.py > baseline_timing.txt
-          cat baseline_timing.txt
+
+          python3 semgrep/tests/performance/test_ci_perf.py > semgrep/baseline_timing.txt
+          cat semgrep/baseline_timing.txt
           pip3 uninstall -y semgrep
       - name: Download Artifact
         uses: actions/download-artifact@v1
@@ -166,6 +167,7 @@ jobs:
         run: |
           cd semgrep
           pipenv run semgrep --version
+          pipenv run python -m semgrep --version
           pipenv run semgrep-core -version
           pipenv run python3 tests/performance/test_ci_perf.py > timing.txt
           cat timing.txt
