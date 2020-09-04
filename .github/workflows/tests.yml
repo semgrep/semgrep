@@ -169,8 +169,8 @@ jobs:
           pipenv run semgrep --version
           pipenv run python -m semgrep --version
           pipenv run semgrep-core -version
-          pipenv run python3 scripts/calculate_ci_perf.py > timing.txt
+          pipenv run python3 ../scripts/calculate_ci_perf.py > timing.txt
           cat timing.txt
-      # - name: Compare timing infos
-      #   run: |
-      #     .github/compare_perf_timing.py
+      - name: Compare timing infos
+        run: |
+          python scripts/compare_perf.py semgrep/baseline_timing.txt semgrep/timing.txt
