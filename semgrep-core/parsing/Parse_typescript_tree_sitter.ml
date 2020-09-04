@@ -2373,23 +2373,28 @@ let program (env : env) ((v1, v2) : CST.program) : program =
 (* Entry point *)
 (*****************************************************************************)
 let parse file =
+  let debug = false in
   let ast =
     Parallel.backtrace_when_exn := false;
     Parallel.invoke Tree_sitter_typescript.Parse.file file ()
   in
   let env = { H.file; conv = H.line_col_to_pos file } in
 
+  if debug then
+    CST.dump_tree ast;
+
   try
     program env ast
   with
     Not_implemented as exn ->
-      (* This debugging output is not JSON and breaks core output
-       *
-       * let s = Printexc.get_backtrace () in
-       * pr2 "Some constructs are not handled yet";
-       * pr2 "CST was:";
-       * CST.dump_tree ast;
-       * pr2 "Original backtrace:";
-       * pr2 s;
-       *)
+      if debug then (
+        (* This debugging output is not JSON and breaks core output *)
+
+        let s = Printexc.get_backtrace () in
+        pr2 "Some constructs are not handled yet";
+        pr2 "CST was:";
+        CST.dump_tree ast;
+        pr2 "Original backtrace:";
+        pr2 s;
+      );
       failwith "not implemented"
