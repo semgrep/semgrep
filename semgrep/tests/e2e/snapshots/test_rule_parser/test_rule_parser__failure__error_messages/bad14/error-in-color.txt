@@ -12,7 +12,6 @@
 [94m11 | [39m    # Can't use pattern in taint
 [94m12 | [39m    pattern: $X == $X
 
-[31m{'anyOf': [{'required': ['pattern']}, {'required': ['patterns']}, {'required': ['pattern-either']}, {'required': ['pattern-regex']}]} is not allowed for {'id': 'tainty', 'message': 'Hi', 'languages': ['python'], 'severity': 'WARNING', 'mode': 'taint', 'pattern-sinks': ['$X'], 'pattern-sources': ['$Y'], 'pattern': '$X == $X'}
-{'anyOf': [{'required': ['pattern-sinks']}, {'required': ['pattern-sources']}, {'required': ['pattern-sanitizers']}]} is not allowed for {'id': 'tainty', 'message': 'Hi', 'languages': ['python'], 'severity': 'WARNING', 'mode': 'taint', 'pattern-sinks': ['$X'], 'pattern-sources': ['$Y'], 'pattern': '$X == $X'}[39m
+[31mOne of these properties may be invalid: 'pattern', 'pattern-sinks', 'pattern-sources'[39m
 
 run with --strict and there were 1 errors loading configs

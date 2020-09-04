@@ -7,6 +7,6 @@
 [94m5 | [39m    languages: [python]
 [94m6 | [39m    severity: WARNING
 
-[31mAt least one of the following required properties is missing: 'pattern', 'pattern-either', 'pattern-regex', 'patterns'[39m
+[31mOne of these properties is missing: 'pattern', 'pattern-either', 'pattern-regex', 'patterns'[39m
 
 run with --strict and there were 1 errors loading configs

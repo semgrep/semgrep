@@ -3,7 +3,7 @@
     {
       "code": 4,
       "level": "error",
-      "long_msg": "At least one of the following required properties is missing: 'pattern', 'pattern-either', 'pattern-regex', 'patterns'",
+      "long_msg": "One of these properties is missing: 'pattern', 'pattern-either', 'pattern-regex', 'patterns'",
       "short_msg": "Invalid rule schema",
       "spans": [
         {

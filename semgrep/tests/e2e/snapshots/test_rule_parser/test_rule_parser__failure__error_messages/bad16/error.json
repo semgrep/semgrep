@@ -3,7 +3,7 @@
     {
       "code": 4,
       "level": "error",
-      "long_msg": "One of these properties may be invalid: 'patterns'\nOne of these properties is missing: 'mode', 'severity'",
+      "long_msg": "One of these properties may be invalid: 'pattern'\nOne of these properties is missing: 'languages', 'mode'",
       "short_msg": "Invalid rule schema",
       "spans": [
         {
@@ -11,13 +11,13 @@
           "context_start": null,
           "end": {
             "col": 1,
-            "line": 15
+            "line": 6
           },
-          "file": "rules/syntax/missing-field.yaml",
-          "source_hash": "52c8055ff5d4555128113f2ad1b4f03c1227c339ee9b6992d9bbc18548d4e645",
+          "file": "rules/syntax/bad16.yaml",
+          "source_hash": "1ce0f2de3de6530b53d80ba25a34ed2b84cbb056bb75faadf85d715ce2349709",
           "start": {
-            "col": 3,
-            "line": 3
+            "col": 5,
+            "line": 2
           }
         }
       ],
