@@ -193,9 +193,24 @@ def score_output_json(
     return (score_by_checkid, expected_reported_by_check_id, num_todo)
 
 
-def confusion_matrix_to_string(confusion: List[int]) -> str:
-    tp, tn, fp, fn = confusion[0], confusion[1], confusion[2], confusion[3]
-    return f"TP: {tp}\tTN: {tn}\tFP: {fp}\tFN: {fn}"
+def generate_confusion_string(check_results):
+    confusion_tp = f"TP: {check_results['tp']}"
+    confusion_tn = f"TN: {check_results['tn']}"
+    confusion_fp = f"FP: {check_results['fp']}"
+    confusion_fn = f"FN: {check_results['fn']}"
+    return f"{confusion_tp} {confusion_tn} {confusion_fp} {confusion_fn}"
+
+
+def generate_check_output_line(check_id, check_results):
+    status = "✔" if check_results["passed"] else "✖"
+    return f"\t{status} {check_id.ljust(60)} {generate_confusion_string(check_results)}"
+
+
+def generate_expected_reported_line(check_results):
+    return "\t" + "\t\n".join(
+        f"test: {test_file}, expected: {sorted(expected_reported[0])}, reported: {sorted(expected_reported[1])}"
+        for test_file, expected_reported in check_results["expected_reported"].items()
+    )
 
 
 def invoke_semgrep_multi(filename, *args, **kwargs):
@@ -260,60 +275,61 @@ def generate_file_pairs(
         if strict:
             sys.exit(1)
 
-    tested = [
-        (
-            filename,
-            score_output_json(output, config_test_filenames[filename], ignore_todo),
+    tested = {
+        filename: score_output_json(
+            output, config_test_filenames[filename], ignore_todo
         )
         for filename, _, output in config_without_errors
-    ]
+    }
+
+    test_results = {
+        filename: {
+            "todo": todo,
+            "checks": {
+                check_id: {
+                    "tp": tp,
+                    "tn": tn,
+                    "fp": fp,
+                    "fn": fn,
+                    "passed": (fp == 0) and (fn == 0),
+                    "expected_reported": expected_reported[check_id],
+                }
+                for check_id, (tp, tn, fp, fn) in output.items()
+            },
+        }
+        for filename, (output, expected_reported, todo) in tested.items()
+    }
+
+    # Place failed tests at the bottom for higher visibility
+    passed_results_first = collections.OrderedDict(
+        sorted(
+            test_results.items(),
+            key=lambda t: any(not c["passed"] for c in t[1]["checks"].values()),
+        )
+    )
 
     print(f"{len(tested)} yaml files tested")
     print("check id scoring:")
     print("=" * 80)
-    failed_tests = []
-    total_confusion = [0, 0, 0, 0]
 
-    for (filename, (output, expected_reported_by_check_id, num_todo)) in tested:
-        print(filename)
-        if not len(output.items()):
-            print(f"  no checks fired (TODOs: {num_todo})")
-        for check_id, (tp, tn, fp, fn) in output.items():
-            good = (fp == 0) and (fn == 0)
-            if not good:
-                failed_tests.append(
-                    (filename, check_id, expected_reported_by_check_id[check_id])
-                )
-            status = "✔" if good else "✖"
-            todo_text = f"(TODOs: {num_todo})" if num_todo > 0 else ""
-            confusion = [tp, tn, fp, fn]
-            # add to the total confusion matrix
-            total_confusion = [
-                total_confusion[i] + confusion[i] for i in range(len(confusion))
-            ]
-            print(
-                f"  {status} - {check_id.ljust(60)}{confusion_matrix_to_string(confusion)} {todo_text}"
-            )
+    totals = collections.defaultdict(int)
+    any_failures = False
+
+    for filename, results in passed_results_first.items():
+        print(f"(TODO: {results['todo']}) {filename}")
+        for check_id, check_results in results["checks"].items():
+            print(generate_check_output_line(check_id, check_results))
+            if not check_results["passed"]:
+                print(generate_expected_reported_line(check_results))
+                any_failures = True
+            for confusion in ["tp", "tn", "fp", "fn"]:
+                totals[confusion] += check_results[confusion]
 
     print("=" * 80)
-    print(f"final confusion matrix: {confusion_matrix_to_string(total_confusion)}")
+    print(f"final confusion matrix: {generate_confusion_string(totals)}")
     print("=" * 80)
 
-    if len(failed_tests) > 0:
-        print(f"failing rule files: ")
-        for (filename, check_id, failed_test_files) in failed_tests:
-            print(f" ✖ FAILED rule file: {filename} check: {check_id}")
-            for test_file_path, (expected, reported) in failed_test_files.items():
-                print(
-                    f"              in test: {test_file_path}, expected lines: {sorted(expected)} != reported: {sorted(reported)}"
-                )
-        print(
-            f"{len(failed_tests)} checks failed tests (run with verbose flag for more details)"
-        )
-        sys.exit(1)
-    else:
-        print("all tests passed")
-        sys.exit(0)
+    sys.exit(int(any_failures))
 
 
 def test_main(args: argparse.Namespace) -> None:
