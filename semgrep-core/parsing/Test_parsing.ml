@@ -101,3 +101,24 @@ let test_parse_lang verbose lang get_final_files xs =
 
   Parse_info.print_parsing_stat_list !stat_list;
   ()
+
+let diff_pfff_tree_sitter xs =
+  pr2 "NOTE: consider using -full_token_info to get also diff on tokens";
+  xs |> List.iter (fun file ->
+  match Lang.langs_of_filename file with
+  | [lang] ->
+    let ast1 = Parse_generic.parse_with_lang lang file in
+    let ast2 =
+        Common.save_excursion Flag_semgrep.tree_sitter_only true (fun () ->
+            Parse_code.just_parse_with_lang lang file
+        ) in
+    let s1 = AST_generic.show_program ast1 in
+    let s2 = AST_generic.show_program ast2 in
+    Common2.with_tmp_file ~str:s1 ~ext:"x" (fun file1 ->
+    Common2.with_tmp_file ~str:s2 ~ext:"x" (fun file2 ->
+      let xs = Common2.unix_diff file1 file2 in
+      xs |> List.iter pr2
+    ))
+
+  | _ -> failwith (spf "can't detect single language for %s" file)
+  )
