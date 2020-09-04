@@ -15,6 +15,7 @@ from typing import IO
 from typing import Iterator
 from typing import List
 from typing import Optional
+from typing import Set
 from typing import Tuple
 
 logger = logging.getLogger(__name__)
@@ -313,12 +314,13 @@ class CoreRunner:
         target_manager: TargetManager,
         cache_dir: str,
         max_timeout_files: List[Path],
-    ) -> Tuple[List[RuleMatch], List[Dict[str, Any]], List[SemgrepError]]:
+    ) -> Tuple[List[RuleMatch], List[Dict[str, Any]], List[SemgrepError], Set[Path]]:
         """
             Run all rules on targets and return list of all places that match patterns, ... todo errors
         """
         outputs: List[PatternMatch] = []  # multiple invocations per language
         errors: List[SemgrepError] = []
+        all_targets: Set[Path] = set()
 
         for language, all_patterns_for_language in self._group_patterns_by_language(
             rule
@@ -326,6 +328,7 @@ class CoreRunner:
 
             targets = self.get_files_for_language(language, rule, target_manager)
             targets = [target for target in targets if target not in max_timeout_files]
+            all_targets = all_targets.union(targets)
             if not targets:
                 continue
 
@@ -412,7 +415,7 @@ class CoreRunner:
         findings = dedup_output(findings)
 
         # debugging steps are only tracked for a single file, just overwrite
-        return findings, debugging_steps, errors
+        return findings, debugging_steps, errors, all_targets
 
     def handle_regex_patterns(
         self,
@@ -463,12 +466,14 @@ class CoreRunner:
         Dict[Rule, List[RuleMatch]],
         Dict[Rule, List[Dict[str, Any]]],
         List[SemgrepError],
+        int,
     ]:
         findings_by_rule: Dict[Rule, List[RuleMatch]] = {}
         debugging_steps_by_rule: Dict[Rule, List[Dict[str, Any]]] = {}
         all_errors: List[SemgrepError] = []
         file_timeouts: Dict[Path, int] = collections.defaultdict(lambda: 0)
         max_timeout_files: List[Path] = []
+        all_targets: Set[Path] = set()
 
         # cf. for bar_format: https://tqdm.github.io/docs/tqdm/
         with tempfile.TemporaryDirectory() as semgrep_core_ast_cache_dir:
@@ -476,9 +481,10 @@ class CoreRunner:
                 rules, bar_format="{l_bar}{bar}|{n_fmt}/{total_fmt}"
             ):
                 debug_tqdm_write(f"Running rule {rule._raw.get('id')}")
-                rule_matches, debugging_steps, errors = self._run_rule(
+                rule_matches, debugging_steps, errors, rule_targets = self._run_rule(
                     rule, target_manager, semgrep_core_ast_cache_dir, max_timeout_files
                 )
+                all_targets = all_targets.union(rule_targets)
                 findings_by_rule[rule] = rule_matches
                 debugging_steps_by_rule[rule] = debugging_steps
                 all_errors.extend(errors)
@@ -492,7 +498,7 @@ class CoreRunner:
                             max_timeout_files.append(err.path)
 
         all_errors = dedup_errors(all_errors)
-        return findings_by_rule, debugging_steps_by_rule, all_errors
+        return findings_by_rule, debugging_steps_by_rule, all_errors, len(all_targets)
 
     def invoke_semgrep(
         self, target_manager: TargetManager, rules: List[Rule]
@@ -506,11 +512,11 @@ class CoreRunner:
         """
         start = datetime.now()
 
-        findings_by_rule, debug_steps_by_rule, errors = self._run_rules(
+        findings_by_rule, debug_steps_by_rule, errors, num_targets = self._run_rules(
             rules, target_manager
         )
 
-        logger.debug(f"semgrep ran in {datetime.now() - start}")
+        logger.debug(f"semgrep ran in {datetime.now() - start} on {num_targets} files")
 
         return findings_by_rule, debug_steps_by_rule, errors
 
