@@ -4,11 +4,8 @@ RUN test -n "$version"
 RUN apt-get update && apt-get install -y curl sudo ca-certificates --no-install-recommends \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/*
-COPY ubuntu-generic.sh ./install.sh
-RUN chmod +x install.sh
-COPY validate-install.sh ./validate-install.sh
-RUN chmod +x validate-install.sh
+COPY ubuntu-generic.sh ./ubuntu-generic.sh
+RUN chmod +x ubuntu-generic.sh
 
 ENV VERSION ${version}
-RUN ./install.sh
-RUN ./validate-install.sh
+RUN ./ubuntu-generic.sh
