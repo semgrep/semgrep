@@ -911,6 +911,8 @@ let all_actions () = [
   Common.mk_action_1_arg Test_parsing.dump_tree_sitter_cst;
   "-dump_ast_pfff", " <file>",
   Common.mk_action_1_arg Test_parsing.dump_ast_pfff;
+  "-diff_pfff_tree_sitter", " <file>",
+  Common.mk_action_n_arg Test_parsing.diff_pfff_tree_sitter;
   "-datalog_experiment", " <file> <dir>",
   Common.mk_action_2_arg Datalog_experiment.gen_facts;
   "-dump_il", " <file>",

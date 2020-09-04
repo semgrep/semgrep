@@ -5,3 +5,4 @@ val test_parse_lang: bool -> string ->
 
 val dump_tree_sitter_cst: Common.filename -> unit
 val dump_ast_pfff: Common.filename -> unit
+val diff_pfff_tree_sitter: Common.filename list -> unit
