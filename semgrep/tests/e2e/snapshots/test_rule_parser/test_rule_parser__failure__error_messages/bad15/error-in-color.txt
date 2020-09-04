@@ -10,9 +10,6 @@
 [94m8  | [39m    patterns:
 [94m9  | [39m      - pattern: $X != $X
 
-[31m{'anyOf': [{'required': ['pattern']}, {'required': ['pattern-either']}, {'required': ['pattern-regex']}]} is not allowed for {'id': 'too many', 'message': 'Hi', 'languages': ['python'], 'severity': 'WARNING', 'pattern': '$X == $X', 'patterns': [{'pattern': '$X != $X'}]}
-{'anyOf': [{'required': ['pattern']}, {'required': ['patterns']}, {'required': ['pattern-either']}]} is not allowed for {'id': 'too many', 'message': 'Hi', 'languages': ['python'], 'severity': 'WARNING', 'pattern': '$X == $X', 'patterns': [{'pattern': '$X != $X'}]}
-{'anyOf': [{'required': ['pattern']}, {'required': ['patterns']}, {'required': ['pattern-regex']}]} is not allowed for {'id': 'too many', 'message': 'Hi', 'languages': ['python'], 'severity': 'WARNING', 'pattern': '$X == $X', 'patterns': [{'pattern': '$X != $X'}]}
-{'anyOf': [{'required': ['patterns']}, {'required': ['pattern-either']}, {'required': ['pattern-regex']}]} is not allowed for {'id': 'too many', 'message': 'Hi', 'languages': ['python'], 'severity': 'WARNING', 'pattern': '$X == $X', 'patterns': [{'pattern': '$X != $X'}]}[39m
+[31mOne of these properties may be invalid: 'pattern', 'patterns'[39m
 
 run with --strict and there were 1 errors loading configs

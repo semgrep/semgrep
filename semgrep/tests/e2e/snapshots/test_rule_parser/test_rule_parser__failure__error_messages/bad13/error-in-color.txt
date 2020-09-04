@@ -8,6 +8,6 @@
 [94m7 | [39m    # Can't use taint
 [94m8 | [39m    pattern: $X == $X
 
-[31m{'anyOf': [{'required': ['pattern']}, {'required': ['patterns']}, {'required': ['pattern-either']}, {'required': ['pattern-regex']}]} is not allowed for {'id': 'tainty', 'message': 'Hi', 'languages': ['python'], 'severity': 'WARNING', 'mode': 'taint', 'pattern': '$X == $X'}[39m
+[31mOne of these properties may be invalid: 'pattern'[39m
 
 run with --strict and there were 1 errors loading configs

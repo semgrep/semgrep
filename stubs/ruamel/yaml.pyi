@@ -11,6 +11,9 @@ class RoundTripConstructor:
     def construct_object(self, node: Node, deep: bool = False) -> Any:
         ...
 
+def safe_load(stream: Any) -> Any:
+    ...
+
 class YAML:
     Constructor: Any
     representer: Any
@@ -19,6 +22,9 @@ class YAML:
         ...
 
     def load(self, stream: Any) -> Any:
+        ...
+
+    def safe_load(self, stream: Any) -> Any:
         ...
 
     def dump(self, obj: Any, stream: Any) -> None:
