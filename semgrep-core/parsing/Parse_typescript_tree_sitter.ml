@@ -692,10 +692,10 @@ and subscript_expression (env : env) ((v1, v2, v3, v4) : CST.subscript_expressio
     | `Super tok -> JS.super env tok (* "super" *)
     )
   in
-  let _v2 = JS.token env v2 (* "[" *) in
+  let v2 = JS.token env v2 (* "[" *) in
   let v3 = expressions env v3 in
-  let _v4 = JS.token env v4 (* "]" *) in
-  ArrAccess (v1, v3)
+  let v4 = JS.token env v4 (* "]" *) in
+  ArrAccess (v1, (v2, v3, v4))
 
 and initializer_ (env : env) ((v1, v2) : CST.initializer_) =
   let _v1 = JS.token env v1 (* "=" *) in
