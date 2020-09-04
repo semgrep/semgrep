@@ -9,8 +9,6 @@ from typing import List
 from typing import Optional
 from typing import Union
 
-from semgrep import util
-
 
 @contextlib.contextmanager
 def chdir(dirname=None):
@@ -134,7 +132,8 @@ def test_perf():
             njsscan_rules_path,
             str(target_path),
         ]
-        args.extend(util.flatten(["--exclude", ex] for ex in excludes))
+        for ex in excludes:
+            args.extend(["--exclude", ex])
 
         start = time.time()
         subprocess.check_output(args)
