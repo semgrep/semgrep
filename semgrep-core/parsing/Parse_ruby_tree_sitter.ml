@@ -744,7 +744,7 @@ and primary (x : CST.primary) : AST.expr =
         | None -> None)
       in
       let _v5 = token2 v5 in
-      Literal (Atom (v3 |> List.flatten, v1))
+      Atom (AtomFromString (v3 |> List.flatten, v1))
   | `Hash (v1, v2, v3) ->
       let v1 = token2 v1 in
       let v2 =
@@ -787,7 +787,7 @@ and primary (x : CST.primary) : AST.expr =
       in
       let _v3 = token2 v3 in
       Literal (String (Tick v2, v1)) (* Tick? *)
-  | `Symb x -> Literal (Atom (symbol x))
+  | `Symb x -> Atom (symbol x)
   | `Int tok -> Literal (Num (str tok))
   | `Float tok -> Literal (Float (str tok))
   | `Comp tok -> Literal (Complex (str tok))
@@ -1611,7 +1611,7 @@ and interpolation ((v1, v2, v3) : CST.interpolation) : AST.expr AST.bracket =
   let rb = token2 v3 in
   (lb, v2, rb)
 
-and string_ ((v1, v2, v3) : CST.string_) : AST.string_contents list bracket =
+and string_ ((v1, v2, v3) : CST.string_) : AST.interp list bracket =
   let v1 = token2 v1 in
   let v2 =
     (match v2 with
@@ -1623,8 +1623,8 @@ and string_ ((v1, v2, v3) : CST.string_) : AST.string_contents list bracket =
 
 and symbol (x : CST.symbol) : AST.atom =
   (match x with
-  | `Simple_symb tok -> let (s, t) = str tok in
-        ([StrChars s], t)
+  | `Simple_symb tok -> let x = str tok in
+        AtomSimple x
   | `Symb_start_opt_lit_content_str_end (v1, v2, v3) ->
       let v1 = token2 v1 in
       let v2 =
@@ -1633,10 +1633,10 @@ and symbol (x : CST.symbol) : AST.atom =
         | None -> [])
       in
       let _v3 = token2 v3 in
-      (v2, v1)
+      AtomFromString (v2, v1)
   )
 
-and literal_contents (xs : CST.literal_contents) : AST.string_contents list =
+and literal_contents (xs : CST.literal_contents) : AST.interp list =
   List.map (fun x ->
     (match x with
     | `Str_content tok ->
