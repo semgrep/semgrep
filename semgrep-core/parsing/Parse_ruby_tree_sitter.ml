@@ -706,7 +706,7 @@ and primary (x : CST.primary) : AST.expr =
       Array (lb, v2, rb)
   (* ?? *)
   | `Str_array (v1, v2, v3, v4, v5) ->
-      let _v1 = token2 v1 (* string_array_start *) in
+      let v1 = token2 v1 (* string_array_start *) in
       let _v2 =
         (match v2 with
         | Some tok -> Some (token2 tok) (* pattern \s+ *)
@@ -723,8 +723,8 @@ and primary (x : CST.primary) : AST.expr =
         | Some tok -> Some (token2 tok)
         | None -> None)
       in
-      let _v5 = token2 v5 (* string_end *) in
-      Literal (String (Double (v3 |> List.flatten))) (* Double? *)
+      let v5 = token2 v5 (* string_end *) in
+      Literal (String (Double (v1, v3 |> List.flatten, v5)))
   | `Symb_array (v1, v2, v3, v4, v5) ->
       let v1 = token2 v1 in
       let _v2 =
@@ -743,8 +743,8 @@ and primary (x : CST.primary) : AST.expr =
         | Some tok -> Some (token2 tok)
         | None -> None)
       in
-      let _v5 = token2 v5 in
-      Atom (AtomFromString (v3 |> List.flatten, v1))
+      let v5 = token2 v5 in
+      Atom (AtomFromString (v1, v3 |> List.flatten, v5))
   | `Hash (v1, v2, v3) ->
       let v1 = token2 v1 in
       let v2 =
@@ -779,14 +779,14 @@ and primary (x : CST.primary) : AST.expr =
       let v3 = token2 v3 in
       Hash (true, (v1, v2, v3))
   | `Subs (v1, v2, v3) ->
-      let _v1 = token2 v1 in
+      let v1 = token2 v1 in
       let v2 =
         (match v2 with
         | Some x -> literal_contents x
         | None -> [])
       in
-      let _v3 = token2 v3 in
-      Literal (String (Tick v2)) (* Tick? *)
+      let v3 = token2 v3 in
+      Literal (String (Tick (v1, v2, v3)))
   | `Symb x -> Atom (symbol x)
   | `Int tok -> Literal (Num (str tok))
   | `Float tok -> Literal (Float (str tok))
@@ -796,18 +796,18 @@ and primary (x : CST.primary) : AST.expr =
       let v2 = token2 v2 in
       Literal (Rational (v1, v2))
   | `Str x ->
-        let (_t1, xs, _t2) = string_ x in
-        Literal (String (Double xs))
+        Literal (String (Double (string_ x)))
   | `Char tok ->
         Literal (Char (str tok))
+  (* ??? *)
   | `Chai_str (v1, v2) ->
-      let (_t1, v1, _) = string_ v1 in
+      let (l, v1, r) = string_ v1 in
       let v2 = List.map (fun x ->
               let (_lp, x, _) = string_ x in
               x
         ) v2 |> List.flatten
         in
-      Literal (String (Double (v1 @ v2)))
+      Literal (String (Double (l, v1 @ v2, r)))
 
   | `Regex (v1, v2, v3) ->
       let v1 = token2 v1 in
@@ -1632,8 +1632,8 @@ and symbol (x : CST.symbol) : AST.atom =
         | Some x -> literal_contents x
         | None -> [])
       in
-      let _v3 = token2 v3 in
-      AtomFromString (v2, v1)
+      let v3 = token2 v3 in
+      AtomFromString (v1, v2, v3)
   )
 
 and literal_contents (xs : CST.literal_contents) : AST.interp list =
@@ -1664,9 +1664,7 @@ and pair (x : CST.pair) =
         | `Id_hash_key tok -> Id (str tok, ID_Lowercase)
         | `Id tok -> Id (str tok, ID_Lowercase)
         | `Cst tok -> Id (str tok, ID_Uppercase)
-        | `Str x ->
-        let (_t1, xs, _t2) = string_ x in
-        Literal (String (Double xs))
+        | `Str x ->  Literal (String (Double (string_ x)))
         )
       in
       let v2 = token2 v2 in (* : *)
