@@ -706,7 +706,7 @@ and primary (x : CST.primary) : AST.expr =
       Array (lb, v2, rb)
   (* ?? *)
   | `Str_array (v1, v2, v3, v4, v5) ->
-      let v1 = token2 v1 (* string_array_start *) in
+      let _v1 = token2 v1 (* string_array_start *) in
       let _v2 =
         (match v2 with
         | Some tok -> Some (token2 tok) (* pattern \s+ *)
@@ -724,7 +724,7 @@ and primary (x : CST.primary) : AST.expr =
         | None -> None)
       in
       let _v5 = token2 v5 (* string_end *) in
-      Literal (String (Double (v3 |> List.flatten), v1)) (* Double? *)
+      Literal (String (Double (v3 |> List.flatten))) (* Double? *)
   | `Symb_array (v1, v2, v3, v4, v5) ->
       let v1 = token2 v1 in
       let _v2 =
@@ -779,14 +779,14 @@ and primary (x : CST.primary) : AST.expr =
       let v3 = token2 v3 in
       Hash (true, (v1, v2, v3))
   | `Subs (v1, v2, v3) ->
-      let v1 = token2 v1 in
+      let _v1 = token2 v1 in
       let v2 =
         (match v2 with
         | Some x -> literal_contents x
         | None -> [])
       in
       let _v3 = token2 v3 in
-      Literal (String (Tick v2, v1)) (* Tick? *)
+      Literal (String (Tick v2)) (* Tick? *)
   | `Symb x -> Atom (symbol x)
   | `Int tok -> Literal (Num (str tok))
   | `Float tok -> Literal (Float (str tok))
@@ -796,18 +796,18 @@ and primary (x : CST.primary) : AST.expr =
       let v2 = token2 v2 in
       Literal (Rational (v1, v2))
   | `Str x ->
-        let (t1, xs, _t2) = string_ x in
-        Literal (String (Double xs, t1))
+        let (_t1, xs, _t2) = string_ x in
+        Literal (String (Double xs))
   | `Char tok ->
         Literal (Char (str tok))
   | `Chai_str (v1, v2) ->
-      let (t1, v1, _) = string_ v1 in
+      let (_t1, v1, _) = string_ v1 in
       let v2 = List.map (fun x ->
               let (_lp, x, _) = string_ x in
               x
         ) v2 |> List.flatten
         in
-      Literal (String (Double (v1 @ v2), t1))
+      Literal (String (Double (v1 @ v2)))
 
   | `Regex (v1, v2, v3) ->
       let v1 = token2 v1 in
@@ -1082,8 +1082,8 @@ and primary (x : CST.primary) : AST.expr =
       in
       Unary (v1, v2)
   | `Here_begin tok ->
-    let (s, tok) = str tok in
-    Literal (String (Single s, tok))
+    let x = str tok in
+    Literal (String (Single x))
   )
 
 and parenthesized_statements ((v1, v2, v3) : CST.parenthesized_statements) =
@@ -1665,8 +1665,8 @@ and pair (x : CST.pair) =
         | `Id tok -> Id (str tok, ID_Lowercase)
         | `Cst tok -> Id (str tok, ID_Uppercase)
         | `Str x ->
-        let (t1, xs, _t2) = string_ x in
-        Literal (String (Double xs, t1))
+        let (_t1, xs, _t2) = string_ x in
+        Literal (String (Double xs))
         )
       in
       let v2 = token2 v2 in (* : *)
