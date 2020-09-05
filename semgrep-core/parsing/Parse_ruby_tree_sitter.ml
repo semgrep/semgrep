@@ -1640,14 +1640,14 @@ and literal_contents (xs : CST.literal_contents) : AST.interp list =
   List.map (fun x ->
     (match x with
     | `Str_content tok ->
-            let (str, _t) = str tok in
-            StrChars str
+            let x = str tok in
+            StrChars x
     | `Interp x ->
             let (_lb, e, _rb) = interpolation x in
             StrExpr e
     | `Esc_seq tok ->
-            let (str, _t) = str tok in
-            StrChars str
+            let x = str tok in
+            StrChars x
     )
   ) xs
 
