@@ -17,12 +17,39 @@ open Ast_js
    will have to be added to the AST. *)
 type type_
 
+(*
+   Development notes
+
+   - Try to change the structure of this file as little as possible,
+     since it's derived from generated code and we'll have to merge
+     updates as the grammar changes.
+   - Typescript is a superset of javascript.
+   - We started by ignoring typescript-specific constructs and mapping
+     the rest to a javascript AST.
+   - The 'todo' function raises an exception. Make sure it can't be called,
+     for example by writing 'let _v () = todo ()' instead of
+     'let _v = todo ()'.
+   - Alternatively, prefix the containing function with 'todo_' so we know it
+     should not be called for the time being. Remove the 'todo_' prefix
+     once it's safe to call. It's ok if returns an empty result, as long
+     as it doesn't raise an exception.
+*)
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
 type env = H.env
 let fb = G.fake_bracket
+
+exception TODO
+
+(*
+   This is a 'todo' that was already reviewed and should not be called by the
+   current implementation.
+*)
+let todo (_env : env) _ =
+  raise TODO
 
 (*****************************************************************************)
 (* Boilerplate converter *)
@@ -38,15 +65,6 @@ let fb = G.fake_bracket
 module JS_CST = Parse_javascript_tree_sitter.CST
 module JS = Parse_javascript_tree_sitter
 module CST = Tree_sitter_typescript.CST
-
-exception Not_implemented
-
-(*
-   This is a 'todo' that was already reviewed and should not be called by the
-   current implementation.
-*)
-let todo (env : env) _ =
-  raise Not_implemented
 
 let accessibility_modifier (env : env) (x : CST.accessibility_modifier) =
   (match x with
@@ -167,7 +185,7 @@ let import_require_clause (env : env) ((v1, v2, v3, v4, v5, v6) : CST.import_req
   [] (* TODO *)
 
 (* TODO types *)
-let literal_type (env : env) (x : CST.literal_type) =
+let todo_literal_type (env : env) (x : CST.literal_type) =
   (match x with
   | `Num_ (v1, v2) ->
       let v1 =
@@ -185,16 +203,16 @@ let literal_type (env : env) (x : CST.literal_type) =
   )
 
 (* TODO types *)
-let nested_type_identifier (env : env) ((v1, v2, v3) : CST.nested_type_identifier) =
+let todo_nested_type_identifier (env : env) ((v1, v2, v3) : CST.nested_type_identifier) =
   let v1 = anon_choice_type_id env v1 in
   let v2 = JS.token env v2 (* "." *) in
   let v3 = JS.token env v3 (* identifier *) in
   todo env (v1, v2, v3)
 
-let anon_choice_type_id2 (env : env) (x : CST.anon_choice_type_id2) =
+let todo_anon_choice_type_id2 (env : env) (x : CST.anon_choice_type_id2) =
   (match x with
   | `Id tok -> JS.token env tok (* identifier *)
-  | `Nested_type_id x -> nested_type_identifier env x
+  | `Nested_type_id x -> todo_nested_type_identifier env x
   )
 
 let anon_choice_rese_id (env : env) (x : CST.anon_choice_rese_id) : ident =
@@ -350,19 +368,19 @@ and function_ (env : env) ((v1, v2, v3, v4, v5) : CST.function_) : fun_ * ident 
   { f_props = v1; f_params = v4; f_body = v5 }, v3
 
 (* TODO types *)
-and generic_type (env : env) ((v1, v2) : CST.generic_type) =
-  let v1 = anon_choice_type_id2 env v1 in
-  let v2 = type_arguments env v2 in
+and todo_generic_type (env : env) ((v1, v2) : CST.generic_type) =
+  let v1 = todo_anon_choice_type_id2 env v1 in
+  let v2 = todo_type_arguments env v2 in
   todo env (v1, v2)
 
 (* TODO types: 'implements' *)
-and implements_clause (env : env) ((v1, v2, v3) : CST.implements_clause) =
+and todo_implements_clause (env : env) ((v1, v2, v3) : CST.implements_clause) =
   let v1 = JS.token env v1 (* "implements" *) in
-  let v2 = type_ env v2 in
+  let v2 = todo_type_ env v2 in
   let v3 =
     List.map (fun (v1, v2) ->
       let v1 = JS.token env v1 (* "," *) in
-      let v2 = type_ env v2 in
+      let v2 = todo_type_ env v2 in
       todo env (v1, v2)
     ) v3
   in
@@ -566,13 +584,13 @@ and sequence_expression (env : env) ((v1, v2, v3) : CST.sequence_expression) =
   Apply (IdSpecial (Seq, v2), fb [v1; v3])
 
 (* TODO: types *)
-and type_arguments (env : env) ((v1, v2, v3, v4, v5) : CST.type_arguments) =
+and todo_type_arguments (env : env) ((v1, v2, v3, v4, v5) : CST.type_arguments) =
   let v1 = JS.token env v1 (* "<" *) in
-  let v2 = type_ env v2 in
+  let v2 = todo_type_ env v2 in
   let v3 =
     List.map (fun (v1, v2) ->
       let v1 = JS.token env v1 (* "," *) in
-      let v2 = type_ env v2 in
+      let v2 = todo_type_ env v2 in
       todo env (v1, v2)
     ) v3
   in
@@ -608,15 +626,15 @@ and class_body (env : env) ((v1, v2, v3) : CST.class_body) : property list brack
             (match v1 with
             | `Abst_meth_sign x ->
                 (* TODO: types *)
-                let _v () = abstract_method_signature env x in
+                let _v () = todo_abstract_method_signature env x in
                 None
             | `Index_sign x ->
                 (* TODO: types *)
-                let _v () = index_signature env x in
+                let _v () = todo_index_signature env x in
                 None
             | `Meth_sign x ->
                 (* TODO: types *)
-                let _v () = method_signature env x in
+                let _v () = todo_method_signature env x in
                 None
             | `Public_field_defi x -> Some (public_field_definition env x)
             )
@@ -635,16 +653,16 @@ and class_body (env : env) ((v1, v2, v3) : CST.class_body) : property list brack
   v1, v2, v3
 
 (* TODO: types *)
-and type_parameter (env : env) ((v1, v2, v3) : CST.type_parameter) =
+and todo_type_parameter (env : env) ((v1, v2, v3) : CST.type_parameter) =
   let v1 = JS.token env v1 (* identifier *) in
   let v2 =
     (match v2 with
-    | Some x -> constraint_ env x
+    | Some x -> todo_constraint_ env x
     | None -> todo env ())
   in
   let v3 =
     (match v3 with
-    | Some x -> default_type env x
+    | Some x -> todo_default_type env x
     | None -> todo env ())
   in
   todo env (v1, v2, v3)
@@ -788,7 +806,8 @@ and constructable_expression (env : env) (x : CST.constructable_expression) : ex
       let f = { f_props = v1@v3; f_params = v5; f_body = v6 } in
       Fun (f, v4)
   | `Class (v1, v2, v3, v4, v5, v6) ->
-      let _v1TODO = List.map (decorator env) v1 in
+      (* TODO decorators *)
+      let _v1 () = List.map (decorator env) v1 in
       let v2 = JS.token env v2 (* "class" *) in
       let v3 =
         (match v3 with
@@ -798,7 +817,7 @@ and constructable_expression (env : env) (x : CST.constructable_expression) : ex
       (* TODO types *)
       let _v4 () =
         (match v4 with
-        | Some x -> type_parameters env x
+        | Some x -> todo_type_parameters env x
         | None -> todo env ())
       in
       let v5 =
@@ -824,7 +843,7 @@ and constructable_expression (env : env) (x : CST.constructable_expression) : ex
       (* TODO types *)
       let _v3 () =
         match v3 with
-        | Some x -> Some (type_arguments env x)
+        | Some x -> Some (todo_type_arguments env x)
         | None -> None
       in
       let t1, xs, t2 =
@@ -836,7 +855,7 @@ and constructable_expression (env : env) (x : CST.constructable_expression) : ex
   )
 
 (* TODO: enum type *)
-and anon_choice_prop_name (env : env) (x : CST.anon_choice_prop_name) =
+and todo_anon_choice_prop_name (env : env) (x : CST.anon_choice_prop_name) =
   (match x with
   | `Prop_name x -> property_name env x
   | `Enum_assign (v1, v2) ->
@@ -887,7 +906,7 @@ and catch_clause (env : env) ((v1, v2, v3) : CST.catch_clause) =
   v2
 
 (* TODO: types *)
-and object_type (env : env) ((v1, v2, v3) : CST.object_type) =
+and todo_object_type (env : env) ((v1, v2, v3) : CST.object_type) =
   let v1 =
     (match v1 with
     | `LCURL tok -> JS.token env tok (* "{" *)
@@ -906,11 +925,11 @@ and object_type (env : env) ((v1, v2, v3) : CST.object_type) =
               )
           | None -> todo env ())
         in
-        let v2 = anon_choice_export_stmt env v2 in
+        let v2 = todo_anon_choice_export_stmt env v2 in
         let v3 =
           List.map (fun (v1, v2) ->
             let v1 = anon_choice_COMMA env v1 in
-            let v2 = anon_choice_export_stmt env v2 in
+            let v2 = todo_anon_choice_export_stmt env v2 in
             todo env (v1, v2)
           ) v3
         in
@@ -1023,7 +1042,7 @@ and expression (env : env) (x : CST.expression) : expr =
       let _v2 = JS.token env v2 (* "as" *) in
       let _v3 () =
         (match v3 with
-        | `Type x -> type_ env x
+        | `Type x -> todo_type_ env x
         | `Temp_str x -> todo env (template_string env x)
         )
       in
@@ -1055,7 +1074,7 @@ and expression (env : env) (x : CST.expression) : expr =
   | `Type_asse (v1, v2) ->
       (* type assertion of the form <string>someValue *)
       (* TODO: types *)
-      let _v1 () = type_arguments env v1 in
+      let _v1 () = todo_type_arguments env v1 in
       let v2 = expression env v2 in
       v2
   | `Choice_this x -> constructable_expression env x
@@ -1124,7 +1143,7 @@ and expression (env : env) (x : CST.expression) : expr =
       (* TODO: types *)
       let _v2 () =
         (match v2 with
-        | Some x -> Some (type_arguments env x)
+        | Some x -> Some (todo_type_arguments env x)
         | None -> None)
       in
       let v3 =
@@ -1167,35 +1186,35 @@ and anon_choice_paren_exp (env : env) (x : CST.anon_choice_paren_exp) =
   )
 
 (* TODO: types *)
-and primary_type (env : env) (x : CST.primary_type) =
+and todo_primary_type (env : env) (x : CST.primary_type) =
   (match x with
   | `Paren_type (v1, v2, v3) ->
       let v1 = JS.token env v1 (* "(" *) in
-      let v2 = type_ env v2 in
+      let v2 = todo_type_ env v2 in
       let v3 = JS.token env v3 (* ")" *) in
       todo env (v1, v2, v3)
   | `Pred_type x -> todo env (predefined_type env x)
   | `Id tok -> todo env (JS.token env tok) (* identifier *)
-  | `Nested_type_id x -> todo env (nested_type_identifier env x)
-  | `Gene_type x -> todo env (generic_type env x)
+  | `Nested_type_id x -> todo env (todo_nested_type_identifier env x)
+  | `Gene_type x -> todo env (todo_generic_type env x)
   | `Type_pred (v1, v2, v3) ->
       let v1 = JS.token env v1 (* identifier *) in
       let v2 = JS.token env v2 (* "is" *) in
-      let v3 = type_ env v3 in
+      let v3 = todo_type_ env v3 in
       todo env (v1, v2, v3)
-  | `Obj_type x -> todo env (object_type env x)
+  | `Obj_type x -> todo env (todo_object_type env x)
   | `Array_type (v1, v2, v3) ->
-      let v1 = primary_type env v1 in
+      let v1 = todo_primary_type env v1 in
       let v2 = JS.token env v2 (* "[" *) in
       let v3 = JS.token env v3 (* "]" *) in
       todo env (v1, v2, v3)
   | `Tuple_type (v1, v2, v3, v4) ->
       let v1 = JS.token env v1 (* "[" *) in
-      let v2 = type_ env v2 in
+      let v2 = todo_type_ env v2 in
       let v3 =
         List.map (fun (v1, v2) ->
           let v1 = JS.token env v1 (* "," *) in
-          let v2 = type_ env v2 in
+          let v2 = todo_type_ env v2 in
           todo env (v1, v2)
         ) v3
       in
@@ -1203,7 +1222,7 @@ and primary_type (env : env) (x : CST.primary_type) =
       todo env (v1, v2, v3, v4)
   | `Flow_maybe_type (v1, v2) ->
       let v1 = JS.token env v1 (* "?" *) in
-      let v2 = primary_type env v2 in
+      let v2 = todo_primary_type env v2 in
       todo env (v1, v2)
   | `Type_query (v1, v2) ->
       let v1 = JS.token env v1 (* "typeof" *) in
@@ -1211,21 +1230,21 @@ and primary_type (env : env) (x : CST.primary_type) =
       todo env (v1, v2)
   | `Index_type_query (v1, v2) ->
       let v1 = JS.token env v1 (* "keyof" *) in
-      let v2 = anon_choice_type_id2 env v2 in
+      let v2 = todo_anon_choice_type_id2 env v2 in
       todo env (v1, v2)
   | `This tok -> todo env (JS.token env tok) (* "this" *)
   | `Exis_type tok -> todo env (JS.token env tok) (* "*" *)
-  | `Lit_type x -> todo env (literal_type env x)
+  | `Lit_type x -> todo env (todo_literal_type env x)
   | `Lookup_type (v1, v2, v3, v4) ->
-      let v1 = primary_type env v1 in
+      let v1 = todo_primary_type env v1 in
       let v2 = JS.token env v2 (* "[" *) in
-      let v3 = type_ env v3 in
+      let v3 = todo_type_ env v3 in
       let v4 = JS.token env v4 (* "]" *) in
       todo env (v1, v2, v3, v4)
   )
 
 (* TODO: types *)
-and index_signature (env : env) ((v1, v2, v3, v4) : CST.index_signature) =
+and todo_index_signature (env : env) ((v1, v2, v3, v4) : CST.index_signature) =
   let v1 = JS.token env v1 (* "[" *) in
   let v2 =
     (match v2 with
@@ -1234,7 +1253,7 @@ and index_signature (env : env) ((v1, v2, v3, v4) : CST.index_signature) =
         let v2 = JS.token env v2 (* ":" *) in
         let v3 = predefined_type env v3 in
         todo env (v1, v2, v3)
-    | `Mapped_type_clause x -> mapped_type_clause env x
+    | `Mapped_type_clause x -> todo_mapped_type_clause env x
     )
   in
   let v3 = JS.token env v3 (* "]" *) in
@@ -1302,9 +1321,9 @@ and formal_parameters (env : env) ((v1, v2, v3) : CST.formal_parameters) : param
 
 (* TODO types *)
 (* class Component<Props = any, State = any> { ... *)
-and default_type (env : env) ((v1, v2) : CST.default_type) =
+and todo_default_type (env : env) ((v1, v2) : CST.default_type) =
   let v1 = JS.token env v1 (* "=" *) in
-  let v2 = type_ env v2 in
+  let v2 = todo_type_ env v2 in
   todo env (v1, v2)
 
 and switch_body (env : env) ((v1, v2, v3) : CST.switch_body) =
@@ -1321,10 +1340,10 @@ and switch_body (env : env) ((v1, v2, v3) : CST.switch_body) =
   v2
 
 (* TODO: types *)
-and mapped_type_clause (env : env) ((v1, v2, v3) : CST.mapped_type_clause) =
+and todo_mapped_type_clause (env : env) ((v1, v2, v3) : CST.mapped_type_clause) =
   let v1 = JS.token env v1 (* identifier *) in
   let v2 = JS.token env v2 (* "in" *) in
-  let v3 = type_ env v3 in
+  let v3 = todo_type_ env v3 in
   todo env (v1, v2, v3)
 
 and statement1 (env : env) (x : CST.statement) : stmt =
@@ -1554,7 +1573,7 @@ and class_declaration (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.class_decl
   let v3 = JS.identifier env v3 (* identifier *) in
   let _v4 () =
     (match v4 with
-    | Some x -> type_parameters env x
+    | Some x -> todo_type_parameters env x
     | None -> todo env ())
   in
   let v5 =
@@ -1664,7 +1683,7 @@ and export_statement (env : env) (x : CST.export_statement) =
 
 and type_annotation (env : env) ((v1, v2) : CST.type_annotation) =
   let v1 = JS.token env v1 (* ":" *) in
-  let v2 = type_ env v2 in
+  let v2 = todo_type_ env v2 in
   (v1, v2)
 
 and anon_rep_COMMA_opt_choice_exp (env : env) (xs : CST.anon_rep_COMMA_opt_choice_exp) =
@@ -1696,7 +1715,7 @@ and update_expression (env : env) (x : CST.update_expression) =
   )
 
 (* TODO: types *)
-and anon_choice_export_stmt (env : env) (x : CST.anon_choice_export_stmt) =
+and todo_anon_choice_export_stmt (env : env) (x : CST.anon_choice_export_stmt) =
   (match x with
   | `Export_stmt x -> export_statement env x
   | `Prop_sign (v1, v2, v3, v4, v5, v6) ->
@@ -1734,7 +1753,7 @@ and anon_choice_export_stmt (env : env) (x : CST.anon_choice_export_stmt) =
       let v1 = JS.token env v1 (* "new" *) in
       let v2 =
         (match v2 with
-        | Some x -> type_parameters env x
+        | Some x -> todo_type_parameters env x
         | None -> todo env ())
       in
       let v3 = formal_parameters env v3 in
@@ -1744,8 +1763,8 @@ and anon_choice_export_stmt (env : env) (x : CST.anon_choice_export_stmt) =
         | None -> todo env ())
       in
       todo env (v1, v2, v3, v4)
-  | `Index_sign x -> index_signature env x
-  | `Meth_sign x -> method_signature env x
+  | `Index_sign x -> todo_index_signature env x
+  | `Meth_sign x -> todo_method_signature env x
   )
 
 (* TODO accessibility modifiers (public/private/protected *)
@@ -1812,7 +1831,7 @@ and public_field_definition (env : env) ((v1, v2, v3, v4, v5, v6) : CST.public_f
 and anon_choice_choice_type_id (env : env) (x : CST.anon_choice_choice_type_id): expr option =
   (match x with
   | `Choice_id x -> (* type to be extended *)
-      let _v () = anon_choice_type_id3 env x in
+      let _v () = todo_anon_choice_type_id3 env x in
       None
   | `Exp x -> (* class expression to be extended *)
       Some (expression env x)
@@ -1894,16 +1913,16 @@ and anon_choice_requ_param (env : env) (x : CST.anon_choice_requ_param) : parame
   )
 
 (* TODO: types *)
-and enum_body (env : env) ((v1, v2, v3) : CST.enum_body) =
+and todo_enum_body (env : env) ((v1, v2, v3) : CST.enum_body) =
   let v1 = JS.token env v1 (* "{" *) in
   let v2 =
     (match v2 with
     | Some (v1, v2, v3) ->
-        let v1 = anon_choice_prop_name env v1 in
+        let v1 = todo_anon_choice_prop_name env v1 in
         let v2 =
           List.map (fun (v1, v2) ->
             let v1 = JS.token env v1 (* "," *) in
-            let v2 = anon_choice_prop_name env v2 in
+            let v2 = todo_anon_choice_prop_name env v2 in
             todo env (v1, v2)
           ) v2
         in
@@ -1926,14 +1945,14 @@ and class_heritage (env : env) (x : CST.class_heritage) : expr option =
       let v1 = extends_clause env v1 in
       let _v2 () =
         (match v2 with
-        | Some x -> implements_clause env x
+        | Some x -> todo_implements_clause env x
         | None -> todo env ())
       in
       (match v1 with
        | [] -> None
        | x :: _shouldnt_be_dropped -> Some x)
   | `Imples_clause x ->
-      let _v () = implements_clause env x in
+      let _v () = todo_implements_clause env x in
       None
   )
 
@@ -1974,7 +1993,7 @@ and expressions (env : env) (x : CST.expressions) : expr =
   )
 
 (* TODO: types *)
-and abstract_method_signature (env : env) ((v1, v2, v3, v4, v5, v6) : CST.abstract_method_signature) =
+and todo_abstract_method_signature (env : env) ((v1, v2, v3, v4, v5, v6) : CST.abstract_method_signature) =
   let v1 =
     (match v1 with
     | Some x -> accessibility_modifier env x
@@ -2004,7 +2023,7 @@ and finally_clause (env : env) ((v1, v2) : CST.finally_clause) =
 and call_signature (env : env) ((v1, v2, v3) : CST.call_signature) : parameter list =
   let _v1 () =
     (match v1 with
-    | Some x -> type_parameters env x
+    | Some x -> todo_type_parameters env x
     | None -> todo env ())
   in
   let v2 = formal_parameters env v2 in
@@ -2043,58 +2062,58 @@ and object_ (env : env) ((v1, v2, v3) : CST.object_) : obj_ =
   v1, v2, v3
 
 (* TODO: types! *)
-and type_ (env : env) (x : CST.type_) : type_ =
+and todo_type_ (env : env) (x : CST.type_) : type_ =
   (match x with
-  | `Prim_type x -> primary_type env x
+  | `Prim_type x -> todo_primary_type env x
   | `Union_type (v1, v2, v3) ->
       let v1 =
         (match v1 with
-        | Some x -> type_ env x
+        | Some x -> todo_type_ env x
         | None -> todo env ())
       in
       let v2 = JS.token env v2 (* "|" *) in
-      let v3 = type_ env v3 in
+      let v3 = todo_type_ env v3 in
       todo env (v1, v2, v3)
   | `Inte_type (v1, v2, v3) ->
       let v1 =
         (match v1 with
-        | Some x -> type_ env x
+        | Some x -> todo_type_ env x
         | None -> todo env ())
       in
       let v2 = JS.token env v2 (* "&" *) in
-      let v3 = type_ env v3 in
+      let v3 = todo_type_ env v3 in
       todo env (v1, v2, v3)
   | `Func_type (v1, v2, v3, v4) ->
-      let v1 =
+      let _v1 () =
         (match v1 with
-        | Some x -> type_parameters env x
+        | Some x -> todo_type_parameters env x
         | None -> todo env ())
       in
       let v2 = formal_parameters env v2 in
       let v3 = JS.token env v3 (* "=>" *) in
-      let v4 = type_ env v4 in
+      let v4 = todo_type_ env v4 in
       todo env (v1, v2, v3, v4)
   | `Cons_type (v1, v2, v3, v4, v5) ->
       let v1 = JS.token env v1 (* "new" *) in
       let v2 =
         (match v2 with
-        | Some x -> type_parameters env x
+        | Some x -> todo_type_parameters env x
         | None -> todo env ())
       in
       let v3 = formal_parameters env v3 in
       let v4 = JS.token env v4 (* "=>" *) in
-      let v5 = type_ env v5 in
+      let v5 = todo_type_ env v5 in
       todo env (v1, v2, v3, v4, v5)
   )
 
 (* TODO: types *)
-and type_parameters (env : env) ((v1, v2, v3, v4, v5) : CST.type_parameters) =
+and todo_type_parameters (env : env) ((v1, v2, v3, v4, v5) : CST.type_parameters) =
   let v1 = JS.token env v1 (* "<" *) in
-  let v2 = type_parameter env v2 in
+  let v2 = todo_type_parameter env v2 in
   let v3 =
     List.map (fun (v1, v2) ->
       let v1 = JS.token env v1 (* "," *) in
-      let v2 = type_parameter env v2 in
+      let v2 = todo_type_parameter env v2 in
       todo env (v1, v2)
     ) v3
   in
@@ -2107,14 +2126,14 @@ and type_parameters (env : env) ((v1, v2, v3, v4, v5) : CST.type_parameters) =
   todo env (v1, v2, v3, v4, v5)
 
 (* TODO: types *)
-and constraint_ (env : env) ((v1, v2) : CST.constraint_) =
+and todo_constraint_ (env : env) ((v1, v2) : CST.constraint_) =
   let _v1 () =
     (match v1 with
     | `Extends tok -> JS.token env tok (* "extends" *)
     | `COLON tok -> JS.token env tok (* ":" *)
     )
   in
-  let _v2 () = type_ env v2 in
+  let _v2 () = todo_type_ env v2 in
   todo env (v1, v2)
 
 (* TODO don't ignore accessibility modifier (public/private/proteced)
@@ -2189,11 +2208,11 @@ and function_declaration (env : env) ((v1, v2, v3, v4, v5, v6) : CST.function_de
      v_init = Some (Fun (f, None)); v_resolved = ref NotResolved }]
 
 (* TODO: types *)
-and anon_choice_type_id3 (env : env) (x : CST.anon_choice_type_id3) =
+and todo_anon_choice_type_id3 (env : env) (x : CST.anon_choice_type_id3) =
   (match x with
   | `Id tok -> JS.token env tok (* identifier *)
-  | `Nested_type_id x -> nested_type_identifier env x
-  | `Gene_type x -> generic_type env x
+  | `Nested_type_id x -> todo_nested_type_identifier env x
+  | `Gene_type x -> todo_generic_type env x
   )
 
 and template_substitution (env : env) ((v1, v2, v3) : CST.template_substitution) =
@@ -2203,7 +2222,7 @@ and template_substitution (env : env) ((v1, v2, v3) : CST.template_substitution)
   v2
 
 (* TODO: types *)
-and method_signature (env : env) ((v1, v2, v3, v4, v5, v6, v7, v8) : CST.method_signature) =
+and todo_method_signature (env : env) ((v1, v2, v3, v4, v5, v6, v7, v8) : CST.method_signature) =
   let v1 =
     (match v1 with
     | Some x -> accessibility_modifier env x
@@ -2239,10 +2258,8 @@ and method_signature (env : env) ((v1, v2, v3, v4, v5, v6, v7, v8) : CST.method_
   todo env (v1, v2, v3, v4, v5, v6, v7, v8)
 
 (* TODO: types *)
-(*
-   This whole thing follows the 'declare' keyword, which is specific
-   to typescript and occurs in '.d.ts' declaration files.
-*)
+(* This covers mostly type definitions but includes also javascript constructs
+   like function parameters, so it will be called even if we ignore types. *)
 and declaration (env : env) (x : CST.declaration) : var list =
   (match x with
   | `Choice_func_decl x ->
@@ -2272,7 +2289,7 @@ and declaration (env : env) (x : CST.declaration) : var list =
       let v3 = JS.identifier env v3 (* identifier *) in
       let _v4 () =
         (match v4 with
-        | Some x -> type_parameters env x
+        | Some x -> todo_type_parameters env x
         | None -> todo env ())
       in
       let v5 =
@@ -2300,23 +2317,23 @@ and declaration (env : env) (x : CST.declaration) : var list =
       let _v2 = JS.token env v2 (* identifier *) in
       let _v3 () =
         (match v3 with
-        | Some x -> type_parameters env x
+        | Some x -> todo_type_parameters env x
         | None -> [])
       in
       let _v4 = JS.token env v4 (* "=" *) in
-      let _v5 = type_ env v5 in
+      let _v5 () = todo_type_ env v5 in
       let _v6 = JS.semicolon env v6 in
       [] (* TODO *)
 
   | `Enum_decl (v1, v2, v3, v4) ->
-      let _v1 =
+      let _v1 () =
         (match v1 with
         | Some tok -> JS.token env tok (* "const" *)
         | None -> todo env ())
       in
       let _v2 = JS.token env v2 (* "enum" *) in
       let _v3 = JS.identifier env v3 (* identifier *) in
-      let _v4 () = enum_body env v4 in
+      let _v4 () = todo_enum_body env v4 in
       [] (* TODO *)
 
   | `Inte_decl (v1, v2, v3, v4, v5) ->
@@ -2324,7 +2341,7 @@ and declaration (env : env) (x : CST.declaration) : var list =
       let v2 = JS.identifier env v2 (* identifier *) in
       let _v3 () =
         (match v3 with
-        | Some x -> type_parameters env x
+        | Some x -> todo_type_parameters env x
         | None -> [])
       in
       let _v4 () =
@@ -2332,7 +2349,7 @@ and declaration (env : env) (x : CST.declaration) : var list =
         | Some x -> extends_clause env x
         | None -> todo env ())
       in
-      let v5 = object_type env v5 in
+      let _v5 () = todo_object_type env v5 in
       [] (* TODO *)
 
   | `Import_alias (v1, v2, v3, v4, v5) ->
@@ -2357,7 +2374,7 @@ and declaration (env : env) (x : CST.declaration) : var list =
             let v2 = JS.token env v2 (* "." *) in
             let v3 = JS.token env v3 (* identifier *) in
             let v4 = JS.token env v4 (* ":" *) in
-            let v5 = type_ env v5 in
+            let v5 = todo_type_ env v5 in
             todo env (v1, v2, v3, v4, v5)
         )
       in
@@ -2386,13 +2403,15 @@ let parse file =
   in
   let env = { H.file; conv = H.line_col_to_pos file } in
 
-  if debug then
+  if debug then (
+    Printexc.record_backtrace true;
     CST.dump_tree ast;
+  );
 
   try
     program env ast
   with
-    Not_implemented as exn ->
+    TODO as exn ->
       if debug then (
         (* This debugging output is not JSON and breaks core output *)
 
