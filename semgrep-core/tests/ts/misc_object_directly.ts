@@ -1,0 +1,1 @@
+../js/misc_object_directly.js

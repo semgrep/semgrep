@@ -29,7 +29,7 @@ build-ocaml-tree-sitter:
 .PHONY: rebuild
 rebuild:
 	git submodule update --init --recursive
-	$(MAKE) clean
+	-$(MAKE) clean
 	$(MAKE) config
 	$(MAKE) build
 
