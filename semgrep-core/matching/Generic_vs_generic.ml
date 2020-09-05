@@ -222,8 +222,8 @@ let m_resolved_name_kind a b =
 
 (*s: function [[Generic_vs_generic._m_resolved_name]] *)
 let _m_resolved_name (a1, a2) (b1, b2) =
-  m_resolved_name_kind a1 b1 >>= (fun () ->
-  m_sid a2 b2 )
+  let* () = m_resolved_name_kind a1 b1 in
+  m_sid a2 b2
 (*e: function [[Generic_vs_generic._m_resolved_name]] *)
 
 
