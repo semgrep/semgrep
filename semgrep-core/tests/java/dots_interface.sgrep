@@ -1,0 +1,4 @@
+interface $INTERFACE extends Remote {
+  ...
+  $RETURNTYPE $METHOD(Object $PARAM) throws RemoteException;
+}
