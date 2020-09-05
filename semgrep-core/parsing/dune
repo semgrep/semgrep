@@ -9,6 +9,7 @@
    tree-sitter-lang.go
    tree-sitter-lang.csharp
    tree-sitter-lang.javascript
+   tree-sitter-lang.typescript
 
    commons commons_core
    pfff-config

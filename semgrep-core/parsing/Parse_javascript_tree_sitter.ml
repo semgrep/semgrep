@@ -30,6 +30,9 @@ open Ast_js
  * for Javascript in semgrep, so better to go directly to the more stable
  * ast_js.ml (also that's usually what we do for the other tree-sitter
  * converters).
+ *
+ * Some of this module is used directly by Parse_typescript_tree_sitter. Other
+ * modules should use the public interface 'Parse_javascript_tree_sitter'.
  *)
 
 (*****************************************************************************)

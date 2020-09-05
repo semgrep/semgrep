@@ -1,0 +1,1 @@
+../js/metavar_class_fields.js
