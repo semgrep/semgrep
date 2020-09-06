@@ -147,9 +147,6 @@ let m_dotted_name a b =
   (a, b) -> (m_list m_ident) a b
 (*e: function [[Generic_vs_generic.m_dotted_name]] *)
 
-(*s: function [[Generic_vs_generic.m_qualified_name]] *)
-(*e: function [[Generic_vs_generic.m_qualified_name]] *)
-
 
 (*s: function [[Generic_vs_generic.m_module_name_prefix]] *)
 (* less-is-ok: prefix matching is supported for imports, eg.:
@@ -666,6 +663,9 @@ and m_literal a b =
   (* dots: '...' on string *)
   | A.String("...", a), B.String(_s, b) ->
       m_info a b
+  (*x: [[Generic_vs_generic.m_literal()]] ellipsis case *)
+    | A.Regexp(("/.../", a)), B.Regexp((_s, b)) ->
+      m_info a b
   (*e: [[Generic_vs_generic.m_literal()]] ellipsis case *)
   (*s: [[Generic_vs_generic.m_literal()]] regexp case *)
   (* regexp matching *)
@@ -696,8 +696,6 @@ and m_literal a b =
     (m_wrap m_string) a1 b1
   | A.Char(a1), B.Char(b1) ->
     (m_wrap m_string) a1 b1
-  | A.Regexp(("/.../", a)), B.Regexp((_s, b)) ->
-    m_info a b
   | A.Regexp(a1), B.Regexp(b1) ->
     (m_wrap m_string) a1 b1
   | A.Null(a1), B.Null(b1) ->
@@ -902,13 +900,6 @@ and m_compatible_type typed_mvar t e =
                          | _ -> fail ())
 
   | _ -> fail ()
-
-(*s: function [[Generic_vs_generic.m_list__m_xml_attr]] *)
-(*s: [[Generic_vs_generic.m_list__m_xml_attr]] empty list vs list case *)
-(*e: [[Generic_vs_generic.m_list__m_xml_attr]] empty list vs list case *)
-(*s: [[Generic_vs_generic.m_list__m_xml_attr]] if metavar attribute *)
-(*e: [[Generic_vs_generic.m_list__m_xml_attr]] if metavar attribute *)
-(*e: function [[Generic_vs_generic.m_list__m_xml_attr]] *)
 
 (*s: function [[Generic_vs_generic.m_list__m_body]] *)
 and m_list__m_body a b =
@@ -1203,17 +1194,6 @@ and m_other_type_argument_operator = m_other_xxx
 (*****************************************************************************)
 (* Attribute *)
 (*****************************************************************************)
-
-(*s: function [[Generic_vs_generic.m_list__m_attribute]] *)
-(*s: [[Generic_vs_generic.m_list__m_attribute]] empty list vs list case *)
-(*e: [[Generic_vs_generic.m_list__m_attribute]] empty list vs list case *)
-(*s: [[Generic_vs_generic.m_list__m_attribute]] [[KeywordAttr]] pattern case *)
-(*e: [[Generic_vs_generic.m_list__m_attribute]] [[KeywordAttr]] pattern case *)
-(*s: [[Generic_vs_generic.m_list__m_attribute]] [[KeywordAttr]] case when [[Not_found]] *)
-(*e: [[Generic_vs_generic.m_list__m_attribute]] [[KeywordAttr]] case when [[Not_found]] *)
-(*s: [[Generic_vs_generic.m_list__m_attribute]] [[NamedAttr]] pattern case *)
-(*e: [[Generic_vs_generic.m_list__m_attribute]] [[NamedAttr]] pattern case *)
-(*e: function [[Generic_vs_generic.m_list__m_attribute]] *)
 
 (*s: function [[Generic_vs_generic.m_keyword_attribute]] *)
 and m_keyword_attribute a b =
