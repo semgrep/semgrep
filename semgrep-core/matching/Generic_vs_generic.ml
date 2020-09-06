@@ -147,6 +147,10 @@ let m_dotted_name a b =
   (a, b) -> (m_list m_ident) a b
 (*e: function [[Generic_vs_generic.m_dotted_name]] *)
 
+(*s: function [[Generic_vs_generic.m_qualified_name]] *)
+(*e: function [[Generic_vs_generic.m_qualified_name]] *)
+
+
 (*s: function [[Generic_vs_generic.m_module_name_prefix]] *)
 (* less-is-ok: prefix matching is supported for imports, eg.:
  *  pattern: import foo.x should match: from foo.x.z.y
@@ -253,8 +257,8 @@ and m_ident_and_id_info_add_in_env_Expr (a1, a2) (b1, b2) =
    * (e.g., {"=~/.*field/": $X}).
    *)
   | (stra, _), (strb, _) when Matching_generic.is_regexp_string stra ->
-      let f = Matching_generic.regexp_matcher_of_regexp_string stra in
-      if f strb
+      let re_match = Matching_generic.regexp_matcher_of_regexp_string stra in
+      if re_match strb
       then return ()
       else fail ()
 
@@ -899,6 +903,11 @@ and m_compatible_type typed_mvar t e =
 
   | _ -> fail ()
 
+(*s: function [[Generic_vs_generic.m_list__m_xml_attr]] *)
+(*s: [[Generic_vs_generic.m_list__m_xml_attr]] empty list vs list case *)
+(*e: [[Generic_vs_generic.m_list__m_xml_attr]] empty list vs list case *)
+(*s: [[Generic_vs_generic.m_list__m_xml_attr]] if metavar attribute *)
+(*e: [[Generic_vs_generic.m_list__m_xml_attr]] if metavar attribute *)
 (*e: function [[Generic_vs_generic.m_list__m_xml_attr]] *)
 
 (*s: function [[Generic_vs_generic.m_list__m_body]] *)
@@ -1194,6 +1203,17 @@ and m_other_type_argument_operator = m_other_xxx
 (*****************************************************************************)
 (* Attribute *)
 (*****************************************************************************)
+
+(*s: function [[Generic_vs_generic.m_list__m_attribute]] *)
+(*s: [[Generic_vs_generic.m_list__m_attribute]] empty list vs list case *)
+(*e: [[Generic_vs_generic.m_list__m_attribute]] empty list vs list case *)
+(*s: [[Generic_vs_generic.m_list__m_attribute]] [[KeywordAttr]] pattern case *)
+(*e: [[Generic_vs_generic.m_list__m_attribute]] [[KeywordAttr]] pattern case *)
+(*s: [[Generic_vs_generic.m_list__m_attribute]] [[KeywordAttr]] case when [[Not_found]] *)
+(*e: [[Generic_vs_generic.m_list__m_attribute]] [[KeywordAttr]] case when [[Not_found]] *)
+(*s: [[Generic_vs_generic.m_list__m_attribute]] [[NamedAttr]] pattern case *)
+(*e: [[Generic_vs_generic.m_list__m_attribute]] [[NamedAttr]] pattern case *)
+(*e: function [[Generic_vs_generic.m_list__m_attribute]] *)
 
 (*s: function [[Generic_vs_generic.m_keyword_attribute]] *)
 and m_keyword_attribute a b =
