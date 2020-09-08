@@ -34,6 +34,9 @@ let dump_tree_sitter_cst_lang lang file =
    | Lang.Javascript ->
       Tree_sitter_javascript.Parse.file file
       |> Tree_sitter_javascript.CST.dump_tree
+   | Lang.Typescript ->
+      Tree_sitter_typescript.Parse.file file
+      |> Tree_sitter_typescript.CST.dump_tree
 
    | _ -> failwith "lang not supported by ocaml-tree-sitter"
 

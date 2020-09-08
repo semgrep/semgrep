@@ -48,9 +48,6 @@ let any_gen_of_string str =
 (*e: function [[Test.any_gen_of_string]] *)
 
 (*s: function [[Test.parse_generic]] *)
-let parse_generic file = 
-  let lang = List.hd (Lang.langs_of_filename file) in
-  Parse_code.parse_and_resolve_name_use_pfff_or_treesitter lang file
 (*e: function [[Test.parse_generic]] *)
 
 (*s: function [[Test.regression_tests_for_lang]] *)
@@ -71,7 +68,7 @@ let regression_tests_for_lang files lang =
     in
     let ast = 
         try 
-            parse_generic file 
+          Parse_code.parse_and_resolve_name_use_pfff_or_treesitter lang file 
         with exn ->
           failwith (spf "fail to parse %s (exn = %s)" file 
                     (Common.exn_to_s exn))
@@ -133,6 +130,19 @@ let lang_regression_tests =
     let dir = Filename.concat tests_path "js" in
     let files = Common2.glob (spf "%s/*.js" dir) in
     let lang = Lang.Javascript in
+    regression_tests_for_lang files lang
+  );
+  "semgrep Typescript" >::: (
+    let dir = Filename.concat tests_path "ts" in
+    let files = Common2.glob (spf "%s/*.ts" dir) in
+    let lang = Lang.Typescript in
+    regression_tests_for_lang files lang
+  );
+  "semgrep Typescript on Javascript (no JSX)" >::: (
+    let dir = Filename.concat tests_path "js" in
+    let files = Common2.glob (spf "%s/*.js" dir) in
+    let files = Common.exclude (fun s -> s =~ ".*xml" || s =~ ".*jsx") files in
+    let lang = Lang.Typescript in
     regression_tests_for_lang files lang
   );
   "semgrep JSON" >::: (

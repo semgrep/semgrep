@@ -190,6 +190,14 @@ let (fail : tin -> tout) = fun _tin ->
   []
 (*e: function [[Matching_generic.fail]] *)
 
+(* Since OCaml 4.08 you can define your own let operators!
+ * alt: use ppx_let, but you need to write it as let%bind (uglier)
+ * You can use the ppx future_syntax to support older version of OCaml, but
+ * then you can not use other PPX rewriters (which we do).
+ *)
+let (let*) o f =
+  o >>= f
+
 (*****************************************************************************)
 (* Environment *)
 (*****************************************************************************)

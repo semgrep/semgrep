@@ -147,6 +147,7 @@ let m_dotted_name a b =
   (a, b) -> (m_list m_ident) a b
 (*e: function [[Generic_vs_generic.m_dotted_name]] *)
 
+
 (*s: function [[Generic_vs_generic.m_module_name_prefix]] *)
 (* less-is-ok: prefix matching is supported for imports, eg.:
  *  pattern: import foo.x should match: from foo.x.z.y
@@ -222,8 +223,8 @@ let m_resolved_name_kind a b =
 
 (*s: function [[Generic_vs_generic._m_resolved_name]] *)
 let _m_resolved_name (a1, a2) (b1, b2) =
-  m_resolved_name_kind a1 b1 >>= (fun () ->
-  m_sid a2 b2 )
+  let* () = m_resolved_name_kind a1 b1 in
+  m_sid a2 b2
 (*e: function [[Generic_vs_generic._m_resolved_name]] *)
 
 
@@ -253,8 +254,8 @@ and m_ident_and_id_info_add_in_env_Expr (a1, a2) (b1, b2) =
    * (e.g., {"=~/.*field/": $X}).
    *)
   | (stra, _), (strb, _) when Matching_generic.is_regexp_string stra ->
-      let f = Matching_generic.regexp_matcher_of_regexp_string stra in
-      if f strb
+      let re_match = Matching_generic.regexp_matcher_of_regexp_string stra in
+      if re_match strb
       then return ()
       else fail ()
 
@@ -662,6 +663,9 @@ and m_literal a b =
   (* dots: '...' on string *)
   | A.String("...", a), B.String(_s, b) ->
       m_info a b
+  (*x: [[Generic_vs_generic.m_literal()]] ellipsis case *)
+    | A.Regexp(("/.../", a)), B.Regexp((_s, b)) ->
+      m_info a b
   (*e: [[Generic_vs_generic.m_literal()]] ellipsis case *)
   (*s: [[Generic_vs_generic.m_literal()]] regexp case *)
   (* regexp matching *)
@@ -692,8 +696,6 @@ and m_literal a b =
     (m_wrap m_string) a1 b1
   | A.Char(a1), B.Char(b1) ->
     (m_wrap m_string) a1 b1
-  | A.Regexp(("/.../", a)), B.Regexp((_s, b)) ->
-    m_info a b
   | A.Regexp(a1), B.Regexp(b1) ->
     (m_wrap m_string) a1 b1
   | A.Null(a1), B.Null(b1) ->
@@ -898,8 +900,6 @@ and m_compatible_type typed_mvar t e =
                          | _ -> fail ())
 
   | _ -> fail ()
-
-(*e: function [[Generic_vs_generic.m_list__m_xml_attr]] *)
 
 (*s: function [[Generic_vs_generic.m_list__m_body]] *)
 and m_list__m_body a b =

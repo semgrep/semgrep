@@ -119,6 +119,14 @@ let just_parse_with_lang lang file =
       in
       Js_to_generic.program ast
 
+  | Lang.Typescript ->
+      let ast =
+        run file [
+          TreeSitter, Parse_typescript_tree_sitter.parse
+        ]
+      in
+      Js_to_generic.program ast
+
   | Lang.Csharp ->
       (* there is no pfff parser for C# so let's go directly to tree-sitter,
        * and there's no ast_csharp.ml either so we directly generate

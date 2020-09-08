@@ -16,6 +16,7 @@ module CST = Tree_sitter_javascript.CST
 module AST = Ast_js
 module H = Parse_tree_sitter_helpers
 module G = AST_generic
+module PI = Parse_info
 open Ast_js
 
 (*****************************************************************************)
@@ -30,6 +31,9 @@ open Ast_js
  * for Javascript in semgrep, so better to go directly to the more stable
  * ast_js.ml (also that's usually what we do for the other tree-sitter
  * converters).
+ *
+ * Some of this module is used directly by Parse_typescript_tree_sitter. Other
+ * modules should use the public interface 'Parse_javascript_tree_sitter'.
  *)
 
 (*****************************************************************************)
@@ -170,7 +174,7 @@ let string_ (env : env) (x : CST.string_) : string wrap =
       let v3 = token env v3 (* "\"" *) in
       let str = v2 |> List.map fst |> String.concat "" in
       let toks = (v2 |> List.map snd) @ [v3] in
-      str, H.combine_infos env v1 toks
+      str, PI.combine_infos v1 toks
   | `SQUOT_rep_choice_imm_tok_pat_3e57880_SQUOT (v1, v2, v3) ->
       let v1 = token env v1 (* "'" *) in
       let v2 =
@@ -185,7 +189,7 @@ let string_ (env : env) (x : CST.string_) : string wrap =
       let v3 = token env v3 (* "'" *) in
       let str = v2 |> List.map fst |> String.concat "" in
       let toks = (v2 |> List.map snd) @ [v3] in
-      str, H.combine_infos env v1 toks
+      str, PI.combine_infos v1 toks
   )
 
 
@@ -256,7 +260,7 @@ let jsx_attribute_name (env : env) (x : CST.jsx_attribute_name) =
   | `Jsx_name_name x ->
         let (id1, id2) = jsx_namespace_name env x in
         let str = fst id1 ^ ":" ^ fst id2 in
-        str, H.combine_infos env (snd id1) [snd id2]
+        str, PI.combine_infos (snd id1) [snd id2]
   )
 
 let jsx_element_name (env : env) (x : CST.jsx_element_name) : ident =
@@ -270,11 +274,11 @@ let jsx_element_name (env : env) (x : CST.jsx_element_name) : ident =
           | [] -> raise Impossible
           | x::xs -> x, xs
         in
-        str, H.combine_infos env (snd hd) (tl |> List.map snd)
+        str, PI.combine_infos (snd hd) (tl |> List.map snd)
   | `Jsx_name_name x ->
         let (id1, id2) = jsx_namespace_name env x in
         let str = fst id1 ^ ":" ^ fst id2 in
-        str, H.combine_infos env (snd id1) [snd id2]
+        str, PI.combine_infos (snd id1) [snd id2]
   )
 
 let jsx_closing_element (env : env) ((v1, v2, v3, v4) : CST.jsx_closing_element) =
@@ -785,7 +789,7 @@ and constructable_expression (env : env) (x : CST.constructable_expression) : ex
         | Some tok -> [token env tok] (* pattern [a-z]+ *)
         | None -> [])
       in
-      let tok = H.combine_infos env v1 ([t; v3] @ v4) in
+      let tok = PI.combine_infos v1 ([t; v3] @ v4) in
       Regexp (s, tok)
   | `True tok -> Bool (true, token env tok) (* "true" *)
   | `False tok -> Bool (false, token env tok) (* "false" *)
@@ -865,7 +869,7 @@ and constructable_expression (env : env) (x : CST.constructable_expression) : ex
       let v1 = token env v1 (* "new" *) in
       let v2 = token env v2 (* "." *) in
       let v3 = token env v3 (* "target" *) in
-      let t = H.combine_infos env v1 [v2;v3] in
+      let t = PI.combine_infos v1 [v2;v3] in
       IdSpecial (NewTarget, t)
   | `New_exp (v1, v2, v3) ->
       let v1 = token env v1 (* "new" *) in
