@@ -1,1 +1,0 @@
-../js/less_inheritance.js
