@@ -1,1 +1,0 @@
-../js/misc_empty_body.js

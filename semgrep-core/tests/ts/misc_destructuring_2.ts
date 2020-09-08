@@ -1,1 +1,0 @@
-../js/misc_destructuring_2.js
