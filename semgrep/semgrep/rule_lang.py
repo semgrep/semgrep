@@ -1,4 +1,5 @@
 import hashlib
+import json
 import re
 from io import StringIO
 from pathlib import Path
@@ -41,7 +42,7 @@ class RuleSchema:
         if not cls._schema:
             schema_path = Path(__file__).parent / "rule_schema.yaml"
             with schema_path.open() as fd:
-                cls._schema = ruamel.yaml.safe_load(fd)  # type: ignore
+                cls._schema = ruamel.yaml.safe_load(fd)
         return cls._schema
 
 
@@ -366,7 +367,19 @@ def parse_yaml_preserve_spans(contents: str, filename: Optional[str]) -> YamlTre
     return data
 
 
-REQUIRE_REGEX = re.compile(r"('.*') is a required property")
+class RuleValidation:
+    REQUIRE_REGEX = re.compile(r"'(.*)' is a required property")
+    PATTERN_KEYS = {
+        "pattern",
+        "pattern-either",
+        "pattern-regex",
+        "patterns",
+        "pattern-sinks",
+        "pattern-sources",
+    }
+    INVALID_SENTINEL = " is not allowed for "
+    BAD_TYPE_SENTINEL = "is not of type"
+    BANNED_SENTINEL = "Additional properties are not allowed"
 
 
 def _validation_error_message(error: jsonschema.exceptions.ValidationError) -> str:  # type: ignore
@@ -374,19 +387,31 @@ def _validation_error_message(error: jsonschema.exceptions.ValidationError) -> s
     Heuristic that returns meaningful error messages in all examples from
     tests/e2e/rules/syntax/badXXX.yaml
     """
+
     contexts = list(error.parent.context) if error.parent else [error]
     bad_type = set()
     invalid_keys = set()
+    any_of_invalid_keys = set()
     required = set()
     banned = set()
     for m in (c.message for c in contexts):
-        if "is not of type" in m:
+        if RuleValidation.BAD_TYPE_SENTINEL in m:
             bad_type.add(m)
-        if "is not allowed for" in m:
-            invalid_keys.add(m)
-        if m.startswith("Additional properties are not allowed"):
+        if RuleValidation.INVALID_SENTINEL in m:
+            ix = m.find(RuleValidation.INVALID_SENTINEL)
+            try:
+                preamble = ruamel.yaml.safe_load(m[:ix]).get("anyOf")
+                postscript = ruamel.yaml.safe_load(
+                    m[ix + len(RuleValidation.INVALID_SENTINEL) :]
+                )
+                for r in (p.get("required", [None])[0] for p in preamble):
+                    if r and r in postscript.keys():
+                        any_of_invalid_keys.add(r)
+            except (json.JSONDecodeError, AttributeError) as ex:
+                invalid_keys.add(m)
+        if m.startswith(RuleValidation.BANNED_SENTINEL):
             banned.add(m)
-        require_matches = REQUIRE_REGEX.match(m)
+        require_matches = RuleValidation.REQUIRE_REGEX.match(m)
         if require_matches:
             required.add(require_matches[1])
 
@@ -396,8 +421,18 @@ def _validation_error_message(error: jsonschema.exceptions.ValidationError) -> s
         return "\n".join(sorted(bad_type))
     if banned:
         return "\n".join(sorted(banned))
-    elif required:
-        return f"At least one of the following required properties is missing: {', '.join(sorted(required))}"
+
+    outs = []
+    if any_of_invalid_keys:
+        keys = ", ".join(f"'{k}'" for k in sorted(any_of_invalid_keys))
+        outs.append(f"One of these properties may be invalid: {keys}")
+        required = required - RuleValidation.PATTERN_KEYS
+    if required:
+        keys = ", ".join(f"'{k}'" for k in sorted(required))
+        outs.append(f"One of these properties is missing: {keys}")
+    if outs:
+        return "\n".join(outs)
+
     return cast(str, contexts[0].message)
 
 

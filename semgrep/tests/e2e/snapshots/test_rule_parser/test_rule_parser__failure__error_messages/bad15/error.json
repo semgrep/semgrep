@@ -3,7 +3,7 @@
     {
       "code": 4,
       "level": "error",
-      "long_msg": "{'anyOf': [{'required': ['pattern']}, {'required': ['pattern-either']}, {'required': ['pattern-regex']}]} is not allowed for {'id': 'too many', 'message': 'Hi', 'languages': ['python'], 'severity': 'WARNING', 'pattern': '$X == $X', 'patterns': [{'pattern': '$X != $X'}]}\n{'anyOf': [{'required': ['pattern']}, {'required': ['patterns']}, {'required': ['pattern-either']}]} is not allowed for {'id': 'too many', 'message': 'Hi', 'languages': ['python'], 'severity': 'WARNING', 'pattern': '$X == $X', 'patterns': [{'pattern': '$X != $X'}]}\n{'anyOf': [{'required': ['pattern']}, {'required': ['patterns']}, {'required': ['pattern-regex']}]} is not allowed for {'id': 'too many', 'message': 'Hi', 'languages': ['python'], 'severity': 'WARNING', 'pattern': '$X == $X', 'patterns': [{'pattern': '$X != $X'}]}\n{'anyOf': [{'required': ['patterns']}, {'required': ['pattern-either']}, {'required': ['pattern-regex']}]} is not allowed for {'id': 'too many', 'message': 'Hi', 'languages': ['python'], 'severity': 'WARNING', 'pattern': '$X == $X', 'patterns': [{'pattern': '$X != $X'}]}",
+      "long_msg": "One of these properties may be invalid: 'pattern', 'patterns'",
       "short_msg": "Invalid rule schema",
       "spans": [
         {

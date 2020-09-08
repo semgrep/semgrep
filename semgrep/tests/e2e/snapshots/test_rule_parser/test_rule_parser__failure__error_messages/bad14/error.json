@@ -3,7 +3,7 @@
     {
       "code": 4,
       "level": "error",
-      "long_msg": "{'anyOf': [{'required': ['pattern']}, {'required': ['patterns']}, {'required': ['pattern-either']}, {'required': ['pattern-regex']}]} is not allowed for {'id': 'tainty', 'message': 'Hi', 'languages': ['python'], 'severity': 'WARNING', 'mode': 'taint', 'pattern-sinks': ['$X'], 'pattern-sources': ['$Y'], 'pattern': '$X == $X'}\n{'anyOf': [{'required': ['pattern-sinks']}, {'required': ['pattern-sources']}, {'required': ['pattern-sanitizers']}]} is not allowed for {'id': 'tainty', 'message': 'Hi', 'languages': ['python'], 'severity': 'WARNING', 'mode': 'taint', 'pattern-sinks': ['$X'], 'pattern-sources': ['$Y'], 'pattern': '$X == $X'}",
+      "long_msg": "One of these properties may be invalid: 'pattern', 'pattern-sinks', 'pattern-sources'",
       "short_msg": "Invalid rule schema",
       "spans": [
         {

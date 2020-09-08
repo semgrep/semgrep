@@ -15,23 +15,23 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - True negatives to '--test' functionality via the 'ok:<rule-id>' annotation.
 
 ### Changed
-- A groups of rules are now called "Rulesets" in the Semgrep ecosystem,
+- Groups of rules are now called "Rulesets" in the Semgrep ecosystem,
   instead of their previous name, "Packs".
 - We now use also the tree-sitter-javascript Javascript parser, which
   can parse quickly minified files. Thus, we also removed the 5 seconds
   parsing timeout we were using for Javascript.
 - We should correctly report ranges when matching array access expressions
   (e.g., 'foo[$X]').
-- Breaking: regular expressions in semgrep string patterns (e.g., '"=~/foo/"')
+- Breaking: regular expressions in semgrep string patterns (e.g., `"=~/foo/"`)
   are now using the PCRE (Perl Compatible Regular Expressions) syntax instead of
   the OCaml syntax. This means you should not escape parenthesis for grouping
-  or escape pipes for dijunctions (e.g., use simply '"=~/foo|bar/"' instead of
-  '"=~/foo\|bar/"'). You can also use more advanced regexp features available
-  in PCRE such as case-insensitive regexps with '/i' (e.g., "=~/foo/i").
+  or escape pipes for dijunctions (e.g., use simply `"=~/foo|bar/"` instead of
+  `"=~/foo\|bar/"`). You can also use more advanced regexp features available
+  in PCRE such as case-insensitive regexps with '/i' (e.g., `"=~/foo/i"`).
   The semantic of matching changes also to look for the regexp anywhere
   in the string, not just at the beginning, which means if you want to
   enforce a format for the whole string, you will now need to use the '^' anchor
-  character (e.g., "=~/^o+$/" to check if a string contains only a sequence
+  character (e.g., `"=~/^o+$/"` to check if a string contains only a sequence
   of 'o').
 
 ### Removed
@@ -41,7 +41,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## [0.21.0](https://github.com/returntocorp/semgrep/releases/tag/v0.21.0) - 2020-08-25
 
 ### Added
-- Parsing JSX (JavaScript React) files is now supported as a beta feature! 
+- Parsing JSX (JavaScript React) files is now supported as a beta feature!
   In this release, you need to target .jsx files one by one explicitly to have them be scanned.
   We're planning to scan all .jsx files in targeted directories in our next release
 - We now bundle a [json-schema](https://json-schema.org/) spec for rules YAML syntax.
