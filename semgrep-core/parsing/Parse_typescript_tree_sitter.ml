@@ -14,10 +14,6 @@ module G = AST_generic
 module PI = Parse_info
 open Ast_js
 
-(* temporary; A type representing typescript type expressions
-   will have to be added to the AST. *)
-type type_
-
 (*
    Development notes
 
@@ -76,12 +72,12 @@ let accessibility_modifier (env : env) (x : CST.accessibility_modifier) =
 
 let predefined_type (env : env) (x : CST.predefined_type) =
   (match x with
-  | `Any tok -> JS.token env tok (* "any" *)
-  | `Num tok -> JS.token env tok (* "number" *)
-  | `Bool tok -> JS.token env tok (* "boolean" *)
-  | `Str tok -> JS.token env tok (* "string" *)
-  | `Symb tok -> JS.token env tok (* "symbol" *)
-  | `Void tok -> JS.token env tok (* "void" *)
+  | `Any tok -> JS.identifier env tok (* "any" *)
+  | `Num tok -> JS.identifier env tok (* "number" *)
+  | `Bool tok -> JS.identifier env tok (* "boolean" *)
+  | `Str tok -> JS.identifier env tok (* "string" *)
+  | `Symb tok -> JS.identifier env tok (* "symbol" *)
+  | `Void tok -> JS.identifier env tok (* "void" *)
   )
 
 let anon_choice_PLUSPLUS (env : env) (x : CST.anon_choice_PLUSPLUS) =
@@ -320,10 +316,10 @@ let rec parenthesized_expression (env : env) ((v1, v2, v3) : CST.parenthesized_e
     (match v2 with
     | `Exp_opt_type_anno (v1, v2) ->
         let v1 = expression env v1 in
-        let _v2 () =
+        let _v2 =
           (match v2 with
-          | Some x -> type_annotation env x
-          | None -> todo env ())
+          | Some x -> Some (type_annotation env x)
+          | None -> None)
         in
         v1
     | `Seq_exp x -> sequence_expression env x
@@ -559,10 +555,9 @@ and generator_function_declaration (env : env) ((v1, v2, v3, v4, v5, v6, v7) : C
      v_type = None;
      v_init = Some (Fun (f, None)); v_resolved = ref NotResolved }]
 
-(* TODO: type annotation *)
 and variable_declarator (env : env) ((v1, v2, v3) : CST.variable_declarator) =
   let v1 = anon_choice_type_id_ env v1 in
-  let _v2 () =
+  let v2 =
     (match v2 with
     | Some x -> Some (type_annotation env x)
     | None -> None)
@@ -572,7 +567,7 @@ and variable_declarator (env : env) ((v1, v2, v3) : CST.variable_declarator) =
     | Some x -> Some (initializer_ env x)
     | None -> None)
   in
-  v1, v3
+  v1, v2, v3
 
 and sequence_expression (env : env) ((v1, v2, v3) : CST.sequence_expression) =
   let v1 = expression env v1 in
@@ -1193,15 +1188,20 @@ and anon_choice_paren_exp (env : env) (x : CST.anon_choice_paren_exp) =
   )
 
 (* TODO: types *)
-and todo_primary_type (env : env) (x : CST.primary_type) =
+and todo_primary_type (env : env) (x : CST.primary_type) : type_ =
   (match x with
   | `Paren_type (v1, v2, v3) ->
       let v1 = JS.token env v1 (* "(" *) in
       let v2 = todo_type_ env v2 in
       let v3 = JS.token env v3 (* ")" *) in
       todo env (v1, v2, v3)
-  | `Pred_type x -> todo env (predefined_type env x)
-  | `Id tok -> todo env (JS.token env tok) (* identifier *)
+  | `Pred_type x ->
+        let id = predefined_type env x in
+        (* less: could also be a G.TyBuiltin *)
+        G.TyName (G.name_of_id id)
+  | `Id tok ->
+        let id = JS.identifier env tok (* identifier *) in
+        G.TyName (G.name_of_id id)
   | `Nested_type_id x -> todo env (todo_nested_type_identifier env x)
   | `Gene_type x -> todo env (todo_generic_type env x)
   | `Type_pred (v1, v2, v3) ->
@@ -1690,10 +1690,16 @@ and export_statement (env : env) (x : CST.export_statement) =
       []
   )
 
+
 and type_annotation (env : env) ((v1, v2) : CST.type_annotation) =
   let v1 = JS.token env v1 (* ":" *) in
-  let v2 = todo_type_ env v2 in
-  (v1, v2)
+  let v2 =
+    try
+      todo_type_ env v2
+    with TODO ->
+      G.OtherType (G.OT_Todo, [G.Tk v1])
+  in
+  v2
 
 and anon_rep_COMMA_opt_choice_exp (env : env) (xs : CST.anon_rep_COMMA_opt_choice_exp) =
   List.filter_map (fun (v1, v2) ->

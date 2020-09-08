@@ -78,13 +78,13 @@ let idexp id =
   | Some special -> IdSpecial (special, snd id)
 
 let build_vars kwd vars =
-  vars |> List.map (fun (id_or_pat, initopt) ->
+  vars |> List.map (fun (id_or_pat, ty_opt, initopt) ->
       match id_or_pat with
       | Left id ->
-      { v_name = id; v_kind = (kwd); v_init = initopt; v_type = None;
+      { v_name = id; v_kind = (kwd); v_init = initopt; v_type = ty_opt;
         v_resolved = ref NotResolved }
       | Right pat ->
-      Ast_js.var_pattern_to_var kwd pat (snd kwd) initopt
+        Ast_js.var_pattern_to_var kwd pat (snd kwd) initopt
    )
 
 let identifier (env : env) (tok : CST.identifier) : ident =
@@ -671,7 +671,8 @@ and variable_declarator (env : env) ((v1, v2) : CST.variable_declarator) =
     | Some x -> Some (initializer_ env x)
     | None -> None)
   in
-  v1, v2
+  let ty = None in
+  v1, ty, v2
 
 and anon_choice_id (env : env) (x : CST.anon_choice_id) =
   (match x with
