@@ -556,6 +556,7 @@ and generator_function_declaration (env : env) ((v1, v2, v3, v4, v5, v6, v7) : C
   in
   let f = { f_props = v1 @ v3; f_params = v5; f_body = v6 } in
   [{ v_name = v4; v_kind = Const, v2;
+     v_type = None;
      v_init = Some (Fun (f, None)); v_resolved = ref NotResolved }]
 
 (* TODO: type annotation *)
@@ -687,7 +688,8 @@ and anon_choice_pair (env : env) (x : CST.anon_choice_pair) : property =
       let v1 = property_name env v1 in
       let _v2 = JS.token env v2 (* ":" *) in
       let v3 = expression env v3 in
-      Field (v1, [], Some v3)
+      let ty = None in
+      Field (v1, [], ty, Some v3)
   | `Spread_elem x ->
       let (t, e) = spread_element env x in
       FieldSpread (t, e)
@@ -707,7 +709,8 @@ and anon_choice_pair (env : env) (x : CST.anon_choice_pair) : property =
   (* { x } shorthand for { x: x }, like in OCaml *)
   | `Choice_id x ->
       let id = identifier_reference env x in
-      Field (PN id, [], Some (JS.idexp id))
+      let ty = None in
+      Field (PN id, [], ty, Some (JS.idexp id))
   )
 
 and subscript_expression (env : env) ((v1, v2, v3, v4) : CST.subscript_expression) : expr =
@@ -774,7 +777,8 @@ and constructable_expression (env : env) (x : CST.constructable_expression) : ex
         (match v2 with
         | `Choice_choice_decl x ->
             let id = anon_choice_rese_id env x in
-            [ParamClassic { p_name = id; p_default = None; p_dots = None}]
+            [ParamClassic { p_name = id; p_default = None;
+                            p_dots = None; p_type = None }]
         | `Call_sign x -> call_signature env x
         )
       in
@@ -1567,7 +1571,8 @@ and method_definition (env : env) ((v1, v2, v3, v4, v5, v6, v7, v8, v9) : CST.me
   let v9 = statement_block env v9 in
   let f = { f_props = v4 @ v5; f_params = v8; f_body = v9 } in
   let e = Fun (f, None) in
-  Field (v6, v2, Some e)
+  let ty = None in
+  Field (v6, v2, ty, Some e)
 
 (* TODO types: type_parameters *)
 and class_declaration (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.class_declaration) : var list =
@@ -1591,7 +1596,8 @@ and class_declaration (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.class_decl
     | None -> None)
   in
   let c = { c_tok = v2; c_extends = v5; c_body = v6 } in
-  [{ v_name = v3; v_kind = Const, v2;
+  let ty = None in
+  [{ v_name = v3; v_kind = Const, v2; v_type = ty;
      v_init = Some (Class (c, None)); v_resolved = ref NotResolved }]
 
 and array_ (env : env) ((v1, v2, v3) : CST.array_) =
@@ -1828,7 +1834,8 @@ and public_field_definition (env : env) ((v1, v2, v3, v4, v5, v6) : CST.public_f
     | Some x -> Some (initializer_ env x)
     | None -> None)
   in
-  Field (v3, v2, v6)
+  let ty = None in (* TODO use v5 *)
+  Field (v3, v2, ty, v6)
 
 (* TODO types: return either an expression like in javascript or a type. *)
 and anon_choice_choice_type_id (env : env) (x : CST.anon_choice_choice_type_id): expr option =
@@ -1897,7 +1904,9 @@ and anon_choice_requ_param (env : env) (x : CST.anon_choice_requ_param) : parame
         | Some x -> type_annotation env x
         | None -> todo env ())
       in
-      ParamClassic { p_name = id; p_default = None; p_dots = Some v1 }
+      let ty = None (* TODO: use v3 *) in
+      ParamClassic { p_name = id; p_default = None;
+                     p_dots = Some v1; p_type = ty }
 
   | `Opt_param (v1, v2, v3, v4) ->
       let v1 = parameter_name env v1 in
@@ -2156,17 +2165,20 @@ and parameter_name (env : env) ((v1, v2, v3) : CST.parameter_name) : parameter =
     (match v3 with
     | `Id tok ->
         let id = JS.identifier env tok (* identifier *) in
-        ParamClassic { p_name = id; p_default = None; p_dots = None }
+        ParamClassic { p_name = id; p_default = None; p_dots = None;
+                       p_type = None }
     | `Choice_decl x ->
         let id = reserved_identifier env x in
-        ParamClassic { p_name = id; p_default = None; p_dots = None }
+        ParamClassic { p_name = id; p_default = None; p_dots = None;
+                       p_type = None }
     | `Choice_obj x ->
         let pat = destructuring_pattern env x in
         ParamPattern pat
     | `This tok ->
         (* treating 'this' as a regular identifier for now *)
         let id = JS.identifier env tok (* "this" *) in
-        ParamClassic { p_name = id; p_default = None; p_dots = None }
+        ParamClassic { p_name = id; p_default = None; p_dots = None;
+                       p_type = None }
     )
   in
   v3
@@ -2207,7 +2219,7 @@ and function_declaration (env : env) ((v1, v2, v3, v4, v5, v6) : CST.function_de
     | None -> None)
   in
   let f = { f_props = v1; f_params = v4; f_body = v5 } in
-  [{ v_name = v3; v_kind = Const, v2;
+  [{ v_name = v3; v_kind = Const, v2; v_type = None;
      v_init = Some (Fun (f, None)); v_resolved = ref NotResolved }]
 
 (* TODO: types *)
@@ -2302,7 +2314,7 @@ and declaration (env : env) (x : CST.declaration) : var list =
       in
       let v6 = class_body env v6 in
       let c = { c_tok = v2; c_extends = v5; c_body = v6 } in
-      [{ v_name = v3; v_kind = Const, v2;
+      [{ v_name = v3; v_kind = Const, v2; v_type = None;
          v_init = Some (Class (c, None)); v_resolved = ref NotResolved }]
   | `Module (v1, v2) ->
       (* does this exist only in .d.ts files? *)
