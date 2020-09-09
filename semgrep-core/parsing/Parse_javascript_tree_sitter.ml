@@ -78,13 +78,13 @@ let idexp id =
   | Some special -> IdSpecial (special, snd id)
 
 let build_vars kwd vars =
-  vars |> List.map (fun (id_or_pat, initopt) ->
+  vars |> List.map (fun (id_or_pat, ty_opt, initopt) ->
       match id_or_pat with
       | Left id ->
-      { v_name = id; v_kind = (kwd); v_init = initopt;
+      { v_name = id; v_kind = (kwd); v_init = initopt; v_type = ty_opt;
         v_resolved = ref NotResolved }
       | Right pat ->
-      Ast_js.var_pattern_to_var kwd pat (snd kwd) initopt
+        Ast_js.var_pattern_to_var kwd pat (snd kwd) initopt
    )
 
 let identifier (env : env) (tok : CST.identifier) : ident =
@@ -671,7 +671,8 @@ and variable_declarator (env : env) ((v1, v2) : CST.variable_declarator) =
     | Some x -> Some (initializer_ env x)
     | None -> None)
   in
-  v1, v2
+  let ty = None in
+  v1, ty, v2
 
 and anon_choice_id (env : env) (x : CST.anon_choice_id) =
   (match x with
@@ -814,7 +815,8 @@ and constructable_expression (env : env) (x : CST.constructable_expression) : ex
         (match v2 with
         | `Choice_choice_get x ->
                 let id = anon_choice_rese_id env x in
-                [ParamClassic { p_name = id; p_default = None; p_dots = None}]
+                [ParamClassic { p_name = id; p_default = None; p_type = None;
+                                p_dots = None}]
         | `Formal_params x -> call_signature env x
         )
       in
@@ -1364,7 +1366,7 @@ and method_definition (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.method_def
   let v7 = statement_block env v7 in
   let f = { f_props = v3 @ v4; f_params = v6; f_body = v7 } in
   let e = Fun (f, None) in
-  Field (v5, v2, Some e)
+  Field (v5, v2, None, Some e)
 
 and array_ (env : env) ((v1, v2, v3) : CST.array_) =
   let v1 = token env v1 (* "[" *) in
@@ -1497,7 +1499,8 @@ and public_field_definition (env : env) ((v1, v2, v3) : CST.public_field_definit
     | Some x -> Some (initializer_ env x)
     | None -> None)
   in
-  Field (v2, v1, v3)
+  let ty = None in
+  Field (v2, v1, ty, v3)
 
 and lexical_declaration (env : env) ((v1, v2, v3, v4) : CST.lexical_declaration) : var list =
   let v1 =
@@ -1602,7 +1605,8 @@ and anon_choice_pair (env : env) (x : CST.anon_choice_pair) : property =
       let v1 = property_name env v1 in
       let _v2 = token env v2 (* ":" *) in
       let v3 = expression env v3 in
-      Field (v1, [], Some v3)
+      let ty = None in
+      Field (v1, [], ty, Some v3)
   | `Spread_elem x ->
         let (t, e) = spread_element env x in
         FieldSpread (t, e)
@@ -1610,7 +1614,8 @@ and anon_choice_pair (env : env) (x : CST.anon_choice_pair) : property =
   (* { x } shorthand for { x: x }, like in OCaml *)
   | `Choice_id x ->
         let id = identifier_reference env x in
-        Field (PN id, [], Some (idexp id))
+        let ty = None in
+        Field (PN id, [], ty, Some (idexp id))
 
   | `Assign_pat x ->
         let (a,b,c) = assignment_pattern env x in
@@ -1667,7 +1672,7 @@ and declaration (env : env) (x : CST.declaration) : var list =
         | None -> None)
       in
       let f = { f_props = v1; f_params = v4; f_body = v5 } in
-      [{ v_name = v3; v_kind = Const, v2;
+      [{ v_name = v3; v_kind = Const, v2; v_type = None;
         v_init = Some (Fun (f, None)); v_resolved = ref NotResolved }]
 
   | `Gene_func_decl (v1, v2, v3, v4, v5, v6, v7) ->
@@ -1686,9 +1691,10 @@ and declaration (env : env) (x : CST.declaration) : var list =
         | Some tok -> Some (automatic_semicolon env tok) (* automatic_semicolon *)
         | None -> None)
       in
+      let ty = None in
       let f = { f_props = v1 @ v3; f_params = v5; f_body = v6 } in
-      [{ v_name = v4; v_kind = Const, v2;
-        v_init = Some (Fun (f, None)); v_resolved = ref NotResolved }]
+      [{ v_name = v4; v_kind = Const, v2; v_type = ty;
+         v_init = Some (Fun (f, None)); v_resolved = ref NotResolved }]
 
   | `Class_decl (v1, v2, v3, v4, v5, v6) ->
       let _v1TODO = List.map (decorator env) v1 in
@@ -1706,7 +1712,8 @@ and declaration (env : env) (x : CST.declaration) : var list =
         | None -> None)
       in
       let c = { c_tok = v2; c_extends = v4; c_body = v5 } in
-      [{ v_name = v3; v_kind = Const, v2;
+      let ty = None in
+      [{ v_name = v3; v_kind = Const, v2; v_type = ty;
         v_init = Some (Class (c, None)); v_resolved = ref NotResolved }]
 
   | `Lexi_decl x ->
@@ -1721,10 +1728,12 @@ and formal_parameter (env : env) (x : CST.formal_parameter) : parameter =
   (match x with
   | `Id tok ->
         let id = identifier env tok (* identifier *) in
-        ParamClassic { p_name = id; p_default = None; p_dots = None }
+        ParamClassic { p_name = id; p_default = None; p_dots = None;
+                       p_type = None }
   | `Choice_get x ->
         let id = reserved_identifier env x in
-        ParamClassic { p_name = id; p_default = None; p_dots = None }
+        ParamClassic { p_name = id; p_default = None; p_dots = None;
+                       p_type = None }
   | `Choice_obj x ->
         let pat = destructuring_pattern env x in
         ParamPattern pat
@@ -1736,7 +1745,8 @@ and formal_parameter (env : env) (x : CST.formal_parameter) : parameter =
       let v2 = anon_choice_id env v2 in
       (match v2 with
       | Left id ->
-         ParamClassic { p_name = id; p_default = None; p_dots = Some v1 }
+         ParamClassic { p_name = id; p_default = None; p_dots = Some v1;
+                        p_type = None }
       | Right pat ->
          todo_any "`Rest_param with pattern" v1 (Expr pat)
       )
