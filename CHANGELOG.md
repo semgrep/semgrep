@@ -5,6 +5,14 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## NEXT VERSION
 
 ### Added
+
+### Changed
+
+### Fixed
+
+## [0.23.0](https://github.com/returntocorp/semgrep/releases/tag/v0.23.0) - 2020-09-09
+
+### Added
 - Experimental support for Typescript (with -lang ts). You can currently
   mainly use the Javascript subset of Typescript in patterns, as well
   as type annotations in variable declarations or parameters.
