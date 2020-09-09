@@ -1069,6 +1069,7 @@ let format_output_exception e : string =
 let main () =
   set_gc ();
   let _ = 1 = 1 in
+  let _ = 2 = 2 in
 
   let usage_msg =
     spf "Usage: %s [options] <pattern> <files_or_dirs> \nOptions:"
