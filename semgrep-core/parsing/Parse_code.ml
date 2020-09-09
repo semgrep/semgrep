@@ -42,7 +42,9 @@ let rec (run_either: Common.filename -> 'ast parser list ->
       in
       let res =
         try Left (f file)
-        with exn -> Right exn
+        with
+        | Timeout -> raise Timeout
+        | exn -> Right exn
       in
       match res with
       | Left ast -> Left ast
