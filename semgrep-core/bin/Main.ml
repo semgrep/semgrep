@@ -144,7 +144,7 @@ let use_parsing_cache = ref ""
 (* take the list of files in a file (given by semgrep-python) *)
 let target_file = ref ""
 
-let timeout = ref 0 (* in seconds *)
+let timeout = ref 0. (* in seconds *)
 let max_memory = ref 0 (* in MB *)
 
 (*s: constant [[Main_semgrep_core.action]] *)
@@ -155,6 +155,9 @@ let action = ref ""
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
+
+let version =
+  spf "semgrep-core version: %s, pfff: %s" Version.version Config_pfff.version
 
 (*s: function [[Main_semgrep_core.set_gc]] *)
 let set_gc () =
@@ -344,9 +347,9 @@ let cache_file_of_file filename =
  *)
 let timeout_function = fun f ->
   let timeout = !timeout in
-  if timeout <= 0
+  if timeout <= 0.
   then f ()
-  else Common.timeout_function ~verbose:!Flag.debug timeout f
+  else Common.timeout_function_float ~verbose:!Flag.debug timeout f
 
 (* from https://discuss.ocaml.org/t/todays-trick-memory-limits-with-gc-alarms/4431 *)
 let run_with_memory_limit limit_mb f =
@@ -663,7 +666,11 @@ let semgrep_with_one_pattern xs =
     if !Flag.debug
     then pr2 (spf "processing: %s" file);
     (*e: [[Main_semgrep_core.semgrep_with_one_pattern()]] if [[verbose]] *)
-    let process file = sgrep_ast pattern file (create_ast file) in
+    let process file =
+        timeout_function (fun () ->
+            sgrep_ast pattern file (create_ast file)
+        )
+    in
 
     if not !error_recovery
     then E.try_with_print_exn_and_reraise file (fun () -> process file)
@@ -993,8 +1000,8 @@ let options () =
     " (internal) set test context";
     "-target_file", Arg.Set_string target_file,
     " <file> obtain list of targets to run patterns on";
-    "-timeout", Arg.Set_int timeout,
-    " <int> timeout for parsing (in seconds)";
+    "-timeout", Arg.Set_float timeout,
+    " <float> timeout for parsing (in seconds)";
     "-max_memory", Arg.Set_int max_memory,
     " <int> maximum memory (in MB)";
   ] @
@@ -1019,7 +1026,7 @@ let options () =
   Common.options_of_actions action (all_actions()) @
   (*e: [[Main_semgrep_core.options]] concatenated actions *)
   [ "-version",   Arg.Unit (fun () ->
-    pr2 (spf "semgrep-core version: %s, pfff: %s" Version.version Config_pfff.version);
+    pr2 version;
     exit 0;
     ), "  guess what";
   ]
@@ -1089,6 +1096,7 @@ let main () =
   if !Flag.debug then begin
     pr2 "Debug mode On";
     pr2 (spf "Executed as: %s" (Sys.argv|>Array.to_list|> String.concat " "));
+    pr2 version;
   end;
   if !profile then begin
     pr2 "Profile mode On";
