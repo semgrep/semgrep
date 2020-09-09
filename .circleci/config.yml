@@ -1,0 +1,16 @@
+version: 2.1
+jobs:
+
+  semgrep:
+    docker:
+      - image: returntocorp/semgrep:develop
+    working_directory: /src
+    steps:
+      - checkout
+      - run: semgrep --config semgrep-core/semgrep.yml --error --strict --exclude ocaml --exclude _build semgrep-core
+
+workflows:
+  version: 2
+  semgrep:
+    jobs:
+      - semgrep

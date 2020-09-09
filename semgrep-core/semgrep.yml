@@ -1,0 +1,14 @@
+# See pfff/semgrep.yml for more information
+
+rules:
+  - id: bad-pervasives
+    pattern: Pervasives.$X
+    message: Pervasives is deprecated and not available after 4.10. Use Stdlib.
+    languages: [ocaml]
+    severity: ERROR
+
+  - id: stupid-equal
+    pattern: $X = $X
+    message: this will always be true
+    languages: [ocaml]
+    severity: ERROR
