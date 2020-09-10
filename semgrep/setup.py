@@ -46,10 +46,11 @@ class bdist_wheel(_bdist_wheel):
         if "macosx" in plat:
             plat = f"macosx_{MIN_OSX_VERSION}_x86_64"
 
-        # The binary we build is statically linked & manylinux compatible, so change platform
-        # accordingly
+        # The binary we build is statically linked & manylinux compatible and alpine compatible
+        # there is no way to specify works with alpine on pypi so set platform as any.
+        # Note that semgrep-core is still incompatible with Windows
         if plat == "linux_x86_64":
-            plat = "manylinux1_x86_64"
+            plat = "any"
         elif plat == "linux_i686":
             plat = "manylinux1_i686"
 
