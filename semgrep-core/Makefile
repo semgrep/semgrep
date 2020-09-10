@@ -30,3 +30,31 @@ dump:
 	./_build/default/tests/test.bc -dump_ast tests/lint/stupid.py
 
 .PHONY: all clean install test dump
+
+# Developer rules
+
+pr:
+	git push origin `git rev-parse --abbrev-ref HEAD`
+	hub pull-request -b develop
+
+push:
+	git push origin `git rev-parse --abbrev-ref HEAD`
+
+merge:
+	A=`git rev-parse --abbrev-ref HEAD` && git checkout develop && git branch -D $$A
+
+
+#coupling: .circleci/config.yml
+#semgrep must be in your PATH (run 'pipenv shell' from semgrep/semgrep/)
+check:
+	@semgrep --version
+	@semgrep-core -version
+	semgrep --config semgrep.yml --error --strict --exclude tests/ocaml .
+
+index:
+	codegraph_build -lang cmt -derived_data .
+
+visual:
+	codemap -screen_size 3 -filter pfff -efuns_client efuns_client -emacs_client /dev/null .
+
+.PHONY: check index visual
