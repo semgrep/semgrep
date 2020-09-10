@@ -35,13 +35,13 @@ dump:
 
 pr:
 	git push origin `git rev-parse --abbrev-ref HEAD`
-	hub pull-request -b develop
+	hub pull-request -b develop -r mjambon
 
 push:
 	git push origin `git rev-parse --abbrev-ref HEAD`
 
 merge:
-	A=`git rev-parse --abbrev-ref HEAD` && git checkout develop && git branch -D $$A
+	A=`git rev-parse --abbrev-ref HEAD` && git checkout develop && git pull && git branch -D $$A
 
 
 #coupling: .circleci/config.yml
