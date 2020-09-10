@@ -683,8 +683,7 @@ and anon_choice_pair (env : env) (x : CST.anon_choice_pair) : property =
       let v1 = property_name env v1 in
       let _v2 = JS.token env v2 (* ":" *) in
       let v3 = expression env v3 in
-      let ty = None in
-      Field {fld_name = v1; fld_props = []; fld_type = ty; fld_body = Some v3}
+      Field {fld_name = v1; fld_props = []; fld_type = None; fld_body =Some v3}
   | `Spread_elem x ->
       let (t, e) = spread_element env x in
       FieldSpread (t, e)
@@ -704,8 +703,7 @@ and anon_choice_pair (env : env) (x : CST.anon_choice_pair) : property =
   (* { x } shorthand for { x: x }, like in OCaml *)
   | `Choice_id x ->
       let id = identifier_reference env x in
-      let ty = None in
-      Field {fld_name = PN id; fld_props = []; fld_type = ty;
+      Field {fld_name = PN id; fld_props = []; fld_type = None;
              fld_body = Some (JS.idexp id) }
   )
 
@@ -1831,7 +1829,7 @@ and public_field_definition (env : env) ((v1, v2, v3, v4, v5, v6) : CST.public_f
         )
     | None -> None)
   in
-  let _v5 () =
+  let v5 =
     (match v5 with
     | Some x -> Some (type_annotation env x)
     | None -> None)
@@ -1841,8 +1839,7 @@ and public_field_definition (env : env) ((v1, v2, v3, v4, v5, v6) : CST.public_f
     | Some x -> Some (initializer_ env x)
     | None -> None)
   in
-  let ty = None in (* TODO use v5 *)
-  Field {fld_name = v3; fld_props = v2; fld_type = ty; fld_body = v6 }
+  Field {fld_name = v3; fld_props = v2; fld_type = v5; fld_body = v6 }
 
 (* TODO types: return either an expression like in javascript or a type. *)
 and anon_choice_choice_type_id (env : env) (x : CST.anon_choice_choice_type_id): expr option =
