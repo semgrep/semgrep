@@ -5,6 +5,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## NEXT VERSION
 
 ### Added
+- The `--test` functionality now supports the `--json` flag.
 
 ### Changed
 
