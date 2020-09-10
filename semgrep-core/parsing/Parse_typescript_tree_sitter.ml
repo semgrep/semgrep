@@ -684,7 +684,7 @@ and anon_choice_pair (env : env) (x : CST.anon_choice_pair) : property =
       let _v2 = JS.token env v2 (* ":" *) in
       let v3 = expression env v3 in
       let ty = None in
-      Field (v1, [], ty, Some v3)
+      Field {fld_name = v1; fld_props = []; fld_type = ty; fld_body = Some v3}
   | `Spread_elem x ->
       let (t, e) = spread_element env x in
       FieldSpread (t, e)
@@ -705,7 +705,8 @@ and anon_choice_pair (env : env) (x : CST.anon_choice_pair) : property =
   | `Choice_id x ->
       let id = identifier_reference env x in
       let ty = None in
-      Field (PN id, [], ty, Some (JS.idexp id))
+      Field {fld_name = PN id; fld_props = []; fld_type = ty;
+             fld_body = Some (JS.idexp id) }
   )
 
 and subscript_expression (env : env) ((v1, v2, v3, v4) : CST.subscript_expression) : expr =
@@ -1572,7 +1573,7 @@ and method_definition (env : env) ((v1, v2, v3, v4, v5, v6, v7, v8, v9) : CST.me
   let f = { f_props = v4 @ v5; f_params = v8; f_body = v9 } in
   let e = Fun (f, None) in
   let ty = None in
-  Field (v6, v2, ty, Some e)
+  Field {fld_name = v6; fld_props = v2; fld_type = ty; fld_body = Some e }
 
 (* TODO types: type_parameters *)
 and class_declaration (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.class_declaration) : var list =
@@ -1841,7 +1842,7 @@ and public_field_definition (env : env) ((v1, v2, v3, v4, v5, v6) : CST.public_f
     | None -> None)
   in
   let ty = None in (* TODO use v5 *)
-  Field (v3, v2, ty, v6)
+  Field {fld_name = v3; fld_props = v2; fld_type = ty; fld_body = v6 }
 
 (* TODO types: return either an expression like in javascript or a type. *)
 and anon_choice_choice_type_id (env : env) (x : CST.anon_choice_choice_type_id): expr option =

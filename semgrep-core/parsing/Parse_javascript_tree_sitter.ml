@@ -1366,7 +1366,7 @@ and method_definition (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.method_def
   let v7 = statement_block env v7 in
   let f = { f_props = v3 @ v4; f_params = v6; f_body = v7 } in
   let e = Fun (f, None) in
-  Field (v5, v2, None, Some e)
+  Field {fld_name = v5; fld_props = v2; fld_type = None; fld_body = Some e }
 
 and array_ (env : env) ((v1, v2, v3) : CST.array_) =
   let v1 = token env v1 (* "[" *) in
@@ -1500,7 +1500,7 @@ and public_field_definition (env : env) ((v1, v2, v3) : CST.public_field_definit
     | None -> None)
   in
   let ty = None in
-  Field (v2, v1, ty, v3)
+  Field {fld_name = v2; fld_props = v1; fld_type = ty; fld_body = v3 }
 
 and lexical_declaration (env : env) ((v1, v2, v3, v4) : CST.lexical_declaration) : var list =
   let v1 =
@@ -1606,7 +1606,7 @@ and anon_choice_pair (env : env) (x : CST.anon_choice_pair) : property =
       let _v2 = token env v2 (* ":" *) in
       let v3 = expression env v3 in
       let ty = None in
-      Field (v1, [], ty, Some v3)
+      Field {fld_name = v1; fld_props = []; fld_type = ty; fld_body = Some v3}
   | `Spread_elem x ->
         let (t, e) = spread_element env x in
         FieldSpread (t, e)
@@ -1615,7 +1615,8 @@ and anon_choice_pair (env : env) (x : CST.anon_choice_pair) : property =
   | `Choice_id x ->
         let id = identifier_reference env x in
         let ty = None in
-        Field (PN id, [], ty, Some (idexp id))
+        Field {fld_name = PN id; fld_props = []; fld_type = ty;
+               fld_body =  Some (idexp id) }
 
   | `Assign_pat x ->
         let (a,b,c) = assignment_pattern env x in
