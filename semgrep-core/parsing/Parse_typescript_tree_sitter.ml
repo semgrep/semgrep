@@ -683,8 +683,7 @@ and anon_choice_pair (env : env) (x : CST.anon_choice_pair) : property =
       let v1 = property_name env v1 in
       let _v2 = JS.token env v2 (* ":" *) in
       let v3 = expression env v3 in
-      let ty = None in
-      Field (v1, [], ty, Some v3)
+      Field {fld_name = v1; fld_props = []; fld_type = None; fld_body =Some v3}
   | `Spread_elem x ->
       let (t, e) = spread_element env x in
       FieldSpread (t, e)
@@ -704,8 +703,8 @@ and anon_choice_pair (env : env) (x : CST.anon_choice_pair) : property =
   (* { x } shorthand for { x: x }, like in OCaml *)
   | `Choice_id x ->
       let id = identifier_reference env x in
-      let ty = None in
-      Field (PN id, [], ty, Some (JS.idexp id))
+      Field {fld_name = PN id; fld_props = []; fld_type = None;
+             fld_body = Some (JS.idexp id) }
   )
 
 and subscript_expression (env : env) ((v1, v2, v3, v4) : CST.subscript_expression) : expr =
@@ -1572,7 +1571,7 @@ and method_definition (env : env) ((v1, v2, v3, v4, v5, v6, v7, v8, v9) : CST.me
   let f = { f_props = v4 @ v5; f_params = v8; f_body = v9 } in
   let e = Fun (f, None) in
   let ty = None in
-  Field (v6, v2, ty, Some e)
+  Field {fld_name = v6; fld_props = v2; fld_type = ty; fld_body = Some e }
 
 (* TODO types: type_parameters *)
 and class_declaration (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.class_declaration) : var list =
@@ -1830,7 +1829,7 @@ and public_field_definition (env : env) ((v1, v2, v3, v4, v5, v6) : CST.public_f
         )
     | None -> None)
   in
-  let _v5 () =
+  let v5 =
     (match v5 with
     | Some x -> Some (type_annotation env x)
     | None -> None)
@@ -1840,8 +1839,7 @@ and public_field_definition (env : env) ((v1, v2, v3, v4, v5, v6) : CST.public_f
     | Some x -> Some (initializer_ env x)
     | None -> None)
   in
-  let ty = None in (* TODO use v5 *)
-  Field (v3, v2, ty, v6)
+  Field {fld_name = v3; fld_props = v2; fld_type = v5; fld_body = v6 }
 
 (* TODO types: return either an expression like in javascript or a type. *)
 and anon_choice_choice_type_id (env : env) (x : CST.anon_choice_choice_type_id): expr option =
@@ -1891,28 +1889,33 @@ and anon_choice_requ_param (env : env) (x : CST.anon_choice_requ_param) : parame
   (match x with
   | `Requ_param (v1, v2, v3) ->
       let v1 = parameter_name env v1 in
-      let _v2 () =
+      let v2 =
         (match v2 with
-        | Some x -> type_annotation env x
-        | None -> todo env ())
+        | Some x -> Some (type_annotation env x)
+        | None -> None)
       in
-      let _v3 () =
+      let v3 =
         (match v3 with
-        | Some x -> initializer_ env x
-        | None -> todo env ())
+        | Some x -> Some (initializer_ env x)
+        | None -> None)
       in
-      v1
+      (match v1 with
+      | Left id -> ParamClassic
+          { p_name = id; p_default = v3; p_type = v2; p_dots = None }
+      (* TODO: can have types and defaults on patterns? *)
+      | Right pat -> ParamPattern pat
+      )
+
   | `Rest_param (v1, v2, v3) ->
       let v1 = JS.token env v1 (* "..." *) in
       let id = JS.identifier env v2 (* identifier *) in
-      let _v3 () =
+      let v3 =
         (match v3 with
-        | Some x -> type_annotation env x
-        | None -> todo env ())
+        | Some x -> Some (type_annotation env x)
+        | None -> None)
       in
-      let ty = None (* TODO: use v3 *) in
-      ParamClassic { p_name = id; p_default = None;
-                     p_dots = Some v1; p_type = ty }
+      ParamClassic { p_name = id; p_default = None; p_type = v3;
+                     p_dots = Some v1; }
 
   | `Opt_param (v1, v2, v3, v4) ->
       let v1 = parameter_name env v1 in
@@ -1927,7 +1930,12 @@ and anon_choice_requ_param (env : env) (x : CST.anon_choice_requ_param) : parame
         | Some x -> initializer_ env x
         | None -> todo env ())
       in
-      v1
+      (match v1 with
+      | Left id -> ParamClassic
+          { p_name = id; p_default = None; p_type = None; p_dots = None }
+      (* TODO: can have types and defaults on patterns? *)
+      | Right pat -> ParamPattern pat
+      )
   )
 
 (* TODO: types *)
@@ -2156,7 +2164,7 @@ and todo_constraint_ (env : env) ((v1, v2) : CST.constraint_) =
 
 (* TODO don't ignore accessibility modifier (public/private/proteced)
         and "readonly" *)
-and parameter_name (env : env) ((v1, v2, v3) : CST.parameter_name) : parameter =
+and parameter_name (env : env) ((v1, v2, v3) : CST.parameter_name) : (ident, pattern) Common.either =
   let _v1 () =
     (match v1 with
     | Some x -> accessibility_modifier env x
@@ -2171,20 +2179,17 @@ and parameter_name (env : env) ((v1, v2, v3) : CST.parameter_name) : parameter =
     (match v3 with
     | `Id tok ->
         let id = JS.identifier env tok (* identifier *) in
-        ParamClassic { p_name = id; p_default = None; p_dots = None;
-                       p_type = None }
+        Left id
     | `Choice_decl x ->
         let id = reserved_identifier env x in
-        ParamClassic { p_name = id; p_default = None; p_dots = None;
-                       p_type = None }
+        Left id
     | `Choice_obj x ->
         let pat = destructuring_pattern env x in
-        ParamPattern pat
+        Right pat
     | `This tok ->
         (* treating 'this' as a regular identifier for now *)
         let id = JS.identifier env tok (* "this" *) in
-        ParamClassic { p_name = id; p_default = None; p_dots = None;
-                       p_type = None }
+        Left id
     )
   in
   v3
