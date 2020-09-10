@@ -10,7 +10,7 @@ jobs:
       - run:
           name: "Pull Submodules"
           command: |
-            sudo apk add git
+            apk add git
             git submodule init
             git submodule update --remote
       - run: semgrep --config semgrep-core/semgrep.yml --error --strict --exclude ocaml --exclude TODO --exclude _build semgrep-core
