@@ -4,6 +4,7 @@ jobs:
   semgrep:
     docker:
       - image: returntocorp/semgrep:develop
+        user: root
     working_directory: /src
     steps:
       - checkout
