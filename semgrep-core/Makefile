@@ -31,7 +31,18 @@ dump:
 
 .PHONY: all clean install test dump
 
-# Developer rules (pfff-based tools)
+# Developer rules
+
+pr:
+	git push origin `git rev-parse --abbrev-ref HEAD`
+	hub pull-request -b develop
+
+push:
+	git push origin `git rev-parse --abbrev-ref HEAD`
+
+merge:
+	A=`git rev-parse --abbrev-ref HEAD` && git checkout develop && git branch -D $$A
+
 
 #coupling: .circleci/config.yml
 #semgrep must be in your PATH (run 'pipenv shell' from semgrep/semgrep/)
