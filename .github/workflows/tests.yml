@@ -47,6 +47,7 @@ jobs:
 
   upload-linux-wheel:
       runs-on: 'ubuntu'
+      needs: [build-wheels-manylinux]
       steps:
       - name: Download Artifact
         uses: actions/download-artifact@v1
