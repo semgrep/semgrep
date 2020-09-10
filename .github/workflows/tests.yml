@@ -46,7 +46,7 @@ jobs:
           path: semgrep/dist.zip
 
   upload-linux-wheel:
-      runs-on: 'ubuntu'
+      runs-on: 'ubuntu-16.04'
       needs: [build-wheels-manylinux]
       steps:
       - name: Download Artifact
