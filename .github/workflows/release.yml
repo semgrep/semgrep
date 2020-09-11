@@ -267,7 +267,7 @@ jobs:
       - name: Unzip
         run: unzip ./manylinux-wheel/dist.zip
       - name: Unzip OSX Wheel
-        # Don't unzip tar.gz
+        # Don't unzip tar.gz because it already exists from ./manylinux-wheel/dist.zip.
         run: unzip ./osx-wheel/dist.zip "*.whl"
       - name: Publish to Pypi
         uses: pypa/gh-action-pypi-publish@master
