@@ -6,19 +6,15 @@
 # of the 'semgrep' wrapping.
 #
 
-FROM ocaml/opam2:alpine@sha256:4c2ce9a181b4b12442a68fc221d0b753959ec80e24eae3bf788eeca4dcb9a293 as build-semgrep-core
+FROM returntocorp/ocaml:alpine as build-semgrep-core
 
-USER root
-RUN apk add --no-cache perl m4
-USER opam
+USER user
+WORKDIR /home/user
 
-WORKDIR /home/opam/opam-repository
-RUN git pull && opam update && opam switch create 4.10.0+flambda
-
-COPY --chown=opam .gitmodules /semgrep/.gitmodules
-COPY --chown=opam .git/ /semgrep/.git/
-COPY --chown=opam semgrep-core/ /semgrep/semgrep-core/
-COPY --chown=opam scripts /semgrep/scripts
+COPY --chown=user .gitmodules /semgrep/.gitmodules
+COPY --chown=user .git/ /semgrep/.git/
+COPY --chown=user semgrep-core/ /semgrep/semgrep-core/
+COPY --chown=user scripts /semgrep/scripts
 
 WORKDIR /semgrep
 
@@ -31,6 +27,8 @@ RUN git submodule update --init --recursive
 RUN eval "$(opam env)" && ./scripts/install-ocaml-tree-sitter
 RUN eval "$(opam env)" && opam install --deps-only -y semgrep-core/pfff/
 RUN eval "$(opam env)" && opam install --deps-only -y semgrep-core/ && make -C semgrep-core/ all
+
+# Sanity check
 RUN ./semgrep-core/_build/install/default/bin/semgrep-core -version
 
 #
