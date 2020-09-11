@@ -9,6 +9,247 @@ on:
       - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
 
 jobs:
+  create_release:
+    name: Create the Github Release
+    runs-on: ubuntu-latest
+    needs: [release-osx, release-ubuntu-16-04]
+    steps:
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: true
+          prerelease: false
+
+          # OSX
+      - uses: actions/download-artifact@v1
+        with:
+          name: semgrep-osx-${{ github.sha }}
+          path: semgrep-osx
+      - name: Compute checksum
+        run: cat ./semgrep-osx/artifacts.zip | sha256sum > ./semgrep-osx/artifacts.zip.sha256
+      - name: Get the version
+        id: get_version
+        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+      - name: Upload Release Asset
+        id: upload-release-asset-osx
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./semgrep-osx/artifacts.zip
+          asset_name: semgrep-${{ steps.get_version.outputs.VERSION }}-osx.zip
+          asset_content_type: application/zip
+      - name: Upload Release Checksum
+        id: upload-checksum-asset-osx
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./semgrep-osx/artifacts.zip.sha256
+          asset_name: semgrep-${{ steps.get_version.outputs.VERSION }}-osx.zip.sha256
+          asset_content_type: application/zip
+
+          ## UBUNTU
+      - uses: actions/download-artifact@v1
+        with:
+          name: semgrep-ubuntu-16.04-${{ github.sha }}
+          path: semgrep-ubuntu
+      - name: Compute checksum
+        run: cat ./semgrep-ubuntu/artifacts.tar.gz | sha256sum > ./semgrep-ubuntu/artifacts.tar.gz.sha256
+      - name: Upload Release Asset
+        id: upload-release-asset-ubuntu
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./semgrep-ubuntu/artifacts.tar.gz
+          asset_name: semgrep-${{ steps.get_version.outputs.VERSION }}-ubuntu-16.04.tgz
+          asset_content_type: application/gzip
+      - name: Upload Release Checksum
+        id: upload-release-checksum-ubuntu
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./semgrep-ubuntu/artifacts.tar.gz.sha256
+          asset_name: semgrep-${{ steps.get_version.outputs.VERSION }}-ubuntu-16.04.tgz.sha256
+          asset_content_type: application/gzip
+
+  release-docker:
+    name: Build and Push Semgrep Docker Container
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Get the version without leading v
+        id: get_version
+        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\/v/}
+      - name: build-and-push
+        uses: docker/build-push-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+          repository: returntocorp/semgrep
+          tags: ${{ steps.get_version.outputs.VERSION }}, latest
+      - name: update semgrep.dev
+        run: curl --fail -X POST https://semgrep.dev/api/admin/update-docker
+
+  build-core:
+    name: semgrep-core make test and semgrep make test/qa-test
+    runs-on: ubuntu-latest
+    container: mjambon/r2c-ocaml:alpine
+    steps:
+      - name: Pre-checkout fixes
+        run: |
+          sudo chmod -R 777 /github
+          github_cache_dir="/__w"
+          sudo mkdir -p "$github_cache_dir"
+          sudo chmod -R 777 "$github_cache_dir"
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+      - name: Post-checkout fixes
+        run: ./.github/post-checkout
+      - name: Build semgrep-core
+        run: ./scripts/install-alpine-semgrep-core
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v1
+        with:
+          name: semgrep-core
+          path: artifacts/semgrep-core
+      - name: Test semgrep-core
+        run: |
+          eval $(opam env)
+          cd semgrep-core
+          make test
+
+  release-osx:
+    name: Build the OSX binaries
+    runs-on: macos-latest
+    steps:
+      - name: Install System Deps
+        run: brew install opam pkg-config coreutils
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v1
+      - name: Run OSX release script
+        run: ./scripts/osx-release.sh
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v1
+        with:
+          name: semgrep-osx-${{ github.sha }}
+          path: artifacts.zip
+  release-ubuntu-16-04:
+    runs-on: ubuntu-latest
+    container: returntocorp/sgrep-build:ubuntu-16.04
+    needs: [build-core]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+      - name: Download Artifact
+        uses: actions/download-artifact@v1
+        with:
+          name: semgrep-core
+          path: semgrep-core-dir
+      - name: Install artifact
+        run: |
+          mkdir -p semgrep-files
+          cp semgrep-core-dir/semgrep-core semgrep-files
+          chmod +x semgrep-files/semgrep-core
+      - name: Run Ubuntu build script
+        run: ./scripts/ubuntu-release.sh
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v1
+        with:
+          name: semgrep-ubuntu-16.04-${{ github.sha }}
+          path: artifacts.tar.gz
+
+  build-wheels-osx:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+      - name: Setup Python
+        uses: actions/setup-python@v1
+        with:
+          # This is just the Python version to build the wheels
+          python-version: 3.7
+      - name: Build the wheels
+        run: ./scripts/build-wheels.sh
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v1
+        with:
+          name: osx-wheel
+          path: semgrep/dist.zip
+  build-wheels-manylinux:
+    runs-on: 'ubuntu-16.04'
+    container: 'returntocorp/sgrep-build:ubuntu-16.04'
+    needs: [build-core]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+      - name: Download Artifact
+        uses: actions/download-artifact@v1
+        with:
+          name: semgrep-core
+          path: semgrep-core-dir
+      - name: Install artifact
+        run: |
+          mkdir -p semgrep-files
+          cp semgrep-core-dir/semgrep-core semgrep-files
+          chmod +x semgrep-files/semgrep-core
+      - name: Setup Python
+        run: |
+          rm /usr/bin/python
+          ln `which python3.7` /usr/bin/python
+      - name: Install zip & musl-tools
+        run: apt-get update && apt install -y zip musl-tools
+      - name: Build the wheels
+        run: PRECOMPILED_LOCATION=$(realpath 'semgrep-files/semgrep-core') ./scripts/build-wheels.sh
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v1
+        with:
+          name: manylinux-wheel
+          path: semgrep/dist.zip
+  test-wheels-manylinux:
+    needs: ['build-wheels-manylinux']
+    runs-on: 'ubuntu-16.04'
+    container: 'quay.io/pypa/manylinux1_x86_64'
+    steps:
+      - uses: actions/download-artifact@v1
+        with:
+          name: manylinux-wheel
+          path: manylinux-wheel
+      - name: unzip dist
+        run: unzip ./manylinux-wheel/dist.zip
+      - name: install package
+        run: /opt/python/cp36-cp36m/bin/pip install dist/*.whl
+      - name: test package
+        working-directory: /opt/python/cp36-cp36m/bin/
+        run: ./semgrep --version
+      - name: test core
+        run: ./semgrep-core -version
+        working-directory: /opt/python/cp36-cp36m/bin/
+      - name: e2e test
+        working-directory: /opt/python/cp36-cp36m/bin/
+        run: ./semgrep -l python ../lib/python3.6/code.py -e '$X == $X'
+
   homebrew-core-pr:
     name: Update on Homebrew-Core
     runs-on: ubuntu-latest
@@ -17,16 +258,3 @@ jobs:
         with:
           token: ${{ secrets.HOMEBREW_PR_TOKEN }}
           formula: semgrep
-
-  brew-build:
-    name: Check brew install formula works for develop head
-    runs-on: macos-latest
-    steps:
-      - name: Brew update
-        run: brew update
-      - name: Brew Install
-        run: brew install semgrep --HEAD
-      - name: Check semgrep-core version
-        run: semgrep-core -version
-      - name: Check installed correctly
-        run: brew test semgrep --HEAD
