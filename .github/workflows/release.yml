@@ -250,6 +250,31 @@ jobs:
         working-directory: /opt/python/cp36-cp36m/bin/
         run: ./semgrep -l python ../lib/python3.6/code.py -e '$X == $X'
 
+  upload-wheels:
+    runs-on: 'ubuntu-16.04'
+    needs: [test-wheels-manylinux, build-wheels-osx]
+    steps:
+      - name: Download Artifact
+        uses: actions/download-artifact@v1
+        with:
+          name: manylinux-wheel
+          path: manylinux-wheel
+      - name: Download Osx Artifact
+        uses: actions/download-artifact@v1
+        with:
+          name: osx-wheel
+          path: osx-wheel
+      - name: Unzip
+        run: unzip ./manylinux-wheel/dist.zip
+      - name: Unzip OSX Wheel
+        # Don't unzip tar.gz because it already exists from ./manylinux-wheel/dist.zip.
+        run: unzip ./osx-wheel/dist.zip "*.whl"
+      - name: Publish to Pypi
+        uses: pypa/gh-action-pypi-publish@master
+        with:
+          user: __token__
+          password: ${{ secrets.pypi_upload_token }}
+
   homebrew-core-pr:
     name: Update on Homebrew-Core
     runs-on: ubuntu-latest
