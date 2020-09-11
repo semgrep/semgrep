@@ -14,7 +14,7 @@ module PI = Parse_info
 module S = Scope_code
 module E = Error_code
 module R = Rule
-module J = Json_type
+module J = JSON
 
 (*****************************************************************************)
 (* Purpose *)
@@ -616,7 +616,7 @@ let print_matches_and_errors files matches errs =
      "errors", J.Array (errs |> List.map R2c.error_to_json);
      "stats", stats
   ] in
-  let s = Json_io.string_of_json json in
+  let s = J.string_of_json json in
   if !Flag.debug
   then pr2 ("returned JSON: "^ s);
   pr s
@@ -823,7 +823,7 @@ let json_of_v (v: OCaml.v) =
 let dump_v_to_format (v: OCaml.v) =
   if (not !output_format_json)
     then (OCaml.string_of_v v)
-    else (Json_io.string_of_json (json_of_v v))
+    else (J.string_of_json (json_of_v v))
 (*e: function [[Main_semgrep_core.dump_v_to_format]] *)
 
 (*s: function [[Main_semgrep_core.dump_pattern]] *)
@@ -1061,7 +1061,7 @@ let format_output_exception e : string =
     | exn ->
       J.Object [  "error", J.String "unknown exception"; "message", J.String (Common.exn_to_s exn); ]
   in
-    Json_io.string_of_json msg
+  J.string_of_json msg
 (*e: function [[Main_semgrep_core.format_output_exception]] *)
 
 

@@ -16,21 +16,17 @@ bug-reports: "https://github.com/returntocorp/semgrep/issues"
 
 depends: [
   "dune"
-
-  "ocamlfind"
-  "num"
   "ocamlgraph"
-  "json-wheel"
-  "conf-perl"
+  "yojson"
   "yaml"
   "grain_dypgen"
+  "menhir"
   "uucp"
   "uutf"
-  "menhir"
-  "parmap"
-  "dune-glob"
-  "pfff"
   "re"
+  "dune-glob"
+  "parmap"
+  "pfff"
 ]
 
 build: [make]
