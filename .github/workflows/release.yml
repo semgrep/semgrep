@@ -250,15 +250,11 @@ jobs:
         working-directory: /opt/python/cp36-cp36m/bin/
         run: ./semgrep -l python ../lib/python3.6/code.py -e '$X == $X'
 
-  brew-build:
-    name: Check brew install formula works for develop head
-    runs-on: macos-latest
+  homebrew-core-pr:
+    name: Update on Homebrew-Core
+    runs-on: ubuntu-latest
     steps:
-      - name: Brew update
-        run: brew update
-      - name: Brew Install
-        run: brew install semgrep --HEAD
-      - name: Check semgrep-core version
-        run: semgrep-core -version
-      - name: Check installed correctly
-        run: brew test semgrep --HEAD
+      - uses: dawidd6/action-homebrew-bump-formula@v3
+        with:
+          token: ${{ secrets.HOMEBREW_PR_TOKEN }}
+          formula: semgrep
