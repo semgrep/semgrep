@@ -1,9 +1,7 @@
 (test
  (name test)
  (libraries 
-    bigarray
-    threads          ;; needed for json-wheel (Condition?)
-    json-wheel       ;; Json_io, Json_type
+    str
     dyp
     ppx_deriving.runtime
     uutf uucp
