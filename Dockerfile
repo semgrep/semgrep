@@ -6,7 +6,7 @@
 # of the 'semgrep' wrapping.
 #
 
-FROM returntocorp/ocaml:alpine as build-semgrep-core
+FROM returntocorp/ocaml:alpine-2020-09-11 as build-semgrep-core
 
 USER user
 WORKDIR /home/user
