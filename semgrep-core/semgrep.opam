@@ -26,7 +26,6 @@ depends: [
   "re"
   "dune-glob"
   "parmap"
-  "pfff"
 ]
 
 build: [make]
