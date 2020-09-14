@@ -2,7 +2,7 @@
  (public_name semgrep_typing)
  (wrapped false)
  (libraries
-   yaml json-wheel
+   yaml
    commons
    pfff-config
    pfff-h_program-lang

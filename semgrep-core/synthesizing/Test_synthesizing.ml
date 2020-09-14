@@ -13,7 +13,7 @@
  *)
 open Common
 
-module J = Json_type
+module J = JSON
 
 let expr_at_range s file =
   let r = Range.range_of_linecol_spec s file in
@@ -33,5 +33,5 @@ let synthesize_patterns s file =
   let json_opts =
       J.Object (List.map (fun (k, v) -> (k, J.String v)) options)
   in
-  let s = Json_io.string_of_json json_opts in
+  let s = J.string_of_json json_opts in
   pr s
