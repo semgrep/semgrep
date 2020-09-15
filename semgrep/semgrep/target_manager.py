@@ -24,7 +24,8 @@ FileExtension = NewType("FileExtension", str)
 
 
 PYTHON_EXTENSIONS = [FileExtension("py"), FileExtension("pyi")]
-JAVASCRIPT_EXTENSIONS = [FileExtension("js")]
+JAVASCRIPT_EXTENSIONS = [FileExtension("js"), FileExtension("jsx")]
+TYPESCRIPT_EXTENSIONS = [FileExtension("ts"), FileExtension("tsx")]
 JAVA_EXTENSIONS = [FileExtension("java")]
 C_EXTENSIONS = [FileExtension("c")]
 GO_EXTENSIONS = [FileExtension("go")]
@@ -54,8 +55,10 @@ def lang_to_exts(language: Language) -> List[FileExtension]:
     """
     if language in {"python", "python2", "python3", "py"}:
         return PYTHON_EXTENSIONS
-    elif language in {"js", "javascript"}:
+    elif language in {"js", "jsx", "javascript"}:
         return JAVASCRIPT_EXTENSIONS
+    elif language in {"ts", "tsx" "typescript"}:
+        return TYPESCRIPT_EXTENSIONS
     elif language in {"java"}:
         return JAVA_EXTENSIONS
     elif language in {"c"}:
