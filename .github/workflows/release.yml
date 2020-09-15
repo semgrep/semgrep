@@ -105,7 +105,7 @@ jobs:
   build-core:
     name: semgrep-core make test and semgrep make test/qa-test
     runs-on: ubuntu-latest
-    container: mjambon/r2c-ocaml:alpine
+    container: returntocorp/ocaml:alpine
     steps:
       - name: Pre-checkout fixes
         run: |
