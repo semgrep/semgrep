@@ -24,9 +24,11 @@ RUN git clean -dfX
 RUN git submodule foreach --recursive git clean -dfX
 
 RUN git submodule update --init --recursive
+
 RUN eval "$(opam env)" && ./scripts/install-ocaml-tree-sitter
 RUN eval "$(opam env)" && opam install --deps-only -y semgrep-core/pfff/
-RUN eval "$(opam env)" && opam install --deps-only -y semgrep-core/ && make -C semgrep-core/ all
+RUN eval "$(opam env)" && opam install --deps-only -y semgrep-core/
+RUN eval "$(opam env)" && make -C semgrep-core/ all
 
 # Sanity check
 RUN ./semgrep-core/_build/install/default/bin/semgrep-core -version
