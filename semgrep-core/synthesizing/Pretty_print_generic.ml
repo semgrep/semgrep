@@ -41,7 +41,8 @@ type env = {
 (* Helpers *)
 (*****************************************************************************)
 let todo any =
-  pr (show_any any); "*TODO*"
+  pr2 (show_any any);
+  "*TODO*"
 
 let ident (s, _) = s
 

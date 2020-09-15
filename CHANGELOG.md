@@ -6,6 +6,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 - The `--test` functionality now supports the `--json` flag.
+- Alpha support for TypeScript
 
 ### Changed
 

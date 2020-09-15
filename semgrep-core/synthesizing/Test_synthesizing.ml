@@ -27,6 +27,7 @@ let expr_at_range s file =
   | Some e -> pr (AST_generic.show_expr e)
   | None -> failwith (spf "could not find an expr at range %s in %s" s file)
   )
+[@@action]
 
 let synthesize_patterns s file =
   let options = Synthesizer.synthesize_patterns s file in
@@ -35,3 +36,4 @@ let synthesize_patterns s file =
   in
   let s = J.string_of_json json_opts in
   pr s
+[@@action]
