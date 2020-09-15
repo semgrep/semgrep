@@ -42,7 +42,7 @@ LABEL maintainer="support@r2c.dev"
 
 # ugly: circle CI requires valid git and ssh programs in the container
 # when running semgrep on a repository containing submodules
-RUN apk add --no-cache git ssh
+RUN apk add --no-cache git openssh
 
 COPY --from=build-semgrep-core \
      /semgrep/semgrep-core/_build/install/default/bin/semgrep-core /usr/local/bin/semgrep-core
