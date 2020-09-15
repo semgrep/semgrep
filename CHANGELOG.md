@@ -6,6 +6,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 - Add in alpha support for TypeScript
+- Add in alpha support for PHP
 
 ### Changed
 

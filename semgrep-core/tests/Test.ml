@@ -181,6 +181,12 @@ let lang_regression_tests =
     let lang = Lang.Ruby in
     regression_tests_for_lang files lang
   );
+  "semgrep PHP" >::: (
+    let dir = Filename.concat tests_path "php" in
+    let files = Common2.glob (spf "%s/*.php" dir) in
+    let lang = Lang.PHP in
+    regression_tests_for_lang files lang
+  );
  ]
 (*e: constant [[Test.lang_regression_tests]] *)
 
