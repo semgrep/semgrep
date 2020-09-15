@@ -38,6 +38,10 @@ RUN ./semgrep-core/_build/install/default/bin/semgrep-core -version
 FROM python:3.7.7-alpine3.11
 LABEL maintainer="support@r2c.dev"
 
+# ugly: circle CI requires a valid git command when running semgrep
+# on a repository containing submodules
+RUN apk add --no-cache git
+
 COPY --from=build-semgrep-core \
      /semgrep/semgrep-core/_build/install/default/bin/semgrep-core /usr/local/bin/semgrep-core
 RUN semgrep-core -version
