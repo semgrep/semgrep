@@ -124,7 +124,15 @@ let just_parse_with_lang lang file =
   | Lang.Typescript ->
       let ast =
         run file [
-          TreeSitter, Parse_typescript_tree_sitter.parse
+          TreeSitter, Parse_typescript_tree_sitter.parse `Typescript
+        ]
+      in
+      Js_to_generic.program ast
+
+  | Lang.TSX ->
+      let ast =
+        run file [
+          TreeSitter, Parse_typescript_tree_sitter.parse `TSX
         ]
       in
       Js_to_generic.program ast
