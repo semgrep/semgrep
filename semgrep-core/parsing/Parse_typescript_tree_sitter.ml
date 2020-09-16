@@ -61,7 +61,7 @@ let todo (_env : env) _ =
 *)
 module JS_CST = Parse_javascript_tree_sitter.CST
 module JS = Parse_javascript_tree_sitter
-module CST = Tree_sitter_typescript.CST
+module CST = CST_tree_sitter_typescript (* typescript+tsx, merged *)
 
 let accessibility_modifier (env : env) (x : CST.accessibility_modifier) =
   (match x with
@@ -143,7 +143,7 @@ let import_export_specifier (env : env) ((v1, v2, v3) : CST.import_export_specif
   in
   JS.import_export_specifier env (v2, v3)
 
-let rec anon_choice_type_id (env : env) (x : CST.anon_choice_type_id) =
+let rec anon_choice_type_id (env : env) (x : CST.anon_choice_type_id) : ident list =
   (match x with
   | `Id tok -> [JS.identifier env tok] (* identifier *)
   | `Nested_id x -> nested_identifier env x
@@ -327,6 +327,123 @@ let rec parenthesized_expression (env : env) ((v1, v2, v3) : CST.parenthesized_e
   in
   let _v3 = JS.token env v3 (* ")" *) in
   v2
+
+and jsx_opening_element (env : env) ((v1, v2, v3, v4) : CST.jsx_opening_element) =
+  let _v1 = JS.token env v1 (* "<" *) in
+  let v2 : ident =
+    (match v2 with
+     | `Choice_choice_jsx_id x -> JS.jsx_attribute_name env x
+     | `Choice_id_opt_type_args (v1, v2) ->
+         let v1 = anon_choice_type_id env v1 in
+         let id = concat_nested_identifier env v1 in
+         let _v2 () =
+           (match v2 with
+            | Some x -> todo_type_arguments env x
+            | None -> todo env ())
+         in
+         id
+    )
+  in
+  let v3 = List.map (jsx_attribute_ env) v3 in
+  let _v4 = JS.token env v4 (* ">" *) in
+  v2, v3
+
+and jsx_fragment (env : env) ((v1, v2, v3, v4, v5, v6) : CST.jsx_fragment)
+ : xml =
+  let v1 = JS.token env v1 (* "<" *) in
+  let _v2 = JS.token env v2 (* ">" *) in
+  let v3 = List.map (jsx_child env) v3 in
+  let _v4 = JS.token env v4 (* "<" *) in
+  let _v5 = JS.token env v5 (* "/" *) in
+  let _v6 = JS.token env v6 (* ">" *) in
+  { xml_tag = "", v1; xml_attrs = []; xml_body = v3 }
+
+and jsx_expression (env : env) ((v1, v2, v3) : CST.jsx_expression) : expr bracket =
+  let v1 = JS.token env v1 (* "{" *) in
+  let v2 =
+    (match v2 with
+     | Some x ->
+         (match x with
+          | `Exp x -> expression env x
+          | `Seq_exp x -> sequence_expression env x
+          | `Spread_elem x ->
+              let (t, e) = spread_element env x in
+              Apply (IdSpecial (Spread, t), fb [e])
+         )
+     (* abusing { } in XML to just add comments, e.g. { /* lint-ignore */ } *)
+     | None ->
+         IdSpecial (Null, v1)
+    )
+  in
+  let v3 = JS.token env v3 (* "}" *) in
+  v1, v2, v3
+
+and jsx_attribute_ (env : env) (x : CST.jsx_attribute_) : xml_attribute =
+  (match x with
+   | `Jsx_attr (v1, v2) ->
+       let v1 = JS.jsx_attribute_name env v1 in
+       let v2 =
+         match v2 with
+         | Some (v1, v2) ->
+             let _v1bis = JS.token env v1 (* "=" *) in
+             let v2 = jsx_attribute_value env v2 in
+             v2
+         (* see https://www.reactenlightenment.com/react-jsx/5.7.html *)
+         | None -> Bool (true, snd v1)
+       in
+       XmlAttr (v1, v2)
+   (* less: we could enforce that it's only a Spread operation *)
+   | `Jsx_exp x ->
+       let e = jsx_expression env x in
+       XmlAttrExpr e
+  )
+
+and jsx_attribute_value (env : env) (x : CST.jsx_attribute_value) =
+  (match x with
+   | `Str x ->
+       let s = JS.string_ env x in
+       String s
+   | `Jsx_exp x ->
+       let (_, e, _) = jsx_expression env x in
+       e
+   (* an attribute value can be a jsx element? *)
+   | `Choice_jsx_elem x ->
+       let xml = jsx_element_ env x in
+       Xml xml
+   | `Jsx_frag x ->
+       let xml = jsx_fragment env x in
+       Xml xml
+  )
+
+and jsx_child (env : env) (x : CST.jsx_child) : xml_body =
+  (match x with
+   | `Jsx_text tok ->
+       let s = JS.str env tok (* pattern [^{}<>]+ *) in
+       XmlText s
+   | `Choice_jsx_elem x ->
+       let xml = jsx_element_ env x in
+       XmlXml xml
+   | `Jsx_exp x ->
+       let (_, e, _) = jsx_expression env x in
+       XmlExpr e
+  )
+
+and jsx_element_ (env : env) (x : CST.jsx_element_) : xml =
+  (match x with
+   | `Jsx_elem (v1, v2, v3) ->
+       let v1 = jsx_opening_element env v1 in
+       let v2 = List.map (jsx_child env) v2 in
+       let v3 = JS.jsx_closing_element env v3 in
+       { xml_tag = fst v1; xml_attrs = snd v1;
+         xml_body = v2 }
+   | `Jsx_self_clos_elem (v1, v2, v3, v4, v5) ->
+       let v1 = JS.token env v1 (* "<" *) in
+       let v2 = JS.jsx_element_name env v2 in
+       let v3 = List.map (jsx_attribute_ env) v3 in
+       let v4 = JS.token env v4 (* "/" *) in
+       let v5 = JS.token env v5 (* ">" *) in
+       { xml_tag = v2; xml_attrs = v3; xml_body = [] }
+  )
 
 and destructuring_pattern (env : env) (x : CST.destructuring_pattern) : expr =
   (match x with
@@ -1079,6 +1196,15 @@ and expression (env : env) (x : CST.expression) : expr =
       let v2 = expression env v2 in
       v2
   | `Choice_this x -> constructable_expression env x
+
+  | `Choice_jsx_elem x ->
+      let xml = jsx_element_ env x in
+      Xml xml
+
+  | `Jsx_frag x ->
+      let xml = jsx_fragment env x in
+      Xml xml
+
   | `Assign_exp (v1, v2, v3) ->
       let v1 = anon_choice_paren_exp env v1 in
       let v2 = JS.token env v2 (* "=" *) in
@@ -2421,21 +2547,30 @@ let program (env : env) ((v1, v2) : CST.program) : program =
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
-let parse file =
+
+type dialect = [ `Typescript | `TSX ]
+
+let parse dialect file =
   let debug = false in
-  let ast =
+  let cst =
     Parallel.backtrace_when_exn := false;
-    Parallel.invoke Tree_sitter_typescript.Parse.file file ()
+    match dialect with
+    | `Typescript ->
+        let cst = Parallel.invoke Tree_sitter_typescript.Parse.file file () in
+        (cst :> CST.program)
+    | `TSX ->
+        let cst = Parallel.invoke Tree_sitter_tsx.Parse.file file () in
+        (cst :> CST.program)
   in
   let env = { H.file; conv = H.line_col_to_pos file } in
 
   if debug then (
     Printexc.record_backtrace true;
-    CST.dump_tree ast;
+    CST.dump_tree cst;
   );
 
   try
-    program env ast
+    program env cst
   with
     TODO as exn ->
       if debug then (
@@ -2444,7 +2579,7 @@ let parse file =
         let s = Printexc.get_backtrace () in
         pr2 "Some constructs are not handled yet";
         pr2 "CST was:";
-        CST.dump_tree ast;
+        CST.dump_tree cst;
         pr2 "Original backtrace:";
         pr2 s;
       );

@@ -10,6 +10,7 @@
    tree-sitter-lang.csharp
    tree-sitter-lang.javascript
    tree-sitter-lang.typescript
+   tree-sitter-lang.tsx
 
    commons commons_core
    pfff-config
@@ -22,5 +23,5 @@
 
    semgrep_core
  )
- (preprocess (pps ppx_profiling))
+ (preprocess (pps ppx_profiling ppx_sexp_conv))
 )
