@@ -72,3 +72,9 @@ clean:
 gitclean:
 	git clean -dfX
 	git submodule foreach --recursive git clean -dfX
+
+.PHONY: bump
+bump:
+	sed -i '' 's/__VERSION__ = ".*"/__VERSION__ = "$(SEMGREP_VERSION)"/g' semgrep/semgrep/__init__.py
+	sed -i '' "s/^  rev: 'v.*'$$/  rev: 'v$(SEMGREP_VERSION)'/g" docs/integrations.md
+	sed -i '' 's/^    install_requires=\["semgrep==0.23.0"\],$$/    install_requires=["semgrep==$(SEMGREP_VERSION)"],/g' setup.py
