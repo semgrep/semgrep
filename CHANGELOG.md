@@ -5,8 +5,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## NEXT VERSION
 
 ### Added
-- Add in alpha support for TypeScript
-- Add in alpha support for PHP
+- The `--test` functionality now supports the `--json` flag.
+- Alpha support for TypeScript
+- Alpha support for PHP
 
 ### Changed
 
