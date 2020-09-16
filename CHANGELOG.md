@@ -2,16 +2,16 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## NEXT VERSION
+## [0.24.0](https://github.com/returntocorp/semgrep/releases/tag/v0.24.0) - 2020-09-16
 
 ### Added
-- The `--test` functionality now supports the `--json` flag.
+- The `--test` functionality now supports the `--json` flag
 - Alpha support for TypeScript
 - Alpha support for PHP
-
-### Changed
+- PyPI artifacts are now compatible with Alpine Linux
 
 ### Fixed
+- Can now parse ECMAScript object patterns with ellipses in place of fields
 
 ## [0.23.0](https://github.com/returntocorp/semgrep/releases/tag/v0.23.0) - 2020-09-09
 
