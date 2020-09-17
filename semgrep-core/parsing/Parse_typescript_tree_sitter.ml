@@ -732,8 +732,7 @@ and class_body (env : env) ((v1, v2, v3) : CST.class_body) : property list brack
                 let _v () = todo_abstract_method_signature env x in
                 None
             | `Index_sign x ->
-                (* TODO: types *)
-                let _v () = todo_index_signature env x in
+                let _t = index_signature env x in
                 None
             | `Meth_sign x ->
                 (* TODO: types *)
@@ -1375,8 +1374,7 @@ and primary_type (env : env) (x : CST.primary_type) : type_ =
       G.OtherType (G.OT_Todo, [G.TodoK ("LookupType", v2); G.T v1; G.T v3])
   )
 
-(* TODO: types *)
-and todo_index_signature (env : env) ((v1, v2, v3, v4) : CST.index_signature) =
+and index_signature (env : env) ((v1, v2, v3, v4) : CST.index_signature) =
   let v1 = JS.token env v1 (* "[" *) in
   let v2 =
     (match v2 with
@@ -1384,13 +1382,14 @@ and todo_index_signature (env : env) ((v1, v2, v3, v4) : CST.index_signature) =
         let v1 = identifier_reference env v1 in
         let v2 = JS.token env v2 (* ":" *) in
         let v3 = predefined_type env v3 in
-        todo env (v1, v2, v3)
-    | `Mapped_type_clause x -> todo_mapped_type_clause env x
+        G.OtherType (G.OT_Todo, [G.TodoK ("IndexKey", v2); G.I v1; G.I v3])
+    | `Mapped_type_clause x -> mapped_type_clause env x
     )
   in
   let v3 = JS.token env v3 (* "]" *) in
   let v4 = type_annotation env v4 in
-  todo env (v1, v2, v3, v4)
+  G.OtherType (G.OT_Todo, [G.TodoK ("Indexsig", v1); G.T v2; G.T v4])
+
 
 and unary_expression (env : env) (x : CST.unary_expression) =
   (match x with
@@ -1470,12 +1469,11 @@ and switch_body (env : env) ((v1, v2, v3) : CST.switch_body) =
   let _v3 = JS.token env v3 (* "}" *) in
   v2
 
-(* TODO: types *)
-and todo_mapped_type_clause (env : env) ((v1, v2, v3) : CST.mapped_type_clause) =
-  let v1 = JS.token env v1 (* identifier *) in
+and mapped_type_clause (env : env) ((v1, v2, v3) : CST.mapped_type_clause) =
+  let v1 = JS.str env v1 (* identifier *) in
   let v2 = JS.token env v2 (* "in" *) in
   let v3 = type_ env v3 in
-  todo env (v1, v2, v3)
+  G.OtherType (G.OT_Todo, [G.TodoK ("MappedType", v2); G.I v1; G.T v3])
 
 and statement1 (env : env) (x : CST.statement) : stmt =
   statement env x |> Ast_js.stmt_of_stmts
@@ -1897,15 +1895,14 @@ and anon_choice_export_stmt (env : env) (x : CST.anon_choice_export_stmt) =
         | None -> None)
       in
       todo env (v1, v2, v3, v4)
-  | `Index_sign x -> todo_index_signature env x
+  | `Index_sign x ->
+        let t = index_signature env x in
+        todo env t
   | `Meth_sign x -> todo_method_signature env x
   )
 
-(* TODO accessibility modifiers (public/private/protected *)
-(* TODO 'readonly' *)
-(* TODO 'abstract' *)
 and public_field_definition (env : env) ((v1, v2, v3, v4, v5, v6) : CST.public_field_definition) =
-  let _v1 () =
+  let _v1 =
     (match v1 with
     | Some x -> [accessibility_modifier env x]
     | None -> [])
@@ -1913,7 +1910,7 @@ and public_field_definition (env : env) ((v1, v2, v3, v4, v5, v6) : CST.public_f
   let v2 =
     (match v2 with
     | `Opt_static_opt_read (v1, v2) ->
-        let _v1 =
+        let v1 =
           (match v1 with
           | Some tok -> [Static, JS.token env tok] (* "static" *)
           | None -> [])
@@ -1923,31 +1920,31 @@ and public_field_definition (env : env) ((v1, v2, v3, v4, v5, v6) : CST.public_f
           | Some tok -> [Readonly, JS.token env tok] (* "readonly" *)
           | None -> [])
         in
-        [] (* v1 @ v2 *)
+        v1 @ v2
     | `Opt_abst_opt_read (v1, v2)
     | `Opt_read_opt_abst (v2, v1) ->
-        let _v1 =
+        let v1 =
           (match v1 with
           | Some tok -> [Abstract, JS.token env tok] (* "abstract" *)
           | None -> [])
         in
-        let _v2 () =
+        let v2 =
           (match v2 with
           | Some tok -> [Readonly, JS.token env tok] (* "readonly" *)
           | None -> [])
         in
-        [] (* v1 @ v2 *)
+        v1 @ v2
     )
   in
   let v3 = property_name env v3 in
-  let _v4 () =
+  let _v4 =
     (match v4 with
     | Some x ->
         (match x with
-        | `QMARK tok -> Some (JS.token env tok) (* "?" *)
-        | `BANG tok -> Some (JS.token env tok) (* "!" *)
+        | `QMARK tok -> [Optional, JS.token env tok] (* "?" *)
+        | `BANG tok -> [NotNull, JS.token env tok] (* "!" *)
         )
-    | None -> None)
+    | None -> [])
   in
   let v5 =
     (match v5 with
