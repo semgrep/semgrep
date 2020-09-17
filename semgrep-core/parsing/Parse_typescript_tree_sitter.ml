@@ -58,9 +58,9 @@ module CST = CST_tree_sitter_typescript (* typescript+tsx, merged *)
 
 let accessibility_modifier (env : env) (x : CST.accessibility_modifier) =
   (match x with
-  | `Public tok -> JS.token env tok (* "public" *)
-  | `Priv tok -> JS.token env tok (* "private" *)
-  | `Prot tok -> JS.token env tok (* "protected" *)
+  | `Public tok -> Public, JS.token env tok (* "public" *)
+  | `Priv tok -> Private, JS.token env tok (* "private" *)
+  | `Prot tok -> Protected, JS.token env tok (* "protected" *)
   )
 
 let predefined_type (env : env) (x : CST.predefined_type) =
@@ -91,8 +91,8 @@ let automatic_semicolon (env : env) (tok : CST.automatic_semicolon) =
 let anon_choice_get (env : env) (x : CST.anon_choice_get) =
   (match x with
   | `Get tok -> Get, JS.token env tok (* "get" *)
-  | `Set tok -> Get, JS.token env tok (* "set" *)
-  | `STAR tok -> Get, JS.token env tok (* "*" *)
+  | `Set tok -> Set, JS.token env tok (* "set" *)
+  | `STAR tok -> Generator, JS.token env tok (* "*" *)
   )
 
 let reserved_identifier (env : env) (x : CST.reserved_identifier) =
