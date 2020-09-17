@@ -205,7 +205,7 @@ let nested_type_identifier (env : env) ((v1, v2, v3) : CST.nested_type_identifie
   let v3 = JS.str env v3 (* identifier *) in
   v1 @ [ v3]
 
-let anon_choice_type_id2 (env : env) (x : CST.anon_choice_type_id2) =
+let anon_choice_type_id2 (env : env) (x : CST.anon_choice_type_id2) : G.ident list =
   (match x with
   | `Id tok -> [JS.str env tok] (* identifier *)
   | `Nested_type_id x -> nested_type_identifier env x
@@ -338,7 +338,7 @@ and jsx_opening_element (env : env) ((v1, v2, v3, v4) : CST.jsx_opening_element)
          let _v2 () =
            (match v2 with
             | Some x -> todo_type_arguments env x
-            | None -> todo env ())
+            | None -> [])
          in
          id
     )
@@ -480,11 +480,10 @@ and function_ (env : env) ((v1, v2, v3, v4, v5) : CST.function_) : fun_ * ident 
   let v5 = statement_block env v5 in
   { f_props = v1; f_params = v4; f_body = v5 }, v3
 
-(* TODO types *)
-and todo_generic_type (env : env) ((v1, v2) : CST.generic_type) =
+and generic_type (env : env) ((v1, v2) : CST.generic_type) : G.name =
   let v1 = anon_choice_type_id2 env v1 in
   let v2 = todo_type_arguments env v2 in
-  todo env (v1, v2)
+  G.name_of_ids ~name_typeargs:(Some v2) v1
 
 (* TODO types: 'implements' *)
 and todo_implements_clause (env : env) ((v1, v2, v3) : CST.implements_clause) =
@@ -1327,7 +1326,7 @@ and todo_primary_type (env : env) (x : CST.primary_type) : type_ =
         let id = JS.identifier env tok (* identifier *) in
         G.TyName (G.name_of_id id)
   | `Nested_type_id x -> todo env (nested_type_identifier env x)
-  | `Gene_type x -> todo env (todo_generic_type env x)
+  | `Gene_type x -> todo env (generic_type env x)
   | `Type_pred (v1, v2, v3) ->
       let v1 = JS.token env v1 (* identifier *) in
       let v2 = JS.token env v2 (* "is" *) in
@@ -2358,12 +2357,11 @@ and function_declaration (env : env) ((v1, v2, v3, v4, v5, v6) : CST.function_de
   [{ v_name = v3; v_kind = Const, v2; v_type = None;
      v_init = Some (Fun (f, None)); v_resolved = ref NotResolved }]
 
-(* TODO: types *)
-and anon_choice_type_id3 (env : env) (x : CST.anon_choice_type_id3) =
+and anon_choice_type_id3 (env : env) (x : CST.anon_choice_type_id3) : G.name =
   (match x with
-  | `Id tok -> [JS.str env tok] (* identifier *)
-  | `Nested_type_id x -> nested_type_identifier env x
-  | `Gene_type x -> todo_generic_type env x
+  | `Id tok -> G.name_of_ids [JS.str env tok] (* identifier *)
+  | `Nested_type_id x -> G.name_of_ids (nested_type_identifier env x)
+  | `Gene_type x -> generic_type env x
   )
 
 and template_substitution (env : env) ((v1, v2, v3) : CST.template_substitution) =
