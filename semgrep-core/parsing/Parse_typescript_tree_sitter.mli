@@ -10,4 +10,9 @@
 
 type dialect = [ `Typescript | `TSX ]
 
-val parse : dialect -> string -> Ast_js.program
+(*
+   Parse a file as pure typescript or as TSX. If unspecified, the
+   dialect is guessed from the file extension. Pure typescript is the fallback
+   if the extension is unknown.
+*)
+val parse : ?dialect:dialect -> string -> Ast_js.program
