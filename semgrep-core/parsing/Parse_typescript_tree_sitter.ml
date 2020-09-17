@@ -1322,7 +1322,13 @@ and primary_type (env : env) (x : CST.primary_type) : type_ =
       let v2 = JS.token env v2 (* "is" *) in
       let v3 = type_ env v3 in
       G.OtherType (G.OT_Todo, [G.TodoK ("IsType", v2); G.I v1; G.T v3])
-  | `Obj_type x -> todo env (object_type env x)
+  | `Obj_type x ->
+        let (t1, xs, t2) = object_type env x in
+        let xs = xs |> List.map (function
+          | Left _ -> raise TODO
+          | Right _ -> raise TODO
+        ) in
+      G.TyRecordAnon (t1, xs, t2)
   | `Array_type (v1, v2, v3) ->
       let v1 = primary_type env v1 in
       let v2 = JS.token env v2 (* "[" *) in
@@ -1810,12 +1816,7 @@ and export_statement (env : env) (x : CST.export_statement) : stmt list =
 
 and type_annotation (env : env) ((v1, v2) : CST.type_annotation) =
   let v1 = JS.token env v1 (* ":" *) in
-  let v2 =
-    try
-      type_ env v2
-    with TODO ->
-      G.OtherType (G.OT_Todo, [G.Tk v1])
-  in
+  let v2 = type_ env v2 in
   v2
 
 and anon_rep_COMMA_opt_choice_exp (env : env) (xs : CST.anon_rep_COMMA_opt_choice_exp) =
@@ -2143,7 +2144,7 @@ and todo_abstract_method_signature (env : env) ((v1, v2, v3, v4, v5, v6) : CST.a
     | Some x -> [accessibility_modifier env x]
     | None -> [])
   in
-  let v2 = JS.token env v2 (* "abstract" *) in
+  let v2 = [Abstract, JS.token env v2] (* "abstract" *) in
   let v3 =
     (match v3 with
     | Some x -> [anon_choice_get env x]
