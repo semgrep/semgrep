@@ -1318,7 +1318,7 @@ and primary_type (env : env) (x : CST.primary_type) : type_ =
   | `Gene_type x ->
         G.TyName (generic_type env x)
   | `Type_pred (v1, v2, v3) ->
-      let v1 = JS.token env v1 (* identifier *) in
+      let v1 = JS.str env v1 (* identifier *) in
       let v2 = JS.token env v2 (* "is" *) in
       let v3 = type_ env v3 in
       todo env (v1, v2, v3)
@@ -1327,7 +1327,7 @@ and primary_type (env : env) (x : CST.primary_type) : type_ =
       let v1 = primary_type env v1 in
       let v2 = JS.token env v2 (* "[" *) in
       let v3 = JS.token env v3 (* "]" *) in
-      todo env (v1, v2, v3)
+      G.TyArray (None, v1)
   | `Tuple_type (v1, v2, v3, v4) ->
       let v1 = JS.token env v1 (* "[" *) in
       let v2 = type_ env v2 in
