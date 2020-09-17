@@ -23,13 +23,6 @@ open Ast_js
    - Typescript is a superset of javascript.
    - We started by ignoring typescript-specific constructs and mapping
      the rest to a javascript AST.
-   - The 'todo' function raises an exception. Make sure it can't be called,
-     for example by writing 'let _v () = todo ()' instead of
-     'let _v = todo ()'.
-   - Alternatively, prefix the containing function with 'todo_' so we know it
-     should not be called for the time being. Remove the 'todo_' prefix
-     once it's safe to call. It's ok if returns an empty result, as long
-     as it doesn't raise an exception.
 *)
 
 (*****************************************************************************)
@@ -337,7 +330,7 @@ and jsx_opening_element (env : env) ((v1, v2, v3, v4) : CST.jsx_opening_element)
          let id = concat_nested_identifier env v1 in
          let _v2 () =
            (match v2 with
-            | Some x -> todo_type_arguments env x
+            | Some x -> type_arguments env x
             | None -> [])
          in
          id
@@ -482,7 +475,7 @@ and function_ (env : env) ((v1, v2, v3, v4, v5) : CST.function_) : fun_ * ident 
 
 and generic_type (env : env) ((v1, v2) : CST.generic_type) : G.name =
   let v1 = anon_choice_type_id2 env v1 in
-  let v2 = todo_type_arguments env v2 in
+  let v2 = type_arguments env v2 |> List.map (fun x -> G.TypeArg x) in
   G.name_of_ids ~name_typeargs:(Some v2) v1
 
 (* TODO types: 'implements' *)
@@ -695,24 +688,23 @@ and sequence_expression (env : env) ((v1, v2, v3) : CST.sequence_expression) =
   in
   Apply (IdSpecial (Seq, v2), fb [v1; v3])
 
-(* TODO: types *)
-and todo_type_arguments (env : env) ((v1, v2, v3, v4, v5) : CST.type_arguments) =
-  let v1 = JS.token env v1 (* "<" *) in
+and type_arguments (env : env) ((v1, v2, v3, v4, v5) : CST.type_arguments) : type_ list =
+  let _v1 = JS.token env v1 (* "<" *) in
   let v2 = todo_type_ env v2 in
   let v3 =
     List.map (fun (v1, v2) ->
-      let v1 = JS.token env v1 (* "," *) in
+      let _v1 = JS.token env v1 (* "," *) in
       let v2 = todo_type_ env v2 in
-      todo env (v1, v2)
+      v2
     ) v3
   in
-  let v4 =
+  let _v4 =
     (match v4 with
-    | Some tok -> JS.token env tok (* "," *)
-    | None -> todo env ())
+    | Some tok -> Some (JS.token env tok) (* "," *)
+    | None -> None)
   in
-  let v5 = JS.token env v5 (* ">" *) in
-  todo env (v1, v2, v3, v4, v5)
+  let _v5 = JS.token env v5 (* ">" *) in
+  v2::v3
 
 (* TODO: decorators (@) *)
 (* TODO: types - class body can be just a signature. *)
@@ -955,10 +947,10 @@ and constructable_expression (env : env) (x : CST.constructable_expression) : ex
       let v1 = JS.token env v1 (* "new" *) in
       let v2 = constructable_expression env v2 in
       (* TODO types *)
-      let _v3 () =
+      let _v3 =
         match v3 with
-        | Some x -> Some (todo_type_arguments env x)
-        | None -> None
+        | Some x -> type_arguments env x
+        | None -> []
       in
       let t1, xs, t2 =
         (match v4 with
@@ -1190,7 +1182,7 @@ and expression (env : env) (x : CST.expression) : expr =
   | `Type_asse (v1, v2) ->
       (* type assertion of the form <string>someValue *)
       (* TODO: types *)
-      let _v1 () = todo_type_arguments env v1 in
+      let _v1 = type_arguments env v1 in
       let v2 = expression env v2 in
       v2
   | `Choice_this x -> constructable_expression env x
@@ -1267,9 +1259,9 @@ and expression (env : env) (x : CST.expression) : expr =
       in
       (* TODO: types *)
       let _v2 () =
-        (match v2 with
-        | Some x -> Some (todo_type_arguments env x)
-        | None -> None)
+        match v2 with
+        | Some x -> type_arguments env x
+        | None -> []
       in
       let v3 =
         (match v3 with
