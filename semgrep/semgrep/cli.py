@@ -48,6 +48,13 @@ def cli() -> None:
     config = parser.add_argument_group("config")
     config_ex = config.add_mutually_exclusive_group()
     config_ex.add_argument(
+        "--configs",
+        help=("List of configuration files seperated by comma. The type of permitted files is "
+              "specified in the help section of --config."
+              "Separate like \"<url1>,<url2>\" with no space in between."),
+    )
+
+    config_ex.add_argument(
         "-g",
         "--generate-config",
         action="store_true",
@@ -378,4 +385,5 @@ def cli() -> None:
                 max_memory=args.max_memory,
                 timeout_threshold=args.timeout_threshold,
                 skip_unknown_extensions=args.skip_unknown_extensions,
+                configs=args.configs
             )
