@@ -1321,7 +1321,7 @@ and primary_type (env : env) (x : CST.primary_type) : type_ =
       let v1 = JS.str env v1 (* identifier *) in
       let v2 = JS.token env v2 (* "is" *) in
       let v3 = type_ env v3 in
-      todo env (v1, v2, v3)
+      G.OtherType (G.OT_Todo, [G.TodoK ("IsType", v2); G.I v1; G.T v3])
   | `Obj_type x -> todo env (object_type env x)
   | `Array_type (v1, v2, v3) ->
       let v1 = primary_type env v1 in
@@ -1347,20 +1347,26 @@ and primary_type (env : env) (x : CST.primary_type) : type_ =
   | `Type_query (v1, v2) ->
       let v1 = JS.token env v1 (* "typeof" *) in
       let v2 = anon_choice_type_id env v2 in
-      todo env (v1, v2)
+      G.OtherType (G.OT_Todo, [G.TodoK ("IsType", v1); G.Di v2])
   | `Index_type_query (v1, v2) ->
       let v1 = JS.token env v1 (* "keyof" *) in
       let v2 = anon_choice_type_id2 env v2 in
-      todo env (v1, v2)
-  | `This tok -> todo env (JS.token env tok) (* "this" *)
-  | `Exis_type tok -> todo env (JS.token env tok) (* "*" *)
-  | `Lit_type x -> todo env (literal_type env x)
+      G.OtherType (G.OT_Todo, [G.TodoK ("KeyOf", v1); G.Di v2])
+  | `This tok ->
+        let v1 = JS.token env tok in (* "this" *)
+      G.OtherType (G.OT_Todo, [G.TodoK ("This", v1);])
+  | `Exis_type tok ->
+        let v1 = JS.token env tok (* "*" *) in
+      G.OtherType (G.OT_Todo, [G.TodoK ("*", v1)])
+  | `Lit_type x ->
+        let v1 = literal_type env x in
+        G.OtherType (G.OT_Todo, [G.TodoK ("LitType", PI.fake_info ""); G.E (G.L v1);])
   | `Lookup_type (v1, v2, v3, v4) ->
       let v1 = primary_type env v1 in
       let v2 = JS.token env v2 (* "[" *) in
       let v3 = type_ env v3 in
       let v4 = JS.token env v4 (* "]" *) in
-      todo env (v1, v2, v3, v4)
+      G.OtherType (G.OT_Todo, [G.TodoK ("LookupType", v2); G.T v1; G.T v3])
   )
 
 (* TODO: types *)
