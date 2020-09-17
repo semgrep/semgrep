@@ -468,7 +468,7 @@ and function_ (env : env) ((v1, v2, v3, v4, v5) : CST.function_) : fun_ * ident 
     | Some tok -> Some (JS.identifier env tok) (* identifier *)
     | None -> None)
   in
-  let v4 = call_signature env v4 in
+  let (_tparams, v4, _tret) = call_signature env v4 in
   let v5 = statement_block env v5 in
   { f_props = v1; f_params = v4; f_body = v5 }, v3
 
@@ -649,7 +649,7 @@ and generator_function_declaration (env : env) ((v1, v2, v3, v4, v5, v6, v7) : C
   let v2 = JS.token env v2 (* "function" *) in
   let v3 = [Generator, JS.token env v3] (* "*" *) in
   let v4 = JS.identifier env v4 (* identifier *) in
-  let v5 = call_signature env v5 in
+  let (_tparams, v5, _tret) = call_signature env v5 in
   let v6 = statement_block env v6 in
   let _v7 =
     (match v7 with
@@ -735,7 +735,7 @@ and class_body (env : env) ((v1, v2, v3) : CST.class_body) : property list brack
                 None
             | `Meth_sign x ->
                 (* TODO: types *)
-                let _v () = todo_method_signature env x in
+                let _v = method_signature env x in
                 None
             | `Public_field_defi x -> Some (public_field_definition env x)
             )
@@ -876,7 +876,9 @@ and constructable_expression (env : env) (x : CST.constructable_expression) : ex
             let id = anon_choice_rese_id env x in
             [ParamClassic { p_name = id; p_default = None;
                             p_dots = None; p_type = None }]
-        | `Call_sign x -> call_signature env x
+        | `Call_sign x ->
+                let (_tparams, params, tret) = call_signature env x in
+                params
         )
       in
       let v3 = JS.token env v3 (* "=>" *) in
@@ -903,7 +905,7 @@ and constructable_expression (env : env) (x : CST.constructable_expression) : ex
         | Some tok -> Some (JS.identifier env tok) (* identifier *)
         | None -> None)
       in
-      let v5 = call_signature env v5 in
+      let (_tparams, v5, tret) = call_signature env v5 in
       let v6 = statement_block env v6 in
       let f = { f_props = v1@v3; f_params = v5; f_body = v6 } in
       Fun (f, v4)
@@ -1322,9 +1324,10 @@ and primary_type (env : env) (x : CST.primary_type) : type_ =
       G.OtherType (G.OT_Todo, [G.TodoK ("IsType", v2); G.I v1; G.T v3])
   | `Obj_type x ->
         let (t1, xs, t2) = object_type env x in
-        let xs = xs |> List.map (function
-          | Left _ -> raise TODO
-          | Right _ -> raise TODO
+        let xs = xs |> Common.map_filter (function
+          (* TODO *)
+          | Left _fld -> None
+          | Right _sts -> None
         ) in
       G.TyRecordAnon (t1, xs, t2)
   | `Array_type (v1, v2, v3) ->
@@ -1687,7 +1690,7 @@ and method_definition (env : env) ((v1, v2, v3, v4, v5, v6, v7, v8, v9) : CST.me
     | Some tok -> Some (JS.token env tok) (* "?" *)
     | None -> None)
   in
-  let v8 = call_signature env v8 in
+  let (_tparams, v8, _tret) = call_signature env v8 in
   let v9 = statement_block env v9 in
   let f = { f_props = v4 @ v5; f_params = v8; f_body = v9 } in
   let e = Fun (f, None) in
@@ -1848,7 +1851,7 @@ and anon_choice_export_stmt (env : env) (x : CST.anon_choice_export_stmt) =
   (match x with
   | `Export_stmt x ->
         let xs = export_statement env x in
-        Left xs
+        Right xs
   | `Prop_sign (v1, v2, v3, v4, v5, v6) ->
       let v1 =
         (match v1 with
@@ -1876,9 +1879,12 @@ and anon_choice_export_stmt (env : env) (x : CST.anon_choice_export_stmt) =
         | Some x -> Some (type_annotation env x)
         | None -> None)
       in
-      todo env (v1, v2, v3, v4, v5, v6)
+      let attrs = v1 @ v2 @ v3 @ v5 in
+      let fld =
+       { fld_name = v4; fld_props = attrs; fld_type = v6; fld_body = None } in
+      Left fld
   | `Call_sign_ x ->
-      let _ = call_signature env x in
+      let (_tparams, _params, _tret) = call_signature env x in
       todo env ()
   | `Cons_sign (v1, v2, v3, v4) ->
       let v1 = JS.token env v1 (* "new" *) in
@@ -1897,7 +1903,7 @@ and anon_choice_export_stmt (env : env) (x : CST.anon_choice_export_stmt) =
   | `Index_sign x ->
         let t = index_signature env x in
         todo env t
-  | `Meth_sign x -> todo_method_signature env x
+  | `Meth_sign x -> method_signature env x
   )
 
 and public_field_definition (env : env) ((v1, v2, v3, v4, v5, v6) : CST.public_field_definition) =
@@ -2150,7 +2156,7 @@ and todo_abstract_method_signature (env : env) ((v1, v2, v3, v4, v5, v6) : CST.a
     | Some tok -> [Optional, JS.token env tok] (* "?" *)
     | None -> [])
   in
-  let v6 = call_signature env v6 in
+  let (_tparams, v6, _tret) = call_signature env v6 in
   todo env (v1, v2, v3, v4, v5, v6)
 
 and finally_clause (env : env) ((v1, v2) : CST.finally_clause) =
@@ -2158,20 +2164,20 @@ and finally_clause (env : env) ((v1, v2) : CST.finally_clause) =
   let v2 = statement_block env v2 in
   v1, v2
 
-(* TODO don't ignore the type annotations *)
-and call_signature (env : env) ((v1, v2, v3) : CST.call_signature) : parameter list =
-  let _v1 =
+and call_signature (env : env) ((v1, v2, v3) : CST.call_signature)
+  : G.type_parameter list * parameter list * type_ option =
+  let v1 =
     (match v1 with
     | Some x -> type_parameters env x
     | None -> [])
   in
   let v2 = formal_parameters env v2 in
-  let _v3 =
+  let v3 =
     (match v3 with
     | Some x -> Some (type_annotation env x)
     | None -> None)
   in
-  v2
+  v1, v2, v3
 
 and object_ (env : env) ((v1, v2, v3) : CST.object_) : obj_ =
   let v1 = JS.token env v1 (* "{" *) in
@@ -2329,7 +2335,7 @@ and function_declaration (env : env) ((v1, v2, v3, v4, v5, v6) : CST.function_de
   in
   let v2 = JS.token env v2 (* "function" *) in
   let v3 = JS.identifier env v3 (* identifier *) in
-  let v4 = call_signature env v4 in
+  let (_tparams, v4, _tret) = call_signature env v4 in
   let v5 = statement_block env v5 in
   let _v6 =
     (match v6 with
@@ -2353,8 +2359,7 @@ and template_substitution (env : env) ((v1, v2, v3) : CST.template_substitution)
   let _v3 = JS.token env v3 (* "}" *) in
   v2
 
-(* TODO: types *)
-and todo_method_signature (env : env) ((v1, v2, v3, v4, v5, v6, v7, v8) : CST.method_signature) =
+and method_signature (env : env) ((v1, v2, v3, v4, v5, v6, v7, v8) : CST.method_signature) =
   let v1 =
     (match v1 with
     | Some x -> [accessibility_modifier env x]
@@ -2386,7 +2391,8 @@ and todo_method_signature (env : env) ((v1, v2, v3, v4, v5, v6, v7, v8) : CST.me
     | Some tok -> [Optional, JS.token env tok] (* "?" *)
     | None -> [])
   in
-  let v8 = call_signature env v8 in
+  let attrs = [](* TODO v1 @ v2 @ v3 @ v4 @ v5 @ v7 *) in
+  let (_tparams, v8, _tret) = call_signature env v8 in
   todo env (v1, v2, v3, v4, v5, v6, v7, v8)
 
 (* TODO: types *)
@@ -2410,7 +2416,7 @@ and declaration (env : env) (x : CST.declaration) : var list =
       in
       let _v2 = JS.token env v2 (* "function" *) in
       let _v3 = JS.identifier env v3 (* identifier *) in
-      let _v4 () = call_signature env v4 in
+      let (_tparams, _params, _tret) = call_signature env v4 in
       let _v5 = JS.semicolon env v5 in
       [] (* TODO *)
   | `Abst_class_decl (v1, v2, v3, v4, v5, v6) ->
