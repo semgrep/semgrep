@@ -728,7 +728,7 @@ and class_body (env : env) ((v1, v2, v3) : CST.class_body) : property list brack
             (match v1 with
             | `Abst_meth_sign x ->
                 (* TODO: types *)
-                let _v () = todo_abstract_method_signature env x in
+                let _v = abstract_method_signature env x in
                 None
             | `Index_sign x ->
                 let _t = index_signature env x in
@@ -2137,8 +2137,7 @@ and expressions (env : env) (x : CST.expressions) : expr =
   | `Seq_exp x -> sequence_expression env x
   )
 
-(* TODO: types *)
-and todo_abstract_method_signature (env : env) ((v1, v2, v3, v4, v5, v6) : CST.abstract_method_signature) =
+and abstract_method_signature (env : env) ((v1, v2, v3, v4, v5, v6) : CST.abstract_method_signature) =
   let v1 =
     (match v1 with
     | Some x -> [accessibility_modifier env x]
@@ -2156,8 +2155,10 @@ and todo_abstract_method_signature (env : env) ((v1, v2, v3, v4, v5, v6) : CST.a
     | Some tok -> [Optional, JS.token env tok] (* "?" *)
     | None -> [])
   in
-  let (_tparams, v6, _tret) = call_signature env v6 in
-  todo env (v1, v2, v3, v4, v5, v6)
+  let attrs = v1 @ v2 @ v3 @ v5 in
+  let (_tparams, _params, _tret) = call_signature env v6 in
+  let t = raise Todo in
+  { fld_name = v4; fld_props = attrs; fld_type = Some t; fld_body = None }
 
 and finally_clause (env : env) ((v1, v2) : CST.finally_clause) =
   let v1 = JS.token env v1 (* "finally" *) in
@@ -2391,7 +2392,7 @@ and method_signature (env : env) ((v1, v2, v3, v4, v5, v6, v7, v8) : CST.method_
     | Some tok -> [Optional, JS.token env tok] (* "?" *)
     | None -> [])
   in
-  let attrs = [](* TODO v1 @ v2 @ v3 @ v4 @ v5 @ v7 *) in
+  let attrs = v1 @ v2 @ v3 @ v4 @ v5 @ v7 in
   let (_tparams, v8, _tret) = call_signature env v8 in
   todo env (v1, v2, v3, v4, v5, v6, v7, v8)
 
