@@ -2079,7 +2079,7 @@ and enum_body (env : env) ((v1, v2, v3) : CST.enum_body) =
     | None -> [])
   in
   let v3 = JS.token env v3 (* "}" *) in
-  todo env (v1, v2, v3)
+  v1, v2, v3
 
 (* TODO: 'implements' *)
 (* TODO: support multiple inheritance (which isn't supported by javascript) *)
@@ -2152,8 +2152,8 @@ and todo_abstract_method_signature (env : env) ((v1, v2, v3, v4, v5, v6) : CST.a
   let v4 = property_name env v4 in
   let v5 =
     (match v5 with
-    | Some tok -> JS.token env tok (* "?" *)
-    | None -> todo env ())
+    | Some tok -> [Optional, JS.token env tok] (* "?" *)
+    | None -> [])
   in
   let v6 = call_signature env v6 in
   todo env (v1, v2, v3, v4, v5, v6)
@@ -2209,23 +2209,22 @@ and type_ (env : env) (x : CST.type_) : type_ =
   (match x with
   | `Prim_type x -> primary_type env x
   | `Union_type (v1, v2, v3) ->
-      let v1 =
-        (match v1 with
-        | Some x -> Some (type_ env x)
-        | None -> None)
-      in
       let v2 = JS.token env v2 (* "|" *) in
       let v3 = type_ env v3 in
-      todo env (v1, v2, v3)
-  | `Inte_type (v1, v2, v3) ->
-      let v1 =
         (match v1 with
-        | Some x -> Some (type_ env x)
-        | None -> None)
-      in
+        | Some x ->
+              let x = type_ env x in
+              G.TyOr (x, v2, v3)
+        | None -> v3) (* ?? *)
+
+  | `Inte_type (v1, v2, v3) ->
       let v2 = JS.token env v2 (* "&" *) in
       let v3 = type_ env v3 in
-      todo env (v1, v2, v3)
+        (match v1 with
+        | Some x ->
+              let x = type_ env x in
+              G.TyAnd (x, v2, v3)
+        | None -> v3) (* ?? *)
   | `Func_type (v1, v2, v3, v4) ->
       let _v1 =
         (match v1 with
@@ -2370,17 +2369,17 @@ and todo_method_signature (env : env) ((v1, v2, v3, v4, v5, v6, v7, v8) : CST.me
   in
   let v2 =
     (match v2 with
-    | Some tok -> [JS.token env tok] (* "static" *)
+    | Some tok -> [Static, JS.token env tok] (* "static" *)
     | None -> [])
   in
   let v3 =
     (match v3 with
-    | Some tok -> [JS.token env tok] (* "readonly" *)
+    | Some tok -> [Readonly, JS.token env tok] (* "readonly" *)
     | None -> [])
   in
   let v4 =
     (match v4 with
-    | Some tok -> [JS.token env tok] (* "async" *)
+    | Some tok -> [Async, JS.token env tok] (* "async" *)
     | None -> [])
   in
   let v5 =
@@ -2391,8 +2390,8 @@ and todo_method_signature (env : env) ((v1, v2, v3, v4, v5, v6, v7, v8) : CST.me
   let v6 = property_name env v6 in
   let v7 =
     (match v7 with
-    | Some tok -> JS.token env tok (* "?" *)
-    | None -> todo env ())
+    | Some tok -> [Optional, JS.token env tok] (* "?" *)
+    | None -> [])
   in
   let v8 = call_signature env v8 in
   todo env (v1, v2, v3, v4, v5, v6, v7, v8)
@@ -2484,10 +2483,10 @@ and declaration (env : env) (x : CST.declaration) : var list =
         | Some x -> type_parameters env x
         | None -> [])
       in
-      let _v4 () =
+      let _v4 =
         (match v4 with
-        | Some x -> extends_clause env x
-        | None -> todo env ())
+        | Some x -> Some (extends_clause env x)
+        | None -> None)
       in
       let _v5 = object_type env v5 in
       [] (* TODO *)
