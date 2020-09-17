@@ -191,7 +191,6 @@ let literal_type (env : env) (x : CST.literal_type) : G.literal =
   | `False tok -> G.Bool (false, JS.token env tok) (* "false" *)
   )
 
-(* TODO types *)
 let nested_type_identifier (env : env) ((v1, v2, v3) : CST.nested_type_identifier) : ident list =
   let v1 = anon_choice_type_id env v1 in
   let _v2 = JS.token env v2 (* "." *) in
@@ -1997,10 +1996,8 @@ and extends_clause (env : env) ((v1, v2, v3) : CST.extends_clause) : expr list =
       v2
     ) v3
   in
-  List.filter_map (fun x -> x) (v2 :: v3)
+  List.filter_map (fun x -> x ) (v2 :: v3)
 
-(* TODO: don't ignore type annotations *)
-(* TODO: don't ignore initializer *)
 (* This function is similar to 'formal_parameter' in the js grammar. *)
 and anon_choice_requ_param (env : env) (x : CST.anon_choice_requ_param) : parameter =
   (match x with
@@ -2274,8 +2271,6 @@ and constraint_ (env : env) ((v1, v2) : CST.constraint_) : G.type_parameter_cons
   let v2 = type_ env v2 in
   G.Extends v2
 
-(* TODO don't ignore accessibility modifier (public/private/proteced)
-        and "readonly" *)
 and parameter_name (env : env) ((v1, v2, v3) : CST.parameter_name) : (ident, pattern) Common.either =
   let _v1 =
     (match v1 with
@@ -2402,8 +2397,7 @@ and declaration (env : env) (x : CST.declaration) : var list =
   | `Choice_func_decl x ->
       (match x with
       | `Func_decl x -> function_declaration env x
-      | `Gene_func_decl x ->
-          generator_function_declaration env x
+      | `Gene_func_decl x -> generator_function_declaration env x
       | `Class_decl x -> class_declaration env x
       | `Lexi_decl x -> lexical_declaration env x
       | `Var_decl x -> variable_declaration env x
@@ -2421,7 +2415,7 @@ and declaration (env : env) (x : CST.declaration) : var list =
       [] (* TODO *)
   | `Abst_class_decl (v1, v2, v3, v4, v5, v6) ->
       (* TODO currently treated as a regular class. Does it matter? *)
-      let _v1 = JS.token env v1 (* "abstract" *) in
+      let _v1 = Abstract, JS.token env v1 (* "abstract" *) in
       let v2 = JS.token env v2 (* "class" *) in
       let v3 = JS.identifier env v3 (* identifier *) in
       let _v4 =
@@ -2438,6 +2432,7 @@ and declaration (env : env) (x : CST.declaration) : var list =
       let c = { c_tok = v2; c_extends = v5; c_body = v6 } in
       [{ v_name = v3; v_kind = Const, v2; v_type = None;
          v_init = Some (Class (c, None)); v_resolved = ref NotResolved }]
+
   | `Module (v1, v2) ->
       (* does this exist only in .d.ts files? *)
       let _v1 = JS.token env v1 (* "module" *) in
