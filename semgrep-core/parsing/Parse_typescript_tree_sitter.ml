@@ -41,6 +41,18 @@ exception TODO
 let todo (_env : env) _ =
   raise TODO
 
+let mk_functype (params, rett) =
+  let params = params |> List.map (function
+    | ParamPattern _ -> failwith "param pattern found in call_signature"
+    | ParamEllipsis _ -> raise Impossible
+    | ParamClassic x -> Js_to_generic.parameter x) in
+  let rett =
+    match rett with
+    | Some t -> t
+    | None -> G.TyBuiltin ("void", PI.fake_info "void")
+  in
+  G.TyFun (params, rett)
+
 (*****************************************************************************)
 (* Boilerplate converter *)
 (*****************************************************************************)
@@ -468,7 +480,7 @@ and function_ (env : env) ((v1, v2, v3, v4, v5) : CST.function_) : fun_ * ident 
     | Some tok -> Some (JS.identifier env tok) (* identifier *)
     | None -> None)
   in
-  let (_tparams, v4, _tret) = call_signature env v4 in
+  let (_tparams, (v4, _tret)) = call_signature env v4 in
   let v5 = statement_block env v5 in
   { f_props = v1; f_params = v4; f_body = v5 }, v3
 
@@ -649,7 +661,7 @@ and generator_function_declaration (env : env) ((v1, v2, v3, v4, v5, v6, v7) : C
   let v2 = JS.token env v2 (* "function" *) in
   let v3 = [Generator, JS.token env v3] (* "*" *) in
   let v4 = JS.identifier env v4 (* identifier *) in
-  let (_tparams, v5, _tret) = call_signature env v5 in
+  let (_tparams, (v5, _tret)) = call_signature env v5 in
   let v6 = statement_block env v6 in
   let _v7 =
     (match v7 with
@@ -877,7 +889,7 @@ and constructable_expression (env : env) (x : CST.constructable_expression) : ex
             [ParamClassic { p_name = id; p_default = None;
                             p_dots = None; p_type = None }]
         | `Call_sign x ->
-                let (_tparams, params, tret) = call_signature env x in
+                let (_tparams, (params, tret)) = call_signature env x in
                 params
         )
       in
@@ -905,7 +917,7 @@ and constructable_expression (env : env) (x : CST.constructable_expression) : ex
         | Some tok -> Some (JS.identifier env tok) (* identifier *)
         | None -> None)
       in
-      let (_tparams, v5, tret) = call_signature env v5 in
+      let (_tparams, (v5, tret)) = call_signature env v5 in
       let v6 = statement_block env v6 in
       let f = { f_props = v1@v3; f_params = v5; f_body = v6 } in
       Fun (f, v4)
@@ -1690,7 +1702,7 @@ and method_definition (env : env) ((v1, v2, v3, v4, v5, v6, v7, v8, v9) : CST.me
     | Some tok -> Some (JS.token env tok) (* "?" *)
     | None -> None)
   in
-  let (_tparams, v8, _tret) = call_signature env v8 in
+  let (_tparams, (v8, _tret)) = call_signature env v8 in
   let v9 = statement_block env v9 in
   let f = { f_props = v4 @ v5; f_params = v8; f_body = v9 } in
   let e = Fun (f, None) in
@@ -1884,7 +1896,7 @@ and anon_choice_export_stmt (env : env) (x : CST.anon_choice_export_stmt) =
        { fld_name = v4; fld_props = attrs; fld_type = v6; fld_body = None } in
       Left fld
   | `Call_sign_ x ->
-      let (_tparams, _params, _tret) = call_signature env x in
+      let (_tparams, (_params, _tret)) = call_signature env x in
       todo env ()
   | `Cons_sign (v1, v2, v3, v4) ->
       let v1 = JS.token env v1 (* "new" *) in
@@ -1903,7 +1915,9 @@ and anon_choice_export_stmt (env : env) (x : CST.anon_choice_export_stmt) =
   | `Index_sign x ->
         let t = index_signature env x in
         todo env t
-  | `Meth_sign x -> method_signature env x
+  | `Meth_sign x ->
+        let t = method_signature env x in
+        todo env t
   )
 
 and public_field_definition (env : env) ((v1, v2, v3, v4, v5, v6) : CST.public_field_definition) =
@@ -2156,8 +2170,8 @@ and abstract_method_signature (env : env) ((v1, v2, v3, v4, v5, v6) : CST.abstra
     | None -> [])
   in
   let attrs = v1 @ v2 @ v3 @ v5 in
-  let (_tparams, _params, _tret) = call_signature env v6 in
-  let t = raise Todo in
+  let (_tparams, x) = call_signature env v6 in
+  let t = mk_functype x in
   { fld_name = v4; fld_props = attrs; fld_type = Some t; fld_body = None }
 
 and finally_clause (env : env) ((v1, v2) : CST.finally_clause) =
@@ -2166,7 +2180,7 @@ and finally_clause (env : env) ((v1, v2) : CST.finally_clause) =
   v1, v2
 
 and call_signature (env : env) ((v1, v2, v3) : CST.call_signature)
-  : G.type_parameter list * parameter list * type_ option =
+  : G.type_parameter list * (parameter list * type_ option) =
   let v1 =
     (match v1 with
     | Some x -> type_parameters env x
@@ -2178,7 +2192,7 @@ and call_signature (env : env) ((v1, v2, v3) : CST.call_signature)
     | Some x -> Some (type_annotation env x)
     | None -> None)
   in
-  v1, v2, v3
+  v1, (v2, v3)
 
 and object_ (env : env) ((v1, v2, v3) : CST.object_) : obj_ =
   let v1 = JS.token env v1 (* "{" *) in
@@ -2336,7 +2350,7 @@ and function_declaration (env : env) ((v1, v2, v3, v4, v5, v6) : CST.function_de
   in
   let v2 = JS.token env v2 (* "function" *) in
   let v3 = JS.identifier env v3 (* identifier *) in
-  let (_tparams, v4, _tret) = call_signature env v4 in
+  let (_tparams, (v4, _tret)) = call_signature env v4 in
   let v5 = statement_block env v5 in
   let _v6 =
     (match v6 with
@@ -2393,8 +2407,9 @@ and method_signature (env : env) ((v1, v2, v3, v4, v5, v6, v7, v8) : CST.method_
     | None -> [])
   in
   let attrs = v1 @ v2 @ v3 @ v4 @ v5 @ v7 in
-  let (_tparams, v8, _tret) = call_signature env v8 in
-  todo env (v1, v2, v3, v4, v5, v6, v7, v8)
+  let (_tparams, x) = call_signature env v8 in
+  let t = mk_functype x in
+  { fld_name = v6; fld_props = attrs; fld_type = Some t; fld_body = None}
 
 (* TODO: types *)
 (* This covers mostly type definitions but includes also javascript constructs
@@ -2417,7 +2432,7 @@ and declaration (env : env) (x : CST.declaration) : var list =
       in
       let _v2 = JS.token env v2 (* "function" *) in
       let _v3 = JS.identifier env v3 (* identifier *) in
-      let (_tparams, _params, _tret) = call_signature env v4 in
+      let (_tparams, (_params, _tret)) = call_signature env v4 in
       let _v5 = JS.semicolon env v5 in
       [] (* TODO *)
   | `Abst_class_decl (v1, v2, v3, v4, v5, v6) ->
