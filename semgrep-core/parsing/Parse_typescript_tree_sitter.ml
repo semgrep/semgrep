@@ -2550,8 +2550,18 @@ let program (env : env) ((v1, v2) : CST.program) : program =
 
 type dialect = [ `Typescript | `TSX ]
 
-let parse dialect file =
+let guess_dialect opt_dialect file : dialect =
+  match opt_dialect with
+  | Some x -> x
+  | None ->
+      if file =~ ".*\\.tsx" then
+        `TSX
+      else
+        `Typescript
+
+let parse ?dialect file =
   let debug = false in
+  let dialect = guess_dialect dialect file in
   let cst =
     Parallel.backtrace_when_exn := false;
     match dialect with
