@@ -136,10 +136,10 @@ let anon_choice_COMMA (env : env) (x : CST.anon_choice_COMMA) =
 
 (* TODO: types *)
 let import_export_specifier (env : env) ((v1, v2, v3) : CST.import_export_specifier) =
-  let _v1 () =
+  let _v1 =
     (match v1 with
-    | Some x -> anon_choice_type env x
-    | None -> todo env ())
+    | Some x -> Some (anon_choice_type env x)
+    | None -> None)
   in
   JS.import_export_specifier env (v2, v3)
 
@@ -181,35 +181,34 @@ let import_require_clause (env : env) ((v1, v2, v3, v4, v5, v6) : CST.import_req
   let v6 = JS.token env v6 (* ")" *) in
   [] (* TODO *)
 
-(* TODO types *)
-let todo_literal_type (env : env) (x : CST.literal_type) =
+let literal_type (env : env) (x : CST.literal_type) : G.literal =
   (match x with
   | `Num_ (v1, v2) ->
-      let v1 =
+      let (s, t1) =
         (match v1 with
-        | `DASH tok -> JS.token env tok (* "-" *)
-        | `PLUS tok -> JS.token env tok (* "+" *)
+        | `DASH tok -> JS.str env tok (* "-" *)
+        | `PLUS tok -> JS.str env tok (* "+" *)
         )
       in
-      let v2 = JS.token env v2 (* number *) in
-      todo env (v1, v2)
-  | `Num tok -> JS.token env tok (* number *)
-  | `Str x -> todo env (JS.string_ env x)
-  | `True tok -> JS.token env tok (* "true" *)
-  | `False tok -> JS.token env tok (* "false" *)
+      let (s2, t2) = JS.str env v2 (* number *) in
+      G.Int (s ^ s2, PI.combine_infos t1 [t2])
+  | `Num tok -> G.Int (JS.str env tok) (* number *)
+  | `Str x -> G.String (JS.string_ env x)
+  | `True tok -> G.Bool (true, JS.token env tok) (* "true" *)
+  | `False tok -> G.Bool (false, JS.token env tok) (* "false" *)
   )
 
 (* TODO types *)
-let todo_nested_type_identifier (env : env) ((v1, v2, v3) : CST.nested_type_identifier) =
+let nested_type_identifier (env : env) ((v1, v2, v3) : CST.nested_type_identifier) : ident list =
   let v1 = anon_choice_type_id env v1 in
-  let v2 = JS.token env v2 (* "." *) in
-  let v3 = JS.token env v3 (* identifier *) in
-  todo env (v1, v2, v3)
+  let _v2 = JS.token env v2 (* "." *) in
+  let v3 = JS.str env v3 (* identifier *) in
+  v1 @ [ v3]
 
-let todo_anon_choice_type_id2 (env : env) (x : CST.anon_choice_type_id2) =
+let anon_choice_type_id2 (env : env) (x : CST.anon_choice_type_id2) =
   (match x with
-  | `Id tok -> JS.token env tok (* identifier *)
-  | `Nested_type_id x -> todo_nested_type_identifier env x
+  | `Id tok -> [JS.str env tok] (* identifier *)
+  | `Nested_type_id x -> nested_type_identifier env x
   )
 
 let anon_choice_rese_id (env : env) (x : CST.anon_choice_rese_id) : ident =
@@ -483,7 +482,7 @@ and function_ (env : env) ((v1, v2, v3, v4, v5) : CST.function_) : fun_ * ident 
 
 (* TODO types *)
 and todo_generic_type (env : env) ((v1, v2) : CST.generic_type) =
-  let v1 = todo_anon_choice_type_id2 env v1 in
+  let v1 = anon_choice_type_id2 env v1 in
   let v2 = todo_type_arguments env v2 in
   todo env (v1, v2)
 
@@ -1327,7 +1326,7 @@ and todo_primary_type (env : env) (x : CST.primary_type) : type_ =
   | `Id tok ->
         let id = JS.identifier env tok (* identifier *) in
         G.TyName (G.name_of_id id)
-  | `Nested_type_id x -> todo env (todo_nested_type_identifier env x)
+  | `Nested_type_id x -> todo env (nested_type_identifier env x)
   | `Gene_type x -> todo env (todo_generic_type env x)
   | `Type_pred (v1, v2, v3) ->
       let v1 = JS.token env v1 (* identifier *) in
@@ -1362,11 +1361,11 @@ and todo_primary_type (env : env) (x : CST.primary_type) : type_ =
       todo env (v1, v2)
   | `Index_type_query (v1, v2) ->
       let v1 = JS.token env v1 (* "keyof" *) in
-      let v2 = todo_anon_choice_type_id2 env v2 in
+      let v2 = anon_choice_type_id2 env v2 in
       todo env (v1, v2)
   | `This tok -> todo env (JS.token env tok) (* "this" *)
   | `Exis_type tok -> todo env (JS.token env tok) (* "*" *)
-  | `Lit_type x -> todo env (todo_literal_type env x)
+  | `Lit_type x -> todo env (literal_type env x)
   | `Lookup_type (v1, v2, v3, v4) ->
       let v1 = todo_primary_type env v1 in
       let v2 = JS.token env v2 (* "[" *) in
@@ -1971,7 +1970,7 @@ and public_field_definition (env : env) ((v1, v2, v3, v4, v5, v6) : CST.public_f
 and anon_choice_choice_type_id (env : env) (x : CST.anon_choice_choice_type_id): expr option =
   (match x with
   | `Choice_id x -> (* type to be extended *)
-      let _v () = todo_anon_choice_type_id3 env x in
+      let _v () = anon_choice_type_id3 env x in
       None
   | `Exp x -> (* class expression to be extended *)
       Some (expression env x)
@@ -2360,10 +2359,10 @@ and function_declaration (env : env) ((v1, v2, v3, v4, v5, v6) : CST.function_de
      v_init = Some (Fun (f, None)); v_resolved = ref NotResolved }]
 
 (* TODO: types *)
-and todo_anon_choice_type_id3 (env : env) (x : CST.anon_choice_type_id3) =
+and anon_choice_type_id3 (env : env) (x : CST.anon_choice_type_id3) =
   (match x with
-  | `Id tok -> JS.token env tok (* identifier *)
-  | `Nested_type_id x -> todo_nested_type_identifier env x
+  | `Id tok -> [JS.str env tok] (* identifier *)
+  | `Nested_type_id x -> nested_type_identifier env x
   | `Gene_type x -> todo_generic_type env x
   )
 
