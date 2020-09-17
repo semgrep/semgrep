@@ -2280,15 +2280,15 @@ and constraint_ (env : env) ((v1, v2) : CST.constraint_) : G.type_parameter_cons
 (* TODO don't ignore accessibility modifier (public/private/proteced)
         and "readonly" *)
 and parameter_name (env : env) ((v1, v2, v3) : CST.parameter_name) : (ident, pattern) Common.either =
-  let _v1 () =
+  let _v1 =
     (match v1 with
-    | Some x -> accessibility_modifier env x
-    | None -> todo env ())
+    | Some x -> [accessibility_modifier env x]
+    | None -> [])
   in
-  let _v2 () =
+  let _v2 =
     (match v2 with
-    | Some tok -> JS.token env tok (* "readonly" *)
-    | None -> todo env ())
+    | Some tok -> [JS.token env tok] (* "readonly" *)
+    | None -> [])
   in
   let v3 =
     (match v3 with
@@ -2365,28 +2365,28 @@ and template_substitution (env : env) ((v1, v2, v3) : CST.template_substitution)
 and todo_method_signature (env : env) ((v1, v2, v3, v4, v5, v6, v7, v8) : CST.method_signature) =
   let v1 =
     (match v1 with
-    | Some x -> accessibility_modifier env x
-    | None -> todo env ())
+    | Some x -> [accessibility_modifier env x]
+    | None -> [])
   in
   let v2 =
     (match v2 with
-    | Some tok -> JS.token env tok (* "static" *)
-    | None -> todo env ())
+    | Some tok -> [JS.token env tok] (* "static" *)
+    | None -> [])
   in
   let v3 =
     (match v3 with
-    | Some tok -> JS.token env tok (* "readonly" *)
-    | None -> todo env ())
+    | Some tok -> [JS.token env tok] (* "readonly" *)
+    | None -> [])
   in
   let v4 =
     (match v4 with
-    | Some tok -> JS.token env tok (* "async" *)
-    | None -> todo env ())
+    | Some tok -> [JS.token env tok] (* "async" *)
+    | None -> [])
   in
   let v5 =
     (match v5 with
-    | Some x -> anon_choice_get env x
-    | None -> todo env ())
+    | Some x -> [anon_choice_get env x]
+    | None -> [])
   in
   let v6 = property_name env v6 in
   let v7 =
@@ -2466,10 +2466,10 @@ and declaration (env : env) (x : CST.declaration) : var list =
       [] (* TODO *)
 
   | `Enum_decl (v1, v2, v3, v4) ->
-      let _v1 () =
+      let _v1 =
         (match v1 with
-        | Some tok -> JS.token env tok (* "const" *)
-        | None -> todo env ())
+        | Some tok -> [JS.token env tok] (* "const" *)
+        | None -> [])
       in
       let _v2 = JS.token env v2 (* "enum" *) in
       let _v3 = JS.identifier env v3 (* identifier *) in
