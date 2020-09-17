@@ -1029,11 +1029,11 @@ and object_type (env : env) ((v1, v2, v3) : CST.object_type) =
               )
           | None -> None)
         in
-        let v2 = todo_anon_choice_export_stmt env v2 in
+        let v2 = anon_choice_export_stmt env v2 in
         let v3 =
           List.map (fun (v1, v2) ->
             let _v1 = anon_choice_COMMA env v1 in
-            let v2 = todo_anon_choice_export_stmt env v2 in
+            let v2 = anon_choice_export_stmt env v2 in
             v2
           ) v3
         in
@@ -1474,10 +1474,11 @@ and todo_mapped_type_clause (env : env) ((v1, v2, v3) : CST.mapped_type_clause) 
 and statement1 (env : env) (x : CST.statement) : stmt =
   statement env x |> Ast_js.stmt_of_stmts
 
-(* TODO: types *)
 and statement (env : env) (x : CST.statement) : stmt list =
   (match x with
-  | `Export_stmt x -> export_statement env x
+  | `Export_stmt x ->
+        let xs = export_statement env x in
+        xs
   | `Import_stmt (v1, v2, v3, v4) ->
       let v1 = JS.token env v1 (* "import" *) in
       let tok = v1 in
@@ -1651,8 +1652,6 @@ and statement (env : env) (x : CST.statement) : stmt list =
       [Label (v1, v3)]
   )
 
-(* TODO: accessibility modifier (public/private/protected) *)
-(* TODO: 'readonly' *)
 and method_definition (env : env) ((v1, v2, v3, v4, v5, v6, v7, v8, v9) : CST.method_definition) : property =
   let _v1 () =
     (match v1 with
@@ -1666,7 +1665,7 @@ and method_definition (env : env) ((v1, v2, v3, v4, v5, v6, v7, v8, v9) : CST.me
   in
   let _v3 =
     (match v3 with
-    | Some tok -> [(*TODO*) JS.token env tok] (* "readonly" *)
+    | Some tok -> [Readonly, JS.token env tok] (* "readonly" *)
     | None -> [])
   in
   let v4 =
@@ -1726,7 +1725,7 @@ and array_ (env : env) ((v1, v2, v3) : CST.array_) =
   let v3 = JS.token env v3 (* "]" *) in
   Arr (v1, v2, v3)
 
-and export_statement (env : env) (x : CST.export_statement) =
+and export_statement (env : env) (x : CST.export_statement) : stmt list =
   (match x with
   | `Choice_export_choice_STAR_from_clause_choice_auto_semi x ->
       (match x with
@@ -1847,10 +1846,11 @@ and update_expression (env : env) (x : CST.update_expression) =
       Apply (IdSpecial (IncrDecr (op, G.Prefix), t), fb [v2])
   )
 
-(* TODO: types *)
-and todo_anon_choice_export_stmt (env : env) (x : CST.anon_choice_export_stmt) =
+and anon_choice_export_stmt (env : env) (x : CST.anon_choice_export_stmt) =
   (match x with
-  | `Export_stmt x -> export_statement env x
+  | `Export_stmt x ->
+        let xs = export_statement env x in
+        Left xs
   | `Prop_sign (v1, v2, v3, v4, v5, v6) ->
       let v1 =
         (match v1 with
@@ -1859,19 +1859,19 @@ and todo_anon_choice_export_stmt (env : env) (x : CST.anon_choice_export_stmt) =
       in
       let v2 =
         (match v2 with
-        | Some tok -> [JS.token env tok] (* "static" *)
+        | Some tok -> [Static, JS.token env tok] (* "static" *)
         | None -> [])
       in
       let v3 =
         (match v3 with
-        | Some tok -> [JS.token env tok] (* "readonly" *)
+        | Some tok -> [Readonly, JS.token env tok] (* "readonly" *)
         | None -> [])
       in
       let v4 = property_name env v4 in
       let v5 =
         (match v5 with
-        | Some tok -> JS.token env tok (* "?" *)
-        | None -> todo env ())
+        | Some tok -> [Optional, JS.token env tok] (* "?" *)
+        | None -> [])
       in
       let v6 =
         (match v6 with
@@ -1912,27 +1912,27 @@ and public_field_definition (env : env) ((v1, v2, v3, v4, v5, v6) : CST.public_f
   let v2 =
     (match v2 with
     | `Opt_static_opt_read (v1, v2) ->
-        let _v1 () =
+        let _v1 =
           (match v1 with
           | Some tok -> [Static, JS.token env tok] (* "static" *)
           | None -> [])
         in
-        let _v2 () =
+        let v2 =
           (match v2 with
-          | Some tok -> [JS.token env tok] (* "readonly" *)
+          | Some tok -> [Readonly, JS.token env tok] (* "readonly" *)
           | None -> [])
         in
         [] (* v1 @ v2 *)
     | `Opt_abst_opt_read (v1, v2)
     | `Opt_read_opt_abst (v2, v1) ->
-        let _v1 () =
+        let _v1 =
           (match v1 with
-          | Some tok -> [JS.token env tok] (* "abstract" *)
+          | Some tok -> [Abstract, JS.token env tok] (* "abstract" *)
           | None -> [])
         in
         let _v2 () =
           (match v2 with
-          | Some tok -> [JS.token env tok] (* "readonly" *)
+          | Some tok -> [Readonly, JS.token env tok] (* "readonly" *)
           | None -> [])
         in
         [] (* v1 @ v2 *)
