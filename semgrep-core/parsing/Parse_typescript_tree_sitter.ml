@@ -31,7 +31,6 @@ open Ast_js
 
 type env = H.env
 let fb = G.fake_bracket
-
 exception TODO
 
 (*
@@ -41,11 +40,13 @@ exception TODO
 let todo (_env : env) _ =
   raise TODO
 
-let mk_functype (params, rett) =
-  let params = params |> List.map (function
+let param_to_generic_param = function
     | ParamPattern _ -> failwith "param pattern found in call_signature"
     | ParamEllipsis _ -> raise Impossible
-    | ParamClassic x -> Js_to_generic.parameter x) in
+    | ParamClassic x -> Js_to_generic.parameter x
+
+let mk_functype (params, rett) =
+  let params = params |> List.map param_to_generic_param in
   let rett =
     match rett with
     | Some t -> t
@@ -1899,11 +1900,16 @@ and anon_choice_export_stmt (env : env) (x : CST.anon_choice_export_stmt) =
        { fld_name = v4; fld_props = attrs; fld_type = v6; fld_body = None } in
       Left (Field fld)
   | `Call_sign_ x ->
-      let (_tparams, (_params, _tret)) = call_signature env x in
-      todo env ()
+      let (_tparams, x) = call_signature env x in
+      let ty = mk_functype x in
+      let name = PN ("CTOR??TODO", PI.fake_info "") in
+      let fld =
+       { fld_name = name; fld_props = []; fld_type = Some ty; fld_body = None}
+      in
+      Left (Field fld)
   | `Cons_sign (v1, v2, v3, v4) ->
       let v1 = JS.token env v1 (* "new" *) in
-      let _v2 =
+      let _tparams =
         (match v2 with
         | Some x -> type_parameters env x
         | None -> [])
@@ -1914,13 +1920,22 @@ and anon_choice_export_stmt (env : env) (x : CST.anon_choice_export_stmt) =
         | Some x -> Some (type_annotation env x)
         | None -> None)
       in
-      todo env (v1, v2, v3, v4)
+      let ty = mk_functype (v3, v4) in
+      let name = PN ("new", v1) in
+      let fld =
+       { fld_name = name; fld_props = []; fld_type = Some ty; fld_body = None}
+      in
+      Left (Field fld)
   | `Index_sign x ->
-        let t = index_signature env x in
-        todo env t
+      let ty = index_signature env x in
+      let name = PN ("IndexMethod??TODO?", PI.fake_info "") in
+      let fld =
+       { fld_name = name; fld_props = []; fld_type = Some ty; fld_body = None}
+      in
+      Left (Field fld)
   | `Meth_sign x ->
-        let t = method_signature env x in
-        todo env t
+        let x = method_signature env x in
+        Left (Field x)
   )
 
 and public_field_definition (env : env) ((v1, v2, v3, v4, v5, v6) : CST.public_field_definition) =
@@ -2246,26 +2261,27 @@ and type_ (env : env) (x : CST.type_) : type_ =
               G.TyAnd (x, v2, v3)
         | None -> v3) (* ?? *)
   | `Func_type (v1, v2, v3, v4) ->
-      let _v1 =
+      let _tparams =
         (match v1 with
         | Some x -> type_parameters env x
         | None -> [])
       in
       let v2 = formal_parameters env v2 in
-      let v3 = JS.token env v3 (* "=>" *) in
+      let _v3 = JS.token env v3 (* "=>" *) in
       let v4 = type_ env v4 in
-      todo env (v1, v2, v3, v4)
+      mk_functype (v2, Some v4)
   | `Cons_type (v1, v2, v3, v4, v5) ->
       let v1 = JS.token env v1 (* "new" *) in
-      let v2 =
+      let _tparams =
         (match v2 with
         | Some x -> type_parameters env x
         | None -> [])
       in
       let v3 = formal_parameters env v3 in
-      let v4 = JS.token env v4 (* "=>" *) in
+      let _v4 = JS.token env v4 (* "=>" *) in
       let v5 = type_ env v5 in
-      todo env (v1, v2, v3, v4, v5)
+      let ty = mk_functype (v3, Some v5) in
+      G.OtherType (G.OT_Todo, [G.TodoK ("New", v1); G.T ty])
   )
 
 and type_parameters (env : env) ((v1, v2, v3, v4, v5) : CST.type_parameters) : G.type_parameter list =
@@ -2418,7 +2434,7 @@ and method_signature (env : env) ((v1, v2, v3, v4, v5, v6, v7, v8) : CST.method_
 (* TODO: types *)
 (* This covers mostly type definitions but includes also javascript constructs
    like function parameters, so it will be called even if we ignore types. *)
-and declaration (env : env) (x : CST.declaration) : var list =
+and declaration (env : env) (x : CST.declaration) : entity list =
   (match x with
   | `Choice_func_decl x ->
       (match x with
