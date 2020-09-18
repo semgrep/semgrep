@@ -262,7 +262,6 @@ def main(
     timeout_threshold: int = 0,
     skip_unknown_extensions: bool = False,
     testing: bool = False,
-    configs: Optional[List[str]] = None,
 ) -> None:
     if include is None:
         include = []
@@ -270,87 +269,78 @@ def main(
     if exclude is None:
         exclude = []
 
-    if configs is None:
-        configs = []
-    else:
-        configs = configs.split(',')
+    valid_configs, config_errors = get_config(pattern, lang, config)
 
-    if not config is None:
-        configs = [config]
+    output_handler.handle_semgrep_errors(config_errors)
 
-    for c in configs:
-        valid_configs, config_errors = get_config(pattern, lang, c)
+    if config_errors and strict:
+        raise SemgrepError(
+            f"run with --strict and there were {len(config_errors)} errors loading configs",
+            code=MISSING_CONFIG_EXIT_CODE,
+        )
 
-        output_handler.handle_semgrep_errors(config_errors)
+    if not no_rewrite_rule_ids:
+        # re-write the configs to have the hierarchical rule ids
+        valid_configs = rename_rule_ids(valid_configs)
 
-        if config_errors and strict:
+    # extract just the rules from valid configs
+    all_rules = flatten_configs(valid_configs)
+
+    if not pattern:
+        plural = "s" if len(valid_configs) > 1 else ""
+        config_id_if_single = (
+            list(valid_configs.keys())[0] if len(valid_configs) == 1 else ""
+        )
+        invalid_msg = (
+            f"({len(config_errors)} config files were invalid)"
+            if len(config_errors)
+            else ""
+        )
+        logger.debug(
+            f"running {len(all_rules)} rules from {len(valid_configs)} config{plural} {config_id_if_single} {invalid_msg}"
+        )
+
+        notify_user_of_work(all_rules, include, exclude)
+
+        if len(valid_configs) == 0:
             raise SemgrepError(
-                f"run with --strict and there were {len(config_errors)} errors loading configs",
+                f"no valid configuration file found ({len(config_errors)} configs were invalid)",
                 code=MISSING_CONFIG_EXIT_CODE,
             )
 
-        if not no_rewrite_rule_ids:
-            # re-write the configs to have the hierarchical rule ids
-            valid_configs = rename_rule_ids(valid_configs)
+    respect_git_ignore = not no_git_ignore
+    target_manager = TargetManager(
+        includes=include,
+        excludes=exclude,
+        targets=target,
+        respect_git_ignore=respect_git_ignore,
+        output_handler=output_handler,
+        skip_unknown_extensions=skip_unknown_extensions,
+    )
 
-        # extract just the rules from valid configs
-        all_rules = flatten_configs(valid_configs)
+    # actually invoke semgrep
+    rule_matches_by_rule, debug_steps_by_rule, semgrep_errors = CoreRunner(
+        allow_exec=dangerously_allow_arbitrary_code_execution_from_rules,
+        jobs=jobs,
+        timeout=timeout,
+        max_memory=max_memory,
+        timeout_threshold=timeout_threshold,
+        testing=testing,
+    ).invoke_semgrep(target_manager, all_rules)
 
-        if not pattern:
-            plural = "s" if len(valid_configs) > 1 else ""
-            config_id_if_single = (
-                list(valid_configs.keys())[0] if len(valid_configs) == 1 else ""
-            )
-            invalid_msg = (
-                f"({len(config_errors)} config files were invalid)"
-                if len(config_errors)
-                else ""
-            )
-            logger.debug(
-                f"running {len(all_rules)} rules from {len(valid_configs)} config{plural} {config_id_if_single} {invalid_msg}"
-            )
+    output_handler.handle_semgrep_errors(semgrep_errors)
 
-            notify_user_of_work(all_rules, include, exclude)
+    if not disable_nosem:
+        rule_matches_by_rule = {
+            rule: [
+                rule_match
+                for rule_match in rule_matches
+                if not rule_match_nosem(rule_match, strict)
+            ]
+            for rule, rule_matches in rule_matches_by_rule.items()
+        }
 
-            if len(valid_configs) == 0:
-                raise SemgrepError(
-                    f"no valid configuration file found ({len(config_errors)} configs were invalid)",
-                    code=MISSING_CONFIG_EXIT_CODE,
-                )
+    output_handler.handle_semgrep_core_output(rule_matches_by_rule, debug_steps_by_rule)
 
-        respect_git_ignore = not no_git_ignore
-        target_manager = TargetManager(
-            includes=include,
-            excludes=exclude,
-            targets=target,
-            respect_git_ignore=respect_git_ignore,
-            output_handler=output_handler,
-            skip_unknown_extensions=skip_unknown_extensions,
-        )
-
-        # actually invoke semgrep
-        rule_matches_by_rule, debug_steps_by_rule, semgrep_errors = CoreRunner(
-            allow_exec=dangerously_allow_arbitrary_code_execution_from_rules,
-            jobs=jobs,
-            timeout=timeout,
-            max_memory=max_memory,
-            timeout_threshold=timeout_threshold,
-            testing=testing,
-        ).invoke_semgrep(target_manager, all_rules)
-
-        output_handler.handle_semgrep_errors(semgrep_errors)
-
-        if not disable_nosem:
-            rule_matches_by_rule = {
-                rule: [
-                    rule_match
-                    for rule_match in rule_matches
-                    if not rule_match_nosem(rule_match, strict)
-                ]
-                for rule, rule_matches in rule_matches_by_rule.items()
-            }
-
-        output_handler.handle_semgrep_core_output(rule_matches_by_rule, debug_steps_by_rule)
-
-        if autofix:
-            apply_fixes(rule_matches_by_rule, dryrun)
+    if autofix:
+        apply_fixes(rule_matches_by_rule, dryrun)
