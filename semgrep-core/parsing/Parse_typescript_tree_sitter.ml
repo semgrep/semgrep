@@ -31,14 +31,6 @@ open Ast_js
 
 type env = H.env
 let fb = G.fake_bracket
-exception TODO
-
-(*
-   This is a 'todo' that was already reviewed and should not be called by the
-   current implementation.
-*)
-let todo (_env : env) _ =
-  raise TODO
 
 let param_to_generic_param = function
     | ParamPattern _ -> failwith "param pattern found in call_signature"
@@ -2541,24 +2533,29 @@ and declaration (env : env) (x : CST.declaration) : entity list =
       [] (* TODO *)
 
   | `Ambi_decl (v1, v2) ->
-      let v1 = JS.token env v1 (* "declare" *) in
+      let _v1 = JS.token env v1 (* "declare" *) in
       let v2 =
         (match v2 with
         | `Decl x -> declaration env x
         | `Global_stmt_blk (v1, v2) ->
             let v1 = JS.token env v1 (* "global" *) in
             let v2 = statement_block env v2 in
-            todo env (v1, v2)
+            let name = "!global!", v1 in
+            let f = { f_props = []; f_params = []; f_body = v2 } in
+            [{ v_name = name; v_kind = Const, v1; v_resolved = ref NotResolved;
+              v_init = Some (Fun (f, None)); v_type = None; }]
         | `Module_DOT_id_COLON_type (v1, v2, v3, v4, v5) ->
             let v1 = JS.token env v1 (* "module" *) in
             let v2 = JS.token env v2 (* "." *) in
             let v3 = JS.identifier env v3 (* identifier *) in
             let v4 = JS.token env v4 (* ":" *) in
             let v5 = type_ env v5 in
-            todo env (v1, v2, v3, v4, v5)
+            let name = v3 in
+            [{v_name = name; v_kind = Const, v1; v_resolved = ref NotResolved;
+              v_init = None; v_type = Some v5 }]
         )
       in
-      todo env ()
+      v2
   )
 
 let toplevel env x = statement env x
@@ -2607,18 +2604,4 @@ let parse ?dialect file =
     CST.dump_tree cst;
   );
 
-  try
-    program env cst
-  with
-    TODO as exn ->
-      if debug then (
-        (* This debugging output is not JSON and breaks core output *)
-
-        let s = Printexc.get_backtrace () in
-        pr2 "Some constructs are not handled yet";
-        pr2 "CST was:";
-        CST.dump_tree cst;
-        pr2 "Original backtrace:";
-        pr2 s;
-      );
-      failwith "not implemented"
+  program env cst
