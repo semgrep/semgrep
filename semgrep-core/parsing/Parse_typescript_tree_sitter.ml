@@ -1532,7 +1532,7 @@ and statement (env : env) (x : CST.statement) : stmt list =
       [ExprStmt (e, t)]
   | `Decl x ->
       let vars = declaration env x in
-      vars |> List.map (fun x -> VarDecl x)
+      vars |> List.map (fun x -> DefStmt x)
   | `Stmt_blk x -> [statement_block env x]
   | `If_stmt (v1, v2, v3, v4) ->
       let v1 = JS.token env v1 (* "if" *) in
@@ -1768,10 +1768,10 @@ and export_statement (env : env) (x : CST.export_statement) : stmt list =
                   match n2opt with
                   | None ->
                       let v = Ast_js.mk_const_var n1 e in
-                      [M import; VarDecl v; M (Export (tok, n1))]
+                      [M import; DefStmt v; M (Export (tok, n1))]
                   | Some (n2) ->
                       let v = Ast_js.mk_const_var n2 e in
-                      [M import; VarDecl v; M (Export (tok, n2))]
+                      [M import; DefStmt v; M (Export (tok, n2))]
                 ) |> List.flatten
             | `Export_clause_choice_auto_semi (v1, v2) ->
                 let v1 = export_clause env v1 in
@@ -1781,7 +1781,7 @@ and export_statement (env : env) (x : CST.export_statement) : stmt list =
                    | None -> [M (Export (tok, n1))]
                    | Some n2 ->
                        let v = Ast_js.mk_const_var n2 (JS.idexp n1) in
-                       [VarDecl v; M (Export (tok, n2))]
+                       [DefStmt v; M (Export (tok, n2))]
                   )
                 ) |> List.flatten
             )
@@ -1796,14 +1796,14 @@ and export_statement (env : env) (x : CST.export_statement) : stmt list =
                 let vars = declaration env x in
                 vars |> List.map (fun var ->
                   let n = var.v_name in
-                  [VarDecl var; M (Export (tok, n))]
+                  [DefStmt var; M (Export (tok, n))]
                 ) |> List.flatten
             | `Defa_exp_choice_auto_semi (v1, v2, v3) ->
                 let v1 = JS.token env v1 (* "default" *) in
                 let v2 = expression env v2 in
                 let _v3 = JS.semicolon env v3 in
                 let var, n = Ast_js.mk_default_entity_var v1 v2 in
-                [VarDecl var; M (Export (v1, n))]
+                [DefStmt var; M (Export (v1, n))]
             )
           in
           v3
