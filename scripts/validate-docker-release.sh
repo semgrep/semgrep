@@ -8,7 +8,6 @@ docker_tag="${version/v/}"
 
 echo "Validating release with docker tag: $docker_tag"
 
-# shellcheck disable=SC2016
 echo "if 1 == 1: pass" \
     | docker run -i returntocorp/semgrep:"$docker_tag" -l python -e '$X == $X' - \
     | grep -q "1 == 1"
