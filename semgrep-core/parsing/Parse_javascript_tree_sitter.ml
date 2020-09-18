@@ -513,7 +513,7 @@ and function_ (env : env) ((v1, v2, v3, v4, v5) : CST.function_)
  : function_definition * ident option =
   let v1 =
     (match v1 with
-    | Some tok -> [Async, token env tok] (* "async" *)
+    | Some tok -> [attr (Async, token env tok)] (* "async" *)
     | None -> [])
   in
   let _v2 = token env v2 (* "function" *) in
@@ -809,7 +809,7 @@ and constructable_expression (env : env) (x : CST.constructable_expression) : ex
   | `Arrow_func (v1, v2, v3, v4) ->
       let v1 =
         (match v1 with
-        | Some tok -> [Async, token env tok] (* "async" *)
+        | Some tok -> [attr (Async, token env tok)] (* "async" *)
         | None -> [])
       in
       let v2 =
@@ -835,11 +835,11 @@ and constructable_expression (env : env) (x : CST.constructable_expression) : ex
   | `Gene_func (v1, v2, v3, v4, v5, v6) ->
       let v1 =
         (match v1 with
-        | Some tok -> [Async, token env tok] (* "async" *)
+        | Some tok -> [attr (Async, token env tok)] (* "async" *)
         | None -> [])
       in
       let _v2 = token env v2 (* "function" *) in
-      let v3 = [Generator, token env v3] (* "*" *) in
+      let v3 = [attr (Generator, token env v3)] (* "*" *) in
       let v4 =
         (match v4 with
         | Some tok -> Some (identifier env tok) (* identifier *)
@@ -1344,21 +1344,21 @@ and method_definition (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.method_def
   let _v1TODO = List.map (decorator env) v1 in
   let v2 =
     (match v2 with
-    | Some tok -> [Static, token env tok] (* "static" *)
+    | Some tok -> [attr (Static, token env tok)] (* "static" *)
     | None -> [])
   in
   let v3 =
     (match v3 with
-    | Some tok -> [Async, token env tok] (* "async" *)
+    | Some tok -> [attr (Async, token env tok)] (* "async" *)
     | None -> [])
   in
   let v4 =
     (match v4 with
     | Some x ->
         (match x with
-        | `Get tok -> [Get, token env tok] (* "get" *)
-        | `Set tok -> [Set, token env tok] (* "set" *)
-        | `STAR tok -> [Generator, token env tok] (* "*" *)
+        | `Get tok -> [attr (Get, token env tok)] (* "get" *)
+        | `Set tok -> [attr (Set, token env tok)] (* "set" *)
+        | `STAR tok -> [attr (Generator, token env tok)] (* "*" *)
         )
     | None -> [])
   in
@@ -1491,7 +1491,7 @@ and update_expression (env : env) (x : CST.update_expression) : expr =
 and public_field_definition (env : env) ((v1, v2, v3) : CST.public_field_definition) : property =
   let v1 =
     (match v1 with
-    | Some tok -> [Static, token env tok] (* "static" *)
+    | Some tok -> [attr (Static, token env tok)] (* "static" *)
     | None -> [])
   in
   let v2 = property_name env v2 in
@@ -1661,7 +1661,7 @@ and declaration (env : env) (x : CST.declaration) : var list =
   | `Func_decl (v1, v2, v3, v4, v5, v6) ->
       let v1 =
         (match v1 with
-        | Some tok -> [Async, token env tok] (* "async" *)
+        | Some tok -> [attr (Async, token env tok)] (* "async" *)
         | None -> [])
       in
       let v2 = token env v2 (* "function" *) in
@@ -1680,11 +1680,11 @@ and declaration (env : env) (x : CST.declaration) : var list =
   | `Gene_func_decl (v1, v2, v3, v4, v5, v6, v7) ->
       let v1 =
         (match v1 with
-        | Some tok -> [Async, token env tok] (* "async" *)
+        | Some tok -> [attr (Async, token env tok)] (* "async" *)
         | None -> [])
       in
       let v2 = token env v2 (* "function" *) in
-      let v3 = [Generator, token env v3] (* "*" *) in
+      let v3 = [attr (Generator, token env v3)] (* "*" *) in
       let v4 = identifier env v4 (* identifier *) in
       let v5 = formal_parameters env v5 in
       let v6 = statement_block env v6 in

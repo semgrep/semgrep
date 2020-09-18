@@ -472,7 +472,7 @@ and function_ (env : env) ((v1, v2, v3, v4, v5) : CST.function_)
  : function_definition * ident option =
   let v1 =
     (match v1 with
-    | Some tok -> [Async, JS.token env tok] (* "async" *)
+    | Some tok -> [attr (Async, JS.token env tok)] (* "async" *)
     | None -> [])
   in
   let _v2 = JS.token env v2 (* "function" *) in
@@ -656,11 +656,11 @@ and arguments (env : env) ((v1, v2, v3) : CST.arguments) : arguments =
 and generator_function_declaration (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.generator_function_declaration) : var list =
   let v1 =
     (match v1 with
-    | Some tok -> [Async, JS.token env tok] (* "async" *)
+    | Some tok -> [attr (Async, JS.token env tok)] (* "async" *)
     | None -> [])
   in
   let v2 = JS.token env v2 (* "function" *) in
-  let v3 = [Generator, JS.token env v3] (* "*" *) in
+  let v3 = [attr (Generator, JS.token env v3)] (* "*" *) in
   let v4 = JS.identifier env v4 (* identifier *) in
   let (_tparams, (v5, _tret)) = call_signature env v5 in
   let v6 = statement_block env v6 in
@@ -880,7 +880,7 @@ and constructable_expression (env : env) (x : CST.constructable_expression) : ex
   | `Arrow_func (v1, v2, v3, v4) ->
       let v1 =
         (match v1 with
-        | Some tok -> [Async, JS.token env tok] (* "async" *)
+        | Some tok -> [attr (Async, JS.token env tok)] (* "async" *)
         | None -> [])
       in
       let v2 =
@@ -920,7 +920,8 @@ and constructable_expression (env : env) (x : CST.constructable_expression) : ex
       in
       let (_tparams, (v5, tret)) = call_signature env v5 in
       let v6 = statement_block env v6 in
-      let f = { f_props = v1@v3; f_params = v5; f_body = v6 } in
+      let attrs = (v1 @ v3) |> List.map attr in
+      let f = { f_props = attrs; f_params = v5; f_body = v6 } in
       Fun (f, v4)
   | `Class (v1, v2, v3, v4, v5, v6) ->
       (* TODO decorators *)
@@ -1679,7 +1680,7 @@ and method_definition (env : env) ((v1, v2, v3, v4, v5, v6, v7, v8, v9) : CST.me
   in
   let v2 =
     (match v2 with
-    | Some tok -> [Static, JS.token env tok] (* "static" *)
+    | Some tok -> [attr (Static, JS.token env tok)] (* "static" *)
     | None -> [])
   in
   let _v3 =
@@ -1705,7 +1706,8 @@ and method_definition (env : env) ((v1, v2, v3, v4, v5, v6, v7, v8, v9) : CST.me
   in
   let (_tparams, (v8, _tret)) = call_signature env v8 in
   let v9 = statement_block env v9 in
-  let f = { f_props = v4 @ v5; f_params = v8; f_body = v9 } in
+  let attrs = (v4 @ v5) |> List.map attr in
+  let f = { f_props = attrs; f_params = v8; f_body = v9 } in
   let e = Fun (f, None) in
   let ty = None in
   Field {fld_name = v6; fld_props = v2; fld_type = ty; fld_body = Some e }
@@ -1892,7 +1894,7 @@ and anon_choice_export_stmt (env : env) (x : CST.anon_choice_export_stmt) =
         | Some x -> Some (type_annotation env x)
         | None -> None)
       in
-      let attrs = v1 @ v2 @ v3 @ v5 in
+      let attrs = (v1 @ v2 @ v3 @ v5) |> List.map attr in
       let fld =
        { fld_name = v4; fld_props = attrs; fld_type = v6; fld_body = None } in
       Left fld
@@ -1976,7 +1978,8 @@ and public_field_definition (env : env) ((v1, v2, v3, v4, v5, v6) : CST.public_f
     | Some x -> Some (initializer_ env x)
     | None -> None)
   in
-  Field {fld_name = v3; fld_props = v2; fld_type = v5; fld_body = v6 }
+  let attrs = v2 |> List.map attr in
+  Field {fld_name = v3; fld_props = attrs; fld_type = v5; fld_body = v6 }
 
 (* TODO types: return either an expression like in javascript or a type. *)
 and anon_choice_choice_type_id (env : env) (x : CST.anon_choice_choice_type_id): expr option =
@@ -2170,7 +2173,7 @@ and abstract_method_signature (env : env) ((v1, v2, v3, v4, v5, v6) : CST.abstra
     | Some tok -> [Optional, JS.token env tok] (* "?" *)
     | None -> [])
   in
-  let attrs = v1 @ v2 @ v3 @ v5 in
+  let attrs = (v1 @ v2 @ v3 @ v5) |> List.map attr in
   let (_tparams, x) = call_signature env v6 in
   let t = mk_functype x in
   { fld_name = v4; fld_props = attrs; fld_type = Some t; fld_body = None }
@@ -2346,7 +2349,7 @@ and statement_block (env : env) ((v1, v2, v3, v4) : CST.statement_block) =
 and function_declaration (env : env) ((v1, v2, v3, v4, v5, v6) : CST.function_declaration) : var list =
   let v1 =
     (match v1 with
-     | Some tok -> [Async, JS.token env tok] (* "async" *)
+     | Some tok -> [attr (Async, JS.token env tok)] (* "async" *)
      | None -> [])
   in
   let v2 = JS.token env v2 (* "function" *) in
@@ -2407,7 +2410,7 @@ and method_signature (env : env) ((v1, v2, v3, v4, v5, v6, v7, v8) : CST.method_
     | Some tok -> [Optional, JS.token env tok] (* "?" *)
     | None -> [])
   in
-  let attrs = v1 @ v2 @ v3 @ v4 @ v5 @ v7 in
+  let attrs = (v1 @ v2 @ v3 @ v4 @ v5 @ v7) |> List.map attr in
   let (_tparams, x) = call_signature env v8 in
   let t = mk_functype x in
   { fld_name = v6; fld_props = attrs; fld_type = Some t; fld_body = None}
