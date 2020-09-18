@@ -468,7 +468,8 @@ and variable_declaration (env : env) ((v1, v2, v3, v4) : CST.variable_declaratio
   let vars = v2::v3 in
   JS.build_vars v1 vars
 
-and function_ (env : env) ((v1, v2, v3, v4, v5) : CST.function_) : fun_ * ident option =
+and function_ (env : env) ((v1, v2, v3, v4, v5) : CST.function_)
+ : function_definition * ident option =
   let v1 =
     (match v1 with
     | Some tok -> [Async, JS.token env tok] (* "async" *)
