@@ -1157,14 +1157,14 @@ and expression (env : env) (x : CST.expression) : expr =
       (* type assertion of the form 'exp as type' *)
       (* TODO types *)
       let v1 = expression env v1 in
-      let _v2 = JS.token env v2 (* "as" *) in
-      let _v3 () =
-        (match v3 with
-        | `Type x -> type_ env x
-        | `Temp_str x -> todo env (template_string env x)
-        )
-      in
-      v1
+      let v2 = JS.token env v2 (* "as" *) in
+      (match v3 with
+      | `Type x -> let x = type_ env x in
+          Cast (v1, v2, x)
+      | `Temp_str x ->
+          let (_, xs, _) = template_string env x in
+          ExprTodo (("WeirdCastTemplateString", v2), v1::xs)
+      )
   | `Non_null_exp (v1, v2) ->
       (* non-null assertion operator *)
       (* TODO types *)
@@ -1897,7 +1897,7 @@ and anon_choice_export_stmt (env : env) (x : CST.anon_choice_export_stmt) =
       let attrs = (v1 @ v2 @ v3 @ v5) |> List.map attr in
       let fld =
        { fld_name = v4; fld_props = attrs; fld_type = v6; fld_body = None } in
-      Left fld
+      Left (Field fld)
   | `Call_sign_ x ->
       let (_tparams, (_params, _tret)) = call_signature env x in
       todo env ()
