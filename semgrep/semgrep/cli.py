@@ -47,12 +47,6 @@ def cli() -> None:
     # config options
     config = parser.add_argument_group("config")
     config_ex = config.add_mutually_exclusive_group()
-    config_ex.add_argument(
-        "--configs",
-        help=("List of configuration files seperated by comma. The type of permitted files is "
-              "specified in the help section of --config."
-              "Separate like \"<url1>,<url2>\" with no space in between."),
-    )
 
     config_ex.add_argument(
         "-g",
@@ -64,6 +58,8 @@ def cli() -> None:
     config_ex.add_argument(
         "-f",
         "--config",
+        nargs='+',
+        type=str,
         help=(
             "YAML configuration file, directory of YAML files ending in "
             ".yml|.yaml, URL of a configuration file, or semgrep registry entry "
@@ -350,18 +346,21 @@ def cli() -> None:
         elif args.synthesize_patterns:
             synthesize_patterns(args.lang, args.synthesize_patterns, target)
         elif args.validate:
-            configs, config_errors = semgrep.semgrep_main.get_config(
-                args.pattern, args.lang, args.config
-            )
-            valid_str = "invalid" if config_errors else "valid"
-            rule_count = sum(len(rules) for rules in configs.values())
-            logger.info(
-                f"Configuration is {valid_str} - found {len(configs)} valid configuration(s), {len(config_errors)} configuration error(s), and {rule_count} rule(s)."
-            )
-            if config_errors:
-                for error in config_errors:
-                    output_handler.handle_semgrep_error(error)
-                raise SemgrepError("Please fix the above errors and try again.")
+            if args.config is None:
+                args.config = [None]
+            for c in args.config:
+                configs, config_errors = semgrep.semgrep_main.get_config(
+                    args.pattern, args.lang, c
+                )
+                valid_str = "invalid" if config_errors else "valid"
+                rule_count = sum(len(rules) for rules in configs.values())
+                logger.info(
+                    f"Configuration is {valid_str} - found {len(configs)} valid configuration(s), {len(config_errors)} configuration error(s), and {rule_count} rule(s)."
+                )
+                if config_errors:
+                    for error in config_errors:
+                        output_handler.handle_semgrep_error(error)
+                    raise SemgrepError("Please fix the above errors and try again.")
         elif args.generate_config:
             semgrep.config_resolver.generate_config()
         else:
@@ -385,5 +384,4 @@ def cli() -> None:
                 max_memory=args.max_memory,
                 timeout_threshold=args.timeout_threshold,
                 skip_unknown_extensions=args.skip_unknown_extensions,
-                configs=args.configs
             )

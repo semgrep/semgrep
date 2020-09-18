@@ -234,7 +234,7 @@ def invoke_semgrep(config: Path, targets: List[Path], **kwargs: Any) -> Any:
         target=[str(t) for t in targets],
         pattern="",
         lang="",
-        config=str(config),
+        config=[str(config)],
         **kwargs,
     )
     output_handler.close()
@@ -246,7 +246,7 @@ def main(
     target: List[str],
     pattern: str,
     lang: str,
-    config: str,
+    config: List[str],
     no_rewrite_rule_ids: bool = False,
     jobs: int = 1,
     include: Optional[List[str]] = None,
@@ -262,7 +262,6 @@ def main(
     timeout_threshold: int = 0,
     skip_unknown_extensions: bool = False,
     testing: bool = False,
-    configs: Optional[List[str]] = None,
 ) -> None:
     if include is None:
         include = []
@@ -270,12 +269,10 @@ def main(
     if exclude is None:
         exclude = []
 
-    if configs is None:
-        configs = [config]
-    else:
-        configs = configs.split(',')
+    if config is None:
+        config = [None]
 
-    for c in configs:
+    for c in config:
         valid_configs, config_errors = get_config(pattern, lang, c)
 
         output_handler.handle_semgrep_errors(config_errors)
