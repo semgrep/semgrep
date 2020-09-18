@@ -59,7 +59,6 @@ def cli() -> None:
         "-f",
         "--config",
         nargs='+',
-        type=str,
         help=(
             "YAML configuration file, directory of YAML files ending in "
             ".yml|.yaml, URL of a configuration file, or semgrep registry entry "
