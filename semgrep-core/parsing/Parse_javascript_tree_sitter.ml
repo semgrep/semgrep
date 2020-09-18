@@ -863,7 +863,9 @@ and constructable_expression (env : env) (x : CST.constructable_expression) : ex
         | None -> None)
       in
       let v5 = class_body env v5 in
-      let class_ = { c_tok = v2;  c_extends = v4; c_body = v5 } in
+
+      let class_ = { c_tok = v2;  c_extends = v4; c_body = v5; c_props = [] }
+      in
       Class (class_, v3)
   | `Paren_exp x -> parenthesized_expression env x
   | `Subs_exp x -> subscript_expression env x
@@ -1713,7 +1715,8 @@ and declaration (env : env) (x : CST.declaration) : var list =
         | Some tok -> Some (automatic_semicolon env tok) (* automatic_semicolon *)
         | None -> None)
       in
-      let c = { c_tok = v2; c_extends = v4; c_body = v5 } in
+      let attrs = [] in
+      let c = { c_tok = v2; c_extends = v4; c_body = v5; c_props = attrs } in
       let ty = None in
       [{ v_name = v3; v_kind = Const, v2; v_type = ty;
         v_init = Some (Class (c, None)); v_resolved = ref NotResolved }]
