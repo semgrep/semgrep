@@ -276,7 +276,7 @@ def main(
         configs = configs.split(',')
 
     for c in configs:
-        valid_configs, config_errors = get_config(pattern, lang, config)
+        valid_configs, config_errors = get_config(pattern, lang, c)
 
         output_handler.handle_semgrep_errors(config_errors)
 
