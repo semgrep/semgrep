@@ -271,15 +271,12 @@ def main(
         exclude = []
 
     if configs is None:
-        configs = []
+        configs = [config]
     else:
         configs = configs.split(',')
 
-    if not config is None:
-        configs = [config]
-
     for c in configs:
-        valid_configs, config_errors = get_config(pattern, lang, c)
+        valid_configs, config_errors = get_config(pattern, lang, config)
 
         output_handler.handle_semgrep_errors(config_errors)
 
