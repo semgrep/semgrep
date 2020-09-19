@@ -509,10 +509,11 @@ and variable_declaration (env : env) ((v1, v2, v3, v4) : CST.variable_declaratio
   let vars = v2::v3 in
   build_vars v1 vars
 
-and function_ (env : env) ((v1, v2, v3, v4, v5) : CST.function_) : fun_ * ident option =
+and function_ (env : env) ((v1, v2, v3, v4, v5) : CST.function_)
+ : function_definition * ident option =
   let v1 =
     (match v1 with
-    | Some tok -> [Async, token env tok] (* "async" *)
+    | Some tok -> [attr (Async, token env tok)] (* "async" *)
     | None -> [])
   in
   let _v2 = token env v2 (* "function" *) in
@@ -808,7 +809,7 @@ and constructable_expression (env : env) (x : CST.constructable_expression) : ex
   | `Arrow_func (v1, v2, v3, v4) ->
       let v1 =
         (match v1 with
-        | Some tok -> [Async, token env tok] (* "async" *)
+        | Some tok -> [attr (Async, token env tok)] (* "async" *)
         | None -> [])
       in
       let v2 =
@@ -834,11 +835,11 @@ and constructable_expression (env : env) (x : CST.constructable_expression) : ex
   | `Gene_func (v1, v2, v3, v4, v5, v6) ->
       let v1 =
         (match v1 with
-        | Some tok -> [Async, token env tok] (* "async" *)
+        | Some tok -> [attr (Async, token env tok)] (* "async" *)
         | None -> [])
       in
       let _v2 = token env v2 (* "function" *) in
-      let v3 = [Generator, token env v3] (* "*" *) in
+      let v3 = [attr (Generator, token env v3)] (* "*" *) in
       let v4 =
         (match v4 with
         | Some tok -> Some (identifier env tok) (* identifier *)
@@ -862,7 +863,9 @@ and constructable_expression (env : env) (x : CST.constructable_expression) : ex
         | None -> None)
       in
       let v5 = class_body env v5 in
-      let class_ = { c_tok = v2;  c_extends = v4; c_body = v5 } in
+
+      let class_ = { c_tok = v2;  c_extends = v4; c_body = v5; c_props = [] }
+      in
       Class (class_, v3)
   | `Paren_exp x -> parenthesized_expression env x
   | `Subs_exp x -> subscript_expression env x
@@ -1200,7 +1203,7 @@ and statement (env : env) (x : CST.statement) : stmt list =
         [ExprStmt (e, t)]
   | `Decl x ->
         let vars = declaration env x in
-        vars |> List.map (fun x -> VarDecl x)
+        vars |> List.map (fun x -> DefStmt x)
   | `Stmt_blk x -> [statement_block env x]
   | `If_stmt (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "if" *) in
@@ -1343,21 +1346,21 @@ and method_definition (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.method_def
   let _v1TODO = List.map (decorator env) v1 in
   let v2 =
     (match v2 with
-    | Some tok -> [Static, token env tok] (* "static" *)
+    | Some tok -> [attr (Static, token env tok)] (* "static" *)
     | None -> [])
   in
   let v3 =
     (match v3 with
-    | Some tok -> [Async, token env tok] (* "async" *)
+    | Some tok -> [attr (Async, token env tok)] (* "async" *)
     | None -> [])
   in
   let v4 =
     (match v4 with
     | Some x ->
         (match x with
-        | `Get tok -> [Get, token env tok] (* "get" *)
-        | `Set tok -> [Set, token env tok] (* "set" *)
-        | `STAR tok -> [Generator, token env tok] (* "*" *)
+        | `Get tok -> [attr (Get, token env tok)] (* "get" *)
+        | `Set tok -> [attr (Set, token env tok)] (* "set" *)
+        | `STAR tok -> [attr (Generator, token env tok)] (* "*" *)
         )
     | None -> [])
   in
@@ -1432,10 +1435,10 @@ and export_statement (env : env) (x : CST.export_statement) : toplevel list =
                match n2opt with
                | None ->
                   let v = Ast_js.mk_const_var n1 e in
-                  [M import; VarDecl v; M (Export (tok, n1))]
+                  [M import; DefStmt v; M (Export (tok, n1))]
                | Some (n2) ->
                   let v = Ast_js.mk_const_var n2 e in
-                  [M import; VarDecl v; M (Export (tok, n2))]
+                  [M import; DefStmt v; M (Export (tok, n2))]
             ) |> List.flatten
         | `Export_clause_choice_auto_semi (v1, v2) ->
             let v1 = export_clause env v1 in
@@ -1445,7 +1448,7 @@ and export_statement (env : env) (x : CST.export_statement) : toplevel list =
                | None -> [M (Export (tok, n1))]
                | Some n2 ->
                   let v = Ast_js.mk_const_var n2 (idexp n1) in
-                  [VarDecl v; M (Export (tok, n2))]
+                  [DefStmt v; M (Export (tok, n2))]
                )
             ) |> List.flatten
         )
@@ -1460,14 +1463,14 @@ and export_statement (env : env) (x : CST.export_statement) : toplevel list =
             let vars = declaration env x in
             vars |> List.map (fun var ->
               let n = var.v_name in
-              [VarDecl var; M (Export (tok, n))]
+              [DefStmt var; M (Export (tok, n))]
             ) |> List.flatten
         | `Defa_exp_choice_auto_semi (v1, v2, v3) ->
             let v1 = token env v1 (* "default" *) in
             let v2 = expression env v2 in
             let _v3 = semicolon env v3 in
             let var, n = Ast_js.mk_default_entity_var v1 v2 in
-            [VarDecl var; M (Export (v1, n))]
+            [DefStmt var; M (Export (v1, n))]
         )
       in
       v3
@@ -1490,7 +1493,7 @@ and update_expression (env : env) (x : CST.update_expression) : expr =
 and public_field_definition (env : env) ((v1, v2, v3) : CST.public_field_definition) : property =
   let v1 =
     (match v1 with
-    | Some tok -> [Static, token env tok] (* "static" *)
+    | Some tok -> [attr (Static, token env tok)] (* "static" *)
     | None -> [])
   in
   let v2 = property_name env v2 in
@@ -1660,7 +1663,7 @@ and declaration (env : env) (x : CST.declaration) : var list =
   | `Func_decl (v1, v2, v3, v4, v5, v6) ->
       let v1 =
         (match v1 with
-        | Some tok -> [Async, token env tok] (* "async" *)
+        | Some tok -> [attr (Async, token env tok)] (* "async" *)
         | None -> [])
       in
       let v2 = token env v2 (* "function" *) in
@@ -1679,11 +1682,11 @@ and declaration (env : env) (x : CST.declaration) : var list =
   | `Gene_func_decl (v1, v2, v3, v4, v5, v6, v7) ->
       let v1 =
         (match v1 with
-        | Some tok -> [Async, token env tok] (* "async" *)
+        | Some tok -> [attr (Async, token env tok)] (* "async" *)
         | None -> [])
       in
       let v2 = token env v2 (* "function" *) in
-      let v3 = [Generator, token env v3] (* "*" *) in
+      let v3 = [attr (Generator, token env v3)] (* "*" *) in
       let v4 = identifier env v4 (* identifier *) in
       let v5 = formal_parameters env v5 in
       let v6 = statement_block env v6 in
@@ -1712,7 +1715,8 @@ and declaration (env : env) (x : CST.declaration) : var list =
         | Some tok -> Some (automatic_semicolon env tok) (* automatic_semicolon *)
         | None -> None)
       in
-      let c = { c_tok = v2; c_extends = v4; c_body = v5 } in
+      let attrs = [] in
+      let c = { c_tok = v2; c_extends = v4; c_body = v5; c_props = attrs } in
       let ty = None in
       [{ v_name = v3; v_kind = Const, v2; v_type = ty;
         v_init = Some (Class (c, None)); v_resolved = ref NotResolved }]
