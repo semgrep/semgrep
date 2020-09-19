@@ -1876,7 +1876,7 @@ and m_parameter_classic a b =
     { B. pname = b1; pdefault = b2; ptype = b3; pattrs = b4; pinfo = b5 } ->
     (m_option m_ident) a1 b1 >>= (fun () ->
     (m_option m_expr) a2 b2 >>= (fun () ->
-    (m_option m_type_) a3 b3 >>= (fun () ->
+    (m_option_none_can_match_some m_type_) a3 b3 >>= (fun () ->
     m_list_in_any_order ~less_is_ok:true m_attribute a4 b4 >>= (fun () ->
     m_id_info a5 b5
     ))))
@@ -1898,7 +1898,7 @@ and m_variable_definition a b =
   { A. vinit = a1; vtype = a2; },
   { B. vinit = b1; vtype = b2; } ->
     (m_option m_expr) a1 b1 >>= (fun () ->
-    (m_option m_type_) a2 b2
+    (m_option_none_can_match_some m_type_) a2 b2
     )
 (*e: function [[Generic_vs_generic.m_variable_definition]] *)
 
