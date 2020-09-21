@@ -485,7 +485,7 @@ Semgrep for Go currently does not recognize the type of all variables when decla
 same line. That is, the following will not take both `a` and `b` as `int`s:
 
 ```go
-var a, b = 1
+var a, b = 1, 2
 ```
 
 ## Limitations
