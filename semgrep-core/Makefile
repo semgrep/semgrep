@@ -49,7 +49,7 @@ merge:
 check:
 	@semgrep --version
 	@semgrep-core -version
-	semgrep --config semgrep.yml --error --strict --exclude tests/ocaml .
+	semgrep --config ../semgrep.yml --error --strict --exclude tests ..
 
 index:
 	codegraph_build -lang cmt -derived_data .

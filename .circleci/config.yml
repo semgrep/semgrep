@@ -8,13 +8,7 @@ jobs:
     working_directory: /src
     steps:
       - checkout
-      - run:
-          name: "Pull Submodules"
-          command: |
-            apk add git
-            git submodule init
-            git submodule update --remote
-      - run: semgrep --config semgrep-core/semgrep.yml --error --strict --exclude ocaml --exclude TODO --exclude _build semgrep-core
+      - run: semgrep --config semgrep.yml --error --strict --exclude tests --exclude TODO --exclude _build .
 
 workflows:
   version: 2
