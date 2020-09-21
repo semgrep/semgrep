@@ -58,7 +58,7 @@ def lang_to_exts(language: Language) -> List[FileExtension]:
         return PYTHON_EXTENSIONS
     elif language in {"js", "jsx", "javascript"}:
         return JAVASCRIPT_EXTENSIONS
-    elif language in {"ts", "tsx" "typescript"}:
+    elif language in {"ts", "tsx", "typescript"}:
         return TYPESCRIPT_EXTENSIONS
     elif language in {"java"}:
         return JAVA_EXTENSIONS

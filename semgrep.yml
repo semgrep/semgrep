@@ -34,3 +34,10 @@ rules:
        - Test.ml
        - Matching_report.ml
        - Unit_*.ml
+
+  - id: string-missing-comma
+    pattern: |
+      {..., "..." "...", ...}
+    message: You probably forgot a comma
+    languages: [python]
+    severity: ERROR
