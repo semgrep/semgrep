@@ -305,19 +305,17 @@ and anon_choice_id_ref (env : env) (x : CST.anon_choice_id_ref) : ident list =
       decorator_member_expression env x
   )
 
-(* TODO don't ignore type annotation *)
 let rec parenthesized_expression (env : env) ((v1, v2, v3) : CST.parenthesized_expression) =
   let _v1 = JS.token env v1 (* "(" *) in
   let v2 =
     (match v2 with
     | `Exp_opt_type_anno (v1, v2) ->
         let v1 = expression env v1 in
-        let _v2 =
           (match v2 with
-          | Some x -> Some (type_annotation env x)
-          | None -> None)
-        in
-        v1
+          | Some x ->
+                let (tok, ty) = type_annotation env x in
+                Cast (v1, tok, ty)
+          | None -> v1)
     | `Seq_exp x -> sequence_expression env x
     )
   in
@@ -671,7 +669,7 @@ and variable_declarator (env : env) ((v1, v2, v3) : CST.variable_declarator) =
   let v1 = anon_choice_type_id_ env v1 in
   let v2 =
     (match v2 with
-    | Some x -> Some (type_annotation env x)
+    | Some x -> Some (type_annotation env x |> snd)
     | None -> None)
   in
   let v3 =
@@ -1150,22 +1148,21 @@ and expression (env : env) (x : CST.expression) : expr =
   (match x with
   | `As_exp (v1, v2, v3) ->
       (* type assertion of the form 'exp as type' *)
-      (* TODO types *)
       let v1 = expression env v1 in
       let v2 = JS.token env v2 (* "as" *) in
       (match v3 with
       | `Type x -> let x = type_ env x in
-          Cast (v1, v2, x)
+          TypeAssert (v1, v2, x)
       | `Temp_str x ->
           let (_, xs, _) = template_string env x in
           ExprTodo (("WeirdCastTemplateString", v2), v1::xs)
       )
   | `Non_null_exp (v1, v2) ->
       (* non-null assertion operator *)
-      (* TODO types *)
       let v1 = expression env v1 in
-      let _v2 = JS.token env v2 (* "!" *) in
-      v1
+      let v2 = JS.token env v2 (* "!" *) in
+      let special = ArithOp G.NotNullPostfix, v2 in
+      Apply (IdSpecial special, fb [v1])
 
   | `Inte_module x ->
       (* namespace (deprecated in favor of ES modules) *)
@@ -1398,7 +1395,7 @@ and index_signature (env : env) ((v1, v2, v3, v4) : CST.index_signature) =
     )
   in
   let v3 = JS.token env v3 (* "]" *) in
-  let v4 = type_annotation env v4 in
+  let v4 = type_annotation env v4 |> snd in
   G.OtherType (G.OT_Todo, [G.TodoK ("Indexsig", v1); G.T v2; G.T v4])
 
 
@@ -1828,7 +1825,7 @@ and export_statement (env : env) (x : CST.export_statement) : stmt list =
 and type_annotation (env : env) ((v1, v2) : CST.type_annotation) =
   let v1 = JS.token env v1 (* ":" *) in
   let v2 = type_ env v2 in
-  v2
+  v1, v2
 
 and anon_rep_COMMA_opt_choice_exp (env : env) (xs : CST.anon_rep_COMMA_opt_choice_exp) =
   List.filter_map (fun (v1, v2) ->
@@ -1887,7 +1884,7 @@ and anon_choice_export_stmt (env : env) (x : CST.anon_choice_export_stmt) =
       in
       let v6 =
         (match v6 with
-        | Some x -> Some (type_annotation env x)
+        | Some x -> Some (type_annotation env x |> snd)
         | None -> None)
       in
       let attrs = (v1 @ v2 @ v3 @ v5) |> List.map attr in
@@ -1912,7 +1909,7 @@ and anon_choice_export_stmt (env : env) (x : CST.anon_choice_export_stmt) =
       let v3 = formal_parameters env v3 in
       let v4 =
         (match v4 with
-        | Some x -> Some (type_annotation env x)
+        | Some x -> Some (type_annotation env x |> snd)
         | None -> None)
       in
       let ty = mk_functype (v3, v4) in
@@ -1980,7 +1977,7 @@ and public_field_definition (env : env) ((v1, v2, v3, v4, v5, v6) : CST.public_f
   in
   let v5 =
     (match v5 with
-    | Some x -> Some (type_annotation env x)
+    | Some x -> Some (type_annotation env x |> snd)
     | None -> None)
   in
   let v6 =
@@ -2039,7 +2036,7 @@ and anon_choice_requ_param (env : env) (x : CST.anon_choice_requ_param) : parame
       let v1 = parameter_name env v1 in
       let v2 =
         (match v2 with
-        | Some x -> Some (type_annotation env x)
+        | Some x -> Some (type_annotation env x |> snd)
         | None -> None)
       in
       let v3 =
@@ -2059,7 +2056,7 @@ and anon_choice_requ_param (env : env) (x : CST.anon_choice_requ_param) : parame
       let id = JS.identifier env v2 (* identifier *) in
       let v3 =
         (match v3 with
-        | Some x -> Some (type_annotation env x)
+        | Some x -> Some (type_annotation env x |> snd)
         | None -> None)
       in
       ParamClassic { p_name = id; p_default = None; p_type = v3;
@@ -2203,7 +2200,7 @@ and call_signature (env : env) ((v1, v2, v3) : CST.call_signature)
   let v2 = formal_parameters env v2 in
   let v3 =
     (match v3 with
-    | Some x -> Some (type_annotation env x)
+    | Some x -> Some (type_annotation env x |> snd)
     | None -> None)
   in
   v1, (v2, v3)
