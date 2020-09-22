@@ -17,7 +17,7 @@ jobs:
       - name: Build the Docker image
         run: docker build -t semgrep-dev .
       - name: Check the Docker image
-        run: ./scripts/validate-docker-build semgrep-dev
+        run: ./scripts/validate-docker-build.sh semgrep-dev
       - name: Push Develop Image if on develop branch
         if: ${{ github.event_name == 'push'}}
         uses: docker/build-push-action@v1
