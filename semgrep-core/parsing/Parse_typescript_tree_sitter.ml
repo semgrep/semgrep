@@ -332,7 +332,7 @@ and jsx_opening_element (env : env) ((v1, v2, v3, v4) : CST.jsx_opening_element)
          let id = concat_nested_identifier env v1 in
          let _v2 =
            (match v2 with
-            | Some x -> type_arguments env x
+            | Some x -> type_arguments env x |> G.unbracket
             | None -> [])
          in
          id
@@ -478,7 +478,8 @@ and function_ (env : env) ((v1, v2, v3, v4, v5) : CST.function_)
 
 and generic_type (env : env) ((v1, v2) : CST.generic_type) : G.name =
   let v1 = anon_choice_type_id2 env v1 in
-  let v2 = type_arguments env v2 |> List.map (fun x -> G.TypeArg x) in
+  let v2 = type_arguments env v2 |> G.unbracket
+       |> List.map (fun x -> G.TypeArg x) in
   G.name_of_ids ~name_typeargs:(Some v2) v1
 
 and implements_clause (env : env) ((v1, v2, v3) : CST.implements_clause) =
@@ -690,8 +691,8 @@ and sequence_expression (env : env) ((v1, v2, v3) : CST.sequence_expression) =
   in
   Apply (IdSpecial (Seq, v2), fb [v1; v3])
 
-and type_arguments (env : env) ((v1, v2, v3, v4, v5) : CST.type_arguments) : type_ list =
-  let _v1 = JS.token env v1 (* "<" *) in
+and type_arguments (env : env) ((v1, v2, v3, v4, v5) : CST.type_arguments) : type_ list bracket =
+  let v1 = JS.token env v1 (* "<" *) in
   let v2 = type_ env v2 in
   let v3 =
     List.map (fun (v1, v2) ->
@@ -705,8 +706,8 @@ and type_arguments (env : env) ((v1, v2, v3, v4, v5) : CST.type_arguments) : typ
     | Some tok -> Some (JS.token env tok) (* "," *)
     | None -> None)
   in
-  let _v5 = JS.token env v5 (* ">" *) in
-  v2::v3
+  let v5 = JS.token env v5 (* ">" *) in
+  v1, v2::v3, v5
 
 (* TODO: decorators (@) *)
 (* TODO: types - class body can be just a signature. *)
@@ -954,7 +955,7 @@ and constructable_expression (env : env) (x : CST.constructable_expression) : ex
       (* TODO types *)
       let _v3 =
         match v3 with
-        | Some x -> type_arguments env x
+        | Some x -> type_arguments env x |> G.unbracket
         | None -> []
       in
       let t1, xs, t2 =
@@ -1183,10 +1184,12 @@ and expression (env : env) (x : CST.expression) : expr =
 
   | `Type_asse (v1, v2) ->
       (* type assertion of the form <string>someValue *)
-      (* TODO: types *)
-      let _v1 = type_arguments env v1 in
+      let (t1, xs, _t2) = type_arguments env v1 in
       let v2 = expression env v2 in
-      v2
+      (match xs with
+      | [t] -> TypeAssert (v2, t1, t)
+      | _ -> raise (PI.Parsing_error t1)
+      )
   | `Choice_this x -> constructable_expression env x
 
   | `Choice_jsx_elem x ->
@@ -1262,7 +1265,7 @@ and expression (env : env) (x : CST.expression) : expr =
       (* TODO: types *)
       let _v2 =
         match v2 with
-        | Some x -> type_arguments env x
+        | Some x -> type_arguments env x |> G.unbracket
         | None -> []
       in
       let v3 =
