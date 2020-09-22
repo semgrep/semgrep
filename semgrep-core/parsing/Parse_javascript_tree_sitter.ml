@@ -524,7 +524,7 @@ and function_ (env : env) ((v1, v2, v3, v4, v5) : CST.function_)
   in
   let v4 = formal_parameters env v4 in
   let v5 = statement_block env v5 in
-  { f_props = v1; f_params = v4; f_body = v5 }, v3
+  { f_props = v1; f_params = v4; f_body = v5; f_rettype = None }, v3
 
 and binary_expression (env : env) (x : CST.binary_expression) : expr =
   (match x with
@@ -830,7 +830,7 @@ and constructable_expression (env : env) (x : CST.constructable_expression) : ex
         | `Stmt_blk x -> statement_block env x
         )
       in
-      let f = { f_props = v1; f_params = v2; f_body = v4 } in
+      let f = { f_props = v1; f_params = v2; f_body = v4; f_rettype = None } in
       Fun (f, None)
   | `Gene_func (v1, v2, v3, v4, v5, v6) ->
       let v1 =
@@ -847,7 +847,8 @@ and constructable_expression (env : env) (x : CST.constructable_expression) : ex
       in
       let v5 = formal_parameters env v5 in
       let v6 = statement_block env v6 in
-      let f = { f_props = v1@v3; f_params = v5; f_body = v6 } in
+      let f = { f_props = v1@v3; f_params = v5; f_body = v6;
+                f_rettype = None } in
       Fun (f, v4)
   | `Class (v1, v2, v3, v4, v5) ->
       let _v1TODO = List.map (decorator env) v1 in
@@ -1367,7 +1368,8 @@ and method_definition (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.method_def
   let v5 = property_name env v5 in
   let v6 = formal_parameters env v6 in
   let v7 = statement_block env v7 in
-  let f = { f_props = v3 @ v4; f_params = v6; f_body = v7 } in
+  let f = { f_props = v3 @ v4; f_params = v6; f_body = v7; f_rettype = None }
+  in
   let e = Fun (f, None) in
   Field {fld_name = v5; fld_props = v2; fld_type = None; fld_body = Some e }
 
@@ -1675,7 +1677,7 @@ and declaration (env : env) (x : CST.declaration) : var list =
         | Some tok -> Some (automatic_semicolon env tok) (* automatic_semicolon *)
         | None -> None)
       in
-      let f = { f_props = v1; f_params = v4; f_body = v5 } in
+      let f = { f_props = v1; f_params = v4; f_body = v5; f_rettype = None } in
       [{ v_name = v3; v_kind = Const, v2; v_type = None;
         v_init = Some (Fun (f, None)); v_resolved = ref NotResolved }]
 
@@ -1696,7 +1698,8 @@ and declaration (env : env) (x : CST.declaration) : var list =
         | None -> None)
       in
       let ty = None in
-      let f = { f_props = v1 @ v3; f_params = v5; f_body = v6 } in
+      let f = { f_props = v1 @ v3; f_params = v5; f_body = v6;
+                f_rettype = None } in
       [{ v_name = v4; v_kind = Const, v2; v_type = ty;
          v_init = Some (Fun (f, None)); v_resolved = ref NotResolved }]
 
