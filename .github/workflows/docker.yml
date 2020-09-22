@@ -34,5 +34,9 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
           repository: returntocorp/semgrep
           tags: ${{ github.event.pull_request.head.sha }}
+      - name: update dev.semgrep.dev
+        run: curl --fail -X POST https://dev.semgrep.dev/api/admin/update-docker
+      - name: update staging.semgrep.dev
+        run: curl --fail -X POST https://staging.semgrep.dev/api/admin/update-docker
       - name: update semgrep.dev
         run: curl --fail -X POST https://semgrep.dev/api/admin/update-docker
