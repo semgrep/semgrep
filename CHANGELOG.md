@@ -5,6 +5,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## [Unreleased]
 - Added support for the JUnit XML report format (`--fmt junit`)
 
+<<<<<<< HEAD
 ## [0.24.0](https://github.com/returntocorp/semgrep/releases/tag/v0.24.0) - 2020-09-16
 
 ### Added
@@ -91,6 +92,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   not being matched by patterns such as `if (true) { return; }`.
 
 ## [0.20.0](https://github.com/returntocorp/semgrep/releases/tag/v0.20.0) - 2020-08-18
+=======
+## [0.20.0]((https://github.com/returntocorp/semgrep/releases/tag/v0.20.0)) - 2020-08-18
+>>>>>>> 443a9e864077836a237365946e75b965aa96c52f
 
 ### Added
 - Support for JSX tag metavariables (e.g., <$TAG />) and ellipsis inside
@@ -122,6 +126,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Add ability to match against JSX attributes using ellipses
 - Add ability to use ellipses in Go struct definitions
 - No longer convert Go expressions with a newline to a statement
+>>>>>>> upstream/develop
 
 ## [0.18.0](https://github.com/returntocorp/semgrep/releases/tag/v0.18.0) - 2020-08-04
 
