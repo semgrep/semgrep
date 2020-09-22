@@ -881,8 +881,7 @@ and constructable_expression (env : env) (x : CST.constructable_expression) : ex
         (match v2 with
         | `Choice_choice_decl x ->
             let id = anon_choice_rese_id env x in
-            [ParamClassic { p_name = id; p_default = None;
-                            p_dots = None; p_type = None }], None
+            [ParamClassic (mk_param id)], None
         | `Call_sign x ->
                 let (_tparams, (params, tret)) = call_signature env x in
                 params, tret
@@ -2053,7 +2052,8 @@ and anon_choice_requ_param (env : env) (x : CST.anon_choice_requ_param) : parame
       in
       (match v1 with
       | Left id -> ParamClassic
-          { p_name = id; p_default = v3; p_type = v2; p_dots = None }
+          { p_name = id; p_default = v3; p_type = v2; p_dots = None;
+            p_attrs = [] }
       (* TODO: can have types and defaults on patterns? *)
       | Right pat -> ParamPattern pat
       )
@@ -2067,7 +2067,7 @@ and anon_choice_requ_param (env : env) (x : CST.anon_choice_requ_param) : parame
         | None -> None)
       in
       ParamClassic { p_name = id; p_default = None; p_type = v3;
-                     p_dots = Some v1; }
+                     p_dots = Some v1; p_attrs = [] }
 
   | `Opt_param (v1, v2, v3, v4) ->
       let v1 = parameter_name env v1 in
@@ -2083,8 +2083,7 @@ and anon_choice_requ_param (env : env) (x : CST.anon_choice_requ_param) : parame
         | None -> None)
       in
       (match v1 with
-      | Left id -> ParamClassic
-          { p_name = id; p_default = None; p_type = None; p_dots = None }
+      | Left id -> ParamClassic (mk_param id)
       (* TODO: can have types and defaults on patterns? *)
       | Right pat -> ParamPattern pat
       )

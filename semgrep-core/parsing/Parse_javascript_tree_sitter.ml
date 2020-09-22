@@ -816,8 +816,7 @@ and constructable_expression (env : env) (x : CST.constructable_expression) : ex
         (match v2 with
         | `Choice_choice_get x ->
                 let id = anon_choice_rese_id env x in
-                [ParamClassic { p_name = id; p_default = None; p_type = None;
-                                p_dots = None}]
+                [ParamClassic (mk_param id)]
         | `Formal_params x -> call_signature env x
         )
       in
@@ -1736,12 +1735,10 @@ and formal_parameter (env : env) (x : CST.formal_parameter) : parameter =
   (match x with
   | `Id tok ->
         let id = identifier env tok (* identifier *) in
-        ParamClassic { p_name = id; p_default = None; p_dots = None;
-                       p_type = None }
+        ParamClassic (mk_param id)
   | `Choice_get x ->
         let id = reserved_identifier env x in
-        ParamClassic { p_name = id; p_default = None; p_dots = None;
-                       p_type = None }
+        ParamClassic (mk_param id)
   | `Choice_obj x ->
         let pat = destructuring_pattern env x in
         ParamPattern pat
@@ -1754,7 +1751,7 @@ and formal_parameter (env : env) (x : CST.formal_parameter) : parameter =
       (match v2 with
       | Left id ->
          ParamClassic { p_name = id; p_default = None; p_dots = Some v1;
-                        p_type = None }
+                        p_type = None; p_attrs = [] }
       | Right pat ->
          todo_any "`Rest_param with pattern" v1 (Expr pat)
       )
