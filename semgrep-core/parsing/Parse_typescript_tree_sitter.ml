@@ -474,7 +474,7 @@ and function_ (env : env) ((v1, v2, v3, v4, v5) : CST.function_)
   in
   let (_tparams, (v4, tret)) = call_signature env v4 in
   let v5 = statement_block env v5 in
-  { f_props = v1; f_params = v4; f_body = v5; f_rettype = tret },
+  { f_attrs = v1; f_params = v4; f_body = v5; f_rettype = tret },
   v3
 
 and generic_type (env : env) ((v1, v2) : CST.generic_type) : G.name =
@@ -662,7 +662,7 @@ and generator_function_declaration (env : env) ((v1, v2, v3, v4, v5, v6, v7) : C
     | Some tok -> Some (JS.token env tok) (* automatic_semicolon *)
     | None -> None)
   in
-  let f = { f_props = v1 @ v3; f_params = v5; f_body = v6; f_rettype = tret }
+  let f = { f_attrs = v1 @ v3; f_params = v5; f_body = v6; f_rettype = tret }
   in
   { v_name = v4; v_kind = Const, v2;
      v_type = None;
@@ -793,7 +793,7 @@ and anon_choice_pair (env : env) (x : CST.anon_choice_pair) : property =
       let v1 = property_name env v1 in
       let _v2 = JS.token env v2 (* ":" *) in
       let v3 = expression env v3 in
-      Field {fld_name = v1; fld_props = []; fld_type = None; fld_body =Some v3}
+      Field {fld_name = v1; fld_attrs = []; fld_type = None; fld_body =Some v3}
   | `Spread_elem x ->
       let (t, e) = spread_element env x in
       FieldSpread (t, e)
@@ -813,7 +813,7 @@ and anon_choice_pair (env : env) (x : CST.anon_choice_pair) : property =
   (* { x } shorthand for { x: x }, like in OCaml *)
   | `Choice_id x ->
       let id = identifier_reference env x in
-      Field {fld_name = PN id; fld_props = []; fld_type = None;
+      Field {fld_name = PN id; fld_attrs = []; fld_type = None;
              fld_body = Some (JS.idexp id) }
   )
 
@@ -897,7 +897,7 @@ and constructable_expression (env : env) (x : CST.constructable_expression) : ex
         | `Stmt_blk x -> statement_block env x
         )
       in
-      let f = { f_props = v1; f_params = v2; f_body = v4; f_rettype = tret }
+      let f = { f_attrs = v1; f_params = v2; f_body = v4; f_rettype = tret }
       in
       Fun (f, None)
   | `Gene_func (v1, v2, v3, v4, v5, v6) ->
@@ -916,7 +916,7 @@ and constructable_expression (env : env) (x : CST.constructable_expression) : ex
       let (_tparams, (v5, tret)) = call_signature env v5 in
       let v6 = statement_block env v6 in
       let attrs = (v1 @ v3) |> List.map attr in
-      let f = { f_props = attrs; f_params = v5; f_body = v6; f_rettype = tret }
+      let f = { f_attrs = attrs; f_params = v5; f_body = v6; f_rettype = tret }
       in
       Fun (f, v4)
   | `Class (v1, v2, v3, v4, v5, v6) ->
@@ -942,7 +942,7 @@ and constructable_expression (env : env) (x : CST.constructable_expression) : ex
       let v6 = class_body env v6 in
       let attrs = [] in
       let class_ = { c_tok = v2;  c_extends = v5; c_body = v6;
-                     c_props = attrs } in
+                     c_attrs = attrs } in
       Class (class_, v3)
   | `Paren_exp x -> parenthesized_expression env x
   | `Subs_exp x -> subscript_expression env x
@@ -1177,7 +1177,7 @@ and expression (env : env) (x : CST.expression) : expr =
       (match opt_body with
        | Some body ->
            let fun_ = {
-             f_props = []; f_params = []; f_body = body; f_rettype = None;
+             f_attrs = []; f_params = []; f_body = body; f_rettype = None;
            } in
            Apply (Fun (fun_, Some name), fb [])
        | None ->
@@ -1706,10 +1706,10 @@ and method_definition (env : env) ((v1, v2, v3, v4, v5, v6, v7, v8, v9) : CST.me
   let (_tparams, (v8, tret)) = call_signature env v8 in
   let v9 = statement_block env v9 in
   let attrs = (v1 @ v2 @ v3 @ v4 @ v5 @ v7) |> List.map attr in
-  let f = { f_props = []; f_params = v8; f_body = v9; f_rettype = tret } in
+  let f = { f_attrs = []; f_params = v8; f_body = v9; f_rettype = tret } in
   let e = Fun (f, None) in
   let ty = None in
-  Field {fld_name = v6; fld_props = attrs; fld_type = ty; fld_body = Some e }
+  Field {fld_name = v6; fld_attrs = attrs; fld_type = ty; fld_body = Some e }
 
 (* TODO types: type_parameters *)
 and class_declaration (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.class_declaration) : entity =
@@ -1733,7 +1733,7 @@ and class_declaration (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.class_decl
     | None -> None)
   in
   let attrs = [] in
-  let c = { c_tok = v2; c_extends = v5; c_body = v6; c_props = attrs } in
+  let c = { c_tok = v2; c_extends = v5; c_body = v6; c_attrs = attrs } in
   let ty = None in
   { v_name = v3; v_kind = Const, v2; v_type = ty;
      v_init = Some (Class (c, None)); v_resolved = ref NotResolved }
@@ -1896,14 +1896,14 @@ and anon_choice_export_stmt (env : env) (x : CST.anon_choice_export_stmt) =
       in
       let attrs = (v1 @ v2 @ v3 @ v5) |> List.map attr in
       let fld =
-       { fld_name = v4; fld_props = attrs; fld_type = v6; fld_body = None } in
+       { fld_name = v4; fld_attrs = attrs; fld_type = v6; fld_body = None } in
       Left (Field fld)
   | `Call_sign_ x ->
       let (_tparams, x) = call_signature env x in
       let ty = mk_functype x in
       let name = PN ("CTOR??TODO", PI.fake_info "") in
       let fld =
-       { fld_name = name; fld_props = []; fld_type = Some ty; fld_body = None}
+       { fld_name = name; fld_attrs = []; fld_type = Some ty; fld_body = None}
       in
       Left (Field fld)
   | `Cons_sign (v1, v2, v3, v4) ->
@@ -1922,14 +1922,14 @@ and anon_choice_export_stmt (env : env) (x : CST.anon_choice_export_stmt) =
       let ty = mk_functype (v3, v4) in
       let name = PN ("new", v1) in
       let fld =
-       { fld_name = name; fld_props = []; fld_type = Some ty; fld_body = None}
+       { fld_name = name; fld_attrs = []; fld_type = Some ty; fld_body = None}
       in
       Left (Field fld)
   | `Index_sign x ->
       let ty = index_signature env x in
       let name = PN ("IndexMethod??TODO?", PI.fake_info "") in
       let fld =
-       { fld_name = name; fld_props = []; fld_type = Some ty; fld_body = None}
+       { fld_name = name; fld_attrs = []; fld_type = Some ty; fld_body = None}
       in
       Left (Field fld)
   | `Meth_sign x ->
@@ -1993,7 +1993,7 @@ and public_field_definition (env : env) ((v1, v2, v3, v4, v5, v6) : CST.public_f
     | None -> None)
   in
   let attrs = v2 |> List.map attr in
-  Field {fld_name = v3; fld_props = attrs; fld_type = v5; fld_body = v6 }
+  Field {fld_name = v3; fld_attrs = attrs; fld_type = v5; fld_body = v6 }
 
 (* TODO types: return either an expression like in javascript or a type. *)
 and anon_choice_choice_type_id (env : env) (x : CST.anon_choice_choice_type_id): expr option =
@@ -2190,7 +2190,7 @@ and abstract_method_signature (env : env) ((v1, v2, v3, v4, v5, v6) : CST.abstra
   let attrs = (v1 @ v2 @ v3 @ v5) |> List.map attr in
   let (_tparams, x) = call_signature env v6 in
   let t = mk_functype x in
-  { fld_name = v4; fld_props = attrs; fld_type = Some t; fld_body = None }
+  { fld_name = v4; fld_attrs = attrs; fld_type = Some t; fld_body = None }
 
 and finally_clause (env : env) ((v1, v2) : CST.finally_clause) =
   let v1 = JS.token env v1 (* "finally" *) in
@@ -2376,7 +2376,7 @@ and function_declaration (env : env) ((v1, v2, v3, v4, v5, v6) : CST.function_de
     | Some tok -> Some (JS.token env tok) (* automatic_semicolon *)
     | None -> None)
   in
-  let f = { f_props = v1; f_params = v4; f_body = v5; f_rettype = tret } in
+  let f = { f_attrs = v1; f_params = v4; f_body = v5; f_rettype = tret } in
   { v_name = v3; v_kind = Const, v2; v_type = None;
      v_init = Some (Fun (f, None)); v_resolved = ref NotResolved }
 
@@ -2428,7 +2428,7 @@ and method_signature (env : env) ((v1, v2, v3, v4, v5, v6, v7, v8) : CST.method_
   let attrs = (v1 @ v2 @ v3 @ v4 @ v5 @ v7) |> List.map attr in
   let (_tparams, x) = call_signature env v8 in
   let t = mk_functype x in
-  { fld_name = v6; fld_props = attrs; fld_type = Some t; fld_body = None}
+  { fld_name = v6; fld_attrs = attrs; fld_type = Some t; fld_body = None}
 
 (* TODO: types *)
 (* This covers mostly type definitions but includes also javascript constructs
@@ -2473,7 +2473,7 @@ and declaration (env : env) (x : CST.declaration) : entity list =
       in
       let v6 = class_body env v6 in
       let attrs = [v1] in
-      let c = { c_tok = v2; c_extends = v5; c_body = v6; c_props = attrs } in
+      let c = { c_tok = v2; c_extends = v5; c_body = v6; c_attrs = attrs } in
       [{ v_name = v3; v_kind = Const, v2; v_type = None;
          v_init = Some (Class (c, None)); v_resolved = ref NotResolved }]
 
@@ -2545,7 +2545,7 @@ and declaration (env : env) (x : CST.declaration) : entity list =
             let v1 = JS.token env v1 (* "global" *) in
             let v2 = statement_block env v2 in
             let name = "!global!", v1 in
-            let f = { f_props = []; f_params = [];
+            let f = { f_attrs = []; f_params = [];
                       f_body = v2; f_rettype = None; } in
             [{ v_name = name; v_kind = Const, v1; v_resolved = ref NotResolved;
               v_init = Some (Fun (f, None)); v_type = None; }]

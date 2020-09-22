@@ -524,7 +524,7 @@ and function_ (env : env) ((v1, v2, v3, v4, v5) : CST.function_)
   in
   let v4 = formal_parameters env v4 in
   let v5 = statement_block env v5 in
-  { f_props = v1; f_params = v4; f_body = v5; f_rettype = None }, v3
+  { f_attrs = v1; f_params = v4; f_body = v5; f_rettype = None }, v3
 
 and binary_expression (env : env) (x : CST.binary_expression) : expr =
   (match x with
@@ -830,7 +830,7 @@ and constructable_expression (env : env) (x : CST.constructable_expression) : ex
         | `Stmt_blk x -> statement_block env x
         )
       in
-      let f = { f_props = v1; f_params = v2; f_body = v4; f_rettype = None } in
+      let f = { f_attrs = v1; f_params = v2; f_body = v4; f_rettype = None } in
       Fun (f, None)
   | `Gene_func (v1, v2, v3, v4, v5, v6) ->
       let v1 =
@@ -847,7 +847,7 @@ and constructable_expression (env : env) (x : CST.constructable_expression) : ex
       in
       let v5 = formal_parameters env v5 in
       let v6 = statement_block env v6 in
-      let f = { f_props = v1@v3; f_params = v5; f_body = v6;
+      let f = { f_attrs = v1@v3; f_params = v5; f_body = v6;
                 f_rettype = None } in
       Fun (f, v4)
   | `Class (v1, v2, v3, v4, v5) ->
@@ -865,7 +865,7 @@ and constructable_expression (env : env) (x : CST.constructable_expression) : ex
       in
       let v5 = class_body env v5 in
 
-      let class_ = { c_tok = v2;  c_extends = v4; c_body = v5; c_props = [] }
+      let class_ = { c_tok = v2;  c_extends = v4; c_body = v5; c_attrs = [] }
       in
       Class (class_, v3)
   | `Paren_exp x -> parenthesized_expression env x
@@ -1368,10 +1368,10 @@ and method_definition (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.method_def
   let v5 = property_name env v5 in
   let v6 = formal_parameters env v6 in
   let v7 = statement_block env v7 in
-  let f = { f_props = v3 @ v4; f_params = v6; f_body = v7; f_rettype = None }
+  let f = { f_attrs = v3 @ v4; f_params = v6; f_body = v7; f_rettype = None }
   in
   let e = Fun (f, None) in
-  Field {fld_name = v5; fld_props = v2; fld_type = None; fld_body = Some e }
+  Field {fld_name = v5; fld_attrs = v2; fld_type = None; fld_body = Some e }
 
 and array_ (env : env) ((v1, v2, v3) : CST.array_) =
   let v1 = token env v1 (* "[" *) in
@@ -1505,7 +1505,7 @@ and public_field_definition (env : env) ((v1, v2, v3) : CST.public_field_definit
     | None -> None)
   in
   let ty = None in
-  Field {fld_name = v2; fld_props = v1; fld_type = ty; fld_body = v3 }
+  Field {fld_name = v2; fld_attrs = v1; fld_type = ty; fld_body = v3 }
 
 and lexical_declaration (env : env) ((v1, v2, v3, v4) : CST.lexical_declaration) : var list =
   let v1 =
@@ -1611,7 +1611,7 @@ and anon_choice_pair (env : env) (x : CST.anon_choice_pair) : property =
       let _v2 = token env v2 (* ":" *) in
       let v3 = expression env v3 in
       let ty = None in
-      Field {fld_name = v1; fld_props = []; fld_type = ty; fld_body = Some v3}
+      Field {fld_name = v1; fld_attrs = []; fld_type = ty; fld_body = Some v3}
   | `Spread_elem x ->
         let (t, e) = spread_element env x in
         FieldSpread (t, e)
@@ -1620,7 +1620,7 @@ and anon_choice_pair (env : env) (x : CST.anon_choice_pair) : property =
   | `Choice_id x ->
         let id = identifier_reference env x in
         let ty = None in
-        Field {fld_name = PN id; fld_props = []; fld_type = ty;
+        Field {fld_name = PN id; fld_attrs = []; fld_type = ty;
                fld_body =  Some (idexp id) }
 
   | `Assign_pat x ->
@@ -1677,7 +1677,7 @@ and declaration (env : env) (x : CST.declaration) : var list =
         | Some tok -> Some (automatic_semicolon env tok) (* automatic_semicolon *)
         | None -> None)
       in
-      let f = { f_props = v1; f_params = v4; f_body = v5; f_rettype = None } in
+      let f = { f_attrs = v1; f_params = v4; f_body = v5; f_rettype = None } in
       [{ v_name = v3; v_kind = Const, v2; v_type = None;
         v_init = Some (Fun (f, None)); v_resolved = ref NotResolved }]
 
@@ -1698,7 +1698,7 @@ and declaration (env : env) (x : CST.declaration) : var list =
         | None -> None)
       in
       let ty = None in
-      let f = { f_props = v1 @ v3; f_params = v5; f_body = v6;
+      let f = { f_attrs = v1 @ v3; f_params = v5; f_body = v6;
                 f_rettype = None } in
       [{ v_name = v4; v_kind = Const, v2; v_type = ty;
          v_init = Some (Fun (f, None)); v_resolved = ref NotResolved }]
@@ -1719,7 +1719,7 @@ and declaration (env : env) (x : CST.declaration) : var list =
         | None -> None)
       in
       let attrs = [] in
-      let c = { c_tok = v2; c_extends = v4; c_body = v5; c_props = attrs } in
+      let c = { c_tok = v2; c_extends = v4; c_body = v5; c_attrs = attrs } in
       let ty = None in
       [{ v_name = v3; v_kind = Const, v2; v_type = ty;
         v_init = Some (Class (c, None)); v_resolved = ref NotResolved }]
