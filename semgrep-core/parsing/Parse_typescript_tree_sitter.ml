@@ -57,9 +57,6 @@ let add_attributes_param attrs p =
 (* Boilerplate converter *)
 (*****************************************************************************)
 
-(* Disable warnings against unused variables *)
-[@@@warning "-26-27"]
-
 (*
    We extend the javascript parsing module. Types are
    partially compatible.
@@ -156,11 +153,11 @@ let rec anon_choice_type_id (env : env) (x : CST.anon_choice_type_id) : ident li
 
 and nested_identifier (env : env) ((v1, v2, v3) : CST.nested_identifier) =
   let v1 = anon_choice_type_id env v1 in
-  let v2 = JS.token env v2 (* "." *) in
+  let _v2 = JS.token env v2 (* "." *) in
   let v3 = JS.identifier env v3 (* identifier *) in
   v1 @ [v3]
 
-let concat_nested_identifier env (idents : ident list) : ident =
+let concat_nested_identifier _env (idents : ident list) : ident =
   let str = idents |> List.map fst |> String.concat "." in
   let tokens = List.map snd idents in
   let x, xs =
@@ -178,12 +175,12 @@ let concat_nested_identifier env (idents : ident list) : ident =
    Treating 'require' like assignment and function application for now.
  *)
 let import_require_clause (env : env) ((v1, v2, v3, v4, v5, v6) : CST.import_require_clause) =
-  let v1 = JS.identifier env v1 (* identifier *) |> JS.idexp in
-  let v2 = JS.token env v2 (* "=" *) in
-  let v3 = JS.identifier env v3 (* "require" *) |> JS.idexp in
-  let v4 = JS.token env v4 (* "(" *) in
-  let v5 = JS.string_ env v5 in
-  let v6 = JS.token env v6 (* ")" *) in
+  let _v1 = JS.identifier env v1 (* identifier *) |> JS.idexp in
+  let _v2 = JS.token env v2 (* "=" *) in
+  let _v3 = JS.identifier env v3 (* "require" *) |> JS.idexp in
+  let _v4 = JS.token env v4 (* "(" *) in
+  let _v5 = JS.string_ env v5 in
+  let _v6 = JS.token env v6 (* ")" *) in
   [] (* TODO *)
 
 let literal_type (env : env) (x : CST.literal_type) : G.literal =
@@ -281,7 +278,7 @@ let import_clause (env : env) (x : CST.import_clause) =
       let v2 =
         (match v2 with
         | Some (v1, v2) ->
-            let v1 = JS.token env v1 (* "," *) in
+            let _v1 = JS.token env v1 (* "," *) in
             let v2 =
               (match v2 with
               | `Name_import x -> JS.namespace_import env x
@@ -434,15 +431,15 @@ and jsx_element_ (env : env) (x : CST.jsx_element_) : xml =
    | `Jsx_elem (v1, v2, v3) ->
        let v1 = jsx_opening_element env v1 in
        let v2 = List.map (jsx_child env) v2 in
-       let v3 = JS.jsx_closing_element env v3 in
+       let _v3 = JS.jsx_closing_element env v3 in
        { xml_tag = fst v1; xml_attrs = snd v1;
          xml_body = v2 }
    | `Jsx_self_clos_elem (v1, v2, v3, v4, v5) ->
-       let v1 = JS.token env v1 (* "<" *) in
+       let _v1 = JS.token env v1 (* "<" *) in
        let v2 = JS.jsx_element_name env v2 in
        let v3 = List.map (jsx_attribute_ env) v3 in
-       let v4 = JS.token env v4 (* "/" *) in
-       let v5 = JS.token env v5 (* ">" *) in
+       let _v4 = JS.token env v4 (* "/" *) in
+       let _v5 = JS.token env v5 (* ">" *) in
        { xml_tag = v2; xml_attrs = v3; xml_body = [] }
   )
 
@@ -1124,7 +1121,7 @@ and anon_opt_opt_choice_exp_rep_COMMA_opt_choice_exp (env : env) (opt : CST.anon
   | None -> [])
 
 and for_header (env : env) ((v1, v2, v3, v4, v5, v6) : CST.for_header) =
-  let v1 = JS.token env v1 (* "(" *) in
+  let _v1 = JS.token env v1 (* "(" *) in
   let v2 =
     (match v2 with
     | Some x ->
@@ -1293,7 +1290,7 @@ and expression (env : env) (x : CST.expression) : expr =
       let v2 =
         (match v2 with
         | `STAR_exp (v1bis, v2) ->
-            let v1bis = JS.token env v1bis (* "*" *) in
+            let _v1bis = JS.token env v1bis (* "*" *) in
             let v2 = expression env v2 in
             Apply (IdSpecial (YieldStar, v1), fb [v2])
         | `Opt_exp opt ->
@@ -1349,8 +1346,8 @@ and primary_type (env : env) (x : CST.primary_type) : type_ =
       G.TyRecordAnon (t1, xs, t2)
   | `Array_type (v1, v2, v3) ->
       let v1 = primary_type env v1 in
-      let v2 = JS.token env v2 (* "[" *) in
-      let v3 = JS.token env v3 (* "]" *) in
+      let _v2 = JS.token env v2 (* "[" *) in
+      let _v3 = JS.token env v3 (* "]" *) in
       G.TyArray (None, v1)
   | `Tuple_type (v1, v2, v3, v4) ->
       let v1 = JS.token env v1 (* "[" *) in
@@ -1389,7 +1386,7 @@ and primary_type (env : env) (x : CST.primary_type) : type_ =
       let v1 = primary_type env v1 in
       let v2 = JS.token env v2 (* "[" *) in
       let v3 = type_ env v3 in
-      let v4 = JS.token env v4 (* "]" *) in
+      let _v4 = JS.token env v4 (* "]" *) in
       G.OtherType (G.OT_Todo, [G.TodoK ("LookupType", v2); G.T v1; G.T v3])
   )
 
@@ -1405,7 +1402,7 @@ and index_signature (env : env) ((v1, v2, v3, v4) : CST.index_signature) =
     | `Mapped_type_clause x -> mapped_type_clause env x
     )
   in
-  let v3 = JS.token env v3 (* "]" *) in
+  let _v3 = JS.token env v3 (* "]" *) in
   let v4 = type_annotation env v4 |> snd in
   G.OtherType (G.OT_Todo, [G.TodoK ("Indexsig", v1); G.T v2; G.T v4])
 
@@ -1458,7 +1455,7 @@ and formal_parameters (env : env) ((v1, v2, v3) : CST.formal_parameters) : param
             add_attributes_param v2 v3
           ) v3
         in
-        let v4 =
+        let _v4 =
           (match v4 with
           | Some tok -> Some (JS.token env tok) (* "," *)
           | None -> None)
@@ -1590,7 +1587,7 @@ and statement (env : env) (x : CST.statement) : stmt list =
         | Some x -> Some (expressions env x)
         | None -> None)
       in
-      let v6 = JS.token env v6 (* ")" *) in
+      let _v6 = JS.token env v6 (* ")" *) in
       let v7 = statement1 env v7 in
       [For (v1, ForClassic (v3, v4, v5), v7)]
   | `For_in_stmt (v1, v2, v3, v4) ->
@@ -1611,9 +1608,9 @@ and statement (env : env) (x : CST.statement) : stmt list =
   | `Do_stmt (v1, v2, v3, v4, v5) ->
       let v1 = JS.token env v1 (* "do" *) in
       let v2 = statement1 env v2 in
-      let v3 = JS.token env v3 (* "while" *) in
+      let _v3 = JS.token env v3 (* "while" *) in
       let v4 = parenthesized_expression env v4 in
-      let v5 = JS.semicolon env v5 in
+      let _v5 = JS.semicolon env v5 in
       [Do (v1, v2, v4)]
   | `Try_stmt (v1, v2, v3, v4) ->
       let v1 = JS.token env v1 (* "try" *) in
@@ -1664,13 +1661,13 @@ and statement (env : env) (x : CST.statement) : stmt list =
   | `Throw_stmt (v1, v2, v3) ->
       let v1 = JS.token env v1 (* "throw" *) in
       let v2 = expressions env v2 in
-      let v3 = JS.semicolon env v3 in
+      let _v3 = JS.semicolon env v3 in
       [Throw (v1, v2)]
   | `Empty_stmt tok ->
       [JS.empty_stmt env tok (* ";" *)]
   | `Labe_stmt (v1, v2, v3) ->
       let v1 = identifier_reference env v1 in
-      let v2 = JS.token env v2 (* ":" *) in
+      let _v2 = JS.token env v2 (* ":" *) in
       let v3 = statement1 env v3 in
       [Label (v1, v3)]
   )
@@ -1815,19 +1812,19 @@ and export_statement (env : env) (x : CST.export_statement) : stmt list =
           v3
       )
   | `Export_EQ_id_choice_auto_semi (v1, v2, v3, v4) ->
-      let v1 = JS.token env v1 (* "export" *) in
-      let v2 = JS.token env v2 (* "=" *) in
-      let v3 = JS.token env v3 (* identifier *) in
-      let v4 = JS.semicolon env v4 in
+      let _v1 = JS.token env v1 (* "export" *) in
+      let _v2 = JS.token env v2 (* "=" *) in
+      let _v3 = JS.token env v3 (* identifier *) in
+      let _v4 = JS.semicolon env v4 in
       (* TODO 'export = ZipCodeValidator;' *)
       []
 
   | `Export_as_name_id_choice_auto_semi (v1, v2, v3, v4, v5) ->
-      let v1 = JS.token env v1 (* "export" *) in
-      let v2 = JS.token env v2 (* "as" *) in
-      let v3 = JS.token env v3 (* "namespace" *) in
-      let v4 = JS.token env v4 (* identifier *) in
-      let v5 = JS.semicolon env v5 in
+      let _v1 = JS.token env v1 (* "export" *) in
+      let _v2 = JS.token env v2 (* "as" *) in
+      let _v3 = JS.token env v3 (* "namespace" *) in
+      let _v4 = JS.token env v4 (* identifier *) in
+      let _v5 = JS.semicolon env v5 in
       (* TODO 'export as namespace mathLib;' *)
       []
   )
@@ -1840,7 +1837,7 @@ and type_annotation (env : env) ((v1, v2) : CST.type_annotation) =
 
 and anon_rep_COMMA_opt_choice_exp (env : env) (xs : CST.anon_rep_COMMA_opt_choice_exp) =
   List.filter_map (fun (v1, v2) ->
-    let v1 = JS.token env v1 (* "," *) in
+    let _v1 = JS.token env v1 (* "," *) in
     let v2 =
       (match v2 with
       | Some x -> Some (anon_choice_exp env x)
@@ -2029,7 +2026,7 @@ and lexical_declaration (env : env) ((v1, v2, v3, v4) : CST.lexical_declaration)
 
 (* TODO types *)
 and extends_clause (env : env) ((v1, v2, v3) : CST.extends_clause) : expr list =
-  let v1 = JS.token env v1 (* "extends" *) in
+  let _v1 = JS.token env v1 (* "extends" *) in
   let v2 = anon_choice_choice_type_id env v2 in
   let v3 =
     List.map (fun (v1, v2) ->
@@ -2076,7 +2073,7 @@ and anon_choice_requ_param (env : env) (x : CST.anon_choice_requ_param) : parame
 
   | `Opt_param (v1, v2, v3, v4) ->
       let v1 = parameter_name env v1 in
-      let v2 = JS.token env v2 (* "?" *) in
+      let _v2TODO = JS.token env v2 (* "?" *) in
       let _v3 =
         (match v3 with
         | Some x -> Some (type_annotation env x)
@@ -2358,7 +2355,7 @@ and statement_block (env : env) ((v1, v2, v3, v4) : CST.statement_block) =
   let v1 = JS.token env v1 (* "{" *) in
   let v2 = List.map (statement env) v2 |> List.flatten in
   let v3 = JS.token env v3 (* "}" *) in
-  let v4 =
+  let _v4 =
     (match v4 with
     | Some tok -> Some (automatic_semicolon env tok) (* automatic_semicolon *)
     | None -> None)
@@ -2484,7 +2481,7 @@ and declaration (env : env) (x : CST.declaration) : entity list =
   | `Module (v1, v2) ->
       (* does this exist only in .d.ts files? *)
       let _v1 = JS.token env v1 (* "module" *) in
-      let id, opt_body = module__ env v2 in
+      let _id, _opt_body = module__ env v2 in
       [] (* TODO *)
 
   | `Inte_module x ->
@@ -2564,9 +2561,9 @@ and declaration (env : env) (x : CST.declaration) : entity list =
               v_init = Some (Fun (f, None)); v_type = None; }]
         | `Module_DOT_id_COLON_type (v1, v2, v3, v4, v5) ->
             let v1 = JS.token env v1 (* "module" *) in
-            let v2 = JS.token env v2 (* "." *) in
+            let _v2 = JS.token env v2 (* "." *) in
             let v3 = JS.identifier env v3 (* identifier *) in
-            let v4 = JS.token env v4 (* ":" *) in
+            let _v4 = JS.token env v4 (* ":" *) in
             let v5 = type_ env v5 in
             let name = v3 in
             [{v_name = name; v_kind = Const, v1; v_resolved = ref NotResolved;
