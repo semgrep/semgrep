@@ -125,7 +125,6 @@ setup(
         "attrs>=19.3.0",
         "colorama>=0.4.3",
         "junit_xml==1.9",
-        "packaging>=20.4",
         "requests>=2.22.0",
         # exact version because of unstable API
         "ruamel.yaml==0.16.10",
