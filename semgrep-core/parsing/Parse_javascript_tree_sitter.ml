@@ -855,12 +855,13 @@ and constructable_expression (env : env) (x : CST.constructable_expression) : ex
       in
       let v4 =
         (match v4 with
-        | Some x -> Some (class_heritage env x)
-        | None -> None)
+        | Some x -> [Left (class_heritage env x)]
+        | None -> [])
       in
       let v5 = class_body env v5 in
 
-      let class_ = { c_kind = (G.Class, v2);  c_extends = v4;
+      let class_ = { c_kind = (G.Class, v2);
+                     c_extends = v4; c_implements = [];
                      c_body = v5; c_attrs = v1 }
       in
       Class (class_, v3)
@@ -1707,8 +1708,8 @@ and declaration (env : env) (x : CST.declaration) : var list =
       let v3 = identifier env v3 (* identifier *) in
       let v4 =
         (match v4 with
-        | Some x -> Some (class_heritage env x)
-        | None -> None)
+        | Some x -> [Left (class_heritage env x)]
+        | None -> [])
       in
       let v5 = class_body env v5 in
       let _v6 =
@@ -1716,8 +1717,9 @@ and declaration (env : env) (x : CST.declaration) : var list =
         | Some tok -> Some (automatic_semicolon env tok) (* automatic_semicolon *)
         | None -> None)
       in
-      let c = { c_kind = G.Class, v2; c_extends = v4; c_body = v5;
-                c_attrs = v1 } in
+      let c = { c_kind = G.Class, v2; c_attrs = v1;
+                c_extends = v4; c_implements = [];
+                c_body = v5; } in
       let ty = None in
       [{ v_name = v3; v_kind = Const, v2; v_type = ty;
         v_init = Some (Class (c, None)); v_resolved = ref NotResolved }]

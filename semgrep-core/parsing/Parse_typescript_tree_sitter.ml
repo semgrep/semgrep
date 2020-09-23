@@ -487,7 +487,7 @@ and generic_type (env : env) ((v1, v2) : CST.generic_type) : G.name =
        |> List.map (fun x -> G.TypeArg x) in
   G.name_of_ids ~name_typeargs:(Some v2) v1
 
-and implements_clause (env : env) ((v1, v2, v3) : CST.implements_clause) =
+and implements_clause (env : env) ((v1, v2, v3) : CST.implements_clause) : type_ list =
   let _v1 = JS.token env v1 (* "implements" *) in
   let v2 = type_ env v2 in
   let v3 =
@@ -936,14 +936,16 @@ and constructable_expression (env : env) (x : CST.constructable_expression) : ex
         | Some x -> type_parameters env x
         | None -> [])
       in
-      let v5 =
+      let c_extends, c_implements =
         (match v5 with
         | Some x -> class_heritage env x
-        | None -> None)
+        | None -> [], [])
       in
       let v6 = class_body env v6 in
-      let class_ = { c_kind = G.Class, v2;  c_extends = v5; c_body = v6;
-                     c_attrs = v1 } in
+      let class_ = { c_kind = G.Class, v2; c_attrs = v1;
+                     c_extends; c_implements;
+                     c_body = v6;
+                   } in
       Class (class_, v3)
   | `Paren_exp x -> parenthesized_expression env x
   | `Subs_exp x -> subscript_expression env x
@@ -1722,10 +1724,10 @@ and class_declaration (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.class_decl
     | Some x -> type_parameters env x
     | None -> [])
   in
-  let v5 =
+  let c_extends, c_implements =
     (match v5 with
     | Some x -> class_heritage env x
-    | None -> None)
+    | None -> [], [])
   in
   let v6 = class_body env v6 in
   let _v7 =
@@ -1733,7 +1735,7 @@ and class_declaration (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.class_decl
     | Some tok -> Some (JS.token env tok) (* automatic_semicolon *)
     | None -> None)
   in
-  let c = { c_kind = G.Class, v2; c_extends = v5;
+  let c = { c_kind = G.Class, v2; c_extends; c_implements;
             c_body = v6; c_attrs = v1 } in
   let ty = None in
   { v_name = v3; v_kind = Const, v2; v_type = ty;
@@ -1996,14 +1998,13 @@ and public_field_definition (env : env) ((v1, v2, v3, v4, v5, v6) : CST.public_f
   let attrs = v2 |> List.map attr in
   Field {fld_name = v3; fld_attrs = attrs; fld_type = v5; fld_body = v6 }
 
-(* TODO types: return either an expression like in javascript or a type. *)
-and anon_choice_choice_type_id (env : env) (x : CST.anon_choice_choice_type_id): expr option =
+and anon_choice_choice_type_id (env : env) (x : CST.anon_choice_choice_type_id): parent =
   (match x with
   | `Choice_id x -> (* type to be extended *)
-      let _v = anon_choice_type_id3 env x in
-      None
+      let name = anon_choice_type_id3 env x in
+      Right (G.TyName name)
   | `Exp x -> (* class expression to be extended *)
-      Some (expression env x)
+      Left (expression env x)
   )
 
 and lexical_declaration (env : env) ((v1, v2, v3, v4) : CST.lexical_declaration) : var list =
@@ -2024,8 +2025,8 @@ and lexical_declaration (env : env) ((v1, v2, v3, v4) : CST.lexical_declaration)
   let _v4 = JS.semicolon env v4 in
   JS.build_vars v1 (v2::v3)
 
-(* TODO types *)
-and extends_clause (env : env) ((v1, v2, v3) : CST.extends_clause) : expr list =
+and extends_clause (env : env) ((v1, v2, v3) : CST.extends_clause)
+  : parent list =
   let _v1 = JS.token env v1 (* "extends" *) in
   let v2 = anon_choice_choice_type_id env v2 in
   let v3 =
@@ -2035,7 +2036,7 @@ and extends_clause (env : env) ((v1, v2, v3) : CST.extends_clause) : expr list =
       v2
     ) v3
   in
-  List.filter_map (fun x -> x ) (v2 :: v3)
+  v2::v3
 
 (* This function is similar to 'formal_parameter' in the js grammar. *)
 and anon_choice_requ_param (env : env) (x : CST.anon_choice_requ_param) : parameter =
@@ -2115,23 +2116,20 @@ and enum_body (env : env) ((v1, v2, v3) : CST.enum_body) =
   let v3 = JS.token env v3 (* "}" *) in
   v1, v2, v3
 
-(* TODO: 'implements' *)
-(* TODO: support multiple inheritance (which isn't supported by javascript) *)
-and class_heritage (env : env) (x : CST.class_heritage) : expr option =
+and class_heritage (env : env) (x : CST.class_heritage)
+  : parent list * type_ list =
   (match x with
   | `Extends_clause_opt_imples_clause (v1, v2) ->
       let v1 = extends_clause env v1 in
-      let _v2TODO =
+      let v2 =
         (match v2 with
-        | Some x -> Some (implements_clause env x)
-        | None -> None)
+        | Some x -> (implements_clause env x)
+        | None -> [])
       in
-      (match v1 with
-       | [] -> None
-       | x :: _shouldnt_be_dropped -> Some x)
+      v1, v2
   | `Imples_clause x ->
-      let _vTODO = implements_clause env x in
-      None
+      let x = implements_clause env x in
+      [], x
   )
 
 and property_name (env : env) (x : CST.property_name) =
@@ -2466,14 +2464,14 @@ and declaration (env : env) (x : CST.declaration) : entity list =
         | Some x -> type_parameters env x
         | None -> [])
       in
-      let v5 =
+      let c_extends, c_implements =
         (match v5 with
         | Some x -> class_heritage env x
-        | None -> None)
+        | None -> [], [])
       in
       let v6 = class_body env v6 in
       let attrs = [v1] in
-      let c = { c_kind = G.Class, v2; c_extends = v5;
+      let c = { c_kind = G.Class, v2; c_extends; c_implements;
                 c_body = v6; c_attrs = attrs } in
       [{ v_name = v3; v_kind = Const, v2; v_type = None;
          v_init = Some (Class (c, None)); v_resolved = ref NotResolved }]
@@ -2521,10 +2519,10 @@ and declaration (env : env) (x : CST.declaration) : entity list =
         | Some x -> type_parameters env x
         | None -> [])
       in
-      let _v4 =
+      let v4 =
         (match v4 with
-        | Some x -> Some (extends_clause env x)
-        | None -> None)
+        | Some x -> (extends_clause env x)
+        | None -> [])
       in
       let (t1, xs, t2) = object_type env v5 in
       let xs = xs |> Common.map_filter (function
@@ -2533,7 +2531,8 @@ and declaration (env : env) (x : CST.declaration) : entity list =
           | Right _sts -> None
         )
       in
-      let c = { c_kind = G.Interface, v1; c_extends = None (* TODO *);
+      let c = { c_kind = G.Interface, v1;
+                c_extends = v4; c_implements = [];
                 c_body = (t1, xs, t2); c_attrs = [] } in
       [{ v_name = v2; v_kind = Const, v1; v_type = None;
          v_init = Some (Class (c, None)); v_resolved = ref NotResolved }]
