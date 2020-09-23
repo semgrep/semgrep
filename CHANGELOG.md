@@ -2,7 +2,7 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [0.25.0](https://github.com/returntocorp/semgrep/releases/tag/v0.25.0)
+## [0.25.0](https://github.com/returntocorp/semgrep/releases/tag/v0.25.0) - 2020-09-23
 
 ### Added
 - Added support for the JUnit XML report format (`--junit-xml`)
