@@ -46,6 +46,13 @@ let mk_functype (params, rett) =
   in
   G.TyFun (params, rett)
 
+let add_attributes_param attrs p =
+  match p with
+  | ParamClassic x -> ParamClassic { x with p_attrs = attrs @ x.p_attrs}
+  (* TODO: ParamPattern can have decorators? *)
+  | _ -> p
+
+
 (*****************************************************************************)
 (* Boilerplate converter *)
 (*****************************************************************************)
@@ -919,8 +926,7 @@ and constructable_expression (env : env) (x : CST.constructable_expression) : ex
       in
       Fun (f, v4)
   | `Class (v1, v2, v3, v4, v5, v6) ->
-      (* TODO decorators *)
-      let _v1 = List.map (decorator env) v1 in
+      let v1 = List.map (decorator env) v1 in
       let v2 = JS.token env v2 (* "class" *) in
       let v3 =
         (match v3 with
@@ -939,7 +945,7 @@ and constructable_expression (env : env) (x : CST.constructable_expression) : ex
         | None -> None)
       in
       let v6 = class_body env v6 in
-      let attrs = [] in
+      let attrs = v1 in
       let class_ = { c_tok = v2;  c_extends = v5; c_body = v6;
                      c_attrs = attrs } in
       Class (class_, v3)
@@ -1084,9 +1090,9 @@ and template_string (env : env) ((v1, v2, v3) : CST.template_string) : expr list
   let v3 = JS.token env v3 (* "`" *) in
   v1, v2, v3
 
-and decorator (env : env) ((v1, v2) : CST.decorator) =
+and decorator (env : env) ((v1, v2) : CST.decorator) : attribute =
   let v1 = JS.token env v1 (* "@" *) in
-  let v2 =
+  let ids, args_opt =
     (match v2 with
     | `Choice_id x ->
         let id = identifier_reference env x in
@@ -1099,7 +1105,7 @@ and decorator (env : env) ((v1, v2) : CST.decorator) =
         ids, Some args
     )
   in
-  (v1, v2)
+  NamedAttr (v1, ids, args_opt)
 
 and internal_module (env : env) ((v1, v2) : CST.internal_module) =
   let _v1 = JS.token env v1 (* "namespace" *) in
@@ -1437,20 +1443,20 @@ and unary_expression (env : env) (x : CST.unary_expression) =
       Apply (IdSpecial (Delete, v1), fb [v2])
   )
 
-(* TODO: don't ignore decorators (@...) *)
 and formal_parameters (env : env) ((v1, v2, v3) : CST.formal_parameters) : parameter list=
   let _v1 = JS.token env v1 (* "(" *) in
   let v2 =
     (match v2 with
     | Some (v1, v2, v3, v4) ->
-        let _v1 = List.map (decorator env) v1 in
+        let v1 = List.map (decorator env) v1 in
         let v2 = anon_choice_requ_param env v2 in
-        let v3 =
+        let p = add_attributes_param v1 v2 in
+        let ps =
           List.map (fun (v1, v2, v3) ->
             let _v1 = JS.token env v1 (* "," *) in
-            let _v2 = List.map (decorator env) v2 in
+            let v2 = List.map (decorator env) v2 in
             let v3 = anon_choice_requ_param env v3 in
-            v3
+            add_attributes_param v2 v3
           ) v3
         in
         let v4 =
@@ -1458,7 +1464,7 @@ and formal_parameters (env : env) ((v1, v2, v3) : CST.formal_parameters) : param
           | Some tok -> Some (JS.token env tok) (* "," *)
           | None -> None)
         in
-        v2 :: v3
+        p :: ps
     | None -> [])
   in
   let _v3 = JS.token env v3 (* ")" *) in
@@ -1710,11 +1716,11 @@ and method_definition (env : env) ((v1, v2, v3, v4, v5, v6, v7, v8, v9) : CST.me
   let ty = None in
   Field {fld_name = v6; fld_attrs = attrs; fld_type = ty; fld_body = Some e }
 
-(* TODO types: type_parameters *)
 and class_declaration (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.class_declaration) : entity =
   let _v1TODO = List.map (decorator env) v1 in
   let v2 = JS.token env v2 (* "class" *) in
   let v3 = JS.identifier env v3 (* identifier *) in
+ (* TODO types: type_parameters *)
   let _v4 =
     (match v4 with
     | Some x -> type_parameters env x
