@@ -91,3 +91,29 @@ let combine_tokens env xs =
   | x::_xsTODO ->
       let t = token env x in
       t
+
+(* Stuff to put in entry point at the beginning:
+let todo _env _x = failwith "not implemented"
+
+let todo_any str t any =
+  pr2 (AST.show_any any);
+  raise (Parse_info.Ast_builder_error (str, t))
+
+let program =
+  ...
+  try
+   program ...
+  with
+    (Failure "not implemented") as exn ->
+      (* This debugging output is not JSON and breaks core output
+       *
+       * let s = Printexc.get_backtrace () in
+       * pr2 "Some constructs are not handled yet";
+       * pr2 "CST was:";
+       * CST.dump_tree ast;
+       * pr2 "Original backtrace:";
+       * pr2 s;
+       *)
+      raise exn
+
+*)

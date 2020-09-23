@@ -40,13 +40,9 @@ open Ast_js
 (* Helpers *)
 (*****************************************************************************)
 
-[@@@warning "-32"]
-
 type env = H.env
-let _fake = AST_generic.fake
 let token = H.token
 let str = H.str
-
 let fb = G.fake_bracket
 
 (*****************************************************************************)
@@ -1781,17 +1777,4 @@ let parse file =
   in
   let env = { H.file; conv = H.line_col_to_pos file } in
 
-  try
-    program env ast
-  with
-    (Failure "not implemented") as exn ->
-      (* This debugging output is not JSON and breaks core output
-       *
-       * let s = Printexc.get_backtrace () in
-       * pr2 "Some constructs are not handled yet";
-       * pr2 "CST was:";
-       * CST.dump_tree ast;
-       * pr2 "Original backtrace:";
-       * pr2 s;
-       *)
-      raise exn
+  program env ast
