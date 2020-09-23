@@ -1340,7 +1340,7 @@ and statement (env : env) (x : CST.statement) : stmt list =
   )
 
 and method_definition (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.method_definition) : property =
-  let _v1TODO = List.map (decorator env) v1 in
+  let v1 = List.map (decorator env) v1 in
   let v2 =
     (match v2 with
     | Some tok -> [attr (Static, token env tok)] (* "static" *)
@@ -1364,10 +1364,12 @@ and method_definition (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.method_def
   let v5 = property_name env v5 in
   let v6 = formal_parameters env v6 in
   let v7 = statement_block env v7 in
-  let f = { f_attrs = v3 @ v4; f_params = v6; f_body = v7; f_rettype = None }
+  let f = { f_attrs = v3 @ v4; f_params = v6;
+            f_body = v7; f_rettype = None }
   in
   let e = Fun (f, None) in
-  Field {fld_name = v5; fld_attrs = v2; fld_type = None; fld_body = Some e }
+  Field {fld_name = v5; fld_attrs = v1 @ v2; fld_type = None;
+         fld_body = Some e }
 
 and array_ (env : env) ((v1, v2, v3) : CST.array_) =
   let v1 = token env v1 (* "[" *) in
