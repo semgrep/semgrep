@@ -30,6 +30,7 @@ class OutputFormat(Enum):
     TEXT = auto()
     JSON = auto()
     JSON_DEBUG = auto()
+    JUNIT_XML = auto()
     SARIF = auto()
 
     def is_json(self) -> bool:

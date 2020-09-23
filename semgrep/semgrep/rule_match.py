@@ -5,6 +5,8 @@ from typing import Dict
 from typing import List
 from typing import Optional
 
+from junit_xml import TestCase
+
 from semgrep.pattern_match import PatternMatch
 
 
@@ -116,6 +118,13 @@ class RuleMatch:
         json_obj["extra"]["lines"] = "".join(self.lines).rstrip()
 
         return json_obj
+
+    def to_junit_xml(self) -> Dict[str, Any]:
+        test_case = TestCase(self.id, file=str(self.path), line=self.start["line"])
+        test_case.add_failure_info(
+            message=self.message, output=self.lines, failure_type=self.severity
+        )
+        return test_case
 
     def to_sarif(self) -> Dict[str, Any]:
         return {

@@ -2,6 +2,9 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+- Added support for the JUnit XML report format (`--fmt junit`)
+
 ## [0.24.0](https://github.com/returntocorp/semgrep/releases/tag/v0.24.0) - 2020-09-16
 
 ### Added
