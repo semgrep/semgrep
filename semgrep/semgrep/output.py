@@ -5,6 +5,7 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
+from typing import cast
 from typing import Dict
 from typing import FrozenSet
 from typing import Generator
@@ -16,6 +17,7 @@ from typing import Optional
 from typing import Set
 
 import colorama
+from junit_xml import TestSuite
 
 from semgrep import __VERSION__
 from semgrep import config_resolver
@@ -142,6 +144,17 @@ def build_output_json(
         ]
     output_json["errors"] = [e.to_dict() for e in semgrep_structured_errors]
     return json.dumps(output_json)
+
+
+def build_junit_xml_output(
+    rule_matches: List[RuleMatch], rules: FrozenSet[Rule]
+) -> str:
+    """
+    Format matches in JUnit XML format.
+    """
+    test_cases = [match.to_junit_xml() for match in rule_matches]
+    ts = TestSuite("semgrep results", test_cases)
+    return cast(str, TestSuite.to_xml_string([ts]))
 
 
 def _sarif_tool_info() -> Dict[str, Any]:
@@ -381,6 +394,8 @@ class OutputHandler:
             return build_output_json(
                 self.rule_matches, self.semgrep_structured_errors, debug_steps,
             )
+        elif output_format == OutputFormat.JUNIT_XML:
+            return build_junit_xml_output(self.rule_matches, self.rules)
         elif output_format == OutputFormat.SARIF:
             return build_sarif_output(self.rule_matches, self.rules)
         elif output_format == OutputFormat.TEXT:
