@@ -40,13 +40,9 @@ open Ast_js
 (* Helpers *)
 (*****************************************************************************)
 
-[@@@warning "-32"]
-
 type env = H.env
-let _fake = AST_generic.fake
 let token = H.token
 let str = H.str
-
 let fb = G.fake_bracket
 
 (*****************************************************************************)
@@ -850,7 +846,7 @@ and constructable_expression (env : env) (x : CST.constructable_expression) : ex
                 f_rettype = None } in
       Fun (f, v4)
   | `Class (v1, v2, v3, v4, v5) ->
-      let _v1TODO = List.map (decorator env) v1 in
+      let v1 = List.map (decorator env) v1 in
       let v2 = token env v2 (* "class" *) in
       let v3 =
         (match v3 with
@@ -859,12 +855,14 @@ and constructable_expression (env : env) (x : CST.constructable_expression) : ex
       in
       let v4 =
         (match v4 with
-        | Some x -> Some (class_heritage env x)
-        | None -> None)
+        | Some x -> [Left (class_heritage env x)]
+        | None -> [])
       in
       let v5 = class_body env v5 in
 
-      let class_ = { c_tok = v2;  c_extends = v4; c_body = v5; c_attrs = [] }
+      let class_ = { c_kind = (G.Class, v2);
+                     c_extends = v4; c_implements = [];
+                     c_body = v5; c_attrs = v1 }
       in
       Class (class_, v3)
   | `Paren_exp x -> parenthesized_expression env x
@@ -930,9 +928,9 @@ and template_string (env : env) ((v1, v2, v3) : CST.template_string) :
   let v3 = token env v3 (* "`" *) in
   v1, v2, v3
 
-and decorator (env : env) ((v1, v2) : CST.decorator) =
+and decorator (env : env) ((v1, v2) : CST.decorator) : attribute =
   let v1 = token env v1 (* "@" *) in
-  let v2 =
+  let ids, args_opt =
     (match v2 with
     | `Choice_id x ->
           let id = identifier_reference env x in
@@ -945,7 +943,7 @@ and decorator (env : env) ((v1, v2) : CST.decorator) =
           ids, Some args
     )
   in
-  v1, v2
+  NamedAttr (v1, ids, args_opt)
 
 and decorator_call_expression (env : env) ((v1, v2) : CST.decorator_call_expression) =
   let v1 = anon_choice_id_ref env v1 in
@@ -1343,7 +1341,7 @@ and statement (env : env) (x : CST.statement) : stmt list =
   )
 
 and method_definition (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.method_definition) : property =
-  let _v1TODO = List.map (decorator env) v1 in
+  let v1 = List.map (decorator env) v1 in
   let v2 =
     (match v2 with
     | Some tok -> [attr (Static, token env tok)] (* "static" *)
@@ -1367,10 +1365,12 @@ and method_definition (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.method_def
   let v5 = property_name env v5 in
   let v6 = formal_parameters env v6 in
   let v7 = statement_block env v7 in
-  let f = { f_attrs = v3 @ v4; f_params = v6; f_body = v7; f_rettype = None }
+  let f = { f_attrs = v3 @ v4; f_params = v6;
+            f_body = v7; f_rettype = None }
   in
   let e = Fun (f, None) in
-  Field {fld_name = v5; fld_attrs = v2; fld_type = None; fld_body = Some e }
+  Field {fld_name = v5; fld_attrs = v1 @ v2; fld_type = None;
+         fld_body = Some e }
 
 and array_ (env : env) ((v1, v2, v3) : CST.array_) =
   let v1 = token env v1 (* "[" *) in
@@ -1703,13 +1703,13 @@ and declaration (env : env) (x : CST.declaration) : var list =
          v_init = Some (Fun (f, None)); v_resolved = ref NotResolved }]
 
   | `Class_decl (v1, v2, v3, v4, v5, v6) ->
-      let _v1TODO = List.map (decorator env) v1 in
+      let v1 = List.map (decorator env) v1 in
       let v2 = token env v2 (* "class" *) in
       let v3 = identifier env v3 (* identifier *) in
       let v4 =
         (match v4 with
-        | Some x -> Some (class_heritage env x)
-        | None -> None)
+        | Some x -> [Left (class_heritage env x)]
+        | None -> [])
       in
       let v5 = class_body env v5 in
       let _v6 =
@@ -1717,8 +1717,9 @@ and declaration (env : env) (x : CST.declaration) : var list =
         | Some tok -> Some (automatic_semicolon env tok) (* automatic_semicolon *)
         | None -> None)
       in
-      let attrs = [] in
-      let c = { c_tok = v2; c_extends = v4; c_body = v5; c_attrs = attrs } in
+      let c = { c_kind = G.Class, v2; c_attrs = v1;
+                c_extends = v4; c_implements = [];
+                c_body = v5; } in
       let ty = None in
       [{ v_name = v3; v_kind = Const, v2; v_type = ty;
         v_init = Some (Class (c, None)); v_resolved = ref NotResolved }]
@@ -1780,17 +1781,4 @@ let parse file =
   in
   let env = { H.file; conv = H.line_col_to_pos file } in
 
-  try
-    program env ast
-  with
-    (Failure "not implemented") as exn ->
-      (* This debugging output is not JSON and breaks core output
-       *
-       * let s = Printexc.get_backtrace () in
-       * pr2 "Some constructs are not handled yet";
-       * pr2 "CST was:";
-       * CST.dump_tree ast;
-       * pr2 "Original backtrace:";
-       * pr2 s;
-       *)
-      raise exn
+  program env ast
