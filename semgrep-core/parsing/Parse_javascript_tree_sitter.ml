@@ -850,7 +850,7 @@ and constructable_expression (env : env) (x : CST.constructable_expression) : ex
                 f_rettype = None } in
       Fun (f, v4)
   | `Class (v1, v2, v3, v4, v5) ->
-      let _v1TODO = List.map (decorator env) v1 in
+      let v1 = List.map (decorator env) v1 in
       let v2 = token env v2 (* "class" *) in
       let v3 =
         (match v3 with
@@ -864,7 +864,8 @@ and constructable_expression (env : env) (x : CST.constructable_expression) : ex
       in
       let v5 = class_body env v5 in
 
-      let class_ = { c_tok = v2;  c_extends = v4; c_body = v5; c_attrs = [] }
+      let class_ = { c_kind = (G.Class, v2);  c_extends = v4;
+                     c_body = v5; c_attrs = v1 }
       in
       Class (class_, v3)
   | `Paren_exp x -> parenthesized_expression env x
@@ -930,9 +931,9 @@ and template_string (env : env) ((v1, v2, v3) : CST.template_string) :
   let v3 = token env v3 (* "`" *) in
   v1, v2, v3
 
-and decorator (env : env) ((v1, v2) : CST.decorator) =
+and decorator (env : env) ((v1, v2) : CST.decorator) : attribute =
   let v1 = token env v1 (* "@" *) in
-  let v2 =
+  let ids, args_opt =
     (match v2 with
     | `Choice_id x ->
           let id = identifier_reference env x in
@@ -945,7 +946,7 @@ and decorator (env : env) ((v1, v2) : CST.decorator) =
           ids, Some args
     )
   in
-  v1, v2
+  NamedAttr (v1, ids, args_opt)
 
 and decorator_call_expression (env : env) ((v1, v2) : CST.decorator_call_expression) =
   let v1 = anon_choice_id_ref env v1 in
@@ -1703,7 +1704,7 @@ and declaration (env : env) (x : CST.declaration) : var list =
          v_init = Some (Fun (f, None)); v_resolved = ref NotResolved }]
 
   | `Class_decl (v1, v2, v3, v4, v5, v6) ->
-      let _v1TODO = List.map (decorator env) v1 in
+      let v1 = List.map (decorator env) v1 in
       let v2 = token env v2 (* "class" *) in
       let v3 = identifier env v3 (* identifier *) in
       let v4 =
@@ -1717,8 +1718,8 @@ and declaration (env : env) (x : CST.declaration) : var list =
         | Some tok -> Some (automatic_semicolon env tok) (* automatic_semicolon *)
         | None -> None)
       in
-      let attrs = [] in
-      let c = { c_tok = v2; c_extends = v4; c_body = v5; c_attrs = attrs } in
+      let c = { c_kind = G.Class, v2; c_extends = v4; c_body = v5;
+                c_attrs = v1 } in
       let ty = None in
       [{ v_name = v3; v_kind = Const, v2; v_type = ty;
         v_init = Some (Class (c, None)); v_resolved = ref NotResolved }]

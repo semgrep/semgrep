@@ -945,9 +945,8 @@ and constructable_expression (env : env) (x : CST.constructable_expression) : ex
         | None -> None)
       in
       let v6 = class_body env v6 in
-      let attrs = v1 in
-      let class_ = { c_tok = v2;  c_extends = v5; c_body = v6;
-                     c_attrs = attrs } in
+      let class_ = { c_kind = G.Class, v2;  c_extends = v5; c_body = v6;
+                     c_attrs = v1 } in
       Class (class_, v3)
   | `Paren_exp x -> parenthesized_expression env x
   | `Subs_exp x -> subscript_expression env x
@@ -1717,7 +1716,7 @@ and method_definition (env : env) ((v1, v2, v3, v4, v5, v6, v7, v8, v9) : CST.me
   Field {fld_name = v6; fld_attrs = attrs; fld_type = ty; fld_body = Some e }
 
 and class_declaration (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.class_declaration) : entity =
-  let _v1TODO = List.map (decorator env) v1 in
+  let v1 = List.map (decorator env) v1 in
   let v2 = JS.token env v2 (* "class" *) in
   let v3 = JS.identifier env v3 (* identifier *) in
  (* TODO types: type_parameters *)
@@ -1737,8 +1736,8 @@ and class_declaration (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.class_decl
     | Some tok -> Some (JS.token env tok) (* automatic_semicolon *)
     | None -> None)
   in
-  let attrs = [] in
-  let c = { c_tok = v2; c_extends = v5; c_body = v6; c_attrs = attrs } in
+  let c = { c_kind = G.Class, v2; c_extends = v5;
+            c_body = v6; c_attrs = v1 } in
   let ty = None in
   { v_name = v3; v_kind = Const, v2; v_type = ty;
      v_init = Some (Class (c, None)); v_resolved = ref NotResolved }
@@ -2462,7 +2461,6 @@ and declaration (env : env) (x : CST.declaration) : entity list =
       [{ v_name = v3; v_kind = Const, v2; v_init = None;
         v_type = Some ty; v_resolved = ref NotResolved }]
   | `Abst_class_decl (v1, v2, v3, v4, v5, v6) ->
-      (* TODO currently treated as a regular class. Does it matter? *)
       let v1 = attr (Abstract, JS.token env v1) (* "abstract" *) in
       let v2 = JS.token env v2 (* "class" *) in
       let v3 = JS.identifier env v3 (* identifier *) in
@@ -2478,7 +2476,8 @@ and declaration (env : env) (x : CST.declaration) : entity list =
       in
       let v6 = class_body env v6 in
       let attrs = [v1] in
-      let c = { c_tok = v2; c_extends = v5; c_body = v6; c_attrs = attrs } in
+      let c = { c_kind = G.Class, v2; c_extends = v5;
+                c_body = v6; c_attrs = attrs } in
       [{ v_name = v3; v_kind = Const, v2; v_type = None;
          v_init = Some (Class (c, None)); v_resolved = ref NotResolved }]
 
@@ -2530,8 +2529,17 @@ and declaration (env : env) (x : CST.declaration) : entity list =
         | Some x -> Some (extends_clause env x)
         | None -> None)
       in
-      let _v5 = object_type env v5 in
-      [] (* TODO *)
+      let (t1, xs, t2) = object_type env v5 in
+      let xs = xs |> Common.map_filter (function
+          (* TODO *)
+          | Left _fld -> None
+          | Right _sts -> None
+        )
+      in
+      let c = { c_kind = G.Interface, v1; c_extends = None (* TODO *);
+                c_body = (t1, xs, t2); c_attrs = [] } in
+      [{ v_name = v2; v_kind = Const, v1; v_type = None;
+         v_init = Some (Class (c, None)); v_resolved = ref NotResolved }]
 
   | `Import_alias (v1, v2, v3, v4, v5) ->
       let _v1 = JS.token env v1 (* "import" *) in
