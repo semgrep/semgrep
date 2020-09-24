@@ -105,6 +105,7 @@ let print_result xopt =
       | Int _ -> pr (string_of_bool true)
       | _ -> pr "NONE"
       )
+[@@action]
 
 (*****************************************************************************)
 (* Entry point *)
