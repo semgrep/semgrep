@@ -2,8 +2,18 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-- Added support for the JUnit XML report format (`--fmt junit`)
+## [0.25.0](https://github.com/returntocorp/semgrep/releases/tag/v0.25.0)
+
+### Added
+- Added support for the JUnit XML report format (`--junit-xml`)
+- C now supports the deep expression operator: `<... $X ...>`. See [this example](https://semgrep.dev/s/boKP/?version=develop).
+- Added support for ellipses `...` in PHP. (https://github.com/returntocorp/semgrep/issues/1715). See [this example](https://semgrep.dev/s/NxRn/?version=develop).
+
+### Fixed
+- JavaScript will parse empty yields (https://github.com/returntocorp/semgrep/issues/1688).
+- In JavaScript, arrow functions are now considered lambdas (https://github.com/returntocorp/semgrep/issues/1691). This allows [matching](https://semgrep.dev/s/Kd1j/?version=develop) arrow functions in `var` assignments.
+- `tsx` and `typescript` are now properly recognized in the `languages` key. (https://github.com/returntocorp/semgrep/issues/1705)
+
 
 ## [0.24.0](https://github.com/returntocorp/semgrep/releases/tag/v0.24.0) - 2020-09-16
 

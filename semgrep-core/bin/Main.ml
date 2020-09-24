@@ -924,6 +924,8 @@ let all_actions () = [
   Common.mk_action_2_arg Datalog_experiment.gen_facts;
   "-dump_il", " <file>",
   Common.mk_action_1_arg Datalog_experiment.dump_il;
+  "-eval", " <JSON file>",
+  Common.mk_action_1_arg Eval_generic.eval_json_file;
  ]
 
 (*e: function [[Main_semgrep_core.all_actions]] *)
