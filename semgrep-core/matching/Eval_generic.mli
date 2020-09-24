@@ -1,5 +1,10 @@
 
-type value
+type value =
+  | Int of int
+  | Bool of bool
+  | String of string (* string without the enclosing '"' *)
+  | AST of string (* any AST, e.g., "x+1" *)
+
 type env
 type code = AST_generic.expr
 
