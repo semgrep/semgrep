@@ -39,6 +39,7 @@ type value =
   | Bool of bool
   (* less: Float? *)
   | String of string (* string without the enclosing '"' *)
+  | List of value list
   (* default case where we don't really have good builtin operations.
    * This should be a AST_generic.any once parsed.
    * See JSON_report.json_metavar().
@@ -51,7 +52,7 @@ type env = (MV.mvar, value) Hashtbl.t
 (* we restrict ourselves to simple expression for now *)
 type code = AST_generic.expr
 
-exception NotHandled
+exception NotHandled of code
 
 (*****************************************************************************)
 (* Parsing *)
@@ -116,31 +117,62 @@ let rec eval env code =
       | G.Bool (b, _t) -> Bool (b)
       | G.Int (s, _t) -> Int (int_of_string s)
       | G.String (s, _t) -> String s
-      | _ -> raise NotHandled
+      | _ -> raise (NotHandled code)
       )
   | G.Id ((s, _t), _idinfo) ->
       Hashtbl.find env s
   | G.Call (G.IdSpecial (G.Op op, _t), (_, args, _)) ->
       let values = args |> List.map (function
             | G.Arg e -> eval env e
-            | _ -> raise NotHandled
+            | _ -> raise (NotHandled code)
         ) in
-      eval_op op values
-  | _ -> raise NotHandled
+      eval_op op values code
+  | G.Container (G.List, (_, xs, _)) ->
+      let vs = List.map (eval env) xs in
+      List vs
+  (* TODO: Python In could be made an AST_generic.operator at some point *)
+  | G.OtherExpr (G.OE_In, [G.E e1; G.E e2]) ->
+      let v1 = eval env e1 in
+      let v2 = eval env e2 in
+      (match v2 with
+      | List xs -> Bool (List.mem v1 xs)
+      | _ -> Bool (false)
+      )
+  | _ -> raise (NotHandled code)
 
-and eval_op op values =
+and eval_op op values code =
   match op, values with
   | G.Gt, [Int i1; Int i2] -> Bool (i1 > i2)
-  | G.And, [Bool b1; Bool b2] -> Bool (b1 && b2)
-  | G.Eq, [String s1; String s2] -> Bool (s1 = s2)
-  | _ -> raise NotHandled
+  | G.GtE, [Int i1; Int i2] -> Bool (i1 >= i2)
+  | G.Lt, [Int i1; Int i2] -> Bool (i1 < i2)
+  | G.LtE, [Int i1; Int i2] -> Bool (i1 <= i2)
 
-let debug = ref true
+  | G.And, [Bool b1; Bool b2] -> Bool (b1 && b2)
+  | G.Or, [Bool b1; Bool b2] -> Bool (b1 || b2)
+  | G.Not, [Bool b1] -> Bool (not b1)
+
+  | G.Plus, [Int i1] -> Int i1
+  | G.Plus, [Int i1; Int i2] -> Int (i1 + i2)
+  | G.Minus, [Int i1] -> Int (-i1)
+  | G.Minus, [Int i1; Int i2] -> Int (i1 - i2)
+  | G.Mult, [Int i1; Int i2] -> Int (i1 * i2)
+  | G.Div, [Int i1; Int i2] -> Int (i1 / i2)
+  | G.Mod, [Int i1; Int i2] -> Int (i1 mod i2)
+
+  | G.Eq, [String s1; String s2] -> Bool (s1 = s2)
+
+  | _ -> raise (NotHandled code)
+
+let debug = ref false
 
 let eval_json_file file =
   try
     let (env, code) = parse_json file in
     let res = eval env code in
     print_result (Some res)
-  with _exn when not !debug ->
+  with
+   | NotHandled e when !debug ->
+      pr2 (G.show_any (G.E e));
+      raise (NotHandled e)
+   | _exn when not !debug ->
     print_result None
