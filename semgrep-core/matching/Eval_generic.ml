@@ -159,7 +159,8 @@ and eval_op op values code =
   | G.Div, [Int i1; Int i2] -> Int (i1 / i2)
   | G.Mod, [Int i1; Int i2] -> Int (i1 mod i2)
 
-  | G.Eq, [String s1; String s2] -> Bool (s1 = s2)
+  | G.Eq, [v1; v2] -> Bool (v1 = v2)
+  | G.NotEq, [v1; v2] -> Bool (v1 <> v2)
 
   | _ -> raise (NotHandled code)
 
