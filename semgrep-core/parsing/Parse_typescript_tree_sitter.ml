@@ -119,7 +119,6 @@ let reserved_identifier (env : env) (x : CST.reserved_identifier) =
   | `Bool tok -> JS.identifier env tok (* "boolean" *)
   | `Str tok -> JS.identifier env tok (* "string" *)
   | `Symb tok -> JS.identifier env tok (* "symbol" *)
-  | `Void tok -> JS.identifier env tok (* "void" *)
   | `Export tok -> JS.identifier env tok (* "export" *)
   | `Choice_get x ->
       (match x with
