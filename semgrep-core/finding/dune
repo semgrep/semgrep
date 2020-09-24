@@ -3,7 +3,7 @@
  (wrapped false)
  (libraries
    ounit2
-   dune-glob
+;   dune-glob
    commons
  )
  (preprocess (pps ppx_profiling))

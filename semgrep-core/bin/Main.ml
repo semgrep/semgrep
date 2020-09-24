@@ -1004,6 +1004,10 @@ let options () =
     " <float> timeout for parsing (in seconds)";
     "-max_memory", Arg.Set_int max_memory,
     " <int> maximum memory (in MB)";
+    "-lsp", Arg.Unit (fun () ->
+        LSP_client.init ();
+    ),
+    " <>connect to LSP lang server to get type information"
   ] @
   (*s: [[Main_semgrep_core.options]] concatenated flags *)
   Flag_parsing_cpp.cmdline_flags_macrofile () @
@@ -1161,7 +1165,9 @@ let main () =
 (*s: toplevel [[Main_semgrep_core._1]] *)
 let _ =
   Common.main_boilerplate (fun () ->
+    Common.finalize (fun () ->
       main ();
+    ) (fun () -> !(Hooks.exit) |> List.iter (fun f -> f()))
   )
 (*e: toplevel [[Main_semgrep_core._1]] *)
 (*e: semgrep/bin/Main.ml *)

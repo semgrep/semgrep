@@ -3,10 +3,14 @@
  (wrapped false)
  (libraries
    yaml
+   lsp
+
    commons
    pfff-config
    pfff-h_program-lang
    pfff-lang_GENERIC pfff-lang_GENERIC-analyze
+
+   semgrep_core
  )
  (preprocess (pps ppx_profiling))
 )

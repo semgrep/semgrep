@@ -16,7 +16,15 @@
  *)
 (*e: pad/r2c copyright *)
 
-module Glob = Dune_glob__Glob
+module Glob = struct
+ (* TODO: Dune_glob__Glob this conflict with ocaml-lsp
+  *)
+ type t = unit
+ let of_string _s = failwith "Files_filter.of_string: TODO"
+ let universal = ()
+ let test _a _b = true
+      (* failwith "Files_filter.test: TODO" *)
+ end
 
 (*****************************************************************************)
 (* Prelude *)
