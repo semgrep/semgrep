@@ -60,7 +60,7 @@ let parse_metavar s =
   match s with
   | "true" | "True" -> Bool (true)
   | "false" | "False" -> Bool (false)
-  | _ when s =~ "^[0-9]+" -> Int (int_of_string s)
+  | _ when s =~ "^[0-9]+$" -> Int (int_of_string s)
   | _ when s =~ "^\"\\(.*\\)\"$" -> String (Common.matched1 s)
   | _ -> AST s
 
@@ -92,7 +92,7 @@ let parse_json file =
 (* Reporting *)
 (*****************************************************************************)
 
-(* less: could use exit code, or return JSON *)
+(* alt: could use exit code, or return JSON *)
 let print_result xopt =
   match xopt  with
   | None -> pr "NONE"
