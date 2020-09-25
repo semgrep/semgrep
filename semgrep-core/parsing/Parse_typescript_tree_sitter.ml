@@ -777,6 +777,7 @@ and type_parameter (env : env) ((v1, v2, v3) : CST.type_parameter) : G.type_para
 
 and member_expression (env : env) ((v1, v2, v3) : CST.member_expression) : expr =
   let v1 = anon_choice_exp env v1 in
+  (* TODO: distinguish optional chaining "?." from a simple access "." *)
   let v2 =
     match v2 with
     | `DOT tok (* "." *)
@@ -825,6 +826,7 @@ and subscript_expression (env : env) ((v1, v2, v3, v4, v5) : CST.subscript_expre
   let v3 = JS.token env v3 (* "[" *) in
   let v4 = expressions env v4 in
   let v5 = JS.token env v5 (* "]" *) in
+  (* TODO: distinguish optional chaining "?." from a simple access "." *)
   ArrAccess (v1, (v3, v4, v5))
 
 and initializer_ (env : env) ((v1, v2) : CST.initializer_) =
@@ -983,6 +985,7 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
              | None -> []
            in
            let v4 = arguments env v4 in
+           (* TODO: distinguish "?." from a simple application *)
            Apply (v1, v4)
       )
   )

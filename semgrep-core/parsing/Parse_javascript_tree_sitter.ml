@@ -719,6 +719,7 @@ and anon_choice_exp (env : env) (x : CST.anon_choice_exp) : expr =
 
 and member_expression (env : env) ((v1, v2, v3) : CST.member_expression) : expr =
   let v1 = anon_choice_exp env v1 in
+  (* TODO: distinguish optional chaining "?." from a simple access "." *)
   let v2 =
     match v2 with
     | `DOT tok (* "." *)
@@ -751,6 +752,7 @@ and subscript_expression (env : env) ((v1, v2, v3, v4, v5) : CST.subscript_expre
   let v3 = token env v3 (* "[" *) in
   let v4 = expressions env v4 in
   let v5 = token env v5 (* "]" *) in
+  (* TODO: distinguish optional chaining "?." from a simple access "." *)
   ArrAccess (v1, (v3, v4, v5))
 
 and initializer_ (env : env) ((v1, v2) : CST.initializer_) =
@@ -892,6 +894,7 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
            let v1 = primary_expression env v1 in
            let _v2 = token env v2 (* "?." *) in
            let v3 = arguments env v3 in
+           (* TODO: distinguish "?." from a simple application *)
            Apply (v1, v3)
       )
   )
