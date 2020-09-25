@@ -1230,7 +1230,7 @@ and expression (env : env) (x : CST.expression) : expr =
       let v3 = expression env v3 in
       Assign (v1, v2, v3)
   | `Augm_assign_exp (v1, v2, v3) ->
-      let v1 =
+      let lhs =
         (match v1 with
         | `Member_exp x -> member_expression env x
         | `Subs_exp x -> subscript_expression env x
@@ -1243,28 +1243,32 @@ and expression (env : env) (x : CST.expression) : expr =
         | `Paren_exp x -> parenthesized_expression env x
         )
       in
-      let (op, tok) =
+      let (op, is_logical, tok) =
         (match v2 with
-        | `PLUSEQ tok -> G.Plus, JS.token env tok (* "+=" *)
-        | `DASHEQ tok -> G.Minus, JS.token env tok (* "-=" *)
-        | `STAREQ tok -> G.Mult, JS.token env tok (* "*=" *)
-        | `SLASHEQ tok -> G.Div, JS.token env tok (* "/=" *)
-        | `PERCEQ tok -> G.Mod, JS.token env tok (* "%=" *)
-        | `HATEQ tok -> G.BitXor, JS.token env tok (* "^=" *)
-        | `AMPEQ tok -> G.BitAnd, JS.token env tok (* "&=" *)
-        | `BAREQ tok -> G.BitOr, JS.token env tok (* "|=" *)
-        | `GTGTEQ tok -> G.LSR, JS.token env tok (* ">>=" *)
-        | `GTGTGTEQ tok -> G.ASR, JS.token env tok (* ">>>=" *)
-        | `LTLTEQ tok -> G.LSL, JS.token env tok (* "<<=" *)
-        | `STARSTAREQ tok -> G.Pow, JS.token env tok (* "**=" *)
-        | `AMPAMPEQ tok -> G.LogAndAss, JS.token env tok (* "&&=" *)
-        | `BARBAREQ tok -> G.LogOrAss, JS.token env tok (* "||=" *)
-        | `QMARKQMARKEQ tok -> G.LogNullAss, JS.token env tok (* "??=" *)
+        | `PLUSEQ tok -> G.Plus, false, JS.token env tok (* "+=" *)
+        | `DASHEQ tok -> G.Minus, false, JS.token env tok (* "-=" *)
+        | `STAREQ tok -> G.Mult, false, JS.token env tok (* "*=" *)
+        | `SLASHEQ tok -> G.Div, false, JS.token env tok (* "/=" *)
+        | `PERCEQ tok -> G.Mod, false, JS.token env tok (* "%=" *)
+        | `HATEQ tok -> G.BitXor, false, JS.token env tok (* "^=" *)
+        | `AMPEQ tok -> G.BitAnd, false, JS.token env tok (* "&=" *)
+        | `BAREQ tok -> G.BitOr,false,  JS.token env tok (* "|=" *)
+        | `GTGTEQ tok -> G.LSR, false, JS.token env tok (* ">>=" *)
+        | `GTGTGTEQ tok -> G.ASR, false, JS.token env tok (* ">>>=" *)
+        | `LTLTEQ tok -> G.LSL, false, JS.token env tok (* "<<=" *)
+        | `STARSTAREQ tok -> G.Pow, false, JS.token env tok (* "**=" *)
+        | `AMPAMPEQ tok -> G.And, true, JS.token env tok (* "&&=" *)
+        | `BARBAREQ tok -> G.Or, true, JS.token env tok (* "||=" *)
+        | `QMARKQMARKEQ tok -> G.Nullish, true, JS.token env tok (* "??=" *)
         )
       in
-      let v3 = expression env v3 in
+      let rhs = expression env v3 in
       (* less: should use intermediate instead of repeating v1 *)
-      Assign (v1, tok, Apply (IdSpecial (ArithOp op, tok), fb [v1;v3]))
+      if is_logical then
+        Apply (IdSpecial (ArithOp op, tok), fb [lhs; Assign (lhs, tok, rhs)])
+      else
+        Assign (lhs, tok, Apply (IdSpecial (ArithOp op, tok), fb [lhs; rhs]))
+
   | `Await_exp (v1, v2) ->
       let v1 = JS.token env v1 (* "await" *) in
       let v2 = expression env v2 in

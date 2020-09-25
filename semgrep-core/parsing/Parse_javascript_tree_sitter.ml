@@ -1004,7 +1004,7 @@ and expression (env : env) (x : CST.expression) : expr =
       let v3 = expression env v3 in
       Assign (v1, v2, v3)
   | `Augm_assign_exp (v1, v2, v3) ->
-      let v1 =
+      let lhs =
         (match v1 with
         | `Member_exp x -> member_expression env x
         | `Subs_exp x -> subscript_expression env x
@@ -1017,28 +1017,35 @@ and expression (env : env) (x : CST.expression) : expr =
         | `Paren_exp x -> parenthesized_expression env x
         )
       in
-      let (op, tok) =
+      let (op, is_logical, tok) =
         (match v2 with
-        | `PLUSEQ tok -> G.Plus, token env tok (* "+=" *)
-        | `DASHEQ tok -> G.Minus, token env tok (* "-=" *)
-        | `STAREQ tok -> G.Mult, token env tok (* "*=" *)
-        | `SLASHEQ tok -> G.Div, token env tok (* "/=" *)
-        | `PERCEQ tok -> G.Mod, token env tok (* "%=" *)
-        | `HATEQ tok -> G.BitXor, token env tok (* "^=" *)
-        | `AMPEQ tok -> G.BitAnd, token env tok (* "&=" *)
-        | `BAREQ tok -> G.BitOr, token env tok (* "|=" *)
-        | `GTGTEQ tok -> G.LSR, token env tok (* ">>=" *)
-        | `GTGTGTEQ tok -> G.ASR, token env tok (* ">>>=" *)
-        | `LTLTEQ tok -> G.LSL, token env tok (* "<<=" *)
-        | `STARSTAREQ tok -> G.Pow, token env tok (* "**=" *)
-        | `AMPAMPEQ tok -> G.LogAndAss, token env tok (* "&&=" *)
-        | `BARBAREQ tok -> G.LogOrAss, token env tok (* "||=" *)
-        | `QMARKQMARKEQ tok -> G.LogNullAss, token env tok (* "??=" *)
+        | `PLUSEQ tok -> G.Plus, false, token env tok (* "+=" *)
+        | `DASHEQ tok -> G.Minus, false, token env tok (* "-=" *)
+        | `STAREQ tok -> G.Mult, false, token env tok (* "*=" *)
+        | `SLASHEQ tok -> G.Div, false, token env tok (* "/=" *)
+        | `PERCEQ tok -> G.Mod, false, token env tok (* "%=" *)
+        | `HATEQ tok -> G.BitXor, false, token env tok (* "^=" *)
+        | `AMPEQ tok -> G.BitAnd, false, token env tok (* "&=" *)
+        | `BAREQ tok -> G.BitOr,false,  token env tok (* "|=" *)
+        | `GTGTEQ tok -> G.LSR, false, token env tok (* ">>=" *)
+        | `GTGTGTEQ tok -> G.ASR, false, token env tok (* ">>>=" *)
+        | `LTLTEQ tok -> G.LSL, false, token env tok (* "<<=" *)
+        | `STARSTAREQ tok -> G.Pow, false, token env tok (* "**=" *)
+        | `AMPAMPEQ tok -> G.And, true, token env tok (* "&&=" *)
+        | `BARBAREQ tok -> G.Or, true, token env tok (* "||=" *)
+        | `QMARKQMARKEQ tok -> G.Nullish, true, token env tok (* "??=" *)
         )
       in
-      let v3 = expression env v3 in
+      let rhs = expression env v3 in
+      (* '&&=' transpiles differently than '+='.
+         See https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Logical_AND_assignment
+      *)
       (* less: should use intermediate instead of repeating v1 *)
-      Assign (v1, tok, Apply (IdSpecial (ArithOp op, tok), fb [v1;v3]))
+      if is_logical then
+        Apply (IdSpecial (ArithOp op, tok), fb [lhs; Assign (lhs, tok, rhs)])
+      else
+        Assign (lhs, tok, Apply (IdSpecial (ArithOp op, tok), fb [lhs; rhs]))
+
   | `Await_exp (v1, v2) ->
       let v1 = token env v1 (* "await" *) in
       let v2 = expression env v2 in
