@@ -191,6 +191,7 @@ class OutputSettings(NamedTuple):
     output_format: OutputFormat
     output_destination: Optional[str]
     error_on_findings: bool
+    verbose_errors: bool
     strict: bool
     timeout_threshold: int = 0
 
@@ -287,9 +288,10 @@ class OutputHandler:
         if error not in self.error_set:
             self.semgrep_structured_errors.append(error)
             self.error_set.add(error)
-            if self.settings.output_format == OutputFormat.TEXT:
+            if self.settings.output_format == OutputFormat.TEXT and self.settings.verbose_errors:
                 # Only show errors on stderr when not using format
-                # that includes errors
+                # that includes errors and if we are in verbose mode; if we're not verbose,
+                # we'll display an aggregate error count at the end
                 logger.error(str(error))
 
     def handle_semgrep_core_output(
@@ -319,7 +321,7 @@ class OutputHandler:
             self.handle_semgrep_error(ex)
         self.final_error = ex
 
-    def final_raise(self, ex: Optional[Exception]) -> None:
+    def final_raise(self, ex: Optional[Exception], error_stats: Optional[str]) -> None:
         if ex is None:
             return
         if isinstance(ex, SemgrepError):
@@ -329,7 +331,7 @@ class OutputHandler:
                 if self.settings.strict:
                     raise ex
                 logger.info(
-                    "Some files could not be analyzed; run with `--verbose` for details; run with `--strict` to exit non-zero if one or more files cannot be analyzed"
+                    f"{error_stats}; run with --verbose for details or run with --strict to exit non-zero if any file cannot be analyzed"
                 )
         else:
             raise ex
@@ -352,6 +354,7 @@ class OutputHandler:
                 self.save_output(self.settings.output_destination, output)
 
         final_error = None
+        error_stats = None
         if self.final_error:
             final_error = self.final_error
         elif self.rule_matches and self.settings.error_on_findings:
@@ -359,8 +362,10 @@ class OutputHandler:
             # using this to return a specific error code
             final_error = SemgrepError("", code=FINDINGS_EXIT_CODE)
         elif self.semgrep_structured_errors:
+            files_failed = set(x.spans[0].file for x in self.semgrep_structured_errors)
+            error_stats = f"{len(files_failed)} file{'s' if len(files_failed) > 1 else ''} could not be analyzed"
             final_error = self.semgrep_structured_errors[-1]
-        self.final_raise(final_error)
+        self.final_raise(final_error, error_stats)
 
     @classmethod
     def save_output(cls, destination: str, output: str) -> None:

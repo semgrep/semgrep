@@ -266,9 +266,14 @@ def cli() -> None:
         "--verbose",
         action="store_true",
         help=(
-            "Set the logging level to verbose. E.g. statements about which "
-            "files are being processed will be printed."
+            "Show more details about what rules are running, which files failed to parse, etc."
         ),
+    )
+
+    output.add_argument(
+        "--debug",
+        action="store_true",
+        help="Set the logging level to DEBUG",
     )
 
     parser.add_argument(
@@ -299,7 +304,7 @@ def cli() -> None:
         parser.error("--dump-ast and -l/--lang must both be specified")
 
     # set the flags
-    semgrep.util.set_flags(args.verbose, args.quiet, args.force_color)
+    semgrep.util.set_flags(args.debug, args.quiet, args.force_color)
 
     # change cwd if using docker
     try:
@@ -323,6 +328,7 @@ def cli() -> None:
         output_destination=args.output,
         error_on_findings=args.error,
         strict=args.strict,
+        verbose_errors = args.verbose,
         timeout_threshold=args.timeout_threshold,
     )
 
