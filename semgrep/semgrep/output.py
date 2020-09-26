@@ -288,13 +288,9 @@ class OutputHandler:
         if error not in self.error_set:
             self.semgrep_structured_errors.append(error)
             self.error_set.add(error)
-            if (
-                self.settings.output_format == OutputFormat.TEXT
-                and self.settings.verbose_errors
+            if self.settings.output_format == OutputFormat.TEXT and (
+                error.level != Level.WARN or self.settings.verbose_errors
             ):
-                # Only show errors on stderr when not using format
-                # that includes errors and if we are in verbose mode; if we're not verbose,
-                # we'll display an aggregate error count at the end
                 logger.error(str(error))
 
     def handle_semgrep_core_output(
