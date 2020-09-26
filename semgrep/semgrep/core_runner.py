@@ -506,6 +506,7 @@ class CoreRunner:
         Dict[Rule, List[RuleMatch]],
         Dict[Rule, List[Dict[str, Any]]],
         List[SemgrepError],
+        str,
     ]:
         """
             Takes in rules and targets and retuns object with findings
@@ -517,8 +518,12 @@ class CoreRunner:
         )
 
         logger.debug(f"semgrep ran in {datetime.now() - start} on {num_targets} files")
+        num_findings = sum(len(v) for v in findings_by_rule.values())
+        stats_line = (
+            f"ran {len(rules)} rules on {num_targets} files: {num_findings} findings"
+        )
 
-        return findings_by_rule, debug_steps_by_rule, errors
+        return findings_by_rule, debug_steps_by_rule, errors, stats_line
 
 
 def dedup_output(outputs: List[RuleMatch]) -> List[RuleMatch]:
