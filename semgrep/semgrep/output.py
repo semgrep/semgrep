@@ -235,7 +235,6 @@ class OutputHandler:
 
         self.rule_matches: List[RuleMatch] = []
         self.debug_steps_by_rule: Dict[Rule, List[Dict[str, Any]]] = {}
-        self.stats_line: Optional[str]
         self.rules: FrozenSet[Rule] = frozenset()
         self.semgrep_structured_errors: List[SemgrepError] = []
         self.error_set: Set[SemgrepError] = set()
@@ -296,7 +295,6 @@ class OutputHandler:
         self,
         rule_matches_by_rule: Dict[Rule, List[RuleMatch]],
         debug_steps_by_rule: Dict[Rule, List[Dict[str, Any]]],
-        stats_line: str,
     ) -> None:
         self.has_output = True
         self.rules = self.rules.union(rule_matches_by_rule.keys())
@@ -306,7 +304,6 @@ class OutputHandler:
             for match in matches_of_one_rule
         ]
 
-        self.stats_line = stats_line
         self.debug_steps_by_rule.update(debug_steps_by_rule)
 
     def handle_unhandled_exception(self, ex: Exception) -> None:
@@ -329,7 +326,7 @@ class OutputHandler:
                 if self.settings.strict:
                     raise ex
                 logger.info(
-                    "Some files could not be analyzed; run with `--verbose` for details; run with `--strict` to exit non-zero if one or more files cannot be analyzed"
+                    "Warnings exist. Run with `--strict` to turn warnings into errors.",
                 )
         else:
             raise ex
@@ -355,7 +352,7 @@ class OutputHandler:
         if self.final_error:
             final_error = self.final_error
         elif self.rule_matches and self.settings.error_on_findings:
-            # This exception won't be visible to the user, we're just
+            # This exception won't be visiable to the user, we're just
             # using this to return a specific error code
             final_error = SemgrepError("", code=FINDINGS_EXIT_CODE)
         elif self.semgrep_structured_errors:
@@ -402,10 +399,7 @@ class OutputHandler:
         elif output_format == OutputFormat.SARIF:
             return build_sarif_output(self.rule_matches, self.rules)
         elif output_format == OutputFormat.TEXT:
-            return "\n".join(
-                list(build_normal_output(self.rule_matches, color_output))
-                + ([self.stats_line] if self.stats_line else [])
-            )
+            return "\n".join(build_normal_output(self.rule_matches, color_output))
         else:
             # https://github.com/python/mypy/issues/6366
             raise RuntimeError(
