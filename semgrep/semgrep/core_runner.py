@@ -405,7 +405,9 @@ class CoreRunner:
         debugging_steps: List[Any] = []
         for rule, paths in by_rule_index.items():
             for filepath, pattern_matches in paths.items():
-                logger.debug(f"----- rule ({rule.id}) ----- filepath: {filepath}")
+                logger.debug(
+                    f"--> rule ({rule.id}) has findings on filepath: {filepath}"
+                )
 
                 findings_for_rule, debugging_steps = evaluate(
                     rule, pattern_matches, self._allow_exec
@@ -520,6 +522,14 @@ class CoreRunner:
         )
 
         logger.debug(f"semgrep ran in {datetime.now() - start} on {num_targets} files")
+        by_severity = collections.defaultdict(list)
+        for rule, findings in findings_by_rule.items():
+            by_severity[rule.severity.lower()].extend(findings)
+
+        by_sev_strings = [
+            f"{len(findings)} {sev}" for sev, findings in by_severity.items()
+        ]
+        logger.debug(f'findings summary: {", ".join(by_sev_strings)}')
         num_findings = sum(len(v) for v in findings_by_rule.values())
         stats_line = (
             f"ran {len(rules)} rules on {num_targets} files: {num_findings} findings"

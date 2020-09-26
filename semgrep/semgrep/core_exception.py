@@ -89,7 +89,7 @@ class CoreException:
                 start=self._start,
                 end=self._end,
                 source_hash=file_hash,
-                file=self._path.name,
+                file=str(self._path),
             )
             return SourceParseError(
                 short_msg="parse error",

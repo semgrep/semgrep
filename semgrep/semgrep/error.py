@@ -204,7 +204,7 @@ class ErrorWithSpan(SemgrepError):
         """
         Format this exception into a pretty string with context and color
         """
-        header = f"{with_color(Fore.RED, self.level.name.lower())}: {self.short_msg}"
+        header = f"{with_color(Fore.RED, 'semgrep ' + self.level.name.lower())}: {self.short_msg}"
         snippets = []
         for span in self.spans:
             location_hint = f"  --> {span.file}:{span.start.line}"

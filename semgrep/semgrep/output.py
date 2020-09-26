@@ -236,7 +236,7 @@ class OutputHandler:
 
         self.rule_matches: List[RuleMatch] = []
         self.debug_steps_by_rule: Dict[Rule, List[Dict[str, Any]]] = {}
-        self.stats_line: Optional[str]
+        self.stats_line: Optional[str] = None
         self.rules: FrozenSet[Rule] = frozenset()
         self.semgrep_structured_errors: List[SemgrepError] = []
         self.error_set: Set[SemgrepError] = set()
