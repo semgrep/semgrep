@@ -271,9 +271,7 @@ def cli() -> None:
     )
 
     output.add_argument(
-        "--debug",
-        action="store_true",
-        help="Set the logging level to DEBUG",
+        "--debug", action="store_true", help="Set the logging level to DEBUG",
     )
 
     parser.add_argument(
@@ -328,7 +326,7 @@ def cli() -> None:
         output_destination=args.output,
         error_on_findings=args.error,
         strict=args.strict,
-        verbose_errors = args.verbose,
+        verbose_errors=args.verbose,
         timeout_threshold=args.timeout_threshold,
     )
 
