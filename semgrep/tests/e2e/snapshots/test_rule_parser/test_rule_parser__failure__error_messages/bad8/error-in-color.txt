@@ -1,4 +1,4 @@
-[31merror[39m: Invalid rule schema
+[31msemgrep error[39m: Invalid rule schema
   --> rules/syntax/bad8.yaml:1
 [94m1 | [39mrules:
 [94m2 | [39m  - id: arg-reassign
