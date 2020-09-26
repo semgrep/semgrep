@@ -57,6 +57,7 @@ def cli() -> None:
     config_ex.add_argument(
         "-f",
         "--config",
+        action="append",
         help=(
             "YAML configuration file, directory of YAML files ending in "
             ".yml|.yaml, URL of a configuration file, or semgrep registry entry "
@@ -352,9 +353,9 @@ def cli() -> None:
                 args.pattern, args.lang, args.config
             )
             valid_str = "invalid" if config_errors else "valid"
-            rule_count = sum(len(rules) for rules in configs.values())
+            rule_count = len(configs.get_rules(True))
             logger.info(
-                f"Configuration is {valid_str} - found {len(configs)} valid configuration(s), {len(config_errors)} configuration error(s), and {rule_count} rule(s)."
+                f"Configuration is {valid_str} - found {len(configs.valid)} valid configuration(s), {len(config_errors)} configuration error(s), and {rule_count} rule(s)."
             )
             if config_errors:
                 for error in config_errors:
@@ -368,7 +369,7 @@ def cli() -> None:
                 target=target,
                 pattern=args.pattern,
                 lang=args.lang,
-                config=args.config,
+                configs=args.config,
                 no_rewrite_rule_ids=args.no_rewrite_rule_ids,
                 jobs=args.jobs,
                 include=args.include,

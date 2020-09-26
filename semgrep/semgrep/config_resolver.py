@@ -2,9 +2,11 @@ import logging
 import os
 import time
 from pathlib import Path
+from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import Tuple
 
 from ruamel.yaml import YAMLError
 
@@ -16,10 +18,13 @@ from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import RULES_KEY
 from semgrep.constants import SEMGREP_USER_AGENT
 from semgrep.constants import YML_EXTENSIONS
+from semgrep.error import InvalidRuleSchemaError
 from semgrep.error import SemgrepError
 from semgrep.error import UNPARSEABLE_YAML_EXIT_CODE
+from semgrep.rule import Rule
 from semgrep.rule_lang import parse_yaml_preserve_spans
 from semgrep.rule_lang import Span
+from semgrep.rule_lang import YamlMap
 from semgrep.rule_lang import YamlTree
 from semgrep.util import is_url
 
@@ -37,6 +42,127 @@ TEMPLATE_YAML_URL = (
 
 RULES_REGISTRY = {"r2c": "https://semgrep.dev/c/p/r2c"}
 DEFAULT_REGISTRY_KEY = "r2c"
+
+MISSING_RULE_ID = "no-rule-id"
+
+
+class Config:
+    def __init__(self, valid_configs: Dict[str, List[Rule]]) -> None:
+        self.valid = valid_configs
+
+    @classmethod
+    def from_pattern_lang(
+        cls, pattern: str, lang: str
+    ) -> Tuple["Config", List[SemgrepError]]:
+        config_dict = manual_config(pattern, lang)
+        valid, errors = cls._validate(config_dict)
+        return cls(valid), errors
+
+    @classmethod
+    def from_config_list(
+        cls, configs: List[str]
+    ) -> Tuple["Config", List[SemgrepError]]:
+        config_dict: Dict[str, YamlTree] = {}
+        errors: List[SemgrepError] = []
+        for config in configs:
+            try:
+                config_dict.update(resolve_config(config))
+            except SemgrepError as e:
+                errors.append(e)
+
+        valid, parse_errors = cls._validate(config_dict)
+        errors.extend(parse_errors)
+        return cls(valid), errors
+
+    @staticmethod
+    def _safe_relative_to(a: Path, b: Path) -> Path:
+        try:
+            return a.relative_to(b)
+        except ValueError:
+            # paths had no common prefix; not possible to relativize
+            return a
+
+    @staticmethod
+    def _convert_config_id_to_prefix(config_id: str) -> str:
+        at_path = Path(config_id)
+        at_path = Config._safe_relative_to(at_path, Path.cwd())
+
+        prefix = ".".join(at_path.parts[:-1]).lstrip("./").lstrip(".")
+        if len(prefix):
+            prefix += "."
+        return prefix
+
+    @staticmethod
+    def _rename_rule_ids(valid_configs: Dict[str, List[Rule]]) -> Dict[str, List[Rule]]:
+        transformed = {}
+        for config_id, rules in valid_configs.items():
+            transformed[config_id] = [
+                rule.with_id(
+                    f"{Config._convert_config_id_to_prefix(config_id)}{rule.id or MISSING_RULE_ID}"
+                )
+                for rule in rules
+            ]
+        return transformed
+
+    def get_rules(self, no_rewrite_rule_ids: bool) -> List[Rule]:
+        configs = self.valid
+        if not no_rewrite_rule_ids:
+            # re-write the configs to have the hierarchical rule ids
+            configs = self._rename_rule_ids(configs)
+
+        return [rule for rules in configs.values() for rule in rules]
+
+    @staticmethod
+    def _validate(
+        config_dict: Dict[str, YamlTree]
+    ) -> Tuple[Dict[str, List[Rule]], List[SemgrepError]]:
+        """
+            Take configs and separate into valid and list of errors parsing the invalid ones
+        """
+        errors: List[SemgrepError] = []
+        valid: Dict[str, Any] = {}
+        for config_id, config_yaml_tree in config_dict.items():
+            config = config_yaml_tree.value
+            if not isinstance(config, YamlMap):
+                errors.append(SemgrepError(f"{config_id} was not a mapping"))
+                continue
+
+            rules = config.get(RULES_KEY)
+            if rules is None:
+                errors.append(
+                    InvalidRuleSchemaError(
+                        short_msg="missing keys",
+                        long_msg=f"{config_id} is missing `{RULES_KEY}` as top-level key",
+                        spans=[config_yaml_tree.span.truncate(lines=5)],
+                    )
+                )
+                continue
+            valid_rules = []
+            for rule_dict in rules.value:
+
+                try:
+                    rule = validate_single_rule(config_id, rule_dict)
+                except InvalidRuleSchemaError as ex:
+                    errors.append(ex)
+                else:
+                    valid_rules.append(rule)
+
+            if valid_rules:
+                valid[config_id] = valid_rules
+        return valid, errors
+
+
+def validate_single_rule(
+    config_id: str, rule_yaml: YamlTree[YamlMap]
+) -> Optional[Rule]:
+    """
+        Validate that a rule dictionary contains all necessary keys
+        and can be correctly parsed.
+    """
+    rule: YamlMap = rule_yaml.value
+
+    # Defaults to search mode if mode is not specified
+    return Rule.from_yamltree(rule_yaml)
 
 
 def manual_config(pattern: str, lang: str) -> Dict[str, YamlTree]:
