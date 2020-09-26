@@ -288,7 +288,10 @@ class OutputHandler:
         if error not in self.error_set:
             self.semgrep_structured_errors.append(error)
             self.error_set.add(error)
-            if self.settings.output_format == OutputFormat.TEXT and self.settings.verbose_errors:
+            if (
+                self.settings.output_format == OutputFormat.TEXT
+                and self.settings.verbose_errors
+            ):
                 # Only show errors on stderr when not using format
                 # that includes errors and if we are in verbose mode; if we're not verbose,
                 # we'll display an aggregate error count at the end
@@ -362,8 +365,11 @@ class OutputHandler:
             # using this to return a specific error code
             final_error = SemgrepError("", code=FINDINGS_EXIT_CODE)
         elif self.semgrep_structured_errors:
-            files_failed = set(x.spans[0].file for x in self.semgrep_structured_errors)
-            error_stats = f"{len(files_failed)} file{'s' if len(files_failed) > 1 else ''} could not be analyzed"
+            # make a simplifying assumption that # errors = # files failed
+            # it's a quite a bit of work to simplify further because errors may or may not have path, span, etc.
+            error_stats = (
+                f"{len(self.semgrep_structured_errors)} files could not be analyzed"
+            )
             final_error = self.semgrep_structured_errors[-1]
         self.final_raise(final_error, error_stats)
 

@@ -413,6 +413,7 @@ class CoreRunner:
                 findings.extend(findings_for_rule)
 
         findings = dedup_output(findings)
+        logger.debug(f"...ran on {len(all_targets)} files")
 
         # debugging steps are only tracked for a single file, just overwrite
         return findings, debugging_steps, errors, all_targets
@@ -480,7 +481,7 @@ class CoreRunner:
             for rule in progress_bar(
                 rules, bar_format="{l_bar}{bar}|{n_fmt}/{total_fmt}"
             ):
-                debug_tqdm_write(f"Running rule {rule._raw.get('id')}")
+                debug_tqdm_write(f"Running rule {rule._raw.get('id')}...")
                 rule_matches, debugging_steps, errors, rule_targets = self._run_rule(
                     rule, target_manager, semgrep_core_ast_cache_dir, max_timeout_files
                 )
@@ -498,6 +499,7 @@ class CoreRunner:
                             max_timeout_files.append(err.path)
 
         all_errors = dedup_errors(all_errors)
+        # logger.debug(all_targets)
         return findings_by_rule, debugging_steps_by_rule, all_errors, len(all_targets)
 
     def invoke_semgrep(
