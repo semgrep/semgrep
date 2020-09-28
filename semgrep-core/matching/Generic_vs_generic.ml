@@ -452,7 +452,7 @@ and m_expr a b =
   | A.Container(A.List, a2), B.Container(B.List, b2) ->
     (m_bracket (m_container_ordered_elements)) a2 b2
   | A.Tuple(a1), B.Tuple(b1) ->
-    m_container_ordered_elements a1 b1
+    (m_container_ordered_elements |> m_bracket) a1 b1
   (*e: [[Generic_vs_generic.m_expr()]] sequencable container cases *)
   | A.Container((A.Set | A.Dict) as a1, (_, a2, _)),
     B.Container((B.Set | B.Dict) as b1, (_, b2, _)) ->
@@ -515,7 +515,7 @@ and m_expr a b =
      * This should enable multiple assignments if the number of
      * variables and values are equal. *)
     >||> (match (b1, b2) with
-    | B.Tuple vars, B.Tuple vals
+    | B.Tuple (_, vars, _), B.Tuple (_, vals, _)
       when List.length vars = List.length vals ->
         let create_assigns = fun expr1 expr2 -> B.Assign (expr1, bt, expr2) in
         let mult_assigns = List.map2 create_assigns vars vals in
@@ -1680,7 +1680,7 @@ and m_pattern a b =
       (m_list m_pattern) a2 b2
       )
     | A.PatTuple(a1), B.PatTuple(b1) ->
-      (m_list m_pattern) a1 b1
+      m_bracket (m_list m_pattern) a1 b1
     | A.PatList(a1), B.PatList(b1) ->
       m_bracket (m_list m_pattern) a1 b1
     | A.PatRecord(a1), B.PatRecord(b1) ->
