@@ -227,7 +227,7 @@ let rec variable_designation (env : env) (x : CST.variable_designation) =
   | `Id tok -> identifier env tok (* identifier *)
   )
 
-let anon_choice_id (env : env) (x : CST.anon_choice_id) =
+let anon_choice_id_43fe74f (env : env) (x : CST.anon_choice_id_43fe74f) =
   (match x with
   | `Id tok -> identifier env tok (* identifier *)
   | `Disc tok -> token env tok (* "_" *)
@@ -246,11 +246,11 @@ let identifier_or_global (env : env) (x : CST.identifier_or_global) =
 
 let tuple_pattern (env : env) ((v1, v2, v3, v4) : CST.tuple_pattern) =
   let v1 = token env v1 (* "(" *) in
-  let v2 = anon_choice_id env v2 in
+  let v2 = anon_choice_id_43fe74f env v2 in
   let v3 =
     List.map (fun (v1, v2) ->
       let v1 = token env v1 (* "," *) in
-      let v2 = anon_choice_id env v2 in
+      let v2 = anon_choice_id_43fe74f env v2 in
       todo env (v1, v2)
     ) v3
   in
@@ -638,7 +638,7 @@ and argument (env : env) ((v1, v2, v3) : CST.argument) : AST.argument =
 and initializer_expression (env : env) ((v1, v2, v3, v4) : CST.initializer_expression) =
   let v1 = token env v1 (* "{" *) in
   let v2 =
-    anon_opt_cst_pat_rep_interp_alig_clause env v2
+    anon_opt_cst_pat_rep_interp_alig_clause_080fdff env v2
   in
   let v3 =
     (match v3 with
@@ -1040,7 +1040,7 @@ and switch_body (env : env) ((v1, v2, v3) : CST.switch_body) =
   let v3 = token env v3 (* "}" *) in
   todo env (v1, v2, v3)
 
-and anon_choice_param (env : env) (x : CST.anon_choice_param) =
+and anon_choice_param_ce11a32 (env : env) (x : CST.anon_choice_param_ce11a32) =
   (match x with
   | `Param x -> parameter env x
   | `Param_array (v1, v2, v3, v4) ->
@@ -1051,7 +1051,7 @@ and anon_choice_param (env : env) (x : CST.anon_choice_param) =
       todo env (v1, v2, v3, v4)
   )
 
-and anon_opt_cst_pat_rep_interp_alig_clause (env : env) (opt : CST.anon_opt_cst_pat_rep_interp_alig_clause) =
+and anon_opt_cst_pat_rep_interp_alig_clause_080fdff (env : env) (opt : CST.anon_opt_cst_pat_rep_interp_alig_clause_080fdff) =
   (match opt with
   | Some (v1, v2) ->
       let v1 = expression env v1 in
@@ -1177,7 +1177,7 @@ and statement (env : env) (x : CST.statement) =
       in
       let v6 = token env v6 (* ";" *) in
       let v7 =
-        anon_opt_cst_pat_rep_interp_alig_clause env v7
+        anon_opt_cst_pat_rep_interp_alig_clause_080fdff env v7
       in
       let v8 = token env v8 (* ")" *) in
       let v9 = statement env v9 in
@@ -1455,11 +1455,11 @@ and catch_filter_clause (env : env) ((v1, v2, v3, v4) : CST.catch_filter_clause)
   todo env (v1, v2, v3, v4)
 
 and formal_parameter_list (env : env) ((v1, v2) : CST.formal_parameter_list) =
-  let v1 = anon_choice_param env v1 in
+  let v1 = anon_choice_param_ce11a32 env v1 in
   let v2 =
     List.map (fun (v1, v2) ->
       let v1 = token env v1 (* "," *) in
-      let v2 = anon_choice_param env v2 in
+      let v2 = anon_choice_param_ce11a32 env v2 in
       todo env (v1, v2)
     ) v2
   in
@@ -1823,7 +1823,7 @@ let base_list (env : env) ((v1, v2, v3) : CST.base_list) =
   in
   todo env (v1, v2, v3)
 
-let anon_subp_rep_COMMA_subp (env : env) ((v1, v2) : CST.anon_subp_rep_COMMA_subp) =
+let anon_subp_rep_COMMA_subp_300d2c5 (env : env) ((v1, v2) : CST.anon_subp_rep_COMMA_subp_300d2c5) =
   let v1 = subpattern env v1 in
   let v2 =
     List.map (fun (v1, v2) ->
@@ -1871,7 +1871,7 @@ let _positional_pattern_clause (env : env) ((v1, v2, v3) : CST.positional_patter
   let v1 = token env v1 (* "(" *) in
   let v2 =
     (match v2 with
-    | Some x -> anon_subp_rep_COMMA_subp env x
+    | Some x -> anon_subp_rep_COMMA_subp_300d2c5 env x
     | None -> todo env ())
   in
   let v3 = token env v3 (* ")" *) in
@@ -1881,7 +1881,7 @@ let _property_pattern_clause (env : env) ((v1, v2, v3) : CST.property_pattern_cl
   let v1 = token env v1 (* "{" *) in
   let v2 =
     (match v2 with
-    | Some x -> anon_subp_rep_COMMA_subp env x
+    | Some x -> anon_subp_rep_COMMA_subp_300d2c5 env x
     | None -> todo env ())
   in
   let v3 = token env v3 (* "}" *) in

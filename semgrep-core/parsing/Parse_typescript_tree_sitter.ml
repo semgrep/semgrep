@@ -82,13 +82,13 @@ let predefined_type (env : env) (x : CST.predefined_type) =
   | `Void tok -> JS.identifier env tok (* "void" *)
   )
 
-let anon_choice_PLUSPLUS (env : env) (x : CST.anon_choice_PLUSPLUS) =
+let anon_choice_PLUSPLUS_e498e28 (env : env) (x : CST.anon_choice_PLUSPLUS_e498e28) =
   (match x with
   | `PLUSPLUS tok -> G.Incr, JS.token env tok (* "++" *)
   | `DASHDASH tok -> G.Decr, JS.token env tok (* "--" *)
   )
 
-let anon_choice_type (env : env) (x : CST.anon_choice_type) =
+let anon_choice_type_2b11f6b (env : env) (x : CST.anon_choice_type_2b11f6b) =
   (match x with
   | `Type tok -> JS.token env tok (* "type" *)
   | `Typeof tok -> JS.token env tok (* "typeof" *)
@@ -97,7 +97,7 @@ let anon_choice_type (env : env) (x : CST.anon_choice_type) =
 let automatic_semicolon (env : env) (tok : CST.automatic_semicolon) =
   JS.token env tok (* automatic_semicolon *)
 
-let anon_choice_get (env : env) (x : CST.anon_choice_get) =
+let anon_choice_get_8fb02de (env : env) (x : CST.anon_choice_get_8fb02de) =
   (match x with
   | `Get tok -> Get, JS.token env tok (* "get" *)
   | `Set tok -> Set, JS.token env tok (* "set" *)
@@ -129,7 +129,7 @@ let reserved_identifier (env : env) (x : CST.reserved_identifier) =
       )
   )
 
-let anon_choice_COMMA (env : env) (x : CST.anon_choice_COMMA) =
+let anon_choice_COMMA_5194cb4 (env : env) (x : CST.anon_choice_COMMA_5194cb4) =
   (match x with
   | `COMMA tok -> JS.token env tok (* "," *)
   | `Choice_auto_semi x -> JS.semicolon env x
@@ -139,19 +139,19 @@ let anon_choice_COMMA (env : env) (x : CST.anon_choice_COMMA) =
 let import_export_specifier (env : env) ((v1, v2, v3) : CST.import_export_specifier) =
   let _v1 =
     (match v1 with
-    | Some x -> Some (anon_choice_type env x)
+    | Some x -> Some (anon_choice_type_2b11f6b env x)
     | None -> None)
   in
   JS.import_export_specifier env (v2, v3)
 
-let rec anon_choice_type_id_ (env : env) (x : CST.anon_choice_type_id_) : ident list =
+let rec anon_choice_type_id_42c0412 (env : env) (x : CST.anon_choice_type_id_42c0412) : ident list =
   (match x with
   | `Id tok -> [JS.identifier env tok] (* identifier *)
   | `Nested_id x -> nested_identifier env x
   )
 
 and nested_identifier (env : env) ((v1, v2, v3) : CST.nested_identifier) =
-  let v1 = anon_choice_type_id_ env v1 in
+  let v1 = anon_choice_type_id_42c0412 env v1 in
   let _v2 = JS.token env v2 (* "." *) in
   let v3 = JS.identifier env v3 (* identifier *) in
   v1 @ [v3]
@@ -200,24 +200,24 @@ let literal_type (env : env) (x : CST.literal_type) : G.literal =
   )
 
 let nested_type_identifier (env : env) ((v1, v2, v3) : CST.nested_type_identifier) : ident list =
-  let v1 = anon_choice_type_id_ env v1 in
+  let v1 = anon_choice_type_id_42c0412 env v1 in
   let _v2 = JS.token env v2 (* "." *) in
   let v3 = JS.str env v3 (* identifier *) in
   v1 @ [ v3]
 
-let anon_choice_rese_id (env : env) (x : CST.anon_choice_rese_id) : ident =
+let anon_choice_rese_id_515394d (env : env) (x : CST.anon_choice_rese_id_515394d) : ident =
   (match x with
   | `Choice_decl x -> reserved_identifier env x
   | `Id tok -> JS.identifier env tok (* identifier *)
   )
 
-let anon_choice_type_id2 (env : env) (x : CST.anon_choice_type_id2) : ident =
+let anon_choice_type_id_dd17e7d (env : env) (x : CST.anon_choice_type_id_dd17e7d) : ident =
   (match x with
   | `Id tok -> JS.identifier env tok (* identifier *)
   | `Choice_decl x -> reserved_identifier env x
   )
 
-let anon_import_export_spec_rep_COMMA_import_export_spec (env : env) ((v1, v2) : CST.anon_import_export_spec_rep_COMMA_import_export_spec) =
+let anon_import_export_spec_rep_COMMA_import_export_spec_3a1421d (env : env) ((v1, v2) : CST.anon_import_export_spec_rep_COMMA_import_export_spec_3a1421d) =
   let v1 = import_export_specifier env v1 in
   let v2 =
     List.map (fun (v1, v2) ->
@@ -233,7 +233,7 @@ let export_clause (env : env) ((v1, v2, v3, v4) : CST.export_clause) =
   let v2 =
     (match v2 with
     | Some x ->
-        anon_import_export_spec_rep_COMMA_import_export_spec env x
+        anon_import_export_spec_rep_COMMA_import_export_spec_3a1421d env x
     | None -> [])
   in
   let _v3 =
@@ -249,7 +249,7 @@ let named_imports (env : env) ((v1, v2, v3, v4) : CST.named_imports) =
   let v2 =
     (match v2 with
     | Some x ->
-        anon_import_export_spec_rep_COMMA_import_export_spec env x
+        anon_import_export_spec_rep_COMMA_import_export_spec_3a1421d env x
     | None -> [])
   in
   let _v3 =
@@ -290,12 +290,12 @@ let import_clause (env : env) (x : CST.import_clause) =
   )
 
 let rec decorator_member_expression (env : env) ((v1, v2, v3) : CST.decorator_member_expression) : ident list =
-  let v1 = anon_choice_type_id env v1 in
+  let v1 = anon_choice_type_id_b8f8ced env v1 in
   let _v2 = JS.token env v2 (* "." *) in
   let v3 = JS.identifier env v3 (* identifier *) in
   v1 @ [v3]
 
-and anon_choice_type_id (env : env) (x : CST.anon_choice_type_id) : ident list =
+and anon_choice_type_id_b8f8ced (env : env) (x : CST.anon_choice_type_id_b8f8ced) : ident list =
   (match x with
   | `Id x -> [JS.identifier env x]
   | `Deco_member_exp x ->
@@ -325,7 +325,7 @@ and jsx_opening_element (env : env) ((v1, v2, v3, v4) : CST.jsx_opening_element)
     (match v2 with
      | `Choice_choice_jsx_id x -> JS.jsx_attribute_name env x
      | `Choice_id_opt_type_args (v1, v2) ->
-         let v1 = anon_choice_type_id_ env v1 in
+         let v1 = anon_choice_type_id_42c0412 env v1 in
          let id = concat_nested_identifier env v1 in
          let _v2 =
            (match v2 with
@@ -496,7 +496,7 @@ and implements_clause (env : env) ((v1, v2, v3) : CST.implements_clause) : type_
   in
   v2::v3
 
-and anon_choice_exp_ (env : env) (x : CST.anon_choice_exp_) =
+and anon_choice_exp_9818c1b (env : env) (x : CST.anon_choice_exp_9818c1b) =
   (match x with
   | `Exp x -> expression env x
   | `Spread_elem x ->
@@ -642,7 +642,7 @@ and binary_expression (env : env) (x : CST.binary_expression) : expr =
 and arguments (env : env) ((v1, v2, v3) : CST.arguments) : arguments =
   let v1 = JS.token env v1 (* "(" *) in
   let v2 =
-    anon_opt_opt_choice_exp_rep_COMMA_opt_choice_exp env v2
+    anon_opt_opt_choice_exp_rep_COMMA_opt_choice_exp_208ebb4 env v2
   in
   let v3 = JS.token env v3 (* ")" *) in
   v1, v2, v3
@@ -670,7 +670,7 @@ and generator_function_declaration (env : env) ((v1, v2, v3, v4, v5, v6, v7) : C
      v_init = Some (Fun (f, None)); v_resolved = ref NotResolved }
 
 and variable_declarator (env : env) ((v1, v2, v3) : CST.variable_declarator) =
-  let v1 = anon_choice_type_id3 env v1 in
+  let v1 = anon_choice_type_id_21dd422 env v1 in
   let v2 =
     (match v2 with
     | Some x -> Some (type_annotation env x |> snd)
@@ -776,7 +776,7 @@ and type_parameter (env : env) ((v1, v2, v3) : CST.type_parameter) : G.type_para
   v1, []
 
 and member_expression (env : env) ((v1, v2, v3) : CST.member_expression) : expr =
-  let v1 = anon_choice_exp env v1 in
+  let v1 = anon_choice_exp_6ded967 env v1 in
   (* TODO: distinguish optional chaining "?." from a simple access "." *)
   let v2 =
     match v2 with
@@ -786,7 +786,7 @@ and member_expression (env : env) ((v1, v2, v3) : CST.member_expression) : expr 
   let v3 = JS.identifier env v3 (* identifier *) in
   ObjAccess (v1, v2, PN v3)
 
-and anon_choice_pair (env : env) (x : CST.anon_choice_pair) : property =
+and anon_choice_pair_bc93fa1 (env : env) (x : CST.anon_choice_pair_bc93fa1) : property =
   (match x with
   | `Pair (v1, v2, v3) ->
       let v1 = property_name env v1 in
@@ -801,7 +801,7 @@ and anon_choice_pair (env : env) (x : CST.anon_choice_pair) : property =
   | `Assign_pat (v1, v2, v3) ->
       let v1 =
         (match v1 with
-        | `Choice_choice_decl x -> anon_choice_rese_id env x |> JS.idexp
+        | `Choice_choice_decl x -> anon_choice_rese_id_515394d env x |> JS.idexp
         | `Choice_obj x -> destructuring_pattern env x
         )
       in
@@ -811,13 +811,13 @@ and anon_choice_pair (env : env) (x : CST.anon_choice_pair) : property =
 
   (* { x } shorthand for { x: x }, like in OCaml *)
   | `Choice_id x ->
-      let id = anon_choice_type_id2 env x in
+      let id = anon_choice_type_id_dd17e7d env x in
       Field {fld_name = PN id; fld_attrs = []; fld_type = None;
              fld_body = Some (JS.idexp id) }
   )
 
 and subscript_expression (env : env) ((v1, v2, v3, v4, v5) : CST.subscript_expression) : expr =
-  let v1 = anon_choice_exp env v1 in
+  let v1 = anon_choice_exp_6ded967 env v1 in
   let _v2 =
     match v2 with
     | None -> None
@@ -881,7 +881,7 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
       let v2, tret =
         (match v2 with
         | `Choice_choice_decl x ->
-            let id = anon_choice_rese_id env x in
+            let id = anon_choice_rese_id_515394d env x in
             [ParamClassic (mk_param id)], None
         | `Call_sign x ->
                 let (_tparams, (params, tret)) = call_signature env x in
@@ -990,7 +990,7 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
       )
   )
 
-and anon_choice_prop_name (env : env) (x : CST.anon_choice_prop_name) =
+and anon_choice_prop_name_6cc9e4b (env : env) (x : CST.anon_choice_prop_name_6cc9e4b) =
   (match x with
   | `Prop_name x -> property_name env x, None
   | `Enum_assign (v1, v2) ->
@@ -1028,7 +1028,7 @@ and catch_clause (env : env) ((v1, v2, v3) : CST.catch_clause) =
     (match v2 with
     | Some (v1bis, v2, v3bis) ->
         let _v1 = JS.token env v1bis (* "(" *) in
-        let v2 = anon_choice_type_id3 env v2 in
+        let v2 = anon_choice_type_id_21dd422 env v2 in
         let _v3 = JS.token env v3bis (* ")" *) in
         let pat =
           match v2 with
@@ -1059,17 +1059,17 @@ and object_type (env : env) ((v1, v2, v3) : CST.object_type) =
               )
           | None -> None)
         in
-        let v2 = anon_choice_export_stmt env v2 in
+        let v2 = anon_choice_export_stmt_f90d83f env v2 in
         let v3 =
           List.map (fun (v1, v2) ->
-            let _v1 = anon_choice_COMMA env v1 in
-            let v2 = anon_choice_export_stmt env v2 in
+            let _v1 = anon_choice_COMMA_5194cb4 env v1 in
+            let v2 = anon_choice_export_stmt_f90d83f env v2 in
             v2
           ) v3
         in
         let _v4 =
           (match v4 with
-          | Some x -> Some (anon_choice_COMMA env x)
+          | Some x -> Some (anon_choice_COMMA_5194cb4 env x)
           | None -> None)
         in
         v2::v3
@@ -1083,7 +1083,7 @@ and object_type (env : env) ((v1, v2, v3) : CST.object_type) =
   in
   v1, v2, v3
 
-and anon_choice_type_id3 (env : env) (x : CST.anon_choice_type_id3) =
+and anon_choice_type_id_21dd422 (env : env) (x : CST.anon_choice_type_id_21dd422) =
   (match x with
   | `Id tok -> Left (JS.identifier env tok (* identifier *))
   | `Choice_obj x -> Right (destructuring_pattern env x)
@@ -1125,15 +1125,15 @@ and internal_module (env : env) ((v1, v2) : CST.internal_module) =
   let v2 = module__ env v2 in
   v2
 
-and anon_opt_opt_choice_exp_rep_COMMA_opt_choice_exp (env : env) (opt : CST.anon_opt_opt_choice_exp_rep_COMMA_opt_choice_exp) =
+and anon_opt_opt_choice_exp_rep_COMMA_opt_choice_exp_208ebb4 (env : env) (opt : CST.anon_opt_opt_choice_exp_rep_COMMA_opt_choice_exp_208ebb4) =
   (match opt with
   | Some (v1, v2) ->
       let v1 =
         (match v1 with
-        | Some x -> [anon_choice_exp_ env x]
+        | Some x -> [anon_choice_exp_9818c1b env x]
         | None -> [])
       in
-      let v2 = anon_rep_COMMA_opt_choice_exp env v2 in
+      let v2 = anon_rep_COMMA_opt_choice_exp_ca698a5 env v2 in
       v1 @ v2
   | None -> [])
 
@@ -1149,7 +1149,7 @@ and for_header (env : env) ((v1, v2, v3, v4, v5, v6) : CST.for_header) =
         )
     | None -> None)
   in
-  let v3 = anon_choice_paren_exp env v3 in
+  let v3 = anon_choice_paren_exp_8725fb4 env v3 in
   let var_or_expr =
     match v2 with
     | None -> Right v3
@@ -1167,7 +1167,7 @@ and for_header (env : env) ((v1, v2, v3, v4, v5, v6) : CST.for_header) =
   in
   v4
 
-and anon_choice_exp (env : env) (x : CST.anon_choice_exp) : expr =
+and anon_choice_exp_6ded967 (env : env) (x : CST.anon_choice_exp_6ded967) : expr =
   match x with
   | `Exp x -> expression env x
   | `Choice_this x -> primary_expression env x
@@ -1228,7 +1228,7 @@ and expression (env : env) (x : CST.expression) : expr =
       Xml xml
 
   | `Assign_exp (v1, v2, v3) ->
-      let v1 = anon_choice_paren_exp env v1 in
+      let v1 = anon_choice_paren_exp_8725fb4 env v1 in
       let v2 = JS.token env v2 (* "=" *) in
       let v3 = expression env v3 in
       Assign (v1, v2, v3)
@@ -1324,7 +1324,7 @@ and expression (env : env) (x : CST.expression) : expr =
       v2
   )
 
-and anon_choice_paren_exp (env : env) (x : CST.anon_choice_paren_exp) =
+and anon_choice_paren_exp_8725fb4 (env : env) (x : CST.anon_choice_paren_exp_8725fb4) =
   (match x with
   | `Paren_exp x -> parenthesized_expression env x
   | `Choice_member_exp x -> lhs_expression env x
@@ -1385,7 +1385,7 @@ and primary_type (env : env) (x : CST.primary_type) : type_ =
       G.TyQuestion (v2, v1)
   | `Type_query (v1, v2) ->
       let v1 = JS.token env v1 (* "typeof" *) in
-      let v2 = anon_choice_type_id_ env v2 in
+      let v2 = anon_choice_type_id_42c0412 env v2 in
       G.OtherType (G.OT_Todo, [G.TodoK ("IsType", v1); G.Di v2])
   | `Index_type_query (v1, v2) ->
       let v1 = JS.token env v1 (* "keyof" *) in
@@ -1418,7 +1418,7 @@ and index_signature (env : env) ((v1, v2, v3, v4) : CST.index_signature) =
   let v2 =
     (match v2 with
     | `Choice_id_COLON_pred_type (v1, v2, v3) ->
-        let v1 = anon_choice_type_id2 env v1 in
+        let v1 = anon_choice_type_id_dd17e7d env v1 in
         let v2 = JS.token env v2 (* ":" *) in
         let v3 = predefined_type env v3 in
         G.OtherType (G.OT_Todo, [G.TodoK ("IndexKey", v2); G.I v1; G.I v3])
@@ -1468,13 +1468,13 @@ and formal_parameters (env : env) ((v1, v2, v3) : CST.formal_parameters) : param
     (match v2 with
     | Some (v1, v2, v3, v4) ->
         let v1 = List.map (decorator env) v1 in
-        let v2 = anon_choice_requ_param env v2 in
+        let v2 = anon_choice_requ_param_1bd7580 env v2 in
         let p = add_attributes_param v1 v2 in
         let ps =
           List.map (fun (v1, v2, v3) ->
             let _v1 = JS.token env v1 (* "," *) in
             let v2 = List.map (decorator env) v2 in
-            let v3 = anon_choice_requ_param env v3 in
+            let v3 = anon_choice_requ_param_1bd7580 env v3 in
             add_attributes_param v2 v3
           ) v3
         in
@@ -1527,7 +1527,7 @@ and statement (env : env) (x : CST.statement) : stmt list =
       let tok = v1 in
       let _v2 = (* 'type' or 'typeof' *)
         (match v2 with
-        | Some x -> Some (anon_choice_type env x)
+        | Some x -> Some (anon_choice_type_2b11f6b env x)
         | None -> None)
       in
       let v3 =
@@ -1689,7 +1689,7 @@ and statement (env : env) (x : CST.statement) : stmt list =
   | `Empty_stmt tok ->
       [JS.empty_stmt env tok (* ";" *)]
   | `Labe_stmt (v1, v2, v3) ->
-      let v1 = anon_choice_type_id2 env v1 in
+      let v1 = anon_choice_type_id_dd17e7d env v1 in
       let _v2 = JS.token env v2 (* ":" *) in
       let v3 = statement1 env v3 in
       [Label (v1, v3)]
@@ -1718,7 +1718,7 @@ and method_definition (env : env) ((v1, v2, v3, v4, v5, v6, v7, v8, v9) : CST.me
   in
   let v5 =
     (match v5 with
-    | Some x -> [anon_choice_get env x]
+    | Some x -> [anon_choice_get_8fb02de env x]
     | None -> [])
   in
   let v6 = property_name env v6 in
@@ -1765,7 +1765,7 @@ and class_declaration (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.class_decl
 and array_ (env : env) ((v1, v2, v3) : CST.array_) =
   let v1 = JS.token env v1 (* "[" *) in
   let v2 =
-    anon_opt_opt_choice_exp_rep_COMMA_opt_choice_exp env v2
+    anon_opt_opt_choice_exp_rep_COMMA_opt_choice_exp_208ebb4 env v2
   in
   let v3 = JS.token env v3 (* "]" *) in
   Arr (v1, v2, v3)
@@ -1858,19 +1858,19 @@ and type_annotation (env : env) ((v1, v2) : CST.type_annotation) =
   let v2 = type_ env v2 in
   v1, v2
 
-and anon_rep_COMMA_opt_choice_exp (env : env) (xs : CST.anon_rep_COMMA_opt_choice_exp) =
+and anon_rep_COMMA_opt_choice_exp_ca698a5 (env : env) (xs : CST.anon_rep_COMMA_opt_choice_exp_ca698a5) =
   List.filter_map (fun (v1, v2) ->
     let _v1 = JS.token env v1 (* "," *) in
     let v2 =
       (match v2 with
-      | Some x -> Some (anon_choice_exp_ env x)
+      | Some x -> Some (anon_choice_exp_9818c1b env x)
       | None -> None)
     in
     v2
   ) xs
 
 and decorator_call_expression (env : env) ((v1, v2) : CST.decorator_call_expression) =
-  let v1 = anon_choice_type_id env v1 in
+  let v1 = anon_choice_type_id_b8f8ced env v1 in
   let v2 = arguments env v2 in
   v1, v2
 
@@ -1878,15 +1878,15 @@ and update_expression (env : env) (x : CST.update_expression) =
   (match x with
   | `Exp_choice_PLUSPLUS (v1, v2) ->
       let v1 = expression env v1 in
-      let op, t = anon_choice_PLUSPLUS env v2 in
+      let op, t = anon_choice_PLUSPLUS_e498e28 env v2 in
       Apply (IdSpecial (IncrDecr (op, G.Postfix), t), fb [v1])
   | `Choice_PLUSPLUS_exp (v1, v2) ->
-      let op, t = anon_choice_PLUSPLUS env v1 in
+      let op, t = anon_choice_PLUSPLUS_e498e28 env v1 in
       let v2 = expression env v2 in
       Apply (IdSpecial (IncrDecr (op, G.Prefix), t), fb [v2])
   )
 
-and anon_choice_export_stmt (env : env) (x : CST.anon_choice_export_stmt) =
+and anon_choice_export_stmt_f90d83f (env : env) (x : CST.anon_choice_export_stmt_f90d83f) =
   (match x with
   | `Export_stmt x ->
         let xs = export_statement env x in
@@ -2019,10 +2019,10 @@ and public_field_definition (env : env) ((v1, v2, v3, v4, v5, v6) : CST.public_f
   let attrs = v2 |> List.map attr in
   Field {fld_name = v3; fld_attrs = attrs; fld_type = v5; fld_body = v6 }
 
-and anon_choice_choice_type_id (env : env) (x : CST.anon_choice_choice_type_id): parent =
+and anon_choice_choice_type_id_e16f95c (env : env) (x : CST.anon_choice_choice_type_id_e16f95c): parent =
   (match x with
   | `Choice_id x -> (* type to be extended *)
-      let name = anon_choice_type_id4 env x in
+      let name = anon_choice_type_id_a85f573 env x in
       Right (G.TyName name)
   | `Exp x -> (* class expression to be extended *)
       Left (expression env x)
@@ -2049,18 +2049,18 @@ and lexical_declaration (env : env) ((v1, v2, v3, v4) : CST.lexical_declaration)
 and extends_clause (env : env) ((v1, v2, v3) : CST.extends_clause)
   : parent list =
   let _v1 = JS.token env v1 (* "extends" *) in
-  let v2 = anon_choice_choice_type_id env v2 in
+  let v2 = anon_choice_choice_type_id_e16f95c env v2 in
   let v3 =
     List.map (fun (v1, v2) ->
       let _v1 = JS.token env v1 (* "," *) in
-      let v2 = anon_choice_choice_type_id env v2 in
+      let v2 = anon_choice_choice_type_id_e16f95c env v2 in
       v2
     ) v3
   in
   v2::v3
 
 (* This function is similar to 'formal_parameter' in the js grammar. *)
-and anon_choice_requ_param (env : env) (x : CST.anon_choice_requ_param) : parameter =
+and anon_choice_requ_param_1bd7580 (env : env) (x : CST.anon_choice_requ_param_1bd7580) : parameter =
   (match x with
   | `Requ_param (v1, v2, v3) ->
       let v1 = parameter_name env v1 in
@@ -2118,11 +2118,11 @@ and enum_body (env : env) ((v1, v2, v3) : CST.enum_body) =
   let v2 =
     (match v2 with
     | Some (v1, v2, v3) ->
-        let v1 = anon_choice_prop_name env v1 in
+        let v1 = anon_choice_prop_name_6cc9e4b env v1 in
         let v2 =
           List.map (fun (v1, v2) ->
             let _v1 = JS.token env v1 (* "," *) in
-            let v2 = anon_choice_prop_name env v2 in
+            let v2 = anon_choice_prop_name_6cc9e4b env v2 in
             v2
           ) v2
         in
@@ -2156,7 +2156,7 @@ and class_heritage (env : env) (x : CST.class_heritage)
 and property_name (env : env) (x : CST.property_name) =
   (match x with
   | `Choice_id x ->
-      let id = anon_choice_type_id2 env x in
+      let id = anon_choice_type_id_dd17e7d env x in
       PN id
   | `Str x ->
       let s = JS.string_ env x in
@@ -2198,7 +2198,7 @@ and abstract_method_signature (env : env) ((v1, v2, v3, v4, v5, v6) : CST.abstra
   let v2 = [Abstract, JS.token env v2] (* "abstract" *) in
   let v3 =
     (match v3 with
-    | Some x -> [anon_choice_get env x]
+    | Some x -> [anon_choice_get_8fb02de env x]
     | None -> [])
   in
   let v4 = property_name env v4 in
@@ -2239,7 +2239,7 @@ and object_ (env : env) ((v1, v2, v3) : CST.object_) : obj_ =
     | Some (v1, v2) ->
         let v1 =
           (match v1 with
-          | Some x -> [anon_choice_pair env x]
+          | Some x -> [anon_choice_pair_bc93fa1 env x]
           | None -> [])
         in
         let v2 =
@@ -2247,7 +2247,7 @@ and object_ (env : env) ((v1, v2, v3) : CST.object_) : obj_ =
             let _v1 = JS.token env v1 (* "," *) in
             let v2 =
               (match v2 with
-              | Some x -> Some (anon_choice_pair env x)
+              | Some x -> Some (anon_choice_pair_bc93fa1 env x)
               | None -> None)
             in
             v2
@@ -2400,7 +2400,7 @@ and function_declaration (env : env) ((v1, v2, v3, v4, v5, v6) : CST.function_de
   { v_name = v3; v_kind = Const, v2; v_type = None;
      v_init = Some (Fun (f, None)); v_resolved = ref NotResolved }
 
-and anon_choice_type_id4 (env : env) (x : CST.anon_choice_type_id4) : G.name =
+and anon_choice_type_id_a85f573 (env : env) (x : CST.anon_choice_type_id_a85f573) : G.name =
   (match x with
   | `Id tok -> G.name_of_ids [JS.str env tok] (* identifier *)
   | `Nested_type_id x -> G.name_of_ids (nested_type_identifier env x)
@@ -2436,7 +2436,7 @@ and method_signature (env : env) ((v1, v2, v3, v4, v5, v6, v7, v8) : CST.method_
   in
   let v5 =
     (match v5 with
-    | Some x -> [anon_choice_get env x]
+    | Some x -> [anon_choice_get_8fb02de env x]
     | None -> [])
   in
   let v6 = property_name env v6 in
@@ -2562,7 +2562,7 @@ and declaration (env : env) (x : CST.declaration) : entity list =
       let _v1 = JS.token env v1 (* "import" *) in
       let _v2 = JS.identifier env v2 (* identifier *) in
       let _v3 = JS.token env v3 (* "=" *) in
-      let _v4 = anon_choice_type_id_ env v4 in
+      let _v4 = anon_choice_type_id_42c0412 env v4 in
       let _v5 = JS.semicolon env v5 in
       [] (* TODO *)
 
