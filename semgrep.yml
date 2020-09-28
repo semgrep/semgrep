@@ -42,9 +42,10 @@ rules:
     languages: [python]
     severity: ERROR
 
-  - id: no-exit-in-semgrep
-    pattern: |
-      exit $X
-    message: do not use directly exit. raise instead UnixExit $X
-    languages: [ocaml]
-    severity: ERROR
+# not ready yet
+#  - id: no-exit-in-semgrep
+#    pattern: |
+#      exit $X
+#    message: do not use directly exit. raise instead UnixExit $X
+#    languages: [ocaml]
+#    severity: ERROR
