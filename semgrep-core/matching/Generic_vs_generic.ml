@@ -238,14 +238,28 @@ let rec m_name a b =
     )
 (*e: function [[Generic_vs_generic.m_name]] *)
 
+and m_type_option_with_hook idb taopt tbopt =
+  match taopt, tbopt with
+  | Some ta, Some tb ->
+     m_type_ ta tb
+  | Some ta, None ->
+     (match !Hooks.get_type idb with
+     | Some tb -> m_type_ ta tb
+     | None -> fail ()
+     )
+  (* less-is-ok:, like m_option_none_can_match_some *)
+  | None, _ -> return ()
+
 (*s: function [[Generic_vs_generic.m_ident_and_id_info_add_in_env_Expr]] *)
 and m_ident_and_id_info_add_in_env_Expr (a1, a2) (b1, b2) =
   (* metavar: *)
   match a1, b1 with
   | (str, tok), b when MV.is_metavar_name str ->
+     (* a bit OCaml specific, cos only ml_to_generic tags id_type in pattern *)
+      m_type_option_with_hook b1 !(a2.A.id_type) !(b2.B.id_type) >>= (fun () ->
       m_id_info a2 b2 >>= (fun () ->
         envf (str, tok) (B.E (B.Id (b, b2))) (* B.E here, not B.I *)
-     )
+     ))
   (* same code than for m_ident *)
   (*s: [[Generic_vs_generic.m_ident()]] regexp case *)
   (* in some languages such as Javascript certain entities like
@@ -895,10 +909,10 @@ and m_compatible_type typed_mvar t e =
   | A.TyName (("float", _), _), B.L (B.Float _) -> envf typed_mvar (B.E e)
   | A.TyName (("str", _), _), B.L (B.String _) -> envf typed_mvar (B.E e)
   (* for matching ids *)
-  | t1, B.Id (_, {B.id_type; _}) ->
-      (match !id_type with Some (t2) -> m_type_ t1 t2
-                         | _ -> fail ())
-
+  | ta, ( B.Id (idb, {B.id_type=tb; _})
+        | B.IdQualified ((idb, _), {B.id_type=tb;_})
+        ) ->
+      m_type_option_with_hook idb (Some ta) !tb
   | _ -> fail ()
 
 (*s: function [[Generic_vs_generic.m_list__m_body]] *)
@@ -1731,9 +1745,16 @@ and m_other_pattern_operator = m_other_xxx
 and m_definition a b =
   match a, b with
   | (a1, a2), (b1, b2) ->
-    m_entity a1 b1 >>= (fun () ->
-    m_definition_kind a2 b2
-    )
+    (* subtle: if you change the order here, so that we execute m_entity
+     * only when the definition_kind matches, this helps to avoid
+     * calls to ocamllsp when you put a type constraint on a function.
+     * Indeed, we will call ocamllsp only for FuncDef.
+     * This also avoids to call ocamllsp on type definition entities,
+     * which can leads to errors in type_of_string.
+     *)
+    let* () = m_entity a1 b1 in
+    let* () = m_definition_kind a2 b2 in
+    return ()
 (*e: function [[Generic_vs_generic.m_definition]] *)
 
 (*s: function [[Generic_vs_generic.m_entity]] *)
@@ -1866,7 +1887,7 @@ and m_parameter_classic a b =
     ->
      m_ident_and_id_info_add_in_env_Expr (a1, a5) (b1, b5) >>= (fun () ->
      (m_option m_expr) a2 b2 >>= (fun () ->
-     (m_option_none_can_match_some m_type_) a3 b3 >>= (fun () ->
+     (m_type_option_with_hook b1) a3 b3 >>= (fun () ->
      (m_list_in_any_order ~less_is_ok:true m_attribute a4 b4)
      )))
   (*e: [[Generic_vs_generic.m_parameter_classic]] metavariable case *)
