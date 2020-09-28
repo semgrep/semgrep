@@ -3,6 +3,7 @@
  (wrapped false)
  (libraries
    ounit2
+   ; note that dune-glob currently conflicts with the lsp package
    dune-glob
    commons
  )
