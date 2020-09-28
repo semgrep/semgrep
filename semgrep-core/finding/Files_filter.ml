@@ -15,6 +15,11 @@
  * license.txt for more details.
  *)
 (*e: pad/r2c copyright *)
+module Glob = Dune_glob__Glob
+
+(* TODO when linking with lsp package, we get some linking conflicts
+ * because of the use of Dune_glob, so here I've added some
+ * fake temporary module
 
 module Glob = struct
  (* TODO: Dune_glob__Glob this conflict with ocaml-lsp
@@ -25,6 +30,7 @@ module Glob = struct
  let test _a _b = true
       (* failwith "Files_filter.test: TODO" *)
  end
+ *)
 
 (*****************************************************************************)
 (* Prelude *)

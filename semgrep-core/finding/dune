@@ -3,7 +3,8 @@
  (wrapped false)
  (libraries
    ounit2
-;   dune-glob
+   ; note that dune-glob currently conflicts with the lsp package
+   dune-glob
    commons
  )
  (preprocess (pps ppx_profiling))
