@@ -225,6 +225,18 @@ let lint_regression_tests =
   )
 (*e: constant [[Test.lint_regression_tests]] *)
 
+let eval_regression_tests = 
+  "eval regression resting" >:: (fun () ->
+      let dir = Filename.concat tests_path "EVAL" in
+      let files = Common2.glob (spf "%s/*.json" dir) in
+      files |> List.iter (fun file ->
+        let (env, code) = Eval_generic.parse_json file in
+        let res = Eval_generic.eval env code in
+        OUnit.assert_equal ~msg:"it should evaluate to true"
+          (Eval_generic.Bool true) res
+      )
+  )
+
 (*****************************************************************************)
 (* Main action *)
 (*****************************************************************************)
@@ -247,6 +259,7 @@ let test regexp =
       (* TODO Unit_matcher.spatch_unittest ~xxx *)
       (* TODO Unit_matcher_php.unittest; (* sgrep, spatch, refactoring, unparsing *) *)
       lint_regression_tests;
+      eval_regression_tests;
       Unit_files.unittest;
     ]
   in
