@@ -1,10 +1,6 @@
 (*s: semgrep/core/Flag_semgrep.ml *)
 (*s: constant [[Flag_semgrep.verbose]] *)
-(* unused for now *)
-let _verbose = ref false
 (*e: constant [[Flag_semgrep.verbose]] *)
-
-let debug = ref false
 
 (*s: constant [[Flag_semgrep.debug]] *)
 (* note that this will stop at the first fail(), but if you restrict

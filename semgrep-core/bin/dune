@@ -30,6 +30,7 @@
     tree-sitter-lang.java
 
     ; internal deps
+    semgrep_utils
     semgrep_core
     semgrep_fuzzy
     semgrep_finding

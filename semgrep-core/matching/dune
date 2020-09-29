@@ -7,9 +7,9 @@
    pfff-config
    pfff-h_program-lang
    pfff-lang_GENERIC pfff-lang_GENERIC-analyze
-   pfff-lang_js pfff-lang_js-analyze
+   pfff-lang_js pfff-lang_js-analyze  ; for Ast_js.default_entity
 
-
+   semgrep_utils
    semgrep_core
    semgrep_typing
  )

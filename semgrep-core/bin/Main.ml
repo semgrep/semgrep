@@ -21,7 +21,7 @@ module J = JSON
 (*****************************************************************************)
 (* A semantic grep. https://semgrep.dev/
  * Right now there is good support for Python, Javascript (and JSON), Java,
- * Go, and C and partial support for PHP, C++, and OCaml.
+ * Go, and C and partial support for Typescript, Ruby, PHP, C++, and OCaml.
  *
  * opti: git grep foo | xargs semgrep -e 'foo(...)'
  *
@@ -54,6 +54,9 @@ module J = JSON
  *)
 let env_debug = "SEMGREP_CORE_DEBUG"
 let env_profile = "SEMGREP_CORE_PROFILE"
+
+let logger = Logging.get_logger [__MODULE__]
+let log_config_file = ref "log_config.json"
 
 (* see also verbose/... flags in Flag_semgrep.ml *)
 (* to test things *)
@@ -306,7 +309,7 @@ let cache_computation file cache_file_of_file f =
       let file_cache = cache_file_of_file file in
       if Sys.file_exists file_cache && filemtime file_cache >= filemtime file
       then begin
-        if !Flag.debug then pr2 ("using cache: " ^ file_cache);
+        logger#info "using cache: %s" file_cache;
         let (version, file2, res) = Common2.get_value file_cache in
         if version <> Version.version
         then failwith (spf "Version mismatch! Clean the cache file %s"
@@ -349,7 +352,7 @@ let timeout_function = fun f ->
   let timeout = !timeout in
   if timeout <= 0.
   then f ()
-  else Common.timeout_function_float ~verbose:!Flag.debug timeout f
+  else Common.timeout_function_float ~verbose:false timeout f
 
 (* from https://discuss.ocaml.org/t/todays-trick-memory-limits-with-gc-alarms/4431 *)
 let run_with_memory_limit limit_mb f =
@@ -361,8 +364,7 @@ let run_with_memory_limit limit_mb f =
       let mem = (Gc.quick_stat ()).Gc.heap_words in
       if mem > limit / (Sys.word_size / 8)
       then begin
-          if !Flag.debug
-          then pr2 (spf "maxout allocated memory: %d" (mem*(Sys.word_size/8)));
+          logger#info "maxout allocated memory: %d" (mem*(Sys.word_size/8));
           raise Out_of_memory
         end
     in
@@ -562,9 +564,8 @@ let get_final_files xs =
 let iter_generic_ast_of_files_and_get_matches_and_exn_to_errors f files =
   let matches_and_errors =
     files |> map (fun file ->
-       if !Flag.debug then pr2 (spf "Analyzing %s" file);
+       logger#info "Analyzing %s" file;
        let lang = lang_of_string !lang in
-       if !Flag.debug then pr2 (spf "PARSING: %s" file);
        try
          run_with_memory_limit !max_memory (fun () ->
          timeout_function (fun () ->
@@ -617,8 +618,7 @@ let print_matches_and_errors files matches errs =
      "stats", stats
   ] in
   let s = J.string_of_json json in
-  if !Flag.debug
-  then pr2 ("returned JSON: "^ s);
+  logger#debug "returned JSON: %s" s;
   pr s
 (*e: function [[Main_semgrep_core.print_matches_and_errors]] *)
 
@@ -663,8 +663,7 @@ let semgrep_with_one_pattern xs =
 
   files |> List.iter (fun file ->
     (*s: [[Main_semgrep_core.semgrep_with_one_pattern()]] if [[verbose]] *)
-    if !Flag.debug
-    then pr2 (spf "processing: %s" file);
+    logger#info "processing: %s" file;
     (*e: [[Main_semgrep_core.semgrep_with_one_pattern()]] if [[verbose]] *)
     let process file =
         timeout_function (fun () ->
@@ -700,7 +699,7 @@ let semgrep_with_one_pattern xs =
  *)
 let semgrep_with_rules rules_file xs =
   (*s: [[Main_semgrep_core.semgrep_with_rules()]] if [[verbose]] *)
-  if !Flag.debug then pr2 (spf "Parsing %s" rules_file);
+  logger#info "Parsing %s" rules_file;
   (*e: [[Main_semgrep_core.semgrep_with_rules()]] if [[verbose]] *)
   let rules = Parse_rules.parse rules_file in
   let files = get_final_files xs in
@@ -736,7 +735,7 @@ module TR = Tainting_rule
 
 (*s: function [[Main_semgrep_core.tainting_with_rules]] *)
 let tainting_with_rules rules_file xs =
-  if !Flag.debug then pr2 (spf "Parsing %s" rules_file);
+  logger#info "Parsing %s" rules_file;
   let rules = Parse_tainting_rules.parse rules_file in
 
   let files = get_final_files xs in
@@ -912,8 +911,7 @@ let all_actions () = [
   Common.mk_action_2_arg Test_synthesizing.synthesize_patterns;
 
   "-test_parse_lang", " <files or dirs>",
-  Common.mk_action_n_arg
-    (Test_parsing.test_parse_lang !Flag.debug !lang get_final_files);
+  Common.mk_action_n_arg (Test_parsing.test_parse_lang !lang get_final_files);
   "-dump_tree_sitter_cst", " <file>",
   Common.mk_action_1_arg Test_parsing.dump_tree_sitter_cst;
   "-dump_ast_pfff", " <file>",
@@ -994,10 +992,10 @@ let options () =
     " do not filter rules";
     "-tree_sitter_only", Arg.Set Flag.tree_sitter_only,
     " only use tree-sitter-based parsers";
-    "-debug", Arg.Set Flag.debug,
-    " add debugging information in the output (tracing)";
     "-debug_matching", Arg.Set Flag.debug_matching,
-    " add more debugging information on matching";
+    " raise an exception at the first match failure";
+    "-log_config_file", Arg.Set_string log_config_file,
+    " <file> logging configuration file";
     "-test", Arg.Set test,
     " (internal) set test context";
     "-target_file", Arg.Set_string target_file,
@@ -1099,14 +1097,17 @@ let main () =
   end
   in
 
-  if !Flag.debug then begin
-    pr2 "Debug mode On";
-    pr2 (spf "Executed as: %s" (Sys.argv|>Array.to_list|> String.concat " "));
-    pr2 version;
+  if Sys.file_exists !log_config_file
+  then begin
+      Logging.load_config_file !log_config_file;
+      logger#info "loaded %s" !log_config_file;
   end;
+
+  logger#info "Executed as: %s" (Sys.argv|>Array.to_list|> String.concat " ");
+  logger#info "Version: %s" version;
   if !profile then begin
-    pr2 "Profile mode On";
-    pr2 "disabling -j when in profiling mode";
+    logger#info "Profile mode On";
+    logger#info "disabling -j when in profiling mode";
     ncores := 1;
   end;
 
@@ -1136,7 +1137,8 @@ let main () =
                semgrep_with_rules !rules_file (x::xs);
                if !profile then save_rules_file_in_tmp ();
             with exn -> begin
-             if !Flag.debug then save_rules_file_in_tmp ();
+             logger#debug "exn before exit %s" (Common.exn_to_s exn);
+             (* if !Flag.debug then save_rules_file_in_tmp (); *)
              pr (format_output_exception exn);
              exit 2
              end
