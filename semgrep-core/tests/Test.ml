@@ -199,7 +199,7 @@ let lint_regression_tests =
   let lang = Lang.Python in
 
   let test_files = [
-   p "lint/stupid.py";
+   p "OTHER/lint/stupid.py";
   ] in
   
   (* expected *)
@@ -227,7 +227,7 @@ let lint_regression_tests =
 
 let eval_regression_tests = 
   "eval regression resting" >:: (fun () ->
-      let dir = Filename.concat tests_path "EVAL" in
+      let dir = Filename.concat tests_path "OTHER/EVAL" in
       let files = Common2.glob (spf "%s/*.json" dir) in
       files |> List.iter (fun file ->
         let (env, code) = Eval_generic.parse_json file in
