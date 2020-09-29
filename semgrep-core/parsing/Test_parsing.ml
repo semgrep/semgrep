@@ -16,6 +16,8 @@ open Common
 module PI = Parse_info
 module G = AST_generic
 
+let logger = Logging.get_logger [__MODULE__]
+
 (* less: could infer lang from filename *)
 let dump_tree_sitter_cst_lang lang file =
    match lang with
@@ -59,7 +61,7 @@ let dump_ast_pfff file =
 (* mostly a copy paste of Test_parsing_ruby.test_parse in pfff but using
  * the tree-sitter Ruby parser instead.
  *)
-let test_parse_lang verbose lang get_final_files xs =
+let test_parse_lang lang get_final_files xs =
   let xs = List.map Common.fullpath xs in
   let fullxs = get_final_files xs
       |> Skip_code.filter_files_if_skip_list ~root:xs
@@ -73,7 +75,7 @@ let test_parse_lang verbose lang get_final_files xs =
   let stat_list = ref [] in
   fullxs |> Console.progress (fun k -> List.iter (fun file ->
     k();
-    if verbose then pr2 (spf "processing %s" file);
+    logger#info "processing %s" file;
     let stat =
     (try
        if true
