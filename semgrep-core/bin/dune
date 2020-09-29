@@ -6,6 +6,7 @@
     parmap
     ppx_deriving.runtime
     uucp uutf
+    dune-build-info
 
     ; pfff deps
     commons commons_core commons_ocollection
