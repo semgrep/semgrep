@@ -174,5 +174,6 @@ let eval_json_file file =
    | NotHandled e ->
       logger#sdebug (G.show_any (G.E e));
       print_result None
-   | _exn ->
-    print_result None
+   | exn ->
+      logger#debug "exn: %s" (Common.exn_to_s exn);
+      print_result None
