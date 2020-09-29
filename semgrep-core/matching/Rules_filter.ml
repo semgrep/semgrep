@@ -12,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-open Common
 module Flag = Flag_semgrep
 module R = Rule
 module V = Visitor_AST
@@ -40,6 +39,7 @@ open AST_generic
  *  - we could even avoid parsing the file by using a lazy AST
  *    in Semgrep_generic.check.
  *)
+let logger = Logging.get_logger [__MODULE__]
 
 (*****************************************************************************)
 (* Helpers  *)
@@ -144,8 +144,8 @@ let filter_rules_relevant_to_file_using_regexp rules lang file =
     )
 
     in
-    if !Flag.debug && not match_
-    then pr2 (spf "filtering rule %s" rule.R.id);
+    if not match_
+    then logger#info "filtering rule %s" rule.R.id;
     match_
     )
 [@@profiling "Rules_filter.filter"]

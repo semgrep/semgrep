@@ -27,7 +27,7 @@ module J = JSON
  * expressions.
  *)
 
-[@@@warning "-37"]
+let logger = Logging.get_logger [__MODULE__]
 
 (*****************************************************************************)
 (* Types *)
@@ -165,16 +165,14 @@ and eval_op op values code =
 
   | _ -> raise (NotHandled code)
 
-let debug = ref false
-
 let eval_json_file file =
   try
     let (env, code) = parse_json file in
     let res = eval env code in
     print_result (Some res)
   with
-   | NotHandled e when !debug ->
-      pr2 (G.show_any (G.E e));
-      raise (NotHandled e)
-   | _exn when not !debug ->
+   | NotHandled e ->
+      logger#sdebug (G.show_any (G.E e));
+      print_result None
+   | _exn ->
     print_result None
