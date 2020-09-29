@@ -16,7 +16,6 @@ bug-reports: "https://github.com/returntocorp/semgrep/issues"
 
 depends: [
   "dune"
-  "dune-build-info"
   "ocamlgraph"
   "yojson"
   "yaml"
