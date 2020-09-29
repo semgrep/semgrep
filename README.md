@@ -79,7 +79,7 @@ To confirm installation and get an overview of Semgrep's functionality run with 
 $ semgrep --help
 ```
 
-Once installed, Semgrep can be run with single rule patterns or entire rule packs:
+Once installed, Semgrep can be run with single rule patterns or entire rule sets:
 
 ```sh
 # Check for Python == where the left and right hand sides are the same (often a bug)
@@ -107,7 +107,7 @@ Explore the Semgrep Registry of rules and CI integrations at [semgrep.dev](https
 
 ### Try it out
 
-Give some rule packs a spin by running on known vulnerable repositories:
+Give some rulesets a spin by running on known vulnerable repositories:
 
 ```bash
 # juice-shop, a vulnerable Node.js + Express app
