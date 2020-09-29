@@ -41,3 +41,11 @@ rules:
     message: You probably forgot a comma
     languages: [python]
     severity: ERROR
+
+# not ready yet
+#  - id: no-exit-in-semgrep
+#    pattern: |
+#      exit $X
+#    message: do not use directly exit. raise instead UnixExit $X
+#    languages: [ocaml]
+#    severity: ERROR
