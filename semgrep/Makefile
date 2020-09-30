@@ -15,12 +15,12 @@ ifeq ($(GITHUB_EVENT_NAME),pull_request)
 	# check if the branch name is of the form release-X.X.X
 	if [[ "$(GITHUB_HEAD_REF)" =~ release-[0-9]+\.[0-9]+\.[0-9]+ ]]; \
 	then \
-		pipenv run pytest -n auto -v --tb=short tests/ --qa; \
+		pipenv run pytest -n auto -v --tb=short --durations=0 tests/ --qa; \
 	else \
-		pipenv run pytest -n auto -v --tb=short tests/; \
+		pipenv run pytest -n auto -v --tb=short --durations=0 tests/; \
 	fi
 else ifeq ($(GITHUB_EVENT_NAME),push)
-	pipenv run pytest -n auto -v --tb=short tests/ --qa
+	pipenv run pytest -n auto -v --tb=short --durations=0 tests/ --qa
 else
-	pipenv run pytest -n auto -v --tb=short tests/
+	pipenv run pytest -n auto -v --tb=short --durations=0 tests/
 endif
