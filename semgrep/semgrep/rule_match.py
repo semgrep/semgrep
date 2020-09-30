@@ -5,7 +5,7 @@ from typing import Dict
 from typing import List
 from typing import Optional
 
-from junit_xml import TestCase
+from junit_xml_2 import TestCase
 
 from semgrep.pattern_match import PatternMatch
 

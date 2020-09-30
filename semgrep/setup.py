@@ -124,7 +124,9 @@ setup(
     install_requires=[
         "attrs>=19.3.0",
         "colorama>=0.4.3",
-        "junit_xml==1.9",
+        # own fork of junit-xml since homebrew-core needs tarball on pypi
+        # Can go back to junit-xml if https://github.com/kyrus/python-junit-xml/issues/69 is closed
+        "junit-xml-2==1.9",
         "requests>=2.22.0",
         # exact version because of unstable API
         "ruamel.yaml==0.16.10",
