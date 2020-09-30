@@ -1112,12 +1112,7 @@ let main () =
 
   (* does side effect on many global flags *)
   let args = Common.parse_options (options()) usage_msg (Array.of_list argv) in
-  let args = if !target_file="" then args else
-  begin
-    let s = Common.read_file !target_file in
-    String.split_on_char '\n' s
-  end
-  in
+  let args = if !target_file = "" then args else Common.cat !target_file in
 
   if Sys.file_exists !log_config_file
   then begin
