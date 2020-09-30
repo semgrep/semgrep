@@ -14,11 +14,13 @@
 open Common
 module Flag = Flag_semgrep
 
+let logger = Logging.get_logger [__MODULE__]
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* Mostly a wrapper around pfff Parse_generic but which can also use
- * tree-sitter parsers if needed.
+(* Mostly a wrapper around pfff Parse_generic, but which can also use
+ * tree-sitter parsers when possible.
  *)
 
 (*****************************************************************************)
@@ -26,14 +28,16 @@ module Flag = Flag_semgrep
 (*****************************************************************************)
 
 type parser_kind = Pfff | TreeSitter
- and 'ast parser = parser_kind * (Common.filename -> 'ast)
+ [@@deriving show { with_path = false }]
+
+type 'ast parser = parser_kind * (Common.filename -> 'ast)
 
 let rec (run_either: Common.filename -> 'ast parser list ->
  ('ast, exn) Common.either)
  = fun file xs ->
    match xs with
    | [] -> Right (Failure (spf "no parser found for %s" file))
-   | (_kind, f)::xs ->
+   | (kind, f)::xs ->
       let f file =
           if xs <> []
           then Common.save_excursion Flag_parsing.show_parsing_error false
@@ -41,10 +45,16 @@ let rec (run_either: Common.filename -> 'ast parser list ->
           else f file
       in
       let res =
-        try Left (f file)
+        try
+          logger#info "trying to parse with %s parser %s"
+              (show_parser_kind kind) file;
+          Left (f file)
         with
         | Timeout -> raise Timeout
-        | exn -> Right exn
+        | exn ->
+           logger#debug "exn (%s) with %s parser"
+                (Common.exn_to_s exn) (show_parser_kind kind);
+           Right exn
       in
       match res with
       | Left ast -> Left ast
@@ -52,8 +62,11 @@ let rec (run_either: Common.filename -> 'ast parser list ->
         let res = run_either file xs in
         (match res with
         | Left ast -> Left ast
-        (* prefer the first error *)
-        | Right _exn2 -> Right exn
+        | Right exn2 ->
+           logger#debug "exn again (%s) but return original exn (%s)"
+                (Common.exn_to_s exn2) (Common.exn_to_s exn);
+          (* prefer the first error *)
+           Right exn
         )
 
 let run file xs =
