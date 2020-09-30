@@ -220,14 +220,14 @@ def generate_matches_line(check_results: Mapping[str, Any]) -> str:
 
 
 def invoke_semgrep_multi(
-    filename: Path, *args: Path, **kwargs: Any
+    config: Path, targets: List[Path], **kwargs: Any
 ) -> Tuple[Path, Optional[Exception], Any]:
     try:
-        output = invoke_semgrep(filename, list(args), **kwargs)
+        output = invoke_semgrep(config, targets, **kwargs)
     except Exception as error:
-        return (filename, error, {})
+        return (config, error, {})
     else:
-        return (filename, None, output)
+        return (config, None, output)
 
 
 def generate_file_pairs(
