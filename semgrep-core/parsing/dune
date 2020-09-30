@@ -24,5 +24,5 @@
    semgrep_utils
    semgrep_core
  )
- (preprocess (pps ppx_profiling ppx_sexp_conv))
+ (preprocess (pps ppx_profiling ppx_sexp_conv ppx_deriving.show))
 )
