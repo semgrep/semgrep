@@ -65,7 +65,7 @@ LANGUAGE_EXCEPTIONS = {
     ],
 }
 
-EXCLUDE = ["TODO", "GENERIC", "fuzzy", "lint", 'EQUIV', 'e2e', 'SYNTHESIZING', 'NAMING', 'PERF', 'TAINTING', 'EVAL']
+EXCLUDE = ["TODO", "GENERIC", 'e2e', 'OTHER']
 
 CHEATSHEET_ENTRIES = {
     "concrete": ["syntax"],

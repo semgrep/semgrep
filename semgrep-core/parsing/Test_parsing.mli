@@ -1,5 +1,5 @@
 
-val test_parse_lang: bool -> string ->
+val test_parse_lang: string ->
   (Common.filename list -> Common.filename list) -> Common.filename list ->
   unit
 

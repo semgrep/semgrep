@@ -8,7 +8,7 @@ module PPG = Pretty_print_generic
 (*****************************************************************************)
 (* Semgrep Unit tests *)
 (*****************************************************************************)
-let test_path = "../../../tests/SYNTHESIZING/"
+let test_path = "../../../tests/OTHER/SYNTHESIZING/"
 
 (* Format: file, range of code to infer, expected patterns *)
 let python_tests = [

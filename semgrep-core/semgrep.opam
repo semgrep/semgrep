@@ -19,6 +19,7 @@ depends: [
   "ocamlgraph"
   "yojson"
   "yaml"
+  "easy_logging_yojson"
   "grain_dypgen"
   "menhir"
   "uucp"
