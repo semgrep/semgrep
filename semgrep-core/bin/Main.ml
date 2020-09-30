@@ -30,6 +30,8 @@ module J = JSON
  *    http://www.jetbrains.com/idea/documentation/ssr.html
  *    http://tv.jetbrains.net/videocontent/intellij-idea-static-analysis-custom-rules-with-structural-search-replace
  *  - gogrep: https://github.com/mvdan/gogrep/
+ *  - ruleguard: https://github.com/quasilyte/go-ruleguard
+ *    (use gogrep internally)
  *  - phpgrep: https://github.com/quasilyte/phpgrep
  *    https://github.com/VKCOM/noverify/blob/master/docs/dynamic-rules.md
  *    https://speakerdeck.com/quasilyte/phpgrep-syntax-aware-code-search
@@ -47,6 +49,10 @@ module J = JSON
 (*****************************************************************************)
 (* Flags *)
 (*****************************************************************************)
+
+(* ------------------------------------------------------------------------- *)
+(* debugging/profiling/logging flags *)
+(* ------------------------------------------------------------------------- *)
 
 (* You can set those environment variables to enable debugging/profiling
  * instead of using -debug or -profile. This is useful when you don't call
@@ -73,6 +79,13 @@ let profile = ref false
  *)
 let error_recovery = ref false
 (*e: constant [[Main_semgrep_core.error_recovery]] *)
+
+(* there are a few other debugging flags in Flag_semgrep.ml
+ * (e.g., debug_matching)
+ *)
+(* ------------------------------------------------------------------------- *)
+(* main flags *)
+(* ------------------------------------------------------------------------- *)
 
 (*s: constant [[Main_semgrep_core.pattern_string]] *)
 (* -e *)
@@ -137,18 +150,27 @@ let keys = Common2.hkeys Lang.lang_of_string_map
 let supported_langs: string = String.concat ", " keys
 (*e: constant [[Main_semgrep_core.supported_langs]] *)
 
+(* ------------------------------------------------------------------------- *)
+(* limits *)
+(* ------------------------------------------------------------------------- *)
+
+(* timeout is now in Flag_semgrep.ml *)
+let max_memory = ref 0 (* in MB *)
+
 (*s: constant [[Main_semgrep_core.ncores]] *)
 (* -j *)
 let ncores = ref 1
 (*e: constant [[Main_semgrep_core.ncores]] *)
+
+(* ------------------------------------------------------------------------- *)
+(* flags used by the semgrep-python wrapper *)
+(* ------------------------------------------------------------------------- *)
 
 (* path to cache (given by semgrep-python) *)
 let use_parsing_cache = ref ""
 (* take the list of files in a file (given by semgrep-python) *)
 let target_file = ref ""
 
-let timeout = ref 0. (* in seconds *)
-let max_memory = ref 0 (* in MB *)
 
 (*s: constant [[Main_semgrep_core.action]] *)
 (* action mode *)
@@ -349,7 +371,7 @@ let cache_file_of_file filename =
  * with Timeout -> raise Timeout | _ -> ...
  *)
 let timeout_function = fun f ->
-  let timeout = !timeout in
+  let timeout = !Flag.timeout in
   if timeout <= 0.
   then f ()
   else Common.timeout_function_float ~verbose:false timeout f
@@ -1000,7 +1022,7 @@ let options () =
     " (internal) set test context";
     "-target_file", Arg.Set_string target_file,
     " <file> obtain list of targets to run patterns on";
-    "-timeout", Arg.Set_float timeout,
+    "-timeout", Arg.Set_float Flag.timeout,
     " <float> timeout for parsing (in seconds)";
     "-max_memory", Arg.Set_int max_memory,
     " <int> maximum memory (in MB)";
