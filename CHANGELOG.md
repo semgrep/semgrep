@@ -2,7 +2,18 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [0.25.0](https://github.com/returntocorp/semgrep/releases/tag/v0.25.0)
+## [0.26.0](https://github.com/returntocorp/semgrep/releases/tag/v0.26.0) - 2020-09-30
+
+### Fixed
+- Metavariables are able to match empty tuples
+- Correctly parse optional chaining (?.) in Typescript
+- Correctly parse logical assignment operators (&&=, ||=, ??=) in Typescript
+- Some type constraing matching in Typescript
+
+### Changed
+- Added default timeout of 5 seconds to javascript parsing (related to ?. on large minified files stalling)
+
+## [0.25.0](https://github.com/returntocorp/semgrep/releases/tag/v0.25.0) - 2020-09-23
 
 ### Added
 - Added support for the JUnit XML report format (`--junit-xml`)
@@ -35,7 +46,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Ability to read target contents from stdin by specifying "-" target.
 
 ### Changed
-- You can now specify timeouts using floats instead of integers 
+- You can now specify timeouts using floats instead of integers
   (e.g., semgrep -timeout 0.5 will timeout after half a second)
 
 ### Fixed
