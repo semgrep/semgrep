@@ -31,7 +31,7 @@ repos:
     rev: "v0.782"
     hooks:
       - id: mypy
-        exclude: ^semgrep\/tests\/.+$|^setup.py$
+        exclude: ^semgrep\/tests\/.+$|^setup.py$|^scripts\/.+$$
         args: [--config, mypy.ini]
 
   - repo: https://github.com/pre-commit/mirrors-mypy
