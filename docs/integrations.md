@@ -32,7 +32,7 @@ repos:
 ```
 
 This will default to using the [`r2c` ruleset](https://semgrep.dev/p/r2c).
-To choose another ruleset, see https://semgrep.dev/packs.
+To choose another ruleset, see https://semgrep.dev/rulesets.
 
 ## Continuous Integration
 
@@ -58,7 +58,7 @@ test_script:
 ```
 
 This will default to using the [`r2c` ruleset](https://semgrep.dev/p/r2c).
-To choose another ruleset see https://semgrep.dev/packs.
+To choose another ruleset see https://semgrep.dev/rulesets.
 
 ### CircleCI
 
@@ -77,7 +77,7 @@ jobs:
 ```
 
 This will default to using the [`r2c` ruleset](https://semgrep.dev/p/r2c).
-To choose another ruleset see https://semgrep.dev/packs.
+To choose another ruleset see https://semgrep.dev/rulesets.
 
 Another way to do it is to use the official Semgrep [Docker Image](https://hub.docker.com/r/returntocorp/semgrep)
 
@@ -107,7 +107,7 @@ script:
 ```
 
 This will default to using the [`r2c` ruleset](https://semgrep.dev/p/r2c).
-To choose another ruleset see https://semgrep.dev/packs.
+To choose another ruleset see https://semgrep.dev/rulesets.
 
 ### GitHub Actions
 
@@ -128,7 +128,7 @@ jobs:
 ```
 
 This will default to using the [`r2c` ruleset](https://semgrep.dev/p/r2c).
-To choose another ruleset see https://semgrep.dev/packs.
+To choose another ruleset see https://semgrep.dev/rulesets.
 
 For more information on the GitHub Action see https://github.com/marketplace/actions/semgrep-action.
 
@@ -147,7 +147,7 @@ semgrep:
 ```
 
 This will default to using the [`r2c` ruleset](https://semgrep.dev/p/r2c).
-To choose another ruleset see https://semgrep.dev/packs.
+To choose another ruleset see https://semgrep.dev/rulesets.
 
 ### Jenkins
 
@@ -167,4 +167,4 @@ pipeline {
 ```
 
 This will default to using the [`r2c` ruleset](https://semgrep.dev/p/r2c).
-To choose another ruleset see https://semgrep.dev/packs.
+To choose another ruleset see https://semgrep.dev/rulesets.
