@@ -1,9 +1,9 @@
 import json
-from xmldiff import main
 from pathlib import Path
 from subprocess import CalledProcessError
 
 import pytest
+from xmldiff import main
 
 from semgrep import __VERSION__
 
@@ -52,7 +52,7 @@ def test_multiline(run_semgrep_in_tmp, snapshot):
 def test_junit_xml_output(run_semgrep_in_tmp, snapshot):
     actual_output = run_semgrep_in_tmp("rules/eqeq.yaml", output_format="junit-xml")
 
-    f = open(str(snapshot.snapshot_dir) + '/results.xml', "r")
+    f = open(str(snapshot.snapshot_dir) + "/results.xml", "r")
     expected_output = f.read()
     f.close()
 
