@@ -11,6 +11,7 @@ Contents:
   * [TravisCI](#travisci)
   * [GitHub Actions](#github-actions)
   * [GitLab](#gitlab)
+  * [Jenkins](#jenkins)
 
 ## Pre-Commit Hook
 
@@ -143,6 +144,26 @@ semgrep:
   image: returntocorp/semgrep-action:v1
   script:
     - python -m semgrep_agent --config p/r2c
+```
+
+This will default to using the [`r2c` ruleset](https://semgrep.dev/p/r2c).
+To choose another ruleset see https://semgrep.dev/packs.
+
+### Jenkins
+
+Include `semgrep` in your `Jenkinsfile` configuration file:
+
+```
+pipeline {
+  agent any
+  stages {
+    stage('Semgrep') {
+      steps {
+        sh '''/usr/local/bin/docker run --rm -v "${PWD}:/src" returntocorp/semgrep --error --config=https://semgrep.dev/p/r2c'''
+      }
+    }
+  }
+}
 ```
 
 This will default to using the [`r2c` ruleset](https://semgrep.dev/p/r2c).
