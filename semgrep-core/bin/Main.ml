@@ -582,6 +582,17 @@ let get_final_files xs =
   Common2.uniq_eff (files @ explicit_files)
 (*e: function [[Main_semgrep_core.get_final_files]] *)
 
+let mk_tree_sitter_error (err : Tree_sitter_run.Tree_sitter_error.t) =
+  let start = err.start_pos in
+  let loc = {
+    PI.str = err.substring;
+    charpos = 0; (* fake *)
+    line = start.row + 1;
+    column = start.column;
+    file = err.file.name;
+  } in
+  Error_code.({ loc; typ = ParseError; sev = Error })
+
 (*s: function [[Main_semgrep_core.iter_generic_ast_of_files_and_get_matches_and_exn_to_errors]] *)
 let iter_generic_ast_of_files_and_get_matches_and_exn_to_errors f files =
   let matches_and_errors =
@@ -621,7 +632,10 @@ let iter_generic_ast_of_files_and_get_matches_and_exn_to_errors f files =
               | Out_of_memory -> Error_code.OutOfMemory str_opt
               | _ -> raise Impossible
               )]
-        | exn -> [], [Error_code.exn_to_error file exn]
+        | Tree_sitter_run.Tree_sitter_error.Error ts_error ->
+            [], [mk_tree_sitter_error ts_error]
+        | exn ->
+            [], [Error_code.exn_to_error file exn]
     )
   in
   let matches = matches_and_errors |> List.map fst |> List.flatten in
