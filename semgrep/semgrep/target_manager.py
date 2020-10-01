@@ -6,6 +6,7 @@ import tempfile
 from pathlib import Path
 from typing import Collection
 from typing import Dict
+from typing import Iterator
 from typing import List
 from typing import NewType
 from typing import Set
@@ -81,7 +82,7 @@ def lang_to_exts(language: Language) -> List[FileExtension]:
 
 
 @contextlib.contextmanager
-def optional_stdin_target(target: List[str]) -> List[str]:
+def optional_stdin_target(target: List[str]) -> Iterator[List[str]]:
     """
     Read target input from stdin if "-" is specified
     """
@@ -89,10 +90,10 @@ def optional_stdin_target(target: List[str]) -> List[str]:
         try:
             with tempfile.NamedTemporaryFile(delete=False) as fd:
                 fd.write(sys.stdin.buffer.read())
-                target = fd.name
-            yield [target]
+                fname = fd.name
+            yield [fname]
         finally:
-            os.remove(target)
+            os.remove(fname)
     else:
         yield target
 

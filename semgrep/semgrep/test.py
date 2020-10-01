@@ -18,7 +18,11 @@ import sys
 from pathlib import Path
 from typing import Any
 from typing import Dict
+from typing import Iterator
 from typing import List
+from typing import Mapping
+from typing import Optional
+from typing import Sequence
 from typing import Set
 from typing import Tuple
 
@@ -189,7 +193,7 @@ def score_output_json(
     return (score_by_checkid, matches_by_check_id, num_todo)
 
 
-def generate_confusion_string(check_results):
+def generate_confusion_string(check_results: Mapping[str, Any]) -> str:
     confusion_tp = f"TP: {check_results['tp']}"
     confusion_tn = f"TN: {check_results['tn']}"
     confusion_fp = f"FP: {check_results['fp']}"
@@ -197,13 +201,13 @@ def generate_confusion_string(check_results):
     return f"{confusion_tp} {confusion_tn} {confusion_fp} {confusion_fn}"
 
 
-def generate_check_output_line(check_id, check_results):
+def generate_check_output_line(check_id: str, check_results: Mapping[str, Any]) -> str:
     status = "✔" if check_results["passed"] else "✖"
     return f"\t{status} {check_id.ljust(60)} {generate_confusion_string(check_results)}"
 
 
-def generate_matches_line(check_results):
-    def _generate_line(test_file, matches):
+def generate_matches_line(check_results: Mapping[str, Any]) -> str:
+    def _generate_line(test_file: Any, matches: Mapping[str, Any]) -> str:
         test = f"test: {test_file}"
         expected = f"expected lines: {matches['expected_lines']}"
         reported = f"reported lines: {matches['reported_lines']}"
@@ -215,19 +219,20 @@ def generate_matches_line(check_results):
     )
 
 
-def invoke_semgrep_multi(filename, *args, **kwargs):
+def invoke_semgrep_multi(
+    config: Path, targets: List[Path], **kwargs: Any
+) -> Tuple[Path, Optional[Exception], Any]:
     try:
-        output = invoke_semgrep(filename, *args, **kwargs)
+        output = invoke_semgrep(config, targets, **kwargs)
     except Exception as error:
-        return (filename, error, {})
+        return (config, error, {})
     else:
-        return (filename, None, output)
+        return (config, None, output)
 
 
 def generate_file_pairs(
     location: Path, ignore_todo: bool, strict: bool, unsafe: bool, json_output: bool
 ) -> None:
-    output = {}
     filenames = list(location.rglob("*"))
     config_filenames = [
         filename
@@ -249,7 +254,7 @@ def generate_file_pairs(
     config_with_tests, config_without_tests = partition(
         lambda c: c[1], config_test_filenames.items()
     )
-    output["config_missing_tests"] = [str(c[0]) for c in config_without_tests]
+    config_missing_tests_output = [str(c[0]) for c in config_without_tests]
 
     invoke_semgrep_fn = functools.partial(
         invoke_semgrep_multi,
@@ -263,7 +268,7 @@ def generate_file_pairs(
         results = pool.starmap(invoke_semgrep_fn, config_with_tests)
 
     config_with_errors, config_without_errors = partition(lambda r: r[1], results)
-    output["config_with_errors"] = [
+    config_with_errors_output = [
         {"filename": str(filename), "error": str(error), "output": output}
         for filename, error, output in config_with_errors
     ]
@@ -275,7 +280,7 @@ def generate_file_pairs(
         for filename, _, output in config_without_errors
     }
 
-    output["results"] = {
+    results_output: Mapping[str, Mapping[str, Any]] = {
         str(filename): {
             "todo": todo,
             "checks": {
@@ -292,11 +297,16 @@ def generate_file_pairs(
         }
         for filename, (output, matches, todo) in tested.items()
     }
+    output = {
+        "config_missing_tests": config_missing_tests_output,
+        "config_with_errors": config_with_errors_output,
+        "results": results_output,
+    }
 
-    strict_error = bool(output["config_with_errors"]) and strict
+    strict_error = bool(config_with_errors_output) and strict
     any_failures = any(
         not check_results["passed"]
-        for file_results in output["results"].values()
+        for file_results in results_output.values()
         for check_results in file_results["checks"].values()
     )
     exit_code = int(strict_error or any_failures)
@@ -305,23 +315,23 @@ def generate_file_pairs(
         print(json.dumps(output, indent=4, separators=(",", ": ")))
         sys.exit(exit_code)
 
-    if output["config_missing_tests"]:
+    if config_missing_tests_output:
         print("The following config files are missing tests:")
-        print("\t" + "\n\t".join(output["config_missing_tests"]))
+        print("\t" + "\n\t".join(config_missing_tests_output))
 
-    if output["config_with_errors"]:
+    if config_with_errors_output:
         print("The following config files produced errors:")
         print(
             "\t"
             + "\n\t".join(
-                f"{c['filename']}: {c['error']}" for c in output["config_with_errors"]
+                f"{c['filename']}: {c['error']}" for c in config_with_errors_output
             )
         )
 
     # Place failed tests at the bottom for higher visibility
     passed_results_first = collections.OrderedDict(
         sorted(
-            output["results"].items(),
+            results_output.items(),
             key=lambda t: any(not c["passed"] for c in t[1]["checks"].values()),
         )
     )
@@ -330,11 +340,11 @@ def generate_file_pairs(
     print("check id scoring:")
     print("=" * 80)
 
-    totals = collections.defaultdict(int)
+    totals: Dict[str, Any] = collections.defaultdict(int)
 
-    for filename, results in passed_results_first.items():
-        print(f"(TODO: {results['todo']}) {filename}")
-        for check_id, check_results in results["checks"].items():
+    for filename, rr in passed_results_first.items():
+        print(f"(TODO: {rr['todo']}) {filename}")
+        for check_id, check_results in rr["checks"].items():
             print(generate_check_output_line(check_id, check_results))
             if not check_results["passed"]:
                 print(generate_matches_line(check_results))
