@@ -501,7 +501,6 @@ class CoreRunner:
                             max_timeout_files.append(err.path)
 
         all_errors = dedup_errors(all_errors)
-        # logger.debug(all_targets)
         return findings_by_rule, debugging_steps_by_rule, all_errors, len(all_targets)
 
     def invoke_semgrep(
