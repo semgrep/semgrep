@@ -261,9 +261,25 @@ class Rule:
         Tags to display on SARIF-compliant UIs, such as GitHub security scans.
         """
         if "cwe" in self.metadata:
-            yield "cwe"
+            # Handling unexpected formatting of CWE meta-data
+            try:
+                # Assumed CWE format is CWE-[0-9]+[:]?.*
+                cwe_id = self.metadata["cwe"].split("CWE-")[1]
+                cwe_tag= "cwe-"
+                for char in cwe_id:
+                    if char.is_integr():
+                        cwe_tag += char
+                    else:
+                        break
+                yield cwe_tag
+            except Exception:
+                yield "cwe"
         if "owasp" in self.metadata:
-            yield "owasp"
+            try:
+                # Assumed OWASP format is AX: Description
+                yield "owasp-{}".format(self.metadata["owasp"].split(":")[0])
+            except Exception:
+                yield "owasp"
 
     @property
     def languages(self) -> List[Language]:
