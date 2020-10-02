@@ -2219,6 +2219,7 @@ and declaration (env : env) (x : CST.declaration) =
 (* Entry point *)
 (*****************************************************************************)
 let parse file =
+ H.convert_tree_sitter_exn_to_pfff_exn (fun () ->
   let ast =
     Parallel.backtrace_when_exn := false;
     Parallel.invoke Tree_sitter_csharp.Parse.file file ()
@@ -2236,3 +2237,4 @@ let parse file =
       pr2 "Original backtrace:";
       pr2 s;
       raise exn
+ )

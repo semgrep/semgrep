@@ -1686,6 +1686,7 @@ let program ((v1, _v2interpreted) : CST.program) : AST.stmts  =
 (*****************************************************************************)
 
 let parse file =
+ H.convert_tree_sitter_exn_to_pfff_exn (fun () ->
   (* TODO: tree-sitter bindings are buggy so we cheat and fork to
    * avoid segfaults to popup. See Main.ml test_parse_ruby function.
    *)
@@ -1709,3 +1710,4 @@ let parse file =
    global_file := file;
    global_conv := H.line_col_to_pos file;
    program cst
+ )
