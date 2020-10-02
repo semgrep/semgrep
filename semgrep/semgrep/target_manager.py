@@ -9,6 +9,7 @@ from typing import Dict
 from typing import Iterator
 from typing import List
 from typing import NewType
+from typing import Optional
 from typing import Set
 
 import attr
@@ -134,7 +135,10 @@ class TargetManager:
 
     @staticmethod
     def _expand_dir(
-        curr_dir: Path, language: Language, respect_git_ignore: bool
+        curr_dir: Path,
+        language: Language,
+        respect_git_ignore: bool,
+        includes: List[str],
     ) -> Set[Path]:
         """
             Recursively go through a directory and return list of all files with
@@ -155,23 +159,21 @@ class TargetManager:
                 )
             return files
 
-        def _find_files_with_extention(
-            curr_dir: Path, extension: FileExtension
-        ) -> Set[Path]:
+        def _find_files_with_extention(curr_dir: Path, extension: str) -> Set[Path]:
             """
                 Return set of all files in curr_dir with given extension
             """
-            return set(p for p in curr_dir.rglob(f"*.{extension}") if p.is_file())
+            return set(p for p in curr_dir.rglob(ext) if p.is_file())
 
-        extensions = lang_to_exts(language)
+        extensions = [f"*.{extension}" for extension in lang_to_exts(language)]
         expanded: Set[Path] = set()
 
-        for ext in extensions:
+        for ext in extensions + includes:
             if respect_git_ignore:
                 try:
                     # Tracked files
                     tracked_output = sub_check_output(
-                        ["git", "ls-files", f"*.{ext}"],
+                        ["git", "ls-files", ext],
                         cwd=curr_dir.resolve(),
                         encoding="utf-8",
                         stderr=subprocess.DEVNULL,
@@ -179,20 +181,14 @@ class TargetManager:
 
                     # Untracked but not ignored files
                     untracked_output = sub_check_output(
-                        [
-                            "git",
-                            "ls-files",
-                            "--other",
-                            "--exclude-standard",
-                            f"*.{ext}",
-                        ],
+                        ["git", "ls-files", "--other", "--exclude-standard", ext,],
                         cwd=curr_dir.resolve(),
                         encoding="utf-8",
                         stderr=subprocess.DEVNULL,
                     )
 
                     deleted_output = sub_check_output(
-                        ["git", "ls-files", "--deleted", f"*.{ext}"],
+                        ["git", "ls-files", "--deleted", ext],
                         cwd=curr_dir.resolve(),
                         encoding="utf-8",
                         stderr=subprocess.DEVNULL,
@@ -217,11 +213,17 @@ class TargetManager:
 
     @staticmethod
     def expand_targets(
-        targets: Collection[Path], lang: Language, respect_git_ignore: bool
+        targets: Collection[Path],
+        lang: Language,
+        respect_git_ignore: bool,
+        includes: Optional[List[str]] = None,
     ) -> Set[Path]:
         """
             Explore all directories. Remove duplicates
         """
+        if includes is None:
+            includes = []
+
         expanded = set()
         for target in targets:
             if not target.exists():
@@ -229,7 +231,9 @@ class TargetManager:
 
             if target.is_dir():
                 expanded.update(
-                    TargetManager._expand_dir(target, lang, respect_git_ignore)
+                    TargetManager._expand_dir(
+                        target, lang, respect_git_ignore, includes
+                    )
                 )
             else:
                 expanded.add(target)
@@ -243,18 +247,6 @@ class TargetManager:
         """
         subpaths = [path, *path.parents]
         return any(p.match(glob) for p in subpaths for glob in globs)
-
-    @staticmethod
-    def filter_includes(arr: Set[Path], includes: List[str]) -> Set[Path]:
-        """
-            Returns all elements in arr that match any includes pattern
-
-            If includes is empty, returns arr unchanged
-        """
-        if not includes:
-            return arr
-
-        return set(elem for elem in arr if TargetManager.match_glob(elem, includes))
 
     @staticmethod
     def filter_excludes(arr: Set[Path], excludes: List[str]) -> Set[Path]:
@@ -285,8 +277,9 @@ class TargetManager:
                 FilesNotFoundError(tuple(nonexistent_files))
             )
 
-        targets = self.expand_targets(directories, lang, self.respect_git_ignore)
-        targets = self.filter_includes(targets, self.includes)
+        targets = self.expand_targets(
+            directories, lang, self.respect_git_ignore, self.includes
+        )
         targets = self.filter_excludes(targets, self.excludes)
 
         # Remove explicit_files with known extensions.
@@ -323,6 +316,5 @@ class TargetManager:
             filter is then applied.
         """
         targets = self.filtered_files(lang)
-        targets = self.filter_includes(targets, includes)
         targets = self.filter_excludes(targets, excludes)
         return list(targets)

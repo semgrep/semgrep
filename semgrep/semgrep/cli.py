@@ -100,9 +100,8 @@ def cli() -> None:
         "--include",
         action="append",
         default=[],
-        help="Scan only files or directories that match this pattern; --include='*.jsx' will scan"
-        " the following: foo.jsx, src/foo.jsx, foo.jsx/bar.sh. --include='src' will scan src/foo.py"
-        " as well as a/b/src/c/foo.py. Can add multiple times.",
+        help="Add files or directories that match this pattern; --include='*.jsx' will scan"
+        " the following: foo.jsx, src/foo.jsx. Can add multiple times.",
     )
     parser.add_argument(
         "--no-git-ignore",

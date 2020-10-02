@@ -2,6 +2,14 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- The `--include` flag is now additive rather than subtractive. The
+  `language` specification already filters based on file extension, a
+  `--include` would further filter this list of files - a double filter. Now,
+  e.g., a `--include "*.txt"` will add text files for analysis.
+
 ## [0.26.0](https://github.com/returntocorp/semgrep/releases/tag/v0.26.0) - 2020-09-30
 
 ### Fixed

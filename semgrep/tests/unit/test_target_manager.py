@@ -9,48 +9,6 @@ from semgrep.semgrep_types import Language
 from semgrep.target_manager import TargetManager
 
 
-def test_filter_include():
-    all_file_names = [
-        "foo.py",
-        "foo.go",
-        "foo.java",
-        "foo/bar.py",
-        "foo/bar.go",
-        "bar/foo/baz/bar.go",
-        "foo/bar.java",
-        "bar/baz",
-        "baz.py",
-        "baz.go",
-        "baz.java",
-        "bar/foo/foo.py",
-        "foo",
-        "bar/baz/foo/a.py",
-        "bar/baz/foo/b.py",
-        "bar/baz/foo/c.py",
-        "bar/baz/qux/foo/a.py",
-        "/foo/bar/baz/a.py",
-    ]
-    all_files = set({Path(elem) for elem in all_file_names})
-
-    # All .py files
-    assert len(TargetManager.filter_includes(all_files, ["*.py"])) == 9
-
-    # All files in a foo directory ancestor
-    assert len(TargetManager.filter_includes(all_files, ["foo"])) == 11
-
-    # All files with an ancestor named bar/baz
-    assert len(TargetManager.filter_includes(all_files, ["bar/baz"])) == 6
-
-    # All go files
-    assert len(TargetManager.filter_includes(all_files, ["*.go"])) == 4
-
-    # All go and java files
-    assert len(TargetManager.filter_includes(all_files, ["*.go", "*.java"])) == 7
-
-    # All go files with a direct ancestor named foo
-    assert len(TargetManager.filter_includes(all_files, ["foo/*.go"])) == 1
-
-
 def test_filter_exclude():
     all_file_names = [
         "foo.py",
@@ -309,9 +267,15 @@ def test_expand_targets_not_git(tmp_path, monkeypatch):
     foo_bar_b = foo_bar / "b.py"
     foo_bar_b.touch()
 
+    baz = tmp_path / "baz"
+    baz.mkdir()
+    baz_a = baz / "a.txt"
+    baz_a.touch()
+
     in_foo_bar = {foo_bar_a, foo_bar_b}
     in_foo = {foo_a, foo_b}.union(in_foo_bar)
     in_bar = {bar_a, bar_b}
+    in_baz = {baz_a}
     in_all = in_foo.union(in_bar)
 
     python_language = Language("python")
@@ -319,6 +283,12 @@ def test_expand_targets_not_git(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     assert cmp_path_sets(
         TargetManager.expand_targets([Path(".")], python_language, False), in_all
+    )
+    assert cmp_path_sets(
+        TargetManager.expand_targets(
+            [Path(".")], python_language, False, includes=["*.txt"]
+        ),
+        in_all.union(in_baz),
     )
     assert cmp_path_sets(
         TargetManager.expand_targets([Path("bar")], python_language, False), in_bar
