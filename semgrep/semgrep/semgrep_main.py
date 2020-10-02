@@ -200,13 +200,13 @@ def main(
             f"running {len(all_rules)} rules from {len(configs_obj.valid)} config{plural} {config_id_if_single} {invalid_msg}"
         )
 
-        notify_user_of_work(all_rules, include, exclude)
-
         if len(configs_obj.valid) == 0:
             raise SemgrepError(
                 f"no valid configuration file found ({len(errors)} configs were invalid)",
                 code=MISSING_CONFIG_EXIT_CODE,
             )
+
+        notify_user_of_work(all_rules, include, exclude)
 
     respect_git_ignore = not no_git_ignore
     target_manager = TargetManager(

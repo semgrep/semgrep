@@ -58,6 +58,7 @@ def cli() -> None:
         "-f",
         "--config",
         action="append",
+        default=[],
         help=(
             "YAML configuration file, directory of YAML files ending in "
             ".yml|.yaml, URL of a configuration file, or semgrep registry entry "

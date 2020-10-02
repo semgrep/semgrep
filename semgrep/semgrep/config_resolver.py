@@ -48,6 +48,10 @@ MISSING_RULE_ID = "no-rule-id"
 
 class Config:
     def __init__(self, valid_configs: Dict[str, List[Rule]]) -> None:
+        """
+            Handles parsing and validating of config files
+            and exposes ability to get all rules in parsed config files
+        """
         self.valid = valid_configs
 
     @classmethod
@@ -62,8 +66,21 @@ class Config:
     def from_config_list(
         cls, configs: List[str]
     ) -> Tuple["Config", List[SemgrepError]]:
+        """
+            Takes in list of files/directories and returns Config object as well as
+            list of errors parsing said config files
+
+            If empty list is passed, tries to read config file at default locations
+        """
         config_dict: Dict[str, YamlTree] = {}
         errors: List[SemgrepError] = []
+
+        if not configs:
+            try:
+                config_dict.update(load_default_config())
+            except SemgrepError as e:
+                errors.append(e)
+
         for config in configs:
             try:
                 config_dict.update(resolve_config(config))
@@ -73,6 +90,20 @@ class Config:
         valid, parse_errors = cls._validate(config_dict)
         errors.extend(parse_errors)
         return cls(valid), errors
+
+    def get_rules(self, no_rewrite_rule_ids: bool) -> List[Rule]:
+        """
+            Return list of rules
+
+            If no_rewrite_rule_ids is True will not add
+            path to config file to start of rule_ids
+        """
+        configs = self.valid
+        if not no_rewrite_rule_ids:
+            # re-write the configs to have the hierarchical rule ids
+            configs = self._rename_rule_ids(configs)
+
+        return [rule for rules in configs.values() for rule in rules]
 
     @staticmethod
     def _safe_relative_to(a: Path, b: Path) -> Path:
@@ -103,14 +134,6 @@ class Config:
                 for rule in rules
             ]
         return transformed
-
-    def get_rules(self, no_rewrite_rule_ids: bool) -> List[Rule]:
-        configs = self.valid
-        if not no_rewrite_rule_ids:
-            # re-write the configs to have the hierarchical rule ids
-            configs = self._rename_rule_ids(configs)
-
-        return [rule for rules in configs.values() for rule in rules]
 
     @staticmethod
     def _validate(
@@ -272,36 +295,41 @@ def _is_hidden_config(loc: Path) -> bool:
     )
 
 
-def load_config_from_local_path(location: Optional[str] = None,) -> Dict[str, YamlTree]:
+def load_default_config() -> Dict[str, YamlTree]:
+    """
+        Load config from DEFAULT_CONFIG_FILE or DEFAULT_CONFIG_FOLDER
+    """
+    base_path = get_base_path()
+    default_file = base_path.joinpath(DEFAULT_CONFIG_FILE)
+    default_folder = base_path.joinpath(DEFAULT_CONFIG_FOLDER)
+    if default_file.exists():
+        return parse_config_at_path(default_file)
+    elif default_folder.exists():
+        return parse_config_folder(default_folder, relative=True)
+    else:
+        return {}
+
+
+def load_config_from_local_path(location: str) -> Dict[str, YamlTree]:
     """
         Return config file(s) as dictionary object
     """
     base_path = get_base_path()
-    if location is None:
-        default_file = base_path.joinpath(DEFAULT_CONFIG_FILE)
-        default_folder = base_path.joinpath(DEFAULT_CONFIG_FOLDER)
-        if default_file.exists():
-            return parse_config_at_path(default_file)
-        elif default_folder.exists():
-            return parse_config_folder(default_folder, relative=True)
+    loc = base_path.joinpath(location)
+    if loc.exists():
+        if loc.is_file():
+            return parse_config_at_path(loc)
+        elif loc.is_dir():
+            return parse_config_folder(loc)
         else:
-            return {}
+            raise SemgrepError(f"config location `{loc}` is not a file or folder!")
     else:
-        loc = base_path.joinpath(location)
-        if loc.exists():
-            if loc.is_file():
-                return parse_config_at_path(loc)
-            elif loc.is_dir():
-                return parse_config_folder(loc)
-            else:
-                raise SemgrepError(f"config location `{loc}` is not a file or folder!")
-        else:
-            addendum = ""
-            if IN_DOCKER:
-                addendum = " (since you are running in docker, you cannot specify arbitary paths on the host; they must be mounted into the container)"
-            raise SemgrepError(
-                f"unable to find a config; path `{loc}` does not exist{addendum}"
-            )
+        addendum = ""
+        if IN_DOCKER:
+            addendum = " (since you are running in docker, you cannot specify arbitary paths on the host; they must be mounted into the container)"
+        raise SemgrepError(
+            f"unable to find a config; path `{loc}` does not exist{addendum}"
+        )
 
 
 def nice_semgrep_url(url: str) -> str:
@@ -361,12 +389,10 @@ def download_config(config_url: str) -> Dict[str, YamlTree]:
     return None
 
 
-def resolve_config(config_str: Optional[str]) -> Dict[str, YamlTree]:
+def resolve_config(config_str: str) -> Dict[str, YamlTree]:
     """ resolves if config arg is a registry entry, a url, or a file, folder, or loads from defaults if None"""
     start_t = time.time()
-    if config_str is None:
-        config = load_config_from_local_path()
-    elif config_str in RULES_REGISTRY:
+    if config_str in RULES_REGISTRY:
         config = download_config(RULES_REGISTRY[config_str])
     elif is_url(config_str):
         config = download_config(config_str)

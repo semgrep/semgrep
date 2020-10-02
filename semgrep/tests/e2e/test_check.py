@@ -103,12 +103,12 @@ def test_hidden_rule__explicit(run_semgrep_in_tmp, snapshot):
 def test_hidden_rule__implicit(run_semgrep_in_tmp, snapshot):
     with pytest.raises(CalledProcessError) as excinfo:
         run_semgrep_in_tmp("rules/hidden")
-    assert excinfo.value.returncode == 2
+    assert excinfo.value.returncode == 7
     snapshot.assert_match(excinfo.value.stdout, "error.json")
 
     with pytest.raises(CalledProcessError) as excinfo:
         run_semgrep_in_tmp("rules/hidden", output_format="normal")
-    assert excinfo.value.returncode == 2
+    assert excinfo.value.returncode == 7
     snapshot.assert_match(excinfo.value.stderr, "error.txt")
 
 
