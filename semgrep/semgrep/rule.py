@@ -267,7 +267,7 @@ class Rule:
                 cwe_id = self.metadata["cwe"].split("CWE-")[1]
                 cwe_tag= "cwe-"
                 for char in cwe_id:
-                    if char.is_integr():
+                    if char.isdigit():
                         cwe_tag += char
                     else:
                         break
