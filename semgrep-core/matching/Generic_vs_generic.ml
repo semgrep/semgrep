@@ -2306,6 +2306,11 @@ and m_program a b =
 (* Any *)
 (*****************************************************************************)
 
+and m_partial a b =
+  match a,b with
+  | A.PartialDef a1, B.PartialDef b1 ->
+      m_definition a1 b1
+
 (*s: function [[Generic_vs_generic.m_any]] *)
 and m_any a b =
   match a, b with
@@ -2315,8 +2320,11 @@ and m_any a b =
     m_expr a1 b1
   | A.S(a1), B.S(b1) ->
     m_stmt a1 b1
-  (* boilerplate *)
   (*s: [[Generic_vs_generic.m_any]] boilerplate cases *)
+  | A.Partial(a1), B.Partial(b1) ->
+      m_partial a1 b1
+
+  (* boilerplate *)
   | A.N(a1), B.N(b1) ->
     m_name a1 b1
   | A.Modn(a1), B.Modn(b1) ->
@@ -2361,7 +2369,7 @@ and m_any a b =
   | A.S _, _  | A.T _, _  | A.P _, _  | A.Def _, _  | A.Dir _, _
   | A.Pa _, _  | A.Ar _, _  | A.At _, _  | A.Dk _, _ | A.Pr _, _
   | A.Fld _, _ | A.Ss _, _ | A.Tk _, _ | A.Lbli _, _ | A.Fldi _, _
-  | A.ModDk _, _ | A.TodoK _, _
+  | A.ModDk _, _ | A.TodoK _, _ | A.Partial _, _
    -> fail ()
   (*e: [[Generic_vs_generic.m_any]] boilerplate cases *)
 (*e: function [[Generic_vs_generic.m_any]] *)
