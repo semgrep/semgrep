@@ -158,3 +158,4 @@ semgrep-core/bin/version.ml
 /semgrep-core/layer_bottomup.json
 /semgrep-core/layer_graphcode_stats.json
 /semgrep-core/layer_topdown.json
+/semgrep-core/log_config.json

@@ -65,7 +65,7 @@ LANGUAGE_EXCEPTIONS = {
     ],
 }
 
-EXCLUDE = ["TODO", "GENERIC", "fuzzy", "lint", 'EQUIV', 'e2e', 'SYNTHESIZING', 'NAMING', 'PERF', 'TAINTING']
+EXCLUDE = ["TODO", "GENERIC", 'e2e', 'OTHER']
 
 CHEATSHEET_ENTRIES = {
     "concrete": ["syntax"],
@@ -344,6 +344,7 @@ def main(dir_name: str) -> None:
 
 
 if __name__ == "__main__":
+    os.chdir(THIS_DIR)
     cheatsheet = generate_cheatsheet(THIS_DIR)
     with open('cheatsheet.html', 'w') as fout:
         fout.write(cheatsheet_to_html(cheatsheet))

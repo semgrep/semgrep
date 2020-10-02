@@ -15,6 +15,8 @@ from typing import IO
 from typing import Iterator
 from typing import List
 from typing import Optional
+from typing import Pattern as TPattern
+from typing import Sequence
 from typing import Set
 from typing import Tuple
 
@@ -62,7 +64,9 @@ def _offset_to_col_no(offset: int, buff: str) -> int:
     return offset - buff.rfind("\n", 0, offset)
 
 
-def get_re_matches(patterns_re: List[Tuple], path: Path) -> List[PatternMatch]:
+def get_re_matches(
+    patterns_re: Sequence[Tuple[Any, TPattern[Any]]], path: Path
+) -> List[PatternMatch]:
     try:
         contents = path.read_text()
     except UnicodeDecodeError:

@@ -2,13 +2,13 @@ dir: _build
 dir_element: parsing_errors
 
 # for LSP-experiment
-dir: ocaml-tree-sitter-lang
-dir: parsing/
+#dir: ocaml-tree-sitter-lang
+#dir: parsing/
 # < fld: ...; _.. >  object type
-dir: pfff/demos
-dir_element: TODO_more
+#dir: pfff/demos
+#dir_element: TODO_more
 # (module ...  ) first-class module type?
-file: pfff/ppx/ppx_profiling
+#file: pfff/ppx/ppx_profiling
 
 file: docs/Semgrep.tex
 

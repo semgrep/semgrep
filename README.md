@@ -1,5 +1,5 @@
 <p align="center">
-    <img src="semgrep.svg" height="100" alt="Semgrep logo"/>
+    <a href="https://semgrep.dev"><img src="semgrep.svg" height="100" alt="Semgrep logo"/></a>
 </p>
 <h3 align="center">
   Lightweight static analysis for many languages.
@@ -39,7 +39,7 @@
   </a>
 </p>
 
-Semgrep tl;dr:
+<a href="https://semgrep.dev">Semgrep</a> tl;dr:
 
 - A simple, customizable, and fast static analysis tool for finding bugs
 - Combines the speed and customization of `grep` with the precision of traditional static analysis tools

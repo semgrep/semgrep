@@ -21,7 +21,8 @@
    pfff-lang_go pfff-lang_go-analyze
    pfff-lang_js pfff-lang_js-analyze
 
+   semgrep_utils
    semgrep_core
  )
- (preprocess (pps ppx_profiling ppx_sexp_conv))
+ (preprocess (pps ppx_profiling ppx_sexp_conv ppx_deriving.show))
 )

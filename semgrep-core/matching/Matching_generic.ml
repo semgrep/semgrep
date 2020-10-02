@@ -24,6 +24,8 @@ module Lib = Lib_AST
 module AST = AST_generic
 module Flag = Flag_semgrep
 
+let logger = Logging.get_logger [__MODULE__]
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -106,7 +108,7 @@ type ('a, 'b) matcher = 'a -> 'b -> tin -> tout
 (*****************************************************************************)
 (*s: function [[Matching_generic.str_of_any]] *)
 let str_of_any any =
-  if !Flag.debug_matching && !Flag.debug_with_full_position
+  if !Flag.debug_with_full_position
   then Meta_parse_info._current_precision :=
     { Meta_parse_info.default_dumper_precision with Meta_parse_info.
       full_info = true };
@@ -242,12 +244,9 @@ let rec equal_ast_binded_code (a: AST.any) (b: AST.any) : bool = (
       false
   ) in
 
-  if !Flag.debug_matching && not res
-  then begin
-    pr2 (spf "A = %s" (str_of_any a));
-    pr2 (spf "B = %s" (str_of_any b));
-  end;
-
+  if not res
+  then logger#ldebug (lazy (spf "A = %s\nB = %s\n"
+                (str_of_any a) (str_of_any b)));
   res
 )
 (*e: function [[Matching_generic.equal_ast_binded_code]] *)
@@ -275,14 +274,12 @@ let (envf: (MV.mvar AST.wrap, AST.any) matcher) =
   match check_and_add_metavar_binding (mvar, any) tin with
   | None ->
       (*s: [[Matching_generic.envf]] if [[verbose]] when fail *)
-      if !Flag.debug_matching
-      then pr2 (spf "envf: fail, %s (%s)" mvar (str_of_any any));
+      logger#ldebug (lazy (spf "envf: fail, %s (%s)" mvar (str_of_any any)));
       (*e: [[Matching_generic.envf]] if [[verbose]] when fail *)
       fail tin
   | Some new_binding ->
       (*s: [[Matching_generic.envf]] if [[verbose]] when success *)
-      if !Flag.debug_matching
-      then pr2 (spf "envf: success, %s (%s)" mvar (str_of_any any));
+      logger#ldebug (lazy (spf "envf: success, %s (%s)" mvar(str_of_any any)));
       (*e: [[Matching_generic.envf]] if [[verbose]] when success *)
       return new_binding
 (*e: function [[Matching_generic.envf]] *)
