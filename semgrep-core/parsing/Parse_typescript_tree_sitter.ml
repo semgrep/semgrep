@@ -2620,6 +2620,7 @@ let guess_dialect opt_dialect file : dialect =
         `Typescript
 
 let parse ?dialect file =
+ H.convert_tree_sitter_exn_to_pfff_exn (fun () ->
   let debug = false in
   let dialect = guess_dialect dialect file in
   let cst =
@@ -2640,3 +2641,4 @@ let parse ?dialect file =
   );
 
   program env cst
+ )
