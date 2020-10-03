@@ -271,7 +271,7 @@ let rec expression (env : env) (x : CST.expression) =
                 xs |> List.map (fun id -> ParamClassic (AST.entity_of_id id))
         )
       in
-      let _v2 = token env v2 (* "->" *) in
+      let v2 = token env v2 (* "->" *) in
       let v3 =
         (match v3 with
         | `Exp x -> let x = expression env x in
@@ -279,7 +279,7 @@ let rec expression (env : env) (x : CST.expression) =
         | `Blk x -> block env x
         )
       in
-      Lambda (v1, v3)
+      Lambda (v1, v2, v3)
 
   | `Tern_exp (v1, v2, v3, v4, v5) ->
       let v1 = expression env v1 in
