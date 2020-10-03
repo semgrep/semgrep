@@ -1245,7 +1245,7 @@ let top_level_declaration (env : env) (x : CST.top_level_declaration)
       let v2 = identifier env v2 (* identifier *) in
       [Package (v1, v2)]
   | `Func_decl (v1, v2, v3, v4, v5) ->
-      let _v1 = token env v1 (* "func" *) in
+      let v1 = token env v1 (* "func" *) in
       let v2 = identifier env v2 (* identifier *) in
       let v3 = parameter_list env v3 in
       let v4 =
@@ -1258,9 +1258,9 @@ let top_level_declaration (env : env) (x : CST.top_level_declaration)
         | Some x -> block env x
         | None -> Empty)
       in
-      [DFunc (v2, ({ fparams = v3; fresults = v4 }, v5))]
+      [DFunc (v1, v2, ({ fparams = v3; fresults = v4 }, v5))]
   | `Meth_decl (v1, v2, v3, v4, v5, v6) ->
-      let _v1 = token env v1 (* "func" *) in
+      let v1 = token env v1 (* "func" *) in
       let v2 = parameter_list env v2 in
       let v3 = identifier env v3 (* identifier *) in
       let v4 = parameter_list env v4 in
@@ -1280,7 +1280,7 @@ let top_level_declaration (env : env) (x : CST.top_level_declaration)
          | [ParamClassic x] -> x
          | _ -> failwith "expected one receiver"
       in
-      [DMethod (v3, receiver, ({fparams = v4; fresults = v5}, v6))]
+      [DMethod (v1, v3, receiver, ({fparams = v4; fresults = v5}, v6))]
   | `Import_decl (v1, v2) ->
       let v1 = token env v1 (* "import" *) in
       let v2 =
