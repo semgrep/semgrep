@@ -184,7 +184,7 @@
       },
       "path": "targets/autofix/django-none-password-default.py",
       "start": {
-        "col": 9,
+        "col": 5,
         "line": 71
       }
     }

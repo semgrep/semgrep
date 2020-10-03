@@ -1832,15 +1832,19 @@ and m_type_parameter a b =
 (* Function (or method) definition *)
 (* ------------------------------------------------------------------------- *)
 
+(* iso: we don't care if it's a Function or Arrow *)
+and m_function_kind _ _ = return ()
+
 (*s: function [[Generic_vs_generic.m_function_definition]] *)
 and m_function_definition a b =
   match a, b with
-  { A. fparams = a1; frettype = a2; fbody = a3; },
-  { B. fparams = b1; frettype = b2; fbody = b3; } ->
+  { A. fparams = a1; frettype = a2; fbody = a3; fkind = a4 },
+  { B. fparams = b1; frettype = b2; fbody = b3; fkind = b4 } ->
     m_parameters a1 b1 >>= (fun () ->
     (m_option_none_can_match_some m_type_) a2 b2 >>= (fun () ->
-    m_stmt a3 b3
-    ))
+    m_stmt a3 b3 >>= (fun () ->
+    m_wrap m_function_kind a4 b4
+    )))
 (*e: function [[Generic_vs_generic.m_function_definition]] *)
 
 (*s: function [[Generic_vs_generic.m_parameters]] *)
