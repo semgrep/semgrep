@@ -409,9 +409,12 @@ class OutputHandler:
         elif output_format == OutputFormat.SARIF:
             return build_sarif_output(self.rule_matches, self.rules)
         elif output_format == OutputFormat.TEXT:
+            stats_line = []
+            if sys.stderr.isatty():
+                stats_line = [self.stats_line]
+
             return "\n".join(
-                list(build_normal_output(self.rule_matches, color_output))
-                + ([self.stats_line] if self.stats_line else [])
+                list(build_normal_output(self.rule_matches, color_output)) + stats_line
             )
         else:
             # https://github.com/python/mypy/issues/6366
