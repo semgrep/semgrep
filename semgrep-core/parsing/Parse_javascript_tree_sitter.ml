@@ -68,20 +68,6 @@ let empty_stmt env tok =
   let t = token env tok in
   Block (t, [], t)
 
-let idexp id =
-  match Ast_js.special_of_id_opt (fst id) with
-  | None -> Id (id, ref NotResolved)
-  | Some special -> IdSpecial (special, snd id)
-
-let build_vars kwd vars =
-  vars |> List.map (fun (id_or_pat, ty_opt, initopt) ->
-      match id_or_pat with
-      | Left id ->
-      { v_name = id; v_kind = (kwd); v_init = initopt; v_type = ty_opt;
-        v_resolved = ref NotResolved }
-      | Right pat ->
-        Ast_js.var_pattern_to_var kwd pat (snd kwd) initopt
-   )
 
 let identifier (env : env) (tok : CST.identifier) : ident =
   str env tok (* identifier *)
