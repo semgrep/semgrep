@@ -348,6 +348,8 @@ class OutputHandler:
             )
             if output:
                 print(output, file=self.stdout)
+            if self.stats_line:
+                logger.info(self.stats_line)
 
             if self.settings.output_destination:
                 self.save_output(self.settings.output_destination, output)
@@ -409,13 +411,7 @@ class OutputHandler:
         elif output_format == OutputFormat.SARIF:
             return build_sarif_output(self.rule_matches, self.rules)
         elif output_format == OutputFormat.TEXT:
-            stats_line = []
-            if sys.stderr.isatty():
-                stats_line = [self.stats_line]
-
-            return "\n".join(
-                list(build_normal_output(self.rule_matches, color_output)) + stats_line
-            )
+            return "\n".join(list(build_normal_output(self.rule_matches, color_output)))
         else:
             # https://github.com/python/mypy/issues/6366
             raise RuntimeError(
