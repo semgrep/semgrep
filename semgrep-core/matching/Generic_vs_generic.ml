@@ -775,7 +775,7 @@ and m_special a b =
   | A.Op(a1), B.Op(b1) ->
     m_arithmetic_operator a1 b1
   | A.EncodedString(a1), B.EncodedString(b1) ->
-    m_wrap m_string a1 b1
+    m_string a1 b1
   | A.IncrDecr(a1, a2), B.IncrDecr(b1, b2) ->
     m_eq a1 b1 >>= (fun () ->
     m_eq a2 b2
