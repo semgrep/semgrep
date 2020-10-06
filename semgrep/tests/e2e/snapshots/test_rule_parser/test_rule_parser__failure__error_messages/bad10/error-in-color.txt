@@ -1,4 +1,4 @@
-[31merror[39m: null values prohibited
+[31msemgrep error[39m: null values prohibited
   --> rules/syntax/bad10.yaml:8
 [94m7 | [39m    # This key is missing a value
 [94m8 | [39m    pattern-either:

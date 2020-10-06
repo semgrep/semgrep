@@ -409,7 +409,9 @@ class CoreRunner:
         debugging_steps: List[Any] = []
         for rule, paths in by_rule_index.items():
             for filepath, pattern_matches in paths.items():
-                logger.debug(f"----- rule ({rule.id}) ----- filepath: {filepath}")
+                logger.debug(
+                    f"--> rule ({rule.id}) has findings on filepath: {filepath}"
+                )
 
                 findings_for_rule, debugging_steps = evaluate(
                     rule, pattern_matches, self._allow_exec
@@ -417,6 +419,7 @@ class CoreRunner:
                 findings.extend(findings_for_rule)
 
         findings = dedup_output(findings)
+        logger.debug(f"...ran on {len(all_targets)} files")
 
         # debugging steps are only tracked for a single file, just overwrite
         return findings, debugging_steps, errors, all_targets
@@ -484,7 +487,7 @@ class CoreRunner:
             for rule in progress_bar(
                 rules, bar_format="{l_bar}{bar}|{n_fmt}/{total_fmt}"
             ):
-                debug_tqdm_write(f"Running rule {rule._raw.get('id')}")
+                debug_tqdm_write(f"Running rule {rule._raw.get('id')}...")
                 rule_matches, debugging_steps, errors, rule_targets = self._run_rule(
                     rule, target_manager, semgrep_core_ast_cache_dir, max_timeout_files
                 )
@@ -510,6 +513,7 @@ class CoreRunner:
         Dict[Rule, List[RuleMatch]],
         Dict[Rule, List[Dict[str, Any]]],
         List[SemgrepError],
+        str,
     ]:
         """
             Takes in rules and targets and retuns object with findings
@@ -521,8 +525,20 @@ class CoreRunner:
         )
 
         logger.debug(f"semgrep ran in {datetime.now() - start} on {num_targets} files")
+        by_severity = collections.defaultdict(list)
+        for rule, findings in findings_by_rule.items():
+            by_severity[rule.severity.lower()].extend(findings)
 
-        return findings_by_rule, debug_steps_by_rule, errors
+        by_sev_strings = [
+            f"{len(findings)} {sev}" for sev, findings in by_severity.items()
+        ]
+        logger.debug(f'findings summary: {", ".join(by_sev_strings)}')
+        num_findings = sum(len(v) for v in findings_by_rule.values())
+        stats_line = (
+            f"ran {len(rules)} rules on {num_targets} files: {num_findings} findings"
+        )
+
+        return findings_by_rule, debug_steps_by_rule, errors, stats_line
 
 
 def dedup_output(outputs: List[RuleMatch]) -> List[RuleMatch]:
