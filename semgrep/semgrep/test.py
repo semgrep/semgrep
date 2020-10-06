@@ -12,21 +12,23 @@ Validate that the output is annotated in the source file with by looking for a c
 import argparse
 import collections
 import functools
-import logging
+import json
 import multiprocessing
 import sys
 from pathlib import Path
 from typing import Any
 from typing import Dict
+from typing import Iterator
 from typing import List
+from typing import Mapping
+from typing import Optional
+from typing import Sequence
 from typing import Set
 from typing import Tuple
 
 from semgrep.constants import YML_EXTENSIONS
 from semgrep.semgrep_main import invoke_semgrep
 from semgrep.util import partition
-
-logger = logging.getLogger(__name__)
 
 
 def normalize_rule_id(line: str) -> str:
@@ -122,9 +124,7 @@ def score_output_json(
     score_by_checkid: Dict[str, List[int]] = collections.defaultdict(
         lambda: [0, 0, 0, 0]
     )
-    expected_reported_by_check_id: Dict[str, Dict[str, Any]] = collections.defaultdict(
-        dict
-    )
+    matches_by_check_id: Dict[str, Dict[str, Any]] = collections.defaultdict(dict)
     num_todo = 0
 
     for test_file in test_files:
@@ -177,10 +177,10 @@ def score_output_json(
             reported = all_reported - ignored
 
             new_cm = compute_confusion_matrix(reported, expected, oked)
-            logger.debug(
-                f"reported lines for check {check_id}: {sorted(reported)}, expected lines: {sorted(expected)} (ignored: {sorted(ignored)}, confusion matrix: {new_cm}"
-            )
-            expected_reported_by_check_id[check_id][file_path] = (expected, reported)
+            matches_by_check_id[check_id][file_path] = {
+                "expected_lines": sorted(expected),
+                "reported_lines": sorted(reported),
+            }
             # TODO: -- re-enable this
             # assert len(set(reported_lines[file_path][check_id])) == len(
             #    reported_lines[file_path][check_id]
@@ -190,10 +190,10 @@ def score_output_json(
                 old_cm[i] + new_cm[i] for i in range(len(new_cm))
             ]
 
-    return (score_by_checkid, expected_reported_by_check_id, num_todo)
+    return (score_by_checkid, matches_by_check_id, num_todo)
 
 
-def generate_confusion_string(check_results):
+def generate_confusion_string(check_results: Mapping[str, Any]) -> str:
     confusion_tp = f"TP: {check_results['tp']}"
     confusion_tn = f"TN: {check_results['tn']}"
     confusion_fp = f"FP: {check_results['fp']}"
@@ -201,32 +201,38 @@ def generate_confusion_string(check_results):
     return f"{confusion_tp} {confusion_tn} {confusion_fp} {confusion_fn}"
 
 
-def generate_check_output_line(check_id, check_results):
+def generate_check_output_line(check_id: str, check_results: Mapping[str, Any]) -> str:
     status = "✔" if check_results["passed"] else "✖"
     return f"\t{status} {check_id.ljust(60)} {generate_confusion_string(check_results)}"
 
 
-def generate_expected_reported_line(check_results):
+def generate_matches_line(check_results: Mapping[str, Any]) -> str:
+    def _generate_line(test_file: Any, matches: Mapping[str, Any]) -> str:
+        test = f"test: {test_file}"
+        expected = f"expected lines: {matches['expected_lines']}"
+        reported = f"reported lines: {matches['reported_lines']}"
+        return f"{test}, {expected}, {reported}"
+
     return "\t" + "\t\n".join(
-        f"test: {test_file}, expected: {sorted(expected_reported[0])}, reported: {sorted(expected_reported[1])}"
-        for test_file, expected_reported in check_results["expected_reported"].items()
+        _generate_line(test_file, matches)
+        for test_file, matches in check_results["matches"].items()
     )
 
 
-def invoke_semgrep_multi(filename, *args, **kwargs):
+def invoke_semgrep_multi(
+    config: Path, targets: List[Path], **kwargs: Any
+) -> Tuple[Path, Optional[Exception], Any]:
     try:
-        output = invoke_semgrep(filename, *args, **kwargs)
+        output = invoke_semgrep(config, targets, **kwargs)
     except Exception as error:
-        return (filename, error, {})
+        return (config, error, {})
     else:
-        return (filename, None, output)
+        return (config, None, output)
 
 
 def generate_file_pairs(
-    location: Path, ignore_todo: bool, strict: bool, unsafe: bool
+    location: Path, ignore_todo: bool, strict: bool, unsafe: bool, json_output: bool
 ) -> None:
-    print("starting tests...")
-
     filenames = list(location.rglob("*"))
     config_filenames = [
         filename
@@ -248,9 +254,7 @@ def generate_file_pairs(
     config_with_tests, config_without_tests = partition(
         lambda c: c[1], config_test_filenames.items()
     )
-    if config_without_tests:
-        print("The following config files are missing tests:")
-        print("\t" + "\n\t".join(str(c[0]) for c in config_without_tests))
+    config_missing_tests_output = [str(c[0]) for c in config_without_tests]
 
     invoke_semgrep_fn = functools.partial(
         invoke_semgrep_multi,
@@ -264,16 +268,10 @@ def generate_file_pairs(
         results = pool.starmap(invoke_semgrep_fn, config_with_tests)
 
     config_with_errors, config_without_errors = partition(lambda r: r[1], results)
-    if config_with_errors:
-        print("The following config files produced errors:")
-        print(
-            "\t"
-            + "\n\t".join(
-                f"{filename}: {error}" for filename, error, _ in config_with_errors
-            )
-        )
-        if strict:
-            sys.exit(1)
+    config_with_errors_output = [
+        {"filename": str(filename), "error": str(error), "output": output}
+        for filename, error, output in config_with_errors
+    ]
 
     tested = {
         filename: score_output_json(
@@ -282,8 +280,8 @@ def generate_file_pairs(
         for filename, _, output in config_without_errors
     }
 
-    test_results = {
-        filename: {
+    results_output: Mapping[str, Mapping[str, Any]] = {
+        str(filename): {
             "todo": todo,
             "checks": {
                 check_id: {
@@ -292,18 +290,48 @@ def generate_file_pairs(
                     "fp": fp,
                     "fn": fn,
                     "passed": (fp == 0) and (fn == 0),
-                    "expected_reported": expected_reported[check_id],
+                    "matches": matches[check_id],
                 }
                 for check_id, (tp, tn, fp, fn) in output.items()
             },
         }
-        for filename, (output, expected_reported, todo) in tested.items()
+        for filename, (output, matches, todo) in tested.items()
     }
+    output = {
+        "config_missing_tests": config_missing_tests_output,
+        "config_with_errors": config_with_errors_output,
+        "results": results_output,
+    }
+
+    strict_error = bool(config_with_errors_output) and strict
+    any_failures = any(
+        not check_results["passed"]
+        for file_results in results_output.values()
+        for check_results in file_results["checks"].values()
+    )
+    exit_code = int(strict_error or any_failures)
+
+    if json_output:
+        print(json.dumps(output, indent=4, separators=(",", ": ")))
+        sys.exit(exit_code)
+
+    if config_missing_tests_output:
+        print("The following config files are missing tests:")
+        print("\t" + "\n\t".join(config_missing_tests_output))
+
+    if config_with_errors_output:
+        print("The following config files produced errors:")
+        print(
+            "\t"
+            + "\n\t".join(
+                f"{c['filename']}: {c['error']}" for c in config_with_errors_output
+            )
+        )
 
     # Place failed tests at the bottom for higher visibility
     passed_results_first = collections.OrderedDict(
         sorted(
-            test_results.items(),
+            results_output.items(),
             key=lambda t: any(not c["passed"] for c in t[1]["checks"].values()),
         )
     )
@@ -312,16 +340,14 @@ def generate_file_pairs(
     print("check id scoring:")
     print("=" * 80)
 
-    totals = collections.defaultdict(int)
-    any_failures = False
+    totals: Dict[str, Any] = collections.defaultdict(int)
 
-    for filename, results in passed_results_first.items():
-        print(f"(TODO: {results['todo']}) {filename}")
-        for check_id, check_results in results["checks"].items():
+    for filename, rr in passed_results_first.items():
+        print(f"(TODO: {rr['todo']}) {filename}")
+        for check_id, check_results in rr["checks"].items():
             print(generate_check_output_line(check_id, check_results))
             if not check_results["passed"]:
-                print(generate_expected_reported_line(check_results))
-                any_failures = True
+                print(generate_matches_line(check_results))
             for confusion in ["tp", "tn", "fp", "fn"]:
                 totals[confusion] += check_results[confusion]
 
@@ -329,7 +355,7 @@ def generate_file_pairs(
     print(f"final confusion matrix: {generate_confusion_string(totals)}")
     print("=" * 80)
 
-    sys.exit(int(any_failures))
+    sys.exit(exit_code)
 
 
 def test_main(args: argparse.Namespace) -> None:
@@ -344,4 +370,5 @@ def test_main(args: argparse.Namespace) -> None:
         args.test_ignore_todo,
         args.strict,
         args.dangerously_allow_arbitrary_code_execution_from_rules,
+        args.json,
     )

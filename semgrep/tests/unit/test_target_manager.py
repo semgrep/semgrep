@@ -386,6 +386,7 @@ def test_explicit_path(tmp_path, monkeypatch):
         output_format=OutputFormat.TEXT,
         output_destination=None,
         error_on_findings=False,
+        verbose_errors=False,
         strict=False,
     )
     defaulthandler = OutputHandler(output_settings)

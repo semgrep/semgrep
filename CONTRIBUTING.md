@@ -119,21 +119,9 @@ and run the binary from there. Another option is including it somewhere like
 `semgrep` is fully operational by running a simple analysis:
 
 ```
-$ cat << EOF > test.py
-if 5 == 5:
-    print("Useless comparison")
-EOF
-```
-
-```
-$ python test.py
-Useless comparison
-```
-
-```
-$ python -m semgrep --lang python --pattern '$X == $X' test.py
-test.py
-1:if 5 == 5:
+$ echo 'if 1 == 1: pass' | python -m semgrep --lang python --pattern '$X == $X' -
+/tmp/...
+1:if 1 == 1: pass
 ```
 
 Congratulations, you have Semgrep running locally!

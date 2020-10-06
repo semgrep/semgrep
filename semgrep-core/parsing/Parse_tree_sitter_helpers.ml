@@ -91,3 +91,68 @@ let combine_tokens env xs =
   | x::_xsTODO ->
       let t = token env x in
       t
+
+let mk_tree_sitter_error (err : Tree_sitter_run.Tree_sitter_error.t) =
+  let start = err.start_pos in
+  let loc = {
+    PI.str = err.substring;
+    charpos = 0; (* fake *)
+    line = start.row + 1;
+    column = start.column;
+    file = err.file.name;
+  } in
+  loc
+
+let convert_tree_sitter_exn_to_pfff_exn f =
+  try f ()
+  with
+  (* The case below is what we would like to do! However if
+   * you use Parallel.invoke to invoke the tree-sitter parser, this
+   * code below will never trigger. Indeed, unmarshalled exn
+   * can't be used in match or try or used for structural equality
+   * hence the ugly workaround below. See marshal.mli or Paralle.ml for
+   * more information.
+   *)
+  | Tree_sitter_run.Tree_sitter_error.Error ts_error ->
+    let loc = mk_tree_sitter_error ts_error in
+    let info = { PI.token = PI.OriginTok loc; transfo = PI.NoTransfo } in
+    raise (PI.Parsing_error info)
+
+  (* !!!UGLY!!! remove this once we don't use Paralle.invoke *)
+  | exn ->
+      let s = Common.exn_to_s exn in
+      if s = "Tree_sitter_run.Tree_sitter_error.Error(_)" then begin
+        let t = Obj.repr exn in
+        let info = Obj.field t 1 in
+        let (ts_error : Tree_sitter_run.Tree_sitter_error.t) = Obj.obj info in
+        let loc = mk_tree_sitter_error ts_error in
+        let info = { PI.token = PI.OriginTok loc; transfo = PI.NoTransfo } in
+        raise (PI.Parsing_error info)
+      end else raise exn
+
+
+(* Stuff to put in entry point at the beginning:
+let todo _env _x = failwith "not implemented"
+
+let todo_any str t any =
+  pr2 (AST.show_any any);
+  raise (Parse_info.Ast_builder_error (str, t))
+
+let program =
+  ...
+  try
+   program ...
+  with
+    (Failure "not implemented") as exn ->
+      (* This debugging output is not JSON and breaks core output
+       *
+       * let s = Printexc.get_backtrace () in
+       * pr2 "Some constructs are not handled yet";
+       * pr2 "CST was:";
+       * CST.dump_tree ast;
+       * pr2 "Original backtrace:";
+       * pr2 s;
+       *)
+      raise exn
+
+*)

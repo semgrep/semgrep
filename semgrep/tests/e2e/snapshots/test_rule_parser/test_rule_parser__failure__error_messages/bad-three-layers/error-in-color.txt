@@ -1,0 +1,13 @@
+[31msemgrep error[39m: Invalid rule schema
+  --> rules/syntax/bad-three-layers.yaml:2
+[94m2 | [39m  - id: eqeq-is-bad
+[94m3 | [39m    pattern-either:
+[94m4 | [39m      - pattern: $X == $X
+[94m5 | [39m      - tappern: whoops, typo
+[94m6 | [39m    message: "useless comparison operation `$X == $X` or `$X != $X`; possible bug?"
+[94m7 | [39m    severity: ERROR
+
+[31mOne of these properties may be invalid: 'pattern-either'
+One of these properties is missing: 'languages', 'mode'[39m
+
+run with --strict and there were 1 errors loading configs

@@ -48,7 +48,7 @@ let subexprs_of_expr e =
     -> [e1;e2]
   | Conditional (e1, e2, e3)
     -> [e1;e2;e3]
-  | Tuple xs | Seq xs
+  | Tuple (_, xs, _) | Seq xs
     -> xs
   | Container (_, xs)
     -> unbracket xs

@@ -1,0 +1,17 @@
+version: 2.1
+jobs:
+
+  semgrep:
+    docker:
+      - image: returntocorp/semgrep:develop
+        user: root
+    working_directory: /src
+    steps:
+      - checkout
+      - run: semgrep --config semgrep.yml --error --strict --exclude tests --exclude TODO --exclude _build .
+
+workflows:
+  version: 2
+  semgrep:
+    jobs:
+      - semgrep

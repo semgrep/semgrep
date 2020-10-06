@@ -21,7 +21,7 @@ open AST_generic
 module PI = Parse_info
 module R = Rule
 module E = Error_code
-module J = Json_type
+module J = JSON
 
 open Match_result
 
@@ -119,7 +119,7 @@ let json_metavar x startp (s, any) =
     with Parse_info.NoTokenLocation exn ->
      failwith (spf
       "NoTokenLocation %s exn while processing %s for rule %s, with metavar %s, close location = %s"
-        exn x.file x.rule.R.id  s (Json_io.string_of_json startp))
+        exn x.file x.rule.R.id  s (J.string_of_json startp))
   in
   s, J.Object [
   "start", startp;

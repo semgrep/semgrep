@@ -57,6 +57,8 @@ def cli() -> None:
     config_ex.add_argument(
         "-f",
         "--config",
+        action="append",
+        default=[],
         help=(
             "YAML configuration file, directory of YAML files ending in "
             ".yml|.yaml, URL of a configuration file, or semgrep registry entry "
@@ -204,6 +206,9 @@ def cli() -> None:
         help="Output JSON with extra debugging information.",
     )
     output.add_argument(
+        "--junit-xml", action="store_true", help="Output results in JUnit XML format."
+    )
+    output.add_argument(
         "--sarif", action="store_true", help="Output results in SARIF format."
     )
     output.add_argument("--test", action="store_true", help="Run test suite.")
@@ -263,9 +268,12 @@ def cli() -> None:
         "--verbose",
         action="store_true",
         help=(
-            "Set the logging level to verbose. E.g. statements about which "
-            "files are being processed will be printed."
+            "Show more details about what rules are running, which files failed to parse, etc."
         ),
+    )
+
+    output.add_argument(
+        "--debug", action="store_true", help="Set the logging level to DEBUG",
     )
 
     parser.add_argument(
@@ -296,7 +304,7 @@ def cli() -> None:
         parser.error("--dump-ast and -l/--lang must both be specified")
 
     # set the flags
-    semgrep.util.set_flags(args.verbose, args.quiet, args.force_color)
+    semgrep.util.set_flags(args.debug, args.quiet, args.force_color)
 
     # change cwd if using docker
     try:
@@ -310,6 +318,8 @@ def cli() -> None:
         output_format = OutputFormat.JSON
     elif args.debugging_json:
         output_format = OutputFormat.JSON_DEBUG
+    elif args.junit_xml:
+        output_format = OutputFormat.JUNIT_XML
     elif args.sarif:
         output_format = OutputFormat.SARIF
 
@@ -318,6 +328,7 @@ def cli() -> None:
         output_destination=args.output,
         error_on_findings=args.error,
         strict=args.strict,
+        verbose_errors=args.verbose,
         timeout_threshold=args.timeout_threshold,
     )
 
@@ -347,9 +358,9 @@ def cli() -> None:
                 args.pattern, args.lang, args.config
             )
             valid_str = "invalid" if config_errors else "valid"
-            rule_count = sum(len(rules) for rules in configs.values())
+            rule_count = len(configs.get_rules(True))
             logger.info(
-                f"Configuration is {valid_str} - found {len(configs)} valid configuration(s), {len(config_errors)} configuration error(s), and {rule_count} rule(s)."
+                f"Configuration is {valid_str} - found {len(configs.valid)} valid configuration(s), {len(config_errors)} configuration error(s), and {rule_count} rule(s)."
             )
             if config_errors:
                 for error in config_errors:
@@ -363,7 +374,7 @@ def cli() -> None:
                 target=target,
                 pattern=args.pattern,
                 lang=args.lang,
-                config=args.config,
+                configs=args.config,
                 no_rewrite_rule_ids=args.no_rewrite_rule_ids,
                 jobs=args.jobs,
                 include=args.include,

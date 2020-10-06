@@ -10,7 +10,12 @@
 .PHONY: build
 build:
 	$(MAKE) build-core
-	cd semgrep && python3 -m pipenv install --dev
+	cd semgrep && pipenv install --dev
+
+.PHONY: install
+install:
+	$(MAKE) -C semgrep-core install
+	python3.7 -m pip install semgrep
 
 .PHONY: build-core
 build-core: build-ocaml-tree-sitter
@@ -72,3 +77,9 @@ clean:
 gitclean:
 	git clean -dfX
 	git submodule foreach --recursive git clean -dfX
+
+.PHONY: bump
+bump:
+	sed -i '' 's/__VERSION__ = ".*"/__VERSION__ = "$(SEMGREP_VERSION)"/g' semgrep/semgrep/__init__.py
+	sed -i '' "s/^  rev: 'v.*'$$/  rev: 'v$(SEMGREP_VERSION)'/g" docs/integrations.md
+	sed -i '' 's/^    install_requires=\["semgrep==0.23.0"\],$$/    install_requires=["semgrep==$(SEMGREP_VERSION)"],/g' setup.py

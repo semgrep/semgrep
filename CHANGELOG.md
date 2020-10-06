@@ -2,7 +2,50 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## NEXT VERSION
+## UNRELEASED
+
+- Added a `--debug` flag and moved most of the output under `--verbose` to it.
+- Parse and other errors are mentioned at final output, but not individually displayed unless --verbose is passed
+- Can run multiple rule configs by repeating `--config` option
+
+
+## [0.26.0](https://github.com/returntocorp/semgrep/releases/tag/v0.26.0) - 2020-09-30
+
+### Fixed
+- Metavariables are able to match empty tuples
+- Correctly parse optional chaining (?.) in Typescript
+- Correctly parse logical assignment operators (&&=, ||=, ??=) in Typescript
+- Some type constraing matching in Typescript
+
+### Changed
+- Added default timeout of 5 seconds to javascript parsing (related to ?. on large minified files stalling)
+
+
+## [0.25.0](https://github.com/returntocorp/semgrep/releases/tag/v0.25.0) - 2020-09-23
+
+### Added
+- Added support for the JUnit XML report format (`--junit-xml`)
+- C now supports the deep expression operator: `<... $X ...>`. See [this example](https://semgrep.dev/s/boKP/?version=develop).
+- Added support for ellipses `...` in PHP. (https://github.com/returntocorp/semgrep/issues/1715). See [this example](https://semgrep.dev/s/NxRn/?version=develop).
+
+### Fixed
+- JavaScript will parse empty yields (https://github.com/returntocorp/semgrep/issues/1688).
+- In JavaScript, arrow functions are now considered lambdas (https://github.com/returntocorp/semgrep/issues/1691). This allows [matching](https://semgrep.dev/s/Kd1j/?version=develop) arrow functions in `var` assignments.
+- `tsx` and `typescript` are now properly recognized in the `languages` key. (https://github.com/returntocorp/semgrep/issues/1705)
+
+
+## [0.24.0](https://github.com/returntocorp/semgrep/releases/tag/v0.24.0) - 2020-09-16
+
+### Added
+- The `--test` functionality now supports the `--json` flag
+- Alpha support for TypeScript
+- Alpha support for PHP
+- PyPI artifacts are now compatible with Alpine Linux
+
+### Fixed
+- Can now parse ECMAScript object patterns with ellipses in place of fields
+
+## [0.23.0](https://github.com/returntocorp/semgrep/releases/tag/v0.23.0) - 2020-09-09
 
 ### Added
 - Experimental support for Typescript (with -lang ts). You can currently
@@ -11,7 +54,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Ability to read target contents from stdin by specifying "-" target.
 
 ### Changed
-- You can now specify timeouts using floats instead of integers 
+- You can now specify timeouts using floats instead of integers
   (e.g., semgrep -timeout 0.5 will timeout after half a second)
 
 ### Fixed

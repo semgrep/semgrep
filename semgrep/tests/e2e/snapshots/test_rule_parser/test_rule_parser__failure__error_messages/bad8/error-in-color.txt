@@ -1,6 +1,5 @@
-[31merror[39m: Invalid rule schema
-  --> rules/syntax/bad8.yaml:1
-[94m1 | [39mrules:
+[31msemgrep error[39m: Invalid rule schema
+  --> rules/syntax/bad8.yaml:2
 [94m2 | [39m  - id: arg-reassign
 [94m3 | [39m    # missing a pattern
 [94m4 | [39m    message: "$X is being assigned to one or two"

@@ -1,4 +1,4 @@
-[31merror[39m: Invalid rule schema
+[31msemgrep error[39m: Invalid rule schema
   --> rules/syntax/badpaths1.yaml:8
 [94m8  | [39m      - "*.py"
 [94m9  | [39m      - "test/*"

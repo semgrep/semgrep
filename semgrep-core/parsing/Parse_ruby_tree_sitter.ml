@@ -678,7 +678,7 @@ and arg (x : CST.arg) : AST.expr =
   | `Un x -> unary x
   )
 
-and anon_lit_content_rep_pat_3d340f6_lit_content ((v1, v2) : CST.anon_lit_content_rep_pat_3d340f6_lit_content) =
+and anon_lit_content_rep_pat_3d340f6_lit_content_3d2b44e ((v1, v2) : CST.anon_lit_content_rep_pat_3d340f6_lit_content_3d2b44e) =
   let v1 = literal_contents v1 in
   let v2 =
     List.map (fun (v1, v2) ->
@@ -715,7 +715,7 @@ and primary (x : CST.primary) : AST.expr =
       let v3 =
         (match v3 with
         | Some x ->
-            (anon_lit_content_rep_pat_3d340f6_lit_content x)
+            (anon_lit_content_rep_pat_3d340f6_lit_content_3d2b44e x)
         | None -> [])
       in
       let _v4 =
@@ -735,7 +735,7 @@ and primary (x : CST.primary) : AST.expr =
       let v3 =
         (match v3 with
         | Some x ->
-            (anon_lit_content_rep_pat_3d340f6_lit_content x)
+            (anon_lit_content_rep_pat_3d340f6_lit_content_3d2b44e x)
         | None -> [])
       in
       let _v4 =
@@ -1686,6 +1686,7 @@ let program ((v1, _v2interpreted) : CST.program) : AST.stmts  =
 (*****************************************************************************)
 
 let parse file =
+ H.convert_tree_sitter_exn_to_pfff_exn (fun () ->
   (* TODO: tree-sitter bindings are buggy so we cheat and fork to
    * avoid segfaults to popup. See Main.ml test_parse_ruby function.
    *)
@@ -1709,3 +1710,4 @@ let parse file =
    global_file := file;
    global_conv := H.line_col_to_pos file;
    program cst
+ )

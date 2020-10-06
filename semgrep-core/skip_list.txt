@@ -1,7 +1,21 @@
 dir: _build
+dir_element: parsing_errors
+
+# for LSP-experiment
+#dir: ocaml-tree-sitter-lang
+#dir: parsing/
+# < fld: ...; _.. >  object type
+#dir: pfff/demos
+#dir_element: TODO_more
+# (module ...  ) first-class module type?
+#file: pfff/ppx/ppx_profiling
+
 file: docs/Semgrep.tex
+
 dir: tests/PERF
+
 file: tests/java/perf_fields.java
+
 file: ocaml-tree-sitter-lang/ruby/lib/parser.c
 file: ocaml-tree-sitter-lang/ruby/lib/scanner.cc
 file: ocaml-tree-sitter-lang/ruby/lib/Parse.ml

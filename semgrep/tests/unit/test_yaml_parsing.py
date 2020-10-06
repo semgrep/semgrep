@@ -1,6 +1,6 @@
 from semgrep.config_resolver import parse_config_string
+from semgrep.config_resolver import validate_single_rule
 from semgrep.constants import RULES_KEY
-from semgrep.semgrep_main import validate_single_rule
 
 
 def test_parse_taint_rules():

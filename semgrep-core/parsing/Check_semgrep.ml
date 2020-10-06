@@ -11,7 +11,7 @@ let lang_has_no_dollar_ids = Lang.(function
   | JSON
   | Csharp
   -> true
-  | Javascript | Ruby | Typescript
+  | Javascript | Ruby | Typescript | PHP
   -> false)
 (*e: constant [[Check_semgrep.lang_has_no_dollar_ids]] *)
 
