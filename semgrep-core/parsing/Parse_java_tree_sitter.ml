@@ -1730,7 +1730,7 @@ and unannotated_type (env : env) (x : CST.unannotated_type) : typ =
   | `Array_type (v1, v2) ->
       let v1 = unannotated_type env v1 in
       let v2 = dimensions env v2 in
-      List.fold_left (fun acc _e -> TArray acc) v1 v2
+      List.fold_left (fun acc (t1, (), t2) -> TArray (t1, acc, t2)) v1 v2
   )
 
 
@@ -1786,7 +1786,8 @@ and method_header (env : env) ((v1, v2, v3, v4) : CST.method_header) =
     | None -> [])
   in
   let (id, params, dims) = v3 in
-  let t = List.fold_left (fun acc _e -> TArray acc) v2 dims in
+  let t = List.fold_left (fun acc (t1, (), t2) -> TArray (t1, acc, t2))
+           v2 dims in
   v1, t, id, params, v4
 
 

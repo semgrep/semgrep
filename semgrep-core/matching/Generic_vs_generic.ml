@@ -1125,7 +1125,7 @@ and m_type_ a b =
     m_type_ a2 b2
     )
   | A.TyArray(a1, a2), B.TyArray(b1, b2) ->
-    (m_option m_expr) a1 b1 >>= (fun () ->
+    m_bracket (m_option m_expr) a1 b1 >>= (fun () ->
     m_type_ a2 b2
     )
   | A.TyTuple(a1), B.TyTuple(b1) ->
@@ -1151,7 +1151,8 @@ and m_type_ a b =
       m_type_ a1 b1 >>= (fun () ->
       m_tok a2 b2
       )
-    | A.TyRecordAnon(a1), B.TyRecordAnon(b1) ->
+    | A.TyRecordAnon(a0, a1), B.TyRecordAnon(b0, b1) ->
+      let* () = m_tok a0 b0 in
       m_bracket m_fields a1 b1
     | A.TyOr (a1, a2, a3), B.TyOr (b1, b2, b3) ->
         m_type_ a1 b1 >>= (fun () ->
