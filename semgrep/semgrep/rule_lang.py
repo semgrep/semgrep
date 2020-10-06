@@ -444,7 +444,12 @@ def validate_yaml(data: YamlTree) -> None:
     except jsonschema.ValidationError as ve:
         message = _validation_error_message(ve)
         item = data
-        for el in (ve.parent or ve).relative_path:
+
+        root_error = ve
+        while root_error.parent is not None:
+            root_error = root_error.parent
+
+        for el in root_error.absolute_path:
             item = item.value[el]
 
         raise InvalidRuleSchemaError(
