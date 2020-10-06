@@ -250,6 +250,7 @@ let print_match mvars mvar_binding ii_of_any tokens_matched_code =
           match Common2.assoc_opt x mvar_binding with
           | Some any ->
               ii_of_any any
+              |> List.filter PI.is_origintok
               |> List.map PI.str_of_info
               |> Matching_report.join_with_space_if_needed
           | None ->
