@@ -1,3 +1,4 @@
+import os
 import re
 from enum import auto
 from enum import Enum
@@ -18,6 +19,9 @@ DEFAULT_CONFIG_FOLDER = f".{DEFAULT_SEMGREP_CONFIG_NAME}"
 YML_EXTENSIONS = {".yml", ".yaml"}
 
 SEMGREP_USER_AGENT = f"Semgrep/{__VERSION__}"
+SEMGREP_USER_AGENT_APPEND = os.environ.get("SEMGREP_USER_AGENT_APPEND")
+if SEMGREP_USER_AGENT_APPEND is not None:
+    SEMGREP_USER_AGENT = f"{SEMGREP_USER_AGENT} {SEMGREP_USER_AGENT_APPEND}"
 
 SEMGREP_PATH = compute_semgrep_path()
 
@@ -26,6 +30,7 @@ class OutputFormat(Enum):
     TEXT = auto()
     JSON = auto()
     JSON_DEBUG = auto()
+    JUNIT_XML = auto()
     SARIF = auto()
 
     def is_json(self) -> bool:

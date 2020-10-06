@@ -12,7 +12,7 @@ language.
 
 ## Semgrep Output
 
-Semgrep by default prints to STDOUT, but it can also output JSON or SARIF (Static Analysis Results Interchange Format). See [here](output.md) for more details.
+Semgrep by default prints to STDOUT, but it can also output JSON, JUnit XML or SARIF (Static Analysis Results Interchange Format). See [here](output.md) for more details.
 
 ## Integrations
 

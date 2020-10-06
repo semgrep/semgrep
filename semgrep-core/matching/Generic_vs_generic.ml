@@ -34,6 +34,8 @@ module Flag = Flag_semgrep
 
 open Matching_generic
 
+let logger = Logging.get_logger [__MODULE__]
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -238,14 +240,28 @@ let rec m_name a b =
     )
 (*e: function [[Generic_vs_generic.m_name]] *)
 
+and m_type_option_with_hook idb taopt tbopt =
+  match taopt, tbopt with
+  | Some ta, Some tb ->
+     m_type_ ta tb
+  | Some ta, None ->
+     (match !Hooks.get_type idb with
+     | Some tb -> m_type_ ta tb
+     | None -> fail ()
+     )
+  (* less-is-ok:, like m_option_none_can_match_some *)
+  | None, _ -> return ()
+
 (*s: function [[Generic_vs_generic.m_ident_and_id_info_add_in_env_Expr]] *)
 and m_ident_and_id_info_add_in_env_Expr (a1, a2) (b1, b2) =
   (* metavar: *)
   match a1, b1 with
   | (str, tok), b when MV.is_metavar_name str ->
+     (* a bit OCaml specific, cos only ml_to_generic tags id_type in pattern *)
+      m_type_option_with_hook b1 !(a2.A.id_type) !(b2.B.id_type) >>= (fun () ->
       m_id_info a2 b2 >>= (fun () ->
         envf (str, tok) (B.E (B.Id (b, b2))) (* B.E here, not B.I *)
-     )
+     ))
   (* same code than for m_ident *)
   (*s: [[Generic_vs_generic.m_ident()]] regexp case *)
   (* in some languages such as Javascript certain entities like
@@ -438,7 +454,7 @@ and m_expr a b =
   | A.Container(A.List, a2), B.Container(B.List, b2) ->
     (m_bracket (m_container_ordered_elements)) a2 b2
   | A.Tuple(a1), B.Tuple(b1) ->
-    m_container_ordered_elements a1 b1
+    (m_container_ordered_elements |> m_bracket) a1 b1
   (*e: [[Generic_vs_generic.m_expr()]] sequencable container cases *)
   | A.Container((A.Set | A.Dict) as a1, (_, a2, _)),
     B.Container((B.Set | B.Dict) as b1, (_, b2, _)) ->
@@ -501,7 +517,7 @@ and m_expr a b =
      * This should enable multiple assignments if the number of
      * variables and values are equal. *)
     >||> (match (b1, b2) with
-    | B.Tuple vars, B.Tuple vals
+    | B.Tuple (_, vars, _), B.Tuple (_, vals, _)
       when List.length vars = List.length vals ->
         let create_assigns = fun expr1 expr2 -> B.Assign (expr1, bt, expr2) in
         let mult_assigns = List.map2 create_assigns vars vals in
@@ -759,7 +775,7 @@ and m_special a b =
   | A.Op(a1), B.Op(b1) ->
     m_arithmetic_operator a1 b1
   | A.EncodedString(a1), B.EncodedString(b1) ->
-    m_wrap m_string a1 b1
+    m_string a1 b1
   | A.IncrDecr(a1, a2), B.IncrDecr(b1, b2) ->
     m_eq a1 b1 >>= (fun () ->
     m_eq a2 b2
@@ -895,10 +911,10 @@ and m_compatible_type typed_mvar t e =
   | A.TyName (("float", _), _), B.L (B.Float _) -> envf typed_mvar (B.E e)
   | A.TyName (("str", _), _), B.L (B.String _) -> envf typed_mvar (B.E e)
   (* for matching ids *)
-  | t1, B.Id (_, {B.id_type; _}) ->
-      (match !id_type with Some (t2) -> m_type_ t1 t2
-                         | _ -> fail ())
-
+  | ta, ( B.Id (idb, {B.id_type=tb; _})
+        | B.IdQualified ((idb, _), {B.id_type=tb;_})
+        ) ->
+      m_type_option_with_hook idb (Some ta) !tb
   | _ -> fail ()
 
 (*s: function [[Generic_vs_generic.m_list__m_body]] *)
@@ -1109,7 +1125,7 @@ and m_type_ a b =
     m_type_ a2 b2
     )
   | A.TyArray(a1, a2), B.TyArray(b1, b2) ->
-    (m_option m_expr) a1 b1 >>= (fun () ->
+    m_bracket (m_option m_expr) a1 b1 >>= (fun () ->
     m_type_ a2 b2
     )
   | A.TyTuple(a1), B.TyTuple(b1) ->
@@ -1135,7 +1151,8 @@ and m_type_ a b =
       m_type_ a1 b1 >>= (fun () ->
       m_tok a2 b2
       )
-    | A.TyRecordAnon(a1), B.TyRecordAnon(b1) ->
+    | A.TyRecordAnon(a0, a1), B.TyRecordAnon(b0, b1) ->
+      let* () = m_tok a0 b0 in
       m_bracket m_fields a1 b1
     | A.TyOr (a1, a2, a3), B.TyOr (b1, b2, b3) ->
         m_type_ a1 b1 >>= (fun () ->
@@ -1341,8 +1358,7 @@ and _m_stmts (xsa: A.stmt list) (xsb: A.stmt list) =
 (*s: function [[Generic_vs_generic.m_list__m_stmt]] *)
 and m_list__m_stmt (xsa: A.stmt list) (xsb: A.stmt list) =
   (*s: [[Generic_vs_generic.m_list__m_stmt]] if [[debug]] *)
-  if !Flag.debug_matching
-  then pr2 (spf "%d vs %d" (List.length xsa) (List.length xsb));
+  logger#debug "%d vs %d" (List.length xsa) (List.length xsb);
   (*e: [[Generic_vs_generic.m_list__m_stmt]] if [[debug]] *)
   match xsa, xsb with
   | [], [] ->
@@ -1666,7 +1682,7 @@ and m_pattern a b =
       (m_list m_pattern) a2 b2
       )
     | A.PatTuple(a1), B.PatTuple(b1) ->
-      (m_list m_pattern) a1 b1
+      m_bracket (m_list m_pattern) a1 b1
     | A.PatList(a1), B.PatList(b1) ->
       m_bracket (m_list m_pattern) a1 b1
     | A.PatRecord(a1), B.PatRecord(b1) ->
@@ -1731,9 +1747,16 @@ and m_other_pattern_operator = m_other_xxx
 and m_definition a b =
   match a, b with
   | (a1, a2), (b1, b2) ->
-    m_entity a1 b1 >>= (fun () ->
-    m_definition_kind a2 b2
-    )
+    (* subtle: if you change the order here, so that we execute m_entity
+     * only when the definition_kind matches, this helps to avoid
+     * calls to ocamllsp when you put a type constraint on a function.
+     * Indeed, we will call ocamllsp only for FuncDef.
+     * This also avoids to call ocamllsp on type definition entities,
+     * which can leads to errors in type_of_string.
+     *)
+    let* () = m_entity a1 b1 in
+    let* () = m_definition_kind a2 b2 in
+    return ()
 (*e: function [[Generic_vs_generic.m_definition]] *)
 
 (*s: function [[Generic_vs_generic.m_entity]] *)
@@ -1810,15 +1833,19 @@ and m_type_parameter a b =
 (* Function (or method) definition *)
 (* ------------------------------------------------------------------------- *)
 
+(* iso: we don't care if it's a Function or Arrow *)
+and m_function_kind _ _ = return ()
+
 (*s: function [[Generic_vs_generic.m_function_definition]] *)
 and m_function_definition a b =
   match a, b with
-  { A. fparams = a1; frettype = a2; fbody = a3; },
-  { B. fparams = b1; frettype = b2; fbody = b3; } ->
+  { A. fparams = a1; frettype = a2; fbody = a3; fkind = a4 },
+  { B. fparams = b1; frettype = b2; fbody = b3; fkind = b4 } ->
     m_parameters a1 b1 >>= (fun () ->
     (m_option_none_can_match_some m_type_) a2 b2 >>= (fun () ->
-    m_stmt a3 b3
-    ))
+    m_stmt a3 b3 >>= (fun () ->
+    m_wrap m_function_kind a4 b4
+    )))
 (*e: function [[Generic_vs_generic.m_function_definition]] *)
 
 (*s: function [[Generic_vs_generic.m_parameters]] *)
@@ -1866,7 +1893,7 @@ and m_parameter_classic a b =
     ->
      m_ident_and_id_info_add_in_env_Expr (a1, a5) (b1, b5) >>= (fun () ->
      (m_option m_expr) a2 b2 >>= (fun () ->
-     (m_option_none_can_match_some m_type_) a3 b3 >>= (fun () ->
+     (m_type_option_with_hook b1) a3 b3 >>= (fun () ->
      (m_list_in_any_order ~less_is_ok:true m_attribute a4 b4)
      )))
   (*e: [[Generic_vs_generic.m_parameter_classic]] metavariable case *)
@@ -1876,7 +1903,7 @@ and m_parameter_classic a b =
     { B. pname = b1; pdefault = b2; ptype = b3; pattrs = b4; pinfo = b5 } ->
     (m_option m_ident) a1 b1 >>= (fun () ->
     (m_option m_expr) a2 b2 >>= (fun () ->
-    (m_option m_type_) a3 b3 >>= (fun () ->
+    (m_option_none_can_match_some m_type_) a3 b3 >>= (fun () ->
     m_list_in_any_order ~less_is_ok:true m_attribute a4 b4 >>= (fun () ->
     m_id_info a5 b5
     ))))
@@ -1898,7 +1925,7 @@ and m_variable_definition a b =
   { A. vinit = a1; vtype = a2; },
   { B. vinit = b1; vtype = b2; } ->
     (m_option m_expr) a1 b1 >>= (fun () ->
-    (m_option m_type_) a2 b2
+    (m_option_none_can_match_some m_type_) a2 b2
     )
 (*e: function [[Generic_vs_generic.m_variable_definition]] *)
 
@@ -2284,6 +2311,11 @@ and m_program a b =
 (* Any *)
 (*****************************************************************************)
 
+and m_partial a b =
+  match a,b with
+  | A.PartialDef a1, B.PartialDef b1 ->
+      m_definition a1 b1
+
 (*s: function [[Generic_vs_generic.m_any]] *)
 and m_any a b =
   match a, b with
@@ -2293,8 +2325,11 @@ and m_any a b =
     m_expr a1 b1
   | A.S(a1), B.S(b1) ->
     m_stmt a1 b1
-  (* boilerplate *)
   (*s: [[Generic_vs_generic.m_any]] boilerplate cases *)
+  | A.Partial(a1), B.Partial(b1) ->
+      m_partial a1 b1
+
+  (* boilerplate *)
   | A.N(a1), B.N(b1) ->
     m_name a1 b1
   | A.Modn(a1), B.Modn(b1) ->
@@ -2339,7 +2374,7 @@ and m_any a b =
   | A.S _, _  | A.T _, _  | A.P _, _  | A.Def _, _  | A.Dir _, _
   | A.Pa _, _  | A.Ar _, _  | A.At _, _  | A.Dk _, _ | A.Pr _, _
   | A.Fld _, _ | A.Ss _, _ | A.Tk _, _ | A.Lbli _, _ | A.Fldi _, _
-  | A.ModDk _, _ | A.TodoK _, _
+  | A.ModDk _, _ | A.TodoK _, _ | A.Partial _, _
    -> fail ()
   (*e: [[Generic_vs_generic.m_any]] boilerplate cases *)
 (*e: function [[Generic_vs_generic.m_any]] *)

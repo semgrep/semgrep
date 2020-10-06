@@ -1,4 +1,4 @@
-error: invalid pattern
+semgrep error: invalid pattern
   --> CLI Input:1
 1 | #include<asdf><<>>><$X>
   | ^^^^^^^^^^^^^^^^^^^^^^

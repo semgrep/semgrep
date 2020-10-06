@@ -6,6 +6,7 @@ import tempfile
 from pathlib import Path
 from typing import Collection
 from typing import Dict
+from typing import Iterator
 from typing import List
 from typing import NewType
 from typing import Set
@@ -24,11 +25,13 @@ FileExtension = NewType("FileExtension", str)
 
 
 PYTHON_EXTENSIONS = [FileExtension("py"), FileExtension("pyi")]
-JAVASCRIPT_EXTENSIONS = [FileExtension("js")]
+JAVASCRIPT_EXTENSIONS = [FileExtension("js"), FileExtension("jsx")]
+TYPESCRIPT_EXTENSIONS = [FileExtension("ts"), FileExtension("tsx")]
 JAVA_EXTENSIONS = [FileExtension("java")]
 C_EXTENSIONS = [FileExtension("c")]
 GO_EXTENSIONS = [FileExtension("go")]
 RUBY_EXTENSIONS = [FileExtension("rb")]
+PHP_EXTENSIONS = [FileExtension("php")]
 ML_EXTENSIONS = [
     FileExtension("mli"),
     FileExtension("ml"),
@@ -54,8 +57,10 @@ def lang_to_exts(language: Language) -> List[FileExtension]:
     """
     if language in {"python", "python2", "python3", "py"}:
         return PYTHON_EXTENSIONS
-    elif language in {"js", "javascript"}:
+    elif language in {"js", "jsx", "javascript"}:
         return JAVASCRIPT_EXTENSIONS
+    elif language in {"ts", "tsx", "typescript"}:
+        return TYPESCRIPT_EXTENSIONS
     elif language in {"java"}:
         return JAVA_EXTENSIONS
     elif language in {"c"}:
@@ -66,6 +71,8 @@ def lang_to_exts(language: Language) -> List[FileExtension]:
         return ML_EXTENSIONS
     elif language in {"rb", "ruby"}:
         return RUBY_EXTENSIONS
+    elif language in {"php"}:
+        return PHP_EXTENSIONS
     elif language in {"json", "JSON", "Json"}:
         return JSON_EXTENSIONS
     elif language in {NONE_LANGUAGE}:
@@ -75,7 +82,7 @@ def lang_to_exts(language: Language) -> List[FileExtension]:
 
 
 @contextlib.contextmanager
-def optional_stdin_target(target: List[str]) -> List[str]:
+def optional_stdin_target(target: List[str]) -> Iterator[List[str]]:
     """
     Read target input from stdin if "-" is specified
     """
@@ -83,10 +90,10 @@ def optional_stdin_target(target: List[str]) -> List[str]:
         try:
             with tempfile.NamedTemporaryFile(delete=False) as fd:
                 fd.write(sys.stdin.buffer.read())
-                target = fd.name
-            yield [target]
+                fname = fd.name
+            yield [fname]
         finally:
-            os.remove(target)
+            os.remove(fname)
     else:
         yield target
 

@@ -46,10 +46,11 @@ class bdist_wheel(_bdist_wheel):
         if "macosx" in plat:
             plat = f"macosx_{MIN_OSX_VERSION}_x86_64"
 
-        # The binary we build is statically linked & manylinux compatible, so change platform
-        # accordingly
+        # The binary we build is statically linked & manylinux compatible and alpine compatible
+        # there is no way to specify works with alpine on pypi so set platform as any.
+        # Note that semgrep-core is still incompatible with Windows
         if plat == "linux_x86_64":
-            plat = "manylinux1_x86_64"
+            plat = "any"
         elif plat == "linux_i686":
             plat = "manylinux1_i686"
 
@@ -121,11 +122,12 @@ setup(
     long_description_content_type="text/markdown",
     url="https://github.com/returntocorp/semgrep",
     install_requires=[
+        "attrs>=19.3.0",
         "colorama>=0.4.3",
+        "junit_xml==1.9",
+        "requests>=2.22.0",
         # exact version because of unstable API
         "ruamel.yaml==0.16.10",
-        "requests>=2.22.0",
-        "attrs>=19.3.0",
         "tqdm>=4.46.1",
         "packaging>=20.4",
         "jsonschema~=3.2.0",

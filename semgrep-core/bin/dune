@@ -1,9 +1,7 @@
 (executables
  (names Main main_spatch)
  (libraries
-    bigarray
-    threads          ;; needed for json-wheel (Condition?)
-    json-wheel       ;; Json_io, Json_type
+    str
     dyp
     parmap
     ppx_deriving.runtime
@@ -32,6 +30,7 @@
     tree-sitter-lang.java
 
     ; internal deps
+    semgrep_utils
     semgrep_core
     semgrep_fuzzy
     semgrep_finding

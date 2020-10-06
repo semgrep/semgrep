@@ -1,6 +1,6 @@
 open Common
 
-module J = Json_type
+module J = JSON
 
 let synthesize_patterns s file =
   let r = Range.range_of_linecol_spec s file in

@@ -12,7 +12,7 @@ function foo () {
 
 // still not parsed as a Lambda, even though it looks like, because
 // this common idiom is handled specially by Ast_js_build
-var a = function () {
+const a = function () {
     console.log(foo);
 };
 

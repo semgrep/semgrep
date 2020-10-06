@@ -28,6 +28,7 @@ module Flag = Flag_semgrep
  * Here we pass matcher functions that uses semgrep patterns to
  * describe the source/sink/sanitizers.
  *)
+let _logger = Logging.get_logger [__MODULE__]
 
 (*****************************************************************************)
 (* Helpers *)
@@ -100,8 +101,11 @@ let check rules file ast =
             ) in
             let config = config_of_rule found_tainted_sink rule in
             let mapping = Dataflow_tainting.fixpoint config flow in
-            if !Flag.debug
-            then DataflowY.display_mapping flow mapping (fun () -> "()");
+            ignore (mapping);
+(* TODO
+            logger#sdebug (DataflowY.mapping_to_str flow
+                             (fun () -> "()") mapping);
+*)
           )
       );
    } in

@@ -6,19 +6,15 @@
 # of the 'semgrep' wrapping.
 #
 
-FROM ocaml/opam2:alpine@sha256:4c2ce9a181b4b12442a68fc221d0b753959ec80e24eae3bf788eeca4dcb9a293 as build-semgrep-core
+FROM returntocorp/ocaml:alpine-2020-09-11 as build-semgrep-core
 
-USER root
-RUN apk add --no-cache perl m4
-USER opam
+USER user
+WORKDIR /home/user
 
-WORKDIR /home/opam/opam-repository
-RUN git pull && opam update && opam switch create 4.10.0+flambda
-
-COPY --chown=opam .gitmodules /semgrep/.gitmodules
-COPY --chown=opam .git/ /semgrep/.git/
-COPY --chown=opam semgrep-core/ /semgrep/semgrep-core/
-COPY --chown=opam scripts /semgrep/scripts
+COPY --chown=user .gitmodules /semgrep/.gitmodules
+COPY --chown=user .git/ /semgrep/.git/
+COPY --chown=user semgrep-core/ /semgrep/semgrep-core/
+COPY --chown=user scripts /semgrep/scripts
 
 WORKDIR /semgrep
 
@@ -28,9 +24,13 @@ RUN git clean -dfX
 RUN git submodule foreach --recursive git clean -dfX
 
 RUN git submodule update --init --recursive
+
 RUN eval "$(opam env)" && ./scripts/install-ocaml-tree-sitter
 RUN eval "$(opam env)" && opam install --deps-only -y semgrep-core/pfff/
-RUN eval "$(opam env)" && opam install --deps-only -y semgrep-core/ && make -C semgrep-core/ all
+RUN eval "$(opam env)" && opam install --deps-only -y semgrep-core/
+RUN eval "$(opam env)" && make -C semgrep-core/ all
+
+# Sanity check
 RUN ./semgrep-core/_build/install/default/bin/semgrep-core -version
 
 #
@@ -39,6 +39,10 @@ RUN ./semgrep-core/_build/install/default/bin/semgrep-core -version
 
 FROM python:3.7.7-alpine3.11
 LABEL maintainer="support@r2c.dev"
+
+# ugly: circle CI requires valid git and ssh programs in the container
+# when running semgrep on a repository containing submodules
+RUN apk add --no-cache git openssh
 
 COPY --from=build-semgrep-core \
      /semgrep/semgrep-core/_build/install/default/bin/semgrep-core /usr/local/bin/semgrep-core
@@ -57,6 +61,7 @@ RUN adduser -D -u 1000 semgrep
 USER 1000
 ENV SEMGREP_IN_DOCKER=1
 ENV SEMGREP_VERSION_CACHE_PATH=/tmp/.cache/semgrep_version
+ENV SEMGREP_USER_AGENT_APPEND="(Docker)"
 ENV PYTHONIOENCODING=utf8
 ENV PYTHONUNBUFFERED=1
 ENTRYPOINT ["semgrep"]

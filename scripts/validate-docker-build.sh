@@ -38,11 +38,6 @@ if [[ $# -gt 0 ]]; then
   esac
 fi
 
-cat > test.py <<EOF
-def silly_eq(a, b):
-    return a + b == a + b
-EOF
-
-docker run -v "$(pwd):/src" "$image" \
-  ./test.py -l python -e '$X == $X' \
-  2>&1 | tee "$prog_name".log
+echo "if 1 == 1: pass" \
+    | docker run -i "$image" -l python -e '$X == $X' - \
+    | grep -q "1 == 1"
