@@ -4,8 +4,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## UNRELEASED
 
-- Added a `--debug` flag and moved most of the output under `--verbose` to it. 
+- Added a `--debug` flag and moved most of the output under `--verbose` to it.
 - Parse and other errors are mentioned at final output, but not individually displayed unless --verbose is passed
+- Can run multiple rule configs by repeating `--config` option
 
 
 ## [0.26.0](https://github.com/returntocorp/semgrep/releases/tag/v0.26.0) - 2020-09-30
