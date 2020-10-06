@@ -11,6 +11,8 @@ from typing import Set
 from typing import Tuple
 
 logger = logging.getLogger(__name__)
+# disable logging from this module most of the time
+logger.setLevel(logging.INFO)
 
 from semgrep.constants import RCE_RULE_FLAG
 from semgrep.error import NEED_ARBITRARY_CODE_EXEC_EXIT_CODE
