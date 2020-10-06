@@ -449,11 +449,11 @@ and method_spec_list (env : env) ((v1, v2, v3) : CST.method_spec_list) =
   v1, v2, v3
 
 and array_type (env : env) ((v1, v2, v3, v4) : CST.array_type) =
-  let _v1 = token env v1 (* "[" *) in
+  let v1 = token env v1 (* "[" *) in
   let v2 = expression env v2 in
-  let _v3 = token env v3 (* "]" *) in
+  let v3 = token env v3 (* "]" *) in
   let v4 = type_ env v4 in
-  TArray (v2, v4)
+  TArray ((v1, Some v2, v3), v4)
 
 and struct_type (env : env) ((v1, v2) : CST.struct_type) =
   let v1 = token env v1 (* "struct" *) in
@@ -519,11 +519,10 @@ and default_case (env : env) ((v1, v2, v3) : CST.default_case) : case_clause =
   CaseDefault v1, stmt1 v3
 
 and slice_type (env : env) ((v1, v2, v3) : CST.slice_type) =
-  let _v1 = token env v1 (* "[" *) in
-
-  let _v2 = token env v2 (* "]" *) in
+  let v1 = token env v1 (* "[" *) in
+  let v2 = token env v2 (* "]" *) in
   let v3 = type_ env v3 in
-  TSlice v3
+  TArray ((v1, None, v2), v3)
 
 and expression_list (env : env) ((v1, v2) : CST.expression_list) =
   let v1 = expression env v1 in
@@ -885,18 +884,18 @@ and field_declaration_list (env : env) ((v1, v2, v3) : CST.field_declaration_lis
 
 and map_type (env : env) ((v1, v2, v3, v4, v5) : CST.map_type) =
   let v1 = token env v1 (* "map" *) in
-  let _v2 = token env v2 (* "[" *) in
+  let v2 = token env v2 (* "[" *) in
   let v3 = type_ env v3 in
-  let _v4 = token env v4 (* "]" *) in
+  let v4 = token env v4 (* "]" *) in
   let v5 = type_ env v5 in
-  TMap (v1, v3, v5)
+  TMap (v1, (v2, v3, v4), v5)
 
 and implicit_length_array_type (env : env) ((v1, v2, v3, v4) : CST.implicit_length_array_type) =
-  let _v1 = token env v1 (* "[" *) in
+  let v1 = token env v1 (* "[" *) in
   let v2 = token env v2 (* "..." *) in
-  let _v3 = token env v3 (* "]" *) in
+  let v3 = token env v3 (* "]" *) in
   let v4 = type_ env v4 in
-  TArrayEllipsis (v2, v4)
+  TArrayEllipsis ((v1, v2, v3), v4)
 
 and expression_case (env : env) ((v1, v2, v3, v4) : CST.expression_case) =
   let v1 = token env v1 (* "case" *) in
