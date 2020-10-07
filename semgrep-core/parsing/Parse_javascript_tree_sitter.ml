@@ -72,10 +72,6 @@ let empty_stmt env tok =
 let identifier (env : env) (tok : CST.identifier) : ident =
   str env tok (* identifier *)
 
-let identifier_exp (env : env) (tok : CST.identifier) : expr =
-  let id = identifier env tok in
-  idexp id
-
 let reserved_identifier (env : env) (x : CST.reserved_identifier) : ident =
   (match x with
   | `Get tok -> identifier env tok (* "get" *)
@@ -750,7 +746,9 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
   (match x with
   | `This tok -> this env tok (* "this" *)
   | `Super tok -> super env tok (* "super" *)
-  | `Id tok -> identifier_exp env tok (* identifier *)
+  | `Id tok ->
+        let id = identifier env tok in
+        idexp_or_special id
   | `Choice_get x ->
         let id = reserved_identifier env x in
         idexp id
@@ -1148,7 +1146,7 @@ and switch_default (env : env) ((v1, v2, v3) : CST.switch_default) =
   let v1 = token env v1 (* "default" *) in
   let _v2 = token env v2 (* ":" *) in
   let v3 = List.map (statement env) v3 |> List.flatten in
-  Default (v1, stmt_of_stmts v3)
+  Default (v1, stmt1 v3)
 
 and switch_body (env : env) ((v1, v2, v3) : CST.switch_body) =
   let _v1 = token env v1 (* "{" *) in
@@ -1164,7 +1162,7 @@ and switch_body (env : env) ((v1, v2, v3) : CST.switch_body) =
   v2
 
 and statement1 (env : env) (x : CST.statement) : stmt =
-  statement env x |> Ast_js.stmt_of_stmts
+  statement env x |> Ast_js.stmt1
 
 and statement (env : env) (x : CST.statement) : stmt list =
   (match x with
@@ -1547,7 +1545,7 @@ and switch_case (env : env) ((v1, v2, v3, v4) : CST.switch_case) =
   let v2 = expressions env v2 in
   let _v3 = token env v3 (* ":" *) in
   let v4 = List.map (statement env) v4 |> List.flatten in
-  Case (v1, v2, stmt_of_stmts v4)
+  Case (v1, v2, stmt1 v4)
 
 and spread_element (env : env) ((v1, v2) : CST.spread_element) =
   let v1 = token env v1 (* "..." *) in
@@ -1629,7 +1627,7 @@ and lhs_expression (env : env) (x : CST.lhs_expression) : expr =
   | `Subs_exp x -> subscript_expression env x
   | `Id tok ->
         let id = identifier env tok (* identifier *) in
-        idexp id
+        idexp_or_special id
   | `Choice_get x ->
         let id = reserved_identifier env x in
         idexp id
