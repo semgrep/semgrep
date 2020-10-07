@@ -81,6 +81,8 @@ def line_has_todo_rule(line: str) -> bool:
         or "# todoruleid:" in line
         or "// todoruleid:" in line
         or "//todoruleid:" in line
+        or "(*todoruleid:" in line
+        or "(* todoruleid:" in line
     )
 
 
@@ -92,11 +94,20 @@ def line_has_rule(line: str) -> bool:
         or "// ruleid:" in line
         or "<!--ruleid:" in line
         or "<!-- ruleid:" in line
+        or "(* ruleid:" in line
+        or "(*ruleid:" in line
     )
 
 
 def line_has_ok(line: str) -> bool:
-    return "#ok:" in line or "# ok:" in line or "//ok:" in line or "// ok:" in line
+    return (
+        "#ok:" in line 
+        or "# ok:" in line 
+        or "//ok:" in line 
+        or "// ok:"  in line
+        or "(*ok:" in line
+        or "(* ok:" in line
+    )
 
 
 def line_has_todo_ok(line: str) -> bool:
@@ -105,6 +116,8 @@ def line_has_todo_ok(line: str) -> bool:
         or "# todook" in line
         or "// todook" in line
         or "//todook" in line
+        or "(*todook" in line
+        or "(* todook" in line
     )
 
 
