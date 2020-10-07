@@ -1541,10 +1541,7 @@ and statement (env : env) (x : CST.statement) : stmt list =
         | `Import_requ_clause x ->
             import_require_clause env x
         | `Str x ->
-            let file = JS.string_ env x in
-            if (fst file =~ ".*\\.css$")
-            then [(ImportCss (tok, file))]
-            else [(ImportEffect (tok, file))]
+            let file = JS.string_ env x in [ImportFile (tok, file)]
         )
       in
       let _v4 = JS.semicolon env v4 in

@@ -1172,17 +1172,13 @@ and statement (env : env) (x : CST.statement) : stmt list =
       let v1 = token env v1 (* "import" *) in
       let tok = v1 in
       let v2 =
-        (match v2 with
+        match v2 with
         | `Import_clause_from_clause (v1, v2) ->
             let f = import_clause env v1 in
             let (_t, path) = from_clause env v2 in
             f tok path
         | `Str x ->
-            let file = string_ env x in
-            if (fst file =~ ".*\\.css$")
-            then [(ImportCss (tok, file))]
-            else [(ImportEffect (tok, file))]
-        )
+            let file = string_ env x in [ImportFile (tok, file)]
       in
       let _v3 = semicolon env v3 in
       v2 |> List.map (fun m -> M m)
