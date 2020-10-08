@@ -68,27 +68,9 @@ let empty_stmt env tok =
   let t = token env tok in
   Block (t, [], t)
 
-let idexp id =
-  match Ast_js.special_of_id_opt (fst id) with
-  | None -> Id (id, ref NotResolved)
-  | Some special -> IdSpecial (special, snd id)
-
-let build_vars kwd vars =
-  vars |> List.map (fun (id_or_pat, ty_opt, initopt) ->
-      match id_or_pat with
-      | Left id ->
-      { v_name = id; v_kind = (kwd); v_init = initopt; v_type = ty_opt;
-        v_resolved = ref NotResolved }
-      | Right pat ->
-        Ast_js.var_pattern_to_var kwd pat (snd kwd) initopt
-   )
 
 let identifier (env : env) (tok : CST.identifier) : ident =
   str env tok (* identifier *)
-
-let identifier_exp (env : env) (tok : CST.identifier) : expr =
-  let id = identifier env tok in
-  idexp id
 
 let reserved_identifier (env : env) (x : CST.reserved_identifier) : ident =
   (match x with
@@ -764,7 +746,9 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
   (match x with
   | `This tok -> this env tok (* "this" *)
   | `Super tok -> super env tok (* "super" *)
-  | `Id tok -> identifier_exp env tok (* identifier *)
+  | `Id tok ->
+        let id = identifier env tok in
+        idexp_or_special id
   | `Choice_get x ->
         let id = reserved_identifier env x in
         idexp id
@@ -1162,7 +1146,7 @@ and switch_default (env : env) ((v1, v2, v3) : CST.switch_default) =
   let v1 = token env v1 (* "default" *) in
   let _v2 = token env v2 (* ":" *) in
   let v3 = List.map (statement env) v3 |> List.flatten in
-  Default (v1, stmt_of_stmts v3)
+  Default (v1, stmt1 v3)
 
 and switch_body (env : env) ((v1, v2, v3) : CST.switch_body) =
   let _v1 = token env v1 (* "{" *) in
@@ -1178,7 +1162,7 @@ and switch_body (env : env) ((v1, v2, v3) : CST.switch_body) =
   v2
 
 and statement1 (env : env) (x : CST.statement) : stmt =
-  statement env x |> Ast_js.stmt_of_stmts
+  statement env x |> Ast_js.stmt1
 
 and statement (env : env) (x : CST.statement) : stmt list =
   (match x with
@@ -1188,17 +1172,13 @@ and statement (env : env) (x : CST.statement) : stmt list =
       let v1 = token env v1 (* "import" *) in
       let tok = v1 in
       let v2 =
-        (match v2 with
+        match v2 with
         | `Import_clause_from_clause (v1, v2) ->
             let f = import_clause env v1 in
             let (_t, path) = from_clause env v2 in
             f tok path
         | `Str x ->
-            let file = string_ env x in
-            if (fst file =~ ".*\\.css$")
-            then [(ImportCss (tok, file))]
-            else [(ImportEffect (tok, file))]
-        )
+            let file = string_ env x in [ImportFile (tok, file)]
       in
       let _v3 = semicolon env v3 in
       v2 |> List.map (fun m -> M m)
@@ -1561,7 +1541,7 @@ and switch_case (env : env) ((v1, v2, v3, v4) : CST.switch_case) =
   let v2 = expressions env v2 in
   let _v3 = token env v3 (* ":" *) in
   let v4 = List.map (statement env) v4 |> List.flatten in
-  Case (v1, v2, stmt_of_stmts v4)
+  Case (v1, v2, stmt1 v4)
 
 and spread_element (env : env) ((v1, v2) : CST.spread_element) =
   let v1 = token env v1 (* "..." *) in
@@ -1643,7 +1623,7 @@ and lhs_expression (env : env) (x : CST.lhs_expression) : expr =
   | `Subs_exp x -> subscript_expression env x
   | `Id tok ->
         let id = identifier env tok (* identifier *) in
-        idexp id
+        idexp_or_special id
   | `Choice_get x ->
         let id = reserved_identifier env x in
         idexp id

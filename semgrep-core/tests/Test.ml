@@ -297,8 +297,7 @@ let ast_generic_of_file file =
  let typ = File_type.file_type_of_file file in
  match typ with
  | FT.PL (FT.Web (FT.Js)) ->
-    let cst = Parse_js.parse_program file in
-    let ast = Ast_js_build.program cst in
+    let ast = Parse_js.parse_program file in
     Js_to_generic.program ast
  | FT.PL (FT.Python) ->
     let ast = Parse_python.parse_program file in
