@@ -25,8 +25,7 @@ FileExtension = NewType("FileExtension", str)
 
 
 PYTHON_EXTENSIONS = [FileExtension("py"), FileExtension("pyi")]
-# include typescript extensions because we want javascript rules to also run on typescript files.
-JAVASCRIPT_EXTENSIONS = [FileExtension("js"), FileExtension("jsx"), FileExtension("ts"), FileExtension("tsx")]
+JAVASCRIPT_EXTENSIONS = [FileExtension("js"), FileExtension("jsx")]
 TYPESCRIPT_EXTENSIONS = [FileExtension("ts"), FileExtension("tsx")]
 JAVA_EXTENSIONS = [FileExtension("java")]
 C_EXTENSIONS = [FileExtension("c")]
@@ -59,7 +58,7 @@ def lang_to_exts(language: Language) -> List[FileExtension]:
     """
     if language in {"python", "python2", "python3", "py"}:
         return PYTHON_EXTENSIONS
-    elif language in {"js", "jsx", "javascript", "ts", "tsx", "typescript"}:
+    elif language in {"js", "jsx", "javascript"}:
         return JAVASCRIPT_EXTENSIONS
     elif language in {"ts", "tsx", "typescript"}:
         return TYPESCRIPT_EXTENSIONS
