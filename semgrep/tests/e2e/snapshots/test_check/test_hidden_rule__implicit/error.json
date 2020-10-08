@@ -1,1 +1,1 @@
-{"results": [], "errors": [{"type": "SemgrepError", "code": 2, "message": "No config given and .semgrep.yml was not found. Try running with --help to debug or if you want to download a default config, try running with --config r2c"}]}
+{"results": [], "errors": [{"type": "SemgrepError", "code": 7, "message": "no valid configuration file found (0 configs were invalid)"}]}

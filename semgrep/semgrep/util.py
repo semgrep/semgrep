@@ -45,7 +45,7 @@ def flatten(L: Iterable[Iterable[Any]]) -> Iterable[Any]:
             yield item
 
 
-def set_flags(verbose: bool, quiet: bool, force_color: bool) -> None:
+def set_flags(debug_level: bool, quiet: bool, force_color: bool) -> None:
     """Set the global DEBUG and QUIET flags"""
     logger = logging.getLogger("semgrep")
     logger.handlers = []
@@ -54,7 +54,7 @@ def set_flags(verbose: bool, quiet: bool, force_color: bool) -> None:
     handler.setFormatter(formatter)
 
     level = logging.INFO
-    if verbose:
+    if debug_level:
         level = logging.DEBUG
     elif quiet:
         level = logging.ERROR
@@ -67,7 +67,7 @@ def set_flags(verbose: bool, quiet: bool, force_color: bool) -> None:
     global DEBUG
     global QUIET
     global FORCE_COLOR
-    if verbose:
+    if debug_level:
         DEBUG = True
         # debug_print("DEBUG is on")
     if quiet:
