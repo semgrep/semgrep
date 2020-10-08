@@ -1666,7 +1666,7 @@ and declaration (env : env) (x : CST.declaration) : var list =
       in
       let f = { f_attrs = v1; f_params = v4; f_body = v5; f_rettype = None } in
       [{ v_name = v3; v_kind = Const, v2; v_type = None;
-        v_init = Some (Fun (f, None)); v_resolved = ref NotResolved }]
+        v_init = Some (Fun (f, None)); }]
 
   | `Gene_func_decl (v1, v2, v3, v4, v5, v6, v7) ->
       let v1 =
@@ -1688,7 +1688,7 @@ and declaration (env : env) (x : CST.declaration) : var list =
       let f = { f_attrs = v1 @ v3; f_params = v5; f_body = v6;
                 f_rettype = None } in
       [{ v_name = v4; v_kind = Const, v2; v_type = ty;
-         v_init = Some (Fun (f, None)); v_resolved = ref NotResolved }]
+         v_init = Some (Fun (f, None)) }]
 
   | `Class_decl (v1, v2, v3, v4, v5, v6) ->
       let v1 = List.map (decorator env) v1 in
@@ -1710,7 +1710,7 @@ and declaration (env : env) (x : CST.declaration) : var list =
                 c_body = v5; } in
       let ty = None in
       [{ v_name = v3; v_kind = Const, v2; v_type = ty;
-        v_init = Some (Class (c, None)); v_resolved = ref NotResolved }]
+        v_init = Some (Class (c, None)); }]
 
   | `Lexi_decl x ->
         let vars = lexical_declaration env x in
