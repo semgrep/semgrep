@@ -31,6 +31,7 @@ open Ast_js
 
 type env = H.env
 let fb = G.fake_bracket
+let fake = PI.fake_info ""
 
 let param_to_generic_param = function
     | ParamPattern _ -> failwith "param pattern found in call_signature"
@@ -1363,12 +1364,12 @@ and primary_type (env : env) (x : CST.primary_type) : type_ =
           | Left _fld -> None
           | Right _sts -> None
         ) in
-      G.TyRecordAnon (t1, xs, t2)
+      G.TyRecordAnon (fake, (t1, xs, t2))
   | `Array_type (v1, v2, v3) ->
       let v1 = primary_type env v1 in
-      let _v2 = JS.token env v2 (* "[" *) in
-      let _v3 = JS.token env v3 (* "]" *) in
-      G.TyArray (None, v1)
+      let v2 = JS.token env v2 (* "[" *) in
+      let v3 = JS.token env v3 (* "]" *) in
+      G.TyArray ((v2, None, v3), v1)
   | `Tuple_type (v1, v2, v3, v4) ->
       let v1 = JS.token env v1 (* "[" *) in
       let v2 = type_ env v2 in
@@ -1406,7 +1407,7 @@ and primary_type (env : env) (x : CST.primary_type) : type_ =
       G.OtherType (G.OT_Todo, [G.TodoK ("*", v1)])
   | `Lit_type x ->
         let v1 = literal_type env x in
-        G.OtherType (G.OT_Todo, [G.TodoK ("LitType", PI.fake_info ""); G.E (G.L v1);])
+        G.OtherType (G.OT_Todo, [G.TodoK ("LitType", fake); G.E (G.L v1);])
   | `Lookup_type (v1, v2, v3, v4) ->
       let v1 = primary_type env v1 in
       let v2 = JS.token env v2 (* "[" *) in
@@ -1924,7 +1925,7 @@ and anon_choice_export_stmt_f90d83f (env : env) (x : CST.anon_choice_export_stmt
   | `Call_sign_ x ->
       let (_tparams, x) = call_signature env x in
       let ty = mk_functype x in
-      let name = PN ("CTOR??TODO", PI.fake_info "") in
+      let name = PN ("CTOR??TODO", fake) in
       let fld =
        { fld_name = name; fld_attrs = []; fld_type = Some ty; fld_body = None}
       in
@@ -1950,7 +1951,7 @@ and anon_choice_export_stmt_f90d83f (env : env) (x : CST.anon_choice_export_stmt
       Left (Field fld)
   | `Index_sign x ->
       let ty = index_signature env x in
-      let name = PN ("IndexMethod??TODO?", PI.fake_info "") in
+      let name = PN ("IndexMethod??TODO?", fake) in
       let fld =
        { fld_name = name; fld_attrs = []; fld_type = Some ty; fld_body = None}
       in
