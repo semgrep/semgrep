@@ -25,7 +25,8 @@ FileExtension = NewType("FileExtension", str)
 
 
 PYTHON_EXTENSIONS = [FileExtension("py"), FileExtension("pyi")]
-JAVASCRIPT_EXTENSIONS = [FileExtension("js"), FileExtension("jsx")]
+# include typescript extensions because we want javascript rules to also run on typescript files.
+JAVASCRIPT_EXTENSIONS = [FileExtension("js"), FileExtension("jsx"), FileExtension("ts"), FileExtension("tsx")]
 TYPESCRIPT_EXTENSIONS = [FileExtension("ts"), FileExtension("tsx")]
 JAVA_EXTENSIONS = [FileExtension("java")]
 C_EXTENSIONS = [FileExtension("c")]
@@ -40,13 +41,14 @@ JSON_EXTENSIONS = [FileExtension("json")]
 ALL_EXTENSIONS = (
     PYTHON_EXTENSIONS
     + JAVASCRIPT_EXTENSIONS
+    + TYPESCRIPT_EXTENSIONS
     + JAVA_EXTENSIONS
     + C_EXTENSIONS
     + GO_EXTENSIONS
+    + RUBY_EXTENSIONS
     + ML_EXTENSIONS
     + JSON_EXTENSIONS
 )
-
 
 def lang_to_exts(language: Language) -> List[FileExtension]:
     """
@@ -57,7 +59,7 @@ def lang_to_exts(language: Language) -> List[FileExtension]:
     """
     if language in {"python", "python2", "python3", "py"}:
         return PYTHON_EXTENSIONS
-    elif language in {"js", "jsx", "javascript"}:
+    elif language in {"js", "jsx", "javascript", "ts", "tsx", "typescript"}:
         return JAVASCRIPT_EXTENSIONS
     elif language in {"ts", "tsx", "typescript"}:
         return TYPESCRIPT_EXTENSIONS
