@@ -666,9 +666,8 @@ and generator_function_declaration (env : env) ((v1, v2, v3, v4, v5, v6, v7) : C
   in
   let f = { f_attrs = v1 @ v3; f_params = v5; f_body = v6; f_rettype = tret }
   in
-  { v_name = v4; v_kind = Const, v2;
-     v_type = None;
-     v_init = Some (Fun (f, None)); v_resolved = ref NotResolved }
+  { v_name = v4; v_kind = Const, v2; v_type = None;
+     v_init = Some (Fun (f, None));  }
 
 and variable_declarator (env : env) ((v1, v2, v3) : CST.variable_declarator) =
   let v1 = anon_choice_type_id_21dd422 env v1 in
@@ -1760,7 +1759,7 @@ and class_declaration (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.class_decl
             c_body = v6; c_attrs = v1 } in
   let ty = None in
   { v_name = v3; v_kind = Const, v2; v_type = ty;
-     v_init = Some (Class (c, None)); v_resolved = ref NotResolved }
+     v_init = Some (Class (c, None)); }
 
 and array_ (env : env) ((v1, v2, v3) : CST.array_) =
   let v1 = JS.token env v1 (* "[" *) in
@@ -2398,7 +2397,7 @@ and function_declaration (env : env) ((v1, v2, v3, v4, v5, v6) : CST.function_de
   in
   let f = { f_attrs = v1; f_params = v4; f_body = v5; f_rettype = tret } in
   { v_name = v3; v_kind = Const, v2; v_type = None;
-     v_init = Some (Fun (f, None)); v_resolved = ref NotResolved }
+     v_init = Some (Fun (f, None)); }
 
 and anon_choice_type_id_a85f573 (env : env) (x : CST.anon_choice_type_id_a85f573) : G.name =
   (match x with
@@ -2474,8 +2473,7 @@ and declaration (env : env) (x : CST.declaration) : entity list =
       let (_tparams, x) = call_signature env v4 in
       let ty = mk_functype x in
       let _v5 = JS.semicolon env v5 in
-      [{ v_name = v3; v_kind = Const, v2; v_init = None;
-        v_type = Some ty; v_resolved = ref NotResolved }]
+      [{ v_name = v3; v_kind = Const, v2; v_init = None; v_type = Some ty; }]
   | `Abst_class_decl (v1, v2, v3, v4, v5, v6) ->
       let v1 = attr (Abstract, JS.token env v1) (* "abstract" *) in
       let v2 = JS.token env v2 (* "class" *) in
@@ -2495,7 +2493,7 @@ and declaration (env : env) (x : CST.declaration) : entity list =
       let c = { c_kind = G.Class, v2; c_extends; c_implements;
                 c_body = v6; c_attrs = attrs } in
       [{ v_name = v3; v_kind = Const, v2; v_type = None;
-         v_init = Some (Class (c, None)); v_resolved = ref NotResolved }]
+         v_init = Some (Class (c, None)); }]
 
   | `Module (v1, v2) ->
       (* does this exist only in .d.ts files? *)
@@ -2556,7 +2554,7 @@ and declaration (env : env) (x : CST.declaration) : entity list =
                 c_extends = v4; c_implements = [];
                 c_body = (t1, xs, t2); c_attrs = [] } in
       [{ v_name = v2; v_kind = Const, v1; v_type = None;
-         v_init = Some (Class (c, None)); v_resolved = ref NotResolved }]
+         v_init = Some (Class (c, None)); }]
 
   | `Import_alias (v1, v2, v3, v4, v5) ->
       let _v1 = JS.token env v1 (* "import" *) in
@@ -2577,7 +2575,7 @@ and declaration (env : env) (x : CST.declaration) : entity list =
             let name = "!global!", v1 in
             let f = { f_attrs = []; f_params = [];
                       f_body = v2; f_rettype = None; } in
-            [{ v_name = name; v_kind = Const, v1; v_resolved = ref NotResolved;
+            [{ v_name = name; v_kind = Const, v1;
               v_init = Some (Fun (f, None)); v_type = None; }]
         | `Module_DOT_id_COLON_type (v1, v2, v3, v4, v5) ->
             let v1 = JS.token env v1 (* "module" *) in
@@ -2586,7 +2584,7 @@ and declaration (env : env) (x : CST.declaration) : entity list =
             let _v4 = JS.token env v4 (* ":" *) in
             let v5 = type_ env v5 in
             let name = v3 in
-            [{v_name = name; v_kind = Const, v1; v_resolved = ref NotResolved;
+            [{v_name = name; v_kind = Const, v1;
               v_init = None; v_type = Some v5 }]
         )
       in
