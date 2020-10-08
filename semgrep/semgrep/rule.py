@@ -261,9 +261,9 @@ class Rule:
         Tags to display on SARIF-compliant UIs, such as GitHub security scans.
         """
         if "cwe" in self.metadata:
-            yield "cwe"
+            yield self.metadata["cwe"]
         if "owasp" in self.metadata:
-            yield "owasp"
+            yield f"OWASP-{self.metadata['owasp']}"
 
     @property
     def languages(self) -> List[Language]:
