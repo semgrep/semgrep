@@ -175,9 +175,9 @@ let concat_nested_identifier _env (idents : ident list) : ident =
    Treating 'require' like assignment and function application for now.
  *)
 let import_require_clause (env : env) ((v1, v2, v3, v4, v5, v6) : CST.import_require_clause) =
-  let _v1 = JS.identifier env v1 (* identifier *) |> JS.idexp in
+  let _v1 = JS.identifier env v1 (* identifier *) |> idexp in
   let _v2 = JS.token env v2 (* "=" *) in
-  let _v3 = JS.identifier env v3 (* "require" *) |> JS.idexp in
+  let _v3 = JS.identifier env v3 (* "require" *) |> idexp in
   let _v4 = JS.token env v4 (* "(" *) in
   let _v5 = JS.string_ env v5 in
   let _v6 = JS.token env v6 (* ")" *) in
@@ -455,7 +455,7 @@ and variable_declaration (env : env) ((v1, v2, v3, v4) : CST.variable_declaratio
   in
   let _v4 = JS.semicolon env v4 in
   let vars = v2::v3 in
-  JS.build_vars v1 vars
+  build_vars v1 vars
 
 and function_ (env : env) ((v1, v2, v3, v4, v5) : CST.function_)
  : function_definition * ident option =
@@ -509,7 +509,7 @@ and switch_default (env : env) ((v1, v2, v3) : CST.switch_default) =
   let v1 = JS.token env v1 (* "default" *) in
   let _v2 = JS.token env v2 (* ":" *) in
   let v3 = List.map (statement env) v3 |> List.flatten in
-  Default (v1, stmt_of_stmts v3)
+  Default (v1, stmt1 v3)
 
 and binary_expression (env : env) (x : CST.binary_expression) : expr =
   (match x with
@@ -802,7 +802,7 @@ and anon_choice_pair_bc93fa1 (env : env) (x : CST.anon_choice_pair_bc93fa1) : pr
   | `Assign_pat (v1, v2, v3) ->
       let v1 =
         (match v1 with
-        | `Choice_choice_decl x -> anon_choice_rese_id_515394d env x |> JS.idexp
+        | `Choice_choice_decl x -> anon_choice_rese_id_515394d env x |> idexp
         | `Choice_obj x -> destructuring_pattern env x
         )
       in
@@ -814,7 +814,7 @@ and anon_choice_pair_bc93fa1 (env : env) (x : CST.anon_choice_pair_bc93fa1) : pr
   | `Choice_id x ->
       let id = anon_choice_type_id_dd17e7d env x in
       Field {fld_name = PN id; fld_attrs = []; fld_type = None;
-             fld_body = Some (JS.idexp id) }
+             fld_body = Some (idexp id) }
   )
 
 and subscript_expression (env : env) ((v1, v2, v3, v4, v5) : CST.subscript_expression) : expr =
@@ -839,10 +839,12 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
   (match x with
   | `This tok -> JS.this env tok (* "this" *)
   | `Super tok -> JS.super env tok (* "super" *)
-  | `Id tok -> JS.identifier_exp env tok (* identifier *)
+  | `Id tok ->
+        let id = JS.identifier env tok (* identifier *) in
+        idexp_or_special id
   | `Choice_decl x ->
       let id = reserved_identifier env x in
-      JS.idexp id
+      idexp id
   | `Num tok ->
       let n = JS.number env tok (* number *) in
       Num n
@@ -867,7 +869,7 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
   | `False tok -> Bool (false, JS.token env tok) (* "false" *)
   | `Null tok -> IdSpecial (Null, JS.token env tok) (* "null" *)
   | `Unde tok -> IdSpecial (Undefined, JS.token env tok) (* "undefined" *)
-  | `Import tok -> JS.identifier env tok (* import *) |> JS.idexp
+  | `Import tok -> JS.identifier env tok (* import *) |> idexp
   | `Obj x -> let o = object_ env x in Obj o
   | `Array x -> array_ env x
   | `Func x ->
@@ -1033,7 +1035,7 @@ and catch_clause (env : env) ((v1, v2, v3) : CST.catch_clause) =
         let _v3 = JS.token env v3bis (* ")" *) in
         let pat =
           match v2 with
-          | Left id -> JS.idexp id
+          | Left id -> idexp id
           | Right pat -> pat
          in
         BoundCatch (v1, pat, v3)
@@ -1205,7 +1207,7 @@ and expression (env : env) (x : CST.expression) : expr =
            } in
            Apply (Fun (fun_, Some name), fb [])
        | None ->
-           JS.idexp name
+           idexp name
       )
 
   | `Super tok -> JS.super env tok (* "super" *)
@@ -1240,10 +1242,10 @@ and expression (env : env) (x : CST.expression) : expr =
         | `Subs_exp x -> subscript_expression env x
         | `Choice_decl x ->
                 let id = reserved_identifier env x in
-                JS.idexp id
+                idexp id
         | `Id tok ->
                 let id = JS.identifier env tok (* identifier *) in
-                JS.idexp id
+                idexp id
         | `Paren_exp x -> parenthesized_expression env x
         )
       in
@@ -1516,7 +1518,7 @@ and mapped_type_clause (env : env) ((v1, v2, v3) : CST.mapped_type_clause) =
   G.OtherType (G.OT_Todo, [G.TodoK ("MappedType", v2); G.I v1; G.T v3])
 
 and statement1 (env : env) (x : CST.statement) : stmt =
-  statement env x |> Ast_js.stmt_of_stmts
+  statement env x |> stmt1
 
 and statement (env : env) (x : CST.statement) : stmt list =
   (match x with
@@ -1540,10 +1542,7 @@ and statement (env : env) (x : CST.statement) : stmt list =
         | `Import_requ_clause x ->
             import_require_clause env x
         | `Str x ->
-            let file = JS.string_ env x in
-            if (fst file =~ ".*\\.css$")
-            then [(ImportCss (tok, file))]
-            else [(ImportEffect (tok, file))]
+            let file = JS.string_ env x in [ImportFile (tok, file)]
         )
       in
       let _v4 = JS.semicolon env v4 in
@@ -1551,7 +1550,7 @@ and statement (env : env) (x : CST.statement) : stmt list =
   | `Debu_stmt (v1, v2) ->
       let v1 = JS.identifier env v1 (* "debugger" *) in
       let v2 = JS.semicolon env v2 in
-      [ExprStmt (JS.idexp v1, v2)]
+      [ExprStmt (idexp v1, v2)]
   | `Exp_stmt x ->
       let (e, t) = expression_statement env x in
       [ExprStmt (e, t)]
@@ -1791,7 +1790,7 @@ and export_statement (env : env) (x : CST.export_statement) : stmt list =
                 v1 |> List.map (fun (n1, n2opt) ->
                   let tmpname = "!tmp_" ^ fst n1, snd n1 in
                   let import = Import (tok2, n1, Some tmpname, path) in
-                  let e = JS.idexp tmpname in
+                  let e = idexp tmpname in
                   match n2opt with
                   | None ->
                       let v = Ast_js.mk_const_var n1 e in
@@ -1807,7 +1806,7 @@ and export_statement (env : env) (x : CST.export_statement) : stmt list =
                   (match n2opt with
                    | None -> [M (Export (tok, n1))]
                    | Some n2 ->
-                       let v = Ast_js.mk_const_var n2 (JS.idexp n1) in
+                       let v = Ast_js.mk_const_var n2 (idexp n1) in
                        [DefStmt v; M (Export (tok, n2))]
                   )
                 ) |> List.flatten
@@ -2045,7 +2044,7 @@ and lexical_declaration (env : env) ((v1, v2, v3, v4) : CST.lexical_declaration)
     ) v3
   in
   let _v4 = JS.semicolon env v4 in
-  JS.build_vars v1 (v2::v3)
+  build_vars v1 (v2::v3)
 
 and extends_clause (env : env) ((v1, v2, v3) : CST.extends_clause)
   : parent list =
@@ -2177,7 +2176,7 @@ and switch_case (env : env) ((v1, v2, v3, v4) : CST.switch_case) =
   let v2 = expressions env v2 in
   let _v3 = JS.token env v3 (* ":" *) in
   let v4 = List.map (statement env) v4 |> List.flatten in
-  Case (v1, v2, stmt_of_stmts v4)
+  Case (v1, v2, stmt1 v4)
 
 and spread_element (env : env) ((v1, v2) : CST.spread_element) =
   let v1 = JS.token env v1 (* "..." *) in
@@ -2366,8 +2365,8 @@ and lhs_expression (env : env) (x : CST.lhs_expression) =
   (match x with
   | `Member_exp x -> member_expression env x
   | `Subs_exp x -> subscript_expression env x
-  | `Id tok -> JS.identifier env tok |> JS.idexp (* identifier *)
-  | `Choice_decl x -> reserved_identifier env x |> JS.idexp
+  | `Id tok -> JS.identifier env tok |> idexp (* identifier *)
+  | `Choice_decl x -> reserved_identifier env x |> idexp
   | `Choice_obj x -> destructuring_pattern env x
   )
 
