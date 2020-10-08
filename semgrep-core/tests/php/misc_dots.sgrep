@@ -1,0 +1,4 @@
+$IS_VERIFIED = false;
+...
+curl_setopt(..., CURLOPT_SSL_VERIFYPEER, $IS_VERIFIED);
+

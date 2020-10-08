@@ -1,7 +1,11 @@
 dir: _build
-dir_element: parsing_errors
+
+dir_element: old
+dir_element: orig_spec
+dir_element: TODO_more
 
 # for LSP-experiment
+dir_element: parsing_errors
 #dir: ocaml-tree-sitter-lang
 #dir: parsing/
 # < fld: ...; _.. >  object type
@@ -31,6 +35,9 @@ file: ocaml-tree-sitter-lang/go/lib/Parse.ml
 file: ocaml-tree-sitter-lang/javascript/lib/parser.c
 file: ocaml-tree-sitter-lang/javascript/lib/scanner.cc
 file: ocaml-tree-sitter-lang/javascript/lib/Parse.ml
+file: ocaml-tree-sitter-lang/tsx/lib/parser.c
+file: ocaml-tree-sitter-lang/tsx/lib/scanner.cc
+file: ocaml-tree-sitter-lang/tsx/lib/Parse.ml
 file: ocaml-tree-sitter-lang/csharp/lib/parser.c
 file: ocaml-tree-sitter-lang/csharp/lib/scanner.cc
 file: ocaml-tree-sitter-lang/csharp/lib/Parse.ml
