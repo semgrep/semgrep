@@ -1,4 +1,4 @@
-[31merror[39m: null values prohibited
+[31msemgrep error[39m: null values prohibited
   --> rules/syntax/bad11.yaml:2
 [94m1 | [39mrules:
 [94m2 | [39m  - null

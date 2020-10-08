@@ -1,4 +1,4 @@
-[31merror[39m: Invalid rule schema
+[31msemgrep error[39m: Invalid rule schema
   --> rules/syntax/bad7.yaml:3
 [94m3 | [39m  - id: 123
 [94m  | [39m        [31m^^^[39m

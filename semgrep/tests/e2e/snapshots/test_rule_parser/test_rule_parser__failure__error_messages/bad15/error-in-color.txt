@@ -1,6 +1,5 @@
-[31merror[39m: Invalid rule schema
-  --> rules/syntax/bad15.yaml:1
-[94m1  | [39mrules:
+[31msemgrep error[39m: Invalid rule schema
+  --> rules/syntax/bad15.yaml:2
 [94m2  | [39m  - id: too many
 [94m3  | [39m    message: Hi
 [94m4  | [39m    languages: [python]

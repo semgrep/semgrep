@@ -115,6 +115,11 @@ function, regardless of its arguments:
 pattern: insecure_function(...)
 ```
 
+Note that functions or classes must be referenced by their full path. E.g.
+
+* `django.utils.safestring.mark_safe(...)` not `mark_safe(...)`
+* `System.out.println(...)` not `println(...)`
+
 We can also search for calls with arguments after a match:
 
 ```text

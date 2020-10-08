@@ -103,12 +103,12 @@ def test_hidden_rule__explicit(run_semgrep_in_tmp, snapshot):
 def test_hidden_rule__implicit(run_semgrep_in_tmp, snapshot):
     with pytest.raises(CalledProcessError) as excinfo:
         run_semgrep_in_tmp("rules/hidden")
-    assert excinfo.value.returncode == 2
+    assert excinfo.value.returncode == 7
     snapshot.assert_match(excinfo.value.stdout, "error.json")
 
     with pytest.raises(CalledProcessError) as excinfo:
         run_semgrep_in_tmp("rules/hidden", output_format="normal")
-    assert excinfo.value.returncode == 2
+    assert excinfo.value.returncode == 7
     snapshot.assert_match(excinfo.value.stderr, "error.txt")
 
 
@@ -236,7 +236,7 @@ def test_max_memory(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(
             "rules/long.yaml",
-            options=["--max-memory", "1"],
+            options=["--verbose", "--max-memory", "1"],
             target_name="equivalence",
             strict=False,
         ),
@@ -247,7 +247,7 @@ def test_max_memory(run_semgrep_in_tmp, snapshot):
         run_semgrep_in_tmp(
             "rules/long.yaml",
             output_format="normal",
-            options=["--max-memory", "1"],
+            options=["--verbose", "--max-memory", "1"],
             target_name="equivalence",
             strict=False,
             stderr=True,
@@ -260,7 +260,7 @@ def test_timeout_threshold(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(
             "rules/multiple-long.yaml",
-            options=["--timeout", "1", "--timeout-threshold", "1"],
+            options=["--verbose", "--timeout", "1", "--timeout-threshold", "1"],
             target_name="equivalence",
             strict=False,
         ),
@@ -271,7 +271,7 @@ def test_timeout_threshold(run_semgrep_in_tmp, snapshot):
         run_semgrep_in_tmp(
             "rules/multiple-long.yaml",
             output_format="normal",
-            options=["--timeout", "1", "--timeout-threshold", "1"],
+            options=["--verbose", "--timeout", "1", "--timeout-threshold", "1"],
             target_name="equivalence",
             strict=False,
             stderr=True,
@@ -283,7 +283,7 @@ def test_timeout_threshold(run_semgrep_in_tmp, snapshot):
         run_semgrep_in_tmp(
             "rules/multiple-long.yaml",
             output_format="normal",
-            options=["--timeout", "1", "--timeout-threshold", "2"],
+            options=["--verbose", "--timeout", "1", "--timeout-threshold", "2"],
             target_name="equivalence",
             strict=False,
             stderr=True,
