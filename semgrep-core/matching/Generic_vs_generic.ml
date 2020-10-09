@@ -104,6 +104,12 @@ let has_ellipis_and_filter_ellispis xs =
     | A.Ellipsis _ -> has_ellipsis := true; true
     | _ -> false) in
   !has_ellipsis, ys
+let has_xml_ellipis_and_filter_ellispis xs =
+  let has_ellipsis = ref false in
+  let ys = xs |> Common.exclude (function
+    | A.XmlEllipsis _ -> has_ellipsis := true; true
+    | _ -> false) in
+  !has_ellipsis, ys
 
 (*****************************************************************************)
 (* Name *)
@@ -882,8 +888,9 @@ and m_xml a b =
 (*e: function [[Generic_vs_generic.m_xml]] *)
 
 (*s: function [[Generic_vs_generic.m_attrs]] *)
-(* less: allow '...'? or just have it implicit *)
 and m_attrs a b =
+  let _has_ellipsis, a = has_xml_ellipis_and_filter_ellispis a in
+  (* always implicit ... *)
   m_list_in_any_order ~less_is_ok:true m_xml_attr a b
 (*e: function [[Generic_vs_generic.m_attrs]] *)
 
@@ -935,8 +942,11 @@ and m_xml_attr a b =
     )
   | A.XmlAttrExpr a1, B.XmlAttrExpr b1 ->
       m_bracket m_expr a1 b1
+  | A.XmlEllipsis(a1), B.XmlEllipsis(b1) ->
+    m_tok a1 b1
   | A.XmlAttr _, _
   | A.XmlAttrExpr _, _
+  | A.XmlEllipsis _, _
    -> fail ()
 (*e: function [[Generic_vs_generic.m_xml_attr]] *)
 
