@@ -1190,8 +1190,8 @@ and statement (env : env) (x : CST.statement) : stmt list =
         let (e, t) = expression_statement env x in
         [ExprStmt (e, t)]
   | `Decl x ->
-        let vars = declaration env x in
-        vars |> List.map (fun x -> DefStmt x)
+        let defs = declaration env x in
+        defs |> List.map (fun x -> DefStmt x)
   | `Stmt_blk x -> [statement_block env x]
   | `If_stmt (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "if" *) in
@@ -1449,17 +1449,17 @@ and export_statement (env : env) (x : CST.export_statement) : toplevel list =
       let v3 =
         (match v3 with
         | `Decl x ->
-            let vars = declaration env x in
-            vars |> List.map (fun var ->
-              let n = var.v_name in
-              [DefStmt var; M (Export (tok, n))]
+            let defs = declaration env x in
+            defs |> List.map (fun def ->
+              let n = (fst def).name in
+              [DefStmt def; M (Export (tok, n))]
             ) |> List.flatten
         | `Defa_exp_choice_auto_semi (v1, v2, v3) ->
             let v1 = token env v1 (* "default" *) in
             let v2 = expression env v2 in
             let _v3 = semicolon env v3 in
-            let var, n = Ast_js.mk_default_entity_var v1 v2 in
-            [DefStmt var; M (Export (v1, n))]
+            let def, n = Ast_js.mk_default_entity_def v1 v2 in
+            [DefStmt def; M (Export (v1, n))]
         )
       in
       v3
@@ -1647,7 +1647,7 @@ and template_substitution (env : env) ((v1, v2, v3) : CST.template_substitution)
   let _v3 = token env v3 (* "}" *) in
   v2
 
-and declaration (env : env) (x : CST.declaration) : var list =
+and declaration (env : env) (x : CST.declaration) : definition list =
   (match x with
   | `Func_decl (v1, v2, v3, v4, v5, v6) ->
       let v1 =
@@ -1655,7 +1655,7 @@ and declaration (env : env) (x : CST.declaration) : var list =
         | Some tok -> [attr (Async, token env tok)] (* "async" *)
         | None -> [])
       in
-      let v2 = token env v2 (* "function" *) in
+      let _v2 = token env v2 (* "function" *) in
       let v3 = identifier env v3 (* identifier *) in
       let v4 = formal_parameters env v4 in
       let v5 = statement_block env v5 in
@@ -1665,8 +1665,7 @@ and declaration (env : env) (x : CST.declaration) : var list =
         | None -> None)
       in
       let f = { f_attrs = v1; f_params = v4; f_body = v5; f_rettype = None } in
-      [{ v_name = v3; v_kind = Const, v2; v_type = None;
-        v_init = Some (Fun (f, None)); }]
+      [{ name = v3 }, FuncDef f]
 
   | `Gene_func_decl (v1, v2, v3, v4, v5, v6, v7) ->
       let v1 =
@@ -1674,7 +1673,7 @@ and declaration (env : env) (x : CST.declaration) : var list =
         | Some tok -> [attr (Async, token env tok)] (* "async" *)
         | None -> [])
       in
-      let v2 = token env v2 (* "function" *) in
+      let _v2 = token env v2 (* "function" *) in
       let v3 = [attr (Generator, token env v3)] (* "*" *) in
       let v4 = identifier env v4 (* identifier *) in
       let v5 = formal_parameters env v5 in
@@ -1684,11 +1683,9 @@ and declaration (env : env) (x : CST.declaration) : var list =
         | Some tok -> Some (automatic_semicolon env tok) (* automatic_semicolon *)
         | None -> None)
       in
-      let ty = None in
       let f = { f_attrs = v1 @ v3; f_params = v5; f_body = v6;
                 f_rettype = None } in
-      [{ v_name = v4; v_kind = Const, v2; v_type = ty;
-         v_init = Some (Fun (f, None)) }]
+      [ { name = v4 }, FuncDef f ]
 
   | `Class_decl (v1, v2, v3, v4, v5, v6) ->
       let v1 = List.map (decorator env) v1 in
@@ -1708,16 +1705,14 @@ and declaration (env : env) (x : CST.declaration) : var list =
       let c = { c_kind = G.Class, v2; c_attrs = v1;
                 c_extends = v4; c_implements = [];
                 c_body = v5; } in
-      let ty = None in
-      [{ v_name = v3; v_kind = Const, v2; v_type = ty;
-        v_init = Some (Class (c, None)); }]
+      [ { name = v3 }, ClassDef c ]
 
   | `Lexi_decl x ->
         let vars = lexical_declaration env x in
-        vars
+        vars_to_defs vars
   | `Var_decl x ->
         let vars = variable_declaration env x in
-        vars
+        vars_to_defs vars
   )
 
 and formal_parameter (env : env) (x : CST.formal_parameter) : parameter =
