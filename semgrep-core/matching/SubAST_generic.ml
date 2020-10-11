@@ -185,6 +185,7 @@ let substmts_of_stmt st =
          | UseOuterDecl _
          (* recurse? *)
          | ModuleDef _
+         | OtherDef _
                 -> []
          (* this will add lots of substatements *)
          | FuncDef def ->

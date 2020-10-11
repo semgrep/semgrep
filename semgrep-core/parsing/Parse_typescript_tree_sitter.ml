@@ -648,13 +648,13 @@ and arguments (env : env) ((v1, v2, v3) : CST.arguments) : arguments =
   let v3 = JS.token env v3 (* ")" *) in
   v1, v2, v3
 
-and generator_function_declaration (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.generator_function_declaration) : entity =
+and generator_function_declaration (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.generator_function_declaration) : definition =
   let v1 =
     (match v1 with
     | Some tok -> [attr (Async, JS.token env tok)] (* "async" *)
     | None -> [])
   in
-  let v2 = JS.token env v2 (* "function" *) in
+  let _v2 = JS.token env v2 (* "function" *) in
   let v3 = [attr (Generator, JS.token env v3)] (* "*" *) in
   let v4 = JS.identifier env v4 (* identifier *) in
   let (_tparams, (v5, tret)) = call_signature env v5 in
@@ -666,8 +666,7 @@ and generator_function_declaration (env : env) ((v1, v2, v3, v4, v5, v6, v7) : C
   in
   let f = { f_attrs = v1 @ v3; f_params = v5; f_body = v6; f_rettype = tret }
   in
-  { v_name = v4; v_kind = Const, v2; v_type = None;
-     v_init = Some (Fun (f, None));  }
+  { name = v4 }, FuncDef f
 
 and variable_declarator (env : env) ((v1, v2, v3) : CST.variable_declarator) =
   let v1 = anon_choice_type_id_21dd422 env v1 in
@@ -1734,7 +1733,7 @@ and method_definition (env : env) ((v1, v2, v3, v4, v5, v6, v7, v8, v9) : CST.me
   let ty = None in
   Field {fld_name = v6; fld_attrs = attrs; fld_type = ty; fld_body = Some e }
 
-and class_declaration (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.class_declaration) : entity =
+and class_declaration (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.class_declaration) : definition =
   let v1 = List.map (decorator env) v1 in
   let v2 = JS.token env v2 (* "class" *) in
   let v3 = JS.identifier env v3 (* identifier *) in
@@ -1757,9 +1756,7 @@ and class_declaration (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.class_decl
   in
   let c = { c_kind = G.Class, v2; c_extends; c_implements;
             c_body = v6; c_attrs = v1 } in
-  let ty = None in
-  { v_name = v3; v_kind = Const, v2; v_type = ty;
-     v_init = Some (Class (c, None)); }
+  { name = v3 }, ClassDef c
 
 and array_ (env : env) ((v1, v2, v3) : CST.array_) =
   let v1 = JS.token env v1 (* "[" *) in
@@ -1818,17 +1815,17 @@ and export_statement (env : env) (x : CST.export_statement) : stmt list =
           let v3 =
             (match v3 with
             | `Decl x ->
-                let vars = declaration env x in
-                vars |> List.map (fun var ->
-                  let n = var.v_name in
-                  [DefStmt var; M (Export (tok, n))]
+                let defs = declaration env x in
+                defs |> List.map (fun def ->
+                  let n = (fst def).name in
+                  [DefStmt def; M (Export (tok, n))]
                 ) |> List.flatten
             | `Defa_exp_choice_auto_semi (v1, v2, v3) ->
                 let v1 = JS.token env v1 (* "default" *) in
                 let v2 = expression env v2 in
                 let _v3 = JS.semicolon env v3 in
-                let var, n = Ast_js.mk_default_entity_var v1 v2 in
-                [DefStmt var; M (Export (v1, n))]
+                let def, n = Ast_js.mk_default_entity_def v1 v2 in
+                [DefStmt def; M (Export (v1, n))]
             )
           in
           v3
@@ -2380,13 +2377,13 @@ and statement_block (env : env) ((v1, v2, v3, v4) : CST.statement_block) =
   in
   Block (v1, v2, v3)
 
-and function_declaration (env : env) ((v1, v2, v3, v4, v5, v6) : CST.function_declaration) : entity =
+and function_declaration (env : env) ((v1, v2, v3, v4, v5, v6) : CST.function_declaration) : definition =
   let v1 =
     (match v1 with
      | Some tok -> [attr (Async, JS.token env tok)] (* "async" *)
      | None -> [])
   in
-  let v2 = JS.token env v2 (* "function" *) in
+  let _v2 = JS.token env v2 (* "function" *) in
   let v3 = JS.identifier env v3 (* identifier *) in
   let (_tparams, (v4, tret)) = call_signature env v4 in
   let v5 = statement_block env v5 in
@@ -2396,8 +2393,7 @@ and function_declaration (env : env) ((v1, v2, v3, v4, v5, v6) : CST.function_de
     | None -> None)
   in
   let f = { f_attrs = v1; f_params = v4; f_body = v5; f_rettype = tret } in
-  { v_name = v3; v_kind = Const, v2; v_type = None;
-     v_init = Some (Fun (f, None)); }
+  { name = v3}, FuncDef f
 
 and anon_choice_type_id_a85f573 (env : env) (x : CST.anon_choice_type_id_a85f573) : G.name =
   (match x with
@@ -2452,15 +2448,15 @@ and method_signature (env : env) ((v1, v2, v3, v4, v5, v6, v7, v8) : CST.method_
 (* TODO: types *)
 (* This covers mostly type definitions but includes also javascript constructs
    like function parameters, so it will be called even if we ignore types. *)
-and declaration (env : env) (x : CST.declaration) : entity list =
+and declaration (env : env) (x : CST.declaration) : definition list =
   (match x with
   | `Choice_func_decl x ->
       (match x with
       | `Func_decl x -> [function_declaration env x]
       | `Gene_func_decl x -> [generator_function_declaration env x]
       | `Class_decl x -> [class_declaration env x]
-      | `Lexi_decl x -> lexical_declaration env x
-      | `Var_decl x -> variable_declaration env x
+      | `Lexi_decl x -> lexical_declaration env x |> vars_to_defs
+      | `Var_decl x -> variable_declaration env x |> vars_to_defs
       )
   | `Func_sign (v1, v2, v3, v4, v5) ->
       let _v1 =
@@ -2473,7 +2469,9 @@ and declaration (env : env) (x : CST.declaration) : entity list =
       let (_tparams, x) = call_signature env v4 in
       let ty = mk_functype x in
       let _v5 = JS.semicolon env v5 in
-      [{ v_name = v3; v_kind = Const, v2; v_init = None; v_type = Some ty; }]
+      [{ name = v3 },
+      (* DefTodo? *)
+      VarDef { v_kind = Const, v2; v_init = None; v_type = Some ty; }]
   | `Abst_class_decl (v1, v2, v3, v4, v5, v6) ->
       let v1 = attr (Abstract, JS.token env v1) (* "abstract" *) in
       let v2 = JS.token env v2 (* "class" *) in
@@ -2492,8 +2490,7 @@ and declaration (env : env) (x : CST.declaration) : entity list =
       let attrs = [v1] in
       let c = { c_kind = G.Class, v2; c_extends; c_implements;
                 c_body = v6; c_attrs = attrs } in
-      [{ v_name = v3; v_kind = Const, v2; v_type = None;
-         v_init = Some (Class (c, None)); }]
+      [{ name = v3}, ClassDef c]
 
   | `Module (v1, v2) ->
       (* does this exist only in .d.ts files? *)
@@ -2553,8 +2550,7 @@ and declaration (env : env) (x : CST.declaration) : entity list =
       let c = { c_kind = G.Interface, v1;
                 c_extends = v4; c_implements = [];
                 c_body = (t1, xs, t2); c_attrs = [] } in
-      [{ v_name = v2; v_kind = Const, v1; v_type = None;
-         v_init = Some (Class (c, None)); }]
+      [{ name = v2 }, ClassDef c]
 
   | `Import_alias (v1, v2, v3, v4, v5) ->
       let _v1 = JS.token env v1 (* "import" *) in
@@ -2575,8 +2571,10 @@ and declaration (env : env) (x : CST.declaration) : entity list =
             let name = "!global!", v1 in
             let f = { f_attrs = []; f_params = [];
                       f_body = v2; f_rettype = None; } in
-            [{ v_name = name; v_kind = Const, v1;
-              v_init = Some (Fun (f, None)); v_type = None; }]
+            (* TODO: DefTodo *)
+            [{ name = name }, VarDef {v_kind = Const, v1;
+                                      v_init = Some (Fun (f, None));
+                                      v_type = None; }]
         | `Module_DOT_id_COLON_type (v1, v2, v3, v4, v5) ->
             let v1 = JS.token env v1 (* "module" *) in
             let _v2 = JS.token env v2 (* "." *) in
@@ -2584,7 +2582,8 @@ and declaration (env : env) (x : CST.declaration) : entity list =
             let _v4 = JS.token env v4 (* ":" *) in
             let v5 = type_ env v5 in
             let name = v3 in
-            [{v_name = name; v_kind = Const, v1;
+            (* TODO: DefTodo *)
+            [{name = name }, VarDef { v_kind = Const, v1;
               v_init = None; v_type = Some v5 }]
         )
       in
