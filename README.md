@@ -37,6 +37,9 @@
   <a href="https://github.com/returntocorp/semgrep#readme">
     <img src="https://img.shields.io/github/stars/returntocorp/semgrep?label=GitHub%20Stars&style=flat-square" alt="1500+ GitHub stars" />
   </a>
+  <a href="https://twitter.com/intent/follow?screen_name=r2cdev">
+    <img src="https://img.shields.io/twitter/follow/r2cdev?label=Follow%20r2cdev&style=social&color=blue" alt="Follow @r2cdev" />
+  </a>
 </p>
 
 <a href="https://semgrep.dev">Semgrep</a> tl;dr:
