@@ -250,6 +250,7 @@ let print_match mvars mvar_binding ii_of_any tokens_matched_code =
           match Common2.assoc_opt x mvar_binding with
           | Some any ->
               ii_of_any any
+              |> List.filter PI.is_origintok
               |> List.map PI.str_of_info
               |> Matching_report.join_with_space_if_needed
           | None ->
@@ -621,7 +622,8 @@ let iter_generic_ast_of_files_and_get_matches_and_exn_to_errors f files =
               | Out_of_memory -> Error_code.OutOfMemory str_opt
               | _ -> raise Impossible
               )]
-        | exn -> [], [Error_code.exn_to_error file exn]
+        | exn ->
+            [], [Error_code.exn_to_error file exn]
     )
   in
   let matches = matches_and_errors |> List.map fst |> List.flatten in

@@ -1,4 +1,4 @@
-[31merror[39m: Invalid rule schema
+[31msemgrep error[39m: Invalid rule schema
   --> rules/syntax/missing-field.yaml:3
 [94m3  | [39m- id: flask-secure-set-cookie
 [94m4  | [39m  languages: [python]

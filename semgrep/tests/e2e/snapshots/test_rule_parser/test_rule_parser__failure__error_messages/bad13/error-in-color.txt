@@ -1,4 +1,4 @@
-[31merror[39m: Invalid rule schema
+[31msemgrep error[39m: Invalid rule schema
   --> rules/syntax/bad13.yaml:2
 [94m2 | [39m  - id: tainty
 [94m3 | [39m    message: Hi

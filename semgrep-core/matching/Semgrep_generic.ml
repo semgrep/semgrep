@@ -165,6 +165,15 @@ let match_p_p rule a b =
       match_p_p2 a b))
 [@@profiling]
 
+let match_partial_partial2 pattern e =
+  let env = Matching_generic.empty_environment () in
+  GG.m_partial pattern e env
+let match_partial_partial rule a b =
+    Common.profile_code ("rule:" ^ rule.R.id) (fun () ->
+     set_last_matched_rule rule (fun () ->
+      match_partial_partial2 a b))
+[@@profiling]
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
@@ -220,6 +229,7 @@ let check2 ~hook rules equivs file lang ast =
   let stmts_rules = ref [] in
   let type_rules = ref [] in
   let pattern_rules = ref [] in
+  let partial_rules = ref [] in
   (*s: [[Semgrep_generic.check2()]] populate [[expr_rules]] and other *)
   rules |> List.iter (fun rule ->
     (* less: normalize the pattern? *)
@@ -233,7 +243,9 @@ let check2 ~hook rules equivs file lang ast =
     | Ss pattern -> Common.push (pattern, rule) stmts_rules
     | T pattern -> Common.push (pattern, rule) type_rules
     | P pattern -> Common.push (pattern, rule) pattern_rules
-    | _ -> failwith "only expr/stmt/stmts/type/pattern patterns are supported"
+    | Partial pattern -> Common.push (pattern, rule) partial_rules
+    | _ -> failwith
+            "only expr/stmt/stmts/type/pattern/partial patterns are supported"
   );
   (*e: [[Semgrep_generic.check2()]] populate [[expr_rules]] and other *)
 
@@ -299,6 +311,10 @@ let check2 ~hook rules equivs file lang ast =
     V.kpattern = (fun (k, _) x ->
       match_rules_and_recurse (file, hook, matches)
          !pattern_rules match_p_p k (fun x -> P x) x
+    );
+    V.kpartial = (fun (k, _) x ->
+      match_rules_and_recurse (file, hook, matches)
+         !partial_rules match_partial_partial k (fun x -> Partial x) x
     );
   }
   in

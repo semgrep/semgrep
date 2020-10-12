@@ -128,12 +128,11 @@ let just_parse_with_lang lang file =
           TreeSitter, Parse_javascript_tree_sitter.parse;
           Pfff, (fun file ->
               let f () =
-                let cst = Parse_js.parse_program file in
-                Ast_js_build.program cst
+                Parse_js.parse_program file
               in
               (* timeout already set in caller, then good to go *)
               if !Flag.timeout <> 0.
-              then f()
+              then f ()
               else begin
                 try
                   Common.timeout_function 5 (fun () ->

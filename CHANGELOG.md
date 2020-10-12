@@ -2,6 +2,43 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+
+## Next version
+
+### Added
+- Added matching with partial patterns for function signatures or class headers
+  for Javascript/Typescript.
+
+## [0.27.0](https://github.com/returntocorp/semgrep/releases/tag/v0.27.0) - 2020-10-06
+
+### Added
+- Added a `--debug` flag and moved most of the output under `--verbose` to it.
+- Can run multiple rule configs by repeating `--config` option
+- Jenkins information added to integrations
+- Added matching with partial patterns for function signatures for Go.
+
+### Changed
+- Parse and other errors are mentioned at final output, but not individually displayed unless --verbose is passed
+- tree-sitter parse error exceptions converted to parsing_error, improving error location
+
+### Fixed
+- Dislayed types using the `message` key are more complete.
+- Triple token repeat for EncodedString in semgrep messages fixed.
+- Crashes on 3 or more layered jsonschema errors fixed.
+
+
+## [0.26.0](https://github.com/returntocorp/semgrep/releases/tag/v0.26.0) - 2020-09-30
+
+### Fixed
+- Metavariables are able to match empty tuples
+- Correctly parse optional chaining (?.) in Typescript
+- Correctly parse logical assignment operators (&&=, ||=, ??=) in Typescript
+- Some type constraing matching in Typescript
+
+### Changed
+- Added default timeout of 5 seconds to javascript parsing (related to ?. on large minified files stalling)
+
+
 ## [0.25.0](https://github.com/returntocorp/semgrep/releases/tag/v0.25.0) - 2020-09-23
 
 ### Added
@@ -35,7 +72,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Ability to read target contents from stdin by specifying "-" target.
 
 ### Changed
-- You can now specify timeouts using floats instead of integers 
+- You can now specify timeouts using floats instead of integers
   (e.g., semgrep -timeout 0.5 will timeout after half a second)
 
 ### Fixed

@@ -1,4 +1,4 @@
-[31merror[39m: Invalid rule schema
+[31msemgrep error[39m: Invalid rule schema
   --> rules/syntax/bad9.yaml:4
 [94m4 | [39m      - patter: $X = 1
 [94m5 | [39m      - pattern: $X = 2

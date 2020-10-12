@@ -10,8 +10,10 @@ function foo () {
 //    console.log(foo);
 //}
 
-// still not parsed as a Lambda, even though it looks like, because
-// this common idiom is handled specially by Ast_js_build
+// this used to be not parsed as a Lambda, even though it looks like, because
+// this common idiom was handled specially by Ast_js_build, but
+// we don't this anymore.
+//ERROR: match
 const a = function () {
     console.log(foo);
 };

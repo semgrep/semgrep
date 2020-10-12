@@ -37,6 +37,9 @@
   <a href="https://github.com/returntocorp/semgrep#readme">
     <img src="https://img.shields.io/github/stars/returntocorp/semgrep?label=GitHub%20Stars&style=flat-square" alt="1500+ GitHub stars" />
   </a>
+  <a href="https://twitter.com/intent/follow?screen_name=r2cdev">
+    <img src="https://img.shields.io/twitter/follow/r2cdev?label=Follow%20r2cdev&style=social&color=blue" alt="Follow @r2cdev" />
+  </a>
 </p>
 
 <a href="https://semgrep.dev">Semgrep</a> tl;dr:
@@ -100,7 +103,7 @@ Explore the Semgrep Registry of rules and CI integrations at [semgrep.dev](https
 | Enforce the use secure defaults   | [Securely set Flask cookies](https://semgrep.dev/dlukeomalley:flask-set-cookie)                                                                                                                                                                                                                                                                        |
 | Enforce project best-practices    | [Use assertEqual for == checks](https://semgrep.dev/dlukeomalley:use-assertEqual-for-equality), [Always check subprocess calls](https://semgrep.dev/dlukeomalley:unchecked-subprocess-call)                                                                                                                                                            |
 | Codify project-specific knowledge | [Verify transactions before making them](https://semgrep.dev/dlukeomalley:verify-before-make)                                                                                                                                                                                                                                                          |
-| Audit security hotspots           | [Finding XSS in Apache Airflow](https://semgrep.live/ievans:airflow-xss), [Hardcoded credentials](https://semgrep.dev/dlukeomalley:hardcoded-credentials)                                                                                                                                                                                                                |
+| Audit security hotspots           | [Finding XSS in Apache Airflow](https://semgrep.live/ievans:airflow-xss), [Hardcoded credentials](https://semgrep.dev/dlukeomalley:hardcoded-credentials)                                                                                                                                                                                              |
 | Audit configuration files         | [Find S3 ARN uses](https://semgrep.dev/dlukeomalley:s3-arn-use)                                                                                                                                                                                                                                                                                        |
 | Migrate from deprecated APIs      | [DES is deprecated](https://semgrep.dev/editor?registry=java.lang.security.audit.crypto.des-is-deprecated), [Deprecated Flask APIs](https://semgrep.dev/editor?registry=python.flask.maintainability.deprecated.deprecated-apis), [Deprecated Bokeh APIs](https://semgrep.dev/editor?registry=python.bokeh.maintainability.deprecated.deprecated_apis) |
 | Apply automatic fixes             | [Use listenAndServeTLS](https://semgrep.live/clintgibler:use-listenAndServeTLS)                                                                                                                                                                                                                                                                        |
@@ -146,7 +149,7 @@ Learn more:
 - [Live Editor](https://semgrep.dev/editor)
 - [Semgrep Registry](https://semgrep.dev/r)
 - [Documentation](docs/README.md)
-- [r2c YouTube channel](https://www.youtube.com/channel/UC5ahcFBorwzUTqPipFhjkWg) for more videos.
+- [r2c YouTube channel](https://www.youtube.com/channel/UC5ahcFBorwzUTqPipFhjkWg)
 
 Get in touch:
 
@@ -172,10 +175,10 @@ See `semgrep --help` for command line options.
 To upgrade, run the command below associated with how you installed Semgrep:
 
 ```sh
-# Using HomeBrew
+# Using Homebrew
 $ brew upgrade semgrep
 
-# Using `pip`
+# Using pip
 $ python3 -m pip install --upgrade semgrep
 
 # Using Docker
@@ -184,11 +187,22 @@ $ docker pull returntocorp/semgrep:latest
 
 ## Contributing
 
-Semgrep is LGPL-licensed, feel free to help out: [CONTRIBUTING](https://github.com/returntocorp/semgrep/blob/develop/CONTRIBUTING.md).
+Semgrep is LGPL-licensed and we welcome contributions.
 
-Semgrep is a frontend to a larger program analysis library named [`pfff`](https://github.com/returntocorp/pfff/). `pfff` began and was open-sourced at [Facebook](https://github.com/facebookarchive/pfff) but is now archived. The primary maintainer now works at [r2c](https://r2c.dev). Semgrep was originally named `sgrep` and was renamed to avoid collisons with existing projects.
+To start contributing, first please make sure you read and agree with the [Contributor Covenant Code of Conduct](https://github.com/returntocorp/semgrep/blob/develop/CODE_OF_CONDUCT.md).
+Then check out a few ways you can get involved:
+
+- [File an issue](https://github.com/returntocorp/semgrep/issues/new/choose)
+- Fix a bug — pick from the [good first issues](https://github.com/returntocorp/semgrep/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22) or work on any of the [currently open bugs](https://github.com/returntocorp/semgrep/issues?q=is%3Aopen+is%3Aissue+label%3Abug)
+- Add a feature — see the [enhancement issues](https://github.com/returntocorp/semgrep/issues?q=is%3Aopen+is%3Aissue+label%3Aenhancement) for inspiration
+- Update the [docs](https://github.com/returntocorp/semgrep/tree/develop/docs)
+- Help each other in the [community Slack](https://r2c.dev/slack)
+
+Please see the [contribution guidelines](https://github.com/returntocorp/semgrep/blob/develop/CONTRIBUTING.md) for info about the development workflow, testing, and making PRs.
 
 ## Commercial Support
+
+Semgrep is a frontend to a larger program analysis library named [`pfff`](https://github.com/returntocorp/pfff/). `pfff` began and was open-sourced at [Facebook](https://github.com/facebookarchive/pfff) but is now archived. The primary maintainer now works at [r2c](https://r2c.dev). Semgrep was originally named `sgrep` and was renamed to avoid collisons with existing projects.
 
 Semgrep is supported by [r2c](https://r2c.dev). We're hiring!
 

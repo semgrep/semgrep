@@ -1,0 +1,1 @@
+func ($O *Type) Method($A *$ARGTYPE, $R $REPLYTYPE) $RETTYPE
