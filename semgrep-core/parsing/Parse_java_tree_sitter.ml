@@ -271,7 +271,7 @@ let rec expression (env : env) (x : CST.expression) =
                 xs |> List.map (fun id -> ParamClassic (AST.entity_of_id id))
         )
       in
-      let _v2 = token env v2 (* "->" *) in
+      let v2 = token env v2 (* "->" *) in
       let v3 =
         (match v3 with
         | `Exp x -> let x = expression env x in
@@ -279,7 +279,7 @@ let rec expression (env : env) (x : CST.expression) =
         | `Blk x -> block env x
         )
       in
-      Lambda (v1, v3)
+      Lambda (v1, v2, v3)
 
   | `Tern_exp (v1, v2, v3, v4, v5) ->
       let v1 = expression env v1 in
@@ -1730,7 +1730,7 @@ and unannotated_type (env : env) (x : CST.unannotated_type) : typ =
   | `Array_type (v1, v2) ->
       let v1 = unannotated_type env v1 in
       let v2 = dimensions env v2 in
-      List.fold_left (fun acc _e -> TArray acc) v1 v2
+      List.fold_left (fun acc (t1, (), t2) -> TArray (t1, acc, t2)) v1 v2
   )
 
 
@@ -1786,7 +1786,8 @@ and method_header (env : env) ((v1, v2, v3, v4) : CST.method_header) =
     | None -> [])
   in
   let (id, params, dims) = v3 in
-  let t = List.fold_left (fun acc _e -> TArray acc) v2 dims in
+  let t = List.fold_left (fun acc (t1, (), t2) -> TArray (t1, acc, t2))
+           v2 dims in
   v1, t, id, params, v4
 
 
@@ -1929,9 +1930,11 @@ let program (env : env) (xs : CST.program) =
 (*****************************************************************************)
 
 let parse file =
+ H.convert_tree_sitter_exn_to_pfff_exn (fun () ->
   let ast =
     Parallel.backtrace_when_exn := false;
     Parallel.invoke Tree_sitter_java.Parse.file file ()
   in
   let env = { H.file; conv = H.line_col_to_pos file } in
   program env ast
+ )

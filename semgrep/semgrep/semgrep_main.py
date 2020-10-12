@@ -30,94 +30,10 @@ from semgrep.target_manager import TargetManager
 
 logger = logging.getLogger(__name__)
 
-MISSING_RULE_ID = "no-rule-id"
-
-
-def validate_single_rule(
-    config_id: str, rule_yaml: YamlTree[YamlMap]
-) -> Optional[Rule]:
-    """
-        Validate that a rule dictionary contains all necessary keys
-        and can be correctly parsed.
-    """
-    rule: YamlMap = rule_yaml.value
-
-    # Defaults to search mode if mode is not specified
-    return Rule.from_yamltree(rule_yaml)
-
-
-def validate_configs(
-    configs: Dict[str, YamlTree],
-) -> Tuple[Dict[str, List[Rule]], List[SemgrepError]]:
-    """
-        Take configs and separate into valid and list of errors parsing the invalid ones
-    """
-    errors: List[SemgrepError] = []
-    valid: Dict[str, Any] = {}
-    for config_id, config_yaml_tree in configs.items():
-        config = config_yaml_tree.value
-        if not isinstance(config, YamlMap):
-            errors.append(SemgrepError(f"{config_id} was not a mapping"))
-            continue
-
-        rules = config.get(RULES_KEY)
-        if rules is None:
-            errors.append(
-                InvalidRuleSchemaError(
-                    short_msg="missing keys",
-                    long_msg=f"{config_id} is missing `{RULES_KEY}` as top-level key",
-                    spans=[config_yaml_tree.span.truncate(lines=5)],
-                )
-            )
-            continue
-        valid_rules = []
-        for rule_dict in rules.value:
-
-            try:
-                rule = validate_single_rule(config_id, rule_dict)
-            except InvalidRuleSchemaError as ex:
-                errors.append(ex)
-            else:
-                valid_rules.append(rule)
-
-        if valid_rules:
-            valid[config_id] = valid_rules
-    return valid, errors
-
-
-def safe_relative_to(a: Path, b: Path) -> Path:
-    try:
-        return a.relative_to(b)
-    except ValueError:
-        # paths had no common prefix; not possible to relativize
-        return a
-
-
-def convert_config_id_to_prefix(config_id: str) -> str:
-    at_path = Path(config_id)
-    at_path = safe_relative_to(at_path, Path.cwd())
-
-    prefix = ".".join(at_path.parts[:-1]).lstrip("./").lstrip(".")
-    if len(prefix):
-        prefix += "."
-    return prefix
-
-
-def rename_rule_ids(valid_configs: Dict[str, List[Rule]]) -> Dict[str, List[Rule]]:
-    transformed = {}
-    for config_id, rules in valid_configs.items():
-        transformed[config_id] = [
-            rule.with_id(
-                f"{convert_config_id_to_prefix(config_id)}{rule.id or MISSING_RULE_ID}"
-            )
-            for rule in rules
-        ]
-    return transformed
-
 
 def get_config(
-    pattern: str, lang: str, config: str
-) -> Tuple[Dict[str, List[Rule]], List[SemgrepError]]:
+    pattern: str, lang: str, config_strs: List[str]
+) -> Tuple[semgrep.config_resolver.Config, List[SemgrepError]]:
     # let's check for a pattern
     if pattern:
         # and a language
@@ -125,26 +41,18 @@ def get_config(
             raise SemgrepError("language must be specified when a pattern is passed")
 
         # TODO for now we generate a manual config. Might want to just call semgrep -e ... -l ...
-        configs = semgrep.config_resolver.manual_config(pattern, lang)
+        config, errors = semgrep.config_resolver.Config.from_pattern_lang(pattern, lang)
     else:
         # else let's get a config. A config is a dict from config_id -> config. Config Id is not well defined at this point.
-        try:
-            configs = semgrep.config_resolver.resolve_config(config)
-        except SemgrepError as e:
-            return {}, [e]
+        config, errors = semgrep.config_resolver.Config.from_config_list(config_strs)
 
     # if we can't find a config, use default r2c rules
-    if not configs:
+    if not config:
         raise SemgrepError(
             f"No config given and {DEFAULT_CONFIG_FILE} was not found. Try running with --help to debug or if you want to download a default config, try running with --config r2c"
         )
 
-    valid_configs, error = validate_configs(configs)
-    return valid_configs, error
-
-
-def flatten_configs(transformed_configs: Dict[str, List[Rule]]) -> List[Rule]:
-    return [rule for rules in transformed_configs.values() for rule in rules]
+    return config, errors
 
 
 def notify_user_of_work(
@@ -225,6 +133,7 @@ def invoke_semgrep(config: Path, targets: List[Path], **kwargs: Any) -> Any:
             output_format=OutputFormat.JSON,
             output_destination=None,
             error_on_findings=False,
+            verbose_errors=False,
             strict=False,
         ),
         stdout=io_capture,
@@ -234,7 +143,7 @@ def invoke_semgrep(config: Path, targets: List[Path], **kwargs: Any) -> Any:
         target=[str(t) for t in targets],
         pattern="",
         lang="",
-        config=str(config),
+        configs=[str(config)],
         **kwargs,
     )
     output_handler.close()
@@ -246,7 +155,7 @@ def main(
     target: List[str],
     pattern: str,
     lang: str,
-    config: str,
+    configs: List[str],
     no_rewrite_rule_ids: bool = False,
     jobs: int = 1,
     include: Optional[List[str]] = None,
@@ -269,44 +178,36 @@ def main(
     if exclude is None:
         exclude = []
 
-    valid_configs, config_errors = get_config(pattern, lang, config)
+    configs_obj, errors = get_config(pattern, lang, configs)
+    all_rules = configs_obj.get_rules(no_rewrite_rule_ids)
 
-    output_handler.handle_semgrep_errors(config_errors)
+    output_handler.handle_semgrep_errors(errors)
 
-    if config_errors and strict:
+    if errors and strict:
         raise SemgrepError(
-            f"run with --strict and there were {len(config_errors)} errors loading configs",
+            f"run with --strict and there were {len(errors)} errors loading configs",
             code=MISSING_CONFIG_EXIT_CODE,
         )
 
-    if not no_rewrite_rule_ids:
-        # re-write the configs to have the hierarchical rule ids
-        valid_configs = rename_rule_ids(valid_configs)
-
-    # extract just the rules from valid configs
-    all_rules = flatten_configs(valid_configs)
-
     if not pattern:
-        plural = "s" if len(valid_configs) > 1 else ""
+        plural = "s" if len(configs_obj.valid) > 1 else ""
         config_id_if_single = (
-            list(valid_configs.keys())[0] if len(valid_configs) == 1 else ""
+            list(configs_obj.valid.keys())[0] if len(configs_obj.valid) == 1 else ""
         )
         invalid_msg = (
-            f"({len(config_errors)} config files were invalid)"
-            if len(config_errors)
-            else ""
+            f"({len(errors)} config files were invalid)" if len(errors) else ""
         )
         logger.debug(
-            f"running {len(all_rules)} rules from {len(valid_configs)} config{plural} {config_id_if_single} {invalid_msg}"
+            f"running {len(all_rules)} rules from {len(configs_obj.valid)} config{plural} {config_id_if_single} {invalid_msg}"
         )
 
-        notify_user_of_work(all_rules, include, exclude)
-
-        if len(valid_configs) == 0:
+        if len(configs_obj.valid) == 0:
             raise SemgrepError(
-                f"no valid configuration file found ({len(config_errors)} configs were invalid)",
+                f"no valid configuration file found ({len(errors)} configs were invalid)",
                 code=MISSING_CONFIG_EXIT_CODE,
             )
+
+        notify_user_of_work(all_rules, include, exclude)
 
     respect_git_ignore = not no_git_ignore
     target_manager = TargetManager(
@@ -319,7 +220,7 @@ def main(
     )
 
     # actually invoke semgrep
-    rule_matches_by_rule, debug_steps_by_rule, semgrep_errors = CoreRunner(
+    rule_matches_by_rule, debug_steps_by_rule, semgrep_errors, stats_line = CoreRunner(
         allow_exec=dangerously_allow_arbitrary_code_execution_from_rules,
         jobs=jobs,
         timeout=timeout,
@@ -340,7 +241,9 @@ def main(
             for rule, rule_matches in rule_matches_by_rule.items()
         }
 
-    output_handler.handle_semgrep_core_output(rule_matches_by_rule, debug_steps_by_rule)
+    output_handler.handle_semgrep_core_output(
+        rule_matches_by_rule, debug_steps_by_rule, stats_line
+    )
 
     if autofix:
         apply_fixes(rule_matches_by_rule, dryrun)

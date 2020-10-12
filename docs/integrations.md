@@ -11,6 +11,7 @@ Contents:
   * [TravisCI](#travisci)
   * [GitHub Actions](#github-actions)
   * [GitLab](#gitlab)
+  * [Jenkins](#jenkins)
 
 ## Pre-Commit Hook
 
@@ -24,14 +25,14 @@ and add this in your `.pre-commit-config.yaml`:
 ```yaml
 repos:
 - repo: https://github.com/returntocorp/semgrep
-  rev: 'v0.25.0'
+  rev: 'v0.27.0'
   hooks:
     - id: semgrep
       args: ['--config', 'https://semgrep.dev/p/r2c', '--error']
 ```
 
 This will default to using the [`r2c` ruleset](https://semgrep.dev/p/r2c).
-To choose another ruleset, see https://semgrep.dev/packs.
+To choose another ruleset, see https://semgrep.dev/rulesets.
 
 ## Continuous Integration
 
@@ -57,7 +58,7 @@ test_script:
 ```
 
 This will default to using the [`r2c` ruleset](https://semgrep.dev/p/r2c).
-To choose another ruleset see https://semgrep.dev/packs.
+To choose another ruleset see https://semgrep.dev/rulesets.
 
 ### CircleCI
 
@@ -76,7 +77,7 @@ jobs:
 ```
 
 This will default to using the [`r2c` ruleset](https://semgrep.dev/p/r2c).
-To choose another ruleset see https://semgrep.dev/packs.
+To choose another ruleset see https://semgrep.dev/rulesets.
 
 Another way to do it is to use the official Semgrep [Docker Image](https://hub.docker.com/r/returntocorp/semgrep)
 
@@ -106,7 +107,7 @@ script:
 ```
 
 This will default to using the [`r2c` ruleset](https://semgrep.dev/p/r2c).
-To choose another ruleset see https://semgrep.dev/packs.
+To choose another ruleset see https://semgrep.dev/rulesets.
 
 ### GitHub Actions
 
@@ -127,7 +128,7 @@ jobs:
 ```
 
 This will default to using the [`r2c` ruleset](https://semgrep.dev/p/r2c).
-To choose another ruleset see https://semgrep.dev/packs.
+To choose another ruleset see https://semgrep.dev/rulesets.
 
 For more information on the GitHub Action see https://github.com/marketplace/actions/semgrep-action.
 
@@ -146,4 +147,24 @@ semgrep:
 ```
 
 This will default to using the [`r2c` ruleset](https://semgrep.dev/p/r2c).
-To choose another ruleset see https://semgrep.dev/packs.
+To choose another ruleset see https://semgrep.dev/rulesets.
+
+### Jenkins
+
+Include `semgrep` in your `Jenkinsfile` configuration file:
+
+```
+pipeline {
+  agent any
+  stages {
+    stage('Semgrep') {
+      steps {
+        sh '''/usr/local/bin/docker run --rm -v "${PWD}:/src" returntocorp/semgrep --error --config=https://semgrep.dev/p/r2c'''
+      }
+    }
+  }
+}
+```
+
+This will default to using the [`r2c` ruleset](https://semgrep.dev/p/r2c).
+To choose another ruleset see https://semgrep.dev/rulesets.

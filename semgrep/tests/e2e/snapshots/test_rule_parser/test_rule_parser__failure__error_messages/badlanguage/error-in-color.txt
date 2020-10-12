@@ -1,5 +1,5 @@
 running 1 rules...
-[31merror[39m: invalid language
+[31msemgrep error[39m: invalid language
   --> rules/syntax/badlanguage.yaml:7
 [94m6 | [39m    message: "$X is being assigned to one or two"
 [94m7 | [39m    languages: [rust]

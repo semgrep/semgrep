@@ -68,27 +68,9 @@ let empty_stmt env tok =
   let t = token env tok in
   Block (t, [], t)
 
-let idexp id =
-  match Ast_js.special_of_id_opt (fst id) with
-  | None -> Id (id, ref NotResolved)
-  | Some special -> IdSpecial (special, snd id)
-
-let build_vars kwd vars =
-  vars |> List.map (fun (id_or_pat, ty_opt, initopt) ->
-      match id_or_pat with
-      | Left id ->
-      { v_name = id; v_kind = (kwd); v_init = initopt; v_type = ty_opt;
-        v_resolved = ref NotResolved }
-      | Right pat ->
-        Ast_js.var_pattern_to_var kwd pat (snd kwd) initopt
-   )
 
 let identifier (env : env) (tok : CST.identifier) : ident =
   str env tok (* identifier *)
-
-let identifier_exp (env : env) (tok : CST.identifier) : expr =
-  let id = identifier env tok in
-  idexp id
 
 let reserved_identifier (env : env) (x : CST.reserved_identifier) : ident =
   (match x with
@@ -764,7 +746,9 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
   (match x with
   | `This tok -> this env tok (* "this" *)
   | `Super tok -> super env tok (* "super" *)
-  | `Id tok -> identifier_exp env tok (* identifier *)
+  | `Id tok ->
+        let id = identifier env tok in
+        idexp_or_special id
   | `Choice_get x ->
         let id = reserved_identifier env x in
         idexp id
@@ -1162,7 +1146,7 @@ and switch_default (env : env) ((v1, v2, v3) : CST.switch_default) =
   let v1 = token env v1 (* "default" *) in
   let _v2 = token env v2 (* ":" *) in
   let v3 = List.map (statement env) v3 |> List.flatten in
-  Default (v1, stmt_of_stmts v3)
+  Default (v1, stmt1 v3)
 
 and switch_body (env : env) ((v1, v2, v3) : CST.switch_body) =
   let _v1 = token env v1 (* "{" *) in
@@ -1178,7 +1162,7 @@ and switch_body (env : env) ((v1, v2, v3) : CST.switch_body) =
   v2
 
 and statement1 (env : env) (x : CST.statement) : stmt =
-  statement env x |> Ast_js.stmt_of_stmts
+  statement env x |> Ast_js.stmt1
 
 and statement (env : env) (x : CST.statement) : stmt list =
   (match x with
@@ -1188,17 +1172,13 @@ and statement (env : env) (x : CST.statement) : stmt list =
       let v1 = token env v1 (* "import" *) in
       let tok = v1 in
       let v2 =
-        (match v2 with
+        match v2 with
         | `Import_clause_from_clause (v1, v2) ->
             let f = import_clause env v1 in
             let (_t, path) = from_clause env v2 in
             f tok path
         | `Str x ->
-            let file = string_ env x in
-            if (fst file =~ ".*\\.css$")
-            then [(ImportCss (tok, file))]
-            else [(ImportEffect (tok, file))]
-        )
+            let file = string_ env x in [ImportFile (tok, file)]
       in
       let _v3 = semicolon env v3 in
       v2 |> List.map (fun m -> M m)
@@ -1210,8 +1190,8 @@ and statement (env : env) (x : CST.statement) : stmt list =
         let (e, t) = expression_statement env x in
         [ExprStmt (e, t)]
   | `Decl x ->
-        let vars = declaration env x in
-        vars |> List.map (fun x -> DefStmt x)
+        let defs = declaration env x in
+        defs |> List.map (fun x -> DefStmt x)
   | `Stmt_blk x -> [statement_block env x]
   | `If_stmt (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "if" *) in
@@ -1469,17 +1449,17 @@ and export_statement (env : env) (x : CST.export_statement) : toplevel list =
       let v3 =
         (match v3 with
         | `Decl x ->
-            let vars = declaration env x in
-            vars |> List.map (fun var ->
-              let n = var.v_name in
-              [DefStmt var; M (Export (tok, n))]
+            let defs = declaration env x in
+            defs |> List.map (fun def ->
+              let n = (fst def).name in
+              [DefStmt def; M (Export (tok, n))]
             ) |> List.flatten
         | `Defa_exp_choice_auto_semi (v1, v2, v3) ->
             let v1 = token env v1 (* "default" *) in
             let v2 = expression env v2 in
             let _v3 = semicolon env v3 in
-            let var, n = Ast_js.mk_default_entity_var v1 v2 in
-            [DefStmt var; M (Export (v1, n))]
+            let def, n = Ast_js.mk_default_entity_def v1 v2 in
+            [DefStmt def; M (Export (v1, n))]
         )
       in
       v3
@@ -1561,7 +1541,7 @@ and switch_case (env : env) ((v1, v2, v3, v4) : CST.switch_case) =
   let v2 = expressions env v2 in
   let _v3 = token env v3 (* ":" *) in
   let v4 = List.map (statement env) v4 |> List.flatten in
-  Case (v1, v2, stmt_of_stmts v4)
+  Case (v1, v2, stmt1 v4)
 
 and spread_element (env : env) ((v1, v2) : CST.spread_element) =
   let v1 = token env v1 (* "..." *) in
@@ -1643,7 +1623,7 @@ and lhs_expression (env : env) (x : CST.lhs_expression) : expr =
   | `Subs_exp x -> subscript_expression env x
   | `Id tok ->
         let id = identifier env tok (* identifier *) in
-        idexp id
+        idexp_or_special id
   | `Choice_get x ->
         let id = reserved_identifier env x in
         idexp id
@@ -1667,7 +1647,7 @@ and template_substitution (env : env) ((v1, v2, v3) : CST.template_substitution)
   let _v3 = token env v3 (* "}" *) in
   v2
 
-and declaration (env : env) (x : CST.declaration) : var list =
+and declaration (env : env) (x : CST.declaration) : definition list =
   (match x with
   | `Func_decl (v1, v2, v3, v4, v5, v6) ->
       let v1 =
@@ -1675,7 +1655,7 @@ and declaration (env : env) (x : CST.declaration) : var list =
         | Some tok -> [attr (Async, token env tok)] (* "async" *)
         | None -> [])
       in
-      let v2 = token env v2 (* "function" *) in
+      let _v2 = token env v2 (* "function" *) in
       let v3 = identifier env v3 (* identifier *) in
       let v4 = formal_parameters env v4 in
       let v5 = statement_block env v5 in
@@ -1685,8 +1665,7 @@ and declaration (env : env) (x : CST.declaration) : var list =
         | None -> None)
       in
       let f = { f_attrs = v1; f_params = v4; f_body = v5; f_rettype = None } in
-      [{ v_name = v3; v_kind = Const, v2; v_type = None;
-        v_init = Some (Fun (f, None)); v_resolved = ref NotResolved }]
+      [{ name = v3 }, FuncDef f]
 
   | `Gene_func_decl (v1, v2, v3, v4, v5, v6, v7) ->
       let v1 =
@@ -1694,7 +1673,7 @@ and declaration (env : env) (x : CST.declaration) : var list =
         | Some tok -> [attr (Async, token env tok)] (* "async" *)
         | None -> [])
       in
-      let v2 = token env v2 (* "function" *) in
+      let _v2 = token env v2 (* "function" *) in
       let v3 = [attr (Generator, token env v3)] (* "*" *) in
       let v4 = identifier env v4 (* identifier *) in
       let v5 = formal_parameters env v5 in
@@ -1704,11 +1683,9 @@ and declaration (env : env) (x : CST.declaration) : var list =
         | Some tok -> Some (automatic_semicolon env tok) (* automatic_semicolon *)
         | None -> None)
       in
-      let ty = None in
       let f = { f_attrs = v1 @ v3; f_params = v5; f_body = v6;
                 f_rettype = None } in
-      [{ v_name = v4; v_kind = Const, v2; v_type = ty;
-         v_init = Some (Fun (f, None)); v_resolved = ref NotResolved }]
+      [ { name = v4 }, FuncDef f ]
 
   | `Class_decl (v1, v2, v3, v4, v5, v6) ->
       let v1 = List.map (decorator env) v1 in
@@ -1728,16 +1705,14 @@ and declaration (env : env) (x : CST.declaration) : var list =
       let c = { c_kind = G.Class, v2; c_attrs = v1;
                 c_extends = v4; c_implements = [];
                 c_body = v5; } in
-      let ty = None in
-      [{ v_name = v3; v_kind = Const, v2; v_type = ty;
-        v_init = Some (Class (c, None)); v_resolved = ref NotResolved }]
+      [ { name = v3 }, ClassDef c ]
 
   | `Lexi_decl x ->
         let vars = lexical_declaration env x in
-        vars
+        vars_to_defs vars
   | `Var_decl x ->
         let vars = variable_declaration env x in
-        vars
+        vars_to_defs vars
   )
 
 and formal_parameter (env : env) (x : CST.formal_parameter) : parameter =
@@ -1783,6 +1758,7 @@ let program (env : env) ((v1, v2) : CST.program) : program =
 (* Entry point *)
 (*****************************************************************************)
 let parse file =
+ H.convert_tree_sitter_exn_to_pfff_exn (fun () ->
   let ast =
     Parallel.backtrace_when_exn := false;
     Parallel.invoke Tree_sitter_javascript.Parse.file file ()
@@ -1790,3 +1766,4 @@ let parse file =
   let env = { H.file; conv = H.line_col_to_pos file } in
 
   program env ast
+ )

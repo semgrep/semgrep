@@ -104,6 +104,12 @@ let has_ellipis_and_filter_ellispis xs =
     | A.Ellipsis _ -> has_ellipsis := true; true
     | _ -> false) in
   !has_ellipsis, ys
+let has_xml_ellipis_and_filter_ellispis xs =
+  let has_ellipsis = ref false in
+  let ys = xs |> Common.exclude (function
+    | A.XmlEllipsis _ -> has_ellipsis := true; true
+    | _ -> false) in
+  !has_ellipsis, ys
 
 (*****************************************************************************)
 (* Name *)
@@ -402,10 +408,14 @@ and m_expr a b =
   (*e: [[Generic_vs_generic.m_expr()]] resolving alias case *)
   (*s: [[Generic_vs_generic.m_expr()]] metavariable case *)
   (*s: [[Generic_vs_generic.m_expr()]] forbidden metavariable case *)
-  (* $X should not match an IdSpecial otherwise $X(...) could match
-   * a+b because this is transformed in a Call(IdSpecial Plus, ...)
+  (* $X should not match an IdSpecial in a call context,
+   * otherwise $X(...) would match a+b because this is transformed in a
+   * Call(IdSpecial Plus, ...).
+   * bugfix: note that we must forbid that only in a Call context; we want
+   * $THIS to match IdSpecial (This) for example.
    *)
-  | A.Id ((str,_tok), _id_info), B.IdSpecial _
+  | A.Call (A.Id ((str,_tok), _id_info), _argsa),
+    B.Call (B.IdSpecial _, _argsb)
       when MV.is_metavar_name str ->
       fail ()
   (*e: [[Generic_vs_generic.m_expr()]] forbidden metavariable case *)
@@ -775,7 +785,7 @@ and m_special a b =
   | A.Op(a1), B.Op(b1) ->
     m_arithmetic_operator a1 b1
   | A.EncodedString(a1), B.EncodedString(b1) ->
-    m_wrap m_string a1 b1
+    m_string a1 b1
   | A.IncrDecr(a1, a2), B.IncrDecr(b1, b2) ->
     m_eq a1 b1 >>= (fun () ->
     m_eq a2 b2
@@ -882,8 +892,9 @@ and m_xml a b =
 (*e: function [[Generic_vs_generic.m_xml]] *)
 
 (*s: function [[Generic_vs_generic.m_attrs]] *)
-(* less: allow '...'? or just have it implicit *)
 and m_attrs a b =
+  let _has_ellipsis, a = has_xml_ellipis_and_filter_ellispis a in
+  (* always implicit ... *)
   m_list_in_any_order ~less_is_ok:true m_xml_attr a b
 (*e: function [[Generic_vs_generic.m_attrs]] *)
 
@@ -935,8 +946,11 @@ and m_xml_attr a b =
     )
   | A.XmlAttrExpr a1, B.XmlAttrExpr b1 ->
       m_bracket m_expr a1 b1
+  | A.XmlEllipsis(a1), B.XmlEllipsis(b1) ->
+    m_tok a1 b1
   | A.XmlAttr _, _
   | A.XmlAttrExpr _, _
+  | A.XmlEllipsis _, _
    -> fail ()
 (*e: function [[Generic_vs_generic.m_xml_attr]] *)
 
@@ -1125,7 +1139,7 @@ and m_type_ a b =
     m_type_ a2 b2
     )
   | A.TyArray(a1, a2), B.TyArray(b1, b2) ->
-    (m_option m_expr) a1 b1 >>= (fun () ->
+    m_bracket (m_option m_expr) a1 b1 >>= (fun () ->
     m_type_ a2 b2
     )
   | A.TyTuple(a1), B.TyTuple(b1) ->
@@ -1151,7 +1165,8 @@ and m_type_ a b =
       m_type_ a1 b1 >>= (fun () ->
       m_tok a2 b2
       )
-    | A.TyRecordAnon(a1), B.TyRecordAnon(b1) ->
+    | A.TyRecordAnon(a0, a1), B.TyRecordAnon(b0, b1) ->
+      let* () = m_tok a0 b0 in
       m_bracket m_fields a1 b1
     | A.TyOr (a1, a2, a3), B.TyOr (b1, b2, b3) ->
         m_type_ a1 b1 >>= (fun () ->
@@ -1801,6 +1816,7 @@ and m_definition_kind a b =
   | A.ModuleDef _, _  | A.MacroDef _, _  | A.Signature _, _
   | A.UseOuterDecl _, _
   | A.FieldDef _, _
+  | A.OtherDef _, _
    -> fail ()
   (*e: [[Generic_vs_generic.m_definition_kind]] boilerplate cases *)
 (*e: function [[Generic_vs_generic.m_definition_kind]] *)
@@ -1832,15 +1848,19 @@ and m_type_parameter a b =
 (* Function (or method) definition *)
 (* ------------------------------------------------------------------------- *)
 
+(* iso: we don't care if it's a Function or Arrow *)
+and m_function_kind _ _ = return ()
+
 (*s: function [[Generic_vs_generic.m_function_definition]] *)
 and m_function_definition a b =
   match a, b with
-  { A. fparams = a1; frettype = a2; fbody = a3; },
-  { B. fparams = b1; frettype = b2; fbody = b3; } ->
+  { A. fparams = a1; frettype = a2; fbody = a3; fkind = a4 },
+  { B. fparams = b1; frettype = b2; fbody = b3; fkind = b4 } ->
     m_parameters a1 b1 >>= (fun () ->
     (m_option_none_can_match_some m_type_) a2 b2 >>= (fun () ->
-    m_stmt a3 b3
-    ))
+    m_stmt a3 b3 >>= (fun () ->
+    m_wrap m_function_kind a4 b4
+    )))
 (*e: function [[Generic_vs_generic.m_function_definition]] *)
 
 (*s: function [[Generic_vs_generic.m_parameters]] *)
@@ -2306,6 +2326,11 @@ and m_program a b =
 (* Any *)
 (*****************************************************************************)
 
+and m_partial a b =
+  match a,b with
+  | A.PartialDef a1, B.PartialDef b1 ->
+      m_definition a1 b1
+
 (*s: function [[Generic_vs_generic.m_any]] *)
 and m_any a b =
   match a, b with
@@ -2315,8 +2340,11 @@ and m_any a b =
     m_expr a1 b1
   | A.S(a1), B.S(b1) ->
     m_stmt a1 b1
-  (* boilerplate *)
   (*s: [[Generic_vs_generic.m_any]] boilerplate cases *)
+  | A.Partial(a1), B.Partial(b1) ->
+      m_partial a1 b1
+
+  (* boilerplate *)
   | A.N(a1), B.N(b1) ->
     m_name a1 b1
   | A.Modn(a1), B.Modn(b1) ->
@@ -2361,7 +2389,7 @@ and m_any a b =
   | A.S _, _  | A.T _, _  | A.P _, _  | A.Def _, _  | A.Dir _, _
   | A.Pa _, _  | A.Ar _, _  | A.At _, _  | A.Dk _, _ | A.Pr _, _
   | A.Fld _, _ | A.Ss _, _ | A.Tk _, _ | A.Lbli _, _ | A.Fldi _, _
-  | A.ModDk _, _ | A.TodoK _, _
+  | A.ModDk _, _ | A.TodoK _, _ | A.Partial _, _
    -> fail ()
   (*e: [[Generic_vs_generic.m_any]] boilerplate cases *)
 (*e: function [[Generic_vs_generic.m_any]] *)

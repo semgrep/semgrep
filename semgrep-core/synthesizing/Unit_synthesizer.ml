@@ -158,7 +158,14 @@ let java_tests = [
   "exact metavars", "$X == $X";
   "typed metavars", "this.foo(this.bar((int $X))) == this.foo(this.bar((int $X)))";
   "deep metavars", "this.foo(this.bar($X)) == this.foo(this.bar($X))";
- ];
+  ];
+
+  (* "exact_match.java", "4:15-4:42",
+  ["exact match", "this.foo(this.bar(a)) == this.foo(this.bar(a))";
+  "exact metavars", "$X == $X";
+  "typed metavars", "this.foo(this.bar((int $X))) == this.foo(this.bar((int $X)))";
+  "deep metavars", "this.foo(this.bar($X)) == this.foo(this.bar($X))";
+  ]; *)
 ]
 
 (* Cases splits up the test cases by language.
@@ -179,7 +186,7 @@ let unittest =
     tests |> List.iter (fun (filename, range, sols) ->
         let file = test_path ^ filename in
         let pats = Synthesizer.synthesize_patterns range file in
-        let code = Parse_generic.parse_program file in
+        let code = Parse_code.parse_and_resolve_name_use_pfff_or_treesitter lang file in
         let r = Range.range_of_linecol_spec range file in
         Naming_AST.resolve lang code;
         let check_pats (str, pat) =
