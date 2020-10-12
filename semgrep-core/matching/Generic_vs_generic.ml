@@ -408,10 +408,14 @@ and m_expr a b =
   (*e: [[Generic_vs_generic.m_expr()]] resolving alias case *)
   (*s: [[Generic_vs_generic.m_expr()]] metavariable case *)
   (*s: [[Generic_vs_generic.m_expr()]] forbidden metavariable case *)
-  (* $X should not match an IdSpecial otherwise $X(...) could match
-   * a+b because this is transformed in a Call(IdSpecial Plus, ...)
+  (* $X should not match an IdSpecial in a call context,
+   * otherwise $X(...) would match a+b because this is transformed in a
+   * Call(IdSpecial Plus, ...).
+   * bugfix: note that we must forbid that only in a Call context; we want
+   * $THIS to match IdSpecial (This) for example.
    *)
-  | A.Id ((str,_tok), _id_info), B.IdSpecial _
+  | A.Call (A.Id ((str,_tok), _id_info), _argsa),
+    B.Call (B.IdSpecial _, _argsb)
       when MV.is_metavar_name str ->
       fail ()
   (*e: [[Generic_vs_generic.m_expr()]] forbidden metavariable case *)
