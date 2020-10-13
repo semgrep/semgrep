@@ -1,0 +1,30 @@
+opam-version: "2.0"
+maintainer: "martin@returntocorp.com"
+authors: ["r2c"]
+homepage: "https://github.com/returntocorp/spacegrep"
+bug-reports: "https://github.com/returntocorp/spacegrep/issues"
+dev-repo: "git+https://github.com/returntocorp/spacegrep.git"
+license: "GPL-3.0-only"
+
+build: [
+  ["dune" "build" "-p" name "-j" jobs]
+]
+
+depends: [
+  "alcotest"
+  "ansiterminal"
+  "cmdliner"
+  "dune" {>= "2.1"}
+  "ocaml"
+  "unix"
+]
+
+synopsis: "Universal program parser and matcher."
+
+description: """
+Uses indentation and standard braces to determine a crude parse tree.
+"""
+
+url {
+  src: "git+https://github.com/returntocorp/spacegrep"
+}
