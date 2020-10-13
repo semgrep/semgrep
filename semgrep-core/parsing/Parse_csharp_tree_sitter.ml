@@ -185,9 +185,8 @@ let interpolated_verbatim_string_text (env : env) (x : CST.interpolated_verbatim
 let real_literal (env : env) (tok : CST.real_literal) =
   token env tok (* real_literal *)
 
-let identifier (env : env) (tok : CST.identifier) =
-  let (s, t) = str env tok (* identifier *) in
-  todo env ()
+let identifier (env : env) (tok : CST.identifier) : ident =
+  str env tok
 
 (* TODO: not sure why preprocessor_call was not generated. Because
  * was in extras?
@@ -205,7 +204,7 @@ let interpolated_string_text (env : env) (x : CST.interpolated_string_text) =
 
 let rec variable_designation (env : env) (x : CST.variable_designation) =
   (match x with
-  | `Disc tok -> token env tok (* "_" *)
+  | `Disc tok -> todo env tok (* "_" *)
   | `Paren_var_desi (v1, v2, v3) ->
       let v1 = token env v1 (* "(" *) in
       let v2 =
@@ -230,7 +229,7 @@ let rec variable_designation (env : env) (x : CST.variable_designation) =
 let anon_choice_id_43fe74f (env : env) (x : CST.anon_choice_id_43fe74f) =
   (match x with
   | `Id tok -> identifier env tok (* identifier *)
-  | `Disc tok -> token env tok (* "_" *)
+  | `Disc tok -> todo env tok (* "_" *)
   )
 
 let join_into_clause (env : env) ((v1, v2) : CST.join_into_clause) =
@@ -240,7 +239,7 @@ let join_into_clause (env : env) ((v1, v2) : CST.join_into_clause) =
 
 let identifier_or_global (env : env) (x : CST.identifier_or_global) =
   (match x with
-  | `Global tok -> token env tok (* "global" *)
+  | `Global tok -> todo env tok (* "global" *)
   | `Id tok -> identifier env tok (* identifier *)
   )
 
@@ -1029,9 +1028,7 @@ and simple_name (env : env) (x : CST.simple_name) : AST.name =
       let v2 = type_argument_list env v2 in
       todo env (v1, v2)
   | `Choice_global x ->
-        let _ = identifier_or_global env x in
-        todo env x
-
+      name_of_id (identifier_or_global env x)
   )
 
 and switch_body (env : env) ((v1, v2, v3) : CST.switch_body) =
@@ -1191,7 +1188,7 @@ and statement (env : env) (x : CST.statement) =
             let v1 = token env v1 (* "case" *) in
             let v2 = expression env v2 in
             todo env (v1, v2)
-        | `Defa tok -> token env tok (* "default" *)
+        | `Defa tok -> todo env tok (* "default" *)
         )
       in
       let v3 = token env v3 (* ";" *) in
@@ -1767,10 +1764,10 @@ let accessor_declaration (env : env) ((v1, v2, v3, v4) : CST.accessor_declaratio
   let v2 = List.map (modifier env) v2 in
   let v3 =
     (match v3 with
-    | `Get tok -> token env tok (* "get" *)
-    | `Set tok -> token env tok (* "set" *)
-    | `Add tok -> token env tok (* "add" *)
-    | `Remove tok -> token env tok (* "remove" *)
+    | `Get tok -> todo env tok (* "get" *)
+    | `Set tok -> todo env tok (* "set" *)
+    | `Add tok -> todo env tok (* "add" *)
+    | `Remove tok -> todo env tok (* "remove" *)
     | `Id tok -> identifier env tok (* identifier *)
     )
   in
@@ -1891,7 +1888,7 @@ let rec declaration_list (env : env) ((v1, v2, v3) : CST.declaration_list) =
   let v1 = token env v1 (* "{" *) in
   let v2 = compilation_unit env v2 in
   let v3 = token env v3 (* "}" *) in
-  todo env (v1, v2, v3)
+  v2
 
 and compilation_unit (env : env) (xs : CST.compilation_unit) =
   List.map (declaration env) xs
@@ -2126,14 +2123,9 @@ and declaration (env : env) (x : CST.declaration) =
       todo env (v1, v2, v3, v4, v5, v6, v7, v8, v9)
   | `Name_decl (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "namespace" *) in
-      let v2 = name env v2 in
+      let (ident, name_info) = name env v2 in
       let v3 = declaration_list env v3 in
-      let v4 =
-        (match v4 with
-        | Some tok -> token env tok (* ";" *)
-        | None -> todo env ())
-      in
-      todo env (v1, v2, v3, v4)
+      AST.DirectiveStmt (AST.Package (v1, [ident]))
   | `Op_decl (v1, v2, v3, v4, v5, v6, v7) ->
       let v1 = List.map (attribute_list env) v1 in
       let v2 = List.map (modifier env) v2 in
