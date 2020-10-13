@@ -1,0 +1,22 @@
+# See https://github.com/OCamlPro/ocp-indent/blob/master/.ocp-indent for more
+
+# Indent for clauses inside a pattern-match (after the arrow):
+#    match foo with
+#    | _ ->
+#    ^^^^bar
+# the default is 2, which aligns the pattern and the expression
+match_clause = 4
+
+# When nesting expressions on the same line, their indentation are in
+# some cases stacked, so that it remains correct if you close them one
+# at a line. This may lead to large indents in complex code though, so
+# this parameter can be used to set a maximum value. Note that it only
+# affects indentation after function arrows and opening parens at end
+# of line.
+#
+# for example (left: `none`; right: `4`)
+#    let f = g (h (i (fun x ->     #    let f = g (h (i (fun x ->
+#          x)                      #        x)
+#        )                         #      )
+#      )                           #    )
+max_indent = 2
