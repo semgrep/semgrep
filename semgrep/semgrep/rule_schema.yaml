@@ -13,6 +13,7 @@ definitions:
       - $ref: '#/definitions/pattern-regex'
       - $ref: '#/definitions/pattern-where-python'
       - $ref: '#/definitions/metavariable-regex'
+      - $ref: '#/definitions/metavariable-comparison'
   pattern-either-content:
     type: array
     items:
@@ -42,6 +43,27 @@ definitions:
         additionalProperties: false
     required:
     - metavariable-regex
+    additionalProperties: false
+  metavariable-comparison:
+    type: object
+    properties:
+      metavariable-comparison:
+        type: object
+        properties:
+          metavariable:
+            type: string
+          comparison:
+            type: string
+          strip:
+            type: boolean
+          base:
+            type: integer
+        required:
+          - metavariable
+          - comparison
+        additionalProperties: false
+    required:
+    - metavariable-comparison
     additionalProperties: false
   pattern:
     type: object

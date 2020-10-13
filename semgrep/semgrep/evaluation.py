@@ -11,13 +11,12 @@ from typing import Set
 from typing import Tuple
 
 logger = logging.getLogger(__name__)
-# disable logging from this module most of the time
-logger.setLevel(logging.INFO)
 
 from semgrep.constants import RCE_RULE_FLAG
 from semgrep.error import NEED_ARBITRARY_CODE_EXEC_EXIT_CODE
 from semgrep.error import SemgrepError
 from semgrep.error import UnknownOperatorError
+from semgrep.metavariable_comparison import metavariable_comparison
 from semgrep.pattern_match import PatternMatch
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
@@ -48,6 +47,68 @@ def get_re_range_matches(
             pm.range == _range
             and metavariable in pm.metavars
             and re.match(regex, pm.metavars[metavariable]["abstract_content"])
+            for pm in pattern_matches
+        )
+        if any_matching_ranges:
+            result.add(_range)
+
+    return result
+
+
+def compare_range_match(
+    metavariable: str,
+    comparison: str,
+    strip: Optional[bool],
+    base: Optional[int],
+    content: str,
+) -> bool:
+
+    if strip:
+        content = content.strip("\"'`")
+
+    try:
+        # Assume float data if "." in content
+        if "." in content:
+            converted = float(content)
+        else:
+            if base:
+                converted = int(content, base=base)
+            else:
+                converted = int(content)
+    except ValueError:
+        logger.debug(
+            f"metavariable '{metavariable}' incorrect comparison type '{content}'"
+        )
+        return False
+
+    return metavariable_comparison(metavariable, comparison, converted)
+
+
+def get_comparison_range_matches(
+    metavariable: str,
+    comparison: str,
+    strip: Optional[bool],
+    base: Optional[int],
+    ranges: Set[Range],
+    pattern_matches: List[PatternMatch],
+) -> Set[Range]:
+
+    result: Set[Range] = set()
+    for _range in ranges:
+        if metavariable not in _range.vars:
+            logger.debug(f"metavariable '{metavariable}' missing in range '{_range}'")
+            continue
+
+        any_matching_ranges = any(
+            pm.range == _range
+            and metavariable in pm.metavars
+            and compare_range_match(
+                metavariable,
+                comparison,
+                strip,
+                base,
+                pm.metavars[metavariable]["abstract_content"],
+            )
             for pm in pattern_matches
         )
         if any_matching_ranges:
@@ -193,17 +254,22 @@ def _evaluate_single_expression(
         )
         return output_ranges
     elif expression.operator == OPERATORS.METAVARIABLE_REGEX:
-        if (
-            not isinstance(expression.operand, dict)
-            or "metavariable" not in expression.operand
-            or "regex" not in expression.operand
-        ):
-            raise SemgrepError(
-                "'metavariable' and 'regex' keys required when using 'metavariable-regex' operator"
-            )
         output_ranges = get_re_range_matches(
             expression.operand["metavariable"],
             expression.operand["regex"],
+            ranges_left,
+            list(flatten(pattern_ids_to_pattern_matches.values())),
+        )
+        add_debugging_info(
+            expression, output_ranges, metavars_for_patterns, steps_for_debugging
+        )
+        return output_ranges
+    elif expression.operator == OPERATORS.METAVARIABLE_COMPARISON:
+        output_ranges = get_comparison_range_matches(
+            expression.operand["metavariable"],
+            expression.operand["comparison"],
+            expression.operand.get("strip"),
+            expression.operand.get("base"),
             ranges_left,
             list(flatten(pattern_ids_to_pattern_matches.values())),
         )
