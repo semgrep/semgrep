@@ -1487,7 +1487,7 @@ and switch_section (env : env) ((v1, v2) : CST.switch_section) =
   let v2 = List.map (statement env) v2 in
   todo env (v1, v2)
 
-and attribute_list (env : env) ((v1, v2, v3, v4, v5) : CST.attribute_list) =
+and attribute_list (env : env) ((v1, v2, v3, v4, v5) : CST.attribute_list) : attribute list =
   let v1 = token env v1 (* "[" *) in
   let v2 =
     (match v2 with
@@ -1884,16 +1884,17 @@ let _property_pattern_clause (env : env) ((v1, v2, v3) : CST.property_pattern_cl
   let v3 = token env v3 (* "}" *) in
   todo env (v1, v2, v3)
 
-let rec declaration_list (env : env) ((v1, v2, v3) : CST.declaration_list) =
-  let v1 = token env v1 (* "{" *) in
-  let v2 = compilation_unit env v2 in
-  let v3 = token env v3 (* "}" *) in
-  v2
+let rec declaration_list (env : env) ((open_bracket, body, close_bracket) : CST.declaration_list) =
+  (
+    token env open_bracket,
+    compilation_unit env body,
+    token env close_bracket
+  )
 
 and compilation_unit (env : env) (xs : CST.compilation_unit) =
   List.map (declaration env) xs
 
-and declaration (env : env) (x : CST.declaration) =
+and declaration (env : env) (x : CST.declaration) : definition =
   (match x with
   | `Global_attr_list (v1, v2, v3, v4, v5) ->
       let v1 = token env v1 (* "[" *) in
@@ -1921,6 +1922,10 @@ and declaration (env : env) (x : CST.declaration) =
       let v5 = token env v5 (* "]" *) in
       todo env (v1, v2, v3, v4, v5)
   | `Class_decl (v1, v2, v3, v4, v5, v6, v7, v8, v9) ->
+      (*
+      [Attr] public class MyClass<MyType> : IClass where MyType : SomeType { ... };
+         v1     v2    v3    v4     v5         v6           v7                v8   v9
+      *)
       let v1 = List.map (attribute_list env) v1 in
       let v2 = List.map (modifier env) v2 in
       let v3 = token env v3 (* "class" *) in
@@ -1928,23 +1933,24 @@ and declaration (env : env) (x : CST.declaration) =
       let v5 =
         (match v5 with
         | Some x -> type_parameter_list env x
-        | None -> todo env ())
+        | None -> [])
       in
       let v6 =
         (match v6 with
         | Some x -> base_list env x
-        | None -> todo env ())
+        | None -> [])
       in
       let v7 =
         List.map (type_parameter_constraints_clause env) v7
       in
       let v8 = declaration_list env v8 in
-      let v9 =
-        (match v9 with
-        | Some tok -> token env tok (* ";" *)
-        | None -> todo env ())
-      in
-      todo env (v1, v2, v3, v4, v5, v6, v7, v8, v9)
+      {
+        ckind = (AST.Class, v3);
+        cextends = [];
+        cimplements = [];
+        cmixins = [];
+        cbody = v8;
+      }
   | `Cons_decl (v1, v2, v3, v4, v5, v6) ->
       let v1 = List.map (attribute_list env) v1 in
       let v2 = List.map (modifier env) v2 in
