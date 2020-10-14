@@ -12,17 +12,15 @@ build: [
 
 depends: [
   "alcotest"
-  "ansiterminal"
+  "ANSITerminal"
   "cmdliner"
   "dune" {>= "2.1"}
-  "ocaml"
-  "unix"
 ]
 
-synopsis: "Universal program parser and matcher."
+synopsis: "Universal program parser and matcher"
 
 description: """
-Uses indentation and standard braces to determine a crude parse tree.
+Uses indentation and standard braces to determine a crude parse tree
 """
 
 url {
