@@ -18,5 +18,7 @@ rm /usr/local/lib/libtree-sitter.dylib
 make build-core
 
 mkdir -p artifacts
-cp ./semgrep-core/_build/default/bin/Main.exe artifacts/semgrep-core
+cp ./semgrep-core/_build/install/default/bin/semgrep-core artifacts
+cp ./spacegrep/_build/install/default/bin/spacegrep artifacts
+cp ./spacecat/_build/install/default/bin/spacecat artifacts
 zip -r artifacts.zip artifacts
