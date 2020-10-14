@@ -3,13 +3,21 @@
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 
+## Next version
+
+### Added
+- Added matching with partial patterns for function signatures or class headers
+  for Javascript/Typescript and Java.
+- Added matching of annotation patterns for Java (@SomeAnnot(...)) in any
+  context
+
 ## [0.27.0](https://github.com/returntocorp/semgrep/releases/tag/v0.27.0) - 2020-10-06
 
 ### Added
 - Added a `--debug` flag and moved most of the output under `--verbose` to it.
 - Can run multiple rule configs by repeating `--config` option
 - Jenkins information added to integrations
-- Added matching with partial patterns for function signatures.
+- Added matching with partial patterns for function signatures for Go.
 
 ### Changed
 - Parse and other errors are mentioned at final output, but not individually displayed unless --verbose is passed
