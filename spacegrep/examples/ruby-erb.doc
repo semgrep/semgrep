@@ -1,0 +1,26 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "sts:AssumeRole",
+      "Resource": <%= roles %>,
+      "Condition": {
+        "Bool": {
+          "redacted": "true"
+        },
+        <% if has_expires %>
+        "DateLessThan": {
+          "redacted": "<%= expires.iso8601 %>"
+        },
+        <% end %>
+        "NumericLessThan": {
+          "redacted": "54000"
+        },
+        "IpAddress": {
+          "redacted": <%= env.xyz %>
+        }
+      }
+    }
+  ]
+}
