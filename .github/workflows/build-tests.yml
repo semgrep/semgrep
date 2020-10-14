@@ -27,13 +27,13 @@ jobs:
           submodules: true
       - name: Post-checkout fixes
         run: ./.github/post-checkout
-      - name: Build semgrep-core
+      - name: Build semgrep-core and spacegrep
         run: ./scripts/install-alpine-semgrep-core
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
-          name: semgrep-core
-          path: artifacts/semgrep-core
+          name: ocaml-build-artifacts
+          path: ocaml-build-artifacts.tgz
       - name: Test semgrep-core
         run: |
           eval $(opam env)
@@ -63,15 +63,16 @@ jobs:
     runs-on: macos-latest
     needs: [mac-build]
     steps:
-      - name: Download Artifact
+      - name: Download artifacts
         uses: actions/download-artifact@v1
         with:
-          name: semgrep-osx
-          path: artifacts
+          name: ocaml-build-artifacts
+      - name: Install artifacts
+        run: |
+          tar xf ocaml-build-artifacts.tgz
       - name: Test build artifact
         run: |
-          chmod +x ./artifacts/semgrep-core
-          ./artifacts/semgrep-core -help
+          ./ocaml-build-artifacts/bin/semgrep-core -help
 
   release-ubuntu:
     name: Check builds for ubuntu
@@ -83,16 +84,15 @@ jobs:
         uses: actions/checkout@v2
         with:
           submodules: true
-      - name: Download Artifact
+      - name: Download artifacts
         uses: actions/download-artifact@v1
         with:
-          name: semgrep-core
-          path: semgrep-core-dir
-      - name: Install artifact
+          name: ocaml-build-artifacts
+      - name: Install artifacts
         run: |
+          tar xf ocaml-build-artifacts.tgz
           mkdir -p semgrep-files
-          cp semgrep-core-dir/semgrep-core semgrep-files
-          chmod +x semgrep-files/semgrep-core
+          cp ocaml-build-artifacts/bin/* semgrep-files
       - name: Run Ubuntu build script
         run: ./scripts/ubuntu-release.sh
       - name: Upload artifacts
