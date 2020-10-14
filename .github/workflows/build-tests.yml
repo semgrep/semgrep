@@ -63,16 +63,16 @@ jobs:
     runs-on: macos-latest
     needs: [mac-build]
     steps:
-      - name: Download artifacts
+      - name: Download Artifact
         uses: actions/download-artifact@v1
         with:
-          name: ocaml-build-artifacts
-      - name: Install artifacts
+          name: semgrep-osx
+          path: artifacts
+      - name: Test build artifacts
         run: |
-          tar xf ocaml-build-artifacts/ocaml-build-artifacts.tgz
-      - name: Test build artifact
-        run: |
-          ./ocaml-build-artifacts/bin/semgrep-core -help
+          ls -l artifacts
+          chmod +x ./artifacts/semgrep-core
+          ./artifacts/semgrep-core -help
 
   release-ubuntu:
     name: Check builds for ubuntu
