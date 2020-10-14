@@ -15,10 +15,11 @@ make config
 rm /usr/local/lib/libtree-sitter.0.0.dylib
 rm /usr/local/lib/libtree-sitter.dylib
 
+make build-spacegrep
 make build-core
 
 mkdir -p artifacts
 cp ./semgrep-core/_build/install/default/bin/semgrep-core artifacts
 cp ./spacegrep/_build/install/default/bin/spacegrep artifacts
-cp ./spacecat/_build/install/default/bin/spacecat artifacts
+cp ./spacegrep/_build/install/default/bin/spacecat artifacts
 zip -r artifacts.zip artifacts
