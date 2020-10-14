@@ -44,7 +44,7 @@ echo "Install spacegrep"
 (
   cd spacegrep
   opam install --deps-only -y .
-  make all
+  make
   make install
 )
 
