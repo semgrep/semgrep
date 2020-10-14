@@ -201,6 +201,13 @@ def cli() -> None:
         "--json", action="store_true", help="Output results in JSON format."
     )
     output.add_argument(
+        "--save-output",
+        help= (
+            "Store json output as a tarball that will be uploaded as a Github artifact."
+        ),
+
+    )
+    output.add_argument(
         "--debugging-json",
         action="store_true",
         help="Output JSON with extra debugging information.",

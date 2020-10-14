@@ -15,6 +15,8 @@ import functools
 import json
 import multiprocessing
 import sys
+import tarfile
+import os
 from pathlib import Path
 from typing import Any
 from typing import Dict
@@ -244,7 +246,7 @@ def invoke_semgrep_multi(
 
 
 def generate_file_pairs(
-    location: Path, ignore_todo: bool, strict: bool, unsafe: bool, json_output: bool
+    location: Path, ignore_todo: bool, strict: bool, unsafe: bool, json_output: bool, save_output: bool = True
 ) -> None:
     filenames = list(location.rglob("*"))
     config_filenames = [
@@ -310,6 +312,7 @@ def generate_file_pairs(
         }
         for filename, (output, matches, todo) in tested.items()
     }
+
     output = {
         "config_missing_tests": config_missing_tests_output,
         "config_with_errors": config_with_errors_output,
@@ -327,6 +330,18 @@ def generate_file_pairs(
     if json_output:
         print(json.dumps(output, indent=4, separators=(",", ": ")))
         sys.exit(exit_code)
+
+    # save the results to json file. this is really ratchet.
+    if save_output:
+        list_to_output = []
+        with open('semgrep_runs_output.json', 'w') as f:
+            for tup in results:
+                true_result = tup[2]
+                list_to_output.append(true_result)
+            f.write(json.dumps(list_to_output, indent=4, separators=(",", ":")))
+        # tar the file
+        with tarfile.open('semgrep_runs_output.tar.gz', 'w:gz') as tar:
+            tar.add('semgrep_runs_output.json')
 
     if config_missing_tests_output:
         print("The following config files are missing tests:")
@@ -384,4 +399,5 @@ def test_main(args: argparse.Namespace) -> None:
         args.strict,
         args.dangerously_allow_arbitrary_code_execution_from_rules,
         args.json,
+        args.save_output,
     )
