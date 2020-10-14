@@ -71,7 +71,7 @@ jobs:
           name: ocaml-build-artifacts
       - name: Install artifacts
         run: |
-          ls -l
+          ls -l ocaml-build-artifacts
           tar xf ocaml-build-artifacts.tgz
           sudo cp ocaml-build-artifacts/bin/* /usr/bin
       - name: Test semgrep-core
