@@ -164,7 +164,7 @@ jobs:
           name: ocaml-build-artifacts
       - name: Install artifacts
         run: |
-          tar xf ocaml-build-artifacts.tgz
+          tar xf ocaml-build-artifacts/ocaml-build-artifacts.tgz
           mkdir -p semgrep-files
           cp ocaml-build-artifacts/bin/* semgrep-files
       - name: Run Ubuntu build script
@@ -209,7 +209,7 @@ jobs:
           name: ocaml-build-artifacts
       - name: Install artifacts
         run: |
-          tar xf ocaml-build-artifacts.tgz
+          tar xf ocaml-build-artifacts/ocaml-build-artifacts.tgz
           mkdir -p semgrep-files
           cp ocaml-build-artifacts/bin/* semgrep-files
       - name: Setup Python
