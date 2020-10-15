@@ -91,7 +91,7 @@ let rec eval x =
         | _ -> None
     ) in
     let concated = String.concat "" strs in
-    let all_args_are_string = List.length strs ==
+    let all_args_are_string = List.length strs =
                               List.length (unbracket args) in
     (match List.nth_opt literals 0 with
       | Some(String(_s1, t1)) when all_args_are_string -> Some(String(concated, t1))

@@ -1,0 +1,210 @@
+rules:
+- id: ocaml.lang.best-practice.ref.ocamllint-ref-incr
+  pattern: $X := $X + 1
+  message: You should use `incr`
+  languages: [ocaml]
+  severity: WARNING
+  metadata:
+    dev.semgrep.actions:
+    - block
+    - notify
+- id: ocaml.lang.best-practice.ref.ocamllint-ref-decr
+  pattern: $X := $X - 1
+  message: You should use `decr
+  languages: [ocaml]
+  severity: WARNING
+  metadata:
+    dev.semgrep.actions:
+    - block
+    - notify
+- id: ocaml.lang.best-practice.bool.ocamllint-bool-true
+  pattern-either:
+  - pattern: $X = true
+  - pattern: $X == true
+  - pattern: $X != false
+  message: Comparison to boolean. Just use `$X`
+  languages: [ocaml]
+  severity: WARNING
+  metadata:
+    dev.semgrep.actions:
+    - block
+    - notify
+- id: ocaml.lang.best-practice.bool.ocamllint-bool-false
+  pattern-either:
+  - pattern: $X = false
+  - pattern: $X == false
+  - pattern: $X <> true
+  message: Comparison to boolean. Just use `not $X`
+  languages: [ocaml]
+  severity: WARNING
+  metadata:
+    dev.semgrep.actions:
+    - block
+    - notify
+- id: ocaml.lang.best-practice.ifs.ocamllint-useless-else
+  pattern: if $E then $E1 else ()
+  message: Useless else. Just remove the else branch;
+  languages: [ocaml]
+  severity: WARNING
+  metadata:
+    dev.semgrep.actions:
+    - block
+    - notify
+- id: ocaml.lang.best-practice.ifs.ocamllint-backwards-if
+  pattern: if $E then () else $E2
+  message: Backwards if. Rewrite the code as 'if not $E then $E2'.
+  languages: [ocaml]
+  severity: WARNING
+  metadata:
+    dev.semgrep.actions:
+    - block
+    - notify
+- id: ocaml.lang.best-practice.string.ocamllint-str-first-chars
+  pattern: String.sub $S 0 $N
+  message: Use instead `Str.first_chars`
+  languages: [ocaml]
+  severity: WARNING
+  metadata:
+    dev.semgrep.actions:
+    - block
+    - notify
+- id: ocaml.lang.best-practice.string.ocamllint-str-string-after
+  pattern: String.sub $S $N (String.length $S - $N)
+  message: Use instead `Str.string_after`
+  languages: [ocaml]
+  severity: WARNING
+  metadata:
+    dev.semgrep.actions:
+    - block
+    - notify
+- id: ocaml.lang.best-practice.string.ocamllint-str-last-chars
+  pattern: String.sub $S (String.length $S - $N) $N
+  message: Use instead `Str.last_chars`
+  languages: [ocaml]
+  severity: WARNING
+  metadata:
+    dev.semgrep.actions:
+    - block
+    - notify
+- id: ocaml.lang.best-practice.string.ocamllint-useless-sprintf
+  pattern-either:
+  - pattern: Printf.sprintf "..."
+  - pattern: Printf.sprintf "%s" $S
+  message: Useless sprintf
+  languages: [ocaml]
+  severity: WARNING
+  metadata:
+    dev.semgrep.actions:
+    - block
+    - notify
+- id: ocaml.lang.best-practice.hashtbl.hashtbl-find-outside-try
+  patterns:
+  - pattern-either:
+    - pattern: |
+        Hashtbl.find ...
+  - pattern-not-inside: |
+      try ... with ... -> ...
+  message: You should not use Hashtbl.find outside of a try, or you should use Hashtbl.find_opt
+  languages: [ocaml]
+  severity: WARNING
+  metadata:
+    dev.semgrep.actions:
+    - block
+    - notify
+- id: ocaml.lang.best-practice.list.list-find-outside-try
+  patterns:
+  - pattern-either:
+    - pattern: |
+        List.find ...
+  - pattern-not-inside: |
+      try ... with ... -> ...
+  message: You should not use List.find outside of a try, or you should use List.find_opt
+  languages: [ocaml]
+  severity: WARNING
+  metadata:
+    dev.semgrep.actions:
+    - block
+    - notify
+- id: ocaml.lang.performance.list.ocamllint-length-list-zero
+  pattern: List.length $X = 0
+  message: You probably want $X = [], which is faster.
+  languages: [ocaml]
+  severity: WARNING
+  metadata:
+    dev.semgrep.actions:
+    - block
+    - notify
+- id: ocaml.lang.performance.list.ocamllint-length-more-than-zero
+  pattern: List.length $X > 0
+  message: You probably want $X <> [], which is faster.
+  languages: [ocaml]
+  severity: WARNING
+  metadata:
+    dev.semgrep.actions:
+    - block
+    - notify
+- id: ocaml.lang.compatibility.deprecated.deprecated-pervasives
+  pattern: Pervasives.$X
+  message: Pervasives is deprecated and will not be available after 4.10. Use Stdlib.
+  languages: [ocaml]
+  severity: ERROR
+  metadata:
+    dev.semgrep.actions:
+    - block
+    - notify
+- id: ocaml.lang.portability.slash_tmp.not-portable-tmp-string
+  pattern: |
+    "=~/\/tmp/"
+  message: You should probably use Filename.get_temp_dirname().
+  languages: [ocaml]
+  severity: WARNING
+  metadata:
+    dev.semgrep.actions:
+    - block
+    - notify
+- id: ocaml.lang.correctness.useless_let.useless-let
+  pattern: let $X = $E in $X
+  message: Useless let
+  languages: [ocaml]
+  severity: ERROR
+  metadata:
+    dev.semgrep.actions:
+    - block
+    - notify
+- id: ocaml.lang.correctness.useless_if.ocamllint-useless-if
+  pattern: if $X then $E else $E
+  message: Useless if. Both branches are equal.
+  languages: [ocaml]
+  severity: ERROR
+  metadata:
+    dev.semgrep.actions:
+    - block
+    - notify
+- id: ocaml.lang.correctness.useless_eq.useless-equal
+  pattern: $X = $X
+  message: This is always true. If testing for floating point NaN, use `Float.is_nan`
+    instead.
+  languages: [ocaml]
+  severity: ERROR
+  metadata:
+    dev.semgrep.actions:
+    - block
+    - notify
+- id: ocaml.lang.correctness.physical_vs_structural.physical-equal
+  pattern: $X == $Y
+  message: You probably want the structural inequality operator =
+  languages: [ocaml]
+  severity: WARNING
+  metadata:
+    dev.semgrep.actions:
+    - block
+    - notify
+- id: ocaml.lang.correctness.physical_vs_structural.physical-not-equal
+  pattern: $X != $Y
+  message: You probably want the structural inequality operator <>
+  languages: [ocaml]
+  severity: WARNING
+  metadata:
+    dev.semgrep.actions:
+    - block
+    - notify
