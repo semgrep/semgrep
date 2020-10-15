@@ -1891,10 +1891,10 @@ let rec declaration_list (env : env) ((open_bracket, body, close_bracket) : CST.
     token env close_bracket
   )
 
-and compilation_unit (env : env) (xs : CST.compilation_unit) =
+and compilation_unit (env : env) (xs : CST.compilation_unit) : stmt list =
   List.map (declaration env) xs
 
-and declaration (env : env) (x : CST.declaration) : definition =
+and declaration (env : env) (x : CST.declaration) : stmt =
   (match x with
   | `Global_attr_list (v1, v2, v3, v4, v5) ->
       let v1 = token env v1 (* "[" *) in
@@ -1926,7 +1926,7 @@ and declaration (env : env) (x : CST.declaration) : definition =
       [Attr] public class MyClass<MyType> : IClass where MyType : SomeType { ... };
          v1     v2    v3    v4     v5         v6           v7                v8   v9
       *)
-      let v1 = List.map (attribute_list env) v1 in
+      let v1 = List.concat_map (attribute_list env) v1 in
       let v2 = List.map (modifier env) v2 in
       let v3 = token env v3 (* "class" *) in
       let v4 = identifier env v4 (* identifier *) in
@@ -1943,14 +1943,15 @@ and declaration (env : env) (x : CST.declaration) : definition =
       let v7 =
         List.map (type_parameter_constraints_clause env) v7
       in
-      let v8 = declaration_list env v8 in
-      {
+      let (open_bra, stmts, close_bra) = declaration_list env v8 in
+      let fields = List.map (fun x -> AST.FieldStmt x) stmts in
+      AST.DefStmt ((basic_entity v4 v1), AST.ClassDef {
         ckind = (AST.Class, v3);
         cextends = [];
         cimplements = [];
         cmixins = [];
-        cbody = v8;
-      }
+        cbody = (open_bra, fields, close_bra);
+      })
   | `Cons_decl (v1, v2, v3, v4, v5, v6) ->
       let v1 = List.map (attribute_list env) v1 in
       let v2 = List.map (modifier env) v2 in
@@ -2127,11 +2128,19 @@ and declaration (env : env) (x : CST.declaration) : definition =
       in
       let v9 = function_body env v9 in
       todo env (v1, v2, v3, v4, v5, v6, v7, v8, v9)
-  | `Name_decl (v1, v2, v3, v4) ->
+  | `Name_decl (v1, v2, body, v4) ->
+      (*
+        namespace MySpace { ... }
+            v1       v2      body
+      *)
       let v1 = token env v1 (* "namespace" *) in
       let (ident, name_info) = name env v2 in
-      let v3 = declaration_list env v3 in
-      AST.DirectiveStmt (AST.Package (v1, [ident]))
+      let (open_brace, decls, close_brace) = declaration_list env body in
+      let body = AST.Block (open_brace, decls, close_brace) in
+      let ent = AST.basic_entity ident [] in
+      let mkind = AST.ModuleStruct (None, [body]) in
+      let def = { AST.mbody = mkind } in
+      AST.DefStmt (ent, AST.ModuleDef def)
   | `Op_decl (v1, v2, v3, v4, v5, v6, v7) ->
       let v1 = List.map (attribute_list env) v1 in
       let v2 = List.map (modifier env) v2 in
