@@ -1,8 +1,10 @@
+import json
 import logging
 import re
 import subprocess
 from pathlib import Path
 from typing import Any
+from typing import cast
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -20,7 +22,13 @@ from semgrep.util import sub_run
 
 def run_spacegrep(patterns: List[Pattern], targets: List[Path]) -> dict:
     SPACEGREP_PATH = "spacegrep"
+    matches = []
+    errors = []
     for pattern in patterns:
+        if not isinstance(pattern._pattern, str):
+            raise NotImplementedError(
+                f"Support for {type(pattern._pattern)} has not been implemented yet."
+            )
         pattern_str = pattern._pattern  # TODO: Handle pattern Dict
         for target in targets:
             cmd = [
@@ -34,8 +42,8 @@ def run_spacegrep(patterns: List[Pattern], targets: List[Path]) -> dict:
             raw_output = p.stdout
             raw_errors = p.stderr
 
-            matches = _parse_spacegrep_output(pattern, raw_output)
-            errors = _parse_spacegrep_errors(raw_errors)
+            matches.extend(_parse_spacegrep_output(pattern, raw_output))
+            errors.extend(_parse_spacegrep_errors(raw_errors))
 
     return {
         "matches": matches,
