@@ -1,7 +1,7 @@
 {
   "metavars": {
-    "$X": "2"
+    "$X": 42.0
   },
   "language": "python",
-  "code": "$X in [1,2,3]"
+  "code": "$X > 41.9"
 }
