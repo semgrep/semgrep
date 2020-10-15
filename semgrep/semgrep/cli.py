@@ -202,6 +202,7 @@ def cli() -> None:
     )
     output.add_argument(
         "--save-test-output-tar",
+        action="store_true",
         help= (
             "Store json output as a tarball that will be uploaded as a Github artifact."
         ),
