@@ -2611,7 +2611,8 @@ let guess_dialect opt_dialect file : dialect =
   match opt_dialect with
   | Some x -> x
   | None ->
-      if file =~ ".*\\.tsx" then
+      (* TODO: should remove the no_sem below, bug in ml_to_generic.ml *)
+      if file =~ ".*\\.tsx" then (* nosem *)
         `TSX
       else
         `Typescript
