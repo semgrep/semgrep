@@ -45,9 +45,8 @@ let expr_at_range r1 ast =
        (* NoTokenLocation issue for the expression, should fix! *)
        | None -> ()
        | Some r2 ->
-         if r1 $<>$ r2
-         then ()
-         else
+         if not (r1 $<>$ r2)
+         then
            if r2 $<=$ r1
            then raise (FoundExpr e)
            (* recurse *)
@@ -76,9 +75,8 @@ let expr_at_range r1 ast =
          (* NoTokenLocation issue for the expression, should fix! *)
          | None -> ()
          | Some r2 ->
-           if r1 $<>$ r2
-           then ()
-           else
+           if not (r1 $<>$ r2)
+           then
              if r2 $<=$ r1
              then raise (Found (G.S s))
              (* recurse *)

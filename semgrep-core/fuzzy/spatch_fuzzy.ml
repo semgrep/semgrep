@@ -112,15 +112,15 @@ let parse
   toks |> List.iter (fun tok ->
     let line = PI.line_of_info tok in
 
-    let annot = Hashtbl.find hline_env line in
-    (match annot with
-    | Context -> ()
-    | Minus -> tok.PI.transfo <- PI.Remove;
-    | Plus _ ->
+    (match Hashtbl.find_opt hline_env line with
+    | Some Context -> ()
+    | Some Minus -> tok.PI.transfo <- PI.Remove;
+    | Some (Plus _) ->
         (* normally impossible since we removed the elements in the
          * plus line, except the newline. should assert it's only newline
          *)
         ()
+    | None -> failwith ("could not find a line in the env")
     );
   );
   (* adjust with the Plus info. We need to annotate the last token
