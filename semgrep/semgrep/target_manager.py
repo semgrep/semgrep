@@ -17,7 +17,7 @@ from semgrep.error import _UnknownLanguageError
 from semgrep.error import FilesNotFoundError
 from semgrep.output import OutputHandler
 from semgrep.semgrep_types import Language
-from semgrep.semgrep_types import NONE_LANGUAGE
+from semgrep.semgrep_types import NONE_LANGUAGE, GENERIC_LANGUAGE
 from semgrep.util import partition_set
 from semgrep.util import sub_check_output
 
@@ -75,7 +75,7 @@ def lang_to_exts(language: Language) -> List[FileExtension]:
         return PHP_EXTENSIONS
     elif language in {"json", "JSON", "Json"}:
         return JSON_EXTENSIONS
-    elif language in {NONE_LANGUAGE}:
+    elif language in {NONE_LANGUAGE, GENERIC_LANGUAGE}:
         return [FileExtension("*")]
     else:
         raise _UnknownLanguageError(f"Unsupported Language: {language}")
