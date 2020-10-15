@@ -12,6 +12,7 @@ build: [
 
 depends: [
   "alcotest"
+  "atdgen"
   "ANSITerminal"
   "cmdliner"
   "dune" {>= "2.1"}

@@ -174,7 +174,7 @@ let man = [
   `P "Check out bug reports at \
       https://github.com/returntocorp/spacegrep/issues.";
   `S Manpage.s_see_also;
-  `P "spacecat(1)"
+  `P "semgrep, spacecat"
 ]
 
 let parse_command_line () =
