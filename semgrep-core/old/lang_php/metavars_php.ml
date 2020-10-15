@@ -76,8 +76,7 @@ let check_pattern any =
         let s = Ast.str_of_dname dname in
         if s =~ "V\\(_[A-Z]*\\)?"
         then failwith ("Lvalue metavariables are deprecated, just use " ^
-                       "expression metavariables as in X->foo()")
-        else ();
+                       "expression metavariables as in X->foo()");
         k x
       | _ -> k x
     );

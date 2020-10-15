@@ -142,8 +142,7 @@ let parse file =
   (* adjust with Minus info *)
   toks |> List.iter (fun tok ->
     let line = Parse_info.line_of_info tok in
-
-    let annot = Hashtbl.find hline_env line in
+    let annot = Hashtbl.find hline_env line in (* nosem *)
     (match annot with
     | XContext -> ()
     | XMinus -> tok.PI.transfo <- PI.Remove;

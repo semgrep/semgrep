@@ -29,13 +29,13 @@ jobs:
           submodules: true
       - name: Post-checkout fixes
         run: ./.github/post-checkout
-      - name: Build semgrep-core
+      - name: Build semgrep-core and spacegrep
         run: ./scripts/install-alpine-semgrep-core
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
-          name: semgrep-core
-          path: artifacts/semgrep-core
+          name: ocaml-build-artifacts
+          path: ocaml-build-artifacts.tgz
       - name: Test semgrep-core
         run: |
           eval $(opam env)
@@ -65,15 +65,14 @@ jobs:
           python-version: ${{ matrix.python }}
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Download Artifact
+      - name: Download artifacts
         uses: actions/download-artifact@v1
         with:
-          name: semgrep-core
-          path: semgrep-core-dir
-      - name: Install artifact
+          name: ocaml-build-artifacts
+      - name: Install artifacts
         run: |
-          sudo cp semgrep-core-dir/semgrep-core /usr/bin/semgrep-core
-          sudo chmod +x /usr/bin/semgrep-core
+          tar xf ocaml-build-artifacts/ocaml-build-artifacts.tgz
+          sudo cp ocaml-build-artifacts/bin/* /usr/bin
       - name: Test semgrep-core
         run: semgrep-core -version
       - name: Install Tox and any other packages
@@ -100,15 +99,14 @@ jobs:
         uses: actions/setup-python@v1
         with:
           python-version: ${{ matrix.python }}
-      - name: Download Artifact
+      - name: Download artifacts
         uses: actions/download-artifact@v1
         with:
-          name: semgrep-core
-          path: semgrep-core-dir
-      - name: Install artifact
+          name: ocaml-build-artifacts
+      - name: Install artifacts
         run: |
-          sudo cp semgrep-core-dir/semgrep-core /usr/bin/semgrep-core
-          sudo chmod +x /usr/bin/semgrep-core
+          tar xf ocaml-build-artifacts/ocaml-build-artifacts.tgz
+          sudo cp ocaml-build-artifacts/bin/* /usr/bin
       - name: Install semgrep
         run: |
           cd semgrep
@@ -157,15 +155,14 @@ jobs:
           python3 scripts/calculate_ci_perf.py > semgrep/baseline_timing.txt
           cat semgrep/baseline_timing.txt
           pip3 uninstall -y semgrep
-      - name: Download Artifact
+      - name: Download artifacts
         uses: actions/download-artifact@v1
         with:
-          name: semgrep-core
-          path: semgrep-core-dir
-      - name: Install artifact
+          name: ocaml-build-artifacts
+      - name: Install artifacts
         run: |
-          sudo cp semgrep-core-dir/semgrep-core /usr/bin/semgrep-core
-          sudo chmod +x /usr/bin/semgrep-core
+          tar xf ocaml-build-artifacts/ocaml-build-artifacts.tgz
+          sudo cp ocaml-build-artifacts/bin/* /usr/bin
       - name: Install semgrep
         run: |
           cd semgrep

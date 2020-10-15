@@ -73,7 +73,10 @@ let parse_json file =
       "language", J.String lang;
       "code", J.String code;
       ] ->
-      let lang = Hashtbl.find Lang.lang_of_string_map lang in
+      let lang =
+        try Hashtbl.find Lang.lang_of_string_map lang
+        with Not_found -> failwith (spf "unsupported language %s" lang)
+      in
       (* less: could also use Parse_pattern *)
       let code =
         match Parse_generic.parse_pattern lang code with
@@ -121,7 +124,9 @@ let rec eval env code =
       | _ -> raise (NotHandled code)
       )
   | G.Id ((s, _t), _idinfo) ->
-      Hashtbl.find env s
+    (try Hashtbl.find env s
+     with Not_found -> raise (NotHandled code)
+    )
   | G.Call (G.IdSpecial (G.Op op, _t), (_, args, _)) ->
       let values = args |> List.map (function
             | G.Arg e -> eval env e
