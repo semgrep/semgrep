@@ -1,0 +1,7 @@
+{
+  "metavars": {
+    "$X": 2
+  },
+  "language": "python",
+  "code": "$X in [1,2,3]"
+}
