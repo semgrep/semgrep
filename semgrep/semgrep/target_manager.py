@@ -16,8 +16,9 @@ import attr
 from semgrep.error import _UnknownLanguageError
 from semgrep.error import FilesNotFoundError
 from semgrep.output import OutputHandler
+from semgrep.semgrep_types import GENERIC_LANGUAGE
 from semgrep.semgrep_types import Language
-from semgrep.semgrep_types import NONE_LANGUAGE, GENERIC_LANGUAGE
+from semgrep.semgrep_types import NONE_LANGUAGE
 from semgrep.util import partition_set
 from semgrep.util import sub_check_output
 
