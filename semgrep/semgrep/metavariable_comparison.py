@@ -1,4 +1,3 @@
-import collections
 import json
 import subprocess
 import tempfile
@@ -11,14 +10,13 @@ from semgrep.util import sub_check_output
 
 
 def metavariable_comparison(
-    metavariable: str, comparison: str, content: Union[int, float]
+    metavariable: str, comparison: str, content: Union[int, float, str]
 ) -> bool:
-    # semgrep-core requires the 'language' key be before the 'code' key,
-    # so we must use an OrderedDict with special ordering here
-    core_request = collections.OrderedDict()
-    core_request["metavars"] = {metavariable: str(content)}
-    core_request["language"] = "python"  # Hardcode for now
-    core_request["code"] = comparison
+    core_request = {
+        "metavars": {metavariable: content},
+        "language": "python",  # Hardcode for now
+        "code": comparison,
+    }
 
     with tempfile.NamedTemporaryFile("w") as temp_file:
         json.dump(core_request, temp_file)
@@ -31,4 +29,8 @@ def metavariable_comparison(
                 f"error invoking semgrep with:\n\t{' '.join(cmd)}\n\t{ex}\n{PLEASE_FILE_ISSUE_TEXT}"
             )
 
-    return output.strip() == b"true"
+    result = output.strip()
+    if result == b"NONE":
+        raise SemgrepError(f"bad comparison expression: '{comparison}'")
+
+    return output == b"true"

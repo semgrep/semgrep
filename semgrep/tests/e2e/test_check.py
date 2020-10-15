@@ -308,3 +308,11 @@ def test_metavariable_comparison_rule_strip(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp("rules/metavariable-comparison-strip.yaml"), "results.json"
     )
+
+
+def test_metavariable_comparison_rule_bad_comparison(run_semgrep_in_tmp, snapshot):
+    with pytest.raises(CalledProcessError) as excinfo:
+        run_semgrep_in_tmp("rules/metavariable-comparison-bad-comparison.yaml")
+    assert excinfo.value.returncode == 2
+    snapshot.assert_match(excinfo.value.stderr, "error.txt")
+    snapshot.assert_match(excinfo.value.stdout, "error.json")

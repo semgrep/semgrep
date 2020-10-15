@@ -76,10 +76,8 @@ def compare_range_match(
             else:
                 converted = int(content)
     except ValueError:
-        logger.debug(
-            f"metavariable '{metavariable}' incorrect comparison type '{content}'"
-        )
-        return False
+        # If content doesn't look numeric, allow for basic string operations
+        converted = content
 
     return metavariable_comparison(metavariable, comparison, converted)
 
