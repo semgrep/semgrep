@@ -382,11 +382,8 @@ class CoreRunner:
                 patterns_json = [p.to_json() for p in patterns]
 
                 if language == GENERIC_LANGUAGE:
-                    output_json = self._run_spacegrep(
-                        patterns,
-                        targets
-                    )
-                else: # Run semgrep-core
+                    output_json = self._run_spacegrep(patterns, targets)
+                else:  # Run semgrep-core
                     output_json = self._run_core_command(
                         patterns_json,
                         patterns,
@@ -433,7 +430,7 @@ class CoreRunner:
     def _run_spacegrep(self, patterns: List[Pattern], targets: List[Path]) -> dict:
         SPACEGREP_PATH = "spacegrep"
         for pattern in patterns:
-            pattern_str = pattern._pattern #TODO: Handle pattern Dict
+            pattern_str = pattern._pattern  # TODO: Handle pattern Dict
             for target in targets:
                 cmd = [
                     SPACEGREP_PATH,
@@ -446,8 +443,8 @@ class CoreRunner:
                 raw_output = p.stdout
                 raw_errors = p.stderr
 
-                matches = _parse_spacegrep_output(raw_output)
-                errors = _parse_spacegrep_errors(raw_errors)
+                matches = self._parse_spacegrep_output(raw_output)
+                errors = self._parse_spacegrep_errors(raw_errors)
 
         return {
             "matches": matches,
@@ -455,7 +452,7 @@ class CoreRunner:
         }
 
     def _parse_spacegrep_output(self, raw_output: bytes) -> List[PatternMatch]:
-        print(raw_output.decode('utf-8'))
+        print(raw_output.decode("utf-8"))
         return []
 
     def _parse_spacegrep_errors(self, raw_errors: bytes) -> List[CoreException]:
