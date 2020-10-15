@@ -43,6 +43,7 @@ from semgrep.semgrep_types import Language
 from semgrep.semgrep_types import NONE_LANGUAGE, GENERIC_LANGUAGE
 from semgrep.semgrep_types import OPERATORS
 from semgrep.semgrep_types import TAINT_MODE
+from semgrep.spacegrep import run_spacegrep
 from semgrep.target_manager import TargetManager
 from semgrep.util import debug_tqdm_write
 from semgrep.util import partition
@@ -382,7 +383,7 @@ class CoreRunner:
                 patterns_json = [p.to_json() for p in patterns]
 
                 if language == GENERIC_LANGUAGE:
-                    output_json = self._run_spacegrep(patterns, targets)
+                    output_json = run_spacegrep(patterns, targets)
                 else:  # Run semgrep-core
                     output_json = self._run_core_command(
                         patterns_json,
@@ -426,37 +427,6 @@ class CoreRunner:
 
         # debugging steps are only tracked for a single file, just overwrite
         return findings, debugging_steps, errors, all_targets
-
-    def _run_spacegrep(self, patterns: List[Pattern], targets: List[Path]) -> dict:
-        SPACEGREP_PATH = "spacegrep"
-        for pattern in patterns:
-            pattern_str = pattern._pattern  # TODO: Handle pattern Dict
-            for target in targets:
-                cmd = [
-                    SPACEGREP_PATH,
-                    "--debug",
-                    "-d",
-                    str(target),
-                    pattern_str,
-                ]
-                p = sub_run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                raw_output = p.stdout
-                raw_errors = p.stderr
-
-                matches = self._parse_spacegrep_output(raw_output)
-                errors = self._parse_spacegrep_errors(raw_errors)
-
-        return {
-            "matches": matches,
-            "errors": errors,
-        }
-
-    def _parse_spacegrep_output(self, raw_output: bytes) -> List[PatternMatch]:
-        print(raw_output.decode("utf-8"))
-        return []
-
-    def _parse_spacegrep_errors(self, raw_errors: bytes) -> List[CoreException]:
-        return []
 
     def handle_regex_patterns(
         self,
