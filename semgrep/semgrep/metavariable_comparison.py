@@ -29,8 +29,4 @@ def metavariable_comparison(
                 f"error invoking semgrep with:\n\t{' '.join(cmd)}\n\t{ex}\n{PLEASE_FILE_ISSUE_TEXT}"
             )
 
-    result = output.strip()
-    if result == b"NONE":
-        raise SemgrepError(f"bad comparison expression: '{comparison}'")
-
-    return result == b"true"
+    return output.strip() == b"true"
