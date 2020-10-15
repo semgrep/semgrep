@@ -33,4 +33,4 @@ def metavariable_comparison(
     if result == b"NONE":
         raise SemgrepError(f"bad comparison expression: '{comparison}'")
 
-    return output == b"true"
+    return result == b"true"
