@@ -32,6 +32,8 @@ from semgrep.constants import YML_EXTENSIONS
 from semgrep.semgrep_main import invoke_semgrep
 from semgrep.util import partition
 
+SAVE_TEST_OUTPUT_JSON = 'semgrep_runs_output.json'
+SAVE_TEST_OUTPUT_TAR = 'semgrep_runs_output.tar.gz'
 
 def normalize_rule_id(line: str) -> str:
     """
@@ -103,9 +105,9 @@ def line_has_rule(line: str) -> bool:
 
 def line_has_ok(line: str) -> bool:
     return (
-        "#ok:" in line 
-        or "# ok:" in line 
-        or "//ok:" in line 
+        "#ok:" in line
+        or "# ok:" in line
+        or "//ok:" in line
         or "// ok:"  in line
         or "(*ok:" in line
         or "(* ok:" in line
@@ -246,7 +248,7 @@ def invoke_semgrep_multi(
 
 
 def generate_file_pairs(
-    location: Path, ignore_todo: bool, strict: bool, unsafe: bool, json_output: bool, save_output: bool = True
+    location: Path, ignore_todo: bool, strict: bool, unsafe: bool, json_output: bool, save_test_output_tar: bool = True
 ) -> None:
     filenames = list(location.rglob("*"))
     config_filenames = [
@@ -331,17 +333,17 @@ def generate_file_pairs(
         print(json.dumps(output, indent=4, separators=(",", ": ")))
         sys.exit(exit_code)
 
-    # save the results to json file. this is really ratchet.
-    if save_output:
+    # save the results to json file and tar the file to upload as github artifact.
+    if save_test_output_tar:
         list_to_output = []
-        with open('semgrep_runs_output.json', 'w') as f:
+        with open(SAVE_TEST_OUTPUT_JSON, 'w') as f:
             for tup in results:
                 true_result = tup[2]
                 list_to_output.append(true_result)
             f.write(json.dumps(list_to_output, indent=4, separators=(",", ":")))
-        # tar the file
-        with tarfile.open('semgrep_runs_output.tar.gz', 'w:gz') as tar:
-            tar.add('semgrep_runs_output.json')
+
+        with tarfile.open(SAVE_TEST_OUTPUT_TAR, 'w:gz') as tar:
+            tar.add(SAVE_TEST_OUTPUT_JSON)
 
     if config_missing_tests_output:
         print("The following config files are missing tests:")
@@ -399,5 +401,5 @@ def test_main(args: argparse.Namespace) -> None:
         args.strict,
         args.dangerously_allow_arbitrary_code_execution_from_rules,
         args.json,
-        args.save_output,
+        args.save_test_output_tar,
     )
