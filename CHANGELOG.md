@@ -7,7 +7,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 - Added matching with partial patterns for function signatures or class headers
-  for Javascript/Typescript.
+  for Javascript/Typescript and Java.
+- Added matching of annotation patterns for Java (@SomeAnnot(...)) in any
+  context
 
 ## [0.27.0](https://github.com/returntocorp/semgrep/releases/tag/v0.27.0) - 2020-10-06
 

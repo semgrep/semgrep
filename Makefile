@@ -9,6 +9,7 @@
 #
 .PHONY: build
 build:
+	$(MAKE) build-spacegrep
 	$(MAKE) build-core
 	cd semgrep && pipenv install --dev
 
@@ -25,6 +26,10 @@ build-core: build-ocaml-tree-sitter
 build-ocaml-tree-sitter:
 	$(MAKE) -C ocaml-tree-sitter
 	$(MAKE) -C ocaml-tree-sitter install
+
+.PHONY: build-spacegrep
+build-spacegrep:
+	$(MAKE) -C spacegrep
 
 # Update and rebuild everything within the project.
 #
@@ -49,6 +54,7 @@ setup:
 	cd ocaml-tree-sitter && ./scripts/install-tree-sitter-lib
 	opam install -y --deps-only ./ocaml-tree-sitter
 	opam install -y --deps-only ./semgrep-core
+	opam install -y --deps-only ./spacegrep
 
 # This needs to run initially or when something changed in the external
 # build environment. This typically looks for the location of libraries

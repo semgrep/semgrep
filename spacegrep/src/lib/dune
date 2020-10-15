@@ -1,0 +1,10 @@
+(library
+  (public_name spacegrep)
+  (name spacegrep)
+  (libraries
+     ANSITerminal
+     unix
+  )
+)
+
+(ocamllex Lexer)
