@@ -86,7 +86,7 @@ let boolean_literal (env : env) (x : CST.boolean_literal) =
   )
 
 let predefined_type (env : env) (tok : CST.predefined_type) =
-  todo env tok (* predefined_type *)
+  AST.TyBuiltin (str env tok)
 
 let verbatim_string_literal (env : env) (tok : CST.verbatim_string_literal) =
   token env tok (* verbatim_string_literal *)
