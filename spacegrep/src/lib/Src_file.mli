@@ -24,8 +24,16 @@ val source_string : t -> string
 
 val contents : t -> string
 
-(* Extract a specific region specified as (first position, last position). *)
+(*
+   Extract a specific region specified as
+   (start position, end position to be excluded).
+ *)
 val region_of_pos_range : t -> Lexing.position -> Lexing.position -> string
+
+(*
+   Extract a specific region specified by the positions of the first
+   and last tokens to be included in the region.
+*)
 val region_of_loc_range : t -> Loc.t -> Loc.t -> string
 
 (*
