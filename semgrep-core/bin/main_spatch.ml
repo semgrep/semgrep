@@ -219,8 +219,8 @@ let apply_transfo transfo xs =
       | None -> true
       | Some xs -> Common2.contain_any_token_with_egrep xs file
     in
-    if not worth_trying then ()
-    else
+    if worth_trying
+    then
     try (
     let (ast, toks) =
       try
