@@ -86,7 +86,7 @@ let boolean_literal (env : env) (x : CST.boolean_literal) =
   )
 
 let predefined_type (env : env) (tok : CST.predefined_type) =
-  token env tok (* predefined_type *)
+  todo env tok (* predefined_type *)
 
 let verbatim_string_literal (env : env) (tok : CST.verbatim_string_literal) =
   token env tok (* verbatim_string_literal *)
@@ -300,10 +300,11 @@ let literal (env : env) (x : CST.literal) =
       verbatim_string_literal env tok (* verbatim_string_literal *)
   )
 
-let rec return_type (env : env) (x : CST.return_type) =
+let rec return_type (env : env) (x : CST.return_type) : type_ option =
   (match x with
-  | `Type x -> type_constraint env x
-  | `Void_kw tok -> token env tok (* "void" *)
+  | `Type x -> Some (type_constraint env x)
+  | `Void_kw tok -> None (* "void" *)
+      (* does this make sense? Is "void" its own return type, or the absence of a return type? *)
   )
 
 and variable_declaration (env : env) ((v1, v2, v3) : CST.variable_declaration) =
@@ -462,11 +463,11 @@ and binary_expression (env : env) (x : CST.binary_expression) =
       todo env (v1, v2, v3)
   )
 
-and block (env : env) ((v1, v2, v3) : CST.block) =
+and block (env : env) ((v1, v2, v3) : CST.block) : stmt =
   let v1 = token env v1 (* "{" *) in
   let v2 = List.map (statement env) v2 in
   let v3 = token env v3 (* "}" *) in
-  todo env (v1, v2, v3)
+  AST.Block (v1, v2, v3)
 
 and variable_declarator (env : env) ((v1, v2, v3) : CST.variable_declarator) =
   let v1 =
@@ -853,17 +854,17 @@ and expression (env : env) (x : CST.expression) : AST.expr =
       let v2 =
         (match v2 with
         | `Param_list x -> parameter_list env x
-        | `Id tok -> identifier env tok (* identifier *)
+        | `Id tok -> [ todo env tok ] (* identifier *) (* single parameter, return ParamClassic *)
         )
       in
       let v3 = token env v3 (* "=>" *) in
       let v4 =
         (match v4 with
         | `Blk x -> block env x
-        | `Exp x -> expression env x
+        | `Exp x -> AST.ExprStmt (expression env x, v3)
         )
       in
-      todo env (v1, v2, v3, v4)
+      todo env (v1, v2, v3, v4) (* return Lambda of function_definition *)
   | `Make_ref_exp (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "__makeref" *) in
       let v2 = token env v2 (* "(" *) in
@@ -1073,9 +1074,9 @@ and type_parameter_list (env : env) ((v1, v2, v3, v4) : CST.type_parameter_list)
 
 and type_parameter_constraint (env : env) (x : CST.type_parameter_constraint) =
   (match x with
-  | `Class tok -> token env tok (* "class" *)
-  | `Struct tok -> token env tok (* "struct" *)
-  | `Unma tok -> token env tok (* "unmanaged" *)
+  | `Class tok -> todo env tok (* "class" *)
+  | `Struct tok -> todo env tok (* "struct" *)
+  | `Unma tok -> todo env tok (* "unmanaged" *)
   | `Cons_cons (v1, v2, v3) ->
       let v1 = token env v1 (* "new" *) in
       let v2 = token env v2 (* "(" *) in
@@ -1460,7 +1461,7 @@ and formal_parameter_list (env : env) ((v1, v2) : CST.formal_parameter_list) =
       todo env (v1, v2)
     ) v2
   in
-  todo env (v1, v2)
+  v2
 
 and equals_value_clause (env : env) ((v1, v2) : CST.equals_value_clause) =
   let v1 = token env v1 (* "=" *) in
@@ -1620,9 +1621,9 @@ and argument_list (env : env) ((v1, v2, v3) : CST.argument_list) =
   let v3 = token env v3 (* ")" *) in
   todo env (v1, v2, v3)
 
-and type_ (env : env) (x : CST.type_) =
+and type_ (env : env) (x : CST.type_) : AST.type_ =
   (match x with
-  | `Impl_type tok -> token env tok (* "var" *)
+  | `Impl_type tok -> todo env tok (* "var" *)
   | `Array_type x -> array_type env x
   | `Name x ->
         let n = name env x in
@@ -1681,15 +1682,15 @@ and type_parameter_constraints_clause (env : env) ((v1, v2, v3, v4, v5) : CST.ty
   in
   todo env (v1, v2, v3, v4, v5)
 
-and parameter_list (env : env) ((v1, v2, v3) : CST.parameter_list) =
+and parameter_list (env : env) ((v1, v2, v3) : CST.parameter_list) : parameter list =
   let v1 = token env v1 (* "(" *) in
   let v2 =
     (match v2 with
     | Some x -> formal_parameter_list env x
-    | None -> todo env ())
+    | None -> [])
   in
   let v3 = token env v3 (* ")" *) in
-  todo env (v1, v2, v3)
+  v2
 
 and attribute_argument_list (env : env) ((v1, v2, v3) : CST.attribute_argument_list) =
   let v1 = token env v1 (* "(" *) in
@@ -2108,26 +2109,33 @@ and declaration (env : env) (x : CST.declaration) : stmt =
       in
       todo env (v1, v2, v3, v4, v5, v6, v7, v8, v9)
   | `Meth_decl (v1, v2, v3, v4, v5, v6, v7, v8, v9) ->
-      let v1 = List.map (attribute_list env) v1 in
+      (*
+        [Attr] static int IList<T>.MyMethod<T>(int p1) where T : Iterator { ... }
+          v1     v2   v3    v4        v5    v6  v7           v8              v9
+      *)
+      let v1 = List.concat_map (attribute_list env) v1 in
       let v2 = List.map (modifier env) v2 in
       let v3 = return_type env v3 in
-      let v4 =
-        (match v4 with
-        | Some x -> explicit_interface_specifier env x
-        | None -> todo env ())
-      in
+      let tok = token env v5 in
       let v5 = identifier env v5 (* identifier *) in
       let v6 =
         (match v6 with
         | Some x -> type_parameter_list env x
-        | None -> todo env ())
+        | None -> [])
       in
       let v7 = parameter_list env v7 in
       let v8 =
         List.map (type_parameter_constraints_clause env) v8
       in
       let v9 = function_body env v9 in
-      todo env (v1, v2, v3, v4, v5, v6, v7, v8, v9)
+      let def = AST.FuncDef {
+        fkind = (AST.Method, tok);
+        fparams = v7;
+        frettype = v3;
+        fbody = v9;
+      } in
+      let ent = basic_entity v5 v1 in
+      AST.DefStmt (ent, def)
   | `Name_decl (v1, v2, body, v4) ->
       (*
         namespace MySpace { ... }
