@@ -37,7 +37,7 @@ jobs:
           name: ocaml-build-artifacts
           path: ocaml-build-artifacts.tgz
       - name: Test spacegrep
-        run: opam exec make -C spacegrep test
+        run: opam exec -- make -C spacegrep test
       - name: Test semgrep-core
         run: |
           eval $(opam env)
