@@ -61,7 +61,7 @@ def _parse_spacegrep_output(pattern: Pattern, raw_output: bytes) -> List[dict]:
             [line.replace(f"{filename}:", "", 1) for line in match.split("\n")]
         )
         match_lines = [int(n) for n in set(re.findall("lnum=(\d+)", finding))]
-        match_offsets = [int(n) for n in set(re.findall("cnum=(\d+)", finding))]
+        match_offsets = [int(n) for n in set(re.findall("bol=(\d+)", finding))]
         returns.append(
             {
                 "check_id": pattern._id,
