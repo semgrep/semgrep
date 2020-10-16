@@ -1042,7 +1042,7 @@ and anon_choice_param_ce11a32 (env : env) (x : CST.anon_choice_param_ce11a32) =
   (match x with
   | `Param x -> parameter env x
   | `Param_array (v1, v2, v3, v4) ->
-      let v1 = List.map (attribute_list env) v1 in
+      let v1 = List.concat_map (attribute_list env) v1 in
       let v2 = token env v2 (* "params" *) in
       let v3 = array_type env v3 in
       let v4 = identifier env v4 (* identifier *) in
@@ -1562,7 +1562,7 @@ and finally_clause (env : env) ((v1, v2) : CST.finally_clause) =
   todo env (v1, v2)
 
 and parameter (env : env) ((v1, v2, v3, v4, v5) : CST.parameter) =
-  let v1 = List.map (attribute_list env) v1 in
+  let v1 = List.concat_map (attribute_list env) v1 in
   let v2 =
     (match v2 with
     | Some x -> parameter_modifier env x
@@ -1761,7 +1761,7 @@ let subpattern (env : env) ((v1, v2) : CST.subpattern) =
   todo env (v1, v2)
 
 let accessor_declaration (env : env) ((v1, v2, v3, v4) : CST.accessor_declaration) =
-  let v1 = List.map (attribute_list env) v1 in
+  let v1 = List.concat_map (attribute_list env) v1 in
   let v2 = List.map (modifier env) v2 in
   let v3 =
     (match v3 with
@@ -1800,7 +1800,7 @@ let constructor_initializer (env : env) ((v1, v2, v3) : CST.constructor_initiali
   todo env (v1, v2, v3)
 
 let enum_member_declaration (env : env) ((v1, v2, v3) : CST.enum_member_declaration) =
-  let v1 = List.map (attribute_list env) v1 in
+  let v1 = List.concat_map (attribute_list env) v1 in
   let v2 = identifier env v2 (* identifier *) in
   let v3 =
     (match v3 with
@@ -1954,7 +1954,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
         cbody = (open_bra, fields, close_bra);
       })
   | `Cons_decl (v1, v2, v3, v4, v5, v6) ->
-      let v1 = List.map (attribute_list env) v1 in
+      let v1 = List.concat_map (attribute_list env) v1 in
       let v2 = List.map (modifier env) v2 in
       let v3 = identifier env v3 (* identifier *) in
       let v4 = parameter_list env v4 in
@@ -1966,7 +1966,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
       let v6 = function_body env v6 in
       todo env (v1, v2, v3, v4, v5, v6)
   | `Conv_op_decl (v1, v2, v3, v4, v5, v6, v7) ->
-      let v1 = List.map (attribute_list env) v1 in
+      let v1 = List.concat_map (attribute_list env) v1 in
       let v2 = List.map (modifier env) v2 in
       let v3 =
         (match v3 with
@@ -1980,7 +1980,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
       let v7 = function_body env v7 in
       todo env (v1, v2, v3, v4, v5, v6, v7)
   | `Dele_decl (v1, v2, v3, v4, v5, v6, v7, v8, v9) ->
-      let v1 = List.map (attribute_list env) v1 in
+      let v1 = List.concat_map (attribute_list env) v1 in
       let v2 = List.map (modifier env) v2 in
       let v3 = token env v3 (* "delegate" *) in
       let v4 = return_type env v4 in
@@ -1997,7 +1997,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
       let v9 = token env v9 (* ";" *) in
       todo env (v1, v2, v3, v4, v5, v6, v7, v8, v9)
   | `Dest_decl (v1, v2, v3, v4, v5, v6) ->
-      let v1 = List.map (attribute_list env) v1 in
+      let v1 = List.concat_map (attribute_list env) v1 in
       let v2 =
         (match v2 with
         | Some tok -> token env tok (* "extern" *)
@@ -2009,7 +2009,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
       let v6 = function_body env v6 in
       todo env (v1, v2, v3, v4, v5, v6)
   | `Enum_decl (v1, v2, v3, v4, v5, v6, v7) ->
-      let v1 = List.map (attribute_list env) v1 in
+      let v1 = List.concat_map (attribute_list env) v1 in
       let v2 = List.map (modifier env) v2 in
       let v3 = token env v3 (* "enum" *) in
       let v4 = identifier env v4 (* identifier *) in
@@ -2026,7 +2026,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
       in
       todo env (v1, v2, v3, v4, v5, v6, v7)
   | `Event_decl (v1, v2, v3, v4, v5, v6, v7) ->
-      let v1 = List.map (attribute_list env) v1 in
+      let v1 = List.concat_map (attribute_list env) v1 in
       let v2 = List.map (modifier env) v2 in
       let v3 = token env v3 (* "event" *) in
       let v4 = type_constraint env v4 in
@@ -2050,20 +2050,20 @@ and declaration (env : env) (x : CST.declaration) : stmt =
       let v4 = token env v4 (* ";" *) in
       todo env (v1, v2, v3, v4)
   | `Event_field_decl (v1, v2, v3, v4, v5) ->
-      let v1 = List.map (attribute_list env) v1 in
+      let v1 = List.concat_map (attribute_list env) v1 in
       let v2 = List.map (modifier env) v2 in
       let v3 = token env v3 (* "event" *) in
       let v4 = variable_declaration env v4 in
       let v5 = token env v5 (* ";" *) in
       todo env (v1, v2, v3, v4, v5)
   | `Field_decl (v1, v2, v3, v4) ->
-      let v1 = List.map (attribute_list env) v1 in
+      let v1 = List.concat_map (attribute_list env) v1 in
       let v2 = List.map (modifier env) v2 in
       let v3 = variable_declaration env v3 in
       let v4 = token env v4 (* ";" *) in
       todo env (v1, v2, v3, v4)
   | `Inde_decl (v1, v2, v3, v4, v5, v6, v7) ->
-      let v1 = List.map (attribute_list env) v1 in
+      let v1 = List.concat_map (attribute_list env) v1 in
       let v2 = List.map (modifier env) v2 in
       let v3 = type_constraint env v3 in
       let v4 =
@@ -2084,7 +2084,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
       in
       todo env (v1, v2, v3, v4, v5, v6, v7)
   | `Inte_decl (v1, v2, v3, v4, v5, v6, v7, v8, v9) ->
-      let v1 = List.map (attribute_list env) v1 in
+      let v1 = List.concat_map (attribute_list env) v1 in
       let v2 = List.map (modifier env) v2 in
       let v3 = token env v3 (* "interface" *) in
       let v4 = identifier env v4 (* identifier *) in
@@ -2150,7 +2150,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
       let def = { AST.mbody = mkind } in
       AST.DefStmt (ent, AST.ModuleDef def)
   | `Op_decl (v1, v2, v3, v4, v5, v6, v7) ->
-      let v1 = List.map (attribute_list env) v1 in
+      let v1 = List.concat_map (attribute_list env) v1 in
       let v2 = List.map (modifier env) v2 in
       let v3 = type_constraint env v3 in
       let v4 = token env v4 (* "operator" *) in
@@ -2159,7 +2159,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
       let v7 = function_body env v7 in
       todo env (v1, v2, v3, v4, v5, v6, v7)
   | `Prop_decl (v1, v2, v3, v4, v5, v6) ->
-      let v1 = List.map (attribute_list env) v1 in
+      let v1 = List.concat_map (attribute_list env) v1 in
       let v2 = List.map (modifier env) v2 in
       let v3 = type_constraint env v3 in
       let v4 =
@@ -2190,7 +2190,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
       in
       todo env (v1, v2, v3, v4, v5, v6)
   | `Struct_decl (v1, v2, v3, v4, v5, v6, v7, v8, v9) ->
-      let v1 = List.map (attribute_list env) v1 in
+      let v1 = List.concat_map (attribute_list env) v1 in
       let v2 = List.map (modifier env) v2 in
       let v3 = token env v3 (* "struct" *) in
       let v4 = identifier env v4 (* identifier *) in
