@@ -44,7 +44,6 @@ def run_spacegrep(patterns: List[Pattern], targets: List[Path]) -> dict:
 
             output_json = _parse_spacegrep_output(raw_output)
             output_json["matches"] = _patch_id(pattern, output_json.get("matches", []))
-            output_json["matches"] = _patch_lines(output_json.get("matches", []))
 
             matches.extend(output_json["matches"])
             errors.extend(output_json["errors"])
@@ -69,25 +68,5 @@ def _patch_id(pattern: Pattern, matches: List[dict]) -> List[dict]:
     patched = []
     for match in matches:
         match["check_id"] = pattern._id
-        patched.append(match)
-    return patched
-
-
-def _patch_lines(matches: List[dict]) -> List[dict]:
-    patched = []
-    for match in matches:
-        with open(match["path"], "r") as fin:
-            data = fin.readlines()
-        start_l = match.get("start", {}).get("line", 0)
-        start_c = match.get("start", {}).get("col", 0)
-        end_l = match.get("end", {}).get("line", 0)
-        end_c = match.get("end", {}).get("col", 0)
-
-        lines = data[start_l - 2 : end_l - 1]
-        lines[0] = lines[0][start_c - 1 :]
-        lines[-1] = lines[-1][: end_c - 1]
-
-        match["extra"]["lines"] = lines
-
         patched.append(match)
     return patched
