@@ -40,7 +40,7 @@ val region_of_loc_range : t -> Loc.t -> Loc.t -> string
    Extract the lines containing a pair of positions.
 
    This includes the beginning of the first line and the end of the last line
-   even if they're outside the requested range, unless trim=true.
+   even if they're outside the requested range.
 *)
 val lines_of_pos_range :
   ?highlight:(string -> string) ->
