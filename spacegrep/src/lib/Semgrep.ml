@@ -10,7 +10,7 @@ let semgrep_pos (x : Lexing.position) : Semgrep_t.position =
   {
     line = x.pos_lnum + 1;
     col = x.pos_cnum - x.pos_bol + 1;
-    offset = x.pos_bol;
+    offset = x.pos_cnum;
   }
 
 let unique_id_of_loc (loc : Loc.t) : unique_id =
