@@ -1,0 +1,23 @@
+{
+  "errors": [],
+  "results": [
+    {
+      "check_id": "rules.spacegrep.all-origins-allowed",
+      "end": {
+        "col": 27,
+        "line": 10
+      },
+      "extra": {
+        "lines": "    allowed_origins = [\"*\"]",
+        "message": "CORS rule on bucket permits any origin",
+        "metadata": {},
+        "severity": "WARNING"
+      },
+      "path": "targets/spacegrep/terraform.tf",
+      "start": {
+        "col": 0,
+        "line": 9
+      }
+    }
+  ]
+}

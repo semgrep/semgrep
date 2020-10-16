@@ -1,0 +1,113 @@
+{
+  "errors": [],
+  "results": [
+    {
+      "check_id": "rules.spacegrep.header-2",
+      "end": {
+        "col": 18,
+        "line": 63
+      },
+      "extra": {
+        "lines": "## Getting Started",
+        "message": "Detected h2 Markdown header",
+        "metadata": {},
+        "severity": "INFO"
+      },
+      "path": "targets/spacegrep/markdown.md",
+      "start": {
+        "col": 0,
+        "line": 62
+      }
+    },
+    {
+      "check_id": "rules.spacegrep.header-2",
+      "end": {
+        "col": 11,
+        "line": 98
+      },
+      "extra": {
+        "lines": "## Examples",
+        "message": "Detected h2 Markdown header",
+        "metadata": {},
+        "severity": "INFO"
+      },
+      "path": "targets/spacegrep/markdown.md",
+      "start": {
+        "col": 0,
+        "line": 97
+      }
+    },
+    {
+      "check_id": "rules.spacegrep.header-2",
+      "end": {
+        "col": 12,
+        "line": 146
+      },
+      "extra": {
+        "lines": "## Resources",
+        "message": "Detected h2 Markdown header",
+        "metadata": {},
+        "severity": "INFO"
+      },
+      "path": "targets/spacegrep/markdown.md",
+      "start": {
+        "col": 0,
+        "line": 145
+      }
+    },
+    {
+      "check_id": "rules.spacegrep.header-2",
+      "end": {
+        "col": 8,
+        "line": 160
+      },
+      "extra": {
+        "lines": "## Usage",
+        "message": "Detected h2 Markdown header",
+        "metadata": {},
+        "severity": "INFO"
+      },
+      "path": "targets/spacegrep/markdown.md",
+      "start": {
+        "col": 0,
+        "line": 159
+      }
+    },
+    {
+      "check_id": "rules.spacegrep.header-2",
+      "end": {
+        "col": 15,
+        "line": 189
+      },
+      "extra": {
+        "lines": "## Contributing",
+        "message": "Detected h2 Markdown header",
+        "metadata": {},
+        "severity": "INFO"
+      },
+      "path": "targets/spacegrep/markdown.md",
+      "start": {
+        "col": 0,
+        "line": 188
+      }
+    },
+    {
+      "check_id": "rules.spacegrep.header-2",
+      "end": {
+        "col": 21,
+        "line": 204
+      },
+      "extra": {
+        "lines": "## Commercial Support",
+        "message": "Detected h2 Markdown header",
+        "metadata": {},
+        "severity": "INFO"
+      },
+      "path": "targets/spacegrep/markdown.md",
+      "start": {
+        "col": 0,
+        "line": 203
+      }
+    }
+  ]
+}

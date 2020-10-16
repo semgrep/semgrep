@@ -1,0 +1,59 @@
+{
+  "errors": [],
+  "results": [
+    {
+      "check_id": "rules.spacegrep.var-in-script-tag",
+      "end": {
+        "col": 32,
+        "line": 25
+      },
+      "extra": {
+        "lines": "    var message = {{ message }};",
+        "message": "Detected template variable in script tag. This is dangerous because\nHTML escaping does not prevent injection in script contexts.\n",
+        "metadata": {},
+        "severity": "WARNING"
+      },
+      "path": "targets/spacegrep/html.mustache",
+      "start": {
+        "col": 0,
+        "line": 24
+      }
+    },
+    {
+      "check_id": "rules.spacegrep.var-in-script-tag",
+      "end": {
+        "col": 32,
+        "line": 30
+      },
+      "extra": {
+        "lines": "    var message = {{ message }};",
+        "message": "Detected template variable in script tag. This is dangerous because\nHTML escaping does not prevent injection in script contexts.\n",
+        "metadata": {},
+        "severity": "WARNING"
+      },
+      "path": "targets/spacegrep/html.mustache",
+      "start": {
+        "col": 0,
+        "line": 29
+      }
+    },
+    {
+      "check_id": "rules.spacegrep.var-in-script-tag",
+      "end": {
+        "col": 34,
+        "line": 33
+      },
+      "extra": {
+        "lines": "    var message2 = {{ message2 }};",
+        "message": "Detected template variable in script tag. This is dangerous because\nHTML escaping does not prevent injection in script contexts.\n",
+        "metadata": {},
+        "severity": "WARNING"
+      },
+      "path": "targets/spacegrep/html.mustache",
+      "start": {
+        "col": 0,
+        "line": 32
+      }
+    }
+  ]
+}
