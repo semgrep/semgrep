@@ -33,14 +33,21 @@ type error = {
 }
 
 type position = {
-  line: int; (* starts at 1 *)
+  line: int; (* starts at 0 *)
   col: int; (* starts at 1 *)
   offset: int; (* byte position from the beginning of the file, starts at 0 *)
 }
 
 type match_extra = {
   ?message: string option; (* rule.message (?) *)
+
+  (*
+     name/value map of the matched metavariables.
+     The leading '$' must be included in the metavariable name.
+  *)
   metavars: (string * metavar_value) list <json repr="object">;
+
+  lines: string list; (* the matching region, split at lines boundaries *)
 }
 
 type error_extra = {

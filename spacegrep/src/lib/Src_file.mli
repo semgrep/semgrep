@@ -24,10 +24,15 @@ val source_string : t -> string
 
 val contents : t -> string
 
+(* Extract a specific region specified as (first position, last position). *)
+val region_of_pos_range : t -> Lexing.position -> Lexing.position -> string
+val region_of_loc_range : t -> Loc.t -> Loc.t -> string
+
 (*
    Extract the lines containing a pair of positions.
+
    This includes the beginning of the first line and the end of the last line
-   even if they're outside the requested range.
+   even if they're outside the requested range, unless trim=true.
 *)
 val lines_of_pos_range :
   ?highlight:(string -> string) ->

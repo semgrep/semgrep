@@ -8,7 +8,7 @@ open Semgrep_t
 
 let semgrep_pos (x : Lexing.position) : Semgrep_t.position =
   {
-    line = x.pos_lnum + 1;
+    line = x.pos_lnum - 1;
     col = x.pos_cnum - x.pos_bol + 1;
     offset = x.pos_cnum;
   }
@@ -25,8 +25,10 @@ let unique_id_of_loc (loc : Loc.t) : unique_id =
   }
 
 let convert_capture x =
+  let name = x.name in
+  assert (name <> "" && name.[0] <> '$');
   let pos1, pos2 = x.loc in
-  x.name, {
+  ("$" ^ name), {
     start = semgrep_pos pos1;
     end_ = semgrep_pos pos2;
     abstract_content = x.value;
@@ -45,9 +47,14 @@ let make_semgrep_json doc_matches : Semgrep_t.match_results =
         List.map (fun match_ ->
           let ((pos1, _), (_, pos2)) = match_.region in
           let metavars = List.map convert_capture match_.captures in
+          let lines =
+            Src_file.region_of_pos_range src pos1 pos2
+            |> String.split_on_char '\n'
+          in
           let extra = {
             message = None;
             metavars;
+            lines;
           } in
           ({
             check_id;
