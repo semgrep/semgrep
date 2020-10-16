@@ -4,109 +4,223 @@
     {
       "check_id": "rules.spacegrep.header-2",
       "end": {
-        "col": 18,
+        "col": 11,
         "line": 63
       },
       "extra": {
-        "lines": "## Getting Started",
+        "lines": "## Getting",
         "message": "Detected h2 Markdown header",
         "metadata": {},
+        "metavars": {
+          "TEXT": {
+            "abstract_content": "Getting",
+            "end": {
+              "col": 11,
+              "line": 63,
+              "offset": 2591
+            },
+            "start": {
+              "col": 4,
+              "line": 63,
+              "offset": 2584
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
         "severity": "INFO"
       },
       "path": "targets/spacegrep/markdown.md",
       "start": {
-        "col": 0,
-        "line": 62
-      }
-    },
-    {
-      "check_id": "rules.spacegrep.header-2",
-      "end": {
-        "col": 11,
-        "line": 98
-      },
-      "extra": {
-        "lines": "## Examples",
-        "message": "Detected h2 Markdown header",
-        "metadata": {},
-        "severity": "INFO"
-      },
-      "path": "targets/spacegrep/markdown.md",
-      "start": {
-        "col": 0,
-        "line": 97
+        "col": 1,
+        "line": 63
       }
     },
     {
       "check_id": "rules.spacegrep.header-2",
       "end": {
         "col": 12,
+        "line": 98
+      },
+      "extra": {
+        "lines": "## Examples",
+        "message": "Detected h2 Markdown header",
+        "metadata": {},
+        "metavars": {
+          "TEXT": {
+            "abstract_content": "Examples",
+            "end": {
+              "col": 12,
+              "line": 98,
+              "offset": 3702
+            },
+            "start": {
+              "col": 4,
+              "line": 98,
+              "offset": 3694
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
+        "severity": "INFO"
+      },
+      "path": "targets/spacegrep/markdown.md",
+      "start": {
+        "col": 1,
+        "line": 98
+      }
+    },
+    {
+      "check_id": "rules.spacegrep.header-2",
+      "end": {
+        "col": 13,
         "line": 146
       },
       "extra": {
         "lines": "## Resources",
         "message": "Detected h2 Markdown header",
         "metadata": {},
+        "metavars": {
+          "TEXT": {
+            "abstract_content": "Resources",
+            "end": {
+              "col": 13,
+              "line": 146,
+              "offset": 8847
+            },
+            "start": {
+              "col": 4,
+              "line": 146,
+              "offset": 8838
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
         "severity": "INFO"
       },
       "path": "targets/spacegrep/markdown.md",
       "start": {
-        "col": 0,
-        "line": 145
+        "col": 1,
+        "line": 146
       }
     },
     {
       "check_id": "rules.spacegrep.header-2",
       "end": {
-        "col": 8,
+        "col": 9,
         "line": 160
       },
       "extra": {
         "lines": "## Usage",
         "message": "Detected h2 Markdown header",
         "metadata": {},
+        "metavars": {
+          "TEXT": {
+            "abstract_content": "Usage",
+            "end": {
+              "col": 9,
+              "line": 160,
+              "offset": 9242
+            },
+            "start": {
+              "col": 4,
+              "line": 160,
+              "offset": 9237
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
         "severity": "INFO"
       },
       "path": "targets/spacegrep/markdown.md",
       "start": {
-        "col": 0,
-        "line": 159
+        "col": 1,
+        "line": 160
       }
     },
     {
       "check_id": "rules.spacegrep.header-2",
       "end": {
-        "col": 15,
+        "col": 16,
         "line": 189
       },
       "extra": {
         "lines": "## Contributing",
         "message": "Detected h2 Markdown header",
         "metadata": {},
+        "metavars": {
+          "TEXT": {
+            "abstract_content": "Contributing",
+            "end": {
+              "col": 16,
+              "line": 189,
+              "offset": 9805
+            },
+            "start": {
+              "col": 4,
+              "line": 189,
+              "offset": 9793
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
         "severity": "INFO"
       },
       "path": "targets/spacegrep/markdown.md",
       "start": {
-        "col": 0,
-        "line": 188
+        "col": 1,
+        "line": 189
       }
     },
     {
       "check_id": "rules.spacegrep.header-2",
       "end": {
-        "col": 21,
+        "col": 14,
         "line": 204
       },
       "extra": {
-        "lines": "## Commercial Support",
+        "lines": "## Commercial",
         "message": "Detected h2 Markdown header",
         "metadata": {},
+        "metavars": {
+          "TEXT": {
+            "abstract_content": "Commercial",
+            "end": {
+              "col": 14,
+              "line": 204,
+              "offset": 10948
+            },
+            "start": {
+              "col": 4,
+              "line": 204,
+              "offset": 10938
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
         "severity": "INFO"
       },
       "path": "targets/spacegrep/markdown.md",
       "start": {
-        "col": 0,
-        "line": 203
+        "col": 1,
+        "line": 204
       }
     }
   ]
