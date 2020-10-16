@@ -58,8 +58,6 @@ subsystems = [
 
 
 for (test, file) in subsystems:
-    print(test, file)
-
     os.system(f"rm -f {path}/*.coverage")  # nosem
     os.system(f"cd {path};./test.exe {test} > /dev/null")  # nosem
     stat = report_summary_for_file_stat(file)
