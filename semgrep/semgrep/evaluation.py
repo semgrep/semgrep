@@ -71,7 +71,7 @@ def compare_range_match(
         if "." in content:
             converted = float(content)
         else:
-            if base:
+            if base is not None:
                 converted = int(content, base=base)
             else:
                 converted = int(content)
