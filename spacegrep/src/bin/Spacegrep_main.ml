@@ -11,8 +11,13 @@ type when_use_color =
   | Always
   | Never
 
+type output_format =
+  | Text
+  | Semgrep
+
 type config = {
   color: when_use_color;
+  output_format: output_format;
   debug: bool;
   pattern: string option;
   pattern_files: string list;
@@ -28,29 +33,39 @@ let detect_highlight when_use_color oc =
 (*
    Run all the patterns on all the documents.
 *)
-let run_all ~debug ~highlight patterns docs =
-  List.iter (fun get_doc_src ->
-    let doc_src = get_doc_src () in
-    let doc_type = File_type.guess doc_src in
-    match doc_type with
-    | Gibberish ->
-        if debug then
-          printf "ignore gibberish file: %s\n%!"
-            (Src_file.source_string doc_src)
-    | Text ->
-        if debug then
-          printf "read document: %s\n%!"
-            (Src_file.source_string doc_src);
-        let doc = Parse_doc.of_src doc_src in
-        List.iter (fun (pat_src, pat) ->
-          if debug then
-            printf "match document from %s against pattern from %s\n%!"
-              (Src_file.source_string doc_src)
-              (Src_file.source_string pat_src);
-          let matches = Match.search pat doc in
-          Match.print ~highlight doc_src matches
-        ) patterns;
-  ) docs
+let run_all ~debug ~output_format ~highlight patterns docs =
+  let matches =
+    List.map (fun get_doc_src ->
+      let doc_src = get_doc_src () in
+      let doc_type = File_type.guess doc_src in
+      let matches =
+        match doc_type with
+        | Gibberish ->
+            if debug then
+              printf "ignore gibberish file: %s\n%!"
+                (Src_file.source_string doc_src);
+            []
+        | Text ->
+            if debug then
+              printf "read document: %s\n%!"
+                (Src_file.source_string doc_src);
+            let doc = Parse_doc.of_src doc_src in
+            List.mapi (fun pat_id (pat_src, pat) ->
+              if debug then
+                printf "match document from %s against pattern from %s\n%!"
+                  (Src_file.source_string doc_src)
+                  (Src_file.source_string pat_src);
+              (pat_id, Match.search pat doc)
+            ) patterns
+      in
+      (doc_src, matches)
+    ) docs
+  in
+  match output_format with
+  | Text ->
+      Match.print_nested_results ~highlight matches
+  | Semgrep ->
+      Semgrep.print_semgrep_json matches
 
 let run config =
   let patterns =
@@ -72,7 +87,7 @@ let run config =
   if debug then
     Match.debug := true;
   let highlight = detect_highlight config.color stdout in
-  run_all ~debug ~highlight patterns docs
+  run_all ~debug ~output_format:config.output_format ~highlight patterns docs
 
 let color_conv =
   let parser when_use_color =
@@ -94,6 +109,24 @@ let color_conv =
   Cmdliner.Arg.conv
     (parser, printer)
 
+let output_format_conv =
+  let parser s =
+    match s with
+    | "text" -> Ok Text
+    | "semgrep" -> Ok Semgrep
+    | s -> Error (`Msg ("Invalid output format: " ^ s))
+  in
+  let printer fmt output_format =
+    let s =
+      match output_format with
+      | Text -> "text"
+      | Semgrep -> "semgrep"
+    in
+    Format.pp_print_string fmt s
+  in
+  Cmdliner.Arg.conv
+    (parser, printer)
+
 let color_term =
   let info =
     Arg.info ["color"]
@@ -101,6 +134,16 @@ let color_term =
             (default), 'always', and 'never'."
   in
   Arg.value (Arg.opt color_conv Auto info)
+
+let output_format_term =
+  let info =
+    Arg.info ["output-format"]
+      ~doc:"Specifies how to print the matches. The default format, 'text',
+            is an unspecified human-readable format. The other available
+            format is 'semgrep', which produce json output for internal
+            consumption by the semgrep front-end."
+  in
+  Arg.value (Arg.opt output_format_conv Text info)
 
 let debug_term =
   let info =
@@ -151,11 +194,12 @@ let doc_file_term =
   Arg.value (Arg.opt_all Arg.string [] info)
 
 let cmdline_term =
-  let combine color debug pattern pattern_files doc_files =
-    { color; debug; pattern; pattern_files; doc_files }
+  let combine color output_format debug pattern pattern_files doc_files =
+    { color; output_format; debug; pattern; pattern_files; doc_files }
   in
   Term.(const combine
         $ color_term
+        $ output_format_term
         $ debug_term
         $ pattern_term
         $ pattern_file_term

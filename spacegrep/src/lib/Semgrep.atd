@@ -20,7 +20,7 @@ type match_ = {
   path: string; (* source file *)
   start: position;
   end_ <json name="end">: position;
-  extra: extra;
+  extra: match_extra;
 }
 
 (* See R2c.ml in semgrep-core *)
@@ -38,9 +38,9 @@ type position = {
   offset: int; (* byte position from the beginning of the file, starts at 0 *)
 }
 
-type extra = {
-  message: string; (* rule.message (?) *)
-  metavars: metavar list;
+type match_extra = {
+  ?message: string option; (* rule.message (?) *)
+  metavars: (string * metavar_value) list <json repr="object">;
 }
 
 type error_extra = {
@@ -48,7 +48,7 @@ type error_extra = {
   line: string;
 }
 
-type metavar = {
+type metavar_value = {
   start: position;
   end_ <json name="end">: position;
   abstract_content: string; (* value? *)
