@@ -44,7 +44,7 @@ let str = H.str
 *)
 
 (* Disable warnings against unused variables *)
-[@@@warning "-26-27"]
+[@@@warning "-26-27-32"]
 
 (* Disable warning against unused 'rec' *)
 [@@@warning "-39"]
@@ -1562,12 +1562,12 @@ and finally_clause (env : env) ((v1, v2) : CST.finally_clause) =
   todo env (v1, v2)
 
 and parameter (env : env) ((v1, v2, v3, v4, v5) : CST.parameter) =
+  (*
+    [FromBody] ref string param1 = "default"
+        v1     v2   v3     v4      v5
+    TODO: add v2 as a keyword attribute? Pass v2 to parameter_modifier.
+  *)
   let v1 = List.concat_map (attribute_list env) v1 in
-  let v2 =
-    (match v2 with
-    | Some x -> parameter_modifier env x
-    | None -> todo env ())
-  in
   let v3 =
     (match v3 with
     | Some x -> type_constraint env x
@@ -1577,9 +1577,15 @@ and parameter (env : env) ((v1, v2, v3, v4, v5) : CST.parameter) =
   let v5 =
     (match v5 with
     | Some x -> equals_value_clause env x
-    | None -> todo env ())
+    | None -> None)
   in
-  todo env (v1, v2, v3, v4, v5)
+  {
+    pname = Some v4;
+    ptype = Some v3;
+    pdefault = v5;
+    pattrs = v1;
+    pinfo = empty_id_info ();
+  }
 
 and from_clause (env : env) ((v1, v2, v3, v4, v5) : CST.from_clause) =
   let v1 = token env v1 (* "from" *) in
