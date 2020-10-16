@@ -1,5 +1,10 @@
+# dune
 _build
 .merlin
+
+# bisect_ppx
+_coverage
+*.coverage
 
 semgrep_core/sgrep.install
 /project.el

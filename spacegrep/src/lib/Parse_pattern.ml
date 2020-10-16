@@ -120,8 +120,8 @@ let parse_pattern_line (tokens : Lexer.token list) : Pattern_AST.node list =
     | Dots loc -> Dots loc
     | Open_paren loc -> Atom (loc, Punct '(')
     | Close_paren loc -> Atom (loc, Punct ')')
-    | Open_bracket loc -> Atom (loc, Punct '(')
-    | Close_bracket loc -> Atom (loc, Punct ')')
+    | Open_bracket loc -> Atom (loc, Punct '[')
+    | Close_bracket loc -> Atom (loc, Punct ']')
     | Open_curly loc -> Atom (loc, Punct '{')
     | Close_curly loc -> Atom (loc, Punct '}')
   ) tokens
