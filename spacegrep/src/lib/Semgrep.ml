@@ -8,8 +8,12 @@ open Semgrep_t
 
 let semgrep_pos (x : Lexing.position) : Semgrep_t.position =
   {
-    line = x.pos_lnum - 1;
+    (* both 'line' and 'pos_lnum' start from 1. *)
+    line = x.pos_lnum;
+
+    (* 'col' starts from 1, pos_cnum/pos_bol start from 0. *)
     col = x.pos_cnum - x.pos_bol + 1;
+
     offset = x.pos_cnum;
   }
 
