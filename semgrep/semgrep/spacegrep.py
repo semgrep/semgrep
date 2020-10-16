@@ -12,7 +12,7 @@ from typing import Optional
 logger = logging.getLogger(__name__)
 
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
-from semgrep.constants import SEMGREP_PATH
+from semgrep.constants import SPACEGREP_PATH
 from semgrep.core_exception import CoreException
 from semgrep.error import InvalidPatternError
 from semgrep.pattern import Pattern
@@ -21,9 +21,8 @@ from semgrep.util import sub_run
 
 
 def run_spacegrep(patterns: List[Pattern], targets: List[Path]) -> dict:
-    SPACEGREP_PATH = "spacegrep"
-    matches = []
-    errors = []
+    matches: List[dict] = []
+    errors: List[dict] = []
     for pattern in patterns:
         if not isinstance(pattern._pattern, str):
             raise NotImplementedError(
@@ -33,17 +32,22 @@ def run_spacegrep(patterns: List[Pattern], targets: List[Path]) -> dict:
         for target in targets:
             cmd = [
                 SPACEGREP_PATH,
-                "--debug",
+                "--output-format",
+                "semgrep",
                 "-d",
                 str(target),
                 pattern_str,
             ]
             p = sub_run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             raw_output = p.stdout
-            raw_errors = p.stderr
+            raw_error = p.stderr
 
-            matches.extend(_parse_spacegrep_output(pattern, raw_output))
-            errors.extend(_parse_spacegrep_errors(raw_errors))
+            output_json = _parse_spacegrep_output(raw_output)
+            output_json["matches"] = _patch_id(pattern, output_json.get("matches", []))
+            output_json["matches"] = _patch_lines(output_json.get("matches", []))
+
+            matches.extend(output_json["matches"])
+            errors.extend(output_json["errors"])
 
     return {
         "matches": matches,
@@ -51,36 +55,39 @@ def run_spacegrep(patterns: List[Pattern], targets: List[Path]) -> dict:
     }
 
 
-def _parse_spacegrep_output(pattern: Pattern, raw_output: bytes) -> List[dict]:
-    findings = raw_output.decode("utf-8").split("\n\n")
-    returns = []
-    for finding in filter(None, findings):
-        match_text = finding.split("\n", maxsplit=1)[1]
-        filename, match = match_text.split(":", maxsplit=1)
-        match = "\n".join(
-            [line.replace(f"{filename}:", "", 1) for line in match.split("\n")]
-        )
-        match_lines = [int(n) for n in set(re.findall("lnum=(\d+)", finding))]
-        match_offsets = [int(n) for n in set(re.findall("bol=(\d+)", finding))]
-        returns.append(
-            {
-                "check_id": pattern._id,
-                "path": filename,
-                "start": {
-                    "offset": min(match_offsets),
-                    "line": min(match_lines),
-                    "col": 0,
-                },
-                "end": {
-                    "offset": min(match_offsets) + len(match),
-                    "line": max(match_lines) + 1,
-                    "col": len(match),
-                },
-                "extra": {"lines": [match]},
-            }
-        )
-    return returns
+def _parse_spacegrep_output(raw_output: bytes) -> dict:
+    try:
+        output = raw_output.decode("utf-8")
+        data = json.loads(output)
+        return cast(dict, data)
+    except Exception:
+        logger.error("spacegrep output could not be parsed as JSON.")
+        return {}
 
 
-def _parse_spacegrep_errors(raw_errors: bytes) -> List[CoreException]:
-    return []
+def _patch_id(pattern: Pattern, matches: List[dict]) -> List[dict]:
+    patched = []
+    for match in matches:
+        match["check_id"] = pattern._id
+        patched.append(match)
+    return patched
+
+
+def _patch_lines(matches: List[dict]) -> List[dict]:
+    patched = []
+    for match in matches:
+        with open(match["path"], "r") as fin:
+            data = fin.readlines()
+        start_l = match.get("start", {}).get("line", 0)
+        start_c = match.get("start", {}).get("col", 0)
+        end_l = match.get("end", {}).get("line", 0)
+        end_c = match.get("end", {}).get("col", 0)
+
+        lines = data[start_l - 2 : end_l - 1]
+        lines[0] = lines[0][start_c - 1 :]
+        lines[-1] = lines[-1][: end_c - 1]
+
+        match["extra"]["lines"] = lines
+
+        patched.append(match)
+    return patched

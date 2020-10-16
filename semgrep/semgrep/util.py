@@ -1,6 +1,7 @@
 import itertools
 import logging
 import os
+import shutil
 import subprocess
 import sys
 from typing import Any
@@ -153,3 +154,10 @@ def compute_semgrep_path() -> str:
         if os.path.exists(relative_path):
             exec_name = relative_path
     return exec_name
+
+
+def compute_spacegrep_path() -> str:
+    path = shutil.which("spacegrep")
+    if path is None:
+        raise subprocess.SubprocessError("Could not locate 'spacegrep' binary")
+    return path
