@@ -71,8 +71,8 @@ jobs:
       - name: Test build artifacts
         run: |
           ls -l artifacts
-          chmod +x ./artifacts/semgrep-core
           ./artifacts/semgrep-core -help
+          ./artifacts/spacegrep --help
 
   release-ubuntu:
     name: Check builds for ubuntu
