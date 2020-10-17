@@ -81,15 +81,15 @@ let assignment_operator (env : env) (x : CST.assignment_operator) =
 
 let boolean_literal (env : env) (x : CST.boolean_literal) =
   (match x with
-  | `True tok -> token env tok (* "true" *)
-  | `False tok -> token env tok (* "false" *)
+  | `True tok -> Bool (true, token env tok) (* "true" *)
+  | `False tok -> Bool (false, token env tok) (* "false" *)
   )
 
 let predefined_type (env : env) (tok : CST.predefined_type) =
   AST.TyBuiltin (str env tok)
 
 let verbatim_string_literal (env : env) (tok : CST.verbatim_string_literal) =
-  token env tok (* verbatim_string_literal *)
+  AST.String (str env tok) (* verbatim_string_literal *)
 
 let _preprocessor_directive (env : env) (tok : CST.preprocessor_directive) =
   token env tok (* pattern #[a-z]\w* *)
@@ -115,7 +115,7 @@ let attribute_target_specifier (env : env) ((v1, v2) : CST.attribute_target_spec
   todo env (v1, v2)
 
 let integer_literal (env : env) (tok : CST.integer_literal) =
-  token env tok (* integer_literal *)
+  AST.Int (str env tok) (* integer_literal *)
 
 let overloadable_operator (env : env) (x : CST.overloadable_operator) =
   (match x with
@@ -183,7 +183,8 @@ let interpolated_verbatim_string_text (env : env) (x : CST.interpolated_verbatim
   )
 
 let real_literal (env : env) (tok : CST.real_literal) =
-  token env tok (* real_literal *)
+  AST.Float (str env tok) (* real_literal *)
+  (* TODO should real be returned as float? *)
 
 let identifier (env : env) (tok : CST.identifier) : ident =
   str env tok
@@ -266,9 +267,9 @@ let name_equals (env : env) ((v1, v2) : CST.name_equals) =
   let v2 = token env v2 (* "=" *) in
   todo env (v1, v2)
 
-let literal (env : env) (x : CST.literal) =
+let literal (env : env) (x : CST.literal) : literal =
   (match x with
-  | `Null_lit tok -> token env tok (* "null" *)
+  | `Null_lit tok -> AST.Null (token env tok) (* "null" *)
   | `Bool_lit x -> boolean_literal env x
   | `Char_lit (v1, v2, v3) ->
       let v1 = token env v1 (* "'" *) in
@@ -289,13 +290,15 @@ let literal (env : env) (x : CST.literal) =
         List.map (fun x ->
           (match x with
           | `Imm_tok_pat_5a6fa79 tok ->
-              token env tok (* pattern "[^\"\\\\\\n]+" *)
-          | `Esc_seq tok -> token env tok (* escape_sequence *)
+              str env tok (* pattern "[^\"\\\\\\n]+" *)
+          | `Esc_seq tok -> str env tok (* escape_sequence *)
           )
         ) v2
       in
       let v3 = token env v3 (* "\"" *) in
-      todo env (v1, v2, v3)
+      let str = v2 |> List.map fst |> String.concat "" in
+      (* TODO should this call combine_infos ? *)
+      AST.String (str, v1)
   | `Verb_str_lit tok ->
       verbatim_string_literal env tok (* verbatim_string_literal *)
   )
@@ -615,17 +618,17 @@ and argument (env : env) ((v1, v2, v3) : CST.argument) : AST.argument =
   let v1 =
     (match v1 with
     | Some x -> name_colon env x
-    | None -> todo env ())
+    | None -> None)
   in
   let v2 =
     (match v2 with
     | Some x ->
         (match x with
-        | `Ref tok -> token env tok (* "ref" *)
-        | `Out tok -> token env tok (* "out" *)
-        | `In tok -> token env tok (* "in" *)
+        | `Ref tok -> Some (token env tok) (* "ref" *)
+        | `Out tok -> Some (token env tok) (* "out" *)
+        | `In tok -> Some (token env tok) (* "in" *)
         )
-    | None -> todo env ())
+    | None -> None)
   in
   let v3 =
     (match v3 with
@@ -633,7 +636,8 @@ and argument (env : env) ((v1, v2, v3) : CST.argument) : AST.argument =
     | `Decl_exp x -> declaration_expression env x
     )
   in
-  todo env (v1, v2, v3)
+  (* TODO return Ast.ArgKwd if Some v1 *)
+  AST.Arg v3
 
 and initializer_expression (env : env) ((v1, v2, v3, v4) : CST.initializer_expression) =
   let v1 = token env v1 (* "{" *) in
@@ -839,7 +843,7 @@ and expression (env : env) (x : CST.expression) : AST.expr =
   | `Invo_exp (v1, v2) ->
       let v1 = expression env v1 in
       let v2 = argument_list env v2 in
-      todo env (v1, v2)
+      AST.Call (v1, v2)
   | `Is_pat_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "is" *) in
@@ -890,7 +894,7 @@ and expression (env : env) (x : CST.expression) : AST.expr =
         )
       in
       let v3 = simple_name env v3 in
-      todo env (v1, v2, v3)
+      AST.DotAccess (v1, v2, AST.FName v3)
   | `Member_bind_exp (v1, v2) ->
       let v1 = token env v1 (* "." *) in
       let v2 = simple_name env v2 in
@@ -1012,14 +1016,13 @@ and expression (env : env) (x : CST.expression) : AST.expr =
       let v4 = token env v4 (* ")" *) in
       todo env (v1, v2, v3, v4)
   | `Simple_name x ->
-        let n = simple_name env x in
-        todo env n
+        AST.IdQualified (simple_name env x, empty_id_info ())
   | `Rese_id x ->
         let x = reserved_identifier env x in
         todo env x
   | `Lit x ->
         let x = literal env x in
-        todo env x
+        AST.L x
   )
 
 and simple_name (env : env) (x : CST.simple_name) : AST.name =
@@ -1123,7 +1126,7 @@ and statement (env : env) (x : CST.statement) =
   | `Exp_stmt (v1, v2) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* ";" *) in
-      todo env (v1, v2)
+      AST.ExprStmt (v1, v2)
   | `Fixed_stmt (v1, v2, v3, v4, v5) ->
       let v1 = token env v1 (* "fixed" *) in
       let v2 = token env v2 (* "(" *) in
@@ -1608,7 +1611,7 @@ and attribute (env : env) ((v1, v2) : CST.attribute) =
   in
   todo env (v1, v2)
 
-and argument_list (env : env) ((v1, v2, v3) : CST.argument_list) =
+and argument_list (env : env) ((v1, v2, v3) : CST.argument_list) : AST.arguments bracket =
   let v1 = token env v1 (* "(" *) in
   let v2 =
     (match v2 with
@@ -1621,11 +1624,11 @@ and argument_list (env : env) ((v1, v2, v3) : CST.argument_list) =
             todo env (v1, v2)
           ) v2
         in
-        todo env (v1, v2)
-    | None -> todo env ())
+        [v1] @ v2
+    | None -> [])
   in
   let v3 = token env v3 (* ")" *) in
-  todo env (v1, v2, v3)
+  (v1, v2, v3)
 
 and type_ (env : env) (x : CST.type_) : AST.type_ =
   (match x with
