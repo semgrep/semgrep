@@ -97,7 +97,7 @@ let _preprocessor_directive (env : env) (tok : CST.preprocessor_directive) =
 let default_switch_label (env : env) ((v1, v2) : CST.default_switch_label) =
   let v1 = token env v1 (* "default" *) in
   let v2 = token env v2 (* ":" *) in
-  todo env (v1, v2)
+  AST.Default v1
 
 let attribute_target_specifier (env : env) ((v1, v2) : CST.attribute_target_specifier) =
   let v1 =
@@ -1035,11 +1035,11 @@ and simple_name (env : env) (x : CST.simple_name) : AST.name =
       name_of_id (identifier_or_global env x)
   )
 
-and switch_body (env : env) ((v1, v2, v3) : CST.switch_body) =
+and switch_body (env : env) ((v1, v2, v3) : CST.switch_body) : case_and_body list=
   let v1 = token env v1 (* "{" *) in
   let v2 = List.map (switch_section env) v2 in
   let v3 = token env v3 (* "}" *) in
-  todo env (v1, v2, v3)
+  v2
 
 and anon_choice_param_ce11a32 (env : env) (x : CST.anon_choice_param_ce11a32) =
   (match x with
@@ -1097,7 +1097,7 @@ and statement (env : env) (x : CST.statement) =
   | `Brk_stmt (v1, v2) ->
       let v1 = token env v1 (* "break" *) in
       let v2 = token env v2 (* ";" *) in
-      todo env (v1, v2)
+      AST.Break (v1, AST.LNone)
   | `Chec_stmt (v1, v2) ->
       let v1 =
         (match v1 with
@@ -1269,7 +1269,7 @@ and statement (env : env) (x : CST.statement) =
       let v3 = expression env v3 in
       let v4 = token env v4 (* ")" *) in
       let v5 = switch_body env v5 in
-      todo env (v1, v2, v3, v4, v5)
+      AST.Switch (v1, Some v3, v5)
   | `Throw_stmt (v1, v2, v3) ->
       let v1 = token env v1 (* "throw" *) in
       let v2 =
@@ -1359,8 +1359,8 @@ and tuple_element (env : env) ((v1, v2) : CST.tuple_element) =
   in
   todo env (v1, v2)
 
-and constant_pattern (env : env) (x : CST.constant_pattern) : expr =
-  expression env x
+and constant_pattern (env : env) (x : CST.constant_pattern) =
+expr_to_pattern (expression env x)
 
 and catch_declaration (env : env) ((v1, v2, v3, v4) : CST.catch_declaration) =
   let v1 = token env v1 (* "(" *) in
@@ -1382,7 +1382,7 @@ and case_pattern_switch_label (env : env) ((v1, v2, v3, v4) : CST.case_pattern_s
     | None -> todo env ())
   in
   let v4 = token env v4 (* ":" *) in
-  todo env (v1, v2, v3, v4)
+  AST.Case (v1, v2)
 
 and query_clause (env : env) (x : CST.query_clause) =
   (match x with
@@ -1475,9 +1475,9 @@ and case_switch_label (env : env) ((v1, v2, v3) : CST.case_switch_label) =
   let v1 = token env v1 (* "case" *) in
   let v2 = expression env v2 in
   let v3 = token env v3 (* ":" *) in
-  todo env (v1, v2, v3)
+  AST.CaseEqualExpr (v1, v2)
 
-and switch_section (env : env) ((v1, v2) : CST.switch_section) =
+and switch_section (env : env) ((v1, v2) : CST.switch_section) : case_and_body =
   let v1 =
     List.map (fun x ->
       (match x with
@@ -1489,7 +1489,8 @@ and switch_section (env : env) ((v1, v2) : CST.switch_section) =
     ) v1
   in
   let v2 = List.map (statement env) v2 in
-  todo env (v1, v2)
+  (* TODO: we convert list of statements to a block with fake brackets. Does this make sense? *)
+  (v1, stmt1 v2)
 
 and attribute_list (env : env) ((v1, v2, v3, v4, v5) : CST.attribute_list) : attribute list =
   let v1 = token env v1 (* "[" *) in
@@ -1522,7 +1523,7 @@ and bracketed_argument_list (env : env) ((v1, v2, v3, v4) : CST.bracketed_argume
   let v4 = token env v4 (* "]" *) in
   todo env (v1, v2, v3, v4)
 
-and pattern (env : env) (x : CST.pattern) =
+and pattern (env : env) (x : CST.pattern) : AST.pattern =
   (match x with
   | `Cst_pat x -> constant_pattern env x
   | `Decl_pat (v1, v2) ->
