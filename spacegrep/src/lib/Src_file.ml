@@ -138,6 +138,15 @@ let safe_string_sub s orig_start orig_len =
   let len = max 0 (end_ - start) in
   String.sub s start len
 
+let region_of_pos_range x start_pos end_pos =
+  let open Lexing in
+  safe_string_sub x.contents
+    start_pos.pos_cnum
+    (end_pos.pos_cnum - start_pos.pos_cnum)
+
+let region_of_loc_range x (start_pos, _) (_, end_pos) =
+  region_of_pos_range x start_pos end_pos
+
 let lines_of_pos_range ?highlight ?(line_prefix = "") x start_pos end_pos =
   let s = x.contents in
   let open Lexing in
