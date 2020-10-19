@@ -1,0 +1,42 @@
+{
+  "errors": [],
+  "results": [
+    {
+      "check_id": "rules.metavar-comparison-test",
+      "end": {
+        "col": 34,
+        "line": 2
+      },
+      "extra": {
+        "lines": "metavariable_comparison_test(100)",
+        "message": "Metavariable regex test",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "100",
+            "end": {
+              "col": 33,
+              "line": 2,
+              "offset": 65
+            },
+            "start": {
+              "col": 30,
+              "line": 2,
+              "offset": 62
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/basic/metavariable-comparison.py",
+      "start": {
+        "col": 1,
+        "line": 2
+      }
+    }
+  ]
+}

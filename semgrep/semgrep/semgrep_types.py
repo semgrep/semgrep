@@ -39,6 +39,7 @@ class OPERATORS:
     EQUIVALENCES: Operator = Operator("equivalences")
     REGEX: Operator = Operator("regex")
     METAVARIABLE_REGEX: Operator = Operator("metavariable_regex")
+    METAVARIABLE_COMPARISON: Operator = Operator("metavariable_comparison")
 
 
 OPERATORS_WITH_CHILDREN = [OPERATORS.AND_ALL, OPERATORS.AND_EITHER]
@@ -56,6 +57,7 @@ OPERATOR_PATTERN_NAMES_MAP = {
     OPERATORS.EQUIVALENCES: ["equivalences"],
     OPERATORS.REGEX: ["pattern-regex"],
     OPERATORS.METAVARIABLE_REGEX: ["metavariable-regex"],
+    OPERATORS.METAVARIABLE_COMPARISON: ["metavariable-comparison"],
 }
 PATTERN_NAMES_OPERATOR_MAP = {
     v: k for k, vv in OPERATOR_PATTERN_NAMES_MAP.items() for v in vv

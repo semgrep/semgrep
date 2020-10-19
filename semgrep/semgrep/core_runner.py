@@ -369,14 +369,18 @@ class CoreRunner:
                 if language == NONE_LANGUAGE:
                     continue
 
-                # semgrep-core doesn't know about OPERATORS.METAVARIABLE_REGEX -
-                # this is strictly a semgrep Python feature. Metavariable regex
-                # filtering is performed purely in Python code then compared
-                # against semgrep-core's results for other patterns.
+                # semgrep-core doesn't know about the following operators -
+                # they are strictly semgrep Python features:
+                #   - OPERATORS.METAVARIABLE_REGEX
+                #   - OPERATORS.METAVARIABLE_COMPARISON
                 patterns = [
                     pattern
                     for pattern in patterns
-                    if pattern.expression.operator != OPERATORS.METAVARIABLE_REGEX
+                    if pattern.expression.operator
+                    not in [
+                        OPERATORS.METAVARIABLE_REGEX,
+                        OPERATORS.METAVARIABLE_COMPARISON,
+                    ]
                 ]
 
                 patterns_json = [p.to_json() for p in patterns]
