@@ -63,5 +63,23 @@ class PatternMatch:
             del end["offset"]
         return end
 
+    def get_metavariable_value(self, metavariable: str) -> str:
+        """
+            Use metavars start and end to read into the file to find what the
+            metavariable in this pattern match maps to in the file
+
+            Assumes METAVARIABLE is a key in self.metavars
+        """
+        # Offsets are start inclusive and end exclusive
+        start_offset = self.metavars[metavariable].get("start").get("offset")
+        end_offset = self.metavars[metavariable].get("end").get("offset")
+        length = end_offset - start_offset
+
+        with open(self.path) as file:
+            file.seek(start_offset)
+            value = file.read(length)
+
+        return value
+
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} id={self.id} range={self.range}>"
