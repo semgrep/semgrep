@@ -229,7 +229,7 @@ rules:
 ### `metavariable-comparison`
 
 The `metavariable-comparison` operator compares metavariables against a basic [Python comparison](https://docs.python.org/3/reference/expressions.html#comparisons)
-expression. This is useful for filtering results based on a [metavariable's](/docs/pattern-features.md#metavariables) value.
+expression. This is useful for filtering results based on a [metavariable's](/docs/pattern-features.md#metavariables) numeric value.
 
 **Example**
 
