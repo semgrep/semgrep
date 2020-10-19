@@ -5,10 +5,10 @@
       "check_id": "rules.spacegrep.var-in-script-tag",
       "end": {
         "col": 32,
-        "line": 25
+        "line": 24
       },
       "extra": {
-        "lines": "</script>",
+        "lines": "{{ message }}",
         "message": "Detected template variable in script tag. This is dangerous because\nHTML escaping does not prevent injection in script contexts.\n",
         "metadata": {},
         "metavars": {},
@@ -17,17 +17,17 @@
       "path": "targets/spacegrep/html.mustache",
       "start": {
         "col": 19,
-        "line": 25
+        "line": 24
       }
     },
     {
       "check_id": "rules.spacegrep.var-in-script-tag",
       "end": {
         "col": 32,
-        "line": 30
+        "line": 29
       },
       "extra": {
-        "lines": "    console.log(message);",
+        "lines": "{{ message }}",
         "message": "Detected template variable in script tag. This is dangerous because\nHTML escaping does not prevent injection in script contexts.\n",
         "metadata": {},
         "metavars": {},
@@ -36,17 +36,17 @@
       "path": "targets/spacegrep/html.mustache",
       "start": {
         "col": 19,
-        "line": 30
+        "line": 29
       }
     },
     {
       "check_id": "rules.spacegrep.var-in-script-tag",
       "end": {
         "col": 34,
-        "line": 33
+        "line": 32
       },
       "extra": {
-        "lines": "    var flash = document.getElementById(\"flash\");",
+        "lines": "{{ message2 }}",
         "message": "Detected template variable in script tag. This is dangerous because\nHTML escaping does not prevent injection in script contexts.\n",
         "metadata": {},
         "metavars": {},
@@ -55,7 +55,7 @@
       "path": "targets/spacegrep/html.mustache",
       "start": {
         "col": 20,
-        "line": 33
+        "line": 32
       }
     }
   ]

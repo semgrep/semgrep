@@ -5,10 +5,10 @@
       "check_id": "rules.spacegrep.all-origins-allowed",
       "end": {
         "col": 28,
-        "line": 10
+        "line": 9
       },
       "extra": {
-        "lines": "    expose_headers  = [\"ETag\"]",
+        "lines": "allowed_origins = [\"*\"]",
         "message": "CORS rule on bucket permits any origin",
         "metadata": {},
         "metavars": {},
@@ -17,7 +17,7 @@
       "path": "targets/spacegrep/terraform.tf",
       "start": {
         "col": 5,
-        "line": 10
+        "line": 9
       }
     }
   ]
