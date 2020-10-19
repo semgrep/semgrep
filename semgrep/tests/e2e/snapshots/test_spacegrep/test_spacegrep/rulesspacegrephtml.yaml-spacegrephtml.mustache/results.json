@@ -8,7 +8,7 @@
         "line": 25
       },
       "extra": {
-        "lines": "{{ message }};",
+        "lines": "</script>",
         "message": "Detected template variable in script tag. This is dangerous because\nHTML escaping does not prevent injection in script contexts.\n",
         "metadata": {},
         "metavars": {},
@@ -27,7 +27,7 @@
         "line": 30
       },
       "extra": {
-        "lines": "{{ message }};",
+        "lines": "    console.log(message);",
         "message": "Detected template variable in script tag. This is dangerous because\nHTML escaping does not prevent injection in script contexts.\n",
         "metadata": {},
         "metavars": {},
@@ -46,7 +46,7 @@
         "line": 33
       },
       "extra": {
-        "lines": "{{ message2 }};",
+        "lines": "    var flash = document.getElementById(\"flash\");",
         "message": "Detected template variable in script tag. This is dangerous because\nHTML escaping does not prevent injection in script contexts.\n",
         "metadata": {},
         "metavars": {},

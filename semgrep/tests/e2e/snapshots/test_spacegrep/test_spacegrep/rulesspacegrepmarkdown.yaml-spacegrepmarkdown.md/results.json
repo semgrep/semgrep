@@ -8,7 +8,7 @@
         "line": 63
       },
       "extra": {
-        "lines": "## Getting",
+        "lines": "",
         "message": "Detected h2 Markdown header",
         "metadata": {},
         "metavars": {
@@ -45,7 +45,7 @@
         "line": 98
       },
       "extra": {
-        "lines": "## Examples",
+        "lines": "",
         "message": "Detected h2 Markdown header",
         "metadata": {},
         "metavars": {
@@ -82,7 +82,7 @@
         "line": 146
       },
       "extra": {
-        "lines": "## Resources",
+        "lines": "",
         "message": "Detected h2 Markdown header",
         "metadata": {},
         "metavars": {
@@ -119,7 +119,7 @@
         "line": 160
       },
       "extra": {
-        "lines": "## Usage",
+        "lines": "",
         "message": "Detected h2 Markdown header",
         "metadata": {},
         "metavars": {
@@ -156,7 +156,7 @@
         "line": 189
       },
       "extra": {
-        "lines": "## Contributing",
+        "lines": "",
         "message": "Detected h2 Markdown header",
         "metadata": {},
         "metavars": {
@@ -193,7 +193,7 @@
         "line": 204
       },
       "extra": {
-        "lines": "## Commercial",
+        "lines": "",
         "message": "Detected h2 Markdown header",
         "metadata": {},
         "metavars": {

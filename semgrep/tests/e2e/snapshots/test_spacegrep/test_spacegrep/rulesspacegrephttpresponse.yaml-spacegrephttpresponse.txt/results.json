@@ -8,7 +8,7 @@
         "line": 7
       },
       "extra": {
-        "lines": "Content-Type: text/html",
+        "lines": "Connection: Closed",
         "message": "Detected text/html",
         "metadata": {},
         "metavars": {},

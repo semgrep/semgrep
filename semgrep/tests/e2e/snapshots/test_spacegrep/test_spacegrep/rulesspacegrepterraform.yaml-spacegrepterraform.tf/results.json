@@ -8,7 +8,7 @@
         "line": 10
       },
       "extra": {
-        "lines": "allowed_origins = [\"*\"]",
+        "lines": "    expose_headers  = [\"ETag\"]",
         "message": "CORS rule on bucket permits any origin",
         "metadata": {},
         "metavars": {},
