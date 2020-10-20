@@ -270,12 +270,12 @@ let tuple_pattern (env : env) ((v1, v2, v3, v4) : CST.tuple_pattern) =
 let name_colon (env : env) ((v1, v2) : CST.name_colon) =
   let v1 = identifier_or_global env v1 in
   let v2 = token env v2 (* ":" *) in
-  todo env (v1, v2)
+  v1
 
 let name_equals (env : env) ((v1, v2) : CST.name_equals) =
   let v1 = identifier_or_global env v1 in
   let v2 = token env v2 (* "=" *) in
-  todo env (v1, v2)
+  v1
 
 let literal (env : env) (x : CST.literal) : literal =
   (match x with
@@ -630,7 +630,7 @@ and array_rank_specifier (env : env) ((v1, v2, v3) : CST.array_rank_specifier) =
 and argument (env : env) ((v1, v2, v3) : CST.argument) : AST.argument =
   let v1 =
     (match v1 with
-    | Some x -> name_colon env x
+    | Some x -> Some (name_colon env x)
     | None -> None)
   in
   let v2 =
@@ -1453,13 +1453,15 @@ and attribute_argument (env : env) ((v1, v2) : CST.attribute_argument) =
     (match v1 with
     | Some x ->
         (match x with
-        | `Name_equals x -> name_equals env x
-        | `Name_colon x -> name_colon env x
+        | `Name_equals x -> Some (name_equals env x)
+        | `Name_colon x -> Some (name_colon env x)
         )
-    | None -> todo env ())
+    | None -> None)
   in
   let v2 = expression env v2 in
-  todo env (v1, v2)
+  match v1 with
+  | Some(name) -> ArgKwd(name, v2)
+  | None -> Arg(v2)
 
 and catch_filter_clause (env : env) ((v1, v2, v3, v4) : CST.catch_filter_clause) =
   let v1 = token env v1 (* "when" *) in
@@ -1509,8 +1511,8 @@ and attribute_list (env : env) ((v1, v2, v3, v4, v5) : CST.attribute_list) : att
   let v1 = token env v1 (* "[" *) in
   let v2 =
     (match v2 with
-    | Some x -> attribute_target_specifier env x
-    | None -> todo env ())
+    | Some x -> Some (attribute_target_specifier env x)
+    | None -> None)
   in
   let v3 = attribute env v3 in
   let v4 =
@@ -1521,7 +1523,7 @@ and attribute_list (env : env) ((v1, v2, v3, v4, v5) : CST.attribute_list) : att
     ) v4
   in
   let v5 = token env v5 (* "]" *) in
-  todo env (v1, v2, v3, v4, v5)
+  v3 :: v4
 
 and bracketed_argument_list (env : env) ((v1, v2, v3, v4) : CST.bracketed_argument_list) =
   let v1 = token env v1 (* "[" *) in
@@ -1621,9 +1623,10 @@ and attribute (env : env) ((v1, v2) : CST.attribute) =
   let v2 =
     (match v2 with
     | Some x -> attribute_argument_list env x
-    | None -> todo env ())
+    | None -> fake_bracket [])
   in
-  todo env (v1, v2)
+  (* TODO get the first [ as token here? *)
+  AST.NamedAttr (fake "[", ids_of_name v1, empty_id_info (), v2)
 
 and argument_list (env : env) ((v1, v2, v3) : CST.argument_list) : AST.arguments bracket =
   let v1 = token env v1 (* "(" *) in
@@ -1650,7 +1653,7 @@ and type_ (env : env) (x : CST.type_) : AST.type_ =
   | `Array_type x -> array_type env x
   | `Name x ->
         let n = name env x in
-        todo env x
+        AST.TyName n
   | `Null_type x -> nullable_type env x
   | `Poin_type (v1, v2) ->
       let v1 = type_constraint env v1 in
@@ -1715,7 +1718,7 @@ and parameter_list (env : env) ((v1, v2, v3) : CST.parameter_list) : parameter l
   let v3 = token env v3 (* ")" *) in
   v2
 
-and attribute_argument_list (env : env) ((v1, v2, v3) : CST.attribute_argument_list) =
+and attribute_argument_list (env : env) ((v1, v2, v3) : CST.attribute_argument_list) : arguments bracket =
   let v1 = token env v1 (* "(" *) in
   let v2 =
     (match v2 with
@@ -1725,14 +1728,14 @@ and attribute_argument_list (env : env) ((v1, v2, v3) : CST.attribute_argument_l
           List.map (fun (v1, v2) ->
             let v1 = token env v1 (* "," *) in
             let v2 = attribute_argument env v2 in
-            todo env (v1, v2)
+            v2
           ) v2
         in
-        todo env (v1, v2)
-    | None -> todo env ())
+        v1 :: v2
+    | None -> [])
   in
   let v3 = token env v3 (* ")" *) in
-  todo env (v1, v2, v3)
+  v1, v2, v3
 
 and select_or_group_clause (env : env) (x : CST.select_or_group_clause) =
   (match x with
@@ -2244,7 +2247,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
         | Some x ->
             (match x with
             | `Static tok -> todo env tok (* "static" *)
-            | `Name_equals x -> name_equals env x
+            | `Name_equals x -> Some (name_equals env x)
             )
         | None -> None)
       in
