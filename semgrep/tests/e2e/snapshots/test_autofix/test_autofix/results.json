@@ -67,7 +67,7 @@
         "line": 6
       },
       "extra": {
-        "fix": "inputs.get(x+1)",
+        "fix": "inputs.get(x + 1)",
         "lines": "  if inputs[x + 1] == True:",
         "message": "Use `.get()` method to avoid a KeyNotFound error",
         "metadata": {},
