@@ -33,6 +33,16 @@ let _fake = AST_generic.fake
 let token = H.token
 let str = H.str
 
+let ids_of_name (name : name) : dotted_ident =
+  let (ident, name_info) = name in
+  (match name_info.name_qualifier with 
+    | Some(q) -> (match q with
+      | QDots(ds) -> ds @ [ident]
+      | _ -> failwith("unexpected qualifier type")
+    )
+    | None -> [ident]
+  )
+
 (*****************************************************************************)
 (* Boilerplate converter *)
 (*****************************************************************************)
@@ -541,8 +551,11 @@ and name (env : env) (x : CST.name) =
   | `Qual_name (v1, v2, v3) ->
       let v1 = name env v1 in
       let v2 = token env v2 (* "." *) in
-      let v3 = simple_name env v3 in
-      todo env (v1, v2, v3)
+      let (ident3, name_info3) = simple_name env v3 in
+      (ident3, {
+        name_qualifier = Some (QDots (ids_of_name v1));
+        name_typeargs = name_info3.name_typeargs;
+      })
   | `Simple_name x -> simple_name env x
   )
 
@@ -2230,14 +2243,14 @@ and declaration (env : env) (x : CST.declaration) : stmt =
         (match v2 with
         | Some x ->
             (match x with
-            | `Static tok -> token env tok (* "static" *)
+            | `Static tok -> todo env tok (* "static" *)
             | `Name_equals x -> name_equals env x
             )
-        | None -> todo env ())
+        | None -> None)
       in
       let v3 = name env v3 in
       let v4 = token env v4 (* ";" *) in
-      todo env (v1, v2, v3, v4)
+      AST.DirectiveStmt (AST.ImportAll (v1, AST.DottedName (ids_of_name v3), v4))
   )
 
 (*****************************************************************************)
