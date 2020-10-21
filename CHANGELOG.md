@@ -3,18 +3,66 @@
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 
-## Next version
+## Next
 
 ### Added
-- Added matching with partial patterns for function signatures or class headers
-  for Javascript/Typescript and Java.
-- Added matching of annotation patterns for Java (@SomeAnnot(...)) in any
-  context
-- The `metavariable-comparison` operator
 
 ### Fixed
-- Addressed off by one errors in autofix
-- Missing characters in metavariable interpolation
+
+## [0.28.0](https://github.com/returntocorp/semgrep/releases/tag/v0.28.0) - 2020-10-21
+
+This release introduces **Spacegrep**:
+an experimental component that can search any language.
+When `languages: [generic]` is specified in a rule,
+Semgrep will use this component behind the scenes
+to match unknown code syntax.
+It infers things like insignificant whitespace,
+bracket pairs, and other common code features.
+This makes full-fledged metavariable capture
+and rule composition work for formats such as
+Markdown, Dockerfile, YAML, Terraform, or raw HTTP.
+Give it a try,
+and submit a pull request
+to [the rules registry](https://github.com/returntocorp/semgrep-rules)
+if you come up with any cool new ideas on what to scan with it!
+
+### Added
+
+- **Spacegrep!** — see above.
+- A `metavariable-comparison` operator
+  for evaluating numeric comparisons on metavariable values,
+  such as `comparison: $KEY_SIZE < 2048`.
+  This is a safe alternative to `pattern-where-python` snippets.
+  Check the [full documentation of this feature](https://github.com/returntocorp/semgrep/blob/12d25a5c/docs/experimental.md#metavariable-comparison)!
+- Matching 1-to-N attributes with a `...` wildcard
+  in JSX tags' attribute lists,
+  such as `<$TAG attr="1" ... />`
+- Matching only the function signature
+  without the function body,
+  such as `function foo(...)`.
+  This is useful to have cleaner match output
+  when the body content doesn't matter in a rule.
+  This works on JavaScript, TypeScript, and Java code currently.
+- SARIF output now includes the exact CWE and OWASP categories as tags.
+  Thanks @hunt3rkillerz!
+- Matching of annotation patterns for Java (like `@SomeAnnot(...)`) in any context.
+
+### Fixed
+
+- PHP superglobals such as `$_GET`,
+  which start with a dollar sign just like Semgrep metavariables,
+  are now correctly interpreted as PHP code instead of Semgrep pattern code.
+- Calls to `isset(...)` in PHP look like function calls,
+  but technically are not functions calls.
+  Now you can match them anyway!
+- It's now possible to write unit tests for OCaml rules.
+- JavaScript's special identifiers,
+  such as `this`, can now be captured into a metavariable.
+- A Java pattern for `implements B`
+  will now also match code that does `implements A, B, C`.
+- Addressed off by one errors when applying autofixes
+- Missing characters in metavariable interpolation in messages
+- And many more minor code parser fixes!
 
 ## [0.27.0](https://github.com/returntocorp/semgrep/releases/tag/v0.27.0) - 2020-10-06
 
