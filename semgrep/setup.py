@@ -112,8 +112,9 @@ class PostInstallCommand(install):
 
     def run(self):
         self.copy_binary("semgrep-core")
-        self.copy_binary("spacegrep")
-        self.copy_binary("spacecat")
+        # FIXME: with these binaries we exceed the 100 MB limit on PyPI
+        # self.copy_binary("spacegrep")
+        # self.copy_binary("spacecat")
 
 
 setup(
