@@ -12,6 +12,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   context
 - The `metavariable-comparison` operator
 
+### Fixed
+- Addressed off by one errors in autofix
+- Missing characters in metavariable interpolation
+
 ## [0.27.0](https://github.com/returntocorp/semgrep/releases/tag/v0.27.0) - 2020-10-06
 
 ### Added
