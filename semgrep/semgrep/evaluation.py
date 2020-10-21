@@ -46,7 +46,7 @@ def get_re_range_matches(
         any_matching_ranges = any(
             pm.range == _range
             and metavariable in pm.metavars
-            and re.match(regex, pm.metavars[metavariable]["abstract_content"])
+            and re.match(regex, pm.get_metavariable_value(metavariable))
             for pm in pattern_matches
         )
         if any_matching_ranges:
@@ -107,7 +107,7 @@ def get_comparison_range_matches(
                 comparison,
                 strip,
                 base,
-                pm.metavars[metavariable]["abstract_content"],
+                pm.get_metavariable_value(metavariable),
             )
             for pm in pattern_matches
         )
@@ -390,8 +390,10 @@ def evaluate(
 
 def interpolate_message_metavariables(rule: Rule, pattern_match: PatternMatch) -> str:
     msg_text = rule.message
-    for metavar, contents in pattern_match.metavars.items():
-        msg_text = msg_text.replace(metavar, contents.get("abstract_content", ""))
+    for metavar in pattern_match.metavars:
+        msg_text = msg_text.replace(
+            metavar, pattern_match.get_metavariable_value(metavar)
+        )
     return msg_text
 
 
@@ -401,8 +403,10 @@ def interpolate_fix_metavariables(
     fix_str = rule.fix
     if fix_str is None:
         return None
-    for metavar, contents in pattern_match.metavars.items():
-        fix_str = fix_str.replace(metavar, contents.get("abstract_content", ""))
+    for metavar in pattern_match.metavars:
+        fix_str = fix_str.replace(
+            metavar, pattern_match.get_metavariable_value(metavar)
+        )
     return fix_str
 
 
