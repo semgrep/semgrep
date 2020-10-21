@@ -8,7 +8,7 @@ from semgrep.semgrep_types import Range
 
 class PatternMatch:
     """
-        Encapsulates a section of code that matches a single pattern
+    Encapsulates a section of code that matches a single pattern
     """
 
     def __init__(self, raw_json: Dict[str, Any]) -> None:
@@ -65,14 +65,14 @@ class PatternMatch:
 
     def get_metavariable_value(self, metavariable: str) -> str:
         """
-            Use metavars start and end to read into the file to find what the
-            metavariable in this pattern match maps to in the file
+        Use metavars start and end to read into the file to find what the
+        metavariable in this pattern match maps to in the file
 
-            Assumes METAVARIABLE is a key in self.metavars
+        Assumes METAVARIABLE is a key in self.metavars
         """
         # Offsets are start inclusive and end exclusive
-        start_offset = self.metavars[metavariable].get("start").get("offset")
-        end_offset = self.metavars[metavariable].get("end").get("offset")
+        start_offset = self.metavars[metavariable]["start"]["offset"]
+        end_offset = self.metavars[metavariable]["end"]["offset"]
         length = end_offset - start_offset
 
         with open(self.path) as file:
