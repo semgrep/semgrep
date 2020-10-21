@@ -44,7 +44,7 @@ echo "Install spacegrep"
 (
   cd spacegrep
   opam install --deps-only -y .
-  make
+  DUNE_PROFILE=static make
   make install
 )
 

@@ -126,11 +126,10 @@ jobs:
         with:
           name: ocaml-build-artifacts
           path: ocaml-build-artifacts.tgz
+      - name: Test spacegrep
+        run: opam exec -- make -C spacegrep test
       - name: Test semgrep-core
-        run: |
-          eval $(opam env)
-          cd semgrep-core
-          make test
+        run: opam exec -- make -C semgrep-core test
 
   release-osx:
     name: Build the OSX binaries
@@ -243,6 +242,9 @@ jobs:
         run: ./semgrep --version
       - name: test core
         run: ./semgrep-core -version
+        working-directory: /opt/python/cp36-cp36m/bin/
+      - name: test spacegrep
+        run: ./spacegrep --help
         working-directory: /opt/python/cp36-cp36m/bin/
       - name: e2e test
         working-directory: /opt/python/cp36-cp36m/bin/

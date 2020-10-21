@@ -40,9 +40,10 @@ from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.semgrep_types import BooleanRuleExpression
 from semgrep.semgrep_types import Language
-from semgrep.semgrep_types import NONE_LANGUAGE
+from semgrep.semgrep_types import NONE_LANGUAGE, GENERIC_LANGUAGE
 from semgrep.semgrep_types import OPERATORS
 from semgrep.semgrep_types import TAINT_MODE
+from semgrep.spacegrep import run_spacegrep
 from semgrep.target_manager import TargetManager
 from semgrep.util import debug_tqdm_write
 from semgrep.util import partition
@@ -385,15 +386,18 @@ class CoreRunner:
 
                 patterns_json = [p.to_json() for p in patterns]
 
-                output_json = self._run_core_command(
-                    patterns_json,
-                    patterns,
-                    targets,
-                    language,
-                    rule,
-                    "-rules_file",
-                    cache_dir,
-                )
+                if language == GENERIC_LANGUAGE:
+                    output_json = run_spacegrep(patterns, targets)
+                else:  # Run semgrep-core
+                    output_json = self._run_core_command(
+                        patterns_json,
+                        patterns,
+                        targets,
+                        language,
+                        rule,
+                        "-rules_file",
+                        cache_dir,
+                    )
 
             errors.extend(
                 CoreException.from_json(e, language, rule.id).into_semgrep_error()
