@@ -1,7 +1,8 @@
 
 type value =
-  | Int of int
   | Bool of bool
+  | Int of int
+  | Float of float
   | String of string (* string without the enclosing '"' *)
   | List of value list
   | AST of string (* any AST, e.g., "x+1" *)

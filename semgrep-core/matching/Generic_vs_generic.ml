@@ -408,10 +408,14 @@ and m_expr a b =
   (*e: [[Generic_vs_generic.m_expr()]] resolving alias case *)
   (*s: [[Generic_vs_generic.m_expr()]] metavariable case *)
   (*s: [[Generic_vs_generic.m_expr()]] forbidden metavariable case *)
-  (* $X should not match an IdSpecial otherwise $X(...) could match
-   * a+b because this is transformed in a Call(IdSpecial Plus, ...)
+  (* $X should not match an IdSpecial in a call context,
+   * otherwise $X(...) would match a+b because this is transformed in a
+   * Call(IdSpecial Plus, ...).
+   * bugfix: note that we must forbid that only in a Call context; we want
+   * $THIS to match IdSpecial (This) for example.
    *)
-  | A.Id ((str,_tok), _id_info), B.IdSpecial _
+  | A.Call (A.Id ((str,_tok), _id_info), _argsa),
+    B.Call (B.IdSpecial _, _argsb)
       when MV.is_metavar_name str ->
       fail ()
   (*e: [[Generic_vs_generic.m_expr()]] forbidden metavariable case *)
@@ -1812,6 +1816,7 @@ and m_definition_kind a b =
   | A.ModuleDef _, _  | A.MacroDef _, _  | A.Signature _, _
   | A.UseOuterDecl _, _
   | A.FieldDef _, _
+  | A.OtherDef _, _
    -> fail ()
   (*e: [[Generic_vs_generic.m_definition_kind]] boilerplate cases *)
 (*e: function [[Generic_vs_generic.m_definition_kind]] *)
@@ -2130,14 +2135,18 @@ and m_list__m_type_ (xsa: A.type_ list) (xsb: A.type_ list) =
   xsa xsb
 (*e: function [[Generic_vs_generic.m_list__m_type_]] *)
 
+and m_list__m_type_any_order (xsa: A.type_ list) (xsb: A.type_ list) =
+  (* TODO? filter existing ellipsis?
+   * let _has_ellipsis, xsb = has_ellipis_and_filter_ellispis xsb in *)
+   (* always implicit ... *)
+   m_list_in_any_order ~less_is_ok:true m_type_ xsa xsb
+
 (* ------------------------------------------------------------------------- *)
 (* Class definition *)
 (* ------------------------------------------------------------------------- *)
 (* TODO: there are a few remaining m_list m_type_ we could transform
  * to use instead m_list__m_type_, for Exception, TyTuple and OrConstructor
  * but maybe quite different from list of types in inheritance
- * TODO again like for m_list__m_field we should not care about the
- * order here.
  *)
 
 (*s: function [[Generic_vs_generic.m_class_definition]] *)
@@ -2150,9 +2159,10 @@ and m_class_definition a b =
       cmixins = b5;
     } ->
     m_class_kind a1 b1 >>= (fun () ->
+    (* TODO: use also m_list_in_any_order? regressions for python? *)
     (m_list__m_type_) a2 b2 >>= (fun () ->
-    (m_list__m_type_) a3 b3 >>= (fun () ->
-    (m_list__m_type_) a5 b5 >>= (fun () ->
+    (m_list__m_type_any_order) a3 b3 >>= (fun () ->
+    (m_list__m_type_any_order) a5 b5 >>= (fun () ->
     m_bracket (m_fields) a4 b4
     ))))
 (*e: function [[Generic_vs_generic.m_class_definition]] *)

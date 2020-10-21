@@ -1,8 +1,0 @@
-(library
- (public_name semgrep_utils)
- (wrapped false)
- (libraries
-   easy_logging_yojson
- )
- (preprocess (pps ppx_profiling))
-)

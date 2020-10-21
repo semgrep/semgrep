@@ -1,0 +1,66 @@
+<!-- cf. https://github.com/caiomartini/mustache-demo/blob/97b9200ebd2d27953febff23e6718aa1aa9ee44d/demo-mustache.html -->
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <title>Demo Mustache.JS</title>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="node_modules\bootstrap\dist\css\bootstrap.min.css">
+    <script type="text/javascript" src="node_modules\jquery\dist\jquery.min.js"></script>
+    <script type="text/javascript" src="node_modules\bootstrap\dist\js\bootstrap.min.js"></script>
+    <script type="text/javascript" src="node_modules\mustache\mustache.min.js"></script>
+    <script type="text/javascript" src="demo-mustache.js"></script>
+</head>
+
+<body onload="carregarDemo();">
+    <div class="content">
+        <div id="mustache-header"></div>
+        <div id="mustache-cards"></div>
+    </div>
+</body>
+
+<script type="text/javascript">
+    <!-- ruleid: var-in-script-tag -->
+    var message = {{ message }};
+</script>
+
+<script type="text/javascript">
+    <!-- ruleid: var-in-script-tag -->
+    var message = {{ message }};
+    console.log(message);
+    console.log("more statements here");
+    var message2 = {{ message2 }};
+    var flash = document.getElementById("flash");
+    flash.text = message;
+</script>
+
+<script type="text/javascript" src="mustache.js"></script>
+<!-- ok: var-in-script-tag -->
+{{ message }}
+<script type="text/javascript" src="demo.js"></script>
+
+<div class="text-center">
+    <h2>Apresentando o time da <b>{{time.nome}}</b></h2>
+    <h6>Predio {{time.predio}}</h6>
+</div>
+{{#time}}
+<div class="container" style="margin-top: 30px;">
+    <div class="row">  
+        {{#squads}}      
+        <div class="col-sm-6">
+            <div class="card">
+                <div class="card-header text-center">
+                    <b>{{nome}}</b>
+                </div>
+                <div class="card-body">
+                    {{! Partial de tabela de membros do Squad }}
+                    {{> template-table}} 
+                </div>
+            </div>
+        </div>
+        {{/squads}}
+    </div>
+</div>
+{{/time}}    
+
+</html>

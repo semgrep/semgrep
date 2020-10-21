@@ -70,7 +70,7 @@ repo_root = os.path.dirname(source_dir)
 class PostInstallCommand(install):
     """Post-installation for installation mode."""
 
-    def run(self):
+    def copy_binary(self, exec_name):
         if "TOX_ENV_NAME" in os.environ:
             print("Not attempting to install binary while running under tox")
             return
@@ -89,26 +89,32 @@ class PostInstallCommand(install):
             if "osx" in distutils.util.get_platform():
                 with chdir(repo_root):
                     os.system(os.path.join(repo_root, "scripts", "osx-release.sh"))
-                    source = os.path.join(repo_root, "artifacts", "semgrep-core")
+                    source = os.path.join(repo_root, "artifacts", exec_name)
             else:
                 with chdir(repo_root):
                     os.system(os.path.join(repo_root, "scripts", "ubuntu-release.sh"))
-                    source = os.path.join(repo_root, "semgrep-files", "semgrep-core")
+                    source = os.path.join(repo_root, "semgrep-files", exec_name)
 
         ## run this after trying to build (as otherwise this leaves
         ## venv in a bad state: https://github.com/benfred/py-spy/issues/69)
         install.run(self)
 
-        ## we're going to install the semgrep-core executable into the scripts directory
+        ## we're going to install the executable (binary) into the scripts directory
         ## but first make sure the scripts directory exists
         if not os.path.isdir(self.install_scripts):
             os.makedirs(self.install_scripts)
 
-        target = os.path.join(self.install_scripts, "semgrep-core")
+        target = os.path.join(self.install_scripts, exec_name)
         if os.path.isfile(target):
             os.remove(target)
 
         self.copy_file(source, target)
+
+    def run(self):
+        self.copy_binary("semgrep-core")
+        self.copy_binary("spacegrep")
+        # FIXME: with this binary we exceed the 100 MB limit on PyPI
+        # self.copy_binary("spacecat")
 
 
 setup(

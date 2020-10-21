@@ -185,6 +185,7 @@ let substmts_of_stmt st =
          | UseOuterDecl _
          (* recurse? *)
          | ModuleDef _
+         | OtherDef _
                 -> []
          (* this will add lots of substatements *)
          | FuncDef def ->
@@ -254,14 +255,13 @@ let flatten_substmts_of_stmts xs =
      * a zillion times on big files (see tests/PERF/) if we do the
      * matching naively in m_stmts_deep.
      *)
-    (if not !Flag_semgrep.go_really_deeper_stmt
-    then ()
-    else begin
+    if !Flag_semgrep.go_really_deeper_stmt
+    then begin
        let es = subexprs_of_stmt x in
        (* getting deeply nested lambdas stmts *)
        let lambdas = es |> List.map lambdas_in_expr_memo |> List.flatten in
        lambdas |> List.map (fun def -> def.fbody) |> List.iter aux
-    end);
+    end;
 
     let xs = substmts_of_stmt x in
     xs |> List.iter aux;

@@ -1,4 +1,6 @@
 function a() { return 1; }
+
+//ERROR: match, this is now parsed as a Lambda
 const a = () => { return 1; }
 
 //ERROR: match

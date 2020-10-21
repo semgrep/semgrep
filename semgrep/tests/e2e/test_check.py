@@ -290,3 +290,28 @@ def test_timeout_threshold(run_semgrep_in_tmp, snapshot):
         ),
         "error_2.txt",
     )
+
+
+def test_metavariable_comparison_rule(run_semgrep_in_tmp, snapshot):
+    snapshot.assert_match(
+        run_semgrep_in_tmp("rules/metavariable-comparison.yaml"), "results.json"
+    )
+
+
+def test_metavariable_comparison_rule_base(run_semgrep_in_tmp, snapshot):
+    snapshot.assert_match(
+        run_semgrep_in_tmp("rules/metavariable-comparison-base.yaml"), "results.json"
+    )
+
+
+def test_metavariable_comparison_rule_strip(run_semgrep_in_tmp, snapshot):
+    snapshot.assert_match(
+        run_semgrep_in_tmp("rules/metavariable-comparison-strip.yaml"), "results.json"
+    )
+
+
+def test_metavariable_comparison_rule_bad_content(run_semgrep_in_tmp, snapshot):
+    snapshot.assert_match(
+        run_semgrep_in_tmp("rules/metavariable-comparison-bad-content.yaml"),
+        "results.json",
+    )

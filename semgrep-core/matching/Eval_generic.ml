@@ -35,9 +35,9 @@ let logger = Logging.get_logger [__MODULE__]
 
 (* This is the (partially parsed) content of a metavariable *)
 type value =
-  | Int of int
   | Bool of bool
-  (* less: Float? *)
+  | Int of int
+  | Float of float
   | String of string (* string without the enclosing '"' *)
   | List of value list
   (* default case where we don't really have good builtin operations.
@@ -57,36 +57,39 @@ exception NotHandled of code
 (*****************************************************************************)
 (* Parsing *)
 (*****************************************************************************)
-let parse_metavar s =
-  match s with
-  | "true" | "True" -> Bool (true)
-  | "false" | "False" -> Bool (false)
-  | _ when s =~ "^[0-9]+$" -> Int (int_of_string s)
-  | _ when s =~ "^\"\\(.*\\)\"$" -> String (Common.matched1 s)
-  | _ -> AST s
+let metavar_of_json s = function
+  | J.Int i -> Int i
+  | J.Bool b -> Bool b
+  | J.String s -> String s
+  | J.Float f -> Float f
+  | _ -> failwith (spf "wrong format for metavar %s" s)
 
 let parse_json file =
   let json = JSON.load_json file in
   match json with
-  | J.Object [
-      "metavars", J.Object xs;
-      "language", J.String lang;
-      "code", J.String code;
+  | J.Object xs ->
+    (match Common.sort_by_key_lowfirst xs with
+    | ["code", J.String code;
+       "language", J.String lang;
+       "metavars", J.Object xs;
       ] ->
-      let lang = Hashtbl.find Lang.lang_of_string_map lang in
+      let lang =
+        try Hashtbl.find Lang.lang_of_string_map lang
+        with Not_found -> failwith (spf "unsupported language %s" lang)
+      in
       (* less: could also use Parse_pattern *)
       let code =
         match Parse_generic.parse_pattern lang code with
         | G.E e -> e
         | _ -> failwith "only expressions are supported"
       in
-      let metavars = xs |> List.map (fun (s, json) ->
-            match json with
-            | J.String s2 -> s, parse_metavar s2
-            | _ -> failwith "wrong json format for metavar"
-       ) in
+      let metavars =
+        xs |> List.map (fun (s, json) -> s, metavar_of_json s json)
+      in
       Common.hash_of_list metavars, code
 
+    | _ -> failwith "wrong json format"
+    )
   | _ -> failwith "wrong json format"
 
 (*****************************************************************************)
@@ -116,12 +119,18 @@ let rec eval env code =
   | G.L x ->
       (match x with
       | G.Bool (b, _t) -> Bool (b)
-      | G.Int (s, _t) -> Int (int_of_string s)
       | G.String (s, _t) -> String s
+      (* this assumes the string format of the language is handled by
+       * OCaml xx_of_string builtins.
+       *)
+      | G.Int (s, _t) -> Int (int_of_string s)
+      | G.Float (s, _t) -> Float (float_of_string s)
       | _ -> raise (NotHandled code)
       )
   | G.Id ((s, _t), _idinfo) ->
-      Hashtbl.find env s
+    (try Hashtbl.find env s
+     with Not_found -> raise (NotHandled code)
+    )
   | G.Call (G.IdSpecial (G.Op op, _t), (_, args, _)) ->
       let values = args |> List.map (function
             | G.Arg e -> eval env e
@@ -148,6 +157,12 @@ and eval_op op values code =
   | G.Lt, [Int i1; Int i2] -> Bool (i1 < i2)
   | G.LtE, [Int i1; Int i2] -> Bool (i1 <= i2)
 
+  (* todo: we should perform cast and allow to mix Float and Int *)
+  | G.Gt, [Float i1; Float i2] -> Bool (i1 > i2)
+  | G.GtE, [Float i1; Float i2] -> Bool (i1 >= i2)
+  | G.Lt, [Float i1; Float i2] -> Bool (i1 < i2)
+  | G.LtE, [Float i1; Float i2] -> Bool (i1 <= i2)
+
   | G.And, [Bool b1; Bool b2] -> Bool (b1 && b2)
   | G.Or, [Bool b1; Bool b2] -> Bool (b1 || b2)
   | G.Not, [Bool b1] -> Bool (not b1)
@@ -160,6 +175,18 @@ and eval_op op values code =
   | G.Div, [Int i1; Int i2] -> Int (i1 / i2)
   | G.Mod, [Int i1; Int i2] -> Int (i1 mod i2)
 
+  (* todo: we should perform automatic cast and allow to mix Float and Int *)
+  | G.Plus, [Float i1] -> Float i1
+  | G.Plus, [Float i1; Float i2] -> Float (i1 +. i2)
+  | G.Minus, [Float i1] -> Float (-. i1)
+  | G.Minus, [Float i1; Float i2] -> Float (i1 -. i2)
+  | G.Mult, [Float i1; Float i2] -> Float (i1 *. i2)
+  | G.Div, [Float i1; Float i2] -> Float (i1 /. i2)
+
+  (* abuse generic =. Not that this will prevent
+   * Int 0 to be equal to Float 0.0.
+   * Again need automatic cast.
+   *)
   | G.Eq, [v1; v2] -> Bool (v1 = v2)
   | G.NotEq, [v1; v2] -> Bool (v1 <> v2)
 

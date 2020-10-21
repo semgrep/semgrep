@@ -33,10 +33,6 @@ repos:
       - id: mypy
         exclude: ^semgrep\/tests\/.+$|^setup.py$|^scripts\/.+$$
         args: [--config, mypy.ini]
-
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: "v0.782"
-    hooks:
       - id: mypy
         alias: mypy-test
         name: mypy (test files)
@@ -58,19 +54,11 @@ repos:
         types: [python]
         exclude: "^semgrep/tests/.+$|^scripts/.+$|^semgrep/setup.py$"
         args: ['--config', 'https://semgrep.dev/p/python', '--error']
-
-  - repo: https://github.com/returntocorp/semgrep
-    rev: 'v0.18.0'
-    hooks:
       - id: semgrep
         name: Semgrep Bandit
         types: [python]
         exclude: "^semgrep/tests/.+$|^scripts/.+$|^semgrep/setup.py$"
         args: ['--config', 'https://semgrep.dev/p/bandit', '--error']
-
-  - repo: https://github.com/returntocorp/semgrep
-    rev: 'v0.18.0'
-    hooks:
       - id: semgrep
         name: Semgrep Local
         types: [python]
@@ -107,20 +95,12 @@ repos:
         exclude: "^semgrep/tests/.+$|^scripts/.+$|^semgrep/setup.py$"
         args: ['--config', 'https://semgrep.dev/p/python', '--error']
         stages: [manual]
-
-  - repo: https://github.com/returntocorp/semgrep
-    rev: 'v0.18.0'
-    hooks:
       - id: semgrep-docker-develop
         name: Semgrep Develop Bandit
         types: [python]
         exclude: "^semgrep/tests/.+$|^scripts/.+$|^semgrep/setup.py$"
         args: ['--config', 'https://semgrep.dev/p/bandit', '--error']
         stages: [manual]
-
-  - repo: https://github.com/returntocorp/semgrep
-    rev: 'v0.18.0'
-    hooks:
       - id: semgrep-docker-develop
         name: Semgrep Develop Local
         types: [python]
