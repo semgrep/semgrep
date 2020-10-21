@@ -1222,10 +1222,10 @@ and statement (env : env) (x : CST.statement) =
         | Some (v1, v2) ->
             let v1 = token env v1 (* "else" *) in
             let v2 = statement env v2 in
-            todo env (v1, v2)
-        | None -> todo env ())
+            Some v2
+        | None -> None)
       in
-      todo env (v1, v2, v3, v4, v5, v6)
+      AST.If (v1, v3, v5, v6)
   | `Labe_stmt (v1, v2, v3) ->
       let v1 = identifier env v1 (* identifier *) in
       let v2 = token env v2 (* ":" *) in
