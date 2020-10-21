@@ -349,6 +349,12 @@ FAILING_REPOS = [
     ),
     xfail_repo({"repo": "https://github.com/Homebrew/brew", "languages": ["ruby"]}),
     xfail_repo({"repo": "https://github.com/gitlabhq/gitlabhq", "languages": ["ruby"]}),
+    xfail_repo({"repo": "https://github.com/coinbase/coinbase-pro-node", "languages": ["javascript", "typescript"]},
+                reason=("Failure to parse typescript"),
+    ),
+    xfail_repo({"repo": "https://github.com/bkimminich/juice-shop", "languages": ["javascript", "typescript"]},
+                reason=("Failure to parse typescript"),
+    ),
     xfail_repo(
         {"repo": "https://github.com/dropbox/changes", "languages": ALL_LANGUAGES},
         reason="react",
