@@ -5,6 +5,7 @@ from enum import Enum
 
 from semgrep import __VERSION__
 from semgrep.util import compute_semgrep_path
+from semgrep.util import compute_spacegrep_path
 
 RCE_RULE_FLAG = "--dangerously-allow-arbitrary-code-execution-from-rules"
 RULES_KEY = "rules"
@@ -24,6 +25,7 @@ if SEMGREP_USER_AGENT_APPEND is not None:
     SEMGREP_USER_AGENT = f"{SEMGREP_USER_AGENT} {SEMGREP_USER_AGENT_APPEND}"
 
 SEMGREP_PATH = compute_semgrep_path()
+SPACEGREP_PATH = compute_spacegrep_path()
 
 
 class OutputFormat(Enum):
