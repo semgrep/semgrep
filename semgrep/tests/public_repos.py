@@ -42,10 +42,6 @@ PASSING_REPOS = [
         "languages": ALL_LANGUAGES,
     },
     {"repo": "https://github.com/coinbase/coinbase-node", "languages": ALL_LANGUAGES},
-    {
-        "repo": "https://github.com/coinbase/coinbase-pro-node",
-        "languages": ALL_LANGUAGES,
-    },
     {"repo": "https://github.com/coinbase/coinbase-python", "languages": ALL_LANGUAGES},
     {
         "repo": "https://github.com/coinbase/coinbase-tip-discourse",
@@ -257,7 +253,6 @@ PASSING_REPOS = [
     {"repo": "https://github.com/dropbox/godropbox", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/dropbox/trapperkeeper", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/lodash/lodash", "languages": ALL_LANGUAGES},
-    {"repo": "https://github.com/bkimminich/juice-shop", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/zulip/zulip", "languages": ALL_LANGUAGES},
     {
         "repo": "https://github.com/home-assistant/home-assistant",
