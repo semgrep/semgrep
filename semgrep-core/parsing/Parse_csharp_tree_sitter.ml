@@ -367,103 +367,104 @@ and query_continuation (env : env) (x : CST.query_continuation) =
       todo env (v1, v2, v3)
   )
 
+(* TODO all these shouldn't use AssignOp *)
 and binary_expression (env : env) (x : CST.binary_expression) =
   (match x with
   | `Exp_AMPAMP_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "&&" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      AST.AssignOp (v1, (AST.And, v2), v3)
   | `Exp_BARBAR_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "||" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      AST.AssignOp (v1, (AST.Or, v2), v3)
   | `Exp_GTGT_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* ">>" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      AST.AssignOp (v1, (AST.LSR, v2), v3) (* TODO Is LSR the correct shift type? *)
   | `Exp_LTLT_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "<<" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      AST.AssignOp (v1, (AST.LSL, v2), v3)
   | `Exp_AMP_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "&" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      AST.AssignOp (v1, (AST.BitAnd, v2), v3)
   | `Exp_HAT_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "^" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      AST.AssignOp (v1, (AST.BitXor, v2), v3)
   | `Exp_BAR_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "|" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      AST.AssignOp (v1, (AST.BitOr, v2), v3)
   | `Exp_PLUS_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "+" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      AST.AssignOp (v1, (AST.Plus, v2), v3)
   | `Exp_DASH_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "-" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      AST.AssignOp (v1, (AST.Minus, v2), v3)
   | `Exp_STAR_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "*" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      AST.AssignOp (v1, (AST.Mult, v2), v3)
   | `Exp_SLASH_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "/" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      AST.AssignOp (v1, (AST.Div, v2), v3)
   | `Exp_PERC_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "%" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      AST.AssignOp (v1, (AST.Mod, v2), v3)
   | `Exp_LT_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "<" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      AST.AssignOp (v1, (AST.Lt, v2), v3)
   | `Exp_LTEQ_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "<=" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      AST.AssignOp (v1, (AST.LtE, v2), v3)
   | `Exp_EQEQ_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "==" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      AST.AssignOp (v1, (AST.Eq, v2), v3)
   | `Exp_BANGEQ_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "!=" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      AST.AssignOp (v1, (AST.NotEq, v2), v3)
   | `Exp_GTEQ_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* ">=" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      AST.AssignOp (v1, (AST.GtE, v2), v3)
   | `Exp_GT_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* ">" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      AST.AssignOp (v1, (AST.Gt, v2), v3)
   | `Exp_QMARKQMARK_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "??" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      AST.AssignOp (v1, (AST.Nullish, v2), v3)
   | `Exp_choice_is_type (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 =
