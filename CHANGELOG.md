@@ -11,24 +11,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## [0.28.0](https://github.com/returntocorp/semgrep/releases/tag/v0.28.0) - 2020-10-21
 
-This release introduces **Spacegrep**:
-an experimental component that can search any language.
-When `languages: [generic]` is specified in a rule,
-Semgrep will use this component behind the scenes
-to match unknown code syntax.
-It infers things like insignificant whitespace,
-bracket pairs, and other common code features.
-This makes full-fledged metavariable capture
-and rule composition work for formats such as
-Markdown, Dockerfile, YAML, Terraform, or raw HTTP.
-Give it a try,
-and submit a pull request
-to [the rules registry](https://github.com/returntocorp/semgrep-rules)
-if you come up with any cool new ideas on what to scan with it!
-
 ### Added
 
-- **Spacegrep!** — see above.
 - A `metavariable-comparison` operator
   for evaluating numeric comparisons on metavariable values,
   such as `comparison: $KEY_SIZE < 2048`.
