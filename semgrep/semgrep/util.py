@@ -145,19 +145,24 @@ def sub_check_output(cmd: List[str], **kwargs: Any) -> Any:
     return result
 
 
-def compute_semgrep_path() -> str:
-    exec_name = "semgrep-core"
+def compute_executable_path(exec_name: str) -> str:
+    """Determine full executable path if full path is needed to run it."""
     which_core = sub_run(["which", exec_name], stdout=subprocess.DEVNULL)
     if which_core.returncode != 0:
         # look for something in the same dir as the Python interpreter
         relative_path = os.path.join(os.path.dirname(sys.executable), exec_name)
         if os.path.exists(relative_path):
             exec_name = relative_path
+        else:
+            # fmt: off
+            raise subprocess.SubprocessError("Could not locate '{}' binary".format(exec_name))  # nosem: python.lang.security.audit.dangerous-subprocess-use.dangerous-subprocess-use
+            # fmt: on
     return exec_name
 
 
+def compute_semgrep_path() -> str:
+    return compute_executable_path("semgrep-core")
+
+
 def compute_spacegrep_path() -> str:
-    path = shutil.which("spacegrep")
-    if path is None:
-        raise subprocess.SubprocessError("Could not locate 'spacegrep' binary")
-    return path
+    return compute_executable_path("spacegrep")
