@@ -58,6 +58,10 @@ class Rule:
         self._excludes = path_dict.get("exclude", [])
         self._languages = [Language(l) for l in self._raw["languages"]]
 
+        # add 'ts' to languages if the rule supports javascript.
+        if ("javascript" in self._languages) or ("js" in self._languages):
+            self._languages.append("ts")
+
         # check taint/search mode
         self._expression, self._mode = self._build_search_patterns_for_mode(self._yaml)
 
