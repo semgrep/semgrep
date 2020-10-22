@@ -496,8 +496,8 @@ and variable_declarator (env : env) ((v1, v2, v3) : CST.variable_declarator) =
   in
   let v3 =
     (match v3 with
-    | Some x -> equals_value_clause env x
-    | None -> todo env ())
+    | Some x -> Some (equals_value_clause env x)
+    | None -> None)
   in
   todo env (v1, v2, v3)
 
@@ -646,7 +646,7 @@ and argument (env : env) ((v1, v2, v3) : CST.argument) : AST.argument =
   let v3 =
     (match v3 with
     | `Exp x -> expression env x
-    | `Decl_exp x -> declaration_expression env x
+    | `Decl_exp x -> pattern_to_expr (declaration_expression env x) (* TODO is this OK? *)
     )
   in
   (* TODO return Ast.ArgKwd if Some v1 *)
@@ -1150,22 +1150,22 @@ and statement (env : env) (x : CST.statement) =
   | `For_each_stmt (v1, v2, v3, v4, v5, v6, v7, v8) ->
       let v1 =
         (match v1 with
-        | Some tok -> token env tok (* "await" *)
-        | None -> todo env ())
+        | Some tok -> todo env tok (* "await" *)
+        | None -> None)
       in
       let v2 = token env v2 (* "foreach" *) in
       let v3 = token env v3 (* "(" *) in
       let v4 =
         (match v4 with
         | `Type_id x -> declaration_expression env x
-        | `Exp x -> expression env x
+        | `Exp x -> expr_to_pattern (expression env x)
         )
       in
       let v5 = token env v5 (* "in" *) in
       let v6 = expression env v6 in
       let v7 = token env v7 (* ")" *) in
       let v8 = statement env v8 in
-      todo env (v1, v2, v3, v4, v5, v6, v7, v8)
+      For (v2, ForEach  (v4, v5, v6), v8)
   | `For_stmt (v1, v2, v3, v4, v5, v6, v7, v8, v9) ->
       let v1 = token env v1 (* "for" *) in
       let v2 = token env v2 (* "(" *) in
@@ -1484,7 +1484,7 @@ and formal_parameter_list (env : env) ((v1, v2) : CST.formal_parameter_list) =
 and equals_value_clause (env : env) ((v1, v2) : CST.equals_value_clause) =
   let v1 = token env v1 (* "=" *) in
   let v2 = expression env v2 in
-  todo env (v1, v2)
+  v2
 
 and case_switch_label (env : env) ((v1, v2, v3) : CST.case_switch_label) =
   let v1 = token env v1 (* "case" *) in
@@ -1595,7 +1595,7 @@ and parameter (env : env) ((v1, v2, v3, v4, v5) : CST.parameter) =
   let v4 = identifier env v4 (* identifier *) in
   let v5 =
     (match v5 with
-    | Some x -> equals_value_clause env x
+    | Some x -> Some (equals_value_clause env x)
     | None -> None)
   in
   {
@@ -1751,10 +1751,10 @@ and select_or_group_clause (env : env) (x : CST.select_or_group_clause) =
       todo env (v1, v2)
   )
 
-and declaration_expression (env : env) ((v1, v2) : CST.declaration_expression) =
+and declaration_expression (env : env) ((v1, v2) : CST.declaration_expression) : pattern =
   let v1 = type_constraint env v1 in
   let v2 = identifier env v2 (* identifier *) in
-  todo env (v1, v2)
+  PatVar (v1, Some (v2, empty_id_info ()))
 
 and interpolation (env : env) ((v1, v2, v3, v4, v5) : CST.interpolation) =
   let v1 = token env v1 (* "{" *) in
