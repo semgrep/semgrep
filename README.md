@@ -206,4 +206,4 @@ Semgrep is a frontend to a larger program analysis library named [`pfff`](https:
 
 Semgrep is supported by [r2c](https://r2c.dev). We're hiring!
 
-Interested in a fully-supported, hosted version of Semgrep? [Drop your email](https://forms.gle/dpUUvSo1WtELL8DW6) and we'll be in touch!
+Interested in Semgrep infrastructure for operating a modern AppSec program? Learn more at [Semgrep.dev](https://semgrep.dev/manage).
