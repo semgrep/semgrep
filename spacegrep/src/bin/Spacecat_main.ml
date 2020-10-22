@@ -51,14 +51,14 @@ let man = [
   `P "spacegrep(1)"
 ]
 
-let parse_command_line () =
-  let info =
-    Term.info
-      ~doc
-      ~man
-      "spacecat"
-  in
-  match Term.eval (cmdline_term, info) with
+let info name =
+  Term.info
+    ~doc
+    ~man
+    name
+
+let parse_command_line name =
+  match Term.eval (cmdline_term, info name) with
   | `Error _ -> exit 1
   | `Version | `Help -> exit 0
   | `Ok config -> config
@@ -81,8 +81,5 @@ let run config =
   print pat
 
 let main () =
-  Printexc.record_backtrace true;
-  let config = parse_command_line () in
+  let config = parse_command_line "spacecat" in
   run config
-
-let () = main ()

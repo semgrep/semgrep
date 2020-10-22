@@ -4,10 +4,18 @@ ifndef DUNE_PROFILE
 endif
 export DUNE_PROFILE
 
+# Build a single executable. Its behavior depends on the command name:
+#
+# - spacegrep (default)
+# - spacecat
+#
 .PHONY: build
 build:
 	dune build --profile $(DUNE_PROFILE)
-	test -e bin || ln -s _build/install/default/bin .
+	@echo
+	mkdir -p bin
+	ln -sf ../_build/install/default/bin/spacegrep bin/spacegrep
+	ln -sf spacegrep bin/spacecat
 
 .PHONY: install
 install:
