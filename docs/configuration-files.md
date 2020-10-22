@@ -111,7 +111,7 @@ The below optional fields must reside underneath a `patterns` or `pattern-either
 
 | Field | Type | Description |
 | :--- | :--- | :--- |
-| [`metavariable-regex`](configuration-files.md#metavariable-regex) | `map` | Search metavariables for [Python `re.match`](https://docs.python.org/3/library/re.html#re.match) compatible expressions. |
+| [`metavariable-regex`](configuration-files.md#metavariable-regex) | `map` | Filter on metavariable content and [Python `re.match`](https://docs.python.org/3/library/re.html#re.match) expressions. |
 | [`pattern-not`](configuration-files.md#pattern-not) | `string` | Logical NOT - remove findings matching this expression. |
 | [`pattern-inside`](configuration-files.md#pattern-inside) | `string` | Keep findings that lie inside this pattern. |
 | [`pattern-not-inside`](configuration-files.md#pattern-not-inside) | `string` | Keep findings that do not lie inside this pattern. |

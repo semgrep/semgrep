@@ -221,21 +221,21 @@ let man = [
   `P "semgrep, spacecat"
 ]
 
-let parse_command_line () =
-  let info =
-    Term.info
-      ~doc
-      ~man
-      "spacegrep"
-  in
-  match Term.eval (cmdline_term, info) with
+let info name =
+  Term.info
+    ~doc
+    ~man
+    name
+
+let parse_command_line name =
+  match Term.eval (cmdline_term, info name) with
   | `Error _ -> exit 1
   | `Version | `Help -> exit 0
   | `Ok config -> config
 
+(*
+   Entry point for calling the command 'spacegrep' directly.
+*)
 let main () =
-  Printexc.record_backtrace true;
-  let config = parse_command_line () in
+  let config = parse_command_line "spacegrep" in
   run config
-
-let () = main ()

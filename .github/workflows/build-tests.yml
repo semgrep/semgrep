@@ -63,7 +63,7 @@ jobs:
     runs-on: macos-latest
     needs: [mac-build]
     steps:
-      - name: Download Artifact
+      - name: Download artifacts
         uses: actions/download-artifact@v1
         with:
           name: semgrep-osx
@@ -72,7 +72,9 @@ jobs:
         run: |
           ls -l artifacts
           chmod +x ./artifacts/semgrep-core
+          chmod +x ./artifacts/spacegrep
           ./artifacts/semgrep-core -help
+          ./artifacts/spacegrep --help
 
   release-ubuntu:
     name: Check builds for ubuntu

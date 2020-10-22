@@ -221,13 +221,13 @@ Then to test semgrep on a file, for example tests/GENERIC/test.py run:
 
 ```bash
 $ cd semgrep-core
-$ ./_build/default/bin/Main.exe -e foo -lang python tests/python
+$ ./_build/default/cli/Main.exe -e foo -lang python tests/python
 ```
 
 If you want to test semgrep on a directory with a set of given rules, run:
 
 ```bash
-$ cp ./semgrep-core/_build/default/bin/Main.exe /usr/local/bin/semgrep_core
+$ cp ./semgrep-core/_build/default/cli/Main.exe /usr/local/bin/semgrep_core
 $ cd semgrep
 $ pipenv install --dev
 $ pipenv run semgrep --config <YAML_FILE_OR_DIRECTORY> <code to check>
@@ -261,7 +261,7 @@ a short profile of the code, for example:
 
 ``` bash
 $ cd semgrep-core
-$ ./_build/default/bin/Main.exe -profile -e foo tests/python
+$ ./_build/default/cli/Main.exe -profile -e foo tests/python
 ---------------------
 profiling result
 ---------------------
@@ -275,7 +275,7 @@ You can also instead set the environment variable SEMGREP_CORE_PROFILE to 1 to g
 ```bash
 cd semgrep-core
 export SEMGREP_CORE_PROFILE=1
-./_build/default/bin/Main.exe -e foo tests/python
+./_build/default/cli/Main.exe -e foo tests/python
 ---------------------
 profiling result
 ---------------------

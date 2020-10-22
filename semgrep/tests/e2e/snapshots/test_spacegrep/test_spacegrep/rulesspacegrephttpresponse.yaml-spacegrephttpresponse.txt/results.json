@@ -1,0 +1,24 @@
+{
+  "errors": [],
+  "results": [
+    {
+      "check_id": "rules.spacegrep.content-type-text-html",
+      "end": {
+        "col": 24,
+        "line": 6
+      },
+      "extra": {
+        "lines": "Content-Type: text/html",
+        "message": "Detected text/html",
+        "metadata": {},
+        "metavars": {},
+        "severity": "INFO"
+      },
+      "path": "targets/spacegrep/httpresponse.txt",
+      "start": {
+        "col": 1,
+        "line": 6
+      }
+    }
+  ]
+}

@@ -183,6 +183,15 @@ let match_at_at rule a b =
       match_at_at2 a b))
 [@@profiling]
 
+let match_fld_fld2 pattern e =
+  let env = Matching_generic.empty_environment () in
+  GG.m_field pattern e env
+let match_fld_fld rule a b =
+    Common.profile_code ("rule:" ^ rule.R.id) (fun () ->
+     set_last_matched_rule rule (fun () ->
+      match_fld_fld2 a b))
+[@@profiling]
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
@@ -239,6 +248,7 @@ let check2 ~hook rules equivs file lang ast =
   let type_rules = ref [] in
   let pattern_rules = ref [] in
   let attribute_rules = ref [] in
+  let fld_rules = ref [] in
   let partial_rules = ref [] in
   (*s: [[Semgrep_generic.check2()]] populate [[expr_rules]] and other *)
   rules |> List.iter (fun rule ->
@@ -254,9 +264,10 @@ let check2 ~hook rules equivs file lang ast =
     | T pattern -> Common.push (pattern, rule) type_rules
     | P pattern -> Common.push (pattern, rule) pattern_rules
     | At pattern -> Common.push (pattern, rule) attribute_rules
+    | Fld pattern -> Common.push (pattern, rule) fld_rules
     | Partial pattern -> Common.push (pattern, rule) partial_rules
     | _ -> failwith
-     "only expr/stmt/stmts/type/pattern/annotation/partial patterns are supported"
+     "only expr/stmt/stmts/type/pattern/annotation/field/partial patterns are supported"
   );
   (*e: [[Semgrep_generic.check2()]] populate [[expr_rules]] and other *)
 
@@ -323,13 +334,18 @@ let check2 ~hook rules equivs file lang ast =
       match_rules_and_recurse (file, hook, matches)
          !pattern_rules match_p_p k (fun x -> P x) x
     );
-    V.kpartial = (fun (k, _) x ->
-      match_rules_and_recurse (file, hook, matches)
-         !partial_rules match_partial_partial k (fun x -> Partial x) x
-    );
     V.kattr = (fun (k, _) x ->
       match_rules_and_recurse (file, hook, matches)
          !attribute_rules match_at_at k (fun x -> At x) x
+    );
+    V.kfield = (fun (k, _) x ->
+      match_rules_and_recurse (file, hook, matches)
+         !fld_rules match_fld_fld k (fun x -> Fld x) x
+    );
+
+    V.kpartial = (fun (k, _) x ->
+      match_rules_and_recurse (file, hook, matches)
+         !partial_rules match_partial_partial k (fun x -> Partial x) x
     );
   }
   in
