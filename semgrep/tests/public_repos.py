@@ -1,7 +1,7 @@
 import pytest
 
 
-def xfail_repo(repo, *, reason=None):
+def xfail_repo(repo, *, reason=""):
     return pytest.param(repo, marks=pytest.mark.xfail(reason=reason, strict=True))
 
 
@@ -344,11 +344,19 @@ FAILING_REPOS = [
     ),
     xfail_repo({"repo": "https://github.com/Homebrew/brew", "languages": ["ruby"]}),
     xfail_repo({"repo": "https://github.com/gitlabhq/gitlabhq", "languages": ["ruby"]}),
-    xfail_repo({"repo": "https://github.com/coinbase/coinbase-pro-node", "languages": ["javascript", "typescript"]},
-                reason=("Failure to parse typescript"),
+    xfail_repo(
+        {
+            "repo": "https://github.com/coinbase/coinbase-pro-node",
+            "languages": ["javascript", "typescript"],
+        },
+        reason=("Failure to parse typescript"),
     ),
-    xfail_repo({"repo": "https://github.com/bkimminich/juice-shop", "languages": ["javascript", "typescript"]},
-                reason=("Failure to parse typescript"),
+    xfail_repo(
+        {
+            "repo": "https://github.com/bkimminich/juice-shop",
+            "languages": ["javascript", "typescript"],
+        },
+        reason=("Failure to parse typescript"),
     ),
     xfail_repo(
         {"repo": "https://github.com/dropbox/changes", "languages": ALL_LANGUAGES},
