@@ -1,6 +1,6 @@
 (executables
-  (public_names spacegrep spacecat)
-  (names Spacegrep_main Spacecat_main)
+  (public_names spacegrep)
+  (names Space_main)
   (libraries
     spacegrep
     cmdliner
