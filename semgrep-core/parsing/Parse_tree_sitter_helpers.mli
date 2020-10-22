@@ -13,4 +13,11 @@ val str: env -> Tree_sitter_run.Token.t -> string * Parse_info.t
 
 val combine_tokens: env -> Tree_sitter_run.Token.t list -> Parse_info.t
 
-val convert_tree_sitter_exn_to_pfff_exn: (unit -> 'a) -> 'a
+(*
+   Call a tree-sitter parser and then map the CST into an AST
+   with the user-provided function. Takes care of error handling.
+*)
+val wrap_parser :
+  (unit -> 'cst option * Tree_sitter_run.Tree_sitter_error.t list) ->
+  ('cst -> 'ast_item list) ->
+  'ast_item list

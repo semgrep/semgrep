@@ -1686,28 +1686,29 @@ let program ((v1, _v2interpreted) : CST.program) : AST.stmts  =
 (*****************************************************************************)
 
 let parse file =
- H.convert_tree_sitter_exn_to_pfff_exn (fun () ->
-  (* TODO: tree-sitter bindings are buggy so we cheat and fork to
-   * avoid segfaults to popup. See Main.ml test_parse_ruby function.
-   *)
-   let cst =
-      match 2 with
-      (* segfault quite often *)
-      | 1 -> Tree_sitter_ruby.Parse.file file
-      (* segfault less, but as we fork from a more complex point where
-       * we allocated quite a few stuff, the probability to get a segfault
-       * in the child grows
+  H.wrap_parser
+    (fun () ->
+       (* TODO: tree-sitter bindings are buggy so we cheat and fork to
+        * avoid segfaults to popup. See Main.ml test_parse_ruby function.
        *)
-      | _ ->
-         Parallel.backtrace_when_exn := false;
-         Parallel.invoke Tree_sitter_ruby.Parse.file file ()
-   in
-   (*
-   let sexp = CST.sexp_of_program x in
-   let s = Sexplib.Sexp.to_string_hum sexp in
-   pr s;
-  *)
-   global_file := file;
-   global_conv := H.line_col_to_pos file;
-   program cst
- )
+       match 2 with
+       (* segfault quite often *)
+       | 1 -> Tree_sitter_ruby.Parse.file file
+       (* segfault less, but as we fork from a more complex point where
+        * we allocated quite a few stuff, the probability to get a segfault
+        * in the child grows
+       *)
+       | _ ->
+           Parallel.backtrace_when_exn := false;
+           Parallel.invoke Tree_sitter_ruby.Parse.file file ()
+    )
+    (fun cst ->
+      (*
+      let sexp = CST.sexp_of_program x in
+      let s = Sexplib.Sexp.to_string_hum sexp in
+      pr s;
+      *)
+       global_file := file;
+       global_conv := H.line_col_to_pos file;
+       program cst
+    )
