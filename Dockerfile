@@ -34,7 +34,6 @@ RUN eval "$(opam env)" && DUNE_PROFILE=static make -C spacegrep/
 RUN eval "$(opam env)" && make -C semgrep-core/ all
 
 # Sanity checks
-RUN test -x ./spacegrep/_build/install/default/bin/spacecat
 RUN test -x ./spacegrep/_build/install/default/bin/spacegrep
 RUN ./semgrep-core/_build/install/default/bin/semgrep-core -version
 
@@ -54,11 +53,9 @@ COPY --from=build-semgrep-core \
 RUN semgrep-core -version
 
 COPY --from=build-semgrep-core \
-     /semgrep/spacegrep/_build/install/default/bin/spacecat \
-     /usr/local/bin/spacecat
-COPY --from=build-semgrep-core \
      /semgrep/spacegrep/_build/install/default/bin/spacegrep \
      /usr/local/bin/spacegrep
+RUN ln -sf spacegrep /usr/local/bin/spacecat
 
 COPY semgrep /semgrep
 RUN HOMEBREW_SYSTEM='NOCORE' python -m pip install /semgrep

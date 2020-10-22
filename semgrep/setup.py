@@ -113,7 +113,24 @@ class PostInstallCommand(install):
     def run(self):
         self.copy_binary("semgrep-core")
         self.copy_binary("spacegrep")
-        # FIXME: with this binary we exceed the 100 MB limit on PyPI
+        # FIXME: with an extra 3 MB binary we exceed the 100 MB limit on PyPI
+        # Suggested fixes:
+        # - spacecat and spacegrep are now the same executable. We only need
+        #   the command (= executable file name) to be 'spacecat' to trigger
+        #   the spacecat behavior.
+        #   This can be achieved with a symlink or by copying 'spacegrep'
+        #   to 'spacecat' at installation time. Spacecat is a utility for
+        #   printing an AST, which is nice to have but not called
+        #   by semgrep or semgrep-core.
+        # - Use 'strip' to reduce the size of the semgrep-core executable.
+        #   Its big size is due to large parse tables that support
+        #   the LR(1) parsing algorithm used by menhir and tree-sitter.
+        #   For tree-sitter, those are the 'parser.c' files generated for each
+        #   grammar. We'll have more and more of such files, so the size of
+        #   our static semgrep-core executable is expected to keep growing.
+        #
+        # Original code:
+        #
         # self.copy_binary("spacecat")
 
 
