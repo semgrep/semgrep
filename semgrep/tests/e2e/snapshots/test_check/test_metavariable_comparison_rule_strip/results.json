@@ -1,0 +1,42 @@
+{
+  "errors": [],
+  "results": [
+    {
+      "check_id": "rules.metavar-comparison-test-strip",
+      "end": {
+        "col": 42,
+        "line": 1
+      },
+      "extra": {
+        "lines": "metavariable_comparison_test_strip('100')",
+        "message": "Metavariable regex test",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "'100'",
+            "end": {
+              "col": 41,
+              "line": 1,
+              "offset": 40
+            },
+            "start": {
+              "col": 36,
+              "line": 1,
+              "offset": 35
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/basic/metavariable-comparison-strip.py",
+      "start": {
+        "col": 1,
+        "line": 1
+      }
+    }
+  ]
+}

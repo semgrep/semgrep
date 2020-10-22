@@ -1,0 +1,1 @@
+metavariable_comparison_test_base(0700)
