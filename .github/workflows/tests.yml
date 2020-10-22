@@ -36,6 +36,8 @@ jobs:
         with:
           name: ocaml-build-artifacts
           path: ocaml-build-artifacts.tgz
+      - name: Test spacegrep
+        run: opam exec -- make -C spacegrep test
       - name: Test semgrep-core
         run: |
           eval $(opam env)
@@ -72,6 +74,7 @@ jobs:
       - name: Install artifacts
         run: |
           tar xf ocaml-build-artifacts/ocaml-build-artifacts.tgz
+          ls -lR ocaml-build-artifacts
           sudo cp ocaml-build-artifacts/bin/* /usr/bin
       - name: Test semgrep-core
         run: semgrep-core -version

@@ -15,7 +15,7 @@ TREESITTER_LIBDIR ?= $(shell pkg-config --libs-only-L tree-sitter \
 export TREESITTER_LIBDIR
 
 all:
-	./scripts/make-version > ./bin/version.ml
+	./scripts/make-version > ./cli/version.ml
 	dune build
 	dune build ./_build/default/tests/test.bc
 clean:
@@ -49,7 +49,7 @@ merge:
 check:
 	@semgrep --version
 	@semgrep-core -version
-	semgrep --config ../semgrep.yml --config ../semgrep_ocaml.yml --error --strict --exclude tests ..
+	semgrep --config ../semgrep.yml --config https://semgrep.dev/p/ocaml --error --strict --exclude tests ..
 
 index:
 	codegraph_build -lang cmt -derived_data .

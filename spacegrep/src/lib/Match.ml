@@ -40,9 +40,28 @@ open Pattern_AST
 
 let debug = ref false
 
+(*** Public types ***)
+
+type pattern_id = int
+
+type region = Loc.t * Loc.t
+
+type capture = {
+  name: string;
+  value: string;
+  loc: Loc.t;
+}
+
+type match_ = {
+  region: region;
+  captures: capture list;
+}
+
+(*** Internal types ***)
+
 (* Map from metavariables to their captured value, which is a Word. *)
 module Env = Map.Make (String)
-type env = string Env.t
+type env = (Loc.t * string) Env.t
 
 type match_result =
   | Complete of env * Loc.t
@@ -190,9 +209,9 @@ let rec match_
                      | None ->
                          (* First encounter of the metavariable,
                             store its value. *)
-                         let env = Env.add name value env in
+                         let env = Env.add name (loc, value) env in
                          match_ ~dots:None env loc pat_tail doc_tail cont
-                     | Some value0 ->
+                     | Some (_loc0, value0) ->
                          (* Check if value matches previously captured
                             value. *)
                          if value = value0 then
@@ -243,6 +262,16 @@ let rec fold acc (doc : Doc_AST.node list) f =
       let acc = fold acc doc1 f in
       fold acc doc2 f
 
+let convert_captures env =
+  Env.bindings env
+  |> List.map (fun (name, (loc, value)) ->
+    {
+      name;
+      value;
+      loc;
+    }
+  )
+
 (*
    Search for non-overlapping matches.
    last_loc is a forbidden start location. Any attempt to match must start
@@ -253,13 +282,19 @@ let search pat doc =
     let ok_loc =
       match matches with
       | [] -> true
-      | (_, last_loc) :: _ -> starts_after last_loc start_loc
+      | { region = (_, last_loc) } :: _ -> starts_after last_loc start_loc
     in
     if ok_loc then
       match
         match_ ~dots:None Env.empty start_loc pat doc full_match
       with
-      | Complete (_env, last_loc) -> (start_loc, last_loc) :: matches
+      | Complete (env, last_loc) ->
+          let match_ =
+            let region = (start_loc, last_loc) in
+            let captures = convert_captures env in
+            { region; captures }
+          in
+          match_ :: matches
       | Fail -> matches
     else
       matches
@@ -272,18 +307,20 @@ let ansi_highlight s =
   | s -> ANSITerminal.(sprintf [Bold; green] "%s" s)
 
 let print ?(highlight = false) src matches =
+  let highlight_fun =
+    if highlight then Some ansi_highlight
+    else None
+  in
   let line_prefix =
     match Src_file.source src with
     | File path -> sprintf "%s:" path
     | Stdin | String | Channel -> ""
   in
-  let highlight_fun =
-    if highlight then Some ansi_highlight
-    else None
-  in
-  List.iter (fun (start_loc, end_loc) ->
+  List.iter (fun match_ ->
+    let (start_loc, end_loc) = match_.region in
     if !debug then
-      printf "match from %s to %s\n" (Loc.show start_loc) (Loc.show end_loc);
+      printf "match from %s to %s\n"
+        (Loc.show start_loc) (Loc.show end_loc);
     Src_file.lines_of_loc_range
       ?highlight:highlight_fun
       ~line_prefix
@@ -291,3 +328,10 @@ let print ?(highlight = false) src matches =
     |> print_string;
     print_char '\n'
   ) matches
+
+let print_nested_results ?highlight doc_matches =
+  List.iter (fun (src, pat_matches) ->
+    List.iter (fun (pat_id, matches) ->
+      print ?highlight src matches
+    ) pat_matches
+  ) doc_matches
