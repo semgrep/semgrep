@@ -42,6 +42,10 @@ PASSING_REPOS = [
         "languages": ALL_LANGUAGES,
     },
     {"repo": "https://github.com/coinbase/coinbase-node", "languages": ALL_LANGUAGES},
+    {
+        "repo": "https://github.com/coinbase/coinbase-pro-node",
+        "languages": ALL_LANGUAGES,
+    },
     {"repo": "https://github.com/coinbase/coinbase-python", "languages": ALL_LANGUAGES},
     {
         "repo": "https://github.com/coinbase/coinbase-tip-discourse",
@@ -253,6 +257,7 @@ PASSING_REPOS = [
     {"repo": "https://github.com/dropbox/godropbox", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/dropbox/trapperkeeper", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/lodash/lodash", "languages": ALL_LANGUAGES},
+    {"repo": "https://github.com/bkimminich/juice-shop", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/zulip/zulip", "languages": ALL_LANGUAGES},
     {
         "repo": "https://github.com/home-assistant/home-assistant",
@@ -344,12 +349,6 @@ FAILING_REPOS = [
     ),
     xfail_repo({"repo": "https://github.com/Homebrew/brew", "languages": ["ruby"]}),
     xfail_repo({"repo": "https://github.com/gitlabhq/gitlabhq", "languages": ["ruby"]}),
-    xfail_repo({"repo": "https://github.com/coinbase/coinbase-pro-node", "languages": ["javascript", "typescript"]},
-                reason=("Failure to parse typescript"),
-    ),
-    xfail_repo({"repo": "https://github.com/bkimminich/juice-shop", "languages": ["javascript", "typescript"]},
-                reason=("Failure to parse typescript"),
-    ),
     xfail_repo(
         {"repo": "https://github.com/dropbox/changes", "languages": ALL_LANGUAGES},
         reason="react",

@@ -41,14 +41,13 @@ JSON_EXTENSIONS = [FileExtension("json")]
 ALL_EXTENSIONS = (
     PYTHON_EXTENSIONS
     + JAVASCRIPT_EXTENSIONS
-    + TYPESCRIPT_EXTENSIONS
     + JAVA_EXTENSIONS
     + C_EXTENSIONS
     + GO_EXTENSIONS
-    + RUBY_EXTENSIONS
     + ML_EXTENSIONS
     + JSON_EXTENSIONS
 )
+
 
 def lang_to_exts(language: Language) -> List[FileExtension]:
     """
