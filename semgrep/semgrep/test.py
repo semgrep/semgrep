@@ -14,9 +14,9 @@ import collections
 import functools
 import json
 import multiprocessing
+import os
 import sys
 import tarfile
-import os
 from pathlib import Path
 from typing import Any
 from typing import Dict
@@ -32,8 +32,9 @@ from semgrep.constants import YML_EXTENSIONS
 from semgrep.semgrep_main import invoke_semgrep
 from semgrep.util import partition
 
-SAVE_TEST_OUTPUT_JSON = 'semgrep_runs_output.json'
-SAVE_TEST_OUTPUT_TAR = 'semgrep_runs_output.tar.gz'
+SAVE_TEST_OUTPUT_JSON = "semgrep_runs_output.json"
+SAVE_TEST_OUTPUT_TAR = "semgrep_runs_output.tar.gz"
+
 
 def normalize_rule_id(line: str) -> str:
     """
@@ -108,7 +109,7 @@ def line_has_ok(line: str) -> bool:
         "#ok:" in line
         or "# ok:" in line
         or "//ok:" in line
-        or "// ok:"  in line
+        or "// ok:" in line
         or "(*ok:" in line
         or "(* ok:" in line
     )
@@ -248,7 +249,12 @@ def invoke_semgrep_multi(
 
 
 def generate_file_pairs(
-    location: Path, ignore_todo: bool, strict: bool, unsafe: bool, json_output: bool, save_test_output_tar: bool = True
+    location: Path,
+    ignore_todo: bool,
+    strict: bool,
+    unsafe: bool,
+    json_output: bool,
+    save_test_output_tar: bool = True,
 ) -> None:
     filenames = list(location.rglob("*"))
     config_filenames = [
@@ -336,13 +342,13 @@ def generate_file_pairs(
     # save the results to json file and tar the file to upload as github artifact.
     if save_test_output_tar:
         list_to_output = []
-        with open(SAVE_TEST_OUTPUT_JSON, 'w') as f:
+        with open(SAVE_TEST_OUTPUT_JSON, "w") as f:
             for tup in results:
                 true_result = tup[2]
                 list_to_output.append(true_result)
             f.write(json.dumps(list_to_output, indent=4, separators=(",", ":")))
 
-        with tarfile.open(SAVE_TEST_OUTPUT_TAR, 'w:gz') as tar:
+        with tarfile.open(SAVE_TEST_OUTPUT_TAR, "w:gz") as tar:
             tar.add(SAVE_TEST_OUTPUT_JSON)
 
     if config_missing_tests_output:

@@ -163,6 +163,7 @@ def main(
     strict: bool = False,
     autofix: bool = False,
     dryrun: bool = False,
+    disable_language_overrides: bool = False,
     disable_nosem: bool = False,
     dangerously_allow_arbitrary_code_execution_from_rules: bool = False,
     no_git_ignore: bool = False,
@@ -217,6 +218,7 @@ def main(
         respect_git_ignore=respect_git_ignore,
         output_handler=output_handler,
         skip_unknown_extensions=skip_unknown_extensions,
+        disable_language_overrides=disable_language_overrides,
     )
 
     # actually invoke semgrep

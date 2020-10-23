@@ -1,5 +1,6 @@
 import subprocess
 from pathlib import Path
+from typing import NewType
 from typing import Set
 
 from semgrep.constants import OutputFormat
@@ -7,6 +8,38 @@ from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
 from semgrep.semgrep_types import Language
 from semgrep.target_manager import TargetManager
+
+FileExtension = NewType("FileExtension", str)
+
+PYTHON_EXTENSIONS = [FileExtension("py"), FileExtension("pyi")]
+JAVASCRIPT_EXTENSIONS = [
+    FileExtension("js"),
+    FileExtension("jsx"),
+    FileExtension("ts"),
+    FileExtension("tsx"),
+]
+TYPESCRIPT_EXTENSIONS = [FileExtension("ts"), FileExtension("tsx")]
+JAVA_EXTENSIONS = [FileExtension("java")]
+C_EXTENSIONS = [FileExtension("c")]
+GO_EXTENSIONS = [FileExtension("go")]
+RUBY_EXTENSIONS = [FileExtension("rb")]
+PHP_EXTENSIONS = [FileExtension("php")]
+ML_EXTENSIONS = [
+    FileExtension("mli"),
+    FileExtension("ml"),
+]
+JSON_EXTENSIONS = [FileExtension("json")]
+ALL_EXTENSIONS = (
+    PYTHON_EXTENSIONS
+    + JAVASCRIPT_EXTENSIONS
+    + TYPESCRIPT_EXTENSIONS
+    + JAVA_EXTENSIONS
+    + C_EXTENSIONS
+    + GO_EXTENSIONS
+    + RUBY_EXTENSIONS
+    + ML_EXTENSIONS
+    + JSON_EXTENSIONS
+)
 
 
 def test_filter_include():
@@ -110,8 +143,23 @@ def test_delete_git(tmp_path, monkeypatch):
     foo.unlink()
     subprocess.run(["git", "status"])
 
+    extensions = {
+        "python_extensions": PYTHON_EXTENSIONS,
+        "javascript_extensions": JAVASCRIPT_EXTENSIONS,
+        "typescript_extensions": TYPESCRIPT_EXTENSIONS,
+        "java_extensions": JAVA_EXTENSIONS,
+        "c_extensions": C_EXTENSIONS,
+        "go_extensions": GO_EXTENSIONS,
+        "ruby_extensions": RUBY_EXTENSIONS,
+        "php_extensions": PHP_EXTENSIONS,
+        "ml_extensions": ML_EXTENSIONS,
+        "json_extensions": JSON_EXTENSIONS,
+        "all_extensions": ALL_EXTENSIONS,
+    }
+
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path(".")], Language("python"), True), {bar}
+        TargetManager.expand_targets([Path(".")], Language("python"), True, extensions),
+        {bar},
     )
 
 
@@ -120,6 +168,20 @@ def test_expand_targets_git(tmp_path, monkeypatch):
         Test TargetManager with visible_to_git_only flag on in a git repository
         with nested .gitignores
     """
+    extensions = {
+        "python_extensions": PYTHON_EXTENSIONS,
+        "javascript_extensions": JAVASCRIPT_EXTENSIONS,
+        "typescript_extensions": TYPESCRIPT_EXTENSIONS,
+        "java_extensions": JAVA_EXTENSIONS,
+        "c_extensions": C_EXTENSIONS,
+        "go_extensions": GO_EXTENSIONS,
+        "ruby_extensions": RUBY_EXTENSIONS,
+        "php_extensions": PHP_EXTENSIONS,
+        "ml_extensions": ML_EXTENSIONS,
+        "json_extensions": JSON_EXTENSIONS,
+        "all_extensions": ALL_EXTENSIONS,
+    }
+
     foo = tmp_path / "foo"
     foo.mkdir()
     foo_a_go = foo / "a.go"
@@ -163,49 +225,68 @@ def test_expand_targets_git(tmp_path, monkeypatch):
 
     monkeypatch.chdir(tmp_path)
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path(".")], python_language, True), in_all
+        TargetManager.expand_targets([Path(".")], python_language, True, extensions),
+        in_all,
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("bar")], python_language, True), in_bar
+        TargetManager.expand_targets([Path("bar")], python_language, True, extensions),
+        in_bar,
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("foo")], python_language, True), in_foo
-    )
-    assert cmp_path_sets(
-        TargetManager.expand_targets([Path("foo").resolve()], python_language, True),
+        TargetManager.expand_targets([Path("foo")], python_language, True, extensions),
         in_foo,
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("foo/bar")], python_language, True),
+        TargetManager.expand_targets(
+            [Path("foo").resolve()], python_language, True, extensions
+        ),
+        in_foo,
+    )
+    assert cmp_path_sets(
+        TargetManager.expand_targets(
+            [Path("foo/bar")], python_language, True, extensions
+        ),
         in_foo_bar,
     )
     assert cmp_path_sets(
         TargetManager.expand_targets(
-            [Path("foo/bar").resolve()], python_language, True
+            [Path("foo/bar").resolve()], python_language, True, extensions
         ),
         in_foo_bar,
     )
     monkeypatch.chdir(foo)
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path(".")], python_language, True), in_foo
+        TargetManager.expand_targets([Path(".")], python_language, True, extensions),
+        in_foo,
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("./foo")], python_language, True), set()
+        TargetManager.expand_targets(
+            [Path("./foo")], python_language, True, extensions
+        ),
+        set(),
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("bar")], python_language, True), in_foo_bar
+        TargetManager.expand_targets([Path("bar")], python_language, True, extensions),
+        in_foo_bar,
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("bar")], python_language, True), in_foo_bar
+        TargetManager.expand_targets([Path("bar")], python_language, True, extensions),
+        in_foo_bar,
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("..")], python_language, True), in_all
+        TargetManager.expand_targets([Path("..")], python_language, True, extensions),
+        in_all,
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("../bar")], python_language, True), in_bar
+        TargetManager.expand_targets(
+            [Path("../bar")], python_language, True, extensions
+        ),
+        in_bar,
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("../foo/bar")], python_language, True),
+        TargetManager.expand_targets(
+            [Path("../foo/bar")], python_language, True, extensions
+        ),
         in_foo_bar,
     )
 
@@ -225,49 +306,68 @@ def test_expand_targets_git(tmp_path, monkeypatch):
 
     monkeypatch.chdir(tmp_path)
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path(".")], python_language, True), in_all
+        TargetManager.expand_targets([Path(".")], python_language, True, extensions),
+        in_all,
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("bar")], python_language, True), in_bar
+        TargetManager.expand_targets([Path("bar")], python_language, True, extensions),
+        in_bar,
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("foo")], python_language, True), in_foo
-    )
-    assert cmp_path_sets(
-        TargetManager.expand_targets([Path("foo").resolve()], python_language, True),
+        TargetManager.expand_targets([Path("foo")], python_language, True, extensions),
         in_foo,
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("foo/bar")], python_language, True),
+        TargetManager.expand_targets(
+            [Path("foo").resolve()], python_language, True, extensions
+        ),
+        in_foo,
+    )
+    assert cmp_path_sets(
+        TargetManager.expand_targets(
+            [Path("foo/bar")], python_language, True, extensions
+        ),
         in_foo_bar,
     )
     assert cmp_path_sets(
         TargetManager.expand_targets(
-            [Path("foo/bar").resolve()], python_language, True
+            [Path("foo/bar").resolve()], python_language, True, extensions
         ),
         in_foo_bar,
     )
     monkeypatch.chdir(foo)
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path(".")], python_language, True), in_foo
+        TargetManager.expand_targets([Path(".")], python_language, True, extensions),
+        in_foo,
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("./foo")], python_language, True), set()
+        TargetManager.expand_targets(
+            [Path("./foo")], python_language, True, extensions
+        ),
+        set(),
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("bar")], python_language, True), in_foo_bar
+        TargetManager.expand_targets([Path("bar")], python_language, True, extensions),
+        in_foo_bar,
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("bar")], python_language, True), in_foo_bar
+        TargetManager.expand_targets([Path("bar")], python_language, True, extensions),
+        in_foo_bar,
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("..")], python_language, True), in_all
+        TargetManager.expand_targets([Path("..")], python_language, True, extensions),
+        in_all,
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("../bar")], python_language, True), in_bar
+        TargetManager.expand_targets(
+            [Path("../bar")], python_language, True, extensions
+        ),
+        in_bar,
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("../foo/bar")], python_language, True),
+        TargetManager.expand_targets(
+            [Path("../foo/bar")], python_language, True, extensions
+        ),
         in_foo_bar,
     )
 
@@ -285,6 +385,20 @@ def test_expand_targets_not_git(tmp_path, monkeypatch):
     """
         Check that directory expansion works with relative paths, absolute paths, paths with ..
     """
+    extensions = {
+        "python_extensions": PYTHON_EXTENSIONS,
+        "javascript_extensions": JAVASCRIPT_EXTENSIONS,
+        "typescript_extensions": TYPESCRIPT_EXTENSIONS,
+        "java_extensions": JAVA_EXTENSIONS,
+        "c_extensions": C_EXTENSIONS,
+        "go_extensions": GO_EXTENSIONS,
+        "ruby_extensions": RUBY_EXTENSIONS,
+        "php_extensions": PHP_EXTENSIONS,
+        "ml_extensions": ML_EXTENSIONS,
+        "json_extensions": JSON_EXTENSIONS,
+        "all_extensions": ALL_EXTENSIONS,
+    }
+
     foo = tmp_path / "foo"
     foo.mkdir()
     (foo / "a.go").touch()
@@ -318,55 +432,88 @@ def test_expand_targets_not_git(tmp_path, monkeypatch):
 
     monkeypatch.chdir(tmp_path)
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path(".")], python_language, False), in_all
+        TargetManager.expand_targets([Path(".")], python_language, False, extensions),
+        in_all,
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("bar")], python_language, False), in_bar
+        TargetManager.expand_targets([Path("bar")], python_language, False, extensions),
+        in_bar,
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("foo")], python_language, False), in_foo
-    )
-    assert cmp_path_sets(
-        TargetManager.expand_targets([Path("foo").resolve()], python_language, False),
+        TargetManager.expand_targets([Path("foo")], python_language, False, extensions),
         in_foo,
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("foo/bar")], python_language, False),
+        TargetManager.expand_targets(
+            [Path("foo").resolve()], python_language, False, extensions
+        ),
+        in_foo,
+    )
+    assert cmp_path_sets(
+        TargetManager.expand_targets(
+            [Path("foo/bar")], python_language, False, extensions
+        ),
         in_foo_bar,
     )
     assert cmp_path_sets(
         TargetManager.expand_targets(
-            [Path("foo/bar").resolve()], python_language, False
+            [Path("foo/bar").resolve()], python_language, False, extensions
         ),
         in_foo_bar,
     )
 
     monkeypatch.chdir(foo)
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path(".")], python_language, False), in_foo
+        TargetManager.expand_targets([Path(".")], python_language, False, extensions),
+        in_foo,
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("./foo")], python_language, False), set()
+        TargetManager.expand_targets(
+            [Path("./foo")], python_language, False, extensions
+        ),
+        set(),
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("bar")], python_language, False), in_foo_bar
+        TargetManager.expand_targets([Path("bar")], python_language, False, extensions),
+        in_foo_bar,
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("bar")], python_language, False), in_foo_bar
+        TargetManager.expand_targets([Path("bar")], python_language, False, extensions),
+        in_foo_bar,
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("..")], python_language, False), in_all
+        TargetManager.expand_targets([Path("..")], python_language, False, extensions),
+        in_all,
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("../bar")], python_language, False), in_bar
+        TargetManager.expand_targets(
+            [Path("../bar")], python_language, False, extensions
+        ),
+        in_bar,
     )
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path("../foo/bar")], python_language, False),
+        TargetManager.expand_targets(
+            [Path("../foo/bar")], python_language, False, extensions
+        ),
         in_foo_bar,
     )
 
 
 def test_explicit_path(tmp_path, monkeypatch):
+    extensions = {
+        "python_extensions": PYTHON_EXTENSIONS,
+        "javascript_extensions": JAVASCRIPT_EXTENSIONS,
+        "typescript_extensions": TYPESCRIPT_EXTENSIONS,
+        "java_extensions": JAVA_EXTENSIONS,
+        "c_extensions": C_EXTENSIONS,
+        "go_extensions": GO_EXTENSIONS,
+        "ruby_extensions": RUBY_EXTENSIONS,
+        "php_extensions": PHP_EXTENSIONS,
+        "ml_extensions": ML_EXTENSIONS,
+        "json_extensions": JSON_EXTENSIONS,
+        "all_extensions": ALL_EXTENSIONS,
+    }
+
     foo = tmp_path / "foo"
     foo.mkdir()
     (foo / "a.go").touch()
@@ -394,25 +541,25 @@ def test_explicit_path(tmp_path, monkeypatch):
     python_language = Language("python")
 
     assert foo_a in TargetManager(
-        [], [], ["foo/a.py"], False, defaulthandler, False
+        [], [], ["foo/a.py"], False, defaulthandler, False, extensions
     ).get_files(python_language, [], [])
     assert foo_a in TargetManager(
-        [], [], ["foo/a.py"], False, defaulthandler, True
+        [], [], ["foo/a.py"], False, defaulthandler, True, extensions
     ).get_files(python_language, [], [])
 
     # Should include explicitly passed python file even if is in excludes
     assert foo_a not in TargetManager(
-        [], ["foo/a.py"], ["."], False, defaulthandler, False
+        [], ["foo/a.py"], ["."], False, defaulthandler, False, extensions
     ).get_files(python_language, [], [])
     assert foo_a in TargetManager(
-        [], ["foo/a.py"], [".", "foo/a.py"], False, defaulthandler, False
+        [], ["foo/a.py"], [".", "foo/a.py"], False, defaulthandler, False, extensions
     ).get_files(python_language, [], [])
 
     # Should ignore expliclty passed .go file when requesting python
     assert (
-        TargetManager([], [], ["foo/a.go"], False, defaulthandler, False).get_files(
-            python_language, [], []
-        )
+        TargetManager(
+            [], [], ["foo/a.go"], False, defaulthandler, False, extensions
+        ).get_files(python_language, [], [])
         == []
     )
 
@@ -420,7 +567,7 @@ def test_explicit_path(tmp_path, monkeypatch):
     assert cmp_path_sets(
         set(
             TargetManager(
-                [], [], ["foo/noext"], False, defaulthandler, False
+                [], [], ["foo/noext"], False, defaulthandler, False, extensions
             ).get_files(python_language, [], [])
         ),
         {foo_noext},
@@ -429,9 +576,9 @@ def test_explicit_path(tmp_path, monkeypatch):
     # Should not include explicitly passed file with unknown extension if skip_unknown_extensions=True
     assert cmp_path_sets(
         set(
-            TargetManager([], [], ["foo/noext"], False, defaulthandler, True).get_files(
-                python_language, [], []
-            )
+            TargetManager(
+                [], [], ["foo/noext"], False, defaulthandler, True, extensions
+            ).get_files(python_language, [], [])
         ),
         set(),
     )
@@ -440,7 +587,13 @@ def test_explicit_path(tmp_path, monkeypatch):
     assert cmp_path_sets(
         set(
             TargetManager(
-                [], [], ["foo/noext", "foo/a.py"], False, defaulthandler, True
+                [],
+                [],
+                ["foo/noext", "foo/a.py"],
+                False,
+                defaulthandler,
+                True,
+                extensions,
             ).get_files(python_language, [], [])
         ),
         {foo_a},

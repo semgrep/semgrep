@@ -24,9 +24,13 @@ from semgrep.util import sub_check_output
 
 FileExtension = NewType("FileExtension", str)
 
-
 PYTHON_EXTENSIONS = [FileExtension("py"), FileExtension("pyi")]
-JAVASCRIPT_EXTENSIONS = [FileExtension("js"), FileExtension("jsx")]
+JAVASCRIPT_EXTENSIONS = [
+    FileExtension("js"),
+    FileExtension("jsx"),
+    FileExtension("ts"),
+    FileExtension("tsx"),
+]
 TYPESCRIPT_EXTENSIONS = [FileExtension("ts"), FileExtension("tsx")]
 JAVA_EXTENSIONS = [FileExtension("java")]
 C_EXTENSIONS = [FileExtension("c")]
@@ -49,38 +53,6 @@ ALL_EXTENSIONS = (
     + ML_EXTENSIONS
     + JSON_EXTENSIONS
 )
-
-def lang_to_exts(language: Language) -> List[FileExtension]:
-    """
-        Convert language to expected file extensions
-
-        If language is not a supported semgrep language then
-        raises _UnknownLanguageError
-    """
-    if language in {"python", "python2", "python3", "py"}:
-        return PYTHON_EXTENSIONS
-    elif language in {"js", "jsx", "javascript"}:
-        return JAVASCRIPT_EXTENSIONS
-    elif language in {"ts", "tsx", "typescript"}:
-        return TYPESCRIPT_EXTENSIONS
-    elif language in {"java"}:
-        return JAVA_EXTENSIONS
-    elif language in {"c"}:
-        return C_EXTENSIONS
-    elif language in {"go", "golang"}:
-        return GO_EXTENSIONS
-    elif language in {"ml", "ocaml"}:
-        return ML_EXTENSIONS
-    elif language in {"rb", "ruby"}:
-        return RUBY_EXTENSIONS
-    elif language in {"php"}:
-        return PHP_EXTENSIONS
-    elif language in {"json", "JSON", "Json"}:
-        return JSON_EXTENSIONS
-    elif language in {NONE_LANGUAGE, GENERIC_LANGUAGE}:
-        return [FileExtension("*")]
-    else:
-        raise _UnknownLanguageError(f"Unsupported Language: {language}")
 
 
 @contextlib.contextmanager
@@ -119,8 +91,59 @@ class TargetManager:
     respect_git_ignore: bool
     output_handler: OutputHandler
     skip_unknown_extensions: bool
+    disable_language_overrides: bool
 
     _filtered_targets: Dict[str, Set[Path]] = attr.ib(factory=dict)
+
+    _extensions: Dict[str, List[FileExtension]] = {
+        "python_extensions": PYTHON_EXTENSIONS,
+        # javascript extensions include ts extensions because we automatically run js rules on ts files.
+        "javascript_extensions": JAVASCRIPT_EXTENSIONS,
+        "typescript_extensions": TYPESCRIPT_EXTENSIONS,
+        "java_extensions": JAVA_EXTENSIONS,
+        "c_extensions": C_EXTENSIONS,
+        "go_extensions": GO_EXTENSIONS,
+        "ruby_extensions": RUBY_EXTENSIONS,
+        "php_extensions": PHP_EXTENSIONS,
+        "ml_extensions": ML_EXTENSIONS,
+        "json_extensions": JSON_EXTENSIONS,
+        "all_extensions": ALL_EXTENSIONS,
+    }
+
+    @staticmethod
+    def _lang_to_exts(
+        language: Language, exts: Dict[str, List[FileExtension]]
+    ) -> List[FileExtension]:
+        """
+            Convert language to expected file extensions
+
+            If language is not a supported semgrep language then
+            raises _UnknownLanguageError
+        """
+        if language in {"python", "python2", "python3", "py"}:
+            return exts["python_extensions"]
+        elif language in {"js", "jsx", "javascript"}:
+            return exts["javascript_extensions"]
+        elif language in {"ts", "tsx", "typescript"}:
+            return exts["typescript_extensions"]
+        elif language in {"java"}:
+            return exts["java_extensions"]
+        elif language in {"c"}:
+            return exts["c_extensions"]
+        elif language in {"go", "golang"}:
+            return exts["go_extensions"]
+        elif language in {"ml", "ocaml"}:
+            return exts["ml_extensions"]
+        elif language in {"rb", "ruby"}:
+            return exts["ruby_extensions"]
+        elif language in {"php"}:
+            return exts["php_extensions"]
+        elif language in {"json", "JSON", "Json"}:
+            return exts["json_extensions"]
+        elif language in {NONE_LANGUAGE, GENERIC_LANGUAGE}:
+            return [FileExtension("*")]
+        else:
+            raise _UnknownLanguageError(f"Unsupported Language: {language}")
 
     @staticmethod
     def resolve_targets(targets: List[str]) -> Set[Path]:
@@ -136,7 +159,10 @@ class TargetManager:
 
     @staticmethod
     def _expand_dir(
-        curr_dir: Path, language: Language, respect_git_ignore: bool
+        curr_dir: Path,
+        language: Language,
+        respect_git_ignore: bool,
+        exts: Dict[str, List[FileExtension]],
     ) -> Set[Path]:
         """
             Recursively go through a directory and return list of all files with
@@ -165,7 +191,7 @@ class TargetManager:
             """
             return set(p for p in curr_dir.rglob(f"*.{extension}") if p.is_file())
 
-        extensions = lang_to_exts(language)
+        extensions = TargetManager._lang_to_exts(language, exts)
         expanded: Set[Path] = set()
 
         for ext in extensions:
@@ -219,7 +245,10 @@ class TargetManager:
 
     @staticmethod
     def expand_targets(
-        targets: Collection[Path], lang: Language, respect_git_ignore: bool
+        targets: Collection[Path],
+        lang: Language,
+        respect_git_ignore: bool,
+        exts: Dict[str, List[FileExtension]],
     ) -> Set[Path]:
         """
             Explore all directories. Remove duplicates
@@ -231,7 +260,7 @@ class TargetManager:
 
             if target.is_dir():
                 expanded.update(
-                    TargetManager._expand_dir(target, lang, respect_git_ignore)
+                    TargetManager._expand_dir(target, lang, respect_git_ignore, exts)
                 )
             else:
                 expanded.add(target)
@@ -271,8 +300,15 @@ class TargetManager:
             an extension matching LANG that match any pattern in INCLUDES and do not
             match any pattern in EXCLUDES. Any file in TARGET bypasses excludes and includes.
             If a file in TARGET has a known extension that is not for langugage LANG then
-            it is also filtered out
+            it is also filtered out. If the flag DISABLE-LANGUAGE-OVERRIDES is true,
+            make sure to not run js rules on ts files.
         """
+        if self.disable_language_overrides:
+            # remove ts extensions from the list javascript_extensions
+            self._extensions["javascript_extensions"] = self._extensions[
+                "javascript_extensions"
+            ][:2]
+
         if lang in self._filtered_targets:
             return self._filtered_targets[lang]
 
@@ -287,7 +323,9 @@ class TargetManager:
                 FilesNotFoundError(tuple(nonexistent_files))
             )
 
-        targets = self.expand_targets(directories, lang, self.respect_git_ignore)
+        targets = self.expand_targets(
+            directories, lang, self.respect_git_ignore, self._extensions
+        )
         targets = self.filter_includes(targets, self.includes)
         targets = self.filter_excludes(targets, self.excludes)
 
@@ -295,7 +333,12 @@ class TargetManager:
         explicit_files_with_lang_extension = set(
             f
             for f in explicit_files
-            if (any(f.match(f"*.{ext}") for ext in lang_to_exts(lang)))
+            if (
+                any(
+                    f.match(f"*.{ext}")
+                    for ext in TargetManager._lang_to_exts(lang, self._extensions)
+                )
+            )
         )
         targets = targets.union(explicit_files_with_lang_extension)
 
@@ -303,7 +346,9 @@ class TargetManager:
             explicit_files_with_unknown_extensions = set(
                 f
                 for f in explicit_files
-                if not any(f.match(f"*.{ext}") for ext in ALL_EXTENSIONS)
+                if not any(
+                    f.match(f"*.{ext}") for ext in self._extensions["all_extensions"]
+                )
             )
             targets = targets.union(explicit_files_with_unknown_extensions)
 
