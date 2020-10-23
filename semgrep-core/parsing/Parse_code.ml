@@ -132,15 +132,15 @@ let rec (run_either: Common.filename -> 'ast parser list -> 'ast result)
            Error exn
         )
 
-let run file xs =
+let run file xs fconvert =
   let xs =
     if !Flag.tree_sitter_only
     then xs |> Common.exclude (function | Pfff _ -> true | _ -> false)
     else xs
    in
    (match run_either file xs with
-   | Ok ast -> ast
-   | Partial (ast, _errs) -> ast
+   | Ok ast -> fconvert ast, []
+   | Partial (ast, errs) -> fconvert ast, errs
    | Error exn -> raise exn
    )
 
@@ -152,17 +152,14 @@ let just_parse_with_lang lang file =
       (* for Ruby we start with the tree-sitter parser because the pfff parser
        * is not great and some of the token positions may be wrong.
        *)
-      let ast =
         run file [
           TreeSitter Parse_ruby_tree_sitter.parse;
           (* right now the parser is verbose and the token positions
            * may be wrong, but better than nothing. *)
           Pfff Parse_ruby.parse_program
         ]
-      in
-      Ruby_to_generic.program ast
+        Ruby_to_generic.program
   | Lang.Java ->
-      let ast =
         (* let's start with a pfff one; it's quite good and currently faster
          * than the tree-sitter one because we need to wrap that one inside
          * an invoke because of a segfault/memory-leak.
@@ -171,23 +168,19 @@ let just_parse_with_lang lang file =
           Pfff Parse_java.parse_program;
           TreeSitter Parse_java_tree_sitter.parse;
           ]
-       in
-       Java_to_generic.program ast
+          Java_to_generic.program
   | Lang.Go ->
-      let ast =
-        run file [
+      run file [
         Pfff Parse_go.parse_program;
         TreeSitter Parse_go_tree_sitter.parse;
         ]
-      in
-      Go_to_generic.program ast
+        Go_to_generic.program
 
   | Lang.Javascript ->
       (* we start directly with tree-sitter here, because
        * the pfff parser is slow on minified files due to its (slow) error
        * recovery strategy.
        *)
-      let ast =
         run file [
           TreeSitter Parse_javascript_tree_sitter.parse;
           Pfff (fun file ->
@@ -209,34 +202,31 @@ let just_parse_with_lang lang file =
                end
             );
           ]
-      in
-      Js_to_generic.program ast
+          Js_to_generic.program
 
   | Lang.Typescript ->
-      let ast =
-        run file [
+     run file [
           TreeSitter (Parse_typescript_tree_sitter.parse ?dialect:None)
         ]
-      in
-      Js_to_generic.program ast
+        Js_to_generic.program
 
   | Lang.Csharp ->
       (* there is no pfff parser for C# so let's go directly to tree-sitter,
        * and there's no ast_csharp.ml either so we directly generate
        * a generic AST (no csharp_to_generic here)
        *)
-      run file [TreeSitter Parse_csharp_tree_sitter.parse]
+      run file [TreeSitter Parse_csharp_tree_sitter.parse] (fun x -> x)
 
   (* default to the one in pfff for the other languages *)
   | _ ->
-      run file [Pfff (Parse_generic.parse_with_lang lang)]
+      run file [Pfff (Parse_generic.parse_with_lang lang)] (fun x -> x)
 
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
 let parse_and_resolve_name_use_pfff_or_treesitter lang file =
-  let ast = just_parse_with_lang lang file in
+  let ast, errs = just_parse_with_lang lang file in
 
   (* to be deterministic, reset the gensym; anyway right now semgrep is
    * used only for local per-file analysis, so no need to have a unique ID
@@ -245,4 +235,4 @@ let parse_and_resolve_name_use_pfff_or_treesitter lang file =
   AST_generic.gensym_counter := 0;
   Naming_AST.resolve lang ast;
   Constant_propagation.propagate lang ast;
-  ast
+  ast, errs
