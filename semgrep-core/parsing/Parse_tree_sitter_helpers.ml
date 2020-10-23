@@ -29,6 +29,8 @@ type env = {
     conv: (int * int, int) Hashtbl.t;
 }
 
+type 'ast result = 'ast option * Tree_sitter_run.Tree_sitter_error.t list
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
@@ -92,17 +94,6 @@ let combine_tokens env xs =
       let t = token env x in
       t
 
-let mk_tree_sitter_error (err : Tree_sitter_run.Tree_sitter_error.t) =
-  let start = err.start_pos in
-  let loc = {
-    PI.str = err.substring;
-    charpos = 0; (* fake *)
-    line = start.row + 1;
-    column = start.column;
-    file = err.file.name;
-  } in
-  loc
-
 let wrap_parser tree_sitter_parser ast_mapper =
   (* Note that because we currently use Parallel.invoke to
    * invoke the tree-sitter parser, unmarshalled exn
@@ -112,13 +103,14 @@ let wrap_parser tree_sitter_parser ast_mapper =
    * less an issue.
    *)
   let cst_root, errors = tree_sitter_parser () in
-  match cst_root, errors with
-  | None, [] -> raise Common.Impossible
-  | Some cst, [] -> ast_mapper cst
-  | _, ts_error::_xs ->
-    let loc = mk_tree_sitter_error ts_error in
-    let info = { PI.token = PI.OriginTok loc; transfo = PI.NoTransfo } in
-    raise (PI.Parsing_error info)
+  let astopt =
+    match cst_root with
+    | Some cst -> Some (ast_mapper cst)
+    | None -> None
+  in
+  astopt, errors
+
+
 
 (* Stuff to put in entry point at the beginning:
 let todo _env _x = failwith "not implemented"

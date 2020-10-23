@@ -130,7 +130,9 @@ let diff_pfff_tree_sitter xs =
     let ast1 = Parse_generic.parse_with_lang lang file in
     let ast2 =
         Common.save_excursion Flag_semgrep.tree_sitter_only true (fun () ->
-            Parse_code.just_parse_with_lang lang file
+            let (ast, errs) = Parse_code.just_parse_with_lang lang file in
+            if errs <> [] then failwith (spf "problem parsing %s" file);
+            ast
         ) in
     let s1 = AST_generic.show_program ast1 in
     let s2 = AST_generic.show_program ast2 in
