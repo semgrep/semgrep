@@ -103,8 +103,16 @@ let mk_tree_sitter_error (err : Tree_sitter_run.Tree_sitter_error.t) =
   } in
   loc
 
-let convert_tree_sitter_exn_to_pfff_exn f =
-  try f ()
+let wrap_parser tree_sitter_parser ast_mapper =
+  try
+    let cst_root, _errors = tree_sitter_parser () in
+    (* TODO: report the errors *)
+    let ast =
+      match cst_root with
+      | None -> [] (* empty program due an ignored error node at the root *)
+      | Some cst -> ast_mapper cst
+    in
+    ast
   with
   (* The case below is what we would like to do! However if
    * you use Parallel.invoke to invoke the tree-sitter parser, this

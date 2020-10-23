@@ -1758,12 +1758,12 @@ let program (env : env) ((v1, v2) : CST.program) : program =
 (* Entry point *)
 (*****************************************************************************)
 let parse file =
- H.convert_tree_sitter_exn_to_pfff_exn (fun () ->
-  let ast =
-    Parallel.backtrace_when_exn := false;
-    Parallel.invoke Tree_sitter_javascript.Parse.file file ()
-  in
-  let env = { H.file; conv = H.line_col_to_pos file } in
-
-  program env ast
- )
+  H.wrap_parser
+    (fun () ->
+       Parallel.backtrace_when_exn := false;
+       Parallel.invoke Tree_sitter_javascript.Parse.file file ()
+    )
+    (fun ast ->
+       let env = { H.file; conv = H.line_col_to_pos file } in
+       program env ast
+    )
