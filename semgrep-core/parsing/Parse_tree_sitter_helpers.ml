@@ -104,40 +104,21 @@ let mk_tree_sitter_error (err : Tree_sitter_run.Tree_sitter_error.t) =
   loc
 
 let wrap_parser tree_sitter_parser ast_mapper =
-  try
-    let cst_root, _errors = tree_sitter_parser () in
-    (* TODO: report the errors *)
-    let ast =
-      match cst_root with
-      | None -> [] (* empty program due an ignored error node at the root *)
-      | Some cst -> ast_mapper cst
-    in
-    ast
-  with
-  (* The case below is what we would like to do! However if
-   * you use Parallel.invoke to invoke the tree-sitter parser, this
-   * code below will never trigger. Indeed, unmarshalled exn
-   * can't be used in match or try or used for structural equality
-   * hence the ugly workaround below. See marshal.mli or Paralle.ml for
-   * more information.
+  (* Note that because we currently use Parallel.invoke to
+   * invoke the tree-sitter parser, unmarshalled exn
+   * can't be used in match or try or used for structural equality.
+   * So take care! Fortunately the ocaml-tree-sitter parsers now
+   * return a list of error instead of an exception so this is now
+   * less an issue.
    *)
-  | Tree_sitter_run.Tree_sitter_error.Error ts_error ->
+  let cst_root, errors = tree_sitter_parser () in
+  match cst_root, errors with
+  | None, [] -> raise Common.Impossible
+  | Some cst, [] -> ast_mapper cst
+  | _, ts_error::_xs ->
     let loc = mk_tree_sitter_error ts_error in
     let info = { PI.token = PI.OriginTok loc; transfo = PI.NoTransfo } in
     raise (PI.Parsing_error info)
-
-  (* !!!UGLY!!! remove this once we don't use Paralle.invoke *)
-  | exn ->
-      let s = Common.exn_to_s exn in
-      if s = "Tree_sitter_run.Tree_sitter_error.Error(_)" then begin
-        let t = Obj.repr exn in
-        let info = Obj.field t 1 in
-        let (ts_error : Tree_sitter_run.Tree_sitter_error.t) = Obj.obj info in
-        let loc = mk_tree_sitter_error ts_error in
-        let info = { PI.token = PI.OriginTok loc; transfo = PI.NoTransfo } in
-        raise (PI.Parsing_error info)
-      end else raise exn
-
 
 (* Stuff to put in entry point at the beginning:
 let todo _env _x = failwith "not implemented"
