@@ -415,7 +415,7 @@ def test_build_exprs() -> None:
         {**base_rule, **{"pattern-either": [{"pattern": "test(...)"}]}},
     ]
 
-    results = [Rule.from_json(rule).expression for rule in rules]
+    results = [Rule.from_json(rule, False).expression for rule in rules]
     base_expected = [
         BooleanRuleExpression(OPERATORS.AND, PatternId(".0"), None, "test(...)")
     ]

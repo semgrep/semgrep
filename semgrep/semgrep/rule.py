@@ -30,8 +30,11 @@ from semgrep.semgrep_types import YAML_TAINT_MUST_HAVE_KEYS
 
 
 class Rule:
-    def __init__(self, raw: YamlTree[YamlMap]) -> None:
+    def __init__(
+        self, raw: YamlTree[YamlMap], disable_language_overrides: bool
+    ) -> None:
         self._yaml = raw
+        self._disable_language_overrides = disable_language_overrides
         self._raw: Dict[str, Any] = raw.unroll_dict()
 
         # For tracking errors from semgrep-core
@@ -59,7 +62,9 @@ class Rule:
         self._languages = [Language(l) for l in self._raw["languages"]]
 
         # add 'ts' to languages if the rule supports javascript.
-        if ("javascript" in self._languages) or ("js" in self._languages):
+        if (("javascript" in self._languages) or ("js" in self._languages)) and (
+            not disable_language_overrides
+        ):
             self._languages.append("ts")
 
         # check taint/search mode
@@ -302,13 +307,15 @@ class Rule:
         ]
 
     @classmethod
-    def from_json(cls, rule_json: Dict[str, Any]) -> "Rule":  # type: ignore
+    def from_json(cls, rule_json: Dict[str, Any], disable_language_overrides: bool = False) -> "Rule":  # type: ignore
         yaml = YamlTree.wrap(rule_json, EmptySpan)
-        return cls(yaml)
+        return cls(yaml, disable_language_overrides)
 
     @classmethod
-    def from_yamltree(cls, rule_yaml: YamlTree[YamlMap]) -> "Rule":
-        return cls(rule_yaml)
+    def from_yamltree(
+        cls, rule_yaml: YamlTree[YamlMap], disable_language_overrides: bool
+    ) -> "Rule":
+        return cls(rule_yaml, disable_language_overrides)
 
     def to_json(self) -> Dict[str, Any]:
         return self._raw
@@ -333,7 +340,7 @@ class Rule:
         new_yaml.value[self._yaml.value.key_tree("id")] = YamlTree(
             value=new_id, span=new_yaml.value["id"].span
         )
-        return Rule(new_yaml)
+        return Rule(new_yaml, self._disable_language_overrides)
 
     @property
     def pattern_spans(self) -> Dict[PatternId, Span]:

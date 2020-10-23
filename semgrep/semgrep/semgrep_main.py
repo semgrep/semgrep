@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_config(
-    pattern: str, lang: str, config_strs: List[str]
+    pattern: str, lang: str, config_strs: List[str], disable_language_overrides: bool
 ) -> Tuple[semgrep.config_resolver.Config, List[SemgrepError]]:
     # let's check for a pattern
     if pattern:
@@ -41,10 +41,14 @@ def get_config(
             raise SemgrepError("language must be specified when a pattern is passed")
 
         # TODO for now we generate a manual config. Might want to just call semgrep -e ... -l ...
-        config, errors = semgrep.config_resolver.Config.from_pattern_lang(pattern, lang)
+        config, errors = semgrep.config_resolver.Config.from_pattern_lang(
+            pattern, lang, disable_language_overrides
+        )
     else:
         # else let's get a config. A config is a dict from config_id -> config. Config Id is not well defined at this point.
-        config, errors = semgrep.config_resolver.Config.from_config_list(config_strs)
+        config, errors = semgrep.config_resolver.Config.from_config_list(
+            config_strs, disable_language_overrides
+        )
 
     # if we can't find a config, use default r2c rules
     if not config:
@@ -163,6 +167,7 @@ def main(
     strict: bool = False,
     autofix: bool = False,
     dryrun: bool = False,
+    disable_language_overrides: bool = False,
     disable_nosem: bool = False,
     dangerously_allow_arbitrary_code_execution_from_rules: bool = False,
     no_git_ignore: bool = False,
@@ -178,7 +183,7 @@ def main(
     if exclude is None:
         exclude = []
 
-    configs_obj, errors = get_config(pattern, lang, configs)
+    configs_obj, errors = get_config(pattern, lang, configs, disable_language_overrides)
     all_rules = configs_obj.get_rules(no_rewrite_rule_ids)
 
     output_handler.handle_semgrep_errors(errors)

@@ -56,15 +56,15 @@ class Config:
 
     @classmethod
     def from_pattern_lang(
-        cls, pattern: str, lang: str
+        cls, pattern: str, lang: str, disable_language_overrides: bool
     ) -> Tuple["Config", List[SemgrepError]]:
         config_dict = manual_config(pattern, lang)
-        valid, errors = cls._validate(config_dict)
+        valid, errors = cls._validate(config_dict, disable_language_overrides)
         return cls(valid), errors
 
     @classmethod
     def from_config_list(
-        cls, configs: List[str]
+        cls, configs: List[str], disable_language_overrides: bool
     ) -> Tuple["Config", List[SemgrepError]]:
         """
             Takes in list of files/directories and returns Config object as well as
@@ -87,7 +87,7 @@ class Config:
             except SemgrepError as e:
                 errors.append(e)
 
-        valid, parse_errors = cls._validate(config_dict)
+        valid, parse_errors = cls._validate(config_dict, disable_language_overrides)
         errors.extend(parse_errors)
         return cls(valid), errors
 
@@ -137,7 +137,7 @@ class Config:
 
     @staticmethod
     def _validate(
-        config_dict: Dict[str, YamlTree]
+        config_dict: Dict[str, YamlTree], disable_language_overrides: bool
     ) -> Tuple[Dict[str, List[Rule]], List[SemgrepError]]:
         """
             Take configs and separate into valid and list of errors parsing the invalid ones
@@ -164,7 +164,9 @@ class Config:
             for rule_dict in rules.value:
 
                 try:
-                    rule = validate_single_rule(config_id, rule_dict)
+                    rule = validate_single_rule(
+                        config_id, rule_dict, disable_language_overrides
+                    )
                 except InvalidRuleSchemaError as ex:
                     errors.append(ex)
                 else:
@@ -176,7 +178,7 @@ class Config:
 
 
 def validate_single_rule(
-    config_id: str, rule_yaml: YamlTree[YamlMap]
+    config_id: str, rule_yaml: YamlTree[YamlMap], disable_language_overrides: bool
 ) -> Optional[Rule]:
     """
         Validate that a rule dictionary contains all necessary keys
@@ -185,7 +187,7 @@ def validate_single_rule(
     rule: YamlMap = rule_yaml.value
 
     # Defaults to search mode if mode is not specified
-    return Rule.from_yamltree(rule_yaml)
+    return Rule.from_yamltree(rule_yaml, disable_language_overrides)
 
 
 def manual_config(pattern: str, lang: str) -> Dict[str, YamlTree]:

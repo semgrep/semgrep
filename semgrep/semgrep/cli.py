@@ -89,6 +89,13 @@ def cli() -> None:
         action="store_true",
         help="Only invoke semgrep if configuration files(s) are valid.",
     )
+    config.add_argument(
+        "--disable-language-overrides",
+        action="store_true",
+        help="Semgrep automatically runs subset language rules on superset language files."
+        " For example, semgrep will run javascript rules on typescript files."
+        " To disable this, use the following flag.",
+    )
 
     parser.add_argument(
         "--exclude",
@@ -203,10 +210,9 @@ def cli() -> None:
     output.add_argument(
         "--save-test-output-tar",
         action="store_true",
-        help= (
+        help=(
             "Store json output as a tarball that will be uploaded as a Github artifact."
         ),
-
     )
     output.add_argument(
         "--debugging-json",
@@ -363,7 +369,7 @@ def cli() -> None:
             synthesize_patterns(args.lang, args.synthesize_patterns, target)
         elif args.validate:
             configs, config_errors = semgrep.semgrep_main.get_config(
-                args.pattern, args.lang, args.config
+                args.pattern, args.lang, args.config, args.disable_language_overrides
             )
             valid_str = "invalid" if config_errors else "valid"
             rule_count = len(configs.get_rules(True))
@@ -390,6 +396,7 @@ def cli() -> None:
                 strict=args.strict,
                 autofix=args.autofix,
                 dryrun=args.dryrun,
+                disable_language_overrides=args.disable_language_overrides,
                 disable_nosem=args.disable_nosem,
                 dangerously_allow_arbitrary_code_execution_from_rules=args.dangerously_allow_arbitrary_code_execution_from_rules,
                 no_git_ignore=args.no_git_ignore,
