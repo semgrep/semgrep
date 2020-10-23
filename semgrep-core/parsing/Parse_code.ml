@@ -13,6 +13,7 @@
  *)
 open Common
 module Flag = Flag_semgrep
+module PI = Parse_info
 
 let logger = Logging.get_logger [__MODULE__]
 
@@ -30,11 +31,22 @@ let logger = Logging.get_logger [__MODULE__]
 type 'ast parser =
  | Pfff of (Common.filename -> 'ast)
  | TreeSitter of (Common.filename ->
-                   'ast (*option * Tree_sitter_run.Tree_sitter_error.t list*))
+                   'ast option * Tree_sitter_run.Tree_sitter_error.t list)
 
 type 'ast common_parse_result =
   | Ok of 'ast
   | Error of exn
+
+let mk_tree_sitter_error (err : Tree_sitter_run.Tree_sitter_error.t) =
+  let start = err.start_pos in
+  let loc = {
+    PI.str = err.substring;
+    charpos = 0; (* fake *)
+    line = start.row + 1;
+    column = start.column;
+    file = err.file.name;
+  } in
+  loc
 
 let (run_parser: 'ast parser -> Common.filename -> 'ast common_parse_result) =
   fun parser file ->
@@ -53,7 +65,16 @@ let (run_parser: 'ast parser -> Common.filename -> 'ast common_parse_result) =
   | TreeSitter f ->
        logger#info "trying to parse with TreeSitter parser %s" file;
        (try
-         Ok (f file)
+         let astopt, errors = f file in
+         (match astopt, errors with
+         | None, [] -> raise Impossible
+         | Some ast, [] -> Ok ast
+         | _, ts_error::_xs ->
+            let loc = mk_tree_sitter_error ts_error in
+            let info = { PI.token = PI.OriginTok loc; transfo = PI.NoTransfo }
+            in
+            Error (PI.Parsing_error info)
+         )
        with
        | Timeout -> raise Timeout
        | exn ->
