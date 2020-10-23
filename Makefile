@@ -15,6 +15,7 @@ build:
 
 .PHONY: install
 install:
+	$(MAKE) -C spacegrep install
 	$(MAKE) -C semgrep-core install
 	python3.7 -m pip install semgrep
 
