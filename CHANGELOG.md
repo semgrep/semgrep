@@ -6,6 +6,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## Next
 
 ### Added
+- disable-language-overrides flag to stop semgrep from automatically running javascript
+  rules on typescript files.
 
 ### Fixed
 - More off by one fixes in autofix
