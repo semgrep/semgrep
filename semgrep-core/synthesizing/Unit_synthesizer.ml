@@ -186,7 +186,10 @@ let unittest =
     tests |> List.iter (fun (filename, range, sols) ->
         let file = test_path ^ filename in
         let pats = Synthesizer.synthesize_patterns range file in
-        let code = Parse_code.parse_and_resolve_name_use_pfff_or_treesitter lang file in
+        let code, errs =
+          Parse_code.parse_and_resolve_name_use_pfff_or_treesitter lang file
+        in
+        if errs <> [] then failwith (spf "problem parsing %s" filename);
         let r = Range.range_of_linecol_spec range file in
         Naming_AST.resolve lang code;
         let check_pats (str, pat) =

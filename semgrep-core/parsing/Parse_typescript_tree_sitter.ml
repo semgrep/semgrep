@@ -2617,26 +2617,32 @@ let guess_dialect opt_dialect file : dialect =
       else
         `Typescript
 
+type cst_result =
+  CST.program option * Tree_sitter_run.Tree_sitter_error.t list
+
 let parse ?dialect file =
- H.convert_tree_sitter_exn_to_pfff_exn (fun () ->
   let debug = false in
-  let dialect = guess_dialect dialect file in
-  let cst =
-    Parallel.backtrace_when_exn := false;
-    match dialect with
-    | `Typescript ->
-        let cst = Parallel.invoke Tree_sitter_typescript.Parse.file file () in
-        (cst :> CST.program)
-    | `TSX ->
-        let cst = Parallel.invoke Tree_sitter_tsx.Parse.file file () in
-        (cst :> CST.program)
-  in
-  let env = { H.file; conv = H.line_col_to_pos file } in
+  H.wrap_parser
+    (fun () ->
+       let dialect = guess_dialect dialect file in
+       Parallel.backtrace_when_exn := false;
+       match dialect with
+       | `Typescript ->
+           let cst =
+             Parallel.invoke Tree_sitter_typescript.Parse.file file () in
+           (cst :> cst_result)
+       | `TSX ->
+           let cst =
+             Parallel.invoke Tree_sitter_tsx.Parse.file file () in
+           (cst :> cst_result)
+    )
+    (fun cst ->
+       let env = { H.file; conv = H.line_col_to_pos file } in
 
-  if debug then (
-    Printexc.record_backtrace true;
-    CST.dump_tree cst;
-  );
+       if debug then (
+         Printexc.record_backtrace true;
+         CST.dump_tree cst;
+       );
 
-  program env cst
- )
+       program env cst
+    )
