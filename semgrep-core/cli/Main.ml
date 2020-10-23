@@ -472,7 +472,7 @@ let lang_of_string s =
 
 (*s: type [[Main_semgrep_core.ast]] *)
 type ast =
-  | Gen of AST_generic.program * Lang.t
+  | Gen of (AST_generic.program * Error_code.error list) * Lang.t
   (*s: [[Main_semgrep_core.ast]] other cases *)
   | Fuzzy of Ast_fuzzy.trees
   (*e: [[Main_semgrep_core.ast]] other cases *)
@@ -524,11 +524,13 @@ let parse_pattern str =
 let sgrep_ast pattern file any_ast =
   match pattern, any_ast with
   |  _, NoAST -> () (* skipping *)
-  | PatGen pattern, Gen (ast, lang) ->
+  | PatGen pattern, Gen ((ast, errs), lang) ->
     let rule = { R.
       id = "-e/-f"; pattern; message = ""; severity = R.Error;
       languages = [lang]
     } in
+    if errs <> []
+    then pr2 (spf "WARNING: fail to fully parse %s" file);
     Semgrep_generic.check
       (*s: [[Main_semgrep_core.sgrep_ast()]] [[hook]] argument to [[check]] *)
       ~hook:(fun env matched_tokens ->
@@ -592,9 +594,9 @@ let iter_generic_ast_of_files_and_get_matches_and_exn_to_errors f files =
        try
          run_with_memory_limit !max_memory (fun () ->
          timeout_function (fun () ->
-          let ast = parse_generic lang file in
+          let (ast, errs) = parse_generic lang file in
           (* calling the hook *)
-          (f file lang ast, [])
+          (f file lang ast, errs)
 
            (* This is just to test -max_memory, to give
             * a chance to the Gc.create_alarm to run even if the program does
@@ -867,7 +869,10 @@ let dump_pattern (file: Common.filename) =
 let dump_ast file =
   match Lang.langs_of_filename file with
   | lang::_ ->
-    let x = Parse_code.parse_and_resolve_name_use_pfff_or_treesitter lang file in
+    let (x, errs) =
+      Parse_code.parse_and_resolve_name_use_pfff_or_treesitter lang file in
+    if errs <> []
+    then failwith (spf "fail to fully parse %s" file);
     let v = Meta_AST.vof_any (AST_generic.Pr x) in
     let s = dump_v_to_format v in
     pr s
