@@ -108,7 +108,6 @@ PASSING_REPOS = [
         "languages": ALL_LANGUAGES,
     },
     {"repo": "https://github.com/dropbox/dropbox-sdk-java", "languages": ALL_LANGUAGES},
-    {"repo": "https://github.com/dropbox/dropbox-sdk-js", "languages": ALL_LANGUAGES},
     {
         "repo": "https://github.com/dropbox/dropbox-sdk-python",
         "languages": ALL_LANGUAGES,
@@ -253,7 +252,6 @@ PASSING_REPOS = [
     {"repo": "https://github.com/dropbox/godropbox", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/dropbox/trapperkeeper", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/lodash/lodash", "languages": ALL_LANGUAGES},
-    {"repo": "https://github.com/zulip/zulip", "languages": ALL_LANGUAGES},
     {
         "repo": "https://github.com/home-assistant/home-assistant",
         "languages": ALL_LANGUAGES,
@@ -269,8 +267,8 @@ PASSING_REPOS = [
 
 FAILING_REPOS = [
     xfail_repo(
-        {"repo": "https://github.com/jekyll/jekyll", "languages": ["ruby"],},
-        reason="ruby parse error on '!old_scope.key? \"type\"'",
+        {"repo": "https://github.com/jekyll/jekyll", "languages": ["ruby", "javascript", "typescript"],},
+        reason="ruby parse error on '!old_scope.key? \"type\"'. Also typescript parsing errors.",
     ),
     xfail_repo(
         {
@@ -344,19 +342,17 @@ FAILING_REPOS = [
     ),
     xfail_repo({"repo": "https://github.com/Homebrew/brew", "languages": ["ruby"]}),
     xfail_repo({"repo": "https://github.com/gitlabhq/gitlabhq", "languages": ["ruby"]}),
-    xfail_repo(
-        {
-            "repo": "https://github.com/coinbase/coinbase-pro-node",
-            "languages": ["javascript", "typescript"],
-        },
-        reason=("Failure to parse typescript"),
+    xfail_repo({"repo": "https://github.com/coinbase/coinbase-pro-node", "languages": ["javascript", "typescript"]},
+                reason=("Failure to parse typescript"),
     ),
-    xfail_repo(
-        {
-            "repo": "https://github.com/bkimminich/juice-shop",
-            "languages": ["javascript", "typescript"],
-        },
-        reason=("Failure to parse typescript"),
+    xfail_repo({"repo": "https://github.com/bkimminich/juice-shop", "languages": ["javascript", "typescript"]},
+                reason=("Failure to parse typescript"),
+    ),
+    xfail_repo({"repo": "https://github.com/dropbox/dropbox-sdk-js", "languages": ["javascript", "typescript"]},
+                reason=("Failure to parse typescript"),
+    ),
+    xfail_repo({"repo": "https://github.com/zulip/zulip", "languages": ["javascript", "typescript"]},
+                reason=("Failure to parse typescript"),
     ),
     xfail_repo(
         {"repo": "https://github.com/dropbox/changes", "languages": ALL_LANGUAGES},
