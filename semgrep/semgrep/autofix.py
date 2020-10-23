@@ -47,7 +47,7 @@ def _basic_fix(rule_match: RuleMatch, fix: str) -> Fix:
     # break into before, to modify, after
     before_lines = lines[:start_line]
     before_on_start_line = lines[start_line][:start_col]
-    after_on_end_line = lines[end_line][end_col + 1 :]  # next char after end of match
+    after_on_end_line = lines[end_line][end_col:]  # next char after end of match
     modified_lines = (before_on_start_line + fix + after_on_end_line).splitlines()
     after_lines = lines[end_line + 1 :]  # next line after end of match
     contents_after_fix = before_lines + modified_lines + after_lines
