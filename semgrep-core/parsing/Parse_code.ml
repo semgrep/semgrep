@@ -14,6 +14,7 @@
 open Common
 module Flag = Flag_semgrep
 module PI = Parse_info
+module E = Error_code
 
 let logger = Logging.get_logger [__MODULE__]
 
@@ -31,10 +32,12 @@ let logger = Logging.get_logger [__MODULE__]
 type 'ast parser =
  | Pfff of (Common.filename -> 'ast)
  | TreeSitter of (Common.filename ->
+                   (* <=> 'ast Parse_tree_sitter_helper.result *)
                    'ast option * Tree_sitter_run.Tree_sitter_error.t list)
 
-type 'ast common_parse_result =
+type 'ast result =
   | Ok of 'ast
+  | Partial of 'ast * Error_code.error list
   | Error of exn
 
 let mk_tree_sitter_error (err : Tree_sitter_run.Tree_sitter_error.t) =
@@ -46,9 +49,11 @@ let mk_tree_sitter_error (err : Tree_sitter_run.Tree_sitter_error.t) =
     column = start.column;
     file = err.file.name;
   } in
-  loc
+  let info = { PI.token = PI.OriginTok loc; transfo = PI.NoTransfo } in
+  PI.Parsing_error info
 
-let (run_parser: 'ast parser -> Common.filename -> 'ast common_parse_result) =
+
+let (run_parser: 'ast parser -> Common.filename -> 'ast result) =
   fun parser file ->
   match parser with
   | Pfff f ->
@@ -69,11 +74,19 @@ let (run_parser: 'ast parser -> Common.filename -> 'ast common_parse_result) =
          (match astopt, errors with
          | None, [] -> raise Impossible
          | Some ast, [] -> Ok ast
-         | _, ts_error::_xs ->
-            let loc = mk_tree_sitter_error ts_error in
-            let info = { PI.token = PI.OriginTok loc; transfo = PI.NoTransfo }
-            in
-            Error (PI.Parsing_error info)
+         | None, ts_error::_xs ->
+            let exn = mk_tree_sitter_error ts_error in
+            logger#info "non-recoverable error (%s) with TreeSitter parser"
+                  (Common.exn_to_s exn);
+            Error exn
+         | Some ast, x::_xs ->
+            (* let's just return the first one for now; the following one
+             * may be due to cascading effect of the first error *)
+             let exn = mk_tree_sitter_error x in
+             logger#info "partial error (%s) with TreeSitter parser"
+                  (Common.exn_to_s exn);
+             let err = E.exn_to_error file exn in
+             Partial (ast, [err])
          )
        with
        | Timeout -> raise Timeout
@@ -82,8 +95,7 @@ let (run_parser: 'ast parser -> Common.filename -> 'ast common_parse_result) =
           Error exn
        )
 
-let rec (run_either: Common.filename -> 'ast parser list ->
-  'ast common_parse_result)
+let rec (run_either: Common.filename -> 'ast parser list -> 'ast result)
  = fun file xs ->
    match xs with
    | [] -> Error (Failure (spf "no parser found for %s" file))
@@ -91,14 +103,32 @@ let rec (run_either: Common.filename -> 'ast parser list ->
       let res = run_parser p file in
       match res with
       | Ok ast -> Ok ast
-      | Error exn ->
+      | Partial (ast, errs) ->
         let res = run_either file xs in
         (match res with
         | Ok ast -> Ok ast
         | Error exn2 ->
+           logger#debug "exn again (%s) but return Partial"
+                    (Common.exn_to_s exn2);
+           (* prefer a Partial to an Error *)
+           Partial (ast, errs)
+        | Partial _ ->
+           logger#debug "Partial again but return first Partial";
+           Partial (ast, errs)
+        )
+      | Error exn ->
+        let res = run_either file xs in
+        (match res with
+        | Ok ast -> Ok ast
+        | Partial (ast, errs) ->
+           logger#debug "Got now a Partial, better than exn (%s)"
+                (Common.exn_to_s exn);
+           Partial (ast, errs)
+
+        | Error exn2 ->
            logger#debug "exn again (%s) but return original exn (%s)"
                 (Common.exn_to_s exn2) (Common.exn_to_s exn);
-          (* prefer the first error *)
+           (* prefer the first error *)
            Error exn
         )
 
@@ -110,6 +140,7 @@ let run file xs =
    in
    (match run_either file xs with
    | Ok ast -> ast
+   | Partial (ast, _errs) -> ast
    | Error exn -> raise exn
    )
 
