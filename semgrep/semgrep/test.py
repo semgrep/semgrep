@@ -180,9 +180,9 @@ def score_output_json(
     test_ids = {
         check_id for _, comment in comment_lines.items() for check_id in comment.keys()
     } | {check_id for _, ok in ok_lines.items() for check_id in ok.keys()}
-    if reported_ids and test_ids.difference(reported_ids):
+    if reported_ids and test_ids.symmetric_difference(reported_ids):
         raise Exception(
-            f"found rule ids in test not present in results - test={test_ids} results={reported_ids}"
+            f"found mismatch between test and result ids - test={test_ids} result={reported_ids}"
         )
 
     def join_keys(a: Dict[str, Any], b: Dict[str, Any]) -> Set[str]:
