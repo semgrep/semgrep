@@ -27,57 +27,69 @@ let logger = Logging.get_logger [__MODULE__]
 (* Helpers *)
 (*****************************************************************************)
 
-type parser_kind = Pfff | TreeSitter
- [@@deriving show { with_path = false }]
+type 'ast parser =
+ | Pfff of (Common.filename -> 'ast)
+ | TreeSitter of (Common.filename ->
+                   'ast (*option * Tree_sitter_run.Tree_sitter_error.t list*))
 
-type 'ast parser = parser_kind * (Common.filename -> 'ast)
+type 'ast common_parse_result =
+  | Ok of 'ast
+  | Error of exn
+
+let (run_parser: 'ast parser -> Common.filename -> 'ast common_parse_result) =
+  fun parser file ->
+  match parser with
+  | Pfff f ->
+     Common.save_excursion Flag_parsing.show_parsing_error false (fun () ->
+       logger#info "trying to parse with Pfff parser %s" file;
+       try
+         Ok (f file)
+       with
+       | Timeout -> raise Timeout
+       | exn ->
+          logger#debug "exn (%s) with Pfff parser" (Common.exn_to_s exn);
+          Error exn
+     )
+  | TreeSitter f ->
+       logger#info "trying to parse with TreeSitter parser %s" file;
+       (try
+         Ok (f file)
+       with
+       | Timeout -> raise Timeout
+       | exn ->
+          logger#debug "exn (%s) with TreeSitter parser" (Common.exn_to_s exn);
+          Error exn
+       )
 
 let rec (run_either: Common.filename -> 'ast parser list ->
- ('ast, exn) Common.either)
+  'ast common_parse_result)
  = fun file xs ->
    match xs with
-   | [] -> Right (Failure (spf "no parser found for %s" file))
-   | (kind, f)::xs ->
-      let f file =
-          if xs <> []
-          then Common.save_excursion Flag_parsing.show_parsing_error false
-               (fun () -> f file)
-          else f file
-      in
-      let res =
-        try
-          logger#info "trying to parse with %s parser %s"
-              (show_parser_kind kind) file;
-          Left (f file)
-        with
-        | Timeout -> raise Timeout
-        | exn ->
-           logger#debug "exn (%s) with %s parser"
-                (Common.exn_to_s exn) (show_parser_kind kind);
-           Right exn
-      in
+   | [] -> Error (Failure (spf "no parser found for %s" file))
+   | p::xs ->
+      let res = run_parser p file in
       match res with
-      | Left ast -> Left ast
-      | Right exn ->
+      | Ok ast -> Ok ast
+      | Error exn ->
         let res = run_either file xs in
         (match res with
-        | Left ast -> Left ast
-        | Right exn2 ->
+        | Ok ast -> Ok ast
+        | Error exn2 ->
            logger#debug "exn again (%s) but return original exn (%s)"
                 (Common.exn_to_s exn2) (Common.exn_to_s exn);
           (* prefer the first error *)
-           Right exn
+           Error exn
         )
 
 let run file xs =
   let xs =
     if !Flag.tree_sitter_only
-    then xs |> Common.exclude (fun (a, _b) -> a = Pfff)
+    then xs |> Common.exclude (function | Pfff _ -> true | _ -> false)
     else xs
    in
    (match run_either file xs with
-   | Left ast -> ast
-   | Right exn -> raise exn
+   | Ok ast -> ast
+   | Error exn -> raise exn
    )
 
 
@@ -90,10 +102,10 @@ let just_parse_with_lang lang file =
        *)
       let ast =
         run file [
-          TreeSitter, Parse_ruby_tree_sitter.parse;
+          TreeSitter Parse_ruby_tree_sitter.parse;
           (* right now the parser is verbose and the token positions
            * may be wrong, but better than nothing. *)
-          Pfff, Parse_ruby.parse_program
+          Pfff Parse_ruby.parse_program
         ]
       in
       Ruby_to_generic.program ast
@@ -104,16 +116,16 @@ let just_parse_with_lang lang file =
          * an invoke because of a segfault/memory-leak.
          *)
         run file [
-          Pfff, Parse_java.parse_program;
-          TreeSitter, Parse_java_tree_sitter.parse;
+          Pfff Parse_java.parse_program;
+          TreeSitter Parse_java_tree_sitter.parse;
           ]
        in
        Java_to_generic.program ast
   | Lang.Go ->
       let ast =
         run file [
-        Pfff, Parse_go.parse_program;
-        TreeSitter, Parse_go_tree_sitter.parse;
+        Pfff Parse_go.parse_program;
+        TreeSitter Parse_go_tree_sitter.parse;
         ]
       in
       Go_to_generic.program ast
@@ -125,8 +137,8 @@ let just_parse_with_lang lang file =
        *)
       let ast =
         run file [
-          TreeSitter, Parse_javascript_tree_sitter.parse;
-          Pfff, (fun file ->
+          TreeSitter Parse_javascript_tree_sitter.parse;
+          Pfff (fun file ->
               let f () =
                 Parse_js.parse_program file
               in
@@ -151,7 +163,7 @@ let just_parse_with_lang lang file =
   | Lang.Typescript ->
       let ast =
         run file [
-          TreeSitter, Parse_typescript_tree_sitter.parse ?dialect:None
+          TreeSitter (Parse_typescript_tree_sitter.parse ?dialect:None)
         ]
       in
       Js_to_generic.program ast
@@ -161,11 +173,11 @@ let just_parse_with_lang lang file =
        * and there's no ast_csharp.ml either so we directly generate
        * a generic AST (no csharp_to_generic here)
        *)
-      run file [TreeSitter, Parse_csharp_tree_sitter.parse]
+      run file [TreeSitter Parse_csharp_tree_sitter.parse]
 
   (* default to the one in pfff for the other languages *)
   | _ ->
-      run file [Pfff, (Parse_generic.parse_with_lang lang)]
+      run file [Pfff (Parse_generic.parse_with_lang lang)]
 
 (*****************************************************************************)
 (* Entry point *)
