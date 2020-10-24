@@ -698,11 +698,12 @@ and catch_clause (env : env) ((v1, v2, v3, v4) : CST.catch_clause) =
   in
   let v3 =
     (match v3 with
-    | Some x -> catch_filter_clause env x
-    | None -> todo env ())
+    | Some x -> Some (catch_filter_clause env x)
+    | None -> None)
   in
+  (* TODO handle v3 *)
   let v4 = block env v4 in
-  todo env (v1, v2, v3, v4)
+  (v1, v2, v4)
 
 and ordering (env : env) ((v1, v2) : CST.ordering) =
   let v1 = expression env v1 in
@@ -918,14 +919,15 @@ and expression (env : env) (x : CST.expression) : AST.expr =
       let v3 =
         (match v3 with
         | Some x -> argument_list env x
-        | None -> todo env ())
+        | None -> fake_bracket [])
       in
       let v4 =
         (match v4 with
-        | Some x -> initializer_expression env x
-        | None -> todo env ())
+        | Some x -> Some (initializer_expression env x)
+        | None -> None)
       in
-      todo env (v1, v2, v3, v4)
+      (* TODO handle v4 *)
+      Call (IdSpecial (New, v1), v3)
   | `Paren_exp (v1, v2, v3) ->
       let v1 = token env v1 (* "(" *) in
       let v2 = expression env v2 in
@@ -1291,17 +1293,17 @@ and statement (env : env) (x : CST.statement) =
         | None -> todo env ())
       in
       let v3 = token env v3 (* ";" *) in
-      todo env (v1, v2, v3)
+      Throw (v1, v2)
   | `Try_stmt (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "try" *) in
       let v2 = block env v2 in
       let v3 = List.map (catch_clause env) v3 in
       let v4 =
         (match v4 with
-        | Some x -> finally_clause env x
-        | None -> todo env ())
+        | Some x -> Some (finally_clause env x)
+        | None -> None)
       in
-      todo env (v1, v2, v3, v4)
+      Try (v1, v2, v3, v4)
   | `Unsafe_stmt (v1, v2) ->
       let v1 = token env v1 (* "unsafe" *) in
       let v2 = block env v2 in
@@ -1380,11 +1382,14 @@ and catch_declaration (env : env) ((v1, v2, v3, v4) : CST.catch_declaration) =
   let v2 = type_constraint env v2 in
   let v3 =
     (match v3 with
-    | Some tok -> identifier env tok (* identifier *)
-    | None -> todo env ())
+    | Some tok -> Some (identifier env tok) (* identifier *)
+    | None -> None)
   in
   let v4 = token env v4 (* ")" *) in
-  todo env (v1, v2, v3, v4)
+  let var = (match v3 with
+    | Some ident -> Some (ident, empty_id_info ())
+    | None -> None) in
+  PatVar (v2, var)
 
 and case_pattern_switch_label (env : env) ((v1, v2, v3, v4) : CST.case_pattern_switch_label) =
   let v1 = token env v1 (* "case" *) in
@@ -1638,10 +1643,10 @@ and argument_list (env : env) ((v1, v2, v3) : CST.argument_list) : AST.arguments
           List.map (fun (v1, v2) ->
             let v1 = token env v1 (* "," *) in
             let v2 = argument env v2 in
-            todo env (v1, v2)
+            v2
           ) v2
         in
-        [v1] @ v2
+        v1 :: v2
     | None -> [])
   in
   let v3 = token env v3 (* ")" *) in
