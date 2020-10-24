@@ -320,7 +320,7 @@ let rec return_type (env : env) (x : CST.return_type) : type_ option =
       (* does this make sense? Is "void" its own return type, or the absence of a return type? *)
   )
 
-and variable_declaration (env : env) ((v1, v2, v3) : CST.variable_declaration) =
+and variable_declaration (env : env) ((v1, v2, v3) : CST.variable_declaration) : definition list =
   let v1 = type_constraint env v1 in
   let v2 = variable_declarator env v2 in
   let v3 =
@@ -330,7 +330,8 @@ and variable_declaration (env : env) ((v1, v2, v3) : CST.variable_declaration) =
       todo env (v1, v2)
     ) v3
   in
-  todo env (v1, v2, v3)
+  let decls = v2 :: v3 in
+  List.map (fun (ent, vardef) -> (ent, VarDef {vinit = vardef.vinit; vtype = Some v1})) decls
 
 and interpolation_alignment_clause (env : env) ((v1, v2) : CST.interpolation_alignment_clause) =
   let v1 = token env v1 (* "," *) in
@@ -489,17 +490,19 @@ and variable_declarator (env : env) ((v1, v2, v3) : CST.variable_declarator) =
     | `Tuple_pat x -> tuple_pattern env x
     )
   in
-  let v2 =
+  let v2 = (* TODO handle v2 *)
     (match v2 with
-    | Some x -> element_binding_expression env x
-    | None -> todo env ())
+    | Some x -> Some (element_binding_expression env x)
+    | None -> None)
   in
   let v3 =
     (match v3 with
     | Some x -> Some (equals_value_clause env x)
     | None -> None)
   in
-  todo env (v1, v2, v3)
+  let ent = basic_entity v1 [] in
+  let vardef = {vinit = v3; vtype = None} in
+  (ent, vardef)
 
 and prefix_unary_expression (env : env) (x : CST.prefix_unary_expression) =
   (match x with
@@ -1233,20 +1236,22 @@ and statement (env : env) (x : CST.statement) =
       let v3 = statement env v3 in
       todo env (v1, v2, v3)
   | `Local_decl_stmt (v1, v2, v3, v4, v5) ->
-      let v1 =
+      let v1 = (* TODO handle v1 *)
         (match v1 with
-        | Some tok -> token env tok (* "await" *)
-        | None -> todo env ())
+        | Some tok -> Some (token env tok) (* "await" *)
+        | None -> None)
       in
-      let v2 =
+      let v2 = (* TODO handle v2 *)
         (match v2 with
-        | Some tok -> token env tok (* "using" *)
-        | None -> todo env ())
+        | Some tok -> Some (token env tok) (* "using" *)
+        | None -> None)
       in
       let v3 = List.map (modifier env) v3 in
       let v4 = variable_declaration env v4 in
       let v5 = token env v5 (* ";" *) in
-      todo env (v1, v2, v3, v4, v5)
+      (match v4 with
+        | [stmt] -> DefStmt stmt
+        | stmts -> Block (fake_bracket (List.map (fun (x) -> DefStmt x) stmts)))
   | `Local_func_stmt (v1, v2, v3, v4, v5, v6, v7) ->
       let v1 = List.map (modifier env) v1 in
       let v2 = return_type env v2 in
@@ -1316,12 +1321,12 @@ and statement (env : env) (x : CST.statement) =
       in
       let v2 = token env v2 (* "using" *) in
       let v3 = token env v3 (* "(" *) in
-      let v4 =
+      (* TODO let v4 =
         (match v4 with
         | `Var_decl x -> variable_declaration env x
         | `Exp x -> expression env x
         )
-      in
+      in *)
       let v5 = token env v5 (* ")" *) in
       let v6 = statement env v6 in
       todo env (v1, v2, v3, v4, v5, v6)
@@ -1486,7 +1491,7 @@ and formal_parameter_list (env : env) ((v1, v2) : CST.formal_parameter_list) =
   in
   v2
 
-and equals_value_clause (env : env) ((v1, v2) : CST.equals_value_clause) =
+and equals_value_clause (env : env) ((v1, v2) : CST.equals_value_clause) : expr =
   let v1 = token env v1 (* "=" *) in
   let v2 = expression env v2 in
   v2
