@@ -418,6 +418,9 @@ and jsx_child (env : env) (x : CST.jsx_child) : xml_body =
    | `Jsx_exp x ->
        let (_, e, _) = jsx_expression env x in
        XmlExpr e
+   | `Jsx_frag x ->
+       let xml = jsx_fragment env x in
+       XmlXml xml
   )
 
 and jsx_element_ (env : env) (x : CST.jsx_element_) : xml =
