@@ -400,7 +400,7 @@ def is_saved_snippet(config_str: str) -> bool:
     """
         config_str is saved snippet which has format username:snippetname
     """
-    return len(config_str.split(":")) is 2
+    return len(config_str.split(":")) == 2
 
 
 def registry_id_to_url(registry_id: str) -> str:
