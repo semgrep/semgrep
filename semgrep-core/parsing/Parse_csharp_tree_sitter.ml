@@ -316,8 +316,7 @@ let literal (env : env) (x : CST.literal) : literal =
 let rec return_type (env : env) (x : CST.return_type) : type_ option =
   (match x with
   | `Type x -> Some (type_constraint env x)
-  | `Void_kw tok -> None (* "void" *)
-      (* does this make sense? Is "void" its own return type, or the absence of a return type? *)
+  | `Void_kw tok -> Some (TyBuiltin (identifier env tok)) (* "void" *)
   )
 
 and variable_declaration (env : env) ((v1, v2, v3) : CST.variable_declaration) : definition list =
