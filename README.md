@@ -53,7 +53,7 @@
 
 Semgrep [supports](https://dashboard.semgrep.dev/languages):
 
-| Go | Java | Javascript | JSON | Python | Ruby (beta) | Typescript (beta) | JSX (beta) | TSX (beta) |
+| Go | Java | JavaScript | JSON | Python | Ruby (beta) | TypeScript (beta) | JSX (beta) | TSX (beta) |
 | -- | ---- | ---------- | ---- | ------ | ----------- | ----------------- | ---------- | ---------- |
 
 Semgrep also has alpha-level support for OCaml, PHP, and C.
