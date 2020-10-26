@@ -320,7 +320,7 @@ let rec return_type (env : env) (x : CST.return_type) : type_ option =
   )
 
 and variable_declaration (env : env) ((v1, v2, v3) : CST.variable_declaration) : definition list =
-  let v1 = type_constraint env v1 in
+  let v1 = local_variable_type env v1 in
   let v2 = variable_declarator env v2 in
   let v3 =
     List.map (fun (v1, v2) ->
@@ -330,7 +330,7 @@ and variable_declaration (env : env) ((v1, v2, v3) : CST.variable_declaration) :
     ) v3
   in
   let decls = v2 :: v3 in
-  List.map (fun (ent, vardef) -> (ent, VarDef {vinit = vardef.vinit; vtype = Some v1})) decls
+  List.map (fun (ent, vardef) -> (ent, VarDef {vinit = vardef.vinit; vtype = v1})) decls
 
 and interpolation_alignment_clause (env : env) ((v1, v2) : CST.interpolation_alignment_clause) =
   let v1 = token env v1 (* "," *) in
@@ -1105,8 +1105,14 @@ and type_parameter_constraint (env : env) (x : CST.type_parameter_constraint) =
   | `Type_cons x -> type_constraint env x
   )
 
-and type_constraint (env : env) (x : CST.type_constraint) =
+and type_constraint (env : env) (x : CST.type_constraint) : type_ =
+  (* can't be `var` *)
   type_ env x
+
+and local_variable_type (env : env) (x : CST.type_constraint) : type_ option =
+  match x with
+  | `Impl_type tok -> None (* "var" *)
+  | x -> Some (type_ env x)
 
 and statement (env : env) (x : CST.statement) =
   (match x with
@@ -1658,7 +1664,7 @@ and argument_list (env : env) ((v1, v2, v3) : CST.argument_list) : AST.arguments
 
 and type_ (env : env) (x : CST.type_) : AST.type_ =
   (match x with
-  | `Impl_type tok -> todo env tok (* "var" *)
+  | `Impl_type tok -> raise Impossible (* "var" *)
   | `Array_type x -> array_type env x
   | `Name x ->
         let n = name env x in
