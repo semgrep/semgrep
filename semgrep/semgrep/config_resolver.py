@@ -16,6 +16,7 @@ from semgrep.constants import DEFAULT_SEMGREP_CONFIG_NAME
 from semgrep.constants import ID_KEY
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import RULES_KEY
+from semgrep.constants import SEMGREP_URL
 from semgrep.constants import SEMGREP_USER_AGENT
 from semgrep.constants import YML_EXTENSIONS
 from semgrep.error import InvalidRuleSchemaError
@@ -407,15 +408,14 @@ def registry_id_to_url(registry_id: str) -> str:
     """
         Convert from registry_id to semgrep.dev url
     """
-    return f"https://semgrep.dev/{registry_id}"
+    return f"{SEMGREP_URL}{registry_id}"
 
 
 def saved_snippet_to_url(snippet_id: str) -> str:
     """
         Convert from username:snippetname to semgrep.dev url
     """
-    username, snippetname = snippet_id.split(":")
-    return f"https://semgrep.dev/s/{username}/{snippetname}"
+    return registry_id_to_url(f"s/{snippet_id}")
 
 
 def resolve_config(config_str: str) -> Dict[str, YamlTree]:
