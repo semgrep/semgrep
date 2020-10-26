@@ -389,6 +389,35 @@ def download_config(config_url: str) -> Dict[str, YamlTree]:
     return None
 
 
+def is_registry_id(config_str: str) -> bool:
+    """
+        Starts with r/, p/, s/ for registry, pack, and snippet respectively
+    """
+    return config_str[:2] in {"r/", "p/", "s/"}
+
+
+def is_saved_snippet(config_str: str) -> bool:
+    """
+        config_str is saved snippet which has format username:snippetname
+    """
+    return len(config_str.split(":")) is 2
+
+
+def registry_id_to_url(registry_id: str) -> str:
+    """
+        Convert from registry_id to semgrep.dev url
+    """
+    return f"https://semgrep.dev/{registry_id}"
+
+
+def saved_snippet_to_url(snippet_id: str) -> str:
+    """
+        Convert from username:snippetname to semgrep.dev url
+    """
+    username, snippetname = snippet_id.split(":")
+    return f"https://semgrep.dev/s/{username}/{snippetname}"
+
+
 def resolve_config(config_str: str) -> Dict[str, YamlTree]:
     """ resolves if config arg is a registry entry, a url, or a file, folder, or loads from defaults if None"""
     start_t = time.time()
@@ -396,6 +425,10 @@ def resolve_config(config_str: str) -> Dict[str, YamlTree]:
         config = download_config(RULES_REGISTRY[config_str])
     elif is_url(config_str):
         config = download_config(config_str)
+    elif is_registry_id(config_str):
+        config = download_config(registry_id_to_url(config_str))
+    elif is_saved_snippet(config_str):
+        config = download_config(saved_snippet_to_url(config_str))
     else:
         config = load_config_from_local_path(config_str)
     if config:
