@@ -51,11 +51,12 @@
 - Runs in CI, at pre-commit, or in the editor
 - Runs offline on uncompiled code
 
-Semgrep supports:
+Semgrep [supports](https://dashboard.semgrep.dev/languages):
 
-| Go  | Java | JavaScript | JSON | Python | Ruby (beta) | JSX (beta) | C (alpha) | OCaml (alpha) |
-| --- | ---- | ---------- | ---- | ------ | ----------- | ---------- | --------- | ------------- |
+| Go | Java | Javascript | JSON | Python | Ruby (beta) | Typescript (beta) | JSX (beta) | TSX (beta) |
+| -- | ---- | ---------- | ---- | ------ | ----------- | ----------------- | ---------- | ---------- |
 
+Semgrep also has alpha-level support for OCaml, PHP, and C.
 
 Semgrep is proudly supported by r2c. Learn more about a hosted version of Semgrep with an enterprise feature set at [r2c.dev](https://r2c.dev/).
 
