@@ -53,6 +53,7 @@ Semgrep runs offline, on uncompiled code.
 | Go | Java | JavaScript | JSON | Python | Ruby (beta) | TypeScript (beta) | JSX (beta) | TSX (beta) |
 | -- | ---- | ---------- | ---- | ------ | ----------- | ----------------- | ---------- | ---------- |
 </br>
+
 Visit [Semgrep Docs > Supported languages](https://dashboard.semgrep.dev/languages) for a complete up-to-date list.
 
 ## Getting started
