@@ -4,7 +4,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Next
 
-## [0.29.0] https://github.com/returntocorp/semgrep/releases/tag/v0.29.0) - 2020-10-27
+## [0.29.0](https://github.com/returntocorp/semgrep/releases/tag/v0.29.0) - 2020-10-27
 
 ### Added
 - Semgrep will now partially parse files with parse errors and report findings detected before the parse errors was encountered.
