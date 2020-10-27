@@ -32,7 +32,7 @@ Semgrep is a fast static analysis tool that excels at expressing code standards 
 
 The [Semgrep Registry](https://semgrep.dev/explore) has 900+ rules written by the Semgrep community covering security, correctness, and performance bugs. No need to DIY unless you want to.
 
-Semgrep runs offline, on uncompiled code. Use it at every stage of the development workflow.
+Semgrep runs offline, on uncompiled code.
 
 ### Language support
 
