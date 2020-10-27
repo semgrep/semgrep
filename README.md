@@ -50,17 +50,17 @@ Visit <a href="TODO">Supported languages</a> for the complete list.
 
 Visit [Getting started](https://semgrep.dev/docs/getting-started/) to quick start.
 
-### Examples
+### Rule examples
 
 Visit [Rule examples](https://semgrep.dev/docs/writing-rules/rule-ideas/) for use cases and ideas.
-
-### Contributing
-
-Visit [Contributing](https://semgrep.dev/docs/contributing/).
 
 ### Commercial use
 
 Semgrep is LGPL 2.1 licensed and supported by [r2c](https://r2c.dev). Visit [FAQ](https://semgrep.dev/docs/faq/) to learn more.
+
+### Contributing
+
+Visit [Contributing](https://semgrep.dev/docs/contributing/).
 
 ### Usage
 
