@@ -173,8 +173,7 @@ def cli() -> None:
         "--quiet",
         action="store_true",
         help=(
-            "Do not print anything to stdout. Search results can still be "
-            "saved to an output file specified by -o/--output. Exit code "
+            "Do not print any logging messages to stderr. Finding output will still be sent to stdout. Exit code "
             "provides success status."
         ),
     )
@@ -203,10 +202,9 @@ def cli() -> None:
     output.add_argument(
         "--save-test-output-tar",
         action="store_true",
-        help= (
+        help=(
             "Store json output as a tarball that will be uploaded as a Github artifact."
         ),
-
     )
     output.add_argument(
         "--debugging-json",

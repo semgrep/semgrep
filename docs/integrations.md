@@ -28,7 +28,7 @@ repos:
   rev: 'v0.28.0'
   hooks:
     - id: semgrep
-      args: ['--config', 'https://semgrep.dev/p/r2c', '--error']
+      args: ['--config', 'p/r2c', '--error']
 ```
 
 This will default to using the [`r2c` ruleset](https://semgrep.dev/p/r2c).
@@ -54,7 +54,7 @@ environment:
 install:
     - python -m pip install semgrep
 test_script:
-    - semgrep --config https://semgrep.dev/p/r2c /path/to/code
+    - semgrep --config p/r2c /path/to/code
 ```
 
 This will default to using the [`r2c` ruleset](https://semgrep.dev/p/r2c).
@@ -73,7 +73,7 @@ jobs:
         steps:
             - checkout
             - run: python -m pip install semgrep
-            - run: semgrep --config https://semgrep.dev/p/r2c /path/to/code
+            - run: semgrep --config p/r2c /path/to/code
 ```
 
 This will default to using the [`r2c` ruleset](https://semgrep.dev/p/r2c).
@@ -90,7 +90,7 @@ jobs:
         working_directory: /src
         steps:
             - checkout
-            - run: semgrep --error --config https://semgrep.dev/p/r2c .
+            - run: semgrep --error --config p/r2c .
 ```
 
 
@@ -103,7 +103,7 @@ language: python
 install:
     - python -m pip install semgrep
 script:
-    - semgrep --config https://semgrep.dev/p/r2c /path/to/code
+    - semgrep --config p/r2c /path/to/code
 ```
 
 This will default to using the [`r2c` ruleset](https://semgrep.dev/p/r2c).
@@ -159,7 +159,7 @@ pipeline {
   stages {
     stage('Semgrep') {
       steps {
-        sh '''/usr/local/bin/docker run --rm -v "${PWD}:/src" returntocorp/semgrep --error --config=https://semgrep.dev/p/r2c'''
+        sh '''/usr/local/bin/docker run --rm -v "${PWD}:/src" returntocorp/semgrep --error --config=p/r2c'''
       }
     }
   }
