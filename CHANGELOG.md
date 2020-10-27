@@ -2,18 +2,27 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-
 ## Next
 
+## [0.29.0](https://github.com/returntocorp/semgrep/releases/tag/v0.29.0) - 2020-10-27
+
 ### Added
+- Semgrep will now partially parse files with parse errors and report findings detected before the parse errors was encountered.
 - Allow user to specify registry path without having to add semgrep.dev url
   i.e.: instead of `--config https://semgrep.dev/p/r2c-ci` users can use `--config p/r2c-ci`
-- Allow user to specify snippet id withouth having to add semgrep.dev url
+- Allow user to specify snippet id without having to add semgrep.dev url
   i.e.: instead of `--config https://semgrep.dev/s/username:snippetname`
   users can use `--config username:snippetname`
+- `--test` will now error out if `ruleid` or `ok` is not in reported IDs
+- Semgrep will run JavaScript rules on TypeScript files automatically.
 
 ### Fixed
 - More off by one fixes in autofix
+- Support for matching dynamic class names in Ruby
+- Removed `nosem` findings from the final findings count
+- Matching nested JSX elements works properly. See https://semgrep.dev/s/erlE?version=0.29.0.
+- Can now match partial class definitions with annotations in Java. See https://github.com/returntocorp/semgrep/issues/1877.
+- Fixed errors in TypeScript "implements" keyword. See https://github.com/returntocorp/semgrep/issues/1850.
 
 ## [0.28.0](https://github.com/returntocorp/semgrep/releases/tag/v0.28.0) - 2020-10-21
 
