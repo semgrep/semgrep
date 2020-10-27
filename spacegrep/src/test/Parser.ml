@@ -80,8 +80,6 @@ List (
   List (
     Word 'c'
     Punct '{'
-    List (
-    )
     Punct '}'
   )
   Punct ']'
@@ -186,8 +184,6 @@ a ( ) b { ] c
   "\
 Word 'a'
 Punct '('
-List (
-)
 Punct ')'
 Word 'b'
 Punct '{'

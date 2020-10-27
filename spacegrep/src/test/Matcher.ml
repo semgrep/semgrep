@@ -50,6 +50,7 @@ let run num_matches pat_str doc_str =
   Alcotest.(check int) "number of matches" num_matches (search pat doc_src doc)
 
 let matcher_corpus = [
+  (* title, #matches, pattern, document *)
   "empty pattern", 1, "", "x";
   "word", 1, "hello", "hello";
   "simple fail", 0, "a", "ab cd";
@@ -73,6 +74,19 @@ a
 c
 ",
   "a b c";
+
+  "indented ellipsis", 2,
+  "\
+{
+  ...
+}
+",
+  "\
+{}
+
+{
+}
+";
 
   "multiple matches", 3, "a", "a a a";
   "just dots", 1, "...", "a b";

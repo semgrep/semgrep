@@ -15,6 +15,29 @@ type pending_brace =
   | Bracket
   | Curly
 
+let open_paren = Punct '('
+let close_paren = Punct ')'
+let open_bracket = Punct '['
+let close_bracket = Punct ']'
+let open_curly = Punct '{'
+let close_curly = Punct '}'
+
+let append_block_to_accumulator
+    open_punct close_punct
+    open_loc close_loc
+    block_nodes
+    acc =
+  match block_nodes with
+  | [] ->
+      Atom (close_loc, close_punct)
+      :: Atom (open_loc, open_punct)
+      :: acc
+  | block_nodes ->
+      Atom (close_loc, close_punct)
+      :: List block_nodes
+      :: Atom (open_loc, open_punct)
+      :: acc
+
 (*
    Parse a line made of ordinary tokens and of opening and closing braces.
    Failure to close a brace correctly causes a retry, in which the
@@ -42,36 +65,46 @@ let rec parse_line pending_braces acc (tokens : Lexer.token list)
       let res = parse_line (Paren :: pending_braces) [] tokens in
       (match res with
        | None ->
-           parse_line pending_braces (Atom (open_loc, Punct '(') :: acc) tokens
+           parse_line pending_braces
+             (Atom (open_loc, open_paren) :: acc) tokens
        | Some (nodes, pending_braces, close_loc, tokens) ->
            parse_line pending_braces
-             (Atom (close_loc, Punct ')')
-              :: List nodes
-              :: Atom (open_loc, Punct '(') :: acc)
+             (append_block_to_accumulator
+                open_paren close_paren
+                open_loc close_loc
+                nodes
+                acc)
              tokens
       )
   | Open_bracket open_loc :: tokens ->
       let res = parse_line (Bracket :: pending_braces) [] tokens in
       (match res with
        | None ->
-           parse_line pending_braces (Atom (open_loc, Punct '[') :: acc) tokens
+           parse_line pending_braces
+             (Atom (open_loc, open_bracket) :: acc) tokens
        | Some (nodes, pending_braces, close_loc, tokens) ->
            parse_line pending_braces
-             (Atom (close_loc, Punct ']')
-              :: List nodes
-              :: Atom (open_loc, Punct '[') :: acc)
+             (append_block_to_accumulator
+                open_bracket close_bracket
+                open_loc close_loc
+                nodes
+                acc)
              tokens
       )
   | Open_curly open_loc :: tokens ->
       let res = parse_line (Curly :: pending_braces) [] tokens in
       (match res with
        | None ->
-           parse_line pending_braces (Atom (open_loc, Punct '{') :: acc) tokens
+           parse_line pending_braces
+             (Atom (open_loc, open_curly) :: acc) tokens
        | Some (nodes, pending_braces, close_loc, tokens) ->
            parse_line pending_braces
-             (Atom (close_loc, Punct '}')
-              :: List nodes
-              :: Atom (open_loc, Punct '{') :: acc) tokens
+             (append_block_to_accumulator
+                open_curly close_curly
+                open_loc close_loc
+                nodes
+                acc)
+             tokens
       )
   | Close_paren close_loc :: tokens ->
       (match pending_braces with
@@ -81,7 +114,7 @@ let rec parse_line pending_braces acc (tokens : Lexer.token list)
            None
        | [] ->
            parse_line pending_braces
-             (Atom (close_loc, Punct ')') :: acc) tokens
+             (Atom (close_loc, close_paren) :: acc) tokens
       )
   | Close_bracket close_loc :: tokens ->
       (match pending_braces with
@@ -91,7 +124,7 @@ let rec parse_line pending_braces acc (tokens : Lexer.token list)
            None
        | [] ->
            parse_line pending_braces
-             (Atom (close_loc, Punct ']') :: acc) tokens
+             (Atom (close_loc, close_bracket) :: acc) tokens
       )
   | Close_curly close_loc :: tokens ->
       (match pending_braces with
@@ -101,7 +134,7 @@ let rec parse_line pending_braces acc (tokens : Lexer.token list)
            None
        | [] ->
            parse_line pending_braces
-             (Atom (close_loc, Punct '}') :: acc) tokens
+             (Atom (close_loc, close_curly) :: acc) tokens
       )
 
 (* Try to match braces within the line. This is intended for documents, not
@@ -118,12 +151,12 @@ let parse_pattern_line (tokens : Lexer.token list) : Pattern_AST.node list =
     match token with
     | Atom (loc, atom) -> Atom (loc, atom)
     | Dots loc -> Dots loc
-    | Open_paren loc -> Atom (loc, Punct '(')
-    | Close_paren loc -> Atom (loc, Punct ')')
-    | Open_bracket loc -> Atom (loc, Punct '[')
-    | Close_bracket loc -> Atom (loc, Punct ']')
-    | Open_curly loc -> Atom (loc, Punct '{')
-    | Close_curly loc -> Atom (loc, Punct '}')
+    | Open_paren loc -> Atom (loc, open_paren)
+    | Close_paren loc -> Atom (loc, close_paren)
+    | Open_bracket loc -> Atom (loc, open_bracket)
+    | Close_bracket loc -> Atom (loc, close_bracket)
+    | Open_curly loc -> Atom (loc, open_curly)
+    | Close_curly loc -> Atom (loc, close_curly)
   ) tokens
 
 (*
