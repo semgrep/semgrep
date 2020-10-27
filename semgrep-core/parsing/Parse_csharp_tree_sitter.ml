@@ -1142,7 +1142,7 @@ and statement (env : env) (x : CST.statement) =
       let v5 = expression env v5 in
       let v6 = token env v6 (* ")" *) in
       let v7 = token env v7 (* ";" *) in
-      todo env (v1, v2, v3, v4, v5, v6, v7)
+      DoWhile (v1, v2, v5)
   | `Empty_stmt tok ->
         let _ = token env tok (* ";" *) in
         todo env tok
