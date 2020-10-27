@@ -1602,7 +1602,7 @@ and function_body (env : env) (x : CST.function_body) =
 and finally_clause (env : env) ((v1, v2) : CST.finally_clause) =
   let v1 = token env v1 (* "finally" *) in
   let v2 = block env v2 in
-  todo env (v1, v2)
+  (v1, v2)
 
 and parameter (env : env) ((v1, v2, v3, v4, v5) : CST.parameter) =
   (*
