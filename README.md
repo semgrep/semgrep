@@ -6,8 +6,6 @@
   </br>
   Find bugs and enforce code standards.
 </h3>
-</br>
-
 <p align="center">
   <a href="https://formulae.brew.sh/formula/semgrep">
     <img src="https://img.shields.io/homebrew/v/semgrep?style=flat-square" alt="Homebrew" />
@@ -28,7 +26,7 @@
     <img src="https://img.shields.io/twitter/follow/r2cdev?label=Follow%20r2cdev&style=social&color=blue" alt="Follow @r2cdev" />
   </a>
 </p>
-
+</br>
 
 Semgrep is a static analysis tool that excels at expressing code standards — without complicated queries — and surfacing bugs early in the development flow. Rules look like the code you’re searching without needing to understand abstract syntax trees or wrestle with regexes.
 
@@ -54,11 +52,11 @@ Visit [Rule examples](https://semgrep.dev/docs/writing-rules/rule-ideas/) for us
 
 ## Contributing
 
-Visit [Semgrep Docs > Contributing](https://semgrep.dev/docs/contributing/).
+Visit [Contributing](https://semgrep.dev/docs/contributing/).
 
-## Commercial support
+## Commercial use
 
-Semgrep is supported by [r2c](https://r2c.dev). Visit [r2c > Pricing](https://r2c.dev/pricing) to learn more about hosted Semgrep.
+Semgrep is LGPL 2.1 licensed and supported by [r2c](https://r2c.dev). Visit [FAQ](https://semgrep.dev/docs/faq/) to learn more.
 
 ## Usage
 
