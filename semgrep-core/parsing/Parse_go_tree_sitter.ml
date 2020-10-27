@@ -1316,12 +1316,13 @@ let source_file (env : env) (xs : CST.source_file) : program =
 (*****************************************************************************)
 
 let parse file =
- H.convert_tree_sitter_exn_to_pfff_exn (fun () ->
-  let ast =
-    Parallel.backtrace_when_exn := false;
-    Parallel.invoke Tree_sitter_go.Parse.file file ()
-  in
-  let env = { H.file; conv = H.line_col_to_pos file } in
-  let x = source_file env ast in
-  x
- )
+  H.wrap_parser
+    (fun () ->
+       Parallel.backtrace_when_exn := false;
+       Parallel.invoke Tree_sitter_go.Parse.file file ()
+    )
+    (fun cst ->
+       let env = { H.file; conv = H.line_col_to_pos file } in
+       let x = source_file env cst in
+       x
+    )

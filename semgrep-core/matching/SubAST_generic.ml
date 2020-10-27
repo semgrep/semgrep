@@ -193,7 +193,7 @@ let substmts_of_stmt st =
          | ClassDef def ->
             def.cbody |> unbracket |> Common.map_filter (function
               | FieldStmt st -> Some st
-              | FieldDynamic _ | FieldSpread _ -> None
+              | FieldSpread _ -> None
             )
          )
 (*e: function [[SubAST_generic.substmts_of_stmt]] *)

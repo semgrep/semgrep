@@ -137,12 +137,12 @@ let regex_flags (env : env) (tok : CST.regex_flags) =
 
 let string_ (env : env) (x : CST.string_) : string wrap =
   (match x with
-  | `DQUOT_rep_choice_imm_tok_pat_de5d470_DQUOT (v1, v2, v3) ->
+  | `DQUOT_rep_choice_imm_tok_pat_3f3cd4d_DQUOT (v1, v2, v3) ->
       let v1 = token env v1 (* "\"" *) in
       let v2 =
         List.map (fun x ->
           (match x with
-          | `Imm_tok_pat_de5d470 tok ->
+          | `Imm_tok_pat_3f3cd4d tok ->
               str env tok (* pattern "[^\"\\\\\\n]+|\\\\\\r?\\n" *)
           | `Esc_seq tok -> str env tok (* escape_sequence *)
           )
@@ -152,12 +152,12 @@ let string_ (env : env) (x : CST.string_) : string wrap =
       let str = v2 |> List.map fst |> String.concat "" in
       let toks = (v2 |> List.map snd) @ [v3] in
       str, PI.combine_infos v1 toks
-  | `SQUOT_rep_choice_imm_tok_pat_3e57880_SQUOT (v1, v2, v3) ->
+  | `SQUOT_rep_choice_imm_tok_pat_a3af5dd_SQUOT (v1, v2, v3) ->
       let v1 = token env v1 (* "'" *) in
       let v2 =
         List.map (fun x ->
           (match x with
-          | `Imm_tok_pat_3e57880 tok ->
+          | `Imm_tok_pat_a3af5dd tok ->
               str env tok (* pattern "[^'\\\\\\n]+|\\\\\\r?\\n" *)
           | `Esc_seq tok -> str env tok (* escape_sequence *)
           )
@@ -442,6 +442,9 @@ and jsx_child (env : env) (x : CST.jsx_child) : xml_body =
   | `Jsx_exp x ->
         let (_, e, _) = jsx_expression env x in
         XmlExpr e
+  | `Jsx_frag x ->
+        let xml = jsx_fragment env x in
+        XmlXml xml
   )
 
 and jsx_element_ (env : env) (x : CST.jsx_element_) : xml =
@@ -1758,12 +1761,12 @@ let program (env : env) ((v1, v2) : CST.program) : program =
 (* Entry point *)
 (*****************************************************************************)
 let parse file =
- H.convert_tree_sitter_exn_to_pfff_exn (fun () ->
-  let ast =
-    Parallel.backtrace_when_exn := false;
-    Parallel.invoke Tree_sitter_javascript.Parse.file file ()
-  in
-  let env = { H.file; conv = H.line_col_to_pos file } in
-
-  program env ast
- )
+  H.wrap_parser
+    (fun () ->
+       Parallel.backtrace_when_exn := false;
+       Parallel.invoke Tree_sitter_javascript.Parse.file file ()
+    )
+    (fun ast ->
+       let env = { H.file; conv = H.line_col_to_pos file } in
+       program env ast
+    )

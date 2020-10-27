@@ -50,8 +50,14 @@ let any_gen_of_string str =
 (*s: function [[Test.parse_generic]] *)
 (*e: function [[Test.parse_generic]] *)
 
+(*
+   For each input file with the language's extension, locate a pattern file
+   with the '.sgrep' extension.
+
+   If foo/bar.sgrep is not found, POLYGLOT/bar.sgrep is used instead.
+*)
 (*s: function [[Test.regression_tests_for_lang]] *)
-let regression_tests_for_lang files lang = 
+let regression_tests_for_lang files lang =
   files |> List.map (fun file ->
    (Filename.basename file) >:: (fun () ->
     let sgrep_file =
@@ -59,8 +65,8 @@ let regression_tests_for_lang files lang =
       let candidate1 = Common2.filename_of_dbe (d,b,"sgrep") in
       if Sys.file_exists candidate1
       then candidate1
-      else 
-        let d = Filename.concat tests_path "GENERIC" in
+      else
+        let d = Filename.concat tests_path "POLYGLOT" in
         let candidate2 = Common2.filename_of_dbe (d,b,"sgrep") in
         if Sys.file_exists candidate2
         then candidate2
@@ -68,7 +74,12 @@ let regression_tests_for_lang files lang =
     in
     let ast = 
         try 
-          Parse_code.parse_and_resolve_name_use_pfff_or_treesitter lang file 
+          let ast, errs = 
+            Parse_code.parse_and_resolve_name_use_pfff_or_treesitter lang file 
+          in
+          if errs <> []
+          then failwith (spf "fail to fully parse %s" file);
+          ast
         with exn ->
           failwith (spf "fail to parse %s (exn = %s)" file 
                     (Common.exn_to_s exn))

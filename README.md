@@ -51,11 +51,12 @@
 - Runs in CI, at pre-commit, or in the editor
 - Runs offline on uncompiled code
 
-Semgrep supports:
+Semgrep [supports](https://dashboard.semgrep.dev/languages):
 
-| Go  | Java | JavaScript | JSON | Python | Ruby (beta) | JSX (beta) | C (alpha) | OCaml (alpha) |
-| --- | ---- | ---------- | ---- | ------ | ----------- | ---------- | --------- | ------------- |
+| Go | Java | JavaScript | JSON | Python | Ruby (beta) | TypeScript (beta) | JSX (beta) | TSX (beta) |
+| -- | ---- | ---------- | ---- | ------ | ----------- | ----------------- | ---------- | ---------- |
 
+Semgrep also has alpha-level support for OCaml, PHP, and C.
 
 Semgrep is proudly supported by r2c. Learn more about a hosted version of Semgrep with an enterprise feature set at [r2c.dev](https://r2c.dev/).
 
@@ -89,7 +90,7 @@ Once installed, Semgrep can be run with single rule patterns or entire rule sets
 $ semgrep -e '$X == $X' --lang=py path/to/src
 
 # Run a ruleset with rules for many languages
-$ semgrep --config=https://semgrep.dev/p/r2c-CI path/to/src
+$ semgrep --config=p/r2c-CI path/to/src
 ```
 
 Explore the Semgrep Registry of rules and CI integrations at [semgrep.dev](https://semgrep.dev/packs).
@@ -115,31 +116,31 @@ Give some rulesets a spin by running on known vulnerable repositories:
 ```bash
 # juice-shop, a vulnerable Node.js + Express app
 $ git clone https://github.com/bkimminich/juice-shop
-$ semgrep -f https://semgrep.dev/p/r2c-security-audit juice-shop
+$ semgrep --config p/r2c-security-audit juice-shop
 ```
 
 ```bash
 # railsgoat, a vulnerable Ruby on Rails app
 $ git clone https://github.com/OWASP/railsgoat
-$ semgrep -f https://semgrep.dev/p/r2c-security-audit railsgoat
+$ semgrep --config p/r2c-security-audit railsgoat
 ```
 
 ```bash
 # govwa, a vulnerable Go app
 $ git clone https://github.com/0c34/govwa
-$ semgrep -f https://semgrep.dev/p/r2c-security-audit govwa
+$ semgrep --config p/r2c-security-audit govwa
 ```
 
 ```bash
 # vulnerable Python+Flask app
 $ git clone https://github.com/we45/Vulnerable-Flask-App
-$ semgrep -f https://semgrep.dev/p/r2c-security-audit Vulnerable-Flask-App
+$ semgrep --config p/r2c-security-audit Vulnerable-Flask-App
 ```
 
 ```bash
 # WebGoat, a vulnerable Java+Sprint app
 $ git clone https://github.com/WebGoat/WebGoat
-$ semgrep -f https://semgrep.dev/p/r2c-security-audit WebGoat
+$ semgrep --config p/r2c-security-audit WebGoat
 ```
 
 ## Resources

@@ -1,5 +1,5 @@
 (library
- (public_name semgrep_analyzing)
+ (name semgrep_analyzing)
  (wrapped false)
  (libraries
    yaml

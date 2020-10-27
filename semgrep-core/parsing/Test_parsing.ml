@@ -18,26 +18,41 @@ module G = AST_generic
 
 let logger = Logging.get_logger [__MODULE__]
 
+(*
+   TODO: Maybe instead of this we should print all the errors, print the CST
+   if there's one, only then fail (or succeed).
+*)
+let fail_on_error = function
+  | Some cst, [] -> cst
+  | _, err :: _ -> raise (Tree_sitter_run.Tree_sitter_error.Error err)
+  | None, [] -> failwith "unknown error from tree-sitter parser"
+
 (* less: could infer lang from filename *)
 let dump_tree_sitter_cst_lang lang file =
    match lang with
    | Lang.Ruby ->
       Tree_sitter_ruby.Parse.file file
+      |> fail_on_error
       |> Tree_sitter_ruby.CST.dump_tree
    | Lang.Java ->
       Tree_sitter_java.Parse.file file
+      |> fail_on_error
       |> Tree_sitter_java.CST.dump_tree
    | Lang.Go   ->
       Tree_sitter_go.Parse.file file
+      |> fail_on_error
       |> Tree_sitter_go.CST.dump_tree
    | Lang.Csharp ->
       Tree_sitter_csharp.Parse.file file
+      |> fail_on_error
       |> Tree_sitter_csharp.CST.dump_tree
    | Lang.Javascript ->
       Tree_sitter_javascript.Parse.file file
+      |> fail_on_error
       |> Tree_sitter_javascript.CST.dump_tree
    | Lang.Typescript ->
       Tree_sitter_typescript.Parse.file file
+      |> fail_on_error
       |> Tree_sitter_typescript.CST.dump_tree
 
    | _ -> failwith "lang not supported by ocaml-tree-sitter"
@@ -115,7 +130,9 @@ let diff_pfff_tree_sitter xs =
     let ast1 = Parse_generic.parse_with_lang lang file in
     let ast2 =
         Common.save_excursion Flag_semgrep.tree_sitter_only true (fun () ->
-            Parse_code.just_parse_with_lang lang file
+            let (ast, errs) = Parse_code.just_parse_with_lang lang file in
+            if errs <> [] then failwith (spf "problem parsing %s" file);
+            ast
         ) in
     let s1 = AST_generic.show_program ast1 in
     let s2 = AST_generic.show_program ast2 in
