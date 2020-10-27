@@ -65,7 +65,7 @@ LANGUAGE_EXCEPTIONS = {
     ],
 }
 
-EXCLUDE = ["TODO", "GENERIC", 'e2e', 'OTHER']
+EXCLUDE = ["TODO", "POLYGLOT", 'e2e', 'OTHER']
 
 CHEATSHEET_ENTRIES = {
     "concrete": ["syntax"],
@@ -96,7 +96,7 @@ def find_path(root_dir: str, lang: str, category: str, subcategory: str, extensi
     if os.path.exists(joined):
         return os.path.relpath(joined, root_dir)
     else:
-        generic_base_path = os.path.join(root_dir, 'GENERIC', f'{category}_{subcategory}')
+        generic_base_path = os.path.join(root_dir, 'POLYGLOT', f'{category}_{subcategory}')
         joined = generic_base_path + '.' + extension
         return os.path.relpath(joined, root_dir)
 
@@ -137,14 +137,14 @@ def run_semgrep_on_example(lang: str, config_arg_str: str, code_path: str) -> st
             "--json",
             f"--config={config.name}",
         ] + [code_path]
-        # print_stderr(">>>" + ' '.join(cmd))
+        print(">>> " + ' '.join(cmd))
         output = subprocess.run(cmd, capture_output=True)
         if output.returncode == 0:
             # if verbose:
             print(output.stderr.decode("utf-8"))
             return output.stdout.decode("utf-8")
         else:
-            print("ERROR: " + output.returncode)
+            print("ERROR: " + str(output.returncode))
             print(cmd)
             sys.exit(1)
 
@@ -338,7 +338,7 @@ def get_language_directories(dir_name: str) -> List[str]:
     files = os.listdir(dir_name)
     return [f for f in files if os.path.isdir(f) and not f in EXCLUDE]
 
-def main(dir_name: str) -> None:  
+def main(dir_name: str) -> None:
     stats = {lang: compute_stats(dir_name, lang) for lang in get_language_directories(dir_name)}
     print(f"{print_to_html(stats)}")
 

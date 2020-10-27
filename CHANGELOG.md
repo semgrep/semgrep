@@ -6,8 +6,14 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## Next
 
 ### Added
+- Allow user to specify registry path without having to add semgrep.dev url
+  i.e.: instead of `--config https://semgrep.dev/p/r2c-ci` users can use `--config p/r2c-ci`
+- Allow user to specify snippet id withouth having to add semgrep.dev url
+  i.e.: instead of `--config https://semgrep.dev/s/username:snippetname`
+  users can use `--config username:snippetname`
 
 ### Fixed
+- More off by one fixes in autofix
 
 ## [0.28.0](https://github.com/returntocorp/semgrep/releases/tag/v0.28.0) - 2020-10-21
 

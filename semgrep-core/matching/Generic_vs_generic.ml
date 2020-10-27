@@ -258,6 +258,28 @@ and m_type_option_with_hook idb taopt tbopt =
   (* less-is-ok:, like m_option_none_can_match_some *)
   | None, _ -> return ()
 
+
+and m_ident_or_dyn_and_id_info_add_in_env_Expr (a1, a2) (b1, b2) =
+  (* metavar: *)
+  match a1, b1 with
+  | A.EId (str, tok), A.EId idb when MV.is_metavar_name str ->
+     (* a bit OCaml specific, cos only ml_to_generic tags id_type in pattern *)
+      let* () = m_type_option_with_hook idb !(a2.A.id_type) !(b2.B.id_type) in
+      let* () = m_id_info a2 b2 in
+      let e = B.ident_or_dynamic_to_expr b1 b2 in
+      envf (str, tok) (B.E e) (* B.E here, not B.I *)
+
+  | A.EId (str, tok), _b when MV.is_metavar_name str ->
+      let* () = m_id_info a2 b2 in
+      let e = B.ident_or_dynamic_to_expr b1 b2 in
+      envf (str, tok) (B.E e) (* B.E here, not B.I *)
+
+  | A.EId a, B.EId b ->
+      m_ident_and_id_info_add_in_env_Expr (a, a2) (b, b2)
+  (* discarding id_info *)
+  | _ -> m_ident_or_dynamic a1 b1
+
+
 (*s: function [[Generic_vs_generic.m_ident_and_id_info_add_in_env_Expr]] *)
 and m_ident_and_id_info_add_in_env_Expr (a1, a2) (b1, b2) =
   (* metavar: *)
@@ -333,7 +355,7 @@ and make_dotted xs =
     let base = B.Id (x, B.empty_id_info()) in
     List.fold_left (fun acc e ->
       let tok = Parse_info.fake_info "." in
-      B.DotAccess (acc, tok, B.FId e)) base xs
+      B.DotAccess (acc, tok, B.EId e)) base xs
 (*e: function [[Generic_vs_generic.make_dotted]] *)
 
 (* possibly go deeper when someone wants that a pattern like
@@ -542,7 +564,7 @@ and m_expr a b =
   | A.DotAccess(a1, at, a2), B.DotAccess(b1, bt, b2) ->
     m_expr a1 b1 >>= (fun () ->
     m_tok at bt >>= (fun () ->
-    m_field_ident a2 b2
+    m_ident_or_dynamic a2 b2
     ))
 
   | A.ArrayAccess(a1, a2), B.ArrayAccess(b1, b2) ->
@@ -648,19 +670,19 @@ and m_expr a b =
 (*e: function [[Generic_vs_generic.m_expr]] *)
 
 (*s: function [[Generic_vs_generic.m_field_ident]] *)
-and m_field_ident a b =
+and m_ident_or_dynamic a b =
   match a, b with
   (* boilerplate *)
-  | A.FId a, B.FId b ->
+  | A.EId a, B.EId b ->
       m_ident a b
   (*s: [[Generic_vs_generic.m_field_ident()]] boilerplate cases *)
-  | A.FName a, B.FName b ->
+  | A.EName a, B.EName b ->
       m_name a b
-  | A.FDynamic a, B.FDynamic b ->
+  | A.EDynamic a, B.EDynamic b ->
       m_expr a b
-  | A.FId _, _
-  | A.FName _, _
-  | A.FDynamic _, _
+  | A.EId _, _
+  | A.EName _, _
+  | A.EDynamic _, _
     -> fail ()
   (*e: [[Generic_vs_generic.m_field_ident()]] boilerplate cases *)
 (*e: function [[Generic_vs_generic.m_field_ident]] *)
@@ -1135,7 +1157,7 @@ and m_type_ a b =
   | A.TyBuiltin(a1), B.TyBuiltin(b1) ->
     (m_wrap m_string) a1 b1
   | A.TyFun(a1, a2), B.TyFun(b1, b2) ->
-    (m_list m_parameter_classic) a1 b1 >>= (fun () ->
+    (m_list m_parameter) a1 b1 >>= (fun () ->
     m_type_ a2 b2
     )
   | A.TyArray(a1, a2), B.TyArray(b1, b2) ->
@@ -1783,7 +1805,7 @@ and m_entity a b =
    *)
   { A. name = a1; attrs = a2; tparams = a4; info = a5 },
   { B. name = b1; attrs = b2; tparams = b4; info = b5 } ->
-    m_ident_and_id_info_add_in_env_Expr (a1, a5) (b1, b5) >>= (fun () ->
+    m_ident_or_dyn_and_id_info_add_in_env_Expr (a1, a5) (b1, b5) >>= (fun () ->
     (m_list_in_any_order ~less_is_ok:true m_attribute a2 b2) >>= (fun () ->
     (m_list m_type_parameter) a4 b4
     ))
@@ -1877,6 +1899,12 @@ and m_parameter a b =
   (* boilerplate *)
   | A.ParamClassic(a1), B.ParamClassic(b1) ->
     m_parameter_classic a1 b1
+  | A.ParamRest(a1, a2), B.ParamRest(b1, b2) ->
+    let* () = m_tok a1 b1 in
+    m_parameter_classic a2 b2
+  | A.ParamHashSplat(a1, a2), B.ParamHashSplat(b1, b2) ->
+    let* () = m_tok a1 b1 in
+    m_parameter_classic a2 b2
   (*s: [[Generic_vs_generic.m_parameter]] boilerplate cases *)
   | A.ParamPattern(a1), B.ParamPattern(b1) ->
     m_pattern a1 b1
@@ -1887,6 +1915,7 @@ and m_parameter a b =
   | A.ParamEllipsis(a1), B.ParamEllipsis(b1) ->
     m_tok a1 b1
   | A.ParamClassic _, _  | A.ParamPattern _, _
+  | A.ParamRest _, _ | A.ParamHashSplat _, _
   | A.ParamEllipsis _, _
   | A.OtherParam _, _
    -> fail ()
@@ -1987,7 +2016,7 @@ and m_list__m_field (xsa: A.field list) (xsb: A.field list) =
       raise Impossible
   (*e: [[Generic_vs_generic.m_list__m_field()]] ellipsis cases *)
   (*s: [[Generic_vs_generic.m_list__m_field()]] [[DefStmt]] pattern case *)
-  | (A.FieldStmt (A.DefStmt (({A.name = (s1, _); _}, _) as adef)) as a)::xsa,
+  | (A.FieldStmt (A.DefStmt (({A.name = A.EId (s1, _); _}, _) as adef)) as a)::xsa,
      xsb ->
      (*s: [[Generic_vs_generic.m_list__m_field()]] in [[DefStmt]] case if metavar field *)
      if MV.is_metavar_name s1 || Matching_generic.is_regexp_string s1
@@ -2006,7 +2035,7 @@ and m_list__m_field (xsa: A.field list) (xsb: A.field list) =
      else
       (try
         let (before, there, after) = xsb |> Common2.split_when (function
-            | (A.FieldStmt (A.DefStmt ({B.name = (s2, _tok); _}, _)))
+            | (A.FieldStmt (A.DefStmt ({B.name = B.EId (s2, _tok); _}, _)))
                 when s2 = s1 -> true
             | _ -> false
         ) in
@@ -2036,16 +2065,10 @@ and m_field a b =
   | A.FieldStmt(a1), B.FieldStmt(b1) ->
     m_stmt a1 b1
   (*s: [[Generic_vs_generic.m_field]] boilerplate cases *)
-  | A.FieldDynamic(a1, a2, a3), B.FieldDynamic(b1, b2, b3) ->
-    m_expr a1 b1 >>= (fun () ->
-    m_list_in_any_order ~less_is_ok:true m_attribute a2 b2 >>= (fun () ->
-    m_expr a3 b3
-    ))
   | A.FieldSpread(a0, a1), B.FieldSpread(b0, b1) ->
     m_tok a0 b0 >>= (fun () ->
     m_expr a1 b1
     )
-  | A.FieldDynamic _, _
   | A.FieldSpread _, _ | A.FieldStmt _, _
    -> fail ()
   (*e: [[Generic_vs_generic.m_field]] boilerplate cases *)
@@ -2388,12 +2411,12 @@ and m_any a b =
     m_ident a1 b1
   | A.Lbli(a1), B.Lbli(b1) ->
     m_label_ident a1 b1
-  | A.Fldi(a1), B.Fldi(b1) ->
-    m_field_ident a1 b1
+  | A.IoD(a1), B.IoD(b1) ->
+    m_ident_or_dynamic a1 b1
   | A.I _, _  | A.N _, _  | A.Modn _, _ | A.Di _, _  | A.En _, _  | A.E _, _
   | A.S _, _  | A.T _, _  | A.P _, _  | A.Def _, _  | A.Dir _, _
   | A.Pa _, _  | A.Ar _, _  | A.At _, _  | A.Dk _, _ | A.Pr _, _
-  | A.Fld _, _ | A.Ss _, _ | A.Tk _, _ | A.Lbli _, _ | A.Fldi _, _
+  | A.Fld _, _ | A.Ss _, _ | A.Tk _, _ | A.Lbli _, _ | A.IoD _, _
   | A.ModDk _, _ | A.TodoK _, _ | A.Partial _, _
    -> fail ()
   (*e: [[Generic_vs_generic.m_any]] boilerplate cases *)

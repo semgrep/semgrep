@@ -53,6 +53,8 @@ let add_attributes_param attrs p =
   (* TODO: ParamPattern can have decorators? *)
   | _ -> p
 
+let todo _env _x =
+  failwith "internal error: not implemented"
 
 (*****************************************************************************)
 (* Boilerplate converter *)
@@ -340,6 +342,27 @@ and jsx_opening_element (env : env) ((v1, v2, v3, v4) : CST.jsx_opening_element)
   let _v4 = JS.token env v4 (* ">" *) in
   v2, v3
 
+and jsx_self_clos_elem (env : env) ((v1, v2, v3, v4, v5) : CST.jsx_self_closing_element) =
+  let _v1 = JS.token env v1 (* "<" *) in
+  let v2 : ident =
+    (match v2 with
+     | `Choice_choice_jsx_id x -> JS.jsx_attribute_name env x
+     | `Choice_id_opt_type_args (v1, v2) ->
+         let v1 = anon_choice_type_id_42c0412 env v1 in
+         let id = concat_nested_identifier env v1 in
+         let _v2 =
+           (match v2 with
+            | Some x -> type_arguments env x |> G.unbracket
+            | None -> [])
+         in
+         id
+    )
+  in
+  let v3 = List.map (jsx_attribute_ env) v3 in
+  let _v4 = JS.token env v4 (* "/" *) in
+  let _v5 = JS.token env v5 (* ">" *) in
+  v2, v3
+
 and jsx_fragment (env : env) ((v1, v2, v3, v4, v5, v6) : CST.jsx_fragment)
  : xml =
   let v1 = JS.token env v1 (* "<" *) in
@@ -418,6 +441,9 @@ and jsx_child (env : env) (x : CST.jsx_child) : xml_body =
    | `Jsx_exp x ->
        let (_, e, _) = jsx_expression env x in
        XmlExpr e
+   | `Jsx_frag x ->
+       let xml = jsx_fragment env x in
+       XmlXml xml
   )
 
 and jsx_element_ (env : env) (x : CST.jsx_element_) : xml =
@@ -428,13 +454,10 @@ and jsx_element_ (env : env) (x : CST.jsx_element_) : xml =
        let _v3 = JS.jsx_closing_element env v3 in
        { xml_tag = fst v1; xml_attrs = snd v1;
          xml_body = v2 }
-   | `Jsx_self_clos_elem (v1, v2, v3, v4, v5) ->
-       let _v1 = JS.token env v1 (* "<" *) in
-       let v2 = JS.jsx_element_name env v2 in
-       let v3 = List.map (jsx_attribute_ env) v3 in
-       let _v4 = JS.token env v4 (* "/" *) in
-       let _v5 = JS.token env v5 (* ">" *) in
-       { xml_tag = v2; xml_attrs = v3; xml_body = [] }
+   | `Jsx_self_clos_elem x ->
+       let v1 = jsx_self_clos_elem env x in
+       { xml_tag = fst v1; xml_attrs = snd v1;
+         xml_body = [] }
   )
 
 and destructuring_pattern (env : env) (x : CST.destructuring_pattern) : expr =
@@ -668,19 +691,29 @@ and generator_function_declaration (env : env) ((v1, v2, v3, v4, v5, v6, v7) : C
   in
   { name = v4 }, FuncDef f
 
-and variable_declarator (env : env) ((v1, v2, v3) : CST.variable_declarator) =
-  let v1 = anon_choice_type_id_21dd422 env v1 in
-  let v2 =
-    (match v2 with
-    | Some x -> Some (type_annotation env x |> snd)
-    | None -> None)
-  in
-  let v3 =
-    (match v3 with
-    | Some x -> Some (initializer_ env x)
-    | None -> None)
-  in
-  v1, v2, v3
+and variable_declarator (env : env) (x : CST.variable_declarator) =
+  (match x with
+   | `Choice_id_opt_type_anno_opt_init (v1, v2, v3) ->
+       let v1 = anon_choice_type_id_21dd422 env v1 in
+       let v2 =
+         (match v2 with
+          | Some x -> Some (type_annotation env x |> snd)
+          | None -> None)
+       in
+       let v3 =
+         (match v3 with
+          | Some x -> Some (initializer_ env x)
+          | None -> None)
+       in
+       v1, v2, v3
+   | `Id_BANG_type_anno (v1, v2, v3) ->
+       let v1 = Left (JS.identifier env v1 (* identifier *)) in
+       (* definite assignment assertion
+          TODO: add to AST? *)
+       let _v2 = JS.token env v2 (* "!" *) in
+       let v3 = type_annotation env v3 |> snd in
+       v1, Some v3, None
+  )
 
 and sequence_expression (env : env) ((v1, v2, v3) : CST.sequence_expression) =
   let v1 = expression env v1 in
@@ -1363,23 +1396,37 @@ and primary_type (env : env) (x : CST.primary_type) : type_ =
           | Right _sts -> None
         ) in
       G.TyRecordAnon (fake, (t1, xs, t2))
-  | `Array_type (v1, v2, v3) ->
-      let v1 = primary_type env v1 in
-      let v2 = JS.token env v2 (* "[" *) in
-      let v3 = JS.token env v3 (* "]" *) in
-      G.TyArray ((v2, None, v3), v1)
-  | `Tuple_type (v1, v2, v3, v4) ->
-      let v1 = JS.token env v1 (* "[" *) in
-      let v2 = type_ env v2 in
-      let v3 =
-        List.map (fun (v1, v2) ->
-          let _v1 = JS.token env v1 (* "," *) in
-          let v2 = type_ env v2 in
-          v2
-        ) v3
-      in
-      let v4 = JS.token env v4 (* "]" *) in
-      G.TyTuple (v1, v2::v3, v4)
+  | `Array_type x ->
+      (match x with
+       | `Read_prim_type_LBRACK_RBRACK (v1, v2, v3, v4) ->
+           let _v1 = JS.token env v1 (* "readonly" *) in (* TODO add to AST *)
+           let v2 = primary_type env v2 in
+           let v3 = JS.token env v3 (* "[" *) in
+           let v4 = JS.token env v4 (* "]" *) in
+           G.TyArray ((v3, None, v4), v2)
+       | `Prim_type_LBRACK_RBRACK (v1, v2, v3) ->
+           let v1 = primary_type env v1 in
+           let v2 = JS.token env v2 (* "[" *) in
+           let v3 = JS.token env v3 (* "]" *) in
+           G.TyArray ((v2, None, v3), v1)
+      )
+  | `Tuple_type x ->
+      (match x with
+       | `Read_LBRACK_type_rep_COMMA_type_RBRACK (_, v1, v2, v3, v4)
+       | `LBRACK_type_rep_COMMA_type_RBRACK (v1, v2, v3, v4) ->
+           (* TODO: add 'readonly' to AST (v0 above) *)
+           let v1 = JS.token env v1 (* "[" *) in
+           let v2 = type_ env v2 in
+           let v3 =
+             List.map (fun (v1, v2) ->
+               let _v1 = JS.token env v1 (* "," *) in
+               let v2 = type_ env v2 in
+               v2
+             ) v3
+           in
+           let v4 = JS.token env v4 (* "]" *) in
+           G.TyTuple (v1, v2::v3, v4)
+      )
   | `Flow_maybe_type (v1, v2) ->
       let v1 = JS.token env v1 (* "?" *) in
       let v2 = primary_type env v2 in
@@ -1414,21 +1461,26 @@ and primary_type (env : env) (x : CST.primary_type) : type_ =
       G.OtherType (G.OT_Todo, [G.TodoK ("LookupType", v2); G.T v1; G.T v3])
   )
 
-and index_signature (env : env) ((v1, v2, v3, v4) : CST.index_signature) =
-  let v1 = JS.token env v1 (* "[" *) in
-  let v2 =
-    (match v2 with
-    | `Choice_id_COLON_pred_type (v1, v2, v3) ->
-        let v1 = anon_choice_type_id_dd17e7d env v1 in
-        let v2 = JS.token env v2 (* ":" *) in
-        let v3 = predefined_type env v3 in
-        G.OtherType (G.OT_Todo, [G.TodoK ("IndexKey", v2); G.I v1; G.I v3])
+and index_signature (env : env) ((v1, v2, v3, v4, v5) : CST.index_signature) =
+  let _v1 =
+    match v1 with
+    | None -> None
+    | Some x -> Some (JS.token env x) (* "readonly" *) (* TODO add to AST *)
+  in
+  let v2 = JS.token env v2 (* "[" *) in
+  let v3 =
+    (match v3 with
+    | `Choice_id_COLON_pred_type (v2, v3, v4) ->
+        let v2 = anon_choice_type_id_dd17e7d env v2 in
+        let v3 = JS.token env v3 (* ":" *) in
+        let v4 = predefined_type env v4 in
+        G.OtherType (G.OT_Todo, [G.TodoK ("IndexKey", v3); G.I v2; G.I v4])
     | `Mapped_type_clause x -> mapped_type_clause env x
     )
   in
-  let _v3 = JS.token env v3 (* "]" *) in
-  let v4 = type_annotation env v4 |> snd in
-  G.OtherType (G.OT_Todo, [G.TodoK ("Indexsig", v1); G.T v2; G.T v4])
+  let _v4 = JS.token env v4 (* "]" *) in
+  let v5 = type_annotation env v5 |> snd in
+  G.OtherType (G.OT_Todo, [G.TodoK ("Indexsig", v2); G.T v3; G.T v5])
 
 
 and unary_expression (env : env) (x : CST.unary_expression) =
@@ -2213,6 +2265,21 @@ and finally_clause (env : env) ((v1, v2) : CST.finally_clause) =
   let v2 = statement_block env v2 in
   v1, v2
 
+and todo_asserts (env : env) ((v1, v2, v3) : CST.asserts) =
+  let v1 = JS.token env v1 (* ":" *) in
+  let v2 = JS.token env v2 (* "asserts" *) in
+  let v3 =
+    (match v3 with
+    | `Id tok -> todo env (JS.identifier env tok) (* identifier *)
+    | `Id_is_type (v1, v2, v3) ->
+        let v1 = JS.identifier env v1 in
+        let _v2 = JS.token env v2 (* "is" *) in
+        let v3 = type_ env v3 in
+        todo env (v1, v3)
+    )
+  in
+  todo env (v1, v2, v3)
+
 and call_signature (env : env) ((v1, v2, v3) : CST.call_signature)
   : G.type_parameter list * (parameter list * type_ option) =
   let v1 =
@@ -2223,7 +2290,13 @@ and call_signature (env : env) ((v1, v2, v3) : CST.call_signature)
   let v2 = formal_parameters env v2 in
   let v3 =
     (match v3 with
-    | Some x -> Some (type_annotation env x |> snd)
+    | Some x ->
+        (match x with
+         | `Type_anno x -> Some (type_annotation env x |> snd)
+         | `Asserts x ->
+             let _x () = todo_asserts env x in (* TODO *)
+             None
+        )
     | None -> None)
   in
   v1, (v2, v3)
@@ -2617,26 +2690,32 @@ let guess_dialect opt_dialect file : dialect =
       else
         `Typescript
 
+type cst_result =
+  CST.program option * Tree_sitter_run.Tree_sitter_error.t list
+
 let parse ?dialect file =
- H.convert_tree_sitter_exn_to_pfff_exn (fun () ->
   let debug = false in
-  let dialect = guess_dialect dialect file in
-  let cst =
-    Parallel.backtrace_when_exn := false;
-    match dialect with
-    | `Typescript ->
-        let cst = Parallel.invoke Tree_sitter_typescript.Parse.file file () in
-        (cst :> CST.program)
-    | `TSX ->
-        let cst = Parallel.invoke Tree_sitter_tsx.Parse.file file () in
-        (cst :> CST.program)
-  in
-  let env = { H.file; conv = H.line_col_to_pos file } in
+  H.wrap_parser
+    (fun () ->
+       let dialect = guess_dialect dialect file in
+       Parallel.backtrace_when_exn := false;
+       match dialect with
+       | `Typescript ->
+           let cst =
+             Parallel.invoke Tree_sitter_typescript.Parse.file file () in
+           (cst :> cst_result)
+       | `TSX ->
+           let cst =
+             Parallel.invoke Tree_sitter_tsx.Parse.file file () in
+           (cst :> cst_result)
+    )
+    (fun cst ->
+       let env = { H.file; conv = H.line_col_to_pos file } in
 
-  if debug then (
-    Printexc.record_backtrace true;
-    CST.dump_tree cst;
-  );
+       if debug then (
+         Printexc.record_backtrace true;
+         CST.dump_tree cst;
+       );
 
-  program env cst
- )
+       program env cst
+    )

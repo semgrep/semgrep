@@ -46,6 +46,10 @@ let todo any =
 
 let ident (s, _) = s
 
+let ident_or_dynamic = function
+  | EId x -> ident x
+  | EName _ | EDynamic _ -> raise Todo
+
 let opt f = function
   | None -> ""
   | Some x -> f x
@@ -230,7 +234,7 @@ and for_stmt env level (for_tok, hdr, s) =
    in
    let show_init = function
    | ForInitVar (ent, var_def) -> F.sprintf "%s%s%s" (opt (fun x -> (print_type x) ^ " ") var_def.vtype)
-                                      (ident ent.name) (opt (fun x -> " = " ^ (expr env x)) var_def.vinit)
+                                      (ident_or_dynamic ent.name) (opt (fun x -> " = " ^ (expr env x)) var_def.vinit)
    | ForInitExpr e_init -> expr env e_init
    in
    let rec show_init_list = function
@@ -271,8 +275,8 @@ and def_stmt env (entity, def_kind) =
     let (typ, id) =
     let {id_type; _} = ent.info in
         match !id_type with
-        | None -> "", ident ent.name
-        | Some t -> print_type t, ident ent.name
+        | None -> "", ident_or_dynamic ent.name
+        | Some t -> print_type t, ident_or_dynamic ent.name
     in
     match def.vinit with
     | None -> no_val typ id ""
@@ -447,9 +451,9 @@ and dot_access env (e, _tok, fi) =
 
 and field_ident env fi =
   match fi with
-       | FId id -> ident id
-       | FName (id, _) -> ident id
-       | FDynamic e -> expr env e
+       | EId id -> ident id
+       | EName (id, _) -> ident id
+       | EDynamic e -> expr env e
 
 and tyvar env (id, typ) =
   match env.lang with

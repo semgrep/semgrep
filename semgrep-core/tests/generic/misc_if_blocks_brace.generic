@@ -1,0 +1,6 @@
+function hello() {
+  // ERROR
+  if (foo == 2) {
+    return x;
+  }
+}

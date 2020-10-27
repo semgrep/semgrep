@@ -1,5 +1,5 @@
 (library
- (public_name semgrep_tainting)
+ (name semgrep_tainting)
  (wrapped false)
  (libraries
    yaml
