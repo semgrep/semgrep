@@ -319,7 +319,7 @@ let rec return_type (env : env) (x : CST.return_type) : type_ option =
   | `Void_kw tok -> Some (TyBuiltin (identifier env tok)) (* "void" *)
   )
 
-and variable_declaration (env : env) ((v1, v2, v3) : CST.variable_declaration) : definition list =
+and variable_declaration (env : env) ((v1, v2, v3) : CST.variable_declaration) : (entity * variable_definition) list =
   let v1 = local_variable_type env v1 in
   let v2 = variable_declarator env v2 in
   let v3 =
@@ -330,12 +330,12 @@ and variable_declaration (env : env) ((v1, v2, v3) : CST.variable_declaration) :
     ) v3
   in
   let decls = v2 :: v3 in
-  List.map (fun (ent, vardef) -> (ent, VarDef {vinit = vardef.vinit; vtype = v1})) decls
+  List.map (fun (ent, vardef) -> (ent, {vinit = vardef.vinit; vtype = v1})) decls
 
 and interpolation_alignment_clause (env : env) ((v1, v2) : CST.interpolation_alignment_clause) =
   let v1 = token env v1 (* "," *) in
   let v2 = expression env v2 in
-  todo env (v1, v2)
+  v2
 
 and postfix_unary_expression (env : env) (x : CST.postfix_unary_expression) =
   (match x with
@@ -1069,15 +1069,15 @@ and anon_choice_param_ce11a32 (env : env) (x : CST.anon_choice_param_ce11a32) =
       todo env (v1, v2, v3, v4)
   )
 
-and anon_opt_cst_pat_rep_interp_alig_clause_080fdff (env : env) (opt : CST.anon_opt_cst_pat_rep_interp_alig_clause_080fdff) =
+and anon_opt_cst_pat_rep_interp_alig_clause_080fdff (env : env) (opt : CST.anon_opt_cst_pat_rep_interp_alig_clause_080fdff) : expr list =
   (match opt with
   | Some (v1, v2) ->
       let v1 = expression env v1 in
       let v2 =
         List.map (interpolation_alignment_clause env) v2
       in
-      todo env (v1, v2)
-  | None -> todo env ())
+      v1 :: v2
+  | None -> [])
 
 and type_parameter_list (env : env) ((v1, v2, v3, v4) : CST.type_parameter_list) =
   let v1 = token env v1 (* "<" *) in
@@ -1183,21 +1183,22 @@ and statement (env : env) (x : CST.statement) =
         (match v3 with
         | Some x ->
             (match x with
-            | `Var_decl x -> variable_declaration env x
+            | `Var_decl x -> List.map (fun (e, v) -> ForInitVar (e, v)) (variable_declaration env x)
             | `Exp_rep_COMMA_exp (v1, v2) ->
                 let v1 = expression env v1 in
                 let v2 =
                   List.map (interpolation_alignment_clause env) v2
                 in
+                let exprs = v1 :: v2 in
                 todo env (v1, v2)
             )
         | None -> todo env ())
       in
       let v4 = token env v4 (* ";" *) in
       let v5 =
-        (match v5 with
-        | Some x -> expression env x
-        | None -> todo env ())
+        (match v5 with (* TODO use `Common.map_opt` function for constructs like this? *)
+        | Some x -> Some (expression env x)
+        | None -> None)
       in
       let v6 = token env v6 (* ";" *) in
       let v7 =
@@ -1205,7 +1206,12 @@ and statement (env : env) (x : CST.statement) =
       in
       let v8 = token env v8 (* ")" *) in
       let v9 = statement env v9 in
-      todo env (v1, v2, v3, v4, v5, v6, v7, v8, v9)
+      let next = match v7 with
+        | [] -> None
+        | [e] -> Some e
+        | exprs -> Some (Tuple (v6, v7, v8)) in
+      let for_header = ForClassic (v3, v5, next) in
+      For (v1, for_header, v9)
   | `Goto_stmt (v1, v2, v3) ->
       let v1 = token env v1 (* "goto" *) in
       let v2 =
@@ -1254,9 +1260,10 @@ and statement (env : env) (x : CST.statement) =
       let v3 = List.map (modifier env) v3 in
       let v4 = variable_declaration env v4 in
       let v5 = token env v5 (* ";" *) in
-      (match v4 with
-        | [stmt] -> DefStmt stmt
-        | stmts -> Block (fake_bracket (List.map (fun (x) -> DefStmt x) stmts)))
+      let defs = List.map (fun (ent, def) -> DefStmt (ent, VarDef def)) v4 in
+      (match defs with
+        | [x] -> x
+        | xs -> Block (fake_bracket xs))
   | `Local_func_stmt (v1, v2, v3, v4, v5, v6, v7) ->
       let v1 = List.map (modifier env) v1 in
       let v2 = return_type env v2 in
