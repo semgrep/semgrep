@@ -342,15 +342,15 @@ and postfix_unary_expression (env : env) (x : CST.postfix_unary_expression) =
   | `Exp_PLUSPLUS (v1, v2) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "++" *) in
-      todo env (v1, v2)
+      Call (IdSpecial ((IncrDecr (Incr, Postfix)), v2), fake_bracket [Arg v1])
   | `Exp_DASHDASH (v1, v2) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "--" *) in
-      todo env (v1, v2)
+      Call (IdSpecial ((IncrDecr (Decr, Postfix)), v2), fake_bracket [Arg v1])
   | `Exp_BANG (v1, v2) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "!" *) in
-      todo env (v1, v2)
+      Call (IdSpecial ((Op NotNullPostfix), v2), fake_bracket [Arg v1])
   )
 
 and when_clause (env : env) ((v1, v2) : CST.when_clause) =
