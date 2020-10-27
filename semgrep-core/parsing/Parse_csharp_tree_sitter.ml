@@ -73,20 +73,20 @@ let parameter_modifier (env : env) (x : CST.parameter_modifier) =
 let escape_sequence (env : env) (tok : CST.escape_sequence) =
   token env tok (* escape_sequence *)
 
-let assignment_operator (env : env) (x : CST.assignment_operator) =
+let assignment_operator (env : env) (x : CST.assignment_operator) : operator wrap =
   (match x with
-  | `EQ tok -> token env tok (* "=" *)
-  | `PLUSEQ tok -> token env tok (* "+=" *)
-  | `DASHEQ tok -> token env tok (* "-=" *)
-  | `STAREQ tok -> token env tok (* "*=" *)
-  | `SLASHEQ tok -> token env tok (* "/=" *)
-  | `PERCEQ tok -> token env tok (* "%=" *)
-  | `AMPEQ tok -> token env tok (* "&=" *)
-  | `HATEQ tok -> token env tok (* "^=" *)
-  | `BAREQ tok -> token env tok (* "|=" *)
-  | `LTLTEQ tok -> token env tok (* "<<=" *)
-  | `GTGTEQ tok -> token env tok (* ">>=" *)
-  | `QMARKQMARKEQ tok -> token env tok (* "??=" *)
+  | `EQ tok -> (Eq, token env tok) (* "=" *)
+  | `PLUSEQ tok -> (Plus, token env tok) (* "+=" *)
+  | `DASHEQ tok -> (Minus, token env tok) (* "-=" *)
+  | `STAREQ tok -> (Mult, token env tok) (* "*=" *)
+  | `SLASHEQ tok -> (Div, token env tok) (* "/=" *)
+  | `PERCEQ tok -> (Mod, token env tok) (* "%=" *)
+  | `AMPEQ tok -> (BitAnd, token env tok) (* "&=" *)
+  | `HATEQ tok -> (BitXor, token env tok) (* "^=" *)
+  | `BAREQ tok -> (BitOr, token env tok) (* "|=" *)
+  | `LTLTEQ tok -> (LSL, token env tok) (* "<<=" *)
+  | `GTGTEQ tok -> (LSR, token env tok) (* ">>=" *)
+  | `QMARKQMARKEQ tok -> (Nullish, token env tok) (* "??=" *)
   )
 
 let boolean_literal (env : env) (x : CST.boolean_literal) =
@@ -795,7 +795,7 @@ and expression (env : env) (x : CST.expression) : AST.expr =
       let v1 = expression env v1 in
       let v2 = assignment_operator env v2 in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      AssignOp (v1, v2, v3)
   | `Await_exp (v1, v2) ->
       let v1 = token env v1 (* "await" *) in
       let v2 = expression env v2 in
@@ -896,6 +896,7 @@ and expression (env : env) (x : CST.expression) : AST.expr =
         (match v1 with
         | `Exp x -> expression env x
         | `Type x ->
+                (* e.g. `int` in `int.maxValue` *)
                 let _x = type_constraint env x in
                 todo env x
         | `Name x ->
@@ -1033,6 +1034,7 @@ and expression (env : env) (x : CST.expression) : AST.expr =
       let v4 = token env v4 (* ")" *) in
       todo env (v1, v2, v3, v4)
   | `Simple_name x ->
+        (* Should this be Ast.Id instead of IdQualified? *)
         AST.IdQualified (simple_name env x, empty_id_info ())
   | `Rese_id x ->
         let x = reserved_identifier env x in
