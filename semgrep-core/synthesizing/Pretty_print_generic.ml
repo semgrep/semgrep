@@ -447,9 +447,9 @@ and dot_access env (e, _tok, fi) =
 
 and field_ident env fi =
   match fi with
-       | FId id -> ident id
-       | FName (id, _) -> ident id
-       | FDynamic e -> expr env e
+       | EId id -> ident id
+       | EName (id, _) -> ident id
+       | EDynamic e -> expr env e
 
 and tyvar env (id, typ) =
   match env.lang with

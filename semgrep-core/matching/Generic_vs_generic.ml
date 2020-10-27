@@ -333,7 +333,7 @@ and make_dotted xs =
     let base = B.Id (x, B.empty_id_info()) in
     List.fold_left (fun acc e ->
       let tok = Parse_info.fake_info "." in
-      B.DotAccess (acc, tok, B.FId e)) base xs
+      B.DotAccess (acc, tok, B.EId e)) base xs
 (*e: function [[Generic_vs_generic.make_dotted]] *)
 
 (* possibly go deeper when someone wants that a pattern like
@@ -542,7 +542,7 @@ and m_expr a b =
   | A.DotAccess(a1, at, a2), B.DotAccess(b1, bt, b2) ->
     m_expr a1 b1 >>= (fun () ->
     m_tok at bt >>= (fun () ->
-    m_field_ident a2 b2
+    m_ident_or_dynamic a2 b2
     ))
 
   | A.ArrayAccess(a1, a2), B.ArrayAccess(b1, b2) ->
@@ -648,19 +648,19 @@ and m_expr a b =
 (*e: function [[Generic_vs_generic.m_expr]] *)
 
 (*s: function [[Generic_vs_generic.m_field_ident]] *)
-and m_field_ident a b =
+and m_ident_or_dynamic a b =
   match a, b with
   (* boilerplate *)
-  | A.FId a, B.FId b ->
+  | A.EId a, B.EId b ->
       m_ident a b
   (*s: [[Generic_vs_generic.m_field_ident()]] boilerplate cases *)
-  | A.FName a, B.FName b ->
+  | A.EName a, B.EName b ->
       m_name a b
-  | A.FDynamic a, B.FDynamic b ->
+  | A.EDynamic a, B.EDynamic b ->
       m_expr a b
-  | A.FId _, _
-  | A.FName _, _
-  | A.FDynamic _, _
+  | A.EId _, _
+  | A.EName _, _
+  | A.EDynamic _, _
     -> fail ()
   (*e: [[Generic_vs_generic.m_field_ident()]] boilerplate cases *)
 (*e: function [[Generic_vs_generic.m_field_ident]] *)
@@ -2388,12 +2388,12 @@ and m_any a b =
     m_ident a1 b1
   | A.Lbli(a1), B.Lbli(b1) ->
     m_label_ident a1 b1
-  | A.Fldi(a1), B.Fldi(b1) ->
-    m_field_ident a1 b1
+  | A.IoD(a1), B.IoD(b1) ->
+    m_ident_or_dynamic a1 b1
   | A.I _, _  | A.N _, _  | A.Modn _, _ | A.Di _, _  | A.En _, _  | A.E _, _
   | A.S _, _  | A.T _, _  | A.P _, _  | A.Def _, _  | A.Dir _, _
   | A.Pa _, _  | A.Ar _, _  | A.At _, _  | A.Dk _, _ | A.Pr _, _
-  | A.Fld _, _ | A.Ss _, _ | A.Tk _, _ | A.Lbli _, _ | A.Fldi _, _
+  | A.Fld _, _ | A.Ss _, _ | A.Tk _, _ | A.Lbli _, _ | A.IoD _, _
   | A.ModDk _, _ | A.TodoK _, _ | A.Partial _, _
    -> fail ()
   (*e: [[Generic_vs_generic.m_any]] boilerplate cases *)
