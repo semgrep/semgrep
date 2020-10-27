@@ -1541,11 +1541,10 @@ and m_stmt a b =
       m_expr a1 b1
       )
     | A.Try(a0, a1, a2, a3), B.Try(b0, b1, b2, b3) ->
-      m_tok a0 b0 >>= (fun () ->
-      m_stmt a1 b1 >>= (fun () ->
-      (m_list m_catch) a2 b2 >>= (fun () ->
+      let* () = m_tok a0 b0 in
+      let* () = m_stmt a1 b1 in
+      let* () = (m_list m_catch) a2 b2 in
       (m_option m_finally) a3 b3
-      )))
     | A.Assert(a0, a1, a2), B.Assert(b0, b1, b2) ->
       m_tok a0 b0 >>= (fun () ->
       m_expr a1 b1 >>= (fun () ->

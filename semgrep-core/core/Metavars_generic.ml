@@ -60,6 +60,7 @@ type metavars_binding = (mvar, AST_generic.any) Common.assoc
  * the same convention than OCaml).
  * However this conflicts with PHP superglobals, hence the special
  * cases below in is_metavar_name.
+ * coupling: AST_generic.is_metavar_name
  *)
 let metavar_regexp_string =
   "^\\(\\$[A-Z_][A-Z_0-9]*\\)$"
