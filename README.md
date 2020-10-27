@@ -37,10 +37,14 @@ Semgrep runs offline, on uncompiled code.
 ## Language support
 
 <p align="center">
-Go · Java · JavaScript · JSON · Python · Ruby (beta) · TypeScript (beta) · JSX (beta) · TSX (beta)
+Go · Java · JavaScript · JSON · Python</br>
+Ruby (beta) · TypeScript (beta) · JSX (beta) · TSX (beta)
+</br>
+</br>
+Visit <a href="TODO">Supported languages</a> for the complete list.
+
 </p>
 
-Visit [Supported languages](https://semgrep.dev/docs/status/) for the complete list.
 
 ## Getting started
 
@@ -60,17 +64,7 @@ Semgrep is LGPL 2.1 licensed and supported by [r2c](https://r2c.dev). Visit [FAQ
 
 ## Usage
 
-### Command line options
-
-See `semgrep --help` for command line options.
-
-### Exit codes
-
-`semgrep` may exit with the following exit codes:
-
-- `0`: Semgrep ran successfully and found no errors
-- `1`: Semgrep ran successfully and found issues in your code
-- \>=`2`: Semgrep failed to run
+Visit [CLI API](TODO) for usage and exit code documentation.
 
 ## Upgrading
 
