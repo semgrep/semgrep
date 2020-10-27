@@ -4,11 +4,11 @@
 <h3 align="center">
   Lightweight static analysis for many languages.
   </br>
-  Find and block bug variants with rules that look like source code.
+  Find bugs and enforce code standards.
 </h3>
 
 <p align="center">
-  <a href="#getting-started">Getting Started</a>
+  <a href="#getting-started">Getting started</a>
   <span> · </span>
   <a href="#Examples">Examples</a>
   <span> · </span>
@@ -18,7 +18,7 @@
   <span> · </span>
   <a href="#contributing">Contributing</a>
   <span> · </span>
-  <a href="#commercial-support">Commercial Support</a>
+  <a href="#commercial-support">Commercial support</a>
 </p>
 
 <p align="center">
@@ -42,128 +42,36 @@
   </a>
 </p>
 
-<a href="https://semgrep.dev">Semgrep</a> tl;dr:
+Semgrep is a lightweight, offline, open-source static analysis tool for many languages. It excels at expressing code standards — without complicated queries — and surfacing bugs early in the development flow.
 
-- A simple, customizable, and fast static analysis tool for finding bugs
-- Combines the speed and customization of `grep` with the precision of traditional static analysis tools
-- No painful domain-specific language; Semgrep rules look like the source code you’re targeting
-- Batteries included with hundreds of existing community rules for OWASP Top 10 issues and common mistakes
-- Runs in CI, at pre-commit, or in the editor
-- Runs offline on uncompiled code
+Semgrep rules look like the code you’re searching for. For example, if you want to find calls to a function named `foo`, search for `foo()`. You can find function calls, class or method definitions, and more without having to understand abstract syntax trees or wrestle with regexes.
 
-Semgrep [supports](https://dashboard.semgrep.dev/languages):
+The [Semgrep Registry](https://semgrep.dev/explore) has 900+ rules written by the Semgrep community and [r2c](https://r2c.dev) that cover security, correctness, and performance bugs. No need to DIY unless you want to.
+
+Semgrep runs offline, on uncompiled code.
+
+## Language support
+
+Visit [Semgrep Docs > Supported languages](https://dashboard.semgrep.dev/languages) for all languages.
 
 | Go | Java | JavaScript | JSON | Python | Ruby (beta) | TypeScript (beta) | JSX (beta) | TSX (beta) |
 | -- | ---- | ---------- | ---- | ------ | ----------- | ----------------- | ---------- | ---------- |
 
-Semgrep also has alpha-level support for OCaml, PHP, and C.
+## Getting started
 
-Semgrep is proudly supported by r2c. Learn more about a hosted version of Semgrep with an enterprise feature set at [r2c.dev](https://r2c.dev/).
-
-## Getting Started
-
-The best place to start with Semgrep and rule writing is its [Quick Start](https://semgrep.dev/editor). For a more in-depth introduction to its syntax and use cases visit the [Semgrep Tutorial](https://semgrep.dev/learn).
-
-Semgrep can be installed using `brew`, `pip`, or `docker`:
-
-```sh
-# For macOS
-$ brew install semgrep
-
-# On Ubuntu/WSL/linux, we recommend installing via `pip`
-$ python3 -m pip install semgrep
-
-# To try Semgrep without installation run via Docker
-$ docker run --rm -v "${PWD}:/src" returntocorp/semgrep --help
-```
-
-To confirm installation and get an overview of Semgrep's functionality run with `--help`:
-
-```
-$ semgrep --help
-```
-
-Once installed, Semgrep can be run with single rule patterns or entire rule sets:
-
-```sh
-# Check for Python == where the left and right hand sides are the same (often a bug)
-$ semgrep -e '$X == $X' --lang=py path/to/src
-
-# Run a ruleset with rules for many languages
-$ semgrep --config=p/r2c-CI path/to/src
-```
-
-Explore the Semgrep Registry of rules and CI integrations at [semgrep.dev](https://semgrep.dev/packs).
+Visit [Semgrep Docs > Getting started](https://semgrep.dev/docs/getting-started/) to get started.
 
 ## Examples
 
-| Use case                          | Semgrep rule                                                                                                                                                                                                                                                                                                                                           |
-| :-------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Ban dangerous APIs                | [Prevent use of exec](https://semgrep.live/clintgibler:no-exec)                                                                                                                                                                                                                                                                                        |
-| Search routes and authentiation   | [Extract Spring routes](https://semgrep.live/clintgibler:spring-routes)                                                                                                                                                                                                                                                                                |
-| Enforce the use secure defaults   | [Securely set Flask cookies](https://semgrep.dev/dlukeomalley:flask-set-cookie)                                                                                                                                                                                                                                                                        |
-| Enforce project best-practices    | [Use assertEqual for == checks](https://semgrep.dev/dlukeomalley:use-assertEqual-for-equality), [Always check subprocess calls](https://semgrep.dev/dlukeomalley:unchecked-subprocess-call)                                                                                                                                                            |
-| Codify project-specific knowledge | [Verify transactions before making them](https://semgrep.dev/dlukeomalley:verify-before-make)                                                                                                                                                                                                                                                          |
-| Audit security hotspots           | [Finding XSS in Apache Airflow](https://semgrep.live/ievans:airflow-xss), [Hardcoded credentials](https://semgrep.dev/dlukeomalley:hardcoded-credentials)                                                                                                                                                                                              |
-| Audit configuration files         | [Find S3 ARN uses](https://semgrep.dev/dlukeomalley:s3-arn-use)                                                                                                                                                                                                                                                                                        |
-| Migrate from deprecated APIs      | [DES is deprecated](https://semgrep.dev/editor?registry=java.lang.security.audit.crypto.des-is-deprecated), [Deprecated Flask APIs](https://semgrep.dev/editor?registry=python.flask.maintainability.deprecated.deprecated-apis), [Deprecated Bokeh APIs](https://semgrep.dev/editor?registry=python.bokeh.maintainability.deprecated.deprecated_apis) |
-| Apply automatic fixes             | [Use listenAndServeTLS](https://semgrep.live/clintgibler:use-listenAndServeTLS)                                                                                                                                                                                                                                                                        |
-
-### Try it out
-
-Give some rulesets a spin by running on known vulnerable repositories:
-
-```bash
-# juice-shop, a vulnerable Node.js + Express app
-$ git clone https://github.com/bkimminich/juice-shop
-$ semgrep --config p/r2c-security-audit juice-shop
-```
-
-```bash
-# railsgoat, a vulnerable Ruby on Rails app
-$ git clone https://github.com/OWASP/railsgoat
-$ semgrep --config p/r2c-security-audit railsgoat
-```
-
-```bash
-# govwa, a vulnerable Go app
-$ git clone https://github.com/0c34/govwa
-$ semgrep --config p/r2c-security-audit govwa
-```
-
-```bash
-# vulnerable Python+Flask app
-$ git clone https://github.com/we45/Vulnerable-Flask-App
-$ semgrep --config p/r2c-security-audit Vulnerable-Flask-App
-```
-
-```bash
-# WebGoat, a vulnerable Java+Sprint app
-$ git clone https://github.com/WebGoat/WebGoat
-$ semgrep --config p/r2c-security-audit WebGoat
-```
-
-## Resources
-
-Learn more:
-
-- [Live Editor](https://semgrep.dev/editor)
-- [Semgrep Registry](https://semgrep.dev/r)
-- [Documentation](docs/README.md)
-- [r2c YouTube channel](https://www.youtube.com/channel/UC5ahcFBorwzUTqPipFhjkWg)
-
-Get in touch:
-
-- Submit a [bug report](https://github.com/returntocorp/semgrep/issues)
-- Join the [Semgrep Slack](https://r2c.dev/slack) to say "hi" or ask questions
+Visit [Semgrep Docs > Rule examples](https://semgrep.dev/docs/writing-rules/rule-ideas/) for use cases and ideas.
 
 ## Usage
 
-### Command Line Options
+### Command line options
 
 See `semgrep --help` for command line options.
 
-### Exit Codes
+### Exit codes
 
 `semgrep` may exit with the following exit codes:
 
@@ -201,7 +109,7 @@ Then check out a few ways you can get involved:
 
 Please see the [contribution guidelines](https://github.com/returntocorp/semgrep/blob/develop/CONTRIBUTING.md) for info about the development workflow, testing, and making PRs.
 
-## Commercial Support
+## Commercial support
 
 Semgrep is a frontend to a larger program analysis library named [`pfff`](https://github.com/returntocorp/pfff/). `pfff` began and was open-sourced at [Facebook](https://github.com/facebookarchive/pfff) but is now archived. The primary maintainer now works at [r2c](https://r2c.dev). Semgrep was originally named `sgrep` and was renamed to avoid collisons with existing projects.
 
