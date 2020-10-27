@@ -42,9 +42,7 @@
   </a>
 </p>
 
-Semgrep is a lightweight, offline, open-source static analysis tool for many languages. It excels at expressing code standards — without complicated queries — and surfacing bugs early in the development flow.
-
-Semgrep rules look like the code you’re searching and you don't have to understand abstract syntax trees or wrestle with regexes.
+Semgrep is a static analysis tool that excels at expressing code standards — without complicated queries — and surfacing bugs early in the development flow. Rules look like the code you’re searching without needing to understand abstract syntax trees or wrestle with regexes.
 
 The [Semgrep Registry](https://semgrep.dev/explore) has 900+ rules written by the Semgrep community covering security, correctness, and performance bugs. No need to DIY unless you want to.
 
