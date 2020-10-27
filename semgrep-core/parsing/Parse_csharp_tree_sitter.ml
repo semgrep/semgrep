@@ -1144,8 +1144,8 @@ and statement (env : env) (x : CST.statement) =
       let v7 = token env v7 (* ";" *) in
       DoWhile (v1, v2, v5)
   | `Empty_stmt tok ->
-        let _ = token env tok (* ";" *) in
-        todo env tok
+        let v1 = token env tok (* ";" *) in
+        Block (v1, [], v1) (* Can we have the same token as start and end of block? *)
   | `Exp_stmt (v1, v2) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* ";" *) in
