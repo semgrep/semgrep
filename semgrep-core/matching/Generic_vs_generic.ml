@@ -2058,16 +2058,10 @@ and m_field a b =
   | A.FieldStmt(a1), B.FieldStmt(b1) ->
     m_stmt a1 b1
   (*s: [[Generic_vs_generic.m_field]] boilerplate cases *)
-  | A.FieldDynamic(a1, a2, a3), B.FieldDynamic(b1, b2, b3) ->
-    m_expr a1 b1 >>= (fun () ->
-    m_list_in_any_order ~less_is_ok:true m_attribute a2 b2 >>= (fun () ->
-    m_expr a3 b3
-    ))
   | A.FieldSpread(a0, a1), B.FieldSpread(b0, b1) ->
     m_tok a0 b0 >>= (fun () ->
     m_expr a1 b1
     )
-  | A.FieldDynamic _, _
   | A.FieldSpread _, _ | A.FieldStmt _, _
    -> fail ()
   (*e: [[Generic_vs_generic.m_field]] boilerplate cases *)
