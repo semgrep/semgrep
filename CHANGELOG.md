@@ -10,7 +10,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Semgrep will now partially parse files with parse errors and report findings detected before the parse errors was encountered.
 - Allow user to specify registry path without having to add semgrep.dev url
   i.e.: instead of `--config https://semgrep.dev/p/r2c-ci` users can use `--config p/r2c-ci`
-- Allow user to specify snippet id withouth having to add semgrep.dev url
+- Allow user to specify snippet id without having to add semgrep.dev url
   i.e.: instead of `--config https://semgrep.dev/s/username:snippetname`
   users can use `--config username:snippetname`
 - `--test` will now error out if `ruleid` or `ok` is not in reported IDs
