@@ -42,17 +42,22 @@
   </a>
 </p>
 
+
 Semgrep is a static analysis tool that excels at expressing code standards — without complicated queries — and surfacing bugs early in the development flow. Rules look like the code you’re searching without needing to understand abstract syntax trees or wrestle with regexes.
 
 The [Semgrep Registry](https://semgrep.dev/explore) has 900+ rules written by the Semgrep community covering security, correctness, and performance bugs. No need to DIY unless you want to.
 
 Semgrep runs offline, on uncompiled code.
 
-| Go | Java | JavaScript | JSON | Python | Ruby (beta) | TypeScript (beta) | JSX (beta) | TSX (beta) |
-| -- | ---- | ---------- | ---- | ------ | ----------- | ----------------- | ---------- | ---------- |
-</br>
+## Language support
 
-Visit [Semgrep Docs > Supported languages](https://dashboard.semgrep.dev/languages) for a complete up-to-date list.
+Semgrep supports:
+
+<p align="center">
+Go · Java · JavaScript · JSON · Python · Ruby (beta) · TypeScript (beta) · JSX (beta) · TSX (beta)
+</p>
+
+Visit [Semgrep Docs > Supported languages](https://dashboard.semgrep.dev/languages) for the complete list.
 
 ## Getting started
 
@@ -97,8 +102,4 @@ Visit [Semgrep Docs > Contributing](https://semgrep.dev/docs/contributing/).
 
 ## Commercial support
 
-Semgrep is a frontend to a larger program analysis library named [`pfff`](https://github.com/returntocorp/pfff/). `pfff` began and was open-sourced at [Facebook](https://github.com/facebookarchive/pfff) but is now archived. The primary maintainer now works at [r2c](https://r2c.dev). Semgrep was originally named `sgrep` and was renamed to avoid collisons with existing projects.
-
-Semgrep is supported by [r2c](https://r2c.dev). We're hiring!
-
-Interested in a fully-supported, hosted version of Semgrep? [Drop your email](https://forms.gle/dpUUvSo1WtELL8DW6) and we'll be in touch!
+Semgrep is supported by [r2c](https://r2c.dev). Visit [r2c > Pricing](https://r2c.dev/pricing) to learn more about hosted Semgrep.
