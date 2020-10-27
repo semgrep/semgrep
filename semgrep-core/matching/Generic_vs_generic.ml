@@ -1157,7 +1157,7 @@ and m_type_ a b =
   | A.TyBuiltin(a1), B.TyBuiltin(b1) ->
     (m_wrap m_string) a1 b1
   | A.TyFun(a1, a2), B.TyFun(b1, b2) ->
-    (m_list m_parameter_classic) a1 b1 >>= (fun () ->
+    (m_list m_parameter) a1 b1 >>= (fun () ->
     m_type_ a2 b2
     )
   | A.TyArray(a1, a2), B.TyArray(b1, b2) ->
@@ -1899,6 +1899,12 @@ and m_parameter a b =
   (* boilerplate *)
   | A.ParamClassic(a1), B.ParamClassic(b1) ->
     m_parameter_classic a1 b1
+  | A.ParamRest(a1, a2), B.ParamRest(b1, b2) ->
+    let* () = m_tok a1 b1 in
+    m_parameter_classic a2 b2
+  | A.ParamHashSplat(a1, a2), B.ParamHashSplat(b1, b2) ->
+    let* () = m_tok a1 b1 in
+    m_parameter_classic a2 b2
   (*s: [[Generic_vs_generic.m_parameter]] boilerplate cases *)
   | A.ParamPattern(a1), B.ParamPattern(b1) ->
     m_pattern a1 b1
@@ -1909,6 +1915,7 @@ and m_parameter a b =
   | A.ParamEllipsis(a1), B.ParamEllipsis(b1) ->
     m_tok a1 b1
   | A.ParamClassic _, _  | A.ParamPattern _, _
+  | A.ParamRest _, _ | A.ParamHashSplat _, _
   | A.ParamEllipsis _, _
   | A.OtherParam _, _
    -> fail ()
@@ -2058,16 +2065,10 @@ and m_field a b =
   | A.FieldStmt(a1), B.FieldStmt(b1) ->
     m_stmt a1 b1
   (*s: [[Generic_vs_generic.m_field]] boilerplate cases *)
-  | A.FieldDynamic(a1, a2, a3), B.FieldDynamic(b1, b2, b3) ->
-    m_expr a1 b1 >>= (fun () ->
-    m_list_in_any_order ~less_is_ok:true m_attribute a2 b2 >>= (fun () ->
-    m_expr a3 b3
-    ))
   | A.FieldSpread(a0, a1), B.FieldSpread(b0, b1) ->
     m_tok a0 b0 >>= (fun () ->
     m_expr a1 b1
     )
-  | A.FieldDynamic _, _
   | A.FieldSpread _, _ | A.FieldStmt _, _
    -> fail ()
   (*e: [[Generic_vs_generic.m_field]] boilerplate cases *)
