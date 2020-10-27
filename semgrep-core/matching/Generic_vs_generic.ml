@@ -258,6 +258,28 @@ and m_type_option_with_hook idb taopt tbopt =
   (* less-is-ok:, like m_option_none_can_match_some *)
   | None, _ -> return ()
 
+
+and m_ident_or_dyn_and_id_info_add_in_env_Expr (a1, a2) (b1, b2) =
+  (* metavar: *)
+  match a1, b1 with
+  | A.EId (str, tok), A.EId idb when MV.is_metavar_name str ->
+     (* a bit OCaml specific, cos only ml_to_generic tags id_type in pattern *)
+      let* () = m_type_option_with_hook idb !(a2.A.id_type) !(b2.B.id_type) in
+      let* () = m_id_info a2 b2 in
+      let e = B.ident_or_dynamic_to_expr b1 b2 in
+      envf (str, tok) (B.E e) (* B.E here, not B.I *)
+
+  | A.EId (str, tok), _b when MV.is_metavar_name str ->
+      let* () = m_id_info a2 b2 in
+      let e = B.ident_or_dynamic_to_expr b1 b2 in
+      envf (str, tok) (B.E e) (* B.E here, not B.I *)
+
+  | A.EId a, B.EId b ->
+      m_ident_and_id_info_add_in_env_Expr (a, a2) (b, b2)
+  (* discarding id_info *)
+  | _ -> m_ident_or_dynamic a1 b1
+
+
 (*s: function [[Generic_vs_generic.m_ident_and_id_info_add_in_env_Expr]] *)
 and m_ident_and_id_info_add_in_env_Expr (a1, a2) (b1, b2) =
   (* metavar: *)
@@ -1783,7 +1805,7 @@ and m_entity a b =
    *)
   { A. name = a1; attrs = a2; tparams = a4; info = a5 },
   { B. name = b1; attrs = b2; tparams = b4; info = b5 } ->
-    m_ident_and_id_info_add_in_env_Expr (a1, a5) (b1, b5) >>= (fun () ->
+    m_ident_or_dyn_and_id_info_add_in_env_Expr (a1, a5) (b1, b5) >>= (fun () ->
     (m_list_in_any_order ~less_is_ok:true m_attribute a2 b2) >>= (fun () ->
     (m_list m_type_parameter) a4 b4
     ))
@@ -1987,7 +2009,7 @@ and m_list__m_field (xsa: A.field list) (xsb: A.field list) =
       raise Impossible
   (*e: [[Generic_vs_generic.m_list__m_field()]] ellipsis cases *)
   (*s: [[Generic_vs_generic.m_list__m_field()]] [[DefStmt]] pattern case *)
-  | (A.FieldStmt (A.DefStmt (({A.name = (s1, _); _}, _) as adef)) as a)::xsa,
+  | (A.FieldStmt (A.DefStmt (({A.name = A.EId (s1, _); _}, _) as adef)) as a)::xsa,
      xsb ->
      (*s: [[Generic_vs_generic.m_list__m_field()]] in [[DefStmt]] case if metavar field *)
      if MV.is_metavar_name s1 || Matching_generic.is_regexp_string s1
@@ -2006,7 +2028,7 @@ and m_list__m_field (xsa: A.field list) (xsb: A.field list) =
      else
       (try
         let (before, there, after) = xsb |> Common2.split_when (function
-            | (A.FieldStmt (A.DefStmt ({B.name = (s2, _tok); _}, _)))
+            | (A.FieldStmt (A.DefStmt ({B.name = B.EId (s2, _tok); _}, _)))
                 when s2 = s1 -> true
             | _ -> false
         ) in
