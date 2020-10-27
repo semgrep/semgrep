@@ -36,17 +36,38 @@ Semgrep runs offline, on uncompiled code.
 
 ### Language support
 
-<p align="center">
 Go · Java · JavaScript · JSON · Python</br>
 Ruby (beta) · TypeScript (beta) · JSX (beta) · TSX (beta)
-</br>
-</br>
+
 Visit <a href="TODO">Supported languages</a> for the complete list.
 
 </p>
 
 
 ### Getting started
+
+To install Semgrep use Homebrew or pip, or run without installation via Docker:
+
+```sh
+# For macOS
+$ brew install semgrep
+
+# For Ubuntu/WSL/Linux
+$ python3 -m pip install semgrep
+
+# To try Semgrep without installation run via Docker
+$ docker run --rm -v "${PWD}:/src" returntocorp/semgrep --help
+```
+
+Once installed, Semgrep can run with single rules or entire rulesets. Visit [Running rules](running-rules.md) to learn more or try the following:
+
+```sh
+# Check for Python == where the left and right hand sides are the same (often a bug)
+$ semgrep -e '$X == $X' --lang=py path/to/src
+
+# Run the r2c-ci ruleset (with rules for many languages) on your own code!
+$ semgrep --config=p/r2c-ci path/to/src
+```
 
 Visit [Getting started](https://semgrep.dev/docs/getting-started/) to quick start.
 
