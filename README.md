@@ -28,11 +28,11 @@
 </p>
 </br>
 
-Semgrep is a static analysis tool that excels at expressing code standards — without complicated queries — and surfacing bugs early in the development flow. Rules look like the code you’re searching without needing to understand abstract syntax trees or wrestle with regexes.
+Semgrep is a fast static analysis tool that excels at expressing code standards — without complicated queries — and surfacing bugs early in the development flow. Precise rules look like the code you’re searching without needing to understand abstract syntax trees or wrestle with regexes.
 
 The [Semgrep Registry](https://semgrep.dev/explore) has 900+ rules written by the Semgrep community covering security, correctness, and performance bugs. No need to DIY unless you want to.
 
-Semgrep runs offline, on uncompiled code.
+Semgrep runs offline, on uncompiled code. Use it at every stage of the development workflow.
 
 ### Language support
 
@@ -75,13 +75,17 @@ Visit [Getting started](https://semgrep.dev/docs/getting-started/) to quick star
 
 Visit [Rule examples](https://semgrep.dev/docs/writing-rules/rule-ideas/) for use cases and ideas.
 
-### Commercial use
+### Integrations
 
-Semgrep is LGPL 2.1 licensed and supported by [r2c](https://r2c.dev). Visit [FAQ](https://semgrep.dev/docs/faq/) to learn more.
+Visit [Integrations](https://semgrep.dev/docs/integrations/) to learn more. Everyone's workflow is a little different and Semgrep is meant to adapt to yours. 
+
+### FAQ
+
+Visit [FAQ](https://semgrep.dev/docs/faq/) to learn more. Semgrep is supported by [r2c](https://r2c.dev).
 
 ### Contributing
 
-Visit [Contributing](https://semgrep.dev/docs/contributing/).
+Visit [Contributing](https://semgrep.dev/docs/contributing/). Semgrep is LGPL 2.1 licensed.
 
 ### Usage
 
