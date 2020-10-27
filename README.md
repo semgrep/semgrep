@@ -6,20 +6,7 @@
   </br>
   Find bugs and enforce code standards.
 </h3>
-
-<p align="center">
-  <a href="#getting-started">Getting started</a>
-  <span> · </span>
-  <a href="#Examples">Examples</a>
-  <span> · </span>
-  <a href="#resources">Resources</a>
-  <br/>
-  <a href="#usage">Usage</a>
-  <span> · </span>
-  <a href="#contributing">Contributing</a>
-  <span> · </span>
-  <a href="#commercial-support">Commercial support</a>
-</p>
+</br>
 
 <p align="center">
   <a href="https://formulae.brew.sh/formula/semgrep">
@@ -51,21 +38,27 @@ Semgrep runs offline, on uncompiled code.
 
 ## Language support
 
-Semgrep supports:
-
 <p align="center">
 Go · Java · JavaScript · JSON · Python · Ruby (beta) · TypeScript (beta) · JSX (beta) · TSX (beta)
 </p>
 
-Visit [Semgrep Docs > Supported languages](https://dashboard.semgrep.dev/languages) for the complete list.
+Visit [Supported languages](https://semgrep.dev/docs/status/) for the complete list.
 
 ## Getting started
 
-Visit [Semgrep Docs > Getting started](https://semgrep.dev/docs/getting-started/) to get started.
+Visit [Getting started](https://semgrep.dev/docs/getting-started/) to quick start.
 
 ## Examples
 
-Visit [Semgrep Docs > Rule examples](https://semgrep.dev/docs/writing-rules/rule-ideas/) for use cases and ideas.
+Visit [Rule examples](https://semgrep.dev/docs/writing-rules/rule-ideas/) for use cases and ideas.
+
+## Contributing
+
+Visit [Semgrep Docs > Contributing](https://semgrep.dev/docs/contributing/).
+
+## Commercial support
+
+Semgrep is supported by [r2c](https://r2c.dev). Visit [r2c > Pricing](https://r2c.dev/pricing) to learn more about hosted Semgrep.
 
 ## Usage
 
@@ -81,7 +74,7 @@ See `semgrep --help` for command line options.
 - `1`: Semgrep ran successfully and found issues in your code
 - \>=`2`: Semgrep failed to run
 
-### Upgrading
+## Upgrading
 
 To upgrade, run the command below associated with how you installed Semgrep:
 
@@ -95,11 +88,3 @@ $ python3 -m pip install --upgrade semgrep
 # Using Docker
 $ docker pull returntocorp/semgrep:latest
 ```
-
-## Contributing
-
-Visit [Semgrep Docs > Contributing](https://semgrep.dev/docs/contributing/).
-
-## Commercial support
-
-Semgrep is supported by [r2c](https://r2c.dev). Visit [r2c > Pricing](https://r2c.dev/pricing) to learn more about hosted Semgrep.
