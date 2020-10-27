@@ -1133,7 +1133,7 @@ and statement (env : env) (x : CST.statement) =
   | `Cont_stmt (v1, v2) ->
       let v1 = token env v1 (* "continue" *) in
       let v2 = token env v2 (* ";" *) in
-      todo env (v1, v2)
+      Continue (v1, LNone)
   | `Do_stmt (v1, v2, v3, v4, v5, v6, v7) ->
       let v1 = token env v1 (* "do" *) in
       let v2 = statement env v2 in
