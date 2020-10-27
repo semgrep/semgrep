@@ -1292,11 +1292,11 @@ and statement (env : env) (x : CST.statement) =
       let v1 = token env v1 (* "return" *) in
       let v2 =
         (match v2 with
-        | Some x -> expression env x
-        | None -> todo env ())
+        | Some x -> Some (expression env x)
+        | None -> None)
       in
       let v3 = token env v3 (* ";" *) in
-      todo env (v1, v2, v3)
+      Return (v1, v2)
   | `Switch_stmt (v1, v2, v3, v4, v5) ->
       let v1 = token env v1 (* "switch" *) in
       let v2 = token env v2 (* "(" *) in
