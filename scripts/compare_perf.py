@@ -19,8 +19,8 @@ def main() -> None:
     for baseline_time, latest_time in zip(baseline_times, latest_times):
         print(f"Baseline: {baseline_time}, Latest: {latest_time}")
 
-        # Assert latest time is not more than 10% slower than baseline
-        assert latest_time < baseline_time * 1.1
+        # Assert latest time is not more than 5% slower than baseline
+        assert latest_time < baseline_time * 1.05
 
 
 if __name__ == "__main__":
