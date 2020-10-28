@@ -281,6 +281,10 @@ and m_ident_or_dyn_and_id_info_add_in_env_Expr (a1, a2) (b1, b2) =
 
 
 (*s: function [[Generic_vs_generic.m_ident_and_id_info_add_in_env_Expr]] *)
+(* todo? should we revisit this 'add_Expr' design decision and instead try to
+ * add metavariables matching simple identifiers as a B.I in the env?
+ * see the code in m_expr.
+ *)
 and m_ident_and_id_info_add_in_env_Expr (a1, a2) (b1, b2) =
   (* metavar: *)
   match a1, b1 with
@@ -305,6 +309,8 @@ and m_ident_and_id_info_add_in_env_Expr (a1, a2) (b1, b2) =
 
   (*e: [[Generic_vs_generic.m_ident()]] regexp case *)
   (* general case *)
+  (* todo: we should check m_id_info, but anyway this function is currently
+   * a nop *)
   | (a, b) -> (m_wrap m_string) a b
 (*e: function [[Generic_vs_generic.m_ident_and_id_info_add_in_env_Expr]] *)
 
@@ -313,6 +319,12 @@ and m_ident_and_empty_id_info_add_in_env_Expr a1 b1 =
   m_ident_and_id_info_add_in_env_Expr (a1, empty) (b1, empty)
 
 (*s: function [[Generic_vs_generic.m_id_info]] *)
+(* Currently m_id_info is a Nop because the Semgrep pattern usually
+ * does not have correct name resolution (see the comment below).
+ * However, we do use id_info in equal_ast() to check
+ * whether two $X refers to the same code. In that case we are using
+ * the id_resolved tag and sid!
+ *)
 and m_id_info a b =
   match a, b with
   { A. id_resolved = _a1; id_type = _a2; id_const_literal = _a3 },
@@ -327,11 +339,7 @@ and m_id_info a b =
       * the resolved_name instead of the name used in the code
       * (which can be an alias)
       *
-      * Note that is is independent of the check done in equal_ast to check
-      * that two $X refers to the same code. In that case we are using
-      * the id_resolved tag and sid.
-      *)
-     (* old: (m_ref (m_option m_type_)) a2 b2
+      * old: (m_ref (m_option m_type_)) a2 b2
       * the same is true for types! Now we sometimes propagate type annotations
       * in Naming_AST.ml, but we do that in the source file, not the pattern,
       * which would prevent a match.
@@ -444,6 +452,10 @@ and m_expr a b =
   (* metavar: *)
   | A.Id ((str,tok), _id_info), e2
      when MV.is_metavar_name str ->
+      (* todo: if e2 is also an Id, maybe we should add it as a
+       * B.I instead of B.E so then we would not need those calls to
+       * m_ident_...add_in_Expr?
+       *)
       envf (str, tok) (B.E (e2))
   (*e: [[Generic_vs_generic.m_expr()]] metavariable case *)
   (*s: [[Generic_vs_generic.m_expr()]] typed metavariable case *)
@@ -674,7 +686,13 @@ and m_ident_or_dynamic a b =
   match a, b with
   (* boilerplate *)
   | A.EId a, B.EId b ->
-      m_ident a b
+      (* so that metavar as fieldnames such as this.$FUNC
+       * are added an Expr, not an Ident, so that this
+       * can be matched against method definition (which adds
+       * metavariable for method/function name in Expr, but
+       * maybe we should revisit that.
+       *)
+      m_ident_and_empty_id_info_add_in_env_Expr a b
   (*s: [[Generic_vs_generic.m_field_ident()]] boilerplate cases *)
   | A.EName a, B.EName b ->
       m_name a b
