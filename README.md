@@ -44,7 +44,7 @@ Go · Java · JavaScript · JSON · Python</br>
 <h4 align="center">Beta</h4>
 <p align="center">
 Ruby · TypeScript · JSX · TSX</br></br>
-Visit <a href="TODO">Supported languages</a> for the complete list.
+Visit <a href="https://semgrep.dev/docs/status/">Supported languages</a> for the complete list.
 </p>
 
 ### Getting started
@@ -55,7 +55,7 @@ To install Semgrep use Homebrew or pip, or run without installation via Docker:
 # For macOS
 $ brew install semgrep
 
-# For Ubuntu/WSL/Linux
+# For Ubuntu/WSL/Linux/macOS
 $ python3 -m pip install semgrep
 
 # To try Semgrep without installation run via Docker
