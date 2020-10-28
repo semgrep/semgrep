@@ -36,13 +36,16 @@ Semgrep runs offline, on uncompiled code.
 
 ### Language support
 
+
+<h3 align="center">General Availability</h3>
+<p align="center">
 Go · Java · JavaScript · JSON · Python</br>
-Ruby (beta) · TypeScript (beta) · JSX (beta) · TSX (beta)
-
-Visit <a href="TODO">Supported languages</a> for the complete list.
-
 </p>
-
+<h3 align="center">Beta</h3>
+<p align="center">
+Ruby · TypeScript · JSX · TSX</br></br>
+Visit <a href="TODO">Supported languages</a> for the complete list.
+</p>
 
 ### Getting started
 
