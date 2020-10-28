@@ -1601,7 +1601,7 @@ and anon_choice_pair_bc93fa1 (env : env) (x : CST.anon_choice_pair_bc93fa1) : pr
       let _v2 = token env v2 (* ":" *) in
       let v3 = expression env v3 in
       let ty = None in
-      Field {fld_name = v1; fld_attrs = []; fld_type = ty; fld_body = Some v3}
+      FieldColon {fld_name = v1; fld_attrs = []; fld_type = ty; fld_body = Some v3}
   | `Spread_elem x ->
         let (t, e) = spread_element env x in
         FieldSpread (t, e)
@@ -1610,7 +1610,7 @@ and anon_choice_pair_bc93fa1 (env : env) (x : CST.anon_choice_pair_bc93fa1) : pr
   | `Choice_id x ->
         let id = anon_choice_id_0e3c97f env x in
         let ty = None in
-        Field {fld_name = PN id; fld_attrs = []; fld_type = ty;
+        FieldColon {fld_name = PN id; fld_attrs = []; fld_type = ty;
                fld_body =  Some (idexp id) }
 
   | `Assign_pat x ->
