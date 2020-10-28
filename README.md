@@ -28,7 +28,7 @@
 </p>
 </br>
 
-Semgrep is a fast static analysis tool that excels at expressing code standards — without complicated queries — and surfacing bugs early in the development flow. Precise rules look like the code you’re searching without needing to understand abstract syntax trees or wrestle with regexes.
+Semgrep is a fast static analysis tool that excels at expressing code standards — without complicated queries — and surfacing bugs early in the development flow. Precise rules look like the code you’re searching; no more traversing abstract syntax trees or wrestling with regexes.
 
 The [Semgrep Registry](https://semgrep.dev/explore) has 900+ rules written by the Semgrep community covering security, correctness, and performance bugs. No need to DIY unless you want to.
 
@@ -69,7 +69,7 @@ $ semgrep -e '$X == $X' --lang=py path/to/src
 $ semgrep --config=p/r2c-ci path/to/src
 ```
 
-Visit [Getting started](https://semgrep.dev/docs/getting-started/) to quick start.
+Visit [Getting started](https://semgrep.dev/docs/getting-started/) to learn more.
 
 ### Rule examples
 
