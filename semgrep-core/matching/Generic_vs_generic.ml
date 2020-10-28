@@ -1245,23 +1245,21 @@ and m_type_argument a b =
   match a, b with
   | A.TypeArg(a1), B.TypeArg(b1) ->
     m_type_ a1 b1
-  | A.OtherTypeArg(a1, a2), B.OtherTypeArg(b1, b2) ->
-    m_other_type_argument_operator a1 b1 >>= (fun () ->
-    (m_list m_any) a2 b2
-    )
-  | A.TypeArg _, _  | A.OtherTypeArg _, _
+  | A.TypeWildcard (a1, a2), B.TypeWildcard (b1, b2) ->
+    let* () = m_tok a1 b1 in
+    m_option m_wildcard a2 b2
+  | A.TypeArg _, _ | A.TypeWildcard _, _
    -> fail ()
 (*e: function [[Generic_vs_generic.m_type_argument]] *)
+and m_wildcard (a1, a2) (b1, b2) =
+  let* () = m_wrap m_bool a1 b1 in
+  m_type_ a2 b2
 
 (*s: function [[Generic_vs_generic.m_other_type_operator]] *)
 and m_other_type_operator = m_other_xxx
 (*e: function [[Generic_vs_generic.m_other_type_operator]] *)
-
 (*s: function [[Generic_vs_generic.m_other_type_argument_operator]] *)
-and m_other_type_argument_operator = m_other_xxx
 (*e: function [[Generic_vs_generic.m_other_type_argument_operator]] *)
-
-
 (*****************************************************************************)
 (* Attribute *)
 (*****************************************************************************)
