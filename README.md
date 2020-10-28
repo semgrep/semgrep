@@ -28,7 +28,7 @@
 </p>
 </br>
 
-Semgrep is a fast open-source static analysis tool that excels at expressing code standards — without complicated queries — and surfacing bugs early in the development flow. Precise rules look like the code you’re searching; no more traversing abstract syntax trees or wrestling with regexes.
+Semgrep is a fast, open-source, static analysis tool that excels at expressing code standards — without complicated queries — and surfacing bugs early in the development flow. Precise rules look like the code you’re searching; no more traversing abstract syntax trees or wrestling with regexes.
 
 The [Semgrep Registry](https://semgrep.dev/explore) has 900+ rules written by the Semgrep community covering security, correctness, and performance bugs. No need to DIY unless you want to.
 
