@@ -110,6 +110,16 @@ let doc_matches_dots ~dots last_loc doc =
       else
         None
 
+let rec pat_matches_empty_doc pat =
+  match pat with
+  | []
+  | End :: _ -> true
+  | Atom _ :: _ -> false
+  | Dots _ :: pat -> pat_matches_empty_doc pat
+  | List pat1 :: pat2 ->
+      pat_matches_empty_doc pat1
+      && pat_matches_empty_doc pat2
+
 let loc_matches_dots ~dots loc =
   match dots with
   | None -> false
@@ -157,9 +167,12 @@ let rec match_
   | List pat1 :: pat2, doc ->
       (match doc with
        | [] ->
-           (* Nothing left to match against. *)
+           (* No document left to match against. *)
            assert (pat1 <> []);
-           Fail
+           if pat_matches_empty_doc pat1 && pat_matches_empty_doc pat2 then
+             Complete (env, last_loc)
+           else
+             Fail
        | List doc1 :: doc2 ->
            (* Indented block coincides with an indented block in the document.
               These blocks must match, independently from the rest. *)
@@ -174,6 +187,8 @@ let rec match_
            assert (pat1 <> []);
            if loc_matches_dots ~dots loc then
              match_ ~dots env last_loc pat doc_tail cont
+           else if pat_matches_empty_doc pat1 then
+             match_ ~dots env last_loc pat2 doc cont
            else
              Fail
       )
