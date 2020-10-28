@@ -92,7 +92,7 @@ Visit [Contributing](https://semgrep.dev/docs/contributing/). Semgrep is LGPL 2.
 
 ### Usage
 
-Visit [CLI API](TODO) for usage and exit code documentation.
+Visit [CLI Usage](https://semgrep.dev/docs/cli-usage/) for usage and exit code documentation.
 
 ### Upgrading
 
