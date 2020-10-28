@@ -93,7 +93,7 @@ Visit [Rule examples](https://semgrep.dev/docs/writing-rules/rule-ideas/) for us
 
 ### Integrations
 
-Visit [Integrations](https://semgrep.dev/docs/integrations/) to learn more. Everyone's workflow is a little different and Semgrep is meant to adapt to yours. 
+Visit [Integrations](https://semgrep.dev/docs/integrations/) to learn about Semgrep editor, commit, and CI integrations.
 
 ### FAQ
 
