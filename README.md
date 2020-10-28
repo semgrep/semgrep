@@ -37,7 +37,7 @@ Semgrep runs offline, on uncompiled code.
 ### Language support
 
 
-<h4 align="center">General Availability</h4>
+<h4 align="center">General availability</h4>
 <p align="center">
 Go · Java · JavaScript · JSON · Python</br>
 </p>
