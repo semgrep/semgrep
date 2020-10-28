@@ -1818,7 +1818,7 @@ and m_definition_kind a b =
     m_function_definition a1 b1
   | A.VarDef(a1), B.VarDef(b1) ->
     m_variable_definition a1 b1
-  | A.FieldDef(a1), B.FieldDef(b1) ->
+  | A.FieldDefColon(a1), B.FieldDefColon(b1) ->
     m_variable_definition a1 b1
   | A.ClassDef(a1), B.ClassDef(b1) ->
     m_class_definition a1 b1
@@ -1836,7 +1836,7 @@ and m_definition_kind a b =
   | A.FuncDef _, _ | A.VarDef _, _  | A.ClassDef _, _  | A.TypeDef _, _
   | A.ModuleDef _, _  | A.MacroDef _, _  | A.Signature _, _
   | A.UseOuterDecl _, _
-  | A.FieldDef _, _
+  | A.FieldDefColon _, _
   | A.OtherDef _, _
    -> fail ()
   (*e: [[Generic_vs_generic.m_definition_kind]] boilerplate cases *)

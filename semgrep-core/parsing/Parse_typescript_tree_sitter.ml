@@ -824,7 +824,7 @@ and anon_choice_pair_bc93fa1 (env : env) (x : CST.anon_choice_pair_bc93fa1) : pr
       let v1 = property_name env v1 in
       let _v2 = JS.token env v2 (* ":" *) in
       let v3 = expression env v3 in
-      Field {fld_name = v1; fld_attrs = []; fld_type = None; fld_body =Some v3}
+      FieldColon {fld_name = v1; fld_attrs = []; fld_type = None; fld_body =Some v3}
   | `Spread_elem x ->
       let (t, e) = spread_element env x in
       FieldSpread (t, e)
@@ -844,7 +844,7 @@ and anon_choice_pair_bc93fa1 (env : env) (x : CST.anon_choice_pair_bc93fa1) : pr
   (* { x } shorthand for { x: x }, like in OCaml *)
   | `Choice_id x ->
       let id = anon_choice_type_id_dd17e7d env x in
-      Field {fld_name = PN id; fld_attrs = []; fld_type = None;
+      FieldColon {fld_name = PN id; fld_attrs = []; fld_type = None;
              fld_body = Some (idexp id) }
   )
 
