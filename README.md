@@ -1,5 +1,5 @@
 <p align="center">
-    <a href="https://semgrep.dev"><img src="semgrep.svg" height="100" alt="Semgrep logo"/></a>
+    <a href="https://semgrep.dev"><img src="semgrep.svg" height="150" alt="Semgrep logo"/></a>
 </p>
 <h3 align="center">
   Lightweight static analysis for many languages.
