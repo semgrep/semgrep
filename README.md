@@ -101,7 +101,7 @@ Visit [FAQ](https://semgrep.dev/docs/faq/) to learn more. Semgrep is supported b
 
 ### Contributing
 
-Visit [Contributing](https://semgrep.dev/docs/contributing/). Semgrep is LGPL 2.1 licensed.
+Visit [Contributing](https://semgrep.dev/docs/contributing/). Semgrep is LGPL 2.1 licensed. Also, join [r2c Community Slack](https://r2c.dev/slack).
 
 ### Usage
 
