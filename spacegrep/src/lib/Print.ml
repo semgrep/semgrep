@@ -8,7 +8,14 @@
 open Printf
 open Pattern_AST
 
-let print_atom buf indent atom =
+let string_of_atom atom =
+  match atom with
+  | Word s -> s
+  | Punct c -> sprintf "%c" c
+  | Byte c -> sprintf "0x%02x" (Char.code c)
+  | Metavar s -> sprintf "$%s" s
+
+let print_atom buf loc indent atom =
   match atom with
   | Word s -> bprintf buf "%s%s\n" indent s
   | Punct c -> bprintf buf "%s%c\n" indent c
@@ -17,9 +24,9 @@ let print_atom buf indent atom =
 
 let rec print_node buf indent node =
   match node with
-  | Atom (_loc, atom) -> print_atom buf indent atom
+  | Atom (loc, atom) -> print_atom buf loc indent atom
   | List nodes -> print_nodes buf (indent ^ "  ") nodes
-  | Dots _loc -> bprintf buf "%s...\n" indent
+  | Dots loc -> bprintf buf "%s...\n" indent
   | End -> ()
 
 and print_nodes buf indent nodes =
@@ -49,7 +56,14 @@ let to_file file nodes =
 
 (* Same but using unambiguous output format. *)
 module Debug = struct
-  let print_atom buf indent atom =
+  let show_loc = false
+
+  let print_loc buf (start, end_) =
+    if show_loc then
+      bprintf buf "%3i: " start.Lexing.pos_lnum
+
+  let print_atom buf loc indent atom =
+    print_loc buf loc;
     match atom with
     | Word s -> bprintf buf "%sWord '%s'\n" indent (String.escaped s)
     | Punct c -> bprintf buf "%sPunct %C\n" indent c
@@ -58,12 +72,12 @@ module Debug = struct
 
   let rec print_node buf indent node =
     match node with
-    | Atom (_loc, atom) -> print_atom buf indent atom
+    | Atom (loc, atom) -> print_atom buf loc indent atom
     | List nodes ->
         bprintf buf "%sList (\n" indent;
         print_nodes buf (indent ^ "  ") nodes;
         bprintf buf "%s)\n" indent
-    | Dots _loc -> bprintf buf "%sDots\n" indent
+    | Dots loc -> bprintf buf "%a%sDots\n" print_loc loc indent
     | End -> bprintf buf "%sEnd\n" indent
 
   and print_nodes buf indent nodes =

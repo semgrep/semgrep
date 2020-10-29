@@ -75,7 +75,7 @@ c
 ",
   "a b c";
 
-  "indented ellipsis", 2,
+  "indented dots", 2,
   "\
 {
   ...
@@ -146,6 +146,22 @@ a
   c
 d
 ";
+
+  "dots max span", 1, "0 ... 10",
+  "0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10";
+
+  "dots overflow", 0, "0 ... 12",
+  "0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12";
+
+  "dots overflow barely", 0, "0 ... 12",
+  "0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n\n12";
+
+  "double dots", 1, "0 ... ... 11",
+  "0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11";
+
+  "double dots overflow", 0, "0 ... ... 21",
+  "0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n\
+   10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21";
 
   "code match", 1,
   "function foo(x, y) { x = 42; ... y = x + 3; ... }",

@@ -120,21 +120,58 @@ let rec pat_matches_empty_doc pat =
       pat_matches_empty_doc pat1
       && pat_matches_empty_doc pat2
 
-let loc_matches_dots ~dots loc =
+(*
+   A document atom is skippable if we're within an ellipsis (dots)
+   pattern and within 10 lines from the last atom matched before the ellipsis.
+*)
+let is_skippable_doc_atom ~dots loc =
   match dots with
   | None -> false
   | Some max_line_num ->
       loc_lnum loc <= max_line_num
 
 (*
+   A document atom can always be considered for a match unless we're
+   matching an ellipsis and the location of the atom is more than 10 lines
+   down the last atom matched before the ellipsis.
+*)
+let within_ellipsis_range ~dots loc =
+  match dots with
+  | None -> true (* <-- difference with 'is_skippable' *)
+  | Some max_line_num ->
+      loc_lnum loc <= max_line_num
+
+(*
+   Create or update the 'dots' object which indicates:
+   1. that we're allowing to skip document nodes that don't match;
+   2. and until which line we allow this skipping.
+*)
+let extend_dots ~dots (last_loc : Loc.t) =
+  let ellipsis_max_span = 10 (* lines *) in
+  match dots with
+  | None ->
+      (* allow '...' to extend for at most 10 lines *)
+      let _, last_pos = last_loc in
+      Some (last_pos.pos_lnum + ellipsis_max_span)
+  | Some line_num ->
+      Some (line_num + ellipsis_max_span)
+
+(*
    Match a pattern against a document tree.
 
-   dots = Some max_line_num
-          indicates we're allowed to skip the first document node if it doesn't
-          match the pattern. The line number of the skipped node may not
-          be greater than the specified value.
-   cont = call to match the rest of the document against the rest of the
-          pattern when reaching the end of the current sub-document.
+   dots:
+     Some max_line_num
+     indicates we're allowed to skip the first document node if it doesn't
+     match the pattern. The line number of the skipped node may not
+     be greater than the specified value.
+   cont:
+     call to match the rest of the document against the rest of the
+     pattern when reaching the end of the current sub-document.
+   last_loc:
+     location of the last document node that is part of the current match,
+     not including nodes skipped due an ellipsis (dots). This is used
+     to determine how far an ellipsis can span, and extend it if another
+     '...' is found.
 *)
 let rec match_
     ~(dots:int option)
@@ -185,7 +222,7 @@ let rec match_
            (* Indented block in pattern doesn't match in the document.
               Skip document node if allowed. *)
            assert (pat1 <> []);
-           if loc_matches_dots ~dots loc then
+           if is_skippable_doc_atom ~dots loc then
              match_ ~dots env last_loc pat doc_tail cont
            else if pat_matches_empty_doc pat1 then
              match_ ~dots env last_loc pat2 doc cont
@@ -194,11 +231,7 @@ let rec match_
       )
 
   | Dots _ :: pat_tail, doc ->
-      let dots =
-        (* allow '...' to extend for at most 10 lines *)
-        let _, last_pos = last_loc in
-        Some (last_pos.pos_lnum + 10)
-      in
+      let dots = extend_dots ~dots last_loc in
       match_ ~dots env last_loc pat_tail doc cont
 
   | Atom (_, p) :: pat_tail, doc ->
@@ -217,41 +250,44 @@ let rec match_
                    match_ ~dots env last_loc pat doc_tail cont
               )
           | Atom (loc, d) ->
-              let match_result =
-                match p, d with
-                | Metavar name, Word value ->
-                    (match Env.find_opt name env with
-                     | None ->
-                         (* First encounter of the metavariable,
-                            store its value. *)
-                         let env = Env.add name (loc, value) env in
-                         match_ ~dots:None env loc pat_tail doc_tail cont
-                     | Some (_loc0, value0) ->
-                         (* Check if value matches previously captured
-                            value. *)
-                         if value = value0 then
+              if not (within_ellipsis_range ~dots loc) then
+                Fail
+              else
+                let match_result =
+                  match p, d with
+                  | Metavar name, Word value ->
+                      (match Env.find_opt name env with
+                       | None ->
+                           (* First encounter of the metavariable,
+                              store its value. *)
+                           let env = Env.add name (loc, value) env in
                            match_ ~dots:None env loc pat_tail doc_tail cont
-                         else
-                           Fail
-                    )
-                | Word a, Word b when a = b ->
-                    match_ ~dots:None env loc pat_tail doc_tail cont
-                | Punct a, Punct b when a = b ->
-                    match_ ~dots:None env loc pat_tail doc_tail cont
-                | Byte a, Byte b when a = b ->
-                    match_ ~dots:None env loc pat_tail doc_tail cont
-                | _ ->
-                    Fail
-              in
-              match match_result with
-              | Complete _ -> match_result
-              | Fail ->
-                  (* Pattern doesn't match document.
-                     Skip document's head node if we're allowed to. *)
-                  if loc_matches_dots ~dots loc then
-                    match_ ~dots env last_loc pat doc_tail cont
-                  else
-                    Fail
+                       | Some (_loc0, value0) ->
+                           (* Check if value matches previously captured
+                              value. *)
+                           if value = value0 then
+                             match_ ~dots:None env loc pat_tail doc_tail cont
+                           else
+                             Fail
+                      )
+                  | Word a, Word b when a = b ->
+                      match_ ~dots:None env loc pat_tail doc_tail cont
+                  | Punct a, Punct b when a = b ->
+                      match_ ~dots:None env loc pat_tail doc_tail cont
+                  | Byte a, Byte b when a = b ->
+                      match_ ~dots:None env loc pat_tail doc_tail cont
+                  | _ ->
+                      Fail
+                in
+                match match_result with
+                | Complete _ -> match_result
+                | Fail ->
+                    (* Pattern doesn't match document.
+                       Skip document's head node if we're allowed to. *)
+                    if is_skippable_doc_atom ~dots loc then
+                      match_ ~dots env last_loc pat doc_tail cont
+                    else
+                      Fail
 
 let starts_after last_loc loc =
   let _, last_pos = last_loc in

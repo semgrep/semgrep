@@ -67,10 +67,10 @@ let run config =
   let src = Src_file.of_stdin () in
   let pat =
     if config.is_pattern then
-      Parse_pattern.of_src ~is_doc:false src
+      Parse_pattern.of_src src
     else
-      Parse_pattern.of_src ~is_doc:true src
-      |> Pattern_AST.as_doc
+      Parse_doc.of_src src
+      |> Doc_AST.to_pattern
   in
   let print =
     if config.debug then
