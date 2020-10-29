@@ -25,7 +25,6 @@
     
     semgrep_core
     semgrep_fuzzy
-    semgrep_finding
     semgrep_parsing
     semgrep_matching
     semgrep_synthesizing
