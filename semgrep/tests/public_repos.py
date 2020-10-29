@@ -158,7 +158,6 @@ PASSING_REPOS = [
     {"repo": "https://github.com/dropbox/pyannotate", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/dropbox/pygerduty", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/dropbox/pynsot", "languages": ALL_LANGUAGES},
-    {"repo": "https://github.com/dropbox/pyston-testsuite", "languages": ALL_LANGUAGES},
     {
         "repo": "https://github.com/dropbox/pytest-call-tracer",
         "languages": ALL_LANGUAGES,
@@ -332,10 +331,6 @@ FAILING_REPOS = [
     xfail_repo(
         {"repo": "https://github.com/dropbox/notouch", "languages": ALL_LANGUAGES},
         reason="indented comment on last line python",
-    ),
-    xfail_repo(
-        {"repo": "https://github.com/dropbox/pyston", "languages": ALL_LANGUAGES},
-        reason=("fail to parse page break 0x0c in python"),
     ),
     xfail_repo({"repo": "https://github.com/rails/rails", "languages": ["ruby"]}),
     xfail_repo(
