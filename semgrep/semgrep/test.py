@@ -117,12 +117,12 @@ def line_has_ok(line: str) -> bool:
 
 def line_has_todo_ok(line: str) -> bool:
     return (
-        "#todook" in line
-        or "# todook" in line
-        or "// todook" in line
-        or "//todook" in line
-        or "(*todook" in line
-        or "(* todook" in line
+        "#todook:" in line
+        or "# todook:" in line
+        or "// todook:" in line
+        or "//todook:" in line
+        or "(*todook:" in line
+        or "(* todook:" in line
     )
 
 
@@ -138,7 +138,9 @@ def score_output_json(
     reported_lines: Dict[str, Dict[str, List[int]]] = collections.defaultdict(
         lambda: collections.defaultdict(list)
     )
-    ignore_lines: Dict[str, List[int]] = collections.defaultdict(list)
+    ignore_lines: Dict[str, Dict[str, List[int]]] = collections.defaultdict(
+        lambda: collections.defaultdict(list)
+    )
     score_by_checkid: Dict[str, List[int]] = collections.defaultdict(
         lambda: [0, 0, 0, 0]
     )
@@ -157,9 +159,8 @@ def score_output_json(
                 ok_in_line = line_has_ok(line)
                 todo_in_line = line_has_todo_rule(line)
                 todo_ok_in_line = line_has_todo_ok(line)
+                num_todo += int(todo_in_line) + int(todo_ok_in_line)
 
-                if todo_in_line:
-                    num_todo += 1
                 if (not ignore_todo and todo_in_line) or rule_in_line:
                     comment_lines[test_file_resolved][normalize_rule_id(line)].append(
                         effective_line_num
@@ -169,7 +170,9 @@ def score_output_json(
                         effective_line_num
                     )
                 if ignore_todo and todo_ok_in_line:
-                    ignore_lines[test_file_resolved].append(effective_line_num)
+                    ignore_lines[test_file_resolved][normalize_rule_id(line)].append(
+                        effective_line_num
+                    )
 
     for result in json_out["results"]:
         reported_lines[str(Path(result["path"]).resolve())][result["check_id"]].append(
@@ -193,7 +196,7 @@ def score_output_json(
             all_reported = set(reported_lines[file_path][check_id])
             expected = set(comment_lines[file_path][check_id])
             oked = set(ok_lines[file_path][check_id])
-            ignored = set(ignore_lines[file_path])
+            ignored = set(ignore_lines[file_path][check_id])
 
             reported_oked_lines = oked.intersection(all_reported)
             if reported_oked_lines:
@@ -373,11 +376,13 @@ def generate_file_pairs(
             )
         )
 
-    # Place failed tests at the bottom for higher visibility
+    # Place failed and TODO tests at the bottom for higher visibility
     passed_results_first = collections.OrderedDict(
         sorted(
             results_output.items(),
-            key=lambda t: any(not c["passed"] for c in t[1]["checks"].values()),
+            key=lambda t: any(
+                not c["passed"] or t[1]["todo"] for c in t[1]["checks"].values()
+            ),
         )
     )
 
