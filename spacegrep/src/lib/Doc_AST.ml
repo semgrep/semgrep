@@ -45,3 +45,17 @@ let rec of_pattern (pat : Pattern_AST.t) : t =
       :: Atom (loc2, Punct '.')
       :: of_pattern pat
   | List pat1 :: pat2 -> List (of_pattern pat1) :: of_pattern pat2
+
+let rec to_pattern (doc : t) : Pattern_AST.t =
+  List.map to_pat_node doc
+
+and to_pat_node (node : node) : Pattern_AST.node =
+  match node with
+  | Atom (loc, atom) -> Atom (loc, to_pat_atom atom)
+  | List nodes -> List (to_pattern nodes)
+
+and to_pat_atom (atom : atom) : Pattern_AST.atom =
+  match atom with
+  | Word s -> Word s
+  | Punct c -> Punct c
+  | Byte c -> Byte c
