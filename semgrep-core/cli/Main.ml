@@ -113,19 +113,13 @@ let equivalences_file = ref ""
 let lang = ref "unset"
 (*e: constant [[Main_semgrep_core.lang]] *)
 
-(* similar to grep options (see man grep) *)
-(* TODO: can remove now that handled by semgrep-python? *)
 (*s: constant [[Main_semgrep_core.excludes]] *)
-let excludes = ref []
 (*e: constant [[Main_semgrep_core.excludes]] *)
 (*s: constant [[Main_semgrep_core.includes]] *)
-let includes = ref []
 (*e: constant [[Main_semgrep_core.includes]] *)
 (*s: constant [[Main_semgrep_core.exclude_dirs]] *)
-let exclude_dirs = ref []
 (*e: constant [[Main_semgrep_core.exclude_dirs]] *)
 (*s: constant [[Main_semgrep_core.include_dirs]] *)
-let include_dirs = ref []
 (*e: constant [[Main_semgrep_core.include_dirs]] *)
 
 (*s: constant [[Main_semgrep_core.output_format_json]] *)
@@ -557,31 +551,20 @@ let sgrep_ast pattern file any_ast =
 (*****************************************************************************)
 (* Iteration helpers *)
 (*****************************************************************************)
-
 (*s: function [[Main_semgrep_core.filter_files]] *)
-let filter_files files =
-  files |> Files_filter.filter (Files_filter.mk_filters
-      ~excludes:!excludes
-      ~exclude_dirs:!exclude_dirs
-      ~includes:!includes
-      ~include_dirs:!include_dirs
-  )
 (*e: function [[Main_semgrep_core.filter_files]] *)
 
 (*s: function [[Main_semgrep_core.get_final_files]] *)
 let get_final_files xs =
   let files =
     match Lang.lang_of_string_opt !lang with
-    | None -> Files_finder.files_of_dirs_or_files xs
+    | None -> Common.files_of_dir_or_files_no_vcs_nofilter xs
     | Some lang -> Lang.files_of_dirs_or_files lang xs
   in
-  let files = filter_files files in
-
   let explicit_files = xs |> List.filter(fun file ->
       Sys.file_exists file && not (Sys.is_directory file)
     )
   in
-
   Common2.uniq_eff (files @ explicit_files)
 (*e: function [[Main_semgrep_core.get_final_files]] *)
 
@@ -684,9 +667,7 @@ let semgrep_with_one_pattern xs =
     (*e: [[Main_semgrep_core.semgrep_with_one_pattern()]] no [[lang]] specified *)
   in
   (*s: [[Main_semgrep_core.semgrep_with_one_pattern()]] filter [[files]] *)
-  let files = filter_files files in
   (*e: [[Main_semgrep_core.semgrep_with_one_pattern()]] filter [[files]] *)
-
   files |> List.iter (fun file ->
     (*s: [[Main_semgrep_core.semgrep_with_one_pattern()]] if [[verbose]] *)
     logger#info "processing: %s" file;
@@ -975,14 +956,6 @@ let options () =
     " <file> obtain list of code equivalences from YAML file";
     (*e: [[Main_semgrep_core.options]] user-defined equivalences case *)
     (*s: [[Main_semgrep_core.options]] file filters cases *)
-    "-exclude", Arg.String (fun s -> Common.push s excludes),
-    " <GLOB> skip files whose basename matches GLOB";
-    "-include", Arg.String (fun s -> Common.push s includes),
-    " <GLOB> search only files whose basename matches GLOB";
-    "-exclude-dir", Arg.String (fun s -> Common.push s exclude_dirs),
-    " <DIR> exclude directories matching the pattern DIR";
-    "-include-dir", Arg.String (fun s -> Common.push s include_dirs),
-    " <DIR> search only in directories matching the pattern DIR";
     (*e: [[Main_semgrep_core.options]] file filters cases *)
     (*s: [[Main_semgrep_core.options]] [[-j]] case *)
     "-j", Arg.Set_int ncores,

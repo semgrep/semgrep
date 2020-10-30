@@ -271,7 +271,6 @@ let test regexp =
       (* TODO Unit_matcher_php.unittest; (* sgrep, spatch, refactoring, unparsing *) *)
       lint_regression_tests;
       eval_regression_tests;
-      Unit_files.unittest;
     ]
   in
   let suite =

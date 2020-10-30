@@ -8,7 +8,7 @@ jobs:
     working_directory: /src
     steps:
       - checkout
-      - run: semgrep --config semgrep.yml --config https://semgrep.dev/p/ocaml --error --strict --exclude tests --exclude TODO --exclude _build .
+      - run: semgrep --config semgrep.yml --config https://semgrep.dev/p/ocaml --error --strict --verbose --exclude tests --exclude TODO --exclude _build .
 
 workflows:
   version: 2
