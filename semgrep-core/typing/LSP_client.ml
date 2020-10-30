@@ -12,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-(* COMMENTED FOR NOW, ocamllsp OPAM package not ready yet
 
 open Common
 
@@ -279,7 +278,4 @@ let init () =
       if !debug then pr2 "LSP CLOSING";
       send_request Client_request.Shutdown io |> ignore;
       Io.close io);
-  ()
-*)
-let init () =
   ()
