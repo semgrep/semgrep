@@ -19,6 +19,7 @@ type config = {
   color: when_use_color;
   output_format: output_format;
   debug: bool;
+  force: bool;
   pattern: string option;
   pattern_files: string list;
   doc_files: string list;
@@ -33,18 +34,18 @@ let detect_highlight when_use_color oc =
 (*
    Run all the patterns on all the documents.
 *)
-let run_all ~debug ~output_format ~highlight patterns docs =
+let run_all ~debug ~force ~output_format ~highlight patterns docs =
   let matches =
     List.map (fun get_doc_src ->
       let doc_src = get_doc_src () in
       let doc_type = File_type.guess doc_src in
       let matches =
-        match doc_type with
-        | Gibberish ->
+        match doc_type, force with
+        | Gibberish, false ->
             eprintf "ignoring gibberish file: %s\n%!"
               (Src_file.source_string doc_src);
             []
-        | Text ->
+        | _ ->
             if debug then
               printf "read document: %s\n%!"
                 (Src_file.source_string doc_src);
@@ -86,7 +87,12 @@ let run config =
   if debug then
     Match.debug := true;
   let highlight = detect_highlight config.color stdout in
-  run_all ~debug ~output_format:config.output_format ~highlight patterns docs
+  run_all
+    ~debug
+    ~force:config.force
+    ~output_format:config.output_format
+    ~highlight
+    patterns docs
 
 let color_conv =
   let parser when_use_color =
@@ -151,6 +157,13 @@ let debug_term =
   in
   Arg.value (Arg.flag info)
 
+let force_term =
+  let info =
+    Arg.info ["f"; "force"]
+      ~doc:"Don't skip files that don't look human-readable."
+  in
+  Arg.value (Arg.flag info)
+
 let pattern_term =
   let info =
     Arg.info []
@@ -193,13 +206,14 @@ let doc_file_term =
   Arg.value (Arg.opt_all Arg.string [] info)
 
 let cmdline_term =
-  let combine color output_format debug pattern pattern_files doc_files =
-    { color; output_format; debug; pattern; pattern_files; doc_files }
+  let combine color output_format debug force pattern pattern_files doc_files =
+    { color; output_format; debug; force; pattern; pattern_files; doc_files }
   in
   Term.(const combine
         $ color_term
         $ output_format_term
         $ debug_term
+        $ force_term
         $ pattern_term
         $ pattern_file_term
         $ doc_file_term
