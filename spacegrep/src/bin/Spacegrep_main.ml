@@ -229,7 +229,7 @@ let man = [
   `P "Martin Jambon <martin@returntocorp.com>";
   `S Manpage.s_bugs;
   `P "Check out bug reports at \
-      https://github.com/returntocorp/spacegrep/issues.";
+      https://github.com/returntocorp/semgrep/issues.";
   `S Manpage.s_see_also;
   `P "semgrep, spacecat"
 ]
