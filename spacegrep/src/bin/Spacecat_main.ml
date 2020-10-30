@@ -9,6 +9,7 @@ open Spacegrep
 type config = {
   is_pattern: bool;
   debug: bool;
+  input_files: string list;
 }
 
 let is_pattern_term =
@@ -26,13 +27,23 @@ let debug_term =
   in
   Arg.value (Arg.flag info)
 
+let input_files_term =
+  let info =
+    Arg.info []
+      ~docv:"FILE"
+      ~doc:"Read documents from files or directories $(docv) instead of
+            from stdin."
+  in
+  Arg.value (Arg.pos_all Arg.string [] info)
+
 let cmdline_term =
-  let combine is_pattern debug =
-    { is_pattern; debug }
+  let combine is_pattern debug input_files =
+    { is_pattern; debug; input_files }
   in
   Term.(const combine
         $ is_pattern_term
         $ debug_term
+        $ input_files_term
        )
 
 let doc =
@@ -63,8 +74,12 @@ let parse_command_line name =
   | `Version | `Help -> exit 0
   | `Ok config -> config
 
-let run config =
-  let src = Src_file.of_stdin () in
+let run_one config input =
+  let src =
+    match input with
+    | `Stdin -> Src_file.of_stdin ()
+    | `File path -> Src_file.of_file path
+  in
   let pat =
     if config.is_pattern then
       Parse_pattern.of_src src
@@ -79,6 +94,13 @@ let run config =
       Print.to_stdout
   in
   print pat
+
+let run config =
+  match config.input_files with
+  | [] -> run_one config `Stdin
+  | roots ->
+      let files = Find_files.list roots in
+      List.iter (fun path -> run_one config (`File path)) files
 
 let main () =
   let config = parse_command_line "spacecat" in
