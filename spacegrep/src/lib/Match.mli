@@ -50,6 +50,7 @@ val search : Pattern_AST.t -> Doc_AST.t -> match_ list
 *)
 val print :
   ?highlight:bool ->
+  ?print_optional_separator:(unit -> unit) ->
   Src_file.t -> match_ list -> unit
 
 (*
@@ -57,4 +58,5 @@ val print :
 *)
 val print_nested_results :
   ?highlight:bool ->
+  ?print_optional_separator:(unit -> unit) ->
   (Src_file.t * (pattern_id * match_ list) list) list -> unit

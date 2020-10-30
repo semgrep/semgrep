@@ -357,7 +357,18 @@ let ansi_highlight s =
   | "" -> s
   | s -> ANSITerminal.(sprintf [Bold; green] "%s" s)
 
-let print ?(highlight = false) src matches =
+let make_separator_printer () =
+  let is_first = ref true in
+  fun () ->
+    if !is_first then
+      is_first := false
+    else
+      print_char '\n'
+
+let print
+    ?(highlight = false)
+    ?(print_optional_separator = make_separator_printer ())
+    src matches =
   let highlight_fun =
     if highlight then Some ansi_highlight
     else None
@@ -368,6 +379,7 @@ let print ?(highlight = false) src matches =
     | Stdin | String | Channel -> ""
   in
   List.iter (fun match_ ->
+    print_optional_separator ();
     let (start_loc, end_loc) = match_.region in
     if !debug then
       printf "match from %s to %s\n"
@@ -376,13 +388,15 @@ let print ?(highlight = false) src matches =
       ?highlight:highlight_fun
       ~line_prefix
       src start_loc end_loc
-    |> print_string;
-    print_char '\n'
+    |> print_string
   ) matches
 
-let print_nested_results ?highlight doc_matches =
+let print_nested_results
+    ?highlight
+    ?(print_optional_separator = make_separator_printer ())
+    doc_matches =
   List.iter (fun (src, pat_matches) ->
     List.iter (fun (pat_id, matches) ->
-      print ?highlight src matches
+      print ?highlight ~print_optional_separator src matches
     ) pat_matches
   ) doc_matches
