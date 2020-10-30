@@ -41,9 +41,8 @@ let run_all ~debug ~output_format ~highlight patterns docs =
       let matches =
         match doc_type with
         | Gibberish ->
-            if debug then
-              printf "ignore gibberish file: %s\n%!"
-                (Src_file.source_string doc_src);
+            eprintf "ignoring gibberish file: %s\n%!"
+              (Src_file.source_string doc_src);
             []
         | Text ->
             if debug then
