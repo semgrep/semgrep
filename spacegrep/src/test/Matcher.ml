@@ -97,6 +97,7 @@ let matcher_corpus = [
   "simple fail", Count 0, "a", "ab cd";
   "sequence", Count 1, "a b", "a b c";
   "stutter", Count 1, "a b", "a a b";
+  "search", Matches ["a"; "a"; "a"], "a", "42 a\n, b, a, c a";
   "cover parenthesized block", Count 1, "a (b c) d", "a (b c) d";
 
   "cover indented block", Count 1, "a b c d e",
@@ -131,11 +132,11 @@ c
 
   "multiple matches", Count 3, "a", "a a a";
   "just dots", Count 1, "...", "a b";
-  "dots", Count 1, "a...b", "a x y b";
+  "dots", Matches ["a x y b"], "a...b", "a x y b";
   "unnecessary dots", Count 1, "a...b", "a b";
   "overnumerous dots", Count 1, "a ... ... c", "a b c";
   "double dots", Count 1, "a...b...c", "a x b x x c";
-  "trailing dots", Count 1, "a ...", "a b";
+  "trailing dots", Matches ["a b"], "a ...", "a b";
 
   "dots in subblock mismatch", Count 0,
   "\
@@ -203,6 +204,12 @@ d
   "double dots overflow", Count 0, "0 ... ... 21",
   "0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n\
    10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21";
+
+  "trailing dots", Matches ["0 1 2 3 4 5"], "0 ...",
+  "0\n1\n2\n3\n4\n5\n";
+
+  "trailing dots limit", Matches ["0 1 2 3 4 5 6 7 8 9 10"], "0 ...",
+  "0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12";
 
   "code match", Count 1,
   "function foo(x, y) { x = 42; ... y = x + 3; ... }",

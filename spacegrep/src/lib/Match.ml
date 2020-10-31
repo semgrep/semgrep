@@ -98,7 +98,7 @@ let rec extend_last_loc ~max_line_num last_loc (doc : Doc_AST.node list) =
       if loc_lnum loc <= max_line_num then
         extend_last_loc ~max_line_num loc doc
       else
-        None
+        Some last_loc
 
 let doc_matches_dots ~dots last_loc doc =
   match dots, doc with
@@ -328,7 +328,7 @@ let to_string src match_ =
 
 let convert_capture src (start_pos, _) (_, end_pos) =
   let loc = (start_pos, end_pos) in
-  let value = Src_file.lines_of_pos_range src start_pos end_pos in
+  let value = Src_file.region_of_pos_range src start_pos end_pos in
   { value; loc }
 
 (*
