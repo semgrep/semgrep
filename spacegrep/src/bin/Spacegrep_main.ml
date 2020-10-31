@@ -38,10 +38,10 @@ let run_all ~debug ~force ~output_format ~highlight patterns docs =
   let matches =
     List.map (fun get_doc_src ->
       let doc_src = get_doc_src () in
-      let doc_type = File_type.guess doc_src in
+      let doc_type = File_type.classify doc_src in
       let matches =
         match doc_type, force with
-        | Gibberish, false ->
+        | (Minified | Binary), false ->
             eprintf "ignoring gibberish file: %s\n%!"
               (Src_file.source_string doc_src);
             []
