@@ -28,8 +28,7 @@ let unique_id_of_loc (loc : Loc.t) : unique_id =
     md5sum;
   }
 
-let convert_capture x =
-  let name = x.name in
+let convert_capture (name, x) =
   assert (name <> "" && name.[0] <> '$');
   let pos1, pos2 = x.loc in
   ("$" ^ name), {
@@ -50,7 +49,7 @@ let make_semgrep_json doc_matches : Semgrep_t.match_results =
         let check_id = Some (string_of_int pat_id) in
         List.map (fun match_ ->
           let ((pos1, _), (_, pos2)) = match_.region in
-          let metavars = List.map convert_capture match_.captures in
+          let metavars = List.map convert_capture match_.named_captures in
           let lines =
             Src_file.region_of_pos_range src pos1 pos2
             |> String.split_on_char '\n'

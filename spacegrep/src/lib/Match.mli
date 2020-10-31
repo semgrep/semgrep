@@ -25,8 +25,7 @@ type region = Loc.t * Loc.t
   from the source document.
 *)
 type capture = {
-  name: string;
-  value: string; (* just nice to have, especially since it's a single word *)
+  value: string; (* source text, substring of the original document. *)
   loc: Loc.t;
 }
 
@@ -36,14 +35,15 @@ type capture = {
 *)
 type match_ = {
   region: region;
-  captures: capture list;
+  capture: capture;
+  named_captures: (string * capture) list;
 }
 
 (*
    Match a pattern against a document. Return the list of all
    non-overlapping matches found by scanning the document from left to right.
 *)
-val search : Pattern_AST.t -> Doc_AST.t -> match_ list
+val search : Src_file.t -> Pattern_AST.t -> Doc_AST.t -> match_ list
 
 (*
    Print the matched lines to stdout in a human-readable format.

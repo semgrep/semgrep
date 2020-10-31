@@ -47,14 +47,14 @@ type pattern_id = int
 type region = Loc.t * Loc.t
 
 type capture = {
-  name: string;
   value: string;
   loc: Loc.t;
 }
 
 type match_ = {
   region: region;
-  captures: capture list;
+  capture: capture;
+  named_captures: (string * capture) list;
 }
 
 (*** Internal types ***)
@@ -313,22 +313,30 @@ let rec fold acc (doc : Doc_AST.node list) f =
       let acc = fold acc doc1 f in
       fold acc doc2 f
 
-let convert_captures env =
+let convert_named_captures env =
   Env.bindings env
   |> List.map (fun (name, (loc, value)) ->
-    {
-      name;
-      value;
-      loc;
-    }
+    (name, {
+       value;
+       loc;
+     })
   )
+
+let to_string src match_ =
+  let (start_loc, end_loc) = match_.region in
+  Src_file.lines_of_loc_range src start_loc end_loc
+
+let convert_capture src (start_pos, _) (_, end_pos) =
+  let loc = (start_pos, end_pos) in
+  let value = Src_file.lines_of_pos_range src start_pos end_pos in
+  { value; loc }
 
 (*
    Search for non-overlapping matches.
    last_loc is a forbidden start location. Any attempt to match must start
    from a location after last_loc.
 *)
-let search pat doc =
+let search src pat doc =
   fold [] doc (fun matches start_loc doc ->
     let ok_loc =
       match matches with
@@ -342,8 +350,9 @@ let search pat doc =
       | Complete (env, last_loc) ->
           let match_ =
             let region = (start_loc, last_loc) in
-            let captures = convert_captures env in
-            { region; captures }
+            let capture = convert_capture src start_loc last_loc in
+            let named_captures = convert_named_captures env in
+            { region; capture; named_captures }
           in
           match_ :: matches
       | Fail -> matches

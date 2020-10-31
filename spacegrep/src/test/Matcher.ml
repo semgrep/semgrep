@@ -2,6 +2,7 @@
    Test pattern matching.
 *)
 
+open Printf
 open Spacegrep
 
 let word s = Pattern_AST.(Atom (Loc.dummy, Word s))
@@ -38,27 +39,67 @@ $Var_0
       ]
   )
 
-let search pat doc_src doc =
-  let matches = Match.search pat doc in
-  Match.print doc_src matches;
-  List.length matches
+(*
+   Compare the structure of two unparsed documents.
+*)
+let doc_eq doc1_str doc2_str =
+  let doc1 = Src_file.of_string doc1_str |> Parse_doc.of_src in
+  let doc2 = Src_file.of_string doc2_str |> Parse_doc.of_src in
+  Doc_AST.eq doc1 doc2
 
-let run num_matches pat_str doc_str =
+let matches_eq expected_doc_strings matches =
+  let doc_strings =
+    List.map (fun (x : Match.match_) -> x.capture.value) matches in
+  printf "=== expected matches ===\n";
+  List.iter (fun s ->
+    printf "%s\n--\n" s
+  ) expected_doc_strings;
+  printf "=== actual matches ===\n";
+  List.iter (fun (match_ : Match.match_) ->
+    printf "%s\n--\n" match_.capture.value
+  ) matches;
+  (List.length expected_doc_strings = List.length doc_strings
+   && List.for_all2 doc_eq expected_doc_strings doc_strings)
+
+let search pat doc_src doc =
+  let matches = Match.search doc_src pat doc in
+  Match.print doc_src matches;
+  matches
+
+let search_str pat_str doc_str =
   let pat = Src_file.of_string pat_str |> Parse_pattern.of_src in
   let doc_src = Src_file.of_string doc_str in
   let doc = Parse_doc.of_src doc_src in
-  Alcotest.(check int) "number of matches" num_matches (search pat doc_src doc)
+  search pat doc_src doc
+
+let check_match_count pat_str doc_str expected_num_matches =
+  let matches = search_str pat_str doc_str in
+  let num_matches = List.length matches in
+  Alcotest.(check int) "number of matches" expected_num_matches num_matches
+
+let check_matches pat_str doc_str expected_matches =
+  let matches = search_str pat_str doc_str in
+  Alcotest.(check bool) "matches" true (matches_eq expected_matches matches)
+
+type expectation = Count of int | Matches of string list
+
+let check_matching pat_str doc_str expectation =
+  match expectation with
+  | Count expected_num_matches ->
+      check_match_count pat_str doc_str expected_num_matches
+  | Matches expected_matches ->
+      check_matches pat_str doc_str expected_matches
 
 let matcher_corpus = [
   (* title, #matches, pattern, document *)
-  "empty pattern", 1, "", "x";
-  "word", 1, "hello", "hello";
-  "simple fail", 0, "a", "ab cd";
-  "sequence", 1, "a b", "a b c";
-  "stutter", 1, "a b", "a a b";
-  "cover parenthesized block", 1, "a (b c) d", "a (b c) d";
+  "empty pattern", Count 1, "", "x";
+  "word", Matches ["hello"], "hello", "hello";
+  "simple fail", Count 0, "a", "ab cd";
+  "sequence", Count 1, "a b", "a b c";
+  "stutter", Count 1, "a b", "a a b";
+  "cover parenthesized block", Count 1, "a (b c) d", "a (b c) d";
 
-  "cover indented block", 1, "a b c d e",
+  "cover indented block", Count 1, "a b c d e",
   "\
 a
   b
@@ -67,7 +108,7 @@ a
 e
 ";
 
-  "indented pattern", 0,
+  "indented pattern", Count 0,
   "\
 a
   b
@@ -75,7 +116,7 @@ c
 ",
   "a b c";
 
-  "indented dots", 2,
+  "indented dots", Count 2,
   "\
 {
   ...
@@ -88,15 +129,15 @@ c
 }
 ";
 
-  "multiple matches", 3, "a", "a a a";
-  "just dots", 1, "...", "a b";
-  "dots", 1, "a...b", "a x y b";
-  "unnecessary dots", 1, "a...b", "a b";
-  "overnumerous dots", 1, "a ... ... c", "a b c";
-  "double dots", 1, "a...b...c", "a x b x x c";
-  "trailing dots", 1, "a ...", "a b";
+  "multiple matches", Count 3, "a", "a a a";
+  "just dots", Count 1, "...", "a b";
+  "dots", Count 1, "a...b", "a x y b";
+  "unnecessary dots", Count 1, "a...b", "a b";
+  "overnumerous dots", Count 1, "a ... ... c", "a b c";
+  "double dots", Count 1, "a...b...c", "a x b x x c";
+  "trailing dots", Count 1, "a ...", "a b";
 
-  "dots in subblock mismatch", 0,
+  "dots in subblock mismatch", Count 0,
   "\
 a
   ...
@@ -108,7 +149,7 @@ a
 b
 ";
 
-  "dots in subblock match", 1,
+  "dots in subblock match", Count 1,
   "\
 a
   ...
@@ -121,7 +162,7 @@ a
 c
 ";
 
-  "trailing dots in subblock", 1,
+  "trailing dots in subblock", Count 1,
   "\
 a
   b
@@ -134,7 +175,7 @@ a
 d
 ";
 
-  "missing trailing dots in subblock", 0,
+  "missing trailing dots in subblock", Count 0,
   "\
 a
   b
@@ -147,23 +188,23 @@ a
 d
 ";
 
-  "dots max span", 1, "0 ... 10",
+  "dots max span", Count 1, "0 ... 10",
   "0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10";
 
-  "dots overflow", 0, "0 ... 12",
+  "dots overflow", Count 0, "0 ... 12",
   "0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12";
 
-  "dots overflow barely", 0, "0 ... 12",
+  "dots overflow barely", Count 0, "0 ... 12",
   "0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n\n12";
 
-  "double dots", 1, "0 ... ... 11",
+  "double dots", Count 1, "0 ... ... 11",
   "0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11";
 
-  "double dots overflow", 0, "0 ... ... 21",
+  "double dots overflow", Count 0, "0 ... ... 21",
   "0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n\
    10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21";
 
-  "code match", 1,
+  "code match", Count 1,
   "function foo(x, y) { x = 42; ... y = x + 3; ... }",
   "\
 /* This program does nothing useful. */
@@ -175,7 +216,7 @@ function foo(x, y) {
 }
 ";
 
-  "match in same block", 1,
+  "match in same block", Count 1,
   "\
 {
   a: 42
@@ -186,7 +227,7 @@ function foo(x, y) {
 ",
   "[ { a: 42, x: 1, b: 17 }, {} ]";
 
-  "mismatch due to different blocks", 0,
+  "mismatch due to different blocks", Count 0,
   "\
 {
   a: 42
@@ -197,9 +238,9 @@ function foo(x, y) {
 ",
   "[ { a: 42 }, { b: 17 } ]";
 
-  "metavariable", 1, "$X $X", "yo yo";
-  "metavariable mismatch", 0, "$X $X", "a b";
-  "metavariable scope", 1,
+  "metavariable", Count 1, "$X $X", "yo yo";
+  "metavariable mismatch", Count 0, "$X $X", "a b";
+  "metavariable scope", Count 1,
   "\
 a
   $X
@@ -213,14 +254,14 @@ b
   x
 ";
 
-  "multiple metavariables", 1,
+  "multiple metavariables", Count 1,
   "$X $Y $X $Y",
   "a b a b";
 ]
 
 let matcher_suite =
-  List.map (fun (name, matches, pat_str, doc_str) ->
-    name, `Quick, (fun () -> run matches pat_str doc_str)
+  List.map (fun (name, expectation, pat_str, doc_str) ->
+    name, `Quick, (fun () -> check_matching pat_str doc_str expectation)
   ) matcher_corpus
 
 let test = "Matcher", [
