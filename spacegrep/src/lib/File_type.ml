@@ -7,6 +7,11 @@ type t =
   | Minified (* looks like source code from which whitespace was removed *)
   | Binary (* doesn't look like source code *)
 
+let to_string = function
+  | Text -> "text"
+  | Minified -> "minified"
+  | Binary -> "binary"
+
 let classify src =
   let contents = Src_file.contents src in
   let length = String.length contents in
