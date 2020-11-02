@@ -129,7 +129,7 @@ def line_has_todo_ok(line: str) -> bool:
 def score_output_json(
     json_out: Dict[str, Any], test_files: List[Path], ignore_todo: bool
 ) -> Tuple[Dict[str, List[int]], Dict[str, Dict[str, Any]], int]:
-    comment_lines: Dict[str, Dict[str, List[int]]] = collections.defaultdict(
+    ruleid_lines: Dict[str, Dict[str, List[int]]] = collections.defaultdict(
         lambda: collections.defaultdict(list)
     )
     ok_lines: Dict[str, Dict[str, List[int]]] = collections.defaultdict(
@@ -138,7 +138,7 @@ def score_output_json(
     reported_lines: Dict[str, Dict[str, List[int]]] = collections.defaultdict(
         lambda: collections.defaultdict(list)
     )
-    ignore_lines: Dict[str, Dict[str, List[int]]] = collections.defaultdict(
+    todo_ok_lines: Dict[str, Dict[str, List[int]]] = collections.defaultdict(
         lambda: collections.defaultdict(list)
     )
     score_by_checkid: Dict[str, List[int]] = collections.defaultdict(
@@ -149,30 +149,29 @@ def score_output_json(
 
     for test_file in test_files:
         test_file_resolved = str(test_file.resolve())
-        with open(test_file_resolved) as fin:
-            all_lines = fin.readlines()
-            for i, line in enumerate(all_lines):
-                # +1 because we are 0 based and semgrep output is not, plus skip the comment line
-                effective_line_num = i + 2
+        all_lines = test_file.read_text().split("\n")
+        for i, line in enumerate(all_lines):
+            # +1 because we are 0 based and semgrep output is not, plus skip the comment line
+            effective_line_num = i + 2
 
-                rule_in_line = line_has_rule(line)
-                ok_in_line = line_has_ok(line)
-                todo_in_line = line_has_todo_rule(line)
-                todo_ok_in_line = line_has_todo_ok(line)
-                num_todo += int(todo_in_line) + int(todo_ok_in_line)
+            rule_in_line = line_has_rule(line)
+            ok_in_line = line_has_ok(line)
+            todo_rule_in_line = line_has_todo_rule(line)
+            todo_ok_in_line = line_has_todo_ok(line)
+            num_todo += int(todo_rule_in_line) + int(todo_ok_in_line)
 
-                if (not ignore_todo and todo_in_line) or rule_in_line:
-                    comment_lines[test_file_resolved][normalize_rule_id(line)].append(
-                        effective_line_num
-                    )
-                if (not ignore_todo and todo_in_line) or ok_in_line:
-                    ok_lines[test_file_resolved][normalize_rule_id(line)].append(
-                        effective_line_num
-                    )
-                if ignore_todo and todo_ok_in_line:
-                    ignore_lines[test_file_resolved][normalize_rule_id(line)].append(
-                        effective_line_num
-                    )
+            if (not ignore_todo and todo_rule_in_line) or rule_in_line:
+                ruleid_lines[test_file_resolved][normalize_rule_id(line)].append(
+                    effective_line_num
+                )
+            if (not ignore_todo and todo_rule_in_line) or ok_in_line:
+                ok_lines[test_file_resolved][normalize_rule_id(line)].append(
+                    effective_line_num
+                )
+            if ignore_todo and todo_ok_in_line:
+                todo_ok_lines[test_file_resolved][normalize_rule_id(line)].append(
+                    effective_line_num
+                )
 
     for result in json_out["results"]:
         reported_lines[str(Path(result["path"]).resolve())][result["check_id"]].append(
@@ -181,8 +180,9 @@ def score_output_json(
 
     reported_ids = {result["check_id"] for result in json_out["results"]}
     test_ids = {
-        check_id for _, comment in comment_lines.items() for check_id in comment.keys()
-    } | {check_id for _, ok in ok_lines.items() for check_id in ok.keys()}
+        check_id for _, ruleid in ruleid_lines.items() for check_id in ruleid.keys()
+    }
+    test_ids |= {check_id for _, ok in ok_lines.items() for check_id in ok.keys()}
     if reported_ids and test_ids.symmetric_difference(reported_ids):
         raise Exception(
             f"found mismatch between test and result ids - test={test_ids} result={reported_ids}"
@@ -191,12 +191,12 @@ def score_output_json(
     def join_keys(a: Dict[str, Any], b: Dict[str, Any]) -> Set[str]:
         return set(a.keys()).union(set(b.keys()))
 
-    for file_path in join_keys(comment_lines, reported_lines):
-        for check_id in join_keys(comment_lines[file_path], reported_lines[file_path]):
+    for file_path in join_keys(ruleid_lines, reported_lines):
+        for check_id in join_keys(ruleid_lines[file_path], reported_lines[file_path]):
             all_reported = set(reported_lines[file_path][check_id])
-            expected = set(comment_lines[file_path][check_id])
+            expected = set(ruleid_lines[file_path][check_id])
             oked = set(ok_lines[file_path][check_id])
-            ignored = set(ignore_lines[file_path][check_id])
+            todo_oked = set(todo_ok_lines[file_path][check_id])
 
             reported_oked_lines = oked.intersection(all_reported)
             if reported_oked_lines:
@@ -204,7 +204,7 @@ def score_output_json(
                     f"found results on ok'ed lines - lines={reported_oked_lines} path={file_path}"
                 )
 
-            reported = all_reported - ignored
+            reported = all_reported - todo_oked
 
             new_cm = compute_confusion_matrix(reported, expected, oked)
             matches_by_check_id[check_id][file_path] = {
