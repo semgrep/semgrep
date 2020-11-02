@@ -226,11 +226,11 @@ let rec variable_designation (env : env) (x : CST.variable_designation) =
               List.map (fun (v1, v2) ->
                 let v1 = token env v1 (* "," *) in
                 let v2 = variable_designation env v2 in
-                todo env (v1, v2)
+                v2
               ) v2
             in
-            todo env (v1, v2)
-        | None -> todo env ())
+            v1 :: v2
+        | None -> [])
       in
       let v3 = token env v3 (* ")" *) in
       todo env (v1, v2, v3)
@@ -261,11 +261,11 @@ let tuple_pattern (env : env) ((v1, v2, v3, v4) : CST.tuple_pattern) =
     List.map (fun (v1, v2) ->
       let v1 = token env v1 (* "," *) in
       let v2 = anon_choice_id_43fe74f env v2 in
-      todo env (v1, v2)
+      v2
     ) v3
   in
   let v4 = token env v4 (* ")" *) in
-  todo env (v1, v2, v3, v4)
+  todo env (v1, v2 :: v3, v4)
 
 let name_colon (env : env) ((v1, v2) : CST.name_colon) =
   let v1 = identifier_or_global env v1 in
@@ -326,7 +326,7 @@ and variable_declaration (env : env) ((v1, v2, v3) : CST.variable_declaration) :
     List.map (fun (v1, v2) ->
       let v1 = token env v1 (* "," *) in
       let v2 = variable_declarator env v2 in
-      todo env (v1, v2)
+      v2
     ) v3
   in
   let decls = v2 :: v3 in
@@ -769,11 +769,11 @@ and expression (env : env) (x : CST.expression) : AST.expr =
               List.map (fun (v1, v2) ->
                 let v1 = token env v1 (* "," *) in
                 let v2 = anonymous_object_member_declarator env v2 in
-                todo env (v1, v2)
+                v2
               ) v2
             in
-            todo env (v1, v2)
-        | None -> todo env ())
+            v1 :: v2
+        | None -> [])
       in
       let v4 =
         (match v4 with
@@ -1000,11 +1000,11 @@ and expression (env : env) (x : CST.expression) : AST.expr =
               List.map (fun (v1, v2) ->
                 let v1 = token env v1 (* "," *) in
                 let v2 = switch_expression_arm env v2 in
-                todo env (v1, v2)
+                v2
               ) v2
             in
-            todo env (v1, v2)
-        | None -> todo env ())
+            v1 :: v2
+        | None -> [])
       in
       let v5 = token env v5 (* "}" *) in
       todo env (v1, v2, v3, v4, v5)
@@ -1022,11 +1022,11 @@ and expression (env : env) (x : CST.expression) : AST.expr =
         List.map (fun (v1, v2) ->
           let v1 = token env v1 (* "," *) in
           let v2 = argument env v2 in
-          todo env (v1, v2)
+          v2
         ) v3
       in
       let v4 = token env v4 (* ")" *) in
-      todo env (v1, v2, v3, v4)
+      todo env (v1, v2 :: v3, v4)
   | `Type_of_exp (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "typeof" *) in
       let v2 = token env v2 (* "(" *) in
@@ -1457,10 +1457,10 @@ and query_clause (env : env) (x : CST.query_clause) =
         List.map (fun (v1, v2) ->
           let v1 = token env v1 (* "," *) in
           let v2 = ordering env v2 in
-          todo env (v1, v2)
+          v2
         ) v3
       in
-      todo env (v1, v2, v3)
+      todo env (v1, v2 :: v3)
   | `Where_clause (v1, v2) ->
       let v1 = token env v1 (* "where" *) in
       let v2 = expression env v2 in
@@ -1500,10 +1500,10 @@ and formal_parameter_list (env : env) ((v1, v2) : CST.formal_parameter_list) =
     List.map (fun (v1, v2) ->
       let v1 = token env v1 (* "," *) in
       let v2 = anon_choice_param_ce11a32 env v2 in
-      todo env (v1, v2)
+      v2
     ) v2
   in
-  v2
+  v1 :: v2
 
 and equals_value_clause (env : env) ((v1, v2) : CST.equals_value_clause) : expr =
   let v1 = token env v1 (* "=" *) in
@@ -1543,7 +1543,7 @@ and attribute_list (env : env) ((v1, v2, v3, v4, v5) : CST.attribute_list) : att
     List.map (fun (v1, v2) ->
       let v1 = token env v1 (* "," *) in
       let v2 = attribute env v2 in
-      todo env (v1, v2)
+      v2
     ) v4
   in
   let v5 = token env v5 (* "]" *) in
@@ -1556,11 +1556,11 @@ and bracketed_argument_list (env : env) ((v1, v2, v3, v4) : CST.bracketed_argume
     List.map (fun (v1, v2) ->
       let v1 = token env v1 (* "," *) in
       let v2 = argument env v2 in
-      todo env (v1, v2)
+      v2
     ) v3
   in
   let v4 = token env v4 (* "]" *) in
-  todo env (v1, v2, v3, v4)
+  todo env (v1, v2 :: v3, v4)
 
 and pattern (env : env) (x : CST.pattern) : AST.pattern =
   (match x with
@@ -1691,11 +1691,11 @@ and type_ (env : env) (x : CST.type_) : AST.type_ =
         List.map (fun (v1, v2) ->
           let v1 = token env v1 (* "," *) in
           let v2 = tuple_element env v2 in
-          todo env (v1, v2)
+          v2
         ) v3
       in
       let v4 = token env v4 (* ")" *) in
-      todo env (v1, v2, v3, v4)
+      todo env (v1, v2 :: v3, v4)
   )
 
 and type_argument_list (env : env) ((v1, v2, v3) : CST.type_argument_list) =
@@ -1709,10 +1709,10 @@ and type_argument_list (env : env) ((v1, v2, v3) : CST.type_argument_list) =
           List.map (fun (v1, v2) ->
             let v1 = token env v1 (* "," *) in
             let v2 = type_constraint env v2 in
-            todo env (v1, v2)
+            v2
           ) v2
         in
-        todo env (v1, v2)
+        todo env (v1 :: v2)
     )
   in
   let v3 = token env v3 (* ">" *) in
@@ -1727,10 +1727,10 @@ and type_parameter_constraints_clause (env : env) ((v1, v2, v3, v4, v5) : CST.ty
     List.map (fun (v1, v2) ->
       let v1 = token env v1 (* "," *) in
       let v2 = type_parameter_constraint env v2 in
-      todo env (v1, v2)
+      v2
     ) v5
   in
-  todo env (v1, v2, v3, v4, v5)
+  todo env (v1, v2, v3, v4 :: v5)
 
 and parameter_list (env : env) ((v1, v2, v3) : CST.parameter_list) : parameter list =
   let v1 = token env v1 (* "(" *) in
@@ -1740,7 +1740,7 @@ and parameter_list (env : env) ((v1, v2, v3) : CST.parameter_list) : parameter l
     | None -> [])
   in
   let v3 = token env v3 (* ")" *) in
-  v2
+  List.map (fun x -> ParamClassic x) v2
 
 and attribute_argument_list (env : env) ((v1, v2, v3) : CST.attribute_argument_list) : arguments bracket =
   let v1 = token env v1 (* "(" *) in
@@ -1832,11 +1832,11 @@ let bracketed_parameter_list (env : env) ((v1, v2, v3, v4) : CST.bracketed_param
     List.map (fun (v1, v2) ->
       let v1 = token env v1 (* "," *) in
       let v2 = parameter env v2 in
-      todo env (v1, v2)
+      v2
     ) v3
   in
   let v4 = token env v4 (* "]" *) in
-  todo env (v1, v2, v3, v4)
+  todo env (v1, v2 :: v3, v4)
 
 let constructor_initializer (env : env) ((v1, v2, v3) : CST.constructor_initializer) =
   let v1 = token env v1 (* ":" *) in
@@ -1866,10 +1866,10 @@ let base_list (env : env) ((v1, v2, v3) : CST.base_list) =
     List.map (fun (v1, v2) ->
       let v1 = token env v1 (* "," *) in
       let v2 = type_constraint env v2 in
-      todo env (v1, v2)
+      v2
     ) v3
   in
-  todo env (v1, v2, v3)
+  v2 :: v3
 
 let anon_subp_rep_COMMA_subp_300d2c5 (env : env) ((v1, v2) : CST.anon_subp_rep_COMMA_subp_300d2c5) =
   let v1 = subpattern env v1 in
@@ -1877,10 +1877,10 @@ let anon_subp_rep_COMMA_subp_300d2c5 (env : env) ((v1, v2) : CST.anon_subp_rep_C
     List.map (fun (v1, v2) ->
       let v1 = token env v1 (* "," *) in
       let v2 = subpattern env v2 in
-      todo env (v1, v2)
+      v2
     ) v2
   in
-  todo env (v1, v2)
+  v1 :: v2
 
 let accessor_list (env : env) ((v1, v2, v3) : CST.accessor_list) =
   let v1 = token env v1 (* "{" *) in
@@ -1898,11 +1898,11 @@ let enum_member_declaration_list (env : env) ((v1, v2, v3, v4) : CST.enum_member
           List.map (fun (v1, v2) ->
             let v1 = token env v1 (* "," *) in
             let v2 = enum_member_declaration env v2 in
-            todo env (v1, v2)
+            v2
           ) v2
         in
-        todo env (v1, v2)
-    | None -> todo env ())
+        v1 :: v2
+    | None -> [])
   in
   let v3 =
     (match v3 with
@@ -1964,11 +1964,11 @@ and declaration (env : env) (x : CST.declaration) : stmt =
               List.map (fun (v1, v2) ->
                 let v1 = token env v1 (* "," *) in
                 let v2 = attribute env v2 in
-                todo env (v1, v2)
+                v2
               ) v2
             in
-            todo env (v1, v2)
-        | None -> todo env ())
+            v1 :: v2
+        | None -> [])
       in
       let v5 = token env v5 (* "]" *) in
       todo env (v1, v2, v3, v4, v5)
