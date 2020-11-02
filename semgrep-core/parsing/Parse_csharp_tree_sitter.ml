@@ -43,6 +43,19 @@ let ids_of_name (name : name) : dotted_ident =
     | None -> [ident]
   )
 
+let type_parameters_with_constraints params constraints : type_parameter list =
+  List.map (fun param ->
+    let with_constraints = List.find_opt (fun p ->
+      let (id, _) = p in
+      let (id, _) = id in
+      let (param, _) = param in
+      id = param
+    ) constraints in
+    match with_constraints with
+    | Some(x) -> x
+    | None -> (param, [])
+  ) params
+
 (*****************************************************************************)
 (* Boilerplate converter *)
 (*****************************************************************************)
@@ -577,6 +590,7 @@ and type_parameter (env : env) ((v1, v2, v3) : CST.type_parameter) =
     | None -> None)
   in
   let v3 = identifier env v3 (* identifier *) in
+  (* TODO can we throw away v1 and v2? *)
   v3
 
 and element_binding_expression (env : env) (x : CST.element_binding_expression) =
@@ -1104,7 +1118,7 @@ and type_parameter_constraint (env : env) (x : CST.type_parameter_constraint) =
       let v2 = token env v2 (* "(" *) in
       let v3 = token env v3 (* ")" *) in
       todo env (v1, v2, v3)
-  | `Type_cons x -> type_constraint env x
+  | `Type_cons x -> Extends (type_constraint env x)
   )
 
 and type_constraint (env : env) (x : CST.type_constraint) : type_ =
@@ -1730,7 +1744,7 @@ and type_parameter_constraints_clause (env : env) ((v1, v2, v3, v4, v5) : CST.ty
       v2
     ) v5
   in
-  todo env (v1, v2, v3, v4 :: v5)
+  (v2, v4 :: v5)
 
 and parameter_list (env : env) ((v1, v2, v3) : CST.parameter_list) : parameter list =
   let v1 = token env v1 (* "(" *) in
@@ -1996,7 +2010,14 @@ and declaration (env : env) (x : CST.declaration) : stmt =
       in
       let (open_bra, stmts, close_bra) = declaration_list env v8 in
       let fields = List.map (fun x -> AST.FieldStmt x) stmts in
-      AST.DefStmt ((basic_entity v4 v1), AST.ClassDef {
+      let tparams = type_parameters_with_constraints v5 v7 in
+      let ent = {
+          name = v4;
+          attrs = v1;
+          info = empty_id_info ();
+          tparams;
+      } in
+      AST.DefStmt (ent, AST.ClassDef {
         ckind = (AST.Class, v3);
         cextends = [];
         cimplements = [];
