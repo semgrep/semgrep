@@ -565,19 +565,19 @@ and type_parameter (env : env) ((v1, v2, v3) : CST.type_parameter) =
   let v1 =
     (match v1 with
     | Some x -> attribute_list env x
-    | None -> todo env ())
+    | None -> [])
   in
   let v2 =
     (match v2 with
     | Some x ->
         (match x with
-        | `In tok -> token env tok (* "in" *)
-        | `Out tok -> token env tok (* "out" *)
+        | `In tok -> Some (token env tok) (* "in" *)
+        | `Out tok -> Some (token env tok) (* "out" *)
         )
-    | None -> todo env ())
+    | None -> None)
   in
   let v3 = identifier env v3 (* identifier *) in
-  todo env (v1, v2, v3)
+  v3
 
 and element_binding_expression (env : env) (x : CST.element_binding_expression) =
   bracketed_argument_list env x
@@ -1088,11 +1088,11 @@ and type_parameter_list (env : env) ((v1, v2, v3, v4) : CST.type_parameter_list)
     List.map (fun (v1, v2) ->
       let v1 = token env v1 (* "," *) in
       let v2 = type_parameter env v2 in
-      todo env (v1, v2)
+      v2
     ) v3
   in
   let v4 = token env v4 (* ">" *) in
-  todo env (v1, v2, v3, v4)
+  v2 :: v3
 
 and type_parameter_constraint (env : env) (x : CST.type_parameter_constraint) =
   (match x with
@@ -1273,7 +1273,7 @@ and statement (env : env) (x : CST.statement) =
       let v4 =
         (match v4 with
         | Some x -> type_parameter_list env x
-        | None -> todo env ())
+        | None -> [])
       in
       let v5 = parameter_list env v5 in
       let v6 =
@@ -2038,7 +2038,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
       let v6 =
         (match v6 with
         | Some x -> type_parameter_list env x
-        | None -> todo env ())
+        | None -> [])
       in
       let v7 = parameter_list env v7 in
       let v8 =
@@ -2141,7 +2141,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
       let v5 =
         (match v5 with
         | Some x -> type_parameter_list env x
-        | None -> todo env ())
+        | None -> [])
       in
       let v6 =
         (match v6 with
@@ -2247,7 +2247,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
       let v5 =
         (match v5 with
         | Some x -> type_parameter_list env x
-        | None -> todo env ())
+        | None -> [])
       in
       let v6 =
         (match v6 with
