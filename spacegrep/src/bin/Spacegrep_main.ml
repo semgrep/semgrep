@@ -55,7 +55,7 @@ let run_all ~debug ~force ~output_format ~highlight patterns docs =
                 printf "match document from %s against pattern from %s\n%!"
                   (Src_file.source_string doc_src)
                   (Src_file.source_string pat_src);
-              (pat_id, Match.search pat doc)
+              (pat_id, Match.search doc_src pat doc)
             ) patterns
       in
       (doc_src, matches)
