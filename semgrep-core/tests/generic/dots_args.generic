@@ -3,8 +3,39 @@ class Foo {
     //ERROR:
     foo(1,2,3,4,5);
 
-    foo(5);
+    //ERROR:
+    foo ( 5 );
+
+    //ERROR:
+    foo("5");  // this matches too.
+
+    //ERROR:
+    foo(5, ")");  // quoted strings are not understood.
+
+    //ERROR:
+    foo(5 5);
+
+    //ERROR:
+    foo(5.5);  // '.' is generic punctuation.
+
+    foo(55);  // '55' is a single word of the form [A-Za-z0-9_]+
+
+    // Dots ('...') can match at most 10 lines.
+    // Use '... ...' to match up to 20 lines.
+    foo(
+     5,
+     6,
+     7,
+     8,
+     9,
+     10,
+     11,
+     12,
+     13,
+     14,
+     15,
+     16,
+     17
+    );
   }
 }
-
-
