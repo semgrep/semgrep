@@ -3,7 +3,12 @@ class Foo {
     //ERROR:
     foo(1,2);
 
+    //ERROR:
+    Bar.Baz(
+     1,
+     2
+    );
+
     return 1;
   }
 }
-
