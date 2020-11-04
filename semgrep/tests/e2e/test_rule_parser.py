@@ -8,7 +8,9 @@ from ..conftest import TESTS_PATH
 syntax_dir = TESTS_PATH / "e2e" / "rules" / "syntax"
 syntax_passes = [f.with_suffix("").name for f in syntax_dir.glob("good*.yaml")]
 syntax_fails = [
-    f.with_suffix("").name for f in syntax_dir.glob("*.yaml") if "good" not in f.name
+    f.with_suffix("").name
+    for f in syntax_dir.glob("*.yaml")
+    if "good" not in f.name and "empty" not in f.name
 ]
 
 
