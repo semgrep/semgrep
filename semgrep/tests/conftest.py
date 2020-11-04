@@ -54,7 +54,7 @@ def _clean_output_json(output_json: str) -> str:
 
 
 def _run_semgrep(
-    config: Optional[Union[str, Path]] = None,
+    config: Optional[Union[str, Path, List[str]]] = None,
     *,
     target_name: str = "basic",
     options: Optional[List[Union[str, Path]]] = None,
@@ -79,7 +79,11 @@ def _run_semgrep(
     options.append("--disable-version-check")
 
     if config is not None:
-        options.extend(["--config", config])
+        if isinstance(config, list):
+            for conf in config:
+                options.extend(["--config", conf])
+        else:
+            options.extend(["--config", config])
 
     if output_format == "json":
         options.append("--json")
