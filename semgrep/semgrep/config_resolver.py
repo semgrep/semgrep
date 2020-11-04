@@ -85,8 +85,13 @@ class Config:
         for i, config in enumerate(configs):
             try:
                 # Patch config_id to fix https://github.com/returntocorp/semgrep/issues/1912
+                resolved_config = resolve_config(config)
+                if not resolved_config:
+                    logger.debug(f"Could not resolve config for {config}. Skipping.")
+                    continue
+                # Extract key and value
                 resolved_config_key, resolved_config_yaml_tree = next(
-                    iter(resolve_config(config).items())
+                    iter(resolved_config.items())
                 )
                 patched_resolved_config: Dict[str, YamlTree] = {}
                 patched_resolved_config[
