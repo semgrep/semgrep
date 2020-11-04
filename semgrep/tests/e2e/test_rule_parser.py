@@ -25,6 +25,13 @@ def test_rule_parser__failure(run_semgrep_in_tmp, snapshot, filename):
     snapshot.assert_match(str(excinfo.value.returncode), "returncode.txt")
 
 
+def test_rule_parser__empty(run_semgrep_in_tmp, snapshot):
+    with pytest.raises(CalledProcessError) as excinfo:
+        run_semgrep_in_tmp(f"rules/syntax/empty.yaml")
+    assert excinfo.value.returncode != 0
+    snapshot.assert_match(str(excinfo.value.returncode), "returncode.txt")
+
+
 @pytest.mark.parametrize("filename", syntax_fails)
 def test_rule_parser__failure__error_messages(run_semgrep_in_tmp, snapshot, filename):
     with pytest.raises(CalledProcessError) as excinfo:

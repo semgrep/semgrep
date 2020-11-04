@@ -262,6 +262,10 @@ def parse_config_at_path(
 def parse_config_string(
     config_id: str, contents: str, filename: Optional[str]
 ) -> Dict[str, YamlTree]:
+    if not contents:
+        raise SemgrepError(
+            f"Empty configuration file {filename}", code=UNPARSEABLE_YAML_EXIT_CODE,
+        )
     try:
         data = parse_yaml_preserve_spans(contents, filename)
         return {config_id: data}
