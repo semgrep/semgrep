@@ -3,6 +3,21 @@
 # For a one-shot production build, look into Dockerfile.
 #
 
+# Used to select commands with different usage under GNU/Linux and *BSD/Darwin
+# such as 'sed'.
+ifeq ($(shell uname -s),Linux)
+  LINUX = true
+else
+  LINUX = false
+endif
+
+# :(
+ifeq ($(LINUX),true)
+  SED = sed -i -e
+else
+  SED = sed -i ''
+endif
+
 # Routine build. It assumes all dependencies and configuration are already
 # in place and correct. It should be fast since it's called often during
 # development.
@@ -87,6 +102,5 @@ gitclean:
 
 .PHONY: bump
 bump:
-	sed -i '' 's/__VERSION__ = ".*"/__VERSION__ = "$(SEMGREP_VERSION)"/g' semgrep/semgrep/__init__.py
-	sed -i '' "s/^  rev: 'v.*'$$/  rev: 'v$(SEMGREP_VERSION)'/g" docs/integrations.md
-	sed -i '' 's/^    install_requires=\["semgrep==0.23.0"\],$$/    install_requires=["semgrep==$(SEMGREP_VERSION)"],/g' setup.py
+	$(SED) 's/__VERSION__ = ".*"/__VERSION__ = "$(SEMGREP_VERSION)"/g' semgrep/semgrep/__init__.py
+	$(SED) 's/^    install_requires=\["semgrep==.*"\],$$/    install_requires=["semgrep==$(SEMGREP_VERSION)"],/g' setup.py
