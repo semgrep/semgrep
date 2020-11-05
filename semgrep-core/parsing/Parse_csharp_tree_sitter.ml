@@ -2013,7 +2013,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
       let tparams = type_parameters_with_constraints v5 v7 in
       let ent = {
           name = v4;
-          attrs = v1;
+          attrs = v1 @ v2;
           info = empty_id_info ();
           tparams;
       } in
