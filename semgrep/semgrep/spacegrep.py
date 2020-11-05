@@ -43,7 +43,6 @@ def run_spacegrep(patterns: List[Pattern], targets: List[Path]) -> dict:
                 p = sub_run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 p.check_returncode()
                 raw_output = p.stdout
-                raw_error = p.stderr
 
                 output_json = _parse_spacegrep_output(raw_output)
                 output_json["matches"] = _patch_id(
@@ -53,12 +52,14 @@ def run_spacegrep(patterns: List[Pattern], targets: List[Path]) -> dict:
                 matches.extend(output_json["matches"])
                 errors.extend(output_json["errors"])
             except subprocess.CalledProcessError as e:
+                raw_error = p.stderr
+                spacegrep_error_text = raw_error.decode("utf-8")
                 raise SemgrepError(
-                    f"Error running spacegrep on file {target}: Process Error: {e}"
+                    f"Error running spacegrep on file {target}: Process error: {e}\n\nspacegrep error: {spacegrep_error_text}"
                 )
             except json.JSONDecodeError as e:
                 raise SemgrepError(
-                    f"Could not parse spacegrep output as JSON: JSON Error: {e}"
+                    f"Could not parse spacegrep output as JSON: JSON error: {e}"
                 )
             except KeyError as e:
                 raise SemgrepError(
