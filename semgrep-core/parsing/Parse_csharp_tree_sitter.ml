@@ -2019,7 +2019,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
       } in
       AST.DefStmt (ent, AST.ClassDef {
         ckind = (AST.Class, v3);
-        cextends = [];
+        cextends = v6;
         cimplements = [];
         cmixins = [];
         cbody = (open_bra, fields, close_bra);
