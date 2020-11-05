@@ -1063,7 +1063,10 @@ and simple_name (env : env) (x : CST.simple_name) : AST.name =
   | `Gene_name (v1, v2) ->
       let v1 = identifier env v1 (* identifier *) in
       let v2 = type_argument_list env v2 in
-      todo env (v1, v2)
+      (v1, {
+        name_qualifier = None;
+        name_typeargs = Some v2;
+      })
   | `Choice_global x ->
       name_of_id (identifier_or_global env x)
   )
@@ -1716,7 +1719,7 @@ and type_argument_list (env : env) ((v1, v2, v3) : CST.type_argument_list) =
   let v1 = token env v1 (* "<" *) in
   let v2 =
     (match v2 with
-    | `Rep_COMMA xs -> List.map (token env) (* "," *) xs
+    | `Rep_COMMA xs -> [] (* TODO What's this case? <,,,>? *)
     | `Type_rep_COMMA_type (v1, v2) ->
         let v1 = type_constraint env v1 in
         let v2 =
@@ -1726,11 +1729,11 @@ and type_argument_list (env : env) ((v1, v2, v3) : CST.type_argument_list) =
             v2
           ) v2
         in
-        todo env (v1 :: v2)
+        v1 :: v2
     )
   in
   let v3 = token env v3 (* ">" *) in
-  todo env (v1, v2, v3)
+  List.map (fun t -> TypeArg t) v2
 
 and type_parameter_constraints_clause (env : env) ((v1, v2, v3, v4, v5) : CST.type_parameter_constraints_clause) =
   let v1 = token env v1 (* "where" *) in
