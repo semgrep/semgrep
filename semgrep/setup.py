@@ -83,8 +83,9 @@ class PostInstallCommand(install):
         #     https://github.com/pypa/setuptools/issues/210#issuecomment-216657975
         # take the advice from that comment, and move over after install
 
-        if os.environ.get("PRECOMPILED_LOCATION"):
-            source = os.environ["PRECOMPILED_LOCATION"]
+        if os.environ.get("PRECOMPILED_DIR"):
+            source_dir = os.environ["PRECOMPILED_DIR"]
+            source = os.path.join(source_dir, exec_name)
         else:
             if "osx" in distutils.util.get_platform():
                 with chdir(repo_root):

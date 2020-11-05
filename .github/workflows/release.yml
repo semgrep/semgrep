@@ -218,7 +218,7 @@ jobs:
       - name: Install zip & musl-tools
         run: apt-get update && apt install -y zip musl-tools
       - name: Build the wheels
-        run: PRECOMPILED_LOCATION=$(realpath 'semgrep-files/semgrep-core') ./scripts/build-wheels.sh
+        run: PRECOMPILED_DIR=$(realpath 'semgrep-files') ./scripts/build-wheels.sh
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
