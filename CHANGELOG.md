@@ -7,6 +7,23 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Fixed
 - Gracefully handle empty configuration file
 
+## [0.30.0](https://github.com/returntocorp/semgrep/releases/tag/v0.30.0) - 2020-11-03
+
+### Added
+
+- Better examples for the generic mode aka spacegrep (#1951).
+
+### Fixed
+
+- Fix matching of trailing dots in spacegrep (#1939).
+- Allow matching on one-line files with spacegrep (#1929).
+- Fix incorrect number of lines matched by dots with spacegrep (#1918).
+- Other subtle spacegrep matching bugs (#1913).
+- Metavariable for method call should be matched against corresponding
+  metavariable in method definition (#1861).
+- Typescript class properties/declarations not recognized (#1846).
+- Can't match inside Python try/except clause (#1902).
+
 ## [0.29.0](https://github.com/returntocorp/semgrep/releases/tag/v0.29.0) - 2020-10-27
 
 ### Added
