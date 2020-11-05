@@ -1610,7 +1610,7 @@ and function_body (env : env) (x : CST.function_body) =
       todo env (v1, v2)
   | `SEMI tok ->
         let _ = token env tok (* ";" *) in
-        todo env x
+        empty_fbody
   )
 
 and finally_clause (env : env) ((v1, v2) : CST.finally_clause) =
@@ -1986,7 +1986,9 @@ and declaration (env : env) (x : CST.declaration) : stmt =
       in
       let v5 = token env v5 (* "]" *) in
       todo env (v1, v2, v3, v4, v5)
-  | `Class_decl (v1, v2, v3, v4, v5, v6, v7, v8, v9) ->
+  | `Class_decl (v1, v2, v3, v4, v5, v6, v7, v8, v9)
+  | `Inte_decl (v1, v2, v3, v4, v5, v6, v7, v8, v9)
+  | `Struct_decl (v1, v2, v3, v4, v5, v6, v7, v8, v9) ->
       (*
       [Attr] public class MyClass<MyType> : IClass where MyType : SomeType { ... };
          v1     v2    v3    v4     v5         v6           v7                v8   v9
@@ -2008,6 +2010,9 @@ and declaration (env : env) (x : CST.declaration) : stmt =
       let v7 =
         List.map (type_parameter_constraints_clause env) v7
       in
+      let class_kind = match x with
+        | `Inte_decl(_) -> Interface
+        | _ -> Class in
       let (open_bra, stmts, close_bra) = declaration_list env v8 in
       let fields = List.map (fun x -> AST.FieldStmt x) stmts in
       let tparams = type_parameters_with_constraints v5 v7 in
@@ -2018,7 +2023,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
           tparams;
       } in
       AST.DefStmt (ent, AST.ClassDef {
-        ckind = (AST.Class, v3);
+        ckind = (class_kind, v3);
         cextends = v6;
         cimplements = [];
         cmixins = [];
@@ -2154,31 +2159,6 @@ and declaration (env : env) (x : CST.declaration) : stmt =
         )
       in
       todo env (v1, v2, v3, v4, v5, v6, v7)
-  | `Inte_decl (v1, v2, v3, v4, v5, v6, v7, v8, v9) ->
-      let v1 = List.concat_map (attribute_list env) v1 in
-      let v2 = List.map (modifier env) v2 in
-      let v3 = token env v3 (* "interface" *) in
-      let v4 = identifier env v4 (* identifier *) in
-      let v5 =
-        (match v5 with
-        | Some x -> type_parameter_list env x
-        | None -> [])
-      in
-      let v6 =
-        (match v6 with
-        | Some x -> base_list env x
-        | None -> todo env ())
-      in
-      let v7 =
-        List.map (type_parameter_constraints_clause env) v7
-      in
-      let v8 = declaration_list env v8 in
-      let v9 =
-        (match v9 with
-        | Some tok -> token env tok (* ";" *)
-        | None -> todo env ())
-      in
-      todo env (v1, v2, v3, v4, v5, v6, v7, v8, v9)
   | `Meth_decl (v1, v2, v3, v4, v5, v6, v7, v8, v9) ->
       (*
         [Attr] static int IList<T>.MyMethod<T>(int p1) where T : Iterator { ... }
@@ -2260,31 +2240,6 @@ and declaration (env : env) (x : CST.declaration) : stmt =
         )
       in
       todo env (v1, v2, v3, v4, v5, v6)
-  | `Struct_decl (v1, v2, v3, v4, v5, v6, v7, v8, v9) ->
-      let v1 = List.concat_map (attribute_list env) v1 in
-      let v2 = List.map (modifier env) v2 in
-      let v3 = token env v3 (* "struct" *) in
-      let v4 = identifier env v4 (* identifier *) in
-      let v5 =
-        (match v5 with
-        | Some x -> type_parameter_list env x
-        | None -> [])
-      in
-      let v6 =
-        (match v6 with
-        | Some x -> base_list env x
-        | None -> todo env ())
-      in
-      let v7 =
-        List.map (type_parameter_constraints_clause env) v7
-      in
-      let v8 = declaration_list env v8 in
-      let v9 =
-        (match v9 with
-        | Some tok -> token env tok (* ";" *)
-        | None -> todo env ())
-      in
-      todo env (v1, v2, v3, v4, v5, v6, v7, v8, v9)
   | `Using_dire (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "using" *) in
       let v2 =
