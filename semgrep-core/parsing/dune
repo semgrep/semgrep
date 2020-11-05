@@ -6,6 +6,7 @@
 
    tree-sitter-lang.ruby
    tree-sitter-lang.java
+   tree-sitter-lang.kotlin
    tree-sitter-lang.go
    tree-sitter-lang.csharp
    tree-sitter-lang.javascript
