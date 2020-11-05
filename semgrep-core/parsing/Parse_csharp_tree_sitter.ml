@@ -1871,10 +1871,10 @@ let enum_member_declaration (env : env) ((v1, v2, v3) : CST.enum_member_declarat
   let v2 = identifier env v2 (* identifier *) in
   let v3 =
     (match v3 with
-    | Some x -> equals_value_clause env x
-    | None -> todo env ())
+    | Some x -> Some (equals_value_clause env x)
+    | None -> None)
   in
-  todo env (v1, v2, v3)
+  OrEnum (v2, v3)
 
 let base_list (env : env) ((v1, v2, v3) : CST.base_list) =
   let v1 = token env v1 (* ":" *) in
@@ -1923,11 +1923,11 @@ let enum_member_declaration_list (env : env) ((v1, v2, v3, v4) : CST.enum_member
   in
   let v3 =
     (match v3 with
-    | Some tok -> token env tok (* "," *)
-    | None -> todo env ())
+    | Some tok -> Some (token env tok) (* "," *)
+    | None -> None)
   in
   let v4 = token env v4 (* "}" *) in
-  todo env (v1, v2, v3, v4)
+  v2
 
 (* this part of the 'recursive_pattern' rule, which was not generated because
  * its use is currently commented out in orig/grammar.js.
@@ -2095,15 +2095,23 @@ and declaration (env : env) (x : CST.declaration) : stmt =
       let v5 =
         (match v5 with
         | Some x -> base_list env x
-        | None -> todo env ())
+        | None -> [])
       in
       let v6 = enum_member_declaration_list env v6 in
       let v7 =
         (match v7 with
-        | Some tok -> token env tok (* ";" *)
-        | None -> todo env ())
+        | Some tok -> Some (token env tok) (* ";" *)
+        | None -> None)
       in
-      todo env (v1, v2, v3, v4, v5, v6, v7)
+      let ent = {
+          name = v4;
+          attrs = v1 @ v2;
+          info = empty_id_info ();
+          tparams = [];
+      } in
+      AST.DefStmt (ent, AST.TypeDef {
+        tbody = OrType v6
+      })
   | `Event_decl (v1, v2, v3, v4, v5, v6, v7) ->
       let v1 = List.concat_map (attribute_list env) v1 in
       let v2 = List.map (modifier env) v2 in
