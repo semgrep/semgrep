@@ -8,7 +8,9 @@ from ..conftest import TESTS_PATH
 syntax_dir = TESTS_PATH / "e2e" / "rules" / "syntax"
 syntax_passes = [f.with_suffix("").name for f in syntax_dir.glob("good*.yaml")]
 syntax_fails = [
-    f.with_suffix("").name for f in syntax_dir.glob("*.yaml") if "good" not in f.name
+    f.with_suffix("").name
+    for f in syntax_dir.glob("*.yaml")
+    if "good" not in f.name and "empty" not in f.name
 ]
 
 
@@ -21,6 +23,13 @@ def test_rule_parser__success(run_semgrep_in_tmp, snapshot, filename):
 def test_rule_parser__failure(run_semgrep_in_tmp, snapshot, filename):
     with pytest.raises(CalledProcessError) as excinfo:
         run_semgrep_in_tmp(f"rules/syntax/{filename}.yaml")
+    assert excinfo.value.returncode != 0
+    snapshot.assert_match(str(excinfo.value.returncode), "returncode.txt")
+
+
+def test_rule_parser__empty(run_semgrep_in_tmp, snapshot):
+    with pytest.raises(CalledProcessError) as excinfo:
+        run_semgrep_in_tmp(f"rules/syntax/empty.yaml")
     assert excinfo.value.returncode != 0
     snapshot.assert_match(str(excinfo.value.returncode), "returncode.txt")
 

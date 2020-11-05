@@ -46,6 +46,10 @@ let dump_tree_sitter_cst_lang lang file =
       Tree_sitter_csharp.Parse.file file
       |> fail_on_error
       |> Tree_sitter_csharp.CST.dump_tree
+   | Lang.Kotlin ->
+      Tree_sitter_kotlin.Parse.file file
+      |> fail_on_error
+      |> Tree_sitter_kotlin.CST.dump_tree
    | Lang.Javascript ->
       Tree_sitter_javascript.Parse.file file
       |> fail_on_error
