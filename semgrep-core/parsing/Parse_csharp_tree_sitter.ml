@@ -2035,15 +2035,23 @@ and declaration (env : env) (x : CST.declaration) : stmt =
   | `Cons_decl (v1, v2, v3, v4, v5, v6) ->
       let v1 = List.concat_map (attribute_list env) v1 in
       let v2 = List.map (modifier env) v2 in
+      let tok = token env v3 in
       let v3 = identifier env v3 (* identifier *) in
       let v4 = parameter_list env v4 in
       let v5 =
         (match v5 with
-        | Some x -> constructor_initializer env x
-        | None -> todo env ())
+        | Some x -> Some (constructor_initializer env x)
+        | None -> None)
       in
       let v6 = function_body env v6 in
-      todo env (v1, v2, v3, v4, v5, v6)
+      let def = AST.FuncDef {
+        fkind = (AST.Method, tok);
+        fparams = v4;
+        frettype = None;
+        fbody = v6;
+      } in
+      let ent = basic_entity v3 (v1 @ v2) in
+      AST.DefStmt (ent, def)
   | `Conv_op_decl (v1, v2, v3, v4, v5, v6, v7) ->
       let v1 = List.concat_map (attribute_list env) v1 in
       let v2 = List.map (modifier env) v2 in
@@ -2196,7 +2204,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
         frettype = v3;
         fbody = v9;
       } in
-      let ent = basic_entity v5 v1 in
+      let ent = basic_entity v5 (v1 @ v2) in
       AST.DefStmt (ent, def)
   | `Name_decl (v1, v2, body, v4) ->
       (*
