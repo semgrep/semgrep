@@ -594,7 +594,12 @@ and type_parameter (env : env) ((v1, v2, v3) : CST.type_parameter) =
   v3
 
 and element_binding_expression (env : env) (x : CST.element_binding_expression) =
-  bracketed_argument_list env x
+  let open_br, args, close_br = bracketed_argument_list env x in
+  let exprs = List.map (fun a -> match a with
+  | Arg e -> e
+  | ArgKwd (_, e) -> e (* TODO maybe ArgKwd is also impossible here *)
+  | _ -> raise Impossible) args in
+  open_br, exprs, close_br
 
 and nullable_type (env : env) (x : CST.nullable_type) =
   (match x with
@@ -607,7 +612,13 @@ and nullable_type (env : env) (x : CST.nullable_type) =
 and array_type (env : env) ((v1, v2) : CST.array_type) =
   let v1 = type_constraint env v1 in
   let v2 = array_rank_specifier env v2 in
-  todo env (v1, v2)
+  let open_br, exps, close_br = v2 in
+  let rec jag = (fun exps t -> 
+    match exps with
+    | [] -> TyArray ((open_br, None, close_br), t)
+    | [e] -> TyArray ((open_br, e, close_br), t)
+    | e :: tl -> jag tl (TyArray ((open_br, e, close_br), t))) in (* TODO correct order? *)
+  jag exps v1
 
 and interpolated_verbatim_string_content (env : env) (x : CST.interpolated_verbatim_string_content) =
   (match x with
@@ -623,25 +634,26 @@ and array_rank_specifier (env : env) ((v1, v2, v3) : CST.array_rank_specifier) =
     | Some (v1, v2) ->
         let v1 =
           (match v1 with
-          | Some x -> expression env x
-          | None -> todo env ())
+          | Some x -> Some (expression env x)
+          | None -> None)
         in
         let v2 =
           List.map (fun (v1, v2) ->
             let v1 = token env v1 (* "," *) in
             let v2 =
               (match v2 with
-              | Some x -> expression env x
-              | None -> todo env ())
+              | Some x -> Some (expression env x)
+              | None -> None)
             in
-            todo env (v1, v2)
+            v2
           ) v2
         in
-        todo env (v1, v2)
-    | None -> todo env ())
+        v1 :: v2
+    | None -> [])
   in
   let v3 = token env v3 (* "]" *) in
-  todo env (v1, v2, v3)
+  (* TODO we could give each expression brackets, instead of using the same brackets for all expressions *)
+  (v1, v2, v3)
 
 and argument (env : env) ((v1, v2, v3) : CST.argument) : AST.argument =
   let v1 =
@@ -675,11 +687,11 @@ and initializer_expression (env : env) ((v1, v2, v3, v4) : CST.initializer_expre
   in
   let v3 =
     (match v3 with
-    | Some tok -> token env tok (* "," *)
-    | None -> todo env ())
+    | Some tok -> Some (token env tok) (* "," *)
+    | None -> None)
   in
   let v4 = token env v4 (* "}" *) in
-  todo env (v1, v2, v3, v4)
+  v1, v2, v4
 
 and switch_expression_arm (env : env) ((v1, v2, v3, v4) : CST.switch_expression_arm) =
   let v1 = pattern env v1 in
@@ -801,10 +813,11 @@ and expression (env : env) (x : CST.expression) : AST.expr =
       let v2 = array_type env v2 in
       let v3 =
         (match v3 with
-        | Some x -> initializer_expression env x
-        | None -> todo env ())
+        | Some x -> unbracket (initializer_expression env x)
+        | None -> [])
       in
-      todo env (v1, v2, v3)
+      let args = ArgType v2 :: List.map (fun x -> Arg x) v3 in
+      Call (IdSpecial (New, v1), fake_bracket args)
   | `Assign_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = assignment_operator env v2 in
@@ -852,8 +865,10 @@ and expression (env : env) (x : CST.expression) : AST.expr =
   | `Elem_access_exp (v1, v2) ->
       let v1 = expression env v1 in
       let v2 = element_binding_expression env v2 in
-      todo env (v1, v2)
-  | `Elem_bind_exp x -> element_binding_expression env x
+      let open_br, exprs, close_br = v2 in
+      (* TODO we map multidim arrays as jagged arrays when creating arrays, with as tuples here. Does that work? Should we map this as multiple nested ArrayAccess? *)
+      ArrayAccess (v1, (open_br, Tuple v2, close_br))
+  | `Elem_bind_exp x -> Tuple (element_binding_expression env x)
   | `Impl_array_crea_exp (v1, v2, v3, v4, v5) ->
       let v1 = token env v1 (* "new" *) in
       let v2 = token env v2 (* "[" *) in
@@ -867,7 +882,7 @@ and expression (env : env) (x : CST.expression) : AST.expr =
       let v3 = token env v3 (* "]" *) in
       let v4 = initializer_expression env v4 in
       todo env (v1, v2, v3, v4)
-  | `Init_exp x -> initializer_expression env x
+  | `Init_exp x -> Tuple (initializer_expression env x)
   | `Inte_str_exp x ->
       interpolated_string_expression env x
   | `Invo_exp (v1, v2) ->
@@ -1577,7 +1592,7 @@ and bracketed_argument_list (env : env) ((v1, v2, v3, v4) : CST.bracketed_argume
     ) v3
   in
   let v4 = token env v4 (* "]" *) in
-  todo env (v1, v2 :: v3, v4)
+  v1, v2 :: v3, v4
 
 and pattern (env : env) (x : CST.pattern) : AST.pattern =
   (match x with
