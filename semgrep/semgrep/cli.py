@@ -102,14 +102,30 @@ def cli() -> None:
         "--include",
         action="append",
         default=[],
-        help="Scan only files or directories that match this pattern; --include='*.jsx' will scan"
-        " the following: foo.jsx, src/foo.jsx, foo.jsx/bar.sh. --include='src' will scan src/foo.py"
-        " as well as a/b/src/c/foo.py. Can add multiple times.",
+        help="Filter files or directories by path. The argument is a pattern"
+        " such as 'foo.*' that must match the path. "
+        " This is an extra filter in addition to other applicable filters."
+        " For example, specifying the language with '-l javascript' might"
+        " preselect files 'src/foo.jsx' and 'lib/bar.js'. Specifying one of"
+        " '--include=src', '--include=*.jsx', or '--include=src/foo.*'"
+        " will restrict the selection to the single file 'src/foo.jsx'."
+        " A choice of multiple '--include' patterns can be specified."
+        " For example, '--include=foo.* --include=bar.*' will select"
+        " both 'src/foo.jsx' and 'lib/bar.js'.",
     )
     parser.add_argument(
         "--no-git-ignore",
         action="store_true",
-        help="Scan all files even those ignored by a projects gitignore(s)",
+        help="Don't skip files ignored by git."
+        " Scanning starts from the root folder specified on the semgrep"
+        " command line."
+        " Normally, if the scanning root is within a git repository, "
+        " only the tracked files and the new files"
+        " would be scanned. Git submodules and git-ignored files would"
+        " normally be skipped."
+        " This option will disable git-aware filtering."
+        " It does nothing if the scanning root is not"
+        " in a git repository.",
     )
     parser.add_argument(
         "--skip-unknown-extensions",
