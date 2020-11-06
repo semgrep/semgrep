@@ -29,6 +29,8 @@ module H = Parse_tree_sitter_helpers
  (*****************************************************************************)
  type env = H.env
  let _fake = AST_generic.fake
+ let token = H.token
+ let _str = H.str
 
 (*****************************************************************************)
 (* Boilerplate converter *)
@@ -49,14 +51,14 @@ module H = Parse_tree_sitter_helpers
 (* TODO: FIX!! Disable warning against unused value *)
 [@@@warning "-32"]
 
-let token (env : env) (_tok : Tree_sitter_run.Token.t) =
-  failwith "not implemented"
-
 let blank (env : env) () =
   failwith "not implemented"
 
 let todo (env : env) _ =
    failwith "not implemented"
+
+let token_todo (env : env) _ = 
+    failwith "token Todo"
 
 let escaped_identifier (env : env) (tok : CST.escaped_identifier) =
   token env tok (* pattern "\\\\[tbrn'\"\\\\$]" *)
@@ -224,13 +226,15 @@ let semi (env : env) (tok : CST.semi) =
   token env tok (* pattern [\r\n]+ *)
 
 let prefix_unary_operator (env : env) (x : CST.prefix_unary_operator) =
+  let _ = 
   (match x with
   | `PLUSPLUS tok -> token env tok (* "++" *)
   | `DASHDASH tok -> token env tok (* "--" *)
   | `DASH tok -> token env tok (* "-" *)
   | `PLUS tok -> token env tok (* "+" *)
   | `BANG tok -> token env tok (* "!" *)
-  )
+  ) in 
+    raise Todo
 
 let in_operator (env : env) (x : CST.in_operator) =
   (match x with
@@ -272,7 +276,8 @@ let uni_character_literal (env : env) ((v1, v2, v3) : CST.uni_character_literal)
   todo env (v1, v2, v3)
 
 let type_projection_modifier (env : env) (x : CST.type_projection_modifier) =
-  variance_modifier env x
+  let _ = variance_modifier env x in
+    raise Todo
 
 let shebang_line (env : env) ((v1, v2) : CST.shebang_line) =
   let v1 = token env v1 (* "#!" *) in
@@ -337,7 +342,8 @@ let type_projection_modifiers (env : env) (xs : CST.type_projection_modifiers) =
   List.map (type_projection_modifier env) xs
 
 let simple_identifier (env : env) (x : CST.simple_identifier) =
-  lexical_identifier env x
+  let _ = lexical_identifier env x in
+    raise Todo
 
 let line_string_content (env : env) (x : CST.line_string_content) =
   (match x with
@@ -373,7 +379,7 @@ let import_alias (env : env) ((v1, v2) : CST.import_alias) =
   todo env (v1, v2)
 
 let literal_constant (env : env) (x : CST.literal_constant) =
-  (match x with
+  let _ = (match x with
   | `Bool_lit x -> boolean_literal env x
   | `Int_lit tok -> token env tok (* integer_literal *)
   | `Hex_lit tok -> token env tok (* hex_literal *)
@@ -404,7 +410,8 @@ let literal_constant (env : env) (x : CST.literal_constant) =
         | None -> todo env ())
       in
       todo env (v1, v2, v3)
-  )
+  ) in
+    raise Todo
 
 let package_header (env : env) ((v1, v2, v3) : CST.package_header) =
   let v1 = token env v1 (* "package" *) in
@@ -457,7 +464,8 @@ and annotation (env : env) (x : CST.annotation) =
 and anon_choice_param_b77c1d8 (env : env) (x : CST.anon_choice_param_b77c1d8) =
   (match x with
   | `Param x -> parameter env x
-  | `Type x -> type_ env x
+  | `Type x -> let _ =  type_ env x in 
+        raise Todo
   )
 
 and assignment (env : env) (x : CST.assignment) =
@@ -785,7 +793,7 @@ and control_structure_body (env : env) (x : CST.control_structure_body) =
   | `Stmt x -> statement env x
   )
 
-and declaration (env : env) (x : CST.declaration) =
+and declaration (env : env) (x : CST.declaration) : AST.definition =
   (match x with
   | `Class_decl x -> class_declaration env x
   | `Obj_decl (v1, v2, v3, v4, v5) ->
@@ -979,7 +987,7 @@ and enum_entry (env : env) ((v1, v2, v3, v4) : CST.enum_entry) =
   in
   todo env (v1, v2, v3, v4)
 
-and expression (env : env) (x : CST.expression) =
+and expression (env : env) (x : CST.expression) : AST.expr =
   (match x with
   | `Un_exp x -> unary_expression env x
   | `Bin_exp x -> binary_expression env x
@@ -1001,7 +1009,7 @@ and function_body (env : env) (x : CST.function_body) =
   )
 
 and function_literal (env : env) (x : CST.function_literal) =
-  (match x with
+  let _ = (match x with
   | `Lambda_lit x -> lambda_literal env x
   | `Anon_func (v1, v2, v3, v4, v5) ->
       let v1 = token env v1 (* "fun" *) in
@@ -1028,7 +1036,8 @@ and function_literal (env : env) (x : CST.function_literal) =
         | None -> todo env ())
       in
       todo env (v1, v2, v3, v4, v5)
-  )
+  ) in
+    raise Todo
 
 and function_type (env : env) ((v1, v2, v3, v4) : CST.function_type) =
   let v1 =
@@ -1147,7 +1156,7 @@ and interpolation (env : env) (x : CST.interpolation) =
   )
 
 and jump_expression (env : env) (x : CST.jump_expression) =
-  (match x with
+  let _ = (match x with
   | `Throw_exp (v1, v2) ->
       let v1 = token env v1 (* "throw" *) in
       let v2 = expression env v2 in
@@ -1175,7 +1184,8 @@ and jump_expression (env : env) (x : CST.jump_expression) =
       let v1 = token env v1 (* "break@" *) in
       let v2 = simple_identifier env v2 in
       todo env (v1, v2)
-  )
+  ) in
+    raise Todo
 
 and lambda_literal (env : env) ((v1, v2, v3, v4) : CST.lambda_literal) =
   let v1 = token env v1 (* "{" *) in
@@ -1238,7 +1248,8 @@ and loop_statement (env : env) (x : CST.loop_statement) =
       let v4 = token env v4 (* ")" *) in
       let v5 =
         (match v5 with
-        | `SEMI tok -> token env tok (* ";" *)
+        | `SEMI tok -> let _ = token env tok in  (* ";" *)
+            raise Todo
         | `Cont_stru_body x -> control_structure_body env x
         )
       in
@@ -1284,7 +1295,7 @@ and nullable_type (env : env) ((v1, v2) : CST.nullable_type) =
   let v2 = List.map (token env) (* "?" *) v2 in
   todo env (v1, v2)
 
-and parameter (env : env) ((v1, v2, v3) : CST.parameter) =
+and parameter (env : env) ((v1, v2, v3) : CST.parameter) : AST.parameter =
   let v1 = simple_identifier env v1 in
   let v2 = token env v2 (* ":" *) in
   let v3 = type_ env v3 in
@@ -1342,9 +1353,10 @@ and primary_constructor (env : env) ((v1, v2) : CST.primary_constructor) =
   let v2 = class_parameters env v2 in
   todo env (v1, v2)
 
-and primary_expression (env : env) (x : CST.primary_expression) =
+and primary_expression (env : env) (x : CST.primary_expression) : AST.expr =
   (match x with
-  | `Paren_exp x -> parenthesized_expression env x
+  | `Paren_exp x -> let _ = parenthesized_expression env x in
+      raise Todo
   | `Simple_id x -> simple_identifier env x
   | `Lit_cst x -> literal_constant env x
   | `Str_lit x -> string_literal env x
@@ -1387,8 +1399,8 @@ and primary_expression (env : env) (x : CST.primary_expression) =
       in
       let v4 = token env v4 (* "]" *) in
       todo env (v1, v2, v3, v4)
-  | `This_exp tok -> token env tok (* "this" *)
-  | `Super_exp v1 -> token env v1 (* "super" *)
+  | `This_exp tok -> let _ = token env tok in raise Todo (* "this" *)
+  | `Super_exp v1 -> let _ = token env v1 in raise Todo(* "super" *)
   | `If_exp (v1, v2, v3, v4, v5) ->
       let v1 = token env v1 (* "if" *) in
       let v2 = token env v2 (* "(" *) in
@@ -1396,30 +1408,30 @@ and primary_expression (env : env) (x : CST.primary_expression) =
       let v4 = token env v4 (* ")" *) in
       let v5 =
         (match v5 with
-        | `Cont_stru_body x -> control_structure_body env x
-        | `SEMI tok -> token env tok (* ";" *)
-        | `Opt_cont_stru_body_opt_SEMI_else_choice_cont_stru_body (v1, v2, v3, v4) ->
-            let v1 =
-              (match v1 with
-              | Some x -> control_structure_body env x
-              | None -> todo env ())
-            in
-            let v2 =
-              (match v2 with
-              | Some tok -> token env tok (* ";" *)
-              | None -> todo env ())
-            in
-            let v3 = token env v3 (* "else" *) in
-            let v4 =
-              (match v4 with
-              | `Cont_stru_body x -> control_structure_body env x
-              | `SEMI tok -> token env tok (* ";" *)
-              )
-            in
-            todo env (v1, v2, v3, v4)
+          | `Cont_stru_body x -> control_structure_body env x
+          | `SEMI tok -> token_todo env tok (* ";" *)
+          | `Opt_cont_stru_body_opt_SEMI_else_choice_cont_stru_body (v1, v2, v3, v4) ->
+              let v1 =
+                (match v1 with
+                  | Some x -> control_structure_body env x
+                  | None -> todo env ())
+              in
+              let v2 =
+                (match v2 with
+                  | Some tok -> token env tok (* ";" *)
+                  | None -> todo env ())
+              in
+              let v3 = token env v3 (* "else" *) in
+              let v4 =
+                (match v4 with
+                  | `Cont_stru_body x -> control_structure_body env x
+                  | `SEMI tok -> token_todo env tok (* ";" *)
+                )
+              in
+              todo env (v1, v2, v3, v4)
         )
-      in
-      todo env (v1, v2, v3, v4, v5)
+        in
+        todo env (v1, v2, v3, v4, v5)
   | `When_exp (v1, v2, v3, v4, v5) ->
       let v1 = token env v1 (* "when" *) in
       let v2 =
@@ -1492,14 +1504,16 @@ and simple_user_type (env : env) ((v1, v2) : CST.simple_user_type) =
   in
   todo env (v1, v2)
 
-and statement (env : env) (x : CST.statement) =
+and statement (env : env) (x : CST.statement) : AST.stmt =
   (match x with
-  | `Decl x -> declaration env x
+  | `Decl x -> let _ = declaration env x in 
+      raise Todo
   | `Rep_choice_label_choice_assign (v1, v2) ->
       let v1 =
         List.map (fun x ->
           (match x with
-          | `Label tok -> token env tok (* label *)
+          | `Label tok -> let t = token env tok in (* label *)
+              raise Todo
           | `Anno x -> annotation env x
           )
         ) v1
@@ -1531,7 +1545,7 @@ and statements (env : env) ((v1, v2, v3) : CST.statements) =
   todo env (v1, v2, v3)
 
 and string_literal (env : env) (x : CST.string_literal) =
-  (match x with
+  let _ = (match x with
   | `Line_str_lit (v1, v2, v3) ->
       let v1 = token env v1 (* "\"" *) in
       let v2 =
@@ -1557,9 +1571,10 @@ and string_literal (env : env) (x : CST.string_literal) =
       in
       let v3 = token env v3 (* "\"\"\"" *) in
       todo env (v1, v2, v3)
-  )
+  ) in 
+    raise Todo
 
-and type_ (env : env) ((v1, v2) : CST.type_) =
+and type_ (env : env) ((v1, v2) : CST.type_) : AST.type_ =
   let v1 =
     (match v1 with
     | Some x -> type_modifiers env x
@@ -1610,7 +1625,8 @@ and type_constraints (env : env) ((v1, v2, v3) : CST.type_constraints) =
 and type_modifier (env : env) (x : CST.type_modifier) =
   (match x with
   | `Anno x -> annotation env x
-  | `Susp tok -> token env tok (* "suspend" *)
+  | `Susp tok -> let t = token env tok (* "suspend" *) in 
+      raise Todo
   )
 
 and type_modifiers (env : env) (xs : CST.type_modifiers) =
@@ -1635,7 +1651,8 @@ and type_parameter (env : env) ((v1, v2, v3) : CST.type_parameter) =
 
 and type_parameter_modifier (env : env) (x : CST.type_parameter_modifier) =
   (match x with
-  | `Reif_modi tok -> token env tok (* "reified" *)
+  | `Reif_modi tok -> let t = token env tok in (* "reified" *) 
+      raise Todo
   | `Vari_modi x -> type_projection_modifier env x
   | `Anno x -> annotation env x
   )
@@ -1702,7 +1719,8 @@ and unary_expression (env : env) (x : CST.unary_expression) =
       let v1 =
         (match v1 with
         | `Anno x -> annotation env x
-        | `Label tok -> token env tok (* label *)
+        | `Label tok -> let _ = token env tok in (* label *) 
+            raise Todo
         | `Prefix_un_op x -> prefix_unary_operator env x
         )
       in
@@ -1863,7 +1881,7 @@ let file_annotation (env : env) ((v1, v2, v3, v4) : CST.file_annotation) =
   in
   todo env (v1, v2, v3, v4)
 
-let source_file (env : env) ((v1, v2, v3, v4, v5) : CST.source_file) =
+let source_file (env : env) ((v1, v2, v3, v4, v5) : CST.source_file) : AST.program =
   let v1 =
     (match v1 with
     | Some x -> shebang_line env x
