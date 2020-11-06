@@ -217,6 +217,13 @@ let just_parse_with_lang lang file =
        *)
       run file [TreeSitter Parse_csharp_tree_sitter.parse] (fun x -> x)
 
+  | Lang.Kotlin ->
+      (* there is no pfff parser for Kotlin so let's go directly to tree-sitter,
+       * and there's no ast_kotlin.ml either so we directly generate
+       * a generic AST (no kotlin_to_generic here)
+       *)
+      run file [TreeSitter Parse_kotlin_tree_sitter.parse] (fun x -> x)
+      
   (* default to the one in pfff for the other languages *)
   | _ ->
       run file [Pfff (Parse_generic.parse_with_lang lang)] (fun x -> x)
