@@ -130,6 +130,15 @@ jobs:
           make ci-test
         env:
           GITHUB_REPO_CACHE: ~/.cache/semgrep-cache
+      - name: Generate test matrix data
+        run: |
+          cd semgrep
+          pipenv run ../scripts/generate_test_matrix.py --json --directory ../semgrep-core/tests/ --output-file test-matrix.json
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v1
+        with:
+          name: test-matrix
+          path: semgrep/test-matrix.json
 
   perf-test:
     name: semgrep perf tests
