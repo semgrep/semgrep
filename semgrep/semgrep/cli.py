@@ -124,7 +124,7 @@ def cli() -> None:
         " would be scanned. Git submodules and git-ignored files would"
         " normally be skipped."
         " This option will disable git-aware filtering."
-        " It does nothing if the scanning root is not"
+        " Setting this flag does nothing if the scanning root is not"
         " in a git repository.",
     )
     parser.add_argument(
