@@ -102,8 +102,8 @@ def cli() -> None:
         "--include",
         action="append",
         default=[],
-        help="Filter files or directories by path. The argument is a pattern"
-        " such as 'foo.*' that must match the path. "
+        help="Filter files or directories by path. The argument is a"
+        " glob-style pattern such as 'foo.*' that must match the path."
         " This is an extra filter in addition to other applicable filters."
         " For example, specifying the language with '-l javascript' might"
         " preselect files 'src/foo.jsx' and 'lib/bar.js'. Specifying one of"
@@ -111,7 +111,9 @@ def cli() -> None:
         " will restrict the selection to the single file 'src/foo.jsx'."
         " A choice of multiple '--include' patterns can be specified."
         " For example, '--include=foo.* --include=bar.*' will select"
-        " both 'src/foo.jsx' and 'lib/bar.js'.",
+        " both 'src/foo.jsx' and 'lib/bar.js'."
+        " Glob-style patterns follow the syntax supported by python,"
+        " which is documented at https://docs.python.org/3/library/glob.html",
     )
     parser.add_argument(
         "--no-git-ignore",
