@@ -34,42 +34,53 @@ let punct = [
   '?' '@' '\\' '^' '`' '|' '~'
 ]
 
-rule lines = parse
+rule lines acc = parse
   | indent as s {
       let indent = indent_of_string s in
-      let tokens = tokens lexbuf in
+      let tokens = tokens [] lexbuf |> List.rev in
       if tokens <> [] then
-        { indent; tokens } :: lines lexbuf
+        lines ({ indent; tokens } :: acc) lexbuf
       else
-        lines lexbuf
+        lines acc lexbuf
     }
-  | eof { [] }
+  | eof { acc }
 
-and tokens = parse
-  | blank { tokens lexbuf }
-  | word as s { let loc = loc lexbuf in Atom (loc, Word s) :: tokens lexbuf }
+and tokens acc = parse
+  | blank { tokens acc lexbuf }
+  | word as s { let loc = loc lexbuf in
+                tokens (Atom (loc, Word s) :: acc) lexbuf }
 
-  | '(' { let loc = loc lexbuf in Open_paren loc :: tokens lexbuf }
-  | ')' { let loc = loc lexbuf in Close_paren loc :: tokens lexbuf }
-  | '[' { let loc = loc lexbuf in Open_bracket loc :: tokens lexbuf }
-  | ']' { let loc = loc lexbuf in Close_bracket loc :: tokens lexbuf }
-  | '{' { let loc = loc lexbuf in Open_curly loc :: tokens lexbuf }
-  | '}' { let loc = loc lexbuf in Close_curly loc :: tokens lexbuf }
+  | '(' { let loc = loc lexbuf in tokens (Open_paren loc :: acc) lexbuf }
+  | ')' { let loc = loc lexbuf in tokens (Close_paren loc :: acc) lexbuf }
+  | '[' { let loc = loc lexbuf in tokens (Open_bracket loc :: acc) lexbuf }
+  | ']' { let loc = loc lexbuf in tokens (Close_bracket loc :: acc) lexbuf }
+  | '{' { let loc = loc lexbuf in tokens (Open_curly loc :: acc) lexbuf }
+  | '}' { let loc = loc lexbuf in tokens (Close_curly loc :: acc) lexbuf }
   | "...." '.'* as s {
       let pos0 = Lexing.lexeme_start_p lexbuf in
-      List.init
-        (String.length s)
-        (fun i ->
-           let loc = (Loc.Pos.shift pos0 i, Loc.Pos.shift pos0 (i + 1)) in
-           Atom (loc, Punct '.'))
-      @ tokens lexbuf
+      let elts =
+        List.init
+          (String.length s)
+          (fun i ->
+             let loc = (Loc.Pos.shift pos0 i, Loc.Pos.shift pos0 (i + 1)) in
+             Atom (loc, Punct '.'))
+      in
+      tokens (List.rev_append elts acc) lexbuf
     }
-  | "..." { let loc = loc lexbuf in Dots loc :: tokens lexbuf }
+  | "..." { let loc = loc lexbuf in
+            tokens (Dots loc :: acc) lexbuf }
   | '$' (capitalized_word as s) {
       let loc = loc lexbuf in
-      Atom (loc, Metavar s) :: tokens lexbuf
+      tokens (Atom (loc, Metavar s) :: acc) lexbuf
     }
-  | punct as c { let loc = loc lexbuf in Atom (loc, Punct c) :: tokens lexbuf }
-  | newline { Lexing.new_line lexbuf; [] }
-  | _ as c { let loc = loc lexbuf in Atom (loc, Byte c) :: tokens lexbuf }
-  | eof { [] }
+  | punct as c { let loc = loc lexbuf in
+                 tokens (Atom (loc, Punct c) :: acc) lexbuf }
+  | newline { Lexing.new_line lexbuf; acc }
+  | _ as c { let loc = loc lexbuf in
+             tokens (Atom (loc, Byte c) :: acc) lexbuf }
+  | eof { acc }
+
+{
+  let lines lexbuf =
+    lines [] lexbuf |> List.rev
+}
