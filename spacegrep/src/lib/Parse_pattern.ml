@@ -192,7 +192,9 @@ let parse_root ~is_doc lines =
           parse_block ind (List nodes :: acc) lines
   in
   match parse_block 0 [] lines with
-  | nodes, [] -> nodes @ [End]
+  | nodes, [] ->
+      (* 'nodes @ [End]' but without stack overflow: *)
+      (End :: List.rev nodes) |> List.rev
   | _ -> assert false
 
 let of_lexbuf ?(is_doc = false) lexbuf =
