@@ -17,34 +17,41 @@ type t = node list
    For convenience of implementation, a document is parsed as a pattern.
    Here we convert the pattern-specific constructs to normal document
    elements.
+
+   This function is made tail-recursive to avoid stack overflows on
+   large files.
 *)
 let rec of_pattern (pat : Pattern_AST.t) : t =
-  match pat with
-  | [] -> []
-  | End :: pat -> of_pattern pat
-  | Atom (loc, atom) :: pat ->
+  List.fold_left of_pattern_node [] pat
+  |> List.rev
+
+and of_pattern_node acc pat_node =
+  match pat_node with
+  | End -> acc
+  | Atom (loc, atom) ->
       (match atom with
-       | Word s -> Atom (loc, Word s) :: of_pattern pat
-       | Punct c -> Atom (loc, Punct c) :: of_pattern pat
-       | Byte c -> Atom (loc, Byte c) :: of_pattern pat
+       | Word s -> Atom (loc, Word s) :: acc
+       | Punct c -> Atom (loc, Punct c) :: acc
+       | Byte c -> Atom (loc, Byte c) :: acc
        | Metavar s ->
            let (start, end_) = loc in
            let word_loc = (Loc.Pos.shift start 1, end_) in
-           Atom (Loc.sub loc 0 1, Punct '$') :: Atom (word_loc, Word s)
-           :: of_pattern pat
+           Atom (word_loc, Word s)
+           :: Atom (Loc.sub loc 0 1, Punct '$')
+           :: acc
       )
-  | Dots loc :: pat ->
+  | Dots loc ->
       let pos0, pos3 = loc in
       let pos1 = Loc.Pos.shift pos0 1 in
       let pos2 = Loc.Pos.shift pos1 1 in
       let loc0 = pos0, pos1 in
       let loc1 = pos1, pos2 in
       let loc2 = pos2, pos3 in
-      Atom (loc0, Punct '.')
+      Atom (loc2, Punct '.')
       :: Atom (loc1, Punct '.')
-      :: Atom (loc2, Punct '.')
-      :: of_pattern pat
-  | List pat1 :: pat2 -> List (of_pattern pat1) :: of_pattern pat2
+      :: Atom (loc0, Punct '.')
+      :: acc
+  | List pat -> List (of_pattern pat) :: acc
 
 let rec to_pattern (doc : t) : Pattern_AST.t =
   List.map to_pat_node doc
