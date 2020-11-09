@@ -57,7 +57,7 @@ let blank (env : env) () =
 let todo (env : env) _ =
    failwith "not implemented"
 
-let token_todo (env : env) _ = 
+let token_todo (env : env) _ =
     failwith "token Todo"
 
 let escaped_identifier (env : env) (tok : CST.escaped_identifier) =
@@ -226,14 +226,14 @@ let semi (env : env) (tok : CST.semi) =
   token env tok (* pattern [\r\n]+ *)
 
 let prefix_unary_operator (env : env) (x : CST.prefix_unary_operator) =
-  let _ = 
+  let _ =
   (match x with
   | `PLUSPLUS tok -> token env tok (* "++" *)
   | `DASHDASH tok -> token env tok (* "--" *)
   | `DASH tok -> token env tok (* "-" *)
   | `PLUS tok -> token env tok (* "+" *)
   | `BANG tok -> token env tok (* "!" *)
-  ) in 
+  ) in
     raise Todo
 
 let in_operator (env : env) (x : CST.in_operator) =
@@ -464,7 +464,7 @@ and annotation (env : env) (x : CST.annotation) =
 and anon_choice_param_b77c1d8 (env : env) (x : CST.anon_choice_param_b77c1d8) =
   (match x with
   | `Param x -> parameter env x
-  | `Type x -> let _ =  type_ env x in 
+  | `Type x -> let _ =  type_ env x in
         raise Todo
   )
 
@@ -1506,7 +1506,7 @@ and simple_user_type (env : env) ((v1, v2) : CST.simple_user_type) =
 
 and statement (env : env) (x : CST.statement) : AST.stmt =
   (match x with
-  | `Decl x -> let _ = declaration env x in 
+  | `Decl x -> let _ = declaration env x in
       raise Todo
   | `Rep_choice_label_choice_assign (v1, v2) ->
       let v1 =
@@ -1571,7 +1571,7 @@ and string_literal (env : env) (x : CST.string_literal) =
       in
       let v3 = token env v3 (* "\"\"\"" *) in
       todo env (v1, v2, v3)
-  ) in 
+  ) in
     raise Todo
 
 and type_ (env : env) ((v1, v2) : CST.type_) : AST.type_ =
@@ -1625,7 +1625,7 @@ and type_constraints (env : env) ((v1, v2, v3) : CST.type_constraints) =
 and type_modifier (env : env) (x : CST.type_modifier) =
   (match x with
   | `Anno x -> annotation env x
-  | `Susp tok -> let t = token env tok (* "suspend" *) in 
+  | `Susp tok -> let t = token env tok (* "suspend" *) in
       raise Todo
   )
 
@@ -1651,7 +1651,7 @@ and type_parameter (env : env) ((v1, v2, v3) : CST.type_parameter) =
 
 and type_parameter_modifier (env : env) (x : CST.type_parameter_modifier) =
   (match x with
-  | `Reif_modi tok -> let t = token env tok in (* "reified" *) 
+  | `Reif_modi tok -> let t = token env tok in (* "reified" *)
       raise Todo
   | `Vari_modi x -> type_projection_modifier env x
   | `Anno x -> annotation env x
@@ -1719,7 +1719,7 @@ and unary_expression (env : env) (x : CST.unary_expression) =
       let v1 =
         (match v1 with
         | `Anno x -> annotation env x
-        | `Label tok -> let _ = token env tok in (* label *) 
+        | `Label tok -> let _ = token env tok in (* label *)
             raise Todo
         | `Prefix_un_op x -> prefix_unary_operator env x
         )
