@@ -850,6 +850,7 @@ let dump_pattern (file: Common.filename) =
 let dump_ast file =
   match Lang.langs_of_filename file with
   | lang::_ ->
+   E.try_with_print_exn_and_reraise file (fun () ->
     let (x, errs) =
       Parse_code.parse_and_resolve_name_use_pfff_or_treesitter lang file in
     if errs <> []
@@ -857,6 +858,7 @@ let dump_ast file =
     let v = Meta_AST.vof_any (AST_generic.Pr x) in
     let s = dump_v_to_format v in
     pr s
+   )
   | [] -> failwith (spf "unsupported language for %s" file)
 (*e: function [[Main_semgrep_core.dump_ast]] *)
 
