@@ -1,36 +1,38 @@
- (* PUT YOUR NAME HERE
-  *
-  * Copyright (c) PUT YOUR COPYRIGHT HERE
-  *
-  * This program is free software; you can redistribute it and/or
-  * modify it under the terms of the GNU General Public License (GPL)
-  * version 2 as published by the Free Software Foundation.
-  *
-  * This program is distributed in the hope that it will be useful,
-  * but WITHOUT ANY WARRANTY; without even the implied warranty of
-  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  * file license.txt for more details.
-  *)
+(* PUT YOUR NAME HERE
+ *
+ * Copyright (c) PUT YOUR COPYRIGHT HERE
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License (GPL)
+ * version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * file license.txt for more details.
+ *)
 open Common
 module CST = Tree_sitter_kotlin.CST
 module AST = AST_generic
 module H = Parse_tree_sitter_helpers
+module PI = Parse_info
+open AST_generic
 
- (*****************************************************************************)
- (* Prelude *)
- (*****************************************************************************)
- (* Kotlin parser using ocaml-tree-sitter-lang/kotlin and converting
-  * directly to pfff/h_program-lang/AST_generic.ml
-  *
-  *)
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+(* kotlin parser using ocaml-tree-sitter-lang/kotlin and converting
+ * directly to pfff/h_program-lang/ast_generic.ml
+ *
+ *)
 
- (*****************************************************************************)
- (* Helpers *)
- (*****************************************************************************)
- type env = H.env
- let _fake = AST_generic.fake
- let token = H.token
- let _str = H.str
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+type env = H.env
+let _fake = AST_generic.fake
+let token = H.token
+let str = H.str
 
 (*****************************************************************************)
 (* Boilerplate converter *)
@@ -38,8 +40,8 @@ module H = Parse_tree_sitter_helpers
 (* This was started by copying ocaml-tree-sitter-lang/kotlin/Boilerplate.ml *)
 
 (**
-   Boilerplate to be used as a template when mapping the kotlin CST
-   to another type of tree.
+Boilerplate to be used as a template when mapping the kotlin CST
+to another type of tree.
 *)
 
 (* Disable warnings against unused variables *)
@@ -107,7 +109,7 @@ let label (env : env) (tok : CST.label) =
   token env tok (* label *)
 
 let real_literal (env : env) (tok : CST.real_literal) =
-  token env tok (* real_literal *)
+  AST.Float (str env tok) (* real_literal *)
 
 let comparison_operator (env : env) (x : CST.comparison_operator) =
   (match x with
@@ -162,12 +164,12 @@ let class_modifier (env : env) (x : CST.class_modifier) =
 
 let boolean_literal (env : env) (x : CST.boolean_literal) =
   (match x with
-  | `True tok -> token env tok (* "true" *)
-  | `False tok -> token env tok (* "false" *)
+  | `True tok -> AST.Bool (true, token env tok) (* "true" *)
+  | `False tok -> AST.Bool (false, token env tok) (* "false" *)
   )
 
 let hex_literal (env : env) (tok : CST.hex_literal) =
-  token env tok (* hex_literal *)
+  AST.Int (str env tok) (* hex_literal *)
 
 let pat_f630af3 (env : env) (tok : CST.pat_f630af3) =
   token env tok (* pattern [^\r\n]* *)
@@ -195,7 +197,7 @@ let additive_operator (env : env) (x : CST.additive_operator) =
   )
 
 let integer_literal (env : env) (tok : CST.integer_literal) =
-  token env tok (* integer_literal *)
+  AST.Int (str env tok) (* integer_literal *)
 
 let pat_ddcb2a5 (env : env) (tok : CST.pat_ddcb2a5) =
   token env tok (* pattern [a-zA-Z_][a-zA-Z_0-9]* *)
@@ -220,7 +222,7 @@ let function_modifier (env : env) (x : CST.function_modifier) =
   )
 
 let line_str_text (env : env) (tok : CST.line_str_text) =
-  token env tok (* pattern "[^\\\\\"$]+" *)
+  token env tok (* pattern "[^\\\\\double_quote$]+" *)
 
 let semi (env : env) (tok : CST.semi) =
   token env tok (* pattern [\r\n]+ *)
@@ -257,7 +259,7 @@ let parameter_modifier (env : env) (x : CST.parameter_modifier) =
   )
 
 let bin_literal (env : env) (tok : CST.bin_literal) =
-  token env tok (* bin_literal *)
+  AST.Int (str env tok) (* bin_literal *)
 
 let pat_b9a3713 (env : env) (tok : CST.pat_b9a3713) =
   token env tok (* pattern `[^\r\n`]+` *)
@@ -270,10 +272,10 @@ let multi_line_string_content (env : env) (x : CST.multi_line_string_content) =
   )
 
 let uni_character_literal (env : env) ((v1, v2, v3) : CST.uni_character_literal) =
-  let v1 = token env v1 (* "\\" *) in
-  let v2 = token env v2 (* "u" *) in
-  let v3 = token env v3 (* pattern [0-9a-fA-F]{4} *) in
-  todo env (v1, v2, v3)
+  let v1 = str env v1 (* "\\" *) in
+  let v2 = str env v2 (* "u" *) in
+  let v3 = str env v3 (* pattern [0-9a-fA-F]{4} *) in
+  fst v3, PI.combine_infos (snd v1) [snd v3]
 
 let type_projection_modifier (env : env) (x : CST.type_projection_modifier) =
   let _ = variance_modifier env x in
@@ -309,11 +311,11 @@ let member_access_operator (env : env) (x : CST.member_access_operator) =
   | `COLONCOLON tok -> token env tok (* "::" *)
   )
 
-let anon_choice_int_lit_9015f32 (env : env) (x : CST.anon_choice_int_lit_9015f32) =
+let anon_choice_int_lit_9015f32 (env : env) (x : CST.anon_choice_int_lit_9015f32) : string wrap =
   (match x with
-  | `Int_lit tok -> token env tok (* integer_literal *)
-  | `Hex_lit tok -> token env tok (* hex_literal *)
-  | `Bin_lit tok -> token env tok (* bin_literal *)
+  | `Int_lit tok -> str env tok (* integer_literal *)
+  | `Hex_lit tok -> str env tok (* hex_literal *)
+  | `Bin_lit tok -> str env tok (* bin_literal *)
   )
 
 let lexical_identifier (env : env) (x : CST.lexical_identifier) =
@@ -328,13 +330,13 @@ let escape_seq (env : env) (x : CST.escape_seq) =
   (match x with
   | `Uni_char_lit x -> uni_character_literal env x
   | `Esca_id tok ->
-      token env tok (* pattern "\\\\[tbrn'\"\\\\$]" *)
+      str env tok (* pattern "\\\\[tbrn'\"\\\\$]" *)
   )
 
 let line_str_escaped_char (env : env) (x : CST.line_str_escaped_char) =
   (match x with
   | `Esca_id tok ->
-      token env tok (* pattern "\\\\[tbrn'\"\\\\$]" *)
+      token_todo env tok (* pattern "\\\\[tbrn'\"\\\\$]" *)
   | `Uni_char_lit x -> uni_character_literal env x
   )
 
@@ -348,7 +350,7 @@ let simple_identifier (env : env) (x : CST.simple_identifier) =
 let line_string_content (env : env) (x : CST.line_string_content) =
   (match x with
   | `Line_str_text tok ->
-      token env tok (* pattern "[^\\\\\"$]+" *)
+      token_todo env tok (* pattern "[^\\\\\double_quote$]+" *)
   | `Line_str_esca_char x -> line_str_escaped_char env x
   )
 
@@ -381,35 +383,38 @@ let import_alias (env : env) ((v1, v2) : CST.import_alias) =
 let literal_constant (env : env) (x : CST.literal_constant) =
   let _ = (match x with
   | `Bool_lit x -> boolean_literal env x
-  | `Int_lit tok -> token env tok (* integer_literal *)
-  | `Hex_lit tok -> token env tok (* hex_literal *)
-  | `Bin_lit tok -> token env tok (* bin_literal *)
+  | `Int_lit tok -> integer_literal env tok (* integer_literal *)
+  | `Hex_lit tok -> hex_literal env tok (* hex_literal *)
+  | `Bin_lit tok -> bin_literal env tok (* bin_literal *)
   | `Char_lit (v1, v2, v3) ->
       let v1 = token env v1 (* "'" *) in
       let v2 =
         (match v2 with
         | `Esc_seq x -> escape_seq env x
         | `Pat_b294348 tok ->
-            token env tok (* pattern "[^\\n\\r'\\\\]" *)
+            str env tok (* pattern "[^\\n\\r'\\\\]" *)
         )
       in
       let v3 = token env v3 (* "'" *) in
-      todo env (v1, v2, v3)
-  | `Real_lit tok -> token env tok (* real_literal *)
-  | `Null tok -> token env tok (* "null" *)
+      let toks = [snd v2] @ [v3] in
+      AST.Char (fst v2, PI.combine_infos v1 toks)
+  | `Real_lit tok -> real_literal env tok (* real_literal *)
+  | `Null tok -> AST.Null (token env tok) (* "null" *)
   | `Long_lit (v1, v2) ->
       let v1 = anon_choice_int_lit_9015f32 env v1 in
       let v2 = token env v2 (* "L" *) in
-      todo env (v1, v2)
+      AST.Int (fst v1, snd v1)
   | `Unsi_lit (v1, v2, v3) ->
       let v1 = anon_choice_int_lit_9015f32 env v1 in
-      let v2 = token env v2 (* pattern [uU] *) in
+      let v2 = str env v2 (* pattern [uU] *) in
       let v3 =
         (match v3 with
-        | Some tok -> token env tok (* "L" *)
-        | None -> todo env ())
-      in
-      todo env (v1, v2, v3)
+        | Some tok -> Some (str env tok) (* "L" *)
+        | None -> None) 
+      in 
+      let xs = [v1;v2] in
+      let str = xs |> List.map fst |> String.concat "" in
+      AST.Int (str, PI.combine_infos (snd v1) [snd v2])
   ) in
     raise Todo
 
@@ -453,7 +458,7 @@ and annotation (env : env) (x : CST.annotation) =
       let v2 =
         (match v2 with
         | Some x -> use_site_target env x
-        | None -> todo env ())
+        | None -> todo env ()) 
       in
       let v3 = token env v3 (* "[" *) in
       let v4 = List.map (unescaped_annotation env) v4 in
@@ -1565,7 +1570,8 @@ and string_literal (env : env) (x : CST.string_literal) =
           (match x with
           | `Multi_line_str_content x ->
               multi_line_string_content env x
-          | `Interp x -> interpolation env x
+          | `Interp x -> let _ = interpolation env x in
+              raise Todo
           )
         ) v2
       in
