@@ -1391,12 +1391,12 @@ and statement (env : env) (x : CST.statement) =
         | `Ret_exp (v1, v2) ->
             let v1 = token env v1 (* "return" *) in
             let v2 = expression env v2 in
-            todo env (v1, v2)
-        | `Brk tok -> token env tok (* "break" *)
+            Some v2
+        | `Brk tok -> None (* "break" *)
         )
       in
       let v3 = token env v3 (* ";" *) in
-      todo env (v1, v2, v3)
+      ExprStmt (Yield (v1, v2, false), v3)
   )
 
 and interpolated_string_expression (env : env) (x : CST.interpolated_string_expression) =
