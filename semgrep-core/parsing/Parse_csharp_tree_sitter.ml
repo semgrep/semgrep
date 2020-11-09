@@ -84,7 +84,8 @@ let parameter_modifier (env : env) (x : CST.parameter_modifier) =
   )
 
 let escape_sequence (env : env) (tok : CST.escape_sequence) =
-  token env tok (* escape_sequence *)
+  let s = str env tok in (* escape_sequence *)
+  String s
 
 let assignment_operator (env : env) (x : CST.assignment_operator) : operator wrap =
   (match x with
@@ -200,10 +201,11 @@ let interpolation_format_clause (env : env) ((v1, v2) : CST.interpolation_format
   v2
 
 let interpolated_verbatim_string_text (env : env) (x : CST.interpolated_verbatim_string_text) =
-  (match x with
-  | `Pat_6d9db72 tok -> token env tok (* pattern "[^{\"]+" *)
-  | `DQUOTDQUOT tok -> token env tok (* "\"\"" *)
-  )
+  let x = (match x with
+  | `Pat_6d9db72 tok -> str env tok (* pattern "[^{\"]+" *)
+  | `DQUOTDQUOT tok -> str env tok (* "\"\"" *)
+  ) in
+  String x
 
 let real_literal (env : env) (tok : CST.real_literal) =
   AST.Float (str env tok) (* real_literal *)
@@ -219,12 +221,11 @@ let _preproc_directive_end (env : env) (tok : CST.preproc_directive_end) =
   token env tok (* preproc_directive_end *)
 
 let interpolated_string_text (env : env) (x : CST.interpolated_string_text) =
-  (match x with
-  | `LCURLLCURL tok -> token env tok (* "{{" *)
+  match x with
+  | `LCURLLCURL tok -> String (str env tok) (* "{{" *)
   | `Imm_tok_pat_2755817 tok ->
-      token env tok (* pattern "[^{\"\\\\\\n]+" *)
+      String (str env tok) (* pattern "[^{\"\\\\\\n]+" *)
   | `Esc_seq tok -> escape_sequence env tok (* escape_sequence *)
-  )
 
 let rec variable_designation (env : env) (x : CST.variable_designation) =
   (match x with
@@ -623,8 +624,8 @@ and array_type (env : env) ((v1, v2) : CST.array_type) =
 and interpolated_verbatim_string_content (env : env) (x : CST.interpolated_verbatim_string_content) =
   (match x with
   | `Inte_verb_str_text x ->
-      interpolated_verbatim_string_text env x
-  | `Interp x -> interpolation env x
+      L (interpolated_verbatim_string_text env x)
+  | `Interp x -> unbracket (interpolation env x)
   )
 
 and array_rank_specifier (env : env) ((v1, v2, v3) : CST.array_rank_specifier) =
@@ -748,8 +749,8 @@ and ordering (env : env) ((v1, v2) : CST.ordering) =
 
 and interpolated_string_content (env : env) (x : CST.interpolated_string_content) =
   (match x with
-  | `Inte_str_text x -> interpolated_string_text env x
-  | `Interp x -> interpolation env x
+  | `Inte_str_text x -> L (interpolated_string_text env x)
+  | `Interp x -> unbracket (interpolation env x)
   )
 
 and checked_expression (env : env) (x : CST.checked_expression) =
@@ -1399,22 +1400,26 @@ and statement (env : env) (x : CST.statement) =
   )
 
 and interpolated_string_expression (env : env) (x : CST.interpolated_string_expression) =
-  (match x with
+  let x = (match x with
   | `DOLLARDQUOT_rep_inte_str_content_DQUOT (v1, v2, v3) ->
       let v1 = token env v1 (* "$\"" *) in
       let v2 =
         List.map (interpolated_string_content env) v2
       in
       let v3 = token env v3 (* "\"" *) in
-      todo env (v1, v2, v3)
+      v1, v2, v3
   | `DOLLARATDQUOT_rep_inte_verb_str_content_DQUOT (v1, v2, v3) ->
       let v1 = token env v1 (* "$@\"" *) in
       let v2 =
         List.map (interpolated_verbatim_string_content env) v2
       in
       let v3 = token env v3 (* "\"" *) in
-      todo env (v1, v2, v3)
-  )
+      v1, v2, v3
+  ) in
+  let v1, v2, v3 = x in
+  let args = fake_bracket (List.map(fun e -> Arg e) v2) in
+  (* TODO should we use FString here instead of InterpolatedConcat? *)
+  Call (IdSpecial (ConcatString InterpolatedConcat, v1), args)
 
 and tuple_element (env : env) ((v1, v2) : CST.tuple_element) =
   let v1 = type_constraint env v1 in
@@ -1813,7 +1818,7 @@ and declaration_expression (env : env) ((v1, v2) : CST.declaration_expression) :
   let v2 = identifier env v2 (* identifier *) in
   PatVar (v1, Some (v2, empty_id_info ()))
 
-and interpolation (env : env) ((v1, v2, v3, v4, v5) : CST.interpolation) =
+and interpolation (env : env) ((v1, v2, v3, v4, v5) : CST.interpolation) : expr bracket =
   let v1 = token env v1 (* "{" *) in
   let v2 = expression env v2 in
   let v3 =
@@ -1827,7 +1832,7 @@ and interpolation (env : env) ((v1, v2, v3, v4, v5) : CST.interpolation) =
     | None -> None)
   in
   let v5 = token env v5 (* "}" *) in
-  todo env (v1, v2, v3, v4, v5)
+  v1, v2, v5
 
 let explicit_interface_specifier (env : env) ((v1, v2) : CST.explicit_interface_specifier) =
   let v1 = name env v1 in
