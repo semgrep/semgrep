@@ -62,7 +62,7 @@ def cli() -> None:
         help=(
             "YAML configuration file, directory of YAML files ending in "
             ".yml|.yaml, URL of a configuration file, or semgrep registry entry "
-            "name. See https://semgrep.dev/docs/writing-rules/pattern-logic for information on configuration file format."
+            "name. See https://semgrep.dev/docs/writing-rules/rule-syntax for information on configuration file format."
         ),
     )
 
