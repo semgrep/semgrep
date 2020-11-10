@@ -8,6 +8,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 - Gracefully handle empty configuration file.
 - Fix stack overflows in spacegrep on large input files (#1944).
+- Fix extension-based file selection when the language is `generic` (#1968).
 
 ## [0.30.0](https://github.com/returntocorp/semgrep/releases/tag/v0.30.0) - 2020-11-03
 
