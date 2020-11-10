@@ -522,7 +522,7 @@ and prefix_unary_expression (env : env) (x : CST.prefix_unary_expression) =
   | `BANG_exp (v1, v2) ->
       let v1 = token env v1 (* "!" *) in
       let v2 = expression env v2 in
-      todo env (v1, v2)
+      Call (IdSpecial (Op Not, v1), fake_bracket [Arg v2])
   | `AMP_exp (v1, v2) ->
       let v1 = token env v1 (* "&" *) in
       let v2 = expression env v2 in
@@ -898,13 +898,16 @@ and expression (env : env) (x : CST.expression) : AST.expr =
   | `Lambda_exp (v1, v2, v3, v4) ->
       let v1 =
         (match v1 with
-        | Some tok -> token env tok (* "async" *)
-        | None -> todo env ())
+        | Some tok -> Some (token env tok) (* "async" *)
+        | None -> None)
       in
       let v2 =
         (match v2 with
         | `Param_list x -> parameter_list env x
-        | `Id tok -> [ todo env tok ] (* identifier *) (* single parameter, return ParamClassic *)
+        | `Id tok ->
+          let id = identifier env tok in
+          let p = param_of_id id in
+          [ p ] (* identifier *)
         )
       in
       let v3 = token env v3 (* "=>" *) in
@@ -914,7 +917,12 @@ and expression (env : env) (x : CST.expression) : AST.expr =
         | `Exp x -> AST.ExprStmt (expression env x, v3)
         )
       in
-      todo env (v1, v2, v3, v4) (* return Lambda of function_definition *)
+      Lambda {
+        fkind = (LambdaKind, v3);
+        fparams = List.map (fun p -> ParamClassic p) v2;
+        frettype = None;
+        fbody = v4;
+      }
   | `Make_ref_exp (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "__makeref" *) in
       let v2 = token env v2 (* "(" *) in
