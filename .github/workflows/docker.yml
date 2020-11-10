@@ -36,9 +36,9 @@ jobs:
           tags: ${{ github.event.pull_request.head.sha }}
       - name: update dev.semgrep.dev
         run: |
-            sleep 5
+            sleep 15
             curl --fail -X POST https://dev.semgrep.dev/api/admin/update-docker
       - name: update semgrep.dev
         run: | 
-            sleep 5
+            sleep 15
             curl --fail -X POST https://semgrep.dev/api/admin/update-docker
