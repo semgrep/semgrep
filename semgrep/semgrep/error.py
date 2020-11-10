@@ -26,6 +26,7 @@ MISSING_CONFIG_EXIT_CODE = 7
 INVALID_LANGUAGE_EXIT_CODE = 8
 MATCH_TIMEOUT_EXIT_CODE = 9
 MATCH_MAX_MEMORY_EXIT_CODE = 10
+LEXICAL_ERROR_EXIT_CODE = 11
 
 
 class Level(Enum):
@@ -302,6 +303,25 @@ class OutOfMemoryError(SemgrepError):
 
     def __str__(self) -> str:
         msg = f"Warning: Semgrep exceeded memory when running {self.rule_id} on {self.path}. See `--max-memory` for more info."
+        return with_color(Fore.RED, msg)
+
+    def to_dict_base(self) -> Dict[str, Any]:
+        return {
+            "path": str(self.path),
+            "rule_id": self.rule_id,
+        }
+
+
+@attr.s(frozen=True, eq=True)
+class LexicalError(SemgrepError):
+    path: Path = attr.ib()
+    rule_id: str = attr.ib()
+
+    code = LEXICAL_ERROR_EXIT_CODE
+    level = Level.WARN
+
+    def __str__(self) -> str:
+        msg = f"Warning: Semgrep encountered a lexical error when running {self.rule_id} on {self.path}. Please ensure this is valid code."
         return with_color(Fore.RED, msg)
 
     def to_dict_base(self) -> Dict[str, Any]:
