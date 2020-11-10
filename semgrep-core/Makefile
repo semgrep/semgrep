@@ -20,7 +20,10 @@ all:
 	dune build ./_build/default/tests/test.bc
 clean:
 	dune clean
-test:
+# I put all as a dependency because sometimes you modify a test file
+# and dune runtest -f does not see this new file, probably because
+# the cached file under _build/.../tests/ is still the old one.
+test: all
 	dune runtest -f
 e2etest:
 	python3 tests/e2e/test_target_file.py
