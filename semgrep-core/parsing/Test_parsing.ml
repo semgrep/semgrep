@@ -18,48 +18,53 @@ module G = AST_generic
 
 let logger = Logging.get_logger [__MODULE__]
 
-(*
-   TODO: Maybe instead of this we should print all the errors, print the CST
-   if there's one, only then fail (or succeed).
-*)
-let fail_on_error = function
+(* less: could infer lang from filename *)
+let dump_tree_sitter_cst_lang lang file =
+
+ (* TODO: Maybe instead of this we should print all the errors, print the CST
+  *   if there's one, only then fail (or succeed).
+  *)
+  let fail_on_error = function
   | Some cst, [] -> cst
   | _, err :: _ -> raise (Tree_sitter_run.Tree_sitter_error.Error err)
   | None, [] -> failwith "unknown error from tree-sitter parser"
+  in
+  match lang with
+  | Lang.Ruby ->
+     Tree_sitter_ruby.Parse.file file
+     |> fail_on_error
+     |> Tree_sitter_ruby.CST.dump_tree
+  | Lang.Java ->
+     Tree_sitter_java.Parse.file file
+     |> fail_on_error
+     |> Tree_sitter_java.CST.dump_tree
+  | Lang.Go   ->
+     Tree_sitter_go.Parse.file file
+     |> fail_on_error
+     |> Tree_sitter_go.CST.dump_tree
+  | Lang.Csharp ->
+     Tree_sitter_csharp.Parse.file file
+     |> fail_on_error
+     |> Tree_sitter_csharp.CST.dump_tree
+  | Lang.Kotlin ->
+     Tree_sitter_kotlin.Parse.file file
+     |> fail_on_error
+     |> Tree_sitter_kotlin.CST.dump_tree
+  | Lang.Javascript ->
+     Tree_sitter_javascript.Parse.file file
+     |> fail_on_error
+     |> Tree_sitter_javascript.CST.dump_tree
+  | Lang.Typescript ->
+     Tree_sitter_typescript.Parse.file file
+     |> fail_on_error
+     |> Tree_sitter_typescript.CST.dump_tree
 
-(* less: could infer lang from filename *)
-let dump_tree_sitter_cst_lang lang file =
-   match lang with
-   | Lang.Ruby ->
-      Tree_sitter_ruby.Parse.file file
-      |> fail_on_error
-      |> Tree_sitter_ruby.CST.dump_tree
-   | Lang.Java ->
-      Tree_sitter_java.Parse.file file
-      |> fail_on_error
-      |> Tree_sitter_java.CST.dump_tree
-   | Lang.Go   ->
-      Tree_sitter_go.Parse.file file
-      |> fail_on_error
-      |> Tree_sitter_go.CST.dump_tree
-   | Lang.Csharp ->
-      Tree_sitter_csharp.Parse.file file
-      |> fail_on_error
-      |> Tree_sitter_csharp.CST.dump_tree
-   | Lang.Kotlin ->
-      Tree_sitter_kotlin.Parse.file file
-      |> fail_on_error
-      |> Tree_sitter_kotlin.CST.dump_tree
-   | Lang.Javascript ->
-      Tree_sitter_javascript.Parse.file file
-      |> fail_on_error
-      |> Tree_sitter_javascript.CST.dump_tree
-   | Lang.Typescript ->
-      Tree_sitter_typescript.Parse.file file
-      |> fail_on_error
-      |> Tree_sitter_typescript.CST.dump_tree
+  | Lang.C ->
+     Tree_sitter_c.Parse.file file
+     |> fail_on_error
+     |> Tree_sitter_c.CST.dump_tree
 
-   | _ -> failwith "lang not supported by ocaml-tree-sitter"
+  | _ -> failwith "lang not supported by ocaml-tree-sitter"
 
 let dump_tree_sitter_cst file =
   match Lang.langs_of_filename file with
@@ -113,6 +118,75 @@ let test_parse_lang lang get_final_files xs =
              (fun file -> dump_tree_sitter_cst_lang lang file)
              file ()
         end;
+       PI.correct_stat file
+    with exn ->
+        pr2 (spf "%s: exn = %s" file (Common.exn_to_s exn));
+        PI.bad_stat file
+    )
+    in
+    Common.push stat stat_list;
+  ));
+  flush stdout; flush stderr;
+
+  Parse_info.print_parsing_stat_list !stat_list;
+  ()
+
+
+let test_parse_tree_sitter lang xs =
+  let lang =
+    match Lang.lang_of_string_opt lang with
+    | Some l -> l
+    | None -> failwith "no language or unsupported language; use correct -lang"
+  in
+  let xs = List.map Common.fullpath xs in
+  let fullxs = Lang.files_of_dirs_or_files lang xs
+      |> Skip_code.filter_files_if_skip_list ~root:xs
+  in
+  let fail_on_error = function
+  | Some cst, [] -> cst
+  | Some cst, xs when List.length xs <= 2 -> cst
+  | _, err :: _ -> raise (Tree_sitter_run.Tree_sitter_error.Error err)
+  | None, [] -> failwith "unknown error from tree-sitter parser"
+  in
+  let stat_list = ref [] in
+  fullxs |> Console.progress (fun k -> List.iter (fun file ->
+    k();
+    logger#info "processing %s" file;
+    let stat =
+    (try
+       (match lang with
+       (* less: factorize with dump_tree_sitter_cst_lang *)
+       | Lang.Ruby ->
+          Tree_sitter_ruby.Parse.file file
+          |> fail_on_error |> ignore
+       | Lang.Java ->
+          Tree_sitter_java.Parse.file file
+          |> fail_on_error |> ignore
+       | Lang.Go   ->
+          Tree_sitter_go.Parse.file file
+          |> fail_on_error |> ignore
+       | Lang.Csharp ->
+          Tree_sitter_csharp.Parse.file file
+          |> fail_on_error |> ignore
+       | Lang.Kotlin ->
+          Tree_sitter_kotlin.Parse.file file
+          |> fail_on_error |> ignore
+       | Lang.Javascript ->
+          Tree_sitter_javascript.Parse.file file
+          |> fail_on_error |> ignore
+       | Lang.Typescript ->
+          Tree_sitter_typescript.Parse.file file
+          |> fail_on_error |> ignore
+       | Lang.C ->
+          Tree_sitter_c.Parse.file file
+          |> fail_on_error |> ignore
+       | Lang.Cplusplus ->
+          Tree_sitter_cpp.Parse.file file
+          |> fail_on_error |> ignore
+
+       | _ -> failwith (spf "lang %s not supported with tree-sitter"
+                         (Lang.string_of_lang lang))
+       );
        PI.correct_stat file
     with exn ->
         pr2 (spf "%s: exn = %s" file (Common.exn_to_s exn));

@@ -924,6 +924,8 @@ let all_actions () = [
 
   "-test_parse_lang", " <files or dirs>",
   Common.mk_action_n_arg (Test_parsing.test_parse_lang !lang get_final_files);
+  "-test_parse_tree_sitter", " <files or dirs>",
+  Common.mk_action_n_arg (Test_parsing.test_parse_tree_sitter !lang);
   "-dump_tree_sitter_cst", " <file>",
   Common.mk_action_1_arg Test_parsing.dump_tree_sitter_cst;
   "-dump_ast_pfff", " <file>",
