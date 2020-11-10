@@ -1372,7 +1372,7 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
   | `Simple_id x -> 
       let id = simple_identifier env x in
       Id(id, empty_id_info())
-  | `Lit_cst x -> pr2 "in lit_cst"; L (literal_constant env x)
+  | `Lit_cst x -> L (literal_constant env x)
   | `Str_lit x -> string_literal env x
   | `Call_ref (v1, v2, v3) ->
       let v1 =
@@ -1413,7 +1413,9 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
       in
       let v4 = token env v4 (* "]" *) in
       todo env (v1, v2, v3, v4)
-  | `This_exp tok -> Id(str env tok, empty_id_info()) (* "this" *)
+  | `This_exp tok -> 
+      let tok = token env tok in
+      IdSpecial(This, tok) (* "this" *)
   | `Super_exp v1 -> let _ = token env v1 in raise Todo(* "super" *)
   | `If_exp (v1, v2, v3, v4, v5) ->
       let v1 = token env v1 (* "if" *) in
@@ -1532,7 +1534,7 @@ and statement (env : env) (x : CST.statement) : stmt =
           )
         ) v1
       in*)
-      let v2 = pr2 "in rep choice";
+      let v2 =
         (match v2 with
         | `Assign x -> assignment env x
         | `Loop_stmt x -> loop_statement env x
