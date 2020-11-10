@@ -23,14 +23,12 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - c++ tree-sitter integration into semgrep-core (#1952).
 - More documents for language porting.
 - Error handling in spacegrep to print stderr when CalledProcessError occurs.
-- Scaning of files with no extension in generic mode.
 
 ## [0.30.0](https://github.com/returntocorp/semgrep/releases/tag/v0.30.0) - 2020-11-03
 
 ### Added
 
 - Better examples for the generic mode aka spacegrep (#1951).
-
 
 ### Fixed
 
