@@ -12,6 +12,8 @@
    tree-sitter-lang.javascript
    tree-sitter-lang.typescript
    tree-sitter-lang.tsx
+   tree-sitter-lang.c
+   tree-sitter-lang.cpp
 
    commons commons_core
    pfff-config
