@@ -480,14 +480,14 @@ and binary_expression (env : env) (x : CST.binary_expression) =
       Call (IdSpecial (Op Nullish, v2), fake_bracket [Arg v1; Arg v3])
   | `Exp_choice_is_type (v1, v2, v3) ->
       let v1 = expression env v1 in
-      let v2 =
-        (match v2 with
-        | `Is tok -> token env tok (* "is" *)
-        | `As tok -> token env tok (* "as" *)
-        )
-      in
       let v3 = type_constraint env v3 in
-      todo env (v1, v2, v3)
+      match v2 with
+        | `Is tok -> 
+            let v2 = token env tok (* "is" *) in
+            Call (IdSpecial (Instanceof, v2), fake_bracket [Arg v1; ArgType v3])
+        | `As tok -> 
+            let v2 = token env tok (* "as" *) in
+            Cast (v3, v1) (* TODO `as` is really a conditional cast *)
   )
 
 and block (env : env) ((v1, v2, v3) : CST.block) : stmt =
