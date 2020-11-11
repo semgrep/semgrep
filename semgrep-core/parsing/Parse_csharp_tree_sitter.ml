@@ -976,7 +976,7 @@ and expression (env : env) (x : CST.expression) : AST.expr =
       let v1 = token env v1 (* "(" *) in
       let v2 = expression env v2 in
       let v3 = token env v3 (* ")" *) in
-      todo env (v1, v2, v3)
+      v2
   | `Post_un_exp x -> postfix_unary_expression env x
   | `Prefix_un_exp x -> prefix_unary_expression env x
   | `Query_exp (v1, v2) ->
