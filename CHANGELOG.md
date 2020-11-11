@@ -8,7 +8,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Fixed
 
-- Assumption that only a single configuration was being returned by resolve_config.
+- Regression in 0.31.0 where only a single file was being used when `--config`
+  was given a directory with multiple rules (#2019).
 
 ## [0.31.0](https://github.com/returntocorp/semgrep/releases/tag/v0.31.0) - 2020-11-10
 
