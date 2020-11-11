@@ -2246,13 +2246,19 @@ and declaration (env : env) (x : CST.declaration) : stmt =
         List.map (type_parameter_constraints_clause env) v8
       in
       let v9 = function_body env v9 in
+      let tparams = type_parameters_with_constraints v6 v8 in
+      let ent = {
+          name = v5;
+          attrs = v1 @ v2;
+          info = empty_id_info ();
+          tparams;
+      } in
       let def = AST.FuncDef {
         fkind = (AST.Method, tok);
         fparams = List.map (fun p -> ParamClassic p) v7;
         frettype = Some v3;
         fbody = v9;
       } in
-      let ent = basic_entity v5 (v1 @ v2) in
       AST.DefStmt (ent, def)
   | `Name_decl (v1, v2, body, v4) ->
       (*
