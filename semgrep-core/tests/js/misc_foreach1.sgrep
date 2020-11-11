@@ -1,0 +1,6 @@
+for ($ITEM of $COLLECTION) {
+  if ($EXPR) {
+    return $ITEM.$FIELD;
+  }
+}
+return $DEFAULT_EXPR;
