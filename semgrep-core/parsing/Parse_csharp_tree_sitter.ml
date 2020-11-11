@@ -2021,7 +2021,8 @@ and declaration (env : env) (x : CST.declaration) : stmt =
         | None -> [])
       in
       let v5 = token env v5 (* "]" *) in
-      todo env (v1, v2, v3, v4, v5)
+      let anys = List.map (fun a -> At a) v4 in
+      ExprStmt (OtherExpr (OE_Annot, anys), v1)
   | `Class_decl (v1, v2, v3, v4, v5, v6, v7, v8, v9)
   | `Inte_decl (v1, v2, v3, v4, v5, v6, v7, v8, v9)
   | `Struct_decl (v1, v2, v3, v4, v5, v6, v7, v8, v9) ->
