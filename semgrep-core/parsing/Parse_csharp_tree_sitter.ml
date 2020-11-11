@@ -837,7 +837,7 @@ and expression (env : env) (x : CST.expression) : AST.expr =
       let v2 = type_constraint env v2 in
       let v3 = token env v3 (* ")" *) in
       let v4 = expression env v4 in
-      todo env (v1, v2, v3, v4)
+      Cast (v2, v4)
   | `Chec_exp x -> checked_expression env x
   | `Cond_access_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
