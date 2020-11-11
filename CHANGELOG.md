@@ -4,11 +4,25 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Next
 
+## [0.31.0](https://github.com/returntocorp/semgrep/releases/tag/v0.31.0) - 2020-11-10
+
 ### Fixed
 
 - Gracefully handle empty configuration file.
+- Gracefully handle LexicalErrors from semgrep-core.
 - Fix stack overflows in spacegrep on large input files (#1944).
 - Fix extension-based file selection when the language is `generic` (#1968).
+- Fix semgrep error when no valid config on path provided (#1912).
+- Fix NO_FILE_INFO_YET error which causes the python wrapper to crash (#1925).
+- Fix usage of '...' in special builtin arguments for PHP (#1963).
+- Fix automatic semicolon insertion parse error in javascript (#1960).
+
+### Added
+- kotlin-tree-sitter integration into semgrep-core. Can now call
+  dump-tree-sitter-cst on kotlin files.
+- c++ tree-sitter integration into semgrep-core (#1952).
+- More documents for language porting.
+- Error handling in spacegrep to print stderr when CalledProcessError occurs.
 
 ## [0.30.0](https://github.com/returntocorp/semgrep/releases/tag/v0.30.0) - 2020-11-03
 
