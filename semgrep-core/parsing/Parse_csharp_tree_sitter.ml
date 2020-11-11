@@ -1073,7 +1073,7 @@ and expression (env : env) (x : CST.expression) : AST.expr =
       let v2 = token env v2 (* "(" *) in
       let v3 = type_constraint env v3 in
       let v4 = token env v4 (* ")" *) in
-      todo env (v1, v2, v3, v4)
+      Call (IdSpecial (Typeof, v1), (v2, [ArgType v3], v4))
   | `Simple_name x ->
         (* Should this be Ast.Id instead of IdQualified? *)
         AST.IdQualified (simple_name env x, empty_id_info ())
