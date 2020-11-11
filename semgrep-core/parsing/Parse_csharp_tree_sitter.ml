@@ -1140,9 +1140,11 @@ and type_parameter_list (env : env) ((v1, v2, v3, v4) : CST.type_parameter_list)
 
 and type_parameter_constraint (env : env) (x : CST.type_parameter_constraint) =
   (match x with
-  | `Class tok -> todo env tok (* "class" *)
-  | `Struct tok -> todo env tok (* "struct" *)
-  | `Unma tok -> todo env tok (* "unmanaged" *)
+  | `Class tok (* "class" *)
+  | `Struct tok (* "struct" *)
+  | `Unma tok -> (* "unmanaged" *)
+      let t = TyBuiltin (identifier env tok) in
+      Extends t
   | `Cons_cons (v1, v2, v3) ->
       let v1 = token env v1 (* "new" *) in
       let v2 = token env v2 (* "(" *) in
