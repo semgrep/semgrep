@@ -186,7 +186,7 @@ let modifier (env : env) (x : CST.modifier) =
   | `Priv tok -> KeywordAttr (Private, token env tok) (* "private" *)
   | `Prot tok -> KeywordAttr (Protected, token env tok) (* "protected" *)
   | `Public tok -> KeywordAttr (Public, token env tok) (* "public" *)
-  | `Read tok -> todo env tok (* "readonly" *)
+  | `Read tok -> KeywordAttr (Const, token env tok) (* "readonly" *)
   | `Ref tok -> todo env tok (* "ref" *)
   | `Sealed tok -> KeywordAttr (Final, token env tok) (* "sealed" *) (* TODO we map Sealed to Final here, is that OK? *)
   | `Static tok -> KeywordAttr (Static, token env tok) (* "static" *)
