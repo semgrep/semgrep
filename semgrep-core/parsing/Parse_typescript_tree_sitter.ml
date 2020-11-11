@@ -744,17 +744,28 @@ and type_arguments (env : env) ((v1, v2, v3, v4, v5) : CST.type_arguments) : typ
   let v5 = JS.token env v5 (* ">" *) in
   v1, v2::v3, v5
 
-(* TODO: decorators (@) *)
+and add_decorators xs property =
+  match property with
+  | Field fld -> Field { fld with fld_attrs = xs @ fld.fld_attrs }
+  | FieldColon fld -> FieldColon { fld with fld_attrs = xs @ fld.fld_attrs }
+  (* less: modify ast_js to allow decorator on those constructs? *)
+  | FieldSpread _ | FieldPatDefault _
+  | FieldEllipsis _
+  | FieldTodo _
+   -> property
+
 (* TODO: types - class body can be just a signature. *)
 and class_body (env : env) ((v1, v2, v3) : CST.class_body) : property list bracket =
   let v1 = JS.token env v1 (* "{" *) in
-  let v2 =
-    List.filter_map (fun x ->
+  let rec aux acc_decorators xs =
+     match xs with
+     | [] -> []
+     | x::xs ->
       (match x with
       | `Deco x ->
-          (* TODO: decorators *)
-          let _v = decorator env x in
-          None
+          let attr = decorator env x in
+          aux (attr::acc_decorators) xs
+
       | `Meth_defi_opt_choice_auto_semi (v1, v2) ->
           let v1 = method_definition env v1 in
           let _v2 =
@@ -762,7 +773,7 @@ and class_body (env : env) ((v1, v2, v3) : CST.class_body) : property list brack
             | Some x -> Some (JS.semicolon env x)
             | None -> None)
           in
-          Some v1
+          add_decorators (List.rev acc_decorators) v1::aux [] xs
       | `Choice_abst_meth_sign_choice_choice_auto_semi (v1, v2) ->
           let v1 =
             (match v1 with
@@ -777,7 +788,8 @@ and class_body (env : env) ((v1, v2, v3) : CST.class_body) : property list brack
                 (* TODO: types *)
                 let _v = method_signature env x in
                 None
-            | `Public_field_defi x -> Some (public_field_definition env x)
+            | `Public_field_defi x ->
+               Some (public_field_definition env x)
             )
           in
           let _v2 =
@@ -786,10 +798,14 @@ and class_body (env : env) ((v1, v2, v3) : CST.class_body) : property list brack
             | `COMMA tok -> JS.token env tok (* "," *)
             )
           in
-          v1
+          (match v1 with
+          | None -> aux [] xs
+          | Some x ->
+            add_decorators (List.rev acc_decorators) x::aux [] xs
+          )
       )
-    ) v2
   in
+  let v2 = aux [] v2 in
   let v3 = JS.token env v3 (* "}" *) in
   v1, v2, v3
 
