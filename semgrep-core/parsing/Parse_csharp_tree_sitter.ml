@@ -607,7 +607,7 @@ and nullable_type (env : env) (x : CST.nullable_type) =
   | `Type_QMARK (v1, v2) ->
       let v1 = type_constraint env v1 in
       let v2 = token env v2 (* "?" *) in
-      todo env (v1, v2)
+      TyQuestion (v1, v2)
   )
 
 and array_type (env : env) ((v1, v2) : CST.array_type) =
