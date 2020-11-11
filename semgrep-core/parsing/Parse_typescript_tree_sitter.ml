@@ -689,7 +689,7 @@ and generator_function_declaration (env : env) ((v1, v2, v3, v4, v5, v6, v7) : C
   in
   let f = { f_attrs = v1 @ v3; f_params = v5; f_body = v6; f_rettype = tret }
   in
-  { name = v4 }, FuncDef f
+  basic_entity v4, FuncDef f
 
 and variable_declarator (env : env) (x : CST.variable_declarator) =
   (match x with
@@ -744,17 +744,28 @@ and type_arguments (env : env) ((v1, v2, v3, v4, v5) : CST.type_arguments) : typ
   let v5 = JS.token env v5 (* ">" *) in
   v1, v2::v3, v5
 
-(* TODO: decorators (@) *)
+and add_decorators xs property =
+  match property with
+  | Field fld -> Field { fld with fld_attrs = xs @ fld.fld_attrs }
+  | FieldColon fld -> FieldColon { fld with fld_attrs = xs @ fld.fld_attrs }
+  (* less: modify ast_js to allow decorator on those constructs? *)
+  | FieldSpread _ | FieldPatDefault _
+  | FieldEllipsis _
+  | FieldTodo _
+   -> property
+
 (* TODO: types - class body can be just a signature. *)
 and class_body (env : env) ((v1, v2, v3) : CST.class_body) : property list bracket =
   let v1 = JS.token env v1 (* "{" *) in
-  let v2 =
-    List.filter_map (fun x ->
+  let rec aux acc_decorators xs =
+     match xs with
+     | [] -> []
+     | x::xs ->
       (match x with
       | `Deco x ->
-          (* TODO: decorators *)
-          let _v = decorator env x in
-          None
+          let attr = decorator env x in
+          aux (attr::acc_decorators) xs
+
       | `Meth_defi_opt_choice_auto_semi (v1, v2) ->
           let v1 = method_definition env v1 in
           let _v2 =
@@ -762,7 +773,7 @@ and class_body (env : env) ((v1, v2, v3) : CST.class_body) : property list brack
             | Some x -> Some (JS.semicolon env x)
             | None -> None)
           in
-          Some v1
+          add_decorators (List.rev acc_decorators) v1::aux [] xs
       | `Choice_abst_meth_sign_choice_choice_auto_semi (v1, v2) ->
           let v1 =
             (match v1 with
@@ -777,7 +788,8 @@ and class_body (env : env) ((v1, v2, v3) : CST.class_body) : property list brack
                 (* TODO: types *)
                 let _v = method_signature env x in
                 None
-            | `Public_field_defi x -> Some (public_field_definition env x)
+            | `Public_field_defi x ->
+               Some (public_field_definition env x)
             )
           in
           let _v2 =
@@ -786,10 +798,14 @@ and class_body (env : env) ((v1, v2, v3) : CST.class_body) : property list brack
             | `COMMA tok -> JS.token env tok (* "," *)
             )
           in
-          v1
+          (match v1 with
+          | None -> aux [] xs
+          | Some x ->
+            add_decorators (List.rev acc_decorators) x::aux [] xs
+          )
       )
-    ) v2
   in
+  let v2 = aux [] v2 in
   let v3 = JS.token env v3 (* "}" *) in
   v1, v2, v3
 
@@ -1808,7 +1824,7 @@ and class_declaration (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.class_decl
   in
   let c = { c_kind = G.Class, v2; c_extends; c_implements;
             c_body = v6; c_attrs = v1 } in
-  { name = v3 }, ClassDef c
+  basic_entity v3, ClassDef c
 
 and array_ (env : env) ((v1, v2, v3) : CST.array_) =
   let v1 = JS.token env v1 (* "[" *) in
@@ -1862,15 +1878,17 @@ and export_statement (env : env) (x : CST.export_statement) : stmt list =
           in
           v2
       | `Rep_deco_export_choice_decl (v1, v2, v3) ->
-          let _v1TODO = List.map (decorator env) v1 in
+          let v1 = List.map (decorator env) v1 in
           let tok = JS.token env v2 (* "export" *) in
           let v3 =
             (match v3 with
             | `Decl x ->
                 let defs = declaration env x in
                 defs |> List.map (fun def ->
-                  let n = (fst def).name in
-                  [DefStmt def; M (Export (tok, n))]
+                  let (ent, defkind) = def in
+                  let n = ent.name in
+                  let ent = { ent with attrs = ent.attrs @ v1 } in
+                  [DefStmt (ent, defkind); M (Export (tok, n))]
                 ) |> List.flatten
             | `Defa_exp_choice_auto_semi (v1, v2, v3) ->
                 let v1 = JS.token env v1 (* "default" *) in
@@ -2466,7 +2484,7 @@ and function_declaration (env : env) ((v1, v2, v3, v4, v5, v6) : CST.function_de
     | None -> None)
   in
   let f = { f_attrs = v1; f_params = v4; f_body = v5; f_rettype = tret } in
-  { name = v3}, FuncDef f
+  basic_entity v3, FuncDef f
 
 and anon_choice_type_id_a85f573 (env : env) (x : CST.anon_choice_type_id_a85f573) : G.name =
   (match x with
@@ -2542,9 +2560,8 @@ and declaration (env : env) (x : CST.declaration) : definition list =
       let (_tparams, x) = call_signature env v4 in
       let ty = mk_functype x in
       let _v5 = JS.semicolon env v5 in
-      [{ name = v3 },
-      (* DefTodo? *)
-      VarDef { v_kind = Const, v2; v_init = None; v_type = Some ty; }]
+      [basic_entity v3, (* DefTodo? *)
+       VarDef { v_kind = Const, v2; v_init = None; v_type = Some ty; }]
   | `Abst_class_decl (v1, v2, v3, v4, v5, v6) ->
       let v1 = attr (Abstract, JS.token env v1) (* "abstract" *) in
       let v2 = JS.token env v2 (* "class" *) in
@@ -2563,7 +2580,7 @@ and declaration (env : env) (x : CST.declaration) : definition list =
       let attrs = [v1] in
       let c = { c_kind = G.Class, v2; c_extends; c_implements;
                 c_body = v6; c_attrs = attrs } in
-      [{ name = v3}, ClassDef c]
+      [basic_entity v3, ClassDef c]
 
   | `Module (v1, v2) ->
       (* does this exist only in .d.ts files? *)
@@ -2623,7 +2640,7 @@ and declaration (env : env) (x : CST.declaration) : definition list =
       let c = { c_kind = G.Interface, v1;
                 c_extends = v4; c_implements = [];
                 c_body = (t1, xs, t2); c_attrs = [] } in
-      [{ name = v2 }, ClassDef c]
+      [basic_entity v2, ClassDef c]
 
   | `Import_alias (v1, v2, v3, v4, v5) ->
       let _v1 = JS.token env v1 (* "import" *) in
@@ -2645,7 +2662,7 @@ and declaration (env : env) (x : CST.declaration) : definition list =
             let f = { f_attrs = []; f_params = [];
                       f_body = v2; f_rettype = None; } in
             (* TODO: DefTodo *)
-            [{ name = name }, VarDef {v_kind = Const, v1;
+            [basic_entity name, VarDef {v_kind = Const, v1;
                                       v_init = Some (Fun (f, None));
                                       v_type = None; }]
         | `Module_DOT_id_COLON_type (v1, v2, v3, v4, v5) ->
@@ -2656,7 +2673,7 @@ and declaration (env : env) (x : CST.declaration) : definition list =
             let v5 = type_ env v5 in
             let name = v3 in
             (* TODO: DefTodo *)
-            [{name = name }, VarDef { v_kind = Const, v1;
+            [basic_entity name, VarDef { v_kind = Const, v1;
               v_init = None; v_type = Some v5 }]
         )
       in

@@ -1447,15 +1447,17 @@ and export_statement (env : env) (x : CST.export_statement) : toplevel list =
       in
       v2
   | `Rep_deco_export_choice_decl (v1, v2, v3) ->
-      let _v1TODO = List.map (decorator env) v1 in
+      let v1 = List.map (decorator env) v1 in
       let tok = token env v2 (* "export" *) in
       let v3 =
         (match v3 with
         | `Decl x ->
             let defs = declaration env x in
             defs |> List.map (fun def ->
-              let n = (fst def).name in
-              [DefStmt def; M (Export (tok, n))]
+              let (ent, defkind) = def in
+              let n = ent.name in
+              let ent = { ent with attrs = ent.attrs @ v1 } in
+              [DefStmt (ent, defkind); M (Export (tok, n))]
             ) |> List.flatten
         | `Defa_exp_choice_auto_semi (v1, v2, v3) ->
             let v1 = token env v1 (* "default" *) in
@@ -1668,7 +1670,7 @@ and declaration (env : env) (x : CST.declaration) : definition list =
         | None -> None)
       in
       let f = { f_attrs = v1; f_params = v4; f_body = v5; f_rettype = None } in
-      [{ name = v3 }, FuncDef f]
+      [basic_entity v3, FuncDef f]
 
   | `Gene_func_decl (v1, v2, v3, v4, v5, v6, v7) ->
       let v1 =
@@ -1688,7 +1690,7 @@ and declaration (env : env) (x : CST.declaration) : definition list =
       in
       let f = { f_attrs = v1 @ v3; f_params = v5; f_body = v6;
                 f_rettype = None } in
-      [ { name = v4 }, FuncDef f ]
+      [ basic_entity v4, FuncDef f ]
 
   | `Class_decl (v1, v2, v3, v4, v5, v6) ->
       let v1 = List.map (decorator env) v1 in
@@ -1708,7 +1710,7 @@ and declaration (env : env) (x : CST.declaration) : definition list =
       let c = { c_kind = G.Class, v2; c_attrs = v1;
                 c_extends = v4; c_implements = [];
                 c_body = v5; } in
-      [ { name = v3 }, ClassDef c ]
+      [ basic_entity v3, ClassDef c ]
 
   | `Lexi_decl x ->
         let vars = lexical_declaration env x in
