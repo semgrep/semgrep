@@ -89,16 +89,17 @@ class Config:
                 if not resolved_config:
                     logger.debug(f"Could not resolve config for {config}. Skipping.")
                     continue
-                # Extract key and value
-                resolved_config_key, resolved_config_yaml_tree = next(
-                    iter(resolved_config.items())
-                )
-                patched_resolved_config: Dict[str, YamlTree] = {}
-                patched_resolved_config[
-                    f"{resolved_config_key}_{i}"
-                ] = resolved_config_yaml_tree
 
-                config_dict.update(patched_resolved_config)
+                for (
+                    resolved_config_key,
+                    resolved_config_yaml_tree,
+                ) in resolved_config.items():
+                    patched_resolved_config: Dict[str, YamlTree] = {}
+                    patched_resolved_config[
+                        f"{resolved_config_key}_{i}"
+                    ] = resolved_config_yaml_tree
+
+                    config_dict.update(patched_resolved_config)
             except SemgrepError as e:
                 errors.append(e)
 
