@@ -894,7 +894,7 @@ and expression (env : env) (x : CST.expression) : AST.expr =
       let v1 = expression env v1 in
       let v2 = token env v2 (* "is" *) in
       let v3 = pattern env v3 in
-      todo env (v1, v2, v3)
+      LetPattern (v3, v1)
   | `Lambda_exp (v1, v2, v3, v4) ->
       let v1 =
         (match v1 with
