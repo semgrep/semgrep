@@ -850,7 +850,7 @@ and expression (env : env) (x : CST.expression) : AST.expr =
       let v3 = expression env v3 in
       let v4 = token env v4 (* ":" *) in
       let v5 = expression env v5 in
-      todo env (v1, v2, v3, v4, v5)
+      Conditional (v1, v3, v5)
   | `Defa_exp (v1, v2) ->
       let v1 = token env v1 (* "default" *) in
       let v2 =
