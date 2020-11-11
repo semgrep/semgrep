@@ -345,7 +345,12 @@ let regexp_matcher_of_regexp_string s =
     in
     (* old: let re = Str.regexp x in (fun s -> Str.string_match re s 0) *)
     let re = Re.Pcre.regexp ~flags x in
-    (fun s -> Re.Pcre.pmatch ~rex:re s)
+    (fun s2 ->
+        Re.Pcre.pmatch ~rex:re s2
+       |> (fun b -> logger#debug "regexp match: %s on %s, result = %b"
+            s s2 b; b)
+
+    )
   else
     failwith (spf "This is not a PCRE-compatible regexp: " ^ s)
 (*e: function [[Matching_generic.regexp_of_regexp_string]] *)

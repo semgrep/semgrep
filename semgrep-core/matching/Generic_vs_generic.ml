@@ -168,6 +168,14 @@ let m_module_name_prefix a b =
      * This also means that this metavar can match both literal strings and filenames
      * with the same string content. *)
     envf a1 (B.E (B.L (B.String b1)))
+
+  | A.FileName(sa, ta), B.FileName(sb, tb)
+    when Matching_generic.is_regexp_string sa ->
+      let f = Matching_generic.regexp_matcher_of_regexp_string sa in
+      if f sb
+      then m_info ta tb
+      else fail ()
+
   | A.FileName(a1), B.FileName(b1) ->
     (* TODO figure out what prefix support means here *)
     (m_wrap m_string_prefix) a1 b1
