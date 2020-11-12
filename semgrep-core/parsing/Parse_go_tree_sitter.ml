@@ -969,9 +969,7 @@ and anon_choice_elem_c42cd9b (env : env) (x : CST.anon_choice_elem_c42cd9b) =
   (match x with
   | `Elem x -> element env x
   | `Keyed_elem (v1, v2) ->
-
       let v2top = element env v2 in
-
       let v1 =
         (match v1 with
         | `Exp_COLON (v1, v2) ->
@@ -982,11 +980,12 @@ and anon_choice_elem_c42cd9b (env : env) (x : CST.anon_choice_elem_c42cd9b) =
             let v1 = literal_value env v1 in
             let v2 = token env v2 (* ":" *) in
             InitKeyValue (InitBraces v1, v2, v2top)
-        (* ??? *)
-        | `Id_COLON x ->
-              let _ = empty_labeled_statement env x in
-              (* TODO *)
-              InitBraces (AST_generic.fake_bracket [])
+        (* not sure why but Foo:1 is parsed as Keyed_elem(Id_COLON "Foo", 1)
+         * instead of a Keyed_elem(Exp_COLON (Id "Foo"), 1) *)
+        | `Id_COLON (v1, v2) ->
+           let v1 = identifier env v1 (* identifier *) in
+           let v2 = token env v2 (* ":" *) in
+           InitKeyValue (InitExpr (mk_Id v1), v2, v2top)
         )
       in
       v1
