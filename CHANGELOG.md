@@ -4,6 +4,13 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Next
 
+## [0.31.1](https://github.com/returntocorp/semgrep/releases/tag/v0.31.1) - 2020-11-11
+
+### Fixed
+
+- Regression in 0.31.0 where only a single file was being used when `--config`
+  was given a directory with multiple rules (#2019).
+
 ## [0.31.0](https://github.com/returntocorp/semgrep/releases/tag/v0.31.0) - 2020-11-10
 
 ### Fixed
