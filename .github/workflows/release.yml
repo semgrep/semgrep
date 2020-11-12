@@ -277,7 +277,7 @@ jobs:
 
   homebrew-core-pr:
     name: Update on Homebrew-Core
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     steps:
       - uses: dawidd6/action-homebrew-bump-formula@v3
         with:
