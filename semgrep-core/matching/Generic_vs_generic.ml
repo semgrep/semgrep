@@ -1286,10 +1286,14 @@ and m_attribute a b =
   match a, b with
   (*s: [[Generic_vs_generic.m_attribute]] resolving alias case *)
   (* equivalence: name resolving! *)
-  | a,   B.NamedAttr (t1, _b1, { B.id_resolved =
+  | a,   B.NamedAttr (t1, b1, { B.id_resolved =
       {contents = Some ( ( B.ImportedEntity dotted
                          | B.ImportedModule (B.DottedName dotted)
                          ), _sid)}; _}, b2) ->
+    (* We also allow an unqualified pattern like @Attr to match resolved
+     * one like import org.foo.Attr; @Attr *)
+    m_attribute a (B.NamedAttr (t1, b1, B.empty_id_info(), b2))
+    >||>
     m_attribute a (B.NamedAttr (t1, dotted, B.empty_id_info(), b2))
   (*e: [[Generic_vs_generic.m_attribute]] resolving alias case *)
 
