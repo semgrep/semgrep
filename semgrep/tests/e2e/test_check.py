@@ -90,7 +90,7 @@ def test_gitlab_output(run_semgrep_in_tmp, snapshot):
     gitlab_output = json.loads(
         run_semgrep_in_tmp("rules/eqeq.yaml", output_format="gitlab")
     )
-
+    # todo: validate schema against published Gitlab JSON schema
     snapshot.assert_match(
         json.dumps(gitlab_output, indent=2, sort_keys=True), "gitlab.json"
     )
