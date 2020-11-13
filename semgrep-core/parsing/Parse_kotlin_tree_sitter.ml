@@ -332,13 +332,13 @@ let escape_seq (env : env) (x : CST.escape_seq) =
   (match x with
   | `Uni_char_lit x -> uni_character_literal env x
   | `Esca_id tok ->
-      str env tok (* pattern "\\\\[tbrn'\"\\\\$]" *)
+      str env tok (* pattern "\\\\[tbrn'\dq\\\\$]" *)
   )
 
 let line_str_escaped_char (env : env) (x : CST.line_str_escaped_char) =
   (match x with
   | `Esca_id tok ->
-      token_todo env tok (* pattern "\\\\[tbrn'\"\\\\$]" *)
+      str env tok (* pattern "\\\\[tbrn'\dq\\\\$]" *)
   | `Uni_char_lit x -> uni_character_literal env x
   )
 
@@ -351,7 +351,7 @@ let simple_identifier (env : env) (x : CST.simple_identifier) : ident =
 let line_string_content (env : env) (x : CST.line_string_content) =
   (match x with
   | `Line_str_text tok ->
-      token_todo env tok (* pattern "[^\\\\\double_quote$]+" *)
+      str env tok (* pattern "[^\\\\\double_quote$]+" *)
   | `Line_str_esca_char x -> line_str_escaped_char env x
   )
 
@@ -1373,7 +1373,7 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
       let id = simple_identifier env x in
       Id(id, empty_id_info())
   | `Lit_cst x -> L (literal_constant env x)
-  | `Str_lit x -> string_literal env x
+  | `Str_lit x -> L (String (string_literal env x))
   | `Call_ref (v1, v2, v3) ->
       let v1 =
         (match v1 with
@@ -1564,9 +1564,9 @@ and statements (env : env) ((v1, v2, v3) : CST.statements) =
   v1::v2
 
 and string_literal (env : env) (x : CST.string_literal) =
-  let _ = (match x with
+  match x with
   | `Line_str_lit (v1, v2, v3) ->
-      let v1 = token env v1 (* "\"" *) in
+      let v1 = token env v1 (* "\dq" *) in
       let v2 =
         List.map (fun x ->
           (match x with
@@ -1575,10 +1575,12 @@ and string_literal (env : env) (x : CST.string_literal) =
           )
         ) v2
       in
-      let v3 = token env v3 (* "\"" *) in
-      todo env (v1, v2, v3)
+      let v3 = token env v3 (* "\dq" *) in
+      let str = v2 |> List.map fst |> String.concat "" in
+      let toks = (v2 |> List.map snd) @ [v3] in
+      str, PI.combine_infos v1 toks
   | `Multi_line_str_lit (v1, v2, v3) ->
-      let v1 = token env v1 (* "\"\"\"" *) in
+      let v1 = token env v1 (* "\"\"\dq" *) in
       let v2 =
         List.map (fun x ->
           (match x with
@@ -1589,10 +1591,8 @@ and string_literal (env : env) (x : CST.string_literal) =
           )
         ) v2
       in
-      let v3 = token env v3 (* "\"\"\"" *) in
+      let v3 = token env v3 (* "\"\"\dq" *) in
       todo env (v1, v2, v3)
-  ) in
-    raise Todo
 
 and type_ (env : env) ((v1, v2) : CST.type_) : type_ =
   let v1 =
