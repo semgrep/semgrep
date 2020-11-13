@@ -128,10 +128,10 @@ function
   | While (tok, e, s) -> while_stmt env level (tok, e, s)
   | DoWhile (_tok, s, e) -> do_while stmt env level (s, e)
   | For (tok, hdr, s) -> for_stmt env level (tok, hdr, s)
-  | Return (tok, eopt) -> return env (tok, eopt)
+  | Return (tok, eopt, sc) -> return env (tok, eopt) sc
   | DefStmt (def) -> def_stmt env def
-  | Break (tok, lbl) -> break env (tok, lbl)
-  | Continue (tok, lbl) -> continue env (tok, lbl)
+  | Break (tok, lbl, sc) -> break env (tok, lbl) sc
+  | Continue (tok, lbl, sc) -> continue env (tok, lbl) sc
   | x -> todo (S x)
 
 and block env (t1, ss, t2) level =
@@ -288,7 +288,7 @@ and def_stmt env (entity, def_kind) =
   | VarDef def -> var_def (entity, def)
   | _ -> todo (S (DefStmt(entity, def_kind)))
 
-and return env (tok, eopt) =
+and return env (tok, eopt) _sc =
   let to_return =
   match eopt with
   | None -> ""
@@ -303,7 +303,7 @@ and return env (tok, eopt) =
       -> F.sprintf "%s %s" (token "return" tok) to_return
   | Lang.PHP -> failwith "TODO: PHP"
 
-and break env (tok, lbl) =
+and break env (tok, lbl) _sc =
   let lbl_str =
     match lbl with
         | LNone -> ""
@@ -320,7 +320,7 @@ and break env (tok, lbl) =
     -> F.sprintf "%s%s" (token "break" tok) lbl_str
   | Lang.PHP -> failwith "TODO: PHP"
 
-and continue env (tok, lbl) =
+and continue env (tok, lbl) _sc =
   let lbl_str =
     match lbl with
         | LNone -> ""

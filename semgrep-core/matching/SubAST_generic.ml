@@ -99,14 +99,14 @@ let subexprs_of_stmt st =
     | DefStmt (_, VarDef { vinit = Some e; _ })
     | DefStmt (_, FieldDefColon { vinit = Some e; _ })
     | For (_, ForEach (_, _, e), _)
-    | Continue (_, LDynamic e)
-    | Break (_, LDynamic e)
-    | Throw (_, e)
+    | Continue (_, LDynamic e, _)
+    | Break (_, LDynamic e, _)
+    | Throw (_, e, _)
      -> [e]
 
     (* opt *)
     | Switch (_, eopt, _)
-    | Return (_, eopt)
+    | Return (_, eopt, _)
     | OtherStmtWithStmt (_, eopt, _)
      -> Common.opt_to_list eopt
 
@@ -119,7 +119,7 @@ let subexprs_of_stmt st =
       Common.opt_to_list eopt1 @
       Common.opt_to_list eopt2
 
-    | Assert (_, e1, e2opt) ->
+    | Assert (_, e1, e2opt, _) ->
       e1::Common.opt_to_list e2opt
 
     (* 0 *)

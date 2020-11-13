@@ -1482,10 +1482,10 @@ and m_stmt a b =
   | A.ExprStmt(A.Ellipsis _i, _), _b ->
       return ()
   (*x: [[Generic_vs_generic.m_stmt()]] ellipsis cases *)
-  | A.Return(a0, a1), B.Return(b0, b1) ->
-    m_tok a0 b0 >>= (fun () ->
-    m_option_ellipsis_ok m_expr a1 b1
-    )
+  | A.Return(a0, a1, asc), B.Return(b0, b1, bsc) ->
+    let* () = m_tok a0 b0 in
+    let* () = m_option_ellipsis_ok m_expr a1 b1 in
+    m_tok asc bsc
   (*e: [[Generic_vs_generic.m_stmt()]] ellipsis cases *)
   (*s: [[Generic_vs_generic.m_stmt()]] deep matching cases *)
   (* deeper: go deep by default implicitly (no need for explicit <... ...>) *)
@@ -1506,7 +1506,7 @@ and m_stmt a b =
       m_expr_deep a1 b1
   (*x: [[Generic_vs_generic.m_stmt()]] builtin equivalences cases *)
   (* equivalence: *)
-  | A.ExprStmt(a1, _), B.Return (_, Some b1) ->
+  | A.ExprStmt(a1, _), B.Return (_, Some b1, _) ->
      m_expr_deep a1 b1
   (*e: [[Generic_vs_generic.m_stmt()]] builtin equivalences cases *)
 
@@ -1548,14 +1548,14 @@ and m_stmt a b =
       (m_list m_case_and_body) a2 b2
       ))
 
-    | A.Continue(a0, a1), B.Continue(b0, b1) ->
-      m_tok a0 b0 >>= (fun () ->
-      m_label_ident a1 b1
-      )
-    | A.Break(a0, a1), B.Break(b0, b1) ->
-      m_tok a0 b0 >>= (fun () ->
-      m_label_ident a1 b1
-      )
+    | A.Continue(a0, a1, asc), B.Continue(b0, b1, bsc) ->
+      let* () = m_tok a0 b0 in
+      let* () = m_label_ident a1 b1 in
+      m_tok asc bsc
+    | A.Break(a0, a1, asc), B.Break(b0, b1, bsc) ->
+      let* () = m_tok a0 b0 in
+      let* () = m_label_ident a1 b1 in
+      m_tok asc bsc
     | A.Label(a1, a2), B.Label(b1, b2) ->
       m_label a1 b1 >>= (fun () ->
       m_stmt a2 b2
@@ -1564,20 +1564,20 @@ and m_stmt a b =
       m_tok a0 b0 >>= (fun () ->
       m_label a1 b1
       )
-    | A.Throw(a0, a1), B.Throw(b0, b1) ->
-      m_tok a0 b0 >>= (fun () ->
-      m_expr a1 b1
-      )
+    | A.Throw(a0, a1, asc), B.Throw(b0, b1, bsc) ->
+      let* () = m_tok a0 b0 in
+      let* () = m_expr a1 b1 in
+      m_tok asc bsc
     | A.Try(a0, a1, a2, a3), B.Try(b0, b1, b2, b3) ->
       let* () = m_tok a0 b0 in
       let* () = m_stmt a1 b1 in
       let* () = (m_list m_catch) a2 b2 in
       (m_option m_finally) a3 b3
-    | A.Assert(a0, a1, a2), B.Assert(b0, b1, b2) ->
-      m_tok a0 b0 >>= (fun () ->
-      m_expr a1 b1 >>= (fun () ->
-      (m_option m_expr) a2 b2
-      ))
+    | A.Assert(a0, a1, a2, asc), B.Assert(b0, b1, b2, bsc) ->
+      let* () = m_tok a0 b0 in
+      let* () = m_expr a1 b1 in
+      let* () = (m_option m_expr) a2 b2 in
+      m_tok asc bsc
 
     | A.OtherStmt(a1, a2), B.OtherStmt(b1, b2) ->
       m_other_stmt_operator a1 b1 >>= (fun () ->
