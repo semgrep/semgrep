@@ -8,7 +8,6 @@
  *)
 open Common
 
-open Parse_info
 module PI = Parse_info
 module R = Refactoring_code
 
@@ -222,7 +221,7 @@ let apply_transfo transfo xs =
     if worth_trying
     then
     try (
-    let (ast, toks) =
+    let (ast, _toks) =
       try
         Parse_php.parse file |> fst
       with Parse_info.Parsing_error _err ->
@@ -238,9 +237,12 @@ let apply_transfo transfo xs =
      *)
 
     if was_modified then begin
+(*
       let s =
         Unparse_php.string_of_program_with_comments_using_transfo (ast, toks)
       in
+*)
+      let s = "TODO" in
 
       let tmpfile = Common.new_temp_file "trans" ".php" in
       Common.write_file ~file:tmpfile s;
@@ -273,9 +275,6 @@ let apply_refactoring _refactoring file =
 (* Extra actions *)
 (*****************************************************************************)
 
-open Cst_php
-module V = Visitor_php
-
 (* -------------------------------------------------------------------------*)
 (* to test *)
 (* -------------------------------------------------------------------------*)
@@ -290,8 +289,8 @@ let simple_transfo xs =
   files |> List.iter (fun file ->
     pr2 (spf "processing: %s" file);
 
-    let (ast, toks), _ = Parse_php.parse file in
-
+    let (_ast, _toks), _ = Parse_php.parse file in
+(*
     let hook = { Visitor_php.default_visitor with
       Visitor_php.kexpr = (fun (k, _) x ->
         match x with
@@ -312,7 +311,8 @@ let simple_transfo xs =
 
     let s =
       Unparse_php.string_of_program_with_comments_using_transfo (ast, toks) in
-
+*)
+    let s = "TODO" in
     let tmpfile = Common.new_temp_file "trans" ".php" in
     Common.write_file ~file:tmpfile s;
 
@@ -331,6 +331,7 @@ let all_different xs =
  *   are on the same line, as long as the last ')' is on a different line.
  * - we should also transform function decl and use() lists.
  *)
+(*
 let add_trailing_comma_multiline_funcalls ast =
   let was_modified = ref false in
   let visitor = V.mk_visitor { V.default_visitor with
@@ -365,6 +366,7 @@ let trailing_comma_transfo = {
   trans_func = add_trailing_comma_multiline_funcalls;
   grep_keywords = None;
 }
+*)
 
 (* -------------------------------------------------------------------------*)
 (* An example of an XHP transformation *)
@@ -384,7 +386,7 @@ let trailing_comma_transfo = {
  * transformation API of pfff to express the same transformation;
  * it can be used as a reference for spatch to compare with.
  *)
-
+(*
 let remove_border_attribute ast =
   let was_modified = ref false in
 
@@ -436,6 +438,7 @@ let remove_border_attribute_transfo = {
   trans_func = remove_border_attribute;
   grep_keywords = Some ["border"];
 }
+*)
 
 (* -------------------------------------------------------------------------*)
 (* Add action attribute to <ui:form> *)
@@ -460,6 +463,7 @@ let remove_border_attribute_transfo = {
  * a la lex-pass. Or maybe it's better to add support in the DSL directly
  * so one can write the syntactical patch above.
  *)
+(*
 let add_action_ui_form_transfo_func ast =
   let was_modified = ref false in
   let visitor = V.mk_visitor { V.default_visitor with
@@ -489,11 +493,12 @@ let add_action_ui_form_transfo = {
   trans_func = add_action_ui_form_transfo_func;
   grep_keywords = Some ["ui:form"];
 }
-
+*)
 
 (*---------------------------------------------------------------------------*)
 (* pretty printer testing *)
 (*---------------------------------------------------------------------------*)
+(*
 let test_pp file =
   let _tokens = Parse_php.tokens file in
   let _ast = Parse_php.parse_program file in
@@ -513,6 +518,7 @@ let test_pp file =
   Common.write_file ~file:tmp_file s;
   let xs = Common2.unix_diff file tmp_file in
   xs |> List.iter pr2
+*)
 
 (*---------------------------------------------------------------------------*)
 (* juju refactorings *)
@@ -627,6 +633,7 @@ let case_refactoring pfff_log =
 (*---------------------------------------------------------------------------*)
 (* remove undefined xhp field *)
 (*---------------------------------------------------------------------------*)
+(*
 let remove_undefined_xhp_field (xhp_class_str, field) ast=
   let was_modified = ref false in
   let string_of_xhp_tag xs = "<" ^ Common.join ":" xs ^ ">" in
@@ -676,11 +683,12 @@ let read_log_undefined_xhp_field pfff_log =
       } in
       apply_transfo transfo [filename]
     )
+*)
 
 (*---------------------------------------------------------------------------*)
 (* array refactoring *)
 (*---------------------------------------------------------------------------*)
-
+(*
 let array_to_int_array_transfo line_closing_paren_array replacment = {
   grep_keywords = None;
   trans_func = (fun ast ->
@@ -711,7 +719,7 @@ let array_to_int_array_ptc logfile =
       apply_transfo (array_to_int_array_transfo line replacment) [file]
     else failwith (spf "wrong format, expect a string * int: %s" s)
   )
-
+*)
 (*---------------------------------------------------------------------------*)
 (* regression testing *)
 (*---------------------------------------------------------------------------*)
@@ -748,19 +756,23 @@ let spatch_extra_actions () = [
   "-simple_transfo", " <files_or_dirs>",
   Common.mk_action_n_arg (simple_transfo);
 
+(*
   "-remove_border_attribute", " <files_or_dirs>",
   Common.mk_action_n_arg (apply_transfo remove_border_attribute_transfo);
   "-add_action_ui_form", " <files_or_dirs>",
   Common.mk_action_n_arg (apply_transfo add_action_ui_form_transfo);
   "-add_trailing_comma", " <files_or_dirs>",
   Common.mk_action_n_arg (apply_transfo trailing_comma_transfo);
+*)
 
   "-juju_refactoring", " <file>",
   Common.mk_action_1_arg juju_refactoring;
   "-case_refactoring", " <file>",
   Common.mk_action_1_arg case_refactoring;
+(*
   "-remove_undefined_xhp_field", " <file>",
   Common.mk_action_1_arg read_log_undefined_xhp_field;
+*)
   "-add_interface", " <class>:<interface> <file>",
   Common.mk_action_2_arg (fun str file ->
     if str =~ "\\(.*\\):\\(.*\\)"
@@ -779,15 +791,19 @@ let spatch_extra_actions () = [
       apply_refactoring refactoring file;
     else failwith "use the CLASS:INTERFACE format for -remove_interface"
   );
+(*
   "-array_to_int_array", " <specfile>",
   Common.mk_action_1_arg (fun specfile ->
     array_to_int_array_ptc specfile
   );
+*)
 
   "-test", " run regression tests",
   Common.mk_action_0_arg test;
+(*
   "-pp", "",
   Common.mk_action_1_arg test_pp;
+*)
 ]
 
 (*****************************************************************************)
