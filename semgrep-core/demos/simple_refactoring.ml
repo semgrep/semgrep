@@ -1,9 +1,6 @@
 open Common
 
-open Cst_php
-
 module Ast = Cst_php
-module V = Visitor_php
 
 module PI = Parse_info
 
@@ -91,8 +88,9 @@ let main files_or_dirs =
     pr2 (spf "processing: %s (%d/%d)" file i total);
 
     (* step1: parse the file *)
-    let (ast, tokens), _ = Parse_php.parse file in
+    let (_ast, _tokens), _ = Parse_php.parse file in
 
+(*
     (* step2: visit the AST and annotate the relevant tokens in AST leaves *)
     let visitor = V.mk_visitor { V.default_visitor with
 
@@ -185,10 +183,15 @@ let main files_or_dirs =
     in
     visitor (Program ast);
 
+*)
+
     (* step3: unparse the annotated AST and show the diff *)
+(*
     let s =
       Unparse_php.string_of_program_with_comments_using_transfo (ast, tokens) in
 
+*)
+    let s = "TODO" in
     let tmpfile = Common.new_temp_file "trans" ".php" in
     Common.write_file ~file:tmpfile s;
 
