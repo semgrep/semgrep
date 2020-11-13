@@ -187,6 +187,22 @@ def build_sarif_output(rule_matches: List[RuleMatch], rules: FrozenSet[Rule]) ->
     return json.dumps(output_dict)
 
 
+def build_gitlab_output(rule_matches: List[RuleMatch], rules: FrozenSet[Rule]) -> str:
+    """
+    Format matches Gitlab SAST format version 2.0
+
+    - written based on https://docs.gitlab.com/ee/user/application_security/sast/#reports-json-format
+    - which links to this schema https://gitlab.com/gitlab-org/security-products/security-report-schemas/-/blob/master/dist/sast-report-format.json
+    - Gitlab does not have a formal specification for their output format.
+    """
+    output_dict = {
+        "$schema": "https://gitlab.com/gitlab-org/security-products/security-report-schemas/-/blob/master/dist/sast-report-format.json",
+        "version": "2.0",
+        "vulnerabilities": [match.to_gitlab() for match in rule_matches],
+    }
+    return json.dumps(output_dict)
+
+
 class OutputSettings(NamedTuple):
     output_format: OutputFormat
     output_destination: Optional[str]
@@ -412,6 +428,8 @@ class OutputHandler:
             return build_sarif_output(self.rule_matches, self.rules)
         elif output_format == OutputFormat.TEXT:
             return "\n".join(list(build_normal_output(self.rule_matches, color_output)))
+        elif output_format == OutputFormat.GITLAB:
+            return build_gitlab_output(self.rule_matches, self.rules)
         else:
             # https://github.com/python/mypy/issues/6366
             raise RuntimeError(

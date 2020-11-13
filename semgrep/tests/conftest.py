@@ -91,6 +91,8 @@ def _run_semgrep(
         options.append("--junit-xml")
     elif output_format == "sarif":
         options.append("--sarif")
+    elif output_format == "gitlab":
+        options.append("--gitlab")
 
     output = subprocess.check_output(
         ["python3", "-m", "semgrep", *options, Path("targets") / target_name],

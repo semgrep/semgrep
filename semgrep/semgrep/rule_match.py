@@ -1,13 +1,16 @@
 import itertools
+import uuid
 from pathlib import Path
 from typing import Any
 from typing import Dict
+from typing import FrozenSet
 from typing import List
 from typing import Optional
 
 from junit_xml import TestCase
 
 from semgrep.pattern_match import PatternMatch
+from semgrep.rule import Rule
 
 
 class RuleMatch:
@@ -147,6 +150,47 @@ class RuleMatch:
                 }
             ],
         }
+
+    def to_gitlab(self) -> Dict[str, Any]:
+        return {
+            "id": str(uuid.uuid5(uuid.NAMESPACE_URL, str(self.path))),
+            "category": "sast",
+            "message": self.message,
+            "severity": self.severity,
+            # KB note:
+            # Semgrep is designed to be a low-FP tool by design.
+            # Does hard-coding confidence make sense here?
+            "confidence": "high",
+            "scanner": self._gitlab_tool_info(),
+            "location": {
+                "file": str(self.path),
+                # Gitlab only uses line identifiers
+                "start_line": self.start["line"],
+                "end_line": self.end["line"],
+                "dependency": {"package": {}},
+            },
+            "identifiers": [
+                {
+                    "type": "semgrep_type",
+                    "name": f"Semgrep - {self.id}",
+                    "value": self.id,
+                    "url": self._construct_semgrep_rule_url(),
+                }
+            ],
+        }
+
+    def _gitlab_tool_info(self) -> Dict[str, Any]:
+        return {"id": "semgrep", "name": "Semgrep"}
+
+    def _construct_semgrep_rule_url(self) -> str:
+        # this is a hack to fix name -> registry disagreement
+        components = self.id.split(".")
+        result = []
+        for chunk in components:
+            if chunk not in result:
+                result.append(chunk)
+        rule_name = ".".join(result)
+        return f"https://semgrep.dev/editor?registry={rule_name}"
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} id={self.id} start={str(self.start)} end={str(self.end)}>"

@@ -3,6 +3,7 @@ from pathlib import Path
 from subprocess import CalledProcessError
 
 import pytest
+from jsonschema import validate
 from xmldiff import main
 
 from semgrep import __VERSION__
@@ -82,6 +83,16 @@ def test_sarif_output(run_semgrep_in_tmp, snapshot):
 
     snapshot.assert_match(
         json.dumps(sarif_output, indent=2, sort_keys=True), "results.sarif"
+    )
+
+
+def test_gitlab_output(run_semgrep_in_tmp, snapshot):
+    gitlab_output = json.loads(
+        run_semgrep_in_tmp("rules/eqeq.yaml", output_format="gitlab")
+    )
+
+    snapshot.assert_match(
+        json.dumps(gitlab_output, indent=2, sort_keys=True), "gitlab.json"
     )
 
 

@@ -1,0 +1,94 @@
+{
+  "$schema": "https://gitlab.com/gitlab-org/security-products/security-report-schemas/-/blob/master/dist/sast-report-format.json",
+  "version": "2.0",
+  "vulnerabilities": [
+    {
+      "id": "b86d44b6-f1d8-5d55-9243-d32a271bd25d",
+      "category": "sast",
+      "message": "a + b == a + b",
+      "severity": "ERROR",
+      "confidence": "high",
+      "scanner": { "id": "semgrep", "name": "Semgrep" },
+      "location": {
+        "file": "tests/e2e/targets/basic/stupid.py",
+        "start_line": 3,
+        "end_line": 3,
+        "dependency": { "package": {} }
+      },
+      "identifiers": [
+        {
+          "type": "semgrep_type",
+          "name": "Semgrep - -",
+          "value": "-",
+          "url": "https://semgrep.dev/editor?registry=-"
+        }
+      ]
+    },
+    {
+      "id": "b86d44b6-f1d8-5d55-9243-d32a271bd25d",
+      "category": "sast",
+      "message": "x == x",
+      "severity": "ERROR",
+      "confidence": "high",
+      "scanner": { "id": "semgrep", "name": "Semgrep" },
+      "location": {
+        "file": "tests/e2e/targets/basic/stupid.py",
+        "start_line": 8,
+        "end_line": 8,
+        "dependency": { "package": {} }
+      },
+      "identifiers": [
+        {
+          "type": "semgrep_type",
+          "name": "Semgrep - -",
+          "value": "-",
+          "url": "https://semgrep.dev/editor?registry=-"
+        }
+      ]
+    },
+    {
+      "id": "b86d44b6-f1d8-5d55-9243-d32a271bd25d",
+      "category": "sast",
+      "message": "x == x",
+      "severity": "ERROR",
+      "confidence": "high",
+      "scanner": { "id": "semgrep", "name": "Semgrep" },
+      "location": {
+        "file": "tests/e2e/targets/basic/stupid.py",
+        "start_line": 12,
+        "end_line": 12,
+        "dependency": { "package": {} }
+      },
+      "identifiers": [
+        {
+          "type": "semgrep_type",
+          "name": "Semgrep - -",
+          "value": "-",
+          "url": "https://semgrep.dev/editor?registry=-"
+        }
+      ]
+    },
+    {
+      "id": "3d2b5588-1d7d-5998-8a23-7c3d1a0f3c07",
+      "category": "sast",
+      "message": "SUPER_LONG_CONSTANT_TO_TRIGGER_A_LINE_BREAK == SUPER_LONG_CONSTANT_TO_TRIGGER_A_LINE_BREAK",
+      "severity": "ERROR",
+      "confidence": "high",
+      "scanner": { "id": "semgrep", "name": "Semgrep" },
+      "location": {
+        "file": "tests/e2e/targets/multiline/stupid.py",
+        "start_line": 7,
+        "end_line": 8,
+        "dependency": { "package": {} }
+      },
+      "identifiers": [
+        {
+          "type": "semgrep_type",
+          "name": "Semgrep - -",
+          "value": "-",
+          "url": "https://semgrep.dev/editor?registry=-"
+        }
+      ]
+    }
+  ]
+}
