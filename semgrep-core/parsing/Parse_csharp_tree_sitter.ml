@@ -56,6 +56,12 @@ let type_parameters_with_constraints params constraints : type_parameter list =
     | None -> (param, [])
   ) params
 
+let arg_to_expr (a : argument) =
+  match a with
+  | Arg e -> e
+  | ArgKwd (_, e) -> e (* TODO maybe ArgKwd is also impossible here *)
+  | _ -> raise Impossible
+
 (*****************************************************************************)
 (* Boilerplate converter *)
 (*****************************************************************************)
@@ -596,10 +602,7 @@ and type_parameter (env : env) ((v1, v2, v3) : CST.type_parameter) =
 
 and element_binding_expression (env : env) (x : CST.element_binding_expression) =
   let open_br, args, close_br = bracketed_argument_list env x in
-  let exprs = List.map (fun a -> match a with
-  | Arg e -> e
-  | ArgKwd (_, e) -> e (* TODO maybe ArgKwd is also impossible here *)
-  | _ -> raise Impossible) args in
+  let exprs = List.map arg_to_expr args in
   open_br, exprs, close_br
 
 and nullable_type (env : env) (x : CST.nullable_type) =
@@ -1067,7 +1070,8 @@ and expression (env : env) (x : CST.expression) : AST.expr =
         ) v3
       in
       let v4 = token env v4 (* ")" *) in
-      todo env (v1, v2 :: v3, v4)
+      let exprs = List.map arg_to_expr (v2 :: v3) in
+      Tuple (v1, exprs, v4)
   | `Type_of_exp (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "typeof" *) in
       let v2 = token env v2 (* "(" *) in
