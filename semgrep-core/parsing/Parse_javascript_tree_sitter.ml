@@ -807,7 +807,7 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
         (match v4 with
         | `Exp x ->
                 let e = expression env x in
-                Return (v3, Some e)
+                Return (v3, Some e, G.sc)
         | `Stmt_blk x -> statement_block env x
         )
       in
@@ -1299,8 +1299,8 @@ and statement (env : env) (x : CST.statement) : stmt list =
         | Some tok -> Some (identifier env tok) (* identifier *)
         | None -> None)
       in
-      let _v3 = semicolon env v3 in
-      [Break (v1, v2)]
+      let v3 = semicolon env v3 in
+      [Break (v1, v2, v3)]
   | `Cont_stmt (v1, v2, v3) ->
       let v1 = token env v1 (* "continue" *) in
       let v2 =
@@ -1308,8 +1308,8 @@ and statement (env : env) (x : CST.statement) : stmt list =
         | Some tok -> Some (identifier env tok) (* identifier *)
         | None -> None)
       in
-      let _v3 = semicolon env v3 in
-      [Continue (v1, v2)]
+      let v3 = semicolon env v3 in
+      [Continue (v1, v2, v3)]
   | `Ret_stmt (v1, v2, v3) ->
       let v1 = token env v1 (* "return" *) in
       let v2 =
@@ -1317,13 +1317,13 @@ and statement (env : env) (x : CST.statement) : stmt list =
         | Some x -> Some (expressions env x)
         | None -> None)
       in
-      let _v3 = semicolon env v3 in
-      [Return (v1, v2)]
+      let v3 = semicolon env v3 in
+      [Return (v1, v2, v3)]
   | `Throw_stmt (v1, v2, v3) ->
       let v1 = token env v1 (* "throw" *) in
       let v2 = expressions env v2 in
-      let _v3 = semicolon env v3 in
-      [Throw (v1, v2)]
+      let v3 = semicolon env v3 in
+      [Throw (v1, v2, v3)]
   | `Empty_stmt tok ->
         [empty_stmt env tok (* ";" *)]
   | `Labe_stmt (v1, v2, v3) ->
