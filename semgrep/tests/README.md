@@ -104,3 +104,7 @@ To call semgrep without the `--junit-xml` flag:
 To call semgrep with `--sarif` instead of `--json`:
 
 ```run_semgrep_in_tmp("r2c/python", output_format="sarif")```
+
+To call semgrep with `--gitlab` instead of `--json`:
+
+```run_semgrep_in_tmp("r2c/python", output_format="gitlab")```
