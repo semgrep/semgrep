@@ -1022,7 +1022,7 @@ and expression (env : env) (x : CST.expression) : AST.expr =
       let v2 = token env v2 (* "(" *) in
       let v3 = type_constraint env v3 in
       let v4 = token env v4 (* ")" *) in
-      todo env (v1, v2, v3, v4)
+      Call (IdSpecial (Sizeof, v1), (v2, [ArgType v3], v4))
   | `Stack_alloc_array_crea_exp (v1, v2, v3) ->
       let v1 = token env v1 (* "stackalloc" *) in
       let v2 = array_type env v2 in
