@@ -1737,7 +1737,7 @@ and type_ (env : env) (x : CST.type_) : AST.type_ =
   | `Poin_type (v1, v2) ->
       let v1 = type_constraint env v1 in
       let v2 = token env v2 (* "*" *) in
-      todo env (v1, v2)
+      TyPointer (v2, v1)
   | `Pred_type tok -> predefined_type env tok (* predefined_type *)
   | `Tuple_type (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "(" *) in
