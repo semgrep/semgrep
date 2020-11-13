@@ -57,6 +57,7 @@ ALL_EXTENSIONS = (
 # files.
 GENERIC_EXTENSIONS = [FileExtension("")]
 
+
 def lang_to_exts(language: Language) -> List[FileExtension]:
     """
         Convert language to expected file extensions

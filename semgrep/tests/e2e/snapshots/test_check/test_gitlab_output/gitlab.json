@@ -1,0 +1,160 @@
+{
+  "$schema": "https://gitlab.com/gitlab-org/security-products/security-report-schemas/-/blob/master/dist/sast-report-format.json",
+  "version": "2.0",
+  "vulnerabilities": [
+    {
+      "id": "b86d44b6-f1d8-5d55-9243-d32a271bd25d",
+      "category": "sast",
+      "message": "useless comparison operation `a + b == a + b` or `a + b != a + b`; possible bug?",
+      "severity": "ERROR",
+      "confidence": "high",
+      "scanner": { "id": "semgrep", "name": "Semgrep" },
+      "location": {
+        "file": "tests/e2e/targets/basic/stupid.py",
+        "start_line": 3,
+        "end_line": 3,
+        "dependency": { "package": {} }
+      },
+      "identifiers": [
+        {
+          "type": "semgrep_type",
+          "name": "Semgrep - tests.e2e.rules.eqeq-is-bad",
+          "value": "tests.e2e.rules.eqeq-is-bad",
+          "url": "https://semgrep.dev/editor?registry=tests.e2e.rules.eqeq-is-bad"
+        }
+      ]
+    },
+    {
+      "id": "3d2b5588-1d7d-5998-8a23-7c3d1a0f3c07",
+      "category": "sast",
+      "message": "useless comparison operation `SUPER_LONG_CONSTANT_TO_TRIGGER_A_LINE_BREAK == SUPER_LONG_CONSTANT_TO_TRIGGER_A_LINE_BREAK` or `SUPER_LONG_CONSTANT_TO_TRIGGER_A_LINE_BREAK != SUPER_LONG_CONSTANT_TO_TRIGGER_A_LINE_BREAK`; possible bug?",
+      "severity": "ERROR",
+      "confidence": "high",
+      "scanner": { "id": "semgrep", "name": "Semgrep" },
+      "location": {
+        "file": "tests/e2e/targets/multiline/stupid.py",
+        "start_line": 7,
+        "end_line": 8,
+        "dependency": { "package": {} }
+      },
+      "identifiers": [
+        {
+          "type": "semgrep_type",
+          "name": "Semgrep - tests.e2e.rules.eqeq-is-bad",
+          "value": "tests.e2e.rules.eqeq-is-bad",
+          "url": "https://semgrep.dev/editor?registry=tests.e2e.rules.eqeq-is-bad"
+        }
+      ]
+    },
+    {
+      "id": "a1b17ac2-93aa-5a5f-bda7-89d31456718b",
+      "category": "sast",
+      "message": "useless comparison",
+      "severity": "ERROR",
+      "confidence": "high",
+      "scanner": { "id": "semgrep", "name": "Semgrep" },
+      "location": {
+        "file": "tests/e2e/targets/basic/stupid.js",
+        "start_line": 3,
+        "end_line": 3,
+        "dependency": { "package": {} }
+      },
+      "identifiers": [
+        {
+          "type": "semgrep_type",
+          "name": "Semgrep - tests.e2e.rules.javascript-basic-eqeq-bad",
+          "value": "tests.e2e.rules.javascript-basic-eqeq-bad",
+          "url": "https://semgrep.dev/editor?registry=tests.e2e.rules.javascript-basic-eqeq-bad"
+        }
+      ]
+    },
+    {
+      "id": "625389e8-a22e-572b-b3f8-f627e65e766f",
+      "category": "sast",
+      "message": "useless comparison",
+      "severity": "ERROR",
+      "confidence": "high",
+      "scanner": { "id": "semgrep", "name": "Semgrep" },
+      "location": {
+        "file": "tests/e2e/targets/exclude_include/excluded/excluded.js",
+        "start_line": 3,
+        "end_line": 3,
+        "dependency": { "package": {} }
+      },
+      "identifiers": [
+        {
+          "type": "semgrep_type",
+          "name": "Semgrep - tests.e2e.rules.javascript-basic-eqeq-bad",
+          "value": "tests.e2e.rules.javascript-basic-eqeq-bad",
+          "url": "https://semgrep.dev/editor?registry=tests.e2e.rules.javascript-basic-eqeq-bad"
+        }
+      ]
+    },
+    {
+      "id": "aadd6a2d-e922-5025-b476-b8d4770478e8",
+      "category": "sast",
+      "message": "useless comparison",
+      "severity": "ERROR",
+      "confidence": "high",
+      "scanner": { "id": "semgrep", "name": "Semgrep" },
+      "location": {
+        "file": "tests/e2e/targets/exclude_include/excluded/included.js",
+        "start_line": 3,
+        "end_line": 3,
+        "dependency": { "package": {} }
+      },
+      "identifiers": [
+        {
+          "type": "semgrep_type",
+          "name": "Semgrep - tests.e2e.rules.javascript-basic-eqeq-bad",
+          "value": "tests.e2e.rules.javascript-basic-eqeq-bad",
+          "url": "https://semgrep.dev/editor?registry=tests.e2e.rules.javascript-basic-eqeq-bad"
+        }
+      ]
+    },
+    {
+      "id": "013ed0d8-e831-5d92-b18f-32ae0cb7bd0a",
+      "category": "sast",
+      "message": "useless comparison",
+      "severity": "ERROR",
+      "confidence": "high",
+      "scanner": { "id": "semgrep", "name": "Semgrep" },
+      "location": {
+        "file": "tests/e2e/targets/exclude_include/included/excluded.js",
+        "start_line": 3,
+        "end_line": 3,
+        "dependency": { "package": {} }
+      },
+      "identifiers": [
+        {
+          "type": "semgrep_type",
+          "name": "Semgrep - tests.e2e.rules.javascript-basic-eqeq-bad",
+          "value": "tests.e2e.rules.javascript-basic-eqeq-bad",
+          "url": "https://semgrep.dev/editor?registry=tests.e2e.rules.javascript-basic-eqeq-bad"
+        }
+      ]
+    },
+    {
+      "id": "05033aeb-3c2c-58e7-befb-f50fdf1e498f",
+      "category": "sast",
+      "message": "useless comparison",
+      "severity": "ERROR",
+      "confidence": "high",
+      "scanner": { "id": "semgrep", "name": "Semgrep" },
+      "location": {
+        "file": "tests/e2e/targets/exclude_include/included/included.js",
+        "start_line": 3,
+        "end_line": 3,
+        "dependency": { "package": {} }
+      },
+      "identifiers": [
+        {
+          "type": "semgrep_type",
+          "name": "Semgrep - tests.e2e.rules.javascript-basic-eqeq-bad",
+          "value": "tests.e2e.rules.javascript-basic-eqeq-bad",
+          "url": "https://semgrep.dev/editor?registry=tests.e2e.rules.javascript-basic-eqeq-bad"
+        }
+      ]
+    }
+  ]
+}

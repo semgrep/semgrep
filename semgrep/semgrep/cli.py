@@ -235,6 +235,9 @@ def cli() -> None:
     output.add_argument(
         "--sarif", action="store_true", help="Output results in SARIF format."
     )
+    output.add_argument(
+        "--gitlab", action="store_true", help="Output results in Gitlab format."
+    )
     output.add_argument("--test", action="store_true", help="Run test suite.")
     parser.add_argument(
         "--test-ignore-todo",
@@ -346,6 +349,8 @@ def cli() -> None:
         output_format = OutputFormat.JUNIT_XML
     elif args.sarif:
         output_format = OutputFormat.SARIF
+    elif args.gitlab:
+        output_format = OutputFormat.GITLAB
 
     output_settings = OutputSettings(
         output_format=output_format,

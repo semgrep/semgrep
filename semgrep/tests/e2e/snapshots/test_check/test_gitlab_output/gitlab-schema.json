@@ -1,0 +1,370 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Report format for GitLab SAST",
+  "description": "This schema provides the report format for Static Application Security Testing analyzers (https://docs.gitlab.com/ee/user/application_security/sast).",
+  "self": {
+    "version": "9.0.0"
+  },
+  "required": [
+    "version",
+    "vulnerabilities"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "scan": {
+      "type": "object",
+      "required": [
+        "end_time",
+        "scanner",
+        "start_time",
+        "status",
+        "type"
+      ],
+      "properties": {
+        "end_time": {
+          "type": "string",
+          "description": "ISO8601 UTC value with format yyyy-mm-ddThh:mm:ss, representing when the scan finished.",
+          "examples": [
+            "2020-01-28T03:26:02"
+          ]
+        },
+        "messages": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "description": "Communication intended for the initiator of a scan.",
+            "required": [
+              "level",
+              "value"
+            ],
+            "properties": {
+              "level": {
+                "type": "string",
+                "description": "Describes the severity of the communication. Use info to communicate normal scan behaviour; warn to communicate a potentially recoverable problem, or a partial error; fatal to communicate an issue that causes the scan to halt.",
+                "enum": [
+                  "info",
+                  "warn",
+                  "fatal"
+                ],
+                "examples": [
+                  "info"
+                ]
+              },
+              "value": {
+                "type": "string",
+                "description": "The message to communicate.",
+                "examples": [
+                  "Permission denied, scanning aborted"
+                ]
+              }
+            }
+          }
+        },
+        "scanner": {
+          "type": "object",
+          "description": "Object defining the scanner used to perform the scan.",
+          "required": [
+            "id",
+            "name",
+            "version",
+            "vendor"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "Unique id that identifies the scanner.",
+              "examples": [
+                "my-sast-scanner"
+              ]
+            },
+            "name": {
+              "type": "string",
+              "description": "A human readable value that identifies the scanner, not required to be unique.",
+              "examples": [
+                "My SAST Scanner"
+              ]
+            },
+            "url": {
+              "type": "string",
+              "description": "A link to more information about the scanner.",
+              "examples": [
+                "https://scanner.url"
+              ]
+            },
+            "version": {
+              "type": "string",
+              "description": "The version of the scanner.",
+              "examples": [
+                "1.0.2"
+              ]
+            },
+            "vendor": {
+              "type": "object",
+              "description": "The vendor/maintainer of the scanner.",
+              "required": [
+                "name"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "The name of the vendor.",
+                  "examples": [
+                    "GitLab"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "start_time": {
+          "type": "string",
+          "description": "ISO8601 UTC value with format yyyy-mm-ddThh:mm:ss, representing when the scan started.",
+          "examples": [
+            "2020-02-14T16:01:59"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "description": "Result of the scan.",
+          "enum": [
+            "success",
+            "failure"
+          ]
+        },
+        "type": {
+          "type": "string",
+          "description": "Type of the scan.",
+          "enum": [
+            "coverage_fuzzing",
+            "container_scanning",
+            "dependency_scanning",
+            "dast",
+            "sast"
+          ]
+        }
+      }
+    },
+    "schema": {
+      "type": "string",
+      "description": "URI pointing to the validating security report schema.",
+      "format": "uri"
+    },
+    "version": {
+      "type": "string",
+      "description": "Report syntax version used to generate this JSON.",
+      "pattern": "^[0-9]+\\.[0-9]+\\.?[0-9]*$"
+    },
+    "vulnerabilities": {
+      "type": "array",
+      "description": "Array of vulnerability objects.",
+      "items": {
+        "type": "object",
+        "description": "Describes the vulnerability.",
+        "required": [
+          "category",
+          "cve",
+          "identifiers",
+          "location",
+          "scanner"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the vulnerability. This is recommended to be a UUID.",
+            "examples": [
+              "642735a5-1425-428d-8d4e-3c854885a3c9"
+            ]
+          },
+          "category": {
+            "type": "string",
+            "description": "Describes where this vulnerability belongs (for example, SAST, Dependency Scanning, and so on)."
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the vulnerability. This must not include the finding's specific information."
+          },
+          "message": {
+            "type": "string",
+            "description": "A short text section that describes the vulnerability. This may include the finding's specific information."
+          },
+          "description": {
+            "type": "string",
+            "description": "A long text section describing the vulnerability more fully."
+          },
+          "cve": {
+            "type": "string",
+            "description": "(Deprecated - use vulnerabilities[].id instead) A fingerprint string value that represents a concrete finding. This is used to determine whether two findings are same, which may not be 100% accurate. Note that this is NOT a CVE as described by https://cve.mitre.org/."
+          },
+          "severity": {
+            "type": "string",
+            "description": "How much the vulnerability impacts the software. Possible values are Info, Unknown, Low, Medium, High, or Critical. Note that some analyzers may not report all these possible values.",
+            "enum": [
+              "Info",
+              "Unknown",
+              "Low",
+              "Medium",
+              "High",
+              "Critical"
+            ]
+          },
+          "confidence": {
+            "type": "string",
+            "description": "How reliable the vulnerability's assessment is. Possible values are Ignore, Unknown, Experimental, Low, Medium, High, and Confirmed. Note that some analyzers may not report all these possible values.",
+            "enum": [
+              "Ignore",
+              "Unknown",
+              "Experimental",
+              "Low",
+              "Medium",
+              "High",
+              "Confirmed"
+            ]
+          },
+          "solution": {
+            "type": "string",
+            "description": "Explanation of how to fix the vulnerability."
+          },
+          "scanner": {
+            "description": "Describes the scanner used to find this vulnerability.",
+            "type": "object",
+            "required": [
+              "id",
+              "name"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "The scanner's ID, as a snake_case string."
+              },
+              "name": {
+                "type": "string",
+                "description": "Human-readable name of the scanner."
+              }
+            }
+          },
+          "identifiers": {
+            "type": "array",
+            "minItems": 1,
+            "description": "An ordered array of references that identify a vulnerability on internal or external databases. The first identifier is the Primary Identifier, which has special meaning.",
+            "items": {
+              "type": "object",
+              "required": [
+                "type",
+                "name",
+                "value"
+              ],
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "description": "for example, cve, cwe, osvdb, usn, or an analyzer-dependent type such as gemnasium)."
+                },
+                "name": {
+                  "type": "string",
+                  "description": "Human-readable name of the identifier."
+                },
+                "url": {
+                  "type": "string",
+                  "description": "URL of the identifier's documentation.",
+                  "format": "uri"
+                },
+                "value": {
+                  "type": "string",
+                  "description": "Value of the identifier, for matching purpose."
+                }
+              }
+            }
+          },
+          "links": {
+            "type": "array",
+            "description": "An array of references to external documentation or articles that describe the vulnerability.",
+            "items": {
+              "type": "object",
+              "required": [
+                "url"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Name of the vulnerability details link."
+                },
+                "url": {
+                  "type": "string",
+                  "description": "URL of the vulnerability details document.",
+                  "format": "uri"
+                }
+              }
+            }
+          },
+          "location": {
+            "type": "object",
+            "description": "Identifies the vulnerability's location.",
+            "properties": {
+              "file": {
+                "type": "string",
+                "description": "Path to the file where the vulnerability is located."
+              },
+              "start_line": {
+                "type": "number",
+                "description": "The first line of the code affected by the vulnerability."
+              },
+              "end_line": {
+                "type": "number",
+                "description": "The last line of the code affected by the vulnerability."
+              },
+              "class": {
+                "type": "string",
+                "description": "Provides the name of the class where the vulnerability is located."
+              },
+              "method": {
+                "type": "string",
+                "description": "Provides the name of the method where the vulnerability is located."
+              }
+            }
+          },
+          "raw_source_code_extract": {
+            "type": "string",
+            "description": "Provides an unsanitized excerpt of the affected source code."
+          }
+        }
+      }
+    },
+    "remediations": {
+      "type": "array",
+      "description": "An array of objects containing information on available remediations, along with patch diffs to apply.",
+      "items": {
+        "type": "object",
+        "required": [
+          "fixes",
+          "summary",
+          "diff"
+        ],
+        "properties": {
+          "fixes": {
+            "type": "array",
+            "description": "An array of strings that represent references to vulnerabilities fixed by this remediation.",
+            "items": {
+              "type": "object",
+              "required": [
+                "cve"
+              ],
+              "properties": {
+                "cve": {
+                  "type": "string",
+                  "description": "(Deprecated - use vulnerabilities[].id instead) A fingerprint string value that represents a concrete finding. This is used to determine whether two findings are same, which may not be 100% accurate. Note that this is NOT a CVE as described by https://cve.mitre.org/."
+                }
+              }
+            }
+          },
+          "summary": {
+            "type": "string",
+            "description": "An overview of how the vulnerabilities were fixed."
+          },
+          "diff": {
+            "type": "string",
+            "description": "A base64-encoded remediation code diff, compatible with git apply."
+          }
+        }
+      }
+    }
+  }
+}
