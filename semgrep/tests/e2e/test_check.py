@@ -1,3 +1,4 @@
+from six import assertCountEqual
 import json
 from pathlib import Path
 from subprocess import CalledProcessError
@@ -86,14 +87,16 @@ def test_sarif_output(run_semgrep_in_tmp, snapshot):
     )
 
 
-def test_gitlab_output(run_semgrep_in_tmp, snapshot):
+def test_gitlab_output(run_semgrep_in_tmp, get_snapshots_path, snapshot):
     gitlab_output = json.loads(
         run_semgrep_in_tmp("rules/eqeq.yaml", output_format="gitlab")
     )
-    # todo: validate schema against published Gitlab JSON schema
-    snapshot.assert_match(
-        json.dumps(gitlab_output, indent=2, sort_keys=True), "gitlab.json"
-    )
+    schema_path = str(Path(
+        get_snapshots_path / "test_check/test_gitlab_output/gitlab-schema.json"
+        ).resolve())
+    with open(schema_path) as f:
+        gitlab_schema = json.load(f)
+        validate(gitlab_output,schema=gitlab_schema)
 
 
 def test_url_rule(run_semgrep_in_tmp, snapshot):

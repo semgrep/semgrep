@@ -100,7 +100,7 @@ def _run_semgrep(
         stderr=subprocess.STDOUT if stderr else subprocess.PIPE,
     )
 
-    if output_format in {"json", "sarif"} and not stderr:
+    if output_format in {"json", "sarif", "gitlab"} and not stderr:
         output = _clean_output_json(output)
 
     return output
@@ -216,6 +216,9 @@ def run_semgrep_in_tmp(monkeypatch, tmp_path):
 
     yield _run_semgrep
 
+@pytest.fixture
+def get_snapshots_path():
+    yield Path(TESTS_PATH / "e2e" / "snapshots").resolve()
 
 def pytest_addoption(parser):
     parser.addoption(

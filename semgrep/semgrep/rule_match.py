@@ -155,12 +155,14 @@ class RuleMatch:
         return {
             "id": str(uuid.uuid5(uuid.NAMESPACE_URL, str(self.path))),
             "category": "sast",
+            # CVE is a required field from Gitlab schema.  Semgrep is CVE-unaware AFAIK
+            "cve": "",
             "message": self.message,
-            "severity": self.severity,
+            "severity": self._to_gitlab_severity(),
             # KB note:
             # Semgrep is designed to be a low-FP tool by design.
             # Does hard-coding confidence make sense here?
-            "confidence": "high",
+            "confidence": "High",
             "scanner": self._gitlab_tool_info(),
             "location": {
                 "file": str(self.path),
@@ -178,6 +180,18 @@ class RuleMatch:
                 }
             ],
         }
+
+    def _to_gitlab_severity(self):
+        # Todo: Semgrep states currently don't map super well to Gitlab schema.
+        conversion_table = {
+            "INFO":"Info",
+            "WARN":"Medium",
+            "ERROR":"High",
+        }
+        if conversion_table[self.severity]:
+            return conversion_table[self.severity]
+        else:
+            return "Unknown"
 
     def _gitlab_tool_info(self) -> Dict[str, Any]:
         return {"id": "semgrep", "name": "Semgrep"}
