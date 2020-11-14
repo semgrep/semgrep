@@ -6,6 +6,8 @@ open Printf
 open Cmdliner
 open Spacegrep
 
+let timeout_exit_code = 3
+
 type when_use_color =
   | Auto
   | Always
@@ -23,6 +25,7 @@ type config = {
   pattern: string option;
   pattern_files: string list;
   doc_files: string list;
+  timeout: int option;
 }
 
 let detect_highlight when_use_color oc =
@@ -67,7 +70,17 @@ let run_all ~debug ~force ~output_format ~highlight patterns docs =
   | Semgrep ->
       Semgrep.print_semgrep_json matches
 
+let apply_timeout config =
+  match config.timeout with
+  | None -> ()
+  | Some duration ->
+      Timeout.exit_after
+        ~stderr_msg:"\ntimeout\n"
+        ~duration
+        timeout_exit_code
+
 let run config =
+  apply_timeout config;
   let patterns =
     let pattern_files = Find_files.list config.pattern_files in
     (match config.pattern with
@@ -205,9 +218,22 @@ let doc_file_term =
   in
   Arg.value (Arg.opt_all Arg.string [] info)
 
+let timeout_term =
+  let info =
+    Arg.info ["timeout"]
+      ~docv:"SECONDS"
+      ~doc:(sprintf "Exit with code %i if the
+                     task is not finished after $(docv) seconds."
+              timeout_exit_code)
+  in
+  Arg.value (Arg.opt Arg.(some int) None info)
+
 let cmdline_term =
-  let combine color output_format debug force pattern pattern_files doc_files =
-    { color; output_format; debug; force; pattern; pattern_files; doc_files }
+  let combine
+      color output_format debug force pattern
+      pattern_files doc_files timeout =
+    { color; output_format; debug; force; pattern;
+      pattern_files; doc_files; timeout }
   in
   Term.(const combine
         $ color_term
@@ -217,6 +243,7 @@ let cmdline_term =
         $ pattern_term
         $ pattern_file_term
         $ doc_file_term
+        $ timeout_term
        )
 
 let doc =
