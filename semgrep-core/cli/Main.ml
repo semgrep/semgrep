@@ -1007,7 +1007,7 @@ let options () =
     "-target_file", Arg.Set_string target_file,
     " <file> obtain list of targets to run patterns on";
     "-timeout", Arg.Set_float Flag.timeout,
-    " <float> timeout for parsing (in seconds)";
+    " <float> time limit to process one input program (in seconds)";
     "-max_memory", Arg.Set_int max_memory,
     " <int> maximum memory (in MB)";
     "-lsp", Arg.Unit (fun () ->
