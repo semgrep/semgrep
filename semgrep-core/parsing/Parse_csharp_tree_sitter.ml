@@ -1358,11 +1358,13 @@ and statement (env : env) (x : CST.statement) =
       let v1 = token env v1 (* "throw" *) in
       let v2 =
         (match v2 with
-        | Some x -> expression env x
-        | None -> todo env ())
+        | Some x -> Some (expression env x)
+        | None -> None)
       in
       let v3 = token env v3 (* ";" *) in
-      Throw (v1, v2)
+      (match v2 with
+      | Some (expr) -> Throw (v1, expr)
+      | None -> OtherStmt (OS_ThrowNothing, [Tk v1]))
   | `Try_stmt (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "try" *) in
       let v2 = block env v2 in
