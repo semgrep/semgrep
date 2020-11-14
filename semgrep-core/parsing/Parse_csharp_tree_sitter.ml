@@ -306,12 +306,12 @@ let literal (env : env) (x : CST.literal) : literal =
       let v2 =
         (match v2 with
         | `Imm_tok_pat_684220d tok ->
-            token env tok (* pattern "[^'\\\\]" *)
-        | `Esc_seq tok -> token env tok (* escape_sequence *)
+            str env tok (* pattern "[^'\\\\]" *)
+        | `Esc_seq tok -> str env tok (* escape_sequence *)
         )
       in
       let v3 = token env v3 (* "'" *) in
-      todo env (v1, v2, v3)
+      Char v2
   | `Real_lit tok -> real_literal env tok (* real_literal *)
   | `Int_lit tok -> integer_literal env tok (* integer_literal *)
   | `Str_lit (v1, v2, v3) ->
