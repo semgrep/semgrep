@@ -374,7 +374,7 @@ def evaluate(
         if pattern_match.range in valid_ranges_to_output:
             message = interpolate_message_metavariables(rule, pattern_match)
             fix = interpolate_fix_metavariables(rule, pattern_match)
-            rule_match = RuleMatch(
+            rule_match = RuleMatch.from_pattern_match(
                 rule.id,
                 pattern_match,
                 message=message,
