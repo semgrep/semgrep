@@ -8,6 +8,7 @@
         "line": 3
       },
       "extra": {
+        "is_ignored": false,
         "lines": "    metavariable_regex_test.method()",
         "message": "Metavariable regex test multi rule",
         "metadata": {},

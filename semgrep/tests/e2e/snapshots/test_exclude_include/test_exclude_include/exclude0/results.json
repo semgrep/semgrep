@@ -8,6 +8,7 @@
         "line": 3
       },
       "extra": {
+        "is_ignored": false,
         "lines": "console.log(x == x)",
         "message": "useless comparison",
         "metadata": {},
@@ -47,6 +48,7 @@
         "line": 3
       },
       "extra": {
+        "is_ignored": false,
         "lines": "console.log(x == x)",
         "message": "useless comparison",
         "metadata": {},

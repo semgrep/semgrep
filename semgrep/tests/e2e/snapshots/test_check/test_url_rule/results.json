@@ -8,6 +8,7 @@
         "line": 3
       },
       "extra": {
+        "is_ignored": false,
         "lines": "    return a + b == a + b",
         "message": "a + b == a + b is a useless equality check",
         "metadata": {},
@@ -45,6 +46,7 @@
         "line": 8
       },
       "extra": {
+        "is_ignored": false,
         "lines": "    x == x",
         "message": "x == x is a useless equality check",
         "metadata": {},
@@ -82,6 +84,7 @@
         "line": 12
       },
       "extra": {
+        "is_ignored": false,
         "lines": "assertTrue(x == x)",
         "message": "x == x is a useless equality check",
         "metadata": {},

@@ -8,6 +8,7 @@
         "line": 3
       },
       "extra": {
+        "is_ignored": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
         "metadata": {},
@@ -47,6 +48,7 @@
         "line": 3
       },
       "extra": {
+        "is_ignored": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
         "metadata": {},
@@ -86,6 +88,7 @@
         "line": 3
       },
       "extra": {
+        "is_ignored": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
         "metadata": {},
@@ -125,6 +128,7 @@
         "line": 3
       },
       "extra": {
+        "is_ignored": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
         "metadata": {},
@@ -164,6 +168,7 @@
         "line": 3
       },
       "extra": {
+        "is_ignored": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
         "metadata": {},
@@ -203,6 +208,7 @@
         "line": 3
       },
       "extra": {
+        "is_ignored": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
         "metadata": {},
@@ -242,6 +248,7 @@
         "line": 3
       },
       "extra": {
+        "is_ignored": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
         "metadata": {},
@@ -281,6 +288,7 @@
         "line": 3
       },
       "extra": {
+        "is_ignored": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
         "metadata": {},
@@ -320,6 +328,7 @@
         "line": 3
       },
       "extra": {
+        "is_ignored": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
         "metadata": {},
@@ -359,6 +368,7 @@
         "line": 3
       },
       "extra": {
+        "is_ignored": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
         "metadata": {},
@@ -398,6 +408,7 @@
         "line": 3
       },
       "extra": {
+        "is_ignored": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
         "metadata": {},
@@ -437,6 +448,7 @@
         "line": 3
       },
       "extra": {
+        "is_ignored": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
         "metadata": {},
@@ -476,6 +488,7 @@
         "line": 3
       },
       "extra": {
+        "is_ignored": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
         "metadata": {},
@@ -515,6 +528,7 @@
         "line": 3
       },
       "extra": {
+        "is_ignored": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
         "metadata": {},

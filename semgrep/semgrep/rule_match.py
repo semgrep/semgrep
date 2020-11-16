@@ -1,4 +1,5 @@
 import itertools
+from copy import deepcopy
 from pathlib import Path
 from typing import Any
 from typing import Dict
@@ -25,10 +26,14 @@ class RuleMatch:
     _fix: Optional[str] = attr.ib(repr=False)
     _fix_regex: Optional[Dict[str, Any]] = attr.ib(repr=False)
 
+    # derived attributes
     _path: Path = attr.ib(repr=str)
     _start: Dict[str, Any] = attr.ib(repr=str)
     _end: Dict[str, Any] = attr.ib(repr=str)
     _extra: Dict[str, Any] = attr.ib(repr=False)
+
+    # optional attributes
+    _is_ignored: Optional[bool] = attr.ib(default=None)
 
     @classmethod
     def from_pattern_match(
@@ -121,7 +126,7 @@ class RuleMatch:
         return self._severity in {"WARNING", "ERROR"}
 
     def to_json(self) -> Dict[str, Any]:
-        json_obj = self._pattern_match._raw_json
+        json_obj = deepcopy(self._pattern_match._raw_json)
         json_obj["check_id"] = self._id
         json_obj["extra"]["message"] = self._message
         json_obj["extra"]["metadata"] = self._metadata
@@ -130,6 +135,8 @@ class RuleMatch:
             json_obj["extra"]["fix"] = self._fix
         if self._fix_regex:
             json_obj["extra"]["fix_regex"] = self._fix_regex
+        if self._is_ignored is not None:
+            json_obj["extra"]["is_ignored"] = self._is_ignored
         json_obj["start"] = self._start
         json_obj["end"] = self._end
         # self.lines already contains \n at the end of each line

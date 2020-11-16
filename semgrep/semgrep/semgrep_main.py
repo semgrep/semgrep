@@ -9,6 +9,8 @@ from typing import Optional
 from typing import Set
 from typing import Tuple
 
+import attr
+
 import semgrep.config_resolver
 from semgrep.autofix import apply_fixes
 from semgrep.constants import COMMA_SEPARATED_LIST_RE
@@ -123,9 +125,9 @@ def rule_match_nosem(rule_match: RuleMatch, strict: bool) -> bool:
 
 def invoke_semgrep(config: Path, targets: List[Path], **kwargs: Any) -> Any:
     """
-        Call semgrep with config on targets and return result as a json object
+    Call semgrep with config on targets and return result as a json object
 
-        Uses default arguments of MAIN unless overwritten with a kwarg
+    Uses default arguments of MAIN unless overwritten with a kwarg
     """
     io_capture = StringIO()
     output_handler = OutputHandler(
@@ -231,12 +233,18 @@ def main(
 
     output_handler.handle_semgrep_errors(semgrep_errors)
 
+    rule_matches_by_rule = {
+        rule: [
+            attr.evolve(rule_match, is_ignored=rule_match_nosem(rule_match, strict))
+            for rule_match in rule_matches
+        ]
+        for rule, rule_matches in rule_matches_by_rule.items()
+    }
+
     if not disable_nosem:
         rule_matches_by_rule = {
             rule: [
-                rule_match
-                for rule_match in rule_matches
-                if not rule_match_nosem(rule_match, strict)
+                rule_match for rule_match in rule_matches if not rule_match._is_ignored
             ]
             for rule, rule_matches in rule_matches_by_rule.items()
         }
