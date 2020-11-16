@@ -9,7 +9,7 @@
       },
       "extra": {
         "lines": "    return a + b == a + b",
-        "message": "useless comparison operation `a+b == a+b` or `a+b != a+b`; possible bug?",
+        "message": "useless comparison operation `a + b == a + b` or `a + b != a + b`; possible bug?",
         "metadata": {},
         "metavars": {
           "$X": {

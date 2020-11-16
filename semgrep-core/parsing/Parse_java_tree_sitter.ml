@@ -707,7 +707,7 @@ and type_arguments (env : env) ((v1, v2, v3) : CST.type_arguments) =
         let v1 =
           (match v1 with
           | `Type x -> TArgument (type_ env x)
-          | `Wild x -> TQuestion (wildcard env x)
+          | `Wild x -> (wildcard env x)
           )
         in
         let v2 =
@@ -716,7 +716,7 @@ and type_arguments (env : env) ((v1, v2, v3) : CST.type_arguments) =
             let v2 =
               (match v2 with
               | `Type x -> TArgument (type_ env x)
-              | `Wild x -> TQuestion (wildcard env x)
+              | `Wild x -> (wildcard env x)
               )
             in
             v2
@@ -731,25 +731,25 @@ and type_arguments (env : env) ((v1, v2, v3) : CST.type_arguments) =
 
 and wildcard (env : env) ((v1, v2, v3) : CST.wildcard) =
   let _v1 = List.map (annotation env) v1 in
-  let _v2 = token env v2 (* "?" *) in
+  let v2 = token env v2 (* "?" *) in
   let v3 =
     (match v3 with
     | Some x -> Some (wildcard_bounds env x)
     | None -> None)
   in
-  v3
+  TWildCard (v2, v3)
 
 
 and wildcard_bounds (env : env) (x : CST.wildcard_bounds) =
   (match x with
   | `Extends_type (v1, v2) ->
-      let _v1 = token env v1 (* "extends" *) in
+      let v1 = token env v1 (* "extends" *) in
       let v2 = type_ env v2 in
-      false, v2
+      (false, v1), v2
   | `Super_type (v1, v2) ->
-      let _v1 = token env v1 (* "super" *) in
+      let v1 = token env v1 (* "super" *) in
       let v2 = type_ env v2 in
-      true, v2
+      (true, v1), v2
   )
 
 
@@ -1930,11 +1930,12 @@ let program (env : env) (xs : CST.program) =
 (*****************************************************************************)
 
 let parse file =
- H.convert_tree_sitter_exn_to_pfff_exn (fun () ->
-  let ast =
-    Parallel.backtrace_when_exn := false;
-    Parallel.invoke Tree_sitter_java.Parse.file file ()
-  in
-  let env = { H.file; conv = H.line_col_to_pos file } in
-  program env ast
- )
+  H.wrap_parser
+    (fun () ->
+       Parallel.backtrace_when_exn := false;
+       Parallel.invoke Tree_sitter_java.Parse.file file ()
+    )
+    (fun cst ->
+       let env = { H.file; conv = H.line_col_to_pos file } in
+       program env cst
+    )

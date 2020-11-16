@@ -1,0 +1,9 @@
+{
+  "metavars": {
+    "$X": 42,
+    "$Y": "foo",
+    "$Z": "x+1"
+  },
+  "language": "python",
+  "code": "$X > 0 and $Y == \"foo\""
+}

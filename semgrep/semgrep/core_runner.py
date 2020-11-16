@@ -40,9 +40,10 @@ from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.semgrep_types import BooleanRuleExpression
 from semgrep.semgrep_types import Language
-from semgrep.semgrep_types import NONE_LANGUAGE
+from semgrep.semgrep_types import NONE_LANGUAGE, GENERIC_LANGUAGE
 from semgrep.semgrep_types import OPERATORS
 from semgrep.semgrep_types import TAINT_MODE
+from semgrep.spacegrep import run_spacegrep
 from semgrep.target_manager import TargetManager
 from semgrep.util import debug_tqdm_write
 from semgrep.util import partition
@@ -369,27 +370,34 @@ class CoreRunner:
                 if language == NONE_LANGUAGE:
                     continue
 
-                # semgrep-core doesn't know about OPERATORS.METAVARIABLE_REGEX -
-                # this is strictly a semgrep Python feature. Metavariable regex
-                # filtering is performed purely in Python code then compared
-                # against semgrep-core's results for other patterns.
+                # semgrep-core doesn't know about the following operators -
+                # they are strictly semgrep Python features:
+                #   - OPERATORS.METAVARIABLE_REGEX
+                #   - OPERATORS.METAVARIABLE_COMPARISON
                 patterns = [
                     pattern
                     for pattern in patterns
-                    if pattern.expression.operator != OPERATORS.METAVARIABLE_REGEX
+                    if pattern.expression.operator
+                    not in [
+                        OPERATORS.METAVARIABLE_REGEX,
+                        OPERATORS.METAVARIABLE_COMPARISON,
+                    ]
                 ]
 
                 patterns_json = [p.to_json() for p in patterns]
 
-                output_json = self._run_core_command(
-                    patterns_json,
-                    patterns,
-                    targets,
-                    language,
-                    rule,
-                    "-rules_file",
-                    cache_dir,
-                )
+                if language == GENERIC_LANGUAGE:
+                    output_json = run_spacegrep(patterns, targets)
+                else:  # Run semgrep-core
+                    output_json = self._run_core_command(
+                        patterns_json,
+                        patterns,
+                        targets,
+                        language,
+                        rule,
+                        "-rules_file",
+                        cache_dir,
+                    )
 
             errors.extend(
                 CoreException.from_json(e, language, rule.id).into_semgrep_error()
@@ -513,7 +521,7 @@ class CoreRunner:
         Dict[Rule, List[RuleMatch]],
         Dict[Rule, List[Dict[str, Any]]],
         List[SemgrepError],
-        str,
+        int,
     ]:
         """
             Takes in rules and targets and retuns object with findings
@@ -533,12 +541,8 @@ class CoreRunner:
             f"{len(findings)} {sev}" for sev, findings in by_severity.items()
         ]
         logger.debug(f'findings summary: {", ".join(by_sev_strings)}')
-        num_findings = sum(len(v) for v in findings_by_rule.values())
-        stats_line = (
-            f"ran {len(rules)} rules on {num_targets} files: {num_findings} findings"
-        )
 
-        return findings_by_rule, debug_steps_by_rule, errors, stats_line
+        return findings_by_rule, debug_steps_by_rule, errors, num_targets
 
 
 def dedup_output(outputs: List[RuleMatch]) -> List[RuleMatch]:

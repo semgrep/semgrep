@@ -2362,22 +2362,23 @@ and declaration (env : env) (x : CST.declaration) : stmt =
 (* Entry point *)
 (*****************************************************************************)
 let parse file =
- H.convert_tree_sitter_exn_to_pfff_exn (fun () ->
-  let ast =
-    Parallel.backtrace_when_exn := false;
-    Parallel.invoke Tree_sitter_csharp.Parse.file file ()
-  in
-  let env = { H.file; conv = H.line_col_to_pos file } in
+  H.wrap_parser
+    (fun () ->
+       Parallel.backtrace_when_exn := false;
+       Parallel.invoke Tree_sitter_csharp.Parse.file file ()
+    )
+    (fun cst ->
+       let env = { H.file; conv = H.line_col_to_pos file } in
 
-  try
-    compilation_unit env ast
-  with
-    (Failure "not implemented") as exn ->
-      let s = Printexc.get_backtrace () in
-      pr2 "Some constructs are not handled yet";
-      pr2 "CST was:";
-      CST.dump_tree ast;
-      pr2 "Original backtrace:";
-      pr2 s;
-      raise exn
- )
+       try
+         compilation_unit env cst
+       with
+         (Failure "not implemented") as exn ->
+           let s = Printexc.get_backtrace () in
+           pr2 "Some constructs are not handled yet";
+           pr2 "CST was:";
+           CST.dump_tree cst;
+           pr2 "Original backtrace:";
+           pr2 s;
+           raise exn
+    )

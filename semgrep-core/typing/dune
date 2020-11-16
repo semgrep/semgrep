@@ -1,9 +1,9 @@
 (library
- (public_name semgrep_typing)
+ (name semgrep_typing)
  (wrapped false)
  (libraries
    yaml
-;   lsp
+   lsp
 
    commons
    pfff-config

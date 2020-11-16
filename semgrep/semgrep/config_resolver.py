@@ -16,6 +16,7 @@ from semgrep.constants import DEFAULT_SEMGREP_CONFIG_NAME
 from semgrep.constants import ID_KEY
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import RULES_KEY
+from semgrep.constants import SEMGREP_URL
 from semgrep.constants import SEMGREP_USER_AGENT
 from semgrep.constants import YML_EXTENSIONS
 from semgrep.error import InvalidRuleSchemaError
@@ -81,9 +82,24 @@ class Config:
             except SemgrepError as e:
                 errors.append(e)
 
-        for config in configs:
+        for i, config in enumerate(configs):
             try:
-                config_dict.update(resolve_config(config))
+                # Patch config_id to fix https://github.com/returntocorp/semgrep/issues/1912
+                resolved_config = resolve_config(config)
+                if not resolved_config:
+                    logger.debug(f"Could not resolve config for {config}. Skipping.")
+                    continue
+
+                for (
+                    resolved_config_key,
+                    resolved_config_yaml_tree,
+                ) in resolved_config.items():
+                    patched_resolved_config: Dict[str, YamlTree] = {}
+                    patched_resolved_config[
+                        f"{resolved_config_key}_{i}"
+                    ] = resolved_config_yaml_tree
+
+                    config_dict.update(patched_resolved_config)
             except SemgrepError as e:
                 errors.append(e)
 
@@ -261,6 +277,10 @@ def parse_config_at_path(
 def parse_config_string(
     config_id: str, contents: str, filename: Optional[str]
 ) -> Dict[str, YamlTree]:
+    if not contents:
+        raise SemgrepError(
+            f"Empty configuration file {filename}", code=UNPARSEABLE_YAML_EXIT_CODE,
+        )
     try:
         data = parse_yaml_preserve_spans(contents, filename)
         return {config_id: data}
@@ -389,6 +409,34 @@ def download_config(config_url: str) -> Dict[str, YamlTree]:
     return None
 
 
+def is_registry_id(config_str: str) -> bool:
+    """
+        Starts with r/, p/, s/ for registry, pack, and snippet respectively
+    """
+    return config_str[:2] in {"r/", "p/", "s/"}
+
+
+def is_saved_snippet(config_str: str) -> bool:
+    """
+        config_str is saved snippet which has format username:snippetname
+    """
+    return len(config_str.split(":")) == 2
+
+
+def registry_id_to_url(registry_id: str) -> str:
+    """
+        Convert from registry_id to semgrep.dev url
+    """
+    return f"{SEMGREP_URL}{registry_id}"
+
+
+def saved_snippet_to_url(snippet_id: str) -> str:
+    """
+        Convert from username:snippetname to semgrep.dev url
+    """
+    return registry_id_to_url(f"s/{snippet_id}")
+
+
 def resolve_config(config_str: str) -> Dict[str, YamlTree]:
     """ resolves if config arg is a registry entry, a url, or a file, folder, or loads from defaults if None"""
     start_t = time.time()
@@ -396,6 +444,10 @@ def resolve_config(config_str: str) -> Dict[str, YamlTree]:
         config = download_config(RULES_REGISTRY[config_str])
     elif is_url(config_str):
         config = download_config(config_str)
+    elif is_registry_id(config_str):
+        config = download_config(registry_id_to_url(config_str))
+    elif is_saved_snippet(config_str):
+        config = download_config(saved_snippet_to_url(config_str))
     else:
         config = load_config_from_local_path(config_str)
     if config:

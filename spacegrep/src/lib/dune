@@ -1,0 +1,21 @@
+(library
+  (public_name spacegrep)
+  (name spacegrep)
+  (libraries
+     ANSITerminal
+     unix
+     atdgen-runtime
+  )
+)
+
+(ocamllex Lexer)
+
+(rule
+ (targets Semgrep_j.ml Semgrep_j.mli)
+ (deps    Semgrep.atd)
+ (action  (run atdgen -j -j-std %{deps})))
+
+(rule
+ (targets Semgrep_t.ml Semgrep_t.mli)
+ (deps    Semgrep.atd)
+ (action  (run atdgen -t %{deps})))

@@ -15,4 +15,5 @@ type dialect = [ `Typescript | `TSX ]
    dialect is guessed from the file extension. Pure typescript is the fallback
    if the extension is unknown.
 *)
-val parse : ?dialect:dialect -> string -> Ast_js.program
+val parse : ?dialect:dialect -> string ->
+ Ast_js.program Parse_tree_sitter_helpers.result

@@ -1,7 +1,7 @@
 import pytest
 
 
-def xfail_repo(repo, *, reason=None):
+def xfail_repo(repo, *, reason=""):
     return pytest.param(repo, marks=pytest.mark.xfail(reason=reason, strict=True))
 
 
@@ -42,10 +42,6 @@ PASSING_REPOS = [
         "languages": ALL_LANGUAGES,
     },
     {"repo": "https://github.com/coinbase/coinbase-node", "languages": ALL_LANGUAGES},
-    {
-        "repo": "https://github.com/coinbase/coinbase-pro-node",
-        "languages": ALL_LANGUAGES,
-    },
     {"repo": "https://github.com/coinbase/coinbase-python", "languages": ALL_LANGUAGES},
     {
         "repo": "https://github.com/coinbase/coinbase-tip-discourse",
@@ -158,7 +154,6 @@ PASSING_REPOS = [
     {"repo": "https://github.com/dropbox/pyannotate", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/dropbox/pygerduty", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/dropbox/pynsot", "languages": ALL_LANGUAGES},
-    {"repo": "https://github.com/dropbox/pyston-testsuite", "languages": ALL_LANGUAGES},
     {
         "repo": "https://github.com/dropbox/pytest-call-tracer",
         "languages": ALL_LANGUAGES,
@@ -257,7 +252,6 @@ PASSING_REPOS = [
     {"repo": "https://github.com/dropbox/godropbox", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/dropbox/trapperkeeper", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/lodash/lodash", "languages": ALL_LANGUAGES},
-    {"repo": "https://github.com/bkimminich/juice-shop", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/zulip/zulip", "languages": ALL_LANGUAGES},
     {
         "repo": "https://github.com/home-assistant/home-assistant",
@@ -282,11 +276,11 @@ FAILING_REPOS = [
             "repo": "https://github.com/highcharts/highcharts",
             "languages": ALL_LANGUAGES,
         },
-        reason="javascript parse error, probably due to ?. regression",
+        reason="javascript parse error, probably due to '?.01' regression in minified file",
     ),
     xfail_repo(
         {"repo": "https://github.com/OWASP/NodeGoat", "languages": ALL_LANGUAGES},
-        reason="javascript parse error, probably due to ?. regression",
+        reason="javascript parse error, probably due to 's.behaveLikeLine?.8:1' regression in minified file",
     ),
     xfail_repo(
         {"repo": "https://github.com/coinbase/gtt-ui", "languages": ALL_LANGUAGES},
@@ -336,10 +330,6 @@ FAILING_REPOS = [
         {"repo": "https://github.com/dropbox/notouch", "languages": ALL_LANGUAGES},
         reason="indented comment on last line python",
     ),
-    xfail_repo(
-        {"repo": "https://github.com/dropbox/pyston", "languages": ALL_LANGUAGES},
-        reason=("fail to parse page break 0x0c in python"),
-    ),
     xfail_repo({"repo": "https://github.com/rails/rails", "languages": ["ruby"]}),
     xfail_repo(
         {
@@ -349,6 +339,20 @@ FAILING_REPOS = [
     ),
     xfail_repo({"repo": "https://github.com/Homebrew/brew", "languages": ["ruby"]}),
     xfail_repo({"repo": "https://github.com/gitlabhq/gitlabhq", "languages": ["ruby"]}),
+    xfail_repo(
+        {
+            "repo": "https://github.com/coinbase/coinbase-pro-node",
+            "languages": ["javascript", "typescript"],
+        },
+        reason=("Failure to parse typescript"),
+    ),
+    xfail_repo(
+        {
+            "repo": "https://github.com/bkimminich/juice-shop",
+            "languages": ["javascript", "typescript"],
+        },
+        reason=("Failure to parse typescript"),
+    ),
     xfail_repo(
         {"repo": "https://github.com/dropbox/changes", "languages": ALL_LANGUAGES},
         reason="react",

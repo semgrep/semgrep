@@ -1,18 +1,8 @@
-# See pfff/semgrep.yml for more information
+# See pfff/semgrep.yml for more information.
+# Put semgrep-specific rules here. More general OCaml or Python rules should
+# go in the semgrep-rules repositoy under ocaml/ or python/.
 
 rules:
-  - id: bad-pervasives
-    pattern: Pervasives.$X
-    message: Pervasives is deprecated and not available after 4.10. Use Stdlib.
-    languages: [ocaml]
-    severity: ERROR
-
-  - id: stupid-equal
-    pattern: $X = $X
-    message: this will always be true
-    languages: [ocaml]
-    severity: ERROR
-
   - id: no-print-in-semgrep
     patterns:
     - pattern-either:
@@ -30,7 +20,7 @@ rules:
     severity: ERROR
     paths:
       exclude:
-       - bin/*.ml
+       - cli/*.ml
        - Test.ml
        - Matching_report.ml
        - Unit_*.ml

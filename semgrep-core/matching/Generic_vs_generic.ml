@@ -168,6 +168,14 @@ let m_module_name_prefix a b =
      * This also means that this metavar can match both literal strings and filenames
      * with the same string content. *)
     envf a1 (B.E (B.L (B.String b1)))
+
+  | A.FileName(sa, ta), B.FileName(sb, tb)
+    when Matching_generic.is_regexp_string sa ->
+      let f = Matching_generic.regexp_matcher_of_regexp_string sa in
+      if f sb
+      then m_info ta tb
+      else fail ()
+
   | A.FileName(a1), B.FileName(b1) ->
     (* TODO figure out what prefix support means here *)
     (m_wrap m_string_prefix) a1 b1
@@ -258,7 +266,33 @@ and m_type_option_with_hook idb taopt tbopt =
   (* less-is-ok:, like m_option_none_can_match_some *)
   | None, _ -> return ()
 
+
+and m_ident_or_dyn_and_id_info_add_in_env_Expr (a1, a2) (b1, b2) =
+  (* metavar: *)
+  match a1, b1 with
+  | A.EId (str, tok), A.EId idb when MV.is_metavar_name str ->
+     (* a bit OCaml specific, cos only ml_to_generic tags id_type in pattern *)
+      let* () = m_type_option_with_hook idb !(a2.A.id_type) !(b2.B.id_type) in
+      let* () = m_id_info a2 b2 in
+      let e = B.ident_or_dynamic_to_expr b1 b2 in
+      envf (str, tok) (B.E e) (* B.E here, not B.I *)
+
+  | A.EId (str, tok), _b when MV.is_metavar_name str ->
+      let* () = m_id_info a2 b2 in
+      let e = B.ident_or_dynamic_to_expr b1 b2 in
+      envf (str, tok) (B.E e) (* B.E here, not B.I *)
+
+  | A.EId a, B.EId b ->
+      m_ident_and_id_info_add_in_env_Expr (a, a2) (b, b2)
+  (* discarding id_info *)
+  | _ -> m_ident_or_dynamic a1 b1
+
+
 (*s: function [[Generic_vs_generic.m_ident_and_id_info_add_in_env_Expr]] *)
+(* todo? should we revisit this 'add_Expr' design decision and instead try to
+ * add metavariables matching simple identifiers as a B.I in the env?
+ * see the code in m_expr.
+ *)
 and m_ident_and_id_info_add_in_env_Expr (a1, a2) (b1, b2) =
   (* metavar: *)
   match a1, b1 with
@@ -283,6 +317,8 @@ and m_ident_and_id_info_add_in_env_Expr (a1, a2) (b1, b2) =
 
   (*e: [[Generic_vs_generic.m_ident()]] regexp case *)
   (* general case *)
+  (* todo: we should check m_id_info, but anyway this function is currently
+   * a nop *)
   | (a, b) -> (m_wrap m_string) a b
 (*e: function [[Generic_vs_generic.m_ident_and_id_info_add_in_env_Expr]] *)
 
@@ -291,6 +327,12 @@ and m_ident_and_empty_id_info_add_in_env_Expr a1 b1 =
   m_ident_and_id_info_add_in_env_Expr (a1, empty) (b1, empty)
 
 (*s: function [[Generic_vs_generic.m_id_info]] *)
+(* Currently m_id_info is a Nop because the Semgrep pattern usually
+ * does not have correct name resolution (see the comment below).
+ * However, we do use id_info in equal_ast() to check
+ * whether two $X refers to the same code. In that case we are using
+ * the id_resolved tag and sid!
+ *)
 and m_id_info a b =
   match a, b with
   { A. id_resolved = _a1; id_type = _a2; id_const_literal = _a3 },
@@ -305,11 +347,7 @@ and m_id_info a b =
       * the resolved_name instead of the name used in the code
       * (which can be an alias)
       *
-      * Note that is is independent of the check done in equal_ast to check
-      * that two $X refers to the same code. In that case we are using
-      * the id_resolved tag and sid.
-      *)
-     (* old: (m_ref (m_option m_type_)) a2 b2
+      * old: (m_ref (m_option m_type_)) a2 b2
       * the same is true for types! Now we sometimes propagate type annotations
       * in Naming_AST.ml, but we do that in the source file, not the pattern,
       * which would prevent a match.
@@ -333,7 +371,7 @@ and make_dotted xs =
     let base = B.Id (x, B.empty_id_info()) in
     List.fold_left (fun acc e ->
       let tok = Parse_info.fake_info "." in
-      B.DotAccess (acc, tok, B.FId e)) base xs
+      B.DotAccess (acc, tok, B.EId e)) base xs
 (*e: function [[Generic_vs_generic.make_dotted]] *)
 
 (* possibly go deeper when someone wants that a pattern like
@@ -422,6 +460,10 @@ and m_expr a b =
   (* metavar: *)
   | A.Id ((str,tok), _id_info), e2
      when MV.is_metavar_name str ->
+      (* todo: if e2 is also an Id, maybe we should add it as a
+       * B.I instead of B.E so then we would not need those calls to
+       * m_ident_...add_in_Expr?
+       *)
       envf (str, tok) (B.E (e2))
   (*e: [[Generic_vs_generic.m_expr()]] metavariable case *)
   (*s: [[Generic_vs_generic.m_expr()]] typed metavariable case *)
@@ -542,7 +584,7 @@ and m_expr a b =
   | A.DotAccess(a1, at, a2), B.DotAccess(b1, bt, b2) ->
     m_expr a1 b1 >>= (fun () ->
     m_tok at bt >>= (fun () ->
-    m_field_ident a2 b2
+    m_ident_or_dynamic a2 b2
     ))
 
   | A.ArrayAccess(a1, a2), B.ArrayAccess(b1, b2) ->
@@ -648,19 +690,25 @@ and m_expr a b =
 (*e: function [[Generic_vs_generic.m_expr]] *)
 
 (*s: function [[Generic_vs_generic.m_field_ident]] *)
-and m_field_ident a b =
+and m_ident_or_dynamic a b =
   match a, b with
   (* boilerplate *)
-  | A.FId a, B.FId b ->
-      m_ident a b
+  | A.EId a, B.EId b ->
+      (* so that metavar as fieldnames such as this.$FUNC
+       * are added an Expr, not an Ident, so that this
+       * can be matched against method definition (which adds
+       * metavariable for method/function name in Expr, but
+       * maybe we should revisit that.
+       *)
+      m_ident_and_empty_id_info_add_in_env_Expr a b
   (*s: [[Generic_vs_generic.m_field_ident()]] boilerplate cases *)
-  | A.FName a, B.FName b ->
+  | A.EName a, B.EName b ->
       m_name a b
-  | A.FDynamic a, B.FDynamic b ->
+  | A.EDynamic a, B.EDynamic b ->
       m_expr a b
-  | A.FId _, _
-  | A.FName _, _
-  | A.FDynamic _, _
+  | A.EId _, _
+  | A.EName _, _
+  | A.EDynamic _, _
     -> fail ()
   (*e: [[Generic_vs_generic.m_field_ident()]] boilerplate cases *)
 (*e: function [[Generic_vs_generic.m_field_ident]] *)
@@ -1135,7 +1183,7 @@ and m_type_ a b =
   | A.TyBuiltin(a1), B.TyBuiltin(b1) ->
     (m_wrap m_string) a1 b1
   | A.TyFun(a1, a2), B.TyFun(b1, b2) ->
-    (m_list m_parameter_classic) a1 b1 >>= (fun () ->
+    (m_list m_parameter) a1 b1 >>= (fun () ->
     m_type_ a2 b2
     )
   | A.TyArray(a1, a2), B.TyArray(b1, b2) ->
@@ -1205,23 +1253,21 @@ and m_type_argument a b =
   match a, b with
   | A.TypeArg(a1), B.TypeArg(b1) ->
     m_type_ a1 b1
-  | A.OtherTypeArg(a1, a2), B.OtherTypeArg(b1, b2) ->
-    m_other_type_argument_operator a1 b1 >>= (fun () ->
-    (m_list m_any) a2 b2
-    )
-  | A.TypeArg _, _  | A.OtherTypeArg _, _
+  | A.TypeWildcard (a1, a2), B.TypeWildcard (b1, b2) ->
+    let* () = m_tok a1 b1 in
+    m_option m_wildcard a2 b2
+  | A.TypeArg _, _ | A.TypeWildcard _, _
    -> fail ()
 (*e: function [[Generic_vs_generic.m_type_argument]] *)
+and m_wildcard (a1, a2) (b1, b2) =
+  let* () = m_wrap m_bool a1 b1 in
+  m_type_ a2 b2
 
 (*s: function [[Generic_vs_generic.m_other_type_operator]] *)
 and m_other_type_operator = m_other_xxx
 (*e: function [[Generic_vs_generic.m_other_type_operator]] *)
-
 (*s: function [[Generic_vs_generic.m_other_type_argument_operator]] *)
-and m_other_type_argument_operator = m_other_xxx
 (*e: function [[Generic_vs_generic.m_other_type_argument_operator]] *)
-
-
 (*****************************************************************************)
 (* Attribute *)
 (*****************************************************************************)
@@ -1240,10 +1286,14 @@ and m_attribute a b =
   match a, b with
   (*s: [[Generic_vs_generic.m_attribute]] resolving alias case *)
   (* equivalence: name resolving! *)
-  | a,   B.NamedAttr (t1, _b1, { B.id_resolved =
+  | a,   B.NamedAttr (t1, b1, { B.id_resolved =
       {contents = Some ( ( B.ImportedEntity dotted
                          | B.ImportedModule (B.DottedName dotted)
                          ), _sid)}; _}, b2) ->
+    (* We also allow an unqualified pattern like @Attr to match resolved
+     * one like import org.foo.Attr; @Attr *)
+    m_attribute a (B.NamedAttr (t1, b1, B.empty_id_info(), b2))
+    >||>
     m_attribute a (B.NamedAttr (t1, dotted, B.empty_id_info(), b2))
   (*e: [[Generic_vs_generic.m_attribute]] resolving alias case *)
 
@@ -1432,10 +1482,10 @@ and m_stmt a b =
   | A.ExprStmt(A.Ellipsis _i, _), _b ->
       return ()
   (*x: [[Generic_vs_generic.m_stmt()]] ellipsis cases *)
-  | A.Return(a0, a1), B.Return(b0, b1) ->
-    m_tok a0 b0 >>= (fun () ->
-    m_option_ellipsis_ok m_expr a1 b1
-    )
+  | A.Return(a0, a1, asc), B.Return(b0, b1, bsc) ->
+    let* () = m_tok a0 b0 in
+    let* () = m_option_ellipsis_ok m_expr a1 b1 in
+    m_tok asc bsc
   (*e: [[Generic_vs_generic.m_stmt()]] ellipsis cases *)
   (*s: [[Generic_vs_generic.m_stmt()]] deep matching cases *)
   (* deeper: go deep by default implicitly (no need for explicit <... ...>) *)
@@ -1456,7 +1506,7 @@ and m_stmt a b =
       m_expr_deep a1 b1
   (*x: [[Generic_vs_generic.m_stmt()]] builtin equivalences cases *)
   (* equivalence: *)
-  | A.ExprStmt(a1, _), B.Return (_, Some b1) ->
+  | A.ExprStmt(a1, _), B.Return (_, Some b1, _) ->
      m_expr_deep a1 b1
   (*e: [[Generic_vs_generic.m_stmt()]] builtin equivalences cases *)
 
@@ -1498,14 +1548,14 @@ and m_stmt a b =
       (m_list m_case_and_body) a2 b2
       ))
 
-    | A.Continue(a0, a1), B.Continue(b0, b1) ->
-      m_tok a0 b0 >>= (fun () ->
-      m_label_ident a1 b1
-      )
-    | A.Break(a0, a1), B.Break(b0, b1) ->
-      m_tok a0 b0 >>= (fun () ->
-      m_label_ident a1 b1
-      )
+    | A.Continue(a0, a1, asc), B.Continue(b0, b1, bsc) ->
+      let* () = m_tok a0 b0 in
+      let* () = m_label_ident a1 b1 in
+      m_tok asc bsc
+    | A.Break(a0, a1, asc), B.Break(b0, b1, bsc) ->
+      let* () = m_tok a0 b0 in
+      let* () = m_label_ident a1 b1 in
+      m_tok asc bsc
     | A.Label(a1, a2), B.Label(b1, b2) ->
       m_label a1 b1 >>= (fun () ->
       m_stmt a2 b2
@@ -1514,21 +1564,20 @@ and m_stmt a b =
       m_tok a0 b0 >>= (fun () ->
       m_label a1 b1
       )
-    | A.Throw(a0, a1), B.Throw(b0, b1) ->
-      m_tok a0 b0 >>= (fun () ->
-      m_expr a1 b1
-      )
+    | A.Throw(a0, a1, asc), B.Throw(b0, b1, bsc) ->
+      let* () = m_tok a0 b0 in
+      let* () = m_expr a1 b1 in
+      m_tok asc bsc
     | A.Try(a0, a1, a2, a3), B.Try(b0, b1, b2, b3) ->
-      m_tok a0 b0 >>= (fun () ->
-      m_stmt a1 b1 >>= (fun () ->
-      (m_list m_catch) a2 b2 >>= (fun () ->
+      let* () = m_tok a0 b0 in
+      let* () = m_stmt a1 b1 in
+      let* () = (m_list m_catch) a2 b2 in
       (m_option m_finally) a3 b3
-      )))
-    | A.Assert(a0, a1, a2), B.Assert(b0, b1, b2) ->
-      m_tok a0 b0 >>= (fun () ->
-      m_expr a1 b1 >>= (fun () ->
-      (m_option m_expr) a2 b2
-      ))
+    | A.Assert(a0, a1, a2, asc), B.Assert(b0, b1, b2, bsc) ->
+      let* () = m_tok a0 b0 in
+      let* () = m_expr a1 b1 in
+      let* () = (m_option m_expr) a2 b2 in
+      m_tok asc bsc
 
     | A.OtherStmt(a1, a2), B.OtherStmt(b1, b2) ->
       m_other_stmt_operator a1 b1 >>= (fun () ->
@@ -1783,7 +1832,7 @@ and m_entity a b =
    *)
   { A. name = a1; attrs = a2; tparams = a4; info = a5 },
   { B. name = b1; attrs = b2; tparams = b4; info = b5 } ->
-    m_ident_and_id_info_add_in_env_Expr (a1, a5) (b1, b5) >>= (fun () ->
+    m_ident_or_dyn_and_id_info_add_in_env_Expr (a1, a5) (b1, b5) >>= (fun () ->
     (m_list_in_any_order ~less_is_ok:true m_attribute a2 b2) >>= (fun () ->
     (m_list m_type_parameter) a4 b4
     ))
@@ -1797,7 +1846,7 @@ and m_definition_kind a b =
     m_function_definition a1 b1
   | A.VarDef(a1), B.VarDef(b1) ->
     m_variable_definition a1 b1
-  | A.FieldDef(a1), B.FieldDef(b1) ->
+  | A.FieldDefColon(a1), B.FieldDefColon(b1) ->
     m_variable_definition a1 b1
   | A.ClassDef(a1), B.ClassDef(b1) ->
     m_class_definition a1 b1
@@ -1815,7 +1864,7 @@ and m_definition_kind a b =
   | A.FuncDef _, _ | A.VarDef _, _  | A.ClassDef _, _  | A.TypeDef _, _
   | A.ModuleDef _, _  | A.MacroDef _, _  | A.Signature _, _
   | A.UseOuterDecl _, _
-  | A.FieldDef _, _
+  | A.FieldDefColon _, _
   | A.OtherDef _, _
    -> fail ()
   (*e: [[Generic_vs_generic.m_definition_kind]] boilerplate cases *)
@@ -1877,6 +1926,12 @@ and m_parameter a b =
   (* boilerplate *)
   | A.ParamClassic(a1), B.ParamClassic(b1) ->
     m_parameter_classic a1 b1
+  | A.ParamRest(a1, a2), B.ParamRest(b1, b2) ->
+    let* () = m_tok a1 b1 in
+    m_parameter_classic a2 b2
+  | A.ParamHashSplat(a1, a2), B.ParamHashSplat(b1, b2) ->
+    let* () = m_tok a1 b1 in
+    m_parameter_classic a2 b2
   (*s: [[Generic_vs_generic.m_parameter]] boilerplate cases *)
   | A.ParamPattern(a1), B.ParamPattern(b1) ->
     m_pattern a1 b1
@@ -1887,6 +1942,7 @@ and m_parameter a b =
   | A.ParamEllipsis(a1), B.ParamEllipsis(b1) ->
     m_tok a1 b1
   | A.ParamClassic _, _  | A.ParamPattern _, _
+  | A.ParamRest _, _ | A.ParamHashSplat _, _
   | A.ParamEllipsis _, _
   | A.OtherParam _, _
    -> fail ()
@@ -1987,7 +2043,7 @@ and m_list__m_field (xsa: A.field list) (xsb: A.field list) =
       raise Impossible
   (*e: [[Generic_vs_generic.m_list__m_field()]] ellipsis cases *)
   (*s: [[Generic_vs_generic.m_list__m_field()]] [[DefStmt]] pattern case *)
-  | (A.FieldStmt (A.DefStmt (({A.name = (s1, _); _}, _) as adef)) as a)::xsa,
+  | (A.FieldStmt (A.DefStmt (({A.name = A.EId (s1, _); _}, _) as adef)) as a)::xsa,
      xsb ->
      (*s: [[Generic_vs_generic.m_list__m_field()]] in [[DefStmt]] case if metavar field *)
      if MV.is_metavar_name s1 || Matching_generic.is_regexp_string s1
@@ -2006,7 +2062,7 @@ and m_list__m_field (xsa: A.field list) (xsb: A.field list) =
      else
       (try
         let (before, there, after) = xsb |> Common2.split_when (function
-            | (A.FieldStmt (A.DefStmt ({B.name = (s2, _tok); _}, _)))
+            | (A.FieldStmt (A.DefStmt ({B.name = B.EId (s2, _tok); _}, _)))
                 when s2 = s1 -> true
             | _ -> false
         ) in
@@ -2036,16 +2092,10 @@ and m_field a b =
   | A.FieldStmt(a1), B.FieldStmt(b1) ->
     m_stmt a1 b1
   (*s: [[Generic_vs_generic.m_field]] boilerplate cases *)
-  | A.FieldDynamic(a1, a2, a3), B.FieldDynamic(b1, b2, b3) ->
-    m_expr a1 b1 >>= (fun () ->
-    m_list_in_any_order ~less_is_ok:true m_attribute a2 b2 >>= (fun () ->
-    m_expr a3 b3
-    ))
   | A.FieldSpread(a0, a1), B.FieldSpread(b0, b1) ->
     m_tok a0 b0 >>= (fun () ->
     m_expr a1 b1
     )
-  | A.FieldDynamic _, _
   | A.FieldSpread _, _ | A.FieldStmt _, _
    -> fail ()
   (*e: [[Generic_vs_generic.m_field]] boilerplate cases *)
@@ -2135,14 +2185,18 @@ and m_list__m_type_ (xsa: A.type_ list) (xsb: A.type_ list) =
   xsa xsb
 (*e: function [[Generic_vs_generic.m_list__m_type_]] *)
 
+and m_list__m_type_any_order (xsa: A.type_ list) (xsb: A.type_ list) =
+  (* TODO? filter existing ellipsis?
+   * let _has_ellipsis, xsb = has_ellipis_and_filter_ellispis xsb in *)
+   (* always implicit ... *)
+   m_list_in_any_order ~less_is_ok:true m_type_ xsa xsb
+
 (* ------------------------------------------------------------------------- *)
 (* Class definition *)
 (* ------------------------------------------------------------------------- *)
 (* TODO: there are a few remaining m_list m_type_ we could transform
  * to use instead m_list__m_type_, for Exception, TyTuple and OrConstructor
  * but maybe quite different from list of types in inheritance
- * TODO again like for m_list__m_field we should not care about the
- * order here.
  *)
 
 (*s: function [[Generic_vs_generic.m_class_definition]] *)
@@ -2155,9 +2209,10 @@ and m_class_definition a b =
       cmixins = b5;
     } ->
     m_class_kind a1 b1 >>= (fun () ->
+    (* TODO: use also m_list_in_any_order? regressions for python? *)
     (m_list__m_type_) a2 b2 >>= (fun () ->
-    (m_list__m_type_) a3 b3 >>= (fun () ->
-    (m_list__m_type_) a5 b5 >>= (fun () ->
+    (m_list__m_type_any_order) a3 b3 >>= (fun () ->
+    (m_list__m_type_any_order) a5 b5 >>= (fun () ->
     m_bracket (m_fields) a4 b4
     ))))
 (*e: function [[Generic_vs_generic.m_class_definition]] *)
@@ -2383,12 +2438,12 @@ and m_any a b =
     m_ident a1 b1
   | A.Lbli(a1), B.Lbli(b1) ->
     m_label_ident a1 b1
-  | A.Fldi(a1), B.Fldi(b1) ->
-    m_field_ident a1 b1
+  | A.IoD(a1), B.IoD(b1) ->
+    m_ident_or_dynamic a1 b1
   | A.I _, _  | A.N _, _  | A.Modn _, _ | A.Di _, _  | A.En _, _  | A.E _, _
   | A.S _, _  | A.T _, _  | A.P _, _  | A.Def _, _  | A.Dir _, _
   | A.Pa _, _  | A.Ar _, _  | A.At _, _  | A.Dk _, _ | A.Pr _, _
-  | A.Fld _, _ | A.Ss _, _ | A.Tk _, _ | A.Lbli _, _ | A.Fldi _, _
+  | A.Fld _, _ | A.Ss _, _ | A.Tk _, _ | A.Lbli _, _ | A.IoD _, _
   | A.ModDk _, _ | A.TodoK _, _ | A.Partial _, _
    -> fail ()
   (*e: [[Generic_vs_generic.m_any]] boilerplate cases *)

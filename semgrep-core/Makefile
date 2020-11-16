@@ -15,12 +15,15 @@ TREESITTER_LIBDIR ?= $(shell pkg-config --libs-only-L tree-sitter \
 export TREESITTER_LIBDIR
 
 all:
-	./scripts/make-version > ./bin/version.ml
+	./scripts/make-version > ./cli/version.ml
 	dune build
 	dune build ./_build/default/tests/test.bc
 clean:
 	dune clean
-test:
+# I put all as a dependency because sometimes you modify a test file
+# and dune runtest -f does not see this new file, probably because
+# the cached file under _build/.../tests/ is still the old one.
+test: all
 	dune runtest -f
 e2etest:
 	python3 tests/e2e/test_target_file.py
@@ -49,7 +52,7 @@ merge:
 check:
 	@semgrep --version
 	@semgrep-core -version
-	semgrep --config ../semgrep.yml --error --strict --exclude tests ..
+	semgrep --config ../semgrep.yml --config p/ocaml --error --strict --verbose --exclude tests ..
 
 index:
 	codegraph_build -lang cmt -derived_data .

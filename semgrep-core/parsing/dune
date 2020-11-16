@@ -1,16 +1,19 @@
 (library
- (public_name semgrep_parsing)
+ (name semgrep_parsing)
  (wrapped false)
  (libraries
    yaml
 
    tree-sitter-lang.ruby
    tree-sitter-lang.java
+   tree-sitter-lang.kotlin
    tree-sitter-lang.go
    tree-sitter-lang.csharp
    tree-sitter-lang.javascript
    tree-sitter-lang.typescript
    tree-sitter-lang.tsx
+   tree-sitter-lang.c
+   tree-sitter-lang.cpp
 
    commons commons_core
    pfff-config
@@ -21,7 +24,6 @@
    pfff-lang_go pfff-lang_go-analyze
    pfff-lang_js pfff-lang_js-analyze
 
-   semgrep_utils
    semgrep_core
  )
  (preprocess (pps ppx_profiling ppx_sexp_conv ppx_deriving.show))

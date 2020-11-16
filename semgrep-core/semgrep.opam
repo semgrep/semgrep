@@ -15,18 +15,23 @@ dev-repo: "git+https://github.com/returntocorp/semgrep"
 bug-reports: "https://github.com/returntocorp/semgrep/issues"
 
 depends: [
-  "dune"
+  "dune" {>= "2.7.0" }
+  "bisect_ppx" {dev & >= "2.5.0"}
+  "easy_logging_yojson"
   "ocamlgraph"
   "yojson"
   "yaml"
-  "easy_logging_yojson"
-  "grain_dypgen"
   "menhir"
+  "grain_dypgen"
   "uucp"
   "uutf"
   "re"
-  "dune-glob"
   "parmap"
+  "lsp"
 ]
 
 build: [make]
+
+pin-depends: [
+  ["bisect_ppx.git" "git+https://github.com/aantron/bisect_ppx.git"]
+]

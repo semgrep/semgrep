@@ -1,0 +1,78 @@
+(*
+   Type definitions for json communication with semgrep.
+
+   Inferred from JSON_report.ml in semgrep-core.
+*)
+
+type match_results = {
+  matches: match_ list;
+  errors: error list;
+  stats: stats;
+}
+
+type stats = {
+  okfiles: int;
+  errorfiles: int;
+}
+
+type match_ = {
+  ?check_id: string option; (* rule ID *)
+  path: string; (* source file *)
+  start: position;
+  end_ <json name="end">: position;
+  extra: match_extra;
+}
+
+(* See R2c.ml in semgrep-core *)
+type error = {
+  ?check_id: string option;
+  path: string;
+  start: position;
+  end_ <json name="end">: position;
+  extra: error_extra;
+}
+
+type position = {
+  line: int; (* starts from 1 *)
+  col: int; (* starts from 1 *)
+  offset: int; (* byte position from the beginning of the file, starts at 0 *)
+}
+
+type match_extra = {
+  ?message: string option; (* rule.message (?) *)
+
+  (*
+     name/value map of the matched metavariables.
+     The leading '$' must be included in the metavariable name.
+  *)
+  metavars: (string * metavar_value) list <json repr="object">;
+
+  lines: string list; (* the matching region, split at lines boundaries *)
+}
+
+type error_extra = {
+  message: string;
+  line: string;
+}
+
+type metavar_value = {
+  start: position;
+  end_ <json name="end">: position;
+  abstract_content: string; (* value? *)
+  unique_id: unique_id;
+}
+
+(*
+   This is just the variant for type=AST.
+   In order to accommodate two record types into one variant, use
+   the atdgen feature called a json adapter.
+*)
+type unique_id = {
+  type_ <json name="type">: unique_id_type;
+  md5sum: string;
+}
+
+type unique_id_type = [
+(*  | ID <json name="id"> *) (* variant not supported at the moment *)
+  | AST
+]

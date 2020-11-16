@@ -1,0 +1,14 @@
+class Foo {
+  void bar () {
+    //ERROR:
+    foo("whatever sequence of chars");
+
+    //ERROR:
+    foo("abc", "def");  // generic mode doesn't understand strings.
+
+    //ERROR:
+    foo("hello \"world\"");
+
+    foo("broken);
+  }
+}

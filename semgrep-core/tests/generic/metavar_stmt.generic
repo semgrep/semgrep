@@ -1,0 +1,29 @@
+class Foo {
+  void foo() {
+    v = 1;
+
+    //ERROR:
+    if (v > 2)
+      return 1;
+
+    //ERROR:
+    if (v > 2)
+      x++;
+
+    // If the pattern contains an indented block, it must match an indented
+    // block in the program. Usually, indentation in the pattern is
+    // best avoided.
+    //
+    if (v > 2) return 1;
+
+    // Another tricky case that doesn't match. This is due to indentation
+    // in the pattern after the closing parenthesis ')', but no indentation
+    // in the program between ')' and '{'.
+    //
+    if (v > 2) {
+      x++;
+    }
+
+    return 0;
+  }
+}

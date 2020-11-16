@@ -2,12 +2,110 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## Next
 
-## Next version
+## [0.31.1](https://github.com/returntocorp/semgrep/releases/tag/v0.31.1) - 2020-11-11
+
+### Fixed
+
+- Regression in 0.31.0 where only a single file was being used when `--config`
+  was given a directory with multiple rules (#2019).
+
+## [0.31.0](https://github.com/returntocorp/semgrep/releases/tag/v0.31.0) - 2020-11-10
+
+### Fixed
+
+- Gracefully handle empty configuration file.
+- Gracefully handle LexicalErrors from semgrep-core.
+- Fix stack overflows in spacegrep on large input files (#1944).
+- Fix extension-based file selection when the language is `generic` (#1968).
+- Fix semgrep error when no valid config on path provided (#1912).
+- Fix NO_FILE_INFO_YET error which causes the python wrapper to crash (#1925).
+- Fix usage of '...' in special builtin arguments for PHP (#1963).
+- Fix automatic semicolon insertion parse error in javascript (#1960).
 
 ### Added
-- Added matching with partial patterns for function signatures or class headers
-  for Javascript/Typescript.
+- kotlin-tree-sitter integration into semgrep-core. Can now call
+  dump-tree-sitter-cst on kotlin files.
+- c++ tree-sitter integration into semgrep-core (#1952).
+- More documents for language porting.
+- Error handling in spacegrep to print stderr when CalledProcessError occurs.
+
+## [0.30.0](https://github.com/returntocorp/semgrep/releases/tag/v0.30.0) - 2020-11-03
+
+### Added
+
+- Better examples for the generic mode aka spacegrep (#1951).
+
+### Fixed
+
+- Fix matching of trailing dots in spacegrep (#1939).
+- Allow matching on one-line files with spacegrep (#1929).
+- Fix incorrect number of lines matched by dots with spacegrep (#1918).
+- Other subtle spacegrep matching bugs (#1913).
+- Metavariable for method call should be matched against corresponding
+  metavariable in method definition (#1861).
+- Typescript class properties/declarations not recognized (#1846).
+- Can't match inside Python try/except clause (#1902).
+
+## [0.29.0](https://github.com/returntocorp/semgrep/releases/tag/v0.29.0) - 2020-10-27
+
+### Added
+- Semgrep will now partially parse files with parse errors and report findings detected before the parse errors was encountered.
+- Allow user to specify registry path without having to add semgrep.dev url
+  i.e.: instead of `--config https://semgrep.dev/p/r2c-ci` users can use `--config p/r2c-ci`
+- Allow user to specify snippet id without having to add semgrep.dev url
+  i.e.: instead of `--config https://semgrep.dev/s/username:snippetname`
+  users can use `--config username:snippetname`
+- `--test` will now error out if `ruleid` or `ok` is not in reported IDs
+- Semgrep will run JavaScript rules on TypeScript files automatically.
+
+### Fixed
+- More off by one fixes in autofix
+- Support for matching dynamic class names in Ruby
+- Removed `nosem` findings from the final findings count
+- Matching nested JSX elements works properly. See https://semgrep.dev/s/erlE?version=0.29.0.
+- Can now match partial class definitions with annotations in Java. See https://github.com/returntocorp/semgrep/issues/1877.
+- Fixed errors in TypeScript "implements" keyword. See https://github.com/returntocorp/semgrep/issues/1850.
+
+## [0.28.0](https://github.com/returntocorp/semgrep/releases/tag/v0.28.0) - 2020-10-21
+
+### Added
+
+- A `metavariable-comparison` operator
+  for evaluating numeric comparisons on metavariable values,
+  such as `comparison: $KEY_SIZE < 2048`.
+  This is a safe alternative to `pattern-where-python` snippets.
+  Check the [full documentation of this feature](https://github.com/returntocorp/semgrep/blob/12d25a5c/docs/experimental.md#metavariable-comparison)!
+- Matching 1-to-N attributes with a `...` wildcard
+  in JSX tags' attribute lists,
+  such as `<$TAG attr="1" ... />`
+- Matching only the function signature
+  without the function body,
+  such as `function foo(...)`.
+  This is useful to have cleaner match output
+  when the body content doesn't matter in a rule.
+  This works on JavaScript, TypeScript, and Java code currently.
+- SARIF output now includes the exact CWE and OWASP categories as tags.
+  Thanks @hunt3rkillerz!
+- Matching of annotation patterns for Java (like `@SomeAnnot(...)`) in any context.
+
+### Fixed
+
+- PHP superglobals such as `$_GET`,
+  which start with a dollar sign just like Semgrep metavariables,
+  are now correctly interpreted as PHP code instead of Semgrep pattern code.
+- Calls to `isset(...)` in PHP look like function calls,
+  but technically are not functions calls.
+  Now you can match them anyway!
+- It's now possible to write unit tests for OCaml rules.
+- JavaScript's special identifiers,
+  such as `this`, can now be captured into a metavariable.
+- A Java pattern for `implements B`
+  will now also match code that does `implements A, B, C`.
+- Addressed off by one errors when applying autofixes
+- Missing characters in metavariable interpolation in messages
+- And many more minor code parser fixes!
 
 ## [0.27.0](https://github.com/returntocorp/semgrep/releases/tag/v0.27.0) - 2020-10-06
 

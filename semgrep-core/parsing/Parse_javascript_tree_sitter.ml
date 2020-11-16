@@ -137,12 +137,12 @@ let regex_flags (env : env) (tok : CST.regex_flags) =
 
 let string_ (env : env) (x : CST.string_) : string wrap =
   (match x with
-  | `DQUOT_rep_choice_imm_tok_pat_de5d470_DQUOT (v1, v2, v3) ->
+  | `DQUOT_rep_choice_imm_tok_pat_3f3cd4d_DQUOT (v1, v2, v3) ->
       let v1 = token env v1 (* "\"" *) in
       let v2 =
         List.map (fun x ->
           (match x with
-          | `Imm_tok_pat_de5d470 tok ->
+          | `Imm_tok_pat_3f3cd4d tok ->
               str env tok (* pattern "[^\"\\\\\\n]+|\\\\\\r?\\n" *)
           | `Esc_seq tok -> str env tok (* escape_sequence *)
           )
@@ -152,12 +152,12 @@ let string_ (env : env) (x : CST.string_) : string wrap =
       let str = v2 |> List.map fst |> String.concat "" in
       let toks = (v2 |> List.map snd) @ [v3] in
       str, PI.combine_infos v1 toks
-  | `SQUOT_rep_choice_imm_tok_pat_3e57880_SQUOT (v1, v2, v3) ->
+  | `SQUOT_rep_choice_imm_tok_pat_a3af5dd_SQUOT (v1, v2, v3) ->
       let v1 = token env v1 (* "'" *) in
       let v2 =
         List.map (fun x ->
           (match x with
-          | `Imm_tok_pat_3e57880 tok ->
+          | `Imm_tok_pat_a3af5dd tok ->
               str env tok (* pattern "[^'\\\\\\n]+|\\\\\\r?\\n" *)
           | `Esc_seq tok -> str env tok (* escape_sequence *)
           )
@@ -442,6 +442,9 @@ and jsx_child (env : env) (x : CST.jsx_child) : xml_body =
   | `Jsx_exp x ->
         let (_, e, _) = jsx_expression env x in
         XmlExpr e
+  | `Jsx_frag x ->
+        let xml = jsx_fragment env x in
+        XmlXml xml
   )
 
 and jsx_element_ (env : env) (x : CST.jsx_element_) : xml =
@@ -804,7 +807,7 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
         (match v4 with
         | `Exp x ->
                 let e = expression env x in
-                Return (v3, Some e)
+                Return (v3, Some e, G.sc)
         | `Stmt_blk x -> statement_block env x
         )
       in
@@ -1296,8 +1299,8 @@ and statement (env : env) (x : CST.statement) : stmt list =
         | Some tok -> Some (identifier env tok) (* identifier *)
         | None -> None)
       in
-      let _v3 = semicolon env v3 in
-      [Break (v1, v2)]
+      let v3 = semicolon env v3 in
+      [Break (v1, v2, v3)]
   | `Cont_stmt (v1, v2, v3) ->
       let v1 = token env v1 (* "continue" *) in
       let v2 =
@@ -1305,8 +1308,8 @@ and statement (env : env) (x : CST.statement) : stmt list =
         | Some tok -> Some (identifier env tok) (* identifier *)
         | None -> None)
       in
-      let _v3 = semicolon env v3 in
-      [Continue (v1, v2)]
+      let v3 = semicolon env v3 in
+      [Continue (v1, v2, v3)]
   | `Ret_stmt (v1, v2, v3) ->
       let v1 = token env v1 (* "return" *) in
       let v2 =
@@ -1314,13 +1317,13 @@ and statement (env : env) (x : CST.statement) : stmt list =
         | Some x -> Some (expressions env x)
         | None -> None)
       in
-      let _v3 = semicolon env v3 in
-      [Return (v1, v2)]
+      let v3 = semicolon env v3 in
+      [Return (v1, v2, v3)]
   | `Throw_stmt (v1, v2, v3) ->
       let v1 = token env v1 (* "throw" *) in
       let v2 = expressions env v2 in
-      let _v3 = semicolon env v3 in
-      [Throw (v1, v2)]
+      let v3 = semicolon env v3 in
+      [Throw (v1, v2, v3)]
   | `Empty_stmt tok ->
         [empty_stmt env tok (* ";" *)]
   | `Labe_stmt (v1, v2, v3) ->
@@ -1444,15 +1447,17 @@ and export_statement (env : env) (x : CST.export_statement) : toplevel list =
       in
       v2
   | `Rep_deco_export_choice_decl (v1, v2, v3) ->
-      let _v1TODO = List.map (decorator env) v1 in
+      let v1 = List.map (decorator env) v1 in
       let tok = token env v2 (* "export" *) in
       let v3 =
         (match v3 with
         | `Decl x ->
             let defs = declaration env x in
             defs |> List.map (fun def ->
-              let n = (fst def).name in
-              [DefStmt def; M (Export (tok, n))]
+              let (ent, defkind) = def in
+              let n = ent.name in
+              let ent = { ent with attrs = ent.attrs @ v1 } in
+              [DefStmt (ent, defkind); M (Export (tok, n))]
             ) |> List.flatten
         | `Defa_exp_choice_auto_semi (v1, v2, v3) ->
             let v1 = token env v1 (* "default" *) in
@@ -1598,7 +1603,7 @@ and anon_choice_pair_bc93fa1 (env : env) (x : CST.anon_choice_pair_bc93fa1) : pr
       let _v2 = token env v2 (* ":" *) in
       let v3 = expression env v3 in
       let ty = None in
-      Field {fld_name = v1; fld_attrs = []; fld_type = ty; fld_body = Some v3}
+      FieldColon {fld_name = v1; fld_attrs = []; fld_type = ty; fld_body = Some v3}
   | `Spread_elem x ->
         let (t, e) = spread_element env x in
         FieldSpread (t, e)
@@ -1607,7 +1612,7 @@ and anon_choice_pair_bc93fa1 (env : env) (x : CST.anon_choice_pair_bc93fa1) : pr
   | `Choice_id x ->
         let id = anon_choice_id_0e3c97f env x in
         let ty = None in
-        Field {fld_name = PN id; fld_attrs = []; fld_type = ty;
+        FieldColon {fld_name = PN id; fld_attrs = []; fld_type = ty;
                fld_body =  Some (idexp id) }
 
   | `Assign_pat x ->
@@ -1665,7 +1670,7 @@ and declaration (env : env) (x : CST.declaration) : definition list =
         | None -> None)
       in
       let f = { f_attrs = v1; f_params = v4; f_body = v5; f_rettype = None } in
-      [{ name = v3 }, FuncDef f]
+      [basic_entity v3, FuncDef f]
 
   | `Gene_func_decl (v1, v2, v3, v4, v5, v6, v7) ->
       let v1 =
@@ -1685,7 +1690,7 @@ and declaration (env : env) (x : CST.declaration) : definition list =
       in
       let f = { f_attrs = v1 @ v3; f_params = v5; f_body = v6;
                 f_rettype = None } in
-      [ { name = v4 }, FuncDef f ]
+      [ basic_entity v4, FuncDef f ]
 
   | `Class_decl (v1, v2, v3, v4, v5, v6) ->
       let v1 = List.map (decorator env) v1 in
@@ -1705,7 +1710,7 @@ and declaration (env : env) (x : CST.declaration) : definition list =
       let c = { c_kind = G.Class, v2; c_attrs = v1;
                 c_extends = v4; c_implements = [];
                 c_body = v5; } in
-      [ { name = v3 }, ClassDef c ]
+      [ basic_entity v3, ClassDef c ]
 
   | `Lexi_decl x ->
         let vars = lexical_declaration env x in
@@ -1758,12 +1763,12 @@ let program (env : env) ((v1, v2) : CST.program) : program =
 (* Entry point *)
 (*****************************************************************************)
 let parse file =
- H.convert_tree_sitter_exn_to_pfff_exn (fun () ->
-  let ast =
-    Parallel.backtrace_when_exn := false;
-    Parallel.invoke Tree_sitter_javascript.Parse.file file ()
-  in
-  let env = { H.file; conv = H.line_col_to_pos file } in
-
-  program env ast
- )
+  H.wrap_parser
+    (fun () ->
+       Parallel.backtrace_when_exn := false;
+       Parallel.invoke Tree_sitter_javascript.Parse.file file ()
+    )
+    (fun ast ->
+       let env = { H.file; conv = H.line_col_to_pos file } in
+       program env ast
+    )

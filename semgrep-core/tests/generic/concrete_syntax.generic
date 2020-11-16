@@ -1,0 +1,23 @@
+// Generic mode sees words, punctuation, and indented blocks.
+class Foo {
+  void foo() {
+    //ERROR:
+    foo(1,2);
+
+    //ERROR:
+    foo(1,
+        2);  // whitespace is ignored.
+
+    foo (1,  // comments aren't ignored :-(
+         2);
+
+    foo (1,
+  2);  // nonsensical indentation.
+
+    //ERROR:
+    foo (1,
+    2);  // acceptable indentation.
+
+    foo(2,1);
+  }
+}

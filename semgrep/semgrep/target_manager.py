@@ -16,6 +16,7 @@ import attr
 from semgrep.error import _UnknownLanguageError
 from semgrep.error import FilesNotFoundError
 from semgrep.output import OutputHandler
+from semgrep.semgrep_types import GENERIC_LANGUAGE
 from semgrep.semgrep_types import Language
 from semgrep.semgrep_types import NONE_LANGUAGE
 from semgrep.util import partition_set
@@ -23,30 +24,38 @@ from semgrep.util import sub_check_output
 
 FileExtension = NewType("FileExtension", str)
 
-
-PYTHON_EXTENSIONS = [FileExtension("py"), FileExtension("pyi")]
-JAVASCRIPT_EXTENSIONS = [FileExtension("js"), FileExtension("jsx")]
-TYPESCRIPT_EXTENSIONS = [FileExtension("ts"), FileExtension("tsx")]
-JAVA_EXTENSIONS = [FileExtension("java")]
-C_EXTENSIONS = [FileExtension("c")]
-GO_EXTENSIONS = [FileExtension("go")]
-RUBY_EXTENSIONS = [FileExtension("rb")]
-PHP_EXTENSIONS = [FileExtension("php")]
+PYTHON_EXTENSIONS = [FileExtension(".py"), FileExtension(".pyi")]
+JAVASCRIPT_EXTENSIONS = [FileExtension(".js"), FileExtension(".jsx")]
+TYPESCRIPT_EXTENSIONS = [FileExtension(".ts"), FileExtension(".tsx")]
+JAVA_EXTENSIONS = [FileExtension(".java")]
+C_EXTENSIONS = [FileExtension(".c")]
+GO_EXTENSIONS = [FileExtension(".go")]
+RUBY_EXTENSIONS = [FileExtension(".rb")]
+PHP_EXTENSIONS = [FileExtension(".php")]
 ML_EXTENSIONS = [
-    FileExtension("mli"),
-    FileExtension("ml"),
+    FileExtension(".mli"),
+    FileExtension(".ml"),
 ]
-JSON_EXTENSIONS = [FileExtension("json")]
+JSON_EXTENSIONS = [FileExtension(".json")]
+
+# This is used to determine the set of files with known extensions,
+# i.e. those for which we have a proper parser.
 ALL_EXTENSIONS = (
     PYTHON_EXTENSIONS
     + JAVASCRIPT_EXTENSIONS
+    + TYPESCRIPT_EXTENSIONS
     + JAVA_EXTENSIONS
     + C_EXTENSIONS
     + GO_EXTENSIONS
+    + RUBY_EXTENSIONS
     + ML_EXTENSIONS
     + JSON_EXTENSIONS
 )
 
+# This is used to select the files suitable for spacegrep, which is
+# all of them. It is spacegrep itself that will detect and ignore binary
+# files.
+GENERIC_EXTENSIONS = [FileExtension("")]
 
 def lang_to_exts(language: Language) -> List[FileExtension]:
     """
@@ -75,8 +84,8 @@ def lang_to_exts(language: Language) -> List[FileExtension]:
         return PHP_EXTENSIONS
     elif language in {"json", "JSON", "Json"}:
         return JSON_EXTENSIONS
-    elif language in {NONE_LANGUAGE}:
-        return [FileExtension("*")]
+    elif language in {NONE_LANGUAGE, GENERIC_LANGUAGE}:
+        return GENERIC_EXTENSIONS
     else:
         raise _UnknownLanguageError(f"Unsupported Language: {language}")
 
@@ -161,7 +170,7 @@ class TargetManager:
             """
                 Return set of all files in curr_dir with given extension
             """
-            return set(p for p in curr_dir.rglob(f"*.{extension}") if p.is_file())
+            return set(p for p in curr_dir.rglob(f"*{extension}") if p.is_file())
 
         extensions = lang_to_exts(language)
         expanded: Set[Path] = set()
@@ -171,7 +180,7 @@ class TargetManager:
                 try:
                     # Tracked files
                     tracked_output = sub_check_output(
-                        ["git", "ls-files", f"*.{ext}"],
+                        ["git", "ls-files", f"*{ext}"],
                         cwd=curr_dir.resolve(),
                         encoding="utf-8",
                         stderr=subprocess.DEVNULL,
@@ -184,7 +193,7 @@ class TargetManager:
                             "ls-files",
                             "--other",
                             "--exclude-standard",
-                            f"*.{ext}",
+                            f"*{ext}",
                         ],
                         cwd=curr_dir.resolve(),
                         encoding="utf-8",
@@ -192,7 +201,7 @@ class TargetManager:
                     )
 
                     deleted_output = sub_check_output(
-                        ["git", "ls-files", "--deleted", f"*.{ext}"],
+                        ["git", "ls-files", "--deleted", f"*{ext}"],
                         cwd=curr_dir.resolve(),
                         encoding="utf-8",
                         stderr=subprocess.DEVNULL,
@@ -293,7 +302,7 @@ class TargetManager:
         explicit_files_with_lang_extension = set(
             f
             for f in explicit_files
-            if (any(f.match(f"*.{ext}") for ext in lang_to_exts(lang)))
+            if (any(f.match(f"*{ext}") for ext in lang_to_exts(lang)))
         )
         targets = targets.union(explicit_files_with_lang_extension)
 
@@ -301,7 +310,7 @@ class TargetManager:
             explicit_files_with_unknown_extensions = set(
                 f
                 for f in explicit_files
-                if not any(f.match(f"*.{ext}") for ext in ALL_EXTENSIONS)
+                if not any(f.match(f"*{ext}") for ext in ALL_EXTENSIONS)
             )
             targets = targets.union(explicit_files_with_unknown_extensions)
 

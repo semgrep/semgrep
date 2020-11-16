@@ -62,14 +62,14 @@ def cli() -> None:
         help=(
             "YAML configuration file, directory of YAML files ending in "
             ".yml|.yaml, URL of a configuration file, or semgrep registry entry "
-            "name. See https://github.com/returntocorp/semgrep/blob/develop/docs/configuration-files.md for information on configuration file format."
+            "name. See https://semgrep.dev/docs/writing-rules/rule-syntax for information on configuration file format."
         ),
     )
 
     config_ex.add_argument(
         "-e",
         "--pattern",
-        help="Code search pattern. See https://github.com/returntocorp/semgrep/blob/develop/docs/pattern-features.md for information on pattern features.",
+        help="Code search pattern. See https://semgrep.dev/docs/writing-rules/pattern-syntax for information on pattern features.",
     )
     config.add_argument(
         "-l",
@@ -102,14 +102,32 @@ def cli() -> None:
         "--include",
         action="append",
         default=[],
-        help="Scan only files or directories that match this pattern; --include='*.jsx' will scan"
-        " the following: foo.jsx, src/foo.jsx, foo.jsx/bar.sh. --include='src' will scan src/foo.py"
-        " as well as a/b/src/c/foo.py. Can add multiple times.",
+        help="Filter files or directories by path. The argument is a"
+        " glob-style pattern such as 'foo.*' that must match the path."
+        " This is an extra filter in addition to other applicable filters."
+        " For example, specifying the language with '-l javascript' might"
+        " preselect files 'src/foo.jsx' and 'lib/bar.js'. Specifying one of"
+        " '--include=src', '--include=*.jsx', or '--include=src/foo.*'"
+        " will restrict the selection to the single file 'src/foo.jsx'."
+        " A choice of multiple '--include' patterns can be specified."
+        " For example, '--include=foo.* --include=bar.*' will select"
+        " both 'src/foo.jsx' and 'lib/bar.js'."
+        " Glob-style patterns follow the syntax supported by python,"
+        " which is documented at https://docs.python.org/3/library/glob.html",
     )
     parser.add_argument(
         "--no-git-ignore",
         action="store_true",
-        help="Scan all files even those ignored by a projects gitignore(s)",
+        help="Don't skip files ignored by git."
+        " Scanning starts from the root folder specified on the semgrep"
+        " command line."
+        " Normally, if the scanning root is within a git repository, "
+        " only the tracked files and the new files"
+        " would be scanned. Git submodules and git-ignored files would"
+        " normally be skipped."
+        " This option will disable git-aware filtering."
+        " Setting this flag does nothing if the scanning root is not"
+        " in a git repository.",
     )
     parser.add_argument(
         "--skip-unknown-extensions",
@@ -173,8 +191,7 @@ def cli() -> None:
         "--quiet",
         action="store_true",
         help=(
-            "Do not print anything to stdout. Search results can still be "
-            "saved to an output file specified by -o/--output. Exit code "
+            "Do not print any logging messages to stderr. Finding output will still be sent to stdout. Exit code "
             "provides success status."
         ),
     )
@@ -199,6 +216,13 @@ def cli() -> None:
     )
     output.add_argument(
         "--json", action="store_true", help="Output results in JSON format."
+    )
+    output.add_argument(
+        "--save-test-output-tar",
+        action="store_true",
+        help=(
+            "Store json output as a tarball that will be uploaded as a Github artifact."
+        ),
     )
     output.add_argument(
         "--debugging-json",

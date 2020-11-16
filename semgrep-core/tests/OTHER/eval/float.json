@@ -1,0 +1,7 @@
+{
+  "metavars": {
+    "$X": 42.0
+  },
+  "language": "python",
+  "code": "$X > 41.9"
+}

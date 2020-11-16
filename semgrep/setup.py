@@ -70,7 +70,7 @@ repo_root = os.path.dirname(source_dir)
 class PostInstallCommand(install):
     """Post-installation for installation mode."""
 
-    def run(self):
+    def copy_binary(self, exec_name):
         if "TOX_ENV_NAME" in os.environ:
             print("Not attempting to install binary while running under tox")
             return
@@ -83,32 +83,52 @@ class PostInstallCommand(install):
         #     https://github.com/pypa/setuptools/issues/210#issuecomment-216657975
         # take the advice from that comment, and move over after install
 
-        if os.environ.get("PRECOMPILED_LOCATION"):
-            source = os.environ["PRECOMPILED_LOCATION"]
+        if "osx" in distutils.util.get_platform():
+            with chdir(repo_root):
+                os.system(os.path.join(repo_root, "scripts", "osx-release.sh"))
+                source = os.path.join(repo_root, "artifacts", exec_name)
         else:
-            if "osx" in distutils.util.get_platform():
-                with chdir(repo_root):
-                    os.system(os.path.join(repo_root, "scripts", "osx-release.sh"))
-                    source = os.path.join(repo_root, "artifacts", "semgrep-core")
-            else:
-                with chdir(repo_root):
-                    os.system(os.path.join(repo_root, "scripts", "ubuntu-release.sh"))
-                    source = os.path.join(repo_root, "semgrep-files", "semgrep-core")
+            with chdir(repo_root):
+                os.system(os.path.join(repo_root, "scripts", "ubuntu-release.sh"))
+                source = os.path.join(repo_root, "semgrep-files", exec_name)
 
         ## run this after trying to build (as otherwise this leaves
         ## venv in a bad state: https://github.com/benfred/py-spy/issues/69)
         install.run(self)
 
-        ## we're going to install the semgrep-core executable into the scripts directory
+        ## we're going to install the executable (binary) into the scripts directory
         ## but first make sure the scripts directory exists
         if not os.path.isdir(self.install_scripts):
             os.makedirs(self.install_scripts)
 
-        target = os.path.join(self.install_scripts, "semgrep-core")
+        target = os.path.join(self.install_scripts, exec_name)
         if os.path.isfile(target):
             os.remove(target)
 
         self.copy_file(source, target)
+
+    def run(self):
+        self.copy_binary("semgrep-core")
+        self.copy_binary("spacegrep")
+        # FIXME: with an extra 3 MB binary we exceed the 100 MB limit on PyPI
+        # Suggested fixes:
+        # - spacecat and spacegrep are now the same executable. We only need
+        #   the command (= executable file name) to be 'spacecat' to trigger
+        #   the spacecat behavior.
+        #   This can be achieved with a symlink or by copying 'spacegrep'
+        #   to 'spacecat' at installation time. Spacecat is a utility for
+        #   printing an AST, which is nice to have but not called
+        #   by semgrep or semgrep-core.
+        # - Use 'strip' to reduce the size of the semgrep-core executable.
+        #   Its big size is due to large parse tables that support
+        #   the LR(1) parsing algorithm used by menhir and tree-sitter.
+        #   For tree-sitter, those are the 'parser.c' files generated for each
+        #   grammar. We'll have more and more of such files, so the size of
+        #   our static semgrep-core executable is expected to keep growing.
+        #
+        # Original code:
+        #
+        # self.copy_binary("spacecat")
 
 
 setup(

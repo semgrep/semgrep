@@ -6,7 +6,7 @@
 # of the 'semgrep' wrapping.
 #
 
-FROM returntocorp/ocaml:alpine-2020-09-11 as build-semgrep-core
+FROM returntocorp/ocaml:alpine-2020-10-28 as build-semgrep-core
 
 USER user
 WORKDIR /home/user
@@ -14,6 +14,7 @@ WORKDIR /home/user
 COPY --chown=user .gitmodules /semgrep/.gitmodules
 COPY --chown=user .git/ /semgrep/.git/
 COPY --chown=user semgrep-core/ /semgrep/semgrep-core/
+COPY --chown=user spacegrep/ /semgrep/spacegrep/
 COPY --chown=user scripts /semgrep/scripts
 
 WORKDIR /semgrep
@@ -26,11 +27,14 @@ RUN git submodule foreach --recursive git clean -dfX
 RUN git submodule update --init --recursive
 
 RUN eval "$(opam env)" && ./scripts/install-ocaml-tree-sitter
+RUN eval "$(opam env)" && opam install --deps-only -y spacegrep/
 RUN eval "$(opam env)" && opam install --deps-only -y semgrep-core/pfff/
 RUN eval "$(opam env)" && opam install --deps-only -y semgrep-core/
+RUN eval "$(opam env)" && DUNE_PROFILE=static make -C spacegrep/
 RUN eval "$(opam env)" && make -C semgrep-core/ all
 
-# Sanity check
+# Sanity checks
+RUN test -x ./spacegrep/_build/install/default/bin/spacegrep
 RUN ./semgrep-core/_build/install/default/bin/semgrep-core -version
 
 #
@@ -47,6 +51,11 @@ RUN apk add --no-cache git openssh
 COPY --from=build-semgrep-core \
      /semgrep/semgrep-core/_build/install/default/bin/semgrep-core /usr/local/bin/semgrep-core
 RUN semgrep-core -version
+
+COPY --from=build-semgrep-core \
+     /semgrep/spacegrep/_build/install/default/bin/spacegrep \
+     /usr/local/bin/spacegrep
+RUN ln -sf spacegrep /usr/local/bin/spacecat
 
 COPY semgrep /semgrep
 RUN HOMEBREW_SYSTEM='NOCORE' python -m pip install /semgrep

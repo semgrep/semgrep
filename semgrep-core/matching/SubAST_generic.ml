@@ -97,16 +97,16 @@ let subexprs_of_stmt st =
     | While (_, e, _)
     | DoWhile (_, _, e)
     | DefStmt (_, VarDef { vinit = Some e; _ })
-    | DefStmt (_, FieldDef { vinit = Some e; _ })
+    | DefStmt (_, FieldDefColon { vinit = Some e; _ })
     | For (_, ForEach (_, _, e), _)
-    | Continue (_, LDynamic e)
-    | Break (_, LDynamic e)
-    | Throw (_, e)
+    | Continue (_, LDynamic e, _)
+    | Break (_, LDynamic e, _)
+    | Throw (_, e, _)
      -> [e]
 
     (* opt *)
     | Switch (_, eopt, _)
-    | Return (_, eopt)
+    | Return (_, eopt, _)
     | OtherStmtWithStmt (_, eopt, _)
      -> Common.opt_to_list eopt
 
@@ -119,7 +119,7 @@ let subexprs_of_stmt st =
       Common.opt_to_list eopt1 @
       Common.opt_to_list eopt2
 
-    | Assert (_, e1, e2opt) ->
+    | Assert (_, e1, e2opt, _) ->
       e1::Common.opt_to_list e2opt
 
     (* 0 *)
@@ -178,7 +178,7 @@ let substmts_of_stmt st =
        then []
        else
          (match def with
-         | VarDef _ | FieldDef _
+         | VarDef _ | FieldDefColon _
          | TypeDef _
          | MacroDef _
          | Signature _
@@ -193,7 +193,7 @@ let substmts_of_stmt st =
          | ClassDef def ->
             def.cbody |> unbracket |> Common.map_filter (function
               | FieldStmt st -> Some st
-              | FieldDynamic _ | FieldSpread _ -> None
+              | FieldSpread _ -> None
             )
          )
 (*e: function [[SubAST_generic.substmts_of_stmt]] *)
@@ -255,14 +255,13 @@ let flatten_substmts_of_stmts xs =
      * a zillion times on big files (see tests/PERF/) if we do the
      * matching naively in m_stmts_deep.
      *)
-    (if not !Flag_semgrep.go_really_deeper_stmt
-    then ()
-    else begin
+    if !Flag_semgrep.go_really_deeper_stmt
+    then begin
        let es = subexprs_of_stmt x in
        (* getting deeply nested lambdas stmts *)
        let lambdas = es |> List.map lambdas_in_expr_memo |> List.flatten in
        lambdas |> List.map (fun def -> def.fbody) |> List.iter aux
-    end);
+    end;
 
     let xs = substmts_of_stmt x in
     xs |> List.iter aux;

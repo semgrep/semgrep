@@ -124,13 +124,12 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
-          name: semgrep-core
-          path: artifacts/semgrep-core
+          name: ocaml-build-artifacts
+          path: ocaml-build-artifacts.tgz
+      - name: Test spacegrep
+        run: opam exec -- make -C spacegrep test
       - name: Test semgrep-core
-        run: |
-          eval $(opam env)
-          cd semgrep-core
-          make test
+        run: opam exec -- make -C semgrep-core test
 
   release-osx:
     name: Build the OSX binaries
@@ -158,16 +157,15 @@ jobs:
         uses: actions/checkout@v2
         with:
           submodules: 'recursive'
-      - name: Download Artifact
+      - name: Download artifacts
         uses: actions/download-artifact@v1
         with:
-          name: semgrep-core
-          path: semgrep-core-dir
-      - name: Install artifact
+          name: ocaml-build-artifacts
+      - name: Install artifacts
         run: |
+          tar xf ocaml-build-artifacts/ocaml-build-artifacts.tgz
           mkdir -p semgrep-files
-          cp semgrep-core-dir/semgrep-core semgrep-files
-          chmod +x semgrep-files/semgrep-core
+          cp ocaml-build-artifacts/bin/* semgrep-files
       - name: Run Ubuntu build script
         run: ./scripts/ubuntu-release.sh
       - name: Upload artifacts
@@ -204,16 +202,15 @@ jobs:
         uses: actions/checkout@v2
         with:
           submodules: 'recursive'
-      - name: Download Artifact
+      - name: Download artifacts
         uses: actions/download-artifact@v1
         with:
-          name: semgrep-core
-          path: semgrep-core-dir
-      - name: Install artifact
+          name: ocaml-build-artifacts
+      - name: Install artifacts
         run: |
+          tar xf ocaml-build-artifacts/ocaml-build-artifacts.tgz
           mkdir -p semgrep-files
-          cp semgrep-core-dir/semgrep-core semgrep-files
-          chmod +x semgrep-files/semgrep-core
+          cp ocaml-build-artifacts/bin/* semgrep-files
       - name: Setup Python
         run: |
           rm /usr/bin/python
@@ -221,7 +218,7 @@ jobs:
       - name: Install zip & musl-tools
         run: apt-get update && apt install -y zip musl-tools
       - name: Build the wheels
-        run: PRECOMPILED_LOCATION=$(realpath 'semgrep-files/semgrep-core') ./scripts/build-wheels.sh
+        run: ./scripts/build-wheels.sh
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
@@ -245,6 +242,9 @@ jobs:
         run: ./semgrep --version
       - name: test core
         run: ./semgrep-core -version
+        working-directory: /opt/python/cp36-cp36m/bin/
+      - name: test spacegrep
+        run: ./spacegrep --help
         working-directory: /opt/python/cp36-cp36m/bin/
       - name: e2e test
         working-directory: /opt/python/cp36-cp36m/bin/
@@ -277,7 +277,7 @@ jobs:
 
   homebrew-core-pr:
     name: Update on Homebrew-Core
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     steps:
       - uses: dawidd6/action-homebrew-bump-formula@v3
         with:

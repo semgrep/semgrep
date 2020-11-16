@@ -3,17 +3,34 @@
 # For a one-shot production build, look into Dockerfile.
 #
 
+# Used to select commands with different usage under GNU/Linux and *BSD/Darwin
+# such as 'sed'.
+ifeq ($(shell uname -s),Linux)
+  LINUX = true
+else
+  LINUX = false
+endif
+
+# :(
+ifeq ($(LINUX),true)
+  SED = sed -i -e
+else
+  SED = sed -i ''
+endif
+
 # Routine build. It assumes all dependencies and configuration are already
 # in place and correct. It should be fast since it's called often during
 # development.
 #
 .PHONY: build
 build:
+	$(MAKE) build-spacegrep
 	$(MAKE) build-core
 	cd semgrep && pipenv install --dev
 
 .PHONY: install
 install:
+	$(MAKE) -C spacegrep install
 	$(MAKE) -C semgrep-core install
 	python3.7 -m pip install semgrep
 
@@ -25,6 +42,10 @@ build-core: build-ocaml-tree-sitter
 build-ocaml-tree-sitter:
 	$(MAKE) -C ocaml-tree-sitter
 	$(MAKE) -C ocaml-tree-sitter install
+
+.PHONY: build-spacegrep
+build-spacegrep:
+	$(MAKE) -C spacegrep
 
 # Update and rebuild everything within the project.
 #
@@ -49,6 +70,7 @@ setup:
 	cd ocaml-tree-sitter && ./scripts/install-tree-sitter-lib
 	opam install -y --deps-only ./ocaml-tree-sitter
 	opam install -y --deps-only ./semgrep-core
+	opam install -y --deps-only ./spacegrep
 
 # This needs to run initially or when something changed in the external
 # build environment. This typically looks for the location of libraries
@@ -80,6 +102,5 @@ gitclean:
 
 .PHONY: bump
 bump:
-	sed -i '' 's/__VERSION__ = ".*"/__VERSION__ = "$(SEMGREP_VERSION)"/g' semgrep/semgrep/__init__.py
-	sed -i '' "s/^  rev: 'v.*'$$/  rev: 'v$(SEMGREP_VERSION)'/g" docs/integrations.md
-	sed -i '' 's/^    install_requires=\["semgrep==0.23.0"\],$$/    install_requires=["semgrep==$(SEMGREP_VERSION)"],/g' setup.py
+	$(SED) 's/__VERSION__ = ".*"/__VERSION__ = "$(SEMGREP_VERSION)"/g' semgrep/semgrep/__init__.py
+	$(SED) 's/^    install_requires=\["semgrep==.*"\],$$/    install_requires=["semgrep==$(SEMGREP_VERSION)"],/g' setup.py
