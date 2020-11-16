@@ -910,7 +910,7 @@ and expression (env : env) (x : CST.expression) : AST.expr =
         | `Id tok ->
           let id = identifier env tok in
           let p = param_of_id id in
-          [ p ] (* identifier *)
+          [ ParamClassic p ] (* identifier *)
         )
       in
       let v3 = token env v3 (* "=>" *) in
@@ -922,7 +922,7 @@ and expression (env : env) (x : CST.expression) : AST.expr =
       in
       Lambda {
         fkind = (LambdaKind, v3);
-        fparams = List.map (fun p -> ParamClassic p) v2;
+        fparams = v2;
         frettype = None;
         fbody = v4;
       }
@@ -955,7 +955,7 @@ and expression (env : env) (x : CST.expression) : AST.expr =
         )
       in
       let v3 = simple_name env v3 in
-      AST.DotAccess (v1, v2, AST.FName v3)
+      AST.DotAccess (v1, v2, AST.EName v3)
   | `Member_bind_exp (v1, v2) ->
       let v1 = token env v1 (* "." *) in
       let v2 = simple_name env v2 in
@@ -1172,7 +1172,7 @@ and statement (env : env) (x : CST.statement) =
   | `Brk_stmt (v1, v2) ->
       let v1 = token env v1 (* "break" *) in
       let v2 = token env v2 (* ";" *) in
-      AST.Break (v1, AST.LNone)
+      AST.Break (v1, AST.LNone, v2)
   | `Chec_stmt (v1, v2) ->
       let v1 =
         (match v1 with
@@ -1185,7 +1185,7 @@ and statement (env : env) (x : CST.statement) =
   | `Cont_stmt (v1, v2) ->
       let v1 = token env v1 (* "continue" *) in
       let v2 = token env v2 (* ";" *) in
-      Continue (v1, LNone)
+      Continue (v1, LNone, v2)
   | `Do_stmt (v1, v2, v3, v4, v5, v6, v7) ->
       let v1 = token env v1 (* "do" *) in
       let v2 = statement env v2 in
@@ -1346,7 +1346,7 @@ and statement (env : env) (x : CST.statement) =
         | None -> None)
       in
       let v3 = token env v3 (* ";" *) in
-      Return (v1, v2)
+      Return (v1, v2, v3)
   | `Switch_stmt (v1, v2, v3, v4, v5) ->
       let v1 = token env v1 (* "switch" *) in
       let v2 = token env v2 (* "(" *) in
@@ -1363,8 +1363,8 @@ and statement (env : env) (x : CST.statement) =
       in
       let v3 = token env v3 (* ";" *) in
       (match v2 with
-      | Some (expr) -> Throw (v1, expr)
-      | None -> OtherStmt (OS_ThrowNothing, [Tk v1]))
+      | Some (expr) -> Throw (v1, expr, v3)
+      | None -> OtherStmt (OS_ThrowNothing, [Tk v1; Tk v3]))
   | `Try_stmt (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "try" *) in
       let v2 = block env v2 in
@@ -1789,7 +1789,7 @@ and type_parameter_constraints_clause (env : env) ((v1, v2, v3, v4, v5) : CST.ty
   in
   (v2, v4 :: v5)
 
-and parameter_list (env : env) ((v1, v2, v3) : CST.parameter_list) : parameter_classic list =
+and parameter_list (env : env) ((v1, v2, v3) : CST.parameter_list) : parameter list =
   let v1 = token env v1 (* "(" *) in
   let v2 =
     (match v2 with
@@ -1797,7 +1797,7 @@ and parameter_list (env : env) ((v1, v2, v3) : CST.parameter_list) : parameter_c
     | None -> [])
   in
   let v3 = token env v3 (* ")" *) in
-  v2
+  List.map (fun p -> ParamClassic p) v2
 
 and attribute_argument_list (env : env) ((v1, v2, v3) : CST.attribute_argument_list) : arguments bracket =
   let v1 = token env v1 (* "(" *) in
@@ -2062,7 +2062,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
       let fields = List.map (fun x -> AST.FieldStmt x) stmts in
       let tparams = type_parameters_with_constraints v5 v7 in
       let ent = {
-          name = v4;
+          name = EId v4;
           attrs = v1 @ v2;
           info = empty_id_info ();
           tparams;
@@ -2088,7 +2088,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
       let v6 = function_body env v6 in
       let def = AST.FuncDef {
         fkind = (AST.Method, tok);
-        fparams = List.map (fun p -> ParamClassic p) v4;
+        fparams = v4;
         frettype = None;
         fbody = v6;
       } in
@@ -2127,7 +2127,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
       let tparams = type_parameters_with_constraints v6 v8 in
       let func = TyFun (v7, v4) in
       let ent = {
-        name = v5;
+        name = EId v5;
         attrs = v1 @ v2;
         info = empty_id_info ();
         tparams;
@@ -2162,7 +2162,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
         | None -> None)
       in
       let ent = {
-          name = v4;
+          name = EId v4;
           attrs = v1 @ v2;
           info = empty_id_info ();
           tparams = [];
@@ -2254,14 +2254,14 @@ and declaration (env : env) (x : CST.declaration) : stmt =
       let v9 = function_body env v9 in
       let tparams = type_parameters_with_constraints v6 v8 in
       let ent = {
-          name = v5;
+          name = EId v5;
           attrs = v1 @ v2;
           info = empty_id_info ();
           tparams;
       } in
       let def = AST.FuncDef {
         fkind = (AST.Method, tok);
-        fparams = List.map (fun p -> ParamClassic p) v7;
+        fparams = v7;
         frettype = Some v3;
         fbody = v9;
       } in
@@ -2341,7 +2341,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
         vtype = Some v3;
       } in
       let open_br, funcs, close_br = accessors in
-      Block (open_br, (DefStmt (ent, FieldDef vardef)) :: funcs, close_br)
+      Block (open_br, (DefStmt (ent, VarDef vardef)) :: funcs, close_br)
   | `Using_dire (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "using" *) in
       let v2 =
