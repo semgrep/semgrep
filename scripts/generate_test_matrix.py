@@ -275,6 +275,7 @@ def snippet_and_pattern_to_html(
             return f'<div class="notimplemented">This is missing an example!<br/>Or it doesn\'t work yet for this language!<br/>Edit {sgrep_path}</div>\n'
     else:
         return f'<div class="notimplemented">not implemented, no sgrep pattern at {sgrep_path}</div>\n'
+    return s
 
 
 def wrap_in_div(L: List[str], className="") -> List[str]:
