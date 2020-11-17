@@ -36,12 +36,12 @@ jobs:
 
       - id: semgrep_diff
         name: Get semgrep package diff
-        uses: technote-space/get-diff-action@v1
+        uses: technote-space/get-diff-action@v4
         with:
           PREFIX_FILTER: semgrep/semgrep
       - id: changelog_diff
         name: Get changelog diff
-        uses: technote-space/get-diff-action@v1
+        uses: technote-space/get-diff-action@v4
         with:
           PREFIX_FILTER: CHANGELOG.md
 
