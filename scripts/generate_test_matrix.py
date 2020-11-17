@@ -21,8 +21,6 @@ yaml = YAML(typ="rt")
 
 FEATURES = ["dots", "equivalence", "metavar", "misc"]
 
-VERBOSE_REGEXP_SYNTAX = 'OCaml Syntax: "=~/<regexp>/"'
-
 VERBOSE_FEATURE_NAME = {
     "dots": "Wildcard Matches (...)",
     "equivalence": "Helpful Features",
@@ -30,7 +28,7 @@ VERBOSE_FEATURE_NAME = {
     "misc": "Others",
     "metavar_equality": "Reoccurring Expressions",
     "concrete": "Exact Matches",
-    "regexp": "Regular Expressions",
+    "regexp": "Regular Expressions '=~/regexp/'",
     "deep": "Deep (Recursive) Matching",
 }
 
@@ -52,6 +50,7 @@ VERBOSE_SUBCATEGORY_NAME = {
     "fieldname": "Field Names",
     "syntax": "Single Statements",
     "exprstmt": "Expression and Statement",
+    "typed": "Typed Metavariables",
 }
 
 LANGUAGE_EXCEPTIONS = {
@@ -82,14 +81,16 @@ CHEATSHEET_ENTRIES = {
         "import",
         "typed",
     ],
-    "regexp": ["string"],
+    "regexp": ["string", "fieldname"],
     "metavar_equality": ["expr", "stmt", "var"],
     "equivalence": [
         "naming_import",
         # "field-order", TODO
         # "arg-order", TODO
         "constant_propagation",
+        "eq",
     ],
+    "deep": ["exprstmt"],
 }
 
 
@@ -194,8 +195,6 @@ def generate_cheatsheet(root_dir: str, html: bool):
                 subcategory_name = VERBOSE_SUBCATEGORY_NAME.get(
                     subcategory, subcategory
                 )
-                if category == "regexp" and subcategory == "string":
-                    subcategory_name = VERBOSE_REGEXP_SYNTAX
                 language_exception = feature_name in LANGUAGE_EXCEPTIONS.get(
                     lang, []
                 ) or subcategory in LANGUAGE_EXCEPTIONS.get(lang, [])
@@ -410,6 +409,17 @@ def parse_args():
 
 def main() -> None:
     args = parse_args()
+
+    all_subcategories = set(VERBOSE_SUBCATEGORY_NAME.keys())
+    cheatsheet_subcategories = {
+        subcategory
+        for subcategory_list in CHEATSHEET_ENTRIES.values()
+        for subcategory in subcategory_list
+    }
+    if all_subcategories != cheatsheet_subcategories:
+        raise Exception(
+            f"found subcategory mismatch, all={all_subcategories} cheatsheet={cheatsheet_subcategories}"
+        )
 
     cheatsheet = generate_cheatsheet(args.directory, args.html)
 
