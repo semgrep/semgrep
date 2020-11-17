@@ -1,5 +1,5 @@
 PASSWORD = "password"
 def foo()
-    # ERROR:
+    #ERROR: match
     func(PASSWORD)
 end
