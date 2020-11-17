@@ -4,8 +4,15 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Next
 
-## [0.31.1](https://github.com/returntocorp/semgrep/releases/tag/v0.31.1) - 2020-11-11
+### Added
 
+- JSON output now includes an attribute of findings named `is_ignored`.
+  This is `false` under regular circumstances,
+  but if you run with `--disable-nosem`,
+  it will return `true` for findings
+  that normally would've been excluded by a `// nosem` comment.
+
+## [0.31.1](https://github.com/returntocorp/semgrep/releases/tag/v0.31.1) - 2020-11-11
 ### Fixed
 
 - Regression in 0.31.0 where only a single file was being used when `--config`

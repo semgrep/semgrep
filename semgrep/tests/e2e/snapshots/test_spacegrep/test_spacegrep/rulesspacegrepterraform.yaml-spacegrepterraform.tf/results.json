@@ -8,6 +8,7 @@
         "line": 9
       },
       "extra": {
+        "is_ignored": false,
         "lines": "allowed_origins = [\"*\"]",
         "message": "CORS rule on bucket permits any origin",
         "metadata": {},

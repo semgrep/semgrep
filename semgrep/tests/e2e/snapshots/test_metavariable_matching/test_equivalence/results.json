@@ -8,6 +8,7 @@
         "line": 4
       },
       "extra": {
+        "is_ignored": false,
         "lines": "    open(path)",
         "message": "Unsafe open from request data",
         "metadata": {},
@@ -47,6 +48,7 @@
         "line": 14
       },
       "extra": {
+        "is_ignored": false,
         "lines": "    open(z)",
         "message": "Unsafe open from request data",
         "metadata": {},

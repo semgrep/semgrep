@@ -8,6 +8,7 @@
         "line": 6
       },
       "extra": {
+        "is_ignored": false,
         "lines": "Content-Type: text/html",
         "message": "Detected text/html",
         "metadata": {},

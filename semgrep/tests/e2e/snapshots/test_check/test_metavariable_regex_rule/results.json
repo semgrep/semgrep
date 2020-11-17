@@ -8,6 +8,7 @@
         "line": 1
       },
       "extra": {
+        "is_ignored": false,
         "lines": "metavariable_regex_test(\"test\")",
         "message": "Metavariable regex test",
         "metadata": {},
@@ -45,6 +46,7 @@
         "line": 2
       },
       "extra": {
+        "is_ignored": false,
         "lines": "metavariable_regex_test(\"example\")",
         "message": "Metavariable regex test",
         "metadata": {},

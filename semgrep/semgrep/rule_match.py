@@ -1,47 +1,70 @@
 import itertools
+from copy import deepcopy
 from pathlib import Path
 from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
 
+import attr
 from junit_xml import TestCase
 
 from semgrep.pattern_match import PatternMatch
 
 
+@attr.s(frozen=True)
 class RuleMatch:
     """
-        A section of code that matches a single rule (which is potentially many patterns)
+    A section of code that matches a single rule (which is potentially many patterns)
     """
 
-    def __init__(
-        self,
-        id: str,
+    _id: str = attr.ib()
+    _pattern_match: PatternMatch = attr.ib(repr=False)
+    _message: str = attr.ib(repr=False)
+    _metadata: Dict[str, Any] = attr.ib(repr=False)
+    _severity: str = attr.ib(repr=False)
+    _fix: Optional[str] = attr.ib(repr=False)
+    _fix_regex: Optional[Dict[str, Any]] = attr.ib(repr=False)
+
+    # derived attributes
+    _path: Path = attr.ib(repr=str)
+    _start: Dict[str, Any] = attr.ib(repr=str)
+    _end: Dict[str, Any] = attr.ib(repr=str)
+    _extra: Dict[str, Any] = attr.ib(repr=False)
+
+    # optional attributes
+    _is_ignored: Optional[bool] = attr.ib(default=None)
+
+    @classmethod
+    def from_pattern_match(
+        cls,
+        rule_id: str,
         pattern_match: PatternMatch,
-        *,
         message: str,
         metadata: Dict[str, Any],
         severity: str,
         fix: Optional[str],
         fix_regex: Optional[Dict[str, Any]],
-    ) -> None:
-        self._id = id
-        self._message = message
-        self._metadata = metadata
-        self._severity = severity
-        self._fix = fix
-        self._fix_regex = fix_regex
+    ) -> "RuleMatch":
+        path = pattern_match.path
+        start = pattern_match.start
+        end = pattern_match.end
 
-        self._path = pattern_match.path
-        self._start = pattern_match.start
-        self._end = pattern_match.end
-
-        self._extra = (
-            pattern_match.extra
-        )  # note that message is still the old value defined before metavar interpolation
-
-        self._pattern_match = pattern_match
+        # note that message in extra is still the old value defined before metavar interpolation
+        extra = pattern_match.extra
+        return cls(
+            rule_id,
+            pattern_match,
+            message,
+            metadata,
+            severity,
+            fix,
+            fix_regex,
+            path,
+            start,
+            end,
+            extra,
+        )
 
     @property
     def id(self) -> str:
@@ -86,9 +109,9 @@ class RuleMatch:
     @property
     def lines(self) -> List[str]:
         """
-            Return lines in file that this RuleMatch is referring to.
+        Return lines in file that this RuleMatch is referring to.
 
-            Assumes file exists.  Note that start/end line is one-indexed
+        Assumes file exists.  Note that start/end line is one-indexed
         """
         if "lines" in self.extra:
             return self.extra["lines"]
@@ -103,7 +126,7 @@ class RuleMatch:
         return self._severity in {"WARNING", "ERROR"}
 
     def to_json(self) -> Dict[str, Any]:
-        json_obj = self._pattern_match._raw_json
+        json_obj = deepcopy(self._pattern_match._raw_json)
         json_obj["check_id"] = self._id
         json_obj["extra"]["message"] = self._message
         json_obj["extra"]["metadata"] = self._metadata
@@ -112,6 +135,8 @@ class RuleMatch:
             json_obj["extra"]["fix"] = self._fix
         if self._fix_regex:
             json_obj["extra"]["fix_regex"] = self._fix_regex
+        if self._is_ignored is not None:
+            json_obj["extra"]["is_ignored"] = self._is_ignored
         json_obj["start"] = self._start
         json_obj["end"] = self._end
         # self.lines already contains \n at the end of each line
@@ -147,6 +172,3 @@ class RuleMatch:
                 }
             ],
         }
-
-    def __repr__(self) -> str:
-        return f"<{self.__class__.__name__} id={self.id} start={str(self.start)} end={str(self.end)}>"

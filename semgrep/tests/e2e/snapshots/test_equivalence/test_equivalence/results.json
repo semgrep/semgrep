@@ -8,6 +8,7 @@
         "line": 9
       },
       "extra": {
+        "is_ignored": false,
         "lines": "    return redirect(request.POST.get(\"next\"))",
         "message": "",
         "metadata": {},
@@ -45,6 +46,7 @@
         "line": 14
       },
       "extra": {
+        "is_ignored": false,
         "lines": "    return redirect(request.get_host())",
         "message": "",
         "metadata": {},
