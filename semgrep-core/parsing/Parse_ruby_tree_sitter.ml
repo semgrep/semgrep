@@ -1619,13 +1619,13 @@ and interpolation (env : env) ((v1, v2, v3) : CST.interpolation) : AST.expr AST.
   (lb, v2, rb)
 
 and string_ (env : env) ((v1, v2, v3) : CST.string_) : AST.interp list bracket =
-  let v1 = token2 env v1 in (* ' or " *)
+  let v1 = token2 env v1 in (* single or double quote *)
   let v2 =
     (match v2 with
     | Some x -> literal_contents env x
     | None -> [])
   in
-  let v3 = token2 env v3 in (* ' or " *)
+  let v3 = token2 env v3 in (* single or double quote *)
   v1, v2, v3
 
 and symbol (env : env) (x : CST.symbol) : AST.atom =
