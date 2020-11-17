@@ -180,9 +180,9 @@ def generate_cheatsheet(root_dir: str):
 
                 entry = {
                     "pattern": read_if_exists(sgrep_path),
-                    "pattern_path": os.path.relpath(sgrep_path, root_dir),
+                    "pattern_path": os.path.relpath(sgrep_path),
                     "code": read_if_exists(code_path),
-                    "code_path": os.path.relpath(code_path, root_dir),
+                    "code_path": os.path.relpath(code_path),
                     "highlights": highlights,
                 }
 
@@ -262,21 +262,19 @@ def snippet_and_pattern_to_html(
 ):
     s = ""
     if sgrep_pattern:
-        s += f'<div class="pattern"><a href="{sgrep_path}"><pre>{sgrep_pattern}</pre></a></div>'
+        s += f'<div class="pattern"><a href="{sgrep_path}"><pre>{sgrep_pattern}</pre></a></div>\n'
         if len([x for x in code_snippets if x[0]]):
             snippets_html = "".join(
                 [
-                    f'<div class="match"><a href="{path}"><pre>{snippet}</pre></a></div>'
+                    f'<div class="match"><a href="{path}"><pre>{snippet}</pre></a></div>\n'
                     for snippet, path in code_snippets
                 ]
             )
             s += f"<div>{snippets_html}</div>"
         else:
-            return f'<div class="notimplemented">This is missing an example!<br/>Or it doesn\'t work yet for this language!<br/>Edit {sgrep_path}</div>'
+            return f'<div class="notimplemented">This is missing an example!<br/>Or it doesn\'t work yet for this language!<br/>Edit {sgrep_path}</div>\n'
     else:
-        return ""
-        s += f"<div>not implemented, no sgrep pattern at {sgrep_path}</div>"
-    return s
+        return f'<div class="notimplemented">not implemented, no sgrep pattern at {sgrep_path}</div>\n'
 
 
 def wrap_in_div(L: List[str], className="") -> List[str]:
@@ -293,9 +291,9 @@ def cheatsheet_to_html(cheatsheet: Dict[str, Any]):
             examples = []
             for subcategory, entries in subcategories.items():
                 by_pattern = collections.defaultdict(list)
-                for (sgrep_pattern, sgrep_path, code_snippet, code_path, _) in entries:
-                    by_pattern[(sgrep_pattern, sgrep_path)].append(
-                        (code_snippet, code_path)
+                for entry in entries:
+                    by_pattern[(entry["pattern"], entry["pattern_path"])].append(
+                        (entry["code"], entry["code_path"])
                     )
 
                 compiled_examples = [
