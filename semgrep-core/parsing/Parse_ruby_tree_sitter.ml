@@ -1729,7 +1729,7 @@ let parse file =
        if debug then (
          let sexp = CST.sexp_of_program cst in
          let s = Sexplib.Sexp.to_string_hum sexp in
-         pr s
+         print_endline s
        );
        program env cst
     )
