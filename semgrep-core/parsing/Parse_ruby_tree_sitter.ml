@@ -35,6 +35,9 @@ module H = Parse_tree_sitter_helpers
 
 type env = H.env
 
+let todo (_env : env) _ =
+  failwith "not implemented, yikes."
+
 let list_to_maybe_tuple = function
  | [] -> raise Impossible
  | [x] -> x
@@ -51,24 +54,14 @@ let token2 env x =
 let str env x =
   H.str env x
 
-let false_ (env : env) (x : CST.false_) : bool wrap =
-  (match x with
-  | `False tok -> false, token2 env tok
-  | `FALSE tok -> false, token2 env tok
-  )
+let false_ (env : env) (tok : CST.false_) : bool wrap =
+  (false, token2 env tok)
 
-let true_ (env : env) (x : CST.true_) : bool wrap =
-  (match x with
-  | `True tok -> true, token2 env tok
-  | `TRUE tok -> true, token2 env tok
-  )
+let true_ (env : env) (tok : CST.true_) : bool wrap =
+  (true, token2 env tok)
 
-let nil (env : env) (x : CST.nil) : tok =
-  (match x with
-  | `Nil tok -> token2 env tok
-  | `NIL tok -> token2 env tok
-  )
-
+let nil (env : env) (tok : CST.nil) : tok =
+  token2 env tok
 
 let operator (env : env) (x : CST.operator) =
   (match x with
@@ -111,6 +104,10 @@ let operator (env : env) (x : CST.operator) =
         failwith "Op_BQUOT???"
   )
 
+let anon_choice_DOT_5431c66 (env : env) (x : CST.anon_choice_DOT_5431c66) =
+  match x with
+  | `DOT tok -> token2 env tok
+  | `AMPDOT tok -> token2 env tok
 
 let terminator (_env : env) (x : CST.terminator) : unit =
   (match x with
@@ -135,12 +132,6 @@ let variable (env : env) (x : CST.variable) : AST.variable =
         (str env tok, ID_Lowercase)
   | `Cst tok ->
         (str env tok, ID_Uppercase)
-  )
-
-let do_ (env : env) (x : CST.do_) : unit =
-  (match x with
-  | `Do _tok -> ()
-  | `Term x -> terminator env x
   )
 
 let rec statements (env : env) (x : CST.statements) : AST.stmts =
@@ -389,7 +380,7 @@ and simple_formal_parameter (env : env) (x : CST.simple_formal_parameter) : AST.
 
 and superclass (env : env) ((v1, v2) : CST.superclass) =
   let v1 = token2 env v1 in
-  let v2 = arg env v2 in
+  let v2 = expression env v2 in
   (v1, v2)
 
 and in_ (env : env) ((v1, v2) : CST.in_) =
@@ -580,6 +571,7 @@ and expression (env : env) (x : CST.expression) : AST.expr =
       in
       let v3 = expression env v3 in
       Binop (v1, v2, v3)
+  | `Cmd_un x -> command_unary env x
   | `Cmd_assign x -> command_assignment env x
   | `Cmd_op_assign (v1, v2, v3) ->
       let v1 = lhs env v1 in
@@ -602,7 +594,20 @@ and expression (env : env) (x : CST.expression) : AST.expr =
       in
       let v3 = expression env v3 in
       Binop (v1, (Op_OP_ASGN op, tok), v3)
-  | `Cmd_call x -> command_call env x
+  | `Cmd_call (v1, v2) ->
+      let v1 =
+        (match v1 with
+         | `Var x -> Id (variable env x)
+         | `Scope_resol x -> ScopedId (scope_resolution env x)
+         | `Call x -> call env x
+         | `Chai_cmd_call x -> chained_command_call env x
+        )
+      in
+      let v2 = command_argument_list env v2 in
+      Call (v1, v2, None)
+
+  | `Cmd_call_with_blk x -> command_call_with_block env x
+  | `Chai_cmd_call x -> chained_command_call env x
   | `Ret_cmd (v1, v2) ->
       let v1 = token2 env v1 in
       let v2 = command_argument_list env v2 in
@@ -654,16 +659,7 @@ and arg (env : env) (x : CST.arg) : AST.expr =
       let v4 = token2 env v4 in
       let v5 = arg env v5 in
       Ternary (v1, v2, v3, v4, v5)
-  | `Range (v1, v2, v3) ->
-      let v1 = arg env v1 in
-      let v2 =
-        (match v2 with
-        | `DOTDOT tok -> B Op_DOT2, token2 env tok
-        | `DOTDOTDOT tok -> Op_DOT3, token2 env tok
-        )
-      in
-      let v3 = arg env v3 in
-      Binop (v1, v2, v3)
+  | `Range x -> range env x
   | `Bin x -> binary env x
   | `Un x -> unary env x
   )
@@ -904,28 +900,16 @@ and primary (env : env) (x : CST.primary) : AST.expr =
       in
       let (v3, tend) = body_statement env v3 in
       S (Block (tbegin, [S (ExnBlock (v3))], tend))
-  | `While (v1, v2, v3, v4, v5) ->
-      let v1 = token2 env v1 in
-      let v2 = arg env v2 in
-      let _v3 = do_ env v3 in
-      let v4 =
-        (match v4 with
-        | Some x -> statements env x
-        | None -> [])
-      in
-      let _tend = token2 env v5 in
-      S (While (v1, true, v2, v4))
-  | `Until (v1, v2, v3, v4, v5) ->
-      let v1 = token2 env v1 in
-      let v2 = arg env v2 in
-      let _v3 = do_ env v3 in
-      let v4 =
-        (match v4 with
-        | Some x -> statements env x
-        | None -> [])
-      in
-      let _tend = token2 env v5 in
-      S (Until (v1, true, v2, v4))
+  | `While (v1, v2, v3) ->
+      let v1 = token2 env v1 (* "while" *) in
+      let v2 = statement env v2 (* condition *) in
+      let v3 = do_ env v3 (* body *) in
+      S (While (v1, true, v2, v3))
+  | `Until (v1, v2, v3) ->
+      let v1 = token2 env v1 (* "until" *) in
+      let v2 = statement env v2 (* condition *) in
+      let v3 = do_ env v3 (* body *) in
+      S (Until (v1, true, v2, v3))
   | `If (v1, v2, v3, v4, v5) ->
       let v1 = token2 env v1 in
       let v2 = statement env v2 in
@@ -970,23 +954,22 @@ and primary (env : env) (x : CST.primary) : AST.expr =
       in
       let _v5 = token2 env v5 in
       S (Unless (v1, v2, v3, v4))
-  | `For (v1, v2, v3, v4, v5, v6) ->
-      let v1 = token2 env v1 in
-      let v2 = mlhs env v2 in
-      let (t, e) = in_ env v3 in
-      let _v4 = do_ env v4 in
-      let v5 =
-        (match v5 with
-        | Some x -> statements env x
-        | None -> [])
+  | `For (v1, v2, v3, v4, v5) ->
+      let v1 = token2 env v1 (* "for" *) in
+      let v2 = anon_choice_lhs_3a98eae env v2 in
+      let v3 =
+        List.map (fun (_v1 (* "," *), v2) ->
+          anon_choice_lhs_3a98eae env v2
+        ) v3
       in
-      let _v6 = token2 env v6 in
-      S (For (v1, v2 |> list_to_maybe_tuple, t, e, v5))
+      let (t, e) = in_ env v4 in
+      let v5 = do_ env v5 in
+      S (For (v1, Tuple (v2::v3), t, e, v5))
   | `Case (v1, v2, v3, v4, v5, v6, v7) ->
       let v1 = token2 env v1 in
       let v2 =
         (match v2 with
-        | Some x -> Some (arg env x)
+        | Some x -> Some (statement env x)
         | None -> None)
       in
       let _v3 = terminator env v3 in
@@ -1104,42 +1087,34 @@ and scope_resolution (env : env) ((v1, v2) : CST.scope_resolution) : AST.scope_r
   in
   v1 v2
 
+and anon_choice_id_5ca805c (env : env) (x : CST.anon_choice_id_5ca805c) =
+  (match x with
+   | `Id tok -> MethodId (str env tok, ID_Lowercase)
+   | `Op x ->
+       let op = operator env x in
+       (match op with
+        | Left bin, t -> MethodOperator (bin, t)
+        | Right un, t -> MethodUOperator (un, t)
+       )
+   | `Cst tok -> MethodId (str env tok, ID_Uppercase)
+   | `Arg_list x -> (* ?? *)
+       MethodDynamic (Tuple ((argument_list env x |> G.unbracket)))
+  )
+
 and call (env : env) ((v1, v2, v3) : CST.call) =
   let v1 = primary env v1 in
-  let v2 =
-    (match v2 with
-    | `DOT tok -> token2 env tok
-    | `AMPDOT tok -> token2 env tok
-    )
-  in
-  let v3 =
-    (match v3 with
-    | `Id tok -> MethodId (str env tok, ID_Lowercase)
-    | `Op x ->
-          let op = operator env x in
-          (match op with
-          | Left bin, t -> MethodOperator (bin, t)
-          | Right un, t -> MethodUOperator (un, t)
-          )
-    | `Cst tok -> MethodId (str env tok, ID_Uppercase)
-    | `Arg_list x -> (* ?? *)
-          MethodDynamic (Tuple ((argument_list env x |> G.unbracket)))
-    )
-  in
+  let v2 = anon_choice_DOT_5431c66 env v2 in
+  let v3 = anon_choice_id_5ca805c env v3 in
   DotAccess (v1, v2, v3)
 
-and command_call (env : env) (x : CST.command_call) : AST.expr =
+and chained_command_call (env : env) ((v1, v2, v3) : CST.chained_command_call) : AST.expr =
+  let v1 = command_call_with_block env v1 in
+  let v2 = anon_choice_DOT_5431c66 env v2 in
+  let v3 = anon_choice_id_5ca805c env v3 in
+  DotAccess (v1, v2, v3)
+
+and command_call_with_block (env : env) (x : CST.command_call_with_block) : AST.expr =
   (match x with
-  | `Choice_var_cmd_arg_list (v1, v2) ->
-      let v1 =
-        (match v1 with
-        | `Var x -> Id (variable env x)
-        | `Scope_resol x -> ScopedId (scope_resolution env x)
-        | `Call x -> call env x
-        )
-      in
-      let v2 = command_argument_list env v2 in
-      Call (v1, v2, None)
   | `Choice_var_cmd_arg_list_blk (v1, v2, v3) ->
       let v1 =
         (match v1 with
@@ -1220,20 +1195,16 @@ and method_call (env : env) (x : CST.method_call) : AST.expr =
       Call (v1, [], Some v2)
   )
 
-and command_argument_list (env : env) (x : CST.command_argument_list) : AST.expr list =
-  (match x with
-  | `Arg_rep_COMMA_arg (v1, v2) ->
-      let v1 = argument env v1 in
-      let v2 =
-        List.map (fun (v1, v2) ->
-          let _t = token2 env v1 in
-          let v2 = argument env v2 in
-          v2
-        ) v2
-      in
-      v1::v2
-  | `Cmd_call x -> [command_call env x]
-  )
+and command_argument_list (env : env) ((v1, v2) : CST.command_argument_list) : AST.expr list =
+  let v1 = argument env v1 in
+  let v2 =
+    List.map (fun (v1, v2) ->
+      let _t = token2 env v1 in
+      let v2 = argument env v2 in
+      v2
+    ) v2
+  in
+  v1 :: v2
 
 and argument_list (env : env) ((v1, v2, v3) : CST.argument_list) : AST.expr list AST.bracket =
   let lp = token2 env v1 in
@@ -1263,7 +1234,7 @@ and argument_list_with_trailing_comma (env : env) ((v1, v2, v3) : CST.argument_l
 
 and argument (env : env) (x : CST.argument) : AST.expr =
   (match x with
-  | `Arg x -> arg env x
+  | `Exp x -> expression env x
   | `Splat_arg x -> splat_argument env x
   | `Hash_splat_arg x -> hash_splat_argument env x
   | `Blk_arg (v1, v2) ->
@@ -1282,6 +1253,19 @@ and hash_splat_argument (env : env) ((v1, v2) : CST.hash_splat_argument) =
   let v1 = token2 env v1 in
   let v2 = arg env v2 in
   Unary ((Op_UStarStar, v1), v2)
+
+and do_ (env : env) ((v1, v2, v3) : CST.do_) : AST.expr list =
+  (match v1 with
+   | `Do _tok (* "do" *) -> ()
+   | `Term x -> terminator env x
+  );
+  let v2 =
+    match v2 with
+    | Some x -> statements env x
+    | None -> []
+  in
+  let _v3 = token2 env v3 (* "end" *) in
+  v2
 
 and do_block (env : env) ((v1, v2, v3, v4) : CST.do_block) : AST.expr =
   let tdo = token2 env v1 in
@@ -1456,7 +1440,7 @@ and binary (env : env) (x : CST.binary) =
       Binop (v1, (Op_kAND, v2), v3)
   )
 
-and unary (env : env) (x : CST.unary) =
+and unary (env : env) (x : CST.unary) : AST.expr =
   (match x with
   | `Defi_arg (v1, v2) ->
       let v1 = token2 env v1 in
@@ -1486,6 +1470,58 @@ and unary (env : env) (x : CST.unary) =
       Unary (v1, v2)
   )
 
+and command_unary (env : env) (x : CST.command_unary) : AST.expr =
+  (match x with
+  | `Defi_exp (v1, v2) ->
+      let v1 = token2 env v1 in
+      let v2 = expression env v2 in
+      Unary ((Op_DefinedQuestion, v1), v2)
+  | `Not_exp (v1, v2) ->
+      let v1 = token2 env v1 in
+      let v2 = expression env v2 in
+      Unary ((Op_UNot, v1), v2)
+  | `Choice_un_minus_exp (v1, v2) ->
+      let v1 =
+        (match v1 with
+        | `Un_minus tok -> U Op_UMinus, token2 env tok
+        | `PLUS tok -> U Op_UPlus, token2 env tok
+        )
+      in
+      let v2 = expression env v2 in
+      Unary (v1, v2)
+  | `Choice_BANG_exp (v1, v2) ->
+      let v1 =
+        (match v1 with
+        | `BANG tok -> U Op_UBang, token2 env tok
+        | `TILDE tok -> U Op_UTilde, token2 env tok
+        )
+      in
+      let v2 = expression env v2 in
+      Unary (v1, v2)
+  )
+
+and anon_choice_DOTDOT_ed078ec (env : env) (x : CST.anon_choice_DOTDOT_ed078ec) =
+  match x with
+  | `DOTDOT tok -> B Op_DOT2, token2 env tok
+  | `DOTDOTDOT tok -> Op_DOT3, token2 env tok
+
+and range (env : env) (x : CST.range) : AST.expr =
+  (match x with
+   | `Arg_choice_DOTDOT_arg (v1, v2, v3) ->
+       let v1 = arg env v1 in
+       let v2 = anon_choice_DOTDOT_ed078ec env v2 in
+       let v3 = arg env v3 in
+       Binop (v1, v2, v3)
+   | `Choice_DOTDOT_arg (v1, v2) ->
+       let v1 = anon_choice_DOTDOT_ed078ec env v1 in
+       let v2 = arg env v2 in
+       todo env (v1, v2)
+   | `Arg_choice_DOTDOT (v1, v2) ->
+       let v1 = arg env v1 in
+       let v2 = anon_choice_DOTDOT_ed078ec env v2 in
+       todo env (v1, v2)
+  )
+
 and right_assignment_list (env : env) ((v1, v2) : CST.right_assignment_list) : AST.expr list =
   let v1 =
     (match v1 with
@@ -1510,33 +1546,12 @@ and right_assignment_list (env : env) ((v1, v2) : CST.right_assignment_list) : A
 and left_assignment_list (env : env) (x : CST.left_assignment_list) : AST.expr =
   mlhs env x |> list_to_maybe_tuple
 
-and mlhs (env : env) ((v1, v2, v3) : CST.mlhs) : AST.expr list =
-  let v1 =
-    (match v1 with
-    | `Lhs x -> lhs env x
-    | `Rest_assign x -> rest_assignment env x
-    | `Dest_left_assign x -> destructured_left_assignment env x
-    )
-  in
-  let v2 =
-    List.map (fun (v1, v2) ->
-      let _v1 = token2 env v1 in
-      let v2 =
-        (match v2 with
-        | `Lhs x -> lhs env x
-        | `Rest_assign x -> rest_assignment env x
-        | `Dest_left_assign x -> destructured_left_assignment env x
-        )
-      in
-      v2
-    ) v2
-  in
-  let _v3 =
-    (match v3 with
-    | Some _tok -> ()
-    | None -> ())
-  in
-  v1::v2
+and anon_choice_lhs_3a98eae (env : env) (x : CST.anon_choice_lhs_3a98eae) =
+  (match x with
+  | `Lhs x -> lhs env x
+  | `Rest_assign x -> rest_assignment env x
+  | `Dest_left_assign x -> destructured_left_assignment env x
+  )
 
 and destructured_left_assignment (env : env) ((v1, v2, v3) : CST.destructured_left_assignment) =
   let _lp = token2 env v1 in
@@ -1545,7 +1560,7 @@ and destructured_left_assignment (env : env) ((v1, v2, v3) : CST.destructured_le
   Tuple (v2)
 
 and rest_assignment (env : env) ((v1, v2) : CST.rest_assignment) =
-  let v1 = token2 env v1 in
+  let v1 = token2 env v1 (* "*" *) in
   let v2 =
     (match v2 with
     | Some x -> Some (lhs env x)
@@ -1640,6 +1655,22 @@ and literal_contents (env : env) (xs : CST.literal_contents) : AST.interp list =
             StrChars x
     )
   ) xs
+
+and mlhs (env : env) ((v1, v2, v3) : CST.mlhs) : AST.expr list =
+  let v1 = anon_choice_lhs_3a98eae env v1 in
+  let v2 =
+    List.map (fun (v1, v2) ->
+      let _v1 = token2 env v1 in
+      let v2 = anon_choice_lhs_3a98eae env v2 in
+      v2
+    ) v2
+  in
+  let _v3 =
+    (match v3 with
+    | Some _tok -> ()
+    | None -> ())
+  in
+  v1::v2
 
 and pair (env : env) (x : CST.pair) =
   (match x with
