@@ -8,6 +8,7 @@
         "line": 2
       },
       "extra": {
+        "is_ignored": false,
         "lines": "    nested_patterns_func('foo', 1)",
         "message": "test",
         "metadata": {},
@@ -27,6 +28,7 @@
         "line": 3
       },
       "extra": {
+        "is_ignored": false,
         "lines": "    nested_patterns_func('bar', 2)",
         "message": "test",
         "metadata": {},

@@ -24,8 +24,8 @@ def test_basic_rule__relative(run_semgrep_in_tmp, snapshot):
 
 def test_noextension_filtering(run_semgrep_in_tmp, snapshot):
     """
-        Check that semgrep does not filter out files without extensions when
-        said file is explicitly passed
+    Check that semgrep does not filter out files without extensions when
+    said file is explicitly passed
     """
     snapshot.assert_match(
         run_semgrep_in_tmp(
@@ -157,6 +157,13 @@ def test_nosem_rule__invalid_id(run_semgrep_in_tmp, snapshot):
     assert excinfo.value.returncode == 2
     snapshot.assert_match(excinfo.value.stderr, "error.txt")
     snapshot.assert_match(excinfo.value.stdout, "error.json")
+
+
+def test_nosem_rule__with_disable_nosem(run_semgrep_in_tmp, snapshot):
+    snapshot.assert_match(
+        run_semgrep_in_tmp("rules/nosem.yaml", options=["--disable-nosem"]),
+        "results.json",
+    )
 
 
 def test_metavariable_regex_rule(run_semgrep_in_tmp, snapshot):

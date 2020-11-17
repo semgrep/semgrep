@@ -337,9 +337,9 @@ def evaluate(
     rule: Rule, pattern_matches: List[PatternMatch], allow_exec: bool
 ) -> Tuple[List[RuleMatch], List[Dict[str, Any]]]:
     """
-        Takes a Rule and list of pattern matches from a single file and
-        handles the boolean expression evaluation of the Rule's patterns
-        Returns a list of RuleMatches.
+    Takes a Rule and list of pattern matches from a single file and
+    handles the boolean expression evaluation of the Rule's patterns
+    Returns a list of RuleMatches.
     """
     output = []
     pattern_ids_to_pattern_matches = group_by_pattern_id(pattern_matches)
@@ -374,7 +374,7 @@ def evaluate(
         if pattern_match.range in valid_ranges_to_output:
             message = interpolate_message_metavariables(rule, pattern_match)
             fix = interpolate_fix_metavariables(rule, pattern_match)
-            rule_match = RuleMatch(
+            rule_match = RuleMatch.from_pattern_match(
                 rule.id,
                 pattern_match,
                 message=message,

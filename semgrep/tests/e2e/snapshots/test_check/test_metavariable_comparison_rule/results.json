@@ -8,6 +8,7 @@
         "line": 2
       },
       "extra": {
+        "is_ignored": false,
         "lines": "metavariable_comparison_test(100)",
         "message": "Metavariable regex test",
         "metadata": {},

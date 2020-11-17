@@ -8,6 +8,7 @@
         "line": 24
       },
       "extra": {
+        "is_ignored": false,
         "lines": "{{ message }}",
         "message": "Detected template variable in script tag. This is dangerous because\nHTML escaping does not prevent injection in script contexts.\n",
         "metadata": {},
@@ -27,6 +28,7 @@
         "line": 29
       },
       "extra": {
+        "is_ignored": false,
         "lines": "{{ message }}",
         "message": "Detected template variable in script tag. This is dangerous because\nHTML escaping does not prevent injection in script contexts.\n",
         "metadata": {},
@@ -46,6 +48,7 @@
         "line": 32
       },
       "extra": {
+        "is_ignored": false,
         "lines": "{{ message2 }}",
         "message": "Detected template variable in script tag. This is dangerous because\nHTML escaping does not prevent injection in script contexts.\n",
         "metadata": {},
