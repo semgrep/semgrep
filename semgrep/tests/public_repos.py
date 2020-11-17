@@ -264,13 +264,10 @@ PASSING_REPOS = [
         "repo": "https://github.com/we45/Vulnerable-Flask-App",
         "languages": ALL_LANGUAGES,
     },
+    {"repo": "https://github.com/jekyll/jekyll", "languages": ALL_LANGUAGES,},
 ]
 
 FAILING_REPOS = [
-    xfail_repo(
-        {"repo": "https://github.com/jekyll/jekyll", "languages": ["ruby"],},
-        reason="ruby parse error on '!old_scope.key? \"type\"'",
-    ),
     xfail_repo(
         {
             "repo": "https://github.com/highcharts/highcharts",

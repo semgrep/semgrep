@@ -35,7 +35,7 @@ module H = Parse_tree_sitter_helpers
 
 type env = H.env
 
-let todo (_env : env) _ =
+let _todo (_env : env) _ =
   failwith "not implemented, yikes."
 
 let list_to_maybe_tuple = function
@@ -1515,11 +1515,13 @@ and range (env : env) (x : CST.range) : AST.expr =
    | `Choice_DOTDOT_arg (v1, v2) ->
        let v1 = anon_choice_DOTDOT_ed078ec env v1 in
        let v2 = arg env v2 in
-       todo env (v1, v2)
+       let t = snd v1 in
+       Binop(fake_nil t, v1, v2)
    | `Arg_choice_DOTDOT (v1, v2) ->
        let v1 = arg env v1 in
        let v2 = anon_choice_DOTDOT_ed078ec env v2 in
-       todo env (v1, v2)
+       let t = snd v2 in
+       Binop(v1, v2, fake_nil t)
   )
 
 and right_assignment_list (env : env) ((v1, v2) : CST.right_assignment_list) : AST.expr list =
