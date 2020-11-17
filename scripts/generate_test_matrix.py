@@ -153,7 +153,7 @@ def run_semgrep_on_example(lang: str, config_arg_str: str, code_path: str) -> st
             sys.exit(1)
 
 
-def generate_cheatsheet(root_dir: str):
+def generate_cheatsheet(root_dir: str, html: bool):
     # output : {'dots': {'arguments': ['foo(...)', 'foo(1)'], } }
     output = collections.defaultdict(
         lambda: collections.defaultdict(lambda: collections.defaultdict(list))
@@ -180,11 +180,15 @@ def generate_cheatsheet(root_dir: str):
 
                 entry = {
                     "pattern": read_if_exists(sgrep_path),
-                    "pattern_path": os.path.relpath(sgrep_path),
+                    "pattern_path": os.path.relpath(sgrep_path, root_dir),
                     "code": read_if_exists(code_path),
-                    "code_path": os.path.relpath(code_path),
+                    "code_path": os.path.relpath(code_path, root_dir),
                     "highlights": highlights,
                 }
+
+                if html:
+                    entry["pattern_path"] = os.path.relpath(sgrep_path)
+                    entry["code_path"] = os.path.relpath(code_path)
 
                 feature_name = VERBOSE_FEATURE_NAME.get(category, category)
                 subcategory_name = VERBOSE_SUBCATEGORY_NAME.get(
@@ -407,7 +411,7 @@ def parse_args():
 def main() -> None:
     args = parse_args()
 
-    cheatsheet = generate_cheatsheet(args.directory)
+    cheatsheet = generate_cheatsheet(args.directory, args.html)
 
     if args.json:
         output = json.dumps(cheatsheet, indent=4, separators=(",", ": "))
