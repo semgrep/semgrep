@@ -43,6 +43,16 @@ let list_to_maybe_tuple = function
  | [x] -> x
  | xs -> Tuple (xs)
 
+let mk_Literal_String (t1, xs, t2) =
+  let string_kind =
+    match PI.str_of_info t1, xs with
+    | "'", [] -> Single ("", PI.combine_infos t1 [t2])
+    | "'", [StrChars (s, t)] ->  Single (s, PI.combine_infos t1 [t; t2])
+    | _ -> Double (t1, xs, t2)
+  in
+  Literal (String string_kind)
+
+
 (*****************************************************************************)
 (* Boilerplate converter *)
 (*****************************************************************************)
@@ -781,8 +791,7 @@ and primary (env : env) (x : CST.primary) : AST.expr =
       let v1 = str env v1 in
       let v2 = token2 env v2 in
       Literal (Rational (v1, v2))
-  | `Str x ->
-        Literal (String (Double (string_ env x)))
+  | `Str x -> mk_Literal_String (string_ env x)
   | `Char tok ->
         Literal (Char (str env tok))
   (* ??? *)
@@ -1687,8 +1696,7 @@ and pair (env : env) (x : CST.pair) =
         | `Id_hash_key tok -> Id (str env tok, ID_Lowercase)
         | `Id tok -> Id (str env tok, ID_Lowercase)
         | `Cst tok -> Id (str env tok, ID_Uppercase)
-        | `Str x ->
-            Literal (String (Double (string_ env x)))
+        | `Str x -> mk_Literal_String (string_ env x)
         )
       in
       let v2 = token2 env v2 in (* : *)
