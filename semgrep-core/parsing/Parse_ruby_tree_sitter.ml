@@ -1619,13 +1619,13 @@ and interpolation (env : env) ((v1, v2, v3) : CST.interpolation) : AST.expr AST.
   (lb, v2, rb)
 
 and string_ (env : env) ((v1, v2, v3) : CST.string_) : AST.interp list bracket =
-  let v1 = token2 env v1 in
+  let v1 = token2 env v1 in (* ' or " *)
   let v2 =
     (match v2 with
     | Some x -> literal_contents env x
     | None -> [])
   in
-  let v3 = token2 env v3 in
+  let v3 = token2 env v3 in (* ' or " *)
   v1, v2, v3
 
 and symbol (env : env) (x : CST.symbol) : AST.atom =
@@ -1687,7 +1687,8 @@ and pair (env : env) (x : CST.pair) =
         | `Id_hash_key tok -> Id (str env tok, ID_Lowercase)
         | `Id tok -> Id (str env tok, ID_Lowercase)
         | `Cst tok -> Id (str env tok, ID_Uppercase)
-        | `Str x ->  Literal (String (Double (string_ env x)))
+        | `Str x ->
+            Literal (String (Double (string_ env x)))
         )
       in
       let v2 = token2 env v2 in (* : *)
