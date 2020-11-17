@@ -153,7 +153,7 @@ def run_semgrep_on_example(lang: str, config_arg_str: str, code_path: str) -> st
             sys.exit(1)
 
 
-def generate_cheatsheet(root_dir: str):
+def generate_cheatsheet(root_dir: str, html: bool):
     # output : {'dots': {'arguments': ['foo(...)', 'foo(1)'], } }
     output = collections.defaultdict(
         lambda: collections.defaultdict(lambda: collections.defaultdict(list))
@@ -185,6 +185,10 @@ def generate_cheatsheet(root_dir: str):
                     "code_path": os.path.relpath(code_path, root_dir),
                     "highlights": highlights,
                 }
+
+                if html:
+                    entry["pattern_path"] = os.path.relpath(sgrep_path)
+                    entry["code_path"] = os.path.relpath(code_path)
 
                 feature_name = VERBOSE_FEATURE_NAME.get(category, category)
                 subcategory_name = VERBOSE_SUBCATEGORY_NAME.get(
@@ -262,20 +266,19 @@ def snippet_and_pattern_to_html(
 ):
     s = ""
     if sgrep_pattern:
-        s += f'<div class="pattern"><a href="{sgrep_path}"><pre>{sgrep_pattern}</pre></a></div>'
+        s += f'<div class="pattern"><a href="{sgrep_path}"><pre>{sgrep_pattern}</pre></a></div>\n'
         if len([x for x in code_snippets if x[0]]):
             snippets_html = "".join(
                 [
-                    f'<div class="match"><a href="{path}"><pre>{snippet}</pre></a></div>'
+                    f'<div class="match"><a href="{path}"><pre>{snippet}</pre></a></div>\n'
                     for snippet, path in code_snippets
                 ]
             )
             s += f"<div>{snippets_html}</div>"
         else:
-            return f'<div class="notimplemented">This is missing an example!<br/>Or it doesn\'t work yet for this language!<br/>Edit {sgrep_path}</div>'
+            return f'<div class="notimplemented">This is missing an example!<br/>Or it doesn\'t work yet for this language!<br/>Edit {sgrep_path}</div>\n'
     else:
-        return ""
-        s += f"<div>not implemented, no sgrep pattern at {sgrep_path}</div>"
+        return f'<div class="notimplemented">not implemented, no sgrep pattern at {sgrep_path}</div>\n'
     return s
 
 
@@ -293,9 +296,9 @@ def cheatsheet_to_html(cheatsheet: Dict[str, Any]):
             examples = []
             for subcategory, entries in subcategories.items():
                 by_pattern = collections.defaultdict(list)
-                for (sgrep_pattern, sgrep_path, code_snippet, code_path, _) in entries:
-                    by_pattern[(sgrep_pattern, sgrep_path)].append(
-                        (code_snippet, code_path)
+                for entry in entries:
+                    by_pattern[(entry["pattern"], entry["pattern_path"])].append(
+                        (entry["code"], entry["code_path"])
                     )
 
                 compiled_examples = [
@@ -408,7 +411,7 @@ def parse_args():
 def main() -> None:
     args = parse_args()
 
-    cheatsheet = generate_cheatsheet(args.directory)
+    cheatsheet = generate_cheatsheet(args.directory, args.html)
 
     if args.json:
         output = json.dumps(cheatsheet, indent=4, separators=(",", ": "))
