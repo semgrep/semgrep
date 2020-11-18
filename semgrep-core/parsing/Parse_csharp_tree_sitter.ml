@@ -2324,17 +2324,17 @@ and declaration (env : env) (x : CST.declaration) : stmt =
               let ent = basic_entity ((iname ^ "_" ^ fname), itok) attrs in
               let funcdef = FuncDef {
                 fkind = (Method, itok);
-                fparams = (match has_params with
-                  | false -> []
-                  | true -> [ParamClassic {
+                fparams = (if has_params
+                  then [ParamClassic {
                       pname = Some ("value", fake "value");
                       ptype = Some v3;
                       pdefault = None; pattrs = [];
                       pinfo = empty_id_info ();
-                    }]);
-                frettype = (match has_return with
-                  | false -> None (* TODO Should this be "void"? *)
-                  | true -> Some v3);
+                    }]
+                  else []);
+                frettype = (if has_return
+                  then Some v3
+                  else None); (* TODO Should this be "void"? *)
                 fbody;
               } in
               DefStmt (ent, funcdef)
