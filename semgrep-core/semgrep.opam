@@ -27,7 +27,7 @@ depends: [
   "uutf"
   "re"
   "parmap"
-  "lsp"
+  "lsp" {"1.1.0"}
 ]
 
 build: [make]
