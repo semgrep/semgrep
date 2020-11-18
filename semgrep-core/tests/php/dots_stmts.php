@@ -1,5 +1,4 @@
 <?php
-
 function foo() {
     //ERROR:
     $user_data = get();
@@ -7,3 +6,4 @@ function foo() {
     foobar();
     eval($user_data);
 }
+?>
