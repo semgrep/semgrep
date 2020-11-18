@@ -169,6 +169,10 @@ let m_module_name_prefix a b =
      * with the same string content. *)
     envf a1 (B.E (B.L (B.String b1)))
 
+  (* dots: '...' on string *)
+  | A.FileName("...", ta), B.FileName(_sb, tb) ->
+      m_info ta tb
+
   | A.FileName(sa, ta), B.FileName(sb, tb)
     when Matching_generic.is_regexp_string sa ->
       let f = Matching_generic.regexp_matcher_of_regexp_string sa in
