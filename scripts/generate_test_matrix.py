@@ -151,7 +151,6 @@ def run_semgrep_on_example(lang: str, config_arg_str: str, code_path: str) -> st
         else:
             print("ERROR: " + str(output.returncode))
             print(cmd)
-            sys.exit(1)
 
 
 def generate_cheatsheet(root_dir: str, html: bool):
@@ -267,6 +266,13 @@ def snippet_and_pattern_to_html(
     if sgrep_pattern:
         s += f'<div class="pattern"><a href="{sgrep_path}"><pre>{sgrep_pattern}</pre></a></div>\n'
         if len([x for x in code_snippets if x[0]]):
+            # replace < and > in snippets to be &lt and &gt so that the code snippets can render
+            for i, code_snippet in enumerate(code_snippets):
+                snippet, path = code_snippet
+                snippet = snippet.replace("<", "&lt")
+                snippet = snippet.replace(">", "&gt")
+                code_snippets[i] = (snippet, path)
+
             snippets_html = "".join(
                 [
                     f'<div class="match"><a href="{path}"><pre>{snippet}</pre></a></div>\n'
