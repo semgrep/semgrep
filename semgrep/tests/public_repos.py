@@ -265,6 +265,8 @@ PASSING_REPOS = [
         "languages": ALL_LANGUAGES,
     },
     {"repo": "https://github.com/jekyll/jekyll", "languages": ALL_LANGUAGES,},
+    {"repo": "https://github.com/OWASP/NodeGoat", "languages": ALL_LANGUAGES},
+    {"repo": "https://github.com/dropbox/questions", "languages": ALL_LANGUAGES},
 ]
 
 FAILING_REPOS = [
@@ -276,15 +278,7 @@ FAILING_REPOS = [
         reason="javascript parse error, probably due to '?.01' regression in minified file",
     ),
     xfail_repo(
-        {"repo": "https://github.com/OWASP/NodeGoat", "languages": ALL_LANGUAGES},
-        reason="javascript parse error, probably due to 's.behaveLikeLine?.8:1' regression in minified file",
-    ),
-    xfail_repo(
         {"repo": "https://github.com/coinbase/gtt-ui", "languages": ALL_LANGUAGES},
-        reason="javascript parse error, probably due to ?. regression",
-    ),
-    xfail_repo(
-        {"repo": "https://github.com/dropbox/questions", "languages": ALL_LANGUAGES},
         reason="javascript parse error, probably due to ?. regression",
     ),
     xfail_repo(

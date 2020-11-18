@@ -21,7 +21,11 @@ from semgrep.pattern_match import PatternMatch
 from semgrep.util import sub_run
 
 
-def run_spacegrep(patterns: List[Pattern], targets: List[Path]) -> dict:
+def run_spacegrep(
+        patterns: List[Pattern],
+        targets: List[Path],
+        timeout: int
+) -> dict:
     matches: List[dict] = []
     errors: List[dict] = []
     for pattern in patterns:
@@ -38,6 +42,8 @@ def run_spacegrep(patterns: List[Pattern], targets: List[Path]) -> dict:
                 "-d",
                 str(target),
                 pattern_str,
+                "--timeout",
+                str(timeout)
             ]
             try:
                 p = sub_run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)

@@ -12,7 +12,12 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   it will return `true` for findings
   that normally would've been excluded by a `// nosem` comment.
 
+### Changed
+
+- Added a default timeout of 30 seconds per file instead of none (#1981).
+
 ## [0.31.1](https://github.com/returntocorp/semgrep/releases/tag/v0.31.1) - 2020-11-11
+
 ### Fixed
 
 - Regression in 0.31.0 where only a single file was being used when `--config`
