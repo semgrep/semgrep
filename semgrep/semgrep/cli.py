@@ -9,6 +9,7 @@ import semgrep.semgrep_main
 import semgrep.test
 from semgrep import __VERSION__
 from semgrep.constants import DEFAULT_CONFIG_FILE
+from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import OutputFormat
 from semgrep.constants import RCE_RULE_FLAG
 from semgrep.constants import SEMGREP_URL
@@ -159,9 +160,9 @@ def cli() -> None:
     config.add_argument(
         "--timeout",
         type=int,
-        default=0,
+        default=DEFAULT_TIMEOUT,
         help=(
-            "Maximum time to spend running a rule on a single file in seconds. If set to 0 will not have time limit. Defaults to 0."
+            "Maximum time to spend running a rule on a single file in seconds. If set to 0 will not have time limit. Defaults to {} s.".format(DEFAULT_TIMEOUT)
         ),
     )
 

@@ -387,7 +387,11 @@ class CoreRunner:
                 patterns_json = [p.to_json() for p in patterns]
 
                 if language == GENERIC_LANGUAGE:
-                    output_json = run_spacegrep(patterns, targets)
+                    output_json = run_spacegrep(
+                        patterns,
+                        targets,
+                        timeout=self._timeout
+                    )
                 else:  # Run semgrep-core
                     output_json = self._run_core_command(
                         patterns_json,

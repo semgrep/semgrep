@@ -15,6 +15,7 @@ import semgrep.config_resolver
 from semgrep.autofix import apply_fixes
 from semgrep.constants import COMMA_SEPARATED_LIST_RE
 from semgrep.constants import DEFAULT_CONFIG_FILE
+from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import NOSEM_INLINE_RE
 from semgrep.constants import OutputFormat
 from semgrep.constants import RULES_KEY
@@ -168,7 +169,7 @@ def main(
     disable_nosem: bool = False,
     dangerously_allow_arbitrary_code_execution_from_rules: bool = False,
     no_git_ignore: bool = False,
-    timeout: int = 0,
+    timeout: int = DEFAULT_TIMEOUT,
     max_memory: int = 0,
     timeout_threshold: int = 0,
     skip_unknown_extensions: bool = False,
