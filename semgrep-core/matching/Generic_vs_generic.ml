@@ -428,10 +428,22 @@ and m_expr a b =
   (*e: [[Generic_vs_generic.m_expr()]] disjunction case *)
   (*s: [[Generic_vs_generic.m_expr()]] resolving alias case *)
   (* equivalence: name resolving! *)
-  | a,   B.Id (_, { B.id_resolved =
+  | a,   B.Id (idb, { B.id_resolved =
       {contents = Some ( ( B.ImportedEntity dotted
                          | B.ImportedModule (B.DottedName dotted)
                          ), _sid)}; _}) ->
+    (* We used to force to fully qualify entities in the pattern
+     * (e.g., with org.foo(...)) but this is confusing for users.
+     * We now allow an unqualified pattern like 'foo' to match resolved
+     * entities like import org.foo; foo(), just like for attributes.
+     *
+     * Note that this is also useful when you use a metavariable to match
+     * an imported entity, e.g., in Go 'import $P "org.foo" ... $P.log()'
+     * where for sure $P will not be binded to the fully qualified path.
+     *)
+    m_expr a (B.Id (idb, B.empty_id_info()))
+    >||>
+    (* try this time a match with the resolved entity *)
     m_expr a (make_dotted dotted)
   (* Put this before the next case to prevent overly eager dealiasing *)
   | A.IdQualified(a1, a2), B.IdQualified(b1, b2) ->
