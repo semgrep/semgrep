@@ -285,6 +285,15 @@ def cli() -> None:
         ),
     )
 
+    output.add_argument(
+        "--max-lines-per-finding",
+        type=int,
+        default=0,
+        help=(
+            "Maximum number of lines of code that will be shown for each match before trimming."
+        ),
+    )
+
     # logging options
     logging_ = parser.add_argument_group("logging")
 
@@ -355,6 +364,7 @@ def cli() -> None:
         strict=args.strict,
         verbose_errors=args.verbose,
         timeout_threshold=args.timeout_threshold,
+        output_per_finding_max_lines_limit=args.max_lines_per_finding,
     )
 
     if not args.disable_version_check:

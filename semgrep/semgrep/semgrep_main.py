@@ -138,6 +138,7 @@ def invoke_semgrep(config: Path, targets: List[Path], **kwargs: Any) -> Any:
             error_on_findings=False,
             verbose_errors=False,
             strict=False,
+            output_per_finding_max_lines_limit=None,
         ),
         stdout=io_capture,
     )
