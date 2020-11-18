@@ -259,14 +259,15 @@ PASSING_REPOS = [
     },
     {"repo": "https://github.com/0c34/govwa", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/coinbase/bittip", "languages": ALL_LANGUAGES},
-    {"repo": "https://github.com/coinbase/multisig-tool", "languages": ALL_LANGUAGES,},
+    {"repo": "https://github.com/coinbase/multisig-tool", "languages": ALL_LANGUAGES},
     {
         "repo": "https://github.com/we45/Vulnerable-Flask-App",
         "languages": ALL_LANGUAGES,
     },
-    {"repo": "https://github.com/jekyll/jekyll", "languages": ALL_LANGUAGES,},
+    {"repo": "https://github.com/jekyll/jekyll", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/OWASP/NodeGoat", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/dropbox/questions", "languages": ALL_LANGUAGES},
+    {"repo": "https://github.com/rails/rails", "languages": ["ruby"]},
 ]
 
 FAILING_REPOS = [
@@ -321,7 +322,6 @@ FAILING_REPOS = [
         {"repo": "https://github.com/dropbox/notouch", "languages": ALL_LANGUAGES},
         reason="indented comment on last line python",
     ),
-    xfail_repo({"repo": "https://github.com/rails/rails", "languages": ["ruby"]}),
     xfail_repo(
         {
             "repo": "https://github.com/rapid7/metasploit-framework",
