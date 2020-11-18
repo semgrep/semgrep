@@ -151,6 +151,7 @@ def run_semgrep_on_example(lang: str, config_arg_str: str, code_path: str) -> st
         else:
             print("ERROR: " + str(output.returncode))
             print(cmd)
+            sys.exit(1)
 
 
 def generate_cheatsheet(root_dir: str, html: bool):
