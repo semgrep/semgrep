@@ -2319,11 +2319,22 @@ and declaration (env : env) (x : CST.declaration) : stmt =
             let funcs = List.map (fun (attrs, id, fbody) ->
               let fname, ftok = v5 in
               let iname, itok = id in
+              let has_params = iname != "get" in
+              let has_return = iname = "get" in
               let ent = basic_entity ((iname ^ "_" ^ fname), itok) attrs in
               let funcdef = FuncDef {
                 fkind = (Method, itok);
-                fparams = []; (* TODO Should we have a parameter `value` for setters? *)
-                frettype = None; (* TODO return v3 for getters *)
+                fparams = (match has_params with
+                  | false -> []
+                  | true -> [ParamClassic {
+                      pname = Some ("value", fake "value");
+                      ptype = Some v3;
+                      pdefault = None; pattrs = [];
+                      pinfo = empty_id_info ();
+                    }]);
+                frettype = (match has_return with
+                  | false -> None (* TODO Should this be "void"? *)
+                  | true -> Some v3);
                 fbody;
               } in
               DefStmt (ent, funcdef)
