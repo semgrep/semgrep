@@ -2325,7 +2325,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
             let funcs = List.map (fun (attrs, id, fbody) ->
               let fname, ftok = v5 in
               let iname, itok = id in
-              let has_params = iname != "get" in
+              let has_params = iname <> "get" in
               let has_return = iname = "get" in
               let ent = basic_entity ((iname ^ "_" ^ fname), itok) attrs in
               let funcdef = FuncDef {
