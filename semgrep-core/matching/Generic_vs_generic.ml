@@ -111,6 +111,17 @@ let has_xml_ellipis_and_filter_ellispis xs =
     | _ -> false) in
   !has_ellipsis, ys
 
+(*s: function [[Generic_vs_generic.make_dotted]] *)
+let make_dotted xs =
+  match xs with
+  | [] -> raise Impossible
+  | x::xs ->
+    let base = B.Id (x, B.empty_id_info()) in
+    List.fold_left (fun acc e ->
+      let tok = Parse_info.fake_info "." in
+      B.DotAccess (acc, tok, B.EId e)) base xs
+(*e: function [[Generic_vs_generic.make_dotted]] *)
+
 (*****************************************************************************)
 (* Name *)
 (*****************************************************************************)
@@ -155,6 +166,21 @@ let m_dotted_name a b =
   (a, b) -> (m_list m_ident) a b
 (*e: function [[Generic_vs_generic.m_dotted_name]] *)
 
+(* similar to m_list_prefix but binding $X to the whole list *)
+let rec m_dotted_name_prefix_ok a b =
+  match a, b with
+  | [], [] -> return ()
+  | [(s,t)], _::_ when MV.is_metavar_name s ->
+      envf (s,t) (B.E (make_dotted b))
+  | xa::aas, xb::bbs ->
+    let* () = m_ident xa xb in
+    m_dotted_name_prefix_ok aas bbs
+  (* prefix is ok *)
+  | [], _ -> return ()
+
+  | _::_, _ ->
+      fail ()
+
 
 (*s: function [[Generic_vs_generic.m_module_name_prefix]] *)
 (* less-is-ok: prefix matching is supported for imports, eg.:
@@ -165,8 +191,8 @@ let m_module_name_prefix a b =
   (* metavariable case *)
   | A.FileName((a_str, _) as a1), B.FileName(b1) when MV.is_metavar_name a_str ->
     (* Bind as a literal string expression so that pretty-printing works.
-     * This also means that this metavar can match both literal strings and filenames
-     * with the same string content. *)
+     * This also means that this metavar can match both literal strings and
+     * filenames with the same string content. *)
     envf a1 (B.E (B.L (B.String b1)))
 
   (* dots: '...' on string *)
@@ -183,8 +209,10 @@ let m_module_name_prefix a b =
   | A.FileName(a1), B.FileName(b1) ->
     (* TODO figure out what prefix support means here *)
     (m_wrap m_string_prefix) a1 b1
+
   | A.DottedName(a1), B.DottedName(b1) ->
-    m_list_prefix m_ident a1 b1
+    m_dotted_name_prefix_ok a1 b1
+
   | A.FileName _, _
   | A.DottedName _, _
    -> fail ()
@@ -366,17 +394,6 @@ and m_id_info a b =
 (*****************************************************************************)
 (* Expression *)
 (*****************************************************************************)
-
-(*s: function [[Generic_vs_generic.make_dotted]] *)
-and make_dotted xs =
-  match xs with
-  | [] -> raise Impossible
-  | x::xs ->
-    let base = B.Id (x, B.empty_id_info()) in
-    List.fold_left (fun acc e ->
-      let tok = Parse_info.fake_info "." in
-      B.DotAccess (acc, tok, B.EId e)) base xs
-(*e: function [[Generic_vs_generic.make_dotted]] *)
 
 (* possibly go deeper when someone wants that a pattern like
  *   'bar();'
