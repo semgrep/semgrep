@@ -5,6 +5,7 @@ function test_equal() {
     if (a+b == a+b)
         return 1;
 
+    //ERROR: match
     if (a+b != a+b)
         return 1;
     return 0;
