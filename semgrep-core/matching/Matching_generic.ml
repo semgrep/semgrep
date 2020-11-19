@@ -439,7 +439,9 @@ let rec m_list_prefix f a b =
       f xa xb >>= (fun () ->
       m_list_prefix f aas bbs
       )
+  (* less-is-ok: prefix is ok *)
   | [], _ -> return ()
+
   | _::_, _ ->
       fail ()
 (*e: function [[Matching_generic.m_list_prefix]] *)
