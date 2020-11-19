@@ -24,8 +24,8 @@ class CoreException:
         rule_id: str,
     ):
         """
-            Object that encapsulates exception information returned by
-            semgrep-core
+        Object that encapsulates exception information returned by
+        semgrep-core
         """
         self._check_id = check_id
         self._path = path

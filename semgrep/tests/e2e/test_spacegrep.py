@@ -16,5 +16,6 @@ import pytest
 def test_spacegrep(run_semgrep_in_tmp, snapshot, rule, target):
     # Yes, this is fugly. I apologize. T_T
     snapshot.assert_match(
-        run_semgrep_in_tmp(rule, target_name=target), "results.json",
+        run_semgrep_in_tmp(rule, target_name=target),
+        "results.json",
     )

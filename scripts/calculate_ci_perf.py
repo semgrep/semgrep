@@ -101,8 +101,8 @@ def _github_repo(repo_url: str, sha: Optional[str], repo_destination: Path) -> P
 
 def test_perf() -> None:
     """
-        Simple test that njsscan finishes below a given threshold of time on juice-shop and dvna
-        this will alert us of significant performance regressions
+    Simple test that njsscan finishes below a given threshold of time on juice-shop and dvna
+    this will alert us of significant performance regressions
     """
     rules_path = clone_github_repo(
         repo_url="https://github.com/ajinabraham/njsscan",

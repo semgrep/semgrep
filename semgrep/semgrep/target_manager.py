@@ -57,12 +57,13 @@ ALL_EXTENSIONS = (
 # files.
 GENERIC_EXTENSIONS = [FileExtension("")]
 
+
 def lang_to_exts(language: Language) -> List[FileExtension]:
     """
-        Convert language to expected file extensions
+    Convert language to expected file extensions
 
-        If language is not a supported semgrep language then
-        raises _UnknownLanguageError
+    If language is not a supported semgrep language then
+    raises _UnknownLanguageError
     """
     if language in {"python", "python2", "python3", "py"}:
         return PYTHON_EXTENSIONS
@@ -110,14 +111,14 @@ def optional_stdin_target(target: List[str]) -> Iterator[List[str]]:
 @attr.s(auto_attribs=True)
 class TargetManager:
     """
-        Handles all file include/exclude logic for semgrep
+    Handles all file include/exclude logic for semgrep
 
-        If respect_git_ignore is true then will only consider files that are
-        tracked or (untracked but not ignored) by git
+    If respect_git_ignore is true then will only consider files that are
+    tracked or (untracked but not ignored) by git
 
-        If skip_unknown_extensions is False then targets with extensions that are
-        not understood by semgrep will always be returned by get_files. Else will discard
-        targets with unknown extensions
+    If skip_unknown_extensions is False then targets with extensions that are
+    not understood by semgrep will always be returned by get_files. Else will discard
+    targets with unknown extensions
     """
 
     includes: List[str]
@@ -132,8 +133,8 @@ class TargetManager:
     @staticmethod
     def resolve_targets(targets: List[str]) -> Set[Path]:
         """
-            Return list of Path objects appropriately resolving relative paths
-            (relative to cwd) if necessary
+        Return list of Path objects appropriately resolving relative paths
+        (relative to cwd) if necessary
         """
         base_path = Path(".")
         return set(
@@ -146,16 +147,16 @@ class TargetManager:
         curr_dir: Path, language: Language, respect_git_ignore: bool
     ) -> Set[Path]:
         """
-            Recursively go through a directory and return list of all files with
-            default file extention of language
+        Recursively go through a directory and return list of all files with
+        default file extention of language
         """
 
         def _parse_output(output: str, curr_dir: Path) -> Set[Path]:
             """
-                Convert a newline delimited list of files to a set of path objects
-                prepends curr_dir to all paths in said list
+            Convert a newline delimited list of files to a set of path objects
+            prepends curr_dir to all paths in said list
 
-                If list is empty then returns an empty set
+            If list is empty then returns an empty set
             """
             files: Set[Path] = set()
             if output:
@@ -168,7 +169,7 @@ class TargetManager:
             curr_dir: Path, extension: FileExtension
         ) -> Set[Path]:
             """
-                Return set of all files in curr_dir with given extension
+            Return set of all files in curr_dir with given extension
             """
             return set(p for p in curr_dir.rglob(f"*{extension}") if p.is_file())
 
@@ -229,7 +230,7 @@ class TargetManager:
         targets: Collection[Path], lang: Language, respect_git_ignore: bool
     ) -> Set[Path]:
         """
-            Explore all directories. Remove duplicates
+        Explore all directories. Remove duplicates
         """
         expanded = set()
         for target in targets:
@@ -248,7 +249,7 @@ class TargetManager:
     @staticmethod
     def match_glob(path: Path, globs: List[str]) -> bool:
         """
-            Return true if path or any parent of path matches any glob in globs
+        Return true if path or any parent of path matches any glob in globs
         """
         subpaths = [path, *path.parents]
         return any(p.match(glob) for p in subpaths for glob in globs)
@@ -256,9 +257,9 @@ class TargetManager:
     @staticmethod
     def filter_includes(arr: Set[Path], includes: List[str]) -> Set[Path]:
         """
-            Returns all elements in arr that match any includes pattern
+        Returns all elements in arr that match any includes pattern
 
-            If includes is empty, returns arr unchanged
+        If includes is empty, returns arr unchanged
         """
         if not includes:
             return arr
@@ -268,17 +269,17 @@ class TargetManager:
     @staticmethod
     def filter_excludes(arr: Set[Path], excludes: List[str]) -> Set[Path]:
         """
-            Returns all elements in arr that do not match any excludes excludes
+        Returns all elements in arr that do not match any excludes excludes
         """
         return set(elem for elem in arr if not TargetManager.match_glob(elem, excludes))
 
     def filtered_files(self, lang: Language) -> Set[Path]:
         """
-            Return all files that are decendants of any directory in TARGET that have
-            an extension matching LANG that match any pattern in INCLUDES and do not
-            match any pattern in EXCLUDES. Any file in TARGET bypasses excludes and includes.
-            If a file in TARGET has a known extension that is not for langugage LANG then
-            it is also filtered out
+        Return all files that are decendants of any directory in TARGET that have
+        an extension matching LANG that match any pattern in INCLUDES and do not
+        match any pattern in EXCLUDES. Any file in TARGET bypasses excludes and includes.
+        If a file in TARGET has a known extension that is not for langugage LANG then
+        it is also filtered out
         """
         if lang in self._filtered_targets:
             return self._filtered_targets[lang]
@@ -321,15 +322,15 @@ class TargetManager:
         self, lang: Language, includes: List[str], excludes: List[str]
     ) -> List[Path]:
         """
-            Returns list of files that should be analyzed for a LANG
+        Returns list of files that should be analyzed for a LANG
 
-            Given this object's TARGET, self.INCLUDE, and self.EXCLUDE will return list
-            of all descendant files of directories in TARGET that end in extension
-            typical for LANG. If self.INCLUDES is non empty then all files will have an ancestor
-            that matches a pattern in self.INCLUDES. Will not include any file that has
-            an ancestor that matches a pattern in self.EXCLUDES. Any explicitly named files
-            in TARGET will bypass this global INCLUDE/EXCLUDE filter. The local INCLUDE/EXCLUDE
-            filter is then applied.
+        Given this object's TARGET, self.INCLUDE, and self.EXCLUDE will return list
+        of all descendant files of directories in TARGET that end in extension
+        typical for LANG. If self.INCLUDES is non empty then all files will have an ancestor
+        that matches a pattern in self.INCLUDES. Will not include any file that has
+        an ancestor that matches a pattern in self.EXCLUDES. Any explicitly named files
+        in TARGET will bypass this global INCLUDE/EXCLUDE filter. The local INCLUDE/EXCLUDE
+        filter is then applied.
         """
         targets = self.filtered_files(lang)
         targets = self.filter_includes(targets, includes)

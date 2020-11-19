@@ -50,8 +50,8 @@ MISSING_RULE_ID = "no-rule-id"
 class Config:
     def __init__(self, valid_configs: Dict[str, List[Rule]]) -> None:
         """
-            Handles parsing and validating of config files
-            and exposes ability to get all rules in parsed config files
+        Handles parsing and validating of config files
+        and exposes ability to get all rules in parsed config files
         """
         self.valid = valid_configs
 
@@ -68,10 +68,10 @@ class Config:
         cls, configs: List[str]
     ) -> Tuple["Config", List[SemgrepError]]:
         """
-            Takes in list of files/directories and returns Config object as well as
-            list of errors parsing said config files
+        Takes in list of files/directories and returns Config object as well as
+        list of errors parsing said config files
 
-            If empty list is passed, tries to read config file at default locations
+        If empty list is passed, tries to read config file at default locations
         """
         config_dict: Dict[str, YamlTree] = {}
         errors: List[SemgrepError] = []
@@ -109,10 +109,10 @@ class Config:
 
     def get_rules(self, no_rewrite_rule_ids: bool) -> List[Rule]:
         """
-            Return list of rules
+        Return list of rules
 
-            If no_rewrite_rule_ids is True will not add
-            path to config file to start of rule_ids
+        If no_rewrite_rule_ids is True will not add
+        path to config file to start of rule_ids
         """
         configs = self.valid
         if not no_rewrite_rule_ids:
@@ -151,12 +151,13 @@ class Config:
             ]
         return transformed
 
+    # the mypy ignore is cause YamlTree puts an Any inside the @staticmethod decorator
     @staticmethod
-    def _validate(
+    def _validate(  # type: ignore[misc]
         config_dict: Dict[str, YamlTree]
     ) -> Tuple[Dict[str, List[Rule]], List[SemgrepError]]:
         """
-            Take configs and separate into valid and list of errors parsing the invalid ones
+        Take configs and separate into valid and list of errors parsing the invalid ones
         """
         errors: List[SemgrepError] = []
         valid: Dict[str, Any] = {}
@@ -195,8 +196,8 @@ def validate_single_rule(
     config_id: str, rule_yaml: YamlTree[YamlMap]
 ) -> Optional[Rule]:
     """
-        Validate that a rule dictionary contains all necessary keys
-        and can be correctly parsed.
+    Validate that a rule dictionary contains all necessary keys
+    and can be correctly parsed.
     """
     rule: YamlMap = rule_yaml.value
 
@@ -264,7 +265,7 @@ def parse_config_at_path(
     loc: Path, base_path: Optional[Path] = None
 ) -> Dict[str, YamlTree]:
     """
-        Assumes file at loc exists
+    Assumes file at loc exists
     """
     config_id = str(loc)
     if base_path:
@@ -279,7 +280,8 @@ def parse_config_string(
 ) -> Dict[str, YamlTree]:
     if not contents:
         raise SemgrepError(
-            f"Empty configuration file {filename}", code=UNPARSEABLE_YAML_EXIT_CODE,
+            f"Empty configuration file {filename}",
+            code=UNPARSEABLE_YAML_EXIT_CODE,
         )
     try:
         data = parse_yaml_preserve_spans(contents, filename)
@@ -317,7 +319,7 @@ def _is_hidden_config(loc: Path) -> bool:
 
 def load_default_config() -> Dict[str, YamlTree]:
     """
-        Load config from DEFAULT_CONFIG_FILE or DEFAULT_CONFIG_FOLDER
+    Load config from DEFAULT_CONFIG_FILE or DEFAULT_CONFIG_FOLDER
     """
     base_path = get_base_path()
     default_file = base_path.joinpath(DEFAULT_CONFIG_FILE)
@@ -332,7 +334,7 @@ def load_default_config() -> Dict[str, YamlTree]:
 
 def load_config_from_local_path(location: str) -> Dict[str, YamlTree]:
     """
-        Return config file(s) as dictionary object
+    Return config file(s) as dictionary object
     """
     base_path = get_base_path()
     loc = base_path.joinpath(location)
@@ -411,28 +413,28 @@ def download_config(config_url: str) -> Dict[str, YamlTree]:
 
 def is_registry_id(config_str: str) -> bool:
     """
-        Starts with r/, p/, s/ for registry, pack, and snippet respectively
+    Starts with r/, p/, s/ for registry, pack, and snippet respectively
     """
     return config_str[:2] in {"r/", "p/", "s/"}
 
 
 def is_saved_snippet(config_str: str) -> bool:
     """
-        config_str is saved snippet which has format username:snippetname
+    config_str is saved snippet which has format username:snippetname
     """
     return len(config_str.split(":")) == 2
 
 
 def registry_id_to_url(registry_id: str) -> str:
     """
-        Convert from registry_id to semgrep.dev url
+    Convert from registry_id to semgrep.dev url
     """
     return f"{SEMGREP_URL}{registry_id}"
 
 
 def saved_snippet_to_url(snippet_id: str) -> str:
     """
-        Convert from username:snippetname to semgrep.dev url
+    Convert from username:snippetname to semgrep.dev url
     """
     return registry_id_to_url(f"s/{snippet_id}")
 

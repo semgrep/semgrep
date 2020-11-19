@@ -122,21 +122,21 @@ def testB() -> None:
 
 def testC() -> None:
     """
-        let pattern1 = subprocess.Popen($X, safeflag=True)
-        let pattern2 = subprocess.Popen($X, ...)
-        let pattern4 = def __eq__(): \n...
+    let pattern1 = subprocess.Popen($X, safeflag=True)
+    let pattern2 = subprocess.Popen($X, ...)
+    let pattern4 = def __eq__(): \n...
 
-        def __eq__():
-            import subprocess
-            subprocess.Popen(subprocess.Popen(bad), safeFlag=True)
-            -----------------------------------------------------   P1, P2      R1
-                            ---------------------                   P2          R2
-        ----------------------------------------------------------  P4          R3
+    def __eq__():
+        import subprocess
+        subprocess.Popen(subprocess.Popen(bad), safeFlag=True)
+        -----------------------------------------------------   P1, P2      R1
+                        ---------------------                   P2          R2
+    ----------------------------------------------------------  P4          R3
 
-        and-inside P4 --> remove all ranges that are not enclosed by P4. Now only ranges inside or equal to P4 are left (all ranges remain)
-        and-not P1 --> remove all ranges == P1. Now only ranges that don't have P1 remain (R2, R3 remain)
-        and P2 --> remove all ranges not == P2. R2 remains.
-        OUTPUT: R2
+    and-inside P4 --> remove all ranges that are not enclosed by P4. Now only ranges inside or equal to P4 are left (all ranges remain)
+    and-not P1 --> remove all ranges == P1. Now only ranges that don't have P1 remain (R2, R3 remain)
+    and P2 --> remove all ranges not == P2. R2 remains.
+    OUTPUT: R2
     """
     results = {
         PatternId("pattern1"): [PatternMatchMock(100, 1000)],
@@ -157,21 +157,21 @@ def testC() -> None:
 
 def testD() -> None:
     """
-        let pattern1 = subprocess.Popen($X, safeflag=True)
-        let pattern2 = subprocess.Popen($X, ...)
-        let pattern4 = def __eq__(): \n...
+    let pattern1 = subprocess.Popen($X, safeflag=True)
+    let pattern2 = subprocess.Popen($X, ...)
+    let pattern4 = def __eq__(): \n...
 
-        def __eq__():
-            import subprocess
-            subprocess.Popen(subprocess.Popen(bad), safeFlag=True)
-            -----------------------------------------------------   P1, P2      R1
-                            ---------------------                   P2          R2
-        ----------------------------------------------------------  P4          R3
+    def __eq__():
+        import subprocess
+        subprocess.Popen(subprocess.Popen(bad), safeFlag=True)
+        -----------------------------------------------------   P1, P2      R1
+                        ---------------------                   P2          R2
+    ----------------------------------------------------------  P4          R3
 
-        and-not-inside P4 --> remove all ranges that are not enclosed by P4. Now only ranges inside or equal to P4 are left (no ranges remain)
-        and-not P1 --> no effect
-        and P2 --> no effect
-        OUTPUT: []
+    and-not-inside P4 --> remove all ranges that are not enclosed by P4. Now only ranges inside or equal to P4 are left (no ranges remain)
+    and-not P1 --> no effect
+    and P2 --> no effect
+    OUTPUT: []
     """
     results = {
         PatternId("pattern1"): [PatternMatchMock(100, 1000)],

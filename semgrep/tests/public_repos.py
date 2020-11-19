@@ -259,12 +259,18 @@ PASSING_REPOS = [
     },
     {"repo": "https://github.com/0c34/govwa", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/coinbase/bittip", "languages": ALL_LANGUAGES},
-    {"repo": "https://github.com/coinbase/multisig-tool", "languages": ALL_LANGUAGES,},
+    {
+        "repo": "https://github.com/coinbase/multisig-tool",
+        "languages": ALL_LANGUAGES,
+    },
     {
         "repo": "https://github.com/we45/Vulnerable-Flask-App",
         "languages": ALL_LANGUAGES,
     },
-    {"repo": "https://github.com/jekyll/jekyll", "languages": ALL_LANGUAGES,},
+    {
+        "repo": "https://github.com/jekyll/jekyll",
+        "languages": ALL_LANGUAGES,
+    },
     {"repo": "https://github.com/OWASP/NodeGoat", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/dropbox/questions", "languages": ALL_LANGUAGES},
 ]

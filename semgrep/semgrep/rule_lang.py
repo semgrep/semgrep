@@ -453,5 +453,7 @@ def validate_yaml(data: YamlTree) -> None:
             item = item.value[el]
 
         raise InvalidRuleSchemaError(
-            short_msg="Invalid rule schema", long_msg=message, spans=[item.span],
+            short_msg="Invalid rule schema",
+            long_msg=message,
+            spans=[item.span],
         )

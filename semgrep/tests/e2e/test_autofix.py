@@ -47,7 +47,8 @@ def test_autofix(run_semgrep_in_tmp, snapshot):
 def test_regex_autofix(run_semgrep_in_tmp, snapshot, rule, target):
     # Yes, this is fugly. I apologize. T_T
     snapshot.assert_match(
-        run_semgrep_in_tmp(rule, target_name=target), "results.json",
+        run_semgrep_in_tmp(rule, target_name=target),
+        "results.json",
     )
     # Make a copy of the target file b/c autofixes are inline. We
     # don't want to modify the the actual target file, and there

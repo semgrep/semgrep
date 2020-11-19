@@ -95,7 +95,7 @@ def test_filter_exclude():
 
 def test_delete_git(tmp_path, monkeypatch):
     """
-        Check that deleted files are not included in expanded targets
+    Check that deleted files are not included in expanded targets
     """
     foo = tmp_path / "foo.py"
     bar = tmp_path / "bar.py"
@@ -117,8 +117,8 @@ def test_delete_git(tmp_path, monkeypatch):
 
 def test_expand_targets_git(tmp_path, monkeypatch):
     """
-        Test TargetManager with visible_to_git_only flag on in a git repository
-        with nested .gitignores
+    Test TargetManager with visible_to_git_only flag on in a git repository
+    with nested .gitignores
     """
     foo = tmp_path / "foo"
     foo.mkdir()
@@ -274,7 +274,7 @@ def test_expand_targets_git(tmp_path, monkeypatch):
 
 def cmp_path_sets(a: Set[Path], b: Set[Path]) -> bool:
     """
-        Check that two sets of path contain the same paths
+    Check that two sets of path contain the same paths
     """
     a_abs = {elem.resolve() for elem in a}
     b_abs = {elem.resolve() for elem in b}
@@ -283,7 +283,7 @@ def cmp_path_sets(a: Set[Path], b: Set[Path]) -> bool:
 
 def test_expand_targets_not_git(tmp_path, monkeypatch):
     """
-        Check that directory expansion works with relative paths, absolute paths, paths with ..
+    Check that directory expansion works with relative paths, absolute paths, paths with ..
     """
     foo = tmp_path / "foo"
     foo.mkdir()
