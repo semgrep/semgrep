@@ -1,0 +1,8 @@
+import (
+    $HTML "html/template"
+    $TEXT "text/template"
+)
+...
+func $ANY(...) {
+  return $HTML.$FUNC(...)
+}
