@@ -88,7 +88,7 @@ def finding_to_line(
 
             yield f"{line_number}:{line}" if line_number else f"{line}"
         if trimmed > 0:
-            yield f"...not showing an additional {trimmed} lines for brevity..."
+            yield f"...hiding {trimmed} lines..."
 
 
 def build_normal_output(
