@@ -65,7 +65,7 @@ let token_todo (env : env) _ =
     failwith "token Todo"
 
 let escaped_identifier (env : env) (tok : CST.escaped_identifier) =
-  token env tok (* pattern "\\\\[tbrn'\"\\\\$]" *)
+  token env tok (* pattern "\\\\[tbrn'\dq\\\\$]" *)
 
 let pat_b294348 (env : env) (tok : CST.pat_b294348) =
   token env tok (* pattern "[^\\n\\r'\\\\]" *)
@@ -80,14 +80,14 @@ let visibility_modifier (env : env) (x : CST.visibility_modifier) =
 
 let equality_operator (env : env) (x : CST.equality_operator) =
   (match x with
-  | `BANGEQ tok -> token env tok (* "!=" *)
-  | `BANGEQEQ tok -> token env tok (* "!==" *)
-  | `EQEQ tok -> token env tok (* "==" *)
-  | `EQEQEQ tok -> token env tok (* "===" *)
+  | `BANGEQ tok -> NotEq, token env tok (* "!=" *)
+  | `BANGEQEQ tok -> NotPhysEq, token env tok (* "!==" *)
+  | `EQEQ tok -> Eq, token env tok (* "==" *)
+  | `EQEQEQ tok -> PhysEq, token env tok (* "===" *)
   )
 
 let multi_line_str_text (env : env) (tok : CST.multi_line_str_text) =
-  token env tok (* pattern "[^\"$]+" *)
+  token env tok (* pattern "[^\dq$]+" *)
 
 let pat_a2e2132 (env : env) (tok : CST.pat_a2e2132) =
   token env tok (* pattern [0-9a-fA-F]{4} *)
@@ -115,10 +115,10 @@ let real_literal (env : env) (tok : CST.real_literal) =
 
 let comparison_operator (env : env) (x : CST.comparison_operator) =
   (match x with
-  | `LT tok -> token env tok (* "<" *)
-  | `GT tok -> token env tok (* ">" *)
-  | `LTEQ tok -> token env tok (* "<=" *)
-  | `GTEQ tok -> token env tok (* ">=" *)
+  | `LT tok ->Lt, token env tok (* "<" *)
+  | `GT tok -> Gt, token env tok (* ">" *)
+  | `LTEQ tok -> LtE, token env tok (* "<=" *)
+  | `GTEQ tok -> GtE, token env tok (* ">=" *)
   )
 
 let assignment_and_operator (env : env) (x : CST.assignment_and_operator) =
@@ -411,8 +411,8 @@ let literal_constant (env : env) (x : CST.literal_constant) =
       let v3 =
         (match v3 with
         | Some tok -> Some (str env tok) (* "L" *)
-        | None -> None) 
-      in 
+        | None -> None)
+      in
       let xs = [v1;v2] in
       let str = xs |> List.map fst |> String.concat "" in
       Int (str, PI.combine_infos (snd v1) [snd v2])
@@ -457,7 +457,7 @@ and annotation (env : env) (x : CST.annotation) =
       let v2 =
         (match v2 with
         | Some x -> use_site_target env x
-        | None -> todo env ()) 
+        | None -> todo env ())
       in
       let v3 = token env v3 (* "[" *) in
       let v4 = List.map (unescaped_annotation env) v4 in
@@ -495,19 +495,20 @@ and binary_expression (env : env) (x : CST.binary_expression) =
       Call (IdSpecial (Op (v2), tok), fb[Arg v1; Arg v3])
   | `Range_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
-      let v2 = token env v2 (* ".." *) in
+      let v2, tok = Range, token env v2 (* ".." *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Call (IdSpecial (Op (v2), tok), fb[Arg v1; Arg v3])
   | `Infix_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = simple_identifier env v2 in
+      let v2_id = Id (v2, empty_id_info()) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Call (v2_id, fb[Arg v1; Arg v3])
   | `Elvis_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
-      let v2 = token env v2 (* "?:" *) in
+      let v2, tok = Elvis, token env v2 (* "?:" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Call (IdSpecial (Op (v2), tok), fb[Arg v1; Arg v3])
   | `Check_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 =
@@ -516,28 +517,29 @@ and binary_expression (env : env) (x : CST.binary_expression) =
         | `Is_op x -> is_operator env x
         )
       in
+      let v2_id = Id (("", v2), empty_id_info()) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Call (v2_id, fb[Arg v1; Arg v3])
   | `Comp_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
-      let v2 = comparison_operator env v2 in
+      let v2, tok = comparison_operator env v2 in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Call (IdSpecial (Op (v2), tok), fb[Arg v1; Arg v3])
   | `Equa_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
-      let v2 = equality_operator env v2 in
+      let v2, tok = equality_operator env v2 in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Call (IdSpecial (Op (v2), tok), fb[Arg v1; Arg v3])
   | `Conj_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
-      let v2 = token env v2 (* "&&" *) in
+      let v2, tok = And, token env v2 (* "&&" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Call (IdSpecial (Op (v2), tok), fb[Arg v1; Arg v3])
   | `Disj_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
-      let v2 = token env v2 (* "||" *) in
+      let v2, tok = Or, token env v2 (* "||" *) in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Call (IdSpecial (Op (v2), tok), fb[Arg v1; Arg v3])
   )
 
 and block (env : env) ((v1, v2, v3) : CST.block) =
@@ -1369,7 +1371,7 @@ and primary_constructor (env : env) ((v1, v2) : CST.primary_constructor) =
 and primary_expression (env : env) (x : CST.primary_expression) : expr =
   (match x with
   | `Paren_exp x -> parenthesized_expression env x
-  | `Simple_id x -> 
+  | `Simple_id x ->
       let id = simple_identifier env x in
       Id(id, empty_id_info())
   | `Lit_cst x -> L (literal_constant env x)
@@ -1377,17 +1379,22 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
   | `Call_ref (v1, v2, v3) ->
       let v1 =
         (match v1 with
-        | Some x -> simple_identifier env x
-        | None -> todo env ())
+        | Some x ->
+            let id = simple_identifier env x in
+            Id(id, empty_id_info())
+        | None ->
+            let fake_id = ("None", fake "None") in
+            Id(fake_id, empty_id_info()))
       in
       let v2 = token env v2 (* "::" *) in
       let v3 =
         (match v3 with
         | `Simple_id x -> simple_identifier env x
-        | `Class tok -> token_todo env tok (* "class" *)
+        | `Class tok -> str env tok (* "class" *)
         )
       in
-      todo env (v1, v2, v3)
+      let ident_v3 = EId v3 in
+      DotAccess (v1, v2, ident_v3)
   | `Func_lit x -> function_literal env x
   | `Obj_lit (v1, v2, v3) ->
       let v1 = token env v1 (* "object" *) in
@@ -1413,10 +1420,12 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
       in
       let v4 = token env v4 (* "]" *) in
       todo env (v1, v2, v3, v4)
-  | `This_exp tok -> 
+  | `This_exp tok ->
       let tok = token env tok in
       IdSpecial(This, tok) (* "this" *)
-  | `Super_exp v1 -> let _ = token env v1 in raise Todo(* "super" *)
+  | `Super_exp v1 ->
+      let tok = token env v1 in
+      IdSpecial(Super, tok)
   | `If_exp (v1, v2, v3, v4, v5) ->
       let v1 = token env v1 (* "if" *) in
       let v2 = token env v2 (* "(" *) in
