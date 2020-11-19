@@ -6,6 +6,12 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 
+### Changed
+
+## [0.32.0](https://github.com/returntocorp/semgrep/releases/tag/v0.32.0) - 2020-11-18
+
+### Added
+
 - JSON output now includes an attribute of findings named `is_ignored`.
   This is `false` under regular circumstances,
   but if you run with `--disable-nosem`,
