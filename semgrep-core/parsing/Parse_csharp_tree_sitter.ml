@@ -35,7 +35,7 @@ let str = H.str
 
 let ids_of_name (name : name) : dotted_ident =
   let (ident, name_info) = name in
-  (match name_info.name_qualifier with 
+  (match name_info.name_qualifier with
     | Some(q) -> (match q with
       | QDots(ds) -> ds @ [ident]
       | _ -> failwith("unexpected qualifier type")
@@ -61,6 +61,12 @@ let arg_to_expr (a : argument) =
   | Arg e -> e
   | ArgKwd (_, e) -> e (* TODO maybe ArgKwd is also impossible here *)
   | _ -> raise Impossible
+
+module List = struct
+include List
+(* not available in 4.09 *)
+let concat_map  f xs = map f xs |> List.flatten
+end
 
 (*****************************************************************************)
 (* Boilerplate converter *)
@@ -488,10 +494,10 @@ and binary_expression (env : env) (x : CST.binary_expression) =
       let v1 = expression env v1 in
       let v3 = type_constraint env v3 in
       match v2 with
-        | `Is tok -> 
+        | `Is tok ->
             let v2 = token env tok (* "is" *) in
             Call (IdSpecial (Instanceof, v2), fake_bracket [Arg v1; ArgType v3])
-        | `As tok -> 
+        | `As tok ->
             let v2 = token env tok (* "as" *) in
             Cast (v3, v1) (* TODO `as` is really a conditional cast *)
   )
@@ -617,7 +623,7 @@ and array_type (env : env) ((v1, v2) : CST.array_type) =
   let v1 = type_constraint env v1 in
   let v2 = array_rank_specifier env v2 in
   let open_br, exps, close_br = v2 in
-  let rec jag = (fun exps t -> 
+  let rec jag = (fun exps t ->
     match exps with
     | [] -> TyArray ((open_br, None, close_br), t)
     | [e] -> TyArray ((open_br, e, close_br), t)
@@ -2319,7 +2325,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
             let funcs = List.map (fun (attrs, id, fbody) ->
               let fname, ftok = v5 in
               let iname, itok = id in
-              let has_params = iname != "get" in
+              let has_params = iname <> "get" in
               let has_return = iname = "get" in
               let ent = basic_entity ((iname ^ "_" ^ fname), itok) attrs in
               let funcdef = FuncDef {
