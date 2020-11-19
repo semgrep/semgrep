@@ -155,28 +155,28 @@ let integer_literal (env : env) (tok : CST.integer_literal) =
 
 let overloadable_operator (env : env) (x : CST.overloadable_operator) =
   (match x with
-  | `BANG tok -> token env tok (* "!" *)
-  | `TILDE tok -> token env tok (* "~" *)
-  | `PLUSPLUS tok -> token env tok (* "++" *)
-  | `DASHDASH tok -> token env tok (* "--" *)
-  | `True tok -> token env tok (* "true" *)
-  | `False tok -> token env tok (* "false" *)
-  | `PLUS tok -> token env tok (* "+" *)
-  | `DASH tok -> token env tok (* "-" *)
-  | `STAR tok -> token env tok (* "*" *)
-  | `SLASH tok -> token env tok (* "/" *)
-  | `PERC tok -> token env tok (* "%" *)
-  | `HAT tok -> token env tok (* "^" *)
-  | `BAR tok -> token env tok (* "|" *)
-  | `AMP tok -> token env tok (* "&" *)
-  | `LTLT tok -> token env tok (* "<<" *)
-  | `GTGT tok -> token env tok (* ">>" *)
-  | `EQEQ tok -> token env tok (* "==" *)
-  | `BANGEQ tok -> token env tok (* "!=" *)
-  | `GT tok -> token env tok (* ">" *)
-  | `LT tok -> token env tok (* "<" *)
-  | `GTEQ tok -> token env tok (* ">=" *)
-  | `LTEQ tok -> token env tok (* "<=" *)
+  | `BANG tok -> str env tok (* "!" *)
+  | `TILDE tok -> str env tok (* "~" *)
+  | `PLUSPLUS tok -> str env tok (* "++" *)
+  | `DASHDASH tok -> str env tok (* "--" *)
+  | `True tok -> str env tok (* "true" *)
+  | `False tok -> str env tok (* "false" *)
+  | `PLUS tok -> str env tok (* "+" *)
+  | `DASH tok -> str env tok (* "-" *)
+  | `STAR tok -> str env tok (* "*" *)
+  | `SLASH tok -> str env tok (* "/" *)
+  | `PERC tok -> str env tok (* "%" *)
+  | `HAT tok -> str env tok (* "^" *)
+  | `BAR tok -> str env tok (* "|" *)
+  | `AMP tok -> str env tok (* "&" *)
+  | `LTLT tok -> str env tok (* "<<" *)
+  | `GTGT tok -> str env tok (* ">>" *)
+  | `EQEQ tok -> str env tok (* "==" *)
+  | `BANGEQ tok -> str env tok (* "!=" *)
+  | `GT tok -> str env tok (* ">" *)
+  | `LT tok -> str env tok (* "<" *)
+  | `GTEQ tok -> str env tok (* ">=" *)
+  | `LTEQ tok -> str env tok (* "<=" *)
   )
 
 let reserved_identifier (env : env) (x : CST.reserved_identifier) =
@@ -2293,7 +2293,20 @@ and declaration (env : env) (x : CST.declaration) : stmt =
       let v5 = overloadable_operator env v5 in
       let v6 = parameter_list env v6 in
       let v7 = function_body env v7 in
-      todo env (v1, v2, v3, v4, v5, v6, v7)
+      (* TODO make clear that this is an operator overload, by using IdSpecial as the name, or adding a keyword attribute *)
+      let ent = {
+          name = EId v5;
+          attrs = v1 @ v2;
+          info = empty_id_info ();
+          tparams = [];
+      } in
+      let def = AST.FuncDef {
+        fkind = (AST.Method, v4);
+        fparams = v6;
+        frettype = Some v3;
+        fbody = v7;
+      } in
+      AST.DefStmt (ent, def)
   | `Prop_decl (v1, v2, v3, v4, v5, v6) ->
       (* [Attr] public string IFace.Field { get; public set { ... } } = "hello";
          [Attr] public string IFace.Field => "hello";
