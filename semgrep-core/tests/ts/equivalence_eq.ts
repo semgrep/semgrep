@@ -10,7 +10,7 @@ function test_equal() {
     return 0;
 }
 
-//TODO: test also === vs !==, Javascript specific
+//TODO: test also === vs !==, Javascript/Typescript specific
 // 1+2 !== 1+2;
 function bar() {
     var x;
