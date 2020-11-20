@@ -61,6 +61,7 @@ def finding_to_line(
     rule_match: RuleMatch,
     color_output: bool,
     per_finding_max_lines_limit: Optional[int],
+    is_last: bool,
 ) -> Iterator[str]:
     path = rule_match.path
     start_line = rule_match.start.get("line")
@@ -87,8 +88,22 @@ def finding_to_line(
                     line_number = f"{start_line + i}"
 
             yield f"{line_number}:{line}" if line_number else f"{line}"
-        if trimmed > 0:
-            yield f"...hiding {trimmed} lines..."
+        trimmed_str = f" [hid {trimmed} additional lines] "
+        if len(lines) > 1 and not is_last:
+            ellipsis_output = "-" * 80
+            if trimmed > 0:
+                start_index = (len(ellipsis_output) // 2) - (len(trimmed_str) // 2)
+                end_index = start_index + len(trimmed_str)
+                output = (
+                    ellipsis_output[:start_index]
+                    + trimmed_str
+                    + ellipsis_output[:end_index]
+                )
+                yield output
+            else:
+                yield ellipsis_output
+        elif trimmed > 0:
+            yield trimmed_str
 
 
 def build_normal_output(
@@ -104,7 +119,8 @@ def build_normal_output(
 
     last_file = None
     last_message = None
-    for rule_match in sorted(rule_matches, key=lambda r: (r.path, r.id)):
+    sorted_rule_matches = sorted(rule_matches, key=lambda r: (r.path, r.id))
+    for rule_index, rule_match in enumerate(sorted_rule_matches):
 
         current_file = rule_match.path
         check_id = rule_match.id
@@ -135,8 +151,12 @@ def build_normal_output(
         last_file = current_file
         last_message = message
         yield from finding_to_line(
-            rule_match, color_output, per_finding_max_lines_limit
+            rule_match,
+            color_output,
+            per_finding_max_lines_limit,
+            rule_index == len(sorted_rule_matches) - 1,
         )
+
         if fix:
             yield f"{BLUE_COLOR}autofix:{RESET_COLOR} {fix}"
         elif rule_match.fix_regex:
