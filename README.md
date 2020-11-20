@@ -34,6 +34,8 @@ The [Semgrep Registry](https://semgrep.dev/explore) has 900+ rules written by th
 
 Semgrep runs offline, on uncompiled code.
 
+Semgrep is used in production everywhere from one-person startups to multi-billion dollar companies; it is the engine inside tools like [NodeJsScan](https://semgrep.dev/p/nodejsscan). Semgrep is developed and commercially supported by [r2c, a software security company](https://r2c.dev). r2c’s free hosted service, [Semgrep Community](https://semgrep.dev), lets organizations write and share rules, and manage Semgrep in CI across many projects. r2c also offers a paid hosted tier for enterprises, [Semgrep Team](https://r2c.dev/pricing).
+
 ### Language support
 
 
