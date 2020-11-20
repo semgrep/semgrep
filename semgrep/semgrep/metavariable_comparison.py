@@ -23,7 +23,7 @@ def metavariable_comparison(
         temp_file.flush()
         cmd = [SEMGREP_PATH, "-eval", temp_file.name]
         try:
-            output = sub_check_output(cmd)
+            output: bytes = sub_check_output(cmd)
         except subprocess.CalledProcessError as ex:
             raise SemgrepError(
                 f"error invoking semgrep with:\n\t{' '.join(cmd)}\n\t{ex}\n{PLEASE_FILE_ISSUE_TEXT}"

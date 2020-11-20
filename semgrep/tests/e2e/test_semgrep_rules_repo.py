@@ -5,7 +5,10 @@ import pytest
 
 def _fail_subprocess_on_error(cmd):
     output = subprocess.run(
-        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding="utf-8",
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        encoding="utf-8",
     )
 
     if output.returncode != 0:

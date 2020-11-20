@@ -88,8 +88,8 @@ def apply_fixes(
     rule_matches_by_rule: Dict[Rule, List[RuleMatch]], dryrun: bool = False
 ) -> None:
     """
-        Modify files in place for all files with findings from rules with an
-        autofix configuration
+    Modify files in place for all files with findings from rules with an
+    autofix configuration
     """
     modified_files: Set[Path] = set()
 

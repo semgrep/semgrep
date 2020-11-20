@@ -23,7 +23,8 @@ VERSION_CHECK_TIMEOUT = int(
 )
 VERSION_CACHE_PATH = Path(
     os.environ.get(
-        "SEMGREP_VERSION_CACHE_PATH", Path.home() / ".cache" / "semgrep_version",
+        "SEMGREP_VERSION_CACHE_PATH",
+        Path.home() / ".cache" / "semgrep_version",
     )
 )
 
@@ -35,7 +36,9 @@ def _fetch_latest_version(
         import requests
 
         resp = requests.get(
-            url, headers={"User-Agent": SEMGREP_USER_AGENT}, timeout=timeout,
+            url,
+            headers={"User-Agent": SEMGREP_USER_AGENT},
+            timeout=timeout,
         )
     except Exception as e:
         logger.debug(f"Fetching latest version failed to connect: {e}")

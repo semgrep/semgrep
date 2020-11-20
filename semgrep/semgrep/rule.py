@@ -60,7 +60,7 @@ class Rule:
 
         # add 'ts' to languages if the rule supports javascript.
         if ("javascript" in self._languages) or ("js" in self._languages):
-            self._languages.append("ts")
+            self._languages.append(Language("ts"))
 
         # check taint/search mode
         self._expression, self._mode = self._build_search_patterns_for_mode(self._yaml)
@@ -172,7 +172,12 @@ class Rule:
         for pattern_name in YAML_TAINT_MUST_HAVE_KEYS:
             pattern = rule_raw[pattern_name]
             self._pattern_spans[rule_id] = pattern.span
-        return BooleanRuleExpression(OPERATORS.AND, rule_id, None, None,)
+        return BooleanRuleExpression(
+            OPERATORS.AND,
+            rule_id,
+            None,
+            None,
+        )
 
     def _build_boolean_expression(
         self, rule: YamlTree[YamlMap]

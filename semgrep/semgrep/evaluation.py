@@ -3,6 +3,7 @@ import re
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
+from typing import cast
 from typing import Dict
 from typing import Iterable
 from typing import List
@@ -254,9 +255,10 @@ def _evaluate_single_expression(
         )
         return output_ranges
     elif expression.operator == OPERATORS.METAVARIABLE_REGEX:
+        operand = cast(Dict[str, Any], expression.operand)
         output_ranges = get_re_range_matches(
-            expression.operand["metavariable"],
-            expression.operand["regex"],
+            operand["metavariable"],
+            operand["regex"],
             ranges_left,
             list(flatten(pattern_ids_to_pattern_matches.values())),
         )
@@ -265,11 +267,12 @@ def _evaluate_single_expression(
         )
         return output_ranges
     elif expression.operator == OPERATORS.METAVARIABLE_COMPARISON:
+        operand = cast(Dict[str, Any], expression.operand)
         output_ranges = get_comparison_range_matches(
-            expression.operand["metavariable"],
-            expression.operand["comparison"],
-            expression.operand.get("strip"),
-            expression.operand.get("base"),
+            operand["metavariable"],
+            operand["comparison"],
+            operand.get("strip"),
+            operand.get("base"),
             ranges_left,
             list(flatten(pattern_ids_to_pattern_matches.values())),
         )
