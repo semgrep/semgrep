@@ -151,7 +151,7 @@ def run_semgrep_on_example(lang: str, config_arg_str: str, code_path: str) -> st
         else:
             print("ERROR: " + str(output.returncode))
             print(cmd)
-            sys.exit(1)
+            # sys.exit(1)
 
 
 def generate_cheatsheet(root_dir: str, html: bool):
@@ -257,6 +257,27 @@ h3 {
     margin: 0;
     margin-bottom: 10px;
 }
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+td, th {
+  border: 1px solid #ddd;
+  padding: 8px;
+}
+
+tr:nth-child(even){background-color: #f2f2f2;}
+
+th {
+  padding-top: 12px;
+  padding-bottom: 12px;
+  text-align: left;
+  background-color: #0974d7;
+  color: white;
+}
+
 """
 
 
@@ -276,26 +297,61 @@ def snippet_and_pattern_to_html(
 
             snippets_html = "".join(
                 [
-                    f'<div class="match"><a href="{path}"><pre>{snippet}</pre></a></div>\n'
+                    f'<div class="match"><a href="{path}"><pre><code>{snippet}</code></pre></a></div>\n'
                     for snippet, path in code_snippets
                 ]
             )
             s += f"<div>{snippets_html}</div>"
         else:
-            return f'<div class="notimplemented">This is missing an example!<br/>Or it doesn\'t work yet for this language!<br/>Edit {sgrep_path}</div>\n'
+            return (
+                f'<div class="notimplemented">This is missing an example!<br/>Or it doesn\'t work yet for this language!<br/>Edit {sgrep_path}</div>\n',
+                False,
+            )
     else:
-        return f'<div class="notimplemented">not implemented, no sgrep pattern at {sgrep_path}</div>\n'
-    return s
+        return (
+            f'<div class="notimplemented">not implemented, no sgrep pattern at {sgrep_path}</div>\n',
+            False,
+        )
+    return s, True
 
 
 def wrap_in_div(L: List[str], className="") -> List[str]:
     return "".join([f"<div class={className}>{i}</div>" for i in L])
 
 
-def cheatsheet_to_html(cheatsheet: Dict[str, Any]):
+def generate_table(
+    cheatsheet: Dict[str, Any], test_matrix_dict: Dict[str, Dict[Tuple, bool]]
+):
+    s = "<h2>Table of Languages and Features Supported</h2>"
+    s += '<table class="pure-table pure-table-bordered"><tr>\n<td></td>\n'
 
+    # get the feature headers in:
+    for category, subcategory in test_matrix_dict["go"].keys():
+        s += f"<th>{category}:{subcategory}</th>"
+    s += "</tr>\n"
+
+    # for each feature:
+    for lang in cheatsheet.keys():
+        s += "<tr>\n"
+        s += f"<th>{lang}</th>\n"
+        for category, subcategory in test_matrix_dict["go"].keys():
+            if (category, subcategory) in test_matrix_dict[lang]:
+                val = test_matrix_dict[lang][(category, subcategory)]
+                if val:
+                    s += f"<td>&#9989;</td>\n"
+                else:
+                    s += f"<td>&#10060;</td>\n"
+            else:
+                s += f"<td>&#10060;</td>\n"
+        s += "</tr>\n"
+    return s
+
+
+def cheatsheet_to_html(cheatsheet: Dict[str, Any]):
     s = ""
     s += f"<head><style>{CSS}</style></head><body>"
+
+    test_matrix_dict = collections.defaultdict(lambda: collections.defaultdict(bool))
     for lang, categories in cheatsheet.items():
         s += f"<h2>{lang}</h2>"
         for category, subcategories in categories.items():
@@ -307,15 +363,21 @@ def cheatsheet_to_html(cheatsheet: Dict[str, Any]):
                         (entry["code"], entry["code_path"])
                     )
 
-                compiled_examples = [
+                html_snippets = [
                     snippet_and_pattern_to_html(pattern, pattern_path, snippets)
                     for (pattern, pattern_path), snippets in by_pattern.items()
                 ]
+
+                compiled_examples = [html_snippet[0] for html_snippet in html_snippets]
+
+                test_matrix_dict[lang][(category, subcategory)] = html_snippets[0][1]
+
                 html = wrap_in_div(compiled_examples, className="pair")
                 examples.append(
                     f'<div class="example"><h3>{subcategory}</h3>{html}</div>'
                 )
             s += f'<div class="example-category"><h2>{category}</h2><div class="examples">{"".join(examples)}</div></div>'
+    s += generate_table(cheatsheet, test_matrix_dict)
     s += "</body>"
     return s
 
