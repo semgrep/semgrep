@@ -4,7 +4,10 @@ import pytest
 
 
 @pytest.mark.parametrize(
-    "filename", ["invalid_python.py",],
+    "filename",
+    [
+        "invalid_python.py",
+    ],
 )
 def test_rule_parser__failure__error_messages(run_semgrep_in_tmp, snapshot, filename):
     with pytest.raises(CalledProcessError) as excinfo:

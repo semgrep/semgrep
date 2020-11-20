@@ -162,7 +162,9 @@ def cli() -> None:
         type=int,
         default=DEFAULT_TIMEOUT,
         help=(
-            "Maximum time to spend running a rule on a single file in seconds. If set to 0 will not have time limit. Defaults to {} s.".format(DEFAULT_TIMEOUT)
+            "Maximum time to spend running a rule on a single file in seconds. If set to 0 will not have time limit. Defaults to {} s.".format(
+                DEFAULT_TIMEOUT
+            )
         ),
     )
 
@@ -298,7 +300,9 @@ def cli() -> None:
     )
 
     output.add_argument(
-        "--debug", action="store_true", help="Set the logging level to DEBUG",
+        "--debug",
+        action="store_true",
+        help="Set the logging level to DEBUG",
     )
 
     parser.add_argument(

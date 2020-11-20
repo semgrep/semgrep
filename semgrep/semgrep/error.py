@@ -94,8 +94,8 @@ class FilesNotFoundError(SemgrepError):
 
 def span_list_to_tuple(spans: List[Span]) -> Tuple[Span, ...]:
     """
-        Helper converter so mypy can track that we are converting
-        from list of spans to tuple of spans
+    Helper converter so mypy can track that we are converting
+    from list of spans to tuple of spans
     """
     return tuple(spans)
 

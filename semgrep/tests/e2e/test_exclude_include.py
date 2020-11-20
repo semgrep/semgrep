@@ -24,7 +24,9 @@ def idfn(options):
 def test_exclude_include(run_semgrep_in_tmp, snapshot, options):
     snapshot.assert_match(
         run_semgrep_in_tmp(
-            "rules/eqeq.yaml", options=options, target_name="exclude_include",
+            "rules/eqeq.yaml",
+            options=options,
+            target_name="exclude_include",
         ),
         "results.json",
     )

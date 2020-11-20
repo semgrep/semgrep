@@ -18,7 +18,8 @@ def test_basic_rule__local(run_semgrep_in_tmp, snapshot):
 
 def test_basic_rule__relative(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(
-        run_semgrep_in_tmp("rules/../rules/eqeq.yaml"), "results.json",
+        run_semgrep_in_tmp("rules/../rules/eqeq.yaml"),
+        "results.json",
     )
 
 
@@ -37,7 +38,8 @@ def test_noextension_filtering(run_semgrep_in_tmp, snapshot):
 
 def test_basic_rule__absolute(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(
-        run_semgrep_in_tmp(Path.cwd() / "rules" / "eqeq.yaml"), "results.json",
+        run_semgrep_in_tmp(Path.cwd() / "rules" / "eqeq.yaml"),
+        "results.json",
     )
 
 
@@ -49,7 +51,8 @@ def test_terminal_output(run_semgrep_in_tmp, snapshot):
 
 def test_multiline(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(
-        run_semgrep_in_tmp("rules/eqeq.yaml", target_name="multiline"), "results.json",
+        run_semgrep_in_tmp("rules/eqeq.yaml", target_name="multiline"),
+        "results.json",
     )
 
 
@@ -72,7 +75,8 @@ def test_sarif_output(run_semgrep_in_tmp, snapshot):
     # we make the order deterministic here so that snapshots match across runs
     # the proper solution will be https://github.com/joseph-roitman/pytest-snapshot/issues/14
     sarif_output["runs"][0]["tool"]["driver"]["rules"] = sorted(
-        sarif_output["runs"][0]["tool"]["driver"]["rules"], key=lambda rule: rule["id"]
+        sarif_output["runs"][0]["tool"]["driver"]["rules"],
+        key=lambda rule: str(rule["id"]),
     )
 
     # Semgrep version is included in sarif output. Verify this independently so
@@ -87,13 +91,15 @@ def test_sarif_output(run_semgrep_in_tmp, snapshot):
 
 def test_url_rule(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(
-        run_semgrep_in_tmp(GITHUB_TEST_GIST_URL), "results.json",
+        run_semgrep_in_tmp(GITHUB_TEST_GIST_URL),
+        "results.json",
     )
 
 
 def test_registry_rule(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(
-        run_semgrep_in_tmp("r2c"), "results.json",
+        run_semgrep_in_tmp("r2c"),
+        "results.json",
     )
 
 

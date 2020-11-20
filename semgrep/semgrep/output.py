@@ -404,7 +404,9 @@ class OutputHandler:
             debug_steps = self.debug_steps_by_rule
         if output_format.is_json():
             return build_output_json(
-                self.rule_matches, self.semgrep_structured_errors, debug_steps,
+                self.rule_matches,
+                self.semgrep_structured_errors,
+                debug_steps,
             )
         elif output_format == OutputFormat.JUNIT_XML:
             return build_junit_xml_output(self.rule_matches, self.rules)

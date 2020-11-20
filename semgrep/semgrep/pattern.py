@@ -9,7 +9,7 @@ from semgrep.semgrep_types import Language
 
 class Pattern:
     """
-        Subunit of Rule that semgrep-core runs on
+    Subunit of Rule that semgrep-core runs on
     """
 
     def __init__(

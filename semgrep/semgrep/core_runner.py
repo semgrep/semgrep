@@ -53,14 +53,14 @@ from semgrep.util import sub_run
 
 def _offset_to_line_no(offset: int, buff: str) -> int:
     """
-        Given string buffer return one indexed line number associated with byte offset
+    Given string buffer return one indexed line number associated with byte offset
     """
     return buff.count("\n", 0, offset) + 1
 
 
 def _offset_to_col_no(offset: int, buff: str) -> int:
     """
-        Return one indexed col number associated with byte offset
+    Return one indexed col number associated with byte offset
     """
     return offset - buff.rfind("\n", 0, offset)
 
@@ -126,9 +126,9 @@ def get_target_files(
 
 class CoreRunner:
     """
-        Handles interactions between semgrep and semgrep-core
+    Handles interactions between semgrep and semgrep-core
 
-        This includes properly invoking semgrep-core and parsing the output
+    This includes properly invoking semgrep-core and parsing the output
     """
 
     def __init__(
@@ -149,7 +149,7 @@ class CoreRunner:
 
     def _flatten_rule_patterns(self, rules: List[Rule]) -> Iterator[Pattern]:
         """
-            Convert list of rules to format understandable by semgrep core
+        Convert list of rules to format understandable by semgrep core
         """
         for rule_index, rule in enumerate(rules):
             flat_expressions = list(
@@ -182,7 +182,9 @@ class CoreRunner:
         return by_lang
 
     def _raise_semgrep_error_from_json(
-        self, error_json: Dict[str, Any], patterns: List[Pattern],
+        self,
+        error_json: Dict[str, Any],
+        patterns: List[Pattern],
     ) -> None:
         """
         See format_output_exception in semgrep O'Caml for details on schema
@@ -321,7 +323,7 @@ class CoreRunner:
         max_timeout_files: List[Path],
     ) -> Tuple[List[RuleMatch], List[Dict[str, Any]], List[SemgrepError], Set[Path]]:
         """
-            Run all rules on targets and return list of all places that match patterns, ... todo errors
+        Run all rules on targets and return list of all places that match patterns, ... todo errors
         """
         outputs: List[PatternMatch] = []  # multiple invocations per language
         errors: List[SemgrepError] = []
@@ -388,9 +390,7 @@ class CoreRunner:
 
                 if language == GENERIC_LANGUAGE:
                     output_json = run_spacegrep(
-                        patterns,
-                        targets,
-                        timeout=self._timeout
+                        patterns, targets, timeout=self._timeout
                     )
                 else:  # Run semgrep-core
                     output_json = self._run_core_command(
@@ -528,7 +528,7 @@ class CoreRunner:
         int,
     ]:
         """
-            Takes in rules and targets and retuns object with findings
+        Takes in rules and targets and retuns object with findings
         """
         start = datetime.now()
 

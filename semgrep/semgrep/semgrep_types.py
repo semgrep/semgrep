@@ -70,7 +70,7 @@ class BooleanRuleExpression:
     operator: Operator
     pattern_id: Optional[PatternId] = None
     children: Optional[List["BooleanRuleExpression"]] = None
-    operand: Optional[Union[str, Dict]] = None
+    operand: Optional[Union[str, Dict[str, Any]]] = None
 
 
 def pattern_name_for_operator(operator: Operator) -> str:
