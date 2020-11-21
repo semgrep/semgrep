@@ -303,15 +303,44 @@ let rec get_start_loc (doc : Doc_AST.node list) =
       | None -> get_start_loc doc2
       | res -> res
 
-let rec fold acc (doc : Doc_AST.node list) f =
+let rec fold_all acc (doc : Doc_AST.node list) f =
   match doc with
   | [] -> acc
   | Atom (loc, _) :: doc_tail ->
       let acc = f acc loc doc in
-      fold acc doc_tail f
+      fold_all acc doc_tail f
   | List doc1 :: doc2 ->
-      let acc = fold acc doc1 f in
-      fold acc doc2 f
+      (* FIXME: should also call 'f acc loc doc' like the Atom case above
+                but we can't because we don't have a location for the List. *)
+      let acc = fold_all acc doc1 f in
+      fold_all acc doc2 f
+
+(*
+   Same interface as 'fold_all' but only iterates over the first element of
+   each block, if there's one. This is intended for the special case
+   where a pattern starts with dots.
+*)
+let fold_block_starts acc (doc : Doc_AST.node list) f =
+  let rec fold ~is_block_start acc (doc : Doc_AST.node list) =
+    match doc with
+    | [] -> acc
+    | Atom (loc, _) :: doc_tail ->
+        let acc =
+          if is_block_start then f acc loc doc
+          else acc
+        in
+        fold ~is_block_start:false acc doc_tail
+    | List doc1 :: doc2 ->
+        (* FIXME: see remark in 'fold_all'. *)
+        let acc = fold ~is_block_start:true acc doc1 in
+        fold ~is_block_start:false acc doc2
+  in
+  fold ~is_block_start:true acc doc
+
+let starts_with_dots (pat : Pattern_AST.node list) =
+  match pat with
+  | Dots _ :: _ -> true
+  | _ -> false
 
 let convert_named_captures env =
   Env.bindings env
@@ -370,6 +399,12 @@ let convert_capture src (start_pos, _) (_, end_pos) =
    last_loc is the location of the last token of a match.
 *)
 let search src pat doc =
+  let fold =
+    if starts_with_dots pat then
+      fold_block_starts
+    else
+      fold_all
+  in
   fold [] doc (fun matches start_loc doc ->
     match
       match_ ~dots:None Env.empty start_loc pat doc full_match

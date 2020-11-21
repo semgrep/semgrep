@@ -277,10 +277,23 @@ b
   "$A ... $B",
   "1 2 3";
 
-  (* TODO: should match the whole document *)
-  "try to match everything", Matches ["c"],
+  "match everything", Matches ["a b c"],
   "...",
   "a b c";
+
+  "leading dots", Matches ["a b"],
+  "... b",
+  "a b c";
+
+  "match block start", Matches ["a"; "b"],
+  "... $X",
+  "\
+a
+  b
+  c
+d
+e
+";
 ]
 
 let matcher_suite =
