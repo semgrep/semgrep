@@ -310,8 +310,6 @@ let rec fold_all acc (doc : Doc_AST.node list) f =
       let acc = f acc loc doc in
       fold_all acc doc_tail f
   | List doc1 :: doc2 ->
-      (* FIXME: should also call 'f acc loc doc' like the Atom case above
-                but we can't because we don't have a location for the List. *)
       let acc = fold_all acc doc1 f in
       fold_all acc doc2 f
 
@@ -331,7 +329,6 @@ let fold_block_starts acc (doc : Doc_AST.node list) f =
         in
         fold ~is_block_start:false acc doc_tail
     | List doc1 :: doc2 ->
-        (* FIXME: see remark in 'fold_all'. *)
         let acc = fold ~is_block_start:true acc doc1 in
         fold ~is_block_start:false acc doc2
   in
