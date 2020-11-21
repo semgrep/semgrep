@@ -332,32 +332,66 @@ let convert_capture src (start_pos, _) (_, end_pos) =
   { value; loc }
 
 (*
-   Search for non-overlapping matches.
-   last_loc is a forbidden start location. Any attempt to match must start
-   from a location after last_loc.
+   Search for matches, starting from a different position in the input file.
+
+   We guarantee that no two matches will have the same start position
+   or the same end position.
+
+   However, it is possible to return overlapping matches like these:
+
+     |--------------|      keep    (1)
+        |----------------| keep
+
+   or like these:
+
+     |----------------| keep       (2)
+         |-------|      keep
+
+   Only the shorter of these two matches will be returned:
+
+     |--------------| discard      (3)
+     |-------|        keep
+
+   Same here. Only the shorter of these two matches will be returned:
+
+     |--------------| discard      (4)
+             |------| keep
+
+   Algorithm:
+
+   1. Proceed from left to right. For each start position, try to match
+      the pattern. The shortest match at this position is returned
+      by the 'match_' function (handles case shown on fig. 3).
+   2. Any match has the send end position as an earlier (longer) match,
+      the earlier match is discarded (handles case shown on fig. 4).
+
+   Implementation:
+
+   last_loc is the location of the last token of a match.
 *)
 let search src pat doc =
   fold [] doc (fun matches start_loc doc ->
-    let ok_loc =
-      match matches with
-      | [] -> true
-      | { region = (_, last_loc) } :: _ -> starts_after last_loc start_loc
-    in
-    if ok_loc then
-      match
-        match_ ~dots:None Env.empty start_loc pat doc full_match
-      with
-      | Complete (env, last_loc) ->
-          let match_ =
-            let region = (start_loc, last_loc) in
-            let capture = convert_capture src start_loc last_loc in
-            let named_captures = convert_named_captures env in
-            { region; capture; named_captures }
-          in
-          match_ :: matches
-      | Fail -> matches
-    else
-      matches
+    match
+      match_ ~dots:None Env.empty start_loc pat doc full_match
+    with
+    | Complete (env, last_loc) ->
+        let match_ =
+          let region = (start_loc, last_loc) in
+          let capture = convert_capture src start_loc last_loc in
+          let named_captures = convert_named_captures env in
+          { region; capture; named_captures }
+        in
+        (match matches with
+         | [] -> [match_]
+         | { region = (_, prev_last_loc) } :: accepted_matches ->
+             (* If two matches end at the same location, prefer the shorter
+                one. *)
+             if Loc.eq prev_last_loc last_loc then
+               match_ :: accepted_matches
+             else
+               match_ :: matches
+        )
+    | Fail -> matches
   )
   |> List.rev
 

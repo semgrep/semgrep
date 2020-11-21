@@ -264,6 +264,23 @@ b
   "multiple metavariables", Count 1,
   "$X $Y $X $Y",
   "a b a b";
+
+  "prefer shorter match", Matches ["function foo"],
+  "function ... foo",
+  "function x function foo";
+
+  "overlapping matches", Matches [ "1 2"; "2 3" ],
+  "$A $B",
+  "1 2 3";
+
+  "shortest overlapping matches", Matches [ "1 2"; "2 3" ],
+  "$A ... $B",
+  "1 2 3";
+
+  (* TODO: should match the whole document *)
+  "try to match everything", Matches ["c"],
+  "...",
+  "a b c";
 ]
 
 let matcher_suite =
