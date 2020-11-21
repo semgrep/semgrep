@@ -295,21 +295,9 @@ e
   "...",
   "a b c";
 
-  "nested matches", Matches [
-    "\
-a
-  a b
-b
-";
-    "a b";
-  ],
-  "...",
-  "\
-a
-  a b
-b
-";
-
+  "nested matches", Matches ["a b b a"; "b b"],
+  "$A ... $A",
+  "a b b a";
 ]
 
 let matcher_suite =
