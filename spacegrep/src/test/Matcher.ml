@@ -277,10 +277,6 @@ b
   "$A ... $B",
   "1 2 3";
 
-  "match everything", Matches ["a b c"],
-  "...",
-  "a b c";
-
   "leading dots", Matches ["a b"],
   "... b",
   "a b c";
@@ -294,6 +290,26 @@ a
 d
 e
 ";
+
+  "match everything", Matches ["a b c"],
+  "...",
+  "a b c";
+
+  "nested matches", Matches [
+    "\
+a
+  a b
+b
+";
+    "a b";
+  ],
+  "...",
+  "\
+a
+  a b
+b
+";
+
 ]
 
 let matcher_suite =
