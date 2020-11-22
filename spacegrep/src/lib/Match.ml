@@ -396,6 +396,9 @@ let convert_capture src (start_pos, _) (_, end_pos) =
    last_loc is the location of the last token of a match.
 *)
 let search src pat doc =
+  (* table of all matches we want to keep, keyed by end location,
+     with at most one entry per end location. *)
+  let end_loc_tbl = Hashtbl.create 100 in
   let fold =
     if starts_with_dots pat then
       fold_block_starts
@@ -413,19 +416,20 @@ let search src pat doc =
           let named_captures = convert_named_captures env in
           { region; capture; named_captures }
         in
-        (match matches with
-         | [] -> [match_]
-         | { region = (_, prev_last_loc) } :: accepted_matches ->
-             (* If two matches end at the same location, prefer the shorter
-                one. *)
-             if Loc.eq prev_last_loc last_loc then
-               match_ :: accepted_matches
-             else
-               match_ :: matches
-        )
+        (* If two matches end at the same location, prefer the shorter one.
+           The replacement in the table marks any earlier, longer match
+           as undesirable. *)
+        Hashtbl.replace end_loc_tbl last_loc match_;
+        match_ :: matches
+
     | Fail -> matches
   )
   |> List.rev
+  |> List.filter (fun match_ ->
+    match Hashtbl.find_opt end_loc_tbl (snd match_.region) with
+    | None -> assert false
+    | Some selected_match -> (==) match_ selected_match
+  )
 
 let ansi_highlight s =
   match s with
