@@ -303,15 +303,41 @@ let rec get_start_loc (doc : Doc_AST.node list) =
       | None -> get_start_loc doc2
       | res -> res
 
-let rec fold acc (doc : Doc_AST.node list) f =
+let rec fold_all acc (doc : Doc_AST.node list) f =
   match doc with
   | [] -> acc
   | Atom (loc, _) :: doc_tail ->
       let acc = f acc loc doc in
-      fold acc doc_tail f
+      fold_all acc doc_tail f
   | List doc1 :: doc2 ->
-      let acc = fold acc doc1 f in
-      fold acc doc2 f
+      let acc = fold_all acc doc1 f in
+      fold_all acc doc2 f
+
+(*
+   Same interface as 'fold_all' but only iterates over the first element of
+   each block, if there's one. This is intended for the special case
+   where a pattern starts with dots.
+*)
+let fold_block_starts acc (doc : Doc_AST.node list) f =
+  let rec fold ~is_block_start acc (doc : Doc_AST.node list) =
+    match doc with
+    | [] -> acc
+    | Atom (loc, _) :: doc_tail ->
+        let acc =
+          if is_block_start then f acc loc doc
+          else acc
+        in
+        fold ~is_block_start:false acc doc_tail
+    | List doc1 :: doc2 ->
+        let acc = fold ~is_block_start:true acc doc1 in
+        fold ~is_block_start:false acc doc2
+  in
+  fold ~is_block_start:true acc doc
+
+let starts_with_dots (pat : Pattern_AST.node list) =
+  match pat with
+  | Dots _ :: _ -> true
+  | _ -> false
 
 let convert_named_captures env =
   Env.bindings env
@@ -332,34 +358,78 @@ let convert_capture src (start_pos, _) (_, end_pos) =
   { value; loc }
 
 (*
-   Search for non-overlapping matches.
-   last_loc is a forbidden start location. Any attempt to match must start
-   from a location after last_loc.
+   Search for matches, starting from a different position in the input file.
+
+   We guarantee that no two matches will have the same start position
+   or the same end position.
+
+   However, it is possible to return overlapping matches like these:
+
+     |--------------|      keep    (1)
+        |----------------| keep
+
+   or like these:
+
+     |----------------| keep       (2)
+         |-------|      keep
+
+   Only the shorter of these two matches will be returned:
+
+     |--------------| discard      (3)
+     |-------|        keep
+
+   Same here. Only the shorter of these two matches will be returned:
+
+     |--------------| discard      (4)
+             |------| keep
+
+   Algorithm:
+
+   1. Proceed from left to right. For each start position, try to match
+      the pattern. The shortest match at this position is returned
+      by the 'match_' function (handles case shown on fig. 3).
+   2. Any match has the send end position as an earlier (longer) match,
+      the earlier match is discarded (handles case shown on fig. 4).
+
+   Implementation:
+
+   last_loc is the location of the last token of a match.
 *)
 let search src pat doc =
-  fold [] doc (fun matches start_loc doc ->
-    let ok_loc =
-      match matches with
-      | [] -> true
-      | { region = (_, last_loc) } :: _ -> starts_after last_loc start_loc
-    in
-    if ok_loc then
-      match
-        match_ ~dots:None Env.empty start_loc pat doc full_match
-      with
-      | Complete (env, last_loc) ->
-          let match_ =
-            let region = (start_loc, last_loc) in
-            let capture = convert_capture src start_loc last_loc in
-            let named_captures = convert_named_captures env in
-            { region; capture; named_captures }
-          in
-          match_ :: matches
-      | Fail -> matches
+  (* table of all matches we want to keep, keyed by end location,
+     with at most one entry per end location. *)
+  let end_loc_tbl = Hashtbl.create 100 in
+  let fold =
+    if starts_with_dots pat then
+      fold_block_starts
     else
-      matches
+      fold_all
+  in
+  fold [] doc (fun matches start_loc doc ->
+    match
+      match_ ~dots:None Env.empty start_loc pat doc full_match
+    with
+    | Complete (env, last_loc) ->
+        let match_ =
+          let region = (start_loc, last_loc) in
+          let capture = convert_capture src start_loc last_loc in
+          let named_captures = convert_named_captures env in
+          { region; capture; named_captures }
+        in
+        (* If two matches end at the same location, prefer the shorter one.
+           The replacement in the table marks any earlier, longer match
+           as undesirable. *)
+        Hashtbl.replace end_loc_tbl last_loc match_;
+        match_ :: matches
+
+    | Fail -> matches
   )
   |> List.rev
+  |> List.filter (fun match_ ->
+    match Hashtbl.find_opt end_loc_tbl (snd match_.region) with
+    | None -> assert false
+    | Some selected_match -> (==) match_ selected_match
+  )
 
 let ansi_highlight s =
   match s with

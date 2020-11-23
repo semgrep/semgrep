@@ -264,6 +264,48 @@ b
   "multiple metavariables", Count 1,
   "$X $Y $X $Y",
   "a b a b";
+
+  "nested matches", Matches ["a b b a"; "b b"],
+  "$A ... $A",
+  "a b b a";
+
+  "prefer shorter match", Matches ["function foo"],
+  "function ... foo",
+  "function x function foo";
+
+  "prefer shorter match 2", Matches [
+    "a 2 b 2";
+    "a 1 b 1";
+  ],
+  "a $N ... b $N",
+  "a 1  a 2 b 2  a 1 b 1";
+
+  "overlapping matches", Matches [ "1 2"; "2 3" ],
+  "$A $B",
+  "1 2 3";
+
+  "shortest overlapping matches", Matches [ "1 2"; "2 3" ],
+  "$A ... $B",
+  "1 2 3";
+
+  "leading dots", Matches ["a b"],
+  "... b",
+  "a b c";
+
+  "match block start", Matches ["a"; "b"],
+  "... $X",
+  "\
+a
+  b
+  c
+d
+e
+";
+
+  "match everything", Matches ["a b c"],
+  "...",
+  "a b c";
+
 ]
 
 let matcher_suite =
