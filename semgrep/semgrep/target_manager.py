@@ -143,6 +143,10 @@ class TargetManager:
         )
 
     @staticmethod
+    def _is_valid(path: Path) -> bool:
+        return path.exists() and not path.is_symlink()
+
+    @staticmethod
     def _expand_dir(
         curr_dir: Path, language: Language, respect_git_ignore: bool
     ) -> Set[Path]:
@@ -171,7 +175,11 @@ class TargetManager:
             """
             Return set of all files in curr_dir with given extension
             """
-            return set(p for p in curr_dir.rglob(f"*{extension}") if p.is_file())
+            return {
+                p
+                for p in curr_dir.rglob(f"*{extension}")
+                if p.is_file() and TargetManager._is_valid(p)
+            }
 
         extensions = lang_to_exts(language)
         expanded: Set[Path] = set()
@@ -234,7 +242,7 @@ class TargetManager:
         """
         expanded = set()
         for target in targets:
-            if not target.exists():
+            if not TargetManager._is_valid(target):
                 continue
 
             if target.is_dir():
