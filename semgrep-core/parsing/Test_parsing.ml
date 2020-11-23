@@ -18,51 +18,43 @@ module G = AST_generic
 
 let logger = Logging.get_logger [__MODULE__]
 
+let dump_and_print_errors dumper (cstopt, errs) =
+  (match cstopt with
+  | Some cst ->dumper cst
+  | None -> failwith "unknown error from tree-sitter parser"
+  );
+  errs |> List.iter (fun err ->
+    pr2 (Tree_sitter_run.Tree_sitter_error.to_string ~color:true err)
+  )
+
 (* less: could infer lang from filename *)
 let dump_tree_sitter_cst_lang lang file =
-
- (* TODO: Maybe instead of this we should print all the errors, print the CST
-  *   if there's one, only then fail (or succeed).
-  *)
-  let fail_on_error = function
-  | Some cst, [] -> cst
-  | _, err :: _ -> raise (Tree_sitter_run.Tree_sitter_error.Error err)
-  | None, [] -> failwith "unknown error from tree-sitter parser"
-  in
   match lang with
   | Lang.Ruby ->
      Tree_sitter_ruby.Parse.file file
-     |> fail_on_error
-     |> Tree_sitter_ruby.CST.dump_tree
+     |> dump_and_print_errors Tree_sitter_ruby.CST.dump_tree
   | Lang.Java ->
      Tree_sitter_java.Parse.file file
-     |> fail_on_error
-     |> Tree_sitter_java.CST.dump_tree
+     |> dump_and_print_errors Tree_sitter_java.CST.dump_tree
   | Lang.Go   ->
      Tree_sitter_go.Parse.file file
-     |> fail_on_error
-     |> Tree_sitter_go.CST.dump_tree
+     |> dump_and_print_errors Tree_sitter_go.CST.dump_tree
   | Lang.Csharp ->
      Tree_sitter_csharp.Parse.file file
-     |> fail_on_error
-     |> Tree_sitter_csharp.CST.dump_tree
+     |> dump_and_print_errors Tree_sitter_csharp.CST.dump_tree
   | Lang.Kotlin ->
      Tree_sitter_kotlin.Parse.file file
-     |> fail_on_error
-     |> Tree_sitter_kotlin.CST.dump_tree
+     |> dump_and_print_errors Tree_sitter_kotlin.CST.dump_tree
   | Lang.Javascript ->
      Tree_sitter_javascript.Parse.file file
-     |> fail_on_error
-     |> Tree_sitter_javascript.CST.dump_tree
+     |> dump_and_print_errors Tree_sitter_javascript.CST.dump_tree
   | Lang.Typescript ->
      Tree_sitter_typescript.Parse.file file
-     |> fail_on_error
-     |> Tree_sitter_typescript.CST.dump_tree
+     |> dump_and_print_errors Tree_sitter_typescript.CST.dump_tree
 
   | Lang.C ->
      Tree_sitter_c.Parse.file file
-     |> fail_on_error
-     |> Tree_sitter_c.CST.dump_tree
+     |> dump_and_print_errors Tree_sitter_c.CST.dump_tree
 
   | _ -> failwith "lang not supported by ocaml-tree-sitter"
 
