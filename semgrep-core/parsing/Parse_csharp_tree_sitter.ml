@@ -538,27 +538,27 @@ and prefix_unary_expression (env : env) (x : CST.prefix_unary_expression) =
   | `AMP_exp (v1, v2) ->
       let v1 = token env v1 (* "&" *) in
       let v2 = expression env v2 in
-      todo env (v1, v2)
+      Ref (v1, v2)
   | `STAR_exp (v1, v2) ->
       let v1 = token env v1 (* "*" *) in
       let v2 = expression env v2 in
-      todo env (v1, v2)
+      DeRef (v1, v2)
   | `PLUS_exp (v1, v2) ->
       let v1 = token env v1 (* "+" *) in
       let v2 = expression env v2 in
-      todo env (v1, v2)
+      Call (IdSpecial (Op Plus, v1), fake_bracket [Arg v2])
   | `PLUSPLUS_exp (v1, v2) ->
       let v1 = token env v1 (* "++" *) in
       let v2 = expression env v2 in
-      todo env (v1, v2)
+      Call (IdSpecial (IncrDecr (Incr, Prefix), v1), fake_bracket [Arg v2])
   | `DASH_exp (v1, v2) ->
       let v1 = token env v1 (* "-" *) in
       let v2 = expression env v2 in
-      todo env (v1, v2)
+      Call (IdSpecial (Op Minus, v1), fake_bracket [Arg v2])
   | `DASHDASH_exp (v1, v2) ->
       let v1 = token env v1 (* "--" *) in
       let v2 = expression env v2 in
-      todo env (v1, v2)
+      Call (IdSpecial (IncrDecr (Decr, Prefix), v1), fake_bracket [Arg v2])
   | `HAT_exp (v1, v2) ->
       let v1 = token env v1 (* "^" *) in
       let v2 = expression env v2 in
@@ -566,7 +566,7 @@ and prefix_unary_expression (env : env) (x : CST.prefix_unary_expression) =
   | `TILDE_exp (v1, v2) ->
       let v1 = token env v1 (* "~" *) in
       let v2 = expression env v2 in
-      todo env (v1, v2)
+      Call (IdSpecial (Op BitNot, v1), fake_bracket [Arg v2])
   )
 
 and name (env : env) (x : CST.name) =
