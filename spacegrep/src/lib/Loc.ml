@@ -37,6 +37,9 @@ module Pos = struct
       pos.pos_lnum pos.pos_bol pos.pos_cnum
 end
 
+let eq a b =
+  a = b
+
 let length (a, b) =
   let start = a.pos_bol + a.pos_cnum in
   let end_ = b.pos_bol + a.pos_cnum in

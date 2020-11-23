@@ -8,6 +8,12 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Changed
 
+- In generic mode, shorter matches are now always preferred over
+  longer ones. This avoids matches like `def bar def foo` when the
+  pattern is `def ... foo`, instead matching just `def foo`.
+- In generic mode, leading dots must now match at the beginning of a
+  block, allowing patterns like `... foo` to match what comes before `foo`.
+
 ## [0.32.0](https://github.com/returntocorp/semgrep/releases/tag/v0.32.0) - 2020-11-18
 
 ### Added
