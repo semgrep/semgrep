@@ -241,7 +241,7 @@ let interpolated_string_text (env : env) (x : CST.interpolated_string_text) =
 
 let rec variable_designation (env : env) (x : CST.variable_designation) =
   (match x with
-  | `Disc tok -> todo env tok (* "_" *)
+  | `Disc tok -> PatUnderscore (token env tok) (* "_" *)
   | `Paren_var_desi (v1, v2, v3) ->
       let v1 = token env v1 (* "(" *) in
       let v2 =
@@ -259,8 +259,8 @@ let rec variable_designation (env : env) (x : CST.variable_designation) =
         | None -> [])
       in
       let v3 = token env v3 (* ")" *) in
-      todo env (v1, v2, v3)
-  | `Id tok -> identifier env tok (* identifier *)
+      PatTuple (v1, v2, v3)
+  | `Id tok -> PatId (identifier env tok, empty_id_info ()) (* identifier *)
   )
 
 let anon_choice_id_43fe74f (env : env) (x : CST.anon_choice_id_43fe74f) =
@@ -382,7 +382,7 @@ and postfix_unary_expression (env : env) (x : CST.postfix_unary_expression) =
 and when_clause (env : env) ((v1, v2) : CST.when_clause) =
   let v1 = token env v1 (* "when" *) in
   let v2 = expression env v2 in
-  todo env (v1, v2)
+  v2
 
 and query_continuation (env : env) (x : CST.query_continuation) =
   (match x with
@@ -707,8 +707,8 @@ and switch_expression_arm (env : env) ((v1, v2, v3, v4) : CST.switch_expression_
   let v1 = pattern env v1 in
   let v2 =
     (match v2 with
-    | Some x -> when_clause env x
-    | None -> todo env ())
+    | Some x -> PatWhen (v1, when_clause env x)
+    | None -> v1)
   in
   let v3 = token env v3 (* "=>" *) in
   let v4 = expression env v4 in
@@ -1477,11 +1477,11 @@ and case_pattern_switch_label (env : env) ((v1, v2, v3, v4) : CST.case_pattern_s
   let v2 = pattern env v2 in
   let v3 =
     (match v3 with
-    | Some x -> when_clause env x
-    | None -> todo env ())
+    | Some x -> PatWhen (v2, when_clause env x)
+    | None -> v2)
   in
   let v4 = token env v4 (* ":" *) in
-  AST.Case (v1, v2)
+  AST.Case (v1, v3)
 
 and query_clause (env : env) (x : CST.query_clause) =
   (match x with
@@ -1630,14 +1630,13 @@ and pattern (env : env) (x : CST.pattern) : AST.pattern =
   | `Decl_pat (v1, v2) ->
       let v1 = type_constraint env v1 in
       let v2 = variable_designation env v2 in
-      todo env (v1, v2)
+      PatTyped (v2, v1)
   | `Disc tok ->
-        let _ = token env tok (* "_" *) in
-        todo env x
+        PatUnderscore (token env tok) (* "_" *)
   | `Var_pat (v1, v2) ->
       let v1 = token env v1 (* "var" *) in
       let v2 = variable_designation env v2 in
-      todo env (v1, v2)
+      v2
   )
 
 and anonymous_object_member_declarator (env : env) (x : CST.anonymous_object_member_declarator) =
