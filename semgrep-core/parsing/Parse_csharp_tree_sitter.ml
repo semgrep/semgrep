@@ -1676,8 +1676,8 @@ and parameter (env : env) ((v1, v2, v3, v4, v5) : CST.parameter) =
   let v1 = List.concat_map (attribute_list env) v1 in
   let v3 =
     (match v3 with
-    | Some x -> type_constraint env x
-    | None -> todo env ())
+    | Some x -> Some (type_constraint env x)
+    | None -> None)
   in
   let v4 = identifier env v4 (* identifier *) in
   let v5 =
@@ -1687,7 +1687,7 @@ and parameter (env : env) ((v1, v2, v3, v4, v5) : CST.parameter) =
   in
   {
     pname = Some v4;
-    ptype = Some v3;
+    ptype = v3;
     pdefault = v5;
     pattrs = v1;
     pinfo = empty_id_info ();
