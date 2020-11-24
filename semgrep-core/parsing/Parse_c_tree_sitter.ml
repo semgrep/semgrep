@@ -536,8 +536,12 @@ and anon_choice_param_decl_bdc8cc9 (env : env) (x : CST.anon_choice_param_decl_b
         (match v2 with
         | Some x ->
             (match x with
-            | `Decl x -> declarator env x
-            | `Abst_decl x -> abstract_declarator env x
+            | `Decl x ->
+                 let (id, f) = declarator env x in
+                 raise Todo
+            | `Abst_decl x ->
+                 let f = abstract_declarator env x in
+                 raise Todo
             )
         | None -> todo env ())
       in
@@ -767,7 +771,8 @@ and declaration_specifiers (env : env) ((v1, v2, v3) : CST.declaration_specifier
   in
   v2
 
-and declarator (env : env) (x : CST.declarator) =
+(* return a couple (name * partial type (to be applied to return type)) *)
+and declarator (env : env) (x : CST.declarator) : (name * (type_ -> type_)) =
   (match x with
   | `Poin_decl (v1, v2, v3, v4, v5) ->
       let _v1 =
@@ -1002,6 +1007,7 @@ and field_declaration_list_item (env : env) (x : CST.field_declaration_list_item
       v3 |> List.flatten
   )
 
+(* argh, diff with regular declarator ? *)
 and field_declarator (env : env) (x : CST.field_declarator) =
   (match x with
   | `Poin_field_decl (v1, v2, v3, v4, v5) ->
