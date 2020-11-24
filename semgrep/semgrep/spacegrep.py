@@ -16,12 +16,15 @@ from semgrep.constants import SPACEGREP_PATH
 from semgrep.core_exception import CoreException
 from semgrep.error import InvalidPatternError
 from semgrep.error import SemgrepError
+from semgrep.error import MatchTimeoutError
 from semgrep.pattern import Pattern
 from semgrep.pattern_match import PatternMatch
 from semgrep.util import sub_run
 
 
-def run_spacegrep(patterns: List[Pattern], targets: List[Path], timeout: int) -> dict:
+def run_spacegrep(
+    rule_id: str, patterns: List[Pattern], targets: List[Path], timeout: int
+) -> dict:
     matches: List[dict] = []
     errors: List[dict] = []
     for pattern in patterns:
@@ -43,16 +46,33 @@ def run_spacegrep(patterns: List[Pattern], targets: List[Path], timeout: int) ->
             ]
             try:
                 p = sub_run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                p.check_returncode()
-                raw_output = p.stdout
+                if p.returncode == 3:
+                    # TODO: make this work instead of the json hack below.
+                    # err = MatchTimeoutError(str(target), rule_id).to_dict_base()
 
-                output_json = _parse_spacegrep_output(raw_output)
-                output_json["matches"] = _patch_id(
-                    pattern, output_json.get("matches", [])
-                )
+                    # The following is a hack, mimicking semgrep-core's json output.
+                    err = {
+                        "check_id": "FatalError",  # same as what semgrep-core (hack!)
+                        "path": str(target),
+                        "start": {"line": 0, "col": 0},
+                        "end": {"line": 0, "col": 0},
+                        "extra": {
+                            "message": "Timeout",  # same as what semgrep-core (hack!)
+                            "line": "",
+                        },
+                    }
+                    errors.append(err)
+                else:
+                    p.check_returncode()
+                    raw_output = p.stdout
 
-                matches.extend(output_json["matches"])
-                errors.extend(output_json["errors"])
+                    output_json = _parse_spacegrep_output(raw_output)
+                    output_json["matches"] = _patch_id(
+                        pattern, output_json.get("matches", [])
+                    )
+
+                    matches.extend(output_json["matches"])
+                    errors.extend(output_json["errors"])
             except subprocess.CalledProcessError as e:
                 raw_error = p.stderr
                 spacegrep_error_text = raw_error.decode("utf-8")
