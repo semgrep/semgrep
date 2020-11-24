@@ -1338,9 +1338,9 @@ and non_case_statement (env : env) (x : CST.non_case_statement) : stmt =
   (match x with
   | `Labe_stmt (v1, v2, v3) ->
       let v1 = identifier env v1 (* pattern [a-zA-Z_]\w* *) in
-      let v2 = token env v2 (* ":" *) in
+      let _v2 = token env v2 (* ":" *) in
       let v3 = statement env v3 in
-      todo env (v1, v2, v3)
+      Label (v1, v3)
   | `Comp_stmt x -> Block (compound_statement env x)
   | `Exp_stmt x -> expression_statement env x
   | `If_stmt (v1, v2, v3, v4) ->
@@ -1350,12 +1350,12 @@ and non_case_statement (env : env) (x : CST.non_case_statement) : stmt =
       let v4 =
         (match v4 with
         | Some (v1, v2) ->
-            let v1 = token env v1 (* "else" *) in
+            let _v1 = token env v1 (* "else" *) in
             let v2 = statement env v2 in
-            todo env (v1, v2)
-        | None -> todo env ())
+            Some v2
+        | None -> None)
       in
-      todo env (v1, v2, v3, v4)
+      If (v1, v2, v3, v4)
   | `Switch_stmt (v1, v2, v3) ->
       let v1 = token env v1 (* "switch" *) in
       let v2 = parenthesized_expression env v2 in
@@ -1364,19 +1364,20 @@ and non_case_statement (env : env) (x : CST.non_case_statement) : stmt =
   | `Do_stmt (v1, v2, v3, v4, v5) ->
       let v1 = token env v1 (* "do" *) in
       let v2 = statement env v2 in
-      let v3 = token env v3 (* "while" *) in
+      let _v3 = token env v3 (* "while" *) in
       let v4 = parenthesized_expression env v4 in
-      let v5 = token env v5 (* ";" *) in
-      todo env (v1, v2, v3, v4, v5)
+      let _v5 = token env v5 (* ";" *) in
+      DoWhile (v1, v2, v4)
   | `While_stmt (v1, v2, v3) ->
       let v1 = token env v1 (* "while" *) in
       let v2 = parenthesized_expression env v2 in
       let v3 = statement env v3 in
-      todo env (v1, v2, v3)
+      While (v1, v2, v3)
   | `For_stmt (v1, v2, v3, v4, v5, v6, v7, v8) ->
       let v1 = token env v1 (* "for" *) in
       let v2 = token env v2 (* "(" *) in
       let v3 =
+       (* both decl and expr_stmt contains the ending semicolon *)
         (match v3 with
         | `Decl x -> declaration env x
         | `Opt_choice_exp_SEMI x -> expression_statement env x
@@ -1384,14 +1385,14 @@ and non_case_statement (env : env) (x : CST.non_case_statement) : stmt =
       in
       let v4 =
         (match v4 with
-        | Some x -> expression env x
-        | None -> todo env ())
+        | Some x -> Some (expression env x)
+        | None -> None)
       in
       let v5 = token env v5 (* ";" *) in
       let v6 =
         (match v6 with
-        | Some x -> anon_choice_exp_55b4dba env x
-        | None -> todo env ())
+        | Some x -> Some (anon_choice_exp_55b4dba env x)
+        | None -> None)
       in
       let v7 = token env v7 (* ")" *) in
       let v8 = statement env v8 in
@@ -1400,24 +1401,24 @@ and non_case_statement (env : env) (x : CST.non_case_statement) : stmt =
       let v1 = token env v1 (* "return" *) in
       let v2 =
         (match v2 with
-        | Some x -> anon_choice_exp_55b4dba env x
-        | None -> todo env ())
+        | Some x -> Some (anon_choice_exp_55b4dba env x)
+        | None -> None)
       in
       let v3 = token env v3 (* ";" *) in
-      todo env (v1, v2, v3)
+      Return (v1, v2)
   | `Brk_stmt (v1, v2) ->
       let v1 = token env v1 (* "break" *) in
       let v2 = token env v2 (* ";" *) in
-      todo env (v1, v2)
+      Break (v1)
   | `Cont_stmt (v1, v2) ->
       let v1 = token env v1 (* "continue" *) in
       let v2 = token env v2 (* ";" *) in
-      todo env (v1, v2)
+      Continue (v1)
   | `Goto_stmt (v1, v2, v3) ->
       let v1 = token env v1 (* "goto" *) in
-      let v2 = token env v2 (* pattern [a-zA-Z_]\w* *) in
+      let v2 = identifier env v2 (* pattern [a-zA-Z_]\w* *) in
       let v3 = token env v3 (* ";" *) in
-      todo env (v1, v2, v3)
+      Goto (v1, v2)
   )
 
 and statement (env : env) (x : CST.statement) : stmt =
@@ -1450,7 +1451,7 @@ and top_level_item (env : env) (x : CST.top_level_item) : toplevel =
   (match x with
   | `Func_defi x ->
         let def = function_definition env x in
-        raise Todo
+        FuncDef def
   | `Link_spec (v1, v2, v3) ->
       let v1 = token env v1 (* "extern" *) in
       let v2 = string_literal env v2 in
