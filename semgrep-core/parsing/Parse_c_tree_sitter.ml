@@ -107,7 +107,7 @@ let anon_choice_DASHDASH_d11def2 (env : env) (x : CST.anon_choice_DASHDASH_d11de
   | `PLUSPLUS tok -> Inc, token env tok (* "++" *)
   )
 
-let string_literal (env : env) ((v1, v2, v3) : CST.string_literal) =
+let string_literal (env : env) ((v1, v2, v3) : CST.string_literal) : string wrap =
   let v1 =
     (match v1 with
     | `LDQUOT tok -> token env tok (* "L\"" *)
@@ -121,15 +121,16 @@ let string_literal (env : env) ((v1, v2, v3) : CST.string_literal) =
     List.map (fun x ->
       (match x with
       | `Imm_tok_pat_c7f65b4 tok ->
-          token env tok (* pattern "[^\\\\\"\\n]+" *)
-      | `Esc_seq tok -> token env tok (* escape_sequence *)
+          str env tok (* pattern "[^\\\\\"\\n]+" *)
+      | `Esc_seq tok -> str env tok (* escape_sequence *)
       )
     ) v2
   in
   let v3 = token env v3 (* "\"" *) in
-  todo env (v1, v2, v3)
+  let s = v2 |> List.map fst |> String.concat "" in
+  s, PI.combine_infos v1 (List.map snd v2 @ [v3])
 
-let char_literal (env : env) ((v1, v2, v3) : CST.char_literal) =
+let char_literal (env : env) ((v1, v2, v3) : CST.char_literal) : string wrap =
   let v1 =
     (match v1 with
     | `LSQUOT tok -> token env tok (* "L'" *)
@@ -141,13 +142,15 @@ let char_literal (env : env) ((v1, v2, v3) : CST.char_literal) =
   in
   let v2 =
     (match v2 with
-    | `Esc_seq tok -> token env tok (* escape_sequence *)
+    | `Esc_seq tok -> str env tok (* escape_sequence *)
     | `Imm_tok_pat_36637e2 tok ->
-        token env tok (* pattern "[^\\n']" *)
+        str env tok (* pattern "[^\\n']" *)
     )
   in
   let v3 = token env v3 (* "'" *) in
-  todo env (v1, v2, v3)
+  let s = fst v2 in
+  s, PI.combine_infos v1 ([snd v2; v3])
+
 
 let anon_choice_pat_25b90ba_4a37f8c (env : env) (x : CST.anon_choice_pat_25b90ba_4a37f8c) =
   (match x with
@@ -165,20 +168,26 @@ let ms_pointer_modifier (env : env) (x : CST.ms_pointer_modifier) =
   | `Ms_signed_ptr_modi tok -> token env tok (* "__sptr" *)
   )
 
+(* can actually contain a complex expression, but just parsed as a string
+ * until non-escaped newline in tree-sitter-c.
+ *)
+let preproc_arg env tok =
+  str env tok
+
 let preproc_call (env : env) ((v1, v2, v3) : CST.preproc_call) =
   let v1 = token env v1 (* pattern #[ \t]*[a-zA-Z]\w* *) in
   let v2 =
     (match v2 with
-    | Some tok -> token env tok (* preproc_arg *)
+    | Some tok -> preproc_arg env tok (* preproc_arg *)
     | None -> todo env ())
   in
   let v3 = token env v3 (* "\n" *) in
   todo env (v1, v2, v3)
 
-let field_designator (env : env) ((v1, v2) : CST.field_designator) =
-  let v1 = token env v1 (* "." *) in
-  let v2 = token env v2 (* pattern [a-zA-Z_]\w* *) in
-  todo env (v1, v2)
+let field_designator (env : env) ((v1, v2) : CST.field_designator) : name =
+  let _v1 = token env v1 (* "." *) in
+  let v2 = str env v2 (* pattern [a-zA-Z_]\w* *) in
+  v2
 
 let preproc_defined (env : env) (x : CST.preproc_defined) =
   (match x with
@@ -196,8 +205,8 @@ let preproc_defined (env : env) (x : CST.preproc_defined) =
 
 let anon_choice_type_id_d3c4b5f (env : env) (x : CST.anon_choice_type_id_d3c4b5f) =
   (match x with
-  | `Id tok -> token env tok (* pattern [a-zA-Z_]\w* *)
-  | `DOTDOTDOT tok -> token env tok (* "..." *)
+  | `Id tok -> str env tok (* pattern [a-zA-Z_]\w* *)
+  | `DOTDOTDOT tok -> "...", token env tok (* "..." *)
   )
 
 let ms_declspec_modifier (env : env) ((v1, v2, v3, v4) : CST.ms_declspec_modifier) =
@@ -209,10 +218,10 @@ let ms_declspec_modifier (env : env) ((v1, v2, v3, v4) : CST.ms_declspec_modifie
 
 let preproc_def (env : env) ((v1, v2, v3, v4) : CST.preproc_def) =
   let v1 = token env v1 (* pattern #[ 	]*define *) in
-  let v2 = token env v2 (* pattern [a-zA-Z_]\w* *) in
+  let v2 = str env v2 (* pattern [a-zA-Z_]\w* *) in
   let v3 =
     (match v3 with
-    | Some tok -> token env tok (* preproc_arg *)
+    | Some tok -> preproc_arg env tok (* preproc_arg *)
     | None -> todo env ())
   in
   let v4 = token env v4 (* "\n" *) in
@@ -405,7 +414,7 @@ let preproc_function_def (env : env) ((v1, v2, v3, v4, v5) : CST.preproc_functio
   let v3 = preproc_params env v3 in
   let v4 =
     (match v4 with
-    | Some tok -> token env tok (* preproc_arg *)
+    | Some tok -> preproc_arg env tok (* preproc_arg *)
     | None -> todo env ())
   in
   let v5 = token env v5 (* "\n" *) in
