@@ -14,6 +14,11 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - In generic mode, leading dots must now match at the beginning of a
   block, allowing patterns like `... foo` to match what comes before `foo`.
 
+### Fixed
+
+- Fix invalid match locations on target files containing both CRLF line
+  endings UTF-8 characters (#2111).
+
 ## [0.32.0](https://github.com/returntocorp/semgrep/releases/tag/v0.32.0) - 2020-11-18
 
 ### Added
