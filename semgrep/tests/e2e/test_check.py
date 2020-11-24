@@ -233,16 +233,26 @@ def test_timeout(run_semgrep_in_tmp, snapshot):
         "results.json",
     )
 
+
+def test_spacegrep_timeout(run_semgrep_in_tmp, snapshot):
+    # Check that spacegrep timeouts are handled gracefully.
     snapshot.assert_match(
         run_semgrep_in_tmp(
-            "rules/long.yaml",
-            output_format="normal",
-            options=["--timeout", "1"],
-            target_name="equivalence",
-            strict=False,
+            config=None,
+            target_name="spacegrep_timeout/gnu-lgplv2.txt",
+            options=[
+                "--lang",
+                "generic",
+                "--pattern",
+                "$A ... $B ... $C ... foo",
+                "--timeout",
+                "1",
+            ],
+            output_format="text",
             stderr=True,
+            strict=False,  # don't fail due to timeout
         ),
-        "error.txt",
+        "results.json",
     )
 
 

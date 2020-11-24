@@ -91,6 +91,9 @@ class Position:
     def previous_line(self) -> "Position":
         return attr.evolve(self, line=self.line - 1)
 
+    def to_dict(self) -> dict:
+        return {"line": self.line, "col": self.col}
+
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} line={self.line} col={self.col}>"
 
