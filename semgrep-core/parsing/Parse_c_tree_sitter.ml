@@ -34,10 +34,8 @@ module H = Parse_tree_sitter_helpers
 (*****************************************************************************)
 type env = H.env
 let _fake = G.fake
-let _token = H.token
-let _str = H.str
-
-let token _ _ = failwith "not implemented"
+let token = H.token
+let str = H.str
 
 (*****************************************************************************)
 (* Boilerplate converter *)
@@ -74,8 +72,8 @@ let type_qualifier (env : env) (x : CST.type_qualifier) =
   )
 
 
-let _identifier (env : env) (tok : CST.identifier) =
-  token env tok (* pattern [a-zA-Z_]\w* *)
+let identifier (env : env) (tok : CST.identifier) =
+  str env tok (* pattern [a-zA-Z_]\w* *)
 
 let storage_class_specifier (env : env) (x : CST.storage_class_specifier) =
   (match x with
@@ -340,10 +338,16 @@ and preproc_call_expression (env : env) ((v1, v2) : CST.preproc_call_expression)
 
 and preproc_expression (env : env) (x : CST.preproc_expression) =
   (match x with
-  | `Id tok -> token env tok (* pattern [a-zA-Z_]\w* *)
+  | `Id tok ->
+        let id = identifier env tok (* pattern [a-zA-Z_]\w* *) in
+        raise Todo
   | `Prep_call_exp x -> preproc_call_expression env x
-  | `Num_lit tok -> token env tok (* number_literal *)
-  | `Char_lit x -> char_literal env x
+  | `Num_lit tok ->
+        let n = str env tok (* number_literal *) in
+        raise Todo
+  | `Char_lit x ->
+        let c = char_literal env x in
+        raise Todo
   | `Prep_defi x -> preproc_defined env x
   | `Prep_un_exp (v1, v2) ->
       let v1 = anon_choice_BANG_67174d6 env v1 in
@@ -1405,10 +1409,14 @@ and top_level_item (env : env) (x : CST.top_level_item) =
       let v1 = token env v1 (* pattern #[ 	]*include *) in
       let v2 =
         (match v2 with
-        | `Str_lit x -> string_literal env x
+        | `Str_lit x -> let s = string_literal env x in
+                raise Todo
         | `System_lib_str tok ->
-            token env tok (* system_lib_string *)
-        | `Id tok -> token env tok (* pattern [a-zA-Z_]\w* *)
+            let s = str env tok (* system_lib_string *) in
+            raise Todo
+        | `Id tok ->
+                let id = identifier env tok (* pattern [a-zA-Z_]\w* *) in
+                raise Todo
         | `Prep_call_exp x -> preproc_call_expression env x
         )
       in
