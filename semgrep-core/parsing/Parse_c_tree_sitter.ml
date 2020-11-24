@@ -189,18 +189,18 @@ let field_designator (env : env) ((v1, v2) : CST.field_designator) : name =
   let v2 = str env v2 (* pattern [a-zA-Z_]\w* *) in
   v2
 
-let preproc_defined (env : env) (x : CST.preproc_defined) =
+let preproc_defined (env : env) (x : CST.preproc_defined) : tok * name =
   (match x with
   | `Defi_LPAR_id_RPAR (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "defined" *) in
-      let v2 = token env v2 (* "(" *) in
-      let v3 = token env v3 (* pattern [a-zA-Z_]\w* *) in
-      let v4 = token env v4 (* ")" *) in
-      todo env (v1, v2, v3, v4)
+      let _v2 = token env v2 (* "(" *) in
+      let v3 = identifier env v3 (* pattern [a-zA-Z_]\w* *) in
+      let _v4 = token env v4 (* ")" *) in
+      v1, v3
   | `Defi_id (v1, v2) ->
       let v1 = token env v1 (* "defined" *) in
-      let v2 = token env v2 (* pattern [a-zA-Z_]\w* *) in
-      todo env (v1, v2)
+      let v2 = identifier env v2 (* pattern [a-zA-Z_]\w* *) in
+      v1, v2
   )
 
 let anon_choice_type_id_d3c4b5f (env : env) (x : CST.anon_choice_type_id_d3c4b5f) =
@@ -216,18 +216,21 @@ let ms_declspec_modifier (env : env) ((v1, v2, v3, v4) : CST.ms_declspec_modifie
   let v4 = token env v4 (* ")" *) in
   todo env (v1, v2, v3, v4)
 
-let preproc_def (env : env) ((v1, v2, v3, v4) : CST.preproc_def) =
+let preproc_def (env : env) ((v1, v2, v3, v4) : CST.preproc_def) : toplevel =
   let v1 = token env v1 (* pattern #[ 	]*define *) in
   let v2 = str env v2 (* pattern [a-zA-Z_]\w* *) in
   let v3 =
     (match v3 with
-    | Some tok -> preproc_arg env tok (* preproc_arg *)
-    | None -> todo env ())
+    | Some tok -> Some (preproc_arg env tok) (* preproc_arg *)
+    | None -> None)
   in
   let v4 = token env v4 (* "\n" *) in
-  todo env (v1, v2, v3, v4)
+  (match v3 with
+  | Some x -> Define (v2, CppExpr (String x))
+  | None -> Define (v2, CppExpr (String ("", v4)))
+  )
 
-let rec preproc_argument_list (env : env) ((v1, v2, v3) : CST.preproc_argument_list) =
+let rec preproc_argument_list (env : env) ((v1, v2, v3) : CST.preproc_argument_list) : argument list bracket =
   let v1 = token env v1 (* "(" *) in
   let v2 =
     (match v2 with
@@ -235,16 +238,16 @@ let rec preproc_argument_list (env : env) ((v1, v2, v3) : CST.preproc_argument_l
         let v1 = preproc_expression env v1 in
         let v2 =
           List.map (fun (v1, v2) ->
-            let v1 = token env v1 (* "," *) in
+            let _v1 = token env v1 (* "," *) in
             let v2 = preproc_expression env v2 in
-            todo env (v1, v2)
+            v2
           ) v2
         in
-        todo env (v1, v2)
-    | None -> todo env ())
+        v1::v2
+    | None -> [])
   in
   let v3 = token env v3 (* ")" *) in
-  todo env (v1, v2, v3)
+  v1, v2, v3
 
 and preproc_binary_expression (env : env) (x : CST.preproc_binary_expression)
  : expr =
@@ -254,171 +257,177 @@ and preproc_binary_expression (env : env) (x : CST.preproc_binary_expression)
       let v2 = token env v2 (* "+" *) in
       let v3 = preproc_expression env v3 in
       let op = Arith Plus in
-      todo env (v1, v2, v3)
+      Binary (v1, (op, v2), v3)
   | `Prep_exp_DASH_prep_exp (v1, v2, v3) ->
       let v1 = preproc_expression env v1 in
       let v2 = token env v2 (* "-" *) in
       let v3 = preproc_expression env v3 in
       let op = Arith Minus in
-      todo env (v1, v2, v3)
+      Binary (v1, (op, v2), v3)
   | `Prep_exp_STAR_prep_exp (v1, v2, v3) ->
       let v1 = preproc_expression env v1 in
       let v2 = token env v2 (* "*" *) in
       let v3 = preproc_expression env v3 in
       let op = Arith Mul in
-      todo env (v1, v2, v3)
+      Binary (v1, (op, v2), v3)
   | `Prep_exp_SLASH_prep_exp (v1, v2, v3) ->
       let v1 = preproc_expression env v1 in
       let v2 = token env v2 (* "/" *) in
       let v3 = preproc_expression env v3 in
       let op = Arith Div in
-      todo env (v1, v2, v3)
+      Binary (v1, (op, v2), v3)
   | `Prep_exp_PERC_prep_exp (v1, v2, v3) ->
       let v1 = preproc_expression env v1 in
       let v2 = token env v2 (* "%" *) in
       let v3 = preproc_expression env v3 in
       let op = Arith Mod in
-      todo env (v1, v2, v3)
+      Binary (v1, (op, v2), v3)
   | `Prep_exp_BARBAR_prep_exp (v1, v2, v3) ->
       let v1 = preproc_expression env v1 in
       let v2 = token env v2 (* "||" *) in
       let v3 = preproc_expression env v3 in
       let op = Logical OrLog in
-      todo env (v1, v2, v3)
+      Binary (v1, (op, v2), v3)
   | `Prep_exp_AMPAMP_prep_exp (v1, v2, v3) ->
       let v1 = preproc_expression env v1 in
       let v2 = token env v2 (* "&&" *) in
       let v3 = preproc_expression env v3 in
       let op = Logical AndLog in
-      todo env (v1, v2, v3)
+      Binary (v1, (op, v2), v3)
   | `Prep_exp_BAR_prep_exp (v1, v2, v3) ->
       let v1 = preproc_expression env v1 in
       let v2 = token env v2 (* "|" *) in
       let v3 = preproc_expression env v3 in
       let op = Arith Or in
-      todo env (v1, v2, v3)
+      Binary (v1, (op, v2), v3)
   | `Prep_exp_HAT_prep_exp (v1, v2, v3) ->
       let v1 = preproc_expression env v1 in
       let v2 = token env v2 (* "^" *) in
       let v3 = preproc_expression env v3 in
       let op = Arith Xor in
-      todo env (v1, v2, v3)
+      Binary (v1, (op, v2), v3)
   | `Prep_exp_AMP_prep_exp (v1, v2, v3) ->
       let v1 = preproc_expression env v1 in
       let v2 = token env v2 (* "&" *) in
       let v3 = preproc_expression env v3 in
       let op = Arith And in
-      todo env (v1, v2, v3)
+      Binary (v1, (op, v2), v3)
   | `Prep_exp_EQEQ_prep_exp (v1, v2, v3) ->
       let v1 = preproc_expression env v1 in
       let v2 = token env v2 (* "==" *) in
       let v3 = preproc_expression env v3 in
       let op = Logical Eq in
-      todo env (v1, v2, v3)
+      Binary (v1, (op, v2), v3)
   | `Prep_exp_BANGEQ_prep_exp (v1, v2, v3) ->
       let v1 = preproc_expression env v1 in
       let v2 = token env v2 (* "!=" *) in
       let v3 = preproc_expression env v3 in
       let op = Logical NotEq in
-      todo env (v1, v2, v3)
+      Binary (v1, (op, v2), v3)
   | `Prep_exp_GT_prep_exp (v1, v2, v3) ->
       let v1 = preproc_expression env v1 in
       let v2 = token env v2 (* ">" *) in
       let v3 = preproc_expression env v3 in
       let op = Logical Sup in
-      todo env (v1, v2, v3)
+      Binary (v1, (op, v2), v3)
   | `Prep_exp_GTEQ_prep_exp (v1, v2, v3) ->
       let v1 = preproc_expression env v1 in
       let v2 = token env v2 (* ">=" *) in
       let v3 = preproc_expression env v3 in
       let op = Logical SupEq in
-      todo env (v1, v2, v3)
+      Binary (v1, (op, v2), v3)
   | `Prep_exp_LTEQ_prep_exp (v1, v2, v3) ->
       let v1 = preproc_expression env v1 in
       let v2 = token env v2 (* "<=" *) in
       let v3 = preproc_expression env v3 in
       let op = Logical InfEq in
-      todo env (v1, v2, v3)
+      Binary (v1, (op, v2), v3)
   | `Prep_exp_LT_prep_exp (v1, v2, v3) ->
       let v1 = preproc_expression env v1 in
       let v2 = token env v2 (* "<" *) in
       let v3 = preproc_expression env v3 in
       let op = Logical Inf in
-      todo env (v1, v2, v3)
+      Binary (v1, (op, v2), v3)
   | `Prep_exp_LTLT_prep_exp (v1, v2, v3) ->
       let v1 = preproc_expression env v1 in
       let v2 = token env v2 (* "<<" *) in
       let v3 = preproc_expression env v3 in
       let op = Arith DecLeft in
-      todo env (v1, v2, v3)
+      Binary (v1, (op, v2), v3)
   | `Prep_exp_GTGT_prep_exp (v1, v2, v3) ->
       let v1 = preproc_expression env v1 in
       let v2 = token env v2 (* ">>" *) in
       let v3 = preproc_expression env v3 in
       let op = Arith DecRight in
-      todo env (v1, v2, v3)
+      Binary (v1, (op, v2), v3)
   )
 
 and preproc_call_expression (env : env) ((v1, v2) : CST.preproc_call_expression) =
-  let v1 = token env v1 (* pattern [a-zA-Z_]\w* *) in
+  let v1 = identifier env v1 (* pattern [a-zA-Z_]\w* *) in
   let v2 = preproc_argument_list env v2 in
-  todo env (v1, v2)
+  Call (Id v1, v2)
 
 and preproc_expression (env : env) (x : CST.preproc_expression) : expr =
   (match x with
   | `Id tok ->
         let id = identifier env tok (* pattern [a-zA-Z_]\w* *) in
-        raise Todo
+        Id id
   | `Prep_call_exp x -> preproc_call_expression env x
   | `Num_lit tok ->
         let n = str env tok (* number_literal *) in
-        raise Todo
+        Int n
   | `Char_lit x ->
         let c = char_literal env x in
+        Char c
+  | `Prep_defi x ->
+        let (t, id) = preproc_defined env x in
         raise Todo
-  | `Prep_defi x -> preproc_defined env x
   | `Prep_un_exp (v1, v2) ->
       let v1 = anon_choice_BANG_67174d6 env v1 in
       let v2 = preproc_expression env v2 in
-      todo env (v1, v2)
+      Unary (v2, v1)
   | `Prep_bin_exp x -> preproc_binary_expression env x
   | `Prep_paren_exp (v1, v2, v3) ->
       let v1 = token env v1 (* "(" *) in
       let v2 = preproc_expression env v2 in
       let v3 = token env v3 (* ")" *) in
-      todo env (v1, v2, v3)
+      v2
   )
 
-let preproc_params (env : env) ((v1, v2, v3) : CST.preproc_params) =
-  let v1 = token env v1 (* "(" *) in
+let preproc_params (env : env) ((v1, v2, v3) : CST.preproc_params) : name list =
+  let _v1 = token env v1 (* "(" *) in
   let v2 =
     (match v2 with
     | Some (v1, v2) ->
         let v1 = anon_choice_type_id_d3c4b5f env v1 in
         let v2 =
           List.map (fun (v1, v2) ->
-            let v1 = token env v1 (* "," *) in
+            let _v1 = token env v1 (* "," *) in
             let v2 = anon_choice_type_id_d3c4b5f env v2 in
-            todo env (v1, v2)
+            v2
           ) v2
         in
-        todo env (v1, v2)
-    | None -> todo env ())
+        v1::v2
+    | None -> [])
   in
-  let v3 = token env v3 (* ")" *) in
-  todo env (v1, v2, v3)
+  let _v3 = token env v3 (* ")" *) in
+  v2
 
-let preproc_function_def (env : env) ((v1, v2, v3, v4, v5) : CST.preproc_function_def) =
+let preproc_function_def (env : env) ((v1, v2, v3, v4, v5) : CST.preproc_function_def) : toplevel =
   let v1 = token env v1 (* pattern #[ 	]*define *) in
-  let v2 = token env v2 (* pattern [a-zA-Z_]\w* *) in
+  let v2 = identifier env v2 (* pattern [a-zA-Z_]\w* *) in
   let v3 = preproc_params env v3 in
   let v4 =
     (match v4 with
-    | Some tok -> preproc_arg env tok (* preproc_arg *)
-    | None -> todo env ())
+    | Some tok -> Some (preproc_arg env tok) (* preproc_arg *)
+    | None -> None)
   in
   let v5 = token env v5 (* "\n" *) in
-  todo env (v1, v2, v3, v4, v5)
+  (match v4 with
+  | Some x -> Macro (v2, v3, CppExpr (String x))
+  | None -> Macro (v2, v3, CppExpr (String ("", v5)))
+  )
+
 
 let rec abstract_declarator (env : env) (x : CST.abstract_declarator) =
   (match x with
@@ -471,14 +480,14 @@ and anon_choice_exp_508611b (env : env) (x : CST.anon_choice_exp_508611b) =
         raise Todo
   )
 
-and anon_choice_exp_55b4dba (env : env) (x : CST.anon_choice_exp_55b4dba) =
+and anon_choice_exp_55b4dba (env : env) (x : CST.anon_choice_exp_55b4dba) : expr =
   (match x with
   | `Exp x -> expression env x
   | `Comma_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
-      let v2 = token env v2 (* "," *) in
+      let _v2 = token env v2 (* "," *) in
       let v3 = anon_choice_exp_55b4dba env v3 in
-      todo env (v1, v2, v3)
+      Sequence (v1, v3)
   )
 
 and anon_choice_init_pair_1a6981e (env : env) (x : CST.anon_choice_init_pair_1a6981e) =
