@@ -139,9 +139,9 @@ let inheritance_modifier (env : env) (x : CST.inheritance_modifier) =
 
 let postfix_unary_operator (env : env) (x : CST.postfix_unary_operator) =
   (match x with
-  | `PLUSPLUS tok -> token env tok (* "++" *)
-  | `DASHDASH tok -> token env tok (* "--" *)
-  | `BANGBANG tok -> token env tok (* "!!" *)
+  | `PLUSPLUS tok -> Left Incr, token env tok (* "++" *)
+  | `DASHDASH tok -> Left Decr, token env tok (* "--" *)
+  | `BANGBANG tok -> Right NotNullPostfix, token env tok (* "!!" *)
   )
 
 let variance_modifier (env : env) (x : CST.variance_modifier) =
@@ -230,20 +230,17 @@ let semi (env : env) (tok : CST.semi) =
   token env tok (* pattern [\r\n]+ *)
 
 let prefix_unary_operator (env : env) (x : CST.prefix_unary_operator) =
-  let _ =
-  (match x with
-  | `PLUSPLUS tok -> token env tok (* "++" *)
-  | `DASHDASH tok -> token env tok (* "--" *)
-  | `DASH tok -> token env tok (* "-" *)
-  | `PLUS tok -> token env tok (* "+" *)
-  | `BANG tok -> token env tok (* "!" *)
-  ) in
-    raise Todo
+  match x with
+  | `PLUSPLUS tok -> Left Incr, token env tok (* "++" *)
+  | `DASHDASH tok ->Left Decr, token env tok (* "--" *)
+  | `DASH tok -> Right Minus, token env tok (* "-" *)
+  | `PLUS tok -> Right Plus, token env tok (* "+" *)
+  | `BANG tok -> Right Not, token env tok (* "!" *)
 
 let in_operator (env : env) (x : CST.in_operator) =
   (match x with
-  | `In tok -> token env tok (* "in" *)
-  | `BANGin tok -> token env tok (* "!in" *)
+  | `In tok -> In, token env tok (* "in" *)
+  | `BANGin tok -> NotIn, token env tok (* "!in" *)
   )
 
 let multiplicative_operator (env : env) (x : CST.multiplicative_operator) =
@@ -290,8 +287,8 @@ let shebang_line (env : env) ((v1, v2) : CST.shebang_line) =
 
 let is_operator (env : env) (x : CST.is_operator) =
   (match x with
-  | `Is tok -> token env tok (* "is" *)
-  | `Not_is tok -> token env tok (* "!is" *)
+  | `Is tok -> Is, token env tok (* "is" *)
+  | `Not_is tok -> NotIs, token env tok (* "!is" *)
   )
 
 let modifier (env : env) (x : CST.modifier) =
@@ -511,15 +508,14 @@ and binary_expression (env : env) (x : CST.binary_expression) =
       Call (IdSpecial (Op (v2), tok), fb[Arg v1; Arg v3])
   | `Check_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
-      let v2 =
+      let v2, tok =
         (match v2 with
         | `In_op x -> in_operator env x
         | `Is_op x -> is_operator env x
         )
       in
-      let v2_id = Id (("", v2), empty_id_info()) in
       let v3 = expression env v3 in
-      Call (v2_id, fb[Arg v1; Arg v3])
+      Call (IdSpecial (Op (v2), tok), fb[Arg v1; Arg v3])
   | `Comp_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2, tok = comparison_operator env v2 in
@@ -557,11 +553,11 @@ and call_suffix (env : env) (v1 : CST.call_suffix) =
   | `Opt_value_args_anno_lambda (v1, v2) ->
       let v1 =
         (match v1 with
-        | Some x -> Some (value_arguments env x)
-        | None -> None)
+        | Some x -> value_arguments env x
+        | None -> fake_bracket [])
       in
-      let v2 = annotated_lambda env v2 in
-      todo env (v1, v2)
+      (*let v2 = annotated_lambda env v2 in*)
+      v1
   | `Value_args x -> value_arguments env x
   )
 
@@ -1146,16 +1142,17 @@ and getter (env : env) ((v1, v2) : CST.getter) =
 
 and indexing_suffix (env : env) ((v1, v2, v3, v4) : CST.indexing_suffix) =
   let v1 = token env v1 (* "[" *) in
-  let v2 = expression env v2 in
+  let v2 = Arg (expression env v2) in
   let v3 =
     List.map (fun (v1, v2) ->
       let v1 = token env v1 (* "," *) in
-      let v2 = expression env v2 in
-      todo env (v1, v2)
+      let v2 = Arg (expression env v2) in
+      v2
     ) v3
   in
+  let combine = v2::v3 in
   let v4 = token env v4 (* "]" *) in
-  todo env (v1, v2, v3, v4)
+  (v1, combine, v4)
 
 and interpolation (env : env) (x : CST.interpolation) =
   (match x with
@@ -1293,12 +1290,14 @@ and navigation_suffix (env : env) ((v1, v2) : CST.navigation_suffix) =
   let v1 = member_access_operator env v1 in
   let v2 =
     (match v2 with
-    | `Simple_id x -> let _ = simple_identifier env x in raise Todo
+    | `Simple_id x -> let id = simple_identifier env x in
+                        Id(id, empty_id_info())
     | `Paren_exp x -> parenthesized_expression env x
-    | `Class tok -> token_todo env tok (* "class" *)
+    | `Class tok -> let id = str env tok in (* "class" *)
+                      Id (id, empty_id_info())
     )
   in
-  todo env (v1, v2)
+  v2
 
 and nullable_type (env : env) ((v1, v2) : CST.nullable_type) =
   let v1 =
@@ -1607,7 +1606,7 @@ and type_ (env : env) ((v1, v2) : CST.type_) : type_ =
   let v1 =
     (match v1 with
     | Some x -> type_modifiers env x
-    | None -> todo env ())
+    | None -> [])
   in
   let v2 =
     (match v2 with
@@ -1730,8 +1729,13 @@ and unary_expression (env : env) (x : CST.unary_expression) =
   (match x with
   | `Post_exp (v1, v2) ->
       let v1 = expression env v1 in
-      let v2 = postfix_unary_operator env v2 in
-      todo env (v1, v2)
+      let v2, v3 = postfix_unary_operator env v2 in
+        (match v2 with
+          | Left incr_decr ->
+              Call (IdSpecial (IncrDecr (incr_decr, Postfix), v3), fb[Arg v1])
+          | Right operator ->
+              Call (IdSpecial (Op (operator), v3), fb[Arg v1])
+        )
   | `Call_exp (v1, v2) ->
       let v1 = expression env v1 in
       let v2 = call_suffix env v2 in
@@ -1739,31 +1743,36 @@ and unary_expression (env : env) (x : CST.unary_expression) =
   | `Inde_exp (v1, v2) ->
       let v1 = expression env v1 in
       let v2 = indexing_suffix env v2 in
-      todo env (v1, v2)
+      Call (v1, v2)
   | `Navi_exp (v1, v2) ->
       let v1 = expression env v1 in
       let v2 = navigation_suffix env v2 in
-      todo env (v1, v2)
+      Call (v1, fb[Arg v2])
   | `Prefix_exp (v1, v2) ->
-      let v1 =
+      let str, tok =
         (match v1 with
-        | `Anno x -> annotation env x
-        | `Label tok -> let _ = token env tok in (* label *)
+        | `Anno x -> let _ = annotation env x in
             raise Todo
+        | `Label tok -> token_todo env tok (* label *)
         | `Prefix_un_op x -> prefix_unary_operator env x
         )
       in
       let v2 = expression env v2 in
-      todo env (v1, v2)
+        (match str with
+          | Left incr_decr ->
+              Call (IdSpecial (IncrDecr (incr_decr, Postfix), tok), fb[Arg v2])
+          | Right operator ->
+              Call (IdSpecial (Op (operator), tok), fb[Arg v2])
+        )
   | `As_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = as_operator env v2 in
       let v3 = type_ env v3 in
-      todo env (v1, v2, v3)
+      Cast(v3, v1)
   | `Spread_exp (v1, v2) ->
       let v1 = token env v1 (* "*" *) in
       let v2 = expression env v2 in
-      todo env (v1, v2)
+      Call (IdSpecial (Spread, v1), fb[Arg v2])
   )
 
 and unescaped_annotation (env : env) (x : CST.unescaped_annotation) =
@@ -1815,14 +1824,14 @@ and value_arguments (env : env) ((v1, v2, v3) : CST.value_arguments) =
           List.map (fun (v1, v2) ->
             let v1 = token env v1 (* "," *) in
             let v2 = value_argument env v2 in
-            todo env (v1, v2)
+            v2
           ) v2
         in
-        todo env (v1, v2)
-    | None -> todo env ())
+        v1::v2
+    | None -> [])
   in
   let v3 = token env v3 (* ")" *) in
-  todo env (v1, v2, v3)
+  (v1, v2, v3)
 
 and variable_declaration (env : env) ((v1, v2) : CST.variable_declaration) =
   let v1 = simple_identifier env v1 in
