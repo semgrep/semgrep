@@ -538,12 +538,14 @@ and anon_choice_param_decl_bdc8cc9 (env : env) (x : CST.anon_choice_param_decl_b
             (match x with
             | `Decl x ->
                  let (id, f) = declarator env x in
-                 raise Todo
+                 { p_type = f v1; p_name = Some id }
             | `Abst_decl x ->
                  let f = abstract_declarator env x in
-                 raise Todo
+                 { p_type = f v1; p_name = None }
             )
-        | None -> todo env ())
+        | None ->
+           { p_type = v1; p_name = None }
+        )
       in
       v2
   | `DOTDOTDOT tok ->
@@ -587,18 +589,19 @@ and anon_choice_stor_class_spec_5764fed (env : env) (x : CST.anon_choice_stor_cl
         raise Todo
   )
 
-and anon_choice_type_id_opt_field_decl_list_9aebd83 (env : env) (x : CST.anon_choice_type_id_opt_field_decl_list_9aebd83) =
+and anon_choice_type_id_opt_field_decl_list_9aebd83 (env : env) (x : CST.anon_choice_type_id_opt_field_decl_list_9aebd83) : name option * field_def list bracket =
   (match x with
   | `Id_opt_field_decl_list (v1, v2) ->
-      (* ??? *)
+      (* named struct/union *)
       let v1 = identifier env v1 (* pattern [a-zA-Z_]\w* *) in
       let v2 =
         (match v2 with
         | Some x -> field_declaration_list env x
-        | None -> raise Todo)
+        | None -> G.fake_bracket [] )
       in
-      todo env (v1, v2)
-  | `Field_decl_list x -> field_declaration_list env x
+      Some v1, v2
+  | `Field_decl_list x ->
+      None, field_declaration_list env x
   )
 
 and argument_list (env : env) ((v1, v2, v3) : CST.argument_list)
@@ -964,7 +967,10 @@ and field_declaration_list_item (env : env) (x : CST.field_declaration_list_item
         | None -> None)
       in
       let v4 = token env v4 (* ";" *) in
-      todo env (v1, v2, v3, v4)
+      v2 |> List.map (fun (id, f) ->
+         { fld_name = Some id; fld_type = f v1; }
+      )
+
   | `Prep_def x ->
         let _ = preproc_def env x in
         []
@@ -1202,12 +1208,13 @@ and type_specifier (env : env) (x : CST.type_specifier) : type_ =
       todo env (v1, v2, v3, v4)
   | `Sized_type_spec (v1, v2) ->
       let v1 =
+        (* repeat1 in grammar.js so at least one *)
         List.map (fun x ->
           (match x with
-          | `Signed tok -> token env tok (* "signed" *)
-          | `Unsi tok -> token env tok (* "unsigned" *)
-          | `Long tok -> token env tok (* "long" *)
-          | `Short tok -> token env tok (* "short" *)
+          | `Signed tok -> str env tok (* "signed" *)
+          | `Unsi tok -> str env tok (* "unsigned" *)
+          | `Long tok -> str env tok (* "long" *)
+          | `Short tok -> str env tok (* "short" *)
           )
         ) v1
       in
@@ -1215,12 +1222,17 @@ and type_specifier (env : env) (x : CST.type_specifier) : type_ =
         (match v2 with
         | Some x ->
             (match x with
-            | `Id tok -> identifier env tok (* pattern [a-zA-Z_]\w* *)
-            | `Prim_type tok -> str env tok (* primitive_type *)
+            | `Id tok -> [identifier env tok] (* pattern [a-zA-Z_]\w* *)
+            | `Prim_type tok -> [str env tok] (* primitive_type *)
             )
-        | None -> todo env ())
+        | None -> [])
       in
-      todo env (v1, v2)
+      let xs = v1 @ v2 in
+      let s = xs |> List.map fst |> String.concat " " in
+      let ys = xs |> List.map snd in
+      (* repeat1 in grammar.js so List.hd is safe *)
+      let tk = PI.combine_infos (List.hd ys) (List.tl ys) in
+      TBase (s, tk)
   | `Prim_type tok ->
         let t = str env tok (* primitive_type *) in
         TBase t
