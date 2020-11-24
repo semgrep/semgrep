@@ -1,7 +1,3 @@
-(* Disable warnings against unused variables *)
-[@@@warning "-26-27"]
-(* Disable warning against unused 'rec' *)
-[@@@warning "-39-33-32"]
 (* Yoann Padioleau
  *
  * Copyright (C) 2020 r2c
@@ -38,30 +34,27 @@ module H = Parse_tree_sitter_helpers
 (*****************************************************************************)
 type env = H.env
 let _fake = G.fake
-let token = H.token
-let str = H.str
+let _token = H.token
+let _str = H.str
+
+let token _ _ = failwith "not implemented"
 
 (*****************************************************************************)
 (* Boilerplate converter *)
 (*****************************************************************************)
 (* This was started by copying ocaml-tree-sitter-lang/go/.../Boilerplate.ml *)
 
+(* Disable warnings against unused variables *)
+[@@@warning "-26-27"]
+
 (**
    Boilerplate to be used as a template when mapping the c CST
    to another type of tree.
 *)
 
-
-let blank (env : env) () =
-  failwith "not implemented"
-
 let todo (env : env) _ =
    failwith "not implemented"
 
-
-
-let false_ (env : env) (tok : CST.false_) =
-  token env tok (* false *)
 
 let anon_choice_BANG_67174d6 (env : env) (x : CST.anon_choice_BANG_67174d6) =
   (match x with
@@ -71,14 +64,6 @@ let anon_choice_BANG_67174d6 (env : env) (x : CST.anon_choice_BANG_67174d6) =
   | `PLUS tok -> token env tok (* "+" *)
   )
 
-let imm_tok_pat_36637e2 (env : env) (tok : CST.imm_tok_pat_36637e2) =
-  token env tok (* pattern "[^\\n']" *)
-
-let pat_c3ea183 (env : env) (tok : CST.pat_c3ea183) =
-  token env tok (* pattern #[ 	]*define *)
-
-let primitive_type (env : env) (tok : CST.primitive_type) =
-  token env tok (* primitive_type *)
 
 let type_qualifier (env : env) (x : CST.type_qualifier) =
   (match x with
@@ -88,26 +73,9 @@ let type_qualifier (env : env) (x : CST.type_qualifier) =
   | `X__Atomic tok -> token env tok (* "_Atomic" *)
   )
 
-let imm_tok_pat_c7f65b4 (env : env) (tok : CST.imm_tok_pat_c7f65b4) =
-  token env tok (* pattern "[^\\\\\"\\n]+" *)
 
-let identifier (env : env) (tok : CST.identifier) =
+let _identifier (env : env) (tok : CST.identifier) =
   token env tok (* pattern [a-zA-Z_]\w* *)
-
-let true_ (env : env) (tok : CST.true_) =
-  token env tok (* true *)
-
-let pat_56631e5 (env : env) (tok : CST.pat_56631e5) =
-  token env tok (* pattern #[ 	]*else *)
-
-let pat_3df6e71 (env : env) (tok : CST.pat_3df6e71) =
-  token env tok (* pattern #[ 	]*if *)
-
-let escape_sequence (env : env) (tok : CST.escape_sequence) =
-  token env tok (* escape_sequence *)
-
-let pat_c46d1b2 (env : env) (tok : CST.pat_c46d1b2) =
-  token env tok (* pattern #[ 	]*endif *)
 
 let storage_class_specifier (env : env) (x : CST.storage_class_specifier) =
   (match x with
@@ -128,35 +96,11 @@ let ms_call_modifier (env : env) (x : CST.ms_call_modifier) =
   | `X___vect tok -> token env tok (* "__vectorcall" *)
   )
 
-let pat_9d92f6a (env : env) (tok : CST.pat_9d92f6a) =
-  token env tok (* pattern #[ 	]*ifndef *)
-
-let pat_ca8830e (env : env) (tok : CST.pat_ca8830e) =
-  token env tok (* pattern #[ 	]*include *)
-
 let ms_unaligned_ptr_modifier (env : env) (x : CST.ms_unaligned_ptr_modifier) =
   (match x with
   | `X__unal tok -> token env tok (* "_unaligned" *)
   | `X___unal tok -> token env tok (* "__unaligned" *)
   )
-
-let system_lib_string (env : env) (tok : CST.system_lib_string) =
-  token env tok (* system_lib_string *)
-
-let pat_bfeb4bb (env : env) (tok : CST.pat_bfeb4bb) =
-  token env tok (* pattern #[ 	]*elif *)
-
-let number_literal (env : env) (tok : CST.number_literal) =
-  token env tok (* number_literal *)
-
-let pat_25b90ba (env : env) (tok : CST.pat_25b90ba) =
-  token env tok (* pattern #[ 	]*ifdef *)
-
-let preproc_directive (env : env) (tok : CST.preproc_directive) =
-  token env tok (* pattern #[ \t]*[a-zA-Z]\w* *)
-
-let preproc_arg (env : env) (tok : CST.preproc_arg) =
-  token env tok (* preproc_arg *)
 
 let anon_choice_DASHDASH_d11def2 (env : env) (x : CST.anon_choice_DASHDASH_d11def2) =
   (match x with
@@ -294,7 +238,8 @@ let rec preproc_argument_list (env : env) ((v1, v2, v3) : CST.preproc_argument_l
   let v3 = token env v3 (* ")" *) in
   todo env (v1, v2, v3)
 
-and preproc_binary_expression (env : env) (x : CST.preproc_binary_expression) =
+and preproc_binary_expression (env : env) (x : CST.preproc_binary_expression)
+ : expr =
   (match x with
   | `Prep_exp_PLUS_prep_exp (v1, v2, v3) ->
       let v1 = preproc_expression env v1 in
