@@ -47,6 +47,7 @@ def run_spacegrep(
             ]
             try:
                 p = sub_run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                # exit code 3 indicates a timeout. See 'spacegrep --help'.
                 if p.returncode == 3:
                     err = CoreException(
                         check_id="Timeout",
