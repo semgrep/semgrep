@@ -390,7 +390,7 @@ class CoreRunner:
 
                 if language == GENERIC_LANGUAGE:
                     output_json = run_spacegrep(
-                        patterns, targets, timeout=self._timeout
+                        rule.id, patterns, targets, timeout=self._timeout
                     )
                 else:  # Run semgrep-core
                     output_json = self._run_core_command(
