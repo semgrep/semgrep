@@ -800,7 +800,7 @@ and declarator (env : env) (x : CST.declarator) =
       let v1 = token env v1 (* "(" *) in
       let v2 = declarator env v2 in
       let v3 = token env v3 (* ")" *) in
-      todo env (v1, v2, v3)
+      v2
   | `Id tok ->
         let id = identifier env tok (* pattern [a-zA-Z_]\w* *) in
         raise Todo
@@ -1242,6 +1242,7 @@ let expression_statement (env : env) ((v1, v2) : CST.expression_statement) =
   | None -> raise Todo
   )
 
+(* diff with abstract_declarator?? *)
 let rec type_declarator (env : env) (x : CST.type_declarator) =
   (match x with
   | `Poin_type_decl (v1, v2, v3, v4, v5) ->
