@@ -19,6 +19,7 @@ from semgrep.error import SemgrepError
 from semgrep.error import MatchTimeoutError
 from semgrep.pattern import Pattern
 from semgrep.pattern_match import PatternMatch
+from semgrep.rule_lang import Position
 from semgrep.util import sub_run
 
 
@@ -47,20 +48,18 @@ def run_spacegrep(
             try:
                 p = sub_run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 if p.returncode == 3:
-                    # TODO: make this work instead of the json hack below.
-                    # err = MatchTimeoutError(str(target), rule_id).to_dict_base()
-
-                    # The following is a hack, mimicking semgrep-core's json output.
-                    err = {
-                        "check_id": "FatalError",  # same as what semgrep-core (hack!)
-                        "path": str(target),
-                        "start": {"line": 0, "col": 0},
-                        "end": {"line": 0, "col": 0},
-                        "extra": {
-                            "message": "Timeout",  # same as what semgrep-core (hack!)
+                    err = CoreException(
+                        check_id="Timeout",
+                        path=target,
+                        start=Position(0, 0),
+                        end=Position(0, 0),
+                        extra={
+                            "message": "spacegrep timeout",
                             "line": "",
                         },
-                    }
+                        language="generic",
+                        rule_id=rule_id,
+                    ).to_dict()
                     errors.append(err)
                 else:
                     p.check_returncode()

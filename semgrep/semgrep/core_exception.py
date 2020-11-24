@@ -39,6 +39,17 @@ class CoreException:
             raise ValueError("SemgrepCore error extra field missing information")
         self._extra = extra
 
+    def to_dict(self) -> dict:
+        return {
+            "check_id": self._check_id,
+            "path": self._path,
+            "start": self._start.to_dict(),
+            "end": self._end.to_dict(),
+            "extra": self._extra,
+            "language": self._language,
+            "rule_id": self._rule_id,
+        }
+
     @classmethod
     def from_json(  # type: ignore
         cls, json_obj: Dict[str, Any], language: str, rule_id: str
