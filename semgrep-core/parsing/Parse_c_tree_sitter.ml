@@ -15,6 +15,7 @@ open Common
 module AST = Ast_c
 module CST = Tree_sitter_c.CST
 module PI = Parse_info
+open Cst_cpp
 open Ast_c
 module G = AST_generic
 module H = Parse_tree_sitter_helpers
@@ -56,10 +57,10 @@ let todo (env : env) _ =
 
 let anon_choice_BANG_67174d6 (env : env) (x : CST.anon_choice_BANG_67174d6) =
   (match x with
-  | `BANG tok -> token env tok (* "!" *)
-  | `TILDE tok -> token env tok (* "~" *)
-  | `DASH tok -> token env tok (* "-" *)
-  | `PLUS tok -> token env tok (* "+" *)
+  | `BANG tok -> Not, token env tok (* "!" *)
+  | `TILDE tok -> Tilde, token env tok (* "~" *)
+  | `DASH tok -> UnMinus, token env tok (* "-" *)
+  | `PLUS tok -> UnPlus, token env tok (* "+" *)
   )
 
 
@@ -102,8 +103,8 @@ let ms_unaligned_ptr_modifier (env : env) (x : CST.ms_unaligned_ptr_modifier) =
 
 let anon_choice_DASHDASH_d11def2 (env : env) (x : CST.anon_choice_DASHDASH_d11def2) =
   (match x with
-  | `DASHDASH tok -> token env tok (* "--" *)
-  | `PLUSPLUS tok -> token env tok (* "++" *)
+  | `DASHDASH tok -> Dec, token env tok (* "--" *)
+  | `PLUSPLUS tok -> Inc, token env tok (* "++" *)
   )
 
 let string_literal (env : env) ((v1, v2, v3) : CST.string_literal) =
@@ -243,91 +244,109 @@ and preproc_binary_expression (env : env) (x : CST.preproc_binary_expression)
       let v1 = preproc_expression env v1 in
       let v2 = token env v2 (* "+" *) in
       let v3 = preproc_expression env v3 in
+      let op = Arith Plus in
       todo env (v1, v2, v3)
   | `Prep_exp_DASH_prep_exp (v1, v2, v3) ->
       let v1 = preproc_expression env v1 in
       let v2 = token env v2 (* "-" *) in
       let v3 = preproc_expression env v3 in
+      let op = Arith Minus in
       todo env (v1, v2, v3)
   | `Prep_exp_STAR_prep_exp (v1, v2, v3) ->
       let v1 = preproc_expression env v1 in
       let v2 = token env v2 (* "*" *) in
       let v3 = preproc_expression env v3 in
+      let op = Arith Mul in
       todo env (v1, v2, v3)
   | `Prep_exp_SLASH_prep_exp (v1, v2, v3) ->
       let v1 = preproc_expression env v1 in
       let v2 = token env v2 (* "/" *) in
       let v3 = preproc_expression env v3 in
+      let op = Arith Div in
       todo env (v1, v2, v3)
   | `Prep_exp_PERC_prep_exp (v1, v2, v3) ->
       let v1 = preproc_expression env v1 in
       let v2 = token env v2 (* "%" *) in
       let v3 = preproc_expression env v3 in
+      let op = Arith Mod in
       todo env (v1, v2, v3)
   | `Prep_exp_BARBAR_prep_exp (v1, v2, v3) ->
       let v1 = preproc_expression env v1 in
       let v2 = token env v2 (* "||" *) in
       let v3 = preproc_expression env v3 in
+      let op = Logical OrLog in
       todo env (v1, v2, v3)
   | `Prep_exp_AMPAMP_prep_exp (v1, v2, v3) ->
       let v1 = preproc_expression env v1 in
       let v2 = token env v2 (* "&&" *) in
       let v3 = preproc_expression env v3 in
+      let op = Logical AndLog in
       todo env (v1, v2, v3)
   | `Prep_exp_BAR_prep_exp (v1, v2, v3) ->
       let v1 = preproc_expression env v1 in
       let v2 = token env v2 (* "|" *) in
       let v3 = preproc_expression env v3 in
+      let op = Arith Or in
       todo env (v1, v2, v3)
   | `Prep_exp_HAT_prep_exp (v1, v2, v3) ->
       let v1 = preproc_expression env v1 in
       let v2 = token env v2 (* "^" *) in
       let v3 = preproc_expression env v3 in
+      let op = Arith Xor in
       todo env (v1, v2, v3)
   | `Prep_exp_AMP_prep_exp (v1, v2, v3) ->
       let v1 = preproc_expression env v1 in
       let v2 = token env v2 (* "&" *) in
       let v3 = preproc_expression env v3 in
+      let op = Arith And in
       todo env (v1, v2, v3)
   | `Prep_exp_EQEQ_prep_exp (v1, v2, v3) ->
       let v1 = preproc_expression env v1 in
       let v2 = token env v2 (* "==" *) in
       let v3 = preproc_expression env v3 in
+      let op = Logical Eq in
       todo env (v1, v2, v3)
   | `Prep_exp_BANGEQ_prep_exp (v1, v2, v3) ->
       let v1 = preproc_expression env v1 in
       let v2 = token env v2 (* "!=" *) in
       let v3 = preproc_expression env v3 in
+      let op = Logical NotEq in
       todo env (v1, v2, v3)
   | `Prep_exp_GT_prep_exp (v1, v2, v3) ->
       let v1 = preproc_expression env v1 in
       let v2 = token env v2 (* ">" *) in
       let v3 = preproc_expression env v3 in
+      let op = Logical Sup in
       todo env (v1, v2, v3)
   | `Prep_exp_GTEQ_prep_exp (v1, v2, v3) ->
       let v1 = preproc_expression env v1 in
       let v2 = token env v2 (* ">=" *) in
       let v3 = preproc_expression env v3 in
+      let op = Logical SupEq in
       todo env (v1, v2, v3)
   | `Prep_exp_LTEQ_prep_exp (v1, v2, v3) ->
       let v1 = preproc_expression env v1 in
       let v2 = token env v2 (* "<=" *) in
       let v3 = preproc_expression env v3 in
+      let op = Logical InfEq in
       todo env (v1, v2, v3)
   | `Prep_exp_LT_prep_exp (v1, v2, v3) ->
       let v1 = preproc_expression env v1 in
       let v2 = token env v2 (* "<" *) in
       let v3 = preproc_expression env v3 in
+      let op = Logical Inf in
       todo env (v1, v2, v3)
   | `Prep_exp_LTLT_prep_exp (v1, v2, v3) ->
       let v1 = preproc_expression env v1 in
       let v2 = token env v2 (* "<<" *) in
       let v3 = preproc_expression env v3 in
+      let op = Arith DecLeft in
       todo env (v1, v2, v3)
   | `Prep_exp_GTGT_prep_exp (v1, v2, v3) ->
       let v1 = preproc_expression env v1 in
       let v2 = token env v2 (* ">>" *) in
       let v3 = preproc_expression env v3 in
+      let op = Arith DecRight in
       todo env (v1, v2, v3)
   )
 
@@ -583,91 +602,109 @@ and binary_expression (env : env) (x : CST.binary_expression) : expr =
       let v1 = expression env v1 in
       let v2 = token env v2 (* "+" *) in
       let v3 = expression env v3 in
+      let op = Arith Plus in
       todo env (v1, v2, v3)
   | `Exp_DASH_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "-" *) in
       let v3 = expression env v3 in
+      let op = Arith Minus in
       todo env (v1, v2, v3)
   | `Exp_STAR_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "*" *) in
       let v3 = expression env v3 in
+      let op = Arith Mul in
       todo env (v1, v2, v3)
   | `Exp_SLASH_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "/" *) in
       let v3 = expression env v3 in
+      let op = Arith Div in
       todo env (v1, v2, v3)
   | `Exp_PERC_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "%" *) in
       let v3 = expression env v3 in
+      let op = Arith Mod in
       todo env (v1, v2, v3)
   | `Exp_BARBAR_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "||" *) in
       let v3 = expression env v3 in
+      let op = Logical OrLog in
       todo env (v1, v2, v3)
   | `Exp_AMPAMP_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "&&" *) in
       let v3 = expression env v3 in
+      let op = Logical AndLog in
       todo env (v1, v2, v3)
   | `Exp_BAR_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "|" *) in
       let v3 = expression env v3 in
+      let op = Arith Or in
       todo env (v1, v2, v3)
   | `Exp_HAT_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "^" *) in
       let v3 = expression env v3 in
+      let op = Arith Xor in
       todo env (v1, v2, v3)
   | `Exp_AMP_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "&" *) in
       let v3 = expression env v3 in
+      let op = Arith And in
       todo env (v1, v2, v3)
   | `Exp_EQEQ_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "==" *) in
       let v3 = expression env v3 in
+      let op = Logical Eq in
       todo env (v1, v2, v3)
   | `Exp_BANGEQ_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "!=" *) in
       let v3 = expression env v3 in
+      let op = Logical NotEq in
       todo env (v1, v2, v3)
   | `Exp_GT_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* ">" *) in
       let v3 = expression env v3 in
+      let op = Logical Sup in
       todo env (v1, v2, v3)
   | `Exp_GTEQ_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* ">=" *) in
       let v3 = expression env v3 in
+      let op = Logical SupEq in
       todo env (v1, v2, v3)
   | `Exp_LTEQ_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "<=" *) in
       let v3 = expression env v3 in
+      let op = Logical InfEq in
       todo env (v1, v2, v3)
   | `Exp_LT_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "<" *) in
       let v3 = expression env v3 in
+      let op = Logical Inf in
       todo env (v1, v2, v3)
   | `Exp_LTLT_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "<<" *) in
       let v3 = expression env v3 in
+      let op = Arith DecLeft in
       todo env (v1, v2, v3)
   | `Exp_GTGT_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* ">>" *) in
       let v3 = expression env v3 in
+      let op = Arith DecRight in
       todo env (v1, v2, v3)
   )
 
@@ -777,17 +814,17 @@ and expression (env : env) (x : CST.expression) : expr =
       let v1 = assignment_left_expression env v1 in
       let v2 =
         (match v2 with
-        | `EQ tok -> token env tok (* "=" *)
-        | `STAREQ tok -> token env tok (* "*=" *)
-        | `SLASHEQ tok -> token env tok (* "/=" *)
-        | `PERCEQ tok -> token env tok (* "%=" *)
-        | `PLUSEQ tok -> token env tok (* "+=" *)
-        | `DASHEQ tok -> token env tok (* "-=" *)
-        | `LTLTEQ tok -> token env tok (* "<<=" *)
-        | `GTGTEQ tok -> token env tok (* ">>=" *)
-        | `AMPEQ tok -> token env tok (* "&=" *)
-        | `HATEQ tok -> token env tok (* "^=" *)
-        | `BAREQ tok -> token env tok (* "|=" *)
+        | `EQ tok      -> SimpleAssign (token env tok) (* "=" *)
+        | `STAREQ tok  -> OpAssign (Mul, token env tok) (* "*=" *)
+        | `SLASHEQ tok -> OpAssign (Div, token env tok) (* "/=" *)
+        | `PERCEQ tok  -> OpAssign (Mod, token env tok) (* "%=" *)
+        | `PLUSEQ tok  -> OpAssign (Plus, token env tok) (* "+=" *)
+        | `DASHEQ tok  -> OpAssign (Minus, token env tok) (* "-=" *)
+        | `LTLTEQ tok  -> OpAssign (DecLeft, token env tok) (* "<<=" *)
+        | `GTGTEQ tok  -> OpAssign (DecRight, token env tok) (* ">>=" *)
+        | `AMPEQ tok   -> OpAssign (And, token env tok) (* "&=" *)
+        | `HATEQ tok   -> OpAssign (Xor, token env tok) (* "^=" *)
+        | `BAREQ tok   -> OpAssign (Or, token env tok) (* "|=" *)
         )
       in
       let v3 = expression env v3 in
@@ -1478,5 +1515,4 @@ let parse file =
        pr2 "Original backtrace:";
        pr2 s;
        raise exn
-
     )
