@@ -33,7 +33,7 @@ module H = Parse_tree_sitter_helpers
 (* Helpers *)
 (*****************************************************************************)
 
-type env = H.env
+type env = unit H.env
 
 let _todo (_env : env) _ =
   failwith "not implemented, yikes."
@@ -1736,7 +1736,7 @@ let parse file =
            Parallel.invoke Tree_sitter_ruby.Parse.file file ()
     )
     (fun cst ->
-       let env = { H.file; conv = H.line_col_to_pos file } in
+       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
        if debug then (
          let sexp = CST.sexp_of_program cst in
          let s = Sexplib.Sexp.to_string_hum sexp in
