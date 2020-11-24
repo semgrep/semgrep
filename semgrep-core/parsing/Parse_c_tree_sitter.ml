@@ -545,7 +545,7 @@ and anon_choice_param_decl_bdc8cc9 (env : env) (x : CST.anon_choice_param_decl_b
             )
         | None -> todo env ())
       in
-      todo env (v1, v2)
+      v2
   | `DOTDOTDOT tok ->
         let t = token env tok (* "..." *) in
         raise Todo
@@ -590,6 +590,7 @@ and anon_choice_stor_class_spec_5764fed (env : env) (x : CST.anon_choice_stor_cl
 and anon_choice_type_id_opt_field_decl_list_9aebd83 (env : env) (x : CST.anon_choice_type_id_opt_field_decl_list_9aebd83) =
   (match x with
   | `Id_opt_field_decl_list (v1, v2) ->
+      (* ??? *)
       let v1 = identifier env v1 (* pattern [a-zA-Z_]\w* *) in
       let v2 =
         (match v2 with
@@ -783,15 +784,16 @@ and declarator (env : env) (x : CST.declarator) : (name * (type_ -> type_)) =
       let v2 = token env v2 (* "*" *) in
       let _v3 = List.map (ms_pointer_modifier env) v3 in
       let _v4 = List.map (type_qualifier env) v4 in
-      let v5 = declarator env v5 in
-      todo env (v1, v2, v3, v4, v5)
+      let (id, f) = declarator env v5 in
+      id, (fun t -> TPointer (v2, t) |> f)
+
   | `Func_decl (v1, v2, v3) ->
-      let v1 = declarator env v1 in
+      let (id, f) = declarator env v1 in
       let v2 = parameter_list env v2 in
       let _v3 = List.map (attribute_specifier env) v3 in
-      todo env (v1, v2, v3)
+      id, (fun t -> f (TFunction (t, v2)))
   | `Array_decl (v1, v2, v3, v4, v5) ->
-      let v1 = declarator env v1 in
+      let (id, f) = declarator env v1 in
       let v2 = token env v2 (* "[" *) in
       let _v3 = List.map (type_qualifier env) v3 in
       let v4 =
@@ -800,15 +802,15 @@ and declarator (env : env) (x : CST.declarator) : (name * (type_ -> type_)) =
         | None -> None)
       in
       let v5 = token env v5 (* "]" *) in
-      todo env (v1, v2, v3, v4, v5)
+      id, (fun t -> f (TArray (v4, t)))
   | `Paren_decl (v1, v2, v3) ->
-      let v1 = token env v1 (* "(" *) in
+      let _v1 = token env v1 (* "(" *) in
       let v2 = declarator env v2 in
-      let v3 = token env v3 (* ")" *) in
+      let _v3 = token env v3 (* ")" *) in
       v2
   | `Id tok ->
         let id = identifier env tok (* pattern [a-zA-Z_]\w* *) in
-        raise Todo
+        id, (fun t -> t)
   )
 
 and enumerator (env : env) ((v1, v2) : CST.enumerator) : name * expr option =
@@ -1008,7 +1010,8 @@ and field_declaration_list_item (env : env) (x : CST.field_declaration_list_item
   )
 
 (* argh, diff with regular declarator ? *)
-and field_declarator (env : env) (x : CST.field_declarator) =
+and field_declarator (env : env) (x : CST.field_declarator)
+ : (name * (type_ -> type_)) =
   (match x with
   | `Poin_field_decl (v1, v2, v3, v4, v5) ->
       let _v1 =
@@ -1019,14 +1022,14 @@ and field_declarator (env : env) (x : CST.field_declarator) =
       let v2 = token env v2 (* "*" *) in
       let _v3 = List.map (ms_pointer_modifier env) v3 in
       let _v4 = List.map (type_qualifier env) v4 in
-      let v5 = field_declarator env v5 in
-      todo env (v1, v2, v3, v4, v5)
+      let (id, f) = field_declarator env v5 in
+      id, (fun t -> TPointer (v2, t) |> f)
   | `Func_field_decl (v1, v2) ->
-      let v1 = field_declarator env v1 in
+      let (id, f) = field_declarator env v1 in
       let v2 = parameter_list env v2 in
-      todo env (v1, v2)
+      id, (fun t -> f (TFunction (t, v2)))
   | `Array_field_decl (v1, v2, v3, v4, v5) ->
-      let v1 = field_declarator env v1 in
+      let (id, f) = field_declarator env v1 in
       let v2 = token env v2 (* "[" *) in
       let _v3 = List.map (type_qualifier env) v3 in
       let v4 =
@@ -1035,13 +1038,15 @@ and field_declarator (env : env) (x : CST.field_declarator) =
         | None -> None)
       in
       let v5 = token env v5 (* "]" *) in
-      todo env (v1, v2, v3, v4, v5)
+      id, (fun t -> f (TArray (v4, t)))
   | `Paren_field_decl (v1, v2, v3) ->
       let v1 = token env v1 (* "(" *) in
       let v2 = field_declarator env v2 in
       let v3 = token env v3 (* ")" *) in
-      todo env (v1, v2, v3)
-  | `Id tok -> token env tok (* pattern [a-zA-Z_]\w* *)
+      v2
+  | `Id tok ->
+        let id = identifier env tok (* pattern [a-zA-Z_]\w* *) in
+        id, (fun t -> t)
   )
 
 and field_expression (env : env) ((v1, v2, v3) : CST.field_expression) : expr =
@@ -1105,7 +1110,7 @@ and parameter_list (env : env) ((v1, v2, v3) : CST.parameter_list)
     | None -> [])
   in
   let v3 = token env v3 (* ")" *) in
-  todo env (v1, v2, v3)
+  v2
 
 and parenthesized_expression (env : env) ((v1, v2, v3) : CST.parenthesized_expression) =
   let _v1 = token env v1 (* "(" *) in
@@ -1151,7 +1156,7 @@ and type_specifier (env : env) (x : CST.type_specifier) : type_ =
   (match x with
   | `Struct_spec (v1, v2, v3) ->
       let v1 = token env v1 (* "struct" *) in
-      let v2 =
+      let _v2 =
         (match v2 with
         | Some x -> Some (ms_declspec_modifier env x)
         | None -> None)
@@ -1248,8 +1253,9 @@ let expression_statement (env : env) ((v1, v2) : CST.expression_statement) =
   | None -> raise Todo
   )
 
-(* diff with abstract_declarator?? *)
-let rec type_declarator (env : env) (x : CST.type_declarator) =
+(* diff with declarator? *)
+let rec type_declarator (env : env) (x : CST.type_declarator)
+ : (name * (type_ -> type_)) =
   (match x with
   | `Poin_type_decl (v1, v2, v3, v4, v5) ->
       let _v1 =
@@ -1260,14 +1266,14 @@ let rec type_declarator (env : env) (x : CST.type_declarator) =
       let v2 = token env v2 (* "*" *) in
       let _v3 = List.map (ms_pointer_modifier env) v3 in
       let _v4 = List.map (type_qualifier env) v4 in
-      let v5 = type_declarator env v5 in
-      todo env (v1, v2, v3, v4, v5)
+      let (id, f) = type_declarator env v5 in
+      id, (fun t -> TPointer (v2, t) |> f)
   | `Func_type_decl (v1, v2) ->
-      let v1 = type_declarator env v1 in
+      let (id, f) = type_declarator env v1 in
       let v2 = parameter_list env v2 in
-      todo env (v1, v2)
+      id, (fun t -> f (TFunction (t, v2)))
   | `Array_type_decl (v1, v2, v3, v4, v5) ->
-      let v1 = type_declarator env v1 in
+      let (id, f) = type_declarator env v1 in
       let v2 = token env v2 (* "[" *) in
       let _v3 = List.map (type_qualifier env) v3 in
       let v4 =
@@ -1276,15 +1282,15 @@ let rec type_declarator (env : env) (x : CST.type_declarator) =
         | None -> None)
       in
       let v5 = token env v5 (* "]" *) in
-      todo env (v1, v2, v3, v4, v5)
+      id, (fun t -> f (TArray (v4, t)))
   | `Paren_type_decl (v1, v2, v3) ->
       let v1 = token env v1 (* "(" *) in
       let v2 = type_declarator env v2 in
       let v3 = token env v3 (* ")" *) in
-      todo env (v1, v2, v3)
+      v2
   | `Id tok ->
         let id = identifier env tok (* pattern [a-zA-Z_]\w* *) in
-        raise Todo
+        id, (fun t -> t)
   )
 
 let anon_choice_decl_f8b0ff3 (env : env) (x : CST.anon_choice_decl_f8b0ff3) =
