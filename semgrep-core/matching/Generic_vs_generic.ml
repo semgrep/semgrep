@@ -2341,7 +2341,7 @@ and m_directive a b =
    | A.ImportFrom _ | A.ImportAs _
    (* definitely do not normalize the pattern for ImportAll *)
    | A.ImportAll _
-   | A.Package _ | A.PackageEnd _ | A.OtherDirective _ ->
+   | A.Package _ | A.PackageEnd _ | A.Pragma _ | A.OtherDirective _ ->
       fail ()
   )
 (*e: function [[Generic_vs_generic.m_directive]] *)
@@ -2382,11 +2382,16 @@ and m_directive_basic a b =
     )
   | A.PackageEnd a1, B.PackageEnd b1 ->
       m_tok a1 b1
+  | A.Pragma(a1, a2), B.Pragma(b1, b2) ->
+    m_ident a1 b1 >>= (fun () ->
+    (m_list m_any) a2 b2
+    )
   | A.OtherDirective(a1, a2), B.OtherDirective(b1, b2) ->
     m_other_directive_operator a1 b1 >>= (fun () ->
     (m_list m_any) a2 b2
     )
   | A.ImportFrom _, _ | A.ImportAs _, _ | A.OtherDirective _, _
+  | A.Pragma _, _
   | A.ImportAll _, _ | A.Package _, _ | A.PackageEnd _, _
    -> fail ()
   (*e: [[Generic_vs_generic.m_directive_basic]] boilerplate cases *)

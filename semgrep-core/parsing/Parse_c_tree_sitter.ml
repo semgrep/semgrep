@@ -179,11 +179,11 @@ let preproc_call (env : env) ((v1, v2, v3) : CST.preproc_call) =
   let v3 = token env v3 (* "\n" *) in
   let v2 =
     (match v2 with
-    | Some tok -> preproc_arg env tok (* preproc_arg *)
-    | None -> "", v3
+    | Some tok -> Some (preproc_arg env tok) (* preproc_arg *)
+    | None -> None
     )
   in
-  todo env (v1, v2, v3)
+  OtherDirective (v1, v2)
 
 let field_designator (env : env) ((v1, v2) : CST.field_designator) : name =
   let _v1 = token env v1 (* "." *) in
@@ -227,8 +227,8 @@ let preproc_def (env : env) ((v1, v2, v3, v4) : CST.preproc_def) : directive =
   in
   let v4 = token env v4 (* "\n" *) in
   (match v3 with
-  | Some x -> Define (v2, CppExpr (String x))
-  | None -> Define (v2, CppExpr (String ("", v4)))
+  | Some x -> Define (v1, v2, Some (CppExpr (String x)))
+  | None -> Define (v1, v2, None)
   )
 
 let rec preproc_argument_list (env : env) ((v1, v2, v3) : CST.preproc_argument_list) : argument list bracket =
@@ -248,7 +248,7 @@ let rec preproc_argument_list (env : env) ((v1, v2, v3) : CST.preproc_argument_l
     | None -> [])
   in
   let v3 = token env v3 (* ")" *) in
-  v1, v2, v3
+  v1, (v2 |> List.map (fun x -> Arg x)), v3
 
 and preproc_binary_expression (env : env) (x : CST.preproc_binary_expression)
  : expr =
@@ -429,8 +429,8 @@ let preproc_function_def (env : env) ((v1, v2, v3, v4, v5) : CST.preproc_functio
   in
   let v5 = token env v5 (* "\n" *) in
   (match v4 with
-  | Some x -> Macro (v2, v3, CppExpr (String x))
-  | None -> Macro (v2, v3, CppExpr (String ("", v5)))
+  | Some x -> Macro (v1, v2, v3, Some (CppExpr (String x)))
+  | None -> Macro (v1, v2, v3, None)
   )
 
 
@@ -547,10 +547,10 @@ and anon_choice_param_decl_bdc8cc9 (env : env) (x : CST.anon_choice_param_decl_b
            { p_type = v1; p_name = None }
         )
       in
-      v2
+      ParamClassic v2
   | `DOTDOTDOT tok ->
         let t = token env tok (* "..." *) in
-        raise Todo
+        ParamDots t
   )
 
 and anon_choice_prep_else_in_field_decl_list_97ea65e (env : env) (x : CST.anon_choice_prep_else_in_field_decl_list_97ea65e) =
@@ -622,7 +622,7 @@ and argument_list (env : env) ((v1, v2, v3) : CST.argument_list)
     | None -> [])
   in
   let v3 = token env v3 (* ")" *) in
-  v1, v2, v3
+  v1, (v2 |> List.map (fun x -> Arg x)), v3
 
 and assignment_left_expression (env : env) (x : CST.assignment_left_expression)
  : expr =
@@ -894,7 +894,7 @@ and expression (env : env) (x : CST.expression) : expr =
       Cast (v2, v4)
   | `Poin_exp x -> pointer_expression env x
   | `Sizeof_exp (v1, v2) ->
-      let _v1 = token env v1 (* "sizeof" *) in
+      let v1 = token env v1 (* "sizeof" *) in
       let v2 =
         (match v2 with
         | `Exp x -> Left (expression env x)
@@ -905,7 +905,7 @@ and expression (env : env) (x : CST.expression) : expr =
             Right v2
         )
       in
-      SizeOf (v2)
+      SizeOf (v1, v2)
   | `Subs_exp x -> subscript_expression env x
   | `Call_exp x -> call_expression env x
   | `Field_exp x -> field_expression env x
@@ -929,7 +929,7 @@ and expression (env : env) (x : CST.expression) : expr =
   | `Conc_str (v1, v2) ->
       let v1 = string_literal env v1 in
       let v2 = List.map (string_literal env) v2 in
-      todo env (v1, v2)
+      ConcatString (v1::v2)
   | `Char_lit x -> let c = char_literal env x in
       Char c
   | `Paren_exp x -> parenthesized_expression env x
@@ -1201,11 +1201,11 @@ and type_specifier (env : env) (x : CST.type_specifier) : type_ =
       in
       v2
   | `Macro_type_spec (v1, v2, v3, v4) ->
-      let v1 = token env v1 (* pattern [a-zA-Z_]\w* *) in
+      let v1 = identifier env v1 (* pattern [a-zA-Z_]\w* *) in
       let v2 = token env v2 (* "(" *) in
       let v3 = type_descriptor env v3 in
       let v4 = token env v4 (* ")" *) in
-      todo env (v1, v2, v3, v4)
+      TMacroApply (v1, (v2, v3, v4))
   | `Sized_type_spec (v1, v2) ->
       let v1 =
         (* repeat1 in grammar.js so at least one *)

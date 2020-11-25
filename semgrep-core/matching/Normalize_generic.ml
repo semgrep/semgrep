@@ -69,6 +69,7 @@ let normalize_import_opt is_pattern i =
      full_module_name is_pattern module_name None >>= (fun x -> Some (t, x))
   | Package _
   | PackageEnd _
+  | Pragma _
   | OtherDirective _
     -> None
 (*e: function [[Normalize_generic.normalize_import_opt]] *)
