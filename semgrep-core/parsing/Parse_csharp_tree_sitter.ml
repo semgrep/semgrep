@@ -2320,6 +2320,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
         | None -> None)
       in
       let v5 = identifier env v5 (* identifier *) in
+      let fname, ftok = v5 in
       let accessors, vinit =
         (match v6 with
         | `Acce_list_opt_EQ_exp_SEMI (v1, v2) ->
@@ -2335,7 +2336,6 @@ and declaration (env : env) (x : CST.declaration) : stmt =
             in
             let open_br, v1, close_br = v1 in
             let funcs = List.map (fun (attrs, id, fbody) ->
-              let fname, ftok = v5 in
               let iname, itok = id in
               let has_params = iname <> "get" in
               let has_return = iname = "get" in
@@ -2359,9 +2359,21 @@ and declaration (env : env) (x : CST.declaration) : stmt =
             ) v1 in
             (open_br, funcs, close_br), v2
         | `Arrow_exp_clause_SEMI (v1, v2) ->
+            (* public int SomeProp => 3;
+             * Convert it to `get_SomeProp { return 3; }`
+             *)
             let v1 = arrow_expression_clause env v1 in
             let v2 = token env v2 (* ";" *) in
-            todo env v1
+            let arrow, expr = v1 in
+            let ent = basic_entity (("get_" ^ fname), arrow) [] in
+            let funcdef = FuncDef {
+              fkind = (Arrow, arrow);
+              fparams = [];
+              frettype = Some v3;
+              fbody = ExprStmt (expr, v2);
+            } in
+            let func = DefStmt (ent, funcdef) in
+            (arrow, [func], v2), None
         )
       in
       let ent = basic_entity v5 (v1 @ v2) in
