@@ -514,10 +514,10 @@ and anon_choice_init_pair_1a6981e (env : env) (x : CST.anon_choice_init_pair_1a6
           (match x with
           | `Subs_desi x ->
               let (lp, e, rp) = subscript_designator env x in
-              raise Todo
+              Left (lp, e, rp)
           | `Field_desi x ->
                let (fld) = field_designator env x in
-               raise Todo
+               Right fld
           )
         ) v1
       in
@@ -528,9 +528,9 @@ and anon_choice_init_pair_1a6981e (env : env) (x : CST.anon_choice_init_pair_1a6
         | `Init_list x -> initializer_list env x
         )
       in
-      todo env (v1, v2, v3)
-  | `Exp x -> expression env x
-  | `Init_list x -> initializer_list env x
+      Left (v1, v2, v3)
+  | `Exp x -> Right (expression env x)
+  | `Init_list x -> Right (initializer_list env x)
   )
 
 and anon_choice_param_decl_bdc8cc9 (env : env) (x : CST.anon_choice_param_decl_bdc8cc9) : parameter =
@@ -1100,7 +1100,17 @@ and initializer_list (env : env) ((v1, v2, v3, v4) : CST.initializer_list) : exp
     | None -> None)
   in
   let v4 = token env v4 (* "}" *) in
-  todo env (v1, v2, v3, v4)
+  (* TODO: can be RecordInit too! *)
+  let elems =
+    v2 |> List.map (function
+    | Right e -> None, e
+    | Left (designators, _tkeq, e) ->
+       match designators with
+       | [Left (_lc, idx, _rc)] -> Some idx, e
+       | _TODO -> None, e
+       )
+  in
+  ArrayInit (v1, elems, v4)
 
 and ms_based_modifier (env : env) ((v1, v2) : CST.ms_based_modifier) =
   let v1 = token env v1 (* "__based" *) in
@@ -1353,7 +1363,7 @@ let type_definition (env : env) ((v1, v2, v3, v4, v5, v6) : CST.type_definition)
   let xs = v4::v5 in
   let v6 = token env v6 (* ";" *) in
   xs |> List.map (fun (id, f) ->
-      ( id, f v3 )
+      { t_name = id; t_type = f v3 }
   )
 
 let declaration (env : env) ((v1, v2, v3, v4) : CST.declaration) : var_decl list =
