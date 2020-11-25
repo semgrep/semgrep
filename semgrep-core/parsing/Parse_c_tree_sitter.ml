@@ -1518,11 +1518,11 @@ and statement (env : env) (x : CST.statement) : stmt =
   | `Choice_labe_stmt x -> non_case_statement env x
   )
 
-and top_level_item (env : env) (x : CST.top_level_item) : toplevel =
+and top_level_item (env : env) (x : CST.top_level_item) : toplevel list =
   (match x with
   | `Func_defi x ->
         let def = function_definition env x in
-        FuncDef def
+        [FuncDef def]
   | `Link_spec (v1, v2, v3) ->
       let v1 = token env v1 (* "extern" *) in
       let v2 = string_literal env v2 in
@@ -1542,9 +1542,10 @@ and top_level_item (env : env) (x : CST.top_level_item) : toplevel =
         let xs = type_definition env x in
         raise Todo
   | `Empty_decl (v1, v2) ->
-      let v1 = type_specifier env v1 in
-      let v2 = token env v2 (* ";" *) in
-      todo env (v1, v2)
+      let _v1 = type_specifier env v1 in
+      let _v2 = token env v2 (* ";" *) in
+      []
+
   (* skipping else part *)
   | `Prep_if (v1, v2, v3, v4, v5, v6) ->
       let _v1 = token env v1 (* pattern #[ 	]*if *) in
@@ -1557,7 +1558,7 @@ and top_level_item (env : env) (x : CST.top_level_item) : toplevel =
         | None -> None)
       in
       let _v6 = token env v6 (* pattern #[ 	]*endif *) in
-      todo env (v1, v2, v3, v4, v5, v6)
+      v4
 
   | `Prep_ifdef (v1, v2, v3, v4, v5) ->
       let _v1 = anon_choice_pat_25b90ba_4a37f8c env v1 in
@@ -1568,8 +1569,8 @@ and top_level_item (env : env) (x : CST.top_level_item) : toplevel =
         | Some x -> Some (anon_choice_prep_else_8b52b0f env x)
         | None -> None)
       in
-      let v5 = token env v5 (* pattern #[ 	]*endif *) in
-      todo env (v1, v2, v3, v4, v5)
+      let _v5 = token env v5 (* pattern #[ 	]*endif *) in
+      v3
   | `Prep_incl (v1, v2, v3) ->
       let v1 = token env v1 (* pattern #[ 	]*include *) in
       let v2 =
@@ -1587,13 +1588,13 @@ and top_level_item (env : env) (x : CST.top_level_item) : toplevel =
       in
       let v3 = token env v3 (* "\n" *) in
       todo env (v1, v2, v3)
-  | `Prep_def x -> preproc_def env x
-  | `Prep_func_def x -> preproc_function_def env x
-  | `Prep_call x -> preproc_call env x
+  | `Prep_def x -> [preproc_def env x]
+  | `Prep_func_def x -> [preproc_function_def env x]
+  | `Prep_call x -> [preproc_call env x]
   )
 
 and translation_unit (env : env) (xs : CST.translation_unit) : program =
-  List.map (top_level_item env) xs
+  List.map (top_level_item env) xs |> List.flatten
 
 
 (*****************************************************************************)
