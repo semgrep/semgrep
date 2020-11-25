@@ -226,8 +226,8 @@ let just_parse_with_lang lang file =
 
   | Lang.C ->
       run file [
+        Pfff Parse_c.parse_program;
         TreeSitter Parse_c_tree_sitter.parse;
-        Pfff Parse_c.parse_program
       ]
       C_to_generic.program
 
