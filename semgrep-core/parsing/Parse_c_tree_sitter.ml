@@ -386,7 +386,7 @@ and preproc_expression (env : env) (x : CST.preproc_expression) : expr =
         Char c
   | `Prep_defi x ->
         let (t, id) = preproc_defined env x in
-        raise Todo
+        Defined (t, id)
   | `Prep_un_exp (v1, v2) ->
       let v1 = anon_choice_BANG_67174d6 env v1 in
       let v2 = preproc_expression env v2 in
@@ -489,10 +489,11 @@ and anon_choice_exp_508611b (env : env) (x : CST.anon_choice_exp_508611b) =
   (match x with
   | `Exp x ->
         let e = expression env x in
-        raise Todo
+        e
+  (* less: what is that? *)
   | `STAR tok ->
         let t = token env tok (* "*" *) in
-        raise Todo
+        Id ("*", t)
   )
 
 and anon_choice_exp_55b4dba (env : env) (x : CST.anon_choice_exp_55b4dba) : expr =
@@ -579,14 +580,18 @@ and anon_choice_prep_else_in_field_decl_list_97ea65e (env : env) (x : CST.anon_c
 
 and anon_choice_stor_class_spec_5764fed (env : env) (x : CST.anon_choice_stor_class_spec_5764fed) =
   (match x with
-  | `Stor_class_spec x -> storage_class_specifier env x
-  | `Type_qual x -> type_qualifier env x
+  | `Stor_class_spec x ->
+        let _ = storage_class_specifier env x in
+        ()
+  | `Type_qual x ->
+        let _ = type_qualifier env x in
+        ()
   | `Attr_spec x ->
         let _ = attribute_specifier env x in
-        raise Todo
+        ()
   | `Ms_decl_modi x ->
         let _ = ms_declspec_modifier env x in
-        raise Todo
+        ()
   )
 
 and anon_choice_type_id_opt_field_decl_list_9aebd83 (env : env) (x : CST.anon_choice_type_id_opt_field_decl_list_9aebd83) : name option * field_def list bracket =
@@ -1347,7 +1352,7 @@ let type_definition (env : env) ((v1, v2, v3, v4, v5, v6) : CST.type_definition)
       ( id, f v3 )
   )
 
-let declaration (env : env) ((v1, v2, v3, v4) : CST.declaration) =
+let declaration (env : env) ((v1, v2, v3, v4) : CST.declaration) : var_decl list =
   let v1 = declaration_specifiers env v1 in
   let v2 = anon_choice_decl_f8b0ff3 env v2 in
   let v3 =
@@ -1359,7 +1364,7 @@ let declaration (env : env) ((v1, v2, v3, v4) : CST.declaration) =
   in
   let xs = v2::v3 in
   let v4 = token env v4 (* ";" *) in
-  todo env (v1, v2, v3, v4)
+  xs |> List.map (fun f -> f v1)
 
 let rec anon_choice_prep_else_8b52b0f (env : env) (x : CST.anon_choice_prep_else_8b52b0f) =
   (match x with
@@ -1448,7 +1453,8 @@ and non_case_statement (env : env) (x : CST.non_case_statement) : stmt =
       let v3 =
        (* both decl and expr_stmt contains the ending semicolon *)
         (match v3 with
-        | `Decl x -> declaration env x
+        | `Decl x -> let vars = declaration env x in
+                raise Todo
         | `Opt_choice_exp_SEMI x -> expression_statement env x
         )
       in
@@ -1507,7 +1513,8 @@ and statement (env : env) (x : CST.statement) : stmt =
         List.map (fun x ->
           (match x with
           | `Choice_labe_stmt x -> non_case_statement env x
-          | `Decl x -> declaration env x
+          | `Decl x -> let vars = declaration env x in
+                    raise Todo
           | `Type_defi x ->
                     let xs = type_definition env x in
                     raise Todo
@@ -1523,24 +1530,27 @@ and top_level_item (env : env) (x : CST.top_level_item) : toplevel list =
   | `Func_defi x ->
         let def = function_definition env x in
         [DefStmt (FuncDef def)]
+  (* less: could transform as yet another annotation *)
   | `Link_spec (v1, v2, v3) ->
       let v1 = token env v1 (* "extern" *) in
       let v2 = string_literal env v2 in
       let v3 =
         (match v3 with
         | `Func_defi x -> function_definition env x
-        | `Decl x -> declaration env x
+        | `Decl x -> let vars = declaration env x in
+                raise Todo
         | `Decl_list x -> declaration_list env x
         )
       in
       todo env (v1, v2, v3)
-  | `Decl x -> declaration env x
+  | `Decl x -> let vars = declaration env x in
+        raise Todo
   | `Choice_case_stmt x ->
         let st = statement env x in
         raise Todo
   | `Type_defi x ->
         let xs = type_definition env x in
-        raise Todo
+        xs |> List.map (fun x -> DefStmt (TypeDef x))
   | `Empty_decl (v1, v2) ->
       let _v1 = type_specifier env v1 in
       let _v2 = token env v2 (* ";" *) in
@@ -1575,19 +1585,23 @@ and top_level_item (env : env) (x : CST.top_level_item) : toplevel list =
       let v1 = token env v1 (* pattern #[ 	]*include *) in
       let v2 =
         (match v2 with
+        (* "foo.h" *)
         | `Str_lit x -> let s = string_literal env x in
-                raise Todo
+             s
+        (* <foo.h> *)
         | `System_lib_str tok ->
             let s = str env tok (* system_lib_string *) in
-            raise Todo
+            s
         | `Id tok ->
                 let id = identifier env tok (* pattern [a-zA-Z_]\w* *) in
-                raise Todo
-        | `Prep_call_exp x -> preproc_call_expression env x
+                id
+        | `Prep_call_exp x ->
+           let _ = preproc_call_expression env x in
+           "PREPROC_EXPR", v1
         )
       in
-      let v3 = token env v3 (* "\n" *) in
-      todo env (v1, v2, v3)
+      let _v3 = token env v3 (* "\n" *) in
+      [DirStmt (Include (v1, v2))]
   | `Prep_def x -> [DirStmt (preproc_def env x)]
   | `Prep_func_def x -> [DirStmt (preproc_function_def env x)]
   | `Prep_call x -> [DirStmt (preproc_call env x)]
