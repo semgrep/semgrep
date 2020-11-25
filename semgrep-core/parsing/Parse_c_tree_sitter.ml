@@ -33,7 +33,29 @@ module H = Parse_tree_sitter_helpers
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-type env = unit H.env
+type extra = {
+  (* gensym *)
+  mutable cnt: int;
+  mutable struct_defs_toadd: struct_def list;
+  mutable enum_defs_toadd: enum_def list;
+  mutable typedefs_toadd: type_def list;
+}
+(* similar to Ast_c_build env *)
+let default_extra_env = {
+  cnt = 0;
+
+  struct_defs_toadd = [];
+  enum_defs_toadd = [];
+  typedefs_toadd = [];
+}
+let gensym_struct cnt =
+  spf "__anon_struct_%d" cnt
+
+let gensym_enum cnt =
+  spf "__anon_enum_%d" cnt
+
+type env = extra H.env
+
 let _fake = G.fake
 let token = H.token
 let str = H.str
@@ -1186,10 +1208,22 @@ and type_specifier (env : env) (x : CST.type_specifier) : type_ =
         | Some x -> Some (ms_declspec_modifier env x)
         | None -> None)
       in
-      let v3 =
+      let (nameopt, flds) =
         anon_choice_type_id_opt_field_decl_list_9aebd83 env v3
       in
-      todo env (v1, v2, v3)
+      let env = env.extra in
+      let name =
+        match nameopt with
+        | Some n -> n
+        | None ->
+           env.cnt <- env.cnt + 1;
+           let s = gensym_struct env.cnt in
+           (s, v1)
+      in
+      let def = { s_name = name; s_kind = Struct; s_flds = flds } in
+      env.struct_defs_toadd <- def :: env.struct_defs_toadd;
+      TStructName (Struct, name)
+
   | `Union_spec (v1, v2, v3) ->
       let v1 = token env v1 (* "union" *) in
       let v2 =
@@ -1197,13 +1231,25 @@ and type_specifier (env : env) (x : CST.type_specifier) : type_ =
         | Some x -> Some (ms_declspec_modifier env x)
         | None -> None)
       in
-      let v3 =
+      let (nameopt, flds) =
         anon_choice_type_id_opt_field_decl_list_9aebd83 env v3
       in
-      todo env (v1, v2, v3)
+      let env = env.extra in
+      let name =
+        match nameopt with
+        | Some n -> n
+        | None ->
+           env.cnt <- env.cnt + 1;
+           let s = gensym_struct env.cnt in
+           (s, v1)
+      in
+      let def = { s_name = name; s_kind = Union; s_flds = flds } in
+      env.struct_defs_toadd <- def :: env.struct_defs_toadd;
+      TStructName (Union, name)
+
   | `Enum_spec (v1, v2) ->
       let v1 = token env v1 (* "enum" *) in
-      let v2 =
+      let (nameopt, xs) =
         (match v2 with
         | `Id_opt_enum_list (v1, v2) ->
             let v1 = identifier env v1 (* pattern [a-zA-Z_]\w* *) in
@@ -1212,13 +1258,24 @@ and type_specifier (env : env) (x : CST.type_specifier) : type_ =
               | Some x -> enumerator_list env x
               | None -> [])
             in
-            todo env (v1, v2)
+            Some v1, v2
         | `Enum_list x ->
-            let xs = enumerator_list env x in
-            raise Todo
+            None, enumerator_list env x
         )
       in
-      v2
+      let env = env.extra in
+      let name =
+        match nameopt with
+        | Some n -> n
+        | None ->
+           env.cnt <- env.cnt + 1;
+           let s = gensym_enum env.cnt in
+           (s, v1)
+      in
+      let def = { e_name = name; e_consts = xs } in
+      env.enum_defs_toadd <- def :: env.enum_defs_toadd;
+      TEnumName (name)
+
   | `Macro_type_spec (v1, v2, v3, v4) ->
       let v1 = identifier env v1 (* pattern [a-zA-Z_]\w* *) in
       let v2 = token env v2 (* "(" *) in
@@ -1631,7 +1688,25 @@ and top_level_item (env : env) (x : CST.top_level_item) : toplevel list =
   )
 
 and translation_unit (env : env) (xs : CST.translation_unit) : program =
-  List.map (top_level_item env) xs |> List.flatten
+  List.map (fun x ->
+      let res = top_level_item env x in
+      let env = env.extra in
+
+      let structs = env.struct_defs_toadd in
+      let enums = env.enum_defs_toadd in
+      let typedefs = env.typedefs_toadd in
+      env.struct_defs_toadd <- [];
+      env.enum_defs_toadd <- [];
+      env.typedefs_toadd <- [];
+      (((structs |> List.map (fun x -> StructDef x)) @
+        (enums |> List.map (fun x -> EnumDef x)) @
+        (typedefs |> List.map (fun x -> TypeDef x))
+       ) |> List.map (fun x -> DefStmt x)
+      )
+      @
+      res
+
+  ) xs |> List.flatten
 
 
 (*****************************************************************************)
@@ -1645,7 +1720,8 @@ let parse file =
        Parallel.invoke Tree_sitter_c.Parse.file file ()
     )
     (fun cst ->
-       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
+       let env = { H.file; conv = H.line_col_to_pos file;
+                   extra = default_extra_env } in
       try
        let x = translation_unit env cst in
        x
