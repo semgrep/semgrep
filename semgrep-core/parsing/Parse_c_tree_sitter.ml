@@ -217,7 +217,7 @@ let ms_declspec_modifier (env : env) ((v1, v2, v3, v4) : CST.ms_declspec_modifie
   let _v4 = token env v4 (* ")" *) in
   ()
 
-let preproc_def (env : env) ((v1, v2, v3, v4) : CST.preproc_def) : toplevel =
+let preproc_def (env : env) ((v1, v2, v3, v4) : CST.preproc_def) : directive =
   let v1 = token env v1 (* pattern #[ 	]*define *) in
   let v2 = str env v2 (* pattern [a-zA-Z_]\w* *) in
   let v3 =
@@ -418,7 +418,7 @@ let preproc_params (env : env) ((v1, v2, v3) : CST.preproc_params) : name list =
   let _v3 = token env v3 (* ")" *) in
   v2
 
-let preproc_function_def (env : env) ((v1, v2, v3, v4, v5) : CST.preproc_function_def) : toplevel =
+let preproc_function_def (env : env) ((v1, v2, v3, v4, v5) : CST.preproc_function_def) : directive =
   let v1 = token env v1 (* pattern #[ 	]*define *) in
   let v2 = identifier env v2 (* pattern [a-zA-Z_]\w* *) in
   let v3 = preproc_params env v3 in
@@ -1522,7 +1522,7 @@ and top_level_item (env : env) (x : CST.top_level_item) : toplevel list =
   (match x with
   | `Func_defi x ->
         let def = function_definition env x in
-        [FuncDef def]
+        [DefStmt (FuncDef def)]
   | `Link_spec (v1, v2, v3) ->
       let v1 = token env v1 (* "extern" *) in
       let v2 = string_literal env v2 in
@@ -1588,9 +1588,9 @@ and top_level_item (env : env) (x : CST.top_level_item) : toplevel list =
       in
       let v3 = token env v3 (* "\n" *) in
       todo env (v1, v2, v3)
-  | `Prep_def x -> [preproc_def env x]
-  | `Prep_func_def x -> [preproc_function_def env x]
-  | `Prep_call x -> [preproc_call env x]
+  | `Prep_def x -> [DirStmt (preproc_def env x)]
+  | `Prep_func_def x -> [DirStmt (preproc_function_def env x)]
+  | `Prep_call x -> [DirStmt (preproc_call env x)]
   )
 
 and translation_unit (env : env) (xs : CST.translation_unit) : program =
