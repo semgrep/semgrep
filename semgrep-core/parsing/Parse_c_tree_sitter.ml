@@ -1271,7 +1271,7 @@ let expression_statement (env : env) ((v1, v2) : CST.expression_statement) =
   let v2 = token env v2 (* ";" *) in
   (match v1 with
   | Some e -> ExprSt (e, v2)
-  | None -> raise Todo
+  | None -> ExprSt ((Null v2), v2)
   )
 
 (* diff with declarator? *)
@@ -1393,7 +1393,7 @@ and compound_statement (env : env) ((v1, v2, v3) : CST.compound_statement) =
   let v1 = token env v1 (* "{" *) in
   let v2 = translation_unit env v2 in
   let v3 = token env v3 (* "}" *) in
-  raise Todo
+  v1, v2, v3
 
 (* for extern "C" { ... } *)
 and declaration_list (env : env) ((v1, v2, v3) : CST.declaration_list) =
@@ -1409,9 +1409,15 @@ and function_definition (env : env) ((v1, v2, v3, v4) : CST.function_definition)
     | None -> None)
   in
   let v2 = declaration_specifiers env v2 in
-  let v3 = declarator env v3 in
+  let (id, f) = declarator env v3 in
   let v4 = compound_statement env v4 in
-  todo env (v1, v2, v3, v4)
+  (match f v2 with
+  | TFunction ft ->
+    { f_name = id; f_type = ft; f_body = v4; f_static = false (* TODO *) }
+  (* who does that ... probably a typedef *)
+  | t ->
+    { f_name = id; f_type = (t, []); f_body = v4; f_static = false (* TODO *) }
+  )
 
 and non_case_statement (env : env) (x : CST.non_case_statement) : stmt =
   (match x with
@@ -1554,7 +1560,7 @@ and top_level_item (env : env) (x : CST.top_level_item) : toplevel list =
         vars  |> List.map (fun v -> DefStmt (VarDef v))
   | `Choice_case_stmt x ->
         let st = statement env x in
-        raise Todo
+        [st]
   | `Type_defi x ->
         let xs = type_definition env x in
         xs |> List.map (fun x -> DefStmt (TypeDef x))
