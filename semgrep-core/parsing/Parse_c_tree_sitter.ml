@@ -1462,6 +1462,17 @@ and compound_statement (env : env) ((v1, v2, v3) : CST.compound_statement) =
   let v3 = token env v3 (* "}" *) in
   v1, v2, v3
 
+(* I've added this function *)
+and compound_statement_for_switch (env : env) ((v1, v2, v3) : CST.compound_statement) : case list =
+  let v1 = token env v1 (* "{" *) in
+  let v2 = translation_unit env v2 in
+  let v3 = token env v3 (* "}" *) in
+  v2 |> Common.map_filter (function
+    | CaseStmt x -> Some x
+    (* todo: we drop all the other stuff ... *)
+    | _ -> None
+  )
+
 (* for extern "C" { ... } *)
 and declaration_list (env : env) ((v1, v2, v3) : CST.declaration_list) =
   let v1 = token env v1 (* "{" *) in
@@ -1511,7 +1522,7 @@ and non_case_statement (env : env) (x : CST.non_case_statement) : stmt =
   | `Switch_stmt (v1, v2, v3) ->
       let v1 = token env v1 (* "switch" *) in
       let v2 = parenthesized_expression env v2 in
-      let v3 = compound_statement env v3 in
+      let v3 = compound_statement_for_switch env v3 in
       todo env (v1, v2, v3)
   | `Do_stmt (v1, v2, v3, v4, v5) ->
       let v1 = token env v1 (* "do" *) in
@@ -1574,33 +1585,47 @@ and non_case_statement (env : env) (x : CST.non_case_statement) : stmt =
       Goto (v1, v2)
   )
 
-and statement (env : env) (x : CST.statement) : stmt =
+and statement env x : stmt =
+  match statement2 env x with
+  | Left case ->
+      (* TODO: weird case where regular stmt expected *)
+      case_to_stmt case
+  | Right st -> st
+
+and case_to_stmt x = CaseStmt x
+
+and statement2 (env : env) (x : CST.statement) : (case, stmt) Common.either =
   (match x with
   | `Case_stmt (v1, v2, v3) ->
+
+      let v2 = token env v2 (* ":" *) in
+      let v3 =
+        List.map (fun x ->
+          (match x with
+          | `Choice_labe_stmt x -> [non_case_statement env x]
+          | `Decl x -> let vars = declaration env x in
+                [Vars vars    ]
+          | `Type_defi x ->
+                let xs = type_definition env x in
+                xs |> List.map (fun t -> DefStmt (TypeDef t))
+          )
+        ) v3
+        |> List.flatten
+      in
+
       let v1 =
         (match v1 with
         | `Case_exp (v1, v2) ->
             let v1 = token env v1 (* "case" *) in
             let v2 = expression env v2 in
-            todo env (v1, v2)
-        | `Defa tok -> token env tok (* "default" *)
+            Left (Case (v1, v2, v3))
+        | `Defa tok ->
+            let t = token env tok (* "default" *) in
+            Left (Default (t, v3))
         )
       in
-      let v2 = token env v2 (* ":" *) in
-      let v3 =
-        List.map (fun x ->
-          (match x with
-          | `Choice_labe_stmt x -> non_case_statement env x
-          | `Decl x -> let vars = declaration env x in
-                    raise Todo
-          | `Type_defi x ->
-                    let xs = type_definition env x in
-                    raise Todo
-          )
-        ) v3
-      in
-      todo env (v1, v2, v3)
-  | `Choice_labe_stmt x -> non_case_statement env x
+      v1
+  | `Choice_labe_stmt x -> Right (non_case_statement env x)
   )
 
 and top_level_item (env : env) (x : CST.top_level_item) : toplevel list =
