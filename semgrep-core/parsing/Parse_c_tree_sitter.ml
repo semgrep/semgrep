@@ -73,10 +73,6 @@ let str = H.str
    to another type of tree.
 *)
 
-let todo (env : env) _ =
-   failwith "not implemented"
-
-
 let anon_choice_BANG_67174d6 (env : env) (x : CST.anon_choice_BANG_67174d6) =
   (match x with
   | `BANG tok -> Not, token env tok (* "!" *)
@@ -1337,8 +1333,8 @@ let expression_statement (env : env) ((v1, v2) : CST.expression_statement) =
   in
   let v2 = token env v2 (* ";" *) in
   (match v1 with
-  | Some e -> ExprSt (e, v2)
-  | None -> ExprSt ((Null v2), v2)
+  | Some e -> (e, v2)
+  | None -> ((Null v2), v2)
   )
 
 (* diff with declarator? *)
@@ -1505,7 +1501,7 @@ and non_case_statement (env : env) (x : CST.non_case_statement) : stmt =
       let v3 = statement env v3 in
       Label (v1, v3)
   | `Comp_stmt x -> Block (compound_statement env x)
-  | `Exp_stmt x -> expression_statement env x
+  | `Exp_stmt x -> let (e, t) = expression_statement env x in ExprSt (e, t)
   | `If_stmt (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "if" *) in
       let v2 = parenthesized_expression env v2 in
@@ -1523,7 +1519,7 @@ and non_case_statement (env : env) (x : CST.non_case_statement) : stmt =
       let v1 = token env v1 (* "switch" *) in
       let v2 = parenthesized_expression env v2 in
       let v3 = compound_statement_for_switch env v3 in
-      todo env (v1, v2, v3)
+      Switch (v1, v2, v3)
   | `Do_stmt (v1, v2, v3, v4, v5) ->
       let v1 = token env v1 (* "do" *) in
       let v2 = statement env v2 in
@@ -1543,8 +1539,10 @@ and non_case_statement (env : env) (x : CST.non_case_statement) : stmt =
        (* both decl and expr_stmt contains the ending semicolon *)
         (match v3 with
         | `Decl x -> let vars = declaration env x in
-                raise Todo
-        | `Opt_choice_exp_SEMI x -> expression_statement env x
+            Left vars
+        | `Opt_choice_exp_SEMI x ->
+            let (e, _semi) = expression_statement env x in
+            Right e
         )
       in
       let v4 =
@@ -1560,7 +1558,7 @@ and non_case_statement (env : env) (x : CST.non_case_statement) : stmt =
       in
       let v7 = token env v7 (* ")" *) in
       let v8 = statement env v8 in
-      todo env (v1, v2, v3, v4, v5, v6, v7, v8)
+      For (v1, v3, v4, v6, v8)
   | `Ret_stmt (v1, v2, v3) ->
       let v1 = token env v1 (* "return" *) in
       let v2 =
@@ -1747,16 +1745,5 @@ let parse file =
     (fun cst ->
        let env = { H.file; conv = H.line_col_to_pos file;
                    extra = default_extra_env } in
-      try
-       let x = translation_unit env cst in
-       x
-      with (Failure _) as exn ->
-      (* This debugging output is not JSON and breaks core output *)
-       let s = Printexc.get_backtrace () in
-       pr2 "Some constructs are not handled yet";
-       pr2 "CST was:";
-       CST.dump_tree cst;
-       pr2 "Original backtrace:";
-       pr2 s;
-       raise exn
+       translation_unit env cst
     )
