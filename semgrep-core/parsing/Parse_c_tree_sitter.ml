@@ -512,8 +512,12 @@ and anon_choice_init_pair_1a6981e (env : env) (x : CST.anon_choice_init_pair_1a6
       let v1 =
         List.map (fun x ->
           (match x with
-          | `Subs_desi x -> subscript_designator env x
-          | `Field_desi x -> field_designator env x
+          | `Subs_desi x ->
+              let (lp, e, rp) = subscript_designator env x in
+              raise Todo
+          | `Field_desi x ->
+               let (fld) = field_designator env x in
+               raise Todo
           )
         ) v1
       in
@@ -1143,7 +1147,7 @@ and subscript_designator (env : env) ((v1, v2, v3) : CST.subscript_designator) =
   let v1 = token env v1 (* "[" *) in
   let v2 = expression env v2 in
   let v3 = token env v3 (* "]" *) in
-  todo env (v1, v2, v3)
+  v1, v2, v3
 
 and subscript_expression (env : env) ((v1, v2, v3, v4) : CST.subscript_expression) : expr =
   let v1 = expression env v1 in
@@ -1391,11 +1395,12 @@ and compound_statement (env : env) ((v1, v2, v3) : CST.compound_statement) =
   let v3 = token env v3 (* "}" *) in
   raise Todo
 
+(* for extern "C" { ... } *)
 and declaration_list (env : env) ((v1, v2, v3) : CST.declaration_list) =
   let v1 = token env v1 (* "{" *) in
   let v2 = translation_unit env v2 in
   let v3 = token env v3 (* "}" *) in
-  todo env (v1, v2, v3)
+  v2
 
 and function_definition (env : env) ((v1, v2, v3, v4) : CST.function_definition) : func_def =
   let _v1 =
@@ -1530,21 +1535,23 @@ and top_level_item (env : env) (x : CST.top_level_item) : toplevel list =
   | `Func_defi x ->
         let def = function_definition env x in
         [DefStmt (FuncDef def)]
+
   (* less: could transform as yet another annotation *)
   | `Link_spec (v1, v2, v3) ->
-      let v1 = token env v1 (* "extern" *) in
-      let v2 = string_literal env v2 in
+      let _v1 = token env v1 (* "extern" *) in
+      let _v2 = string_literal env v2 in
       let v3 =
         (match v3 with
-        | `Func_defi x -> function_definition env x
+        | `Func_defi x ->
+            [DefStmt (FuncDef (function_definition env x))]
         | `Decl x -> let vars = declaration env x in
-                raise Todo
+            vars |> List.map (fun v -> DefStmt (VarDef v))
         | `Decl_list x -> declaration_list env x
         )
       in
-      todo env (v1, v2, v3)
+      v3
   | `Decl x -> let vars = declaration env x in
-        raise Todo
+        vars  |> List.map (fun v -> DefStmt (VarDef v))
   | `Choice_case_stmt x ->
         let st = statement env x in
         raise Todo
