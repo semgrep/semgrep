@@ -921,11 +921,11 @@ and expression (env : env) (x : CST.expression) : expr =
   | `Str_lit x -> let s = string_literal env x in
         String s
   | `True tok -> let t = token env tok (* true *) in
-        raise Todo
+        Bool (true, t)
   | `False tok -> let t = token env tok (* false *)in
-        raise Todo
+        Bool (false, t)
   | `Null tok -> let t = token env tok (* "NULL" *) in
-        raise Todo
+        Null (t)
   | `Conc_str (v1, v2) ->
       let v1 = string_literal env v1 in
       let v2 = List.map (string_literal env) v2 in
