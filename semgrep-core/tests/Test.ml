@@ -78,7 +78,7 @@ let regression_tests_for_lang files lang =
             Parse_code.parse_and_resolve_name_use_pfff_or_treesitter lang file 
           in
           if errs <> []
-          then failwith (spf "fail to fully parse %s" file);
+          then pr2 (spf "WARNING: fail to fully parse %s" file);
           ast
         with exn ->
           failwith (spf "fail to parse %s (exn = %s)" file 

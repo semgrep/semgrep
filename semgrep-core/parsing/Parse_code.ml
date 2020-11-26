@@ -224,6 +224,13 @@ let just_parse_with_lang lang file =
        *)
       run file [TreeSitter Parse_kotlin_tree_sitter.parse] (fun x -> x)
 
+  | Lang.C ->
+      run file [
+        Pfff Parse_c.parse_program;
+        TreeSitter Parse_c_tree_sitter.parse;
+      ]
+      C_to_generic.program
+
   (* default to the one in pfff for the other languages *)
   | _ ->
       run file [Pfff (Parse_generic.parse_with_lang lang)] (fun x -> x)
