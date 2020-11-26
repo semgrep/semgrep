@@ -29,7 +29,7 @@ open Ast_js
 (* Helpers *)
 (*****************************************************************************)
 
-type env = H.env
+type env = unit H.env
 let fb = G.fake_bracket
 let fake = PI.fake_info ""
 
@@ -2727,7 +2727,7 @@ let parse ?dialect file =
            (cst :> cst_result)
     )
     (fun cst ->
-       let env = { H.file; conv = H.line_col_to_pos file } in
+       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
 
        if debug then (
          Printexc.record_backtrace true;

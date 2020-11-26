@@ -40,7 +40,7 @@ open Ast_js
 (* Helpers *)
 (*****************************************************************************)
 
-type env = H.env
+type env = unit H.env
 let token = H.token
 let str = H.str
 let fb = G.fake_bracket
@@ -1769,6 +1769,6 @@ let parse file =
        Parallel.invoke Tree_sitter_javascript.Parse.file file ()
     )
     (fun ast ->
-       let env = { H.file; conv = H.line_col_to_pos file } in
+       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
        program env ast
     )

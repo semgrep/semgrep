@@ -29,7 +29,7 @@ open AST_generic
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-type env = H.env
+type env = unit H.env
 let _fake = AST_generic.fake
 let token = H.token
 let str = H.str
@@ -1959,7 +1959,7 @@ let source_file (env : env) ((v1, v2, v3, v4, v5) : CST.source_file) : program =
         Parallel.invoke Tree_sitter_kotlin.Parse.file file ()
      )
      (fun cst ->
-      let env = { H.file; conv = H.line_col_to_pos file } in
+      let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
 
       try
         source_file env cst
