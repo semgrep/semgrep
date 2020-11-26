@@ -122,9 +122,11 @@ let lang = ref "unset"
 (*s: constant [[Main_semgrep_core.include_dirs]] *)
 (*e: constant [[Main_semgrep_core.include_dirs]] *)
 
-(*s: constant [[Main_semgrep_core.output_format_json]] *)
-let output_format_json = ref false
-(*e: constant [[Main_semgrep_core.output_format_json]] *)
+type output_format = Text | Json
+
+(*s: constant [[Main_semgrep_core.output_format]] *)
+let output_format = ref Text
+(*e: constant [[Main_semgrep_core.output_format]] *)
 (*s: constant [[Main_semgrep_core.match_format]] *)
 let match_format = ref Matching_report.Normal
 (*e: constant [[Main_semgrep_core.match_format]] *)
@@ -489,7 +491,7 @@ let create_ast file =
 
 (*s: type [[Main_semgrep_core.pattern]] *)
 type pattern =
-  | PatGen of Pattern.t
+  | PatGen of (Lang.t * Pattern.t)
   (*s: [[Main_semgrep_core.pattern]] other cases *)
   | PatFuzzy of Ast_fuzzy.tree list
   (*e: [[Main_semgrep_core.pattern]] other cases *)
@@ -500,7 +502,7 @@ let parse_pattern str =
  try (
   Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
    match Lang.lang_of_string_opt !lang with
-   | Some lang -> PatGen (Parse_pattern.parse_pattern lang str)
+   | Some lang -> PatGen (lang, Parse_pattern.parse_pattern lang str)
    (*s: [[Main_semgrep_core.parse_pattern()]] when not a supported language *)
    | None ->
      (match Lang_fuzzy.lang_of_string_opt !lang with
@@ -518,7 +520,7 @@ let parse_pattern str =
 let sgrep_ast pattern file any_ast =
   match pattern, any_ast with
   |  _, NoAST -> () (* skipping *)
-  | PatGen pattern, Gen ((ast, errs), lang) ->
+  | PatGen (_lang, pattern), Gen ((ast, errs), lang) ->
     let rule = { R.
       id = "-e/-f"; pattern; message = ""; severity = R.Error;
       languages = [lang]
@@ -616,8 +618,7 @@ let iter_generic_ast_of_files_and_get_matches_and_exn_to_errors f files =
   matches, errors
 (*e: function [[Main_semgrep_core.iter_generic_ast_of_files_and_get_matches_and_exn_to_errors]] *)
 
-(*s: function [[Main_semgrep_core.print_matches_and_errors]] *)
-let print_matches_and_errors files matches errs =
+let print_matches_and_errors_json files matches errs =
   let count_errors = (List.length errs) in
   let count_ok = (List.length files) - count_errors in
   let stats = J.Object [ "okfiles", J.Int count_ok; "errorfiles", J.Int count_errors; ] in
@@ -626,22 +627,118 @@ let print_matches_and_errors files matches errs =
      "errors", J.Array (errs |> List.map R2c.error_to_json);
      "stats", stats
   ] in
-  let s = J.string_of_json json in
+  let s = J.string_of_json json |> Yojson.Safe.prettify in
   logger#debug "returned JSON: %s" s;
   pr s
+
+let print_matches_and_errors_text _files _matches _errs =
+  failwith "print_matches_and_errors_text: not implemented"
+
+(*s: function [[Main_semgrep_core.print_matches_and_errors]] *)
+let print_matches_and_errors files matches errs =
+  match !output_format with
+  | Json -> print_matches_and_errors_json files matches errs
+  | Text -> print_matches_and_errors_text files matches errs
 (*e: function [[Main_semgrep_core.print_matches_and_errors]] *)
 
 (*****************************************************************************)
 (* Semgrep -e/-f *)
 (*****************************************************************************)
-(*s: function [[Main_semgrep_core.semgrep_with_one_pattern]] *)
-(* simpler code path compared to semgrep_with_rules *)
-let semgrep_with_one_pattern xs =
+
+(*s: function [[Main_semgrep_core.legacy_semgrep_with_one_pattern]] *)
+(* simpler code path compared to semgrep_with_rules
+   TODO: simplify to handle only the Fuzzy case.
+*)
+let legacy_semgrep_with_one_pattern xs =
   (* old: let xs = List.map Common.fullpath xs in
    * better no fullpath here, not our responsability.
    *)
 
   let pattern, query_string =
+    match !pattern_file, !pattern_string with
+    (*s: [[Main_semgrep_core.legacy_semgrep_with_one_pattern()]] sanity check cases *)
+    | "", "" ->
+        failwith "I need a pattern; use -f or -e"
+    | s1, s2 when s1 <> "" && s2 <> "" ->
+        failwith "I need just one pattern; use -f OR -e (not both)"
+    (*e: [[Main_semgrep_core.legacy_semgrep_with_one_pattern()]] sanity check cases *)
+    (*s: [[Main_semgrep_core.legacy_semgrep_with_one_pattern()]] pattern file case *)
+    | file, _ when file <> "" ->
+        let s = Common.read_file file in
+        parse_pattern s, s
+    (*e: [[Main_semgrep_core.legacy_semgrep_with_one_pattern()]] pattern file case *)
+    | _, s when s <> ""->
+        parse_pattern s, s
+    | _ -> raise Impossible
+  in
+  let files =
+    match Lang.lang_of_string_opt !lang with
+    | Some lang -> Lang.files_of_dirs_or_files lang xs
+    (*s: [[Main_semgrep_core.legacy_semgrep_with_one_pattern()]] no [[lang]] specified *)
+    (* should remove at some point *)
+    | None -> Find_source.files_of_dir_or_files ~lang:!lang xs
+    (*e: [[Main_semgrep_core.legacy_semgrep_with_one_pattern()]] no [[lang]] specified *)
+  in
+  (*s: [[Main_semgrep_core.legacy_semgrep_with_one_pattern()]] filter [[files]] *)
+  (*e: [[Main_semgrep_core.legacy_semgrep_with_one_pattern()]] filter [[files]] *)
+  files |> List.iter (fun file ->
+    (*s: [[Main_semgrep_core.legacy_semgrep_with_one_pattern()]] if [[verbose]] *)
+    logger#info "processing: %s" file;
+    (*e: [[Main_semgrep_core.legacy_semgrep_with_one_pattern()]] if [[verbose]] *)
+    let process file =
+        timeout_function (fun () ->
+            sgrep_ast pattern file (create_ast file)
+        )
+    in
+
+    if not !error_recovery
+    then E.try_with_print_exn_and_reraise file (fun () -> process file)
+    else E.try_with_exn_to_error file (fun () -> process file)
+  );
+
+  (*s: [[Main_semgrep_core.legacy_semgrep_with_one_pattern()]] display error count *)
+  let n = List.length !E.g_errors in
+  if n > 0 then pr2 (spf "error count: %d" n);
+  (*e: [[Main_semgrep_core.legacy_semgrep_with_one_pattern()]] display error count *)
+  (*s: [[Main_semgrep_core.legacy_semgrep_with_one_pattern()]] optional layer generation *)
+  !layer_file |> Common.do_option (fun file ->
+    let root = Common2.common_prefix_of_files_or_dirs xs in
+    gen_layer ~root ~query:query_string  file
+  );
+  (*e: [[Main_semgrep_core.legacy_semgrep_with_one_pattern()]] optional layer generation *)
+  ()
+(*e: function [[Main_semgrep_core.legacy_semgrep_with_one_pattern]] *)
+
+
+(*****************************************************************************)
+(* Semgrep -rules_file *)
+(*****************************************************************************)
+
+(*s: function [[Main_semgrep_core.semgrep_with_rules]] *)
+let semgrep_with_rules rules files =
+  let files = get_final_files files in
+  let matches, errs =
+     files |> iter_generic_ast_of_files_and_get_matches_and_exn_to_errors
+       (fun file lang ast ->
+         let rules =
+            rules |> List.filter (fun r -> List.mem lang r.R.languages) in
+         Semgrep_generic.check ~hook:(fun _ _ -> ())
+            rules (parse_equivalences ())
+            file lang ast
+       )
+  in
+  print_matches_and_errors files matches errs
+(*e: function [[Main_semgrep_core.semgrep_with_rules]] *)
+
+let semgrep_with_rules_file rules_file files =
+  (*s: [[Main_semgrep_core.semgrep_with_rules_file()]] if [[verbose]] *)
+  logger#info "Parsing %s" rules_file;
+  (*e: [[Main_semgrep_core.semgrep_with_rules_file()]] if [[verbose]] *)
+  let rules = Parse_rules.parse rules_file in
+  semgrep_with_rules rules files
+
+let semgrep_with_one_pattern files =
+  let pattern, _query_string =
     match !pattern_file, !pattern_string with
     (*s: [[Main_semgrep_core.semgrep_with_one_pattern()]] sanity check cases *)
     | "", "" ->
@@ -658,71 +755,23 @@ let semgrep_with_one_pattern xs =
         parse_pattern s, s
     | _ -> raise Impossible
   in
-  let files =
-    match Lang.lang_of_string_opt !lang with
-    | Some lang -> Lang.files_of_dirs_or_files lang xs
-    (*s: [[Main_semgrep_core.semgrep_with_one_pattern()]] no [[lang]] specified *)
-    (* should remove at some point *)
-    | None -> Find_source.files_of_dir_or_files ~lang:!lang xs
-    (*e: [[Main_semgrep_core.semgrep_with_one_pattern()]] no [[lang]] specified *)
-  in
-  (*s: [[Main_semgrep_core.semgrep_with_one_pattern()]] filter [[files]] *)
-  (*e: [[Main_semgrep_core.semgrep_with_one_pattern()]] filter [[files]] *)
-  files |> List.iter (fun file ->
-    (*s: [[Main_semgrep_core.semgrep_with_one_pattern()]] if [[verbose]] *)
-    logger#info "processing: %s" file;
-    (*e: [[Main_semgrep_core.semgrep_with_one_pattern()]] if [[verbose]] *)
-    let process file =
-        timeout_function (fun () ->
-            sgrep_ast pattern file (create_ast file)
-        )
-    in
+  match pattern, !output_format with
+  | PatGen (semgrep_lang, semgrep_pat), Json ->
+      let rule = {
+        Rule.id = "-e/-f";
+        pattern = semgrep_pat;
+        message = "";
+        severity = Rule.Error;
+        languages = [semgrep_lang];
+      } in
+      (* newer path, doesn't support text output *)
+      semgrep_with_rules [rule] files
 
-    if not !error_recovery
-    then E.try_with_print_exn_and_reraise file (fun () -> process file)
-    else E.try_with_exn_to_error file (fun () -> process file)
-  );
+  | PatGen _, Text
+  | PatFuzzy _, _ ->
+      (* old path, doesn't support json output *)
+      legacy_semgrep_with_one_pattern files
 
-  (*s: [[Main_semgrep_core.semgrep_with_one_pattern()]] display error count *)
-  let n = List.length !E.g_errors in
-  if n > 0 then pr2 (spf "error count: %d" n);
-  (*e: [[Main_semgrep_core.semgrep_with_one_pattern()]] display error count *)
-  (*s: [[Main_semgrep_core.semgrep_with_one_pattern()]] optional layer generation *)
-  !layer_file |> Common.do_option (fun file ->
-    let root = Common2.common_prefix_of_files_or_dirs xs in
-    gen_layer ~root ~query:query_string  file
-  );
-  (*e: [[Main_semgrep_core.semgrep_with_one_pattern()]] optional layer generation *)
-  ()
-(*e: function [[Main_semgrep_core.semgrep_with_one_pattern]] *)
-
-(*****************************************************************************)
-(* Semgrep -rules_file *)
-(*****************************************************************************)
-
-(*s: function [[Main_semgrep_core.semgrep_with_rules]] *)
-(* less: could factorize even more and merge semgrep_with_rules and
- * semgrep_with_one_pattern now.
- *)
-let semgrep_with_rules rules_file xs =
-  (*s: [[Main_semgrep_core.semgrep_with_rules()]] if [[verbose]] *)
-  logger#info "Parsing %s" rules_file;
-  (*e: [[Main_semgrep_core.semgrep_with_rules()]] if [[verbose]] *)
-  let rules = Parse_rules.parse rules_file in
-  let files = get_final_files xs in
-
-  let matches, errs =
-     files |> iter_generic_ast_of_files_and_get_matches_and_exn_to_errors
-       (fun file lang ast ->
-         let rules =
-            rules |> List.filter (fun r -> List.mem lang r.R.languages) in
-         Semgrep_generic.check ~hook:(fun _ _ -> ())
-            rules (parse_equivalences ())
-            file lang ast
-       )
-  in
-  print_matches_and_errors files matches errs
-(*e: function [[Main_semgrep_core.semgrep_with_rules]] *)
 
 (* when called from semgrep-python, error messages in semgrep-core or
  * certain profiling statistics may refer to rule id that are generated
@@ -827,9 +876,9 @@ let json_of_v (v: OCaml.v) =
 (*****************************************************************************)
 (*s: function [[Main_semgrep_core.dump_v_to_format]] *)
 let dump_v_to_format (v: OCaml.v) =
-  if (not !output_format_json)
-    then (OCaml.string_of_v v)
-    else (J.string_of_json (json_of_v v))
+  match !output_format with
+  | Text -> OCaml.string_of_v v
+  | Json -> J.string_of_json (json_of_v v)
 (*e: function [[Main_semgrep_core.dump_v_to_format]] *)
 
 (*s: function [[Main_semgrep_core.dump_pattern]] *)
@@ -971,7 +1020,7 @@ let options () =
     "-oneline", Arg.Unit (fun () -> match_format := Matching_report.OneLine),
     " print matches on one line, in normalized form";
     (*x: [[Main_semgrep_core.options]] report match mode cases *)
-    "-json", Arg.Set output_format_json,
+    "-json", Arg.Unit (fun () -> output_format := Json),
     " output JSON format";
     (*e: [[Main_semgrep_core.options]] report match mode cases *)
     (*s: [[Main_semgrep_core.options]] other cases *)
@@ -1135,7 +1184,7 @@ let main () =
         (*s: [[Main_semgrep_core.main()]] main entry match cases *)
         | _ when !rules_file <> "" ->
            (try
-               semgrep_with_rules !rules_file (x::xs);
+               semgrep_with_rules_file !rules_file (x::xs);
                if !profile then save_rules_file_in_tmp ();
             with exn -> begin
              logger#debug "exn before exit %s" (Common.exn_to_s exn);
