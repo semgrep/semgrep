@@ -59,7 +59,10 @@ def get_config(
 
 
 def notify_user_of_work(
-    all_rules: List[Rule], include: List[str], exclude: List[str], verbose: bool = False
+    filtered_rules: List[Rule],
+    include: List[str],
+    exclude: List[str],
+    verbose: bool = False,
 ) -> None:
     """
     Notify user of what semgrep is about to do, including:
@@ -75,10 +78,10 @@ def notify_user_of_work(
         logger.info(f"excluding files:")
         for exc in exclude:
             logger.info(f"- {exc}")
-    logger.info(f"running {len(all_rules)} rules...")
+    logger.info(f"running {len(filtered_rules)} rules...")
     if verbose:
         logger.info("rules:")
-        for rule in all_rules:
+        for rule in filtered_rules:
             logger.info(f"- {rule.id}")
 
 
@@ -174,6 +177,7 @@ def main(
     timeout_threshold: int = 0,
     skip_unknown_extensions: bool = False,
     testing: bool = False,
+    severity: Optional[List[str]] = None,
 ) -> None:
     if include is None:
         include = []
@@ -183,6 +187,11 @@ def main(
 
     configs_obj, errors = get_config(pattern, lang, configs)
     all_rules = configs_obj.get_rules(no_rewrite_rule_ids)
+
+    if severity is None or severity == []:
+        filtered_rules = all_rules
+    else:
+        filtered_rules = [rule for rule in all_rules if rule.severity in severity]
 
     output_handler.handle_semgrep_errors(errors)
 
@@ -201,7 +210,7 @@ def main(
             f"({len(errors)} config files were invalid)" if len(errors) else ""
         )
         logger.debug(
-            f"running {len(all_rules)} rules from {len(configs_obj.valid)} config{plural} {config_id_if_single} {invalid_msg}"
+            f"running {len(filtered_rules)} rules from {len(configs_obj.valid)} config{plural} {config_id_if_single} {invalid_msg}"
         )
 
         if len(configs_obj.valid) == 0:
@@ -210,7 +219,7 @@ def main(
                 code=MISSING_CONFIG_EXIT_CODE,
             )
 
-        notify_user_of_work(all_rules, include, exclude)
+        notify_user_of_work(filtered_rules, include, exclude)
 
     respect_git_ignore = not no_git_ignore
     target_manager = TargetManager(
@@ -230,7 +239,7 @@ def main(
         max_memory=max_memory,
         timeout_threshold=timeout_threshold,
         testing=testing,
-    ).invoke_semgrep(target_manager, all_rules)
+    ).invoke_semgrep(target_manager, filtered_rules)
 
     output_handler.handle_semgrep_errors(semgrep_errors)
 
@@ -251,9 +260,7 @@ def main(
         }
 
     num_findings = sum(len(v) for v in rule_matches_by_rule.values())
-    stats_line = (
-        f"ran {len(all_rules)} rules on {num_targets} files: {num_findings} findings"
-    )
+    stats_line = f"ran {len(filtered_rules)} rules on {num_targets} files: {num_findings} findings"
 
     output_handler.handle_semgrep_core_output(
         rule_matches_by_rule, debug_steps_by_rule, stats_line

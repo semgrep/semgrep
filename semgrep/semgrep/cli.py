@@ -186,6 +186,16 @@ def cli() -> None:
         ),
     )
 
+    config.add_argument(
+        "--severity",
+        action="append",
+        default=[],
+        help=(
+            "Report findings only from rules matching the supplied severity level. By default all applicable rules are run."
+            "Can add multiple times. Each should be one of INFO, WARNING, or ERROR."
+        ),
+    )
+
     # output options
     output = parser.add_argument_group("output")
 
@@ -418,4 +428,5 @@ def cli() -> None:
                 max_memory=args.max_memory,
                 timeout_threshold=args.timeout_threshold,
                 skip_unknown_extensions=args.skip_unknown_extensions,
+                severity=args.severity,
             )
