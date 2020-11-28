@@ -1388,20 +1388,26 @@ and statement (env : env) (x : CST.statement) =
   | `Using_stmt (v1, v2, v3, v4, v5, v6) ->
       let v1 =
         (match v1 with
-        | Some tok -> token env tok (* "await" *)
-        | None -> todo env ())
+        | Some tok -> Some (token env tok) (* "await" *)
+        | None -> None)
       in
       let v2 = token env v2 (* "using" *) in
       let v3 = token env v3 (* "(" *) in
-      (* TODO let v4 =
+      let v4 =
         (match v4 with
-        | `Var_decl x -> variable_declaration env x
-        | `Exp x -> expression env x
+        | `Var_decl x ->
+            let v4 = variable_declaration env x in
+            let stmts = List.map (fun (ent, def) -> DefStmt (ent, VarDef def)) v4 in
+            stmt1 stmts
+        | `Exp x ->
+            let expr = expression env x in
+            ExprStmt (expr, sc)
         )
-      in *)
+      in
       let v5 = token env v5 (* ")" *) in
       let v6 = statement env v6 in
-      todo env (v1, v2, v3, v4, v5, v6)
+      let try_ = Try (v2, v6, [], None) in
+      Block (fake_bracket [v4; try_])
   | `While_stmt (v1, v2, v3, v4, v5) ->
       let v1 = token env v1 (* "while" *) in
       let v2 = token env v2 (* "(" *) in
