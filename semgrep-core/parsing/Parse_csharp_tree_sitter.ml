@@ -1121,13 +1121,19 @@ and switch_body (env : env) ((v1, v2, v3) : CST.switch_body) : case_and_body lis
 
 and anon_choice_param_ce11a32 (env : env) (x : CST.anon_choice_param_ce11a32) =
   (match x with
-  | `Param x -> parameter env x
+  | `Param x -> ParamClassic (parameter env x)
   | `Param_array (v1, v2, v3, v4) ->
       let v1 = List.concat_map (attribute_list env) v1 in
       let v2 = token env v2 (* "params" *) in
       let v3 = array_type env v3 in
       let v4 = identifier env v4 (* identifier *) in
-      todo env (v1, v2, v3, v4)
+      ParamRest (v2, {
+        pname = Some v4;
+        ptype = Some v3;
+        pdefault = None;
+        pattrs = v1;
+        pinfo = empty_id_info ();
+      })
   )
 
 and anon_opt_cst_pat_rep_interp_alig_clause_080fdff (env : env) (opt : CST.anon_opt_cst_pat_rep_interp_alig_clause_080fdff) : expr list =
@@ -1815,7 +1821,7 @@ and parameter_list (env : env) ((v1, v2, v3) : CST.parameter_list) : parameter l
     | None -> [])
   in
   let v3 = token env v3 (* ")" *) in
-  List.map (fun p -> ParamClassic p) v2
+  v2
 
 and attribute_argument_list (env : env) ((v1, v2, v3) : CST.attribute_argument_list) : arguments bracket =
   let v1 = token env v1 (* "(" *) in
