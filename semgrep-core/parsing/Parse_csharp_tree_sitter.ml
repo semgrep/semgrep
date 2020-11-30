@@ -1911,12 +1911,12 @@ let constructor_initializer (env : env) ((v1, v2, v3) : CST.constructor_initiali
   let v1 = token env v1 (* ":" *) in
   let v2 =
     (match v2 with
-    | `Base tok -> token env tok (* "base" *)
-    | `This tok -> token env tok (* "this" *)
+    | `Base tok -> IdSpecial (Super, token env tok) (* "base" *)
+    | `This tok -> IdSpecial (This, token env tok) (* "this" *)
     )
   in
   let v3 = argument_list env v3 in
-  todo env (v1, v2, v3)
+  ExprStmt (Call (v2, v3), sc)
 
 let enum_member_declaration (env : env) ((v1, v2, v3) : CST.enum_member_declaration) =
   let v1 = List.concat_map (attribute_list env) v1 in
@@ -2097,11 +2097,14 @@ and declaration (env : env) (x : CST.declaration) : stmt =
         | None -> None)
       in
       let v6 = function_body env v6 in
+      let fbody = (match v5 with
+        | Some init -> Block (fake_bracket [init; v6])
+        | None -> v6) in
       let def = AST.FuncDef {
         fkind = (AST.Method, tok);
         fparams = v4;
         frettype = None;
-        fbody = v6;
+        fbody;
       } in
       let ent = basic_entity v3 (v1 @ v2) in (* TODO add Ctor attribute *)
       AST.DefStmt (ent, def)
