@@ -813,11 +813,15 @@ and expression (env : env) (x : CST.expression) : AST.expr =
       in
       let v4 =
         (match v4 with
-        | Some tok -> token env tok (* "," *)
-        | None -> todo env ())
+        | Some tok -> Some (token env tok) (* "," *)
+        | None -> None)
       in
       let v5 = token env v5 (* "}" *) in
-      todo env (v1, v2, v3, v4, v5)
+      AnonClass {
+        ckind = (Class, v1);
+        cextends = []; cimplements = []; cmixins = [];
+        cbody = (v2, v3, v5);
+      }
   | `Array_crea_exp (v1, v2, v3) ->
       let v1 = token env v1 (* "new" *) in
       let v2 = array_type env v2 in
@@ -1650,8 +1654,10 @@ and anonymous_object_member_declarator (env : env) (x : CST.anonymous_object_mem
   | `Name_equals_exp (v1, v2) ->
       let v1 = name_equals env v1 in
       let v2 = expression env v2 in
-      todo env (v1, v2)
-  | `Exp x -> expression env x
+      basic_field v1 (Some v2) None
+  | `Exp x ->
+      let expr = expression env x in
+      FieldStmt (exprstmt expr)
   )
 
 and function_body (env : env) (x : CST.function_body) =
