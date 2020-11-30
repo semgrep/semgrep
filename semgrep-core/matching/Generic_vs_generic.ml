@@ -489,8 +489,13 @@ and m_expr a b =
     B.Call (B.IdSpecial _, _argsb)
       when MV.is_metavar_name str ->
       fail ()
-  (*e: [[Generic_vs_generic.m_expr()]] forbidden metavariable case *)
   (* metavar: *)
+  (* Matching a generic Id metavariable to an IdSpecial will fail as it is missing the token
+   * info; instead the Id should match Call(IdSpecial _, _)
+   *)
+  | A.Id ((str, _), _), B.IdSpecial (B.ConcatString _, _) when MV.is_metavar_name str ->
+     fail ()
+  (*e: [[Generic_vs_generic.m_expr()]] forbidden metavariable case *)
   | A.Id ((str,tok), _id_info), e2
      when MV.is_metavar_name str ->
       (* todo: if e2 is also an Id, maybe we should add it as a
