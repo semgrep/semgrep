@@ -627,7 +627,14 @@ let print_matches_and_errors_json files matches errs =
      "errors", J.Array (errs |> List.map R2c.error_to_json);
      "stats", stats
   ] in
-  let s = J.string_of_json json |> Yojson.Safe.prettify in
+  (*
+     Not pretty-printing the json output (Yojson.Safe.prettify)
+     because it kills performance, adding an extra 50% time on our
+     calculate_ci_perf.py benchmarks.
+     User should use an external tool like jq or ydump (latter comes with
+     yojson) for pretty-printing json.
+  *)
+  let s = J.string_of_json json in
   logger#debug "returned JSON: %s" s;
   pr s
 
