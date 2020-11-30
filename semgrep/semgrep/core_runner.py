@@ -269,6 +269,7 @@ class CoreRunner:
             cmd = [SEMGREP_PATH] + [
                 "-lang",
                 language,
+                "-json",
                 rules_file_flag,
                 pattern_file.name,
                 "-j",
