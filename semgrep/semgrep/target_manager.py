@@ -164,9 +164,13 @@ class TargetManager:
             """
             files: Set[Path] = set()
             if output:
-                files = set(
-                    Path(curr_dir) / elem for elem in output.strip().split("\n")
-                )
+                files = {
+                    p
+                    for p in (
+                        Path(curr_dir) / elem for elem in output.strip().split("\n")
+                    )
+                    if TargetManager._is_valid(p)
+                }
             return files
 
         def _find_files_with_extention(
