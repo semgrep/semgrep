@@ -57,3 +57,10 @@ exec (
 # exec(foo)
 print("exec(bar)")
 ```
+
+### Install
+
+```
+make build  # builds the spacegrep binary
+make install # puts spacegrep on your $PATH
+```
