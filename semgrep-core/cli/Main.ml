@@ -998,8 +998,11 @@ let options () =
     " <pattern> expression pattern (need -lang)";
     "-f", Arg.Set_string pattern_file,
     " <file> obtain pattern from file (need -lang)";
-    "-rules_file", Arg.Set_string rules_file,
-    " <file> obtain list of patterns from YAML file";
+    "-rules_file", Arg.String (fun file ->
+      rules_file := file;
+      output_format := Json
+    ),
+    " <file> obtain list of patterns from YAML file. Implies -json";
 
     "-lang", Arg.Set_string lang,
     (spf " <str> choose language (valid choices: %s)" supported_langs);
