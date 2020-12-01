@@ -108,7 +108,7 @@ and grab the latest zipfile or tarball for your platform. Extract this archive
 and inside should be a `semgrep-core` binary that you can run. You can confirm
 this by running:
 
-```
+```bash
 $ ./semgrep-core -version
 ```
 
@@ -125,6 +125,15 @@ $ echo 'if 1 == 1: pass' | python -m semgrep --lang python --pattern '$X == $X' 
 ```
 
 Congratulations, you have Semgrep running locally!
+
+### Generic pattern matching
+
+If working with [Generic pattern matching](https://semgrep.dev/docs/experiments/generic-pattern-matching/), you will also need the `spacegrep` binary. To quickly build and install `spacegrep` onto your `$PATH`, navigate to the `spacegrep/` directory and run Make. `make install` will move the `spacegrep` binary to your path.
+
+```
+cd spacegrep/
+make build && make install
+```
 
 ### Testing
 
