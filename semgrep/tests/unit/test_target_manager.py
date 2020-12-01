@@ -366,6 +366,26 @@ def test_expand_targets_not_git(tmp_path, monkeypatch):
     )
 
 
+def test_skip_symlink(tmp_path, monkeypatch):
+    foo = tmp_path / "foo"
+    foo.mkdir()
+    (foo / "a.py").touch()
+    (foo / "link.py").symlink_to(foo / "a.py")
+
+    monkeypatch.chdir(tmp_path)
+
+    python_language = Language("python")
+
+    assert cmp_path_sets(
+        TargetManager.expand_targets([foo], python_language, False),
+        {foo / "a.py"},
+    )
+
+    assert cmp_path_sets(
+        TargetManager.expand_targets([foo / "link.py"], python_language, False), set()
+    )
+
+
 def test_explicit_path(tmp_path, monkeypatch):
     foo = tmp_path / "foo"
     foo.mkdir()
