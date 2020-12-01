@@ -60,3 +60,7 @@ NOSEM_INLINE_RE = re.compile(
     re.IGNORECASE,
 )
 COMMA_SEPARATED_LIST_RE = re.compile(r"[,\s]")
+
+
+BREAK_LINE_WIDTH = 80
+BREAK_LINE_CHAR = "-"

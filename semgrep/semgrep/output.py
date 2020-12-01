@@ -21,6 +21,8 @@ from junit_xml import TestSuite
 
 from semgrep import __VERSION__
 from semgrep import config_resolver
+from semgrep.constants import BREAK_LINE_CHAR
+from semgrep.constants import BREAK_LINE_WIDTH
 from semgrep.constants import OutputFormat
 from semgrep.error import FINDINGS_EXIT_CODE
 from semgrep.error import Level
@@ -89,21 +91,11 @@ def finding_to_line(
 
             yield f"{line_number}:{line}" if line_number else f"{line}"
         trimmed_str = f" [hid {trimmed} additional lines] "
-        if len(lines) > 1 and not is_last:
-            ellipsis_output = "-" * 80
+        if per_finding_max_lines_limit != 1:
             if trimmed > 0:
-                start_index = (len(ellipsis_output) // 2) - (len(trimmed_str) // 2)
-                end_index = start_index + len(trimmed_str)
-                output = (
-                    ellipsis_output[:start_index]
-                    + trimmed_str
-                    + ellipsis_output[:end_index]
-                )
-                yield output
+                yield trimmed_str.center(BREAK_LINE_WIDTH, BREAK_LINE_CHAR)
             else:
-                yield ellipsis_output
-        elif trimmed > 0:
-            yield trimmed_str
+                yield BREAK_LINE_CHAR * BREAK_LINE_WIDTH
 
 
 def build_normal_output(
