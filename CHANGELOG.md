@@ -2,9 +2,11 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## Next
+## [0.33.0](https://github.com/returntocorp/semgrep/releases/tag/v0.33.0) - 2020-12-01
 
 ### Added
+
+- Allow selecting rules based on severity with the `--severity` flag. Thanks @kishorbhat!
 
 ### Changed
 
@@ -14,11 +16,16 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - In generic mode, leading dots must now match at the beginning of a
   block, allowing patterns like `... foo` to match what comes before `foo`
 - Disabled link following for parity with other LINUX tools (e.g. ripgrep)
+- spacegrep timeouts are now reported as timeouts instead of another error
 
 ### Fixed
 
+- Correctly bind a metavariable in an import to the fully-qualified name. [Issue](https://github.com/returntocorp/semgrep/issues/1771)
 - Fix invalid match locations on target files containing both CRLF line
-  endings UTF-8 characters (#2111).
+  endings UTF-8 characters (#2111)
+- Fix NoTokenLocation error when parsing Python f-strings
+- [C] Support `include $X`
+- [Go] Fix wrong order of imports
 
 ## [0.32.0](https://github.com/returntocorp/semgrep/releases/tag/v0.32.0) - 2020-11-18
 
