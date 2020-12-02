@@ -131,6 +131,7 @@ let subexprs_of_stmt st =
     | Try _
     | DisjStmt _
     | DefStmt _
+    | WithUsingResource _
     (* could extract the expr in any? *)
     | OtherStmt _
      -> []
@@ -159,6 +160,8 @@ let substmts_of_stmt st =
     (* 2 *)
     | If (_, _, st1, st2)
     -> st1::(Common.opt_to_list st2)
+    | WithUsingResource (_, st1, st2)
+    -> [st1;st2]
 
     (* n *)
     | Block (_, xs, _) ->
