@@ -51,6 +51,7 @@ VERBOSE_SUBCATEGORY_NAME = {
     "syntax": "Single Statements",
     "exprstmt": "Expression and Statement",
     "typed": "Typed Metavariables",
+    "expr_operator": "Deep Expression Operator",
 }
 
 LANGUAGE_EXCEPTIONS = {
@@ -90,7 +91,7 @@ CHEATSHEET_ENTRIES = {
         "constant_propagation",
         "eq",
     ],
-    "deep": ["exprstmt"],
+    "deep": ["exprstmt", "expr_operator"],
 }
 
 
