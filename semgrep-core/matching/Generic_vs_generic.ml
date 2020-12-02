@@ -2434,6 +2434,10 @@ and m_partial a b =
   match a,b with
   | A.PartialDef a1, B.PartialDef b1 ->
       m_definition a1 b1
+  | A.PartialIf (a1, a2), B.PartialIf (b1, b2) ->
+      let* () = m_tok a1 b1 in
+      m_expr a2 b2
+  | A.PartialDef _, _ | A.PartialIf _, _ -> fail ()
 
 (*s: function [[Generic_vs_generic.m_any]] *)
 and m_any a b =
