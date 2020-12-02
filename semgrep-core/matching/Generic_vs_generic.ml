@@ -1626,12 +1626,18 @@ and m_stmt a b =
       m_option m_expr a2 b2 >>= (fun () ->
       m_stmt a3 b3
       ))
+    | A.WithUsingResource(a1, a2, a3), B.WithUsingResource(b1, b2, b3) ->
+      m_tok a1 b1 >>= (fun () ->
+      m_stmt a2 b2 >>= (fun () ->
+      m_stmt a3 b3
+      ))
 
     | A.ExprStmt _, _  | A.DefStmt _, _  | A.DirectiveStmt _, _
     | A.Block _, _  | A.If _, _  | A.While _, _  | A.DoWhile _, _  | A.For _, _
     | A.Switch _, _  | A.Return _, _  | A.Continue _, _  | A.Break _, _
-    | A.Label _, _  | A.Goto _, _  | A.Throw _, _  | A.Try _, _  | A.Assert _, _
-    | A.OtherStmt _, _ | A.OtherStmtWithStmt _, _
+    | A.Label _, _  | A.Goto _, _  | A.Throw _, _  | A.Try _, _
+    | A.Assert _, _
+    | A.OtherStmt _, _ | A.OtherStmtWithStmt _, _ | A.WithUsingResource _, _
      -> fail ()
   (*e: [[Generic_vs_generic.m_stmt]] boilerplate cases *)
 (*e: function [[Generic_vs_generic.m_stmt]] *)
