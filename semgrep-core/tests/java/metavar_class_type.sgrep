@@ -1,0 +1,6 @@
+class $CLASS {
+   ...
+   static $CLASS $METHOD () { ... }
+   ...
+}
+
