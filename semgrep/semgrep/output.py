@@ -23,6 +23,7 @@ from semgrep import __VERSION__
 from semgrep import config_resolver
 from semgrep.constants import BREAK_LINE_CHAR
 from semgrep.constants import BREAK_LINE_WIDTH
+from semgrep.constants import MAX_LINES_FLAG_NAME
 from semgrep.constants import OutputFormat
 from semgrep.error import FINDINGS_EXIT_CODE
 from semgrep.error import Level
@@ -63,7 +64,7 @@ def finding_to_line(
     rule_match: RuleMatch,
     color_output: bool,
     per_finding_max_lines_limit: Optional[int],
-    is_last: bool,
+    show_separator: bool,
 ) -> Iterator[str]:
     path = rule_match.path
     start_line = rule_match.start.get("line")
@@ -90,11 +91,13 @@ def finding_to_line(
                     line_number = f"{start_line + i}"
 
             yield f"{line_number}:{line}" if line_number else f"{line}"
-        trimmed_str = f" [hid {trimmed} additional lines] "
+        trimmed_str = (
+            f" [hid {trimmed} additional lines, adjust with {MAX_LINES_FLAG_NAME}] "
+        )
         if per_finding_max_lines_limit != 1:
             if trimmed > 0:
                 yield trimmed_str.center(BREAK_LINE_WIDTH, BREAK_LINE_CHAR)
-            else:
+            elif show_separator:
                 yield BREAK_LINE_CHAR * BREAK_LINE_WIDTH
 
 
@@ -142,11 +145,16 @@ def build_normal_output(
 
         last_file = current_file
         last_message = message
+        next_rule_match = (
+            sorted_rule_matches[rule_index + 1]
+            if rule_index != len(sorted_rule_matches) - 1
+            else None
+        )
+        is_same_file = (
+            next_rule_match.path == rule_match.path if next_rule_match else False
+        )
         yield from finding_to_line(
-            rule_match,
-            color_output,
-            per_finding_max_lines_limit,
-            rule_index == len(sorted_rule_matches) - 1,
+            rule_match, color_output, per_finding_max_lines_limit, is_same_file,
         )
 
         if fix:

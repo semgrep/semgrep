@@ -61,6 +61,6 @@ NOSEM_INLINE_RE = re.compile(
 )
 COMMA_SEPARATED_LIST_RE = re.compile(r"[,\s]")
 
-
+MAX_LINES_FLAG_NAME = "--max-lines-per-finding"
 BREAK_LINE_WIDTH = 80
 BREAK_LINE_CHAR = "-"
