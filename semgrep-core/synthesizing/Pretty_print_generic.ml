@@ -60,7 +60,7 @@ let token default tok =
 
 let print_type = function
   | TyBuiltin (s, _) -> s
-  | TyName (id, _) -> ident id
+  | TyId (id, _) -> ident id
   | x -> todo (T x)
 
 let print_bool env = function

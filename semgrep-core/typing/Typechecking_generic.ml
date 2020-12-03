@@ -49,11 +49,11 @@ let compatible_type t e =
   | TyBuiltin ((t1, _)), Id (_, {id_type; _}) ->
       (match !id_type with Some (TyBuiltin ((t2, _))) -> t1 = t2
                          | _ -> false)
-  | TyName ((t1, _), _), Id(_, {id_type; _}) ->
-      (match !id_type with Some (TyName (((t2, _), _))) -> t1 = t2
+  | TyId ((t1, _), _), Id(_, {id_type; _}) ->
+      (match !id_type with Some (TyId (((t2, _), _))) -> t1 = t2
                          | _ -> false)
-  | TyArray (_, TyName((t1, _), _)), Id (_, {id_type; _}) ->
-      (match !id_type with Some (TyArray (_, TyName((t2, _), _))) -> t1 = t2
+  | TyArray (_, TyId((t1, _), _)), Id (_, {id_type; _}) ->
+      (match !id_type with Some (TyArray (_, TyId((t2, _), _))) -> t1 = t2
                          | _ -> false)
 
   | _ -> false

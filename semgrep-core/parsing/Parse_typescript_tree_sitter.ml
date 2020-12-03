@@ -1390,15 +1390,15 @@ and primary_type (env : env) (x : CST.primary_type) : type_ =
    | `Pred_type x ->
        let id = predefined_type env x in
        (* less: could also be a G.TyBuiltin *)
-       G.TyName (G.name_of_id id)
+       G.TyId (id, G.empty_id_info())
    | `Id tok ->
        let id = JS.identifier env tok (* identifier *) in
-       G.TyName (G.name_of_id id)
+       G.TyId (id, G.empty_id_info())
    | `Nested_type_id x ->
        let xs = nested_type_identifier env x in
-       G.TyName (G.name_of_ids xs)
+       G.TyIdQualified (G.name_of_ids xs, G.empty_id_info())
    | `Gene_type x ->
-       G.TyName (generic_type env x)
+       G.TyIdQualified (generic_type env x, G.empty_id_info())
    | `Type_pred (v1, v2, v3) ->
        let v1 = JS.str env v1 (* identifier *) in
        let v2 = JS.token env v2 (* "is" *) in
@@ -1455,7 +1455,7 @@ and primary_type (env : env) (x : CST.primary_type) : type_ =
        let v1 = JS.token env v1 (* "keyof" *) in
        let v2 =
          match v2 with
-         | `Gene_type x -> G.T (G.TyName (generic_type env x))
+         | `Gene_type x -> G.T (G.TyIdQualified (generic_type env x, G.empty_id_info()))
          | `Id tok -> G.Di [JS.identifier env tok] (* identifier *)
          | `Nested_type_id x -> G.Di (nested_type_identifier env x)
        in
@@ -2088,8 +2088,7 @@ and public_field_definition (env : env) ((v1, v2, v3, v4, v5, v6) : CST.public_f
 and anon_choice_choice_type_id_e16f95c (env : env) (x : CST.anon_choice_choice_type_id_e16f95c): parent =
   (match x with
    | `Choice_id x -> (* type to be extended *)
-       let name = anon_choice_type_id_a85f573 env x in
-       Right (G.TyName name)
+       Right (anon_choice_type_id_a85f573 env x)
    | `Exp x -> (* class expression to be extended *)
        Left (expression env x)
   )
@@ -2486,11 +2485,14 @@ and function_declaration (env : env) ((v1, v2, v3, v4, v5, v6) : CST.function_de
   let f = { f_attrs = v1; f_params = v4; f_body = v5; f_rettype = tret } in
   basic_entity v3, FuncDef f
 
-and anon_choice_type_id_a85f573 (env : env) (x : CST.anon_choice_type_id_a85f573) : G.name =
+and anon_choice_type_id_a85f573 (env : env) (x : CST.anon_choice_type_id_a85f573) : G.type_ =
   (match x with
-   | `Id tok -> G.name_of_ids [JS.str env tok] (* identifier *)
-   | `Nested_type_id x -> G.name_of_ids (nested_type_identifier env x)
-   | `Gene_type x -> generic_type env x
+   | `Id tok -> G.TyId (JS.str env tok, G.empty_id_info()) (* identifier *)
+   | `Nested_type_id x ->
+       G.TyIdQualified (G.name_of_ids (nested_type_identifier env x),
+                        G.empty_id_info())
+   | `Gene_type x ->
+       G.TyIdQualified (generic_type env x, G.empty_id_info())
   )
 
 and template_substitution (env : env) ((v1, v2, v3) : CST.template_substitution) =
