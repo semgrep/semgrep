@@ -218,12 +218,12 @@ let rec equal_ast_binded_code (a: MV.mvalue) (b: MV.mvalue) : bool = (
          * the comparison we just need to remove/abstract-away
          * the line number information in each ASTs.
         *)
-        let a_any = MV.mvalue_to_any a in
-        let b_any = MV.mvalue_to_any b in
-        let a = Lib.abstract_position_info_any a_any in
-        let b = Lib.abstract_position_info_any b_any in
+        let a = MV.abstract_position_info_mval a in
+        let b = MV.abstract_position_info_mval b in
         a =*= b
     | MV.Id _, MV.E (A.Id (b_id, b_id_info)) ->
+        (* TODO still needed now that we have the better MV.Id of id_info? *)
+        (* TOFIX: regression if remove this code *)
         (* Allow identifier nodes to match pure identifier expressions *)
 
         (* You should prefer to add metavar as expression (A.E), not id (A.I),

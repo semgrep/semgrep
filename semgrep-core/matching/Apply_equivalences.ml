@@ -42,24 +42,29 @@ let match_e_e_for_equivalences _ruleid a b =
 (*****************************************************************************)
 (*s: function [[Apply_equivalences.subst_e]] *)
 let subst_e (bindings: MV.metavars_binding) e =
-  let visitor = M.mk_visitor { M.default_visitor with
-                               M.kexpr = (fun (k, _) x ->
-                                 match x with
-                                 | Id ((str,_tok), _id_info) when MV.is_metavar_name str ->
-                                     (match List.assoc_opt str bindings with
-                                      | Some (E e) ->
-                                          (* less: abstract-line? *)
-                                          e
-                                      | Some _ ->
-                                          failwith (spf "incompatible metavar: %s, was expecting an expr"
-                                                      str)
-                                      | None ->
-                                          failwith (spf "could not find metavariable %s in environment"
-                                                      str)
-                                     )
-                                 | _ -> k x
-                               );
-                             }
+  let visitor =
+    M.mk_visitor
+      { M.default_visitor with
+        M.kexpr = (fun (k, _) x ->
+          match x with
+          | Id ((str,_tok), _id_info) when MV.is_metavar_name str ->
+              (match List.assoc_opt str bindings with
+               | Some (MV.Id (id, Some idinfo)) ->
+                   (* less: abstract-line? *)
+                   Id (id, idinfo)
+               | Some (MV.E e) ->
+                   (* less: abstract-line? *)
+                   e
+               | Some _ ->
+                   failwith (spf "incompatible metavar: %s, was expecting an expr"
+                               str)
+               | None ->
+                   failwith (spf "could not find metavariable %s in environment"
+                               str)
+              )
+          | _ -> k x
+        );
+      }
   in
   visitor.M.vexpr e
 (*e: function [[Apply_equivalences.subst_e]] *)
