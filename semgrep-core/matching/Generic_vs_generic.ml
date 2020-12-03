@@ -91,9 +91,9 @@ let env_add_matched_stmt st tin =
   let key = MV.matched_statements_special_mvar in
   match List.assoc_opt key tin with
   | None -> [tin]
-  | Some (B.Ss xs) ->
+  | Some (MV.Ss xs) ->
       let xs' = st::xs in
-      let tin = (key, B.Ss xs')::(List.remove_assoc key tin) in
+      let tin = (key, MV.Ss xs')::(List.remove_assoc key tin) in
       [tin]
   | Some _ -> raise Impossible
 
@@ -133,12 +133,12 @@ let m_ident a b =
   (*s: [[Generic_vs_generic.m_ident()]] metavariable case *)
   (* metavar: *)
   | (str, tok), b when MV.is_metavar_name str ->
-      (* note that adding B.I here is sometimes not what you want.
+      (* TODO: remove this comment! note that adding MV.Id here is sometimes not what you want.
        * this can prevent this ID to later be matched against
-       * an ID used in an expression context (an Id).
+       * an ID used in an expression context (a G.Id).
        * see m_ident_and_id_info_add_in_env_Expr for more information.
       *)
-      envf (str, tok) (B.I b)
+      envf (str, tok) (MV.Id b)
   (*e: [[Generic_vs_generic.m_ident()]] metavariable case *)
   (*s: [[Generic_vs_generic.m_ident()]] regexp case *)
   (* in some languages such as Javascript certain entities like
@@ -171,7 +171,7 @@ let rec m_dotted_name_prefix_ok a b =
   match a, b with
   | [], [] -> return ()
   | [(s,t)], _::_ when MV.is_metavar_name s ->
-      envf (s,t) (B.E (make_dotted b))
+      envf (s,t) (MV.E (make_dotted b))
   | xa::aas, xb::bbs ->
       let* () = m_ident xa xb in
       m_dotted_name_prefix_ok aas bbs
@@ -193,7 +193,7 @@ let m_module_name_prefix a b =
       (* Bind as a literal string expression so that pretty-printing works.
        * This also means that this metavar can match both literal strings and
        * filenames with the same string content. *)
-      envf a1 (B.E (B.L (B.String b1)))
+      envf a1 (MV.E (B.L (B.String b1)))
 
   (* dots: '...' on string *)
   | A.FileName("...", ta), B.FileName(_sb, tb) ->
@@ -307,12 +307,12 @@ and m_ident_or_dyn_and_id_info_add_in_env_Expr (a1, a2) (b1, b2) =
       let* () = m_type_option_with_hook idb !(a2.A.id_type) !(b2.B.id_type) in
       let* () = m_id_info a2 b2 in
       let e = B.ident_or_dynamic_to_expr b1 b2 in
-      envf (str, tok) (B.E e) (* B.E here, not B.I *)
+      envf (str, tok) (MV.E e) (* TODO: change! old: MV.E here, not MV.Id *)
 
   | A.EId (str, tok), _b when MV.is_metavar_name str ->
       let* () = m_id_info a2 b2 in
       let e = B.ident_or_dynamic_to_expr b1 b2 in
-      envf (str, tok) (B.E e) (* B.E here, not B.I *)
+      envf (str, tok) (MV.E e)
 
   | A.EId a, B.EId b ->
       m_ident_and_id_info_add_in_env_Expr (a, a2) (b, b2)
@@ -332,7 +332,7 @@ and m_ident_and_id_info_add_in_env_Expr (a1, a2) (b1, b2) =
       (* a bit OCaml specific, cos only ml_to_generic tags id_type in pattern *)
       m_type_option_with_hook b1 !(a2.A.id_type) !(b2.B.id_type) >>= (fun () ->
         m_id_info a2 b2 >>= (fun () ->
-          envf (str, tok) (B.E (B.Id (b, b2))) (* B.E here, not B.I *)
+          envf (str, tok) (MV.E (B.Id (b, b2))) (* TODO: use MV.Id, B.E here, not B.I *)
         ))
   (* same code than for m_ident *)
   (*s: [[Generic_vs_generic.m_ident()]] regexp case *)
@@ -502,7 +502,7 @@ and m_expr a b =
        * B.I instead of B.E so then we would not need those calls to
        * m_ident_...add_in_Expr?
       *)
-      envf (str, tok) (B.E (e2))
+      envf (str, tok) (MV.E (e2))
   (*e: [[Generic_vs_generic.m_expr()]] metavariable case *)
   (*s: [[Generic_vs_generic.m_expr()]] typed metavariable case *)
   (* metavar: typed! *)
@@ -994,19 +994,19 @@ and m_compatible_type typed_mvar t e =
   match t, e with
   (* for python literal checking *)
   | A.OtherType (A.OT_Expr, [A.E (A.Id (("int", _tok), _idinfo))]),
-    B.L (B.Int _) -> envf typed_mvar (B.E e)
+    B.L (B.Int _) -> envf typed_mvar (MV.E e)
   | A.OtherType (A.OT_Expr, [A.E (A.Id (("float", _tok), _idinfo))]),
-    B.L (B.Float _) -> envf typed_mvar (B.E e)
+    B.L (B.Float _) -> envf typed_mvar (MV.E e)
   | A.OtherType (A.OT_Expr, [A.E (A.Id (("str", _tok), _idinfo))]),
-    B.L (B.String _) -> envf typed_mvar (B.E e)
+    B.L (B.String _) -> envf typed_mvar (MV.E e)
   (* for java literals *)
-  | A.TyBuiltin (("int", _)),  B.L (B.Int _) -> envf typed_mvar (B.E e)
-  | A.TyBuiltin (("float", _)),  B.L (B.Float _) -> envf typed_mvar (B.E e)
-  | A.TyName (("String", _), _), B.L (B.String _) -> envf typed_mvar (B.E e)
+  | A.TyBuiltin (("int", _)),  B.L (B.Int _) -> envf typed_mvar (MV.E e)
+  | A.TyBuiltin (("float", _)),  B.L (B.Float _) -> envf typed_mvar (MV.E e)
+  | A.TyName (("String", _), _), B.L (B.String _) -> envf typed_mvar (MV.E e)
   (* for go literals *)
-  | A.TyName (("int", _), _), B.L (B.Int _) -> envf typed_mvar (B.E e)
-  | A.TyName (("float", _), _), B.L (B.Float _) -> envf typed_mvar (B.E e)
-  | A.TyName (("str", _), _), B.L (B.String _) -> envf typed_mvar (B.E e)
+  | A.TyName (("int", _), _), B.L (B.Int _) -> envf typed_mvar (MV.E e)
+  | A.TyName (("float", _), _), B.L (B.Float _) -> envf typed_mvar (MV.E e)
+  | A.TyName (("str", _), _), B.L (B.String _) -> envf typed_mvar (MV.E e)
   (* for matching ids *)
   | ta, ( B.Id (idb, {B.id_type=tb; _})
         | B.IdQualified ((idb, _), {B.id_type=tb;_})
@@ -1093,7 +1093,7 @@ and m_list__m_argument (xsa: A.argument list) (xsb: A.argument list) =
         match xs with
         | [] -> fail ()
         | (inits, rest)::xs ->
-            envf (s, tok) (B.Args inits) >>= (fun () ->
+            envf (s, tok) (MV.Args inits) >>= (fun () ->
               m_list__m_argument xsa rest
             ) >||> aux xs
       in
@@ -1225,7 +1225,7 @@ and m_type_ a b =
   (*s: [[Generic_vs_generic.m_type_]] metavariable case *)
   | A.TyName ((str,tok), _name_info), t2
     when MV.is_metavar_name str ->
-      envf (str, tok) (B.T (t2))
+      envf (str, tok) (MV.T (t2))
   (*e: [[Generic_vs_generic.m_type_]] metavariable case *)
   (* dots: *)
   | A.TyEllipsis _, _ -> return ()
@@ -1526,7 +1526,7 @@ and m_stmt a b =
   (* metavar: *)
   | A.ExprStmt(A.Id ((str,tok), _id_info), _), b
     when MV.is_metavar_name str ->
-      envf (str, tok) (B.S b)
+      envf (str, tok) (MV.S b)
   (*e: [[Generic_vs_generic.m_stmt()]] metavariable case *)
   (*s: [[Generic_vs_generic.m_stmt()]] ellipsis cases *)
   (* dots: '...' can to match any statememt *)
@@ -1777,10 +1777,10 @@ and m_pattern a b =
     when MV.is_metavar_name str ->
       (try
          let e2 = AST.pattern_to_expr b2 in
-         envf (str, tok) (B.E (e2))
+         envf (str, tok) (MV.E (e2))
        (* this can happen with PatAs in exception handler in Python *)
        with AST.NotAnExpr ->
-         envf (str, tok) (B.P b2)
+         envf (str, tok) (MV.P b2)
       )
   (*e: [[Generic_vs_generic.m_pattern()]] metavariable case *)
 

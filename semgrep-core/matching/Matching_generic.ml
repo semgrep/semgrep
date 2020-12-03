@@ -107,14 +107,6 @@ type ('a, 'b) matcher = 'a -> 'b -> tin -> tout
 (* Debugging *)
 (*****************************************************************************)
 (*s: function [[Matching_generic.str_of_any]] *)
-let str_of_any any =
-  if !Flag.debug_with_full_position
-  then Meta_parse_info._current_precision :=
-      { Meta_parse_info.default_dumper_precision with Meta_parse_info.
-                                                   full_info = true };
-
-  let s = AST_generic.show_any any in
-  s
 (*e: function [[Matching_generic.str_of_any]] *)
 
 (*****************************************************************************)
@@ -208,15 +200,14 @@ let (let*) o f =
 (* pre: both 'a' and 'b' contains only regular code; there are no
  * metavariables inside them.
 *)
-let rec equal_ast_binded_code (a: AST.any) (b: AST.any) : bool = (
+let rec equal_ast_binded_code (a: MV.mvalue) (b: MV.mvalue) : bool = (
   let res = (match a, b with
-    | A.I _, A.I _
-    | A.N _, A.N _
-    | A.E _, A.E _
-    | A.P _, A.P _
-    | A.S _, A.S _
-    | A.T _, A.T _
-    | A.Args _, A.Args _
+    | MV.Id _, MV.Id _
+    | MV.E _, MV.E _
+    | MV.S _, MV.S _
+    | MV.P _, MV.P _
+    | MV.T _, MV.T _
+    | MV.Args _, MV.Args _
       ->
         (* Note that because we want to retain the position information
          * of the matched code in the environment (e.g. for the -pvar
@@ -227,10 +218,12 @@ let rec equal_ast_binded_code (a: AST.any) (b: AST.any) : bool = (
          * the comparison we just need to remove/abstract-away
          * the line number information in each ASTs.
         *)
-        let a = Lib.abstract_position_info_any a in
-        let b = Lib.abstract_position_info_any b in
+        let a_any = MV.mvalue_to_any a in
+        let b_any = MV.mvalue_to_any b in
+        let a = Lib.abstract_position_info_any a_any in
+        let b = Lib.abstract_position_info_any b_any in
         a =*= b
-    | A.I _, A.E (A.Id (b_id, _)) ->
+    | MV.Id _, MV.E (A.Id (b_id, _)) ->
         (* Allow identifier nodes to match pure identifier expressions *)
 
         (* You should prefer to add metavar as expression (A.E), not id (A.I),
@@ -240,7 +233,7 @@ let rec equal_ast_binded_code (a: AST.any) (b: AST.any) : bool = (
          * For example, we want the pattern 'const $X = foo.$X' to match 'const bar = foo.bar'
          * (this is useful in the Javascript transpilation context of complex pattern parameter).
         *)
-        equal_ast_binded_code a (A.I b_id)
+        equal_ast_binded_code a (MV.Id b_id)
     | _, _ ->
         false
 
@@ -248,7 +241,7 @@ let rec equal_ast_binded_code (a: AST.any) (b: AST.any) : bool = (
 
   if not res
   then logger#ldebug (lazy (spf "A = %s\nB = %s\n"
-                              (str_of_any a) (str_of_any b)));
+                              (MV.str_of_mval a) (MV.str_of_mval b)));
   res
 )
 (*e: function [[Matching_generic.equal_ast_binded_code]] *)
@@ -271,17 +264,17 @@ let check_and_add_metavar_binding((mvar:MV.mvar), valu) = fun tin ->
 (*e: function [[Matching_generic.check_and_add_metavar_binding]] *)
 
 (*s: function [[Matching_generic.envf]] *)
-let (envf: (MV.mvar AST.wrap, AST.any) matcher) =
+let (envf: (MV.mvar AST.wrap, MV.mvalue) matcher) =
   fun (mvar, _imvar) any  -> fun tin ->
   match check_and_add_metavar_binding (mvar, any) tin with
   | None ->
       (*s: [[Matching_generic.envf]] if [[verbose]] when fail *)
-      logger#ldebug (lazy (spf "envf: fail, %s (%s)" mvar (str_of_any any)));
+      logger#ldebug (lazy (spf "envf: fail, %s (%s)" mvar (MV.str_of_mval any)));
       (*e: [[Matching_generic.envf]] if [[verbose]] when fail *)
       fail tin
   | Some new_binding ->
       (*s: [[Matching_generic.envf]] if [[verbose]] when success *)
-      logger#ldebug (lazy (spf "envf: success, %s (%s)" mvar(str_of_any any)));
+      logger#ldebug (lazy (spf "envf: success, %s (%s)" mvar(MV.str_of_mval any)));
       (*e: [[Matching_generic.envf]] if [[verbose]] when success *)
       return new_binding
 (*e: function [[Matching_generic.envf]] *)
