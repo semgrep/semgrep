@@ -177,7 +177,7 @@ lifting program analysis work that makes Semgrep so powerful.
 ### Installing from Source
 
 To compile semgrep, you first need to [install OCaml](https://opam.ocaml.org/doc/Install.html)
-and its package manager OPAM. On macOS, it should simply consist in doing:
+and its package manager OPAM. On macOS, it should consist in doing:
 
 ```bash
 brew install opam
@@ -201,7 +201,7 @@ For a first installation or if you're told external dependencies have
 changed, run
 
 ```
-make setup
+make dev-setup
 ```
 
 For a routine build after pulling in source code changes from git, run
