@@ -63,11 +63,19 @@ type mvalue =
 let mvalue_to_any = function
   | E e -> G.E e
   | S s -> G.S s
-  | Id (id, _idinfo) -> G.I id
+  (* bugfix: do not return G.I id. We need the id_info because
+   * it can be used to check if two metavars are equal and have the same
+   * sid (single unique id).
+  *)
+  | Id (id, Some idinfo) -> G.E (G.Id (id, idinfo))
+  | Id (id, None) -> G.E (G.Id (id, G.empty_id_info()))
   | Ss x -> G.Ss x
   | Args x -> G.Args x
   | T x -> G.T x
   | P x -> G.P x
+
+let abstract_position_info_mval x =
+  x |> mvalue_to_any |> Lib_AST.abstract_position_info_any
 
 let str_of_any any =
   if !Flag_semgrep.debug_with_full_position
