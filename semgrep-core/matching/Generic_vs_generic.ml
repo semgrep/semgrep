@@ -1002,11 +1002,11 @@ and m_compatible_type typed_mvar t e =
   (* for java literals *)
   | A.TyBuiltin (("int", _)),  B.L (B.Int _) -> envf typed_mvar (MV.E e)
   | A.TyBuiltin (("float", _)),  B.L (B.Float _) -> envf typed_mvar (MV.E e)
-  | A.TyName (("String", _), _), B.L (B.String _) -> envf typed_mvar (MV.E e)
+  | A.TyId (("String", _), _), B.L (B.String _) -> envf typed_mvar (MV.E e)
   (* for go literals *)
-  | A.TyName (("int", _), _), B.L (B.Int _) -> envf typed_mvar (MV.E e)
-  | A.TyName (("float", _), _), B.L (B.Float _) -> envf typed_mvar (MV.E e)
-  | A.TyName (("str", _), _), B.L (B.String _) -> envf typed_mvar (MV.E e)
+  | A.TyId (("int", _), _), B.L (B.Int _) -> envf typed_mvar (MV.E e)
+  | A.TyId (("float", _), _), B.L (B.Float _) -> envf typed_mvar (MV.E e)
+  | A.TyId (("str", _), _), B.L (B.String _) -> envf typed_mvar (MV.E e)
   (* for matching ids *)
   | ta, ( B.Id (idb, {B.id_type=tb; _})
         | B.IdQualified ((idb, _), {B.id_type=tb;_})
@@ -1223,7 +1223,8 @@ and m_other_argument_operator = m_other_xxx
 and m_type_ a b =
   match a, b with
   (*s: [[Generic_vs_generic.m_type_]] metavariable case *)
-  | A.TyName ((str,tok), _name_info), t2
+  (* TODO: TyId vs TyId => add MV.Id *)
+  | A.TyId ((str,tok), _id_info), t2
     when MV.is_metavar_name str ->
       envf (str, tok) (MV.T (t2))
   (*e: [[Generic_vs_generic.m_type_]] metavariable case *)
@@ -1246,8 +1247,11 @@ and m_type_ a b =
       (m_bracket (m_list m_type_)) a1 b1
 
   (*s: [[Generic_vs_generic.m_type_]] boilerplate cases *)
-  | A.TyName(a1), B.TyName(b1) ->
-      m_name a1 b1
+  | A.TyId(a1, a2), B.TyId(b1, b2) ->
+      m_ident_and_id_info_add_in_env_Expr (a1, a2) (b1, b2)
+  | A.TyIdQualified(a1, a2), B.TyIdQualified(b1, b2) ->
+      let* () = m_name a1 b1 in
+      m_id_info a2 b2
   | A.TyNameApply(a1, a2), B.TyNameApply(b1, b2) ->
       m_name a1 b1 >>= (fun () ->
         m_type_arguments a2 b2
@@ -1284,7 +1288,8 @@ and m_type_ a b =
       )
   | A.TyBuiltin _, _  | A.TyFun _, _  | A.TyNameApply _, _  | A.TyVar _, _
   | A.TyArray _, _  | A.TyPointer _, _ | A.TyTuple _, _  | A.TyQuestion _, _
-  | A.TyName _, _ | A.TyOr _, _ | A.TyAnd _, _ | A.TyRecordAnon _, _
+  | A.TyId _, _ | A.TyIdQualified _, _
+  | A.TyOr _, _ | A.TyAnd _, _ | A.TyRecordAnon _, _
   | A.OtherType _, _
     -> fail ()
 (*e: [[Generic_vs_generic.m_type_]] boilerplate cases *)
