@@ -223,7 +223,7 @@ let rec equal_ast_binded_code (a: MV.mvalue) (b: MV.mvalue) : bool = (
         let a = Lib.abstract_position_info_any a_any in
         let b = Lib.abstract_position_info_any b_any in
         a =*= b
-    | MV.Id _, MV.E (A.Id (b_id, _)) ->
+    | MV.Id _, MV.E (A.Id (b_id, b_id_info)) ->
         (* Allow identifier nodes to match pure identifier expressions *)
 
         (* You should prefer to add metavar as expression (A.E), not id (A.I),
@@ -233,7 +233,7 @@ let rec equal_ast_binded_code (a: MV.mvalue) (b: MV.mvalue) : bool = (
          * For example, we want the pattern 'const $X = foo.$X' to match 'const bar = foo.bar'
          * (this is useful in the Javascript transpilation context of complex pattern parameter).
         *)
-        equal_ast_binded_code a (MV.Id b_id)
+        equal_ast_binded_code a (MV.Id (b_id, Some b_id_info))
     | _, _ ->
         false
 

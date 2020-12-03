@@ -138,7 +138,7 @@ let m_ident a b =
        * an ID used in an expression context (a G.Id).
        * see m_ident_and_id_info_add_in_env_Expr for more information.
       *)
-      envf (str, tok) (MV.Id b)
+      envf (str, tok) (MV.Id (b, None))
   (*e: [[Generic_vs_generic.m_ident()]] metavariable case *)
   (*s: [[Generic_vs_generic.m_ident()]] regexp case *)
   (* in some languages such as Javascript certain entities like

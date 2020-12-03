@@ -49,7 +49,7 @@ type mvar = string
  * use of AST_generic.any for patterns.
 *)
 type mvalue =
-  | Id of AST_generic.ident
+  | Id of AST_generic.ident * AST_generic.id_info option
   | E of AST_generic.expr
   | S of AST_generic.stmt
   | Ss of AST_generic.stmt list
@@ -63,7 +63,7 @@ type mvalue =
 let mvalue_to_any = function
   | E e -> G.E e
   | S s -> G.S s
-  | Id id -> G.I id
+  | Id (id, _idinfo) -> G.I id
   | Ss x -> G.Ss x
   | Args x -> G.Args x
   | T x -> G.T x
