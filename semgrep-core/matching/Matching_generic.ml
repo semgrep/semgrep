@@ -307,11 +307,11 @@ let rec inits_and_rest_of_list = function
   | [] -> failwith "inits_1 requires a non-empty list"
   | [e] -> [[e], []]
   | e::l -> ([e], l) :: List.map (fun (l, rest) -> (e::l, rest))
-      (inits_and_rest_of_list l)
+              (inits_and_rest_of_list l)
 let _ = Common2.example
-  (inits_and_rest_of_list ['a';'b';'c'] =
-    [ (['a'], ['b';'c']); (['a';'b'], ['c']); (['a';'b';'c'], []); ]
-   )
+    (inits_and_rest_of_list ['a';'b';'c'] =
+     [ (['a'], ['b';'c']); (['a';'b'], ['c']); (['a';'b';'c'], []); ]
+    )
 
 (*s: function [[Matching_generic.all_elem_and_rest_of_list]] *)
 (* todo? optimize, probably not the optimal version ... *)
