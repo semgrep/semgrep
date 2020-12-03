@@ -111,7 +111,8 @@ def test_perf() -> None:
     njsscan_rules_path = str(rules_path / "njsscan/rules/semantic_grep")
 
     # Sanitize rules
-    subprocess.check_output(["sed", "-i", "s/...>/ ...>/g", njsscan_rules_path])
+    x = subprocess.run(["sed", "-i", "s/...>/ ...>/g", njsscan_rules_path])
+    print(x)
     subprocess.check_output(["sed", "-i", "s/<.../<... /g", njsscan_rules_path])
 
     targets = [
