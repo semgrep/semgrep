@@ -12,7 +12,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * file license.txt for more details.
- *)
+*)
 open Common
 
 module R = Rule
@@ -41,10 +41,10 @@ exception InvalidYamlException of string
 (* also used in Parse_tainting_rules.ml *)
 let parse_severity ~id s =
   match s with
- | "ERROR" -> R.Error
- | "WARNING" -> R.Warning
- | "INFO" -> R.Info
- | s -> raise (InvalidRuleException (id, (spf "Bad severity: %s (expected ERROR, WARNING or INFO)" s)))
+  | "ERROR" -> R.Error
+  | "WARNING" -> R.Warning
+  | "INFO" -> R.Info
+  | s -> raise (InvalidRuleException (id, (spf "Bad severity: %s (expected ERROR, WARNING or INFO)" s)))
 (*e: function [[Parse_rules.parse_severity]] *)
 
 (*s: function [[Parse_rules.parse_pattern]] *)
@@ -52,20 +52,20 @@ let parse_pattern ~id ~lang pattern =
   (* todo? call Normalize_ast.normalize here? *)
   try Check_semgrep.parse_check_pattern lang pattern
   with exn ->
-   raise (InvalidPatternException (id, pattern, (Lang.string_of_lang lang),
-          (Common.exn_to_s exn)))
+    raise (InvalidPatternException (id, pattern, (Lang.string_of_lang lang),
+                                    (Common.exn_to_s exn)))
 (*e: function [[Parse_rules.parse_pattern]] *)
 
 (*s: function [[Parse_rules.parse_languages]] *)
 let parse_languages ~id langs =
   let languages = langs |> List.map (function
     | `String s ->
-      (match Lang.lang_of_string_opt s with
-      | None -> raise (InvalidLanguageException (id, (spf "unsupported language: %s" s)))
-      | Some l -> l
-      )
+        (match Lang.lang_of_string_opt s with
+         | None -> raise (InvalidLanguageException (id, (spf "unsupported language: %s" s)))
+         | Some l -> l
+        )
     | _ -> raise (InvalidRuleException (id, (spf "expecting a string for languages")))
-   )
+  )
   in
   let lang =
     match languages with
@@ -86,34 +86,34 @@ let parse file =
   match yaml_res with
   | Result.Ok v ->
       (match v with
-      | `O ["rules", `A xs] ->
-         xs |> List.map (fun v ->
-          match v with
-          | `O xs ->
-            (match Common.sort_by_key_lowfirst xs with
-            | [
-            "id", `String id;
-            "languages", `A langs;
-            "message", `String message;
-            "pattern", `String pattern;
-            "severity", `String sev;
-            ] ->
-               let languages, lang = parse_languages ~id langs in
-               let pattern = parse_pattern ~id ~lang pattern in
-               let severity = parse_severity ~id sev in
-               { R. id; pattern; message; languages; severity }
+       | `O ["rules", `A xs] ->
+           xs |> List.map (fun v ->
+             match v with
+             | `O xs ->
+                 (match Common.sort_by_key_lowfirst xs with
+                  | [
+                    "id", `String id;
+                    "languages", `A langs;
+                    "message", `String message;
+                    "pattern", `String pattern;
+                    "severity", `String sev;
+                  ] ->
+                      let languages, lang = parse_languages ~id langs in
+                      let pattern = parse_pattern ~id ~lang pattern in
+                      let severity = parse_severity ~id sev in
+                      { R. id; pattern; message; languages; severity }
+                  | x ->
+                      pr2_gen x;
+                      raise (InvalidYamlException "wrong rule fields")
+                 )
              | x ->
-               pr2_gen x;
-               raise (InvalidYamlException "wrong rule fields")
-             )
-          | x ->
-              pr2_gen x;
-              raise (InvalidYamlException "wrong rule fields")
-         )
-      | _ -> raise (InvalidYamlException "missing rules entry as top-level key")
+                 pr2_gen x;
+                 raise (InvalidYamlException "wrong rule fields")
+           )
+       | _ -> raise (InvalidYamlException "missing rules entry as top-level key")
       )
   | Result.Error (`Msg s) ->
-    raise (UnparsableYamlException s)
+      raise (UnparsableYamlException s)
 (*e: function [[Parse_rules.parse]] *)
 
 (*

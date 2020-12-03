@@ -109,3 +109,16 @@ repos:
         # Managed at https://semgrep.dev/mschwager:semgrep-local
         args: ['--config', 'https://semgrep.dev/mschwager:semgrep-local', '--error']
         stages: [manual]
+
+  # Re-indent OCaml code (ml, mli) with ocp-indent if ocp-indent is
+  # present. If ocp-indent is missing, this step will succeed.
+  # This allows pure python users to run 'pre-commit run --all' without
+  # installing opam and ocp-indent.
+  #
+  - repo: local
+    hooks:
+      - id: lint-ocaml
+        name: Re-indent OCaml code
+        entry: ./scripts/lint-ocaml
+        language: script
+        files: "\\.mli?$"

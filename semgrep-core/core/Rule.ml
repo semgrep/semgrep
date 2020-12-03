@@ -12,7 +12,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * file license.txt for more details.
- *)
+*)
 
 (*****************************************************************************)
 (* Prelude *)
@@ -26,7 +26,7 @@
  * instead the sgrep python wrapper! It also uses a yaml file but it
  * has more features, e.g. some pattern-either fields, pattern-inside,
  * where-eval, etc.
- *)
+*)
 
 (*****************************************************************************)
 (* Types *)
@@ -48,12 +48,12 @@ type rule = {
 (*e: type [[Rule.rule]] *)
 
 (*s: type [[Rule.rules]] *)
- and rules = rule list
+and rules = rule list
 (*e: type [[Rule.rules]] *)
 
 (* TODO? just reuse Error_code.severity *)
 (*s: type [[Rule.severity]] *)
- and severity = Error | Warning | Info
+and severity = Error | Warning | Info
 (*e: type [[Rule.severity]] *)
 
 (*s: type [[Rule.t]] *)

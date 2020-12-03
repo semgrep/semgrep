@@ -14,6 +14,6 @@ let synthesize_patterns s file =
   Constant_propagation.propagate lang ast;
   match a_opt with
   | Some a ->
-       let patterns = Pattern_from_Code.from_any a in
-       List.map (fun (k, v) -> (k, Pretty_print_generic.pattern_to_string lang v)) patterns
+      let patterns = Pattern_from_Code.from_any a in
+      List.map (fun (k, v) -> (k, Pretty_print_generic.pattern_to_string lang v)) patterns
   | None -> failwith (spf "could not find an expr at range %s in %s" s file)

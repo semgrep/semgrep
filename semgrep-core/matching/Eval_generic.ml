@@ -11,7 +11,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 open Common
 module G = AST_generic
 
@@ -25,7 +25,7 @@ module J = JSON
  *
  * This can be used to safely execute a subset of pattern-where-python:
  * expressions.
- *)
+*)
 
 let logger = Logging.get_logger [__MODULE__]
 
@@ -43,9 +43,9 @@ type value =
   (* default case where we don't really have good builtin operations.
    * This should be a AST_generic.any once parsed.
    * See JSON_report.json_metavar().
-   *)
+  *)
   | AST of string (* any AST, e.g., "x+1" *)
-  (* lesS: Id of string (* simpler to merge with AST *) *)
+(* lesS: Id of string (* simpler to merge with AST *) *)
 
 type env = (MV.mvar, value) Hashtbl.t
 
@@ -68,28 +68,28 @@ let parse_json file =
   let json = JSON.load_json file in
   match json with
   | J.Object xs ->
-    (match Common.sort_by_key_lowfirst xs with
-    | ["code", J.String code;
-       "language", J.String lang;
-       "metavars", J.Object xs;
-      ] ->
-      let lang =
-        try Hashtbl.find Lang.lang_of_string_map lang
-        with Not_found -> failwith (spf "unsupported language %s" lang)
-      in
-      (* less: could also use Parse_pattern *)
-      let code =
-        match Parse_generic.parse_pattern lang code with
-        | G.E e -> e
-        | _ -> failwith "only expressions are supported"
-      in
-      let metavars =
-        xs |> List.map (fun (s, json) -> s, metavar_of_json s json)
-      in
-      Common.hash_of_list metavars, code
+      (match Common.sort_by_key_lowfirst xs with
+       | ["code", J.String code;
+          "language", J.String lang;
+          "metavars", J.Object xs;
+         ] ->
+           let lang =
+             try Hashtbl.find Lang.lang_of_string_map lang
+             with Not_found -> failwith (spf "unsupported language %s" lang)
+           in
+           (* less: could also use Parse_pattern *)
+           let code =
+             match Parse_generic.parse_pattern lang code with
+             | G.E e -> e
+             | _ -> failwith "only expressions are supported"
+           in
+           let metavars =
+             xs |> List.map (fun (s, json) -> s, metavar_of_json s json)
+           in
+           Common.hash_of_list metavars, code
 
-    | _ -> failwith "wrong json format"
-    )
+       | _ -> failwith "wrong json format"
+      )
   | _ -> failwith "wrong json format"
 
 (*****************************************************************************)
@@ -102,11 +102,11 @@ let print_result xopt =
   | None -> pr "NONE"
   | Some v ->
       (match v with
-      | Bool b -> pr (string_of_bool b)
-      (* allow to abuse int to encode boolean ... ugly C tradition *)
-      | Int 0 -> pr (string_of_bool false)
-      | Int _ -> pr (string_of_bool true)
-      | _ -> pr "NONE"
+       | Bool b -> pr (string_of_bool b)
+       (* allow to abuse int to encode boolean ... ugly C tradition *)
+       | Int 0 -> pr (string_of_bool false)
+       | Int _ -> pr (string_of_bool true)
+       | _ -> pr "NONE"
       )
 [@@action]
 
@@ -118,24 +118,24 @@ let rec eval env code =
   match code with
   | G.L x ->
       (match x with
-      | G.Bool (b, _t) -> Bool (b)
-      | G.String (s, _t) -> String s
-      (* this assumes the string format of the language is handled by
-       * OCaml xx_of_string builtins.
+       | G.Bool (b, _t) -> Bool (b)
+       | G.String (s, _t) -> String s
+       (* this assumes the string format of the language is handled by
+        * OCaml xx_of_string builtins.
        *)
-      | G.Int (s, _t) -> Int (int_of_string s)
-      | G.Float (s, _t) -> Float (float_of_string s)
-      | _ -> raise (NotHandled code)
+       | G.Int (s, _t) -> Int (int_of_string s)
+       | G.Float (s, _t) -> Float (float_of_string s)
+       | _ -> raise (NotHandled code)
       )
   | G.Id ((s, _t), _idinfo) ->
-    (try Hashtbl.find env s
-     with Not_found -> raise (NotHandled code)
-    )
+      (try Hashtbl.find env s
+       with Not_found -> raise (NotHandled code)
+      )
   | G.Call (G.IdSpecial (G.Op op, _t), (_, args, _)) ->
       let values = args |> List.map (function
-            | G.Arg e -> eval env e
-            | _ -> raise (NotHandled code)
-        ) in
+        | G.Arg e -> eval env e
+        | _ -> raise (NotHandled code)
+      ) in
       eval_op op values code
   | G.Container (G.List, (_, xs, _)) ->
       let vs = List.map (eval env) xs in
@@ -145,8 +145,8 @@ let rec eval env code =
       let v1 = eval env e1 in
       let v2 = eval env e2 in
       (match v2 with
-      | List xs -> Bool (List.mem v1 xs)
-      | _ -> Bool (false)
+       | List xs -> Bool (List.mem v1 xs)
+       | _ -> Bool (false)
       )
   | _ -> raise (NotHandled code)
 
@@ -186,7 +186,7 @@ and eval_op op values code =
   (* abuse generic =. Not that this will prevent
    * Int 0 to be equal to Float 0.0.
    * Again need automatic cast.
-   *)
+  *)
   | G.Eq, [v1; v2] -> Bool (v1 = v2)
   | G.NotEq, [v1; v2] -> Bool (v1 <> v2)
 
@@ -198,9 +198,9 @@ let eval_json_file file =
     let res = eval env code in
     print_result (Some res)
   with
-   | NotHandled e ->
+  | NotHandled e ->
       logger#sdebug (G.show_any (G.E e));
       print_result None
-   | exn ->
+  | exn ->
       logger#debug "exn: %s" (Common.exn_to_s exn);
       print_result None

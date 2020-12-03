@@ -11,7 +11,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 open Common
 
 module MV = Metavars_php
@@ -66,35 +66,35 @@ module XMATCH = struct
   type ('a, 'b) matcher = 'a -> 'b  -> tin -> ('a * 'b) tout
 
   let ((>>=):
-          (tin -> ('a * 'b) tout)  ->
-          (('a * 'b) -> (tin -> ('c * 'd) tout)) ->
-          (tin -> ('c * 'd) tout)) =
+         (tin -> ('a * 'b) tout)  ->
+       (('a * 'b) -> (tin -> ('c * 'd) tout)) ->
+       (tin -> ('c * 'd) tout)) =
     fun m1 m2 ->
-      fun tin ->
-        (* old:
-           match m1 tin with
-           | None -> None
-           | Some (a,b) ->
-           m2 (a, b) tin
-        *)
-        (* let's get a list of possible environment match (could be
-         * the empty list when it didn't match, playing the role None
-         * had before)
-         *)
-        let xs = m1 tin in
-        (* try m2 on each possible returned bindings *)
-        let xxs = xs |> List.map (fun ((a,b), binding) ->
-          m2 (a, b) binding
-        ) in
-        List.flatten xxs
+    fun tin ->
+    (* old:
+       match m1 tin with
+       | None -> None
+       | Some (a,b) ->
+       m2 (a, b) tin
+    *)
+    (* let's get a list of possible environment match (could be
+     * the empty list when it didn't match, playing the role None
+     * had before)
+    *)
+    let xs = m1 tin in
+    (* try m2 on each possible returned bindings *)
+    let xxs = xs |> List.map (fun ((a,b), binding) ->
+      m2 (a, b) binding
+    ) in
+    List.flatten xxs
 
   let (>||>) m1 m2 = fun tin ->
-(* CHOICE
-      let xs = m1 tin in
-      if null xs
-      then m2 tin
-      else xs
-*)
+    (* CHOICE
+          let xs = m1 tin in
+          if null xs
+          then m2 tin
+          else xs
+    *)
     (* opti? use set instead of list *)
     m1 tin @ m2 tin
 
@@ -113,7 +113,7 @@ module XMATCH = struct
 
   (* pre: both 'a' and 'b' contains only regular PHP code. There is no
    * metavariables in them.
-   *)
+  *)
   let equal_ast_binded_code a b =
     match a, b with
     | A.Expr _, A.Expr _
@@ -121,7 +121,7 @@ module XMATCH = struct
     | A.Ident2 _, B.Ident2 _
     | A.Argument _, B.Argument _
     | A.Hint2 _, B.Hint2 _
-     ->
+      ->
 
         (* Note that because we want to retain the position information
          * of the matched code in the environment (e.g. for the -pvar
@@ -131,7 +131,7 @@ module XMATCH = struct
          * with different position information. So before doing
          * the comparison we just need to remove/abstract-away
          * the line number information in each ASTs.
-         *)
+        *)
         let a = Lib_parsing_php.abstract_position_info_any a in
         let b = Lib_parsing_php.abstract_position_info_any b in
         a =*= b
@@ -145,7 +145,7 @@ module XMATCH = struct
    * So tin will be already populated with all metavariables so
    * equal_ast_binded_code will be called even when we don't use
    * two times the same metavariable in the pattern.
-   *)
+  *)
   let check_and_add_metavar_binding  (mvar, valu) = fun tin ->
     match Common2.assoc_opt (mvar: string) tin with
     | Some valu' ->
@@ -173,24 +173,24 @@ module XMATCH = struct
     | PI.AddStr s ->
         (* transforming first metavar variable ($X) and then
          * mevar (X)
-         *)
+        *)
         let s =
-         s |> Common2.global_replace_regexp MV.metavar_variable_regexp_string
-         (fun matched ->
-          try List.assoc matched env
-          with Not_found ->
-            failwith (spf "metavariable %s was not found in environment"
-                         matched)
-         )
+          s |> Common2.global_replace_regexp MV.metavar_variable_regexp_string
+            (fun matched ->
+               try List.assoc matched env
+               with Not_found ->
+                 failwith (spf "metavariable %s was not found in environment"
+                             matched)
+            )
         in
 
         let s = s |> Common2.global_replace_regexp MV.metavar_regexp_string
-         (fun matched ->
-          try List.assoc matched env
-          with Not_found ->
-            failwith (spf "metavariable %s was not found in environment"
-                         matched)
-         )
+                  (fun matched ->
+                     try List.assoc matched env
+                     with Not_found ->
+                       failwith (spf "metavariable %s was not found in environment"
+                                   matched)
+                  )
         in
         PI.AddStr s
 
@@ -201,19 +201,19 @@ module XMATCH = struct
    * then before applying the transformation we need first to
    * substitute all metavariables by their actual binded value
    * in the environment.
-   *)
+  *)
   let adjust_transfo_with_env env transfo =
-     match transfo with
-     | PI.NoTransfo
-     | PI.Remove -> transfo
+    match transfo with
+    | PI.NoTransfo
+    | PI.Remove -> transfo
 
-     | PI.AddBefore add ->
-         PI.AddBefore (subst_metavars env add)
-     | PI.AddAfter add ->
-         PI.AddAfter (subst_metavars env add)
-     | PI.Replace add ->
-         PI.Replace (subst_metavars env add)
-     | PI.AddArgsBefore _ -> raise Todo
+    | PI.AddBefore add ->
+        PI.AddBefore (subst_metavars env add)
+    | PI.AddAfter add ->
+        PI.AddAfter (subst_metavars env add)
+    | PI.Replace add ->
+        PI.Replace (subst_metavars env add)
+    | PI.AddArgsBefore _ -> raise Todo
 
   (*
    * Sometimes a metavariable like X will match an expression made of
@@ -236,19 +236,19 @@ module XMATCH = struct
     let ii = Lib_parsing_php.ii_of_any any in
 
     (match transfo with
-    | PI.NoTransfo -> ()
-    | PI.Remove -> ii |> List.iter (fun tok -> tok.PI.transfo <- PI.Remove)
-    | PI.Replace _add ->
-        ii |> List.iter (fun tok -> tok.PI.transfo <- PI.Remove);
-        let any_ii = List.hd ii in
-        any_ii.PI.transfo <- adjust_transfo_with_env env transfo;
-    | PI.AddBefore _add -> raise Todo
-    | PI.AddAfter _add -> raise Todo
-    | PI.AddArgsBefore _ -> raise Todo
+     | PI.NoTransfo -> ()
+     | PI.Remove -> ii |> List.iter (fun tok -> tok.PI.transfo <- PI.Remove)
+     | PI.Replace _add ->
+         ii |> List.iter (fun tok -> tok.PI.transfo <- PI.Remove);
+         let any_ii = List.hd ii in
+         any_ii.PI.transfo <- adjust_transfo_with_env env transfo;
+     | PI.AddBefore _add -> raise Todo
+     | PI.AddAfter _add -> raise Todo
+     | PI.AddArgsBefore _ -> raise Todo
     )
 
   let (envf: (Metavars_php.mvar Cst_php.wrap, Cst_php.any) matcher) =
-   fun (mvar, imvar) any  -> fun tin ->
+    fun (mvar, imvar) any  -> fun tin ->
     match check_and_add_metavar_binding (mvar, any) tin with
     | None ->
         fail tin
@@ -265,9 +265,9 @@ module XMATCH = struct
    * So we really need to pass two different things, the any
    * we want to add in the environment and the any we want
    * to match against and transform.
-   *)
+  *)
   let (envf2: (Metavars_php.mvar Cst_php.wrap, (Cst_php.any * Cst_php.any)) matcher) =
-   fun (mvar, imvar) (any1, any2)  -> fun tin ->
+    fun (mvar, imvar) (any1, any2)  -> fun tin ->
     match check_and_add_metavar_binding (mvar, any1) tin with
     | None ->
         fail tin

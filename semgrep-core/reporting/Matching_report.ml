@@ -12,7 +12,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 open Common
 
 module PI = Parse_info
@@ -31,13 +31,13 @@ type match_format =
    *  foo(
    *   1,
    *   2);
-   *)
+  *)
   | Normal
   (* ex: tests/misc/foo4.php:3: foo( *)
   | Emacs
   (* ex: tests/misc/foo4.php:3: foo(1,2) *)
   | OneLine
-(*e: type [[Matching_report.match_format]] *)
+  (*e: type [[Matching_report.match_format]] *)
 
 (*****************************************************************************)
 (* Helpers *)
@@ -50,7 +50,7 @@ type match_format =
  * to just List.map str_of_info because some PHP expressions such as
  * '$x = print FOO' would then be transformed into $x=printFOO, hence
  * this function
- *)
+*)
 let rec join_with_space_if_needed xs =
   match xs with
   | [] -> ""
@@ -67,26 +67,26 @@ let rec join_with_space_if_needed xs =
 (*****************************************************************************)
 (*s: function [[Matching_report.print_match]] *)
 let print_match ?(format = Normal) ii =
- try
-  let (mini, maxi) = PI.min_max_ii_by_pos ii in
-  let (file, line) =
-    PI.file_of_info mini, PI.line_of_info mini in
-  let prefix = spf "%s:%d" file line in
-  let arr = Common2.cat_array file in
-  let lines = Common2.enum (PI.line_of_info mini) (PI.line_of_info maxi) in
+  try
+    let (mini, maxi) = PI.min_max_ii_by_pos ii in
+    let (file, line) =
+      PI.file_of_info mini, PI.line_of_info mini in
+    let prefix = spf "%s:%d" file line in
+    let arr = Common2.cat_array file in
+    let lines = Common2.enum (PI.line_of_info mini) (PI.line_of_info maxi) in
 
-  (match format with
-  | Normal ->
-      pr prefix;
-      (* todo? some context too ? *)
-      lines |> List.map (fun i -> arr.(i)) |> List.iter (fun s -> pr (" " ^ s))
-  | Emacs ->
-      pr (prefix ^ ": " ^ arr.(List.hd lines))
-  | OneLine ->
-      pr (prefix ^ ": " ^ (ii |> List.map PI.str_of_info
-                            |> join_with_space_if_needed))
-  )
- with Failure "get_pos: Ab or FakeTok" ->
-   pr "<could not locate match, FakeTok or AbstractTok>"
+    (match format with
+     | Normal ->
+         pr prefix;
+         (* todo? some context too ? *)
+         lines |> List.map (fun i -> arr.(i)) |> List.iter (fun s -> pr (" " ^ s))
+     | Emacs ->
+         pr (prefix ^ ": " ^ arr.(List.hd lines))
+     | OneLine ->
+         pr (prefix ^ ": " ^ (ii |> List.map PI.str_of_info
+                              |> join_with_space_if_needed))
+    )
+  with Failure "get_pos: Ab or FakeTok" ->
+    pr "<could not locate match, FakeTok or AbstractTok>"
 (*e: function [[Matching_report.print_match]] *)
 (*e: semgrep/reporting/Matching_report.ml *)

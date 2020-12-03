@@ -13,7 +13,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 (*e: pad/r2c copyright *)
 
 (*****************************************************************************)
@@ -50,7 +50,7 @@
  * related work:
  *  - standard.iso in coccinelle
  *    https://github.com/coccinelle/coccinelle/blob/master/standard.iso
- *)
+*)
 
 (*****************************************************************************)
 (* Types *)
@@ -76,7 +76,7 @@ type equivalence = {
 (*e: type [[Equivalence.equivalence]] *)
 
 (*s: type [[Equivalence.equivalences]] *)
- and equivalences = equivalence list
+and equivalences = equivalence list
 (*e: type [[Equivalence.equivalences]] *)
 
 (*s: type [[Equivalence.t]] *)

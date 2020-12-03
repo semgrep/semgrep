@@ -16,10 +16,10 @@ type tout = tin list
  * the AST of the program we want to match over), then some environment
  * information tin, and it will return something (tout) that will
  * represent a match between element A and B.
- *)
+*)
 (* currently 'a and 'b are usually the same type as we use the
  * same language for the host language and pattern language
- *)
+*)
 type ('a, 'b) matcher = 'a -> 'b -> tin -> tout
 (*e: type [[Matching_generic.matcher]] *)
 
@@ -77,7 +77,7 @@ val regexp_matcher_of_regexp_string: string -> (string -> bool)
 val equal_ast_binded_code : AST_generic.any -> AST_generic.any -> bool
 
 (* internal:
-val str_of_any : AST_generic.any -> string
+   val str_of_any : AST_generic.any -> string
 *)
 
 (* generic matchers *)

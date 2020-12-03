@@ -1,0 +1,23 @@
+#! /usr/bin/env bash
+#
+# Re-indent an OCaml file passed as argument. This is meant to be invoked
+# by 'pre-commit' as part of a pre-commit hook.
+#
+set -eu
+
+eval $(opam env)
+
+if $(ocp-indent --version > /dev/null 2>&1); then
+  ocp-indent -i "$@"
+else
+  cat <<EOF
+*** ocp-indent was not found. ***
+
+If you wish to re-indent OCaml code, you must install ocp-indent, which is
+normally done with the following command:
+
+  $ opam install ocp-indent
+
+For now, let's pretend everything is fine.
+EOF
+fi

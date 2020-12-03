@@ -13,7 +13,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 (*e: pad/r2c copyright *)
 open Common (* >>= *)
 open AST_generic
@@ -25,7 +25,7 @@ open AST_generic
  *
  * TODO: merge with pfff/.../normalize_ast.ml at some point
  *
- *)
+*)
 
 (*****************************************************************************)
 (* Entry points *)
@@ -36,7 +36,7 @@ open AST_generic
  * Examples (for Python):
  *   from foo import bar -> import foo.bar
  *   from foo.bar import baz -> import foo.bar.baz
- *)
+*)
 
 let full_module_name is_pattern from_module_name import_opt =
   match from_module_name, import_opt with
@@ -48,12 +48,12 @@ let full_module_name is_pattern from_module_name import_opt =
   | FileName s, None ->
       Some (FileName s)
   | FileName s, _ when not is_pattern ->
-    (* bugfix: for languages such as JS, 'import x from "path"' should not
-     * be converted in just "path". We should return None here as it
-     * does not make sense to allow this pattern to match
-     * import y from "path". Use just 'import "path"' if you just want
-     * to check you vaguely imported a package.
-     *)
+      (* bugfix: for languages such as JS, 'import x from "path"' should not
+       * be converted in just "path". We should return None here as it
+       * does not make sense to allow this pattern to match
+       * import y from "path". Use just 'import "path"' if you just want
+       * to check you vaguely imported a package.
+      *)
       Some (FileName s)
   | FileName _, Some _ -> None
 (*e: function [[Normalize_generic.full_module_name]] *)
@@ -62,11 +62,11 @@ let full_module_name is_pattern from_module_name import_opt =
 let normalize_import_opt is_pattern i =
   match i with
   | ImportFrom(t, module_name, m, _alias_opt) ->
-     full_module_name is_pattern module_name (Some m)>>= (fun x -> Some (t, x))
+      full_module_name is_pattern module_name (Some m)>>= (fun x -> Some (t, x))
   | ImportAs(t, module_name, _alias_opt) ->
-     full_module_name is_pattern module_name None >>= (fun x -> Some (t, x))
+      full_module_name is_pattern module_name None >>= (fun x -> Some (t, x))
   | ImportAll(t, module_name, _t2) ->
-     full_module_name is_pattern module_name None >>= (fun x -> Some (t, x))
+      full_module_name is_pattern module_name None >>= (fun x -> Some (t, x))
   | Package _
   | PackageEnd _
   | Pragma _
@@ -81,23 +81,23 @@ let rec eval x =
   | Id (_, { id_const_literal = {contents = Some x}; _}) -> Some x
 
   | Call(IdSpecial((Op(Plus | Concat) | ConcatString _), _), args)->
-    let literals = args |> unbracket |> Common.map_filter (fun (arg) ->
-      match arg with
+      let literals = args |> unbracket |> Common.map_filter (fun (arg) ->
+        match arg with
         | Arg e -> eval e
         | _ -> None
-    ) in
-    let strs = literals |> Common.map_filter (fun (lit) ->
-      match lit with
+      ) in
+      let strs = literals |> Common.map_filter (fun (lit) ->
+        match lit with
         | String (s1, _) -> Some s1
         | _ -> None
-    ) in
-    let concated = String.concat "" strs in
-    let all_args_are_string = List.length strs =
-                              List.length (unbracket args) in
-    (match List.nth_opt literals 0 with
-      | Some(String(_s1, t1)) when all_args_are_string -> Some(String(concated, t1))
-      | _ -> None
-    )
+      ) in
+      let concated = String.concat "" strs in
+      let all_args_are_string = List.length strs =
+                                List.length (unbracket args) in
+      (match List.nth_opt literals 0 with
+       | Some(String(_s1, t1)) when all_args_are_string -> Some(String(concated, t1))
+       | _ -> None
+      )
   (* TODO: partial evaluation for ints/floats/... *)
   | _ -> None
 (*e: function [[Normalize_generic.eval]] *)

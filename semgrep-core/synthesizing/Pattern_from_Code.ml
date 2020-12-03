@@ -10,7 +10,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * file license.txt for more details.
- *)
+*)
 open AST_generic
 
 (*****************************************************************************)
@@ -20,7 +20,7 @@ open AST_generic
  *
  * related work:
  *  - coccinelle spinfer?
- *)
+*)
 
 exception UnexpectedCase of string
 
@@ -31,7 +31,7 @@ type named_variants =
   (string * Pattern.t) list
 
 type environment = { count : int; mapping : (expr * expr) list;
-                      has_type : bool }
+                     has_type : bool }
 
 (*****************************************************************************)
 (* State helpers *)
@@ -39,12 +39,12 @@ type environment = { count : int; mapping : (expr * expr) list;
 
 (* TODO make mapping a map and use map lookup *)
 let lookup env e =
-let mapping = env.mapping in
-let rec look = function
+  let mapping = env.mapping in
+  let rec look = function
     | [] -> None
     | (e1, e2)::xs ->
-      if Matching_generic.equal_ast_binded_code (E e) (E e1) then Some e2 else look xs
-in
+        if Matching_generic.equal_ast_binded_code (E e) (E e1) then Some e2 else look xs
+  in
   look mapping
 
 
@@ -58,7 +58,7 @@ let _bk f (lp,x,rp) = (lp, f x, rp)
 
 let default_id str =
   Id((str, fk),
-   {id_resolved = ref None; id_type = ref None; id_const_literal = ref None})
+     {id_resolved = ref None; id_type = ref None; id_const_literal = ref None})
 
 let default_tyvar str typ =
   TypedMetavar((str, fk), fk, typ)
@@ -66,11 +66,11 @@ let default_tyvar str typ =
 let count_to_id count =
   let make_id ch = Format.sprintf "$%c" ch in
   match count with
-    | 1 -> make_id 'X'
-    | 2 -> make_id 'Y'
-    | 3 -> make_id 'Z'
-    | _ when count <= 26 -> make_id (Char.chr (count - 4 + Char.code 'A'))
-    | _ -> Format.sprintf "$X%d" (count - 26)
+  | 1 -> make_id 'X'
+  | 2 -> make_id 'Y'
+  | 3 -> make_id 'Z'
+  | _ when count <= 26 -> make_id (Char.chr (count - 4 + Char.code 'A'))
+  | _ -> Format.sprintf "$X%d" (count - 26)
 
 (* If the id is already in env, return that *)
 (* Otherwise, this depends on the with_type flag *)
@@ -80,27 +80,27 @@ let count_to_id count =
 let get_id ?(with_type=false) env e =
   let id = lookup env e in
   match id with
-      Some x -> (env, x)
-    | None ->
-        let notype_id = default_id (count_to_id env.count) in
-        let has_type = env.has_type in
-        let (new_id, new_has_type) =
+    Some x -> (env, x)
+  | None ->
+      let notype_id = default_id (count_to_id env.count) in
+      let has_type = env.has_type in
+      let (new_id, new_has_type) =
         if with_type then
           (match e with
-              | Id (_, {id_type; _}) ->
-                 (match !id_type with
-                   | None -> (notype_id, has_type)
-                   | Some t -> (default_tyvar (count_to_id env.count) t), true)
-              | L (String ((_, tag))) -> (L (String (("...", tag))), false)
-              | _ -> (notype_id, has_type)
+           | Id (_, {id_type; _}) ->
+               (match !id_type with
+                | None -> (notype_id, has_type)
+                | Some t -> (default_tyvar (count_to_id env.count) t), true)
+           | L (String ((_, tag))) -> (L (String (("...", tag))), false)
+           | _ -> (notype_id, has_type)
           )
         else
           (match e with
-            | L (String ((_, tag))) -> (L (String (("...", tag))), false)
-            | _ -> (notype_id, has_type)
+           | L (String ((_, tag))) -> (L (String (("...", tag))), false)
+           | _ -> (notype_id, has_type)
           )
-        in
-        ({ count = env.count + 1; mapping = (e, new_id)::(env.mapping); has_type = new_has_type }, new_id)
+      in
+      ({ count = env.count + 1; mapping = (e, new_id)::(env.mapping); has_type = new_has_type }, new_id)
 
 let has_nested_call = List.find_opt (fun x -> match x with Arg(Call _) -> true | _ -> false)
 
@@ -115,13 +115,13 @@ let shallow_dots (e, (lp, rp)) =
 let rec map_args env = function
   | [] -> (env, [])
   | (Arg x)::xs ->
-     let (env', new_id) = get_id env x in
-     let (_, args) = map_args env' xs in
-     (env', (Arg new_id)::args)
+      let (env', new_id) = get_id env x in
+      let (_, args) = map_args env' xs in
+      (env', (Arg new_id)::args)
   | (ArgKwd (label, x))::xs ->
-    let (env', new_id) = get_id env x in
-    let (_, args) = map_args env' xs in
-    (env', (ArgKwd (label, new_id))::args)
+      let (env', new_id) = get_id env x in
+      let (_, args) = map_args env' xs in
+      (env', (ArgKwd (label, new_id))::args)
   | _ -> (env, []) (* TODO fail? *)
 
 let exact_metavar (e, (lp, es, rp)) env =
@@ -140,23 +140,23 @@ and deep_mv_args with_type env args =
   let get_new_arg (e, xs) =
     let (env', new_e) =
       match e with
-          | Call (e, (lp, es, rp)) -> deep_mv_call (e, (lp, es, rp)) with_type env
-          | _ -> get_id ~with_type:with_type env e
-      in
-      let (env'', args') = deep_mv_args with_type env' xs in
-      (env'', new_e, args')
+      | Call (e, (lp, es, rp)) -> deep_mv_call (e, (lp, es, rp)) with_type env
+      | _ -> get_id ~with_type:with_type env e
+    in
+    let (env'', args') = deep_mv_args with_type env' xs in
+    (env'', new_e, args')
   in
   match args with
-    | [] -> (env, [])
-    | (Arg e)::xs -> (
-       let (env'', new_e, args') = get_new_arg (e, xs) in
-       (env'', (Arg new_e)::args')
+  | [] -> (env, [])
+  | (Arg e)::xs -> (
+      let (env'', new_e, args') = get_new_arg (e, xs) in
+      (env'', (Arg new_e)::args')
     )
-    | (ArgKwd (label, e))::xs -> (
-       let (env'', new_e, args') = get_new_arg (e, xs) in
-       (env'', (ArgKwd (label, new_e))::args')
+  | (ArgKwd (label, e))::xs -> (
+      let (env'', new_e, args') = get_new_arg (e, xs) in
+      (env'', (ArgKwd (label, new_e))::args')
     )
-    | _ -> (env, [])
+  | _ -> (env, [])
 
 let deep_metavar (e, (lp, es, rp)) env =
   let (_, e') = deep_mv_call (e, (lp, es, rp)) false env in ("deep metavars", E e')
@@ -172,28 +172,28 @@ let generalize_call env = function
       (* only show the deep_metavar and deep_typed_metavar options if relevant *)
       let d_mvar =
         match (has_nested_call es) with
-            None -> []
-          | Some _ -> (deep_metavar (e, (lp, es, rp)) env) :: []
+          None -> []
+        | Some _ -> (deep_metavar (e, (lp, es, rp)) env) :: []
       in
       let optional =
         match (deep_typed_metavar (e, (lp, es, rp)) env) with
-            None -> d_mvar
-          | Some e' -> e' :: d_mvar
+          None -> d_mvar
+        | Some e' -> e' :: d_mvar
       in
       (match e with
-        | IdSpecial _ -> (exact_metavar (e, (lp, es, rp)) env) :: optional
-        | _ -> (shallow_dots (e, (lp, rp))) :: (shallow_metavar (e, (lp, es, rp)) env) ::
-               (exact_metavar (e, (lp, es, rp)) env) :: optional)
+       | IdSpecial _ -> (exact_metavar (e, (lp, es, rp)) env) :: optional
+       | _ -> (shallow_dots (e, (lp, rp))) :: (shallow_metavar (e, (lp, es, rp)) env) ::
+              (exact_metavar (e, (lp, es, rp)) env) :: optional)
   | _ -> []
 
 (* Id *)
 let generalize_id env e =
   match e with
   | Id _ ->
-     let (_, id) = get_id env e in
-     let (env', id_t) = get_id ~with_type:true env e in
-     if env'.has_type then ["metavar", E id; "typed metavar", E id_t]
-     else ["metavar", E id]
+      let (_, id) = get_id env e in
+      let (env', id_t) = get_id ~with_type:true env e in
+      if env'.has_type then ["metavar", E id; "typed metavar", E id_t]
+      else ["metavar", E id]
   | _ -> []
 
 (* Assign *)
@@ -203,7 +203,7 @@ let rec include_e2_patterns env (e1, tok, e2) =
 
 and generalize_assign env e =
   match e with
-    | Assign (e1, tok, e2) ->
+  | Assign (e1, tok, e2) ->
       let (env1, id1) = get_id env e1 in
       let (_, id2) = get_id env1 e2 in
       let (env', id_t) = get_id ~with_type:true env e1 in
@@ -213,8 +213,8 @@ and generalize_assign env e =
                                "typed metavars", E (Assign (id_t, tok, id2))]
         else ["metavars", E (Assign (id1, tok, id2))]
       in
-        ("dots", E (Assign (e1, tok, Ellipsis fk)))::(metavar_part @ e2_patterns)
-    | _ -> []
+      ("dots", E (Assign (e1, tok, Ellipsis fk)))::(metavar_part @ e2_patterns)
+  | _ -> []
 
 (* All expressions *)
 and generalize_exp e env =
@@ -231,12 +231,12 @@ and generalize_exp e env =
 and add_expr e f env =
   List.map (fun x -> match x with | (str, E e') -> f (str, e')
                                   | _ -> raise (UnexpectedCase "Must pass in an any of form E x"))
-           (generalize_exp e env)
+    (generalize_exp e env)
 
 and add_stmt s f env =
   List.map (fun x -> match x with | (str, S s') -> f (str, s')
                                   | _ -> raise (UnexpectedCase "Must pass in an any of form S x"))
-           (generalize_stmt s env)
+    (generalize_stmt s env)
 
 (* All statements *)
 and generalize_exprstmt (e, tok) env =
@@ -245,29 +245,29 @@ and generalize_exprstmt (e, tok) env =
 and generalize_if s_in =
   let opt f so =
     match so with
-      | None -> None
-      | Some x -> Some (f x)
+    | None -> None
+    | Some x -> Some (f x)
   in
   let rec dots_in_body s =
     match s with
-      | If (tok, e, s, sopt) -> If (tok, e, dots_in_body s, opt dots_in_body sopt)
-      | Block (t1, [If _ as x], t2) -> Block(t1, [dots_in_body x], t2)
-      | Block (t1, _, t2) -> body_ellipsis t1 t2
-      | _ -> fk_stmt
+    | If (tok, e, s, sopt) -> If (tok, e, dots_in_body s, opt dots_in_body sopt)
+    | Block (t1, [If _ as x], t2) -> Block(t1, [dots_in_body x], t2)
+    | Block (t1, _, t2) -> body_ellipsis t1 t2
+    | _ -> fk_stmt
   in
   let rec dots_in_cond s =
     match s with
-      | If (tok, _, s, sopt) -> If (tok, Ellipsis fk, s, opt dots_in_cond sopt)
-      | Block (t1, [If _ as x], t2) -> Block (t1, [dots_in_cond x], t2)
-      | x -> x
+    | If (tok, _, s, sopt) -> If (tok, Ellipsis fk, s, opt dots_in_cond sopt)
+    | Block (t1, [If _ as x], t2) -> Block (t1, [dots_in_cond x], t2)
+    | x -> x
   in
   ["dots in body", S (dots_in_body s_in); "dots in cond", S (dots_in_cond s_in)]
 
 and generalize_while (tok, e, s) env =
   let body_dots =
     match s with
-      | Block (t1, _, t2) -> body_ellipsis t1 t2
-      | _ -> fk_stmt
+    | Block (t1, _, t2) -> body_ellipsis t1 t2
+    | _ -> fk_stmt
   in
   let dots_in_cond = ("dots in condition", S (While (tok, Ellipsis fk, s))) in
   let dots_in_body = ("dots in body", S (While (tok, e, body_dots))) in
@@ -278,8 +278,8 @@ and generalize_while (tok, e, s) env =
 and generalize_for (tok, hdr, s) =
   let body_dots =
     match s with
-      | Block (t1, _, t2) -> body_ellipsis t1 t2
-      | _ -> fk_stmt
+    | Block (t1, _, t2) -> body_ellipsis t1 t2
+    | _ -> fk_stmt
   in
   let dots_in_body = ("dots in body", S (For (tok, hdr, body_dots))) in
   let dots_in_cond = ("dots in condition", S (For (tok, ForEllipsis fk, s))) in
@@ -287,16 +287,16 @@ and generalize_for (tok, hdr, s) =
 
 and generalize_block (t1, ss, t2) env =
   let rec get_last = function
-  | [] -> []
-  | [x] -> [x]
-  | _::xs -> get_last xs
+    | [] -> []
+    | [x] -> [x]
+    | _::xs -> get_last xs
   in
   match ss with
   | [] -> []
   | x::[] -> add_stmt x (fun (str, s') -> ("with " ^ str, S (Block ((t1, [s'], t2))))) env
   | x::_::[] -> ["dots", S (Block ((t1, x::(fk_stmt)::[], t2)))]
   | x::y::z::zs -> ["dots", S (Block ((t1, x::(fk_stmt)::(get_last (y::z::zs)), t2)))]
-  (* All statements *)
+(* All statements *)
 
 and generalize_stmt s env =
   match s with
@@ -309,10 +309,10 @@ and generalize_stmt s env =
 
 (* All *)
 and generalize_any a env =
-   match a with
-   | E e -> generalize_exp e env
-   | S s -> generalize_stmt s env
-   | _ -> []
+  match a with
+  | E e -> generalize_exp e env
+  | S s -> generalize_stmt s env
+  | _ -> []
 
 let generalize a =
   (generalize_any a { count = 1; mapping = []; has_type = false })

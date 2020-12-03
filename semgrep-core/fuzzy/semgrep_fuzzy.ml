@@ -11,7 +11,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 
 module V = Lib_ast_fuzzy
 
@@ -54,7 +54,7 @@ let sgrep ~hook pattern ast =
           else begin
             (* could also recurse to find nested matching inside
              * the matched code itself
-             *)
+            *)
             let matched_tokens = Lib_ast_fuzzy.toks_of_trees shorter in
             matches_with_env |> List.iter (fun env ->
               hook env matched_tokens

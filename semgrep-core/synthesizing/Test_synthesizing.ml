@@ -10,7 +10,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * file license.txt for more details.
- *)
+*)
 open Common
 
 module J = JSON
@@ -24,15 +24,15 @@ let expr_at_range s file =
   Naming_AST.resolve lang ast;
   let e_opt = Range_to_AST.expr_at_range r ast in
   (match e_opt with
-  | Some e -> pr (AST_generic.show_expr e)
-  | None -> failwith (spf "could not find an expr at range %s in %s" s file)
+   | Some e -> pr (AST_generic.show_expr e)
+   | None -> failwith (spf "could not find an expr at range %s in %s" s file)
   )
 [@@action]
 
 let synthesize_patterns s file =
   let options = Synthesizer.synthesize_patterns s file in
   let json_opts =
-      J.Object (List.map (fun (k, v) -> (k, J.String v)) options)
+    J.Object (List.map (fun (k, v) -> (k, J.String v)) options)
   in
   let s = J.string_of_json json_opts in
   pr s

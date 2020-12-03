@@ -89,18 +89,18 @@ let ensure_newline s =
 let insert_line_prefix prefix s =
   if prefix = "" then s
   else
-    if s = "" then s
-    else
-      let buf = Buffer.create (2 * String.length s) in
-      Buffer.add_string buf prefix;
-      let len = String.length s in
-      for i = 0 to len - 1 do
-        let c = s.[i] in
-        Buffer.add_char buf c;
-        if c = '\n' && i < len - 1 then
-          Buffer.add_string buf prefix
-      done;
-      Buffer.contents buf
+  if s = "" then s
+  else
+    let buf = Buffer.create (2 * String.length s) in
+    Buffer.add_string buf prefix;
+    let len = String.length s in
+    for i = 0 to len - 1 do
+      let c = s.[i] in
+      Buffer.add_char buf c;
+      if c = '\n' && i < len - 1 then
+        Buffer.add_string buf prefix
+    done;
+    Buffer.contents buf
 
 let insert_highlight highlight s start end_ =
   let len = String.length s in

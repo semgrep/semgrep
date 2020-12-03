@@ -11,7 +11,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 open Common
 
 module PI = Parse_info
@@ -73,9 +73,9 @@ type line_kind =
  *    information in line_env
  *)
 let parse
-  ~pattern_of_string
-  ~ii_of_pattern
-  file =
+    ~pattern_of_string
+    ~ii_of_pattern
+    file =
   let xs = Common.cat file |> Common.index_list_1 in
 
   let hline_env = Hashtbl.create 11 in
@@ -86,7 +86,7 @@ let parse
      * at some point we need to parse this stuff and
      * add the correct amount of indentation when it's processing
      * a token.
-     *)
+    *)
     | _ when s =~ "^\\+[ \t]*\\(.*\\)" ->
         let rest_line = Common.matched1 s in
         Hashtbl.add hline_env lineno (Plus rest_line);
@@ -113,14 +113,14 @@ let parse
     let line = PI.line_of_info tok in
 
     (match Hashtbl.find_opt hline_env line with
-    | Some Context -> ()
-    | Some Minus -> tok.PI.transfo <- PI.Remove;
-    | Some (Plus _) ->
-        (* normally impossible since we removed the elements in the
-         * plus line, except the newline. should assert it's only newline
+     | Some Context -> ()
+     | Some Minus -> tok.PI.transfo <- PI.Remove;
+     | Some (Plus _) ->
+         (* normally impossible since we removed the elements in the
+          * plus line, except the newline. should assert it's only newline
          *)
-        ()
-    | None -> failwith ("could not find a line in the env")
+         ()
+     | None -> failwith ("could not find a line in the env")
     );
   );
   (* adjust with the Plus info. We need to annotate the last token
@@ -140,7 +140,7 @@ let parse
    *   + foo();
    *     bar();
    * then there is no previous line ...
-   *)
+  *)
 
   let grouped_by_lines =
     toks |> Common.group_by_mapped_key (fun tok -> PI.line_of_info tok) in
@@ -150,28 +150,28 @@ let parse
 
         (* if the next line was a +, then associate with the last token
          * on this line
-         *)
+        *)
         (match Common2.hfind_option (line+1) hline_env with
-        | None ->
-            (* probably because was last line *)
-            ()
-        | Some (Plus toadd) ->
-            (* todo? what if there is no token on this line ? *)
-            let last_tok = Common2.list_last toks_at_line in
+         | None ->
+             (* probably because was last line *)
+             ()
+         | Some (Plus toadd) ->
+             (* todo? what if there is no token on this line ? *)
+             let last_tok = Common2.list_last toks_at_line in
 
-            (* ugly hack *)
-            let toadd =
-              match PI.str_of_info last_tok with
-              | ";" -> "\n" ^ toadd
-              | _ -> toadd
-            in
+             (* ugly hack *)
+             let toadd =
+               match PI.str_of_info last_tok with
+               | ";" -> "\n" ^ toadd
+               | _ -> toadd
+             in
 
-            (match last_tok.PI.transfo with
-            | Remove -> last_tok.PI.transfo <- Replace (AddStr toadd)
-            | NoTransfo -> last_tok.PI.transfo <- AddAfter (AddStr toadd)
-            | _ -> raise Impossible
-            )
-        | Some _ -> ()
+             (match last_tok.PI.transfo with
+              | Remove -> last_tok.PI.transfo <- Replace (AddStr toadd)
+              | NoTransfo -> last_tok.PI.transfo <- AddAfter (AddStr toadd)
+              | _ -> raise Impossible
+             )
+         | Some _ -> ()
         );
         aux rest
 
@@ -182,7 +182,7 @@ let parse
   (* both the ast (here pattern) and the tokens share the same
    * reference so by modifying the tokens we actually also modifed
    * the AST.
-   *)
+  *)
   pattern
 
 

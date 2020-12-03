@@ -12,7 +12,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 open Common
 
 (*****************************************************************************)
@@ -22,7 +22,7 @@ open Common
  *
  * This was started from pfff/h_program-lang/datalog_code.ml.
  * See Datalog.io.ml to read/write those facts on disk.
- *)
+*)
 
 (*****************************************************************************)
 (* Types *)
@@ -40,52 +40,52 @@ type callsite = string
 
 (* mimics pfff/.../datalog_code.dtl top comment repeated here for convenience:
 
-# Abstract memory locations (also called heap objects), are mostly qualified
-# symbols (e.g 'main__foo', 'ret_main', '_cst_line2_'):
-# - each globals, functions, constants
-# - each malloc (context insensitively). will do sensitively later for
-#   malloc wrappers or maybe each malloc with certain type. (e.g. any Proc)
-#   so have some form of type sensitivty at least
-# - each locals (context insensitively first), when their addresses are taken
-# - each fields (field-based, see sep08.pdf lecture, so *.f, not x.* )
-# - array element (array insensitive, aggregation)
-# Invocations: line in the file (e.g. '_in_main_line_14_')
+   # Abstract memory locations (also called heap objects), are mostly qualified
+   # symbols (e.g 'main__foo', 'ret_main', '_cst_line2_'):
+   # - each globals, functions, constants
+   # - each malloc (context insensitively). will do sensitively later for
+   #   malloc wrappers or maybe each malloc with certain type. (e.g. any Proc)
+   #   so have some form of type sensitivty at least
+   # - each locals (context insensitively first), when their addresses are taken
+   # - each fields (field-based, see sep08.pdf lecture, so *.f, not x.* )
+   # - array element (array insensitive, aggregation)
+   # Invocations: line in the file (e.g. '_in_main_line_14_')
 
-assign0(dest:V, source:V) inputtuples
-assign_address (dest:V, source:V) inputtuples
-assign_deref(dest:V, source:V) inputtuples
-assign_content(dest:V, source:V) inputtuples
+   assign0(dest:V, source:V) inputtuples
+   assign_address (dest:V, source:V) inputtuples
+   assign_deref(dest:V, source:V) inputtuples
+   assign_content(dest:V, source:V) inputtuples
 
-parameter(f:N, z:Z, v:V) inputtuples
-return(f:N, v:V) inputtuples
-argument(i:I, z:Z, v:V) inputtuples
-call_direct(i:I, f:N) inputtuples
-call_indirect(i:I, v:V) inputtuples
-call_ret(i:I, v:V) inputtuples
-# typing!
-var_to_func(v:V, f:N) inputtuples
+   parameter(f:N, z:Z, v:V) inputtuples
+   return(f:N, v:V) inputtuples
+   argument(i:I, z:Z, v:V) inputtuples
+   call_direct(i:I, f:N) inputtuples
+   call_indirect(i:I, v:V) inputtuples
+   call_ret(i:I, v:V) inputtuples
+   # typing!
+   var_to_func(v:V, f:N) inputtuples
 
-assign_array_elt(dest:V, source:V) inputtuples
-assign_array_element_address(dest:V, source:V) inputtuples
-assign_array_deref(a:V, v:V) inputtuples
+   assign_array_elt(dest:V, source:V) inputtuples
+   assign_array_element_address(dest:V, source:V) inputtuples
+   assign_array_deref(a:V, v:V) inputtuples
 
-assign_load_field(dest:V, source:V, fld:F) inputtuples
-assign_store_field(dest:V, fld:F, source:V) inputtuples
-assign_field_address(dest:V, source:V, fld:F) inputtuples
-# typing!
-field_to_var(fld:F, v:V) inputtuples
-#field_point_to?? hmm maybe once we differentiate objects heap
-# and not do just *.f
+   assign_load_field(dest:V, source:V, fld:F) inputtuples
+   assign_store_field(dest:V, fld:F, source:V) inputtuples
+   assign_field_address(dest:V, source:V, fld:F) inputtuples
+   # typing!
+   field_to_var(fld:F, v:V) inputtuples
+   #field_point_to?? hmm maybe once we differentiate objects heap
+   # and not do just *.f
 
-point_to0(v:V, h:V) inputtuples
+   point_to0(v:V, h:V) inputtuples
 
-point_to(v:V, h:V) outputtuples
-call_edge(i:I, f:N) outputtuples
-assign(dest:V, source:V)
+   point_to(v:V, h:V) outputtuples
+   call_edge(i:I, f:N) outputtuples
+   assign(dest:V, source:V)
 
-# the data we really care to export
-PointingData (v:V, h:V) outputtuples
-CallingData (i:I, f:N) outputtuples
+   # the data we really care to export
+   PointingData (v:V, h:V) outputtuples
+   CallingData (i:I, f:N) outputtuples
 
 *)
 type fact =
@@ -135,7 +135,7 @@ let string_of_value = function
 type _rule = string
 
 type _meta_fact =
-    string * value list
+  string * value list
 
 let meta_fact = function
   | PointTo (a, b) -> "point_to", [ V a; V b; ]
@@ -164,7 +164,7 @@ let string_of_fact fact =
   let str, xs = meta_fact fact in
   spf "%s(%s)" str
     (xs |> List.map (function
-      | V x | F x | N x | I x -> spf "'%s'" x
-      | Z i -> spf "%d" i
+       | V x | F x | N x | I x -> spf "'%s'" x
+       | Z i -> spf "%d" i
      ) |> Common.join ", "
     )
