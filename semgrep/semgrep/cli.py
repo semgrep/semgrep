@@ -9,6 +9,7 @@ import semgrep.semgrep_main
 import semgrep.test
 from semgrep import __VERSION__
 from semgrep.constants import DEFAULT_CONFIG_FILE
+from semgrep.constants import DEFAULT_MAX_LINES_PER_FINDING
 from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import MAX_LINES_FLAG_NAME
 from semgrep.constants import OutputFormat
@@ -291,9 +292,9 @@ def cli() -> None:
     output.add_argument(
         MAX_LINES_FLAG_NAME,
         type=int,
-        default=0,
+        default=DEFAULT_MAX_LINES_PER_FINDING,
         help=(
-            "Maximum number of lines of code that will be shown for each match before trimming."
+            "Maximum number of lines of code that will be shown for each match before trimming (set to 0 for unlimited)."
         ),
     )
 
