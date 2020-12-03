@@ -245,7 +245,8 @@ let print_match mvars mvar_binding ii_of_any tokens_matched_code =
        mvars |> List.map (fun x ->
          match Common2.assoc_opt x mvar_binding with
          | Some any ->
-             ii_of_any any
+             any
+             |> ii_of_any
              |> List.filter PI.is_origintok
              |> List.map PI.str_of_info
              |> Matching_report.join_with_space_if_needed
@@ -531,7 +532,7 @@ let sgrep_ast pattern file any_ast =
         (*s: [[Main_semgrep_core.sgrep_ast()]] [[hook]] argument to [[check]] *)
         ~hook:(fun env matched_tokens ->
           let xs = Lazy.force matched_tokens in
-          print_match !mvars env Lib_AST.ii_of_any xs
+          print_match !mvars env Metavars_generic.ii_of_mval xs
         )
         (*e: [[Main_semgrep_core.sgrep_ast()]] [[hook]] argument to [[check]] *)
         [rule] (parse_equivalences ())

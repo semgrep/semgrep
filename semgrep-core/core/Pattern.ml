@@ -17,7 +17,8 @@
 (*e: pad/r2c copyright *)
 
 (*s: type [[Pattern.t]] *)
-(* right now only Expr, Stmt, and Stmts are supported *)
+(* right now Expr/Stmt/Stmts/Types/Patterns/Partial and probably
+ * more are supported *)
 type t = AST_generic.any
 (*e: type [[Pattern.t]] *)
 
