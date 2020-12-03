@@ -733,7 +733,7 @@ and catch_clause (env : env) ((v1, v2, v3, v4) : CST.catch_clause) =
   let v2 =
     (match v2 with
      | Some x -> catch_declaration env x
-     | None -> todo env ())
+     | None -> PatUnderscore (fake "_"))
   in
   let v3 =
     (match v3 with
