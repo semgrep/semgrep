@@ -110,6 +110,10 @@ def test_perf() -> None:
     )
     njsscan_rules_path = str(rules_path / "njsscan/rules/semantic_grep")
 
+    # Sanitize rules
+    subprocess.check_output(["sed", "-i", "s/...>/ ...>/g", njsscan_rules_path])
+    subprocess.check_output(["sed", "-i", "s/<.../<... /g", njsscan_rules_path])
+
     targets = [
         (  # Dvna takes about ~30 sec
             "https://github.com/appsecco/dvna",
