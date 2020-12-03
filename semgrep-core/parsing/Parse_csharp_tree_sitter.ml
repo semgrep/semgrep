@@ -890,7 +890,7 @@ and expression (env : env) (x : CST.expression) : AST.expr =
        let v3 = List.map (token env) (* "," *) v3 in
        let v4 = token env v4 (* "]" *) in
        let v5 = initializer_expression env v5 in
-       todo env (v1, v2, v3, v4, v5)
+       Container (Array, v5)
    | `Impl_stack_alloc_array_crea_exp (v1, v2, v3, v4) ->
        let v1 = token env v1 (* "stackalloc" *) in
        let v2 = token env v2 (* "[" *) in
