@@ -8,7 +8,7 @@ open OUnit
 (* TODO:
  *  - we could add unit tests for the range returned by match_sts_sts
  *  - we could add unit tests for the code dealing with equivalences
- *)
+*)
 
 (*s: function [[Unit_matcher.unittest]] *)
 let unittest ~any_gen_of_string =
@@ -18,7 +18,7 @@ let unittest ~any_gen_of_string =
     let triples = [
       (* right now any_gen_of_string use the Python sgrep_spatch_pattern
        * parser so the syntax below must be valid Python code
-       *)
+      *)
 
       (* ------------ *)
       (* spacing *)
@@ -68,26 +68,26 @@ let unittest ~any_gen_of_string =
       (* metavariable for statements *)
       "if(True): $S
 ",
-       "if(True): return 1
+      "if(True): return 1
 ", true;
 
       (* metavariable for entity definitions *)
-       "def $X():  return 1
+      "def $X():  return 1
 ",
-       "def foo(): return 1
+      "def foo(): return 1
 ", true;
 
       (* metavariable for parameter *)
-       "def foo($A, b):  return 1
+      "def foo($A, b):  return 1
 ",
-       "def foo(x, b): return 1
+      "def foo(x, b): return 1
 ", true;
 
 
       (* metavariable string for identifiers *)
-(*     "foo('X');", "foo('a_func');", true; *)
+      (*     "foo('X');", "foo('a_func');", true; *)
       (* many arguments metavariables *)
-(*      "foo($MANYARGS);", "foo(1,2,3);", true; *)
+      (*      "foo($MANYARGS);", "foo(1,2,3);", true; *)
 
       (* ------------ *)
       (* '...' *)
@@ -108,7 +108,7 @@ let unittest ~any_gen_of_string =
 
       (* in strings *)
       "foo(\"...\")", "foo(\"this is a long string\")", true;
-     (* "foo(\"...\");", "foo(\"a string\" . \"another string\");", true;*)
+      (* "foo(\"...\");", "foo(\"a string\" . \"another string\");", true;*)
 
       (* for stmts *)
       "if True: foo(); ...; bar()
@@ -116,20 +116,20 @@ let unittest ~any_gen_of_string =
       "if True: foo(); foobar(); bar()
 ", true;
 
-     (* for parameters *)
-       "def foo(...): ...
+      (* for parameters *)
+      "def foo(...): ...
 ",
-       "def foo(a, b): return a+b
+      "def foo(a, b): return a+b
 ", true;
 
-       "def foo(..., foo=..., ...): ...
+      "def foo(..., foo=..., ...): ...
 ",
-       "def foo(a, b, foo = 1, bar = 2): return a+b
+      "def foo(a, b, foo = 1, bar = 2): return a+b
 ", true;
 
-(*      "class Foo { ... }", "class Foo { int x; }", true; *)
+      (*      "class Foo { ... }", "class Foo { int x; }", true; *)
       (* '...' in arrays *)
-(*      "foo($X, array(...));",  "foo(1, array(2, 3));", true; *)
+      (*      "foo($X, array(...));",  "foo(1, array(2, 3));", true; *)
 
       (* ------------ *)
       (* Misc isomorphisms *)
@@ -140,25 +140,25 @@ let unittest ~any_gen_of_string =
       (* regexp matching in strings *)
       "foo(\"=~/a+/\")", "foo(\"aaaa\")", true;
       "foo(\"=~/a+/\")", "foo(\"bbbb\")", false;
-(*      "new Foo(...);","new Foo;", true; *)
+      (*      "new Foo(...);","new Foo;", true; *)
 
     ]
     in
     triples |> List.iter (fun (spattern, scode, should_match) ->
-     try
-      let pattern = any_gen_of_string spattern in
-      let code    = any_gen_of_string scode in
-      let matches_with_env = Semgrep_generic.match_any_any pattern code in
-      if should_match
-      then
-        assert_bool (spf "pattern:|%s| should match |%s" spattern scode)
-          (matches_with_env <> [])
-      else
-        assert_bool (spf "pattern:|%s| should not match |%s" spattern scode)
-          (matches_with_env = [])
-     with
-      Parsing.Parse_error ->
-              failwith (spf "problem parsing %s or %s" spattern scode)
+      try
+        let pattern = any_gen_of_string spattern in
+        let code    = any_gen_of_string scode in
+        let matches_with_env = Semgrep_generic.match_any_any pattern code in
+        if should_match
+        then
+          assert_bool (spf "pattern:|%s| should match |%s" spattern scode)
+            (matches_with_env <> [])
+        else
+          assert_bool (spf "pattern:|%s| should not match |%s" spattern scode)
+            (matches_with_env = [])
+      with
+        Parsing.Parse_error ->
+          failwith (spf "problem parsing %s or %s" spattern scode)
     )
   )
 (*e: function [[Unit_matcher.unittest]] *)

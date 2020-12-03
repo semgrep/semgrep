@@ -13,7 +13,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 (*e: pad/r2c copyright *)
 open Common
 open AST_generic
@@ -46,7 +46,7 @@ let string_of_resolved = function
  * the callers of sgrep (sgrep-lint) can check if multiple metavariables
  * reference the same entity, or reference exactly the same code.
  * See pfff/.../Naming_AST.ml for more information.
- *)
+*)
 let unique_id any =
   match any with
   | E (Id (id, { id_resolved = {contents = Some (resolved, sid)}; _})) ->
@@ -60,22 +60,22 @@ let unique_id any =
   (* not an Id, return a md5sum of its AST as a "single unique id" *)
   | _ ->
 
-     (* todo? note that if the any use a parameter, or a local,
-      * as in foo(x): return complex(x), then they will have different
-      * md5sum because the parameter will be different! We may
-      * want to abstract also the resolved information in those cases.
+      (* todo? note that if the any use a parameter, or a local,
+       * as in foo(x): return complex(x), then they will have different
+       * md5sum because the parameter will be different! We may
+       * want to abstract also the resolved information in those cases.
       *)
-     let any = Lib_AST.abstract_position_info_any any in
-     (* alt: Using the AST dumper should work also.
-      * let v = Meta_AST.vof_any any in
-      * let s = OCaml.string_of_v v in
+      let any = Lib_AST.abstract_position_info_any any in
+      (* alt: Using the AST dumper should work also.
+       * let v = Meta_AST.vof_any any in
+       * let s = OCaml.string_of_v v in
       *)
-     let s = Marshal.to_string any [] in
-     let md5 = Digest.string s in
-     J.Object [
-      "type", J.String "AST";
-      "md5sum", J.String (Digest.to_hex md5);
-     ]
+      let s = Marshal.to_string any [] in
+      let md5 = Digest.string s in
+      J.Object [
+        "type", J.String "AST";
+        "md5sum", J.String (Digest.to_hex md5);
+      ]
 (*e: function [[JSON_report.unique_id]] *)
 
 (*****************************************************************************)
@@ -117,21 +117,21 @@ let json_metavar x startp (s, any) =
     try
       range_of_any any
     with Parse_info.NoTokenLocation exn ->
-     failwith (spf
-      "NoTokenLocation %s exn while processing %s for rule %s, with metavar %s, close location = %s"
-        exn x.file x.rule.R.id  s (J.string_of_json startp))
+      failwith (spf
+                  "NoTokenLocation %s exn while processing %s for rule %s, with metavar %s, close location = %s"
+                  exn x.file x.rule.R.id  s (J.string_of_json startp))
   in
   s, J.Object [
-  "start", startp;
-  "end", endp;
-  "abstract_content", J.String (
+    "start", startp;
+    "end", endp;
+    "abstract_content", J.String (
       any
       |> Lib_AST.ii_of_any |> List.filter PI.is_origintok
       |> List.sort Parse_info.compare_pos
       |> List.map PI.str_of_info
       |> Matching_report.join_with_space_if_needed
     );
-  "unique_id", unique_id any
+    "unique_id", unique_id any
   ]
 (*e: function [[JSON_report.json_metavar]] *)
 
@@ -147,9 +147,9 @@ let match_to_json x =
     "start", startp;
     "end", endp;
     "extra", J.Object [
-       "message", J.String x.rule.R.message;
-       "metavars", J.Object (x.env |> List.map (json_metavar x startp));
-     ]
+      "message", J.String x.rule.R.message;
+      "metavars", J.Object (x.env |> List.map (json_metavar x startp));
+    ]
   ]
 (*e: function [[JSON_report.match_to_json]] *)
 
@@ -159,7 +159,7 @@ let match_to_json x =
 (*s: function [[JSON_report.error]] *)
 (* this is used only in the testing code, to reuse the
  * Error_code.compare_actual_to_expected
- *)
+*)
 let error tok rule =
   match rule.R.severity with
   | R.Error ->

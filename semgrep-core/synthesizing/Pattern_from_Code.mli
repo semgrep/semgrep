@@ -33,7 +33,7 @@
  *   "one argument", <metrics.send($X)>;
  *   "zero or more arguments", <metrics.send(...)>;
  *  ]
- *)
+*)
 type named_variants =
   (string * Pattern.t) list
 

@@ -13,7 +13,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 (*e: pad/r2c copyright *)
 module R = Rule
 
@@ -25,7 +25,7 @@ module R = Rule
  * At some point we may want tainting to be integrated and queryable
  * directly from regular semgrep rules, but for now it's simpler
  * to have a specialized type and format.
- *)
+*)
 
 (*****************************************************************************)
 (* Types *)
@@ -53,7 +53,7 @@ type rule = {
 (*e: type [[Tainting_rule.rule]] *)
 
 (*s: type [[Tainting_rule.rules]] *)
- and rules = rule list
+and rules = rule list
 (*e: type [[Tainting_rule.rules]] *)
 
 (*s: type [[Tainting_rule.t]] *)

@@ -13,7 +13,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 (*e: pad/r2c copyright *)
 
 open AST_generic
@@ -24,7 +24,7 @@ module V = Visitor_AST
 (*****************************************************************************)
 (* Various helper functions to extract subparts of AST elements.
  *
- *)
+*)
 
 (*****************************************************************************)
 (* Expressions *)
@@ -58,9 +58,9 @@ let subexprs_of_expr e =
       (* not sure we want to return 'e' here *)
       e::
       (args |> unbracket |> Common.map_filter (function
-        | Arg e | ArgKwd (_, e) -> Some e
-        | ArgType _ | ArgOther _ -> None
-      ))
+         | Arg e | ArgKwd (_, e) -> Some e
+         | ArgType _ | ArgOther _ -> None
+       ))
   | SliceAccess (e1, e2opt, e3opt, e4opt) ->
       e1::([e2opt;e3opt;e4opt] |> List.map Common.opt_to_list |> List.flatten)
   | Yield (_, eopt, _) -> Common.opt_to_list eopt
@@ -90,97 +90,97 @@ let subexprs_of_expr e =
 (*s: function [[SubAST_generic.subexprs_of_stmt]] *)
 (* used for really deep statement matching *)
 let subexprs_of_stmt st =
-    match st with
-    (* 1 *)
-    | ExprStmt (e, _)
-    | If (_, e, _, _)
-    | While (_, e, _)
-    | DoWhile (_, _, e)
-    | DefStmt (_, VarDef { vinit = Some e; _ })
-    | DefStmt (_, FieldDefColon { vinit = Some e; _ })
-    | For (_, ForEach (_, _, e), _)
-    | Continue (_, LDynamic e, _)
-    | Break (_, LDynamic e, _)
-    | Throw (_, e, _)
-     -> [e]
+  match st with
+  (* 1 *)
+  | ExprStmt (e, _)
+  | If (_, e, _, _)
+  | While (_, e, _)
+  | DoWhile (_, _, e)
+  | DefStmt (_, VarDef { vinit = Some e; _ })
+  | DefStmt (_, FieldDefColon { vinit = Some e; _ })
+  | For (_, ForEach (_, _, e), _)
+  | Continue (_, LDynamic e, _)
+  | Break (_, LDynamic e, _)
+  | Throw (_, e, _)
+    -> [e]
 
-    (* opt *)
-    | Switch (_, eopt, _)
-    | Return (_, eopt, _)
-    | OtherStmtWithStmt (_, eopt, _)
-     -> Common.opt_to_list eopt
+  (* opt *)
+  | Switch (_, eopt, _)
+  | Return (_, eopt, _)
+  | OtherStmtWithStmt (_, eopt, _)
+    -> Common.opt_to_list eopt
 
-    (* n *)
-    | For (_, ForClassic (xs, eopt1, eopt2), _) ->
+  (* n *)
+  | For (_, ForClassic (xs, eopt1, eopt2), _) ->
       (xs |> Common.map_filter (function
-       | ForInitExpr e -> Some e
-       | ForInitVar (_, vdef) -> vdef.vinit
-      )) @
+         | ForInitExpr e -> Some e
+         | ForInitVar (_, vdef) -> vdef.vinit
+       )) @
       Common.opt_to_list eopt1 @
       Common.opt_to_list eopt2
 
-    | Assert (_, e1, e2opt, _) ->
+  | Assert (_, e1, e2opt, _) ->
       e1::Common.opt_to_list e2opt
 
-    (* 0 *)
-    | DirectiveStmt _
-    | Block _
-    | For (_, ForEllipsis _, _)
-    | Continue _ | Break _
-    | Label _ | Goto _
-    | Try _
-    | DisjStmt _
-    | DefStmt _
-    | WithUsingResource _
-    (* could extract the expr in any? *)
-    | OtherStmt _
-     -> []
+  (* 0 *)
+  | DirectiveStmt _
+  | Block _
+  | For (_, ForEllipsis _, _)
+  | Continue _ | Break _
+  | Label _ | Goto _
+  | Try _
+  | DisjStmt _
+  | DefStmt _
+  | WithUsingResource _
+  (* could extract the expr in any? *)
+  | OtherStmt _
+    -> []
 (*e: function [[SubAST_generic.subexprs_of_stmt]] *)
 
 (*s: function [[SubAST_generic.substmts_of_stmt]] *)
 (* used for deep statement matching *)
 let substmts_of_stmt st =
-    match st with
-    (* 0 *)
-    | DirectiveStmt _
-    | ExprStmt _
-    | Return _ | Continue _ | Break _ | Goto _
-    | Throw _
-    | Assert _
-    | OtherStmt _
+  match st with
+  (* 0 *)
+  | DirectiveStmt _
+  | ExprStmt _
+  | Return _ | Continue _ | Break _ | Goto _
+  | Throw _
+  | Assert _
+  | OtherStmt _
     -> []
 
-    (* 1 *)
-    | While (_, _, st) | DoWhile (_, st, _)
-    | For (_, _, st)
-    | Label (_, st)
-    | OtherStmtWithStmt (_, _, st)
+  (* 1 *)
+  | While (_, _, st) | DoWhile (_, st, _)
+  | For (_, _, st)
+  | Label (_, st)
+  | OtherStmtWithStmt (_, _, st)
     -> [st]
 
-    (* 2 *)
-    | If (_, _, st1, st2)
+  (* 2 *)
+  | If (_, _, st1, st2)
     -> st1::(Common.opt_to_list st2)
-    | WithUsingResource (_, st1, st2)
+  | WithUsingResource (_, st1, st2)
     -> [st1;st2]
 
-    (* n *)
-    | Block (_, xs, _) ->
-        xs
-    | Switch (_, _, xs) ->
-        xs |> List.map snd
-    | Try (_, st, xs, opt) ->
-        [st] @
-        (xs |> List.map Common2.thd3) @
-        (match opt with None -> [] | Some (_, st) -> [st])
+  (* n *)
+  | Block (_, xs, _) ->
+      xs
+  | Switch (_, _, xs) ->
+      xs |> List.map snd
+  | Try (_, st, xs, opt) ->
+      [st] @
+      (xs |> List.map Common2.thd3) @
+      (match opt with None -> [] | Some (_, st) -> [st])
 
-    | DisjStmt _ -> raise Common.Impossible
+  | DisjStmt _ -> raise Common.Impossible
 
-    (* this may slow down things quite a bit *)
-    | DefStmt (_ent, def) ->
-       if not !Flag_semgrep.go_really_deeper_stmt
-       then []
-       else
-         (match def with
+  (* this may slow down things quite a bit *)
+  | DefStmt (_ent, def) ->
+      if not !Flag_semgrep.go_really_deeper_stmt
+      then []
+      else
+        (match def with
          | VarDef _ | FieldDefColon _
          | TypeDef _
          | MacroDef _
@@ -189,16 +189,16 @@ let substmts_of_stmt st =
          (* recurse? *)
          | ModuleDef _
          | OtherDef _
-                -> []
+           -> []
          (* this will add lots of substatements *)
          | FuncDef def ->
-            [def.fbody]
+             [def.fbody]
          | ClassDef def ->
-            def.cbody |> unbracket |> Common.map_filter (function
-              | FieldStmt st -> Some st
-              | FieldSpread _ -> None
-            )
-         )
+             def.cbody |> unbracket |> Common.map_filter (function
+               | FieldStmt st -> Some st
+               | FieldSpread _ -> None
+             )
+        )
 (*e: function [[SubAST_generic.substmts_of_stmt]] *)
 
 (*****************************************************************************)
@@ -217,12 +217,12 @@ let do_visit_with_ref mk_hooks = fun any ->
 (*s: function [[SubAST_generic.lambdas_in_expr]] *)
 let lambdas_in_expr e =
   do_visit_with_ref (fun aref -> { V.default_visitor with
-    V.kexpr = (fun (k, _) e ->
-      match e with
-      | Lambda def -> Common.push def aref
-      | _ -> k e
-    );
-  }) (E e)
+                                   V.kexpr = (fun (k, _) e ->
+                                     match e with
+                                     | Lambda def -> Common.push def aref
+                                     | _ -> k e
+                                   );
+                                 }) (E e)
 [@@profiling]
 (*e: function [[SubAST_generic.lambdas_in_expr]] *)
 
@@ -232,7 +232,7 @@ let lambdas_in_expr e =
  * using Hashtbl where the key is a full expression can be slow (hashing
  * huge expressions still takes some time). It would be better to
  * return a unique identifier to each expression to remove the hashing cost.
- *)
+*)
 let hmemo = Hashtbl.create 101
 let lambdas_in_expr_memo a =
   Common.memoized hmemo a (fun () -> lambdas_in_expr a)
@@ -247,7 +247,7 @@ let flatten_substmts_of_stmts xs =
   (* opti: using a ref, List.iter, and Common.push instead of a mix of
    * List.map, List.flatten and @ below speed things up
    * (but it is still slow when called many many times)
-   *)
+  *)
   let res = ref [] in
 
   let rec aux x =
@@ -257,13 +257,13 @@ let flatten_substmts_of_stmts xs =
     (* this can be really slow because lambdas_in_expr() below can be called
      * a zillion times on big files (see tests/PERF/) if we do the
      * matching naively in m_stmts_deep.
-     *)
+    *)
     if !Flag_semgrep.go_really_deeper_stmt
     then begin
-       let es = subexprs_of_stmt x in
-       (* getting deeply nested lambdas stmts *)
-       let lambdas = es |> List.map lambdas_in_expr_memo |> List.flatten in
-       lambdas |> List.map (fun def -> def.fbody) |> List.iter aux
+      let es = subexprs_of_stmt x in
+      (* getting deeply nested lambdas stmts *)
+      let lambdas = es |> List.map lambdas_in_expr_memo |> List.flatten in
+      lambdas |> List.map (fun def -> def.fbody) |> List.iter aux
     end;
 
     let xs = substmts_of_stmt x in

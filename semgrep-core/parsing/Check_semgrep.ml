@@ -13,7 +13,7 @@ let lang_has_no_dollar_ids = Lang.(function
   | Kotlin
     -> true
   | Javascript | Ruby | Typescript | PHP
-  -> false)
+    -> false)
 (*e: constant [[Check_semgrep.lang_has_no_dollar_ids]] *)
 
 (*s: function [[Check_semgrep.check_pattern_metavars]] *)
@@ -21,9 +21,9 @@ let check_pattern_metavars lang ast =
   let kident_metavar (k, _out) ((str, _tok) as ident) =
     if str.[0] = '$' && not (Metavars_generic.is_metavar_name str) then
       failwith (Common.spf "`%s' is neither a valid identifier in %s nor a valid meta-variable"
-                            str (Lang.string_of_lang lang));
+                  str (Lang.string_of_lang lang));
     k ident
-    in
+  in
   if lang_has_no_dollar_ids lang then
     Visitor_AST.(mk_visitor ({default_visitor with kident = kident_metavar}) ast)
 (*e: function [[Check_semgrep.check_pattern_metavars]] *)

@@ -36,8 +36,8 @@ let sgrep_fuzzy_unittest ~ast_fuzzy_of_string =
       "foo($X);",  "foo(1+1);", true;
       (* for lvalues *)
       "$X->method();",  "this->method();", true;
-(*TODO      "$X->method();"  ,  "this->foo()->method();", true; *)
-(* this will work though: "->method();"  ,  "$this->foo()->method();", true; *)
+      (*TODO      "$X->method();"  ,  "this->foo()->method();", true; *)
+      (* this will work though: "->method();"  ,  "$this->foo()->method();", true; *)
 
       (* "linear" patterns, a la Prolog *)
       "$X & $X;", "(a | b) & (a | b);", true;
@@ -45,14 +45,14 @@ let sgrep_fuzzy_unittest ~ast_fuzzy_of_string =
       "foo($X, $X);", "foo(a, b);", false;
 
       (* many arguments metavariables *)
-(*TODO      "foo($MANYARGS);", "foo(1,2,3);", true; *)
+      (*TODO      "foo($MANYARGS);", "foo(1,2,3);", true; *)
 
       (* metavariable on function name *)
       "$X(1,2);", "foo(1,2);", true;
       (* metavariable on class name *)
       "$X::foo();", "Ent::foo();", true;
       (* metavariable string for identifiers *)
-(*TODO      "foo('X');", "foo('a_func');", true; *)
+      (*TODO      "foo('X');", "foo('a_func');", true; *)
       (* metavariable on reference arguments *)
       "foo($X,$Y);", "foo(&a, b);", true;
       (* metavariable on class name reference *)
@@ -79,8 +79,8 @@ let sgrep_fuzzy_unittest ~ast_fuzzy_of_string =
       "foo($X, array(...));",  "foo(1, array(2, 3));", true;
 
       (* '...' in strings *)
-(*TODO      "foo(\"...\");", "foo(\"a string\");", true; *)
-(*TODO      "foo(\"...\");", "foo(\"a string\" . \"another string\");", true;*)
+      (*TODO      "foo(\"...\");", "foo(\"a string\");", true; *)
+      (*TODO      "foo(\"...\");", "foo(\"a string\" . \"another string\");", true;*)
 
       (* '...' in new *)
       "new Foo(...);","new Foo(1);", true;
@@ -92,7 +92,7 @@ let sgrep_fuzzy_unittest ~ast_fuzzy_of_string =
       (* ------------ *)
       (* Misc isomorphisms *)
       (* ------------ *)
-(*TODO      "new Foo(...);","new Foo;", true; *)
+      (*TODO      "new Foo(...);","new Foo;", true; *)
 
     ]
     in
@@ -128,7 +128,7 @@ let spatch_fuzzy_unittest ~ast_fuzzy_of_string ~parse_file =
       (* todo: this regexp should just be .*? but ocaml regexp do not
        * have the greedy feature :( Also note that expfile is a fullpath
        * so it can contains /, hence this ugly regexp
-       *)
+      *)
       if expfile =~ "\\([a-zA-Z_/]+\\)\\([0-9]*\\)\\.exp$" then begin
         let (prefix, variant) = Common.matched2 expfile in
         let spatchfile = prefix ^ ".spatch" in
@@ -154,18 +154,18 @@ let spatch_fuzzy_unittest ~ast_fuzzy_of_string ~parse_file =
           match resopt with
           | None -> srcfile
           | Some s ->
-            let tmpfile = Common.new_temp_file "spatch_test" ".fuzzy" in
-            Common.write_file ~file:tmpfile s;
-            tmpfile
+              let tmpfile = Common.new_temp_file "spatch_test" ".fuzzy" in
+              Common.write_file ~file:tmpfile s;
+              tmpfile
         in
         let diff = Common2.unix_diff file_res expfile in
         diff |> List.iter pr;
         if List.length diff > 1
         then assert_failure
-          (spf "spatch %s on %s should have resulted in %s"
-              (Filename.basename spatchfile)
-              (Filename.basename srcfile)
-              (Filename.basename expfile))
+            (spf "spatch %s on %s should have resulted in %s"
+               (Filename.basename spatchfile)
+               (Filename.basename srcfile)
+               (Filename.basename expfile))
       end
       else failwith ("wrong format for expfile: " ^ expfile)
     )

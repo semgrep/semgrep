@@ -81,30 +81,30 @@ let parse_pattern file =
   match Lang_fuzzy.lang_of_string_opt !lang with
   | Some lang ->
       Right (Spatch_fuzzy.parse
-                ~pattern_of_string:(Parse_fuzzy.parse_pattern lang)
-                ~ii_of_pattern:Lib_ast_fuzzy.toks_of_trees
-                file)
+               ~pattern_of_string:(Parse_fuzzy.parse_pattern lang)
+               ~ii_of_pattern:Lib_ast_fuzzy.toks_of_trees
+               file)
   | None ->
-    (match !lang with
-    | "php" ->
-        raise Todo
-(*        Left (Spatch_php.parse file) *)
-    | _ -> failwith ("unsupported language for the pattern: " ^ !lang)
-    )
+      (match !lang with
+       | "php" ->
+           raise Todo
+       (*        Left (Spatch_php.parse file) *)
+       | _ -> failwith ("unsupported language for the pattern: " ^ !lang)
+      )
 
 let spatch pattern file =
- try (
-  match Lang_fuzzy.lang_of_string_opt !lang, pattern with
-  | Some lang, Right pattern ->
-     let trees, toks = Parse_fuzzy.parse_and_tokens_with_lang lang file in
-     let was_modified = Spatch_fuzzy.spatch pattern trees in
-     if was_modified
-     then Some (Lib_unparser.string_of_toks_using_transfo toks)
-     else None
+  try (
+    match Lang_fuzzy.lang_of_string_opt !lang, pattern with
+    | Some lang, Right pattern ->
+        let trees, toks = Parse_fuzzy.parse_and_tokens_with_lang lang file in
+        let was_modified = Spatch_fuzzy.spatch pattern trees in
+        if was_modified
+        then Some (Lib_unparser.string_of_toks_using_transfo toks)
+        else None
 
-  | None, Left _pattern ->
-    (match !lang with
-    | "php" ->
+    | None, Left _pattern ->
+        (match !lang with
+         | "php" ->
 (*
       (try
         Spatch_php.spatch ~case_sensitive:!case_sensitive pattern file
@@ -112,13 +112,13 @@ let spatch pattern file =
         failwith ("PARSING PB: " ^ Parse_info.error_message_info tok);
       )
 *)
-      raise Todo
-    | _ -> failwith ("unsupported language: " ^ !lang)
-    )
-  | _ -> raise Impossible
+             raise Todo
+         | _ -> failwith ("unsupported language: " ^ !lang)
+        )
+    | _ -> raise Impossible
   ) with exn ->
-     pr2 (spf "PB with %s, exn = %s"  file (Common.exn_to_s exn));
-     None
+    pr2 (spf "PB with %s, exn = %s"  file (Common.exn_to_s exn));
+    None
 
 
 (*****************************************************************************)
@@ -129,11 +129,11 @@ let main_action xs =
   let spatch_file =
     match !spatch_file, !sed_string with
     | "", "" ->
-      failwith "I need a semantic patch file; use -f"
+        failwith "I need a semantic patch file; use -f"
     | "", s ->
         (* does not handle nested /, does not handle s# alternate
          * syntax as in perl, does not handle much ...
-         *)
+        *)
         if s =~ "s/\\(.*\\)/\\(.*\\)/"
         then begin
           let (before, after) = Common.matched2 s in
@@ -157,28 +157,28 @@ let main_action xs =
     Find_source.files_of_dir_or_files ~lang:!lang xs in
 
   files |> Console.progress ~show:!verbose (fun k ->
-   List.iter (fun file->
-    k();
-    let resopt = spatch pattern file in
-    resopt |> Common.do_option (fun (s) ->
-      pr2 (spf "transforming: %s" file);
+    List.iter (fun file->
+      k();
+      let resopt = spatch pattern file in
+      resopt |> Common.do_option (fun (s) ->
+        pr2 (spf "transforming: %s" file);
 
-      let tmpfile = Common.new_temp_file "trans" ".spatch" in
-      Common.write_file ~file:tmpfile s;
+        let tmpfile = Common.new_temp_file "trans" ".spatch" in
+        Common.write_file ~file:tmpfile s;
 
-      if !pretty_printer && !lang =$= "php"
-      then raise Todo;
+        if !pretty_printer && !lang =$= "php"
+        then raise Todo;
 (*
 Unparse_pretty_print_mix.pretty_print_when_need_it
              ~oldfile:file ~newfile:tmpfile;
 *)
 
-      let diff = Common2.unix_diff file tmpfile in
-      diff |> List.iter pr;
-      if !apply_patch
-      then Common.write_file ~file:file (Common.read_file tmpfile);
-    )
-  ))
+        let diff = Common2.unix_diff file tmpfile in
+        diff |> List.iter pr;
+        if !apply_patch
+        then Common.write_file ~file:file (Common.read_file tmpfile);
+      )
+    ))
 
 (*****************************************************************************)
 (* Helpers for PHP *)
@@ -186,15 +186,15 @@ Unparse_pretty_print_mix.pretty_print_when_need_it
 
 (* Some helper functions when using the low-level transformation API of pfff.
  * You should use the spatch DSL if you can.
- *)
+*)
 type transformation = {
   (* Works by side effect on the tokens in the AST, see the transfo field.
    * It returns a boolean indicating whether any transformation was done.
-   *)
+  *)
   trans_func: Cst_php.program -> bool;
   (* optimisation; if a file does not contain certain keywords we don't
    * even have to parse it
-   *)
+  *)
   grep_keywords: string list option;
 }
 
@@ -204,7 +204,7 @@ let apply_transfo transfo xs =
   let pbs = ref [] in
   (* xhp and transformation was not mixing well, but now it's better
    * thanks to builtin xhp support
-   *)
+  *)
   Flag_parsing.show_parsing_error := false;
   Flag_parsing.verbose_lexing := false;
 
@@ -220,48 +220,48 @@ let apply_transfo transfo xs =
     in
     if worth_trying
     then
-    try (
-    let (ast, _toks) =
-      try
-        Parse_php.parse file |> fst
-      with Parse_info.Parsing_error _err ->
-        Common.pr2 (spf "warning: parsing problem in %s" file);
-        [], []
-    in
-    let was_modified = transfo.trans_func ast in
+      try (
+        let (ast, _toks) =
+          try
+            Parse_php.parse file |> fst
+          with Parse_info.Parsing_error _err ->
+            Common.pr2 (spf "warning: parsing problem in %s" file);
+            [], []
+        in
+        let was_modified = transfo.trans_func ast in
 
-    (* old:
-     * let patch = Patch.generate_patch !edition_cmds
-     * ~filename_in_project:file file in
-     * patch +> List.iter pr
-     *)
+        (* old:
+         * let patch = Patch.generate_patch !edition_cmds
+         * ~filename_in_project:file file in
+         * patch +> List.iter pr
+        *)
 
-    if was_modified then begin
+        if was_modified then begin
 (*
       let s =
         Unparse_php.string_of_program_with_comments_using_transfo (ast, toks)
       in
 *)
-      let s = "TODO" in
+          let s = "TODO" in
 
-      let tmpfile = Common.new_temp_file "trans" ".php" in
-      Common.write_file ~file:tmpfile s;
+          let tmpfile = Common.new_temp_file "trans" ".php" in
+          Common.write_file ~file:tmpfile s;
 
-      let diff = Common2.unix_diff file tmpfile in
-      diff |> List.iter pr;
+          let diff = Common2.unix_diff file tmpfile in
+          diff |> List.iter pr;
 
-      if !apply_patch
-      then Common.write_file ~file:file s;
-    end
-    ) with exn ->
-      Common.push (spf "PB with %s, exn = %s" file (Common.exn_to_s exn)) pbs;
+          if !apply_patch
+          then Common.write_file ~file:file s;
+        end
+      ) with exn ->
+        Common.push (spf "PB with %s, exn = %s" file (Common.exn_to_s exn)) pbs;
   ));
   !pbs |> List.iter Common.pr2
 
 let apply_refactoring _refactoring file =
   let _ast_and_toks, _ = Parse_php.parse file in
   let s =
-  (*  Refactoring_code_php.refactor [refactoring] ast_and_toks  *) raise Todo
+    (*  Refactoring_code_php.refactor [refactoring] ast_and_toks  *) raise Todo
   in
   let tmpfile = Common.new_temp_file "trans" ".spatch" in
   Common.write_file ~file:tmpfile s;
@@ -330,7 +330,7 @@ let all_different xs =
  * - julien thinks we should transform even if some commas
  *   are on the same line, as long as the last ')' is on a different line.
  * - we should also transform function decl and use() lists.
- *)
+*)
 (*
 let add_trailing_comma_multiline_funcalls ast =
   let was_modified = ref false in
@@ -530,12 +530,12 @@ let juju_refactoring spec_file =
   (* Group by file because we need to do all the transfo on a file
    * before unparsing as the refactoring spec use line/col position
    * that refers to the original file
-   *)
+  *)
   let xxs =
     xs |> List.map (fun x ->
       match x with
       | (_a, Some pos) ->
-        pos.Refactoring_code.file, x
+          pos.Refactoring_code.file, x
       | _ -> failwith "no file position"
     )
     |> Common.group_assoc_bykey_eff
@@ -543,7 +543,7 @@ let juju_refactoring spec_file =
   xxs |> List.iter (fun (file, _refactorings) ->
     let (_ast2, _stat) = Parse_php.parse file in
     let s =
-    (*  Refactoring_code_php.refactor refactorings ast2  *) raise Todo
+      (*  Refactoring_code_php.refactor refactorings ast2  *) raise Todo
     in
 
     let tmpfile = Common.new_temp_file "trans" ".php" in
@@ -551,7 +551,7 @@ let juju_refactoring spec_file =
 
     if !pretty_printer
     then (* Unparse_pretty_print_mix.pretty_print_when_need_it
-      ~oldfile:file ~newfile:tmpfile; *) raise Todo;
+            ~oldfile:file ~newfile:tmpfile; *) raise Todo;
 
     let diff = Common2.unix_diff file tmpfile in
     diff |> List.iter pr;
@@ -567,28 +567,28 @@ let juju_refactoring spec_file =
  * Also avoid false positive change like s/TIME/Time/ where
  * in some files you must do it only selectively, when on
  * TIME::sec_day, but not on TimelineProfile::TIME
- *)
+*)
 let case_refactoring pfff_log =
   let xs = Common.cat pfff_log in
   let simple_rename =
     xs |> Common.map_filter (fun s ->
-   (*ex: CASE SENSITIVITY: SmsConst instead of SMSConst at /path/file:176:18 *)
+      (*ex: CASE SENSITIVITY: SmsConst instead of SMSConst at /path/file:176:18 *)
       if s =~
-        ("CASE SENSITIVITY: \\([A-Za-z_0-9\\.]+\\) " ^
-         "instead of \\([A-Za-z_0-9\\.]+\\) " ^
-         "at \\([^:]+\\):\\([0-9]+\\):\\([0-9]+\\)")
+         ("CASE SENSITIVITY: \\([A-Za-z_0-9\\.]+\\) " ^
+          "instead of \\([A-Za-z_0-9\\.]+\\) " ^
+          "at \\([^:]+\\):\\([0-9]+\\):\\([0-9]+\\)")
       then
         let (actual, expected, file, line, col) = Common.matched5 s in
         if file =~
-          (match 0 with
-          | 0 -> ".*/www-git/"
-          | 1 -> ".*/www-git/\\(lib\\|scripts\\|tests\\)/*"
-          | 2 -> ".*/www-git/flib/[a-f].*"
-          | 3 -> ".*/www-git/flib/[g-m].*"
-          | 4 -> ".*/www-git/flib/[n-r].*"
-          | 5 -> ".*/www-git/flib/[s-z].*"
-          | _ -> raise Impossible
-          )
+           (match 0 with
+            | 0 -> ".*/www-git/"
+            | 1 -> ".*/www-git/\\(lib\\|scripts\\|tests\\)/*"
+            | 2 -> ".*/www-git/flib/[a-f].*"
+            | 3 -> ".*/www-git/flib/[g-m].*"
+            | 4 -> ".*/www-git/flib/[n-r].*"
+            | 5 -> ".*/www-git/flib/[s-z].*"
+            | _ -> raise Impossible
+           )
         then
           Some (actual, expected, file, s_to_i line, s_to_i col)
         else None
@@ -599,34 +599,34 @@ let case_refactoring pfff_log =
     let xs = Common.split "\\." actual in
     let ys = Common.split "\\." expected in
     (match xs, ys with
-    | [a1], [b1]  ->
-      pr2_gen actual;
-      Common.command2 (spf
-        "%s/spatch -lang phpfuzzy --apply-patch -e 's/%s/%s/' %s"
-        Config_pfff.path_pfff_home
-        a1 b1 file);
-    | [a1;_a2], [b1;_b2] when a1 <> b1 ->
-      (* old:
-       *  Common.command2 (spf "perl -p -i -e 's/\\b%s\\b/%s/g' %s" a1 b1 file);
-       * but got some FPs when s/crud/Crud/ on certain files because it also
-       * uppercased a URL (see D867035). So use spatch, safer.
-       *)
-      pr2_gen actual;
-      Common.command2 (spf
-        "%s/spatch -lang phpfuzzy --apply-patch -e 's/%s/%s/' %s"
-        Config_pfff.path_pfff_home
-        a1 b1 file);
-      ()
-    | [a1;a2], [b1;b2] when a1 = b1 && a2 <> b2 ->
-      Common.command2 (spf
-        "%s/spatch -lang phpfuzzy --apply-patch -e 's/%s/%s/' %s"
-        Config_pfff.path_pfff_home
-        a2 b2 file);
+     | [a1], [b1]  ->
+         pr2_gen actual;
+         Common.command2 (spf
+                            "%s/spatch -lang phpfuzzy --apply-patch -e 's/%s/%s/' %s"
+                            Config_pfff.path_pfff_home
+                            a1 b1 file);
+     | [a1;_a2], [b1;_b2] when a1 <> b1 ->
+         (* old:
+          *  Common.command2 (spf "perl -p -i -e 's/\\b%s\\b/%s/g' %s" a1 b1 file);
+          * but got some FPs when s/crud/Crud/ on certain files because it also
+          * uppercased a URL (see D867035). So use spatch, safer.
+         *)
+         pr2_gen actual;
+         Common.command2 (spf
+                            "%s/spatch -lang phpfuzzy --apply-patch -e 's/%s/%s/' %s"
+                            Config_pfff.path_pfff_home
+                            a1 b1 file);
+         ()
+     | [a1;a2], [b1;b2] when a1 = b1 && a2 <> b2 ->
+         Common.command2 (spf
+                            "%s/spatch -lang phpfuzzy --apply-patch -e 's/%s/%s/' %s"
+                            Config_pfff.path_pfff_home
+                            a2 b2 file);
 
-    | _ ->
-      ()
+     | _ ->
+         ()
 
-  )
+    )
   )
 
 
@@ -728,7 +728,7 @@ open OUnit
 let test () =
 
   let suite = "spatch" >::: [
-  (* ugly: todo: use a toy fuzzy parser instead of the one in lang_cpp/ *)
+    (* ugly: todo: use a toy fuzzy parser instead of the one in lang_cpp/ *)
     Unit_fuzzy.spatch_fuzzy_unittest
       ~ast_fuzzy_of_string:(fun str ->
         Common2.with_tmp_file ~str ~ext:"cpp" (fun tmpfile ->
@@ -738,7 +738,7 @@ let test () =
         Common.save_excursion Flag_parsing.verbose_lexing false (fun () ->
           Parse_cpp.parse_fuzzy file
         ))
-        ;
+    ;
 (*
     Unit_matcher_php.spatch_unittest;
     Unit_matcher_php.refactoring_unittest;
@@ -811,8 +811,8 @@ let spatch_extra_actions () = [
 (*****************************************************************************)
 
 let all_actions () =
- spatch_extra_actions()@
- []
+  spatch_extra_actions()@
+  []
 
 let options () =
   [
@@ -867,31 +867,31 @@ let main () =
 
     (match args with
 
-    (* --------------------------------------------------------- *)
-    (* actions, useful to debug subpart *)
-    (* --------------------------------------------------------- *)
-    | xs when List.mem !action (Common.action_list (all_actions())) ->
-        Common.do_action !action xs (all_actions())
+     (* --------------------------------------------------------- *)
+     (* actions, useful to debug subpart *)
+     (* --------------------------------------------------------- *)
+     | xs when List.mem !action (Common.action_list (all_actions())) ->
+         Common.do_action !action xs (all_actions())
 
-    | _ when not (Common.null_string !action) ->
-        failwith ("unrecognized action or wrong params: " ^ !action)
+     | _ when not (Common.null_string !action) ->
+         failwith ("unrecognized action or wrong params: " ^ !action)
 
-    (* --------------------------------------------------------- *)
-    (* main entry *)
-    (* --------------------------------------------------------- *)
-    | x::xs ->
-        main_action (x::xs)
+     (* --------------------------------------------------------- *)
+     (* main entry *)
+     (* --------------------------------------------------------- *)
+     | x::xs ->
+         main_action (x::xs)
 
-    (* --------------------------------------------------------- *)
-    (* empty entry *)
-    (* --------------------------------------------------------- *)
-    | [] ->
-        Common.usage usage_msg (options())
+     (* --------------------------------------------------------- *)
+     (* empty entry *)
+     (* --------------------------------------------------------- *)
+     | [] ->
+         Common.usage usage_msg (options())
     )
   )
 
 (*****************************************************************************)
 let _ =
   Common.main_boilerplate (fun () ->
-      main ();
+    main ();
   )

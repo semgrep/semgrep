@@ -16,4 +16,4 @@ type dialect = [ `Typescript | `TSX ]
    if the extension is unknown.
 *)
 val parse : ?dialect:dialect -> string ->
- Ast_js.program Parse_tree_sitter_helpers.result
+  Ast_js.program Parse_tree_sitter_helpers.result
