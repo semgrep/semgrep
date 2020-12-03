@@ -52,14 +52,20 @@ VERBOSE_SUBCATEGORY_NAME = {
     "exprstmt": "Expression and Statement",
     "typed": "Typed Metavariables",
     "expr_operator": "Deep Expression Operator",
+    "class_def": "Class Definitions",
+    "anno": "Annotations",
+    "func_def": "Function Definitions",
+    "key_value": "Object or Dictionary Key Value Pairs",
 }
 
 LANGUAGE_EXCEPTIONS = {
-    "java": ["naming_import"],
-    "c": ["naming_import"],
-    "ruby": ["naming_import", "typed"],
+    "java": ["naming_import", "key_value"],
+    "c": ["naming_import", "class_def", "anno"],
+    "ruby": ["naming_import", "typed", "anno"],
     "python": ["typed"],
-    "js": ["typed"],
+    "js": ["typed", "anno"],
+    "go": ["class_def", "anno"],
+    "ocaml": ["anno", "key_value"],
 }
 
 EXCLUDE = ["TODO", "POLYGLOT", "e2e", "OTHER"]
@@ -71,16 +77,18 @@ CHEATSHEET_ENTRIES = {
         "string",
         "stmts",
         "nested_stmts",
-    ],  # "function-body", "class-body"}, TODO
+    ],
     "metavar": [
         "call",
         "arg",
         "stmt",
         "cond",
-        # "function-def", TODO
-        # "class-def", TODO
+        "func_def",
+        "class_def",
         "import",
         "typed",
+        "anno",
+        "key_value",
     ],
     "regexp": ["string", "fieldname"],
     "metavar_equality": ["expr", "stmt", "var"],
@@ -152,7 +160,7 @@ def run_semgrep_on_example(lang: str, config_arg_str: str, code_path: str) -> st
         else:
             print("ERROR: " + str(output.returncode))
             print(cmd)
-            sys.exit(1)
+            # sys.exit(1)
 
 
 def generate_cheatsheet(root_dir: str, html: bool):
