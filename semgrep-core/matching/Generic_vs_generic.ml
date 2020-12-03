@@ -1094,7 +1094,7 @@ and m_list__m_argument (xsa: A.argument list) (xsb: A.argument list) =
         | [] -> fail ()
         | (inits, rest)::xs ->
             envf (s, tok) (B.Args inits) >>= (fun () ->
-             m_list__m_argument xsa rest
+              m_list__m_argument xsa rest
             ) >||> aux xs
       in
       aux candidates
@@ -2513,7 +2513,7 @@ and m_any a b =
   | A.Pa _, _  | A.Ar _, _  | A.At _, _  | A.Dk _, _ | A.Pr _, _
   | A.Fld _, _ | A.Ss _, _ | A.Tk _, _ | A.Lbli _, _ | A.IoD _, _
   | A.ModDk _, _ | A.TodoK _, _ | A.Partial _, _ | A.Args _, _
-   -> fail ()
-  (*e: [[Generic_vs_generic.m_any]] boilerplate cases *)
+    -> fail ()
+(*e: [[Generic_vs_generic.m_any]] boilerplate cases *)
 (*e: function [[Generic_vs_generic.m_any]] *)
 (*e: semgrep/matching/Generic_vs_generic.ml *)
