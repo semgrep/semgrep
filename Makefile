@@ -72,6 +72,13 @@ setup:
 	opam install -y --deps-only ./semgrep-core
 	opam install -y --deps-only ./spacegrep
 
+# Install development dependencies in addition to build dependencies.
+#
+.PHONY: dev-setup
+dev-setup:
+	$(MAKE) setup
+	opam install -y --deps-only ./semgrep-core/dev
+
 # This needs to run initially or when something changed in the external
 # build environment. This typically looks for the location of libraries
 # and header files outside of the project.
