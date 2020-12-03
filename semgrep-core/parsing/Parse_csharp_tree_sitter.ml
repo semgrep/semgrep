@@ -1757,8 +1757,9 @@ and type_ (env : env) (x : CST.type_) : AST.type_ =
    | `Impl_type tok -> raise Impossible (* "var" *)
    | `Array_type x -> array_type env x
    | `Name x ->
+       (* TODO: TyId or TyIdQualified? *)
        let n = name env x in
-       AST.TyName n
+       AST.TyIdQualified (n, empty_id_info())
    | `Null_type x -> nullable_type env x
    | `Poin_type (v1, v2) ->
        let v1 = type_constraint env v1 in
