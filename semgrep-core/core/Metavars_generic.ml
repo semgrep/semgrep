@@ -81,10 +81,16 @@ let is_metavar_name s =
    *)
   | "$_SERVER" | "$_GET" | "$_POST" | "$_FILES"
   | "$_COOKIES" | "$_REQUEST" | "$_ENV"
-  (* todo: there's also "$GLOBALS" but this may interface with existing rules*)
+  (* todo: there's also "$GLOBALS" but this may interfere with existing rules*)
   ->
      false
   | _ ->
     s =~ metavar_regexp_string
 (*e: function [[Metavars_generic.is_metavar_name]] *)
+
+let metavar_ellipsis_regexp_string =
+  "^\\(\\$[A-Z_][A-Z_0-9]*\\)\\.\\.\\.$"
+let is_metavar_ellipsis s =
+  s =~ metavar_ellipsis_regexp_string
+
 (*e: semgrep/core/Metavars_generic.ml *)
