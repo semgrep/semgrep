@@ -139,7 +139,7 @@ let is_metavar_name s =
 (*e: function [[Metavars_generic.is_metavar_name]] *)
 
 let metavar_ellipsis_regexp_string =
-  "^\\(\\$[A-Z_][A-Z_0-9]*\\)\\.\\.\\.$"
+  "^\\(\\$\\.\\.\\.[A-Z_][A-Z_0-9]*\\)$"
 let is_metavar_ellipsis s =
   s =~ metavar_ellipsis_regexp_string
 
