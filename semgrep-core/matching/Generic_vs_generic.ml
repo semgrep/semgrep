@@ -1085,6 +1085,19 @@ and m_list__m_argument (xsa: A.argument list) (xsb: A.argument list) =
   | [A.Arg (A.Ellipsis _i)], [] ->
       return ()
 
+  | A.Arg (A.Id ((s, tok), _idinfo))::xsa, xb::xsb
+    when MV.is_metavar_ellipsis s ->
+      (* can match 1 or more arguments (or 0 is ok too?) *)
+      let candidates = inits_and_rest_of_list (xb::xsb) in
+      let rec aux xs =
+        match xs with
+        | [] -> fail ()
+        | (inits, rest)::xs ->
+            envf (s, tok) (B.Args inits) >>= (fun () ->
+             m_list__m_argument xsa rest
+            ) >||> aux xs
+      in
+      aux candidates
   | A.Arg (A.Ellipsis i)::xsa, xb::xsb ->
       (* can match nothing *)
       (m_list__m_argument xsa (xb::xsb)) >||>
@@ -2451,6 +2464,8 @@ and m_any a b =
   (*s: [[Generic_vs_generic.m_any]] boilerplate cases *)
   | A.Partial(a1), B.Partial(b1) ->
       m_partial a1 b1
+  | A.Args a1, B.Args b1 ->
+      m_list m_argument a1 b1
 
   (* boilerplate *)
   | A.N(a1), B.N(b1) ->
@@ -2497,8 +2512,8 @@ and m_any a b =
   | A.S _, _  | A.T _, _  | A.P _, _  | A.Def _, _  | A.Dir _, _
   | A.Pa _, _  | A.Ar _, _  | A.At _, _  | A.Dk _, _ | A.Pr _, _
   | A.Fld _, _ | A.Ss _, _ | A.Tk _, _ | A.Lbli _, _ | A.IoD _, _
-  | A.ModDk _, _ | A.TodoK _, _ | A.Partial _, _
-    -> fail ()
-(*e: [[Generic_vs_generic.m_any]] boilerplate cases *)
+  | A.ModDk _, _ | A.TodoK _, _ | A.Partial _, _ | A.Args _, _
+   -> fail ()
+  (*e: [[Generic_vs_generic.m_any]] boilerplate cases *)
 (*e: function [[Generic_vs_generic.m_any]] *)
 (*e: semgrep/matching/Generic_vs_generic.ml *)
