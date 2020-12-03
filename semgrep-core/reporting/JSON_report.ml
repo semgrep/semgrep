@@ -22,6 +22,7 @@ module PI = Parse_info
 module R = Rule
 module E = Error_code
 module J = JSON
+module MV = Metavars_generic
 
 open Match_result
 
@@ -102,6 +103,7 @@ let json_range min max =
   ]
 (*e: function [[JSON_report.json_range]] *)
 
+
 (*s: function [[JSON_report.range_of_any]] *)
 let range_of_any any =
   let ii = Lib_AST.ii_of_any any in
@@ -112,7 +114,8 @@ let range_of_any any =
 (*e: function [[JSON_report.range_of_any]] *)
 
 (*s: function [[JSON_report.json_metavar]] *)
-let json_metavar x startp (s, any) =
+let json_metavar x startp (s, mval) =
+  let any = MV.mvalue_to_any mval in
   let (startp, endp) =
     try
       range_of_any any

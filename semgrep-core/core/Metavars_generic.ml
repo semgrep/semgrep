@@ -16,6 +16,7 @@
 *)
 (*e: pad/r2c copyright *)
 open Common
+module G = AST_generic
 
 (*****************************************************************************)
 (* Prelude *)
@@ -34,6 +35,54 @@ open Common
 type mvar = string
 (*e: type [[Metavars_generic.mvar]] *)
 
+(* mvalue used to be just an alias to AST_generic.any, but it's more
+ * precise to have a type just for the metavariable values; we do not
+ * need all the AST_generic.any cases (however this forces us to
+ * define a few boilerplate functions like mvalue_to_any below).
+ *
+ * AST_generic.any is already (ab)used for many things: for representing
+ * a semgrep pattern, for being able to dump any AST constructs,
+ * for poor's man overloading for visiting, mapping, so there's no
+ * need to add an extra thing. It would probably be better to also
+ * define our own Pattern.t with just the valid cases, but we don't
+ * want code in pfff to depend on semgrep/core/Pattern.ml, hence the
+ * use of AST_generic.any for patterns.
+*)
+type mvalue =
+  | Id of AST_generic.ident * AST_generic.id_info option
+  | E of AST_generic.expr
+  | S of AST_generic.stmt
+  | Ss of AST_generic.stmt list
+  | T of AST_generic.type_
+  | P of AST_generic.pattern
+  | Args of AST_generic.argument list
+
+(* we sometimes need to convert to an any to be able to use
+ * Lib_AST.ii_of_any, or Lib_AST.abstract_position_info_any
+*)
+let mvalue_to_any = function
+  | E e -> G.E e
+  | S s -> G.S s
+  | Id (id, _idinfo) -> G.I id
+  | Ss x -> G.Ss x
+  | Args x -> G.Args x
+  | T x -> G.T x
+  | P x -> G.P x
+
+let str_of_any any =
+  if !Flag_semgrep.debug_with_full_position
+  then Meta_parse_info._current_precision :=
+      { Meta_parse_info.default_dumper_precision with Meta_parse_info.
+                                                   full_info = true };
+  let s = AST_generic.show_any any in
+  s
+
+let ii_of_mval x =
+  x |> mvalue_to_any |> Lib_AST.ii_of_any
+let str_of_mval x =
+  x |> mvalue_to_any |> str_of_any
+
+
 (* See the comment on Semgrep_generic.match_sts_sts for more information.
  * This is ugly, and we should probably use a variant for mvar
  * to differentiate semgrep metavariables from this special metavariable
@@ -43,10 +92,10 @@ type mvar = string
 let matched_statements_special_mvar = "!STMT!"
 
 (*s: type [[Metavars_generic.metavars_binding]] *)
-(* note that the AST_generic.any acts as the value of the metavar and also
+(* note that the mvalue acts as the value of the metavar and also
  * as its concrete code "witness". You can get position information from it,
  * it is not Parse_info.Ab(stractPos) *)
-type metavars_binding = (mvar, AST_generic.any) Common.assoc
+type metavars_binding = (mvar, mvalue) Common.assoc
 (*e: type [[Metavars_generic.metavars_binding]] *)
 
 (*s: constant [[Metavars_generic.metavar_regexp_string]] *)

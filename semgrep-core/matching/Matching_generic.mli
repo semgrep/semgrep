@@ -49,12 +49,13 @@ val empty_environment : unit -> 'a list
 (*e: signature [[Matching_generic.empty_environment]] *)
 
 (*s: signature [[Matching_generic.envf]] *)
-val envf : (string AST_generic.wrap, AST_generic.any) matcher
+val envf :
+  (Metavars_generic.mvar AST_generic.wrap, Metavars_generic.mvalue) matcher
 (*e: signature [[Matching_generic.envf]] *)
 
 (*s: signature [[Matching_generic.check_and_add_metavar_binding]] *)
 val check_and_add_metavar_binding :
-  string * AST_generic.any ->
+  Metavars_generic.mvar * Metavars_generic.mvalue ->
   tin -> tin option
 (*e: signature [[Matching_generic.check_and_add_metavar_binding]] *)
 
@@ -74,11 +75,8 @@ type regexp = Re.re
 val regexp_matcher_of_regexp_string: string -> (string -> bool)
 (*e: signature [[Matching_generic.regexp_of_regexp_string]] *)
 
-val equal_ast_binded_code : AST_generic.any -> AST_generic.any -> bool
-
-(* internal:
-   val str_of_any : AST_generic.any -> string
-*)
+val equal_ast_binded_code :
+  Metavars_generic.mvalue -> Metavars_generic.mvalue -> bool
 
 (* generic matchers *)
 (*s: signature [[Matching_generic.m_option]] *)
