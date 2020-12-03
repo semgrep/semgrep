@@ -277,8 +277,14 @@ let join_into_clause (env : env) ((v1, v2) : CST.join_into_clause) =
 
 let identifier_or_global (env : env) (x : CST.identifier_or_global) =
   (match x with
-   | `Global tok -> todo env tok (* "global" *)
+   | `Global tok -> identifier env tok (* "global" *)
    | `Id tok -> identifier env tok (* identifier *)
+  )
+
+let identifier_or_global_qualifier (env : env) (x : CST.identifier_or_global) =
+  (match x with
+    | `Global tok -> QTop (token env tok) (* "global" *)
+    | `Id tok -> QDots [identifier env tok] (* identifier *)
   )
 
 let tuple_pattern (env : env) ((v1, v2, v3, v4) : CST.tuple_pattern) =
@@ -573,10 +579,13 @@ and prefix_unary_expression (env : env) (x : CST.prefix_unary_expression) =
 and name (env : env) (x : CST.name) =
   (match x with
    | `Alias_qual_name (v1, v2, v3) ->
-       let v1 = identifier_or_global env v1 in
+       let v1 = identifier_or_global_qualifier env v1 in
        let v2 = token env v2 (* "::" *) in
-       let v3 = simple_name env v3 in
-       todo env (v1, v2, v3)
+       let (ident3, name_info3) = simple_name env v3 in
+       (ident3, {
+          name_qualifier = Some v1;
+          name_typeargs = name_info3.name_typeargs;
+       })
    | `Qual_name (v1, v2, v3) ->
        let v1 = name env v1 in
        let v2 = token env v2 (* "." *) in
