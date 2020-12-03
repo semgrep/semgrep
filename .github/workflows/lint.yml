@@ -9,13 +9,19 @@ jobs:
     # Custom image provides 'ocp-indent', needed to check ocaml code
     container: returntocorp/ocaml:ubuntu
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-python@v1
-    - name: make ocp-indent findable
-      run: sudo ln -s "$(opam exec -- which ocp-indent)" /usr/bin
-    - uses: pre-commit/action@v2.0.0
-      with:
-        extra_args: --hook-stage manual
+      - name: Pre-checkout fixes
+        run: |
+          sudo chmod -R 777 /github
+          github_cache_dir="/__w"
+          sudo mkdir -p "$github_cache_dir"
+          sudo chmod -R 777 "$github_cache_dir"
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v1
+      - name: make ocp-indent findable
+        run: sudo ln -s "$(opam exec -- which ocp-indent)" /usr/bin
+      - uses: pre-commit/action@v2.0.0
+        with:
+          extra_args: --hook-stage manual
 
   semgrep-run-r2c-config:
     name: semgrep with r2c registry
