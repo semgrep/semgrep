@@ -52,7 +52,7 @@ VERBOSE_SUBCATEGORY_NAME = {
     "exprstmt": "Expression and Statement",
     "typed": "Typed Metavariables",
     "expr_operator": "Deep Expression Operator",
-    "class": "Class Definitions",
+    "class_def": "Class Definitions",
     "anno": "Annotations",
     "func_def": "Function Definitions",
     "key_value": "Object or Dictionary Key Value Pairs",
@@ -60,11 +60,11 @@ VERBOSE_SUBCATEGORY_NAME = {
 
 LANGUAGE_EXCEPTIONS = {
     "java": ["naming_import", "key_value"],
-    "c": ["naming_import", "class", "anno"],
+    "c": ["naming_import", "class_def", "anno"],
     "ruby": ["naming_import", "typed", "anno"],
     "python": ["typed"],
     "js": ["typed", "anno"],
-    "go": ["class", "anno"],
+    "go": ["class_def", "anno"],
     "ocaml": ["anno", "key_value"],
 }
 
@@ -77,14 +77,14 @@ CHEATSHEET_ENTRIES = {
         "string",
         "stmts",
         "nested_stmts",
-    ],  # "function-body", "class-body"}, TODO
+    ],
     "metavar": [
         "call",
         "arg",
         "stmt",
         "cond",
         "func_def",
-        "class",
+        "class_def",
         "import",
         "typed",
         "anno",
@@ -160,7 +160,7 @@ def run_semgrep_on_example(lang: str, config_arg_str: str, code_path: str) -> st
         else:
             print("ERROR: " + str(output.returncode))
             print(cmd)
-            sys.exit(1)
+            # sys.exit(1)
 
 
 def generate_cheatsheet(root_dir: str, html: bool):
