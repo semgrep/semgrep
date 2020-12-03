@@ -1,9 +1,9 @@
 
 type 'a env = {
-    file: Common.filename;
-    (* get the charpos (offset) in file given a line x col *)
-    conv: (int * int, int) Hashtbl.t;
-    extra: 'a;
+  file: Common.filename;
+  (* get the charpos (offset) in file given a line x col *)
+  conv: (int * int, int) Hashtbl.t;
+  extra: 'a;
 }
 
 type 'ast result = 'ast option * Tree_sitter_run.Tree_sitter_error.t list

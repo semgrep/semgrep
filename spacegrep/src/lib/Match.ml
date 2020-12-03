@@ -248,7 +248,7 @@ let rec match_
                    (* The sub-block was matched but some of the pattern wasn't
                       consumed. We continue, in the sub-block's parent. *)
                    match_ ~dots env last_loc pat doc_tail cont
-              )
+                )
           | Atom (loc, d) ->
               if not (within_ellipsis_range ~dots loc) then
                 Fail

@@ -11,7 +11,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 open Common
 
 module MV = Metavars_fuzzy
@@ -64,36 +64,36 @@ module XMATCH = struct
   type ('a, 'b) matcher = 'a -> 'b  -> tin -> ('a * 'b) tout
 
   let ((>>=):
-          (tin -> ('a * 'b) tout)  ->
-          (('a * 'b) -> (tin -> ('c * 'd) tout)) ->
-          (tin -> ('c * 'd) tout)) =
+         (tin -> ('a * 'b) tout)  ->
+       (('a * 'b) -> (tin -> ('c * 'd) tout)) ->
+       (tin -> ('c * 'd) tout)) =
     fun m1 m2 ->
-      fun tin ->
-        (* old:
-           match m1 tin with
-           | None -> None
-           | Some (a,b) ->
-           m2 (a, b) tin
-        *)
-        (* let's get a list of possible environment match (could be
-         * the empty list when it didn't match, playing the role None
-         * had before)
-         *)
-        let xs = m1 tin in
-        (* try m2 on each possible returned bindings *)
-        let xxs = xs |> List.map (fun ((a,b), binding) ->
-          m2 (a, b) binding
-        ) in
-        List.flatten xxs
+    fun tin ->
+    (* old:
+       match m1 tin with
+       | None -> None
+       | Some (a,b) ->
+       m2 (a, b) tin
+    *)
+    (* let's get a list of possible environment match (could be
+     * the empty list when it didn't match, playing the role None
+     * had before)
+    *)
+    let xs = m1 tin in
+    (* try m2 on each possible returned bindings *)
+    let xxs = xs |> List.map (fun ((a,b), binding) ->
+      m2 (a, b) binding
+    ) in
+    List.flatten xxs
 
 
   let (>||>) m1 m2 = fun tin ->
-(* CHOICE
-      let xs = m1 tin in
-      if null xs
-      then m2 tin
-      else xs
-*)
+    (* CHOICE
+          let xs = m1 tin in
+          if null xs
+          then m2 tin
+          else xs
+    *)
     (* opti? use set instead of list *)
     m1 tin @ m2 tin
 
@@ -125,7 +125,7 @@ module XMATCH = struct
    * metavariables in them.
    * coupling: don't forget to also modify the one in transforming_fuzzy.ml
    * todo: factorize code
-   *)
+  *)
   let equal_ast_binded_code a b =
 
     (* Note that because we want to retain the position information
@@ -138,7 +138,7 @@ module XMATCH = struct
      * the line number information in each ASTs.
      *
      * less: optimize by caching the abstract_lined ?
-     *)
+    *)
     let a = Lib_ast_fuzzy.abstract_position_trees a in
     let b = Lib_ast_fuzzy.abstract_position_trees b in
     a =*= b
@@ -151,7 +151,7 @@ module XMATCH = struct
          * Hmmm, we can't because it leads to a circular dependencies.
          * Moreover here we know both valu and valu' are regular code,
          * not patterns, so we can just use the generic '=' of OCaml.
-         *)
+        *)
         if equal_ast_binded_code valu valu'
         then Some tin
         else None
@@ -160,7 +160,7 @@ module XMATCH = struct
         Some (Common2.insert_assoc (mvar, valu) tin)
 
   let (envf: (Metavars_fuzzy.mvar * Parse_info.t, Ast_fuzzy.trees) matcher) =
-   fun (mvar, tok) any  -> fun tin ->
+    fun (mvar, tok) any  -> fun tin ->
     match check_and_add_metavar_binding (mvar, any) tin with
     | None ->
         pr2 (spf "envf: fail, %s" mvar);

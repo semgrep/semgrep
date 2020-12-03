@@ -31,13 +31,13 @@ let filter_irrelevant_rules = ref false
 
 (* we usually try first with the pfff parser and then with the tree-sitter
  * parser if pfff fails. Here you can force to only use tree-sitter.
- *)
+*)
 let tree_sitter_only = ref false
 
 (*s: constant [[Flag_semgrep.equivalence_mode]] *)
 (* special mode to set before using generic_vs_generic to match
  * code equivalences.
- *)
+*)
 let equivalence_mode = ref false
 (*e: constant [[Flag_semgrep.equivalence_mode]] *)
 

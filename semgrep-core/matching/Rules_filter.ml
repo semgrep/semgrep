@@ -11,7 +11,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 module Flag = Flag_semgrep
 module R = Rule
 module V = Visitor_AST
@@ -38,7 +38,7 @@ open AST_generic
  * todo:
  *  - we could even avoid parsing the file by using a lazy AST
  *    in Semgrep_generic.check.
- *)
+*)
 let logger = Logging.get_logger [__MODULE__]
 
 (*****************************************************************************)
@@ -47,12 +47,12 @@ let logger = Logging.get_logger [__MODULE__]
 
 (* Those functions using Re instead of Str are actually slower on
  * Zulip.
-let regexp_matching_str s =
-  Re.str s
-let compile_regexp t =
-  Re.compile t
-let run_regexp re str =
-  Re.execp re str
+   let regexp_matching_str s =
+   Re.str s
+   let compile_regexp t =
+   Re.compile t
+   let run_regexp re str =
+   Re.execp re str
 *)
 
 let regexp_matching_str s =
@@ -60,15 +60,15 @@ let regexp_matching_str s =
 let compile_regexp t = t
 [@@profiling]
 let run_regexp re str =
-   (* bugfix:
-    * this does not work!:  Str.string_match re str 0
-    * because you need to add ".*" in front to make it work,
-    * (but then you can not use regexp_string above)
-    * => use Str.search_forward instead.
-    *)
-   try
-     Str.search_forward re str 0 |> ignore; true
-   with Not_found -> false
+  (* bugfix:
+   * this does not work!:  Str.string_match re str 0
+   * because you need to add ".*" in front to make it work,
+   * (but then you can not use regexp_string above)
+   * => use Str.search_forward instead.
+  *)
+  try
+    Str.search_forward re str 0 |> ignore; true
+  with Not_found -> false
 [@@profiling]
 
 let reserved_id lang str =
@@ -92,25 +92,25 @@ let reserved_str str =
 let extract_specific_strings lang any =
   let res = ref [] in
   let visitor = V.mk_visitor {V.default_visitor with
-     V.kident = (fun (_k, _) (str, _tok) ->
-       if not (reserved_id lang str)
-       then Common.push str res
-     );
-     V.kexpr = (fun (k, _) x ->
-       (match x with
-       (* less: we could extract strings for the other literals too?
-        * atoms, chars, even int?
-        *)
-       | L (String (str, _tok)) ->
-         if not (reserved_str str)
-         then Common.push str res
-       (* do not recurse there, the type does not have to be in the source *)
-       | TypedMetavar _ ->
-          ()
-       | _ -> k x
-       );
-     );
-  } in
+                              V.kident = (fun (_k, _) (str, _tok) ->
+                                if not (reserved_id lang str)
+                                then Common.push str res
+                              );
+                              V.kexpr = (fun (k, _) x ->
+                                (match x with
+                                 (* less: we could extract strings for the other literals too?
+                                  * atoms, chars, even int?
+                                 *)
+                                 | L (String (str, _tok)) ->
+                                     if not (reserved_str str)
+                                     then Common.push str res
+                                 (* do not recurse there, the type does not have to be in the source *)
+                                 | TypedMetavar _ ->
+                                     ()
+                                 | _ -> k x
+                                );
+                              );
+                             } in
   visitor any;
   !res
 
@@ -125,27 +125,27 @@ let filter_rules_relevant_to_file_using_regexp rules lang file =
     let xs = extract_specific_strings lang pat in
     (* pr2_gen xs; *)
     let match_ =
-    (* we could avoid running multiple regexps on the same file
-     * by first orring them and do the and only of the or succeed,
-     * but probably not worth the opti.
-      let t = xs |> List.map (fun x -> regexp_matching_str x) |> Re.alt in
-      let re = compile_regexp t in
-      run_regexp re str
+      (* we could avoid running multiple regexps on the same file
+       * by first orring them and do the and only of the or succeed,
+       * but probably not worth the opti.
+         let t = xs |> List.map (fun x -> regexp_matching_str x) |> Re.alt in
+         let re = compile_regexp t in
+         run_regexp re str
       *)
       (* Note that right now we do a for_all but it mighe be incorrect
        * at some point if the pattern contains DisjExpr for example, in
        * which case we will need extract_specific_strings to directly
        * extract a complex regexp instead handling itself disjunction.
-       *)
+      *)
       xs |> List.for_all (fun x ->
-         let t = regexp_matching_str x in
-         let re = compile_regexp t in
-         run_regexp re str
-    )
+        let t = regexp_matching_str x in
+        let re = compile_regexp t in
+        run_regexp re str
+      )
 
     in
     if not match_
     then logger#info "filtering rule %s" rule.R.id;
     match_
-    )
+  )
 [@@profiling "Rules_filter.filter"]

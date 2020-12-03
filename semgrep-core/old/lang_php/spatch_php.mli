@@ -3,9 +3,9 @@
 type pattern = Cst_php.any
 
 val parse:
- Common.filename -> pattern
+  Common.filename -> pattern
 val parse_string:
- string -> pattern
+  string -> pattern
 
 val spatch:
   ?case_sensitive: bool ->

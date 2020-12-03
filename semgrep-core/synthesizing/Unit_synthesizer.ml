@@ -82,31 +82,31 @@ let python_tests = [
   ["exact match", "node.id == node.id";
    "exact metavars", "$X == $X"];
 
-   "set_cookie.py", "5:10-7:35",
-   ["exact match", "flask.response.set_cookie('sessionid', generate_cookie_value('RANDOM-UUID'), secure=True)";
-    "dots", "flask.response.set_cookie(...)";
-    "metavars", "flask.response.set_cookie('...', $Y, secure=$Z, ...)";
-    "exact metavars", "flask.response.set_cookie('...', $Y, secure=$Z)";
-    "deep metavars", "flask.response.set_cookie('...', generate_cookie_value('...'), secure=$Z)"
-   ];
+  "set_cookie.py", "5:10-7:35",
+  ["exact match", "flask.response.set_cookie('sessionid', generate_cookie_value('RANDOM-UUID'), secure=True)";
+   "dots", "flask.response.set_cookie(...)";
+   "metavars", "flask.response.set_cookie('...', $Y, secure=$Z, ...)";
+   "exact metavars", "flask.response.set_cookie('...', $Y, secure=$Z)";
+   "deep metavars", "flask.response.set_cookie('...', generate_cookie_value('...'), secure=$Z)"
+  ];
 
-   "set_cookie.py", "8:3-8:31",
-   [
-     "exact match", "a = set_cookie(1234, b, 123)";
-     "dots", "a = ...";
-     "metavars", "$X = $Y";
-     "righthand dots", "$X = set_cookie(...)";
-     "righthand metavars", "$X = set_cookie($Y, $Z, $A, ...)";
-     "righthand exact metavars", "$X = set_cookie($Y, $Z, $A)"
-   ];
+  "set_cookie.py", "8:3-8:31",
+  [
+    "exact match", "a = set_cookie(1234, b, 123)";
+    "dots", "a = ...";
+    "metavars", "$X = $Y";
+    "righthand dots", "$X = set_cookie(...)";
+    "righthand metavars", "$X = set_cookie($Y, $Z, $A, ...)";
+    "righthand exact metavars", "$X = set_cookie($Y, $Z, $A)"
+  ];
 
-   "import_as.py", "2:0-2:25",
-   [
+  "import_as.py", "2:0-2:25",
+  [
     "exact match", "exec(user_input)";
     "dots", "exec(...)";
     "metavars", "exec($X, ...)";
     "exact metavars", "exec($X)"
-   ]
+  ]
 ]
 
 let java_tests = [
@@ -124,7 +124,7 @@ let java_tests = [
    "metavars", "this.foo($X, $Y, $Z, $A, ...);";
    "exact metavars", "this.foo($X, $Y, $Z, $A);";
    "typed metavars",
-     "this.foo(this.bar(this.car((int $X))), (String $Y), this.foo((String $Y), (bool $Z)), $A);";
+   "this.foo(this.bar(this.car((int $X))), (String $Y), this.foo((String $Y), (bool $Z)), $A);";
    "deep metavars", "this.foo(this.bar(this.car($X)), $Y, this.foo($Y, $Z), $A);"
   ];
 
@@ -137,11 +137,11 @@ let java_tests = [
    "deep metavars", "this.foo(this.foo($X, $Y), $Z);"
   ];
 
-   "typed_funcs.java", "6:12-6:14",
-   ["exact match", "a";
-     "metavar", "$X";
-     "typed metavar", "(int $X)"
-   ];
+  "typed_funcs.java", "6:12-6:14",
+  ["exact match", "a";
+   "metavar", "$X";
+   "typed metavar", "(int $X)"
+  ];
 
   "typed_funcs.java", "10:8-10:30",
   ["exact match", "System.out.print(\"A\");";
@@ -155,17 +155,17 @@ let java_tests = [
 
   "typed_funcs.java", "12:10-12:38",
   ["exact match", "this.foo(this.bar(a)) == this.foo(this.bar(a))";
-  "exact metavars", "$X == $X";
-  "typed metavars", "this.foo(this.bar((int $X))) == this.foo(this.bar((int $X)))";
-  "deep metavars", "this.foo(this.bar($X)) == this.foo(this.bar($X))";
+   "exact metavars", "$X == $X";
+   "typed metavars", "this.foo(this.bar((int $X))) == this.foo(this.bar((int $X)))";
+   "deep metavars", "this.foo(this.bar($X)) == this.foo(this.bar($X))";
   ];
 
   (* "exact_match.java", "4:15-4:42",
-  ["exact match", "this.foo(this.bar(a)) == this.foo(this.bar(a))";
-  "exact metavars", "$X == $X";
-  "typed metavars", "this.foo(this.bar((int $X))) == this.foo(this.bar((int $X)))";
-  "deep metavars", "this.foo(this.bar($X)) == this.foo(this.bar($X))";
-  ]; *)
+     ["exact match", "this.foo(this.bar(a)) == this.foo(this.bar(a))";
+     "exact metavars", "$X == $X";
+     "typed metavars", "this.foo(this.bar((int $X))) == this.foo(this.bar((int $X)))";
+     "deep metavars", "this.foo(this.bar($X)) == this.foo(this.bar($X))";
+     ]; *)
 ]
 
 (* Cases splits up the test cases by language.
@@ -176,14 +176,14 @@ let java_tests = [
  * They will then be matched against the code at the given range to make
  * sure semgrep actually correctly matches the pattern to the code.
  * Place test files in semgrep-core/tests/SYNTHESIZING
- *)
+*)
 
 let unittest =
   "pattern inference features" >:: (fun () ->
     let cases = [Lang.Python, python_tests; Lang.Java, java_tests]
     in
     cases |> List.iter (fun (lang, tests) ->
-    tests |> List.iter (fun (filename, range, sols) ->
+      tests |> List.iter (fun (filename, range, sols) ->
         let file = test_path ^ filename in
         let pats = Synthesizer.synthesize_patterns range file in
         let code, errs =
@@ -196,39 +196,39 @@ let unittest =
           try
             let pattern = Parse_generic.parse_pattern lang pat in
             let e_opt = Range_to_AST.any_at_range r code in
-               match e_opt with
-                 | Some any ->
-                    let a = match (pattern, any) with
-                              | (A.E _, A.S (A.ExprStmt (e, _))) -> A.E e
-                              | (_, x) -> x in
-                    let matches_with_env = Semgrep_generic.match_any_any
-                          pattern a in
-                    (* Debugging note: uses pattern_to_string for convenience,
-                     * but really should match the code in the given file at
-                     * the given range *)
-                    if matches_with_env = []
-                    then begin
-                      pr2 str;
-                      pr2 (AST_generic.show_any (pattern));
-                      pr2 (AST_generic.show_any a);
+            match e_opt with
+            | Some any ->
+                let a = match (pattern, any) with
+                  | (A.E _, A.S (A.ExprStmt (e, _))) -> A.E e
+                  | (_, x) -> x in
+                let matches_with_env = Semgrep_generic.match_any_any
+                    pattern a in
+                (* Debugging note: uses pattern_to_string for convenience,
+                 * but really should match the code in the given file at
+                 * the given range *)
+                if matches_with_env = []
+                then begin
+                  pr2 str;
+                  pr2 (AST_generic.show_any (pattern));
+                  pr2 (AST_generic.show_any a);
 
-                    end;
-                    assert_bool (spf "pattern:|%s| should match |%s"
-                              pat
-                              (PPG.pattern_to_string lang a))
-                           (matches_with_env <> [])
+                end;
+                assert_bool (spf "pattern:|%s| should match |%s"
+                               pat
+                               (PPG.pattern_to_string lang a))
+                  (matches_with_env <> [])
 
-                 | None ->
-                    failwith (spf "Couldn't find range %s in %s" range file)
+            | None ->
+                failwith (spf "Couldn't find range %s in %s" range file)
           with
             Parsing.Parse_error ->
-            failwith (spf "problem parsing %s" pat)
+              failwith (spf "problem parsing %s" pat)
         in
         pats |> List.iter check_pats;
         let pats_str =
-           List.fold_left (fun s (s1, s2) -> s^s1^": "^s2^"\n") "" pats in
+          List.fold_left (fun s (s1, s2) -> s^s1^": "^s2^"\n") "" pats in
         assert_bool ("Patterns do not match solution, where inferred patterns are:\n" ^ pats_str)
-              (pats = sols)
-    )
+          (pats = sols)
+      )
     )
   )

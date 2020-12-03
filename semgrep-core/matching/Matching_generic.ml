@@ -13,7 +13,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 (*e: pad/r2c copyright *)
 open Common
 
@@ -38,7 +38,7 @@ let logger = Logging.get_logger [__MODULE__]
  *     * m_list__m_attribute
  *     * m_list__m_xml_attr
  *     * m_list__m_argument (harder)
- *)
+*)
 
 (*****************************************************************************)
 (* Types *)
@@ -91,10 +91,10 @@ type tout = tin list
  * the AST of the program we want to match over), then some environment
  * information tin, and it will return something (tout) that will
  * represent a match between element A and B.
- *)
+*)
 (* currently 'a and 'b are usually the same type as we use the
  * same language for the host language and pattern language
- *)
+*)
 type ('a, 'b) matcher = 'a -> 'b -> tin -> tout
 (*e: type [[Matching_generic.matcher]] *)
 
@@ -110,8 +110,8 @@ type ('a, 'b) matcher = 'a -> 'b -> tin -> tout
 let str_of_any any =
   if !Flag.debug_with_full_position
   then Meta_parse_info._current_precision :=
-    { Meta_parse_info.default_dumper_precision with Meta_parse_info.
-      full_info = true };
+      { Meta_parse_info.default_dumper_precision with Meta_parse_info.
+                                                   full_info = true };
 
   let s = AST_generic.show_any any in
   s
@@ -135,18 +135,18 @@ let str_of_any any =
  *
  * For more context, this tutorial on monads in OCaml can be useful:
  * https://www.cs.cornell.edu/courses/cs3110/2019sp/textbook/ads/ex_maybe_monad.html
- *)
+*)
 
 (*s: function [[Matching_generic.monadic_bind]] *)
 let ((>>=):
-  (tin -> tout) ->
-  (unit -> (tin -> tout)) ->
-  (tin -> tout)) = fun m1 m2 ->
+       (tin -> tout) ->
+     (unit -> (tin -> tout)) ->
+     (tin -> tout)) = fun m1 m2 ->
   fun tin ->
     (* let's get a list of possible environment match (could be
      * the empty list when it didn't match, playing the role None
      * had before)
-     *)
+    *)
     let xs = m1 tin in
     (* try m2 on each possible returned bindings *)
     let xxs = xs |> List.map (fun binding ->
@@ -158,17 +158,17 @@ let ((>>=):
 (*s: function [[Matching_generic.monadic_or]] *)
 (* the disjunctive combinator *)
 let ((>||>) :
-  (tin -> tout) ->
-  (tin -> tout) ->
-  (tin -> tout)) = fun m1 m2 -> fun tin ->
-(* CHOICE
-      let xs = m1 tin in
-      if null xs
-      then m2 tin
-      else xs
-*)
-    (* opti? use set instead of list *)
-    m1 tin @ m2 tin
+       (tin -> tout) ->
+     (tin -> tout) ->
+     (tin -> tout)) = fun m1 m2 -> fun tin ->
+  (* CHOICE
+        let xs = m1 tin in
+        if null xs
+        then m2 tin
+        else xs
+  *)
+  (* opti? use set instead of list *)
+  m1 tin @ m2 tin
 (*e: function [[Matching_generic.monadic_or]] *)
 
 (*s: function [[Matching_generic.monadic_if_fail]] *)
@@ -182,7 +182,7 @@ let (>!>) m1 else_cont = fun tin ->
 (*s: function [[Matching_generic.return]] *)
 (* The classical monad combinators *)
 let (return : tin -> tout) = fun tin ->
-[tin]
+  [tin]
 (*e: function [[Matching_generic.return]] *)
 
 (*s: function [[Matching_generic.fail]] *)
@@ -196,7 +196,7 @@ let (fail : tin -> tout) = fun _tin ->
  * alt: use ppx_let, but you need to write it as let%bind (uglier)
  * You can use the ppx future_syntax to support older version of OCaml, but
  * then you can not use other PPX rewriters (which we do).
- *)
+*)
 let (let*) o f =
   o >>= f
 
@@ -207,47 +207,48 @@ let (let*) o f =
 (*s: function [[Matching_generic.equal_ast_binded_code]] *)
 (* pre: both 'a' and 'b' contains only regular code; there are no
  * metavariables inside them.
- *)
+*)
 let rec equal_ast_binded_code (a: AST.any) (b: AST.any) : bool = (
   let res = (match a, b with
-  | A.I _, A.I _
-  | A.N _, A.N _
-  | A.E _, A.E _
-  | A.P _, A.P _
-  | A.S _, A.S _
-  | A.T _, A.T _
-  | A.Args _, A.Args _
-    ->
-      (* Note that because we want to retain the position information
-       * of the matched code in the environment (e.g. for the -pvar
-       * sgrep command line argument), we can not just use the
-       * generic '=' OCaml operator as 'a' and 'b' may represent
-       * the same code but they will contain leaves in their AST
-       * with different position information. So before doing
-       * the comparison we just need to remove/abstract-away
-       * the line number information in each ASTs.
-       *)
-      let a = Lib.abstract_position_info_any a in
-      let b = Lib.abstract_position_info_any b in
-      a =*= b
-  | A.I _, A.E (A.Id (b_id, _)) ->
-    (* Allow identifier nodes to match pure identifier expressions *)
+    | A.I _, A.I _
+    | A.N _, A.N _
+    | A.E _, A.E _
+    | A.P _, A.P _
+    | A.S _, A.S _
+    | A.T _, A.T _
+    | A.Args _, A.Args _
+      ->
+        (* Note that because we want to retain the position information
+         * of the matched code in the environment (e.g. for the -pvar
+         * sgrep command line argument), we can not just use the
+         * generic '=' OCaml operator as 'a' and 'b' may represent
+         * the same code but they will contain leaves in their AST
+         * with different position information. So before doing
+         * the comparison we just need to remove/abstract-away
+         * the line number information in each ASTs.
+        *)
+        let a = Lib.abstract_position_info_any a in
+        let b = Lib.abstract_position_info_any b in
+        a =*= b
+    | A.I _, A.E (A.Id (b_id, _)) ->
+        (* Allow identifier nodes to match pure identifier expressions *)
 
-    (* You should prefer to add metavar as expression (A.E), not id (A.I),
-     * (see Generic_vs_generic.m_ident_and_id_info_add_in_env_Expr)
-     * but in some cases you have no choice and you need to match an expression
-     * metavar with an id metavar.
-     * For example, we want the pattern 'const $X = foo.$X' to match 'const bar = foo.bar'
-     * (this is useful in the Javascript transpilation context of complex pattern parameter).
-     *)
-      equal_ast_binded_code a (A.I b_id)
-  | _, _ ->
-      false
+        (* You should prefer to add metavar as expression (A.E), not id (A.I),
+         * (see Generic_vs_generic.m_ident_and_id_info_add_in_env_Expr)
+         * but in some cases you have no choice and you need to match an expression
+         * metavar with an id metavar.
+         * For example, we want the pattern 'const $X = foo.$X' to match 'const bar = foo.bar'
+         * (this is useful in the Javascript transpilation context of complex pattern parameter).
+        *)
+        equal_ast_binded_code a (A.I b_id)
+    | _, _ ->
+        false
+
   ) in
 
   if not res
   then logger#ldebug (lazy (spf "A = %s\nB = %s\n"
-                (str_of_any a) (str_of_any b)));
+                              (str_of_any a) (str_of_any b)));
   res
 )
 (*e: function [[Matching_generic.equal_ast_binded_code]] *)
@@ -260,7 +261,7 @@ let check_and_add_metavar_binding((mvar:MV.mvar), valu) = fun tin ->
        * Hmmm, we can't because it leads to a circular dependencies.
        * Moreover here we know both valu and valu' are regular code,
        * not patterns, so we can just use the generic '=' of OCaml.
-       *)
+      *)
       if equal_ast_binded_code valu valu'
       then Some tin (* valu remains the metavar witness *)
       else None
@@ -271,7 +272,7 @@ let check_and_add_metavar_binding((mvar:MV.mvar), valu) = fun tin ->
 
 (*s: function [[Matching_generic.envf]] *)
 let (envf: (MV.mvar AST.wrap, AST.any) matcher) =
- fun (mvar, _imvar) any  -> fun tin ->
+  fun (mvar, _imvar) any  -> fun tin ->
   match check_and_add_metavar_binding (mvar, any) tin with
   | None ->
       (*s: [[Matching_generic.envf]] if [[verbose]] when fail *)
@@ -321,8 +322,8 @@ let all_elem_and_rest_of_list xs =
 
 (*s: toplevel [[Matching_generic._1]] *)
 let _ = Common2.example
-  (all_elem_and_rest_of_list ['a';'b';'c'] =
-    [('a', ['b';'c']); ('b', ['a';'c']); ('c', ['a';'b'])])
+    (all_elem_and_rest_of_list ['a';'b';'c'] =
+     [('a', ['b';'c']); ('b', ['a';'c']); ('c', ['a';'b'])])
 (*e: toplevel [[Matching_generic._1]] *)
 
 (*s: function [[Matching_generic.return_bis]] *)
@@ -337,7 +338,7 @@ let regexp_regexp_string = "^=~/\\(.*\\)/\\([mi]?\\)$"
 (*e: constant [[Matching_generic.regexp_regexp_string]] *)
 (*s: function [[Matching_generic.is_regexp_string]] *)
 let is_regexp_string s =
- s =~ regexp_regexp_string
+  s =~ regexp_regexp_string
 (*e: function [[Matching_generic.is_regexp_string]] *)
 
 type regexp = Re.re (* old: Str.regexp *)
@@ -357,9 +358,9 @@ let regexp_matcher_of_regexp_string s =
     (* old: let re = Str.regexp x in (fun s -> Str.string_match re s 0) *)
     let re = Re.Pcre.regexp ~flags x in
     (fun s2 ->
-        Re.Pcre.pmatch ~rex:re s2
+       Re.Pcre.pmatch ~rex:re s2
        |> (fun b -> logger#debug "regexp match: %s on %s, result = %b"
-            s s2 b; b)
+              s s2 b; b)
 
     )
   else
@@ -381,7 +382,7 @@ let (m_option: ('a,'b) matcher -> ('a option,'b option) matcher) = fun f a b ->
       f xa xb
   | None, _
   | Some _, _
-      -> fail ()
+    -> fail ()
 (*e: function [[Matching_generic.m_option]] *)
 
 (*s: function [[Matching_generic.m_option_ellipsis_ok]] *)
@@ -397,7 +398,7 @@ let m_option_ellipsis_ok f a b =
       f xa xb
   | None, _
   | Some _, _
-      -> fail ()
+    -> fail ()
 (*e: function [[Matching_generic.m_option_ellipsis_ok]] *)
 
 (*s: function [[Matching_generic.m_option_none_can_match_some]] *)
@@ -410,7 +411,7 @@ let m_option_none_can_match_some f a b =
   | Some xa, Some xb ->
       f xa xb
   | Some _, _
-      -> fail ()
+    -> fail ()
 (*e: function [[Matching_generic.m_option_none_can_match_some]] *)
 
 (* ---------------------------------------------------------------------- *)
@@ -419,8 +420,8 @@ let m_option_none_can_match_some f a b =
 (*s: function [[Matching_generic.m_ref]] *)
 let (m_ref: ('a,'b) matcher -> ('a ref,'b ref) matcher) = fun f a b ->
   match a, b with
-  { contents = xa}, { contents = xb} ->
-    f xa xb
+    { contents = xa}, { contents = xb} ->
+      f xa xb
 (*e: function [[Matching_generic.m_ref]] *)
 
 (* ---------------------------------------------------------------------- *)
@@ -434,7 +435,7 @@ let rec m_list f a b =
       return ()
   | xa::aas, xb::bbs ->
       f xa xb >>= (fun () ->
-      m_list f aas bbs
+        m_list f aas bbs
       )
   | [], _
   | _::_, _ ->
@@ -448,7 +449,7 @@ let rec m_list_prefix f a b =
       return ()
   | xa::aas, xb::bbs ->
       f xa xb >>= (fun () ->
-      m_list_prefix f aas bbs
+        m_list_prefix f aas bbs
       )
   (* less-is-ok: prefix is ok *)
   | [], _ -> return ()
@@ -459,13 +460,13 @@ let rec m_list_prefix f a b =
 
 (*s: function [[Matching_generic.m_list_with_dots]] *)
 let rec m_list_with_dots f is_dots less_is_ok xsa xsb =
-    match xsa, xsb with
+  match xsa, xsb with
   | [], [] ->
       return ()
   (*s: [[Matching_generic.m_list_with_dots()]]> empty list vs list case *)
   (* less-is-ok: empty list can sometimes match non-empty list *)
   | [], _::_ when less_is_ok ->
-    return ()
+      return ()
   (*e: [[Matching_generic.m_list_with_dots()]]> empty list vs list case *)
   (*s: [[Matching_generic.m_list_with_dots()]]> ellipsis cases *)
   (* dots: '...', can also match no argument *)
@@ -481,7 +482,7 @@ let rec m_list_with_dots f is_dots less_is_ok xsa xsb =
   (* the general case *)
   | xa::aas, xb::bbs ->
       f xa xb >>= (fun () ->
-      m_list_with_dots f is_dots less_is_ok aas bbs
+        m_list_with_dots f is_dots less_is_ok aas bbs
       )
   | [], _
   | _::_, _ ->
@@ -491,7 +492,7 @@ let rec m_list_with_dots f is_dots less_is_ok xsa xsb =
 (* todo? opti? try to go faster to the one with split_when?
  * need reflect tin so we can call the matcher and query whether there
  * was a match. Maybe a <??> monadic operator?
- *)
+*)
 let rec m_list_in_any_order ~less_is_ok f xsa xsb =
   match xsa, xsb with
   | [], [] ->
@@ -555,7 +556,7 @@ let m_string_prefix a b =
 (*s: function [[Matching_generic.m_info]] *)
 (* we do not care about position! or differences in space/indent/comment!
  * so we can just  'return ()'
- *)
+*)
 let m_info _a _b = return ()
 (*e: function [[Matching_generic.m_info]] *)
 
@@ -566,18 +567,18 @@ let m_tok a b = m_info a b
 (*s: function [[Matching_generic.m_wrap]] *)
 let m_wrap f a b =
   match a, b with
-  ((xaa, ainfo), (xbb, binfo)) ->
-    f xaa xbb >>= (fun () ->
-    m_info ainfo binfo
-    )
+    ((xaa, ainfo), (xbb, binfo)) ->
+      f xaa xbb >>= (fun () ->
+        m_info ainfo binfo
+      )
 (*e: function [[Matching_generic.m_wrap]] *)
 
 (*s: function [[Matching_generic.m_bracket]] *)
 let m_bracket f (a1, a2, a3) (b1, b2, b3) =
-   m_info a1 b1 >>= (fun () ->
-   f a2 b2 >>= (fun () ->
-   m_info a3 b3
-   ))
+  m_info a1 b1 >>= (fun () ->
+    f a2 b2 >>= (fun () ->
+      m_info a3 b3
+    ))
 (*e: function [[Matching_generic.m_bracket]] *)
 
 (* ---------------------------------------------------------------------- *)

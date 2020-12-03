@@ -11,7 +11,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 open Common
 
 module MV = Metavars_fuzzy
@@ -63,35 +63,35 @@ module XMATCH = struct
   type ('a, 'b) matcher = 'a -> 'b  -> tin -> ('a * 'b) tout
 
   let ((>>=):
-          (tin -> ('a * 'b) tout)  ->
-          (('a * 'b) -> (tin -> ('c * 'd) tout)) ->
-          (tin -> ('c * 'd) tout)) =
+         (tin -> ('a * 'b) tout)  ->
+       (('a * 'b) -> (tin -> ('c * 'd) tout)) ->
+       (tin -> ('c * 'd) tout)) =
     fun m1 m2 ->
-      fun tin ->
-        (* old:
-           match m1 tin with
-           | None -> None
-           | Some (a,b) ->
-           m2 (a, b) tin
-        *)
-        (* let's get a list of possible environment match (could be
-         * the empty list when it didn't match, playing the role None
-         * had before)
-         *)
-        let xs = m1 tin in
-        (* try m2 on each possible returned bindings *)
-        let xxs = xs |> List.map (fun ((a,b), binding) ->
-          m2 (a, b) binding
-        ) in
-        List.flatten xxs
+    fun tin ->
+    (* old:
+       match m1 tin with
+       | None -> None
+       | Some (a,b) ->
+       m2 (a, b) tin
+    *)
+    (* let's get a list of possible environment match (could be
+     * the empty list when it didn't match, playing the role None
+     * had before)
+    *)
+    let xs = m1 tin in
+    (* try m2 on each possible returned bindings *)
+    let xxs = xs |> List.map (fun ((a,b), binding) ->
+      m2 (a, b) binding
+    ) in
+    List.flatten xxs
 
   let (>||>) m1 m2 = fun tin ->
-(* CHOICE
-      let xs = m1 tin in
-      if null xs
-      then m2 tin
-      else xs
-*)
+    (* CHOICE
+          let xs = m1 tin in
+          if null xs
+          then m2 tin
+          else xs
+    *)
     (* opti? use set instead of list *)
     m1 tin @ m2 tin
 
@@ -119,19 +119,19 @@ module XMATCH = struct
    * then before applying the transformation we need first to
    * substitute all metavariables by their actual binded value
    * in the environment.
-   *)
+  *)
   let adjust_transfo_with_env env transfo =
-     match transfo with
-     | PI.NoTransfo
-     | PI.Remove -> transfo
+    match transfo with
+    | PI.NoTransfo
+    | PI.Remove -> transfo
 
-     | PI.AddBefore add ->
-         PI.AddBefore (subst_metavars env add)
-     | PI.AddAfter add ->
-         PI.AddAfter (subst_metavars env add)
-     | PI.Replace add ->
-         PI.Replace (subst_metavars env add)
-     | PI.AddArgsBefore _ -> raise Todo
+    | PI.AddBefore add ->
+        PI.AddBefore (subst_metavars env add)
+    | PI.AddAfter add ->
+        PI.AddAfter (subst_metavars env add)
+    | PI.Replace add ->
+        PI.Replace (subst_metavars env add)
+    | PI.AddArgsBefore _ -> raise Todo
   (* propagate the transformation info *)
   let tokenf a b = fun tin ->
 
@@ -153,7 +153,7 @@ module XMATCH = struct
    * metavariables in them.
    * coupling: don't forget to also modify the one in matching_fuzzy.ml
    * todo: factorize code
-   *)
+  *)
   let equal_ast_binded_code a b =
 
     (* Note that because we want to retain the position information
@@ -166,7 +166,7 @@ module XMATCH = struct
      * the line number information in each ASTs.
      *
      * less: optimize by caching the abstract_lined ?
-     *)
+    *)
     let a = Lib_ast_fuzzy.abstract_position_trees a in
     let b = Lib_ast_fuzzy.abstract_position_trees b in
     a =*= b
@@ -179,7 +179,7 @@ module XMATCH = struct
    * So tin will be already populated with all metavariables so
    * equal_ast_binded_code will be called even when we don't use
    * two times the same metavariable in the pattern.
-   *)
+  *)
   let check_and_add_metavar_binding((mvar:string), valu) = fun tin ->
     match Common2.assoc_opt mvar tin with
     | Some valu' ->
@@ -187,7 +187,7 @@ module XMATCH = struct
          * Hmmm, we can't because it leads to a circular dependencies.
          * Moreover here we know both valu and valu' are regular code,
          * not patterns, so we can just use the generic '=' of OCaml.
-         *)
+        *)
         if equal_ast_binded_code valu valu'
         then Some tin
         else None
@@ -219,28 +219,28 @@ module XMATCH = struct
     let ii = Lib_ast_fuzzy.toks_of_trees any in
 
     (match transfo with
-    | PI.NoTransfo -> ()
-    | PI.Remove ->
-      ii |> List.iter (fun tok -> tok.PI.transfo <- PI.Remove)
-    | PI.Replace _add ->
-        ii |> List.iter (fun tok -> tok.PI.transfo <- PI.Remove);
-        (match ii with
-        | [ii] -> ii.PI.transfo <- adjust_transfo_with_env env transfo;
-        | _ -> failwith "metavar matching multi tokens not supported yet"
-        )
-    | PI.AddBefore _add -> raise Todo
-    | PI.AddAfter _add ->
-        (match ii with
-        | [ii] -> ii.PI.transfo <- adjust_transfo_with_env env transfo;
-        | _ -> failwith "metavar matching multi tokens not supported yet"
-        )
+     | PI.NoTransfo -> ()
+     | PI.Remove ->
+         ii |> List.iter (fun tok -> tok.PI.transfo <- PI.Remove)
+     | PI.Replace _add ->
+         ii |> List.iter (fun tok -> tok.PI.transfo <- PI.Remove);
+         (match ii with
+          | [ii] -> ii.PI.transfo <- adjust_transfo_with_env env transfo;
+          | _ -> failwith "metavar matching multi tokens not supported yet"
+         )
+     | PI.AddBefore _add -> raise Todo
+     | PI.AddAfter _add ->
+         (match ii with
+          | [ii] -> ii.PI.transfo <- adjust_transfo_with_env env transfo;
+          | _ -> failwith "metavar matching multi tokens not supported yet"
+         )
 
-    | PI.AddArgsBefore _ -> raise Todo
+     | PI.AddArgsBefore _ -> raise Todo
     )
 
 
   let (envf: (Metavars_fuzzy.mvar * Parse_info.t, Ast_fuzzy.trees) matcher) =
-   fun (mvar, tok) any  -> fun tin ->
+    fun (mvar, tok) any  -> fun tin ->
     match check_and_add_metavar_binding (mvar, any) tin with
     | None ->
         fail tin

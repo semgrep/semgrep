@@ -11,7 +11,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 open Common
 
 open Cst_php
@@ -73,9 +73,9 @@ let (_dumb_spatch_pattern: Cst_php.expr) =
         { PI.str = "1"; charpos = 6; line = 2; column = 0;
           file = "tests/php/spatch/1.php";
         });
-     (* the spatch is to replace every 1 by 42 *)
-     PI.transfo = PI.Replace (PI.AddStr "42");
-    }
+    (* the spatch is to replace every 1 by 42 *)
+    PI.transfo = PI.Replace (PI.AddStr "42");
+  }
   in
   Sc(C(Int(("1", i_1))))
 
@@ -107,7 +107,7 @@ let parse file =
      * at some point we need to parse this stuff and
      * add the correct amount of indentation when it's processing
      * a token.
-     *)
+    *)
     | _ when s =~ "^\\+[ \t]*\\(.*\\)" ->
         let rest_line = Common.matched1 s in
         Hashtbl.add hline_env lineno (XPlus rest_line);
@@ -144,13 +144,13 @@ let parse file =
     let line = Parse_info.line_of_info tok in
     let annot = Hashtbl.find hline_env line in (* nosem *)
     (match annot with
-    | XContext -> ()
-    | XMinus -> tok.PI.transfo <- PI.Remove;
-    | XPlus _ ->
-        (* normally impossible since we removed the elements in the
-         * plus line, except the newline. should assert it's only newline
+     | XContext -> ()
+     | XMinus -> tok.PI.transfo <- PI.Remove;
+     | XPlus _ ->
+         (* normally impossible since we removed the elements in the
+          * plus line, except the newline. should assert it's only newline
          *)
-        ()
+         ()
     );
   );
   (* adjust with the Plus info. We need to annotate the last token
@@ -170,7 +170,7 @@ let parse file =
    *   + foo();
    *     bar();
    * then there is no previous line ...
-   *)
+  *)
 
   let grouped_by_lines =
     toks |> Common.group_by_mapped_key (fun tok -> Parse_info.line_of_info tok) in
@@ -180,28 +180,28 @@ let parse file =
 
         (* if the next line was a +, then associate with the last token
          * on this line
-         *)
+        *)
         (match Common2.hfind_option (line+1) hline_env with
-        | None ->
-            (* probably because was last line *)
-            ()
-        | Some (XPlus toadd) ->
-            (* todo? what if there is no token on this line ? *)
-            let last_tok = Common2.list_last toks_at_line in
+         | None ->
+             (* probably because was last line *)
+             ()
+         | Some (XPlus toadd) ->
+             (* todo? what if there is no token on this line ? *)
+             let last_tok = Common2.list_last toks_at_line in
 
-            (* ugly hack *)
-            let toadd =
-              match Parse_info.str_of_info last_tok with
-              | ";" -> "\n" ^ toadd
-              | _ -> toadd
-            in
+             (* ugly hack *)
+             let toadd =
+               match Parse_info.str_of_info last_tok with
+               | ";" -> "\n" ^ toadd
+               | _ -> toadd
+             in
 
-            (match last_tok.transfo with
-            | Remove -> last_tok.transfo <- Replace (AddStr toadd)
-            | NoTransfo -> last_tok.transfo <- AddAfter (AddStr toadd)
-            | _ -> raise Impossible
-            )
-        | Some _ -> ()
+             (match last_tok.transfo with
+              | Remove -> last_tok.transfo <- Replace (AddStr toadd)
+              | NoTransfo -> last_tok.transfo <- AddAfter (AddStr toadd)
+              | _ -> raise Impossible
+             )
+         | Some _ -> ()
         );
         aux rest
 
@@ -212,7 +212,7 @@ let parse file =
   (* both the ast (here pattern) and the tokens share the same
    * reference so by modifying the tokens we actually also modifed
    * the AST.
-   *)
+  *)
   pattern |> Metavars_php.check_pattern
 
 let parse_string spatch_str =
@@ -225,7 +225,7 @@ let spatch ?(case_sensitive=false) pattern file =
   (* quite similar to what we do in main_sgrep.ml *)
   let (ast, tokens) =
     try
-        Parse_php.parse file |> fst
+      Parse_php.parse file |> fst
     with Parse_php.Parse_error _err ->
       Common.pr2 (spf "warning: parsing problem in %s" file);
       [], []
@@ -242,67 +242,67 @@ let spatch ?(case_sensitive=false) pattern file =
             if matches_with_env = []
             then k x
             else begin
-            was_modifed := true;
-            Transforming_php.transform_xhp_xhp xhp x
-              (* TODO, maybe could get multiple matching env *)
-              (List.hd matches_with_env)
+              was_modifed := true;
+              Transforming_php.transform_xhp_xhp xhp x
+                (* TODO, maybe could get multiple matching env *)
+                (List.hd matches_with_env)
             end
           );
         }
 
     | Expr pattern_expr ->
-      { V.default_visitor with
-        V.kexpr = (fun (k, _) x ->
-          let matches_with_env =
-            Matching_php.match_e_e pattern_expr  x
-          in
-          if matches_with_env = []
-          then k x
-          else begin
-            was_modifed := true;
-            Transforming_php.transform_e_e pattern_expr x
-              (* TODO, maybe could get multiple matching env *)
-              (List.hd matches_with_env)
-          end
-        );
-      }
+        { V.default_visitor with
+          V.kexpr = (fun (k, _) x ->
+            let matches_with_env =
+              Matching_php.match_e_e pattern_expr  x
+            in
+            if matches_with_env = []
+            then k x
+            else begin
+              was_modifed := true;
+              Transforming_php.transform_e_e pattern_expr x
+                (* TODO, maybe could get multiple matching env *)
+                (List.hd matches_with_env)
+            end
+          );
+        }
 
     | Stmt2 pattern ->
-      { V.default_visitor with
-        V.kstmt = (fun (k, _) x ->
-          let matches_with_env =
-            Matching_php.match_st_st pattern x
-          in
-          if matches_with_env = []
-          then k x
-          else begin
-            was_modifed := true;
-            Transforming_php.transform_st_st pattern x
-              (* TODO, maybe could get multiple matching env *)
-              (List.hd matches_with_env)
-          end
-        );
-      }
+        { V.default_visitor with
+          V.kstmt = (fun (k, _) x ->
+            let matches_with_env =
+              Matching_php.match_st_st pattern x
+            in
+            if matches_with_env = []
+            then k x
+            else begin
+              was_modifed := true;
+              Transforming_php.transform_st_st pattern x
+                (* TODO, maybe could get multiple matching env *)
+                (List.hd matches_with_env)
+            end
+          );
+        }
 
     | Hint2 pattern ->
-      { V.default_visitor with
-        V.khint_type = (fun (k, _) x ->
-          let matches_with_env =
-            Matching_php.match_hint_hint pattern x
-          in
-          if matches_with_env = []
-          then k x
-          else begin
-            was_modifed := true;
-            Transforming_php.transform_hint_hint pattern x
-              (* TODO, maybe could get multiple matching env *)
-              (List.hd matches_with_env)
-          end
-        );
-      }
+        { V.default_visitor with
+          V.khint_type = (fun (k, _) x ->
+            let matches_with_env =
+              Matching_php.match_hint_hint pattern x
+            in
+            if matches_with_env = []
+            then k x
+            else begin
+              was_modifed := true;
+              Transforming_php.transform_hint_hint pattern x
+                (* TODO, maybe could get multiple matching env *)
+                (List.hd matches_with_env)
+            end
+          );
+        }
 
     | _ -> failwith (spf "pattern not yet supported:" ^ "TODO"
-                      (* Export_ast_php.ml_pattern_string_of_any pattern*))
+    (* Export_ast_php.ml_pattern_string_of_any pattern*))
   in
   Common.save_excursion Php_vs_php.case_sensitive case_sensitive (fun() ->
     (V.mk_visitor hook) (Program ast)
