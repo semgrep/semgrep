@@ -6,9 +6,13 @@ on:
 jobs:
   pre-commit:
     runs-on: ubuntu-latest
+    # Custom image provides 'ocp-indent', needed to check ocaml code
+    container: returntocorp/ocaml:ubuntu
     steps:
     - uses: actions/checkout@v2
     - uses: actions/setup-python@v1
+    - name: make ocp-indent findable
+      run: sudo ln -s "$(opam exec -- which ocp-indent)" /usr/bin
     - uses: pre-commit/action@v2.0.0
       with:
         extra_args: --hook-stage manual
