@@ -844,7 +844,7 @@ and expression (env : env) (x : CST.expression) : AST.expr =
        todo env (v1, v2)
    | `Base_exp tok ->
        let x = token env tok (* "base" *) in
-       todo env x
+       IdSpecial (Super, x)
    | `Bin_exp x -> binary_expression env x
    | `Cast_exp (v1, v2, v3, v4) ->
        let v1 = token env v1 (* "(" *) in
