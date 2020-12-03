@@ -1,0 +1,13 @@
+# This is meant to be installed with 'opam install --deps-only ./path/to/dev'
+#
+opam-version: "2.0"
+maintainer: "r2c"
+authors: "r2c"
+homepage: "n/a"
+bug-reports: "n/a"
+synopsis: "OCaml development dependencies"
+
+depends: [
+  "merlin"      # used by the various text editors with ocaml support
+  "ocp-indent"  # required for indenting code, used by the pre-commit hook
+]

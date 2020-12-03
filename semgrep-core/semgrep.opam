@@ -14,6 +14,9 @@ homepage: "https://semgrep.dev"
 dev-repo: "git+https://github.com/returntocorp/semgrep"
 bug-reports: "https://github.com/returntocorp/semgrep/issues"
 
+# These are build dependencies.
+# Development-only dependencies are in 'dev/dev.opam'.
+#
 depends: [
   "dune" {>= "2.7.0" }
   "bisect_ppx" {dev & >= "2.5.0"}
