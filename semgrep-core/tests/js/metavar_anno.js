@@ -3,7 +3,7 @@
 class Foo {
     foo() {
         var foo = 1;
-    }
+i    }
 }
 
 // ERROR:
