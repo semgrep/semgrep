@@ -187,7 +187,7 @@ def run_semgrep_on_example(lang: str, config_arg_str: str, code_path: str) -> st
         else:
             print("ERROR: " + str(output.returncode))
             print(cmd)
-            # sys.exit(1)
+            sys.exit(1)
 
 
 def generate_cheatsheet(root_dir: str, html: bool):
@@ -393,14 +393,16 @@ def check_if_test_exists(
         VERBOSE_FEATURE_NAME[category],
         VERBOSE_SUBCATEGORY_NAME[subcategory],
     )
+    is_exception = subcategory in LANGUAGE_EXCEPTIONS.get(lang, [])
+    if is_exception:
+        return f"<td>&#128064;</td>\n"
     if test_matrix_entry in test_matrix_dict[lang]:
         test_exists = test_matrix_dict[lang][test_matrix_entry]
         if test_exists:
             return f"<td>&#9989;</td>\n"
         else:
             return f"<td>&#10060;</td>\n"
-    else:
-        return f"<td>&#10060;</td>\n"
+    return f"<td>&#10060;</td>\n"
 
 
 def generate_table(
@@ -427,7 +429,7 @@ def generate_table(
         for category, subcategories in GA_FEATURES.items():
             for subcategory in subcategories:
                 s += check_if_test_exists(test_matrix_dict, category, subcategory, lang)
-            s += "</tr>\n"
+        s += "</tr>\n"
     return s
 
 
