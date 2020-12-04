@@ -75,7 +75,7 @@ class PatternMatch:
         end_offset = self.metavars[metavariable]["end"]["offset"]
         length = end_offset - start_offset
 
-        with open(self.path) as file:
+        with open(self.path, errors='replace') as file:
             file.seek(start_offset)
             value = file.read(length)
 
