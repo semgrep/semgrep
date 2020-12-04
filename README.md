@@ -104,7 +104,7 @@ Visit [Integrations](https://semgrep.dev/docs/integrations/) to learn about Semg
 * [Contributing](https://semgrep.dev/docs/contributing/)
 * [Ask questions in the r2c Community Slack](https://r2c.dev/slack)
 * [CLI usage and exit codes](https://semgrep.dev/docs/cli-usage)
-* [r2c Youtube channel with Semgrep presentation videos](https://www.youtube.com/channel/UC5ahcFBorwzUTqPipFhjkWg)
+* [r2c YouTube channel with Semgrep presentation videos](https://www.youtube.com/channel/UC5ahcFBorwzUTqPipFhjkWg)
 
 
 ### Upgrading
