@@ -9,7 +9,9 @@ import semgrep.semgrep_main
 import semgrep.test
 from semgrep import __VERSION__
 from semgrep.constants import DEFAULT_CONFIG_FILE
+from semgrep.constants import DEFAULT_MAX_LINES_PER_FINDING
 from semgrep.constants import DEFAULT_TIMEOUT
+from semgrep.constants import MAX_LINES_FLAG_NAME
 from semgrep.constants import OutputFormat
 from semgrep.constants import RCE_RULE_FLAG
 from semgrep.constants import SEMGREP_URL
@@ -297,6 +299,15 @@ def cli() -> None:
         ),
     )
 
+    output.add_argument(
+        MAX_LINES_FLAG_NAME,
+        type=int,
+        default=DEFAULT_MAX_LINES_PER_FINDING,
+        help=(
+            "Maximum number of lines of code that will be shown for each match before trimming (set to 0 for unlimited)."
+        ),
+    )
+
     # logging options
     logging_ = parser.add_argument_group("logging")
 
@@ -369,6 +380,7 @@ def cli() -> None:
         strict=args.strict,
         verbose_errors=args.verbose,
         timeout_threshold=args.timeout_threshold,
+        output_per_finding_max_lines_limit=args.max_lines_per_finding,
     )
 
     if not args.disable_version_check:

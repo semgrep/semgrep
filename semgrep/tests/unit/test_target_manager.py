@@ -408,6 +408,7 @@ def test_explicit_path(tmp_path, monkeypatch):
         error_on_findings=False,
         verbose_errors=False,
         strict=False,
+        output_per_finding_max_lines_limit=None,
     )
     defaulthandler = OutputHandler(output_settings)
 
