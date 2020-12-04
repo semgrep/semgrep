@@ -27,7 +27,12 @@ jobs:
           repository: returntocorp/semgrep
           tags: develop
       - name: Push Commit Hash if PR
-        if: ${{ github.event_name == 'pull_request' }} && ${{ secrets.DOCKER_USERNAME }}
+        # Don't run when PR is from a fork
+        # For security, we do not autopush to docker when from PRs
+        # said PRs do not have access to secrets so will fail anyway but
+        # nicer to not have a "failing" CI job in the PR so don't even
+        # try if we can detect is coming from a fork
+        if: ${{ github.event_name == 'pull_request' }} && ${{ github.event.pull_request.head.repo.full_name == github.repository }}
         uses: docker/build-push-action@v1
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
