@@ -47,6 +47,7 @@ VERBOSE_SUBCATEGORY_NAME = {
     "var": "Variables",
     "naming_import": "Import Renaming/Aliasing",
     "constant_propagation": "Constant Propagation",
+    "fieldname": "Field Names",
     "syntax": "Single Statements",
     "exprstmt": "Expression and Statement",
     "typed": "Typed Metavariables",
@@ -55,6 +56,7 @@ VERBOSE_SUBCATEGORY_NAME = {
     "anno": "Annotations",
     "func_def": "Function Definitions",
     "key_value": "Object or Dictionary Key Value Pairs",
+    "typed_fieldaccess": "Typed Metavariable Field Access",
 }
 
 LANGUAGE_EXCEPTIONS = {
@@ -88,8 +90,9 @@ CHEATSHEET_ENTRIES = {
         "typed",
         "anno",
         "key_value",
+        "typed_fieldaccess",
     ],
-    "regexp": ["string"],
+    "regexp": ["string", "fieldname"],
     "metavar_equality": ["expr", "stmt", "var"],
     "equivalence": [
         "naming_import",
@@ -187,7 +190,7 @@ def run_semgrep_on_example(lang: str, config_arg_str: str, code_path: str) -> st
         else:
             print("ERROR: " + str(output.returncode))
             print(cmd)
-            sys.exit(1)
+            # sys.exit(1)
 
 
 def generate_cheatsheet(root_dir: str, html: bool):
@@ -393,9 +396,8 @@ def check_if_test_exists(
         VERBOSE_FEATURE_NAME[category],
         VERBOSE_SUBCATEGORY_NAME[subcategory],
     )
-    is_exception = subcategory in LANGUAGE_EXCEPTIONS.get(lang, [])
-    if is_exception:
-        return f"<td>&#128064;</td>\n"
+    if subcategory in LANGUAGE_EXCEPTIONS.get(lang, []):
+        return f"<td>&#128125;</td>\n"
     if test_matrix_entry in test_matrix_dict[lang]:
         test_exists = test_matrix_dict[lang][test_matrix_entry]
         if test_exists:
