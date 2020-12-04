@@ -23,7 +23,7 @@ SUPPORTED_MODES = {TAINT_MODE, SEARCH_MODE}
 
 YAML_TAINT_MUST_HAVE_KEYS = {"pattern-sinks", "pattern-sources"}
 
-NONE_LANGUAGE = Language("none")
+REGEX_ONLY_LANGUAGE_KEYS = {Language("none"), Language("regex")}
 GENERIC_LANGUAGE = Language("generic")
 
 

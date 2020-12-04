@@ -220,6 +220,26 @@ def test_invalid_regex_with_any_language_rule(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(excinfo.value.stdout, "error.json")
 
 
+def test_regex_with_any_language_rule_none_alias(run_semgrep_in_tmp, snapshot):
+    snapshot.assert_match(
+        run_semgrep_in_tmp(
+            "rules/regex-any-language-alias-none.yaml",
+            target_name="basic/regex-any-language.html",
+        ),
+        "results.json",
+    )
+
+
+def test_regex_with_any_language_multiple_rule_none_alias(run_semgrep_in_tmp, snapshot):
+    snapshot.assert_match(
+        run_semgrep_in_tmp(
+            "rules/regex-any-language-multiple-alias-none.yaml",
+            target_name="basic/regex-any-language.html",
+        ),
+        "results.json",
+    )
+
+
 def test_timeout(run_semgrep_in_tmp, snapshot):
     # Check that semgrep-core timeouts are properly handled
 
