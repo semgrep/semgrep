@@ -31,6 +31,7 @@ from semgrep.error import MatchTimeoutError
 from semgrep.error import SemgrepError
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
+from semgrep.stats import make_loc_stats
 from semgrep.stats import make_target_stats
 from semgrep.util import is_url
 from semgrep.util import with_color
@@ -183,6 +184,7 @@ def build_output_json(
     output_json["errors"] = [e.to_dict() for e in semgrep_structured_errors]
     output_json["stats"] = {
         "targets": make_target_stats(all_targets),
+        "loc": make_loc_stats(all_targets),
     }
     return json.dumps(output_json)
 

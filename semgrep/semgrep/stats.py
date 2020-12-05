@@ -40,5 +40,27 @@ def make_target_stats(all_targets: Set[Path]) -> Dict[str, Any]:
     }
 
 
+def make_loc_stats(all_targets: Set[Path]) -> Dict[str, Any]:
+    return {"by_extension": count_lines_by_path_extension(all_targets)}
+
+
+def count_lines_in_file(p: Path) -> int:
+    """
+    Return number of lines in the path. We're assuming this path is an openable file,
+    not a symlink or a directory -- it should have already been checked when it was
+    generated in the TargetManager
+    """
+    # https://stackoverflow.com/a/37600991
+    return sum(1 for i in open(p, "rb"))
+
+
+def count_lines_by_path_extension(paths: Set[Path]) -> Dict[FileExtension, int]:
+    all_counts = {p: count_lines_in_file(p) for p in paths}
+    by_extension: Dict[FileExtension, int] = collections.defaultdict(int)
+    for p, count in all_counts.items():
+        by_extension[cast(FileExtension, p.suffix)] += count
+    return dict(by_extension)
+
+
 def make_runtime_per_stats(rule_matches: Any) -> Dict[str, Any]:
     pass
