@@ -2,6 +2,16 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## Next
+
+### Added
+
+### Changed
+- To avoid filling the screen with output when your query captures a whole class, separators are printed in between findings and an individual finding can be truncated if it goes over 10 lines. Adjustable with flag `--max-lines-per-finding` (#2082)
+
+### Fixed
+
+
 ## [0.33.0](https://github.com/returntocorp/semgrep/releases/tag/v0.33.0) - 2020-12-01
 
 ### Added
