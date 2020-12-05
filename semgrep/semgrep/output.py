@@ -29,6 +29,7 @@ from semgrep.error import FINDINGS_EXIT_CODE
 from semgrep.error import Level
 from semgrep.error import MatchTimeoutError
 from semgrep.error import SemgrepError
+from semgrep.profile_manager import ProfileManager
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.stats import make_loc_stats
@@ -173,6 +174,7 @@ def build_output_json(
     rule_matches: List[RuleMatch],
     semgrep_structured_errors: List[SemgrepError],
     all_targets: Set[Path],
+    profiler: Optional[ProfileManager] = None,
     debug_steps_by_rule: Optional[Dict[Rule, List[Dict[str, Any]]]] = None,
 ) -> str:
     output_json: Dict[str, Any] = {}
@@ -185,6 +187,7 @@ def build_output_json(
     output_json["stats"] = {
         "targets": make_target_stats(all_targets),
         "loc": make_loc_stats(all_targets),
+        "profiler": profiler.dump_stats() if profiler else None,
     }
     return json.dumps(output_json)
 
@@ -282,6 +285,7 @@ class OutputHandler:
         self.debug_steps_by_rule: Dict[Rule, List[Dict[str, Any]]] = {}
         self.stats_line: Optional[str] = None
         self.all_targets: Set[Path] = set()
+        self.profiler: Optional[ProfileManager] = None
         self.rules: FrozenSet[Rule] = frozenset()
         self.semgrep_structured_errors: List[SemgrepError] = []
         self.error_set: Set[SemgrepError] = set()
@@ -344,6 +348,7 @@ class OutputHandler:
         debug_steps_by_rule: Dict[Rule, List[Dict[str, Any]]],
         stats_line: str,
         all_targets: Set[Path],
+        profiler: ProfileManager,
     ) -> None:
         self.has_output = True
         self.rules = self.rules.union(rule_matches_by_rule.keys())
@@ -353,6 +358,7 @@ class OutputHandler:
             for match in matches_of_one_rule
         ]
 
+        self.profiler = profiler
         self.all_targets = all_targets
         self.stats_line = stats_line
         self.debug_steps_by_rule.update(debug_steps_by_rule)
@@ -457,6 +463,7 @@ class OutputHandler:
                 self.rule_matches,
                 self.semgrep_structured_errors,
                 self.all_targets,
+                self.profiler,
                 debug_steps,
             )
         elif output_format == OutputFormat.JUNIT_XML:

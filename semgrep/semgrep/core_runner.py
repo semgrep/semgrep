@@ -31,6 +31,7 @@ from semgrep.error import _UnknownLanguageError
 from semgrep.error import InvalidPatternError
 from semgrep.error import MatchTimeoutError
 from semgrep.error import SemgrepError
+from semgrep.profile_manager import ProfileManager
 from semgrep.error import UnknownLanguageError
 from semgrep.evaluation import enumerate_patterns_in_boolean_expression
 from semgrep.evaluation import evaluate
@@ -322,6 +323,7 @@ class CoreRunner:
         target_manager: TargetManager,
         cache_dir: str,
         max_timeout_files: List[Path],
+        profiler: ProfileManager,
     ) -> Tuple[List[RuleMatch], List[Dict[str, Any]], List[SemgrepError], Set[Path]]:
         """
         Run all rules on targets and return list of all places that match patterns, ... todo errors
@@ -347,7 +349,9 @@ class CoreRunner:
                     0, rule.expression, rule.severity, language, rule._yaml.span
                 )
 
-                output_json = self._run_core_command(
+                output_json = profiler.track(
+                    rule.id,
+                    self._run_core_command,
                     [pattern_json],
                     [pattern],
                     targets,
@@ -390,11 +394,18 @@ class CoreRunner:
                 patterns_json = [p.to_json() for p in patterns]
 
                 if language == GENERIC_LANGUAGE:
-                    output_json = run_spacegrep(
-                        rule.id, patterns, targets, timeout=self._timeout
+                    output_json = profiler.track(
+                        rule.id,
+                        run_spacegrep,
+                        rule.id,
+                        patterns,
+                        targets,
+                        timeout=self._timeout,
                     )
                 else:  # Run semgrep-core
-                    output_json = self._run_core_command(
+                    output_json = profiler.track(
+                        rule.id,
+                        self._run_core_command,
                         patterns_json,
                         patterns,
                         targets,
@@ -481,7 +492,7 @@ class CoreRunner:
         return targets
 
     def _run_rules(
-        self, rules: List[Rule], target_manager: TargetManager
+        self, rules: List[Rule], target_manager: TargetManager, profiler: ProfileManager
     ) -> Tuple[
         Dict[Rule, List[RuleMatch]],
         Dict[Rule, List[Dict[str, Any]]],
@@ -502,7 +513,11 @@ class CoreRunner:
             ):
                 debug_tqdm_write(f"Running rule {rule._raw.get('id')}...")
                 rule_matches, debugging_steps, errors, rule_targets = self._run_rule(
-                    rule, target_manager, semgrep_core_ast_cache_dir, max_timeout_files
+                    rule,
+                    target_manager,
+                    semgrep_core_ast_cache_dir,
+                    max_timeout_files,
+                    profiler,
                 )
                 all_targets = all_targets.union(rule_targets)
                 findings_by_rule[rule] = rule_matches
@@ -521,20 +536,24 @@ class CoreRunner:
         return findings_by_rule, debugging_steps_by_rule, all_errors, all_targets
 
     def invoke_semgrep(
-        self, target_manager: TargetManager, rules: List[Rule]
+        self,
+        target_manager: TargetManager,
+        rules: List[Rule],
     ) -> Tuple[
         Dict[Rule, List[RuleMatch]],
         Dict[Rule, List[Dict[str, Any]]],
         List[SemgrepError],
         Set[Path],
+        ProfileManager,
     ]:
         """
         Takes in rules and targets and retuns object with findings
         """
         start = datetime.now()
+        profiler = ProfileManager()
 
         findings_by_rule, debug_steps_by_rule, errors, all_targets = self._run_rules(
-            rules, target_manager
+            rules, target_manager, profiler
         )
 
         logger.debug(
@@ -549,7 +568,7 @@ class CoreRunner:
         ]
         logger.debug(f'findings summary: {", ".join(by_sev_strings)}')
 
-        return findings_by_rule, debug_steps_by_rule, errors, all_targets
+        return findings_by_rule, debug_steps_by_rule, errors, all_targets, profiler
 
 
 def dedup_output(outputs: List[RuleMatch]) -> List[RuleMatch]:
