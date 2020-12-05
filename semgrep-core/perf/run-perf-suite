@@ -1,0 +1,84 @@
+#! /usr/bin/env python3
+#
+# Run semgrep-core on a series of pairs (target, pattern) and report the
+# time it takes. Optionally upload the results to the semgrep dashboard.
+#
+import argparse
+import os
+import subprocess
+import sys
+import time
+import urllib.request
+from typing import List
+
+HOST = "https://dashboard.semgrep.dev"
+
+
+class Test:
+    def __init__(self, name: str, lang: str, target: str):
+        self.name = name
+        self.lang = lang
+        self.target = target
+
+
+TESTS = [
+    # test name, language name, target file name
+    Test("empty", "js", "empty.js"),  # control
+    Test("backref", "js", "l1000.js"),
+]
+
+
+class Result:
+    def __init__(self, name: str, duration: float):
+        self.name = name
+        self.duration = duration
+
+
+def run_tests(dirname: str, tests: List[Test]) -> List[Result]:
+    results = []
+    for test in tests:
+        pattern_file = os.path.join(dirname, test.name + ".sgrep")
+        target_file = os.path.join(dirname, test.target)
+
+        t1 = time.time()
+        p = subprocess.run(
+            [
+                "semgrep-core",
+                "-lang",
+                test.lang,
+                "-f",
+                pattern_file,
+                target_file,
+            ]
+        )
+        t2 = time.time()
+
+        p.check_returncode()
+        duration = t2 - t1
+        print(f"{test.name}: {duration:.6f} s")
+        results.append(Result(test.name, duration))
+    return results
+
+
+def upload_results(results: List[Result]) -> None:
+    for res in results:
+        url = f"{HOST}/api/metric/semgrep.core.perf.{res.name}.seconds"
+        r = urllib.request.urlopen(  # nosem: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected
+            url=url,
+            data=str(res.duration).encode("ascii"),
+        )
+        print(r.read().decode())
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--upload", help="upload results to semgrep dashboard")
+    args = parser.parse_args()
+
+    results = run_tests("input", TESTS)
+    if args.upload:
+        upload_results(results)
+
+
+if __name__ == "__main__":
+    main()
