@@ -1349,7 +1349,7 @@ and parenthesized_type (env : env) ((v1, v2, v3) : CST.parenthesized_type) =
   let v1 = token env v1 (* "(" *) in
   let v2 = type_ env v2 in
   let v3 = token env v3 (* ")" *) in
-  todo env (v1, v2, v3)
+  v2
 
 and primary_constructor (env : env) ((v1, v2) : CST.primary_constructor) =
   let v1 =
@@ -1625,11 +1625,11 @@ and type_arguments (env : env) ((v1, v2, v3, v4) : CST.type_arguments) =
     List.map (fun (v1, v2) ->
       let v1 = token env v1 (* "," *) in
       let v2 = type_projection env v2 in
-      todo env (v1, v2)
+      v2
     ) v3
   in
   let v4 = token env v4 (* ">" *) in
-  todo env (v1, v2, v3, v4)
+  v2::v3
 
 and type_constraint (env : env) ((v1, v2, v3, v4) : CST.type_constraint) =
   let v1 = List.map (annotation env) v1 in
@@ -1704,20 +1704,24 @@ and type_parameters (env : env) ((v1, v2, v3, v4) : CST.type_parameters) =
 and type_projection (env : env) (x : CST.type_projection) =
   (match x with
    | `Opt_type_proj_modifs_type (v1, v2) ->
-       let v1 =
+       let _v1 =
          (match v1 with
           | Some x -> type_projection_modifiers env x
-          | None -> todo env ())
+          | None -> [])
        in
        let v2 = type_ env v2 in
-       todo env (v1, v2)
-   | `STAR tok -> token env tok (* "*" *)
+       let fake_token = Parse_info.fake_info "type projection" in
+       let list = [TodoK ("todo type projection", fake_token);T v2] in
+       OtherType (OT_Todo, list)
+   | `STAR tok ->
+       let star = str env tok in
+       OtherType (OT_Todo, [TodoK star]) (* "*" *)
   )
 
 and type_reference (env : env) (x : CST.type_reference) =
   (match x with
    | `User_type x -> user_type env x
-   | `Dyna tok -> token env tok (* "dynamic" *)
+   | `Dyna tok -> TyBuiltin (str env tok) (* "dynamic" *)
   )
 
 and type_test (env : env) ((v1, v2) : CST.type_test) =
