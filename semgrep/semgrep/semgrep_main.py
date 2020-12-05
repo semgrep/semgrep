@@ -233,7 +233,7 @@ def main(
     )
 
     # actually invoke semgrep
-    rule_matches_by_rule, debug_steps_by_rule, semgrep_errors, num_targets = CoreRunner(
+    rule_matches_by_rule, debug_steps_by_rule, semgrep_errors, all_targets = CoreRunner(
         allow_exec=dangerously_allow_arbitrary_code_execution_from_rules,
         jobs=jobs,
         timeout=timeout,
@@ -261,10 +261,10 @@ def main(
         }
 
     num_findings = sum(len(v) for v in rule_matches_by_rule.values())
-    stats_line = f"ran {len(filtered_rules)} rules on {num_targets} files: {num_findings} findings"
+    stats_line = f"ran {len(filtered_rules)} rules on {len(all_targets)} files: {num_findings} findings"
 
     output_handler.handle_semgrep_core_output(
-        rule_matches_by_rule, debug_steps_by_rule, stats_line
+        rule_matches_by_rule, debug_steps_by_rule, stats_line, all_targets
     )
 
     if autofix:

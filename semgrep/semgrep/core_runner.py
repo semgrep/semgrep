@@ -486,7 +486,7 @@ class CoreRunner:
         Dict[Rule, List[RuleMatch]],
         Dict[Rule, List[Dict[str, Any]]],
         List[SemgrepError],
-        int,
+        Set[Path],
     ]:
         findings_by_rule: Dict[Rule, List[RuleMatch]] = {}
         debugging_steps_by_rule: Dict[Rule, List[Dict[str, Any]]] = {}
@@ -518,7 +518,7 @@ class CoreRunner:
                             max_timeout_files.append(err.path)
 
         all_errors = dedup_errors(all_errors)
-        return findings_by_rule, debugging_steps_by_rule, all_errors, len(all_targets)
+        return findings_by_rule, debugging_steps_by_rule, all_errors, all_targets
 
     def invoke_semgrep(
         self, target_manager: TargetManager, rules: List[Rule]
@@ -526,18 +526,20 @@ class CoreRunner:
         Dict[Rule, List[RuleMatch]],
         Dict[Rule, List[Dict[str, Any]]],
         List[SemgrepError],
-        int,
+        Set[Path],
     ]:
         """
         Takes in rules and targets and retuns object with findings
         """
         start = datetime.now()
 
-        findings_by_rule, debug_steps_by_rule, errors, num_targets = self._run_rules(
+        findings_by_rule, debug_steps_by_rule, errors, all_targets = self._run_rules(
             rules, target_manager
         )
 
-        logger.debug(f"semgrep ran in {datetime.now() - start} on {num_targets} files")
+        logger.debug(
+            f"semgrep ran in {datetime.now() - start} on {len(all_targets)} files"
+        )
         by_severity = collections.defaultdict(list)
         for rule, findings in findings_by_rule.items():
             by_severity[rule.severity.lower()].extend(findings)
@@ -547,7 +549,7 @@ class CoreRunner:
         ]
         logger.debug(f'findings summary: {", ".join(by_sev_strings)}')
 
-        return findings_by_rule, debug_steps_by_rule, errors, num_targets
+        return findings_by_rule, debug_steps_by_rule, errors, all_targets
 
 
 def dedup_output(outputs: List[RuleMatch]) -> List[RuleMatch]:

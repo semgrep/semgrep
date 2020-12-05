@@ -31,6 +31,7 @@ from semgrep.error import MatchTimeoutError
 from semgrep.error import SemgrepError
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
+from semgrep.stats import make_target_stats
 from semgrep.util import is_url
 from semgrep.util import with_color
 
@@ -154,7 +155,10 @@ def build_normal_output(
             next_rule_match.path == rule_match.path if next_rule_match else False
         )
         yield from finding_to_line(
-            rule_match, color_output, per_finding_max_lines_limit, is_same_file,
+            rule_match,
+            color_output,
+            per_finding_max_lines_limit,
+            is_same_file,
         )
 
         if fix:
@@ -167,17 +171,19 @@ def build_normal_output(
 def build_output_json(
     rule_matches: List[RuleMatch],
     semgrep_structured_errors: List[SemgrepError],
+    all_targets: Set[Path],
     debug_steps_by_rule: Optional[Dict[Rule, List[Dict[str, Any]]]] = None,
 ) -> str:
-    # wrap errors under "data" entry to be compatible with
-    # https://docs.r2c.dev/en/latest/api/output.html#errors
-    output_json = {}
+    output_json: Dict[str, Any] = {}
     output_json["results"] = [rm.to_json() for rm in rule_matches]
     if debug_steps_by_rule:
         output_json["debug"] = [
             {r.id: steps for r, steps in debug_steps_by_rule.items()}
         ]
     output_json["errors"] = [e.to_dict() for e in semgrep_structured_errors]
+    output_json["stats"] = {
+        "targets": make_target_stats(all_targets),
+    }
     return json.dumps(output_json)
 
 
@@ -273,6 +279,7 @@ class OutputHandler:
         self.rule_matches: List[RuleMatch] = []
         self.debug_steps_by_rule: Dict[Rule, List[Dict[str, Any]]] = {}
         self.stats_line: Optional[str] = None
+        self.all_targets: Set[Path] = set()
         self.rules: FrozenSet[Rule] = frozenset()
         self.semgrep_structured_errors: List[SemgrepError] = []
         self.error_set: Set[SemgrepError] = set()
@@ -334,6 +341,7 @@ class OutputHandler:
         rule_matches_by_rule: Dict[Rule, List[RuleMatch]],
         debug_steps_by_rule: Dict[Rule, List[Dict[str, Any]]],
         stats_line: str,
+        all_targets: Set[Path],
     ) -> None:
         self.has_output = True
         self.rules = self.rules.union(rule_matches_by_rule.keys())
@@ -343,6 +351,7 @@ class OutputHandler:
             for match in matches_of_one_rule
         ]
 
+        self.all_targets = all_targets
         self.stats_line = stats_line
         self.debug_steps_by_rule.update(debug_steps_by_rule)
 
@@ -445,6 +454,7 @@ class OutputHandler:
             return build_output_json(
                 self.rule_matches,
                 self.semgrep_structured_errors,
+                self.all_targets,
                 debug_steps,
             )
         elif output_format == OutputFormat.JUNIT_XML:
