@@ -56,6 +56,7 @@ VERBOSE_SUBCATEGORY_NAME = {
     "anno": "Annotations",
     "func_def": "Function Definitions",
     "key_value": "Object or Dictionary Key Value Pairs",
+    "typed_fieldaccess": "Typed Metavariable Field Access",
 }
 
 LANGUAGE_EXCEPTIONS = {
@@ -89,6 +90,7 @@ CHEATSHEET_ENTRIES = {
         "typed",
         "anno",
         "key_value",
+        "typed_fieldaccess",
     ],
     "regexp": ["string", "fieldname"],
     "metavar_equality": ["expr", "stmt", "var"],
@@ -101,6 +103,34 @@ CHEATSHEET_ENTRIES = {
     ],
     "deep": ["exprstmt", "expr_operator"],
 }
+
+ALPHA_FEATURES = {
+    "concrete": ["syntax"],
+    "dots": ["args", "string", "stmts", "nested_stmts"],
+    "metavar": ["call", "arg"],
+    "metavar_equality": ["var"],
+    "deep": ["exprstmt"],
+}
+
+BETA_FEATURES = {
+    "metavar": ["stmt", "cond", "import", "class_def", "func_def"],
+    "metavar_equality": ["stmt", "expr"],
+}
+
+GA_FEATURES = {
+    "metavar": ["typed", "anno", "key_value"],
+    "regexp": ["string"],
+    "equivalence": [
+        "naming_import",
+        "constant_propagation",
+        "eq",
+    ],
+    "deep": ["expr_operator"],
+}
+
+NUM_ALPHA_FEATURES = sum([len(val) for val in ALPHA_FEATURES.values()])
+NUM_BETA_FEATURES = sum([len(val) for val in BETA_FEATURES.values()])
+NUM_GA_FEATURES = sum([len(val) for val in GA_FEATURES.values()])
 
 
 def find_path(
@@ -328,30 +358,79 @@ def wrap_in_div(L: List[str], className="") -> List[str]:
     return "".join([f"<div class={className}>{i}</div>" for i in L])
 
 
+def add_headers_for_category(category: str, subcategories: List[str]) -> str:
+    s = ""
+    category_long = VERBOSE_FEATURE_NAME[category]
+    for subcategory in subcategories:
+        subcategory_long = VERBOSE_SUBCATEGORY_NAME[subcategory]
+        s += f"<th>{category_long}:{subcategory_long}</th>"
+    return s
+
+
+def generate_headers_for_table():
+    s = f'<tr><th></th><th colspan={NUM_ALPHA_FEATURES}" scope="colgroup">Alpha Features</th>'
+    s += f'<th colspan="{NUM_BETA_FEATURES}" scope="colgroup">Beta Features</th>'
+    s += f'<th colspan="{NUM_GA_FEATURES}" scope="colgroup">GA Features</th></tr>'
+    s += "<tr><th></th>"
+
+    for category, subcategories in ALPHA_FEATURES.items():
+        s += add_headers_for_category(category, subcategories)
+
+    for category, subcategories in BETA_FEATURES.items():
+        s += add_headers_for_category(category, subcategories)
+
+    for category, subcategories in GA_FEATURES.items():
+        s += add_headers_for_category(category, subcategories)
+
+    s += "</tr>"
+    return s
+
+
+def check_if_test_exists(
+    test_matrix_dict: Dict[str, Dict[Tuple, bool]],
+    category: str,
+    subcategory: str,
+    lang: str,
+) -> str:
+    test_matrix_entry = (
+        VERBOSE_FEATURE_NAME[category],
+        VERBOSE_SUBCATEGORY_NAME[subcategory],
+    )
+    if subcategory in LANGUAGE_EXCEPTIONS.get(lang, []):
+        return f"<td>&#128125;</td>\n"
+    if test_matrix_entry in test_matrix_dict[lang]:
+        test_exists = test_matrix_dict[lang][test_matrix_entry]
+        if test_exists:
+            return f"<td>&#9989;</td>\n"
+        else:
+            return f"<td>&#10060;</td>\n"
+    return f"<td>&#10060;</td>\n"
+
+
 def generate_table(
     cheatsheet: Dict[str, Any], test_matrix_dict: Dict[str, Dict[Tuple, bool]]
-):
+) -> str:
     s = "<h2>Table of Languages and Features Supported</h2>"
     s += '<table class="pure-table pure-table-bordered"><tr>\n<td></td>\n'
 
     # get the feature headers in:
-    for category, subcategory in test_matrix_dict["go"].keys():
-        s += f"<th>{category}:{subcategory}</th>"
-    s += "</tr>\n"
+    s += generate_headers_for_table()
 
     # for each feature:
     for lang in cheatsheet.keys():
         s += "<tr>\n"
         s += f"<th>{lang}</th>\n"
-        for category, subcategory in test_matrix_dict["go"].keys():
-            if (category, subcategory) in test_matrix_dict[lang]:
-                val = test_matrix_dict[lang][(category, subcategory)]
-                if val:
-                    s += f"<td>&#9989;</td>\n"
-                else:
-                    s += f"<td>&#10060;</td>\n"
-            else:
-                s += f"<td>&#10060;</td>\n"
+        for category, subcategories in ALPHA_FEATURES.items():
+            for subcategory in subcategories:
+                s += check_if_test_exists(test_matrix_dict, category, subcategory, lang)
+
+        for category, subcategories in BETA_FEATURES.items():
+            for subcategory in subcategories:
+                s += check_if_test_exists(test_matrix_dict, category, subcategory, lang)
+
+        for category, subcategories in GA_FEATURES.items():
+            for subcategory in subcategories:
+                s += check_if_test_exists(test_matrix_dict, category, subcategory, lang)
         s += "</tr>\n"
     return s
 

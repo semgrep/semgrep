@@ -1,9 +1,9 @@
 rules:
 - id: bad
   message: |
-    bad rule file; cannot use 'pattern' with language 'none'
+    bad rule file; cannot use 'pattern' with language 'regex'
   languages:
-  - none
+  - regex
   paths:
     include:
     - "*.html"

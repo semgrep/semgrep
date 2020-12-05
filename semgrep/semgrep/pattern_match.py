@@ -74,8 +74,9 @@ class PatternMatch:
         start_offset = self.metavars[metavariable]["start"]["offset"]
         end_offset = self.metavars[metavariable]["end"]["offset"]
         length = end_offset - start_offset
-
-        with open(self.path) as file:
+           
+        # open path and ignore non-utf8 bytes. https://stackoverflow.com/a/56441652
+        with open(self.path, errors='replace') as file:
             file.seek(start_offset)
             value = file.read(length)
 
