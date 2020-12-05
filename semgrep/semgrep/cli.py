@@ -341,6 +341,12 @@ def cli() -> None:
         help="Disable checking for latest version.",
     )
 
+    parser.add_argument(
+        "--json-stats",
+        action="store_true",
+        help="Include statistical information about performance in JSON output",
+    )
+
     ### Parse and validate
     args = parser.parse_args()
     if args.version:
@@ -380,6 +386,7 @@ def cli() -> None:
         strict=args.strict,
         verbose_errors=args.verbose,
         timeout_threshold=args.timeout_threshold,
+        json_stats=args.json_stats,
         output_per_finding_max_lines_limit=args.max_lines_per_finding,
     )
 

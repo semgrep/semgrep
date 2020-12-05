@@ -174,6 +174,7 @@ def build_output_json(
     rule_matches: List[RuleMatch],
     semgrep_structured_errors: List[SemgrepError],
     all_targets: Set[Path],
+    show_json_stats: bool,
     profiler: Optional[ProfileManager] = None,
     debug_steps_by_rule: Optional[Dict[Rule, List[Dict[str, Any]]]] = None,
 ) -> str:
@@ -184,11 +185,12 @@ def build_output_json(
             {r.id: steps for r, steps in debug_steps_by_rule.items()}
         ]
     output_json["errors"] = [e.to_dict() for e in semgrep_structured_errors]
-    output_json["stats"] = {
-        "targets": make_target_stats(all_targets),
-        "loc": make_loc_stats(all_targets),
-        "profiler": profiler.dump_stats() if profiler else None,
-    }
+    if show_json_stats:
+        output_json["stats"] = {
+            "targets": make_target_stats(all_targets),
+            "loc": make_loc_stats(all_targets),
+            "profiler": profiler.dump_stats() if profiler else None,
+        }
     return json.dumps(output_json)
 
 
@@ -240,6 +242,7 @@ class OutputSettings(NamedTuple):
     verbose_errors: bool
     strict: bool
     output_per_finding_max_lines_limit: Optional[int]
+    json_stats: bool
     timeout_threshold: int = 0
 
 
@@ -463,6 +466,7 @@ class OutputHandler:
                 self.rule_matches,
                 self.semgrep_structured_errors,
                 self.all_targets,
+                self.settings.json_stats,
                 self.profiler,
                 debug_steps,
             )
