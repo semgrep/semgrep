@@ -61,34 +61,34 @@ let matches_eq expected_doc_strings matches =
   (List.length expected_doc_strings = List.length doc_strings
    && List.for_all2 doc_eq expected_doc_strings doc_strings)
 
-let search pat doc_src doc =
-  let matches = Match.search doc_src pat doc in
+let search ~case_sensitive pat doc_src doc =
+  let matches = Match.search ~case_sensitive doc_src pat doc in
   Match.print doc_src matches;
   matches
 
-let search_str pat_str doc_str =
+let search_str ~case_sensitive pat_str doc_str =
   let pat = Src_file.of_string pat_str |> Parse_pattern.of_src in
   let doc_src = Src_file.of_string doc_str in
   let doc = Parse_doc.of_src doc_src in
-  search pat doc_src doc
+  search ~case_sensitive pat doc_src doc
 
-let check_match_count pat_str doc_str expected_num_matches =
-  let matches = search_str pat_str doc_str in
+let check_match_count ~case_sensitive pat_str doc_str expected_num_matches =
+  let matches = search_str ~case_sensitive pat_str doc_str in
   let num_matches = List.length matches in
   Alcotest.(check int) "number of matches" expected_num_matches num_matches
 
-let check_matches pat_str doc_str expected_matches =
-  let matches = search_str pat_str doc_str in
+let check_matches ~case_sensitive pat_str doc_str expected_matches =
+  let matches = search_str ~case_sensitive pat_str doc_str in
   Alcotest.(check bool) "matches" true (matches_eq expected_matches matches)
 
 type expectation = Count of int | Matches of string list
 
-let check_matching pat_str doc_str expectation =
+let check_matching ~case_sensitive pat_str doc_str expectation =
   match expectation with
   | Count expected_num_matches ->
-      check_match_count pat_str doc_str expected_num_matches
+      check_match_count ~case_sensitive pat_str doc_str expected_num_matches
   | Matches expected_matches ->
-      check_matches pat_str doc_str expected_matches
+      check_matches ~case_sensitive pat_str doc_str expected_matches
 
 let matcher_corpus = [
   (* title, #matches, pattern, document *)
@@ -306,13 +306,29 @@ e
   "...",
   "a b c";
 
+  "case-sensitive", Matches ["foo"],
+  "foo",
+  "Foo or foo";
+]
+
+let matcher_corpus_case_insensitive = [
+  "case-insensitive", Matches ["Foo"; "foo"],
+  "foo",
+  "Foo or foo";
 ]
 
 let matcher_suite =
   List.map (fun (name, expectation, pat_str, doc_str) ->
-    name, `Quick, (fun () -> check_matching pat_str doc_str expectation)
+    name, `Quick, (fun () ->
+      check_matching ~case_sensitive:true pat_str doc_str expectation)
   ) matcher_corpus
+
+let matcher_suite_case_insensitive =
+  List.map (fun (name, expectation, pat_str, doc_str) ->
+    name, `Quick, (fun () ->
+      check_matching ~case_sensitive:false pat_str doc_str expectation)
+  ) matcher_corpus_case_insensitive
 
 let test = "Matcher", [
   "pattern parser", `Quick, test_pattern_parser;
-] @ matcher_suite
+] @ matcher_suite @ matcher_suite_case_insensitive
