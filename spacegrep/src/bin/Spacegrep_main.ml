@@ -43,9 +43,22 @@ let run_all
     ~case_sensitive ~debug ~force ~output_format ~highlight ~warn
     patterns docs =
   let matches =
-    List.map (fun get_doc_src ->
-      let doc_src = get_doc_src () in
-      let doc_type = File_type.classify doc_src in
+    List.filter_map (fun (get_doc_src : ?max_len:int -> unit -> Src_file.t) ->
+      (*
+         We inspect the first 4096 bytes to guess whether the file type.
+         This saves time on large files, by reading typically just one
+         block from the file system.
+      *)
+      let peek_length = 4096 in
+      let partial_doc_src = get_doc_src ~max_len:peek_length () in
+      let doc_type = File_type.classify partial_doc_src in
+      let doc_src =
+        if Src_file.length partial_doc_src < peek_length then
+          (* it's actually complete, no need to re-input the file *)
+          partial_doc_src
+        else
+          get_doc_src ()
+      in
       let matches =
         match doc_type, force with
         | (Minified | Binary), false ->
@@ -66,7 +79,9 @@ let run_all
               (pat_id, Match.search ~case_sensitive doc_src pat doc)
             ) patterns
       in
-      (doc_src, matches)
+      match matches with
+      | [] -> None
+      | _ -> Some (doc_src, matches)
     ) docs
   in
   match output_format with
@@ -96,10 +111,12 @@ let run config =
   in
   let docs =
     match config.doc_files with
-    | [] -> [fun () -> Src_file.of_stdin ()]
+    | [] -> [fun ?max_len () -> Src_file.of_stdin ()]
     | roots ->
         let files = Find_files.list roots in
-        List.map (fun file -> (fun () -> Src_file.of_file file)) files
+        List.map (fun file ->
+          (fun ?max_len () -> Src_file.of_file ?max_len file)
+        ) files
   in
   let debug = config.debug in
   if debug then

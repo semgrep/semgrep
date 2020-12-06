@@ -11,10 +11,15 @@ type source =
   | String
   | Channel
 
+(*
+   Read data from various sources.
+   Specifying max_len allows for reading at most the first max_len bytes
+   of data.
+*)
 val of_string : ?source:source -> string -> t
-val of_channel : ?source:source -> in_channel -> t
+val of_channel : ?source:source -> ?max_len:int -> in_channel -> t
 val of_stdin : ?source:source -> unit -> t
-val of_file : ?source:source -> string -> t
+val of_file : ?source:source -> ?max_len:int -> string -> t
 
 val to_lexbuf : t -> Lexing.lexbuf
 
@@ -23,6 +28,7 @@ val show_source : source -> string
 val source_string : t -> string
 
 val contents : t -> string
+val length : t -> int
 
 (*
    Extract a specific region specified as
