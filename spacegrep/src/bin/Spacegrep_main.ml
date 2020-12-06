@@ -26,6 +26,7 @@ type config = {
   pattern_files: string list;
   doc_files: string list;
   timeout: int option;
+  warn: bool;
 }
 
 let detect_highlight when_use_color oc =
@@ -37,7 +38,7 @@ let detect_highlight when_use_color oc =
 (*
    Run all the patterns on all the documents.
 *)
-let run_all ~debug ~force ~output_format ~highlight patterns docs =
+let run_all ~debug ~force ~output_format ~highlight ~warn patterns docs =
   let matches =
     List.map (fun get_doc_src ->
       let doc_src = get_doc_src () in
@@ -45,8 +46,9 @@ let run_all ~debug ~force ~output_format ~highlight patterns docs =
       let matches =
         match doc_type, force with
         | (Minified | Binary), false ->
-            eprintf "ignoring gibberish file: %s\n%!"
-              (Src_file.source_string doc_src);
+            if warn then
+              eprintf "ignoring gibberish file: %s\n%!"
+                (Src_file.source_string doc_src);
             []
         | _ ->
             if debug then
@@ -105,6 +107,7 @@ let run config =
     ~force:config.force
     ~output_format:config.output_format
     ~highlight
+    ~warn:config.warn
     patterns docs
 
 let color_conv =
@@ -240,17 +243,25 @@ let timeout_term =
   in
   Arg.value (Arg.opt Arg.(some int) None info)
 
+let warn_term =
+  let info =
+    Arg.info ["warn"; "w"]
+      ~doc:"Print warnings about files that can't be processed such
+            as binary files or minified files."
+  in
+  Arg.value (Arg.flag info)
+
 let cmdline_term =
   let combine
       color output_format debug force pattern
-      pattern_files anon_doc_file doc_files timeout =
+      pattern_files anon_doc_file doc_files timeout warn =
     let doc_files =
       match anon_doc_file with
       | None -> doc_files
       | Some x -> x :: doc_files
     in
     { color; output_format; debug; force; pattern;
-      pattern_files; doc_files; timeout }
+      pattern_files; doc_files; timeout; warn }
   in
   Term.(const combine
         $ color_term
@@ -262,6 +273,7 @@ let cmdline_term =
         $ anon_doc_file_term
         $ doc_file_term
         $ timeout_term
+        $ warn_term
        )
 
 let doc =
