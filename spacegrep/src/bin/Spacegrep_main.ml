@@ -18,6 +18,7 @@ type output_format =
   | Semgrep
 
 type config = {
+  case_insensitive: bool;
   color: when_use_color;
   output_format: output_format;
   debug: bool;
@@ -38,7 +39,9 @@ let detect_highlight when_use_color oc =
 (*
    Run all the patterns on all the documents.
 *)
-let run_all ~debug ~force ~output_format ~highlight ~warn patterns docs =
+let run_all
+    ~case_sensitive ~debug ~force ~output_format ~highlight ~warn
+    patterns docs =
   let matches =
     List.map (fun get_doc_src ->
       let doc_src = get_doc_src () in
@@ -60,7 +63,7 @@ let run_all ~debug ~force ~output_format ~highlight ~warn patterns docs =
                 printf "match document from %s against pattern from %s\n%!"
                   (Src_file.source_string doc_src)
                   (Src_file.source_string pat_src);
-              (pat_id, Match.search doc_src pat doc)
+              (pat_id, Match.search ~case_sensitive doc_src pat doc)
             ) patterns
       in
       (doc_src, matches)
@@ -103,6 +106,7 @@ let run config =
     Match.debug := true;
   let highlight = detect_highlight config.color stdout in
   run_all
+    ~case_sensitive:(not config.case_insensitive)
     ~debug
     ~force:config.force
     ~output_format:config.output_format
@@ -147,6 +151,18 @@ let output_format_conv =
   in
   Cmdliner.Arg.conv
     (parser, printer)
+
+let case_insensitive_term =
+  let info =
+    Arg.info ["case-insensitive"; "i"]
+      ~doc:"Match ascii letters in a case-insensitive fashion.
+            For example, the pattern 'Hello' will match both 'HellO'
+            and 'hello'.
+            However, backreferences must still match exactly e.g.
+            the pattern '\\$A + \\$A' will match 'foo + foo'
+            but not 'foo + Foo'."
+  in
+  Arg.value (Arg.flag info)
 
 let color_term =
   let info =
@@ -253,17 +269,18 @@ let warn_term =
 
 let cmdline_term =
   let combine
-      color output_format debug force pattern
+      case_insensitive color output_format debug force pattern
       pattern_files anon_doc_file doc_files timeout warn =
     let doc_files =
       match anon_doc_file with
       | None -> doc_files
       | Some x -> x :: doc_files
     in
-    { color; output_format; debug; force; pattern;
+    { case_insensitive; color; output_format; debug; force; pattern;
       pattern_files; doc_files; timeout; warn }
   in
   Term.(const combine
+        $ case_insensitive_term
         $ color_term
         $ output_format_term
         $ debug_term

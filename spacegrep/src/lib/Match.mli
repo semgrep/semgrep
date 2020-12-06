@@ -42,8 +42,16 @@ type match_ = {
 (*
    Match a pattern against a document. Return the list of all
    non-overlapping matches found by scanning the document from left to right.
+
+   By default, matching ascii words is case-sensitive. Set case_sensitive to
+   false for case-insensitive matching on the ascii letters a-z/A-Z.
+   This doesn't affect backreferences, e.g. the pattern '$A = $A'
+   will match 'A = A' and 'a = a' as always, but not 'A = a', regardless
+   of the case-sensitivity setting.
 *)
-val search : Src_file.t -> Pattern_AST.t -> Doc_AST.t -> match_ list
+val search :
+  ?case_sensitive:bool ->
+  Src_file.t -> Pattern_AST.t -> Doc_AST.t -> match_ list
 
 (*
    Print the matched lines to stdout in a human-readable format.
