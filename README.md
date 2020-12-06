@@ -64,7 +64,7 @@ $ python3 -m pip install semgrep
 $ docker run --rm -v "${PWD}:/src" returntocorp/semgrep --help
 ```
 
-Once installed, Semgrep can run with single rules or entire rulesets. Visit [Running rules](running-rules.md) to learn more or try the following:
+Once installed, Semgrep can run with single rules or entire rulesets. Visit [Running rules](https://semgrep.dev/docs/running-rules/) to learn more or try the following:
 
 ```sh
 # Check for Python == where the left and right hand sides are the same (often a bug)
@@ -78,7 +78,7 @@ Visit [Getting started](https://semgrep.dev/docs/getting-started/) to learn more
 
 ### Rule examples
 
-Visit [Rule examples](https://semgrep.dev/docs/writing-rules/rule-ideas/) for use cases and ideas.
+Visit [Rule examples](https://semgrep.dev/docs/writing-rules/rule-ideas/) for use cases and ideas. There is also an excellent [interactive tutorial](https://semgrep.dev/learn).
 
 | Use case                          | Semgrep rule                                                                                                                                                                                                                                                                                                                                           |
 | :-------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -95,19 +95,18 @@ Visit [Rule examples](https://semgrep.dev/docs/writing-rules/rule-ideas/) for us
 
 ### Integrations
 
-Visit [Integrations](https://semgrep.dev/docs/integrations/) to learn about Semgrep editor, commit, and CI integrations.
+Visit [Integrations](https://semgrep.dev/docs/integrations/) to learn about Semgrep editor, commit, and CI integrations. When integrated into CI and configured to scan pull requests, Semgrep will only report issues introduced by that pull request; this lets you start using Semgrep without fixing or ignoring pre-existing issues!
 
-### FAQ
 
-Visit [FAQ](https://semgrep.dev/docs/faq/) to learn more. Semgrep is supported by [r2c](https://r2c.dev).
+### More
 
-### Contributing
+* [Frequently asked questions (FAQs)](https://semgrep.dev/docs/faq/)
+* [Contributing](https://semgrep.dev/docs/contributing/)
+* [Ask questions in the r2c Community Slack](https://r2c.dev/slack)
+* [CLI usage and exit codes](https://semgrep.dev/docs/cli-usage)
+* [r2c YouTube channel with Semgrep presentation videos](https://www.youtube.com/channel/UC5ahcFBorwzUTqPipFhjkWg)
+* [License (LGPL-2.1)](LICENSE)
 
-Visit [Contributing](https://semgrep.dev/docs/contributing/) or join the [r2c Community Slack](https://r2c.dev/slack) to learn more. Semgrep is LGPL-2.1 licensed. 
-
-### Usage
-
-Visit [CLI Usage](https://semgrep.dev/docs/cli-usage/) for usage and exit code documentation.
 
 ### Upgrading
 
