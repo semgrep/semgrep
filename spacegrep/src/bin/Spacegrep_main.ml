@@ -205,16 +205,28 @@ let pattern_file_term =
   let info =
     Arg.info ["patfile"; "p"]
       ~docv:"FILE"
-      ~doc:"Read a pattern from file or directory $(docv)."
+      ~doc:"Read a pattern from file or root directory $(docv)."
   in
   Arg.value (Arg.opt_all Arg.string [] info)
+
+let anon_doc_file_term =
+  let info =
+    Arg.info []
+      ~docv:"FILE"
+      ~doc:"Read documents from file or directory $(docv).
+            This disables document input from stdin.
+            Same as using '-d' or '--docfile'."
+  in
+  Arg.value (Arg.pos 1 Arg.(some string) None info)
 
 let doc_file_term =
   let info =
     Arg.info ["docfile"; "d"]
       ~docv:"FILE"
-      ~doc:"Read documents from file or directory $(docv).
-            This disables document input from stdin."
+      ~doc:"Read documents from file or root directory $(docv).
+            This disables document input from stdin.
+            This option can be used multiple times to specify multiple
+            files or scanning roots."
   in
   Arg.value (Arg.opt_all Arg.string [] info)
 
@@ -231,7 +243,12 @@ let timeout_term =
 let cmdline_term =
   let combine
       color output_format debug force pattern
-      pattern_files doc_files timeout =
+      pattern_files anon_doc_file doc_files timeout =
+    let doc_files =
+      match anon_doc_file with
+      | None -> doc_files
+      | Some x -> x :: doc_files
+    in
     { color; output_format; debug; force; pattern;
       pattern_files; doc_files; timeout }
   in
@@ -242,6 +259,7 @@ let cmdline_term =
         $ force_term
         $ pattern_term
         $ pattern_file_term
+        $ anon_doc_file_term
         $ doc_file_term
         $ timeout_term
        )
