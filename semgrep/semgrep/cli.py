@@ -344,6 +344,7 @@ def cli() -> None:
     parser.add_argument(
         "--json-stats",
         action="store_true",
+        hidden=True,  # this flag is experimental and users should not yet rely on the output being stable
         help="Include statistical information about performance in JSON output",
     )
 
