@@ -1895,7 +1895,7 @@ and interpolation (env : env) ((v1, v2, v3, v4, v5) : CST.interpolation) : expr 
 let explicit_interface_specifier (env : env) ((v1, v2) : CST.explicit_interface_specifier) =
   let v1 = name env v1 in
   let v2 = token env v2 (* "." *) in
-  todo env (v1, v2)
+  v1
 
 let subpattern (env : env) ((v1, v2) : CST.subpattern) =
   let v1 =
