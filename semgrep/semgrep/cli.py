@@ -240,9 +240,15 @@ def cli() -> None:
         ),
     )
     output.add_argument(
+        "--json-stats",
+        action="store_true",
+        help=argparse.SUPPRESS,  # this flag is experimental and users should not yet rely on the output being stable
+        # help="Include statistical information about performance in JSON output (experimental).",
+    )
+    output.add_argument(
         "--debugging-json",
         action="store_true",
-        help="Output JSON with extra debugging information.",
+        help="Output JSON with extra debugging information (experimental).",
     )
     output.add_argument(
         "--junit-xml", action="store_true", help="Output results in JUnit XML format."
@@ -339,13 +345,6 @@ def cli() -> None:
         "--disable-version-check",
         action="store_true",
         help="Disable checking for latest version.",
-    )
-
-    parser.add_argument(
-        "--json-stats",
-        action="store_true",
-        hidden=True,  # this flag is experimental and users should not yet rely on the output being stable
-        help="Include statistical information about performance in JSON output",
     )
 
     ### Parse and validate
