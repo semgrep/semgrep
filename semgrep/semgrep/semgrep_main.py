@@ -141,6 +141,7 @@ def invoke_semgrep(config: Path, targets: List[Path], **kwargs: Any) -> Any:
             error_on_findings=False,
             verbose_errors=False,
             strict=False,
+            json_stats=False,
             output_per_finding_max_lines_limit=None,
         ),
         stdout=io_capture,
@@ -233,14 +234,22 @@ def main(
     )
 
     # actually invoke semgrep
-    rule_matches_by_rule, debug_steps_by_rule, semgrep_errors, num_targets = CoreRunner(
+    (
+        rule_matches_by_rule,
+        debug_steps_by_rule,
+        semgrep_errors,
+        all_targets,
+        profiler,
+    ) = CoreRunner(
         allow_exec=dangerously_allow_arbitrary_code_execution_from_rules,
         jobs=jobs,
         timeout=timeout,
         max_memory=max_memory,
         timeout_threshold=timeout_threshold,
         testing=testing,
-    ).invoke_semgrep(target_manager, filtered_rules)
+    ).invoke_semgrep(
+        target_manager, filtered_rules
+    )
 
     output_handler.handle_semgrep_errors(semgrep_errors)
 
@@ -261,10 +270,10 @@ def main(
         }
 
     num_findings = sum(len(v) for v in rule_matches_by_rule.values())
-    stats_line = f"ran {len(filtered_rules)} rules on {num_targets} files: {num_findings} findings"
+    stats_line = f"ran {len(filtered_rules)} rules on {len(all_targets)} files: {num_findings} findings"
 
     output_handler.handle_semgrep_core_output(
-        rule_matches_by_rule, debug_steps_by_rule, stats_line
+        rule_matches_by_rule, debug_steps_by_rule, stats_line, all_targets, profiler
     )
 
     if autofix:

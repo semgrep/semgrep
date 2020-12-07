@@ -333,3 +333,7 @@ class LexicalError(SemgrepError):
 
 class _UnknownLanguageError(SemgrepInternalError):
     pass
+
+
+class _UnknownExtensionError(SemgrepInternalError):
+    pass
