@@ -776,6 +776,11 @@ and m_literal a b =
       then m_info info_name info_sb
       else fail ()
   (*e: [[Generic_vs_generic.m_literal()]] regexp case *)
+  | A.Atom (s, tok), B.Atom (_b1) when
+      s =~ "^:\\(.*\\)" &&
+      MV.is_metavar_name (Common.matched1 s) ->
+      let mvar = Common.matched1 s in
+      envf (mvar, tok) (MV.E (B.L b))
 
   (* boilerplate *)
   | A.String(a1), B.String(b1) ->
