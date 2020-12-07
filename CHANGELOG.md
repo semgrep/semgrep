@@ -5,6 +5,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## Next
 
 ### Added
+- An experimental --json-stats flag that adds stats on number and line count of files by 
+supported extension as well as per-rule profiling. This flag is experimental and users
+should not yet rely on the output being stable.
 
 ### Changed
 - To avoid filling the screen with output when your query captures a whole class, separators are printed in between findings and an individual finding can be truncated if it goes over 10 lines. Adjustable with flag `--max-lines-per-finding` (#2082)

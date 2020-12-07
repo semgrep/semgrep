@@ -240,9 +240,15 @@ def cli() -> None:
         ),
     )
     output.add_argument(
+        "--json-stats",
+        action="store_true",
+        help=argparse.SUPPRESS,  # this flag is experimental and users should not yet rely on the output being stable
+        # help="Include statistical information about performance in JSON output (experimental).",
+    )
+    output.add_argument(
         "--debugging-json",
         action="store_true",
-        help="Output JSON with extra debugging information.",
+        help="Output JSON with extra debugging information (experimental).",
     )
     output.add_argument(
         "--junit-xml", action="store_true", help="Output results in JUnit XML format."
@@ -380,6 +386,7 @@ def cli() -> None:
         strict=args.strict,
         verbose_errors=args.verbose,
         timeout_threshold=args.timeout_threshold,
+        json_stats=args.json_stats,
         output_per_finding_max_lines_limit=args.max_lines_per_finding,
     )
 

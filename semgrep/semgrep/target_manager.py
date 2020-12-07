@@ -13,82 +13,16 @@ from typing import Set
 
 import attr
 
-from semgrep.error import _UnknownLanguageError
 from semgrep.error import FilesNotFoundError
 from semgrep.output import OutputHandler
 from semgrep.semgrep_types import GENERIC_LANGUAGE
 from semgrep.semgrep_types import Language
 from semgrep.semgrep_types import REGEX_ONLY_LANGUAGE_KEYS
+from semgrep.target_manager_extensions import ALL_EXTENSIONS
+from semgrep.target_manager_extensions import FileExtension
+from semgrep.target_manager_extensions import lang_to_exts
 from semgrep.util import partition_set
 from semgrep.util import sub_check_output
-
-FileExtension = NewType("FileExtension", str)
-
-PYTHON_EXTENSIONS = [FileExtension(".py"), FileExtension(".pyi")]
-JAVASCRIPT_EXTENSIONS = [FileExtension(".js"), FileExtension(".jsx")]
-TYPESCRIPT_EXTENSIONS = [FileExtension(".ts"), FileExtension(".tsx")]
-JAVA_EXTENSIONS = [FileExtension(".java")]
-C_EXTENSIONS = [FileExtension(".c")]
-GO_EXTENSIONS = [FileExtension(".go")]
-RUBY_EXTENSIONS = [FileExtension(".rb")]
-PHP_EXTENSIONS = [FileExtension(".php")]
-ML_EXTENSIONS = [
-    FileExtension(".mli"),
-    FileExtension(".ml"),
-]
-JSON_EXTENSIONS = [FileExtension(".json")]
-
-# This is used to determine the set of files with known extensions,
-# i.e. those for which we have a proper parser.
-ALL_EXTENSIONS = (
-    PYTHON_EXTENSIONS
-    + JAVASCRIPT_EXTENSIONS
-    + TYPESCRIPT_EXTENSIONS
-    + JAVA_EXTENSIONS
-    + C_EXTENSIONS
-    + GO_EXTENSIONS
-    + RUBY_EXTENSIONS
-    + ML_EXTENSIONS
-    + JSON_EXTENSIONS
-)
-
-# This is used to select the files suitable for spacegrep, which is
-# all of them. It is spacegrep itself that will detect and ignore binary
-# files.
-GENERIC_EXTENSIONS = [FileExtension("")]
-
-
-def lang_to_exts(language: Language) -> List[FileExtension]:
-    """
-    Convert language to expected file extensions
-
-    If language is not a supported semgrep language then
-    raises _UnknownLanguageError
-    """
-    if language in {"python", "python2", "python3", "py"}:
-        return PYTHON_EXTENSIONS
-    elif language in {"js", "jsx", "javascript"}:
-        return JAVASCRIPT_EXTENSIONS
-    elif language in {"ts", "tsx", "typescript"}:
-        return TYPESCRIPT_EXTENSIONS
-    elif language in {"java"}:
-        return JAVA_EXTENSIONS
-    elif language in {"c"}:
-        return C_EXTENSIONS
-    elif language in {"go", "golang"}:
-        return GO_EXTENSIONS
-    elif language in {"ml", "ocaml"}:
-        return ML_EXTENSIONS
-    elif language in {"rb", "ruby"}:
-        return RUBY_EXTENSIONS
-    elif language in {"php"}:
-        return PHP_EXTENSIONS
-    elif language in {"json", "JSON", "Json"}:
-        return JSON_EXTENSIONS
-    elif language in REGEX_ONLY_LANGUAGE_KEYS.union({GENERIC_LANGUAGE}):
-        return GENERIC_EXTENSIONS
-    else:
-        raise _UnknownLanguageError(f"Unsupported Language: {language}")
 
 
 @contextlib.contextmanager
