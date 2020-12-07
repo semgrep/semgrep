@@ -42,6 +42,10 @@ let detect_highlight when_use_color oc =
 let run_all
     ~case_sensitive ~debug ~force ~output_format ~highlight ~warn
     patterns docs =
+  let num_files = ref 0 in
+  let num_analyzed = ref 0 in
+  let num_matching_files = ref 0 in
+  let num_matches = ref 0 in
   let matches =
     List.filter_map (fun (get_doc_src : ?max_len:int -> unit -> Src_file.t) ->
       (*
@@ -52,43 +56,61 @@ let run_all
       let peek_length = 4096 in
       let partial_doc_src = get_doc_src ~max_len:peek_length () in
       let doc_type = File_type.classify partial_doc_src in
-      let doc_src =
-        if Src_file.length partial_doc_src < peek_length then
-          (* it's actually complete, no need to re-input the file *)
-          partial_doc_src
-        else
-          get_doc_src ()
-      in
-      let matches =
-        match doc_type, force with
-        | (Minified | Binary), false ->
-            if warn then
-              eprintf "ignoring gibberish file: %s\n%!"
-                (Src_file.source_string doc_src);
-            []
-        | _ ->
-            if debug then
-              printf "read document: %s\n%!"
-                (Src_file.source_string doc_src);
-            let doc = Parse_doc.of_src doc_src in
+      incr num_files;
+      match doc_type, force with
+      | (Minified | Binary), false ->
+          if warn then
+            eprintf "ignoring gibberish file: %s\n%!"
+              (Src_file.source_string partial_doc_src);
+          None
+      | _ ->
+          incr num_analyzed;
+          let doc_src =
+            if Src_file.length partial_doc_src < peek_length then
+              (* it's actually complete, no need to re-input the file *)
+              partial_doc_src
+            else
+              get_doc_src ()
+          in
+          if debug then
+            printf "parse document: %s\n%!"
+              (Src_file.source_string doc_src);
+          let doc = Parse_doc.of_src doc_src in
+          let matches_in_file =
             List.mapi (fun pat_id (pat_src, pat) ->
               if debug then
                 printf "match document from %s against pattern from %s\n%!"
                   (Src_file.source_string doc_src)
                   (Src_file.source_string pat_src);
-              (pat_id, Match.search ~case_sensitive doc_src pat doc)
+              let matches_for_pat =
+                Match.search ~case_sensitive doc_src pat doc
+              in
+              match matches_for_pat with
+              | [] -> None
+              | matches_for_pat ->
+                  num_matches := !num_matches + List.length matches_for_pat;
+                  Some (pat_id, matches_for_pat)
             ) patterns
-      in
-      match matches with
-      | [] -> None
-      | _ -> Some (doc_src, matches)
+            |> List.filter_map (fun x -> x)
+          in
+          match matches_in_file with
+          | [] -> None
+          | _ ->
+              incr num_matching_files;
+              Some (doc_src, matches_in_file)
     ) docs
   in
-  match output_format with
-  | Text ->
-      Match.print_nested_results ~highlight matches
-  | Semgrep ->
-      Semgrep.print_semgrep_json matches
+  (match output_format with
+   | Text ->
+       Match.print_nested_results ~highlight matches
+   | Semgrep ->
+       Semgrep.print_semgrep_json matches
+  );
+  if debug then (
+    printf "\nanalyzed %i files out of %i\n"
+      !num_analyzed !num_files;
+    printf "found %i matches in %i files\n" !num_matches !num_matching_files
+  )
 
 let apply_timeout config =
   match config.timeout with
