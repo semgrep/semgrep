@@ -1396,7 +1396,7 @@ and binary (env : env) (x : CST.binary) =
        let v1 = arg env v1 in
        let v2 = token2 env v2 in
        let v3 = arg env v3 in
-       Binop (v1, (Op_kAND, v2), v3)
+       Binop (v1, (B Op_BAND, v2), v3)
    | `Arg_choice_HAT_arg (v1, v2, v3) ->
        let v1 = arg env v1 in
        let v2 =
