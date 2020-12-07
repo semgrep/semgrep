@@ -21,7 +21,7 @@ module J = JSON
 (*****************************************************************************)
 (* A semantic grep. https://semgrep.dev/
  * Right now there is good support for Python, Javascript (and JSON), Java,
- * Go, and C and partial support for Typescript, Ruby, PHP, C++, and OCaml.
+ * Go, and C and partial support for Typescript, Ruby, PHP, and OCaml.
  *
  * opti: git grep foo | xargs semgrep -e 'foo(...)'
  *
@@ -71,6 +71,7 @@ let test = ref false
 (*s: constant [[Main_semgrep_core.verbose]] *)
 (*e: constant [[Main_semgrep_core.verbose]] *)
 (*s: constant [[Main_semgrep_core.debug]] *)
+let debug = ref false
 (*e: constant [[Main_semgrep_core.debug]] *)
 let profile = ref false
 (*s: constant [[Main_semgrep_core.error_recovery]] *)
@@ -1086,6 +1087,9 @@ let options () =
       profile := true;
     ),
     " output profiling information";
+    "-debug", Arg.Unit (fun () ->
+      debug := true),
+    " output debugging information";
   ] @
   (*x: [[Main_semgrep_core.options]] concatenated flags *)
   Meta_parse_info.cmdline_flags_precision () @
@@ -1144,10 +1148,13 @@ let main () =
       (Filename.basename Sys.argv.(0))
   in
 
+  (* --------------------------------------------------------- *)
+  (* Setting up debugging/profiling *)
+  (* --------------------------------------------------------- *)
   let argv =
     (Array.to_list Sys.argv) @
     (if Sys.getenv_opt "SEMGREP_CORE_DEBUG" <> None then ["-debug"] else[])@
-    (if Sys.getenv_opt "SEMGREP_CORE_PROFILE" <> None then ["-profile"] else[])@
+    (if Sys.getenv_opt "SEMGREP_CORE_PROFILE"<>None then ["-profile"] else[])@
     (match Sys.getenv_opt "SEMGREP_CORE_EXTRA" with
      | Some s -> Common.split "[ \t]+" s
      | None -> []
@@ -1162,6 +1169,13 @@ let main () =
   then begin
     Logging.load_config_file !log_config_file;
     logger#info "loaded %s" !log_config_file;
+  end;
+  if !debug then begin
+    let open Easy_logging in
+    let h = Handlers.make (CliErr Debug) in
+    logger#add_handler h;
+    logger#set_level Debug;
+    ()
   end;
 
   logger#info "Executed as: %s" (Sys.argv|>Array.to_list|> String.concat " ");
