@@ -30,8 +30,6 @@ type 'a env = {
   extra: 'a;
 }
 
-type 'ast result = 'ast option * Tree_sitter_run.Tree_sitter_error.t list
-
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
@@ -103,13 +101,13 @@ let wrap_parser tree_sitter_parser ast_mapper =
    * return a list of error instead of an exception so this is now
    * less an issue.
   *)
-  let cst_root, errors = tree_sitter_parser () in
-  let astopt =
-    match cst_root with
+  let res : _ Tree_sitter_run.Parsing_result.t = tree_sitter_parser () in
+  let program =
+    match res.program with
     | Some cst -> Some (ast_mapper cst)
     | None -> None
   in
-  astopt, errors
+  { res with program }
 
 
 
