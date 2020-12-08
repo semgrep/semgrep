@@ -95,13 +95,14 @@ let parse file =
                     "id", `String id;
                     "languages", `A langs;
                     "message", `String message;
-                    "pattern", `String pattern;
+                    "pattern", `String pattern_string;
                     "severity", `String sev;
                   ] ->
                       let languages, lang = parse_languages ~id langs in
-                      let pattern = parse_pattern ~id ~lang pattern in
+                      let pattern = parse_pattern ~id ~lang pattern_string in
                       let severity = parse_severity ~id sev in
-                      { R. id; pattern; message; languages; severity }
+                      { R. id; pattern; message; languages; severity;
+                        pattern_string; }
                   | x ->
                       pr2_gen x;
                       raise (InvalidYamlException "wrong rule fields")
