@@ -154,6 +154,7 @@ let match_to_json x =
       "metavars", J.Object (x.env |> List.map (json_metavar x startp));
     ]
   ]
+[@@profiling]
 (*e: function [[JSON_report.match_to_json]] *)
 
 (*****************************************************************************)

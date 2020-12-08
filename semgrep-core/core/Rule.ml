@@ -44,6 +44,14 @@ type rule = {
   message: string;
   severity: severity;
   languages: Lang.t list; (* at least one element *)
+
+  (* Useful for debugging, to report bad rules. We could rule.id to
+   * report those bad rules, but semgrep-python uses a weird encoding
+   * when flattening the pattern-xxx (-and, -either, -not, etc.)
+   * patterns in the original rule yaml file, which makes it hard
+   * to know what what was the corresponding pattern.
+  *)
+  pattern_string: string;
 }
 (*e: type [[Rule.rule]] *)
 
