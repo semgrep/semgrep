@@ -363,5 +363,12 @@ let parse_command_line name =
    Entry point for calling the command 'spacegrep' directly.
 *)
 let main () =
+  (*
+     Make the GC work less aggressively than the default.
+     This wastes memory but makes everything up to twice as fast.
+     TODO: clean benchmarks
+  *)
+  Gc.set { (Gc.get()) with Gc.space_overhead = 500 };
+
   let config = parse_command_line "spacegrep" in
   run config
