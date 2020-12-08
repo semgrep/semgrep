@@ -154,6 +154,9 @@ let supported_langs: string = String.concat ", " keys
 (* timeout is now in Flag_semgrep.ml *)
 let max_memory = ref 0 (* in MB *)
 
+(* arbitrary limit *)
+let max_match_per_file = ref 10_000
+
 (*s: constant [[Main_semgrep_core.ncores]] *)
 (* -j *)
 let ncores = ref 1
@@ -369,11 +372,14 @@ let cache_file_of_file filename =
  * not bubble up enough. In such case, add a case before such as
  * with Timeout -> raise Timeout | _ -> ...
 *)
-let timeout_function = fun f ->
+let timeout_function file = fun f ->
   let timeout = !Flag.timeout in
   if timeout <= 0.
   then f ()
-  else Common.timeout_function_float ~verbose:false timeout f
+  else Common.timeout_function_float ~verbose:false timeout
+      (fun () -> try f () with Timeout ->
+         logger#info "raised Timeout in timeout_function for %s" file;
+         raise Timeout)
 
 (* from https://discuss.ocaml.org/t/todays-trick-memory-limits-with-gc-alarms/4431 *)
 let run_with_memory_limit limit_mb f =
@@ -394,6 +400,59 @@ let run_with_memory_limit limit_mb f =
       Gc.delete_alarm alarm;
       Gc.compact ()
     )
+
+(* Certain patterns may be too general and match too many times on big files.
+ * This does not cause a Timeout during parsing or matching, but returning
+ * a huge number of matches can stress print_matches_and_errors_json
+ * and anyway is probably a sign that the pattern should be rewritten.
+ * This puts also lots of stress on the semgrep Python wrapper which has
+ * to do lots of range intersections with all those matches.
+*)
+let filter_files_with_too_many_matches_and_transform_as_timeout matches =
+  let per_files =
+    matches
+    |> List.map (fun m -> m.Match_result.file, m)
+    |> Common.group_assoc_bykey_eff
+  in
+  let offending_files =
+    per_files
+    |> List.filter_map (fun (file, xs) ->
+      if List.length xs > !max_match_per_file
+      then Some file
+      else None
+    )
+    |> Common.hashset_of_list
+  in
+  let new_matches =
+    matches |> Common.exclude
+      (fun m -> Hashtbl.mem offending_files m.Match_result.file)
+  in
+  let new_errors =
+    offending_files |> Common.hashset_to_list |> List.map (fun file ->
+      (* logging useful info for rule writers *)
+      logger#info "too many matches on %s, generating Timeout for it" file;
+      let biggest_offending_rule =
+        let matches = List.assoc file per_files in
+        matches
+        |> List.map (fun m ->
+          let rule = m.Match_result.rule in
+          (rule.Rule.id, rule.Rule.pattern_string), m)
+        |> Common.group_assoc_bykey_eff
+        |> List.map (fun (k, xs) -> k, List.length xs)
+        |> Common.sort_by_val_highfirst
+        |> List.hd (* nosemgrep *)
+      in
+      let ((id, pat), cnt) = biggest_offending_rule in
+      logger#info "most offending rule: id = %s, matches = %d, pattern = %s"
+        id cnt pat;
+
+      (* todo: we should maybe use a new error: TooManyMatches of int * string*)
+      let loc = Parse_info.first_loc_of_file file in
+      Error_code.mk_error_loc loc (Error_code.Timeout None)
+    )
+  in
+  new_matches, new_errors
+[@@profiling]
 
 (*****************************************************************************)
 (* Parsing *)
@@ -524,7 +583,9 @@ let sgrep_ast pattern file any_ast =
   |  _, NoAST -> () (* skipping *)
   | PatGen (_lang, pattern), Gen ((ast, errs), lang) ->
       let rule = { R.
-                   id = "-e/-f"; pattern; message = ""; severity = R.Error;
+                   id = "-e/-f"; pattern_string = "-e/-f";
+                   pattern;
+                   message = ""; severity = R.Error;
                    languages = [lang]
                  } in
       if errs <> []
@@ -580,18 +641,22 @@ let iter_generic_ast_of_files_and_get_matches_and_exn_to_errors f files =
       let lang = lang_of_string !lang in
       try
         run_with_memory_limit !max_memory (fun () ->
-          timeout_function (fun () ->
+          timeout_function file (fun () ->
             let (ast, errs) = parse_generic lang file in
             (* calling the hook *)
             (f file lang ast, errs)
 
-            (* This is just to test -max_memory, to give
-             * a chance to the Gc.create_alarm to run even if the program does
-             * not even need to run the Gc. However, this has a slow perf
-             * penality on small programs, which is why it's better to keep
-             * it guarded when you're not testing -max_memory.
-            *)
-            |> (fun v -> (if !test then Gc.full_major()); v)
+            |> (fun v ->
+              (* This is just to test -max_memory, to give a chance
+               * to Gc.create_alarm to run even if the program does
+               * not even need to run the Gc. However, this has a slow
+               * perf penality on small programs, which is why it's
+               * better to keep guarded when you're
+               * not testing -max_memory.
+              *)
+              if !test then Gc.full_major();
+              logger#info "done with %s" file;
+              v)
           ))
       with
       (* note that Error_code.exn_to_error already handles Timeout
@@ -602,13 +667,20 @@ let iter_generic_ast_of_files_and_get_matches_and_exn_to_errors f files =
           let str_opt =
             match !Semgrep_generic.last_matched_rule with
             | None -> None
-            | Some rule -> Some (spf " with ruleid %s" rule.R.id)
+            | Some rule ->
+                logger#info "critical exn while matching ruleid %s" rule.R.id;
+                logger#info "full pattern is: %s" rule.R.pattern_string;
+                Some (spf " with ruleid %s" rule.R.id)
           in
           let loc = Parse_info.first_loc_of_file file in
           [], [Error_code.mk_error_loc loc
                  (match exn with
-                  | Timeout -> Error_code.Timeout str_opt
-                  | Out_of_memory -> Error_code.OutOfMemory str_opt
+                  | Timeout ->
+                      logger#info "Timeout on %s" file;
+                      Error_code.Timeout str_opt
+                  | Out_of_memory ->
+                      logger#info "OutOfMemory on %s" file;
+                      Error_code.OutOfMemory str_opt
                   | _ -> raise Impossible
                  )]
       | exn ->
@@ -623,7 +695,10 @@ let iter_generic_ast_of_files_and_get_matches_and_exn_to_errors f files =
 let print_matches_and_errors_json files matches errs =
   let count_errors = (List.length errs) in
   let count_ok = (List.length files) - count_errors in
-  let stats = J.Object [ "okfiles", J.Int count_ok; "errorfiles", J.Int count_errors; ] in
+  let stats = J.Object [
+    "okfiles", J.Int count_ok;
+    "errorfiles", J.Int count_errors;
+  ] in
   let json = J.Object [
     "matches", J.Array (matches |> List.map JSON_report.match_to_json);
     "errors", J.Array (errs |> List.map R2c.error_to_json);
@@ -637,7 +712,7 @@ let print_matches_and_errors_json files matches errs =
      yojson) for pretty-printing json.
   *)
   let s = J.string_of_json json in
-  logger#debug "returned JSON: %s" s;
+  logger#info "size of returned JSON string: %d" (String.length s);
   pr s
 
 let print_matches_and_errors_text _files _matches _errs =
@@ -648,6 +723,7 @@ let print_matches_and_errors files matches errs =
   match !output_format with
   | Json -> print_matches_and_errors_json files matches errs
   | Text -> print_matches_and_errors_text files matches errs
+[@@profiling]
 (*e: function [[Main_semgrep_core.print_matches_and_errors]] *)
 
 (*****************************************************************************)
@@ -695,7 +771,7 @@ let legacy_semgrep_with_one_pattern xs =
     logger#info "processing: %s" file;
     (*e: [[Main_semgrep_core.legacy_semgrep_with_one_pattern()]] if [[verbose]] *)
     let process file =
-      timeout_function (fun () ->
+      timeout_function file (fun () ->
         sgrep_ast pattern file (create_ast file)
       )
     in
@@ -726,6 +802,7 @@ let legacy_semgrep_with_one_pattern xs =
 (*s: function [[Main_semgrep_core.semgrep_with_rules]] *)
 let semgrep_with_rules rules files =
   let files = get_final_files files in
+  logger#info "processing %d files" (List.length files);
   let matches, errs =
     files |> iter_generic_ast_of_files_and_get_matches_and_exn_to_errors
       (fun file lang ast ->
@@ -736,6 +813,15 @@ let semgrep_with_rules rules files =
            file lang ast
       )
   in
+  logger#info "found %d matches and %d errors"
+    (List.length matches) (List.length errs);
+  let (matches, new_errors) =
+    filter_files_with_too_many_matches_and_transform_as_timeout matches in
+  let errs = new_errors @ errs in
+  (* note: uncomment the following and use semgrep-core -stat_matches
+   * to debug too-many-matches issues.
+   * Common2.write_value matches "/tmp/debug_matches";
+  *)
   print_matches_and_errors files matches errs
 (*e: function [[Main_semgrep_core.semgrep_with_rules]] *)
 
@@ -747,7 +833,7 @@ let semgrep_with_rules_file rules_file files =
   semgrep_with_rules rules files
 
 let semgrep_with_one_pattern files =
-  let pattern, _query_string =
+  let pattern, pattern_string =
     match !pattern_file, !pattern_string with
     (*s: [[Main_semgrep_core.semgrep_with_one_pattern()]] sanity check cases *)
     | "", "" ->
@@ -768,7 +854,7 @@ let semgrep_with_one_pattern files =
   | PatGen (semgrep_lang, semgrep_pat), Json ->
       let rule = {
         Rule.id = "-e/-f";
-        pattern = semgrep_pat;
+        pattern = semgrep_pat; pattern_string;
         message = "";
         severity = Rule.Error;
         languages = [semgrep_lang];
@@ -947,7 +1033,22 @@ let dump_tainting_rules file =
 (* Experiments *)
 (*****************************************************************************)
 
-
+(* We now log the files who have too many matches, but this action below
+ * can still be useful for deeper debugging.
+*)
+let stat_matches file =
+  let (matches: Match_result.t list) = Common2.get_value file in
+  pr2 (spf "matched: %d" (List.length matches));
+  let per_files =
+    matches |> List.map (fun m -> m.Match_result.file, m)
+    |> Common.group_assoc_bykey_eff
+    |> List.map (fun (file, xs) -> file, List.length xs)
+    |> Common.sort_by_val_highfirst
+    |> Common.take_safe 10
+  in
+  pr2 "biggest file offenders";
+  per_files |> List.iter (fun (file, n) -> pr2 (spf " %60s: %d" file n));
+  ()
 
 (*****************************************************************************)
 (* The options *)
@@ -979,6 +1080,9 @@ let all_actions () = [
   Common.mk_action_2_arg Test_synthesizing.expr_at_range;
   "-synthesize_patterns", " <l:c-l:c> <file>",
   Common.mk_action_2_arg Test_synthesizing.synthesize_patterns;
+
+  "-stat_matches", " <marshalled file>",
+  Common.mk_action_1_arg stat_matches;
 
   "-test_parse_lang", " <files or dirs>",
   Common.mk_action_n_arg (Test_parsing.test_parse_lang !lang get_final_files);
@@ -1015,6 +1119,9 @@ let options () =
 
     "-lang", Arg.Set_string lang,
     (spf " <str> choose language (valid choices: %s)" supported_langs);
+
+    "-target_file", Arg.Set_string target_file,
+    " <file> obtain list of targets to run patterns on";
 
     (*s: [[Main_semgrep_core.options]] user-defined equivalences case *)
     "-equivalences", Arg.Set_string equivalences_file,
@@ -1059,22 +1166,34 @@ let options () =
     " do not filter rules";
     "-tree_sitter_only", Arg.Set Flag.tree_sitter_only,
     " only use tree-sitter-based parsers";
+
+    "-timeout", Arg.Set_float Flag.timeout,
+    " <float> time limit to process one input program (in seconds)";
+    "-max_memory", Arg.Set_int max_memory,
+    " <int> maximum memory to use (in MB)";
+    "-max_match_per_file", Arg.Set_int max_match_per_file,
+    " <int> maximum numbers of match per file";
+
+    "-debug", Arg.Set debug,
+    " output debugging information";
     "-debug_matching", Arg.Set Flag.debug_matching,
     " raise an exception at the first match failure";
     "-log_config_file", Arg.Set_string log_config_file,
     " <file> logging configuration file";
+    "-log_to_file", Arg.String (fun file ->
+      let open Easy_logging in
+      let h = Handlers.make (File (file, Debug)) in
+      logger#add_handler h;
+      logger#set_level Debug;
+    ),
+    " <file> log debugging info to file";
     "-test", Arg.Set test,
     " (internal) set test context";
-    "-target_file", Arg.Set_string target_file,
-    " <file> obtain list of targets to run patterns on";
-    "-timeout", Arg.Set_float Flag.timeout,
-    " <float> time limit to process one input program (in seconds)";
-    "-max_memory", Arg.Set_int max_memory,
-    " <int> maximum memory (in MB)";
+
     "-lsp", Arg.Unit (fun () ->
       LSP_client.init ();
     ),
-    " <>connect to LSP lang server to get type information"
+    " connect to LSP lang server to get type information"
   ] @
   (*s: [[Main_semgrep_core.options]] concatenated flags *)
   Flag_parsing_cpp.cmdline_flags_macrofile () @
@@ -1087,9 +1206,6 @@ let options () =
       profile := true;
     ),
     " output profiling information";
-    "-debug", Arg.Unit (fun () ->
-      debug := true),
-    " output debugging information";
   ] @
   (*x: [[Main_semgrep_core.options]] concatenated flags *)
   Meta_parse_info.cmdline_flags_precision () @

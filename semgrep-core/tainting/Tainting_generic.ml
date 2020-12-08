@@ -56,8 +56,10 @@ let match_pat_instr pat =
       (fun instr ->
          let eorig = instr.IL.iorig in
          (* the rule is just used by match_e_e for profiling stats *)
-         let rule = { Rule.id = "<tainting>"; pattern = AST.E pat; message = "";
-                      severity = Rule.Error; languages = []; } in
+         let rule = { Rule.id = "<tainting>";
+                      pattern = AST.E pat; pattern_string = "<tainting> pat";
+                      message = ""; severity = Rule.Error;
+                      languages = []; } in
 
          let matches_with_env = Semgrep_generic.match_e_e rule pat eorig in
          matches_with_env <> []
