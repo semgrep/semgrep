@@ -364,11 +364,19 @@ let parse_command_line name =
 *)
 let main () =
   (*
-     Make the GC work less aggressively than the default.
-     This wastes memory but makes everything up to twice as fast.
+     Make the GC work less aggressively than the default similar to
+     what's done for semgrep-core.
+     This wastes memory but makes everything 2-3x faster.
+     See https://md.ekstrandom.net/blog/2010/06/ocaml-memory-tuning
+
      TODO: clean benchmarks
   *)
-  Gc.set { (Gc.get()) with Gc.space_overhead = 500 };
+  Gc.set {
+    (Gc.get()) with
+    Gc.space_overhead = 300;
+    Gc.minor_heap_size = 4_000_000;
+    Gc.major_heap_increment = 8_000_000
+  };
 
   let config = parse_command_line "spacegrep" in
   run config
