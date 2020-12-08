@@ -885,12 +885,12 @@ and expression (env : env) (x : CST.expression) : AST.expr =
          (match v2 with
           | Some (v1, v2, v3) ->
               let v1 = token env v1 (* "(" *) in
-              let v2 = type_constraint env v2 in
+              let v2 = ArgType (type_constraint env v2) in
               let v3 = token env v3 (* ")" *) in
-              todo env (v1, v2, v3)
-          | None -> todo env ())
+              v1, [v2], v3
+          | None -> fake_bracket [])
        in
-       todo env (v1, v2)
+       Call (IdSpecial (New, v1), v2)
    | `Elem_access_exp (v1, v2) ->
        let v1 = expression env v1 in
        let v2 = element_binding_expression env v2 in
