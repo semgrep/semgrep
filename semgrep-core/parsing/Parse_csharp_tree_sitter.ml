@@ -62,6 +62,18 @@ let arg_to_expr (a : argument) =
   | ArgKwd (_, e) -> e (* TODO maybe ArgKwd is also impossible here *)
   | _ -> raise Impossible
 
+let var_def_stmt (decls : (entity * variable_definition) list) (attrs : attribute list) =
+  let stmts = List.map (fun (ent, def) ->
+    let ent = {
+      name = ent.name;
+      attrs = ent.attrs @ attrs;
+      info = ent.info;
+      tparams = ent.tparams;
+    } in
+    DefStmt (ent, VarDef def)
+  ) decls in
+  stmt1 stmts
+
 module List = struct
   include List
   (* not available in 4.09 *)
@@ -1343,10 +1355,7 @@ and statement (env : env) (x : CST.statement) =
        let v3 = List.map (modifier env) v3 in
        let v4 = variable_declaration env v4 in
        let v5 = token env v5 (* ";" *) in
-       let defs = List.map (fun (ent, def) -> DefStmt (ent, VarDef def)) v4 in
-       (match defs with
-        | [x] -> x
-        | xs -> Block (fake_bracket xs))
+       var_def_stmt v4 v3
    | `Local_func_stmt (v1, v2, v3, v4, v5, v6, v7) ->
        let v1 = List.map (modifier env) v1 in
        let v2 = return_type env v2 in
@@ -1422,8 +1431,7 @@ and statement (env : env) (x : CST.statement) =
          (match v4 with
           | `Var_decl x ->
               let v4 = variable_declaration env x in
-              let stmts = List.map (fun (ent, def) -> DefStmt (ent, VarDef def)) v4 in
-              stmt1 stmts
+              var_def_stmt v4 []
           | `Exp x ->
               let expr = expression env x in
               ExprStmt (expr, sc)
@@ -2260,20 +2268,16 @@ and declaration (env : env) (x : CST.declaration) : stmt =
    | `Event_field_decl (v1, v2, v3, v4, v5) ->
        let v1 = List.concat_map (attribute_list env) v1 in
        let v2 = List.map (modifier env) v2 in
-       let v3 = token env v3 (* "event" *) in
+       let v3 = NamedAttr (token env v3, [str env v3], empty_id_info (), fake_bracket []) (* "event" *) in
        let v4 = variable_declaration env v4 in
        let v5 = token env v5 (* ";" *) in
-       todo env (v1, v2, v3, v4, v5)
+       var_def_stmt v4 (v3 :: v1 @ v2)
    | `Field_decl (v1, v2, v3, v4) ->
        let v1 = List.concat_map (attribute_list env) v1 in
        let v2 = List.map (modifier env) v2 in
        let v3 = variable_declaration env v3 in
        let v4 = token env v4 (* ";" *) in
-       (* TODO move this to a function? Use v4 as last bracket? *)
-       let defs = List.map (fun (ent, def) -> DefStmt (ent, VarDef def)) v3 in
-       (match defs with
-        | [x] -> x
-        | xs -> Block (fake_bracket xs))
+       var_def_stmt v3 (v1 @ v2)
    | `Inde_decl (v1, v2, v3, v4, v5, v6, v7) ->
        let v1 = List.concat_map (attribute_list env) v1 in
        let v2 = List.map (modifier env) v2 in
