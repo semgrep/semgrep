@@ -1622,7 +1622,7 @@ and switch_section (env : env) ((v1, v2) : CST.switch_section) : case_and_body =
   in
   let v2 = List.map (statement env) v2 in
   (* TODO: we convert list of statements to a block with fake brackets. Does this make sense? *)
-  (v1, stmt1 v2)
+  CasesAndBody (v1, stmt1 v2)
 
 and attribute_list (env : env) ((v1, v2, v3, v4, v5) : CST.attribute_list) : attribute list =
   let v1 = token env v1 (* "[" *) in

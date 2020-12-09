@@ -5,6 +5,12 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## Next
 
 ### Added
+- experimental support for $...ARGS metavariables to match multiple
+  arguments in JS/TS
+- you can now use '...' inside switch for Go
+- you can now use partial try, catch, or finally pattern statements in JS/TS
+- you can now use partial if pattern statement (e.g., 'if(...)') in Java
+- you can now use {..., $KEY: $VAL, ...} metavariable for dictionnary keys in Ruby
 - An experimental --json-stats flag that adds stats on number and line count of files by 
 supported extension as well as per-rule profiling. This flag is experimental and users
 should not yet rely on the output being stable.
@@ -13,7 +19,10 @@ should not yet rely on the output being stable.
 - To avoid filling the screen with output when your query captures a whole class, separators are printed in between findings and an individual finding can be truncated if it goes over 10 lines. Adjustable with flag `--max-lines-per-finding` (#2082)
 
 ### Fixed
-
+- semgrep should not halt when a rule generate too many matches (complementary of --timeout). See also the new -max_match_per_file command-line flag of semgrep-core.
+- semgrep -debug works again and should output more debugging information from semgrep-core, especially whether some rules are too general and match too many places
+- $X & $Y correctly now matches BitAnd expressions in Ruby
+- allow to reuse the same metavariable for a class identifier in a type context or class definition context
 
 ## [0.33.0](https://github.com/returntocorp/semgrep/releases/tag/v0.33.0) - 2020-12-01
 

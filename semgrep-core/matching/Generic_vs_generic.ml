@@ -110,6 +110,12 @@ let has_xml_ellipis_and_filter_ellispis xs =
     | A.XmlEllipsis _ -> has_ellipsis := true; true
     | _ -> false) in
   !has_ellipsis, ys
+let has_case_ellipis_and_filter_ellispis xs =
+  let has_ellipsis = ref false in
+  let ys = xs |> Common.exclude (function
+    | A.CaseEllipsis _ -> has_ellipsis := true; true
+    | _ -> false) in
+  !has_ellipsis, ys
 
 (*s: function [[Generic_vs_generic.make_dotted]] *)
 let make_dotted xs =
@@ -1599,7 +1605,7 @@ and m_stmt a b =
   | A.Switch(at, a1, a2), B.Switch(bt, b1, b2) ->
       m_tok at bt >>= (fun () ->
         m_option (m_expr) a1 b1 >>= (fun () ->
-          (m_list m_case_and_body) a2 b2
+          m_case_clauses a2 b2
         ))
 
   | A.Continue(a0, a1, asc), B.Continue(b0, b1, bsc) ->
@@ -1657,6 +1663,15 @@ and m_stmt a b =
     -> fail ()
 (*e: [[Generic_vs_generic.m_stmt]] boilerplate cases *)
 (*e: function [[Generic_vs_generic.m_stmt]] *)
+
+and m_case_clauses a b =
+  let _has_ellipsis, a = has_case_ellipis_and_filter_ellispis a in
+  (* todo? always implicit ...?
+   * todo? do in any order? In theory the order of the cases matter, but
+   * in a semgrep context, people probably don't want to find
+   * specific cases in a specific order.
+  *)
+  m_list_in_any_order ~less_is_ok:true m_case_and_body a b
 
 (*s: function [[Generic_vs_generic.m_for_header]] *)
 and m_for_header a b =
@@ -1730,10 +1745,15 @@ and m_finally a b =
 (*s: function [[Generic_vs_generic.m_case_and_body]] *)
 and m_case_and_body a b =
   match a, b with
-  | (a1, a2), (b1, b2) ->
+  | CasesAndBody (a1, a2), CasesAndBody (b1, b2) ->
       (m_list m_case) a1 b1 >>= (fun () ->
         m_stmt a2 b2
       )
+  | CaseEllipsis _, CasesAndBody _ -> return ()
+
+  | CasesAndBody _, _
+  | CaseEllipsis _, _ ->
+      fail ()
 (*e: function [[Generic_vs_generic.m_case_and_body]] *)
 
 (*s: function [[Generic_vs_generic.m_case]] *)
