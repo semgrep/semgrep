@@ -55,6 +55,9 @@ let dump_tree_sitter_cst_lang lang file =
   | Lang.C ->
       Tree_sitter_c.Parse.file file
       |> dump_and_print_errors Tree_sitter_c.CST.dump_tree
+  | Lang.Cplusplus ->
+      Tree_sitter_cpp.Parse.file file
+      |> dump_and_print_errors Tree_sitter_cpp.CST.dump_tree
 
   | _ -> failwith "lang not supported by ocaml-tree-sitter"
 
