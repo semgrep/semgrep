@@ -72,7 +72,9 @@ def upload_results(results: List[Result]) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--upload", help="upload results to semgrep dashboard")
+    parser.add_argument(
+        "--upload", help="upload results to semgrep dashboard", action="store_true"
+    )
     args = parser.parse_args()
 
     results = run_tests("input", TESTS)
