@@ -105,7 +105,7 @@
       "check_id": "rules.test-nosem",
       "end": {
         "col": 18,
-        "line": 2
+        "line": 6
       },
       "extra": {
         "is_ignored": false,
@@ -118,7 +118,7 @@
       "path": "targets/basic/nosem.py",
       "start": {
         "col": 1,
-        "line": 2
+        "line": 6
       }
     }
   ]
