@@ -29,12 +29,33 @@ let source_string x = x |> source |> show_source
 
 let contents x = x.contents
 
+let length x = String.length x.contents
+
 let of_string ?(source = String) contents = {
   source;
   contents
 }
 
-let of_channel ?(source = Channel) ic =
+let partial_input max_len ic =
+  let buf = Bytes.create max_len in
+  let rec read pos remaining =
+    if remaining > 0 then
+      let n_read = input ic buf pos remaining in
+      if n_read > 0 then
+        read (pos + n_read) (remaining - n_read)
+      else
+        pos
+    else
+      pos
+  in
+  let len = read 0 max_len in
+  Bytes.sub_string buf 0 len
+
+let get_channel_length ic =
+  try Some (in_channel_length ic)
+  with _ -> None
+
+let input_all_from_nonseekable_channel ic =
   let buf = Buffer.create 10000 in
   (try
      while true do
@@ -42,28 +63,37 @@ let of_channel ?(source = Channel) ic =
      done;
      assert false
    with End_of_file ->
-     let contents = Buffer.contents buf in
-     { source; contents }
+     Buffer.contents buf
   )
 
-let of_stdin ?(source = Stdin) () = of_channel ~source stdin
+let of_channel ?(source = Channel) ?max_len ic =
+  let contents =
+    match max_len with
+    | None ->
+        (match get_channel_length ic with
+         | None ->
+             input_all_from_nonseekable_channel ic
+         | Some len ->
+             really_input_string ic len
+        )
+    | Some max_len ->
+        partial_input max_len ic
+  in
+  { source; contents }
 
-let of_file ?source file =
+let of_stdin ?(source = Stdin) () =
+  of_channel ~source stdin
+
+let of_file ?source ?max_len file =
+  let source =
+    match source with
+    | None -> File file
+    | Some x -> x
+  in
   let ic = open_in_bin file in
   Fun.protect
     ~finally:(fun () -> close_in_noerr ic)
-    (fun () ->
-       let contents = really_input_string ic (in_channel_length ic) in
-       let source =
-         match source with
-         | None -> File file
-         | Some x -> x
-       in
-       {
-         source;
-         contents;
-       }
-    )
+    (fun () -> of_channel ~source ?max_len ic)
 
 let to_lexbuf x =
   Lexing.from_string x.contents

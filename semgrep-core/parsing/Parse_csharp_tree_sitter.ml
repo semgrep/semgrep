@@ -793,17 +793,22 @@ and expression (env : env) (x : CST.expression) : AST.expr =
    | `Anon_meth_exp (v1, v2, v3, v4) ->
        let v1 =
          (match v1 with
-          | Some tok -> token env tok (* "async" *)
-          | None -> todo env ())
+          | Some tok -> [Async] (* "async" *)
+          | None -> [])
        in
        let v2 = token env v2 (* "delegate" *) in
        let v3 =
          (match v3 with
           | Some x -> parameter_list env x
-          | None -> todo env ())
+          | None -> [])
        in
        let v4 = block env v4 in
-       todo env (v1, v2, v3, v4)
+       Lambda {
+         fkind = (LambdaKind, v2);
+         fparams = v3;
+         frettype = None;
+         fbody = v4;
+       }
    | `Anon_obj_crea_exp (v1, v2, v3, v4, v5) ->
        let v1 = token env v1 (* "new" *) in
        let v2 = token env v2 (* "{" *) in
@@ -1890,7 +1895,7 @@ and interpolation (env : env) ((v1, v2, v3, v4, v5) : CST.interpolation) : expr 
 let explicit_interface_specifier (env : env) ((v1, v2) : CST.explicit_interface_specifier) =
   let v1 = name env v1 in
   let v2 = token env v2 (* "." *) in
-  todo env (v1, v2)
+  v1
 
 let subpattern (env : env) ((v1, v2) : CST.subpattern) =
   let v1 =

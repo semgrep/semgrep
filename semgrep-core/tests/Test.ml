@@ -98,8 +98,10 @@ let regression_tests_for_lang files lang =
     Error_code.g_errors := [];
 
     let rule = { R.
-      id = "unit testing"; pattern; message = ""; severity = R.Error; 
-      languages = [lang] } in
+      id = "unit testing"; pattern; message = ""; 
+      severity = R.Error; languages = [lang];
+      pattern_string = "test: no need for pattern string";
+    } in
     let equiv = 
      (* Python == is not the same than !(==) *)
      if lang <> Lang.Python

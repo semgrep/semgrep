@@ -72,7 +72,8 @@ let rule_of_tainting_rule tr =
     severity = tr.severity;
     languages = tr.languages;
     (* arbitrary *)
-    pattern = List.hd (tr.sink)
+    pattern = List.hd (tr.sink);
+    pattern_string = "TODO: no pattern_string";
   }
 (*e: function [[Tainting_rule.rule_of_tainting_rule]] *)
 (*e: semgrep/core/Tainting_rule.ml *)
