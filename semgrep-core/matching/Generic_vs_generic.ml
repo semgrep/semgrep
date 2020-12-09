@@ -1245,6 +1245,8 @@ and m_type_ a b =
   (*s: [[Generic_vs_generic.m_type_]] boilerplate cases *)
   | A.TyId(a1, a2), B.TyId(b1, b2) ->
       m_ident_and_id_info (a1, a2) (b1, b2)
+  | A.TyAny(a1), B.TyAny(b1) ->
+      m_ident a1 b1
   | A.TyIdQualified(a1, a2), B.TyIdQualified(b1, b2) ->
       let* () = m_name a1 b1 in
       m_id_info a2 b2
@@ -1284,7 +1286,7 @@ and m_type_ a b =
       )
   | A.TyBuiltin _, _  | A.TyFun _, _  | A.TyNameApply _, _  | A.TyVar _, _
   | A.TyArray _, _  | A.TyPointer _, _ | A.TyTuple _, _  | A.TyQuestion _, _
-  | A.TyId _, _ | A.TyIdQualified _, _
+  | A.TyId _, _ | A.TyIdQualified _, _ | A.TyAny _, _
   | A.TyOr _, _ | A.TyAnd _, _ | A.TyRecordAnon _, _
   | A.OtherType _, _
     -> fail ()
