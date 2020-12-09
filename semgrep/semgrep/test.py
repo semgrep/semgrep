@@ -260,29 +260,37 @@ def invoke_semgrep_multi(
         return (config, None, output)
 
 
+def relatively_eq(parent1: Path, child1: Path, parent2: Path, child2: Path) -> bool:
+    rel1 = child1.relative_to(parent1).with_suffix("")
+    rel2 = child2.relative_to(parent2).with_suffix("")
+    return rel1 == rel2
+
+
 def generate_file_pairs(
-    location: Path,
+    target: Path,
+    config: Path,
     ignore_todo: bool,
     strict: bool,
     unsafe: bool,
     json_output: bool,
     save_test_output_tar: bool = True,
 ) -> None:
-    filenames = list(location.rglob("*"))
+    configs = list(config.rglob("*"))
+    targets = list(target.rglob("*"))
     config_filenames = [
-        filename
-        for filename in filenames
-        if filename.suffix in YML_EXTENSIONS
-        and not filename.name.startswith(".")
-        and not filename.parent.name.startswith(".")
+        config_filename
+        for config_filename in configs
+        if config_filename.suffix in YML_EXTENSIONS
+        and not config_filename.name.startswith(".")
+        and not config_filename.parent.name.startswith(".")
     ]
     config_test_filenames = {
         config_filename: [
-            inner_filename
-            for inner_filename in filenames
-            if inner_filename.with_suffix("") == config_filename.with_suffix("")
-            and inner_filename.is_file()
-            and inner_filename.suffix not in YML_EXTENSIONS
+            target_filename
+            for target_filename in targets
+            if relatively_eq(target, target_filename, config, config_filename)
+            and target_filename.is_file()
+            and target_filename.suffix not in YML_EXTENSIONS
         ]
         for config_filename in config_filenames
     }
@@ -415,8 +423,16 @@ def test_main(args: argparse.Namespace) -> None:
         raise Exception("only one target directory allowed for tests")
     target = Path(args.target[0])
 
+    if args.config:
+        if len(args.config) != 1:
+            raise Exception("only one config directory allowed for tests")
+        config = Path(args.config[0])
+    else:
+        config = target
+
     generate_file_pairs(
         target,
+        config,
         args.test_ignore_todo,
         args.strict,
         args.dangerously_allow_arbitrary_code_execution_from_rules,
