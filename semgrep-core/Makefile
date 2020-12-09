@@ -61,3 +61,17 @@ visual:
 	codemap -screen_size 3 -filter pfff -efuns_client efuns_client -emacs_client /dev/null .
 
 .PHONY: check index visual
+
+# Run matching performance tests
+.PHONY: perf
+perf:
+	cd ./perf && ./run-perf-suite
+
+# Run matching performance tests and post them to the semgrep dashboard
+# at https://dashboard.semgrep.dev/
+#
+# This is meant for CI, which hopefully runs on similar machines each time.
+#
+.PHONY: report-perf
+report-perf:
+	cd ./perf && ./run-perf-suite --upload
