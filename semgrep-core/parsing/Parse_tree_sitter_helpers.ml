@@ -101,7 +101,7 @@ let wrap_parser tree_sitter_parser ast_mapper =
    * return a list of error instead of an exception so this is now
    * less an issue.
   *)
-  let res : _ Tree_sitter_run.Parsing_result.t = tree_sitter_parser () in
+  let res : 'a Tree_sitter_run.Parsing_result.t = tree_sitter_parser () in
   let program =
     match res.program with
     | Some cst -> Some (ast_mapper cst)
