@@ -4,16 +4,68 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Next
 
+- Add entries here
+
+## [0.34.0](https://github.com/returntocorp/semgrep/releases/tag/v0.34.0) - 2020-12-09
+
 ### Added
-- An experimental --json-stats flag that adds stats on number and line count of files by 
-supported extension as well as per-rule profiling. This flag is experimental and users
-should not yet rely on the output being stable.
+
+- Experimental support for matching multiple arguments in JS/TS.
+  This is done with a 'spread metavariable' operator,
+  that looks like `$...ARGS`.
+- Support for using `...` inside a Golang `switch` statement.
+- Support for matching only
+  the `try`, the `catch`, or the `finally` part
+  of a `try { } catch (e) { } finally { }` construct in JS/TS.
+- Support for matching only
+  the `if ()` part of
+  an `if () { }` construct in Java
+- Support for metavariables inside dictionary keys in Ruby.
+  This looks like `{..., $KEY: $VAL, ...}`.
+- An experimental `--json-stats` flag.
+  The stats output contains
+  the number of files and lines of code scanned,
+  broken down by language.
+  It also contains profiling data broken down by rule ID.
+  Please note that as this is an experimental flag,
+  the output format is subject to change in later releases.
+- Regex-only rules can now use `regex` as their language.
+  The previously used language `none` will keep working as well.
 
 ### Changed
-- To avoid filling the screen with output when your query captures a whole class, separators are printed in between findings and an individual finding can be truncated if it goes over 10 lines. Adjustable with flag `--max-lines-per-finding` (#2082)
+
+- Matches are now truncated to 10 lines in Semgrep's output.
+  This was done to avoid filling the screen with output
+  when a rule captures a whole class or function.
+  If you'd like to adjust this behavior,
+  you can set the new `--max-lines-per-finding` option.
+- Fans of explicit & verbose code can now ignore findings
+  with a `// nosemgrep` comment instead of the original `// nosem`.
+  The two keywords have identical behavior.
+- Generic pattern matching is now 10-20% faster
+  on large codebases.
 
 ### Fixed
 
+- Semgrep would crash when tens of thousands of matches were found
+  for the same rule in one file.
+  A new internally used `semgrep-core` flag named `-max_match_per_file`
+  prevents these crashes by forcing a 'timeout' state
+  when 10,000 matches are reached.
+  Semgrep can then gracefully report
+  what combination of rules and paths causes too much work.
+- `semgrep --debug` works again,
+  and now outputs even more debugging information from `semgrep-core`.
+  The new debugging output is especially helpful to discover
+  which rules have too many matches.
+- A pattern that looks like `$X & $Y`
+  will now correctly match bitwise AND operations in Ruby.
+- Metavariables can now capture the name of a class
+  and match its occurrences later in the class definition.
+- Semgrep used to crash when a metavariable matched
+  over text that cannot be read as UTF-8 text.
+  Such matches will now try to recover what they can
+  from apparent broken unicode text.
 
 ## [0.33.0](https://github.com/returntocorp/semgrep/releases/tag/v0.33.0) - 2020-12-01
 
@@ -52,6 +104,8 @@ should not yet rely on the output being stable.
 
 ### Changed
 
+- `// nosemgrep` can now also be used to ignore findings,
+  in addition to `// nosem`
 - Added a default timeout of 30 seconds per file instead of none (#1981).
 
 ## [0.31.1](https://github.com/returntocorp/semgrep/releases/tag/v0.31.1) - 2020-11-11

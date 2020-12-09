@@ -32,8 +32,7 @@ let logger = Logging.get_logger [__MODULE__]
 type 'ast parser =
   | Pfff of (Common.filename -> 'ast)
   | TreeSitter of (Common.filename ->
-                   (* <=> 'ast Parse_tree_sitter_helper.result *)
-                   'ast option * Tree_sitter_run.Tree_sitter_error.t list)
+                   'ast Tree_sitter_run.Parsing_result.t)
 
 type 'ast result =
   | Ok of 'ast
@@ -70,8 +69,8 @@ let (run_parser: 'ast parser -> Common.filename -> 'ast result) =
   | TreeSitter f ->
       logger#info "trying to parse with TreeSitter parser %s" file;
       (try
-         let astopt, errors = f file in
-         (match astopt, errors with
+         let res = f file in
+         (match res.program, res.errors with
           | None, [] -> raise Impossible
           | Some ast, [] -> Ok ast
           | None, ts_error::_xs ->

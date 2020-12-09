@@ -885,12 +885,12 @@ and expression (env : env) (x : CST.expression) : AST.expr =
          (match v2 with
           | Some (v1, v2, v3) ->
               let v1 = token env v1 (* "(" *) in
-              let v2 = type_constraint env v2 in
+              let v2 = ArgType (type_constraint env v2) in
               let v3 = token env v3 (* ")" *) in
-              todo env (v1, v2, v3)
-          | None -> todo env ())
+              v1, [v2], v3
+          | None -> fake_bracket [])
        in
-       todo env (v1, v2)
+       Call (IdSpecial (New, v1), v2)
    | `Elem_access_exp (v1, v2) ->
        let v1 = expression env v1 in
        let v2 = element_binding_expression env v2 in
@@ -1622,7 +1622,7 @@ and switch_section (env : env) ((v1, v2) : CST.switch_section) : case_and_body =
   in
   let v2 = List.map (statement env) v2 in
   (* TODO: we convert list of statements to a block with fake brackets. Does this make sense? *)
-  (v1, stmt1 v2)
+  CasesAndBody (v1, stmt1 v2)
 
 and attribute_list (env : env) ((v1, v2, v3, v4, v5) : CST.attribute_list) : attribute list =
   let v1 = token env v1 (* "[" *) in
@@ -2141,15 +2141,27 @@ and declaration (env : env) (x : CST.declaration) : stmt =
        let v2 = List.map (modifier env) v2 in
        let v3 =
          (match v3 with
-          | `Impl tok -> token env tok (* "implicit" *)
-          | `Expl tok -> token env tok (* "explicit" *)
+          | `Impl tok -> ("op_Implicit", token env tok) (* "implicit" *)
+          | `Expl tok -> ("op_Explicit", token env tok) (* "explicit" *)
          )
        in
        let v4 = token env v4 (* "operator" *) in
        let v5 = type_constraint env v5 in
        let v6 = parameter_list env v6 in
        let v7 = function_body env v7 in
-       todo env (v1, v2, v3, v4, v5, v6, v7)
+       let ent = {
+         name = EId v3;
+         attrs = v1 @ v2;
+         info = empty_id_info ();
+         tparams = [];
+       } in
+       let def = AST.FuncDef {
+         fkind = (AST.Method, v4);
+         fparams = v6;
+         frettype = Some v5;
+         fbody = v7;
+       } in
+       AST.DefStmt (ent, def)
    | `Dele_decl (v1, v2, v3, v4, v5, v6, v7, v8, v9) ->
        let v1 = List.concat_map (attribute_list env) v1 in
        let v2 = List.map (modifier env) v2 in
