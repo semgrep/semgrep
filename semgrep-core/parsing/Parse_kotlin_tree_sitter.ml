@@ -580,7 +580,7 @@ and class_body (env : env) ((v1, v2, v3) : CST.class_body) =
   let v2 =
     (match v2 with
      | Some x -> class_member_declarations env x
-     | None -> (todo env ()))
+     | None -> todo env ())
   in
   let v3 = token env v3 (* "}" *) in
   (v1, v2, v3)
@@ -731,8 +731,7 @@ and class_member_declarations (env : env) (xs : CST.class_member_declarations) =
   List.map (fun (v1, v2) ->
     let v1 = class_member_declaration env v1 in
     let v2 = str env v2 (* pattern [\r\n]+ *) in
-    let tuple = (v1, v2) in
-    todo env (tuple)
+    todo env (v1, v2)
   ) xs
 
 and class_parameter (env : env) ((v1, v2, v3, v4, v5, v6) : CST.class_parameter) =
