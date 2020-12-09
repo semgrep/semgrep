@@ -2455,7 +2455,18 @@ and m_partial a b =
   | A.PartialIf (a1, a2), B.PartialIf (b1, b2) ->
       let* () = m_tok a1 b1 in
       m_expr a2 b2
-  | A.PartialDef _, _ | A.PartialIf _, _ -> fail ()
+  | A.PartialTry (a1, a2), B.PartialTry (b1, b2) ->
+      let* () = m_tok a1 b1 in
+      m_stmt a2 b2
+  | A.PartialFinally (a1, a2), B.PartialFinally (b1, b2) ->
+      let* () = m_tok a1 b1 in
+      m_stmt a2 b2
+  | A.PartialCatch (a1), B.PartialCatch (b1) ->
+      m_catch a1 b1
+  | A.PartialDef _, _
+  | A.PartialIf _, _
+  | A.PartialTry _, _ | A.PartialCatch _, _ | A.PartialFinally _, _
+    -> fail ()
 
 (*s: function [[Generic_vs_generic.m_any]] *)
 and m_any a b =
