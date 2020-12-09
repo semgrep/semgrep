@@ -4,6 +4,7 @@ import collections
 import glob
 import io
 import json
+import multiprocessing
 import os
 import subprocess
 import sys
@@ -193,52 +194,72 @@ def run_semgrep_on_example(lang: str, config_arg_str: str, code_path: str) -> st
             # sys.exit(1)
 
 
+def invoke_semgrep_multi(semgrep_path, code_path, lang, category, subcategory):
+    result = run_semgrep_on_example(lang, semgrep_path, code_path)
+    return (
+        semgrep_path,
+        code_path,
+        lang,
+        category,
+        subcategory,
+        result,
+    )
+
+
+def paths_exist(*paths):
+    return all(os.path.exists(path) for path in paths)
+
+
 def generate_cheatsheet(root_dir: str, html: bool):
     # output : {'dots': {'arguments': ['foo(...)', 'foo(1)'], } }
     output = collections.defaultdict(
         lambda: collections.defaultdict(lambda: collections.defaultdict(list))
     )
     langs = get_language_directories(root_dir)
-    for lang in langs:
-        for category, subcategories in CHEATSHEET_ENTRIES.items():
-            for subcategory in subcategories:
+    semgrep_multi_args = [
+        (
+            find_path(root_dir, lang, category, subcategory, "sgrep"),
+            find_path(root_dir, lang, category, subcategory, lang_dir_to_ext(lang)),
+            lang,
+            category,
+            subcategory,
+        )
+        for lang in langs
+        for category, subcategories in CHEATSHEET_ENTRIES.items()
+        for subcategory in subcategories
+        if paths_exist(
+            find_path(root_dir, lang, category, subcategory, "sgrep"),
+            find_path(root_dir, lang, category, subcategory, lang_dir_to_ext(lang)),
+        )
+    ]
+    with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
+        results = pool.starmap(invoke_semgrep_multi, semgrep_multi_args)
 
-                sgrep_path = find_path(root_dir, lang, category, subcategory, "sgrep")
-                code_path = find_path(
-                    root_dir, lang, category, subcategory, lang_dir_to_ext(lang)
-                )
+    for semgrep_path, code_path, lang, category, subcategory, result in results:
+        highlights = []
+        if result:
+            j = json.loads(result)
+            for entry in j["results"]:
+                highlights.append({"start": entry["start"], "end": entry["end"]})
 
-                highlights = []
-                if os.path.exists(sgrep_path) and os.path.exists(code_path):
-                    ranges = run_semgrep_on_example(lang, sgrep_path, code_path)
-                    if ranges:
-                        j = json.loads(ranges)
-                        for entry in j["results"]:
-                            highlights.append(
-                                {"start": entry["start"], "end": entry["end"]}
-                            )
+        entry = {
+            "pattern": read_if_exists(semgrep_path),
+            "pattern_path": os.path.relpath(semgrep_path, root_dir),
+            "code": read_if_exists(code_path),
+            "code_path": os.path.relpath(code_path, root_dir),
+            "highlights": highlights,
+        }
 
-                entry = {
-                    "pattern": read_if_exists(sgrep_path),
-                    "pattern_path": os.path.relpath(sgrep_path, root_dir),
-                    "code": read_if_exists(code_path),
-                    "code_path": os.path.relpath(code_path, root_dir),
-                    "highlights": highlights,
-                }
+        if html:
+            entry["pattern_path"] = os.path.relpath(semgrep_path)
+            entry["code_path"] = os.path.relpath(code_path)
 
-                if html:
-                    entry["pattern_path"] = os.path.relpath(sgrep_path)
-                    entry["code_path"] = os.path.relpath(code_path)
-
-                feature_name = VERBOSE_FEATURE_NAME.get(category, category)
-                subcategory_name = VERBOSE_SUBCATEGORY_NAME.get(
-                    subcategory, subcategory
-                )
-                language_exception = feature_name in LANGUAGE_EXCEPTIONS.get(
-                    lang, []
-                ) or subcategory in LANGUAGE_EXCEPTIONS.get(lang, [])
-                if not language_exception:
-                    output[lang][feature_name][subcategory_name].append(entry)
+        feature_name = VERBOSE_FEATURE_NAME.get(category, category)
+        subcategory_name = VERBOSE_SUBCATEGORY_NAME.get(subcategory, subcategory)
+        feature_exception = feature_name in LANGUAGE_EXCEPTIONS.get(lang, [])
+        subcategory_exception = subcategory in LANGUAGE_EXCEPTIONS.get(lang, [])
+        if not feature_exception and not subcategory_exception:
+            output[lang][feature_name][subcategory_name].append(entry)
 
     return output
 
