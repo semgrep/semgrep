@@ -62,14 +62,14 @@ jobs:
           # of semgrep-core over time. The results are pushed to the
           # dashboard at https://dashboard.semgrep.dev/
           #
-          make -C semgrep-core report-perf
+          opam exec -- make -C semgrep-core report-perf
       #
       # else
       #
       - name: Check match performance (feature branches only)
         if: github.ref != 'refs/heads/develop'
         run: |
-          make -C semgrep-core perf
+          opam exec -- make -C semgrep-core perf
 
 
   tox-tests:
