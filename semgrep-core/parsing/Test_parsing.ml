@@ -18,12 +18,12 @@ module G = AST_generic
 
 let logger = Logging.get_logger [__MODULE__]
 
-let dump_and_print_errors dumper (cstopt, errs) =
-  (match cstopt with
-   | Some cst ->dumper cst
+let dump_and_print_errors dumper (res : 'a Tree_sitter_run.Parsing_result.t) =
+  (match res.program with
+   | Some cst -> dumper cst
    | None -> failwith "unknown error from tree-sitter parser"
   );
-  errs |> List.iter (fun err ->
+  res.errors |> List.iter (fun err ->
     pr2 (Tree_sitter_run.Tree_sitter_error.to_string ~color:true err)
   )
 
@@ -126,6 +126,12 @@ let test_parse_lang lang get_final_files xs =
   Parse_info.print_parsing_stat_list !stat_list;
   ()
 
+let fail_on_error (parsing_res : 'a Tree_sitter_run.Parsing_result.t) =
+  match parsing_res.program, parsing_res.errors with
+  | Some cst, [] -> cst
+  | Some cst, xs when List.length xs <= 2 -> cst
+  | _, err :: _ -> raise (Tree_sitter_run.Tree_sitter_error.Error err)
+  | None, [] -> failwith "unknown error from tree-sitter parser"
 
 let test_parse_tree_sitter lang xs =
   let lang =
@@ -136,12 +142,6 @@ let test_parse_tree_sitter lang xs =
   let xs = List.map Common.fullpath xs in
   let fullxs = Lang.files_of_dirs_or_files lang xs
                |> Skip_code.filter_files_if_skip_list ~root:xs
-  in
-  let fail_on_error = function
-    | Some cst, [] -> cst
-    | Some cst, xs when List.length xs <= 2 -> cst
-    | _, err :: _ -> raise (Tree_sitter_run.Tree_sitter_error.Error err)
-    | None, [] -> failwith "unknown error from tree-sitter parser"
   in
   let stat_list = ref [] in
   fullxs |> Console.progress (fun k -> List.iter (fun file ->
