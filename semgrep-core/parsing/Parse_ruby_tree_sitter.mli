@@ -1,2 +1,2 @@
 
-val parse: Common.filename -> Ast_ruby.program Parse_tree_sitter_helpers.result
+val parse: Common.filename -> Ast_ruby.program Tree_sitter_run.Parsing_result.t
