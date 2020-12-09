@@ -55,22 +55,17 @@ jobs:
 
       # TODO: move this to a stable host for more reliable results.
       #
-      - name: Publish match performance (main branch only)
-        if: github.ref == 'refs/heads/develop'
+      # It's not clear how to push the stats only when "on the main
+      # branch". The GitHub Actions documentation is unhelpful. So we
+      # keep things simple and publish the results every time.
+      #
+      - name: Publish match performance
         run: |
           # This runs a short test suite to track the match performance
           # of semgrep-core over time. The results are pushed to the
           # dashboard at https://dashboard.semgrep.dev/
           #
           opam exec -- make -C semgrep-core report-perf
-      #
-      # else
-      #
-      - name: Check match performance (feature branches only)
-        if: github.ref != 'refs/heads/develop'
-        run: |
-          opam exec -- make -C semgrep-core perf
-
 
   tox-tests:
     name: semgrep tests with different python envs
