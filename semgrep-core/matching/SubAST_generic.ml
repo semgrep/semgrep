@@ -167,7 +167,10 @@ let substmts_of_stmt st =
   | Block (_, xs, _) ->
       xs
   | Switch (_, _, xs) ->
-      xs |> List.map snd
+      xs |> List.map (function
+        | CasesAndBody (_, st) -> [st]
+        | CaseEllipsis _ -> []
+      ) |> List.flatten
   | Try (_, st, xs, opt) ->
       [st] @
       (xs |> List.map Common2.thd3) @
