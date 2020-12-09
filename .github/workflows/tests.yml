@@ -53,6 +53,25 @@ jobs:
         run: |
           ./semgrep-core/tests/report_test_metrics.sh
 
+      # TODO: move this to a stable host for more reliable results.
+      #
+      - name: Publish match performance (main branch only)
+        if: github.ref == 'refs/heads/develop'
+        run: |
+          # This runs a short test suite to track the match performance
+          # of semgrep-core over time. The results are pushed to the
+          # dashboard at https://dashboard.semgrep.dev/
+          #
+          make -C semgrep-core report-perf
+      #
+      # else
+      #
+      - name: Check match performance (feature branches only)
+        if: github.ref != 'refs/heads/develop'
+        run: |
+          make -C semgrep-core perf
+
+
   tox-tests:
     name: semgrep tests with different python envs
     runs-on: ubuntu-latest
