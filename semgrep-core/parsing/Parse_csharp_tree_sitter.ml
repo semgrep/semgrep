@@ -1273,9 +1273,9 @@ and statement (env : env) (x : CST.statement) =
                      List.map (interpolation_alignment_clause env) v2
                    in
                    let exprs = v1 :: v2 in
-                   todo env (v1, v2)
+                   List.map (fun e -> ForInitExpr e) exprs
               )
-          | None -> todo env ())
+          | None -> [])
        in
        let v4 = token env v4 (* ";" *) in
        let v5 =
