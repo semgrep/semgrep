@@ -6,6 +6,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 - Add entries here
 
+### Added
+
+- Support for '...' in chains of method calls in JS, e.g. `$O.foo() ... .bar()`
+
 ## [0.34.0](https://github.com/returntocorp/semgrep/releases/tag/v0.34.0) - 2020-12-09
 
 ### Added
