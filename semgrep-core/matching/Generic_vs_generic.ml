@@ -128,6 +128,28 @@ let make_dotted xs =
         B.DotAccess (acc, tok, B.EId e)) base xs
 (*e: function [[Generic_vs_generic.make_dotted]] *)
 
+let rec obj_and_method_calls_of_expr = function
+  | B.Call (B.DotAccess (e, tok, fld), args) ->
+      let (o, xs) = obj_and_method_calls_of_expr e in
+      o, (fld, tok, args)::xs
+  | o -> o, []
+
+let rec expr_of_obj_and_method_calls (obj, xs) =
+  match xs with
+  | [] -> obj
+  | (fld, tok, args)::xs ->
+      let e = expr_of_obj_and_method_calls (obj, xs) in
+      B.Call (B.DotAccess (e, tok, fld), args)
+
+let rec all_suffix_of_list xs =
+  xs::
+  (match xs with
+   | [] -> []
+   | _x::xs -> all_suffix_of_list xs
+  )
+let _ = Common2.example
+    (all_suffix_of_list [1;2;3] = ([[1;2;3]; [2;3]; [3]; []]))
+
 (*****************************************************************************)
 (* Name *)
 (*****************************************************************************)
@@ -622,6 +644,25 @@ and m_expr a b =
           m_ident_or_dynamic a2 b2
         ))
 
+  (* <a1> ... vs o.m1().m2().m3().
+   * Remember than o.m1().m2().m3() is parsed as (((o.m1()).m2()).m3())
+  *)
+  | A.DotAccessEllipsis(a1, _a2),
+    (B.DotAccess _ | B.Call (B.DotAccess _, _)) ->
+      (* => o, [m3();m2();m1() *)
+      let (obj, ys) = obj_and_method_calls_of_expr b in
+      (* the method chain ellipsis can match 0 or more of those method calls *)
+      let candidates = all_suffix_of_list ys in
+      let rec aux xxs =
+        match xxs with
+        | [] -> fail ()
+        | xs::xxs ->
+            let b = expr_of_obj_and_method_calls (obj, xs) in
+            m_expr a1 b >||>
+            aux xxs
+      in
+      aux candidates
+
   | A.ArrayAccess(a1, a2), B.ArrayAccess(b1, b2) ->
       m_expr a1 b1 >>= (fun () ->
         m_bracket m_expr a2 b2
@@ -719,7 +760,7 @@ and m_expr a b =
   | A.Yield _, _  | A.Await _, _  | A.Cast _, _  | A.Seq _, _  | A.Ref _, _
   | A.DeRef _, _  | A.OtherExpr _, _
   | A.SliceAccess _, _
-  | A.TypedMetavar _, _
+  | A.TypedMetavar _, _ | A.DotAccessEllipsis _, _
     -> fail ()
 (*e: [[Generic_vs_generic.m_expr()]] boilerplate cases *)
 (*e: function [[Generic_vs_generic.m_expr]] *)

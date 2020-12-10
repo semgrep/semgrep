@@ -2,11 +2,11 @@ import collections
 import functools
 import json
 import logging
-import multiprocessing
 import re
 import subprocess
 import tempfile
 from datetime import datetime
+from multiprocessing import pool
 from pathlib import Path
 from typing import Any
 from typing import cast
@@ -139,14 +139,12 @@ class CoreRunner:
         timeout: int,
         max_memory: int,
         timeout_threshold: int,
-        testing: bool = False,
     ):
         self._allow_exec = allow_exec
         self._jobs = jobs
         self._timeout = timeout
         self._max_memory = max_memory
         self._timeout_threshold = timeout_threshold
-        self._testing = testing
 
     def _flatten_rule_patterns(self, rules: List[Rule]) -> Iterator[Pattern]:
         """
@@ -463,15 +461,9 @@ class CoreRunner:
         except re.error as err:
             raise SemgrepError(f"invalid regular expression specified: {err}")
 
-        if self._testing:
-            # Testing functionality runs in a multiprocessing.Pool. We cannot run
-            # a Pool inside a Pool, so we have to avoid multiprocessing when testing.
-            # https://stackoverflow.com/questions/6974695/python-process-pool-non-daemonic
-            matches = [get_re_matches(patterns_re, target) for target in targets]
-        else:
-            re_fn = functools.partial(get_re_matches, patterns_re)
-            with multiprocessing.Pool(self._jobs) as pool:
-                matches = pool.map(re_fn, targets)
+        re_fn = functools.partial(get_re_matches, patterns_re)
+        with pool.ThreadPool(self._jobs) as tpool:
+            matches = tpool.map(re_fn, targets)
 
         outputs.extend(
             single_match for file_matches in matches for single_match in file_matches
