@@ -355,7 +355,7 @@ let line_string_content (env : env) (x : CST.line_string_content) =
 let return_at (env : env) ((v1, v2) : CST.return_at) =
   let v1 = token env v1 (* "return@" *) in
   let v2 = simple_identifier env v2 in
-  (v1, Some(v2))
+  (v1, Some v2)
 
 let identifier (env : env) ((v1, v2) : CST.identifier) =
   let v1 = simple_identifier env v1 in
@@ -1194,11 +1194,23 @@ and jump_expression (env : env) (x : CST.jump_expression) =
         (match v2 with
          | Some x ->
              let v1 = expression env x in
-             Some (v1)
+             Some v1
          | None -> None)
       in
       let return_tok, id = v1 in
-      Return (return_tok, v2, sc)
+      (match id with
+       | None -> Return (return_tok, v2, sc)
+       | Some simple_id ->
+           let id = Id(simple_id, empty_id_info()) in
+           (match v2 with
+            | None ->
+                let list = [TodoK ("todo return@", return_tok);E id] in
+                OtherStmt (OS_Todo, list)
+            | Some v2_expr ->
+                let list = [TodoK ("todo return@", return_tok);E id; E v2_expr] in
+                OtherStmt (OS_Todo, list)
+           )
+      )
   | `Cont tok ->
       let v1 = token env tok (* "continue" *) in
       Continue (v1, LNone, sc)
@@ -1488,7 +1500,7 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
                  | `SEMI tok -> token_todo env tok (* ";" *)
                 )
               in
-              (v1, Some(v4))
+              (v1, Some v4)
          )
        in
        let (v6, v7) = v5 in
@@ -1889,7 +1901,7 @@ and variable_declaration (env : env) ((v1, v2) : CST.variable_declaration) =
      | Some (v1, v2) ->
          let v1 = token env v1 (* ":" *) in
          let v2 = type_ env v2 in
-         Some (v2)
+         Some v2
      | None -> None)
   in
   (v1, v2)
@@ -1922,7 +1934,7 @@ and when_entry (env : env) ((v1, v2, v3, v4) : CST.when_entry) =
     (match v4 with
      | Some tok ->
          let v1 = token env tok (* pattern [\r\n]+ *) in
-         Some (v1)
+         Some v1
      | None -> None)
   in
   todo env (v1, v2, v3, v4)
@@ -1941,7 +1953,7 @@ and when_subject (env : env) ((v1, v2, v3, v4) : CST.when_subject) =
     in*)
   let v3 = expression env v3 in
   let v4 = token env v4 (* ")" *) in
-  Some(v3)
+  Some v3
 
 let rec parenthesized_user_type (env : env) ((v1, v2, v3) : CST.parenthesized_user_type) =
   let v1 = token env v1 (* "(" *) in
