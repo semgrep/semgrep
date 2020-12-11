@@ -30,7 +30,7 @@
 
 Semgrep is a fast, open-source, static analysis tool that excels at expressing code standards — without complicated queries — and surfacing bugs early at editor, commit, and CI time. Precise rules look like the code you’re searching; no more traversing abstract syntax trees or wrestling with regexes.
 
-The [Semgrep Registry](https://semgrep.dev/explore) has 900+ rules written by the Semgrep community covering security, correctness, and performance bugs. No need to DIY unless you want to.
+The [Semgrep Registry](https://semgrep.dev/explore) has 1,000+ rules written by the Semgrep community covering security, correctness, and performance bugs. No need to DIY unless you want to.
 
 Semgrep runs offline, on uncompiled code.
 
