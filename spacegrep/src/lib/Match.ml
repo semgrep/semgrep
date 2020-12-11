@@ -59,6 +59,13 @@ type match_ = {
 
 (*** Internal types ***)
 
+(* configuration used during matching *)
+type conf = {
+  (* string equality function used to compare words, which can be
+     case-insensitive. *)
+  word_equal: string -> string -> bool;
+}
+
 (* Map from metavariables to their captured value, which is a Word. *)
 module Env = Map.Make (String)
 type env = (Loc.t * string) Env.t
@@ -80,6 +87,19 @@ let rec full_match ~dots env last_loc pat =
 let loc_lnum (loc : Loc.t) =
   let pos, _ = loc in
   pos.pos_lnum
+
+let case_insensitive_equal a b =
+  let len = String.length a in
+  len = String.length b
+  && (
+    try
+      for i = 0 to len - 1 do
+        if Char.lowercase_ascii a.[i] <> Char.lowercase_ascii b.[i] then
+          raise Exit
+      done;
+      true
+    with Exit -> false
+  )
 
 (*
    Find the rightmost location in a document and return it only if it's
@@ -174,6 +194,7 @@ let extend_dots ~dots (last_loc : Loc.t) =
      '...' is found.
 *)
 let rec match_
+    (conf : conf)
     ~(dots:int option)
     (env : env)
     (last_loc : Loc.t)
@@ -213,9 +234,9 @@ let rec match_
        | List doc1 :: doc2 ->
            (* Indented block coincides with an indented block in the document.
               These blocks must match, independently from the rest. *)
-           (match match_ ~dots:None env last_loc pat1 doc1 full_match with
+           (match match_ conf ~dots:None env last_loc pat1 doc1 full_match with
             | Complete (env, last_loc) ->
-                match_ ~dots:None env last_loc pat2 doc2 cont
+                match_ conf ~dots:None env last_loc pat2 doc2 cont
             | Fail -> Fail
            )
        | Atom (loc, _) :: doc_tail ->
@@ -223,16 +244,16 @@ let rec match_
               Skip document node if allowed. *)
            assert (pat1 <> []);
            if is_skippable_doc_atom ~dots loc then
-             match_ ~dots env last_loc pat doc_tail cont
+             match_ conf ~dots env last_loc pat doc_tail cont
            else if pat_matches_empty_doc pat1 then
-             match_ ~dots env last_loc pat2 doc cont
+             match_ conf ~dots env last_loc pat2 doc cont
            else
              Fail
       )
 
   | Dots _ :: pat_tail, doc ->
       let dots = extend_dots ~dots last_loc in
-      match_ ~dots env last_loc pat_tail doc cont
+      match_ conf ~dots env last_loc pat_tail doc cont
 
   | Atom (_, p) :: pat_tail, doc ->
       match doc with
@@ -243,11 +264,11 @@ let rec match_
               (* Indented block in the document doesn't have to match
                  indented block in the pattern. We just continue matching
                  in the block as if the document was flat. *)
-              match_ ~dots env last_loc pat sub_doc
+              match_ conf ~dots env last_loc pat sub_doc
                 (fun ~dots env last_loc pat ->
                    (* The sub-block was matched but some of the pattern wasn't
                       consumed. We continue, in the sub-block's parent. *)
-                   match_ ~dots env last_loc pat doc_tail cont
+                   match_ conf ~dots env last_loc pat doc_tail cont
                 )
           | Atom (loc, d) ->
               if not (within_ellipsis_range ~dots loc) then
@@ -261,21 +282,24 @@ let rec match_
                            (* First encounter of the metavariable,
                               store its value. *)
                            let env = Env.add name (loc, value) env in
-                           match_ ~dots:None env loc pat_tail doc_tail cont
+                           match_
+                             conf ~dots:None env loc pat_tail doc_tail cont
                        | Some (_loc0, value0) ->
                            (* Check if value matches previously captured
-                              value. *)
-                           if value = value0 then
-                             match_ ~dots:None env loc pat_tail doc_tail cont
+                              value. This must be an exact match even
+                              if case-insensitive matching was requested. *)
+                           if String.equal value value0 then
+                             match_
+                               conf ~dots:None env loc pat_tail doc_tail cont
                            else
                              Fail
                       )
-                  | Word a, Word b when a = b ->
-                      match_ ~dots:None env loc pat_tail doc_tail cont
+                  | Word a, Word b when conf.word_equal a b ->
+                      match_ conf ~dots:None env loc pat_tail doc_tail cont
                   | Punct a, Punct b when a = b ->
-                      match_ ~dots:None env loc pat_tail doc_tail cont
+                      match_ conf ~dots:None env loc pat_tail doc_tail cont
                   | Byte a, Byte b when a = b ->
-                      match_ ~dots:None env loc pat_tail doc_tail cont
+                      match_ conf ~dots:None env loc pat_tail doc_tail cont
                   | _ ->
                       Fail
                 in
@@ -285,7 +309,7 @@ let rec match_
                     (* Pattern doesn't match document.
                        Skip document's head node if we're allowed to. *)
                     if is_skippable_doc_atom ~dots loc then
-                      match_ ~dots env last_loc pat doc_tail cont
+                      match_ conf ~dots env last_loc pat doc_tail cont
                     else
                       Fail
 
@@ -395,9 +419,15 @@ let convert_capture src (start_pos, _) (_, end_pos) =
 
    last_loc is the location of the last token of a match.
 *)
-let search src pat doc =
+let search ?(case_sensitive = true) src pat doc =
   (* table of all matches we want to keep, keyed by end location,
      with at most one entry per end location. *)
+  let conf =
+    if case_sensitive then
+      { word_equal = String.equal }
+    else
+      { word_equal = case_insensitive_equal }
+  in
   let end_loc_tbl = Hashtbl.create 100 in
   let fold =
     if starts_with_dots pat then
@@ -407,7 +437,7 @@ let search src pat doc =
   in
   fold [] doc (fun matches start_loc doc ->
     match
-      match_ ~dots:None Env.empty start_loc pat doc full_match
+      match_ conf ~dots:None Env.empty start_loc pat doc full_match
     with
     | Complete (env, last_loc) ->
         let match_ =

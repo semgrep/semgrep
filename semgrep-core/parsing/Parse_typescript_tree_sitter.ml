@@ -2709,8 +2709,8 @@ let guess_dialect opt_dialect file : dialect =
       else
         `Typescript
 
-type cst_result =
-  CST.program option * Tree_sitter_run.Tree_sitter_error.t list
+type cst_result = CST.program Tree_sitter_run.Parsing_result.t
+
 
 let parse ?dialect file =
   let debug = false in

@@ -297,7 +297,6 @@ def generate_file_pairs(
         no_rewrite_rule_ids=True,
         strict=strict,
         dangerously_allow_arbitrary_code_execution_from_rules=unsafe,
-        testing=True,
     )
     with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
         results = pool.starmap(invoke_semgrep_fn, config_with_tests)

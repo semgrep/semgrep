@@ -11,7 +11,7 @@ rules:
     references:
     - https://flask.palletsprojects.com/en/1.1.x/templating/#jinja-setup
   languages:
-  - none
+  - regex
   paths:
     include:
     - "*.html"

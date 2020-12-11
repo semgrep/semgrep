@@ -41,6 +41,7 @@ let subexprs_of_expr e =
 
   | DotAccess (e, _, _) | Await (_, e) | Cast (_, e)
   | Ref (_, e) | DeRef (_, e) | DeepEllipsis (_, e, _)
+  | DotAccessEllipsis (e, _)
     -> [e]
   | Assign (e1, _, e2) | AssignOp (e1, _, e2)
   | ArrayAccess (e1, (_, e2, _))
@@ -167,7 +168,10 @@ let substmts_of_stmt st =
   | Block (_, xs, _) ->
       xs
   | Switch (_, _, xs) ->
-      xs |> List.map snd
+      xs |> List.map (function
+        | CasesAndBody (_, st) -> [st]
+        | CaseEllipsis _ -> []
+      ) |> List.flatten
   | Try (_, st, xs, opt) ->
       [st] @
       (xs |> List.map Common2.thd3) @

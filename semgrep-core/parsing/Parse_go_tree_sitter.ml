@@ -159,7 +159,7 @@ let import_spec (env : env) ((v1, v2) : CST.import_spec) =
   let v2 = string_literal env v2 in
   v1, v2
 
-let rec type_case (env : env) ((v1, v2, v3, v4, v5) : CST.type_case) : case_clause =
+let rec type_case (env : env) ((v1, v2, v3, v4, v5) : CST.type_case) =
   let v1 = token env v1 (* "case" *) in
   let v2 = type_ env v2 in
   let v3 =
@@ -176,7 +176,7 @@ let rec type_case (env : env) ((v1, v2, v3, v4, v5) : CST.type_case) : case_clau
      | None -> [])
   in
   let xs = v2::v3 in
-  CaseExprs (v1, (xs |> List.map (fun x -> Right x))), stmt1 v5
+  (CaseExprs (v1, (xs |> List.map (fun x -> Right x))), stmt1 v5)
 
 and simple_statement (env : env) (x : CST.simple_statement) : simple =
   (match x with
@@ -508,7 +508,7 @@ and call_expression (env : env) (x : CST.call_expression) =
        Call (v1, v2)
   )
 
-and default_case (env : env) ((v1, v2, v3) : CST.default_case) : case_clause =
+and default_case (env : env) ((v1, v2, v3) : CST.default_case) =
   let v1 = token env v1 (* "default" *) in
   let _v2 = token env v2 (* ":" *) in
   let v3 =
@@ -516,7 +516,7 @@ and default_case (env : env) ((v1, v2, v3) : CST.default_case) : case_clause =
      | Some x -> statement_list env x
      | None -> [])
   in
-  CaseDefault v1, stmt1 v3
+  (CaseDefault v1, stmt1 v3)
 
 and slice_type (env : env) ((v1, v2, v3) : CST.slice_type) =
   let v1 = token env v1 (* "[" *) in
@@ -772,8 +772,8 @@ and statement (env : env) (x : CST.statement) : stmt =
        let v5 =
          List.map (fun x ->
            (match x with
-            | `Exp_case x -> expression_case env x
-            | `Defa_case x -> default_case env x
+            | `Exp_case x -> CaseClause (expression_case env x)
+            | `Defa_case x -> CaseClause (default_case env x)
            )
          ) v5
        in
@@ -790,6 +790,7 @@ and statement (env : env) (x : CST.statement) : stmt =
             | `Defa_case x -> default_case env x
            )
          ) v4
+         |> List.map (fun x -> CaseClause x)
        in
        let (a,b) = v2 in
        let _v5 = token env v5 (* "}" *) in
@@ -804,6 +805,7 @@ and statement (env : env) (x : CST.statement) : stmt =
             | `Defa_case x -> default_case env x
            )
          ) v3
+         |> List.map (fun x -> CaseClause x)
        in
        let _v4 = token env v4 (* "}" *) in
        Select (v1, v3)

@@ -21,13 +21,19 @@ from junit_xml import TestSuite
 
 from semgrep import __VERSION__
 from semgrep import config_resolver
+from semgrep.constants import BREAK_LINE_CHAR
+from semgrep.constants import BREAK_LINE_WIDTH
+from semgrep.constants import MAX_LINES_FLAG_NAME
 from semgrep.constants import OutputFormat
 from semgrep.error import FINDINGS_EXIT_CODE
 from semgrep.error import Level
 from semgrep.error import MatchTimeoutError
 from semgrep.error import SemgrepError
+from semgrep.profile_manager import ProfileManager
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
+from semgrep.stats import make_loc_stats
+from semgrep.stats import make_target_stats
 from semgrep.util import is_url
 from semgrep.util import with_color
 
@@ -57,14 +63,24 @@ def color_line(
     return line
 
 
-def finding_to_line(rule_match: RuleMatch, color_output: bool) -> Iterator[str]:
+def finding_to_line(
+    rule_match: RuleMatch,
+    color_output: bool,
+    per_finding_max_lines_limit: Optional[int],
+    show_separator: bool,
+) -> Iterator[str]:
     path = rule_match.path
     start_line = rule_match.start.get("line")
     end_line = rule_match.end.get("line")
     start_col = rule_match.start.get("col")
     end_col = rule_match.end.get("col")
+    trimmed = 0
     if path:
         lines = rule_match.extra.get("fixed_lines") or rule_match.lines
+        if per_finding_max_lines_limit:
+            trimmed = len(lines) - per_finding_max_lines_limit
+            lines = lines[:per_finding_max_lines_limit]
+
         for i, line in enumerate(lines):
             line = line.rstrip()
             line_number = ""
@@ -78,10 +94,20 @@ def finding_to_line(rule_match: RuleMatch, color_output: bool) -> Iterator[str]:
                     line_number = f"{start_line + i}"
 
             yield f"{line_number}:{line}" if line_number else f"{line}"
+        trimmed_str = (
+            f" [hid {trimmed} additional lines, adjust with {MAX_LINES_FLAG_NAME}] "
+        )
+        if per_finding_max_lines_limit != 1:
+            if trimmed > 0:
+                yield trimmed_str.center(BREAK_LINE_WIDTH, BREAK_LINE_CHAR)
+            elif show_separator:
+                yield BREAK_LINE_CHAR * BREAK_LINE_WIDTH
 
 
 def build_normal_output(
-    rule_matches: List[RuleMatch], color_output: bool
+    rule_matches: List[RuleMatch],
+    color_output: bool,
+    per_finding_max_lines_limit: Optional[int],
 ) -> Iterator[str]:
     RESET_COLOR = colorama.Style.RESET_ALL if color_output else ""
     GREEN_COLOR = colorama.Fore.GREEN if color_output else ""
@@ -91,7 +117,8 @@ def build_normal_output(
 
     last_file = None
     last_message = None
-    for rule_match in sorted(rule_matches, key=lambda r: (r.path, r.id)):
+    sorted_rule_matches = sorted(rule_matches, key=lambda r: (r.path, r.id))
+    for rule_index, rule_match in enumerate(sorted_rule_matches):
 
         current_file = rule_match.path
         check_id = rule_match.id
@@ -121,7 +148,21 @@ def build_normal_output(
 
         last_file = current_file
         last_message = message
-        yield from finding_to_line(rule_match, color_output)
+        next_rule_match = (
+            sorted_rule_matches[rule_index + 1]
+            if rule_index != len(sorted_rule_matches) - 1
+            else None
+        )
+        is_same_file = (
+            next_rule_match.path == rule_match.path if next_rule_match else False
+        )
+        yield from finding_to_line(
+            rule_match,
+            color_output,
+            per_finding_max_lines_limit,
+            is_same_file,
+        )
+
         if fix:
             yield f"{BLUE_COLOR}autofix:{RESET_COLOR} {fix}"
         elif rule_match.fix_regex:
@@ -132,17 +173,24 @@ def build_normal_output(
 def build_output_json(
     rule_matches: List[RuleMatch],
     semgrep_structured_errors: List[SemgrepError],
+    all_targets: Set[Path],
+    show_json_stats: bool,
+    profiler: Optional[ProfileManager] = None,
     debug_steps_by_rule: Optional[Dict[Rule, List[Dict[str, Any]]]] = None,
 ) -> str:
-    # wrap errors under "data" entry to be compatible with
-    # https://docs.r2c.dev/en/latest/api/output.html#errors
-    output_json = {}
+    output_json: Dict[str, Any] = {}
     output_json["results"] = [rm.to_json() for rm in rule_matches]
     if debug_steps_by_rule:
         output_json["debug"] = [
             {r.id: steps for r, steps in debug_steps_by_rule.items()}
         ]
     output_json["errors"] = [e.to_dict() for e in semgrep_structured_errors]
+    if show_json_stats:
+        output_json["stats"] = {
+            "targets": make_target_stats(all_targets),
+            "loc": make_loc_stats(all_targets),
+            "profiler": profiler.dump_stats() if profiler else None,
+        }
     return json.dumps(output_json)
 
 
@@ -193,6 +241,8 @@ class OutputSettings(NamedTuple):
     error_on_findings: bool
     verbose_errors: bool
     strict: bool
+    output_per_finding_max_lines_limit: Optional[int]
+    json_stats: bool
     timeout_threshold: int = 0
 
 
@@ -237,6 +287,8 @@ class OutputHandler:
         self.rule_matches: List[RuleMatch] = []
         self.debug_steps_by_rule: Dict[Rule, List[Dict[str, Any]]] = {}
         self.stats_line: Optional[str] = None
+        self.all_targets: Set[Path] = set()
+        self.profiler: Optional[ProfileManager] = None
         self.rules: FrozenSet[Rule] = frozenset()
         self.semgrep_structured_errors: List[SemgrepError] = []
         self.error_set: Set[SemgrepError] = set()
@@ -298,6 +350,8 @@ class OutputHandler:
         rule_matches_by_rule: Dict[Rule, List[RuleMatch]],
         debug_steps_by_rule: Dict[Rule, List[Dict[str, Any]]],
         stats_line: str,
+        all_targets: Set[Path],
+        profiler: ProfileManager,
     ) -> None:
         self.has_output = True
         self.rules = self.rules.union(rule_matches_by_rule.keys())
@@ -307,6 +361,8 @@ class OutputHandler:
             for match in matches_of_one_rule
         ]
 
+        self.profiler = profiler
+        self.all_targets = all_targets
         self.stats_line = stats_line
         self.debug_steps_by_rule.update(debug_steps_by_rule)
 
@@ -344,7 +400,8 @@ class OutputHandler:
         """
         if self.has_output:
             output = self.build_output(
-                self.settings.output_destination is None and self.stdout.isatty()
+                self.settings.output_destination is None and self.stdout.isatty(),
+                self.settings.output_per_finding_max_lines_limit,
             )
             if output:
                 print(output, file=self.stdout)
@@ -397,7 +454,9 @@ class OutputHandler:
         except requests.exceptions.Timeout:
             raise SemgrepError(f"posting output to {output_url} timed out")
 
-    def build_output(self, color_output: bool) -> str:
+    def build_output(
+        self, color_output: bool, per_finding_max_lines_limit: Optional[int]
+    ) -> str:
         output_format = self.settings.output_format
         debug_steps = None
         if output_format == OutputFormat.JSON_DEBUG:
@@ -406,6 +465,9 @@ class OutputHandler:
             return build_output_json(
                 self.rule_matches,
                 self.semgrep_structured_errors,
+                self.all_targets,
+                self.settings.json_stats,
+                self.profiler,
                 debug_steps,
             )
         elif output_format == OutputFormat.JUNIT_XML:
@@ -413,7 +475,13 @@ class OutputHandler:
         elif output_format == OutputFormat.SARIF:
             return build_sarif_output(self.rule_matches, self.rules)
         elif output_format == OutputFormat.TEXT:
-            return "\n".join(list(build_normal_output(self.rule_matches, color_output)))
+            return "\n".join(
+                list(
+                    build_normal_output(
+                        self.rule_matches, color_output, per_finding_max_lines_limit
+                    )
+                )
+            )
         else:
             # https://github.com/python/mypy/issues/6366
             raise RuntimeError(

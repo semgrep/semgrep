@@ -9,7 +9,9 @@ import semgrep.semgrep_main
 import semgrep.test
 from semgrep import __VERSION__
 from semgrep.constants import DEFAULT_CONFIG_FILE
+from semgrep.constants import DEFAULT_MAX_LINES_PER_FINDING
 from semgrep.constants import DEFAULT_TIMEOUT
+from semgrep.constants import MAX_LINES_FLAG_NAME
 from semgrep.constants import OutputFormat
 from semgrep.constants import RCE_RULE_FLAG
 from semgrep.constants import SEMGREP_URL
@@ -238,9 +240,15 @@ def cli() -> None:
         ),
     )
     output.add_argument(
+        "--json-stats",
+        action="store_true",
+        help=argparse.SUPPRESS,  # this flag is experimental and users should not yet rely on the output being stable
+        # help="Include statistical information about performance in JSON output (experimental).",
+    )
+    output.add_argument(
         "--debugging-json",
         action="store_true",
-        help="Output JSON with extra debugging information.",
+        help="Output JSON with extra debugging information (experimental).",
     )
     output.add_argument(
         "--junit-xml", action="store_true", help="Output results in JUnit XML format."
@@ -294,6 +302,15 @@ def cli() -> None:
         help=(
             "Disable the effect of 'nosem'. This will report findings on lines "
             "containing a 'nosem' comment at the end."
+        ),
+    )
+
+    output.add_argument(
+        MAX_LINES_FLAG_NAME,
+        type=int,
+        default=DEFAULT_MAX_LINES_PER_FINDING,
+        help=(
+            "Maximum number of lines of code that will be shown for each match before trimming (set to 0 for unlimited)."
         ),
     )
 
@@ -369,6 +386,8 @@ def cli() -> None:
         strict=args.strict,
         verbose_errors=args.verbose,
         timeout_threshold=args.timeout_threshold,
+        json_stats=args.json_stats,
+        output_per_finding_max_lines_limit=args.max_lines_per_finding,
     )
 
     if not args.disable_version_check:

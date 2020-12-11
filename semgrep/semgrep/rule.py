@@ -17,7 +17,6 @@ from semgrep.semgrep_types import BooleanRuleExpression
 from semgrep.semgrep_types import DEFAULT_MODE
 from semgrep.semgrep_types import Language
 from semgrep.semgrep_types import Mode
-from semgrep.semgrep_types import NONE_LANGUAGE
 from semgrep.semgrep_types import Operator
 from semgrep.semgrep_types import OPERATOR_PATTERN_NAMES_MAP
 from semgrep.semgrep_types import OPERATORS
@@ -25,6 +24,7 @@ from semgrep.semgrep_types import OPERATORS_WITH_CHILDREN
 from semgrep.semgrep_types import pattern_names_for_operator
 from semgrep.semgrep_types import PATTERN_NAMES_OPERATOR_MAP
 from semgrep.semgrep_types import PatternId
+from semgrep.semgrep_types import REGEX_ONLY_LANGUAGE_KEYS
 from semgrep.semgrep_types import TAINT_MODE
 from semgrep.semgrep_types import YAML_TAINT_MUST_HAVE_KEYS
 
@@ -65,12 +65,12 @@ class Rule:
         # check taint/search mode
         self._expression, self._mode = self._build_search_patterns_for_mode(self._yaml)
 
-        if any([lang == NONE_LANGUAGE for lang in self._languages]):
+        if any([lang in REGEX_ONLY_LANGUAGE_KEYS for lang in self._languages]):
             self._validate_none_language_rule()
 
     def _validate_none_language_rule(self) -> None:
         """
-        For "none" language rules, only patterns, pattern-either, and pattern-regex is valid.
+        For regex-only rules, only patterns, pattern-either, and pattern-regex is valid.
         """
 
         def _validate(expression: BooleanRuleExpression, span_key: str = "") -> None:
@@ -89,9 +89,9 @@ class Rule:
                 span = doc.span if doc else self._yaml.span
                 raise InvalidRuleSchemaError(
                     short_msg=f"invalid pattern clause",
-                    long_msg=f"invalid pattern clause '{operator_key}' with language '{NONE_LANGUAGE}'",
+                    long_msg=f"invalid pattern clause '{operator_key}' with regex-only rules",
                     spans=[span],
-                    help=f"use only patterns, pattern-regex, or pattern-either with language '{NONE_LANGUAGE}'",
+                    help=f"use only patterns, pattern-regex, or pattern-either with regex-only rules",
                 )
             if expression.children:
                 for child in expression.children:

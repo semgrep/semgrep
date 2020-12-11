@@ -50,6 +50,15 @@ let any_gen_of_string str =
 (*s: function [[Test.parse_generic]] *)
 (*e: function [[Test.parse_generic]] *)
 
+let parsing_tests_for_lang files lang =
+  files |> List.map (fun file ->
+    (Filename.basename file) >:: (fun () ->
+      let _, errs = Parse_code.parse_and_resolve_name_use_pfff_or_treesitter lang file in
+      if errs <> []
+      then failwith (String.concat ";" (List.map Error_code.string_of_error errs));
+    )
+  )
+
 (*
    For each input file with the language's extension, locate a pattern file
    with the '.sgrep' extension.
@@ -98,8 +107,10 @@ let regression_tests_for_lang files lang =
     Error_code.g_errors := [];
 
     let rule = { R.
-      id = "unit testing"; pattern; message = ""; severity = R.Error; 
-      languages = [lang] } in
+      id = "unit testing"; pattern; message = ""; 
+      severity = R.Error; languages = [lang];
+      pattern_string = "test: no need for pattern string";
+    } in
     let equiv = 
      (* Python == is not the same than !(==) *)
      if lang <> Lang.Python
@@ -128,6 +139,17 @@ let regression_tests_for_lang files lang =
 (*****************************************************************************)
 (* More tests *)
 (*****************************************************************************)
+
+let lang_parsing_tests =
+  "lang parsing testing" >::: [
+    "C#" >::: (
+      let dir = Filename.concat (Filename.concat tests_path "csharp") "parsing" in
+      let files = Common2.glob (spf "%s/*.cs" dir) in
+      let lang = Lang.Csharp in
+      parsing_tests_for_lang files lang
+    );
+  ]
+
 (*s: constant [[Test.lang_regression_tests]] *)
 let lang_regression_tests = 
  "lang regression testing" >::: [
@@ -263,6 +285,7 @@ let test regexp =
       (* just expression vs expression testing for one language (Python) *)
       Unit_matcher.unittest ~any_gen_of_string;
       Unit_synthesizer.unittest;
+      lang_parsing_tests;
       (* full testing for many languages *)
       lang_regression_tests;
       (* ugly: todo: use a toy fuzzy parser instead of the one in lang_cpp/ *)
