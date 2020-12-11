@@ -2191,14 +2191,23 @@ and declaration (env : env) (x : CST.declaration) : stmt =
        let v1 = List.concat_map (attribute_list env) v1 in
        let v2 =
          (match v2 with
-          | Some tok -> token env tok (* "extern" *)
-          | None -> todo env ())
+          | Some tok -> [KeywordAttr (Extern, token env tok)] (* "extern" *)
+          | None -> [])
        in
        let v3 = token env v3 (* "~" *) in
        let v4 = identifier env v4 (* identifier *) in
        let v5 = parameter_list env v5 in
        let v6 = function_body env v6 in
-       todo env (v1, v2, v3, v4, v5, v6)
+       let name = ("Finalize", v3) in
+       let def = AST.FuncDef {
+         fkind = (AST.Method, v3);
+         fparams = v5;
+         frettype = None;
+         fbody = v6;
+       } in
+       let dtor = KeywordAttr (Dtor, v3) in
+       let ent = basic_entity name (dtor :: v1 @ v2) in
+       AST.DefStmt (ent, def)
    | `Enum_decl (v1, v2, v3, v4, v5, v6, v7) ->
        let v1 = List.concat_map (attribute_list env) v1 in
        let v2 = List.map (modifier env) v2 in
