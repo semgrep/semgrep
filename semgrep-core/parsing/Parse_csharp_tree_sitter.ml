@@ -181,7 +181,7 @@ let overloadable_operator (env : env) (x : CST.overloadable_operator) =
 
 let reserved_identifier (env : env) (x : CST.reserved_identifier) =
   (match x with
-   | `From tok -> token env tok (* "from" *)
+   | `From tok -> str env tok (* "from" *)
   )
 
 let modifier (env : env) (x : CST.modifier) =
@@ -1108,7 +1108,7 @@ and expression (env : env) (x : CST.expression) : AST.expr =
        AST.IdQualified (simple_name env x, empty_id_info ())
    | `Rese_id x ->
        let x = reserved_identifier env x in
-       todo env x
+       AST.Id (x, empty_id_info ())
    | `Lit x ->
        let x = literal env x in
        AST.L x
