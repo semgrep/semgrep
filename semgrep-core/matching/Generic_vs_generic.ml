@@ -98,19 +98,19 @@ let env_add_matched_stmt st tin =
   | Some _ -> raise Impossible
 
 (* less: could be made more general by taking is_dots function parameter *)
-let has_ellipis_and_filter_ellispis xs =
+let has_ellipsis_and_filter_ellipsis xs =
   let has_ellipsis = ref false in
   let ys = xs |> Common.exclude (function
     | A.Ellipsis _ -> has_ellipsis := true; true
     | _ -> false) in
   !has_ellipsis, ys
-let has_xml_ellipis_and_filter_ellispis xs =
+let has_xml_ellipsis_and_filter_ellipsis xs =
   let has_ellipsis = ref false in
   let ys = xs |> Common.exclude (function
     | A.XmlEllipsis _ -> has_ellipsis := true; true
     | _ -> false) in
   !has_ellipsis, ys
-let has_case_ellipis_and_filter_ellispis xs =
+let has_case_ellipsis_and_filter_ellipsis xs =
   let has_ellipsis = ref false in
   let ys = xs |> Common.exclude (function
     | A.CaseEllipsis _ -> has_ellipsis := true; true
@@ -959,10 +959,10 @@ and m_container_set_or_dict_unordered_elements (a1, a2) (b1, b2) =
   | ((A.Dict | A.Set), []),             ((A.Dict | A.Set), []) -> return ()
   | ((A.Dict | A.Set), [A.Ellipsis _]), ((A.Dict | A.Set), _) -> return ()
   | (A.Set, a2), (B.Set, b2) ->
-      let has_ellipsis, a2 = has_ellipis_and_filter_ellispis a2 in
+      let has_ellipsis, a2 = has_ellipsis_and_filter_ellipsis a2 in
       m_list_in_any_order ~less_is_ok:has_ellipsis m_expr a2 b2
   | (A.Dict, a2), (B.Dict, b2) ->
-      let has_ellipsis, a2 = has_ellipis_and_filter_ellispis a2 in
+      let has_ellipsis, a2 = has_ellipsis_and_filter_ellipsis a2 in
       m_list_in_any_order ~less_is_ok:has_ellipsis m_expr a2 b2
   | _, _ ->
       (* less: could return fail () *)
@@ -1019,7 +1019,7 @@ and m_xml a b =
 
 (*s: function [[Generic_vs_generic.m_attrs]] *)
 and m_attrs a b =
-  let _has_ellipsis, a = has_xml_ellipis_and_filter_ellispis a in
+  let _has_ellipsis, a = has_xml_ellipsis_and_filter_ellipsis a in
   (* always implicit ... *)
   m_list_in_any_order ~less_is_ok:true m_xml_attr a b
 (*e: function [[Generic_vs_generic.m_attrs]] *)
@@ -1706,7 +1706,7 @@ and m_stmt a b =
 (*e: function [[Generic_vs_generic.m_stmt]] *)
 
 and m_case_clauses a b =
-  let _has_ellipsis, a = has_case_ellipis_and_filter_ellispis a in
+  let _has_ellipsis, a = has_case_ellipsis_and_filter_ellipsis a in
   (* todo? always implicit ...?
    * todo? do in any order? In theory the order of the cases matter, but
    * in a semgrep context, people probably don't want to find
@@ -2310,7 +2310,7 @@ and m_list__m_type_ (xsa: A.type_ list) (xsb: A.type_ list) =
 
 and m_list__m_type_any_order (xsa: A.type_ list) (xsb: A.type_ list) =
   (* TODO? filter existing ellipsis?
-   * let _has_ellipsis, xsb = has_ellipis_and_filter_ellispis xsb in *)
+   * let _has_ellipsis, xsb = has_ellipsis_and_filter_ellipsis xsb in *)
   (* always implicit ... *)
   m_list_in_any_order ~less_is_ok:true m_type_ xsa xsb
 
