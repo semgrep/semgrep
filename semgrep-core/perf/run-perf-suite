@@ -16,15 +16,27 @@ HOST = "https://dashboard.semgrep.dev"
 
 class Test:
     def __init__(self, name: str, lang: str, target: str):
+        # Test name. Pattern file name is NAME.sgrep.
         self.name = name
+
+        # Language ID
         self.lang = lang
+
+        # Target file name
         self.target = target
 
 
 TESTS = [
-    # test name, language name, target file name
-    Test("empty", "js", "empty.js"),  # control
-    Test("backref", "js", "l1000.js"),
+    # Control. No other test can be faster than this one.
+    Test("empty", "js", "empty.js"),
+    # Match on a simple statement, no ellipsis. Serves as the baseline
+    # for the other tests on the same file.
+    Test("stmts-simple", "js", "l10000.js"),
+    # Single ellipsis on statements, with backreference to statement
+    # that matches in many places: $A; ... foo($A);
+    Test("stmts-ellipsis", "js", "l10000.js"),
+    # Double ellipsis on statements: $A; ... $B; ... foo($A);
+    Test("stmts-double-ellipsis", "js", "l1000.js"),
 ]
 
 
@@ -73,13 +85,28 @@ def upload_results(results: List[Result]) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
+        "name", metavar="NAME", type=str, nargs="?", help="run just this test"
+    )
+    parser.add_argument(
+        "--list", help="list available tests and exit", action="store_true"
+    )
+    parser.add_argument(
         "--upload", help="upload results to semgrep dashboard", action="store_true"
     )
     args = parser.parse_args()
 
-    results = run_tests("input", TESTS)
-    if args.upload:
-        upload_results(results)
+    if args.list:
+        for test in TESTS:
+            print(test.name)
+    else:
+        tests = []
+        if args.name:
+            tests = [test for test in TESTS if test.name == args.name]
+        else:
+            tests = TESTS
+        results = run_tests("input", tests)
+        if args.upload:
+            upload_results(results)
 
 
 if __name__ == "__main__":
