@@ -26,6 +26,15 @@ let logger = Logging.get_logger [__MODULE__]
 *)
 
 (*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+
+type parsing_result = {
+  ast: AST_generic.program;
+  errors: Error_code.error list;
+}
+
+(*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
@@ -34,7 +43,7 @@ type 'ast parser =
   | TreeSitter of (Common.filename ->
                    'ast Tree_sitter_run.Parsing_result.t)
 
-type 'ast result =
+type 'ast internal_result =
   | Ok of 'ast
   | Partial of 'ast * Error_code.error list
   | Error of exn
@@ -52,7 +61,7 @@ let mk_tree_sitter_error (err : Tree_sitter_run.Tree_sitter_error.t) =
   PI.Parsing_error info
 
 
-let (run_parser: 'ast parser -> Common.filename -> 'ast result) =
+let (run_parser: 'ast parser -> Common.filename -> 'ast internal_result) =
   fun parser file ->
   match parser with
   | Pfff f ->
@@ -94,7 +103,8 @@ let (run_parser: 'ast parser -> Common.filename -> 'ast result) =
            Error exn
       )
 
-let rec (run_either: Common.filename -> 'ast parser list -> 'ast result)
+let rec (run_either:
+           Common.filename -> 'ast parser list -> 'ast internal_result)
   = fun file xs ->
     match xs with
     | [] -> Error (Failure (spf "no parser found for %s" file))
@@ -131,15 +141,17 @@ let rec (run_either: Common.filename -> 'ast parser list -> 'ast result)
                  Error exn
             )
 
-let run file xs fconvert =
+let (run: Common.filename -> 'ast parser list -> ('ast -> AST_generic.program)
+     -> parsing_result) =
+  fun file xs fconvert ->
   let xs =
     if !Flag.tree_sitter_only
     then xs |> Common.exclude (function | Pfff _ -> true | _ -> false)
     else xs
   in
   (match run_either file xs with
-   | Ok ast -> fconvert ast, []
-   | Partial (ast, errs) -> fconvert ast, errs
+   | Ok ast -> { ast = fconvert ast; errors =  [] }
+   | Partial (ast, errs) -> { ast = fconvert ast; errors = errs }
    | Error exn -> raise exn
   )
 
@@ -240,7 +252,7 @@ let just_parse_with_lang lang file =
 (*****************************************************************************)
 
 let parse_and_resolve_name_use_pfff_or_treesitter lang file =
-  let ast, errs = just_parse_with_lang lang file in
+  let { ast; errors } = just_parse_with_lang lang file in
 
   (* to be deterministic, reset the gensym; anyway right now semgrep is
    * used only for local per-file analysis, so no need to have a unique ID
@@ -249,4 +261,4 @@ let parse_and_resolve_name_use_pfff_or_treesitter lang file =
   AST_generic.gensym_counter := 0;
   Naming_AST.resolve lang ast;
   Constant_propagation.propagate lang ast;
-  ast, errs
+  { ast; errors }
