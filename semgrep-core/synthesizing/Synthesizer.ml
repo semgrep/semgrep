@@ -5,7 +5,7 @@ module J = JSON
 let synthesize_patterns s file =
   let r = Range.range_of_linecol_spec s file in
   let lang = Lang.langs_of_filename file |> List.hd in
-  let {Parse_code. ast; errors } =
+  let {Parse_code. ast; errors; _ } =
     Parse_code.parse_and_resolve_name_use_pfff_or_treesitter lang file
   in
   if errors <> [] then failwith (spf "problem parsing %s" file);

@@ -2,6 +2,7 @@
 type parsing_result = {
   ast: AST_generic.program;
   errors: Error_code.error list;
+  stat: Parse_info.parsing_stat;
 }
 
 (* This uses either the pfff or tree-sitter parsers.

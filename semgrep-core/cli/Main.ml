@@ -581,7 +581,7 @@ let parse_pattern str =
 let sgrep_ast pattern file any_ast =
   match pattern, any_ast with
   |  _, NoAST -> () (* skipping *)
-  | PatGen (_lang, pattern), Gen ({Parse_code. ast; errors}, lang) ->
+  | PatGen (_lang, pattern), Gen ({Parse_code. ast; errors; _}, lang) ->
       let rule = { R.
                    id = "-e/-f"; pattern_string = "-e/-f";
                    pattern;
@@ -642,7 +642,7 @@ let iter_generic_ast_of_files_and_get_matches_and_exn_to_errors f files =
       try
         run_with_memory_limit !max_memory (fun () ->
           timeout_function file (fun () ->
-            let {Parse_code. ast; errors} = parse_generic lang file in
+            let {Parse_code. ast; errors; _} = parse_generic lang file in
             (* calling the hook *)
             (f file lang ast, errors)
 
@@ -995,7 +995,7 @@ let dump_ast file =
   match Lang.langs_of_filename file with
   | lang::_ ->
       E.try_with_print_exn_and_reraise file (fun () ->
-        let {Parse_code. ast; errors } =
+        let {Parse_code. ast; errors; _ } =
           Parse_code.parse_and_resolve_name_use_pfff_or_treesitter lang file in
         let v = Meta_AST.vof_any (AST_generic.Pr ast) in
         let s = dump_v_to_format v in
