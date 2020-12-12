@@ -5,10 +5,10 @@ module J = JSON
 let synthesize_patterns s file =
   let r = Range.range_of_linecol_spec s file in
   let lang = Lang.langs_of_filename file |> List.hd in
-  let ast, errs =
+  let {Parse_code. ast; errors } =
     Parse_code.parse_and_resolve_name_use_pfff_or_treesitter lang file
   in
-  if errs <> [] then failwith (spf "problem parsing %s" file);
+  if errors <> [] then failwith (spf "problem parsing %s" file);
   let a_opt = Range_to_AST.any_at_range r ast in
   Naming_AST.resolve lang ast;
   Constant_propagation.propagate lang ast;
