@@ -84,7 +84,7 @@ let regression_tests_for_lang files lang =
     in
     let ast = 
         try 
-          let { Parse_code. ast; errors } = 
+          let { Parse_code. ast; errors; _ } = 
             Parse_code.parse_and_resolve_name_use_pfff_or_treesitter lang file 
           in
           if errors <> []

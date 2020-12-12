@@ -32,6 +32,7 @@ let logger = Logging.get_logger [__MODULE__]
 type parsing_result = {
   ast: AST_generic.program;
   errors: Error_code.error list;
+  stat: Parse_info.parsing_stat;
 }
 
 (*****************************************************************************)
@@ -39,16 +40,16 @@ type parsing_result = {
 (*****************************************************************************)
 
 type 'ast parser =
-  | Pfff of (Common.filename -> 'ast)
+  | Pfff of (Common.filename -> ('ast * Parse_info.parsing_stat))
   | TreeSitter of (Common.filename ->
                    'ast Tree_sitter_run.Parsing_result.t)
 
 type 'ast internal_result =
-  | Ok of 'ast
-  | Partial of 'ast * Error_code.error list
+  | Ok of ('ast * Parse_info.parsing_stat)
+  | Partial of 'ast * Error_code.error list * Parse_info.parsing_stat
   | Error of exn
 
-let mk_tree_sitter_error (err : Tree_sitter_run.Tree_sitter_error.t) =
+let error_of_tree_sitter_error (err : Tree_sitter_run.Tree_sitter_error.t) =
   let start = err.start_pos in
   let loc = {
     PI.str = err.substring;
@@ -60,6 +61,15 @@ let mk_tree_sitter_error (err : Tree_sitter_run.Tree_sitter_error.t) =
   let info = { PI.token = PI.OriginTok loc; transfo = PI.NoTransfo } in
   PI.Parsing_error info
 
+let stat_of_tree_sitter_stat file (stat: Tree_sitter_run.Parsing_result.stat) =
+  { Parse_info.
+    filename = file;
+    total_line_count = stat.total_line_count;
+    error_line_count = stat.error_line_count;
+    have_timeout = false;
+    commentized = 0; problematic_lines = [];
+  }
+
 
 let (run_parser: 'ast parser -> Common.filename -> 'ast internal_result) =
   fun parser file ->
@@ -68,7 +78,8 @@ let (run_parser: 'ast parser -> Common.filename -> 'ast internal_result) =
       Common.save_excursion Flag_parsing.show_parsing_error false (fun () ->
         logger#info "trying to parse with Pfff parser %s" file;
         try
-          Ok (f file)
+          let res = f file in
+          Ok res
         with
         | Timeout -> raise Timeout
         | exn ->
@@ -79,22 +90,23 @@ let (run_parser: 'ast parser -> Common.filename -> 'ast internal_result) =
       logger#info "trying to parse with TreeSitter parser %s" file;
       (try
          let res = f file in
+         let stat = stat_of_tree_sitter_stat file res.stat in
          (match res.program, res.errors with
           | None, [] -> raise Impossible
-          | Some ast, [] -> Ok ast
+          | Some ast, [] -> Ok (ast, stat)
           | None, ts_error::_xs ->
-              let exn = mk_tree_sitter_error ts_error in
+              let exn = error_of_tree_sitter_error ts_error in
               logger#info "non-recoverable error (%s) with TreeSitter parser"
                 (Common.exn_to_s exn);
               Error exn
           | Some ast, x::_xs ->
               (* let's just return the first one for now; the following one
                * may be due to cascading effect of the first error *)
-              let exn = mk_tree_sitter_error x in
+              let exn = error_of_tree_sitter_error x in
               logger#info "partial error (%s) with TreeSitter parser"
                 (Common.exn_to_s exn);
               let err = E.exn_to_error file exn in
-              Partial (ast, [err])
+              Partial (ast, [err], stat)
          )
        with
        | Timeout -> raise Timeout
@@ -112,27 +124,27 @@ let rec (run_either:
         let res = run_parser p file in
         match res with
         | Ok ast -> Ok ast
-        | Partial (ast, errs) ->
+        | Partial (ast, errs, stat) ->
             let res = run_either file xs in
             (match res with
-             | Ok ast -> Ok ast
+             | Ok res -> Ok res
              | Error exn2 ->
                  logger#debug "exn again (%s) but return Partial"
                    (Common.exn_to_s exn2);
                  (* prefer a Partial to an Error *)
-                 Partial (ast, errs)
+                 Partial (ast, errs, stat)
              | Partial _ ->
                  logger#debug "Partial again but return first Partial";
-                 Partial (ast, errs)
+                 Partial (ast, errs, stat)
             )
         | Error exn ->
             let res = run_either file xs in
             (match res with
-             | Ok ast -> Ok ast
-             | Partial (ast, errs) ->
+             | Ok res -> Ok res
+             | Partial (ast, errs, stat) ->
                  logger#debug "Got now a Partial, better than exn (%s)"
                    (Common.exn_to_s exn);
-                 Partial (ast, errs)
+                 Partial (ast, errs, stat)
 
              | Error exn2 ->
                  logger#debug "exn again (%s) but return original exn (%s)"
@@ -150,12 +162,16 @@ let (run: Common.filename -> 'ast parser list -> ('ast -> AST_generic.program)
     else xs
   in
   (match run_either file xs with
-   | Ok ast -> { ast = fconvert ast; errors =  [] }
-   | Partial (ast, errs) -> { ast = fconvert ast; errors = errs }
+   | Ok (ast, stat) -> { ast = fconvert ast; errors =  []; stat }
+   | Partial (ast, errs, stat) -> { ast = fconvert ast; errors = errs; stat }
    | Error exn -> raise exn
   )
 
-
+let throw_tokens f =
+  (fun file ->
+     let res = f file in
+     res.PI.ast, res.PI.stat
+  )
 
 let just_parse_with_lang lang file =
   match lang with
@@ -167,7 +183,7 @@ let just_parse_with_lang lang file =
         TreeSitter Parse_ruby_tree_sitter.parse;
         (* right now the parser is verbose and the token positions
          * may be wrong, but better than nothing. *)
-        Pfff Parse_ruby.parse_program
+        Pfff (throw_tokens Parse_ruby.parse);
       ]
         Ruby_to_generic.program
   | Lang.Java ->
@@ -176,13 +192,13 @@ let just_parse_with_lang lang file =
        * an invoke because of a segfault/memory-leak.
       *)
       run file [
-        Pfff Parse_java.parse_program;
+        Pfff (throw_tokens Parse_java.parse);
         TreeSitter Parse_java_tree_sitter.parse;
       ]
         Java_to_generic.program
   | Lang.Go ->
       run file [
-        Pfff Parse_go.parse_program;
+        Pfff (throw_tokens Parse_go.parse);
         TreeSitter Parse_go_tree_sitter.parse;
       ]
         Go_to_generic.program
@@ -194,9 +210,9 @@ let just_parse_with_lang lang file =
       *)
       run file [
         TreeSitter Parse_javascript_tree_sitter.parse;
-        Pfff (fun file ->
+        Pfff (throw_tokens (fun file ->
           let f () =
-            Parse_js.parse_program file
+            Parse_js.parse file
           in
           (* timeout already set in caller, then good to go *)
           if !Flag.timeout <> 0.
@@ -211,7 +227,7 @@ let just_parse_with_lang lang file =
               logger#debug "Timeout, transforming in parse error";
               raise Parsing.Parse_error
           end
-        );
+        ));
       ]
         Js_to_generic.program
 
@@ -237,7 +253,7 @@ let just_parse_with_lang lang file =
 
   | Lang.C ->
       run file [
-        Pfff Parse_c.parse_program;
+        Pfff (throw_tokens Parse_c.parse);
         TreeSitter Parse_c_tree_sitter.parse;
       ]
         C_to_generic.program
@@ -245,14 +261,14 @@ let just_parse_with_lang lang file =
   (* default to the one in pfff for the other languages *)
   | _ ->
       run file [Pfff ((fun file ->
-        Parse_generic.parse_with_lang lang file |> fst))] (fun x -> x)
+        Parse_generic.parse_with_lang lang file))] (fun x -> x)
 
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
 let parse_and_resolve_name_use_pfff_or_treesitter lang file =
-  let { ast; errors } = just_parse_with_lang lang file in
+  let { ast; errors; stat } = just_parse_with_lang lang file in
 
   (* to be deterministic, reset the gensym; anyway right now semgrep is
    * used only for local per-file analysis, so no need to have a unique ID
@@ -261,4 +277,4 @@ let parse_and_resolve_name_use_pfff_or_treesitter lang file =
   AST_generic.gensym_counter := 0;
   Naming_AST.resolve lang ast;
   Constant_propagation.propagate lang ast;
-  { ast; errors }
+  { ast; errors; stat }
