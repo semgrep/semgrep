@@ -1084,16 +1084,26 @@ let all_actions () = [
   "-stat_matches", " <marshalled file>",
   Common.mk_action_1_arg stat_matches;
 
-  "-test_parse_lang", " <files or dirs>",
-  Common.mk_action_n_arg (Test_parsing.test_parse_lang !lang get_final_files);
+  "-parsing_stats", " <files or dirs>",
+  Common.mk_action_n_arg (fun xs ->
+    Test_parsing.parsing_stats (lang_of_string !lang) (!output_format=Json)
+      get_final_files xs
+  );
+  "-parsing_regressions", " <files or dirs>",
+  Common.mk_action_n_arg (fun xs ->
+    Test_parsing.parsing_regressions (lang_of_string !lang) get_final_files xs
+  );
   "-test_parse_tree_sitter", " <files or dirs>",
-  Common.mk_action_n_arg (Test_parsing.test_parse_tree_sitter !lang);
+  Common.mk_action_n_arg (fun xs ->
+    Test_parsing.test_parse_tree_sitter !lang xs);
+
   "-dump_tree_sitter_cst", " <file>",
   Common.mk_action_1_arg Test_parsing.dump_tree_sitter_cst;
   "-dump_ast_pfff", " <file>",
   Common.mk_action_1_arg Test_parsing.dump_ast_pfff;
   "-diff_pfff_tree_sitter", " <file>",
   Common.mk_action_n_arg Test_parsing.diff_pfff_tree_sitter;
+
   "-datalog_experiment", " <file> <dir>",
   Common.mk_action_2_arg Datalog_experiment.gen_facts;
   "-dump_il", " <file>",

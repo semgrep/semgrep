@@ -15,8 +15,17 @@ open Common
 
 module PI = Parse_info
 module G = AST_generic
+module J = JSON
 
 let logger = Logging.get_logger [__MODULE__]
+
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
 
 let dump_and_print_errors dumper (res : 'a Tree_sitter_run.Parsing_result.t) =
   (match res.program with
@@ -26,6 +35,31 @@ let dump_and_print_errors dumper (res : 'a Tree_sitter_run.Parsing_result.t) =
   res.errors |> List.iter (fun err ->
     pr2 (Tree_sitter_run.Tree_sitter_error.to_string ~color:true err)
   )
+
+let fail_on_error (parsing_res : 'a Tree_sitter_run.Parsing_result.t) =
+  match parsing_res.program, parsing_res.errors with
+  | Some cst, [] -> cst
+  | Some cst, xs when List.length xs <= 2 -> cst
+  | _, err :: _ -> raise (Tree_sitter_run.Tree_sitter_error.Error err)
+  | None, [] -> failwith "unknown error from tree-sitter parser"
+
+(*****************************************************************************)
+(* Pfff only *)
+(*****************************************************************************)
+
+let dump_ast_pfff file =
+  match Lang.langs_of_filename file with
+  | [lang] ->
+      let (ast, _stat) = Parse_generic.parse_with_lang lang file in
+      let v = Meta_AST.vof_any (G.Pr ast) in
+      let s = OCaml.string_of_v v in
+      pr2 s
+  | [] -> failwith (spf "no language detected for %s" file)
+  | _::_::_ -> failwith (spf "too many languages detected for %s" file)
+
+(*****************************************************************************)
+(* Tree-sitter only *)
+(*****************************************************************************)
 
 (* less: could infer lang from filename *)
 let dump_tree_sitter_cst_lang lang file =
@@ -66,72 +100,6 @@ let dump_tree_sitter_cst file =
   | [l] -> dump_tree_sitter_cst_lang l file
   | [] -> failwith (spf "no language detected for %s" file)
   | _::_::_ -> failwith (spf "too many languages detected for %s" file)
-
-let dump_ast_pfff file =
-  match Lang.langs_of_filename file with
-  | [lang] ->
-      let (ast, _stat) = Parse_generic.parse_with_lang lang file in
-      let v = Meta_AST.vof_any (G.Pr ast) in
-      let s = OCaml.string_of_v v in
-      pr2 s
-  | [] -> failwith (spf "no language detected for %s" file)
-  | _::_::_ -> failwith (spf "too many languages detected for %s" file)
-
-(* mostly a copy paste of Test_parsing_ruby.test_parse in pfff but using
- * the tree-sitter Ruby parser instead.
-*)
-let test_parse_lang lang get_final_files xs =
-  let xs = List.map Common.fullpath xs in
-  let fullxs = get_final_files xs
-               |> Skip_code.filter_files_if_skip_list ~root:xs
-  in
-  let lang =
-    match Lang.lang_of_string_opt lang with
-    | Some l -> l
-    | None -> failwith "no language specified; use -lang"
-  in
-
-  let stat_list = ref [] in
-  fullxs |> Console.progress (fun k -> List.iter (fun file ->
-    k();
-    logger#info "processing %s" file;
-    let stat =
-      (try
-         if true
-         then begin
-           (* use tree-sitter parser and converters *)
-           Parse_code.parse_and_resolve_name_use_pfff_or_treesitter lang file
-           |> ignore
-         end else begin
-           (* just the tree-sitter CST parsing  *)
-           (* Execute in its own process, so GC bugs will not pop-out here.
-            * Slower, but safer for now, otherwise get segfaults probably
-            * because of bugs in tree-sitter OCaml bindings.
-           *)
-           Parallel.backtrace_when_exn := true;
-           Parallel.invoke
-             (fun file -> dump_tree_sitter_cst_lang lang file)
-             file ()
-         end;
-         PI.correct_stat file
-       with exn ->
-         pr2 (spf "%s: exn = %s" file (Common.exn_to_s exn));
-         PI.bad_stat file
-      )
-    in
-    Common.push stat stat_list;
-  ));
-  flush stdout; flush stderr;
-
-  Parse_info.print_parsing_stat_list !stat_list;
-  ()
-
-let fail_on_error (parsing_res : 'a Tree_sitter_run.Parsing_result.t) =
-  match parsing_res.program, parsing_res.errors with
-  | Some cst, [] -> cst
-  | Some cst, xs when List.length xs <= 2 -> cst
-  | _, err :: _ -> raise (Tree_sitter_run.Tree_sitter_error.Error err)
-  | None, [] -> failwith "unknown error from tree-sitter parser"
 
 let test_parse_tree_sitter lang xs =
   let lang =
@@ -190,10 +158,59 @@ let test_parse_tree_sitter lang xs =
     in
     Common.push stat stat_list;
   ));
-  flush stdout; flush stderr;
-
   Parse_info.print_parsing_stat_list !stat_list;
   ()
+
+(*****************************************************************************)
+(* Pfff and tree-sitter parsing *)
+(*****************************************************************************)
+
+let parsing_common ?(verbose=true) lang get_final_files xs =
+  let xs = List.map Common.fullpath xs in
+  let fullxs = get_final_files xs
+               |> Skip_code.filter_files_if_skip_list ~root:xs
+  in
+
+  let stat_list = ref [] in
+  fullxs |> Console.progress ~show:verbose (fun k -> List.iter (fun file ->
+    k();
+    logger#info "processing %s" file;
+    let stat =
+      (try
+         let res =
+           Parse_code.parse_and_resolve_name_use_pfff_or_treesitter lang file
+         in
+         res.Parse_code.stat
+       with exn ->
+         if verbose then pr2 (spf "%s: exn = %s" file (Common.exn_to_s exn));
+         PI.bad_stat file
+      )
+    in
+    Common.push stat stat_list;
+  ));
+  !stat_list
+
+
+let parsing_stats lang json get_final_files files =
+  let stat_list = parsing_common lang get_final_files files in
+  if json
+  then
+    let (total, bad) = Parse_info.aggregate_stats stat_list in
+    let good = total - bad in
+    let json = J.Object [
+      "total", J.Int total;
+      "bad", J.Int bad;
+      "percent_correct", J.Float (Common2.pourcent_float good total);
+    ] in
+    let s = J.string_of_json json in
+    pr s
+  else
+    Parse_info.print_parsing_stat_list stat_list
+
+let parsing_regressions  lang get_final_files files =
+  let _stat_list = parsing_common lang get_final_files files in
+  raise Todo
+
 
 let diff_pfff_tree_sitter xs =
   pr2 "NOTE: consider using -full_token_info to get also diff on tokens";
