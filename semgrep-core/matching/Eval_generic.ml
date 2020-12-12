@@ -18,6 +18,8 @@ module G = AST_generic
 module MV = Metavars_generic
 module J = JSON
 
+let logger = Logging.get_logger [__MODULE__]
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -25,9 +27,11 @@ module J = JSON
  *
  * This can be used to safely execute a subset of pattern-where-python:
  * expressions.
+ *
+ * related work:
+ * - https://github.com/google/cel-spec by Google
+ * - https://github.com/facebook/Haxl by Facebook (was called FXL before)
 *)
-
-let logger = Logging.get_logger [__MODULE__]
 
 (*****************************************************************************)
 (* Types *)
