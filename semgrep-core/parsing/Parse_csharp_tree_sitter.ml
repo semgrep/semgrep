@@ -1368,7 +1368,7 @@ and statement (env : env) (x : CST.statement) =
        let v3 = expression env v3 in
        let v4 = token env v4 (* ")" *) in
        let v5 = statement env v5 in
-       todo env (v1, v2, v3, v4, v5)
+       OtherStmt (OS_Sync, [E v3; S v5])
    | `Ret_stmt (v1, v2, v3) ->
        let v1 = token env v1 (* "return" *) in
        let v2 =
