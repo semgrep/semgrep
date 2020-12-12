@@ -53,7 +53,8 @@ let any_gen_of_string str =
 let parsing_tests_for_lang files lang =
   files |> List.map (fun file ->
     (Filename.basename file) >:: (fun () ->
-      let _, errs = Parse_code.parse_and_resolve_name_use_pfff_or_treesitter lang file in
+      let {Parse_code. errors = errs; _ } = 
+         Parse_code.parse_and_resolve_name_use_pfff_or_treesitter lang file in
       if errs <> []
       then failwith (String.concat ";" (List.map Error_code.string_of_error errs));
     )
@@ -83,10 +84,10 @@ let regression_tests_for_lang files lang =
     in
     let ast = 
         try 
-          let ast, errs = 
+          let { Parse_code. ast; errors } = 
             Parse_code.parse_and_resolve_name_use_pfff_or_treesitter lang file 
           in
-          if errs <> []
+          if errors <> []
           then pr2 (spf "WARNING: fail to fully parse %s" file);
           ast
         with exn ->
