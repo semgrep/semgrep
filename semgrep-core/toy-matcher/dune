@@ -1,0 +1,6 @@
+(executables
+ (public_names test-toy-matcher)
+ (names Test)
+ (package semgrep)
+ (libraries alcotest)
+)
