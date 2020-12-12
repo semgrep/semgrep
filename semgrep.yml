@@ -24,6 +24,7 @@ rules:
        - Test.ml
        - Matching_report.ml
        - Unit_*.ml
+       - Test_*.ml
 
   - id: string-missing-comma
     pattern: |
