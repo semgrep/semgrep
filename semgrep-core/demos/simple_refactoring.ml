@@ -88,7 +88,7 @@ let main files_or_dirs =
     pr2 (spf "processing: %s (%d/%d)" file i total);
 
     (* step1: parse the file *)
-    let (_ast, _tokens), _ = Parse_php.parse file in
+    let _res = Parse_php.parse file in
 
 (*
     (* step2: visit the AST and annotate the relevant tokens in AST leaves *)
