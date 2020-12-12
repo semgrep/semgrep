@@ -232,7 +232,8 @@ let just_parse_with_lang lang file =
 
   (* default to the one in pfff for the other languages *)
   | _ ->
-      run file [Pfff (Parse_generic.parse_with_lang lang)] (fun x -> x)
+      run file [Pfff ((fun file ->
+        Parse_generic.parse_with_lang lang file |> fst))] (fun x -> x)
 
 (*****************************************************************************)
 (* Entry point *)
