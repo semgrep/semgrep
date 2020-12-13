@@ -218,6 +218,7 @@ let trace_match_call stat ellipsis env pat input =
 let rec match_ stat ~ellipsis env pat input =
   trace_match_call stat ellipsis env pat input;
   let orig_pat = pat in
+  let orig_input = input in
   let in_ellipsis = ellipsis <> None in
   match pat with
   | [] ->
@@ -255,21 +256,22 @@ let rec match_ stat ~ellipsis env pat input =
             match pat_atom with
             | Any_symbol ->
                 let env = extend env ellipsis opt_name [symbol] in
-                Some (None, env)
+                Some (None, env, input)
             | Symbol x ->
                 if x = symbol then
                   let env = extend env ellipsis opt_name [symbol] in
-                  Some (None, env)
+                  Some (None, env, input)
                 else
                   None
             | Ellipsis ->
+                (* start new ellipsis but don't consume first symbol *)
                 let env = close_ellipsis ellipsis env in
-                Some (init_ellipsis opt_name [symbol], env)
+                Some (init_ellipsis opt_name [], env, orig_input)
             | Backref name ->
                 (match Env.find_opt name env with
                  | Some [symbol0] when symbol0 = symbol ->
                      let env = extend env ellipsis opt_name [symbol] in
-                     Some (None, env)
+                     Some (None, env, input)
                  | _ ->
                      None
                 )
@@ -277,7 +279,7 @@ let rec match_ stat ~ellipsis env pat input =
           let matches_here =
             match head_match with
             | None -> None
-            | Some (ellipsis, env) ->
+            | Some (ellipsis, env, input) ->
                 (* match the rest of the pattern with the rest of the input *)
                 match_ stat ~ellipsis env pat input
           in
