@@ -5,7 +5,7 @@ from subprocess import CalledProcessError
 import pytest
 from xmldiff import main
 
-from semgrep import __VERSION__
+from semgrep import __version__
 
 GITHUB_TEST_GIST_URL = (
     "https://raw.githubusercontent.com/returntocorp/semgrep-rules/develop/template.yaml"
@@ -81,7 +81,7 @@ def test_sarif_output(run_semgrep_in_tmp, snapshot):
 
     # Semgrep version is included in sarif output. Verify this independently so
     # snapshot does not need to be updated on version bump
-    assert sarif_output["runs"][0]["tool"]["driver"]["semanticVersion"] == __VERSION__
+    assert sarif_output["runs"][0]["tool"]["driver"]["semanticVersion"] == __version__
     sarif_output["runs"][0]["tool"]["driver"]["semanticVersion"] = "placeholder"
 
     snapshot.assert_match(

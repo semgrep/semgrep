@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 from packaging.version import InvalidVersion
 from packaging.version import Version
 
-from semgrep import __VERSION__
+from semgrep import __version__
 from semgrep.constants import SEMGREP_USER_AGENT
 
 VERSION_CHECK_URL = str(
@@ -108,7 +108,7 @@ def is_running_latest(version_cache_path: Path = VERSION_CACHE_PATH) -> bool:
 
     try:
         latest_version = Version(latest_version_str)
-        current_version = Version(__VERSION__)
+        current_version = Version(__version__)
     except InvalidVersion as e:
         logger.debug(f"Invalid version string: {e}")
         return False

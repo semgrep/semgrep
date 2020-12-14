@@ -7,7 +7,7 @@ import os
 import semgrep.config_resolver
 import semgrep.semgrep_main
 import semgrep.test
-from semgrep import __VERSION__
+from semgrep import __version__
 from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import DEFAULT_MAX_LINES_PER_FINDING
 from semgrep.constants import DEFAULT_TIMEOUT
@@ -350,7 +350,7 @@ def cli() -> None:
     ### Parse and validate
     args = parser.parse_args()
     if args.version:
-        print(__VERSION__)
+        print(__version__)
         return
 
     if args.pattern and not args.lang:

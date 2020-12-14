@@ -3,7 +3,7 @@ import re
 from enum import auto
 from enum import Enum
 
-from semgrep import __VERSION__
+from semgrep import __version__
 from semgrep.util import compute_semgrep_path
 from semgrep.util import compute_spacegrep_path
 
@@ -21,7 +21,7 @@ DEFAULT_TIMEOUT = 30  # seconds
 
 YML_EXTENSIONS = {".yml", ".yaml"}
 
-SEMGREP_USER_AGENT = f"Semgrep/{__VERSION__}"
+SEMGREP_USER_AGENT = f"Semgrep/{__version__}"
 SEMGREP_USER_AGENT_APPEND = os.environ.get("SEMGREP_USER_AGENT_APPEND")
 if SEMGREP_USER_AGENT_APPEND is not None:
     SEMGREP_USER_AGENT = f"{SEMGREP_USER_AGENT} {SEMGREP_USER_AGENT_APPEND}"

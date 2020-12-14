@@ -19,7 +19,7 @@ from typing import Set
 import colorama
 from junit_xml import TestSuite
 
-from semgrep import __VERSION__
+from semgrep import __version__
 from semgrep import config_resolver
 from semgrep.constants import BREAK_LINE_CHAR
 from semgrep.constants import BREAK_LINE_WIDTH
@@ -206,7 +206,7 @@ def build_junit_xml_output(
 
 
 def _sarif_tool_info() -> Dict[str, Any]:
-    return {"name": "semgrep", "semanticVersion": __VERSION__}
+    return {"name": "semgrep", "semanticVersion": __version__}
 
 
 def build_sarif_output(rule_matches: List[RuleMatch], rules: FrozenSet[Rule]) -> str:
