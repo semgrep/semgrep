@@ -289,7 +289,7 @@ class CoreRunner:
                 cmd += ["-equivalences", equiv_file.name]
 
             core_run = sub_run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            logger.debug(core_run.stderr.decode("utf-8", "replace"))
+            logger.debug(core_run.stderr.decode("utf-8", errors="replace"))
 
             if core_run.returncode != 0:
                 output_json = self._parse_core_output(core_run.stdout)
@@ -307,7 +307,7 @@ class CoreRunner:
 
     def _parse_core_output(self, core_run_out: bytes) -> Dict[str, Any]:
         # see if semgrep output a JSON error that we can decode
-        semgrep_output = core_run_out.decode("utf-8", "replace")
+        semgrep_output = core_run_out.decode("utf-8", errors="replace")
         try:
             return cast(Dict[str, Any], json.loads(semgrep_output))
         except ValueError:

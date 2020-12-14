@@ -199,7 +199,7 @@ def _github_repo(repo_url: str, sha: Optional[str], repo_destination: Path):
             if not repo_sha.startswith(sha.encode("utf-8")):
                 shutil.rmtree(repo_destination)
                 raise GitError(
-                    f"Github repo is broken (not set to correct sha: {repo_sha.decode('utf-8')}"
+                    f"Github repo is broken (not set to correct sha: {repo_sha.decode('utf-8', errors='replace')}"
                 )
 
     return repo_destination
