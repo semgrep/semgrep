@@ -109,5 +109,5 @@ gitclean:
 
 .PHONY: bump
 bump:
-	$(SED) 's/__version__ = ".*"/__VERSION__ = "$(SEMGREP_VERSION)"/g' semgrep/semgrep/__init__.py
+	$(SED) 's/__version__ = ".*"/__version__ = "$(SEMGREP_VERSION)"/g' semgrep/semgrep/__init__.py
 	$(SED) 's/^    install_requires=\["semgrep==.*"\],$$/    install_requires=["semgrep==$(SEMGREP_VERSION)"],/g' setup.py
