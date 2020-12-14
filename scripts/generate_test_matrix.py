@@ -65,7 +65,7 @@ LANGUAGE_EXCEPTIONS = {
     "c": ["naming_import", "class_def", "anno"],
     "ruby": ["naming_import", "typed", "anno"],
     "python": ["typed"],
-    "js": ["typed", "anno"],
+    "js": ["typed"],
     "go": ["class_def", "anno"],
     "ocaml": ["anno", "key_value"],
 }
@@ -177,12 +177,14 @@ def _config_to_string(config: Any) -> str:
     return stream.getvalue()
 
 
-def run_semgrep_on_example(lang: str, config_arg_str: str, code_path: str) -> str:
+def run_semgrep_on_example(
+    lang: str, config_arg_str: str, code_path: str
+) -> Optional[str]:
     with tempfile.NamedTemporaryFile("w") as config:
         pattern_text = open(config_arg_str).read()
         config.write(_config_to_string(_single_pattern_to_dict(pattern_text, lang)))
         config.flush()
-        cmd = ["semgrep", "--json", f"--config={config.name}", code_path]
+        cmd = ["semgrep", "--strict", "--json", f"--config={config.name}", code_path]
         print(">>> " + " ".join(cmd))
         output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if output.returncode == 0:
@@ -191,7 +193,7 @@ def run_semgrep_on_example(lang: str, config_arg_str: str, code_path: str) -> st
         else:
             print("ERROR: " + str(output.returncode))
             print(cmd)
-            # sys.exit(1)
+            return None
 
 
 def invoke_semgrep_multi(semgrep_path, code_path, lang, category, subcategory):
@@ -239,8 +241,16 @@ def generate_cheatsheet(root_dir: str, html: bool):
         highlights = []
         if result:
             j = json.loads(result)
+            if not j["results"]:
+                raise Exception(
+                    f"rule '{code_path}' produced no findings and is useless, please fix or TODO before proceeding"
+                )
             for entry in j["results"]:
                 highlights.append({"start": entry["start"], "end": entry["end"]})
+        else:
+            raise Exception(
+                f"rule '{code_path}' produced errors, please fix these before proceeding"
+            )
 
         entry = {
             "pattern": read_if_exists(semgrep_path),
