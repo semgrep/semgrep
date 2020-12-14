@@ -28,7 +28,9 @@ def test_autofix(run_semgrep_in_tmp, snapshot):
             "rules/autofix/autofix.yaml", target_name=tf.name, options=["--autofix"]
         )
         tf.seek(0)  # Seek to beginning again so we can read and compare to snapshot.
-        snapshot.assert_match(tf.read().decode("utf-8"), "autofix-fixed")
+        snapshot.assert_match(
+            tf.read().decode("utf-8", errors="replace"), "autofix-fixed"
+        )
 
 
 @pytest.mark.parametrize(
@@ -64,4 +66,6 @@ def test_regex_autofix(run_semgrep_in_tmp, snapshot, rule, target):
         )  # Seek to beginning since Semgrep will be reading from it. Just in case.
         run_semgrep_in_tmp(rule, target_name=tf.name, options=["--autofix"])
         tf.seek(0)  # Seek to beginning again so we can read and compare to snapshot.
-        snapshot.assert_match(tf.read().decode("utf-8"), f"{target}-fixed")
+        snapshot.assert_match(
+            tf.read().decode("utf-8", errors="replace"), f"{target}-fixed"
+        )

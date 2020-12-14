@@ -394,7 +394,7 @@ def download_config(config_url: str) -> Dict[str, YamlTree]:
             if content_type and any((ct in content_type for ct in yaml_types)):
                 return parse_config_string(
                     "remote-url",
-                    r.content.decode("utf-8"),
+                    r.content.decode("utf-8", errors="replace"),
                     filename=f"{config_url[:20]}...",
                 )
             else:

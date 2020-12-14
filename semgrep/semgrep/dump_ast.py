@@ -37,4 +37,4 @@ def dump_parsed_ast(
             raise SemgrepError(
                 f"error invoking semgrep with:\n\t{' '.join(cmd)}\n\t{ex}\n{PLEASE_FILE_ISSUE_TEXT}"
             )
-        print(output.decode())
+        print(output.decode(errors="replace"))
