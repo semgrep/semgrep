@@ -20,8 +20,9 @@ module J = JSON
 (* Purpose *)
 (*****************************************************************************)
 (* A semantic grep. https://semgrep.dev/
- * Right now there is good support for Python, Javascript (and JSON), Java,
- * Go, and C and partial support for Typescript, Ruby, PHP, and OCaml.
+ * Right now there is good support for Python, Java, Go, Ruby,
+ * Javascript (and JSX), Typescript (and TSX), JSON,
+ * and partial support for PHP, C, and OCaml.
  *
  * opti: git grep foo | xargs semgrep -e 'foo(...)'
  *
@@ -37,6 +38,7 @@ module J = JSON
  *    https://speakerdeck.com/quasilyte/phpgrep-syntax-aware-code-search
  *  - rubocop pattern
  *    https://github.com/marcandre/rubocop/blob/master/manual/node_pattern.md
+ *  - astpath, using XPATH on ASTs https://github.com/hchasestevens/astpath
  *  - ack http://beyondgrep.com/
  *  - cgrep http://awgn.github.io/cgrep/
  *  - hound https://codeascraft.com/2015/01/27/announcing-hound-a-lightning-fast-code-search-tool/
