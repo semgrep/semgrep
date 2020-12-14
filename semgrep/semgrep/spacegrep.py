@@ -75,7 +75,7 @@ def run_spacegrep(
                     errors.extend(output_json["errors"])
             except subprocess.CalledProcessError as e:
                 raw_error = p.stderr
-                spacegrep_error_text = raw_error.decode("utf-8")
+                spacegrep_error_text = raw_error.decode("utf-8", errors="replace")
                 raise SemgrepError(
                     f"Error running spacegrep on file {target}: Process error: {e}\n\nspacegrep error: {spacegrep_error_text}"
                 )
@@ -95,7 +95,7 @@ def run_spacegrep(
 
 
 def _parse_spacegrep_output(raw_output: bytes) -> dict:
-    output = raw_output.decode("utf-8")
+    output = raw_output.decode("utf-8", errors="replace")
     data = json.loads(output)
     return cast(dict, data)
 
