@@ -233,13 +233,28 @@ module Cache_key = struct
 
   let hash_env env =
     Env.fold
-      (fun k v h -> Hashtbl.hash k + Hashtbl.hash v + h)
+      (fun k v h ->
+         Hashtbl.hash_param 10 100 k
+         + Hashtbl.hash_param 10 100 v
+         + h)
       env 0
 
+  (*
+     We define a custom hash function because the default one doesn't work
+     on maps (two equal maps may have different tree structures).
+
+     OCaml's default 'Hashtbl.hash' is the same as 'Hashtbl.hash_param 10 100'.
+     First parameter (10): maximum of number of meaningful nodes used
+                           by the hashing function.
+                           (int-like constants, floats, strings)
+     Second parameter (100): maximum total number of nodes used by the hashing
+                             function.
+     See the documentation for the Hashtbl module for more info.
+  *)
   let hash (ellipsis, env, pat, input) =
-    Hashtbl.hash ellipsis
-    + Hashtbl.hash pat
-    + Hashtbl.hash input
+    Hashtbl.hash_param 10 100 ellipsis
+    + Hashtbl.hash_param 10 100 pat
+    + Hashtbl.hash_param 10 100 input
     + hash_env env
 end
 
@@ -256,7 +271,10 @@ module Memoize = struct
     | Some res -> res
 
   let create compute =
-    let tbl = Tbl.create 1000 in
+    (*
+       Initial table size impact performance.
+    *)
+    let tbl = Tbl.create 8192 in
     fun ellipsis env pat input ->
       get tbl compute ellipsis env pat input
 end
@@ -388,7 +406,7 @@ let check_match ?cache pat input_str expected_opt_bindings =
   let expected = sort expected_opt_bindings in
   let actual =
     let res, stat =
-      print_time "match" (fun () ->
+      print_time "match function" (fun () ->
         match_input ?cache pat input
       )
     in
@@ -467,6 +485,14 @@ let test_backref_backtrack () =
     "x", "B";
   ])
 
+let pseudo_random_string len pick_from =
+  let n = String.length pick_from in
+  assert (n > 0);
+  Random.init 0;
+  String.init len (fun _i ->
+    pick_from.[Random.int n]
+  )
+
 (*
    This is equivalent in semgrep to searching for a pattern like
    '$A; ... foo;', in a file where the statement 'foo;' doesn't exist.
@@ -482,7 +508,12 @@ let test_quadratic ~cache () =
     Symbol 'x', None; (* doesn't exist in the input *)
     Ellipsis, None;
   ] in
-  let input = String.make 10_000 'A' in
+  (*
+     With uniform input (e.g. all As), caching performance tanks.
+     This is why we use a pseudo-random string. This is also a more realistic
+     usage scenario i.e. actual programs don't repeat statements many times.
+  *)
+  let input = pseudo_random_string 10_000 "AB" in
   check_match ~cache pat input None
 
 let test = "Matcher", [
