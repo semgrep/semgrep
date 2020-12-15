@@ -8,7 +8,13 @@ from setuptools import setup
 from setuptools.command.install import install
 from wheel.bdist_wheel import bdist_wheel as _bdist_wheel
 
-import semgrep
+from semgrep import __author__
+from semgrep import __author_email__
+from semgrep import __description__
+from semgrep import __license__
+from semgrep import __name__
+from semgrep import __url__
+from semgrep import __version__
 
 
 @contextlib.contextmanager
@@ -21,14 +27,6 @@ def chdir(dirname=None):
     finally:
         os.chdir(curdir)
 
-
-REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-try:
-    with open(os.path.join(REPO_ROOT, "README.md")) as f:
-        long_description = f.read()
-except FileNotFoundError:
-    long_description = "**SETUP: COULD NOT FIND README**"
 
 # TODO: what is the minimum OSX version?
 MIN_OSX_VERSION = "10_14"
@@ -65,6 +63,15 @@ class bdist_wheel(_bdist_wheel):
         return python, abi, plat
 
 
+try:
+    with open("../README.md") as f:
+        long_description = f.read()
+except FileNotFoundError:
+    long_description = ""
+
+source_dir = os.path.dirname(os.path.abspath(__file__))
+repo_root = os.path.dirname(source_dir)
+
 # Lifted with love (and edits) from https://github.com/benfred/py-spy/blob/master/setup.py
 class PostInstallCommand(install):
     """Post-installation for installation mode."""
@@ -83,13 +90,13 @@ class PostInstallCommand(install):
         # take the advice from that comment, and move over after install
 
         if "osx" in distutils.util.get_platform():
-            with chdir(REPO_ROOT):
-                os.system(os.path.join(REPO_ROOT, "scripts", "osx-release.sh"))
-                source = os.path.join(REPO_ROOT, "artifacts", exec_name)
+            with chdir(repo_root):
+                os.system(os.path.join(repo_root, "scripts", "osx-release.sh"))
+                source = os.path.join(repo_root, "artifacts", exec_name)
         else:
-            with chdir(REPO_ROOT):
-                os.system(os.path.join(REPO_ROOT, "scripts", "ubuntu-release.sh"))
-                source = os.path.join(REPO_ROOT, "semgrep-files", exec_name)
+            with chdir(repo_root):
+                os.system(os.path.join(repo_root, "scripts", "ubuntu-release.sh"))
+                source = os.path.join(repo_root, "semgrep-files", exec_name)
 
         ## run this after trying to build (as otherwise this leaves
         ## venv in a bad state: https://github.com/benfred/py-spy/issues/69)
@@ -131,16 +138,16 @@ class PostInstallCommand(install):
 
 
 setup(
-    name=semgrep.__name__,
-    version=semgrep.__version__,
-    author=semgrep.__author__,
-    author_email=semgrep.__author_email__,
-    description=semgrep.__description__,
+    name=__name__,
+    version=__version__,
+    author=__author__,
+    author_email=__author_email__,
+    description=__description__,
     cmdclass={"install": PostInstallCommand, "bdist_wheel": bdist_wheel},
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url=semgrep.__url__,
-    license=semgrep.__license__,
+    url=__url__,
+    license=__license__,
     install_requires=[
         "attrs>=19.3.0",
         "colorama>=0.4.3",
