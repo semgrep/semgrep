@@ -1,6 +1,6 @@
 # See pfff/semgrep.yml for more information.
 # Put semgrep-specific rules here. More general OCaml or Python rules should
-# go in the semgrep-rules repositoy under ocaml/ or python/.
+# go in the semgrep-rules repository under ocaml/ or python/.
 
 rules:
   - id: no-print-in-semgrep
