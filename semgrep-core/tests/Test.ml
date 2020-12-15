@@ -149,6 +149,12 @@ let lang_parsing_tests =
       let lang = Lang.Csharp in
       parsing_tests_for_lang files lang
     );
+    "Ruby" >::: (
+      let dir = Filename.concat tests_path "ruby/parsing" in
+      let files = Common2.glob (spf "%s/*.rb" dir) in
+      let lang = Lang.Ruby in
+      parsing_tests_for_lang files lang
+    );
   ]
 
 (*s: constant [[Test.lang_regression_tests]] *)
