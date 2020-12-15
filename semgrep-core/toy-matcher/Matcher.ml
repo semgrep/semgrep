@@ -35,13 +35,13 @@ type env = char list Env.t
 (*
    Accumulator use to store the symbols matched by the current ellipsis.
 
-     None = we're not in an ellipsis
-     Some None = we're in an ellipsis but it has no name and it's not capturing
-
-     Some (Some ("foo", acc)) = acc is the stack of symbols, i.e. the list
-     of symbols captured so far by the current ellipsis in reverse order
+   In_named_ellipsis ("foo", acc) is the accumulator of symbols
+   matching the ellipsis, in reverse order, for the ellipsis named "foo".
 *)
-type ellipsis = (string * char list) option option
+type ellipsis =
+  | Not_in_ellipsis
+  | In_anon_ellipsis
+  | In_named_ellipsis of string * char list
 
 type stat = {
   mutable match_calls: int;
@@ -95,20 +95,20 @@ let check_pattern pat =
 *)
 let init_ellipsis opt_name init_acc =
   match opt_name with
-  | None -> Some None
-  | Some name -> Some (Some (name, init_acc))
+  | None -> In_anon_ellipsis
+  | Some name -> In_named_ellipsis (name, init_acc)
 
 let extend_ellipsis opt_ellipsis symbol =
   match opt_ellipsis with
-  | None -> opt_ellipsis
-  | Some None -> opt_ellipsis
-  | Some (Some (name, acc)) -> Some (Some (name, symbol :: acc))
+  | Not_in_ellipsis -> opt_ellipsis
+  | In_anon_ellipsis -> opt_ellipsis
+  | In_named_ellipsis (name, acc) -> In_named_ellipsis (name, symbol :: acc)
 
 let close_ellipsis opt_ellipsis env =
   match opt_ellipsis with
-  | None -> env
-  | Some None -> env
-  | Some (Some (name, acc)) -> Env.add name (List.rev acc) env
+  | Not_in_ellipsis -> env
+  | In_anon_ellipsis -> env
+  | In_named_ellipsis (name, acc) -> Env.add name (List.rev acc) env
 
 (*
    Extend the environment by adding captured subsequences:
@@ -117,13 +117,7 @@ let close_ellipsis opt_ellipsis env =
    - add the named atom that was just matched, if applicable
 *)
 let extend env opt_ellipsis opt_name captured_sequence =
-  let env =
-    match opt_ellipsis with
-    | None -> env       (* we were not in an ellipsis *)
-    | Some None -> env  (* we were in an anonymous ellipsis *)
-    | Some (Some (ellipsis_name, acc)) ->
-        Env.add ellipsis_name (List.rev acc) env
-  in
+  let env = close_ellipsis opt_ellipsis env in
   match opt_name with
   | None -> env
   | Some name ->
@@ -159,9 +153,10 @@ let print_result oc opt_bindings =
 (* to be appended to existing line *)
 let print_ellipsis oc ellipsis =
   match ellipsis with
-  | None -> ()
-  | Some None -> fprintf oc " in-ellipsis"
-  | Some (Some (name, acc)) ->
+  | Not_in_ellipsis -> ()
+  | In_anon_ellipsis ->
+      fprintf oc " in-ellipsis"
+  | In_named_ellipsis (name, acc) ->
       fprintf oc " in-ellipsis:%s:%S" name (unparse (List.rev acc))
 
 (* to be appended to existing line *)
@@ -293,6 +288,9 @@ end
    Checks if a pattern matches the entire input sequence.
    Returns the captured symbols or sequences of symbols for which a
    name was specified in the pattern.
+
+   To visualize the steps of the algorithm, run the test program in verbose
+   mode with 'make bench'.
 *)
 let match_input ?(trace = true) ?(cache = false) root_pat root_input =
   let stat = { match_calls = 0 } in
@@ -305,7 +303,7 @@ let match_input ?(trace = true) ?(cache = false) root_pat root_input =
   and uncached_match ellipsis env pat input =
     let orig_pat = pat in
     let orig_input = input in
-    let in_ellipsis = ellipsis <> None in
+    let in_ellipsis = ellipsis <> Not_in_ellipsis in
     match pat with
     | [] ->
         (match input with
@@ -331,7 +329,7 @@ let match_input ?(trace = true) ?(cache = false) root_pat root_input =
                  (match Env.find_opt name env with
                   | Some [] ->
                       let env = extend env ellipsis opt_name [] in
-                      match_ None env pat input
+                      match_ Not_in_ellipsis env pat input
                   | _ ->
                       None
                  )
@@ -342,11 +340,11 @@ let match_input ?(trace = true) ?(cache = false) root_pat root_input =
               match pat_atom with
               | Any_symbol ->
                   let env = extend env ellipsis opt_name [symbol] in
-                  Some (None, env, input)
+                  Some (Not_in_ellipsis, env, input)
               | Symbol x ->
                   if x = symbol then
                     let env = extend env ellipsis opt_name [symbol] in
-                    Some (None, env, input)
+                    Some (Not_in_ellipsis, env, input)
                   else
                     None
               | Ellipsis ->
@@ -357,7 +355,7 @@ let match_input ?(trace = true) ?(cache = false) root_pat root_input =
                   (match Env.find_opt name env with
                    | Some [symbol0] when symbol0 = symbol ->
                        let env = extend env ellipsis opt_name [symbol] in
-                       Some (None, env, input)
+                       Some (Not_in_ellipsis, env, input)
                    | _ ->
                        None
                   )
@@ -386,7 +384,7 @@ let match_input ?(trace = true) ?(cache = false) root_pat root_input =
     get_from_cache := uncached_match;
 
   let opt_captures =
-    match match_ None Env.empty root_pat root_input with
+    match match_ Not_in_ellipsis Env.empty root_pat root_input with
     | None -> None
     | Some env -> Some (Env.bindings env)
   in
