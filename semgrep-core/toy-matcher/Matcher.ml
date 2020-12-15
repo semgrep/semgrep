@@ -553,12 +553,12 @@ let test = "Matcher", [
 
   "gap", `Quick, test_gap;
 
-  "backref backtrack", `Quick, test_backref_backtrack ~cache:false;
+  "backref backtrack", `Slow, test_backref_backtrack ~cache:false;
   "backref backtrack cached", `Quick, test_backref_backtrack ~cache:true;
 
-  "quadratic", `Quick, test_quadratic ~cache:false;
+  "quadratic", `Slow, test_quadratic ~cache:false;
   "quadratic cached", `Quick, test_quadratic ~cache:true;
 
-  "cubic", `Quick, test_cubic ~cache:false;
+  "cubic", `Slow, test_cubic ~cache:false;
   "cubic cached", `Quick, test_cubic ~cache:true;
 ]

@@ -8,11 +8,12 @@
 build:
 	dune build
 
-# Run tests with minimal output.
+# Run unit tests with minimal output. Exclude slow tests.
 .PHONY: test
 test:
 	$(MAKE) build
-	../_build/install/default/bin/test-toy-matcher
+	../_build/install/default/bin/test-toy-matcher --quick-tests
+	@echo "Run 'make bench' to include the slow tests as well."
 
 # Run tests and show the logs, which include time and other runtime stats.
 .PHONY: bench
