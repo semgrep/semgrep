@@ -114,6 +114,15 @@ let operator (env : env) (x : CST.operator) =
        failwith "Op_BQUOT???"
   )
 
+let anon_choice_int_e7b97da (env : env) (x : CST.anon_choice_int_e7b97da) =
+  (match x with
+   | `Int tok ->
+       str env tok (* pattern 0[bB][01](_?[01])*|0[oO]?[0-7](_?[0-7])*|(0[dD])?\d(_?\d)*|0x[0-9a-fA-F](_?[0-9a-fA-F])* *)
+   | `Float tok ->
+       str env tok (* pattern \d(_?\d)*(\.\d)?(_?\d)*([eE][\+-]?\d(_?\d)*\
+                      )? *)
+  )
+
 let anon_choice_DOT_5431c66 (env : env) (x : CST.anon_choice_DOT_5431c66) =
   match x with
   | `DOT tok -> token2 env tok
@@ -788,7 +797,7 @@ and primary (env : env) (x : CST.primary) : AST.expr =
    | `Float tok -> Literal (Float (str env tok))
    | `Comp tok -> Literal (Complex (str env tok))
    | `Rati (v1, v2) ->
-       let v1 = str env v1 in
+       let v1 = anon_choice_int_e7b97da env v1 in
        let v2 = token2 env v2 in
        Literal (Rational (v1, v2))
    | `Str x -> mk_Literal_String (string_ env x)
@@ -974,15 +983,18 @@ and primary (env : env) (x : CST.primary) : AST.expr =
        let (t, e) = in_ env v4 in
        let v5 = do_ env v5 in
        S (For (v1, Tuple (v2::v3), t, e, v5))
-   | `Case (v1, v2, v3, v4, v5, v6, v7) ->
+   | `Case (v1, v2, v3, v5, v6, v7) ->
        let v1 = token2 env v1 in
        let v2 =
          (match v2 with
           | Some x -> Some (statement env x)
           | None -> None)
        in
-       let _v3 = terminator env v3 in
-       let _v4 = List.map (token2 env) v4 in (* ?? list of ';'?? *)
+       let _v3 =
+         match v3 with
+         | Some x -> Some (terminator env x)
+         | None -> None
+       in
        let v5 = List.map (when_ env) v5 in
        let v6 =
          (match v6 with
