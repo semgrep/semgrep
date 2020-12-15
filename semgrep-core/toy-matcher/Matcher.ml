@@ -261,14 +261,24 @@ end
 module Memoize = struct
   module Tbl = Hashtbl.Make (Cache_key)
 
+  (* only use cache once in 3 times *)
+  let cache_every = 3
+
+  let should_use_cache input =
+    Hashtbl.hash_param 5 10 input mod cache_every = 0
+
   let get tbl compute ellipsis env pat input =
-    let key = (ellipsis, env, pat, input) in
-    match Tbl.find_opt tbl key with
-    | None ->
-        let res = compute ellipsis env pat input in
-        Tbl.add tbl key res;
-        res
-    | Some res -> res
+    (* only use the cache on some inputs because it's expensive *)
+    if should_use_cache input then
+      let key = (ellipsis, env, pat, input) in
+      match Tbl.find_opt tbl key with
+      | None ->
+          let res = compute ellipsis env pat input in
+          Tbl.add tbl key res;
+          res
+      | Some res -> res
+    else
+      compute ellipsis env pat input
 
   let create compute =
     (*
@@ -445,7 +455,7 @@ let test_floating_symbol () =
     "tail", "6789";
   ])
 
-let test_backref () =
+let test_backref ~cache () =
   let pat = [
     Ellipsis, None;
     Any_symbol, Some "orig";
@@ -453,7 +463,7 @@ let test_backref () =
     Ellipsis, None;
   ] in
   let input = "ABBC" in
-  check_match pat input (Some [
+  check_match ~cache pat input (Some [
     "orig", "B";
     "copy", "B";
   ])
@@ -471,7 +481,7 @@ let test_gap () =
     "b", "B";
   ])
 
-let test_backref_backtrack () =
+let test_backref_backtrack ~cache () =
   let pat = [
     Ellipsis, None;
     Any_symbol, Some "x";
@@ -481,10 +491,13 @@ let test_backref_backtrack () =
     Ellipsis, None;
   ] in
   let input = "ABBCA" in
-  check_match pat input (Some [
+  check_match ~cache pat input (Some [
     "x", "B";
   ])
 
+(*
+   Deterministically generate a random-looking string.
+*)
 let pseudo_random_string len pick_from =
   let n = String.length pick_from in
   assert (n > 0);
@@ -516,14 +529,36 @@ let test_quadratic ~cache () =
   let input = pseudo_random_string 10_000 "AB" in
   check_match ~cache pat input None
 
+let test_cubic ~cache () =
+  let pat = [
+    Ellipsis, None;
+    Any_symbol, None; (* matches everywhere *)
+    Ellipsis, None;
+    Any_symbol, None; (* matches everywhere *)
+    Ellipsis, None;
+    Symbol 'x', None; (* doesn't exist in the input *)
+    Ellipsis, None;
+  ] in
+  let input = pseudo_random_string 1_000 "AB" in
+  check_match ~cache pat input None
+
 let test = "Matcher", [
   "simple symbol", `Quick, test_simple_symbol;
   "simple ellipsis", `Quick, test_simple_ellipsis;
   "any symbol", `Quick, test_any_symbol;
   "floating symbol", `Quick, test_floating_symbol;
-  "backref", `Quick, test_backref;
+
+  "backref", `Quick, test_backref ~cache:false;
+  "backref cached", `Quick, test_backref ~cache:true;
+
   "gap", `Quick, test_gap;
-  "backref backtrack", `Quick, test_backref_backtrack;
-  "quadratic uncached", `Quick, test_quadratic ~cache:false;
+
+  "backref backtrack", `Quick, test_backref_backtrack ~cache:false;
+  "backref backtrack cached", `Quick, test_backref_backtrack ~cache:true;
+
+  "quadratic", `Quick, test_quadratic ~cache:false;
   "quadratic cached", `Quick, test_quadratic ~cache:true;
+
+  "cubic", `Quick, test_cubic ~cache:false;
+  "cubic cached", `Quick, test_cubic ~cache:true;
 ]
