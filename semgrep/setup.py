@@ -12,7 +12,7 @@ from semgrep import __author__
 from semgrep import __author_email__
 from semgrep import __description__
 from semgrep import __license__
-from semgrep import __name__
+from semgrep import __title__
 from semgrep import __url__
 from semgrep import __version__
 
@@ -138,7 +138,7 @@ class PostInstallCommand(install):
 
 
 setup(
-    name=__name__,
+    name=__title__,
     version=__version__,
     author=__author__,
     author_email=__author_email__,

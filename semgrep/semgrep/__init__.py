@@ -5,6 +5,6 @@ __description__ = (
     "Find bug variants with patterns that look like source code."
 )
 __license__ = "LGPL-2.1-only"
-__name__ = "semgrep"
+__title__ = "semgrep"
 __url__ = "https://github.com/returntocorp/semgrep"
 __version__ = "0.34.0"
