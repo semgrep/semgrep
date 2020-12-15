@@ -219,8 +219,6 @@ let trace_match_call ~trace stat ellipsis env pat input =
         print_input_head input
     else if match_calls = max_trace_lines + 1 then
       printf "[exceeded max trace lines = %i]\n%!" max_trace_lines
-    else
-      ()
 
 module Cache_key = struct
   type t = ellipsis * env * pattern * input
@@ -553,7 +551,7 @@ let test = "Matcher", [
 
   "gap", `Quick, test_gap;
 
-  "backref backtrack", `Slow, test_backref_backtrack ~cache:false;
+  "backref backtrack", `Quick, test_backref_backtrack ~cache:false;
   "backref backtrack cached", `Quick, test_backref_backtrack ~cache:true;
 
   "quadratic", `Slow, test_quadratic ~cache:false;
