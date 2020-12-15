@@ -273,6 +273,7 @@ PASSING_REPOS = [
     },
     {"repo": "https://github.com/OWASP/NodeGoat", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/dropbox/questions", "languages": ALL_LANGUAGES},
+    {"repo": "https://github.com/rails/rails", "languages": ["ruby"]},
 ]
 
 FAILING_REPOS = [
@@ -327,7 +328,6 @@ FAILING_REPOS = [
         {"repo": "https://github.com/dropbox/notouch", "languages": ALL_LANGUAGES},
         reason="indented comment on last line python",
     ),
-    xfail_repo({"repo": "https://github.com/rails/rails", "languages": ["ruby"]}),
     xfail_repo(
         {
             "repo": "https://github.com/rapid7/metasploit-framework",
