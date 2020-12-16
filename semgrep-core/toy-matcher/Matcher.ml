@@ -386,7 +386,8 @@ let match_input ?(trace = true) ?cache root_pat root_input
                   | _ ->
                       None
                  )
-             | _ -> None
+             | Any_symbol
+             | Symbol _ -> None
             )
         | symbol :: input ->
             let head_match =
