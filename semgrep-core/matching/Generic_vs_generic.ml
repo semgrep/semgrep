@@ -117,17 +117,6 @@ let has_case_ellipsis_and_filter_ellipsis xs =
     | _ -> false) in
   !has_ellipsis, ys
 
-(*s: function [[Generic_vs_generic.make_dotted]] *)
-let make_dotted xs =
-  match xs with
-  | [] -> raise Impossible
-  | x::xs ->
-      let base = B.Id (x, B.empty_id_info()) in
-      List.fold_left (fun acc e ->
-        let tok = Parse_info.fake_info "." in
-        B.DotAccess (acc, tok, B.EId (e, B.empty_id_info()))) base xs
-(*e: function [[Generic_vs_generic.make_dotted]] *)
-
 let rec obj_and_method_calls_of_expr = function
   | B.Call (B.DotAccess (e, tok, fld), args) ->
       let (o, xs) = obj_and_method_calls_of_expr e in
@@ -414,6 +403,17 @@ and m_id_info a b =
 (*****************************************************************************)
 (* Expression *)
 (*****************************************************************************)
+
+(*s: function [[Generic_vs_generic.make_dotted]] *)
+let make_dotted xs =
+  match xs with
+  | [] -> raise Impossible
+  | x::xs ->
+      let base = B.Id (x, B.empty_id_info()) in
+      List.fold_left (fun acc e ->
+        let tok = Parse_info.fake_info "." in
+        B.DotAccess (acc, tok, B.EId (e, B.empty_id_info()))) base xs
+(*e: function [[Generic_vs_generic.make_dotted]] *)
 
 (* possibly go deeper when someone wants that a pattern like
  *   'bar();'
