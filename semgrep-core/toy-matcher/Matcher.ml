@@ -8,6 +8,26 @@
      of the real-world complexity.
    - Keep the semgrep-core implementation separate and easy to follow,
      without functors.
+
+   Differences with semgrep:
+
+   - There is no pattern syntax. There is no useful executables, only
+     tests with patterns constructed directly in OCaml.
+
+   - As in traditional regexp syntaxes, captures and backreferences
+     are made using different syntax e.g.:
+
+                       PCRE         Semgrep
+       capture:        (.)          $X
+       backreference   \1           $X
+
+     Here, like in regexps, we distinguish the first reference to a
+     "metavariable", which requests a capture, from later references.
+     This hopefully makes it easier to understand the internals,
+     which rely on left-to-right matching.
+
+     The distinction between captures and patterns to be matched allows
+     for a bit of experimentation.
 *)
 
 open Printf
@@ -46,6 +66,10 @@ type ellipsis =
 type stat = {
   mutable match_calls: int;
 }
+
+type cache_when =
+  | Always
+  | Optimal
 
 let sample_pattern : pattern = [
   Symbol 'A', None;
@@ -251,18 +275,39 @@ module Cache_key = struct
     + hash_env env
 end
 
+(*
+   Memoization consists in caching the results of a function.
+   This is the basis of "dynamic programming" algorithms.
+   The arguments of the function and anything in the environment that
+   determines its result must be used to form the key for a cache entry.
+
+   Using the memoized version of the match function, we're guaranteed to
+   not compute the same thing twice (except for cache key creation and
+   lookup).
+
+   To see a trace in both cached and uncached versions of the algorithm,
+   run the tests with 'make bench' and compare the outputs of the tests
+   "cacheable gap" and "cacheable gap cached".
+*)
 module Memoize = struct
   module Tbl = Hashtbl.Make (Cache_key)
 
-  (* only use cache once in 3 times *)
-  let cache_every = 3
+  (*
+     Setting cache_every to a value greater than 1, such as 3,
+     limits the amount caching, making things faster overall by 1.5x.
+  *)
+  let should_use_cache cache_every input =
+    if cache_every > 1 then
+      Hashtbl.hash_param 5 10 input mod cache_every = 0
+    else
+      true
 
-  let should_use_cache input =
-    Hashtbl.hash_param 5 10 input mod cache_every = 0
-
-  let get tbl compute ellipsis env pat input =
+  (* TODO: exclude from env the unused variables, i.e. those that are not
+           backreferenced in the pattern.
+  *)
+  let get tbl cache_every compute ellipsis env pat input =
     (* only use the cache on some inputs because it's expensive *)
-    if should_use_cache input then
+    if should_use_cache cache_every input then
       let key = (ellipsis, env, pat, input) in
       match Tbl.find_opt tbl key with
       | None ->
@@ -273,13 +318,18 @@ module Memoize = struct
     else
       compute ellipsis env pat input
 
-  let create compute =
+  let create ?(cache_when = Always) compute =
     (*
-       Initial table size impact performance.
+       Initial table size impacts performance.
     *)
     let tbl = Tbl.create 8192 in
+    let cache_every =
+      match cache_when with
+      | Always -> 1
+      | Optimal -> 3
+    in
     fun ellipsis env pat input ->
-      get tbl compute ellipsis env pat input
+      get tbl cache_every compute ellipsis env pat input
 end
 
 (*
@@ -292,11 +342,14 @@ end
    To visualize the steps of the algorithm, run the test program in verbose
    mode with 'make bench'.
 *)
-let match_input ?(trace = true) ?(cache = false) root_pat root_input =
+let match_input ?(trace = true) ?cache root_pat root_input
+  : (string * string) list option * stat =
+
   let stat = { match_calls = 0 } in
   let get_from_cache = ref (fun _ellipsis _env _pat _input -> assert false) in
 
-  let rec match_ (ellipsis : ellipsis) (env : env) pat input =
+  let rec match_ (ellipsis : ellipsis) (env : env) pat input : env option =
+
     trace_match_call ~trace stat ellipsis env pat input;
     !get_from_cache ellipsis env pat input
 
@@ -378,15 +431,21 @@ let match_input ?(trace = true) ?(cache = false) root_pat root_input =
                 else
                   None
   in
-  if cache then
-    get_from_cache := Memoize.create uncached_match
-  else
-    get_from_cache := uncached_match;
+  (match cache with
+   | Some cache_when ->
+       get_from_cache := Memoize.create ~cache_when uncached_match
+   | None ->
+       get_from_cache := uncached_match
+  );
 
   let opt_captures =
     match match_ Not_in_ellipsis Env.empty root_pat root_input with
     | None -> None
-    | Some env -> Some (Env.bindings env)
+    | Some env ->
+        Some (
+          Env.bindings env
+          |> List.map (fun (k, v) -> (k, unparse v))
+        )
   in
   opt_captures, stat
 
@@ -401,12 +460,6 @@ let print_time name f =
 
 let check_match ?cache pat input_str expected_opt_bindings =
   let sort = Option.map (List.sort compare) in
-  let normalize opt_bindings =
-    Option.map (fun bindings ->
-      List.map (fun (var, symbols) -> (var, unparse symbols)) bindings
-    ) opt_bindings
-    |> sort
-  in
   check_pattern pat;
   let input = parse input_str in
   let expected = sort expected_opt_bindings in
@@ -418,7 +471,7 @@ let check_match ?cache pat input_str expected_opt_bindings =
     in
     printf "input length: %i\n" (String.length input_str);
     printf "number of calls to the match function: %i\n" stat.match_calls;
-    normalize res
+    sort res
   in
   print_result stdout actual;
   Alcotest.(check bool) "equal" true (expected = actual)
@@ -451,7 +504,7 @@ let test_floating_symbol () =
     "tail", "6789";
   ])
 
-let test_backref ~cache () =
+let test_backref ?cache () =
   let pat = [
     Ellipsis, None;
     Any_symbol, Some "orig";
@@ -459,25 +512,41 @@ let test_backref ~cache () =
     Ellipsis, None;
   ] in
   let input = "ABBC" in
-  check_match ~cache pat input (Some [
+  check_match ?cache pat input (Some [
     "orig", "B";
     "copy", "B";
   ])
 
-let test_gap () =
+(* Caching won't help due to the capturing ellipsis. *)
+let test_named_gap ?cache () =
   let pat = [
     Symbol 'A', Some "a";
     Ellipsis, Some "gap";
     Symbol 'B', Some "b";
   ] in
   let input = "A12B" in
-  check_match pat input (Some [
+  check_match ?cache pat input (Some [
     "a", "A";
     "gap", "12";
     "b", "B";
   ])
 
-let test_backref_backtrack ~cache () =
+(*
+   TODO: cache only relevant environment so that earlier captures that
+         aren't referenced in the pattern aren't part of the cache key.
+*)
+let test_cacheable_gap ?cache () =
+  let pat = [
+    Ellipsis, None;
+    Any_symbol, None (* Some "a" *); (* TODO *)
+    Ellipsis, None;
+    Symbol 'X', Some "x";
+    Ellipsis, None;
+  ] in
+  let input = "ABCDEFG" in
+  check_match ?cache pat input None
+
+let test_backref_backtrack ?cache () =
   let pat = [
     Ellipsis, None;
     Any_symbol, Some "x";
@@ -487,7 +556,7 @@ let test_backref_backtrack ~cache () =
     Ellipsis, None;
   ] in
   let input = "ABBCA" in
-  check_match ~cache pat input (Some [
+  check_match ?cache pat input (Some [
     "x", "B";
   ])
 
@@ -509,7 +578,7 @@ let pseudo_random_string len pick_from =
    With the naive match algorithm, the complexity is O(n^2) where n is the
    input length.
 *)
-let test_quadratic ~cache () =
+let test_quadratic ?cache () =
   let pat = [
     Ellipsis, None;
     Any_symbol, None; (* matches everywhere *)
@@ -523,9 +592,9 @@ let test_quadratic ~cache () =
      usage scenario i.e. actual programs don't repeat statements many times.
   *)
   let input = pseudo_random_string 10_000 "AB" in
-  check_match ~cache pat input None
+  check_match ?cache pat input None
 
-let test_cubic ~cache () =
+let test_cubic ?cache () =
   let pat = [
     Ellipsis, None;
     Any_symbol, None; (* matches everywhere *)
@@ -536,25 +605,30 @@ let test_cubic ~cache () =
     Ellipsis, None;
   ] in
   let input = pseudo_random_string 1_000 "AB" in
-  check_match ~cache pat input None
+  check_match ?cache pat input None
 
 let test = "Matcher", [
   "simple symbol", `Quick, test_simple_symbol;
   "simple ellipsis", `Quick, test_simple_ellipsis;
   "any symbol", `Quick, test_any_symbol;
+
   "floating symbol", `Quick, test_floating_symbol;
 
-  "backref", `Quick, test_backref ~cache:false;
-  "backref cached", `Quick, test_backref ~cache:true;
+  "backref", `Quick, test_backref ?cache:None;
+  "backref cached", `Quick, test_backref ~cache:Always;
 
-  "gap", `Quick, test_gap;
+  "named gap", `Quick, test_named_gap ?cache:None;
+  "named gap cached", `Quick, test_named_gap ~cache:Always;
 
-  "backref backtrack", `Quick, test_backref_backtrack ~cache:false;
-  "backref backtrack cached", `Quick, test_backref_backtrack ~cache:true;
+  "cacheable gap", `Quick, test_cacheable_gap ?cache:None;
+  "cacheable gap cached", `Quick, test_cacheable_gap ~cache:Always;
 
-  "quadratic", `Slow, test_quadratic ~cache:false;
-  "quadratic cached", `Quick, test_quadratic ~cache:true;
+  "backref backtrack", `Quick, test_backref_backtrack ?cache:None;
+  "backref backtrack cached", `Quick, test_backref_backtrack ~cache:Optimal;
 
-  "cubic", `Slow, test_cubic ~cache:false;
-  "cubic cached", `Quick, test_cubic ~cache:true;
+  "quadratic", `Slow, test_quadratic ?cache:None;
+  "quadratic cached", `Quick, test_quadratic ~cache:Optimal;
+
+  "cubic", `Slow, test_cubic ?cache:None;
+  "cubic cached", `Quick, test_cubic ~cache:Optimal;
 ]
