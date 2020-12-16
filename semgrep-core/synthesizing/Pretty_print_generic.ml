@@ -275,10 +275,10 @@ and def_stmt env (entity, def_kind) =
       )
     in
     let (typ, id) =
-      let {id_type; _} = ent.info in
-      match !id_type with
-      | None -> "", ident_or_dynamic ent.name
-      | Some t -> print_type t, ident_or_dynamic ent.name
+      match ent.name with
+      | EId (_, { id_type = {contents = Some t}; _}) ->
+          print_type t, ident_or_dynamic ent.name
+      | _ -> "", ident_or_dynamic ent.name
     in
     match def.vinit with
     | None -> no_val typ id ""
