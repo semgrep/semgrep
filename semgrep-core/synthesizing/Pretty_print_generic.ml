@@ -47,7 +47,7 @@ let todo any =
 let ident (s, _) = s
 
 let ident_or_dynamic = function
-  | EId x -> ident x
+  | EId (x, _idinfo) -> ident x
   | EName _ | EDynamic _ -> raise Todo
 
 let opt f = function
@@ -453,7 +453,7 @@ and dot_access env (e, _tok, fi) =
 
 and field_ident env fi =
   match fi with
-  | EId id -> ident id
+  | EId (id, _idinfo) -> ident id
   | EName (id, _) -> ident id
   | EDynamic e -> expr env e
 

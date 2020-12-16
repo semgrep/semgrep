@@ -2108,10 +2108,11 @@ and declaration (env : env) (x : CST.declaration) : stmt =
        let (open_bra, stmts, close_bra) = declaration_list env v8 in
        let fields = List.map (fun x -> AST.FieldStmt x) stmts in
        let tparams = type_parameters_with_constraints v5 v7 in
+       let idinfo = empty_id_info() in
        let ent = {
-         name = EId v4;
+         name = EId (v4, idinfo);
          attrs = v1 @ v2;
-         info = empty_id_info ();
+         info = idinfo;
          tparams;
        } in
        AST.DefStmt (ent, AST.ClassDef {
@@ -2157,10 +2158,11 @@ and declaration (env : env) (x : CST.declaration) : stmt =
        let v5 = type_constraint env v5 in
        let v6 = parameter_list env v6 in
        let v7 = function_body env v7 in
+       let idinfo = empty_id_info () in
        let ent = {
-         name = EId v3;
+         name = EId (v3, idinfo);
          attrs = v1 @ v2;
-         info = empty_id_info ();
+         info = idinfo;
          tparams = [];
        } in
        let def = AST.FuncDef {
@@ -2188,10 +2190,11 @@ and declaration (env : env) (x : CST.declaration) : stmt =
        let v9 = token env v9 (* ";" *) in
        let tparams = type_parameters_with_constraints v6 v8 in
        let func = TyFun (v7, v4) in
+       let idinfo = empty_id_info () in
        let ent = {
-         name = EId v5;
+         name = EId (v5, idinfo);
          attrs = v1 @ v2;
-         info = empty_id_info ();
+         info = idinfo;
          tparams;
        } in
        DefStmt (ent, TypeDef { tbody = NewType func })
@@ -2232,10 +2235,11 @@ and declaration (env : env) (x : CST.declaration) : stmt =
           | Some tok -> Some (token env tok) (* ";" *)
           | None -> None)
        in
+       let idinfo = empty_id_info () in
        let ent = {
-         name = EId v4;
+         name = EId (v4, idinfo);
          attrs = v1 @ v2;
-         info = empty_id_info ();
+         info = idinfo;
          tparams = [];
        } in
        AST.DefStmt (ent, AST.TypeDef {
@@ -2320,10 +2324,11 @@ and declaration (env : env) (x : CST.declaration) : stmt =
        in
        let v9 = function_body env v9 in
        let tparams = type_parameters_with_constraints v6 v8 in
+       let idinfo = empty_id_info () in
        let ent = {
-         name = EId v5;
+         name = EId (v5, idinfo);
          attrs = v1 @ v2;
-         info = empty_id_info ();
+         info = idinfo;
          tparams;
        } in
        let def = AST.FuncDef {
@@ -2355,10 +2360,11 @@ and declaration (env : env) (x : CST.declaration) : stmt =
        let v6 = parameter_list env v6 in
        let v7 = function_body env v7 in
        (* TODO make clear that this is an operator overload, by using IdSpecial as the name, or adding a keyword attribute *)
+       let idinfo = empty_id_info () in
        let ent = {
-         name = EId v5;
+         name = EId (v5, idinfo);
          attrs = v1 @ v2;
-         info = empty_id_info ();
+         info = idinfo;
          tparams = [];
        } in
        let def = AST.FuncDef {
