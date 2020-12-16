@@ -335,7 +335,12 @@ end
 (*
    Main matching function.
 
-   Checks if a pattern matches the entire input sequence.
+   Checks if a pattern matches the entire input sequence. It operates
+   by scanning the pattern and the input sequence in parallel. Each call
+   to the match function is in charge of matching the head of the pattern
+   against the head of the input, and calls itself to match
+   the tails recursively.
+
    Returns the captured symbols or sequences of symbols for which a
    name was specified in the pattern.
 
