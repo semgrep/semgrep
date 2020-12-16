@@ -64,12 +64,7 @@ let arg_to_expr (a : argument) =
 
 let var_def_stmt (decls : (entity * variable_definition) list) (attrs : attribute list) =
   let stmts = List.map (fun (ent, def) ->
-    let ent = {
-      name = ent.name;
-      attrs = ent.attrs @ attrs;
-      info = ent.info;
-      tparams = ent.tparams;
-    } in
+    let ent = { ent with attrs = ent.attrs @ attrs } in
     DefStmt (ent, VarDef def)
   ) decls in
   stmt1 stmts
@@ -2112,7 +2107,6 @@ and declaration (env : env) (x : CST.declaration) : stmt =
        let ent = {
          name = EId (v4, idinfo);
          attrs = v1 @ v2;
-         info = idinfo;
          tparams;
        } in
        AST.DefStmt (ent, AST.ClassDef {
@@ -2162,7 +2156,6 @@ and declaration (env : env) (x : CST.declaration) : stmt =
        let ent = {
          name = EId (v3, idinfo);
          attrs = v1 @ v2;
-         info = idinfo;
          tparams = [];
        } in
        let def = AST.FuncDef {
@@ -2194,7 +2187,6 @@ and declaration (env : env) (x : CST.declaration) : stmt =
        let ent = {
          name = EId (v5, idinfo);
          attrs = v1 @ v2;
-         info = idinfo;
          tparams;
        } in
        DefStmt (ent, TypeDef { tbody = NewType func })
@@ -2239,7 +2231,6 @@ and declaration (env : env) (x : CST.declaration) : stmt =
        let ent = {
          name = EId (v4, idinfo);
          attrs = v1 @ v2;
-         info = idinfo;
          tparams = [];
        } in
        AST.DefStmt (ent, AST.TypeDef {
@@ -2328,7 +2319,6 @@ and declaration (env : env) (x : CST.declaration) : stmt =
        let ent = {
          name = EId (v5, idinfo);
          attrs = v1 @ v2;
-         info = idinfo;
          tparams;
        } in
        let def = AST.FuncDef {
@@ -2364,7 +2354,6 @@ and declaration (env : env) (x : CST.declaration) : stmt =
        let ent = {
          name = EId (v5, idinfo);
          attrs = v1 @ v2;
-         info = idinfo;
          tparams = [];
        } in
        let def = AST.FuncDef {
