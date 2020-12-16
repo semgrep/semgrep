@@ -70,6 +70,28 @@ let var_def_stmt (decls : (entity * variable_definition) list) (attrs : attribut
   ) decls in
   stmt1 stmts
 
+type direction =
+  | Ascending
+  | Descending
+
+and linq_query_part = 
+  | From of (tok * (type_ option * ident) * expr)
+  | Group of (tok * expr * expr)
+  | Select of (tok * expr)
+  | Into of (tok * ident * linq_query_part list)
+  | Join of (tok * (type_ option * ident) * expr * expr * expr * ident option)
+  | Let of (tok * ident * expr)
+  | OrderBy of (tok * (expr * direction) list)
+  | Where of (tok * expr)
+
+let linq_to_expr query =
+  match query with
+  | [] -> raise Impossible
+  | from :: _ ->
+    (match from with
+    | From (_, _, collection) -> collection
+    | _ -> raise Impossible)
+
 module List = struct
   include List
   (* not available in 4.09 *)
@@ -405,7 +427,7 @@ and query_continuation (env : env) (x : CST.query_continuation) =
        let v1 = token env v1 (* "into" *) in
        let v2 = identifier env v2 (* identifier *) in
        let v3 = query_body env v3 in
-       todo env (v1, v2, v3)
+       Into (v1, v2, v3)
   )
 
 and binary_expression (env : env) (x : CST.binary_expression) =
@@ -739,10 +761,10 @@ and query_body (env : env) (x : CST.query_body) =
        let v2 = select_or_group_clause env v2 in
        let v3 =
          (match v3 with
-          | Some x -> query_continuation env x
-          | None -> todo env ())
+          | Some x -> [query_continuation env x]
+          | None -> [])
        in
-       todo env (v1, v2, v3)
+       v1 @ [v2] @ v3
   )
 
 and catch_clause (env : env) ((v1, v2, v3, v4) : CST.catch_clause) =
@@ -767,12 +789,12 @@ and ordering (env : env) ((v1, v2) : CST.ordering) =
     (match v2 with
      | Some x ->
          (match x with
-          | `Asce tok -> token env tok (* "ascending" *)
-          | `Desc tok -> token env tok (* "descending" *)
+          | `Asce tok -> Ascending (* "ascending" *)
+          | `Desc tok -> Descending (* "descending" *)
          )
-     | None -> todo env ())
+     | None -> Ascending)
   in
-  todo env (v1, v2)
+  (v1, v2)
 
 and interpolated_string_content (env : env) (x : CST.interpolated_string_content) =
   (match x with
@@ -1026,7 +1048,8 @@ and expression (env : env) (x : CST.expression) : AST.expr =
    | `Query_exp (v1, v2) ->
        let v1 = from_clause env v1 in
        let v2 = query_body env v2 in
-       todo env (v1, v2)
+       let query = v1 :: v2 in
+       linq_to_expr query
    | `Range_exp (v1, v2, v3) ->
        let v1 =
          (match v1 with
@@ -1548,8 +1571,8 @@ and query_clause (env : env) (x : CST.query_clause) =
        let v1 = token env v1 (* "join" *) in
        let v2 =
          (match v2 with
-          | Some x -> type_constraint env x
-          | None -> todo env ())
+          | Some x -> Some (type_constraint env x)
+          | None -> None)
        in
        let v3 = identifier env v3 (* identifier *) in
        let v4 = token env v4 (* "in" *) in
@@ -1560,16 +1583,16 @@ and query_clause (env : env) (x : CST.query_clause) =
        let v9 = expression env v9 in
        let v10 =
          (match v10 with
-          | Some x -> join_into_clause env x
-          | None -> todo env ())
+          | Some x -> Some (join_into_clause env x)
+          | None -> None)
        in
-       todo env (v1, v2, v3, v4, v5, v6, v7, v8, v9, v10)
+       Join (v1, (v2, v3), v5, v7, v9, v10)
    | `Let_clause (v1, v2, v3, v4) ->
        let v1 = token env v1 (* "let" *) in
        let v2 = identifier env v2 (* identifier *) in
        let v3 = token env v3 (* "=" *) in
        let v4 = expression env v4 in
-       todo env (v1, v2, v3, v4)
+       Let (v1, v2, v4)
    | `Order_by_clause (v1, v2, v3) ->
        let v1 = token env v1 (* "orderby" *) in
        let v2 = ordering env v2 in
@@ -1580,11 +1603,11 @@ and query_clause (env : env) (x : CST.query_clause) =
            v2
          ) v3
        in
-       todo env (v1, v2 :: v3)
+       OrderBy (v1, v2 :: v3)
    | `Where_clause (v1, v2) ->
        let v1 = token env v1 (* "where" *) in
        let v2 = expression env v2 in
-       todo env (v1, v2)
+       Where (v1, v2)
   )
 
 and arrow_expression_clause (env : env) ((v1, v2) : CST.arrow_expression_clause) =
@@ -1752,17 +1775,17 @@ and parameter (env : env) ((v1, v2, v3, v4, v5) : CST.parameter) =
     pinfo = empty_id_info ();
   }
 
-and from_clause (env : env) ((v1, v2, v3, v4, v5) : CST.from_clause) =
+and from_clause (env : env) ((v1, v2, v3, v4, v5) : CST.from_clause) : linq_query_part =
   let v1 = token env v1 (* "from" *) in
   let v2 =
     (match v2 with
-     | Some x -> type_constraint env x
-     | None -> todo env ())
+     | Some x -> Some (type_constraint env x)
+     | None -> None)
   in
   let v3 = identifier env v3 (* identifier *) in
   let v4 = token env v4 (* "in" *) in
   let v5 = expression env v5 in
-  todo env (v1, v2, v3, v4, v5)
+  From (v1, (v2, v3), v5)
 
 and attribute (env : env) ((v1, v2) : CST.attribute) =
   let v1 = name env v1 in
@@ -1890,11 +1913,11 @@ and select_or_group_clause (env : env) (x : CST.select_or_group_clause) =
        let v2 = expression env v2 in
        let v3 = token env v3 (* "by" *) in
        let v4 = expression env v4 in
-       todo env (v1, v2, v3, v4)
+       Group (v1, v2, v4)
    | `Select_clause (v1, v2) ->
        let v1 = token env v1 (* "select" *) in
        let v2 = expression env v2 in
-       todo env (v1, v2)
+       Select (v1, v2)
   )
 
 and declaration_expression (env : env) ((v1, v2) : CST.declaration_expression) : pattern =
