@@ -26,13 +26,6 @@ rules:
        - Unit_*.ml
        - Test_*.ml
 
-  - id: string-missing-comma
-    pattern: |
-      {..., "..." "...", ...}
-    message: You probably forgot a comma
-    languages: [python]
-    severity: ERROR
-
 # not ready yet
 #  - id: no-exit-in-semgrep
 #    pattern: |
