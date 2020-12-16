@@ -380,7 +380,7 @@ class OutputHandler:
         if ex is None:
             return
         if isinstance(ex, SemgrepError):
-            if ex.level == Level.ERROR:  # nosem: r2c.registry.latest useless-if-body
+            if ex.level == Level.ERROR:
                 raise ex
             else:
                 if self.settings.strict:

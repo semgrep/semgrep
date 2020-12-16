@@ -147,16 +147,14 @@ def sub_check_output(cmd: List[str], **kwargs: Any) -> Any:
 
 def compute_executable_path(exec_name: str) -> str:
     """Determine full executable path if full path is needed to run it."""
-    which_core = sub_run(["which", exec_name], stdout=subprocess.DEVNULL)
-    if which_core.returncode != 0:
+    which_core = shutil.which(exec_name)
+    if which_core is None:
         # look for something in the same dir as the Python interpreter
         relative_path = os.path.join(os.path.dirname(sys.executable), exec_name)
         if os.path.exists(relative_path):
             exec_name = relative_path
         else:
-            # fmt: off
-            raise subprocess.SubprocessError("Could not locate '{}' binary".format(exec_name))  # nosem: python.lang.security.audit.dangerous-subprocess-use.dangerous-subprocess-use
-            # fmt: on
+            raise Exception(f"Could not locate '{exec_name}' binary")
     return exec_name
 
 
