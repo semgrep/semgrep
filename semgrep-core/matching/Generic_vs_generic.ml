@@ -178,6 +178,17 @@ let m_dotted_name a b =
     (a, b) -> (m_list m_ident) a b
 (*e: function [[Generic_vs_generic.m_dotted_name]] *)
 
+(*s: function [[Generic_vs_generic.make_dotted]] *)
+let make_dotted xs =
+  match xs with
+  | [] -> raise Impossible
+  | x::xs ->
+      let base = B.Id (x, B.empty_id_info()) in
+      List.fold_left (fun acc e ->
+        let tok = Parse_info.fake_info "." in
+        B.DotAccess (acc, tok, B.EId (e, B.empty_id_info()))) base xs
+(*e: function [[Generic_vs_generic.make_dotted]] *)
+
 (* similar to m_list_prefix but binding $X to the whole list *)
 let rec m_dotted_name_prefix_ok a b =
   match a, b with
@@ -403,17 +414,6 @@ and m_id_info a b =
 (*****************************************************************************)
 (* Expression *)
 (*****************************************************************************)
-
-(*s: function [[Generic_vs_generic.make_dotted]] *)
-let make_dotted xs =
-  match xs with
-  | [] -> raise Impossible
-  | x::xs ->
-      let base = B.Id (x, B.empty_id_info()) in
-      List.fold_left (fun acc e ->
-        let tok = Parse_info.fake_info "." in
-        B.DotAccess (acc, tok, B.EId (e, B.empty_id_info()))) base xs
-(*e: function [[Generic_vs_generic.make_dotted]] *)
 
 (* possibly go deeper when someone wants that a pattern like
  *   'bar();'
