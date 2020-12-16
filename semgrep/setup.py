@@ -40,7 +40,9 @@ class bdist_wheel(_bdist_wheel):
         # to debug "ERROR: *.whl is not a supported wheel on this platform.":
         # from setuptools.pep425tags import get_supported
         # get_supported()
-        python = ".".join(["cp36", "cp37", "cp38", "py36", "py37", "py38"])
+        python = ".".join(
+            ["cp36", "cp37", "cp38", "cp39", "py36", "py37", "py38", "py39"]
+        )
         abi = "none"
 
         if "macosx" in plat:
@@ -163,6 +165,7 @@ setup(
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
         "Topic :: Security",
         "Topic :: Software Development :: Quality Assurance",
     ],
