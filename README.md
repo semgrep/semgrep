@@ -41,11 +41,11 @@ Semgrep is used in production everywhere from one-person startups to multi-billi
 
 <h4 align="center">General availability</h4>
 <p align="center">
-Go · Java · JavaScript · JSON · Python</br>
+Go · Java · JavaScript · JSON · Python · Ruby</br>
 </p>
 <h4 align="center">Beta</h4>
 <p align="center">
-Ruby · TypeScript · JSX · TSX</br></br>
+TypeScript · JSX · TSX</br></br>
 Visit <a href="https://semgrep.dev/docs/status/">Supported languages</a> for the complete list.
 </p>
 
