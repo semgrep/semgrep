@@ -125,7 +125,7 @@ let make_dotted xs =
       let base = B.Id (x, B.empty_id_info()) in
       List.fold_left (fun acc e ->
         let tok = Parse_info.fake_info "." in
-        B.DotAccess (acc, tok, B.EId e)) base xs
+        B.DotAccess (acc, tok, B.EId (e, B.empty_id_info()))) base xs
 (*e: function [[Generic_vs_generic.make_dotted]] *)
 
 let rec obj_and_method_calls_of_expr = function
@@ -327,18 +327,21 @@ and m_type_option_with_hook idb taopt tbopt =
 and m_ident_or_dyn_and_id_info (a1, a2) (b1, b2) =
   (* metavar: *)
   match a1, b1 with
-  | A.EId (str, tok), A.EId idb when MV.is_metavar_name str ->
+  | A.EId ((str, tok), _idinfoa), A.EId (idb, _idinfob)
+    when MV.is_metavar_name str ->
       (* a bit OCaml specific, cos only ml_to_generic tags id_type in pattern *)
       let* () = m_type_option_with_hook idb !(a2.A.id_type) !(b2.B.id_type) in
       let* () = m_id_info a2 b2 in
+      (* TODO: use _idinfob? instead of b2? *)
       envf (str, tok) (MV.Id (idb, Some b2))
 
-  | A.EId (str, tok), _b when MV.is_metavar_name str ->
+  | A.EId ((str, tok), _idinfoa), _b when MV.is_metavar_name str ->
       let* () = m_id_info a2 b2 in
       let e = B.ident_or_dynamic_to_expr b1 b2 in
       envf (str, tok) (MV.E e)
 
-  | A.EId a, B.EId b ->
+  (* TODO: use the idinfo? *)
+  | A.EId (a, _idinfoa), B.EId (b, _idinfob) ->
       m_ident_and_id_info (a, a2) (b, b2)
   (* discarding id_info *)
   | _ -> m_ident_or_dynamic a1 b1
@@ -769,9 +772,10 @@ and m_expr a b =
 and m_ident_or_dynamic a b =
   match a, b with
   (* boilerplate *)
-  | A.EId a, B.EId b ->
+  | A.EId (a, _idinfoa), B.EId (b, _idinfob) ->
       (* metavar for fieldnames such as this.$FUNC
        * can be matched against method definitions.
+       * TODO: use _idinfox instead of calling with empty_id_info!!
       *)
       m_ident_and_empty_id_info a b
   (*s: [[Generic_vs_generic.m_field_ident()]] boilerplate cases *)
@@ -2166,7 +2170,7 @@ and m_list__m_field (xsa: A.field list) (xsb: A.field list) =
       raise Impossible
   (*e: [[Generic_vs_generic.m_list__m_field()]] ellipsis cases *)
   (*s: [[Generic_vs_generic.m_list__m_field()]] [[DefStmt]] pattern case *)
-  | (A.FieldStmt (A.DefStmt (({A.name = A.EId (s1, _); _}, _) as adef)) as a)::xsa,
+  | (A.FieldStmt (A.DefStmt (({A.name = A.EId ((s1, _), _); _}, _) as adef)) as a)::xsa,
     xsb ->
       (*s: [[Generic_vs_generic.m_list__m_field()]] in [[DefStmt]] case if metavar field *)
       if MV.is_metavar_name s1 || Matching_generic.is_regexp_string s1
@@ -2185,7 +2189,7 @@ and m_list__m_field (xsa: A.field list) (xsb: A.field list) =
       else
         (try
            let (before, there, after) = xsb |> Common2.split_when (function
-             | (A.FieldStmt (A.DefStmt ({B.name = B.EId (s2, _tok); _}, _)))
+             | (A.FieldStmt (A.DefStmt ({B.name = B.EId ((s2, _tok), _); _}, _)))
                when s2 = s1 -> true
              | _ -> false
            ) in
