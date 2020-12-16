@@ -50,7 +50,7 @@
       "extra": {
         "is_ignored": false,
         "lines": "    return a + b == a + b",
-        "message": "This is always True: `a + b == a + b` or `a + b != a + b`. If testing for floating point NaN, use `math.isnan(a + b)`,\nor `cmath.isnan(a + b)` if the number is complex.\n",
+        "message": "This expression is always True: `a + b == a + b` or `a + b != a + b`. If testing for floating point NaN, use `math.isnan(a + b)`, or `cmath.isnan(a + b)` if the number is complex.",
         "metadata": {},
         "metavars": {
           "$X": {
