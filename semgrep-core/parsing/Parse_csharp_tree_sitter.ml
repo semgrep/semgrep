@@ -725,7 +725,7 @@ and initializer_expression (env : env) ((v1, v2, v3, v4) : CST.initializer_expre
   let v4 = token env v4 (* "}" *) in
   v1, v2, v4
 
-and switch_expression_arm (env : env) ((v1, v2, v3, v4) : CST.switch_expression_arm) =
+and switch_expression_arm (env : env) ((v1, v2, v3, v4) : CST.switch_expression_arm) : action =
   let v1 = pattern env v1 in
   let v2 =
     (match v2 with
@@ -734,7 +734,7 @@ and switch_expression_arm (env : env) ((v1, v2, v3, v4) : CST.switch_expression_
   in
   let v3 = token env v3 (* "=>" *) in
   let v4 = expression env v4 in
-  todo env (v1, v2, v3, v4)
+  (v2, v4)
 
 and query_body (env : env) (x : CST.query_body) =
   (match x with
@@ -1088,7 +1088,7 @@ and expression (env : env) (x : CST.expression) : AST.expr =
           | None -> [])
        in
        let v5 = token env v5 (* "}" *) in
-       todo env (v1, v2, v3, v4, v5)
+       MatchPattern (v1, v4)
    | `This_exp tok ->
        let t = token env tok (* "this" *) in
        IdSpecial (This, t)
