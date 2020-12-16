@@ -75,6 +75,9 @@ let normalize_import_opt is_pattern i =
 (*e: function [[Normalize_generic.normalize_import_opt]] *)
 
 (*s: function [[Normalize_generic.eval]] *)
+(* see also Constant_propagation.ml. At some point we should remove
+ * the code below and rely only on Constant_propagation.ml
+*)
 let rec eval x =
   match x with
   | L x -> Some x
