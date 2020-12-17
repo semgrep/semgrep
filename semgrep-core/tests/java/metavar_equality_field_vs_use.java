@@ -1,3 +1,4 @@
+//ERROR: match
 class A {
   private FooType foo;
   void foo1() {
