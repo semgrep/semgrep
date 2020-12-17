@@ -53,7 +53,7 @@ let unique_id any =
   | E (Id (id, { id_resolved = {contents = Some (resolved, sid)}; _})) ->
       J.Object [
         "type", J.String "id";
-        "value", J.String (AST_generic.str_of_ident id);
+        "value", J.String (AST_generic_helpers.str_of_ident id);
         "kind", J.String (string_of_resolved resolved);
         (* single unique id *)
         "sid", J.Int sid;

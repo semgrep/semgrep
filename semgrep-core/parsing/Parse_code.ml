@@ -274,7 +274,7 @@ let parse_and_resolve_name_use_pfff_or_treesitter lang file =
    * used only for local per-file analysis, so no need to have a unique ID
    * among a set of files in a project like codegraph.
   *)
-  AST_generic.gensym_counter := 0;
+  AST_generic_helpers.gensym_counter := 0;
   Naming_AST.resolve lang ast;
   Constant_propagation.propagate lang ast;
   { ast; errors; stat }
