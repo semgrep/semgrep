@@ -179,7 +179,7 @@ def _config_to_string(config: Any) -> str:
 
 def run_semgrep_on_example(
     lang: str, config_arg_str: str, code_path: str
-) -> Optional[str]:
+) -> Optional[dict]:
     with tempfile.NamedTemporaryFile("w") as config:
         pattern_text = open(config_arg_str).read()
         config.write(_config_to_string(_single_pattern_to_dict(pattern_text, lang)))
@@ -189,7 +189,7 @@ def run_semgrep_on_example(
         output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if output.returncode == 0:
             print(output.stderr.decode("utf-8"))
-            return output.stdout.decode("utf-8")
+            return json.loads(output.stdout.decode("utf-8"))
         else:
             print("ERROR: " + str(output.returncode))
             print(cmd)
@@ -197,7 +197,10 @@ def run_semgrep_on_example(
 
 
 def invoke_semgrep_multi(semgrep_path, code_path, lang, category, subcategory):
-    result = run_semgrep_on_example(lang, semgrep_path, code_path)
+    if paths_exist(semgrep_path, code_path):
+        result = run_semgrep_on_example(lang, semgrep_path, code_path)
+    else:
+        result = {}
     return (
         semgrep_path,
         code_path,
@@ -229,27 +232,24 @@ def generate_cheatsheet(root_dir: str, html: bool):
         for lang in langs
         for category, subcategories in CHEATSHEET_ENTRIES.items()
         for subcategory in subcategories
-        if paths_exist(
-            find_path(root_dir, lang, category, subcategory, "sgrep"),
-            find_path(root_dir, lang, category, subcategory, lang_dir_to_ext(lang)),
-        )
     ]
     with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
         results = pool.starmap(invoke_semgrep_multi, semgrep_multi_args)
 
     for semgrep_path, code_path, lang, category, subcategory, result in results:
         highlights = []
-        if result:
-            j = json.loads(result)
-            if not j["results"]:
+        if result is None:
+            raise Exception(
+                f"rule '{code_path}' produced errors, please fix these before proceeding"
+            )
+        else:
+            if "results" in result and not result["results"]:
                 raise Exception(
                     f"rule '{code_path}' produced no findings and is useless, please fix or TODO before proceeding"
                 )
-            for entry in j["results"]:
-                highlights.append({"start": entry["start"], "end": entry["end"]})
-        else:
-            raise Exception(
-                f"rule '{code_path}' produced errors, please fix these before proceeding"
+            highlights.extend(
+                {"start": r["start"], "end": r["end"]}
+                for r in result.get("results", [])
             )
 
         entry = {
