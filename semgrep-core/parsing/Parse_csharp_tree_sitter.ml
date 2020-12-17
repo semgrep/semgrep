@@ -16,6 +16,7 @@ module CST = Tree_sitter_csharp.CST
 module AST = AST_generic
 module H = Parse_tree_sitter_helpers
 open AST_generic
+module H2 = AST_generic_helpers
 
 (*****************************************************************************)
 (* Prelude *)
@@ -701,7 +702,7 @@ and argument (env : env) ((v1, v2, v3) : CST.argument) : AST.argument =
   let v3 =
     (match v3 with
      | `Exp x -> expression env x
-     | `Decl_exp x -> pattern_to_expr (declaration_expression env x) (* TODO is this OK? *)
+     | `Decl_exp x -> H2.pattern_to_expr (declaration_expression env x) (* TODO is this OK? *)
     )
   in
   (* TODO return Ast.ArgKwd if Some v1 *)
@@ -1131,7 +1132,7 @@ and simple_name (env : env) (x : CST.simple_name) : AST.name =
           name_typeargs = Some v2;
         })
    | `Choice_global x ->
-       name_of_id (identifier_or_global env x)
+       H2.name_of_id (identifier_or_global env x)
   )
 
 and switch_body (env : env) ((v1, v2, v3) : CST.switch_body) : case_and_body list=
@@ -1258,7 +1259,7 @@ and statement (env : env) (x : CST.statement) =
        let v4 =
          (match v4 with
           | `Type_id x -> declaration_expression env x
-          | `Exp x -> expr_to_pattern (expression env x)
+          | `Exp x -> H2.expr_to_pattern (expression env x)
          )
        in
        let v5 = token env v5 (* "in" *) in
@@ -1490,7 +1491,7 @@ and tuple_element (env : env) ((v1, v2) : CST.tuple_element) =
   todo env (v1, v2)
 
 and constant_pattern (env : env) (x : CST.constant_pattern) =
-  expr_to_pattern (expression env x)
+  H2.expr_to_pattern (expression env x)
 
 and catch_declaration (env : env) ((v1, v2, v3, v4) : CST.catch_declaration) =
   let v1 = token env v1 (* "(" *) in

@@ -12,6 +12,7 @@ module AST = Ast_js
 module H = Parse_tree_sitter_helpers
 module G = AST_generic
 module PI = Parse_info
+module H2 = AST_generic_helpers
 open Ast_js
 
 (*
@@ -506,7 +507,7 @@ and generic_type (env : env) ((v1, v2) : CST.generic_type) : G.name =
   in
   let v2 = type_arguments env v2 |> G.unbracket
            |> List.map (fun x -> G.TypeArg x) in
-  G.name_of_ids ~name_typeargs:(Some v2) v1
+  H2.name_of_ids ~name_typeargs:(Some v2) v1
 
 and implements_clause (env : env) ((v1, v2, v3) : CST.implements_clause) : type_ list =
   let _v1 = JS.token env v1 (* "implements" *) in
@@ -1396,7 +1397,7 @@ and primary_type (env : env) (x : CST.primary_type) : type_ =
        G.TyId (id, G.empty_id_info())
    | `Nested_type_id x ->
        let xs = nested_type_identifier env x in
-       G.TyIdQualified (G.name_of_ids xs, G.empty_id_info())
+       G.TyIdQualified (H2.name_of_ids xs, G.empty_id_info())
    | `Gene_type x ->
        G.TyIdQualified (generic_type env x, G.empty_id_info())
    | `Type_pred (v1, v2, v3) ->
@@ -2489,7 +2490,7 @@ and anon_choice_type_id_a85f573 (env : env) (x : CST.anon_choice_type_id_a85f573
   (match x with
    | `Id tok -> G.TyId (JS.str env tok, G.empty_id_info()) (* identifier *)
    | `Nested_type_id x ->
-       G.TyIdQualified (G.name_of_ids (nested_type_identifier env x),
+       G.TyIdQualified (H2.name_of_ids (nested_type_identifier env x),
                         G.empty_id_info())
    | `Gene_type x ->
        G.TyIdQualified (generic_type env x, G.empty_id_info())

@@ -31,6 +31,7 @@ module MV = Metavars_generic
 module AST = AST_generic
 module Lib = Lib_AST
 module Flag = Flag_semgrep
+module H = AST_generic_helpers
 
 open Matching_generic
 
@@ -335,7 +336,7 @@ and m_ident_or_dyn (a1) (b1) =
       envf (str, tok) (MV.Id (idb, Some b2))
 
   | A.EId ((str, tok), _idinfoa), _b when MV.is_metavar_name str ->
-      let e = B.ident_or_dynamic_to_expr b1 None in
+      let e = H.ident_or_dynamic_to_expr b1 None in
       envf (str, tok) (MV.E e)
 
   | A.EId (a, idinfoa), B.EId (b, idinfob) ->
@@ -1604,7 +1605,7 @@ and m_stmt a b =
   (* equivalence: vardef ==> assign, and go deep *)
   | A.ExprStmt (a1, _),
     B.DefStmt (ent, B.VarDef ({B.vinit = Some _; _} as def)) ->
-      let b1 = AST.vardef_to_assign (ent, def) in
+      let b1 = H.vardef_to_assign (ent, def) in
       m_expr_deep a1 b1
   (*x: [[Generic_vs_generic.m_stmt()]] builtin equivalences cases *)
   (* equivalence: *)
@@ -1842,10 +1843,10 @@ and m_pattern a b =
   | A.PatId ((str,tok), _id_info), b2
     when MV.is_metavar_name str ->
       (try
-         let e2 = AST.pattern_to_expr b2 in
+         let e2 = H.pattern_to_expr b2 in
          envf (str, tok) (MV.E (e2))
        (* this can happen with PatAs in exception handler in Python *)
-       with AST.NotAnExpr ->
+       with H.NotAnExpr ->
          envf (str, tok) (MV.P b2)
       )
   (*e: [[Generic_vs_generic.m_pattern()]] metavariable case *)
