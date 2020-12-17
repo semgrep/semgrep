@@ -1139,28 +1139,28 @@ and element_value (env : env) (x : CST.element_value) =
   (match x with
    | `Exp x -> AnnotExprInit (expression env x)
    | `Elem_value_array_init (v1, v2, v3, v4) ->
-       let _v1 = token env v1 (* "{" *) in
+       let lbrace = token env v1 (* "{" *) in
+       let rbrace = token env v4 (* "}" *) in
        let v2 =
-         AnnotArrayInit (match v2 with
-           | Some (v1, v2) ->
-               let v1 = element_value env v1 in
-               let v2 =
-                 List.map (fun (v1, v2) ->
-                   let _v1 = token env v1 (* "," *) in
-                   let v2 = element_value env v2 in
-                   v2
-                 ) v2
-               in
-               v1::v2
-           | None -> [])
+         match v2 with
+         | Some (v1, v2) ->
+             let v1 = element_value env v1 in
+             let v2 =
+               List.map (fun (v1, v2) ->
+                 let _v1 = token env v1 (* "," *) in
+                 let v2 = element_value env v2 in
+                 v2
+               ) v2
+             in
+             v1::v2
+         | None -> []
        in
        let _v3 =
          (match v3 with
           | Some tok -> Some (token env tok) (* "," *)
           | None -> None)
        in
-       let _v4 = token env v4 (* "}" *) in
-       v2
+       AnnotArrayInit (lbrace, v2, rbrace)
    | `Anno x ->
        let (_tok, x) = annotation env x in
        AnnotNestedAnnot x
