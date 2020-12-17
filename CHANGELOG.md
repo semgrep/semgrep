@@ -9,6 +9,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Added
 
 - Support for '...' in chains of method calls in JS, e.g. `$O.foo() ... .bar()`
+- typed metavariables can now match field access when we can propagate
+  the type of a field
 - Official Ruby GA support
 
 ### Fixed

@@ -1023,7 +1023,7 @@ and m_bodies a b =
 
 and m_compatible_type typed_mvar t e =
   match t, e with
-  (* for python literal checking *)
+  (* for Python literal checking *)
   | A.OtherType (A.OT_Expr, [A.E (A.Id (("int", _tok), _idinfo))]),
     B.L (B.Int _) -> envf typed_mvar (MV.E e)
   | A.OtherType (A.OT_Expr, [A.E (A.Id (("float", _tok), _idinfo))]),
@@ -1038,9 +1038,13 @@ and m_compatible_type typed_mvar t e =
   | A.TyId (("int", _), _), B.L (B.Int _) -> envf typed_mvar (MV.E e)
   | A.TyId (("float", _), _), B.L (B.Float _) -> envf typed_mvar (MV.E e)
   | A.TyId (("str", _), _), B.L (B.String _) -> envf typed_mvar (MV.E e)
+
   (* for matching ids *)
   | ta, ( B.Id (idb, {B.id_type=tb; _})
         | B.IdQualified ((idb, _), {B.id_type=tb;_})
+        (* todo: Java does not generate a special This! use Id *)
+        | B.DotAccess ((IdSpecial (This, _) | Id(("this", _), _)),
+                       _, EId (idb, {B.id_type=tb; _}))
         ) ->
       m_type_option_with_hook idb (Some ta) !tb
   | _ -> fail ()
