@@ -325,25 +325,6 @@ and m_type_option_with_hook idb taopt tbopt =
   | None, _ -> return ()
 
 
-and m_ident_or_dyn (a1) (b1) =
-  (* metavar: *)
-  match a1, b1 with
-  | A.EId ((str, tok), a2), A.EId (idb, b2)
-    when MV.is_metavar_name str ->
-      (* a bit OCaml specific, cos only ml_to_generic tags id_type in pattern *)
-      let* () = m_type_option_with_hook idb !(a2.A.id_type) !(b2.B.id_type) in
-      let* () = m_id_info a2 b2 in
-      envf (str, tok) (MV.Id (idb, Some b2))
-
-  | A.EId ((str, tok), _idinfoa), _b when MV.is_metavar_name str ->
-      let e = H.ident_or_dynamic_to_expr b1 None in
-      envf (str, tok) (MV.E e)
-
-  | A.EId (a, idinfoa), B.EId (b, idinfob) ->
-      m_ident_and_id_info (a, idinfoa) (b, idinfob)
-
-  | _ -> m_ident_or_dynamic a1 b1
-
 
 (*s: function [[Generic_vs_generic.m_ident_and_id_info_add_in_env_Expr]] *)
 and m_ident_and_id_info (a1, a2) (b1, b2) =
@@ -769,13 +750,21 @@ and m_expr a b =
 (*s: function [[Generic_vs_generic.m_field_ident]] *)
 and m_ident_or_dynamic a b =
   match a, b with
+  | A.EId ((str, tok), a2), A.EId (idb, b2)
+    when MV.is_metavar_name str ->
+      (* a bit OCaml specific, cos only ml_to_generic tags id_type in pattern *)
+      let* () = m_type_option_with_hook idb !(a2.A.id_type) !(b2.B.id_type) in
+      let* () = m_id_info a2 b2 in
+      envf (str, tok) (MV.Id (idb, Some b2))
+
+  | A.EId ((str, tok), _idinfoa), b when MV.is_metavar_name str ->
+      let e = H.ident_or_dynamic_to_expr b None in
+      envf (str, tok) (MV.E e)
+
+  | A.EId (a, idinfoa), B.EId (b, idinfob) ->
+      m_ident_and_id_info (a, idinfoa) (b, idinfob)
+
   (* boilerplate *)
-  | A.EId (a, _idinfoa), B.EId (b, _idinfob) ->
-      (* metavar for fieldnames such as this.$FUNC
-       * can be matched against method definitions.
-       * TODO: use _idinfox instead of calling with empty_id_info!!
-      *)
-      m_ident_and_empty_id_info a b
   (*s: [[Generic_vs_generic.m_field_ident()]] boilerplate cases *)
   | A.EName a, B.EName b ->
       m_name a b
@@ -1957,7 +1946,7 @@ and m_entity a b =
   *)
     { A. name = a1; attrs = a2; tparams = a4 },
     { B. name = b1; attrs = b2; tparams = b4 } ->
-      m_ident_or_dyn (a1) (b1) >>= (fun () ->
+      m_ident_or_dynamic (a1) (b1) >>= (fun () ->
         (m_list_in_any_order ~less_is_ok:true m_attribute a2 b2) >>= (fun () ->
           (m_list m_type_parameter) a4 b4
         ))
