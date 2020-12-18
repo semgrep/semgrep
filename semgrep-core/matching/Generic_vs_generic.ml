@@ -1042,9 +1042,7 @@ and m_compatible_type typed_mvar t e =
   (* for matching ids *)
   | ta, ( B.Id (idb, {B.id_type=tb; _})
         | B.IdQualified ((idb, _), {B.id_type=tb;_})
-        (* todo: Java does not generate a special This! use Id *)
-        | B.DotAccess ((IdSpecial (This, _) | Id(("this", _), _)),
-                       _, EId (idb, {B.id_type=tb; _}))
+        | B.DotAccess (IdSpecial (This, _), _, EId (idb, {B.id_type=tb; _}))
         ) ->
       m_type_option_with_hook idb (Some ta) !tb
   | _ -> fail ()

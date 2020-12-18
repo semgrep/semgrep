@@ -467,13 +467,9 @@ and name_of_id env tok =
   Name ([[], str env tok])
 
 (* TODO: use a special at some point *)
-and this env tok =
-  name_of_id env tok
 and super env tok =
   name_of_id env tok
 and super_id_field env tok =
-  str env tok
-and this_id_field env tok =
   str env tok
 and new_id env tok =
   str env tok
@@ -486,9 +482,9 @@ and primary (env : env) (x : CST.primary) =
    | `Class_lit (v1, v2, v3) ->
        let v1 = unannotated_type env v1 in
        let _v2 = token env v2 (* "." *) in
-       let _v3 = token env v3 (* "class" *) in
-       ClassLiteral v1
-   | `This tok -> this env tok (* "this" *)
+       let v3 = token env v3 (* "class" *) in
+       ClassLiteral (v1, v3)
+   | `This tok -> This (token env tok) (* "this" *)
    | `Id tok -> name_of_id env tok (* pattern [a-zA-Z_]\w* *)
 
    | `Choice_open x ->
@@ -665,7 +661,7 @@ and field_access (env : env) ((v1, v2, v3, v4) : CST.field_access) =
           | `Open tok -> str env tok (* "open" *)
           | `Module tok -> str env tok (* "module" *)
          )
-     | `This tok -> this_id_field env tok (* "this" *)
+     | `This tok -> str env tok (* "this" *)
     )
   in
   v2 v3 v4
@@ -1487,7 +1483,7 @@ and explicit_constructor_invocation (env : env) ((v1, v2, v3) : CST.explicit_con
          in
          let v2 =
            (match v2 with
-            | `This tok -> this env tok (* "this" *)
+            | `This tok -> This (token env tok) (* "this" *)
             | `Super tok -> super env tok (* "super" *)
            )
          in
@@ -1861,7 +1857,8 @@ and receiver_parameter (env : env) ((v1, v2, v3, v4) : CST.receiver_parameter) =
 
      | None -> ())
   in
-  let v4 = this_id_field env v4 (* "this" *) in
+  (* TODO: build special AST for that? what is a receiver_parameter? *)
+  let v4 = str env v4 (* "this" *) in
   ParamReceiver (AST.canon_var [] (Some v2) (IdentDecl v4))
 
 

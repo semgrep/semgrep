@@ -1,4 +1,4 @@
-class foo {
+class Bar {
     public static void main() {
         int a = 2;
         String b = 3;
