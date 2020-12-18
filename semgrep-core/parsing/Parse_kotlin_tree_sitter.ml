@@ -465,8 +465,9 @@ and annotation (env : env) (x : CST.annotation) =
 and anon_choice_param_b77c1d8 (env : env) (x : CST.anon_choice_param_b77c1d8) =
   (match x with
    | `Param x -> parameter env x
-   | `Type x -> let _ =  type_ env x in
-       raise Todo
+   | `Type x ->
+       let v1 =  type_ env x in
+       ParamPattern (PatType v1)
   )
 
 and assignment (env : env) (x : CST.assignment) =
@@ -1059,18 +1060,18 @@ and function_literal (env : env) (x : CST.function_literal) =
       Lambda(func_def)
 
 and function_type (env : env) ((v1, v2, v3, v4) : CST.function_type) =
-  let v1 =
+  let _v1 =
     (match v1 with
      | Some (v1, v2) ->
          let v1 = simple_user_type env v1 in
          let v2 = token env v2 (* "." *) in
-         todo env (v1, v2)
+         v1
      | None -> todo env ())
   in
   let v2 = function_type_parameters env v2 in
   let v3 = token env v3 (* "->" *) in
   let v4 = type_ env v4 in
-  todo env (v1, v2, v3, v4)
+  TyFun (v2, v4)
 
 and function_type_parameters (env : env) ((v1, v2, v3) : CST.function_type_parameters) =
   let v1 = token env v1 (* "(" *) in
@@ -1082,14 +1083,14 @@ and function_type_parameters (env : env) ((v1, v2, v3) : CST.function_type_param
            List.map (fun (v1, v2) ->
              let v1 = token env v1 (* "," *) in
              let v2 = anon_choice_param_b77c1d8 env v2 in
-             todo env (v1, v2)
+             v2
            ) v2
          in
-         todo env (v1, v2)
-     | None -> todo env ())
+         v1::v2
+     | None -> [])
   in
   let v3 = token env v3 (* ")" *) in
-  todo env (v1, v2, v3)
+  v2
 
 and function_value_parameter (env : env) ((v1, v2, v3) : CST.function_value_parameter) =
   let v1 =
@@ -1344,13 +1345,25 @@ and nullable_type (env : env) ((v1, v2) : CST.nullable_type) =
     )
   in
   let v2 = List.map (token env) (* "?" *) v2 in
-  todo env (v1, v2)
+  (match v2 with
+   | hd::tl -> TyQuestion (v1, hd)
+   | _ ->
+       let q = Parse_info.fake_info "?" in
+       TyQuestion (v1, q)
+  )
 
 and parameter (env : env) ((v1, v2, v3) : CST.parameter) : parameter =
   let v1 = simple_identifier env v1 in
   let v2 = token env v2 (* ":" *) in
   let v3 = type_ env v3 in
-  todo env (v1, v2, v3)
+  let param = {
+    pname = Some v1;
+    ptype = Some v3;
+    pdefault = None;
+    pattrs = [];
+    pinfo = empty_id_info();
+  } in
+  ParamClassic param
 
 and parameter_modifiers (env : env) (x : CST.parameter_modifiers) =
   (match x with
@@ -1580,10 +1593,13 @@ and simple_user_type (env : env) ((v1, v2) : CST.simple_user_type) =
   let v1 = simple_identifier env v1 in
   let v2 =
     (match v2 with
-     | Some x -> type_arguments env x
-     | None -> todo env ())
+     | Some x ->
+         let args = type_arguments env x in
+         let name = (v1, empty_name_info) in
+         TyNameApply (name, args)
+     | None -> TyId (v1, empty_id_info()))
   in
-  todo env (v1, v2)
+  v2
 
 and statement (env : env) (x : CST.statement) : stmt =
   (match x with
@@ -1673,7 +1689,8 @@ and type_ (env : env) ((v1, v2) : CST.type_) : type_ =
      | `Func_type x -> function_type env x
     )
   in
-  todo env (v1, v2)
+  (* TODO: add type_modifier info *)
+  v2
 
 and type_arguments (env : env) ((v1, v2, v3, v4) : CST.type_arguments) =
   let v1 = token env v1 (* "<" *) in
@@ -1769,15 +1786,18 @@ and type_projection (env : env) (x : CST.type_projection) =
        let v2 = type_ env v2 in
        let fake_token = Parse_info.fake_info "type projection" in
        let list = [TodoK ("todo type projection", fake_token);T v2] in
-       OtherType (OT_Todo, list)
+       let othertype = OtherType (OT_Todo, list) in
+       TypeArg othertype
    | `STAR tok ->
        let star = str env tok in
-       OtherType (OT_Todo, [TodoK star]) (* "*" *)
+       let othertype = OtherType (OT_Todo, [TodoK star]) (* "*" *) in
+       TypeArg othertype
   )
 
 and type_reference (env : env) (x : CST.type_reference) =
   (match x with
-   | `User_type x -> user_type env x
+   | `User_type x ->
+       user_type env x
    | `Dyna tok -> TyBuiltin (str env tok) (* "dynamic" *)
   )
 
@@ -1848,10 +1868,11 @@ and user_type (env : env) ((v1, v2) : CST.user_type) =
     List.map (fun (v1, v2) ->
       let v1 = token env v1 (* "." *) in
       let v2 = simple_user_type env v2 in
-      todo env (v1, v2)
+      v2
     ) v2
   in
-  todo env (v1, v2)
+  let list = v1::v2 in
+  TyTuple (fake_bracket list)
 
 and value_argument (env : env) ((v1, v2, v3, v4) : CST.value_argument) =
   let v1 =
