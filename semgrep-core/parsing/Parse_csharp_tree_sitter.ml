@@ -70,6 +70,16 @@ let var_def_stmt (decls : (entity * variable_definition) list) (attrs : attribut
   ) decls in
   stmt1 stmts
 
+let typed_param ti =
+  let t, i = ti in
+  ParamClassic {
+    pname = Some i;
+    ptype = t;
+    pdefault = None;
+    pattrs = [];
+    pinfo = empty_id_info ();
+}
+
 type direction =
   | Ascending
   | Descending
@@ -84,13 +94,27 @@ and linq_query_part =
   | OrderBy of (tok * (expr * direction) list)
   | Where of (tok * expr)
 
-let linq_to_expr query =
+let rec linq_to_expr2 query base_expr from_ident =
   match query with
-  | [] -> raise Impossible
-  | from :: _ ->
-    (match from with
-    | From (_, _, collection) -> collection
-    | _ -> raise Impossible)
+  | [] -> base_expr
+  | ht :: tl ->
+    (match ht with
+    | From (_, id, collection) -> linq_to_expr2 tl collection id
+    | Select (tok, _expr) -> 
+        let func = Lambda {
+          fkind = (Arrow, tok);
+          fparams = [typed_param from_ident];
+          frettype = None;
+          fbody = empty_fbody (*exprstmt expr *);
+        } in
+        let select = DotAccess (base_expr, tok, EId ("Select", tok)) in
+        Call (select, fake_bracket [Arg func])
+    | _ -> failwith "not implemented")
+
+let linq_to_expr from body =
+  match from with
+  | From (_, id, collection) -> linq_to_expr2 body collection id
+  | _ -> raise Impossible
 
 module List = struct
   include List
@@ -1048,8 +1072,7 @@ and expression (env : env) (x : CST.expression) : AST.expr =
    | `Query_exp (v1, v2) ->
        let v1 = from_clause env v1 in
        let v2 = query_body env v2 in
-       let query = v1 :: v2 in
-       linq_to_expr query
+       linq_to_expr v1 v2
    | `Range_exp (v1, v2, v3) ->
        let v1 =
          (match v1 with
