@@ -467,7 +467,7 @@ and anon_choice_param_b77c1d8 (env : env) (x : CST.anon_choice_param_b77c1d8) =
    | `Param x -> parameter env x
    | `Type x ->
        let v1 =  type_ env x in
-       ParamPattern (PatType v1)
+       ParamClassic (param_of_type v1)
   )
 
 and assignment (env : env) (x : CST.assignment) =
@@ -1347,22 +1347,14 @@ and nullable_type (env : env) ((v1, v2) : CST.nullable_type) =
   let v2 = List.map (token env) (* "?" *) v2 in
   (match v2 with
    | hd::tl -> TyQuestion (v1, hd)
-   | _ ->
-       let q = Parse_info.fake_info "?" in
-       TyQuestion (v1, q)
+   | [] -> raise Impossible (* see repeat1($._quest) in grammar.js *)
   )
 
 and parameter (env : env) ((v1, v2, v3) : CST.parameter) : parameter =
   let v1 = simple_identifier env v1 in
   let v2 = token env v2 (* ":" *) in
   let v3 = type_ env v3 in
-  let param = {
-    pname = Some v1;
-    ptype = Some v3;
-    pdefault = None;
-    pattrs = [];
-    pinfo = empty_id_info();
-  } in
+  let param = { (param_of_id v1) with ptype = Some v3 } in
   ParamClassic param
 
 and parameter_modifiers (env : env) (x : CST.parameter_modifiers) =
