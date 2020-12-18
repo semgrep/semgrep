@@ -92,12 +92,13 @@ jobs:
           sudo cp ocaml-build-artifacts/bin/* /usr/bin
       - name: Test semgrep-core
         run: semgrep-core -version
-      - name: Install Tox and any other packages
-        run: pip install pipenv==2018.11.26 wheel==0.34.2 tox==3.15.0
       - name: Run Tox
         run: |
           cd semgrep
-          tox -e py  # Run tox using the version of Python in `PATH`
+          export PATH=/github/home/.local/bin:$PATH
+          pip3 install pipenv
+          pipenv install --dev
+          pipenv run tox -e py  # Run tox using the version of Python in `PATH`
 
 
   build-test:
