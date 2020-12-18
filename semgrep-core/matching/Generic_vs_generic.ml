@@ -1480,23 +1480,23 @@ and m_stmts_deep ~less_is_ok (xsa: A.stmt list) (xsb: A.stmt list) =
       if less_is_ok then return () else fail ()
 
   (* dots: '...', can also match no statement *)
-  | [A.ExprStmt (A.Ellipsis _i, _)], [] ->
+  | [{s=A.ExprStmt (A.Ellipsis _i, _);_}], [] ->
       return ()
 
-  | (A.ExprStmt (A.Ellipsis i, t))::xsa, xb::xsb ->
+  | ({s=A.ExprStmt (A.Ellipsis _i, _);_} as xa)::xsa, xb::xsb ->
       (* let's first try the without going deep *)
       (
         (* can match nothing *)
         (m_list__m_stmt xsa (xb::xsb)) >||>
         (* can match more *)
         (env_add_matched_stmt xb >>= (fun () ->
-           (m_list__m_stmt ((A.ExprStmt (A.Ellipsis i,t))::xsa) xsb)
+           (m_list__m_stmt (xa::xsa) xsb)
          ))
       ) >!> (fun () ->
         if !Flag.go_deeper_stmt
         then
           let xsb' = SubAST_generic.flatten_substmts_of_stmts (xb::xsb) in
-          m_list__m_stmt ((A.ExprStmt (A.Ellipsis i, t))::xsa) xsb'
+          m_list__m_stmt (xa::xsa) xsb'
         else fail ()
       )
 
@@ -1537,15 +1537,15 @@ and m_list__m_stmt (xsa: A.stmt list) (xsb: A.stmt list) =
   (*e: [[Generic_vs_generic.m_list__m_stmt()]] empty list vs list case *)
   (*s: [[Generic_vs_generic.m_list__m_stmt()]] ellipsis cases *)
   (* dots: '...', can also match no statement *)
-  | [A.ExprStmt (A.Ellipsis _i, _)], [] ->
+  | [{s=A.ExprStmt (A.Ellipsis _i, _);_}], [] ->
       return ()
 
-  | (A.ExprStmt (A.Ellipsis i, t))::xsa, xb::xsb ->
+  | ({s=A.ExprStmt (A.Ellipsis _i, _);_} as xa)::xsa, xb::xsb ->
       (* can match nothing *)
       (m_list__m_stmt xsa (xb::xsb)) >||>
       (* can match more *)
       (env_add_matched_stmt xb >>= (fun () ->
-         (m_list__m_stmt ((A.ExprStmt (A.Ellipsis i, t))::xsa) xsb)
+         (m_list__m_stmt (xa::xsa) xsb)
        ))
   (*e: [[Generic_vs_generic.m_list__m_stmt()]] ellipsis cases *)
   (* the general case *)
@@ -1560,16 +1560,16 @@ and m_list__m_stmt (xsa: A.stmt list) (xsb: A.stmt list) =
 
 (*s: function [[Generic_vs_generic.m_stmt]] *)
 and m_stmt a b =
-  match a, b with
+  match a.s, b.s with
   (* the order of the matches matters! take care! *)
   (*s: [[Generic_vs_generic.m_stmt()]] disjunction case *)
   (* equivalence: user-defined equivalence! *)
-  | A.DisjStmt (a1, a2), b ->
+  | A.DisjStmt (a1, a2), _b ->
       m_stmt a1 b >||> m_stmt a2 b
   (*e: [[Generic_vs_generic.m_stmt()]] disjunction case *)
   (*s: [[Generic_vs_generic.m_stmt()]] metavariable case *)
   (* metavar: *)
-  | A.ExprStmt(A.Id ((str,tok), _id_info), _), b
+  | A.ExprStmt(A.Id ((str,tok), _id_info), _), _b
     when MV.is_metavar_name str ->
       envf (str, tok) (MV.S b)
   (*e: [[Generic_vs_generic.m_stmt()]] metavariable case *)
@@ -1730,7 +1730,7 @@ and m_for_header a b =
 (*e: function [[Generic_vs_generic.m_for_header]] *)
 
 and m_block a b =
-  match a, b with
+  match a.s, b.s with
   | A.Block _, B.Block _ ->
       m_stmt a b
   | A.Block (_, [a_stmt], _), _ ->
@@ -2136,7 +2136,7 @@ and m_variable_definition a b =
 and m_fields (xsa: A.field list) (xsb: A.field list) =
   (* let's filter the '...' *)
   let xsa = xsa |> Common.exclude (function
-    | A.FieldStmt (A.ExprStmt (A.Ellipsis _, _)) -> true
+    | A.FieldStmt ({s=A.ExprStmt (A.Ellipsis _, _);_}) -> true
     | _ -> false) in
   m_list__m_field xsa xsb
 (*e: function [[Generic_vs_generic.m_fields]] *)
@@ -2157,11 +2157,11 @@ and m_list__m_field (xsa: A.field list) (xsb: A.field list) =
       return ()
   (*e: [[Generic_vs_generic.m_list__m_field()]] empty list vs list case *)
   (*s: [[Generic_vs_generic.m_list__m_field()]] ellipsis cases *)
-  | (A.FieldStmt (A.ExprStmt (A.Ellipsis _, _)))::_, _ ->
+  | (A.FieldStmt ({s=A.ExprStmt (A.Ellipsis _, _);_}))::_, _ ->
       raise Impossible
   (*e: [[Generic_vs_generic.m_list__m_field()]] ellipsis cases *)
   (*s: [[Generic_vs_generic.m_list__m_field()]] [[DefStmt]] pattern case *)
-  | (A.FieldStmt (A.DefStmt (({A.name = A.EId ((s1, _), _); _}, _) as adef)) as a)::xsa,
+  | (A.FieldStmt ({s=A.DefStmt (({A.name = A.EId ((s1, _), _); _}, _) as adef);_}) as a)::xsa,
     xsb ->
       (*s: [[Generic_vs_generic.m_list__m_field()]] in [[DefStmt]] case if metavar field *)
       if MV.is_metavar_name s1 || Matching_generic.is_regexp_string s1
@@ -2180,12 +2180,12 @@ and m_list__m_field (xsa: A.field list) (xsb: A.field list) =
       else
         (try
            let (before, there, after) = xsb |> Common2.split_when (function
-             | (A.FieldStmt (A.DefStmt ({B.name = B.EId ((s2, _tok), _); _}, _)))
+             | (A.FieldStmt ({s=A.DefStmt ({B.name = B.EId ((s2, _tok), _); _}, _);_}))
                when s2 = s1 -> true
              | _ -> false
            ) in
            (match there with
-            | (A.FieldStmt (A.DefStmt bdef)) ->
+            | (A.FieldStmt ({s=A.DefStmt bdef;_})) ->
                 m_definition adef bdef >>= (fun () ->
                   m_list__m_field xsa (before @ after)
                 )

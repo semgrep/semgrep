@@ -17,6 +17,7 @@ module AST = AST_generic
 module H = Parse_tree_sitter_helpers
 module PI = Parse_info
 open AST_generic
+module G = AST_generic
 
 (*****************************************************************************)
 (* Prelude *)
@@ -546,7 +547,7 @@ and block (env : env) ((v1, v2, v3) : CST.block) =
      | None -> [])
   in
   let v3 = token env v3 (* "}" *) in
-  Block (v1, v2, v3)
+  Block (v1, v2, v3) |> G.s
 
 and call_suffix (env : env) (v1 : CST.call_suffix) =
   (match v1 with
@@ -1019,7 +1020,7 @@ and function_body (env : env) (x : CST.function_body) =
    | `EQ_exp (v1, v2) ->
        let v1 = token env v1 (* "=" *) in
        let v2 = expression env v2 in
-       ExprStmt (v2, sc)
+       ExprStmt (v2, sc) |> G.s
   )
 
 and function_literal (env : env) (x : CST.function_literal) =
@@ -1180,7 +1181,7 @@ and jump_expression (env : env) (x : CST.jump_expression) =
   | `Throw_exp (v1, v2) ->
       let v1 = token env v1 (* "throw" *) in
       let v2 = expression env v2 in
-      Throw (v1, v2, sc)
+      Throw (v1, v2, sc) |> G.s
   | `Choice_ret_opt_exp (v1, v2) ->
       let v1 =
         (match v1 with
@@ -1210,23 +1211,23 @@ and jump_expression (env : env) (x : CST.jump_expression) =
                 let list = [TodoK ("todo return@", return_tok);E id; E v2_expr] in
                 OtherStmt (OS_Todo, list)
            )
-      )
+      ) |> G.s
   | `Cont tok ->
       let v1 = token env tok (* "continue" *) in
-      Continue (v1, LNone, sc)
+      Continue (v1, LNone, sc) |> G.s
   | `Cont_at (v1, v2) ->
       let v1 = token env v1 (* "continue@" *) in
       let v2 = simple_identifier env v2 in
       let ident = LId (v2) in
-      Continue (v1, ident, sc)
+      Continue (v1, ident, sc) |> G.s
   | `Brk tok ->
       let v1 = token env tok (* "break" *) in
-      Break (v1, LNone, sc)
+      Break (v1, LNone, sc) |> G.s
   | `Brk_at (v1, v2) ->
       let v1 = token env v1 (* "break@" *) in
       let v2 = simple_identifier env v2 in
       let ident = LId (v2) in
-      Break (v1, ident, sc)
+      Break (v1, ident, sc) |> G.s
 
 and lambda_literal (env : env) ((v1, v2, v3, v4) : CST.lambda_literal) =
   let v1 = token env v1 (* "{" *) in
@@ -1247,7 +1248,7 @@ and lambda_literal (env : env) ((v1, v2, v3, v4) : CST.lambda_literal) =
      | Some x -> statements env x
      | None -> [])
   in
-  let block_v3 = Block (fake_bracket v3) in
+  let block_v3 = Block (fake_bracket v3) |> G.s in
   let v4 = token env v4 (* "}" *) in
   let kind = LambdaKind, v1 in
   let func_def = {
@@ -1504,7 +1505,7 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
          )
        in
        let (v6, v7) = v5 in
-       let if_stmt = If (v1, v3, v6, v7) in
+       let if_stmt = If (v1, v3, v6, v7) |> G.s in
        OtherExpr (OE_StmtExpr, [S if_stmt])
    | `When_exp (v1, v2, v3, v4, v5) ->
        let v1 = token env v1 (* "when" *) in
@@ -1516,7 +1517,7 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
        let v3 = token env v3 (* "{" *) in
        let v4 = List.map (when_entry env) v4 in
        let v5 = token env v5 (* "}" *) in
-       let switch_stmt = Switch (v1, v2, v4) in
+       let switch_stmt = Switch (v1, v2, v4) |> G.s in
        OtherExpr (OE_StmtExpr, [S switch_stmt])
    | `Try_exp (v1, v2, v3) ->
        let v1 = token env v1 (* "try" *) in
@@ -1537,7 +1538,7 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
          )
        in
        let catch, finally = v3 in
-       let try_stmt = Try (v1, v2, catch, finally) in
+       let try_stmt = Try (v1, v2, catch, finally) |> G.s in
        OtherExpr (OE_StmtExpr, [S try_stmt])
    | `Jump_exp x ->
        let v1 = jump_expression env x in
@@ -1588,7 +1589,7 @@ and simple_user_type (env : env) ((v1, v2) : CST.simple_user_type) =
 and statement (env : env) (x : CST.statement) : stmt =
   (match x with
    | `Decl x -> let dec = declaration env x in
-       DefStmt dec
+       DefStmt dec |> AST.s
    | `Rep_choice_label_choice_assign (_v1, v2) ->
        (*let v1 =
          List.map (fun x ->
@@ -1604,7 +1605,7 @@ and statement (env : env) (x : CST.statement) : stmt =
           | `Assign x -> assignment env x
           | `Loop_stmt x -> loop_statement env x
           | `Exp x -> let v1 = expression env x in
-              ExprStmt (v1, sc)
+              ExprStmt (v1, sc) |> AST.s
          )
        in
        v2
