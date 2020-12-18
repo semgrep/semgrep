@@ -73,7 +73,7 @@ jobs:
     needs: [build-core]
     strategy:
       matrix:
-        python: [3.7]
+        python: [3.6, 3.7, 3.8, 3.9]
     steps:
       - name: Setup Python
         uses: actions/setup-python@v1
@@ -88,6 +88,7 @@ jobs:
       - name: Install artifacts
         run: |
           tar xf ocaml-build-artifacts/ocaml-build-artifacts.tgz
+          ls -lR ocaml-build-artifacts
           sudo cp ocaml-build-artifacts/bin/* /usr/bin
       - name: Test semgrep-core
         run: semgrep-core -version
@@ -96,7 +97,7 @@ jobs:
       - name: Run Tox
         run: |
           cd semgrep
-          tox -v -e py  # Run tox using the version of Python in `PATH`
+          tox -e py  # Run tox using the version of Python in `PATH`
 
 
   build-test:
