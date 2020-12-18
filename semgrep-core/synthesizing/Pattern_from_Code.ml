@@ -12,6 +12,7 @@
  * file license.txt for more details.
 *)
 open AST_generic
+module G = AST_generic
 
 (*****************************************************************************)
 (* Prelude *)
@@ -52,8 +53,8 @@ let lookup env e =
 (* Helpers *)
 (*****************************************************************************)
 let fk = Parse_info.fake_info "fake"
-let fk_stmt = ExprStmt (Ellipsis fk, fk)
-let body_ellipsis t1 t2 = Block(t1, [fk_stmt], t2)
+let fk_stmt = ExprStmt (Ellipsis fk, fk) |> G.s
+let body_ellipsis t1 t2 = Block(t1, [fk_stmt], t2) |> G.s
 let _bk f (lp,x,rp) = (lp, f x, rp)
 
 let default_id str =
@@ -240,7 +241,7 @@ and add_stmt s f env =
 
 (* All statements *)
 and generalize_exprstmt (e, tok) env =
-  add_expr e (fun (str, e') -> (str, S (ExprStmt (e', tok)))) env
+  add_expr e (fun (str, e') -> (str, S (ExprStmt (e', tok) |> G.s))) env
 
 and generalize_if s_in =
   let opt f so =
@@ -249,40 +250,49 @@ and generalize_if s_in =
     | Some x -> Some (f x)
   in
   let rec dots_in_body s =
-    match s with
-    | If (tok, e, s, sopt) -> If (tok, e, dots_in_body s, opt dots_in_body sopt)
-    | Block (t1, [If _ as x], t2) -> Block(t1, [dots_in_body x], t2)
+    match s.s with
+    | If (tok, e, s, sopt) ->
+        If (tok, e, dots_in_body s, opt dots_in_body sopt) |> G.s
+    | Block (t1, [{s=If _;_} as x], t2) ->
+        Block(t1, [dots_in_body x], t2) |> G.s
     | Block (t1, _, t2) -> body_ellipsis t1 t2
     | _ -> fk_stmt
   in
   let rec dots_in_cond s =
-    match s with
-    | If (tok, _, s, sopt) -> If (tok, Ellipsis fk, s, opt dots_in_cond sopt)
-    | Block (t1, [If _ as x], t2) -> Block (t1, [dots_in_cond x], t2)
-    | x -> x
+    match s.s with
+    | If (tok, _, s, sopt) ->
+        If (tok, Ellipsis fk, s, opt dots_in_cond sopt) |> G.s
+    | Block (t1, [{s=If _;_} as x], t2) ->
+        Block (t1, [dots_in_cond x], t2) |> G.s
+    | _ -> s
   in
   ["dots in body", S (dots_in_body s_in); "dots in cond", S (dots_in_cond s_in)]
 
 and generalize_while (tok, e, s) env =
   let body_dots =
-    match s with
+    match s.s with
     | Block (t1, _, t2) -> body_ellipsis t1 t2
     | _ -> fk_stmt
   in
-  let dots_in_cond = ("dots in condition", S (While (tok, Ellipsis fk, s))) in
-  let dots_in_body = ("dots in body", S (While (tok, e, body_dots))) in
+  let dots_in_cond = ("dots in condition",
+                      S (While (tok, Ellipsis fk, s) |> G.s)) in
+  let dots_in_body = ("dots in body",
+                      S (While (tok, e, body_dots) |> G.s)) in
   let expr_choices_in_cond =
-    add_expr e (fun (str, e') -> ("condition " ^ str, S (While (tok, e', body_dots)))) env in
+    add_expr e (fun (str, e') -> ("condition " ^ str,
+                                  S (While (tok, e', body_dots) |> G.s))) env in
   dots_in_cond :: dots_in_body :: expr_choices_in_cond
 
 and generalize_for (tok, hdr, s) =
   let body_dots =
-    match s with
+    match s.s with
     | Block (t1, _, t2) -> body_ellipsis t1 t2
     | _ -> fk_stmt
   in
-  let dots_in_body = ("dots in body", S (For (tok, hdr, body_dots))) in
-  let dots_in_cond = ("dots in condition", S (For (tok, ForEllipsis fk, s))) in
+  let dots_in_body = ("dots in body",
+                      S (For (tok, hdr, body_dots) |> G.s)) in
+  let dots_in_cond = ("dots in condition",
+                      S (For (tok, ForEllipsis fk, s) |> G.s)) in
   dots_in_cond :: dots_in_body :: []
 
 and generalize_block (t1, ss, t2) env =
@@ -293,13 +303,17 @@ and generalize_block (t1, ss, t2) env =
   in
   match ss with
   | [] -> []
-  | x::[] -> add_stmt x (fun (str, s') -> ("with " ^ str, S (Block ((t1, [s'], t2))))) env
-  | x::_::[] -> ["dots", S (Block ((t1, x::(fk_stmt)::[], t2)))]
-  | x::y::z::zs -> ["dots", S (Block ((t1, x::(fk_stmt)::(get_last (y::z::zs)), t2)))]
+  | x::[] ->
+      add_stmt x (fun (str, s') -> ("with " ^ str,
+                                    S (Block ((t1, [s'], t2)) |> G.s))) env
+  | x::_::[] ->
+      ["dots", S (Block ((t1, x::(fk_stmt)::[], t2)) |> G.s)]
+  | x::y::z::zs ->
+      ["dots", S (Block ((t1, x::(fk_stmt)::(get_last (y::z::zs)), t2)) |> G.s)]
 (* All statements *)
 
 and generalize_stmt s env =
-  match s with
+  match s.s with
   | ExprStmt (e, tok) -> generalize_exprstmt (e, tok) env
   | If _ -> generalize_if s
   | While (tok, e, s) -> generalize_while (tok, e, s) env
