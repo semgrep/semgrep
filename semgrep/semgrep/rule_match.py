@@ -145,7 +145,7 @@ class RuleMatch:
         return json_obj
 
     def to_junit_xml(self) -> Dict[str, Any]:
-        test_case = TestCase(self.id, file=str(self.path), line=self.start["line"])
+        test_case = TestCase(self.id, file=str(self.path), line=self.start["line"], classname=str(self.path))
         test_case.add_failure_info(
             message=self.message, output=self.lines, failure_type=self.severity
         )
