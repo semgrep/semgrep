@@ -91,7 +91,7 @@ let subexprs_of_expr e =
 (*s: function [[SubAST_generic.subexprs_of_stmt]] *)
 (* used for really deep statement matching *)
 let subexprs_of_stmt st =
-  match st with
+  match st.s with
   (* 1 *)
   | ExprStmt (e, _)
   | If (_, e, _, _)
@@ -141,7 +141,7 @@ let subexprs_of_stmt st =
 (*s: function [[SubAST_generic.substmts_of_stmt]] *)
 (* used for deep statement matching *)
 let substmts_of_stmt st =
-  match st with
+  match st.s with
   (* 0 *)
   | DirectiveStmt _
   | ExprStmt _

@@ -14,6 +14,7 @@
 open Common
 open AST_generic
 module F = Format
+module G = AST_generic
 
 (*****************************************************************************)
 (* Prelude *)
@@ -120,8 +121,8 @@ let arithop env (op, tok) =
 
 (* statements *)
 
-let rec stmt env level =
-  function
+let rec stmt env level st =
+  match st.s with
   | ExprStmt (e, tok) -> F.sprintf "%s%s" (expr env e) (token "" tok)
   | Block (x) -> block env x level
   | If (tok, e, s, sopt) -> if_stmt env level (token "if" tok, e, s, sopt)
@@ -132,7 +133,7 @@ let rec stmt env level =
   | DefStmt (def) -> def_stmt env def
   | Break (tok, lbl, sc) -> break env (tok, lbl) sc
   | Continue (tok, lbl, sc) -> continue env (tok, lbl) sc
-  | x -> todo (S x)
+  | _ -> todo (S st)
 
 and block env (t1, ss, t2) level =
   let rec indent =
@@ -182,9 +183,9 @@ and if_stmt env level (tok, e, s, sopt) =
   let if_stmt_prt = format_block e_str s_str in
   match sopt with
   | None -> if_stmt_prt
-  | Some (If (_, e', s', sopt')) ->
+  | Some ({s=If (_, e', s', sopt');_}) ->
       F.sprintf "%s%s" if_stmt_prt (if_stmt env level (indent level ^ elseif_str, e', s', sopt'))
-  | Some (Block(_, [If (_, e', s', sopt')], _)) ->
+  | Some ({s=Block(_, [{s=If (_, e', s', sopt');_}], _);_}) ->
       F.sprintf "%s%s" if_stmt_prt (if_stmt env level (indent level ^ elseif_str, e', s', sopt'))
   | Some (body) ->
       F.sprintf "%s%s" if_stmt_prt (format_block ((indent level) ^ "else") (stmt env (level + 1) body))
@@ -286,7 +287,7 @@ and def_stmt env (entity, def_kind) =
   in
   match def_kind with
   | VarDef def -> var_def (entity, def)
-  | _ -> todo (S (DefStmt(entity, def_kind)))
+  | _ -> todo (S (DefStmt(entity, def_kind) |> G.s))
 
 and return env (tok, eopt) _sc =
   let to_return =

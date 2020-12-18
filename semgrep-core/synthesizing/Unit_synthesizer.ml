@@ -198,9 +198,11 @@ let unittest =
             let e_opt = Range_to_AST.any_at_range r code in
             match e_opt with
             | Some any ->
-                let a = match (pattern, any) with
-                  | (A.E _, A.S (A.ExprStmt (e, _))) -> A.E e
-                  | (_, x) -> x in
+                let a =
+                  match (pattern, any) with
+                  | (A.E _, A.S ({A.s=A.ExprStmt (e, _);_})) -> A.E e
+                  | (_, x) -> x
+                in
                 let matches_with_env = Semgrep_generic.match_any_any
                     pattern a in
                 (* Debugging note: uses pattern_to_string for convenience,
