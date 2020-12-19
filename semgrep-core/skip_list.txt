@@ -38,9 +38,9 @@ file: ocaml-tree-sitter-lang/javascript/lib/Parse.ml
 file: ocaml-tree-sitter-lang/tsx/lib/parser.c
 file: ocaml-tree-sitter-lang/tsx/lib/scanner.cc
 file: ocaml-tree-sitter-lang/tsx/lib/Parse.ml
-file: ocaml-tree-sitter-lang/csharp/lib/parser.c
-file: ocaml-tree-sitter-lang/csharp/lib/scanner.cc
-file: ocaml-tree-sitter-lang/csharp/lib/Parse.ml
+file: ocaml-tree-sitter-lang/c-sharp/lib/parser.c
+file: ocaml-tree-sitter-lang/c-sharp/lib/scanner.cc
+file: ocaml-tree-sitter-lang/c-sharp/lib/Parse.ml
 file: ocaml-tree-sitter-lang/cpp/lib/parser.c
 file: ocaml-tree-sitter-lang/cpp/lib/scanner.cc
 file: ocaml-tree-sitter-lang/cpp/lib/Parse.ml
