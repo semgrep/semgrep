@@ -12,7 +12,7 @@
  * file license.txt for more details.
 *)
 open Common
-module CST = Tree_sitter_csharp.CST
+module CST = Tree_sitter_c_sharp.CST
 module AST = AST_generic
 module H = Parse_tree_sitter_helpers
 open AST_generic
@@ -2466,7 +2466,7 @@ let parse file =
   H.wrap_parser
     (fun () ->
        Parallel.backtrace_when_exn := false;
-       Parallel.invoke Tree_sitter_csharp.Parse.file file ()
+       Parallel.invoke Tree_sitter_c_sharp.Parse.file file ()
     )
     (fun cst ->
        let env = { H.file; conv = H.line_col_to_pos file; extra = () } in

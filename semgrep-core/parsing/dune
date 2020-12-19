@@ -8,7 +8,7 @@
    tree-sitter-lang.java
    tree-sitter-lang.kotlin
    tree-sitter-lang.go
-   tree-sitter-lang.csharp
+   tree-sitter-lang.c-sharp
    tree-sitter-lang.javascript
    tree-sitter-lang.typescript
    tree-sitter-lang.tsx
