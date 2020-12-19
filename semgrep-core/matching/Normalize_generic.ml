@@ -82,9 +82,7 @@ let rec eval x =
   match x with
   | L x -> Some x
   | Id (_, { id_const_literal = {contents = Some x}; _})
-  (* todo: Java does not generate a special This! use Id *)
-  | DotAccess ((IdSpecial (This, _) | Id(("this", _), _)),
-               _, EId (_, {id_const_literal = {contents = Some x}; _})) ->
+  | DotAccess (IdSpecial (This, _), _, EId (_, {id_const_literal = {contents = Some x}; _})) ->
       Some x
 
   | Call(IdSpecial((Op(Plus | Concat) | ConcatString _), _), args)->
