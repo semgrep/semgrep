@@ -377,8 +377,9 @@ and id_qualified env ((id, {name_qualifier; _}), _idinfo) =
 
 
 and special env = function
-  | (Op op, tok) -> arithop env (op, tok)
+  | (This, _) -> "this"
   | (New, _) -> "new"
+  | (Op op, tok) -> arithop env (op, tok)
   | (IncrDecr _, _) -> "" (* should be captured in the call *)
   | (sp, tok) -> todo (E (IdSpecial (sp, tok)))
 
