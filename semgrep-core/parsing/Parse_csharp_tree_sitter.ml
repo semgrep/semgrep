@@ -78,7 +78,7 @@ let typed_param ti =
     pdefault = None;
     pattrs = [];
     pinfo = empty_id_info ();
-}
+  }
 
 type direction =
   | Ascending
@@ -94,23 +94,30 @@ and linq_query_part =
   | OrderBy of (tok * (expr * direction) list)
   | Where of (tok * expr)
 
+let call_lambda base_expr tok funcname from_ident expr =
+  let func = Lambda {
+    fkind = (Arrow, tok);
+    fparams = [typed_param from_ident];
+    frettype = None;
+    fbody = exprstmt expr;
+  } in
+  let idinfo = empty_id_info() in
+  let method_ = DotAccess (base_expr, tok, EId ((funcname, tok), idinfo)) in
+  Call (method_, fake_bracket [Arg func])
+
 let rec linq_to_expr2 query base_expr from_ident =
   match query with
   | [] -> base_expr
   | ht :: tl ->
-    (match ht with
-    | From (_, id, collection) -> linq_to_expr2 tl collection id
-    | Select (tok, expr) -> 
-        let func = Lambda {
-          fkind = (Arrow, tok);
-          fparams = [typed_param from_ident];
-          frettype = None;
-          fbody = exprstmt expr;
-        } in
-        let idinfo = empty_id_info() in
-        let select = DotAccess (base_expr, tok, EId (("Select", tok), idinfo)) in
-        Call (select, fake_bracket [Arg func])
-    | _ -> failwith "not implemented")
+      (match ht with
+       | From (_, id, collection) -> linq_to_expr2 tl collection id
+       | Select (tok, expr) -> 
+           let base_expr = call_lambda base_expr tok "Select" from_ident expr in
+           linq_to_expr2 tl base_expr from_ident
+       | Where (tok, expr) -> 
+           let base_expr = call_lambda base_expr tok "Where" from_ident expr in
+           linq_to_expr2 tl base_expr from_ident
+       | _ -> failwith "not implemented")
 
 let linq_to_expr from body =
   match from with
