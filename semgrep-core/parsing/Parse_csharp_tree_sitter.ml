@@ -100,14 +100,15 @@ let rec linq_to_expr2 query base_expr from_ident =
   | ht :: tl ->
     (match ht with
     | From (_, id, collection) -> linq_to_expr2 tl collection id
-    | Select (tok, _expr) -> 
+    | Select (tok, expr) -> 
         let func = Lambda {
           fkind = (Arrow, tok);
           fparams = [typed_param from_ident];
           frettype = None;
-          fbody = empty_fbody (*exprstmt expr *);
+          fbody = exprstmt expr;
         } in
-        let select = DotAccess (base_expr, tok, EId ("Select", tok)) in
+        let idinfo = empty_id_info() in
+        let select = DotAccess (base_expr, tok, EId (("Select", tok), idinfo)) in
         Call (select, fake_bracket [Arg func])
     | _ -> failwith "not implemented")
 
