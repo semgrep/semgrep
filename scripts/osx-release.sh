@@ -1,4 +1,4 @@
-#!/bin/bash
+#! /usr/bin/env bash
 set -e
 brew install opam pkg-config coreutils
 opam init --no-setup --bare;
