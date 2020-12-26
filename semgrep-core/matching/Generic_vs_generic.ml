@@ -713,6 +713,8 @@ and m_expr a b =
       m_tok a0 b0 >>= (fun () ->
         m_expr a1 b1
       )
+  | A.Next(a0), B.Next(b0) ->
+      m_tok a0 b0
   | A.Cast(a1, a2), B.Cast(b1, b2) ->
       m_type_ a1 b1 >>= (fun () ->
         m_expr a2 b2
@@ -739,7 +741,7 @@ and m_expr a b =
   | A.Call _, _  | A.Xml _, _
   | A.Assign _, _  | A.AssignOp _, _  | A.LetPattern _, _  | A.DotAccess _, _
   | A.ArrayAccess _, _  | A.Conditional _, _  | A.MatchPattern _, _
-  | A.Yield _, _  | A.Await _, _  | A.Cast _, _  | A.Seq _, _  | A.Ref _, _
+  | A.Yield _, _  | A.Await _, _  | A.Next _, _ | A.Cast _, _  | A.Seq _, _  | A.Ref _, _
   | A.DeRef _, _  | A.OtherExpr _, _
   | A.SliceAccess _, _
   | A.TypedMetavar _, _ | A.DotAccessEllipsis _, _
@@ -907,10 +909,13 @@ and m_special a b =
       m_eq a1 b1 >>= (fun () ->
         m_eq a2 b2
       )
+  | A.NextArrayIndex, B.NextArrayIndex ->
+      return ()
   | A.This, _  | A.Super, _  | A.Self, _  | A.Parent, _  | A.Eval, _
   | A.Typeof, _  | A.Instanceof, _  | A.Sizeof, _  | A.New, _
   | A.ConcatString _, _  | A.Spread, _  | A.Op _, _  | A.IncrDecr _, _
   | A.EncodedString _, _ | A.HashSplat, _ | A.Defined, _ | A.ForOf, _
+  | A.NextArrayIndex, _
     -> fail ()
 (*e: function [[Generic_vs_generic.m_special]] *)
 
@@ -1723,7 +1728,11 @@ and m_for_header a b =
         m_tok at bt >>= (fun () ->
           m_expr a2 b2
         ))
-  | A.ForClassic _, _  | A.ForEach _, _
+  | A.ForIn(a1, a2), B.ForIn(b1, b2) ->
+      (m_list m_for_var_or_expr) a1 b1 >>= (fun () ->
+        m_list m_expr a2 b2
+      )
+  | A.ForClassic _, _  | A.ForEach _, _ | A.ForIn _, _
     -> fail ()
 (*e: function [[Generic_vs_generic.m_for_header]] *)
 

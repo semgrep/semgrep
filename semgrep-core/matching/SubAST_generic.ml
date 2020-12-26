@@ -78,6 +78,7 @@ let subexprs_of_expr e =
   | Lambda _
   | AnonClass _
   | Xml _
+  | Next _
   | LetPattern _ | MatchPattern _
     -> []
   | DisjExpr _ -> raise Common.Impossible
@@ -122,6 +123,7 @@ let subexprs_of_stmt st =
 
   | Assert (_, e1, e2opt, _) ->
       e1::Common.opt_to_list e2opt
+  | For (_, ForIn (_, es), _) -> es
 
   (* 0 *)
   | DirectiveStmt _

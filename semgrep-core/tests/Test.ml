@@ -155,6 +155,12 @@ let lang_parsing_tests =
       let lang = Lang.Ruby in
       parsing_tests_for_lang files lang
     );
+    "Lua" >::: (
+      let dir = Filename.concat (Filename.concat tests_path "lua") "parsing" in
+      let files = Common2.glob (spf "%s/*.lua" dir) in
+      let lang = Lang.Lua in
+      parsing_tests_for_lang files lang
+    );
   ]
 
 (*s: constant [[Test.lang_regression_tests]] *)

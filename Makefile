@@ -67,7 +67,7 @@ setup:
 	git submodule update --init --recursive
 	opam update -y
 	opam install -y --deps-only ./semgrep-core/pfff
-	cd ocaml-tree-sitter && ./scripts/install-tree-sitter-lib
+	# cd ocaml-tree-sitter && ./scripts/install-tree-sitter-lib
 	opam install -y --deps-only ./ocaml-tree-sitter
 	opam install -y --deps-only ./semgrep-core
 	opam install -y --deps-only ./spacegrep
