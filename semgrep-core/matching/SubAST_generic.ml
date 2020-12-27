@@ -78,7 +78,6 @@ let subexprs_of_expr e =
   | Lambda _
   | AnonClass _
   | Xml _
-  | Next _
   | LetPattern _ | MatchPattern _
     -> []
   | DisjExpr _ -> raise Common.Impossible

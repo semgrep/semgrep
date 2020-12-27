@@ -84,12 +84,6 @@ let map_field_sep (env : env) (x : CST.field_sep) =
 (* let map_identifier (env : env) (tok : CST.identifier) =
  *   token env tok (\* pattern [a-zA-Z_][a-zA-Z0-9_]* *\) *)
 
-let map_global_variable (env : env) (x : CST.global_variable) =
-  (match x with
-  | `X__G tok -> ident env tok (* "_G" *)
-  | `X__VERSION tok -> ident env tok (* "_VERSION" *)
-  )
-
 (* let map_string_ (env : env) (tok : CST.string_) =
  *   token env tok (\* string *\) *)
 
@@ -362,7 +356,6 @@ and map_expression (env : env) (x : CST.expression): G.expr =
   (match x with
   | `Spread tok -> G.Ellipsis (token env tok) (* "..." *)
   | `Prefix x -> map_prefix env x
-  | `Next tok -> G.Next (token env tok) (* "next" *)
   | `Func_defi (v1, v2) ->
       let t = token env v1 (* "function" *) in
       let v2 = map_function_body env v2 v1 in
@@ -506,19 +499,13 @@ and map_loop_expression (env : env) ((v1, v2, v3, v4, v5, v6) : CST.loop_express
 
 and map_prefix (env : env) (x : CST.prefix): G.expr =
   (match x with
-  | `Self tok -> ident env tok (* "self" *)
-  | `Global_var x -> map_global_variable env x
   | `Var_decl x -> map_variable_declarator_expr env x
   | `Func_call_stmt x -> map_function_call_expr env x
-  | `LPAR_opt_exp_rep_COMMA_exp_RPAR (v1, v2, v3) ->
+  | `LPAR_exp_RPAR (v1, v2, v3) ->
       let v1 = token env v1 (* "(" *) in
-      let v2 =
-        (match v2 with
-        | Some x -> map_expression_list env x
-        | None -> [])
-      in
+      let v2 = map_expression env v2 in
       let v3 = token env v3 (* ")" *) in
-      List.nth v2 0
+      v2
   )
 
 and map_return_statement (env : env) ((v1, v2, v3) : CST.return_statement) =
@@ -672,6 +659,8 @@ and map_variable_declarator_expr (env : env) (x : CST.variable_declarator): G.ex
   (match x with
   | `Id tok ->
       ident env tok (* pattern [a-zA-Z_][a-zA-Z0-9_]* *)
+  | `Self tok ->
+      ident env tok (* "self" *)
   | `Prefix_LBRACK_exp_RBRACK (v1, v2, v3, v4) ->
       let v1 = map_prefix env v1 in
       let v2 = token env v2 (* "[" *) in
@@ -694,6 +683,8 @@ and map_variable_declarator_expr (env : env) (x : CST.variable_declarator): G.ex
 and map_variable_declarator (env : env) (x : CST.variable_declarator): G.entity =
   let s = (match x with
   | `Id tok ->
+      G.EId (identifier env tok, G.empty_id_info ()) (* pattern [a-zA-Z_][a-zA-Z0-9_]* *)
+  | `Self tok ->
       G.EId (identifier env tok, G.empty_id_info ()) (* pattern [a-zA-Z_][a-zA-Z0-9_]* *)
   | `Prefix_LBRACK_exp_RBRACK (v1, v2, v3, v4) ->
       let v1 = map_prefix env v1 in
