@@ -1,4 +1,4 @@
-#!/bin/bash
+#! /usr/bin/env bash
 set -e
 pip install setuptools wheel
 cd semgrep && python setup.py sdist bdist_wheel

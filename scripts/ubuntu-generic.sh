@@ -1,4 +1,4 @@
-#!/bin/bash
+#! /usr/bin/env bash
 set -e
 version="${VERSION:?Set a version to install}"
 tarball=semgrep-v$version-ubuntu-16.04.tgz

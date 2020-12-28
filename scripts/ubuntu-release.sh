@@ -1,4 +1,4 @@
-#!/bin/bash
+#! /usr/bin/env bash
 #
 # Make a semgrep release for Linux x86_64.
 #

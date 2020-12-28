@@ -1,4 +1,4 @@
-#!/bin/bash
+#! /usr/bin/env bash
 set -e
 
 echo "Loading version from file: $(cat version)"

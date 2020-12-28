@@ -1,4 +1,4 @@
-#!/bin/bash
+#! /usr/bin/env bash
 set -e
 HOST="https://dashboard.semgrep.dev"
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
