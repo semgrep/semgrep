@@ -1091,7 +1091,8 @@ and expression (env : env) (x : CST.expression) : AST.expr =
    | `Throw_exp (v1, v2) ->
        let v1 = token env v1 (* "throw" *) in
        let v2 = expression env v2 in
-       todo env (v1, v2)
+       let throw = Throw (v1, v2, sc) in
+       OtherExpr (OE_StmtExpr, [AST.S (AST.s throw)])
    | `Tuple_exp (v1, v2, v3, v4) ->
        let v1 = token env v1 (* "(" *) in
        let v2 = argument env v2 in
@@ -1939,7 +1940,7 @@ let bracketed_parameter_list (env : env) ((v1, v2, v3, v4) : CST.bracketed_param
     ) v3
   in
   let v4 = token env v4 (* "]" *) in
-  todo env (v1, v2 :: v3, v4)
+  List.map (fun p -> ParamClassic p) (v2 :: v3)
 
 let constructor_initializer (env : env) ((v1, v2, v3) : CST.constructor_initializer) =
   let v1 = token env v1 (* ":" *) in
@@ -2282,21 +2283,54 @@ and declaration (env : env) (x : CST.declaration) : stmt =
        let v3 = type_constraint env v3 in
        let v4 =
          (match v4 with
-          | Some x -> explicit_interface_specifier env x
-          | None -> todo env ())
+          | Some x -> Some (explicit_interface_specifier env x)
+          | None -> None)
        in
        let v5 = token env v5 (* "this" *) in
        let v6 = bracketed_parameter_list env v6 in
-       let v7 =
+       let open_br, funcs, close_br =
          (match v7 with
-          | `Acce_list x -> accessor_list env x
+          | `Acce_list x -> 
+              let open_br, accs, close_br = accessor_list env x in
+              let funcs = accs |> List.map (fun (attrs, id, fbody) ->
+                let iname, itok = id in
+                match iname with
+                | "get" -> (
+                    let ent = basic_entity ("get_Item", itok) attrs in
+                    let funcdef = FuncDef {
+                      fkind = (Method, itok);
+                      fparams = v6;
+                      frettype = Some v3;
+                      fbody;
+                    } in
+                    DefStmt (ent, funcdef) |> AST.s
+                  )
+                | "set" -> (
+                    let valparam = ParamClassic {
+                      pname = Some ("value", fake "value");
+                      ptype = Some v3;
+                      pdefault = None; pattrs = [];
+                      pinfo = empty_id_info ();
+                    } in
+                    let ent = basic_entity ("set_Item", itok) attrs in
+                    let funcdef = FuncDef {
+                      fkind = (Method, itok);
+                      fparams = v6 @ [valparam];
+                      frettype = None;
+                      fbody;
+                    } in
+                    DefStmt (ent, funcdef) |> AST.s
+                  )
+                | _ -> raise Impossible
+              ) in
+              open_br, funcs, close_br
           | `Arrow_exp_clause_SEMI (v1, v2) ->
               let v1 = arrow_expression_clause env v1 in
               let v2 = token env v2 (* ";" *) in
               todo env (v1, v2)
          )
        in
-       todo env (v1, v2, v3, v4, v5, v6, v7)
+       Block (open_br, funcs, close_br) |> AST.s
    | `Meth_decl (v1, v2, v3, v4, v5, v6, v7, v8, v9) ->
       (*
         [Attr] static int IList<T>.MyMethod<T>(int p1) where T : Iterator { ... }
