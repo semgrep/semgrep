@@ -4,6 +4,11 @@ class HelloWorldEvents
 {
     private event EventHandler<string> StringEvent;
 
+    public event EventHandler<string> AccessorEvent {
+        add { StringEvent += value; }
+        remove { StringEvent -= value; }
+    }
+
     public static void Main()
     {
         var instance = new HelloWorldEvents();

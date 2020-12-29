@@ -1920,8 +1920,8 @@ let accessor_declaration (env : env) ((v1, v2, v3, v4) : CST.accessor_declaratio
     (match v3 with
      | `Get tok -> identifier env tok, KeywordAttr (Getter, token env tok) (* "get" *)
      | `Set tok -> identifier env tok, KeywordAttr (Setter, token env tok) (* "set" *)
-     | `Add tok -> todo env tok (* "add" *)
-     | `Remove tok -> todo env tok (* "remove" *)
+     | `Add tok -> identifier env tok, NamedAttr (token env tok, [str env tok], empty_id_info (), fake_bracket []) (* "add" *)
+     | `Remove tok -> identifier env tok, NamedAttr (token env tok, [str env tok], empty_id_info (), fake_bracket []) (* "remove" *)
      | `Id tok -> todo env tok (* identifier *)
     )
   in
@@ -2243,21 +2243,48 @@ and declaration (env : env) (x : CST.declaration) : stmt =
    | `Event_decl (v1, v2, v3, v4, v5, v6, v7) ->
        let v1 = List.concat_map (attribute_list env) v1 in
        let v2 = List.map (modifier env) v2 in
-       let v3 = token env v3 (* "event" *) in
+       let v3 = NamedAttr (token env v3, [str env v3], empty_id_info (), fake_bracket []) (* "event" *) in
        let v4 = type_constraint env v4 in
        let v5 =
          (match v5 with
-          | Some x -> explicit_interface_specifier env x
-          | None -> todo env ())
+          | Some x -> Some (explicit_interface_specifier env x)
+          | None -> None)
        in
        let v6 = identifier env v6 (* identifier *) in
+       let fname, ftok = v6 in
        let v7 =
          (match v7 with
-          | `Acce_list x -> Some (accessor_list env x)
-          | `SEMI tok -> None (* ";" *)
+          | `Acce_list x -> 
+              let open_br, accs, close_br = accessor_list env x in
+              let funcs = accs |> List.map (fun (attrs, id, fbody) ->
+                let iname, itok = id in
+                let ent = basic_entity (iname ^ "_" ^ fname, itok) attrs in
+                let valparam = ParamClassic {
+                  pname = Some ("value", fake "value");
+                  ptype = Some v4;
+                  pdefault = None; pattrs = [];
+                  pinfo = empty_id_info ();
+                } in
+                let funcdef = FuncDef {
+                  fkind = (Method, itok);
+                  fparams = [valparam];
+                  frettype = None;
+                  fbody;
+                } in
+                DefStmt (ent, funcdef) |> AST.s
+              ) in
+              open_br, funcs, close_br
+          | `SEMI tok -> (* ";" *)
+              todo env tok 
          )
        in
-       todo env (v1, v2, v3, v4, v5, v6, v7)
+       let ent = basic_entity v6 (v1 @ v1 @ [v3]) in
+       let vardef = {
+         vinit = None;
+         vtype = Some v4;
+       } in
+       let open_br, funcs, close_br = v7 in
+       Block (open_br, (DefStmt (ent, VarDef vardef) |> AST.s) :: funcs, close_br) |> AST.s
    | `Extern_alias_dire (v1, v2, v3, v4) ->
        let v1 = token env v1 (* "extern" *) in
        let v2 = token env v2 (* "alias" *) in
