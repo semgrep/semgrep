@@ -70,16 +70,6 @@ let var_def_stmt (decls : (entity * variable_definition) list) (attrs : attribut
   ) decls in
   stmt1 stmts
 
-let typed_param ti =
-  let t, i = ti in
-  ParamClassic {
-    pname = Some i;
-    ptype = t;
-    pdefault = None;
-    pattrs = [];
-    pinfo = empty_id_info ();
-  }
-
 type direction =
   | Ascending
   | Descending
@@ -94,10 +84,25 @@ and linq_query_part =
   | OrderBy of (tok * (expr * direction) list)
   | Where of (tok * expr)
 
-let call_lambda base_expr tok funcname from_ident expr =
+(* create a new lambda in the form
+ * base_expr.funcname(lambda_params => expr)
+*)
+let call_lambda base_expr funcname tok lambda_params expr =
+  let fparams = (match lambda_params with 
+    | [] -> []
+    | [id] -> [ParamClassic {
+      pname = Some id;
+      ptype = None;
+      pdefault = None; pattrs = [];
+      pinfo = empty_id_info ();
+    }]
+    | ids -> 
+        let ids = List.map (fun id -> PatId (id, empty_id_info ())) ids in
+        [ParamPattern (PatTuple (fake_bracket ids))]
+  ) in
   let func = Lambda {
     fkind = (Arrow, tok);
-    fparams = [typed_param from_ident];
+    fparams;
     frettype = None;
     fbody = exprstmt expr;
   } in
@@ -105,23 +110,31 @@ let call_lambda base_expr tok funcname from_ident expr =
   let method_ = DotAccess (base_expr, tok, EId ((funcname, tok), idinfo)) in
   Call (method_, fake_bracket [Arg func])
 
-let rec linq_to_expr2 query base_expr from_ident =
+let rec linq_remainder_to_expr (query : linq_query_part list) (base_expr : expr) (lambda_params : ident list) =
   match query with
   | [] -> base_expr
   | ht :: tl ->
       (match ht with
-       | From (_, id, collection) -> linq_to_expr2 tl collection id
        | Select (tok, expr) -> 
-           let base_expr = call_lambda base_expr tok "Select" from_ident expr in
-           linq_to_expr2 tl base_expr from_ident
+           let base_expr = call_lambda base_expr "Select" tok lambda_params expr in
+           linq_remainder_to_expr tl base_expr lambda_params
        | Where (tok, expr) -> 
-           let base_expr = call_lambda base_expr tok "Where" from_ident expr in
-           linq_to_expr2 tl base_expr from_ident
+           let base_expr = call_lambda base_expr "Where" tok lambda_params expr in
+           linq_remainder_to_expr tl base_expr lambda_params
+       | Let (tok, ident, expr) ->
+           (* base_expr.Select(lambda_params -> (lambda_params..., expr))
+            * and add ident to lambda_params
+           *)
+           let ids = List.map (fun id -> Id (id, empty_id_info ())) lambda_params in
+           let expr = Tuple (fake_bracket (ids @ [expr])) in
+           let base_expr = call_lambda base_expr "Select" tok lambda_params expr in
+           let lambda_params = lambda_params @ [ident] in
+           linq_remainder_to_expr tl base_expr lambda_params
        | _ -> failwith "not implemented")
 
-let linq_to_expr from body =
+let linq_to_expr (from : linq_query_part) (body : linq_query_part list) =
   match from with
-  | From (_, id, collection) -> linq_to_expr2 body collection id
+  | From (_, (_type, id), collection) -> linq_remainder_to_expr body collection [id]
   | _ -> raise Impossible
 
 module List = struct
