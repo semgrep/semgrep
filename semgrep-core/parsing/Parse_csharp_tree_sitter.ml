@@ -1879,9 +1879,11 @@ and select_or_group_clause (env : env) (x : CST.select_or_group_clause) =
   )
 
 and declaration_expression (env : env) ((v1, v2) : CST.declaration_expression) : pattern =
-  let v1 = type_constraint env v1 in
+  let v1 = local_variable_type env v1 in
   let v2 = identifier env v2 (* identifier *) in
-  PatVar (v1, Some (v2, empty_id_info ()))
+  match v1 with
+  | Some (t) -> PatVar (t, Some (v2, empty_id_info ()))
+  | None -> PatId (v2, empty_id_info ())
 
 and interpolation (env : env) ((v1, v2, v3, v4, v5) : CST.interpolation) : expr bracket =
   let v1 = token env v1 (* "{" *) in
