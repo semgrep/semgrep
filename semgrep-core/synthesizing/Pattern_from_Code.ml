@@ -59,7 +59,7 @@ let _bk f (lp,x,rp) = (lp, f x, rp)
 
 let default_id str =
   Id((str, fk),
-     {id_resolved = ref None; id_type = ref None; id_const_literal = ref None})
+     {id_resolved = ref None; id_type = ref None; id_constness = ref None})
 
 let default_tyvar str typ =
   TypedMetavar((str, fk), fk, typ)
