@@ -258,6 +258,13 @@ let just_parse_with_lang lang file =
       ]
         C_to_generic.program
 
+  | Lang.Lua ->
+      (* there is no pfff parser for Lua so let's go directly to tree-sitter,
+       * and there's no ast_lua.ml either so we directly generate
+       * a generic AST (no lua_to_generic here)
+      *)
+      run file [TreeSitter Parse_lua_tree_sitter.parse] (fun x -> x)
+
   (* default to the one in pfff for the other languages *)
   | _ ->
       run file [Pfff ((fun file ->

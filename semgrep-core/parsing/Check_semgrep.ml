@@ -11,6 +11,7 @@ let lang_has_no_dollar_ids = Lang.(function
   | JSON
   | Csharp
   | Kotlin
+  | Lua
     -> true
   | Javascript | Ruby | Typescript | PHP
     -> false)

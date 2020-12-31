@@ -122,6 +122,7 @@ let subexprs_of_stmt st =
 
   | Assert (_, e1, e2opt, _) ->
       e1::Common.opt_to_list e2opt
+  | For (_, ForIn (_, es), _) -> es
 
   (* 0 *)
   | DirectiveStmt _

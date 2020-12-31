@@ -12,6 +12,7 @@
    tree-sitter-lang.javascript
    tree-sitter-lang.typescript
    tree-sitter-lang.tsx
+   tree-sitter-lang.lua
    tree-sitter-lang.c
    tree-sitter-lang.cpp
 

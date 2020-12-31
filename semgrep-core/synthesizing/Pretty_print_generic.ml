@@ -72,7 +72,7 @@ let print_bool env = function
        | Lang.Java | Lang.Go | Lang.C | Lang.Cplusplus
        | Lang.JSON | Lang.Javascript
        | Lang.OCaml | Lang.Ruby | Lang.Typescript
-       | Lang.Csharp | Lang.PHP | Lang.Kotlin
+       | Lang.Csharp | Lang.PHP | Lang.Kotlin | Lang.Lua
          -> "true")
   | false ->
       (match env.lang with
@@ -80,7 +80,7 @@ let print_bool env = function
          -> "False"
        | Lang.Java | Lang.Go | Lang.C | Lang.Cplusplus | Lang.JSON | Lang.Javascript
        | Lang.OCaml | Lang.Ruby | Lang.Typescript
-       | Lang.Csharp | Lang.PHP | Lang.Kotlin
+       | Lang.Csharp | Lang.PHP | Lang.Kotlin | Lang.Lua
          -> "false")
 
 let arithop env (op, tok) =
@@ -173,6 +173,8 @@ and if_stmt env level (tok, e, s, sopt) =
      | Lang.JSON | Lang.Javascript | Lang.Typescript
      | Lang.Kotlin
        -> (paren_cond, "else if", bracket_body)
+     | Lang.Lua
+       -> (paren_cond, "elseif", bracket_body)
      | Lang.Ruby -> failwith "I don't want to deal with Ruby right now"
      | Lang.OCaml -> failwith "Impossible; if statements should be expressions"
      | Lang.PHP -> failwith "I don't want to deal with PHP right now"
@@ -205,6 +207,7 @@ and while_stmt env level (tok, e, s) =
      | Lang.Ruby -> ruby_while
      | Lang.OCaml -> ocaml_while
      | Lang.PHP -> failwith "TODO: PHP"
+     | Lang.Lua -> failwith "TODO: Lua"
     )
   in
   while_format (token "while" tok) (expr env e) (stmt env (level + 1) s)
@@ -219,6 +222,7 @@ and do_while stmt env level (s, e) =
      | Lang.Go | Lang.JSON | Lang.OCaml -> failwith "impossible; no do while"
      | Lang.Ruby -> failwith "ruby is so weird (here, do while loop)"
      | Lang.PHP -> failwith "TODO: PHP"
+     | Lang.Lua -> failwith "TODO: Lua"
     )
   in
   do_while_format (stmt env (level + 1) s) (expr env e)
@@ -233,6 +237,7 @@ and for_stmt env level (for_tok, hdr, s) =
      | Lang.Ruby -> F.sprintf "%s %s\ndo %s\nend"
      | Lang.JSON | Lang.OCaml -> failwith "JSON/OCaml has for loops????"
      | Lang.PHP -> failwith "TODO: PHP"
+     | Lang.Lua -> failwith "TODO: Lua"
     )
   in
   let show_init = function
@@ -251,6 +256,7 @@ and for_stmt env level (for_tok, hdr, s) =
      | ForClassic (init, cond, next) -> F.sprintf "%s; %s; %s" (show_init_list init) (opt_expr cond) (opt_expr next)
      | ForEach (pat, tok, e) -> F.sprintf "%s %s %s" (pattern env pat) (token "in" tok) (expr env e)
      | ForEllipsis tok -> token "..." tok
+     | ForIn (init, exprs) -> F.sprintf "%s %s %s" (show_init_list init) "in" (String.concat "," (List.map (fun (e) -> (expr env e)) exprs))
     )
   in
   let body_str = stmt env (level + 1) s in
@@ -273,6 +279,7 @@ and def_stmt env (entity, def_kind) =
                       (fun _typ id e -> F.sprintf "%s = %s" id e)
        | Lang.JSON | Lang.OCaml -> failwith "I think JSON/OCaml have no variable definitions"
        | Lang.PHP -> failwith "TODO: PHP"
+       | Lang.Lua -> failwith "TODO: Lua"
       )
     in
     let (typ, id) =
@@ -300,7 +307,7 @@ and return env (tok, eopt) _sc =
     -> F.sprintf "%s %s;" (token "return" tok) to_return
   | Lang.Python | Lang.Python2 | Lang.Python3
   | Lang.Go | Lang.Ruby | Lang.OCaml
-  | Lang.JSON | Lang.Javascript | Lang.Typescript
+  | Lang.JSON | Lang.Javascript | Lang.Typescript | Lang.Lua
     -> F.sprintf "%s %s" (token "return" tok) to_return
   | Lang.PHP -> failwith "TODO: PHP"
 
@@ -317,7 +324,7 @@ and break env (tok, lbl) _sc =
     -> F.sprintf "%s%s;" (token "break" tok) lbl_str
   | Lang.Python | Lang.Python2 | Lang.Python3
   | Lang.Go | Lang.Ruby | Lang.OCaml
-  | Lang.JSON | Lang.Javascript | Lang.Typescript
+  | Lang.JSON | Lang.Javascript | Lang.Typescript | Lang.Lua
     -> F.sprintf "%s%s" (token "break" tok) lbl_str
   | Lang.PHP -> failwith "TODO: PHP"
 
@@ -330,7 +337,7 @@ and continue env (tok, lbl) _sc =
     | LDynamic e -> F.sprintf " %s" (expr env e)
   in
   match env.lang with
-  | Lang.Java | Lang.C | Lang.Cplusplus | Lang.Csharp | Lang.Kotlin
+  | Lang.Java | Lang.C | Lang.Cplusplus | Lang.Csharp | Lang.Kotlin | Lang.Lua
     -> F.sprintf "%s%s;" (token "continue" tok) lbl_str
   | Lang.Python | Lang.Python2 | Lang.Python3
   | Lang.Go | Lang.Ruby | Lang.OCaml
@@ -406,7 +413,7 @@ and literal env = function
            "'" ^ s ^ "'"
        | Lang.Java | Lang.Go | Lang.C | Lang.Cplusplus | Lang.Csharp | Lang.Kotlin
        | Lang.JSON | Lang.Javascript
-       | Lang.OCaml | Lang.Ruby | Lang.Typescript ->
+       | Lang.OCaml | Lang.Ruby | Lang.Typescript | Lang.Lua ->
            "\"" ^ s ^ "\""
        | Lang.PHP -> failwith "TODO: PHP"
       )
