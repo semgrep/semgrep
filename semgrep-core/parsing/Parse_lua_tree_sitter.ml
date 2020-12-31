@@ -137,40 +137,41 @@ let map_local_variable_declarator (env : env) ((v1, v2) : CST.local_variable_dec
     ) v2
   in
   let name = G.EId (ident, G.empty_id_info ()) in (* pattern [a-zA-Z_][a-zA-Z0-9_]* *)
-  { G.name = name; attrs = [G.KeywordAttr (G.LocalDef, local)]; tparams = [] }
+  { G.name = name; attrs = [G.KeywordAttr (G.Static, local)]; tparams = [] }
 
 
-let map_function_name_field (env : env) ((v1, v2) : CST.function_name_field): string =
-  let (v1, _) =
-    str env v1 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *)
+let map_function_name_field (env : env) ((v1, v2) : CST.function_name_field) (colon_and_ident): G.name =
+  let v1 =
+    identifier env v1 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *)
   in
-  let v2 =
-    List.map (fun (v1, v2) ->
-      let v1 = token env v1 (* "." *) in
-      let (s, _) =
-        str env v2 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *)
-      in
-      s
-    ) v2
+  let v2 = List.map (fun (v1, v2) ->
+    let v1 = token env v1 (* "." *) in
+    let v2 =
+      identifier env v2 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *)
+    in
+    v2
+  ) v2
   in
-  String.concat "." (v1::v2)
+  let list = (match colon_and_ident with
+    | Some (colon, colon_ident) ->
+        let colon = token env colon (* ":" *) in
+        let colon_ident = identifier env colon_ident in
+        List.flatten [[v1]; v2; [colon_ident]]
+    | None -> v1::v2) in
+  (match List.rev list with
+   | [] -> raise Impossible (* list1 *)
+   | [ident] -> (ident, {G.name_qualifier = None; G.name_typeargs = None})
+   | ident::xs ->
+       (ident, {G.name_qualifier = Some (G.QDots (List.rev xs)); G.name_typeargs = None})
+  )
 
-let map_function_name (env : env) ((v1, v2) : CST.function_name) =
-  let (name, tok) =
-    (match v1 with
-     | `Id tok ->
-         (fst (str env tok), tok) (* pattern [a-zA-Z_][a-zA-Z0-9_]* *)
-     | `Func_name_field ((v1, v2) as x) -> (map_function_name_field env x, v1)
-    )
-  in
-  (match v2 with
-   | Some (v1, v2) ->
-       let colon = token env v1 (* ":" *) in
-       let (s, _) =
-         str env v2 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *)
-       in
-       (String.concat ":" [name; s], tok)
-   | None -> (name, tok))
+
+let map_function_name (env : env) ((v1, v2) : CST.function_name): G.name =
+  match v1 with
+  | `Id tok ->
+      let ident = identifier env tok in (* pattern [a-zA-Z_][a-zA-Z0-9_]* *)
+      (ident, {G.name_qualifier = None; G.name_typeargs = None})
+  | `Func_name_field x -> map_function_name_field env x v2
 
 let rec map_expression_list (env : env) ((v1, v2) : CST.anon_exp_rep_COMMA_exp_0bb260c): G.expr list =
   let v1 = map_expression env v1 in
@@ -292,12 +293,12 @@ and map_binary_operation (env : env) (x : CST.binary_operation) =
        let v1 = map_expression env v1 in
        let v2 = token env v2 (* "/" *) in
        let v3 = map_expression env v3 in
-       G.Call (G.IdSpecial (G.Op G.FloorDiv, v2), fb [G.Arg v1; G.Arg v3])
+       G.Call (G.IdSpecial (G.Op G.Div, v2), fb [G.Arg v1; G.Arg v3])
    | `Exp_SLASHSLASH_exp (v1, v2, v3) ->
        let v1 = map_expression env v1 in
        let v2 = token env v2 (* "//" *) in
        let v3 = map_expression env v3 in
-       G.Call (G.IdSpecial (G.Op G.Div, v2), fb [G.Arg v1; G.Arg v3])
+       G.Call (G.IdSpecial (G.Op G.FloorDiv, v2), fb [G.Arg v1; G.Arg v3])
    | `Exp_PERC_exp (v1, v2, v3) ->
        let v1 = map_expression env v1 in
        let v2 = token env v2 (* "%" *) in
@@ -375,7 +376,7 @@ and map_expression (env : env) (x : CST.expression): G.expr =
        G.Call (G.IdSpecial (G.Op op, token env tok), fb [G.Arg v2])
 
    | `Str tok -> string_literal env tok (* string *)
-   | `Num tok -> G.L (G.Float (fst (str env tok), token env tok)) (* number *)
+   | `Num tok -> let (s, tok) = str env tok in G.L (G.Float (s, tok)) (* number *)
    | `Nil tok -> G.L (G.Null (token env tok)) (* "nil" *)
    | `True tok -> G.L (G.Bool (true, token env tok)) (* "true" *)
    | `False tok -> G.L (G.Bool (false, token env tok)) (* "false" *)
@@ -628,10 +629,9 @@ and map_statement (env : env) (x : CST.statement): G.stmt list =
        [G.Label (v2, G.empty_fbody) |> G.s]
    | `Empty_stmt tok -> [] (* ";" *)
    | `Func_stmt (v1, v2, v3) ->
-       let (s, v2) = map_function_name env v2 in
-       let tok = token env v2 in
+       let fn_name = map_function_name env v2 in
        let v3 = map_function_body env v3 v1 in
-       let ent = G.basic_entity (s, tok) [] in
+       let ent = { G.name = G.EName (fn_name); G.attrs = []; G.tparams = [] } in
        [G.DefStmt (ent, G.FuncDef v3) |> G.s]
    | `Local_func_stmt (v1, v2, v3, v4) ->
        let v1 = token env v1 (* "local" *) in
@@ -640,7 +640,7 @@ and map_statement (env : env) (x : CST.statement): G.stmt list =
          identifier env v3 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *)
        in
        let v4 = map_function_body env v4 v2 in
-       let ent = G.basic_entity v3 [G.KeywordAttr (G.LocalDef, v1)] in
+       let ent = G.basic_entity v3 [G.KeywordAttr (G.Static, v1)] in
        [G.DefStmt (ent, G.FuncDef v4) |> G.s]
    | `Func_call_stmt x -> [map_function_call_statement env x]
   )
