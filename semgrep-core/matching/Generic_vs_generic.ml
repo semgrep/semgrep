@@ -907,10 +907,13 @@ and m_special a b =
       m_eq a1 b1 >>= (fun () ->
         m_eq a2 b2
       )
+  | A.NextArrayIndex, B.NextArrayIndex ->
+      return ()
   | A.This, _  | A.Super, _  | A.Self, _  | A.Parent, _  | A.Eval, _
   | A.Typeof, _  | A.Instanceof, _  | A.Sizeof, _  | A.New, _
   | A.ConcatString _, _  | A.Spread, _  | A.Op _, _  | A.IncrDecr _, _
   | A.EncodedString _, _ | A.HashSplat, _ | A.Defined, _ | A.ForOf, _
+  | A.NextArrayIndex, _
     -> fail ()
 (*e: function [[Generic_vs_generic.m_special]] *)
 
@@ -1723,7 +1726,11 @@ and m_for_header a b =
         m_tok at bt >>= (fun () ->
           m_expr a2 b2
         ))
-  | A.ForClassic _, _  | A.ForEach _, _
+  | A.ForIn(a1, a2), B.ForIn(b1, b2) ->
+      (m_list m_for_var_or_expr) a1 b1 >>= (fun () ->
+        m_list m_expr a2 b2
+      )
+  | A.ForClassic _, _  | A.ForEach _, _ | A.ForIn _, _
     -> fail ()
 (*e: function [[Generic_vs_generic.m_for_header]] *)
 
