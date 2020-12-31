@@ -954,7 +954,7 @@ and expression (env : env) (x : CST.expression) : AST.expr =
          )
        in
        Lambda {
-         fkind = (LambdaKind, v3);
+         fkind = (Arrow, v3);
          fparams = v2;
          frettype = None;
          fbody = v4;
