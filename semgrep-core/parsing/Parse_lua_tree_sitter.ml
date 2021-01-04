@@ -113,21 +113,20 @@ let map_parameters (env : env) ((v1, v2, v3) : CST.parameters): G.parameters =
   let _v3 = token env v3 (* ")" *) in
   v2
 
-let map_local_variable_declarator (env : env) ((v1, v2) : CST.local_variable_declarator) (local : PI.token_mutable): G.entity =
-  let ident =
+let map_local_variable_declarator (env : env) ((v1, v2) : CST.local_variable_declarator) : G.ident list =
+  let v1 =
     identifier env v1 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *)
   in
-  let _v2 =
+  let v2 =
     List.map (fun (v1, v2) ->
       let _v1 = token env v1 (* "," *) in
-      let (s, _) =
-        str env v2 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *)
+      let v2 =
+        identifier env v2 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *)
       in
-      s
+      v2
     ) v2
   in
-  let name = G.EId (ident, G.empty_id_info ()) in (* pattern [a-zA-Z_][a-zA-Z0-9_]* *)
-  { G.name = name; attrs = [G.KeywordAttr (G.Static, local)]; tparams = [] }
+  v1::v2
 
 
 let map_function_name_field (env : env) ((v1, v2) : CST.function_name_field) (colon_and_ident): G.name =
@@ -538,7 +537,7 @@ and map_statement (env : env) (x : CST.statement): G.stmt list =
        [G.DefStmt (ent, G.VarDef {G.vinit = Some v4; G.vtype = None}) |> G.s]
    | `Local_var_decl (v1, v2, v3) ->
        let v1 = token env v1 (* "local" *) in
-       let v2 = map_local_variable_declarator env v2 v1 in
+       let v2 = map_local_variable_declarator env v2 in
        let v3 =
          (match v3 with
           | Some (v1, v2, v3) ->
@@ -554,8 +553,28 @@ and map_statement (env : env) (x : CST.statement): G.stmt list =
               (v2::v3)
           | None -> [])
        in
-       let ent = v2 in (* TODO multi assign support *)
-       [G.DefStmt (ent, G.VarDef {G.vinit = Some (List.nth v3 0); G.vtype = None}) |> G.s]
+       let rec aux ids exprs =
+         match ids, exprs with
+         | [], [] -> []
+         (* could issue a warning, more expr than ids *)
+         | [], _ -> []
+         | x::xs, [] ->
+             let vinit = None in
+             let ent = G.basic_entity x [G.KeywordAttr (G.Static, v1)] in
+             let def =
+               G.DefStmt (ent, G.VarDef {G.vinit; vtype = None}) |> G.s
+             in
+             def::aux xs []
+         | x::xs, y::ys ->
+             let vinit = Some y in
+             let ent = G.basic_entity x [G.KeywordAttr (G.Static, v1)] in
+             let def =
+               G.DefStmt (ent, G.VarDef {G.vinit; vtype = None}) |> G.s
+             in
+             def::aux xs ys
+       in
+       aux v2 v3
+
    | `Do_stmt (v1, v2, v3, v4) ->
        [map_do_block env (v1, v2, v3, v4)]
    | `If_stmt (v1, v2, v3, v4, v5, v6, v7, v8) ->
