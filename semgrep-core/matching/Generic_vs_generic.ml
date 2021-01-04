@@ -369,8 +369,8 @@ and m_ident_and_empty_id_info a1 b1 =
 *)
 and m_id_info a b =
   match a, b with
-    { A. id_resolved = _a1; id_type = _a2; id_const_literal = _a3 },
-    { B. id_resolved = _b1; id_type = _b2; id_const_literal = _b3 }
+    { A. id_resolved = _a1; id_type = _a2; id_constness = _a3 },
+    { B. id_resolved = _b1; id_type = _b2; id_constness = _b3 }
     ->
       (* old: (m_ref m_resolved_name) a3 b3  >>= (fun () ->
        * but doing import flask in a source file means every reference

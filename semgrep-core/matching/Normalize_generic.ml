@@ -81,9 +81,13 @@ let normalize_import_opt is_pattern i =
 let rec eval x =
   match x with
   | L x -> Some x
-  | Id (_, { id_const_literal = {contents = Some x}; _})
-  | DotAccess (IdSpecial (This, _), _, EId (_, {id_const_literal = {contents = Some x}; _})) ->
-      Some x
+  | Id (_, { id_constness = {contents = Some x}; _})
+  | DotAccess (IdSpecial (This, _), _, EId (_, {id_constness = {contents = Some x}; _})) ->
+      (match x with
+       | Lit x -> Some x
+       (* todo: do something better? *)
+       | Cst _ | NotCst -> None
+      )
 
   | Call(IdSpecial((Op(Plus | Concat) | ConcatString _), _), args)->
       let literals = args |> unbracket |> Common.map_filter (fun (arg) ->
