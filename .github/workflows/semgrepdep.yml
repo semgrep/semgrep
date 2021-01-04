@@ -1,0 +1,27 @@
+name: Semgrepdep
+
+on:
+  pull_request:
+
+jobs:
+  semgrepdep:
+    name: semgrepdep
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - uses: ievans/semgrep-action@develop
+        id: semgrepdep
+      - uses: actions/github-script@v3
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            const comment = process.env.MARKDOWN_COMMENT;
+            message = `${comment}`;
+            if (comment !== undefined && message.length > 0) {
+              github.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: message
+              });
+            }
