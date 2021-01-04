@@ -85,6 +85,9 @@ let dump_tree_sitter_cst_lang lang file =
   | Lang.Typescript ->
       Tree_sitter_typescript.Parse.file file
       |> dump_and_print_errors Tree_sitter_typescript.CST.dump_tree
+  | Lang.Lua ->
+      Tree_sitter_lua.Parse.file file
+      |> dump_and_print_errors Tree_sitter_lua.CST.dump_tree
 
   | Lang.C ->
       Tree_sitter_c.Parse.file file
