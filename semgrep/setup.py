@@ -88,17 +88,16 @@ if not SEMGREP_SKIP_BIN:
     is_osx = "osx" in distutils.util.get_platform()
     build_dir = os.path.join(REPO_ROOT, "artifacts" if is_osx else "semgrep-files")
 
-    semgrep_core_src = find_executable(
-        SEMGREP_CORE_BIN_ENV, build_dir, SEMGREP_CORE_BIN
-    )
-    semgrep_core_dst = os.path.join(PACKAGE_BIN_DIR, SEMGREP_CORE_BIN)
-    shutil.copyfile(semgrep_core_src, semgrep_core_dst)
-    os.chmod(semgrep_core_dst, os.stat(semgrep_core_dst).st_mode | stat.S_IEXEC)
+    binaries = [
+        (SEMGREP_CORE_BIN_ENV, SEMGREP_CORE_BIN),
+        (SPACEGREP_BIN_ENV, SPACEGREP_BIN),
+    ]
 
-    spacegrep_src = find_executable(SPACEGREP_BIN_ENV, build_dir, SPACEGREP_BIN)
-    spacegrep_dst = os.path.join(PACKAGE_BIN_DIR, SPACEGREP_BIN)
-    shutil.copyfile(spacegrep_src, spacegrep_dst)
-    os.chmod(spacegrep_dst, os.stat(spacegrep_dst).st_mode | stat.S_IEXEC)
+    for binary_env, binary_name in binaries:
+        src = find_executable(binary_env, build_dir, binary_name)
+        dst = os.path.join(PACKAGE_BIN_DIR, binary_name)
+        shutil.copyfile(src, dst)
+        os.chmod(dst, os.stat(dst).st_mode | stat.S_IEXEC)
 
 setuptools.setup(
     name="semgrep",

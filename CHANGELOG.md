@@ -10,6 +10,11 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   the type of a field
 - Constant propagation for Java final fields (using this.field syntax)
 
+### Changed
+
+- Packaging and `setup.py` functionality (`.whl` and `pip` install unchanged):
+  `SEMGREP_SKIP_BIN`, `SEMGREP_CORE_BIN`, and `SPACEGREP_BIN` now available
+
 ### Fixed
 - correctly match the same metavariable for a field when used at a definition
   site and use site for Java
