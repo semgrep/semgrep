@@ -6,8 +6,7 @@ def foo1():
 def foo2():
   # ERROR:
   select = "select * "
-  # TODO:
-  # OK:
+  # ERROR:
   name = "foo"
   query = f"{select} from foo where name={name}"
 
@@ -37,11 +36,9 @@ def foo9():
   query = f"SELECT {www}"
 
 def foo10():
-  # TODO: 
-  # OK:
+  # ERROR:
   ww = "foo"
-  # TODO:
-  # OK:
+  # ERROR:
   ww = "foo"
   # ERROR:
   www = "bar"

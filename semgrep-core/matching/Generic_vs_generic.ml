@@ -1196,16 +1196,10 @@ and m_arguments_concat a b =
 
   (* specific case: f"...{$X}..." will properly extract $X from f"foo {bar} baz" *)
   | A.Arg (A.L (A.String("...", a)))::xsa, B.Arg(bexpr)::xsb ->
-      (match Normalize_generic.constant_propagation_and_evaluate_literal bexpr
-       with
-       | Some _ ->
-           (* can match nothing *)
-           (m_arguments_concat xsa xsb) >||>
-           (* can match more *)
-           (m_arguments_concat ((A.Arg (A.L (A.String("...", a))))::xsa) xsb)
-       | None ->
-           (m_arguments_concat xsa (B.Arg(bexpr)::xsb))
-      )
+      (* can match nothing *)
+      (m_arguments_concat xsa (B.Arg(bexpr)::xsb)) >||>
+      (* can match more *)
+      (m_arguments_concat ((A.Arg (A.L (A.String("...", a))))::xsa) xsb)
 
   (*e: [[Generic_vs_generic.m_arguments_concat()]] ellipsis cases *)
   (* the general case *)
