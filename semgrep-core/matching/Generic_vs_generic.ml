@@ -455,10 +455,6 @@ and m_expr a b =
        * (e.g., with org.foo(...)) but this is confusing for users.
        * We now allow an unqualified pattern like 'foo' to match resolved
        * entities like import org.foo; foo(), just like for attributes.
-       *
-       * Note that this is also useful when you use a metavariable to match
-       * an imported entity, e.g., in Go 'import $P "org.foo" ... $P.log()'
-       * where for sure $P will not be binded to the fully qualified path.
       *)
       m_expr a (B.Id (idb, B.empty_id_info()))
       >||>
@@ -2449,13 +2445,13 @@ and m_directive_basic a b =
       m_tok a0 b0 >>= (fun () ->
         m_module_name_prefix a1 b1 >>= (fun () ->
           m_ident_and_empty_id_info a2 b2 >>= (fun () ->
-            (m_option_none_can_match_some m_ident_and_empty_id_info)
+            (m_option_none_can_match_some m_ident_and_id_info)
               a3 b3
           )))
   | A.ImportAs(a0, a1, a2), B.ImportAs(b0, b1, b2) ->
       m_tok a0 b0 >>= (fun () ->
         m_module_name_prefix a1 b1 >>= (fun () ->
-          (m_option_none_can_match_some m_ident_and_empty_id_info)
+          (m_option_none_can_match_some m_ident_and_id_info)
             a2 b2
         ))
   | A.ImportAll(a0, a1, a2), B.ImportAll(b0, b1, b2) ->
