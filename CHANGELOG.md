@@ -6,6 +6,14 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 
+### Changed
+
+### Fixed 
+
+## [0.36.0](https://github.com/returntocorp/semgrep/releases/tag/v0.36.0) - 2021-01-05
+
+### Added
+
 - Typed metavariables can now match field access when we can propagate
   the type of a field
 - Constant propagation for Java final fields (using this.field syntax)
@@ -19,8 +27,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - correctly match the same metavariable for a field when used at a definition
   site and use site for Java
 - add classname attribute to junit.xml report
-
-## [0.35.0](https://github.com/returntocorp/semgrep/releases/tag/v0.35.0) - 2020-12-16
 
 ## [0.35.0](https://github.com/returntocorp/semgrep/releases/tag/v0.35.0) - 2020-12-16
 
