@@ -26,8 +26,6 @@ module G = AST_generic
 (* Types *)
 (*****************************************************************************)
 
-(* Mostly a copy-paste of metavars_fuzzy.ml and metavars_js.ml *)
-
 (* less: could want to remember the position in the pattern of the metavar
  * for error reporting on pattern itself? so use a 'string AST_generic.wrap'?
 *)
@@ -35,7 +33,7 @@ module G = AST_generic
 type mvar = string
 (*e: type [[Metavars_generic.mvar]] *)
 
-(* mvalue used to be just an alias to AST_generic.any, but it's more
+(* 'mvalue' below used to be just an alias to AST_generic.any, but it is more
  * precise to have a type just for the metavariable values; we do not
  * need all the AST_generic.any cases (however this forces us to
  * define a few boilerplate functions like mvalue_to_any below).
@@ -56,6 +54,7 @@ type mvalue =
   | T of AST_generic.type_
   | P of AST_generic.pattern
   | Args of AST_generic.argument list
+[@@deriving show, eq]
 
 (* we sometimes need to convert to an any to be able to use
  * Lib_AST.ii_of_any, or Lib_AST.abstract_position_info_any
@@ -74,7 +73,8 @@ let mvalue_to_any = function
   | T x -> G.T x
   | P x -> G.P x
 
-let abstract_position_info_mval x =
+(* update: you should use equal_mvalue (from deriving eq) now *)
+let _abstract_position_info_mval x =
   x |> mvalue_to_any |> Lib_AST.abstract_position_info_any
 
 let str_of_any any =
