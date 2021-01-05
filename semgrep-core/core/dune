@@ -8,5 +8,5 @@
    pfff-h_program-lang
    pfff-lang_GENERIC pfff-lang_GENERIC-analyze
  )
- (preprocess (pps ppx_profiling))
+ (preprocess (pps ppx_profiling ppx_deriving.show ppx_deriving.eq))
 )

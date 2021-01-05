@@ -214,13 +214,20 @@ let rec equal_ast_binded_code (a: MV.mvalue) (b: MV.mvalue) : bool = (
          * sgrep command line argument), we can not just use the
          * generic '=' OCaml operator as 'a' and 'b' may represent
          * the same code but they will contain leaves in their AST
-         * with different position information. So before doing
+         * with different position information.
+
+         * old: So before doing
          * the comparison we just need to remove/abstract-away
          * the line number information in each ASTs.
+         * let a = MV.abstract_position_info_mval a in
+         * let b = MV.abstract_position_info_mval b in
+         * a =*= b
         *)
-        let a = MV.abstract_position_info_mval a in
-        let b = MV.abstract_position_info_mval b in
-        a =*= b
+        (* This will perform equality but not care about:
+         * - position information (see adhoc AST_generic.equal_tok)
+         * - id_constness (see the special @equal for id_constness)
+        *)
+        MV.equal_mvalue a b
     | MV.Id _, MV.E (A.Id (b_id, b_id_info)) ->
         (* TODO still needed now that we have the better MV.Id of id_info? *)
         (* TOFIX: regression if remove this code *)
