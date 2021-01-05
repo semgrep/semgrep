@@ -14,6 +14,7 @@ from typing import Tuple
 from typing import TypeVar
 from urllib.parse import urlparse
 
+import pkg_resources
 from colorama import Fore
 from tqdm import tqdm
 
@@ -147,15 +148,22 @@ def sub_check_output(cmd: List[str], **kwargs: Any) -> Any:
 
 def compute_executable_path(exec_name: str) -> str:
     """Determine full executable path if full path is needed to run it."""
-    which_core = shutil.which(exec_name)
-    if which_core is None:
-        # look for something in the same dir as the Python interpreter
-        relative_path = os.path.join(os.path.dirname(sys.executable), exec_name)
-        if os.path.exists(relative_path):
-            exec_name = relative_path
-        else:
-            raise Exception(f"Could not locate '{exec_name}' binary")
-    return exec_name
+    # First, try packaged binaries
+    pkg_exec = pkg_resources.resource_filename("semgrep.bin", exec_name)
+    if os.path.isfile(pkg_exec):
+        return pkg_exec
+
+    # Second, try system binaries
+    which_exec = shutil.which(exec_name)
+    if which_exec is not None:
+        return which_exec
+
+    # Third, look for something in the same dir as the Python interpreter
+    relative_path = os.path.join(os.path.dirname(sys.executable), exec_name)
+    if os.path.isfile(relative_path):
+        return relative_path
+
+    raise Exception(f"Could not locate '{exec_name}' binary")
 
 
 def compute_semgrep_path() -> str:

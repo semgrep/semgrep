@@ -95,6 +95,8 @@ jobs:
       - name: Install Tox and any other packages
         run: pip install pipenv==2018.11.26 wheel==0.34.2 tox==3.15.0
       - name: Run Tox
+        env:
+          SEMGREP_SKIP_BIN: true
         run: |
           cd semgrep
           tox -e py  # Run tox using the version of Python in `PATH`
