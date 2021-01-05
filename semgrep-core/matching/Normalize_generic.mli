@@ -8,6 +8,6 @@ val normalize_import_opt:
 
 (*s: signature [[Normalize_generic.constant_propagation_and_evaluate_literal]] *)
 val constant_propagation_and_evaluate_literal:
-  AST_generic.expr -> AST_generic.literal option
+  AST_generic.expr -> AST_generic.constness option
 (*e: signature [[Normalize_generic.constant_propagation_and_evaluate_literal]] *)
 (*e: semgrep/matching/Normalize_generic.mli *)
