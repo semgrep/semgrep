@@ -58,7 +58,7 @@ COPY --from=build-semgrep-core \
 RUN ln -sf spacegrep /usr/local/bin/spacecat
 
 COPY semgrep /semgrep
-RUN HOMEBREW_SYSTEM='NOCORE' python -m pip install /semgrep
+RUN SEMGREP_SKIP_BIN=true python -m pip install /semgrep
 RUN semgrep --version
 
 RUN mkdir -p /src
