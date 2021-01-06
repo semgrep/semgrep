@@ -184,12 +184,8 @@ jobs:
         uses: actions/download-artifact@v1
         with:
           name: semgrep-osx-${{ github.sha }}
-          path: artifacts.zip
       - name: Install artifacts
-        run: |
-          ls
-          pwd
-          unzip semgrep/semgrep/artifacts.zip
+        run: unzip semgrep-osx-${{ github.sha }}/artifacts.zip
       - name: Setup Python
         uses: actions/setup-python@v1
         with:
@@ -218,12 +214,8 @@ jobs:
         uses: actions/download-artifact@v1
         with:
           name: ocaml-build-artifacts
-          path: ocaml-build-artifacts.tgz
       - name: Install artifacts
-        run: |
-          ls
-          pwd
-          tar xf semgrep/semgrep/ocaml-build-artifacts.tgz
+        run: tar xf ocaml-build-artifacts/ocaml-build-artifacts.tgz
       - name: Setup Python
         run: |
           rm /usr/bin/python
