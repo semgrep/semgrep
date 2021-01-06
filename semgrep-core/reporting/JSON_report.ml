@@ -66,7 +66,7 @@ let unique_id any =
        * md5sum because the parameter will be different! We may
        * want to abstract also the resolved information in those cases.
       *)
-      let any = Lib_AST.abstract_position_info_any any in
+      let any = Lib_AST.abstract_for_comparison_any any in
       (* alt: Using the AST dumper should work also.
        * let v = Meta_AST.vof_any any in
        * let s = OCaml.string_of_v v in

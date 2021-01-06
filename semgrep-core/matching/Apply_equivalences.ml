@@ -109,8 +109,9 @@ let apply equivs any =
                                         | env::_xs ->
                                             (* Found a match *)
                                             let alt = subst_e env r (* recurse on r? *) in
-                                            if Lib_AST.abstract_position_info_any (E x) =*=
-                                               Lib_AST.abstract_position_info_any (E alt)
+                                            (* TODO: use AST_generic.equal_any*)
+                                            if Lib_AST.abstract_for_comparison_any (E x) =*=
+                                               Lib_AST.abstract_for_comparison_any (E alt)
                                             then x'
                                             (* disjunction (if different) *)
                                             else DisjExpr (x', alt)
