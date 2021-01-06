@@ -798,6 +798,14 @@ and checked_expression (env : env) (x : CST.checked_expression) =
 
 and expression (env : env) (x : CST.expression) : AST.expr =
   (match x with
+   (* semgrep: *)
+   | `Ellips v1 -> Ellipsis (token env v1)
+   | `Deep_ellips (v1, v2, v3) ->
+       let v1 = token env v1 in
+       let v2 = expression env v2 in
+       let v3 = token env v3 in
+       DeepEllipsis (v1, v2, v3)
+
    | `Anon_meth_exp (v1, v2, v3, v4) ->
        let v1 =
          (match v1 with
@@ -978,7 +986,7 @@ and expression (env : env) (x : CST.expression) : AST.expr =
               Id (id, empty_id_info ()) (* TODO should this be IdQualified? *)
           | `Name x ->
               let n = name env x in
-              IdQualified (n, empty_id_info ())
+              H2.id_of_name n
          )
        in
        let v2 =
@@ -1113,8 +1121,7 @@ and expression (env : env) (x : CST.expression) : AST.expr =
        let v4 = token env v4 (* ")" *) in
        Call (IdSpecial (Typeof, v1), (v2, [ArgType v3], v4))
    | `Simple_name x ->
-       (* Should this be Ast.Id instead of IdQualified? *)
-       AST.IdQualified (simple_name env x, empty_id_info ())
+       H2.id_of_name (simple_name env x)
    | `Rese_id x ->
        let x = reserved_identifier env x in
        AST.Id (x, empty_id_info ())
@@ -1206,6 +1213,21 @@ and local_variable_type (env : env) (x : CST.type_constraint) : type_ option =
   | `Impl_type tok -> None (* "var" *)
   | x -> Some (type_ env x)
 
+and expr_statement (env: env) (x: CST.expression_statement) : stmt =
+  match x with
+  | `Exp_SEMI (v1, v2) ->
+      let v1 = expression env v1 in
+      let v2 = token env v2 (* ";" *) in
+      AST.ExprStmt (v1, v2) |> AST.s
+  | `Ellips_SEMI (v1, v2) ->
+      let v1 = token env v1 in
+      let v2 = token env v2 in
+      AST.ExprStmt (AST.Ellipsis (v1), v2) |> AST.s
+  | `Ellips (v1) ->
+      let v1 = token env v1 in
+      let v2 = AST.sc in
+      AST.ExprStmt (AST.Ellipsis (v1), v2) |> AST.s
+
 and statement (env : env) (x : CST.statement) =
   (match x with
    | `Blk x -> block env x
@@ -1239,10 +1261,8 @@ and statement (env : env) (x : CST.statement) =
        let v1 = token env tok (* ";" *) in
        Block (v1, [], v1) |> AST.s
    (* Can we have the same token as start and end of block? *)
-   | `Exp_stmt (v1, v2) ->
-       let v1 = expression env v1 in
-       let v2 = token env v2 (* ";" *) in
-       AST.ExprStmt (v1, v2) |> AST.s
+   | `Exp_stmt v1 ->
+       expr_statement env v1
    | `Fixed_stmt (v1, v2, v3, v4, v5) ->
        let v1 = token env v1 (* "fixed" *) in
        let v2 = token env v2 (* "(" *) in
@@ -1778,9 +1798,8 @@ and type_ (env : env) (x : CST.type_) : AST.type_ =
    | `Impl_type tok -> raise Impossible (* "var" *)
    | `Array_type x -> array_type env x
    | `Name x ->
-       (* TODO: TyId or TyIdQualified? *)
        let n = name env x in
-       AST.TyIdQualified (n, empty_id_info())
+       H2.tyid_of_name n
    | `Null_type x -> nullable_type env x
    | `Poin_type (v1, v2) ->
        let v1 = type_constraint env v1 in
@@ -2042,14 +2061,21 @@ let _property_pattern_clause (env : env) ((v1, v2, v3) : CST.property_pattern_cl
   todo env (v1, v2, v3)
 
 let rec declaration_list (env : env) ((open_bracket, body, close_bracket) : CST.declaration_list) =
+  let xs = List.map (declaration env) body in
   (
     token env open_bracket,
-    compilation_unit env body,
+    xs,
     token env close_bracket
   )
 
-and compilation_unit (env : env) (xs : CST.compilation_unit) : stmt list =
-  List.map (declaration env) xs
+and compilation_unit (env : env) (xs : CST.compilation_unit) : any =
+  match xs with
+  | `Rep_decl xs ->
+      let xs = List.map (declaration env) xs in
+      AST.Pr xs
+  | `Semg_exp (_v1, v2) ->
+      let v2 = expression env v2 in
+      AST.E v2
 
 and declaration (env : env) (x : CST.declaration) : stmt =
   (match x with
@@ -2256,7 +2282,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
        let fname, ftok = v6 in
        let v7 =
          (match v7 with
-          | `Acce_list x -> 
+          | `Acce_list x ->
               let open_br, accs, close_br = accessor_list env x in
               let funcs = accs |> List.map (fun (attrs, id, fbody) ->
                 let iname, itok = id in
@@ -2277,7 +2303,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
               ) in
               open_br, funcs, close_br
           | `SEMI tok -> (* ";" *)
-              todo env tok 
+              todo env tok
          )
        in
        let ent = basic_entity v6 (v1 @ v1 @ [v3]) in
@@ -2319,7 +2345,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
        let v6 = bracketed_parameter_list env v6 in
        let open_br, funcs, close_br =
          (match v7 with
-          | `Acce_list x -> 
+          | `Acce_list x ->
               let open_br, accs, close_br = accessor_list env x in
               let funcs = accs |> List.map (fun (attrs, id, fbody) ->
                 let iname, itok = id in
@@ -2523,7 +2549,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
   )
 
 (*****************************************************************************)
-(* Entry point *)
+(* Entry points *)
 (*****************************************************************************)
 let parse file =
   H.wrap_parser
@@ -2535,7 +2561,10 @@ let parse file =
        let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
 
        try
-         compilation_unit env cst
+         (match compilation_unit env cst with
+          | AST.Pr xs -> xs
+          | _ -> failwith "not a program"
+         )
        with
          (Failure "not implemented") as exn ->
            let s = Printexc.get_backtrace () in
@@ -2545,4 +2574,23 @@ let parse file =
            pr2 "Original backtrace:";
            pr2 s;
            raise exn
+    )
+
+let parse_pattern str =
+  (* ugly: coupling: see grammar.js of csharp.
+   * todo: will need to adjust position information in parsing errors!
+  *)
+  let str = "__SEMGREP_EXPRESSION " ^ str in
+  H.wrap_parser
+    (fun () ->
+       Parallel.backtrace_when_exn := false;
+       Parallel.invoke Tree_sitter_c_sharp.Parse.string str ()
+    )
+    (fun cst ->
+       let file = "<pattern>" in
+       let env = { H.file; conv = Hashtbl.create 0; extra = () } in
+       match compilation_unit env cst with
+       | AST.Pr [x] -> AST.S x
+       | AST.Pr xs -> AST.Ss xs
+       | x -> x
     )
