@@ -21,5 +21,11 @@
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
-let parse_pattern lang string =
-  Check_semgrep.parse_check_pattern lang string
+let parse_pattern lang str =
+  let any =
+    match lang with
+    (* use pfff *)
+    | _ -> Parse_generic.parse_pattern lang str
+  in
+  Check_semgrep.check_pattern lang any;
+  any

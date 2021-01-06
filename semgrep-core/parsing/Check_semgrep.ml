@@ -31,13 +31,9 @@ let check_pattern_metavars lang ast =
 
 (*s: function [[Check_semgrep.check_pattern]] *)
 let check_pattern lang ast =
-  check_pattern_metavars lang ast;
-  ast
+  check_pattern_metavars lang ast
 (*e: function [[Check_semgrep.check_pattern]] *)
 
 (*s: function [[Check_semgrep.parse_check_pattern]] *)
-let parse_check_pattern lang str =
-  Parse_generic.parse_pattern lang str
-  |> check_pattern lang
 (*e: function [[Check_semgrep.parse_check_pattern]] *)
 (*e: semgrep/parsing/Check_semgrep.ml *)
