@@ -852,9 +852,9 @@ and m_literal_constness a b =
   match b with
   | B.Lit b1 -> m_literal a b1
   | B.Cst B.Cstr ->
-    (match a with
-    | A.String("...", _) -> return ()
-    | ___else___         -> fail ())
+      (match a with
+       | A.String("...", _) -> return ()
+       | ___else___         -> fail ())
   | B.Cst _
   | B.NotCst -> fail ()
 
