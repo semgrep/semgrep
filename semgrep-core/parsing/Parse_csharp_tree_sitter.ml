@@ -233,6 +233,7 @@ let real_literal (env : env) (tok : CST.real_literal) =
 (* TODO should real be returned as float? *)
 
 let identifier (env : env) (tok : CST.identifier) : ident =
+  (* TODO: if it starts with a '$', it's a semgrep metavariable *)
   str env tok
 
 (* TODO: not sure why preprocessor_call was not generated. Because
@@ -1121,6 +1122,15 @@ and expression (env : env) (x : CST.expression) : AST.expr =
    | `Lit x ->
        let x = literal env x in
        AST.L x
+   | `Ellips tok ->
+       (* semgrep pattern *)
+       todo env tok (* "..." *)
+   | `Deep_ellips (v1, v2, v3) ->
+       (* semgrep pattern *)
+       let v1 = token env v1 (* "<..." *) in
+       let v2 = expression env v2 in
+       let v3 = token env v3 (* "...>" *) in
+       todo env (v1, v2, v3)
   )
 
 and simple_name (env : env) (x : CST.simple_name) : AST.name =
@@ -1239,10 +1249,21 @@ and statement (env : env) (x : CST.statement) =
        let v1 = token env tok (* ";" *) in
        Block (v1, [], v1) |> AST.s
    (* Can we have the same token as start and end of block? *)
-   | `Exp_stmt (v1, v2) ->
-       let v1 = expression env v1 in
-       let v2 = token env v2 (* ";" *) in
-       AST.ExprStmt (v1, v2) |> AST.s
+   | `Exp_stmt x ->
+       (match x with
+        | `Exp_SEMI (v1, v2) ->
+            let v1 = expression env v1 in
+            let v2 = token env v2 (* ";" *) in
+            AST.ExprStmt (v1, v2) |> AST.s
+        | `Ellips_SEMI (v1, v2) ->
+            (* semgrep pattern *)
+            let v1 = token env v1 (* "..." *) in
+            let v2 = token env v2 (* ";" *) in
+            todo env (v1, v2)
+        | `Ellips tok ->
+            (* semgrep pattern *)
+            todo env tok (* "..." *)
+       )
    | `Fixed_stmt (v1, v2, v3, v4, v5) ->
        let v1 = token env v1 (* "fixed" *) in
        let v2 = token env v2 (* "(" *) in
@@ -2044,12 +2065,23 @@ let _property_pattern_clause (env : env) ((v1, v2, v3) : CST.property_pattern_cl
 let rec declaration_list (env : env) ((open_bracket, body, close_bracket) : CST.declaration_list) =
   (
     token env open_bracket,
-    compilation_unit env body,
+    List.map (declaration env) body,
     token env close_bracket
   )
 
-and compilation_unit (env : env) (xs : CST.compilation_unit) : stmt list =
-  List.map (declaration env) xs
+and compilation_unit (env : env) (x : CST.compilation_unit) : stmt list =
+  match x with
+  | `Rep_decl xs -> List.map (declaration env) xs
+  | `Semg_exp (v1, v2) ->
+      (* semgrep pattern *)
+      (* "__SEMGREP_EXPRESSION " was prepended to a pattern before trying
+         to parse it as an expression. We do this because C# doesn't
+         allow toplevel expressions, and it's hard or impossible to modify
+         the grammar to allow them without conflicts.
+      *)
+      let v1 = token env v1 (* "__SEMGREP_EXPRESSION" *) in
+      let v2 = expression env v2 in
+      todo env (v1, v2)
 
 and declaration (env : env) (x : CST.declaration) : stmt =
   (match x with
@@ -2256,7 +2288,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
        let fname, ftok = v6 in
        let v7 =
          (match v7 with
-          | `Acce_list x -> 
+          | `Acce_list x ->
               let open_br, accs, close_br = accessor_list env x in
               let funcs = accs |> List.map (fun (attrs, id, fbody) ->
                 let iname, itok = id in
@@ -2277,7 +2309,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
               ) in
               open_br, funcs, close_br
           | `SEMI tok -> (* ";" *)
-              todo env tok 
+              todo env tok
          )
        in
        let ent = basic_entity v6 (v1 @ v1 @ [v3]) in
@@ -2319,7 +2351,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
        let v6 = bracketed_parameter_list env v6 in
        let open_br, funcs, close_br =
          (match v7 with
-          | `Acce_list x -> 
+          | `Acce_list x ->
               let open_br, accs, close_br = accessor_list env x in
               let funcs = accs |> List.map (fun (attrs, id, fbody) ->
                 let iname, itok = id in
