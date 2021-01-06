@@ -97,7 +97,7 @@ let regression_tests_for_lang files lang =
     let pattern = 
       Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
         try 
-          Parse_generic.parse_pattern lang (Common.read_file sgrep_file)
+          Parse_pattern.parse_pattern lang (Common.read_file sgrep_file)
         with exn ->
           failwith (spf "fail to parse pattern %s with lang = %s (exn = %s)" 
                         sgrep_file 
@@ -231,6 +231,12 @@ let lang_regression_tests =
     let dir = Filename.concat tests_path "php" in
     let files = Common2.glob (spf "%s/*.php" dir) in
     let lang = Lang.PHP in
+    regression_tests_for_lang files lang
+  );
+  "semgrep C#" >::: (
+    let dir = Filename.concat tests_path "csharp" in
+    let files = Common2.glob (spf "%s/*.cs" dir) in
+    let lang = Lang.Csharp in
     regression_tests_for_lang files lang
   );
  ]

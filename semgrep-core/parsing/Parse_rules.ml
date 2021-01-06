@@ -50,7 +50,7 @@ let parse_severity ~id s =
 (*s: function [[Parse_rules.parse_pattern]] *)
 let parse_pattern ~id ~lang pattern =
   (* todo? call Normalize_ast.normalize here? *)
-  try Check_semgrep.parse_check_pattern lang pattern
+  try Parse_pattern.parse_pattern lang pattern
   with exn ->
     raise (InvalidPatternException (id, pattern, (Lang.string_of_lang lang),
                                     (Common.exn_to_s exn)))
