@@ -239,6 +239,12 @@ let lang_regression_tests =
     let lang = Lang.Csharp in
     regression_tests_for_lang files lang
   );
+  "semgrep Lua" >::: (
+    let dir = Filename.concat tests_path "lua" in
+    let files = Common2.glob (spf "%s/*.lua" dir) in
+    let lang = Lang.Lua in
+    regression_tests_for_lang files lang
+  );
  ]
 (*e: constant [[Test.lang_regression_tests]] *)
 
