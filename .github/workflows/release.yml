@@ -12,7 +12,7 @@ jobs:
   create_release:
     name: Create the Github Release
     runs-on: ubuntu-latest
-    needs: [release-osx, release-ubuntu-16-04]
+    needs: [build-core-osx, release-ubuntu-16-04]
     steps:
       - name: Create Release
         id: create_release
@@ -131,12 +131,10 @@ jobs:
       - name: Test semgrep-core
         run: opam exec -- make -C semgrep-core test
 
-  release-osx:
+  build-core-osx:
     name: Build the OSX binaries
     runs-on: macos-latest
     steps:
-      - name: Install System Deps
-        run: brew install opam pkg-config coreutils
       - name: Checkout
         uses: actions/checkout@v2
       - name: Setup Python
@@ -176,11 +174,18 @@ jobs:
 
   build-wheels-osx:
     runs-on: macos-latest
+    needs: [build-core-osx]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
         with:
           submodules: 'recursive'
+      - name: Download artifacts
+        uses: actions/download-artifact@v1
+        with:
+          name: semgrep-osx-${{ github.sha }}
+      - name: Install artifacts
+        run: unzip semgrep-osx-${{ github.sha }}
       - name: Setup Python
         uses: actions/setup-python@v1
         with:
