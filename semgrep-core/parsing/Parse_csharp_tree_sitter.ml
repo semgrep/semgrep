@@ -986,7 +986,7 @@ and expression (env : env) (x : CST.expression) : AST.expr =
               Id (id, empty_id_info ()) (* TODO should this be IdQualified? *)
           | `Name x ->
               let n = name env x in
-              IdQualified (n, empty_id_info ())
+              H2.id_of_name n
          )
        in
        let v2 =
@@ -1121,8 +1121,7 @@ and expression (env : env) (x : CST.expression) : AST.expr =
        let v4 = token env v4 (* ")" *) in
        Call (IdSpecial (Typeof, v1), (v2, [ArgType v3], v4))
    | `Simple_name x ->
-       (* Should this be Ast.Id instead of IdQualified? *)
-       AST.IdQualified (simple_name env x, empty_id_info ())
+       H2.id_of_name (simple_name env x)
    | `Rese_id x ->
        let x = reserved_identifier env x in
        AST.Id (x, empty_id_info ())
@@ -1799,9 +1798,8 @@ and type_ (env : env) (x : CST.type_) : AST.type_ =
    | `Impl_type tok -> raise Impossible (* "var" *)
    | `Array_type x -> array_type env x
    | `Name x ->
-       (* TODO: TyId or TyIdQualified? *)
        let n = name env x in
-       AST.TyIdQualified (n, empty_id_info())
+       H2.tyid_of_name n
    | `Null_type x -> nullable_type env x
    | `Poin_type (v1, v2) ->
        let v1 = type_constraint env v1 in
