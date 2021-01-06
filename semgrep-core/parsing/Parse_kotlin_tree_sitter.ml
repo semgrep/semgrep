@@ -831,7 +831,7 @@ and declaration (env : env) (x : CST.declaration) : definition =
        in
        todo env (v1, v2, v3, v4, v5)
    | `Func_decl (_v1, _v2, v3, v4, v5, v6, _v7, v8) ->
-       (*let v1 =
+       (*let v1
          (match v1 with
          | Some x -> Some (modifiers env x)
          | None -> None)
@@ -1273,7 +1273,7 @@ and lambda_literal (env : env) ((v1, v2, v3, v4) : CST.lambda_literal) =
   let kind = LambdaKind, v1 in
   let func_def = {
     fkind =  kind;
-    fparams =  v2;
+    fparams =  [];
     frettype =  None;
     fbody = block_v3;
   } in
