@@ -240,15 +240,12 @@ jobs:
       - name: test package
         working-directory: /opt/python/cp36-cp36m/bin/
         run: ./semgrep --version
-      - name: test core
-        run: ./semgrep-core -version
+      - name: e2e semgrep-core test
         working-directory: /opt/python/cp36-cp36m/bin/
-      - name: test spacegrep
-        run: ./spacegrep --help
+        run: echo '1 == 1' | ./semgrep -l python -e '$X == $X' -
+      - name: e2e spacegrep test
         working-directory: /opt/python/cp36-cp36m/bin/
-      - name: e2e test
-        working-directory: /opt/python/cp36-cp36m/bin/
-        run: ./semgrep -l python ../lib/python3.6/code.py -e '$X == $X'
+        run: echo '1 == 1' | ./semgrep -l generic -e '$X == $X' -
 
   upload-wheels:
     runs-on: 'ubuntu-16.04'
