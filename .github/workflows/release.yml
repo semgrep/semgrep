@@ -12,7 +12,7 @@ jobs:
   create_release:
     name: Create the Github Release
     runs-on: ubuntu-latest
-    needs: [build-core-osx, release-ubuntu-16-04]
+    needs: [build-wheels-osx, release-ubuntu-16-04]
     steps:
       - name: Create Release
         id: create_release
@@ -185,13 +185,16 @@ jobs:
         with:
           name: semgrep-osx-${{ github.sha }}
       - name: Install artifacts
-        run: unzip semgrep-osx-${{ github.sha }}
+        run: unzip semgrep-osx-${{ github.sha }}/semgrep-osx-${{ github.sha }}
       - name: Setup Python
         uses: actions/setup-python@v1
         with:
           # This is just the Python version to build the wheels
           python-version: 3.7
       - name: Build the wheels
+        env:
+          SEMGREP_CORE_BIN: artifacts/semgrep-core
+          SPACEGREP_BIN: artifacts/spacegrep
         run: ./scripts/build-wheels.sh
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
@@ -212,10 +215,7 @@ jobs:
         with:
           name: ocaml-build-artifacts
       - name: Install artifacts
-        run: |
-          tar xf ocaml-build-artifacts/ocaml-build-artifacts.tgz
-          mkdir -p semgrep-files
-          cp ocaml-build-artifacts/bin/* semgrep-files
+        run: tar xf ocaml-build-artifacts/ocaml-build-artifacts.tgz
       - name: Setup Python
         run: |
           rm /usr/bin/python
@@ -223,6 +223,9 @@ jobs:
       - name: Install zip & musl-tools
         run: apt-get update && apt install -y zip musl-tools
       - name: Build the wheels
+        env:
+          SEMGREP_CORE_BIN: ocaml-build-artifacts/bin/semgrep-core
+          SPACEGREP_BIN: ocaml-build-artifacts/bin/spacegrep
         run: ./scripts/build-wheels.sh
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
