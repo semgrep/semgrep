@@ -801,7 +801,7 @@ and expression (env : env) (x : CST.expression) : AST.expr =
    | `Anon_meth_exp (v1, v2, v3, v4) ->
        let v1 =
          (match v1 with
-          | Some tok -> [Async] (* "async" *)
+          | Some tok -> [KeywordAttr (Async, token env tok)] (* "async" *)
           | None -> [])
        in
        let v2 = token env v2 (* "delegate" *) in
@@ -863,7 +863,7 @@ and expression (env : env) (x : CST.expression) : AST.expr =
    | `Await_exp (v1, v2) ->
        let v1 = token env v1 (* "await" *) in
        let v2 = expression env v2 in
-       todo env (v1, v2)
+       Await (v1, v2)
    | `Base_exp tok ->
        let x = token env tok (* "base" *) in
        IdSpecial (Super, x)
@@ -934,8 +934,8 @@ and expression (env : env) (x : CST.expression) : AST.expr =
    | `Lambda_exp (v1, v2, v3, v4) ->
        let v1 =
          (match v1 with
-          | Some tok -> Some (token env tok) (* "async" *)
-          | None -> None)
+          | Some tok -> [KeywordAttr (Async, token env tok)] (* "async" *)
+          | None -> [])
        in
        let v2 =
          (match v2 with
