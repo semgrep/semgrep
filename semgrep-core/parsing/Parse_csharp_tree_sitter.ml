@@ -2551,7 +2551,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
   )
 
 (*****************************************************************************)
-(* Entry point *)
+(* Entry points *)
 (*****************************************************************************)
 let parse file =
   H.wrap_parser
@@ -2576,4 +2576,23 @@ let parse file =
            pr2 "Original backtrace:";
            pr2 s;
            raise exn
+    )
+
+let parse_pattern str =
+  (* ugly: coupling: see grammar.js of csharp.
+   * todo: will need to adjust position information in parsing errors!
+  *)
+  let str = "__SEMGREP_EXPRESSION " ^ str in
+  H.wrap_parser
+    (fun () ->
+       Parallel.backtrace_when_exn := false;
+       Parallel.invoke Tree_sitter_c_sharp.Parse.string str ()
+    )
+    (fun cst ->
+       let file = "<pattern>" in
+       let env = { H.file; conv = Hashtbl.create 0; extra = () } in
+       match compilation_unit env cst with
+       | AST.Pr [x] -> AST.S x
+       | AST.Pr xs -> AST.Ss xs
+       | x -> x
     )
