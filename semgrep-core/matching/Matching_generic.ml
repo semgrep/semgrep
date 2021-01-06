@@ -202,6 +202,28 @@ let (let*) o f =
 *)
 let rec equal_ast_binded_code (a: MV.mvalue) (b: MV.mvalue) : bool = (
   let res = (match a, b with
+    (* if one of the two IDs is not resolved, then we allow
+     * a match, so a pattern like 'self.$FOO = $FOO' matches
+     * code like 'self.foo = foo'.
+     * Maybe we should not ... but let's try.
+     *
+     * At least we don't allow a resolved id with a precise sid to match
+     * another id with a different sid (same id but in different scope),
+     * which we rely on with our deep stmt matching hacks.
+     *
+     * TODO: relax even more and allow some id_resolved EnclosedVar (a field)
+     * to match anything?
+    *)
+    | MV.Id ((s1, _), Some {AST.id_resolved = { contents = None }; _ }),
+      MV.Id ((s2, _), _)
+    | MV.Id ((s1, _), _),
+      MV.Id ((s2, _), Some {AST.id_resolved = {contents = None }; _})
+      -> s1 = s2
+
+    (* general case, equality modulo-position-and-constness.
+     * TODO: in theory we should use user-defined equivalence to allow
+     * equality modulo-equivalence rewriting!
+    *)
     | MV.Id _, MV.Id _
     | MV.E _, MV.E _
     | MV.S _, MV.S _
