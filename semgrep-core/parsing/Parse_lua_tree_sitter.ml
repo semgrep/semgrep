@@ -18,6 +18,8 @@ module H = Parse_tree_sitter_helpers
 module PI = Parse_info
 module G = AST_generic
 
+let logger = Logging.get_logger [__MODULE__]
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -60,7 +62,19 @@ let ident (env : env) (tok : CST.identifier) =
   G.Id (identifier env tok, G.empty_id_info ())
 
 let string_literal (env : env) (tok :CST.identifier) =
-  G.L (G.String (str env tok))
+  let (s, t) = str env tok in
+  let s =
+    (* tree-sitter-lua external 'string' rule keeps the enclosing quotes,
+     * but AST_generic.String assumes the string does not contain the delimiter
+    *)
+    match s with
+    | s when s =~ "^\"\\(.*\\)\"$" ->
+        Common.matched1 s
+    | _ ->
+        logger#warning "weird string literal: %s" s;
+        s
+  in
+  G.L (G.String (s, t))
 
 let map_field_sep (env : env) (x : CST.field_sep) =
   (match x with
