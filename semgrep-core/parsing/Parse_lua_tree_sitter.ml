@@ -746,3 +746,19 @@ let parse file =
            pr2 s;
            raise exn
     )
+
+(* todo: special mode to convert Ellipsis in the right construct! *)
+let parse_pattern str =
+  H.wrap_parser
+    (fun () ->
+       Parallel.backtrace_when_exn := false;
+       Parallel.invoke Tree_sitter_lua.Parse.string str ()
+    )
+    (fun cst ->
+       let file = "<pattern>" in
+       let env = { H.file; conv = Hashtbl.create 0; extra = () } in
+       match map_program env cst with
+       | [{s = G.ExprStmt (e, _);_ }] -> G.E e
+       | [x] -> G.S x
+       | xs -> G.Ss xs
+    )

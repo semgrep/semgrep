@@ -16,6 +16,8 @@ from semgrep.semgrep_types import REGEX_ONLY_LANGUAGE_KEYS
 
 FileExtension = NewType("FileExtension", str)
 
+# coupling: if you add a constant here, modify also ALL_EXTENSIONS below
+# and you probably also need to update _LANGS_TO_EXTS_INTERNAL
 PYTHON_EXTENSIONS = [FileExtension(".py"), FileExtension(".pyi")]
 JAVASCRIPT_EXTENSIONS = [FileExtension(".js"), FileExtension(".jsx")]
 TYPESCRIPT_EXTENSIONS = [FileExtension(".ts"), FileExtension(".tsx")]
@@ -24,6 +26,8 @@ C_EXTENSIONS = [FileExtension(".c")]
 GO_EXTENSIONS = [FileExtension(".go")]
 RUBY_EXTENSIONS = [FileExtension(".rb")]
 PHP_EXTENSIONS = [FileExtension(".php")]
+LUA_EXTENSIONS = [FileExtension(".lua")]
+CSHARP_EXTENSIONS = [FileExtension(".cs")]
 ML_EXTENSIONS = [
     FileExtension(".mli"),
     FileExtension(".ml"),
@@ -70,6 +74,8 @@ _LANGS_TO_EXTS_INTERNAL: List[Tuple[Set[Language], List[FileExtension]]] = [
     (langauge_set({"rb", "ruby"}), RUBY_EXTENSIONS),
     (langauge_set({"php"}), PHP_EXTENSIONS),
     (langauge_set({"json", "JSON", "Json"}), JSON_EXTENSIONS),
+    (langauge_set({"lua"}), LUA_EXTENSIONS),
+    (langauge_set({"cs", "csharp", "C#"}), CSHARP_EXTENSIONS),
     (REGEX_ONLY_LANGUAGE_KEYS.union({GENERIC_LANGUAGE}), GENERIC_EXTENSIONS),
 ]
 
