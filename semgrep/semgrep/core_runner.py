@@ -184,6 +184,7 @@ class CoreRunner:
         self,
         error_json: Dict[str, Any],
         patterns: List[Pattern],
+        rule: Rule,
     ) -> None:
         """
         See format_output_exception in semgrep O'Caml for details on schema
@@ -214,7 +215,7 @@ class CoreRunner:
         # validation for them. So if any other type of error occurs, ask the user to file an issue
         else:
             raise SemgrepError(
-                f'an internal error occured while invoking semgrep-core:\n\t{error_type}: {error_json.get("message", "no message")}\n{PLEASE_FILE_ISSUE_TEXT}'
+                f"an internal error occured while invoking semgrep-core while running rule '{rule.id}'. Consider skipping this rule and reporting this issue.\n\t{error_type}: {error_json.get('message', 'no message')}\n{PLEASE_FILE_ISSUE_TEXT}"
             )
 
     def _flatten_all_equivalences(self, rules: List[Rule]) -> List[Equivalence]:
@@ -295,10 +296,10 @@ class CoreRunner:
                 output_json = self._parse_core_output(core_run.stdout)
 
                 if "error" in output_json:
-                    self._raise_semgrep_error_from_json(output_json, patterns)
+                    self._raise_semgrep_error_from_json(output_json, patterns, rule)
                 else:
                     raise SemgrepError(
-                        f"unexpected json output while invoking semgrep-core:\n{PLEASE_FILE_ISSUE_TEXT}"
+                        f"unexpected json output while invoking semgrep-core with rule '{rule.id}':\n{PLEASE_FILE_ISSUE_TEXT}"
                     )
 
             output_json = self._parse_core_output(core_run.stdout)
