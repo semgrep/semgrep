@@ -1,5 +1,5 @@
 (executables
- (names Main main_spatch)
+ (names Main)
  (libraries
     str
     dyp
@@ -31,7 +31,6 @@
 
     ; internal deps
     semgrep_core
-    semgrep_fuzzy
     semgrep_parsing
     semgrep_matching
     semgrep_tainting
@@ -55,5 +54,5 @@
 (install
  (package semgrep)
  (section bin)
- (files (Main.exe as semgrep-core) (main_spatch.exe as spatch))
+ (files (Main.exe as semgrep-core))
 )

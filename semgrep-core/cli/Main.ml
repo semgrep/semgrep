@@ -138,7 +138,7 @@ let match_format = ref Matching_report.Normal
 (*e: constant [[Main_semgrep_core.match_format]] *)
 
 (*s: constant [[Main_semgrep_core.mvars]] *)
-let mvars = ref ([]: Metavars_fuzzy.mvar list)
+let mvars = ref ([]: Metavars_generic.mvar list)
 (*e: constant [[Main_semgrep_core.mvars]] *)
 
 (*s: constant [[Main_semgrep_core.layer_file]] *)
@@ -543,34 +543,24 @@ let parse_equivalences () =
 (*****************************************************************************)
 
 (*s: type [[Main_semgrep_core.ast]] *)
-type ast =
-  | Gen of Parse_code.parsing_result * Lang.t
-  (*s: [[Main_semgrep_core.ast]] other cases *)
-  | Fuzzy of Ast_fuzzy.trees
-  (*e: [[Main_semgrep_core.ast]] other cases *)
-  | NoAST
-  (*e: type [[Main_semgrep_core.ast]] *)
+type ast = Parse_code.parsing_result * Lang.t
+(*s: [[Main_semgrep_core.ast]] other cases *)
+(*e: [[Main_semgrep_core.ast]] other cases *)
+(*e: type [[Main_semgrep_core.ast]] *)
 
 (*s: function [[Main_semgrep_core.create_ast]] *)
 let create_ast file =
   match Lang.lang_of_string_opt !lang with
-  | Some lang -> Gen (parse_generic lang file, lang)
+  | Some lang -> parse_generic lang file, lang
   (*s: [[Main_semgrep_core.create_ast()]] when not a supported language *)
-  | None ->
-      (match Lang_fuzzy.lang_of_string_opt !lang with
-       | Some _ -> Fuzzy (Parse_fuzzy.parse file)
-       | None -> failwith (unsupported_language_message !lang)
-      )
+  | None -> failwith (unsupported_language_message !lang)
 (*e: [[Main_semgrep_core.create_ast()]] when not a supported language *)
 (*e: function [[Main_semgrep_core.create_ast]] *)
 
-
 (*s: type [[Main_semgrep_core.pattern]] *)
-type pattern =
-  | PatGen of (Lang.t * Pattern.t)
-  (*s: [[Main_semgrep_core.pattern]] other cases *)
-  | PatFuzzy of Ast_fuzzy.tree list
-  (*e: [[Main_semgrep_core.pattern]] other cases *)
+type pattern = Lang.t * Pattern.t
+(*s: [[Main_semgrep_core.pattern]] other cases *)
+(*e: [[Main_semgrep_core.pattern]] other cases *)
 (*e: type [[Main_semgrep_core.pattern]] *)
 
 (*s: function [[Main_semgrep_core.parse_pattern]] *)
@@ -578,14 +568,10 @@ let parse_pattern str =
   try (
     Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
       match Lang.lang_of_string_opt !lang with
-      | Some lang -> PatGen (lang, Parse_pattern.parse_pattern lang str)
+      | Some lang -> (lang, Parse_pattern.parse_pattern lang str)
       (*s: [[Main_semgrep_core.parse_pattern()]] when not a supported language *)
-      | None ->
-          (match Lang_fuzzy.lang_of_string_opt !lang with
-           | Some lang -> PatFuzzy (Parse_fuzzy.parse_pattern lang str)
-           | None -> failwith (unsupported_language_message !lang)
-          )
-          (*e: [[Main_semgrep_core.parse_pattern()]] when not a supported language *)
+      | None -> failwith (unsupported_language_message !lang)
+      (*e: [[Main_semgrep_core.parse_pattern()]] when not a supported language *)
     ))
   with exn ->
     raise (Parse_rules.InvalidPatternException ("no-id", str, !lang, (Common.exn_to_s exn)))
@@ -595,8 +581,7 @@ let parse_pattern str =
 (*s: function [[Main_semgrep_core.sgrep_ast]] *)
 let sgrep_ast pattern file any_ast =
   match pattern, any_ast with
-  |  _, NoAST -> () (* skipping *)
-  | PatGen (_lang, pattern), Gen ({Parse_code. ast; errors; _}, lang) ->
+  | (_lang, pattern), ({Parse_code. ast; errors; _}, lang) ->
       let rule = { R.
                    id = "-e/-f"; pattern_string = "-e/-f";
                    pattern;
@@ -615,17 +600,9 @@ let sgrep_ast pattern file any_ast =
         [rule] (parse_equivalences ())
         file lang ast |> ignore
 
-  (*s: [[Main_semgrep_core.sgrep_ast()]] match [[pattern]] and [[any_ast]] other cases *)
-  | PatFuzzy pattern, Fuzzy ast ->
-      Semgrep_fuzzy.sgrep
-        ~hook:(fun env matched_tokens ->
-          print_match !mvars env Lib_ast_fuzzy.toks_of_trees matched_tokens
-        )
-        pattern ast
-  (*e: [[Main_semgrep_core.sgrep_ast()]] match [[pattern]] and [[any_ast]] other cases *)
+(*s: [[Main_semgrep_core.sgrep_ast()]] match [[pattern]] and [[any_ast]] other cases *)
+(*e: [[Main_semgrep_core.sgrep_ast()]] match [[pattern]] and [[any_ast]] other cases *)
 
-  | _ ->
-      failwith ("unsupported  combination or " ^ (unsupported_language_message !lang))
 (*e: function [[Main_semgrep_core.sgrep_ast]] *)
 
 (*****************************************************************************)
@@ -893,7 +870,7 @@ let semgrep_with_one_pattern files =
     | _ -> raise Impossible
   in
   match pattern, !output_format with
-  | PatGen (semgrep_lang, semgrep_pat), Json ->
+  | (semgrep_lang, semgrep_pat), Json ->
       let rule = {
         Rule.id = "-e/-f";
         pattern = semgrep_pat; pattern_string;
@@ -904,8 +881,7 @@ let semgrep_with_one_pattern files =
       (* newer path, doesn't support text output *)
       semgrep_with_rules [rule] files
 
-  | PatGen _, Text
-  | PatFuzzy _, _ ->
+  | _ ->
       (* old path, doesn't support json output *)
       legacy_semgrep_with_one_pattern files
 
@@ -956,13 +932,17 @@ let rec read_all chan =
 let validate_pattern () =
   let chan = stdin in
   let s = read_all chan in
-  try (
-    match parse_pattern s with
-    | PatGen _ -> exit 0
-    | _ -> exit 1
-  ) with _exn -> exit 1
+  try
+    let _ = parse_pattern s in
+    exit 0
+  with _exn -> exit 1
 (*e: function [[Main_semgrep_core.validate_pattern]] *)
 
+(*****************************************************************************)
+(* Dumpers *)
+(*****************************************************************************)
+
+(* used for the Dump AST in semgrep.live *)
 (*s: function [[Main_semgrep_core.json_of_v]] *)
 let json_of_v (v: OCaml.v) =
   let rec aux v =
@@ -996,10 +976,6 @@ let json_of_v (v: OCaml.v) =
   aux v
 (*e: function [[Main_semgrep_core.json_of_v]] *)
 
-
-(*****************************************************************************)
-(* Dumpers *)
-(*****************************************************************************)
 (*s: function [[Main_semgrep_core.dump_v_to_format]] *)
 let dump_v_to_format (v: OCaml.v) =
   match !output_format with
