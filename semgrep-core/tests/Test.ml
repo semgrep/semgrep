@@ -141,24 +141,41 @@ let regression_tests_for_lang files lang =
 (* More tests *)
 (*****************************************************************************)
 
+(* This differs from pfff/tests/<lang>/parsing because here we also use
+ * tree-sitter to parse; certain files do not parse with pfff but parses here
+ *)
 let lang_parsing_tests =
   "lang parsing testing" >::: [
+   (* languages with only a tree-sitter parser *)
     "C#" >::: (
       let dir = Filename.concat (Filename.concat tests_path "csharp") "parsing" in
       let files = Common2.glob (spf "%s/*.cs" dir) in
       let lang = Lang.Csharp in
       parsing_tests_for_lang files lang
     );
-    "Ruby" >::: (
-      let dir = Filename.concat tests_path "ruby/parsing" in
-      let files = Common2.glob (spf "%s/*.rb" dir) in
-      let lang = Lang.Ruby in
-      parsing_tests_for_lang files lang
-    );
     "Lua" >::: (
       let dir = Filename.concat (Filename.concat tests_path "lua") "parsing" in
       let files = Common2.glob (spf "%s/*.lua" dir) in
       let lang = Lang.Lua in
+      parsing_tests_for_lang files lang
+    );
+    (* here we have both a Pfff and tree-sitter parser *)
+    "Java" >::: (
+      let dir= Filename.concat (Filename.concat tests_path "java") "parsing" in
+      let files = Common2.glob (spf "%s/*.java" dir) in
+      let lang = Lang.Java in
+      parsing_tests_for_lang files lang
+    );
+    "Go" >::: (
+      let dir= Filename.concat (Filename.concat tests_path "go") "parsing" in
+      let files = Common2.glob (spf "%s/*.go" dir) in
+      let lang = Lang.Go in
+      parsing_tests_for_lang files lang
+    );
+    "Ruby" >::: (
+      let dir = Filename.concat tests_path "ruby/parsing" in
+      let files = Common2.glob (spf "%s/*.rb" dir) in
+      let lang = Lang.Ruby in
       parsing_tests_for_lang files lang
     );
   ]
@@ -257,7 +274,7 @@ let lint_regression_tests =
   let lang = Lang.Python in
 
   let test_files = [
-   p "OTHER/lint/stupid.py";
+   p "OTHER/rules/stupid.py";
   ] in
   
   (* expected *)
