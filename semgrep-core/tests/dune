@@ -24,7 +24,6 @@
     pfff-lang_FUZZY
     
     semgrep_core
-    semgrep_fuzzy
     semgrep_parsing
     semgrep_matching
     semgrep_synthesizing

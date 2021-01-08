@@ -33,10 +33,6 @@ let data_path = "../../../data"
 (*****************************************************************************)
 
 (*s: function [[Test.ast_fuzzy_of_string]] *)
-let ast_fuzzy_of_string str =
-  Common2.with_tmp_file ~str ~ext:"cpp" (fun tmpfile ->
-    Parse_cpp.parse_fuzzy tmpfile |> fst
-  )
 (*e: function [[Test.ast_fuzzy_of_string]] *)
 
 (*s: function [[Test.any_gen_of_string]] *)
@@ -330,8 +326,6 @@ let test regexp =
       lang_parsing_tests;
       (* full testing for many languages *)
       lang_regression_tests;
-      (* ugly: todo: use a toy fuzzy parser instead of the one in lang_cpp/ *)
-      Unit_fuzzy.sgrep_fuzzy_unittest ~ast_fuzzy_of_string;
       (* TODO Unit_matcher.spatch_unittest ~xxx *)
       (* TODO Unit_matcher_php.unittest; (* sgrep, spatch, refactoring, unparsing *) *)
       lint_regression_tests;
