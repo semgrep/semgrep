@@ -12,6 +12,7 @@ let lang_has_no_dollar_ids = Lang.(function
   | Csharp
   | Kotlin
   | Lua
+  | Rust
     -> true
   | Javascript | Ruby | Typescript | PHP
     -> false)

@@ -161,6 +161,12 @@ let lang_parsing_tests =
       let lang = Lang.Lua in
       parsing_tests_for_lang files lang
     );
+    "Rust" >::: (
+      let dir = Filename.concat (Filename.concat tests_path "rust") "parsing" in
+      let files = Common2.glob (spf "%s/*.rs" dir) in
+      let lang = Lang.Rust in
+      parsing_tests_for_lang files lang
+    );
   ]
 
 (*s: constant [[Test.lang_regression_tests]] *)

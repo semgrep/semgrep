@@ -15,6 +15,7 @@
    tree-sitter-lang.lua
    tree-sitter-lang.c
    tree-sitter-lang.cpp
+   tree-sitter-lang.rust
 
    commons commons_core
    pfff-config
