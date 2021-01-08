@@ -32,36 +32,124 @@
 
 open Printf
 
-type pattern_atom =
-  | Any_symbol         (* match any single symbol *)
-  | Symbol of char     (* match a specific symbol *)
-  | Ellipsis           (* match any sequence of symbols *)
-  | Backref of string  (* match the same thing that was previous matched
-                          by the pattern atom of that name. *)
+module Names = Set.Make (String)
 
-(*
-   A pattern is a list of pattern atoms with an optional name.
-   The presence of a name indicates that the symbol or sequence it matches
-   must be captured, i.e. stored in the environment.
-*)
-type pattern = (pattern_atom * string option) list
+type pattern_atom =
+  | Any_symbol        (* match any single symbol *)
+  | Symbol of char    (* match a specific symbol *)
+  | Ellipsis          (* match any sequence of symbols *)
+  | Backref of string (* match the same thing that was previous
+                         matched by the pattern atom of that name. *)
+
+(* A simple pattern tree, which is in fact a list, meant to match
+   input that's a list of symbols. *)
+and pattern_value =
+  | Cons of pattern_atom * pattern
+  | Nil
+
+(* A pattern node, decorated with generic attributes. *)
+and pattern = {
+  pat_val : pattern_value;
+  capture_name : string option; (* optional capture (metavariable) *)
+  backrefs : Names.t; (* references to captures in rest of the pattern. *)
+}
 
 type input = char list
 
+let rec pat_equal a b =
+  a.capture_name = b.capture_name
+  && pat_val_equal a.pat_val b.pat_val
+
+and pat_val_equal a b =
+  match a, b with
+  | Cons (a_at, a_pat), Cons (b_at, b_pat) ->
+      pat_atom_equal a_at b_at
+      && pat_equal a_pat b_pat
+  | Nil, Nil -> true
+  | _ -> false
+
+and pat_atom_equal (a : pattern_atom) (b : pattern_atom) =
+  a = b
+
 (* Captured subsequences. *)
-module Env = Map.Make (String)
-type env = char list Env.t
+module Bindings = Map.Make (String)
+type env = {
+  (* All captures *)
+  full_env: char list Bindings.t;
+
+  (* Only captures that are used in the rest of the pattern *)
+  min_env: char list Bindings.t;
+}
+
+let empty_env = {
+  full_env = Bindings.empty;
+  min_env = Bindings.empty;
+}
+
+let construct_backref_set pat_val =
+  match pat_val with
+  | Nil -> Names.empty
+  | Cons (atom, pat) ->
+      match atom with
+      | Backref name -> Names.add name pat.backrefs
+      | Any_symbol
+      | Symbol _
+      | Ellipsis -> pat.backrefs
+
+let create_pattern pat_val capture_name =
+  let backrefs = construct_backref_set pat_val in
+  {
+    pat_val;
+    capture_name;
+    backrefs;
+  }
+
+let has_backref k pat =
+  Names.mem k pat.backrefs
+
+(*
+   To be called each time a new value is captured, i.e. bound to a
+   metavariable.
+*)
+let add_capture pat v env =
+  match pat.capture_name with
+  | None -> env
+  | Some k ->
+      let min_env =
+        if has_backref k pat then
+          Bindings.add k v env.min_env
+        else
+          env.min_env
+      in
+      {
+        full_env = Bindings.add k v env.full_env;
+        min_env = min_env;
+      }
+
+(*
+   To be called each time we pass a backreference which may no longer
+   be needed when descending down the pattern.
+*)
+let update_env_after_seeing_backref k env pat =
+  if not (has_backref k pat) then
+    {
+      env with
+      min_env = Bindings.remove k env.min_env
+    }
+  else
+    env
 
 (*
    Accumulator use to store the symbols matched by the current ellipsis.
 
-   In_named_ellipsis ("foo", acc) is the accumulator of symbols
-   matching the ellipsis, in reverse order, for the ellipsis named "foo".
+   In_named_ellipsis (pat, acc) is the accumulator of symbols
+   matching the ellipsis, in reverse order, for the ellipsis whose name
+   is specified by the 'capture_name' field of the pattern 'pat'.
 *)
 type ellipsis =
   | Not_in_ellipsis
   | In_anon_ellipsis
-  | In_named_ellipsis of string * char list
+  | In_named_ellipsis of pattern * char list
 
 type stat = {
   mutable match_calls: int;
@@ -71,7 +159,17 @@ type cache_when =
   | Always
   | Optimal
 
-let sample_pattern : pattern = [
+(*
+   Create a pattern from an ocaml list.
+*)
+let rec pat_of_list xs =
+  match xs with
+  | [] -> create_pattern Nil None
+  | (atom, opt_capture_name) :: xs ->
+      let pat_val = Cons (atom, pat_of_list xs) in
+      create_pattern pat_val opt_capture_name
+
+let sample_pattern : pattern = pat_of_list [
   Symbol 'A', None;
   Any_symbol, Some "thing";
   Ellipsis, None;
@@ -88,11 +186,17 @@ let sample_pattern : pattern = [
    This is a sanity check, not part of the matching algorithm.
 *)
 let rec check_pattern_ env (pat : pattern) =
-  match pat with
-  | [] -> ()
-  | (atom, opt_name) :: pat ->
+  let orig_pat = pat in
+  match pat.pat_val with
+  | Nil ->
+      (match pat.capture_name with
+       | None -> ()
+       | Some name ->
+           failwith ("invalid capture of Nil node: " ^ name)
+      )
+  | Cons (atom, pat) ->
       let new_env =
-        match opt_name with
+        match orig_pat.capture_name with
         | None -> env
         | Some name ->
             if List.mem name env then
@@ -117,10 +221,10 @@ let check_pattern pat =
    Initialize the capture of symbols by an ellipsis.
    'init_acc' is a stack, holding symbols in reverse order.
 *)
-let init_ellipsis opt_name init_acc =
-  match opt_name with
+let init_ellipsis pat init_acc =
+  match pat.capture_name with
   | None -> In_anon_ellipsis
-  | Some name -> In_named_ellipsis (name, init_acc)
+  | Some _name -> In_named_ellipsis (pat, init_acc)
 
 let extend_ellipsis opt_ellipsis symbol =
   match opt_ellipsis with
@@ -132,7 +236,8 @@ let close_ellipsis opt_ellipsis env =
   match opt_ellipsis with
   | Not_in_ellipsis -> env
   | In_anon_ellipsis -> env
-  | In_named_ellipsis (name, acc) -> Env.add name (List.rev acc) env
+  | In_named_ellipsis (pat, acc) ->
+      add_capture pat (List.rev acc) env
 
 (*
    Extend the environment by adding captured subsequences:
@@ -140,12 +245,9 @@ let close_ellipsis opt_ellipsis env =
      if applicable
    - add the named atom that was just matched, if applicable
 *)
-let extend env opt_ellipsis opt_name captured_sequence =
+let extend env opt_ellipsis pat captured_sequence =
   let env = close_ellipsis opt_ellipsis env in
-  match opt_name with
-  | None -> env
-  | Some name ->
-      Env.add name captured_sequence env
+  add_capture pat captured_sequence env
 
 (*
    Turn a string into a list of chars.
@@ -180,14 +282,19 @@ let print_ellipsis oc ellipsis =
   | Not_in_ellipsis -> ()
   | In_anon_ellipsis ->
       fprintf oc " in-ellipsis"
-  | In_named_ellipsis (name, acc) ->
+  | In_named_ellipsis (pat, acc) ->
+      let name =
+        match pat.capture_name with
+        | Some name -> name
+        | _ -> assert false
+      in
       fprintf oc " in-ellipsis:%s:%S" name (unparse (List.rev acc))
 
 (* to be appended to existing line *)
-let print_env oc env =
+let print_some_env oc some_env =
   fprintf oc " {";
   let is_first = ref true in
-  Env.bindings env
+  Bindings.bindings some_env
   |> List.iter (fun (name, subseq) ->
     if !is_first then
       is_first := false
@@ -201,11 +308,11 @@ let print_env oc env =
 
 (* to be appended to existing line *)
 let print_pat_head oc pat =
-  match pat with
-  | [] ->
+  match pat.pat_val with
+  | Nil ->
       fprintf oc " _:''"
-  | (atom, opt_name) :: _ ->
-      (match opt_name with
+  | Cons (atom, _tail) ->
+      (match pat.capture_name with
        | None -> fprintf oc " _:"
        | Some name -> fprintf oc " %s:" name
       );
@@ -231,9 +338,10 @@ let trace_match_call ~trace stat ellipsis env pat input =
   stat.match_calls <- match_calls;
   if trace then
     if match_calls <= max_trace_lines then
-      printf "match%a%a%a%a\n"
+      printf "match%a%a%a%a%a\n"
         print_ellipsis ellipsis
-        print_env env
+        print_some_env env.full_env
+        print_some_env env.min_env
         print_pat_head pat
         print_input_head input
     else if match_calls = max_trace_lines + 1 then
@@ -243,18 +351,18 @@ module Cache_key = struct
   type t = ellipsis * env * pattern * input
 
   let equal (ellipsis1, env1, pat1, input1) (ellipsis2, env2, pat2, input2) =
-    (==) pat1 pat2
+    pat_equal pat1 pat2
     && (==) input1 input2
     && ellipsis1 = ellipsis2
-    && Env.equal (=) env1 env2
+    && Bindings.equal (=) env1.min_env env2.min_env
 
   let hash_env env =
-    Env.fold
+    Bindings.fold
       (fun k v h ->
          Hashtbl.hash_param 10 100 k
          + Hashtbl.hash_param 10 100 v
          + h)
-      env 0
+      env.min_env 0
 
   (*
      We define a custom hash function because the default one doesn't work
@@ -302,9 +410,6 @@ module Memoize = struct
     else
       true
 
-  (* TODO: exclude from env the unused variables, i.e. those that are not
-           backreferenced in the pattern.
-  *)
   let get tbl cache_every compute ellipsis env pat input =
     (* only use the cache on some inputs because it's expensive *)
     if should_use_cache cache_every input then
@@ -362,8 +467,8 @@ let match_input ?(trace = true) ?cache root_pat root_input
     let orig_pat = pat in
     let orig_input = input in
     let in_ellipsis = ellipsis <> Not_in_ellipsis in
-    match pat with
-    | [] ->
+    match pat.pat_val with
+    | Nil ->
         (match input with
          | [] ->
              let env = close_ellipsis ellipsis env in
@@ -375,18 +480,18 @@ let match_input ?(trace = true) ?cache root_pat root_input
              else
                None
         )
-    | (pat_atom, opt_name) :: pat ->
+    | Cons (pat_atom, pat) ->
         match input with
         | [] ->
             (* end of input, only empty sequence can match *)
             (match pat_atom with
              | Ellipsis ->
-                 let env = extend env ellipsis opt_name [] in
-                 match_ (init_ellipsis opt_name []) env pat input
+                 let env = extend env ellipsis orig_pat [] in
+                 match_ (init_ellipsis orig_pat []) env pat input
              | Backref name ->
-                 (match Env.find_opt name env with
+                 (match Bindings.find_opt name env.min_env with
                   | Some [] ->
-                      let env = extend env ellipsis opt_name [] in
+                      let env = extend env ellipsis orig_pat [] in
                       match_ Not_in_ellipsis env pat input
                   | _ ->
                       None
@@ -398,22 +503,22 @@ let match_input ?(trace = true) ?cache root_pat root_input
             let head_match =
               match pat_atom with
               | Any_symbol ->
-                  let env = extend env ellipsis opt_name [symbol] in
+                  let env = extend env ellipsis orig_pat [symbol] in
                   Some (Not_in_ellipsis, env, input)
               | Symbol x ->
                   if x = symbol then
-                    let env = extend env ellipsis opt_name [symbol] in
+                    let env = extend env ellipsis orig_pat [symbol] in
                     Some (Not_in_ellipsis, env, input)
                   else
                     None
               | Ellipsis ->
                   (* start new ellipsis but don't consume first symbol *)
                   let env = close_ellipsis ellipsis env in
-                  Some (init_ellipsis opt_name [], env, orig_input)
+                  Some (init_ellipsis orig_pat [], env, orig_input)
               | Backref name ->
-                  (match Env.find_opt name env with
+                  (match Bindings.find_opt name env.min_env with
                    | Some [symbol0] when symbol0 = symbol ->
-                       let env = extend env ellipsis opt_name [symbol] in
+                       let env = extend env ellipsis orig_pat [symbol] in
                        Some (Not_in_ellipsis, env, input)
                    | _ ->
                        None
@@ -445,11 +550,11 @@ let match_input ?(trace = true) ?cache root_pat root_input
   );
 
   let opt_captures =
-    match match_ Not_in_ellipsis Env.empty root_pat root_input with
+    match match_ Not_in_ellipsis empty_env root_pat root_input with
     | None -> None
     | Some env ->
         Some (
-          Env.bindings env
+          Bindings.bindings env.full_env
           |> List.map (fun (k, v) -> (k, unparse v))
         )
   in
@@ -464,12 +569,15 @@ let print_time name f =
   printf "%s: %.6f s\n%!" name (t2 -. t1);
   res
 
-let check_match ?cache pat input_str expected_opt_bindings =
+let check_match ?cache
+    ?min_match_calls
+    ?max_match_calls
+    pat input_str expected_opt_bindings =
   let sort = Option.map (List.sort compare) in
   check_pattern pat;
   let input = parse input_str in
   let expected = sort expected_opt_bindings in
-  let actual =
+  let actual, match_calls =
     let res, stat =
       print_time "match function" (fun () ->
         match_input ?cache pat input
@@ -477,28 +585,44 @@ let check_match ?cache pat input_str expected_opt_bindings =
     in
     printf "input length: %i\n" (String.length input_str);
     printf "number of calls to the match function: %i\n" stat.match_calls;
-    sort res
+    sort res, stat.match_calls
   in
   print_result stdout actual;
-  Alcotest.(check bool) "equal" true (expected = actual)
+  Alcotest.(check bool) "equal" true (expected = actual);
+  (match min_match_calls with
+   | None -> ()
+   | Some mini ->
+       printf "min number of calls to the match function: %i\n" mini;
+       Alcotest.(check bool)
+         (sprintf "no more than %i match calls" mini)
+         true (match_calls >= mini)
+  );
+  (match max_match_calls with
+   | None -> ()
+   | Some maxi ->
+       printf "max number of calls to the match function: %i\n" maxi;
+       Alcotest.(check bool)
+         (sprintf "no more than %i match calls" maxi)
+         true (match_calls <= maxi)
+  )
 
 let test_simple_symbol () =
-  let pat = [Symbol 'A', Some "a"] in
+  let pat = pat_of_list [Symbol 'A', Some "a"] in
   let input = "A" in
   check_match pat input (Some ["a", "A"])
 
 let test_simple_ellipsis () =
-  let pat = [Ellipsis, Some "x"] in
+  let pat = pat_of_list [Ellipsis, Some "x"] in
   let input = "ABC" in
   check_match pat input (Some ["x", "ABC"])
 
 let test_any_symbol () =
-  let pat = [Any_symbol, Some "a"] in
+  let pat = pat_of_list [Any_symbol, Some "a"] in
   let input = "A" in
   check_match pat input (Some ["a", "A"])
 
 let test_floating_symbol () =
-  let pat = [
+  let pat = pat_of_list [
     Ellipsis, Some "head";
     Symbol 'A', Some "a";
     Ellipsis, Some "tail";
@@ -511,7 +635,7 @@ let test_floating_symbol () =
   ])
 
 let test_backref ?cache () =
-  let pat = [
+  let pat = pat_of_list [
     Ellipsis, None;
     Any_symbol, Some "orig";
     Backref "orig", Some "copy";
@@ -525,7 +649,7 @@ let test_backref ?cache () =
 
 (* Caching won't help due to the capturing ellipsis. *)
 let test_named_gap ?cache () =
-  let pat = [
+  let pat = pat_of_list [
     Symbol 'A', Some "a";
     Ellipsis, Some "gap";
     Symbol 'B', Some "b";
@@ -537,23 +661,19 @@ let test_named_gap ?cache () =
     "b", "B";
   ])
 
-(*
-   TODO: cache only relevant environment so that earlier captures that
-         aren't referenced in the pattern aren't part of the cache key.
-*)
-let test_cacheable_gap ?cache () =
-  let pat = [
+let test_cacheable_gap ?cache ?min_match_calls ?max_match_calls () =
+  let pat = pat_of_list [
     Ellipsis, None;
-    Any_symbol, None (* Some "a" *); (* TODO *)
+    Any_symbol, Some "a";
     Ellipsis, None;
     Symbol 'X', Some "x";
     Ellipsis, None;
   ] in
   let input = "ABCDEFG" in
-  check_match ?cache pat input None
+  check_match ?cache ?min_match_calls ?max_match_calls pat input None
 
 let test_backref_backtrack ?cache () =
-  let pat = [
+  let pat = pat_of_list [
     Ellipsis, None;
     Any_symbol, Some "x";
     Ellipsis, None;
@@ -584,8 +704,8 @@ let pseudo_random_string len pick_from =
    With the naive match algorithm, the complexity is O(n^2) where n is the
    input length.
 *)
-let test_quadratic ?cache () =
-  let pat = [
+let test_quadratic ?cache ?min_match_calls ?max_match_calls () =
+  let pat = pat_of_list [
     Ellipsis, None;
     Any_symbol, None; (* matches everywhere *)
     Ellipsis, None;
@@ -598,10 +718,10 @@ let test_quadratic ?cache () =
      usage scenario i.e. actual programs don't repeat statements many times.
   *)
   let input = pseudo_random_string 10_000 "AB" in
-  check_match ?cache pat input None
+  check_match ?cache ?min_match_calls ?max_match_calls pat input None
 
 let test_cubic ?cache () =
-  let pat = [
+  let pat = pat_of_list [
     Ellipsis, None;
     Any_symbol, None; (* matches everywhere *)
     Ellipsis, None;
@@ -626,14 +746,26 @@ let test = "Matcher", [
   "named gap", `Quick, test_named_gap ?cache:None;
   "named gap cached", `Quick, test_named_gap ~cache:Always;
 
-  "cacheable gap", `Quick, test_cacheable_gap ?cache:None;
-  "cacheable gap cached", `Quick, test_cacheable_gap ~cache:Always;
+  "cacheable gap", `Quick, test_cacheable_gap
+    ?cache:None
+    ~min_match_calls:44
+    ?max_match_calls:None;
+  "cacheable gap cached", `Quick, test_cacheable_gap
+    ~cache:Always
+    ?min_match_calls:None
+    ~max_match_calls:29;
 
   "backref backtrack", `Quick, test_backref_backtrack ?cache:None;
   "backref backtrack cached", `Quick, test_backref_backtrack ~cache:Optimal;
 
-  "quadratic", `Slow, test_quadratic ?cache:None;
-  "quadratic cached", `Quick, test_quadratic ~cache:Optimal;
+  "quadratic", `Slow, test_quadratic
+    ?cache:None
+    ~min_match_calls:50_025_002
+    ?max_match_calls:None;
+  "quadratic cached", `Quick, test_quadratic
+    ~cache:Optimal
+    ?min_match_calls:None
+    ~max_match_calls:54390;
 
   "cubic", `Slow, test_cubic ?cache:None;
   "cubic cached", `Quick, test_cubic ~cache:Optimal;
