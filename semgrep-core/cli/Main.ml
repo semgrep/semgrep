@@ -19,7 +19,9 @@ module J = JSON
 (*****************************************************************************)
 (* Purpose *)
 (*****************************************************************************)
-(* A semantic grep. https://semgrep.dev/
+(* A semantic grep.
+ * See https://semgrep.dev/ for more information.
+ *
  * Right now there is:
  *  - good support for: Python, Java, Go, Ruby,
  *    Javascript (and JSX), Typescript (and TSX), JSON
@@ -308,6 +310,29 @@ let gen_layer ~root ~query file =
   ()
 (*e: function [[Main_semgrep_core.gen_layer]] *)
 
+(*s: function [[Main_semgrep_core.unsupported_language_message]] *)
+let unsupported_language_message lang =
+  if lang = "unset"
+  then "no language specified; use -lang"
+  else spf "unsupported language: %s; supported language tags are: %s"
+      lang supported_langs
+(*e: function [[Main_semgrep_core.unsupported_language_message]] *)
+
+let lang_of_string s =
+  match Lang.lang_of_string_opt s with
+  | Some x -> x
+  | None -> failwith (unsupported_language_message s)
+
+(* when called from semgrep-python, error messages in semgrep-core or
+ * certain profiling statistics may refer to rule id that are generated
+ * by semgrep-python, making it hard to know what the problem is.
+ * At least we can save this generated rule file to help debugging.
+*)
+let save_rules_file_in_tmp () =
+  let tmp = Filename.temp_file "semgrep_core_rule-" ".yaml" in
+  pr2 (spf "saving rules file for debugging in: %s" tmp);
+  Common.write_file ~file:tmp (Common.read_file !rules_file)
+
 (*****************************************************************************)
 (* Caching *)
 (*****************************************************************************)
@@ -513,19 +538,6 @@ let parse_equivalences () =
   | file -> Parse_equivalences.parse file
 (*e: function [[Main_semgrep_core.parse_equivalences]] *)
 
-(*s: function [[Main_semgrep_core.unsupported_language_message]] *)
-let unsupported_language_message lang =
-  if lang = "unset"
-  then "no language specified; use -lang"
-  else spf "unsupported language: %s; supported language tags are: %s"
-      lang supported_langs
-(*e: function [[Main_semgrep_core.unsupported_language_message]] *)
-
-let lang_of_string s =
-  match Lang.lang_of_string_opt s with
-  | Some x -> x
-  | None -> failwith (unsupported_language_message s)
-
 (*****************************************************************************)
 (* Language specific *)
 (*****************************************************************************)
@@ -695,6 +707,10 @@ let iter_generic_ast_of_files_and_get_matches_and_exn_to_errors f files =
   matches, errors
 (*e: function [[Main_semgrep_core.iter_generic_ast_of_files_and_get_matches_and_exn_to_errors]] *)
 
+(*****************************************************************************)
+(* Output *)
+(*****************************************************************************)
+
 let print_matches_and_errors_json files matches errs =
   let count_errors = (List.length errs) in
   let count_ok = (List.length files) - count_errors in
@@ -728,6 +744,71 @@ let print_matches_and_errors files matches errs =
   | Text -> print_matches_and_errors_text files matches errs
 [@@profiling]
 (*e: function [[Main_semgrep_core.print_matches_and_errors]] *)
+
+(*s: function [[Main_semgrep_core.format_output_exception]] *)
+let format_output_exception e : string =
+  (* if (ouptut_as_json) then *)
+  let msg = match e with
+    | Parse_rules.InvalidRuleException (pattern_id, msg)     ->
+        J.Object [ "pattern_id", J.String pattern_id;
+                   "error", J.String "invalid rule";
+                   "message", J.String msg; ]
+    | Parse_rules.InvalidLanguageException (pattern_id, language) ->
+        J.Object [ "pattern_id", J.String pattern_id;
+                   "error", J.String "invalid language";
+                   "language", J.String language; ]
+    | Parse_rules.InvalidPatternException (pattern_id, pattern, lang, message) ->
+        J.Object [ "pattern_id", J.String pattern_id;
+                   "error", J.String "invalid pattern";
+                   "pattern", J.String pattern;
+                   "language", J.String lang;
+                   "message", J.String message; ]
+    | Parse_rules.UnparsableYamlException msg ->
+        J.Object [  "error", J.String "unparsable yaml"; "message", J.String msg; ]
+    | Parse_rules.InvalidYamlException msg ->
+        J.Object [  "error", J.String "invalid yaml"; "message", J.String msg; ]
+    | exn ->
+        J.Object [  "error", J.String "unknown exception"; "message", J.String (Common.exn_to_s exn); ]
+  in
+  J.string_of_json msg
+(*e: function [[Main_semgrep_core.format_output_exception]] *)
+
+(*****************************************************************************)
+(* Semgrep -rules_file *)
+(*****************************************************************************)
+
+(*s: function [[Main_semgrep_core.semgrep_with_rules]] *)
+let semgrep_with_rules rules files =
+  let files = get_final_files files in
+  logger#info "processing %d files" (List.length files);
+  let matches, errs =
+    files |> iter_generic_ast_of_files_and_get_matches_and_exn_to_errors
+      (fun file lang ast ->
+         let rules =
+           rules |> List.filter (fun r -> List.mem lang r.R.languages) in
+         Semgrep_generic.check ~hook:(fun _ _ -> ())
+           rules (parse_equivalences ())
+           file lang ast
+      )
+  in
+  logger#info "found %d matches and %d errors"
+    (List.length matches) (List.length errs);
+  let (matches, new_errors) =
+    filter_files_with_too_many_matches_and_transform_as_timeout matches in
+  let errs = new_errors @ errs in
+  (* note: uncomment the following and use semgrep-core -stat_matches
+   * to debug too-many-matches issues.
+   * Common2.write_value matches "/tmp/debug_matches";
+  *)
+  print_matches_and_errors files matches errs
+(*e: function [[Main_semgrep_core.semgrep_with_rules]] *)
+
+let semgrep_with_rules_file rules_file files =
+  (*s: [[Main_semgrep_core.semgrep_with_rules()]] if [[verbose]] *)
+  logger#info "Parsing %s" rules_file;
+  (*e: [[Main_semgrep_core.semgrep_with_rules()]] if [[verbose]] *)
+  let rules = Parse_rules.parse rules_file in
+  semgrep_with_rules rules files
 
 (*****************************************************************************)
 (* Semgrep -e/-f *)
@@ -797,44 +878,6 @@ let legacy_semgrep_with_one_pattern xs =
   ()
 (*e: function [[Main_semgrep_core.semgrep_with_one_pattern]] *)
 
-
-(*****************************************************************************)
-(* Semgrep -rules_file *)
-(*****************************************************************************)
-
-(*s: function [[Main_semgrep_core.semgrep_with_rules]] *)
-let semgrep_with_rules rules files =
-  let files = get_final_files files in
-  logger#info "processing %d files" (List.length files);
-  let matches, errs =
-    files |> iter_generic_ast_of_files_and_get_matches_and_exn_to_errors
-      (fun file lang ast ->
-         let rules =
-           rules |> List.filter (fun r -> List.mem lang r.R.languages) in
-         Semgrep_generic.check ~hook:(fun _ _ -> ())
-           rules (parse_equivalences ())
-           file lang ast
-      )
-  in
-  logger#info "found %d matches and %d errors"
-    (List.length matches) (List.length errs);
-  let (matches, new_errors) =
-    filter_files_with_too_many_matches_and_transform_as_timeout matches in
-  let errs = new_errors @ errs in
-  (* note: uncomment the following and use semgrep-core -stat_matches
-   * to debug too-many-matches issues.
-   * Common2.write_value matches "/tmp/debug_matches";
-  *)
-  print_matches_and_errors files matches errs
-(*e: function [[Main_semgrep_core.semgrep_with_rules]] *)
-
-let semgrep_with_rules_file rules_file files =
-  (*s: [[Main_semgrep_core.semgrep_with_rules()]] if [[verbose]] *)
-  logger#info "Parsing %s" rules_file;
-  (*e: [[Main_semgrep_core.semgrep_with_rules()]] if [[verbose]] *)
-  let rules = Parse_rules.parse rules_file in
-  semgrep_with_rules rules files
-
 let semgrep_with_one_pattern files =
   let pattern, pattern_string =
     match !pattern_file, !pattern_string with
@@ -865,17 +908,6 @@ let semgrep_with_one_pattern files =
   | PatFuzzy _, _ ->
       (* old path, doesn't support json output *)
       legacy_semgrep_with_one_pattern files
-
-
-(* when called from semgrep-python, error messages in semgrep-core or
- * certain profiling statistics may refer to rule id that are generated
- * by semgrep-python, making it hard to know what the problem is.
- * At least we can save this generated rule file to help debugging.
-*)
-let save_rules_file_in_tmp () =
-  let tmp = Filename.temp_file "semgrep_core_rule-" ".yaml" in
-  pr2 (spf "saving rules file for debugging in: %s" tmp);
-  Common.write_file ~file:tmp (Common.read_file !rules_file)
 
 (*****************************************************************************)
 (* Semgrep -tainting_rules_file *)
@@ -1234,35 +1266,6 @@ let options () =
 (*****************************************************************************)
 (* Main entry point *)
 (*****************************************************************************)
-
-(*s: function [[Main_semgrep_core.format_output_exception]] *)
-let format_output_exception e : string =
-  (* if (ouptut_as_json) then *)
-  let msg = match e with
-    | Parse_rules.InvalidRuleException (pattern_id, msg)     ->
-        J.Object [ "pattern_id", J.String pattern_id;
-                   "error", J.String "invalid rule";
-                   "message", J.String msg; ]
-    | Parse_rules.InvalidLanguageException (pattern_id, language) ->
-        J.Object [ "pattern_id", J.String pattern_id;
-                   "error", J.String "invalid language";
-                   "language", J.String language; ]
-    | Parse_rules.InvalidPatternException (pattern_id, pattern, lang, message) ->
-        J.Object [ "pattern_id", J.String pattern_id;
-                   "error", J.String "invalid pattern";
-                   "pattern", J.String pattern;
-                   "language", J.String lang;
-                   "message", J.String message; ]
-    | Parse_rules.UnparsableYamlException msg ->
-        J.Object [  "error", J.String "unparsable yaml"; "message", J.String msg; ]
-    | Parse_rules.InvalidYamlException msg ->
-        J.Object [  "error", J.String "invalid yaml"; "message", J.String msg; ]
-    | exn ->
-        J.Object [  "error", J.String "unknown exception"; "message", J.String (Common.exn_to_s exn); ]
-  in
-  J.string_of_json msg
-(*e: function [[Main_semgrep_core.format_output_exception]] *)
-
 
 (*s: function [[Main_semgrep_core.main]] *)
 let main () =
