@@ -1,0 +1,10 @@
+// Argh! this was parsed as $APP = express() ... after 0.35 because
+// of '...' allows to express method chaining. 
+// Note that you can not use Parsing_hacks.js to solve the problem
+// and insert a semicolon when ... is after a newline and a closing ')'
+// because dots_nested_stmts.sgrep contains 'if($X) ...' where we don't
+// want the semicolon. Only way to fix it is to rely on ASI to kick
+// in by having the code below generate a parse error by using instead
+// '$APP = express() . ...' with the extra dot to express method chaining
+$APP = express()
+...
