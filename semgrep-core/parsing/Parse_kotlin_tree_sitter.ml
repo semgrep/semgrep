@@ -65,6 +65,9 @@ let todo (env : env) _ =
 let token_todo (env : env) _ =
   failwith "token Todo"
 
+let unhandled_keywordattr_to_namedattr (env : env) tok =
+  NamedAttr (token env tok, [str env tok], empty_id_info (), fake_bracket [])
+
 let escaped_identifier (env : env) (tok : CST.escaped_identifier) =
   token env tok (* pattern "\\\\[tbrn'\dq\\\\$]" *)
 
@@ -75,7 +78,7 @@ let visibility_modifier (env : env) (x : CST.visibility_modifier) =
   (match x with
    | `Public tok -> KeywordAttr (Public, token env tok) (* "public" *)
    | `Priv tok -> KeywordAttr (Private, token env tok) (* "private" *)
-   | `Inte tok -> NamedAttr (token env tok, [str env tok], empty_id_info (), fake_bracket []) (* "internal" *)
+   | `Inte tok -> unhandled_keywordattr_to_namedattr env tok  (* "internal" *)
    | `Prot tok -> KeywordAttr(Protected, token env tok) (* "protected" *)
   )
 
@@ -104,8 +107,8 @@ let anon_choice_val_2833752 (env : env) (x : CST.anon_choice_val_2833752) =
 
 let platform_modifier (env : env) (x : CST.platform_modifier) =
   (match x with
-   | `Expect tok -> NamedAttr (token env tok, [str env tok], empty_id_info(), fake_bracket[]) (* "expect" *)
-   | `Actual tok -> NamedAttr (token env tok, [str env tok], empty_id_info(), fake_bracket[]) (* "actual" *)
+   | `Expect tok -> unhandled_keywordattr_to_namedattr env tok (* "expect" *)
+   | `Actual tok -> unhandled_keywordattr_to_namedattr env tok (* "actual" *)
   )
 
 let label (env : env) (tok : CST.label) =
@@ -135,7 +138,7 @@ let inheritance_modifier (env : env) (x : CST.inheritance_modifier) =
   (match x with
    | `Abst tok -> KeywordAttr (Abstract, token env tok) (* "abstract" *)
    | `Final tok -> KeywordAttr (Final, token env tok) (* "final" *)
-   | `Open tok -> NamedAttr (token env tok, [str env tok], empty_id_info (), fake_bracket []) (* "open" *)
+   | `Open tok -> unhandled_keywordattr_to_namedattr env tok (* "open" *)
   )
 
 let postfix_unary_operator (env : env) (x : CST.postfix_unary_operator) =
@@ -153,16 +156,16 @@ let variance_modifier (env : env) (x : CST.variance_modifier) =
 
 let member_modifier (env : env) (x : CST.member_modifier) =
   (match x with
-   | `Over tok -> NamedAttr (token env tok, [str env tok], empty_id_info (), fake_bracket []) (* "override" *)
-   | `Late tok -> NamedAttr (token env tok, [str env tok], empty_id_info (), fake_bracket []) (* "lateinit" *)
+   | `Over tok -> KeywordAttr(Override, token env tok) (* "override" *)
+   | `Late tok -> unhandled_keywordattr_to_namedattr env tok (* "lateinit" *)
   )
 
 let class_modifier (env : env) (x : CST.class_modifier) =
   (match x with
-   | `Sealed tok -> NamedAttr (token env tok, [str env tok], empty_id_info (), fake_bracket []) (* "sealed" *)
-   | `Anno tok -> NamedAttr (token env tok, [str env tok], empty_id_info (), fake_bracket []) (* "annotation" *)
-   | `Data tok -> NamedAttr (token env tok, [str env tok], empty_id_info (), fake_bracket []) (* "data" *)
-   | `Inner tok -> NamedAttr (token env tok, [str env tok], empty_id_info (), fake_bracket []) (* "inner" *)
+   | `Sealed tok -> unhandled_keywordattr_to_namedattr env tok (* "sealed" *)
+   | `Anno tok -> unhandled_keywordattr_to_namedattr env tok (* "annotation" *)
+   | `Data tok -> unhandled_keywordattr_to_namedattr env tok (* "data" *)
+   | `Inner tok -> unhandled_keywordattr_to_namedattr env tok (* "inner" *)
   )
 
 let boolean_literal (env : env) (x : CST.boolean_literal) =
@@ -216,12 +219,12 @@ let as_operator (env : env) (x : CST.as_operator) =
 
 let function_modifier (env : env) (x : CST.function_modifier) =
   (match x with
-   | `Tail tok -> NamedAttr (token env tok, [str env tok], empty_id_info (), fake_bracket []) (* "tailrec" *)
-   | `Op tok -> NamedAttr (token env tok, [str env tok], empty_id_info (), fake_bracket []) (* "operator" *)
-   | `Infix tok -> NamedAttr (token env tok, [str env tok], empty_id_info (), fake_bracket []) (* "infix" *)
-   | `Inline tok -> NamedAttr (token env tok, [str env tok], empty_id_info (), fake_bracket []) (* "inline" *)
-   | `Exte tok -> NamedAttr (token env tok, [str env tok], empty_id_info (), fake_bracket []) (* "external" *)
-   | `Susp tok -> NamedAttr (token env tok, [str env tok], empty_id_info (), fake_bracket []) (* "suspend" *)
+   | `Tail tok -> unhandled_keywordattr_to_namedattr env tok (* "tailrec" *)
+   | `Op tok -> unhandled_keywordattr_to_namedattr env tok (* "operator" *)
+   | `Infix tok -> unhandled_keywordattr_to_namedattr env tok (* "infix" *)
+   | `Inline tok -> KeywordAttr (Inline, token env tok) (* "inline" *)
+   | `Exte tok -> KeywordAttr (Extern, token env tok) (* "external" *)
+   | `Susp tok -> unhandled_keywordattr_to_namedattr env tok (* "suspend" *)
   )
 
 let line_str_text (env : env) (tok : CST.line_str_text) =
@@ -253,9 +256,9 @@ let multiplicative_operator (env : env) (x : CST.multiplicative_operator) =
 
 let parameter_modifier (env : env) (x : CST.parameter_modifier) =
   (match x with
-   | `Vararg tok -> NamedAttr (token env tok, [str env tok], empty_id_info(), fake_bracket[]) (* "vararg" *)
-   | `Noin tok -> NamedAttr (token env tok, [str env tok], empty_id_info(), fake_bracket[]) (* "noinline" *)
-   | `Cros tok -> NamedAttr (token env tok, [str env tok], empty_id_info(), fake_bracket[]) (* "crossinline" *)
+   | `Vararg tok -> unhandled_keywordattr_to_namedattr env tok (* "vararg" *)
+   | `Noin tok -> unhandled_keywordattr_to_namedattr env tok (* "noinline" *)
+   | `Cros tok -> unhandled_keywordattr_to_namedattr env tok (* "crossinline" *)
   )
 
 let bin_literal (env : env) (tok : CST.bin_literal) =
@@ -450,7 +453,7 @@ and annotation (env : env) (x : CST.annotation) =
               let v2 = use_site_target env x in
               NamedAttr (v1, ["use site target", v2], empty_id_info (), fake_bracket [v3])
           | None -> NamedAttr (v1, [str env origv1], empty_id_info (), fake_bracket [v3])) in
-       v2
+       [v2]
    | `Multi_anno (v1, v2, v3, v4, v5) ->
        let v1 = token env v1 (* "@" *) in
        let v2 =
@@ -1380,8 +1383,7 @@ and parameter (env : env) ((v1, v2, v3) : CST.parameter) =
 
 and parameter_modifiers (env : env) (x : CST.parameter_modifiers) =
   (match x with
-   | `Anno x -> let _ = annotation env x in
-       raise Todo
+   | `Anno x -> annotation env x
    | `Rep1_param_modi xs ->
        List.map (parameter_modifier env) xs
   )
