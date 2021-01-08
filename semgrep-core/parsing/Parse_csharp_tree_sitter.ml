@@ -884,10 +884,23 @@ and expression (env : env) (x : CST.expression) : AST.expr =
        Cast (v2, v4)
    | `Chec_exp x -> checked_expression env x
    | `Cond_access_exp (v1, v2, v3) ->
+       (* map `a?.b` to `null == a ? null : a.b` *)
        let v1 = expression env v1 in
        let v2 = token env v2 (* "?" *) in
-       let v3 = expression env v3 in
-       todo env (v1, v2, v3)
+       let fake_null = L (Null (fake "null")) in
+       let is_null = Call (IdSpecial (Op Eq, fake "="), fake_bracket [Arg fake_null; Arg v1]) in
+       let access = (match v3 with
+         | `Elem_bind_exp x ->
+             let x = element_binding_expression env x in
+             let open_br, _, close_br = x in
+             ArrayAccess (v1, (open_br, Tuple x, close_br))
+         | `Member_bind_exp (x1, x2) ->
+             let x1 = token env x1 (* "." *) in
+             let x2 = simple_name env x2 in
+             DotAccess (v1, x1, EName x2)
+          | _ -> raise Impossible
+       ) in
+       Conditional (is_null, fake_null, access)
    | `Cond_exp (v1, v2, v3, v4, v5) ->
        let v1 = expression env v1 in
        let v2 = token env v2 (* "?" *) in
