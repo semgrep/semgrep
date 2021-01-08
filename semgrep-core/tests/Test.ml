@@ -274,7 +274,7 @@ let lint_regression_tests =
   let lang = Lang.Python in
 
   let test_files = [
-   p "OTHER/lint/stupid.py";
+   p "OTHER/rules/stupid.py";
   ] in
   
   (* expected *)

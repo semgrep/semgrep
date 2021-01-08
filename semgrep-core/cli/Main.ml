@@ -20,9 +20,10 @@ module J = JSON
 (* Purpose *)
 (*****************************************************************************)
 (* A semantic grep. https://semgrep.dev/
- * Right now there is good support for Python, Java, Go, Ruby,
- * Javascript (and JSX), Typescript (and TSX), JSON,
- * and partial support for PHP, C, and OCaml.
+ * Right now there is:
+ *  - good support for: Python, Java, Go, Ruby,
+ *    Javascript (and JSX), Typescript (and TSX), JSON
+ *  - partial support for: PHP, C, OCaml, Lua, C#.
  *
  * opti: git grep foo | xargs semgrep -e 'foo(...)'
  *
