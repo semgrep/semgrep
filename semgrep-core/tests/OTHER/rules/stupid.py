@@ -1,3 +1,5 @@
+# this works with ../../../data/basic.yml and is used in Test.ml
+
 def foo(a, b):
     # ERROR: stupid $X == $X
     return a + b == a + b
