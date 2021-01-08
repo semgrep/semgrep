@@ -898,7 +898,7 @@ and expression (env : env) (x : CST.expression) : AST.expr =
              let x1 = token env x1 (* "." *) in
              let x2 = simple_name env x2 in
              DotAccess (v1, x1, EName x2)
-          | _ -> raise Impossible
+         | _ -> raise Impossible
        ) in
        Conditional (is_null, fake_null, access)
    | `Cond_exp (v1, v2, v3, v4, v5) ->
