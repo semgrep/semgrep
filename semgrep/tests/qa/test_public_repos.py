@@ -53,14 +53,14 @@ def _assert_sentinel_results(repo_url, repo_path, sentinel_path, language):
         output = json.loads(semgrep_run.stdout)
     except json.JSONDecodeError:
         pytest.fail(
-            f"Failed to parse JSON from semgrep output:\n"
+            f"Failed to parse JSON from semgrep output ({semgrep_run.args}):\n"
             + semgrep_run.stdout
             + semgrep_run.stderr
         )
 
     if output["errors"]:
         pytest.fail(
-            f"Running on {repo_url} with lang {language} had errors: "
+            f"Running on {repo_url} with lang {language} had errors ({semgrep_run.args}): "
             + json.dumps(output["errors"], indent=4)
         )
 
@@ -68,7 +68,7 @@ def _assert_sentinel_results(repo_url, repo_path, sentinel_path, language):
         sentinel_path
     ):
         pytest.fail(
-            f"Running on {repo_url} with lang {language} expected to have one results instead found result: "
+            f"Running on {repo_url} with lang {language} expected to have one results instead found result ({semgrep_run.args}): "
             + json.dumps(output["results"], indent=4)
         )
 
