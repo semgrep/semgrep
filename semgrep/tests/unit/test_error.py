@@ -1,4 +1,21 @@
+import io
+from typing import Any
+from typing import Dict
+from typing import List
+
+import pytest
+from ruamel.yaml import YAML
+
+from semgrep.core_runner import CoreRunner
+from semgrep.error import InvalidPatternError
+from semgrep.error import SemgrepError
 from semgrep.error import SourceParseError
+from semgrep.evaluation import BooleanRuleExpression
+from semgrep.evaluation import OPERATORS
+from semgrep.pattern import Pattern
+from semgrep.rule import Rule
+
+yaml = YAML(typ="rt")
 
 
 def test_different_hash():
@@ -45,3 +62,38 @@ def test_same_hash():
     errors = set()
     errors.add(error_1)
     assert error_2 in errors
+
+
+# cf. https://github.com/returntocorp/semgrep/issues/2237
+def test_raise_semgrep_error_from_json_unknown_error():
+    test_rule_id = "test_rule_id"
+    rule_yaml_text = io.StringIO(
+        f"""
+    rules:
+    - id: {test_rule_id}
+      pattern: $X == $X
+      severity: INFO
+      languages: [python]
+      message: blah
+    """
+    )
+    rule_dict = yaml.load(rule_yaml_text).get("rules")[0]
+    rule: Rule = Rule.from_json(rule_dict)
+
+    core_runner = CoreRunner(
+        allow_exec=False,
+        jobs=1,
+        timeout=0,
+        max_memory=0,
+        timeout_threshold=0,
+    )
+
+    patterns: List[Pattern] = list(core_runner._flatten_rule_patterns([rule]))
+
+    output_json: Dict[str, Any] = {
+        "error": "unknown exception",
+        "message": "End_of_file",
+    }
+    with pytest.raises(SemgrepError) as excinfo:
+        core_runner._raise_semgrep_error_from_json(output_json, patterns, rule)
+        assert test_rule_id in str(excinfo.value)
