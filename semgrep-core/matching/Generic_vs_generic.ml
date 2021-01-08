@@ -171,6 +171,9 @@ let m_ident a b =
   | (a, b) -> (m_wrap m_string) a b
 (*e: function [[Generic_vs_generic.m_ident]] *)
 
+(*e: function [[Generic_vs_generic.m_lifetime]] *)
+let m_lifetime (a) (b) = m_ident a b
+(*e: function [[Generic_vs_generic.m_lifetime]] *)
 
 (*s: function [[Generic_vs_generic.m_dotted_name]] *)
 let m_dotted_name a b =
@@ -723,6 +726,14 @@ and m_expr a b =
       m_tok a0 b0 >>= (fun () ->
         m_expr a1 b1
       )
+  | A.Metavar a0, B.Metavar b0 ->
+      m_tok a0 b0
+  | A.MacroInvocation (a0, a1), B.MacroInvocation (b0, b1) ->
+      m_tok a0 b0 >>= (fun () ->
+        (m_list m_any) a1 b1
+      )
+  | A.StmtExpr a0, B.StmtExpr b0 ->
+      m_stmt a0 b0
 
 
   | A.OtherExpr(a1, a2), B.OtherExpr(b1, b2) ->
@@ -739,6 +750,7 @@ and m_expr a b =
   | A.DeRef _, _  | A.OtherExpr _, _
   | A.SliceAccess _, _
   | A.TypedMetavar _, _ | A.DotAccessEllipsis _, _
+  | A.Metavar _, _ | A.MacroInvocation _, _ | A.StmtExpr _, _
     -> fail ()
 (*e: [[Generic_vs_generic.m_expr()]] boilerplate cases *)
 (*e: function [[Generic_vs_generic.m_expr]] *)
@@ -940,7 +952,9 @@ and m_qualifier a b =
       m_expr a1 b1 >>= (fun () ->
         m_tok a2 b2
       )
-  | A.QDots _, _ | A.QTop _, _ | A.QExpr _, _ -> fail ()
+  | A.QType a1, B.QType b1 ->
+      m_type_ a1 b1
+  | A.QDots _, _ | A.QTop _, _ | A.QExpr _, _ | A.QType _, _ -> fail ()
 
 
 and m_container_set_or_dict_unordered_elements (a1, a2) (b1, b2) =
@@ -1349,7 +1363,15 @@ and m_type_argument a b =
   | A.TypeWildcard (a1, a2), B.TypeWildcard (b1, b2) ->
       let* () = m_tok a1 b1 in
       m_option m_wildcard a2 b2
-  | A.TypeArg _, _ | A.TypeWildcard _, _
+  | A.TypeBinding (a1, a2), B.TypeBinding (b1, b2) ->
+      let* () = m_ident a1 b1 in
+      m_type_ a2 b2
+  | A.TypeLiteral(a1), B.TypeLiteral(b1) ->
+      m_literal a1 b1
+  | A.TypeLifetime (a1), B.TypeLifetime (b1) ->
+      m_lifetime a1 b1
+  | A.TypeArg _, _ | A.TypeWildcard _, _ | A.TypeBinding _, _
+  | A.TypeLiteral _, _ | A.TypeLifetime _, _ | A.TypeBlock _, _
     -> fail ()
 (*e: function [[Generic_vs_generic.m_type_argument]] *)
 and m_wildcard (a1, a2) (b1, b2) =
@@ -1894,6 +1916,49 @@ and m_pattern a b =
       m_pattern a1 b1 >>= (fun () ->
         m_expr a2 b2
       )
+  | A.PatRange(a1, a2, a3), B.PatRange(b1, b2, b3) ->
+      m_pattern a1 b1 >>= (fun () ->
+        m_arithmetic_operator a2 b2 >>= (fun () ->
+          m_pattern a3 b3
+        )
+      )
+  | A.PatName a1, B.PatName b1 ->
+      m_expr a1 b1
+  | A.PatTupleStruct (a1, a2), B.PatTupleStruct (b1, b2) ->
+      m_name a1 b1 >>= (fun () ->
+        m_bracket (m_list m_pattern) a2 b2
+      )
+  | A.PatStruct (a1, a2), B.PatStruct (b1, b2) ->
+      m_name a1 b1 >>= (fun () ->
+        let m_tup = (fun (a1, a2) (b1, b2) ->
+          m_name a1 b1 >>= (fun () ->
+            m_option m_pattern a2 b2
+          )
+        ) in
+        m_bracket (m_list m_tup) a2 b2
+      )
+  | A.PatRemaining a1, B.PatRemaining b1 ->
+      m_tok a1 b1
+  | A.PatRef (a1, a2), B.PatRef (b1, b2) ->
+      m_tok a1 b1 >>= (fun () ->
+        m_pattern a2 b2
+      )
+  | A.PatSlice a1, B.PatSlice b1 ->
+      m_bracket (m_list m_pattern) a1 b1
+  | A.PatCapture (a1, a2), B.PatCapture (b1, b2) ->
+      m_ident a1 b1 >>= (fun () ->
+        m_pattern a2 b2
+      )
+  | A.PatBorrow (a1, a2), B.PatBorrow (b1, b2) ->
+      m_list m_attribute a1 b1 >>= (fun () ->
+        m_pattern a2 b2
+      )
+  | A.PatMutable (a1, a2), B.PatMutable (b1, b2) ->
+      m_list m_attribute a1 b1 >>= (fun () ->
+        m_pattern a2 b2
+      )
+  | A.PatConstBlock a1, B.PatConstBlock b1 ->
+      m_expr a1 b1
   | A.OtherPat(a1, a2), B.OtherPat(b1, b2) ->
       m_other_pattern_operator a1 b1 >>= (fun () ->
         (m_list m_any) a2 b2
@@ -1902,6 +1967,10 @@ and m_pattern a b =
   | A.PatTuple _, _  | A.PatList _, _  | A.PatRecord _, _  | A.PatKeyVal _, _
   | A.PatUnderscore _, _  | A.PatDisj _, _  | A.PatWhen _, _  | A.PatAs _, _
   | A.PatTyped _, _  | A.OtherPat _, _ | A.PatType _, _ | A.PatVar _, _
+  | A.PatRange (_, _, _), _ | A.PatName _, _ | A.PatTupleStruct (_, _), _ | A.PatStruct (_, _), _
+  | A.PatRemaining _, _ | A.PatRef (_, _), _ | A.PatSlice _, _ | A.PatCapture (_, _), _ | A.PatBorrow (_, _), _
+  | A.PatMutable (_, _), _ | A.PatConstBlock _, _
+
     -> fail ()
 (*e: [[Generic_vs_generic.m_pattern]] boilerplate cases *)
 (*e: function [[Generic_vs_generic.m_pattern]] *)
@@ -1994,6 +2063,18 @@ and m_type_parameter_constraint a b =
   match a, b with
   | A.Extends(a1), B.Extends(b1) ->
       m_type_ a1 b1
+  | A.TyParamLifetime, B.TyParamLifetime -> return ()
+  | A.TyParamMetavar, B.TyParamMetavar -> return ()
+  | A.TyParamOptional (a1, a2), B.TyParamOptional (b1, b2) ->
+      m_type_parameter a1 b1 >>= (fun () ->
+        m_type_ a2 b2
+      )
+  | A.TyParamConst a1, B.TyParamConst b1 ->
+      m_type_ a1 b1
+
+  | A.Extends _, _ | A.TyParamLifetime, _ | A.TyParamMetavar, _
+  | A.TyParamOptional _, _ | A.TyParamConst _, _ ->
+      fail ()
 (*e: function [[Generic_vs_generic.m_type_parameter_constraint]] *)
 
 (*s: function [[Generic_vs_generic.m_type_parameter_constraints]] *)
@@ -2060,9 +2141,12 @@ and m_parameter a b =
       )
   | A.ParamEllipsis(a1), B.ParamEllipsis(b1) ->
       m_tok a1 b1
+  | A.ParamEllided(a1), B.ParamEllided(b1) ->
+      m_tok a1 b1
   | A.ParamClassic _, _  | A.ParamPattern _, _
   | A.ParamRest _, _ | A.ParamHashSplat _, _
   | A.ParamEllipsis _, _
+  | A.ParamEllided _, _
   | A.OtherParam _, _
     -> fail ()
 (*e: [[Generic_vs_generic.m_parameter]] boilerplate cases *)
