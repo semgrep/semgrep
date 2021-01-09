@@ -730,7 +730,7 @@ and m_expr a b =
       m_tok a0 b0
   | A.MacroInvocation (a0, a1), B.MacroInvocation (b0, b1) ->
       m_tok a0 b0 >>= (fun () ->
-        (m_list m_any) a1 b1
+        m_bracket (m_list (m_list m_any)) a1 b1
       )
 
   | A.OtherExpr(a1, a2), B.OtherExpr(b1, b2) ->
@@ -1312,6 +1312,11 @@ and m_type_ a b =
         m_type_ a1 b1
       )
 
+  | A.TyDyn(a0, a1), B.TyDyn(b0, b1) ->
+      m_tok a0 b0 >>= (fun () ->
+        m_type_ a1 b1
+      )
+
   | A.TyQuestion(a1, a2), B.TyQuestion(b1, b2) ->
       m_type_ a1 b1 >>= (fun () ->
         m_tok a2 b2
@@ -1336,7 +1341,7 @@ and m_type_ a b =
       )
   | A.TyBuiltin _, _  | A.TyFun _, _  | A.TyNameApply _, _  | A.TyVar _, _
   | A.TyArray _, _  | A.TyPointer _, _ | A.TyTuple _, _  | A.TyQuestion _, _
-  | A.TyId _, _ | A.TyIdQualified _, _ | A.TyAny _, _
+  | A.TyId _, _ | A.TyIdQualified _, _ | A.TyAny _, _ | A.TyDyn _, _
   | A.TyOr _, _ | A.TyAnd _, _ | A.TyRecordAnon _, _
   | A.OtherType _, _
     -> fail ()
@@ -1710,6 +1715,29 @@ and m_stmt a b =
   | A.LoopStmt(a0, a1), B.LoopStmt(b0, b1) ->
       let* () = m_tok a0 b0 in
       m_stmt a1 b1
+  | A.ImplBlock(a0, a1, a2, a3, a4), B.ImplBlock(b0, b1, b2, b3, b4) ->
+      let* () = m_list m_attribute a0 b0 in
+      let* () = m_list m_type_parameter a1 b1 in
+      let* () = m_option m_type_ a2 b2 in
+      let* () = m_option m_where_clause a3 b3 in
+      m_stmt a4 b4
+  | A.TraitBlock(a0, a1, a2, a3, a4, a5), B.TraitBlock(b0, b1, b2, b3, b4, b5) ->
+      let* () = m_list m_attribute a0 b0 in
+      let* () = m_ident a1 b1 in
+      let* () = m_list m_type_parameter a2 b2 in
+      let* () = m_list m_trait_bound a3 b3 in
+      let* () = m_option m_where_clause a4 b4 in
+      m_stmt a5 b5
+  | A.LetStmt(a1, a2, a3, a4, a5), B.LetStmt(b1, b2, b3, b4, b5) ->
+      m_list m_attribute a1 b1 >>= (fun () ->
+        m_pattern a2 b2 >>= (fun () ->
+          m_option m_type_ a3 b3 >>= (fun () ->
+            m_option m_expr a4 b4 >>= (fun () ->
+              m_tok a5 b5
+            )
+          )
+        )
+      )
 
   | A.OtherStmt(a1, a2), B.OtherStmt(b1, b2) ->
       m_other_stmt_operator a1 b1 >>= (fun () ->
@@ -1733,6 +1761,7 @@ and m_stmt a b =
   | A.Label _, _  | A.Goto _, _  | A.Throw _, _  | A.Try _, _
   | A.Assert _, _ | A.LoopStmt _, _
   | A.OtherStmt _, _ | A.OtherStmtWithStmt _, _ | A.WithUsingResource _, _
+  | A.ImplBlock _, _ | A.TraitBlock _, _ | A.LetStmt _, _
     -> fail ()
 (*e: [[Generic_vs_generic.m_stmt]] boilerplate cases *)
 (*e: function [[Generic_vs_generic.m_stmt]] *)
@@ -2063,6 +2092,8 @@ and m_definition_kind a b =
       m_module_definition a1 b1
   | A.MacroDef(a1), B.MacroDef(b1) ->
       m_macro_definition a1 b1
+  | A.RustMacroDef(a1), B.RustMacroDef(b1) ->
+      m_rust_macro_definition a1 b1
   | A.Signature(a1), B.Signature(b1) ->
       m_type_ a1 b1
   | A.UseOuterDecl a1, B.UseOuterDecl b1 ->
@@ -2071,6 +2102,7 @@ and m_definition_kind a b =
   | A.ModuleDef _, _  | A.MacroDef _, _  | A.Signature _, _
   | A.UseOuterDecl _, _
   | A.FieldDefColon _, _
+  | A.RustMacroDef _, _
   | A.OtherDef _, _
     -> fail ()
 (*e: [[Generic_vs_generic.m_definition_kind]] boilerplate cases *)
@@ -2110,6 +2142,54 @@ and m_type_parameter a b =
       )
 (*e: function [[Generic_vs_generic.m_type_parameter]] *)
 
+(*s: function [[Generic_vs_generic.m_trait_bound]] *)
+and m_trait_bound a b =
+  match a, b with
+  | A.TraitBoundType a0, B.TraitBoundType b0 ->
+      m_type_ a0 b0
+  | A.TraitBoundLifetime a0, B.TraitBoundLifetime b0 ->
+      m_lifetime a0 b0
+  | A.TraitBoundHigherRanked (a0, a1), B.TraitBoundHigherRanked (b0, b1) ->
+      m_list m_type_parameter a0 b0 >>= (fun () ->
+        m_type_ a1 b1
+      )
+  | A.TraitBoundRemoved a0, B.TraitBoundRemoved b0 ->
+      m_type_ a0 b0
+
+  | A.TraitBoundType _, _ | A.TraitBoundLifetime _, _
+  | A.TraitBoundHigherRanked _, _ | A.TraitBoundRemoved _, _
+    -> fail ()
+(*e: function [[Generic_vs_generic.m_trait_bound]] *)
+
+(*s: function [[Generic_vs_generic.m_where_clause]] *)
+and m_where_clause a b = m_list m_where_predicate a b
+(*e: function [[Generic_vs_generic.m_where_clause]] *)
+
+(*s: function [[Generic_vs_generic.m_where_predicate]] *)
+and m_where_predicate (a0, a1) (b0, b1) =
+  m_where_predicate_type a0 b0 >>= (fun () ->
+    m_list m_trait_bound a1 b1
+  )
+(*e: function [[Generic_vs_generic.m_where_predicate]] *)
+
+(*s: function [[Generic_vs_generic.m_where_predicate_type]] *)
+and m_where_predicate_type a b =
+  match a, b with
+  | A.WherePredLifetime a0, B.WherePredLifetime b0 ->
+      m_lifetime a0 b0
+  | A.WherePredId a0, B.WherePredId b0 ->
+      m_ident a0 b0
+  | A.WherePredType a0, B.WherePredType b0 ->
+      m_type_ a0 b0
+  | A.WherePredHigherRanked (a0, a1), B.WherePredHigherRanked (b0, b1) ->
+      m_list m_type_parameter a0 b0 >>= (fun () ->
+        m_type_ a1 b1
+      )
+
+  | A.WherePredLifetime _, _ | A.WherePredId _, _
+  | A.WherePredType _, _ | A.WherePredHigherRanked _, _
+    -> fail()
+(*e: function [[Generic_vs_generic.m_where_predicate_type]] *)
 
 (* ------------------------------------------------------------------------- *)
 (* Function (or method) definition *)
@@ -2153,6 +2233,12 @@ and m_parameter a b =
   (*s: [[Generic_vs_generic.m_parameter]] boilerplate cases *)
   | A.ParamPattern(a1), B.ParamPattern(b1) ->
       m_pattern a1 b1
+  | A.ParamPatternTyped(a1, a2, a3), B.ParamPatternTyped(b1, b2, b3) ->
+      m_pattern a1 b1 >>= (fun () ->
+        m_type_ a2 b2 >>= (fun () ->
+          m_list m_attribute a3 b3
+        )
+      )
   | A.OtherParam(a1, a2), B.OtherParam(b1, b2) ->
       m_other_parameter_operator a1 b1 >>= (fun () ->
         (m_list m_any) a2 b2
@@ -2162,6 +2248,7 @@ and m_parameter a b =
   | A.ParamEllided(a1), B.ParamEllided(b1) ->
       m_tok a1 b1
   | A.ParamClassic _, _  | A.ParamPattern _, _
+  | A.ParamPatternTyped _, _
   | A.ParamRest _, _ | A.ParamHashSplat _, _
   | A.ParamEllipsis _, _
   | A.ParamEllided _, _
@@ -2503,6 +2590,44 @@ and m_macro_definition a b =
       )
 (*e: function [[Generic_vs_generic.m_macro_definition]] *)
 
+(*s: function [[Generic_vs_generic.m_rust_macro_pattern]] *)
+and m_rust_macro_pattern a b =
+  match a, b with
+  | A.RustMacPatTree a1, B.RustMacPatTree b1 ->
+      m_list m_rust_macro_pattern a1 b1
+  | A.RustMacPatRepetition (a1, a2, a3), B.RustMacPatRepetition (b1, b2, b3) ->
+      m_bracket (m_list m_rust_macro_pattern) a1 b1 >>= (fun () ->
+        m_option m_ident a2 b2 >>= (fun () ->
+          m_tok a3 b3
+        )
+      )
+  | A.RustMacPatBinding (a1, a2), B.RustMacPatBinding (b1, b2) ->
+      m_ident a1 b1 >>= (fun () ->
+        m_tok a2 b2
+      )
+  | A.RustMacPatToken a1, B.RustMacPatToken b1 ->
+      m_tok a1 b1
+
+  | A.RustMacPatTree _, _ | A.RustMacPatRepetition (_, _, _), _
+  | A.RustMacPatBinding (_, _), _ | A.RustMacPatToken _, _
+    -> fail ()
+(*e: function [[Generic_vs_generic.m_rust_macro_pattern]] *)
+
+(*s: function [[Generic_vs_generic.m_rust_macro_rule]] *)
+and m_rust_macro_rule a b =
+  match a, b with
+    { A. pattern = a1; body = a2; },
+    { B. pattern = b1; body = b2; } ->
+      m_list m_rust_macro_pattern a1 b1 >>= (fun () ->
+        m_bracket(m_list m_any) a2 b2
+      )
+(*e: function [[Generic_vs_generic.m_rust_macro_rule]] *)
+
+(*s: function [[Generic_vs_generic.m_rust_macro_definition]] *)
+and m_rust_macro_definition a b =
+  m_bracket (m_list m_rust_macro_rule) a b
+(*e: function [[Generic_vs_generic.m_rust_macro_definition]] *)
+
 
 (*****************************************************************************)
 (* Directives (Module import/export, macros) *)
@@ -2529,6 +2654,12 @@ and m_directive a b =
     | A.ImportFrom _ | A.ImportAs _
     (* definitely do not normalize the pattern for ImportAll *)
     | A.ImportAll _
+
+    (* TODO Rust *)
+    | A.ImportFromExpr _
+    | A.ImportAllExpr _
+    | A.ImportList _
+
     | A.Package _ | A.PackageEnd _ | A.Pragma _ | A.OtherDirective _ ->
         fail ()
   )
@@ -2574,6 +2705,23 @@ and m_directive_basic a b =
       m_ident a1 b1 >>= (fun () ->
         (m_list m_any) a2 b2
       )
+
+  | A.ImportFromExpr(a0, a1, a2), B.ImportFromExpr(b0, b1, b2) ->
+      m_tok a0 b0 >>= (fun () ->
+        m_expr a1 b1 >>= (fun () ->
+            (m_option_none_can_match_some m_ident_and_id_info)
+              a2 b2
+          ))
+  | A.ImportAllExpr(a0, a1, a2), B.ImportAllExpr(b0, b1, b2) ->
+      m_tok a0 b0 >>= (fun () ->
+        m_option m_expr a1 b1 >>= (fun () ->
+          m_tok a2 b2
+        ))
+  | A.ImportList(a0, a1), B.ImportList(b0, b1) ->
+      m_bracket (m_list m_directive) a0 b0 >>= (fun () ->
+        m_option m_expr a1 b1
+      )
+
   | A.OtherDirective(a1, a2), B.OtherDirective(b1, b2) ->
       m_other_directive_operator a1 b1 >>= (fun () ->
         (m_list m_any) a2 b2
@@ -2581,6 +2729,7 @@ and m_directive_basic a b =
   | A.ImportFrom _, _ | A.ImportAs _, _ | A.OtherDirective _, _
   | A.Pragma _, _
   | A.ImportAll _, _ | A.Package _, _ | A.PackageEnd _, _
+  | A.ImportFromExpr _, _ | A.ImportAllExpr _, _ | A.ImportList _, _
     -> fail ()
 (*e: [[Generic_vs_generic.m_directive_basic]] boilerplate cases *)
 (*e: function [[Generic_vs_generic.m_directive_basic]] *)
@@ -2683,11 +2832,20 @@ and m_any a b =
       m_label_ident a1 b1
   | A.IoD(a1), B.IoD(b1) ->
       m_ident_or_dynamic a1 b1
+  | A.MacTkTree(a1), B.MacTkTree(b1) ->
+      m_bracket (m_list (m_list m_any)) a1 b1
+  | A.MacTks(a1, a2, a3), B.MacTks(b1, b2, b3) ->
+      m_bracket (m_list (m_list m_any)) a1 b1 >>= (fun () ->
+        m_option m_ident a2 b2 >>= (fun () ->
+          m_tok a3 b3
+        )
+      )
   | A.I _, _  | A.N _, _  | A.Modn _, _ | A.Di _, _  | A.En _, _  | A.E _, _
   | A.S _, _  | A.T _, _  | A.P _, _  | A.Def _, _  | A.Dir _, _
   | A.Pa _, _  | A.Ar _, _  | A.At _, _  | A.Dk _, _ | A.Pr _, _
   | A.Fld _, _ | A.Ss _, _ | A.Tk _, _ | A.Lbli _, _ | A.IoD _, _
   | A.ModDk _, _ | A.TodoK _, _ | A.Partial _, _ | A.Args _, _
+  | A.MacTkTree _, _ | A.MacTks _, _
     -> fail ()
 (*e: [[Generic_vs_generic.m_any]] boilerplate cases *)
 (*e: function [[Generic_vs_generic.m_any]] *)

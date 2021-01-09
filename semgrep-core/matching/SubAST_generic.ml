@@ -114,6 +114,7 @@ let subexprs_of_stmt st =
   | Switch (_, eopt, _)
   | Return (_, eopt, _)
   | OtherStmtWithStmt (_, eopt, _)
+  | LetStmt (_, _, _, eopt, _)
     -> Common.opt_to_list eopt
 
   (* n *)
@@ -140,6 +141,8 @@ let subexprs_of_stmt st =
   | DefStmt _
   | LoopStmt _
   | WithUsingResource _
+  | ImplBlock _
+  | TraitBlock _
   (* could extract the expr in any? *)
   | OtherStmt _
     -> []
@@ -155,6 +158,7 @@ let substmts_of_stmt st =
   | Return _ | Continue _ | Break _ | Goto _
   | Throw _
   | Assert _
+  | LetStmt _
   | OtherStmt _
     -> []
 
@@ -165,6 +169,8 @@ let substmts_of_stmt st =
   | Label (_, st)
   | OtherStmtWithStmt (_, _, st)
   | LoopStmt (_, st)
+  | ImplBlock (_, _, _, _, st)
+  | TraitBlock (_, _, _, _, _, st)
     -> [st]
 
   (* 2 *)
