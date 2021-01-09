@@ -558,19 +558,16 @@ let create_ast file =
 (*e: function [[Main_semgrep_core.create_ast]] *)
 
 (*s: type [[Main_semgrep_core.pattern]] *)
-type pattern = Lang.t * Pattern.t
 (*s: [[Main_semgrep_core.pattern]] other cases *)
 (*e: [[Main_semgrep_core.pattern]] other cases *)
 (*e: type [[Main_semgrep_core.pattern]] *)
 
 (*s: function [[Main_semgrep_core.parse_pattern]] *)
-let parse_pattern str =
+let parse_pattern lang_pattern str =
   try (
     Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
-      match Lang.lang_of_string_opt !lang with
-      | Some lang -> (lang, Parse_pattern.parse_pattern lang str)
+      Parse_pattern.parse_pattern lang_pattern str
       (*s: [[Main_semgrep_core.parse_pattern()]] when not a supported language *)
-      | None -> failwith (unsupported_language_message !lang)
       (*e: [[Main_semgrep_core.parse_pattern()]] when not a supported language *)
     ))
   with exn ->
@@ -581,7 +578,7 @@ let parse_pattern str =
 (*s: function [[Main_semgrep_core.sgrep_ast]] *)
 let sgrep_ast pattern file any_ast =
   match pattern, any_ast with
-  | (_lang, pattern), ({Parse_code. ast; errors; _}, lang) ->
+  | pattern, ({Parse_code. ast; errors; _}, lang) ->
       let rule = { R.
                    id = "-e/-f"; pattern_string = "-e/-f";
                    pattern;
@@ -799,7 +796,7 @@ let legacy_semgrep_with_one_pattern xs =
   (* old: let xs = List.map Common.fullpath xs in
    * better no fullpath here, not our responsability.
   *)
-
+  let lang = lang_of_string !lang in
   let pattern, query_string =
     match !pattern_file, !pattern_string with
     (*s: [[Main_semgrep_core.semgrep_with_one_pattern()]] sanity check cases *)
@@ -811,19 +808,15 @@ let legacy_semgrep_with_one_pattern xs =
     (*s: [[Main_semgrep_core.semgrep_with_one_pattern()]] pattern file case *)
     | file, _ when file <> "" ->
         let s = Common.read_file file in
-        parse_pattern s, s
+        parse_pattern lang s, s
     (*e: [[Main_semgrep_core.semgrep_with_one_pattern()]] pattern file case *)
     | _, s when s <> ""->
-        parse_pattern s, s
+        parse_pattern lang s, s
     | _ -> raise Impossible
   in
-  let files =
-    match Lang.lang_of_string_opt !lang with
-    | Some lang -> Lang.files_of_dirs_or_files lang xs
-    (*s: [[Main_semgrep_core.semgrep_with_one_pattern()]] no [[lang]] specified *)
-    (* should remove at some point *)
-    | None -> Find_source.files_of_dir_or_files ~lang:!lang xs
-    (*e: [[Main_semgrep_core.semgrep_with_one_pattern()]] no [[lang]] specified *)
+  let files = Lang.files_of_dirs_or_files lang xs
+  (*s: [[Main_semgrep_core.semgrep_with_one_pattern()]] no [[lang]] specified *)
+  (*e: [[Main_semgrep_core.semgrep_with_one_pattern()]] no [[lang]] specified *)
   in
   (*s: [[Main_semgrep_core.semgrep_with_one_pattern()]] filter [[files]] *)
   (*e: [[Main_semgrep_core.semgrep_with_one_pattern()]] filter [[files]] *)
@@ -856,6 +849,7 @@ let legacy_semgrep_with_one_pattern xs =
 (*e: function [[Main_semgrep_core.semgrep_with_one_pattern]] *)
 
 let semgrep_with_one_pattern files =
+  let lang = lang_of_string !lang in
   let pattern, pattern_string =
     match !pattern_file, !pattern_string with
     | "", "" ->
@@ -864,19 +858,19 @@ let semgrep_with_one_pattern files =
         failwith "I need just one pattern; use -f OR -e (not both)"
     | file, _ when file <> "" ->
         let s = Common.read_file file in
-        parse_pattern s, s
+        parse_pattern lang s, s
     | _, s when s <> ""->
-        parse_pattern s, s
+        parse_pattern lang s, s
     | _ -> raise Impossible
   in
-  match pattern, !output_format with
-  | (semgrep_lang, semgrep_pat), Json ->
+  match !output_format with
+  | Json ->
       let rule = {
         Rule.id = "-e/-f";
-        pattern = semgrep_pat; pattern_string;
+        pattern; pattern_string;
         message = "";
         severity = Rule.Error;
-        languages = [semgrep_lang];
+        languages = [lang];
       } in
       (* newer path, doesn't support text output *)
       semgrep_with_rules [rule] files
@@ -933,7 +927,8 @@ let validate_pattern () =
   let chan = stdin in
   let s = read_all chan in
   try
-    let _ = parse_pattern s in
+    let lang = lang_of_string !lang in
+    let _ = parse_pattern lang s in
     exit 0
   with _exn -> exit 1
 (*e: function [[Main_semgrep_core.validate_pattern]] *)
