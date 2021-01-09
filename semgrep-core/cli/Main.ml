@@ -538,22 +538,13 @@ let parse_equivalences () =
   | file -> Parse_equivalences.parse file
 (*e: function [[Main_semgrep_core.parse_equivalences]] *)
 
-(*****************************************************************************)
-(* Language specific *)
-(*****************************************************************************)
-
 (*s: type [[Main_semgrep_core.ast]] *)
-type ast = Parse_code.parsing_result * Lang.t
 (*s: [[Main_semgrep_core.ast]] other cases *)
 (*e: [[Main_semgrep_core.ast]] other cases *)
 (*e: type [[Main_semgrep_core.ast]] *)
 
 (*s: function [[Main_semgrep_core.create_ast]] *)
-let create_ast file =
-  match Lang.lang_of_string_opt !lang with
-  | Some lang -> parse_generic lang file, lang
-  (*s: [[Main_semgrep_core.create_ast()]] when not a supported language *)
-  | None -> failwith (unsupported_language_message !lang)
+(*s: [[Main_semgrep_core.create_ast()]] when not a supported language *)
 (*e: [[Main_semgrep_core.create_ast()]] when not a supported language *)
 (*e: function [[Main_semgrep_core.create_ast]] *)
 
@@ -576,9 +567,9 @@ let parse_pattern lang_pattern str =
 
 
 (*s: function [[Main_semgrep_core.sgrep_ast]] *)
-let sgrep_ast pattern file any_ast =
-  match pattern, any_ast with
-  | pattern, ({Parse_code. ast; errors; _}, lang) ->
+let sgrep_ast lang pattern file any_ast =
+  match any_ast with
+  | {Parse_code. ast; errors; _} ->
       let rule = { R.
                    id = "-e/-f"; pattern_string = "-e/-f";
                    pattern;
@@ -826,7 +817,7 @@ let legacy_semgrep_with_one_pattern xs =
     (*e: [[Main_semgrep_core.semgrep_with_one_pattern()]] if [[verbose]] *)
     let process file =
       timeout_function file (fun () ->
-        sgrep_ast pattern file (create_ast file)
+        sgrep_ast lang pattern file (parse_generic lang file)
       )
     in
 
