@@ -139,6 +139,12 @@ def test_regex_rule__child(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(run_semgrep_in_tmp("rules/regex-child.yaml"), "results.json")
 
 
+def test_regex_rule__not(run_semgrep_in_tmp, snapshot):
+    snapshot.assert_match(
+        run_semgrep_in_tmp("rules/regex-not.yaml", "stupid.py"), "results.json"
+    )
+
+
 def test_regex_rule__invalid_expression(run_semgrep_in_tmp, snapshot):
     with pytest.raises(CalledProcessError) as excinfo:
         run_semgrep_in_tmp("rules/regex-invalid.yaml")
