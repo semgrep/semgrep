@@ -751,27 +751,28 @@ let semgrep_with_rules_file rules_file files =
 (* Semgrep -e/-f *)
 (*****************************************************************************)
 
+let rule_of_pattern lang pattern_string pattern =
+  { R.
+    id = "-e/-f"; pattern_string;
+    pattern;
+    message = ""; severity = R.Error;
+    languages = [lang]
+  }
+
 (*s: function [[Main_semgrep_core.sgrep_ast]] *)
-let sgrep_ast lang pattern file any_ast =
-  match any_ast with
-  | {Parse_code. ast; errors; _} ->
-      let rule = { R.
-                   id = "-e/-f"; pattern_string = "-e/-f";
-                   pattern;
-                   message = ""; severity = R.Error;
-                   languages = [lang]
-                 } in
-      if errors <> []
-      then pr2 (spf "WARNING: fail to fully parse %s" file);
-      Semgrep_generic.check
-        (*s: [[Main_semgrep_core.sgrep_ast()]] [[hook]] argument to [[check]] *)
-        ~hook:(fun env matched_tokens ->
-          let xs = Lazy.force matched_tokens in
-          print_match !mvars env Metavars_generic.ii_of_mval xs
-        )
-        (*e: [[Main_semgrep_core.sgrep_ast()]] [[hook]] argument to [[check]] *)
-        [rule] (parse_equivalences ())
-        file lang ast |> ignore
+let sgrep_ast lang rule file any_ast =
+  let {Parse_code. ast; errors; _} = any_ast in
+  if errors <> []
+  then pr2 (spf "WARNING: fail to fully parse %s" file);
+  Semgrep_generic.check
+    (*s: [[Main_semgrep_core.sgrep_ast()]] [[hook]] argument to [[check]] *)
+    ~hook:(fun env matched_tokens ->
+      let xs = Lazy.force matched_tokens in
+      print_match !mvars env Metavars_generic.ii_of_mval xs
+    )
+    (*e: [[Main_semgrep_core.sgrep_ast()]] [[hook]] argument to [[check]] *)
+    [rule] (parse_equivalences ())
+    file lang ast |> ignore
 
 (*s: [[Main_semgrep_core.sgrep_ast()]] match [[pattern]] and [[any_ast]] other cases *)
 (*e: [[Main_semgrep_core.sgrep_ast()]] match [[pattern]] and [[any_ast]] other cases *)
@@ -802,13 +803,7 @@ let semgrep_with_one_pattern xs =
         parse_pattern lang s, s
     | _ -> raise Impossible
   in
-  let rule = {
-    Rule.id = "-e/-f";
-    pattern; pattern_string;
-    message = "";
-    severity = Rule.Error;
-    languages = [lang];
-  } in
+  let rule = rule_of_pattern lang pattern_string pattern in
 
   match !output_format with
   | Json ->
@@ -829,7 +824,8 @@ let semgrep_with_one_pattern xs =
           (*e: [[Main_semgrep_core.semgrep_with_one_pattern()]] if [[verbose]] *)
           let process file =
             timeout_function file (fun () ->
-              sgrep_ast lang pattern file (parse_generic lang file)
+              let ast = parse_generic lang file in
+              sgrep_ast lang rule file ast
             )
           in
 
