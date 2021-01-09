@@ -10,7 +10,7 @@
       "extra": {
         "is_ignored": false,
         "lines": "def D():\n    print(\"asdf\")",
-        "message": "method D is not inside B",
+        "message": "method D is not inside $CLASS",
         "metadata": {},
         "metavars": {
           "$FUNC": {
