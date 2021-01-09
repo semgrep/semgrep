@@ -732,9 +732,6 @@ and m_expr a b =
       m_tok a0 b0 >>= (fun () ->
         (m_list m_any) a1 b1
       )
-  | A.StmtExpr a0, B.StmtExpr b0 ->
-      m_stmt a0 b0
-
 
   | A.OtherExpr(a1, a2), B.OtherExpr(b1, b2) ->
       m_other_expr_operator a1 b1 >>= (fun () ->
@@ -750,7 +747,7 @@ and m_expr a b =
   | A.DeRef _, _  | A.OtherExpr _, _
   | A.SliceAccess _, _
   | A.TypedMetavar _, _ | A.DotAccessEllipsis _, _
-  | A.Metavar _, _ | A.MacroInvocation _, _ | A.StmtExpr _, _
+  | A.Metavar _, _ | A.MacroInvocation _, _
     -> fail ()
 (*e: [[Generic_vs_generic.m_expr()]] boilerplate cases *)
 (*e: function [[Generic_vs_generic.m_expr]] *)
@@ -1634,12 +1631,29 @@ and m_stmt a b =
             (* less-is-more: *)
             m_option_none_can_match_some m_block a3 b3
           )))
+  | A.IfLet(a0, a1, a2, a3, a4), B.IfLet(b0, b1, b2, b3, b4) ->
+      m_tok a0 b0 >>= (fun () ->
+        m_pattern a1 b1 >>= (fun () ->
+          (* too many regressions doing m_expr_deep by default; Use DeepEllipsis *)
+          m_expr a2 b2 >>= (fun () ->
+            m_block a3 b3 >>= (fun () ->
+              (* less-is-more: *)
+              m_option_none_can_match_some m_block a4 b4
+            )))
+      )
 
   | A.While(a0, a1, a2), B.While(b0, b1, b2) ->
       m_tok a0 b0 >>= (fun () ->
         m_expr a1 b1 >>= (fun () ->
           m_stmt a2 b2
         ))
+  | A.WhileLet(a0, a1, a2, a3), B.WhileLet(b0, b1, b2, b3) ->
+      m_tok a0 b0 >>= (fun () ->
+        m_pattern a1 b1 >>= (fun () ->
+          m_expr a2 b2 >>= (fun () ->
+            m_stmt a3 b3
+          ))
+      )
   (*s: [[Generic_vs_generic.m_stmt]] boilerplate cases *)
   | A.DefStmt(a1), B.DefStmt(b1) ->
       m_definition a1 b1
@@ -1693,6 +1707,9 @@ and m_stmt a b =
       let* () = m_expr a1 b1 in
       let* () = (m_option m_expr) a2 b2 in
       m_tok asc bsc
+  | A.LoopStmt(a0, a1), B.LoopStmt(b0, b1) ->
+      let* () = m_tok a0 b0 in
+      m_stmt a1 b1
 
   | A.OtherStmt(a1, a2), B.OtherStmt(b1, b2) ->
       m_other_stmt_operator a1 b1 >>= (fun () ->
@@ -1710,10 +1727,11 @@ and m_stmt a b =
         ))
 
   | A.ExprStmt _, _  | A.DefStmt _, _  | A.DirectiveStmt _, _
-  | A.Block _, _  | A.If _, _  | A.While _, _  | A.DoWhile _, _  | A.For _, _
+  | A.Block _, _  | A.If _, _  | A.IfLet _, _
+  | A.While _, _  | A.WhileLet _, _ | A.DoWhile _, _  | A.For _, _
   | A.Switch _, _  | A.Return _, _  | A.Continue _, _  | A.Break _, _
   | A.Label _, _  | A.Goto _, _  | A.Throw _, _  | A.Try _, _
-  | A.Assert _, _
+  | A.Assert _, _ | A.LoopStmt _, _
   | A.OtherStmt _, _ | A.OtherStmtWithStmt _, _ | A.WithUsingResource _, _
     -> fail ()
 (*e: [[Generic_vs_generic.m_stmt]] boilerplate cases *)

@@ -30,13 +30,6 @@ module V = Visitor_AST
 (* Expressions *)
 (*****************************************************************************)
 
-let recr_last_expr_stmt stmts =
-  (match List.rev stmts with
-   | x::_xs -> (match x.s with
-     | ExprStmt (expr, _) -> Some expr
-     | _ -> None)
-   | _ -> None)
-
 (*s: function [[SubAST_generic.subexprs_of_expr]] *)
 (* used for deep expression matching *)
 let subexprs_of_expr e =
@@ -73,20 +66,6 @@ let subexprs_of_expr e =
       e1::([e2opt;e3opt;e4opt] |> List.map Common.opt_to_list |> List.flatten)
   | Yield (_, eopt, _) -> Common.opt_to_list eopt
 
-  | StmtExpr stmt ->
-      (* This is a special case for Rust. *)
-
-      (* In Rust, you are able to use many constructs like if/for blocks that
-         would normally be statements as expressions, by placing an expression
-         as the last item of a block. This is a bit annoying since you have to
-         account for every construct in which you can put an expression as the
-         last item of a block. *)
-
-      (* TODO add the rest *)
-      (match stmt.s with
-      | Block (_, stmts, _) -> Common.opt_to_list (recr_last_expr_stmt stmts)
-      | _ -> [])
-
   | OtherExpr (_, anys) ->
       (* in theory we should go deeper in any *)
       anys |> Common.map_filter (function
@@ -119,7 +98,9 @@ let subexprs_of_stmt st =
   (* 1 *)
   | ExprStmt (e, _)
   | If (_, e, _, _)
+  | IfLet (_, _, e, _, _)
   | While (_, e, _)
+  | WhileLet (_, _, e, _)
   | DoWhile (_, _, e)
   | DefStmt (_, VarDef { vinit = Some e; _ })
   | DefStmt (_, FieldDefColon { vinit = Some e; _ })
@@ -157,6 +138,7 @@ let subexprs_of_stmt st =
   | Try _
   | DisjStmt _
   | DefStmt _
+  | LoopStmt _
   | WithUsingResource _
   (* could extract the expr in any? *)
   | OtherStmt _
@@ -178,13 +160,16 @@ let substmts_of_stmt st =
 
   (* 1 *)
   | While (_, _, st) | DoWhile (_, st, _)
+  | WhileLet (_, _, _, st)
   | For (_, _, st)
   | Label (_, st)
   | OtherStmtWithStmt (_, _, st)
+  | LoopStmt (_, st)
     -> [st]
 
   (* 2 *)
   | If (_, _, st1, st2)
+  | IfLet (_, _, _, st1, st2)
     -> st1::(Common.opt_to_list st2)
   | WithUsingResource (_, st1, st2)
     -> [st1;st2]
@@ -213,6 +198,7 @@ let substmts_of_stmt st =
          | VarDef _ | FieldDefColon _
          | TypeDef _
          | MacroDef _
+         | RustMacroDef _
          | Signature _
          | UseOuterDecl _
          (* recurse? *)
