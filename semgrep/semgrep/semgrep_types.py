@@ -122,6 +122,9 @@ class Range(NamedTuple):
             and self.vars_match(other_range)
         )
 
+    def is_range_enclosing_or_eq(self, other_range: "Range") -> bool:
+        return self.start <= other_range.start and other_range.end <= self.end
+
     def vars_match(self, rhs: "Range") -> bool:
         """
         Returns true if and only if all metavariables in both this and the other Range refer to the same
