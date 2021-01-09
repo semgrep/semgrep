@@ -741,11 +741,19 @@ let semgrep_with_rules rules files =
 (*e: function [[Main_semgrep_core.semgrep_with_rules]] *)
 
 let semgrep_with_rules_file rules_file files =
-  (*s: [[Main_semgrep_core.semgrep_with_rules()]] if [[verbose]] *)
-  logger#info "Parsing %s" rules_file;
-  (*e: [[Main_semgrep_core.semgrep_with_rules()]] if [[verbose]] *)
-  let rules = Parse_rules.parse rules_file in
-  semgrep_with_rules rules files
+  try
+    (*s: [[Main_semgrep_core.semgrep_with_rules()]] if [[verbose]] *)
+    logger#info "Parsing %s" rules_file;
+    (*e: [[Main_semgrep_core.semgrep_with_rules()]] if [[verbose]] *)
+    let rules = Parse_rules.parse rules_file in
+    semgrep_with_rules rules files;
+    if !profile then save_rules_file_in_tmp ()
+
+  with exn ->
+    logger#debug "exn before exit %s" (Common.exn_to_s exn);
+    (* if !Flag.debug then save_rules_file_in_tmp (); *)
+    pr (format_output_exception exn);
+    exit 2
 
 (*****************************************************************************)
 (* Semgrep -e/-f *)
@@ -856,19 +864,24 @@ module TR = Tainting_rule
 
 (*s: function [[Main_semgrep_core.tainting_with_rules]] *)
 let tainting_with_rules rules_file xs =
-  logger#info "Parsing %s" rules_file;
-  let rules = Parse_tainting_rules.parse rules_file in
+  try
+    logger#info "Parsing %s" rules_file;
+    let rules = Parse_tainting_rules.parse rules_file in
 
-  let files = get_final_files xs in
-  let matches, errs =
-    files |> iter_generic_ast_of_files_and_get_matches_and_exn_to_errors
-      (fun file lang ast ->
-         let rules =
-           rules |> List.filter (fun r -> List.mem lang r.TR.languages) in
-         Tainting_generic.check rules file ast
-      )
-  in
-  print_matches_and_errors files matches errs
+    let files = get_final_files xs in
+    let matches, errs =
+      files |> iter_generic_ast_of_files_and_get_matches_and_exn_to_errors
+        (fun file lang ast ->
+           let rules =
+             rules |> List.filter (fun r -> List.mem lang r.TR.languages) in
+           Tainting_generic.check rules file ast
+        )
+    in
+    print_matches_and_errors files matches errs
+  with exn ->
+    pr (format_output_exception exn);
+    exit 2
+
 (*e: function [[Main_semgrep_core.tainting_with_rules]] *)
 
 (*****************************************************************************)
@@ -1276,24 +1289,10 @@ let main () =
          (match () with
           (*s: [[Main_semgrep_core.main()]] main entry match cases *)
           | _ when !rules_file <> "" ->
-              (try
-                 semgrep_with_rules_file !rules_file (x::xs);
-                 if !profile then save_rules_file_in_tmp ();
-               with exn -> begin
-                   logger#debug "exn before exit %s" (Common.exn_to_s exn);
-                   (* if !Flag.debug then save_rules_file_in_tmp (); *)
-                   pr (format_output_exception exn);
-                   exit 2
-                 end
-              )
+              semgrep_with_rules_file !rules_file (x::xs)
           (*x: [[Main_semgrep_core.main()]] main entry match cases *)
           | _ when !tainting_rules_file <> "" ->
-              (try  tainting_with_rules !tainting_rules_file (x::xs)
-               with exn -> begin
-                   pr (format_output_exception exn);
-                   exit 2
-                 end
-              )
+              tainting_with_rules !tainting_rules_file (x::xs)
           (*e: [[Main_semgrep_core.main()]] main entry match cases *)
           (*s: [[Main_semgrep_core.main()]] main entry match cases default case *)
           | _ -> semgrep_with_one_pattern (x::xs)
