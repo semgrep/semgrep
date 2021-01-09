@@ -373,9 +373,27 @@ def evaluate(
         logger.debug(f"compiled result {valid_ranges_to_output}")
         logger.debug("-" * 80)
 
+    # Addresses https://github.com/returntocorp/semgrep/issues/1699,
+    # where metavariables from pattern-inside are not bound to messages.
+    # This should handle most cases. There are some edge cases we don't account for, such
+    # as a '$VAR' used in both pattern-inside and pattern-not-inside clauses. How do
+    # we infer which metavariable was intended for interpolation anyway? As such, this will
+    # fix the immediate issue and # should handle most cases. I'm leaving this comment here
+    # so that anyone who works on this in the future knows there will be some weirdness later. =X
+    all_pattern_match_metavariables: Dict[str, str] = {}
+    for pattern_match in pattern_matches:
+        all_pattern_match_metavariables.update(
+            {
+                metavar: pattern_match.get_metavariable_value(metavar)
+                for metavar in pattern_match.metavars
+            }
+        )
+
     for pattern_match in pattern_matches:
         if pattern_match.range in valid_ranges_to_output:
-            message = interpolate_message_metavariables(rule, pattern_match)
+            message = interpolate_message_metavariables(
+                rule, pattern_match, all_pattern_match_metavariables
+            )
             fix = interpolate_fix_metavariables(rule, pattern_match)
             rule_match = RuleMatch.from_pattern_match(
                 rule.id,
@@ -391,12 +409,18 @@ def evaluate(
     return output, steps_for_debugging
 
 
-def interpolate_message_metavariables(rule: Rule, pattern_match: PatternMatch) -> str:
+def interpolate_message_metavariables(
+    rule: Rule,
+    pattern_match: PatternMatch,
+    all_pattern_match_metavariables: Dict[str, str],
+) -> str:
     msg_text = rule.message
-    for metavar in pattern_match.metavars:
-        msg_text = msg_text.replace(
-            metavar, pattern_match.get_metavariable_value(metavar)
-        )
+    for metavar in all_pattern_match_metavariables:
+        try:  # Always prefer the pattern match metavariable first.
+            replace_text = pattern_match.get_metavariable_value(metavar)
+        except KeyError:  # If one isn't present, retrieve the value from all metavariables.
+            replace_text = all_pattern_match_metavariables.get(metavar, metavar)
+        msg_text = msg_text.replace(metavar, replace_text)
     return msg_text
 
 
