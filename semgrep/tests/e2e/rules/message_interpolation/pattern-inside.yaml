@@ -1,0 +1,12 @@
+rules:
+- id: test_rule_id
+  patterns:
+  - pattern-inside: |
+      class $CLASS(...):
+        ...
+  - pattern: |
+      def $FUNC(...):
+        ...
+  severity: INFO
+  languages: [python]
+  message: method $FUNC is in $CLASS

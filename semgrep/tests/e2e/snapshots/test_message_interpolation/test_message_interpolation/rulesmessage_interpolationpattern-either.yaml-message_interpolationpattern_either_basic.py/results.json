@@ -1,0 +1,119 @@
+{
+  "errors": [],
+  "results": [
+    {
+      "check_id": "rules.message_interpolation.test_rule_id",
+      "end": {
+        "col": 13,
+        "line": 2
+      },
+      "extra": {
+        "is_ignored": false,
+        "lines": "def one(x):\n    print(x)",
+        "message": "method one detected",
+        "metadata": {},
+        "metavars": {
+          "$FUNC": {
+            "abstract_content": "one",
+            "end": {
+              "col": 8,
+              "line": 1,
+              "offset": 7
+            },
+            "start": {
+              "col": 5,
+              "line": 1,
+              "offset": 4
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
+        "severity": "INFO"
+      },
+      "path": "targets/message_interpolation/pattern_either_basic.py",
+      "start": {
+        "col": 1,
+        "line": 1
+      }
+    },
+    {
+      "check_id": "rules.message_interpolation.test_rule_id",
+      "end": {
+        "col": 13,
+        "line": 5
+      },
+      "extra": {
+        "is_ignored": false,
+        "lines": "def two(y):\n    print(y)",
+        "message": "method two detected",
+        "metadata": {},
+        "metavars": {
+          "$FUNC": {
+            "abstract_content": "two",
+            "end": {
+              "col": 8,
+              "line": 4,
+              "offset": 33
+            },
+            "start": {
+              "col": 5,
+              "line": 4,
+              "offset": 30
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
+        "severity": "INFO"
+      },
+      "path": "targets/message_interpolation/pattern_either_basic.py",
+      "start": {
+        "col": 1,
+        "line": 4
+      }
+    },
+    {
+      "check_id": "rules.message_interpolation.test_rule_id",
+      "end": {
+        "col": 13,
+        "line": 8
+      },
+      "extra": {
+        "is_ignored": false,
+        "lines": "def three(z):\n    print(z)",
+        "message": "method three detected",
+        "metadata": {},
+        "metavars": {
+          "$FUNC": {
+            "abstract_content": "three",
+            "end": {
+              "col": 10,
+              "line": 7,
+              "offset": 61
+            },
+            "start": {
+              "col": 5,
+              "line": 7,
+              "offset": 56
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
+        "severity": "INFO"
+      },
+      "path": "targets/message_interpolation/pattern_either_basic.py",
+      "start": {
+        "col": 1,
+        "line": 7
+      }
+    }
+  ]
+}
