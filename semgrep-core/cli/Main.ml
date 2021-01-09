@@ -760,8 +760,8 @@ let rule_of_pattern lang pattern_string pattern =
   }
 
 (*s: function [[Main_semgrep_core.sgrep_ast]] *)
-let sgrep_ast lang rule file any_ast =
-  let {Parse_code. ast; errors; _} = any_ast in
+let sgrep_ast lang rule file parse_result =
+  let {Parse_code. ast; errors; _} = parse_result in
   if errors <> []
   then pr2 (spf "WARNING: fail to fully parse %s" file);
   Semgrep_generic.check
