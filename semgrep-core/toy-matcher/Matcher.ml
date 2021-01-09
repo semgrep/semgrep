@@ -50,8 +50,21 @@ and pattern_value =
 (* A pattern node, decorated with generic attributes. *)
 and pattern = {
   pat_val : pattern_value;
-  capture_name : string option; (* optional capture (metavariable) *)
-  backrefs : Names.t; (* references to captures in rest of the pattern. *)
+
+  (* Optional capture (metavariable). This is a variable to bind to
+     a matching AST node. *)
+  capture_name : string option;
+
+  (* Set of metavariables accessed in rest of the pattern.
+     It's used during matching to determine whether a bound metavariable
+     should go into the cache key.
+
+     This is the set of variables dereferenced somewhere in the rest of the
+     pattern. In a pattern more complicated than a list, the rest of the
+     pattern corresponds to all the branches of the pattern that remain to
+     be matched against the input AST; not just the subtree under the current
+     node. *)
+  backrefs : Names.t;
 }
 
 type input = char list
