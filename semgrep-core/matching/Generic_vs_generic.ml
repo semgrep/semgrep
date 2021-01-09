@@ -732,6 +732,16 @@ and m_expr a b =
       m_tok a0 b0 >>= (fun () ->
         m_bracket (m_list (m_list m_any)) a1 b1
       )
+  | A.Borrow (a0, a1, a2), B.Borrow (b0, b1, b2) ->
+      m_tok a0 b0 >>= (fun () ->
+        m_option m_attribute a1 b1 >>= (fun () ->
+          m_expr a2 b2
+        )
+      )
+  | A.TryExpr(a0, a1), B.TryExpr(b0, b1) ->
+      m_tok a0 b0 >>= (fun () ->
+        m_expr a1 b1
+      )
 
   | A.OtherExpr(a1, a2), B.OtherExpr(b1, b2) ->
       m_other_expr_operator a1 b1 >>= (fun () ->
@@ -747,7 +757,7 @@ and m_expr a b =
   | A.DeRef _, _  | A.OtherExpr _, _
   | A.SliceAccess _, _
   | A.TypedMetavar _, _ | A.DotAccessEllipsis _, _
-  | A.Metavar _, _ | A.MacroInvocation _, _
+  | A.Metavar _, _ | A.MacroInvocation _, _ | A.Borrow _, _ | A.TryExpr _, _
     -> fail ()
 (*e: [[Generic_vs_generic.m_expr()]] boilerplate cases *)
 (*e: function [[Generic_vs_generic.m_expr]] *)
@@ -1334,6 +1344,30 @@ and m_type_ a b =
         m_tok a2 b2 >>= (fun () ->
           m_type_ a3 b3
         ))
+  | A.TyPointerConstMut (a1, a2, a3), B.TyPointerConstMut (b1, b2, b3) ->
+      m_tok a1 b1 >>= (fun () ->
+        m_attribute a2 b2 >>= (fun () ->
+          m_type_ a3 b3
+        )
+      )
+  | A.TyQualified (a1, a2, a3), B.TyQualified (b1, b2, b3) ->
+      m_type_ a1 b1 >>= (fun () ->
+        m_tok a2 b2 >>= (fun () ->
+          m_type_ a3 b3
+        )
+      )
+  | A.TyReference (a1, a2, a3, a4), B.TyReference (b1, b2, b3, b4) ->
+      m_tok a1 b1 >>= (fun () ->
+        m_option m_lifetime a2 b2 >>= (fun () ->
+          m_option m_attribute a3 b3 >>= (fun () ->
+            m_type_ a4 b4
+          )
+        )
+      )
+  | A.TyAbstract(a1, a2), B.TyAbstract(b1, b2) ->
+      m_tok a1 b1 >>= (fun () ->
+        m_type_ a2 b2
+      )
 
   | A.OtherType(a1, a2), B.OtherType(b1, b2) ->
       m_other_type_operator a1 b1 >>= (fun () ->
@@ -1343,7 +1377,8 @@ and m_type_ a b =
   | A.TyArray _, _  | A.TyPointer _, _ | A.TyTuple _, _  | A.TyQuestion _, _
   | A.TyId _, _ | A.TyIdQualified _, _ | A.TyAny _, _ | A.TyDyn _, _
   | A.TyOr _, _ | A.TyAnd _, _ | A.TyRecordAnon _, _
-  | A.OtherType _, _
+  | A.TyPointerConstMut _, _ | A.TyQualified _, _ | A.TyReference _, _
+  | A.TyAbstract _, _ | A.OtherType _, _
     -> fail ()
 (*e: [[Generic_vs_generic.m_type_]] boilerplate cases *)
 (*e: function [[Generic_vs_generic.m_type_]] *)
@@ -1603,6 +1638,11 @@ and m_stmt a b =
       let* () = m_tok a0 b0 in
       let* () = m_option_ellipsis_ok m_expr a1 b1 in
       m_tok asc bsc
+  | A.BreakAndReturn(a0, a1, a2, asc), B.BreakAndReturn(b0, b1, b2, bsc) ->
+      let* () = m_tok a0 b0 in
+      let* () = m_label_ident a1 b1 in
+      let* () = m_option_ellipsis_ok m_expr a2 b2 in
+      m_tok asc bsc
   (*e: [[Generic_vs_generic.m_stmt()]] ellipsis cases *)
   (*s: [[Generic_vs_generic.m_stmt()]] deep matching cases *)
   (* deeper: go deep by default implicitly (no need for explicit <... ...>) *)
@@ -1720,14 +1760,7 @@ and m_stmt a b =
       let* () = m_list m_type_parameter a1 b1 in
       let* () = m_option m_type_ a2 b2 in
       let* () = m_option m_where_clause a3 b3 in
-      m_stmt a4 b4
-  | A.TraitBlock(a0, a1, a2, a3, a4, a5), B.TraitBlock(b0, b1, b2, b3, b4, b5) ->
-      let* () = m_list m_attribute a0 b0 in
-      let* () = m_ident a1 b1 in
-      let* () = m_list m_type_parameter a2 b2 in
-      let* () = m_list m_trait_bound a3 b3 in
-      let* () = m_option m_where_clause a4 b4 in
-      m_stmt a5 b5
+      m_list m_stmt a4 b4
   | A.LetStmt(a1, a2, a3, a4, a5), B.LetStmt(b1, b2, b3, b4, b5) ->
       m_list m_attribute a1 b1 >>= (fun () ->
         m_pattern a2 b2 >>= (fun () ->
@@ -1761,7 +1794,7 @@ and m_stmt a b =
   | A.Label _, _  | A.Goto _, _  | A.Throw _, _  | A.Try _, _
   | A.Assert _, _ | A.LoopStmt _, _
   | A.OtherStmt _, _ | A.OtherStmtWithStmt _, _ | A.WithUsingResource _, _
-  | A.ImplBlock _, _ | A.TraitBlock _, _ | A.LetStmt _, _
+  | A.ImplBlock _, _ | A.LetStmt _, _ | A.BreakAndReturn _, _
     -> fail ()
 (*e: [[Generic_vs_generic.m_stmt]] boilerplate cases *)
 (*e: function [[Generic_vs_generic.m_stmt]] *)
@@ -2094,6 +2127,8 @@ and m_definition_kind a b =
       m_macro_definition a1 b1
   | A.RustMacroDef(a1), B.RustMacroDef(b1) ->
       m_rust_macro_definition a1 b1
+  | A.TraitDef a1, B.TraitDef b1 ->
+      m_trait_definition a1 b1
   | A.Signature(a1), B.Signature(b1) ->
       m_type_ a1 b1
   | A.UseOuterDecl a1, B.UseOuterDecl b1 ->
@@ -2103,10 +2138,22 @@ and m_definition_kind a b =
   | A.UseOuterDecl _, _
   | A.FieldDefColon _, _
   | A.RustMacroDef _, _
+  | A.TraitDef _, _
   | A.OtherDef _, _
     -> fail ()
 (*e: [[Generic_vs_generic.m_definition_kind]] boilerplate cases *)
 (*e: function [[Generic_vs_generic.m_definition_kind]] *)
+
+(*s: function [[Generic_vs_generic.m_type_constraint_target]] *)
+and m_type_constraint_target a b =
+  match a, b with
+  | A.TCT_Lifetime a1, B.TCT_Lifetime b1 ->
+      m_lifetime a1 b1
+  | A.TCT_Type a1, B.TCT_Type b1 ->
+      m_type_ a1 b1
+  | A.TCT_Lifetime _, _ | A.TCT_Type _, _
+    -> fail ()
+(*e: function [[Generic_vs_generic.m_type_constraint_target]] *)
 
 (*s: function [[Generic_vs_generic.m_type_parameter_constraint]] *)
 and m_type_parameter_constraint a b =
@@ -2121,9 +2168,14 @@ and m_type_parameter_constraint a b =
       )
   | A.TyParamConst a1, B.TyParamConst b1 ->
       m_type_ a1 b1
+  | A.TyParamConstrained (a1, a2), B.TyParamConstrained (b1, b2) ->
+      m_type_constraint_target a1 b1 >>= (fun () ->
+        m_list m_trait_bound a2 b2
+      )
 
   | A.Extends _, _ | A.TyParamLifetime, _ | A.TyParamMetavar, _
-  | A.TyParamOptional _, _ | A.TyParamConst _, _ ->
+  | A.TyParamOptional _, _ | A.TyParamConst _, _
+  | A.TyParamConstrained _, _ ->
       fail ()
 (*e: function [[Generic_vs_generic.m_type_parameter_constraint]] *)
 
@@ -2464,11 +2516,16 @@ and m_or_type a b =
       m_ident a1 b1 >>= (fun () ->
         (m_type_) a2 b2
       )
+  | A.OrEnumStruct(a1, a2), B.OrEnumStruct(b1, b2) ->
+      m_ident a1 b1 >>= (fun () ->
+        m_bracket (m_list m_field) a2 b2
+      )
   | A.OtherOr(a1, a2), B.OtherOr(b1, b2) ->
       m_other_or_type_element_operator a1 b1 >>= (fun () ->
         (m_list m_any) a2 b2
       )
-  | A.OrConstructor _, _ | A.OrEnum _, _ | A.OrUnion _, _ | A.OtherOr _, _
+  | A.OrConstructor _, _ | A.OrEnum _, _ | A.OrUnion _, _ | A.OrEnumStruct _, _
+  | A.OtherOr _, _
     -> fail ()
 (*e: function [[Generic_vs_generic.m_or_type]] *)
 
@@ -2616,10 +2673,10 @@ and m_rust_macro_pattern a b =
 (*s: function [[Generic_vs_generic.m_rust_macro_rule]] *)
 and m_rust_macro_rule a b =
   match a, b with
-    { A. pattern = a1; body = a2; },
-    { B. pattern = b1; body = b2; } ->
+    { A. rules = a1; body = a2; },
+    { B. rules = b1; body = b2; } ->
       m_list m_rust_macro_pattern a1 b1 >>= (fun () ->
-        m_bracket(m_list m_any) a2 b2
+        m_bracket (m_list (m_list m_any)) a2 b2
       )
 (*e: function [[Generic_vs_generic.m_rust_macro_rule]] *)
 
@@ -2627,6 +2684,21 @@ and m_rust_macro_rule a b =
 and m_rust_macro_definition a b =
   m_bracket (m_list m_rust_macro_rule) a b
 (*e: function [[Generic_vs_generic.m_rust_macro_definition]] *)
+
+
+(* ------------------------------------------------------------------------- *)
+(* Trait definition *)
+(* ------------------------------------------------------------------------- *)
+
+and m_trait_definition a b =
+  match a, b with
+  | { A. trtyparams = a0; trattrs = a1; trbounds = a2; trwhere = a3; trbody = a4 },
+    { B. trtyparams = b0; trattrs = b1; trbounds = b2; trwhere = b3; trbody = b4 } ->
+      let* () = m_list m_type_parameter a0 b0 in
+      let* () = m_list m_attribute a1 b1 in
+      let* () = m_list m_trait_bound a2 b2 in
+      let* () = m_option m_where_clause a3 b3 in
+      m_list m_stmt a4 b4
 
 
 (*****************************************************************************)
@@ -2639,6 +2711,7 @@ and m_directive a b =
     match a with
     (* normalize only if very simple import pattern (no alias) *)
     | A.ImportFrom (_, _, _, None) | A.ImportAs (_, _, None)
+    | A.ExternModule (_, _, None)
       ->
         (* equivalence: *)
         let normal_a = Normalize_generic.normalize_import_opt true a in
@@ -2659,6 +2732,7 @@ and m_directive a b =
     | A.ImportFromExpr _
     | A.ImportAllExpr _
     | A.ImportList _
+    | A.ExternModule _
 
     | A.Package _ | A.PackageEnd _ | A.Pragma _ | A.OtherDirective _ ->
         fail ()
@@ -2721,6 +2795,12 @@ and m_directive_basic a b =
       m_bracket (m_list m_directive) a0 b0 >>= (fun () ->
         m_option m_expr a1 b1
       )
+  | A.ExternModule(a0, a1, a2), B.ExternModule(b0, b1, b2) ->
+      m_tok a0 b0 >>= (fun () ->
+        m_module_name_prefix a1 b1 >>= (fun () ->
+          (m_option_none_can_match_some m_ident_and_id_info)
+            a2 b2
+        ))
 
   | A.OtherDirective(a1, a2), B.OtherDirective(b1, b2) ->
       m_other_directive_operator a1 b1 >>= (fun () ->
@@ -2730,6 +2810,7 @@ and m_directive_basic a b =
   | A.Pragma _, _
   | A.ImportAll _, _ | A.Package _, _ | A.PackageEnd _, _
   | A.ImportFromExpr _, _ | A.ImportAllExpr _, _ | A.ImportList _, _
+  | A.ExternModule _, _
     -> fail ()
 (*e: [[Generic_vs_generic.m_directive_basic]] boilerplate cases *)
 (*e: function [[Generic_vs_generic.m_directive_basic]] *)

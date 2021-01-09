@@ -41,7 +41,7 @@ let subexprs_of_expr e =
 
   | DotAccess (e, _, _) | Await (_, e) | Cast (_, e)
   | Ref (_, e) | DeRef (_, e) | DeepEllipsis (_, e, _)
-  | DotAccessEllipsis (e, _)
+  | DotAccessEllipsis (e, _) | Borrow (_, _, e) | TryExpr (_, e)
     -> [e]
   | Assign (e1, _, e2) | AssignOp (e1, _, e2)
   | ArrayAccess (e1, (_, e2, _))
@@ -115,6 +115,7 @@ let subexprs_of_stmt st =
   | Return (_, eopt, _)
   | OtherStmtWithStmt (_, eopt, _)
   | LetStmt (_, _, _, eopt, _)
+  | BreakAndReturn (_, _, eopt, _)
     -> Common.opt_to_list eopt
 
   (* n *)
@@ -142,7 +143,6 @@ let subexprs_of_stmt st =
   | LoopStmt _
   | WithUsingResource _
   | ImplBlock _
-  | TraitBlock _
   (* could extract the expr in any? *)
   | OtherStmt _
     -> []
@@ -160,6 +160,7 @@ let substmts_of_stmt st =
   | Assert _
   | LetStmt _
   | OtherStmt _
+  | BreakAndReturn _
     -> []
 
   (* 1 *)
@@ -169,8 +170,6 @@ let substmts_of_stmt st =
   | Label (_, st)
   | OtherStmtWithStmt (_, _, st)
   | LoopStmt (_, st)
-  | ImplBlock (_, _, _, _, st)
-  | TraitBlock (_, _, _, _, _, st)
     -> [st]
 
   (* 2 *)
@@ -181,7 +180,8 @@ let substmts_of_stmt st =
     -> [st1;st2]
 
   (* n *)
-  | Block (_, xs, _) ->
+  | Block (_, xs, _)
+  | ImplBlock (_, _, _, _, xs) ->
       xs
   | Switch (_, _, xs) ->
       xs |> List.map (function
@@ -207,6 +207,7 @@ let substmts_of_stmt st =
          | RustMacroDef _
          | Signature _
          | UseOuterDecl _
+         | TraitDef _
          (* recurse? *)
          | ModuleDef _
          | OtherDef _

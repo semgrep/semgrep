@@ -68,6 +68,9 @@ let normalize_import_opt is_pattern i =
   | ImportAll(t, module_name, _t2) ->
       full_module_name is_pattern module_name None >>= (fun x -> Some (t, x))
 
+  | ExternModule(t, module_name, _alias_opt) ->
+      full_module_name is_pattern module_name None >>= (fun x -> Some (t, x))
+
   (* TODO Rust *)
   | ImportFromExpr _
   | ImportAllExpr _
