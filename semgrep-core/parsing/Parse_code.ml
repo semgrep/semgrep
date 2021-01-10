@@ -265,7 +265,14 @@ let just_parse_with_lang lang file =
       *)
       run file [TreeSitter Parse_lua_tree_sitter.parse] (fun x -> x)
 
-  (* default to the one in pfff for the other languages *)
+  | Lang.Rust ->
+      (* there is no pfff parser for Rust so let's go directly to tree-sitter,
+       * and there's no ast_rust.ml either so we directly generate
+       * a generic AST (no rust_to_generic here)
+      *)
+      run file [TreeSitter Parse_rust_tree_sitter.parse] (fun x -> x)
+
+(* default to the one in pfff for the other languages *)
   | _ ->
       run file [Pfff ((fun file ->
         Parse_generic.parse_with_lang lang file))] (fun x -> x)
