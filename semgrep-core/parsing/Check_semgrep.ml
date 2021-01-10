@@ -13,7 +13,7 @@ let lang_has_no_dollar_ids = Lang.(function
   | Kotlin
   | Lua
     -> true
-  | Javascript | Ruby | Typescript | PHP
+  | Javascript | Ruby | Typescript | PHP | Rust
     -> false)
 (*e: constant [[Check_semgrep.lang_has_no_dollar_ids]] *)
 
