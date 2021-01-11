@@ -1,0 +1,8 @@
+rules:
+  - id: test-regex
+    patterns:
+      - pattern-inside: <$TAG ... >
+      - pattern-not-regex: 'div'
+    message: "test regex message"
+    languages: [generic]
+    severity: ERROR

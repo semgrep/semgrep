@@ -39,6 +39,7 @@ class OPERATORS:
     FIX_REGEX: Operator = Operator("fix_regex")
     EQUIVALENCES: Operator = Operator("equivalences")
     REGEX: Operator = Operator("regex")
+    NOT_REGEX: Operator = Operator("not_regex")
     METAVARIABLE_REGEX: Operator = Operator("metavariable_regex")
     METAVARIABLE_COMPARISON: Operator = Operator("metavariable_comparison")
 
@@ -57,6 +58,7 @@ OPERATOR_PATTERN_NAMES_MAP = {
     OPERATORS.FIX_REGEX: ["fix-regex"],
     OPERATORS.EQUIVALENCES: ["equivalences"],
     OPERATORS.REGEX: ["pattern-regex"],
+    OPERATORS.NOT_REGEX: ["pattern-not-regex"],
     OPERATORS.METAVARIABLE_REGEX: ["metavariable-regex"],
     OPERATORS.METAVARIABLE_COMPARISON: ["metavariable-comparison"],
 }
@@ -121,6 +123,9 @@ class Range(NamedTuple):
             and other_range.end <= self.end
             and self.vars_match(other_range)
         )
+
+    def is_range_enclosing_or_eq(self, other_range: "Range") -> bool:
+        return self.start <= other_range.start and other_range.end <= self.end
 
     def vars_match(self, rhs: "Range") -> bool:
         """
