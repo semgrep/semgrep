@@ -254,6 +254,18 @@ def _evaluate_single_expression(
             expression, output_ranges, metavars_for_patterns, steps_for_debugging
         )
         return output_ranges
+    elif expression.operator == OPERATORS.NOT_REGEX:
+        # remove the result if pattern-not-regex is within another pattern
+        output_ranges = ranges_left.copy()
+        for arange in ranges_left:
+            for pattern_not_regex_result in results_for_pattern:
+                if arange.is_range_enclosing_or_eq(pattern_not_regex_result):
+                    output_ranges.remove(arange)
+                    break
+        add_debugging_info(
+            expression, output_ranges, metavars_for_patterns, steps_for_debugging
+        )
+        return output_ranges
     elif expression.operator == OPERATORS.METAVARIABLE_REGEX:
         operand = cast(Dict[str, Any], expression.operand)
         output_ranges = get_re_range_matches(
