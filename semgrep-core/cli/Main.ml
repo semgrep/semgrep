@@ -643,10 +643,10 @@ let iter_generic_ast_of_files_and_get_matches_and_exn_to_errors f files =
 (*e: function [[Main_semgrep_core.iter_generic_ast_of_files_and_get_matches_and_exn_to_errors]] *)
 
 (*****************************************************************************)
-(* Output *)
+(* JSON Output (used  by the semgrep Python wrapper) *)
 (*****************************************************************************)
 
-let print_matches_and_errors_json files matches errs =
+let json_of_matches_and_errors files matches errs =
   let count_errors = (List.length errs) in
   let count_ok = (List.length files) - count_errors in
   let stats = J.Object [
@@ -656,56 +656,37 @@ let print_matches_and_errors_json files matches errs =
   let json = J.Object [
     "matches", J.Array (matches |> List.map JSON_report.match_to_json);
     "errors", J.Array (errs |> List.map R2c.error_to_json);
-    "stats", stats
+    "stats", stats;
   ] in
-  (*
-     Not pretty-printing the json output (Yojson.Safe.prettify)
-     because it kills performance, adding an extra 50% time on our
-     calculate_ci_perf.py benchmarks.
-     User should use an external tool like jq or ydump (latter comes with
-     yojson) for pretty-printing json.
-  *)
-  let s = J.string_of_json json in
-  logger#info "size of returned JSON string: %d" (String.length s);
-  pr s
-
-let print_matches_and_errors_text _files _matches _errs =
-  failwith "print_matches_and_errors_text: not implemented"
+  json
 
 (*s: function [[Main_semgrep_core.print_matches_and_errors]] *)
-let print_matches_and_errors files matches errs =
-  match !output_format with
-  | Json -> print_matches_and_errors_json files matches errs
-  | Text -> print_matches_and_errors_text files matches errs
-[@@profiling]
 (*e: function [[Main_semgrep_core.print_matches_and_errors]] *)
 
 (*s: function [[Main_semgrep_core.format_output_exception]] *)
-let format_output_exception e : string =
+let json_of_exn e =
   (* if (ouptut_as_json) then *)
-  let msg = match e with
-    | Parse_rules.InvalidRuleException (pattern_id, msg)     ->
-        J.Object [ "pattern_id", J.String pattern_id;
-                   "error", J.String "invalid rule";
-                   "message", J.String msg; ]
-    | Parse_rules.InvalidLanguageException (pattern_id, language) ->
-        J.Object [ "pattern_id", J.String pattern_id;
-                   "error", J.String "invalid language";
-                   "language", J.String language; ]
-    | Parse_rules.InvalidPatternException (pattern_id, pattern, lang, message) ->
-        J.Object [ "pattern_id", J.String pattern_id;
-                   "error", J.String "invalid pattern";
-                   "pattern", J.String pattern;
-                   "language", J.String lang;
-                   "message", J.String message; ]
-    | Parse_rules.UnparsableYamlException msg ->
-        J.Object [  "error", J.String "unparsable yaml"; "message", J.String msg; ]
-    | Parse_rules.InvalidYamlException msg ->
-        J.Object [  "error", J.String "invalid yaml"; "message", J.String msg; ]
-    | exn ->
-        J.Object [  "error", J.String "unknown exception"; "message", J.String (Common.exn_to_s exn); ]
-  in
-  J.string_of_json msg
+  match e with
+  | Parse_rules.InvalidRuleException (pattern_id, msg)     ->
+      J.Object [ "pattern_id", J.String pattern_id;
+                 "error", J.String "invalid rule";
+                 "message", J.String msg; ]
+  | Parse_rules.InvalidLanguageException (pattern_id, language) ->
+      J.Object [ "pattern_id", J.String pattern_id;
+                 "error", J.String "invalid language";
+                 "language", J.String language; ]
+  | Parse_rules.InvalidPatternException (pattern_id, pattern, lang, message) ->
+      J.Object [ "pattern_id", J.String pattern_id;
+                 "error", J.String "invalid pattern";
+                 "pattern", J.String pattern;
+                 "language", J.String lang;
+                 "message", J.String message; ]
+  | Parse_rules.UnparsableYamlException msg ->
+      J.Object [  "error", J.String "unparsable yaml"; "message", J.String msg; ]
+  | Parse_rules.InvalidYamlException msg ->
+      J.Object [  "error", J.String "invalid yaml"; "message", J.String msg; ]
+  | exn ->
+      J.Object [  "error", J.String "unknown exception"; "message", J.String (Common.exn_to_s exn); ]
 (*e: function [[Main_semgrep_core.format_output_exception]] *)
 
 (*****************************************************************************)
@@ -735,7 +716,17 @@ let semgrep_with_rules rules files =
    * to debug too-many-matches issues.
    * Common2.write_value matches "/tmp/debug_matches";
   *)
-  print_matches_and_errors files matches errs
+  let json = json_of_matches_and_errors files matches errs in
+  (*
+     Not pretty-printing the json output (Yojson.Safe.prettify)
+     because it kills performance, adding an extra 50% time on our
+     calculate_ci_perf.py benchmarks.
+     User should use an external tool like jq or ydump (latter comes with
+     yojson) for pretty-printing json.
+  *)
+  let s = J.string_of_json json in
+  logger#info "size of returned JSON string: %d" (String.length s);
+  pr s
 (*e: function [[Main_semgrep_core.semgrep_with_rules]] *)
 
 let semgrep_with_rules_file rules_file files =
@@ -750,7 +741,9 @@ let semgrep_with_rules_file rules_file files =
   with exn ->
     logger#debug "exn before exit %s" (Common.exn_to_s exn);
     (* if !Flag.debug then save_rules_file_in_tmp (); *)
-    pr (format_output_exception exn);
+    let json = json_of_exn exn in
+    let s = J.string_of_json json in
+    pr s;
     exit 2
 
 (*****************************************************************************)
@@ -867,9 +860,13 @@ let tainting_with_rules rules_file xs =
            Tainting_generic.check rules file ast
         )
     in
-    print_matches_and_errors files matches errs
+    let json = json_of_matches_and_errors files matches errs in
+    let s = J.string_of_json json in
+    pr s
   with exn ->
-    pr (format_output_exception exn);
+    let json = json_of_exn exn in
+    let s = J.string_of_json json in
+    pr s;
     exit 2
 
 (*e: function [[Main_semgrep_core.tainting_with_rules]] *)
