@@ -272,7 +272,7 @@ let just_parse_with_lang lang file =
       *)
       run file [TreeSitter Parse_rust_tree_sitter.parse] (fun x -> x)
 
-(* default to the one in pfff for the other languages *)
+  (* default to the one in pfff for the other languages *)
   | _ ->
       run file [Pfff ((fun file ->
         Parse_generic.parse_with_lang lang file))] (fun x -> x)
