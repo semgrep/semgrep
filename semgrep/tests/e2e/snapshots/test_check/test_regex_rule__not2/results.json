@@ -1,0 +1,195 @@
+{
+  "errors": [],
+  "results": [
+    {
+      "check_id": "rules.test-regex",
+      "end": {
+        "col": 5,
+        "line": 1
+      },
+      "extra": {
+        "is_ignored": false,
+        "lines": "<h4>",
+        "message": "test regex message",
+        "metadata": {},
+        "metavars": {
+          "$TAG": {
+            "abstract_content": "h4",
+            "end": {
+              "col": 4,
+              "line": 1,
+              "offset": 3
+            },
+            "start": {
+              "col": 2,
+              "line": 1,
+              "offset": 1
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/basic/regex-any-language.html",
+      "start": {
+        "col": 1,
+        "line": 1
+      }
+    },
+    {
+      "check_id": "rules.test-regex",
+      "end": {
+        "col": 5,
+        "line": 2
+      },
+      "extra": {
+        "is_ignored": false,
+        "lines": "<h4>",
+        "message": "test regex message",
+        "metadata": {},
+        "metavars": {
+          "$TAG": {
+            "abstract_content": "h4",
+            "end": {
+              "col": 4,
+              "line": 2,
+              "offset": 35
+            },
+            "start": {
+              "col": 2,
+              "line": 2,
+              "offset": 33
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/basic/regex-any-language.html",
+      "start": {
+        "col": 1,
+        "line": 2
+      }
+    },
+    {
+      "check_id": "rules.test-regex",
+      "end": {
+        "col": 5,
+        "line": 7
+      },
+      "extra": {
+        "is_ignored": false,
+        "lines": "<h4>",
+        "message": "test regex message",
+        "metadata": {},
+        "metavars": {
+          "$TAG": {
+            "abstract_content": "h4",
+            "end": {
+              "col": 4,
+              "line": 7,
+              "offset": 130
+            },
+            "start": {
+              "col": 2,
+              "line": 7,
+              "offset": 128
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/basic/regex-any-language.html",
+      "start": {
+        "col": 1,
+        "line": 7
+      }
+    },
+    {
+      "check_id": "rules.test-regex",
+      "end": {
+        "col": 10,
+        "line": 14
+      },
+      "extra": {
+        "is_ignored": false,
+        "lines": "<pre>",
+        "message": "test regex message",
+        "metadata": {},
+        "metavars": {
+          "$TAG": {
+            "abstract_content": "pre",
+            "end": {
+              "col": 9,
+              "line": 14,
+              "offset": 341
+            },
+            "start": {
+              "col": 6,
+              "line": 14,
+              "offset": 338
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/basic/regex-any-language.html",
+      "start": {
+        "col": 5,
+        "line": 14
+      }
+    },
+    {
+      "check_id": "rules.test-regex",
+      "end": {
+        "col": 5,
+        "line": 16
+      },
+      "extra": {
+        "is_ignored": false,
+        "lines": "<hr>",
+        "message": "test regex message",
+        "metadata": {},
+        "metavars": {
+          "$TAG": {
+            "abstract_content": "hr",
+            "end": {
+              "col": 4,
+              "line": 16,
+              "offset": 369
+            },
+            "start": {
+              "col": 2,
+              "line": 16,
+              "offset": 367
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/basic/regex-any-language.html",
+      "start": {
+        "col": 1,
+        "line": 16
+      }
+    }
+  ]
+}
