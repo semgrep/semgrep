@@ -141,7 +141,17 @@ def test_regex_rule__child(run_semgrep_in_tmp, snapshot):
 
 def test_regex_rule__not(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(
-        run_semgrep_in_tmp("rules/regex-not.yaml", "stupid.py"), "results.json"
+        run_semgrep_in_tmp("rules/regex-not.yaml", target_name="stupid.py"),
+        "results.json",
+    )
+
+
+def test_regex_rule__not2(run_semgrep_in_tmp, snapshot):
+    snapshot.assert_match(
+        run_semgrep_in_tmp(
+            "rules/regex-not2.yaml", target_name="regex-any-language.html"
+        ),
+        "results.json",
     )
 
 
