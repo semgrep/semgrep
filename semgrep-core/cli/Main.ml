@@ -26,6 +26,7 @@ module J = JSON
  *  - good support for: Python, Java, Go, Ruby,
  *    Javascript (and JSX), Typescript (and TSX), JSON
  *  - partial support for: PHP, C, OCaml, Lua, C#.
+ *  - almost support for: Rust, R, Kotlin.
  *
  * opti: git grep foo | xargs semgrep -e 'foo(...)'
  *
@@ -768,20 +769,8 @@ let rule_of_pattern lang pattern_string pattern =
   }
 
 (*s: function [[Main_semgrep_core.sgrep_ast]] *)
-let sgrep_ast lang rule file parse_result =
-  let {Parse_code. ast; errors; _} = parse_result in
-  if errors <> []
-  then pr2 (spf "WARNING: fail to fully parse %s" file);
-  Semgrep_generic.check
-    (*s: [[Main_semgrep_core.sgrep_ast()]] [[hook]] argument to [[check]] *)
-    ~hook:(fun env matched_tokens ->
-      let xs = Lazy.force matched_tokens in
-      print_match !mvars env Metavars_generic.ii_of_mval xs
-    )
-    (*e: [[Main_semgrep_core.sgrep_ast()]] [[hook]] argument to [[check]] *)
-    [rule] (parse_equivalences ())
-    file lang ast |> ignore
-
+(*s: [[Main_semgrep_core.sgrep_ast()]] [[hook]] argument to [[check]] *)
+(*e: [[Main_semgrep_core.sgrep_ast()]] [[hook]] argument to [[check]] *)
 (*s: [[Main_semgrep_core.sgrep_ast()]] match [[pattern]] and [[any_ast]] other cases *)
 (*e: [[Main_semgrep_core.sgrep_ast()]] match [[pattern]] and [[any_ast]] other cases *)
 
@@ -832,8 +821,16 @@ let semgrep_with_one_pattern xs =
           (*e: [[Main_semgrep_core.semgrep_with_one_pattern()]] if [[verbose]] *)
           let process file =
             timeout_function file (fun () ->
-              let ast = parse_generic lang file in
-              sgrep_ast lang rule file ast
+              let {Parse_code.ast; errors; _} = parse_generic lang file in
+              if errors <> []
+              then pr2 (spf "WARNING: fail to fully parse %s" file);
+              Semgrep_generic.check
+                ~hook:(fun env matched_tokens ->
+                  let xs = Lazy.force matched_tokens in
+                  print_match !mvars env Metavars_generic.ii_of_mval xs
+                )
+                [rule] (parse_equivalences ())
+                file lang ast |> ignore
             )
           in
 
