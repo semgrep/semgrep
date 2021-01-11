@@ -63,38 +63,30 @@ class BdistWheel(bdist_wheel):
         return python, abi, plat
 
 
-def find_executable(env_name, default_dir_name, exec_name):
+def find_executable(env_name, exec_name):
     # First, check for an environment override
     env_value = os.getenv(env_name)
     if env_value:
         return env_value
 
-    # Second, check for build system artifacts
-    default_name = os.path.join(default_dir_name, exec_name)
-    if os.path.isfile(default_name):
-        return default_name
-
-    # Third, fallback to any system executable
+    # Second, fallback to any system executable
     which_name = shutil.which(exec_name)
     if which_name is not None:
         return which_name
 
     raise Exception(
-        f"Could not find '{exec_name}' executable, tried '{env_name}', '{default_dir_name}', and system '{exec_name}'"
+        f"Could not find '{exec_name}' executable, tried '{env_name}' and system '{exec_name}'"
     )
 
 
 if not SEMGREP_SKIP_BIN:
-    is_osx = "osx" in distutils.util.get_platform()
-    build_dir = os.path.join(REPO_ROOT, "artifacts" if is_osx else "semgrep-files")
-
     binaries = [
         (SEMGREP_CORE_BIN_ENV, SEMGREP_CORE_BIN),
         (SPACEGREP_BIN_ENV, SPACEGREP_BIN),
     ]
 
     for binary_env, binary_name in binaries:
-        src = find_executable(binary_env, build_dir, binary_name)
+        src = find_executable(binary_env, binary_name)
         dst = os.path.join(PACKAGE_BIN_DIR, binary_name)
         shutil.copyfile(src, dst)
         os.chmod(dst, os.stat(dst).st_mode | stat.S_IEXEC)
