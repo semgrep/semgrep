@@ -574,11 +574,8 @@ let parse_pattern lang_pattern str =
 
 (*s: function [[Main_semgrep_core.get_final_files]] *)
 let get_final_files xs =
-  let files =
-    match Lang.lang_of_string_opt !lang with
-    | None -> Common.files_of_dir_or_files_no_vcs_nofilter xs
-    | Some lang -> Lang.files_of_dirs_or_files lang xs
-  in
+  let lang = lang_of_string !lang in
+  let files = Lang.files_of_dirs_or_files lang xs in
   let explicit_files = xs |> List.filter(fun file ->
     Sys.file_exists file && not (Sys.is_directory file)
   )
@@ -588,10 +585,10 @@ let get_final_files xs =
 
 (*s: function [[Main_semgrep_core.iter_generic_ast_of_files_and_get_matches_and_exn_to_errors]] *)
 let iter_generic_ast_of_files_and_get_matches_and_exn_to_errors f files =
+  let lang = lang_of_string !lang in
   let matches_and_errors =
     files |> map (fun file ->
       logger#info "Analyzing %s" file;
-      let lang = lang_of_string !lang in
       try
         run_with_memory_limit !max_memory (fun () ->
           timeout_function file (fun () ->
@@ -762,12 +759,9 @@ let semgrep_with_rules_file rules_file files =
 
 let rule_of_pattern lang pattern_string pattern =
   { R.
-    id = "-e/-f"; pattern_string;
-    pattern;
-    message = ""; severity = R.Error;
-    languages = [lang]
+    id = "-e/-f"; pattern_string; pattern;
+    message = ""; severity = R.Error; languages = [lang]
   }
-
 (*s: function [[Main_semgrep_core.sgrep_ast]] *)
 (*s: [[Main_semgrep_core.sgrep_ast()]] [[hook]] argument to [[check]] *)
 (*e: [[Main_semgrep_core.sgrep_ast()]] [[hook]] argument to [[check]] *)
@@ -809,10 +803,9 @@ let semgrep_with_one_pattern xs =
   | Text ->
       (* simpler code path than in semgrep_with_rules *)
       begin
-        let files = Lang.files_of_dirs_or_files lang xs
+        let files = Lang.files_of_dirs_or_files lang xs in
         (*s: [[Main_semgrep_core.semgrep_with_one_pattern()]] no [[lang]] specified *)
         (*e: [[Main_semgrep_core.semgrep_with_one_pattern()]] no [[lang]] specified *)
-        in
         (*s: [[Main_semgrep_core.semgrep_with_one_pattern()]] filter [[files]] *)
         (*e: [[Main_semgrep_core.semgrep_with_one_pattern()]] filter [[files]] *)
         files |> List.iter (fun file ->
