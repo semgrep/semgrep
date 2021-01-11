@@ -382,6 +382,8 @@ and id_qualified env ((id, {name_qualifier; _}), _idinfo) =
   | Some (QTop _t) ->
       F.sprintf "::"
   | Some (QExpr (e, _t)) -> expr env e ^ "::"
+  | Some (QType ty) ->
+      F.sprintf "%s::<%s>" (ident id) (print_type ty)
   | None -> ident id
 
 

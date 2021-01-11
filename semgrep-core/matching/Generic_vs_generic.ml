@@ -905,11 +905,13 @@ and m_special a b =
       )
   | A.NextArrayIndex, B.NextArrayIndex ->
       return ()
+  | A.Metavar, B.Metavar ->
+      return ()
   | A.This, _  | A.Super, _  | A.Self, _  | A.Parent, _  | A.Eval, _
   | A.Typeof, _  | A.Instanceof, _  | A.Sizeof, _  | A.New, _
   | A.ConcatString _, _  | A.Spread, _  | A.Op _, _  | A.IncrDecr _, _
   | A.EncodedString _, _ | A.HashSplat, _ | A.Defined, _ | A.ForOf, _
-  | A.NextArrayIndex, _
+  | A.NextArrayIndex, _ | A.Metavar, _
     -> fail ()
 (*e: function [[Generic_vs_generic.m_special]] *)
 
@@ -940,7 +942,9 @@ and m_qualifier a b =
       m_expr a1 b1 >>= (fun () ->
         m_tok a2 b2
       )
-  | A.QDots _, _ | A.QTop _, _ | A.QExpr _, _ -> fail ()
+  | A.QType a1, B.QType b1 ->
+      m_type_ a1 b1
+  | A.QDots _, _ | A.QTop _, _ | A.QExpr _, _ | A.QType _, _ -> fail ()
 
 
 and m_container_set_or_dict_unordered_elements (a1, a2) (b1, b2) =
@@ -1349,7 +1353,9 @@ and m_type_argument a b =
   | A.TypeWildcard (a1, a2), B.TypeWildcard (b1, b2) ->
       let* () = m_tok a1 b1 in
       m_option m_wildcard a2 b2
-  | A.TypeArg _, _ | A.TypeWildcard _, _
+  | A.TypeLifetime(a1), B.TypeLifetime(b1) ->
+      m_ident a1 b1
+  | A.TypeArg _, _ | A.TypeWildcard _, _ | A.TypeLifetime _, _
     -> fail ()
 (*e: function [[Generic_vs_generic.m_type_argument]] *)
 and m_wildcard (a1, a2) (b1, b2) =
@@ -1894,6 +1900,8 @@ and m_pattern a b =
       m_pattern a1 b1 >>= (fun () ->
         m_expr a2 b2
       )
+  | A.PatPathExpr(a1), B.PatPathExpr(b1) ->
+      m_expr a1 b1
   | A.OtherPat(a1, a2), B.OtherPat(b1, b2) ->
       m_other_pattern_operator a1 b1 >>= (fun () ->
         (m_list m_any) a2 b2
@@ -1902,6 +1910,7 @@ and m_pattern a b =
   | A.PatTuple _, _  | A.PatList _, _  | A.PatRecord _, _  | A.PatKeyVal _, _
   | A.PatUnderscore _, _  | A.PatDisj _, _  | A.PatWhen _, _  | A.PatAs _, _
   | A.PatTyped _, _  | A.OtherPat _, _ | A.PatType _, _ | A.PatVar _, _
+  | A.PatPathExpr _, _
     -> fail ()
 (*e: [[Generic_vs_generic.m_pattern]] boilerplate cases *)
 (*e: function [[Generic_vs_generic.m_pattern]] *)
@@ -2275,11 +2284,15 @@ and m_or_type a b =
       m_ident a1 b1 >>= (fun () ->
         (m_type_) a2 b2
       )
+  | A.OrEnumStruct(a1, a2), B.OrEnumStruct(b1, b2) ->
+      m_ident a1 b1 >>= (fun () ->
+        m_bracket (m_list m_field) a2 b2
+      )
   | A.OtherOr(a1, a2), B.OtherOr(b1, b2) ->
       m_other_or_type_element_operator a1 b1 >>= (fun () ->
         (m_list m_any) a2 b2
       )
-  | A.OrConstructor _, _ | A.OrEnum _, _ | A.OrUnion _, _ | A.OtherOr _, _
+  | A.OrConstructor _, _ | A.OrEnum _, _ | A.OrUnion _, _ | A.OrEnumStruct _, _ | A.OtherOr _, _
     -> fail ()
 (*e: function [[Generic_vs_generic.m_or_type]] *)
 
