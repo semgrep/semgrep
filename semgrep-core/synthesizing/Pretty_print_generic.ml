@@ -278,7 +278,7 @@ and def_stmt env (entity, def_kind) =
        | Lang.Ruby -> (fun _typ id _e -> F.sprintf "%s" id),
                       (fun _typ id e -> F.sprintf "%s = %s" id e)
        | Lang.Rust -> (fun typ id _e -> F.sprintf "let %s: %s" id typ),
-                    (fun typ id e -> F.sprintf "let %s: %s = %s" id typ e) (* will have extra space if no type *)
+                      (fun typ id e -> F.sprintf "let %s: %s = %s" id typ e) (* will have extra space if no type *)
        | Lang.JSON | Lang.OCaml -> failwith "I think JSON/OCaml have no variable definitions"
        | Lang.PHP -> failwith "TODO: PHP"
        | Lang.Lua -> failwith "TODO: Lua"
