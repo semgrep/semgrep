@@ -210,6 +210,19 @@ let match_rules_and_recurse (file, hook, matches) rules matcher k any x =
   (* try the rules on substatements and subexpressions *)
   k x
 
+let must_analyze_statement_bloom_opti_failed bf1 st =
+  (* if it's empty, meaning we were not able to extract any useful specific
+   * identifiers or strings from the pattern, then the pattern is too general
+   * and we must analyze the stmt
+  *)
+  Bloom_filter.is_empty bf1
+  ||
+  match st.s_bf with
+  (* No bloom filter, probably forgot calls to Bloom_annotation.annotate *)
+  | None -> true
+  (* only when the Bloom_filter says No we can skip the stmt *)
+  | Some bf2 -> Bloom_filter.is_subset bf1 bf2 = Bloom_filter.Maybe
+
 (*****************************************************************************)
 (* Main entry point *)
 (*****************************************************************************)
@@ -218,6 +231,7 @@ let match_rules_and_recurse (file, hook, matches) rules matcher k any x =
 let check2 ~hook rules equivs file lang ast =
 
   let rules =
+    (* simple opti using regexps; the bloom filter opti might supersede this *)
     if !Flag.filter_irrelevant_rules
     then Rules_filter.filter_rules_relevant_to_file_using_regexp
         rules lang file
@@ -258,8 +272,12 @@ let check2 ~hook rules equivs file lang ast =
       let any = Apply_equivalences.apply equivs any in
       (*e: [[Semgrep_generic.check2()]] apply equivalences to rule pattern [[any]] *)
       match any with
-      | E pattern  -> Common.push (pattern, rule) expr_rules
-      | S pattern -> Common.push (pattern, rule) stmt_rules
+      | E pattern  ->
+          let bf = Bloom_annotation.bloom_of_expr pattern in
+          Common.push (pattern, bf, rule) expr_rules
+      | S pattern ->
+          let bf = Bloom_annotation.bloom_of_stmt pattern in
+          Common.push (pattern, bf, rule) stmt_rules
       | Ss pattern -> Common.push (pattern, rule) stmts_rules
       | T pattern -> Common.push (pattern, rule) type_rules
       | P pattern -> Common.push (pattern, rule) pattern_rules
@@ -278,7 +296,7 @@ let check2 ~hook rules equivs file lang ast =
           (* this could be quite slow ... we match many sgrep patterns
            * against an expression recursively
           *)
-          !expr_rules |> List.iter (fun (pattern, rule) ->
+          !expr_rules |> List.iter (fun (pattern, _bf, rule) ->
             let matches_with_env = match_e_e rule pattern x in
             if matches_with_env <> []
             then (* Found a match *)
@@ -296,8 +314,35 @@ let check2 ~hook rules equivs file lang ast =
         (*x: [[Semgrep_generic.check2()]] visitor fields *)
         (* mostly copy paste of expr code but with the _st functions *)
         V.kstmt = (fun (k, _) x ->
-          match_rules_and_recurse (file, hook, matches)
-            !stmt_rules match_st_st k (fun x -> S x) x
+          (* old:
+           *   match_rules_and_recurse (file, hook, matches)
+           *   !stmt_rules match_st_st k (fun x -> S x) x
+           * but inlined to handle specially Bloom filter in stmts for now.
+          *)
+          let new_stmt_rules =
+            !stmt_rules |> List.filter (fun (_, bf, _) ->
+              must_analyze_statement_bloom_opti_failed bf x
+            )
+          in
+          let new_expr_rules =
+            !expr_rules |> List.filter (fun (_, bf, _) ->
+              must_analyze_statement_bloom_opti_failed bf x
+            )
+          in
+          Common.save_excursion stmt_rules new_stmt_rules (fun () ->
+            Common.save_excursion expr_rules new_expr_rules (fun () ->
+              !stmt_rules |> List.iter (fun (pattern, _bf, rule) ->
+                let matches_with_env = match_st_st rule pattern x in
+                if matches_with_env <> []
+                then (* Found a match *)
+                  matches_with_env |> List.iter (fun env ->
+                    Common.push { Res. rule; file; env; code = S x } matches;
+                    let matched_tokens = lazy (Lib_AST.ii_of_any (S x)) in
+                    hook env matched_tokens
+                  )
+              );
+              k x
+            ))
         );
         (*x: [[Semgrep_generic.check2()]] visitor fields *)
         V.kstmts = (fun (k, _) x ->
