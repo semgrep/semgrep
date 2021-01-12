@@ -912,9 +912,9 @@ and map_expression (env : env) (x : CST.expression) =
        let expr = map_expression env v3 in
        G.Ref (ref_, expr)
    | `Try_exp (v1, v2) ->
-       let v1 = map_expression env v1 in
-       let v2 = token env v2 (* "?" *) in
-       todo env (v1, v2)
+       let expr = map_expression env v1 in
+       let question = token env v2 (* "?" *) in
+       G.Call (G.IdSpecial (G.Op G.Elvis, question), fb [G.Arg expr;])
    | `Bin_exp x -> map_binary_expression env x
    | `Assign_exp (v1, v2, v3) ->
        let lhs = map_expression env v1 in
