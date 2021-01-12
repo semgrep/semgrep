@@ -2182,9 +2182,10 @@ and map_type_ (env : env) (x : CST.type_): G.type_ =
    | `Scoped_type_id x -> map_scoped_type_identifier env x
    | `Tuple_type x -> map_tuple_type env x
    | `Unit_type (v1, v2) ->
-       let lparen = token env v1 (* "(" *) in
-       let rparen = token env v2 (* ")" *) in
-       G.TyBuiltin ("()", lparen)
+       let lparen = str env v1 (* "(" *) in
+       let rparen = str env v2 (* ")" *) in
+       let str = List.map fst [lparen; rparen] |> String.concat "" in
+       G.TyBuiltin (str, PI.combine_infos (snd lparen) [(snd rparen)])
    | `Array_type (v1, v2, v3, v4) ->
        let lbracket = token env v1 (* "[" *) in
        let ty = map_type_ env v2 in
