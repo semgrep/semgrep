@@ -1,11 +1,10 @@
 # type: ignore
-import distutils.util
 import os
 import shutil
 import stat
+import sys
 
 import setuptools
-from wheel.bdist_wheel import bdist_wheel
 
 from semgrep import __VERSION__
 
@@ -19,48 +18,35 @@ SEMGREP_CORE_BIN_ENV = "SEMGREP_CORE_BIN"
 SPACEGREP_BIN = "spacegrep"
 SPACEGREP_BIN_ENV = "SPACEGREP_BIN"
 SEMGREP_SKIP_BIN = "SEMGREP_SKIP_BIN" in os.environ
+WHEEL_CMD = "bdist_wheel"
+
+if WHEEL_CMD in sys.argv:
+    try:
+        from wheel.bdist_wheel import bdist_wheel
+    except ImportError:
+        raise Exception(f"The 'wheel' package is required when running '{WHEEL_CMD}'")
+
+    class BdistWheel(bdist_wheel):
+        def finalize_options(self):
+            bdist_wheel.finalize_options(self)
+            self.root_is_pure = False  # We have platform specific binaries
+
+        def get_tag(self):
+            _, _, plat = bdist_wheel.get_tag(self)
+            python = "cp36.cp37.cp38.py36.py37.py38"
+            abi = "none"
+            plat = "macosx_10_14_x86_64" if "macosx" in plat else "any"
+            return python, abi, plat
+
+    cmdclass = {WHEEL_CMD: BdistWheel}
+else:
+    cmdclass = {}
 
 try:
     with open(os.path.join(REPO_ROOT, "README.md")) as f:
         long_description = f.read()
 except FileNotFoundError:
     long_description = "**SETUP: README NOT FOUND**"
-
-
-# TODO: what is the minimum OSX version?
-MIN_OSX_VERSION = "10_14"
-
-
-# from https://stackoverflow.com/questions/45150304/how-to-force-a-python-wheel-to-be-platform-specific-when-building-it # noqa
-class BdistWheel(bdist_wheel):
-    def finalize_options(self):
-        bdist_wheel.finalize_options(self)
-        # Mark us as not a pure python package (we have platform specific rust code)
-        self.root_is_pure = False
-
-    def get_tag(self):
-        # this set's us up to build generic wheels.
-        # note: we're only doing this for windows right now (causes packaging issues
-        # with osx)
-        _, _, plat = bdist_wheel.get_tag(self)
-        # to debug "ERROR: *.whl is not a supported wheel on this platform.":
-        # from setuptools.pep425tags import get_supported
-        # get_supported()
-        python = ".".join(["cp36", "cp37", "cp38", "py36", "py37", "py38"])
-        abi = "none"
-
-        if "macosx" in plat:
-            plat = f"macosx_{MIN_OSX_VERSION}_x86_64"
-
-        # The binary we build is statically linked & manylinux compatible and alpine compatible
-        # there is no way to specify works with alpine on pypi so set platform as any.
-        # Note that semgrep-core is still incompatible with Windows
-        if plat == "linux_x86_64":
-            plat = "any"
-        elif plat == "linux_i686":
-            plat = "manylinux1_i686"
-
-        return python, abi, plat
 
 
 def find_executable(env_name, exec_name):
@@ -97,7 +83,7 @@ setuptools.setup(
     author="Return To Corporation",
     author_email="support@r2c.dev",
     description="Lightweight static analysis for many languages. Find bug variants with patterns that look like source code.",
-    cmdclass={"bdist_wheel": BdistWheel},
+    cmdclass=cmdclass,
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/returntocorp/semgrep",
