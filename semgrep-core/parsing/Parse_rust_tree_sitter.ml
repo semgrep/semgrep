@@ -493,7 +493,7 @@ and map_anon_choice_param_2c23cdc (env : env) outer_attr (x : CST.anon_choice_pa
        let self = ident env v4 (* "self" *) in
        let self_type = G.TyId (self, G.empty_id_info ()) in
        let type_ = (match borrow with
-         | Some tok -> G.TyPointer (tok, self_type)
+         | Some tok -> G.TyRef (tok, self_type)
          | None -> self_type)
        in
        let attrs = deoptionalize [mutability] in
@@ -2016,7 +2016,7 @@ and map_reference_type (env : env) ((v1, v2, v3, v4) : CST.reference_type): G.ty
   ) v3 in
   let type_ = map_type_ env v4 in
   (* TODO TyRef with lifetime/mutability *)
-  G.TyPointer (ref_, type_)
+  G.TyRef (ref_, type_)
 
 and map_return_expression (env : env) (x : CST.return_expression): G.expr =
   let return_stmt = (match x with
