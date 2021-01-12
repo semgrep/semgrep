@@ -1,5 +1,6 @@
 (*
-   Decorate a pattern AST to make suitable for memoization during matching.
+   Decorate a pattern and target ASTs to make the suitable for memoization
+   during matching.
 *)
 
 open Printf
@@ -49,6 +50,14 @@ let diff_backrefs bound_metavars ~new_backref_counts ~old_backref_counts =
   in
   Names.diff bound_metavars not_backrefs_in_rest_of_pattern
 
+let create_create_id () =
+  let n = ref 0 in
+  fun () ->
+    let id = !n in
+    assert (id >= 0);
+    incr n;
+    id
+
 (*
    During matching a pattern node against a program node, we consult
    a cache to see if we already have run this before and return the
@@ -76,14 +85,7 @@ let prepare_pattern ?(debug = false) any =
     else
       bound_metavars := Names.add name !bound_metavars
   in
-  let create_id =
-    let n = ref 0 in
-    fun () ->
-      let id = !n in
-      assert (id >= 0);
-      incr n;
-      id
-  in
+  let create_id = create_create_id () in
   (*
      This is the list of actions to run in reverse order of the original
      traversal of statements.
@@ -143,10 +145,19 @@ let prepare_pattern ?(debug = false) any =
     );
   } in
   visitor any;
-  List.iter (fun f -> f ()) !stack
-
-let prepare_pattern ?(debug = false) any =
-  prepare_pattern ~debug any;
+  List.iter (fun f -> f ()) !stack;
   if debug then
-    printf "pattern AST:\n%s\n" (AST_generic.show_any any);
-  any
+    printf "pattern AST:\n%s\n" (AST_generic.show_any any)
+
+(* Assign node IDs to the statements in the target. *)
+let prepare_target stmt_list =
+  let create_id = create_create_id () in
+  let visitor = Visitor_AST.mk_visitor {
+    Visitor_AST.default_visitor with
+    kstmt = (fun (k, _) stmt ->
+      assert (stmt.s_id < 0);
+      stmt.s_id <- create_id ();
+      k stmt
+    );
+  } in
+  visitor (Ss stmt_list)

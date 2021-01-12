@@ -291,4 +291,5 @@ let parse_and_resolve_name_use_pfff_or_treesitter lang file =
   AST_generic_helpers.gensym_counter := 0;
   Naming_AST.resolve lang ast;
   Constant_propagation.propagate_basic lang ast;
+  Caching.prepare_target ast;
   { ast; errors; stat }
