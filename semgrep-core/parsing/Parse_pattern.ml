@@ -45,5 +45,6 @@ let parse_pattern lang str =
     (* use pfff *)
     | _ -> Parse_generic.parse_pattern lang str
   in
+  let any = Caching.prepare_pattern any in
   Check_semgrep.check_pattern lang any;
   any
