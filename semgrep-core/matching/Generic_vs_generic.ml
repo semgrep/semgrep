@@ -1349,7 +1349,9 @@ and m_type_argument a b =
   | A.TypeWildcard (a1, a2), B.TypeWildcard (b1, b2) ->
       let* () = m_tok a1 b1 in
       m_option m_wildcard a2 b2
-  | A.TypeArg _, _ | A.TypeWildcard _, _
+  | A.TypeLifetime(a1), B.TypeLifetime(b1) ->
+      m_ident a1 b1
+  | A.TypeArg _, _ | A.TypeWildcard _, _ | A.TypeLifetime _, _
     -> fail ()
 (*e: function [[Generic_vs_generic.m_type_argument]] *)
 and m_wildcard (a1, a2) (b1, b2) =
