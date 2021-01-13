@@ -3,6 +3,7 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 from typing import List
 from typing import Optional
@@ -93,7 +94,7 @@ def _run_semgrep(
         options.append("--sarif")
 
     output = subprocess.check_output(
-        ["python3", "-m", "semgrep", *options, Path("targets") / target_name],
+        [sys.executable, "-m", "semgrep", *options, Path("targets") / target_name],
         encoding="utf-8",
         stderr=subprocess.STDOUT if stderr else subprocess.PIPE,
     )
