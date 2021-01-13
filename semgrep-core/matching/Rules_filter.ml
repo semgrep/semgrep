@@ -91,26 +91,27 @@ let reserved_str str =
 (*****************************************************************************)
 let extract_specific_strings lang any =
   let res = ref [] in
-  let visitor = V.mk_visitor {V.default_visitor with
-                              V.kident = (fun (_k, _) (str, _tok) ->
-                                if not (reserved_id lang str)
-                                then Common.push str res
-                              );
-                              V.kexpr = (fun (k, _) x ->
-                                (match x with
-                                 (* less: we could extract strings for the other literals too?
-                                  * atoms, chars, even int?
-                                 *)
-                                 | L (String (str, _tok)) ->
-                                     if not (reserved_str str)
-                                     then Common.push str res
-                                 (* do not recurse there, the type does not have to be in the source *)
-                                 | TypedMetavar _ ->
-                                     ()
-                                 | _ -> k x
-                                );
-                              );
-                             } in
+  let visitor = V.mk_visitor {
+    V.default_visitor with
+    V.kident = (fun (_k, _) (str, _tok) ->
+      if not (reserved_id lang str)
+      then Common.push str res
+    );
+    V.kexpr = (fun (k, _) x ->
+      (match x with
+       (* less: we could extract strings for the other literals too?
+        * atoms, chars, even int?
+       *)
+       | L (String (str, _tok)) ->
+           if not (reserved_str str)
+           then Common.push str res
+       (* do not recurse there, the type does not have to be in the source *)
+       | TypedMetavar _ ->
+           ()
+       | _ -> k x
+      );
+    );
+  } in
   visitor any;
   !res
 

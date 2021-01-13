@@ -1,0 +1,10 @@
+(executables
+ (names Test)
+ (libraries alcotest)
+)
+
+; This hooks into 'dune runtest'
+(rule
+ (alias runtest)
+ (action (run ./Test.exe --quick-tests))
+)
