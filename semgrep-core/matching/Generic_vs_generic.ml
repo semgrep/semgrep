@@ -530,7 +530,7 @@ and m_expr a b =
   | A.L(a1), b1 ->
       (match Normalize_generic.constant_propagation_and_evaluate_literal b1 with
        | Some b1 ->
-           m_literal a1 b1
+           m_literal_constness a1 b1
        | None -> fail ()
       )
   (*e: [[Generic_vs_generic.m_expr()]] propagated constant case *)
@@ -847,6 +847,16 @@ and m_literal a b =
   | A.Imag _, _ | A.Ratio _, _ | A.Atom _, _
     -> fail ()
 (*e: function [[Generic_vs_generic.m_literal]] *)
+
+and m_literal_constness a b =
+  match b with
+  | B.Lit b1 -> m_literal a b1
+  | B.Cst B.Cstr ->
+      (match a with
+       | A.String("...", _) -> return ()
+       | ___else___         -> fail ())
+  | B.Cst _
+  | B.NotCst -> fail ()
 
 (*s: function [[Generic_vs_generic.m_action]] *)
 and m_action a b =
@@ -1196,16 +1206,10 @@ and m_arguments_concat a b =
 
   (* specific case: f"...{$X}..." will properly extract $X from f"foo {bar} baz" *)
   | A.Arg (A.L (A.String("...", a)))::xsa, B.Arg(bexpr)::xsb ->
-      (match Normalize_generic.constant_propagation_and_evaluate_literal bexpr
-       with
-       | Some _ ->
-           (* can match nothing *)
-           (m_arguments_concat xsa xsb) >||>
-           (* can match more *)
-           (m_arguments_concat ((A.Arg (A.L (A.String("...", a))))::xsa) xsb)
-       | None ->
-           (m_arguments_concat xsa (B.Arg(bexpr)::xsb))
-      )
+      (* can match nothing *)
+      (m_arguments_concat xsa (B.Arg(bexpr)::xsb)) >||>
+      (* can match more *)
+      (m_arguments_concat ((A.Arg (A.L (A.String("...", a))))::xsa) xsb)
 
   (*e: [[Generic_vs_generic.m_arguments_concat()]] ellipsis cases *)
   (* the general case *)
@@ -1300,6 +1304,10 @@ and m_type_ a b =
       m_tok a0 b0 >>= (fun () ->
         m_type_ a1 b1
       )
+  | A.TyRef(a0, a1), B.TyRef(b0, b1) ->
+      m_tok a0 b0 >>= (fun () ->
+        m_type_ a1 b1
+      )
 
   | A.TyQuestion(a1, a2), B.TyQuestion(b1, b2) ->
       m_type_ a1 b1 >>= (fun () ->
@@ -1327,6 +1335,7 @@ and m_type_ a b =
   | A.TyArray _, _  | A.TyPointer _, _ | A.TyTuple _, _  | A.TyQuestion _, _
   | A.TyId _, _ | A.TyIdQualified _, _ | A.TyAny _, _
   | A.TyOr _, _ | A.TyAnd _, _ | A.TyRecordAnon _, _
+  | A.TyRef _, _
   | A.OtherType _, _
     -> fail ()
 (*e: [[Generic_vs_generic.m_type_]] boilerplate cases *)
@@ -1349,7 +1358,9 @@ and m_type_argument a b =
   | A.TypeWildcard (a1, a2), B.TypeWildcard (b1, b2) ->
       let* () = m_tok a1 b1 in
       m_option m_wildcard a2 b2
-  | A.TypeArg _, _ | A.TypeWildcard _, _
+  | A.TypeLifetime(a1), B.TypeLifetime(b1) ->
+      m_ident a1 b1
+  | A.TypeArg _, _ | A.TypeWildcard _, _ | A.TypeLifetime _, _
     -> fail ()
 (*e: function [[Generic_vs_generic.m_type_argument]] *)
 and m_wildcard (a1, a2) (b1, b2) =

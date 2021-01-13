@@ -78,16 +78,12 @@ let normalize_import_opt is_pattern i =
 (* see also Constant_propagation.ml. At some point we should remove
  * the code below and rely only on Constant_propagation.ml
 *)
-let rec eval x =
+let rec eval x :constness option =
   match x with
-  | L x -> Some x
+  | L x -> Some (Lit x)
   | Id (_, { id_constness = {contents = Some x}; _})
   | DotAccess (IdSpecial (This, _), _, EId (_, {id_constness = {contents = Some x}; _})) ->
-      (match x with
-       | Lit x -> Some x
-       (* todo: do something better? *)
-       | Cst _ | NotCst -> None
-      )
+      Some x
 
   | Call(IdSpecial((Op(Plus | Concat) | ConcatString _), _), args)->
       let literals = args |> unbracket |> Common.map_filter (fun (arg) ->
@@ -97,14 +93,14 @@ let rec eval x =
       ) in
       let strs = literals |> Common.map_filter (fun (lit) ->
         match lit with
-        | String (s1, _) -> Some s1
+        | Lit (String (s1, _)) -> Some s1
         | _ -> None
       ) in
       let concated = String.concat "" strs in
       let all_args_are_string = List.length strs =
                                 List.length (unbracket args) in
       (match List.nth_opt literals 0 with
-       | Some(String(_s1, t1)) when all_args_are_string -> Some(String(concated, t1))
+       | Some(Lit(String(_s1, t1))) when all_args_are_string -> Some(Lit(String(concated, t1)))
        | _ -> None
       )
   (* TODO: partial evaluation for ints/floats/... *)

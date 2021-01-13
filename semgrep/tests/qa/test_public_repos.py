@@ -1,5 +1,6 @@
 import json
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -33,7 +34,7 @@ SENTINEL_PATTERN = f"$SENTINEL = {SENTINEL_VALUE}"
 def _assert_sentinel_results(repo_url, repo_path, sentinel_path, language):
     semgrep_run = subprocess.run(
         [
-            "python3",
+            sys.executable,
             "-m",
             "semgrep",
             "--pattern",
@@ -53,14 +54,14 @@ def _assert_sentinel_results(repo_url, repo_path, sentinel_path, language):
         output = json.loads(semgrep_run.stdout)
     except json.JSONDecodeError:
         pytest.fail(
-            f"Failed to parse JSON from semgrep output:\n"
+            f"Failed to parse JSON from semgrep output ({semgrep_run.args}):\n"
             + semgrep_run.stdout
             + semgrep_run.stderr
         )
 
     if output["errors"]:
         pytest.fail(
-            f"Running on {repo_url} with lang {language} had errors: "
+            f"Running on {repo_url} with lang {language} had errors ({semgrep_run.args}): "
             + json.dumps(output["errors"], indent=4)
         )
 
@@ -68,7 +69,7 @@ def _assert_sentinel_results(repo_url, repo_path, sentinel_path, language):
         sentinel_path
     ):
         pytest.fail(
-            f"Running on {repo_url} with lang {language} expected to have one results instead found result: "
+            f"Running on {repo_url} with lang {language} expected to have one results instead found result ({semgrep_run.args}): "
             + json.dumps(output["results"], indent=4)
         )
 
@@ -103,7 +104,7 @@ def test_semgrep_on_repo(monkeypatch, clone_github_repo, tmp_path, public_repo_u
 
     sub_output = subprocess.check_output(
         [
-            "python3",
+            sys.executable,
             "-m",
             "semgrep",
             "--config=rules/regex-sentinel.yaml",
