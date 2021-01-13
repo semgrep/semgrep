@@ -12,6 +12,7 @@ let synthesize_patterns s file =
   let a_opt = Range_to_AST.any_at_range r ast in
   Naming_AST.resolve lang ast;
   Constant_propagation.propagate_basic lang ast;
+  Constant_propagation.propagate_dataflow ast;
   match a_opt with
   | Some a ->
       let patterns = Pattern_from_Code.from_any a in

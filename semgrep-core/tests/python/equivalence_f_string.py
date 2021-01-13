@@ -14,8 +14,7 @@ def foo3():
   query = f"SELECT {www}"
 
 def foo4():
-  # TODO:
-  # OK:
+  # ERROR:
   ww = "foo"
   www = "bar"
   query = f"SELECT {www} and {ww}"
