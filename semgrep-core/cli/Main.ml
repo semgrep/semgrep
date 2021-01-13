@@ -655,9 +655,12 @@ let iter_generic_ast_of_files_and_get_matches_and_exn_to_errors f files =
 (* todo? move this code in JSON_report.ml? *)
 
 let json_fields_of_matches_and_errors files matches errs =
+  let (matches, new_errs) =
+    Common.partition_either JSON_report.match_to_json matches in
+  let errs = new_errs @ errs in
   let count_errors = (List.length errs) in
   let count_ok = (List.length files) - count_errors in
-  [ "matches", J.Array (matches |> List.map JSON_report.match_to_json);
+  [ "matches", J.Array (matches);
     "errors", J.Array (errs |> List.map R2c.error_to_json);
     "stats", J.Object [
       "okfiles", J.Int count_ok;
