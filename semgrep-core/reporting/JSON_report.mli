@@ -1,7 +1,10 @@
 (*s: semgrep/reporting/JSON_report.mli *)
 
 (*s: signature [[JSON_report.match_to_json]] *)
-val match_to_json: Match_result.t -> JSON.t
+(* Can return an Error because when have a NoTokenLocation exn when
+ * trying to get the range of a match or metavar.
+*)
+val match_to_json: Match_result.t -> (JSON.t, Error_code.error) Common.either
 (*e: signature [[JSON_report.match_to_json]] *)
 
 (*s: signature [[JSON_report.match_to_error]] *)
