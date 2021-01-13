@@ -77,11 +77,13 @@ class Rule:
             """
             Recursively validate expressions
             """
-            if expression.operator not in {
+            valid_operators = {
                 OPERATORS.REGEX,
                 OPERATORS.AND_EITHER,
                 OPERATORS.AND_ALL,
-            }:
+                OPERATORS.NOT_REGEX,
+            }
+            if expression.operator not in valid_operators:
                 operator_key = OPERATOR_PATTERN_NAMES_MAP.get(
                     expression.operator, [""]
                 )[0]
@@ -91,7 +93,7 @@ class Rule:
                     short_msg=f"invalid pattern clause",
                     long_msg=f"invalid pattern clause '{operator_key}' with regex-only rules",
                     spans=[span],
-                    help=f"use only patterns, pattern-regex, or pattern-either with regex-only rules",
+                    help=f"use only patterns, pattern-either, pattern-regex, or pattern-not-regex with regex-only rules",
                 )
             if expression.children:
                 for child in expression.children:

@@ -292,4 +292,5 @@ let parse_and_resolve_name_use_pfff_or_treesitter lang file =
   Naming_AST.resolve lang ast;
   Constant_propagation.propagate_basic lang ast;
   Caching.prepare_target ast;
+  Bloom_annotation.annotate_program ast;
   { ast; errors; stat }

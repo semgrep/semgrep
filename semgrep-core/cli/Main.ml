@@ -87,6 +87,9 @@ let profile = ref false
 let error_recovery = ref false
 (*e: constant [[Main_semgrep_core.error_recovery]] *)
 
+(* used for -json -profile *)
+let profile_start = ref 0.
+
 (* there are a few other debugging flags in Flag_semgrep.ml
  * (e.g., debug_matching)
 *)
@@ -530,6 +533,7 @@ let parse_generic lang file =
   match v with
   | Left ast -> ast
   | Right exn -> raise exn
+[@@profiling]
 (*e: function [[Main_semgrep_core.parse_generic]] *)
 
 (*s: function [[Main_semgrep_core.parse_equivalences]] *)
@@ -537,6 +541,7 @@ let parse_equivalences () =
   match !equivalences_file with
   | "" -> []
   | file -> Parse_equivalences.parse file
+[@@profiling]
 (*e: function [[Main_semgrep_core.parse_equivalences]] *)
 
 (*s: type [[Main_semgrep_core.ast]] *)
@@ -564,6 +569,7 @@ let parse_pattern lang_pattern str =
     ))
   with exn ->
     raise (Parse_rules.InvalidPatternException ("no-id", str, !lang, (Common.exn_to_s exn)))
+[@@profiling]
 (*e: function [[Main_semgrep_core.parse_pattern]] *)
 
 (*****************************************************************************)
@@ -581,6 +587,7 @@ let get_final_files xs =
   )
   in
   Common2.uniq_eff (files @ explicit_files)
+[@@profiling]
 (*e: function [[Main_semgrep_core.get_final_files]] *)
 
 (*s: function [[Main_semgrep_core.iter_generic_ast_of_files_and_get_matches_and_exn_to_errors]] *)
@@ -643,25 +650,45 @@ let iter_generic_ast_of_files_and_get_matches_and_exn_to_errors f files =
 (*e: function [[Main_semgrep_core.iter_generic_ast_of_files_and_get_matches_and_exn_to_errors]] *)
 
 (*****************************************************************************)
-(* JSON Output (used  by the semgrep Python wrapper) *)
+(* JSON Output (used by the semgrep Python wrapper) *)
 (*****************************************************************************)
+(* todo? move this code in JSON_report.ml? *)
 
-let json_of_matches_and_errors files matches errs =
+let json_fields_of_matches_and_errors files matches errs =
+  let (matches, new_errs) =
+    Common.partition_either JSON_report.match_to_json matches in
+  let errs = new_errs @ errs in
   let count_errors = (List.length errs) in
   let count_ok = (List.length files) - count_errors in
-  let stats = J.Object [
-    "okfiles", J.Int count_ok;
-    "errorfiles", J.Int count_errors;
-  ] in
-  let json = J.Object [
-    "matches", J.Array (matches |> List.map JSON_report.match_to_json);
+  [ "matches", J.Array (matches);
     "errors", J.Array (errs |> List.map R2c.error_to_json);
-    "stats", stats;
-  ] in
-  json
-
+    "stats", J.Object [
+      "okfiles", J.Int count_ok;
+      "errorfiles", J.Int count_errors;
+    ];
+  ]
+[@@profiling]
 (*s: function [[Main_semgrep_core.print_matches_and_errors]] *)
 (*e: function [[Main_semgrep_core.print_matches_and_errors]] *)
+
+let json_of_profile_info () =
+  let now = Unix.gettimeofday () in
+  (* total time, but excluding J.string_of_json time that comes after *)
+  (* partial copy paste of Common.adjust_profile_entry *)
+  Hashtbl.add !Common._profile_table "TOTAL"
+    (ref (now -. !profile_start), ref 1);
+
+  (* partial copy paste of Common.profile_diagnostic *)
+  let xs =
+    Hashtbl.fold (fun k v acc -> (k,v)::acc) !Common._profile_table []
+    |> List.sort (fun (_k1, (t1,_n1)) (_k2, (t2,_n2)) -> compare t2 t1)
+  in
+  xs |> List.map (fun (k, (t, cnt)) ->
+    k, J.Object [
+      "time", J.Float !t;
+      "count", J.Int !cnt;
+    ]
+  ) |> (fun xs -> J.Object xs)
 
 (*s: function [[Main_semgrep_core.format_output_exception]] *)
 let json_of_exn e =
@@ -716,7 +743,17 @@ let semgrep_with_rules rules files =
    * to debug too-many-matches issues.
    * Common2.write_value matches "/tmp/debug_matches";
   *)
-  let json = json_of_matches_and_errors files matches errs in
+  let flds = json_fields_of_matches_and_errors files matches errs in
+  let flds =
+    if !profile
+    then begin
+      let json = json_of_profile_info () in
+      (* so we don't get also the profile output of Common.main_boilerplate*)
+      Common.profile := Common.ProfNone;
+      flds @ ["profiling", json]
+    end
+    else flds
+  in
   (*
      Not pretty-printing the json output (Yojson.Safe.prettify)
      because it kills performance, adding an extra 50% time on our
@@ -724,7 +761,7 @@ let semgrep_with_rules rules files =
      User should use an external tool like jq or ydump (latter comes with
      yojson) for pretty-printing json.
   *)
-  let s = J.string_of_json json in
+  let s = J.string_of_json (J.Object flds) in
   logger#info "size of returned JSON string: %d" (String.length s);
   pr s
 (*e: function [[Main_semgrep_core.semgrep_with_rules]] *)
@@ -860,15 +897,14 @@ let tainting_with_rules rules_file xs =
            Tainting_generic.check rules file ast
         )
     in
-    let json = json_of_matches_and_errors files matches errs in
-    let s = J.string_of_json json in
+    let flds = json_fields_of_matches_and_errors files matches errs in
+    let s = J.string_of_json (J.Object flds) in
     pr s
   with exn ->
     let json = json_of_exn exn in
     let s = J.string_of_json json in
     pr s;
     exit 2
-
 (*e: function [[Main_semgrep_core.tainting_with_rules]] *)
 
 (*****************************************************************************)
@@ -1206,6 +1242,7 @@ let options () =
 
 (*s: function [[Main_semgrep_core.main]] *)
 let main () =
+  profile_start := Unix.gettimeofday ();
   set_gc ();
 
   let usage_msg =

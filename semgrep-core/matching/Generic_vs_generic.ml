@@ -1300,6 +1300,10 @@ and m_type_ a b =
       m_tok a0 b0 >>= (fun () ->
         m_type_ a1 b1
       )
+  | A.TyRef(a0, a1), B.TyRef(b0, b1) ->
+      m_tok a0 b0 >>= (fun () ->
+        m_type_ a1 b1
+      )
 
   | A.TyQuestion(a1, a2), B.TyQuestion(b1, b2) ->
       m_type_ a1 b1 >>= (fun () ->
@@ -1327,6 +1331,7 @@ and m_type_ a b =
   | A.TyArray _, _  | A.TyPointer _, _ | A.TyTuple _, _  | A.TyQuestion _, _
   | A.TyId _, _ | A.TyIdQualified _, _ | A.TyAny _, _
   | A.TyOr _, _ | A.TyAnd _, _ | A.TyRecordAnon _, _
+  | A.TyRef _, _
   | A.OtherType _, _
     -> fail ()
 (*e: [[Generic_vs_generic.m_type_]] boilerplate cases *)
@@ -1349,7 +1354,9 @@ and m_type_argument a b =
   | A.TypeWildcard (a1, a2), B.TypeWildcard (b1, b2) ->
       let* () = m_tok a1 b1 in
       m_option m_wildcard a2 b2
-  | A.TypeArg _, _ | A.TypeWildcard _, _
+  | A.TypeLifetime(a1), B.TypeLifetime(b1) ->
+      m_ident a1 b1
+  | A.TypeArg _, _ | A.TypeWildcard _, _ | A.TypeLifetime _, _
     -> fail ()
 (*e: function [[Generic_vs_generic.m_type_argument]] *)
 and m_wildcard (a1, a2) (b1, b2) =
