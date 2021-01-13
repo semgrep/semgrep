@@ -1328,9 +1328,11 @@ and m_type_ a b =
         (m_list m_any) a2 b2
       )
   | A.TyBuiltin _, _  | A.TyFun _, _  | A.TyNameApply _, _  | A.TyVar _, _
-  | A.TyArray _, _  | A.TyPointer _, _ | A.TyRef _, _ | A.TyTuple _, _
-  | A.TyQuestion _, _ | A.TyId _, _ | A.TyIdQualified _, _ | A.TyAny _, _
-  | A.TyOr _, _ | A.TyAnd _, _ | A.TyRecordAnon _, _ | A.OtherType _, _
+  | A.TyArray _, _  | A.TyPointer _, _ | A.TyTuple _, _  | A.TyQuestion _, _
+  | A.TyId _, _ | A.TyIdQualified _, _ | A.TyAny _, _
+  | A.TyOr _, _ | A.TyAnd _, _ | A.TyRecordAnon _, _
+  | A.TyRef _, _
+  | A.OtherType _, _
     -> fail ()
 (*e: [[Generic_vs_generic.m_type_]] boilerplate cases *)
 (*e: function [[Generic_vs_generic.m_type_]] *)
