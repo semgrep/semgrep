@@ -122,7 +122,7 @@ let regression_tests_for_lang files lang =
         let xs = Lazy.force matched_tokens in
         let toks = xs |> List.filter Parse_info.is_origintok in
         let (minii, _maxii) = Parse_info.min_max_ii_by_pos toks in
-        Error_code.error minii (Error_code.SgrepLint ("",""))
+        Error_code.error minii (Error_code.SemgrepMatchFound ("",""))
       )
       [rule] equiv file lang ast |> ignore;
 

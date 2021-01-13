@@ -365,7 +365,8 @@ class CoreRunner:
                 # performed purely in Python code then compared against
                 # semgrep-core's results for other patterns.
                 patterns_regex, patterns = partition(
-                    lambda p: p.expression.operator == OPERATORS.REGEX,
+                    lambda p: p.expression.operator == OPERATORS.REGEX
+                    or p.expression.operator == OPERATORS.NOT_REGEX,
                     all_patterns_for_language,
                 )
                 if patterns_regex:

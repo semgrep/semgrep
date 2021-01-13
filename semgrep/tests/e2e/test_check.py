@@ -139,6 +139,32 @@ def test_regex_rule__child(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(run_semgrep_in_tmp("rules/regex-child.yaml"), "results.json")
 
 
+def test_regex_rule__not(run_semgrep_in_tmp, snapshot):
+    snapshot.assert_match(
+        run_semgrep_in_tmp("rules/regex-not.yaml", target_name="basic/stupid.py"),
+        "results.json",
+    )
+
+
+def test_regex_rule__not2(run_semgrep_in_tmp, snapshot):
+    snapshot.assert_match(
+        run_semgrep_in_tmp(
+            "rules/regex-not2.yaml", target_name="basic/regex-any-language.html"
+        ),
+        "results.json",
+    )
+
+
+def test_regex_rule__pattern_regex_and_pattern_not_regex(run_semgrep_in_tmp, snapshot):
+    snapshot.assert_match(
+        run_semgrep_in_tmp(
+            "rules/regex-not-with-pattern-regex.yaml",
+            target_name="basic/regex-any-language.html",
+        ),
+        "results.json",
+    )
+
+
 def test_regex_rule__invalid_expression(run_semgrep_in_tmp, snapshot):
     with pytest.raises(CalledProcessError) as excinfo:
         run_semgrep_in_tmp("rules/regex-invalid.yaml")

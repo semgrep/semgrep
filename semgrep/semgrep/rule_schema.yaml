@@ -11,6 +11,7 @@ definitions:
       - $ref: '#/definitions/pattern-not'
       - $ref: '#/definitions/pattern'
       - $ref: '#/definitions/pattern-regex'
+      - $ref: '#/definitions/pattern-not-regex'
       - $ref: '#/definitions/pattern-where-python'
       - $ref: '#/definitions/metavariable-regex'
       - $ref: '#/definitions/metavariable-comparison'
@@ -80,6 +81,14 @@ definitions:
         type: string
     required:
     - pattern-regex
+    additionalProperties: false
+  pattern-not-regex:
+    type: object
+    properties:
+      pattern-not-regex:
+        type: string
+    required:
+    - pattern-not-regex
     additionalProperties: false
   patterns:
     type: object

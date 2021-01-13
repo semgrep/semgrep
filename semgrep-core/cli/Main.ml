@@ -26,6 +26,7 @@ module J = JSON
  *  - good support for: Python, Java, Go, Ruby,
  *    Javascript (and JSX), Typescript (and TSX), JSON
  *  - partial support for: PHP, C, OCaml, Lua, C#.
+ *  - almost support for: Rust, R, Kotlin.
  *
  * opti: git grep foo | xargs semgrep -e 'foo(...)'
  *
@@ -85,6 +86,9 @@ let profile = ref false
 *)
 let error_recovery = ref false
 (*e: constant [[Main_semgrep_core.error_recovery]] *)
+
+(* used for -json -profile *)
+let profile_start = ref 0.
 
 (* there are a few other debugging flags in Flag_semgrep.ml
  * (e.g., debug_matching)
@@ -529,6 +533,7 @@ let parse_generic lang file =
   match v with
   | Left ast -> ast
   | Right exn -> raise exn
+[@@profiling]
 (*e: function [[Main_semgrep_core.parse_generic]] *)
 
 (*s: function [[Main_semgrep_core.parse_equivalences]] *)
@@ -536,6 +541,7 @@ let parse_equivalences () =
   match !equivalences_file with
   | "" -> []
   | file -> Parse_equivalences.parse file
+[@@profiling]
 (*e: function [[Main_semgrep_core.parse_equivalences]] *)
 
 (*s: type [[Main_semgrep_core.ast]] *)
@@ -563,6 +569,7 @@ let parse_pattern lang_pattern str =
     ))
   with exn ->
     raise (Parse_rules.InvalidPatternException ("no-id", str, !lang, (Common.exn_to_s exn)))
+[@@profiling]
 (*e: function [[Main_semgrep_core.parse_pattern]] *)
 
 (*****************************************************************************)
@@ -573,24 +580,22 @@ let parse_pattern lang_pattern str =
 
 (*s: function [[Main_semgrep_core.get_final_files]] *)
 let get_final_files xs =
-  let files =
-    match Lang.lang_of_string_opt !lang with
-    | None -> Common.files_of_dir_or_files_no_vcs_nofilter xs
-    | Some lang -> Lang.files_of_dirs_or_files lang xs
-  in
+  let lang = lang_of_string !lang in
+  let files = Lang.files_of_dirs_or_files lang xs in
   let explicit_files = xs |> List.filter(fun file ->
     Sys.file_exists file && not (Sys.is_directory file)
   )
   in
   Common2.uniq_eff (files @ explicit_files)
+[@@profiling]
 (*e: function [[Main_semgrep_core.get_final_files]] *)
 
 (*s: function [[Main_semgrep_core.iter_generic_ast_of_files_and_get_matches_and_exn_to_errors]] *)
 let iter_generic_ast_of_files_and_get_matches_and_exn_to_errors f files =
+  let lang = lang_of_string !lang in
   let matches_and_errors =
     files |> map (fun file ->
       logger#info "Analyzing %s" file;
-      let lang = lang_of_string !lang in
       try
         run_with_memory_limit !max_memory (fun () ->
           timeout_function file (fun () ->
@@ -645,69 +650,70 @@ let iter_generic_ast_of_files_and_get_matches_and_exn_to_errors f files =
 (*e: function [[Main_semgrep_core.iter_generic_ast_of_files_and_get_matches_and_exn_to_errors]] *)
 
 (*****************************************************************************)
-(* Output *)
+(* JSON Output (used by the semgrep Python wrapper) *)
 (*****************************************************************************)
+(* todo? move this code in JSON_report.ml? *)
 
-let print_matches_and_errors_json files matches errs =
+let json_fields_of_matches_and_errors files matches errs =
+  let (matches, new_errs) =
+    Common.partition_either JSON_report.match_to_json matches in
+  let errs = new_errs @ errs in
   let count_errors = (List.length errs) in
   let count_ok = (List.length files) - count_errors in
-  let stats = J.Object [
-    "okfiles", J.Int count_ok;
-    "errorfiles", J.Int count_errors;
-  ] in
-  let json = J.Object [
-    "matches", J.Array (matches |> List.map JSON_report.match_to_json);
+  [ "matches", J.Array (matches);
     "errors", J.Array (errs |> List.map R2c.error_to_json);
-    "stats", stats
-  ] in
-  (*
-     Not pretty-printing the json output (Yojson.Safe.prettify)
-     because it kills performance, adding an extra 50% time on our
-     calculate_ci_perf.py benchmarks.
-     User should use an external tool like jq or ydump (latter comes with
-     yojson) for pretty-printing json.
-  *)
-  let s = J.string_of_json json in
-  logger#info "size of returned JSON string: %d" (String.length s);
-  pr s
-
-let print_matches_and_errors_text _files _matches _errs =
-  failwith "print_matches_and_errors_text: not implemented"
-
-(*s: function [[Main_semgrep_core.print_matches_and_errors]] *)
-let print_matches_and_errors files matches errs =
-  match !output_format with
-  | Json -> print_matches_and_errors_json files matches errs
-  | Text -> print_matches_and_errors_text files matches errs
+    "stats", J.Object [
+      "okfiles", J.Int count_ok;
+      "errorfiles", J.Int count_errors;
+    ];
+  ]
 [@@profiling]
+(*s: function [[Main_semgrep_core.print_matches_and_errors]] *)
 (*e: function [[Main_semgrep_core.print_matches_and_errors]] *)
 
-(*s: function [[Main_semgrep_core.format_output_exception]] *)
-let format_output_exception e : string =
-  (* if (ouptut_as_json) then *)
-  let msg = match e with
-    | Parse_rules.InvalidRuleException (pattern_id, msg)     ->
-        J.Object [ "pattern_id", J.String pattern_id;
-                   "error", J.String "invalid rule";
-                   "message", J.String msg; ]
-    | Parse_rules.InvalidLanguageException (pattern_id, language) ->
-        J.Object [ "pattern_id", J.String pattern_id;
-                   "error", J.String "invalid language";
-                   "language", J.String language; ]
-    | Parse_rules.InvalidPatternException (pattern_id, pattern, lang, message) ->
-        J.Object [ "pattern_id", J.String pattern_id;
-                   "error", J.String "invalid pattern";
-                   "pattern", J.String pattern;
-                   "language", J.String lang;
-                   "message", J.String message; ]
-    | Parse_rules.UnparsableYamlException msg ->
-        J.Object [  "error", J.String "unparsable yaml"; "message", J.String msg; ]
-    | Parse_rules.InvalidYamlException msg ->
-        J.Object [  "error", J.String "invalid yaml"; "message", J.String msg; ]
-    | exn ->
-        J.Object [  "error", J.String "unknown exception"; "message", J.String (Common.exn_to_s exn); ]
+let json_of_profile_info () =
+  let now = Unix.gettimeofday () in
+  (* total time, but excluding J.string_of_json time that comes after *)
+  (* partial copy paste of Common.adjust_profile_entry *)
+  Hashtbl.add !Common._profile_table "TOTAL"
+    (ref (now -. !profile_start), ref 1);
+
+  (* partial copy paste of Common.profile_diagnostic *)
+  let xs =
+    Hashtbl.fold (fun k v acc -> (k,v)::acc) !Common._profile_table []
+    |> List.sort (fun (_k1, (t1,_n1)) (_k2, (t2,_n2)) -> compare t2 t1)
   in
-  J.string_of_json msg
+  xs |> List.map (fun (k, (t, cnt)) ->
+    k, J.Object [
+      "time", J.Float !t;
+      "count", J.Int !cnt;
+    ]
+  ) |> (fun xs -> J.Object xs)
+
+(*s: function [[Main_semgrep_core.format_output_exception]] *)
+let json_of_exn e =
+  (* if (ouptut_as_json) then *)
+  match e with
+  | Parse_rules.InvalidRuleException (pattern_id, msg)     ->
+      J.Object [ "pattern_id", J.String pattern_id;
+                 "error", J.String "invalid rule";
+                 "message", J.String msg; ]
+  | Parse_rules.InvalidLanguageException (pattern_id, language) ->
+      J.Object [ "pattern_id", J.String pattern_id;
+                 "error", J.String "invalid language";
+                 "language", J.String language; ]
+  | Parse_rules.InvalidPatternException (pattern_id, pattern, lang, message) ->
+      J.Object [ "pattern_id", J.String pattern_id;
+                 "error", J.String "invalid pattern";
+                 "pattern", J.String pattern;
+                 "language", J.String lang;
+                 "message", J.String message; ]
+  | Parse_rules.UnparsableYamlException msg ->
+      J.Object [  "error", J.String "unparsable yaml"; "message", J.String msg; ]
+  | Parse_rules.InvalidYamlException msg ->
+      J.Object [  "error", J.String "invalid yaml"; "message", J.String msg; ]
+  | exn ->
+      J.Object [  "error", J.String "unknown exception"; "message", J.String (Common.exn_to_s exn); ]
 (*e: function [[Main_semgrep_core.format_output_exception]] *)
 
 (*****************************************************************************)
@@ -737,7 +743,27 @@ let semgrep_with_rules rules files =
    * to debug too-many-matches issues.
    * Common2.write_value matches "/tmp/debug_matches";
   *)
-  print_matches_and_errors files matches errs
+  let flds = json_fields_of_matches_and_errors files matches errs in
+  let flds =
+    if !profile
+    then begin
+      let json = json_of_profile_info () in
+      (* so we don't get also the profile output of Common.main_boilerplate*)
+      Common.profile := Common.ProfNone;
+      flds @ ["profiling", json]
+    end
+    else flds
+  in
+  (*
+     Not pretty-printing the json output (Yojson.Safe.prettify)
+     because it kills performance, adding an extra 50% time on our
+     calculate_ci_perf.py benchmarks.
+     User should use an external tool like jq or ydump (latter comes with
+     yojson) for pretty-printing json.
+  *)
+  let s = J.string_of_json (J.Object flds) in
+  logger#info "size of returned JSON string: %d" (String.length s);
+  pr s
 (*e: function [[Main_semgrep_core.semgrep_with_rules]] *)
 
 let semgrep_with_rules_file rules_file files =
@@ -752,7 +778,9 @@ let semgrep_with_rules_file rules_file files =
   with exn ->
     logger#debug "exn before exit %s" (Common.exn_to_s exn);
     (* if !Flag.debug then save_rules_file_in_tmp (); *)
-    pr (format_output_exception exn);
+    let json = json_of_exn exn in
+    let s = J.string_of_json json in
+    pr s;
     exit 2
 
 (*****************************************************************************)
@@ -761,27 +789,12 @@ let semgrep_with_rules_file rules_file files =
 
 let rule_of_pattern lang pattern_string pattern =
   { R.
-    id = "-e/-f"; pattern_string;
-    pattern;
-    message = ""; severity = R.Error;
-    languages = [lang]
+    id = "-e/-f"; pattern_string; pattern;
+    message = ""; severity = R.Error; languages = [lang]
   }
-
 (*s: function [[Main_semgrep_core.sgrep_ast]] *)
-let sgrep_ast lang rule file parse_result =
-  let {Parse_code. ast; errors; _} = parse_result in
-  if errors <> []
-  then pr2 (spf "WARNING: fail to fully parse %s" file);
-  Semgrep_generic.check
-    (*s: [[Main_semgrep_core.sgrep_ast()]] [[hook]] argument to [[check]] *)
-    ~hook:(fun env matched_tokens ->
-      let xs = Lazy.force matched_tokens in
-      print_match !mvars env Metavars_generic.ii_of_mval xs
-    )
-    (*e: [[Main_semgrep_core.sgrep_ast()]] [[hook]] argument to [[check]] *)
-    [rule] (parse_equivalences ())
-    file lang ast |> ignore
-
+(*s: [[Main_semgrep_core.sgrep_ast()]] [[hook]] argument to [[check]] *)
+(*e: [[Main_semgrep_core.sgrep_ast()]] [[hook]] argument to [[check]] *)
 (*s: [[Main_semgrep_core.sgrep_ast()]] match [[pattern]] and [[any_ast]] other cases *)
 (*e: [[Main_semgrep_core.sgrep_ast()]] match [[pattern]] and [[any_ast]] other cases *)
 
@@ -820,10 +833,9 @@ let semgrep_with_one_pattern xs =
   | Text ->
       (* simpler code path than in semgrep_with_rules *)
       begin
-        let files = Lang.files_of_dirs_or_files lang xs
+        let files = Lang.files_of_dirs_or_files lang xs in
         (*s: [[Main_semgrep_core.semgrep_with_one_pattern()]] no [[lang]] specified *)
         (*e: [[Main_semgrep_core.semgrep_with_one_pattern()]] no [[lang]] specified *)
-        in
         (*s: [[Main_semgrep_core.semgrep_with_one_pattern()]] filter [[files]] *)
         (*e: [[Main_semgrep_core.semgrep_with_one_pattern()]] filter [[files]] *)
         files |> List.iter (fun file ->
@@ -832,8 +844,16 @@ let semgrep_with_one_pattern xs =
           (*e: [[Main_semgrep_core.semgrep_with_one_pattern()]] if [[verbose]] *)
           let process file =
             timeout_function file (fun () ->
-              let ast = parse_generic lang file in
-              sgrep_ast lang rule file ast
+              let {Parse_code.ast; errors; _} = parse_generic lang file in
+              if errors <> []
+              then pr2 (spf "WARNING: fail to fully parse %s" file);
+              Semgrep_generic.check
+                ~hook:(fun env matched_tokens ->
+                  let xs = Lazy.force matched_tokens in
+                  print_match !mvars env Metavars_generic.ii_of_mval xs
+                )
+                [rule] (parse_equivalences ())
+                file lang ast |> ignore
             )
           in
 
@@ -877,11 +897,14 @@ let tainting_with_rules rules_file xs =
            Tainting_generic.check rules file ast
         )
     in
-    print_matches_and_errors files matches errs
+    let flds = json_fields_of_matches_and_errors files matches errs in
+    let s = J.string_of_json (J.Object flds) in
+    pr s
   with exn ->
-    pr (format_output_exception exn);
+    let json = json_of_exn exn in
+    let s = J.string_of_json json in
+    pr s;
     exit 2
-
 (*e: function [[Main_semgrep_core.tainting_with_rules]] *)
 
 (*****************************************************************************)
@@ -1105,10 +1128,7 @@ let options () =
     " <pattern> expression pattern (need -lang)";
     "-f", Arg.Set_string pattern_file,
     " <file> obtain pattern from file (need -lang)";
-    "-rules_file", Arg.String (fun file ->
-      rules_file := file;
-      output_format := Json
-    ),
+    "-rules_file", Arg.Set_string rules_file,
     " <file> obtain list of patterns from YAML file. Implies -json";
 
     "-lang", Arg.Set_string lang,
@@ -1222,6 +1242,7 @@ let options () =
 
 (*s: function [[Main_semgrep_core.main]] *)
 let main () =
+  profile_start := Unix.gettimeofday ();
   set_gc ();
 
   let usage_msg =
