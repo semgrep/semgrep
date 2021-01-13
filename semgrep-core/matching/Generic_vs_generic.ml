@@ -530,7 +530,7 @@ and m_expr a b =
   | A.L(a1), b1 ->
       (match Normalize_generic.constant_propagation_and_evaluate_literal b1 with
        | Some b1 ->
-           m_literal a1 b1
+           m_literal_constness a1 b1
        | None -> fail ()
       )
   (*e: [[Generic_vs_generic.m_expr()]] propagated constant case *)
@@ -847,6 +847,16 @@ and m_literal a b =
   | A.Imag _, _ | A.Ratio _, _ | A.Atom _, _
     -> fail ()
 (*e: function [[Generic_vs_generic.m_literal]] *)
+
+and m_literal_constness a b =
+  match b with
+  | B.Lit b1 -> m_literal a b1
+  | B.Cst B.Cstr ->
+      (match a with
+       | A.String("...", _) -> return ()
+       | ___else___         -> fail ())
+  | B.Cst _
+  | B.NotCst -> fail ()
 
 (*s: function [[Generic_vs_generic.m_action]] *)
 and m_action a b =
@@ -1196,16 +1206,10 @@ and m_arguments_concat a b =
 
   (* specific case: f"...{$X}..." will properly extract $X from f"foo {bar} baz" *)
   | A.Arg (A.L (A.String("...", a)))::xsa, B.Arg(bexpr)::xsb ->
-      (match Normalize_generic.constant_propagation_and_evaluate_literal bexpr
-       with
-       | Some _ ->
-           (* can match nothing *)
-           (m_arguments_concat xsa xsb) >||>
-           (* can match more *)
-           (m_arguments_concat ((A.Arg (A.L (A.String("...", a))))::xsa) xsb)
-       | None ->
-           (m_arguments_concat xsa (B.Arg(bexpr)::xsb))
-      )
+      (* can match nothing *)
+      (m_arguments_concat xsa (B.Arg(bexpr)::xsb)) >||>
+      (* can match more *)
+      (m_arguments_concat ((A.Arg (A.L (A.String("...", a))))::xsa) xsb)
 
   (*e: [[Generic_vs_generic.m_arguments_concat()]] ellipsis cases *)
   (* the general case *)
