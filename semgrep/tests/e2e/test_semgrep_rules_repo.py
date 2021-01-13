@@ -1,4 +1,5 @@
 import subprocess
+import sys
 
 import pytest
 
@@ -20,11 +21,11 @@ def test_semgrep_rules_repo(run_semgrep_in_tmp):
         ["git", "clone", "--depth=1", "https://github.com/returntocorp/semgrep-rules"]
     )
 
-    _fail_subprocess_on_error(["python3", "-m", "semgrep", "--generate-config"])
+    _fail_subprocess_on_error([sys.executable, "-m", "semgrep", "--generate-config"])
 
     _fail_subprocess_on_error(
         [
-            "python3",
+            sys.executable,
             "-m",
             "semgrep",
             "--dangerously-allow-arbitrary-code-execution-from-rules",
@@ -36,5 +37,5 @@ def test_semgrep_rules_repo(run_semgrep_in_tmp):
     )
 
     _fail_subprocess_on_error(
-        ["python3", "-m", "semgrep", "--validate", "--config", "semgrep-rules"]
+        [sys.executable, "-m", "semgrep", "--validate", "--config", "semgrep-rules"]
     )
