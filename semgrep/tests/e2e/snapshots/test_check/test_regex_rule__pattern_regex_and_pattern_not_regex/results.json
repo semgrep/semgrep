@@ -1,0 +1,176 @@
+{
+  "errors": [],
+  "results": [
+    {
+      "check_id": "rules.test-regex",
+      "end": {
+        "col": 5,
+        "line": 1
+      },
+      "extra": {
+        "is_ignored": false,
+        "lines": "<h4>",
+        "message": "test regex message",
+        "metadata": {},
+        "severity": "ERROR"
+      },
+      "path": "targets/basic/regex-any-language.html",
+      "start": {
+        "col": 1,
+        "line": 1
+      }
+    },
+    {
+      "check_id": "rules.test-regex",
+      "end": {
+        "col": 32,
+        "line": 1
+      },
+      "extra": {
+        "is_ignored": false,
+        "lines": "</h4>",
+        "message": "test regex message",
+        "metadata": {},
+        "severity": "ERROR"
+      },
+      "path": "targets/basic/regex-any-language.html",
+      "start": {
+        "col": 27,
+        "line": 1
+      }
+    },
+    {
+      "check_id": "rules.test-regex",
+      "end": {
+        "col": 5,
+        "line": 2
+      },
+      "extra": {
+        "is_ignored": false,
+        "lines": "<h4>",
+        "message": "test regex message",
+        "metadata": {},
+        "severity": "ERROR"
+      },
+      "path": "targets/basic/regex-any-language.html",
+      "start": {
+        "col": 1,
+        "line": 2
+      }
+    },
+    {
+      "check_id": "rules.test-regex",
+      "end": {
+        "col": 6,
+        "line": 6
+      },
+      "extra": {
+        "is_ignored": false,
+        "lines": "</h4>",
+        "message": "test regex message",
+        "metadata": {},
+        "severity": "ERROR"
+      },
+      "path": "targets/basic/regex-any-language.html",
+      "start": {
+        "col": 1,
+        "line": 6
+      }
+    },
+    {
+      "check_id": "rules.test-regex",
+      "end": {
+        "col": 5,
+        "line": 7
+      },
+      "extra": {
+        "is_ignored": false,
+        "lines": "<h4>",
+        "message": "test regex message",
+        "metadata": {},
+        "severity": "ERROR"
+      },
+      "path": "targets/basic/regex-any-language.html",
+      "start": {
+        "col": 1,
+        "line": 7
+      }
+    },
+    {
+      "check_id": "rules.test-regex",
+      "end": {
+        "col": 30,
+        "line": 7
+      },
+      "extra": {
+        "is_ignored": false,
+        "lines": "</h4>",
+        "message": "test regex message",
+        "metadata": {},
+        "severity": "ERROR"
+      },
+      "path": "targets/basic/regex-any-language.html",
+      "start": {
+        "col": 25,
+        "line": 7
+      }
+    },
+    {
+      "check_id": "rules.test-regex",
+      "end": {
+        "col": 10,
+        "line": 14
+      },
+      "extra": {
+        "is_ignored": false,
+        "lines": "<pre>",
+        "message": "test regex message",
+        "metadata": {},
+        "severity": "ERROR"
+      },
+      "path": "targets/basic/regex-any-language.html",
+      "start": {
+        "col": 5,
+        "line": 14
+      }
+    },
+    {
+      "check_id": "rules.test-regex",
+      "end": {
+        "col": 26,
+        "line": 14
+      },
+      "extra": {
+        "is_ignored": false,
+        "lines": "</pre>",
+        "message": "test regex message",
+        "metadata": {},
+        "severity": "ERROR"
+      },
+      "path": "targets/basic/regex-any-language.html",
+      "start": {
+        "col": 20,
+        "line": 14
+      }
+    },
+    {
+      "check_id": "rules.test-regex",
+      "end": {
+        "col": 5,
+        "line": 16
+      },
+      "extra": {
+        "is_ignored": false,
+        "lines": "<hr>",
+        "message": "test regex message",
+        "metadata": {},
+        "severity": "ERROR"
+      },
+      "path": "targets/basic/regex-any-language.html",
+      "start": {
+        "col": 1,
+        "line": 16
+      }
+    }
+  ]
+}
