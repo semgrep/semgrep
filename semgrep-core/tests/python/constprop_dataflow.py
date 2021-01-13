@@ -16,3 +16,13 @@ def foo2(c):
     # ERROR:
     v = a
 
+
+def foo3(c):
+    # ERROR:
+    x = "hi"
+    while c:
+        # TODO:
+        # OK:
+        x = x + " hi"
+    # ERROR:
+    y = x
