@@ -114,15 +114,15 @@ let range_of_any any =
 (*e: function [[JSON_report.range_of_any]] *)
 
 (*s: function [[JSON_report.json_metavar]] *)
-let json_metavar x startp (s, mval) =
+let json_metavar startp (s, mval) =
   let any = MV.mvalue_to_any mval in
   let (startp, endp) =
     try
       range_of_any any
-    with Parse_info.NoTokenLocation exn ->
-      failwith (spf
-                  "NoTokenLocation %s exn while processing %s for rule %s, with metavar %s, close location = %s"
-                  exn x.file x.rule.R.id  s (J.string_of_json startp))
+    with Parse_info.NoTokenLocation _exn ->
+      raise (Parse_info.NoTokenLocation (spf
+                                           "NoTokenLocation with metavar %s, close location = %s"
+                                           s (J.string_of_json startp)))
   in
   s, J.Object [
     "start", startp;
@@ -142,18 +142,27 @@ let json_metavar x startp (s, mval) =
 (*s: function [[JSON_report.match_to_json]] *)
 (* similar to pfff/h_program-lang/R2c.ml *)
 let match_to_json x =
-  let (startp, endp) = range_of_any x.code in
-
-  J.Object [
-    "check_id", J.String x.rule.R.id;
-    "path", J.String x.file;
-    "start", startp;
-    "end", endp;
-    "extra", J.Object [
-      "message", J.String x.rule.R.message;
-      "metavars", J.Object (x.env |> List.map (json_metavar x startp));
-    ]
-  ]
+  try
+    let (startp, endp) = range_of_any x.code in
+    Left (J.Object [
+      "check_id", J.String x.rule.R.id;
+      "path", J.String x.file;
+      "start", startp;
+      "end", endp;
+      "extra", J.Object [
+        "message", J.String x.rule.R.message;
+        "metavars", J.Object (x.env |> List.map (json_metavar startp));
+      ]
+    ])
+  (* raised by min_max_ii_by_pos in range_of_any when the AST of the
+   * pattern in x.code or the metavar does not contain any token
+  *)
+  with Parse_info.NoTokenLocation s ->
+    let loc = Parse_info.first_loc_of_file x.file in
+    let s = spf "NoTokenLocation with pattern %s, %s"
+        x.rule.R.pattern_string s in
+    let err = E.mk_error_loc loc (E.MatchingError s) in
+    Right err
 [@@profiling]
 (*e: function [[JSON_report.match_to_json]] *)
 
@@ -167,11 +176,11 @@ let match_to_json x =
 let error tok rule =
   match rule.R.severity with
   | R.Error ->
-      E.error tok (E.SgrepLint (rule.R.id, rule.R.message))
+      E.error tok (E.SemgrepMatchFound (rule.R.id, rule.R.message))
   | R.Warning ->
-      E.warning tok (E.SgrepLint (rule.R.id, rule.R.message))
+      E.warning tok (E.SemgrepMatchFound (rule.R.id, rule.R.message))
   | R.Info ->
-      E.info tok (E.SgrepLint (rule.R.id, rule.R.message))
+      E.info tok (E.SemgrepMatchFound (rule.R.id, rule.R.message))
 (*e: function [[JSON_report.error]] *)
 
 (*s: function [[JSON_report.match_to_error]] *)
