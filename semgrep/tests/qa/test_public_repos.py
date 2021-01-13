@@ -1,5 +1,6 @@
 import json
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -33,7 +34,7 @@ SENTINEL_PATTERN = f"$SENTINEL = {SENTINEL_VALUE}"
 def _assert_sentinel_results(repo_url, repo_path, sentinel_path, language):
     semgrep_run = subprocess.run(
         [
-            "python3",
+            sys.executable,
             "-m",
             "semgrep",
             "--pattern",
@@ -103,7 +104,7 @@ def test_semgrep_on_repo(monkeypatch, clone_github_repo, tmp_path, public_repo_u
 
     sub_output = subprocess.check_output(
         [
-            "python3",
+            sys.executable,
             "-m",
             "semgrep",
             "--config=rules/regex-sentinel.yaml",

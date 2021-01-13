@@ -1,4 +1,5 @@
 import subprocess
+import sys
 from pathlib import Path
 
 from semgrep.semgrep_main import invoke_semgrep
@@ -20,7 +21,7 @@ def test_api(capsys, run_semgrep_in_tmp):
     # Check that logging code isnt handled by default root handler and printed to stderr
     x = subprocess.run(
         [
-            "python3",
+            sys.executable,
             "-c",
             "from semgrep.semgrep_main import invoke_semgrep; from pathlib import Path; invoke_semgrep(Path('rules/eqeq.yaml'),[Path('targets/bad/invalid_python.py'), Path('targets/basic/stupid.py')],)",
         ],
