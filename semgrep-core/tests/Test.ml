@@ -258,6 +258,12 @@ let lang_regression_tests =
     let lang = Lang.Lua in
     regression_tests_for_lang files lang
   );
+  "semgrep Rust" >::: (
+    let dir = Filename.concat tests_path "rust" in
+    let files = Common2.glob (spf "%s/*.rs" dir) in
+    let lang = Lang.Rust in
+    regression_tests_for_lang files lang
+  );
  ]
 (*e: constant [[Test.lang_regression_tests]] *)
 
