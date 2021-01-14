@@ -151,7 +151,7 @@ module Env = struct
   let empty = {
     full_env = [];
     min_env = [];
-    last_stmt_backrefs = AST_generic.String_set.empty;
+    last_stmt_backrefs = Set_.empty;
   }
 
   (* Get the value bound to a metavariable or return None. *)
@@ -164,7 +164,7 @@ module Env = struct
      's_backrefs' field for a statement node.
   *)
   let has_backref k backrefs =
-    AST_generic.String_set.mem k backrefs
+    Set_.mem k backrefs
 
   (*
      To be called each time a new value is captured, i.e. bound to a
@@ -224,7 +224,7 @@ module Env = struct
     in
     let min_env =
       List.filter (fun (k, _v) ->
-        AST_generic.String_set.mem k backrefs
+        Set_.mem k backrefs
       ) env.min_env
     in
     {

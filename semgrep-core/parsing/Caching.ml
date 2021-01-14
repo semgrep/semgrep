@@ -13,7 +13,7 @@ module Names = AST_generic.String_set
 module Name_counts = Map.Make (String)
 
 let print_names oc names =
-  List.iter (fun s -> fprintf oc "  %s\n" s) (Names.elements names)
+  List.iter (fun s -> fprintf oc "  %s\n" s) (Set_.elements names)
 
 let print_name_counts oc name_counts =
   List.iter
@@ -37,18 +37,18 @@ let diff_count k ~new_counts ~old_counts =
 
 let diff_backrefs bound_metavars ~new_backref_counts ~old_backref_counts =
   let not_backrefs_in_rest_of_pattern =
-    Names.fold (fun k acc ->
+    Set_.fold (fun k acc ->
       let added_backref_count =
         diff_count k
           ~new_counts:new_backref_counts
           ~old_counts:old_backref_counts
       in
       match added_backref_count with
-      | 0 -> Names.add k acc
+      | 0 -> Set_.add k acc
       | _ -> acc
-    ) bound_metavars Names.empty
+    ) bound_metavars Set_.empty
   in
-  Names.diff bound_metavars not_backrefs_in_rest_of_pattern
+  Set_.diff bound_metavars not_backrefs_in_rest_of_pattern
 
 let create_create_id () =
   let n = ref 0 in
@@ -77,13 +77,13 @@ let create_create_id () =
    to determine whether a captured metavariable should go into the cache key.
 *)
 let prepare_pattern ?(debug = false) any =
-  let bound_metavars = ref Names.empty in
+  let bound_metavars = ref Set_.empty in
   let backref_counts = ref Name_counts.empty in
   let add_metavar name =
-    if Names.mem name !bound_metavars then
+    if Set_.mem name !bound_metavars then
       backref_counts := add_one name !backref_counts
     else
-      bound_metavars := Names.add name !bound_metavars
+      bound_metavars := Set_.add name !bound_metavars
   in
   let create_id = create_create_id () in
   (*
