@@ -78,7 +78,7 @@ let logger = Logging.get_logger [__MODULE__]
 (*s: type [[Matching_generic.tin]] *)
 (* tin is for 'type in' and tout for 'type out' *)
 (* incoming environment *)
-type tin = Metavars_generic.metavars_binding
+type tin = Metavars_generic.Env.t
 (*e: type [[Matching_generic.tin]] *)
 (*s: type [[Matching_generic.tout]] *)
 (* list of possible outcoming matching environments *)
@@ -276,8 +276,9 @@ let rec equal_ast_binded_code (a: MV.mvalue) (b: MV.mvalue) : bool = (
 (*e: function [[Matching_generic.equal_ast_binded_code]] *)
 
 (*s: function [[Matching_generic.check_and_add_metavar_binding]] *)
-let check_and_add_metavar_binding((mvar:MV.mvar), valu) = fun tin ->
-  match Common2.assoc_opt mvar tin with
+let check_and_add_metavar_binding((mvar:MV.mvar), valu) =
+  fun (tin : MV.Env.t) ->
+  match Common2.assoc_opt mvar tin.full_env with
   | Some valu' ->
       (* Should we use generic_vs_generic itself for comparing the code?
        * Hmmm, we can't because it leads to a circular dependencies.
@@ -288,8 +289,12 @@ let check_and_add_metavar_binding((mvar:MV.mvar), valu) = fun tin ->
       then Some tin (* valu remains the metavar witness *)
       else None
   | None ->
-      (* first time the metavar is binded, just add it to the environment *)
-      Some (Common2.insert_assoc (mvar, valu) tin)
+      (* 'backrefs' is the set of metavariables that may be referenced later
+         in the pattern. It's inherited from the last stmt pattern,
+         so it might contain a few extra members.
+      *)
+      (* first time the metavar is bound, just add it to the environment *)
+      Some (MV.Env.add_capture mvar valu tin)
 (*e: function [[Matching_generic.check_and_add_metavar_binding]] *)
 
 (*s: function [[Matching_generic.envf]] *)
@@ -309,7 +314,7 @@ let (envf: (MV.mvar AST.wrap, MV.mvalue) matcher) =
 (*e: function [[Matching_generic.envf]] *)
 
 (*s: function [[Matching_generic.empty_environment]] *)
-let empty_environment () = []
+let empty_environment () = MV.Env.empty
 (*e: function [[Matching_generic.empty_environment]] *)
 
 (*****************************************************************************)

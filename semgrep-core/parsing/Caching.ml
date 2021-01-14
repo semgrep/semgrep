@@ -161,3 +161,46 @@ let prepare_target stmt_list =
     );
   } in
   visitor (Ss stmt_list)
+
+module Cache_key = struct
+  type env = Metavars_generic.Metavars_binding.t
+
+  (*
+     key = (min_env, pattern_node_id, target_node_id)
+     min_env: captured values referenced by metavariables in the rest of the
+              pattern
+  *)
+  type t = env * int * int
+
+  let equal : t -> t -> bool =
+    fun (env1, pat_id1, target_id1) (env2, pat_id2, target_id2) ->
+    pat_id1 = pat_id2
+    && target_id1 = target_id2
+    && Metavars_generic.Metavars_binding.equal env1 env2
+
+  let hash (env, pat_id, target_id) =
+    pat_id
+    + (target_id lsl 16)
+    + Metavars_generic.Metavars_binding.hash env
+end
+
+module Memoize = struct
+  module Cache = Hashtbl.Make (Cache_key)
+
+  type env = Metavars_generic.Env.t
+  type pattern = AST_generic.stmt
+  type target = AST_generic.stmt
+
+  let create compute =
+    let cache = Cache.create 1000 in
+    let rec cached_compute (env : env) (pattern : pattern) (target : target) =
+      let key = (env.min_env, pattern.s_id, target.s_id) in
+      match Cache.find_opt cache key with
+      | Some res -> res
+      | None ->
+          let res = compute cached_compute env pattern target in
+          Cache.replace cache key res;
+          res
+    in
+    cached_compute
+end

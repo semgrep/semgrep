@@ -49,7 +49,7 @@ module Flag = Flag_semgrep
 
 (*s: type [[Semgrep_generic.matcher]] *)
 type ('a, 'b) matcher = 'a -> 'b ->
-  Metavars_generic.metavars_binding list
+  Metavars_generic.Env.t list
 (*e: type [[Semgrep_generic.matcher]] *)
 
 (*****************************************************************************)
@@ -119,18 +119,18 @@ let match_sts_sts2 pattern e =
    * to pass the key to m_stmts_deep?
   *)
   let key = MV.matched_statements_special_mvar in
-  let env = (key, MV.Ss [])::env in
+  let env = MV.Env.add_capture key (MV.Ss []) env in
 
   let res = GG.m_stmts_deep ~less_is_ok:true pattern e env in
 
   res |> List.map (fun tin ->
-    match List.assoc_opt key tin with
+    match MV.Env.get_value key tin with
     | Some (MV.Ss xs) ->
         (* we use List.rev because Generic_vs_generic.env_add_matched_stmt
          * adds the matched statements gradually at the beginning
          * of the list
         *)
-        List.remove_assoc key tin, (MV.Ss (List.rev xs))
+        MV.Env.remove_capture key tin, (MV.Ss (List.rev xs))
     | _ -> raise Impossible
   )
 (*e: function [[Semgrep_generic.match_sts_sts]] *)
@@ -201,7 +201,8 @@ let match_rules_and_recurse (file, hook, matches) rules matcher k any x =
     let matches_with_env = matcher rule pattern x in
     if matches_with_env <> []
     then (* Found a match *)
-      matches_with_env |> List.iter (fun env ->
+      matches_with_env |> List.iter (fun (env : MV.Env.t) ->
+        let env = env.full_env in
         Common.push { Res. rule; file; env; code = any x } matches;
         let matched_tokens = lazy (Lib_AST.ii_of_any (any x)) in
         hook env matched_tokens
@@ -300,7 +301,8 @@ let check2 ~hook rules equivs file lang ast =
             let matches_with_env = match_e_e rule pattern x in
             if matches_with_env <> []
             then (* Found a match *)
-              matches_with_env |> List.iter (fun env ->
+              matches_with_env |> List.iter (fun (env : MV.Env.t) ->
+                let env = env.full_env in
                 Common.push { Res. rule; file; env; code = E x } matches;
                 let matched_tokens = lazy (Lib_AST.ii_of_any (E x)) in
                 hook env matched_tokens
@@ -335,7 +337,8 @@ let check2 ~hook rules equivs file lang ast =
                 let matches_with_env = match_st_st rule pattern x in
                 if matches_with_env <> []
                 then (* Found a match *)
-                  matches_with_env |> List.iter (fun env ->
+                  matches_with_env |> List.iter (fun (env : MV.Env.t) ->
+                    let env = env.full_env in
                     Common.push { Res. rule; file; env; code = S x } matches;
                     let matched_tokens = lazy (Lib_AST.ii_of_any (S x)) in
                     hook env matched_tokens
@@ -362,6 +365,7 @@ let check2 ~hook rules equivs file lang ast =
             then (* Found a match *)
               matches_with_env |> List.iter (fun (env, matched_statements) ->
                 let any = MV.mvalue_to_any matched_statements in
+                let env = (env : MV.Env.t).full_env in
                 Common.push { Res. rule; file; env; code = any }
                   matches;
                 let matched_tokens = lazy (Lib_AST.ii_of_any any) in

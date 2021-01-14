@@ -41,7 +41,8 @@ let match_e_e_for_equivalences _ruleid a b =
 (* Substituters *)
 (*****************************************************************************)
 (*s: function [[Apply_equivalences.subst_e]] *)
-let subst_e (bindings: MV.metavars_binding) e =
+let subst_e (env : MV.Env.t) e =
+  let bindings = env.full_env in
   let visitor =
     M.mk_visitor
       { M.default_visitor with
@@ -92,40 +93,40 @@ let apply equivs any =
   let expr_rules = List.rev !expr_rules in
   let _stmt_rulesTODO = List.rev !stmt_rules in
 
-  let visitor = M.mk_visitor { M.default_visitor with
-                               M.kexpr = (fun (k, _) x ->
-                                 (* transform the children *)
-                                 let x' = k x in
+  let visitor = M.mk_visitor {
+    M.default_visitor with
+    M.kexpr = (fun (k, _) x ->
+      (* transform the children *)
+      let x' = k x in
 
-                                 let rec aux xs =
-                                   match xs with
-                                   | [] -> x'
-                                   | (l, r)::xs ->
-                                       (* look for a match on original x, not x' *)
-                                       let matches_with_env = match_e_e_for_equivalences "<equivalence>"
-                                           l x in
-                                       (match matches_with_env with
-                                        (* todo: should generate a Disj for each possibilities? *)
-                                        | env::_xs ->
-                                            (* Found a match *)
-                                            let alt = subst_e env r (* recurse on r? *) in
-                                            (* TODO: use AST_generic.equal_any*)
-                                            if Lib_AST.abstract_for_comparison_any (E x) =*=
-                                               Lib_AST.abstract_for_comparison_any (E alt)
-                                            then x'
-                                            (* disjunction (if different) *)
-                                            else DisjExpr (x', alt)
-
-                                        (* no match yet, trying another equivalence *)
-                                        | [] -> aux xs
-                                       )
-                                 in
-                                 aux expr_rules
-                               );
-                               M.kstmt = (fun (_k, _) x ->
-                                 x
-                               );
-                             } in
+      let rec aux xs =
+        match xs with
+        | [] -> x'
+        | (l, r)::xs ->
+            (* look for a match on original x, not x' *)
+            let matches_with_env = match_e_e_for_equivalences "<equivalence>"
+                l x in
+            (match matches_with_env with
+             (* todo: should generate a Disj for each possibilities? *)
+             | env::_xs ->
+                 (* Found a match *)
+                 let alt = subst_e env r (* recurse on r? *) in
+                 (* TODO: use AST_generic.equal_any*)
+                 if Lib_AST.abstract_for_comparison_any (E x) =*=
+                    Lib_AST.abstract_for_comparison_any (E alt)
+                 then x'
+                 (* disjunction (if different) *)
+                 else DisjExpr (x', alt)
+             (* no match yet, trying another equivalence *)
+             | [] -> aux xs
+            )
+      in
+      aux expr_rules
+    );
+    M.kstmt = (fun (_k, _) x ->
+      x
+    );
+  } in
   visitor.M.vany any
 [@@profiling]
 (*e: function [[Apply_equivalences.apply]] *)

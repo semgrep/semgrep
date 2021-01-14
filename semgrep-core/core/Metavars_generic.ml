@@ -18,6 +18,9 @@
 open Common
 module G = AST_generic
 
+(* Provide hash_* and hash_fold_* for the core ocaml types *)
+open Ppx_hash_lib.Std.Hash.Builtin
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -32,6 +35,7 @@ module G = AST_generic
 (*s: type [[Metavars_generic.mvar]] *)
 type mvar = string
 (*e: type [[Metavars_generic.mvar]] *)
+[@@deriving show, eq, hash]
 
 (* 'mvalue' below used to be just an alias to AST_generic.any, but it is more
  * precise to have a type just for the metavariable values; we do not
@@ -54,7 +58,7 @@ type mvalue =
   | T of AST_generic.type_
   | P of AST_generic.pattern
   | Args of AST_generic.argument list
-[@@deriving show, eq]
+[@@deriving show, eq, hash]
 
 (* we sometimes need to convert to an any to be able to use
  * Lib_AST.ii_of_any, or Lib_AST.abstract_position_info_any
@@ -103,8 +107,132 @@ let matched_statements_special_mvar = "!STMT!"
 (* note that the mvalue acts as the value of the metavar and also
  * as its concrete code "witness". You can get position information from it,
  * it is not Parse_info.Ab(stractPos) *)
-type metavars_binding = (mvar, mvalue) Common.assoc
+type metavars_binding = (mvar * mvalue) list (* = Common.assoc *)
+[@@deriving show, eq, hash]
 (*e: type [[Metavars_generic.metavars_binding]] *)
+
+module Metavars_binding = struct
+  type t = metavars_binding
+
+  (*
+     TODO: ensure: ["$A", Foo; "$B", Bar] = ["$B", Bar; "$A", Foo]
+     This implementation is incorrect in general but should work in the
+     context of memoizing pattern matching.
+  *)
+  let equal : t -> t -> bool = equal_metavars_binding
+
+  (*
+     TODO: ensure: hash ["$A", Foo; "$B", Bar] = hash ["$B", Bar; "$A", Foo]
+     See remark for 'equal'.
+  *)
+  let hash : t -> int = Hashtbl.hash
+end
+
+(*
+   Environment that is carried along and modified while matching a
+   pattern AST against a target AST. It holds the captured metavariables
+   which are eventually returned if matching is successful.
+*)
+module Env = struct
+  type t = {
+    (* All captures *)
+    full_env: metavars_binding;
+
+    (* Only the captures that are used in the rest of the pattern.
+       Used in the cache key. *)
+    min_env: metavars_binding;
+
+    (* This is the set of metavariables referenced in the rest of the pattern.
+       It's used to determine the subset of bindings that should be kept in
+       min_env. It comes from the last stmt node encountered in the pattern. *)
+    last_stmt_backrefs: AST_generic.String_set.t;
+  }
+
+  let empty = {
+    full_env = [];
+    min_env = [];
+    last_stmt_backrefs = AST_generic.String_set.empty;
+  }
+
+  (* Get the value bound to a metavariable or return None. *)
+  let get_value k env =
+    List.assoc_opt k env.full_env
+
+  (*
+     A pattern node provides the set of metavariables that are already bound
+     and checked against in the rest of the pattern. This is e.g. the
+     's_backrefs' field for a statement node.
+  *)
+  let has_backref k backrefs =
+    AST_generic.String_set.mem k backrefs
+
+  (*
+     To be called each time a new value is captured, i.e. bound to a
+     metavariable.
+  *)
+  let add_capture k v env =
+    let kv = (k, v) in
+    let full_env = kv :: env.full_env in
+    let min_env =
+      if has_backref k env.last_stmt_backrefs then
+        kv :: env.min_env
+      else
+        env.min_env
+    in
+    { env with full_env; min_env }
+
+  (*
+     This is meant for capturing and extending sequences of statements,
+     using the '$...X' syntax.
+  *)
+  let replace_capture k v env =
+    let kv = (k, v) in
+    let full_env = kv :: List.remove_assoc k env.full_env in
+    let min_env =
+      if has_backref k env.last_stmt_backrefs then
+        kv :: List.remove_assoc k env.min_env
+      else
+        env.min_env
+    in
+    { env with full_env; min_env }
+
+  let remove_capture k env =
+    {
+      env with
+      full_env = List.remove_assoc k env.full_env;
+      min_env = List.remove_assoc k env.min_env;
+    }
+
+  (*
+     To be called as early as possible after passing a backreference
+     which may no longer be needed when descending down the pattern.
+     For now, we call this only when reaching a new stmt pattern node.
+
+     For simplicity, we assume any member of 'min_env' may no longer be
+     needed. It may be more efficient to accumulate the backreferences
+     that were encountered since the last stmt and only consider removing
+     their bindings, rather than considering all the bindings in min_env.
+
+     If we don't call this, the cache keys will be overspecified, reducing
+     or preventing reuse.
+  *)
+  let update_min_env env (stmt_pat : G.stmt) =
+    let backrefs =
+      match stmt_pat.s_backrefs with
+      | None -> assert false (* missing initialization *)
+      | Some x -> x
+    in
+    let min_env =
+      List.filter (fun (k, _v) ->
+        AST_generic.String_set.mem k backrefs
+      ) env.min_env
+    in
+    {
+      env with
+      min_env;
+      last_stmt_backrefs = backrefs;
+    }
+end
 
 (*s: constant [[Metavars_generic.metavar_regexp_string]] *)
 (* ex: $X, $FAIL, $VAR2, $_

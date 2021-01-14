@@ -16,7 +16,7 @@ val last_matched_rule: Rule.t option ref
 
 (*s: type [[Semgrep_generic.matcher]] *)
 type ('a, 'b) matcher = 'a -> 'b ->
-  Metavars_generic.metavars_binding list
+  Metavars_generic.Env.t list
 (*e: type [[Semgrep_generic.matcher]] *)
 
 (* used by tainting *)
