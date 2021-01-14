@@ -1109,6 +1109,12 @@ and map_expression (env : env) (x : CST.expression) =
        in
        let fields = map_field_initializer_list env v2 in
        G.Constructor (name, fields)
+   | `Ellips tok -> G.Ellipsis (token env tok) (* "..." *)
+   | `Deep_ellips (v1, v2, v3) ->
+       let lellips = token env v1 (* "<..." *) in
+       let expr = map_expression env v2 in
+       let rellips = token env v3 (* "...>" *) in
+       G.DeepEllipsis (lellips, expr, rellips)
   )
 
 and map_expression_ending_with_block (env : env) (x : CST.expression_ending_with_block): G.expr =
@@ -1177,12 +1183,24 @@ and map_expression_ending_with_block (env : env) (x : CST.expression_ending_with
 
 and map_expression_statement (env : env) (x : CST.expression_statement): G.stmt =
   (match x with
-   | `Exp_SEMI (v1, v2) ->
-       let expr = map_expression env v1 in
-       let semicolon = token env v2 (* ";" *) in
-       G.ExprStmt (expr, semicolon) |> G.s
-   | `Choice_unsafe_blk x ->
-       let expr = map_expression_ending_with_block env x in
+   | `Choice_exp_SEMI x ->
+       (match x with
+        | `Exp_SEMI (v1, v2) ->
+            let expr = map_expression env v1 in
+            let semicolon = token env v2 (* ";" *) in
+            G.ExprStmt (expr, semicolon) |> G.s
+        | `Choice_unsafe_blk x ->
+            let expr = map_expression_ending_with_block env x in
+            G.ExprStmt (expr, sc) |> G.s
+       )
+   | `Ellips_SEMI (v1, v2) ->
+       let ellipsis = token env v1 (* "..." *) in
+       let sc = token env v2 (* ";" *) in
+       let expr = G.Ellipsis ellipsis in
+       G.ExprStmt (expr, sc) |> G.s
+   | `Ellips tok ->
+       let ellipsis = token env tok in (* "..." *)
+       let expr = G.Ellipsis ellipsis in
        G.ExprStmt (expr, sc) |> G.s
   )
 
@@ -2651,10 +2669,17 @@ and map_item (env : env) ((v1, v2, v3) : CST.item): G.stmt list =
   let visibility = Option.map (fun x -> map_visibility_modifier env x) v2 in
   map_item_kind env outer_attrs visibility v3
 
-let map_source_file (env : env) ((v1, v2) : CST.source_file) =
-  let v1 = List.map (map_inner_attribute_item env) v1 in
-  let v2 = List.map (map_item env) v2 in
-  todo env (v1, v2)
+let map_source_file (env : env) (x : CST.source_file): G.any =
+  (match x with
+   | `Rep_inner_attr_item_rep_item (v1, v2) ->
+       let inner_attrs = List.map (map_inner_attribute_item env) v1 in
+       let items = List.map (map_item env) v2 |> List.flatten in
+       G.Pr items
+   | `Semg_exp (v1, v2) ->
+       let header = token env v1 (* "__SEMGREP_EXPRESSION" *) in
+       let expr = map_expression env v2 in
+       G.E expr
+  )
 
 
 (*****************************************************************************)
@@ -2670,7 +2695,10 @@ let parse file =
        let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
 
        try
-         map_source_file env cst
+         (match map_source_file env cst with
+          | G.Pr xs -> xs
+          | _ -> failwith "not a program"
+         )
        with
          (Failure "not implemented") as exn ->
            let s = Printexc.get_backtrace () in
@@ -2680,4 +2708,23 @@ let parse file =
            pr2 "Original backtrace:";
            pr2 s;
            raise exn
+    )
+
+let parse_pattern str =
+  (* ugly: coupling: see grammar.js of rust.
+   * todo: will need to adjust position information in parsing errors!
+  *)
+  let str = "__SEMGREP_EXPRESSION " ^ str in
+  H.wrap_parser
+    (fun () ->
+       Parallel.backtrace_when_exn := false;
+       Parallel.invoke Tree_sitter_rust.Parse.string str ()
+    )
+    (fun cst ->
+       let file = "<pattern>" in
+       let env = { H.file; conv = Hashtbl.create 0; extra = () } in
+       match map_source_file env cst with
+       | G.Pr [x] -> G.S x
+       | G.Pr xs -> G.Ss xs
+       | x -> x
     )
