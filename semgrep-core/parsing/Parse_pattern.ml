@@ -42,6 +42,9 @@ let parse_pattern lang str =
     | Lang.Lua ->
         let res = Parse_lua_tree_sitter.parse_pattern str in
         extract_pattern_from_tree_sitter_result res
+    | Lang.Rust ->
+        let res = Parse_rust_tree_sitter.parse_pattern str in
+        extract_pattern_from_tree_sitter_result res
     (* use pfff *)
     | _ -> Parse_generic.parse_pattern lang str
   in
