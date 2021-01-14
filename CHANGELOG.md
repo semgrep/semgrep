@@ -8,7 +8,21 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Changed
 
-### Fixed 
+### Fixed
+
+## [0.37.0](https://github.com/returntocorp/semgrep/releases/tag/v0.37.0) - 2021-01-13
+
+### Added
+- pattern-not-regex added so findings can be filtered using regular expression (#2364)
+- Lua support for basic semgrep patterns (#2337, #2312)
+- C# support for basic semgrep patterns (#2336)
+- Parse event access, conditional access, async-await in C# (#2314, #2329, #2358)
+
+### Changed
+- Java and Javascript method chaining requires extra "." when using ellipsis (#2354)
+
+### Fixed
+- Semgrep crashing due to missing token information in AST (#2380)
 
 ## [0.36.0](https://github.com/returntocorp/semgrep/releases/tag/v0.36.0) - 2021-01-05
 
