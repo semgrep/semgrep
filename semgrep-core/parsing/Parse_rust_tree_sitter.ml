@@ -562,18 +562,6 @@ and map_type_argument (env : env) (x : CST.anon_choice_type_39799c3): G.type_arg
    | `Blk x -> let block_expr = map_block_expr env x in todo env x
   )
 
-and map_trait_bound (env : env) (x : CST.anon_choice_type_d689819) =
-  (match x with
-   | `Type x -> let ty = map_type_ env x in todo env x
-   | `Life x -> let lt = map_lifetime env x in todo env x
-   | `Higher_ranked_trait_bound x -> let tb = map_higher_ranked_trait_bound env x in
-       todo env x
-   | `Remo_trait_bound (v1, v2) ->
-       let v1 = token env v1 (* "?" *) in
-       let v2 = map_type_ env v2 in
-       todo env (v1, v2)
-  )
-
 and map_tuple_pattern_list (env : env) ((v1, v2) : CST.anon_pat_rep_COMMA_pat_2a80f16): G.pattern list =
   let pattern_first = map_pattern env v1 in
   let pattern_rest =
@@ -1507,12 +1495,6 @@ and map_generic_type_with_turbofish_type (env : env) ((v1, v2, v3) : CST.generic
   let name = map_generic_type_with_turbofish env (v1, v2, v3) in
   (G.TyIdQualified (name, G.empty_id_info ()))
 
-and map_higher_ranked_trait_bound (env : env) ((v1, v2, v3) : CST.higher_ranked_trait_bound): (G.type_parameter list * G.type_) =
-  let for_ = token env v1 (* "for" *) in
-  let type_parameters = map_type_parameters env v2 in
-  let type_ = map_type_ env v3 in
-  (type_parameters, type_)
-
 and map_if_expression (env : env) ((v1, v2, v3, v4) : CST.if_expression): G.expr =
   let if_ = token env v1 (* "if" *) in
   let cond = map_expression env v2 in
@@ -2143,22 +2125,41 @@ and map_statement (env : env) (x : CST.statement): G.stmt list =
    | `Item x -> map_item env x
   )
 
-and map_trait_block (env : env) ((v1, v2, v3) : CST.trait_block): G.stmt list =
+and map_trait_block (env : env) ((v1, v2, v3) : CST.trait_block): G.field list G.bracket =
   let lbrace = token env v1 (* "{" *) in
-  let stmts = List.map (map_trait_block_item env) v2 in
+  let fields = List.map (map_trait_block_item env) v2 in
   let rbrace = token env v3 (* "}" *) in
-  stmts
+  (lbrace, fields, rbrace)
 
-and map_trait_block_item (env : env) ((v1, v2) : CST.trait_block_item): G.stmt =
+and map_trait_block_item (env : env) ((v1, v2) : CST.trait_block_item): G.field =
   let outer_attrs = List.map (map_outer_attribute_item env) v1 in
   match v2 with
-  | `Const_item x -> map_const_item env x
+  | `Const_item x -> G.FieldStmt (map_const_item env x)
   | `Func_sign_with_defa_item x ->
       let def = map_function_signature_with_default_item env x in
-      G.DefStmt def |> G.s
-  | `Asso_type x -> map_associated_type env x
+      G.FieldStmt (G.DefStmt def |> G.s)
+  | `Asso_type x -> G.FieldStmt (map_associated_type env x)
   | `Macro_invo x -> let invo = map_macro_invocation env x in
-      G.ExprStmt (invo, sc) |> G.s
+      G.FieldStmt (G.ExprStmt (invo, sc) |> G.s)
+
+and map_higher_ranked_trait_bound (env : env) ((v1, v2, v3) : CST.higher_ranked_trait_bound): (G.type_parameter list * G.type_) =
+  let for_ = token env v1 (* "for" *) in
+  let type_parameters = map_type_parameters env v2 in
+  let type_ = map_type_ env v3 in
+  (type_parameters, type_)
+
+and map_trait_bound (env : env) (x : CST.anon_choice_type_d689819): G.type_ option =
+  (match x with
+   | `Type x -> Some (map_type_ env x)
+   | `Life x -> let lt = map_lifetime env x in
+       None
+   | `Higher_ranked_trait_bound x -> let (_, ty) = map_higher_ranked_trait_bound env x in
+       Some ty
+   | `Remo_trait_bound (v1, v2) ->
+       let question = token env v1 (* "?" *) in
+       let ty = map_type_ env v2 in
+       Some ty
+  )
 
 and map_trait_bounds (env : env) ((v1, v2, v3) : CST.trait_bounds) =
   let colon = token env v1 (* ":" *) in
@@ -2170,7 +2171,7 @@ and map_trait_bounds (env : env) ((v1, v2, v3) : CST.trait_bounds) =
       trait_bound
     ) v3
   in
-  (trait_bound_first::trait_bound_rest)
+  deoptionalize (trait_bound_first::trait_bound_rest)
 
 and map_tuple_type (env : env) ((v1, v2, v3, v4, v5) : CST.tuple_type): G.type_ =
   let lparen = token env v1 (* "(" *) in
@@ -2616,8 +2617,20 @@ and map_item_kind (env : env) outer_attrs visibility (x : CST.item_kind): G.stmt
           | None -> [])
        in
        let where_clause = Option.map (fun x -> map_where_clause env x) v6 in
-       let block = map_trait_block env v7 in
-       todo env (v1, v2, v3, v4, v5, v6, v7)
+       let fields = map_trait_block env v7 in
+       let class_def = {
+         G.ckind = (G.Trait, trait);
+         G.cextends = [];
+         G.cimplements = trait_bounds;
+         G.cmixins = [];
+         G.cbody = fields;
+       } in
+       let ent = {
+         G.name = G.EId (ident, G.empty_id_info ());
+         G.attrs = attrs;
+         G.tparams = []
+       } in
+       [G.DefStmt (ent, G.ClassDef class_def) |> G.s]
    | `Use_decl (v1, v2, v3) ->
        let use = token env v1 (* "use" *) in
        let use_clause = map_use_clause env v2 use in
