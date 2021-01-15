@@ -377,7 +377,7 @@ def evaluate(
     # where metavariables from pattern-inside are not bound to messages.
     # This should handle cases with pattern + pattern-inside. This doesn't handle
     # pattern-not-inside because it is difficult to determine metavariables for
-    # exclusion ranges. For example: imaagine a pattern-not-inside for 'def $CLASS(): ...'
+    # exclusion ranges. For example: imagine a pattern-not-inside for 'def $CLASS(): ...'
     # and a file has multiple classes inside. How do we infer which metavariable was
     # intended for interpolation? As such, this will fix the immediate issue and should
     # handle the most common case.
