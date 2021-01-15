@@ -103,45 +103,52 @@ let prepare_pattern ?(debug = false) any =
     );
 
     kstmt = (fun (k, _) stmt ->
-      (* assign a node ID *)
-      let stmt_id = create_id () in
-      assert (stmt.s_id < 0);
-      stmt.s_id <- stmt_id;
-      if debug then
-        printf "kstmt %i\n" stmt_id;
+      (* Only set ID and backrefs field if this statement hasn't been visited.
+         Most statements should only be visited once. It's not clear why
+         this is happening but we assume things will still work.
+         TODO: needs investigation. Could be tricky to debug if the backrefs
+         field is set incorrectly.
+      *)
+      if stmt.s_id < 0 then (
+        (* assign a node ID *)
+        let stmt_id = create_id () in
+        stmt.s_id <- stmt_id;
+        if debug then
+          printf "kstmt %i\n" stmt_id;
 
-      (* compare the number of backreferences encountered before and after
-         visiting the rest of the pattern, so as to determine the set
-         of metavariables occurring in the rest of the pattern. *)
-      let pre_bound_metavars = !bound_metavars in
-      let pre_backref_counts = !backref_counts in
-      add_to_stack (fun () ->
-        let post_backref_counts = !backref_counts in
-        let backrefs =
-          diff_backrefs
-            pre_bound_metavars
-            ~new_backref_counts: post_backref_counts
-            ~old_backref_counts: pre_backref_counts
-        in
-        assert (stmt.s_backrefs = None);
-        stmt.s_backrefs <- Some backrefs;
+        (* compare the number of backreferences encountered before and after
+           visiting the rest of the pattern, so as to determine the set
+           of metavariables occurring in the rest of the pattern. *)
+        let pre_bound_metavars = !bound_metavars in
+        let pre_backref_counts = !backref_counts in
+        add_to_stack (fun () ->
+          let post_backref_counts = !backref_counts in
+          let backrefs =
+            diff_backrefs
+              pre_bound_metavars
+              ~new_backref_counts: post_backref_counts
+              ~old_backref_counts: pre_backref_counts
+          in
+          assert (stmt.s_backrefs = None);
+          stmt.s_backrefs <- Some backrefs;
 
-        if debug then (
-          printf "stmt %i\n" stmt_id;
-          printf "$A backrefs before %i, after %i\n"
-            (get_count "$A" pre_backref_counts)
-            (get_count "$A" post_backref_counts);
-          printf "bound metavariables:\n%a" print_names pre_bound_metavars;
-          printf "pre backref counts:\n%a"
-            print_name_counts pre_backref_counts;
-          printf "post backref counts:\n%a"
-            print_name_counts post_backref_counts;
-          printf "backrefs:\n%a" print_names backrefs;
-          printf "\n"
-        )
-      );
-      (* continue scanning the current subtree. *)
-      k stmt
+          if debug then (
+            printf "stmt %i\n" stmt_id;
+            printf "$A backrefs before %i, after %i\n"
+              (get_count "$A" pre_backref_counts)
+              (get_count "$A" post_backref_counts);
+            printf "bound metavariables:\n%a" print_names pre_bound_metavars;
+            printf "pre backref counts:\n%a"
+              print_name_counts pre_backref_counts;
+            printf "post backref counts:\n%a"
+              print_name_counts post_backref_counts;
+            printf "backrefs:\n%a" print_names backrefs;
+            printf "\n"
+          )
+        );
+        (* continue scanning the current subtree. *)
+        k stmt
+      ) (* end conditional *)
     );
   } in
   visitor any;
@@ -155,9 +162,12 @@ let prepare_target stmt_list =
   let visitor = Visitor_AST.mk_visitor {
     Visitor_AST.default_visitor with
     kstmt = (fun (k, _) stmt ->
-      assert (stmt.s_id < 0);
-      stmt.s_id <- create_id ();
-      k stmt
+      (* Visitors sometimes visit the same node multiple times.
+         We tolerate this and assign an ID only if there isn't one already. *)
+      if stmt.s_id < 0 then (
+        stmt.s_id <- create_id ();
+        k stmt
+      )
     );
   } in
   visitor (Ss stmt_list)
