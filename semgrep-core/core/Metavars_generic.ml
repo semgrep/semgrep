@@ -155,7 +155,7 @@ module Env = struct
   }
 
   (* Get the value bound to a metavariable or return None. *)
-  let get_value k env =
+  let get_capture k env =
     List.assoc_opt k env.full_env
 
   (*

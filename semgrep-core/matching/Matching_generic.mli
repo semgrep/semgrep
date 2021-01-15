@@ -3,11 +3,14 @@
 (*s: type [[Matching_generic.tin]] *)
 (* tin is for 'type in' and tout for 'type out' *)
 (* incoming environment *)
-type tin = Metavars_generic.Env.t
+type tin = {
+  mv : Metavars_generic.Env.t;
+  cache : tout Caching.Cache.t option;
+}
 (*e: type [[Matching_generic.tin]] *)
 (*s: type [[Matching_generic.tout]] *)
 (* list of possible outcoming matching environments *)
-type tout = tin list
+and tout = tin list
 (*e: type [[Matching_generic.tout]] *)
 
 (*s: type [[Matching_generic.matcher]] *)
@@ -45,8 +48,19 @@ val fail : unit -> tin -> tout
 val (let*) : (tin -> tout) -> (unit -> tin -> tout) -> tin -> tout
 
 (*s: signature [[Matching_generic.empty_environment]] *)
-val empty_environment : unit -> tin
+val empty_environment : tout Caching.Cache.t option -> tin
 (*e: signature [[Matching_generic.empty_environment]] *)
+
+val add_mv_capture :
+  Metavars_generic.mvar -> Metavars_generic.mvalue -> tin -> tin
+
+val replace_mv_capture :
+  Metavars_generic.mvar -> Metavars_generic.mvalue -> tin -> tin
+
+val remove_mv_capture : Metavars_generic.mvar -> tin -> tin
+
+val get_mv_capture :
+  Metavars_generic.mvar -> tin -> Metavars_generic.mvalue option
 
 (*s: signature [[Matching_generic.envf]] *)
 val envf :

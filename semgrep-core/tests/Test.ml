@@ -263,8 +263,13 @@ let lang_regression_tests =
 
 (*s: constant [[Test.lint_regression_tests]] *)
 (* mostly a copy paste of pfff/linter/unit_linter.ml *)
-let lint_regression_tests = 
-  "lint regression testing" >:: (fun () ->
+let lint_regression_tests ~with_caching =
+  let name =
+    match with_caching with
+    | true -> "lint regression testing without caching"
+    | false -> "lint regression testing with caching"
+  in
+  name >:: (fun () ->
   let p path = Filename.concat tests_path path in
   let rule_file = Filename.concat data_path "basic.yml" in
   let lang = Lang.Python in
@@ -272,7 +277,7 @@ let lint_regression_tests =
   let test_files = [
    p "OTHER/rules/stupid.py";
   ] in
-  
+
   (* expected *)
   let expected_error_lines = E.expected_error_lines_of_files test_files in
 
@@ -284,7 +289,8 @@ let lint_regression_tests =
   test_files |> List.iter (fun file ->
     E.try_with_exn_to_error file (fun () ->
     let ast, _stat = Parse_generic.parse_with_lang lang file in
-    Semgrep_generic.check ~hook:(fun _ _ -> ()) rules equivs file lang ast 
+    Semgrep_generic.check ~hook:(fun _ _ -> ()) ~with_caching
+      rules equivs file lang ast
       |> List.iter JSON_report.match_to_error;
   ));
 
@@ -328,7 +334,8 @@ let test regexp =
       lang_regression_tests;
       (* TODO Unit_matcher.spatch_unittest ~xxx *)
       (* TODO Unit_matcher_php.unittest; (* sgrep, spatch, refactoring, unparsing *) *)
-      lint_regression_tests;
+      lint_regression_tests ~with_caching:false;
+      lint_regression_tests ~with_caching:true;
       eval_regression_tests;
     ]
   in

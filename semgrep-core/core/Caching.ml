@@ -184,23 +184,24 @@ module Cache_key = struct
     + Metavars_generic.Metavars_binding.hash env
 end
 
-module Memoize = struct
-  module Cache = Hashtbl.Make (Cache_key)
+module Cache = struct
+  module Tbl = Hashtbl.Make (Cache_key)
+  type 'a t = 'a Tbl.t
 
   type env = Metavars_generic.Env.t
   type pattern = AST_generic.stmt
   type target = AST_generic.stmt
 
-  let create compute =
-    let cache = Cache.create 1000 in
-    let rec cached_compute (env : env) (pattern : pattern) (target : target) =
-      let key = (env.min_env, pattern.s_id, target.s_id) in
-      match Cache.find_opt cache key with
-      | Some res -> res
-      | None ->
-          let res = compute cached_compute env pattern target in
-          Cache.replace cache key res;
-          res
-    in
-    cached_compute
+  let create () = Tbl.create 1000
+
+  let match_stmt
+      cache compute
+      (env : env) (pattern : pattern) (target : target) =
+    let key = (env.min_env, pattern.s_id, target.s_id) in
+    match Tbl.find_opt cache key with
+    | Some res -> res
+    | None ->
+        let res = compute env pattern target in
+        Tbl.replace cache key res;
+        res
 end

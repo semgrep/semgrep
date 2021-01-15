@@ -11,27 +11,29 @@
 val prepare_pattern : ?debug:bool -> AST_generic.any -> unit
 val prepare_target : AST_generic.program -> unit
 
-(*
-   Create a memoized function that matches a pattern against a target AST
-   in the environment min_env. min_env must contain the bound metavariables
-   needed to match the rest of the pattern.
-*)
-module Memoize : sig
+module Cache : sig
+  type 'a t
+
   type env = Metavars_generic.Env.t
   type pattern = AST_generic.stmt (* only works for statements at the moment *)
   type target = AST_generic.stmt
 
+  val create : unit -> 'a t
+
   (*
-     Create a memoized match_ function.
+     Match a pattern against a statement, using the cache and the provided
+     match function.
 
      Usage:
-       let memoized_match = Caching.Memoize match_ in
-       match_ memoized_match env pattern_stmt target_stmt
 
-     The original match_ function must take the memoized version of itself
-     as argument so as to allow memoized recursive calls.
+       match_stmt cache compute_match_stmt env pat_stmt target_stmt
+
+     where 'compute_match_stmt' is the function that the cache memoizes.
+     It is the user's responsibility to always use the same
+     'compute_match_stmt' with a given cache.
   *)
-  val create :
-    ((env -> pattern -> target -> 'a) -> env -> pattern -> target -> 'a) ->
+  val match_stmt :
+    'a t ->
+    (env -> pattern -> target -> 'a) ->
     env -> pattern -> target -> 'a
 end

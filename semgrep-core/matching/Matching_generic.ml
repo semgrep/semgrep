@@ -78,11 +78,14 @@ let logger = Logging.get_logger [__MODULE__]
 (*s: type [[Matching_generic.tin]] *)
 (* tin is for 'type in' and tout for 'type out' *)
 (* incoming environment *)
-type tin = Metavars_generic.Env.t
+type tin = {
+  mv : Metavars_generic.Env.t;
+  cache : tout Caching.Cache.t option;
+}
 (*e: type [[Matching_generic.tin]] *)
 (*s: type [[Matching_generic.tout]] *)
 (* list of possible outcoming matching environments *)
-type tout = tin list
+and tout = tin list
 (*e: type [[Matching_generic.tout]] *)
 
 (*s: type [[Matching_generic.matcher]] *)
@@ -196,6 +199,18 @@ let (let*) o f =
 (* Environment *)
 (*****************************************************************************)
 
+let add_mv_capture key value (env : tin) =
+  { env with mv = MV.Env.add_capture key value env.mv }
+
+let replace_mv_capture key value (env : tin) =
+  { env with mv = MV.Env.replace_capture key value env.mv }
+
+let remove_mv_capture key (env : tin) =
+  { env with mv = MV.Env.remove_capture key env.mv }
+
+let get_mv_capture key (env : tin) =
+  MV.Env.get_capture key env.mv
+
 (*s: function [[Matching_generic.equal_ast_binded_code]] *)
 (* pre: both 'a' and 'b' contains only regular code; there are no
  * metavariables inside them.
@@ -276,9 +291,9 @@ let rec equal_ast_binded_code (a: MV.mvalue) (b: MV.mvalue) : bool = (
 (*e: function [[Matching_generic.equal_ast_binded_code]] *)
 
 (*s: function [[Matching_generic.check_and_add_metavar_binding]] *)
-let check_and_add_metavar_binding((mvar:MV.mvar), valu) =
-  fun (tin : MV.Env.t) ->
-  match Common2.assoc_opt mvar tin.full_env with
+let check_and_add_metavar_binding ((mvar:MV.mvar), valu) =
+  fun (tin : tin) ->
+  match Common2.assoc_opt mvar tin.mv.full_env with
   | Some valu' ->
       (* Should we use generic_vs_generic itself for comparing the code?
        * Hmmm, we can't because it leads to a circular dependencies.
@@ -294,7 +309,7 @@ let check_and_add_metavar_binding((mvar:MV.mvar), valu) =
          so it might contain a few extra members.
       *)
       (* first time the metavar is bound, just add it to the environment *)
-      Some (MV.Env.add_capture mvar valu tin)
+      Some (add_mv_capture mvar valu tin)
 (*e: function [[Matching_generic.check_and_add_metavar_binding]] *)
 
 (*s: function [[Matching_generic.envf]] *)
@@ -314,7 +329,11 @@ let (envf: (MV.mvar AST.wrap, MV.mvalue) matcher) =
 (*e: function [[Matching_generic.envf]] *)
 
 (*s: function [[Matching_generic.empty_environment]] *)
-let empty_environment () = MV.Env.empty
+let empty_environment opt_cache =
+  {
+    mv = MV.Env.empty;
+    cache = opt_cache;
+  }
 (*e: function [[Matching_generic.empty_environment]] *)
 
 (*****************************************************************************)

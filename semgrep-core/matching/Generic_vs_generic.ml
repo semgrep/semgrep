@@ -88,13 +88,13 @@ let m_string_xhp_text sa sb =
 (*e: function [[Generic_vs_generic.m_string_xhp_text]] *)
 
 (* ugly, see comment in Semgrep_generic.match_sts_sts *)
-let env_add_matched_stmt st (tin : MV.Env.t) =
+let env_add_matched_stmt st (tin : tin) =
   let key = MV.matched_statements_special_mvar in
-  match MV.Env.get_value key tin with
+  match get_mv_capture key tin with
   | None -> [tin]
   | Some (MV.Ss xs) ->
       let xs' = st::xs in
-      let tin = MV.Env.replace_capture key (MV.Ss xs') tin in
+      let tin = replace_mv_capture key (MV.Ss xs') tin in
       [tin]
   | Some _ -> raise Impossible
 

@@ -32,7 +32,8 @@ let match_e_e_for_equivalences _ruleid a b =
   Common.save_excursion Flag.equivalence_mode true (fun () ->
     Common.save_excursion Flag.go_deeper_expr false (fun () ->
       Common.save_excursion Flag.go_deeper_stmt false (fun () ->
-        let env = Matching_generic.empty_environment () in
+        let cache = None in
+        let env = Matching_generic.empty_environment cache in
         Generic_vs_generic.m_expr a b env
       )))
 (*e: function [[Apply_equivalences.match_e_e_for_equivalences]] *)
@@ -110,7 +111,7 @@ let apply equivs any =
              (* todo: should generate a Disj for each possibilities? *)
              | env::_xs ->
                  (* Found a match *)
-                 let alt = subst_e env r (* recurse on r? *) in
+                 let alt = subst_e env.mv r (* recurse on r? *) in
                  (* TODO: use AST_generic.equal_any*)
                  if Lib_AST.abstract_for_comparison_any (E x) =*=
                     Lib_AST.abstract_for_comparison_any (E alt)
