@@ -1566,8 +1566,18 @@ and m_list__m_stmt (xsa: A.stmt list) (xsb: A.stmt list) =
       fail ()
 (*e: function [[Generic_vs_generic.m_list__m_stmt]] *)
 
+and m_stmt a b tin =
+  match tin.cache with
+  | None -> m_stmt_uncached a b tin
+  | Some cache ->
+      Caching.Cache.match_stmt
+        (fun tin -> tin.mv)
+        cache
+        m_stmt_uncached
+        a b tin
+
 (*s: function [[Generic_vs_generic.m_stmt]] *)
-and m_stmt a b =
+and m_stmt_uncached a b =
   match a.s, b.s with
   (* the order of the matches matters! take care! *)
   (*s: [[Generic_vs_generic.m_stmt()]] disjunction case *)

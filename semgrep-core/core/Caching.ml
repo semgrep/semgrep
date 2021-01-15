@@ -198,20 +198,20 @@ module Cache = struct
   module Tbl = Hashtbl.Make (Cache_key)
   type 'a t = 'a Tbl.t
 
-  type env = Metavars_generic.Env.t
   type pattern = AST_generic.stmt
   type target = AST_generic.stmt
 
   let create () = Tbl.create 1000
 
   let match_stmt
-      cache compute
-      (env : env) (pattern : pattern) (target : target) =
+      get_env cache compute
+      (pattern : pattern) (target : target) full_env =
+    let env : Metavars_generic.Env.t = get_env full_env in
     let key = (env.min_env, pattern.s_id, target.s_id) in
     match Tbl.find_opt cache key with
     | Some res -> res
     | None ->
-        let res = compute env pattern target in
+        let res = compute pattern target full_env in
         Tbl.replace cache key res;
         res
 end
