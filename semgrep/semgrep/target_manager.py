@@ -78,7 +78,7 @@ class TargetManager:
 
     @staticmethod
     def _is_valid(path: Path) -> bool:
-        return path.exists() and not path.is_symlink()
+        return os.access(path, os.R_OK) and path.exists() and not path.is_symlink()
 
     @staticmethod
     def _expand_dir(
@@ -116,7 +116,7 @@ class TargetManager:
             return {
                 p
                 for p in curr_dir.rglob(f"*{extension}")
-                if p.is_file() and TargetManager._is_valid(p)
+                if TargetManager._is_valid(p) and p.is_file()
             }
 
         extensions = lang_to_exts(language)
