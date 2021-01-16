@@ -15,11 +15,14 @@
  * license.txt for more details.
 *)
 (*e: pad/r2c copyright *)
+open Printf
 open Common
 module G = AST_generic
 
 (* Provide hash_* and hash_fold_* for the core ocaml types *)
 open Ppx_hash_lib.Std.Hash.Builtin
+
+let debug = false
 
 (*****************************************************************************)
 (* Prelude *)
@@ -105,28 +108,17 @@ let matched_statements_special_mvar = "!STMT!"
 
 (*s: type [[Metavars_generic.metavars_binding]] *)
 (* note that the mvalue acts as the value of the metavar and also
- * as its concrete code "witness". You can get position information from it,
- * it is not Parse_info.Ab(stractPos) *)
+   as its concrete code "witness". You can get position information from it,
+   it is not Parse_info.Ab(stractPos)
+
+   TODO: ensure that ["$A", Foo; "$B", Bar] and ["$B", Bar; "$A", Foo]
+   are equivalent for the equal and hash functions.
+   The current implementation is incorrect in general but should work in the
+   context of memoizing pattern matching.
+*)
 type metavars_binding = (mvar * mvalue) list (* = Common.assoc *)
 [@@deriving show, eq, hash]
 (*e: type [[Metavars_generic.metavars_binding]] *)
-
-module Metavars_binding = struct
-  type t = metavars_binding
-
-  (*
-     TODO: ensure: ["$A", Foo; "$B", Bar] = ["$B", Bar; "$A", Foo]
-     This implementation is incorrect in general but should work in the
-     context of memoizing pattern matching.
-  *)
-  let equal : t -> t -> bool = equal_metavars_binding
-
-  (*
-     TODO: ensure: hash ["$A", Foo; "$B", Bar] = hash ["$B", Bar; "$A", Foo]
-     See remark for 'equal'.
-  *)
-  let hash : t -> int = Hashtbl.hash
-end
 
 (*
    Environment that is carried along and modified while matching a
@@ -171,13 +163,17 @@ module Env = struct
      metavariable.
   *)
   let add_capture k v env =
+    if debug then
+      printf "add_capture %s\n" k;
     let kv = (k, v) in
     let full_env = kv :: env.full_env in
     let min_env =
-      if has_backref k env.last_stmt_backrefs then
-        kv :: env.min_env
-      else
+      (* 'matched_statements_special_mvar' is an accumulator, we don't want
+         it in here. *)
+      if k = matched_statements_special_mvar then
         env.min_env
+      else
+        kv :: env.min_env
     in
     { env with full_env; min_env }
 
@@ -186,17 +182,23 @@ module Env = struct
      using the '$...X' syntax.
   *)
   let replace_capture k v env =
+    if debug then
+      printf "replace_capture %s\n" k;
     let kv = (k, v) in
     let full_env = kv :: List.remove_assoc k env.full_env in
     let min_env =
-      if has_backref k env.last_stmt_backrefs then
-        kv :: List.remove_assoc k env.min_env
-      else
+      (* 'matched_statements_special_mvar' is an accumulator, we don't want
+         it in here. *)
+      if k = matched_statements_special_mvar then
         env.min_env
+      else
+        kv :: List.remove_assoc k env.min_env
     in
     { env with full_env; min_env }
 
   let remove_capture k env =
+    if debug then
+      printf "remove_capture %s\n" k;
     {
       env with
       full_env = List.remove_assoc k env.full_env;
@@ -217,6 +219,8 @@ module Env = struct
      or preventing reuse.
   *)
   let update_min_env env (stmt_pat : G.stmt) =
+    if debug then
+      printf "update_min_env\n";
     let backrefs =
       match stmt_pat.s_backrefs with
       | None -> assert false (* missing initialization *)
@@ -224,7 +228,12 @@ module Env = struct
     in
     let min_env =
       List.filter (fun (k, _v) ->
-        Set_.mem k backrefs
+        let keep =
+          Set_.mem k backrefs
+        in
+        if debug then
+          printf "keep %s in min env: %B\n" k keep;
+        keep
       ) env.min_env
     in
     {

@@ -224,6 +224,10 @@ let must_analyze_statement_bloom_opti_failed bf1 st =
   (* only when the Bloom_filter says No we can skip the stmt *)
   | Some bf2 -> Bloom_filter.is_subset bf1 bf2 = Bloom_filter.Maybe
 
+let pattern_supports_caching _pattern =
+  (* TODO: $...X don't support caching *)
+  true
+
 (*****************************************************************************)
 (* Main entry point *)
 (*****************************************************************************)
@@ -273,8 +277,10 @@ let check2 ~hook ~with_caching rules equivs file lang ast =
       let any = Apply_equivalences.apply equivs any in
       (*e: [[Semgrep_generic.check2()]] apply equivalences to rule pattern [[any]] *)
       let cache =
-        if with_caching then Some (Caching.Cache.create ())
-        else None
+        if with_caching && pattern_supports_caching any then
+          Some (Caching.Cache.create ())
+        else
+          None
       in
       match any with
       | E pattern  ->

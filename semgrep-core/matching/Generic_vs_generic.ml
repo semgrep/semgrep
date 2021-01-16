@@ -1570,6 +1570,7 @@ and m_stmt a b tin =
   match tin.cache with
   | None -> m_stmt_uncached a b tin
   | Some cache ->
+      let tin = { tin with mv = MV.Env.update_min_env tin.mv a } in
       Caching.Cache.match_stmt
         (fun tin -> tin.mv)
         cache

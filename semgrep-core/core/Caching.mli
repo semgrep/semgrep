@@ -8,8 +8,7 @@
    semgrep matching with memoization. This is one-time initialization.
    These fields will not be mutated during the matching process.
 *)
-val prepare_pattern : ?debug:bool -> AST_generic.any -> unit
-val prepare_target : AST_generic.program -> unit
+val prepare_pattern : AST_generic.any -> unit
 
 module Cache : sig
   type 'a t
@@ -36,4 +35,6 @@ module Cache : sig
     'tout t ->
     (pattern -> target -> 'tin -> 'tout) ->
     pattern -> target -> 'tin -> 'tout
+
+  val print_stats : unit -> unit
 end

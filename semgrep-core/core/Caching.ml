@@ -6,6 +6,8 @@
 open Printf
 open AST_generic
 
+let debug = false
+
 (* A set of metavariables. Access cost is O(log n). *)
 module Names = AST_generic.String_set
 
@@ -50,14 +52,6 @@ let diff_backrefs bound_metavars ~new_backref_counts ~old_backref_counts =
   in
   Set_.diff bound_metavars not_backrefs_in_rest_of_pattern
 
-let create_create_id () =
-  let n = ref 0 in
-  fun () ->
-    let id = !n in
-    assert (id >= 0);
-    incr n;
-    id
-
 (*
    During matching a pattern node against a program node, we consult
    a cache to see if we already have run this before and return the
@@ -76,7 +70,7 @@ let create_create_id () =
    that are used in the rest of the pattern. This set is consulted at runtime
    to determine whether a captured metavariable should go into the cache key.
 *)
-let prepare_pattern ?(debug = false) any =
+let prepare_pattern any =
   let bound_metavars = ref Set_.empty in
   let backref_counts = ref Name_counts.empty in
   let add_metavar name =
@@ -85,7 +79,6 @@ let prepare_pattern ?(debug = false) any =
     else
       bound_metavars := Set_.add name !bound_metavars
   in
-  let create_id = create_create_id () in
   (*
      This is the list of actions to run in reverse order of the original
      traversal of statements.
@@ -103,52 +96,47 @@ let prepare_pattern ?(debug = false) any =
     );
 
     kstmt = (fun (k, _) stmt ->
-      (* Only set ID and backrefs field if this statement hasn't been visited.
-         Most statements should only be visited once. It's not clear why
-         this is happening but we assume things will still work.
-         TODO: needs investigation. Could be tricky to debug if the backrefs
-         field is set incorrectly.
-      *)
-      if stmt.s_id < 0 then (
-        (* assign a node ID *)
-        let stmt_id = create_id () in
-        stmt.s_id <- stmt_id;
-        if debug then
-          printf "kstmt %i\n" stmt_id;
+      let stmt_id = (stmt.s_id :> int) in
+      if debug then
+        printf "kstmt %i\n" stmt_id;
 
-        (* compare the number of backreferences encountered before and after
-           visiting the rest of the pattern, so as to determine the set
-           of metavariables occurring in the rest of the pattern. *)
-        let pre_bound_metavars = !bound_metavars in
-        let pre_backref_counts = !backref_counts in
-        add_to_stack (fun () ->
-          let post_backref_counts = !backref_counts in
-          let backrefs =
-            diff_backrefs
-              pre_bound_metavars
-              ~new_backref_counts: post_backref_counts
-              ~old_backref_counts: pre_backref_counts
-          in
-          assert (stmt.s_backrefs = None);
-          stmt.s_backrefs <- Some backrefs;
+      (* compare the number of backreferences encountered before and after
+         visiting the rest of the pattern, so as to determine the set
+         of metavariables occurring in the rest of the pattern. *)
+      let pre_bound_metavars = !bound_metavars in
+      let pre_backref_counts = !backref_counts in
+      add_to_stack (fun () ->
+        let post_backref_counts = !backref_counts in
+        let backrefs =
+          diff_backrefs
+            pre_bound_metavars
+            ~new_backref_counts: post_backref_counts
+            ~old_backref_counts: pre_backref_counts
+        in
+        (*
+           It happens that the same stmt can be visited multiple times, to
+           the following assertion doesn't hold:
 
-          if debug then (
-            printf "stmt %i\n" stmt_id;
-            printf "$A backrefs before %i, after %i\n"
-              (get_count "$A" pre_backref_counts)
-              (get_count "$A" post_backref_counts);
-            printf "bound metavariables:\n%a" print_names pre_bound_metavars;
-            printf "pre backref counts:\n%a"
-              print_name_counts pre_backref_counts;
-            printf "post backref counts:\n%a"
-              print_name_counts post_backref_counts;
-            printf "backrefs:\n%a" print_names backrefs;
-            printf "\n"
-          )
-        );
-        (* continue scanning the current subtree. *)
-        k stmt
-      ) (* end conditional *)
+             assert (stmt.s_backrefs = None);
+        *)
+        stmt.s_backrefs <- Some backrefs;
+
+        if debug then (
+          printf "stmt %i\n" stmt_id;
+          printf "$A backrefs before %i, after %i\n"
+            (get_count "$A" pre_backref_counts)
+            (get_count "$A" post_backref_counts);
+          printf "bound metavariables:\n%a" print_names pre_bound_metavars;
+          printf "pre backref counts:\n%a"
+            print_name_counts pre_backref_counts;
+          printf "post backref counts:\n%a"
+            print_name_counts post_backref_counts;
+          printf "backrefs:\n%a" print_names backrefs;
+          printf "\n"
+        )
+      );
+      (* continue scanning the current subtree. *)
+      k stmt
     );
   } in
   visitor any;
@@ -156,42 +144,41 @@ let prepare_pattern ?(debug = false) any =
   if debug then
     printf "pattern AST:\n%s\n" (AST_generic.show_any any)
 
-(* Assign node IDs to the statements in the target. *)
-let prepare_target stmt_list =
-  let create_id = create_create_id () in
-  let visitor = Visitor_AST.mk_visitor {
-    Visitor_AST.default_visitor with
-    kstmt = (fun (k, _) stmt ->
-      (* Visitors sometimes visit the same node multiple times.
-         We tolerate this and assign an ID only if there isn't one already. *)
-      if stmt.s_id < 0 then (
-        stmt.s_id <- create_id ();
-        k stmt
-      )
-    );
-  } in
-  visitor (Ss stmt_list)
-
 module Cache_key = struct
-  type env = Metavars_generic.Metavars_binding.t
+  type env = Metavars_generic.metavars_binding [@@deriving show]
 
   (*
      key = (min_env, pattern_node_id, target_node_id)
      min_env: captured values referenced by metavariables in the rest of the
               pattern
   *)
-  type t = env * int * int
+  type t = env * Node_ID.t * Node_ID.t [@@deriving show]
 
   let equal : t -> t -> bool =
-    fun (env1, pat_id1, target_id1) (env2, pat_id2, target_id2) ->
-    pat_id1 = pat_id2
-    && target_id1 = target_id2
-    && Metavars_generic.Metavars_binding.equal env1 env2
+    fun ((env1, pat_id1, target_id1) as key1)
+      ((env2, pat_id2, target_id2) as key2) ->
+      let res =
+        pat_id1 = pat_id2
+        && target_id1 = target_id2
+        && Metavars_generic.equal_metavars_binding env1 env2
+      in
+      if debug then
+        printf "equal %s %s = %B\n"
+          (show key1) (show key2) res;
+      res
 
-  let hash (env, pat_id, target_id) =
-    pat_id
-    + (target_id lsl 16)
-    + Metavars_generic.Metavars_binding.hash env
+  let hash_combine a b =
+    a + 97 * b
+
+  let hash ((env, pat_id, target_id) as key : t) =
+    let res =
+      hash_combine (pat_id :> int)
+        (hash_combine (target_id :> int)
+           (Metavars_generic.hash_metavars_binding env))
+    in
+    if debug then
+      printf "hash %s = %i\n" (show key) res;
+    res
 end
 
 module Cache = struct
@@ -203,15 +190,30 @@ module Cache = struct
 
   let create () = Tbl.create 1000
 
+  (* debugging *)
+  let cache_hits = ref 0
+  let cache_misses = ref 0
+
   let match_stmt
       get_env cache compute
       (pattern : pattern) (target : target) full_env =
     let env : Metavars_generic.Env.t = get_env full_env in
     let key = (env.min_env, pattern.s_id, target.s_id) in
+    if debug then
+      printf "match_stmt\n";
     match Tbl.find_opt cache key with
-    | Some res -> res
+    | Some res ->
+        incr cache_hits;
+        if debug then
+          printf "found cached result!\n";
+        res
     | None ->
+        incr cache_misses;
         let res = compute pattern target full_env in
         Tbl.replace cache key res;
         res
+
+  let print_stats () =
+    printf "cache hits: %i, cache misses: %i\n"
+      !cache_hits !cache_misses
 end
