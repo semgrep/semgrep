@@ -1,0 +1,43 @@
+{
+  "errors": [],
+  "results": [
+    {
+      "check_id": "rules.message_interpolation.test_rule_id",
+      "end": {
+        "col": 18,
+        "line": 9
+      },
+      "extra": {
+        "is_ignored": false,
+        "lines": "def D():\n    print(\"asdf\")",
+        "message": "method D is not inside $CLASS",
+        "metadata": {},
+        "metavars": {
+          "$FUNC": {
+            "abstract_content": "D",
+            "end": {
+              "col": 6,
+              "line": 8,
+              "offset": 86
+            },
+            "start": {
+              "col": 5,
+              "line": 8,
+              "offset": 85
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
+        "severity": "INFO"
+      },
+      "path": "targets/message_interpolation/pattern_not_inside_basic.py",
+      "start": {
+        "col": 1,
+        "line": 8
+      }
+    }
+  ]
+}

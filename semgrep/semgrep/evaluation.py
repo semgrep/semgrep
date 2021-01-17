@@ -385,9 +385,27 @@ def evaluate(
         logger.debug(f"compiled result {valid_ranges_to_output}")
         logger.debug("-" * 80)
 
+    # Addresses https://github.com/returntocorp/semgrep/issues/1699,
+    # where metavariables from pattern-inside are not bound to messages.
+    # This should handle cases with pattern + pattern-inside. This doesn't handle
+    # pattern-not-inside because it is difficult to determine metavariables for
+    # exclusion ranges. For example: imagine a pattern-not-inside for 'def $CLASS(): ...'
+    # and a file has multiple classes inside. How do we infer which metavariable was
+    # intended for interpolation? As such, this will fix the immediate issue and should
+    # handle the most common case.
+    # Another corner case is: what should we do with nested metavars? Imagine 'def $FUNC(): ...'
+    # and code with nested functions. Did we want the top-level function? The lowest-level? What
+    # about other nesting cases? ¯\_(ツ)_/¯ Right now it will prefer the largest PatternMatch range.
+    all_pattern_match_metavariables: Dict[str, List[PatternMatch]] = defaultdict(list)
+    for pattern_match in pattern_matches:
+        for metavar_text in pattern_match.metavars.keys():
+            all_pattern_match_metavariables[metavar_text].append(pattern_match)
+
     for pattern_match in pattern_matches:
         if pattern_match.range in valid_ranges_to_output:
-            message = interpolate_message_metavariables(rule, pattern_match)
+            message = interpolate_message_metavariables(
+                rule, pattern_match, all_pattern_match_metavariables
+            )
             fix = interpolate_fix_metavariables(rule, pattern_match)
             rule_match = RuleMatch.from_pattern_match(
                 rule.id,
@@ -403,12 +421,30 @@ def evaluate(
     return output, steps_for_debugging
 
 
-def interpolate_message_metavariables(rule: Rule, pattern_match: PatternMatch) -> str:
+def interpolate_message_metavariables(
+    rule: Rule,
+    pattern_match: PatternMatch,
+    all_pattern_match_metavariables: Dict[str, List[PatternMatch]],
+) -> str:
     msg_text = rule.message
-    for metavar in pattern_match.metavars:
-        msg_text = msg_text.replace(
-            metavar, pattern_match.get_metavariable_value(metavar)
-        )
+    for metavar_text in all_pattern_match_metavariables:
+        replace_text = metavar_text
+        try:  # Always prefer the pattern match metavariable first.
+            replace_text = pattern_match.get_metavariable_value(metavar_text)
+        except KeyError:  # If one isn't present, retrieve the value from all metavariables.
+            pattern_matches_with_metavars_that_enclose_match: List[PatternMatch] = list(
+                filter(
+                    lambda possible_enclosing_match: possible_enclosing_match.range.is_range_enclosing_or_eq(
+                        pattern_match.range
+                    ),
+                    all_pattern_match_metavariables[metavar_text],
+                )
+            )
+            if len(pattern_matches_with_metavars_that_enclose_match):
+                replace_text = pattern_matches_with_metavars_that_enclose_match[
+                    0
+                ].get_metavariable_value(metavar_text)
+        msg_text = msg_text.replace(metavar_text, replace_text)
     return msg_text
 
 

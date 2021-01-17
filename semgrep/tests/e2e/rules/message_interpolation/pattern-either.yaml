@@ -1,0 +1,15 @@
+rules:
+- id: test_rule_id
+  pattern-either:
+  - pattern: |
+      def $FUNC(x):
+        ...
+  - pattern: |
+      def $FUNC(y):
+        ...
+  - pattern: |
+      def $FUNC(z):
+        ...
+  severity: INFO
+  languages: [python]
+  message: method $FUNC detected
