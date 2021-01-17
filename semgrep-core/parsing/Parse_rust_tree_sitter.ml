@@ -252,7 +252,7 @@ let map_non_special_token (env : env) (x : CST.non_special_token): PI.token_muta
    | `Super tok -> token env tok (* "super" *)
    | `Crate tok -> token env tok (* "crate" *)
    | `Choice_u8 x -> let (_, tok) = map_primitive_type_ident env x in tok
-   | `Pat_785a82e tok -> token env tok (* pattern [/_\-=->,;:::!=?.@*=/=&=#%=^=+<>|~]+ *)
+   | `Pat_e14e5d5 tok -> token env tok (* pattern [/_\-=->,;:::!=?.@*=/=&=#%=^=+<>|~]+ *)
    | `SQUOT tok -> token env tok (* "'" *)
    | `As tok -> token env tok (* "as" *)
    | `Async tok -> token env tok (* "async" *)
@@ -416,7 +416,7 @@ and map_tuple_struct_name (env : env) (x : CST.anon_choice_field_id_f1f5a37): G.
    | `Scoped_id x -> map_scoped_identifier_name env x
   )
 
-and map_struct_pattern_field (env : env) (x : CST.anon_choice_field_pat_8e757e8): (G.name * G.pattern option) =
+and map_struct_pattern_field (env : env) (x : CST.anon_choice_field_pat_8e757e8): (G.name * G.pattern) =
   (match x with
    | `Field_pat (v1, v2, v3) ->
        let ref_ = Option.map (fun tok -> token env tok) in (* "ref" *)
@@ -426,17 +426,15 @@ and map_struct_pattern_field (env : env) (x : CST.anon_choice_field_pat_8e757e8)
        ) v2 in
        (match v3 with
         | `Id tok -> let ident = ident env tok in (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
-            let name = (ident, G.empty_name_info) in
-            (name, None)
+            (H2.name_of_id ident, G.PatId (ident, G.empty_id_info ()))
         | `Id_COLON_pat (v1, v2, v3) ->
             let ident = ident env v1 in (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
             let colon = token env v2 (* ":" *) in
             let pat = map_pattern env v3 in
-            let name = (ident, G.empty_name_info) in
-            (name, Some pat))
+            (H2.name_of_id ident, pat))
    | `Rema_field_pat tok -> let ident = ident env tok in (* ".." *)
        let name = (ident, G.empty_name_info) in
-       (name, Some (G.OtherPat (G.OP_Todo, [G.Tk (token env tok)])))
+       (name, (G.OtherPat (G.OP_Todo, [G.Tk (token env tok)])))
   )
 
 and map_type_parameter (env : env) (x : CST.anon_choice_life_859e88f): G.type_parameter =
@@ -1888,7 +1886,7 @@ and map_pattern (env : env) (x : CST.pattern): G.pattern =
        in
        let comma = Option.map (fun tok -> token env tok) v4 in (* "," *)
        let rparen = token env v5 (* ")" *) in
-       todo env (v1, v2, v3, v4, v5)
+       G.PatTuple (lparen, items, rparen)
    | `Struct_pat (v1, v2, v3, v4, v5) ->
        let name = map_struct_name env v1 in
        let lbrace = token env v2 (* "{" *) in
@@ -1908,11 +1906,11 @@ and map_pattern (env : env) (x : CST.pattern): G.pattern =
        in
        let comma = Option.map (fun tok -> token env tok) v4 in (* "," *)
        let rbrace = token env v5 (* "}" *) in
-       todo env (v1, v2, v3, v4, v5)
+       G.PatRecord (lbrace, fields, rbrace)
    | `Ref_pat_a3d7f54 (v1, v2) ->
        let ref_ = token env v1 (* "ref" *) in
        let pattern = map_pattern env v2 in
-       todo env (v1, v2)
+       pattern
    | `Slice_pat (v1, v2, v3, v4) ->
        let lbracket = token env v1 (* "[" *) in
        let patterns =
@@ -1922,12 +1920,12 @@ and map_pattern (env : env) (x : CST.pattern): G.pattern =
        in
        let comma = Option.map (fun tok -> token env tok) v3 in (* "," *)
        let rbracket = token env v4 (* "]" *) in
-       G.PatList (lbracket, patterns, rbracket)
+       G.PatTuple (lbracket, patterns, rbracket)
    | `Capt_pat (v1, v2, v3) ->
        let ident = ident env v1 in (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
        let at = token env v2 (* "@" *) in
        let pattern = map_pattern env v3 in
-       todo env (v1, v2, v3)
+       G.PatAs (pattern, (ident, G.empty_id_info ()))
    | `Ref_pat_dbbcf07 (v1, v2, v3) ->
        let and_ = token env v1 (* "&" *) in
        let mutability = Option.map (fun tok ->
@@ -1936,14 +1934,13 @@ and map_pattern (env : env) (x : CST.pattern): G.pattern =
        ) v2 in
        let pattern = map_pattern env v3 in
        let attrs = deoptionalize [mutability] in
-       todo env (v1, v2, v3)
-   | `Rema_field_pat tok -> let tok = token env tok in (* ".." *)
-       todo env tok
+       pattern
+   | `Rema_field_pat tok -> G.PatId (ident env tok, G.empty_id_info ()) (* ".." *)
    | `Mut_pat (v1, v2) ->
        let mut = token env v1 (* "mut" *) in
        let mutability = G.KeywordAttr (G.Mutable, mut) in
        let pattern = map_pattern env v2 in
-       todo env (v1, v2)
+       pattern
    | `Range_pat (v1, v2, v3) ->
        let lbound = map_range_pattern_bound env v1 in
        let op =
@@ -1955,16 +1952,15 @@ and map_pattern (env : env) (x : CST.pattern): G.pattern =
          )
        in
        let rbound = map_range_pattern_bound env v3 in
-       todo env (v1, v2, v3)
+       G.PatDisj (lbound, rbound)
    | `Or_pat (v1, v2, v3) ->
        let pattern_lhs = map_pattern env v1 in
        let or_ = token env v2 (* "|" *) in
        let pattern_rhs = map_pattern env v3 in
        G.DisjPat (pattern_lhs, pattern_rhs)
    | `Const_blk x -> let block = map_const_block env x in
-       todo env x
-   | `X__ tok -> let tok = token env tok in (* "_" *)
-       G.PatUnderscore tok
+       G.OtherPat (G.OP_Expr, [G.E block])
+   | `X__ tok -> G.PatUnderscore (token env tok) (* "_" *)
   )
 
 and map_pointer_type (env : env) ((v1, v2, v3) : CST.pointer_type): G.type_ =
