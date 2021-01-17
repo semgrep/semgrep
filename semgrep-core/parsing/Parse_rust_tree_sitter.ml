@@ -252,7 +252,7 @@ let map_non_special_token (env : env) (x : CST.non_special_token): PI.token_muta
    | `Super tok -> token env tok (* "super" *)
    | `Crate tok -> token env tok (* "crate" *)
    | `Choice_u8 x -> let (_, tok) = map_primitive_type_ident env x in tok
-   | `Pat_785a82e tok -> token env tok (* pattern [/_\-=->,;:::!=?.@*=/=&=#%=^=+<>|~]+ *)
+   | `Pat_e14e5d5 tok -> token env tok (* pattern [/_\-=->,;:::!=?.@*=/=&=#%=^=+<>|~]+ *)
    | `SQUOT tok -> token env tok (* "'" *)
    | `As tok -> token env tok (* "as" *)
    | `Async tok -> token env tok (* "async" *)

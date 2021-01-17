@@ -358,6 +358,7 @@ and map_else_ (env : env) ((v1, v2, v3) : CST.else_): G.stmt =
 
 and map_expression (env : env) (x : CST.expression): G.expr =
   (match x with
+   | `Next tok -> G.OtherExpr (G.OE_Todo, [G.TodoK ("next", token env tok)])
    | `Spread tok -> G.Ellipsis (token env tok) (* "..." *)
    | `Prefix x -> map_prefix env x
    | `Func_defi (v1, v2) ->
@@ -501,8 +502,15 @@ and map_loop_expression (env : env) ((v1, v2, v3, v4, v5, v6) : CST.loop_express
   in
   G.ForClassic ([for_init_var], Some v5, v6)
 
+and map_global_variable (env : env) (x: CST.global_variable) : G.expr =
+  match x with
+  | `X__G t -> G.Id (("_G", token env t), G.empty_id_info())
+  | `X__VERSION t -> G.Id (("_VERSION", token env t), G.empty_id_info())
+
 and map_prefix (env : env) (x : CST.prefix): G.expr =
   (match x with
+   | `Global_var x -> map_global_variable env x
+   | `Self t -> G.IdSpecial (G.Self, token env t)
    | `Var_decl x -> map_variable_declarator_expr env x
    | `Func_call_stmt x -> map_function_call_expr env x
    | `LPAR_exp_RPAR (v1, v2, v3) ->
@@ -682,8 +690,6 @@ and map_variable_declarator_expr (env : env) (x : CST.variable_declarator): G.ex
   (match x with
    | `Id tok ->
        ident env tok (* pattern [a-zA-Z_][a-zA-Z0-9_]* *)
-   | `Self tok ->
-       ident env tok (* "self" *)
    | `Prefix_LBRACK_exp_RBRACK (v1, v2, v3, v4) ->
        let v1 = map_prefix env v1 in
        let v2 = token env v2 (* "[" *) in
@@ -706,8 +712,6 @@ and map_variable_declarator_expr (env : env) (x : CST.variable_declarator): G.ex
 and map_variable_declarator (env : env) (x : CST.variable_declarator): G.entity =
   let s = (match x with
     | `Id tok ->
-        G.EId (identifier env tok, G.empty_id_info ()) (* pattern [a-zA-Z_][a-zA-Z0-9_]* *)
-    | `Self tok ->
         G.EId (identifier env tok, G.empty_id_info ()) (* pattern [a-zA-Z_][a-zA-Z0-9_]* *)
     | `Prefix_LBRACK_exp_RBRACK (v1, v2, v3, v4) ->
         let v1 = map_prefix env v1 in
