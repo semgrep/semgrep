@@ -74,7 +74,7 @@ type direction =
   | Ascending
   | Descending
 
-and linq_query_part = 
+and linq_query_part =
   | From of (tok * (type_ option * ident) * expr)
   | Group of (tok * expr * expr)
   | Select of (tok * expr)
@@ -86,7 +86,7 @@ and linq_query_part =
 
 (* create lambda lambda_params -> expr *)
 let create_lambda lambda_params expr =
-  let fparams = (match lambda_params with 
+  let fparams = (match lambda_params with
     | [] -> []
     | [id] -> [ParamClassic {
       pname = Some id;
@@ -94,7 +94,7 @@ let create_lambda lambda_params expr =
       pdefault = None; pattrs = [];
       pinfo = empty_id_info ();
     }]
-    | ids -> 
+    | ids ->
         let ids = List.map (fun id -> PatId (id, empty_id_info ())) ids in
         [ParamPattern (PatTuple (fake_bracket ids))]
   ) in
@@ -120,10 +120,10 @@ let rec linq_remainder_to_expr (query : linq_query_part list) (base_expr : expr)
   | [] -> base_expr
   | ht :: tl ->
       (match ht with
-       | Select (tok, expr) -> 
+       | Select (tok, expr) ->
            let base_expr = call_lambda base_expr "Select" tok lambda_params [expr] in
            linq_remainder_to_expr tl base_expr lambda_params
-       | Where (tok, expr) -> 
+       | Where (tok, expr) ->
            let base_expr = call_lambda base_expr "Where" tok lambda_params [expr] in
            linq_remainder_to_expr tl base_expr lambda_params
        | Let (tok, ident, expr) ->
@@ -135,7 +135,7 @@ let rec linq_remainder_to_expr (query : linq_query_part list) (base_expr : expr)
            let base_expr = call_lambda base_expr "Select" tok lambda_params [expr] in
            let lambda_params = lambda_params @ [ident] in
            linq_remainder_to_expr tl base_expr lambda_params
-       | Group (tok, vals, key) -> 
+       | Group (tok, vals, key) ->
            (* base_expr.GroupBy(lambda_params -> key, lambda_params -> vals)
             * and clear lambda_params
            *)
