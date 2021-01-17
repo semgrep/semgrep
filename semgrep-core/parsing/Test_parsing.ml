@@ -64,6 +64,9 @@ let dump_ast_pfff file =
 (* less: could infer lang from filename *)
 let dump_tree_sitter_cst_lang lang file =
   match lang with
+  | Lang.R ->
+      Tree_sitter_r.Parse.file file
+      |> dump_and_print_errors Tree_sitter_r.CST.dump_tree
   | Lang.Ruby ->
       Tree_sitter_ruby.Parse.file file
       |> dump_and_print_errors Tree_sitter_ruby.CST.dump_tree
