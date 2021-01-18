@@ -17,6 +17,7 @@ module AST = AST_generic
 module H = Parse_tree_sitter_helpers
 open AST_generic
 module H2 = AST_generic_helpers
+module PI = Parse_info
 
 (*****************************************************************************)
 (* Prelude *)
@@ -1294,7 +1295,8 @@ and type_parameter_constraint (env : env) (x : CST.type_parameter_constraint) =
        let v1 = token env v1 (* "new" *) in
        let v2 = token env v2 (* "(" *) in
        let v3 = token env v3 (* ")" *) in
-       todo env (v1, v2, v3)
+       let tok = PI.combine_infos v1 [v2; v3] in
+       HasConstructor tok
    | `Type_cons x -> Extends (type_constraint env x)
   )
 
