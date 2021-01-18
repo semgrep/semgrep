@@ -55,6 +55,26 @@ let deoptionalize l =
   in
   deopt [] l
 
+let mk_vars xs ys =
+  let rec aux xs ys =
+    match xs, ys with
+    | [], [] -> []
+    | x::xs, [] -> (x, G.VarDef {G.vinit = None; G.vtype = None}) :: aux xs ys
+    | x::xs, y::ys -> (x, G.VarDef {G.vinit = Some y; G.vtype = None}) :: aux xs ys
+    | [], _y::_ys -> []
+  in
+  aux xs ys
+
+let mk_assigns xs ys equal =
+  let rec aux xs ys =
+    match xs, ys with
+    | [], [] -> []
+    | _x::_xs, [] -> []
+    | x::xs, y::ys -> G.Assign (x,equal,  y) :: aux xs ys
+    | [], _y::_ys -> []
+  in
+  aux xs ys
+
 let identifier (env : env) (tok : CST.identifier): G.ident =
   str env tok (* pattern [a-zA-Z_]\w* *)
 
@@ -127,21 +147,20 @@ let map_parameters (env : env) ((v1, v2, v3) : CST.parameters): G.parameters =
   let _v3 = token env v3 (* ")" *) in
   v2
 
-let map_local_variable_declarator (env : env) ((v1, v2) : CST.local_variable_declarator) : G.ident list =
-  let v1 =
+let map_local_variable_declarator (env : env) ((v1, v2) : CST.local_variable_declarator) local : G.entity list =
+  let ident_first =
     identifier env v1 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *)
   in
-  let v2 =
+  let ident_rest =
     List.map (fun (v1, v2) ->
-      let _v1 = token env v1 (* "," *) in
-      let v2 =
+      let _comma = token env v1 (* "," *) in
+      let ident =
         identifier env v2 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *)
       in
-      v2
+      ident
     ) v2
   in
-  v1::v2
-
+  List.map (fun x -> G.basic_entity x [G.KeywordAttr (G.Static, local)]) (ident_first::ident_rest)
 
 let map_function_name_field (env : env) ((v1, v2) : CST.function_name_field) (colon_and_ident): G.name =
   let v1 =
@@ -439,14 +458,12 @@ and map_function_call_expr (env : env) (x : CST.function_call_statement): G.expr
        let v2 = map_arguments env v2 in
        G.Call (v1, v2)
    | `Prefix_COLON_id_args (v1, v2, v3, v4) ->
-       let v1 = map_prefix env v1 in
-       let _v2 = token env v2 (* ":" *) in
-       let v3 =
-         ident env v3 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *)
-       in
-       let _tbl = G.Arg v3 in
-       let v4 = map_arguments env v4 in
-       G.Call (v1, v4)
+       let prefix = map_prefix env v1 in
+       let colon = token env v2 (* ":" *) in
+       let fn_name = identifier env v3 in (* pattern [a-zA-Z_][a-zA-Z0-9_]* *)
+       let name = (fn_name, {G.name_qualifier = Some (G.QExpr (prefix, colon)); G.name_typeargs = None}) in
+       let args = map_arguments env v4 in
+       G.Call (G.IdQualified (name, G.empty_id_info ()), args)
   )
 
 
@@ -538,29 +555,29 @@ and map_statement (env : env) (x : CST.statement): G.stmt list =
   (match x with
    | `Exp x -> [G.ExprStmt (map_expression env x, sc) |> G.s]
    | `Var_decl (v1, v2, v3, v4, v5) ->
-       let v1 = map_variable_declarator env v1 in
-       let _v2 =
+       let ident_first = map_variable_declarator env v1 in
+       let ident_rest =
          List.map (fun (v1, v2) ->
            let _v1 = token env v1 (* "," *) in
            let v2 = map_variable_declarator env v2 in
            v2
          ) v2
        in
-       let _v3 = token env v3 (* "=" *) in
-       let v4 = map_expression env v4 in
-       let _v5 =
+       let equal = token env v3 (* "=" *) in
+       let expr_first = map_expression env v4 in
+       let expr_rest =
          List.map (fun (v1, v2) ->
            let _v1 = token env v1 (* "," *) in
            let v2 = map_expression env v2 in
            v2
          ) v5
        in
-       let ent = v1 in (* TODO multi assign support *)
-       [G.DefStmt (ent, G.VarDef {G.vinit = Some v4; G.vtype = None}) |> G.s]
+       let assigns = mk_assigns (ident_first::ident_rest) (expr_first::expr_rest) equal in
+       List.map (fun x -> G.ExprStmt (x, sc) |> G.s) assigns
    | `Local_var_decl (v1, v2, v3) ->
-       let v1 = token env v1 (* "local" *) in
-       let v2 = map_local_variable_declarator env v2 in
-       let v3 =
+       let local = token env v1 (* "local" *) in
+       let entities = map_local_variable_declarator env v2 local in
+       let exprs =
          (match v3 with
           | Some (v1, v2, v3) ->
               let _v1 = token env v1 (* "=" *) in
@@ -575,28 +592,8 @@ and map_statement (env : env) (x : CST.statement): G.stmt list =
               (v2::v3)
           | None -> [])
        in
-       let rec aux ids exprs =
-         match ids, exprs with
-         | [], [] -> []
-         (* could issue a warning, more expr than ids *)
-         | [], _ -> []
-         | x::xs, [] ->
-             let vinit = None in
-             let ent = G.basic_entity x [G.KeywordAttr (G.Static, v1)] in
-             let def =
-               G.DefStmt (ent, G.VarDef {G.vinit; vtype = None}) |> G.s
-             in
-             def::aux xs []
-         | x::xs, y::ys ->
-             let vinit = Some y in
-             let ent = G.basic_entity x [G.KeywordAttr (G.Static, v1)] in
-             let def =
-               G.DefStmt (ent, G.VarDef {G.vinit; vtype = None}) |> G.s
-             in
-             def::aux xs ys
-       in
-       aux v2 v3
-
+       let defs = mk_vars entities exprs in
+       List.map (fun x -> G.DefStmt x |> G.s) defs
    | `Do_stmt (v1, v2, v3, v4) ->
        [map_do_block env (v1, v2, v3, v4)]
    | `If_stmt (v1, v2, v3, v4, v5, v6, v7, v8) ->
@@ -687,54 +684,45 @@ and map_table (env : env) ((v1, v2, v3) : CST.table): G.expr =
   G.Container (G.Dict, (v1, v2, v3))
 
 and map_variable_declarator_expr (env : env) (x : CST.variable_declarator): G.expr =
-  (match x with
-   | `Id tok ->
-       ident env tok (* pattern [a-zA-Z_][a-zA-Z0-9_]* *)
-   | `Prefix_LBRACK_exp_RBRACK (v1, v2, v3, v4) ->
-       let v1 = map_prefix env v1 in
-       let v2 = token env v2 (* "[" *) in
-       let v3 = map_expression env v3 in
-       let v4 = token env v4 (* "]" *) in
-       let _qual = G.QExpr (v1, v4) in
-       let expr = G.ArrayAccess (v1, (v2, v3, v4)) in
-       expr
-   | `Field_exp (v1, v2, v3) ->
-       let v1 = map_prefix env v1 in
-       let v2 = token env v2 (* "." *) in
-       let v3 =
-         identifier env v3 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *)
-       in
-       let qual = G.QExpr (v1, v2) in
-       let name = (v3, { G.name_qualifier = Some qual; G.name_typeargs = None }) in
-       G.IdQualified (name, G.empty_id_info ())
-  )
+  match x with
+  | `Id tok ->
+      ident env tok (* pattern [a-zA-Z_][a-zA-Z0-9_]* *)
+  | `Prefix_LBRACK_exp_RBRACK (v1, v2, v3, v4) ->
+      let v1 = map_prefix env v1 in
+      let v2 = token env v2 (* "[" *) in
+      let v3 = map_expression env v3 in
+      let v4 = token env v4 (* "]" *) in
+      let _qual = G.QExpr (v1, v4) in
+      let expr = G.ArrayAccess (v1, (v2, v3, v4)) in
+      expr
+  | `Field_exp (v1, v2, v3) ->
+      let v1 = map_prefix env v1 in
+      let v2 = token env v2 (* "." *) in
+      let v3 =
+        identifier env v3 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *)
+      in
+      let qual = G.QExpr (v1, v2) in
+      let name = (v3, { G.name_qualifier = Some qual; G.name_typeargs = None }) in
+      G.IdQualified (name, G.empty_id_info ())
 
-and map_variable_declarator (env : env) (x : CST.variable_declarator): G.entity =
-  let s = (match x with
-    | `Id tok ->
-        G.EId (identifier env tok, G.empty_id_info ()) (* pattern [a-zA-Z_][a-zA-Z0-9_]* *)
-    | `Prefix_LBRACK_exp_RBRACK (v1, v2, v3, v4) ->
-        let v1 = map_prefix env v1 in
-        let v2 = token env v2 (* "[" *) in
-        let v3 = map_expression env v3 in
-        let v4 = token env v4 (* "]" *) in
-        let _qual = G.QExpr (v1, v4) in
-        let expr = G.ArrayAccess (v1, (v2, v3, v4)) in
-        G.EDynamic expr
-    | `Field_exp (v1, v2, v3) ->
-        let v1 = map_prefix env v1 in
-        let v2 = token env v2 (* "." *) in
-        let v3 =
-          identifier env v3 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *)
-        in
-        let qual = G.QExpr (v1, v2) in
-        let name = (v3, { G.name_qualifier = Some qual; G.name_typeargs = None }) in
-        G.EName name
-  )
-  in
-  { G.name = s; attrs = []; tparams = [] }
-
-
+and map_variable_declarator (env : env) (x : CST.variable_declarator): G.expr =
+  match x with
+  | `Id tok ->
+      G.Id (identifier env tok, G.empty_id_info ()) (* pattern [a-zA-Z_][a-zA-Z0-9_]* *)
+  | `Prefix_LBRACK_exp_RBRACK (v1, v2, v3, v4) ->
+      let v1 = map_prefix env v1 in
+      let v2 = token env v2 (* "[" *) in
+      let v3 = map_expression env v3 in
+      let v4 = token env v4 (* "]" *) in
+      let _qual = G.QExpr (v1, v4) in
+      G.ArrayAccess (v1, (v2, v3, v4))
+  | `Field_exp (v1, v2, v3) ->
+      let prefix = map_prefix env v1 in
+      let dot = token env v2 (* "." *) in
+      let ident =
+        identifier env v3 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *)
+      in
+      G.DotAccess (G.Id (ident, G.empty_id_info()), dot, G.EDynamic prefix)
 
 let map_program (env : env) ((v1, v2) : CST.program): G.program =
   map_statements_and_return env (v1, v2)
