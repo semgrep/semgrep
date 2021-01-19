@@ -20,6 +20,7 @@
 (* right now Expr/Stmt/Stmts/Types/Patterns/Partial and probably
  * more are supported *)
 type t = AST_generic.any
+[@@deriving show]
 (*e: type [[Pattern.t]] *)
 
 (*e: semgrep/core/Pattern.ml *)
