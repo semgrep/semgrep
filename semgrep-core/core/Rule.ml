@@ -113,7 +113,7 @@ type rule = {
   languages: lang;
 
   (* optional fields *)
-  equivalences: string list; (* TODO: parse them *)
+  equivalences: string list option; (* TODO: parse them *)
 
   fix: string option;
   fix_regexp: (regexp * int option * string) option;

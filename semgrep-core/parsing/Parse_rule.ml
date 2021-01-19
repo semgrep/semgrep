@@ -195,7 +195,27 @@ let parse_languages ~id langs =
       | [] -> raise (E.InvalidRuleException (id, "we need at least one language"))
       | x::xs -> R.L (x, xs)
 
+let parse_fix_regex = function
+  | `O xs ->
+      (match find_fields ["regex";"replacement";"count"] xs with
+       | ["regex", Some (`String regex);
+          "replacement", Some (`String replacement);
+          "count", count_opt;
+         ], [] ->
+           (regex,
+            Common.map_opt (parse_int "count") count_opt,
+            replacement)
+       | x -> pr2_gen x; error "parse_fix_regex"
+      )
+  | x -> pr2_gen x; error "parse_fix_regex"
 
+let parse_equivalences = function
+  | `A xs ->
+      xs |> List.map (function
+        | `O ["equivalence", `String s] -> s
+        | x -> pr2_gen x; error "parse_equivalence"
+      )
+  | x -> pr2_gen x; error "parse_equivalences"
 (*****************************************************************************)
 (* Main entry point *)
 (*****************************************************************************)
@@ -236,13 +256,12 @@ let parse file =
 
                     "metadata", metadata_opt;
                     "fix", fix_opt;
-                    "fix-regex", _fix_regex_optTODO;
+                    "fix-regex", fix_regex_opt;
                     "paths", _pathsTODO;
-                    "equivalences", _equivsTODO;
+                    "equivalences", equivs_opt;
 
                   ], rest ->
                       let languages = parse_languages ~id langs in
-                      let severity = H.parse_severity ~id sev in
                       let formula =
                         match rest with
                         | [x] ->
@@ -251,12 +270,19 @@ let parse file =
                             pr2_gen x;
                             error "wrong rule fields"
                       in
-                      { R. id; formula; message; languages; severity;
-                        metadata = Common.map_opt yaml_to_json metadata_opt;
-                        fix = Common.map_opt (parse_string "fix") fix_opt;
-                        fix_regexp = None;
-                        paths = None;
-                        equivalences = [];
+                      { R. id; formula; message; languages;
+                        severity = H.parse_severity ~id sev;
+                        (* optional fields *)
+                        metadata =
+                          Common.map_opt yaml_to_json metadata_opt;
+                        fix =
+                          Common.map_opt (parse_string "fix") fix_opt;
+                        fix_regexp =
+                          Common.map_opt parse_fix_regex fix_regex_opt;
+                        paths =
+                          None;
+                        equivalences =
+                          Common.map_opt parse_equivalences equivs_opt;
                       }
                   | x ->
                       pr2_gen x;
