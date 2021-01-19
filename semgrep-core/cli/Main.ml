@@ -568,7 +568,7 @@ let parse_pattern lang_pattern str =
       (*e: [[Main_semgrep_core.parse_pattern()]] when not a supported language *)
     ))
   with exn ->
-    raise (Parse_rules.InvalidPatternException ("no-id", str, !lang, (Common.exn_to_s exn)))
+    raise (Parse_mini_rule.InvalidPatternException ("no-id", str, !lang, (Common.exn_to_s exn)))
 [@@profiling]
 (*e: function [[Main_semgrep_core.parse_pattern]] *)
 
@@ -694,23 +694,23 @@ let json_of_profile_info () =
 let json_of_exn e =
   (* if (ouptut_as_json) then *)
   match e with
-  | Parse_rules.InvalidRuleException (pattern_id, msg)     ->
+  | Parse_mini_rule.InvalidRuleException (pattern_id, msg)     ->
       J.Object [ "pattern_id", J.String pattern_id;
                  "error", J.String "invalid rule";
                  "message", J.String msg; ]
-  | Parse_rules.InvalidLanguageException (pattern_id, language) ->
+  | Parse_mini_rule.InvalidLanguageException (pattern_id, language) ->
       J.Object [ "pattern_id", J.String pattern_id;
                  "error", J.String "invalid language";
                  "language", J.String language; ]
-  | Parse_rules.InvalidPatternException (pattern_id, pattern, lang, message) ->
+  | Parse_mini_rule.InvalidPatternException (pattern_id, pattern, lang, message) ->
       J.Object [ "pattern_id", J.String pattern_id;
                  "error", J.String "invalid pattern";
                  "pattern", J.String pattern;
                  "language", J.String lang;
                  "message", J.String message; ]
-  | Parse_rules.UnparsableYamlException msg ->
+  | Parse_mini_rule.UnparsableYamlException msg ->
       J.Object [  "error", J.String "unparsable yaml"; "message", J.String msg; ]
-  | Parse_rules.InvalidYamlException msg ->
+  | Parse_mini_rule.InvalidYamlException msg ->
       J.Object [  "error", J.String "invalid yaml"; "message", J.String msg; ]
   | exn ->
       J.Object [  "error", J.String "unknown exception"; "message", J.String (Common.exn_to_s exn); ]
@@ -771,7 +771,7 @@ let semgrep_with_rules_file rules_file files =
     (*s: [[Main_semgrep_core.semgrep_with_rules()]] if [[verbose]] *)
     logger#info "Parsing %s" rules_file;
     (*e: [[Main_semgrep_core.semgrep_with_rules()]] if [[verbose]] *)
-    let rules = Parse_rules.parse rules_file in
+    let rules = Parse_mini_rule.parse rules_file in
     semgrep_with_rules rules files;
     if !profile then save_rules_file_in_tmp ()
 
@@ -1036,6 +1036,10 @@ let dump_tainting_rules file =
   pr2_gen xs
 (*e: function [[Main_semgrep_core.dump_tainting_rules]] *)
 
+let dump_rule file =
+  let r = Parse_mini_rule.parse file in
+  pr2_gen r
+
 (*****************************************************************************)
 (* Experiments *)
 (*****************************************************************************)
@@ -1103,6 +1107,9 @@ let all_actions () = [
   "-test_parse_tree_sitter", " <files or dirs>",
   Common.mk_action_n_arg (fun xs ->
     Test_parsing.test_parse_tree_sitter !lang xs);
+
+  "-dump_rule", " <file>",
+  Common.mk_action_1_arg dump_rule;
 
   "-dump_tree_sitter_cst", " <file>",
   Common.mk_action_1_arg Test_parsing.dump_tree_sitter_cst;
