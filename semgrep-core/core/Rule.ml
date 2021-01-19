@@ -86,7 +86,7 @@ type 'a formula_old =
 
 [@@deriving show]
 
-type lang =
+type xlang =
   | L of Lang.t * Lang.t list
   (* for pattern-regex *)
   | LNone
@@ -100,19 +100,20 @@ type paths = {
 }
 [@@deriving show]
 
-type pattern = (Pattern.t, spacegrep) Common.either
+type xpattern = (Pattern.t, spacegrep) Common.either
 [@@deriving show]
 
 type rule = {
   (* mandatory fields *)
 
   id: string;
-  formula: pattern formula_old;
+  formula: xpattern formula_old;
   message: string;
   severity: Mini_rule.severity;
-  languages: lang;
+  languages: xlang;
 
   (* optional fields *)
+
   equivalences: string list option; (* TODO: parse them *)
 
   fix: string option;

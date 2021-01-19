@@ -72,6 +72,10 @@ let parse_string ctx = function
   | `String s -> s
   | x -> pr2_gen x; error (spf "parse_string for %s" ctx)
 
+let parse_strings ctx = function
+  | `A xs -> List.map (parse_string ctx) xs
+  | x -> pr2_gen x; error (spf "parse_strings for %s" ctx)
+
 let parse_bool ctx = function
   | `String "true" -> true
   | `String "false" -> false
@@ -90,7 +94,7 @@ let parse_int ctx = function
       else begin pr2_gen f; error "not an int" end
   | x -> pr2_gen x; error (spf "parse_int for %s" ctx)
 
-type _env = (string * R.lang)
+type _env = (string * R.xlang)
 
 let parse_pattern (id, lang) s =
   match lang with
@@ -216,6 +220,24 @@ let parse_equivalences = function
         | x -> pr2_gen x; error "parse_equivalence"
       )
   | x -> pr2_gen x; error "parse_equivalences"
+
+let parse_paths = function
+  | `O xs ->
+      (match find_fields ["include"; "exclude"] xs with
+       | ["include", inc_opt;
+          "exclude", exc_opt;
+         ], [] ->
+           { R.include_ =
+               (match inc_opt with
+                | None -> [] | Some xs -> parse_strings "include" xs);
+             exclude =
+               (match exc_opt with
+                | None -> [] | Some xs -> parse_strings "exclude" xs);
+           }
+       | x -> pr2_gen x; error "parse_paths"
+      )
+  | x -> pr2_gen x; error "parse_paths"
+
 (*****************************************************************************)
 (* Main entry point *)
 (*****************************************************************************)
@@ -257,7 +279,7 @@ let parse file =
                     "metadata", metadata_opt;
                     "fix", fix_opt;
                     "fix-regex", fix_regex_opt;
-                    "paths", _pathsTODO;
+                    "paths", paths_opt;
                     "equivalences", equivs_opt;
 
                   ], rest ->
@@ -280,7 +302,7 @@ let parse file =
                         fix_regexp =
                           Common.map_opt parse_fix_regex fix_regex_opt;
                         paths =
-                          None;
+                          Common.map_opt parse_paths paths_opt;
                         equivalences =
                           Common.map_opt parse_equivalences equivs_opt;
                       }
