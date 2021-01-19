@@ -128,19 +128,19 @@ let parse_languages ~id langs =
   match langs with
   | [`String "none"] -> R.LNone
   | [`String "generic"] -> R.LGeneric
-  | xs -> 
-     let languages = xs |> List.map (function
-       | `String s ->
-        (match Lang.lang_of_string_opt s with
-         | None -> raise (E.InvalidLanguageException (id, (spf "unsupported language: %s" s)))
-         | Some l -> l
-        )
-       | _ -> raise (E.InvalidRuleException (id, (spf "expecting a string for languages")))
-  )
-  in
-  match languages with
-  | [] -> raise (E.InvalidRuleException (id, "we need at least one language"))
-  | x::xs -> R.L (x, xs)
+  | xs ->
+      let languages = xs |> List.map (function
+        | `String s ->
+            (match Lang.lang_of_string_opt s with
+             | None -> raise (E.InvalidLanguageException (id, (spf "unsupported language: %s" s)))
+             | Some l -> l
+            )
+        | _ -> raise (E.InvalidRuleException (id, (spf "expecting a string for languages")))
+      )
+      in
+      match languages with
+      | [] -> raise (E.InvalidRuleException (id, "we need at least one language"))
+      | x::xs -> R.L (x, xs)
 
 (*****************************************************************************)
 (* Main entry point *)
