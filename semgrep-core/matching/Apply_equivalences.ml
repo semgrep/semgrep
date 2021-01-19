@@ -19,7 +19,7 @@ open Common
 open AST_generic
 
 module Flag = Flag_semgrep
-module MV = Metavars_generic
+module MV = Metavariable
 module M = Map_AST
 module Eq = Equivalence
 

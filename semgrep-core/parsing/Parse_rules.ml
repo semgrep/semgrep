@@ -15,7 +15,7 @@
 *)
 open Common
 
-module R = Rule
+module R = Mini_rule
 
 (*s: exception [[Parse_rules.InvalidRuleException]] *)
 exception InvalidRuleException of string * string

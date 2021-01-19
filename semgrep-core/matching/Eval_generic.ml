@@ -15,7 +15,7 @@
 open Common
 module G = AST_generic
 
-module MV = Metavars_generic
+module MV = Metavariable
 module J = JSON
 
 let logger = Logging.get_logger [__MODULE__]
