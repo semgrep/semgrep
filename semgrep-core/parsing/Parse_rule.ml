@@ -13,6 +13,8 @@
 *)
 open Common
 
+module J = JSON
+
 module R = Rule
 
 module E = Parse_mini_rule
@@ -52,30 +54,41 @@ let rec find_fields flds xs =
 let error s =
   raise (E.InvalidYamlException s)
 
+let rec yaml_to_json = function
+  | `Null -> J.Null
+  | `Bool b -> J.Bool b
+  | `Float f ->
+      (* or use J.Int? *)
+      J.Float f
+  | `String s -> J.String s
+  | `A xs -> J.Array (xs |> List.map yaml_to_json)
+  | `O xs ->
+      J.Object (xs |> List.map (fun (k, v) -> k, yaml_to_json v))
+
 (*****************************************************************************)
 (* Sub parsers *)
 (*****************************************************************************)
-let parse_string = function
+let parse_string ctx = function
   | `String s -> s
-  | x -> pr2_gen x; error "parse_string"
+  | x -> pr2_gen x; error (spf "parse_string for %s" ctx)
 
-let parse_bool = function
+let parse_bool ctx = function
   | `String "true" -> true
   | `String "false" -> false
   | `Bool b -> b
-  | x -> pr2_gen x; error "parse_bool"
+  | x -> pr2_gen x; error (spf "parse_bool for %s" ctx)
 
-let parse_int = function
+let parse_int ctx = function
   | `String s ->
       (try int_of_string s
-       with Failure _ -> error "parse_int"
+       with Failure _ -> error (spf "parse_int  for %s" ctx)
       )
   | `Float f ->
       let i = int_of_float f in
       if float_of_int i = f
       then i
       else begin pr2_gen f; error "not an int" end
-  | x -> pr2_gen x; error "parse_int"
+  | x -> pr2_gen x; error (spf "parse_int for %s" ctx)
 
 type _env = (string * R.lang)
 
@@ -147,8 +160,8 @@ and parse_extra _env x =
          ], [] ->
            R.MetavarComparison
              { R. metavariable; comparison;
-               strip = Common.map_opt parse_bool strip_opt;
-               base = Common.map_opt parse_int base_opt;
+               strip = Common.map_opt (parse_bool "strip") strip_opt;
+               base = Common.map_opt (parse_int "base") base_opt;
              }
        | x ->
            pr2_gen x;
@@ -221,8 +234,8 @@ let parse file =
                     "message", Some (`String message);
                     "severity", Some (`String sev);
 
-                    "metadata", _metadata_optTODO;
-                    "fix", _fix_optTODO;
+                    "metadata", metadata_opt;
+                    "fix", fix_opt;
                     "fix-regex", _fix_regex_optTODO;
                     "paths", _pathsTODO;
                     "equivalences", _equivsTODO;
@@ -239,8 +252,8 @@ let parse file =
                             error "wrong rule fields"
                       in
                       { R. id; formula; message; languages; severity;
-                        metadata = [];
-                        fix = None;
+                        metadata = Common.map_opt yaml_to_json metadata_opt;
+                        fix = Common.map_opt (parse_string "fix") fix_opt;
                         fix_regexp = None;
                         paths = None;
                         equivalences = [];

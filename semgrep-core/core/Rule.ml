@@ -120,8 +120,8 @@ type rule = {
 
   paths: paths option;
 
-  (* ex: [("owasp", "A1: Injection")] *)
-  metadata: (string * string) list;
+  (* ex: [("owasp", "A1: Injection")] but can be anything *)
+  metadata: JSON.t option;
 }
 
 and rules = rule list
