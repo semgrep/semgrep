@@ -51,9 +51,12 @@ let parse_severity ~id s =
 let parse_pattern ~id ~lang pattern =
   (* todo? call Normalize_ast.normalize here? *)
   try Parse_pattern.parse_pattern lang pattern
-  with exn ->
-    raise (InvalidPatternException (id, pattern, (Lang.string_of_lang lang),
-                                    (Common.exn_to_s exn)))
+  with
+  | Timeout -> raise Timeout
+  | UnixExit n -> raise (UnixExit n)
+  | exn ->
+      raise (InvalidPatternException (id, pattern, (Lang.string_of_lang lang),
+                                      (Common.exn_to_s exn)))
 (*e: function [[Parse_rules.parse_pattern]] *)
 
 (*s: function [[Parse_rules.parse_languages]] *)
