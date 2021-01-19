@@ -273,13 +273,14 @@ PASSING_REPOS = [
 ]
 
 FAILING_REPOS = [
-    xfail_repo(
-        {
-            "repo": "https://github.com/we45/Vulnerable-Flask-App",
-            "languages": ALL_LANGUAGES,
-        },
-        reason="MatchTimeout error but happens only in CI",
-    ),
+    # this fails in some CI, but works locally, weird
+    #    xfail_repo(
+    #        {
+    #            "repo": "https://github.com/we45/Vulnerable-Flask-App",
+    #            "languages": ALL_LANGUAGES,
+    #        },
+    #        reason="MatchTimeout error but happens only in CI",
+    #    ),
     xfail_repo(
         {
             "repo": "https://github.com/highcharts/highcharts",
