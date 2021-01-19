@@ -55,12 +55,12 @@ type _env = (string * R.lang)
 
 let parse_pattern (id, lang) s =
   match lang with
-  | R.L lang ->
-      H.parse_pattern ~id ~lang s
+  | R.L (lang, _) ->
+      Left (H.parse_pattern ~id ~lang s)
   | R.LNone ->
       failwith ("you should not use real pattern with language = none")
   | R.LGeneric ->
-      raise Todo
+      Right s
 
 let rec parse_formula env (x: string * Yaml.value) =
   match x with
@@ -125,23 +125,22 @@ and parse_extra _env x =
 (* Languages *)
 (*****************************************************************************)
 let parse_languages ~id langs =
-  let languages = langs |> List.map (function
-    | `String "none" -> R.LNone
-    | `String "generic" -> R.LGeneric
-    | `String s ->
+  match langs with
+  | [`String "none"] -> R.LNone
+  | [`String "generic"] -> R.LGeneric
+  | xs -> 
+     let languages = xs |> List.map (function
+       | `String s ->
         (match Lang.lang_of_string_opt s with
          | None -> raise (E.InvalidLanguageException (id, (spf "unsupported language: %s" s)))
-         | Some l -> R.L l
+         | Some l -> l
         )
-    | _ -> raise (E.InvalidRuleException (id, (spf "expecting a string for languages")))
+       | _ -> raise (E.InvalidRuleException (id, (spf "expecting a string for languages")))
   )
   in
-  let lang =
-    match languages with
-    | [] -> raise (E.InvalidRuleException (id, "we need at least one language"))
-    | x::_xs -> x
-  in
-  languages, lang
+  match languages with
+  | [] -> raise (E.InvalidRuleException (id, "we need at least one language"))
+  | x::xs -> R.L (x, xs)
 
 (*****************************************************************************)
 (* Main entry point *)
@@ -186,12 +185,12 @@ let parse file =
                     "paths", _paths;
 
                   ], rest ->
-                      let languages, lang = parse_languages ~id langs in
+                      let languages = parse_languages ~id langs in
                       let severity = H.parse_severity ~id sev in
                       let formula =
                         match rest with
                         | [x] ->
-                            parse_formula (id, lang) x
+                            parse_formula (id, languages) x
                         | x ->
                             pr2_gen x;
                             raise (E.InvalidYamlException "wrong rule fields")

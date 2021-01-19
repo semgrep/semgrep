@@ -37,6 +37,8 @@ type 'a formula =
 (* extra conditions, usually on metavariable content *)
 and extra =
   | PatRegexp of regexp
+  | Spacegrep of spacegrep (* todo: parse it via spacegrep/lib/ *)
+
   | MetavarRegexp of MV.mvar * regexp
   | MetavarComparison of metavariable_comparison
   | PatWherePython of string
@@ -45,6 +47,9 @@ and extra =
   | PatNotRegexp of regexp
 
 and regexp = string
+
+and spacegrep = string
+
 (* todo: see matching/eval_generic.ml *)
 and metavariable_comparison = {
   metavars: MV.mvar list;
@@ -76,7 +81,7 @@ type 'a formula_old =
 [@@deriving show]
 
 type lang =
-  | L of Lang.t
+  | L of Lang.t * Lang.t list
   (* for pattern-regex *)
   | LNone
   (* for spacegrep *)
@@ -86,14 +91,17 @@ type lang =
 type paths = unit (* TODO *)
 [@@deriving show]
 
+type pattern = (Pattern.t, spacegrep) Common.either
+[@@deriving show]
+
 type rule = {
   (* mandatory fields *)
 
   id: string;
-  formula: Pattern.t formula_old;
+  formula: pattern formula_old;
   message: string;
   severity: Mini_rule.severity;
-  languages: lang list; (* at least one element *)
+  languages: lang;
 
   (* optional fields *)
 
