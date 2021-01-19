@@ -1,4 +1,4 @@
-(*s: semgrep/parsing/Parse_rules.ml *)
+(*s: semgrep/parsing/Parse_mini_rule.ml *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2011 Facebook
@@ -137,4 +137,4 @@ let parse file =
     else raise Impossible
   )
 *)
-(*e: semgrep/parsing/Parse_rules.ml *)
+(*e: semgrep/parsing/Parse_mini_rule.ml *)
