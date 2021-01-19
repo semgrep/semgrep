@@ -19,6 +19,19 @@ module E = Parse_mini_rule
 module H = Parse_mini_rule
 
 (*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+(* Parsing a Semgrep rule, including complex pattern formulas.
+ *
+ * See also the JSON schema in rule_schema.yaml
+ *
+ * TODO:
+ *  - use the streaming API of Yaml.mli to get position information for
+ *    precise error location
+ *  - Move the H.xxx here and get rid of Parse_mini_rule.ml
+*)
+
+(*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 

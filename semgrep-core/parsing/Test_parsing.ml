@@ -16,6 +16,7 @@ open Common
 module PI = Parse_info
 module G = AST_generic
 module J = JSON
+module FT = File_type
 
 let logger = Logging.get_logger [__MODULE__]
 
@@ -240,4 +241,26 @@ let diff_pfff_tree_sitter xs =
           ))
 
     | _ -> failwith (spf "can't detect single language for %s" file)
+  )
+
+(*****************************************************************************)
+(* Rule parsing *)
+(*****************************************************************************)
+
+
+(* mostly a copy of Lang.find_source *)
+let find_yaml_files xs =
+  Common.files_of_dir_or_files_no_vcs_nofilter xs
+  |> List.filter (fun filename ->
+    match File_type.file_type_of_file filename with
+    | FT.PL (FT.Web (FT.Yaml)) -> true
+    | _ -> false
+  ) |> Common.sort
+
+let test_parse_rules xs =
+  let fullxs = find_yaml_files xs in
+  fullxs |> List.iter (fun file ->
+    logger#info "processing %s" file;
+    let _r = Parse_rule.parse file in
+    ()
   )
