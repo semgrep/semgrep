@@ -61,6 +61,24 @@ type function_declaration_rs = {
   retval: G.type_ option;
 }
 
+and trait_bound =
+  | TraitBoundType of G.type_
+  | TraitBoundLifetime of lifetime
+  | TraitBoundHigherRanked of G.type_parameter list * G.type_
+  | TraitBoundRemoved of G.type_
+
+and where_clause = where_predicate list
+
+and where_predicate = where_predicate_type * trait_bound list
+
+and where_predicate_type =
+  | WherePredLifetime of lifetime
+  | WherePredId of G.ident
+  | WherePredType of G.type_
+  | WherePredHigherRanked of G.type_parameter list * G.type_
+
+and lifetime = G.ident
+
 let todo (env : env) _ =
   failwith "not implemented"
 
@@ -71,8 +89,6 @@ let deoptionalize l =
     | Some x::tl -> deopt (x::acc) tl
   in
   deopt [] l
-
-type lifetime = G.ident
 
 let ident (env : env) (tok : CST.identifier): G.ident =
   str env tok (* pattern [a-zA-Z_]\w* *)
@@ -2144,20 +2160,22 @@ and map_higher_ranked_trait_bound (env : env) ((v1, v2, v3) : CST.higher_ranked_
   let type_ = map_type_ env v3 in
   (type_parameters, type_)
 
-and map_trait_bound (env : env) (x : CST.anon_choice_type_d689819): G.type_ option =
+and map_trait_bound (env : env) (x : CST.anon_choice_type_d689819): trait_bound =
   (match x with
-   | `Type x -> Some (map_type_ env x)
+   | `Type x -> let ty = map_type_ env x in
+       TraitBoundType ty
    | `Life x -> let lt = map_lifetime env x in
-       None
-   | `Higher_ranked_trait_bound x -> let (_, ty) = map_higher_ranked_trait_bound env x in
-       Some ty
+       TraitBoundLifetime lt
+   | `Higher_ranked_trait_bound x ->
+       let (type_params, type_) = map_higher_ranked_trait_bound env x in
+       TraitBoundHigherRanked (type_params, type_)
    | `Remo_trait_bound (v1, v2) ->
-       let question = token env v1 (* "?" *) in
+       let qmark = token env v1 (* "?" *) in
        let ty = map_type_ env v2 in
-       Some ty
+       TraitBoundRemoved ty
   )
 
-and map_trait_bounds (env : env) ((v1, v2, v3) : CST.trait_bounds) =
+and map_trait_bounds (env : env) ((v1, v2, v3) : CST.trait_bounds): trait_bound list =
   let colon = token env v1 (* ":" *) in
   let trait_bound_first = map_trait_bound env v2 in
   let trait_bound_rest =
@@ -2167,7 +2185,7 @@ and map_trait_bounds (env : env) ((v1, v2, v3) : CST.trait_bounds) =
       trait_bound
     ) v3
   in
-  deoptionalize (trait_bound_first::trait_bound_rest)
+  (trait_bound_first::trait_bound_rest)
 
 and map_tuple_type (env : env) ((v1, v2, v3, v4, v5) : CST.tuple_type): G.type_ =
   let lparen = token env v1 (* "(" *) in
@@ -2341,7 +2359,7 @@ and map_visibility_modifier (env : env) (x : CST.visibility_modifier): G.attribu
        deoptionalize [Some pub_attr; qualifier]
   )
 
-and map_where_clause (env : env) ((v1, v2, v3, v4) : CST.where_clause) =
+and map_where_clause (env : env) ((v1, v2, v3, v4) : CST.where_clause): where_clause =
   let where = token env v1 (* "where" *) in
   let predicate_first = map_where_predicate env v2 in
   let predicate_rest =
@@ -2354,25 +2372,24 @@ and map_where_clause (env : env) ((v1, v2, v3, v4) : CST.where_clause) =
   let comma = Option.map (fun tok -> token env tok (* "," *)) v4 in
   (predicate_first::predicate_rest)
 
-and map_where_predicate (env : env) ((v1, v2) : CST.where_predicate) =
-  let v1 =
+and map_where_predicate (env : env) ((v1, v2) : CST.where_predicate): where_predicate =
+  let where_predicate_type =
     (match v1 with
-     | `Life x -> let lt = map_lifetime env x in todo env x
-     | `Id tok -> let ident = token env tok in (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
-         todo env tok
-     | `Scoped_type_id x -> map_scoped_type_identifier env x
-     | `Gene_type x -> map_generic_type env x
-     | `Ref_type x -> map_reference_type env x
-     | `Poin_type x -> map_pointer_type env x
-     | `Tuple_type x -> map_tuple_type env x
-     | `Higher_ranked_trait_bound x -> let tb = map_higher_ranked_trait_bound env x in
-         todo env x
-     | `Choice_u8 x -> let ty = map_primitive_type env x  in
-         todo env x
+     | `Life x -> WherePredLifetime (map_lifetime env x)
+     | `Id tok -> WherePredId (ident env tok) (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
+     | `Scoped_type_id x -> WherePredType (map_scoped_type_identifier env x)
+     | `Gene_type x -> WherePredType (map_generic_type env x)
+     | `Ref_type x -> WherePredType (map_reference_type env x)
+     | `Poin_type x -> WherePredType (map_pointer_type env x)
+     | `Tuple_type x -> WherePredType (map_tuple_type env x)
+     | `Higher_ranked_trait_bound x ->
+         let (type_params, ty) = map_higher_ranked_trait_bound env x in
+         WherePredHigherRanked (type_params, ty)
+     | `Choice_u8 x -> WherePredType (map_primitive_type env x)
     )
   in
-  let v2 = map_trait_bounds env v2 in
-  todo env (v1, v2)
+  let trait_bounds = map_trait_bounds env v2 in
+  (where_predicate_type, trait_bounds)
 
 and map_item_kind (env : env) outer_attrs visibility (x : CST.item_kind): G.stmt list =
   (match x with
@@ -2617,7 +2634,7 @@ and map_item_kind (env : env) outer_attrs visibility (x : CST.item_kind): G.stmt
        let class_def = {
          G.ckind = (G.Trait, trait);
          G.cextends = [];
-         G.cimplements = trait_bounds;
+         G.cimplements = [];
          G.cmixins = [];
          G.cbody = fields;
        } in
