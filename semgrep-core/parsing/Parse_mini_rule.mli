@@ -1,4 +1,4 @@
-(*s: semgrep/parsing/Parse_rules.mli *)
+(*s: semgrep/parsing/Parse_mini_rule.mli *)
 
 (*s: signature [[Parse_rules.parse]] *)
 val parse: Common.filename -> Mini_rule.rules
@@ -32,4 +32,4 @@ val parse_severity: id:string -> string -> Mini_rule.severity
 val parse_pattern: id:string -> lang:Lang.t -> string -> Mini_rule.pattern
 (*e: signature [[Parse_rules.parse_pattern]] *)
 
-(*e: semgrep/parsing/Parse_rules.mli *)
+(*e: semgrep/parsing/Parse_mini_rule.mli *)
