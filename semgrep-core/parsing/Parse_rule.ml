@@ -27,7 +27,10 @@ module H = Parse_mini_rule
  *
  * TODO:
  *  - use the streaming API of Yaml.mli to get position information for
- *    precise error location
+ *    precise error location? At the same time in a the long term we want
+ *    to use JSON and jsonnet, so we might get anyway a line location
+ *    in a generated file, so maybe better to give error location by
+ *    describing the line and what is wrong wit it.
  *  - Move the H.xxx here and get rid of Parse_mini_rule.ml
 *)
 
@@ -36,13 +39,13 @@ module H = Parse_mini_rule
 (*****************************************************************************)
 
 (* less: could use a hash to accelerate things *)
-let rec find_fields_and_sort flds xs =
+let rec find_fields flds xs =
   match flds with
   | [] -> [], xs
   | fld::flds ->
       let fld_match = List.assoc_opt fld xs in
       let xs = List.remove_assoc fld xs in
-      let (matches, rest) = find_fields_and_sort flds xs in
+      let (matches, rest) = find_fields flds xs in
       (fld, fld_match)::matches, rest
 
 (*****************************************************************************)
@@ -74,7 +77,7 @@ let rec parse_formula env (x: string * Yaml.value) =
         | `O [x] -> parse_formula env x
         | x ->
             pr2_gen x;
-            raise (E.InvalidYamlException "wrong rule fields")
+            raise (E.InvalidYamlException "wrong parse_formula fields")
       ) xs)
   | "patterns", `A xs ->
       R.Patterns (List.map (fun x ->
@@ -82,11 +85,30 @@ let rec parse_formula env (x: string * Yaml.value) =
         | `O [x] -> parse_formula env x
         | x ->
             pr2_gen x;
-            raise (E.InvalidYamlException "wrong rule fields")
+            raise (E.InvalidYamlException "wrong parse_formula fields")
       ) xs)
   | x ->
+      let extra = parse_extra env x in
+      R.PatExtra extra
+
+(*****************************************************************************)
+(* Extra *)
+(*****************************************************************************)
+and parse_extra _env x =
+  match x with
+  | "metavariable-regex", `O xs ->
+      (match find_fields ["metavariable";"regex"] xs with
+       | ["metavariable", Some (`String metavar);
+          "regex", Some (`String regexp);
+         ], [] ->
+           R.MetavarRegexp (metavar, regexp)
+       | x ->
+           pr2_gen x;
+           raise (E.InvalidYamlException "wrong parse_extra fields")
+      )
+  | x ->
       pr2_gen x;
-      raise (E.InvalidYamlException "wrong rule fields")
+      raise (E.InvalidYamlException "wrong parse_extra fields")
 
 
 (*****************************************************************************)
@@ -109,7 +131,7 @@ let parse file =
                              "severity";
                              "metadata"]
                  in
-                 (match find_fields_and_sort flds xs with
+                 (match find_fields flds xs with
                   | [
                     "id", Some (`String id);
                     "languages", Some (`A langs);

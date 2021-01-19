@@ -11,6 +11,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * file license.txt for more details.
 *)
+module MV = Metavariable
 
 (*****************************************************************************)
 (* Prelude *)
@@ -27,9 +28,17 @@
 (* classic boolean-logic/set operators with range positions set semantic *)
 type 'a formula =
   | F of 'a
+  | X of extra
+
   | Not of 'a (* could be of 'a formula? *)
   | And of 'a formula list
   | Or of 'a formula list
+
+(* extra conditions, usually on metavariable content *)
+and extra =
+  | MetavarRegexp of MV.mvar * regexp
+
+and regexp = string
 
 [@@deriving show]
 
@@ -39,6 +48,8 @@ type 'a formula_old =
   | Pat of 'a
   (* pattern-not: *)
   | PatNot of 'a
+
+  | PatExtra of extra
 
   (* pattern-inside: *)
   | PatInside of 'a
