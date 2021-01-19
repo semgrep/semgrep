@@ -30,6 +30,7 @@ type 'a formula =
   | Not of 'a (* could be of 'a formula? *)
   | And of 'a formula list
   | Or of 'a formula list
+
 [@@deriving show]
 
 (* unorthodox original pattern compositions *)
@@ -46,9 +47,9 @@ type 'a formula_old =
 
   (* pattern-either: *)
   | PatEither of 'a formula_old list
-
   (* patterns: And? or Or? depends on formula inside, hmmm *)
-  | PatList of 'a formula_old list
+  | Patterns of 'a formula_old list
+
 [@@deriving show]
 
 type rule = {
