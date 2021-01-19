@@ -284,7 +284,7 @@ let lint_regression_tests =
 
   (* actual *)
   E.g_errors := [];
-  let rules = Parse_rules.parse rule_file in
+  let rules = Parse_mini_rule.parse rule_file in
   let equivs = [] in
 
   test_files |> List.iter (fun file ->
