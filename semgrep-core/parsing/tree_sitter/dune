@@ -1,0 +1,26 @@
+(library
+ (name semgrep_parsing_tree_sitter)
+ (wrapped false)
+ (libraries
+   yaml
+
+   tree-sitter-lang.ruby
+   tree-sitter-lang.java
+   tree-sitter-lang.kotlin
+   tree-sitter-lang.go
+   tree-sitter-lang.c-sharp
+   tree-sitter-lang.javascript
+   tree-sitter-lang.typescript
+   tree-sitter-lang.tsx
+   tree-sitter-lang.lua
+   tree-sitter-lang.c
+   tree-sitter-lang.cpp
+   tree-sitter-lang.rust
+   tree-sitter-lang.r
+
+   commons
+   pfff-lang_GENERIC
+
+ )
+ (preprocess (pps ppx_profiling ppx_sexp_conv ppx_deriving.show))
+)
