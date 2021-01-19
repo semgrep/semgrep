@@ -19,6 +19,9 @@ module MV = Metavariable
 (* Data structure representing a semgrep rule.
  *
  * See also Mini_rule.ml where formula and many other features disappears.
+ *
+ * TODO:
+ *  - parse more spacegrep and equivalences
 *)
 
 (*****************************************************************************)
@@ -91,7 +94,10 @@ type lang =
   | LGeneric
 [@@deriving show]
 
-type paths = unit (* TODO *)
+type paths = {
+  include_: regexp list;
+  exclude: regexp list;
+}
 [@@deriving show]
 
 type pattern = (Pattern.t, spacegrep) Common.either

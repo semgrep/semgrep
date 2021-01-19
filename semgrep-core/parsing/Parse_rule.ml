@@ -49,8 +49,11 @@ let rec find_fields flds xs =
       let (matches, rest) = find_fields flds xs in
       (fld, fld_match)::matches, rest
 
+let error s =
+  raise (E.InvalidYamlException s)
+
 (*****************************************************************************)
-(* Formula *)
+(* Sub parsers *)
 (*****************************************************************************)
 type _env = (string * R.lang)
 
@@ -86,7 +89,7 @@ let rec parse_formula env (x: string * Yaml.value) =
         | `O [x] -> parse_formula env x
         | x ->
             pr2_gen x;
-            raise (E.InvalidYamlException "wrong parse_formula fields")
+            error "wrong parse_formula fields"
       ) xs)
   | "patterns", `A xs ->
       R.Patterns (List.map (fun x ->
@@ -94,15 +97,12 @@ let rec parse_formula env (x: string * Yaml.value) =
         | `O [x] -> parse_formula env x
         | x ->
             pr2_gen x;
-            raise (E.InvalidYamlException "wrong parse_formula fields")
+            error "wrong parse_formula fields"
       ) xs)
   | x ->
       let extra = parse_extra env x in
       R.PatExtra extra
 
-(*****************************************************************************)
-(* Extra *)
-(*****************************************************************************)
 and parse_extra _env x =
   match x with
   | "metavariable-regex", `O xs ->
@@ -113,7 +113,7 @@ and parse_extra _env x =
            R.MetavarRegexp (metavar, regexp)
        | x ->
            pr2_gen x;
-           raise (E.InvalidYamlException "wrong parse_extra fields")
+           error "wrong parse_extra fields"
       )
 
   | "metavariable-comparison", `O xs ->
@@ -130,7 +130,7 @@ and parse_extra _env x =
              }
        | x ->
            pr2_gen x;
-           raise (E.InvalidYamlException "wrong parse_extra fields")
+           error "wrong parse_extra fields"
       )
 
   | "pattern-regex", `String s ->
@@ -140,11 +140,8 @@ and parse_extra _env x =
 
   | x ->
       pr2_gen x;
-      raise (E.InvalidYamlException "wrong parse_extra fields")
+      error "wrong parse_extra fields"
 
-(*****************************************************************************)
-(* Languages *)
-(*****************************************************************************)
 let parse_languages ~id langs =
   match langs with
   | [`String "none"] -> R.LNone
@@ -216,7 +213,7 @@ let parse file =
                             parse_formula (id, languages) x
                         | x ->
                             pr2_gen x;
-                            raise (E.InvalidYamlException "wrong rule fields")
+                            error "wrong rule fields"
                       in
                       { R. id; formula; message; languages; severity;
                         metadata = [];
@@ -227,13 +224,13 @@ let parse file =
                       }
                   | x ->
                       pr2_gen x;
-                      raise (E.InvalidYamlException "wrong rule fields")
+                      error "wrong rule fields"
                  )
              | x ->
                  pr2_gen x;
-                 raise (E.InvalidYamlException "wrong rule fields")
+                 error "wrong rule fields"
            )
-       | _ -> raise (E.InvalidYamlException "missing rules entry as top-level key")
+       | _ -> error  "missing rules entry as top-level key"
       )
   | Result.Error (`Msg s) ->
       raise (E.UnparsableYamlException s)
