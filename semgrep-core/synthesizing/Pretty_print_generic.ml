@@ -34,7 +34,7 @@ module G = AST_generic
 (* Types *)
 (*****************************************************************************)
 type env = {
-  mvars: Metavars_generic.metavars_binding;
+  mvars: Metavariable.metavars_binding;
   lang: Lang.t;
 }
 

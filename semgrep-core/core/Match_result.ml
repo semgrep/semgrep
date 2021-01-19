@@ -22,10 +22,10 @@
 
 (*s: type [[Match_result.t]] *)
 type t = {
-  rule: Rule.t;
+  rule: Mini_rule.t;
   file: Common.filename;
   code: AST_generic.any;
-  env: Metavars_generic.metavars_binding;
+  env: Metavariable.metavars_binding;
 }
 (*e: type [[Match_result.t]] *)
 (*e: semgrep/core/Match_result.ml *)

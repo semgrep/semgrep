@@ -1,4 +1,4 @@
-(*s: semgrep/core/Metavars_generic.ml *)
+(*s: semgrep/core/Metavariable.ml *)
 (*s: pad/r2c copyright *)
 (* Yoann Padioleau
  *
@@ -151,4 +151,4 @@ let metavar_ellipsis_regexp_string =
 let is_metavar_ellipsis s =
   s =~ metavar_ellipsis_regexp_string
 
-(*e: semgrep/core/Metavars_generic.ml *)
+(*e: semgrep/core/Metavariable.ml *)

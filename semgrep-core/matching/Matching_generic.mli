@@ -3,7 +3,7 @@
 (*s: type [[Matching_generic.tin]] *)
 (* tin is for 'type in' and tout for 'type out' *)
 (* incoming environment *)
-type tin = Metavars_generic.metavars_binding
+type tin = Metavariable.metavars_binding
 (*e: type [[Matching_generic.tin]] *)
 (*s: type [[Matching_generic.tout]] *)
 (* list of possible outcoming matching environments *)
@@ -50,12 +50,12 @@ val empty_environment : unit -> 'a list
 
 (*s: signature [[Matching_generic.envf]] *)
 val envf :
-  (Metavars_generic.mvar AST_generic.wrap, Metavars_generic.mvalue) matcher
+  (Metavariable.mvar AST_generic.wrap, Metavariable.mvalue) matcher
 (*e: signature [[Matching_generic.envf]] *)
 
 (*s: signature [[Matching_generic.check_and_add_metavar_binding]] *)
 val check_and_add_metavar_binding :
-  Metavars_generic.mvar * Metavars_generic.mvalue ->
+  Metavariable.mvar * Metavariable.mvalue ->
   tin -> tin option
 (*e: signature [[Matching_generic.check_and_add_metavar_binding]] *)
 
@@ -76,7 +76,7 @@ val regexp_matcher_of_regexp_string: string -> (string -> bool)
 (*e: signature [[Matching_generic.regexp_of_regexp_string]] *)
 
 val equal_ast_binded_code :
-  Metavars_generic.mvalue -> Metavars_generic.mvalue -> bool
+  Metavariable.mvalue -> Metavariable.mvalue -> bool
 
 (* generic matchers *)
 (*s: signature [[Matching_generic.m_option]] *)

@@ -21,11 +21,11 @@ module V = Visitor_AST
 module AST = AST_generic
 module Err = Error_code
 module PI = Parse_info
-module R = Rule
+module R = Mini_rule
 module Eq = Equivalence
 module Res = Match_result
 module GG = Generic_vs_generic
-module MV = Metavars_generic
+module MV = Metavariable
 module Flag = Flag_semgrep
 
 (*****************************************************************************)
@@ -49,7 +49,7 @@ module Flag = Flag_semgrep
 
 (*s: type [[Semgrep_generic.matcher]] *)
 type ('a, 'b) matcher = 'a -> 'b ->
-  Metavars_generic.metavars_binding list
+  Metavariable.metavars_binding list
 (*e: type [[Semgrep_generic.matcher]] *)
 
 (*****************************************************************************)
@@ -59,7 +59,7 @@ type ('a, 'b) matcher = 'a -> 'b ->
 (* This is used to let the user know which rule the engine was using when
  * a Timeout or OutOfMemory exn occured.
 *)
-let (last_matched_rule: Rule.t option ref) = ref None
+let (last_matched_rule: Mini_rule.t option ref) = ref None
 
 let set_last_matched_rule rule f =
   last_matched_rule := Some rule;

@@ -13,7 +13,7 @@ module Flag = Flag_semgrep
 module PI = Parse_info
 module S = Scope_code
 module E = Error_code
-module R = Rule
+module R = Mini_rule
 module J = JSON
 
 (*****************************************************************************)
@@ -142,7 +142,7 @@ let match_format = ref Matching_report.Normal
 (*e: constant [[Main_semgrep_core.match_format]] *)
 
 (*s: constant [[Main_semgrep_core.mvars]] *)
-let mvars = ref ([]: Metavars_generic.mvar list)
+let mvars = ref ([]: Metavariable.mvar list)
 (*e: constant [[Main_semgrep_core.mvars]] *)
 
 (*s: constant [[Main_semgrep_core.layer_file]] *)
@@ -468,7 +468,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout matches =
         matches
         |> List.map (fun m ->
           let rule = m.Match_result.rule in
-          (rule.Rule.id, rule.Rule.pattern_string), m)
+          (rule.Mini_rule.id, rule.Mini_rule.pattern_string), m)
         |> Common.group_assoc_bykey_eff
         |> List.map (fun (k, xs) -> k, List.length xs)
         |> Common.sort_by_val_highfirst
@@ -850,7 +850,7 @@ let semgrep_with_one_pattern xs =
               Semgrep_generic.check
                 ~hook:(fun env matched_tokens ->
                   let xs = Lazy.force matched_tokens in
-                  print_match !mvars env Metavars_generic.ii_of_mval xs
+                  print_match !mvars env Metavariable.ii_of_mval xs
                 )
                 [rule] (parse_equivalences ())
                 file lang ast |> ignore
