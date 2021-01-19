@@ -16,9 +16,9 @@ module MV = Metavariable
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* Data structure for a semgrep rule.
+(* Data structure representing a semgrep rule.
  *
- * See also Mini_rule.ml where formula disappears.
+ * See also Mini_rule.ml where formula and many other features disappears.
 *)
 
 (*****************************************************************************)
@@ -43,7 +43,6 @@ and extra =
 
   (* less: could be done via Not PatRegexp later? *)
   | PatNotRegexp of regexp
-
 
 and regexp = string
 (* todo: see matching/eval_generic.ml *)
@@ -76,12 +75,32 @@ type 'a formula_old =
 
 [@@deriving show]
 
+type lang =
+  | L of Lang.t
+  (* for pattern-regex *)
+  | LNone
+  (* for spacegrep *)
+  | LGeneric
+[@@deriving show]
+
+type paths = unit (* TODO *)
+[@@deriving show]
+
 type rule = {
+  (* mandatory fields *)
+
   id: string;
   formula: Pattern.t formula_old;
   message: string;
   severity: Mini_rule.severity;
-  languages: Lang.t list; (* at least one element *)
+  languages: lang list; (* at least one element *)
+
+  (* optional fields *)
+
+  fix: string option;
+  fix_regexp: (regexp * int option * string) option;
+
+  paths: paths option;
 
   (* ex: [("owasp", "A1: Injection")] *)
   metadata: (string * string) list;
@@ -89,7 +108,6 @@ type rule = {
 
 and rules = rule list
 [@@deriving show]
-
 
 (* alias *)
 type t = rule

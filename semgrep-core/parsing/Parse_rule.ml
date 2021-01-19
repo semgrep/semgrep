@@ -51,24 +51,31 @@ let rec find_fields flds xs =
 (*****************************************************************************)
 (* Formula *)
 (*****************************************************************************)
+type _env = (string * R.lang)
+
+let parse_pattern (id, lang) s =
+  match lang with
+  | R.L lang ->
+      H.parse_pattern ~id ~lang s
+  | R.LNone ->
+      failwith ("you should not use real pattern with language = none")
+  | R.LGeneric ->
+      raise Todo
+
 let rec parse_formula env (x: string * Yaml.value) =
   match x with
   | "pattern", `String pattern_string ->
-      let (id, lang) = env in
-      let pattern = H.parse_pattern ~id ~lang pattern_string in
+      let pattern = parse_pattern env pattern_string in
       R.Pat pattern
   | "pattern-not", `String pattern_string ->
-      let (id, lang) = env in
-      let pattern = H.parse_pattern ~id ~lang pattern_string in
+      let pattern = parse_pattern env pattern_string in
       R.PatNot pattern
 
   | "pattern-inside", `String pattern_string ->
-      let (id, lang) = env in
-      let pattern = H.parse_pattern ~id ~lang pattern_string in
+      let pattern = parse_pattern env pattern_string in
       R.PatInside pattern
   | "pattern-not-inside", `String pattern_string ->
-      let (id, lang) = env in
-      let pattern = H.parse_pattern ~id ~lang pattern_string in
+      let pattern = parse_pattern env pattern_string in
       R.PatNotInside pattern
 
   | "pattern-either", `A xs ->
@@ -114,10 +121,45 @@ and parse_extra _env x =
       pr2_gen x;
       raise (E.InvalidYamlException "wrong parse_extra fields")
 
+(*****************************************************************************)
+(* Languages *)
+(*****************************************************************************)
+let parse_languages ~id langs =
+  let languages = langs |> List.map (function
+    | `String "none" -> R.LNone
+    | `String "generic" -> R.LGeneric
+    | `String s ->
+        (match Lang.lang_of_string_opt s with
+         | None -> raise (E.InvalidLanguageException (id, (spf "unsupported language: %s" s)))
+         | Some l -> R.L l
+        )
+    | _ -> raise (E.InvalidRuleException (id, (spf "expecting a string for languages")))
+  )
+  in
+  let lang =
+    match languages with
+    | [] -> raise (E.InvalidRuleException (id, "we need at least one language"))
+    | x::_xs -> x
+  in
+  languages, lang
 
 (*****************************************************************************)
 (* Main entry point *)
 (*****************************************************************************)
+
+let top_fields = [
+  "id";
+  "languages";
+  "message";
+  "severity";
+  (* pattern* handled specialy via parse_formula *)
+
+  (* optional *)
+  "metadata";
+  "fix";
+  "fix-regex";
+  "paths";
+]
 
 let parse file =
   let str = Common.read_file file in
@@ -129,21 +171,22 @@ let parse file =
            xs |> List.map (fun v ->
              match v with
              | `O xs ->
-                 let flds = ["id";
-                             "languages";
-                             "message";
-                             "severity";
-                             "metadata"]
-                 in
-                 (match find_fields flds xs with
+                 (match find_fields top_fields xs with
+                  (* coupling: the order of the fields below must match the
+                   * order in top_fields. *)
                   | [
                     "id", Some (`String id);
                     "languages", Some (`A langs);
                     "message", Some (`String message);
                     "severity", Some (`String sev);
+
                     "metadata", _metadata_opt;
+                    "fix", _fix_opt;
+                    "fix-regex", _fix_regex_opt;
+                    "paths", _paths;
+
                   ], rest ->
-                      let languages, lang = H.parse_languages ~id langs in
+                      let languages, lang = parse_languages ~id langs in
                       let severity = H.parse_severity ~id sev in
                       let formula =
                         match rest with
@@ -153,8 +196,12 @@ let parse file =
                             pr2_gen x;
                             raise (E.InvalidYamlException "wrong rule fields")
                       in
-                      let metadata = [] in
-                      { R. id; formula; message; languages; severity; metadata}
+                      { R. id; formula; message; languages; severity;
+                        metadata = [];
+                        fix = None;
+                        fix_regexp = None;
+                        paths = None;
+                      }
                   | x ->
                       pr2_gen x;
                       raise (E.InvalidYamlException "wrong rule fields")
