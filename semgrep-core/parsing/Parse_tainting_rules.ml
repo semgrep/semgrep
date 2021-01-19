@@ -18,7 +18,7 @@
 open Common
 module R = Tainting_rule
 
-open Parse_rules (* for the exns *)
+open Parse_mini_rule (* for the exns *)
 
 (*****************************************************************************)
 (* Helpers *)
@@ -27,7 +27,7 @@ open Parse_rules (* for the exns *)
 (*s: function [[Parse_tainting_rules.parse_patterns]] *)
 let parse_patterns ~id ~lang xs =
   xs |> List.map (function
-    | `String s -> Parse_rules.parse_pattern ~id ~lang s
+    | `String s -> Parse_mini_rule.parse_pattern ~id ~lang s
     | x ->
         pr2_gen x;
         raise (InvalidYamlException ("wrong pattern field"))
@@ -78,7 +78,7 @@ let parse file =
                        id := Some s
                    | "languages", `A langs ->
                        let a, b =
-                         Parse_rules.parse_languages ~id:(current_id()) langs
+                         Parse_mini_rule.parse_languages ~id:(current_id()) langs
                        in
                        languages := Some a;
                        lang := Some b;
@@ -86,7 +86,7 @@ let parse file =
                        message := s
                    | "severity", `String s ->
                        severity := Some
-                           (Parse_rules.parse_severity ~id:(current_id()) s)
+                           (Parse_mini_rule.parse_severity ~id:(current_id()) s)
                    | "pattern-sources", `A xs ->
                        sources := parse_patterns
                            ~id:(current_id()) ~lang:(current_lang()) xs
