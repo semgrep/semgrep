@@ -258,9 +258,13 @@ let find_yaml_files xs =
   ) |> Common.sort
 
 let test_parse_rules xs =
-  let fullxs = find_yaml_files xs in
+  let fullxs =
+    find_yaml_files xs
+    |> Skip_code.filter_files_if_skip_list ~root:xs
+  in
   fullxs |> List.iter (fun file ->
     logger#info "processing %s" file;
     let _r = Parse_rule.parse file in
     ()
-  )
+  );
+  logger#info "done test_parse_rules"

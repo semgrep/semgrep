@@ -25,7 +25,7 @@ module MV = Metavariable
 (* Types *)
 (*****************************************************************************)
 
-(* classic boolean-logic/set operators with range positions set semantic *)
+(* classic boolean-logic/set operators with text range set semantic *)
 type 'a formula =
   | F of 'a
   | X of extra
@@ -37,7 +37,7 @@ type 'a formula =
 (* extra conditions, usually on metavariable content *)
 and extra =
   | PatRegexp of regexp
-  | Spacegrep of spacegrep (* todo: parse it via spacegrep/lib/ *)
+  | Spacegrep of spacegrep (* TODO: parse it via spacegrep/lib/ *)
 
   | MetavarRegexp of MV.mvar * regexp
   | MetavarComparison of metavariable_comparison
@@ -50,9 +50,12 @@ and regexp = string
 
 and spacegrep = string
 
-(* todo: see matching/eval_generic.ml *)
+(* See also matching/eval_generic.ml *)
 and metavariable_comparison = {
-  metavars: MV.mvar list;
+  metavariable: MV.mvar;
+  comparison: string;
+  strip: bool option;
+  base: int option;
 }
 
 [@@deriving show]
@@ -104,6 +107,7 @@ type rule = {
   languages: lang;
 
   (* optional fields *)
+  equivalences: string list; (* TODO: parse them *)
 
   fix: string option;
   fix_regexp: (regexp * int option * string) option;

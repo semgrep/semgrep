@@ -31,6 +31,7 @@ module H = Parse_mini_rule
  *    to use JSON and jsonnet, so we might get anyway a line location
  *    in a generated file, so maybe better to give error location by
  *    describing the line and what is wrong wit it.
+ *  - support JSON in addition to Yaml, convert yaml to JSON (or reverse)
  *  - Move the H.xxx here and get rid of Parse_mini_rule.ml
 *)
 
@@ -60,6 +61,7 @@ let parse_pattern (id, lang) s =
   | R.LNone ->
       failwith ("you should not use real pattern with language = none")
   | R.LGeneric ->
+      (* todo: call spacegrep *)
       Right s
 
 let rec parse_formula env (x: string * Yaml.value) =
@@ -114,8 +116,27 @@ and parse_extra _env x =
            raise (E.InvalidYamlException "wrong parse_extra fields")
       )
 
+  | "metavariable-comparison", `O xs ->
+      (match find_fields ["metavariable";"comparison";"strip";"base"] xs with
+       | ["metavariable", Some (`String metavariable);
+          "comparison", Some (`String comparison);
+          "strip", _strip_optTODO;
+          "base", _base_optTODO;
+         ], [] ->
+           R.MetavarComparison
+             { R. metavariable; comparison;
+               strip = None;
+               base = None;
+             }
+       | x ->
+           pr2_gen x;
+           raise (E.InvalidYamlException "wrong parse_extra fields")
+      )
+
   | "pattern-regex", `String s ->
       R.PatRegexp s
+  | "pattern-where-python", `String s ->
+      R.PatWherePython s
 
   | x ->
       pr2_gen x;
@@ -158,6 +179,7 @@ let top_fields = [
   "fix";
   "fix-regex";
   "paths";
+  "equivalences";
 ]
 
 let parse file =
@@ -179,10 +201,11 @@ let parse file =
                     "message", Some (`String message);
                     "severity", Some (`String sev);
 
-                    "metadata", _metadata_opt;
-                    "fix", _fix_opt;
-                    "fix-regex", _fix_regex_opt;
-                    "paths", _paths;
+                    "metadata", _metadata_optTODO;
+                    "fix", _fix_optTODO;
+                    "fix-regex", _fix_regex_optTODO;
+                    "paths", _pathsTODO;
+                    "equivalences", _equivsTODO;
 
                   ], rest ->
                       let languages = parse_languages ~id langs in
@@ -200,6 +223,7 @@ let parse file =
                         fix = None;
                         fix_regexp = None;
                         paths = None;
+                        equivalences = [];
                       }
                   | x ->
                       pr2_gen x;
