@@ -27,7 +27,7 @@ open Common
 module A = AST_generic
 module B = AST_generic
 
-module MV = Metavars_generic
+module MV = Metavariable
 module AST = AST_generic
 module Lib = Lib_AST
 module Flag = Flag_semgrep

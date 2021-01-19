@@ -2,7 +2,7 @@
 open Common
 open OUnit
 module E = Error_code
-module R = Rule
+module R = Mini_rule
 
 (*****************************************************************************)
 (* Purpose *)

@@ -1,7 +1,7 @@
 (*s: semgrep/parsing/Parse_rules.mli *)
 
 (*s: signature [[Parse_rules.parse]] *)
-val parse: Common.filename -> Rule.rules
+val parse: Common.filename -> Mini_rule.rules
 (*e: signature [[Parse_rules.parse]] *)
 
 (*s: exception [[Parse_rules.InvalidRuleException]] *)
@@ -26,10 +26,10 @@ exception InvalidYamlException of string
 val parse_languages: id:string -> Yaml.value list -> Lang.t list * Lang.t
 (*e: signature [[Parse_rules.parse_languages]] *)
 (*s: signature [[Parse_rules.parse_severity]] *)
-val parse_severity: id:string -> string -> Rule.severity
+val parse_severity: id:string -> string -> Mini_rule.severity
 (*e: signature [[Parse_rules.parse_severity]] *)
 (*s: signature [[Parse_rules.parse_pattern]] *)
-val parse_pattern: id:string -> lang:Lang.t -> string -> Rule.pattern
+val parse_pattern: id:string -> lang:Lang.t -> string -> Mini_rule.pattern
 (*e: signature [[Parse_rules.parse_pattern]] *)
 
 (*e: semgrep/parsing/Parse_rules.mli *)

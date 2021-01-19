@@ -2,9 +2,9 @@
 
 (*s: signature [[Semgrep_generic.check]] *)
 val check:
-  hook:(Metavars_generic.metavars_binding -> Parse_info.t list Lazy.t -> unit)
+  hook:(Metavariable.metavars_binding -> Parse_info.t list Lazy.t -> unit)
   ->
-  Rule.rules ->
+  Mini_rule.rules ->
   Equivalence.equivalences ->
   Common.filename ->
   Lang.t ->
@@ -12,17 +12,17 @@ val check:
   Match_result.t list
 (*e: signature [[Semgrep_generic.check]] *)
 
-val last_matched_rule: Rule.t option ref
+val last_matched_rule: Mini_rule.t option ref
 
 (*s: type [[Semgrep_generic.matcher]] *)
 type ('a, 'b) matcher = 'a -> 'b ->
-  Metavars_generic.metavars_binding list
+  Metavariable.metavars_binding list
 (*e: type [[Semgrep_generic.matcher]] *)
 
 (* used by tainting *)
 
 (*s: signature [[Semgrep_generic.match_e_e]] *)
-val match_e_e: Rule.t -> (AST_generic.expr, AST_generic.expr) matcher
+val match_e_e: Mini_rule.t -> (AST_generic.expr, AST_generic.expr) matcher
 (*e: signature [[Semgrep_generic.match_e_e]] *)
 
 (*s: signature [[Semgrep_generic.match_any_any]] *)

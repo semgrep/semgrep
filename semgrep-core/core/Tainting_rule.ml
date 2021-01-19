@@ -15,7 +15,7 @@
  * license.txt for more details.
 *)
 (*e: pad/r2c copyright *)
-module R = Rule
+module R = Mini_rule
 
 (*****************************************************************************)
 (* Prelude *)
@@ -47,7 +47,7 @@ type rule = {
   sink: pattern list;
 
   message: string;
-  severity: Rule.severity;
+  severity: Mini_rule.severity;
   languages: Lang.t list; (* at least one element *)
 }
 (*e: type [[Tainting_rule.rule]] *)

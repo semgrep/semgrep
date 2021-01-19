@@ -98,7 +98,7 @@ let prepare_pattern ?(debug = false) any =
     kident = (fun (_k, _) (id, _tok) ->
       if debug then
         printf "kident %s\n" id;
-      if Metavars_generic.is_metavar_name id then
+      if Metavariable.is_metavar_name id then
         add_metavar id
     );
 
