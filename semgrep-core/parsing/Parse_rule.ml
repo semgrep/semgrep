@@ -55,6 +55,28 @@ let error s =
 (*****************************************************************************)
 (* Sub parsers *)
 (*****************************************************************************)
+let parse_string = function
+  | `String s -> s
+  | x -> pr2_gen x; error "parse_string"
+
+let parse_bool = function
+  | `String "true" -> true
+  | `String "false" -> false
+  | `Bool b -> b
+  | x -> pr2_gen x; error "parse_bool"
+
+let parse_int = function
+  | `String s ->
+      (try int_of_string s
+       with Failure _ -> error "parse_int"
+      )
+  | `Float f ->
+      let i = int_of_float f in
+      if float_of_int i = f
+      then i
+      else begin pr2_gen f; error "not an int" end
+  | x -> pr2_gen x; error "parse_int"
+
 type _env = (string * R.lang)
 
 let parse_pattern (id, lang) s =
@@ -120,13 +142,13 @@ and parse_extra _env x =
       (match find_fields ["metavariable";"comparison";"strip";"base"] xs with
        | ["metavariable", Some (`String metavariable);
           "comparison", Some (`String comparison);
-          "strip", _strip_optTODO;
-          "base", _base_optTODO;
+          "strip", strip_opt;
+          "base", base_opt;
          ], [] ->
            R.MetavarComparison
              { R. metavariable; comparison;
-               strip = None;
-               base = None;
+               strip = Common.map_opt parse_bool strip_opt;
+               base = Common.map_opt parse_int base_opt;
              }
        | x ->
            pr2_gen x;
@@ -159,6 +181,7 @@ let parse_languages ~id langs =
       match languages with
       | [] -> raise (E.InvalidRuleException (id, "we need at least one language"))
       | x::xs -> R.L (x, xs)
+
 
 (*****************************************************************************)
 (* Main entry point *)
