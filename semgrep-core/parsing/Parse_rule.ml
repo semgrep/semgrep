@@ -19,6 +19,64 @@ module E = Parse_mini_rule
 module H = Parse_mini_rule
 
 (*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
+(* less: could use a hash to accelerate things *)
+let rec find_fields_and_sort flds xs =
+  match flds with
+  | [] -> [], xs
+  | fld::flds ->
+      let fld_match = List.assoc_opt fld xs in
+      let xs = List.remove_assoc fld xs in
+      let (matches, rest) = find_fields_and_sort flds xs in
+      (fld, fld_match)::matches, rest
+
+(*****************************************************************************)
+(* Formula *)
+(*****************************************************************************)
+let rec parse_formula env (x: string * Yaml.value) =
+  match x with
+  | "pattern", `String pattern_string ->
+      let (id, lang) = env in
+      let pattern = H.parse_pattern ~id ~lang pattern_string in
+      R.Pat pattern
+  | "pattern-not", `String pattern_string ->
+      let (id, lang) = env in
+      let pattern = H.parse_pattern ~id ~lang pattern_string in
+      R.PatNot pattern
+
+  | "pattern-inside", `String pattern_string ->
+      let (id, lang) = env in
+      let pattern = H.parse_pattern ~id ~lang pattern_string in
+      R.PatInside pattern
+  | "pattern-not-inside", `String pattern_string ->
+      let (id, lang) = env in
+      let pattern = H.parse_pattern ~id ~lang pattern_string in
+      R.PatNotInside pattern
+
+  | "pattern-either", `A xs ->
+      R.PatEither (List.map (fun x ->
+        match x with
+        | `O [x] -> parse_formula env x
+        | x ->
+            pr2_gen x;
+            raise (E.InvalidYamlException "wrong rule fields")
+      ) xs)
+  | "patterns", `A xs ->
+      R.Patterns (List.map (fun x ->
+        match x with
+        | `O [x] -> parse_formula env x
+        | x ->
+            pr2_gen x;
+            raise (E.InvalidYamlException "wrong rule fields")
+      ) xs)
+  | x ->
+      pr2_gen x;
+      raise (E.InvalidYamlException "wrong rule fields")
+
+
+(*****************************************************************************)
 (* Main entry point *)
 (*****************************************************************************)
 
@@ -32,18 +90,30 @@ let parse file =
            xs |> List.map (fun v ->
              match v with
              | `O xs ->
-                 (match Common.sort_by_key_lowfirst xs with
+                 let flds = ["id";
+                             "languages";
+                             "message";
+                             "severity";
+                             "metadata"]
+                 in
+                 (match find_fields_and_sort flds xs with
                   | [
-                    "id", `String id;
-                    "languages", `A langs;
-                    "message", `String message;
-                    "pattern", `String pattern_string;
-                    "severity", `String sev;
-                  ] ->
+                    "id", Some (`String id);
+                    "languages", Some (`A langs);
+                    "message", Some (`String message);
+                    "severity", Some (`String sev);
+                    "metadata", _metadata_opt;
+                  ], rest ->
                       let languages, lang = H.parse_languages ~id langs in
-                      let pattern = H.parse_pattern ~id ~lang pattern_string in
                       let severity = H.parse_severity ~id sev in
-                      let formula = R.Pat pattern in
+                      let formula =
+                        match rest with
+                        | [x] ->
+                            parse_formula (id, lang) x
+                        | x ->
+                            pr2_gen x;
+                            raise (E.InvalidYamlException "wrong rule fields")
+                      in
                       let metadata = [] in
                       { R. id; formula; message; languages; severity; metadata}
                   | x ->
