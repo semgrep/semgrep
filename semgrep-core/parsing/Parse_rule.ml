@@ -106,6 +106,10 @@ and parse_extra _env x =
            pr2_gen x;
            raise (E.InvalidYamlException "wrong parse_extra fields")
       )
+
+  | "pattern-regex", `String s ->
+      R.PatRegexp s
+
   | x ->
       pr2_gen x;
       raise (E.InvalidYamlException "wrong parse_extra fields")

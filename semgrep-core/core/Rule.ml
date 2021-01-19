@@ -36,13 +36,26 @@ type 'a formula =
 
 (* extra conditions, usually on metavariable content *)
 and extra =
+  | PatRegexp of regexp
   | MetavarRegexp of MV.mvar * regexp
+  | MetavarComparison of metavariable_comparison
+  | PatWherePython of string
+
+  (* less: could be done via Not PatRegexp later? *)
+  | PatNotRegexp of regexp
+
 
 and regexp = string
+(* todo: see matching/eval_generic.ml *)
+and metavariable_comparison = {
+  metavars: MV.mvar list;
+}
 
 [@@deriving show]
 
-(* unorthodox original pattern compositions *)
+(* Unorthodox original pattern compositions.
+ * See also the JSON schema in rule_schema.yaml
+*)
 type 'a formula_old =
   (* pattern: *)
   | Pat of 'a
