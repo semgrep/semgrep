@@ -35,6 +35,7 @@
 (*s: type [[Rule.pattern]] *)
 (* right now only Expr, Stmt, and Stmts are supported *)
 type pattern = Pattern.t
+[@@deriving show]
 (*e: type [[Rule.pattern]] *)
 
 (*s: type [[Rule.rule]] *)
@@ -63,6 +64,7 @@ and rules = rule list
 (*s: type [[Rule.severity]] *)
 and severity = Error | Warning | Info
 (*e: type [[Rule.severity]] *)
+[@@deriving show]
 
 (*s: type [[Rule.t]] *)
 (* alias *)

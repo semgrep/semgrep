@@ -1037,8 +1037,8 @@ let dump_tainting_rules file =
 (*e: function [[Main_semgrep_core.dump_tainting_rules]] *)
 
 let dump_rule file =
-  let r = Parse_mini_rule.parse file in
-  pr2_gen r
+  let rules = Parse_rule.parse file in
+  rules |> List.iter (fun r -> pr (Rule.show r))
 
 (*****************************************************************************)
 (* Experiments *)
