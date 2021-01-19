@@ -1,4 +1,4 @@
-(*s: semgrep/core/Rule.ml *)
+(*s: semgrep/core/Mini_rule.ml *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2011 Facebook
@@ -68,4 +68,4 @@ and severity = Error | Warning | Info
 (* alias *)
 type t = rule
 (*e: type [[Rule.t]] *)
-(*e: semgrep/core/Rule.ml *)
+(*e: semgrep/core/Mini_rule.ml *)
