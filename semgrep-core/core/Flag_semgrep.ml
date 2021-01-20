@@ -43,6 +43,6 @@ let equivalence_mode = ref false
 
 (* here and not in Main.ml because we need to know if the timeout was
  * set in Parse_code.ml (for the slow pfff-based Javascript parser) *)
-let timeout = ref 0. (* in seconds *)
+let timeout = ref 0. (* in seconds; 0 or less means no timeout *)
 
 (*e: semgrep/core/Flag_semgrep.ml *)
