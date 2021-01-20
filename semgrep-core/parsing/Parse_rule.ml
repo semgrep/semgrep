@@ -99,12 +99,12 @@ type _env = (string * R.xlang)
 let parse_pattern (id, lang) s =
   match lang with
   | R.L (lang, _) ->
-      Left (H.parse_pattern ~id ~lang s), s
+      { R.pstr = s; p = Left (H.parse_pattern ~id ~lang s) }
   | R.LNone ->
       failwith ("you should not use real pattern with language = none")
   | R.LGeneric ->
       (* todo: call spacegrep *)
-      Right s, s
+      { R.pstr = s; p = Right s}
 
 let rec parse_formula env (x: string * Yaml.value) =
   match x with

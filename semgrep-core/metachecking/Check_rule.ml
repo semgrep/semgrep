@@ -18,6 +18,7 @@
 open Common
 
 open Rule
+module R = Rule
 module E = Error_code
 
 (*****************************************************************************)
@@ -29,6 +30,7 @@ module E = Error_code
  * feature suggestions in semgrep rules.
  *
  * TODO:
+ *  - classic boolean checks for satisfaisability? A & !A => not good
  *  - use spacegrep or semgrep itself? but need sometimes to express
  *    rules on the yaml structure and sometimes on the pattern itself
  *    (a bit like in templating languages)
@@ -48,25 +50,55 @@ let rec visit_old_formula f formula =
   | PatExtra _ -> ()
   | PatEither xs | Patterns xs -> xs |> List.iter (visit_old_formula f)
 
-let _error (env: env) check_id s =
+let error (env: env) s =
   let loc = Parse_info.first_loc_of_file (env.file) in
   let s = spf "%s (in ruleid: %s)" s env.id in
+  let check_id = "semgrep-metacheck-rule" in
   let err = E.mk_error_loc loc (E.SemgrepMatchFound (check_id, s)) in
   pr2 (E.string_of_error err)
+
+let show_pformula pf =
+  match pf with
+  | Pat x | PatNot x | PatInside x | PatNotInside x ->
+      x.pstr
+  | _ -> R.show_pformula pf
 
 (*****************************************************************************)
 (* Subparts checker *)
 (*****************************************************************************)
 
-let check_formula _env lang f =
+let check_old_formula env lang f =
   (* check duplicated patterns, essentially:
    *  $K: $PAT
    *  ...
    *  $K2: $PAT
    * but at the same level!
   *)
+  let rec find_dupe f =
+    match f with
+    | Pat _ | PatNot _ | PatInside _ | PatNotInside _ -> ()
+    | PatExtra _ -> ()
+    | PatEither xs | Patterns xs ->
+        let rec aux xs =
+          match xs with
+          | [] -> ()
+          | x::xs ->
+              (* todo: for Pat, we could also check if exist PatNot
+               * in which case intersection will always be empty
+              *)
+              if xs |> List.exists (R.equal_pformula x)
+              then error env (spf "Duplicate pattern %s" (show_pformula x));
+              aux xs
+        in
+        (* breadth *)
+        aux xs;
+        (* depth *)
+        xs |> List.iter find_dupe
+  in
+  find_dupe f;
 
-  f |> visit_old_formula (fun (pat, _pat_str) ->
+  (* call Check_pattern subchecker *)
+  f |> visit_old_formula (fun { p = pat; pstr = _pat_str } ->
     match pat, lang with
     | Left semgrep_pat, L (lang, _rest)  ->
         Check_pattern.check lang semgrep_pat
@@ -80,6 +112,6 @@ let check_formula _env lang f =
 (*****************************************************************************)
 
 let check r =
-  check_formula r r.languages r.formula;
+  check_old_formula r r.languages r.formula;
   ()
 (*e: semgrep/metachecking/Check_rule.ml *)
