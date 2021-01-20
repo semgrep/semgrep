@@ -1347,7 +1347,7 @@ let _ =
   Common.main_boilerplate (fun () ->
     Common.finalize (fun () ->
       main ();
-      Caching.Cache.print_stats (); (* TODO move or remove *)
+      Caching.print_stats (); (* TODO move or remove *)
     ) (fun () -> !(Hooks.exit) |> List.iter (fun f -> f()))
   )
 (*e: toplevel [[Main_semgrep_core._1]] *)

@@ -154,9 +154,15 @@ module Cache_key = struct
   *)
   type t = env * Node_ID.t * Node_ID.t [@@deriving show]
 
+  (* debugging.
+     More calls to 'equal' than to 'hash' indicate frequent collisions. *)
+  let hash_calls = ref 0
+  let equal_calls = ref 0
+
   let equal : t -> t -> bool =
     fun ((env1, pat_id1, target_id1) as key1)
       ((env2, pat_id2, target_id2) as key2) ->
+      incr equal_calls;
       let res =
         pat_id1 = pat_id2
         && target_id1 = target_id2
@@ -171,6 +177,7 @@ module Cache_key = struct
     a + 97 * b
 
   let hash ((env, pat_id, target_id) as key : t) =
+    incr hash_calls;
     let res =
       hash_combine (pat_id :> int)
         (hash_combine (target_id :> int)
@@ -216,8 +223,11 @@ module Cache = struct
             let res = compute pattern target full_env in
             Tbl.replace cache key res;
             res
-
-  let print_stats () =
-    printf "cache hits: %i, cache misses: %i\n"
-      !cache_hits !cache_misses
 end
+
+let print_stats () =
+  printf "cache performance:\n";
+  printf "- calls to 'hash': %i, calls to 'equal': %i\n"
+    !Cache_key.hash_calls !Cache_key.equal_calls;
+  printf "- cache hits: %i, cache misses: %i\n"
+    !Cache.cache_hits !Cache.cache_misses

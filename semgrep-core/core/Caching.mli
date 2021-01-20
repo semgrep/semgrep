@@ -35,6 +35,6 @@ module Cache : sig
     'tout t ->
     (pattern -> target -> 'tin -> 'tout) ->
     pattern -> target -> 'tin -> 'tout
-
-  val print_stats : unit -> unit
 end
+
+val print_stats : unit -> unit
