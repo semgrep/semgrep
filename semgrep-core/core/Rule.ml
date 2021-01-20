@@ -11,34 +11,68 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * file license.txt for more details.
 *)
+module MV = Metavariable
 
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* Data structure for a semgrep rule.
+(* Data structure representing a semgrep rule.
  *
- * See also Mini_rule.ml where formula disappears.
+ * See also Mini_rule.ml where formula and many other features disappears.
+ *
+ * TODO:
+ *  - parse more spacegrep and equivalences
 *)
 
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
 
-(* classic boolean-logic/set operators with range positions set semantic *)
+(* classic boolean-logic/set operators with text range set semantic *)
 type 'a formula =
   | F of 'a
+  | X of extra
+
   | Not of 'a (* could be of 'a formula? *)
   | And of 'a formula list
   | Or of 'a formula list
 
+(* extra conditions, usually on metavariable content *)
+and extra =
+  | PatRegexp of regexp
+  | Spacegrep of spacegrep (* TODO: parse it via spacegrep/lib/ *)
+
+  | MetavarRegexp of MV.mvar * regexp
+  | MetavarComparison of metavariable_comparison
+  | PatWherePython of string
+
+  (* less: could be done via Not PatRegexp later? *)
+  | PatNotRegexp of regexp
+
+and regexp = string
+
+and spacegrep = string
+
+(* See also matching/eval_generic.ml *)
+and metavariable_comparison = {
+  metavariable: MV.mvar;
+  comparison: string;
+  strip: bool option;
+  base: int option;
+}
+
 [@@deriving show]
 
-(* unorthodox original pattern compositions *)
+(* Unorthodox original pattern compositions.
+ * See also the JSON schema in rule_schema.yaml
+*)
 type 'a formula_old =
   (* pattern: *)
   | Pat of 'a
   (* pattern-not: *)
   | PatNot of 'a
+
+  | PatExtra of extra
 
   (* pattern-inside: *)
   | PatInside of 'a
@@ -52,20 +86,47 @@ type 'a formula_old =
 
 [@@deriving show]
 
+type xlang =
+  | L of Lang.t * Lang.t list
+  (* for pattern-regex *)
+  | LNone
+  (* for spacegrep *)
+  | LGeneric
+[@@deriving show]
+
+type paths = {
+  include_: regexp list;
+  exclude: regexp list;
+}
+[@@deriving show]
+
+type xpattern = (Pattern.t, spacegrep) Common.either
+[@@deriving show]
+
 type rule = {
+  (* mandatory fields *)
+
   id: string;
-  formula: Pattern.t formula_old;
+  formula: xpattern formula_old;
   message: string;
   severity: Mini_rule.severity;
-  languages: Lang.t list; (* at least one element *)
+  languages: xlang;
 
-  (* ex: [("owasp", "A1: Injection")] *)
-  metadata: (string * string) list;
+  (* optional fields *)
+
+  equivalences: string list option; (* TODO: parse them *)
+
+  fix: string option;
+  fix_regexp: (regexp * int option * string) option;
+
+  paths: paths option;
+
+  (* ex: [("owasp", "A1: Injection")] but can be anything *)
+  metadata: JSON.t option;
 }
 
 and rules = rule list
 [@@deriving show]
-
 
 (* alias *)
 type t = rule

@@ -1110,6 +1110,8 @@ let all_actions () = [
 
   "-dump_rule", " <file>",
   Common.mk_action_1_arg dump_rule;
+  "-test_parse_rules", " <files or dirs>",
+  Common.mk_action_n_arg Test_parsing.test_parse_rules;
 
   "-dump_tree_sitter_cst", " <file>",
   Common.mk_action_1_arg Test_parsing.dump_tree_sitter_cst;
