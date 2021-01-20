@@ -247,19 +247,9 @@ let diff_pfff_tree_sitter xs =
 (* Rule parsing *)
 (*****************************************************************************)
 
-
-(* mostly a copy of Lang.find_source *)
-let find_yaml_files xs =
-  Common.files_of_dir_or_files_no_vcs_nofilter xs
-  |> List.filter (fun filename ->
-    match File_type.file_type_of_file filename with
-    | FT.PL (FT.Web (FT.Yaml)) -> true
-    | _ -> false
-  ) |> Common.sort
-
 let test_parse_rules xs =
   let fullxs =
-    find_yaml_files xs
+    Lang.files_of_dirs_or_files Lang.Yaml xs
     |> Skip_code.filter_files_if_skip_list ~root:xs
   in
   fullxs |> List.iter (fun file ->

@@ -49,5 +49,5 @@ let parse_pattern lang str =
     | _ -> Parse_generic.parse_pattern lang str
   in
   (* TODO: Caching.prepare_pattern any; commented because of test regressions *)
-  Check_semgrep.check_pattern lang any;
+  Check_pattern.check lang any;
   any

@@ -14,6 +14,7 @@
    pfff-lang_js pfff-lang_js-analyze
 
    semgrep_core
+   semgrep_metachecking
    semgrep_parsing_tree_sitter
  )
  (preprocess (pps ppx_profiling ppx_sexp_conv ppx_deriving.show))

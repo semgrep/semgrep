@@ -938,6 +938,18 @@ let validate_pattern () =
   with _exn -> exit 1
 (*e: function [[Main_semgrep_core.validate_pattern]] *)
 
+(* similar to Test_parsing.test_parse_rules *)
+let check_rules xs =
+  let fullxs =
+    Lang.files_of_dirs_or_files Lang.Yaml xs
+    |> Skip_code.filter_files_if_skip_list ~root:xs
+  in
+  fullxs |> List.iter (fun file ->
+    logger#info "processing %s" file;
+    let rs = Parse_rule.parse file in
+    rs |> List.iter Check_rule.check;
+  )
+
 (*****************************************************************************)
 (* Dumpers *)
 (*****************************************************************************)
@@ -1112,6 +1124,9 @@ let all_actions () = [
   Common.mk_action_1_arg dump_rule;
   "-test_parse_rules", " <files or dirs>",
   Common.mk_action_n_arg Test_parsing.test_parse_rules;
+
+  "-check_rules", " <files or dirs>",
+  Common.mk_action_n_arg check_rules;
 
   "-dump_tree_sitter_cst", " <file>",
   Common.mk_action_1_arg Test_parsing.dump_tree_sitter_cst;
