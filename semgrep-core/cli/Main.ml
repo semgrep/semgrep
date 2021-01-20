@@ -1206,7 +1206,7 @@ let options () =
     " only use tree-sitter-based parsers";
 
     "-timeout", Arg.Set_float Flag.timeout,
-    " <float> time limit to process one input program (in seconds)";
+    " <float> time limit to process one input program (in seconds); 0 disables timeouts (default is 0)";
     "-max_memory", Arg.Set_int max_memory,
     " <int> maximum memory to use (in MB)";
     "-max_match_per_file", Arg.Set_int max_match_per_file,
