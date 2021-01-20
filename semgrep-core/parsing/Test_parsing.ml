@@ -247,7 +247,6 @@ let diff_pfff_tree_sitter xs =
 (* Rule parsing *)
 (*****************************************************************************)
 
-
 (* mostly a copy of Lang.find_source *)
 let find_yaml_files xs =
   Common.files_of_dir_or_files_no_vcs_nofilter xs

@@ -938,6 +938,20 @@ let validate_pattern () =
   with _exn -> exit 1
 (*e: function [[Main_semgrep_core.validate_pattern]] *)
 
+let find_yaml_files _ = raise Todo
+
+(* similar to Test_parsing.test_parse_rules *)
+let check_rules xs =
+  let fullxs =
+    find_yaml_files xs
+    |> Skip_code.filter_files_if_skip_list ~root:xs
+  in
+  fullxs |> List.iter (fun file ->
+    logger#info "processing %s" file;
+    let rs = Parse_rule.parse file in
+    rs |> List.iter Check_rule.check;
+  )
+
 (*****************************************************************************)
 (* Dumpers *)
 (*****************************************************************************)

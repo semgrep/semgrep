@@ -15,5 +15,8 @@
  * license.txt for more details.
 *)
 (*e: pad/r2c copyright *)
+open Common
 
+let check _r =
+  raise Todo
 (*e: semgrep/metachecking/Check_rule.ml *)
