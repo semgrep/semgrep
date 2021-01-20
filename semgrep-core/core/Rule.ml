@@ -104,8 +104,11 @@ type xpattern = {
   (* two patterns may have different indentation, we don't care. We can
    * rely on the equality on p, which will do the right thing (e.g., abstract
    * away line position).
+   * TODO: still right now we have some false positives because
+   * for example in Python assert(...) and assert ... are considered equal
+   * AST-wise, but it might be a bug! so I commented the @equal below.
   *)
-  pstr: string  [@equal (fun _ _ -> true)];
+  pstr: string (*  [@equal (fun _ _ -> true)] *);
 }
 [@@deriving show, eq]
 
