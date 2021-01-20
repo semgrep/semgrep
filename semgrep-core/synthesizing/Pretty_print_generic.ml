@@ -70,7 +70,8 @@ let print_bool env = function
        | Lang.Python | Lang.Python2 | Lang.Python3
          -> "True"
        | Lang.Java | Lang.Go | Lang.C | Lang.Cplusplus
-       | Lang.JSON | Lang.Javascript
+       | Lang.Javascript
+       | Lang.JSON | Lang.Yaml
        | Lang.OCaml | Lang.Ruby | Lang.Typescript
        | Lang.Csharp | Lang.PHP | Lang.Kotlin | Lang.Lua | Lang.Rust
          -> "true"
@@ -79,7 +80,9 @@ let print_bool env = function
       (match env.lang with
        | Lang.Python | Lang.Python2 | Lang.Python3
          -> "False"
-       | Lang.Java | Lang.Go | Lang.C | Lang.Cplusplus | Lang.JSON | Lang.Javascript
+       | Lang.Java | Lang.Go | Lang.C | Lang.Cplusplus
+       | Lang.JSON | Lang.Yaml
+       | Lang.Javascript
        | Lang.OCaml | Lang.Ruby | Lang.Typescript
        | Lang.Csharp | Lang.PHP | Lang.Kotlin | Lang.Lua | Lang.Rust
          -> "false"
@@ -171,7 +174,7 @@ and if_stmt env level (tok, e, s, sopt) =
   in
   let (format_cond, elseif_str, format_block) =
     (match env.lang with
-     | Lang.Ruby | Lang.OCaml | Lang.PHP -> raise Todo
+     | Lang.Ruby | Lang.OCaml | Lang.PHP | Lang.Yaml -> raise Todo
 
      | Lang.Python | Lang.Python2 | Lang.Python3 -> (no_paren_cond, "elif", colon_body)
      | Lang.Java | Lang.Go | Lang.C | Lang.Cplusplus | Lang.Csharp
@@ -202,7 +205,7 @@ and while_stmt env level (tok, e, s) =
   let ruby_while = F.sprintf "%s %s\n %s\nend" in
   let while_format =
     (match env.lang with
-     | Lang.PHP | Lang.Lua -> raise Todo
+     | Lang.PHP | Lang.Lua | Lang.Yaml -> raise Todo
 
      | Lang.Python | Lang.Python2 | Lang.Python3 -> python_while
      | Lang.Java | Lang.C | Lang.Cplusplus | Lang.Csharp | Lang.Kotlin
@@ -218,7 +221,7 @@ and do_while stmt env level (s, e) =
   let c_do_while = F.sprintf "do %s\nwhile(%s)" in
   let do_while_format =
     (match env.lang with
-     | Lang.PHP | Lang.Lua -> raise Todo
+     | Lang.PHP | Lang.Lua | Lang.Yaml -> raise Todo
 
      | Lang.Java | Lang.C | Lang.Cplusplus | Lang.Csharp | Lang.Kotlin
      | Lang.Javascript | Lang.Typescript -> c_do_while
@@ -232,7 +235,7 @@ and do_while stmt env level (s, e) =
 and for_stmt env level (for_tok, hdr, s) =
   let for_format =
     (match env.lang with
-     | Lang.PHP | Lang.Lua -> raise Todo
+     | Lang.PHP | Lang.Lua | Lang.Yaml -> raise Todo
 
      | Lang.Java | Lang.C | Lang.Cplusplus | Lang.Csharp | Lang.Kotlin
      | Lang.Javascript | Lang.Typescript | Lang.Rust | Lang.R -> F.sprintf "%s (%s) %s"
@@ -268,7 +271,7 @@ and def_stmt env (entity, def_kind) =
   let var_def (ent, def) =
     let (no_val, with_val) =
       (match env.lang with
-       | Lang.PHP | Lang.Lua -> raise Todo
+       | Lang.PHP | Lang.Lua | Lang.Yaml -> raise Todo
 
        | Lang.Java | Lang.C | Lang.Cplusplus | Lang.Csharp | Lang.Kotlin
          -> (fun typ id _e -> F.sprintf "%s %s;" typ id),
@@ -309,7 +312,7 @@ and return env (tok, eopt) _sc =
     | Some e -> expr env e
   in
   match env.lang with
-  | Lang.PHP -> raise Todo
+  | Lang.PHP | Lang.Yaml -> raise Todo
   | Lang.Java | Lang.C | Lang.Cplusplus | Lang.Csharp | Lang.Kotlin
   | Lang.Rust  -> F.sprintf "%s %s;" (token "return" tok) to_return
   | Lang.Python | Lang.Python2 | Lang.Python3
@@ -327,7 +330,7 @@ and break env (tok, lbl) _sc =
     | LDynamic e -> F.sprintf " %s" (expr env e)
   in
   match env.lang with
-  | Lang.PHP -> raise Todo
+  | Lang.PHP | Lang.Yaml -> raise Todo
   | Lang.Java | Lang.C | Lang.Cplusplus | Lang.Csharp | Lang.Kotlin
   | Lang.Rust  -> F.sprintf "%s%s;" (token "break" tok) lbl_str
   | Lang.Python | Lang.Python2 | Lang.Python3
@@ -344,7 +347,7 @@ and continue env (tok, lbl) _sc =
     | LDynamic e -> F.sprintf " %s" (expr env e)
   in
   match env.lang with
-  | Lang.PHP -> raise Todo
+  | Lang.PHP | Lang.Yaml -> raise Todo
   | Lang.Java | Lang.C | Lang.Cplusplus | Lang.Csharp | Lang.Kotlin | Lang.Lua
   | Lang.Rust  -> F.sprintf "%s%s;" (token "continue" tok) lbl_str
   | Lang.Python | Lang.Python2 | Lang.Python3
@@ -418,7 +421,7 @@ and literal env = function
   | Char ((s,_)) -> F.sprintf "'%s'" s
   | String ((s,_)) ->
       (match env.lang with
-       | Lang.PHP -> raise Todo
+       | Lang.PHP | Lang.Yaml -> raise Todo
 
        | Lang.Python | Lang.Python2 | Lang.Python3 ->
            "'" ^ s ^ "'"

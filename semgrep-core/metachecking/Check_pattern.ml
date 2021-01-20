@@ -8,7 +8,7 @@ let lang_has_no_dollar_ids = Lang.(function
   | Go
   | C | Cplusplus
   | OCaml
-  | JSON
+  | JSON | Yaml
   | Csharp
   | Kotlin
   | Lua
