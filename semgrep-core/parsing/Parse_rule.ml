@@ -99,12 +99,12 @@ type _env = (string * R.xlang)
 let parse_pattern (id, lang) s =
   match lang with
   | R.L (lang, _) ->
-      Left (H.parse_pattern ~id ~lang s)
+      Left (H.parse_pattern ~id ~lang s), s
   | R.LNone ->
       failwith ("you should not use real pattern with language = none")
   | R.LGeneric ->
       (* todo: call spacegrep *)
-      Right s
+      Right s, s
 
 let rec parse_formula env (x: string * Yaml.value) =
   match x with
@@ -292,7 +292,7 @@ let parse file =
                             pr2_gen x;
                             error "wrong rule fields"
                       in
-                      { R. id; formula; message; languages;
+                      { R. id; formula; message; languages; file;
                         severity = H.parse_severity ~id sev;
                         (* optional fields *)
                         metadata =

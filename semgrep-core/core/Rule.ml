@@ -100,7 +100,7 @@ type paths = {
 }
 [@@deriving show]
 
-type xpattern = (Pattern.t, spacegrep) Common.either
+type xpattern = (Pattern.t, spacegrep) Common.either * string (* pattern_str *)
 [@@deriving show]
 
 type rule = {
@@ -111,6 +111,8 @@ type rule = {
   message: string;
   severity: Mini_rule.severity;
   languages: xlang;
+
+  file: string; (* for metachecking error location *)
 
   (* optional fields *)
 
