@@ -1,4 +1,4 @@
-(*s: semgrep/parsing/Check_semgrep.ml *)
+(*s: semgrep/parsing/Check_pattern.ml *)
 
 (*s: constant [[Check_semgrep.lang_has_no_dollar_ids]] *)
 (* for these languages, we are sure that $x is an error *)
@@ -35,6 +35,4 @@ let check_pattern lang ast =
   check_pattern_metavars lang ast
 (*e: function [[Check_semgrep.check_pattern]] *)
 
-(*s: function [[Check_semgrep.parse_check_pattern]] *)
-(*e: function [[Check_semgrep.parse_check_pattern]] *)
-(*e: semgrep/parsing/Check_semgrep.ml *)
+(*e: semgrep/parsing/Check_pattern.ml *)
