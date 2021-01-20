@@ -60,8 +60,7 @@ and metavariable_comparison = {
   strip: bool option;
   base: int option;
 }
-
-[@@deriving show]
+[@@deriving show, eq]
 
 (* Unorthodox original pattern compositions.
  * See also the JSON schema in rule_schema.yaml
@@ -84,7 +83,7 @@ type 'a formula_old =
   (* patterns: And? or Or? depends on formula inside, hmmm *)
   | Patterns of 'a formula_old list
 
-[@@deriving show]
+[@@deriving show, eq]
 
 type xlang =
   | L of Lang.t * Lang.t list
@@ -100,17 +99,33 @@ type paths = {
 }
 [@@deriving show]
 
-type xpattern = (Pattern.t, spacegrep) Common.either
-[@@deriving show]
+type xpattern = {
+  p: (Pattern.t, spacegrep) Common.either;
+  (* two patterns may have different indentation, we don't care. We can
+   * rely on the equality on p, which will do the right thing (e.g., abstract
+   * away line position).
+   * TODO: still right now we have some false positives because
+   * for example in Python assert(...) and assert ... are considered equal
+   * AST-wise, but it might be a bug! so I commented the @equal below.
+  *)
+  pstr: string (*  [@equal (fun _ _ -> true)] *);
+}
+[@@deriving show, eq]
+
+(* pattern formula *)
+type pformula = xpattern formula_old
+[@@deriving show, eq]
 
 type rule = {
   (* mandatory fields *)
 
   id: string;
-  formula: xpattern formula_old;
+  formula: pformula;
   message: string;
   severity: Mini_rule.severity;
   languages: xlang;
+
+  file: string; (* for metachecking error location *)
 
   (* optional fields *)
 
