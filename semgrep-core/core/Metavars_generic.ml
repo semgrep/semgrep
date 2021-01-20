@@ -288,4 +288,18 @@ let metavar_ellipsis_regexp_string =
 let is_metavar_ellipsis s =
   s =~ metavar_ellipsis_regexp_string
 
+module Structural = struct
+  let equal_mvalue = AST_generic.with_structural_equal equal_mvalue
+  let equal_metavars_binding =
+    AST_generic.with_structural_equal equal_metavars_binding
+end
+
+module Referential = struct
+  let equal_mvalue = AST_generic.with_referential_equal equal_mvalue
+  let equal_metavars_binding =
+    AST_generic.with_referential_equal equal_metavars_binding
+
+  let hash_metavars_binding = hash_metavars_binding
+end
+
 (*e: semgrep/core/Metavars_generic.ml *)

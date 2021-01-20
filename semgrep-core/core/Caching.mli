@@ -13,8 +13,8 @@ val prepare_pattern : AST_generic.any -> unit
 module Cache : sig
   type 'a t
 
-  type pattern = AST_generic.stmt (* only works for statements at the moment *)
-  type target = AST_generic.stmt
+  type pattern = AST_generic.stmt list
+  type target = AST_generic.stmt list
 
   val create : unit -> 'a t
 
@@ -30,7 +30,7 @@ module Cache : sig
      It is the user's responsibility to always use the same
      'compute_match_stmt' with a given cache.
   *)
-  val match_stmt :
+  val match_stmt_list :
     ('tin -> Metavars_generic.Env.t) ->
     'tout t ->
     (pattern -> target -> 'tin -> 'tout) ->

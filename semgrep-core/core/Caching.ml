@@ -160,7 +160,7 @@ module Cache_key = struct
       let res =
         pat_id1 = pat_id2
         && target_id1 = target_id2
-        && Metavars_generic.equal_metavars_binding env1 env2
+        && Metavars_generic.Referential.equal_metavars_binding env1 env2
       in
       if debug then
         printf "equal %s %s = %B\n"
@@ -174,7 +174,7 @@ module Cache_key = struct
     let res =
       hash_combine (pat_id :> int)
         (hash_combine (target_id :> int)
-           (Metavars_generic.hash_metavars_binding env))
+           (Metavars_generic.Referential.hash_metavars_binding env))
     in
     if debug then
       printf "hash %s = %i\n" (show key) res;
@@ -185,8 +185,8 @@ module Cache = struct
   module Tbl = Hashtbl.Make (Cache_key)
   type 'a t = 'a Tbl.t
 
-  type pattern = AST_generic.stmt
-  type target = AST_generic.stmt
+  type pattern = AST_generic.stmt list
+  type target = AST_generic.stmt list
 
   let create () = Tbl.create 1000
 
@@ -194,24 +194,28 @@ module Cache = struct
   let cache_hits = ref 0
   let cache_misses = ref 0
 
-  let match_stmt
+  let match_stmt_list
       get_env cache compute
       (pattern : pattern) (target : target) full_env =
-    let env : Metavars_generic.Env.t = get_env full_env in
-    let key = (env.min_env, pattern.s_id, target.s_id) in
-    if debug then
-      printf "match_stmt\n";
-    match Tbl.find_opt cache key with
-    | Some res ->
-        incr cache_hits;
+    match pattern, target with
+    | [], _ | _, [] ->
+        compute pattern target full_env
+    | a :: _, b :: _ ->
+        let env : Metavars_generic.Env.t = get_env full_env in
+        let key = (env.min_env, a.s_id, b.s_id) in
         if debug then
-          printf "found cached result!\n";
-        res
-    | None ->
-        incr cache_misses;
-        let res = compute pattern target full_env in
-        Tbl.replace cache key res;
-        res
+          printf "match_stmt_list\n";
+        match Tbl.find_opt cache key with
+        | Some res ->
+            incr cache_hits;
+            if debug then
+              printf "found cached result!\n";
+            res
+        | None ->
+            incr cache_misses;
+            let res = compute pattern target full_env in
+            Tbl.replace cache key res;
+            res
 
   let print_stats () =
     printf "cache hits: %i, cache misses: %i\n"

@@ -1522,9 +1522,21 @@ and m_stmts_deep ~less_is_ok (xsa: A.stmt list) (xsb: A.stmt list) =
 and _m_stmts (xsa: A.stmt list) (xsb: A.stmt list) =
   m_list__m_stmt xsa xsb
 
+and m_list__m_stmt xsa xsb tin =
+  match tin.cache, xsa with
+  | Some cache, a :: _ ->
+      let tin = { tin with mv = MV.Env.update_min_env tin.mv a } in
+      Caching.Cache.match_stmt_list
+        (fun tin -> tin.mv)
+        cache
+        m_list__m_stmt_uncached
+        xsa xsb tin
+  | None, _
+  | Some _, [] -> m_list__m_stmt_uncached xsa xsb tin
+
 (* TODO: factorize with m_list_and_dots less_is_ok = true *)
 (*s: function [[Generic_vs_generic.m_list__m_stmt]] *)
-and m_list__m_stmt (xsa: A.stmt list) (xsb: A.stmt list) =
+and m_list__m_stmt_uncached (xsa: A.stmt list) (xsb: A.stmt list) =
   (*s: [[Generic_vs_generic.m_list__m_stmt]] if [[debug]] *)
   logger#debug "%d vs %d" (List.length xsa) (List.length xsb);
   (*e: [[Generic_vs_generic.m_list__m_stmt]] if [[debug]] *)
@@ -1566,19 +1578,8 @@ and m_list__m_stmt (xsa: A.stmt list) (xsb: A.stmt list) =
       fail ()
 (*e: function [[Generic_vs_generic.m_list__m_stmt]] *)
 
-and m_stmt a b tin =
-  match tin.cache with
-  | None -> m_stmt_uncached a b tin
-  | Some cache ->
-      let tin = { tin with mv = MV.Env.update_min_env tin.mv a } in
-      Caching.Cache.match_stmt
-        (fun tin -> tin.mv)
-        cache
-        m_stmt_uncached
-        a b tin
-
 (*s: function [[Generic_vs_generic.m_stmt]] *)
-and m_stmt_uncached a b =
+and m_stmt a b =
   match a.s, b.s with
   (* the order of the matches matters! take care! *)
   (*s: [[Generic_vs_generic.m_stmt()]] disjunction case *)
