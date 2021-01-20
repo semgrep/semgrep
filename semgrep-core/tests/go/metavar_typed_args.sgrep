@@ -1,1 +1,1 @@
-foo(($X : int), ($Y : float), ($Z : str), ($A : bool), ...)
+foo(($X : int), ($Y : float), ($Z : string), ($A : bool), ...)
