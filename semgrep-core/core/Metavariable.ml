@@ -31,6 +31,7 @@ module G = AST_generic
 *)
 (*s: type [[Metavars_generic.mvar]] *)
 type mvar = string
+[@@deriving show]
 (*e: type [[Metavars_generic.mvar]] *)
 
 (* 'mvalue' below used to be just an alias to AST_generic.any, but it is more
