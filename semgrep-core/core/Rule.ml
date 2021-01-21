@@ -25,33 +25,71 @@ module MV = Metavariable
 *)
 
 (*****************************************************************************)
-(* Types *)
+(* Extended language and pattern *)
 (*****************************************************************************)
 
-(* classic boolean-logic/set operators with text range set semantic *)
-type 'a formula =
-  | F of 'a
-  | X of extra
+(* less: merge with xpattern_kind? *)
+type xlang =
+  (* for "real" semgrep *)
+  | L of Lang.t * Lang.t list
+  (* for pattern-regex *)
+  | LNone
+  (* for spacegrep *)
+  | LGeneric
+[@@deriving show]
 
-  | Not of 'a (* could be of 'a formula? *)
-  | And of 'a formula list
-  | Or of 'a formula list
-
-(* extra conditions, usually on metavariable content *)
-and extra =
-  | PatRegexp of regexp
-  | Spacegrep of spacegrep (* TODO: parse it via spacegrep/lib/ *)
-
-  | MetavarRegexp of MV.mvar * regexp
-  | MetavarComparison of metavariable_comparison
-  | PatWherePython of string
-
-  (* less: could be done via Not PatRegexp later? *)
-  | PatNotRegexp of regexp
+type xpattern = {
+  p: xpattern_kind;
+  (* two patterns may have different indentation, we don't care. We can
+   * rely on the equality on p, which will do the right thing (e.g., abstract
+   * away line position).
+   * TODO: still right now we have some false positives because
+   * for example in Python assert(...) and assert ... are considered equal
+   * AST-wise, but it might be a bug! so I commented the @equal below.
+  *)
+  pstr: string (*  [@equal (fun _ _ -> true)] *);
+}
+and xpattern_kind =
+  | Sem of Pattern.t
+  | Space of spacegrep
+  (* TODO? Regexp? *)
 
 and regexp = string
 
+(* TODO: parse it via spacegrep/lib! *)
 and spacegrep = string
+
+[@@deriving show, eq]
+
+(*****************************************************************************)
+(* Formula (patterns boolean composition) *)
+(*****************************************************************************)
+
+(* Classic boolean-logic/set operators with text range set semantic.
+ * The main complication is the handling of metavariables and negation
+ * in the presence of metavariables.
+ * TODO: add tok (Parse_info.t) for good metachecking error locations.
+*)
+type formula =
+  | P of xpattern (* a leaf pattern *)
+  | X of extra
+
+  | Not of formula
+  | And of formula list
+  | Or of formula list
+
+(* extra conditions, usually on metavariable content *)
+and extra =
+  (* TODO: now in xpattern_kind? *)
+  | PatRegexp of regexp
+  | Spacegrep of spacegrep
+
+  | MetavarRegexp of MV.mvar * regexp
+  | MetavarComparison of metavariable_comparison
+  | PatWherePython of string (* arbitrary code, dangerous! *)
+
+  (* less: could be done via Not PatRegexp later? *)
+  | PatNotRegexp of regexp
 
 (* See also matching/eval_generic.ml *)
 and metavariable_comparison = {
@@ -62,59 +100,43 @@ and metavariable_comparison = {
 }
 [@@deriving show, eq]
 
+(*****************************************************************************)
+(* Old Formula style *)
+(*****************************************************************************)
+
 (* Unorthodox original pattern compositions.
  * See also the JSON schema in rule_schema.yaml
 *)
-type 'a formula_old =
+type formula_old =
   (* pattern: *)
-  | Pat of 'a
+  | Pat of xpattern
   (* pattern-not: *)
-  | PatNot of 'a
+  | PatNot of xpattern
 
   | PatExtra of extra
 
   (* pattern-inside: *)
-  | PatInside of 'a
+  | PatInside of xpattern
   (* pattern-not-inside: *)
-  | PatNotInside of 'a
+  | PatNotInside of xpattern
 
   (* pattern-either: *)
-  | PatEither of 'a formula_old list
+  | PatEither of formula_old list
   (* patterns: And? or Or? depends on formula inside, hmmm *)
-  | Patterns of 'a formula_old list
+  | Patterns of formula_old list
 
 [@@deriving show, eq]
 
-type xlang =
-  | L of Lang.t * Lang.t list
-  (* for pattern-regex *)
-  | LNone
-  (* for spacegrep *)
-  | LGeneric
-[@@deriving show]
-
-type paths = {
-  include_: regexp list;
-  exclude: regexp list;
-}
-[@@deriving show]
-
-type xpattern = {
-  p: (Pattern.t, spacegrep) Common.either;
-  (* two patterns may have different indentation, we don't care. We can
-   * rely on the equality on p, which will do the right thing (e.g., abstract
-   * away line position).
-   * TODO: still right now we have some false positives because
-   * for example in Python assert(...) and assert ... are considered equal
-   * AST-wise, but it might be a bug! so I commented the @equal below.
-  *)
-  pstr: string (*  [@equal (fun _ _ -> true)] *);
-}
-[@@deriving show, eq]
 
 (* pattern formula *)
-type pformula = xpattern formula_old
+type pformula =
+  | New of formula
+  | Old of formula_old
 [@@deriving show, eq]
+
+(*****************************************************************************)
+(* The rule *)
+(*****************************************************************************)
 
 type rule = {
   (* mandatory fields *)
@@ -138,6 +160,11 @@ type rule = {
 
   (* ex: [("owasp", "A1: Injection")] but can be anything *)
   metadata: JSON.t option;
+}
+
+and paths = {
+  include_: regexp list;
+  exclude: regexp list;
 }
 
 and rules = rule list

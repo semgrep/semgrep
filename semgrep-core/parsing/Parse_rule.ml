@@ -99,14 +99,14 @@ type _env = (string * R.xlang)
 let parse_pattern (id, lang) s =
   match lang with
   | R.L (lang, _) ->
-      { R.pstr = s; p = Left (H.parse_pattern ~id ~lang s) }
+      { R.pstr = s; p = Sem (H.parse_pattern ~id ~lang s) }
   | R.LNone ->
       failwith ("you should not use real pattern with language = none")
   | R.LGeneric ->
       (* todo: call spacegrep *)
-      { R.pstr = s; p = Right s}
+      { R.pstr = s; p = Space s}
 
-let rec parse_formula env (x: string * Yaml.value) =
+let rec parse_formula_old env (x: string * Yaml.value) : R.formula_old =
   match x with
   | "pattern", `String pattern_string ->
       let pattern = parse_pattern env pattern_string in
@@ -125,7 +125,7 @@ let rec parse_formula env (x: string * Yaml.value) =
   | "pattern-either", `A xs ->
       R.PatEither (List.map (fun x ->
         match x with
-        | `O [x] -> parse_formula env x
+        | `O [x] -> parse_formula_old env x
         | x ->
             pr2_gen x;
             error "wrong parse_formula fields"
@@ -133,7 +133,7 @@ let rec parse_formula env (x: string * Yaml.value) =
   | "patterns", `A xs ->
       R.Patterns (List.map (fun x ->
         match x with
-        | `O [x] -> parse_formula env x
+        | `O [x] -> parse_formula_old env x
         | x ->
             pr2_gen x;
             error "wrong parse_formula fields"
@@ -180,6 +180,11 @@ and parse_extra _env x =
   | x ->
       pr2_gen x;
       error "wrong parse_extra fields"
+
+let parse_formula env (x: string * Yaml.value) : R.pformula =
+  match x with
+  | _ -> R.Old (parse_formula_old env x)
+
 
 let parse_languages ~id langs =
   match langs with
