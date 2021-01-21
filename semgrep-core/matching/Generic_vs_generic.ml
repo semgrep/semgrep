@@ -1046,7 +1046,7 @@ and m_compatible_type typed_mvar t e =
   (* for go literals *)
   | A.TyId (("int", _), _), B.L (B.Int _) -> envf typed_mvar (MV.E e)
   | A.TyId (("float", _), _), B.L (B.Float _) -> envf typed_mvar (MV.E e)
-  | A.TyId (("str", _), _), B.L (B.String _) -> envf typed_mvar (MV.E e)
+  | A.TyId (("string", _), _), B.L (B.String _) -> envf typed_mvar (MV.E e)
 
   (* for matching ids *)
   | ta, ( B.Id (idb, {B.id_type=tb; _})
