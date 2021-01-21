@@ -13,7 +13,7 @@ int test_equal() {
     if (x == y) return 2;
     //ERROR: match
     if (x == "nope") return 3;
-    //ERROR: match
+    //TODO: match
     if ("lit1" == "lit2") return 4;
     return 0;
 }
