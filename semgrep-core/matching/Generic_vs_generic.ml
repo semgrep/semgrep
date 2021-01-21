@@ -1051,6 +1051,9 @@ and m_compatible_type typed_mvar t e =
   | A.TyId (("float", _), _), B.L (B.Float _) -> envf typed_mvar (MV.E e)
   | A.TyId (("string", _), _), B.L (B.String _) -> envf typed_mvar (MV.E e)
 
+  (* for C strings to match metavariable pointer types *)
+  | A.TyPointer (t1, A.TyId ((_,tok), _id_info)), B.L (B.String _) ->
+      m_type_ t (A.TyPointer (t1, TyBuiltin(("char", tok))))
   (* for matching ids *)
   | ta, ( B.Id (idb, {B.id_type=tb; _})
         | B.IdQualified ((idb, _), {B.id_type=tb;_})
