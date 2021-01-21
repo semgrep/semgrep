@@ -14,7 +14,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
 *)
-open Common
 open AST_generic
 
 module V = Visitor_AST
@@ -106,32 +105,21 @@ let match_sts_sts2 cache pattern e =
    * a sequence of statements pattern (AST_generic.Ss) to match all
    * the rest, we don't want to report the whole Ss as a match but just
    * the actually matched subset.
-   * To do so would require to change the interface of a matcher
-   * to not only return the matched environment but also the matched
-   * statements. This would require in turn to provide new versions
-   * for >>=, >||>, etc.
-   * Instead, we can abuse the environment to also record the
-   * matched statements! This is a bit ugly, but the alternative might
-   * be worse.
    *
    * TODO? do we need to generate unique key? we don't want
-   * nested calls to m_stmts_deep to polluate our metavar? We need
+   * nested calls to m_stmts_deep to pollute our metavar? We need
    * to pass the key to m_stmts_deep?
   *)
-  let key = MV.matched_statements_special_mvar in
-  let env = MG.add_mv_capture key (MV.Ss []) env in
+  let env = MG.init_mv_stmts_span e env in
 
   let res = GG.m_stmts_deep ~less_is_ok:true pattern e env in
 
   res |> List.map (fun tin ->
-    match MG.get_mv_capture key tin with
-    | Some (MV.Ss xs) ->
-        (* we use List.rev because Generic_vs_generic.env_add_matched_stmt
-         * adds the matched statements gradually at the beginning
-         * of the list
-        *)
-        MG.remove_mv_capture key tin, (MV.Ss (List.rev xs))
-    | _ -> raise Impossible
+    match MG.get_mv_stmts_span tin with
+    | None -> assert false
+    | Some matched_stmts ->
+        let tin = MG.clear_mv_stmts_span tin in
+        (tin, MV.Ss matched_stmts)
   )
 (*e: function [[Semgrep_generic.match_sts_sts]] *)
 let match_sts_sts rule cache a b =

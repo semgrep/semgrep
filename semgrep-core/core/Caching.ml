@@ -3,6 +3,8 @@
    during matching.
 *)
 
+module MV = Metavars_generic
+
 open Printf
 open AST_generic
 
@@ -201,14 +203,74 @@ module Cache = struct
   let cache_hits = ref 0
   let cache_misses = ref 0
 
+  (*
+     The cached result is not completely applicable out of context.
+     The variables that were set in the original environment before
+     the cached call but are not used in the remaining pattern
+     (i.e. not in min_env or in the cache key) existed in the cached result
+     but are invalid in other contexts.
+
+     Sample pattern: $A; $B;
+                         ^ call the match function here
+     Before the call:
+       full_env contains $A
+       min_env contains nothing
+     After the call:
+       full_env contains $A (from fresh computation or from cache), $B
+       min_env contains nothing or $B, depending if it was updated
+
+     Actions:
+       In full_env returned from the cache, all the values of the original
+       full_env that weren't set in min_env (or in the backrefs field
+       of the pattern) must be injected into the full_env from the cache.
+       min_env doesn't need to be updated because it's part of the cache
+       key and its new value out the cache can be reused.
+
+     The value bound to $A must be set to the one before the call, not the
+     one obtained from the cache.
+  *)
+  let patch_result_from_cache
+      ~get_env_field
+      ~set_env_field
+      backrefs
+      orig_acc
+      cached_acc =
+    let orig_env : MV.Env.t = get_env_field orig_acc in
+    let cached_env : MV.Env.t = get_env_field cached_acc in
+    let patched_full_env =
+      List.map (fun ((k, _v) as cached_binding) ->
+        if MV.Env.has_backref k backrefs (* = is in min_env *) then
+          cached_binding
+        else
+          match MV.Env.get_capture k orig_env with
+          | None -> (* wasn't bound before the call *) cached_binding
+          | Some orig_v -> (* to be restored *) (k, orig_v)
+      ) cached_env.full_env
+    in
+    (* mix uncached start with cached end *)
+    let stmts_span =
+      match orig_env.stmts_span, cached_env.stmts_span with
+      | Some (start, _), Some (_, end_) -> Some (start, end_)
+      | _ -> assert false
+    in
+    let patched_env = {
+      cached_env with
+      stmts_span;
+      full_env = patched_full_env
+    } in
+    set_env_field cached_acc patched_env
+
   let match_stmt_list
-      get_env cache compute
-      (pattern : pattern) (target : target) full_env =
+      ~get_env_field
+      ~set_env_field
+      ~(cache : _ list t)
+      ~compute
+      (pattern : pattern) (target : target) acc =
     match pattern, target with
     | [], _ | _, [] ->
-        compute pattern target full_env
+        compute pattern target acc
     | a :: _, b :: _ ->
-        let env : Metavars_generic.Env.t = get_env full_env in
+        let env : Metavars_generic.Env.t = get_env_field acc in
         let key = (env.min_env, a.s_id, b.s_id) in
         if debug then
           printf "match_stmt_list\n";
@@ -217,10 +279,20 @@ module Cache = struct
             incr cache_hits;
             if debug then
               printf "found cached result!\n";
-            res
+            let backrefs =
+              match a.s_backrefs with
+              | None -> assert false
+              | Some x -> x
+            in
+            List.map (fun cached_acc ->
+              patch_result_from_cache
+                ~get_env_field
+                ~set_env_field
+                backrefs acc cached_acc
+            ) res
         | None ->
             incr cache_misses;
-            let res = compute pattern target full_env in
+            let res = compute pattern target acc in
             Tbl.replace cache key res;
             res
 end

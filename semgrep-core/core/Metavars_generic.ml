@@ -98,14 +98,6 @@ let str_of_mval x =
   x |> mvalue_to_any |> str_of_any
 
 
-(* See the comment on Semgrep_generic.match_sts_sts for more information.
- * This is ugly, and we should probably use a variant for mvar
- * to differentiate semgrep metavariables from this special metavariable
- * used internally to help return correct statements ranges, but I'm
- * lazy.
-*)
-let matched_statements_special_mvar = "!STMT!"
-
 (*s: type [[Metavars_generic.metavars_binding]] *)
 (* note that the mvalue acts as the value of the metavar and also
    as its concrete code "witness". You can get position information from it,
@@ -127,7 +119,14 @@ type metavars_binding = (mvar * mvalue) list (* = Common.assoc *)
 *)
 module Env = struct
   type t = {
-    (* All captures *)
+    (* Sequence of statements being matched,
+       of the form (stmts_start, stmts_end).
+       stmts_end is a sublist of stmts_start. The matched sequence ends
+       where stmts_end starts.
+    *)
+    stmts_span: (AST_generic.stmt list * AST_generic.stmt list) option;
+
+    (* All metavariable captures *)
     full_env: metavars_binding;
 
     (* Only the captures that are used in the rest of the pattern.
@@ -141,10 +140,30 @@ module Env = struct
   }
 
   let empty = {
+    stmts_span = None;
     full_env = [];
     min_env = [];
     last_stmt_backrefs = Set_.empty;
   }
+
+  (* Remove the end of a list. 'end_' must be physically equal to a sublist
+     of 'orig'. *)
+  let rec copy_until acc orig end_ =
+    if orig == end_ then
+      List.rev acc
+    else
+      match orig with
+      | [] -> assert false (* end_ is not a sublist of orig; invalid usage *)
+      | x :: xs -> copy_until (x :: acc) xs end_
+
+  (* Extract the matched sequence of statements as a list. *)
+  let get_stmts_span env =
+    match env.stmts_span with
+    | None -> None
+    | Some (start, end_) ->
+        match end_ with
+        | [] -> Some start
+        | end_ -> Some (copy_until [] start end_)
 
   (* Get the value bound to a metavariable or return None. *)
   let get_capture k env =
@@ -167,32 +186,19 @@ module Env = struct
       printf "add_capture %s\n" k;
     let kv = (k, v) in
     let full_env = kv :: env.full_env in
-    let min_env =
-      (* 'matched_statements_special_mvar' is an accumulator, we don't want
-         it in here. *)
-      if k = matched_statements_special_mvar then
-        env.min_env
-      else
-        kv :: env.min_env
+    let min_env = kv :: env.min_env
     in
     { env with full_env; min_env }
 
   (*
-     This is meant for capturing and extending sequences of statements,
-     using the '$...X' syntax.
+     This is used for tracking the span of a matched sequence of statements.
   *)
   let replace_capture k v env =
     if debug then
       printf "replace_capture %s\n" k;
     let kv = (k, v) in
     let full_env = kv :: List.remove_assoc k env.full_env in
-    let min_env =
-      (* 'matched_statements_special_mvar' is an accumulator, we don't want
-         it in here. *)
-      if k = matched_statements_special_mvar then
-        env.min_env
-      else
-        kv :: List.remove_assoc k env.min_env
+    let min_env = kv :: List.remove_assoc k env.min_env
     in
     { env with full_env; min_env }
 

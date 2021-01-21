@@ -22,19 +22,16 @@ module Cache : sig
      Match a pattern against a statement, using the cache and the provided
      match function.
 
-     Usage:
-
-       match_stmt get_env cache compute_match_stmt pat_stmt target_stmt env
-
-     where 'compute_match_stmt' is the function that the cache memoizes.
+     'compute_match_stmt' is the function that the cache memoizes.
      It is the user's responsibility to always use the same
-     'compute_match_stmt' with a given cache.
+     'compute' with a given cache.
   *)
   val match_stmt_list :
-    ('tin -> Metavars_generic.Env.t) ->
-    'tout t ->
-    (pattern -> target -> 'tin -> 'tout) ->
-    pattern -> target -> 'tin -> 'tout
+    get_env_field:('acc -> Metavars_generic.Env.t) ->
+    set_env_field:('acc -> Metavars_generic.Env.t -> 'acc) ->
+    cache: 'acc list t ->
+    compute:(pattern -> target -> 'acc -> 'acc list) ->
+    pattern -> target -> 'acc -> 'acc list
 end
 
 val print_stats : unit -> unit
