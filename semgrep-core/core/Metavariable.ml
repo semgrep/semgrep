@@ -104,7 +104,7 @@ let matched_statements_special_mvar = "!STMT!"
 (* note that the mvalue acts as the value of the metavar and also
  * as its concrete code "witness". You can get position information from it,
  * it is not Parse_info.Ab(stractPos) *)
-type metavars_binding = (mvar, mvalue) Common.assoc
+type bindings = (mvar, mvalue) Common.assoc
 (*e: type [[Metavars_generic.metavars_binding]] *)
 
 (*s: constant [[Metavars_generic.metavar_regexp_string]] *)

@@ -78,7 +78,7 @@ let logger = Logging.get_logger [__MODULE__]
 (*s: type [[Matching_generic.tin]] *)
 (* tin is for 'type in' and tout for 'type out' *)
 (* incoming environment *)
-type tin = Metavariable.metavars_binding
+type tin = Metavariable.bindings
 (*e: type [[Matching_generic.tin]] *)
 (*s: type [[Matching_generic.tout]] *)
 (* list of possible outcoming matching environments *)
