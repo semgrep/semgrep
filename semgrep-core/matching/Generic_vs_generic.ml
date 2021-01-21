@@ -1053,13 +1053,15 @@ and m_compatible_type typed_mvar t e =
 
   (* for C strings to match metavariable pointer types *)
   | A.TyPointer (t1, A.TyId ((_,tok), _id_info)), B.L (B.String _) ->
-      m_type_ t (A.TyPointer (t1, TyBuiltin(("char", tok))))
+      m_type_ t (A.TyPointer (t1, TyBuiltin(("char", tok)))) >>=
+      (fun () -> envf typed_mvar (MV.E e))
   (* for matching ids *)
   | ta, ( B.Id (idb, {B.id_type=tb; _})
         | B.IdQualified ((idb, _), {B.id_type=tb;_})
         | B.DotAccess (IdSpecial (This, _), _, EId (idb, {B.id_type=tb; _}))
         ) ->
-      m_type_option_with_hook idb (Some ta) !tb
+      m_type_option_with_hook idb (Some ta) !tb >>=
+      (fun () -> envf typed_mvar (MV.E e))
   | _ -> fail ()
 
 (*s: function [[Generic_vs_generic.m_list__m_body]] *)
