@@ -49,7 +49,7 @@ module Flag = Flag_semgrep
 
 (*s: type [[Semgrep_generic.matcher]] *)
 type ('a, 'b) matcher = 'a -> 'b ->
-  Metavariable.metavars_binding list
+  Metavariable.bindings list
 (*e: type [[Semgrep_generic.matcher]] *)
 
 (*****************************************************************************)

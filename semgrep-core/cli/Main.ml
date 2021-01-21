@@ -106,7 +106,7 @@ let pattern_string = ref ""
 let pattern_file = ref ""
 (*e: constant [[Main_semgrep_core.pattern_file]] *)
 (*s: constant [[Main_semgrep_core.rules_file]] *)
-(* -rules_file *)
+(* -rules_file (mini rules) *)
 let rules_file = ref ""
 (*e: constant [[Main_semgrep_core.rules_file]] *)
 (*s: constant [[Main_semgrep_core.tainting_rules_file]] *)
