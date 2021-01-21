@@ -1043,6 +1043,8 @@ and m_compatible_type typed_mvar t e =
   | A.TyBuiltin (("int", _)),  B.L (B.Int _) -> envf typed_mvar (MV.E e)
   | A.TyBuiltin (("float", _)),  B.L (B.Float _) -> envf typed_mvar (MV.E e)
   | A.TyId (("String", _), _), B.L (B.String _) -> envf typed_mvar (MV.E e)
+  (* for C strings *)
+  | A.TyPointer (_, TyBuiltin(("char", _))), B.L (B.String _) -> envf typed_mvar (MV.E e)
   (* for go literals *)
   | A.TyId (("int", _), _), B.L (B.Int _) -> envf typed_mvar (MV.E e)
   | A.TyId (("float", _), _), B.L (B.Float _) -> envf typed_mvar (MV.E e)
