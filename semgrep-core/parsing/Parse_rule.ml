@@ -233,9 +233,29 @@ let rec parse_formula_old env (x: string * J.t) : R.formula_old =
       let extra = parse_extra env x in
       R.PatExtra extra
 
+let rec parse_formula_new env (x: J.t) : R.formula =
+  match x with
+  | J.String s -> R.P (parse_pattern env s)
+  | J.Object xs ->
+      (match xs with
+       | ["and", J.Array xs] ->
+           let xs = xs |> List.map (parse_formula_new env) in
+           R.And xs
+       | ["or", J.Array xs] ->
+           let xs = xs |> List.map (parse_formula_new env) in
+           R.Or xs
+       | ["not", v] ->
+           let f = parse_formula_new env v in
+           R.Not f
+       | [fld, v] ->
+           R.X (parse_extra env (fld, v))
+       | _ -> pr2_gen x; error "parse_formula_new"
+      )
+  | _ -> pr2_gen x; error "parse_formula_new"
 
 let parse_formula env (x: string * J.t) : R.pformula =
   match x with
+  | ("match", v) -> R.New (parse_formula_new env v)
   | _ -> R.Old (parse_formula_old env x)
 
 
