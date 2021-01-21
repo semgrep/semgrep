@@ -2,7 +2,7 @@
 
 (*s: signature [[Semgrep_generic.check]] *)
 val check:
-  hook:(Metavariable.metavars_binding -> Parse_info.t list Lazy.t -> unit)
+  hook:(Metavariable.bindings -> Parse_info.t list Lazy.t -> unit)
   ->
   Mini_rule.rules ->
   Equivalence.equivalences ->
@@ -16,7 +16,7 @@ val last_matched_rule: Mini_rule.t option ref
 
 (*s: type [[Semgrep_generic.matcher]] *)
 type ('a, 'b) matcher = 'a -> 'b ->
-  Metavariable.metavars_binding list
+  Metavariable.bindings list
 (*e: type [[Semgrep_generic.matcher]] *)
 
 (* used by tainting *)

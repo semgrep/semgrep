@@ -25,7 +25,7 @@ type t = {
   rule: Mini_rule.t;
   file: Common.filename;
   code: AST_generic.any;
-  env: Metavariable.metavars_binding;
+  env: Metavariable.bindings;
 }
 (*e: type [[Match_result.t]] *)
 (*e: semgrep/core/Match_result.ml *)
