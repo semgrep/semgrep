@@ -41,7 +41,7 @@ let match_e_e_for_equivalences _ruleid a b =
 (* Substituters *)
 (*****************************************************************************)
 (*s: function [[Apply_equivalences.subst_e]] *)
-let subst_e (bindings: MV.metavars_binding) e =
+let subst_e (bindings: MV.bindings) e =
   let visitor =
     M.mk_visitor
       { M.default_visitor with

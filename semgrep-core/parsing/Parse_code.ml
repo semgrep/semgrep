@@ -210,24 +210,7 @@ let just_parse_with_lang lang file =
       *)
       run file [
         TreeSitter Parse_javascript_tree_sitter.parse;
-        Pfff (throw_tokens (fun file ->
-          let f () =
-            Parse_js.parse file
-          in
-          (* timeout already set in caller, then good to go *)
-          if !Flag.timeout <> 0.
-          then f ()
-          else begin
-            try
-              Common.timeout_function 5 (fun () ->
-                logger#info "running the pfff JS parser with 5s timeout";
-                f ()
-              )
-            with Timeout ->
-              logger#debug "Timeout, transforming in parse error";
-              raise Parsing.Parse_error
-          end
-        ));
+        Pfff (throw_tokens Parse_js.parse)
       ]
         Js_to_generic.program
 
