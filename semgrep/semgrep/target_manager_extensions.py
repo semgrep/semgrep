@@ -1,6 +1,7 @@
 from typing import Any
 from typing import cast
 from typing import Dict
+from typing import Generator
 from typing import List
 from typing import NewType
 from typing import Set
@@ -78,6 +79,13 @@ _LANGS_TO_EXTS_INTERNAL: List[Tuple[Set[Language], List[FileExtension]]] = [
     (langauge_set({"cs", "csharp", "C#"}), CSHARP_EXTENSIONS),
     (REGEX_ONLY_LANGUAGE_KEYS.union({GENERIC_LANGUAGE}), GENERIC_EXTENSIONS),
 ]
+
+
+def all_supported_languages() -> Generator[Language, None, None]:
+    for language_set, _extensions in _LANGS_TO_EXTS_INTERNAL:
+        for lang in language_set:
+            yield lang
+
 
 # create a dictionary for fast lookup and reverse lookup
 _LANGS_TO_EXTS: Dict[Language, List[FileExtension]] = {}

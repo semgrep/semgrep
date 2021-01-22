@@ -20,6 +20,8 @@ from typing import Sequence
 from typing import Set
 from typing import Tuple
 
+from semgrep.target_manager_extensions import all_supported_languages
+
 logger = logging.getLogger(__name__)
 from ruamel.yaml import YAML
 
@@ -479,8 +481,8 @@ class CoreRunner:
             targets = target_manager.get_files(language, rule.includes, rule.excludes)
         except _UnknownLanguageError as ex:
             raise UnknownLanguageError(
-                short_msg="invalid language",
-                long_msg=f"unsupported language {language}",
+                short_msg=f"invalid language: {language}",
+                long_msg=f"unsupported language: {language}. supported langauages are: {', '.join(all_supported_languages())}",
                 spans=[rule.languages_span.with_context(before=1, after=1)],
             ) from ex
         return targets
