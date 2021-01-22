@@ -10,13 +10,40 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Fixed
 
+## [0.38.0](https://github.com/returntocorp/semgrep/releases/tag/v0.38.0) - 2021-01-20
+
+### Added
+- Added a new language: Rust. Support for basic semgrep patterns (#2391)
+  thanks to Ruin0x11!
+- Added a new language: R. Just parsing for now (#2407)
+  thanks to Ross Nanopoulos!
+- Parse more Rust constructs: Traits, type constraints (#2393, #2413)
+  thanks to Ruin0x11!
+- Parse more C# constructs: Linq queries, type parameter constraints (#2378, #2408)
+  thanks to Sjord!
+- new experimental semgrep rule (meta)linter (#2420) with semgrep-core -check_rules
+  
+
+### Changed
+- new controlflow-sensitive intraprocedural dataflow-based constant propagation
+  (#2386)
+
+### Fixed
+- matching correctly Ruby functions with rescue block (#2390)
+- semgrep crashing on permission error on a file (#2394)
+- metavariable interpolation for pattern-inside (#2361)
+- managing Lua assignment correctly (#2406) thanks to Ruin0x11!
+- correctly parse metavariables in PHP, and ellipsis in fields (#2419)
+
 ## [0.37.0](https://github.com/returntocorp/semgrep/releases/tag/v0.37.0) - 2021-01-13
 
 ### Added
 - pattern-not-regex added so findings can be filtered using regular expression (#2364)
-- Lua support for basic semgrep patterns (#2337, #2312)
+- Added a new language: Lua. Support for basic semgrep patterns (#2337, #2312)
+  thanks to Ruin0x11!
 - C# support for basic semgrep patterns (#2336)
 - Parse event access, conditional access, async-await in C# (#2314, #2329, #2358)
+  thanks to Sjord
 
 ### Changed
 - Java and Javascript method chaining requires extra "." when using ellipsis (#2354)
