@@ -18,6 +18,7 @@ from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import NOSEM_INLINE_RE
 from semgrep.constants import OutputFormat
+from semgrep.constants import RCE_RULE_FLAG
 from semgrep.constants import RULES_KEY
 from semgrep.core_runner import CoreRunner
 from semgrep.error import InvalidRuleSchemaError
@@ -29,7 +30,11 @@ from semgrep.rule import Rule
 from semgrep.rule_lang import YamlMap
 from semgrep.rule_lang import YamlTree
 from semgrep.rule_match import RuleMatch
+from semgrep.semgrep_types import OPERATOR_PATTERN_NAMES_MAP
+from semgrep.semgrep_types import OPERATORS
 from semgrep.target_manager import TargetManager
+from semgrep.util import partition
+from semgrep.util import recursive_has_key
 
 logger = logging.getLogger(__name__)
 
@@ -193,6 +198,24 @@ def main(
         filtered_rules = all_rules
     else:
         filtered_rules = [rule for rule in all_rules if rule.severity in severity]
+
+    if not dangerously_allow_arbitrary_code_execution_from_rules:
+        pattern_where_python_names = OPERATOR_PATTERN_NAMES_MAP[OPERATORS.WHERE_PYTHON]
+        pattern_where_python_rules, filtered_rules = partition(
+            lambda r: recursive_has_key(
+                lambda d: any(name in d for name in pattern_where_python_names), r.raw
+            ),
+            filtered_rules,
+        )
+        if pattern_where_python_rules:
+            for r in pattern_where_python_rules:
+                logger.warn(
+                    f"skipping rule '{r.id}' due to pattern-where-python usage, pass '{RCE_RULE_FLAG}' to enable"
+                )
+            if strict:
+                raise SemgrepError(
+                    f"failing due to unrunnable pattern-where-python and --strict"
+                )
 
     output_handler.handle_semgrep_errors(errors)
 

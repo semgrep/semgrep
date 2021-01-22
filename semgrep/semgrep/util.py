@@ -6,6 +6,7 @@ import subprocess
 import sys
 from typing import Any
 from typing import Callable
+from typing import Dict
 from typing import IO
 from typing import Iterable
 from typing import List
@@ -172,3 +173,17 @@ def compute_semgrep_path() -> str:
 
 def compute_spacegrep_path() -> str:
     return compute_executable_path("spacegrep")
+
+
+def recursive_has_key(pred: Callable, d: Dict) -> bool:
+    if pred(d):
+        return True
+    result = False
+    for v in d.values():
+        if isinstance(v, dict):
+            result = result or recursive_has_key(pred, v)
+        elif isinstance(v, list):
+            result = result or any(
+                recursive_has_key(pred, i) for i in v if isinstance(i, dict)
+            )
+    return result
