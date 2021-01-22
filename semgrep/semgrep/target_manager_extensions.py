@@ -81,10 +81,15 @@ _LANGS_TO_EXTS_INTERNAL: List[Tuple[Set[Language], List[FileExtension]]] = [
 ]
 
 
-def all_supported_languages() -> Generator[Language, None, None]:
+def all_supported_languages() -> List[Language]:
+    """
+    We want the list of languages to be deterministic, so sort it
+    """
+    langs = []
     for language_set, _extensions in _LANGS_TO_EXTS_INTERNAL:
         for lang in language_set:
-            yield lang
+            langs.append(lang)
+    return sorted(langs)
 
 
 # create a dictionary for fast lookup and reverse lookup
