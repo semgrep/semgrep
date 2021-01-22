@@ -804,7 +804,12 @@ let semgrep_with_real_rules rules files =
              | R.LNone | R.LGeneric -> true
            )
          in
-         let hook = (fun _ _ -> ()) in
+         let hook = fun env matched_tokens ->
+           if !output_format = Text then begin
+             let xs = Lazy.force matched_tokens in
+             print_match !mvars env Metavariable.ii_of_mval xs
+           end
+         in
          Semgrep.check hook rules (file, lang, ast)
       )
   in
@@ -817,21 +822,22 @@ let semgrep_with_real_rules rules files =
    * to debug too-many-matches issues.
    * Common2.write_value matches "/tmp/debug_matches";
   *)
-  let flds = json_fields_of_matches_and_errors files matches errs in
-  let flds =
-    if !profile
-    then begin
-      let json = json_of_profile_info () in
-      (* so we don't get also the profile output of Common.main_boilerplate*)
-      Common.profile := Common.ProfNone;
-      flds @ ["profiling", json]
-    end
-    else flds
-  in
-  let s = J.string_of_json (J.Object flds) in
-  logger#info "size of returned JSON string: %d" (String.length s);
-  pr s
-
+  if !output_format = Json then begin
+    let flds = json_fields_of_matches_and_errors files matches errs in
+    let flds =
+      if !profile
+      then begin
+        let json = json_of_profile_info () in
+        (* so we don't get also the profile output of Common.main_boilerplate*)
+        Common.profile := Common.ProfNone;
+        flds @ ["profiling", json]
+      end
+      else flds
+    in
+    let s = J.string_of_json (J.Object flds) in
+    logger#info "size of returned JSON string: %d" (String.length s);
+    pr s
+  end
 
 let semgrep_with_real_rules_file rules_file files =
   try

@@ -169,7 +169,7 @@ let (evaluate_formula:
 (* Main entry point *)
 (*****************************************************************************)
 
-let check _hook rules (file, lang, ast) =
+let check hook rules (file, lang, ast) =
   rules |> List.map (fun r ->
 
     let formula =
@@ -181,9 +181,11 @@ let check _hook rules (file, lang, ast) =
     let (patterns: (R.pattern_id * Pattern.t) list) =
       patterns_in_formula formula
     in
-    let mini_rules = patterns |> List.map (mini_rule_of_pattern r) in
-    (* TODO *)
-    let equivalences = [] in
+    let mini_rules =
+      patterns |> List.map (mini_rule_of_pattern r) in
+    let equivalences =
+      (* TODO *)
+      [] in
     let matches =
       Semgrep_generic.check ~hook:(fun _ _ -> ())
         mini_rules equivalences file lang ast
@@ -195,7 +197,13 @@ let check _hook rules (file, lang, ast) =
     let final_ranges =
       evaluate_formula pattern_matches_per_id formula in
 
-    final_ranges |> List.map (range_to_match_result)
+    let back_to_match_results =
+      final_ranges |> List.map (range_to_match_result) in
+    back_to_match_results |> List.iter (fun m ->
+      hook m.Match_result.env (lazy (Lib_AST.ii_of_any m.Match_result.code))
+    );
+
+    back_to_match_results
 
   ) |> List.flatten
 [@@profiling]
