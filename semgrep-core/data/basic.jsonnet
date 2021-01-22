@@ -2,21 +2,21 @@
     # Basic rules
     {
       id: "stupid_equal",
-      pattern: "$X == $X",
+      match: "$X == $X",
       message: "Dude, $X == $X is always true (Unless X is NAN ...)",
       languages: [ "python", "javascript", "ruby", "c", "go", "ocaml" ],
       severity: "WARNING",
     },
     {
       id: "stupid_not_equal",
-      pattern: "$X != $X",
+      match: "$X != $X",
       message: "Dude, $X != $X is always false (Unless X is NAN ...)",
       languages: [ "python", "javascript" ],
       severity: "WARNING"
     },
     {
       id: "stupid_conditional",
-      pattern: |||
+      match: |||
         if $E:
           $S
         else:

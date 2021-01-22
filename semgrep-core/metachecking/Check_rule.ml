@@ -44,11 +44,6 @@ type env = Rule.t
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-let rec visit_old_formula f formula =
-  match formula with
-  | Pat x | PatNot x | PatInside x | PatNotInside x -> f x
-  | PatExtra _ -> ()
-  | PatEither xs | Patterns xs -> xs |> List.iter (visit_old_formula f)
 
 let error (env: env) s =
   let loc = Parse_info.first_loc_of_file (env.file) in

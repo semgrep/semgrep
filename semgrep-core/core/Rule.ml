@@ -181,5 +181,21 @@ type t = rule
 type rules = rule list
 [@@deriving show]
 
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
+let rec visit_new_formula f formula =
+  match formula with
+  | P p -> f p
+  | X _ -> ()
+  | Not x -> visit_new_formula f x
+  | Or xs | And xs -> xs |> List.iter (visit_new_formula f)
+
+let rec visit_old_formula f formula =
+  match formula with
+  | Pat x | PatNot x | PatInside x | PatNotInside x -> f x
+  | PatExtra _ -> ()
+  | PatEither xs | Patterns xs -> xs |> List.iter (visit_old_formula f)
 
 (*e: semgrep/core/Rule.ml *)

@@ -15,7 +15,6 @@
  * license.txt for more details.
 *)
 (*e: pad/r2c copyright *)
-open Common
 
 module R = Rule
 module MR = Mini_rule
@@ -84,14 +83,14 @@ module MR = Mini_rule
  * the matching results corresponding to this id.
 *)
 type pattern_id = R.pattern_id
-type match_result_id = int
 
 (* range with metavars *)
-type range = {
-  start: int;
-  end_: int;
-  (* TODO: metavars *)
-  id: match_result_id;
+type range_with_mvars = {
+  r: Range.t;
+  mvars: Metavariable.bindings;
+
+  (* less: use intermediate id? *)
+  origin: Match_result.t;
 }
 
 (* use the Hashtbl.find_all property *)
@@ -101,31 +100,70 @@ type id_to_match_result = (pattern_id, Match_result.t) Hashtbl.t
 (* Helpers *)
 (*****************************************************************************)
 
-let _match_result_to_range _mr =
-  raise Todo
-
 let (patterns_in_formula: R.formula -> (R.pattern_id * Pattern.t) list) =
-  fun _f ->
-  raise Todo
+  fun e ->
+  let res = ref [] in
+  e |> R.visit_new_formula (fun xpat ->
+    match xpat.pat with
+    | R.Sem p -> Common.push (xpat.R.pid, p) res
+    | _ -> failwith "TODO: Just Sem handled for now"
+  );
+  !res
 
 let (mini_rule_of_pattern: R.t -> (R.pattern_id * Pattern.t) -> MR.t) =
-  fun _r (_id, _pat) ->
-  raise Todo
+  fun r (id, pattern) ->
+  { MR.
+    id = string_of_int id; pattern;
+    (* parts that are not really needed I think in this context, since
+     * we just care about the matching result.
+    *)
+    message = ""; severity = MR.Error;
+    languages =
+      (match r.R.languages with
+       | R.L (x, xs) -> x::xs
+       | R.LNone | R.LGeneric -> failwith "TODO: LNone | LGeneric"
+      );
+    pattern_string = "";
+  }
+
 
 let (group_matches_per_pattern_id: Match_result.t list -> id_to_match_result) =
-  fun _xs ->
-  raise Todo
+  fun xs ->
+  let h = Hashtbl.create 101 in
+  xs |> List.iter (fun m ->
+    let id = int_of_string (m.Match_result.rule.MR.id) in
+    Hashtbl.add h id m
+  );
+  h
 
-let (range_to_match_result: id_to_match_result -> range -> Match_result.t) =
-  fun _h _range ->
-  raise Todo
+let (range_to_match_result: range_with_mvars -> Match_result.t) =
+  fun range -> range.origin
+
+let (match_result_to_range: Match_result.t -> range_with_mvars) =
+  fun m ->
+  let { Match_result.code = any; env = mvars; _} = m in
+  let toks = Lib_AST.ii_of_any any in
+  let r =
+    match Range.range_of_tokens toks with
+    | Some r -> r
+    | None -> failwith "could not find a range"
+  in
+  { r; mvars; origin = m; }
 
 (*****************************************************************************)
 (* Formula evaluation *)
 (*****************************************************************************)
-let (evaluate_formula: id_to_match_result -> R.formula -> range list) =
-  fun _h _f ->
-  raise Todo
+let (evaluate_formula:
+       id_to_match_result -> R.formula -> range_with_mvars list) =
+  fun h e ->
+  match e with
+  | R.P xpat ->
+      let id = xpat.R.pid in
+      let match_results =
+        try Hashtbl.find_all h id with Not_found -> []
+      in
+      match_results |> List.map match_result_to_range
+  | _ -> failwith "TODO"
 
 (*****************************************************************************)
 (* Main entry point *)
@@ -157,7 +195,7 @@ let check _hook rules (file, lang, ast) =
     let final_ranges =
       evaluate_formula pattern_matches_per_id formula in
 
-    final_ranges |> List.map (range_to_match_result pattern_matches_per_id)
+    final_ranges |> List.map (range_to_match_result)
 
   ) |> List.flatten
 [@@profiling]
