@@ -222,8 +222,7 @@ def main(
                 )
             else:
                 raise SemgrepError(
-                    """
-You need to specify a config with --config=<semgrep.dev config name|localfile|localdirectory|url>.
+                    """You need to specify a config with --config=<semgrep.dev config name|localfile|localdirectory|url>.
 If you're looking for a config to start with, there are thousands at: https://semgrep.dev
 The two most popular are:
     --config=p/ci # find logic bugs, and high-confidence security vulnerabilities; recommended for CI
