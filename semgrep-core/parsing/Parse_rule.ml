@@ -133,8 +133,6 @@ let parse_extra _env x =
            error "wrong parse_extra fields"
       )
 
-  | "pattern-regex", J.String s ->
-      R.PatRegexp s
   | "pattern-where-python", J.String s ->
       R.PatWherePython s
 
@@ -190,12 +188,12 @@ type _env = (string * R.xlang)
 let parse_pattern (id, lang) s =
   match lang with
   | R.L (lang, _) ->
-      { R.pstr = s; p = Sem (H.parse_pattern ~id ~lang s) }
+      R.mk_xpat (Sem (H.parse_pattern ~id ~lang s)) s
   | R.LNone ->
       failwith ("you should not use real pattern with language = none")
   | R.LGeneric ->
       (* todo: call spacegrep *)
-      { R.pstr = s; p = Space s}
+      R.mk_xpat (Space s) s
 
 let rec parse_formula_old env (x: string * J.t) : R.formula_old =
   match x with
@@ -229,6 +227,10 @@ let rec parse_formula_old env (x: string * J.t) : R.formula_old =
             pr2_gen x;
             error "wrong parse_formula fields"
       ) xs)
+
+  | "pattern-regex", J.String s ->
+      let xpat = R.mk_xpat (Regexp s) s in
+      R.Pat xpat
   | x ->
       let extra = parse_extra env x in
       R.PatExtra extra

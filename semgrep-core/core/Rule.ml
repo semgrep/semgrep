@@ -43,7 +43,7 @@ type xlang =
 [@@deriving show]
 
 type xpattern = {
-  p: xpattern_kind;
+  pat: xpattern_kind;
   (* two patterns may have different indentation, we don't care. We can
    * rely on the equality on p, which will do the right thing (e.g., abstract
    * away line position).
@@ -56,14 +56,16 @@ type xpattern = {
 and xpattern_kind =
   | Sem of Pattern.t
   | Space of spacegrep
-  (* TODO? Regexp? *)
-
-and regexp = string
+  | Regexp of regexp
 
 (* TODO: parse it via spacegrep/lib! *)
 and spacegrep = string
 
+and regexp = string
+
 [@@deriving show, eq]
+
+let mk_xpat pat pstr = { pat; pstr }
 
 (*****************************************************************************)
 (* Formula (patterns boolean composition) *)
@@ -84,16 +86,9 @@ type formula =
 
 (* extra conditions, usually on metavariable content *)
 and extra =
-  (* TODO: now in xpattern_kind? *)
-  | PatRegexp of regexp
-  | Spacegrep of spacegrep
-
   | MetavarRegexp of MV.mvar * regexp
   | MetavarComparison of metavariable_comparison
   | PatWherePython of string (* arbitrary code, dangerous! *)
-
-  (* less: could be done via Not PatRegexp later? *)
-  | PatNotRegexp of regexp
 
 (* See also matching/eval_generic.ml *)
 and metavariable_comparison = {
