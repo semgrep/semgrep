@@ -482,7 +482,7 @@ class CoreRunner:
         except _UnknownLanguageError as ex:
             raise UnknownLanguageError(
                 short_msg=f"invalid language: {language}",
-                long_msg=f"unsupported language: {language}. supported langauages are: {', '.join(all_supported_languages())}",
+                long_msg=f"unsupported language: {language}. supported languages are: {', '.join(all_supported_languages())}",
                 spans=[rule.languages_span.with_context(before=1, after=1)],
             ) from ex
         return targets
