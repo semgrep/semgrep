@@ -102,7 +102,7 @@ let check_old_formula env lang f =
     match pat, lang with
     | Sem semgrep_pat, L (lang, _rest)  ->
         Check_pattern.check lang semgrep_pat
-    | Space _spacegrep_pat, LGeneric -> ()
+    | Spacegrep _spacegrep_pat, LGeneric -> ()
     | Regexp _, _ -> ()
     | _ -> raise Impossible
   );

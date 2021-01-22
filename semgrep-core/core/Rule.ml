@@ -29,7 +29,7 @@ module MV = Metavariable
 *)
 
 (*****************************************************************************)
-(* Extended language and pattern *)
+(* Extended languages and patterns *)
 (*****************************************************************************)
 
 (* less: merge with xpattern_kind? *)
@@ -55,7 +55,7 @@ type xpattern = {
 }
 and xpattern_kind =
   | Sem of Pattern.t
-  | Space of spacegrep
+  | Spacegrep of spacegrep
   | Regexp of regexp
 
 (* TODO: parse it via spacegrep/lib! *)
@@ -72,8 +72,8 @@ let mk_xpat pat pstr = { pat; pstr }
 (*****************************************************************************)
 
 (* Classic boolean-logic/set operators with text range set semantic.
- * The main complication is the handling of metavariables and negation
- * in the presence of metavariables.
+ * The main complication is the handling of metavariables and especially
+ * negation in the presence of metavariables.
  * TODO: add tok (Parse_info.t) for good metachecking error locations.
 *)
 type formula =
@@ -165,12 +165,14 @@ and paths = {
   include_: regexp list;
   exclude: regexp list;
 }
-
-and rules = rule list
 [@@deriving show]
 
 (* alias *)
 type t = rule
 [@@deriving show]
+
+type rules = rule list
+[@@deriving show]
+
 
 (*e: semgrep/core/Rule.ml *)

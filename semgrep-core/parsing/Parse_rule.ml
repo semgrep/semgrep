@@ -192,8 +192,8 @@ let parse_pattern (id, lang) s =
   | R.LNone ->
       failwith ("you should not use real pattern with language = none")
   | R.LGeneric ->
-      (* todo: call spacegrep *)
-      R.mk_xpat (Space s) s
+      (* todo: call spacegrep to parse s *)
+      R.mk_xpat (Spacegrep s) s
 
 let rec parse_formula_old env (x: string * J.t) : R.formula_old =
   match x with
@@ -249,6 +249,11 @@ let rec parse_formula_new env (x: J.t) : R.formula =
        | ["not", v] ->
            let f = parse_formula_new env v in
            R.Not f
+
+       | ["regex", J.String s] ->
+           let xpat = R.mk_xpat (R.Regexp s) s in
+           R.P xpat
+
        | [fld, v] ->
            R.X (parse_extra env (fld, v))
        | _ -> pr2_gen x; error "parse_formula_new"
