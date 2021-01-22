@@ -150,11 +150,28 @@ let (match_result_to_range: Match_result.t -> range_with_mvars) =
   in
   { r; mvars; origin = m; }
 
+open Range
+(* TODO: also check metavariables! *)
+let intersect_ranges xs ys =
+  let surviving_xs =
+    xs |> List.filter (fun x ->
+      ys |> List.exists (fun y ->
+        x.r $<=$ y.r
+      )) in
+  let surviving_ys =
+    ys |> List.filter (fun y ->
+      xs |> List.exists (fun x ->
+        y.r $<=$ x.r
+      ))
+  in
+  surviving_xs @ surviving_ys
+
 (*****************************************************************************)
 (* Formula evaluation *)
 (*****************************************************************************)
-let (evaluate_formula:
-       id_to_match_result -> R.formula -> range_with_mvars list) =
+(* TODO: use Set instead of list? *)
+let rec (evaluate_formula:
+           id_to_match_result -> R.formula -> range_with_mvars list) =
   fun h e ->
   match e with
   | R.P xpat ->
@@ -163,6 +180,24 @@ let (evaluate_formula:
         try Hashtbl.find_all h id with Not_found -> []
       in
       match_results |> List.map match_result_to_range
+  | R.Or xs ->
+      xs |> List.map (evaluate_formula h) |> List.flatten
+  | R.And xs ->
+      (* TODO: should order the not after the positive *)
+      (match xs with
+       | [] -> failwith "empty And"
+       | x::xs ->
+           let start = evaluate_formula h x in
+           let rec aux acc xs =
+             match xs with
+             | [] -> acc
+             | x::xs ->
+                 let other = evaluate_formula h x in
+                 let new_acc = intersect_ranges acc other in
+                 aux new_acc xs
+           in
+           aux start xs
+      )
   | _ -> failwith "TODO"
 
 (*****************************************************************************)
