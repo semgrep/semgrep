@@ -24,7 +24,7 @@
 type t = {
   rule: Rule.t;
   file: Common.filename;
-  code: AST_generic.any;
+  location: Parse_info.token_location * Parse_info.token_location;
   env: Metavars_generic.metavars_binding;
 }
 (*e: type [[Match_result.t]] *)

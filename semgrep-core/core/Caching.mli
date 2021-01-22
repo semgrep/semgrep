@@ -27,8 +27,10 @@ module Cache : sig
      'compute' with a given cache.
   *)
   val match_stmt_list :
-    get_env_field:('acc -> Metavars_generic.Env.t) ->
-    set_env_field:('acc -> Metavars_generic.Env.t -> 'acc) ->
+    get_span_field:('acc -> Stmts_match_span.t) ->
+    set_span_field:('acc -> Stmts_match_span.t -> 'acc) ->
+    get_mv_field:('acc -> Metavars_generic.Env.t) ->
+    set_mv_field:('acc -> Metavars_generic.Env.t -> 'acc) ->
     cache: 'acc list t ->
     compute:(pattern -> target -> 'acc -> 'acc list) ->
     pattern -> target -> 'acc -> 'acc list

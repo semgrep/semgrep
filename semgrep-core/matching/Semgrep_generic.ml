@@ -110,17 +110,12 @@ let match_sts_sts2 cache pattern e =
    * nested calls to m_stmts_deep to pollute our metavar? We need
    * to pass the key to m_stmts_deep?
   *)
-  let env = MG.init_mv_stmts_span e env in
-
-  let res = GG.m_stmts_deep ~less_is_ok:true pattern e env in
-
-  res |> List.map (fun tin ->
-    match MG.get_mv_stmts_span tin with
-    | None -> assert false
-    | Some matched_stmts ->
-        let tin = MG.clear_mv_stmts_span tin in
-        (tin, MV.Ss matched_stmts)
-  )
+  let env =
+    match e with
+    | [] -> env
+    | stmt :: _ -> MG.extend_stmts_match_span stmt env
+  in
+  GG.m_stmts_deep ~less_is_ok:true pattern e env
 (*e: function [[Semgrep_generic.match_sts_sts]] *)
 let match_sts_sts rule cache a b =
   Common.profile_code ("rule:" ^ rule.R.id) (fun () ->
@@ -191,7 +186,8 @@ let match_rules_and_recurse (file, hook, matches) rules matcher k any x =
     then (* Found a match *)
       matches_with_env |> List.iter (fun (env : MG.tin) ->
         let env = env.mv.full_env in
-        Common.push { Res. rule; file; env; code = any x } matches;
+        let location = Lib_AST.range_of_any (any x) in
+        Common.push { Res. rule; file; env; location } matches;
         let matched_tokens = lazy (Lib_AST.ii_of_any (any x)) in
         hook env matched_tokens
       )
@@ -211,10 +207,6 @@ let must_analyze_statement_bloom_opti_failed bf1 st =
   | None -> true
   (* only when the Bloom_filter says No we can skip the stmt *)
   | Some bf2 -> Bloom_filter.is_subset bf1 bf2 = Bloom_filter.Maybe
-
-let pattern_supports_caching _pattern =
-  (* TODO: $...X don't support caching *)
-  true
 
 (*****************************************************************************)
 (* Main entry point *)
@@ -265,7 +257,7 @@ let check2 ~hook ~with_caching rules equivs file lang ast =
       let any = Apply_equivalences.apply equivs any in
       (*e: [[Semgrep_generic.check2()]] apply equivalences to rule pattern [[any]] *)
       let cache =
-        if with_caching && pattern_supports_caching any then
+        if with_caching then
           Some (Caching.Cache.create ())
         else
           None
@@ -301,7 +293,8 @@ let check2 ~hook ~with_caching rules equivs file lang ast =
             then (* Found a match *)
               matches_with_env |> List.iter (fun (env : MG.tin) ->
                 let env = env.mv.full_env in
-                Common.push { Res. rule; file; env; code = E x } matches;
+                let location = Lib_AST.range_of_any (E x) in
+                Common.push { Res. rule; file; env; location } matches;
                 let matched_tokens = lazy (Lib_AST.ii_of_any (E x)) in
                 hook env matched_tokens
               )
@@ -337,7 +330,8 @@ let check2 ~hook ~with_caching rules equivs file lang ast =
                 then (* Found a match *)
                   matches_with_env |> List.iter (fun (env : MG.tin) ->
                     let env = env.mv.full_env in
-                    Common.push { Res. rule; file; env; code = S x } matches;
+                    let location = Lib_AST.range_of_any (S x) in
+                    Common.push { Res. rule; file; env; location } matches;
                     let matched_tokens = lazy (Lib_AST.ii_of_any (S x)) in
                     hook env matched_tokens
                   )
@@ -361,13 +355,19 @@ let check2 ~hook ~with_caching rules equivs file lang ast =
             let matches_with_env = match_sts_sts rule cache pattern x in
             if matches_with_env <> []
             then (* Found a match *)
-              matches_with_env |> List.iter (fun (env, matched_statements) ->
-                let any = MV.mvalue_to_any matched_statements in
-                let env = (env : MG.tin).mv.full_env in
-                Common.push { Res. rule; file; env; code = any }
-                  matches;
-                let matched_tokens = lazy (Lib_AST.ii_of_any any) in
-                hook env matched_tokens
+              matches_with_env |> List.iter (fun (env : MG.tin) ->
+                let span = env.stmts_match_span in
+                match Stmts_match_span.location span with
+                | None -> () (* empty sequence or bug *)
+                | Some location ->
+                    let env = env.mv.full_env in
+                    Common.push { Res. rule; file; env; location }
+                      matches;
+                    (* TODO: the following hook should run on all tokens, not
+                       just the tokens found in the first and last stmts. *)
+                    let any = Ss (Stmts_match_span.list_stmts span) in
+                    let matched_tokens = lazy (Lib_AST.ii_of_any any) in
+                    hook env matched_tokens
               )
           );
           k x

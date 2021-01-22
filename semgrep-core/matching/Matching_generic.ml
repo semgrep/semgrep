@@ -80,6 +80,7 @@ let logger = Logging.get_logger [__MODULE__]
 (* incoming environment *)
 type tin = {
   mv : Metavars_generic.Env.t;
+  stmts_match_span : Stmts_match_span.t;
   cache : tout Caching.Cache.t option;
 }
 (*e: type [[Matching_generic.tin]] *)
@@ -205,35 +206,10 @@ let add_mv_capture key value (env : tin) =
 let get_mv_capture key (env : tin) =
   MV.Env.get_capture key env.mv
 
-let init_mv_stmts_span stmts (env : tin) =
-  let stmts_span = Some (stmts, stmts) in
-  let mv = { env.mv with stmts_span } in
-  { env with mv }
-
-let extend_mv_stmts_span new_end (env : tin) =
-  let mv = env.mv in
-  match mv.stmts_span with
-  | None -> invalid_arg "extend_mv_stmts_span_noerr: uninitialized"
-  | Some (start, _end) ->
-      let stmts_span = Some (start, new_end) in
-      let mv = { mv with stmts_span } in
-      { env with mv }
-
-let extend_mv_stmts_span_noerr new_end (env : tin) =
-  let mv = env.mv in
-  match mv.stmts_span with
-  | None -> env
-  | Some (start, _end) ->
-      let stmts_span = Some (start, new_end) in
-      let mv = { mv with stmts_span } in
-      { env with mv }
-
-let clear_mv_stmts_span (env : tin) =
-  let mv = { env.mv with stmts_span = None } in
-  { env with mv }
-
-let get_mv_stmts_span (env : tin) =
-  MV.Env.get_stmts_span env.mv
+let extend_stmts_match_span rightmost_stmt (env : tin) =
+  let stmts_match_span =
+    Stmts_match_span.extend rightmost_stmt env.stmts_match_span in
+  { env with stmts_match_span }
 
 (*s: function [[Matching_generic.equal_ast_binded_code]] *)
 (* pre: both 'a' and 'b' contains only regular code; there are no
@@ -356,6 +332,7 @@ let (envf: (MV.mvar AST.wrap, MV.mvalue) matcher) =
 let empty_environment opt_cache =
   {
     mv = MV.Env.empty;
+    stmts_match_span = Empty;
     cache = opt_cache;
   }
 (*e: function [[Matching_generic.empty_environment]] *)

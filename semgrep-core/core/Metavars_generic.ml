@@ -119,13 +119,6 @@ type metavars_binding = (mvar * mvalue) list (* = Common.assoc *)
 *)
 module Env = struct
   type t = {
-    (* Sequence of statements being matched,
-       of the form (stmts_start, stmts_end).
-       stmts_end is a sublist of stmts_start. The matched sequence ends
-       where stmts_end starts.
-    *)
-    stmts_span: (AST_generic.stmt list * AST_generic.stmt list) option;
-
     (* All metavariable captures *)
     full_env: metavars_binding;
 
@@ -140,30 +133,10 @@ module Env = struct
   }
 
   let empty = {
-    stmts_span = None;
     full_env = [];
     min_env = [];
     last_stmt_backrefs = Set_.empty;
   }
-
-  (* Remove the end of a list. 'end_' must be physically equal to a sublist
-     of 'orig'. *)
-  let rec copy_until acc orig end_ =
-    if orig == end_ then
-      List.rev acc
-    else
-      match orig with
-      | [] -> assert false (* end_ is not a sublist of orig; invalid usage *)
-      | x :: xs -> copy_until (x :: acc) xs end_
-
-  (* Extract the matched sequence of statements as a list. *)
-  let get_stmts_span env =
-    match env.stmts_span with
-    | None -> None
-    | Some (start, end_) ->
-        match end_ with
-        | [] -> Some start
-        | end_ -> Some (copy_until [] start end_)
 
   (* Get the value bound to a metavariable or return None. *)
   let get_capture k env =

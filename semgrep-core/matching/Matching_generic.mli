@@ -5,6 +5,7 @@
 (* incoming environment *)
 type tin = {
   mv : Metavars_generic.Env.t;
+  stmts_match_span : Stmts_match_span.t;
   cache : tout Caching.Cache.t option;
 }
 (*e: type [[Matching_generic.tin]] *)
@@ -57,26 +58,9 @@ val add_mv_capture :
 val get_mv_capture :
   Metavars_generic.mvar -> tin -> Metavars_generic.mvalue option
 
-(* Initialize the matching list of statements by providing the
-   list of statements where the match starts. *)
-val init_mv_stmts_span : AST_generic.stmt list -> tin -> tin
-
-(* Update the matching list of statements by providing the
-   list of statements where the match ends. The first element of this
-   list, if any, is the first element to *not* match.
-   Raises an exception if stmts_span is uninitialized.
-*)
-val extend_mv_stmts_span : AST_generic.stmt list -> tin -> tin
-
-(* Same as 'extend_mv_stmts_span' but does nothing if
-   stmts_span is uninitialized. *)
-val extend_mv_stmts_span_noerr : AST_generic.stmt list -> tin -> tin
-
-(* Clear the matching list of statements. *)
-val clear_mv_stmts_span : tin -> tin
-
-(* Get the matching list of statements, it there is one. *)
-val get_mv_stmts_span : tin -> AST_generic.stmt list option
+(* Update the matching list of statements by providing a new matching
+   statement. *)
+val extend_stmts_match_span : AST_generic.stmt -> tin -> tin
 
 (*s: signature [[Matching_generic.envf]] *)
 val envf :

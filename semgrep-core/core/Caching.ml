@@ -230,13 +230,19 @@ module Cache = struct
      one obtained from the cache.
   *)
   let patch_result_from_cache
-      ~get_env_field
-      ~set_env_field
+      ~get_span_field
+      ~set_span_field
+      ~get_mv_field
+      ~set_mv_field
       backrefs
+      current_stmt
       orig_acc
       cached_acc =
-    let orig_env : MV.Env.t = get_env_field orig_acc in
-    let cached_env : MV.Env.t = get_env_field cached_acc in
+    let orig_env : MV.Env.t = get_mv_field orig_acc in
+    let cached_env : MV.Env.t = get_mv_field cached_acc in
+    let orig_span : Stmts_match_span.t = get_span_field orig_acc in
+    let cached_span : Stmts_match_span.t = get_span_field cached_acc in
+
     let patched_full_env =
       List.map (fun ((k, _v) as cached_binding) ->
         if MV.Env.has_backref k backrefs (* = is in min_env *) then
@@ -247,22 +253,27 @@ module Cache = struct
           | Some orig_v -> (* to be restored *) (k, orig_v)
       ) cached_env.full_env
     in
-    (* mix uncached start with cached end *)
-    let stmts_span =
-      match orig_env.stmts_span, cached_env.stmts_span with
-      | Some (start, _), Some (_, end_) -> Some (start, end_)
-      | _ -> assert false
-    in
     let patched_env = {
       cached_env with
-      stmts_span;
       full_env = patched_full_env
     } in
-    set_env_field cached_acc patched_env
+
+    let patched_span : Stmts_match_span.t =
+      match orig_span, cached_span with
+      | Empty, Empty -> Empty
+      | Empty, Span x -> Span { x with leftmost_stmt = current_stmt }
+      | Span x, Empty -> Span x
+      | Span {leftmost_stmt; _}, Span {rightmost_stmt; _} ->
+          Span { leftmost_stmt; rightmost_stmt }
+    in
+    let acc = set_mv_field cached_acc patched_env in
+    set_span_field acc patched_span
 
   let match_stmt_list
-      ~get_env_field
-      ~set_env_field
+      ~get_span_field
+      ~set_span_field
+      ~get_mv_field
+      ~set_mv_field
       ~(cache : _ list t)
       ~compute
       (pattern : pattern) (target : target) acc =
@@ -270,7 +281,7 @@ module Cache = struct
     | [], _ | _, [] ->
         compute pattern target acc
     | a :: _, b :: _ ->
-        let env : Metavars_generic.Env.t = get_env_field acc in
+        let env : Metavars_generic.Env.t = get_mv_field acc in
         let key = (env.min_env, a.s_id, b.s_id) in
         if debug then
           printf "match_stmt_list\n";
@@ -286,9 +297,11 @@ module Cache = struct
             in
             List.map (fun cached_acc ->
               patch_result_from_cache
-                ~get_env_field
-                ~set_env_field
-                backrefs acc cached_acc
+                ~get_span_field
+                ~set_span_field
+                ~get_mv_field
+                ~set_mv_field
+                backrefs b acc cached_acc
             ) res
         | None ->
             incr cache_misses;

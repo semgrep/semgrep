@@ -87,13 +87,8 @@ let m_string_xhp_text sa sb =
   else fail ()
 (*e: function [[Generic_vs_generic.m_string_xhp_text]] *)
 
-let env_add_matched_stmt stmts (tin : tin) =
-  let end_ =
-    match stmts with
-    | [] -> []
-    | _matched_stmt :: unmatched_tail -> unmatched_tail
-  in
-  [extend_mv_stmts_span_noerr end_ tin]
+let env_add_matched_stmt rightmost_stmt (tin : tin) =
+  [extend_stmts_match_span rightmost_stmt tin]
 
 (* less: could be made more general by taking is_dots function parameter *)
 let has_ellipsis_and_filter_ellipsis xs =
@@ -1489,13 +1484,13 @@ and m_stmts_deep ~less_is_ok (xsa: A.stmt list) (xsb: A.stmt list) =
       return ()
 
   | ({s=A.ExprStmt (A.Ellipsis _i, _);_}::xsa_tail as xsa),
-    (_xb::xsb_tail as xsb) ->
+    (xb::xsb_tail as xsb) ->
       (* let's first try the without going deep *)
       (
         (* can match nothing *)
         (m_list__m_stmt xsa_tail xsb) >||>
         (* can match more *)
-        (env_add_matched_stmt xsb >>= (fun () ->
+        (env_add_matched_stmt xb >>= (fun () ->
            (m_list__m_stmt xsa xsb_tail)
          ))
       ) >!> (fun () ->
@@ -1507,9 +1502,9 @@ and m_stmts_deep ~less_is_ok (xsa: A.stmt list) (xsb: A.stmt list) =
       )
 
   (* the general case *)
-  | xa::aas, (xb::bbs as xsb) ->
+  | xa::aas, xb::bbs ->
       m_stmt xa xb >>= (fun () ->
-        env_add_matched_stmt xsb >>= (fun () ->
+        env_add_matched_stmt xb >>= (fun () ->
           m_stmts_deep ~less_is_ok aas bbs
         ))
   | _::_, _ ->
@@ -1525,8 +1520,10 @@ and m_list__m_stmt xsa xsb tin =
   | Some cache, a :: _ ->
       let tin = { tin with mv = MV.Env.update_min_env tin.mv a } in
       Caching.Cache.match_stmt_list
-        ~get_env_field:(fun tin -> tin.mv)
-        ~set_env_field:(fun tin mv -> { tin with mv })
+        ~get_span_field:(fun tin -> tin.stmts_match_span)
+        ~set_span_field:(fun tin x -> { tin with stmts_match_span = x })
+        ~get_mv_field:(fun tin -> tin.mv)
+        ~set_mv_field:(fun tin mv -> { tin with mv })
         ~cache
         ~compute:m_list__m_stmt_uncached
         xsa xsb tin
@@ -1560,18 +1557,18 @@ and m_list__m_stmt_uncached (xsa: A.stmt list) (xsb: A.stmt list) =
       return ()
 
   | {s=A.ExprStmt (A.Ellipsis _i, _);_}::xsa_tail,
-    (_xb::xsb_tail as xsb) ->
+    (xb::xsb_tail as xsb) ->
       (* can match nothing *)
       (m_list__m_stmt xsa_tail xsb) >||>
       (* can match more *)
-      (env_add_matched_stmt xsb >>= (fun () ->
+      (env_add_matched_stmt xb >>= (fun () ->
          (m_list__m_stmt xsa xsb_tail)
        ))
   (*e: [[Generic_vs_generic.m_list__m_stmt()]] ellipsis cases *)
   (* the general case *)
-  | xa::aas, (xb::bbs as xsb) ->
+  | xa::aas, xb::bbs ->
       m_stmt xa xb >>= (fun () ->
-        env_add_matched_stmt xsb >>= (fun () ->
+        env_add_matched_stmt xb >>= (fun () ->
           m_list__m_stmt aas bbs
         ))
   | _::_, _ ->
