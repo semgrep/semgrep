@@ -52,11 +52,15 @@ type xpattern = {
    * AST-wise, but it might be a bug! so I commented the @equal below.
   *)
   pstr: string (*  [@equal (fun _ _ -> true)] *);
+  (* unique id, incremented via a gensym() like function in mk_pat() *)
+  pid: pattern_id;
 }
 and xpattern_kind =
   | Sem of Pattern.t
   | Spacegrep of spacegrep
   | Regexp of regexp
+  (* used in the engine for rule->mini_rule and match_result gymnastic *)
+and pattern_id = int
 
 (* TODO: parse it via spacegrep/lib! *)
 and spacegrep = string
@@ -65,7 +69,10 @@ and regexp = string
 
 [@@deriving show, eq]
 
-let mk_xpat pat pstr = { pat; pstr }
+let count = ref 0
+let mk_xpat pat pstr =
+  incr count;
+  { pat; pstr; pid = !count }
 
 (*****************************************************************************)
 (* Formula (patterns boolean composition) *)

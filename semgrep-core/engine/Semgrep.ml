@@ -15,19 +15,150 @@
  * license.txt for more details.
 *)
 (*e: pad/r2c copyright *)
+open Common
+
+module R = Rule
+module MR = Mini_rule
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
+(* The core engine of Semgrep.
+ *
+ * This module implements the boolean composition of patterns.
+ * See Semgrep_generic.ml for the code to handle a single pattern and
+ * the visitor/matching engine.
+ *
+ * So we can decompose the engine in 3 main componenents:
+ *  - composing matching results using boolean/set logic (this file)
+ *  - visiting code (=~ Semgrep_generic.ml)
+ *  - matching code (=~ Generic_vs_generic.ml)
+ *
+ * There are also "preprocessing" work before that:
+ *  - parsing (lexing, parsing) rules, code, patterns
+ *  - normalizing (convert to a generic AST)
+ *  - naming (but bugs probably)
+ *  - SEMI typing (propagating type decls at least and small inference)
+ *  - SEMI analyzing (dataflow constant propagation)
+ *    but could do much more: deep static analysis using Datalog?
+ *
+ * TODO
+ *  - spacegrep, link with spacegrep lib :)
+ *  - regexp, use PCRE compatible regexp OCaml lib
+ *  - metavar comparison, use Eval_generic :)
+ *  - pattern-where-python? use pycaml? works for dlint rule?
+ *
+ * LATER (if really decide to rewrite the python wrapper in OCaml):
+ *  - paths
+ *  - autofix
+ *  - ...
+ *
+ * FUTURE WORK:
+ * Right now we just analyze one file at a time. Later we could
+ * maybe take a list of files and do some global analysis for:
+ *     * caller/callee in different files
+ *     * inheritance awareness, because right now we can't match
+ *       code that inherit indirectly form a class mentioned in a pattern
+ * There are different options for such global analysis:
+ *  - generate a giant file a la CIL, but scale?
+ *  - do it via a 2 passes process. 1st pass iterate over all files, report
+ *    already matches, record semantic information (e.g., inheritance tree,
+ *    call graph, etc.) as it goes, and let the matching engine report
+ *    todo_second_pass if for example is_children returned a Maybe.
+ *    Then in 2nd pass just process the files that were marked as todo.
+ *  - use LSP, so don't even need 2 pass and can even work when passing
+ *    a single file or subdir to semgrep
+ *
+ * Note that we opted here for simple patterns with simple extensions
+ * to the grammar (metavar, ellipsis) with simple (but powerful) logic
+ * compositions of patterns.
+ * Coccinelle instead opted for very complex patterns and using CTL to
+ * hold of that together.
+*)
+
+(*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+(* Id of a single pattern in a formula. This will be used to generate
+ * mini rules with this id, and later when we evaluate the formula, find
+ * the matching results corresponding to this id.
+*)
+type pattern_id = R.pattern_id
+type match_result_id = int
+
+(* range with metavars *)
+type range = {
+  start: int;
+  end_: int;
+  (* TODO: metavars *)
+  id: match_result_id;
+}
+
+(* use the Hashtbl.find_all property *)
+type id_to_match_result = (pattern_id, Match_result.t) Hashtbl.t
 
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
+let _match_result_to_range _mr =
+  raise Todo
+
+let (patterns_in_formula: R.formula -> (R.pattern_id * Pattern.t) list) =
+  fun _f ->
+  raise Todo
+
+let (mini_rule_of_pattern: R.t -> (R.pattern_id * Pattern.t) -> MR.t) =
+  fun _r (_id, _pat) ->
+  raise Todo
+
+let (group_matches_per_pattern_id: Match_result.t list -> id_to_match_result) =
+  fun _xs ->
+  raise Todo
+
+let (range_to_match_result: id_to_match_result -> range -> Match_result.t) =
+  fun _h _range ->
+  raise Todo
+
+(*****************************************************************************)
+(* Formula evaluation *)
+(*****************************************************************************)
+let (evaluate_formula: id_to_match_result -> R.formula -> range list) =
+  fun _h _f ->
+  raise Todo
+
 (*****************************************************************************)
 (* Main entry point *)
 (*****************************************************************************)
 
-let check _hook _rules (_file, _lang, _ast) =
-  []
+let check _hook rules (file, lang, ast) =
+  rules |> List.map (fun r ->
 
+    let formula =
+      match r.R.formula with
+      | R.New f -> f
+      | R.Old _ -> failwith "TODO: not supporting old formula style"
+    in
+
+    let (patterns: (R.pattern_id * Pattern.t) list) =
+      patterns_in_formula formula
+    in
+    let mini_rules = patterns |> List.map (mini_rule_of_pattern r) in
+    (* TODO *)
+    let equivalences = [] in
+    let matches =
+      Semgrep_generic.check ~hook:(fun _ _ -> ())
+        mini_rules equivalences file lang ast
+    in
+    (* match results per minirule id which is the same than pattern_id in
+     * the formula *)
+    let pattern_matches_per_id =
+      group_matches_per_pattern_id matches in
+    let final_ranges =
+      evaluate_formula pattern_matches_per_id formula in
+
+    final_ranges |> List.map (range_to_match_result pattern_matches_per_id)
+
+  ) |> List.flatten
+[@@profiling]
 (*e: semgrep/engine/Semgrep.ml *)

@@ -98,7 +98,7 @@ let check_old_formula env lang f =
   find_dupe f;
 
   (* call Check_pattern subchecker *)
-  f |> visit_old_formula (fun { pat; pstr = _pat_str } ->
+  f |> visit_old_formula (fun { pat; pstr = _pat_str; pid = _ } ->
     match pat, lang with
     | Sem semgrep_pat, L (lang, _rest)  ->
         Check_pattern.check lang semgrep_pat
