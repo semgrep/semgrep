@@ -42,7 +42,10 @@ module Cache : sig
     list_kind: Cache_key.list_kind ->
     less_is_ok: bool ->
     compute:(pattern -> target -> 'acc -> 'acc list) ->
-    pattern -> target -> 'acc -> 'acc list
+    pattern: pattern ->
+    target_head: AST_generic.stmt -> (* first stmt of target *)
+    target: target option Lazy.t ->
+    'acc -> 'acc list
 end
 
 val print_stats : unit -> unit

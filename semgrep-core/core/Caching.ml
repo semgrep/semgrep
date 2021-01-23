@@ -148,8 +148,8 @@ let prepare_pattern any =
 
 module Cache_key = struct
   type env = Metavars_generic.metavars_binding [@@deriving show]
-  type function_id = Match_deep | Match_list [@@deriving show]
-  type list_kind = Original | Flattened [@@deriving show]
+  type function_id = Match_deep | Match_list
+  type list_kind = Original | Flattened
 
   (*
      A cache key. It must unambiguously identify the computation being
@@ -180,7 +180,15 @@ module Cache_key = struct
        ID of the first stmt of the list. Disambiguated by 'list_kind'. *)
     target_stmt_id: Node_ID.t;
   }
-  [@@deriving show]
+
+  let show_compact k =
+    sprintf "%s %s %s %B %i %i"
+      (show_env k.min_env)
+      (match k.function_id with Match_deep -> "deep" | Match_list -> "list")
+      (match k.list_kind with Original -> "orig" | Flattened -> "flat")
+      k.less_is_ok
+      (k.pattern_stmt_id :> int)
+      (k.target_stmt_id :> int)
 
   (* debugging.
      More calls to 'equal' than to 'hash' indicate frequent collisions. *)
@@ -190,19 +198,13 @@ module Cache_key = struct
   let equal : t -> t -> bool =
     fun a b ->
     incr equal_calls;
-    let res =
-      a.pattern_stmt_id = b.pattern_stmt_id
-      && a.target_stmt_id = b.target_stmt_id
-      && a.function_id = b.function_id
-      && a.list_kind = b.list_kind
-      && a.less_is_ok = b.less_is_ok
-      && Metavars_generic.Referential.equal_metavars_binding
-        a.min_env b.min_env
-    in
-    if debug then
-      printf "equal %s %s = %B\n"
-        (show a) (show b) res;
-    res
+    a.pattern_stmt_id = b.pattern_stmt_id
+    && a.target_stmt_id = b.target_stmt_id
+    && a.function_id = b.function_id
+    && a.list_kind = b.list_kind
+    && a.less_is_ok = b.less_is_ok
+    && Metavars_generic.Referential.equal_metavars_binding
+      a.min_env b.min_env
 
   (* Combine two hashes into one. *)
   let ( ++ ) a b =
@@ -210,17 +212,12 @@ module Cache_key = struct
 
   let hash (k : t) =
     incr hash_calls;
-    let res =
-      (k.pattern_stmt_id :> int) ++
-      (k.target_stmt_id :> int) ++
-      Hashtbl.hash k.function_id ++
-      Hashtbl.hash k.list_kind ++
-      Hashtbl.hash k.less_is_ok ++
-      (Metavars_generic.Referential.hash_metavars_binding k.min_env)
-    in
-    if debug then
-      printf "hash %s = %i\n" (show k) res;
-    res
+    (k.pattern_stmt_id :> int) ++
+    (k.target_stmt_id :> int) ++
+    Hashtbl.hash k.function_id ++
+    Hashtbl.hash k.list_kind ++
+    Hashtbl.hash k.less_is_ok ++
+    (Metavars_generic.Referential.hash_metavars_binding k.min_env)
 end
 
 module Cache = struct
@@ -302,6 +299,11 @@ module Cache = struct
     let acc = set_mv_field cached_acc patched_env in
     set_span_field acc patched_span
 
+  let print_cache_access k opt_res =
+    printf "access %s %s\n"
+      (match opt_res with None -> "*" | Some _ -> " ")
+      (Cache_key.show_compact k)
+
   let match_stmt_list
       ~get_span_field
       ~set_span_field
@@ -312,11 +314,17 @@ module Cache = struct
       ~list_kind
       ~less_is_ok
       ~compute
-      (pattern : pattern) (target : target) acc =
-    match pattern, target with
-    | [], _ | _, [] ->
-        compute pattern target acc
-    | a :: _, b :: _ ->
+      ~(pattern : pattern)
+      ~target_head
+      ~(target : target option Lazy.t)
+      acc =
+    match pattern with
+    | [] ->
+        (match Lazy.force target with
+         | None -> []
+         | Some target -> compute pattern target acc
+        )
+    | a :: _ ->
         let mv : Metavars_generic.Env.t = get_mv_field acc in
         let key : Cache_key.t = {
           min_env = mv.min_env;
@@ -324,31 +332,38 @@ module Cache = struct
           list_kind;
           less_is_ok;
           pattern_stmt_id = a.s_id;
-          target_stmt_id = b.s_id;
+          target_stmt_id = target_head.s_id;
         } in
+        let lookup_res = Tbl.find_opt cache key in
         if debug then
-          printf "match_stmt_list\n";
-        match Tbl.find_opt cache key with
+          print_cache_access key lookup_res;
+        match lookup_res with
         | Some res ->
             incr cache_hits;
-            if debug then
-              printf "found cached result!\n";
             let backrefs =
               match a.s_backrefs with
               | None -> assert false
               | Some x -> x
             in
-            List.map (fun cached_acc ->
-              patch_result_from_cache
-                ~get_span_field
-                ~set_span_field
-                ~get_mv_field
-                ~set_mv_field
-                backrefs b acc cached_acc
-            ) res
+            (match res with
+             | [] -> []
+             | res ->
+                 List.map (fun cached_acc ->
+                   patch_result_from_cache
+                     ~get_span_field
+                     ~set_span_field
+                     ~get_mv_field
+                     ~set_mv_field
+                     backrefs target_head acc cached_acc
+                 ) res
+            )
         | None ->
             incr cache_misses;
-            let res = compute pattern target acc in
+            let res =
+              match Lazy.force target with
+              | None -> []
+              | Some target -> compute pattern target acc
+            in
             Tbl.replace cache key res;
             res
 end

@@ -254,6 +254,7 @@ let flatten_substmts_of_stmts xs =
    * (but it is still slow when called many many times)
   *)
   let res = ref [] in
+  let changed = ref false in
 
   let rec aux x =
     (* return the current statement first, and add substmts *)
@@ -272,10 +273,17 @@ let flatten_substmts_of_stmts xs =
     end;
 
     let xs = substmts_of_stmt x in
-    xs |> List.iter aux;
+    match xs with
+    | [] -> ()
+    | xs ->
+        changed := true;
+        xs |> List.iter aux
   in
   xs |> List.iter aux;
-  List.rev !res
+  if !changed then
+    Some (List.rev !res)
+  else
+    None
 [@@profiling]
 (*e: function [[SubAST_generic.flatten_substmts_of_stmts]] *)
 
