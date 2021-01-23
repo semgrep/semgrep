@@ -1441,8 +1441,28 @@ and m_other_attribute_operator = m_other_xxx
 *)
 (* experimental! *)
 
+and m_stmts_deep ~less_is_ok (xsa: A.stmt list) (xsb: A.stmt list) tin =
+  (* shares the cache with m_list__m_stmt *)
+  match tin.cache, xsa with
+  | Some cache, a :: _ ->
+      let tin = { tin with mv = MV.Env.update_min_env tin.mv a } in
+      let module K = Caching.Cache_key in
+      Caching.Cache.match_stmt_list
+        ~get_span_field:(fun tin -> tin.stmts_match_span)
+        ~set_span_field:(fun tin x -> { tin with stmts_match_span = x })
+        ~get_mv_field:(fun tin -> tin.mv)
+        ~set_mv_field:(fun tin mv -> { tin with mv })
+        ~cache
+        ~function_id:K.Match_deep
+        ~list_kind:K.Original
+        ~less_is_ok
+        ~compute:(m_stmts_deep_uncached ~less_is_ok)
+        xsa xsb tin
+  | _ ->
+      m_stmts_deep_uncached ~less_is_ok xsa xsb tin
+
 (*s: function [[Generic_vs_generic.m_stmts_deep]] *)
-and m_stmts_deep ~less_is_ok (xsa: A.stmt list) (xsb: A.stmt list) =
+and m_stmts_deep_uncached ~less_is_ok (xsa: A.stmt list) (xsb: A.stmt list) =
   (* opti: this was the old code:
    *   if !Flag.go_deeper_stmt && (has_ellipsis_stmts xsa)
    *   then
@@ -1488,16 +1508,18 @@ and m_stmts_deep ~less_is_ok (xsa: A.stmt list) (xsb: A.stmt list) =
       (* let's first try the without going deep *)
       (
         (* can match nothing *)
-        (m_list__m_stmt xsa_tail xsb) >||>
+        (m_list__m_stmt ~flattened:false xsa_tail xsb) >||>
         (* can match more *)
         (env_add_matched_stmt xb >>= (fun () ->
-           (m_list__m_stmt xsa xsb_tail)
+           (m_list__m_stmt xsa ~flattened:false xsb_tail)
          ))
       ) >!> (fun () ->
         if !Flag.go_deeper_stmt
         then
+          (* TODO: take advantage of caching and create the full
+             flattened list only if no result is found in the cache. *)
           let xsb' = SubAST_generic.flatten_substmts_of_stmts xsb in
-          m_list__m_stmt xsa xsb'
+          m_list__m_stmt ~flattened:true xsa xsb'
         else fail ()
       )
 
@@ -1512,27 +1534,29 @@ and m_stmts_deep ~less_is_ok (xsa: A.stmt list) (xsb: A.stmt list) =
 
 (*e: function [[Generic_vs_generic.m_stmts_deep]] *)
 
-and _m_stmts (xsa: A.stmt list) (xsb: A.stmt list) =
-  m_list__m_stmt xsa xsb
-
-and m_list__m_stmt xsa xsb tin =
+and m_list__m_stmt ~flattened xsa xsb tin =
+  (* shares the cache with m_stmts_deep *)
   match tin.cache, xsa with
   | Some cache, a :: _ ->
       let tin = { tin with mv = MV.Env.update_min_env tin.mv a } in
+      let module K = Caching.Cache_key in
       Caching.Cache.match_stmt_list
         ~get_span_field:(fun tin -> tin.stmts_match_span)
         ~set_span_field:(fun tin x -> { tin with stmts_match_span = x })
         ~get_mv_field:(fun tin -> tin.mv)
         ~set_mv_field:(fun tin mv -> { tin with mv })
         ~cache
-        ~compute:m_list__m_stmt_uncached
+        ~function_id:K.Match_list
+        ~list_kind:(if flattened then K.Flattened else K.Original)
+        ~less_is_ok:true
+        ~compute:(m_list__m_stmt_uncached ~flattened)
         xsa xsb tin
-  | None, _
-  | Some _, [] -> m_list__m_stmt_uncached xsa xsb tin
+  | _ ->
+      m_list__m_stmt_uncached ~flattened xsa xsb tin
 
 (* TODO: factorize with m_list_and_dots less_is_ok = true *)
 (*s: function [[Generic_vs_generic.m_list__m_stmt]] *)
-and m_list__m_stmt_uncached (xsa: A.stmt list) (xsb: A.stmt list) =
+and m_list__m_stmt_uncached ~flattened (xsa: A.stmt list) (xsb: A.stmt list) =
   (*s: [[Generic_vs_generic.m_list__m_stmt]] if [[debug]] *)
   logger#debug "%d vs %d" (List.length xsa) (List.length xsb);
   (*e: [[Generic_vs_generic.m_list__m_stmt]] if [[debug]] *)
@@ -1559,17 +1583,17 @@ and m_list__m_stmt_uncached (xsa: A.stmt list) (xsb: A.stmt list) =
   | {s=A.ExprStmt (A.Ellipsis _i, _);_}::xsa_tail,
     (xb::xsb_tail as xsb) ->
       (* can match nothing *)
-      (m_list__m_stmt xsa_tail xsb) >||>
+      (m_list__m_stmt ~flattened xsa_tail xsb) >||>
       (* can match more *)
       (env_add_matched_stmt xb >>= (fun () ->
-         (m_list__m_stmt xsa xsb_tail)
+         (m_list__m_stmt ~flattened xsa xsb_tail)
        ))
   (*e: [[Generic_vs_generic.m_list__m_stmt()]] ellipsis cases *)
   (* the general case *)
   | xa::aas, xb::bbs ->
       m_stmt xa xb >>= (fun () ->
         env_add_matched_stmt xb >>= (fun () ->
-          m_list__m_stmt aas bbs
+          m_list__m_stmt ~flattened aas bbs
         ))
   | _::_, _ ->
       fail ()

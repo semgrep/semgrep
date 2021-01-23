@@ -148,13 +148,39 @@ let prepare_pattern any =
 
 module Cache_key = struct
   type env = Metavars_generic.metavars_binding [@@deriving show]
+  type function_id = Match_deep | Match_list [@@deriving show]
+  type list_kind = Original | Flattened [@@deriving show]
 
   (*
-     key = (min_env, pattern_node_id, target_node_id)
-     min_env: captured values referenced by metavariables in the rest of the
-              pattern
+     A cache key. It must unambiguously identify the computation being
+     performed. The 'equal' and 'hash' functions must take all these
+     fields into account.
   *)
-  type t = env * Node_ID.t * Node_ID.t [@@deriving show]
+  type t = {
+    (* captured values referenced by metavariables in the rest of the
+       pattern *)
+    min_env: env;
+
+    (* the name of the function being called.*)
+    function_id: function_id;
+
+    (* distinguish between stmt lists found in the AST from stmt lists
+       resulting from flattening, since both can start with the same stmt
+       whose ID is used to identify the list. *)
+    list_kind: list_kind;
+
+    (* a match option *)
+    less_is_ok: bool;
+
+    (* identifier of the list of stmts in the pattern AST, which is the
+       ID of the first stmt of the list. *)
+    pattern_stmt_id: Node_ID.t;
+
+    (* identifier of the list of stmts in the target AST, which is the
+       ID of the first stmt of the list. Disambiguated by 'list_kind'. *)
+    target_stmt_id: Node_ID.t;
+  }
+  [@@deriving show]
 
   (* debugging.
      More calls to 'equal' than to 'hash' indicate frequent collisions. *)
@@ -162,31 +188,38 @@ module Cache_key = struct
   let equal_calls = ref 0
 
   let equal : t -> t -> bool =
-    fun ((env1, pat_id1, target_id1) as key1)
-      ((env2, pat_id2, target_id2) as key2) ->
-      incr equal_calls;
-      let res =
-        pat_id1 = pat_id2
-        && target_id1 = target_id2
-        && Metavars_generic.Referential.equal_metavars_binding env1 env2
-      in
-      if debug then
-        printf "equal %s %s = %B\n"
-          (show key1) (show key2) res;
-      res
-
-  let hash_combine a b =
-    a + 97 * b
-
-  let hash ((env, pat_id, target_id) as key : t) =
-    incr hash_calls;
+    fun a b ->
+    incr equal_calls;
     let res =
-      hash_combine (pat_id :> int)
-        (hash_combine (target_id :> int)
-           (Metavars_generic.Referential.hash_metavars_binding env))
+      a.pattern_stmt_id = b.pattern_stmt_id
+      && a.target_stmt_id = b.target_stmt_id
+      && a.function_id = b.function_id
+      && a.list_kind = b.list_kind
+      && a.less_is_ok = b.less_is_ok
+      && Metavars_generic.Referential.equal_metavars_binding
+        a.min_env b.min_env
     in
     if debug then
-      printf "hash %s = %i\n" (show key) res;
+      printf "equal %s %s = %B\n"
+        (show a) (show b) res;
+    res
+
+  (* Combine two hashes into one. *)
+  let ( ++ ) a b =
+    a + 97 * b
+
+  let hash (k : t) =
+    incr hash_calls;
+    let res =
+      (k.pattern_stmt_id :> int) ++
+      (k.target_stmt_id :> int) ++
+      Hashtbl.hash k.function_id ++
+      Hashtbl.hash k.list_kind ++
+      Hashtbl.hash k.less_is_ok ++
+      (Metavars_generic.Referential.hash_metavars_binding k.min_env)
+    in
+    if debug then
+      printf "hash %s = %i\n" (show k) res;
     res
 end
 
@@ -275,14 +308,24 @@ module Cache = struct
       ~get_mv_field
       ~set_mv_field
       ~(cache : _ list t)
+      ~function_id
+      ~list_kind
+      ~less_is_ok
       ~compute
       (pattern : pattern) (target : target) acc =
     match pattern, target with
     | [], _ | _, [] ->
         compute pattern target acc
     | a :: _, b :: _ ->
-        let env : Metavars_generic.Env.t = get_mv_field acc in
-        let key = (env.min_env, a.s_id, b.s_id) in
+        let mv : Metavars_generic.Env.t = get_mv_field acc in
+        let key : Cache_key.t = {
+          min_env = mv.min_env;
+          function_id;
+          list_kind;
+          less_is_ok;
+          pattern_stmt_id = a.s_id;
+          target_stmt_id = b.s_id;
+        } in
         if debug then
           printf "match_stmt_list\n";
         match Tbl.find_opt cache key with

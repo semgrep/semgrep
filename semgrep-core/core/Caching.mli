@@ -10,6 +10,12 @@
 *)
 val prepare_pattern : AST_generic.any -> unit
 
+(* Exposes just the special-purpose types required to create the cache key. *)
+module Cache_key : sig
+  type function_id = Match_deep | Match_list
+  type list_kind = Original | Flattened
+end
+
 module Cache : sig
   type 'a t
 
@@ -19,12 +25,12 @@ module Cache : sig
   val create : unit -> 'a t
 
   (*
-     Match a pattern against a statement, using the cache and the provided
-     match function.
+     Match a pattern list against a statement list, using the cache and
+     the provided match function.
 
-     'compute_match_stmt' is the function that the cache memoizes.
+     'compute' is the function that the cache memoizes.
      It is the user's responsibility to always use the same
-     'compute' with a given cache.
+     'compute' function with a given 'function_id'.
   *)
   val match_stmt_list :
     get_span_field:('acc -> Stmts_match_span.t) ->
@@ -32,6 +38,9 @@ module Cache : sig
     get_mv_field:('acc -> Metavars_generic.Env.t) ->
     set_mv_field:('acc -> Metavars_generic.Env.t -> 'acc) ->
     cache: 'acc list t ->
+    function_id: Cache_key.function_id ->
+    list_kind: Cache_key.list_kind ->
+    less_is_ok: bool ->
     compute:(pattern -> target -> 'acc -> 'acc list) ->
     pattern -> target -> 'acc -> 'acc list
 end
