@@ -178,12 +178,13 @@ def compute_spacegrep_path() -> str:
 def recursive_has_key(pred: Callable, d: Dict) -> bool:
     if pred(d):
         return True
-    result = False
     for v in d.values():
         if isinstance(v, dict):
-            result = result or recursive_has_key(pred, v)
+            result = recursive_has_key(pred, v)
+            if result:
+                return True
         elif isinstance(v, list):
-            result = result or any(
-                recursive_has_key(pred, i) for i in v if isinstance(i, dict)
-            )
-    return result
+            result = any(recursive_has_key(pred, i) for i in v if isinstance(i, dict))
+            if result:
+                return True
+    return False
