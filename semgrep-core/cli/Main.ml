@@ -13,8 +13,10 @@ module Flag = Flag_semgrep
 module PI = Parse_info
 module S = Scope_code
 module E = Error_code
-module R = Mini_rule
+module MR = Mini_rule
+module R = Rule
 module J = JSON
+module FT = File_type
 
 (*****************************************************************************)
 (* Purpose *)
@@ -113,6 +115,9 @@ let rules_file = ref ""
 (* -tainting_rules_file *)
 let tainting_rules_file = ref ""
 (*e: constant [[Main_semgrep_core.tainting_rules_file]] *)
+
+(* -config *)
+let config_file = ref ""
 
 (*s: constant [[Main_semgrep_core.equivalences_file]] *)
 let equivalences_file = ref ""
@@ -625,9 +630,9 @@ let iter_generic_ast_of_files_and_get_matches_and_exn_to_errors f files =
             match !Semgrep_generic.last_matched_rule with
             | None -> None
             | Some rule ->
-                logger#info "critical exn while matching ruleid %s" rule.R.id;
-                logger#info "full pattern is: %s" rule.R.pattern_string;
-                Some (spf " with ruleid %s" rule.R.id)
+                logger#info "critical exn while matching ruleid %s" rule.MR.id;
+                logger#info "full pattern is: %s" rule.MR.pattern_string;
+                Some (spf " with ruleid %s" rule.MR.id)
           in
           let loc = Parse_info.first_loc_of_file file in
           [], [Error_code.mk_error_loc loc
@@ -728,7 +733,7 @@ let semgrep_with_rules rules files =
     files |> iter_generic_ast_of_files_and_get_matches_and_exn_to_errors
       (fun file lang ast ->
          let rules =
-           rules |> List.filter (fun r -> List.mem lang r.R.languages) in
+           rules |> List.filter (fun r -> List.mem lang r.MR.languages) in
          Semgrep_generic.check ~hook:(fun _ _ -> ())
            rules (parse_equivalences ())
            file lang ast
@@ -784,13 +789,77 @@ let semgrep_with_rules_file rules_file files =
     exit 2
 
 (*****************************************************************************)
+(* Semgrep -config *)
+(*****************************************************************************)
+
+let semgrep_with_real_rules rules files =
+  let files = get_final_files files in
+  logger#info "processing %d files" (List.length files);
+  let matches, errs =
+    files |> iter_generic_ast_of_files_and_get_matches_and_exn_to_errors
+      (fun file lang ast ->
+         let rules =
+           rules |> List.filter (fun r ->
+             match r.R.languages with
+             | R.L (x, xs) -> List.mem lang (x::xs)
+             | R.LNone | R.LGeneric -> true
+           )
+         in
+         let hook = fun env matched_tokens ->
+           if !output_format = Text then begin
+             let xs = Lazy.force matched_tokens in
+             print_match !mvars env Metavariable.ii_of_mval xs
+           end
+         in
+         Semgrep.check hook rules (file, lang, ast)
+      )
+  in
+  logger#info "found %d matches and %d errors"
+    (List.length matches) (List.length errs);
+  let (matches, new_errors) =
+    filter_files_with_too_many_matches_and_transform_as_timeout matches in
+  let errs = new_errors @ errs in
+  (* note: uncomment the following and use semgrep-core -stat_matches
+   * to debug too-many-matches issues.
+   * Common2.write_value matches "/tmp/debug_matches";
+  *)
+  if !output_format = Json then begin
+    let flds = json_fields_of_matches_and_errors files matches errs in
+    let flds =
+      if !profile
+      then begin
+        let json = json_of_profile_info () in
+        (* so we don't get also the profile output of Common.main_boilerplate*)
+        Common.profile := Common.ProfNone;
+        flds @ ["profiling", json]
+      end
+      else flds
+    in
+    let s = J.string_of_json (J.Object flds) in
+    logger#info "size of returned JSON string: %d" (String.length s);
+    pr s
+  end
+
+let semgrep_with_real_rules_file rules_file files =
+  try
+    logger#info "Parsing %s" rules_file;
+    let rules = Parse_rule.parse rules_file in
+    semgrep_with_real_rules rules files
+  with exn ->
+    logger#debug "exn before exit %s" (Common.exn_to_s exn);
+    let json = json_of_exn exn in
+    let s = J.string_of_json json in
+    pr s;
+    exit 2
+
+(*****************************************************************************)
 (* Semgrep -e/-f *)
 (*****************************************************************************)
 
 let rule_of_pattern lang pattern_string pattern =
-  { R.
+  { MR.
     id = "-e/-f"; pattern_string; pattern;
-    message = ""; severity = R.Error; languages = [lang]
+    message = ""; severity = MR.Error; languages = [lang]
   }
 (*s: function [[Main_semgrep_core.sgrep_ast]] *)
 (*s: [[Main_semgrep_core.sgrep_ast()]] [[hook]] argument to [[check]] *)
@@ -941,7 +1010,9 @@ let validate_pattern () =
 (* similar to Test_parsing.test_parse_rules *)
 let check_rules xs =
   let fullxs =
-    Lang.files_of_dirs_or_files Lang.Yaml xs
+    xs
+    |> File_type.files_of_dirs_or_files (function
+      | FT.Config (FT.Yaml | FT.Json | FT.Jsonnet) -> true | _ -> false)
     |> Skip_code.filter_files_if_skip_list ~root:xs
   in
   fullxs |> List.iter (fun file ->
@@ -1153,7 +1224,9 @@ let options () =
     "-f", Arg.Set_string pattern_file,
     " <file> obtain pattern from file (need -lang)";
     "-rules_file", Arg.Set_string rules_file,
-    " <file> obtain list of patterns from YAML file. Implies -json";
+    " <file> obtain flat list of patterns from YAML file. Implies -json";
+    "-config", Arg.Set_string config_file,
+    " <file> obtain formula of patterns from YAML/JSON/Jsonnet file.";
 
     "-lang", Arg.Set_string lang,
     (spf " <str> choose language (valid choices: %s)" supported_langs);
@@ -1332,6 +1405,8 @@ let main () =
      (* --------------------------------------------------------- *)
      | x::xs ->
          (match () with
+          | _ when !config_file <> "" ->
+              semgrep_with_real_rules_file !config_file (x::xs)
           (*s: [[Main_semgrep_core.main()]] main entry match cases *)
           | _ when !rules_file <> "" ->
               semgrep_with_rules_file !rules_file (x::xs)
