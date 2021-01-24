@@ -209,7 +209,6 @@ PASSING_REPOS = [
         "repo": "https://github.com/returntocorp/semgrep-rules",
         "languages": ALL_LANGUAGES,
     },
-    {"repo": "https://github.com/coinbase/btcexport", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/seemoo-lab/opendrop", "languages": ALL_LANGUAGES},
     {
         "repo": "https://github.com/lightstep/lightstep-tracer-python",

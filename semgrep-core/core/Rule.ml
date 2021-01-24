@@ -29,7 +29,7 @@ module MV = Metavariable
 *)
 
 (*****************************************************************************)
-(* Extended language and pattern *)
+(* Extended languages and patterns *)
 (*****************************************************************************)
 
 (* less: merge with xpattern_kind? *)
@@ -43,7 +43,7 @@ type xlang =
 [@@deriving show]
 
 type xpattern = {
-  p: xpattern_kind;
+  pat: xpattern_kind;
   (* two patterns may have different indentation, we don't care. We can
    * rely on the equality on p, which will do the right thing (e.g., abstract
    * away line position).
@@ -52,26 +52,35 @@ type xpattern = {
    * AST-wise, but it might be a bug! so I commented the @equal below.
   *)
   pstr: string (*  [@equal (fun _ _ -> true)] *);
+  (* unique id, incremented via a gensym() like function in mk_pat() *)
+  pid: pattern_id [@equal (fun _ _ -> true)];
 }
 and xpattern_kind =
   | Sem of Pattern.t
-  | Space of spacegrep
-  (* TODO? Regexp? *)
-
-and regexp = string
+  | Spacegrep of spacegrep
+  | Regexp of regexp
+  (* used in the engine for rule->mini_rule and match_result gymnastic *)
+and pattern_id = int
 
 (* TODO: parse it via spacegrep/lib! *)
 and spacegrep = string
 
+and regexp = string
+
 [@@deriving show, eq]
+
+let count = ref 0
+let mk_xpat pat pstr =
+  incr count;
+  { pat; pstr; pid = !count }
 
 (*****************************************************************************)
 (* Formula (patterns boolean composition) *)
 (*****************************************************************************)
 
 (* Classic boolean-logic/set operators with text range set semantic.
- * The main complication is the handling of metavariables and negation
- * in the presence of metavariables.
+ * The main complication is the handling of metavariables and especially
+ * negation in the presence of metavariables.
  * TODO: add tok (Parse_info.t) for good metachecking error locations.
 *)
 type formula =
@@ -84,16 +93,9 @@ type formula =
 
 (* extra conditions, usually on metavariable content *)
 and extra =
-  (* TODO: now in xpattern_kind? *)
-  | PatRegexp of regexp
-  | Spacegrep of spacegrep
-
   | MetavarRegexp of MV.mvar * regexp
   | MetavarComparison of metavariable_comparison
   | PatWherePython of string (* arbitrary code, dangerous! *)
-
-  (* less: could be done via Not PatRegexp later? *)
-  | PatNotRegexp of regexp
 
 (* See also matching/eval_generic.ml *)
 and metavariable_comparison = {
@@ -170,12 +172,30 @@ and paths = {
   include_: regexp list;
   exclude: regexp list;
 }
-
-and rules = rule list
 [@@deriving show]
 
 (* alias *)
 type t = rule
 [@@deriving show]
+
+type rules = rule list
+[@@deriving show]
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
+let rec visit_new_formula f formula =
+  match formula with
+  | P p -> f p
+  | X _ -> ()
+  | Not x -> visit_new_formula f x
+  | Or xs | And xs -> xs |> List.iter (visit_new_formula f)
+
+let rec visit_old_formula f formula =
+  match formula with
+  | Pat x | PatNot x | PatInside x | PatNotInside x -> f x
+  | PatExtra _ -> ()
+  | PatEither xs | Patterns xs -> xs |> List.iter (visit_old_formula f)
 
 (*e: semgrep/core/Rule.ml *)
