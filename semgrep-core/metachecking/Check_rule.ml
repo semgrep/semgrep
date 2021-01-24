@@ -111,7 +111,7 @@ let check_new_formula env lang f =
 (*****************************************************************************)
 
 let show_formula_old pf =
-   match pf with
+  match pf with
   | Pat x | PatNot x | PatInside x | PatNotInside x ->
       x.pstr
   | _ -> R.show_formula_old pf
