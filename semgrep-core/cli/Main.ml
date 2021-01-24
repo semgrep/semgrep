@@ -1010,9 +1010,9 @@ let validate_pattern () =
 (* similar to Test_parsing.test_parse_rules *)
 let check_rules xs =
   let fullxs =
-    xs 
-    |> File_type.files_of_dirs_or_files (function 
-        | FT.Config (FT.Yaml | FT.Json | FT.Jsonnet) -> true | _ -> false)
+    xs
+    |> File_type.files_of_dirs_or_files (function
+      | FT.Config (FT.Yaml | FT.Json | FT.Jsonnet) -> true | _ -> false)
     |> Skip_code.filter_files_if_skip_list ~root:xs
   in
   fullxs |> List.iter (fun file ->
