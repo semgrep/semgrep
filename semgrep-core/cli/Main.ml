@@ -16,6 +16,7 @@ module E = Error_code
 module MR = Mini_rule
 module R = Rule
 module J = JSON
+module FT = File_type
 
 (*****************************************************************************)
 (* Purpose *)
@@ -1009,7 +1010,9 @@ let validate_pattern () =
 (* similar to Test_parsing.test_parse_rules *)
 let check_rules xs =
   let fullxs =
-    Lang.files_of_dirs_or_files Lang.Yaml xs
+    xs 
+    |> File_type.files_of_dirs_or_files (function 
+        | FT.Config (FT.Yaml | FT.Json | FT.Jsonnet) -> true | _ -> false)
     |> Skip_code.filter_files_if_skip_list ~root:xs
   in
   fullxs |> List.iter (fun file ->

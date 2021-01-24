@@ -53,7 +53,7 @@ type xpattern = {
   *)
   pstr: string (*  [@equal (fun _ _ -> true)] *);
   (* unique id, incremented via a gensym() like function in mk_pat() *)
-  pid: pattern_id;
+  pid: pattern_id [@equal (fun _ _ -> true)];
 }
 and xpattern_kind =
   | Sem of Pattern.t

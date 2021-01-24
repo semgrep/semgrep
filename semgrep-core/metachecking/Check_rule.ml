@@ -52,15 +52,69 @@ let error (env: env) s =
   let err = E.mk_error_loc loc (E.SemgrepMatchFound (check_id, s)) in
   pr2 (E.string_of_error err)
 
-let show_formula_old pf =
+
+(*****************************************************************************)
+(* New formula *)
+(*****************************************************************************)
+
+let show_formula pf =
   match pf with
+  | P x -> x.pstr
+  | _ -> R.show_formula pf
+
+let check_new_formula env lang f =
+  (* check duplicated patterns, essentially:
+   *  $K: $PAT
+   *  ...
+   *  $K2: $PAT
+   * but at the same level!
+  *)
+  let rec find_dupe f =
+    match f with
+    | P _ -> ()
+    | X _ -> ()
+    | Not f -> find_dupe f
+    | Or xs | And xs ->
+        let rec aux xs =
+          match xs with
+          | [] -> ()
+          | x::xs ->
+              (* todo: for Pat, we could also check if exist PatNot
+               * in which case intersection will always be empty
+              *)
+              if xs |> List.exists (R.equal_formula x)
+              then error env (spf "Duplicate pattern %s" (show_formula x));
+              if xs |> List.exists (R.equal_formula (Not x))
+              then error env (spf "Unsatisfiable patterns %s" (show_formula x));
+              aux xs
+        in
+        (* breadth *)
+        aux xs;
+        (* depth *)
+        xs |> List.iter find_dupe
+  in
+  find_dupe f;
+
+  (* call Check_pattern subchecker *)
+  f |> visit_new_formula (fun { pat; pstr = _pat_str; pid = _ } ->
+    match pat, lang with
+    | Sem semgrep_pat, L (lang, _rest)  ->
+        Check_pattern.check lang semgrep_pat
+    | Spacegrep _spacegrep_pat, LGeneric -> ()
+    | Regexp _, _ -> ()
+    | _ -> raise Impossible
+  );
+  ()
+
+(*****************************************************************************)
+(* Old formula *)
+(*****************************************************************************)
+
+let show_formula_old pf =
+   match pf with
   | Pat x | PatNot x | PatInside x | PatNotInside x ->
       x.pstr
   | _ -> R.show_formula_old pf
-
-(*****************************************************************************)
-(* Subparts checker *)
-(*****************************************************************************)
 
 let check_old_formula env lang f =
   (* check duplicated patterns, essentially:
@@ -110,7 +164,7 @@ let check_old_formula env lang f =
 let check r =
   (match r.formula with
    | Old f -> check_old_formula r r.languages f;
-   | New _ -> ()
+   | New f -> check_new_formula r r.languages f;
   );
   ()
 (*e: semgrep/metachecking/Check_rule.ml *)
