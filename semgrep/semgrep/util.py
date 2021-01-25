@@ -6,6 +6,7 @@ import subprocess
 import sys
 from typing import Any
 from typing import Callable
+from typing import Dict
 from typing import IO
 from typing import Iterable
 from typing import List
@@ -172,3 +173,19 @@ def compute_semgrep_path() -> str:
 
 def compute_spacegrep_path() -> str:
     return compute_executable_path("spacegrep")
+
+
+def recursive_has_item(pred: Callable, d: Dict) -> bool:
+    """Recursively determine if a dict has an arbitrary item."""
+    if pred(d):
+        return True
+    for v in d.values():
+        if isinstance(v, dict):
+            result = recursive_has_item(pred, v)
+            if result:
+                return True
+        elif isinstance(v, list):
+            result = any(recursive_has_item(pred, i) for i in v if isinstance(i, dict))
+            if result:
+                return True
+    return False
