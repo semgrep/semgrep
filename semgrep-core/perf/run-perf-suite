@@ -62,7 +62,9 @@ def run_tests(dirname: str, tests: List[Test], no_cache: bool) -> List[Result]:
             target_file,
         ]
         if no_cache:
-            args.append("-no_match_caching")
+            args.append("-no_opt_cache")
+        else:
+            args.append("-opt_cache")
         p = subprocess.run(args)  # nosem
         t2 = time.time()
 
