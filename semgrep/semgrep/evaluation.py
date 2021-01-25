@@ -228,6 +228,9 @@ def _evaluate_single_expression(
                 f"at least one rule needs to execute arbitrary code; this is dangerous! if you want to continue, enable the flag: {RCE_RULE_FLAG}",
                 code=NEED_ARBITRARY_CODE_EXEC_EXIT_CODE,
             )
+        if not isinstance(expression.operand, str):
+            raise SemgrepError("pattern-where-python must have a string value")
+
         # Look through every range that hasn't been filtered yet
         for pattern_match in list(flatten(pattern_ids_to_pattern_matches.values())):
             # Only need to check where-python clause if the range hasn't already been filtered
@@ -237,7 +240,7 @@ def _evaluate_single_expression(
                     f"WHERE is {expression.operand}, metavars: {pattern_match.metavars}"
                 )
                 if _where_python_statement_matches(
-                    expression.operand, pattern_match.metavars  # type: ignore
+                    expression.operand, pattern_match.metavars
                 ):
                     output_ranges.add(pattern_match.range)
         add_debugging_info(
