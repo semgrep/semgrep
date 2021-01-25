@@ -24,7 +24,7 @@ module E = Error_code
 module J = JSON
 module MV = Metavariable
 
-open Match_result
+open Pattern_match
 
 (*****************************************************************************)
 (* Unique ID *)

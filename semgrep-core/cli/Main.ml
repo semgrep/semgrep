@@ -448,7 +448,7 @@ let run_with_memory_limit limit_mb f =
 let filter_files_with_too_many_matches_and_transform_as_timeout matches =
   let per_files =
     matches
-    |> List.map (fun m -> m.Match_result.file, m)
+    |> List.map (fun m -> m.Pattern_match.file, m)
     |> Common.group_assoc_bykey_eff
   in
   let offending_files =
@@ -462,7 +462,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout matches =
   in
   let new_matches =
     matches |> Common.exclude
-      (fun m -> Hashtbl.mem offending_files m.Match_result.file)
+      (fun m -> Hashtbl.mem offending_files m.Pattern_match.file)
   in
   let new_errors =
     offending_files |> Common.hashset_to_list |> List.map (fun file ->
@@ -472,7 +472,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout matches =
         let matches = List.assoc file per_files in
         matches
         |> List.map (fun m ->
-          let rule = m.Match_result.rule in
+          let rule = m.Pattern_match.rule in
           (rule.Mini_rule.id, rule.Mini_rule.pattern_string), m)
         |> Common.group_assoc_bykey_eff
         |> List.map (fun (k, xs) -> k, List.length xs)
@@ -516,7 +516,7 @@ let parse_generic lang file =
       (fun () ->
          try
            (* finally calling the actual function *)
-           let ast = Parse_code.parse_and_resolve_name_use_pfff_or_treesitter lang file
+           let ast = Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang file
            in
            (*s: [[Main_semgrep_core.parse_generic()]] resolve names in the AST *)
            (*e: [[Main_semgrep_core.parse_generic()]] resolve names in the AST *)
@@ -604,7 +604,7 @@ let iter_generic_ast_of_files_and_get_matches_and_exn_to_errors f files =
       try
         run_with_memory_limit !max_memory (fun () ->
           timeout_function file (fun () ->
-            let {Parse_code. ast; errors; _} = parse_generic lang file in
+            let {Parse_target. ast; errors; _} = parse_generic lang file in
             (* calling the hook *)
             (f file lang ast, errors)
 
@@ -913,7 +913,7 @@ let semgrep_with_one_pattern xs =
           (*e: [[Main_semgrep_core.semgrep_with_one_pattern()]] if [[verbose]] *)
           let process file =
             timeout_function file (fun () ->
-              let {Parse_code.ast; errors; _} = parse_generic lang file in
+              let {Parse_target.ast; errors; _} = parse_generic lang file in
               if errors <> []
               then pr2 (spf "WARNING: fail to fully parse %s" file);
               Semgrep_generic.check
@@ -1085,8 +1085,8 @@ let dump_ast file =
   match Lang.langs_of_filename file with
   | lang::_ ->
       E.try_with_print_exn_and_reraise file (fun () ->
-        let {Parse_code. ast; errors; _ } =
-          Parse_code.parse_and_resolve_name_use_pfff_or_treesitter lang file in
+        let {Parse_target. ast; errors; _ } =
+          Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang file in
         let v = Meta_AST.vof_any (AST_generic.Pr ast) in
         let s = dump_v_to_format v in
         pr s;
@@ -1131,10 +1131,10 @@ let dump_rule file =
  * can still be useful for deeper debugging.
 *)
 let stat_matches file =
-  let (matches: Match_result.t list) = Common2.get_value file in
+  let (matches: Pattern_match.t list) = Common2.get_value file in
   pr2 (spf "matched: %d" (List.length matches));
   let per_files =
-    matches |> List.map (fun m -> m.Match_result.file, m)
+    matches |> List.map (fun m -> m.Pattern_match.file, m)
     |> Common.group_assoc_bykey_eff
     |> List.map (fun (file, xs) -> file, List.length xs)
     |> Common.sort_by_val_highfirst

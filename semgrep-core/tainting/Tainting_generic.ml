@@ -94,7 +94,7 @@ let check rules file ast =
 
                            rules |> List.iter (fun rule ->
                              let found_tainted_sink = (fun instr _env ->
-                               Common.push { Match_result.
+                               Common.push { Pattern_match.
                                              rule = Tainting_rule.rule_of_tainting_rule rule;
                                              file;
                                              code = AST.E (instr.IL.iorig);

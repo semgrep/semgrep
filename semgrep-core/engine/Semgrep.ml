@@ -90,11 +90,11 @@ type range_with_mvars = {
   r: Range.t;
   mvars: Metavariable.bindings;
 
-  origin: Match_result.t;
+  origin: Pattern_match.t;
 }
 
 (* !This hash table uses the Hashtbl.find_all property! *)
-type id_to_match_results = (pattern_id, Match_result.t) Hashtbl.t
+type id_to_match_results = (pattern_id, Pattern_match.t) Hashtbl.t
 
 (*****************************************************************************)
 (* Helpers *)
@@ -127,21 +127,21 @@ let (mini_rule_of_pattern: R.t -> (R.pattern_id * Pattern.t) -> MR.t) =
   }
 
 
-let (group_matches_per_pattern_id: Match_result.t list -> id_to_match_results)=
+let (group_matches_per_pattern_id: Pattern_match.t list ->id_to_match_results)=
   fun xs ->
   let h = Hashtbl.create 101 in
   xs |> List.iter (fun m ->
-    let id = int_of_string (m.Match_result.rule.MR.id) in
+    let id = int_of_string (m.Pattern_match.rule.MR.id) in
     Hashtbl.add h id m
   );
   h
 
-let (range_to_match_result: range_with_mvars -> Match_result.t) =
+let (range_to_match_result: range_with_mvars -> Pattern_match.t) =
   fun range -> range.origin
 
-let (match_result_to_range: Match_result.t -> range_with_mvars) =
+let (match_result_to_range: Pattern_match.t -> range_with_mvars) =
   fun m ->
-  let { Match_result.code = any; env = mvars; _} = m in
+  let { Pattern_match.code = any; env = mvars; _} = m in
   let toks = Lib_AST.ii_of_any any in
   let r =
     match Range.range_of_tokens toks with
@@ -237,7 +237,7 @@ let check hook rules (file, lang, ast) =
     let back_to_match_results =
       final_ranges |> List.map (range_to_match_result) in
     back_to_match_results |> List.iter (fun m ->
-      hook m.Match_result.env (lazy (Lib_AST.ii_of_any m.Match_result.code))
+      hook m.Pattern_match.env (lazy (Lib_AST.ii_of_any m.Pattern_match.code))
     );
 
     back_to_match_results
