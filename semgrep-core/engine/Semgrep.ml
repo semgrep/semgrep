@@ -28,7 +28,7 @@ module MR = Mini_rule
  * See Semgrep_generic.ml for the code to handle a single pattern and
  * the visitor/matching engine.
  *
- * So we can decompose the engine in 3 main componenents:
+ * Thus, we can decompose the engine in 3 main components:
  *  - composing matching results using boolean/set logic (this file)
  *  - visiting code (=~ Semgrep_generic.ml)
  *  - matching code (=~ Generic_vs_generic.ml)
@@ -46,6 +46,7 @@ module MR = Mini_rule
  *  - regexp, use PCRE compatible regexp OCaml lib
  *  - metavar comparison, use Eval_generic :)
  *  - pattern-where-python? use pycaml? works for dlint rule?
+ *    right now only 4 rules are using pattern-where-python
  *
  * LATER (if really decide to rewrite the python wrapper in OCaml):
  *  - paths
@@ -89,12 +90,11 @@ type range_with_mvars = {
   r: Range.t;
   mvars: Metavariable.bindings;
 
-  (* less: use intermediate id? *)
   origin: Match_result.t;
 }
 
-(* use the Hashtbl.find_all property *)
-type id_to_match_result = (pattern_id, Match_result.t) Hashtbl.t
+(* !This hash table uses the Hashtbl.find_all property! *)
+type id_to_match_results = (pattern_id, Match_result.t) Hashtbl.t
 
 (*****************************************************************************)
 (* Helpers *)
@@ -127,7 +127,7 @@ let (mini_rule_of_pattern: R.t -> (R.pattern_id * Pattern.t) -> MR.t) =
   }
 
 
-let (group_matches_per_pattern_id: Match_result.t list -> id_to_match_result) =
+let (group_matches_per_pattern_id: Match_result.t list -> id_to_match_results)=
   fun xs ->
   let h = Hashtbl.create 101 in
   xs |> List.iter (fun m ->
@@ -171,7 +171,7 @@ let intersect_ranges xs ys =
 (*****************************************************************************)
 (* TODO: use Set instead of list? *)
 let rec (evaluate_formula:
-           id_to_match_result -> R.formula -> range_with_mvars list) =
+           id_to_match_results -> R.formula -> range_with_mvars list) =
   fun h e ->
   match e with
   | R.P xpat ->
@@ -198,7 +198,9 @@ let rec (evaluate_formula:
            in
            aux start xs
       )
-  | _ -> failwith "TODO"
+  | R.Not _ -> failwith "Invalid Not; you can only negate inside an and."
+
+  | R.MetavarCond _ -> failwith "TODO: MetavarCond"
 
 (*****************************************************************************)
 (* Main entry point *)
@@ -210,7 +212,7 @@ let check hook rules (file, lang, ast) =
     let formula =
       match r.R.formula with
       | R.New f -> f
-      | R.Old _ -> failwith "TODO: not supporting old formula style"
+      | R.Old _ -> failwith "not supporting old formula style; use Convert"
     in
 
     let (patterns: (R.pattern_id * Pattern.t) list) =

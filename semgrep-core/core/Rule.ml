@@ -45,14 +45,14 @@ type xlang =
 type xpattern = {
   pat: xpattern_kind;
   (* two patterns may have different indentation, we don't care. We can
-   * rely on the equality on p, which will do the right thing (e.g., abstract
+   * rely on the equality on pat, which will do the right thing (e.g., abstract
    * away line position).
-   * TODO: still right now we have some false positives because
+   * TODO: right now we have some false positives because
    * for example in Python assert(...) and assert ... are considered equal
-   * AST-wise, but it might be a bug! so I commented the @equal below.
+   * AST-wise, but it might be a bug!.
   *)
-  pstr: string (*  [@equal (fun _ _ -> true)] *);
-  (* unique id, incremented via a gensym() like function in mk_pat() *)
+  pstr: string [@equal (fun _ _ -> true)];
+  (* unique id, incremented via a gensym()-like function in mk_pat() *)
   pid: pattern_id [@equal (fun _ _ -> true)];
 }
 and xpattern_kind =
@@ -85,25 +85,15 @@ let mk_xpat pat pstr =
 *)
 type formula =
   | P of xpattern (* a leaf pattern *)
-  | X of extra
+  | MetavarCond of AST_generic.expr (* see Eval_generic.ml *)
 
-  | Not of formula
   | And of formula list
   | Or of formula list
+  (* there are restrictions on where a Not can appear in a formula. It
+   * should always be inside an And to be intersected with "positive" formula
+  *)
+  | Not of formula
 
-(* extra conditions, usually on metavariable content *)
-and extra =
-  | MetavarRegexp of MV.mvar * regexp
-  | MetavarComparison of metavariable_comparison
-  | PatWherePython of string (* arbitrary code, dangerous! *)
-
-(* See also matching/eval_generic.ml *)
-and metavariable_comparison = {
-  metavariable: MV.mvar;
-  comparison: string;
-  strip: bool option;
-  base: int option;
-}
 [@@deriving show, eq]
 
 (*****************************************************************************)
@@ -130,6 +120,20 @@ type formula_old =
   | PatEither of formula_old list
   (* patterns: And? or Or? depends on formula inside, hmmm *)
   | Patterns of formula_old list
+
+(* extra conditions, usually on metavariable content *)
+and extra =
+  | MetavarRegexp of MV.mvar * regexp
+  | MetavarComparison of metavariable_comparison
+  | PatWherePython of string (* arbitrary code, dangerous! *)
+
+(* See also matching/eval_generic.ml *)
+and metavariable_comparison = {
+  metavariable: MV.mvar;
+  comparison: string;
+  strip: bool option;
+  base: int option;
+}
 
 [@@deriving show, eq]
 
@@ -188,7 +192,7 @@ type rules = rule list
 let rec visit_new_formula f formula =
   match formula with
   | P p -> f p
-  | X _ -> ()
+  | MetavarCond _ -> ()
   | Not x -> visit_new_formula f x
   | Or xs | And xs -> xs |> List.iter (visit_new_formula f)
 
