@@ -34,7 +34,7 @@ from semgrep.semgrep_types import OPERATOR_PATTERN_NAMES_MAP
 from semgrep.semgrep_types import OPERATORS
 from semgrep.target_manager import TargetManager
 from semgrep.util import partition
-from semgrep.util import recursive_has_key
+from semgrep.util import recursive_has_item
 
 logger = logging.getLogger(__name__)
 
@@ -202,7 +202,7 @@ def main(
     if not dangerously_allow_arbitrary_code_execution_from_rules:
         pattern_where_python_names = OPERATOR_PATTERN_NAMES_MAP[OPERATORS.WHERE_PYTHON]
         pattern_where_python_rules, filtered_rules = partition(
-            lambda r: recursive_has_key(
+            lambda r: recursive_has_item(
                 lambda d: any(name in d for name in pattern_where_python_names), r.raw
             ),
             filtered_rules,

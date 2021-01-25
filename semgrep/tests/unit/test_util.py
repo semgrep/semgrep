@@ -23,5 +23,5 @@ from semgrep import util
         ({"bbb": {"aaa": "value"}, "zzz": {"key1": "value"}}, False),
     ],
 )
-def test_recursive_has_key(test_input, expected):
-    assert util.recursive_has_key(lambda d: "key" in d, test_input) == expected
+def test_recursive_has_item(test_input, expected):
+    assert util.recursive_has_item(lambda d: "key" in d, test_input) == expected

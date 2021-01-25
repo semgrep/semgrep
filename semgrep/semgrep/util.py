@@ -175,16 +175,17 @@ def compute_spacegrep_path() -> str:
     return compute_executable_path("spacegrep")
 
 
-def recursive_has_key(pred: Callable, d: Dict) -> bool:
+def recursive_has_item(pred: Callable, d: Dict) -> bool:
+    """Recursively determine if a dict has an arbitrary item."""
     if pred(d):
         return True
     for v in d.values():
         if isinstance(v, dict):
-            result = recursive_has_key(pred, v)
+            result = recursive_has_item(pred, v)
             if result:
                 return True
         elif isinstance(v, list):
-            result = any(recursive_has_key(pred, i) for i in v if isinstance(i, dict))
+            result = any(recursive_has_item(pred, i) for i in v if isinstance(i, dict))
             if result:
                 return True
     return False
