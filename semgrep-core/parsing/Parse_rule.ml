@@ -103,6 +103,15 @@ let parse_int ctx = function
 (* Sub parsers extra *)
 (*****************************************************************************)
 
+let parse_where _env s =
+  try
+    let lang = Lang.Python in (* todo? use lang in env? *)
+    (match Parse_pattern.parse_pattern lang s with
+     | AST_generic.E e -> e
+     | _ -> error "not an expression"
+    )
+  with exn -> raise exn
+
 let parse_extra _env x =
   match x with
   | "metavariable-regex", J.Object xs ->
@@ -254,8 +263,8 @@ let rec parse_formula_new env (x: J.t) : R.formula =
            let xpat = R.mk_xpat (R.Regexp s) s in
            R.P xpat
 
-       | [fld, v] ->
-           R.X (parse_extra env (fld, v))
+       | ["where", J.String s] ->
+           R.MetavarCond (parse_where env s)
        | _ -> pr2_gen x; error "parse_formula_new"
       )
   | _ -> pr2_gen x; error "parse_formula_new"

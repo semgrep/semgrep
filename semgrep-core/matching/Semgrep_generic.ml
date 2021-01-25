@@ -23,7 +23,7 @@ module Err = Error_code
 module PI = Parse_info
 module R = Mini_rule
 module Eq = Equivalence
-module Res = Match_result
+module PM = Pattern_match
 module GG = Generic_vs_generic
 module MV = Metavariable
 module Flag = Flag_semgrep
@@ -202,7 +202,7 @@ let match_rules_and_recurse (file, hook, matches) rules matcher k any x =
     if matches_with_env <> []
     then (* Found a match *)
       matches_with_env |> List.iter (fun env ->
-        Common.push { Res. rule; file; env; code = any x } matches;
+        Common.push { PM. rule; file; env; code = any x } matches;
         let matched_tokens = lazy (Lib_AST.ii_of_any (any x)) in
         hook env matched_tokens
       )
@@ -301,7 +301,7 @@ let check2 ~hook rules equivs file lang ast =
             if matches_with_env <> []
             then (* Found a match *)
               matches_with_env |> List.iter (fun env ->
-                Common.push { Res. rule; file; env; code = E x } matches;
+                Common.push { PM. rule; file; env; code = E x } matches;
                 let matched_tokens = lazy (Lib_AST.ii_of_any (E x)) in
                 hook env matched_tokens
               )
@@ -336,7 +336,7 @@ let check2 ~hook rules equivs file lang ast =
                 if matches_with_env <> []
                 then (* Found a match *)
                   matches_with_env |> List.iter (fun env ->
-                    Common.push { Res. rule; file; env; code = S x } matches;
+                    Common.push { PM. rule; file; env; code = S x } matches;
                     let matched_tokens = lazy (Lib_AST.ii_of_any (S x)) in
                     hook env matched_tokens
                   )
@@ -362,7 +362,7 @@ let check2 ~hook rules equivs file lang ast =
             then (* Found a match *)
               matches_with_env |> List.iter (fun (env, matched_statements) ->
                 let any = MV.mvalue_to_any matched_statements in
-                Common.push { Res. rule; file; env; code = any }
+                Common.push { PM. rule; file; env; code = any }
                   matches;
                 let matched_tokens = lazy (Lib_AST.ii_of_any any) in
                 hook env matched_tokens

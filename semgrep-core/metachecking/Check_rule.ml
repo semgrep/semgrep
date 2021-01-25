@@ -72,7 +72,7 @@ let check_new_formula env lang f =
   let rec find_dupe f =
     match f with
     | P _ -> ()
-    | X _ -> ()
+    | MetavarCond _ -> ()
     | Not f -> find_dupe f
     | Or xs | And xs ->
         let rec aux xs =
