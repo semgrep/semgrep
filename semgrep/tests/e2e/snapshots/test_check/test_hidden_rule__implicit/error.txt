@@ -1,1 +1,6 @@
-no valid configuration file found (0 configs were invalid)
+You need to specify a config with --config=<semgrep.dev config name|localfile|localdirectory|url>.
+If you're looking for a config to start with, there are thousands at: https://semgrep.dev
+The two most popular are:
+    --config=p/ci # find logic bugs, and high-confidence security vulnerabilities; recommended for CI
+    --config=p/security-audit # find security audit points; noisy, not recommended for CI
+
