@@ -185,9 +185,9 @@ let parsing_common ?(verbose=true) lang get_final_files xs =
     let stat =
       (try
          let res =
-           Parse_code.parse_and_resolve_name_use_pfff_or_treesitter lang file
+           Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang file
          in
-         res.Parse_code.stat
+         res.Parse_target.stat
        with exn ->
          if verbose then pr2 (spf "%s: exn = %s" file (Common.exn_to_s exn));
          PI.bad_stat file
@@ -227,8 +227,8 @@ let diff_pfff_tree_sitter xs =
         let (ast1, _stat1) = Parse_generic.parse_with_lang lang file in
         let ast2 =
           Common.save_excursion Flag_semgrep.tree_sitter_only true (fun () ->
-            let {Parse_code. ast; errors; _} =
-              Parse_code.just_parse_with_lang lang file in
+            let {Parse_target. ast; errors; _} =
+              Parse_target.just_parse_with_lang lang file in
             if errors <> [] then failwith (spf "problem parsing %s" file);
             ast
           ) in

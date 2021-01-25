@@ -1,3 +1,5 @@
+(*s: semgrep/parsing/Parse_target.mli *)
+
 
 type parsing_result = {
   ast: AST_generic.program;
@@ -14,3 +16,5 @@ val parse_and_resolve_name_use_pfff_or_treesitter:
 (* used only for testing purpose *)
 val just_parse_with_lang:
   Lang.t -> Common.filename -> parsing_result
+
+(*e: semgrep/parsing/Parse_target.mli *)

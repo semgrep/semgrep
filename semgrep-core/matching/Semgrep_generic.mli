@@ -8,8 +8,8 @@ val check:
   Equivalence.equivalences ->
   Common.filename ->
   Lang.t ->
-  AST_generic.program ->
-  Match_result.t list
+  Target.t ->
+  Pattern_match.t list
 (*e: signature [[Semgrep_generic.check]] *)
 
 val last_matched_rule: Mini_rule.t option ref
