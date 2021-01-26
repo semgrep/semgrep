@@ -15,7 +15,7 @@ TREESITTER_LIBDIR ?= $(shell pkg-config --libs-only-L tree-sitter \
 export TREESITTER_LIBDIR
 
 all:
-	./scripts/make-version > ./cli/version.ml
+	./scripts/make-version > ./CLI/version.ml
 	dune build
 	dune build ./_build/default/tests/test.bc
 clean:
@@ -65,7 +65,7 @@ visual:
 # Run matching performance tests
 .PHONY: perf
 perf:
-	cd ./perf && ./run-perf-suite
+	cd ./tests/OTHER/perf && ./run-perf-suite
 
 # Run matching performance tests and post them to the semgrep dashboard
 # at https://dashboard.semgrep.dev/
@@ -74,4 +74,4 @@ perf:
 #
 .PHONY: report-perf
 report-perf:
-	cd ./perf && ./run-perf-suite --upload
+	cd ./tests/OTHER/perf && ./run-perf-suite --upload
