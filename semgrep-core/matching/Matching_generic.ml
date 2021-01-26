@@ -78,11 +78,15 @@ let logger = Logging.get_logger [__MODULE__]
 (*s: type [[Matching_generic.tin]] *)
 (* tin is for 'type in' and tout for 'type out' *)
 (* incoming environment *)
-type tin = Metavariable.bindings
+type tin = {
+  mv : Metavariable.Env.t;
+  stmts_match_span : Stmts_match_span.t;
+  cache : tout Caching.Cache.t option;
+}
 (*e: type [[Matching_generic.tin]] *)
 (*s: type [[Matching_generic.tout]] *)
 (* list of possible outcoming matching environments *)
-type tout = tin list
+and tout = tin list
 (*e: type [[Matching_generic.tout]] *)
 
 (*s: type [[Matching_generic.matcher]] *)
@@ -196,6 +200,17 @@ let (let*) o f =
 (* Environment *)
 (*****************************************************************************)
 
+let add_mv_capture key value (env : tin) =
+  { env with mv = MV.Env.add_capture key value env.mv }
+
+let get_mv_capture key (env : tin) =
+  MV.Env.get_capture key env.mv
+
+let extend_stmts_match_span rightmost_stmt (env : tin) =
+  let stmts_match_span =
+    Stmts_match_span.extend rightmost_stmt env.stmts_match_span in
+  { env with stmts_match_span }
+
 (*s: function [[Matching_generic.equal_ast_binded_code]] *)
 (* pre: both 'a' and 'b' contains only regular code; there are no
  * metavariables inside them.
@@ -249,7 +264,7 @@ let rec equal_ast_binded_code (a: MV.mvalue) (b: MV.mvalue) : bool = (
          * - position information (see adhoc AST_generic.equal_tok)
          * - id_constness (see the special @equal for id_constness)
         *)
-        MV.equal_mvalue a b
+        MV.Structural.equal_mvalue a b
     | MV.Id _, MV.E (A.Id (b_id, b_id_info)) ->
         (* TODO still needed now that we have the better MV.Id of id_info? *)
         (* TOFIX: regression if remove this code *)
@@ -276,8 +291,9 @@ let rec equal_ast_binded_code (a: MV.mvalue) (b: MV.mvalue) : bool = (
 (*e: function [[Matching_generic.equal_ast_binded_code]] *)
 
 (*s: function [[Matching_generic.check_and_add_metavar_binding]] *)
-let check_and_add_metavar_binding((mvar:MV.mvar), valu) = fun tin ->
-  match Common2.assoc_opt mvar tin with
+let check_and_add_metavar_binding ((mvar:MV.mvar), valu) =
+  fun (tin : tin) ->
+  match Common2.assoc_opt mvar tin.mv.full_env with
   | Some valu' ->
       (* Should we use generic_vs_generic itself for comparing the code?
        * Hmmm, we can't because it leads to a circular dependencies.
@@ -288,8 +304,12 @@ let check_and_add_metavar_binding((mvar:MV.mvar), valu) = fun tin ->
       then Some tin (* valu remains the metavar witness *)
       else None
   | None ->
-      (* first time the metavar is binded, just add it to the environment *)
-      Some (Common2.insert_assoc (mvar, valu) tin)
+      (* 'backrefs' is the set of metavariables that may be referenced later
+         in the pattern. It's inherited from the last stmt pattern,
+         so it might contain a few extra members.
+      *)
+      (* first time the metavar is bound, just add it to the environment *)
+      Some (add_mv_capture mvar valu tin)
 (*e: function [[Matching_generic.check_and_add_metavar_binding]] *)
 
 (*s: function [[Matching_generic.envf]] *)
@@ -309,7 +329,12 @@ let (envf: (MV.mvar AST.wrap, MV.mvalue) matcher) =
 (*e: function [[Matching_generic.envf]] *)
 
 (*s: function [[Matching_generic.empty_environment]] *)
-let empty_environment () = []
+let empty_environment opt_cache =
+  {
+    mv = MV.Env.empty;
+    stmts_match_span = Empty;
+    cache = opt_cache;
+  }
 (*e: function [[Matching_generic.empty_environment]] *)
 
 (*****************************************************************************)

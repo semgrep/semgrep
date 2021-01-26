@@ -52,7 +52,7 @@ let parse_pattern lang str =
     (* use pfff *)
     | _ -> Parse_generic.parse_pattern lang str
   in
-  (* TODO: Caching.prepare_pattern any; commented because of test regressions *)
+  Caching.prepare_pattern any;
   Check_pattern.check lang any;
   any
 

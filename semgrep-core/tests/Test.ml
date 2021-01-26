@@ -63,7 +63,7 @@ let parsing_tests_for_lang files lang =
    If foo/bar.sgrep is not found, POLYGLOT/bar.sgrep is used instead.
 *)
 (*s: function [[Test.regression_tests_for_lang]] *)
-let regression_tests_for_lang files lang =
+let regression_tests_for_lang ~with_caching files lang =
   files |> List.map (fun file ->
    (Filename.basename file) >:: (fun () ->
     let sgrep_file =
@@ -124,6 +124,7 @@ let regression_tests_for_lang files lang =
         let (minii, _maxii) = Parse_info.min_max_ii_by_pos toks in
         Error_code.error minii (Error_code.SemgrepMatchFound ("",""))
       )
+      ~with_caching
       [rule] equiv file lang ast |> ignore;
 
     let actual = !Error_code.g_errors in
@@ -177,8 +178,15 @@ let lang_parsing_tests =
   ]
 
 (*s: constant [[Test.lang_regression_tests]] *)
-let lang_regression_tests = 
- "lang regression testing" >::: [
+let lang_regression_tests ~with_caching =
+  let regression_tests_for_lang files lang =
+    regression_tests_for_lang ~with_caching files lang
+  in
+  let name_suffix =
+    if with_caching then " with caching"
+    else " without caching"
+  in
+  "lang regression testing" ^ name_suffix >::: [
   "semgrep Python" >::: (
     let dir = Filename.concat tests_path "python" in
     let files = Common2.glob (spf "%s/*.py" dir) in
@@ -269,8 +277,14 @@ let lang_regression_tests =
 
 (*s: constant [[Test.lint_regression_tests]] *)
 (* mostly a copy paste of pfff/linter/unit_linter.ml *)
-let lint_regression_tests = 
-  "lint regression testing" >:: (fun () ->
+let lint_regression_tests ~with_caching =
+  let name =
+    if with_caching then
+      "lint regression testing with caching"
+    else
+      "lint regression testing without caching"
+  in
+  name >:: (fun () ->
   let p path = Filename.concat tests_path path in
   let rule_file = Filename.concat data_path "basic.yml" in
   let lang = Lang.Python in
@@ -278,7 +292,7 @@ let lint_regression_tests =
   let test_files = [
    p "OTHER/rules/stupid.py";
   ] in
-  
+
   (* expected *)
   let expected_error_lines = E.expected_error_lines_of_files test_files in
 
@@ -290,7 +304,8 @@ let lint_regression_tests =
   test_files |> List.iter (fun file ->
     E.try_with_exn_to_error file (fun () ->
     let ast, _stat = Parse_generic.parse_with_lang lang file in
-    Semgrep_generic.check ~hook:(fun _ _ -> ()) rules equivs file lang ast 
+    Semgrep_generic.check ~hook:(fun _ _ -> ()) ~with_caching
+      rules equivs file lang ast
       |> List.iter JSON_report.match_to_error;
   ));
 
@@ -331,10 +346,12 @@ let test regexp =
       Unit_synthesizer.unittest;
       lang_parsing_tests;
       (* full testing for many languages *)
-      lang_regression_tests;
+      lang_regression_tests ~with_caching:false;
+      lang_regression_tests ~with_caching:true;
       (* TODO Unit_matcher.spatch_unittest ~xxx *)
       (* TODO Unit_matcher_php.unittest; (* sgrep, spatch, refactoring, unparsing *) *)
-      lint_regression_tests;
+      lint_regression_tests ~with_caching:false;
+      lint_regression_tests ~with_caching:true;
       eval_regression_tests;
     ]
   in

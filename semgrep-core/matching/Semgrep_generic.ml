@@ -14,7 +14,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
 *)
-open Common
 open AST_generic
 
 module V = Visitor_AST
@@ -27,6 +26,7 @@ module PM = Pattern_match
 module GG = Generic_vs_generic
 module MV = Metavariable
 module Flag = Flag_semgrep
+module MG = Matching_generic
 
 (*****************************************************************************)
 (* Prelude *)
@@ -48,8 +48,7 @@ module Flag = Flag_semgrep
 (*****************************************************************************)
 
 (*s: type [[Semgrep_generic.matcher]] *)
-type ('a, 'b) matcher = 'a -> 'b ->
-  Metavariable.bindings list
+type ('a, 'b) matcher = 'a -> 'b -> MG.tout
 (*e: type [[Semgrep_generic.matcher]] *)
 
 (*****************************************************************************)
@@ -76,120 +75,104 @@ let set_last_matched_rule rule f =
 (*****************************************************************************)
 
 (*s: function [[Semgrep_generic.match_e_e]] *)
-let match_e_e2 pattern e =
-  let env = Matching_generic.empty_environment () in
+let match_e_e2 cache pattern e =
+  let env = MG.empty_environment cache in
   GG.m_expr pattern e env
 (*e: function [[Semgrep_generic.match_e_e]] *)
-let match_e_e rule a b =
+let match_e_e rule cache a b =
   Common.profile_code ("rule:" ^ rule.R.id) (fun () ->
     set_last_matched_rule rule (fun () ->
-      match_e_e2 a b))
+      match_e_e2 cache a b))
 [@@profiling]
 
 (*s: function [[Semgrep_generic.match_st_st]] *)
-let match_st_st2 pattern e =
-  let env = Matching_generic.empty_environment () in
+let match_st_st2 cache pattern e =
+  let env = MG.empty_environment cache in
   GG.m_stmt pattern e env
 (*e: function [[Semgrep_generic.match_st_st]] *)
-let match_st_st rule a b =
+let match_st_st rule cache a b =
   Common.profile_code ("rule:" ^ rule.R.id) (fun () ->
     set_last_matched_rule rule (fun () ->
-      match_st_st2 a b))
+      match_st_st2 cache a b))
 [@@profiling]
 
 (*s: function [[Semgrep_generic.match_sts_sts]] *)
-let match_sts_sts2 pattern e =
-  let env = Matching_generic.empty_environment () in
+let match_sts_sts2 cache pattern e =
+  let env = MG.empty_environment cache in
   (* When matching statements, we need not only to report whether
    * there is match, but also the actual statements that were matched.
    * Indeed, even if we want the implicit '...' at the end of
    * a sequence of statements pattern (AST_generic.Ss) to match all
    * the rest, we don't want to report the whole Ss as a match but just
    * the actually matched subset.
-   * To do so would require to change the interface of a matcher
-   * to not only return the matched environment but also the matched
-   * statements. This would require in turn to provide new versions
-   * for >>=, >||>, etc.
-   * Instead, we can abuse the environment to also record the
-   * matched statements! This is a bit ugly, but the alternative might
-   * be worse.
    *
    * TODO? do we need to generate unique key? we don't want
-   * nested calls to m_stmts_deep to polluate our metavar? We need
+   * nested calls to m_stmts_deep to pollute our metavar? We need
    * to pass the key to m_stmts_deep?
   *)
-  let key = MV.matched_statements_special_mvar in
-  let env = (key, MV.Ss [])::env in
-
-  let res = GG.m_stmts_deep ~less_is_ok:true pattern e env in
-
-  res |> List.map (fun tin ->
-    match List.assoc_opt key tin with
-    | Some (MV.Ss xs) ->
-        (* we use List.rev because Generic_vs_generic.env_add_matched_stmt
-         * adds the matched statements gradually at the beginning
-         * of the list
-        *)
-        List.remove_assoc key tin, (MV.Ss (List.rev xs))
-    | _ -> raise Impossible
-  )
+  let env =
+    match e with
+    | [] -> env
+    | stmt :: _ -> MG.extend_stmts_match_span stmt env
+  in
+  GG.m_stmts_deep ~less_is_ok:true pattern e env
 (*e: function [[Semgrep_generic.match_sts_sts]] *)
-let match_sts_sts rule a b =
+let match_sts_sts rule cache a b =
   Common.profile_code ("rule:" ^ rule.R.id) (fun () ->
     set_last_matched_rule rule (fun () ->
-      match_sts_sts2 a b))
+      match_sts_sts2 cache a b))
 [@@profiling]
 
 (*s: function [[Semgrep_generic.match_any_any]] *)
 (* for unit testing *)
-let match_any_any pattern e =
-  let env = Matching_generic.empty_environment () in
+let match_any_any cache pattern e =
+  let env = MG.empty_environment cache in
   GG.m_any pattern e env
 (*e: function [[Semgrep_generic.match_any_any]] *)
 
-let match_t_t2 pattern e =
-  let env = Matching_generic.empty_environment () in
+let match_t_t2 cache pattern e =
+  let env = MG.empty_environment cache in
   GG.m_type_ pattern e env
-let match_t_t rule a b =
+let match_t_t rule cache a b =
   Common.profile_code ("rule:" ^ rule.R.id) (fun () ->
     set_last_matched_rule rule (fun () ->
-      match_t_t2 a b))
+      match_t_t2 cache a b))
 [@@profiling]
 
-let match_p_p2 pattern e =
-  let env = Matching_generic.empty_environment () in
+let match_p_p2 cache pattern e =
+  let env = MG.empty_environment cache in
   GG.m_pattern pattern e env
-let match_p_p rule a b =
+let match_p_p rule cache a b =
   Common.profile_code ("rule:" ^ rule.R.id) (fun () ->
     set_last_matched_rule rule (fun () ->
-      match_p_p2 a b))
+      match_p_p2 cache a b))
 [@@profiling]
 
-let match_partial_partial2 pattern e =
-  let env = Matching_generic.empty_environment () in
+let match_partial_partial2 cache pattern e =
+  let env = MG.empty_environment cache in
   GG.m_partial pattern e env
-let match_partial_partial rule a b =
+let match_partial_partial rule cache a b =
   Common.profile_code ("rule:" ^ rule.R.id) (fun () ->
     set_last_matched_rule rule (fun () ->
-      match_partial_partial2 a b))
+      match_partial_partial2 cache a b))
 [@@profiling]
 
-let match_at_at2 pattern e =
-  let env = Matching_generic.empty_environment () in
+let match_at_at2 cache pattern e =
+  let env = MG.empty_environment cache in
   GG.m_attribute pattern e env
-let match_at_at rule a b =
+let match_at_at rule cache a b =
   Common.profile_code ("rule:" ^ rule.R.id) (fun () ->
     set_last_matched_rule rule (fun () ->
-      match_at_at2 a b))
+      match_at_at2 cache a b))
 [@@profiling]
 
-let match_fld_fld2 pattern e =
-  let env = Matching_generic.empty_environment () in
+let match_fld_fld2 cache pattern e =
+  let env = MG.empty_environment cache in
   GG.m_field pattern e env
-let match_fld_fld rule a b =
+let match_fld_fld rule cache a b =
   Common.profile_code ("rule:" ^ rule.R.id) (fun () ->
     set_last_matched_rule rule (fun () ->
-      match_fld_fld2 a b))
+      match_fld_fld2 cache a b))
 [@@profiling]
 
 (*****************************************************************************)
@@ -197,14 +180,16 @@ let match_fld_fld rule a b =
 (*****************************************************************************)
 
 let match_rules_and_recurse (file, hook, matches) rules matcher k any x =
-  rules |> List.iter (fun (pattern, rule) ->
-    let matches_with_env = matcher rule pattern x in
+  rules |> List.iter (fun (pattern, rule, cache) ->
+    let matches_with_env = matcher rule cache pattern x in
     if matches_with_env <> []
     then (* Found a match *)
-      matches_with_env |> List.iter (fun env ->
-        Common.push { PM. rule; file; env; code = any x } matches;
-        let matched_tokens = lazy (Lib_AST.ii_of_any (any x)) in
-        hook env matched_tokens
+      matches_with_env |> List.iter (fun (env : MG.tin) ->
+        let env = env.mv.full_env in
+        let location = Lib_AST.range_of_any (any x) in
+        let tokens = lazy (Lib_AST.ii_of_any (any x)) in
+        Common.push { PM. rule; file; env; location; tokens } matches;
+        hook env tokens
       )
   );
   (* try the rules on substatements and subexpressions *)
@@ -228,7 +213,7 @@ let must_analyze_statement_bloom_opti_failed bf1 st =
 (*****************************************************************************)
 
 (*s: function [[Semgrep_generic.check2]] *)
-let check2 ~hook rules equivs file lang ast =
+let check2 ~hook ~with_caching rules equivs file lang ast =
 
   let rules =
     (* simple opti using regexps; the bloom filter opti might supersede this *)
@@ -244,15 +229,15 @@ let check2 ~hook rules equivs file lang ast =
     let matches = ref [] in
 
     (* old: let prog = Normalize_AST.normalize (Pr ast) lang in
-     * we were rewriting code, e.g., A != B was rewritten as !(A == B),
-     * which enable some nice semantic matching demo where searching for
-     * $X == $X would also find code written as a != a. The problem
-     * is that if we don't do the same rewriting on the pattern, then
-     * looking for $X != $X would not find anything anymore.
-     * In any case, rewriting the source code is less necessary
-     * now that we have user-defined code equivalences (see Equivalence.ml)
-     * and this will also be less surprising (you can see the set of
-     * equivalences in the equivalence file).
+      * we were rewriting code, e.g., A != B was rewritten as !(A == B),
+      * which enable some nice semantic matching demo where searching for
+      * $X == $X would also find code written as a != a. The problem
+      * is that if we don't do the same rewriting on the pattern, then
+      * looking for $X != $X would not find anything anymore.
+      * In any case, rewriting the source code is less necessary
+      * now that we have user-defined code equivalences (see Equivalence.ml)
+      * and this will also be less surprising (you can see the set of
+      * equivalences in the equivalence file).
     *)
     let prog = (Pr ast) in
 
@@ -271,19 +256,25 @@ let check2 ~hook rules equivs file lang ast =
       (*s: [[Semgrep_generic.check2()]] apply equivalences to rule pattern [[any]] *)
       let any = Apply_equivalences.apply equivs any in
       (*e: [[Semgrep_generic.check2()]] apply equivalences to rule pattern [[any]] *)
+      let cache =
+        if with_caching then
+          Some (Caching.Cache.create ())
+        else
+          None
+      in
       match any with
       | E pattern  ->
           let bf = Bloom_annotation.bloom_of_expr pattern in
-          Common.push (pattern, bf, rule) expr_rules
+          Common.push (pattern, bf, rule, cache) expr_rules
       | S pattern ->
           let bf = Bloom_annotation.bloom_of_stmt pattern in
-          Common.push (pattern, bf, rule) stmt_rules
-      | Ss pattern -> Common.push (pattern, rule) stmts_rules
-      | T pattern -> Common.push (pattern, rule) type_rules
-      | P pattern -> Common.push (pattern, rule) pattern_rules
-      | At pattern -> Common.push (pattern, rule) attribute_rules
-      | Fld pattern -> Common.push (pattern, rule) fld_rules
-      | Partial pattern -> Common.push (pattern, rule) partial_rules
+          Common.push (pattern, bf, rule, cache) stmt_rules
+      | Ss pattern -> Common.push (pattern, rule, cache) stmts_rules
+      | T pattern -> Common.push (pattern, rule, cache) type_rules
+      | P pattern -> Common.push (pattern, rule, cache) pattern_rules
+      | At pattern -> Common.push (pattern, rule, cache) attribute_rules
+      | Fld pattern -> Common.push (pattern, rule, cache) fld_rules
+      | Partial pattern -> Common.push (pattern, rule, cache) partial_rules
       | _ -> failwith
                "only expr/stmt/stmts/type/pattern/annotation/field/partial patterns are supported"
     );
@@ -296,14 +287,16 @@ let check2 ~hook rules equivs file lang ast =
           (* this could be quite slow ... we match many sgrep patterns
            * against an expression recursively
           *)
-          !expr_rules |> List.iter (fun (pattern, _bf, rule) ->
-            let matches_with_env = match_e_e rule pattern x in
+          !expr_rules |> List.iter (fun (pattern, _bf, rule, cache) ->
+            let matches_with_env = match_e_e rule cache pattern x in
             if matches_with_env <> []
             then (* Found a match *)
-              matches_with_env |> List.iter (fun env ->
-                Common.push { PM. rule; file; env; code = E x } matches;
-                let matched_tokens = lazy (Lib_AST.ii_of_any (E x)) in
-                hook env matched_tokens
+              matches_with_env |> List.iter (fun (env : MG.tin) ->
+                let env = env.mv.full_env in
+                let location = Lib_AST.range_of_any (E x) in
+                let tokens = lazy (Lib_AST.ii_of_any (E x)) in
+                Common.push { PM. rule; file; env; location; tokens } matches;
+                hook env tokens
               )
           );
           (* try the rules on subexpressions *)
@@ -320,25 +313,28 @@ let check2 ~hook rules equivs file lang ast =
            * but inlined to handle specially Bloom filter in stmts for now.
           *)
           let new_stmt_rules =
-            !stmt_rules |> List.filter (fun (_, bf, _) ->
+            !stmt_rules |> List.filter (fun (_, bf, _, _cache) ->
               must_analyze_statement_bloom_opti_failed bf x
             )
           in
           let new_expr_rules =
-            !expr_rules |> List.filter (fun (_, bf, _) ->
+            !expr_rules |> List.filter (fun (_, bf, _, _cache) ->
               must_analyze_statement_bloom_opti_failed bf x
             )
           in
           Common.save_excursion stmt_rules new_stmt_rules (fun () ->
             Common.save_excursion expr_rules new_expr_rules (fun () ->
-              !stmt_rules |> List.iter (fun (pattern, _bf, rule) ->
-                let matches_with_env = match_st_st rule pattern x in
+              !stmt_rules |> List.iter (fun (pattern, _bf, rule, cache) ->
+                let matches_with_env = match_st_st rule cache pattern x in
                 if matches_with_env <> []
                 then (* Found a match *)
-                  matches_with_env |> List.iter (fun env ->
-                    Common.push { PM. rule; file; env; code = S x } matches;
-                    let matched_tokens = lazy (Lib_AST.ii_of_any (S x)) in
-                    hook env matched_tokens
+                  matches_with_env |> List.iter (fun (env : MG.tin) ->
+                    let env = env.mv.full_env in
+                    let location = Lib_AST.range_of_any (S x) in
+                    let tokens = lazy (Lib_AST.ii_of_any (S x)) in
+                    Common.push
+                      { PM. rule; file; env; location; tokens } matches;
+                    hook env tokens
                   )
               );
               k x
@@ -356,16 +352,21 @@ let check2 ~hook rules equivs file lang ast =
            * in matches_with_env here.
           *)
 
-          !stmts_rules |> List.iter (fun (pattern, rule) ->
-            let matches_with_env = match_sts_sts rule pattern x in
+          !stmts_rules |> List.iter (fun (pattern, rule, cache) ->
+            let matches_with_env = match_sts_sts rule cache pattern x in
             if matches_with_env <> []
             then (* Found a match *)
-              matches_with_env |> List.iter (fun (env, matched_statements) ->
-                let any = MV.mvalue_to_any matched_statements in
-                Common.push { PM. rule; file; env; code = any }
-                  matches;
-                let matched_tokens = lazy (Lib_AST.ii_of_any any) in
-                hook env matched_tokens
+              matches_with_env |> List.iter (fun (env : MG.tin) ->
+                let span = env.stmts_match_span in
+                match Stmts_match_span.location span with
+                | None -> () (* empty sequence or bug *)
+                | Some location ->
+                    let env = env.mv.full_env in
+                    let tokens =
+                      lazy (Stmts_match_span.list_original_tokens span) in
+                    Common.push
+                      { PM. rule; file; env; location; tokens } matches;
+                    hook env tokens
               )
           );
           k x
@@ -408,7 +409,8 @@ let check2 ~hook rules equivs file lang ast =
 (*e: function [[Semgrep_generic.check2]] *)
 
 (* TODO: cant use [@@profile] because it does not handle yet label params *)
-let check ~hook a b c d e =
-  Common.profile_code "Semgrep.check" (fun () -> check2 ~hook a b c d e)
+let check ~hook ~with_caching a b c d e =
+  Common.profile_code "Semgrep.check"
+    (fun () -> check2 ~hook ~with_caching a b c d e)
 
 (*e: semgrep/matching/Semgrep_generic.ml *)

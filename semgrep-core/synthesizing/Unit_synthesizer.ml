@@ -211,8 +211,10 @@ let unittest =
                   | (A.E _, A.S ({A.s=A.ExprStmt (e, _);_})) -> A.E e
                   | (_, x) -> x
                 in
-                let matches_with_env = Semgrep_generic.match_any_any
-                    pattern code in
+                let matches_with_env =
+                  let cache = None in
+                  Semgrep_generic.match_any_any
+                    cache pattern code in
                 (* Debugging note: uses pattern_to_string for convenience,
                  * but really should match the code in the given file at
                  * the given range *)
