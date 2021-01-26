@@ -1,4 +1,4 @@
-(*s: semgrep/cli/Main.ml *)
+(*s: semgrep/CLI/Main.ml *)
 (*
  * The author disclaims copyright to this source code.  In place of
  * a legal notice, here is a blessing:
@@ -1453,4 +1453,4 @@ let _ =
     ) (fun () -> !(Hooks.exit) |> List.iter (fun f -> f()))
   )
 (*e: toplevel [[Main_semgrep_core._1]] *)
-(*e: semgrep/cli/Main.ml *)
+(*e: semgrep/CLI/Main.ml *)
