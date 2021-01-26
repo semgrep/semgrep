@@ -191,7 +191,7 @@ let (add_vars_and_nodei_to_env:
 
 (*s: function [[Dataflow.csv_append]] *)
 let csv_append s v =
-  if String.length s == 0 then v else s ^ "," ^ v
+  if String.length s = 0 then v else s ^ "," ^ v
 (*e: function [[Dataflow.csv_append]] *)
 
 (*s: function [[Dataflow.array_fold_left_idx]] *)
