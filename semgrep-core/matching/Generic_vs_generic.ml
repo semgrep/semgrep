@@ -1567,15 +1567,16 @@ and m_list__m_stmt ~flattened xsa (xsb : matchable_stmt_list) tin =
       (match opt_b_xsb with
        | Some (b, xsb) ->
            let tin = { tin with mv = MV.Env.update_min_env tin.mv a } in
-           let module K = Caching.Cache_key in
+           (* let module K = Caching.Cache_key in *)
            Caching.Cache.match_stmt_list
              ~get_span_field:(fun tin -> tin.stmts_match_span)
              ~set_span_field:(fun tin x -> { tin with stmts_match_span = x })
              ~get_mv_field:(fun tin -> tin.mv)
              ~set_mv_field:(fun tin mv -> { tin with mv })
              ~cache
-             ~function_id:K.Match_list
-             ~list_kind:(if flattened then K.Flattened else K.Original)
+             ~function_id:Caching.Cache_key.Match_list
+             ~list_kind:(if flattened then Caching.Cache_key.Flattened
+                         else Caching.Cache_key.Original)
              ~less_is_ok:true
              ~compute:(m_list__m_stmt_uncached ~flattened)
              ~pattern:xsa
