@@ -141,13 +141,8 @@ let (range_to_match_result: range_with_mvars -> Pattern_match.t) =
 
 let (match_result_to_range: Pattern_match.t -> range_with_mvars) =
   fun m ->
-  let { Pattern_match.code = any; env = mvars; _} = m in
-  let toks = Lib_AST.ii_of_any any in
-  let r =
-    match Range.range_of_tokens toks with
-    | Some r -> r
-    | None -> failwith "could not find a range"
-  in
+  let { Pattern_match.location = (start_loc, end_loc); env = mvars; _} = m in
+  let r = Range.range_of_token_locations start_loc end_loc in
   { r; mvars; origin = m; }
 
 open Range
@@ -206,7 +201,9 @@ let rec (evaluate_formula:
 (* Main entry point *)
 (*****************************************************************************)
 
-let check hook rules (file, lang, ast) =
+(* 'with_caching' is unlabeled because ppx_profiling doesn't support labeled
+   arguments *)
+let check with_caching hook rules (file, lang, ast) =
   rules |> List.map (fun r ->
 
     let formula =
@@ -224,7 +221,9 @@ let check hook rules (file, lang, ast) =
       (* TODO *)
       [] in
     let matches =
-      Semgrep_generic.check ~hook:(fun _ _ -> ())
+      Semgrep_generic.check
+        ~with_caching
+        ~hook:(fun _ _ -> ())
         mini_rules equivalences file lang ast
     in
     (* match results per minirule id which is the same than pattern_id in
@@ -236,8 +235,8 @@ let check hook rules (file, lang, ast) =
 
     let back_to_match_results =
       final_ranges |> List.map (range_to_match_result) in
-    back_to_match_results |> List.iter (fun m ->
-      hook m.Pattern_match.env (lazy (Lib_AST.ii_of_any m.Pattern_match.code))
+    back_to_match_results |> List.iter (fun (m : Pattern_match.t) ->
+      hook m.env m.tokens
     );
 
     back_to_match_results

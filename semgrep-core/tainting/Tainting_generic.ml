@@ -97,12 +97,15 @@ let check rules file ast =
 
       rules |> List.iter (fun rule ->
         let found_tainted_sink = (fun instr _env ->
-          let location = Lib_AST.range_of_any (AST.E (instr.IL.iorig)) in
+          let code = AST.E instr.IL.iorig in
+          let location = Lib_AST.range_of_any code in
+          let tokens = lazy (Lib_AST.ii_of_any code) in
           Common.push {
             Pattern_match.
             rule = Tainting_rule.rule_of_tainting_rule rule;
             file;
             location;
+            tokens;
             (* todo: use env from sink matching func?  *)
             env = [];
           } matches;

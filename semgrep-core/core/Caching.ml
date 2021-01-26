@@ -3,7 +3,7 @@
    during matching.
 *)
 
-module MV = Metavars_generic
+module MV = Metavariable
 
 open Printf
 open AST_generic
@@ -93,7 +93,7 @@ let prepare_pattern any =
     kident = (fun (_k, _) (id, _tok) ->
       if debug then
         printf "kident %s\n" id;
-      if Metavars_generic.is_metavar_name id then
+      if Metavariable.is_metavar_name id then
         add_metavar id
     );
 
@@ -147,7 +147,7 @@ let prepare_pattern any =
     printf "pattern AST:\n%s\n" (AST_generic.show_any any)
 
 module Cache_key = struct
-  type env = Metavars_generic.metavars_binding [@@deriving show]
+  type env = Metavariable.bindings [@@deriving show]
   type function_id = Match_deep | Match_list
   type list_kind = Original | Flattened
 
@@ -203,7 +203,7 @@ module Cache_key = struct
     && a.function_id = b.function_id
     && a.list_kind = b.list_kind
     && a.less_is_ok = b.less_is_ok
-    && Metavars_generic.Referential.equal_metavars_binding
+    && Metavariable.Referential.equal_bindings
       a.min_env b.min_env
 
   (* Combine two hashes into one. *)
@@ -217,7 +217,7 @@ module Cache_key = struct
     Hashtbl.hash k.function_id ++
     Hashtbl.hash k.list_kind ++
     Hashtbl.hash k.less_is_ok ++
-    (Metavars_generic.Referential.hash_metavars_binding k.min_env)
+    (Metavariable.Referential.hash_bindings k.min_env)
 end
 
 module Cache = struct
@@ -325,7 +325,7 @@ module Cache = struct
          | Some target -> compute pattern target acc
         )
     | a :: _ ->
-        let mv : Metavars_generic.Env.t = get_mv_field acc in
+        let mv : Metavariable.Env.t = get_mv_field acc in
         let key : Cache_key.t = {
           min_env = mv.min_env;
           function_id;

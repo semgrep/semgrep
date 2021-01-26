@@ -25,7 +25,8 @@ type t = {
   rule: Mini_rule.t;
   file: Common.filename;
   location: Parse_info.token_location * Parse_info.token_location;
-  env: Metavariable.metavars_binding;
+  tokens: Parse_info.t list Lazy.t; (* do we need to be lazy? *)
+  env: Metavariable.bindings;
 }
 (*e: type [[Match_result.t]] *)
 (*e: semgrep/core/Pattern_match.ml *)

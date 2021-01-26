@@ -37,9 +37,8 @@ let debug = false
 *)
 (*s: type [[Metavars_generic.mvar]] *)
 type mvar = string
-[@@deriving show, eq]
-(*e: type [[Metavars_generic.mvar]] *)
 [@@deriving show, eq, hash]
+(*e: type [[Metavars_generic.mvar]] *)
 
 (* 'mvalue' below used to be just an alias to AST_generic.any, but it is more
  * precise to have a type just for the metavariable values; we do not

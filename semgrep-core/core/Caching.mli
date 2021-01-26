@@ -35,8 +35,8 @@ module Cache : sig
   val match_stmt_list :
     get_span_field:('acc -> Stmts_match_span.t) ->
     set_span_field:('acc -> Stmts_match_span.t -> 'acc) ->
-    get_mv_field:('acc -> Metavars_generic.Env.t) ->
-    set_mv_field:('acc -> Metavars_generic.Env.t -> 'acc) ->
+    get_mv_field:('acc -> Metavariable.Env.t) ->
+    set_mv_field:('acc -> Metavariable.Env.t -> 'acc) ->
     cache: 'acc list t ->
     function_id: Cache_key.function_id ->
     list_kind: Cache_key.list_kind ->

@@ -786,7 +786,7 @@ let semgrep_with_rules_file ~with_opt_cache rules_file files =
     logger#info "Parsing %s" rules_file;
     (*e: [[Main_semgrep_core.semgrep_with_rules()]] if [[verbose]] *)
     let rules = Parse_mini_rule.parse rules_file in
-    semgrep_with_rules rules files;
+    semgrep_with_rules ~with_opt_cache rules files;
     if !profile then save_rules_file_in_tmp ()
 
   with exn ->
@@ -801,7 +801,7 @@ let semgrep_with_rules_file ~with_opt_cache rules_file files =
 (* Semgrep -config *)
 (*****************************************************************************)
 
-let semgrep_with_real_rules rules files =
+let semgrep_with_real_rules ~with_opt_cache rules files =
   let files = get_final_files files in
   logger#info "processing %d files" (List.length files);
   let matches, errs =
@@ -820,7 +820,7 @@ let semgrep_with_real_rules rules files =
              print_match !mvars env Metavariable.ii_of_mval xs
            end
          in
-         Semgrep.check hook rules (file, lang, ast)
+         Semgrep.check with_opt_cache hook rules (file, lang, ast)
       )
   in
   logger#info "found %d matches and %d errors"
@@ -849,11 +849,11 @@ let semgrep_with_real_rules rules files =
     pr s
   end
 
-let semgrep_with_real_rules_file rules_file files =
+let semgrep_with_real_rules_file ~with_opt_cache rules_file files =
   try
     logger#info "Parsing %s" rules_file;
     let rules = Parse_rule.parse rules_file in
-    semgrep_with_real_rules rules files
+    semgrep_with_real_rules ~with_opt_cache rules files
   with exn ->
     logger#debug "exn before exit %s" (Common.exn_to_s exn);
     let json = json_of_exn exn in
@@ -1420,7 +1420,8 @@ let main () =
      | x::xs ->
          (match () with
           | _ when !config_file <> "" ->
-              semgrep_with_real_rules_file !config_file (x::xs)
+              semgrep_with_real_rules_file
+                ~with_opt_cache:!with_opt_cache !config_file (x::xs)
           (*s: [[Main_semgrep_core.main()]] main entry match cases *)
           | _ when !rules_file <> "" ->
               semgrep_with_rules_file

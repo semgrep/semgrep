@@ -53,10 +53,10 @@ val empty_environment : tout Caching.Cache.t option -> tin
 (*e: signature [[Matching_generic.empty_environment]] *)
 
 val add_mv_capture :
-  Metavars_generic.mvar -> Metavars_generic.mvalue -> tin -> tin
+  Metavariable.mvar -> Metavariable.mvalue -> tin -> tin
 
 val get_mv_capture :
-  Metavars_generic.mvar -> tin -> Metavars_generic.mvalue option
+  Metavariable.mvar -> tin -> Metavariable.mvalue option
 
 (* Update the matching list of statements by providing a new matching
    statement. *)
