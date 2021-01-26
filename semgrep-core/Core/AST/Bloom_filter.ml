@@ -1,3 +1,4 @@
+module B = Bloomf
 
 (*****************************************************************************)
 (* Prelude *)
@@ -15,12 +16,12 @@
 (*****************************************************************************)
 
 (* TODO *)
+type elt = string
+
 type t = {
   mutable added: bool;
+  filter: elt B.t;
 }
-[@@deriving show]
-
-type elt = string
 
 type bbool = No | Maybe
 
@@ -28,16 +29,22 @@ type bbool = No | Maybe
 (* API entry points *)
 (*****************************************************************************)
 
+let pp _formatter _bf = ()
+
 let create () =
-  { added = false }
+  { added = false;
+    filter = B.create ~error_rate:0.01 10 }
 
 let is_empty bf = not bf.added
 
-let add _elt bf =
-  bf.added <- true
+let add elt bf =
+  bf.added <- true;
+  B.add bf.filter elt
 
-let mem _elt _bf =
-  Maybe
+let mem elt bf =
+  if B.mem bf.filter elt then Maybe
+  else No
 
+(* TODO I think this should be is_subset pattern_set bf *)
 let is_subset _bf1 _bf2 =
   Maybe

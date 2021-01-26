@@ -22,6 +22,7 @@ depends: [
   "bisect_ppx" {dev & >= "2.5.0"}
   "easy_logging_yojson"
   "ocamlgraph"
+  "bloomf"
   "yojson"
   "yaml"
   "menhir"
