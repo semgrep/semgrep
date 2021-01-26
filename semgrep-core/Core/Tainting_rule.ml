@@ -33,7 +33,7 @@ module R = Mini_rule
 
 (*s: type [[Tainting_rule.pattern]] *)
 (* right now only Expr is supported *)
-type pattern = AST.any
+type pattern = AST_generic.any
 (*e: type [[Tainting_rule.pattern]] *)
 
 (* less: could extend Rule.t *)
