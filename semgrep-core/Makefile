@@ -65,7 +65,7 @@ visual:
 # Run matching performance tests
 .PHONY: perf
 perf:
-	cd ./perf && ./run-perf-suite
+	cd ./tests/OTHER/perf && ./run-perf-suite
 
 # Run matching performance tests and post them to the semgrep dashboard
 # at https://dashboard.semgrep.dev/
@@ -74,4 +74,4 @@ perf:
 #
 .PHONY: report-perf
 report-perf:
-	cd ./perf && ./run-perf-suite --upload
+	cd ./tests/OTHER/perf && ./run-perf-suite --upload
