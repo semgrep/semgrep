@@ -77,9 +77,14 @@ let logger = Logging.get_logger [__MODULE__]
 (* Extra Helpers *)
 (*****************************************************************************)
 
+type lazy_stmts = {
+  head: AST.stmt;
+  full_list: AST.stmt list option Lazy.t
+}
+
 type matchable_stmt_list =
   | List of AST.stmt list
-  | Lazy of { head: AST.stmt; full_list: AST.stmt list option Lazy.t }
+  | Lazy of lazy_stmts
 
 (*s: function [[Generic_vs_generic.m_string_xhp_text]] *)
 (* equivalence: on different indentation
