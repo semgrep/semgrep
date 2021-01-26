@@ -46,10 +46,10 @@
 )
 
 
-; use cli/flags.sh to generate the OS specific build flags
+; use CLI/flags.sh to generate the OS specific build flags
 (rule
  (targets flags.sexp)
- (action (run %{workspace_root}/cli/flags.sh)))
+ (action (run %{workspace_root}/CLI/flags.sh)))
 
 
 (install
