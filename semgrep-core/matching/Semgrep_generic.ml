@@ -48,7 +48,7 @@ module MG = Matching_generic
 (*****************************************************************************)
 
 (*s: type [[Semgrep_generic.matcher]] *)
-type ('a, 'b) matcher = 'a -> 'b -> MG.tout
+type ('a, 'b) matcher = 'a -> 'b -> Matching_generic.tout
 (*e: type [[Semgrep_generic.matcher]] *)
 
 (*****************************************************************************)
