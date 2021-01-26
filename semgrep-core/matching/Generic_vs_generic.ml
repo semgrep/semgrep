@@ -27,7 +27,7 @@ open Common
 module A = AST_generic
 module B = AST_generic
 
-module MV = Metavars_generic
+module MV = Metavariable
 module AST = AST_generic
 module Lib = Lib_AST
 module Flag = Flag_semgrep
@@ -1039,17 +1039,25 @@ and m_compatible_type typed_mvar t e =
   | A.TyBuiltin (("int", _)),  B.L (B.Int _) -> envf typed_mvar (MV.E e)
   | A.TyBuiltin (("float", _)),  B.L (B.Float _) -> envf typed_mvar (MV.E e)
   | A.TyId (("String", _), _), B.L (B.String _) -> envf typed_mvar (MV.E e)
+  (* for C specific literals *)
+  | A.TyPointer (_, TyBuiltin(("char", _))), B.L (B.String _) -> envf typed_mvar (MV.E e)
+  | A.TyPointer (_, _), B.L (B.Null _) -> envf typed_mvar (MV.E e)
   (* for go literals *)
   | A.TyId (("int", _), _), B.L (B.Int _) -> envf typed_mvar (MV.E e)
   | A.TyId (("float", _), _), B.L (B.Float _) -> envf typed_mvar (MV.E e)
-  | A.TyId (("str", _), _), B.L (B.String _) -> envf typed_mvar (MV.E e)
+  | A.TyId (("string", _), _), B.L (B.String _) -> envf typed_mvar (MV.E e)
 
+  (* for C strings to match metavariable pointer types *)
+  | A.TyPointer (t1, A.TyId ((_,tok), _id_info)), B.L (B.String _) ->
+      m_type_ t (A.TyPointer (t1, TyBuiltin(("char", tok)))) >>=
+      (fun () -> envf typed_mvar (MV.E e))
   (* for matching ids *)
   | ta, ( B.Id (idb, {B.id_type=tb; _})
         | B.IdQualified ((idb, _), {B.id_type=tb;_})
         | B.DotAccess (IdSpecial (This, _), _, EId (idb, {B.id_type=tb; _}))
         ) ->
-      m_type_option_with_hook idb (Some ta) !tb
+      m_type_option_with_hook idb (Some ta) !tb >>=
+      (fun () -> envf typed_mvar (MV.E e))
   | _ -> fail ()
 
 (*s: function [[Generic_vs_generic.m_list__m_body]] *)
@@ -2065,8 +2073,10 @@ and m_type_parameter_constraint a b =
   match a, b with
   | A.Extends(a1), B.Extends(b1) ->
       m_type_ a1 b1
-  | A.HasConstructor _, _ -> failwith "REMOVE ME"
-  | A.Extends _, _ -> failwith "REMOVE ME"
+  | A.HasConstructor(a1), B.HasConstructor(b1) ->
+      m_tok a1 b1
+  | A.Extends _, _ | A.HasConstructor _, _
+    -> fail ()
 (*e: function [[Generic_vs_generic.m_type_parameter_constraint]] *)
 
 (*s: function [[Generic_vs_generic.m_type_parameter_constraints]] *)

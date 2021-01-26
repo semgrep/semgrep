@@ -19,7 +19,7 @@ open Common
 
 module A = AST_generic
 module B = AST_generic
-module MV = Metavars_generic
+module MV = Metavariable
 module Lib = Lib_AST
 module AST = AST_generic
 module Flag = Flag_semgrep
@@ -79,7 +79,7 @@ let logger = Logging.get_logger [__MODULE__]
 (* tin is for 'type in' and tout for 'type out' *)
 (* incoming environment *)
 type tin = {
-  mv : Metavars_generic.Env.t;
+  mv : Metavariable.Env.t;
   stmts_match_span : Stmts_match_span.t;
   cache : tout Caching.Cache.t option;
 }

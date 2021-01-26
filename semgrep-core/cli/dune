@@ -23,7 +23,6 @@
     pfff-lang_php
     pfff-lang_lisp
     pfff-lang_skip
-    pfff-lang_FUZZY
 
     ; tree-sitter deps
     tree-sitter-lang.ruby
@@ -31,12 +30,14 @@
 
     ; internal deps
     semgrep_core
+    semgrep_metachecking
     semgrep_parsing
     semgrep_matching
     semgrep_tainting
     semgrep_analyzing
     semgrep_reporting
     semgrep_synthesizing
+    semgrep_engine
  )
  (preprocess (pps ppx_profiling))
  ; for ocamldebug

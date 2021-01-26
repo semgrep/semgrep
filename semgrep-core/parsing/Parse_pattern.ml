@@ -1,16 +1,20 @@
+(*s: semgrep/parsing/Parse_pattern.ml *)
+(*s: pad/r2c copyright *)
 (* Yoann Padioleau
  *
- * Copyright (C) 2020 r2c
+ * Copyright (C) 2019-2021 r2c
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License (GPL)
- * version 2 as published by the Free Software Foundation.
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * version 2.1 as published by the Free Software Foundation, with the
+ * special exception on linking described in file license.txt.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * file license.txt for more details.
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
+ * license.txt for more details.
 *)
+(*e: pad/r2c copyright *)
 
 (*****************************************************************************)
 (* Prelude *)
@@ -42,9 +46,14 @@ let parse_pattern lang str =
     | Lang.Lua ->
         let res = Parse_lua_tree_sitter.parse_pattern str in
         extract_pattern_from_tree_sitter_result res
+    | Lang.Rust ->
+        let res = Parse_rust_tree_sitter.parse_pattern str in
+        extract_pattern_from_tree_sitter_result res
     (* use pfff *)
     | _ -> Parse_generic.parse_pattern lang str
   in
   Caching.prepare_pattern any;
-  Check_semgrep.check_pattern lang any;
+  Check_pattern.check lang any;
   any
+
+(*e: semgrep/parsing/Parse_pattern.ml *)

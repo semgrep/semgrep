@@ -189,8 +189,8 @@ let unittest =
         (* pattern candidates (as strings) *)
         let pats = Synthesizer.synthesize_patterns range file in
         (* the code *)
-        let {Parse_code. ast = code; errors = errs; _ } =
-          Parse_code.parse_and_resolve_name_use_pfff_or_treesitter lang file
+        let {Parse_target. ast = code; errors = errs; _ } =
+          Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang file
         in
         if errs <> [] then failwith (spf "problem parsing %s" filename);
         Naming_AST.resolve lang code;

@@ -16,6 +16,7 @@ open Common
 module PI = Parse_info
 module G = AST_generic
 module J = JSON
+module FT = File_type
 
 let logger = Logging.get_logger [__MODULE__]
 
@@ -64,6 +65,9 @@ let dump_ast_pfff file =
 (* less: could infer lang from filename *)
 let dump_tree_sitter_cst_lang lang file =
   match lang with
+  | Lang.R ->
+      Tree_sitter_r.Parse.file file
+      |> dump_and_print_errors Tree_sitter_r.CST.dump_tree
   | Lang.Ruby ->
       Tree_sitter_ruby.Parse.file file
       |> dump_and_print_errors Tree_sitter_ruby.CST.dump_tree
@@ -181,9 +185,9 @@ let parsing_common ?(verbose=true) lang get_final_files xs =
     let stat =
       (try
          let res =
-           Parse_code.parse_and_resolve_name_use_pfff_or_treesitter lang file
+           Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang file
          in
-         res.Parse_code.stat
+         res.Parse_target.stat
        with exn ->
          if verbose then pr2 (spf "%s: exn = %s" file (Common.exn_to_s exn));
          PI.bad_stat file
@@ -223,8 +227,8 @@ let diff_pfff_tree_sitter xs =
         let (ast1, _stat1) = Parse_generic.parse_with_lang lang file in
         let ast2 =
           Common.save_excursion Flag_semgrep.tree_sitter_only true (fun () ->
-            let {Parse_code. ast; errors; _} =
-              Parse_code.just_parse_with_lang lang file in
+            let {Parse_target. ast; errors; _} =
+              Parse_target.just_parse_with_lang lang file in
             if errors <> [] then failwith (spf "problem parsing %s" file);
             ast
           ) in
@@ -238,3 +242,19 @@ let diff_pfff_tree_sitter xs =
 
     | _ -> failwith (spf "can't detect single language for %s" file)
   )
+
+(*****************************************************************************)
+(* Rule parsing *)
+(*****************************************************************************)
+
+let test_parse_rules xs =
+  let fullxs =
+    Lang.files_of_dirs_or_files Lang.Yaml xs
+    |> Skip_code.filter_files_if_skip_list ~root:xs
+  in
+  fullxs |> List.iter (fun file ->
+    logger#info "processing %s" file;
+    let _r = Parse_rule.parse file in
+    ()
+  );
+  logger#info "done test_parse_rules"

@@ -1,71 +1,205 @@
 (*s: semgrep/core/Rule.ml *)
+(*s: pad/r2c copyright *)
 (* Yoann Padioleau
  *
- * Copyright (C) 2011 Facebook
- * Copyright (C) 2019 r2c
+ * Copyright (C) 2019-2021 r2c
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License (GPL)
- * version 2 as published by the Free Software Foundation.
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * version 2.1 as published by the Free Software Foundation, with the
+ * special exception on linking described in file license.txt.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * file license.txt for more details.
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
+ * license.txt for more details.
 *)
+(*e: pad/r2c copyright *)
+module MV = Metavariable
 
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* The goal of this module is to make it easy to add lint rules by using
- * sgrep patterns. You just have to store in a special file the patterns
- * and the corresponding warning you want the linter to raise.
+(* Data structure representing a semgrep rule.
  *
- * update: if you need advanced patterns with boolean logic (which used
- * to be partially provided by the hacky OK error keyword), use
- * instead the sgrep python wrapper! It also uses a yaml file but it
- * has more features, e.g. some pattern-either fields, pattern-inside,
- * where-eval, etc.
+ * See also Mini_rule.ml where formula and many other features disappears.
+ *
+ * TODO:
+ *  - parse more spacegrep and equivalences
 *)
 
 (*****************************************************************************)
-(* Types *)
+(* Extended languages and patterns *)
 (*****************************************************************************)
 
-(*s: type [[Rule.pattern]] *)
-(* right now only Expr, Stmt, and Stmts are supported *)
-type pattern = Pattern.t
-(*e: type [[Rule.pattern]] *)
+(* less: merge with xpattern_kind? *)
+type xlang =
+  (* for "real" semgrep *)
+  | L of Lang.t * Lang.t list
+  (* for pattern-regex *)
+  | LNone
+  (* for spacegrep *)
+  | LGeneric
+[@@deriving show]
 
-(*s: type [[Rule.rule]] *)
-type rule = {
-  id: string;
-  pattern: pattern;
-  message: string;
-  severity: severity;
-  languages: Lang.t list; (* at least one element *)
-
-  (* Useful for debugging, to report bad rules. We could rule.id to
-   * report those bad rules, but semgrep-python uses a weird encoding
-   * when flattening the pattern-xxx (-and, -either, -not, etc.)
-   * patterns in the original rule yaml file, which makes it hard
-   * to know what what was the corresponding pattern.
+type xpattern = {
+  pat: xpattern_kind;
+  (* two patterns may have different indentation, we don't care. We can
+   * rely on the equality on pat, which will do the right thing (e.g., abstract
+   * away line position).
+   * TODO: right now we have some false positives because
+   * for example in Python assert(...) and assert ... are considered equal
+   * AST-wise, but it might be a bug!.
   *)
-  pattern_string: string;
+  pstr: string [@equal (fun _ _ -> true)];
+  (* unique id, incremented via a gensym()-like function in mk_pat() *)
+  pid: pattern_id [@equal (fun _ _ -> true)];
 }
-(*e: type [[Rule.rule]] *)
+and xpattern_kind =
+  | Sem of Pattern.t
+  | Spacegrep of spacegrep
+  | Regexp of regexp
+  (* used in the engine for rule->mini_rule and match_result gymnastic *)
+and pattern_id = int
 
-(*s: type [[Rule.rules]] *)
-and rules = rule list
-(*e: type [[Rule.rules]] *)
+(* TODO: parse it via spacegrep/lib! *)
+and spacegrep = string
 
-(* TODO? just reuse Error_code.severity *)
-(*s: type [[Rule.severity]] *)
-and severity = Error | Warning | Info
-(*e: type [[Rule.severity]] *)
+and regexp = string
 
-(*s: type [[Rule.t]] *)
+[@@deriving show, eq]
+
+let count = ref 0
+let mk_xpat pat pstr =
+  incr count;
+  { pat; pstr; pid = !count }
+
+(*****************************************************************************)
+(* Formula (patterns boolean composition) *)
+(*****************************************************************************)
+
+(* Classic boolean-logic/set operators with text range set semantic.
+ * The main complication is the handling of metavariables and especially
+ * negation in the presence of metavariables.
+ * TODO: add tok (Parse_info.t) for good metachecking error locations.
+*)
+type formula =
+  | P of xpattern (* a leaf pattern *)
+  | MetavarCond of AST_generic.expr (* see Eval_generic.ml *)
+
+  | And of formula list
+  | Or of formula list
+  (* there are restrictions on where a Not can appear in a formula. It
+   * should always be inside an And to be intersected with "positive" formula
+  *)
+  | Not of formula
+
+[@@deriving show, eq]
+
+(*****************************************************************************)
+(* Old Formula style *)
+(*****************************************************************************)
+
+(* Unorthodox original pattern compositions.
+ * See also the JSON schema in rule_schema.yaml
+*)
+type formula_old =
+  (* pattern: *)
+  | Pat of xpattern
+  (* pattern-not: *)
+  | PatNot of xpattern
+
+  | PatExtra of extra
+
+  (* pattern-inside: *)
+  | PatInside of xpattern
+  (* pattern-not-inside: *)
+  | PatNotInside of xpattern
+
+  (* pattern-either: *)
+  | PatEither of formula_old list
+  (* patterns: And? or Or? depends on formula inside, hmmm *)
+  | Patterns of formula_old list
+
+(* extra conditions, usually on metavariable content *)
+and extra =
+  | MetavarRegexp of MV.mvar * regexp
+  | MetavarComparison of metavariable_comparison
+  | PatWherePython of string (* arbitrary code, dangerous! *)
+
+(* See also matching/eval_generic.ml *)
+and metavariable_comparison = {
+  metavariable: MV.mvar;
+  comparison: string;
+  strip: bool option;
+  base: int option;
+}
+
+[@@deriving show, eq]
+
+
+(* pattern formula *)
+type pformula =
+  | New of formula
+  | Old of formula_old
+[@@deriving show, eq]
+
+(*****************************************************************************)
+(* The rule *)
+(*****************************************************************************)
+
+type rule = {
+  (* mandatory fields *)
+
+  id: string;
+  formula: pformula;
+  message: string;
+  severity: Mini_rule.severity;
+  languages: xlang;
+
+  file: string; (* for metachecking error location *)
+
+  (* optional fields *)
+
+  equivalences: string list option; (* TODO: parse them *)
+
+  fix: string option;
+  fix_regexp: (regexp * int option * string) option;
+
+  paths: paths option;
+
+  (* ex: [("owasp", "A1: Injection")] but can be anything *)
+  metadata: JSON.t option;
+}
+
+and paths = {
+  include_: regexp list;
+  exclude: regexp list;
+}
+[@@deriving show]
+
 (* alias *)
 type t = rule
-(*e: type [[Rule.t]] *)
+[@@deriving show]
+
+type rules = rule list
+[@@deriving show]
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
+let rec visit_new_formula f formula =
+  match formula with
+  | P p -> f p
+  | MetavarCond _ -> ()
+  | Not x -> visit_new_formula f x
+  | Or xs | And xs -> xs |> List.iter (visit_new_formula f)
+
+let rec visit_old_formula f formula =
+  match formula with
+  | Pat x | PatNot x | PatInside x | PatNotInside x -> f x
+  | PatExtra _ -> ()
+  | PatEither xs | Patterns xs -> xs |> List.iter (visit_old_formula f)
+
 (*e: semgrep/core/Rule.ml *)

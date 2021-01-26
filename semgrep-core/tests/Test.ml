@@ -2,7 +2,7 @@
 open Common
 open OUnit
 module E = Error_code
-module R = Rule
+module R = Mini_rule
 
 (*****************************************************************************)
 (* Purpose *)
@@ -49,8 +49,8 @@ let any_gen_of_string str =
 let parsing_tests_for_lang files lang =
   files |> List.map (fun file ->
     (Filename.basename file) >:: (fun () ->
-      let {Parse_code. errors = errs; _ } = 
-         Parse_code.parse_and_resolve_name_use_pfff_or_treesitter lang file in
+      let {Parse_target. errors = errs; _ } = 
+         Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang file in
       if errs <> []
       then failwith (String.concat ";" (List.map Error_code.string_of_error errs));
     )
@@ -80,8 +80,8 @@ let regression_tests_for_lang ~with_caching files lang =
     in
     let ast = 
         try 
-          let { Parse_code. ast; errors; _ } = 
-            Parse_code.parse_and_resolve_name_use_pfff_or_treesitter lang file 
+          let { Parse_target. ast; errors; _ } = 
+            Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang file 
           in
           if errors <> []
           then pr2 (spf "WARNING: fail to fully parse %s" file);
@@ -266,6 +266,12 @@ let lang_regression_tests ~with_caching =
     let lang = Lang.Lua in
     regression_tests_for_lang files lang
   );
+  "semgrep Rust" >::: (
+    let dir = Filename.concat tests_path "rust" in
+    let files = Common2.glob (spf "%s/*.rs" dir) in
+    let lang = Lang.Rust in
+    regression_tests_for_lang files lang
+  );
  ]
 (*e: constant [[Test.lang_regression_tests]] *)
 
@@ -292,7 +298,7 @@ let lint_regression_tests ~with_caching =
 
   (* actual *)
   E.g_errors := [];
-  let rules = Parse_rules.parse rule_file in
+  let rules = Parse_mini_rule.parse rule_file in
   let equivs = [] in
 
   test_files |> List.iter (fun file ->

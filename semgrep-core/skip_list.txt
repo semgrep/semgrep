@@ -1,5 +1,10 @@
 dir: _build
 
+# when want to focus on semgrep code itself
+dir: pfff
+dir: ocaml-tree-sitter-lang
+dir: parsing/tree_sitter
+
 dir_element: old
 dir_element: orig_spec
 dir_element: TODO_more

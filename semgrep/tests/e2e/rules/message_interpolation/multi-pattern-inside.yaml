@@ -1,0 +1,13 @@
+rules:
+- id: test_rule_id
+  patterns:
+  - pattern-inside: |
+      class $CLASS(...):
+        ...
+  - pattern-inside: |
+      def $FUNC(...):
+        ...
+  - pattern: print($MSG)
+  severity: INFO
+  languages: [python]
+  message: "'print($MSG)' detected in method '$FUNC' in class '$CLASS'"

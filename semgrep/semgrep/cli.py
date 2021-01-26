@@ -58,7 +58,8 @@ def cli() -> None:
     )
 
     config_ex.add_argument(
-        "-f",
+        "-f",  # for backwards compatibility
+        "-c",
         "--config",
         action="append",
         default=[],

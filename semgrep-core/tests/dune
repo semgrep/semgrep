@@ -28,5 +28,6 @@
     semgrep_matching
     semgrep_synthesizing
     semgrep_reporting
+    semgrep_engine
   )
 )

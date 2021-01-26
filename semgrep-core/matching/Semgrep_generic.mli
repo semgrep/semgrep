@@ -2,18 +2,18 @@
 
 (*s: signature [[Semgrep_generic.check]] *)
 val check:
-  hook:(Metavars_generic.metavars_binding -> Parse_info.t list Lazy.t -> unit)
+  hook:(Metavariable.bindings -> Parse_info.t list Lazy.t -> unit)
   ->
   with_caching:bool ->
-  Rule.rules ->
+  Mini_rule.rules ->
   Equivalence.equivalences ->
   Common.filename ->
   Lang.t ->
-  AST_generic.program ->
-  Match_result.t list
+  Target.t ->
+  Pattern_match.t list
 (*e: signature [[Semgrep_generic.check]] *)
 
-val last_matched_rule: Rule.t option ref
+val last_matched_rule: Mini_rule.t option ref
 
 (*s: type [[Semgrep_generic.matcher]] *)
 type ('a, 'b) matcher = 'a -> 'b -> Matching_generic.tout
@@ -23,7 +23,7 @@ type ('a, 'b) matcher = 'a -> 'b -> Matching_generic.tout
 
 (*s: signature [[Semgrep_generic.match_e_e]] *)
 val match_e_e:
-  Rule.t ->
+  Mini_rule.t ->
   Matching_generic.tout Caching.Cache.t option ->
   (AST_generic.expr, AST_generic.expr) matcher
 (*e: signature [[Semgrep_generic.match_e_e]] *)

@@ -215,10 +215,21 @@ def main(
         )
 
         if len(configs_obj.valid) == 0:
-            raise SemgrepError(
-                f"no valid configuration file found ({len(errors)} configs were invalid)",
-                code=MISSING_CONFIG_EXIT_CODE,
-            )
+            if len(errors) > 0:
+                raise SemgrepError(
+                    f"no valid configuration file found ({len(errors)} configs were invalid)",
+                    code=MISSING_CONFIG_EXIT_CODE,
+                )
+            else:
+                raise SemgrepError(
+                    """You need to specify a config with --config=<semgrep.dev config name|localfile|localdirectory|url>.
+If you're looking for a config to start with, there are thousands at: https://semgrep.dev
+The two most popular are:
+    --config=p/ci # find logic bugs, and high-confidence security vulnerabilities; recommended for CI
+    --config=p/security-audit # find security audit points; noisy, not recommended for CI
+""",
+                    code=MISSING_CONFIG_EXIT_CODE,
+                )
 
         notify_user_of_work(filtered_rules, include, exclude)
 

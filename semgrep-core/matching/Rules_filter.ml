@@ -13,7 +13,7 @@
  * license.txt for more details.
 *)
 module Flag = Flag_semgrep
-module R = Rule
+module R = Mini_rule
 module V = Visitor_AST
 open AST_generic
 
@@ -72,7 +72,7 @@ let run_regexp re str =
 [@@profiling]
 
 let reserved_id lang str =
-  Metavars_generic.is_metavar_name str ||
+  Metavariable.is_metavar_name str ||
   (* in JS field names can be regexps *)
   (lang = Lang.Javascript && Matching_generic.is_regexp_string str) ||
   (* ugly hack that we then need to handle also here *)

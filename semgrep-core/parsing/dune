@@ -4,19 +4,6 @@
  (libraries
    yaml
 
-   tree-sitter-lang.ruby
-   tree-sitter-lang.java
-   tree-sitter-lang.kotlin
-   tree-sitter-lang.go
-   tree-sitter-lang.c-sharp
-   tree-sitter-lang.javascript
-   tree-sitter-lang.typescript
-   tree-sitter-lang.tsx
-   tree-sitter-lang.lua
-   tree-sitter-lang.c
-   tree-sitter-lang.cpp
-   tree-sitter-lang.rust
-
    commons commons_core
    pfff-config
    pfff-h_program-lang
@@ -27,6 +14,8 @@
    pfff-lang_js pfff-lang_js-analyze
 
    semgrep_core
+   semgrep_metachecking
+   semgrep_parsing_tree_sitter
  )
  (preprocess (pps ppx_profiling ppx_sexp_conv ppx_deriving.show))
 )

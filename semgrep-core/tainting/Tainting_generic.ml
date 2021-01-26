@@ -18,6 +18,7 @@
 module AST = AST_generic
 module V = Visitor_AST
 module R = Tainting_rule
+module R2 = Mini_rule
 module Flag = Flag_semgrep
 
 (*****************************************************************************)
@@ -56,9 +57,9 @@ let match_pat_instr pat =
       (fun instr ->
          let eorig = instr.IL.iorig in
          (* the rule is just used by match_e_e for profiling stats *)
-         let rule = { Rule.id = "<tainting>";
+         let rule = { R2.id = "<tainting>";
                       pattern = AST.E pat; pattern_string = "<tainting> pat";
-                      message = ""; severity = Rule.Error;
+                      message = ""; severity = R2.Error;
                       languages = []; } in
 
          let cache = None in (* would it make sense to use caching? *)
@@ -98,7 +99,7 @@ let check rules file ast =
         let found_tainted_sink = (fun instr _env ->
           let location = Lib_AST.range_of_any (AST.E (instr.IL.iorig)) in
           Common.push {
-            Match_result.
+            Pattern_match.
             rule = Tainting_rule.rule_of_tainting_rule rule;
             file;
             location;

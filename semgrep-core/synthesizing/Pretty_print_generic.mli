@@ -14,4 +14,4 @@ val pattern_to_string:
  * the binding should always be empty.
 *)
 val expr_to_string:
-  Lang.t -> Metavars_generic.metavars_binding -> AST_generic.expr -> string
+  Lang.t -> Metavariable.bindings -> AST_generic.expr -> string

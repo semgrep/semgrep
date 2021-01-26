@@ -13,8 +13,10 @@ module Flag = Flag_semgrep
 module PI = Parse_info
 module S = Scope_code
 module E = Error_code
+module MR = Mini_rule
 module R = Rule
 module J = JSON
+module FT = File_type
 
 (*****************************************************************************)
 (* Purpose *)
@@ -106,13 +108,16 @@ let pattern_string = ref ""
 let pattern_file = ref ""
 (*e: constant [[Main_semgrep_core.pattern_file]] *)
 (*s: constant [[Main_semgrep_core.rules_file]] *)
-(* -rules_file *)
+(* -rules_file (mini rules) *)
 let rules_file = ref ""
 (*e: constant [[Main_semgrep_core.rules_file]] *)
 (*s: constant [[Main_semgrep_core.tainting_rules_file]] *)
 (* -tainting_rules_file *)
 let tainting_rules_file = ref ""
 (*e: constant [[Main_semgrep_core.tainting_rules_file]] *)
+
+(* -config *)
+let config_file = ref ""
 
 (*s: constant [[Main_semgrep_core.equivalences_file]] *)
 let equivalences_file = ref ""
@@ -142,7 +147,7 @@ let match_format = ref Matching_report.Normal
 (*e: constant [[Main_semgrep_core.match_format]] *)
 
 (*s: constant [[Main_semgrep_core.mvars]] *)
-let mvars = ref ([]: Metavars_generic.mvar list)
+let mvars = ref ([]: Metavariable.mvar list)
 (*e: constant [[Main_semgrep_core.mvars]] *)
 
 (*s: constant [[Main_semgrep_core.layer_file]] *)
@@ -450,7 +455,7 @@ let run_with_memory_limit limit_mb f =
 let filter_files_with_too_many_matches_and_transform_as_timeout matches =
   let per_files =
     matches
-    |> List.map (fun m -> m.Match_result.file, m)
+    |> List.map (fun m -> m.Pattern_match.file, m)
     |> Common.group_assoc_bykey_eff
   in
   let offending_files =
@@ -464,7 +469,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout matches =
   in
   let new_matches =
     matches |> Common.exclude
-      (fun m -> Hashtbl.mem offending_files m.Match_result.file)
+      (fun m -> Hashtbl.mem offending_files m.Pattern_match.file)
   in
   let new_errors =
     offending_files |> Common.hashset_to_list |> List.map (fun file ->
@@ -474,8 +479,8 @@ let filter_files_with_too_many_matches_and_transform_as_timeout matches =
         let matches = List.assoc file per_files in
         matches
         |> List.map (fun m ->
-          let rule = m.Match_result.rule in
-          (rule.Rule.id, rule.Rule.pattern_string), m)
+          let rule = m.Pattern_match.rule in
+          (rule.Mini_rule.id, rule.Mini_rule.pattern_string), m)
         |> Common.group_assoc_bykey_eff
         |> List.map (fun (k, xs) -> k, List.length xs)
         |> Common.sort_by_val_highfirst
@@ -518,7 +523,7 @@ let parse_generic lang file =
       (fun () ->
          try
            (* finally calling the actual function *)
-           let ast = Parse_code.parse_and_resolve_name_use_pfff_or_treesitter lang file
+           let ast = Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang file
            in
            (*s: [[Main_semgrep_core.parse_generic()]] resolve names in the AST *)
            (*e: [[Main_semgrep_core.parse_generic()]] resolve names in the AST *)
@@ -575,7 +580,7 @@ let parse_pattern lang_pattern str =
       (*e: [[Main_semgrep_core.parse_pattern()]] when not a supported language *)
     ))
   with exn ->
-    raise (Parse_rules.InvalidPatternException ("no-id", str, !lang, (Common.exn_to_s exn)))
+    raise (Parse_mini_rule.InvalidPatternException ("no-id", str, !lang, (Common.exn_to_s exn)))
 [@@profiling]
 (*e: function [[Main_semgrep_core.parse_pattern]] *)
 
@@ -606,7 +611,7 @@ let iter_generic_ast_of_files_and_get_matches_and_exn_to_errors f files =
       try
         run_with_memory_limit !max_memory (fun () ->
           timeout_function file (fun () ->
-            let {Parse_code. ast; errors; _} = parse_generic lang file in
+            let {Parse_target. ast; errors; _} = parse_generic lang file in
             (* calling the hook *)
             (f file lang ast, errors)
 
@@ -632,9 +637,9 @@ let iter_generic_ast_of_files_and_get_matches_and_exn_to_errors f files =
             match !Semgrep_generic.last_matched_rule with
             | None -> None
             | Some rule ->
-                logger#info "critical exn while matching ruleid %s" rule.R.id;
-                logger#info "full pattern is: %s" rule.R.pattern_string;
-                Some (spf " with ruleid %s" rule.R.id)
+                logger#info "critical exn while matching ruleid %s" rule.MR.id;
+                logger#info "full pattern is: %s" rule.MR.pattern_string;
+                Some (spf " with ruleid %s" rule.MR.id)
           in
           let loc = Parse_info.first_loc_of_file file in
           [], [Error_code.mk_error_loc loc
@@ -701,23 +706,23 @@ let json_of_profile_info () =
 let json_of_exn e =
   (* if (ouptut_as_json) then *)
   match e with
-  | Parse_rules.InvalidRuleException (pattern_id, msg)     ->
+  | Parse_mini_rule.InvalidRuleException (pattern_id, msg)     ->
       J.Object [ "pattern_id", J.String pattern_id;
                  "error", J.String "invalid rule";
                  "message", J.String msg; ]
-  | Parse_rules.InvalidLanguageException (pattern_id, language) ->
+  | Parse_mini_rule.InvalidLanguageException (pattern_id, language) ->
       J.Object [ "pattern_id", J.String pattern_id;
                  "error", J.String "invalid language";
                  "language", J.String language; ]
-  | Parse_rules.InvalidPatternException (pattern_id, pattern, lang, message) ->
+  | Parse_mini_rule.InvalidPatternException (pattern_id, pattern, lang, message) ->
       J.Object [ "pattern_id", J.String pattern_id;
                  "error", J.String "invalid pattern";
                  "pattern", J.String pattern;
                  "language", J.String lang;
                  "message", J.String message; ]
-  | Parse_rules.UnparsableYamlException msg ->
+  | Parse_mini_rule.UnparsableYamlException msg ->
       J.Object [  "error", J.String "unparsable yaml"; "message", J.String msg; ]
-  | Parse_rules.InvalidYamlException msg ->
+  | Parse_mini_rule.InvalidYamlException msg ->
       J.Object [  "error", J.String "invalid yaml"; "message", J.String msg; ]
   | exn ->
       J.Object [  "error", J.String "unknown exception"; "message", J.String (Common.exn_to_s exn); ]
@@ -735,7 +740,7 @@ let semgrep_with_rules ~with_opt_cache rules files =
     files |> iter_generic_ast_of_files_and_get_matches_and_exn_to_errors
       (fun file lang ast ->
          let rules =
-           rules |> List.filter (fun r -> List.mem lang r.R.languages) in
+           rules |> List.filter (fun r -> List.mem lang r.MR.languages) in
          Semgrep_generic.check
            ~hook:(fun _ _ -> ())
            ~with_caching:with_opt_cache
@@ -780,8 +785,8 @@ let semgrep_with_rules_file ~with_opt_cache rules_file files =
     (*s: [[Main_semgrep_core.semgrep_with_rules()]] if [[verbose]] *)
     logger#info "Parsing %s" rules_file;
     (*e: [[Main_semgrep_core.semgrep_with_rules()]] if [[verbose]] *)
-    let rules = Parse_rules.parse rules_file in
-    semgrep_with_rules ~with_opt_cache rules files;
+    let rules = Parse_mini_rule.parse rules_file in
+    semgrep_with_rules rules files;
     if !profile then save_rules_file_in_tmp ()
 
   with exn ->
@@ -793,13 +798,77 @@ let semgrep_with_rules_file ~with_opt_cache rules_file files =
     exit 2
 
 (*****************************************************************************)
+(* Semgrep -config *)
+(*****************************************************************************)
+
+let semgrep_with_real_rules rules files =
+  let files = get_final_files files in
+  logger#info "processing %d files" (List.length files);
+  let matches, errs =
+    files |> iter_generic_ast_of_files_and_get_matches_and_exn_to_errors
+      (fun file lang ast ->
+         let rules =
+           rules |> List.filter (fun r ->
+             match r.R.languages with
+             | R.L (x, xs) -> List.mem lang (x::xs)
+             | R.LNone | R.LGeneric -> true
+           )
+         in
+         let hook = fun env matched_tokens ->
+           if !output_format = Text then begin
+             let xs = Lazy.force matched_tokens in
+             print_match !mvars env Metavariable.ii_of_mval xs
+           end
+         in
+         Semgrep.check hook rules (file, lang, ast)
+      )
+  in
+  logger#info "found %d matches and %d errors"
+    (List.length matches) (List.length errs);
+  let (matches, new_errors) =
+    filter_files_with_too_many_matches_and_transform_as_timeout matches in
+  let errs = new_errors @ errs in
+  (* note: uncomment the following and use semgrep-core -stat_matches
+   * to debug too-many-matches issues.
+   * Common2.write_value matches "/tmp/debug_matches";
+  *)
+  if !output_format = Json then begin
+    let flds = json_fields_of_matches_and_errors files matches errs in
+    let flds =
+      if !profile
+      then begin
+        let json = json_of_profile_info () in
+        (* so we don't get also the profile output of Common.main_boilerplate*)
+        Common.profile := Common.ProfNone;
+        flds @ ["profiling", json]
+      end
+      else flds
+    in
+    let s = J.string_of_json (J.Object flds) in
+    logger#info "size of returned JSON string: %d" (String.length s);
+    pr s
+  end
+
+let semgrep_with_real_rules_file rules_file files =
+  try
+    logger#info "Parsing %s" rules_file;
+    let rules = Parse_rule.parse rules_file in
+    semgrep_with_real_rules rules files
+  with exn ->
+    logger#debug "exn before exit %s" (Common.exn_to_s exn);
+    let json = json_of_exn exn in
+    let s = J.string_of_json json in
+    pr s;
+    exit 2
+
+(*****************************************************************************)
 (* Semgrep -e/-f *)
 (*****************************************************************************)
 
 let rule_of_pattern lang pattern_string pattern =
-  { R.
+  { MR.
     id = "-e/-f"; pattern_string; pattern;
-    message = ""; severity = R.Error; languages = [lang]
+    message = ""; severity = MR.Error; languages = [lang]
   }
 (*s: function [[Main_semgrep_core.sgrep_ast]] *)
 (*s: [[Main_semgrep_core.sgrep_ast()]] [[hook]] argument to [[check]] *)
@@ -853,13 +922,13 @@ let semgrep_with_one_pattern xs =
           (*e: [[Main_semgrep_core.semgrep_with_one_pattern()]] if [[verbose]] *)
           let process file =
             timeout_function file (fun () ->
-              let {Parse_code.ast; errors; _} = parse_generic lang file in
+              let {Parse_target.ast; errors; _} = parse_generic lang file in
               if errors <> []
               then pr2 (spf "WARNING: fail to fully parse %s" file);
               Semgrep_generic.check
                 ~hook:(fun env matched_tokens ->
                   let xs = Lazy.force matched_tokens in
-                  print_match !mvars env Metavars_generic.ii_of_mval xs
+                  print_match !mvars env Metavariable.ii_of_mval xs
                 )
                 ~with_caching:!with_opt_cache
                 [rule] (parse_equivalences ())
@@ -948,6 +1017,20 @@ let validate_pattern () =
   with _exn -> exit 1
 (*e: function [[Main_semgrep_core.validate_pattern]] *)
 
+(* similar to Test_parsing.test_parse_rules *)
+let check_rules xs =
+  let fullxs =
+    xs
+    |> File_type.files_of_dirs_or_files (function
+      | FT.Config (FT.Yaml | FT.Json | FT.Jsonnet) -> true | _ -> false)
+    |> Skip_code.filter_files_if_skip_list ~root:xs
+  in
+  fullxs |> List.iter (fun file ->
+    logger#info "processing %s" file;
+    let rs = Parse_rule.parse file in
+    rs |> List.iter Check_rule.check;
+  )
+
 (*****************************************************************************)
 (* Dumpers *)
 (*****************************************************************************)
@@ -1012,8 +1095,8 @@ let dump_ast file =
   match Lang.langs_of_filename file with
   | lang::_ ->
       E.try_with_print_exn_and_reraise file (fun () ->
-        let {Parse_code. ast; errors; _ } =
-          Parse_code.parse_and_resolve_name_use_pfff_or_treesitter lang file in
+        let {Parse_target. ast; errors; _ } =
+          Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang file in
         let v = Meta_AST.vof_any (AST_generic.Pr ast) in
         let s = dump_v_to_format v in
         pr s;
@@ -1046,6 +1129,10 @@ let dump_tainting_rules file =
   pr2_gen xs
 (*e: function [[Main_semgrep_core.dump_tainting_rules]] *)
 
+let dump_rule file =
+  let rules = Parse_rule.parse file in
+  rules |> List.iter (fun r -> pr (Rule.show r))
+
 (*****************************************************************************)
 (* Experiments *)
 (*****************************************************************************)
@@ -1054,10 +1141,10 @@ let dump_tainting_rules file =
  * can still be useful for deeper debugging.
 *)
 let stat_matches file =
-  let (matches: Match_result.t list) = Common2.get_value file in
+  let (matches: Pattern_match.t list) = Common2.get_value file in
   pr2 (spf "matched: %d" (List.length matches));
   let per_files =
-    matches |> List.map (fun m -> m.Match_result.file, m)
+    matches |> List.map (fun m -> m.Pattern_match.file, m)
     |> Common.group_assoc_bykey_eff
     |> List.map (fun (file, xs) -> file, List.length xs)
     |> Common.sort_by_val_highfirst
@@ -1114,6 +1201,14 @@ let all_actions () = [
   Common.mk_action_n_arg (fun xs ->
     Test_parsing.test_parse_tree_sitter !lang xs);
 
+  "-dump_rule", " <file>",
+  Common.mk_action_1_arg dump_rule;
+  "-test_parse_rules", " <files or dirs>",
+  Common.mk_action_n_arg Test_parsing.test_parse_rules;
+
+  "-check_rules", " <files or dirs>",
+  Common.mk_action_n_arg check_rules;
+
   "-dump_tree_sitter_cst", " <file>",
   Common.mk_action_1_arg Test_parsing.dump_tree_sitter_cst;
   "-dump_ast_pfff", " <file>",
@@ -1139,7 +1234,9 @@ let options () =
     "-f", Arg.Set_string pattern_file,
     " <file> obtain pattern from file (need -lang)";
     "-rules_file", Arg.Set_string rules_file,
-    " <file> obtain list of patterns from YAML file. Implies -json";
+    " <file> obtain flat list of patterns from YAML file. Implies -json";
+    "-config", Arg.Set_string config_file,
+    " <file> obtain formula of patterns from YAML/JSON/Jsonnet file.";
 
     "-lang", Arg.Set_string lang,
     (spf " <str> choose language (valid choices: %s)" supported_langs);
@@ -1196,7 +1293,7 @@ let options () =
     " only use tree-sitter-based parsers";
 
     "-timeout", Arg.Set_float Flag.timeout,
-    " <float> time limit to process one input program (in seconds)";
+    " <float> time limit to process one input program (in seconds); 0 disables timeouts (default is 0)";
     "-max_memory", Arg.Set_int max_memory,
     " <int> maximum memory to use (in MB)";
     "-max_match_per_file", Arg.Set_int max_match_per_file,
@@ -1322,6 +1419,8 @@ let main () =
      (* --------------------------------------------------------- *)
      | x::xs ->
          (match () with
+          | _ when !config_file <> "" ->
+              semgrep_with_real_rules_file !config_file (x::xs)
           (*s: [[Main_semgrep_core.main()]] main entry match cases *)
           | _ when !rules_file <> "" ->
               semgrep_with_rules_file

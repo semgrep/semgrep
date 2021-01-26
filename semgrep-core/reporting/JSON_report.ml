@@ -19,12 +19,12 @@ open Common
 open AST_generic
 
 module PI = Parse_info
-module R = Rule
+module R = Mini_rule
 module E = Error_code
 module J = JSON
-module MV = Metavars_generic
+module MV = Metavariable
 
-open Match_result
+open Pattern_match
 
 (*****************************************************************************)
 (* Unique ID *)
