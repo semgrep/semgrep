@@ -43,13 +43,18 @@
 (* Leftmost and rightmost statements matched by the pattern.
    They're used to determine the matched region when the pattern
    matches a sequence of statements. See details in the big comment above.
+
+   TODO: update the ml grammar in pfff so as to support the
+         '| Span of { ... }' syntax in semgrep.
 *)
+type span = {
+  left_stmts: AST_generic.stmt list;
+  right_stmts: AST_generic.stmt list;
+}
+
 type t =
   | Empty
-  | Span of {
-      left_stmts: AST_generic.stmt list;
-      right_stmts: AST_generic.stmt list;
-    }
+  | Span of span
 
 (* Add a statement to the set of statements matched by the current pattern,
    for the sake of eventually determining the match location. *)
