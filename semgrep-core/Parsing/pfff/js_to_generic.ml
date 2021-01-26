@@ -163,6 +163,14 @@ and xml { xml_tag = xml_tag; xml_attrs = xml_attrs; xml_body = xml_body } =
 
 and xhp_attr v          = expr v
 
+and literal x =
+  match x with
+  | Bool v1 -> let v1 = wrap bool v1 in (G.Bool v1)
+  | Num v1 -> let v1 = wrap string v1 in (G.Float v1)
+  | String v1 -> let v1 = wrap string v1 in (G.String v1)
+  | Regexp v1 -> let v1 = wrap string v1 in (G.Regexp v1)
+
+
 and expr (x: expr) =
   match x with
   | ObjAccessEllipsis (v1, v2) ->
@@ -181,13 +189,7 @@ and expr (x: expr) =
   | ExprTodo (v1, v2) ->
       let v2 = list expr v2 in
       G.OtherExpr (G.OE_Todo, (G.TodoK v1)::(v2 |> List.map (fun e -> G.E e)))
-  | L x ->
-      (match x with
-       | Bool v1 -> let v1 = wrap bool v1 in G.L (G.Bool v1)
-       | Num v1 -> let v1 = wrap string v1 in G.L (G.Float v1)
-       | String v1 -> let v1 = wrap string v1 in G.L (G.String v1)
-       | Regexp v1 -> let v1 = wrap string v1 in G.L (G.Regexp v1)
-      )
+  | L x -> G.L (literal x)
   | Id v1 ->
       let v1 = name v1 in
       G.Id (v1, G.empty_id_info())
@@ -363,7 +365,46 @@ and case =
 *)
 and type_ x =
   match x with
-  | _ -> failwith "TODO"
+  | TyBuiltin id -> G.TyBuiltin (ident id)
+  | TyName xs -> H.tyid_of_name (H.name_of_ids xs)
+  | TyLiteral l ->
+      let l = literal l in
+      G.OtherType (G.OT_Todo, [G.TodoK ("LitType", PI.fake_info "");
+                               G.E (G.L l)])
+
+  | TyQuestion (tok, t) ->
+      let t = type_ t in
+      G.TyQuestion (t, tok)
+  | TyArray (t, (lt, (), rt)) ->
+      let t = type_ t in
+      G.TyArray ((lt, None, rt), t)
+  | TyTuple (lt, xs, rt) ->
+      let xs = List.map type_ xs in
+      G.TyTuple (lt, xs, rt)
+  | TyFun (params, typ_opt) ->
+      let params = List.map parameter_binding params in
+      let rett =
+        match typ_opt with
+        | None -> G.TyBuiltin ("void", PI.fake_info "void")
+        | Some t -> type_ t
+      in
+      G.TyFun (params, rett)
+
+  | TyRecordAnon (lt, (), rt) ->
+      G.TyRecordAnon (PI.fake_info "", (lt, [], rt))
+
+  | TyOr (t1, tk, t2) ->
+      let t1 = type_ t1 in
+      let t2 = type_ t2 in
+      G.TyOr (t1, tk, t2)
+  | TyAnd (t1, tk, t2) ->
+      let t1 = type_ t1 in
+      let t2 = type_ t2 in
+      G.TyAnd (t1, tk, t2)
+
+  | TypeTodo (categ, xs) ->
+      G.OtherType (G.OT_Todo, (G.TodoK categ)::(List.map any xs))
+
 
 and entity { name = n; attrs } =
   let n = name n in
