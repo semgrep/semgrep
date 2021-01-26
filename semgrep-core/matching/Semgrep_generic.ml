@@ -363,10 +363,8 @@ let check2 ~hook ~with_caching rules equivs file lang ast =
                     let env = env.mv.full_env in
                     Common.push { Res. rule; file; env; location }
                       matches;
-                    (* TODO: the following hook should run on all tokens, not
-                       just the tokens found in the first and last stmts. *)
-                    let any = Ss (Stmts_match_span.list_stmts span) in
-                    let matched_tokens = lazy (Lib_AST.ii_of_any any) in
+                    let matched_tokens =
+                      lazy (Stmts_match_span.list_original_tokens span) in
                     hook env matched_tokens
               )
           );

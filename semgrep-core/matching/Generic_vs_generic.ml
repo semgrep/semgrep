@@ -2065,6 +2065,8 @@ and m_type_parameter_constraint a b =
   match a, b with
   | A.Extends(a1), B.Extends(b1) ->
       m_type_ a1 b1
+  | A.HasConstructor _, _ -> failwith "REMOVE ME"
+  | A.Extends _, _ -> failwith "REMOVE ME"
 (*e: function [[Generic_vs_generic.m_type_parameter_constraint]] *)
 
 (*s: function [[Generic_vs_generic.m_type_parameter_constraints]] *)

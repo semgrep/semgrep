@@ -291,10 +291,10 @@ module Cache = struct
     let patched_span : Stmts_match_span.t =
       match orig_span, cached_span with
       | Empty, Empty -> Empty
-      | Empty, Span x -> Span { x with leftmost_stmt = current_stmt }
+      | Empty, Span x -> Span { x with left_stmts = [current_stmt] }
       | Span x, Empty -> Span x
-      | Span {leftmost_stmt; _}, Span {rightmost_stmt; _} ->
-          Span { leftmost_stmt; rightmost_stmt }
+      | Span {left_stmts; _}, Span {right_stmts; _} ->
+          Span { left_stmts; right_stmts }
     in
     let acc = set_mv_field cached_acc patched_env in
     set_span_field acc patched_span

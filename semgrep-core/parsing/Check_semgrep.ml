@@ -3,6 +3,7 @@
 (*s: constant [[Check_semgrep.lang_has_no_dollar_ids]] *)
 (* for these languages, we are sure that $x is an error *)
 let lang_has_no_dollar_ids = Lang.(function
+  | Yaml -> failwith "REMOVE ME"
   | Python | Python2 | Python3
   | Java
   | Go
