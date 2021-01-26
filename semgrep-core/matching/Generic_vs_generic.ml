@@ -1463,15 +1463,16 @@ and m_stmts_deep ~less_is_ok (xsa: A.stmt list) (xsb: A.stmt list) tin =
   match tin.cache, xsa, xsb with
   | Some cache, a :: _, b :: _ ->
       let tin = { tin with mv = MV.Env.update_min_env tin.mv a } in
-      let module K = Caching.Cache_key in
+      (* TODO: add support for local modules to semgrep *)
+      (* let module K = Caching.Cache_key in *)
       Caching.Cache.match_stmt_list
         ~get_span_field:(fun tin -> tin.stmts_match_span)
         ~set_span_field:(fun tin x -> { tin with stmts_match_span = x })
         ~get_mv_field:(fun tin -> tin.mv)
         ~set_mv_field:(fun tin mv -> { tin with mv })
         ~cache
-        ~function_id:K.Match_deep
-        ~list_kind:K.Original
+        ~function_id:Caching.Cache_key.Match_deep
+        ~list_kind:Caching.Cache_key.Original
         ~less_is_ok
         ~compute:(m_stmts_deep_uncached ~less_is_ok)
         ~pattern:xsa
