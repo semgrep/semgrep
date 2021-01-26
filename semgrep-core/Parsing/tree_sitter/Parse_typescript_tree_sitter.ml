@@ -10,7 +10,7 @@
 open Common
 module AST = Ast_js
 module H = Parse_tree_sitter_helpers
-module G = AST_generic
+module G = AST_generic_
 module PI = Parse_info
 module H2 = AST_generic_helpers
 open Ast_js
@@ -31,22 +31,11 @@ open Ast_js
 (*****************************************************************************)
 
 type env = unit H.env
-let fb = G.fake_bracket
+let fb = PI.fake_bracket
 let fake = PI.fake_info ""
 
-let param_to_generic_param = function
-  | ParamPattern _ -> failwith "param pattern found in call_signature"
-  | ParamEllipsis _ -> raise Impossible
-  | ParamClassic x -> Js_to_generic.parameter x
-
 let mk_functype (params, rett) =
-  let params = params |> List.map param_to_generic_param in
-  let rett =
-    match rett with
-    | Some t -> t
-    | None -> G.TyBuiltin ("void", PI.fake_info "void")
-  in
-  G.TyFun (params, rett)
+  TyFun (params, rett)
 
 let add_attributes_param attrs p =
   match p with
@@ -186,7 +175,7 @@ let import_require_clause (env : env) ((v1, v2, v3, v4, v5, v6) : CST.import_req
   let _v6 = JS.token env v6 (* ")" *) in
   [] (* TODO *)
 
-let literal_type (env : env) (x : CST.literal_type) : G.literal =
+let literal_type (env : env) (x : CST.literal_type) : literal =
   (match x with
    | `Num_ (v1, v2) ->
        let (s, t1) =
@@ -196,11 +185,11 @@ let literal_type (env : env) (x : CST.literal_type) : G.literal =
          )
        in
        let (s2, t2) = JS.str env v2 (* number *) in
-       G.Int (s ^ s2, PI.combine_infos t1 [t2])
-   | `Num tok -> G.Int (JS.str env tok) (* number *)
-   | `Str x -> G.String (JS.string_ env x)
-   | `True tok -> G.Bool (true, JS.token env tok) (* "true" *)
-   | `False tok -> G.Bool (false, JS.token env tok) (* "false" *)
+       Num (s ^ s2, PI.combine_infos t1 [t2])
+   | `Num tok -> Num (JS.str env tok) (* number *)
+   | `Str x -> String (JS.string_ env x)
+   | `True tok -> Bool (true, JS.token env tok) (* "true" *)
+   | `False tok -> Bool (false, JS.token env tok) (* "false" *)
   )
 
 let nested_type_identifier (env : env) ((v1, v2, v3) : CST.nested_type_identifier) : ident list =
@@ -333,7 +322,7 @@ and jsx_opening_element (env : env) ((v1, v2, v3, v4) : CST.jsx_opening_element)
          let id = concat_nested_identifier env v1 in
          let _v2 =
            (match v2 with
-            | Some x -> type_arguments env x |> G.unbracket
+            | Some x -> type_arguments env x |> PI.unbracket
             | None -> [])
          in
          id
@@ -353,7 +342,7 @@ and jsx_self_clos_elem (env : env) ((v1, v2, v3, v4, v5) : CST.jsx_self_closing_
          let id = concat_nested_identifier env v1 in
          let _v2 =
            (match v2 with
-            | Some x -> type_arguments env x |> G.unbracket
+            | Some x -> type_arguments env x |> PI.unbracket
             | None -> [])
          in
          id
@@ -405,7 +394,7 @@ and jsx_attribute_ (env : env) (x : CST.jsx_attribute_) : xml_attribute =
              let v2 = jsx_attribute_value env v2 in
              v2
          (* see https://www.reactenlightenment.com/react-jsx/5.7.html *)
-         | None -> Bool (true, snd v1)
+         | None -> L (Bool (true, snd v1))
        in
        XmlAttr (v1, v2)
    (* less: we could enforce that it's only a Spread operation *)
@@ -418,7 +407,7 @@ and jsx_attribute_value (env : env) (x : CST.jsx_attribute_value) =
   (match x with
    | `Str x ->
        let s = JS.string_ env x in
-       String s
+       L (String s)
    | `Jsx_exp x ->
        let (_, e, _) = jsx_expression env x in
        e
@@ -499,15 +488,19 @@ and function_ (env : env) ((v1, v2, v3, v4, v5) : CST.function_)
   { f_attrs = v1; f_params = v4; f_body = v5; f_rettype = tret },
   v3
 
-and generic_type (env : env) ((v1, v2) : CST.generic_type) : G.name =
+and generic_type (env : env) ((v1, _v2) : CST.generic_type) : dotted_ident =
   let v1 =
     match v1 with
     | `Id tok -> [JS.identifier env tok] (* identifier *)
     | `Nested_type_id x -> nested_identifier env x
   in
-  let v2 = type_arguments env v2 |> G.unbracket
-           |> List.map (fun x -> G.TypeArg x) in
-  H2.name_of_ids ~name_typeargs:(Some v2) v1
+  (* TODO:
+     let v2 = type_arguments env v2 |> PI.unbracket
+             |> List.map (fun x -> G.TypeArg x) in
+
+     H2.name_of_ids ~name_typeargs:(Some v2) v1
+  *)
+  v1
 
 and implements_clause (env : env) ((v1, v2, v3) : CST.implements_clause) : type_ list =
   let _v1 = JS.token env v1 (* "implements" *) in
@@ -810,7 +803,7 @@ and class_body (env : env) ((v1, v2, v3) : CST.class_body) : property list brack
   let v3 = JS.token env v3 (* "}" *) in
   v1, v2, v3
 
-and type_parameter (env : env) ((v1, v2, v3) : CST.type_parameter) : G.type_parameter =
+and type_parameter (env : env) ((v1, v2, v3) : CST.type_parameter) : type_parameter =
   let v1 = JS.str env v1 (* identifier *) in
   let _v2 =
     (match v2 with
@@ -822,7 +815,7 @@ and type_parameter (env : env) ((v1, v2, v3) : CST.type_parameter) : G.type_para
      | Some x -> Some (default_type env x)
      | None -> None)
   in
-  v1, []
+  v1
 
 and member_expression (env : env) ((v1, v2, v3) : CST.member_expression) : expr =
   let v1 = anon_choice_exp_6ded967 env v1 in
@@ -895,10 +888,10 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
        idexp id
    | `Num tok ->
        let n = JS.number env tok (* number *) in
-       Num n
+       L (Num n)
    | `Str x ->
        let s = JS.string_ env x in
-       String s
+       L (String s)
    | `Temp_str x ->
        let t1, xs, t2 = template_string env x in
        Apply (IdSpecial (Encaps false, t1), (t1, xs, t2))
@@ -912,9 +905,9 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
           | None -> [])
        in
        let tok = PI.combine_infos v1 ([t; v3] @ v4) in
-       Regexp (s, tok)
-   | `True tok -> Bool (true, JS.token env tok) (* "true" *)
-   | `False tok -> Bool (false, JS.token env tok) (* "false" *)
+       L (Regexp (s, tok))
+   | `True tok -> L (Bool (true, JS.token env tok) (* "true" *))
+   | `False tok -> L (Bool (false, JS.token env tok) (* "false" *))
    | `Null tok -> IdSpecial (Null, JS.token env tok) (* "null" *)
    | `Unde tok -> IdSpecial (Undefined, JS.token env tok) (* "undefined" *)
    | `Import tok -> JS.identifier env tok (* import *) |> idexp
@@ -944,7 +937,7 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
          (match v4 with
           | `Exp x ->
               let e = expression env x in
-              Return (v3, Some e, G.sc)
+              Return (v3, Some e, PI.sc)
           | `Stmt_blk x -> statement_block env x
          )
        in
@@ -1011,7 +1004,7 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
             (* TODO: types *)
             let _v2 =
               match v2 with
-              | Some x -> type_arguments env x |> G.unbracket
+              | Some x -> type_arguments env x |> PI.unbracket
               | None -> []
             in
             let v3 =
@@ -1032,7 +1025,7 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
             (* TODO: types *)
             let _v3 =
               match v3 with
-              | Some x -> type_arguments env x |> G.unbracket
+              | Some x -> type_arguments env x |> PI.unbracket
               | None -> []
             in
             let v4 = arguments env v4 in
@@ -1145,8 +1138,8 @@ and template_string (env : env) ((v1, v2, v3) : CST.template_string) : expr list
   let v2 =
     List.map (fun x ->
       (match x with
-       | `Temp_chars tok -> String (JS.str env tok) (* template_chars *)
-       | `Esc_seq tok -> String (JS.str env tok) (* escape_sequence *)
+       | `Temp_chars tok -> L (String (JS.str env tok)) (* template_chars *)
+       | `Esc_seq tok -> L (String (JS.str env tok)) (* escape_sequence *)
        | `Temp_subs x -> template_substitution env x
       )
     ) v2
@@ -1343,7 +1336,7 @@ and expression (env : env) (x : CST.expression) : expr =
        (* TODO types *)
        let _v3 =
          match v3 with
-         | Some x -> type_arguments env x |> G.unbracket
+         | Some x -> type_arguments env x |> PI.unbracket
          | None -> []
        in
        let t1, xs, t2 =
@@ -1391,28 +1384,29 @@ and primary_type (env : env) (x : CST.primary_type) : type_ =
    | `Pred_type x ->
        let id = predefined_type env x in
        (* less: could also be a G.TyBuiltin *)
-       G.TyId (id, G.empty_id_info())
+       TyName ([id])
    | `Id tok ->
        let id = JS.identifier env tok (* identifier *) in
-       G.TyId (id, G.empty_id_info())
+       TyName ([id])
    | `Nested_type_id x ->
        let xs = nested_type_identifier env x in
-       G.TyIdQualified (H2.name_of_ids xs, G.empty_id_info())
+       TyName (xs)
    | `Gene_type x ->
-       G.TyIdQualified (generic_type env x, G.empty_id_info())
+       TyName (generic_type env x)
+
    | `Type_pred (v1, v2, v3) ->
        let v1 = JS.str env v1 (* identifier *) in
        let v2 = JS.token env v2 (* "is" *) in
        let v3 = type_ env v3 in
-       G.OtherType (G.OT_Todo, [G.TodoK ("IsType", v2); G.I v1; G.T v3])
+       TypeTodo (("IsType", v2), [Expr (Id v1); Type v3])
    | `Obj_type x ->
        let (t1, xs, t2) = object_type env x in
-       let xs = xs |> Common.map_filter (function
+       let _xs = xs |> Common.map_filter (function
          (* TODO *)
          | Left _fld -> None
          | Right _sts -> None
        ) in
-       G.TyRecordAnon (fake, (t1, xs, t2))
+       TyRecordAnon ((t1, (), t2))
    | `Array_type x ->
        (match x with
         | `Read_prim_type_LBRACK_RBRACK (v1, v2, v3, v4) ->
@@ -1420,12 +1414,12 @@ and primary_type (env : env) (x : CST.primary_type) : type_ =
             let v2 = primary_type env v2 in
             let v3 = JS.token env v3 (* "[" *) in
             let v4 = JS.token env v4 (* "]" *) in
-            G.TyArray ((v3, None, v4), v2)
+            TyArray (v2, (v3, (), v4))
         | `Prim_type_LBRACK_RBRACK (v1, v2, v3) ->
             let v1 = primary_type env v1 in
             let v2 = JS.token env v2 (* "[" *) in
             let v3 = JS.token env v3 (* "]" *) in
-            G.TyArray ((v2, None, v3), v1)
+            TyArray (v1, (v2, (), v3))
        )
    | `Tuple_type x ->
        (match x with
@@ -1442,40 +1436,40 @@ and primary_type (env : env) (x : CST.primary_type) : type_ =
               ) v3
             in
             let v4 = JS.token env v4 (* "]" *) in
-            G.TyTuple (v1, v2::v3, v4)
+            TyTuple (v1, v2::v3, v4)
        )
    | `Flow_maybe_type (v1, v2) ->
        let v1 = JS.token env v1 (* "?" *) in
        let v2 = primary_type env v2 in
-       G.TyQuestion (v2, v1)
+       TyQuestion (v1, v2)
    | `Type_query (v1, v2) ->
        let v1 = JS.token env v1 (* "typeof" *) in
        let v2 = anon_choice_type_id_42c0412 env v2 in
-       G.OtherType (G.OT_Todo, [G.TodoK ("IsType", v1); G.Di v2])
+       TypeTodo (("IsType", v1), [Type (TyName v2)])
    | `Index_type_query (v1, v2) ->
        let v1 = JS.token env v1 (* "keyof" *) in
        let v2 =
          match v2 with
-         | `Gene_type x -> G.T (G.TyIdQualified (generic_type env x, G.empty_id_info()))
-         | `Id tok -> G.Di [JS.identifier env tok] (* identifier *)
-         | `Nested_type_id x -> G.Di (nested_type_identifier env x)
+         | `Gene_type x -> (generic_type env x)
+         | `Id tok -> [JS.identifier env tok] (* identifier *)
+         | `Nested_type_id x -> (nested_type_identifier env x)
        in
-       G.OtherType (G.OT_Todo, [G.TodoK ("KeyOf", v1); v2])
+       TypeTodo (("KeyOf", v1), [Type (TyName v2)])
    | `This tok ->
        let v1 = JS.token env tok in (* "this" *)
-       G.OtherType (G.OT_Todo, [G.TodoK ("This", v1);])
+       TypeTodo (("This", v1), [])
    | `Exis_type tok ->
        let v1 = JS.token env tok (* "*" *) in
-       G.OtherType (G.OT_Todo, [G.TodoK ("*", v1)])
+       TypeTodo (("*", v1), [])
    | `Lit_type x ->
        let v1 = literal_type env x in
-       G.OtherType (G.OT_Todo, [G.TodoK ("LitType", fake); G.E (G.L v1);])
+       TypeTodo (("LitType", fake), [Expr (L v1);])
    | `Lookup_type (v1, v2, v3, v4) ->
        let v1 = primary_type env v1 in
        let v2 = JS.token env v2 (* "[" *) in
        let v3 = type_ env v3 in
        let _v4 = JS.token env v4 (* "]" *) in
-       G.OtherType (G.OT_Todo, [G.TodoK ("LookupType", v2); G.T v1; G.T v3])
+       TypeTodo (("LookupType", v2), [Type v1; Type v3])
   )
 
 and index_signature (env : env) ((v1, v2, v3, v4, v5) : CST.index_signature) =
@@ -1491,13 +1485,13 @@ and index_signature (env : env) ((v1, v2, v3, v4, v5) : CST.index_signature) =
          let v2 = anon_choice_type_id_dd17e7d env v2 in
          let v3 = JS.token env v3 (* ":" *) in
          let v4 = predefined_type env v4 in
-         G.OtherType (G.OT_Todo, [G.TodoK ("IndexKey", v3); G.I v2; G.I v4])
+         TypeTodo (("IndexKey", v3), [Type (TyName [v2]); Type (TyName [v4])])
      | `Mapped_type_clause x -> mapped_type_clause env x
     )
   in
   let _v4 = JS.token env v4 (* "]" *) in
   let v5 = type_annotation env v5 |> snd in
-  G.OtherType (G.OT_Todo, [G.TodoK ("Indexsig", v2); G.T v3; G.T v5])
+  TypeTodo (("Indexsig", v2), [Type v3; Type v5])
 
 
 and unary_expression (env : env) (x : CST.unary_expression) =
@@ -1582,7 +1576,7 @@ and mapped_type_clause (env : env) ((v1, v2, v3) : CST.mapped_type_clause) =
   let v1 = JS.str env v1 (* identifier *) in
   let v2 = JS.token env v2 (* "in" *) in
   let v3 = type_ env v3 in
-  G.OtherType (G.OT_Todo, [G.TodoK ("MappedType", v2); G.I v1; G.T v3])
+  TypeTodo (("MappedType", v2), [Expr (Id v1); Type v3])
 
 and statement1 (env : env) (x : CST.statement) : stmt =
   statement env x |> stmt1
@@ -2299,7 +2293,7 @@ and todo_asserts (env : env) ((v1, v2, v3) : CST.asserts) =
   todo env (v1, v2, v3)
 
 and call_signature (env : env) ((v1, v2, v3) : CST.call_signature)
-  : G.type_parameter list * (parameter list * type_ option) =
+  : type_parameter list * (parameter list * type_ option) =
   let v1 =
     (match v1 with
      | Some x -> type_parameters env x
@@ -2355,7 +2349,7 @@ and type_ (env : env) (x : CST.type_) : type_ =
        (match v1 with
         | Some x ->
             let x = type_ env x in
-            G.TyOr (x, v2, v3)
+            TyOr (x, v2, v3)
         | None -> v3) (* ?? *)
 
    | `Inte_type (v1, v2, v3) ->
@@ -2364,7 +2358,7 @@ and type_ (env : env) (x : CST.type_) : type_ =
        (match v1 with
         | Some x ->
             let x = type_ env x in
-            G.TyAnd (x, v2, v3)
+            TyAnd (x, v2, v3)
         | None -> v3) (* ?? *)
    | `Func_type (v1, v2, v3, v4) ->
        let _tparams =
@@ -2387,10 +2381,10 @@ and type_ (env : env) (x : CST.type_) : type_ =
        let _v4 = JS.token env v4 (* "=>" *) in
        let v5 = type_ env v5 in
        let ty = mk_functype (v3, Some v5) in
-       G.OtherType (G.OT_Todo, [G.TodoK ("New", v1); G.T ty])
+       TypeTodo (("New", v1), [Type ty])
   )
 
-and type_parameters (env : env) ((v1, v2, v3, v4, v5) : CST.type_parameters) : G.type_parameter list =
+and type_parameters (env : env) ((v1, v2, v3, v4, v5) : CST.type_parameters) : type_parameter list =
   let _v1 = JS.token env v1 (* "<" *) in
   let v2 = type_parameter env v2 in
   let v3 =
@@ -2408,7 +2402,7 @@ and type_parameters (env : env) ((v1, v2, v3, v4, v5) : CST.type_parameters) : G
   let _v5 = JS.token env v5 (* ">" *) in
   v2::v3
 
-and constraint_ (env : env) ((v1, v2) : CST.constraint_) : G.type_parameter_constraint =
+and constraint_ (env : env) ((v1, v2) : CST.constraint_) : type_parameter_constraint =
   let _v1 =
     (match v1 with
      | `Extends tok -> JS.token env tok (* "extends" *)
@@ -2416,7 +2410,7 @@ and constraint_ (env : env) ((v1, v2) : CST.constraint_) : G.type_parameter_cons
     )
   in
   let v2 = type_ env v2 in
-  G.Extends v2
+  v2
 
 and parameter_name (env : env) ((v1, v2, v3) : CST.parameter_name) : (ident, pattern) Common.either =
   let _v1 =
@@ -2486,14 +2480,13 @@ and function_declaration (env : env) ((v1, v2, v3, v4, v5, v6) : CST.function_de
   let f = { f_attrs = v1; f_params = v4; f_body = v5; f_rettype = tret } in
   basic_entity v3, FuncDef f
 
-and anon_choice_type_id_a85f573 (env : env) (x : CST.anon_choice_type_id_a85f573) : G.type_ =
+and anon_choice_type_id_a85f573 (env : env) (x : CST.anon_choice_type_id_a85f573) : type_ =
   (match x with
-   | `Id tok -> G.TyId (JS.str env tok, G.empty_id_info()) (* identifier *)
+   | `Id tok -> TyName [JS.str env tok] (* identifier *)
    | `Nested_type_id x ->
-       G.TyIdQualified (H2.name_of_ids (nested_type_identifier env x),
-                        G.empty_id_info())
+       TyName (nested_type_identifier env x)
    | `Gene_type x ->
-       G.TyIdQualified (generic_type env x, G.empty_id_info())
+       TyName (generic_type env x)
   )
 
 and template_substitution (env : env) ((v1, v2, v3) : CST.template_substitution) =

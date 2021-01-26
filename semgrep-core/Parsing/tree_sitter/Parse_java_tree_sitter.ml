@@ -16,7 +16,7 @@ module AST = Ast_java
 module CST = Tree_sitter_java.CST
 module PI = Parse_info
 open Ast_java
-module G = AST_generic
+module G = AST_generic_
 module H = Parse_tree_sitter_helpers
 
 (*****************************************************************************)
@@ -37,7 +37,7 @@ module H = Parse_tree_sitter_helpers
 (* Helpers *)
 (*****************************************************************************)
 type env = unit H.env
-let fake = G.fake
+let fake = PI.fake_info
 let token = H.token
 let str = H.str
 
@@ -751,9 +751,9 @@ and wildcard_bounds (env : env) (x : CST.wildcard_bounds) =
 
 
 and stmt1 = function
-  | [] -> EmptyStmt (G.fake ";")
+  | [] -> EmptyStmt (PI.fake_info ";")
   | [x] -> x
-  | xs -> Block (G.fake_bracket xs)
+  | xs -> Block (PI.fake_bracket xs)
 
 and statement (env : env) (x : CST.statement) : Ast_java.stmt =
   statement_aux env x |> stmt1

@@ -1,16 +1,12 @@
 (library
- (name semgrep_analyzing)
+ (public_name pfff-lang_GENERIC-analyze)
+ (name pfff_lang_GENERIC_analyze)
  (wrapped false)
  (libraries
-   yaml
-   commons commons_ocollection
-   pfff-config
-   pfff-h_program-lang
-   pfff-lang_GENERIC pfff-lang_GENERIC-analyze
+   dyp
 
-   semgrep_core
-   semgrep_parsing
-   semgrep_matching
+   commons commons_core commons_ocollection
+   pfff-lang_GENERIC
  )
- (preprocess (pps ppx_profiling))
+ (preprocess (pps ppx_deriving.show))
 )

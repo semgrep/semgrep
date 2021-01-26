@@ -15,7 +15,7 @@ open Common
 module CST = Tree_sitter_javascript.CST
 module AST = Ast_js
 module H = Parse_tree_sitter_helpers
-module G = AST_generic
+module G = AST_generic_
 module PI = Parse_info
 open Ast_js
 
@@ -43,7 +43,7 @@ open Ast_js
 type env = unit H.env
 let token = H.token
 let str = H.str
-let fb = G.fake_bracket
+let fb = PI.fake_bracket
 
 (*****************************************************************************)
 (* Boilerplate converter *)
@@ -405,7 +405,7 @@ and jsx_attribute_ (env : env) (x : CST.jsx_attribute_) : xml_attribute =
              let v2 = jsx_attribute_value env v2 in
              v2
          (* see https://www.reactenlightenment.com/react-jsx/5.7.html *)
-         | None -> Bool (true, snd v1)
+         | None -> L (Bool (true, snd v1))
        in
        XmlAttr (v1, v2)
    (* less: we could enforce that it's only a Spread operation *)
@@ -418,7 +418,7 @@ and jsx_attribute_value (env : env) (x : CST.jsx_attribute_value) =
   (match x with
    | `Str x ->
        let s = string_ env x in
-       String s
+       L (String s)
    | `Jsx_exp x ->
        let (_, e, _) = jsx_expression env x in
        e
@@ -757,10 +757,10 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
        idexp id
    | `Num tok ->
        let n = number env tok (* number *) in
-       Num n
+       L (Num n)
    | `Str x ->
        let s = string_ env x in
-       String s
+       L (String s)
    | `Temp_str x ->
        let t1, xs, t2 = template_string env x in
        Apply (IdSpecial (Encaps false, t1), (t1, xs, t2))
@@ -774,9 +774,9 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
           | None -> [])
        in
        let tok = PI.combine_infos v1 ([t; v3] @ v4) in
-       Regexp (s, tok)
-   | `True tok -> Bool (true, token env tok) (* "true" *)
-   | `False tok -> Bool (false, token env tok) (* "false" *)
+       L (Regexp (s, tok))
+   | `True tok -> L (Bool (true, token env tok) (* "true" *))
+   | `False tok -> L (Bool (false, token env tok) (* "false" *))
    | `Null tok -> IdSpecial (Null, token env tok) (* "null" *)
    | `Unde tok -> IdSpecial (Undefined, token env tok) (* "undefined" *)
    (* ?? *)
@@ -807,7 +807,7 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
          (match v4 with
           | `Exp x ->
               let e = expression env x in
-              Return (v3, Some e, G.sc)
+              Return (v3, Some e, PI.sc)
           | `Stmt_blk x -> statement_block env x
          )
        in
@@ -916,8 +916,8 @@ and template_string (env : env) ((v1, v2, v3) : CST.template_string) :
   let v2 =
     List.map (fun x ->
       (match x with
-       | `Temp_chars tok -> String (str env tok) (* template_chars *)
-       | `Esc_seq tok -> String (str env tok) (* escape_sequence *)
+       | `Temp_chars tok -> L (String (str env tok)) (* template_chars *)
+       | `Esc_seq tok -> L (String (str env tok)) (* escape_sequence *)
        | `Temp_subs x -> template_substitution env x
       )
     ) v2

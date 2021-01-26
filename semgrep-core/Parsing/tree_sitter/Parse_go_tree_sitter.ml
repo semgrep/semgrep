@@ -16,7 +16,7 @@ module AST = Ast_go
 module CST = Tree_sitter_go.CST
 module PI = Parse_info
 open Ast_go
-module G = AST_generic
+module G = AST_generic_
 module H = Parse_tree_sitter_helpers
 
 (*****************************************************************************)
@@ -33,7 +33,6 @@ module H = Parse_tree_sitter_helpers
 (* Helpers *)
 (*****************************************************************************)
 type env = unit H.env
-let _fake = G.fake
 let token = H.token
 let str = H.str
 

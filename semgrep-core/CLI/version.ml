@@ -3,4 +3,4 @@
 (*
   semgrep-core version.
 *)
-let version = "v0.38.0-18-g1f9df65c-dirty"
+let version = "v0.38.0-19-g4a599a23-dirty"
