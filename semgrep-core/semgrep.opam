@@ -26,6 +26,8 @@ depends: [
   "yaml"
   "menhir"
   "grain_dypgen"
+  "ppx_deriving"
+  "ppx_hash"
   "uucp"
   "uutf"
   "re"

@@ -177,6 +177,13 @@ let ncores = ref 1
 (*e: constant [[Main_semgrep_core.ncores]] *)
 
 (* ------------------------------------------------------------------------- *)
+(* optional optimizations *)
+(* ------------------------------------------------------------------------- *)
+
+(* opt = optimization *)
+let with_opt_cache = ref false
+
+(* ------------------------------------------------------------------------- *)
 (* flags used by the semgrep-python wrapper *)
 (* ------------------------------------------------------------------------- *)
 
@@ -726,7 +733,7 @@ let json_of_exn e =
 (*****************************************************************************)
 
 (*s: function [[Main_semgrep_core.semgrep_with_rules]] *)
-let semgrep_with_rules rules files =
+let semgrep_with_rules ~with_opt_cache rules files =
   let files = get_final_files files in
   logger#info "processing %d files" (List.length files);
   let matches, errs =
@@ -734,7 +741,9 @@ let semgrep_with_rules rules files =
       (fun file lang ast ->
          let rules =
            rules |> List.filter (fun r -> List.mem lang r.MR.languages) in
-         Semgrep_generic.check ~hook:(fun _ _ -> ())
+         Semgrep_generic.check
+           ~hook:(fun _ _ -> ())
+           ~with_caching:with_opt_cache
            rules (parse_equivalences ())
            file lang ast
       )
@@ -771,13 +780,13 @@ let semgrep_with_rules rules files =
   pr s
 (*e: function [[Main_semgrep_core.semgrep_with_rules]] *)
 
-let semgrep_with_rules_file rules_file files =
+let semgrep_with_rules_file ~with_opt_cache rules_file files =
   try
     (*s: [[Main_semgrep_core.semgrep_with_rules()]] if [[verbose]] *)
     logger#info "Parsing %s" rules_file;
     (*e: [[Main_semgrep_core.semgrep_with_rules()]] if [[verbose]] *)
     let rules = Parse_mini_rule.parse rules_file in
-    semgrep_with_rules rules files;
+    semgrep_with_rules ~with_opt_cache rules files;
     if !profile then save_rules_file_in_tmp ()
 
   with exn ->
@@ -792,7 +801,7 @@ let semgrep_with_rules_file rules_file files =
 (* Semgrep -config *)
 (*****************************************************************************)
 
-let semgrep_with_real_rules rules files =
+let semgrep_with_real_rules ~with_opt_cache rules files =
   let files = get_final_files files in
   logger#info "processing %d files" (List.length files);
   let matches, errs =
@@ -811,7 +820,7 @@ let semgrep_with_real_rules rules files =
              print_match !mvars env Metavariable.ii_of_mval xs
            end
          in
-         Semgrep.check hook rules (file, lang, ast)
+         Semgrep.check with_opt_cache hook rules (file, lang, ast)
       )
   in
   logger#info "found %d matches and %d errors"
@@ -840,11 +849,11 @@ let semgrep_with_real_rules rules files =
     pr s
   end
 
-let semgrep_with_real_rules_file rules_file files =
+let semgrep_with_real_rules_file ~with_opt_cache rules_file files =
   try
     logger#info "Parsing %s" rules_file;
     let rules = Parse_rule.parse rules_file in
-    semgrep_with_real_rules rules files
+    semgrep_with_real_rules ~with_opt_cache rules files
   with exn ->
     logger#debug "exn before exit %s" (Common.exn_to_s exn);
     let json = json_of_exn exn in
@@ -898,7 +907,7 @@ let semgrep_with_one_pattern xs =
   match !output_format with
   | Json ->
       (* closer to -rules_file, but no incremental match output *)
-      semgrep_with_rules [rule] xs
+      semgrep_with_rules ~with_opt_cache:!with_opt_cache [rule] xs
   | Text ->
       (* simpler code path than in semgrep_with_rules *)
       begin
@@ -921,6 +930,7 @@ let semgrep_with_one_pattern xs =
                   let xs = Lazy.force matched_tokens in
                   print_match !mvars env Metavariable.ii_of_mval xs
                 )
+                ~with_caching:!with_opt_cache
                 [rule] (parse_equivalences ())
                 file lang ast |> ignore
             )
@@ -1244,6 +1254,10 @@ let options () =
     "-j", Arg.Set_int ncores,
     " <int> number of cores to use (default = 1)";
     (*e: [[Main_semgrep_core.options]] [[-j]] case *)
+    "-opt_cache", Arg.Set with_opt_cache,
+    " enable caching optimization during matching";
+    "-no_opt_cache", Arg.Clear with_opt_cache,
+    " disable caching optimization during matching";
     (*s: [[Main_semgrep_core.options]] report match mode cases *)
     "-emacs", Arg.Unit (fun () -> match_format := Matching_report.Emacs ),
     " print matches on the same line than the match position";
@@ -1406,10 +1420,13 @@ let main () =
      | x::xs ->
          (match () with
           | _ when !config_file <> "" ->
-              semgrep_with_real_rules_file !config_file (x::xs)
+              semgrep_with_real_rules_file
+                ~with_opt_cache:!with_opt_cache !config_file (x::xs)
           (*s: [[Main_semgrep_core.main()]] main entry match cases *)
           | _ when !rules_file <> "" ->
-              semgrep_with_rules_file !rules_file (x::xs)
+              semgrep_with_rules_file
+                ~with_opt_cache:!with_opt_cache
+                !rules_file (x::xs)
           (*x: [[Main_semgrep_core.main()]] main entry match cases *)
           | _ when !tainting_rules_file <> "" ->
               tainting_with_rules !tainting_rules_file (x::xs)
@@ -1432,7 +1449,7 @@ let main () =
 let _ =
   Common.main_boilerplate (fun () ->
     Common.finalize (fun () ->
-      main ();
+      main ()
     ) (fun () -> !(Hooks.exit) |> List.iter (fun f -> f()))
   )
 (*e: toplevel [[Main_semgrep_core._1]] *)

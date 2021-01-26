@@ -46,23 +46,26 @@ class Result:
         self.duration = duration
 
 
-def run_tests(dirname: str, tests: List[Test]) -> List[Result]:
+def run_tests(dirname: str, tests: List[Test], no_cache: bool) -> List[Result]:
     results = []
     for test in tests:
         pattern_file = os.path.join(dirname, test.name + ".sgrep")
         target_file = os.path.join(dirname, test.target)
 
         t1 = time.time()
-        p = subprocess.run(
-            [
-                "semgrep-core",
-                "-lang",
-                test.lang,
-                "-f",
-                pattern_file,
-                target_file,
-            ]
-        )
+        args = [
+            "semgrep-core",
+            "-lang",
+            test.lang,
+            "-f",
+            pattern_file,
+            target_file,
+        ]
+        if no_cache:
+            args.append("-no_opt_cache")
+        else:
+            args.append("-opt_cache")
+        p = subprocess.run(args)  # nosem
         t2 = time.time()
 
         p.check_returncode()
@@ -91,6 +94,9 @@ def main() -> None:
         "--list", help="list available tests and exit", action="store_true"
     )
     parser.add_argument(
+        "--no-cache", help="disable caching during matching", action="store_true"
+    )
+    parser.add_argument(
         "--upload", help="upload results to semgrep dashboard", action="store_true"
     )
     args = parser.parse_args()
@@ -104,7 +110,7 @@ def main() -> None:
             tests = [test for test in TESTS if test.name == args.name]
         else:
             tests = TESTS
-        results = run_tests("input", tests)
+        results = run_tests("input", tests, args.no_cache)
         if args.upload:
             upload_results(results)
 

@@ -62,7 +62,9 @@ let match_pat_instr pat =
                       message = ""; severity = R2.Error;
                       languages = []; } in
 
-         let matches_with_env = Semgrep_generic.match_e_e rule pat eorig in
+         let cache = None in (* would it make sense to use caching? *)
+         let matches_with_env =
+           Semgrep_generic.match_e_e rule cache pat eorig in
          matches_with_env <> []
       )
 (*e: function [[Tainting_generic.match_pat_instr]] *)
@@ -87,31 +89,37 @@ let config_of_rule found_tainted_sink rule =
 let check rules file ast =
   let matches = ref [] in
 
-  let v = V.mk_visitor { V.default_visitor with
-                         V.kfunction_definition = (fun (_k, _) def ->
-                           let xs = AST_to_IL.stmt def.AST.fbody in
-                           let flow = CFG_build.cfg_of_stmts xs in
+  let v = V.mk_visitor {
+    V.default_visitor with
+    V.kfunction_definition = (fun (_k, _) def ->
+      let xs = AST_to_IL.stmt def.AST.fbody in
+      let flow = CFG_build.cfg_of_stmts xs in
 
-                           rules |> List.iter (fun rule ->
-                             let found_tainted_sink = (fun instr _env ->
-                               Common.push { Pattern_match.
-                                             rule = Tainting_rule.rule_of_tainting_rule rule;
-                                             file;
-                                             code = AST.E (instr.IL.iorig);
-                                             (* todo: use env from sink matching func?  *)
-                                             env = [];
-                                           } matches;
-                             ) in
-                             let config = config_of_rule found_tainted_sink rule in
-                             let mapping = Dataflow_tainting.fixpoint config flow in
-                             ignore (mapping);
-                             (* TODO
-                                         logger#sdebug (DataflowY.mapping_to_str flow
-                                                          (fun () -> "()") mapping);
-                             *)
-                           )
-                         );
-                       } in
+      rules |> List.iter (fun rule ->
+        let found_tainted_sink = (fun instr _env ->
+          let code = AST.E instr.IL.iorig in
+          let location = Lib_AST.range_of_any code in
+          let tokens = lazy (Lib_AST.ii_of_any code) in
+          Common.push {
+            Pattern_match.
+            rule = Tainting_rule.rule_of_tainting_rule rule;
+            file;
+            location;
+            tokens;
+            (* todo: use env from sink matching func?  *)
+            env = [];
+          } matches;
+        ) in
+        let config = config_of_rule found_tainted_sink rule in
+        let mapping = Dataflow_tainting.fixpoint config flow in
+        ignore (mapping);
+        (* TODO
+           logger#sdebug (DataflowY.mapping_to_str flow
+             (fun () -> "()") mapping);
+        *)
+      )
+    );
+  } in
   v (AST.Pr ast);
 
   !matches

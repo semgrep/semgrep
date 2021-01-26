@@ -206,7 +206,6 @@ and while_stmt env level (tok, e, s) =
   let while_format =
     (match env.lang with
      | Lang.PHP | Lang.Lua | Lang.Yaml -> raise Todo
-
      | Lang.Python | Lang.Python2 | Lang.Python3 -> python_while
      | Lang.Java | Lang.C | Lang.Cplusplus | Lang.Csharp | Lang.Kotlin
      | Lang.JSON | Lang.Javascript | Lang.Typescript | Lang.Rust | Lang.R -> c_while
