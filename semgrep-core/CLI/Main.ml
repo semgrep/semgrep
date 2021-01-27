@@ -88,6 +88,8 @@ let profile = ref false
 *)
 let error_recovery = ref false
 (*e: constant [[Main_semgrep_core.error_recovery]] *)
+(* related: Flag_semgrep.debug_matching *)
+let fail_fast = ref false
 
 (* used for -json -profile *)
 let profile_start = ref 0.
@@ -652,7 +654,7 @@ let iter_generic_ast_of_files_and_get_matches_and_exn_to_errors f files =
                       Error_code.OutOfMemory str_opt
                   | _ -> raise Impossible
                  )]
-      | exn ->
+      | exn when not !fail_fast ->
           [], [Error_code.exn_to_error file exn]
     )
   in
@@ -832,29 +834,33 @@ let semgrep_with_real_rules ~with_opt_cache rules files =
    * to debug too-many-matches issues.
    * Common2.write_value matches "/tmp/debug_matches";
   *)
-  if !output_format = Json then begin
-    let flds = json_fields_of_matches_and_errors files matches errs in
-    let flds =
-      if !profile
-      then begin
-        let json = json_of_profile_info () in
-        (* so we don't get also the profile output of Common.main_boilerplate*)
-        Common.profile := Common.ProfNone;
-        flds @ ["profiling", json]
-      end
-      else flds
-    in
-    let s = J.string_of_json (J.Object flds) in
-    logger#info "size of returned JSON string: %d" (String.length s);
-    pr s
-  end
+  match !output_format with
+  | Json ->
+      let flds = json_fields_of_matches_and_errors files matches errs in
+      let flds =
+        if !profile
+        then begin
+          let json = json_of_profile_info () in
+          (* so we don't get also the profile output of Common.main_boilerplate*)
+          Common.profile := Common.ProfNone;
+          flds @ ["profiling", json]
+        end
+        else flds
+      in
+      let s = J.string_of_json (J.Object flds) in
+      logger#info "size of returned JSON string: %d" (String.length s);
+      pr s
+  | Text ->
+      (* the match has already been printed above. We just print errors here *)
+      (* pr (spf "number of errors: %d" (List.length errs)); *)
+      errs |> List.iter (fun err -> pr (E.string_of_error err))
 
 let semgrep_with_real_rules_file ~with_opt_cache rules_file files =
   try
     logger#info "Parsing %s" rules_file;
     let rules = Parse_rule.parse rules_file in
     semgrep_with_real_rules ~with_opt_cache rules files
-  with exn ->
+  with exn when !output_format = Json ->
     logger#debug "exn before exit %s" (Common.exn_to_s exn);
     let json = json_of_exn exn in
     let s = J.string_of_json json in
@@ -1283,6 +1289,8 @@ let options () =
       Flag_parsing.error_recovery := true;
     ),
     " do not stop at first parsing error with -e/-f";
+    "-fail_fast", Arg.Set fail_fast,
+    " stop at first exception (and get a backtrace)";
     (*e: [[Main_semgrep_core.options]] other cases *)
     "-use_parsing_cache", Arg.Set_string use_parsing_cache,
     " <dir> save and use parsed ASTs in a cache at given directory. Caller responsiblity to clear cache";
