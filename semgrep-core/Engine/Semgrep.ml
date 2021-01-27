@@ -209,7 +209,7 @@ let check with_caching hook rules (file, lang, ast) =
     let formula =
       match r.R.formula with
       | R.New f -> f
-      | R.Old _ -> failwith "not supporting old formula style; use Convert"
+      | R.Old oldf -> Convert_rule.convert_formula_old oldf
     in
 
     let (patterns: (R.pattern_id * Pattern.t) list) =
