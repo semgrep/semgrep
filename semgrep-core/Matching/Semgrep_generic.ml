@@ -195,18 +195,18 @@ let match_rules_and_recurse (file, hook, matches) rules matcher k any x =
   (* try the rules on substatements and subexpressions *)
   k x
 
-let must_analyze_statement_bloom_opti_failed bf1 st =
+let must_analyze_statement_bloom_opti_failed pattern_strs st =
   (* if it's empty, meaning we were not able to extract any useful specific
    * identifiers or strings from the pattern, then the pattern is too general
    * and we must analyze the stmt
   *)
-  Bloom_filter.is_empty bf1
+  List.length pattern_strs = 0
   ||
   match st.s_bf with
   (* No bloom filter, probably forgot calls to Bloom_annotation.annotate *)
   | None -> true
   (* only when the Bloom_filter says No we can skip the stmt *)
-  | Some bf2 -> Bloom_filter.is_subset bf1 bf2 = Bloom_filter.Maybe
+  | Some bf -> Bloom_filter.is_subset pattern_strs bf = Bloom_filter.Maybe
 
 (*****************************************************************************)
 (* Main entry point *)
@@ -264,11 +264,11 @@ let check2 ~hook ~with_caching rules equivs file lang ast =
       in
       match any with
       | E pattern  ->
-          let bf = Bloom_annotation.bloom_of_expr pattern in
-          Common.push (pattern, bf, rule, cache) expr_rules
+          let strs = Bloom_annotation.list_of_pattern_strings any in
+          Common.push (pattern, strs, rule, cache) expr_rules
       | S pattern ->
-          let bf = Bloom_annotation.bloom_of_stmt pattern in
-          Common.push (pattern, bf, rule, cache) stmt_rules
+          let strs = Bloom_annotation.list_of_pattern_strings any in
+          Common.push (pattern, strs, rule, cache) stmt_rules
       | Ss pattern -> Common.push (pattern, rule, cache) stmts_rules
       | T pattern -> Common.push (pattern, rule, cache) type_rules
       | P pattern -> Common.push (pattern, rule, cache) pattern_rules
@@ -313,18 +313,18 @@ let check2 ~hook ~with_caching rules equivs file lang ast =
            * but inlined to handle specially Bloom filter in stmts for now.
           *)
           let new_stmt_rules =
-            !stmt_rules |> List.filter (fun (_, bf, _, _cache) ->
-              must_analyze_statement_bloom_opti_failed bf x
+            !stmt_rules |> List.filter (fun (_, pattern_strs, _, _cache) ->
+              must_analyze_statement_bloom_opti_failed pattern_strs x
             )
           in
           let new_expr_rules =
-            !expr_rules |> List.filter (fun (_, bf, _, _cache) ->
-              must_analyze_statement_bloom_opti_failed bf x
+            !expr_rules |> List.filter (fun (_, pattern_strs, _, _cache) ->
+              must_analyze_statement_bloom_opti_failed pattern_strs x
             )
           in
           Common.save_excursion stmt_rules new_stmt_rules (fun () ->
             Common.save_excursion expr_rules new_expr_rules (fun () ->
-              !stmt_rules |> List.iter (fun (pattern, _bf, rule, cache) ->
+              !stmt_rules |> List.iter (fun (pattern, _pattern_strs, rule, cache) ->
                 let matches_with_env = match_st_st rule cache pattern x in
                 if matches_with_env <> []
                 then (* Found a match *)

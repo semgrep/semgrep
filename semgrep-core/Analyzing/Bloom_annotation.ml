@@ -53,12 +53,15 @@ open AST_generic
 *)
 
 let push v (l : 'a list ref) = Common.push v l
+;;
 
 let push_list vs (l : 'a list ref) =
   l := vs @ (!l)
+;;
 
 let add_all_to_bloom ids bf =
   List.iter (fun id -> B.add id bf) ids
+;;
 
 (*****************************************************************************)
 (* Traversal methods *)
@@ -76,6 +79,7 @@ let add_all_to_bloom ids bf =
 
 let rec statement_strings stmt =
   let res = ref [] in
+  let top_level = ref true in
   let visitor = V.mk_visitor {
     V.default_visitor with
     V.kident = (fun (_k, _) (str, _tok) ->
@@ -95,16 +99,21 @@ let rec statement_strings stmt =
        | _ -> k x
       )
     );
-    V.kstmt = (fun (_k, _) x ->
-      let strs = statement_strings x in
-      let bf = B.create () in
-      add_all_to_bloom strs bf;
-      push_list strs res;
-      x.s_bf <- Some (bf)
+    V.kstmt = (fun (k, _) x ->
+      (* First statement visited is the current statement *)
+      if !top_level then (top_level := false; k x)
+      else
+        (* For any other statement, recurse to add the filter *)
+        (let strs = statement_strings x in
+         let bf = B.create () in
+         add_all_to_bloom strs bf;
+         push_list strs res;
+         x.s_bf <- Some (bf))
     );
   } in
   visitor (S stmt);
   !res
+;;
 
 (*****************************************************************************)
 (* Analyze the pattern *)
@@ -134,6 +143,7 @@ let list_of_pattern_strings any =
   } in
   visitor any;
   !res
+;;
 
 (*****************************************************************************)
 (* Analyze the code *)
@@ -150,4 +160,5 @@ let annotate_program ast =
       x.s_bf <- Some (bf);
     );
   } in
-  visitor ast
+  visitor (Ss ast);
+;;
