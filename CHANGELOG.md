@@ -10,6 +10,42 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Fixed
 
+## [0.39.1](https://github.com/returntocorp/semgrep/releases/tag/v0.39.1) - 2021-01-26
+
+No new changes in this version.
+This is a re-release of 0.39.0 due to an error in the release process.
+
+## [0.39.0](https://github.com/returntocorp/semgrep/releases/tag/v0.39.0) - 2021-01-26
+
+### Added
+
+- Typed metavariables in C.
+  Patterns like `$X == $Y` can now match specific types like so: `(char *$X) == $Y`. (#2431)
+
+#### Added in `semgrep-core` only
+
+These features are not yet available via the `semgrep` CLI,
+but have been added to the internal `semgrep-core` binary.
+
+- `semgrep-core` supports rules in JSON and Jsonnet format. (#2428)
+- `semgrep-core` supports a new nested format
+  for combining patterns into a boolean query. (#2430)
+
+### Changed
+
+- When an unknown language is set on a rule,
+  the error message now lists all supported languages. (#2448)
+- When semgrep is executed without a config specified,
+  the error message now includes some suggestions on how to pick a config. (#2449)
+- `-c` is the new shorthand for `--config` in the CLI.
+  `-f` is kept as an alias for backward-compatibility. (#2447)
+
+### Fixed
+
+- Disable timeouts if timeout setting is 0 (#2423).
+- Typed metavariables in go match literal strings (#2401).
+- Fix bug that caused m_compatible_type to only bind the type (#2441).
+
 ## [0.38.0](https://github.com/returntocorp/semgrep/releases/tag/v0.38.0) - 2021-01-20
 
 ### Added
@@ -22,7 +58,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Parse more C# constructs: Linq queries, type parameter constraints (#2378, #2408)
   thanks to Sjord!
 - new experimental semgrep rule (meta)linter (#2420) with semgrep-core -check_rules
-  
+
 
 ### Changed
 - new controlflow-sensitive intraprocedural dataflow-based constant propagation
