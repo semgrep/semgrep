@@ -1223,7 +1223,7 @@ let all_actions () = [
   Common.mk_action_2_arg Datalog_experiment.gen_facts;
   "-eval", " <JSON file>",
   Common.mk_action_1_arg Eval_generic.eval_json_file;
-]
+] @ Test_analyze_generic.actions()
 
 (*e: function [[Main_semgrep_core.all_actions]] *)
 
