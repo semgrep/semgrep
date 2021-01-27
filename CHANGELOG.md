@@ -19,17 +19,26 @@ This is a re-release of 0.39.0 due to an error in the release process.
 
 ### Added
 
-- Support rules in JSON or JSonnet format (#2428).
-- Support new nested format for combining patterns into a boolean
-  query (#2430).
-- Add typed metavariables for C (#2431).
-- Add CLI alias -c for --config, keep -f (#2447).
-- Helpful output when config is not specified (#2449).
-- Show supported languages on error (#2448).
+- Typed metavariables in C.
+  Patterns like `$X == $Y` can now match specific types like so: `(char *$X) == $Y`. (#2431)
+
+#### Added in `semgrep-core` only
+
+These features are not yet available via the `semgrep` CLI,
+but have been added to the internal `semgrep-core` binary.
+
+- `semgrep-core` supports rules in JSON and Jsonnet format. (#2428)
+- `semgrep-core` supports a new nested format
+  for combining patterns into a boolean query. (#2430)
 
 ### Changed
 
-none
+- When an unknown language is set on a rule,
+  the error message now lists all supported languages. (#2448)
+- When semgrep is executed without a config specified,
+  the error message now includes some suggestions on how to pick a config. (#2449)
+- `-c` is the new shorthand for `--config` in the CLI.
+  `-f` is kept as an alias for backward-compatibility. (#2447)
 
 ### Fixed
 
