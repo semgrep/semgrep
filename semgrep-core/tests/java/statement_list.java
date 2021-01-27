@@ -4,7 +4,7 @@ class Bar {
 
         //myBoolean == myBoolean;
 
-        // ruleid:assignment-comparison
+        // ruleid assignment-comparison
         if (myBoolean = true) {
             continue;
 	}
