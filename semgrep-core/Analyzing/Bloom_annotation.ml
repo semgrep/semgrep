@@ -77,6 +77,11 @@ let special_literal str =
   str = "..." || (* Matching_generic. *)is_regexp_string str
 ;;
 
+(* TODO: the second bit is a hack because my regexp skills are not great *)
+let special_ident str =
+  AST_generic_.is_metavar_name str || (String.length str > 4 && (String.sub str 0 4) = "$...") || is_regexp_string str
+;;
+
 (* Use a visitor_AST to extract the strings from all identifiers,
  * and from all literals for now, except all semgrep stuff:
  *  - identifier which are metavariables
@@ -95,7 +100,7 @@ let rec statement_strings stmt =
   let visitor = V.mk_visitor {
     V.default_visitor with
     V.kident = (fun (_k, _) (str, _tok) ->
-      if not (AST_generic_.is_metavar_name str) then
+      if not (special_ident str) then
         push str res
     );
     V.kexpr = (fun (k, _) x ->
@@ -104,11 +109,15 @@ let rec statement_strings stmt =
         * atoms, chars, even int?
        *)
        | L (String (str, _tok)) ->
-           if not (special_literal str) then
-             push str res
-       (* do not recurse there, the type does not have to be in the source *)
-       | TypedMetavar _ ->
-           ()
+           if not (special_literal str) then push str res
+       | TypedMetavar _ -> ()
+       | _ -> k x
+      )
+    );
+    V.kconstness = (fun (k, _) x ->
+      (match x with
+       | Lit (String (str, _tok)) ->
+           if not (special_literal str) then push str res
        | _ -> k x
       )
     );
@@ -138,7 +147,7 @@ let list_of_pattern_strings any =
   let visitor = V.mk_visitor {
     V.default_visitor with
     V.kident = (fun (_k, _) (str, _tok) ->
-      if not (AST_generic_.is_metavar_name str) then
+      if not (special_ident str) then
         push str res
     );
     V.kexpr = (fun (k, _) x ->
@@ -149,13 +158,10 @@ let list_of_pattern_strings any =
        | L (String (str, _tok)) ->
            if not (special_literal str) then
              push str res
-       (* do not recurse there, the type does not have to be in the source *)
-       | TypedMetavar _ ->
-           ()
+       | TypedMetavar _ -> ()
        | _ -> k x
       )
     );
-    V.kid_info = (fun (k, _) x -> k x);
   } in
   visitor any;
   !res

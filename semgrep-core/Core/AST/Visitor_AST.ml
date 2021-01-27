@@ -49,7 +49,9 @@ type visitor_in = {
     class_definition -> unit;
 
   kinfo: (tok -> unit) * visitor_out -> tok -> unit;
+
   kid_info: (id_info -> unit) * visitor_out -> id_info -> unit;
+  kconstness: (constness -> unit) * visitor_out -> constness -> unit;
 }
 and visitor_out = any -> unit
 
@@ -84,7 +86,8 @@ let default_visitor =
         } = x in
       let arg = v_ref_do_not_visit (v_option (fun _ -> ())) v_id_resolved in
       let arg = v_ref_do_not_visit (v_option (fun _ -> ())) v_id_type in ()
-    )
+    );
+    kconstness = (fun (k,_) x -> k x);
   }
 
 let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
@@ -305,11 +308,12 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
   and v_const_type =
     function | Cbool -> () | Cint -> () | Cstr -> () | Cany -> ()
 
-  and v_constness =
-    function
-    | Lit v1 -> let v1 = v_literal v1 in ()
-    | Cst v1 -> let v1 = v_const_type v1 in ()
-    | NotCst -> ()
+  and v_constness x =
+    let k = function
+      | Lit v1 -> let v1 = v_literal v1 in ()
+      | Cst v1 -> let v1 = v_const_type v1 in ()
+      | NotCst -> ()
+    in vin.kconstness (k, all_functions) x
 
   and v_container_operator =
     function | Array -> () | List -> () | Set -> () | Dict -> ()
