@@ -15,6 +15,7 @@
 module B = Bloom_filter
 module V = Visitor_AST
 open AST_generic
+open Common
 
 (*****************************************************************************)
 (* Prelude *)
@@ -67,6 +68,15 @@ let add_all_to_bloom ids bf =
 (* Traversal methods *)
 (*****************************************************************************)
 
+(* TODO probably would rather not replicate code *)
+let regexp_regexp_string = "^=~/\\(.*\\)/\\([mi]?\\)$"
+let is_regexp_string s =
+  s =~ regexp_regexp_string
+
+let special_literal str =
+  str = "..." || (* Matching_generic. *)is_regexp_string str
+;;
+
 (* Use a visitor_AST to extract the strings from all identifiers,
  * and from all literals for now, except all semgrep stuff:
  *  - identifier which are metavariables
@@ -92,7 +102,8 @@ let rec statement_strings stmt =
         * atoms, chars, even int?
        *)
        | L (String (str, _tok)) ->
-           push str res
+           if not (special_literal str) then
+             push str res
        (* do not recurse there, the type does not have to be in the source *)
        | TypedMetavar _ ->
            ()
@@ -133,7 +144,8 @@ let list_of_pattern_strings any =
         * atoms, chars, even int?
        *)
        | L (String (str, _tok)) ->
-           push str res
+           if not (special_literal str) then
+             push str res
        (* do not recurse there, the type does not have to be in the source *)
        | TypedMetavar _ ->
            ()
