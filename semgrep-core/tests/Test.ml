@@ -17,7 +17,6 @@ let verbose = ref false
 (*e: constant [[Test.verbose]] *)
 
 (*s: constant [[Test.dump_ast]] *)
-let dump_ast = ref false
 (*e: constant [[Test.dump_ast]] *)
 
 (*s: constant [[Test.tests_path]] *)
@@ -386,29 +385,9 @@ let test regexp =
 (*****************************************************************************)
 (* Extra actions *)
 (*****************************************************************************)
-module FT = File_type
-
 (*s: function [[Test.ast_generic_of_file]] *)
-let ast_generic_of_file file =
- let typ = File_type.file_type_of_file file in
- match typ with
- | FT.PL (FT.Web (FT.Js)) ->
-    let ast = Parse_js.parse_program file in
-    Js_to_generic.program ast
- | FT.PL (FT.Python) ->
-    let ast = Parse_python.parse_program file in
-    Resolve_python.resolve ast;
-    Python_to_generic.program ast
- | _ -> failwith (spf "file type not supported for %s" file)
 (*e: function [[Test.ast_generic_of_file]] *)
-
 (*s: function [[Test.dump_ast_generic]] *)
-(* copy paste of code in pfff/main_test.ml *)
-let dump_ast_generic file =
-  let ast = ast_generic_of_file file in
-  let v = Meta_AST.vof_any (AST_generic.Pr ast) in
-  let s = OCaml.string_of_v v in
-  pr2 s
 (*e: function [[Test.dump_ast_generic]] *)
 
 (*****************************************************************************)
@@ -419,8 +398,6 @@ let dump_ast_generic file =
 let options = [
   "-verbose", Arg.Set verbose,
   " verbose mode";
-  "-dump_ast", Arg.Set dump_ast,
-  " <file> dump the generic Abstract Syntax Tree of a file";
   ]
 (*e: constant [[Test.options]] *)
 
@@ -441,7 +418,6 @@ let main () =
 
   (match List.rev !args with
   | [] -> test "all"
-  | [file] when !dump_ast -> dump_ast_generic file
   | [x] -> test x
   | _::_::_ ->
     print_string "too many arguments\n";
