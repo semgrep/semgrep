@@ -1,0 +1,5 @@
+// https://github.com/returntocorp/semgrep/issues/877
+interface $INTERFACE extends Remote {
+  ...
+  $RETURNTYPE $METHOD(Object $PARAM) throws RemoteException;
+}
