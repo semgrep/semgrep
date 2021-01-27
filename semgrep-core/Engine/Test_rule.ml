@@ -83,5 +83,9 @@ let test_rules xs =
     actual_errors |> List.iter (fun e ->
       logger#info "found error: %s" (E.string_of_error e)
     );
-    E.compare_actual_to_expected actual_errors expected_error_lines
+    try
+      E.compare_actual_to_expected actual_errors expected_error_lines
+    with (OUnitTest.OUnit_failure s) ->
+      pr2 s;
+      ()
   )
