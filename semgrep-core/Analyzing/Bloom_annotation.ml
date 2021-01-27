@@ -79,7 +79,7 @@ let rec statement_strings stmt =
   let visitor = V.mk_visitor {
     V.default_visitor with
     V.kident = (fun (_k, _) (str, _tok) ->
-      if not Metavariable.is_metavar_name then
+      if not (AST_generic_.is_metavar_name str) then
         push str res
     );
     V.kexpr = (fun (k, _) x ->
@@ -88,7 +88,7 @@ let rec statement_strings stmt =
         * atoms, chars, even int?
        *)
        | L (String (str, _tok)) ->
-           Common.push str res
+           push str res
        (* do not recurse there, the type does not have to be in the source *)
        | TypedMetavar _ ->
            ()
@@ -110,22 +110,30 @@ let rec statement_strings stmt =
 (* Analyze the pattern *)
 (*****************************************************************************)
 
-let bloom_of_expr _e =
-  B.create ()
-
-let bloom_of_stmt _st =
-  B.create ()
-
-(* TODO: what I think makes more sense
-   let set_of_pattern any =
-   let visitor = V.mk_visitor {
+let list_of_pattern_strings any =
+  let res = ref [] in
+  let visitor = V.mk_visitor {
     V.default_visitor with
-    V.kident = (fun (_k, _) x ->
-      add ident string to set
+    V.kident = (fun (_k, _) (str, _tok) ->
+      if not (AST_generic_.is_metavar_name str) then
+        push str res
     );
-   } in
-   visitor ast
-*)
+    V.kexpr = (fun (k, _) x ->
+      (match x with
+       (* less: we could extract strings for the other literals too?
+        * atoms, chars, even int?
+       *)
+       | L (String (str, _tok)) ->
+           push str res
+       (* do not recurse there, the type does not have to be in the source *)
+       | TypedMetavar _ ->
+           ()
+       | _ -> k x
+      )
+    );
+  } in
+  visitor any;
+  !res
 
 (*****************************************************************************)
 (* Analyze the code *)

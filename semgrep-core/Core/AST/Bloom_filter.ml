@@ -45,6 +45,10 @@ let mem elt bf =
   if B.mem bf.filter elt then Maybe
   else No
 
-(* TODO I think this should be is_subset pattern_set bf *)
-let is_subset _bf1 _bf2 =
-  Maybe
+let is_subset pattern_list bf =
+  let propagate_match b x =
+    match b with
+    | No -> No
+    | Maybe -> mem x bf
+  in
+  List.fold_left propagate_match Maybe pattern_list
