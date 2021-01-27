@@ -26,6 +26,7 @@ type t =
   | JSON | Yaml
   (*e: type [[Lang.t]] *)
 val pp: Format.formatter -> t -> unit
+val show: t -> string
 
 (*s: signature [[Lang.lang_of_string_map]] *)
 val lang_of_string_map: (string, t) Hashtbl.t

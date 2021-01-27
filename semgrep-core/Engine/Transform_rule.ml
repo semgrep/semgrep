@@ -16,4 +16,17 @@
 *)
 (*e: pad/r2c copyright *)
 
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+(* The goal of this module is to transform rules mainly for optimization
+ * purpose, a bit like a database engine can "compile" SQL queries
+ * in the best execution plan.
+ *
+*)
+
+(*****************************************************************************)
+(* Entry points *)
+(*****************************************************************************)
+
 (*e: semgrep/engine/Transform_rule.ml *)

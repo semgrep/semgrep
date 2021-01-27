@@ -85,7 +85,7 @@ let mk_xpat pat pstr =
 *)
 type formula =
   | P of xpattern (* a leaf pattern *)
-  | MetavarCond of AST_generic.expr (* see Eval_generic.ml *)
+  | MetavarCond of metavar_cond
 
   | And of formula list
   | Or of formula list
@@ -93,6 +93,8 @@ type formula =
    * should always be inside an And to be intersected with "positive" formula
   *)
   | Not of formula
+
+and metavar_cond = AST_generic.expr (* see Eval_generic.ml *)
 
 [@@deriving show, eq]
 
