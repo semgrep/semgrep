@@ -6,6 +6,7 @@
 
    semgrep_core
    semgrep_matching
+   semgrep_parsing semgrep_reporting ; for Test_rule.ml
  )
  (preprocess (pps ppx_profiling))
 )

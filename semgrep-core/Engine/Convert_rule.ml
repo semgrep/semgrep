@@ -15,5 +15,38 @@
  * license.txt for more details.
 *)
 (*e: pad/r2c copyright *)
+open Common
+
+open Rule
+
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+(* The goal of this module is to convert rules in whatever format to
+ * the latest format. Its main goal is to maintain backward compatibility.
+ * For actual optimizations or complex transformations on rules, see
+ * Transform_rule.ml.
+ *
+*)
+
+(*****************************************************************************)
+(* Entry points *)
+(*****************************************************************************)
+
+let (convert_formula_old: formula_old -> formula) = fun e ->
+  let rec aux e =
+    match e with
+    | Pat x | PatInside x -> P x
+    | PatNot x | PatNotInside x -> Not (P x)
+    | PatEither xs ->
+        let xs = List.map aux xs in
+        Or xs
+    | Patterns xs ->
+        let xs = List.map aux xs in
+        And xs
+    | PatExtra _ ->
+        failwith (spf "convert_formula_old: TODO: %s" (Rule.show_formula_old e))
+  in
+  aux e
 
 (*e: semgrep/engine/Convert_rule.ml *)
