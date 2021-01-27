@@ -200,16 +200,13 @@ let must_analyze_statement_bloom_opti_failed pattern_strs st =
    * identifiers or strings from the pattern, then the pattern is too general
    * and we must analyze the stmt
   *)
-  (* Common.pr2 ("******* patterns: "); List.iter Common.pr2 pattern_strs; *)
   List.length pattern_strs = 0
   ||
   match st.s_bf with
   (* No bloom filter, probably forgot calls to Bloom_annotation.annotate *)
-  | None -> (* Common.pr2 "hmmm\n"; *) true
+  | None -> true
   (* only when the Bloom_filter says No we can skip the stmt *)
-  | Some bf -> let result = Bloom_filter.is_subset pattern_strs bf in
-      (* let () = ( Common.pr2 ("******* matches = " ^ (match result with | Bloom_filter.No -> "no" | _ -> "maybe"))) in *)
-      result = Bloom_filter.Maybe
+  | Some bf -> Bloom_filter.is_subset pattern_strs bf = Bloom_filter.Maybe
 
 (*****************************************************************************)
 (* Main entry point *)
@@ -315,7 +312,6 @@ let check2 ~hook ~with_caching rules equivs file lang ast =
            *   !stmt_rules match_st_st k (fun x -> S x) x
            * but inlined to handle specially Bloom filter in stmts for now.
           *)
-          (* Common.pr2 ("\n\n------------------------- Viewing\n " ^ (AST_generic.show_any (S x))); *)
           let new_stmt_rules =
             !stmt_rules |> List.filter (fun (_, pattern_strs, _, _cache) ->
               must_analyze_statement_bloom_opti_failed pattern_strs x

@@ -95,8 +95,6 @@ let special_ident str =
 let rec statement_strings stmt =
   let res = ref [] in
   let top_level = ref true in
-  (* pr2 "****************\n";
-     pr2 (AST_generic.show_any (S stmt)); *)
   let visitor = V.mk_visitor {
     V.default_visitor with
     V.kident = (fun (_k, _) (str, _tok) ->
