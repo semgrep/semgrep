@@ -15,6 +15,7 @@
  * license.txt for more details.
 *)
 (*e: pad/r2c copyright *)
+open Common
 
 module R = Rule
 module MR = Mini_rule
@@ -145,7 +146,23 @@ let (match_result_to_range: Pattern_match.t -> range_with_mvars) =
   let r = Range.range_of_token_locations start_loc end_loc in
   { r; mvars; origin = m; }
 
+(* return list of "positive" x list of Not x list of Conds *)
+let (split_and:
+       R.formula list -> R.formula list * R.formula list * R.metavar_cond list) =
+  fun xs ->
+  xs |> Common.partition_either3 (fun e ->
+    match e with
+    | R.Not f -> Middle3 f
+    | R.MetavarCond c -> Right3 c
+    | _ -> Left3 e
+  )
+
+(*****************************************************************************)
+(* Logic on ranges *)
+(*****************************************************************************)
+
 open Range
+
 (* TODO: also check metavariables! *)
 let intersect_ranges xs ys =
   let surviving_xs =
@@ -160,6 +177,16 @@ let intersect_ranges xs ys =
       ))
   in
   surviving_xs @ surviving_ys
+
+let difference_ranges pos neg =
+  let surviving_pos =
+    pos |> List.filter (fun x ->
+      not (neg |> List.exists (fun y ->
+        x.r $<=$ y.r
+      ))
+    )
+  in
+  surviving_pos
 
 (*****************************************************************************)
 (* Formula evaluation *)
@@ -178,24 +205,26 @@ let rec (evaluate_formula:
   | R.Or xs ->
       xs |> List.map (evaluate_formula h) |> List.flatten
   | R.And xs ->
-      (* TODO: should order the not after the positive *)
-      (match xs with
-       | [] -> failwith "empty And"
-       | x::xs ->
-           let start = evaluate_formula h x in
-           let rec aux acc xs =
-             match xs with
-             | [] -> acc
-             | x::xs ->
-                 let other = evaluate_formula h x in
-                 let new_acc = intersect_ranges acc other in
-                 aux new_acc xs
-           in
-           aux start xs
+      let pos, neg, conds = split_and xs in
+      (match pos with
+       | [] -> failwith "empty And; no positive terms in And"
+       | start::pos ->
+           let res = evaluate_formula h start in
+           let res = pos |> List.fold_left (fun acc x ->
+             intersect_ranges acc (evaluate_formula h x)
+           ) res in
+           let res = neg |> List.fold_left (fun acc x ->
+             difference_ranges acc (evaluate_formula h x)
+           ) res in
+           let res = conds |> List.fold_left (fun _acc _cond ->
+             failwith "Todo conds"
+           ) res in
+           res
       )
-  | R.Not _ -> failwith "Invalid Not; you can only negate inside an and."
-
-  | R.MetavarCond _ -> failwith "TODO: MetavarCond"
+  | R.Not _ ->
+      failwith "Invalid Not; you can only negate inside an And"
+  | R.MetavarCond _ ->
+      failwith "Invalid MetavarCond; you can MetavarCond only inside an And"
 
 (*****************************************************************************)
 (* Main entry point *)
