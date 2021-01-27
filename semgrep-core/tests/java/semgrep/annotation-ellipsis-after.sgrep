@@ -1,0 +1,4 @@
+@Annot(kw=arg,...)
+public class Foo {
+
+}

@@ -344,6 +344,10 @@ let test regexp =
       (* just expression vs expression testing for one language (Python) *)
       Unit_matcher.unittest ~any_gen_of_string;
       Unit_synthesizer.unittest;
+      Unit_dataflow.unittest;
+      Unit_typing_generic.unittest;
+      Unit_naming_generic.unittest;
+
       lang_parsing_tests;
       (* full testing for many languages *)
       lang_regression_tests ~with_caching:false;
