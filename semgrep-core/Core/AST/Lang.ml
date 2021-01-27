@@ -164,7 +164,7 @@ let ext_of_lang = function
   | Java -> ["java"]
   | C -> ["c"]
   | Cplusplus -> ["cc";"cpp"]
-  | OCaml -> ["mli"; "ml"] (* this is not parsed yet: "mly"; "mll" *)
+  | OCaml -> ["ml"; "mli"] (* this is not parsed yet: "mly"; "mll" *)
   | Go -> ["go"]
   | Ruby -> ["rb"]
   | Csharp -> ["cs"]

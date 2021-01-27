@@ -1218,11 +1218,12 @@ let all_actions () = [
   Common.mk_action_n_arg (fun xs ->
     Test_parsing.test_parse_tree_sitter !lang xs);
 
-  "-test_parse_rules", " <files or dirs>",
-  Common.mk_action_n_arg Test_parsing.test_parse_rules;
-
   "-check_rules", " <files or dirs>",
   Common.mk_action_n_arg check_rules;
+  "-test_rules", " <files or dirs>",
+  Common.mk_action_n_arg Test_rule.test_rules;
+  "-parse_rules", " <files or dirs>",
+  Common.mk_action_n_arg Test_parsing.test_parse_rules;
 
 
   "-datalog_experiment", " <file> <dir>",
