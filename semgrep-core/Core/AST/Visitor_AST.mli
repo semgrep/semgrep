@@ -28,6 +28,7 @@ type visitor_in = {
     class_definition -> unit;
 
   kinfo: (tok -> unit)  * visitor_out -> tok  -> unit;
+  kid_info: (id_info -> unit) * visitor_out -> id_info -> unit;
 }
 (*e: type [[Visitor_AST.visitor_in]] *)
 (* note that internally the visitor uses OCaml.v_ref_do_not_visit *)

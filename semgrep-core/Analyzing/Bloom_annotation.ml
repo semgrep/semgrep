@@ -90,6 +90,8 @@ let special_literal str =
 let rec statement_strings stmt =
   let res = ref [] in
   let top_level = ref true in
+  (* pr2 "****************\n";
+     pr2 (AST_generic.show_any (S stmt)); *)
   let visitor = V.mk_visitor {
     V.default_visitor with
     V.kident = (fun (_k, _) (str, _tok) ->
@@ -110,6 +112,7 @@ let rec statement_strings stmt =
        | _ -> k x
       )
     );
+    V.kid_info = (fun (k, _) x -> k x);
     V.kstmt = (fun (k, _) x ->
       (* First statement visited is the current statement *)
       if !top_level then (top_level := false; k x)
@@ -152,6 +155,7 @@ let list_of_pattern_strings any =
        | _ -> k x
       )
     );
+    V.kid_info = (fun (k, _) x -> k x);
   } in
   visitor any;
   !res

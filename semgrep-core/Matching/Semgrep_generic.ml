@@ -208,7 +208,7 @@ let must_analyze_statement_bloom_opti_failed pattern_strs st =
   | None -> (* Common.pr2 "hmmm\n"; *) true
   (* only when the Bloom_filter says No we can skip the stmt *)
   | Some bf -> let result = Bloom_filter.is_subset pattern_strs bf in
-      (* let () = (Common.pr2 ("******* matches = " ^ (match result with | Bloom_filter.No -> "no" | _ -> "maybe"))) in *)
+      (* let () = ( Common.pr2 ("******* matches = " ^ (match result with | Bloom_filter.No -> "no" | _ -> "maybe"))) in *)
       result = Bloom_filter.Maybe
 
 (*****************************************************************************)
