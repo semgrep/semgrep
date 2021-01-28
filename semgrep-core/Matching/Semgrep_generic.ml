@@ -195,21 +195,6 @@ let match_rules_and_recurse (file, hook, matches) rules matcher k any x =
   (* try the rules on substatements and subexpressions *)
   k x
 
-let must_analyze_statement_bloom_opti_failed _pattern_strs _st = true
-(* if it's empty, meaning we were not able to extract any useful specific
- * identifiers or strings from the pattern, then the pattern is too general
- * and we must analyze the stmt
-*)
-(* List.length pattern_strs = 0
-   Bloom_filter.is_empty bf1
-   ||
-   match st.s_bf with
-   (* No bloom filter, probably forgot calls to Bloom_annotation.annotate *)
-   | None -> true
-   (* only when the Bloom_filter says No we can skip the stmt *)
-   | Some bf -> Bloom_filter.is_subset pattern_strs bf = Bloom_filter.Maybe
-   | Some bf2 -> Bloom_filter.is_subset bf1 bf2 = Bloom_filter.Maybe *)
-
 (*****************************************************************************)
 (* Main entry point *)
 (*****************************************************************************)
@@ -309,6 +294,7 @@ let check2 ~hook ~with_caching rules equivs file lang ast =
         (*x: [[Semgrep_generic.check2()]] visitor fields *)
         (* mostly copy paste of expr code but with the _st functions *)
         V.kstmt = (fun (k, _) x ->
+          (* Common.pr2 ("\n\nstmt: " ^ (AST_generic.show_any (S x))); *)
           (* old:
            *   match_rules_and_recurse (file, hook, matches)
            *   !stmt_rules match_st_st k (fun x -> S x) x
@@ -316,14 +302,18 @@ let check2 ~hook ~with_caching rules equivs file lang ast =
           *)
           let new_stmt_rules =
             !stmt_rules |> List.filter (fun (_, pattern_strs, _, _cache) ->
-              must_analyze_statement_bloom_opti_failed pattern_strs x
+              GG.must_analyze_statement_bloom_opti_failed pattern_strs x
             )
           in
           let new_expr_rules =
             !expr_rules |> List.filter (fun (_, pattern_strs, _, _cache) ->
-              must_analyze_statement_bloom_opti_failed pattern_strs x
+              GG.must_analyze_statement_bloom_opti_failed pattern_strs x
             )
           in
+          (*
+          Common.pr2 ("stmt_rules: " ^ (List.fold_left (fun acc -> fun (st, _, _, _) -> acc ^ (AST_generic.show_any (S st))) "" new_stmt_rules));
+          Common.pr2 ("expr_rules: " ^ (List.fold_left (fun acc -> fun (ex, _, _, _) -> acc ^ (AST_generic.show_any (E ex))) "" new_expr_rules));
+          *)
           Common.save_excursion stmt_rules new_stmt_rules (fun () ->
             Common.save_excursion expr_rules new_expr_rules (fun () ->
               !stmt_rules |> List.iter (fun (pattern, _pattern_strs, rule, cache) ->

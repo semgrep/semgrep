@@ -141,6 +141,17 @@ let rec all_suffix_of_list xs =
 let _ = Common2.example
     (all_suffix_of_list [1;2;3] = ([[1;2;3]; [2;3]; [3]; []]))
 
+let must_analyze_statement_bloom_opti_failed pattern_strs (st : AST_generic.stmt) =
+  (* if it's empty, meaning we were not able to extract any useful specific
+   * identifiers or strings from the pattern, then the pattern is too general
+   * and we must analyze the stmt
+  *)
+  match st.s_bf with
+  (* No bloom filter, probably forgot calls to Bloom_annotation.annotate *)
+  | None -> true
+  (* only when the Bloom_filter says No we can skip the stmt *)
+  | Some bf -> Bloom_filter.is_subset pattern_strs bf = Bloom_filter.Maybe
+
 (*****************************************************************************)
 (* Name *)
 (*****************************************************************************)
@@ -1643,143 +1654,152 @@ and m_list__m_stmt_uncached ~flattened (xsa: A.stmt list) (xsb: A.stmt list) =
 
 (*s: function [[Generic_vs_generic.m_stmt]] *)
 and m_stmt a b =
-  match a.s, b.s with
-  (* the order of the matches matters! take care! *)
-  (*s: [[Generic_vs_generic.m_stmt()]] disjunction case *)
-  (* equivalence: user-defined equivalence! *)
-  | A.DisjStmt (a1, a2), _b ->
-      m_stmt a1 b >||> m_stmt a2 b
-  (*e: [[Generic_vs_generic.m_stmt()]] disjunction case *)
-  (*s: [[Generic_vs_generic.m_stmt()]] metavariable case *)
-  (* metavar: *)
-  | A.ExprStmt(A.Id ((str,tok), _id_info), _), _b
-    when MV.is_metavar_name str ->
-      envf (str, tok) (MV.S b)
-  (*e: [[Generic_vs_generic.m_stmt()]] metavariable case *)
-  (*s: [[Generic_vs_generic.m_stmt()]] ellipsis cases *)
-  (* dots: '...' can to match any statememt *)
-  | A.ExprStmt(A.Ellipsis _i, _), _b ->
-      return ()
-  (*x: [[Generic_vs_generic.m_stmt()]] ellipsis cases *)
-  | A.Return(a0, a1, asc), B.Return(b0, b1, bsc) ->
-      let* () = m_tok a0 b0 in
-      let* () = m_option_ellipsis_ok m_expr a1 b1 in
-      m_tok asc bsc
-  (*e: [[Generic_vs_generic.m_stmt()]] ellipsis cases *)
-  (*s: [[Generic_vs_generic.m_stmt()]] deep matching cases *)
-  (* deeper: go deep by default implicitly (no need for explicit <... ...>) *)
-  | A.ExprStmt(a1, a2), B.ExprStmt(b1, b2) ->
-      m_expr_deep a1 b1 >>= (fun () ->
-        m_tok a2 b2
-      )
-  (*x: [[Generic_vs_generic.m_stmt()]] deep matching cases *)
-  (* TODO: ... should also allow a subset of stmts *)
-  | A.Block(a1), B.Block(b1) ->
-      m_bracket (m_stmts_deep ~less_is_ok:false) a1 b1
-  (*e: [[Generic_vs_generic.m_stmt()]] deep matching cases *)
-  (*s: [[Generic_vs_generic.m_stmt()]] builtin equivalences cases *)
-  (* equivalence: vardef ==> assign, and go deep *)
-  | A.ExprStmt (a1, _),
-    B.DefStmt (ent, B.VarDef ({B.vinit = Some _; _} as def)) ->
-      let b1 = H.vardef_to_assign (ent, def) in
-      m_expr_deep a1 b1
-  (*x: [[Generic_vs_generic.m_stmt()]] builtin equivalences cases *)
-  (* equivalence: *)
-  | A.ExprStmt(a1, _), B.Return (_, Some b1, _) ->
-      m_expr_deep a1 b1
-  (*e: [[Generic_vs_generic.m_stmt()]] builtin equivalences cases *)
+  let pattern_strs = Bloom_annotation.list_of_pattern_strings (S a) in
+  if must_analyze_statement_bloom_opti_failed pattern_strs b then
+    begin
+      pr2 "\n\n------------------------ matching ";
+      pr2 (AST_generic.show_any (S a));
+      pr2 "\n------- against ";
+      pr2 (AST_generic.show_any (S b));
+      match a.s, b.s with
+      (* the order of the matches matters! take care! *)
+      (*s: [[Generic_vs_generic.m_stmt()]] disjunction case *)
+      (* equivalence: user-defined equivalence! *)
+      | A.DisjStmt (a1, a2), _b ->
+          m_stmt a1 b >||> m_stmt a2 b
+      (*e: [[Generic_vs_generic.m_stmt()]] disjunction case *)
+      (*s: [[Generic_vs_generic.m_stmt()]] metavariable case *)
+      (* metavar: *)
+      | A.ExprStmt(A.Id ((str,tok), _id_info), _), _b
+        when MV.is_metavar_name str ->
+          envf (str, tok) (MV.S b)
+      (*e: [[Generic_vs_generic.m_stmt()]] metavariable case *)
+      (*s: [[Generic_vs_generic.m_stmt()]] ellipsis cases *)
+      (* dots: '...' can to match any statememt *)
+      | A.ExprStmt(A.Ellipsis _i, _), _b ->
+          return ()
+      (*x: [[Generic_vs_generic.m_stmt()]] ellipsis cases *)
+      | A.Return(a0, a1, asc), B.Return(b0, b1, bsc) ->
+          let* () = m_tok a0 b0 in
+          let* () = m_option_ellipsis_ok m_expr a1 b1 in
+          m_tok asc bsc
+      (*e: [[Generic_vs_generic.m_stmt()]] ellipsis cases *)
+      (*s: [[Generic_vs_generic.m_stmt()]] deep matching cases *)
+      (* deeper: go deep by default implicitly (no need for explicit <... ...>) *)
+      | A.ExprStmt(a1, a2), B.ExprStmt(b1, b2) ->
+          m_expr_deep a1 b1 >>= (fun () ->
+            m_tok a2 b2
+          )
+      (*x: [[Generic_vs_generic.m_stmt()]] deep matching cases *)
+      (* TODO: ... should also allow a subset of stmts *)
+      | A.Block(a1), B.Block(b1) ->
+          m_bracket (m_stmts_deep ~less_is_ok:false) a1 b1
+      (*e: [[Generic_vs_generic.m_stmt()]] deep matching cases *)
+      (*s: [[Generic_vs_generic.m_stmt()]] builtin equivalences cases *)
+      (* equivalence: vardef ==> assign, and go deep *)
+      | A.ExprStmt (a1, _),
+        B.DefStmt (ent, B.VarDef ({B.vinit = Some _; _} as def)) ->
+          let b1 = H.vardef_to_assign (ent, def) in
+          m_expr_deep a1 b1
+      (*x: [[Generic_vs_generic.m_stmt()]] builtin equivalences cases *)
+      (* equivalence: *)
+      | A.ExprStmt(a1, _), B.Return (_, Some b1, _) ->
+          m_expr_deep a1 b1
+      (*e: [[Generic_vs_generic.m_stmt()]] builtin equivalences cases *)
 
-  (* boilerplate *)
-  | A.If(a0, a1, a2, a3), B.If(b0, b1, b2, b3) ->
-      m_tok a0 b0 >>= (fun () ->
-        (* too many regressions doing m_expr_deep by default; Use DeepEllipsis *)
-        m_expr a1 b1 >>= (fun () ->
-          m_block a2 b2 >>= (fun () ->
-            (* less-is-more: *)
-            m_option_none_can_match_some m_block a3 b3
-          )))
+      (* boilerplate *)
+      | A.If(a0, a1, a2, a3), B.If(b0, b1, b2, b3) ->
+          m_tok a0 b0 >>= (fun () ->
+            (* too many regressions doing m_expr_deep by default; Use DeepEllipsis *)
+            m_expr a1 b1 >>= (fun () ->
+              m_block a2 b2 >>= (fun () ->
+                (* less-is-more: *)
+                m_option_none_can_match_some m_block a3 b3
+              )))
 
-  | A.While(a0, a1, a2), B.While(b0, b1, b2) ->
-      m_tok a0 b0 >>= (fun () ->
-        m_expr a1 b1 >>= (fun () ->
-          m_stmt a2 b2
-        ))
-  (*s: [[Generic_vs_generic.m_stmt]] boilerplate cases *)
-  | A.DefStmt(a1), B.DefStmt(b1) ->
-      m_definition a1 b1
-  | A.DirectiveStmt(a1), B.DirectiveStmt(b1) ->
-      m_directive a1 b1
-  (*x: [[Generic_vs_generic.m_stmt]] boilerplate cases *)
+      | A.While(a0, a1, a2), B.While(b0, b1, b2) ->
+          m_tok a0 b0 >>= (fun () ->
+            m_expr a1 b1 >>= (fun () ->
+              m_stmt a2 b2
+            ))
+      (*s: [[Generic_vs_generic.m_stmt]] boilerplate cases *)
+      | A.DefStmt(a1), B.DefStmt(b1) ->
+          m_definition a1 b1
+      | A.DirectiveStmt(a1), B.DirectiveStmt(b1) ->
+          m_directive a1 b1
+      (*x: [[Generic_vs_generic.m_stmt]] boilerplate cases *)
 
-  | A.DoWhile(a0, a1, a2), B.DoWhile(b0, b1, b2) ->
-      m_tok a0 b0 >>= (fun () ->
-        m_stmt a1 b1 >>= (fun () ->
-          m_expr a2 b2
-        ))
-  | A.For(a0, a1, a2), B.For(b0, b1, b2) ->
-      m_tok a0 b0 >>= (fun () ->
-        m_for_header a1 b1 >>= (fun () ->
-          m_stmt a2 b2
-        ))
-  | A.Switch(at, a1, a2), B.Switch(bt, b1, b2) ->
-      m_tok at bt >>= (fun () ->
-        m_option (m_expr) a1 b1 >>= (fun () ->
-          m_case_clauses a2 b2
-        ))
+      | A.DoWhile(a0, a1, a2), B.DoWhile(b0, b1, b2) ->
+          m_tok a0 b0 >>= (fun () ->
+            m_stmt a1 b1 >>= (fun () ->
+              m_expr a2 b2
+            ))
+      | A.For(a0, a1, a2), B.For(b0, b1, b2) ->
+          m_tok a0 b0 >>= (fun () ->
+            m_for_header a1 b1 >>= (fun () ->
+              m_stmt a2 b2
+            ))
+      | A.Switch(at, a1, a2), B.Switch(bt, b1, b2) ->
+          m_tok at bt >>= (fun () ->
+            m_option (m_expr) a1 b1 >>= (fun () ->
+              m_case_clauses a2 b2
+            ))
 
-  | A.Continue(a0, a1, asc), B.Continue(b0, b1, bsc) ->
-      let* () = m_tok a0 b0 in
-      let* () = m_label_ident a1 b1 in
-      m_tok asc bsc
-  | A.Break(a0, a1, asc), B.Break(b0, b1, bsc) ->
-      let* () = m_tok a0 b0 in
-      let* () = m_label_ident a1 b1 in
-      m_tok asc bsc
-  | A.Label(a1, a2), B.Label(b1, b2) ->
-      m_label a1 b1 >>= (fun () ->
-        m_stmt a2 b2
-      )
-  | A.Goto(a0, a1), B.Goto(b0, b1) ->
-      m_tok a0 b0 >>= (fun () ->
-        m_label a1 b1
-      )
-  | A.Throw(a0, a1, asc), B.Throw(b0, b1, bsc) ->
-      let* () = m_tok a0 b0 in
-      let* () = m_expr a1 b1 in
-      m_tok asc bsc
-  | A.Try(a0, a1, a2, a3), B.Try(b0, b1, b2, b3) ->
-      let* () = m_tok a0 b0 in
-      let* () = m_stmt a1 b1 in
-      let* () = (m_list m_catch) a2 b2 in
-      (m_option m_finally) a3 b3
-  | A.Assert(a0, a1, a2, asc), B.Assert(b0, b1, b2, bsc) ->
-      let* () = m_tok a0 b0 in
-      let* () = m_expr a1 b1 in
-      let* () = (m_option m_expr) a2 b2 in
-      m_tok asc bsc
+      | A.Continue(a0, a1, asc), B.Continue(b0, b1, bsc) ->
+          let* () = m_tok a0 b0 in
+          let* () = m_label_ident a1 b1 in
+          m_tok asc bsc
+      | A.Break(a0, a1, asc), B.Break(b0, b1, bsc) ->
+          let* () = m_tok a0 b0 in
+          let* () = m_label_ident a1 b1 in
+          m_tok asc bsc
+      | A.Label(a1, a2), B.Label(b1, b2) ->
+          m_label a1 b1 >>= (fun () ->
+            m_stmt a2 b2
+          )
+      | A.Goto(a0, a1), B.Goto(b0, b1) ->
+          m_tok a0 b0 >>= (fun () ->
+            m_label a1 b1
+          )
+      | A.Throw(a0, a1, asc), B.Throw(b0, b1, bsc) ->
+          let* () = m_tok a0 b0 in
+          let* () = m_expr a1 b1 in
+          m_tok asc bsc
+      | A.Try(a0, a1, a2, a3), B.Try(b0, b1, b2, b3) ->
+          let* () = m_tok a0 b0 in
+          let* () = m_stmt a1 b1 in
+          let* () = (m_list m_catch) a2 b2 in
+          (m_option m_finally) a3 b3
+      | A.Assert(a0, a1, a2, asc), B.Assert(b0, b1, b2, bsc) ->
+          let* () = m_tok a0 b0 in
+          let* () = m_expr a1 b1 in
+          let* () = (m_option m_expr) a2 b2 in
+          m_tok asc bsc
 
-  | A.OtherStmt(a1, a2), B.OtherStmt(b1, b2) ->
-      m_other_stmt_operator a1 b1 >>= (fun () ->
-        (m_list m_any) a2 b2
-      )
-  | A.OtherStmtWithStmt(a1, a2, a3), B.OtherStmtWithStmt(b1, b2, b3) ->
-      m_other_stmt_with_stmt_operator a1 b1 >>= (fun () ->
-        m_option m_expr a2 b2 >>= (fun () ->
-          m_stmt a3 b3
-        ))
-  | A.WithUsingResource(a1, a2, a3), B.WithUsingResource(b1, b2, b3) ->
-      m_tok a1 b1 >>= (fun () ->
-        m_stmt a2 b2 >>= (fun () ->
-          m_stmt a3 b3
-        ))
+      | A.OtherStmt(a1, a2), B.OtherStmt(b1, b2) ->
+          m_other_stmt_operator a1 b1 >>= (fun () ->
+            (m_list m_any) a2 b2
+          )
+      | A.OtherStmtWithStmt(a1, a2, a3), B.OtherStmtWithStmt(b1, b2, b3) ->
+          m_other_stmt_with_stmt_operator a1 b1 >>= (fun () ->
+            m_option m_expr a2 b2 >>= (fun () ->
+              m_stmt a3 b3
+            ))
+      | A.WithUsingResource(a1, a2, a3), B.WithUsingResource(b1, b2, b3) ->
+          m_tok a1 b1 >>= (fun () ->
+            m_stmt a2 b2 >>= (fun () ->
+              m_stmt a3 b3
+            ))
 
-  | A.ExprStmt _, _  | A.DefStmt _, _  | A.DirectiveStmt _, _
-  | A.Block _, _  | A.If _, _  | A.While _, _  | A.DoWhile _, _  | A.For _, _
-  | A.Switch _, _  | A.Return _, _  | A.Continue _, _  | A.Break _, _
-  | A.Label _, _  | A.Goto _, _  | A.Throw _, _  | A.Try _, _
-  | A.Assert _, _
-  | A.OtherStmt _, _ | A.OtherStmtWithStmt _, _ | A.WithUsingResource _, _
-    -> fail ()
+      | A.ExprStmt _, _  | A.DefStmt _, _  | A.DirectiveStmt _, _
+      | A.Block _, _  | A.If _, _  | A.While _, _  | A.DoWhile _, _  | A.For _, _
+      | A.Switch _, _  | A.Return _, _  | A.Continue _, _  | A.Break _, _
+      | A.Label _, _  | A.Goto _, _  | A.Throw _, _  | A.Try _, _
+      | A.Assert _, _
+      | A.OtherStmt _, _ | A.OtherStmtWithStmt _, _ | A.WithUsingResource _, _
+        -> fail ()
+    end
+  else fail ()
 (*e: [[Generic_vs_generic.m_stmt]] boilerplate cases *)
 (*e: function [[Generic_vs_generic.m_stmt]] *)
 
