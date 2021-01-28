@@ -1,0 +1,22 @@
+{
+  rules: [
+    {
+      id: 'neg',
+      match: {
+        and: [
+          'os.environ',
+          { not: 
+              { or: [
+                 'os.environ.get(...)',
+                 'os.environ[...]',
+                ]
+              },
+          }
+        ],
+      },
+      message: 'neg',
+      languages: ['python'],
+      severity: 'ERROR',
+    },
+  ],
+}
