@@ -195,18 +195,20 @@ let match_rules_and_recurse (file, hook, matches) rules matcher k any x =
   (* try the rules on substatements and subexpressions *)
   k x
 
-let must_analyze_statement_bloom_opti_failed pattern_strs st =
-  (* if it's empty, meaning we were not able to extract any useful specific
-   * identifiers or strings from the pattern, then the pattern is too general
-   * and we must analyze the stmt
-  *)
-  List.length pattern_strs = 0
-  ||
-  match st.s_bf with
-  (* No bloom filter, probably forgot calls to Bloom_annotation.annotate *)
-  | None -> true
-  (* only when the Bloom_filter says No we can skip the stmt *)
-  | Some bf -> Bloom_filter.is_subset pattern_strs bf = Bloom_filter.Maybe
+let must_analyze_statement_bloom_opti_failed _pattern_strs _st = true
+(* if it's empty, meaning we were not able to extract any useful specific
+ * identifiers or strings from the pattern, then the pattern is too general
+ * and we must analyze the stmt
+*)
+(* List.length pattern_strs = 0
+   Bloom_filter.is_empty bf1
+   ||
+   match st.s_bf with
+   (* No bloom filter, probably forgot calls to Bloom_annotation.annotate *)
+   | None -> true
+   (* only when the Bloom_filter says No we can skip the stmt *)
+   | Some bf -> Bloom_filter.is_subset pattern_strs bf = Bloom_filter.Maybe
+   | Some bf2 -> Bloom_filter.is_subset bf1 bf2 = Bloom_filter.Maybe *)
 
 (*****************************************************************************)
 (* Main entry point *)
