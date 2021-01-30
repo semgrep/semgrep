@@ -116,6 +116,9 @@ let show_formula_old pf =
       x.pstr
   | _ -> R.show_formula_old pf
 
+let equal_formula_old x y =
+  AST_generic.with_structural_equal R.equal_formula_old x y
+
 let check_old_formula env lang f =
   (* check duplicated patterns, essentially:
    *  $K: $PAT
@@ -135,7 +138,7 @@ let check_old_formula env lang f =
               (* todo: for Pat, we could also check if exist PatNot
                * in which case intersection will always be empty
               *)
-              if xs |> List.exists (R.equal_formula_old x)
+              if xs |> List.exists (equal_formula_old x)
               then error env (spf "Duplicate pattern %s" (show_formula_old x));
               aux xs
         in
@@ -163,6 +166,7 @@ let check_old_formula env lang f =
 
 let check r =
   (match r.formula with
+   (* todo: convert old to new so can factorize checks? *)
    | Old f -> check_old_formula r r.languages f;
    | New f -> check_new_formula r r.languages f;
   );
