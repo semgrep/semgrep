@@ -22,3 +22,6 @@ val eval_json_file: Common.filename -> unit
 
 (* for -test_eval *)
 val test_eval: Common.filename -> unit
+
+(* for MetavarCond *)
+val eval_expr_with_bindings: Metavariable.bindings -> code -> bool

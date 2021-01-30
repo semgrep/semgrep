@@ -43,23 +43,24 @@ type value =
   | Int of int
   | Float of float
   | String of string (* string without the enclosing '"' *)
+
   | List of value list
   (* default case where we don't really have good builtin operations.
    * This should be a AST_generic.any once parsed.
    * See JSON_report.json_metavar().
   *)
   | AST of string (* any AST, e.g., "x+1" *)
-(* lesS: Id of string (* simpler to merge with AST *) *)
+(* less: Id of string (* simpler to merge with AST *) *)
 
 type env = (MV.mvar, value) Hashtbl.t
 
-(* we restrict ourselves to simple expression for now *)
+(* we restrict ourselves to simple expressions for now *)
 type code = AST_generic.expr
 
 exception NotHandled of code
 
 (*****************************************************************************)
-(* Parsing *)
+(* JSON Parsing *)
 (*****************************************************************************)
 let metavar_of_json s = function
   | J.Int i -> Int i
@@ -97,7 +98,7 @@ let parse_json file =
   | _ -> failwith "wrong json format"
 
 (*****************************************************************************)
-(* Unparsing *)
+(* Converting *)
 (*****************************************************************************)
 let value_to_string = function
   | Bool b -> string_of_bool b
@@ -125,7 +126,7 @@ let print_result xopt =
 [@@action]
 
 (*****************************************************************************)
-(* Entry point *)
+(* Eval algorithm *)
 (*****************************************************************************)
 
 let rec eval env code =
@@ -218,6 +219,13 @@ and eval_op op values code =
 
   | _ -> raise (NotHandled code)
 
+(*****************************************************************************)
+(* Entry points *)
+(*****************************************************************************)
+
+(* This is when called from the semgrep Python wrapper for the
+ * metavariable-comparison: condition.
+*)
 let eval_json_file file =
   try
     let (env, code) = parse_json file in
@@ -240,3 +248,7 @@ let test_eval file =
   with NotHandled e ->
     pr (G.show_expr e);
     raise (NotHandled e)
+
+(* when called from the new semgrep-full-rule-in-ocaml *)
+let eval_expr_with_bindings _bindings _e =
+  raise Todo

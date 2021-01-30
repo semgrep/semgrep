@@ -19,6 +19,7 @@ open Common
 
 module R = Rule
 module MR = Mini_rule
+module PM = Pattern_match
 
 (*****************************************************************************)
 (* Prelude *)
@@ -188,6 +189,12 @@ let difference_ranges pos neg =
   in
   surviving_pos
 
+let filter_ranges xs cond =
+  xs |> List.filter (fun r ->
+    let bindings = r.origin.PM.env in
+    Eval_generic.eval_expr_with_bindings bindings cond
+  )
+
 (*****************************************************************************)
 (* Formula evaluation *)
 (*****************************************************************************)
@@ -216,8 +223,8 @@ let rec (evaluate_formula:
            let res = neg |> List.fold_left (fun acc x ->
              difference_ranges acc (evaluate_formula h x)
            ) res in
-           let res = conds |> List.fold_left (fun _acc _cond ->
-             failwith "Todo conds"
+           let res = conds |> List.fold_left (fun acc cond ->
+             filter_ranges acc cond
            ) res in
            res
       )
