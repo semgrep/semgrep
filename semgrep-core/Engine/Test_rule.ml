@@ -55,6 +55,7 @@ let test_rules xs =
   fullxs |> List.iter (fun file ->
     logger#info "processing rule %s" file;
     let rules = Parse_rule.parse file in
+    (* just a sanity check *)
     rules |> List.iter Check_rule.check;
 
     let lang = lang_of_rules rules in

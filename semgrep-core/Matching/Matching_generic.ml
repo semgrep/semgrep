@@ -404,6 +404,7 @@ let regexp_matcher_of_regexp_string s =
       | _ -> failwith (spf "This is not a valid PCRE regexp flag: %s" flags)
     in
     (* old: let re = Str.regexp x in (fun s -> Str.string_match re s 0) *)
+    (* TODO: add `ANCHORED to be consistent with Python re.match (!re.search)*)
     let re = Re.Pcre.regexp ~flags x in
     (fun s2 ->
        Re.Pcre.pmatch ~rex:re s2
