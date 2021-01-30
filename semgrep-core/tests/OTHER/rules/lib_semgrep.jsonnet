@@ -6,6 +6,7 @@
    And: function(x1, x2, x3=null, x4=null) { and: std.prune([x1,x2,x3,x4]) },
    Or: function(x1, x2, x3=null, x4=null) { or: std.prune([x1,x2,x3,x4]) },
    Not: function(x) { not: x },
+   Where: function(x) { where: x },
 
    basic_rule: function(lang, match) {
     rules: [

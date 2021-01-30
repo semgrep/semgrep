@@ -43,23 +43,25 @@ type value =
   | Int of int
   | Float of float
   | String of string (* string without the enclosing '"' *)
+
   | List of value list
   (* default case where we don't really have good builtin operations.
    * This should be a AST_generic.any once parsed.
    * See JSON_report.json_metavar().
   *)
   | AST of string (* any AST, e.g., "x+1" *)
-(* lesS: Id of string (* simpler to merge with AST *) *)
+(* less: Id of string (* simpler to merge with AST *) *)
+[@@deriving show]
 
 type env = (MV.mvar, value) Hashtbl.t
 
-(* we restrict ourselves to simple expression for now *)
+(* we restrict ourselves to simple expressions for now *)
 type code = AST_generic.expr
 
 exception NotHandled of code
 
 (*****************************************************************************)
-(* Parsing *)
+(* JSON Parsing *)
 (*****************************************************************************)
 let metavar_of_json s = function
   | J.Int i -> Int i
@@ -97,6 +99,16 @@ let parse_json file =
   | _ -> failwith "wrong json format"
 
 (*****************************************************************************)
+(* Converting *)
+(*****************************************************************************)
+let _value_to_string = function
+  | Bool b -> string_of_bool b
+  | Int i -> string_of_int i
+  | Float f -> string_of_float f
+  | String s -> s
+  | _ -> raise Todo
+
+(*****************************************************************************)
 (* Reporting *)
 (*****************************************************************************)
 
@@ -115,7 +127,7 @@ let print_result xopt =
 [@@action]
 
 (*****************************************************************************)
-(* Entry point *)
+(* Eval algorithm *)
 (*****************************************************************************)
 
 let rec eval env code =
@@ -152,6 +164,22 @@ let rec eval env code =
        | List xs -> Bool (List.mem v1 xs)
        | _ -> Bool (false)
       )
+  (* see Convert_rule.ml and the new formula format *)
+  | G.Call (G.Id (("semgrep_re_match", _), _),
+            (_, [G.Arg e1; G.Arg (G.L (G.String (re, _)))], _)) ->
+      (* alt: take the text range of the metavariable in the original file *)
+      let v = eval env e1 in
+      (* old: let s = value_to_string v in *)
+      (match v with
+       | String s ->
+           (* todo? factorize with Matching_generic.regexp_matcher_of_regexp_.. *)
+           (* use of `ANCHORED to simulate Python re.match() (vs re.search) *)
+           let regexp = Re.Pcre.regexp ~flags:[`ANCHORED] re in
+           let res = Re.Pcre.pmatch ~rex:regexp s in
+           Bool res
+       | _ -> raise (NotHandled code)
+      )
+
   | _ -> raise (NotHandled code)
 
 and eval_op op values code =
@@ -196,6 +224,13 @@ and eval_op op values code =
 
   | _ -> raise (NotHandled code)
 
+(*****************************************************************************)
+(* Entry points *)
+(*****************************************************************************)
+
+(* This is when called from the semgrep Python wrapper for the
+ * metavariable-comparison: condition.
+*)
 let eval_json_file file =
   try
     let (env, code) = parse_json file in
@@ -208,3 +243,45 @@ let eval_json_file file =
   | exn ->
       logger#debug "exn: %s" (Common.exn_to_s exn);
       print_result None
+
+(* for testing purpose *)
+let test_eval file =
+  try
+    let (env, code) = parse_json file in
+    let res = eval env code in
+    print_result (Some res)
+  with NotHandled e ->
+    pr2 (G.show_expr e);
+    raise (NotHandled e)
+
+let _eval_bindings xs =
+  xs |> Common.map_filter (fun (mvar, mval) ->
+    match mval with
+    | MV.E e -> Some (mvar, eval (Hashtbl.create 0) e)
+    | x ->
+        logger#debug "filtering mvar %s, not an expr %s" mvar (MV.show_mvalue x);
+        None
+  ) |> Common.hash_of_list
+
+(* this is for metavariable-regexp *)
+let bindings_to_env_with_just_strings xs =
+  xs |> List.map (fun (mvar, mval) ->
+    let any = MV.mvalue_to_any mval in
+    let (min, max) = Lib_AST.range_of_any any in
+    let file = min.Parse_info.file in
+    let range = Range.range_of_token_locations min max in
+    mvar, String (Range.content_at_range file range)
+  ) |> Common.hash_of_list
+
+(* when called from the new semgrep-full-rule-in-ocaml *)
+let eval_expr_with_bindings bindings e =
+  try
+    let env = bindings_to_env_with_just_strings bindings in
+    let res = eval env e in
+    (match res with
+     | Bool b -> b
+     | _ -> failwith (spf "not a boolean: %s" (show_value res))
+    )
+  with NotHandled e ->
+    pr2 (G.show_expr e);
+    raise (NotHandled e)

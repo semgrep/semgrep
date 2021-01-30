@@ -103,7 +103,7 @@ let parse_int ctx = function
 (* Sub parsers extra *)
 (*****************************************************************************)
 
-let parse_where _env s =
+let parse_metavar_cond s =
   try
     let lang = Lang.Python in (* todo? use lang in env? *)
     (match Parse_pattern.parse_pattern lang s with
@@ -264,7 +264,7 @@ let rec parse_formula_new env (x: J.t) : R.formula =
            R.P xpat
 
        | ["where", J.String s] ->
-           R.MetavarCond (parse_where env s)
+           R.MetavarCond (parse_metavar_cond s)
        | _ -> pr2_gen x; error "parse_formula_new"
       )
   | _ -> pr2_gen x; error "parse_formula_new"

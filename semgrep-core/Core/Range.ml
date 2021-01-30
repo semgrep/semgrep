@@ -102,3 +102,8 @@ let range_of_tokens xs =
     Some { start; end_ }
   with PI.NoTokenLocation _ ->
     None
+
+let hmemo = Hashtbl.create 101
+let content_at_range file r =
+  let str = Common.memoized hmemo file (fun () -> Common.read_file file) in
+  String.sub str r.start (r.end_ - r.start + 1)
