@@ -1,6 +1,13 @@
 
+(* charpos is 0-indexed. First char of a file is at charpos:0
+ * (unlike in Emacs where point starts at 1).
+*)
 type charpos = int
 
+(* The range is inclusive, {start = 0; end_ = 4} means [0..4] not [0..4[,
+ * so the first range of the first character of the file will be
+ * {start = 0; end_ = 0} (which also means there are no empty ranges).
+*)
 type t = {
   start: charpos;
   end_: charpos;

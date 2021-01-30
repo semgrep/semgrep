@@ -19,6 +19,8 @@ open Common
 
 open Rule
 
+let logger = Logging.get_logger [__MODULE__]
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -41,7 +43,7 @@ let convert_extra x =
         spf "semgrep_re_match(%s, \"%s\")" mvar re
     | _ -> failwith (spf "convert_extra: TODO: %s" (Rule.show_extra x))
   in
-  pr2 s;
+  logger#debug "convert_extra: %s" s;
   Parse_rule.parse_metavar_cond s
 
 (*****************************************************************************)
