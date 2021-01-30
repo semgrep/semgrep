@@ -51,6 +51,7 @@ type value =
   *)
   | AST of string (* any AST, e.g., "x+1" *)
 (* less: Id of string (* simpler to merge with AST *) *)
+[@@deriving show]
 
 type env = (MV.mvar, value) Hashtbl.t
 
@@ -246,9 +247,37 @@ let test_eval file =
     let res = eval env code in
     print_result (Some res)
   with NotHandled e ->
-    pr (G.show_expr e);
+    pr2 (G.show_expr e);
     raise (NotHandled e)
 
+let _eval_bindings xs =
+  xs |> Common.map_filter (fun (mvar, mval) ->
+    match mval with
+    | MV.E e -> Some (mvar, eval (Hashtbl.create 0) e)
+    | x ->
+        logger#debug "filtering mvar %s, not an expr %s" mvar (MV.show_mvalue x);
+        None
+  ) |> Common.hash_of_list
+
+(* this is for metavariable-regexp *)
+let bindings_to_env_with_just_strings xs =
+  xs |> List.map (fun (mvar, mval) ->
+    let any = MV.mvalue_to_any mval in
+    let (min, max) = Lib_AST.range_of_any any in
+    let file = min.Parse_info.file in
+    let range = Range.range_of_token_locations min max in
+    mvar, String (Range.content_at_range file range)
+  ) |> Common.hash_of_list
+
 (* when called from the new semgrep-full-rule-in-ocaml *)
-let eval_expr_with_bindings _bindings _e =
-  raise Todo
+let eval_expr_with_bindings bindings e =
+  try
+    let env = bindings_to_env_with_just_strings bindings in
+    let res = eval env e in
+    (match res with
+     | Bool b -> b
+     | _ -> failwith (spf "not a boolean: %s" (show_value res))
+    )
+  with NotHandled e ->
+    pr2 (G.show_expr e);
+    raise (NotHandled e)

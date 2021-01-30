@@ -102,3 +102,6 @@ let range_of_tokens xs =
     Some { start; end_ }
   with PI.NoTokenLocation _ ->
     None
+
+let content_at_range _file _r =
+  raise Todo

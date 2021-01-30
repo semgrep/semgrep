@@ -98,6 +98,11 @@ type range_with_mvars = {
 (* !This hash table uses the Hashtbl.find_all property! *)
 type id_to_match_results = (pattern_id, Pattern_match.t) Hashtbl.t
 
+type env = {
+  pattern_matches: id_to_match_results;
+  file: Common.filename
+}
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
@@ -199,29 +204,28 @@ let filter_ranges xs cond =
 (* Formula evaluation *)
 (*****************************************************************************)
 (* TODO: use Set instead of list? *)
-let rec (evaluate_formula:
-           id_to_match_results -> R.formula -> range_with_mvars list) =
-  fun h e ->
+let rec (evaluate_formula: env -> R.formula -> range_with_mvars list) =
+  fun env e ->
   match e with
   | R.P xpat ->
       let id = xpat.R.pid in
       let match_results =
-        try Hashtbl.find_all h id with Not_found -> []
+        try Hashtbl.find_all env.pattern_matches id with Not_found -> []
       in
       match_results |> List.map match_result_to_range
   | R.Or xs ->
-      xs |> List.map (evaluate_formula h) |> List.flatten
+      xs |> List.map (evaluate_formula env) |> List.flatten
   | R.And xs ->
       let pos, neg, conds = split_and xs in
       (match pos with
        | [] -> failwith "empty And; no positive terms in And"
        | start::pos ->
-           let res = evaluate_formula h start in
+           let res = evaluate_formula env start in
            let res = pos |> List.fold_left (fun acc x ->
-             intersect_ranges acc (evaluate_formula h x)
+             intersect_ranges acc (evaluate_formula env x)
            ) res in
            let res = neg |> List.fold_left (fun acc x ->
-             difference_ranges acc (evaluate_formula h x)
+             difference_ranges acc (evaluate_formula env x)
            ) res in
            let res = conds |> List.fold_left (fun acc cond ->
              filter_ranges acc cond
@@ -266,8 +270,12 @@ let check with_caching hook rules (file, lang, ast) =
      * the formula *)
     let pattern_matches_per_id =
       group_matches_per_pattern_id matches in
+    let env = {
+      pattern_matches = pattern_matches_per_id;
+      file;
+    } in
     let final_ranges =
-      evaluate_formula pattern_matches_per_id formula in
+      evaluate_formula env formula in
 
     let back_to_match_results =
       final_ranges |> List.map (range_to_match_result) in
