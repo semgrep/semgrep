@@ -101,7 +101,7 @@ let parse_json file =
 (*****************************************************************************)
 (* Converting *)
 (*****************************************************************************)
-let value_to_string = function
+let _value_to_string = function
   | Bool b -> string_of_bool b
   | Int i -> string_of_int i
   | Float f -> string_of_float f
@@ -169,12 +169,15 @@ let rec eval env code =
             (_, [G.Arg e1; G.Arg (G.L (G.String (re, _)))], _)) ->
       (* alt: take the text range of the metavariable in the original file *)
       let v = eval env e1 in
-      let s = value_to_string v in
-
-      (* todo? factorize with Matching_generic.regexp_matcher_of_regexp_.. *)
-      let regexp = Re.Pcre.regexp ~flags:[] re in
-      let res = Re.Pcre.pmatch ~rex:regexp s in
-      Bool res
+      (* old: let s = value_to_string v in *)
+      (match v with
+       | String s ->
+           (* todo? factorize with Matching_generic.regexp_matcher_of_regexp_.. *)
+           let regexp = Re.Pcre.regexp ~flags:[] re in
+           let res = Re.Pcre.pmatch ~rex:regexp s in
+           Bool res
+       | _ -> raise (NotHandled code)
+      )
 
   | _ -> raise (NotHandled code)
 

@@ -1,6 +1,6 @@
 {
   "metavars": {
-    "$X": 0
+    "$X": "0"
   },
   "language": "python",
   "code": "semgrep_re_match($X, '0|null|false')"

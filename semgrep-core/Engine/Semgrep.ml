@@ -100,6 +100,7 @@ type id_to_match_results = (pattern_id, Pattern_match.t) Hashtbl.t
 
 type env = {
   pattern_matches: id_to_match_results;
+  (* unused for now, but could be passed down for Range.content_at_range *)
   file: Common.filename
 }
 
