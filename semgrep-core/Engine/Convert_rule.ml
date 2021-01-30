@@ -29,6 +29,21 @@ open Rule
  *
 *)
 
+let convert_extra x =
+  let s =
+    match x with
+    | MetavarRegexp (mvar, re) ->
+        (* less: we could use re.match(), to be close to python, but really
+         * Eval_generic must do something special here with the metavariable
+         * which may not always be a string. The regexp is really done on
+         * the text representation of the metavar content.
+        *)
+        spf "semgrep_re_match(%s, \"%s\")" mvar re
+    | _ -> failwith (spf "convert_extra: TODO: %s" (Rule.show_extra x))
+  in
+  pr2 s;
+  Parse_rule.parse_metavar_cond s
+
 (*****************************************************************************)
 (* Entry points *)
 (*****************************************************************************)
@@ -44,8 +59,9 @@ let (convert_formula_old: formula_old -> formula) = fun e ->
     | Patterns xs ->
         let xs = List.map aux xs in
         And xs
-    | PatExtra _ ->
-        failwith (spf "convert_formula_old: TODO: %s" (Rule.show_formula_old e))
+    | PatExtra x ->
+        let e = convert_extra x in
+        MetavarCond e
   in
   aux e
 

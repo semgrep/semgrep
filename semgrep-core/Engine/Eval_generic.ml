@@ -97,6 +97,16 @@ let parse_json file =
   | _ -> failwith "wrong json format"
 
 (*****************************************************************************)
+(* Unparsing *)
+(*****************************************************************************)
+let value_to_string = function
+  | Bool b -> string_of_bool b
+  | Int i -> string_of_int i
+  | Float f -> string_of_float f
+  | String s -> s
+  | _ -> raise Todo
+
+(*****************************************************************************)
 (* Reporting *)
 (*****************************************************************************)
 
@@ -152,6 +162,18 @@ let rec eval env code =
        | List xs -> Bool (List.mem v1 xs)
        | _ -> Bool (false)
       )
+  (* see Convert_rule.ml and the new formula format *)
+  | G.Call (G.Id (("semgrep_re_match", _), _),
+            (_, [G.Arg e1; G.Arg (G.L (G.String (re, _)))], _)) ->
+      (* alt: take the text range of the metavariable in the original file *)
+      let v = eval env e1 in
+      let s = value_to_string v in
+
+      (* todo? factorize with Matching_generic.regexp_matcher_of_regexp_.. *)
+      let regexp = Re.Pcre.regexp ~flags:[] re in
+      let res = Re.Pcre.pmatch ~rex:regexp s in
+      Bool res
+
   | _ -> raise (NotHandled code)
 
 and eval_op op values code =
@@ -208,3 +230,13 @@ let eval_json_file file =
   | exn ->
       logger#debug "exn: %s" (Common.exn_to_s exn);
       print_result None
+
+(* for testing purpose *)
+let test_eval file =
+  try
+    let (env, code) = parse_json file in
+    let res = eval env code in
+    print_result (Some res)
+  with NotHandled e ->
+    pr (G.show_expr e);
+    raise (NotHandled e)

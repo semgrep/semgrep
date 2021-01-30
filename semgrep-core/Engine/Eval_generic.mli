@@ -19,3 +19,6 @@ val eval: env -> code -> value
 
 (* entry point for -eval *)
 val eval_json_file: Common.filename -> unit
+
+(* for -test_eval *)
+val test_eval: Common.filename -> unit
