@@ -1585,8 +1585,7 @@ and statement (env : env) (x : CST.statement) =
        in
        let v5 = token env v5 (* ")" *) in
        let v6 = statement env v6 in
-       let try_ = Try (v2, v6, [], None) |> AST.s in
-       Block (fake_bracket [v4; try_]) |> AST.s
+       WithUsingResource (v2, v4, v6) |> AST.s
    | `While_stmt (v1, v2, v3, v4, v5) ->
        let v1 = token env v1 (* "while" *) in
        let v2 = token env v2 (* "(" *) in
