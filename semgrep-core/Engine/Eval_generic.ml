@@ -173,7 +173,8 @@ let rec eval env code =
       (match v with
        | String s ->
            (* todo? factorize with Matching_generic.regexp_matcher_of_regexp_.. *)
-           let regexp = Re.Pcre.regexp ~flags:[] re in
+           (* use of `ANCHORED to simulate Python re.match() (vs re.search) *)
+           let regexp = Re.Pcre.regexp ~flags:[`ANCHORED] re in
            let res = Re.Pcre.pmatch ~rex:regexp s in
            Bool res
        | _ -> raise (NotHandled code)
