@@ -1,6 +1,94 @@
 (*
-   Decorate a pattern and target ASTs to make the suitable for memoization
-   during matching.
+   Improve match speed by memoizing match results on sequences of statements
+
+   Due to ellipsis patterns ('...'), some sequences of statements end
+   up being matched against the same pattern repeatedly. Memoization
+   is any technique consisting in caching the results of a function call.
+   We use memoization on the function(s) that match a sub-pattern against
+   a sub-sequence of statements in the target AST.
+
+   The goal is to make matching faster. Memory usage is assumed to be
+   less problematic.
+
+   Below is a list of sample patterns or targets, in semgrep-js syntax,
+   where we expect or don't expect performance improvements for caching:
+
+   "Generic head and sliding tail without backreference"
+   -----------------------------------------------------
+
+   benefits from caching: yes
+
+    (1)   $A; ... foo();
+
+    (2)   $A; ... foo($B + $B);
+
+    (3)   $A = $B; ... foo();
+
+   why:
+   - what precedes the ellipsis matches many times per target file.
+   - what follows the ellipsis matches independently from any metavariable
+     captured before the ellipsis.
+
+   "Generic head and sliding tail with backreference"
+   --------------------------------------------------
+
+   benefits from caching: no
+
+    (4)   $A = $B; ... foo($A);
+
+   why:
+   - the pattern that follows the ellipsis depends on the value captured
+     by $A.
+   - the cache key would include the captured value for $A. The results
+     of matching foo($A) are only reused if there are multiple assignments:
+
+       x = 17;
+       x = (x + y) / 2;
+       x = z * x;
+       // many statements here
+       foo(x);
+       // or many statements here
+
+     For caching to be worth its overhead, there would have to be many
+     assignements to the same variable within the same scope, which is
+     normally not the case is human-written code.
+
+   "Specific head and sliding tail"
+   --------------------------------
+
+   benefits from caching: no
+
+     (5)   foo(); ... bar();
+
+   why:
+   - there will be no reuse of the results unless statement 'foo();' appears
+     multiple times in the same scope.
+
+   "Only small functions or methods"
+   ---------------------------------
+
+   benefits from caching: no
+
+   why:
+   - because caching reduces the cost of matching an ellipsis from O(n^2)
+     to O(n), where n is the number of statements in a sequence. Having small
+     functions means n is small, and the theoretical benefits are outweighed
+     by the overhead of maintaining a cache.
+
+   "Double ellipsis with generic heads and no backreference"
+   ---------------------------------------------------------
+
+   benefits from caching: yes
+
+     (6)   $A = $B; ... $C = $D; ... foo();
+
+   why:
+   - the tail pattern 'foo();' is independent from the rest and benefits from
+     caching.
+   - the asymptotic cost is O(n^2) instead of O(n^3). This result is under
+     the assumption that 'foo();' occurs O(1) times in the target.
+     We can't get an O(n) cost because semgrep must return all the matches.
+     Indeed, if 'foo();' occurs once in the target, we get O(n^2) matches.
 *)
 
 module MV = Metavariable
@@ -55,6 +143,9 @@ let diff_backrefs bound_metavars ~new_backref_counts ~old_backref_counts =
   Set_.diff bound_metavars not_backrefs_in_rest_of_pattern
 
 (*
+   Decorate a pattern and target ASTs to make the suitable for memoization
+   during matching.
+
    During matching a pattern node against a program node, we consult
    a cache to see if we already have run this before and return the
    cached result. This is memoization.
