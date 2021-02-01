@@ -31,6 +31,7 @@ depends: [
   "uucp"
   "uutf"
   "re"
+  "pcre"
   "parmap"
   "lsp" {= "1.1.0"}
 ]

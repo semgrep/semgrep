@@ -2,7 +2,7 @@
  (name semgrep_parsing)
  (wrapped false)
  (libraries
-   yaml
+   yaml pcre
 
    commons commons_core
    pfff-config

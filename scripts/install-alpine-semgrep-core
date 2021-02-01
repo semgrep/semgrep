@@ -32,7 +32,7 @@ if [[ "$(basename "$(pwd)")" != semgrep ]]; then
 fi
 
 echo "Install missing packages"
-sudo apk add --no-cache m4
+sudo apk add --no-cache m4 pcre-dev
 
 echo "Install submodules"
 git submodule update --init --recursive
