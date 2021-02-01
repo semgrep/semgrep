@@ -65,6 +65,7 @@ and pattern_id = int
 (* TODO: parse it via spacegrep/lib! *)
 and spacegrep = string
 
+(* TODO: parse it via Re? *)
 and regexp = string
 
 [@@deriving show, eq]
