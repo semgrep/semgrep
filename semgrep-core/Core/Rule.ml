@@ -42,6 +42,15 @@ type xlang =
   | LGeneric
 [@@deriving show]
 
+(* TODO
+   type regexp = string * Pcre.regexp
+   let pp_regexp fmt (s, _) =
+   Format.fprintf fmt "%s" s
+   let equal_regexp (s1, _) (s2, _) = s1 = s2
+*)
+type regexp = string
+[@@deriving eq, show]
+
 type xpattern = {
   pat: xpattern_kind;
   (* two patterns may have different indentation, we don't care. We can
@@ -64,8 +73,6 @@ and pattern_id = int
 
 (* TODO: parse it via spacegrep/lib! *)
 and spacegrep = string
-
-and regexp = string
 
 [@@deriving show, eq]
 
