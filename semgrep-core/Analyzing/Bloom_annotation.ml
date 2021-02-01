@@ -54,15 +54,12 @@ open Common
 *)
 
 let push v (l : 'a list ref) = Common.push v l
-;;
 
 let push_list vs (l : 'a list ref) =
   l := vs @ (!l)
-;;
 
 let add_all_to_bloom ids bf =
   List.iter (fun id -> B.add id bf) ids
-;;
 
 (*****************************************************************************)
 (* Traversal methods *)
@@ -75,12 +72,10 @@ let is_regexp_string s =
 
 let special_literal str =
   str = "..." || (* Matching_generic. *)is_regexp_string str
-;;
 
 (* TODO: the second bit is a hack because my regexp skills are not great *)
 let special_ident str =
   AST_generic_.is_metavar_name str || (String.length str > 4 && (String.sub str 0 4) = "$...") || is_regexp_string str
-;;
 
 (* Use a visitor_AST to extract the strings from all identifiers,
  * and from all literals for now, except all semgrep stuff:
@@ -119,22 +114,25 @@ let rec statement_strings stmt =
        | _ -> k x
       )
     );
+    (* The default behavior of kid_info is to not call the continutation *)
+    (* We want to recurse so that we can index processed information like constants *)
     V.kid_info = (fun (k, _) x -> k x);
     V.kstmt = (fun (k, _) x ->
       (* First statement visited is the current statement *)
-      if !top_level then (top_level := false; k x)
+      if !top_level then begin top_level := false; k x end
       else
         (* For any other statement, recurse to add the filter *)
-        (let strs = statement_strings x in
-         let bf = B.create () in
-         add_all_to_bloom strs bf;
-         push_list strs res;
-         x.s_bf <- Some (bf))
+        begin
+          let strs = statement_strings x in
+          let bf = B.create () in
+          add_all_to_bloom strs bf;
+          push_list strs res;
+          x.s_bf <- Some (bf)
+        end
     );
   } in
   visitor (S stmt);
   !res
-;;
 
 (*****************************************************************************)
 (* Analyze the pattern *)
@@ -163,7 +161,6 @@ let list_of_pattern_strings any =
   } in
   visitor any;
   !res
-;;
 
 (*****************************************************************************)
 (* Analyze the code *)
@@ -181,4 +178,3 @@ let annotate_program ast =
     );
   } in
   visitor (Ss ast);
-;;
