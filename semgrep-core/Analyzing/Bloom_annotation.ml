@@ -75,7 +75,7 @@ let special_literal str =
 
 (* TODO: the second bit is a hack because my regexp skills are not great *)
 let special_ident str =
-  AST_generic_.is_metavar_name str || (String.length str > 4 && (String.sub str 0 4) = "$...") || is_regexp_string str
+  AST_generic_.is_metavar_name str || (String.length str > 4 && (Str.first_chars str 4) = "$...") || is_regexp_string str
 
 (* Use a visitor_AST to extract the strings from all identifiers,
  * and from all literals for now, except all semgrep stuff:
