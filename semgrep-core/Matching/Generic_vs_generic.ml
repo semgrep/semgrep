@@ -141,17 +141,6 @@ let rec all_suffix_of_list xs =
 let _ = Common2.example
     (all_suffix_of_list [1;2;3] = ([[1;2;3]; [2;3]; [3]; []]))
 
-let must_analyze_statement_bloom_opti_failed pattern_strs (st : AST_generic.stmt) =
-  (* if it's empty, meaning we were not able to extract any useful specific
-   * identifiers or strings from the pattern, then the pattern is too general
-   * and we must analyze the stmt
-  *)
-  match st.s_bf with
-  (* No bloom filter, probably forgot calls to Bloom_annotation.annotate *)
-  | None -> true
-  (* only when the Bloom_filter says No we can skip the stmt *)
-  | Some bf -> Bloom_filter.is_subset pattern_strs bf = Bloom_filter.Maybe
-
 (*****************************************************************************)
 (* Name *)
 (*****************************************************************************)

@@ -195,6 +195,17 @@ let match_rules_and_recurse (file, hook, matches) rules matcher k any x =
   (* try the rules on substatements and subexpressions *)
   k x
 
+let must_analyze_statement_bloom_opti_failed pattern_strs (st : AST_generic.stmt) =
+  (* if it's empty, meaning we were not able to extract any useful specific
+   * identifiers or strings from the pattern, then the pattern is too general
+   * and we must analyze the stmt
+  *)
+  match st.s_bf with
+  (* No bloom filter, probably forgot calls to Bloom_annotation.annotate *)
+  | None -> true
+  (* only when the Bloom_filter says No we can skip the stmt *)
+  | Some bf -> Bloom_filter.is_subset pattern_strs bf = Bloom_filter.Maybe
+
 (*****************************************************************************)
 (* Main entry point *)
 (*****************************************************************************)
@@ -302,12 +313,12 @@ let check2 ~hook ~with_caching rules equivs file lang ast =
           *)
           let new_stmt_rules =
             !stmt_rules |> List.filter (fun (_, pattern_strs, _, _cache) ->
-              GG.must_analyze_statement_bloom_opti_failed pattern_strs x
+              must_analyze_statement_bloom_opti_failed pattern_strs x
             )
           in
           let new_expr_rules =
             !expr_rules |> List.filter (fun (_, pattern_strs, _, _cache) ->
-              GG.must_analyze_statement_bloom_opti_failed pattern_strs x
+              must_analyze_statement_bloom_opti_failed pattern_strs x
             )
           in
           (*

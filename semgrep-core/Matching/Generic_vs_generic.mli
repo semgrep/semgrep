@@ -1,8 +1,5 @@
 (*s: semgrep/matching/Generic_vs_generic.mli *)
 
-(* Used in Semgrep_generic *)
-val must_analyze_statement_bloom_opti_failed: Bloom_filter.elt list -> AST_generic.stmt -> bool
-
 (* entry points, used in the sgrep_generic visitors *)
 (*s: signature [[Generic_vs_generic.m_expr]] *)
 val m_expr : (AST_generic.expr, AST_generic.expr) Matching_generic.matcher
