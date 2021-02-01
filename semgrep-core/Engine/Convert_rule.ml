@@ -34,7 +34,7 @@ let logger = Logging.get_logger [__MODULE__]
 let convert_extra x =
   let s =
     match x with
-    | MetavarRegexp (mvar, re_str) ->
+    | MetavarRegexp (mvar, (re_str, _re)) ->
         (* less: we could use re.match(), to be close to python, but really
          * Eval_generic must do something special here with the metavariable
          * which may not always be a string. The regexp is really done on

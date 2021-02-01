@@ -323,7 +323,7 @@ let eval_regression_tests =
       files |> List.iter (fun file ->
         let (env, code) = Eval_generic.parse_json file in
         let res = Eval_generic.eval env code in
-        OUnit.assert_equal ~msg:"it should evaluate to true"
+        OUnit.assert_equal ~msg:(spf "%s should evaluate to true" file)
           (Eval_generic.Bool true) res
       )
   )

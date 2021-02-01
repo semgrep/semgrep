@@ -109,7 +109,7 @@ let parse_metavar_cond s =
   with exn -> raise exn
 
 let parse_regexp  s =
-  s (* TODO , Pcre.regexp s *)
+  s, Pcre.regexp s
 
 let parse_regexps ctx = function
   | J.Array xs -> List.map (fun t -> parse_regexp (parse_string ctx t)) xs
