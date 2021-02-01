@@ -77,10 +77,6 @@ let parse_string ctx = function
   | J.String s -> s
   | x -> pr2_gen x; error (spf "parse_string for %s" ctx)
 
-let parse_strings ctx = function
-  | J.Array xs -> List.map (parse_string ctx) xs
-  | x -> pr2_gen x; error (spf "parse_strings for %s" ctx)
-
 let parse_bool ctx = function
   | J.String "true" -> true
   | J.String "false" -> false
@@ -112,6 +108,13 @@ let parse_metavar_cond s =
     )
   with exn -> raise exn
 
+let parse_regexp  s =
+  s (* TODO , Pcre.regexp s *)
+
+let parse_regexps ctx = function
+  | J.Array xs -> List.map (fun t -> parse_regexp (parse_string ctx t)) xs
+  | x -> pr2_gen x; error (spf "parse_regexps for %s" ctx)
+
 let parse_extra _env x =
   match x with
   | "metavariable-regex", J.Object xs ->
@@ -119,7 +122,7 @@ let parse_extra _env x =
        | ["metavariable", Some (J.String metavar);
           "regex", Some (J.String regexp);
          ], [] ->
-           R.MetavarRegexp (metavar, regexp)
+           R.MetavarRegexp (metavar, parse_regexp regexp)
        | x ->
            pr2_gen x;
            error "wrong parse_extra fields"
@@ -156,7 +159,7 @@ let parse_fix_regex = function
           "replacement", Some (J.String replacement);
           "count", count_opt;
          ], [] ->
-           (regex,
+           (parse_regexp regex,
             Common.map_opt (parse_int "count") count_opt,
             replacement)
        | x -> pr2_gen x; error "parse_fix_regex"
@@ -179,10 +182,10 @@ let parse_paths = function
          ], [] ->
            { R.include_ =
                (match inc_opt with
-                | None -> [] | Some xs -> parse_strings "include" xs);
+                | None -> [] | Some xs -> parse_regexps "include" xs);
              exclude =
                (match exc_opt with
-                | None -> [] | Some xs -> parse_strings "exclude" xs);
+                | None -> [] | Some xs -> parse_regexps "exclude" xs);
            }
        | x -> pr2_gen x; error "parse_paths"
       )
@@ -238,7 +241,7 @@ let rec parse_formula_old env (x: string * J.t) : R.formula_old =
       ) xs)
 
   | "pattern-regex", J.String s ->
-      let xpat = R.mk_xpat (Regexp s) s in
+      let xpat = R.mk_xpat (Regexp (parse_regexp s)) s in
       R.Pat xpat
   | x ->
       let extra = parse_extra env x in
@@ -260,7 +263,7 @@ let rec parse_formula_new env (x: J.t) : R.formula =
            R.Not f
 
        | ["regex", J.String s] ->
-           let xpat = R.mk_xpat (R.Regexp s) s in
+           let xpat = R.mk_xpat (R.Regexp (parse_regexp s)) s in
            R.P xpat
 
        | ["where", J.String s] ->
