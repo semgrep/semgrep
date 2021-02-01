@@ -20,6 +20,7 @@ open Common
 module R = Rule
 module MR = Mini_rule
 module PM = Pattern_match
+module G = AST_generic
 
 (*****************************************************************************)
 (* Prelude *)
@@ -198,7 +199,32 @@ let difference_ranges pos neg =
 let filter_ranges xs cond =
   xs |> List.filter (fun r ->
     let bindings = r.origin.PM.env in
-    Eval_generic.eval_expr_with_bindings bindings cond
+    match cond with
+    | R.CondGeneric e ->
+        let env = Eval_generic.bindings_to_env bindings in
+        Eval_generic.eval_bool env e
+    (* todo: would be nice to have CondRegexp also work on
+     * eval'ed bindings.
+     * We could also use re.match(), to be close to python, but really
+     * Eval_generic must do something special here with the metavariable
+     * which may not always be a string. The regexp is really done on
+     * the text representation of the metavar content.
+    *)
+    | R.CondRegexp (mvar, (re_str, _re)) ->
+        let fk = Parse_info.fake_info "" in
+        let fki = AST_generic.empty_id_info () in
+        let e =
+          (* old: spf "semgrep_re_match(%s, \"%s\")" mvar re_str
+           * but too many possible escaping problems, so easier to build
+           * an expression manually.
+          *)
+          G.Call (G.DotAccess(G.Id (("re", fk), fki), fk, EId ((("match"),fk),fki)),
+                  (fk, [G.Arg (G.Id ((mvar, fk), fki));
+                        G.Arg (G.L (G.String (re_str, fk)))], fk))
+
+        in
+        let env = Eval_generic.bindings_to_env_with_just_strings bindings in
+        Eval_generic.eval_bool env e
   )
 
 (*****************************************************************************)
