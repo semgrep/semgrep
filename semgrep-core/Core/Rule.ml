@@ -97,7 +97,16 @@ type formula =
   *)
   | Not of formula
 
-and metavar_cond = AST_generic.expr (* see Eval_generic.ml *)
+and metavar_cond =
+  | CondGeneric of AST_generic.expr (* see Eval_generic.ml *)
+  (* todo: at some point we should remove CondRegexp and have just
+   * CondGeneric, but for now there are some
+   * differences between using the matched text region of a metavariable
+   * (which we use for MetavarRegexp) and using its actual value
+   * (which we use for MetavarComparison), which translate to different
+   * calls in Eval_generic.ml
+  *)
+  | CondRegexp of MV.mvar * regexp
 
 [@@deriving show, eq]
 
