@@ -13,8 +13,11 @@ type code = AST_generic.expr
 val parse_json: Common.filename -> env * code
 
 exception NotHandled of code
+exception NotInEnv of Metavariable.mvar
 
-(* raise NotHandled if the code is outside the subset of expressions allowed *)
+(* raise NotHandled if the code is outside the subset of expressions allowed,
+ * and NotInEnv if a metavariable is not binded in the environment.
+*)
 val eval: env -> code -> value
 
 (* entry point for -eval *)
