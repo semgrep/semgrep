@@ -24,4 +24,6 @@ val eval_json_file: Common.filename -> unit
 val test_eval: Common.filename -> unit
 
 (* for MetavarCond *)
-val eval_expr_with_bindings: Metavariable.bindings -> code -> bool
+val bindings_to_env: Metavariable.bindings -> env
+val bindings_to_env_with_just_strings: Metavariable.bindings -> env
+val eval_bool: env -> code -> bool

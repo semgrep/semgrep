@@ -267,7 +267,11 @@ let rec parse_formula_new env (x: J.t) : R.formula =
            R.P xpat
 
        | ["where", J.String s] ->
-           R.MetavarCond (parse_metavar_cond s)
+           R.MetavarCond (R.CondGeneric (parse_metavar_cond s))
+
+       | ["metavariable_regex", J.Array [J.String mvar; J.String re]] ->
+           R.MetavarCond (R.CondRegexp (mvar, parse_regexp re))
+
        | _ -> pr2_gen x; error "parse_formula_new"
       )
   | _ -> pr2_gen x; error "parse_formula_new"

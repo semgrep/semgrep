@@ -37,7 +37,7 @@ let logger = Logging.get_logger [__MODULE__]
 (* Types *)
 (*****************************************************************************)
 
-(* This is the (partially parsed) content of a metavariable *)
+(* This is the (partially parsed/evalulated) content of a metavariable *)
 type value =
   | Bool of bool
   | Int of int
@@ -70,6 +70,7 @@ let metavar_of_json s = function
   | J.Float f -> Float f
   | _ -> failwith (spf "wrong format for metavar %s" s)
 
+(* JSON format used internally in semgrep-python for metavariable-comparison *)
 let parse_json file =
   let json = JSON.load_json file in
   match json with
@@ -101,6 +102,7 @@ let parse_json file =
 (*****************************************************************************)
 (* Converting *)
 (*****************************************************************************)
+(* to allow regexp to match regular ints, identifiers, or any text code *)
 let _value_to_string = function
   | Bool b -> string_of_bool b
   | Int i -> string_of_int i
@@ -143,6 +145,8 @@ let rec eval env code =
        | G.Float (s, _t) -> Float (float_of_string s)
        | _ -> raise (NotHandled code)
       )
+
+  (* less: sanity check that s is a metavar_name? *)
   | G.Id ((s, _t), _idinfo) ->
       (try Hashtbl.find env s
        with Not_found -> raise (NotHandled code)
@@ -156,6 +160,7 @@ let rec eval env code =
   | G.Container (G.List, (_, xs, _)) ->
       let vs = List.map (eval env) xs in
       List vs
+
   (* TODO: Python In could be made an AST_generic.operator at some point *)
   | G.OtherExpr (G.OE_In, [G.E e1; G.E e2]) ->
       let v1 = eval env e1 in
@@ -164,12 +169,16 @@ let rec eval env code =
        | List xs -> Bool (List.mem v1 xs)
        | _ -> Bool (false)
       )
-  (* see Convert_rule.ml and the new formula format *)
-  | G.Call (G.Id (("semgrep_re_match", _), _),
+  (* Emulate Python re.match just enough *)
+  | G.Call (G.DotAccess(G.Id (("re", _), _), _, EId ((("match"),_),_)),
             (_, [G.Arg e1; G.Arg (G.L (G.String (re, _)))], _)) ->
-      (* alt: take the text range of the metavariable in the original file *)
+      (* alt: take the text range of the metavariable in the original file,
+       * and enforce e1 can only be an Id metavariable.
+       * alt: let s = value_to_string v in
+       * to convert anything in a string before using regexps on it
+      *)
       let v = eval env e1 in
-      (* old: let s = value_to_string v in *)
+
       (match v with
        | String s ->
            (* todo? factorize with Matching_generic.regexp_matcher_of_regexp_.. *)
@@ -254,10 +263,15 @@ let test_eval file =
     pr2 (G.show_expr e);
     raise (NotHandled e)
 
-let _eval_bindings xs =
+
+(* when called from the new semgrep-full-rule-in-ocaml *)
+
+let bindings_to_env xs =
   xs |> Common.map_filter (fun (mvar, mval) ->
     match mval with
-    | MV.E e -> Some (mvar, eval (Hashtbl.create 0) e)
+    | MV.E e ->
+        (* Todo: if not a value, could default to AST of range *)
+        Some (mvar, eval (Hashtbl.create 0) e)
     | x ->
         logger#debug "filtering mvar %s, not an expr %s" mvar (MV.show_mvalue x);
         None
@@ -273,10 +287,8 @@ let bindings_to_env_with_just_strings xs =
     mvar, String (Range.content_at_range file range)
   ) |> Common.hash_of_list
 
-(* when called from the new semgrep-full-rule-in-ocaml *)
-let eval_expr_with_bindings bindings e =
+let eval_bool env e =
   try
-    let env = bindings_to_env_with_just_strings bindings in
     let res = eval env e in
     (match res with
      | Bool b -> b
