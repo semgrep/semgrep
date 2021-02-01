@@ -178,3 +178,4 @@ let annotate_program ast =
     );
   } in
   visitor (Ss ast);
+[@@profiling]
