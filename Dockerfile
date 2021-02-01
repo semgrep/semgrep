@@ -8,6 +8,9 @@
 
 FROM returntocorp/ocaml:alpine-2020-10-28 as build-semgrep-core
 
+# for ocaml-pcre now used in semgrep-core
+RUN apk add --no-cache pcre-dev
+
 USER user
 WORKDIR /home/user
 
