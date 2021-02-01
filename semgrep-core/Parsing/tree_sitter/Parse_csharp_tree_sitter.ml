@@ -2660,18 +2660,26 @@ and declaration (env : env) (x : CST.declaration) : stmt =
        Block (open_br, (DefStmt (ent, VarDef vardef) |> AST.s) :: funcs, close_br)|> AST.s
    | `Using_dire (v1, v2, v3, v4) ->
        let v1 = token env v1 (* "using" *) in
-       let v2 =
+       let v3 = name env v3 in
+       let v4 = token env v4 (* ";" *) in
+       let import =
          (match v2 with
           | Some x ->
               (match x with
-               | `Static tok -> todo env tok (* "static" *)
-               | `Name_equals x -> Some (name_equals env x)
+               | `Static tok -> (* "static" *)
+                   (* using static System.Math; *)
+                   (AST.ImportAll (v1, AST.DottedName (ids_of_name v3), v4))
+               | `Name_equals x ->
+                   (* using Foo = System.Text; *)
+                   let alias = (name_equals env x) in
+                   AST.ImportAs (v1, AST.DottedName (ids_of_name v3), Some (alias, empty_id_info ()))
               )
-          | None -> None)
+          | None ->
+              (* using System.IO; *)
+              (AST.ImportAll (v1, AST.DottedName (ids_of_name v3), v4))
+         )
        in
-       let v3 = name env v3 in
-       let v4 = token env v4 (* ";" *) in
-       AST.DirectiveStmt (AST.ImportAll (v1, AST.DottedName (ids_of_name v3), v4)) |> AST.s
+       AST.DirectiveStmt import |> AST.s
   )
 
 (*****************************************************************************)
