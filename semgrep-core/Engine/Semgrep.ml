@@ -154,14 +154,14 @@ let (mini_rule_of_regexp: (R.pattern_id * string) -> MR.t) =
 
 (* todo: same, we should not need that *)
 let hmemo = Hashtbl.create 101
-let info_of_token_location file loc =
-  (* first complete the loc with line/col which are needed when printing
-   * matches *)
+let line_col_of_charpos file charpos =
   let conv =
     Common.memoized hmemo file (fun () -> PI.full_charpos_to_pos_large file)
   in
-  let (line, column) = conv loc.PI.charpos in
-  let loc = { loc with PI. line; column } in
+  conv charpos
+
+(* todo: same, we should not need that *)
+let info_of_token_location loc =
   { PI.token = PI.OriginTok loc; transfo = PI.NoTransfo }
 
 let (group_matches_per_pattern_id: Pattern_match.t list ->id_to_match_results)=
@@ -289,10 +289,11 @@ let matches_of_xpatterns with_caching orig_rule (file, lang, ast) xpatterns =
         subs |> Array.to_list |> List.map (fun sub ->
           let (charpos, _) = Pcre.get_substring_ofs sub 0 in
           let str = Pcre.get_substring sub 0 in
-          let loc = {PI. str; charpos; file; line = -1; column = -1 } in
+          let (line, column) = line_col_of_charpos file charpos in
+          let loc = {PI. str; charpos; file; line; column } in
           let mini_rule = mini_rule_of_regexp (id, s) in
           {PM. rule = mini_rule; file; location = loc, loc;
-           tokens = lazy [info_of_token_location file loc]; env = [] }
+           tokens = lazy [info_of_token_location loc]; env = [] }
         )
       ) |> List.flatten
     end
