@@ -97,6 +97,20 @@ and rust_macro_pattern =
   | RustMacPatBinding of G.ident * G.tok
   | RustMacPatToken of G.tok
 
+and rust_meta_argument =
+  | MetaArgMetaItem of rust_meta_item
+  | MetaArgLiteral of G.literal
+
+and rust_meta_item_value =
+  | MetaItemLiteral of G.literal
+  | MetaItemMetaArgs of rust_meta_argument list
+
+and rust_meta_item = G.dotted_ident * rust_meta_item_value option
+
+and rust_attribute =
+  | AttrInner of rust_meta_item
+  | AttrOuter of rust_meta_item
+
 let todo (env : env) _ =
   failwith "not implemented"
 
@@ -530,10 +544,10 @@ and map_range_pattern_bound (env : env) (x : CST.anon_choice_lit_pat_0884ef0): G
        G.PatConstructor (name, [])
   )
 
-and map_anon_choice_meta_item_fefa160 (env : env) (x : CST.anon_choice_meta_item_fefa160) =
+and map_meta_argument (env : env) (x : CST.anon_choice_meta_item_fefa160): rust_meta_argument =
   (match x with
-   | `Meta_item x -> map_meta_item env x
-   | `Lit x -> map_literal env x
+   | `Meta_item x -> MetaArgMetaItem (map_meta_item env x)
+   | `Lit x -> MetaArgLiteral (map_literal env x)
   )
 
 and map_anon_choice_param_2c23cdc (env : env) outer_attr (x : CST.anon_choice_param_2c23cdc): G.parameter =
@@ -614,8 +628,10 @@ and map_type_argument (env : env) (x : CST.anon_choice_type_39799c3): G.type_arg
        let ty = map_type_ env v3 in
        G.TypeArg ty
    | `Life x -> G.TypeLifetime (map_lifetime env x)
-   | `Lit x -> let lit = map_literal env x in todo env x
-   | `Blk x -> let block_expr = map_block_expr env x in todo env x
+   | `Lit x -> let lit = map_literal env x in
+       G.OtherTypeArg (G.OTA_Literal, [G.E (G.L lit)])
+   | `Blk x -> let block_expr = map_block_expr env x in
+       G.OtherTypeArg (G.OTA_ConstBlock, [G.E block_expr])
   )
 
 and map_tuple_pattern_list (env : env) ((v1, v2) : CST.anon_pat_rep_COMMA_pat_2a80f16): G.pattern list =
@@ -684,11 +700,11 @@ and map_associated_type (env : env) ((v1, v2, v3, v4, v5, v6) : CST.associated_t
   } in
   G.DefStmt (ent, G.TypeDef type_def) |> G.s
 
-and map_attribute (env : env) ((v1, v2, v3) : CST.attribute) =
-  let v1 = token env v1 (* "[" *) in
-  let v2 = map_meta_item env v2 in
-  let v3 = token env v3 (* "]" *) in
-  todo env (v1, v2, v3)
+and map_attribute (env : env) ((v1, v2, v3) : CST.attribute): rust_meta_item =
+  let lbracket = token env v1 (* "[" *) in
+  let meta_item = map_meta_item env v2 in
+  let rbracket = token env v3 (* "]" *) in
+  meta_item
 
 and map_base_field_initializer (env : env) ((v1, v2) : CST.base_field_initializer): G.expr =
   let dots = token env v1 (* ".." *) in
@@ -790,23 +806,23 @@ and map_block_expr (env : env) ((v1, v2, v3, v4) : CST.block): G.expr =
   let block = map_block env (v1, v2, v3, v4) in
   stmt_to_expr block
 
-and map_bounded_type (env : env) (x : CST.bounded_type) =
+and map_bounded_type (env : env) (x : CST.bounded_type): G.type_ =
   (match x with
    | `Life_PLUS_type (v1, v2, v3) ->
-       let v1 = map_lifetime env v1 in
-       let v2 = token env v2 (* "+" *) in
-       let v3 = map_type_ env v3 in
-       todo env (v1, v2, v3)
+       let lifetime = map_lifetime env v1 in
+       let plus = token env v2 (* "+" *) in
+       let type_ = map_type_ env v3 in
+       G.TyOr ((G.OtherType (G.OT_Lifetime, [G.I lifetime])), plus, type_)
    | `Type_PLUS_type (v1, v2, v3) ->
-       let v1 = map_type_ env v1 in
-       let v2 = token env v2 (* "+" *) in
-       let v3 = map_type_ env v3 in
-       todo env (v1, v2, v3)
+       let type_a = map_type_ env v1 in
+       let plus = token env v2 (* "+" *) in
+       let type_b = map_type_ env v3 in
+       G.TyOr (type_a, plus, type_b)
    | `Type_PLUS_life (v1, v2, v3) ->
-       let v1 = map_type_ env v1 in
-       let v2 = token env v2 (* "+" *) in
-       let v3 = map_lifetime env v3 in
-       todo env (v1, v2, v3)
+       let type_ = map_type_ env v1 in
+       let plus = token env v2 (* "+" *) in
+       let lifetime = map_lifetime env v3 in
+       G.TyOr (type_, plus, (G.OtherType (G.OT_Lifetime, [G.I lifetime])))
   )
 
 and map_bracketed_type (env : env) ((v1, v2, v3) : CST.bracketed_type) =
@@ -1108,7 +1124,8 @@ and map_expression (env : env) (x : CST.expression) =
        let index = map_expression env v3 in
        let rbracket = token env v4 (* "]" *) in
        G.ArrayAccess (expr, (lbracket, index, rbracket))
-   | `Meta tok -> let tok = token env tok in todo env tok (* pattern \$[a-zA-Z_]\w* *)
+   | `Meta tok -> let meta = ident env tok in (* pattern \$[a-zA-Z_]\w* *)
+       G.Id (meta, G.empty_id_info())
    | `Clos_exp (v1, v2, v3) ->
        let is_move = Option.map (fun tok ->
          let tok = token env tok in (* "move" *)
@@ -1634,11 +1651,11 @@ and map_impl_block_item_type (env : env) ((v1, v2, v3, v4, v5, v6) : CST.impl_bl
   } in
   G.DefStmt (ent, G.TypeDef type_def) |> G.s
 
-and map_inner_attribute_item (env : env) ((v1, v2, v3) : CST.inner_attribute_item) =
-  let v1 = token env v1 (* "#" *) in
-  let v2 = token env v2 (* "!" *) in
-  let v3 = map_attribute env v3 in
-  todo env (v1, v2, v3)
+and map_inner_attribute_item (env : env) ((v1, v2, v3) : CST.inner_attribute_item): rust_attribute =
+  let hash = token env v1 (* "#" *) in
+  let bang = token env v2 (* "!" *) in
+  let meta_item = map_attribute env v3 in
+  AttrInner meta_item
 
 and map_last_match_arm (env : env) ((v1, v2, v3, v4, v5) : CST.last_match_arm): G.action =
   let outer_attrs = List.map (map_outer_attribute_item env) v1 in
@@ -1703,16 +1720,16 @@ and map_match_pattern (env : env) ((v1, v2) : CST.match_pattern): G.pattern =
       G.PatWhen (pat, expr)
   | None -> pat
 
-and map_meta_arguments (env : env) ((v1, v2, v3, v4) : CST.meta_arguments) =
+and map_meta_arguments (env : env) ((v1, v2, v3, v4) : CST.meta_arguments): rust_meta_argument list =
   let lparen = token env v1 (* "(" *) in
   let args =
     (match v2 with
      | Some (v1, v2) ->
-         let arg_first = map_anon_choice_meta_item_fefa160 env v1 in
+         let arg_first = map_meta_argument env v1 in
          let arg_rest =
            List.map (fun (v1, v2) ->
              let comma = token env v1 (* "," *) in
-             let arg = map_anon_choice_meta_item_fefa160 env v2 in
+             let arg = map_meta_argument env v2 in
              arg
            ) v2
          in
@@ -1721,7 +1738,7 @@ and map_meta_arguments (env : env) ((v1, v2, v3, v4) : CST.meta_arguments) =
   in
   let comma = Option.map (fun tok -> token env tok) v3 in
   let rparen = token env v4 (* ")" *) in
-  todo env (v1, v2, v3, v4)
+  args
 
 and map_meta_item (env : env) ((v1, v2) : CST.meta_item) =
   let path = map_simple_path env v1 in
@@ -1730,11 +1747,10 @@ and map_meta_item (env : env) ((v1, v2) : CST.meta_item) =
      | `EQ_lit (v1, v2) ->
          let equals = token env v1 (* "=" *) in
          let lit = map_literal env v2 in
-         todo env (v1, v2)
-     | `Meta_args x -> let args = (map_meta_arguments env x) in
-         todo env x)
+         MetaItemLiteral lit
+     | `Meta_args x -> MetaItemMetaArgs (map_meta_arguments env x))
   ) v2 in
-  todo env (v1, v2)
+  (path, value)
 
 and map_mod_block (env : env) ((v1, v2, v3, v4) : CST.mod_block): G.stmt list G.bracket =
   let lbrace = token env v1 (* "{" *) in
@@ -1825,10 +1841,10 @@ and map_ordered_field_declaration_list_types (env : env) ((v1, v2, v3, v4) : CST
   let rparen = token env v4 (* ")" *) in
   types
 
-and map_outer_attribute_item (env : env) ((v1, v2) : CST.outer_attribute_item) =
-  let v1 = token env v1 (* "#" *) in
-  let v2 = map_attribute env v2 in
-  todo env (v1, v2)
+and map_outer_attribute_item (env : env) ((v1, v2) : CST.outer_attribute_item): rust_attribute =
+  let hash = token env v1 (* "#" *) in
+  let meta_item = map_attribute env v2 in
+  AttrOuter meta_item
 
 and map_parameter (env : env) ((v1, v2, v3, v4) : CST.parameter): G.parameter =
   let mutability = Option.map (fun tok ->

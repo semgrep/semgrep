@@ -404,8 +404,14 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
         in
         TypeWildcard (v1, v2)
     | TypeLifetime v1 -> let v1 = map_ident v1 in TypeLifetime v1
+    | OtherTypeArg (v1, v2) ->
+        let v1 = map_other_type_argument_operator v1 in
+        let v2 = map_of_list map_any v2
+        in OtherTypeArg (v1, v2)
 
   and map_other_type_operator x = x
+
+  and map_other_type_argument_operator x = x
 
   and map_attribute = function
     | KeywordAttr v1 -> let v1 = map_wrap map_keyword_attribute v1 in

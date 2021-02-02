@@ -1184,6 +1184,7 @@ and type_argument =
                     (bool wrap (* extends|super, true=super *) * type_) option
   (* Rust *)
   | TypeLifetime of ident
+  | OtherTypeArg of other_type_argument_operator * any list
   (*e: type [[AST_generic.type_argument]] *)
 (*s: type [[AST_generic.other_type_argument_operator]] *)
 (*e: type [[AST_generic.other_type_argument_operator]] *)
@@ -1194,10 +1195,20 @@ and other_type_operator =
   | OT_StructName | OT_UnionName | OT_EnumName
   (* PHP *)
   | OT_Variadic (* ???? *)
+  (* Rust *)
+  | OT_Lifetime
   (* Other *)
   | OT_Expr | OT_Arg (* Python: todo: should use expr_to_type() when can *)
   | OT_Todo
   (*e: type [[AST_generic.other_type_operator]] *)
+
+(*s: type [[AST_generic.other_type_argument_operator]] *)
+and other_type_argument_operator =
+  (* Rust *)
+  | OTA_Literal | OTA_ConstBlock
+  (* Other *)
+  | OTA_Todo
+  (*e: type [[AST_generic.other_type_argument_operator]] *)
 
 (*****************************************************************************)
 (* Attribute *)
