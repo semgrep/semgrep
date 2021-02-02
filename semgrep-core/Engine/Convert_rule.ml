@@ -35,6 +35,16 @@ let convert_extra x =
   match x with
   | MetavarRegexp (mvar, re) ->
       CondRegexp (mvar, re)
+  | MetavarComparison comp ->
+      (match comp with
+       (* do we care about strip and base? should not Eval_generic handle it?
+        * base I think can be handled automatically, and for strip the user
+        * should instead use a more complex condition that converts
+        * the string into a number (e.g., "1234" in 1234).
+       *)
+       | { metavariable = _; comparison = s; strip = _TODO1; base = _TODO2 } ->
+           CondGeneric (Parse_rule.parse_metavar_cond s)
+      )
   | _ ->
 (*
   logger#debug "convert_extra: %s" s;
