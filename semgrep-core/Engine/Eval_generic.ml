@@ -59,6 +59,7 @@ type env = (MV.mvar, value) Hashtbl.t
 type code = AST_generic.expr
 
 exception NotHandled of code
+exception NotInEnv of Metavariable.mvar
 
 (*****************************************************************************)
 (* JSON Parsing *)
@@ -149,7 +150,9 @@ let rec eval env code =
   (* less: sanity check that s is a metavar_name? *)
   | G.Id ((s, _t), _idinfo) ->
       (try Hashtbl.find env s
-       with Not_found -> raise (NotHandled code)
+       with Not_found ->
+         logger#debug "could not find a value for %s in env" s;
+         raise Not_found
       )
   | G.Call (G.IdSpecial (G.Op op, _t), (_, args, _)) ->
       let values = args |> List.map (function
@@ -270,8 +273,12 @@ let bindings_to_env xs =
   xs |> Common.map_filter (fun (mvar, mval) ->
     match mval with
     | MV.E e ->
-        (* Todo: if not a value, could default to AST of range *)
-        Some (mvar, eval (Hashtbl.create 0) e)
+        (try  Some (mvar, eval (Hashtbl.create 0) e)
+         with NotHandled _e ->
+           logger#debug "can't eval %s value %s" mvar (MV.show_mvalue mval);
+           (* todo: if not a value, could default to AST of range *)
+           None
+        )
     | x ->
         logger#debug "filtering mvar %s, not an expr %s" mvar (MV.show_mvalue x);
         None
@@ -294,6 +301,14 @@ let eval_bool env e =
      | Bool b -> b
      | _ -> failwith (spf "not a boolean: %s" (show_value res))
     )
-  with NotHandled e ->
-    pr2 (G.show_expr e);
-    raise (NotHandled e)
+  with
+  | Not_found ->
+      (* this can be because a metavar is binded to a complex expression,
+       * e.g., os.getenv("foo") which can't be evaluated. It's ok to
+       * return false then.
+       * todo: should reraise?
+      *)
+      false
+  | NotHandled e ->
+      pr2 (G.show_expr e);
+      raise (NotHandled e)

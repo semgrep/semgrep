@@ -77,6 +77,10 @@ let parse_string ctx = function
   | J.String s -> s
   | x -> pr2_gen x; error (spf "parse_string for %s" ctx)
 
+let parse_strings ctx = function
+  | J.Array xs -> List.map (fun t -> (parse_string ctx t)) xs
+  | x -> pr2_gen x; error (spf "parse_strings for %s" ctx)
+
 let parse_bool ctx = function
   | J.String "true" -> true
   | J.String "false" -> false
@@ -109,11 +113,11 @@ let parse_metavar_cond s =
   with exn -> raise exn
 
 let parse_regexp  s =
-  s, Pcre.regexp s
-
-let parse_regexps ctx = function
-  | J.Array xs -> List.map (fun t -> parse_regexp (parse_string ctx t)) xs
-  | x -> pr2_gen x; error (spf "parse_regexps for %s" ctx)
+  try
+    s, Pcre.regexp s
+  with (Pcre.Error _) as exn ->
+    failwith (spf "failing to parse regexp %s, error = %s" s
+                (Common.exn_to_s exn))
 
 let parse_extra _env x =
   match x with
@@ -182,10 +186,10 @@ let parse_paths = function
          ], [] ->
            { R.include_ =
                (match inc_opt with
-                | None -> [] | Some xs -> parse_regexps "include" xs);
+                | None -> [] | Some xs -> parse_strings "include" xs);
              exclude =
                (match exc_opt with
-                | None -> [] | Some xs -> parse_regexps "exclude" xs);
+                | None -> [] | Some xs -> parse_strings "exclude" xs);
            }
        | x -> pr2_gen x; error "parse_paths"
       )

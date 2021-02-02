@@ -187,8 +187,9 @@ type rule = {
 }
 
 and paths = {
-  include_: regexp list;
-  exclude: regexp list;
+  (* not regexp but globs *)
+  include_: string list;
+  exclude: string list;
 }
 [@@deriving show]
 
