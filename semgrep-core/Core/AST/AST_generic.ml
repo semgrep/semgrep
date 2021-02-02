@@ -1362,7 +1362,17 @@ and type_parameter = ident * type_parameter_constraint list
 and type_parameter_constraint =
   | Extends of type_
   | HasConstructor of tok
+  | OtherTypeParam of other_type_parameter_operator * any list
   (*e: type [[AST_generic.type_parameter_constraint]] *)
+
+(*s: type_parameter [[AST_generic.other_type_parameter_operator]] *)
+and other_type_parameter_operator =
+  (* Rust *)
+  | OTP_Lifetime | OTP_Ident | OTP_Constrained | OTP_Const
+  (* Other *)
+  | OTP_Todo
+  (*e: type_parameter [[AST_generic.other_type_parameter_operator]] *)
+
 
 (* ------------------------------------------------------------------------- *)
 (* Function (or method) definition *)

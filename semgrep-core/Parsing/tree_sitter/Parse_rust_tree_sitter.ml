@@ -111,9 +111,6 @@ and rust_attribute =
   | AttrInner of rust_meta_item
   | AttrOuter of rust_meta_item
 
-let todo (env : env) _ =
-  failwith "not implemented"
-
 let deoptionalize l =
   let rec deopt acc = function
     | [] -> List.rev acc
@@ -512,29 +509,29 @@ and map_struct_pattern_field (env : env) (x : CST.anon_choice_field_pat_8e757e8)
 and map_type_parameter (env : env) (x : CST.anon_choice_life_859e88f): G.type_parameter =
   (match x with
    | `Life x -> let lt = map_lifetime env x in
-       todo env x
-   | `Meta tok -> let ident = ident env tok in (* pattern \$[a-zA-Z_]\w* *)
-       todo env tok
+       (lt, [G.OtherTypeParam (G.OTP_Lifetime, [])])
+   | `Meta tok -> let meta = ident env tok in (* pattern \$[a-zA-Z_]\w* *)
+       (meta, [G.OtherTypeParam (G.OTP_Ident, [])])
    | `Id tok -> let ident = ident env tok in (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
-       todo env tok
+       (ident, [G.OtherTypeParam (G.OTP_Ident, [])])
    | `Cons_type_param x -> map_constrained_type_parameter env x
    | `Opt_type_param (v1, v2, v3) ->
-       let (ident, _ ) as type_param =
+       let type_param =
          (match v1 with
           | `Id tok -> let ident = ident env tok in (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
-              (ident, [])
+              (ident, [G.OtherTypeParam (G.OTP_Ident, [])])
           | `Cons_type_param x -> map_constrained_type_parameter env x
          )
        in
        let equal = token env v2 (* "=" *) in
        let default_ty = map_type_ env v3 in
-       todo env (v1, v2, v3)
+       type_param
    | `Const_param (v1, v2, v3, v4) ->
        let const = token env v1 in (* "const" *)
        let ident = ident env v2 in (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
        let colon = token env v3 in (* ":" *)
        let ty = map_type_ env v4 in
-       todo env (v1, v2, v3, v4)
+       (ident, [G.OtherTypeParam (G.OTP_Const, [G.T ty])])
   )
 
 and map_range_pattern_bound (env : env) (x : CST.anon_choice_lit_pat_0884ef0): G.pattern =
@@ -883,15 +880,15 @@ and map_const_item (env : env) ((v1, v2, v3, v4, v5, v6) : CST.const_item): G.st
   } in
   G.DefStmt (ent, G.VarDef var_def) |> G.s
 
-and map_constrained_type_parameter (env : env) ((v1, v2) : CST.constrained_type_parameter) =
-  let v1 =
+and map_constrained_type_parameter (env : env) ((v1, v2) : CST.constrained_type_parameter): G.type_parameter =
+  let ident =
     (match v1 with
-     | `Life x -> let lt = map_lifetime env x in todo env x
-     | `Id tok -> token env tok (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
+     | `Life x -> map_lifetime env x
+     | `Id tok -> ident env tok (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
     )
   in
-  let v2 = map_trait_bounds env v2 in
-  todo env (v1, v2)
+  let bounds = map_trait_bounds env v2 in
+  (ident, [G.OtherTypeParam (G.OTP_Constrained, [])])
 
 and map_else_clause (env : env) ((v1, v2) : CST.else_clause): G.stmt =
   let else_ = token env v1 (* "else" *) in
@@ -2331,7 +2328,7 @@ and map_type_parameters (env : env) ((v1, v2, v3, v4, v5) : CST.type_parameters)
   in
   let comma = Option.map (fun tok -> token env tok (* "," *)) v4 in
   let gthan = token env v5 (* ">" *) in
-  [] (* TODO *)
+  (type_param_first::type_param_rest)
 
 and map_use_clause (env : env) (x : CST.use_clause) use: G.directive list =
   (match x with

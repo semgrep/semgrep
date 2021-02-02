@@ -2088,9 +2088,16 @@ and m_type_parameter_constraint a b =
       m_type_ a1 b1
   | A.HasConstructor(a1), B.HasConstructor(b1) ->
       m_tok a1 b1
-  | A.Extends _, _ | A.HasConstructor _, _
+  | A.OtherTypeParam(a1, a2), B.OtherTypeParam(b1, b2) ->
+      m_other_type_parameter_operator a1 b1 >>= (fun () ->
+        (m_list m_any) a2 b2)
+  | A.Extends _, _ | A.HasConstructor _, _ | A.OtherTypeParam _, _
     -> fail ()
 (*e: function [[Generic_vs_generic.m_type_parameter_constraint]] *)
+
+(*s: function [[Generic_vs_generic.m_other_type_parameter_operator]] *)
+and m_other_type_parameter_operator = m_other_xxx
+(*e: function [[Generic_vs_generic.m_other_type_parameter_operator]] *)
 
 (*s: function [[Generic_vs_generic.m_type_parameter_constraints]] *)
 and m_type_parameter_constraints a b =
