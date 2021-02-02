@@ -93,8 +93,7 @@ let rec statement_strings stmt =
   let visitor = V.mk_visitor {
     V.default_visitor with
     V.kident = (fun (_k, _) (str, _tok) ->
-      if not (special_ident str) then
-        push str res
+      push str res
     );
     V.kexpr = (fun (k, _) x ->
       (match x with
@@ -102,7 +101,7 @@ let rec statement_strings stmt =
         * atoms, chars, even int?
        *)
        | L (String (str, _tok)) ->
-           if not (special_literal str) then push str res
+           push str res
        | TypedMetavar _ -> ()
        | _ -> k x
       )
