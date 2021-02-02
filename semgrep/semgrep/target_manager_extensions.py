@@ -29,6 +29,7 @@ RUBY_EXTENSIONS = [FileExtension(".rb")]
 PHP_EXTENSIONS = [FileExtension(".php")]
 LUA_EXTENSIONS = [FileExtension(".lua")]
 CSHARP_EXTENSIONS = [FileExtension(".cs")]
+RUST_EXTENSIONS = [FileExtension(".rs")]
 ML_EXTENSIONS = [
     FileExtension(".mli"),
     FileExtension(".ml"),
@@ -47,6 +48,7 @@ ALL_EXTENSIONS = (
     + RUBY_EXTENSIONS
     + ML_EXTENSIONS
     + JSON_EXTENSIONS
+    + RUST_EXTENSIONS
 )
 
 # This is used to select the files suitable for spacegrep, which is
@@ -77,6 +79,7 @@ _LANGS_TO_EXTS_INTERNAL: List[Tuple[Set[Language], List[FileExtension]]] = [
     (langauge_set({"json", "JSON", "Json"}), JSON_EXTENSIONS),
     (langauge_set({"lua"}), LUA_EXTENSIONS),
     (langauge_set({"cs", "csharp", "C#"}), CSHARP_EXTENSIONS),
+    (langauge_set({"rs", "rust", "Rust"}), RUST_EXTENSIONS),
     (REGEX_ONLY_LANGUAGE_KEYS.union({GENERIC_LANGUAGE}), GENERIC_EXTENSIONS),
 ]
 

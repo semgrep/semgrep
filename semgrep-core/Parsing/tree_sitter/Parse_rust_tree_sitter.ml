@@ -2862,15 +2862,19 @@ let parse file =
            raise exn
     )
 
+let parse_expression_or_source_file str =
+  try
+    let expr_str = "__SEMGREP_EXPRESSION " ^ str in
+    Tree_sitter_rust.Parse.string expr_str
+  with e ->
+    Tree_sitter_rust.Parse.string str
+
+(* todo: special mode to convert Ellipsis in the right construct! *)
 let parse_pattern str =
-  (* ugly: coupling: see grammar.js of rust.
-   * todo: will need to adjust position information in parsing errors!
-  *)
-  let str = "__SEMGREP_EXPRESSION " ^ str in
   H.wrap_parser
     (fun () ->
-       Parallel.backtrace_when_exn := false;
-       Parallel.invoke Tree_sitter_rust.Parse.string str ()
+       Parallel.backtrace_when_exn := true;
+       Parallel.invoke parse_expression_or_source_file str ()
     )
     (fun cst ->
        let file = "<pattern>" in
