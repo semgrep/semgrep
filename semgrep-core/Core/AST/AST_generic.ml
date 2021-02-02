@@ -1654,6 +1654,8 @@ and other_directive_operator =
   (* TODO: Declare, move OE_UseStrict here for JS? *)
   (* Ruby *)
   | OI_Alias | OI_Undef
+  (* Rust *)
+  | OI_Extern
 
 
 (*****************************************************************************)

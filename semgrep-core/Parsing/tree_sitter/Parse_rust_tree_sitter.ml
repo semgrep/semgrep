@@ -2765,11 +2765,15 @@ and map_item_kind (env : env) outer_attrs visibility (x : CST.item_kind): G.stmt
        let alias = Option.map (fun (v1, v2) ->
          let as_ = token env v1 (* "as" *) in
          let alias = ident env v2 in (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
-         (alias, G.empty_id_info ())
+         alias
        ) v4 in
        let semicolon = token env v5 (* ";" *) in
-       let module_name = G.DottedName [ident_] in
-       todo env (v1, v2, v3, v4, v5)
+       let any = (match alias with
+         | Some x -> [G.I ident_; G.I x]
+         | None -> [G.I ident_])
+       in
+       let directive = G.OtherDirective (G.OI_Extern, any) in
+       [G.DirectiveStmt directive |> G.s]
    | `Static_item (v1, v2, v3, v4, v5, v6, v7, v8) ->
        let static = token env v1 (* "static" *) in
        let ref_ = Option.map (fun tok -> token env tok (* "ref" *)) v2 in

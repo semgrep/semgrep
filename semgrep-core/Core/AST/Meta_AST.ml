@@ -1166,6 +1166,7 @@ and vof_other_directive_operator =
   | OI_Export -> OCaml.VSum ("OI_Export", [])
   | OI_Alias -> OCaml.VSum ("OI_Alias", [])
   | OI_Undef -> OCaml.VSum ("OI_Undef", [])
+  | OI_Extern -> OCaml.VSum ("OI_Extern", [])
 
 and vof_item x = vof_stmt x
 and vof_program v = OCaml.vof_list vof_item v
