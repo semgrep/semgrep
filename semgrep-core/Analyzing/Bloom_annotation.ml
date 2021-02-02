@@ -167,6 +167,7 @@ let list_of_pattern_strings any =
 
 (* TODO: visit AST and set the s_bf field in statements *)
 let annotate_program ast =
+  Common.pr2 "here";
   let visitor = V.mk_visitor {
     V.default_visitor with
     V.kstmt = (fun (_k, _) x ->

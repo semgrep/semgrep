@@ -1288,6 +1288,8 @@ let options () =
     " <dir> save and use parsed ASTs in a cache at given directory. Caller responsiblity to clear cache";
     "-filter_irrelevant_rules", Arg.Set Flag.filter_irrelevant_rules,
     " filter rules not containing any strings in target file";
+    "-bloom_filter", Arg.Set Flag.use_bloom_filter,
+    "-no_bloom_filter";
     "-no_filter_irrelevant_rules", Arg.Clear Flag.filter_irrelevant_rules,
     " do not filter rules";
     "-tree_sitter_only", Arg.Set Flag.tree_sitter_only,
