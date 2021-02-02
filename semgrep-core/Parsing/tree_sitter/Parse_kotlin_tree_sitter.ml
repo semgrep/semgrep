@@ -347,7 +347,9 @@ let type_projection_modifiers (env : env) (xs : CST.type_projection_modifiers) =
   List.map (type_projection_modifier env) xs
 
 let simple_identifier (env : env) (x : CST.simple_identifier) : ident =
-  lexical_identifier env x
+  (match x with
+     `Lexi_id x -> lexical_identifier env x
+   | `Pat_831065d tok -> str env tok (*tok*))
 
 let line_string_content (env : env) (x : CST.line_string_content) =
   (match x with
@@ -358,7 +360,7 @@ let line_string_content (env : env) (x : CST.line_string_content) =
 
 let return_at (env : env) ((v1, v2) : CST.return_at) =
   let v1 = token env v1 (* "return@" *) in
-  let v2 = simple_identifier env v2 in
+  let v2 = lexical_identifier env v2 in
   (v1, Some v2)
 
 let identifier (env : env) ((v1, v2) : CST.identifier) =
@@ -1014,10 +1016,11 @@ and enum_entry (env : env) ((v1, v2, v3, v4) : CST.enum_entry) =
 
 and expression (env : env) (x : CST.expression) : expr =
   (match x with
-   | `Un_exp x -> unary_expression env x
-   | `Bin_exp x -> binary_expression env x
-   | `Prim_exp x -> primary_expression env x
-  )
+     `Choice_un_exp x -> (match x with
+     | `Un_exp x -> unary_expression env x
+     | `Bin_exp x -> binary_expression env x
+     | `Prim_exp x -> primary_expression env x)
+   | `Ellips tok -> G.Ellipsis (token env tok) (* "..." *))
 
 and finally_block (env : env) ((v1, v2) : CST.finally_block) =
   let v1 = token env v1 (* "finally" *) in
@@ -1240,7 +1243,7 @@ and jump_expression (env : env) (x : CST.jump_expression) =
       Continue (v1, LNone, sc) |> G.s
   | `Cont_at (v1, v2) ->
       let v1 = token env v1 (* "continue@" *) in
-      let v2 = simple_identifier env v2 in
+      let v2 = lexical_identifier env v2 in
       let ident = LId (v2) in
       Continue (v1, ident, sc) |> G.s
   | `Brk tok ->
@@ -1248,7 +1251,7 @@ and jump_expression (env : env) (x : CST.jump_expression) =
       Break (v1, LNone, sc) |> G.s
   | `Brk_at (v1, v2) ->
       let v1 = token env v1 (* "break@" *) in
-      let v2 = simple_identifier env v2 in
+      let v2 = lexical_identifier env v2 in
       let ident = LId (v2) in
       Break (v1, ident, sc) |> G.s
 
@@ -2023,34 +2026,18 @@ let file_annotation (env : env) ((v1, v2, v3, v4) : CST.file_annotation) =
   in
   todo env (v1, v2, v3, v4)
 
-let source_file (env : env) ((v1, v2, v3, v4, v5) : CST.source_file) : program =
-  (*let v1 =
-     (match v1 with
-     | Some x -> shebang_line env x
-     | None -> todo env ())
-    in
-    let v2 =
-     (match v2 with
-     | Some (v1, v2) ->
-         let v1 = List.map (file_annotation env) v1 in
-         let v2 = token env v2 (* pattern [\r\n]+ *) in
-         todo env (v1, v2)
-     | None -> todo env ())
-    in
-    let v3 =
-     (match v3 with
-     | Some x -> package_header env x
-     | None -> todo env ())
-    in
-    let v4 = List.map (import_header env) v4 in*)
-  let v5 =
-    List.map (fun (v1, v2) ->
-      let v1 = statement env v1 in
-      let v2 = token env v2 (* pattern [\r\n]+ *) in
-      v1
-    ) v5
-  in
-  v5
+let source_file (env : env) (x : CST.source_file) : any =
+  (match x with
+     `Opt_sheb_line_opt_rep1_file_anno_semi_opt_pack_header_rep_import_header_rep_stmt_semi (v1, v2, v3, v4, v5) ->
+       let v5 =
+         List.map (fun (v1, v2) ->
+           let v1 = statement env v1 in
+           let v2 = token env v2 (* pattern [\r\n]+ *) in
+           v1
+         ) v5
+       in
+       G.Pr v5
+   | `Semg_exp (tok, expr) -> G.E (expression env expr))
 
 
 (*****************************************************************************)
@@ -2066,7 +2053,10 @@ let parse file =
        let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
 
        try
-         source_file env cst
+         (match source_file env cst with
+          | G.Pr xs -> xs
+          | _ -> failwith "not a program"
+         )
        with
          (Failure "not implemented") as exn ->
            let s = Printexc.get_backtrace () in
@@ -2076,4 +2066,23 @@ let parse file =
            pr2 "Original backtrace:";
            pr2 s;
            raise exn
+    )
+
+let parse_pattern str =
+  (* ugly: coupling: see grammar.js of rust.
+   * todo: will need to adjust position information in parsing errors!
+  *)
+  let str = "__SEMGREP_EXPRESSION " ^ str in
+  H.wrap_parser
+    (fun () ->
+       Parallel.backtrace_when_exn := false;
+       Parallel.invoke Tree_sitter_kotlin.Parse.string str ()
+    )
+    (fun cst ->
+       let file = "<pattern>" in
+       let env = { H.file; conv = Hashtbl.create 0; extra = () } in
+       match source_file env cst with
+       | G.Pr [x] -> G.S x
+       | G.Pr xs -> G.Ss xs
+       | x -> x
     )

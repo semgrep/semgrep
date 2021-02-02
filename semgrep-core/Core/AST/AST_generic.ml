@@ -846,6 +846,8 @@ and other_expr_operator =
   (* Go *)
   | OE_Send | OE_Recv
   (* Ruby *)
+  (* Rust *)
+  | OE_MacroInvocation
   (* Other *)
   | OE_StmtExpr (* OCaml/Ruby have just expressions, no statements *)
   | OE_Todo
@@ -1020,6 +1022,7 @@ and other_stmt_with_stmt_operator =
   | OSWS_Else_in_try
   (* Rust *)
   | OSWS_UnsafeBlock | OSWS_AsyncBlock | OSWS_ConstBlock
+  | OSWS_ForeignBlock | OSWS_ImplBlock
   (*e: type [[AST_generic.other_stmt_with_stmt_operator]] *)
 
 (*s: type [[AST_generic.other_stmt_operator]] *)
