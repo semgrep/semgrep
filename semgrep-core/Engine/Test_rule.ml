@@ -36,11 +36,6 @@ let (lang_of_rules: Rule.t list -> Lang.t) = fun rs ->
   | None -> failwith "could not find a language"
 
 
-let (ext_of_lang: Lang.t -> string) = fun lang ->
-  match Lang.ext_of_lang lang with
-  | [] -> failwith (spf "no extension for %s" (Lang.show lang))
-  | x::_ -> x
-
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
@@ -63,13 +58,19 @@ let test_rules xs =
     (* rules |> List.iter Check_rule.check; *)
 
     let lang = lang_of_rules rules in
-    let ext = ext_of_lang lang in
-    let (d,b,_) = Common2.dbe_of_filename file in
-    let target = Common2.filename_of_dbe (d,b,ext) in
+    let exts = Lang.ext_of_lang lang in
 
-    if not (Sys.file_exists target)
-    then failwith (spf "could not find a target for %s" file);
-
+    let target =
+      try
+        exts |> Common.find_some (fun ext ->
+          let (d,b,_) = Common2.dbe_of_filename file in
+          let target = Common2.filename_of_dbe (d,b,ext) in
+          if (Sys.file_exists target)
+          then Some target
+          else None
+        )
+      with Not_found -> failwith (spf "could not find a target for %s" file)
+    in
     logger#info "processing target %s" target;
 
     (* expected *)

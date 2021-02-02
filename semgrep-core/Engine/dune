@@ -3,6 +3,7 @@
  (wrapped false)
  (libraries
    pcre
+
    pfff-lang_GENERIC pfff-lang_GENERIC-analyze
 
    semgrep_core
