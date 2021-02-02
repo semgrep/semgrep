@@ -285,7 +285,11 @@ let matches_of_xpatterns with_caching orig_rule (file, lang, ast) xpatterns =
     else begin
       let big_str = Common.read_file file in
       regexps |> List.map (fun (id, (s, re)) ->
-        let subs = Pcre.exec_all ~rex:re big_str in
+        let subs =
+          try
+            Pcre.exec_all ~rex:re big_str
+          with Not_found -> [||]
+        in
         subs |> Array.to_list |> List.map (fun sub ->
           let (charpos, _) = Pcre.get_substring_ofs sub 0 in
           let str = Pcre.get_substring sub 0 in
