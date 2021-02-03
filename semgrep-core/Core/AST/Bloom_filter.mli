@@ -22,4 +22,4 @@ type bbool = No | Maybe
 val mem: elt -> t -> bbool
 
 (* for all elements in bf1, are they (Maybe) present in bf2 *)
-val is_subset: t -> t -> bbool
+val is_subset: elt list -> t -> bbool
