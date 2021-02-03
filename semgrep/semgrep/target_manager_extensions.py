@@ -19,6 +19,8 @@ FileExtension = NewType("FileExtension", str)
 
 # coupling: if you add a constant here, modify also ALL_EXTENSIONS below
 # and you probably also need to update _LANGS_TO_EXTS_INTERNAL
+# You may also have to regenerate some test snapshots with
+# pipenv run pytest tests/e2e/test_rule_parser.py --snapshot-update
 PYTHON_EXTENSIONS = [FileExtension(".py"), FileExtension(".pyi")]
 JAVASCRIPT_EXTENSIONS = [FileExtension(".js"), FileExtension(".jsx")]
 TYPESCRIPT_EXTENSIONS = [FileExtension(".ts"), FileExtension(".tsx")]
