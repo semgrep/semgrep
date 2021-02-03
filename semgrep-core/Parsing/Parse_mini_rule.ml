@@ -50,7 +50,7 @@ let parse_severity ~id s =
 (*s: function [[Parse_rules.parse_pattern]] *)
 let parse_pattern ~id ~lang pattern =
   (* todo? call Normalize_ast.normalize here? *)
-  try Parse_pattern.parse_pattern lang pattern
+  try Parse_pattern.parse_pattern lang ~print_errors:false pattern
   with
   | Timeout -> raise Timeout
   | UnixExit n -> raise (UnixExit n)

@@ -3,8 +3,8 @@
     {
       "code": 8,
       "level": "error",
-      "long_msg": "unsupported language: rust. supported languages are: C#, JSON, Json, c, cs, csharp, generic, go, golang, java, javascript, js, json, jsx, lua, ml, none, ocaml, php, py, python, python2, python3, rb, regex, ruby, ts, tsx, typescript",
-      "short_msg": "invalid language: rust",
+      "long_msg": "unsupported language: intercal. supported languages are: C#, JSON, Json, Rust, c, cs, csharp, generic, go, golang, java, javascript, js, json, jsx, lua, ml, none, ocaml, php, py, python, python2, python3, rb, regex, rs, ruby, rust, ts, tsx, typescript",
+      "short_msg": "invalid language: intercal",
       "spans": [
         {
           "context_end": {
@@ -16,11 +16,11 @@
             "line": 6
           },
           "end": {
-            "col": 22,
+            "col": 26,
             "line": 7
           },
           "file": "rules/syntax/badlanguage.yaml",
-          "source_hash": "f6b249e5598500966b21d2584b6c6ec9385fceee05c5efb3f90f4a012d1c0163",
+          "source_hash": "a586ed585e5f1676161a6663c037292f13a97ff02aeb7fa9c62517732cc00766",
           "start": {
             "col": 16,
             "line": 7
