@@ -1188,7 +1188,7 @@ let all_actions () = [
   Common.mk_action_1_arg Test_parsing.dump_tree_sitter_cst;
   "-dump_tree_sitter_pattern_cst", " <file>",
   Common.mk_action_1_arg (fun file ->
-     Parse_pattern.dump_tree_sitter_pattern_cst (lang_of_string !lang) file
+    Parse_pattern.dump_tree_sitter_pattern_cst (lang_of_string !lang) file
   );
   "-dump_ast_pfff", " <file>",
   Common.mk_action_1_arg Test_parsing.dump_ast_pfff;
