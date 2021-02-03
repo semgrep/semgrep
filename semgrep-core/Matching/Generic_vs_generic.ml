@@ -1461,7 +1461,7 @@ and m_other_attribute_operator = m_other_xxx
 and m_stmts_deep ~less_is_ok (xsa: A.stmt list) (xsb: A.stmt list) tin =
   (* shares the cache with m_list__m_stmt *)
   match tin.cache, xsa, xsb with
-  | Some cache, a :: _, b :: _ ->
+  | Some cache, a :: _, b :: _ when a.s_use_cache ->
       let tin = { tin with mv = MV.Env.update_min_env tin.mv a } in
       (* TODO: add support for local modules to semgrep *)
       (* let module K = Caching.Cache_key in *)
@@ -1557,7 +1557,7 @@ and m_stmts_deep_uncached ~less_is_ok (xsa: A.stmt list) (xsb: A.stmt list) =
 and m_list__m_stmt ~flattened xsa (xsb : matchable_stmt_list) tin =
   (* shares the cache with m_stmts_deep *)
   match tin.cache, xsa with
-  | Some cache, a :: _ ->
+  | Some cache, a :: _ when not flattened && a.s_use_cache ->
       let opt_b_xsb =
         match xsb with
         | List ((b :: _) as xsb) -> Some (b, lazy (Some xsb))

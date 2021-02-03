@@ -142,6 +142,11 @@ let diff_backrefs bound_metavars ~new_backref_counts ~old_backref_counts =
   in
   Set_.diff bound_metavars not_backrefs_in_rest_of_pattern
 
+let is_ellipsis_stmt (x : stmt) =
+  match x.s with
+  | ExprStmt (Ellipsis _, _) -> true
+  | _ -> false
+
 (*
    Decorate a pattern and target ASTs to make the suitable for memoization
    during matching.
@@ -162,6 +167,22 @@ let diff_backrefs bound_metavars ~new_backref_counts ~old_backref_counts =
    This function decorates the pattern AST with the set of metavariables
    that are used in the rest of the pattern. This set is consulted at runtime
    to determine whether a captured metavariable should go into the cache key.
+
+   We only consult the cache at strategic locations:
+   - on an ellipsis pattern, for every position in the target stmt list,
+   - and only if the rest of the pattern doesn't contain free metavariables.
+
+   Example 1:
+
+     foo; // don't cache here
+     ...  // cache here
+     bar; // don't cache here
+
+   Example 2:
+
+     $A;       // don't cache here
+     ...       // don't cache here due to $A being referenced in foo($A)
+     foo($A);  // don't cache here
 *)
 let prepare_pattern any =
   let bound_metavars = ref Set_.empty in
@@ -213,6 +234,10 @@ let prepare_pattern any =
              assert (stmt.s_backrefs = None);
         *)
         stmt.s_backrefs <- Some backrefs;
+
+        (* Only consult the cache if it's economical, see details earlier. *)
+        if Set_.is_empty backrefs && is_ellipsis_stmt stmt then
+          stmt.s_use_cache <- true;
 
         if debug then (
           printf "stmt %i\n" stmt_id;
