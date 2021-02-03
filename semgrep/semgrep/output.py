@@ -235,6 +235,31 @@ def build_sarif_output(rule_matches: List[RuleMatch], rules: FrozenSet[Rule]) ->
     return json.dumps(output_dict)
 
 
+def iter_emacs_output(
+    rule_matches: List[RuleMatch], rules: FrozenSet[Rule]
+) -> Iterator[str]:
+    last_file = None
+    last_message = None
+    sorted_rule_matches = sorted(rule_matches, key=lambda r: (r.path, r.id))
+    for _, rule_match in enumerate(sorted_rule_matches):
+        current_file = rule_match.path
+        check_id = rule_match.id
+        message = rule_match.message
+        severity = rule_match.severity.lower()
+        start_line = rule_match.start.get("line")
+        start_col = rule_match.start.get("col")
+        line = rule_match.lines[0].rstrip()
+        info = ""
+        if check_id and check_id != "-":
+            check_id = check_id.split(".")[-1]
+            info = f"({check_id})"
+        yield f"{current_file}:{start_line}:{start_col}:{severity}{info}:{line}"
+
+
+def build_emacs_output(rule_matches: List[RuleMatch], rules: FrozenSet[Rule]) -> str:
+    return "\n".join(list(iter_emacs_output(rule_matches, rules)))
+
+
 class OutputSettings(NamedTuple):
     output_format: OutputFormat
     output_destination: Optional[str]
@@ -474,6 +499,8 @@ class OutputHandler:
             return build_junit_xml_output(self.rule_matches, self.rules)
         elif output_format == OutputFormat.SARIF:
             return build_sarif_output(self.rule_matches, self.rules)
+        elif output_format == OutputFormat.EMACS:
+            return build_emacs_output(self.rule_matches, self.rules)
         elif output_format == OutputFormat.TEXT:
             return "\n".join(
                 list(
