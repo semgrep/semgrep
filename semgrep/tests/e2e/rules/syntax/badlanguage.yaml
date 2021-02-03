@@ -4,5 +4,5 @@ rules:
       - pattern: $X = 1
       - pattern: $X = 2
     message: "$X is being assigned to one or two"
-    languages: [rust]
+    languages: [intercal]
     severity: WARNING

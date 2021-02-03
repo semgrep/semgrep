@@ -445,6 +445,7 @@ and vof_other_expr_operator =
   | OE_Unpack -> OCaml.VSum ("OE_Unpack", [])
   | OE_RecordFieldName -> OCaml.VSum ("OE_RecordFieldName", [])
   | OE_RecordWith -> OCaml.VSum ("OE_RecordWith", [])
+  | OE_MacroInvocation -> OCaml.VSum ("OE_MacroInvocation", [])
 
 and vof_type_ =
   function
@@ -520,6 +521,10 @@ and vof_type_argument =
       OCaml.VSum ("TypeWildcard", [ v1; v2 ])
   | TypeLifetime v1 ->
       let v1 = vof_ident v1 in OCaml.VSum ("TypeLifetime", [ v1 ])
+  | OtherTypeArg (v1, v2) ->
+      let v1 = vof_other_type_argument_operator v1
+      and v2 = OCaml.vof_list vof_any v2
+      in OCaml.VSum ("OtherTypeArg", [ v1; v2 ])
 and vof_other_type_operator =
   function
   | OT_Todo -> OCaml.VSum ("OT_Todo", [])
@@ -529,6 +534,12 @@ and vof_other_type_operator =
   | OT_UnionName -> OCaml.VSum ("OT_UnionName", [])
   | OT_EnumName -> OCaml.VSum ("OT_EnumName", [])
   | OT_Variadic -> OCaml.VSum ("OT_Variadic", [])
+  | OT_Lifetime -> OCaml.VSum ("OT_Lifetime", [])
+and vof_other_type_argument_operator =
+  function
+  | OTA_Todo -> OCaml.VSum ("OTA_Todo", [])
+  | OTA_Literal -> OCaml.VSum ("OTA_Literal", [])
+  | OTA_ConstBlock -> OCaml.VSum ("OTA_ConstBlock", [])
 and vof_keyword_attribute =
   function
   | Static -> OCaml.VSum ("Static", [])
@@ -683,6 +694,8 @@ and vof_other_stmt_with_stmt_operator = function
   | OSWS_UnsafeBlock -> OCaml.VSum ("OSWS_UnsafeBlock", [])
   | OSWS_AsyncBlock -> OCaml.VSum ("OSWS_AsyncBlock", [])
   | OSWS_ConstBlock -> OCaml.VSum ("OSWS_ConstBlock", [])
+  | OSWS_ForeignBlock -> OCaml.VSum ("OSWS_ForeignBlock", [])
+  | OSWS_ImplBlock -> OCaml.VSum ("OSWS_ImplBlock", [])
 
 
 and vof_label_ident =
@@ -942,6 +955,17 @@ and vof_type_parameter_constraint =
   function
   | Extends v1 -> let v1 = vof_type_ v1 in OCaml.VSum ("Extends", [ v1 ])
   | HasConstructor t -> let t = vof_tok t in OCaml.VSum ("HasConstructor", [ t ])
+  | OtherTypeParam (t, xs) ->
+      let t = vof_other_type_parameter_operator t
+      and xs = OCaml.vof_list vof_any xs
+      in OCaml.VSum ("OtherTypeParam", [ t; xs ])
+and vof_other_type_parameter_operator =
+  function
+  | OTP_Todo -> OCaml.VSum ("OTP_Todo", [])
+  | OTP_Lifetime -> OCaml.VSum ("OTP_Lifetime", [])
+  | OTP_Ident -> OCaml.VSum ("OTP_Ident", [])
+  | OTP_Constrained -> OCaml.VSum ("OTP_Constrained", [])
+  | OTP_Const -> OCaml.VSum ("OTP_Const", [])
 
 and vof_function_kind = function
   | Function -> OCaml.VSum ("Function", [])
@@ -1163,6 +1187,7 @@ and vof_other_directive_operator =
   | OI_Export -> OCaml.VSum ("OI_Export", [])
   | OI_Alias -> OCaml.VSum ("OI_Alias", [])
   | OI_Undef -> OCaml.VSum ("OI_Undef", [])
+  | OI_Extern -> OCaml.VSum ("OI_Extern", [])
 
 and vof_item x = vof_stmt x
 and vof_program v = OCaml.vof_list vof_item v

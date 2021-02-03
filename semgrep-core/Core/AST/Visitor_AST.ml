@@ -406,8 +406,11 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
              v_type_ v2
         )
     | TypeLifetime v1 -> let v1 = v_ident v1 in ()
+    | OtherTypeArg (v1, v2) ->
+        let v1 = v_other_type_argument_operator v1 and v2 = v_list v_any v2 in ()
 
   and v_other_type_operator _ = ()
+  and v_other_type_argument_operator _ = ()
 
   and v_type_parameter (v1, v2) =
     let v1 = v_ident v1 and v2 = v_type_parameter_constraints v2 in ()
@@ -415,6 +418,10 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
   and v_type_parameter_constraint =
     function | Extends v1 -> let v1 = v_type_ v1 in ()
              | HasConstructor t -> let t = v_tok t in ()
+             | OtherTypeParam (t, xs) ->
+                 let t = v_other_type_parameter_operator t in
+                 let xs = v_list v_any xs in ()
+  and v_other_type_parameter_operator _ = ()
   and v_attribute x =
     let k x =
       match x with

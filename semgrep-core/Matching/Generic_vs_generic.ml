@@ -1369,7 +1369,10 @@ and m_type_argument a b =
       m_option m_wildcard a2 b2
   | A.TypeLifetime(a1), B.TypeLifetime(b1) ->
       m_ident a1 b1
-  | A.TypeArg _, _ | A.TypeWildcard _, _ | A.TypeLifetime _, _
+  | A.OtherTypeArg(a1, a2), B.OtherTypeArg(b1, b2) ->
+      m_other_type_argument_operator a1 b1 >>= (fun () ->
+        (m_list m_any) a2 b2)
+  | A.TypeArg _, _ | A.TypeWildcard _, _ | A.TypeLifetime _, _ | A.OtherTypeArg _, _
     -> fail ()
 (*e: function [[Generic_vs_generic.m_type_argument]] *)
 and m_wildcard (a1, a2) (b1, b2) =
@@ -1379,6 +1382,9 @@ and m_wildcard (a1, a2) (b1, b2) =
 (*s: function [[Generic_vs_generic.m_other_type_operator]] *)
 and m_other_type_operator = m_other_xxx
 (*e: function [[Generic_vs_generic.m_other_type_operator]] *)
+(*s: function [[Generic_vs_generic.m_other_type_argument_operator]] *)
+and m_other_type_argument_operator = m_other_xxx
+(*e: function [[Generic_vs_generic.m_other_type_argument_operator]] *)
 (*s: function [[Generic_vs_generic.m_other_type_argument_operator]] *)
 (*e: function [[Generic_vs_generic.m_other_type_argument_operator]] *)
 (*****************************************************************************)
@@ -2082,9 +2088,16 @@ and m_type_parameter_constraint a b =
       m_type_ a1 b1
   | A.HasConstructor(a1), B.HasConstructor(b1) ->
       m_tok a1 b1
-  | A.Extends _, _ | A.HasConstructor _, _
+  | A.OtherTypeParam(a1, a2), B.OtherTypeParam(b1, b2) ->
+      m_other_type_parameter_operator a1 b1 >>= (fun () ->
+        (m_list m_any) a2 b2)
+  | A.Extends _, _ | A.HasConstructor _, _ | A.OtherTypeParam _, _
     -> fail ()
 (*e: function [[Generic_vs_generic.m_type_parameter_constraint]] *)
+
+(*s: function [[Generic_vs_generic.m_other_type_parameter_operator]] *)
+and m_other_type_parameter_operator = m_other_xxx
+(*e: function [[Generic_vs_generic.m_other_type_parameter_operator]] *)
 
 (*s: function [[Generic_vs_generic.m_type_parameter_constraints]] *)
 and m_type_parameter_constraints a b =

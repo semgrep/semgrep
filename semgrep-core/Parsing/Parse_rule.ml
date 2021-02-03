@@ -106,7 +106,7 @@ let parse_int ctx = function
 let parse_metavar_cond s =
   try
     let lang = Lang.Python in (* todo? use lang in env? *)
-    (match Parse_pattern.parse_pattern lang s with
+    (match Parse_pattern.parse_pattern lang ~print_errors:false s with
      | AST_generic.E e -> e
      | _ -> error "not an expression"
     )
