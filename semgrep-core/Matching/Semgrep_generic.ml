@@ -201,7 +201,7 @@ let must_analyze_statement_bloom_opti_failed pattern_strs (st : AST_generic.stmt
    * and we must analyze the stmt
   *)
   match st.s_bf with
-  (* No bloom filter, probably forgot calls to Bloom_annotation.annotate *)
+  (* No bloom filter, expected if -bloom_filter is not used *)
   | None -> true
   (* only when the Bloom_filter says No we can skip the stmt *)
   | Some bf -> Bloom_filter.is_subset pattern_strs bf = Bloom_filter.Maybe
