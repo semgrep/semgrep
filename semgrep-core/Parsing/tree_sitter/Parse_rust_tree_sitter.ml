@@ -2845,35 +2845,24 @@ let parse file =
     )
     (fun cst ->
        let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
-
-       try
-         (match map_source_file env cst with
-          | G.Pr xs -> xs
-          | _ -> failwith "not a program"
-         )
-       with
-         (Failure "not implemented") as exn ->
-           let s = Printexc.get_backtrace () in
-           pr2 "Some constructs are not handled yet";
-           pr2 "CST was:";
-           CST.dump_tree cst;
-           pr2 "Original backtrace:";
-           pr2 s;
-           raise exn
+       match map_source_file env cst with
+       | G.Pr xs -> xs
+       | _ -> failwith "not a program"
     )
 
 let parse_expression_or_source_file str =
-  try
-    let expr_str = "__SEMGREP_EXPRESSION " ^ str in
-    Tree_sitter_rust.Parse.string expr_str
-  with e ->
-    Tree_sitter_rust.Parse.string str
+  let res = Tree_sitter_rust.Parse.string str in
+  match res.errors with
+  | [] -> res
+  | _ ->
+      let expr_str = "__SEMGREP_EXPRESSION " ^ str in
+      Tree_sitter_rust.Parse.string expr_str
 
 (* todo: special mode to convert Ellipsis in the right construct! *)
 let parse_pattern str =
   H.wrap_parser
     (fun () ->
-       Parallel.backtrace_when_exn := true;
+       Parallel.backtrace_when_exn := false;
        Parallel.invoke parse_expression_or_source_file str ()
     )
     (fun cst ->
