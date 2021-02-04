@@ -476,7 +476,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout matches =
   let new_errors =
     offending_files |> Common.hashset_to_list |> List.map (fun file ->
       (* logging useful info for rule writers *)
-      logger#info "too many matches on %s, generating Timeout for it" file;
+      logger#info "too many matches on %s, generating exn for it" file;
       let biggest_offending_rule =
         let matches = List.assoc file per_files in
         matches
@@ -494,7 +494,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout matches =
 
       (* todo: we should maybe use a new error: TooManyMatches of int * string*)
       let loc = Parse_info.first_loc_of_file file in
-      Error_code.mk_error_loc loc (Error_code.Timeout None)
+      Error_code.mk_error_loc loc (Error_code.TooManyMatches pat)
     )
   in
   new_matches, new_errors
