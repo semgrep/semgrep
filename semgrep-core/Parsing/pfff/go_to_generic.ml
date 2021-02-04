@@ -144,14 +144,7 @@ let top_func () =
 
     | TStruct (t, v1) -> let v1 = bracket (list struct_field) v1 in
         G.TyRecordAnon (t, v1)
-    | TInterface (t, v1) -> let v1 = bracket (list interface_field) v1 in
-        let s = gensym () in
-        let ent = G.basic_entity (s, t) [] in
-        let def = G.ClassDef { G.ckind = (G.Interface, t);
-                               cextends = []; cimplements = []; cmixins = [];
-                               cbody = v1; } in
-        Common.push (ent, def) anon_types;
-        G.TyId ((s,t), G.empty_id_info())
+    | TInterface (t, v1) -> TyInterfaceAnon (t, v1)
 
   and chan_dir = function
     | TSend -> G.TyId (fake_id "send", G.empty_id_info())
