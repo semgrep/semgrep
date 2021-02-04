@@ -13,7 +13,7 @@ val prepare_pattern : AST_generic.any -> unit
 (* Exposes just the special-purpose types required to create the cache key. *)
 module Cache_key : sig
   type function_id = Match_deep | Match_list
-  type list_kind = Original | Flattened
+  type list_kind = Original | Flattened_until of AST_generic.Node_ID.t
 end
 
 module Cache : sig
@@ -43,8 +43,7 @@ module Cache : sig
     less_is_ok: bool ->
     compute:(pattern -> target -> 'acc -> 'acc list) ->
     pattern: pattern ->
-    target_head: AST_generic.stmt -> (* first stmt of target *)
-    target: target option Lazy.t ->
+    target: target ->
     'acc -> 'acc list
 end
 

@@ -265,7 +265,42 @@ let prepare_pattern any =
 module Cache_key = struct
   type env = Metavariable.bindings [@@deriving show]
   type function_id = Match_deep | Match_list
-  type list_kind = Original | Flattened
+
+  (*
+     An identifier of the list of statements we're in.
+  *)
+  type list_kind =
+    | Original
+    (* The list of statements exists in the AST and is identified
+       unambiguously by the ID of the first statement. *)
+
+    | Flattened_until of AST_generic.Node_ID.t
+    (* The list of statements is the result of flattening the AST for
+       deep ellipsis matching. The node ID is the ID of the last statement
+       of the list. Together with the first ID of the list, they
+       identify the flattened list unambiguously.
+
+         1;
+         {
+           2;
+           3;
+         }
+         4;
+
+       When starting from '1;', the code above gets flattened into:
+
+         1; { 2; 3; } 2; 3; 4;
+
+       of which '2; 3; 4;' is a tail.
+
+       But when starting from '2;', the flattened list ends earlier:
+
+         2; 3;
+
+       which starts like '2; 3; 4;' but is not identical and should
+       not share a cache entry. This is why we use also the ID
+       of the last statement to distinguish them.
+    *)
 
   (*
      A cache key. It must unambiguously identify the computation being
@@ -301,7 +336,11 @@ module Cache_key = struct
     sprintf "%s %s %s %B %i %i"
       (show_env k.min_env)
       (match k.function_id with Match_deep -> "deep" | Match_list -> "list")
-      (match k.list_kind with Original -> "orig" | Flattened -> "flat")
+      (match k.list_kind with
+       | Original -> "orig"
+       | Flattened_until last_id ->
+           sprintf "flat[%i-%i]" (k.target_stmt_id :> int) (last_id :> int)
+      )
       k.less_is_ok
       (k.pattern_stmt_id :> int)
       (k.target_stmt_id :> int)
@@ -431,16 +470,13 @@ module Cache = struct
       ~less_is_ok
       ~compute
       ~(pattern : pattern)
-      ~target_head
-      ~(target : target option Lazy.t)
+      ~(target : target)
       acc =
-    match pattern with
-    | [] ->
-        (match Lazy.force target with
-         | None -> []
-         | Some target -> compute pattern target acc
-        )
-    | a :: _ ->
+    match pattern, target with
+    | [], _
+    | _, [] ->
+        compute pattern target acc
+    | a :: _, b :: _ ->
         let mv : Metavariable.Env.t = get_mv_field acc in
         let key : Cache_key.t = {
           min_env = mv.min_env;
@@ -448,7 +484,7 @@ module Cache = struct
           list_kind;
           less_is_ok;
           pattern_stmt_id = a.s_id;
-          target_stmt_id = target_head.s_id;
+          target_stmt_id = b.s_id;
         } in
         let lookup_res = Tbl.find_opt cache key in
         if debug then
@@ -470,16 +506,12 @@ module Cache = struct
                      ~set_span_field
                      ~get_mv_field
                      ~set_mv_field
-                     backrefs target_head acc cached_acc
+                     backrefs a acc cached_acc
                  ) res
             )
         | None ->
             incr cache_misses;
-            let res =
-              match Lazy.force target with
-              | None -> []
-              | Some target -> compute pattern target acc
-            in
+            let res = compute pattern target acc in
             Tbl.replace cache key res;
             res
 end
@@ -490,3 +522,7 @@ let print_stats () =
     !Cache_key.hash_calls !Cache_key.equal_calls;
   printf "- cache hits: %i, cache misses: %i\n"
     !Cache.cache_hits !Cache.cache_misses
+
+let () =
+  if debug then
+    at_exit print_stats
