@@ -267,7 +267,9 @@ let check2 ~hook ~with_caching rules equivs file lang ast =
       | S pattern ->
           let strs = Bloom_annotation.list_of_pattern_strings any in
           Common.push (pattern, strs, rule, cache) stmt_rules
-      | Ss pattern -> Common.push (pattern, rule, cache) stmts_rules
+      | Ss pattern ->
+          let strs = Bloom_annotation.list_of_pattern_strings any in
+          Common.push (pattern, strs, rule, cache) stmts_rules
       | T pattern -> Common.push (pattern, rule, cache) type_rules
       | P pattern -> Common.push (pattern, rule, cache) pattern_rules
       | At pattern -> Common.push (pattern, rule, cache) attribute_rules
@@ -315,28 +317,34 @@ let check2 ~hook ~with_caching rules equivs file lang ast =
               must_analyze_statement_bloom_opti_failed pattern_strs x
             )
           in
+          let new_stmts_rules =
+            !stmts_rules |> List.filter (fun (_, pattern_strs, _, _cache) ->
+              must_analyze_statement_bloom_opti_failed pattern_strs x
+            )
+          in
           let new_expr_rules =
             !expr_rules |> List.filter (fun (_, pattern_strs, _, _cache) ->
               must_analyze_statement_bloom_opti_failed pattern_strs x
             )
           in
           Common.save_excursion stmt_rules new_stmt_rules (fun () ->
-            Common.save_excursion expr_rules new_expr_rules (fun () ->
-              !stmt_rules |> List.iter (fun (pattern, _pattern_strs, rule, cache) ->
-                let matches_with_env = match_st_st rule cache pattern x in
-                if matches_with_env <> []
-                then (* Found a match *)
-                  matches_with_env |> List.iter (fun (env : MG.tin) ->
-                    let env = env.mv.full_env in
-                    let location = Lib_AST.range_of_any (S x) in
-                    let tokens = lazy (Lib_AST.ii_of_any (S x)) in
-                    Common.push
-                      { PM. rule; file; env; location; tokens } matches;
-                    hook env tokens
-                  )
-              );
-              k x
-            ))
+            Common.save_excursion stmts_rules new_stmts_rules (fun () ->
+              Common.save_excursion expr_rules new_expr_rules (fun () ->
+                !stmt_rules |> List.iter (fun (pattern, _pattern_strs, rule, cache) ->
+                  let matches_with_env = match_st_st rule cache pattern x in
+                  if matches_with_env <> []
+                  then (* Found a match *)
+                    matches_with_env |> List.iter (fun (env : MG.tin) ->
+                      let env = env.mv.full_env in
+                      let location = Lib_AST.range_of_any (S x) in
+                      let tokens = lazy (Lib_AST.ii_of_any (S x)) in
+                      Common.push
+                        { PM. rule; file; env; location; tokens } matches;
+                      hook env tokens
+                    )
+                );
+                k x
+              )))
         );
         (*x: [[Semgrep_generic.check2()]] visitor fields *)
         V.kstmts = (fun (k, _) x ->
@@ -349,8 +357,7 @@ let check2 ~hook ~with_caching rules equivs file lang ast =
            * do things a little bit different with the matched_statements also
            * in matches_with_env here.
           *)
-
-          !stmts_rules |> List.iter (fun (pattern, rule, cache) ->
+          !stmts_rules |> List.iter (fun (pattern, _pattern_strs, rule, cache) ->
             let matches_with_env = match_sts_sts rule cache pattern x in
             if matches_with_env <> []
             then (* Found a match *)

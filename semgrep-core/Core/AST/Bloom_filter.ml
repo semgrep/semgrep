@@ -35,7 +35,7 @@ let pp _formatter _bf = ()
 (* TODO: tune these numbers; currently chosen arbitrarily *)
 let create () =
   { added = false;
-    filter = B.create ~error_rate:0.01 10 }
+    filter = B.create ~error_rate:0.01 2500 }
 
 let is_empty bf = not bf.added
 
@@ -48,9 +48,9 @@ let mem elt bf =
   else No
 
 let is_subset pattern_list bf =
-  let propagate_match b x =
+  let patterns_in_bf b x =
     match b with
     | No -> No
     | Maybe -> mem x bf
   in
-  List.fold_left propagate_match Maybe pattern_list
+  List.fold_left patterns_in_bf Maybe pattern_list
