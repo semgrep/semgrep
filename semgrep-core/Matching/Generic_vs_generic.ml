@@ -33,6 +33,8 @@ module Lib = Lib_AST
 module Flag = Flag_semgrep
 module H = AST_generic_helpers
 
+module F = Bloom_filter
+
 open Matching_generic
 
 let logger = Logging.get_logger [__MODULE__]
@@ -141,26 +143,28 @@ let rec all_suffix_of_list xs =
 let _ = Common2.example
     (all_suffix_of_list [1;2;3] = ([[1;2;3]; [2;3]; [3]; []]))
 
-let pattern_may_be_in_stmts pattern_list (stmts : AST_generic.stmt list) =
-  let pat_in_stmt pat (stmt : AST_generic.stmt) =
-    match stmt.s_bf with
-    | None -> Bloom_filter.Maybe
-    | Some bf -> Bloom_filter.mem pat bf
-  in
-  let rec pattern_in_any_stmt pat stmts acc =
-    match stmts with
-    | [] -> acc
-    | stmt::rest ->
-        match acc with
-        | Bloom_filter.No -> pattern_in_any_stmt pat rest (pat_in_stmt pat stmt)
-        | Bloom_filter.Maybe -> acc
-  in
-  let patterns_all_in_stmts acc x =
-    match acc with
-    | Bloom_filter.No -> Bloom_filter.No
-    | Maybe -> pattern_in_any_stmt x stmts Bloom_filter.No
-  in
-  List.fold_left patterns_all_in_stmts Bloom_filter.Maybe pattern_list
+let stmts_may_match pattern_stmts (stmts : AST_generic.stmt list) =
+  if not !Flag.use_bloom_filter then F.Maybe else
+    let pattern_list = Bloom_annotation.list_of_pattern_strings (Ss pattern_stmts) in
+    let pat_in_stmt pat (stmt : AST_generic.stmt) =
+      match stmt.s_bf with
+      | None -> F.Maybe
+      | Some bf -> F.mem pat bf
+    in
+    let rec pattern_in_any_stmt pat stmts acc =
+      match stmts with
+      | [] -> acc
+      | stmt::rest ->
+          match acc with
+          | F.No -> pattern_in_any_stmt pat rest (pat_in_stmt pat stmt)
+          | F.Maybe -> acc
+    in
+    let patterns_all_in_stmts acc x =
+      match acc with
+      | F.No -> Bloom_filter.No
+      | Maybe -> pattern_in_any_stmt x stmts F.No
+    in
+    List.fold_left patterns_all_in_stmts F.Maybe pattern_list
 [@@profiling]
 
 (*****************************************************************************)
@@ -1628,7 +1632,8 @@ and m_list__m_stmt ~flattened xsa (xsb : matchable_stmt_list) tin =
 (* TODO: factorize with m_list_and_dots less_is_ok = true *)
 (*s: function [[Generic_vs_generic.m_list__m_stmt]] *)
 and m_list__m_stmt_uncached ~flattened (xsa: A.stmt list) (xsb: A.stmt list) =
-  match pattern_may_be_in_stmts (Bloom_annotation.list_of_pattern_strings (Ss xsa)) xsb with
+  (* TODO: getting this list every time is redundant *)
+  match stmts_may_match xsa xsb with
   | No -> fail ()
   | Maybe ->
       (*s: [[Generic_vs_generic.m_list__m_stmt]] if [[debug]] *)

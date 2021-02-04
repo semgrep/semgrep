@@ -31,8 +31,9 @@ type bbool = No | Maybe
 
 let pp _formatter _bf = ()
 
-(* Uses bloomf.create, which takes a desired error rate given a number of elements *)
-(* TODO: tune these numbers; currently chosen arbitrarily *)
+(* This gives a bloom filter with an expected false positive rate of 0.01
+ * when 2500 elements are added. The numbers are chosen by experimentation on
+ * a file with 10000 lines of javascript *)
 let create () =
   { added = false;
     filter = B.create ~error_rate:0.01 2500 }

@@ -1304,7 +1304,9 @@ let options () =
     "-filter_irrelevant_rules", Arg.Set Flag.filter_irrelevant_rules,
     " filter rules not containing any strings in target file";
     "-bloom_filter", Arg.Set Flag.use_bloom_filter,
-    "-no_bloom_filter";
+    " use a bloom filter to only attempt matches when strings in the pattern are in the target";
+    "-no_bloom_filter", Arg.Clear Flag.use_bloom_filter,
+    " do not use bloom filter";
     "-no_filter_irrelevant_rules", Arg.Clear Flag.filter_irrelevant_rules,
     " do not filter rules";
     "-tree_sitter_only", Arg.Set Flag.tree_sitter_only,
