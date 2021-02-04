@@ -35,16 +35,19 @@ TESTS = [
     Test("stmts-simple", "js", "l10000.js"),
 
     # Single ellipsis without backreference: $A; ... foo($B);
-    Test("stmts-ellipsis-easy", "js", "l10000.js"),
+    Test("stmts-ellipsis-ab", "js", "l10000.js"),
 
     # Single ellipsis on statements, with backreference to statement
     # that matches in many places: $A; ... foo($A);
     Test("stmts-ellipsis", "js", "l10000.js"),
 
     # Double ellipsis on statements without backref: $A; ... $B; ... foo($C);
-    Test("stmts-double-ellipsis-easy", "js", "l1000.js"),
+    Test("stmts-double-ellipsis-abc", "js", "l1000.js"),
 
-    # Double ellipsis on statements: $A; ... $B; ... foo($A);
+    # Double ellipsis on statements with backref: $A; ... $B; ... foo($B);
+    Test("stmts-double-ellipsis-abb", "js", "l1000.js"),
+
+    # Double ellipsis on statements with backref: $A; ... $B; ... foo($A);
     Test("stmts-double-ellipsis", "js", "l1000.js"),
 ]
 
