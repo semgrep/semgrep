@@ -262,7 +262,8 @@ let check2 ~hook ~with_caching rules equivs file lang ast =
       in
       (* Annotate exp, stmt, stmts patterns with the rule strings *)
       let push_with_annotation any pattern rules =
-        let strs = if !Flag.use_bloom_filter then
+        let strs =
+          if !Flag.use_bloom_filter then
             Bloom_annotation.list_of_pattern_strings any
           else []
         in
@@ -314,7 +315,7 @@ let check2 ~hook ~with_caching rules equivs file lang ast =
            *   !stmt_rules match_st_st k (fun x -> S x) x
            * but inlined to handle specially Bloom filter in stmts for now.
           *)
-          let visit_stmt =
+          let visit_stmt () =
             !stmt_rules |> List.iter (fun (pattern, _pattern_strs, rule, cache) ->
               let matches_with_env = match_st_st rule cache pattern x in
               if matches_with_env <> []
@@ -332,7 +333,7 @@ let check2 ~hook ~with_caching rules equivs file lang ast =
           in
           (* If bloom_filter is not enabled, always visit the statement *)
           (* Otherwise, filter rules first *)
-          if not !Flag.use_bloom_filter then visit_stmt else
+          if not !Flag.use_bloom_filter then visit_stmt () else
             let new_stmt_rules =
               !stmt_rules |> List.filter (fun (_, pattern_strs, _, _cache) ->
                 must_analyze_statement_bloom_opti_failed pattern_strs x
@@ -351,7 +352,7 @@ let check2 ~hook ~with_caching rules equivs file lang ast =
             Common.save_excursion stmt_rules new_stmt_rules (fun () ->
               Common.save_excursion stmts_rules new_stmts_rules (fun () ->
                 Common.save_excursion expr_rules new_expr_rules (fun () ->
-                  visit_stmt
+                  visit_stmt ()
                 )))
         );
         (*x: [[Semgrep_generic.check2()]] visitor fields *)

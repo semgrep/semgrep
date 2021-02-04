@@ -29,7 +29,7 @@ let go_really_deeper_stmt = ref true
 (* look if identifiers in rule intersect with file using simple regexps *)
 let filter_irrelevant_rules = ref false
 
-(* check for identifiers before entering *)
+(* check for identifiers before attempting to match a stmt or stmt list *)
 let use_bloom_filter = ref false
 
 (* we usually try first with the pfff parser and then with the tree-sitter
