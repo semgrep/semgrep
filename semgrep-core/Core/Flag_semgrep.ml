@@ -32,6 +32,9 @@ let max_cache = ref false
 (* look if identifiers in rule intersect with file using simple regexps *)
 let filter_irrelevant_rules = ref false
 
+(* check for identifiers before entering *)
+let use_bloom_filter = ref false
+
 (* we usually try first with the pfff parser and then with the tree-sitter
  * parser if pfff fails. Here you can force to only use tree-sitter.
 *)

@@ -577,7 +577,7 @@ let parse_equivalences () =
 let parse_pattern lang_pattern str =
   try (
     Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
-      Parse_pattern.parse_pattern lang_pattern str
+      Parse_pattern.parse_pattern lang_pattern ~print_errors:false str
       (*s: [[Main_semgrep_core.parse_pattern()]] when not a supported language *)
       (*e: [[Main_semgrep_core.parse_pattern()]] when not a supported language *)
     ))
@@ -1089,7 +1089,7 @@ let dump_pattern (file: Common.filename) =
   (* mostly copy-paste of parse_pattern above, but with better error report *)
   let lang = lang_of_string !lang in
   E.try_with_print_exn_and_reraise file (fun () ->
-    let any = Parse_pattern.parse_pattern lang s in
+    let any = Parse_pattern.parse_pattern lang ~print_errors:true s in
     let v = Meta_AST.vof_any any in
     let s = dump_v_to_format v in
     pr s
@@ -1186,6 +1186,10 @@ let all_actions () = [
   Common.mk_action_1_arg dump_rule;
   "-dump_tree_sitter_cst", " <file>",
   Common.mk_action_1_arg Test_parsing.dump_tree_sitter_cst;
+  "-dump_tree_sitter_pattern_cst", " <file>",
+  Common.mk_action_1_arg (fun file ->
+    Parse_pattern.dump_tree_sitter_pattern_cst (lang_of_string !lang) file
+  );
   "-dump_ast_pfff", " <file>",
   Common.mk_action_1_arg Test_parsing.dump_ast_pfff;
   "-dump_il", " <file>",
@@ -1230,6 +1234,8 @@ let all_actions () = [
   Common.mk_action_2_arg Datalog_experiment.gen_facts;
   "-eval", " <JSON file>",
   Common.mk_action_1_arg Eval_generic.eval_json_file;
+  "-test_eval", " <JSON file>",
+  Common.mk_action_1_arg Eval_generic.test_eval;
 ] @ Test_analyze_generic.actions()
 
 (*e: function [[Main_semgrep_core.all_actions]] *)
@@ -1302,6 +1308,8 @@ let options () =
     " <dir> save and use parsed ASTs in a cache at given directory. Caller responsiblity to clear cache";
     "-filter_irrelevant_rules", Arg.Set Flag.filter_irrelevant_rules,
     " filter rules not containing any strings in target file";
+    "-bloom_filter", Arg.Set Flag.use_bloom_filter,
+    "-no_bloom_filter";
     "-no_filter_irrelevant_rules", Arg.Clear Flag.filter_irrelevant_rules,
     " do not filter rules";
     "-tree_sitter_only", Arg.Set Flag.tree_sitter_only,

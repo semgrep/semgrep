@@ -2,11 +2,13 @@
  (name semgrep_engine)
  (wrapped false)
  (libraries
+   pcre
+
    pfff-lang_GENERIC pfff-lang_GENERIC-analyze
 
    semgrep_core
    semgrep_matching
    semgrep_parsing semgrep_reporting ; for Test_rule.ml
  )
- (preprocess (pps ppx_profiling))
+ (preprocess (pps ppx_deriving.show ppx_profiling))
 )

@@ -37,29 +37,32 @@ let logger = Logging.get_logger [__MODULE__]
 (* Types *)
 (*****************************************************************************)
 
-(* This is the (partially parsed) content of a metavariable *)
+(* This is the (partially parsed/evalulated) content of a metavariable *)
 type value =
   | Bool of bool
   | Int of int
   | Float of float
   | String of string (* string without the enclosing '"' *)
+
   | List of value list
   (* default case where we don't really have good builtin operations.
    * This should be a AST_generic.any once parsed.
    * See JSON_report.json_metavar().
   *)
   | AST of string (* any AST, e.g., "x+1" *)
-(* lesS: Id of string (* simpler to merge with AST *) *)
+(* less: Id of string (* simpler to merge with AST *) *)
+[@@deriving show]
 
 type env = (MV.mvar, value) Hashtbl.t
 
-(* we restrict ourselves to simple expression for now *)
+(* we restrict ourselves to simple expressions for now *)
 type code = AST_generic.expr
 
 exception NotHandled of code
+exception NotInEnv of Metavariable.mvar
 
 (*****************************************************************************)
-(* Parsing *)
+(* JSON Parsing *)
 (*****************************************************************************)
 let metavar_of_json s = function
   | J.Int i -> Int i
@@ -68,6 +71,7 @@ let metavar_of_json s = function
   | J.Float f -> Float f
   | _ -> failwith (spf "wrong format for metavar %s" s)
 
+(* JSON format used internally in semgrep-python for metavariable-comparison *)
 let parse_json file =
   let json = JSON.load_json file in
   match json with
@@ -97,6 +101,17 @@ let parse_json file =
   | _ -> failwith "wrong json format"
 
 (*****************************************************************************)
+(* Converting *)
+(*****************************************************************************)
+(* to allow regexp to match regular ints, identifiers, or any text code *)
+let _value_to_string = function
+  | Bool b -> string_of_bool b
+  | Int i -> string_of_int i
+  | Float f -> string_of_float f
+  | String s -> s
+  | _ -> raise Todo
+
+(*****************************************************************************)
 (* Reporting *)
 (*****************************************************************************)
 
@@ -115,7 +130,7 @@ let print_result xopt =
 [@@action]
 
 (*****************************************************************************)
-(* Entry point *)
+(* Eval algorithm *)
 (*****************************************************************************)
 
 let rec eval env code =
@@ -131,9 +146,13 @@ let rec eval env code =
        | G.Float (s, _t) -> Float (float_of_string s)
        | _ -> raise (NotHandled code)
       )
+
+  (* less: sanity check that s is a metavar_name? *)
   | G.Id ((s, _t), _idinfo) ->
       (try Hashtbl.find env s
-       with Not_found -> raise (NotHandled code)
+       with Not_found ->
+         logger#debug "could not find a value for %s in env" s;
+         raise Not_found
       )
   | G.Call (G.IdSpecial (G.Op op, _t), (_, args, _)) ->
       let values = args |> List.map (function
@@ -144,6 +163,7 @@ let rec eval env code =
   | G.Container (G.List, (_, xs, _)) ->
       let vs = List.map (eval env) xs in
       List vs
+
   (* TODO: Python In could be made an AST_generic.operator at some point *)
   | G.OtherExpr (G.OE_In, [G.E e1; G.E e2]) ->
       let v1 = eval env e1 in
@@ -152,6 +172,26 @@ let rec eval env code =
        | List xs -> Bool (List.mem v1 xs)
        | _ -> Bool (false)
       )
+  (* Emulate Python re.match just enough *)
+  | G.Call (G.DotAccess(G.Id (("re", _), _), _, EId ((("match"),_),_)),
+            (_, [G.Arg e1; G.Arg (G.L (G.String (re, _)))], _)) ->
+      (* alt: take the text range of the metavariable in the original file,
+       * and enforce e1 can only be an Id metavariable.
+       * alt: let s = value_to_string v in
+       * to convert anything in a string before using regexps on it
+      *)
+      let v = eval env e1 in
+
+      (match v with
+       | String s ->
+           (* todo? factorize with Matching_generic.regexp_matcher_of_regexp_.. *)
+           (* use of `ANCHORED to simulate Python re.match() (vs re.search) *)
+           let regexp = Pcre.regexp ~flags:[`ANCHORED] re in
+           let res = Pcre.pmatch ~rex:regexp s in
+           Bool res
+       | _ -> raise (NotHandled code)
+      )
+
   | _ -> raise (NotHandled code)
 
 and eval_op op values code =
@@ -196,6 +236,13 @@ and eval_op op values code =
 
   | _ -> raise (NotHandled code)
 
+(*****************************************************************************)
+(* Entry points *)
+(*****************************************************************************)
+
+(* This is when called from the semgrep Python wrapper for the
+ * metavariable-comparison: condition.
+*)
 let eval_json_file file =
   try
     let (env, code) = parse_json file in
@@ -208,3 +255,60 @@ let eval_json_file file =
   | exn ->
       logger#debug "exn: %s" (Common.exn_to_s exn);
       print_result None
+
+(* for testing purpose *)
+let test_eval file =
+  try
+    let (env, code) = parse_json file in
+    let res = eval env code in
+    print_result (Some res)
+  with NotHandled e ->
+    pr2 (G.show_expr e);
+    raise (NotHandled e)
+
+
+(* when called from the new semgrep-full-rule-in-ocaml *)
+
+let bindings_to_env xs =
+  xs |> Common.map_filter (fun (mvar, mval) ->
+    match mval with
+    | MV.E e ->
+        (try  Some (mvar, eval (Hashtbl.create 0) e)
+         with NotHandled _e ->
+           logger#debug "can't eval %s value %s" mvar (MV.show_mvalue mval);
+           (* todo: if not a value, could default to AST of range *)
+           None
+        )
+    | x ->
+        logger#debug "filtering mvar %s, not an expr %s" mvar (MV.show_mvalue x);
+        None
+  ) |> Common.hash_of_list
+
+(* this is for metavariable-regexp *)
+let bindings_to_env_with_just_strings xs =
+  xs |> List.map (fun (mvar, mval) ->
+    let any = MV.mvalue_to_any mval in
+    let (min, max) = Lib_AST.range_of_any any in
+    let file = min.Parse_info.file in
+    let range = Range.range_of_token_locations min max in
+    mvar, String (Range.content_at_range file range)
+  ) |> Common.hash_of_list
+
+let eval_bool env e =
+  try
+    let res = eval env e in
+    (match res with
+     | Bool b -> b
+     | _ -> failwith (spf "not a boolean: %s" (show_value res))
+    )
+  with
+  | Not_found ->
+      (* this can be because a metavar is binded to a complex expression,
+       * e.g., os.getenv("foo") which can't be evaluated. It's ok to
+       * return false then.
+       * todo: should reraise?
+      *)
+      false
+  | NotHandled e ->
+      pr2 (G.show_expr e);
+      raise (NotHandled e)

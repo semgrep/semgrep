@@ -1,0 +1,9 @@
+impl $CLASS {
+  pub fn $FUNC($PARAM: $TYPE) -> $RETTYPE {
+    if $COND {
+        $V1
+    } else {
+        $V2
+    }
+  }
+}

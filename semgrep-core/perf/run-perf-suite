@@ -29,24 +29,18 @@ class Test:
 TESTS = [
     # Control. No other test can be faster than this one.
     Test("empty", "js", "empty.js"),
-
     # Match on a simple statement, no ellipsis. Serves as the baseline
     # for the other tests on the same file.
     Test("stmts-simple", "js", "l10000.js"),
-
     # Single ellipsis without backreference: $A; ... foo($B);
     Test("stmts-ellipsis-ab", "js", "l10000.js"),
-
     # Single ellipsis on statements, with backreference to statement
     # that matches in many places: $A; ... foo($A);
     Test("stmts-ellipsis", "js", "l10000.js"),
-
     # Double ellipsis on statements without backref: $A; ... $B; ... foo($C);
     Test("stmts-double-ellipsis-abc", "js", "l1000.js"),
-
     # Double ellipsis on statements with backref: $A; ... $B; ... foo($B);
     Test("stmts-double-ellipsis-abb", "js", "l1000.js"),
-
     # Double ellipsis on statements with backref: $A; ... $B; ... foo($A);
     Test("stmts-double-ellipsis", "js", "l1000.js"),
 ]
@@ -58,8 +52,9 @@ class Result:
         self.duration = duration
 
 
-def run_tests(dirname: str, tests: List[Test],
-              no_cache: bool, max_cache: bool) -> List[Result]:
+def run_tests(
+    dirname: str, tests: List[Test], no_cache: bool, max_cache: bool
+) -> List[Result]:
     results = []
     for test in tests:
         pattern_file = os.path.join(dirname, test.name + ".sgrep")

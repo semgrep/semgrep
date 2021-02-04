@@ -48,7 +48,10 @@ type visitor_in = {
   kclass_definition: (class_definition -> unit) * visitor_out ->
     class_definition -> unit;
 
-  kinfo: (tok -> unit)  * visitor_out -> tok  -> unit;
+  kinfo: (tok -> unit) * visitor_out -> tok -> unit;
+
+  kid_info: (id_info -> unit) * visitor_out -> id_info -> unit;
+  kconstness: (constness -> unit) * visitor_out -> constness -> unit;
 }
 and visitor_out = any -> unit
 
@@ -74,6 +77,17 @@ let default_visitor =
     kclass_definition   = (fun (k,_) x -> k x);
 
     kinfo   = (fun (k,_) x -> k x);
+
+    (* By default, do not visit the refs in id_info *)
+    kid_info = (fun (_k, _) x ->
+      let
+        { id_resolved = v_id_resolved; id_type = v_id_type;
+          id_constness = _IGNORED;
+        } = x in
+      let arg = v_ref_do_not_visit (v_option (fun _ -> ())) v_id_resolved in
+      let arg = v_ref_do_not_visit (v_option (fun _ -> ())) v_id_type in ()
+    );
+    kconstness = (fun (k,_) x -> k x);
   }
 
 let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
@@ -165,12 +179,17 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
     let arg = v_option v_qualifier v_name_qualifier in
     let arg = v_option v_type_arguments v_name_typeargs in ()
 
-  and v_id_info
-      { id_resolved = v_id_resolved; id_type = v_id_type;
-        id_constness = _IGNORED;
-      } =
-    let arg = v_ref_do_not_visit (v_option v_resolved_name) v_id_resolved in
-    let arg = v_ref_do_not_visit (v_option v_type_) v_id_type in ()
+  and v_id_info x =
+    let k x =
+      let
+        { id_resolved = v_id_resolved; id_type = v_id_type;
+          id_constness = v_id_constness;
+        } = x in
+      let arg = v_ref_do_visit (v_option v_resolved_name) v_id_resolved in
+      let arg = v_ref_do_visit (v_option v_type_) v_id_type in
+      let arg = v_ref_do_visit (v_option v_constness) v_id_constness in ()
+    in
+    vin.kid_info (k, all_functions) x
 
   and v_xml_attribute v =
     match v with
@@ -286,6 +305,16 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
     | Null v1 -> let v1 = v_tok v1 in ()
     | Undefined v1 -> let v1 = v_tok v1 in ()
 
+  and v_const_type =
+    function | Cbool -> () | Cint -> () | Cstr -> () | Cany -> ()
+
+  and v_constness x =
+    let k = function
+      | Lit v1 -> let v1 = v_literal v1 in ()
+      | Cst v1 -> let v1 = v_const_type v1 in ()
+      | NotCst -> ()
+    in vin.kconstness (k, all_functions) x
+
   and v_container_operator =
     function | Array -> () | List -> () | Set -> () | Dict -> ()
 
@@ -377,8 +406,11 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
              v_type_ v2
         )
     | TypeLifetime v1 -> let v1 = v_ident v1 in ()
+    | OtherTypeArg (v1, v2) ->
+        let v1 = v_other_type_argument_operator v1 and v2 = v_list v_any v2 in ()
 
   and v_other_type_operator _ = ()
+  and v_other_type_argument_operator _ = ()
 
   and v_type_parameter (v1, v2) =
     let v1 = v_ident v1 and v2 = v_type_parameter_constraints v2 in ()
@@ -386,6 +418,10 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
   and v_type_parameter_constraint =
     function | Extends v1 -> let v1 = v_type_ v1 in ()
              | HasConstructor t -> let t = v_tok t in ()
+             | OtherTypeParam (t, xs) ->
+                 let t = v_other_type_parameter_operator t in
+                 let xs = v_list v_any xs in ()
+  and v_other_type_parameter_operator _ = ()
   and v_attribute x =
     let k x =
       match x with

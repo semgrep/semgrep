@@ -1,0 +1,7 @@
+{
+  "metavars": {
+    "$X": "sodium_crypto_generichash"
+  },
+  "language": "python",
+  "code": "re.match($X, '(?!crypt|md5|md5_file|sha1|sha1_file|str_rot13)')"
+}

@@ -4,6 +4,7 @@
  (wrapped false)
  (libraries
    commons
+   bloomf
    pfff-h_program-lang
  )
  (preprocess

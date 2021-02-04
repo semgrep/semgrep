@@ -19,6 +19,9 @@ open Common
 
 module R = Rule
 module MR = Mini_rule
+module PM = Pattern_match
+module G = AST_generic
+module PI = Parse_info
 
 (*****************************************************************************)
 (* Prelude *)
@@ -97,19 +100,29 @@ type range_with_mvars = {
 (* !This hash table uses the Hashtbl.find_all property! *)
 type id_to_match_results = (pattern_id, Pattern_match.t) Hashtbl.t
 
+type env = {
+  pattern_matches: id_to_match_results;
+  (* unused for now, but could be passed down for Range.content_at_range *)
+  file: Common.filename
+}
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
-let (patterns_in_formula: R.formula -> (R.pattern_id * Pattern.t) list) =
-  fun e ->
+let (xpatterns_in_formula: R.formula -> R.xpattern list) = fun e ->
   let res = ref [] in
-  e |> R.visit_new_formula (fun xpat ->
-    match xpat.pat with
-    | R.Sem p -> Common.push (xpat.R.pid, p) res
-    | _ -> failwith "TODO: Just Sem handled for now"
-  );
+  e |> R.visit_new_formula (fun xpat -> Common.push xpat res);
   !res
+
+let partition_xpatterns xs =
+  xs |> Common.partition_either3 (fun xpat ->
+    let id = xpat.R.pid in
+    match xpat.R.pat with
+    | R.Sem x -> Left3 (id, x)
+    | R.Spacegrep x -> Middle3 (id, x)
+    | R.Regexp x -> Right3 (id, x)
+  )
 
 let (mini_rule_of_pattern: R.t -> (R.pattern_id * Pattern.t) -> MR.t) =
   fun r (id, pattern) ->
@@ -122,11 +135,34 @@ let (mini_rule_of_pattern: R.t -> (R.pattern_id * Pattern.t) -> MR.t) =
     languages =
       (match r.R.languages with
        | R.L (x, xs) -> x::xs
-       | R.LNone | R.LGeneric -> failwith "TODO: LNone | LGeneric"
+       | R.LNone | R.LGeneric -> raise Impossible
       );
     pattern_string = "";
   }
 
+(* todo: change Pattern_match type so we don't need this gymnastic.
+ * A pattern_match should just need the id from the mini_rule
+*)
+let (mini_rule_of_regexp: (R.pattern_id * string) -> MR.t) =
+  fun (id, s) ->
+  { MR.
+    id = string_of_int id;
+    pattern = G.E (G.L (G.Null (PI.fake_info "")));
+    message = ""; severity = MR.Error; languages = [];
+    pattern_string = s;
+  }
+
+(* todo: same, we should not need that *)
+let hmemo = Hashtbl.create 101
+let line_col_of_charpos file charpos =
+  let conv =
+    Common.memoized hmemo file (fun () -> PI.full_charpos_to_pos_large file)
+  in
+  conv charpos
+
+(* todo: same, we should not need that *)
+let info_of_token_location loc =
+  { PI.token = PI.OriginTok loc; transfo = PI.NoTransfo }
 
 let (group_matches_per_pattern_id: Pattern_match.t list ->id_to_match_results)=
   fun xs ->
@@ -188,36 +224,117 @@ let difference_ranges pos neg =
   in
   surviving_pos
 
+let filter_ranges xs cond =
+  xs |> List.filter (fun r ->
+    let bindings = r.origin.PM.env in
+    match cond with
+    | R.CondGeneric e ->
+        let env = Eval_generic.bindings_to_env bindings in
+        Eval_generic.eval_bool env e
+    (* todo: would be nice to have CondRegexp also work on
+     * eval'ed bindings.
+     * We could also use re.match(), to be close to python, but really
+     * Eval_generic must do something special here with the metavariable
+     * which may not always be a string. The regexp is really done on
+     * the text representation of the metavar content.
+    *)
+    | R.CondRegexp (mvar, (re_str, _re)) ->
+        let fk = Parse_info.fake_info "" in
+        let fki = AST_generic.empty_id_info () in
+        let e =
+          (* old: spf "semgrep_re_match(%s, \"%s\")" mvar re_str
+           * but too many possible escaping problems, so easier to build
+           * an expression manually.
+          *)
+          G.Call (G.DotAccess(G.Id (("re", fk), fki), fk, EId ((("match"),fk),fki)),
+                  (fk, [G.Arg (G.Id ((mvar, fk), fki));
+                        G.Arg (G.L (G.String (re_str, fk)))], fk))
+
+        in
+        let env = Eval_generic.bindings_to_env_with_just_strings bindings in
+        Eval_generic.eval_bool env e
+  )
+
+(*****************************************************************************)
+(* Evaluating xpatterns *)
+(*****************************************************************************)
+
+let matches_of_xpatterns with_caching orig_rule (file, lang, ast) xpatterns =
+  let (patterns, _spacegrepsTODO, regexps) =
+    partition_xpatterns xpatterns in
+
+  (* semgrep *)
+  let mini_rules =
+    patterns |> List.map (mini_rule_of_pattern orig_rule) in
+  let equivalences =
+    (* TODO *)
+    [] in
+  let semgrep_matches =
+    Semgrep_generic.check
+      ~with_caching
+      ~hook:(fun _ _ -> ())
+      mini_rules equivalences file lang ast
+  in
+
+  (* spacegrep *)
+
+  (* regexps *)
+  let regexp_matches =
+    if regexps = []
+    then []
+    else begin
+      let big_str = Common.read_file file in
+      regexps |> List.map (fun (id, (s, re)) ->
+        let subs =
+          try
+            Pcre.exec_all ~rex:re big_str
+          with Not_found -> [||]
+        in
+        subs |> Array.to_list |> List.map (fun sub ->
+          let (charpos, _) = Pcre.get_substring_ofs sub 0 in
+          let str = Pcre.get_substring sub 0 in
+          let (line, column) = line_col_of_charpos file charpos in
+          let loc = {PI. str; charpos; file; line; column } in
+          let mini_rule = mini_rule_of_regexp (id, s) in
+          {PM. rule = mini_rule; file; location = loc, loc;
+           tokens = lazy [info_of_token_location loc]; env = [] }
+        )
+      ) |> List.flatten
+    end
+  in
+
+  (* final result *)
+  semgrep_matches @ regexp_matches
+
 (*****************************************************************************)
 (* Formula evaluation *)
 (*****************************************************************************)
 (* TODO: use Set instead of list? *)
-let rec (evaluate_formula:
-           id_to_match_results -> R.formula -> range_with_mvars list) =
-  fun h e ->
+let rec (evaluate_formula: env -> R.formula -> range_with_mvars list) =
+  fun env e ->
   match e with
   | R.P xpat ->
       let id = xpat.R.pid in
       let match_results =
-        try Hashtbl.find_all h id with Not_found -> []
+        try Hashtbl.find_all env.pattern_matches id with Not_found -> []
       in
       match_results |> List.map match_result_to_range
   | R.Or xs ->
-      xs |> List.map (evaluate_formula h) |> List.flatten
+      xs |> List.map (evaluate_formula env) |> List.flatten
   | R.And xs ->
       let pos, neg, conds = split_and xs in
       (match pos with
        | [] -> failwith "empty And; no positive terms in And"
        | start::pos ->
-           let res = evaluate_formula h start in
+           let res = evaluate_formula env start in
            let res = pos |> List.fold_left (fun acc x ->
-             intersect_ranges acc (evaluate_formula h x)
+             intersect_ranges acc (evaluate_formula env x)
            ) res in
            let res = neg |> List.fold_left (fun acc x ->
-             difference_ranges acc (evaluate_formula h x)
+             difference_ranges acc (evaluate_formula env x)
            ) res in
-           let res = conds |> List.fold_left (fun _acc _cond ->
-             failwith "Todo conds"
+           let res = conds |> List.fold_left (fun acc cond ->
+             filter_ranges acc cond
            ) res in
            res
       )
@@ -241,26 +358,20 @@ let check with_caching hook rules (file, lang, ast) =
       | R.Old oldf -> Convert_rule.convert_formula_old oldf
     in
 
-    let (patterns: (R.pattern_id * Pattern.t) list) =
-      patterns_in_formula formula
-    in
-    let mini_rules =
-      patterns |> List.map (mini_rule_of_pattern r) in
-    let equivalences =
-      (* TODO *)
-      [] in
+    let xpatterns =
+      xpatterns_in_formula formula in
     let matches =
-      Semgrep_generic.check
-        ~with_caching
-        ~hook:(fun _ _ -> ())
-        mini_rules equivalences file lang ast
-    in
+      matches_of_xpatterns with_caching r (file, lang, ast) xpatterns in
     (* match results per minirule id which is the same than pattern_id in
      * the formula *)
     let pattern_matches_per_id =
       group_matches_per_pattern_id matches in
+    let env = {
+      pattern_matches = pattern_matches_per_id;
+      file;
+    } in
     let final_ranges =
-      evaluate_formula pattern_matches_per_id formula in
+      evaluate_formula env formula in
 
     let back_to_match_results =
       final_ranges |> List.map (range_to_match_result) in

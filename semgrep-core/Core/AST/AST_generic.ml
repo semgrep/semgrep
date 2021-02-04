@@ -214,18 +214,14 @@ let busy_with_equal = ref Not_busy
 let equal_stmt_field_s equal_stmt_kind a b =
   match !busy_with_equal with
   | Not_busy ->
-      (* Call 'Structural.equal_XXX or 'Referential.equal_XXX' to avoid this
-         error. *)
-      assert false
+      failwith "Call AST_generic.with_xxx_equal to avoid this error."
   | Structural_equal -> equal_stmt_kind a b
   | Referential_equal -> true
 
 let equal_stmt_field_s_id a b =
   match !busy_with_equal with
   | Not_busy ->
-      (* Call 'Structural.equal_XXX or 'Referential.equal_XXX' to avoid this
-         error. *)
-      assert false
+      failwith "Call AST_generic.with_xxx_equal to avoid this error."
   | Structural_equal -> true
   | Referential_equal -> Node_ID.equal a b
 
@@ -850,6 +846,8 @@ and other_expr_operator =
   (* Go *)
   | OE_Send | OE_Recv
   (* Ruby *)
+  (* Rust *)
+  | OE_MacroInvocation
   (* Other *)
   | OE_StmtExpr (* OCaml/Ruby have just expressions, no statements *)
   | OE_Todo
@@ -1041,6 +1039,7 @@ and other_stmt_with_stmt_operator =
   | OSWS_Else_in_try
   (* Rust *)
   | OSWS_UnsafeBlock | OSWS_AsyncBlock | OSWS_ConstBlock
+  | OSWS_ForeignBlock | OSWS_ImplBlock
   (*e: type [[AST_generic.other_stmt_with_stmt_operator]] *)
 
 (*s: type [[AST_generic.other_stmt_operator]] *)
@@ -1202,6 +1201,7 @@ and type_argument =
                     (bool wrap (* extends|super, true=super *) * type_) option
   (* Rust *)
   | TypeLifetime of ident
+  | OtherTypeArg of other_type_argument_operator * any list
   (*e: type [[AST_generic.type_argument]] *)
 (*s: type [[AST_generic.other_type_argument_operator]] *)
 (*e: type [[AST_generic.other_type_argument_operator]] *)
@@ -1212,10 +1212,20 @@ and other_type_operator =
   | OT_StructName | OT_UnionName | OT_EnumName
   (* PHP *)
   | OT_Variadic (* ???? *)
+  (* Rust *)
+  | OT_Lifetime
   (* Other *)
   | OT_Expr | OT_Arg (* Python: todo: should use expr_to_type() when can *)
   | OT_Todo
   (*e: type [[AST_generic.other_type_operator]] *)
+
+(*s: type [[AST_generic.other_type_argument_operator]] *)
+and other_type_argument_operator =
+  (* Rust *)
+  | OTA_Literal | OTA_ConstBlock
+  (* Other *)
+  | OTA_Todo
+  (*e: type [[AST_generic.other_type_argument_operator]] *)
 
 (*****************************************************************************)
 (* Attribute *)
@@ -1369,7 +1379,17 @@ and type_parameter = ident * type_parameter_constraint list
 and type_parameter_constraint =
   | Extends of type_
   | HasConstructor of tok
+  | OtherTypeParam of other_type_parameter_operator * any list
   (*e: type [[AST_generic.type_parameter_constraint]] *)
+
+(*s: type_parameter [[AST_generic.other_type_parameter_operator]] *)
+and other_type_parameter_operator =
+  (* Rust *)
+  | OTP_Lifetime | OTP_Ident | OTP_Constrained | OTP_Const
+  (* Other *)
+  | OTP_Todo
+  (*e: type_parameter [[AST_generic.other_type_parameter_operator]] *)
+
 
 (* ------------------------------------------------------------------------- *)
 (* Function (or method) definition *)
@@ -1672,6 +1692,8 @@ and other_directive_operator =
   (* TODO: Declare, move OE_UseStrict here for JS? *)
   (* Ruby *)
   | OI_Alias | OI_Undef
+  (* Rust *)
+  | OI_Extern
 
 
 (*****************************************************************************)

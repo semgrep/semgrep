@@ -78,7 +78,7 @@ let parse_string ctx = function
   | x -> pr2_gen x; error (spf "parse_string for %s" ctx)
 
 let parse_strings ctx = function
-  | J.Array xs -> List.map (parse_string ctx) xs
+  | J.Array xs -> List.map (fun t -> (parse_string ctx t)) xs
   | x -> pr2_gen x; error (spf "parse_strings for %s" ctx)
 
 let parse_bool ctx = function
@@ -103,14 +103,21 @@ let parse_int ctx = function
 (* Sub parsers extra *)
 (*****************************************************************************)
 
-let parse_where _env s =
+let parse_metavar_cond s =
   try
     let lang = Lang.Python in (* todo? use lang in env? *)
-    (match Parse_pattern.parse_pattern lang s with
+    (match Parse_pattern.parse_pattern lang ~print_errors:false s with
      | AST_generic.E e -> e
      | _ -> error "not an expression"
     )
   with exn -> raise exn
+
+let parse_regexp  s =
+  try
+    s, Pcre.regexp s
+  with (Pcre.Error _) as exn ->
+    failwith (spf "failing to parse regexp %s, error = %s" s
+                (Common.exn_to_s exn))
 
 let parse_extra _env x =
   match x with
@@ -119,7 +126,7 @@ let parse_extra _env x =
        | ["metavariable", Some (J.String metavar);
           "regex", Some (J.String regexp);
          ], [] ->
-           R.MetavarRegexp (metavar, regexp)
+           R.MetavarRegexp (metavar, parse_regexp regexp)
        | x ->
            pr2_gen x;
            error "wrong parse_extra fields"
@@ -156,7 +163,7 @@ let parse_fix_regex = function
           "replacement", Some (J.String replacement);
           "count", count_opt;
          ], [] ->
-           (regex,
+           (parse_regexp regex,
             Common.map_opt (parse_int "count") count_opt,
             replacement)
        | x -> pr2_gen x; error "parse_fix_regex"
@@ -238,7 +245,7 @@ let rec parse_formula_old env (x: string * J.t) : R.formula_old =
       ) xs)
 
   | "pattern-regex", J.String s ->
-      let xpat = R.mk_xpat (Regexp s) s in
+      let xpat = R.mk_xpat (Regexp (parse_regexp s)) s in
       R.Pat xpat
   | x ->
       let extra = parse_extra env x in
@@ -260,11 +267,15 @@ let rec parse_formula_new env (x: J.t) : R.formula =
            R.Not f
 
        | ["regex", J.String s] ->
-           let xpat = R.mk_xpat (R.Regexp s) s in
+           let xpat = R.mk_xpat (R.Regexp (parse_regexp s)) s in
            R.P xpat
 
        | ["where", J.String s] ->
-           R.MetavarCond (parse_where env s)
+           R.MetavarCond (R.CondGeneric (parse_metavar_cond s))
+
+       | ["metavariable_regex", J.Array [J.String mvar; J.String re]] ->
+           R.MetavarCond (R.CondRegexp (mvar, parse_regexp re))
+
        | _ -> pr2_gen x; error "parse_formula_new"
       )
   | _ -> pr2_gen x; error "parse_formula_new"

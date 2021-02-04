@@ -92,7 +92,7 @@ let regression_tests_for_lang ~with_caching files lang =
     let pattern = 
       Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
         try 
-          Parse_pattern.parse_pattern lang (Common.read_file sgrep_file)
+          Parse_pattern.parse_pattern lang ~print_errors:true (Common.read_file sgrep_file)
         with exn ->
           failwith (spf "fail to parse pattern %s with lang = %s (exn = %s)" 
                         sgrep_file 
@@ -153,6 +153,12 @@ let lang_parsing_tests =
       let dir = Filename.concat (Filename.concat tests_path "lua") "parsing" in
       let files = Common2.glob (spf "%s/*.lua" dir) in
       let lang = Lang.Lua in
+      parsing_tests_for_lang files lang
+    );
+    "Rust" >::: (
+      let dir = Filename.concat (Filename.concat tests_path "rust") "parsing" in
+      let files = Common2.glob (spf "%s/*.rs" dir) in
+      let lang = Lang.Rust in
       parsing_tests_for_lang files lang
     );
     (* here we have both a Pfff and tree-sitter parser *)
@@ -323,7 +329,7 @@ let eval_regression_tests =
       files |> List.iter (fun file ->
         let (env, code) = Eval_generic.parse_json file in
         let res = Eval_generic.eval env code in
-        OUnit.assert_equal ~msg:"it should evaluate to true"
+        OUnit.assert_equal ~msg:(spf "%s should evaluate to true" file)
           (Eval_generic.Bool true) res
       )
   )
