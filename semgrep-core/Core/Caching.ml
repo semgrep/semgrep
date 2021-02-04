@@ -91,6 +91,7 @@
      Indeed, if 'foo();' occurs once in the target, we get O(n^2) matches.
 *)
 
+module Flag = Flag_semgrep
 module MV = Metavariable
 
 open Printf
@@ -236,7 +237,8 @@ let prepare_pattern any =
         stmt.s_backrefs <- Some backrefs;
 
         (* Only consult the cache if it's economical, see details earlier. *)
-        if Set_.is_empty backrefs && is_ellipsis_stmt stmt then
+        if is_ellipsis_stmt stmt
+        && (Set_.is_empty backrefs || !Flag.max_cache) then
           stmt.s_use_cache <- true;
 
         if debug then (

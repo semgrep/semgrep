@@ -58,7 +58,8 @@ class Result:
         self.duration = duration
 
 
-def run_tests(dirname: str, tests: List[Test], no_cache: bool) -> List[Result]:
+def run_tests(dirname: str, tests: List[Test],
+              no_cache: bool, max_cache: bool) -> List[Result]:
     results = []
     for test in tests:
         pattern_file = os.path.join(dirname, test.name + ".sgrep")
@@ -75,8 +76,8 @@ def run_tests(dirname: str, tests: List[Test], no_cache: bool) -> List[Result]:
         ]
         if no_cache:
             args.append("-no_opt_cache")
-        else:
-            args.append("-opt_cache")
+        elif max_cache:
+            args.append("-opt_max_cache")
         p = subprocess.run(args)  # nosem
         t2 = time.time()
 
@@ -109,6 +110,9 @@ def main() -> None:
         "--no-cache", help="disable caching during matching", action="store_true"
     )
     parser.add_argument(
+        "--max-cache", help="use most aggressive caching", action="store_true"
+    )
+    parser.add_argument(
         "--upload", help="upload results to semgrep dashboard", action="store_true"
     )
     args = parser.parse_args()
@@ -122,7 +126,7 @@ def main() -> None:
             tests = [test for test in TESTS if test.name == args.name]
         else:
             tests = TESTS
-        results = run_tests("input", tests, args.no_cache)
+        results = run_tests("input", tests, args.no_cache, args.max_cache)
         if args.upload:
             upload_results(results)
 

@@ -26,6 +26,9 @@ let go_deeper_stmt = ref true
 let go_really_deeper_stmt = ref true
 (*e: constant [[Flag_semgrep.go_really_deeper_stmt]] *)
 
+(* Improves performance on some patterns, degrades performance on others. *)
+let max_cache = ref false
+
 (* look if identifiers in rule intersect with file using simple regexps *)
 let filter_irrelevant_rules = ref false
 
