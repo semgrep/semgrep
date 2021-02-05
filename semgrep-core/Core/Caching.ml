@@ -384,6 +384,13 @@ module Cache = struct
   type pattern = AST_generic.stmt list
   type target = AST_generic.stmt list
 
+  type 'a access = {
+    get_span_field: ('a -> Stmts_match_span.t);
+    set_span_field: ('a -> Stmts_match_span.t -> 'a);
+    get_mv_field: ('a -> Metavariable.Env.t);
+    set_mv_field: ('a -> Metavariable.Env.t -> 'a);
+  }
+
   let create () = Tbl.create 1000
 
   (* debugging *)
@@ -417,18 +424,15 @@ module Cache = struct
      one obtained from the cache.
   *)
   let patch_result_from_cache
-      ~get_span_field
-      ~set_span_field
-      ~get_mv_field
-      ~set_mv_field
+      ~access
       backrefs
       current_stmt
       orig_acc
       cached_acc =
-    let orig_env : MV.Env.t = get_mv_field orig_acc in
-    let cached_env : MV.Env.t = get_mv_field cached_acc in
-    let orig_span : Stmts_match_span.t = get_span_field orig_acc in
-    let cached_span : Stmts_match_span.t = get_span_field cached_acc in
+    let orig_env : MV.Env.t = access.get_mv_field orig_acc in
+    let cached_env : MV.Env.t = access.get_mv_field cached_acc in
+    let orig_span : Stmts_match_span.t = access.get_span_field orig_acc in
+    let cached_span : Stmts_match_span.t = access.get_span_field cached_acc in
 
     let patched_full_env =
       List.map (fun ((k, _v) as cached_binding) ->
@@ -453,8 +457,8 @@ module Cache = struct
       | Span {left_stmts; _}, Span {right_stmts; _} ->
           Span { left_stmts; right_stmts }
     in
-    let acc = set_mv_field cached_acc patched_env in
-    set_span_field acc patched_span
+    let acc = access.set_mv_field cached_acc patched_env in
+    access.set_span_field acc patched_span
 
   let print_cache_access k opt_res =
     printf "access %s %s\n"
@@ -462,10 +466,7 @@ module Cache = struct
       (Cache_key.show_compact k)
 
   let match_stmt_list
-      ~get_span_field
-      ~set_span_field
-      ~get_mv_field
-      ~set_mv_field
+      ~access
       ~(cache : _ list t)
       ~function_id
       ~list_kind
@@ -479,7 +480,7 @@ module Cache = struct
     | _, [] ->
         compute pattern target acc
     | a :: _, b :: _ ->
-        let mv : Metavariable.Env.t = get_mv_field acc in
+        let mv : Metavariable.Env.t = access.get_mv_field acc in
         let key : Cache_key.t = {
           min_env = mv.min_env;
           function_id;
@@ -504,10 +505,7 @@ module Cache = struct
              | res ->
                  List.map (fun cached_acc ->
                    patch_result_from_cache
-                     ~get_span_field
-                     ~set_span_field
-                     ~get_mv_field
-                     ~set_mv_field
+                     ~access
                      backrefs a acc cached_acc
                  ) res
             )

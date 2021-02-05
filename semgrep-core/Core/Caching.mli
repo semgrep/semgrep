@@ -22,6 +22,13 @@ module Cache : sig
   type pattern = AST_generic.stmt list
   type target = AST_generic.stmt list
 
+  type 'a access = {
+    get_span_field: ('a -> Stmts_match_span.t);
+    set_span_field: ('a -> Stmts_match_span.t -> 'a);
+    get_mv_field: ('a -> Metavariable.Env.t);
+    set_mv_field: ('a -> Metavariable.Env.t -> 'a);
+  }
+
   val create : unit -> 'a t
 
   (*
@@ -33,10 +40,7 @@ module Cache : sig
      'compute' function with a given 'function_id'.
   *)
   val match_stmt_list :
-    get_span_field:('acc -> Stmts_match_span.t) ->
-    set_span_field:('acc -> Stmts_match_span.t -> 'acc) ->
-    get_mv_field:('acc -> Metavariable.Env.t) ->
-    set_mv_field:('acc -> Metavariable.Env.t -> 'acc) ->
+    access: 'acc access ->
     cache: 'acc list t ->
     function_id: Cache_key.function_id ->
     list_kind: Cache_key.list_kind ->

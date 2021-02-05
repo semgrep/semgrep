@@ -78,6 +78,14 @@ let logger = Logging.get_logger [__MODULE__]
 (* Extra Helpers *)
 (*****************************************************************************)
 
+(* Getters and setters that were left abstract in the cache implementation. *)
+let cache_access : tin Caching.Cache.access = {
+  get_span_field = (fun tin -> tin.stmts_match_span);
+  set_span_field = (fun tin x -> { tin with stmts_match_span = x });
+  get_mv_field = (fun tin -> tin.mv);
+  set_mv_field = (fun tin mv -> { tin with mv });
+}
+
 (*s: function [[Generic_vs_generic.m_string_xhp_text]] *)
 (* equivalence: on different indentation
  * todo? work? was copy-pasted from XHP sgrep matcher
@@ -1462,10 +1470,7 @@ and m_stmts_deep ~less_is_ok (xsa: A.stmt list) (xsb: A.stmt list) tin =
   | Some cache, a :: _, _ :: _ when a.s_use_cache ->
       let tin = { tin with mv = MV.Env.update_min_env tin.mv a } in
       Caching.Cache.match_stmt_list
-        ~get_span_field:(fun tin -> tin.stmts_match_span)
-        ~set_span_field:(fun tin x -> { tin with stmts_match_span = x })
-        ~get_mv_field:(fun tin -> tin.mv)
-        ~set_mv_field:(fun tin mv -> { tin with mv })
+        ~access:cache_access
         ~cache
         ~function_id:CK.Match_deep
         ~list_kind:CK.Original
@@ -1553,10 +1558,7 @@ and m_list__m_stmt ~list_kind xsa xsb tin =
   | Some cache, a :: _, _ :: _ when a.s_use_cache ->
       let tin = { tin with mv = MV.Env.update_min_env tin.mv a } in
       Caching.Cache.match_stmt_list
-        ~get_span_field:(fun tin -> tin.stmts_match_span)
-        ~set_span_field:(fun tin x -> { tin with stmts_match_span = x })
-        ~get_mv_field:(fun tin -> tin.mv)
-        ~set_mv_field:(fun tin mv -> { tin with mv })
+        ~access:cache_access
         ~cache
         ~function_id:CK.Match_list
         ~list_kind
