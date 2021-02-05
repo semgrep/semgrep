@@ -171,7 +171,8 @@ let is_ellipsis_stmt (x : stmt) =
 
    We only consult the cache at strategic locations:
    - on an ellipsis pattern, for every position in the target stmt list,
-   - and only if the rest of the pattern doesn't contain free metavariables.
+   - and only if the rest of the pattern doesn't depend on previously
+     captured metavariables.
 
    Example 1:
 
