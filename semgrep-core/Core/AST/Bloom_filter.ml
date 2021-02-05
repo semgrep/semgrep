@@ -31,11 +31,12 @@ type bbool = No | Maybe
 
 let pp _formatter _bf = ()
 
-(* Uses bloomf.create, which takes a desired error rate given a number of elements *)
-(* TODO: tune these numbers; currently chosen arbitrarily *)
+(* This gives a bloom filter with an expected false positive rate of 0.01
+ * when 2500 elements are added. The numbers are chosen by experimentation on
+ * a file with 10000 lines of javascript *)
 let create () =
   { added = false;
-    filter = B.create ~error_rate:0.01 10 }
+    filter = B.create ~error_rate:0.01 2500 }
 
 let is_empty bf = not bf.added
 
@@ -48,9 +49,9 @@ let mem elt bf =
   else No
 
 let is_subset pattern_list bf =
-  let propagate_match b x =
+  let patterns_in_bf b x =
     match b with
     | No -> No
     | Maybe -> mem x bf
   in
-  List.fold_left propagate_match Maybe pattern_list
+  List.fold_left patterns_in_bf Maybe pattern_list

@@ -160,6 +160,7 @@ let list_of_pattern_strings any =
   } in
   visitor any;
   !res
+[@@profiling]
 
 (*****************************************************************************)
 (* Analyze the code *)
