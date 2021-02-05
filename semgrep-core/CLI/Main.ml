@@ -476,7 +476,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout matches =
   let new_errors =
     offending_files |> Common.hashset_to_list |> List.map (fun file ->
       (* logging useful info for rule writers *)
-      logger#info "too many matches on %s, generating Timeout for it" file;
+      logger#info "too many matches on %s, generating exn for it" file;
       let biggest_offending_rule =
         let matches = List.assoc file per_files in
         matches
@@ -494,7 +494,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout matches =
 
       (* todo: we should maybe use a new error: TooManyMatches of int * string*)
       let loc = Parse_info.first_loc_of_file file in
-      Error_code.mk_error_loc loc (Error_code.Timeout None)
+      Error_code.mk_error_loc loc (Error_code.TooManyMatches pat)
     )
   in
   new_matches, new_errors
@@ -1309,7 +1309,9 @@ let options () =
     "-filter_irrelevant_rules", Arg.Set Flag.filter_irrelevant_rules,
     " filter rules not containing any strings in target file";
     "-bloom_filter", Arg.Set Flag.use_bloom_filter,
-    "-no_bloom_filter";
+    " use a bloom filter to only attempt matches when strings in the pattern are in the target";
+    "-no_bloom_filter", Arg.Clear Flag.use_bloom_filter,
+    " do not use bloom filter";
     "-no_filter_irrelevant_rules", Arg.Clear Flag.filter_irrelevant_rules,
     " do not filter rules";
     "-tree_sitter_only", Arg.Set Flag.tree_sitter_only,

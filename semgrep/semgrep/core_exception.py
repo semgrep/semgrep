@@ -7,6 +7,7 @@ from semgrep.error import MatchTimeoutError
 from semgrep.error import OutOfMemoryError
 from semgrep.error import SemgrepError
 from semgrep.error import SourceParseError
+from semgrep.error import TooManyMatchesError
 from semgrep.rule_lang import Position
 from semgrep.rule_lang import SourceTracker
 from semgrep.rule_lang import Span
@@ -93,6 +94,8 @@ class CoreException:
             return MatchTimeoutError(self._path, self._rule_id)
         elif self._check_id == "OutOfMemory":
             return OutOfMemoryError(self._path, self._rule_id)
+        elif self._check_id == "TooManyMatches":
+            return TooManyMatchesError(self._path, self._rule_id)
         elif self._check_id == "LexicalError":
             return LexicalError(self._path, self._rule_id)
         else:

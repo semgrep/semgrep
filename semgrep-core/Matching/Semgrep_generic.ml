@@ -260,14 +260,19 @@ let check2 ~hook ~with_caching rules equivs file lang ast =
         else
           None
       in
+      (* Annotate exp, stmt, stmts patterns with the rule strings *)
+      let push_with_annotation any pattern rules =
+        let strs =
+          if !Flag.use_bloom_filter then
+            Bloom_annotation.list_of_pattern_strings any
+          else []
+        in
+        Common.push (pattern, strs, rule, cache) rules
+      in
       match any with
-      | E pattern  ->
-          let strs = Bloom_annotation.list_of_pattern_strings any in
-          Common.push (pattern, strs, rule, cache) expr_rules
-      | S pattern ->
-          let strs = Bloom_annotation.list_of_pattern_strings any in
-          Common.push (pattern, strs, rule, cache) stmt_rules
-      | Ss pattern -> Common.push (pattern, rule, cache) stmts_rules
+      | E pattern -> push_with_annotation any pattern expr_rules
+      | S pattern -> push_with_annotation any pattern stmt_rules
+      | Ss pattern -> push_with_annotation any pattern stmts_rules
       | T pattern -> Common.push (pattern, rule, cache) type_rules
       | P pattern -> Common.push (pattern, rule, cache) pattern_rules
       | At pattern -> Common.push (pattern, rule, cache) attribute_rules
@@ -310,33 +315,45 @@ let check2 ~hook ~with_caching rules equivs file lang ast =
            *   !stmt_rules match_st_st k (fun x -> S x) x
            * but inlined to handle specially Bloom filter in stmts for now.
           *)
-          let new_stmt_rules =
-            !stmt_rules |> List.filter (fun (_, pattern_strs, _, _cache) ->
-              must_analyze_statement_bloom_opti_failed pattern_strs x
-            )
+          let visit_stmt () =
+            !stmt_rules |> List.iter (fun (pattern, _pattern_strs, rule, cache) ->
+              let matches_with_env = match_st_st rule cache pattern x in
+              if matches_with_env <> []
+              then (* Found a match *)
+                matches_with_env |> List.iter (fun (env : MG.tin) ->
+                  let env = env.mv.full_env in
+                  let location = Lib_AST.range_of_any (S x) in
+                  let tokens = lazy (Lib_AST.ii_of_any (S x)) in
+                  Common.push
+                    { PM. rule; file; env; location; tokens } matches;
+                  hook env tokens
+                )
+            );
+            k x
           in
-          let new_expr_rules =
-            !expr_rules |> List.filter (fun (_, pattern_strs, _, _cache) ->
-              must_analyze_statement_bloom_opti_failed pattern_strs x
-            )
-          in
-          Common.save_excursion stmt_rules new_stmt_rules (fun () ->
-            Common.save_excursion expr_rules new_expr_rules (fun () ->
-              !stmt_rules |> List.iter (fun (pattern, _pattern_strs, rule, cache) ->
-                let matches_with_env = match_st_st rule cache pattern x in
-                if matches_with_env <> []
-                then (* Found a match *)
-                  matches_with_env |> List.iter (fun (env : MG.tin) ->
-                    let env = env.mv.full_env in
-                    let location = Lib_AST.range_of_any (S x) in
-                    let tokens = lazy (Lib_AST.ii_of_any (S x)) in
-                    Common.push
-                      { PM. rule; file; env; location; tokens } matches;
-                    hook env tokens
-                  )
-              );
-              k x
-            ))
+          (* If bloom_filter is not enabled, always visit the statement *)
+          (* Otherwise, filter rules first *)
+          if not !Flag.use_bloom_filter then visit_stmt () else
+            let new_stmt_rules =
+              !stmt_rules |> List.filter (fun (_, pattern_strs, _, _cache) ->
+                must_analyze_statement_bloom_opti_failed pattern_strs x
+              )
+            in
+            let new_stmts_rules =
+              !stmts_rules |> List.filter (fun (_, pattern_strs, _, _cache) ->
+                must_analyze_statement_bloom_opti_failed pattern_strs x
+              )
+            in
+            let new_expr_rules =
+              !expr_rules |> List.filter (fun (_, pattern_strs, _, _cache) ->
+                must_analyze_statement_bloom_opti_failed pattern_strs x
+              )
+            in
+            Common.save_excursion stmt_rules new_stmt_rules (fun () ->
+              Common.save_excursion stmts_rules new_stmts_rules (fun () ->
+                Common.save_excursion expr_rules new_expr_rules (fun () ->
+                  visit_stmt ()
+                )))
         );
         (*x: [[Semgrep_generic.check2()]] visitor fields *)
         V.kstmts = (fun (k, _) x ->
@@ -349,8 +366,7 @@ let check2 ~hook ~with_caching rules equivs file lang ast =
            * do things a little bit different with the matched_statements also
            * in matches_with_env here.
           *)
-
-          !stmts_rules |> List.iter (fun (pattern, rule, cache) ->
+          !stmts_rules |> List.iter (fun (pattern, _pattern_strs, rule, cache) ->
             let matches_with_env = match_sts_sts rule cache pattern x in
             if matches_with_env <> []
             then (* Found a match *)

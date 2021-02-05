@@ -34,6 +34,8 @@ module Flag = Flag_semgrep
 module H = AST_generic_helpers
 module CK = Caching.Cache_key
 
+module F = Bloom_filter
+
 open Matching_generic
 
 let logger = Logging.get_logger [__MODULE__]
@@ -140,6 +142,30 @@ let rec all_suffix_of_list xs =
   )
 let _ = Common2.example
     (all_suffix_of_list [1;2;3] = ([[1;2;3]; [2;3]; [3]; []]))
+
+let stmts_may_match pattern_stmts (stmts : AST_generic.stmt list) =
+  if not !Flag.use_bloom_filter then F.Maybe else
+    let pattern_list = Bloom_annotation.list_of_pattern_strings (Ss pattern_stmts) in
+    let pat_in_stmt pat (stmt : AST_generic.stmt) =
+      match stmt.s_bf with
+      | None -> F.Maybe
+      | Some bf -> F.mem pat bf
+    in
+    let rec pattern_in_any_stmt pat stmts acc =
+      match stmts with
+      | [] -> acc
+      | stmt::rest ->
+          match acc with
+          | F.No -> pattern_in_any_stmt pat rest (pat_in_stmt pat stmt)
+          | F.Maybe -> acc
+    in
+    let patterns_all_in_stmts acc x =
+      match acc with
+      | F.No -> Bloom_filter.No
+      | Maybe -> pattern_in_any_stmt x stmts F.No
+    in
+    List.fold_left patterns_all_in_stmts F.Maybe pattern_list
+[@@profiling]
 
 (*****************************************************************************)
 (* Name *)
@@ -1550,6 +1576,7 @@ and m_stmts_deep_uncached ~less_is_ok (xsa: A.stmt list) (xsb: A.stmt list) =
   | _::_, _ ->
       fail ()
 
+
 (*e: function [[Generic_vs_generic.m_stmts_deep]] *)
 
 and m_list__m_stmt ~list_kind xsa xsb tin =
@@ -1573,46 +1600,50 @@ and m_list__m_stmt ~list_kind xsa xsb tin =
 (* TODO: factorize with m_list_and_dots less_is_ok = true *)
 (*s: function [[Generic_vs_generic.m_list__m_stmt]] *)
 and m_list__m_stmt_uncached ~list_kind (xsa: A.stmt list) (xsb: A.stmt list) =
-  (*s: [[Generic_vs_generic.m_list__m_stmt]] if [[debug]] *)
-  logger#debug "%d vs %d" (List.length xsa) (List.length xsb);
-  (*e: [[Generic_vs_generic.m_list__m_stmt]] if [[debug]] *)
-  match xsa, xsb with
-  | [], [] ->
-      return ()
-  (*s: [[Generic_vs_generic.m_list__m_stmt()]] empty list vs list case *)
-  (* less-is-ok:
-   * it's ok to have statements after in the concrete code as long as we
-   * matched all the statements in the pattern (there is an implicit
-   * '...' at the end, in addition to implicit '...' at the beginning
-   * handled by kstmts calling the pattern for each subsequences).
-   * TODO: sgrep_generic though then display the whole sequence as a match
-   * instead of just the relevant part.
-  *)
-  | [], _::_ ->
-      return ()
-  (*e: [[Generic_vs_generic.m_list__m_stmt()]] empty list vs list case *)
-  (*s: [[Generic_vs_generic.m_list__m_stmt()]] ellipsis cases *)
-  (* dots: '...', can also match no statement *)
-  | [{s=A.ExprStmt (A.Ellipsis _i, _);_}], [] ->
-      return ()
+  (* TODO: getting this list every time is redundant *)
+  match stmts_may_match xsa xsb with
+  | No -> fail ()
+  | Maybe ->
+      (*s: [[Generic_vs_generic.m_list__m_stmt]] if [[debug]] *)
+      logger#debug "%d vs %d" (List.length xsa) (List.length xsb);
+      (*e: [[Generic_vs_generic.m_list__m_stmt]] if [[debug]] *)
+      match xsa, xsb with
+      | [], [] ->
+          return ()
+      (*s: [[Generic_vs_generic.m_list__m_stmt()]] empty list vs list case *)
+      (* less-is-ok:
+       * it's ok to have statements after in the concrete code as long as we
+       * matched all the statements in the pattern (there is an implicit
+       * '...' at the end, in addition to implicit '...' at the beginning
+       * handled by kstmts calling the pattern for each subsequences).
+       * TODO: sgrep_generic though then display the whole sequence as a match
+       * instead of just the relevant part.
+      *)
+      | [], _::_ ->
+          return ()
+      (*e: [[Generic_vs_generic.m_list__m_stmt()]] empty list vs list case *)
+      (*s: [[Generic_vs_generic.m_list__m_stmt()]] ellipsis cases *)
+      (* dots: '...', can also match no statement *)
+      | [{s=A.ExprStmt (A.Ellipsis _i, _);_}], [] ->
+          return ()
 
-  | {s=A.ExprStmt (A.Ellipsis _i, _);_}::xsa_tail,
-    (xb::xsb_tail as xsb) ->
-      (* can match nothing *)
-      (m_list__m_stmt ~list_kind xsa_tail xsb) >||>
-      (* can match more *)
-      (env_add_matched_stmt xb >>= (fun () ->
-         (m_list__m_stmt ~list_kind xsa xsb_tail)
-       ))
-  (*e: [[Generic_vs_generic.m_list__m_stmt()]] ellipsis cases *)
-  (* the general case *)
-  | xa::aas, xb::bbs ->
-      m_stmt xa xb >>= (fun () ->
-        env_add_matched_stmt xb >>= (fun () ->
-          m_list__m_stmt ~list_kind aas bbs
-        ))
-  | _::_, _ ->
-      fail ()
+      | {s=A.ExprStmt (A.Ellipsis _i, _);_}::xsa_tail,
+        (xb::xsb_tail as xsb) ->
+          (* can match nothing *)
+          (m_list__m_stmt ~list_kind xsa_tail xsb) >||>
+          (* can match more *)
+          (env_add_matched_stmt xb >>= (fun () ->
+             (m_list__m_stmt ~list_kind xsa xsb_tail)
+           ))
+      (*e: [[Generic_vs_generic.m_list__m_stmt()]] ellipsis cases *)
+      (* the general case *)
+      | xa::aas, xb::bbs ->
+          m_stmt xa xb >>= (fun () ->
+            env_add_matched_stmt xb >>= (fun () ->
+              m_list__m_stmt ~list_kind aas bbs
+            ))
+      | _::_, _ ->
+          fail ()
 (*e: function [[Generic_vs_generic.m_list__m_stmt]] *)
 
 (*s: function [[Generic_vs_generic.m_stmt]] *)

@@ -27,6 +27,7 @@ INVALID_LANGUAGE_EXIT_CODE = 8
 MATCH_TIMEOUT_EXIT_CODE = 9
 MATCH_MAX_MEMORY_EXIT_CODE = 10
 LEXICAL_ERROR_EXIT_CODE = 11
+TOO_MANY_MATCHES_EXIT_CODE = 12
 
 
 class Level(Enum):
@@ -284,6 +285,25 @@ class MatchTimeoutError(SemgrepError):
 
     def __str__(self) -> str:
         msg = f"Warning: Semgrep exceeded timeout when running {self.rule_id} on {self.path}. See `--timeout` for more info."
+        return with_color(Fore.RED, msg)
+
+    def to_dict_base(self) -> Dict[str, Any]:
+        return {
+            "path": str(self.path),
+            "rule_id": self.rule_id,
+        }
+
+
+@attr.s(frozen=True, eq=True)
+class TooManyMatchesError(SemgrepError):
+    path: Path = attr.ib()
+    rule_id: str = attr.ib()
+
+    code = TOO_MANY_MATCHES_EXIT_CODE
+    level = Level.WARN
+
+    def __str__(self) -> str:
+        msg = f"Warning: Semgrep exceeded number of matches when running {self.rule_id} on {self.path}."
         return with_color(Fore.RED, msg)
 
     def to_dict_base(self) -> Dict[str, Any]:
