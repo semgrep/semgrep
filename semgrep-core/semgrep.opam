@@ -38,6 +38,3 @@ depends: [
 ]
 
 build: [make]
-
-pin-depends: [
-]
