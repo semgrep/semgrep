@@ -107,11 +107,11 @@ let qualified_ident v =
 
 let top_func () =
   let anon_types = ref [] in
-  let cnt = ref 0 in
-  let gensym () =
-    incr cnt;
-    spf "_anon%d" !cnt
-  in
+  (* let cnt = ref 0 in
+     let gensym () =
+     incr cnt;
+     spf "_anon%d" !cnt
+     in *)
 
   let rec type_ =
     function
@@ -144,7 +144,8 @@ let top_func () =
 
     | TStruct (t, v1) -> let v1 = bracket (list struct_field) v1 in
         G.TyRecordAnon (t, v1)
-    | TInterface (t, v1) -> TyInterfaceAnon (t, v1)
+    | TInterface (t, v1) -> let v1 = bracket (list interface_field) v1 in
+        G.TyInterfaceAnon (t, v1)
 
   and chan_dir = function
     | TSend -> G.TyId (fake_id "send", G.empty_id_info())

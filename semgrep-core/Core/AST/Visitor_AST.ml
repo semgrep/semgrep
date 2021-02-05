@@ -363,6 +363,10 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
           v_tok v0;
           let v1 = v_bracket (v_list v_field) v1
           in ()
+      | TyInterfaceAnon (v0, v1) ->
+          v_tok v0;
+          let v1 = v_bracket (v_list v_field) v1
+          in ()
       | TyOr (v1, v2, v3) -> v_type_ v1; v_tok v2; v_type_ v3
       | TyAnd (v1, v2, v3) -> v_type_ v1; v_tok v2; v_type_ v3
       | TyBuiltin v1 -> let v1 = v_wrap v_string v1 in ()
