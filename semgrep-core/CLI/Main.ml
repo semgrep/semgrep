@@ -183,7 +183,7 @@ let ncores = ref 1
 (* ------------------------------------------------------------------------- *)
 
 (* opt = optimization *)
-let with_opt_cache = ref false
+let with_opt_cache = ref false (* TODO: change after merging to main branch *)
 
 (* ------------------------------------------------------------------------- *)
 (* flags used by the semgrep-python wrapper *)
@@ -1272,6 +1272,11 @@ let options () =
     " enable caching optimization during matching";
     "-no_opt_cache", Arg.Clear with_opt_cache,
     " disable caching optimization during matching";
+
+    "-opt_max_cache",
+    Arg.Unit (fun () -> with_opt_cache := true; Flag.max_cache := true),
+    " cache matches more aggressively; implies -opt_cache (experimental)";
+
     (*s: [[Main_semgrep_core.options]] report match mode cases *)
     "-emacs", Arg.Unit (fun () -> match_format := Matching_report.Emacs ),
     " print matches on the same line than the match position";

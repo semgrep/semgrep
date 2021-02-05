@@ -281,7 +281,12 @@ let flatten_substmts_of_stmts xs =
   in
   xs |> List.iter aux;
   if !changed then
-    Some (List.rev !res)
+    match !res with
+    | [] -> None
+    | last :: _ ->
+        (* Return the last element of the list as a pair.
+           This is used as part of the caching optimization. *)
+        Some (List.rev !res, last)
   else
     None
 [@@profiling]

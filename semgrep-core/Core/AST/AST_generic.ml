@@ -874,13 +874,30 @@ and stmt = {
    * in semgrep.
   *)
 
+  mutable s_use_cache: bool [@equal fun _a _b -> true] [@hash.ignore];
+  (* whether this is a strategic point for match result caching.
+     This field is relevant for patterns only.
+
+     This applies to the caching optimization, in which the results of
+     matching lists of statements can be cached. A list of statements
+     is identified by its leading node. In the current implementation,
+     the fields 's_id', 's_use_caching', and 's_backrefs' are treated as
+     properties of a (non-empty) list of statements, rather than of individual
+     statements. A cleaner implementation would consist of a custom
+     list type in which each list has these properties, including the
+     empty list.
+  *)
+
   mutable s_backrefs: String_set.t option
                       [@equal fun _a _b -> true] [@hash.ignore];
   (* set of metavariables referenced in the "rest of the pattern", as
-   * determined by matching order. This is used to determine which of the bound
-   * metavariables should be added to the cache key for this node.
-   * This field is set on pattern ASTs only, in a pass right after parsing
-   * and before matching.
+     determined by matching order.
+     This field is relevant for patterns only.
+
+     This is used to determine which of the bound
+     metavariables should be added to the cache key for this node.
+     This field is set on pattern ASTs only, in a pass right after parsing
+     and before matching.
   *)
 
   (* used in semgrep to skip some AST matching *)
@@ -1844,8 +1861,9 @@ let basic_entity id attrs =
 let s skind = {
   s = skind;
   s_id = Node_ID.create ();
+  s_use_cache = false;
+  s_backrefs = None;
   s_bf = None;
-  s_backrefs = None
 }
 
 (*s: function [[AST_generic.basic_field]] *)

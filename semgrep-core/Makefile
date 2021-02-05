@@ -65,7 +65,12 @@ visual:
 # Run matching performance tests
 .PHONY: perf
 perf:
+	@echo "--- default settings ---"
 	cd ./perf && ./run-perf-suite
+	@echo "--- no caching ---"
+	cd ./perf && ./run-perf-suite --no-cache
+	@echo "--- maximum caching ---"
+	cd ./perf && ./run-perf-suite --max-cache
 
 # Run matching performance tests and post them to the semgrep dashboard
 # at https://dashboard.semgrep.dev/
