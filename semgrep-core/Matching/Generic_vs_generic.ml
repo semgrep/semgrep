@@ -32,6 +32,7 @@ module AST = AST_generic
 module Lib = Lib_AST
 module Flag = Flag_semgrep
 module H = AST_generic_helpers
+module CK = Caching.Cache_key
 
 module F = Bloom_filter
 
@@ -79,14 +80,13 @@ let logger = Logging.get_logger [__MODULE__]
 (* Extra Helpers *)
 (*****************************************************************************)
 
-type lazy_stmts = {
-  head: AST.stmt;
-  full_list: AST.stmt list option Lazy.t
+(* Getters and setters that were left abstract in the cache implementation. *)
+let cache_access : tin Caching.Cache.access = {
+  get_span_field = (fun tin -> tin.stmts_match_span);
+  set_span_field = (fun tin x -> { tin with stmts_match_span = x });
+  get_mv_field = (fun tin -> tin.mv);
+  set_mv_field = (fun tin mv -> { tin with mv });
 }
-
-type matchable_stmt_list =
-  | List of AST.stmt list
-  | Lazy of lazy_stmts
 
 (*s: function [[Generic_vs_generic.m_string_xhp_text]] *)
 (* equivalence: on different indentation
@@ -1493,23 +1493,17 @@ and m_other_attribute_operator = m_other_xxx
 and m_stmts_deep ~less_is_ok (xsa: A.stmt list) (xsb: A.stmt list) tin =
   (* shares the cache with m_list__m_stmt *)
   match tin.cache, xsa, xsb with
-  | Some cache, a :: _, b :: _ ->
+  | Some cache, a :: _, _ :: _ when a.s_use_cache ->
       let tin = { tin with mv = MV.Env.update_min_env tin.mv a } in
-      (* TODO: add support for local modules to semgrep *)
-      (* let module K = Caching.Cache_key in *)
       Caching.Cache.match_stmt_list
-        ~get_span_field:(fun tin -> tin.stmts_match_span)
-        ~set_span_field:(fun tin x -> { tin with stmts_match_span = x })
-        ~get_mv_field:(fun tin -> tin.mv)
-        ~set_mv_field:(fun tin mv -> { tin with mv })
+        ~access:cache_access
         ~cache
-        ~function_id:Caching.Cache_key.Match_deep
-        ~list_kind:Caching.Cache_key.Original
+        ~function_id:CK.Match_deep
+        ~list_kind:CK.Original
         ~less_is_ok
         ~compute:(m_stmts_deep_uncached ~less_is_ok)
         ~pattern:xsa
-        ~target_head:b
-        ~target:(lazy (Some xsb))
+        ~target:xsb
         tin
   | _ ->
       m_stmts_deep_uncached ~less_is_ok xsa xsb tin
@@ -1556,22 +1550,20 @@ and m_stmts_deep_uncached ~less_is_ok (xsa: A.stmt list) (xsb: A.stmt list) =
   | [{s=A.ExprStmt (A.Ellipsis _i, _);_}], [] ->
       return ()
 
-  | ({s=A.ExprStmt (A.Ellipsis _i, _);_}::xsa_tail as xsa),
-    (xb::xsb_tail as xsb) ->
-      (* let's first try the without going deep *)
-      (
-        (* can match nothing *)
-        (m_list__m_stmt ~flattened:false xsa_tail (List xsb)) >||>
-        (* can match more *)
-        (env_add_matched_stmt xb >>= (fun () ->
-           (m_list__m_stmt xsa ~flattened:false (List xsb_tail))
-         ))
-      ) >!> (fun () ->
+  | ({s=A.ExprStmt (A.Ellipsis _i, _);_}::_ as xsa),
+    (_::_ as xsb) ->
+      (* let's first try without going deep *)
+      m_list__m_stmt ~list_kind:CK.Original xsa xsb
+      >!> (fun () ->
         if !Flag.go_deeper_stmt
         then
-          let xsb' = lazy (SubAST_generic.flatten_substmts_of_stmts xsb) in
-          m_list__m_stmt ~flattened:true xsa (Lazy { head = xb;
-                                                     full_list = xsb' })
+          (match SubAST_generic.flatten_substmts_of_stmts xsb with
+           | None -> fail () (* was already flat *)
+           | Some (xsb, last_stmt) ->
+               m_list__m_stmt
+                 ~list_kind:(CK.Flattened_until last_stmt.s_id)
+                 xsa xsb
+          )
         else fail ()
       )
 
@@ -1587,51 +1579,27 @@ and m_stmts_deep_uncached ~less_is_ok (xsa: A.stmt list) (xsb: A.stmt list) =
 
 (*e: function [[Generic_vs_generic.m_stmts_deep]] *)
 
-and m_list__m_stmt ~flattened xsa (xsb : matchable_stmt_list) tin =
+and m_list__m_stmt ~list_kind xsa xsb tin =
   (* shares the cache with m_stmts_deep *)
-  match tin.cache, xsa with
-  | Some cache, a :: _ ->
-      let opt_b_xsb =
-        match xsb with
-        | List ((b :: _) as xsb) -> Some (b, lazy (Some xsb))
-        | Lazy { head; full_list } -> Some (head, full_list)
-        | List [] -> None
-      in
-      (match opt_b_xsb with
-       | Some (b, xsb) ->
-           let tin = { tin with mv = MV.Env.update_min_env tin.mv a } in
-           (* let module K = Caching.Cache_key in *)
-           Caching.Cache.match_stmt_list
-             ~get_span_field:(fun tin -> tin.stmts_match_span)
-             ~set_span_field:(fun tin x -> { tin with stmts_match_span = x })
-             ~get_mv_field:(fun tin -> tin.mv)
-             ~set_mv_field:(fun tin mv -> { tin with mv })
-             ~cache
-             ~function_id:Caching.Cache_key.Match_list
-             ~list_kind:(if flattened then Caching.Cache_key.Flattened
-                         else Caching.Cache_key.Original)
-             ~less_is_ok:true
-             ~compute:(m_list__m_stmt_uncached ~flattened)
-             ~pattern:xsa
-             ~target_head:b
-             ~target:xsb
-             tin
-       | None ->
-           m_list__m_stmt_uncached ~flattened xsa [] tin
-      )
+  match tin.cache, xsa, xsb with
+  | Some cache, a :: _, _ :: _ when a.s_use_cache ->
+      let tin = { tin with mv = MV.Env.update_min_env tin.mv a } in
+      Caching.Cache.match_stmt_list
+        ~access:cache_access
+        ~cache
+        ~function_id:CK.Match_list
+        ~list_kind
+        ~less_is_ok:true
+        ~compute:(m_list__m_stmt_uncached ~list_kind)
+        ~pattern:xsa
+        ~target:xsb
+        tin
   | _ ->
-      match xsb with
-      | List xsb ->
-          m_list__m_stmt_uncached ~flattened xsa xsb tin
-      | Lazy { full_list; _ } ->
-          match Lazy.force full_list with
-          | None -> [] (* flattened list was already flat *)
-          | Some xsb ->
-              m_list__m_stmt_uncached ~flattened xsa xsb tin
+      m_list__m_stmt_uncached ~list_kind xsa xsb tin
 
 (* TODO: factorize with m_list_and_dots less_is_ok = true *)
 (*s: function [[Generic_vs_generic.m_list__m_stmt]] *)
-and m_list__m_stmt_uncached ~flattened (xsa: A.stmt list) (xsb: A.stmt list) =
+and m_list__m_stmt_uncached ~list_kind (xsa: A.stmt list) (xsb: A.stmt list) =
   (* TODO: getting this list every time is redundant *)
   match stmts_may_match xsa xsb with
   | No -> fail ()
@@ -1662,17 +1630,17 @@ and m_list__m_stmt_uncached ~flattened (xsa: A.stmt list) (xsb: A.stmt list) =
       | {s=A.ExprStmt (A.Ellipsis _i, _);_}::xsa_tail,
         (xb::xsb_tail as xsb) ->
           (* can match nothing *)
-          (m_list__m_stmt ~flattened xsa_tail (List xsb)) >||>
+          (m_list__m_stmt ~list_kind xsa_tail xsb) >||>
           (* can match more *)
           (env_add_matched_stmt xb >>= (fun () ->
-             (m_list__m_stmt ~flattened xsa (List xsb_tail))
+             (m_list__m_stmt ~list_kind xsa xsb_tail)
            ))
       (*e: [[Generic_vs_generic.m_list__m_stmt()]] ellipsis cases *)
       (* the general case *)
       | xa::aas, xb::bbs ->
           m_stmt xa xb >>= (fun () ->
             env_add_matched_stmt xb >>= (fun () ->
-              m_list__m_stmt ~flattened aas (List bbs)
+              m_list__m_stmt ~list_kind aas bbs
             ))
       | _::_, _ ->
           fail ()

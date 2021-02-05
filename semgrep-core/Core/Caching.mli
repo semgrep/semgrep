@@ -13,7 +13,7 @@ val prepare_pattern : AST_generic.any -> unit
 (* Exposes just the special-purpose types required to create the cache key. *)
 module Cache_key : sig
   type function_id = Match_deep | Match_list
-  type list_kind = Original | Flattened
+  type list_kind = Original | Flattened_until of AST_generic.Node_ID.t
 end
 
 module Cache : sig
@@ -21,6 +21,13 @@ module Cache : sig
 
   type pattern = AST_generic.stmt list
   type target = AST_generic.stmt list
+
+  type 'a access = {
+    get_span_field: ('a -> Stmts_match_span.t);
+    set_span_field: ('a -> Stmts_match_span.t -> 'a);
+    get_mv_field: ('a -> Metavariable.Env.t);
+    set_mv_field: ('a -> Metavariable.Env.t -> 'a);
+  }
 
   val create : unit -> 'a t
 
@@ -33,18 +40,14 @@ module Cache : sig
      'compute' function with a given 'function_id'.
   *)
   val match_stmt_list :
-    get_span_field:('acc -> Stmts_match_span.t) ->
-    set_span_field:('acc -> Stmts_match_span.t -> 'acc) ->
-    get_mv_field:('acc -> Metavariable.Env.t) ->
-    set_mv_field:('acc -> Metavariable.Env.t -> 'acc) ->
+    access: 'acc access ->
     cache: 'acc list t ->
     function_id: Cache_key.function_id ->
     list_kind: Cache_key.list_kind ->
     less_is_ok: bool ->
     compute:(pattern -> target -> 'acc -> 'acc list) ->
     pattern: pattern ->
-    target_head: AST_generic.stmt -> (* first stmt of target *)
-    target: target option Lazy.t ->
+    target: target ->
     'acc -> 'acc list
 end
 
