@@ -33,7 +33,7 @@ let max_cache = ref false
 let filter_irrelevant_rules = ref false
 
 (* check for identifiers before attempting to match a stmt or stmt list *)
-let use_bloom_filter = ref false
+let use_bloom_filter = ref true
 
 (* we usually try first with the pfff parser and then with the tree-sitter
  * parser if pfff fails. Here you can force to only use tree-sitter.
