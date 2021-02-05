@@ -1,3 +1,4 @@
+
 (*s: semgrep/parsing/Parse_pattern.ml *)
 (*s: pad/r2c copyright *)
 (* Yoann Padioleau
@@ -63,6 +64,9 @@ let parse_pattern lang ?(print_errors = false) str =
     | Lang.Rust ->
         let res = Parse_rust_tree_sitter.parse_pattern str in
         extract_pattern_from_tree_sitter_result res print_errors
+    | Lang.Kotlin ->
+        let res = Parse_kotlin_tree_sitter.parse_pattern str in
+        extract_pattern_from_tree_sitter_result res print_errors
     (* use pfff *)
     | _ -> Parse_generic.parse_pattern lang str
   in
@@ -81,6 +85,9 @@ let dump_tree_sitter_pattern_cst lang file =
   | Lang.Rust ->
       Tree_sitter_rust.Parse.file file
       |> dump_and_print_errors Tree_sitter_rust.CST.dump_tree
+  | Lang.Kotlin ->
+      Tree_sitter_kotlin.Parse.file file
+      |> dump_and_print_errors Tree_sitter_kotlin.CST.dump_tree
   | _ -> ()
 
 (*e: semgrep/parsing/Parse_pattern.ml *)
