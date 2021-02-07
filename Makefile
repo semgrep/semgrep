@@ -50,12 +50,12 @@ build-spacegrep:
 
 # Update and rebuild everything within the project.
 #
-# At the moment, this is useful when ocaml-tree-sitter get updated,
-# since semgrep-core is not rebuilt automatically when they change.
+# At the moment, this is useful when ocaml-tree-sitter gets updated,
+# since semgrep-core is not rebuilt automatically when it changes.
 #
 .PHONY: rebuild
 rebuild:
-	git submodule update --init --recursive
+	git submodule update --init
 	-$(MAKE) clean
 	$(MAKE) config
 	$(MAKE) build
@@ -65,7 +65,7 @@ rebuild:
 #
 .PHONY: setup
 setup:
-	git submodule update --init --recursive
+	git submodule update --init
 	opam update -y
 	opam install -y --deps-only ./semgrep-core/pfff
 	cd ocaml-tree-sitter && ./scripts/install-tree-sitter-lib
