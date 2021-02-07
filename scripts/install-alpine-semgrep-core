@@ -35,7 +35,7 @@ echo "Install missing packages"
 sudo apk add --no-cache m4 pcre-dev
 
 echo "Install submodules"
-git submodule update --init --recursive
+git submodule update --init --recursive --depth 1
 
 echo "Install ocaml-tree-sitter"
 ./scripts/install-ocaml-tree-sitter

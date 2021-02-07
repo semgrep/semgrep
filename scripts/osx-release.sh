@@ -4,7 +4,7 @@ brew install opam pkg-config coreutils
 opam init --no-setup --bare;
 opam switch create 4.10.0;
 opam switch 4.10.0;
-git submodule update --init --recursive
+git submodule update --init --recursive --depth 1
 
 eval "$(opam env)"
 
