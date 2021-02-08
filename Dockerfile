@@ -28,7 +28,7 @@ WORKDIR /semgrep
 RUN git clean -dfX
 RUN git submodule foreach --recursive git clean -dfX
 
-RUN git submodule update --init --recursive
+RUN git submodule update --init --recursive --depth 1
 
 RUN eval "$(opam env)" && ./scripts/install-ocaml-tree-sitter
 RUN eval "$(opam env)" && opam install --deps-only -y spacegrep/

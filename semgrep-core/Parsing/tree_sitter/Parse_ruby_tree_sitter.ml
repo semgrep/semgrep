@@ -22,7 +22,7 @@ module H = Parse_tree_sitter_helpers
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* Ruby parser using ocaml-tree-sitter-lang/ruby and converting
+(* Ruby parser using tree-sitter-lang/semgrep-ruby and converting
  * to pfff/lang_ruby/parsing/ast_ruby.ml
  *
  * The resulting AST can then be converted to the generic AST by using
@@ -56,7 +56,7 @@ let mk_Literal_String (t1, xs, t2) =
 (*****************************************************************************)
 (* Boilerplate converter *)
 (*****************************************************************************)
-(* This was started by copying ocaml-tree-sitter-lang/ruby/Boilerplate.ml *)
+(* This was started by copying tree-sitter-lang/semgrep-ruby/Boilerplate.ml *)
 
 let token2 env x =
   H.token env x

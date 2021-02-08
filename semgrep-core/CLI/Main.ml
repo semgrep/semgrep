@@ -183,7 +183,7 @@ let ncores = ref 1
 (* ------------------------------------------------------------------------- *)
 
 (* opt = optimization *)
-let with_opt_cache = ref false (* TODO: change after merging to main branch *)
+let with_opt_cache = ref true
 
 (* ------------------------------------------------------------------------- *)
 (* flags used by the semgrep-python wrapper *)

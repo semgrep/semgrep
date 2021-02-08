@@ -22,7 +22,7 @@ open Ast_js
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* Javascript parser using ocaml-tree-sitter-lang/javascript and converting
+(* Javascript parser using tree-sitter-lang/semgrep-javascript and converting
  * directly to pfff/lang_js/analyze/ast_js.ml.
  *
  * Note that we could convert to cst_js.ml, which could be easier because
@@ -48,7 +48,7 @@ let fb = PI.fake_bracket
 (*****************************************************************************)
 (* Boilerplate converter *)
 (*****************************************************************************)
-(* This was started from ocaml-tree-sitter-lang/javascript/Boilerplate.ml *)
+(* This was started from tree-sitter-lang/semgrep-javascript/Boilerplate.ml *)
 
 (**
    Boilerplate to be used as a template when mapping the javascript CST

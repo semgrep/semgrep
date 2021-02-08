@@ -106,13 +106,6 @@ let qualified_ident v =
   | _ -> raise Impossible
 
 let top_func () =
-  let anon_types = ref [] in
-  let cnt = ref 0 in
-  let gensym () =
-    incr cnt;
-    spf "_anon%d" !cnt
-  in
-
   let rec type_ =
     function
     | TName v1 -> let v1 = qualified_ident v1 in
@@ -145,13 +138,7 @@ let top_func () =
     | TStruct (t, v1) -> let v1 = bracket (list struct_field) v1 in
         G.TyRecordAnon (t, v1)
     | TInterface (t, v1) -> let v1 = bracket (list interface_field) v1 in
-        let s = gensym () in
-        let ent = G.basic_entity (s, t) [] in
-        let def = G.ClassDef { G.ckind = (G.Interface, t);
-                               cextends = []; cimplements = []; cmixins = [];
-                               cbody = v1; } in
-        Common.push (ent, def) anon_types;
-        G.TyId ((s,t), G.empty_id_info())
+        G.TyInterfaceAnon (t, v1)
 
   and chan_dir = function
     | TSend -> G.TyId (fake_id "send", G.empty_id_info())
@@ -599,11 +586,8 @@ let top_func () =
         G.ImportAll (itok, module_name, v1)
 
   and program xs =
-    anon_types := [];
-    let xs = list top_decl xs in
-    let arg_types = !anon_types |> List.map (fun x -> G.DefStmt x |> G.s) in
-    (* TODO? put after program and imports? *)
-    arg_types @ xs
+    list top_decl xs
+  (* TODO? put after program and imports? *)
 
   and item_aux = function
     | ITop x -> [top_decl x]
@@ -622,7 +606,6 @@ let top_func () =
         )
 
   and any x =
-    anon_types := [];
     let res =
       match x with
       | Partial v1 -> let v1 = partial v1 in G.Partial v1
@@ -638,8 +621,6 @@ let top_func () =
       | Item v1 -> let v1 = item v1 in G.S v1
       | Items v1 -> let v1 = list item_aux v1 in G.Ss (List.flatten v1)
     in
-    if !anon_types <> []
-    then failwith "TODO: anon_types not empty";
     res
 
   in
