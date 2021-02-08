@@ -23,7 +23,7 @@ module H = Parse_tree_sitter_helpers
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* C parser using ocaml-tree-sitter-lang/c and converting
+(* C parser using tree-sitter-lang/semgrep-c and converting
  * to pfff/lang_c/parsing/ast_c.ml
  *
  * The resulting AST can then be converted to the generic AST by using
@@ -63,7 +63,7 @@ let str = H.str
 (*****************************************************************************)
 (* Boilerplate converter *)
 (*****************************************************************************)
-(* This was started by copying ocaml-tree-sitter-lang/go/.../Boilerplate.ml *)
+(* This was started by copying tree-sitter-lang/semgrep-go/.../Boilerplate.ml *)
 
 (**
    Boilerplate to be used as a template when mapping the c CST

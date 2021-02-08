@@ -22,7 +22,7 @@ module PI = Parse_info
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* Csharp parser using ocaml-tree-sitter-lang/charp and converting
+(* Csharp parser using tree-sitter-lang/semgrep-charp and converting
  * directly to pfff/h_program-lang/AST_generic.ml
  *
 *)
@@ -192,7 +192,7 @@ end
 (*****************************************************************************)
 (* Boilerplate converter *)
 (*****************************************************************************)
-(* This was started by copying ocaml-tree-sitter-lang/java/Boilerplate.ml *)
+(* This was started by copying tree-sitter-lang/semgrep-java/Boilerplate.ml *)
 
 (**
    Boilerplate to be used as a template when mapping the csharp CST
