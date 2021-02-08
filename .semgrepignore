@@ -31,7 +31,7 @@
 semgrep-core/tests/
 
 # submodule, generated code
-semgrep-core/ocaml-tree-sitter-lang/
+semgrep-core/tree-sitter-lang/
 
 pfff/
 semgrep/tests/e2e/targets/

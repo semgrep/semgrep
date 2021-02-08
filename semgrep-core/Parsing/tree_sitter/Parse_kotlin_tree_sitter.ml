@@ -22,7 +22,7 @@ module G = AST_generic
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* kotlin parser using ocaml-tree-sitter-lang/kotlin and converting
+(* kotlin parser using tree-sitter-lang/semgrep-kotlin and converting
  * directly to pfff/h_program-lang/ast_generic.ml
  *
 *)
@@ -40,7 +40,7 @@ let sc = PI.fake_info ";"
 (*****************************************************************************)
 (* Boilerplate converter *)
 (*****************************************************************************)
-(* This was started by copying ocaml-tree-sitter-lang/kotlin/Boilerplate.ml *)
+(* This was started by copying tree-sitter-lang/semgrep-kotlin/Boilerplate.ml *)
 
 (**
    Boilerplate to be used as a template when mapping the kotlin CST

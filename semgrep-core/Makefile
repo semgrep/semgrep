@@ -1,9 +1,9 @@
 # semgrep-core
 
 # This extracts the folder where the libtree-sitter.{so|a} files are located.
-# It is needed to build the code in ocaml-tree-sitter-lang.
+# It is needed to build the code in tree-sitter-lang.
 # This is not elegant. Alternatives include:
-# - Having a 'configure' script in ocaml-tree-sitter-lang, which would
+# - Having a 'configure' script in tree-sitter-lang, which would
 #   tweak the dune setup.
 # - Having a 'configure' script that produces a makefile to be included in
 #   this makefile.
