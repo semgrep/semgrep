@@ -1180,6 +1180,7 @@ and type_ =
    * via a TyName. Here we have flexible record types (a.k.a. rows in OCaml).
   *)
   | TyRecordAnon of tok (* 'struct/shape', fake in other *)* field list bracket
+  | TyInterfaceAnon of tok (* 'struct/shape', fake in other *)* field list bracket
 
   (* sgrep-ext: *)
   | TyEllipsis of tok
