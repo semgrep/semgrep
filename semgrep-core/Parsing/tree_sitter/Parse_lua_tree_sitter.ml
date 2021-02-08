@@ -23,7 +23,7 @@ let logger = Logging.get_logger [__MODULE__]
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* LUA parser using ocaml-tree-sitter-lang/lua and converting
+(* LUA parser using tree-sitter-lang/semgrep-lua and converting
  * directly to pfff/h_program-lang/ast_generic.ml
  *
 *)
@@ -40,7 +40,7 @@ let fb = G.fake_bracket
 (*****************************************************************************)
 (* Boilerplate converter *)
 (*****************************************************************************)
-(* This was started by copying ocaml-tree-sitter-lang/lua/Boilerplate.ml *)
+(* This was started by copying tree-sitter-lang/semgrep-lua/Boilerplate.ml *)
 
 (**
    Boilerplate to be used as a template when mapping the lua CST

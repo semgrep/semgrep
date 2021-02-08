@@ -21,7 +21,7 @@
    2. Replace this file with the CST.ml that was generated for tsx
       (because it has more definitions than the one for pure typescript):
 
-        cp ../ocaml-tree-sitter-lang/tsx/lib/CST.ml \
+        cp ../tree-sitter-lang/semgrep-tsx/lib/CST.ml \
           CST_tree_sitter_typescript.ml
 
    3. Edit the new file CST_tree_sitter_typescript.ml:

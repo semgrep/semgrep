@@ -22,7 +22,7 @@ module G = AST_generic
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* Rust parser using ocaml-tree-sitter-lang/rust and converting
+(* Rust parser using tree-sitter-lang/semgrep-rust and converting
  * directly to pfff/h_program-lang/ast_generic.ml
  *
 *)
@@ -41,7 +41,7 @@ let stmt_to_expr stmt = G.OtherExpr (G.OE_StmtExpr, [G.S stmt])
 (*****************************************************************************)
 (* Boilerplate converter *)
 (*****************************************************************************)
-(* This was started by copying ocaml-tree-sitter-lang/rust/Boilerplate.ml *)
+(* This was started by copying tree-sitter-lang/semgrep-rust/Boilerplate.ml *)
 
 (**
    Boilerplate to be used as a template when mapping the rust CST

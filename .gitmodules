@@ -1,9 +1,45 @@
 [submodule "pfff"]
 	path = semgrep-core/pfff
 	url = https://github.com/returntocorp/pfff.git
-[submodule "semgrep-core/ocaml-tree-sitter-lang"]
-	path = semgrep-core/ocaml-tree-sitter-lang
-	url = https://github.com/returntocorp/ocaml-tree-sitter-lang.git
 [submodule "ocaml-tree-sitter"]
 	path = ocaml-tree-sitter
 	url = https://github.com/returntocorp/ocaml-tree-sitter.git
+[submodule "semgrep-core/tree-sitter-lang/semgrep-c"]
+	path = semgrep-core/tree-sitter-lang/semgrep-c
+	url = https://github.com/returntocorp/semgrep-c
+[submodule "semgrep-core/tree-sitter-lang/semgrep-cpp"]
+	path = semgrep-core/tree-sitter-lang/semgrep-cpp
+	url = https://github.com/returntocorp/semgrep-cpp
+[submodule "semgrep-core/tree-sitter-lang/semgrep-c-sharp"]
+	path = semgrep-core/tree-sitter-lang/semgrep-c-sharp
+	url = https://github.com/returntocorp/semgrep-c-sharp
+[submodule "semgrep-core/tree-sitter-lang/semgrep-go"]
+	path = semgrep-core/tree-sitter-lang/semgrep-go
+	url = https://github.com/returntocorp/semgrep-go
+[submodule "semgrep-core/tree-sitter-lang/semgrep-java"]
+	path = semgrep-core/tree-sitter-lang/semgrep-java
+	url = https://github.com/returntocorp/semgrep-java
+[submodule "semgrep-core/tree-sitter-lang/semgrep-javascript"]
+	path = semgrep-core/tree-sitter-lang/semgrep-javascript
+	url = https://github.com/returntocorp/semgrep-javascript
+[submodule "semgrep-core/tree-sitter-lang/semgrep-kotlin"]
+	path = semgrep-core/tree-sitter-lang/semgrep-kotlin
+	url = https://github.com/returntocorp/semgrep-kotlin
+[submodule "semgrep-core/tree-sitter-lang/semgrep-lua"]
+	path = semgrep-core/tree-sitter-lang/semgrep-lua
+	url = https://github.com/returntocorp/semgrep-lua
+[submodule "semgrep-core/tree-sitter-lang/semgrep-r"]
+	path = semgrep-core/tree-sitter-lang/semgrep-r
+	url = https://github.com/returntocorp/semgrep-r
+[submodule "semgrep-core/tree-sitter-lang/semgrep-ruby"]
+	path = semgrep-core/tree-sitter-lang/semgrep-ruby
+	url = https://github.com/returntocorp/semgrep-ruby
+[submodule "semgrep-core/tree-sitter-lang/semgrep-rust"]
+	path = semgrep-core/tree-sitter-lang/semgrep-rust
+	url = https://github.com/returntocorp/semgrep-rust
+[submodule "semgrep-core/tree-sitter-lang/semgrep-tsx"]
+	path = semgrep-core/tree-sitter-lang/semgrep-tsx
+	url = https://github.com/returntocorp/semgrep-tsx
+[submodule "semgrep-core/tree-sitter-lang/semgrep-typescript"]
+	path = semgrep-core/tree-sitter-lang/semgrep-typescript
+	url = https://github.com/returntocorp/semgrep-typescript
