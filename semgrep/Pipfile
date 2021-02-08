@@ -14,6 +14,3 @@ xmldiff = "*"
 
 [packages]
 semgrep = {editable = true,path = "."}
-
-[requires]
-python_version = "3.7"
