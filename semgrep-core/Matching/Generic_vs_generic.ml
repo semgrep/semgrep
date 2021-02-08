@@ -1351,6 +1351,9 @@ and m_type_ a b =
   | A.TyRecordAnon(a0, a1), B.TyRecordAnon(b0, b1) ->
       let* () = m_tok a0 b0 in
       m_bracket m_fields a1 b1
+  | A.TyInterfaceAnon(a0, a1), B.TyInterfaceAnon(b0, b1) ->
+      let* () = m_tok a0 b0 in
+      m_bracket m_fields a1 b1
   | A.TyOr (a1, a2, a3), B.TyOr (b1, b2, b3) ->
       m_type_ a1 b1 >>= (fun () ->
         m_tok a2 b2 >>= (fun () ->
@@ -1369,7 +1372,7 @@ and m_type_ a b =
   | A.TyBuiltin _, _  | A.TyFun _, _  | A.TyNameApply _, _  | A.TyVar _, _
   | A.TyArray _, _  | A.TyPointer _, _ | A.TyTuple _, _  | A.TyQuestion _, _
   | A.TyId _, _ | A.TyIdQualified _, _ | A.TyAny _, _
-  | A.TyOr _, _ | A.TyAnd _, _ | A.TyRecordAnon _, _
+  | A.TyOr _, _ | A.TyAnd _, _ | A.TyRecordAnon _, _ | A.TyInterfaceAnon _, _
   | A.TyRef _, _
   | A.OtherType _, _
     -> fail ()
