@@ -35,7 +35,7 @@ let _fake = AST_generic.fake
 let token = H.token
 let str = H.str
 
-let ids_of_name (name : name) : dotted_ident =
+let ids_of_name (name : name_) : dotted_ident =
   let (ident, name_info) = name in
   (match name_info.name_qualifier with
    | Some(q) -> (match q with
@@ -114,7 +114,7 @@ let create_join_result_lambda lambda_params ident =
   let p1 = param_from_lambda_params lambda_params in
   let p2 = ParamClassic (param_of_id ident) in
   let fparams = [p1; p2] in
-  let ids = lambda_params @ [ident] |> List.map (fun id -> Id (id, empty_id_info ())) in
+  let ids = lambda_params @ [ident] |> List.map (fun id -> N (Id (id, empty_id_info ()))) in
   let expr = Tuple (fake_bracket ids) in
   Lambda {
     fkind = (Arrow, fake "=>");
@@ -150,7 +150,7 @@ let rec linq_remainder_to_expr (query : linq_query_part list) (base_expr : expr)
            (* base_expr.Select(lambda_params -> (lambda_params..., expr))
             * and add ident to lambda_params
            *)
-           let ids = List.map (fun id -> Id (id, empty_id_info ())) lambda_params in
+           let ids = List.map (fun id -> N (Id (id, empty_id_info ()))) lambda_params in
            let expr = Tuple (fake_bracket (ids @ [expr])) in
            let func = create_lambda lambda_params expr in
            let base_expr = call_lambda base_expr "Select" tok [func] in
@@ -1109,10 +1109,10 @@ and expression (env : env) (x : CST.expression) : AST.expr =
               let id = (match _x with
                 | TyBuiltin sw -> sw
                 | _ -> raise Impossible) in
-              Id (id, empty_id_info ()) (* TODO should this be IdQualified? *)
+              N (Id (id, empty_id_info ())) (* TODO should this be IdQualified? *)
           | `Name x ->
               let n = name env x in
-              H2.id_of_name n
+              H2.id_of_name_ n
          )
        in
        let v2 =
@@ -1247,16 +1247,16 @@ and expression (env : env) (x : CST.expression) : AST.expr =
        let v4 = token env v4 (* ")" *) in
        Call (IdSpecial (Typeof, v1), (v2, [ArgType v3], v4))
    | `Simple_name x ->
-       H2.id_of_name (simple_name env x)
+       H2.id_of_name_ (simple_name env x)
    | `Rese_id x ->
        let x = reserved_identifier env x in
-       AST.Id (x, empty_id_info ())
+       AST.N (AST.Id (x, empty_id_info ()))
    | `Lit x ->
        let x = literal env x in
        AST.L x
   )
 
-and simple_name (env : env) (x : CST.simple_name) : AST.name =
+and simple_name (env : env) (x : CST.simple_name) : (AST.ident * AST.name_info) =
   (match x with
    | `Gene_name (v1, v2) ->
        let v1 = identifier env v1 (* identifier *) in

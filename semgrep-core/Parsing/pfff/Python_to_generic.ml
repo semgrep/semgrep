@@ -190,7 +190,7 @@ let rec expr (x: expr) =
       and _v2TODO = expr_context v2
       and v3 = vref resolved_name v3
       in
-      G.Id (v1 ,{ (G.empty_id_info ()) with G.id_resolved = v3 })
+      G.N (G.Id (v1 ,{ (G.empty_id_info ()) with G.id_resolved = v3 }))
 
   | Tuple (CompList v1, v2) ->
       let v1 = bracket (list expr) v1
@@ -511,7 +511,7 @@ and list_stmt1 xs =
    * in which case we remove the G.Block around it.
    * hacky ...
   *)
-  | [{G.s=G.ExprStmt (G.Id ((s, _), _), _);_} as x]
+  | [{G.s=G.ExprStmt (G.N (G.Id ((s, _), _)), _);_} as x]
     when AST_generic_.is_metavar_name s
     -> x
   | xs -> G.Block (fb xs) |> G.s

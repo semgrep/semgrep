@@ -211,7 +211,7 @@ let make_dotted xs =
   match xs with
   | [] -> raise Impossible
   | x::xs ->
-      let base = B.Id (x, B.empty_id_info()) in
+      let base = B.N (B.Id (x, B.empty_id_info())) in
       List.fold_left (fun acc e ->
         let tok = Parse_info.fake_info "." in
         B.DotAccess (acc, tok, B.EId (e, B.empty_id_info()))) base xs
@@ -331,7 +331,7 @@ let _m_resolved_name (a1, a2) (b1, b2) =
 
 (* start of recursive need *)
 (*s: function [[Generic_vs_generic.m_name]] *)
-let rec m_name a b =
+let rec m_name_ a b =
   match a,b with
   | (a1, a2), (b1, b2) ->
       m_ident a1 b1 >>= (fun () ->
@@ -474,22 +474,22 @@ and m_expr a b =
   (*e: [[Generic_vs_generic.m_expr()]] disjunction case *)
   (*s: [[Generic_vs_generic.m_expr()]] resolving alias case *)
   (* equivalence: name resolving! *)
-  | a,   B.Id (idb, { B.id_resolved =
-                        {contents = Some ( ( B.ImportedEntity dotted
-                                           | B.ImportedModule (B.DottedName dotted)
-                                           ), _sid)}; _}) ->
+  | a,   B.N (B.Id (idb, { B.id_resolved =
+                             {contents = Some ( ( B.ImportedEntity dotted
+                                                | B.ImportedModule (B.DottedName dotted)
+                                                ), _sid)}; _})) ->
       (* We used to force to fully qualify entities in the pattern
        * (e.g., with org.foo(...)) but this is confusing for users.
        * We now allow an unqualified pattern like 'foo' to match resolved
        * entities like import org.foo; foo(), just like for attributes.
       *)
-      m_expr a (B.Id (idb, B.empty_id_info()))
+      m_expr a (B.N (B.Id (idb, B.empty_id_info())))
       >||>
       (* try this time a match with the resolved entity *)
       m_expr a (make_dotted dotted)
   (* Put this before the next case to prevent overly eager dealiasing *)
-  | A.IdQualified(a1, a2), B.IdQualified(b1, b2) ->
-      m_name a1 b1 >>= (fun () ->
+  | A.N (A.IdQualified(a1, a2)), B.N (B.IdQualified(b1, b2)) ->
+      m_name_ a1 b1 >>= (fun () ->
         m_id_info a2 b2
       )
   (* Matches pattern
@@ -498,7 +498,7 @@ and m_expr a b =
    *   import a.b.C
    *   C.x
   *)
-  | A.IdQualified ((alabel, { A.name_qualifier = Some(A.QDots names); _ }), _id_info), b ->
+  | A.N (A.IdQualified ((alabel, { A.name_qualifier = Some(A.QDots names); _ }), _id_info)), b ->
       let full = names @ [alabel] in
       m_expr (make_dotted full) b
   (*e: [[Generic_vs_generic.m_expr()]] resolving alias case *)
@@ -510,7 +510,7 @@ and m_expr a b =
    * bugfix: note that we must forbid that only in a Call context; we want
    * $THIS to match IdSpecial (This) for example.
   *)
-  | A.Call (A.Id ((str,_tok), _id_info), _argsa),
+  | A.Call (A.N (A.Id ((str,_tok), _id_info)), _argsa),
     B.Call (B.IdSpecial _, _argsb)
     when MV.is_metavar_name str ->
       fail ()
@@ -518,13 +518,13 @@ and m_expr a b =
   (* Matching a generic Id metavariable to an IdSpecial will fail as it is missing the token
    * info; instead the Id should match Call(IdSpecial _, _)
   *)
-  | A.Id ((str, _), _), B.IdSpecial (B.ConcatString _, _) when MV.is_metavar_name str ->
+  | A.N (A.Id ((str, _), _)), B.IdSpecial (B.ConcatString _, _) when MV.is_metavar_name str ->
       fail ()
   (*e: [[Generic_vs_generic.m_expr()]] forbidden metavariable case *)
-  | A.Id ((str,tok), _id_info), B.Id (idb, id_infob)
+  | A.N (A.Id ((str,tok), _id_info)), B.N (B.Id (idb, id_infob))
     when MV.is_metavar_name str ->
       envf (str, tok) (MV.Id (idb, Some id_infob))
-  | A.Id ((str,tok), _id_info), e2
+  | A.N (A.Id ((str,tok), _id_info)), e2
     when MV.is_metavar_name str ->
       envf (str, tok) (MV.E (e2))
   (*e: [[Generic_vs_generic.m_expr()]] metavariable case *)
@@ -611,7 +611,7 @@ and m_expr a b =
         ))
 
   (* boilerplate *)
-  | A.Id(a1, a2), B.Id(b1, b2) ->
+  | A.N (A.Id(a1, a2)), B.N (B.Id(b1, b2)) ->
       m_ident a1 b1 >>= (fun () ->
         m_id_info a2 b2 )
 
@@ -677,7 +677,7 @@ and m_expr a b =
   | A.Record(a1), B.Record(b1) ->
       (m_bracket (m_fields)) a1 b1
   | A.Constructor(a1, a2), B.Constructor(b1, b2) ->
-      m_name a1 b1 >>= (fun () ->
+      m_dotted_name a1 b1 >>= (fun () ->
         (m_list m_expr) a2 b2
       )
   | A.Lambda(a1), B.Lambda(b1) ->
@@ -758,7 +758,7 @@ and m_expr a b =
       )
   | A.Container _, _  | A.Tuple _, _  | A.Record _, _
   | A.Constructor _, _  | A.Lambda _, _  | A.AnonClass _, _
-  | A.Id _, _  | A.IdQualified _, _ | A.IdSpecial _, _
+  | A.N _, _ | A.IdSpecial _, _
   | A.Call _, _  | A.Xml _, _
   | A.Assign _, _  | A.AssignOp _, _  | A.LetPattern _, _  | A.DotAccess _, _
   | A.ArrayAccess _, _  | A.Conditional _, _  | A.MatchPattern _, _
@@ -790,7 +790,7 @@ and m_ident_or_dynamic a b =
   (* boilerplate *)
   (*s: [[Generic_vs_generic.m_field_ident()]] boilerplate cases *)
   | A.EName a, B.EName b ->
-      m_name a b
+      m_name_ a b
   | A.EDynamic a, B.EDynamic b ->
       m_expr a b
   | A.EId _, _
@@ -1060,11 +1060,11 @@ and m_bodies a b =
 and m_compatible_type typed_mvar t e =
   match t, e with
   (* for Python literal checking *)
-  | A.OtherType (A.OT_Expr, [A.E (A.Id (("int", _tok), _idinfo))]),
+  | A.OtherType (A.OT_Expr, [A.E (A.N (A.Id (("int", _tok), _idinfo)))]),
     B.L (B.Int _) -> envf typed_mvar (MV.E e)
-  | A.OtherType (A.OT_Expr, [A.E (A.Id (("float", _tok), _idinfo))]),
+  | A.OtherType (A.OT_Expr, [A.E (A.N (A.Id (("float", _tok), _idinfo)))]),
     B.L (B.Float _) -> envf typed_mvar (MV.E e)
-  | A.OtherType (A.OT_Expr, [A.E (A.Id (("str", _tok), _idinfo))]),
+  | A.OtherType (A.OT_Expr, [A.E (A.N (A.Id (("str", _tok), _idinfo)))]),
     B.L (B.String _) -> envf typed_mvar (MV.E e)
   (* for java literals *)
   | A.TyBuiltin (("int", _)),  B.L (B.Int _) -> envf typed_mvar (MV.E e)
@@ -1083,8 +1083,8 @@ and m_compatible_type typed_mvar t e =
       m_type_ t (A.TyPointer (t1, TyBuiltin(("char", tok)))) >>=
       (fun () -> envf typed_mvar (MV.E e))
   (* for matching ids *)
-  | ta, ( B.Id (idb, {B.id_type=tb; _})
-        | B.IdQualified ((idb, _), {B.id_type=tb;_})
+  | ta, ( B.N (B.Id (idb, {B.id_type=tb; _}))
+        | B.N (B.IdQualified ((idb, _), {B.id_type=tb;_}))
         | B.DotAccess (IdSpecial (This, _), _, EId (idb, {B.id_type=tb; _}))
         ) ->
       m_type_option_with_hook idb (Some ta) !tb >>=
@@ -1162,7 +1162,7 @@ and m_list__m_argument (xsa: A.argument list) (xsb: A.argument list) =
   | [A.Arg (A.Ellipsis _i)], [] ->
       return ()
 
-  | A.Arg (A.Id ((s, tok), _idinfo))::xsa, xb::xsb
+  | A.Arg (A.N (A.Id ((s, tok), _idinfo)))::xsa, xb::xsb
     when MV.is_metavar_ellipsis s ->
       (* can match 1 or more arguments (or 0 is ok too?) *)
       let candidates = inits_and_rest_of_list (xb::xsb) in
@@ -1336,10 +1336,10 @@ and m_type_ a b =
   | A.TyAny(a1), B.TyAny(b1) ->
       m_tok a1 b1
   | A.TyIdQualified(a1, a2), B.TyIdQualified(b1, b2) ->
-      let* () = m_name a1 b1 in
+      let* () = m_name_ a1 b1 in
       m_id_info a2 b2
   | A.TyNameApply(a1, a2), B.TyNameApply(b1, b2) ->
-      m_name a1 b1 >>= (fun () ->
+      m_dotted_name a1 b1 >>= (fun () ->
         m_type_arguments a2 b2
       )
   | A.TyVar(a1), B.TyVar(b1) ->
@@ -1670,7 +1670,7 @@ and m_stmt a b =
   (*e: [[Generic_vs_generic.m_stmt()]] disjunction case *)
   (*s: [[Generic_vs_generic.m_stmt()]] metavariable case *)
   (* metavar: *)
-  | A.ExprStmt(A.Id ((str,tok), _id_info), _), _b
+  | A.ExprStmt(A.N (A.Id ((str,tok), _id_info)), _), _b
     when MV.is_metavar_name str ->
       envf (str, tok) (MV.S b)
   (*e: [[Generic_vs_generic.m_stmt()]] metavariable case *)
@@ -1963,7 +1963,7 @@ and m_pattern a b =
   | A.PatType(a1), B.PatType(b1) ->
       m_type_ a1 b1
   | A.PatConstructor(a1, a2), B.PatConstructor(b1, b2) ->
-      m_name a1 b1 >>= (fun () ->
+      m_dotted_name a1 b1 >>= (fun () ->
         (m_list m_pattern) a2 b2
       )
   | A.PatTuple(a1), B.PatTuple(b1) ->
@@ -2014,7 +2014,7 @@ and m_pattern a b =
 and m_field_pattern a b =
   match a, b with
   | (a1, a2), (b1, b2) ->
-      m_name a1 b1 >>= (fun () ->
+      m_dotted_name a1 b1 >>= (fun () ->
         m_pattern a2 b2
       )
 (*e: function [[Generic_vs_generic.m_field_pattern]] *)
@@ -2484,7 +2484,7 @@ and m_module_definition a b =
 and m_module_definition_kind a b =
   match a, b with
   | A.ModuleAlias(a1), B.ModuleAlias(b1) ->
-      m_name a1 b1
+      m_dotted_name a1 b1
   | A.ModuleStruct(a1, a2), B.ModuleStruct(b1, b2) ->
       (m_option m_dotted_name) a1 b1 >>= (fun () ->
         (m_list m_item) a2 b2
@@ -2656,8 +2656,6 @@ and m_any a b =
       m_list m_argument a1 b1
 
   (* boilerplate *)
-  | A.N(a1), B.N(b1) ->
-      m_name a1 b1
   | A.Modn(a1), B.Modn(b1) ->
       m_module_name a1 b1
   | A.ModDk(a1), B.ModDk(b1) ->
@@ -2696,7 +2694,7 @@ and m_any a b =
       m_label_ident a1 b1
   | A.IoD(a1), B.IoD(b1) ->
       m_ident_or_dynamic a1 b1
-  | A.I _, _  | A.N _, _  | A.Modn _, _ | A.Di _, _  | A.En _, _  | A.E _, _
+  | A.I _, _  | A.Modn _, _ | A.Di _, _  | A.En _, _  | A.E _, _
   | A.S _, _  | A.T _, _  | A.P _, _  | A.Def _, _  | A.Dir _, _
   | A.Pa _, _  | A.Ar _, _  | A.At _, _  | A.Dk _, _ | A.Pr _, _
   | A.Fld _, _ | A.Ss _, _ | A.Tk _, _ | A.Lbli _, _ | A.IoD _, _

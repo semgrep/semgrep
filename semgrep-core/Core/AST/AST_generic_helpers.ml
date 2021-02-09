@@ -45,11 +45,11 @@ let gensym () =
 (* before Naming_AST.resolve can do its job *)
 (*e: function [[AST_generic.gensym]] *)
 
-(* todo: should also mae sure nameinfo.name_typeargs is empty? *)
-let id_of_name (id, nameinfo) =
+(* todo: should also make sure nameinfo.name_typeargs is empty? *)
+let id_of_name_ (id, nameinfo) =
   match nameinfo.name_qualifier with
-  | None | Some (QDots []) -> Id (id, empty_id_info ())
-  | _ -> IdQualified ((id, nameinfo), empty_id_info())
+  | None | Some (QDots []) -> N (Id (id, empty_id_info ()))
+  | _ -> N (IdQualified ((id, nameinfo), empty_id_info()))
 
 let name_of_id id =
   (id, empty_name_info)
@@ -80,7 +80,7 @@ let tyid_of_name (id, nameinfo) =
 let rec expr_to_pattern e =
   (* TODO: diconstruct e and generate the right pattern (PatLiteral, ...) *)
   match e with
-  | Id (id, info) -> PatId (id, info)
+  | N (Id (id, info)) -> PatId (id, info)
   | Tuple (t1, xs, t2) -> PatTuple (t1, xs  |> List.map expr_to_pattern, t2)
   | L l -> PatLiteral l
   | Container(List, (t1, xs, t2)) ->
@@ -96,7 +96,7 @@ exception NotAnExpr
 (* sgrep: this is to treat pattern metavars as expr metavars *)
 let rec pattern_to_expr p =
   match p with
-  | PatId (id, info) -> Id (id, info)
+  | PatId (id, info) -> N (Id (id, info))
   | PatTuple (t1, xs, t2) -> Tuple (t1, xs |> List.map pattern_to_expr, t2)
   | PatLiteral l -> L l
   | PatList (t1, xs, t2) ->
@@ -154,10 +154,10 @@ let is_boolean_operator = function
 let ident_or_dynamic_to_expr name idinfo_opt =
   match name, idinfo_opt with
   (* assert idinfo = _idinfo below? *)
-  | EId (id, idinfo), None -> Id (id, idinfo)
-  | EId (id, _idinfo), Some idinfo -> Id (id, idinfo)
-  | EName n, None -> IdQualified (n, empty_id_info())
-  | EName n, Some idinfo -> IdQualified (n, idinfo)
+  | EId (id, idinfo), None -> N (Id (id, idinfo))
+  | EId (id, _idinfo), Some idinfo -> N (Id (id, idinfo))
+  | EName n, None -> N (IdQualified (n, empty_id_info()))
+  | EName n, Some idinfo -> N (IdQualified (n, idinfo))
   | EDynamic e, _ -> e
 
 

@@ -129,9 +129,11 @@ let rec type_ =
       let v1 = name v1 in
       G.TyId (v1, G.empty_id_info())
   | TMacroApply (v1, (_lp, v2, _rp)) ->
-      let v1 = name v1 in
+      let v1 = dotted_ident_of_id v1 in
       let v2 = type_ v2 in
-      G.TyNameApply((v1, G.empty_name_info), [G.TypeArg v2])
+      G.TyNameApply(v1, [G.TypeArg v2])
+
+and dotted_ident_of_id id = [id]
 
 and function_type (v1, v2) =
   let v1 = type_ v1 and
@@ -166,11 +168,11 @@ and expr =
       G.Call (G.IdSpecial (G.ConcatString (G.SequenceConcat), fake " "),
               fb (xs |> List.map (fun x -> G.Arg (G.L (G.String x)))))
   | Defined (t, id) ->
-      let e = G.Id (id, G.empty_id_info()) in
+      let e = G.N (G.Id (id, G.empty_id_info())) in
       G.Call (G.IdSpecial (G.Defined, t), fb [G.Arg e])
 
   | Id v1 -> let v1 = name v1 in
-      G.Id (v1, G.empty_id_info())
+      G.N (G.Id (v1, G.empty_id_info()))
   | Ellipses v1 -> let v1 = info v1 in G.Ellipsis v1
   | DeepEllipsis v1 -> let v1 = bracket (expr) v1 in G.DeepEllipsis v1
   | Call (v1, v2) -> let v1 = expr v1 and v2 = bracket (list argument) v2 in

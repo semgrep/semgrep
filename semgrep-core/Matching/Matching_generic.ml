@@ -265,7 +265,7 @@ let rec equal_ast_binded_code (a: MV.mvalue) (b: MV.mvalue) : bool = (
          * - id_constness (see the special @equal for id_constness)
         *)
         MV.Structural.equal_mvalue a b
-    | MV.Id _, MV.E (A.Id (b_id, b_id_info)) ->
+    | MV.Id _, MV.E (A.N (A.Id (b_id, b_id_info))) ->
         (* TODO still needed now that we have the better MV.Id of id_info? *)
         (* TOFIX: regression if remove this code *)
         (* Allow identifier nodes to match pure identifier expressions *)

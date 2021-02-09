@@ -107,7 +107,7 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
     | TypeName -> TypeName
 
 
-  and map_name (v1, v2) =
+  and map_name_ (v1, v2) =
     let v1 = map_ident v1 and v2 = map_name_info v2 in (v1, v2)
   and
     map_name_info {
@@ -161,8 +161,15 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
     | XmlExpr v1 -> let v1 = map_expr v1 in XmlExpr v1
     | XmlXml v1 -> let v1 = map_xml v1 in XmlXml v1
 
+  and map_name = function
+    | Id (v1, v2) ->
+        let v1 = map_ident v1 and v2 = map_id_info v2 in Id (v1, v2)
+    | IdQualified (v1, v2) ->
+        let v1 = map_name_ v1 and v2 = map_id_info v2 in IdQualified (v1, v2)
+
   and map_expr x =
     let k x = match x with
+      | N v1 -> let v1 = map_name v1 in N v1
       | DotAccessEllipsis (v1, v2) -> let v1 = map_expr v1 in
           let v2 = map_tok v2 in
           DotAccessEllipsis (v1, v2)
@@ -179,7 +186,7 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
           let v1 = map_bracket (map_of_list map_field) v1 in
           Record v1
       | Constructor (v1, v2) ->
-          let v1 = map_name v1
+          let v1 = map_dotted_ident v1
           and v2 = map_of_list map_expr v2
           in Constructor (v1, v2)
       | Lambda v1 ->
@@ -187,10 +194,6 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
       | AnonClass v1 ->
           let v1 = map_class_definition v1 in AnonClass v1
       | Xml v1 -> let v1 = map_xml v1 in Xml v1
-      | Id (v1, v2) ->
-          let v1 = map_ident v1 and v2 = map_id_info v2 in Id (v1, v2)
-      | IdQualified (v1, v2) ->
-          let v1 = map_name v1 and v2 = map_id_info v2 in IdQualified (v1, v2)
       | IdSpecial v1 -> let v1 = map_wrap map_special v1 in IdSpecial v1
       | Call (v1, v2) ->
           let v1 = map_expr v1 and v2 = map_arguments v2 in Call (v1, v2)
@@ -262,7 +265,7 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
         let v1 = map_ident v1 in
         let v2 = map_id_info v2 in
         EId (v1, v2)
-    | EName v1 -> let v1 = map_name v1 in EName v1
+    | EName v1 -> let v1 = map_name_ v1 in EName v1
     | EDynamic v1 -> let v1 = map_expr v1 in EDynamic v1
 
   and map_literal =
@@ -362,7 +365,7 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
         and v2 = map_type_ v2
         in TyFun (v1, v2)
     | TyNameApply (v1, v2) ->
-        let v1 = map_name v1
+        let v1 = map_dotted_ident v1
         and v2 = map_type_arguments v2
         in TyNameApply (v1, v2)
     | TyId (v1, v2) ->
@@ -370,7 +373,7 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
         let v2 = map_id_info v2 in
         TyId (v1, v2)
     | TyIdQualified (v1, v2) ->
-        let v1 = map_name v1 in
+        let v1 = map_name_ v1 in
         let v2 = map_id_info v2 in
         TyIdQualified (v1, v2)
     | TyVar v1 -> let v1 = map_ident v1 in TyVar v1
@@ -598,7 +601,7 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
         let v1 =
           map_bracket (map_of_list
                          (fun (v1, v2) ->
-                            let v1 = map_name v1 and v2 = map_pattern v2 in (v1, v2)))
+                            let v1 = map_dotted_ident v1 and v2 = map_pattern v2 in (v1, v2)))
             v1
         in PatRecord v1
     | PatId (v1, v2) ->
@@ -614,7 +617,7 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
     | PatLiteral v1 -> let v1 = map_literal v1 in PatLiteral v1
     | PatType v1 -> let v1 = map_type_ v1 in PatType v1
     | PatConstructor (v1, v2) ->
-        let v1 = map_name v1
+        let v1 = map_dotted_ident v1
         and v2 = map_of_list map_pattern v2
         in PatConstructor (v1, v2)
     | PatTuple v1 -> let v1 = map_bracket (map_of_list map_pattern) v1 in PatTuple v1
@@ -686,7 +689,7 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
     { mbody = v_mbody; }
   and map_module_definition_kind =
     function
-    | ModuleAlias v1 -> let v1 = map_name v1 in ModuleAlias v1
+    | ModuleAlias v1 -> let v1 = map_dotted_ident v1 in ModuleAlias v1
     | ModuleStruct (v1, v2) ->
         let v1 = map_of_option map_dotted_ident v1
         and v2 = map_of_list map_item v2
@@ -930,7 +933,6 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
     | TodoK v1 -> let v1 = map_ident v1 in TodoK v1
     | Tk v1 -> let v1 = map_tok v1 in Tk v1
     | I v1 -> let v1 = map_ident v1 in I v1
-    | N v1 -> let v1 = map_name v1 in N v1
     | Modn v1 -> let v1 = map_module_name v1 in Modn v1
     | ModDk v1 -> let v1 = map_module_definition_kind v1 in ModDk v1
     | En v1 -> let v1 = map_entity v1 in En v1

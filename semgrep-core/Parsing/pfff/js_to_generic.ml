@@ -192,7 +192,7 @@ and expr (x: expr) =
   | L x -> G.L (literal x)
   | Id v1 ->
       let v1 = name v1 in
-      G.Id (v1, G.empty_id_info())
+      G.N (G.Id (v1, G.empty_id_info()))
 
   | IdSpecial v1 ->
       let x = special v1 in

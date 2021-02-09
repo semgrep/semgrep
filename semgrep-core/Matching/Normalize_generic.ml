@@ -81,7 +81,7 @@ let normalize_import_opt is_pattern i =
 let rec eval x :constness option =
   match x with
   | L x -> Some (Lit x)
-  | Id (_, { id_constness = {contents = Some x}; _})
+  | N (Id (_, { id_constness = {contents = Some x}; _}))
   | DotAccess (IdSpecial (This, _), _, EId (_, {id_constness = {contents = Some x}; _})) ->
       Some x
 

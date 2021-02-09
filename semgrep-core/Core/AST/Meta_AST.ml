@@ -61,7 +61,7 @@ let rec vof_qualifier = function
       let v2 = vof_tok v2 in
       OCaml.VSum ("QExpr", [v1; v2])
 
-and vof_name (v1, v2) =
+and vof_name_ (v1, v2) =
   let v1 = vof_ident v1 and v2 = vof_name_info v2 in OCaml.VTuple [ v1; v2 ]
 
 and
@@ -134,6 +134,15 @@ and vof_xml_body =
   | XmlExpr v1 -> let v1 = vof_expr v1 in OCaml.VSum ("XmlExpr", [ v1 ])
   | XmlXml v1 -> let v1 = vof_xml v1 in OCaml.VSum ("XmlXml", [ v1 ])
 
+and vof_name = function
+  | Id (v1, v2) ->
+      let v1 = vof_ident v1
+      and v2 = vof_id_info v2
+      in OCaml.VSum ("Id", [ v1; v2 ])
+  | IdQualified (v1, v2) ->
+      let v1 = vof_name_ v1
+      and v2 = vof_id_info v2
+      in OCaml.VSum ("IdQualified", [ v1; v2 ])
 
 and vof_expr =
   function
@@ -154,7 +163,7 @@ and vof_expr =
       let v1 = vof_bracket (OCaml.vof_list vof_field) v1 in
       OCaml.VSum ("Record", [ v1 ])
   | Constructor (v1, v2) ->
-      let v1 = vof_name v1
+      let v1 = vof_dotted_ident v1
       and v2 = OCaml.vof_list vof_expr v2
       in OCaml.VSum ("Constructor", [ v1; v2 ])
   | Lambda v1 ->
@@ -163,14 +172,7 @@ and vof_expr =
   | AnonClass v1 ->
       let v1 = vof_class_definition v1
       in OCaml.VSum ("AnonClass", [ v1 ])
-  | Id (v1, v2) ->
-      let v1 = vof_ident v1
-      and v2 = vof_id_info v2
-      in OCaml.VSum ("Id", [ v1; v2 ])
-  | IdQualified (v1, v2) ->
-      let v1 = vof_name v1
-      and v2 = vof_id_info v2
-      in OCaml.VSum ("IdQualified", [ v1; v2 ])
+  | N v1 -> let v1 = vof_name v1 in OCaml.VSum ("N", [v1])
   | IdSpecial v1 ->
       let v1 = vof_wrap vof_special v1 in OCaml.VSum ("IdSpecial", [ v1 ])
   | Call (v1, v2) ->
@@ -253,7 +255,7 @@ and vof_ident_or_dynamic = function
       let v1 = vof_ident v1 in
       let v2 = vof_id_info v2 in
       OCaml.VSum ("EId", [v1; v2])
-  | EName v1 -> let v1 = vof_name v1 in OCaml.VSum ("EName", [v1])
+  | EName v1 -> let v1 = vof_name_ v1 in OCaml.VSum ("EName", [v1])
   | EDynamic v1 -> let v1 = vof_expr v1 in OCaml.VSum ("EDynamic", [v1])
 
 and vof_literal =
@@ -478,7 +480,7 @@ and vof_type_ =
       and v2 = vof_type_ v2
       in OCaml.VSum ("TyFun", [ v1; v2 ])
   | TyNameApply (v1, v2) ->
-      let v1 = vof_name v1
+      let v1 = vof_dotted_ident v1
       and v2 = vof_type_arguments v2
       in OCaml.VSum ("TyNameApply", [ v1; v2 ])
   | TyId (v1, v2) ->
@@ -486,7 +488,7 @@ and vof_type_ =
       let v2 = vof_id_info v2 in
       OCaml.VSum ("TyId", [ v1; v2 ])
   | TyIdQualified (v1, v2) ->
-      let v1 = vof_name v1 in
+      let v1 = vof_name_ v1 in
       let v2 = vof_id_info v2 in
       OCaml.VSum ("TyIdQualified", [ v1; v2 ])
   | TyVar v1 -> let v1 = vof_ident v1 in OCaml.VSum ("TyVar", [ v1 ])
@@ -817,13 +819,13 @@ and vof_pattern =
       let v1 =
         vof_bracket (OCaml.vof_list
                        (fun (v1, v2) ->
-                          let v1 = vof_name v1
+                          let v1 = vof_dotted_ident v1
                           and v2 = vof_pattern v2
                           in OCaml.VTuple [ v1; v2 ]))
           v1
       in OCaml.VSum ("PatRecord", [ v1 ])
   | PatConstructor (v1, v2) ->
-      let v1 = vof_name v1
+      let v1 = vof_dotted_ident v1
       and v2 = OCaml.vof_list vof_pattern v2
       in OCaml.VSum ("PatConstructor", [ v1; v2 ])
   | PatWhen (v1, v2) ->
@@ -927,7 +929,7 @@ and vof_module_definition { mbody = v_mbody } =
 and vof_module_definition_kind =
   function
   | ModuleAlias v1 ->
-      let v1 = vof_name v1 in OCaml.VSum ("ModuleAlias", [ v1 ])
+      let v1 = vof_dotted_ident v1 in OCaml.VSum ("ModuleAlias", [ v1 ])
   | ModuleStruct (v1, v2) ->
       let v1 = OCaml.vof_option vof_dotted_name v1
       and v2 = OCaml.vof_list vof_item v2
@@ -1221,7 +1223,6 @@ and vof_any =
   | Partial v1 -> let v1 = vof_partial v1 in OCaml.VSum ("Partial", [ v1 ])
   | TodoK v1 -> let v1 = vof_ident v1 in OCaml.VSum ("TodoK", [ v1 ])
   | Tk v1 -> let v1 = vof_tok v1 in OCaml.VSum ("Tk", [ v1 ])
-  | N v1 -> let v1 = vof_name v1 in OCaml.VSum ("N", [ v1 ])
   | Modn v1 -> let v1 = vof_module_name v1 in OCaml.VSum ("Modn", [ v1 ])
   | ModDk v1 -> let v1 = vof_module_definition_kind v1 in OCaml.VSum ("ModDk", [ v1 ])
   | En v1 -> let v1 = vof_entity v1 in OCaml.VSum ("En", [ v1 ])

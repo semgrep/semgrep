@@ -50,7 +50,7 @@ let string_of_resolved = function
 *)
 let unique_id any =
   match any with
-  | E (Id (id, { id_resolved = {contents = Some (resolved, sid)}; _})) ->
+  | E (N (Id (id, { id_resolved = {contents = Some (resolved, sid)}; _}))) ->
       J.Object [
         "type", J.String "id";
         "value", J.String (AST_generic_helpers.str_of_ident id);
