@@ -1293,6 +1293,16 @@ and m_other_argument_operator = m_other_xxx
 (*s: function [[Generic_vs_generic.m_type_]] *)
 and m_type_ a b =
   match a, b with
+  (* equivalence: name resolving! *)
+  | a,   B.TyId (idb, { B.id_resolved =
+                          {contents = Some ( ( B.ImportedEntity dotted
+                                             | B.ImportedModule (B.DottedName dotted)
+                                             ), _sid)}; _}) ->
+      m_type_ a (B.TyId (idb, B.empty_id_info()))
+      >||>
+      (* try this time a match with the resolved entity *)
+      m_type_ a (B.TyIdQualified (H.name_of_ids dotted, B.empty_id_info()))
+
   (*s: [[Generic_vs_generic.m_type_]] metavariable case *)
   | A.TyId ((str,tok), _id_info), B.TyId (idb, id_infob)
     when MV.is_metavar_name str ->

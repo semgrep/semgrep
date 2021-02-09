@@ -636,6 +636,16 @@ let resolve2 lang prog =
       );
 
       V.ktype_ = (fun (k, _v) x ->
+
+        (match x with
+         | TyId (id, id_info) ->
+             (match lookup_scope_opt id env with
+              | Some resolved ->
+                  set_resolved env id_info resolved
+              | _ -> ()
+             )
+         | _ -> ()
+        );
         (* when we are inside a type, especially in  (OtherType (OT_Expr)),
          * we don't want set_resolved to set the type on some Id because
          * this could lead to cycle in the AST because of id_type
@@ -643,7 +653,9 @@ let resolve2 lang prog =
          * an Id, that could contain the same id_type, and so on.
          * See tests/python/naming/shadow_name_type.py for a patological example
         *)
-        Common.save_excursion env.in_type true (fun () -> k x)
+        if !(env.in_type)
+        then k x
+        else Common.save_excursion env.in_type true (fun () -> k x)
       );
 
     }
