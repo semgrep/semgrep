@@ -1621,7 +1621,8 @@ and simple_user_type (env : env) ((v1, v2) : CST.simple_user_type) =
          let args = type_arguments env x in
          let name = [v1] in
          TyNameApply (name, args)
-     | None -> TyId (v1, empty_id_info()))
+     | None -> TyN (Id (v1, empty_id_info()))
+    )
   in
   v2
 
