@@ -51,24 +51,22 @@ let id_of_name_ (id, nameinfo) =
   | None | Some (QDots []) -> N (Id (id, empty_id_info ()))
   | _ -> N (IdQualified ((id, nameinfo), empty_id_info()))
 
+(* TODO: delete *)
 let name_of_id id =
   (id, empty_name_info)
 
 let name_of_ids ?(name_typeargs=None) xs =
   match List.rev xs with
   | [] -> failwith "name_of_ids: empty ids"
+  | [x] -> Id (x, empty_id_info())
   | x::xs ->
       let qualif =
         if xs = []
         then None
         else Some (QDots (List.rev xs))
       in
-      (x, { name_qualifier = qualif; name_typeargs })
-
-let tyid_of_name (id, nameinfo) =
-  match nameinfo.name_qualifier with
-  | None | Some (QDots []) -> TyN (Id (id, empty_id_info ()))
-  | _ -> TyN (IdQualified ((id, nameinfo), empty_id_info()))
+      IdQualified ((x, { name_qualifier = qualif; name_typeargs }),
+                   empty_id_info())
 
 (*s: function [[AST_generic.expr_to_pattern]] *)
 (* In Go a pattern can be a complex expressions. It is just
