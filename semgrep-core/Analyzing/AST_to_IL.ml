@@ -207,14 +207,7 @@ let bracket_keep f (t1, x, t2) =
 (*****************************************************************************)
 let rec lval env eorig =
   match eorig with
-  | G.Id (("_", tok), _) -> (* wildcard *)
-      fresh_lval env tok
-  | G.Id (id, id_info) ->
-      let lval = lval_of_id_info env id id_info in
-      lval
-  | G.IdQualified (name, id_info) ->
-      let lval = lval_of_id_qualified env name id_info in
-      lval
+  | G.N n -> name env n
 
   (* TODO: Handle this.x *)
   | G.DotAccess (e1orig, tok, field) ->
@@ -223,7 +216,7 @@ let rec lval env eorig =
        | G.EId (id, idinfo) ->
            { base; offset = Dot id; constness = idinfo.id_constness; }
        | G.EName gname ->
-           let attr = expr env (H.id_of_name gname) in
+           let attr = expr env (H.id_of_name_ gname) in
            { base; offset = Index attr; constness = base_constness; }
        | G.EDynamic e2orig ->
            let attr = expr env e2orig in
@@ -241,6 +234,16 @@ let rec lval env eorig =
       lval_of_base (Mem e1)
 
   | _ -> todo (G.E eorig)
+
+and name env = function
+  | G.Id (("_", tok), _) -> (* wildcard *)
+      fresh_lval env tok
+  | G.Id (id, id_info) ->
+      let lval = lval_of_id_info env id id_info in
+      lval
+  | G.IdQualified (name, id_info) ->
+      let lval = lval_of_id_qualified env name id_info in
+      lval
 
 and nested_lval env tok eorig =
   let lval = lval env eorig in
@@ -277,8 +280,7 @@ and pattern_assign_statements env exp eorig pat =
 (*****************************************************************************)
 and assign env lhs _tok rhs_exp eorig =
   match lhs with
-  | G.Id _
-  | G.IdQualified _
+  | G.N _
   | G.DotAccess _
   | G.ArrayAccess _
   | G.DeRef _
@@ -352,7 +354,7 @@ and expr_aux env eorig =
       )
 
   (* todo: if the xxx_to_generic forgot to generate Eval *)
-  | G.Call (G.Id (("eval", tok), { G.id_resolved = {contents = None}; _}),
+  | G.Call (G.N (G.Id (("eval", tok), { G.id_resolved = {contents = None}; _})),
             args) ->
       let lval = fresh_lval env tok in
       let special = Eval, tok in
@@ -372,7 +374,7 @@ and expr_aux env eorig =
 
   | G.L lit -> mk_e (Literal lit) eorig
 
-  | G.Id (_, _) | G.IdQualified (_, _)
+  | G.N _
   | G.DotAccess (_, _, _) | G.ArrayAccess (_, _)
   | G.DeRef (_, _)
     ->
@@ -587,7 +589,7 @@ and record env ((_tok, origfields, _) as record_def) =
 let lval_of_ent env ent =
   match ent.G.name with
   | G.EId (id, idinfo) -> lval_of_id_info env id idinfo
-  | G.EName gname -> lval env (G.IdQualified(gname, G.empty_id_info()))
+  | G.EName gname -> lval env (G.N (G.IdQualified(gname, G.empty_id_info())))
   | G.EDynamic eorig -> lval env eorig
 (*e: function [[AST_to_IL.lval_of_ent]] *)
 

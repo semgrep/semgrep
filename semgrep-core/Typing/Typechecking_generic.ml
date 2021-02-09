@@ -40,19 +40,19 @@ open AST_generic
 *)
 let compatible_type t e =
   match t, e with
-  | OtherType (OT_Expr, [E (Id (("int", _tok), _idinfo))]),
+  | OtherType (OT_Expr, [E (N (Id (("int", _tok), _idinfo)))]),
     L (Int _) -> true
-  | OtherType (OT_Expr, [E (Id (("float", _tok), _idinfo))]),
+  | OtherType (OT_Expr, [E (N (Id (("float", _tok), _idinfo)))]),
     L (Float _) -> true
-  | OtherType (OT_Expr, [E (Id (("str", _tok), _idinfo))]),
+  | OtherType (OT_Expr, [E (N (Id (("str", _tok), _idinfo)))]),
     L (String _) -> true
-  | TyBuiltin ((t1, _)), Id (_, {id_type; _}) ->
+  | TyBuiltin ((t1, _)), N (Id (_, {id_type; _})) ->
       (match !id_type with Some (TyBuiltin ((t2, _))) -> t1 = t2
                          | _ -> false)
-  | TyId ((t1, _), _), Id(_, {id_type; _}) ->
+  | TyId ((t1, _), _), N (Id(_, {id_type; _})) ->
       (match !id_type with Some (TyId (((t2, _), _))) -> t1 = t2
                          | _ -> false)
-  | TyArray (_, TyId((t1, _), _)), Id (_, {id_type; _}) ->
+  | TyArray (_, TyId((t1, _), _)), N (Id (_, {id_type; _})) ->
       (match !id_type with Some (TyArray (_, TyId((t2, _), _))) -> t1 = t2
                          | _ -> false)
 

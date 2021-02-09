@@ -50,7 +50,7 @@ let name_of_qualified_ident = function
 let fake s = Parse_info.fake_info s
 let fake_id s = (s, fake s)
 let fb = G.fake_bracket
-let mk_name s tok = (s, tok), G.empty_name_info
+let mk_dotted_ident s tok = [(s, tok)]
 
 let ii_of_any = Lib_parsing_go.ii_of_any
 
@@ -131,9 +131,9 @@ let top_func () =
         in
         G.TyFun (params, ret)
     | TMap ((t, (_, v1, _), v2)) -> let v1 = type_ v1 and v2 = type_ v2 in
-        G.TyNameApply (mk_name "map" t, [G.TypeArg v1; G.TypeArg v2])
+        G.TyNameApply (mk_dotted_ident "map" t, [G.TypeArg v1; G.TypeArg v2])
     | TChan (t, v1, v2) -> let v1 = chan_dir v1 and v2 = type_ v2 in
-        G.TyNameApply (mk_name "chan" t, [G.TypeArg v1; G.TypeArg v2])
+        G.TyNameApply (mk_dotted_ident "chan" t, [G.TypeArg v1; G.TypeArg v2])
 
     | TStruct (t, v1) -> let v1 = bracket (list struct_field) v1 in
         G.TyRecordAnon (t, v1)
@@ -180,7 +180,7 @@ let top_func () =
     | EmbeddedField (v1, v2) ->
         let _v1TODO = option tok v1 and v2 = qualified_ident v2 in
         let name = name_of_qualified_ident v2 in
-        G.FieldSpread (fake "...", G.IdQualified (name, G.empty_id_info()))
+        G.FieldSpread (fake "...", G.N (G.IdQualified (name, G.empty_id_info())))
     | FieldEllipsis t ->
         G.fieldEllipsis t
 
@@ -197,7 +197,7 @@ let top_func () =
                                                G.empty_fbody))))
     | EmbeddedInterface v1 -> let v1 = qualified_ident v1 in
         let name = name_of_qualified_ident v1 in
-        G.FieldSpread (fake "...", G.IdQualified (name, G.empty_id_info()))
+        G.FieldSpread (fake "...", G.N (G.IdQualified (name, G.empty_id_info())))
     | FieldEllipsis2 t ->
         G.fieldEllipsis t
 
@@ -210,11 +210,11 @@ let top_func () =
     | BasicLit v1 -> let v1 = literal v1 in
         G.L v1
     | Id (v1) -> let v1 = ident v1 in
-        G.Id (v1,
-              (* we share the resolved_name ref! so any naming done on the
-               * generic AST will have a (wanted) side effect on the Go AST *)
-              (*{ (G.empty_id_info()) with G.id_resolved = vref; }) *)
-              G.empty_id_info())
+        G.N (G.Id (v1,
+                   (* we share the resolved_name ref! so any naming done on the
+                    * generic AST will have a (wanted) side effect on the Go AST *)
+                   (*{ (G.empty_id_info()) with G.id_resolved = vref; }) *)
+                   G.empty_id_info()))
     | Selector (v1, v2, v3) ->
         let v1 = expr v1 and v2 = tok v2 and v3 = ident v3 in
         G.DotAccess (v1, v2, G.EId (v3, G.empty_id_info()))

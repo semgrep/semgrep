@@ -360,8 +360,8 @@ and continue env (tok, lbl) _sc =
 
 and expr env =
   function
-  | Id ((s,_), idinfo) -> id env (s, idinfo)
-  | IdQualified(name, idinfo) -> id_qualified env (name, idinfo)
+  | N (Id ((s,_), idinfo)) -> id env (s, idinfo)
+  | N (IdQualified(name, idinfo)) -> id_qualified env (name, idinfo)
   | IdSpecial (sp, tok) -> special env (sp, tok)
   | Call (e1, e2) -> call env (e1, e2)
   | L x -> literal env x

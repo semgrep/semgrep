@@ -512,7 +512,7 @@ and binary_expression (env : env) (x : CST.binary_expression) =
    | `Infix_exp (v1, v2, v3) ->
        let v1 = expression env v1 in
        let v2 = simple_identifier env v2 in
-       let v2_id = Id (v2, empty_id_info()) in
+       let v2_id = N (Id (v2, empty_id_info())) in
        let v3 = expression env v3 in
        Call (v2_id, fb[Arg v1; Arg v3])
    | `Elvis_exp (v1, v2, v3) ->
@@ -1233,7 +1233,7 @@ and jump_expression (env : env) (x : CST.jump_expression) =
       (match id with
        | None -> Return (return_tok, v2, sc)
        | Some simple_id ->
-           let id = Id(simple_id, empty_id_info()) in
+           let id = N (Id(simple_id, empty_id_info())) in
            (match v2 with
             | None ->
                 let list = [TodoK ("todo return@", return_tok);E id] in
@@ -1362,10 +1362,10 @@ and navigation_suffix (env : env) ((v1, v2) : CST.navigation_suffix) =
   let v2 =
     (match v2 with
      | `Simple_id x -> let id = simple_identifier env x in
-         Id(id, empty_id_info())
+         G.N (Id(id, empty_id_info()))
      | `Paren_exp x -> parenthesized_expression env x
      | `Class tok -> let id = str env tok in (* "class" *)
-         Id (id, empty_id_info())
+         G.N (Id (id, empty_id_info()))
     )
   in
   v2
@@ -1446,7 +1446,7 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
    | `Paren_exp x -> parenthesized_expression env x
    | `Simple_id x ->
        let id = simple_identifier env x in
-       Id(id, empty_id_info())
+       G.N (Id(id, empty_id_info()))
    | `Lit_cst x -> L (literal_constant env x)
    | `Str_lit x -> L (String (string_literal env x))
    | `Call_ref (v1, v2, v3) ->
@@ -1454,10 +1454,10 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
          (match v1 with
           | Some x ->
               let id = simple_identifier env x in
-              Id(id, empty_id_info())
+              G.N (Id(id, empty_id_info()))
           | None ->
               let fake_id = ("None", fake "None") in
-              Id(fake_id, empty_id_info()))
+              G.N (Id(fake_id, empty_id_info())))
        in
        let v2 = token env v2 (* "::" *) in
        let v3 =
@@ -1619,7 +1619,7 @@ and simple_user_type (env : env) ((v1, v2) : CST.simple_user_type) =
     (match v2 with
      | Some x ->
          let args = type_arguments env x in
-         let name = (v1, empty_name_info) in
+         let name = [v1] in
          TyNameApply (name, args)
      | None -> TyId (v1, empty_id_info()))
   in

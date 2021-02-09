@@ -35,7 +35,7 @@ module V = Visitor_AST
 let subexprs_of_expr e =
   match e with
   | L _
-  | Id _ | IdQualified _  | IdSpecial _
+  | N _  | IdSpecial _
   | Ellipsis _ | TypedMetavar _
     -> []
 
