@@ -1302,7 +1302,7 @@ and m_type_ a b =
       m_type_ a (B.TyN (B.Id (idb, B.empty_id_info())))
       >||>
       (* try this time a match with the resolved entity *)
-      m_type_ a (B.TyN (B.IdQualified (H.name_of_ids dotted, B.empty_id_info())))
+      m_type_ a (B.TyN (H.name_of_ids dotted))
 
   (*s: [[Generic_vs_generic.m_type_]] metavariable case *)
   | A.TyN (A.Id ((str,tok), _id_info)), B.TyN (B.Id (idb, id_infob))

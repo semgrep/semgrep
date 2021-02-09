@@ -1925,7 +1925,8 @@ and type_ (env : env) (x : CST.type_) : AST.type_ =
    | `Array_type x -> array_type env x
    | `Name x ->
        let n = name env x in
-       H2.tyid_of_name n
+       let ids = ids_of_name n in
+       TyN (H2.name_of_ids ids)
    | `Null_type x -> nullable_type env x
    | `Poin_type (v1, v2) ->
        let v1 = type_constraint env v1 in

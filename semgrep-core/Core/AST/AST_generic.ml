@@ -1177,6 +1177,7 @@ and type_ =
    * via a TyName. Here we have flexible record types (a.k.a. rows in OCaml).
   *)
   | TyRecordAnon of tok (* 'struct/shape', fake in other *)* field list bracket
+  (* for Go *)
   | TyInterfaceAnon of tok (* 'interface' *)* field list bracket
 
   (* sgrep-ext: *)
@@ -1652,11 +1653,11 @@ and macro_definition = {
 (* Directives (Module import/export, package) *)
 (*****************************************************************************)
 (*s: type [[AST_generic.directive]] *)
-(* it is tempting to simplify all those ImportXxx in a simpler
- * Import of dotted_ident, but module_name is not always a DottedName, so
- * better to clearly separate what is module_name/namespace from an
- * entity in this module/namespace (even though some languages such as Python
- * blurs the difference).
+(* It is tempting to simplify all those ImportXxx in a simpler
+ * 'Import of dotted_ident * ...', but module_name is not always a DottedName
+ * so it is better to clearly separate what is module_name/namespace from an
+ * entity (in this module/namespace) even though some languages such as Python
+ * blurs the difference.
 *)
 and directive =
   (* newvar: *)
@@ -1844,8 +1845,8 @@ let basic_id_info resolved =
 (*s: function [[AST_generic.param_of_id]] *)
 let param_of_id id = {
   pname = Some id;
-  pdefault = None; ptype = None; pattrs = []; pinfo =
-                                                (basic_id_info (Param, sid_TODO));
+  pdefault = None; ptype = None; pattrs = [];
+  pinfo = (basic_id_info (Param, sid_TODO));
 }
 (*e: function [[AST_generic.param_of_id]] *)
 (*s: function [[AST_generic.param_of_type]] *)
@@ -1885,7 +1886,8 @@ let attr kwd tok =
   KeywordAttr (kwd, tok)
 (*e: function [[AST_generic.attr]] *)
 (*s: function [[AST_generic.arg]] *)
-let arg e = Arg e
+let arg e =
+  Arg e
 (*e: function [[AST_generic.arg]] *)
 
 (*s: function [[AST_generic.fake]] *)
@@ -1901,6 +1903,7 @@ let fake_bracket x = fake "(", x, fake ")"
 let unbracket (_, x, _) = x
 (*e: function [[AST_generic.unbracket]] *)
 let sc = Parse_info.fake_info ";"
+
 let exprstmt e = s (ExprStmt (e, sc))
 let fieldEllipsis t = FieldStmt (exprstmt (Ellipsis t))
 let empty_fbody = s (Block (fake_bracket []))
