@@ -210,11 +210,7 @@ let top_func () =
     | BasicLit v1 -> let v1 = literal v1 in
         G.L v1
     | Id (v1) -> let v1 = ident v1 in
-        G.N (G.Id (v1,
-                   (* we share the resolved_name ref! so any naming done on the
-                    * generic AST will have a (wanted) side effect on the Go AST *)
-                   (*{ (G.empty_id_info()) with G.id_resolved = vref; }) *)
-                   G.empty_id_info()))
+        G.N (G.Id (v1, G.empty_id_info()))
     | Selector (v1, v2, v3) ->
         let v1 = expr v1 and v2 = tok v2 and v3 = ident v3 in
         G.DotAccess (v1, v2, G.EId (v3, G.empty_id_info()))
