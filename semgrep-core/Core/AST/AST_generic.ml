@@ -297,6 +297,10 @@ type 'a bracket = tok * 'a * tok
 type sc = tok
 [@@deriving show, eq, hash] (* with tarzan *)
 
+(* an AST element not yet handled; works with the Xx_Todo and Todo in any *)
+type todo_kind = string wrap
+[@@deriving show, eq, hash]  (* with tarzan *)
+
 (*****************************************************************************)
 (* Names *)
 (*****************************************************************************)
@@ -381,10 +385,6 @@ and resolved_name_kind =
   | EnumConstant
   (*e: type [[AST_generic.resolved_name_kind]] *)
 [@@deriving show { with_path = false }, eq, hash]  (* with tarzan *)
-
-(* an AST element not yet handled; works with the Xx_Todo and Todo in any *)
-type todo_kind = string wrap
-[@@deriving show, eq, hash]  (* with tarzan *)
 
 (* Start of big mutually recursive types because of the use of 'any'
  * in OtherXxx *)
@@ -477,7 +477,7 @@ and expr =
    * (ab)used also for polymorphic variants where qualifier is QTop with
    * the '`' token.
   *)
-  | Constructor of name * expr list
+  | Constructor of dotted_ident * expr list
   (* see also Call(IdSpecial (New,_), [ArgType _;...] for other values *)
   (*e: [[AST_generic.expr]] other composite cases *)
 
@@ -1082,9 +1082,9 @@ and pattern =
   | PatLiteral of literal
   (* Or-Type, used also to match OCaml exceptions *)
   (* Used with Rust path expressions, with an empty pattern list *)
-  | PatConstructor of name * pattern list
+  | PatConstructor of dotted_ident * pattern list
   (* And-Type*)
-  | PatRecord of (name * pattern) list bracket
+  | PatRecord of (dotted_ident * pattern) list bracket
 
   (* newvar:! *)
   | PatId of ident * id_info (* Usually Local/Param, Global in toplevel let *)
@@ -1161,7 +1161,7 @@ and type_ =
   (* covers tuples, list, etc.
    * TODO: merge with TyIdQualified? name_info has name_typeargs
   *)
-  | TyNameApply of name * type_arguments
+  | TyNameApply of dotted_ident * type_arguments
 
   | TyVar of ident (* type variable in polymorphic types (not a typedef) *)
   | TyAny of tok (* anonymous type, '_' in OCaml *)
@@ -1626,7 +1626,7 @@ and module_definition = {
 
 (*s: type [[AST_generic.module_definition_kind]] *)
 and module_definition_kind =
-  | ModuleAlias of name
+  | ModuleAlias of dotted_ident
   (* newscope: *)
   | ModuleStruct of dotted_ident option * item list
 

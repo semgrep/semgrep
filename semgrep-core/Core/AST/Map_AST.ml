@@ -179,7 +179,7 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
           let v1 = map_bracket (map_of_list map_field) v1 in
           Record v1
       | Constructor (v1, v2) ->
-          let v1 = map_name v1
+          let v1 = map_dotted_ident v1
           and v2 = map_of_list map_expr v2
           in Constructor (v1, v2)
       | Lambda v1 ->
@@ -362,7 +362,7 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
         and v2 = map_type_ v2
         in TyFun (v1, v2)
     | TyNameApply (v1, v2) ->
-        let v1 = map_name v1
+        let v1 = map_dotted_ident v1
         and v2 = map_type_arguments v2
         in TyNameApply (v1, v2)
     | TyId (v1, v2) ->
@@ -598,7 +598,7 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
         let v1 =
           map_bracket (map_of_list
                          (fun (v1, v2) ->
-                            let v1 = map_name v1 and v2 = map_pattern v2 in (v1, v2)))
+                            let v1 = map_dotted_ident v1 and v2 = map_pattern v2 in (v1, v2)))
             v1
         in PatRecord v1
     | PatId (v1, v2) ->
@@ -614,7 +614,7 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
     | PatLiteral v1 -> let v1 = map_literal v1 in PatLiteral v1
     | PatType v1 -> let v1 = map_type_ v1 in PatType v1
     | PatConstructor (v1, v2) ->
-        let v1 = map_name v1
+        let v1 = map_dotted_ident v1
         and v2 = map_of_list map_pattern v2
         in PatConstructor (v1, v2)
     | PatTuple v1 -> let v1 = map_bracket (map_of_list map_pattern) v1 in PatTuple v1
@@ -686,7 +686,7 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
     { mbody = v_mbody; }
   and map_module_definition_kind =
     function
-    | ModuleAlias v1 -> let v1 = map_name v1 in ModuleAlias v1
+    | ModuleAlias v1 -> let v1 = map_dotted_ident v1 in ModuleAlias v1
     | ModuleStruct (v1, v2) ->
         let v1 = map_of_option map_dotted_ident v1
         and v2 = map_of_list map_item v2

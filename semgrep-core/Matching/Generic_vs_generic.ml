@@ -677,7 +677,7 @@ and m_expr a b =
   | A.Record(a1), B.Record(b1) ->
       (m_bracket (m_fields)) a1 b1
   | A.Constructor(a1, a2), B.Constructor(b1, b2) ->
-      m_name a1 b1 >>= (fun () ->
+      m_dotted_name a1 b1 >>= (fun () ->
         (m_list m_expr) a2 b2
       )
   | A.Lambda(a1), B.Lambda(b1) ->
@@ -1339,7 +1339,7 @@ and m_type_ a b =
       let* () = m_name a1 b1 in
       m_id_info a2 b2
   | A.TyNameApply(a1, a2), B.TyNameApply(b1, b2) ->
-      m_name a1 b1 >>= (fun () ->
+      m_dotted_name a1 b1 >>= (fun () ->
         m_type_arguments a2 b2
       )
   | A.TyVar(a1), B.TyVar(b1) ->
@@ -1963,7 +1963,7 @@ and m_pattern a b =
   | A.PatType(a1), B.PatType(b1) ->
       m_type_ a1 b1
   | A.PatConstructor(a1, a2), B.PatConstructor(b1, b2) ->
-      m_name a1 b1 >>= (fun () ->
+      m_dotted_name a1 b1 >>= (fun () ->
         (m_list m_pattern) a2 b2
       )
   | A.PatTuple(a1), B.PatTuple(b1) ->
@@ -2014,7 +2014,7 @@ and m_pattern a b =
 and m_field_pattern a b =
   match a, b with
   | (a1, a2), (b1, b2) ->
-      m_name a1 b1 >>= (fun () ->
+      m_dotted_name a1 b1 >>= (fun () ->
         m_pattern a2 b2
       )
 (*e: function [[Generic_vs_generic.m_field_pattern]] *)
@@ -2484,7 +2484,7 @@ and m_module_definition a b =
 and m_module_definition_kind a b =
   match a, b with
   | A.ModuleAlias(a1), B.ModuleAlias(b1) ->
-      m_name a1 b1
+      m_dotted_name a1 b1
   | A.ModuleStruct(a1, a2), B.ModuleStruct(b1, b2) ->
       (m_option m_dotted_name) a1 b1 >>= (fun () ->
         (m_list m_item) a2 b2

@@ -129,9 +129,11 @@ let rec type_ =
       let v1 = name v1 in
       G.TyId (v1, G.empty_id_info())
   | TMacroApply (v1, (_lp, v2, _rp)) ->
-      let v1 = name v1 in
+      let v1 = dotted_ident_of_id v1 in
       let v2 = type_ v2 in
-      G.TyNameApply((v1, G.empty_name_info), [G.TypeArg v2])
+      G.TyNameApply(v1, [G.TypeArg v2])
+
+and dotted_ident_of_id id = [id]
 
 and function_type (v1, v2) =
   let v1 = type_ v1 and

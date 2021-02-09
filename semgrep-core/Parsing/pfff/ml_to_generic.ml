@@ -64,6 +64,10 @@ and name (v1, v2) =
   let v1 = qualifier v1 and v2 = ident v2 in
   v2, { G.empty_name_info with G.name_qualifier = Some (G.QDots v1) }
 
+and dotted_ident_of_name (v1, v2) =
+  let v1 = qualifier v1 and v2 = ident v2 in
+  v1 @ [v2]
+
 and module_name (v1, v2) =
   let v1 = qualifier v1 and v2 = ident v2 in
   (v1 @ [v2])
@@ -80,7 +84,8 @@ and type_ =
   | TyAny v1 -> let v1 = tok v1 in G.TyAny v1
   | TyFunction (v1, v2) -> let v1 = type_ v1 and v2 = type_ v2 in
       G.TyFun ([G.ParamClassic (G.param_of_type v1)],v2)
-  | TyApp (v1, v2) -> let v1 = list type_ v1 and v2 = name v2 in
+  | TyApp (v1, v2) ->
+      let v1 = list type_ v1 and v2 = dotted_ident_of_name v2 in
       G.TyNameApply (v2, v1 |> List.map (fun t -> G.TypeArg t))
   | TyTuple v1 -> let v1 = list type_ v1 in G.TyTuple (G.fake_bracket v1)
   | TyTodo (t, v1) ->
@@ -109,15 +114,14 @@ and expr =
   | L v1 -> let v1 = literal v1 in G.L v1
   | Name v1 -> let v1 = name v1 in H.id_of_name v1
   | Constructor (v1, v2) ->
-      let v1 = name v1 and v2 = option expr v2 in
+      let v1 = dotted_ident_of_name v1 and v2 = option expr v2 in
       G.Constructor (v1, Common.opt_to_list v2)
   | PolyVariant ((v0, v1), v2) ->
       let v0 = tok v0 in
       let v1 = ident v1 and v2 = option expr v2 in
-      let name = v1, { G.name_qualifier = Some (G.QTop v0);
-                       name_typeargs = None } in
+      let dotted_ident = ["`",v0; v1] in
       (* TODO: introduce a new construct in AST_generic instead? *)
-      G.Constructor (name, Common.opt_to_list v2)
+      G.Constructor (dotted_ident, Common.opt_to_list v2)
   | Tuple v1 -> let v1 = list expr v1 in G.Tuple (G.fake_bracket v1)
   | List v1 -> let v1 = bracket (list expr) v1 in G.Container (G.List, v1)
   | Sequence v1 -> let v1 = list expr v1 in G.Seq v1
@@ -302,18 +306,17 @@ and pattern =
   | PatVar v1 -> let v1 = ident v1 in G.PatId (v1, G.empty_id_info())
   | PatLiteral v1 -> let v1 = literal v1 in G.PatLiteral v1
   | PatConstructor (v1, v2) ->
-      let v1 = name v1 and v2 = option pattern v2 in
+      let v1 = dotted_ident_of_name v1 and v2 = option pattern v2 in
       G.PatConstructor (v1, Common.opt_to_list v2)
   | PatPolyVariant ((v0, v1), v2) ->
       let v0 = tok v0 in
       let v1 = ident v1 in
       let v2 = option pattern v2 in
-      let name = v1, { G.name_qualifier = Some (G.QTop v0);
-                       name_typeargs = None } in
-      G.PatConstructor (name, Common.opt_to_list v2)
+      let dotted_ident = ["`",v0;v1] in
+      G.PatConstructor (dotted_ident, Common.opt_to_list v2)
   | PatConsInfix (v1, v2, v3) ->
       let v1 = pattern v1 and v2 = tok v2 and v3 = pattern v3 in
-      let n = ("::", v2), G.empty_name_info in
+      let n = [("::", v2)] in
       G.PatConstructor (n, [v1;v3])
   | PatTuple v1 -> let v1 = list pattern v1 in
       G.PatTuple (G.fake_bracket v1)
@@ -322,7 +325,7 @@ and pattern =
   | PatRecord v1 ->
       let v1 =
         bracket (list
-                   (fun (v1, v2) -> let v1 = name v1 and v2 = pattern v2 in v1, v2)) v1
+                   (fun (v1, v2) -> let v1 = dotted_ident_of_name v1 and v2 = pattern v2 in v1, v2)) v1
       in
       G.PatRecord v1
   | PatAs (v1, v2) ->
@@ -433,7 +436,7 @@ and module_declaration { mname = mname; mbody = mbody } =
 and module_expr =
   function
   | ModuleName v1 ->
-      let v1 = name v1 in G.ModuleAlias v1
+      let v1 = dotted_ident_of_name v1 in G.ModuleAlias v1
   | ModuleStruct v1 ->
       let v1 = list item v1 |> List.flatten in G.ModuleStruct (None, v1)
 

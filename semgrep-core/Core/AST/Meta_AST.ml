@@ -154,7 +154,7 @@ and vof_expr =
       let v1 = vof_bracket (OCaml.vof_list vof_field) v1 in
       OCaml.VSum ("Record", [ v1 ])
   | Constructor (v1, v2) ->
-      let v1 = vof_name v1
+      let v1 = vof_dotted_ident v1
       and v2 = OCaml.vof_list vof_expr v2
       in OCaml.VSum ("Constructor", [ v1; v2 ])
   | Lambda v1 ->
@@ -478,7 +478,7 @@ and vof_type_ =
       and v2 = vof_type_ v2
       in OCaml.VSum ("TyFun", [ v1; v2 ])
   | TyNameApply (v1, v2) ->
-      let v1 = vof_name v1
+      let v1 = vof_dotted_ident v1
       and v2 = vof_type_arguments v2
       in OCaml.VSum ("TyNameApply", [ v1; v2 ])
   | TyId (v1, v2) ->
@@ -817,13 +817,13 @@ and vof_pattern =
       let v1 =
         vof_bracket (OCaml.vof_list
                        (fun (v1, v2) ->
-                          let v1 = vof_name v1
+                          let v1 = vof_dotted_ident v1
                           and v2 = vof_pattern v2
                           in OCaml.VTuple [ v1; v2 ]))
           v1
       in OCaml.VSum ("PatRecord", [ v1 ])
   | PatConstructor (v1, v2) ->
-      let v1 = vof_name v1
+      let v1 = vof_dotted_ident v1
       and v2 = OCaml.vof_list vof_pattern v2
       in OCaml.VSum ("PatConstructor", [ v1; v2 ])
   | PatWhen (v1, v2) ->
@@ -927,7 +927,7 @@ and vof_module_definition { mbody = v_mbody } =
 and vof_module_definition_kind =
   function
   | ModuleAlias v1 ->
-      let v1 = vof_name v1 in OCaml.VSum ("ModuleAlias", [ v1 ])
+      let v1 = vof_dotted_ident v1 in OCaml.VSum ("ModuleAlias", [ v1 ])
   | ModuleStruct (v1, v2) ->
       let v1 = OCaml.vof_option vof_dotted_name v1
       and v2 = OCaml.vof_list vof_item v2

@@ -230,7 +230,7 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
       | Tuple v1 -> let v1 = v_bracket (v_list v_expr) v1 in ()
       | Record v1 -> let v1 = v_bracket (v_list v_field) v1 in ()
       | Constructor (v1, v2) ->
-          let v1 = v_name v1 and v2 = v_list v_expr v2 in ()
+          let v1 = v_dotted_ident v1 and v2 = v_list v_expr v2 in ()
       | Lambda v1 -> let v1 = v_function_definition v1 in ()
       | AnonClass v1 -> let v1 = v_class_definition v1 in ()
       | Xml v1 -> let v1 = v_xml v1 in ()
@@ -373,7 +373,7 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
       | TyFun (v1, v2) -> let v1 = v_list v_parameter v1 and
         v2 = v_type_ v2 in ()
       | TyNameApply (v1, v2) ->
-          let v1 = v_name v1 and v2 = v_type_arguments v2 in ()
+          let v1 = v_dotted_ident v1 and v2 = v_type_arguments v2 in ()
       | TyId (v1, v2) ->
           let v1 = v_ident v1 in v_id_info v2
       | TyIdQualified (v1, v2) ->
@@ -594,7 +594,7 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
       | PatRecord v1 ->
           let v1 =
             v_bracket (v_list
-                         (fun (v1, v2) -> let v1 = v_name v1 and v2 = v_pattern v2 in ()))
+                         (fun (v1, v2) -> let v1 = v_dotted_ident v1 and v2 = v_pattern v2 in ()))
               v1
           in ()
       | PatId (v1, v2) -> let v1 = v_ident v1 and v2 = v_id_info v2 in ()
@@ -608,7 +608,7 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
       | PatLiteral v1 -> let v1 = v_literal v1 in ()
       | PatType v1 -> let v1 = v_type_ v1 in ()
       | PatConstructor (v1, v2) ->
-          let v1 = v_name v1 and v2 = v_list v_pattern v2 in ()
+          let v1 = v_dotted_ident v1 and v2 = v_list v_pattern v2 in ()
       | PatTuple (_, v1, _) -> let v1 = v_list v_pattern v1 in ()
       | PatList v1 -> let v1 = v_bracket (v_list v_pattern) v1 in ()
       | PatKeyVal (v1, v2) -> let v1 = v_pattern v1 and v2 = v_pattern v2 in ()
@@ -857,7 +857,7 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
     let arg = v_module_definition_kind v_mbody in ()
   and v_module_definition_kind =
     function
-    | ModuleAlias v1 -> let v1 = v_name v1 in ()
+    | ModuleAlias v1 -> let v1 = v_dotted_ident v1 in ()
     | ModuleStruct (v1, v2) ->
         let v1 = v_option v_dotted_ident v1 and v2 = v_stmts v2 in ()
     | OtherModule (v1, v2) ->

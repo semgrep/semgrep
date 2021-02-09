@@ -50,7 +50,7 @@ let name_of_qualified_ident = function
 let fake s = Parse_info.fake_info s
 let fake_id s = (s, fake s)
 let fb = G.fake_bracket
-let mk_name s tok = (s, tok), G.empty_name_info
+let mk_dotted_ident s tok = [(s, tok)]
 
 let ii_of_any = Lib_parsing_go.ii_of_any
 
@@ -131,9 +131,9 @@ let top_func () =
         in
         G.TyFun (params, ret)
     | TMap ((t, (_, v1, _), v2)) -> let v1 = type_ v1 and v2 = type_ v2 in
-        G.TyNameApply (mk_name "map" t, [G.TypeArg v1; G.TypeArg v2])
+        G.TyNameApply (mk_dotted_ident "map" t, [G.TypeArg v1; G.TypeArg v2])
     | TChan (t, v1, v2) -> let v1 = chan_dir v1 and v2 = type_ v2 in
-        G.TyNameApply (mk_name "chan" t, [G.TypeArg v1; G.TypeArg v2])
+        G.TyNameApply (mk_dotted_ident "chan" t, [G.TypeArg v1; G.TypeArg v2])
 
     | TStruct (t, v1) -> let v1 = bracket (list struct_field) v1 in
         G.TyRecordAnon (t, v1)

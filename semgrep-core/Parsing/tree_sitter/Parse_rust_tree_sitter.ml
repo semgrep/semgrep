@@ -485,7 +485,7 @@ and map_tuple_struct_name (env : env) (x : CST.anon_choice_type_id_f1f5a37): G.n
    | `Scoped_id x -> map_scoped_identifier_name env x
   )
 
-and map_struct_pattern_field (env : env) (x : CST.anon_choice_field_pat_8e757e8): (G.name * G.pattern) =
+and map_struct_pattern_field (env : env) (x : CST.anon_choice_field_pat_8e757e8): (G.dotted_ident * G.pattern) =
   (match x with
    | `Field_pat (v1, v2, v3) ->
        let ref_ = Option.map (fun tok -> token env tok) in (* "ref" *)
@@ -495,14 +495,14 @@ and map_struct_pattern_field (env : env) (x : CST.anon_choice_field_pat_8e757e8)
        ) v2 in
        (match v3 with
         | `Id tok -> let ident = ident env tok in (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
-            (H2.name_of_id ident, G.PatId (ident, G.empty_id_info ()))
+            ([ident], G.PatId (ident, G.empty_id_info ()))
         | `Id_COLON_pat (v1, v2, v3) ->
             let ident = ident env v1 in (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
             let colon = token env v2 (* ":" *) in
             let pat = map_pattern env v3 in
-            (H2.name_of_id ident, pat))
+            ([ident], pat))
    | `Rema_field_pat tok -> let ident = ident env tok in (* ".." *)
-       let name = (ident, G.empty_name_info) in
+       let name = [ident] in
        (name, (G.OtherPat (G.OP_Todo, [G.Tk (token env tok)])))
   )
 
@@ -534,11 +534,17 @@ and map_type_parameter (env : env) (x : CST.anon_choice_life_859e88f): G.type_pa
        (ident, [G.OtherTypeParam (G.OTP_Const, [G.T ty])])
   )
 
+and dotted_ident_of_name (n: G.name) : G.dotted_ident =
+  match n with
+  (* TODO, look QDots too *)
+  | (id, _) -> [id]
+
 and map_range_pattern_bound (env : env) (x : CST.anon_choice_lit_pat_0884ef0): G.pattern =
   (match x with
    | `Lit_pat x -> map_literal_pattern env x
    | `Choice_self x -> let name = map_path_name env x in
-       G.PatConstructor (name, [])
+       let dotted = dotted_ident_of_name name in
+       G.PatConstructor (dotted, [])
   )
 
 and map_meta_argument (env : env) (x : CST.anon_choice_meta_item_fefa160): rust_meta_argument =
@@ -1166,7 +1172,7 @@ and map_expression (env : env) (x : CST.expression) =
          )
        in
        let fields = map_field_initializer_list env v2 in
-       G.Constructor (name, fields)
+       G.Constructor (dotted_ident_of_name name, fields)
    | `Ellips tok -> G.Ellipsis (token env tok) (* "..." *)
    | `Deep_ellips (v1, v2, v3) ->
        let lellips = token env v1 (* "<..." *) in
@@ -1937,7 +1943,7 @@ and map_pattern (env : env) (x : CST.pattern): G.pattern =
        G.PatId (ident, G.empty_id_info ())
    | `Id tok -> let ident = ident env tok in (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
        G.PatId (ident, G.empty_id_info ())
-   | `Scoped_id x -> G.PatConstructor ((map_scoped_identifier_name env x), [])
+   | `Scoped_id x -> G.PatConstructor (dotted_ident_of_name (map_scoped_identifier_name env x), [])
    | `Tuple_pat (v1, v2, v3, v4) ->
        let lparen = token env v1 (* "(" *) in
        let items =
