@@ -390,6 +390,7 @@ type todo_kind = string wrap
  * in OtherXxx *)
 
 (*s: type [[AST_generic.name]] *)
+(* TODO: make a name with Id | IdQualified *)
 type name = ident * name_info
 (*e: type [[AST_generic.name]] *)
 (*s: type [[AST_generic.name_info]] *)
