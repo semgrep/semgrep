@@ -35,7 +35,7 @@ let _fake = AST_generic.fake
 let token = H.token
 let str = H.str
 
-let ids_of_name (name : name) : dotted_ident =
+let ids_of_name (name : name_) : dotted_ident =
   let (ident, name_info) = name in
   (match name_info.name_qualifier with
    | Some(q) -> (match q with
@@ -1256,7 +1256,7 @@ and expression (env : env) (x : CST.expression) : AST.expr =
        AST.L x
   )
 
-and simple_name (env : env) (x : CST.simple_name) : AST.name =
+and simple_name (env : env) (x : CST.simple_name) : (AST.ident * AST.name_info) =
   (match x with
    | `Gene_name (v1, v2) ->
        let v1 = identifier env v1 (* identifier *) in

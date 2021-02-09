@@ -391,7 +391,7 @@ and resolved_name_kind =
 
 (*s: type [[AST_generic.name]] *)
 (* TODO: make a name with Id | IdQualified *)
-type name = ident * name_info
+type name_ = ident * name_info
 (*e: type [[AST_generic.name]] *)
 (*s: type [[AST_generic.name_info]] *)
 and name_info = {
@@ -422,7 +422,7 @@ and ident_or_dynamic =
    * Note that we could also use EDynamic (IdQualified) but better to
    * add special case here.
   *)
-  | EName of name
+  | EName of (ident * name_info)
   (* for PHP/JS fields (even though JS use ArrayAccess for that), or Ruby *)
   | EDynamic of expr
 
@@ -509,7 +509,7 @@ and expr =
    * or module, but you may need advanced semantic information and global
    * analysis to disambiguate.
   *)
-  | IdQualified of name * id_info
+  | IdQualified of (ident * name_info) * id_info
   (*x: [[AST_generic.expr]] other identifier cases *)
   | IdSpecial of special wrap
   (*e: [[AST_generic.expr]] other identifier cases *)
@@ -1157,7 +1157,7 @@ and type_ =
    *  self/parent/static (e.g., in PHP)
   *)
   | TyId of ident * id_info
-  | TyIdQualified of name * id_info
+  | TyIdQualified of (ident * name_info) * id_info
   (* covers tuples, list, etc.
    * TODO: merge with TyIdQualified? name_info has name_typeargs
   *)
@@ -1755,7 +1755,7 @@ and any =
   | Dir of directive
   | Pr of program
   (*s: [[AST_generic.any]] other cases *)
-  | N of name
+  | N of (ident * name_info)
   | Modn of module_name
   | ModDk of module_definition_kind
   | En of entity

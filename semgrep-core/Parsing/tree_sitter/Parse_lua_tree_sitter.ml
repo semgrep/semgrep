@@ -162,7 +162,7 @@ let map_local_variable_declarator (env : env) ((v1, v2) : CST.local_variable_dec
   in
   List.map (fun x -> G.basic_entity x [G.KeywordAttr (G.Static, local)]) (ident_first::ident_rest)
 
-let map_function_name_field (env : env) ((v1, v2) : CST.function_name_field) (colon_and_ident): G.name =
+let map_function_name_field (env : env) ((v1, v2) : CST.function_name_field) (colon_and_ident): (G.ident * G.name_info) =
   let v1 =
     identifier env v1 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *)
   in
@@ -188,7 +188,7 @@ let map_function_name_field (env : env) ((v1, v2) : CST.function_name_field) (co
   )
 
 
-let map_function_name (env : env) ((v1, v2) : CST.function_name): G.name =
+let map_function_name (env : env) ((v1, v2) : CST.function_name): (G.ident * G.name_info) =
   match v1 with
   | `Id tok ->
       let ident = identifier env tok in (* pattern [a-zA-Z_][a-zA-Z0-9_]* *)
