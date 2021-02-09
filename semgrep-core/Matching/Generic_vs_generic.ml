@@ -1069,17 +1069,17 @@ and m_compatible_type typed_mvar t e =
   (* for java literals *)
   | A.TyBuiltin (("int", _)),  B.L (B.Int _) -> envf typed_mvar (MV.E e)
   | A.TyBuiltin (("float", _)),  B.L (B.Float _) -> envf typed_mvar (MV.E e)
-  | A.TyId (("String", _), _), B.L (B.String _) -> envf typed_mvar (MV.E e)
+  | A.TyN (A.Id (("String", _), _)), B.L (B.String _) -> envf typed_mvar (MV.E e)
   (* for C specific literals *)
   | A.TyPointer (_, TyBuiltin(("char", _))), B.L (B.String _) -> envf typed_mvar (MV.E e)
   | A.TyPointer (_, _), B.L (B.Null _) -> envf typed_mvar (MV.E e)
   (* for go literals *)
-  | A.TyId (("int", _), _), B.L (B.Int _) -> envf typed_mvar (MV.E e)
-  | A.TyId (("float", _), _), B.L (B.Float _) -> envf typed_mvar (MV.E e)
-  | A.TyId (("string", _), _), B.L (B.String _) -> envf typed_mvar (MV.E e)
+  | A.TyN (Id (("int", _), _)), B.L (B.Int _) -> envf typed_mvar (MV.E e)
+  | A.TyN (Id (("float", _), _)), B.L (B.Float _) -> envf typed_mvar (MV.E e)
+  | A.TyN (Id (("string", _), _)), B.L (B.String _) -> envf typed_mvar (MV.E e)
 
   (* for C strings to match metavariable pointer types *)
-  | A.TyPointer (t1, A.TyId ((_,tok), _id_info)), B.L (B.String _) ->
+  | A.TyPointer (t1, A.TyN (A.Id ((_,tok), _id_info))), B.L (B.String _) ->
       m_type_ t (A.TyPointer (t1, TyBuiltin(("char", tok)))) >>=
       (fun () -> envf typed_mvar (MV.E e))
   (* for matching ids *)
@@ -1294,21 +1294,22 @@ and m_other_argument_operator = m_other_xxx
 and m_type_ a b =
   match a, b with
   (* equivalence: name resolving! *)
-  | a,   B.TyId (idb, { B.id_resolved =
-                          {contents = Some ( ( B.ImportedEntity dotted
-                                             | B.ImportedModule (B.DottedName dotted)
-                                             ), _sid)}; _}) ->
-      m_type_ a (B.TyId (idb, B.empty_id_info()))
+  (* TODO: factorize in a new m_name? *)
+  | a,   B.TyN (B.Id (idb, { B.id_resolved =
+                               {contents = Some ( ( B.ImportedEntity dotted
+                                                  | B.ImportedModule (B.DottedName dotted)
+                                                  ), _sid)}; _})) ->
+      m_type_ a (B.TyN (B.Id (idb, B.empty_id_info())))
       >||>
       (* try this time a match with the resolved entity *)
-      m_type_ a (B.TyIdQualified (H.name_of_ids dotted, B.empty_id_info()))
+      m_type_ a (B.TyN (B.IdQualified (H.name_of_ids dotted, B.empty_id_info())))
 
   (*s: [[Generic_vs_generic.m_type_]] metavariable case *)
-  | A.TyId ((str,tok), _id_info), B.TyId (idb, id_infob)
+  | A.TyN (A.Id ((str,tok), _id_info)), B.TyN (B.Id (idb, id_infob))
     when MV.is_metavar_name str ->
       envf (str, tok) (MV.Id (idb, Some id_infob))
   (* TODO: TyId vs TyId => add MV.Id *)
-  | A.TyId ((str,tok), _id_info), t2
+  | A.TyN (A.Id ((str,tok), _id_info)), t2
     when MV.is_metavar_name str ->
       envf (str, tok) (MV.T (t2))
   (*e: [[Generic_vs_generic.m_type_]] metavariable case *)
@@ -1331,11 +1332,11 @@ and m_type_ a b =
       (m_bracket (m_list m_type_)) a1 b1
 
   (*s: [[Generic_vs_generic.m_type_]] boilerplate cases *)
-  | A.TyId(a1, a2), B.TyId(b1, b2) ->
+  | A.TyN (A.Id(a1, a2)), B.TyN (B.Id(b1, b2)) ->
       m_ident_and_id_info (a1, a2) (b1, b2)
   | A.TyAny(a1), B.TyAny(b1) ->
       m_tok a1 b1
-  | A.TyIdQualified(a1, a2), B.TyIdQualified(b1, b2) ->
+  | A.TyN (A.IdQualified(a1, a2)), B.TyN (B.IdQualified(b1, b2)) ->
       let* () = m_name_ a1 b1 in
       m_id_info a2 b2
   | A.TyNameApply(a1, a2), B.TyNameApply(b1, b2) ->
@@ -1381,7 +1382,7 @@ and m_type_ a b =
       )
   | A.TyBuiltin _, _  | A.TyFun _, _  | A.TyNameApply _, _  | A.TyVar _, _
   | A.TyArray _, _  | A.TyPointer _, _ | A.TyTuple _, _  | A.TyQuestion _, _
-  | A.TyId _, _ | A.TyIdQualified _, _ | A.TyAny _, _
+  | A.TyN _, _ | A.TyAny _, _
   | A.TyOr _, _ | A.TyAnd _, _ | A.TyRecordAnon _, _ | A.TyInterfaceAnon _, _
   | A.TyRef _, _
   | A.OtherType _, _

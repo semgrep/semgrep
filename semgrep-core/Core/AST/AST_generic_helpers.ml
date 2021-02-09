@@ -67,8 +67,8 @@ let name_of_ids ?(name_typeargs=None) xs =
 
 let tyid_of_name (id, nameinfo) =
   match nameinfo.name_qualifier with
-  | None | Some (QDots []) -> TyId (id, empty_id_info ())
-  | _ -> TyIdQualified ((id, nameinfo), empty_id_info())
+  | None | Some (QDots []) -> TyN (Id (id, empty_id_info ()))
+  | _ -> TyN (IdQualified ((id, nameinfo), empty_id_info()))
 
 (*s: function [[AST_generic.expr_to_pattern]] *)
 (* In Go a pattern can be a complex expressions. It is just

@@ -72,12 +72,12 @@
  *     * the Splat and HashSplat operator can usually appear just in arguments
  *       or inside arrays or in struct definitions (a field) but we are more
  *       general and put it at the 'expr' level.
- *      * certain attributes are valid only for certain constructs but instead
- *        we use one attribute type (no class_attribute vs func_attribute etc.)
+ *     * certain attributes are valid only for certain constructs but instead
+ *       we use one attribute type (no class_attribute vs func_attribute etc.)
  *
  * todo:
  *  - add C++ (argh)
- *  - add Rust, Scala (difficult)
+ *  - add Scala (difficult)
  *  - see ast_fuzzy.ml todos for ideas to use AST_generic for sgrep.
  *
  * related work:
@@ -292,7 +292,7 @@ type 'a bracket = tok * 'a * tok
 
 (* semicolon, a FakeTok in languages that do not require them (e.g., Python).
  * alt: tok option.
- * See the sc value aslo at the end of this file to build an sc.
+ * See the sc value also at the end of this file to build an sc.
 *)
 type sc = tok
 [@@deriving show, eq, hash] (* with tarzan *)
@@ -390,10 +390,7 @@ and resolved_name_kind =
  * in OtherXxx *)
 
 (*s: type [[AST_generic.name]] *)
-(* Note that separating between Id and IdQualified is useful in semgrep
- * where metavariables can only be in the Id category (but what if
- * we allow metavariables on qualifiers at some point??)
- * old: Id below used to be called Name and was generalizing also IdQualified
+(* old: Id below used to be called Name and was generalizing also IdQualified
  * but some analysis are easier when they just need to
  * handle a simple Id, hence the split. For example, there was some bugs
  * in sgrep because sometimes an identifier was an ident (in function header)
@@ -410,8 +407,9 @@ and resolved_name_kind =
  * with a better qualifier because the obj is actually the name of a package
  * or module, but you may need advanced semantic information and global
  * analysis to disambiguate.
+ *
+ * less: factorize the id_info in both and inline maybe name_info
 *)
-
 type name =
   | Id of ident * id_info
   | IdQualified of name_ * id_info
@@ -615,6 +613,7 @@ and const_type =
   | Cstr
   | Cany
 
+(* set by the constant propagation algorithm and used in semgrep *)
 and constness = Lit of literal | Cst of const_type | NotCst
 
 (*s: type [[AST_generic.container_operator]] *)
@@ -1134,7 +1133,7 @@ and other_pattern_operator =
 (*s: type [[AST_generic.type_]] *)
 and type_ =
   (* todo? a type_builtin = TInt | TBool | ...? see Literal.
-   * or just delete and use TyId instead?
+   * or just delete and use (TyN Id) instead?
   *)
   | TyBuiltin of string wrap (* int, bool, etc. could be TApply with no args *)
 
@@ -1153,12 +1152,10 @@ and type_ =
   (* old: was originally TyApply (name, []), but better to differentiate.
    * todo? may need also TySpecial because the name can actually be
    *  self/parent/static (e.g., in PHP)
-   * TODO: factorize with name type.
   *)
-  | TyId of ident * id_info
-  | TyIdQualified of (ident * name_info) * id_info
+  | TyN of name
   (* covers tuples, list, etc.
-   * TODO: merge with TyIdQualified? name_info has name_typeargs
+   * TODO: merge with TyN IdQualified? name_info has name_typeargs
   *)
   | TyNameApply of dotted_ident * type_arguments
 
@@ -1180,7 +1177,7 @@ and type_ =
    * via a TyName. Here we have flexible record types (a.k.a. rows in OCaml).
   *)
   | TyRecordAnon of tok (* 'struct/shape', fake in other *)* field list bracket
-  | TyInterfaceAnon of tok (* 'struct/shape', fake in other *)* field list bracket
+  | TyInterfaceAnon of tok (* 'interface' *)* field list bracket
 
   (* sgrep-ext: *)
   | TyEllipsis of tok
@@ -1235,7 +1232,8 @@ and other_type_argument_operator =
 (*s: type [[AST_generic.attribute]] *)
 and attribute =
   | KeywordAttr of keyword_attribute wrap
-  (* for general @annotations. less: use name instead of dotted_ident? *)
+  (* for general @annotations.
+   * TODO: use name instead of dotted_ident? *)
   | NamedAttr of tok (* @ *) * dotted_ident * id_info * arguments bracket
   (*s: [[AST_generic.attribute]] OtherXxx case *)
   | OtherAttribute of other_attribute_operator * any list
@@ -1294,13 +1292,14 @@ and definition = entity * definition_kind
  *
  * see special_multivardef_pattern below for many vardefs in one entity in
  * ident.
+ * less: could be renamed entity_def, and name is a kind of entity_use.
 *)
 (*s: type [[AST_generic.entity]] *)
 and entity = {
   (* In Ruby you can define a class with a qualified name as in
    * class A::B::C, and even dynamically.
    * In C++ you can define a method with a class qualifier outside a class,
-   * hence the use of ident_or_dynamic below.
+   * hence the use of ident_or_dynamic below and not just ident.
   *)
   name: ident_or_dynamic;
   (*s: [[AST_generic.entity]] attribute field *)
@@ -1653,6 +1652,12 @@ and macro_definition = {
 (* Directives (Module import/export, package) *)
 (*****************************************************************************)
 (*s: type [[AST_generic.directive]] *)
+(* it is tempting to simplify all those ImportXxx in a simpler
+ * Import of dotted_ident, but module_name is not always a DottedName, so
+ * better to clearly separate what is module_name/namespace from an
+ * entity in this module/namespace (even though some languages such as Python
+ * blurs the difference).
+*)
 and directive =
   (* newvar: *)
   | ImportFrom of tok (* 'import'/'from' for Python, 'include' for C *) *
@@ -1754,6 +1759,7 @@ and any =
   | Dir of directive
   | Pr of program
   (*s: [[AST_generic.any]] other cases *)
+  (* todo: get rid of some? *)
   | Modn of module_name
   | ModDk of module_definition_kind
   | En of entity
@@ -1763,6 +1769,7 @@ and any =
   | Di of dotted_ident
   | Lbli of label_ident
   | IoD of ident_or_dynamic
+
   | Tk of tok
   | TodoK of todo_kind
   (*e: [[AST_generic.any]] other cases *)

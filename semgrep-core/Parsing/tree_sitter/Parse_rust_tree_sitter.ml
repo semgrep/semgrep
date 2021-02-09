@@ -300,7 +300,7 @@ let map_foreign_item_type (env : env) ((v1, v2, v3) : CST.foreign_item_type): G.
   let ident = ident env v2 in (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
   let semicolon = token env v3 (* ";" *) in
   let type_def = {
-    G.tbody = G.NewType (G.TyId (ident, G.empty_id_info ()));
+    G.tbody = G.NewType (G.TyN (G.Id (ident, G.empty_id_info ())));
   } in
   let ent = {
     G.name = G.EId (ident, G.empty_id_info ());
@@ -466,10 +466,10 @@ and map_macro_rule (env : env) ((v1, v2, v3) : CST.macro_rule): rust_macro_rule 
 let rec map_abstract_type_trait_name (env : env) (x : CST.anon_choice_type_id_02b4436): G.type_ =
   (match x with
    | `Id tok -> let ident = ident env tok in (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
-       G.TyId (ident, G.empty_id_info ())
+       G.TyN (G.Id (ident, G.empty_id_info ()))
    | `Scoped_type_id x -> map_scoped_type_identifier env x
    | `Gene_type x -> let name = map_generic_type_name env x in
-       G.TyIdQualified (name, G.empty_id_info ())
+       G.TyN (G.IdQualified (name, G.empty_id_info ()))
    | `Func_type x -> map_function_type env x
   )
 
@@ -566,7 +566,7 @@ and map_anon_choice_param_2c23cdc (env : env) outer_attr (x : CST.anon_choice_pa
          G.KeywordAttr (G.Mutable, t)
        ) v3 in
        let self = ident env v4 (* "self" *) in
-       let self_type = G.TyId (self, G.empty_id_info ()) in
+       let self_type = G.TyN (G.Id (self, G.empty_id_info ())) in
        let type_ = (match borrow with
          | Some tok -> G.TyRef (tok, self_type)
          | None -> self_type)
@@ -1562,7 +1562,7 @@ and map_generic_type_name (env : env) ((v1, v2) : CST.generic_type)
 
 and map_generic_type (env : env) ((v1, v2) : CST.generic_type): G.type_ =
   let name = map_generic_type_name env (v1, v2) in
-  (G.TyIdQualified (name, G.empty_id_info ()))
+  (G.TyN (G.IdQualified (name, G.empty_id_info ())))
 
 and map_generic_type_with_turbofish (env : env) ((v1, v2, v3) : CST.generic_type_with_turbofish): (G.ident * G.name_info) =
   let (ident, info) = map_tuple_struct_name env v1 in
@@ -1572,7 +1572,7 @@ and map_generic_type_with_turbofish (env : env) ((v1, v2, v3) : CST.generic_type
 
 and map_generic_type_with_turbofish_type (env : env) ((v1, v2, v3) : CST.generic_type_with_turbofish): G.type_ =
   let name = map_generic_type_with_turbofish env (v1, v2, v3) in
-  (G.TyIdQualified (name, G.empty_id_info ()))
+  (G.TyN (G.IdQualified (name, G.empty_id_info ())))
 
 and map_if_expression (env : env) ((v1, v2, v3, v4) : CST.if_expression): G.expr =
   let if_ = token env v1 (* "if" *) in
@@ -2150,7 +2150,7 @@ and map_scoped_type_identifier_name (env : env) ((v1, v2, v3) : CST.scoped_type_
 
 and map_scoped_type_identifier (env : env) ((v1, v2, v3) : CST.scoped_type_identifier): G.type_ =
   let name = map_scoped_type_identifier_name env (v1, v2, v3) in
-  G.TyIdQualified (name, G.empty_id_info ())
+  G.TyN (G.IdQualified (name, G.empty_id_info ()))
 
 and map_scoped_type_identifier_in_expression_position (env : env) ((v1, v2, v3) : CST.scoped_type_identifier_in_expression_position): (G.ident * G.name_info) =
   let colons = token env v2 (* "::" *) in
@@ -2299,7 +2299,7 @@ and map_type_ (env : env) (x : CST.type_): G.type_ =
    | `Id tok ->
        let ident = ident env tok in (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
        let id_info = G.empty_id_info () in
-       G.TyId (ident, id_info)
+       G.TyN (G.Id (ident, id_info))
    | `Macro_invo x -> let invo = map_macro_invocation env x in
        G.OtherType (G.OT_Expr, [G.E invo])
    | `Empty_type tok -> let bang = token env tok in (* "!" *)
@@ -2688,7 +2688,7 @@ and map_item_kind (env : env) outer_attrs visibility (x : CST.item_kind): G.stmt
        let ty = map_type_ env v5 in
        let semicolon = token env v6 (* ";" *) in
        let type_def = {
-         G.tbody = G.NewType (G.TyId (ident, G.empty_id_info ()));
+         G.tbody = G.NewType (G.TyN (G.Id (ident, G.empty_id_info ())));
        } in
        let ent = {
          G.name = G.EId (ident, G.empty_id_info ());
@@ -2732,7 +2732,7 @@ and map_item_kind (env : env) outer_attrs visibility (x : CST.item_kind): G.stmt
          let ty =
            (match v1 with
             | `Id tok -> let ident = ident env tok in (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
-                G.TyId (ident, G.empty_id_info ())
+                G.TyN (G.Id (ident, G.empty_id_info ()))
             | `Scoped_type_id x -> map_scoped_type_identifier env x
             | `Gene_type x -> map_generic_type env x
            )

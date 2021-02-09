@@ -238,7 +238,7 @@ let lookup_nonlocal_scope id scopes =
 
 (* should use TyBuiltin instead? *)
 let make_type type_string tok =
-  Some(TyId(((type_string, tok), empty_id_info())))
+  Some(TyN (Id(((type_string, tok), empty_id_info()))))
 
 let get_resolved_type (vinit, vtype) =
   match vtype with
@@ -638,7 +638,8 @@ let resolve2 lang prog =
       V.ktype_ = (fun (k, _v) x ->
 
         (match x with
-         | TyId (id, id_info) ->
+         (* TODO: factorize in kname? *)
+         | TyN (Id (id, id_info)) ->
              (match lookup_scope_opt id env with
               | Some resolved ->
                   set_resolved env id_info resolved

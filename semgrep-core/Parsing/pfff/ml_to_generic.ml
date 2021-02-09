@@ -79,7 +79,8 @@ and todo_category v = ident v
 and type_ =
   function
   | TyEllipsis v1 -> let v1 = tok v1 in G.TyEllipsis v1
-  | TyName v1 -> let v1 = name_ v1 in G.TyIdQualified (v1, G.empty_id_info())
+  (* TODO *)
+  | TyName v1 -> let v1 = name_ v1 in G.TyN (G.IdQualified (v1, G.empty_id_info()))
   | TyVar v1 -> let v1 = ident v1 in G.TyVar v1
   | TyAny v1 -> let v1 = tok v1 in G.TyAny v1
   | TyFunction (v1, v2) -> let v1 = type_ v1 and v2 = type_ v2 in
@@ -95,6 +96,11 @@ and type_ =
 
 (* TODO: we should try to transform in stmt while/... instead of those
  * OE_StmtExpr *)
+
+(* TODO: should use a clean name_of_ids *)
+and name v1 =
+  let v1 = name_ v1 in
+  H.id_of_name_ v1
 
 and expr =
   function
@@ -112,7 +118,7 @@ and expr =
       let v3 = tok v3 in
       G.DeepEllipsis (v1, v2, v3)
   | L v1 -> let v1 = literal v1 in G.L v1
-  | Name v1 -> let v1 = name_ v1 in H.id_of_name_ v1
+  | Name v1 -> name v1
   | Constructor (v1, v2) ->
       let v1 = dotted_ident_of_name v1 and v2 = option expr v2 in
       G.Constructor (v1, Common.opt_to_list v2)

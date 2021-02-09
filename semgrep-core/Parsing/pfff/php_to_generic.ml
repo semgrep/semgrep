@@ -388,7 +388,7 @@ and array_value v       = expr v
 and hint_type =
   function
   | Hint v1 -> let v1 = name v1 in
-      G.TyIdQualified (name_of_qualified_ident v1, G.empty_id_info())
+      G.TyN (G.IdQualified (name_of_qualified_ident v1, G.empty_id_info()))
   | HintArray t ->
       G.TyBuiltin ("array", t)
   | HintQuestion (t, v1) -> let v1 = hint_type v1 in
