@@ -64,6 +64,8 @@ and name_ (v1, v2) =
   let v1 = qualifier v1 and v2 = ident v2 in
   v2, { G.empty_name_info with G.name_qualifier = Some (G.QDots v1) }
 
+and name (v1, v2) = H.name_of_ids (v1 @ [v2])
+
 and dotted_ident_of_name (v1, v2) =
   let v1 = qualifier v1 and v2 = ident v2 in
   v1 @ [v2]
@@ -97,11 +99,6 @@ and type_ =
 (* TODO: we should try to transform in stmt while/... instead of those
  * OE_StmtExpr *)
 
-(* TODO: should use a clean name_of_ids *)
-and name v1 =
-  let v1 = name_ v1 in
-  H.id_of_name_ v1
-
 and expr =
   function
   | TypedExpr (v1, v2, v3) ->
@@ -118,7 +115,7 @@ and expr =
       let v3 = tok v3 in
       G.DeepEllipsis (v1, v2, v3)
   | L v1 -> let v1 = literal v1 in G.L v1
-  | Name v1 -> name v1
+  | Name v1 -> G.N (name v1)
   | Constructor (v1, v2) ->
       let v1 = dotted_ident_of_name v1 and v2 = option expr v2 in
       G.Constructor (v1, Common.opt_to_list v2)
@@ -188,9 +185,9 @@ and expr =
        | None -> obj
        | Some e -> G.OtherExpr (G.OE_RecordWith, [G.E e; G.E obj])
       )
-  | New (v1, v2) -> let v1 = tok v1 and v2 = name_ v2 in
+  | New (v1, v2) -> let v1 = tok v1 and v2 = name v2 in
       G.Call (G.IdSpecial (G.New, v1),
-              G.fake_bracket [G.Arg (H.id_of_name_ v2)])
+              G.fake_bracket [G.Arg (G.N v2)])
   | ObjAccess (v1, t, v2) ->
       let v1 = expr v1 and v2 = ident v2 in
       let t = tok t in

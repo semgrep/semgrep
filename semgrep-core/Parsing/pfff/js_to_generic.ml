@@ -366,7 +366,7 @@ and case =
 and type_ x =
   match x with
   | TyBuiltin id -> G.TyBuiltin (ident id)
-  | TyName xs -> H.tyid_of_name (H.name_of_ids xs)
+  | TyName xs -> G.TyN (H.name_of_ids xs)
   | TyLiteral l ->
       let l = literal l in
       G.OtherType (G.OT_Todo, [G.TodoK ("LitType", PI.fake_info "");
