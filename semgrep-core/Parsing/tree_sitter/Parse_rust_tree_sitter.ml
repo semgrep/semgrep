@@ -38,6 +38,10 @@ let fb = G.fake_bracket
 let fake_id s = (s, G.fake s)
 let stmt_to_expr stmt = G.OtherExpr (G.OE_StmtExpr, [G.S stmt])
 
+(* TODO: delete once return proper AST_generic.name in a few functions *)
+let name_of_id id =
+  (id, G.empty_name_info)
+
 (*****************************************************************************)
 (* Boilerplate converter *)
 (*****************************************************************************)
@@ -473,17 +477,19 @@ let rec map_abstract_type_trait_name (env : env) (x : CST.anon_choice_type_id_02
    | `Func_type x -> map_function_type env x
   )
 
+(* TODO: return AST_generic.name *)
 and map_struct_name (env : env) (x : CST.anon_choice_type_id_2c46bcf):
   (G.ident * G.name_info) =
   (match x with
-   | `Id tok -> H2.name_of_id (ident env tok) (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
+   | `Id tok -> name_of_id (ident env tok) (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
    | `Scoped_type_id x -> map_scoped_type_identifier_name env x
   )
 
+(* TODO: return AST_generic.name *)
 and map_tuple_struct_name (env : env) (x : CST.anon_choice_type_id_f1f5a37)
   : (G.ident * G.name_info) =
   (match x with
-   | `Id tok -> H2.name_of_id (ident env tok) (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
+   | `Id tok -> name_of_id (ident env tok) (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
    | `Scoped_id x -> map_scoped_identifier_name env x
   )
 
@@ -1675,7 +1681,7 @@ and map_macro_invocation (env : env) ((v1, v2, v3) : CST.macro_invocation): G.ex
   let name =
     (match v1 with
      | `Simple_scoped_id x -> map_simple_scoped_identifier_name env x
-     | `Id tok -> H2.name_of_id (ident env tok) (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
+     | `Id tok -> name_of_id (ident env tok) (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
     )
   in
   let bang = token env v2 (* "!" *) in

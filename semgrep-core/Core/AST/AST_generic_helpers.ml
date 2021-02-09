@@ -45,16 +45,6 @@ let gensym () =
 (* before Naming_AST.resolve can do its job *)
 (*e: function [[AST_generic.gensym]] *)
 
-(* todo: should also make sure nameinfo.name_typeargs is empty? *)
-let id_of_name_ (id, nameinfo) =
-  match nameinfo.name_qualifier with
-  | None | Some (QDots []) -> N (Id (id, empty_id_info ()))
-  | _ -> N (IdQualified ((id, nameinfo), empty_id_info()))
-
-(* TODO: delete *)
-let name_of_id id =
-  (id, empty_name_info)
-
 let name_of_ids ?(name_typeargs=None) xs =
   match List.rev xs with
   | [] -> failwith "name_of_ids: empty ids"

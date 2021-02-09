@@ -45,6 +45,16 @@ let ids_of_name (name : name_) : dotted_ident =
    | None -> [ident]
   )
 
+(* TODO: delete once simple_name and co return a proper AST_generic.name *)
+(* todo: should also make sure nameinfo.name_typeargs is empty? *)
+let id_of_name_ (id, nameinfo) =
+  match nameinfo.name_qualifier with
+  | None | Some (QDots []) -> N (Id (id, empty_id_info ()))
+  | _ -> N (IdQualified ((id, nameinfo), empty_id_info()))
+(* TODO: delete *)
+let name_of_id id =
+  (id, empty_name_info)
+
 let type_parameters_with_constraints params constraints : type_parameter list =
   List.map (fun param ->
     let with_constraints = List.find_opt (fun p ->
@@ -698,6 +708,7 @@ and prefix_unary_expression (env : env) (x : CST.prefix_unary_expression) =
        Call (IdSpecial (Op BitNot, v1), fake_bracket [Arg v2])
   )
 
+(* TODO: should return a AST_generic.name *)
 and name (env : env) (x : CST.name) =
   (match x with
    | `Alias_qual_name (v1, v2, v3) ->
@@ -1114,7 +1125,7 @@ and expression (env : env) (x : CST.expression) : AST.expr =
               N (Id (id, empty_id_info ())) (* TODO should this be IdQualified? *)
           | `Name x ->
               let n = name env x in
-              H2.id_of_name_ n
+              id_of_name_ n
          )
        in
        let v2 =
@@ -1250,7 +1261,7 @@ and expression (env : env) (x : CST.expression) : AST.expr =
        let v4 = token env v4 (* ")" *) in
        Call (IdSpecial (Typeof, v1), (v2, [ArgType v3], v4))
    | `Simple_name x ->
-       H2.id_of_name_ (simple_name env x)
+       id_of_name_ (simple_name env x)
    | `Rese_id x ->
        let x = reserved_identifier env x in
        AST.N (AST.Id (x, empty_id_info ()))
@@ -1270,7 +1281,7 @@ and simple_name (env : env) (x : CST.simple_name) : (AST.ident * AST.name_info) 
           name_typeargs = Some v2;
         })
    | `Choice_global x ->
-       H2.name_of_id (identifier_or_global env x)
+       name_of_id (identifier_or_global env x)
   )
 
 and switch_body (env : env) ((v1, v2, v3) : CST.switch_body) : case_and_body list=
