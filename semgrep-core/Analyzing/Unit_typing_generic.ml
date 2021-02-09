@@ -25,7 +25,7 @@ let unittest =
         let v = V.mk_visitor { V.default_visitor with
                                V.kexpr = (fun (_k, _) exp ->
                                  match exp with
-                                 | A.Id(_, {A.id_type=id_type; _}) -> (
+                                 | A.N (A.Id(_, {A.id_type=id_type; _})) -> (
                                      match !id_type with
                                      | Some(A.TyId(("String", _), _)) -> ()
                                      | _ -> assert_failure("Variable referenced did not have expected type String"))
@@ -49,18 +49,18 @@ let unittest =
                                  match exp with
                                  | A.Call(_, (_,[x;y],_)) ->
                                      ((match x with
-                                        | A.Arg(A.Id(_, {A.id_type=id_type; _})) -> (
+                                        | A.Arg(A.N (A.Id(_, {A.id_type=id_type; _}))) -> (
                                             match !id_type with
                                             | Some(A.TyId(("String", _), _)) -> ()
                                             | _ -> assert_failure("Variable 1 referenced did not have expected type String"))
                                         | _ -> ());
                                       (match y with
-                                       | A.Arg(A.Id(_, {A.id_type=id_type; _})) -> (
+                                       | A.Arg(A.N (A.Id(_, {A.id_type=id_type; _}))) -> (
                                            match !id_type with
                                            | Some(A.TyBuiltin("int", _)) -> ()
                                            | _ -> assert_failure("Variable 2 referenced did not have expected type int"))
                                        | _ -> ()))
-                                 | A.Assign(A.Id(_, {A.id_type=id_type; _}), _, _) -> (
+                                 | A.Assign(A.N (A.Id(_, {A.id_type=id_type; _})), _, _) -> (
                                      match !id_type with
                                      | Some(A.TyId(("String", _), _)) -> ()
                                      | _ -> assert_failure("Variable 1 referenced did not have expected type String"))
@@ -84,13 +84,13 @@ let unittest =
                                  match exp with
                                  | A.Call(_, (_,[x;y],_)) ->
                                      ((match x with
-                                        | A.Arg(A.Id(_, {A.id_type=id_type; _})) -> (
+                                        | A.Arg(A.N (A.Id(_, {A.id_type=id_type; _}))) -> (
                                             match !id_type with
                                             | Some(A.TyBuiltin("int", _)) -> ()
                                             | _ -> assert_failure("Variable 1 referenced did not have expected type String"))
                                         | _ -> ());
                                       (match y with
-                                       | A.Arg(A.Id(_, {A.id_type=id_type; _})) -> (
+                                       | A.Arg(A.N (A.Id(_, {A.id_type=id_type; _}))) -> (
                                            match !id_type with
                                            | Some(A.TyBuiltin("boolean", _)) -> ()
                                            | _ -> assert_failure("Variable 2 referenced did not have expected type int"))
@@ -113,11 +113,11 @@ let unittest =
         let v = V.mk_visitor { V.default_visitor with
                                V.kexpr = (fun (_k, _) exp ->
                                  match exp with
-                                 | A.Id(("age", _), {A.id_type=id_type; _}) -> (
+                                 | A.N (A.Id(("age", _), {A.id_type=id_type; _})) -> (
                                      match !id_type with
                                      | Some(A.TyBuiltin("int", _)) -> ()
                                      | _ -> assert_failure("Variable referenced did not have expected type int"))
-                                 | A.Id(("default_age", _), {A.id_type=id_type; _}) -> (
+                                 | A.N (A.Id(("default_age", _), {A.id_type=id_type; _})) -> (
                                      match !id_type with
                                      | Some(A.TyBuiltin("int", _)) -> ()
                                      | _ -> assert_failure("Variable referenced did not have expected type int"))
@@ -163,7 +163,7 @@ let unittest =
         let v = V.mk_visitor { V.default_visitor with
                                V.kexpr = (fun (_k, _) exp ->
                                  match exp with
-                                 | A.Id(_, {A.id_type=id_type; _}) -> (
+                                 | A.N (A.Id(_, {A.id_type=id_type; _})) -> (
                                      match !id_type with
                                      | Some(A.TyId(("int", _), _)) -> ()
                                      | _ -> assert_failure("Variable referenced did not have expected type int"))
@@ -187,13 +187,13 @@ let unittest =
                                  match exp with
                                  | A.Call(_, (_,[x;y],_)) ->
                                      ((match x with
-                                        | A.Arg(A.Id(("a", _), {A.id_type=id_type; _})) -> (
+                                        | A.Arg(A.N (A.Id(("a", _), {A.id_type=id_type; _}))) -> (
                                             match !id_type with
                                             | Some(A.TyId(("int", _), _)) -> ()
                                             | _ -> assert_failure("Variable referenced did not have expected type int"))
                                         | _ -> assert_failure("Expected function call to be with int a as first argument"));
                                       (match y with
-                                       | A.Arg(A.Id(("c", _), {A.id_type=id_type; _})) -> (
+                                       | A.Arg(A.N (A.Id(("c", _), {A.id_type=id_type; _}))) -> (
                                            match !id_type with
                                            | Some(A.TyId(("bool", _), _)) -> ()
                                            | _ -> assert_failure("Variable referenced did not have expected type bool"))
@@ -216,15 +216,15 @@ let unittest =
         let v = V.mk_visitor { V.default_visitor with
                                V.kexpr = (fun (_k, _) exp ->
                                  match exp with
-                                 | A.Id(("a", _), {A.id_type=id_type; _}) -> (
+                                 | A.N (A.Id(("a", _), {A.id_type=id_type; _})) -> (
                                      match !id_type with
                                      | Some(A.TyId(("char", _), _)) -> ()
                                      | _ -> assert_failure("Variable referenced did not have expected type char"))
-                                 | A.Id(("b", _), {A.id_type=id_type; _}) -> (
+                                 | A.N (A.Id(("b", _), {A.id_type=id_type; _})) -> (
                                      match !id_type with
                                      | Some(A.TyId(("int", _), _)) -> ()
                                      | _ -> assert_failure("Variable referenced did not have expected type int"))
-                                 | A.Id(("c", _), {A.id_type=id_type; _}) -> (
+                                 | A.N (A.Id(("c", _), {A.id_type=id_type; _})) -> (
                                      match !id_type with
                                      | Some(A.TyId(("char", _), _)) -> ()
                                      | _ -> assert_failure("Variable referenced did not have expected type char"))

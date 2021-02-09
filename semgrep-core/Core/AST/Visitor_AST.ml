@@ -162,7 +162,7 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
     | TypeName -> ()
 
 
-  and v_name x =
+  and v_name_ x =
     let k x =
       let (v1, v2) = x in
       let v1 = v_ident v1
@@ -215,6 +215,9 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
          * against nested XmlXml elements *)
         v_expr (Xml v1)
 
+  and v_name = function
+    | Id (v1, v2) -> let v1 = v_ident v1 and v2 = v_id_info v2 in ()
+    | IdQualified (v1, v2) -> let v1 = v_name_ v1 and v2 = v_id_info v2 in ()
 
   and v_expr x =
     let k x =
@@ -234,8 +237,7 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
       | Lambda v1 -> let v1 = v_function_definition v1 in ()
       | AnonClass v1 -> let v1 = v_class_definition v1 in ()
       | Xml v1 -> let v1 = v_xml v1 in ()
-      | Id (v1, v2) -> let v1 = v_ident v1 and v2 = v_id_info v2 in ()
-      | IdQualified (v1, v2) -> let v1 = v_name v1 and v2 = v_id_info v2 in ()
+      | N v1 -> v_name v1
       | IdSpecial v1 -> let v1 = v_wrap v_special v1 in ()
       | Call (v1, v2) -> let v1 = v_expr v1 and v2 = v_arguments v2 in ()
       | Assign (v1, v2, v3) ->
@@ -287,7 +289,7 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
 
   and v_ident_or_dynamic = function
     | EId (id, idinfo) -> v_ident id; v_id_info idinfo
-    | EName n -> v_name n
+    | EName n -> v_name_ n
     | EDynamic e -> v_expr e
 
   and v_literal =
@@ -377,7 +379,7 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
       | TyId (v1, v2) ->
           let v1 = v_ident v1 in v_id_info v2
       | TyIdQualified (v1, v2) ->
-          let v1 = v_name v1 in v_id_info v2
+          let v1 = v_name_ v1 in v_id_info v2
       | TyVar v1 -> let v1 = v_ident v1 in ()
       | TyAny v1 -> let v1 = v_tok v1 in ()
       | TyArray (v1, v2) ->
@@ -909,7 +911,6 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
     | Args v1 -> v_list v_argument v1
     | Partial v1 -> v_partial ~recurse:true v1
     | TodoK v1 -> v_ident v1
-    | N v1 -> let v1 = v_name v1 in ()
     | Modn v1 -> let v1 = v_module_name v1 in ()
     | ModDk v1 -> let v1 = v_module_definition_kind v1 in ()
     | En v1 -> let v1 = v_entity v1 in ()

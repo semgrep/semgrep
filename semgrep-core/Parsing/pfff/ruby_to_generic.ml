@@ -71,10 +71,10 @@ let rec expr = function
       (match kind with
        | ID_Self -> G.IdSpecial (G.Self, (snd id))
        | ID_Super -> G.IdSpecial (G.Super, (snd id))
-       | _ -> G.Id (ident id, G.empty_id_info())
+       | _ -> G.N (G.Id (ident id, G.empty_id_info()))
       )
   | ScopedId x -> let name = scope_resolution x in
-      G.IdQualified (name, G.empty_id_info())
+      G.N (G.IdQualified (name, G.empty_id_info()))
   | Hash (_bool, xs) -> G.Container (G.Dict, bracket (list expr) xs)
   | Array xs -> G.Container (G.Array, bracket (list expr) xs)
   | Tuple xs -> G.Tuple (G.fake_bracket (list expr xs))
@@ -640,7 +640,7 @@ and list_stmt1 xs =
    * in which case we remove the G.Block around it.
    * hacky ...
   *)
-  | [{G.s=G.ExprStmt (G.Id ((s, _), _), _);_} as x]
+  | [{G.s=G.ExprStmt (G.N (G.Id ((s, _), _)), _);_} as x]
     when AST_generic_.is_metavar_name s
     -> x
   | xs -> G.Block (fb xs) |> G.s

@@ -58,8 +58,8 @@ let body_ellipsis t1 t2 = Block(t1, [fk_stmt], t2) |> G.s
 let _bk f (lp,x,rp) = (lp, f x, rp)
 
 let default_id str =
-  Id((str, fk),
-     {id_resolved = ref None; id_type = ref None; id_constness = ref None})
+  G.N (Id((str, fk),
+          {id_resolved = ref None; id_type = ref None; id_constness = ref None}))
 
 let default_tyvar str typ =
   TypedMetavar((str, fk), fk, typ)
@@ -88,7 +88,7 @@ let get_id ?(with_type=false) env e =
       let (new_id, new_has_type) =
         if with_type then
           (match e with
-           | Id (_, {id_type; _}) ->
+           | N (Id (_, {id_type; _})) ->
                (match !id_type with
                 | None -> (notype_id, has_type)
                 | Some t -> (default_tyvar (count_to_id env.count) t), true)
@@ -190,7 +190,7 @@ let generalize_call env = function
 (* Id *)
 let generalize_id env e =
   match e with
-  | Id _ ->
+  | G.N (Id _) ->
       let (_, id) = get_id env e in
       let (env', id_t) = get_id ~with_type:true env e in
       if env'.has_type then ["metavar", E id; "typed metavar", E id_t]
@@ -221,7 +221,7 @@ and generalize_assign env e =
 and generalize_exp e env =
   match e with
   | Call _ -> generalize_call env e
-  | Id _ -> generalize_id env e
+  | N (Id _) -> generalize_id env e
   | L _ -> let (_, id) = get_id env e in ["metavar", E id]
   | DotAccess _ -> let (_, id) = get_id env e in ["metavar", E id]
   | Assign _ -> generalize_assign env e

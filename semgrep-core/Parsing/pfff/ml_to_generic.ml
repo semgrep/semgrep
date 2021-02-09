@@ -60,7 +60,7 @@ let bracket of_a (t1, x, t2) = (info t1, of_a x, info t2)
 
 let rec ident v = wrap string v
 
-and name (v1, v2) =
+and name_ (v1, v2) =
   let v1 = qualifier v1 and v2 = ident v2 in
   v2, { G.empty_name_info with G.name_qualifier = Some (G.QDots v1) }
 
@@ -79,7 +79,7 @@ and todo_category v = ident v
 and type_ =
   function
   | TyEllipsis v1 -> let v1 = tok v1 in G.TyEllipsis v1
-  | TyName v1 -> let v1 = name v1 in G.TyIdQualified (v1, G.empty_id_info())
+  | TyName v1 -> let v1 = name_ v1 in G.TyIdQualified (v1, G.empty_id_info())
   | TyVar v1 -> let v1 = ident v1 in G.TyVar v1
   | TyAny v1 -> let v1 = tok v1 in G.TyAny v1
   | TyFunction (v1, v2) -> let v1 = type_ v1 and v2 = type_ v2 in
@@ -102,7 +102,7 @@ and expr =
       let v1 = expr v1 in
       let v3 = type_ v3 in
       (match v1 with
-       | G.Id (id, _idinfo) when AST_generic_.is_metavar_name (fst id) ->
+       | G.N (G.Id (id, _idinfo)) when AST_generic_.is_metavar_name (fst id) ->
            G.TypedMetavar (id, v2, v3)
        | _ -> G.Cast (v3, v1)
       )
@@ -112,7 +112,7 @@ and expr =
       let v3 = tok v3 in
       G.DeepEllipsis (v1, v2, v3)
   | L v1 -> let v1 = literal v1 in G.L v1
-  | Name v1 -> let v1 = name v1 in H.id_of_name v1
+  | Name v1 -> let v1 = name_ v1 in H.id_of_name_ v1
   | Constructor (v1, v2) ->
       let v1 = dotted_ident_of_name v1 and v2 = option expr v2 in
       G.Constructor (v1, Common.opt_to_list v2)
@@ -126,11 +126,11 @@ and expr =
   | List v1 -> let v1 = bracket (list expr) v1 in G.Container (G.List, v1)
   | Sequence v1 -> let v1 = list expr v1 in G.Seq v1
   | Prefix (v1, v2) -> let v1 = wrap string v1 and v2 = expr v2 in
-      G.Call (G.Id (v1, G.empty_id_info()),
+      G.Call (G.N (G.Id (v1, G.empty_id_info())),
               G.fake_bracket [G.Arg v2])
   | Infix (v1, v2, v3) ->
       let v1 = expr v1 and v3 = expr v3 in
-      G.Call (G.Id (v2, G.empty_id_info()),
+      G.Call (G.N (G.Id (v2, G.empty_id_info())),
               G.fake_bracket [G.Arg v1; G.Arg v3])
 
   | Call (v1, v2) -> let v1 = expr v1 and v2 = list argument v2 in
@@ -147,7 +147,7 @@ and expr =
       (match v2 with
        | [], id -> let id = ident id in
            G.DotAccess (v1, vtok, G.EId (id, G.empty_id_info()))
-       | _ -> let v2 = name v2 in G.DotAccess (v1, vtok, G.EName v2)
+       | _ -> let v2 = name_ v2 in G.DotAccess (v1, vtok, G.EName v2)
 
       )
   | FieldAssign (v1, t1, v2, t2, v3) ->
@@ -156,7 +156,7 @@ and expr =
       (match v2 with
        | [], id -> let id = ident id in
            G.Assign (G.DotAccess (v1, t1, G.EId (id, G.empty_id_info())), t2, v3)
-       | _ -> let v2 = name v2 in
+       | _ -> let v2 = name_ v2 in
            G.Assign (G.DotAccess (v1, t1, G.EName v2), t2, v3)
       )
 
@@ -167,9 +167,10 @@ and expr =
                         (match v1 with
                          | [], id -> let id = ident id in
                              G.basic_field id (Some v2) None
-                         | _ -> let v1 = name v1 in
+                         | _ ->
+                             let v1 = dotted_ident_of_name v1 in
                              let e =
-                               G.OtherExpr (G.OE_RecordFieldName, [G.N v1; G.E v2]) in
+                               G.OtherExpr (G.OE_RecordFieldName, [G.Di v1; G.E v2]) in
                              let st = G.exprstmt e in
                              G.FieldStmt st
                         )
@@ -181,9 +182,9 @@ and expr =
        | None -> obj
        | Some e -> G.OtherExpr (G.OE_RecordWith, [G.E e; G.E obj])
       )
-  | New (v1, v2) -> let v1 = tok v1 and v2 = name v2 in
+  | New (v1, v2) -> let v1 = tok v1 and v2 = name_ v2 in
       G.Call (G.IdSpecial (G.New, v1),
-              G.fake_bracket [G.Arg (H.id_of_name v2)])
+              G.fake_bracket [G.Arg (H.id_of_name_ v2)])
   | ObjAccess (v1, t, v2) ->
       let v1 = expr v1 and v2 = ident v2 in
       let t = tok t in
@@ -213,7 +214,7 @@ and expr =
       let xs = list match_case xs in
       let id = "!_implicit_param!", t in
       let params = [G.ParamClassic (G.param_of_id id)] in
-      let body_exp = G.MatchPattern (G.Id (id, G.empty_id_info()),
+      let body_exp = G.MatchPattern (G.N (G.Id (id, G.empty_id_info())),
                                      xs) in
       let body_stmt = G.exprstmt body_exp in
       G.Lambda {G.fparams = params; frettype = None; fkind = G.Function, t;
@@ -252,7 +253,7 @@ and expr =
       in
       let ent = G.basic_entity v1 [] in
       let var = { G.vinit = Some v2; vtype = None } in
-      let n = G.Id (v1, G.empty_id_info()) in
+      let n = G.N (G.Id (v1, G.empty_id_info())) in
       let next = (G.AssignOp (n, (nextop, tok), G.L (G.Int ("1", tok)))) in
       let cond = G.Call (G.IdSpecial (G.Op condop, tok),
                          G.fake_bracket [G.Arg n; G.Arg v4]) in

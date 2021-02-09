@@ -148,7 +148,7 @@ let rec eval env code =
       )
 
   (* less: sanity check that s is a metavar_name? *)
-  | G.Id ((s, _t), _idinfo) ->
+  | G.N (G.Id ((s, _t), _idinfo)) ->
       (try Hashtbl.find env s
        with Not_found ->
          logger#debug "could not find a value for %s in env" s;
@@ -173,7 +173,7 @@ let rec eval env code =
        | _ -> Bool (false)
       )
   (* Emulate Python re.match just enough *)
-  | G.Call (G.DotAccess(G.Id (("re", _), _), _, EId ((("match"),_),_)),
+  | G.Call (G.DotAccess(G.N (G.Id (("re", _), _)), _, EId ((("match"),_),_)),
             (_, [G.Arg e1; G.Arg (G.L (G.String (re, _)))], _)) ->
       (* alt: take the text range of the metavariable in the original file,
        * and enforce e1 can only be an Id metavariable.

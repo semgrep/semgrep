@@ -129,7 +129,7 @@ let var_stats prog : var_stats =
         match x with
         (* TODO: very incomplete, what if Assign (Tuple?) *)
         | Assign (
-          Id (id, ({ id_resolved = {contents = Some (_kind, sid)}; _ })),
+          N (Id (id, ({ id_resolved = {contents = Some (_kind, sid)}; _ }))),
           _,
           e2) ->
             let var = (H.str_of_ident id, sid) in
@@ -137,7 +137,7 @@ let var_stats prog : var_stats =
             incr stat.lvalue;
             vout (E e2)
 
-        | Id (id, ({ id_resolved = {contents = Some (_kind, sid)}; _ }))->
+        | N (Id (id, ({ id_resolved = {contents = Some (_kind, sid)}; _ })))->
             let var = (H.str_of_ident id, sid) in
             let stat = get_stat_or_create var h in
             incr stat.rvalue;
@@ -202,7 +202,7 @@ let eval_bop_string op s1 s2 =
 
 let rec eval_expr env = function
   | L literal -> Some literal
-  | Id (id, id_info)->
+  | N (Id (id, id_info)) ->
       find_id env id id_info
   (* TODO: do what we do in Normalize_generic.ml.
    * | Call(IdSpecial((Op(Plus | Concat) | ConcatString _), _), args)->
@@ -296,7 +296,7 @@ let propagate_basic lang prog =
       V.kexpr = (fun (k, _) x ->
 
         (match x with
-         | Id (id, id_info)->
+         | N (Id (id, id_info)) ->
              (match find_id env id id_info with
               | Some literal ->
                   id_info.id_constness := Some (Lit literal)
@@ -313,8 +313,8 @@ let propagate_basic lang prog =
 
              (* Assign that is really a hidden VarDef (e.g., in Python) *)
          | Assign (
-           Id (id, ({ id_resolved = {contents = Some (kind, sid)}; _ }
-                    as id_info)),
+           N (Id (id, ({ id_resolved = {contents = Some (kind, sid)}; _ }
+                       as id_info))),
            _,
            rexp) ->
              (match eval_expr env rexp with

@@ -257,7 +257,7 @@ let get_resolved_type (vinit, vtype) =
       | Some(L (Unit tok)) -> make_type "unit" tok
       | Some(L (Null tok)) -> make_type "null" tok
       | Some(L (Imag (_, tok))) -> make_type "imag" tok
-      | Some(Id (_, {id_type; _})) -> !id_type
+      | Some(N (Id (_, {id_type; _}))) -> !id_type
       | _ -> None
     )
 
@@ -575,7 +575,7 @@ let resolve2 lang prog =
              );
              recurse := false;
 
-         | Id (id, id_info) ->
+         | N (Id (id, id_info)) ->
              (match lookup_scope_opt id env with
               | Some resolved ->
                   (* name resolution *)

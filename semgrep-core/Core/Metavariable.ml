@@ -73,8 +73,8 @@ let mvalue_to_any = function
    * it can be used to check if two metavars are equal and have the same
    * sid (single unique id).
   *)
-  | Id (id, Some idinfo) -> G.E (G.Id (id, idinfo))
-  | Id (id, None) -> G.E (G.Id (id, G.empty_id_info()))
+  | Id (id, Some idinfo) -> G.E (G.N (G.Id (id, idinfo)))
+  | Id (id, None) -> G.E (G.N (G.Id (id, G.empty_id_info())))
   | Ss x -> G.Ss x
   | Args x -> G.Args x
   | T x -> G.T x

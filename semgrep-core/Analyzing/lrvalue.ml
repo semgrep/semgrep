@@ -83,12 +83,12 @@ let rec visit_expr hook lhs expr =
   match expr with
   (* the leaf *)
 
-  | Id (name, idinfo) ->
+  | N (Id (name, idinfo)) ->
       (* calling the hook! *)
       hook lhs name idinfo
 
   (* TODO? *)
-  | IdQualified _ -> ()
+  | N (IdQualified _) -> ()
 
   (* the assignements *)
 

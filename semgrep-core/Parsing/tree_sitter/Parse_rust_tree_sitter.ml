@@ -536,7 +536,7 @@ and map_type_parameter (env : env) (x : CST.anon_choice_life_859e88f): G.type_pa
        (ident, [G.OtherTypeParam (G.OTP_Const, [G.T ty])])
   )
 
-and dotted_ident_of_name (n: (G.ident * G.name_info)) : G.dotted_ident =
+and dotted_ident_of_name_ (n: (G.ident * G.name_info)) : G.dotted_ident =
   match n with
   (* TODO, look QDots too *)
   | (id, _) -> [id]
@@ -545,7 +545,7 @@ and map_range_pattern_bound (env : env) (x : CST.anon_choice_lit_pat_0884ef0): G
   (match x with
    | `Lit_pat x -> map_literal_pattern env x
    | `Choice_self x -> let name = map_path_name env x in
-       let dotted = dotted_ident_of_name name in
+       let dotted = dotted_ident_of_name_ name in
        G.PatConstructor (dotted, [])
   )
 
@@ -609,14 +609,14 @@ and map_field_initializer (env : env) (x : CST.anon_choice_shor_field_init_9cb44
    | `Shor_field_init (v1, v2) ->
        let outer_attrs = List.map (map_outer_attribute_item env) v1 in
        let ident = ident env v2 in (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
-       let lhs = G.Id (ident, G.empty_id_info ()) in
+       let lhs = G.N (G.Id (ident, G.empty_id_info ())) in
        (* bound variable with same ident as field name *)
-       let rhs = G.Id (ident, G.empty_id_info ()) in
+       let rhs = G.N (G.Id (ident, G.empty_id_info ())) in
        G.Assign (lhs, G.fake ":", rhs)
    | `Field_init (v1, v2, v3, v4) ->
        let outer_attrs = List.map (map_outer_attribute_item env) v1 in
        let ident = ident env v2 in (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
-       let lhs = G.Id (ident, G.empty_id_info ()) in
+       let lhs = G.N (G.Id (ident, G.empty_id_info ())) in
        let colon = token env v3 (* ":" *) in
        let rhs = map_expression env v4 in
        G.Assign (lhs, colon, rhs)
@@ -1018,11 +1018,11 @@ and map_expression (env : env) (x : CST.expression) =
        G.Call (expr, args)
    | `Ret_exp x -> map_return_expression env x
    | `Lit x -> G.L (map_literal env x)
-   | `Id tok -> G.Id (ident env tok, G.empty_id_info ()) (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
+   | `Id tok -> G.N (G.Id (ident env tok, G.empty_id_info ())) (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
    | `Choice_u8 x -> let tok = map_primitive_type_token env x in
-       G.Id (ident env tok, G.empty_id_info ())
+       G.N (G.Id (ident env tok, G.empty_id_info ()))
    | `Choice_defa x -> let ident = map_reserved_identifier env x in
-       G.Id (ident, G.empty_id_info ())
+       G.N (G.Id (ident, G.empty_id_info ()))
    | `Self tok -> G.IdSpecial (G.Self, token env tok) (* "self" *)
    | `Scoped_id x -> map_scoped_identifier env x
    | `Gene_func (v1, v2, v3) ->
@@ -1032,15 +1032,15 @@ and map_expression (env : env) (x : CST.expression) =
         | `Id tok ->
             let ident = ident env tok in (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
             let name = (ident, { G.name_qualifier = None; G.name_typeargs = Some typeargs }) in
-            G.IdQualified (name, G.empty_id_info ())
+            G.N (G.IdQualified (name, G.empty_id_info ()))
         | `Scoped_id x -> let id_qualified = map_scoped_identifier env x in
             let (ident, name_qualifier) = (match id_qualified with
-              | G.IdQualified ((ident, { name_qualifier; name_typeargs = None; _ }), _) -> (ident, name_qualifier)
+              | G.N (G.IdQualified ((ident, { name_qualifier; name_typeargs = None; _ }), _)) -> (ident, name_qualifier)
               | _ -> raise Impossible
             ) in
             (* TODO is this correct? *)
             let name = (ident, { G.name_qualifier = name_qualifier; G.name_typeargs = Some typeargs }) in
-            G.IdQualified (name, G.empty_id_info ())
+            G.N (G.IdQualified (name, G.empty_id_info ()))
         | `Field_exp x -> map_field_expression env x (Some typeargs))
    | `Await_exp (v1, v2, v3) ->
        let expr = map_expression env v1 in
@@ -1130,7 +1130,7 @@ and map_expression (env : env) (x : CST.expression) =
        let rbracket = token env v4 (* "]" *) in
        G.ArrayAccess (expr, (lbracket, index, rbracket))
    | `Meta tok -> let meta = ident env tok in (* pattern \$[a-zA-Z_]\w* *)
-       G.Id (meta, G.empty_id_info())
+       G.N (G.Id (meta, G.empty_id_info()))
    | `Clos_exp (v1, v2, v3) ->
        let is_move = Option.map (fun tok ->
          let tok = token env tok in (* "move" *)
@@ -1174,7 +1174,7 @@ and map_expression (env : env) (x : CST.expression) =
          )
        in
        let fields = map_field_initializer_list env v2 in
-       G.Constructor (dotted_ident_of_name name, fields)
+       G.Constructor (dotted_ident_of_name_ name, fields)
    | `Ellips tok -> G.Ellipsis (token env tok) (* "..." *)
    | `Deep_ellips (v1, v2, v3) ->
        let lellips = token env v1 (* "<..." *) in
@@ -1471,7 +1471,7 @@ and map_function_declaration (env : env) ((v1, v2, v3, v4, v5) : CST.function_de
          G.EName (H2.name_of_id ident)
      | `Meta tok ->
          let metavar = ident env tok in (* pattern \$[a-zA-Z_]\w* *)
-         G.EDynamic (G.Id (metavar, G.empty_id_info ()))
+         G.EDynamic (G.N (G.Id (metavar, G.empty_id_info ())))
     )
   in
   let type_params = (match v2 with
@@ -1680,7 +1680,8 @@ and map_macro_invocation (env : env) ((v1, v2, v3) : CST.macro_invocation): G.ex
   in
   let bang = token env v2 (* "!" *) in
   let tokens = map_token_tree env v3 in
-  G.OtherExpr (G.OE_MacroInvocation, [G.N name])
+  let di = dotted_ident_of_name_ name in
+  G.OtherExpr (G.OE_MacroInvocation, [G.Di di])
 
 and map_match_arm (env : env) ((v1, v2, v3, v4) : CST.match_arm): G.action =
   let outer_attrs = List.map (map_outer_attribute_item env) v1 in
@@ -1910,15 +1911,15 @@ and map_path (env : env) (x : CST.path): G.expr =
    | `Self tok -> let self = token env tok in (* "self" *)
        G.IdSpecial (G.Self, self)
    | `Choice_u8 x -> let ident = map_primitive_type_ident env x in
-       G.Id (ident, G.empty_id_info ())
+       G.N (G.Id (ident, G.empty_id_info ()))
    | `Meta tok -> let metavar = ident env tok in (* pattern \$[a-zA-Z_]\w* *)
-       G.Id (metavar, G.empty_id_info ())
+       G.N (G.Id (metavar, G.empty_id_info ()))
    | `Super tok -> let super = token env tok in (* "super" *)
        G.IdSpecial (G.Super, super)
    | `Crate tok -> let crate = token env tok in (* "crate" *)
        G.IdSpecial (G.Parent, crate) (* TODO module instead? *)
    | `Id tok -> let ident = ident env tok in (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
-       G.Id (ident, G.empty_id_info ())
+       G.N (G.Id (ident, G.empty_id_info ()))
    | `Scoped_id x -> map_scoped_identifier env x
   )
 
@@ -1946,7 +1947,7 @@ and map_pattern (env : env) (x : CST.pattern): G.pattern =
        G.PatId (ident, G.empty_id_info ())
    | `Id tok -> let ident = ident env tok in (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
        G.PatId (ident, G.empty_id_info ())
-   | `Scoped_id x -> G.PatConstructor (dotted_ident_of_name (map_scoped_identifier_name env x), [])
+   | `Scoped_id x -> G.PatConstructor (dotted_ident_of_name_ (map_scoped_identifier_name env x), [])
    | `Tuple_pat (v1, v2, v3, v4) ->
        let lparen = token env v1 (* "(" *) in
        let items =
@@ -2126,7 +2127,7 @@ and map_scoped_identifier_name (env : env) ((v1, v2, v3) : CST.scoped_identifier
   (ident, { G.name_qualifier = qualifier; G.name_typeargs = typeargs })
 
 and map_scoped_identifier (env : env) (v1 : CST.scoped_identifier): G.expr =
-  G.IdQualified (map_scoped_identifier_name env v1, G.empty_id_info ())
+  G.N (G.IdQualified (map_scoped_identifier_name env v1, G.empty_id_info ()))
 
 and map_scoped_type_identifier_name (env : env) ((v1, v2, v3) : CST.scoped_type_identifier): (G.ident * G.name_info) =
   let colons = token env v2 (* "::" *) in
@@ -2274,7 +2275,7 @@ and map_type_ (env : env) (x : CST.type_): G.type_ =
        trait_type
    | `Ref_type x -> map_reference_type env x
    | `Meta tok -> let metavar = ident env tok in (* pattern \$[a-zA-Z_]\w* *)
-       G.OtherType (G.OT_Expr, [G.E (G.Id (metavar, G.empty_id_info ()))])
+       G.OtherType (G.OT_Expr, [G.E (G.N (G.Id (metavar, G.empty_id_info ())))])
    | `Poin_type x -> map_pointer_type env x
    | `Gene_type x -> map_generic_type env x
    | `Scoped_type_id x -> map_scoped_type_identifier env x

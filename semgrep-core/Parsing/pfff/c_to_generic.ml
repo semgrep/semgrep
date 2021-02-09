@@ -168,11 +168,11 @@ and expr =
       G.Call (G.IdSpecial (G.ConcatString (G.SequenceConcat), fake " "),
               fb (xs |> List.map (fun x -> G.Arg (G.L (G.String x)))))
   | Defined (t, id) ->
-      let e = G.Id (id, G.empty_id_info()) in
+      let e = G.N (G.Id (id, G.empty_id_info())) in
       G.Call (G.IdSpecial (G.Defined, t), fb [G.Arg e])
 
   | Id v1 -> let v1 = name v1 in
-      G.Id (v1, G.empty_id_info())
+      G.N (G.Id (v1, G.empty_id_info()))
   | Ellipses v1 -> let v1 = info v1 in G.Ellipsis v1
   | DeepEllipsis v1 -> let v1 = bracket (expr) v1 in G.DeepEllipsis v1
   | Call (v1, v2) -> let v1 = expr v1 and v2 = bracket (list argument) v2 in

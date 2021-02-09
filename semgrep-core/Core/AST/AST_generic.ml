@@ -390,8 +390,32 @@ and resolved_name_kind =
  * in OtherXxx *)
 
 (*s: type [[AST_generic.name]] *)
-(* TODO: make a name with Id | IdQualified *)
-type name_ = ident * name_info
+(* Note that separating between Id and IdQualified is useful in semgrep
+ * where metavariables can only be in the Id category (but what if
+ * we allow metavariables on qualifiers at some point??)
+ * old: Id below used to be called Name and was generalizing also IdQualified
+ * but some analysis are easier when they just need to
+ * handle a simple Id, hence the split. For example, there was some bugs
+ * in sgrep because sometimes an identifier was an ident (in function header)
+ * and sometimes a name (when called). For naming, we also need to do
+ * things differently for Id vs IdQualified and would need many times to
+ * inspect the name.name_qualifier to know if we have an Id or IdQualified.
+ * We do the same split for Fid vs FName for fields.
+ *
+ * newvar: Id is sometimes abused to also introduce a newvar (as in Python)
+ * but ultimately those cases should be rewritten to first introduce
+ * a VarDef.
+ *
+ * todo: Sometimes some DotAccess should really be transformed in IdQualified
+ * with a better qualifier because the obj is actually the name of a package
+ * or module, but you may need advanced semantic information and global
+ * analysis to disambiguate.
+*)
+
+type name =
+  | Id of ident * id_info
+  | IdQualified of name_ * id_info
+and name_ = ident * name_info
 (*e: type [[AST_generic.name]] *)
 (*s: type [[AST_generic.name_info]] *)
 and name_info = {
@@ -410,6 +434,7 @@ and qualifier =
 (* This is used to represent field names, where sometimes the name
  * can be a dynamic expression, or more recently also to
  * represent entities like in Ruby where a class name can be dynamic.
+ * TODO: rename name_of_dynamic and factorize with name type
 *)
 and ident_or_dynamic =
   (* In the case of a field, it may be hard to resolve the id_info.
@@ -481,35 +506,8 @@ and expr =
   (* see also Call(IdSpecial (New,_), [ArgType _;...] for other values *)
   (*e: [[AST_generic.expr]] other composite cases *)
 
-  (* less: With Id and IdQualified, and now TyId and TyIdQualified,
-   * and also EId and EName, maybe we should factorize things, have
-   * actually a proper name type that can be the simple Id case or
-   * IdQualified case.
-   * Note that separating between Id and IdQualified is useful in semgrep
-   * where metavariables can only be in the Id category (but what if
-   * we allow metavariables on qualifiers at some point??)
-  *)
-  | Id of ident * id_info
+  | N of name
   (*s: [[AST_generic.expr]] other identifier cases *)
-  (* old: Id above used to be called Name and was generalizing also IdQualified
-   * but some analysis are easier when they just need to
-   * handle a simple Id, hence the split. For example, there was some bugs
-   * in sgrep because sometimes an identifier was an ident (in function header)
-   * and sometimes a name (when called). For naming, we also need to do
-   * things differently for Id vs IdQualified and would need many times to
-   * inspect the name.name_qualifier to know if we have an Id or IdQualified.
-   * We do the same split for Fid vs FName for fields.
-   *
-   * newvar: Id is sometimes abused to also introduce a newvar (as in Python)
-   * but ultimately those cases should be rewritten to first introduce
-   * a VarDef.
-  *)
-  (* todo: Sometimes some DotAccess should really be transformed in IdQualified
-   * with a better qualifier because the obj is actually the name of a package
-   * or module, but you may need advanced semantic information and global
-   * analysis to disambiguate.
-  *)
-  | IdQualified of (ident * name_info) * id_info
   (*x: [[AST_generic.expr]] other identifier cases *)
   | IdSpecial of special wrap
   (*e: [[AST_generic.expr]] other identifier cases *)
@@ -1155,6 +1153,7 @@ and type_ =
   (* old: was originally TyApply (name, []), but better to differentiate.
    * todo? may need also TySpecial because the name can actually be
    *  self/parent/static (e.g., in PHP)
+   * TODO: factorize with name type.
   *)
   | TyId of ident * id_info
   | TyIdQualified of (ident * name_info) * id_info
@@ -1755,7 +1754,6 @@ and any =
   | Dir of directive
   | Pr of program
   (*s: [[AST_generic.any]] other cases *)
-  | N of (ident * name_info)
   | Modn of module_name
   | ModDk of module_definition_kind
   | En of entity
