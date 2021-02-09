@@ -111,9 +111,9 @@ let top_func () =
     | TName v1 -> let v1 = qualified_ident v1 in
         (match v1 with
          | Left id ->
-             G.TyId (id, G.empty_id_info())
+             G.TyN (G.Id (id, G.empty_id_info()))
          | Right _ ->
-             G.TyIdQualified (name_of_qualified_ident v1, G.empty_id_info())
+             G.TyN (G.IdQualified (name_of_qualified_ident v1, G.empty_id_info()))
         )
     | TPtr (t, v1) -> let v1 = type_ v1 in
         G.TyPointer (t, v1)
@@ -141,9 +141,9 @@ let top_func () =
         G.TyInterfaceAnon (t, v1)
 
   and chan_dir = function
-    | TSend -> G.TyId (fake_id "send", G.empty_id_info())
-    | TRecv -> G.TyId (fake_id "recv", G.empty_id_info())
-    | TBidirectional -> G.TyId (fake_id "bidirectional", G.empty_id_info())
+    | TSend -> G.TyN (G.Id (fake_id "send", G.empty_id_info()))
+    | TRecv -> G.TyN (G.Id (fake_id "recv", G.empty_id_info()))
+    | TBidirectional -> G.TyN (G.Id (fake_id "bidirectional", G.empty_id_info()))
 
   and func_type { fparams = fparams; fresults = fresults } =
     let fparams = list parameter_binding fparams in

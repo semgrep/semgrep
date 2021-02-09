@@ -1133,7 +1133,7 @@ and other_pattern_operator =
 (*s: type [[AST_generic.type_]] *)
 and type_ =
   (* todo? a type_builtin = TInt | TBool | ...? see Literal.
-   * or just delete and use TyId instead?
+   * or just delete and use (TyN Id) instead?
   *)
   | TyBuiltin of string wrap (* int, bool, etc. could be TApply with no args *)
 
@@ -1152,12 +1152,10 @@ and type_ =
   (* old: was originally TyApply (name, []), but better to differentiate.
    * todo? may need also TySpecial because the name can actually be
    *  self/parent/static (e.g., in PHP)
-   * TODO: factorize with name type.
   *)
-  | TyId of ident * id_info
-  | TyIdQualified of (ident * name_info) * id_info
+  | TyN of name
   (* covers tuples, list, etc.
-   * TODO: merge with TyIdQualified? name_info has name_typeargs
+   * TODO: merge with TyN IdQualified? name_info has name_typeargs
   *)
   | TyNameApply of dotted_ident * type_arguments
 

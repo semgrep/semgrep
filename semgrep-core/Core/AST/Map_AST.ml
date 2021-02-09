@@ -368,14 +368,7 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
         let v1 = map_dotted_ident v1
         and v2 = map_type_arguments v2
         in TyNameApply (v1, v2)
-    | TyId (v1, v2) ->
-        let v1 = map_ident v1 in
-        let v2 = map_id_info v2 in
-        TyId (v1, v2)
-    | TyIdQualified (v1, v2) ->
-        let v1 = map_name_ v1 in
-        let v2 = map_id_info v2 in
-        TyIdQualified (v1, v2)
+    | TyN v1 -> let v1 = map_name v1 in TyN v1
     | TyVar v1 -> let v1 = map_ident v1 in TyVar v1
     | TyAny v1 -> let v1 = map_tok v1 in TyAny v1
     | TyArray (v1, v2) ->

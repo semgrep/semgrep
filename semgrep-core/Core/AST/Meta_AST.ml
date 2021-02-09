@@ -483,14 +483,7 @@ and vof_type_ =
       let v1 = vof_dotted_ident v1
       and v2 = vof_type_arguments v2
       in OCaml.VSum ("TyNameApply", [ v1; v2 ])
-  | TyId (v1, v2) ->
-      let v1 = vof_ident v1 in
-      let v2 = vof_id_info v2 in
-      OCaml.VSum ("TyId", [ v1; v2 ])
-  | TyIdQualified (v1, v2) ->
-      let v1 = vof_name_ v1 in
-      let v2 = vof_id_info v2 in
-      OCaml.VSum ("TyIdQualified", [ v1; v2 ])
+  | TyN v1 -> let v1 = vof_name v1 in OCaml.VSum ("TyN", [v1])
   | TyVar v1 -> let v1 = vof_ident v1 in OCaml.VSum ("TyVar", [ v1 ])
   | TyAny v1 -> let v1 = vof_tok v1 in OCaml.VSum ("TyAny", [ v1 ])
   | TyArray (v1, v2) ->
