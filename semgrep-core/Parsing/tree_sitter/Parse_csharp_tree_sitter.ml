@@ -130,7 +130,8 @@ let call_lambda base_expr funcname tok funcs =
   (* let funcs = exprs |> List.map (fun expr -> create_lambda lambda_params expr) in *)
   let args = funcs |> List.map (fun func -> Arg func) in
   let idinfo = empty_id_info() in
-  let method_ = DotAccess (base_expr, tok, EId ((funcname, tok), idinfo)) in
+  let method_ = DotAccess (base_expr, tok, EN (Id ((funcname, tok), idinfo)))
+  in
   Call (method_, fake_bracket args)
 
 let rec linq_remainder_to_expr (query : linq_query_part list) (base_expr : expr) (lambda_params : ident list) =
@@ -1010,7 +1011,8 @@ and expression (env : env) (x : CST.expression) : AST.expr =
          | `Member_bind_exp (x1, x2) ->
              let x1 = token env x1 (* "." *) in
              let x2 = simple_name env x2 in
-             DotAccess (v1, x1, EName x2)
+             let name = IdQualified (x2, empty_id_info()) in
+             DotAccess (v1, x1, EN name)
          | _ -> raise Impossible
        ) in
        Conditional (is_null, fake_null, access)
@@ -1122,7 +1124,8 @@ and expression (env : env) (x : CST.expression) : AST.expr =
          )
        in
        let v3 = simple_name env v3 in
-       AST.DotAccess (v1, v2, AST.EName v3)
+       let name = AST.IdQualified (v3, AST.empty_id_info()) in
+       AST.DotAccess (v1, v2, AST.EN name)
    | `Member_bind_exp (v1, v2) ->
        let v1 = token env v1 (* "." *) in
        let v2 = simple_name env v2 in
@@ -1256,6 +1259,7 @@ and expression (env : env) (x : CST.expression) : AST.expr =
        AST.L x
   )
 
+(* TODO: return an AST.name *)
 and simple_name (env : env) (x : CST.simple_name) : (AST.ident * AST.name_info) =
   (match x with
    | `Gene_name (v1, v2) ->
@@ -2264,7 +2268,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
        let tparams = type_parameters_with_constraints v5 v7 in
        let idinfo = empty_id_info() in
        let ent = {
-         name = EId (v4, idinfo);
+         name = EN (Id (v4, idinfo));
          attrs = v1 @ v2;
          tparams;
        } in
@@ -2313,7 +2317,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
        let v7 = function_body env v7 in
        let idinfo = empty_id_info () in
        let ent = {
-         name = EId (v3, idinfo);
+         name = EN (Id (v3, idinfo));
          attrs = v1 @ v2;
          tparams = [];
        } in
@@ -2344,7 +2348,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
        let func = TyFun (v7, v4) in
        let idinfo = empty_id_info () in
        let ent = {
-         name = EId (v5, idinfo);
+         name = EN (Id (v5, idinfo));
          attrs = v1 @ v2;
          tparams;
        } in
@@ -2388,7 +2392,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
        in
        let idinfo = empty_id_info () in
        let ent = {
-         name = EId (v4, idinfo);
+         name = EN (Id (v4, idinfo));
          attrs = v1 @ v2;
          tparams = [];
        } in
@@ -2536,7 +2540,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
        let tparams = type_parameters_with_constraints v6 v8 in
        let idinfo = empty_id_info () in
        let ent = {
-         name = EId (v5, idinfo);
+         name = EN (Id (v5, idinfo));
          attrs = v1 @ v2;
          tparams;
        } in
@@ -2571,7 +2575,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
        (* TODO make clear that this is an operator overload, by using IdSpecial as the name, or adding a keyword attribute *)
        let idinfo = empty_id_info () in
        let ent = {
-         name = EId (v5, idinfo);
+         name = EN (Id (v5, idinfo));
          attrs = v1 @ v2;
          tparams = [];
        } in

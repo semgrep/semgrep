@@ -1466,7 +1466,7 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
           | `Class tok -> str env tok (* "class" *)
          )
        in
-       let ident_v3 = EId (v3, empty_id_info()) in
+       let ident_v3 = EN (Id (v3, empty_id_info())) in
        DotAccess (v1, v2, ident_v3)
    | `Func_lit x -> function_literal env x
    | `Obj_lit (v1, v2, v3) ->

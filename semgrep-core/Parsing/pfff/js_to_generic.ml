@@ -219,7 +219,7 @@ and expr (x: expr) =
       let v2 = property_name v2 in
       let t = info t in
       (match v2 with
-       | Left n -> G.DotAccess (v1, t, G.EId (n, G.empty_id_info()))
+       | Left n -> G.DotAccess (v1, t, G.EN (G.Id (n, G.empty_id_info())))
        | Right e -> G.DotAccess (v1, t, G.EDynamic e)
       )
   | Fun (v1, _v2TODO) ->

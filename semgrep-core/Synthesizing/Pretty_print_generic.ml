@@ -48,8 +48,8 @@ let todo any =
 let ident (s, _) = s
 
 let ident_or_dynamic = function
-  | EId (x, _idinfo) -> ident x
-  | EName _ | EDynamic _ -> raise Todo
+  | EN (Id (x, _idinfo)) -> ident x
+  | EN _ | EDynamic _ -> raise Todo
 
 let opt f = function
   | None -> ""
@@ -292,7 +292,7 @@ and def_stmt env (entity, def_kind) =
     in
     let (typ, id) =
       match ent.name with
-      | EId (_, { id_type = {contents = Some t}; _}) ->
+      | EN (Id (_, { id_type = {contents = Some t}; _})) ->
           print_type t, ident_or_dynamic ent.name
       | _ -> "", ident_or_dynamic ent.name
     in
@@ -474,8 +474,9 @@ and dot_access env (e, _tok, fi) =
 
 and field_ident env fi =
   match fi with
-  | EId (id, _idinfo) -> ident id
-  | EName (id, _) -> ident id
+  | EN (Id (id, _idinfo)) -> ident id
+  (* TODO: use name_info *)
+  | EN (IdQualified ((id, _name_infoTODO), _)) -> ident id
   | EDynamic e -> expr env e
 
 and tyvar env (id, typ) =

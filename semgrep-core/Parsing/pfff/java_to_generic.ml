@@ -46,8 +46,8 @@ let fb = G.fake_bracket
 
 
 let id_of_entname = function
-  | G.EId (id, idinfo) -> id, idinfo
-  | G.EName _ | G.EDynamic _ -> raise Impossible
+  | G.EN (Id (id, idinfo)) -> id, idinfo
+  | G.EN _ | G.EDynamic _ -> raise Impossible
 
 let entity_to_param { G.name; attrs; tparams = _unused; } t =
   let id, info = id_of_entname name in
@@ -278,7 +278,7 @@ and expr e =
   | Call (v1, v2) -> let v1 = expr v1 and v2 = arguments v2 in
       G.Call (v1, v2)
   | Dot (v1, t, v2) -> let v1 = expr v1 and t = info t and v2 = ident v2 in
-      G.DotAccess (v1, t, G.EId (v2, G.empty_id_info()))
+      G.DotAccess (v1, t, G.EN (G.Id (v2, G.empty_id_info())))
   | ArrayAccess (v1, v2) -> let v1 = expr v1 and v2 = bracket expr v2 in
       G.ArrayAccess (v1, v2)
   | Postfix ((v1, (v2, tok))) -> let v1 = expr v1 and v2 = fix_op v2 in

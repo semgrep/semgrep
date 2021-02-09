@@ -55,7 +55,7 @@ let stmt_to_expr stmt = G.OtherExpr (G.OE_StmtExpr, [G.S stmt])
 [@@@warning "-39"]
 
 type function_declaration_rs = {
-  name: G.ident_or_dynamic;
+  name: G.name_or_dynamic;
   type_params: G.type_parameter list;
   params: G.parameter list;
   retval: G.type_ option;
@@ -303,7 +303,7 @@ let map_foreign_item_type (env : env) ((v1, v2, v3) : CST.foreign_item_type): G.
     G.tbody = G.NewType (G.TyN (G.Id (ident, G.empty_id_info ())));
   } in
   let ent = {
-    G.name = G.EId (ident, G.empty_id_info ());
+    G.name = G.EN (G.Id (ident, G.empty_id_info ()));
     G.attrs = [G.KeywordAttr (G.Extern, G.fake "extern")];
     G.tparams = [];
   } in
@@ -699,7 +699,7 @@ and map_associated_type (env : env) ((v1, v2, v3, v4, v5, v6) : CST.associated_t
     G.tbody = type_def_kind;
   } in
   let ent = {
-    G.name = G.EId (ident, G.empty_id_info ());
+    G.name = G.EN (G.Id (ident, G.empty_id_info ()));
     G.attrs = [];
     G.tparams = type_params
   } in
@@ -882,7 +882,7 @@ and map_const_item (env : env) ((v1, v2, v3, v4, v5, v6) : CST.const_item): G.st
     G.vtype = Some type_
   } in
   let ent = {
-    G.name = G.EId (ident, G.empty_id_info ());
+    G.name = G.EN (G.Id (ident, G.empty_id_info ()));
     G.attrs = attrs;
     G.tparams = []
   } in
@@ -1284,7 +1284,7 @@ and map_field_declaration (env : env) ((v1, v2, v3, v4) : CST.field_declaration)
     G.vtype = Some ty
   } in
   let ent = {
-    G.name = G.EId (ident, G.empty_id_info ());
+    G.name = G.EN (G.Id (ident, G.empty_id_info ()));
     G.attrs = attrs;
     G.tparams = []
   } in
@@ -1388,9 +1388,9 @@ and map_field_expression (env : env) ((v1, v2, v3) : CST.field_expression) (type
     | `Id tok -> let ident = ident env tok in (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
         (match typeargs with
          | Some tas ->
-             let name = (ident, { G.name_qualifier = None; G.name_typeargs = Some tas }) in
-             G.EName name
-         | None -> G.EId (ident, G.empty_id_info ()))
+             let name_ = (ident, { G.name_qualifier = None; G.name_typeargs = Some tas }) in
+             G.EN (G.IdQualified (name_, G.empty_id_info()))
+         | None -> G.EN (G.Id (ident, G.empty_id_info ())))
 
     | `Int_lit tok -> let literal = G.L (G.Int (str env tok)) in (* integer_literal *)
         (match typeargs with
@@ -1449,7 +1449,7 @@ and map_foreign_item_static (env : env) ((v1, v2, v3, v4, v5, v6) : CST.foreign_
     G.vtype = Some ty;
   } in
   let ent = {
-    G.name = G.EId (ident, G.empty_id_info ());
+    G.name = G.EN (G.Id (ident, G.empty_id_info ()));
     G.attrs = deoptionalize [Some static_attr; mutability];
     G.tparams = []
   } in
@@ -1464,11 +1464,11 @@ and map_foreign_mod_block (env : env) ((v1, v2, v3, v4) : CST.foreign_mod_block)
   G.OtherStmtWithStmt (G.OSWS_ForeignBlock, None, block) |> G.s
 
 and map_function_declaration (env : env) ((v1, v2, v3, v4, v5) : CST.function_declaration): function_declaration_rs =
-  let name: G.ident_or_dynamic =
+  let name: G.name_or_dynamic =
     (match v1 with
      | `Id tok ->
          let ident = ident env tok in (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
-         G.EName (H2.name_of_id ident)
+         G.EN (G.Id (ident, G.empty_id_info()))
      | `Meta tok ->
          let metavar = ident env tok in (* pattern \$[a-zA-Z_]\w* *)
          G.EDynamic (G.N (G.Id (metavar, G.empty_id_info ())))
@@ -1630,7 +1630,7 @@ and map_impl_block_item_const (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.im
     G.vtype = Some ty
   } in
   let ent = {
-    G.name = G.EId (ident, G.empty_id_info ());
+    G.name = G.EN (G.Id (ident, G.empty_id_info ()));
     G.attrs = [const_attr];
     G.tparams = []
   } in
@@ -1651,7 +1651,7 @@ and map_impl_block_item_type (env : env) ((v1, v2, v3, v4, v5, v6) : CST.impl_bl
     G.tbody = G.NewType ty_;
   } in
   let ent = {
-    G.name = G.EId (ident, G.empty_id_info ());
+    G.name = G.EN (G.Id (ident, G.empty_id_info ()));
     G.attrs = [];
     G.tparams = type_params
   } in
@@ -2564,7 +2564,7 @@ and map_item_kind (env : env) outer_attrs visibility (x : CST.item_kind): G.stmt
          )
        in
        let ent = {
-         G.name = G.EId (ident, G.empty_id_info ());
+         G.name = G.EN (G.Id (ident, G.empty_id_info ()));
          G.attrs = [];
          G.tparams = [];
        } in
@@ -2586,7 +2586,7 @@ and map_item_kind (env : env) outer_attrs visibility (x : CST.item_kind): G.stmt
          G.mbody = G.ModuleStruct (Some [ident], block)
        } in
        let ent = {
-         G.name = G.EId (ident, G.empty_id_info ());
+         G.name = G.EN (G.Id (ident, G.empty_id_info ()));
          G.attrs = [];
          G.tparams = [];
        } in
@@ -2632,7 +2632,7 @@ and map_item_kind (env : env) outer_attrs visibility (x : CST.item_kind): G.stmt
          G.cmixins = [];
          G.cbody = fields;
        } in
-       let ent = { G.name = G.EId (ident, G.empty_id_info ()); attrs = []; tparams = type_params } in
+       let ent = { G.name = G.EN (G.Id (ident, G.empty_id_info ())); attrs = []; tparams = type_params } in
        [G.DefStmt (ent, G.ClassDef class_def) |> G.s]
    | `Union_item (v1, v2, v3, v4, v5) ->
        let union = token env v1 (* "union" *) in
@@ -2652,7 +2652,7 @@ and map_item_kind (env : env) outer_attrs visibility (x : CST.item_kind): G.stmt
          G.tbody = G.OrType variants
        } in
        let ent = {
-         G.name = G.EId (ident, G.empty_id_info ());
+         G.name = G.EN (G.Id (ident, G.empty_id_info ()));
          G.attrs = [];
          G.tparams = type_params;
        } in
@@ -2671,7 +2671,7 @@ and map_item_kind (env : env) outer_attrs visibility (x : CST.item_kind): G.stmt
          G.tbody = body
        } in
        let ent = {
-         G.name = G.EId (ident, G.empty_id_info ());
+         G.name = G.EN (G.Id (ident, G.empty_id_info ()));
          G.attrs = [];
          G.tparams = type_params;
        } in
@@ -2691,7 +2691,7 @@ and map_item_kind (env : env) outer_attrs visibility (x : CST.item_kind): G.stmt
          G.tbody = G.NewType (G.TyN (G.Id (ident, G.empty_id_info ())));
        } in
        let ent = {
-         G.name = G.EId (ident, G.empty_id_info ());
+         G.name = G.EN (G.Id (ident, G.empty_id_info ()));
          G.attrs = [];
          G.tparams = type_params;
        } in
@@ -2771,7 +2771,7 @@ and map_item_kind (env : env) outer_attrs visibility (x : CST.item_kind): G.stmt
          G.cbody = fields;
        } in
        let ent = {
-         G.name = G.EId (ident, G.empty_id_info ());
+         G.name = G.EN (G.Id (ident, G.empty_id_info ()));
          G.attrs = attrs;
          G.tparams = []
        } in
@@ -2819,7 +2819,7 @@ and map_item_kind (env : env) outer_attrs visibility (x : CST.item_kind): G.stmt
          G.vtype = Some type_
        } in
        let ent = {
-         G.name = G.EId (ident, G.empty_id_info ());
+         G.name = G.EN (G.Id (ident, G.empty_id_info ()));
          G.attrs = attrs;
          G.tparams = []
        } in
