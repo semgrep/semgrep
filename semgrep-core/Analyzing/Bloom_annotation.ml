@@ -102,7 +102,6 @@ let rec statement_strings stmt =
        *)
        | L (String (str, _tok)) ->
            push str res
-       | TypedMetavar _ -> ()
        | _ -> k x
       )
     );
@@ -154,6 +153,7 @@ let list_of_pattern_strings any =
            if not (special_literal str) then
              push str res
        | TypedMetavar _ -> ()
+       | DisjExpr _ -> ()
        | _ -> k x
       )
     );
