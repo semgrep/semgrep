@@ -22,6 +22,7 @@ module Flag = Flag_semgrep
 module MV = Metavariable
 module M = Map_AST
 module Eq = Equivalence
+module Env = Metavariable_capture
 
 (*****************************************************************************)
 (* Matchers for code equivalence mode *)
@@ -42,7 +43,7 @@ let match_e_e_for_equivalences _ruleid a b =
 (* Substituters *)
 (*****************************************************************************)
 (*s: function [[Apply_equivalences.subst_e]] *)
-let subst_e (env : MV.Env.t) e =
+let subst_e (env : Env.t) e =
   let bindings = env.full_env in
   let visitor =
     M.mk_visitor

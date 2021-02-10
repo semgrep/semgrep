@@ -117,7 +117,7 @@ let show_formula_old pf =
   | _ -> R.show_formula_old pf
 
 let equal_formula_old x y =
-  AST_generic.with_structural_equal R.equal_formula_old x y
+  AST_utils.with_structural_equal R.equal_formula_old x y
 
 let check_old_formula env lang f =
   (* check duplicated patterns, essentially:

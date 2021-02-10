@@ -93,6 +93,7 @@
 
 module Flag = Flag_semgrep
 module MV = Metavariable
+module Env = Metavariable_capture
 
 open Printf
 open AST_generic
@@ -100,7 +101,7 @@ open AST_generic
 let debug = false
 
 (* A set of metavariables. Access cost is O(log n). *)
-module Names = AST_generic.String_set
+module Names = AST_utils.String_set
 
 (* Count the number of occurrences of each backreference of a metavariable. *)
 module Name_counts = Map.Make (String)
@@ -277,7 +278,7 @@ module Cache_key = struct
     (* The list of statements exists in the AST and is identified
        unambiguously by the ID of the first statement. *)
 
-    | Flattened_until of AST_generic.Node_ID.t
+    | Flattened_until of AST_utils.Node_ID.t
     (* The list of statements is the result of flattening the AST for
        deep ellipsis matching. The node ID is the ID of the last statement
        of the list. Together with the first ID of the list, they
@@ -328,11 +329,11 @@ module Cache_key = struct
 
     (* identifier of the list of stmts in the pattern AST, which is the
        ID of the first stmt of the list. *)
-    pattern_stmt_id: Node_ID.t;
+    pattern_stmt_id: AST_utils.Node_ID.t;
 
     (* identifier of the list of stmts in the target AST, which is the
        ID of the first stmt of the list. Disambiguated by 'list_kind'. *)
-    target_stmt_id: Node_ID.t;
+    target_stmt_id: AST_utils.Node_ID.t;
   }
 
   let show_compact k =
@@ -388,8 +389,8 @@ module Cache = struct
   type 'a access = {
     get_span_field: ('a -> Stmts_match_span.t);
     set_span_field: ('a -> Stmts_match_span.t -> 'a);
-    get_mv_field: ('a -> Metavariable.Env.t);
-    set_mv_field: ('a -> Metavariable.Env.t -> 'a);
+    get_mv_field: ('a -> Metavariable_capture.t);
+    set_mv_field: ('a -> Metavariable_capture.t -> 'a);
   }
 
   let create () = Tbl.create 1000
@@ -430,17 +431,17 @@ module Cache = struct
       current_stmt
       orig_acc
       cached_acc =
-    let orig_env : MV.Env.t = access.get_mv_field orig_acc in
-    let cached_env : MV.Env.t = access.get_mv_field cached_acc in
+    let orig_env : Env.t = access.get_mv_field orig_acc in
+    let cached_env : Env.t = access.get_mv_field cached_acc in
     let orig_span : Stmts_match_span.t = access.get_span_field orig_acc in
     let cached_span : Stmts_match_span.t = access.get_span_field cached_acc in
 
     let patched_full_env =
       List.map (fun ((k, _v) as cached_binding) ->
-        if MV.Env.has_backref k backrefs (* = is in min_env *) then
+        if Env.has_backref k backrefs (* = is in min_env *) then
           cached_binding
         else
-          match MV.Env.get_capture k orig_env with
+          match Env.get_capture k orig_env with
           | None -> (* wasn't bound before the call *) cached_binding
           | Some orig_v -> (* to be restored *) (k, orig_v)
       ) cached_env.full_env
@@ -481,7 +482,7 @@ module Cache = struct
     | _, [] ->
         compute pattern target acc
     | a :: _, b :: _ ->
-        let mv : Metavariable.Env.t = access.get_mv_field acc in
+        let mv : Env.t = access.get_mv_field acc in
         let key : Cache_key.t = {
           min_env = mv.min_env;
           function_id;
