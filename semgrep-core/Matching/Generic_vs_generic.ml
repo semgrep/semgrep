@@ -235,7 +235,10 @@ let rec m_dotted_name_prefix_ok a b =
   | [(s,t)], [x] when MV.is_metavar_name s ->
       envf (s,t) (MV.Id (x, None))
   | [(s,t)], _::_ when MV.is_metavar_name s ->
-      (* TODO: should we bind it instead to a MV.N IdQualified? *)
+      (* TODO: should we bind it instead to a MV.N IdQualified?
+       * but it is actually just the qualifier part; the last id
+       * is not here (even though make_dottd will not care about that)
+      *)
       envf (s,t) (MV.E (make_dotted b))
   | xa::aas, xb::bbs ->
       let* () = m_ident xa xb in
