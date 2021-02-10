@@ -616,10 +616,13 @@ and expression (env : env) (x : CST.expression) : AST.expr =
    | `Cmd_call (v1, v2) ->
        let v1 =
          (match v1 with
-          | `Var x -> Id (variable env x)
-          | `Scope_resol x -> ScopedId (scope_resolution env x)
           | `Call x -> call env x
           | `Chai_cmd_call x -> chained_command_call env x
+          | `Choice_var x ->
+              (match x with
+               | `Var x -> Id (variable env x)
+               | `Scope_resol x -> ScopedId (scope_resolution env x)
+              )
          )
        in
        let v2 = command_argument_list env v2 in
@@ -792,7 +795,8 @@ and primary (env : env) (x : CST.primary) : AST.expr =
        in
        let v3 = token2 env v3 in
        Literal (String (Tick (v1, v2, v3)))
-   | `Symb x -> Atom (symbol env x)
+   | `Simple_symb tok -> Atom (simple_symbol env tok)
+   | `Deli_symb x -> Atom (delimited_symbol env x)
    | `Int tok -> Literal (Num (str env tok))
    | `Float tok -> Literal (Float (str env tok))
    | `Comp tok -> Literal (Complex (str env tok))
@@ -972,17 +976,17 @@ and primary (env : env) (x : CST.primary) : AST.expr =
        in
        let _v5 = token2 env v5 in
        S (Unless (v1, v2, v3, v4))
-   | `For (v1, v2, v3, v4, v5) ->
+   | `For (v1, v2, v3, v4) ->
        let v1 = token2 env v1 (* "for" *) in
-       let v2 = anon_choice_lhs_3a98eae env v2 in
-       let v3 =
-         List.map (fun (_v1 (* "," *), v2) ->
-           anon_choice_lhs_3a98eae env v2
-         ) v3
+       let v2 =
+         (match v2 with
+          | `Lhs x -> lhs env x
+          | `Left_assign_list x -> left_assignment_list env x
+         )
        in
-       let (t, e) = in_ env v4 in
-       let v5 = do_ env v5 in
-       S (For (v1, Tuple (v2::v3), t, e, v5))
+       let (t, e) = in_ env v3 in
+       let v4 = do_ env v4 in
+       S (For (v1, v2, t, e, v4))
    | `Case (v1, v2, v3, v5, v6, v7) ->
        let v1 = token2 env v1 in
        let v2 =
@@ -1136,82 +1140,52 @@ and chained_command_call (env : env) ((v1, v2, v3) : CST.chained_command_call) :
 
 and command_call_with_block (env : env) (x : CST.command_call_with_block) : AST.expr =
   (match x with
-   | `Choice_var_cmd_arg_list_blk (v1, v2, v3) ->
-       let v1 =
-         (match v1 with
-          | `Var x -> Id (variable env x)
-          | `Scope_resol x -> ScopedId (scope_resolution env x)
-          | `Call x -> call env x
-         )
-       in
+   | `Choice_call_cmd_arg_list_blk (v1, v2, v3) ->
+       let v1 = anon_choice_call_fd54051 env v1 in
        let v2 = command_argument_list env v2 in
        let v3 = block env v3 in
        Call (v1, v2, Some v3)
-   | `Choice_var_cmd_arg_list_do_blk (v1, v2, v3) ->
-       let v1 =
-         (match v1 with
-          | `Var x -> Id (variable env x)
-          | `Scope_resol x -> ScopedId (scope_resolution env x)
-          | `Call x -> call env x
-         )
-       in
+   | `Choice_call_cmd_arg_list_do_blk (v1, v2, v3) ->
+       let v1 = anon_choice_call_fd54051 env v1 in
        let v2 = command_argument_list env v2 in
        let v3 = do_block env v3 in
        Call (v1, v2, Some v3)
   )
 
-and method_call (env : env) (x : CST.method_call) : AST.expr =
+and anon_choice_call_fd54051 (env : env) (x : CST.anon_choice_call_fd54051) =
   (match x with
-   | `Choice_var_arg_list (v1, v2) ->
-       let v1 =
-         (match v1 with
-          | `Var x -> Id (variable env x)
-          | `Scope_resol x -> ScopedId (scope_resolution env x)
-          | `Call x -> call env x
-         )
-       in
+   | `Call x -> call env x
+   | `Choice_var x -> map_anon_choice_var_18b08b3 env x
+  )
+
+and map_anon_choice_var_18b08b3 (env : env) (x : CST.anon_choice_var_18b08b3) =
+  (match x with
+   | `Var x -> Id (variable env x)
+   | `Scope_resol x -> ScopedId (scope_resolution env x)
+  )
+
+and call_ (env : env) (x : CST.call_) : AST.expr =
+  (match x with
+   | `Choice_call_arg_list (v1, v2) ->
+       let v1 = anon_choice_call_fd54051 env v1 in
        let v2 = argument_list env v2 |> G.unbracket in
        Call (v1, v2, None)
-   | `Choice_var_arg_list_blk (v1, v2, v3) ->
-       let v1 =
-         (match v1 with
-          | `Var x -> Id (variable env x)
-          | `Scope_resol x -> ScopedId (scope_resolution env x)
-          | `Call x -> call env x
-         )
-       in
+   | `Choice_call_arg_list_blk (v1, v2, v3) ->
+       let v1 = anon_choice_call_fd54051 env v1 in
        let v2 = argument_list env v2 |> G.unbracket in
        let v3 = block env v3 in
        Call (v1, v2, Some v3)
-   | `Choice_var_arg_list_do_blk (v1, v2, v3) ->
-       let v1 =
-         (match v1 with
-          | `Var x -> Id (variable env x)
-          | `Scope_resol x -> ScopedId (scope_resolution env x)
-          | `Call x -> call env x
-         )
-       in
+   | `Choice_call_arg_list_do_blk (v1, v2, v3) ->
+       let v1 = anon_choice_call_fd54051 env v1 in
        let v2 = argument_list env v2 |> G.unbracket in
        let v3 = do_block env v3 in
        Call (v1, v2, Some v3)
-   | `Choice_var_blk (v1, v2) ->
-       let v1 =
-         (match v1 with
-          | `Var x -> Id (variable env x)
-          | `Scope_resol x -> ScopedId (scope_resolution env x)
-          | `Call x -> call env x
-         )
-       in
+   | `Choice_call_blk (v1, v2) ->
+       let v1 = anon_choice_call_fd54051 env v1 in
        let v2 = block env v2 in
        Call (v1, [], Some v2)
-   | `Choice_var_do_blk (v1, v2) ->
-       let v1 =
-         (match v1 with
-          | `Var x -> Id (variable env x)
-          | `Scope_resol x -> ScopedId (scope_resolution env x)
-          | `Call x -> call env x
-         )
-       in
+   | `Choice_call_do_blk (v1, v2) ->
+       let v1 = anon_choice_call_fd54051 env v1 in
        let v2 = do_block env v2 in
        Call (v1, [], Some v2)
   )
@@ -1271,7 +1245,7 @@ and splat_argument (env : env) ((v1, v2) : CST.splat_argument) =
   Splat(v1, Some v2)
 
 and hash_splat_argument (env : env) ((v1, v2) : CST.hash_splat_argument) =
-  let v1 = token2 env v1 in
+  let v1 = token2 env v1 (* hash_splat_star_star *) in
   let v2 = arg env v2 in
   Unary ((Op_UStarStar, v1), v2)
 
@@ -1454,7 +1428,7 @@ and binary (env : env) (x : CST.binary) =
        in
        let v3 = arg env v3 in
        Binop (v1, v2, v3)
-   | `Arg_STARSTAR_arg (v1, v2, v3) ->
+   | `Arg_bin_star_star_arg (v1, v2, v3) ->
        let v1 = arg env v1 in
        let v2 = token2 env v2 in
        let v3 = arg env v3 in
@@ -1611,7 +1585,7 @@ and lhs (env : env) (x : CST.lhs) : AST.expr =
        let e = DotAccess (v1, v2, MethodOperator (Op_AREF, v4)) in
        Call (e, v3, None)
    | `Call x -> call env x
-   | `Meth_call x -> method_call env x
+   | `Call_ x -> call_ env x
   )
 
 and method_name (env : env) (x : CST.method_name) : AST.method_name =
@@ -1622,7 +1596,8 @@ and method_name (env : env) (x : CST.method_name) : AST.method_name =
        let v1 = str env v1 in
        let v2 = token2 env v2 in
        MethodIdAssign (v1, v2, ID_Lowercase)
-   | `Symb x -> MethodAtom (symbol env x)
+   | `Simple_symb tok -> MethodAtom (simple_symbol env tok)
+   | `Deli_symb x -> MethodAtom (delimited_symbol env x)
    | `Op x -> let op = operator env x in
        (match op with
         | Left bin, t -> MethodOperator (bin ,t)
@@ -1633,11 +1608,14 @@ and method_name (env : env) (x : CST.method_name) : AST.method_name =
    | `Global_var tok -> MethodId (str env tok, ID_Global)
   )
 
-and interpolation (env : env) ((v1, v2, v3) : CST.interpolation) : AST.expr AST.bracket =
-  let lb = token2 env v1 in
-  let v2 = statement env v2 in
-  let rb = token2 env v3 in
-  (lb, v2, rb)
+and interpolation (env : env) ((v1, v2, v3) : CST.interpolation) : AST.expr AST.bracket option =
+  let lb = token2 env v1 (* "#{" *) in
+  let rb = token2 env v3 (* "}" *) in
+  match v2 with
+  | Some x ->
+      Some (lb, statement env x, rb)
+  | None ->
+      None
 
 and string_ (env : env) ((v1, v2, v3) : CST.string_) : AST.interp list bracket =
   let v1 = token2 env v1 in (* single or double quote *)
@@ -1649,33 +1627,33 @@ and string_ (env : env) ((v1, v2, v3) : CST.string_) : AST.interp list bracket =
   let v3 = token2 env v3 in (* single or double quote *)
   v1, v2, v3
 
-and symbol (env : env) (x : CST.symbol) : AST.atom =
-  (match x with
-   | `Simple_symb tok -> let x = str env tok in
-       AtomSimple x
-   | `Symb_start_opt_lit_content_str_end (v1, v2, v3) ->
-       let v1 = token2 env v1 in
-       let v2 =
-         (match v2 with
-          | Some x -> literal_contents env x
-          | None -> [])
-       in
-       let v3 = token2 env v3 in
-       AtomFromString (v1, v2, v3)
-  )
+and simple_symbol (env : env) (tok : CST.simple_symbol) =
+  AtomSimple (str env tok)
+
+and delimited_symbol (env : env) ((v1, v2, v3) : CST.delimited_symbol) =
+  let v1 = token2 env v1 (* symbol_start *) in
+  let v2 =
+    (match v2 with
+     | Some x -> literal_contents env x
+     | None -> [])
+  in
+  let v3 = token2 env v3 (* string_end *) in
+  AtomFromString (v1, v2, v3)
 
 and literal_contents (env : env) (xs : CST.literal_contents) : AST.interp list =
-  List.map (fun x ->
+  List.filter_map (fun x ->
     (match x with
      | `Str_content tok ->
          let x = str env tok in
-         StrChars x
+         Some (StrChars x)
      | `Interp x ->
-         let (_lb, e, _rb) = interpolation env x in
-         StrExpr e
+         (match interpolation env x with
+          | Some (_lb, e, _rb) -> Some (StrExpr e)
+          | None -> None
+         )
      | `Esc_seq tok ->
          let x = str env tok in
-         StrChars x
+         Some (StrChars x)
     )
   ) xs
 
@@ -1702,10 +1680,10 @@ and pair (env : env) (x : CST.pair) =
        let v2 = token2 env v2 in  (* => *)
        let v3 = arg env v3 in
        Binop(v1, (Op_ASSOC, v2), v3)
-   | `Choice_id_hash_key_imm_tok_COLON_arg (v1, v2, v3) ->
+   | `Choice_hash_key_symb_imm_tok_COLON_arg (v1, v2, v3) ->
        let v1 =
          (match v1 with
-          | `Id_hash_key tok -> Id (str env tok, ID_Lowercase)
+          | `Hash_key_symb tok -> Id (str env tok, ID_Lowercase)
           | `Id tok -> Id (str env tok, ID_Lowercase)
           | `Cst tok -> Id (str env tok, ID_Uppercase)
           | `Str x -> mk_Literal_String (string_ env x)
