@@ -32,8 +32,9 @@ module AST = AST_generic
 module Lib = Lib_AST
 module Flag = Flag_semgrep
 module H = AST_generic_helpers
-module CK = Caching.Cache_key
 
+(* optimisations *)
+module CK = Caching.Cache_key
 module Env = Metavariable_capture
 module F = Bloom_filter
 
@@ -74,20 +75,14 @@ let logger = Logging.get_logger [__MODULE__]
  *    parts of the AST are attributes/annotations that can be skipped.
  *    In the same way, code equivalences like name resolution on the AST
  *    would be more difficult with an untyped-general tree.
- *
 *)
 
 (*****************************************************************************)
 (* Extra Helpers *)
 (*****************************************************************************)
 
-(* Getters and setters that were left abstract in the cache implementation. *)
-let cache_access : tin Caching.Cache.access = {
-  get_span_field = (fun tin -> tin.stmts_match_span);
-  set_span_field = (fun tin x -> { tin with stmts_match_span = x });
-  get_mv_field = (fun tin -> tin.mv);
-  set_mv_field = (fun tin mv -> { tin with mv });
-}
+let env_add_matched_stmt rightmost_stmt (tin : tin) =
+  [extend_stmts_match_span rightmost_stmt tin]
 
 (*s: function [[Generic_vs_generic.m_string_xhp_text]] *)
 (* equivalence: on different indentation
@@ -98,9 +93,6 @@ let m_string_xhp_text sa sb =
   then return ()
   else fail ()
 (*e: function [[Generic_vs_generic.m_string_xhp_text]] *)
-
-let env_add_matched_stmt rightmost_stmt (tin : tin) =
-  [extend_stmts_match_span rightmost_stmt tin]
 
 (* less: could be made more general by taking is_dots function parameter *)
 let has_ellipsis_and_filter_ellipsis xs =
@@ -144,9 +136,24 @@ let rec all_suffix_of_list xs =
 let _ = Common2.example
     (all_suffix_of_list [1;2;3] = ([[1;2;3]; [2;3]; [3]; []]))
 
+(*****************************************************************************)
+(* Optimisations (caching, bloom filter) *)
+(*****************************************************************************)
+
+(* Getters and setters that were left abstract in the cache implementation. *)
+let cache_access : tin Caching.Cache.access = {
+  get_span_field = (fun tin -> tin.stmts_match_span);
+  set_span_field = (fun tin x -> { tin with stmts_match_span = x });
+  get_mv_field = (fun tin -> tin.mv);
+  set_mv_field = (fun tin mv -> { tin with mv });
+}
+
 let stmts_may_match pattern_stmts (stmts : AST_generic.stmt list) =
-  if not !Flag.use_bloom_filter then F.Maybe else
-    let pattern_list = Bloom_annotation.list_of_pattern_strings (Ss pattern_stmts) in
+  if not !Flag.use_bloom_filter
+  then F.Maybe
+  else
+    let pattern_list =
+      Bloom_annotation.list_of_pattern_strings (Ss pattern_stmts) in
     let pat_in_stmt pat (stmt : AST_generic.stmt) =
       match stmt.s_bf with
       | None -> F.Maybe
@@ -208,6 +215,9 @@ let m_dotted_name a b =
 (*e: function [[Generic_vs_generic.m_dotted_name]] *)
 
 (*s: function [[Generic_vs_generic.make_dotted]] *)
+(* This is for languages like Python where foo.arg.func is not parsed
+ * as a qualified name but as a chain of DotAccess.
+*)
 let make_dotted xs =
   match xs with
   | [] -> raise Impossible
@@ -225,6 +235,7 @@ let rec m_dotted_name_prefix_ok a b =
   | [(s,t)], [x] when MV.is_metavar_name s ->
       envf (s,t) (MV.Id (x, None))
   | [(s,t)], _::_ when MV.is_metavar_name s ->
+      (* TODO: should we bind it instead to a MV.N IdQualified? *)
       envf (s,t) (MV.E (make_dotted b))
   | xa::aas, xb::bbs ->
       let* () = m_ident xa xb in
@@ -332,13 +343,47 @@ let _m_resolved_name (a1, a2) (b1, b2) =
 
 (* start of recursive need *)
 (*s: function [[Generic_vs_generic.m_name]] *)
-let rec m_name_ a b =
+(* TODO: factorize metavariable and aliasing logic in m_expr, m_type, m_attr
+ * here, and use a new MV.N instead of MV.Id
+*)
+let rec m_name a b =
+  match a, b with
+  | A.Id (a1, a2), B.Id (b1, b2) ->
+      m_ident a1 b1 >>= (fun () ->
+        m_id_info a2 b2)
+  | A.IdQualified (a1, a2), B.IdQualified (b1, b2) ->
+      m_name_ a1 b1 >>= (fun () ->
+        m_id_info a2 b2)
+  | A.Id _, _ | A.IdQualified _, _ -> fail ()
+
+and m_name_ a b =
   match a,b with
   | (a1, a2), (b1, b2) ->
       m_ident a1 b1 >>= (fun () ->
         m_name_info a2 b2
       )
 (*e: function [[Generic_vs_generic.m_name]] *)
+
+(*s: function [[Generic_vs_generic.m_name_info]] *)
+and m_name_info a b =
+  match a, b with
+    { A. name_qualifier = a1; name_typeargs = a2; },
+    { B. name_qualifier = b1; name_typeargs = b2; }
+    ->
+      (m_option m_qualifier) a1 b1 >>= (fun () ->
+        (m_option m_type_arguments) a2 b2
+      )
+(*e: function [[Generic_vs_generic.m_name_info]] *)
+
+and m_qualifier a b =
+  match a, b with
+  | A.QDots a, B.QDots b -> m_dotted_name a b
+  | A.QTop a, B.QTop b -> m_tok a b
+  | A.QExpr (a1, a2), B.QExpr (b1, b2) ->
+      m_expr a1 b1 >>= (fun () ->
+        m_tok a2 b2
+      )
+  | A.QDots _, _ | A.QTop _, _ | A.QExpr _, _ -> fail ()
 
 and m_type_option_with_hook idb taopt tbopt =
   match taopt, tbopt with
@@ -522,6 +567,7 @@ and m_expr a b =
   | A.N (A.Id ((str, _), _)), B.IdSpecial (B.ConcatString _, _) when MV.is_metavar_name str ->
       fail ()
   (*e: [[Generic_vs_generic.m_expr()]] forbidden metavariable case *)
+  (* TODO: factorize in m_name? *)
   | A.N (A.Id ((str,tok), _id_info)), B.N (B.Id (idb, id_infob))
     when MV.is_metavar_name str ->
       envf (str, tok) (MV.Id (idb, Some id_infob))
@@ -612,6 +658,7 @@ and m_expr a b =
         ))
 
   (* boilerplate *)
+  (* TODO: via m_name! and miss IdQualfied vs IdQualified otherwise *)
   | A.N (A.Id(a1, a2)), B.N (B.Id(b1, b2)) ->
       m_ident a1 b1 >>= (fun () ->
         m_id_info a2 b2 )
@@ -774,6 +821,7 @@ and m_expr a b =
 (*s: function [[Generic_vs_generic.m_field_ident]] *)
 and m_name_or_dynamic a b =
   match a, b with
+  (* TODO: factorize in m_name *)
   | A.EN (A.Id ((str, tok), a2)), B.EN (B.Id (idb, b2))
     when MV.is_metavar_name str ->
       (* a bit OCaml specific, cos only ml_to_generic tags id_type in pattern *)
@@ -957,40 +1005,6 @@ and m_concat_string_kind a b =
   | A.FString, _ -> fail ()
   (* less-is-more: *)
   | _ -> return ()
-
-(*s: function [[Generic_vs_generic.m_name_info]] *)
-and m_name_info a b =
-  match a, b with
-    { A. name_qualifier = a1; name_typeargs = a2; },
-    { B. name_qualifier = b1; name_typeargs = b2; }
-    ->
-      (m_option m_qualifier) a1 b1 >>= (fun () ->
-        (m_option m_type_arguments) a2 b2
-      )
-(*e: function [[Generic_vs_generic.m_name_info]] *)
-
-and m_qualifier a b =
-  match a, b with
-  | A.QDots a, B.QDots b -> m_dotted_name a b
-  | A.QTop a, B.QTop b -> m_tok a b
-  | A.QExpr (a1, a2), B.QExpr (b1, b2) ->
-      m_expr a1 b1 >>= (fun () ->
-        m_tok a2 b2
-      )
-  | A.QDots _, _ | A.QTop _, _ | A.QExpr _, _ -> fail ()
-
-(* TODO: factorize metavariable and aliasing logic in m_expr, m_type, m_attr
- * here, and use a new MV.N instead of MV.Id
-*)
-and m_name a b =
-  match a, b with
-  | A.Id (a1, a2), B.Id (b1, b2) ->
-      m_ident a1 b1 >>= (fun () ->
-        m_id_info a2 b2)
-  | A.IdQualified (a1, a2), B.IdQualified (b1, b2) ->
-      m_name_ a1 b1 >>= (fun () ->
-        m_id_info a2 b2)
-  | A.Id _, _ | A.IdQualified _, _ -> fail ()
 
 and m_container_set_or_dict_unordered_elements (a1, a2) (b1, b2) =
   match ((a1, a2), (b1, b2)) with
@@ -1344,13 +1358,15 @@ and m_type_ a b =
       (m_bracket (m_list m_type_)) a1 b1
 
   (*s: [[Generic_vs_generic.m_type_]] boilerplate cases *)
+  (* TODO: do via m_name *)
   | A.TyN (A.Id(a1, a2)), B.TyN (B.Id(b1, b2)) ->
       m_ident_and_id_info (a1, a2) (b1, b2)
-  | A.TyAny(a1), B.TyAny(b1) ->
-      m_tok a1 b1
   | A.TyN (A.IdQualified(a1, a2)), B.TyN (B.IdQualified(b1, b2)) ->
       let* () = m_name_ a1 b1 in
       m_id_info a2 b2
+
+  | A.TyAny(a1), B.TyAny(b1) ->
+      m_tok a1 b1
   | A.TyNameApply(a1, a2), B.TyNameApply(b1, b2) ->
       m_dotted_name a1 b1 >>= (fun () ->
         m_type_arguments a2 b2
@@ -1455,6 +1471,7 @@ and m_attribute a b =
   match a, b with
   (*s: [[Generic_vs_generic.m_attribute]] resolving alias case *)
   (* equivalence: name resolving! *)
+  (* TODO: factorize with m_name again *)
   | a,   B.NamedAttr (t1, B.Id (b1, { B.id_resolved =
                                         {contents = Some ( ( B.ImportedEntity dotted
                                                            | B.ImportedModule (B.DottedName dotted)
@@ -1488,7 +1505,7 @@ and m_other_attribute_operator = m_other_xxx
 
 
 (*****************************************************************************)
-(* Statement *)
+(* Statement list *)
 (*****************************************************************************)
 (* possibly go deeper when someone wants that a pattern like
  *   ...
@@ -1627,7 +1644,7 @@ and m_list__m_stmt_uncached ~list_kind (xsa: A.stmt list) (xsb: A.stmt list) =
   | No -> fail ()
   | Maybe ->
       (*s: [[Generic_vs_generic.m_list__m_stmt]] if [[debug]] *)
-      logger#debug "%d vs %d" (List.length xsa) (List.length xsb);
+      logger#ldebug (lazy (spf "%d vs %d" (List.length xsa) (List.length xsb)));
       (*e: [[Generic_vs_generic.m_list__m_stmt]] if [[debug]] *)
       match xsa, xsb with
       | [], [] ->
@@ -1668,6 +1685,10 @@ and m_list__m_stmt_uncached ~list_kind (xsa: A.stmt list) (xsb: A.stmt list) =
           fail ()
 (*e: function [[Generic_vs_generic.m_list__m_stmt]] *)
 
+(*****************************************************************************)
+(* Statement *)
+(*****************************************************************************)
+
 (*s: function [[Generic_vs_generic.m_stmt]] *)
 and m_stmt a b =
   match a.s, b.s with
@@ -1679,6 +1700,9 @@ and m_stmt a b =
   (*e: [[Generic_vs_generic.m_stmt()]] disjunction case *)
   (*s: [[Generic_vs_generic.m_stmt()]] metavariable case *)
   (* metavar: *)
+  (* TODO: only if fake semicolon! otherwise the metavar is not a
+   * a statement metavar but an expression metavar.
+  *)
   | A.ExprStmt(A.N (A.Id ((str,tok), _id_info)), _), _b
     when MV.is_metavar_name str ->
       envf (str, tok) (MV.S b)
@@ -1931,7 +1955,6 @@ and m_other_stmt_operator = m_other_xxx
 and m_other_stmt_with_stmt_operator = m_other_xxx
 (*e: function [[Generic_vs_generic.m_other_stmt_with_stmt_operator]] *)
 
-
 (*****************************************************************************)
 (* Pattern *)
 (*****************************************************************************)
@@ -2031,7 +2054,6 @@ and m_field_pattern a b =
 (*s: function [[Generic_vs_generic.m_other_pattern_operator]] *)
 and m_other_pattern_operator = m_other_xxx
 (*e: function [[Generic_vs_generic.m_other_pattern_operator]] *)
-
 
 (*****************************************************************************)
 (* Definitions *)
@@ -2133,7 +2155,6 @@ and m_type_parameter a b =
       )
 (*e: function [[Generic_vs_generic.m_type_parameter]] *)
 
-
 (* ------------------------------------------------------------------------- *)
 (* Function (or method) definition *)
 (* ------------------------------------------------------------------------- *)
@@ -2225,7 +2246,6 @@ and m_parameter_classic a b =
 and m_other_parameter_operator = m_other_xxx
 (*e: function [[Generic_vs_generic.m_other_parameter_operator]] *)
 
-
 (* ------------------------------------------------------------------------- *)
 (* Variable definition *)
 (* ------------------------------------------------------------------------- *)
@@ -2240,7 +2260,6 @@ and m_variable_definition a b =
         (m_option_none_can_match_some m_type_) a2 b2
       )
 (*e: function [[Generic_vs_generic.m_variable_definition]] *)
-
 
 (* ------------------------------------------------------------------------- *)
 (* Field definition and use *)
@@ -2341,7 +2360,6 @@ and m_field a b =
     -> fail ()
 (*e: [[Generic_vs_generic.m_field]] boilerplate cases *)
 (*e: function [[Generic_vs_generic.m_field]] *)
-
 
 (* ------------------------------------------------------------------------- *)
 (* Type definition *)
@@ -2474,7 +2492,6 @@ and m_class_kind_bis a b =
     -> fail ()
 (*e: function [[Generic_vs_generic.m_class_kind]] *)
 
-
 (* ------------------------------------------------------------------------- *)
 (* Module definition *)
 (* ------------------------------------------------------------------------- *)
@@ -2508,7 +2525,6 @@ and m_module_definition_kind a b =
 and m_other_module_operator = m_other_xxx
 (*e: function [[Generic_vs_generic.m_other_module_operator]] *)
 
-
 (* ------------------------------------------------------------------------- *)
 (* Macro definition *)
 (* ------------------------------------------------------------------------- *)
@@ -2522,7 +2538,6 @@ and m_macro_definition a b =
         (m_list m_any) a2 b2
       )
 (*e: function [[Generic_vs_generic.m_macro_definition]] *)
-
 
 (*****************************************************************************)
 (* Directives (Module import/export, macros) *)
@@ -2553,7 +2568,6 @@ and m_directive a b =
         fail ()
   )
 (*e: function [[Generic_vs_generic.m_directive]] *)
-
 
 (* less-is-ok: a few of these below with the use of m_module_name_prefix and
  * m_option_none_can_match_some.
