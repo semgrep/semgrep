@@ -316,6 +316,9 @@ let reserved_identifier (env : env) (x : CST.reserved_identifier) =
    | `From tok -> str env tok (* "from" *)
   )
 
+let unhandled_keywordattr_to_namedattr (env : env) tok =
+  NamedAttr (token env tok, Id (str env tok, empty_id_info ()), fake_bracket [])
+
 let modifier (env : env) (x : CST.modifier) =
   (* TODO these should all be KeywordAttr, but pfff doesn't know about all keywords *)
   (match x with
@@ -323,20 +326,20 @@ let modifier (env : env) (x : CST.modifier) =
    | `Async tok -> KeywordAttr (Async, token env tok) (* "async" *)
    | `Const tok -> KeywordAttr (Const, token env tok) (* "const" *)
    | `Extern tok -> KeywordAttr (Extern, token env tok) (* "extern" *)
-   | `Fixed tok -> NamedAttr (token env tok, [str env tok], empty_id_info (), fake_bracket []) (* "fixed" *)
-   | `Inte tok -> NamedAttr (token env tok, [str env tok], empty_id_info (), fake_bracket []) (* "internal" *)
-   | `New tok -> NamedAttr (token env tok, [str env tok], empty_id_info (), fake_bracket []) (* "new" *)
-   | `Over tok -> NamedAttr (token env tok, [str env tok], empty_id_info (), fake_bracket []) (* "override" *)
-   | `Part tok -> NamedAttr (token env tok, [str env tok], empty_id_info (), fake_bracket []) (* "partial" *)
+   | `Fixed tok -> unhandled_keywordattr_to_namedattr env tok
+   | `Inte tok -> unhandled_keywordattr_to_namedattr env tok
+   | `New tok -> unhandled_keywordattr_to_namedattr env tok
+   | `Over tok -> unhandled_keywordattr_to_namedattr env tok
+   | `Part tok -> unhandled_keywordattr_to_namedattr env tok
    | `Priv tok -> KeywordAttr (Private, token env tok) (* "private" *)
    | `Prot tok -> KeywordAttr (Protected, token env tok) (* "protected" *)
    | `Public tok -> KeywordAttr (Public, token env tok) (* "public" *)
    | `Read tok -> KeywordAttr (Const, token env tok) (* "readonly" *)
-   | `Ref tok -> NamedAttr (token env tok, [str env tok], empty_id_info (), fake_bracket []) (* "ref" *)
+   | `Ref tok -> unhandled_keywordattr_to_namedattr env tok
    | `Sealed tok -> KeywordAttr (Final, token env tok) (* "sealed" *) (* TODO we map Sealed to Final here, is that OK? *)
    | `Static tok -> KeywordAttr (Static, token env tok) (* "static" *)
-   | `Unsafe tok -> NamedAttr (token env tok, [str env tok], empty_id_info (), fake_bracket []) (* "unsafe" *)
-   | `Virt tok -> NamedAttr (token env tok, [str env tok], empty_id_info (), fake_bracket []) (* "virtual" *)
+   | `Unsafe tok -> unhandled_keywordattr_to_namedattr env tok
+   | `Virt tok -> unhandled_keywordattr_to_namedattr env tok
    | `Vola tok -> KeywordAttr (Volatile, token env tok) (* "volatile" *)
   )
 
@@ -1913,7 +1916,7 @@ and attribute (env : env) ((v1, v2) : CST.attribute) =
      | None -> fake_bracket [])
   in
   (* TODO get the first [ as token here? *)
-  AST.NamedAttr (fake "[", ids_of_name v1, empty_id_info (), v2)
+  AST.NamedAttr (fake "[", AST.IdQualified (v1, empty_id_info ()), v2)
 
 and argument_list (env : env) ((v1, v2, v3) : CST.argument_list) : AST.arguments bracket =
   let v1 = token env v1 (* "(" *) in
@@ -2083,8 +2086,8 @@ let accessor_declaration (env : env) ((v1, v2, v3, v4) : CST.accessor_declaratio
     (match v3 with
      | `Get tok -> identifier env tok, KeywordAttr (Getter, token env tok) (* "get" *)
      | `Set tok -> identifier env tok, KeywordAttr (Setter, token env tok) (* "set" *)
-     | `Add tok -> identifier env tok, NamedAttr (token env tok, [str env tok], empty_id_info (), fake_bracket []) (* "add" *)
-     | `Remove tok -> identifier env tok, NamedAttr (token env tok, [str env tok], empty_id_info (), fake_bracket []) (* "remove" *)
+     | `Add tok -> identifier env tok, unhandled_keywordattr_to_namedattr env tok (* "add" *)
+     | `Remove tok -> identifier env tok, unhandled_keywordattr_to_namedattr env tok (* "remove" *)
      | `Id tok -> todo env tok (* identifier *)
     )
   in
@@ -2413,7 +2416,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
    | `Event_decl (v1, v2, v3, v4, v5, v6, v7) ->
        let v1 = List.concat_map (attribute_list env) v1 in
        let v2 = List.map (modifier env) v2 in
-       let v3 = NamedAttr (token env v3, [str env v3], empty_id_info (), fake_bracket []) (* "event" *) in
+       let v3 = unhandled_keywordattr_to_namedattr env v3 (* "event" *) in
        let v4 = type_constraint env v4 in
        let v5 =
          (match v5 with
@@ -2464,7 +2467,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
    | `Event_field_decl (v1, v2, v3, v4, v5) ->
        let v1 = List.concat_map (attribute_list env) v1 in
        let v2 = List.map (modifier env) v2 in
-       let v3 = NamedAttr (token env v3, [str env v3], empty_id_info (), fake_bracket []) (* "event" *) in
+       let v3 = unhandled_keywordattr_to_namedattr env v3 (* "event" *) in
        let v4 = variable_declaration env v4 in
        let v5 = token env v5 (* ";" *) in
        var_def_stmt v4 (v3 :: v1 @ v2)

@@ -758,7 +758,8 @@ and decorator (t, v1, v2) =
     | Some (t1, x, t2) -> (t1, x, t2)
     | None -> G.fake_bracket []
   in
-  G.NamedAttr (t, v1, G.empty_id_info(), args)
+  let name = H.name_of_ids v1 in
+  G.NamedAttr (t, name, args)
 (*e: function [[Python_to_generic.decorator]] *)
 
 (*s: function [[Python_to_generic.alias]] *)

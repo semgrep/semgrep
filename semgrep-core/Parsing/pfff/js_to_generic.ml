@@ -491,7 +491,8 @@ and attribute = function
         | None -> G.fake_bracket []
       in
       let args = list argument args |> List.map G.arg in
-      G.NamedAttr (t, ids, G.empty_id_info (), (t1, args, t2))
+      let name = H.name_of_ids ids in
+      G.NamedAttr (t, name, (t1, args, t2))
 
 and keyword_attribute (x, tok) =
   (match x with
