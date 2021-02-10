@@ -45,16 +45,6 @@ let gensym () =
 (* before Naming_AST.resolve can do its job *)
 (*e: function [[AST_generic.gensym]] *)
 
-(* todo: should also make sure nameinfo.name_typeargs is empty? *)
-let id_of_name_ (id, nameinfo) =
-  match nameinfo.name_qualifier with
-  | None | Some (QDots []) -> N (Id (id, empty_id_info ()))
-  | _ -> N (IdQualified ((id, nameinfo), empty_id_info()))
-
-(* TODO: delete *)
-let name_of_id id =
-  (id, empty_name_info)
-
 let name_of_ids ?(name_typeargs=None) xs =
   match List.rev xs with
   | [] -> failwith "name_of_ids: empty ids"
@@ -149,20 +139,20 @@ let is_boolean_operator = function
     -> true
 (*e: function [[AST_generic.is_boolean_operator]] *)
 
-let ident_or_dynamic_to_expr name idinfo_opt =
+let name_or_dynamic_to_expr name idinfo_opt =
   match name, idinfo_opt with
   (* assert idinfo = _idinfo below? *)
-  | EId (id, idinfo), None -> N (Id (id, idinfo))
-  | EId (id, _idinfo), Some idinfo -> N (Id (id, idinfo))
-  | EName n, None -> N (IdQualified (n, empty_id_info()))
-  | EName n, Some idinfo -> N (IdQualified (n, idinfo))
+  | EN (Id (id, idinfo)), None -> N (Id (id, idinfo))
+  | EN (Id (id, _idinfo)), Some idinfo -> N (Id (id, idinfo))
+  | EN (IdQualified (n, idinfo)), None -> N (IdQualified (n, idinfo))
+  | EN (IdQualified (n, _idinfo)), Some idinfo -> N (IdQualified (n, idinfo))
   | EDynamic e, _ -> e
 
 
 (*s: function [[AST_generic.vardef_to_assign]] *)
 (* used in controlflow_build and semgrep *)
 let vardef_to_assign (ent, def) =
-  let name = ident_or_dynamic_to_expr ent.name None in
+  let name = name_or_dynamic_to_expr ent.name None in
   let v =
     match def.vinit with
     | Some v -> v
@@ -175,7 +165,7 @@ let vardef_to_assign (ent, def) =
 (* used in controlflow_build *)
 let funcdef_to_lambda (ent, def) resolved =
   let idinfo = { (empty_id_info()) with id_resolved = ref resolved } in
-  let name = ident_or_dynamic_to_expr ent.name (Some idinfo) in
+  let name = name_or_dynamic_to_expr ent.name (Some idinfo) in
   let v = Lambda def in
   Assign (name, Parse_info.fake_info "=", v)
 (*e: function [[AST_generic.funcdef_to_lambda]] *)

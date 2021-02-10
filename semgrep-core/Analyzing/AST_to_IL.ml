@@ -213,10 +213,10 @@ let rec lval env eorig =
   | G.DotAccess (e1orig, tok, field) ->
       let base, base_constness = nested_lval env tok e1orig in
       (match field with
-       | G.EId (id, idinfo) ->
+       | G.EN (G.Id (id, idinfo)) ->
            { base; offset = Dot id; constness = idinfo.id_constness; }
-       | G.EName gname ->
-           let attr = expr env (H.id_of_name_ gname) in
+       | G.EN (name) ->
+           let attr = expr env (G.N name) in
            { base; offset = Index attr; constness = base_constness; }
        | G.EDynamic e2orig ->
            let attr = expr env e2orig in
@@ -564,7 +564,7 @@ and record env ((_tok, origfields, _) as record_def) =
   let fields =
     origfields
     |> List.map (function
-      | G.FieldStmt ({s=G.DefStmt ({G. name=G.EId (id, _);tparams=[];_}, def_kind);_}) ->
+      | G.FieldStmt ({s=G.DefStmt ({G. name=G.EN (G.Id (id, _));tparams=[];_}, def_kind);_}) ->
           let fdeforig =
             match def_kind with
             (* TODO: Consider what to do with vtype. *)
@@ -588,8 +588,8 @@ and record env ((_tok, origfields, _) as record_def) =
 (*s: function [[AST_to_IL.lval_of_ent]] *)
 let lval_of_ent env ent =
   match ent.G.name with
-  | G.EId (id, idinfo) -> lval_of_id_info env id idinfo
-  | G.EName gname -> lval env (G.N (G.IdQualified(gname, G.empty_id_info())))
+  | G.EN (G.Id (id, idinfo)) -> lval_of_id_info env id idinfo
+  | G.EN name -> lval env (G.N name)
   | G.EDynamic eorig -> lval env eorig
 (*e: function [[AST_to_IL.lval_of_ent]] *)
 

@@ -82,7 +82,7 @@ let rec eval x :constness option =
   match x with
   | L x -> Some (Lit x)
   | N (Id (_, { id_constness = {contents = Some x}; _}))
-  | DotAccess (IdSpecial (This, _), _, EId (_, {id_constness = {contents = Some x}; _})) ->
+  | DotAccess (IdSpecial (This, _), _, EN (Id (_, {id_constness = {contents = Some x}; _}))) ->
       Some x
 
   | Call(IdSpecial((Op(Plus | Concat) | ConcatString _), _), args)->

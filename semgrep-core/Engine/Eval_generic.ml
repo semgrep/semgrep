@@ -173,7 +173,7 @@ let rec eval env code =
        | _ -> Bool (false)
       )
   (* Emulate Python re.match just enough *)
-  | G.Call (G.DotAccess(G.N (G.Id (("re", _), _)), _, EId ((("match"),_),_)),
+  | G.Call (G.DotAccess(G.N (G.Id (("re", _), _)), _, EN (Id ((("match"),_),_))),
             (_, [G.Arg e1; G.Arg (G.L (G.String (re, _)))], _)) ->
       (* alt: take the text range of the metavariable in the original file,
        * and enforce e1 can only be an Id metavariable.
