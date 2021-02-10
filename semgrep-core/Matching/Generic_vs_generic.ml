@@ -1452,9 +1452,9 @@ and m_attribute a b =
   (*s: [[Generic_vs_generic.m_attribute]] resolving alias case *)
   (* equivalence: name resolving! *)
   | a,   B.NamedAttr (t1, B.Id (b1, { B.id_resolved =
-                                  {contents = Some ( ( B.ImportedEntity dotted
-                                                     | B.ImportedModule (B.DottedName dotted)
-                                                     ), _sid)}; _}), b2) ->
+                                        {contents = Some ( ( B.ImportedEntity dotted
+                                                           | B.ImportedModule (B.DottedName dotted)
+                                                           ), _sid)}; _}), b2) ->
       (* We also allow an unqualified pattern like @Attr to match resolved
        * one like import org.foo.Attr; @Attr *)
       m_attribute a (B.NamedAttr (t1, B.Id (b1, B.empty_id_info()), b2))
@@ -1469,7 +1469,7 @@ and m_attribute a b =
       m_tok a0 b0 >>= (fun () ->
         m_name a1 b1 >>= (fun () ->
           m_bracket m_list__m_argument a2 b2
-          ))
+        ))
   | A.OtherAttribute(a1, a2), B.OtherAttribute(b1, b2) ->
       m_other_attribute_operator a1 b1 >>= (fun () ->
         (m_list m_any) a2 b2
