@@ -137,8 +137,7 @@ let fresh_lval env tok =
   { base = Var var; offset = NoOffset; constness = ref None; }
 (*e: function [[AST_to_IL.fresh_lval]] *)
 
-(*s: function [[AST_to_IL.lval_of_id_info]] *)
-let lval_of_id_info _env id id_info =
+let var_of_id_info id id_info =
   let sid =
     match !(id_info.G.id_resolved) with
     | Some (_resolved, sid) -> sid
@@ -148,7 +147,11 @@ let lval_of_id_info _env id id_info =
         log_warning (Some id_tok) msg;
         -1
   in
-  let var = id, sid in
+  (id, sid)
+
+(*s: function [[AST_to_IL.lval_of_id_info]] *)
+let lval_of_id_info _env id id_info =
+  let var = var_of_id_info id id_info in
   { base = Var var; offset = NoOffset; constness = id_info.id_constness; }
 (*e: function [[AST_to_IL.lval_of_id_info]] *)
 
@@ -634,6 +637,17 @@ let for_var_or_expr_list env xs =
 (*e: function [[AST_to_IL.for_var_or_expr_list]] *)
 
 (*****************************************************************************)
+(* Parameters *)
+(*****************************************************************************)
+
+let parameters _env params =
+  params
+  |> List.filter_map (function
+    | G.ParamClassic {pname=Some i; pinfo; _} ->
+        Some (var_of_id_info i pinfo)
+    | ___else___ -> None (* TODO *))
+
+(*****************************************************************************)
 (* Statement *)
 (*****************************************************************************)
 let rec stmt_aux env st =
@@ -784,8 +798,14 @@ and stmt env st =
 (*e: function [[AST_to_IL.stmt]] *)
 
 (*****************************************************************************)
-(* Entry point *)
+(* Entry points *)
 (*****************************************************************************)
+
+let function_definition def =
+  let env    = empty_env () in
+  let params = parameters env def.G.fparams in
+  let body   = stmt env def.G.fbody in
+  (params, body)
 
 (*s: function [[AST_to_IL.stmt (/home/pad/pfff/lang_GENERIC/analyze/AST_to_IL.ml)]] *)
 let stmt st =
