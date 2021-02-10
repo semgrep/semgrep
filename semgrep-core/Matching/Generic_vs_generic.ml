@@ -235,7 +235,10 @@ let rec m_dotted_name_prefix_ok a b =
   | [(s,t)], [x] when MV.is_metavar_name s ->
       envf (s,t) (MV.Id (x, None))
   | [(s,t)], _::_ when MV.is_metavar_name s ->
-      (* TODO: should we bind it instead to a MV.N IdQualified? *)
+      (* TODO: should we bind it instead to a MV.N IdQualified?
+       * but it is actually just the qualifier part; the last id
+       * is not here (even though make_dottd will not care about that)
+      *)
       envf (s,t) (MV.E (make_dotted b))
   | xa::aas, xb::bbs ->
       let* () = m_ident xa xb in
@@ -2577,6 +2580,14 @@ and m_directive a b =
 and m_directive_basic a b =
   match a, b with
   (*s: [[Generic_vs_generic.m_directive_basic]] import cases *)
+  (* metavar: import $LIB should bind $LIB to the full qualified name *)
+  | A.ImportFrom(a0, DottedName [], (str, tok), a3),
+    B.ImportFrom(b0, DottedName xs, x, b3) when MV.is_metavar_name str ->
+      let name = H.name_of_ids (xs @ [x]) in
+      let* () = m_tok a0 b0 in
+      let* () = envf (str, tok) (MV.N name) in
+      (m_option_none_can_match_some m_ident_and_id_info) a3 b3
+
   | A.ImportFrom(a0, a1, a2, a3), B.ImportFrom(b0, b1, b2, b3) ->
       m_tok a0 b0 >>= (fun () ->
         m_module_name_prefix a1 b1 >>= (fun () ->
