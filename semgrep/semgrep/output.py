@@ -429,7 +429,7 @@ class OutputHandler:
                 self.settings.output_per_finding_max_lines_limit,
             )
             if output:
-                print(output, file=self.stdout)
+                print(output.encode("utf-8"), file=self.stdout)
             if self.stats_line:
                 logger.info(self.stats_line)
 
