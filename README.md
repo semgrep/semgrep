@@ -31,13 +31,13 @@
 </p>
 </br>
 
-Semgrep is a fast, open-source, static analysis tool that excels at expressing code standards — without complicated queries — and surfacing bugs early at editor, commit, and CI time. Precise rules look like the code you’re searching; no more traversing abstract syntax trees or wrestling with regexes.
+Semgrep is a fast, open-source, static analysis tool that finds bugs and enforces code standards at editor, commit, and CI time. Precise rules look like the code you’re searching; no more traversing abstract syntax trees, wrestling with regexes, or using a painful DSL. Code analysis is performed locally (code is not uploaded) and Semgrep runs on uncompiled code.
 
 The [Semgrep Registry](https://semgrep.dev/explore) has 1,000+ rules written by the Semgrep community covering security, correctness, and performance bugs. No need to DIY unless you want to.
 
-Semgrep runs offline, on uncompiled code.
+Semgrep is used in production everywhere from one-person startups to multi-billion dollar companies; it’s the engine inside tools like [NodeJsScan](https://semgrep.dev/p/nodejsscan). See tools [powered by Semgrep](https://semgrep.dev/docs/integrations/#semgrep-as-an-engine).
 
-Semgrep is used in production everywhere from one-person startups to multi-billion dollar companies; it is the engine inside tools like [NodeJsScan](https://semgrep.dev/p/nodejsscan). Semgrep is developed and commercially supported by [r2c, a software security company](https://r2c.dev). r2c’s hosted service, [Semgrep App](https://semgrep.dev), lets organizations write and share rules, and manage Semgrep in CI across many projects. r2c also offers free and paid hosted tiers for enterprises [see pricing](https://r2c.dev/pricing).
+Semgrep is developed and commercially supported by [r2c, a software security company](https://r2c.dev). r2c’s hosted service, [Semgrep App](https://semgrep.dev), lets organizations easily deploy in CI, manage rules across many projects, monitor the efficacy of code policy, and integrate with 3rd-party services. r2c offers free and paid hosted tiers ([see pricing](https://r2c.dev/pricing)).
 
 ### Language support
 
@@ -105,7 +105,7 @@ Visit [Integrations](https://semgrep.dev/docs/integrations/) to learn about Semg
 * [Frequently asked questions (FAQs)](https://semgrep.dev/docs/faq/)
 * [Contributing](https://semgrep.dev/docs/contributing/)
 * [Ask questions in the r2c Community Slack](https://r2c.dev/slack)
-* [CLI usage and exit codes](https://semgrep.dev/docs/cli-usage)
+* [CLI reference and exit codes](https://semgrep.dev/docs/cli-usage)
 * [r2c YouTube channel with Semgrep presentation videos](https://www.youtube.com/channel/UC5ahcFBorwzUTqPipFhjkWg)
 * [License (LGPL-2.1)](LICENSE)
 
