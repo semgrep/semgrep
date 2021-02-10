@@ -13,7 +13,7 @@ val prepare_pattern : AST_generic.any -> unit
 (* Exposes just the special-purpose types required to create the cache key. *)
 module Cache_key : sig
   type function_id = Match_deep | Match_list
-  type list_kind = Original | Flattened_until of AST_generic.Node_ID.t
+  type list_kind = Original | Flattened_until of AST_utils.Node_ID.t
 end
 
 module Cache : sig
@@ -25,8 +25,8 @@ module Cache : sig
   type 'a access = {
     get_span_field: ('a -> Stmts_match_span.t);
     set_span_field: ('a -> Stmts_match_span.t -> 'a);
-    get_mv_field: ('a -> Metavariable.Env.t);
-    set_mv_field: ('a -> Metavariable.Env.t -> 'a);
+    get_mv_field: ('a -> Metavariable_capture.t);
+    set_mv_field: ('a -> Metavariable_capture.t -> 'a);
   }
 
   val create : unit -> 'a t

@@ -4,7 +4,7 @@
 (* tin is for 'type in' and tout for 'type out' *)
 (* incoming environment *)
 type tin = {
-  mv : Metavariable.Env.t;
+  mv : Metavariable_capture.t;
   stmts_match_span : Stmts_match_span.t;
   cache : tout Caching.Cache.t option;
 }

@@ -34,6 +34,7 @@ module Flag = Flag_semgrep
 module H = AST_generic_helpers
 module CK = Caching.Cache_key
 
+module Env = Metavariable_capture
 module F = Bloom_filter
 
 open Matching_generic
@@ -1436,8 +1437,6 @@ and m_other_type_operator = m_other_xxx
 (*s: function [[Generic_vs_generic.m_other_type_argument_operator]] *)
 and m_other_type_argument_operator = m_other_xxx
 (*e: function [[Generic_vs_generic.m_other_type_argument_operator]] *)
-(*s: function [[Generic_vs_generic.m_other_type_argument_operator]] *)
-(*e: function [[Generic_vs_generic.m_other_type_argument_operator]] *)
 (*****************************************************************************)
 (* Attribute *)
 (*****************************************************************************)
@@ -1517,7 +1516,7 @@ and m_stmts_deep ~less_is_ok (xsa: A.stmt list) (xsb: A.stmt list) tin =
   (* shares the cache with m_list__m_stmt *)
   match tin.cache, xsa, xsb with
   | Some cache, a :: _, _ :: _ when a.s_use_cache ->
-      let tin = { tin with mv = MV.Env.update_min_env tin.mv a } in
+      let tin = { tin with mv = Env.update_min_env tin.mv a } in
       Caching.Cache.match_stmt_list
         ~access:cache_access
         ~cache
@@ -1606,7 +1605,7 @@ and m_list__m_stmt ~list_kind xsa xsb tin =
   (* shares the cache with m_stmts_deep *)
   match tin.cache, xsa, xsb with
   | Some cache, a :: _, _ :: _ when a.s_use_cache ->
-      let tin = { tin with mv = MV.Env.update_min_env tin.mv a } in
+      let tin = { tin with mv = Env.update_min_env tin.mv a } in
       Caching.Cache.match_stmt_list
         ~access:cache_access
         ~cache
@@ -2117,9 +2116,7 @@ and m_type_parameter_constraint a b =
     -> fail ()
 (*e: function [[Generic_vs_generic.m_type_parameter_constraint]] *)
 
-(*s: function [[Generic_vs_generic.m_other_type_parameter_operator]] *)
 and m_other_type_parameter_operator = m_other_xxx
-(*e: function [[Generic_vs_generic.m_other_type_parameter_operator]] *)
 
 (*s: function [[Generic_vs_generic.m_type_parameter_constraints]] *)
 and m_type_parameter_constraints a b =
