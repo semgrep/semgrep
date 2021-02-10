@@ -25,8 +25,8 @@ module Cache : sig
   type 'a access = {
     get_span_field: ('a -> Stmts_match_span.t);
     set_span_field: ('a -> Stmts_match_span.t -> 'a);
-    get_mv_field: ('a -> Metavariable.Env.t);
-    set_mv_field: ('a -> Metavariable.Env.t -> 'a);
+    get_mv_field: ('a -> Metavariable_capture.t);
+    set_mv_field: ('a -> Metavariable_capture.t -> 'a);
   }
 
   val create : unit -> 'a t

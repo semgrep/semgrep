@@ -93,6 +93,7 @@
 
 module Flag = Flag_semgrep
 module MV = Metavariable
+module Env = Metavariable_capture
 
 open Printf
 open AST_generic
@@ -388,8 +389,8 @@ module Cache = struct
   type 'a access = {
     get_span_field: ('a -> Stmts_match_span.t);
     set_span_field: ('a -> Stmts_match_span.t -> 'a);
-    get_mv_field: ('a -> Metavariable.Env.t);
-    set_mv_field: ('a -> Metavariable.Env.t -> 'a);
+    get_mv_field: ('a -> Metavariable_capture.t);
+    set_mv_field: ('a -> Metavariable_capture.t -> 'a);
   }
 
   let create () = Tbl.create 1000
@@ -430,17 +431,17 @@ module Cache = struct
       current_stmt
       orig_acc
       cached_acc =
-    let orig_env : MV.Env.t = access.get_mv_field orig_acc in
-    let cached_env : MV.Env.t = access.get_mv_field cached_acc in
+    let orig_env : Env.t = access.get_mv_field orig_acc in
+    let cached_env : Env.t = access.get_mv_field cached_acc in
     let orig_span : Stmts_match_span.t = access.get_span_field orig_acc in
     let cached_span : Stmts_match_span.t = access.get_span_field cached_acc in
 
     let patched_full_env =
       List.map (fun ((k, _v) as cached_binding) ->
-        if MV.Env.has_backref k backrefs (* = is in min_env *) then
+        if Env.has_backref k backrefs (* = is in min_env *) then
           cached_binding
         else
-          match MV.Env.get_capture k orig_env with
+          match Env.get_capture k orig_env with
           | None -> (* wasn't bound before the call *) cached_binding
           | Some orig_v -> (* to be restored *) (k, orig_v)
       ) cached_env.full_env
@@ -481,7 +482,7 @@ module Cache = struct
     | _, [] ->
         compute pattern target acc
     | a :: _, b :: _ ->
-        let mv : Metavariable.Env.t = access.get_mv_field acc in
+        let mv : Env.t = access.get_mv_field acc in
         let key : Cache_key.t = {
           min_env = mv.min_env;
           function_id;

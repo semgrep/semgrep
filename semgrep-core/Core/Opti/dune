@@ -1,0 +1,15 @@
+(library
+ (name semgrep_core_opti)
+ (wrapped false)
+ (libraries
+    pfff_lang_GENERIC_base
+    semgrep_core
+ )
+ (preprocess
+   (pps
+      ppx_deriving.show
+      ppx_deriving.eq
+      ppx_hash
+   )
+ )
+)
