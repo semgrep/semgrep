@@ -142,7 +142,8 @@ and annotation (t, v1, v2) =
     | None -> fb []
     | Some x -> bracket annotation_element x
   in
-  G.NamedAttr (t, v1, G.empty_id_info(), xs)
+  let name = H.name_of_ids v1 in
+  G.NamedAttr (t, name, xs)
 
 and type_arguments x = list type_argument x
 

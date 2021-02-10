@@ -428,9 +428,9 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
     let k x =
       match x with
       | KeywordAttr v1 -> let v1 = v_wrap v_keyword_attribute v1 in ()
-      | NamedAttr (t, v1, v2, v3) ->
+      | NamedAttr (t, v1, v3) ->
           let t = v_tok t in
-          let v1 = v_dotted_ident v1 and v2 = v_id_info v2 and
+          let v1 = v_name v1 and
             v3 = v_bracket (v_list v_argument) v3 in ()
       | OtherAttribute (v1, v2) ->
           let v1 = v_other_attribute_operator v1 and v2 = v_list v_any v2 in ()
