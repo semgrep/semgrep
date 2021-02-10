@@ -1215,13 +1215,11 @@ and other_type_operator =
   | OT_Todo
   (*e: type [[AST_generic.other_type_operator]] *)
 
-(*s: type [[AST_generic.other_type_argument_operator]] *)
 and other_type_argument_operator =
   (* Rust *)
   | OTA_Literal | OTA_ConstBlock
   (* Other *)
   | OTA_Todo
-  (*e: type [[AST_generic.other_type_argument_operator]] *)
 
 (*****************************************************************************)
 (* Attribute *)
@@ -1379,14 +1377,11 @@ and type_parameter_constraint =
   | OtherTypeParam of other_type_parameter_operator * any list
   (*e: type [[AST_generic.type_parameter_constraint]] *)
 
-(*s: type_parameter [[AST_generic.other_type_parameter_operator]] *)
 and other_type_parameter_operator =
   (* Rust *)
   | OTP_Lifetime | OTP_Ident | OTP_Constrained | OTP_Const
   (* Other *)
   | OTP_Todo
-  (*e: type_parameter [[AST_generic.other_type_parameter_operator]] *)
-
 
 (* ------------------------------------------------------------------------- *)
 (* Function (or method) definition *)

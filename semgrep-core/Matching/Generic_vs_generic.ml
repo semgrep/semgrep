@@ -1436,8 +1436,6 @@ and m_other_type_operator = m_other_xxx
 (*s: function [[Generic_vs_generic.m_other_type_argument_operator]] *)
 and m_other_type_argument_operator = m_other_xxx
 (*e: function [[Generic_vs_generic.m_other_type_argument_operator]] *)
-(*s: function [[Generic_vs_generic.m_other_type_argument_operator]] *)
-(*e: function [[Generic_vs_generic.m_other_type_argument_operator]] *)
 (*****************************************************************************)
 (* Attribute *)
 (*****************************************************************************)
@@ -2117,9 +2115,7 @@ and m_type_parameter_constraint a b =
     -> fail ()
 (*e: function [[Generic_vs_generic.m_type_parameter_constraint]] *)
 
-(*s: function [[Generic_vs_generic.m_other_type_parameter_operator]] *)
 and m_other_type_parameter_operator = m_other_xxx
-(*e: function [[Generic_vs_generic.m_other_type_parameter_operator]] *)
 
 (*s: function [[Generic_vs_generic.m_type_parameter_constraints]] *)
 and m_type_parameter_constraints a b =

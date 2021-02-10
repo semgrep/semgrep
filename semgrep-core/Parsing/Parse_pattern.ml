@@ -1,4 +1,3 @@
-
 (*s: semgrep/parsing/Parse_pattern.ml *)
 (*s: pad/r2c copyright *)
 (* Yoann Padioleau
