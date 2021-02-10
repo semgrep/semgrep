@@ -798,8 +798,6 @@ and m_name_or_dynamic a b =
     -> fail ()
 (*e: [[Generic_vs_generic.m_field_ident()]] boilerplate cases *)
 (*e: function [[Generic_vs_generic.m_field_ident]] *)
-and m_name _a _b =
-  raise Todo
 
 (*s: function [[Generic_vs_generic.m_label_ident]] *)
 and m_label_ident a b =
@@ -980,6 +978,18 @@ and m_qualifier a b =
       )
   | A.QDots _, _ | A.QTop _, _ | A.QExpr _, _ -> fail ()
 
+(* TODO: factorize metavariable and aliasing logic in m_expr, m_type, m_attr
+ * here, and use a new MV.N instead of MV.Id
+*)
+and m_name a b =
+  match a, b with
+  | A.Id (a1, a2), B.Id (b1, b2) ->
+      m_ident a1 b1 >>= (fun () ->
+        m_id_info a2 b2)
+  | A.IdQualified (a1, a2), B.IdQualified (b1, b2) ->
+      m_name_ a1 b1 >>= (fun () ->
+        m_id_info a2 b2)
+  | A.Id _, _ | A.IdQualified _, _ -> fail ()
 
 and m_container_set_or_dict_unordered_elements (a1, a2) (b1, b2) =
   match ((a1, a2), (b1, b2)) with
@@ -1446,27 +1456,25 @@ and m_attribute a b =
   match a, b with
   (*s: [[Generic_vs_generic.m_attribute]] resolving alias case *)
   (* equivalence: name resolving! *)
-  | a,   B.NamedAttr (t1, b1, { B.id_resolved =
-                                  {contents = Some ( ( B.ImportedEntity dotted
-                                                     | B.ImportedModule (B.DottedName dotted)
-                                                     ), _sid)}; _}, b2) ->
+  | a,   B.NamedAttr (t1, B.Id (b1, { B.id_resolved =
+                                        {contents = Some ( ( B.ImportedEntity dotted
+                                                           | B.ImportedModule (B.DottedName dotted)
+                                                           ), _sid)}; _}), b2) ->
       (* We also allow an unqualified pattern like @Attr to match resolved
        * one like import org.foo.Attr; @Attr *)
-      m_attribute a (B.NamedAttr (t1, b1, B.empty_id_info(), b2))
+      m_attribute a (B.NamedAttr (t1, B.Id (b1, B.empty_id_info()), b2))
       >||>
-      m_attribute a (B.NamedAttr (t1, dotted, B.empty_id_info(), b2))
+      m_attribute a (B.NamedAttr (t1, H.name_of_ids dotted, b2))
   (*e: [[Generic_vs_generic.m_attribute]] resolving alias case *)
 
   (* boilerplate *)
   | A.KeywordAttr(a1), B.KeywordAttr(b1) ->
       m_wrap m_keyword_attribute a1 b1
-  | A.NamedAttr(a0, a1, ida, a2), B.NamedAttr(b0, b1, idb, b2) ->
+  | A.NamedAttr(a0, a1, a2), B.NamedAttr(b0, b1, b2) ->
       m_tok a0 b0 >>= (fun () ->
-        m_dotted_name a1 b1 >>= (fun () ->
-          (* less: should use m_ident_and_id_info? *)
-          m_id_info ida idb >>= (fun () ->
-            m_bracket m_list__m_argument a2 b2
-          )))
+        m_name a1 b1 >>= (fun () ->
+          m_bracket m_list__m_argument a2 b2
+        ))
   | A.OtherAttribute(a1, a2), B.OtherAttribute(b1, b2) ->
       m_other_attribute_operator a1 b1 >>= (fun () ->
         (m_list m_any) a2 b2

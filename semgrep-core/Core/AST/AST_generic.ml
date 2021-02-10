@@ -1230,9 +1230,8 @@ and other_type_argument_operator =
 (*s: type [[AST_generic.attribute]] *)
 and attribute =
   | KeywordAttr of keyword_attribute wrap
-  (* for general @annotations.
-   * TODO: use name instead of dotted_ident? *)
-  | NamedAttr of tok (* @ *) * dotted_ident * id_info * arguments bracket
+  (* for general @annotations. *)
+  | NamedAttr of tok (* @ *) * name * arguments bracket
   (*s: [[AST_generic.attribute]] OtherXxx case *)
   | OtherAttribute of other_attribute_operator * any list
   (*e: [[AST_generic.attribute]] OtherXxx case *)

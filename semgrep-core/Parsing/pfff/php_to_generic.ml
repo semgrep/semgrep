@@ -481,11 +481,11 @@ and attribute v =
   match v with
   | Id [id] ->
       let id = ident id in
-      G.NamedAttr (fake "@", [id], G.empty_id_info(), fb [])
+      G.NamedAttr (fake "@", G.Id (id, G.empty_id_info()), fb [])
   | Call (Id [id], args) ->
       let id = ident id in
       let args = bracket (list argument) args in
-      G.NamedAttr (fake "@", [id], G.empty_id_info(), args)
+      G.NamedAttr (fake "@", G.Id (id, G.empty_id_info()), args)
   | _ -> raise Impossible (* see ast_php_build.ml *)
 
 

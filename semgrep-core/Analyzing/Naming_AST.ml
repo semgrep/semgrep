@@ -622,7 +622,7 @@ let resolve2 lang prog =
       );
       V.kattr = (fun (k, _v) x ->
         (match x with
-         | NamedAttr (_, [id], id_info, _args)
+         | NamedAttr (_, Id (id, id_info), _args)
            ->
              (match lookup_scope_opt id env with
               | Some resolved ->

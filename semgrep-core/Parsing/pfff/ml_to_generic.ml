@@ -451,7 +451,8 @@ and attribute (t1, (dotted, xs), t2) =
       | _ -> None
     )
   in
-  G.NamedAttr (t1, dotted, G.empty_id_info(), (t2, args, t2))
+  let name = H.name_of_ids dotted in
+  G.NamedAttr (t1, name, (t2, args, t2))
 
 and item { i; iattrs } =
   let attrs = attributes iattrs in
