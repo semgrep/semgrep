@@ -37,19 +37,18 @@ The [Semgrep Registry](https://semgrep.dev/explore) has 1,000+ rules written by 
 
 Semgrep runs offline, on uncompiled code.
 
-Semgrep is used in production everywhere from one-person startups to multi-billion dollar companies; it is the engine inside tools like [NodeJsScan](https://semgrep.dev/p/nodejsscan). Semgrep is developed and commercially supported by [r2c, a software security company](https://r2c.dev). r2c’s free hosted service, [Semgrep Community](https://semgrep.dev), lets organizations write and share rules, and manage Semgrep in CI across many projects. r2c also offers a paid hosted tier for enterprises, [Semgrep Team](https://r2c.dev/pricing).
+Semgrep is used in production everywhere from one-person startups to multi-billion dollar companies; it is the engine inside tools like [NodeJsScan](https://semgrep.dev/p/nodejsscan). Semgrep is developed and commercially supported by [r2c, a software security company](https://r2c.dev). r2c’s hosted service, [Semgrep App](https://semgrep.dev), lets organizations write and share rules, and manage Semgrep in CI across many projects. r2c also offers free and paid hosted tiers for enterprises [see pricing](https://r2c.dev/pricing).
 
 ### Language support
 
 
 <h4 align="center">General availability</h4>
 <p align="center">
-Go · Java · JavaScript · JSON · Python · Ruby</br>
+Go · Java · JavaScript · JSX · JSON · Python · Ruby · TypeScript · TSX</br>
 </p>
-<h4 align="center">Beta</h4>
+<h4 align="center">Beta & experimental</h4>
 <p align="center">
-TypeScript · JSX · TSX</br></br>
-Visit <a href="https://semgrep.dev/docs/status/">Supported languages</a> for the complete list.
+See <a href="https://semgrep.dev/docs/status/">supported languages</a> for the complete list.
 </p>
 
 ### Getting started
