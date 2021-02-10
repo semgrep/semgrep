@@ -798,13 +798,6 @@ and m_name_or_dynamic a b =
     -> fail ()
 (*e: [[Generic_vs_generic.m_field_ident()]] boilerplate cases *)
 (*e: function [[Generic_vs_generic.m_field_ident]] *)
-and m_name _a _b =
-  raise Todo
-(* code for Attr when was dotted_ident * id_info
-        m_dotted_name a1 b1 >>= (fun () ->
-          (* less: should use m_ident_and_id_info? *)
-          m_id_info ida idb >>= (fun () ->
-*)
 
 (*s: function [[Generic_vs_generic.m_label_ident]] *)
 and m_label_ident a b =
@@ -985,6 +978,18 @@ and m_qualifier a b =
       )
   | A.QDots _, _ | A.QTop _, _ | A.QExpr _, _ -> fail ()
 
+(* TODO: factorize metavariable and aliasing logic in m_expr, m_type, m_attr
+ * here, and use a new MV.N instead of MV.Id
+*)
+and m_name a b =
+  match a, b with
+  | A.Id (a1, a2), B.Id (b1, b2) ->
+      m_ident a1 b1 >>= (fun () ->
+        m_id_info a2 b2)
+  | A.IdQualified (a1, a2), B.IdQualified (b1, b2) ->
+      m_name_ a1 b1 >>= (fun () ->
+        m_id_info a2 b2)
+  | A.Id _, _ | A.IdQualified _, _ -> fail ()
 
 and m_container_set_or_dict_unordered_elements (a1, a2) (b1, b2) =
   match ((a1, a2), (b1, b2)) with
