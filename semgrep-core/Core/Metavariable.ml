@@ -53,7 +53,9 @@ type mvar = string
  * use of AST_generic.any for patterns.
 *)
 type mvalue =
+  (* TODO: get rid of Id, N generalize it *)
   | Id of AST_generic.ident * AST_generic.id_info option
+  | N of AST_generic.name
   | E of AST_generic.expr
   | S of AST_generic.stmt
   | Ss of AST_generic.stmt list
@@ -74,6 +76,7 @@ let mvalue_to_any = function
   *)
   | Id (id, Some idinfo) -> G.E (G.N (G.Id (id, idinfo)))
   | Id (id, None) -> G.E (G.N (G.Id (id, G.empty_id_info())))
+  | N x -> G.E (G.N x)
   | Ss x -> G.Ss x
   | Args x -> G.Args x
   | T x -> G.T x
