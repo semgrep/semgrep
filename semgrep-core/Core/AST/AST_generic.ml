@@ -432,20 +432,17 @@ and qualifier =
 (* This is used to represent field names, where sometimes the name
  * can be a dynamic expression, or more recently also to
  * represent entities like in Ruby where a class name can be dynamic.
- * TODO: rename name_of_dynamic and factorize with name type
 *)
-and ident_or_dynamic =
-  (* In the case of a field, it may be hard to resolve the id_info.
+and name_or_dynamic =
+  (* In the case of a field, it may be hard to resolve the id_info inside name.
    * For example, a method id can refer to many method definitions.
    * But for certain things, like a private field, we can resolve it
    * (right now we use an EnclosedVar for those fields).
+   *
+   * The IdQualified inside name is
+   * Useful for OCaml field access, but also for Ruby class entity name.
   *)
-  | EId of ident * id_info
-  (* Useful for OCaml field access, but also for Ruby class entity name.
-   * Note that we could also use EDynamic (IdQualified) but better to
-   * add special case here.
-  *)
-  | EName of (ident * name_info)
+  | EN of name
   (* for PHP/JS fields (even though JS use ArrayAccess for that), or Ruby *)
   | EDynamic of expr
 
@@ -538,10 +535,10 @@ and expr =
   (*e: [[AST_generic.expr]] other assign cases *)
 
   (* can be used for Record, Class, or Module access depending on expr.
-   * In the last case it should be rewritten as a IdQualified with a
+   * In the last case it should be rewritten as a (N IdQualified) with a
    * qualifier though.
   *)
-  | DotAccess of expr * tok (* ., ::, ->, # *) * ident_or_dynamic
+  | DotAccess of expr * tok (* ., ::, ->, # *) * name_or_dynamic
 
   (*s: [[AST_generic.expr]] array access cases *)
   (* in Js ArrayAccess is also abused to perform DotAccess (..., FDynamic) *)
@@ -1300,9 +1297,9 @@ and entity = {
   (* In Ruby you can define a class with a qualified name as in
    * class A::B::C, and even dynamically.
    * In C++ you can define a method with a class qualifier outside a class,
-   * hence the use of ident_or_dynamic below and not just ident.
+   * hence the use of name_or_dynamic below and not just ident.
   *)
-  name: ident_or_dynamic;
+  name: name_or_dynamic;
   (*s: [[AST_generic.entity]] attribute field *)
   attrs: attribute list;
   (*e: [[AST_generic.entity]] attribute field *)
@@ -1769,7 +1766,7 @@ and any =
   | Dk of definition_kind
   | Di of dotted_ident
   | Lbli of label_ident
-  | IoD of ident_or_dynamic
+  | NoD of name_or_dynamic
 
   | Tk of tok
   | TodoK of todo_kind
@@ -1860,7 +1857,7 @@ let param_of_type typ = {
 let basic_entity id attrs =
   let idinfo = empty_id_info () in
   {
-    name = EId (id, idinfo);
+    name = EN (Id (id, idinfo));
     attrs = attrs;
     tparams = [];
   }

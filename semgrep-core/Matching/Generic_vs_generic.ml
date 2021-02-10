@@ -214,7 +214,7 @@ let make_dotted xs =
       let base = B.N (B.Id (x, B.empty_id_info())) in
       List.fold_left (fun acc e ->
         let tok = Parse_info.fake_info "." in
-        B.DotAccess (acc, tok, B.EId (e, B.empty_id_info()))) base xs
+        B.DotAccess (acc, tok, B.EN (B.Id (e, B.empty_id_info())))) base xs
 (*e: function [[Generic_vs_generic.make_dotted]] *)
 
 (* similar to m_list_prefix but binding $X to the whole list *)
@@ -646,7 +646,7 @@ and m_expr a b =
   | A.DotAccess(a1, at, a2), B.DotAccess(b1, bt, b2) ->
       m_expr a1 b1 >>= (fun () ->
         m_tok at bt >>= (fun () ->
-          m_ident_or_dynamic a2 b2
+          m_name_or_dynamic a2 b2
         ))
 
   (* <a1> ... vs o.m1().m2().m3().
@@ -771,34 +771,35 @@ and m_expr a b =
 (*e: function [[Generic_vs_generic.m_expr]] *)
 
 (*s: function [[Generic_vs_generic.m_field_ident]] *)
-and m_ident_or_dynamic a b =
+and m_name_or_dynamic a b =
   match a, b with
-  | A.EId ((str, tok), a2), A.EId (idb, b2)
+  | A.EN (A.Id ((str, tok), a2)), B.EN (B.Id (idb, b2))
     when MV.is_metavar_name str ->
       (* a bit OCaml specific, cos only ml_to_generic tags id_type in pattern *)
       let* () = m_type_option_with_hook idb !(a2.A.id_type) !(b2.B.id_type) in
       let* () = m_id_info a2 b2 in
       envf (str, tok) (MV.Id (idb, Some b2))
 
-  | A.EId ((str, tok), _idinfoa), b when MV.is_metavar_name str ->
-      let e = H.ident_or_dynamic_to_expr b None in
+  | A.EN (A.Id ((str, tok), _idinfoa)), b when MV.is_metavar_name str ->
+      let e = H.name_or_dynamic_to_expr b None in
       envf (str, tok) (MV.E e)
 
-  | A.EId (a, idinfoa), B.EId (b, idinfob) ->
+  | A.EN (A.Id (a, idinfoa)), B.EN (B.Id (b, idinfob)) ->
       m_ident_and_id_info (a, idinfoa) (b, idinfob)
 
   (* boilerplate *)
   (*s: [[Generic_vs_generic.m_field_ident()]] boilerplate cases *)
-  | A.EName a, B.EName b ->
-      m_name_ a b
+  | A.EN a, B.EN b ->
+      m_name a b
   | A.EDynamic a, B.EDynamic b ->
       m_expr a b
-  | A.EId _, _
-  | A.EName _, _
+  | A.EN _, _
   | A.EDynamic _, _
     -> fail ()
 (*e: [[Generic_vs_generic.m_field_ident()]] boilerplate cases *)
 (*e: function [[Generic_vs_generic.m_field_ident]] *)
+and m_name _a _b =
+  raise Todo
 
 (*s: function [[Generic_vs_generic.m_label_ident]] *)
 and m_label_ident a b =
@@ -1085,7 +1086,7 @@ and m_compatible_type typed_mvar t e =
   (* for matching ids *)
   | ta, ( B.N (B.Id (idb, {B.id_type=tb; _}))
         | B.N (B.IdQualified ((idb, _), {B.id_type=tb;_}))
-        | B.DotAccess (IdSpecial (This, _), _, EId (idb, {B.id_type=tb; _}))
+        | B.DotAccess (IdSpecial (This, _), _, EN (Id (idb, {B.id_type=tb; _})))
         ) ->
       m_type_option_with_hook idb (Some ta) !tb >>=
       (fun () -> envf typed_mvar (MV.E e))
@@ -2056,7 +2057,7 @@ and m_entity a b =
   *)
     { A. name = a1; attrs = a2; tparams = a4 },
     { B. name = b1; attrs = b2; tparams = b4 } ->
-      m_ident_or_dynamic (a1) (b1) >>= (fun () ->
+      m_name_or_dynamic (a1) (b1) >>= (fun () ->
         (m_list_in_any_order ~less_is_ok:true m_attribute a2 b2) >>= (fun () ->
           (m_list m_type_parameter) a4 b4
         ))
@@ -2278,7 +2279,7 @@ and m_list__m_field (xsa: A.field list) (xsb: A.field list) =
       raise Impossible
   (*e: [[Generic_vs_generic.m_list__m_field()]] ellipsis cases *)
   (*s: [[Generic_vs_generic.m_list__m_field()]] [[DefStmt]] pattern case *)
-  | (A.FieldStmt ({s=A.DefStmt (({A.name = A.EId ((s1, _), _); _}, _) as adef);_}) as a)::xsa,
+  | (A.FieldStmt ({s=A.DefStmt (({A.name = A.EN (A.Id ((s1, _), _)); _}, _) as adef);_}) as a)::xsa,
     xsb ->
       (*s: [[Generic_vs_generic.m_list__m_field()]] in [[DefStmt]] case if metavar field *)
       if MV.is_metavar_name s1 || Matching_generic.is_regexp_string s1
@@ -2297,7 +2298,7 @@ and m_list__m_field (xsa: A.field list) (xsb: A.field list) =
       else
         (try
            let (before, there, after) = xsb |> Common2.split_when (function
-             | (A.FieldStmt ({s=A.DefStmt ({B.name = B.EId ((s2, _tok), _); _}, _);_}))
+             | (A.FieldStmt ({s=A.DefStmt ({B.name = B.EN (B.Id ((s2, _tok), _)); _}, _);_}))
                when s2 = s1 -> true
              | _ -> false
            ) in
@@ -2693,12 +2694,12 @@ and m_any a b =
       m_ident a1 b1
   | A.Lbli(a1), B.Lbli(b1) ->
       m_label_ident a1 b1
-  | A.IoD(a1), B.IoD(b1) ->
-      m_ident_or_dynamic a1 b1
+  | A.NoD(a1), B.NoD(b1) ->
+      m_name_or_dynamic a1 b1
   | A.I _, _  | A.Modn _, _ | A.Di _, _  | A.En _, _  | A.E _, _
   | A.S _, _  | A.T _, _  | A.P _, _  | A.Def _, _  | A.Dir _, _
   | A.Pa _, _  | A.Ar _, _  | A.At _, _  | A.Dk _, _ | A.Pr _, _
-  | A.Fld _, _ | A.Ss _, _ | A.Tk _, _ | A.Lbli _, _ | A.IoD _, _
+  | A.Fld _, _ | A.Ss _, _ | A.Tk _, _ | A.Lbli _, _ | A.NoD _, _
   | A.ModDk _, _ | A.TodoK _, _ | A.Partial _, _ | A.Args _, _
     -> fail ()
 (*e: [[Generic_vs_generic.m_any]] boilerplate cases *)

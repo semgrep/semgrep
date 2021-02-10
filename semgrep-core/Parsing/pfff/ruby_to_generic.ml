@@ -99,7 +99,7 @@ let rec expr = function
       let e = expr e in
       let fld =
         match method_name m with
-        | Left id -> G.EId (id, G.empty_id_info())
+        | Left id -> G.EN (G.Id (id, G.empty_id_info()))
         | Right e -> G.EDynamic e
       in
       G.DotAccess (e, t, fld)
@@ -186,6 +186,7 @@ and formal_param_pattern = function
       G.OtherPat (G.OP_Todo, [G.Pa x])
 
 
+(* less: return a G.name *)
 and scope_resolution = function
   | TopScope (t, v) ->
       let id = variable v in
@@ -515,8 +516,9 @@ and definition def =
              match name with
              | NameConstant id -> G.basic_entity id []
              | NameScope x ->
-                 let name = scope_resolution x in
-                 nonbasic_entity (G.EName name)
+                 let name_ = scope_resolution x in
+                 let name = G.IdQualified (name_, G.empty_id_info()) in
+                 nonbasic_entity (G.EN name)
            in
            let def = { G.ckind = (G.Class, t); cextends = extends;
                        (* TODO: this is done by special include/require builtins *)
@@ -534,8 +536,9 @@ and definition def =
         match name with
         | NameConstant id -> G.basic_entity id []
         | NameScope x ->
-            let name = scope_resolution x in
-            nonbasic_entity (G.EName name)
+            let name_ = scope_resolution x in
+            let name = G.IdQualified (name_, G.empty_id_info()) in
+            nonbasic_entity (G.EN name)
       in
       let mkind = G.ModuleStruct (None, [body]) in
       let def = { G.mbody = mkind } in
