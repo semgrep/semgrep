@@ -6,7 +6,7 @@ val string_of_constness : AST_generic.constness -> string
 (** Flow-sensitive constant-propagation.
  * !Note that this assumes Naming_AST.resolve has been called before!
 *)
-val fixpoint : IL.cfg -> mapping
+val fixpoint : IL.name list -> IL.cfg -> mapping
 
 (**
  * Updates the [IL.lval.constness] refs according to the mapping.
