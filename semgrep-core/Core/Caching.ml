@@ -100,7 +100,7 @@ open AST_generic
 let debug = false
 
 (* A set of metavariables. Access cost is O(log n). *)
-module Names = AST_generic.String_set
+module Names = AST_utils.String_set
 
 (* Count the number of occurrences of each backreference of a metavariable. *)
 module Name_counts = Map.Make (String)
@@ -277,7 +277,7 @@ module Cache_key = struct
     (* The list of statements exists in the AST and is identified
        unambiguously by the ID of the first statement. *)
 
-    | Flattened_until of AST_generic.Node_ID.t
+    | Flattened_until of AST_utils.Node_ID.t
     (* The list of statements is the result of flattening the AST for
        deep ellipsis matching. The node ID is the ID of the last statement
        of the list. Together with the first ID of the list, they
@@ -328,11 +328,11 @@ module Cache_key = struct
 
     (* identifier of the list of stmts in the pattern AST, which is the
        ID of the first stmt of the list. *)
-    pattern_stmt_id: Node_ID.t;
+    pattern_stmt_id: AST_utils.Node_ID.t;
 
     (* identifier of the list of stmts in the target AST, which is the
        ID of the first stmt of the list. Disambiguated by 'list_kind'. *)
-    target_stmt_id: Node_ID.t;
+    target_stmt_id: AST_utils.Node_ID.t;
   }
 
   let show_compact k =

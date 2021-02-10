@@ -129,7 +129,7 @@ module Env = struct
     (* This is the set of metavariables referenced in the rest of the pattern.
        It's used to determine the subset of bindings that should be kept in
        min_env. It comes from the last stmt node encountered in the pattern. *)
-    last_stmt_backrefs: AST_generic.String_set.t;
+    last_stmt_backrefs: AST_utils.String_set.t;
   }
 
   let empty = {
@@ -268,15 +268,15 @@ let is_metavar_ellipsis s =
   s =~ metavar_ellipsis_regexp_string
 
 module Structural = struct
-  let equal_mvalue = AST_generic.with_structural_equal equal_mvalue
+  let equal_mvalue = AST_utils.with_structural_equal equal_mvalue
   let equal_bindings =
-    AST_generic.with_structural_equal equal_bindings
+    AST_utils.with_structural_equal equal_bindings
 end
 
 module Referential = struct
-  let equal_mvalue = AST_generic.with_referential_equal equal_mvalue
+  let equal_mvalue = AST_utils.with_referential_equal equal_mvalue
   let equal_bindings =
-    AST_generic.with_referential_equal equal_bindings
+    AST_utils.with_referential_equal equal_bindings
 
   let hash_bindings = hash_bindings
 end
