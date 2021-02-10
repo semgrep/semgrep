@@ -159,10 +159,10 @@ let test_dfg_constness file =
   let v = V.mk_visitor
       { V.default_visitor with
         V.kfunction_definition = (fun (_k, _) def ->
-          let xs = AST_to_IL.stmt def.fbody in
+          let inputs, xs = AST_to_IL.function_definition def in
           let flow = CFG_build.cfg_of_stmts xs in
           pr2 "Constness";
-          let mapping = Dataflow_constness.fixpoint flow in
+          let mapping = Dataflow_constness.fixpoint inputs flow in
           Dataflow_constness.update_constness flow mapping;
           DataflowY.display_mapping flow mapping Dataflow_constness.string_of_constness;
           let s = AST_generic.show_any (S def.fbody) in
