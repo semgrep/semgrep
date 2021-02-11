@@ -247,9 +247,9 @@ let top_func () =
         and v3 = option expr v3
         in
         G.SliceAccess (e, v1, v2, v3)
-    | TypeAssert (v1, v2) -> let v1 = expr v1 and v2 = type_ v2 in
+    | TypeAssert (v1, (lp, v2, rp)) -> let v1 = expr v1 and v2 = type_ v2 in
         G.Call (G.IdSpecial (G.Instanceof, fake "instanceof"),
-                fb[G.Arg v1; G.ArgType v2])
+                (lp, [G.Arg v1; G.ArgType v2], rp))
     | Ellipsis v1 -> let v1 = tok v1 in
         G.Ellipsis v1
     | DeepEllipsis v1 -> let v1 = bracket expr v1 in
