@@ -156,3 +156,5 @@ semgrep-core/CLI/version.ml
 TAGS
 /semgrep-core/log_config.json
 /semgrep-core/.vscode/settings.json
+/Pipfile
+/semgrep/pyproject.toml
