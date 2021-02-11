@@ -19,9 +19,9 @@ Contents:
   * [Development Environment](#development-environment)
   * [Profiling Code](#profiling-code)
   * [Testing](#testing-1)
-* [Adding Language Support](#adding-language-support)
+* [Adding Support for a Language](#adding-support-for-a-language)
   * [Legacy Parsers](#legacy-parsers)
-  * [Tree-sitter Parsers](#tree-sitter-parsers)
+  * [Tree-Sitter Parsers](#tree-sitter-parsers)
 
 ## Development Workflow
 
@@ -326,7 +326,7 @@ Semgrep.match_sts_sts                    :      0.559 sec     185064 count
 `make test` in the `semgrep-core` directory will run tests that check code is correctly parsed
 and patterns perform as expected. To add a test in an appropriate language subdirectory, `semgrep-core/tests/LANGUAGE`, create a target file (expected file extension given language) and a .sgrep file with a pattern. The testing suite will check that all places with a comment with `ERROR` were matches found by the .sgrep file. See existing tests for more clarity.
 
-## Adding Language Support
+## Adding Support for a Language
 
 The programming languages supported by semgrep fall into two
 categories:
@@ -368,7 +368,7 @@ These parsers are implemented in
 [pfff](https://github.com/returntocorp/pfff), which is an OCaml
 project plugged into semgrep-core as a submodule.
 
-### Tree-sitter Parsers
+### Tree-Sitter Parsers
 
 Tree-sitter parsers exist as individual public projects, which are
 shared with other users of tree-sitter. Our
