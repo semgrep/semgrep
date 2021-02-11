@@ -429,7 +429,12 @@ class OutputHandler:
                 self.settings.output_per_finding_max_lines_limit,
             )
             if output:
-                print(output, file=self.stdout)
+                try:
+                    print(output, file=self.stdout)
+                except UnicodeEncodeError as ex:
+                    raise Exception(
+                        "Received output encoding error, please set PYTHONIOENCODING=utf-8"
+                    ) from ex
             if self.stats_line:
                 logger.info(self.stats_line)
 
