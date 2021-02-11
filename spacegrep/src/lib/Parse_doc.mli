@@ -1,3 +1,6 @@
+(*
+   Parse a document.
+*)
 
 val of_lexbuf: Lexing.lexbuf -> Doc_AST.t
 
