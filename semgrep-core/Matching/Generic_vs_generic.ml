@@ -1703,12 +1703,22 @@ and m_stmt a b =
   (*e: [[Generic_vs_generic.m_stmt()]] disjunction case *)
   (*s: [[Generic_vs_generic.m_stmt()]] metavariable case *)
   (* metavar: *)
-  (* TODO: only if fake semicolon! otherwise the metavar is not a
-   * a statement metavar but an expression metavar.
+  (* Note that we can't consider $S a statement metavariable only if the
+   * semicolon is a fake one. Indeed in many places we have patterns
+   * like 'if(...) $S;' because 'if(...) $S' would not parse.
+   * alt: parse if(...) $S without the ending semicolon?
+   * But at least we can try to match $S as a statement metavar
+   * _or_ an expression metavar with >||>. below
   *)
-  | A.ExprStmt(A.N (A.Id ((str,tok), _id_info)), _), _b
+  | A.ExprStmt(A.N (A.Id ((str,tok), _id_info)) as suba, sc), _b
     when MV.is_metavar_name str ->
       envf (str, tok) (MV.S b)
+      >||>
+      (match b.s with
+       | B.ExprStmt (subb, _) when not (Parse_info.is_fake sc) ->
+           m_expr suba subb
+       | _ -> fail ()
+      )
   (*e: [[Generic_vs_generic.m_stmt()]] metavariable case *)
   (*s: [[Generic_vs_generic.m_stmt()]] ellipsis cases *)
   (* dots: '...' can to match any statememt *)
