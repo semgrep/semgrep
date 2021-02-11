@@ -12,13 +12,13 @@ let tests_path = "../../../tests"
 
 let tests_path_typing = Filename.concat tests_path "OTHER/typing"
 
-let unittest =
+let unittest parse_program parse_pattern =
   "typing_tests" >::: [
 
     "test basic variable definitions java" >:: (fun () ->
       let file = Filename.concat tests_path_typing "VarDef.java" in
       try
-        let ast = Parse_generic.parse_program file in
+        let ast = parse_program file in
         let lang = List.hd (Lang.langs_of_filename file) in
         Naming_AST.resolve lang ast;
 
@@ -40,7 +40,7 @@ let unittest =
     "test multiple variable definitions java" >:: (fun () ->
       let file = Filename.concat tests_path_typing "EqVarCmp.java" in
       try
-        let ast = Parse_generic.parse_program file in
+        let ast = parse_program file in
         let lang = List.hd (Lang.langs_of_filename file) in
         Naming_AST.resolve lang ast;
 
@@ -75,7 +75,7 @@ let unittest =
     "test basic params java" >:: (fun () ->
       let file = Filename.concat tests_path_typing "BasicParam.java" in
       try
-        let ast = Parse_generic.parse_program file in
+        let ast = parse_program file in
         let lang = List.hd (Lang.langs_of_filename file) in
         Naming_AST.resolve lang ast;
 
@@ -106,7 +106,7 @@ let unittest =
     "test class field types" >:: (fun () ->
       let file = Filename.concat tests_path_typing "ClassFields.java" in
       try
-        let ast = Parse_generic.parse_program file in
+        let ast = parse_program file in
         let lang = List.hd (Lang.langs_of_filename file) in
         Naming_AST.resolve lang ast;
 
@@ -134,7 +134,7 @@ let unittest =
       let files = Common2.glob (spf "%s/*.sgrep" dir) in
       files |> List.iter (fun file ->
         try
-          let _ = Parse_generic.parse_pattern Lang.Java (Common.read_file file) in
+          let _ = parse_pattern Lang.Java (Common.read_file file) in
           ()
         with Parse_info.Parsing_error _ ->
           assert_failure (spf "it should correctly parse %s" file)
@@ -146,7 +146,7 @@ let unittest =
       let files = Common2.glob (spf "%s/*.sgrep" dir) in
       files |> List.iter (fun file ->
         try
-          let _ = Parse_generic.parse_pattern Lang.Go (Common.read_file file) in
+          let _ = parse_pattern Lang.Go (Common.read_file file) in
           ()
         with Parse_info.Parsing_error _ ->
           assert_failure (spf "it should correctly parse %s" file)
@@ -156,7 +156,7 @@ let unittest =
     "test basic variable definitions go" >:: (fun () ->
       let file = Filename.concat tests_path_typing "StaticVarDef.go" in
       try
-        let ast = Parse_generic.parse_program file in
+        let ast = parse_program file in
         let lang = List.hd (Lang.langs_of_filename file) in
         Naming_AST.resolve lang ast;
 
@@ -178,7 +178,7 @@ let unittest =
     "test basic function call go" >:: (fun () ->
       let file = Filename.concat tests_path_typing "FuncParam.go" in
       try
-        let ast = Parse_generic.parse_program file in
+        let ast = parse_program file in
         let lang = List.hd (Lang.langs_of_filename file) in
         Naming_AST.resolve lang ast;
 
@@ -209,7 +209,7 @@ let unittest =
     "test inferred variable definitions go" >:: (fun () ->
       let file = Filename.concat tests_path_typing "PropVarDef.go" in
       try
-        let ast = Parse_generic.parse_program file in
+        let ast = parse_program file in
         let lang = List.hd (Lang.langs_of_filename file) in
         Naming_AST.resolve lang ast;
 

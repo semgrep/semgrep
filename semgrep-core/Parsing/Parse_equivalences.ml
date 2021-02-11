@@ -72,13 +72,13 @@ let parse file =
                         | _ -> error (spf "could not parse the equivalence: %s" str)
                       in
                       let left =
-                        try Parse_generic.parse_pattern lang left
+                        try Parse_pattern.parse_pattern lang left
                         with exn ->
                           error (spf "could not parse the left pattern: %s (exn = %s)"
                                    left (Common.exn_to_s exn))
                       in
                       let right =
-                        try Parse_generic.parse_pattern lang right
+                        try Parse_pattern.parse_pattern lang right
                         with exn ->
                           error (spf "could not parse the right pattern: %s (exn = %s)"
                                    right (Common.exn_to_s exn))

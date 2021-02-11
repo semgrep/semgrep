@@ -162,9 +162,12 @@ let (run: Common.filename -> 'ast parser list -> ('ast -> AST_generic.program)
      -> parsing_result) =
   fun file xs fconvert ->
   let xs =
-    if !Flag.tree_sitter_only
-    then xs |> Common.exclude (function | Pfff _ -> true | _ -> false)
-    else xs
+    match () with
+    | _ when !Flag.tree_sitter_only ->
+        xs |> Common.exclude (function | Pfff _ -> true | _ -> false)
+    | _ when !Flag.pfff_only ->
+        xs |> Common.exclude (function | TreeSitter _ -> true | _ -> false)
+    | _ -> xs
   in
   (match run_either file xs with
    | Ok (ast, stat) -> { ast = fconvert ast; errors =  []; stat }
@@ -177,6 +180,12 @@ let throw_tokens f =
      let res = f file in
      res.PI.ast, res.PI.stat
   )
+
+let lang_to_python_parsing_mode = function
+  | Lang.Python -> Parse_python.Python
+  | Lang.Python2 -> Parse_python.Python2
+  | Lang.Python3 -> Parse_python.Python3
+  | s -> failwith (spf "not a python language:%s" (Lang.string_of_lang s))
 
 let just_parse_with_lang lang file =
   match lang with
@@ -206,6 +215,9 @@ let just_parse_with_lang lang file =
         Pfff (throw_tokens Parse_go.parse);
         TreeSitter Parse_go_tree_sitter.parse;
       ]
+        (* old: Resolve_go.resolve ast;
+         * switched to call Naming_AST.ml in sgrep to correct def and use tagger
+        *)
         Go_to_generic.program
 
   | Lang.Javascript ->
@@ -241,6 +253,7 @@ let just_parse_with_lang lang file =
 
   | Lang.C ->
       run file [
+        (* this internally uses the CST for c++ *)
         Pfff (throw_tokens Parse_c.parse);
         TreeSitter Parse_c_tree_sitter.parse;
       ]
@@ -260,10 +273,32 @@ let just_parse_with_lang lang file =
       *)
       run file [TreeSitter Parse_rust_tree_sitter.parse] (fun x -> x)
 
-  (* default to the one in pfff for the other languages *)
-  | _ ->
+  (* use pfff *)
+  | Lang.Python | Lang.Python2 | Lang.Python3 ->
+      let parsing_mode = lang_to_python_parsing_mode lang in
+      run file [Pfff (throw_tokens (Parse_python.parse ~parsing_mode))]
+        (* old: Resolve_python.resolve ast;
+         * switched to call Naming_AST.ml to correct def and use tagger
+        *)
+        Python_to_generic.program
+  | Lang.JSON ->
       run file [Pfff ((fun file ->
-        Parse_generic.parse_with_lang lang file))] (fun x -> x)
+        Parse_json.parse_program file, Parse_info.correct_stat file))]
+        Json_to_generic.program
+  | Lang.Cplusplus ->
+      failwith "TODO"
+  | Lang.OCaml ->
+      run file [Pfff (throw_tokens Parse_ml.parse)]
+        Ml_to_generic.program
+  | Lang.PHP ->
+      run file [Pfff (throw_tokens Parse_php.parse)]
+        (fun cst ->
+           let ast = Ast_php_build.program cst in
+           Php_to_generic.program ast)
+  | Lang.R ->
+      failwith "No R parser yet; improve the one in tree-sitter"
+  | Lang.Yaml ->
+      failwith "No Yaml parser yet, parsed only for semgrep in Parse_rule.ml"
 
 (*****************************************************************************)
 (* Entry point *)
@@ -283,4 +318,12 @@ let parse_and_resolve_name_use_pfff_or_treesitter lang file =
   if !Flag.use_bloom_filter then Bloom_annotation.annotate_program ast;
   { ast; errors; stat }
 
+(*****************************************************************************)
+(* For testing purpose *)
+(*****************************************************************************)
+(* was in pfff/.../Parse_generic.ml before *)
+let parse_program file =
+  let lang = List.hd (Lang.langs_of_filename file) in
+  let res = just_parse_with_lang lang file in
+  res.ast
 (*e: semgrep/parsing/Parse_target.ml *)
