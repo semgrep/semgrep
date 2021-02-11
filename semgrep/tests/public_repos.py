@@ -269,6 +269,12 @@ PASSING_REPOS = [
     {"repo": "https://github.com/OWASP/NodeGoat", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/dropbox/questions", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/rails/rails", "languages": ["ruby"]},
+    {"repo": "https://github.com/Homebrew/brew", "languages": ["ruby"]},
+    {
+        "repo": "https://github.com/gitlabhq/gitlabhq",
+        "languages": ["ruby"],
+        "exclude": "*migration*",
+    },  # Migration files are ERB format despite .rb extension
 ]
 
 FAILING_REPOS = [
@@ -337,8 +343,6 @@ FAILING_REPOS = [
             "languages": ["ruby"],
         }
     ),
-    xfail_repo({"repo": "https://github.com/Homebrew/brew", "languages": ["ruby"]}),
-    xfail_repo({"repo": "https://github.com/gitlabhq/gitlabhq", "languages": ["ruby"]}),
     #    xfail_repo(
     #        {
     #            "repo": "https://github.com/coinbase/coinbase-pro-node",
