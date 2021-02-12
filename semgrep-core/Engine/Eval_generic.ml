@@ -87,7 +87,7 @@ let parse_json file =
            in
            (* less: could also use Parse_pattern *)
            let code =
-             match Parse_generic.parse_pattern lang code with
+             match Parse_pattern.parse_pattern lang code with
              | G.E e -> e
              | _ -> failwith "only expressions are supported"
            in

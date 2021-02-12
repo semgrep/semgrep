@@ -66,8 +66,47 @@ let parse_pattern lang ?(print_errors = false) str =
     | Lang.Kotlin ->
         let res = Parse_kotlin_tree_sitter.parse_pattern str in
         extract_pattern_from_tree_sitter_result res print_errors
+
     (* use pfff *)
-    | _ -> Parse_generic.parse_pattern lang str
+    | Lang.Python | Lang.Python2 | Lang.Python3 ->
+        let parsing_mode = Parse_target.lang_to_python_parsing_mode lang in
+        let any = Parse_python.any_of_string ~parsing_mode str in
+        Python_to_generic.any any
+    (* abusing JS parser so no need extend tree-sitter grammar*)
+    | Lang.Typescript
+    | Lang.Javascript ->
+        let any = Parse_js.any_of_string str in
+        Js_to_generic.any any
+    | Lang.JSON ->
+        let any = Parse_json.any_of_string str in
+        Json_to_generic.any any
+    | Lang.C ->
+        let any = Parse_c.any_of_string str in
+        C_to_generic.any any
+    | Lang.Java ->
+        let any = Parse_java.any_of_string str in
+        Java_to_generic.any any
+    | Lang.Go ->
+        let any = Parse_go.any_of_string str in
+        Go_to_generic.any any
+    | Lang.OCaml ->
+        let any = Parse_ml.any_of_string str in
+        Ml_to_generic.any any
+    | Lang.Ruby ->
+        let any = Parse_ruby.any_of_string str in
+        Ruby_to_generic.any any
+    | Lang.PHP ->
+        let any_cst = Parse_php.any_of_string str in
+        let any = Ast_php_build.any any_cst in
+        Php_to_generic.any any
+
+    | Lang.Cplusplus ->
+        failwith "No C++ generic parser yet"
+    | Lang.R ->
+        failwith "No R generic parser yet"
+    | Lang.Yaml ->
+        failwith "No Yaml parser yet"
+
   in
   Caching.prepare_pattern any;
   Check_pattern.check lang any;

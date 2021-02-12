@@ -597,10 +597,10 @@ and expression (env : env) (x : CST.expression) : expr =
    | `Type_asse_exp (v1, v2, v3, v4, v5) ->
        let v1 = expression env v1 in
        let _v2 = token env v2 (* "." *) in
-       let _v3 = token env v3 (* "(" *) in
+       let v3 = token env v3 (* "(" *) in
        let v4 = type_ env v4 in
-       let _v5 = token env v5 (* ")" *) in
-       TypeAssert (v1, v4)
+       let v5 = token env v5 (* ")" *) in
+       TypeAssert (v1, (v3, v4, v5))
    | `Type_conv_exp (v1, v2, v3, v4, v5) ->
        let v1 = type_ env v1 in
        let _v2 = token env v2 (* "(" *) in
