@@ -328,16 +328,15 @@ and patterns perform as expected. To add a test in an appropriate language subdi
 
 ## Adding Support for a Language
 
-The programming languages supported by semgrep fall into two
-categories:
-* legacy parsers: implemented directly in OCaml via a parser generator
-* tree-sitter parsers: community parsers implemented as
+The parsers used by semgrep fall into these categories:
+* legacy parsers (pfff): implemented directly in OCaml via a parser generator
+* tree-sitter parsers: third-party parsers implemented as
   [tree-sitter](https://tree-sitter.github.io/) grammars
-* generic parser: fallback for unsupported languages,
-  uses its own matching engine
+* generic parser (spacegrep): fallback for unsupported languages,
+  comes with its own matching engine
 
-For each language we need a parser for a target file and a parser for a
-semgrep pattern. For a given language, ideally both would use the same
+For each language, we need a parser for target files and a parser for
+semgrep patterns. For a given language, ideally both would use the same
 parser. For historical reasons, some languages use a legacy
 parser for patterns and a tree-sitter parser for target code.
 Here's the breakdown by language as of February 2021:
@@ -366,12 +365,12 @@ New languages should use tree-sitter.
 
 These parsers are implemented in
 [pfff](https://github.com/returntocorp/pfff), which is an OCaml
-project plugged into semgrep-core as a submodule.
+project that we plug into semgrep-core as a git submodule.
 
 ### Tree-Sitter Parsers
 
-Tree-sitter parsers exist as individual public projects, which are
-shared with other users of tree-sitter. Our
+Tree-sitter parsers exist as individual public projects. They are
+shared with other users of tree-sitter outside of semgrep. Our
 [ocaml-tree-sitter](https://github.com/returntocorp/ocaml-tree-sitter)
 project adds the necessary extensions for supporting semgrep patterns
 (ellipsis `...` and such). It also contains the machinery for turning
@@ -382,7 +381,8 @@ For example, for the Kotlin language we have:
 * output: [semgrep-kotlin](https://github.com/returntocorp/semgrep-kotlin)
 
 Assuming the tree-sitter grammar works well enough, most of the work
-consists of mapping the CST to an abstract syntax tree (AST).
+consists in mapping the CST to the generic abstract syntax tree (AST)
+shared by all languages in semgrep.
 
 These guides go over the integration work in more details:
 
