@@ -1636,6 +1636,7 @@ and any =
 
   (* misc *)
   | I of ident
+  | Str of string wrap
   | Def of definition
   | Dir of directive
   | Pr of program

@@ -2684,6 +2684,8 @@ and m_partial a b =
 (*s: function [[Generic_vs_generic.m_any]] *)
 and m_any a b =
   match a, b with
+  | A.Str(a1), B.Str(b1) ->
+      m_wrap m_string a1 b1
   | A.Ss(a1), B.Ss(b1) ->
       m_stmts_deep ~less_is_ok:true a1 b1
   | A.E(a1), B.E(b1) ->
@@ -2740,6 +2742,7 @@ and m_any a b =
   | A.Pa _, _  | A.Ar _, _  | A.At _, _  | A.Dk _, _ | A.Pr _, _
   | A.Fld _, _ | A.Ss _, _ | A.Tk _, _ | A.Lbli _, _ | A.NoD _, _
   | A.ModDk _, _ | A.TodoK _, _ | A.Partial _, _ | A.Args _, _
+  | A.Str _, _
     -> fail ()
 (*e: [[Generic_vs_generic.m_any]] boilerplate cases *)
 (*e: function [[Generic_vs_generic.m_any]] *)
