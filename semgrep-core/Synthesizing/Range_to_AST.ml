@@ -12,9 +12,9 @@
  * file license.txt for more details.
 *)
 
-module V = Visitor_AST
-module Lib = Lib_AST
 module G = AST_generic
+module V = Visitor_AST
+
 open Range (* for the $..$ range operators *)
 
 (*****************************************************************************)
@@ -39,7 +39,7 @@ let expr_at_range r1 ast =
   *)
   let visitor = V.mk_visitor { V.default_visitor with
                                V.kexpr = (fun (k, _) e ->
-                                 let toks = Lib.ii_of_any (G.E e) in
+                                 let toks = V.ii_of_any (G.E e) in
                                  let r2_opt = Range.range_of_tokens toks in
                                  (match r2_opt with
                                   (* NoTokenLocation issue for the expression, should fix! *)
@@ -69,7 +69,7 @@ let any_at_range r1 ast =
   *)
   let visitor = V.mk_visitor { V.default_visitor with
                                V.kstmt = (fun (k, _) s ->
-                                 let toks = Lib.ii_of_any (G.S s) in
+                                 let toks = V.ii_of_any (G.S s) in
                                  let r2_opt = Range.range_of_tokens toks in
                                  (match r2_opt with
                                   (* NoTokenLocation issue for the expression, should fix! *)

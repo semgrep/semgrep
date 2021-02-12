@@ -20,7 +20,7 @@ open Common
 module A = AST_generic
 module B = AST_generic
 module MV = Metavariable
-module Lib = Lib_AST
+module H = AST_generic_helpers
 module AST = AST_generic
 module Flag = Flag_semgrep
 module Env = Metavariable_capture

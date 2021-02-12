@@ -937,3 +937,37 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
+
+(*****************************************************************************)
+(* Extract infos *)
+(*****************************************************************************)
+
+(*s: function [[Lib_AST.extract_info_visitor]] *)
+let extract_info_visitor recursor =
+  let globals = ref [] in
+  let hooks = { default_visitor with
+                kinfo = (fun (_k, _) i -> Common.push i globals);
+              } in
+  begin
+    let vout = mk_visitor hooks in
+    recursor vout;
+    List.rev !globals
+  end
+(*e: function [[Lib_AST.extract_info_visitor]] *)
+
+(*s: function [[Lib_AST.ii_of_any]] *)
+let ii_of_any any =
+  extract_info_visitor (fun visitor -> visitor any)
+(*e: function [[Lib_AST.ii_of_any]] *)
+
+let range_of_tokens tokens =
+  List.filter Parse_info.is_origintok tokens
+  |> Parse_info.min_max_ii_by_pos
+
+let range_of_any any =
+  let leftmost_token, rightmost_token =
+    ii_of_any any
+    |> range_of_tokens
+  in
+  (Parse_info.token_location_of_info leftmost_token,
+   Parse_info.token_location_of_info rightmost_token)

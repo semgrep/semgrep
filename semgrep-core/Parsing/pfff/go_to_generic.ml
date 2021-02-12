@@ -17,7 +17,6 @@ open Common
 open Ast_go
 module G = AST_generic
 module H = AST_generic_helpers
-module H2 = To_generic_helpers
 
 (*****************************************************************************)
 (* Prelude *)
@@ -38,7 +37,7 @@ let either = OCaml.map_of_either
 
 let arithmetic_operator = id
 let incr_decr = id
-let prefix_postfix x = H2.conv_prepost x
+let prefix_postfix x = H.conv_prepost x
 
 let error = AST_generic.error
 
@@ -228,13 +227,13 @@ let top_func () =
         let (v1, tok) = wrap arithmetic_operator v1
         and v2 = expr v2
         in
-        G.Call (G.IdSpecial (G.Op (H2.conv_op v1), tok), fb[G.arg v2])
+        G.Call (G.IdSpecial (G.Op (H.conv_op v1), tok), fb[G.arg v2])
     | Binary (v1, v2, v3) ->
         let v1 = expr v1
         and (v2, tok) = wrap arithmetic_operator v2
         and v3 = expr v3
         in
-        G.Call (G.IdSpecial (G.Op (H2.conv_op v2), tok), fb([v1;v3] |> List.map G.arg))
+        G.Call (G.IdSpecial (G.Op (H.conv_op v2), tok), fb([v1;v3] |> List.map G.arg))
     | CompositeLit (v1, v2) ->
         let v1 = type_ v1 and (_t1, v2, _t2) = bracket (list init_for_composite_lit) v2 in
         G.Call (G.IdSpecial (G.New, fake "new"),
@@ -349,13 +348,13 @@ let top_func () =
         and (v2, tok) = wrap arithmetic_operator v2
         and v3 = expr v3
         in
-        (G.AssignOp (v1, (H2.conv_op v2, tok), v3))
+        (G.AssignOp (v1, (H.conv_op v2, tok), v3))
     | IncDec (v1, v2, v3) ->
         let v1 = expr v1
         and (v2, tok) = wrap incr_decr v2
         and v3 = prefix_postfix v3
         in
-        (G.Call (G.IdSpecial (G.IncrDecr (H2.conv_incr v2, v3), tok),
+        (G.Call (G.IdSpecial (G.IncrDecr (H.conv_incr v2, v3), tok),
                  fb[G.Arg v1]))
 
 
