@@ -262,20 +262,12 @@ let m_module_name_prefix a b =
        * filenames with the same string content. *)
       envf a1 (MV.E (B.L (B.String b1)))
 
-  (* dots: '...' on string *)
-  | A.FileName("...", ta), B.FileName(_sb, tb) ->
-      m_info ta tb
-
-  | A.FileName(sa, ta), B.FileName(sb, tb)
-    when Matching_generic.is_regexp_string sa ->
-      let f = Matching_generic.regexp_matcher_of_regexp_string sa in
-      if f sb
-      then m_info ta tb
-      else fail ()
-
-  | A.FileName(a1), B.FileName(b1) ->
-      (* TODO figure out what prefix support means here *)
-      (m_wrap m_string_prefix) a1 b1
+  (* dots: '...' on string or regexp *)
+  | A.FileName(a), B.FileName(b) ->
+      m_wrap
+        (m_string_ellipsis_or_regexp_or_default
+           (* TODO figure out what prefix support means here *)
+           ~use_m_string_prefix_for_default:true) a b
 
   | A.DottedName(a1), B.DottedName(b1) ->
       m_dotted_name_prefix_ok a1 b1
@@ -871,21 +863,14 @@ and m_label_ident a b =
 and m_literal a b =
   match a, b with
   (*s: [[Generic_vs_generic.m_literal()]] ellipsis case *)
-  (* dots: '...' on string *)
-  | A.String("...", a), B.String(_s, b) ->
-      m_info a b
+  (* dots: '...' on string or regexps *)
+  | A.String(a), B.String(b) ->
+      m_wrap (m_string_ellipsis_or_regexp_or_default) a b
   (*x: [[Generic_vs_generic.m_literal()]] ellipsis case *)
   | A.Regexp(("/.../", a)), B.Regexp((_s, b)) ->
       m_info a b
   (*e: [[Generic_vs_generic.m_literal()]] ellipsis case *)
   (*s: [[Generic_vs_generic.m_literal()]] regexp case *)
-  (* regexp matching *)
-  | A.String(name, info_name), B.String(sb, info_sb)
-    when Matching_generic.is_regexp_string name ->
-      let f = Matching_generic.regexp_matcher_of_regexp_string name in
-      if f sb
-      then m_info info_name info_sb
-      else fail ()
   (*e: [[Generic_vs_generic.m_literal()]] regexp case *)
   | A.Atom (s, tok), B.Atom (_b1) when
       s =~ "^:\\(.*\\)" &&
@@ -894,8 +879,6 @@ and m_literal a b =
       envf (mvar, tok) (MV.E (B.L b))
 
   (* boilerplate *)
-  | A.String(a1), B.String(b1) ->
-      (m_wrap m_string) a1 b1
   | A.Unit(a1), B.Unit(b1) ->
       m_tok a1 b1
   | A.Bool(a1), B.Bool(b1) ->
@@ -2685,7 +2668,7 @@ and m_partial a b =
 and m_any a b =
   match a, b with
   | A.Str(a1), B.Str(b1) ->
-      m_wrap m_string a1 b1
+      m_wrap (m_string_ellipsis_or_regexp_or_default) a1 b1
   | A.Ss(a1), B.Ss(b1) ->
       m_stmts_deep ~less_is_ok:true a1 b1
   | A.E(a1), B.E(b1) ->

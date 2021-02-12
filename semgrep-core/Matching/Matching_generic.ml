@@ -599,6 +599,21 @@ let m_string_prefix a b =
   if string_is_prefix b a then return () else fail ()
 (*e: function [[Matching_generic.m_string_prefix]] *)
 
+let m_string_ellipsis_or_regexp_or_default
+    ?(use_m_string_prefix_for_default=false) a b =
+  match a with
+  (* dots: '...' on string *)
+  | "..." -> return ()
+  | _ when is_regexp_string a ->
+      let f = regexp_matcher_of_regexp_string a in
+      if f b
+      then return ()
+      else fail ()
+  | _ ->
+      if use_m_string_prefix_for_default
+      then m_string_prefix a b
+      else m_string a b
+
 (* ---------------------------------------------------------------------- *)
 (* Token *)
 (* ---------------------------------------------------------------------- *)
