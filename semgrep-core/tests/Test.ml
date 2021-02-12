@@ -308,7 +308,8 @@ let lint_regression_tests ~with_caching =
 
   test_files |> List.iter (fun file ->
     E.try_with_exn_to_error file (fun () ->
-    let ast, _stat = Parse_generic.parse_with_lang lang file in
+    let { Parse_target. ast; _} = 
+        Parse_target.just_parse_with_lang lang file in
     Semgrep_generic.check ~hook:(fun _ _ -> ()) ~with_caching
       rules equivs file lang ast
       |> List.iter JSON_report.match_to_error;
@@ -349,9 +350,11 @@ let test regexp =
       (* just expression vs expression testing for one language (Python) *)
       Unit_matcher.unittest ~any_gen_of_string;
       Unit_synthesizer.unittest;
-      Unit_dataflow.unittest;
-      Unit_typing_generic.unittest;
-      Unit_naming_generic.unittest;
+      Unit_dataflow.unittest Parse_target.parse_program;
+      Unit_typing_generic.unittest 
+        Parse_target.parse_program 
+        (fun lang file -> Parse_pattern.parse_pattern lang file);
+      Unit_naming_generic.unittest Parse_target.parse_program;
 
       lang_parsing_tests;
       (* full testing for many languages *)

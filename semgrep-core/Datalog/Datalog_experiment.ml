@@ -69,7 +69,7 @@ type env = {
 (* mostly a copy paste of pfff/lang_GENERIC/analyze/Test_analyze_generic.ml *)
 let dump_il file =
   let lang = List.hd (Lang.langs_of_filename file) in
-  let ast = Parse_generic.parse_program file in
+  let ast = Parse_target.parse_program file in
   Naming_AST.resolve lang ast;
 
   let v = V.mk_visitor { V.default_visitor with
@@ -139,7 +139,7 @@ let facts_of_function def =
 (*****************************************************************************)
 let gen_facts file outdir =
   let lang = List.hd (Lang.langs_of_filename file) in
-  let ast = Parse_generic.parse_program file in
+  let ast = Parse_target.parse_program file in
   Naming_AST.resolve lang ast;
   (* less: use treesitter also later
    *  Parse_code.parse_and_resolve_name_use_pfff_or_treesitter lang file in

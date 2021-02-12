@@ -39,6 +39,7 @@ let use_bloom_filter = ref false
  * parser if pfff fails. Here you can force to only use tree-sitter.
 *)
 let tree_sitter_only = ref false
+let pfff_only = ref false
 
 (*s: constant [[Flag_semgrep.equivalence_mode]] *)
 (* special mode to set before using generic_vs_generic to match
