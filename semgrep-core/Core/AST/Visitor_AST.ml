@@ -904,6 +904,7 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
   and v_program v = v_stmts v
   and v_any =
     function
+    | Str v1 -> v_wrap v_string v1
     | Args v1 -> v_list v_argument v1
     | Partial v1 -> v_partial ~recurse:true v1
     | TodoK v1 -> v_ident v1

@@ -1207,6 +1207,7 @@ and vof_partial =
 
 and vof_any =
   function
+  | Str v1 -> let v1 = vof_wrap OCaml.vof_string v1 in OCaml.VSum ("Str", [ v1 ])
   | Args v1 -> let v1 = OCaml.vof_list vof_argument v1 in OCaml.VSum("Args", [v1])
   | Partial v1 -> let v1 = vof_partial v1 in OCaml.VSum ("Partial", [ v1 ])
   | TodoK v1 -> let v1 = vof_ident v1 in OCaml.VSum ("TodoK", [ v1 ])

@@ -1,0 +1,2 @@
+// Argh, this is actually parsed as a Ss[] and so will match anything
+export * from "...";
