@@ -124,28 +124,28 @@ let rec stmt_aux =
       let v1 = expr v1
       and v2 = list case v2 |> List.map (fun x -> G.CasesAndBody x) in
       [G.Switch (t, Some v1, v2) |> G.s]
-  | While (t, v1, v2) -> let v1 = expr v1 and v2 = list stmt v2 in
-      [G.While (t, v1, G.stmt1 v2) |> G.s]
-  | Do (t, v1, v2) -> let v1 = list stmt v1 and v2 = expr v2 in
-      [G.DoWhile (t, G.stmt1 v1, v2) |> G.s]
+  | While (t, v1, v2) -> let v1 = expr v1 and v2 = stmt v2 in
+      [G.While (t, v1, v2) |> G.s]
+  | Do (t, v1, v2) -> let v1 = stmt v1 and v2 = expr v2 in
+      [G.DoWhile (t, v1, v2) |> G.s]
   | For (t, v1, v2, v3, v4) ->
       let v1 = list expr v1
       and v2 = list expr v2
       and v3 = list expr v3
-      and v4 = list stmt v4
+      and v4 = stmt v4
       in
       [G.For (t, G.ForClassic (
          for_var v1,
          list_expr_to_opt v2,
          list_expr_to_opt v3),
-              G.stmt1 v4) |> G.s]
+              v4) |> G.s]
 
   | Foreach (t, v1, t2, v2, v3) ->
       let v1 = expr v1
       and v2 = foreach_pattern v2
-      and v3 = list stmt v3
+      and v3 = stmt v3
       in
-      [G.For (t, G.ForEach (v2, t2, v1), G.stmt1 v3) |> G.s]
+      [G.For (t, G.ForEach (v2, t2, v1), v3) |> G.s]
   | Return (t, v1) -> let v1 = option expr v1 in
       [G.Return (t, v1, G.sc) |> G.s]
   | Break (t, v1) ->
