@@ -17,6 +17,7 @@
 (*e: pad/r2c copyright *)
 open Common
 open AST_generic
+module V = Visitor_AST
 
 module PI = Parse_info
 module R = Mini_rule
@@ -50,10 +51,10 @@ let string_of_resolved = function
 *)
 let unique_id any =
   match any with
-  | E (N (Id (id, { id_resolved = {contents = Some (resolved, sid)}; _}))) ->
+  | E (N (Id ((str, _tok), { id_resolved = {contents = Some (resolved, sid)}; _}))) ->
       J.Object [
         "type", J.String "id";
-        "value", J.String (AST_generic_helpers.str_of_ident id);
+        "value", J.String str;
         "kind", J.String (string_of_resolved resolved);
         (* single unique id *)
         "sid", J.Int sid;
@@ -66,7 +67,7 @@ let unique_id any =
        * md5sum because the parameter will be different! We may
        * want to abstract also the resolved information in those cases.
       *)
-      let any = Lib_AST.abstract_for_comparison_any any in
+      let any = AST_generic_helpers.abstract_for_comparison_any any in
       (* alt: Using the AST dumper should work also.
        * let v = Meta_AST.vof_any any in
        * let s = OCaml.string_of_v v in
@@ -104,7 +105,7 @@ let json_range min_loc max_loc =
 
 (*s: function [[JSON_report.range_of_any]] *)
 let range_of_any any =
-  let min_loc, max_loc = Lib_AST.range_of_any any in
+  let min_loc, max_loc = V.range_of_any any in
   let (startp, endp) = json_range min_loc max_loc in
   startp, endp
 (*e: function [[JSON_report.range_of_any]] *)
@@ -125,7 +126,7 @@ let json_metavar startp (s, mval) =
     "end", endp;
     "abstract_content", J.String (
       any
-      |> Lib_AST.ii_of_any |> List.filter PI.is_origintok
+      |> V.ii_of_any |> List.filter PI.is_origintok
       |> List.sort Parse_info.compare_pos
       |> List.map PI.str_of_info
       |> Matching_report.join_with_space_if_needed

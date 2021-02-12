@@ -167,7 +167,8 @@ let supported_langs: string = String.concat ", " keys
 (* limits *)
 (* ------------------------------------------------------------------------- *)
 
-(* timeout is now in Flag_semgrep.ml *)
+let timeout = ref 0. (* in seconds; 0 or less means no timeout *)
+
 let max_memory = ref 0 (* in MB *)
 
 (* arbitrary limit *)
@@ -419,7 +420,7 @@ let cache_file_of_file filename =
  * with Timeout -> raise Timeout | _ -> ...
 *)
 let timeout_function file = fun f ->
-  let timeout = !Flag.timeout in
+  let timeout = !timeout in
   if timeout <= 0.
   then f ()
   else Common.timeout_function_float ~verbose:false timeout
@@ -1317,7 +1318,7 @@ let options () =
     "-tree_sitter_only", Arg.Set Flag.tree_sitter_only,
     " only use tree-sitter-based parsers";
 
-    "-timeout", Arg.Set_float Flag.timeout,
+    "-timeout", Arg.Set_float timeout,
     " <float> time limit to process one input program (in seconds); 0 disables timeouts (default is 0)";
     "-max_memory", Arg.Set_int max_memory,
     " <int> maximum memory to use (in MB)";

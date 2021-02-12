@@ -186,8 +186,8 @@ let match_rules_and_recurse (file, hook, matches) rules matcher k any x =
     then (* Found a match *)
       matches_with_env |> List.iter (fun (env : MG.tin) ->
         let env = env.mv.full_env in
-        let location = Lib_AST.range_of_any (any x) in
-        let tokens = lazy (Lib_AST.ii_of_any (any x)) in
+        let location = V.range_of_any (any x) in
+        let tokens = lazy (V.ii_of_any (any x)) in
         Common.push { PM. rule; file; env; location; tokens } matches;
         hook env tokens
       )
@@ -296,8 +296,8 @@ let check2 ~hook ~with_caching rules equivs file lang ast =
             then (* Found a match *)
               matches_with_env |> List.iter (fun (env : MG.tin) ->
                 let env = env.mv.full_env in
-                let location = Lib_AST.range_of_any (E x) in
-                let tokens = lazy (Lib_AST.ii_of_any (E x)) in
+                let location = V.range_of_any (E x) in
+                let tokens = lazy (V.ii_of_any (E x)) in
                 Common.push { PM. rule; file; env; location; tokens } matches;
                 hook env tokens
               )
@@ -322,8 +322,8 @@ let check2 ~hook ~with_caching rules equivs file lang ast =
               then (* Found a match *)
                 matches_with_env |> List.iter (fun (env : MG.tin) ->
                   let env = env.mv.full_env in
-                  let location = Lib_AST.range_of_any (S x) in
-                  let tokens = lazy (Lib_AST.ii_of_any (S x)) in
+                  let location = V.range_of_any (S x) in
+                  let tokens = lazy (V.ii_of_any (S x)) in
                   Common.push
                     { PM. rule; file; env; location; tokens } matches;
                   hook env tokens

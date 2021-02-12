@@ -17,6 +17,7 @@
 (*e: pad/r2c copyright *)
 open Common
 module G = AST_generic
+module H = AST_generic_helpers
 
 (* Provide hash_* and hash_fold_* for the core ocaml types *)
 open Ppx_hash_lib.Std.Hash.Builtin
@@ -84,7 +85,7 @@ let mvalue_to_any = function
 
 (* update: you should use equal_mvalue (from deriving eq) now *)
 let _abstract_position_info_mval x =
-  x |> mvalue_to_any |> Lib_AST.abstract_for_comparison_any
+  x |> mvalue_to_any |> H.abstract_for_comparison_any
 
 let str_of_any any =
   if !Flag_semgrep.debug_with_full_position
@@ -95,7 +96,7 @@ let str_of_any any =
   s
 
 let ii_of_mval x =
-  x |> mvalue_to_any |> Lib_AST.ii_of_any
+  x |> mvalue_to_any |> Visitor_AST.ii_of_any
 let str_of_mval x =
   x |> mvalue_to_any |> str_of_any
 

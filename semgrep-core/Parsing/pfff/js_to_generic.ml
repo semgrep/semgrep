@@ -17,7 +17,6 @@ open Common
 open Ast_js
 module G = AST_generic
 module H = AST_generic_helpers
-module H2 = To_generic_helpers
 
 (*****************************************************************************)
 (* Prelude *)
@@ -121,8 +120,8 @@ let special (x, tok) =
                       [G.Arg (G.Call (
                          G.IdSpecial (G.ConcatString G.InterpolatedConcat, tok),
                          rest |> List.map (fun e -> G.Arg e) |> G.fake_bracket))]))
-  | ArithOp op -> SR_Special (G.Op (H2.conv_op op), tok)
-  | IncrDecr v -> SR_Special (G.IncrDecr (H2.conv_incdec v), tok)
+  | ArithOp op -> SR_Special (G.Op (H.conv_op op), tok)
+  | IncrDecr v -> SR_Special (G.IncrDecr (H.conv_incdec v), tok)
 
 (*
    This is used to expose an individual statement as a block of one statement,
@@ -526,7 +525,7 @@ and class_ { c_extends; c_implements; c_body; c_kind; c_attrs;  } =
   let v2 = bracket (list property) c_body in
   let attrs = list attribute c_attrs in
   let cimplements = list type_ c_implements in
-  { G.ckind = H2.conv_class_kind c_kind; cextends; cimplements;
+  { G.ckind = H.conv_class_kind c_kind; cextends; cimplements;
     cmixins = []; cbody = v2;}, attrs
 
 

@@ -95,7 +95,7 @@ let log_error opt_tok msg =
   logger#error "%s" (locate opt_tok msg)
 
 let log_fixme kind gany =
-  let toks = Lib_AST.ii_of_any gany in
+  let toks = Visitor_AST.ii_of_any gany in
   let opt_tok = Common2.hd_opt toks in
   match kind with
   | ToDo ->

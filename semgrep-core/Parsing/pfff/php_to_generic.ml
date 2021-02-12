@@ -18,7 +18,6 @@ open Cst_php
 open Ast_php
 module G = AST_generic
 module H = AST_generic_helpers
-module H2 = To_generic_helpers
 
 (*****************************************************************************)
 (* Prelude *)
@@ -71,13 +70,13 @@ let name_of_qualified_ident xs =
 
 let name v = qualified_ident v
 
-let fixOp x = H2.conv_incr x
+let fixOp x = H.conv_incr x
 
 let binaryOp (x, t) =
   match x with
   | BinaryConcat -> Left (G.Concat, t)
   | CombinedComparison -> Left (G.Cmp, t)
-  | ArithOp op -> Left ((H2.conv_op op), t)
+  | ArithOp op -> Left ((H.conv_op op), t)
 
 let unaryOp x = x
 
@@ -341,7 +340,7 @@ and expr =
            G.Call (G.IdSpecial x, fb[G.Arg v1; G.Arg v3])
       )
   | Unop (((v1, t), v2)) -> let v1 = unaryOp v1 and v2 = expr v2 in
-      G.Call (G.IdSpecial (G.Op (H2.conv_op v1), t), fb[G.Arg v2])
+      G.Call (G.IdSpecial (G.Op (H.conv_op v1), t), fb[G.Arg v2])
   | Guil (t, v1, _) -> let v1 = list expr v1 in
       G.Call (G.IdSpecial (G.ConcatString G.InterpolatedConcat, t),
               fb (v1 |> List.map G.arg))
