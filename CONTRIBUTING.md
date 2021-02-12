@@ -19,7 +19,9 @@ Contents:
   * [Development Environment](#development-environment)
   * [Profiling Code](#profiling-code)
   * [Testing](#testing-1)
-* [Backwards Incompatible Changes](#backwards-incompatible-changes)
+* [Adding Support for a Language](#adding-support-for-a-language)
+  * [Legacy Parsers](#legacy-parsers)
+  * [Tree-Sitter Parsers](#tree-sitter-parsers)
 
 ## Development Workflow
 
@@ -323,3 +325,66 @@ Semgrep.match_sts_sts                    :      0.559 sec     185064 count
 
 `make test` in the `semgrep-core` directory will run tests that check code is correctly parsed
 and patterns perform as expected. To add a test in an appropriate language subdirectory, `semgrep-core/tests/LANGUAGE`, create a target file (expected file extension given language) and a .sgrep file with a pattern. The testing suite will check that all places with a comment with `ERROR` were matches found by the .sgrep file. See existing tests for more clarity.
+
+## Adding Support for a Language
+
+The parsers used by semgrep fall into these categories:
+* legacy parsers (pfff): implemented directly in OCaml via a parser generator
+* tree-sitter parsers: third-party parsers implemented as
+  [tree-sitter](https://tree-sitter.github.io/) grammars
+* generic parser (spacegrep): fallback for unsupported languages,
+  comes with its own matching engine
+
+For each language, we need a parser for target files and a parser for
+semgrep patterns. For a given language, ideally both would use the same
+parser. For historical reasons, some languages use a legacy
+parser for patterns and a tree-sitter parser for target code.
+Here's the breakdown by language as of February 2021:
+
+* legacy parser for both pattern and target:
+  - OCaml
+  - PHP
+  - Python
+* legacy parser for pattern, tree-sitter parser for target:
+  - C
+  - Go
+  - Java
+  - JavaScript, JSX, JSON
+  - Ruby
+  - TypeScript, TSX
+* tree-sitter parser for both pattern and target:
+  - C#
+  - Kotlin
+  - Lua
+  - R
+  - Rust
+
+New languages should use tree-sitter.
+
+### Legacy Parsers
+
+These parsers are implemented in
+[pfff](https://github.com/returntocorp/pfff), which is an OCaml
+project that we plug into semgrep-core as a git submodule.
+
+### Tree-Sitter Parsers
+
+Tree-sitter parsers exist as individual public projects. They are
+shared with other users of tree-sitter outside of semgrep. Our
+[ocaml-tree-sitter](https://github.com/returntocorp/ocaml-tree-sitter)
+project adds the necessary extensions for supporting semgrep patterns
+(ellipsis `...` and such). It also contains the machinery for turning
+a tree-sitter grammar into a usable, typed concrete syntax tree (CST).
+
+For example, for the Kotlin language we have:
+* input: [tree-sitter-kotlin](https://github.com/fwcd/tree-sitter-kotlin)
+* output: [semgrep-kotlin](https://github.com/returntocorp/semgrep-kotlin)
+
+Assuming the tree-sitter grammar works well enough, most of the work
+consists in mapping the CST to the generic abstract syntax tree (AST)
+shared by all languages in semgrep.
+
+These guides go over the integration work in more details:
+
+* [How to add support for a new language](https://github.com/returntocorp/ocaml-tree-sitter/blob/master/doc/adding-a-language.md)
+* [How to upgrade the grammar for a language](How to upgrade the grammar for a language)
