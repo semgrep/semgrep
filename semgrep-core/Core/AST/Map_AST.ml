@@ -916,6 +916,7 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
 
   and map_any =
     function
+    | Str v1 -> let v1 = map_wrap map_of_string v1 in Str v1
     | Args v1 -> let v1 = map_of_list map_argument v1 in Args v1
     | Partial v1 -> let v1 = map_partial v1 in Partial v1
     | TodoK v1 -> let v1 = map_ident v1 in TodoK v1
