@@ -50,8 +50,12 @@ let fail_on_error (parsing_res : 'a Tree_sitter_run.Parsing_result.t) =
 
 let dump_ast_pfff file =
   match Lang.langs_of_filename file with
-  | [lang] ->
-      let (ast, _stat) = Parse_generic.parse_with_lang lang file in
+  | [_lang] ->
+      let ast =
+        Common.save_excursion Flag_semgrep.pfff_only true (fun () ->
+          Parse_target.parse_program file
+        )
+      in
       let v = Meta_AST.vof_any (G.Pr ast) in
       let s = OCaml.string_of_v v in
       pr2 s
@@ -230,7 +234,11 @@ let diff_pfff_tree_sitter xs =
   xs |> List.iter (fun file ->
     match Lang.langs_of_filename file with
     | [lang] ->
-        let (ast1, _stat1) = Parse_generic.parse_with_lang lang file in
+        let ast1 =
+          Common.save_excursion Flag_semgrep.pfff_only true (fun () ->
+            Parse_target.parse_program file
+          )
+        in
         let ast2 =
           Common.save_excursion Flag_semgrep.tree_sitter_only true (fun () ->
             let {Parse_target. ast; errors; _} =

@@ -7,7 +7,7 @@ open OUnit
 
 let timeout_secs = 1
 
-let unittest =
+let unittest parse_program =
   "dataflow_python" >::: [
 
     (* Just checking that it terminates without crashing. *)
@@ -15,7 +15,7 @@ let unittest =
       let dir = Config_pfff.tests_path "python/dataflow" in
       let files = Common2.glob (spf "%s/*.py" dir)in
       files |> List.iter (fun file ->
-        let ast = Parse_generic.parse_program file in
+        let ast = parse_program file in
         let lang = List.hd (Lang.langs_of_filename file) in
         Naming_AST.resolve lang ast;
         try

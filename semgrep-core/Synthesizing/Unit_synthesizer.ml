@@ -200,7 +200,7 @@ let unittest =
         let check_pats (str, pat) =
           try
             (* the pattern AST *)
-            let pattern = Parse_generic.parse_pattern lang pat in
+            let pattern = Parse_pattern.parse_pattern lang pat in
 
             (* extracting the code at the range *)
             let e_opt = Range_to_AST.any_at_range r code in
