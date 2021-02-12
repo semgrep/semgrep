@@ -98,8 +98,8 @@ let check rules file ast =
       rules |> List.iter (fun rule ->
         let found_tainted_sink = (fun instr _env ->
           let code = AST.E instr.IL.iorig in
-          let location = Lib_AST.range_of_any code in
-          let tokens = lazy (Lib_AST.ii_of_any code) in
+          let location = V.range_of_any code in
+          let tokens = lazy (V.ii_of_any code) in
           Common.push {
             Pattern_match.
             rule = Tainting_rule.rule_of_tainting_rule rule;

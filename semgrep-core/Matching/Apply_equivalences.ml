@@ -17,6 +17,7 @@
 (*e: pad/r2c copyright *)
 open Common
 open AST_generic
+module H = AST_generic_helpers
 
 module Flag = Flag_semgrep
 module MV = Metavariable
@@ -114,8 +115,8 @@ let apply equivs any =
                  (* Found a match *)
                  let alt = subst_e env.mv r (* recurse on r? *) in
                  (* TODO: use AST_generic.equal_any*)
-                 if Lib_AST.abstract_for_comparison_any (E x) =*=
-                    Lib_AST.abstract_for_comparison_any (E alt)
+                 if H.abstract_for_comparison_any (E x) =*=
+                    H.abstract_for_comparison_any (E alt)
                  then x'
                  (* disjunction (if different) *)
                  else DisjExpr (x', alt)

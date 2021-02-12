@@ -288,7 +288,7 @@ let bindings_to_env xs =
 let bindings_to_env_with_just_strings xs =
   xs |> List.map (fun (mvar, mval) ->
     let any = MV.mvalue_to_any mval in
-    let (min, max) = Lib_AST.range_of_any any in
+    let (min, max) = Visitor_AST.range_of_any any in
     let file = min.Parse_info.file in
     let range = Range.range_of_token_locations min max in
     mvar, String (Range.content_at_range file range)

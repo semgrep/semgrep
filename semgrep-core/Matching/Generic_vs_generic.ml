@@ -29,7 +29,6 @@ module B = AST_generic
 
 module MV = Metavariable
 module AST = AST_generic
-module Lib = Lib_AST
 module Flag = Flag_semgrep
 module H = AST_generic_helpers
 
