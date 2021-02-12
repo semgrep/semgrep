@@ -1,5 +1,6 @@
 # type: ignore
 import os
+import platform
 import shutil
 import stat
 import sys
@@ -18,6 +19,8 @@ SEMGREP_CORE_BIN_ENV = "SEMGREP_CORE_BIN"
 SPACEGREP_BIN = "spacegrep"
 SPACEGREP_BIN_ENV = "SPACEGREP_BIN"
 SEMGREP_SKIP_BIN = "SEMGREP_SKIP_BIN" in os.environ
+SEMGREP_FORCE_INSTALL = "SEMGREP_FORCE_INSTALL" in os.environ
+IS_WINDOWS = platform.system() == "Windows"
 WHEEL_CMD = "bdist_wheel"
 
 if WHEEL_CMD in sys.argv:
@@ -41,6 +44,13 @@ if WHEEL_CMD in sys.argv:
     cmdclass = {WHEEL_CMD: BdistWheel}
 else:
     cmdclass = {}
+
+if IS_WINDOWS and not SEMGREP_FORCE_INSTALL:
+    raise Exception(
+        "Semgrep does not support Windows yet, please try again with WSL "
+        "or visit the following for more information: "
+        "https://github.com/returntocorp/semgrep/issues/1330"
+    )
 
 try:
     with open(os.path.join(REPO_ROOT, "README.md")) as f:
