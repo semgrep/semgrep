@@ -51,13 +51,6 @@ def cli() -> None:
     config = parser.add_argument_group("config")
     config_ex = config.add_mutually_exclusive_group()
     config_ex.add_argument(
-        "-g",
-        "--generate-config",
-        action="store_true",
-        help=f"Generate starter configuration file, {DEFAULT_CONFIG_FILE}",
-    )
-
-    config_ex.add_argument(
         "-f",  # for backwards compatibility
         "-c",
         "--config",
@@ -69,11 +62,19 @@ def cli() -> None:
             "name. See https://semgrep.dev/docs/writing-rules/rule-syntax for information on configuration file format."
         ),
     )
-
     config_ex.add_argument(
         "-e",
         "--pattern",
         help="Code search pattern. See https://semgrep.dev/docs/writing-rules/pattern-syntax for information on pattern features.",
+    )
+    config.add_argument(
+        "-g",
+        "--generate-config",
+        action="store",
+        nargs="?",
+        const=DEFAULT_CONFIG_FILE,
+        type=argparse.FileType("x"),
+        help=f"Generate starter configuration file. Defaults to {DEFAULT_CONFIG_FILE}.",
     )
     config.add_argument(
         "-l",
@@ -433,7 +434,9 @@ def cli() -> None:
                     output_handler.handle_semgrep_error(error)
                 raise SemgrepError("Please fix the above errors and try again.")
         elif args.generate_config:
-            semgrep.config_resolver.generate_config()
+            semgrep.config_resolver.generate_config(
+                args.generate_config, args.lang, args.pattern
+            )
         else:
             semgrep.semgrep_main.main(
                 output_handler=output_handler,
