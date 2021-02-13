@@ -387,7 +387,7 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
       | TyRef (t, v1) ->
           let t = v_tok t in
           let v1 = v_type_ v1 in ()
-      | TyTuple v1 -> let v1 = v_bracket (v_list v_type_) v1 in ()
+      | TyTuple v1 -> let v1 = v_bracket (v_list v_tuple_type_member) v1 in ()
       | TyQuestion (v1, t) ->
           let t = v_tok t in
           let v1 = v_type_ v1 in ()
@@ -425,6 +425,12 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
                  let t = v_other_type_parameter_operator t in
                  let xs = v_list v_any xs in ()
   and v_other_type_parameter_operator _ = ()
+
+  and v_tuple_type_member = function
+    | TyTupMember x -> v_type_ x
+    | TyTupOpt x -> v_type_ x
+    | TyTupRest x -> v_type_ x
+
   and v_attribute x =
     let k x =
       match x with

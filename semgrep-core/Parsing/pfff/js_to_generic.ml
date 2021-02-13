@@ -379,7 +379,7 @@ and type_ x =
       let t = type_ t in
       G.TyArray ((lt, None, rt), t)
   | TyTuple (lt, xs, rt) ->
-      let xs = List.map type_ xs in
+      let xs = List.map tuple_type_member xs in
       G.TyTuple (lt, xs, rt)
   | TyFun (params, typ_opt) ->
       let params = List.map parameter_binding params in
@@ -405,6 +405,8 @@ and type_ x =
   | TypeTodo (categ, xs) ->
       G.OtherType (G.OT_Todo, (G.TodoK categ)::(List.map any xs))
 
+and tuple_type_member x =
+  TyTupMember (type_ x)
 
 and entity { name = n; attrs } =
   let n = name n in

@@ -2255,11 +2255,11 @@ and map_trait_bounds (env : env) ((v1, v2, v3) : CST.trait_bounds): trait_bound 
 
 and map_tuple_type (env : env) ((v1, v2, v3, v4, v5) : CST.tuple_type): G.type_ =
   let lparen = token env v1 (* "(" *) in
-  let ty_first = map_type_ env v2 in
+  let ty_first = G.TyTupMember (map_type_ env v2) in
   let ty_rest =
     List.map (fun (v1, v2) ->
       let comma = token env v1 (* "," *) in
-      let ty = map_type_ env v2 in
+      let ty = G.TyTupMember (map_type_ env v2) in
       ty
     ) v3
   in

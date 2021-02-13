@@ -90,11 +90,15 @@ and type_ =
   | TyApp (v1, v2) ->
       let v1 = list type_ v1 and v2 = dotted_ident_of_name v2 in
       G.TyNameApply (v2, v1 |> List.map (fun t -> G.TypeArg t))
-  | TyTuple v1 -> let v1 = list type_ v1 in G.TyTuple (G.fake_bracket v1)
+  | TyTuple v1 ->
+      let v1 = list tuple_type_member v1 in
+      G.TyTuple (G.fake_bracket v1)
   | TyTodo (t, v1) ->
       let t = todo_category t in
       let v1 = list type_ v1 in
       G.OtherType (G.OT_Todo, (G.TodoK t)::(List.map (fun x -> G.T x) v1))
+
+and tuple_type_member x = TyTupMember (type_ x)
 
 (* TODO: we should try to transform in stmt while/... instead of those
  * OE_StmtExpr *)

@@ -393,7 +393,7 @@ and hint_type =
       G.TyBuiltin ("array", t)
   | HintQuestion (t, v1) -> let v1 = hint_type v1 in
       G.TyQuestion (v1, t)
-  | HintTuple (t1, v1, t2) -> let v1 = list hint_type v1 in
+  | HintTuple (t1, v1, t2) -> let v1 = list hint_tuple_type_member v1 in
       G.TyTuple (t1, v1, t2)
   | HintCallback (v1, v2) ->
       let v1 = list hint_type v1 and v2 = option hint_type v2 in
@@ -412,6 +412,8 @@ and hint_type =
   | HintVariadic (tok, _) ->
       G.OtherType (G.OT_Todo,
                    [G.TodoK ("HintVariadic not supported", tok)])
+
+and hint_tuple_type_member v = G.TyTupMember (hint_type v)
 
 and class_name v = hint_type v
 

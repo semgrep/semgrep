@@ -1146,7 +1146,7 @@ and type_ =
 
   (* a special case of TApply, also a special case of TPointer *)
   | TyArray of (* const_expr *) expr option bracket * type_
-  | TyTuple of type_ list bracket (* at least 2 elements *)
+  | TyTuple of tuple_type_member list bracket
 
   (*s: [[AST_generic.type_]] other cases *)
   (* old: was originally TyApply (name, []), but better to differentiate.
@@ -1225,6 +1225,11 @@ and other_type_argument_operator =
   (* Other *)
   | OTA_Todo
   (*e: type [[AST_generic.other_type_argument_operator]] *)
+
+and tuple_type_member =
+  | TyTupMember of type_  (* simple tuple type element *)
+  | TyTupOpt of type_  (* optional tuple type element in typescript: string? *)
+  | TyTupRest of type_  (* rest tuple type element in typescript: ...string *)
 
 (*****************************************************************************)
 (* Attribute *)

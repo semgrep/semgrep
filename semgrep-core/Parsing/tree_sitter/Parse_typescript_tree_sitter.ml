@@ -149,7 +149,7 @@ and nested_identifier (env : env) ((v1, v2, v3) : CST.nested_identifier) =
   let v3 = JS.identifier env v3 (* identifier *) in
   v1 @ [v3]
 
-let concat_nested_identifier _env (idents : ident list) : ident =
+let concat_nested_identifier (idents : ident list) : ident =
   let str = idents |> List.map fst |> String.concat "." in
   let tokens = List.map snd idents in
   let x, xs =
@@ -332,7 +332,7 @@ and jsx_opening_element (env : env) ((v1, v2, v3, v4) : CST.jsx_opening_element)
      | `Choice_choice_jsx_id x -> JS.jsx_attribute_name env x
      | `Choice_id_opt_type_args (v1, v2) ->
          let v1 = anon_choice_type_id_42c0412 env v1 in
-         let id = concat_nested_identifier env v1 in
+         let id = concat_nested_identifier v1 in
          let _v2 =
            (match v2 with
             | Some x -> type_arguments env x |> PI.unbracket
@@ -352,7 +352,7 @@ and jsx_self_clos_elem (env : env) ((v1, v2, v3, v4, v5) : CST.jsx_self_closing_
      | `Choice_choice_jsx_id x -> JS.jsx_attribute_name env x
      | `Choice_id_opt_type_args (v1, v2) ->
          let v1 = anon_choice_type_id_42c0412 env v1 in
-         let id = concat_nested_identifier env v1 in
+         let id = concat_nested_identifier v1 in
          let _v2 =
            (match v2 with
             | Some x -> type_arguments env x |> PI.unbracket
@@ -1010,41 +1010,43 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
        let v3 = JS.token env v3 (* "target" *) in
        let t = PI.combine_infos v1 [v2;v3] in
        IdSpecial (NewTarget, t)
-   | `Call_exp x ->
-       (match x with
-        | `Exp_opt_type_args_choice_args (v1, v2, v3) ->
-            let v1 = expression env v1 in
-            (* TODO: types *)
-            let _v2 =
-              match v2 with
-              | Some x -> type_arguments env x |> PI.unbracket
-              | None -> []
-            in
-            let v3 =
-              (match v3 with
-               | `Args x ->
-                   let args = arguments env x in
-                   Apply (v1, args)
-               | `Temp_str x ->
-                   let (t1, xs, t2) = template_string env x in
-                   Apply (IdSpecial (Encaps true, t1),
-                          (t1, v1::xs, t2))
-              )
-            in
-            v3
-        | `Choice_this_QMARKDOT_opt_type_args_args (v1, v2, v3, v4) ->
-            let v1 = primary_expression env v1 in
-            let _v2 = JS.token env v2 (* "?." *) in
-            (* TODO: types *)
-            let _v3 =
-              match v3 with
-              | Some x -> type_arguments env x |> PI.unbracket
-              | None -> []
-            in
-            let v4 = arguments env v4 in
-            (* TODO: distinguish "?." from a simple application *)
-            Apply (v1, v4)
-       )
+   | `Call_exp x -> call_expression env x
+  )
+
+and call_expression (env : env) (x : CST.call_expression) =
+  (match x with
+   | `Exp_opt_type_args_choice_args (v1, v2, v3) ->
+       let v1 = expression env v1 in
+       (* TODO: types *)
+       let _v2 =
+         match v2 with
+         | Some x -> type_arguments env x |> PI.unbracket
+         | None -> []
+       in
+       let v3 =
+         (match v3 with
+          | `Args x ->
+              let args = arguments env x in
+              Apply (v1, args)
+          | `Temp_str x ->
+              let (t1, xs, t2) = template_string env x in
+              Apply (IdSpecial (Encaps true, t1),
+                     (t1, v1::xs, t2))
+         )
+       in
+       v3
+   | `Choice_this_QMARKDOT_opt_type_args_args (v1, v2, v3, v4) ->
+       let v1 = primary_expression env v1 in
+       let _v2 = JS.token env v2 (* "?." *) in
+       (* TODO: types *)
+       let _v3 =
+         match v3 with
+         | Some x -> type_arguments env x |> PI.unbracket
+         | None -> []
+       in
+       let v4 = arguments env v4 in
+       (* TODO: distinguish "?." from a simple application *)
+       Apply (v1, v4)
   )
 
 and anon_choice_prop_name_6cc9e4b (env : env) (x : CST.anon_choice_prop_name_6cc9e4b) =
@@ -1063,7 +1065,7 @@ and module__ (env : env) ((v1, v2) : CST.module__) =
      | `Id tok -> JS.identifier env tok (* identifier *)
      | `Nested_id x ->
          nested_identifier env x
-         |> concat_nested_identifier env
+         |> concat_nested_identifier
     )
   in
   let v2 = (* optional module body *)
@@ -1531,12 +1533,21 @@ and type_query (env : env) ((v1, v2) : CST.type_query) =
   let v1 = JS.token env v1 (* "typeof" *) in
   let v2 =
     (match v2 with
-     | `Id tok -> [JS.identifier env tok] (* identifier *)
-     | `Nested_id x -> nested_identifier env x
-     | `Gene_type x -> generic_type env x
+     | `Id tok ->
+         JS.identifier env tok (* identifier *)
+         |> idexp_or_special
+     | `Nested_id x ->
+         nested_identifier env x
+         |> concat_nested_identifier
+         |> idexp_or_special
+     | `Gene_type x ->
+         generic_type env x
+         |> concat_nested_identifier
+         |> idexp_or_special
+     | `Call_exp x -> call_expression env x
     )
   in
-  TypeTodo (("TypeQuery", v1), [Type (TyName v2)])
+  TypeTodo (("TypeQuery", v1), [Expr v2])
 
 and unary_expression (env : env) (x : CST.unary_expression) =
   (match x with
@@ -2616,15 +2627,22 @@ and tuple_type_body (env : env) ((v1, v2, v3) : CST.tuple_type_body) =
   let v3 = JS.token env v3 (* "]" *) in
   TyTuple (v1, v2, v3)
 
-and tuple_type_member (env : env) (x : CST.tuple_type_member) =
+and tuple_type_member (env : env) (x : CST.tuple_type_member) : AST.tuple_type_member =
   (match x with
-   | `Tuple_type_id x ->
-       let id = tuple_type_identifier env x in
-       TyName [id]
    | `Labe_tuple_type_member (v1, v2) ->
        let _v1_TODO = tuple_type_identifier env v1 in
        let v2 = type_annotation env v2 |> snd in
-       v2
+       TyTupMember v2
+   | `Opt_type (v1, v2) ->
+       let v1 = type_ env v1 in
+       let _v2 = token env v2 (* "?" *) in
+       TyTupOpt v1
+   | `Rest_type (v1, v2) ->
+       let _v1 = token env v1 (* "..." *) in
+       let v2 = map_type_ env v2 in
+       TyTupRest v2
+   | `Type x ->
+       TyTupMember (type_ env x)
   )
 
 and method_signature (env : env) ((v1, v2, v3, v4, v5, v6, v7, v8) : CST.method_signature) =

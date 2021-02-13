@@ -381,7 +381,8 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
     | TyRef (t, v1) ->
         let t = map_tok t in
         let v1 = map_type_ v1 in TyRef (t, v1)
-    | TyTuple v1 -> let v1 = map_bracket (map_of_list map_type_) v1 in
+    | TyTuple v1 ->
+        let v1 = map_bracket (map_of_list map_tuple_type_member) v1 in
         TyTuple v1
     | TyQuestion (v1, t) ->
         let t = map_tok t in
@@ -412,6 +413,11 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
   and map_other_type_operator x = x
 
   and map_other_type_argument_operator x = x
+
+  and map_tuple_type_member = function
+    | TyTupMember x -> TyTupMember (map_type_ x)
+    | TyTupOpt x -> TyTupOpt (map_type_ x)
+    | TyTupRest x -> TyTupRest (map_type_ x)
 
   and map_attribute = function
     | KeywordAttr v1 -> let v1 = map_wrap map_keyword_attribute v1 in

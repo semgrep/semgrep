@@ -277,8 +277,8 @@ type jsx_namespace_name = (
 
 type tuple_type_identifier = [
     `Id of identifier (*tok*)
-  | `Opt_id of (identifier (*tok*) * Token.t (* "?" *))
   | `Rest_id_ of rest_identifier_
+  | `Opt_id of (identifier (*tok*) * Token.t (* "?" *))
 ]
 [@@deriving sexp_of]
 
@@ -1340,8 +1340,10 @@ and tuple_type_body = (
 )
 
 and tuple_type_member = [
-    `Tuple_type_id of tuple_type_identifier
-  | `Labe_tuple_type_member of (tuple_type_identifier * type_annotation)
+    `Labe_tuple_type_member of (tuple_type_identifier * type_annotation)
+  | `Opt_type of (type_ * Token.t (* "?" *))
+  | `Rest_type of (Token.t (* "..." *) * type_)
+  | `Type of type_
 ]
 
 and type_ = [
@@ -1400,6 +1402,7 @@ and type_query = (
     `Id of identifier (*tok*)
   | `Nested_id of nested_identifier
   | `Gene_type of generic_type
+  | `Call_exp of call_expression
   ]
 )
 
@@ -1826,6 +1829,9 @@ type optional_parameter (* inlined *) = (
 )
 [@@deriving sexp_of]
 
+type optional_type (* inlined *) = (type_ * Token.t (* "?" *))
+[@@deriving sexp_of]
+
 type pair (* inlined *) = (property_name * Token.t (* ":" *) * expression)
 [@@deriving sexp_of]
 
@@ -1855,6 +1861,9 @@ type rest_parameter (* inlined *) = (
   rest_identifier_
   * type_annotation option
 )
+[@@deriving sexp_of]
+
+type rest_type (* inlined *) = (Token.t (* "..." *) * type_)
 [@@deriving sexp_of]
 
 type return_statement (* inlined *) = (
