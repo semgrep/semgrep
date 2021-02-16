@@ -70,7 +70,6 @@ jobs:
           path: artifacts
       - name: Test build artifacts
         run: |
-          ls -l artifacts
           chmod +x ./artifacts/semgrep-core
           chmod +x ./artifacts/spacegrep
           ./artifacts/semgrep-core -help
