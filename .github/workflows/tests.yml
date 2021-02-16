@@ -88,19 +88,17 @@ jobs:
       - name: Install artifacts
         run: |
           tar xf ocaml-build-artifacts/ocaml-build-artifacts.tgz
-          ls -lR ocaml-build-artifacts
           sudo cp ocaml-build-artifacts/bin/* /usr/bin
       - name: Test semgrep-core
         run: semgrep-core -version
       - name: Install Tox and any other packages
-        run: pip install pipenv==2018.11.26 wheel==0.34.2 tox==3.15.0
+        run: pip install pipenv==2018.11.26 tox==3.15.0
       - name: Run Tox
         env:
           SEMGREP_SKIP_BIN: true
         run: |
           cd semgrep
           tox -e py  # Run tox using the version of Python in `PATH`
-
 
   build-test:
     name: semgrep unit and e2e tests
@@ -172,7 +170,7 @@ jobs:
         uses: actions/setup-python@v1
         with:
           python-version: ${{ matrix.python }}
-      - name: Run 0.17.0 Timing Benchmark
+      - name: Run 0.29.0 Timing Benchmark
         run: |
           pip3 install semgrep==0.29.0
           semgrep --version
