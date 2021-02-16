@@ -497,15 +497,20 @@ and vof_type_ =
       let t = vof_tok t in
       let v1 = vof_type_ v1 in OCaml.VSum ("TyRef", [ t; v1 ])
   | TyTuple v1 ->
-      let v1 = vof_bracket (OCaml.vof_list vof_tuple_type_member) v1
-      in OCaml.VSum ("TyTuple", [ v1 ])
+      let v1 = vof_bracket (OCaml.vof_list vof_type_) v1 in
+      OCaml.VSum ("TyTuple", [ v1 ])
   | TyQuestion (v1, t) ->
+      let v1 = vof_type_ v1 in
       let t = vof_tok t in
-      let v1 = vof_type_ v1 in OCaml.VSum ("TyQuestion", [ t; v1 ])
+      OCaml.VSum ("TyQuestion", [ t; v1 ])
+  | TyRest (t, v1) ->
+      let t = vof_tok t in
+      let v1 = vof_type_ v1 in
+      OCaml.VSum ("TyRest", [ v1; t ])
   | OtherType (v1, v2) ->
-      let v1 = vof_other_type_operator v1
-      and v2 = OCaml.vof_list vof_any v2
-      in OCaml.VSum ("OtherType", [ v1; v2 ])
+      let v1 = vof_other_type_operator v1 in
+      let v2 = OCaml.vof_list vof_any v2 in
+      OCaml.VSum ("OtherType", [ v1; v2 ])
 and vof_type_arguments v = OCaml.vof_list vof_type_argument v
 and vof_type_argument =
   function
@@ -539,11 +544,6 @@ and vof_other_type_argument_operator =
   | OTA_Todo -> OCaml.VSum ("OTA_Todo", [])
   | OTA_Literal -> OCaml.VSum ("OTA_Literal", [])
   | OTA_ConstBlock -> OCaml.VSum ("OTA_ConstBlock", [])
-and vof_tuple_type_member =
-  function
-  | TyTupMember x -> OCaml.VSum ("TyTupMember", [vof_type_ x])
-  | TyTupOpt x -> OCaml.VSum ("TyTupOpt", [vof_type_ x])
-  | TyTupRest x -> OCaml.VSum ("TyTupRest", [vof_type_ x])
 and vof_keyword_attribute =
   function
   | Static -> OCaml.VSum ("Static", [])

@@ -2627,7 +2627,7 @@ and tuple_type_body (env : env) ((v1, v2, v3) : CST.tuple_type_body) =
   let v3 = JS.token env v3 (* "]" *) in
   TyTuple (v1, v2, v3)
 
-and tuple_type_member (env : env) (x : CST.tuple_type_member) : AST.tuple_type_member =
+and tuple_type_member (env : env) (x : CST.tuple_type_member) =
   (match x with
    | `Labe_tuple_type_member (v1, v2) ->
        let _v1_TODO = tuple_type_identifier env v1 in
@@ -2635,12 +2635,12 @@ and tuple_type_member (env : env) (x : CST.tuple_type_member) : AST.tuple_type_m
        TyTupMember v2
    | `Opt_type (v1, v2) ->
        let v1 = type_ env v1 in
-       let _v2 = token env v2 (* "?" *) in
-       TyTupOpt v1
+       let v2 = JS.token env v2 (* "?" *) in
+       TyTupOpt (v1, v2)
    | `Rest_type (v1, v2) ->
-       let _v1 = token env v1 (* "..." *) in
-       let v2 = map_type_ env v2 in
-       TyTupRest v2
+       let v1 = JS.token env v1 (* "..." *) in
+       let v2 = type_ env v2 in
+       TyTupRest (v1, v2)
    | `Type x ->
        TyTupMember (type_ env x)
   )

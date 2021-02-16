@@ -1892,11 +1892,11 @@ and unescaped_annotation (env : env) (x : CST.unescaped_annotation) =
   )
 
 and user_type (env : env) ((v1, v2) : CST.user_type) =
-  let v1 = TyTupMember (simple_user_type env v1) in
+  let v1 = simple_user_type env v1 in
   let v2 =
     List.map (fun (v1, v2) ->
       let v1 = token env v1 (* "." *) in
-      let v2 = TyTupMember (simple_user_type env v2) in
+      let v2 = simple_user_type env v2 in
       v2
     ) v2
   in

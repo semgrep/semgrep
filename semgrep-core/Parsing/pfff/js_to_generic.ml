@@ -406,7 +406,10 @@ and type_ x =
       G.OtherType (G.OT_Todo, (G.TodoK categ)::(List.map any xs))
 
 and tuple_type_member x =
-  TyTupMember (type_ x)
+  match x with
+  | TyTupMember x -> type_ x
+  | TyTupOpt (x, tok) -> TyQuestion (type_ x, tok)
+  | TyTupRest (tok, x) -> TyRest (tok, type_ x)
 
 and entity { name = n; attrs } =
   let n = name n in

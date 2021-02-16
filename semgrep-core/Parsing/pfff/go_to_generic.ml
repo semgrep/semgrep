@@ -60,7 +60,7 @@ let return_type_of_results results =
   | [] | [G.ParamClassic {G. ptype = None; _}] -> None
   | [G.ParamClassic {G. ptype = Some t; _}] -> Some t
   | xs -> Some (G.TyTuple (xs |> List.map (function
-    | G.ParamClassic { G.ptype = Some t;_ } -> G.TyTupMember t
+    | G.ParamClassic { G.ptype = Some t;_ } -> t
     | G.ParamClassic { G.ptype = None; _ } -> raise Impossible
     | _ -> raise Impossible
   ) |> fb))
