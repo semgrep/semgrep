@@ -311,11 +311,6 @@ let overloadable_operator (env : env) (x : CST.overloadable_operator) =
    | `LTEQ tok -> str env tok (* "<=" *)
   )
 
-let reserved_identifier (env : env) (x : CST.reserved_identifier) =
-  (match x with
-   | `From tok -> str env tok (* "from" *)
-  )
-
 let unhandled_keywordattr_to_namedattr (env : env) tok =
   NamedAttr (token env tok, Id (str env tok, empty_id_info ()), fake_bracket [])
 
@@ -1265,9 +1260,6 @@ and expression (env : env) (x : CST.expression) : AST.expr =
        Call (IdSpecial (Typeof, v1), (v2, [ArgType v3], v4))
    | `Simple_name x ->
        id_of_name_ (simple_name env x)
-   | `Rese_id x ->
-       let x = reserved_identifier env x in
-       AST.N (AST.Id (x, empty_id_info ()))
    | `Lit x ->
        let x = literal env x in
        AST.L x
