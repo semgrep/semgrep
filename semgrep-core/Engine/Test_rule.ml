@@ -63,20 +63,20 @@ let test_rules xs =
 
     let xlangs = xlangs_of_rules rules in
     let xlang =
-        match xlangs with
-        | [] -> failwith (spf "no language found in %s" file)
-        | [x] -> x
-        | _::_::_ -> failwith (spf "too many languages found in %s"file)
+      match xlangs with
+      | [] -> failwith (spf "no language found in %s" file)
+      | [x] -> x
+      | _::_::_ -> failwith (spf "too many languages found in %s"file)
     in
     let target =
       try
         let (d,b,ext) = Common2.dbe_of_filename file in
         Common2.readdir_to_file_list d |> Common.find_some (fun file2 ->
-           let (_,b2, ext2) = Common2.dbe_of_filename file2 in
-           if b = b2 && ext <> ext2
-           then Some (Filename.concat d file2)
-           else None
-         )
+          let (_,b2, ext2) = Common2.dbe_of_filename file2 in
+          if b = b2 && ext <> ext2
+          then Some (Filename.concat d file2)
+          else None
+        )
       with Not_found -> failwith (spf "could not find a target for %s" file)
     in
     logger#info "processing target %s" target;
@@ -88,13 +88,13 @@ let test_rules xs =
     let ast = lazy (
       match xlang with
       | R.L (lang, _) ->
-        (let {Parse_target. ast; _} =
-           Parse_target.parse_and_resolve_name_use_pfff_or_treesitter
-                  lang target
-         in
-         ast)
+          (let {Parse_target. ast; _} =
+             Parse_target.parse_and_resolve_name_use_pfff_or_treesitter
+               lang target
+           in
+           ast)
       | R.LNone | R.LGeneric -> raise Impossible
-      )
+    )
     in
     E.g_errors := [];
     let matches =
