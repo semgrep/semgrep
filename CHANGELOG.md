@@ -6,10 +6,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 
-- New documentation for contributing new languages.
+- Documentation for contributing new languages.
 - New language Kotlin with experimental support.
-- Caching improvements for semgrep-core.
-- Bloom filters for matching performance improvement.
+- Work on caching improvements for semgrep-core.
+- Work on bloom filters for matching performance improvement.
 
 ### Changed
 
