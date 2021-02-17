@@ -387,6 +387,12 @@ and expr_aux env eorig =
   | G.Assign (e1, tok, e2) ->
       let exp = expr env e2 in
       assign env e1 tok exp eorig
+  | G.AssignOp (e1, (G.Eq, tok), e2)
+    when Parse_info.str_of_info tok = ":=" ->
+      (* We encode Go's `:=` as `AssignOp(Eq)`,
+       * see "go_to_generic.ml" in Pfff. *)
+      let exp = expr env e2 in
+      assign env e1 tok exp eorig
   | G.AssignOp (e1, op, e2) ->
       let exp = expr env e2 in
       let lval = lval env e1 in

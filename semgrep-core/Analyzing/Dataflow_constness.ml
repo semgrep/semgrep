@@ -267,6 +267,21 @@ and eval_op env wop args =
 (* Transfer *)
 (*****************************************************************************)
 
+(* FIXME: This takes "Bottom" as the default constness of a variable.
+ *
+ * E.g. in
+ *
+ *     def foo():
+ *         if cond():
+ *              x = "abc"
+ *         return x
+ *
+ * we infer that `foo' returns the string "abc" when `x' may not even be defined!
+ *
+ * It would be more sound to assume "Top" (i.e., `G.NotCst`) as default, or
+ * perhaps we could have a switch to control whether we want a may- or must-
+ * analysis?
+*)
 let union_env =
   Dataflow.varmap_union union
 
