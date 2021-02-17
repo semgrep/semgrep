@@ -1117,12 +1117,9 @@ and expression (env : env) (x : CST.expression) : AST.expr =
        let v1 =
          (match v1 with
           | `Exp x -> expression env x
-          | `Type x ->
+          | `Pred_type x ->
               (* e.g. `int` in `int.maxValue` *)
-              let _x = type_constraint env x in
-              let id = (match _x with
-                | TyBuiltin sw -> sw
-                | _ -> raise Impossible) in
+              let id = str env x in
               N (Id (id, empty_id_info ())) (* TODO should this be IdQualified? *)
           | `Name x ->
               let n = name env x in
