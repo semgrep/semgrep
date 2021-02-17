@@ -1287,7 +1287,10 @@ and anon_choice_param_ce11a32 (env : env) (x : CST.anon_choice_param_ce11a32) =
    | `Param_array (v1, v2, v3, v4) ->
        let v1 = List.concat_map (attribute_list env) v1 in
        let v2 = token env v2 (* "params" *) in
-       let v3 = array_type env v3 in
+       let v3 = (match v3 with
+         | `Array_type v3 -> array_type env v3
+         | `Null_type v3 -> nullable_type env v3
+       ) in
        let v4 = identifier env v4 (* identifier *) in
        ParamRest (v2, {
          pname = Some v4;
