@@ -1372,6 +1372,10 @@ and m_type_ a b =
       m_type_ a1 b1 >>= (fun () ->
         m_tok a2 b2
       )
+  | A.TyRest(a1, a2), B.TyRest(b1, b2) ->
+      m_tok a1 b1 >>= (fun () ->
+        m_type_ a2 b2
+      )
   | A.TyRecordAnon(a0, a1), B.TyRecordAnon(b0, b1) ->
       let* () = m_tok a0 b0 in
       m_bracket m_fields a1 b1
@@ -1395,7 +1399,7 @@ and m_type_ a b =
       )
   | A.TyBuiltin _, _  | A.TyFun _, _  | A.TyNameApply _, _  | A.TyVar _, _
   | A.TyArray _, _  | A.TyPointer _, _ | A.TyTuple _, _  | A.TyQuestion _, _
-  | A.TyN _, _ | A.TyAny _, _
+  | A.TyRest _, _ | A.TyN _, _ | A.TyAny _, _
   | A.TyOr _, _ | A.TyAnd _, _ | A.TyRecordAnon _, _ | A.TyInterfaceAnon _, _
   | A.TyRef _, _
   | A.OtherType _, _
@@ -1427,6 +1431,7 @@ and m_type_argument a b =
         (m_list m_any) a2 b2)
   | A.TypeArg _, _ | A.TypeWildcard _, _ | A.TypeLifetime _, _ | A.OtherTypeArg _, _
     -> fail ()
+
 (*e: function [[Generic_vs_generic.m_type_argument]] *)
 and m_wildcard (a1, a2) (b1, b2) =
   let* () = m_wrap m_bool a1 b1 in

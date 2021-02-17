@@ -390,6 +390,9 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
       | TyQuestion (v1, t) ->
           let t = v_tok t in
           let v1 = v_type_ v1 in ()
+      | TyRest (t, v1) ->
+          let t = v_tok t in
+          let v1 = v_type_ v1 in ()
       | OtherType (v1, v2) ->
           let v1 = v_other_type_operator v1 and v2 = v_list v_any v2 in ()
     in
@@ -424,6 +427,7 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
                  let t = v_other_type_parameter_operator t in
                  let xs = v_list v_any xs in ()
   and v_other_type_parameter_operator _ = ()
+
   and v_attribute x =
     let k x =
       match x with
