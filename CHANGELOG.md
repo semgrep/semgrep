@@ -2,13 +2,36 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## Next
+## [0.40.0](https://github.com/returntocorp/semgrep/releases/tag/v0.40.0) - 2021-02-17
 
 ### Added
 
+- New documentation for contributing new languages.
+- New language Kotlin with experimental support.
+- Caching improvements for semgrep-core.
+- Bloom filters for matching performance improvement.
+
 ### Changed
 
+- Typescript grammar upgraded.
+- Ruby parser updated from the latest tree-sitter-ruby.
+- New Semgrep logo!
+- metavariable_regex now supported with PCRE.
+- Rust macros now parsed. Thanks Ruin0x11!
+
 ### Fixed
+
+- Constant propagaion support covers `:=` short assignment in Go. (#2440)
+- Functions now match against functions inside classes for PHP. (#2470)
+- Import statements for CommonJS Typescript modules now supported. (#2234)
+- Ellipsis behave consistently in nested statements for PHP. (#2453)
+- Go Autofix does not drop closing parenthesis. (#2316)
+- Helpful errors added for Windows installation. (#2533)
+- Helpful suggestions provided on output encoding error. (#2514)
+- Import metavariables now bind to the entire Java path. (#2502)
+- Semgrep matches the short name for a type in Java. (#2400)
+- Interface types explicitly handled in Go patterns. (#2376)
+- TooManyMatches error generated instead of Timeout error when appropriate. (#2411)
 
 ## [0.39.1](https://github.com/returntocorp/semgrep/releases/tag/v0.39.1) - 2021-01-26
 
