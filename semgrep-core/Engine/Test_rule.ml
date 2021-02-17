@@ -26,6 +26,7 @@ let logger = Logging.get_logger [__MODULE__]
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
+(*
 let (lang_of_rules: Rule.t list -> Lang.t) = fun rs ->
   match rs |> Common.find_some_opt (fun r ->
     match r.R.languages with
@@ -34,7 +35,10 @@ let (lang_of_rules: Rule.t list -> Lang.t) = fun rs ->
   ) with
   | Some l -> l
   | None -> failwith "could not find a language"
+*)
 
+let (xlangs_of_rules: Rule.t list -> Rule.xlang list) = fun rs ->
+  rs |> List.map (fun r -> r.R.languages) |> List.sort_uniq (compare)
 
 (*****************************************************************************)
 (* Entry point *)
@@ -52,21 +56,25 @@ let test_rules xs =
   let ext = "rule" in
 
   fullxs |> List.iter (fun file ->
-    logger#info "processing rule %s" file;
+    logger#info "processing rule file %s" file;
     let rules = Parse_rule.parse file in
     (* just a sanity check *)
     (* rules |> List.iter Check_rule.check; *)
 
-    let lang = lang_of_rules rules in
-    let exts = Lang.ext_of_lang lang in
-
+    let xlangs = xlangs_of_rules rules in
+    let xlang =
+      match xlangs with
+      | [] -> failwith (spf "no language found in %s" file)
+      | [x] -> x
+      | _::_::_ -> failwith (spf "too many languages found in %s"file)
+    in
     let target =
       try
-        exts |> Common.find_some (fun ext ->
-          let (d,b,_) = Common2.dbe_of_filename file in
-          let target = Common2.filename_of_dbe (d,b,ext) in
-          if (Sys.file_exists target)
-          then Some target
+        let (d,b,ext) = Common2.dbe_of_filename file in
+        Common2.readdir_to_file_list d |> Common.find_some (fun file2 ->
+          let (_,b2, ext2) = Common2.dbe_of_filename file2 in
+          if b = b2 && ext <> ext2
+          then Some (Filename.concat d file2)
           else None
         )
       with Not_found -> failwith (spf "could not find a target for %s" file)
@@ -77,12 +85,20 @@ let test_rules xs =
     let expected_error_lines = E.expected_error_lines_of_files [target] in
 
     (* actual *)
-    let {Parse_target. ast; _} =
-      Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang target
+    let ast = lazy (
+      match xlang with
+      | R.L (lang, _) ->
+          (let {Parse_target. ast; _} =
+             Parse_target.parse_and_resolve_name_use_pfff_or_treesitter
+               lang target
+           in
+           ast)
+      | R.LNone | R.LGeneric -> raise Impossible
+    )
     in
     E.g_errors := [];
     let matches =
-      Semgrep.check false (fun _ _ -> ()) rules (target, lang, ast) in
+      Semgrep.check false (fun _ _ -> ()) rules (target, xlang, ast) in
     matches |> List.iter JSON_report.match_to_error;
 
     let actual_errors = !E.g_errors in
