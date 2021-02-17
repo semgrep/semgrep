@@ -1032,7 +1032,7 @@ and type_ =
 
   (* a special case of TApply, also a special case of TPointer *)
   | TyArray of (* const_expr *) expr option bracket * type_
-  | TyTuple of type_ list bracket (* at least 2 elements *)
+  | TyTuple of type_ list bracket
 
   (*s: [[AST_generic.type_]] other cases *)
   (* old: was originally TyApply (name, []), but better to differentiate.
@@ -1052,6 +1052,7 @@ and type_ =
   | TyRef of tok * type_ (* C++/Rust *)
 
   | TyQuestion of type_ * tok (* a.k.a option type *)
+  | TyRest of tok * type_ (* '...foo' e.g. in a typescript tuple type *)
 
   (* intersection types, used for Java Cast, and in Typescript *)
   | TyAnd of type_ * tok (* & *) * type_
