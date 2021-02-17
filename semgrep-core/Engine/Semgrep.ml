@@ -260,56 +260,58 @@ let filter_ranges xs cond =
 (*****************************************************************************)
 
 let matches_of_xpatterns with_caching orig_rule (file, xlang, ast) xpatterns =
+  (* Right now you can only mix semgrep/regexps and spacegrep/regexps, but
+   * in theory we could mix all of them together.
+  *)
+  let (patterns, _spacegrepsTODO, regexps) = partition_xpatterns xpatterns in
 
-  match xlang with
-  | R.L (lang, _) ->
-      let ast = Lazy.force ast in
-      let (patterns, _spacegrepsTODO, regexps) =
-        partition_xpatterns xpatterns in
-
-      (* semgrep *)
-      let mini_rules =
-        patterns |> List.map (mini_rule_of_pattern orig_rule) in
-      let equivalences =
-        (* TODO *)
-        [] in
-      let semgrep_matches =
+  (* semgrep *)
+  let semgrep_matches =
+    match xlang with
+    | R.L (lang, _) ->
+        let ast = Lazy.force ast in
+        let mini_rules =
+          patterns |> List.map (mini_rule_of_pattern orig_rule) in
+        let equivalences =
+          (* TODO *)
+          []
+        in
         Semgrep_generic.check
           ~with_caching
           ~hook:(fun _ _ -> ())
           mini_rules equivalences file lang ast
-      in
+    | _ -> []
+  in
 
-      (* spacegrep *)
+  (* spacegrep *)
 
-      (* regexps *)
-      let regexp_matches =
-        if regexps = []
-        then []
-        else begin
-          let big_str = Common.read_file file in
-          regexps |> List.map (fun (id, (s, re)) ->
-            let subs =
-              try
-                Pcre.exec_all ~rex:re big_str
-              with Not_found -> [||]
-            in
-            subs |> Array.to_list |> List.map (fun sub ->
-              let (charpos, _) = Pcre.get_substring_ofs sub 0 in
-              let str = Pcre.get_substring sub 0 in
-              let (line, column) = line_col_of_charpos file charpos in
-              let loc = {PI. str; charpos; file; line; column } in
-              let mini_rule = mini_rule_of_regexp (id, s) in
-              {PM. rule = mini_rule; file; location = loc, loc;
-               tokens = lazy [info_of_token_location loc]; env = [] }
-            )
-          ) |> List.flatten
-        end
-      in
+  (* regexps *)
+  let regexp_matches =
+    if regexps = []
+    then []
+    else begin
+      let big_str = Common.read_file file in
+      regexps |> List.map (fun (id, (s, re)) ->
+        let subs =
+          try
+            Pcre.exec_all ~rex:re big_str
+          with Not_found -> [||]
+        in
+        subs |> Array.to_list |> List.map (fun sub ->
+          let (charpos, _) = Pcre.get_substring_ofs sub 0 in
+          let str = Pcre.get_substring sub 0 in
+          let (line, column) = line_col_of_charpos file charpos in
+          let loc = {PI. str; charpos; file; line; column } in
+          let mini_rule = mini_rule_of_regexp (id, s) in
+          {PM. rule = mini_rule; file; location = loc, loc;
+           tokens = lazy [info_of_token_location loc]; env = [] }
+        )
+      ) |> List.flatten
+    end
+  in
 
-      (* final result *)
-      semgrep_matches @ regexp_matches
-  | R.LGeneric | R.LNone -> failwith "TODO"
+  (* final result *)
+  semgrep_matches @ regexp_matches
 
 (*****************************************************************************)
 (* Formula evaluation *)
