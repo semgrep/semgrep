@@ -10,8 +10,6 @@
    on the spacegrep/default help page.
 *)
 
-open Cmdliner
-
 let dispatch () =
   Printexc.record_backtrace true;
   match Filename.basename Sys.argv.(0) with
