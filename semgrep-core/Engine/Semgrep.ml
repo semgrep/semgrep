@@ -259,7 +259,11 @@ let filter_ranges xs cond =
 (* Evaluating xpatterns *)
 (*****************************************************************************)
 
-let matches_of_xpatterns with_caching orig_rule (file, lang, ast) xpatterns =
+let matches_of_xpatterns with_caching orig_rule (file, xlang, ast) xpatterns =
+
+  match xlang with
+  | R.L (lang, _) ->
+    let ast = Lazy.force ast in
   let (patterns, _spacegrepsTODO, regexps) =
     partition_xpatterns xpatterns in
 
@@ -305,6 +309,7 @@ let matches_of_xpatterns with_caching orig_rule (file, lang, ast) xpatterns =
 
   (* final result *)
   semgrep_matches @ regexp_matches
+  | R.LGeneric | R.LNone -> failwith "TODO"
 
 (*****************************************************************************)
 (* Formula evaluation *)
@@ -349,7 +354,7 @@ let rec (evaluate_formula: env -> R.formula -> range_with_mvars list) =
 
 (* 'with_caching' is unlabeled because ppx_profiling doesn't support labeled
    arguments *)
-let check with_caching hook rules (file, lang, ast) =
+let check with_caching hook rules (file, xlang, ast) =
   rules |> List.map (fun r ->
 
     let formula =
@@ -361,7 +366,7 @@ let check with_caching hook rules (file, lang, ast) =
     let xpatterns =
       xpatterns_in_formula formula in
     let matches =
-      matches_of_xpatterns with_caching r (file, lang, ast) xpatterns in
+      matches_of_xpatterns with_caching r (file, xlang, ast) xpatterns in
     (* match results per minirule id which is the same than pattern_id in
      * the formula *)
     let pattern_matches_per_id =
