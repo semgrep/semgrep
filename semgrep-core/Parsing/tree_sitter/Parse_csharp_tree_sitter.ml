@@ -397,7 +397,7 @@ let rec variable_designation (env : env) (x : CST.variable_designation) =
    | `Id tok -> PatId (identifier env tok, empty_id_info ()) (* identifier *)
   )
 
-let anon_choice_id_43fe74f (env : env) (x : CST.anon_choice_id_43fe74f) =
+let anon_choice_id_c036834 (env : env) (x : CST.anon_choice_id_c036834) =
   (match x with
    | `Id tok -> identifier env tok (* identifier *)
    | `Disc tok -> todo env tok (* "_" *)
@@ -410,7 +410,7 @@ let join_into_clause (env : env) ((v1, v2) : CST.join_into_clause) =
 
 let identifier_or_global (env : env) (x : CST.identifier_or_global) =
   (match x with
-   | `Global tok -> identifier env tok (* "global" *)
+   | `Global tok -> str env tok (* "global" *)
    | `Id tok -> identifier env tok (* identifier *)
   )
 
@@ -422,11 +422,11 @@ let identifier_or_global_qualifier (env : env) (x : CST.identifier_or_global) =
 
 let tuple_pattern (env : env) ((v1, v2, v3, v4) : CST.tuple_pattern) =
   let v1 = token env v1 (* "(" *) in
-  let v2 = anon_choice_id_43fe74f env v2 in
+  let v2 = anon_choice_id_c036834 env v2 in
   let v3 =
     List.map (fun (v1, v2) ->
       let v1 = token env v1 (* "," *) in
-      let v2 = anon_choice_id_43fe74f env v2 in
+      let v2 = anon_choice_id_c036834 env v2 in
       v2
     ) v3
   in
@@ -482,7 +482,7 @@ let literal (env : env) (x : CST.literal) : literal =
 let rec return_type (env : env) (x : CST.return_type) : type_ =
   (match x with
    | `Type x -> type_constraint env x
-   | `Void_kw tok -> TyBuiltin (identifier env tok) (* "void" *)
+   | `Void_kw tok -> TyBuiltin (str env tok) (* "void" *)
   )
 
 and variable_declaration (env : env) ((v1, v2, v3) : CST.variable_declaration) : (entity * variable_definition) list =
@@ -1333,7 +1333,7 @@ and type_parameter_constraint (env : env) (x : CST.type_parameter_constraint) =
    | `Class tok (* "class" *)
    | `Struct tok (* "struct" *)
    | `Unma tok -> (* "unmanaged" *)
-       let t = TyBuiltin (identifier env tok) in
+       let t = TyBuiltin (str env tok) in
        Extends t
    | `Cons_cons (v1, v2, v3) ->
        let v1 = token env v1 (* "new" *) in
@@ -1514,7 +1514,7 @@ and statement (env : env) (x : CST.statement) =
        let v4 = variable_declaration env v4 in
        let v5 = token env v5 (* ";" *) in
        var_def_stmt v4 v3
-   | `Local_func_stmt (v1, v2, v3, v4, v5, v6, v7) ->
+   | `Local_func_stmt (vtodo, v1, v2, v3, v4, v5, v6, v7) ->
        let v1 = List.map (modifier env) v1 in
        let v2 = return_type env v2 in
        let v3 = identifier env v3 (* identifier *) in
@@ -2079,10 +2079,10 @@ let accessor_declaration (env : env) ((v1, v2, v3, v4) : CST.accessor_declaratio
   let v2 = List.map (modifier env) v2 in
   let v3 =
     (match v3 with
-     | `Get tok -> identifier env tok, KeywordAttr (Getter, token env tok) (* "get" *)
-     | `Set tok -> identifier env tok, KeywordAttr (Setter, token env tok) (* "set" *)
-     | `Add tok -> identifier env tok, unhandled_keywordattr_to_namedattr env tok (* "add" *)
-     | `Remove tok -> identifier env tok, unhandled_keywordattr_to_namedattr env tok (* "remove" *)
+     | `Get tok -> str env tok, KeywordAttr (Getter, token env tok) (* "get" *)
+     | `Set tok -> str env tok, KeywordAttr (Setter, token env tok) (* "set" *)
+     | `Add tok -> str env tok, unhandled_keywordattr_to_namedattr env tok (* "add" *)
+     | `Remove tok -> str env tok, unhandled_keywordattr_to_namedattr env tok (* "remove" *)
      | `Id tok -> todo env tok (* identifier *)
     )
   in
