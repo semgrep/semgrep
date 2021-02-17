@@ -3,7 +3,6 @@ import re
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
-from typing import cast
 from typing import Dict
 from typing import Iterable
 from typing import List
@@ -23,6 +22,7 @@ from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.semgrep_types import BooleanRuleExpression
 from semgrep.semgrep_types import OPERATORS
+from semgrep.semgrep_types import OPERATORS_WITH_CHILDREN
 from semgrep.semgrep_types import pattern_name_for_operator
 from semgrep.semgrep_types import pattern_names_for_operator
 from semgrep.semgrep_types import PatternId
@@ -172,56 +172,38 @@ def _evaluate_single_expression(
     flags: Optional[Dict[str, Any]] = None,
 ) -> Set[Range]:
 
-    assert expression.pattern_id, f"<internal error: expected pattern id: {expression}>"
-    results_for_pattern = [
-        x.range for x in pattern_ids_to_pattern_matches.get(expression.pattern_id, [])
-    ]
-    output_ranges: Set[Range] = set()
-    metavars_for_patterns = get_metavar_debugging_info(
-        expression, pattern_ids_to_pattern_matches
+    ranges_for_pattern = (
+        [x.range for x in pattern_ids_to_pattern_matches.get(expression.pattern_id, [])]
+        if expression.pattern_id
+        else []
     )
 
     if expression.operator == OPERATORS.AND:
-        add_debugging_info(
-            expression, output_ranges, metavars_for_patterns, steps_for_debugging
-        )
         # remove all ranges that don't equal the ranges for this pattern
-        return ranges_left.intersection(results_for_pattern)
+        output_ranges = ranges_left.intersection(ranges_for_pattern)
     elif expression.operator == OPERATORS.AND_NOT:
         # remove all ranges that DO equal the ranges for this pattern
-        # difference_update = Remove all elements of another set from this set.
-        output_ranges = ranges_left.difference(results_for_pattern)
-        add_debugging_info(
-            expression, output_ranges, metavars_for_patterns, steps_for_debugging
-        )
-        return output_ranges
+        output_ranges = ranges_left.difference(ranges_for_pattern)
     elif expression.operator == OPERATORS.AND_INSIDE:
         # remove all ranges (not enclosed by) or (not equal to) the inside ranges
-        for arange in ranges_left:
-            for keep_inside_this_range in results_for_pattern:
-                is_enclosed = keep_inside_this_range.is_enclosing_or_eq(arange)
-                # print(
-                #    f'candidate range is {arange}, needs to be `{operator}` {keep_inside_this_range}; keep?: {keep}')
-                if is_enclosed:
-                    output_ranges.add(arange)
-                    break  # found a match, no need to keep going
-
-        add_debugging_info(
-            expression, output_ranges, metavars_for_patterns, steps_for_debugging
-        )
-        return output_ranges
+        output_ranges = {
+            _range
+            for _range in ranges_left
+            if any(
+                pattern_range.is_enclosing_or_eq(_range)
+                for pattern_range in ranges_for_pattern
+            )
+        }
     elif expression.operator == OPERATORS.AND_NOT_INSIDE:
         # remove all ranges enclosed by or equal to
-        output_ranges = ranges_left.copy()
-        for arange in ranges_left:
-            for keep_inside_this_range in results_for_pattern:
-                if keep_inside_this_range.is_enclosing_or_eq(arange):
-                    output_ranges.remove(arange)
-                    break
-        add_debugging_info(
-            expression, output_ranges, metavars_for_patterns, steps_for_debugging
-        )
-        return output_ranges
+        output_ranges = {
+            _range
+            for _range in ranges_left
+            if not any(
+                pattern_range.is_enclosing_or_eq(_range)
+                for pattern_range in ranges_for_pattern
+            )
+        }
     elif expression.operator == OPERATORS.WHERE_PYTHON:
         if not flags or not flags[RCE_RULE_FLAG]:
             raise SemgrepError(
@@ -229,71 +211,65 @@ def _evaluate_single_expression(
                 code=NEED_ARBITRARY_CODE_EXEC_EXIT_CODE,
             )
         if not isinstance(expression.operand, str):
-            raise SemgrepError("pattern-where-python must have a string value")
-
-        # Look through every range that hasn't been filtered yet
-        for pattern_match in list(flatten(pattern_ids_to_pattern_matches.values())):
-            # Only need to check where-python clause if the range hasn't already been filtered
-
-            if pattern_match.range in ranges_left:
-                logger.debug(
-                    f"WHERE is {expression.operand}, metavars: {pattern_match.metavars}"
-                )
-                if _where_python_statement_matches(
-                    expression.operand, pattern_match.metavars
-                ):
-                    output_ranges.add(pattern_match.range)
-        add_debugging_info(
-            expression, output_ranges, metavars_for_patterns, steps_for_debugging
-        )
-        return output_ranges
+            raise SemgrepError(
+                f"expected operator '{expression.operator}' to have string value guaranteed by schema"
+            )
+        output_ranges = {
+            pattern_match.range
+            for pattern_match in list(flatten(pattern_ids_to_pattern_matches.values()))
+            if pattern_match.range in ranges_left
+            and _where_python_statement_matches(
+                expression.operand, pattern_match.metavars
+            )
+        }
     elif expression.operator == OPERATORS.REGEX:
         # remove all ranges that don't equal the ranges for this pattern
-        output_ranges = ranges_left.intersection(results_for_pattern)
-        add_debugging_info(
-            expression, output_ranges, metavars_for_patterns, steps_for_debugging
-        )
-        return output_ranges
+        output_ranges = ranges_left.intersection(ranges_for_pattern)
     elif expression.operator == OPERATORS.NOT_REGEX:
-        # remove the result if pattern-not-regex overlaps with another pattern
-        output_ranges = ranges_left.copy()
-        for arange in ranges_left:
-            for pattern_not_regex_result in results_for_pattern:
-                if arange.is_range_enclosing_or_eq(pattern_not_regex_result) or pattern_not_regex_result.is_range_enclosing_or_eq(arange):
-                    output_ranges.remove(arange)
-                    break
-        add_debugging_info(
-            expression, output_ranges, metavars_for_patterns, steps_for_debugging
-        )
-        return output_ranges
+        # remove the result if pattern-not-regex is within another pattern
+        output_ranges = {
+            _range
+            for _range in ranges_left
+            if not any(
+                _range.is_range_enclosing_or_eq(pattern_range)
+                or pattern_range.is_range_enclosing_or_eq(_range)
+                for pattern_range in ranges_for_pattern
+            )
+        }
     elif expression.operator == OPERATORS.METAVARIABLE_REGEX:
-        operand = cast(Dict[str, Any], expression.operand)
+        if not isinstance(expression.operand, dict):
+            raise SemgrepError(
+                f"expected operator '{expression.operator}' to have mapping value guaranteed by schema"
+            )
         output_ranges = get_re_range_matches(
-            operand["metavariable"],
-            operand["regex"],
+            expression.operand["metavariable"],
+            expression.operand["regex"],
             ranges_left,
             list(flatten(pattern_ids_to_pattern_matches.values())),
         )
-        add_debugging_info(
-            expression, output_ranges, metavars_for_patterns, steps_for_debugging
-        )
-        return output_ranges
     elif expression.operator == OPERATORS.METAVARIABLE_COMPARISON:
-        operand = cast(Dict[str, Any], expression.operand)
+        if not isinstance(expression.operand, dict):
+            raise SemgrepError(
+                f"expected operator '{expression.operator}' to have mapping value guaranteed by schema"
+            )
         output_ranges = get_comparison_range_matches(
-            operand["metavariable"],
-            operand["comparison"],
-            operand.get("strip"),
-            operand.get("base"),
+            expression.operand["metavariable"],
+            expression.operand["comparison"],
+            expression.operand.get("strip"),
+            expression.operand.get("base"),
             ranges_left,
             list(flatten(pattern_ids_to_pattern_matches.values())),
         )
-        add_debugging_info(
-            expression, output_ranges, metavars_for_patterns, steps_for_debugging
-        )
-        return output_ranges
     else:
         raise UnknownOperatorError(f"unknown operator {expression.operator}")
+
+    metavars_for_patterns = get_metavar_debugging_info(
+        expression, pattern_ids_to_pattern_matches
+    )
+    add_debugging_info(
+        expression, output_ranges, metavars_for_patterns, steps_for_debugging
+    )
+    return output_ranges
 
 
 def _where_python_statement_matches(
@@ -467,9 +443,7 @@ def evaluate_expression(
     steps_for_debugging: List[Dict[str, Any]],
     flags: Optional[Dict[str, Any]] = None,
 ) -> Set[Range]:
-    ranges_left = set(
-        [x.range for x in flatten(pattern_ids_to_pattern_matches.values())]
-    )
+    ranges_left = {x.range for x in flatten(pattern_ids_to_pattern_matches.values())}
     return _evaluate_expression(
         expression,
         pattern_ids_to_pattern_matches,
@@ -486,13 +460,11 @@ def _evaluate_expression(
     steps_for_debugging: List[Dict[str, Any]],
     flags: Optional[Dict[str, Any]] = None,
 ) -> Set[Range]:
-    if (
-        expression.operator == OPERATORS.AND_EITHER
-        or expression.operator == OPERATORS.AND_ALL
-    ):
-        assert (
-            expression.children is not None
-        ), f"{pattern_names_for_operator(OPERATORS.AND_EITHER)} or {pattern_names_for_operator(OPERATORS.AND_ALL)} must have a list of subpatterns"
+    if expression.operator in OPERATORS_WITH_CHILDREN:
+        if expression.children is None:
+            raise SemgrepError(
+                f"operator '{expression.operator}' must have child operators"
+            )
 
         # recurse on the nested expressions
         if expression.operator == OPERATORS.AND_EITHER:
@@ -508,7 +480,7 @@ def _evaluate_expression(
                 for expr in expression.children
             ]
             ranges_left.intersection_update(flatten(evaluated_ranges))
-        else:
+        elif expression.operator == OPERATORS.AND_ALL:
             # chain intersection eagerly; intersect for every AND'ed child
             for expr in expression.children:
                 remainining_ranges = _evaluate_expression(
@@ -519,6 +491,8 @@ def _evaluate_expression(
                     flags=flags,
                 )
                 ranges_left.intersection_update(remainining_ranges)
+        else:
+            raise UnknownOperatorError(f"unknown operator {expression.operator}")
 
         logger.debug(f"after filter `{expression.operator}`: {ranges_left}")
         steps_for_debugging.append(
@@ -529,9 +503,11 @@ def _evaluate_expression(
             }
         )
     else:
-        assert (
-            expression.children is None
-        ), f"only `{pattern_names_for_operator(OPERATORS.AND_EITHER)}` or `{pattern_names_for_operator(OPERATORS.AND_ALL)}` expressions can have multiple subpatterns"
+        if expression.children is not None:
+            raise SemgrepError(
+                f"operator '{expression.operator}' must not have child operators"
+            )
+
         ranges_left = _evaluate_single_expression(
             expression,
             pattern_ids_to_pattern_matches,
