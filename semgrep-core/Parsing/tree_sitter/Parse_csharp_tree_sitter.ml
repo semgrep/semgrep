@@ -1451,14 +1451,15 @@ and statement (env : env) (x : CST.statement) =
        let v4 =
          (match v4 with
           | `Type_choice_id (v1, v2) -> (
-              let v1 = type_ env v1 in
-              match v2 with
-              | `Id x ->
-                  let x = identifier env x in
-                  PatVar (v1, Some (x, empty_id_info ()))
-              | `Tuple_pat x ->
-                  let x = tuple_pattern env x in
-                  PatTyped (x, v1)
+              let v2 = (match v2 with
+                | `Id x ->
+                    let x = identifier env x in
+                    PatId (x, empty_id_info ())
+                | `Tuple_pat x ->tuple_pattern env x) in
+              let v1 = local_variable_type env v1 in
+              (match v1 with
+               | Some t -> PatTyped (v2, t)
+               | None -> v2)
             )
           | `Exp x -> H2.expr_to_pattern (expression env x)
          )
