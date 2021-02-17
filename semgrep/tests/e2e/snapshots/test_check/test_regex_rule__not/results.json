@@ -2,7 +2,7 @@
   "errors": [],
   "results": [
     {
-      "check_id": "rules.test-regex",
+      "check_id": "rules.pattern-not-regex.test-regex",
       "end": {
         "col": 26,
         "line": 3

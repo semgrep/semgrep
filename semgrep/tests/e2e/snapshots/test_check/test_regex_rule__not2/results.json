@@ -2,7 +2,7 @@
   "errors": [],
   "results": [
     {
-      "check_id": "rules.test-regex",
+      "check_id": "rules.pattern-not-regex.test-regex",
       "end": {
         "col": 5,
         "line": 1
@@ -40,7 +40,7 @@
       }
     },
     {
-      "check_id": "rules.test-regex",
+      "check_id": "rules.pattern-not-regex.test-regex",
       "end": {
         "col": 5,
         "line": 2
@@ -78,7 +78,7 @@
       }
     },
     {
-      "check_id": "rules.test-regex",
+      "check_id": "rules.pattern-not-regex.test-regex",
       "end": {
         "col": 5,
         "line": 7
@@ -116,7 +116,7 @@
       }
     },
     {
-      "check_id": "rules.test-regex",
+      "check_id": "rules.pattern-not-regex.test-regex",
       "end": {
         "col": 10,
         "line": 14
@@ -154,7 +154,7 @@
       }
     },
     {
-      "check_id": "rules.test-regex",
+      "check_id": "rules.pattern-not-regex.test-regex",
       "end": {
         "col": 5,
         "line": 16
