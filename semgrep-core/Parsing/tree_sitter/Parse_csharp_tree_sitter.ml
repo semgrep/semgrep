@@ -1079,7 +1079,7 @@ and expression (env : env) (x : CST.expression) : AST.expr =
        let v2 = token env v2 (* "is" *) in
        let v3 = pattern env v3 in
        LetPattern (v3, v1)
-   | `Lambda_exp (v1, v2, v3, v4) ->
+   | `Lambda_exp (v1, vtodo, v2, v3, v4) ->
        let v1 =
          (match v1 with
           | Some tok -> [KeywordAttr (Async, token env tok)] (* "async" *)
@@ -1207,7 +1207,7 @@ and expression (env : env) (x : CST.expression) : AST.expr =
           | None -> todo env ())
        in
        todo env (v1, v2, v3)
-   | `Switch_exp (v1, v2, v3, v4, v5) ->
+   | `Switch_exp (v1, v2, v3, v4, vtodo, v5) ->
        let v1 = expression env v1 in
        let v2 = token env v2 (* "switch" *) in
        let v3 = token env v3 (* "{" *) in
@@ -1326,7 +1326,7 @@ and type_parameter_list (env : env) ((v1, v2, v3, v4) : CST.type_parameter_list)
 
 and type_parameter_constraint (env : env) (x : CST.type_parameter_constraint) =
   (match x with
-   | `Class tok (* "class" *)
+   | `Class_opt_QMARK (tok, _) (* "class" *) (* TODO handle question mark *)
    | `Struct tok (* "struct" *)
    | `Unma tok -> (* "unmanaged" *)
        let t = TyBuiltin (str env tok) in
@@ -1541,13 +1541,13 @@ and statement (env : env) (x : CST.statement) =
        in
        let v3 = token env v3 (* ";" *) in
        Return (v1, v2, v3) |> AST.s
-   | `Switch_stmt (v1, v2, v3, v4, v5) ->
+   | `Switch_stmt (v1, v2, v3) ->
        let v1 = token env v1 (* "switch" *) in
-       let v2 = token env v2 (* "(" *) in
-       let v3 = expression env v3 in
-       let v4 = token env v4 (* ")" *) in
-       let v5 = switch_body env v5 in
-       AST.Switch (v1, Some v3, v5) |> AST.s
+       let v2 = (match v2 with
+       | `LPAR_exp_RPAR v2 -> parenthesized_expression env v2
+       | `Tuple_exp v2 -> tuple_expression env v2) in
+       let v3 = switch_body env v3 in
+       AST.Switch (v1, Some v2, v3) |> AST.s
    | `Throw_stmt (v1, v2, v3) ->
        let v1 = token env v1 (* "throw" *) in
        let v2 =
