@@ -39,6 +39,8 @@
     semgrep_synthesizing
     semgrep_engine
     semgrep_testing
+
+    spacegrep
  )
  (preprocess (pps ppx_profiling))
  ; for ocamldebug
@@ -50,7 +52,7 @@
 ; use CLI/flags.sh to generate the OS specific build flags
 (rule
  (targets flags.sexp)
- (action (run %{workspace_root}/CLI/flags.sh)))
+ (action (run %{workspace_root}/semgrep-core/CLI/flags.sh)))
 
 
 (install

@@ -62,13 +62,10 @@ type xpattern = {
 }
 and xpattern_kind =
   | Sem of Pattern.t
-  | Spacegrep of spacegrep
+  | Spacegrep of Spacegrep.Pattern_AST.t
   | Regexp of regexp
   (* used in the engine for rule->mini_rule and match_result gymnastic *)
 and pattern_id = int
-
-(* TODO: parse it via spacegrep/lib! *)
-and spacegrep = string
 
 [@@deriving show, eq]
 

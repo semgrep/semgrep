@@ -16,6 +16,8 @@
    semgrep_core semgrep_core_opti
    semgrep_metachecking
    semgrep_parsing_tree_sitter
+
+   spacegrep
  )
  (preprocess (pps ppx_profiling ppx_sexp_conv ppx_deriving.show))
 )

@@ -17,7 +17,7 @@ export TREESITTER_LIBDIR
 all:
 	./scripts/make-version > ./CLI/version.ml
 	dune build
-	dune build ./_build/default/tests/test.bc
+	dune build ../_build/default/semgrep-core/tests/test.bc
 clean:
 	dune clean
 # I put all as a dependency because sometimes you modify a test file

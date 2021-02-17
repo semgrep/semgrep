@@ -21,10 +21,10 @@ let verbose = ref false
 
 (*s: constant [[Test.tests_path]] *)
 (* ran from _build/default/tests/ hence the '..'s below *)
-let tests_path = "../../../tests"
+let tests_path = "../../../../semgrep-core/tests"
 (*e: constant [[Test.tests_path]] *)
 (*s: constant [[Test.data_path]] *)
-let data_path = "../../../data"
+let data_path = "../../../../semgrep-core/data"
 (*e: constant [[Test.data_path]] *)
 
 (*****************************************************************************)

@@ -313,11 +313,14 @@ let rec match_
                     else
                       Fail
 
+(*
 let starts_after last_loc loc =
   let _, last_pos = last_loc in
   let pos, _ = loc in
   Loc.Pos.compare last_pos pos < 0
+*)
 
+(*
 let rec get_start_loc (doc : Doc_AST.node list) =
   match doc with
   | [] -> None
@@ -326,6 +329,7 @@ let rec get_start_loc (doc : Doc_AST.node list) =
       match get_start_loc doc1 with
       | None -> get_start_loc doc2
       | res -> res
+*)
 
 let rec fold_all acc (doc : Doc_AST.node list) f =
   match doc with
@@ -372,9 +376,11 @@ let convert_named_captures env =
      })
   )
 
+(*
 let to_string src match_ =
   let (start_loc, end_loc) = match_.region in
   Src_file.lines_of_loc_range src start_loc end_loc
+*)
 
 let convert_capture src (start_pos, _) (_, end_pos) =
   let loc = (start_pos, end_pos) in
@@ -505,7 +511,7 @@ let print_nested_results
     ?(print_optional_separator = make_separator_printer ())
     doc_matches =
   List.iter (fun (src, pat_matches) ->
-    List.iter (fun (pat_id, matches) ->
+    List.iter (fun (_pat_id, matches) ->
       print ?highlight ~print_optional_separator src matches
     ) pat_matches
   ) doc_matches

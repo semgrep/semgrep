@@ -8,7 +8,7 @@ module A = AST_generic
 (*****************************************************************************)
 
 (* ran from _build/default/tests/ hence the '..'s below *)
-let tests_path = "../../../tests"
+let tests_path = "../../../../semgrep-core/tests"
 
 let tests_path_typing = Filename.concat tests_path "OTHER/typing"
 
