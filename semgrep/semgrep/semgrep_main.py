@@ -2,6 +2,7 @@ import json
 import logging
 from io import StringIO
 from pathlib import Path
+from re import sub
 from typing import Any
 from typing import Dict
 from typing import List
@@ -109,6 +110,9 @@ def rule_match_nosem(rule_match: RuleMatch, strict: bool) -> bool:
         for pattern_id in COMMA_SEPARATED_LIST_RE.split(ids_str)
         if pattern_id.strip()
     }
+    # Filter out ids that are not alphanum+dashes+underscores.
+    # This removes trailing symbols from comments, such as HTML comments' `-->`.
+    pattern_ids = set(filter(lambda x: not sub(r"[\w-]+", "", x), pattern_ids))
 
     result = False
     for pattern_id in pattern_ids:
