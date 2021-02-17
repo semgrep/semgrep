@@ -1,0 +1,20 @@
+# Label to use when marking an issue as stale
+staleLabel: stale
+
+# Comment to post when closing a stale issue. Set to `false` to disable
+closeComment: Stale-bot has closed this stale item. Please reopen it if this is in error.
+
+pulls:
+  daysUntilStale: 14
+  daysUntilClose: 7
+  markComment: >
+    This pull request is being marked `stale` because there hasn't been any activity in 30 days. Please leave a comment on the pull request to keep it open. Otherwise, we'll close this pull request in 7 days (you can always reopen it later).
+
+issues:
+  daysUntilStale: 90
+  daysUntilClose: 7
+  exemptLabels:
+    - tech-debt
+    - bug
+  markComment: >
+    This issue is being marked `stale` because there hasn't been any activity in 30 days. Please leave a comment if you think this issue is still relevant and should be prioritized, otherwise it will be automatically closed in 7 days (you can always reopen it later).
