@@ -10,11 +10,11 @@
 </div>
 <div class="email-text" style="display: none;">
     <pre>{{ body }}</pre>
-    <!-- nosem: tests.e2e.rules.spacegrep.var-in-href --> <a href='{{ link }}'>{{ link_text }}</a>
-    <a href = '{{ link }}' >{{ link_text }}</a> <!-- nosemgrep: tests.e2e.rules.spacegrep.var-in-href -->
+    <a href='{{ link }}'>{{ link_text }}</a> <!-- nosem: var-in-href -->
+    <a href = '{{ link }}' >{{ link_text }}</a> <!-- nosemgrep: var-in-href -->
     <a href = "{{ link }}" >{{ link_text }}</a>
     <a
-        href = "{{ link }}" nosem="tests.e2e.rules.spacegrep.var-in-href"
+        href = "{{ link }}" nosem="var-in-href"
     >
         {{ link_text }}
     </a>

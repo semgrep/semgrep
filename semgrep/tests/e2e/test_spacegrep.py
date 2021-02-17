@@ -27,6 +27,6 @@ def test_spacegrep(run_semgrep_in_tmp, snapshot, rule, target):
 )
 def test_spacegrep_nosem(run_semgrep_in_tmp, snapshot, rule, target):
     snapshot.assert_match(
-        run_semgrep_in_tmp(rule, target_name=target),
+        run_semgrep_in_tmp(rule, target_name=target, options=["--no-rewrite-rule-ids"]),
         "results.json",
     )
