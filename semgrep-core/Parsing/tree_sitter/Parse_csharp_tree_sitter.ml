@@ -1424,7 +1424,7 @@ and statement (env : env) (x : CST.statement) =
           | `Type_choice_id (v1, v2) -> (
               let v1 = type_ env v1 in
               match v2 with
-              | `Id x -> 
+              | `Id x ->
                   let x = identifier env x in
                   PatVar (v1, Some (x, empty_id_info ()))
               | `Tuple_pat x ->
@@ -2225,7 +2225,27 @@ and extern_alias_directive (env : env) ((v1, v2, v3, v4) : CST.extern_alias_dire
   todo env (v1, v2, v3, v4)
 
 and using_directive (env : env) ((v1, v2, v3, v4) : CST.using_directive) =
-  todo env (v1, v2, v3, v4)
+  let v1 = token env v1 (* "using" *) in
+  let v3 = name env v3 in
+  let v4 = token env v4 (* ";" *) in
+  let import =
+    (match v2 with
+     | Some x ->
+         (match x with
+          | `Static tok -> (* "static" *)
+              (* using static System.Math; *)
+              (AST.ImportAll (v1, AST.DottedName (ids_of_name v3), v4))
+          | `Name_equals x ->
+              (* using Foo = System.Text; *)
+              let alias = (name_equals env x) in
+              AST.ImportAs (v1, AST.DottedName (ids_of_name v3), Some (alias, empty_id_info ()))
+         )
+     | None ->
+         (* using System.IO; *)
+         (AST.ImportAll (v1, AST.DottedName (ids_of_name v3), v4))
+    )
+  in
+  AST.DirectiveStmt import |> AST.s
 
 and global_attribute_list (env : env) ((v1, v2, v3, v4, v5) : CST.global_attribute_list) =
   let v1 = token env v1 (* "[" *) in
@@ -2258,7 +2278,9 @@ and global_statement (env : env) (x : CST.global_statement) =
   statement env x
 
 and namespace_member_declaration (env : env) (x : CST.namespace_member_declaration) =
-  todo env x
+  match x with
+  | `Name_decl x -> namespace_declaration env x
+  | `Type_decl x -> type_declaration env x
 
 and compilation_unit (env : env) (xs : CST.compilation_unit) : any =
   match xs with
@@ -2273,51 +2295,132 @@ and compilation_unit (env : env) (xs : CST.compilation_unit) : any =
       let v2 = expression env v2 in
       AST.E v2
 
+and namespace_declaration (env : env) ((v1, v2, v3, v4) : CST.namespace_declaration) =
+            (*
+        namespace MySpace { ... } ;
+            v1       v2      v3  v4
+      *)
+  let v1 = token env v1 (* "namespace" *) in
+  let (ident, name_info) = name env v2 in
+  let (open_brace, decls, close_brace) = declaration_list env v3 in
+  let body = AST.Block (open_brace, decls, close_brace) |> AST.s in
+  let ent = AST.basic_entity ident [] in
+  let mkind = AST.ModuleStruct (None, [body]) in
+  let def = { AST.mbody = mkind } in
+  AST.DefStmt (ent, AST.ModuleDef def) |> AST.s
+
+and type_declaration (env : env) (x : CST.type_declaration) : stmt =
+  (match x with
+   | `Class_decl x -> class_interface_struct env Class x
+   | `Inte_decl x -> class_interface_struct env Interface x
+   | `Enum_decl x -> enum_declaration env x
+   | `Record_decl x -> record_declaration env x
+   | `Dele_decl x -> delegate_declaration env x
+   | `Struct_decl x -> class_interface_struct env Class x)
+
+and class_interface_struct (env : env) class_kind (v1, v2, v3, v4, v5, v6, v7, v8, v9) =
+   (*
+   [Attr] public class MyClass<MyType> : IClass where MyType : SomeType { ... };
+      v1     v2    v3    v4     v5         v6           v7                v8   v9
+   *)
+  let v1 = List.concat_map (attribute_list env) v1 in
+  let v2 = List.map (modifier env) v2 in
+  let v3 = token env v3 (* "class" *) in
+  let v4 = identifier env v4 (* identifier *) in
+  let v5 =
+    (match v5 with
+     | Some x -> type_parameter_list env x
+     | None -> [])
+  in
+  let v6 =
+    (match v6 with
+     | Some x -> base_list env x
+     | None -> [])
+  in
+  let v7 =
+    List.map (type_parameter_constraints_clause env) v7
+  in
+  let (open_bra, stmts, close_bra) = declaration_list env v8 in
+  let fields = List.map (fun x -> AST.FieldStmt x) stmts in
+  let tparams = type_parameters_with_constraints v5 v7 in
+  let idinfo = empty_id_info() in
+  let ent = {
+    name = EN (Id (v4, idinfo));
+    attrs = v1 @ v2;
+    tparams;
+  } in
+  AST.DefStmt (ent, AST.ClassDef {
+    ckind = (class_kind, v3);
+    cextends = v6;
+    cimplements = [];
+    cmixins = [];
+    cbody = (open_bra, fields, close_bra);
+  }) |> AST.s
+
+and enum_declaration env (v1, v2, v3, v4, v5, v6, v7) =
+  let v1 = List.concat_map (attribute_list env) v1 in
+  let v2 = List.map (modifier env) v2 in
+  let v3 = token env v3 (* "enum" *) in
+  let v4 = identifier env v4 (* identifier *) in
+  let v5 =
+    (match v5 with
+     | Some x -> base_list env x
+     | None -> [])
+  in
+  let v6 = enum_member_declaration_list env v6 in
+  let v7 =
+    (match v7 with
+     | Some tok -> Some (token env tok) (* ";" *)
+     | None -> None)
+  in
+  let idinfo = empty_id_info () in
+  let ent = {
+    name = EN (Id (v4, idinfo));
+    attrs = v1 @ v2;
+    tparams = [];
+  } in
+  AST.DefStmt (ent, AST.TypeDef {
+    tbody = OrType v6
+  }) |> AST.s
+
+
+and delegate_declaration env (v1, v2, v3, v4, v5, v6, v7, v8, v9) =
+  let v1 = List.concat_map (attribute_list env) v1 in
+  let v2 = List.map (modifier env) v2 in
+  let v3 = token env v3 (* "delegate" *) in
+  let v4 = return_type env v4 in
+  let v5 = identifier env v5 (* identifier *) in
+  let v6 =
+    (match v6 with
+     | Some x -> type_parameter_list env x
+     | None -> [])
+  in
+  let v7 = parameter_list env v7 in
+  let v8 =
+    List.map (type_parameter_constraints_clause env) v8
+  in
+  let v9 = token env v9 (* ";" *) in
+  let tparams = type_parameters_with_constraints v6 v8 in
+  let func = TyFun (v7, v4) in
+  let idinfo = empty_id_info () in
+  let ent = {
+    name = EN (Id (v5, idinfo));
+    attrs = v1 @ v2;
+    tparams;
+  } in
+  DefStmt (ent, TypeDef { tbody = NewType func }) |> AST.s
+
+and record_declaration env x =
+  todo env x
+
 and declaration (env : env) (x : CST.declaration) : stmt =
   (match x with
-   | `Class_decl (v1, v2, v3, v4, v5, v6, v7, v8, v9)
-   | `Inte_decl (v1, v2, v3, v4, v5, v6, v7, v8, v9)
-   | `Struct_decl (v1, v2, v3, v4, v5, v6, v7, v8, v9) ->
-      (*
-      [Attr] public class MyClass<MyType> : IClass where MyType : SomeType { ... };
-         v1     v2    v3    v4     v5         v6           v7                v8   v9
-      *)
-       let v1 = List.concat_map (attribute_list env) v1 in
-       let v2 = List.map (modifier env) v2 in
-       let v3 = token env v3 (* "class" *) in
-       let v4 = identifier env v4 (* identifier *) in
-       let v5 =
-         (match v5 with
-          | Some x -> type_parameter_list env x
-          | None -> [])
-       in
-       let v6 =
-         (match v6 with
-          | Some x -> base_list env x
-          | None -> [])
-       in
-       let v7 =
-         List.map (type_parameter_constraints_clause env) v7
-       in
-       let class_kind = match x with
-         | `Inte_decl(_) -> Interface
-         | _ -> Class in
-       let (open_bra, stmts, close_bra) = declaration_list env v8 in
-       let fields = List.map (fun x -> AST.FieldStmt x) stmts in
-       let tparams = type_parameters_with_constraints v5 v7 in
-       let idinfo = empty_id_info() in
-       let ent = {
-         name = EN (Id (v4, idinfo));
-         attrs = v1 @ v2;
-         tparams;
-       } in
-       AST.DefStmt (ent, AST.ClassDef {
-         ckind = (class_kind, v3);
-         cextends = v6;
-         cimplements = [];
-         cmixins = [];
-         cbody = (open_bra, fields, close_bra);
-       }) |> AST.s
+   | `Class_decl x -> class_interface_struct env Class x
+   | `Dele_decl x -> delegate_declaration env x
+   | `Enum_decl x -> enum_declaration env x
+   | `Inte_decl x -> class_interface_struct env Interface x
+   | `Record_decl x -> record_declaration env x
+   | `Struct_decl x -> class_interface_struct env Class x
    | `Cons_decl (v1, v2, v3, v4, v5, v6) ->
        let v1 = List.concat_map (attribute_list env) v1 in
        let v2 = List.map (modifier env) v2 in
@@ -2367,31 +2470,6 @@ and declaration (env : env) (x : CST.declaration) : stmt =
          fbody = v7;
        } in
        AST.DefStmt (ent, def) |> AST.s
-   | `Dele_decl (v1, v2, v3, v4, v5, v6, v7, v8, v9) ->
-       let v1 = List.concat_map (attribute_list env) v1 in
-       let v2 = List.map (modifier env) v2 in
-       let v3 = token env v3 (* "delegate" *) in
-       let v4 = return_type env v4 in
-       let v5 = identifier env v5 (* identifier *) in
-       let v6 =
-         (match v6 with
-          | Some x -> type_parameter_list env x
-          | None -> [])
-       in
-       let v7 = parameter_list env v7 in
-       let v8 =
-         List.map (type_parameter_constraints_clause env) v8
-       in
-       let v9 = token env v9 (* ";" *) in
-       let tparams = type_parameters_with_constraints v6 v8 in
-       let func = TyFun (v7, v4) in
-       let idinfo = empty_id_info () in
-       let ent = {
-         name = EN (Id (v5, idinfo));
-         attrs = v1 @ v2;
-         tparams;
-       } in
-       DefStmt (ent, TypeDef { tbody = NewType func }) |> AST.s
    | `Dest_decl (v1, v2, v3, v4, v5, v6) ->
        let v1 = List.concat_map (attribute_list env) v1 in
        let v2 =
@@ -2413,31 +2491,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
        let dtor = KeywordAttr (Dtor, v3) in
        let ent = basic_entity name (dtor :: v1 @ v2) in
        AST.DefStmt (ent, def) |> AST.s
-   | `Enum_decl (v1, v2, v3, v4, v5, v6, v7) ->
-       let v1 = List.concat_map (attribute_list env) v1 in
-       let v2 = List.map (modifier env) v2 in
-       let v3 = token env v3 (* "enum" *) in
-       let v4 = identifier env v4 (* identifier *) in
-       let v5 =
-         (match v5 with
-          | Some x -> base_list env x
-          | None -> [])
-       in
-       let v6 = enum_member_declaration_list env v6 in
-       let v7 =
-         (match v7 with
-          | Some tok -> Some (token env tok) (* ";" *)
-          | None -> None)
-       in
-       let idinfo = empty_id_info () in
-       let ent = {
-         name = EN (Id (v4, idinfo));
-         attrs = v1 @ v2;
-         tparams = [];
-       } in
-       AST.DefStmt (ent, AST.TypeDef {
-         tbody = OrType v6
-       }) |> AST.s
+
    | `Event_decl (v1, v2, v3, v4, v5, v6, v7) ->
        let v1 = List.concat_map (attribute_list env) v1 in
        let v2 = List.map (modifier env) v2 in
@@ -2584,19 +2638,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
          fbody = v9;
        } in
        AST.DefStmt (ent, def) |> AST.s
-   | `Name_decl (v1, v2, body, v4) ->
-      (*
-        namespace MySpace { ... }
-            v1       v2      body
-      *)
-       let v1 = token env v1 (* "namespace" *) in
-       let (ident, name_info) = name env v2 in
-       let (open_brace, decls, close_brace) = declaration_list env body in
-       let body = AST.Block (open_brace, decls, close_brace) |> AST.s in
-       let ent = AST.basic_entity ident [] in
-       let mkind = AST.ModuleStruct (None, [body]) in
-       let def = { AST.mbody = mkind } in
-       AST.DefStmt (ent, AST.ModuleDef def) |> AST.s
+   | `Name_decl x -> namespace_declaration env x
    | `Op_decl (v1, v2, v3, v4, v5, v6, v7) ->
        let v1 = List.concat_map (attribute_list env) v1 in
        let v2 = List.map (modifier env) v2 in
@@ -2696,29 +2738,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
        } in
        let open_br, funcs, close_br = accessors in
        Block (open_br, (DefStmt (ent, VarDef vardef) |> AST.s) :: funcs, close_br)|> AST.s
-   | `Record_decl x -> todo env x
-   | `Using_dire (v1, v2, v3, v4) ->
-       let v1 = token env v1 (* "using" *) in
-       let v3 = name env v3 in
-       let v4 = token env v4 (* ";" *) in
-       let import =
-         (match v2 with
-          | Some x ->
-              (match x with
-               | `Static tok -> (* "static" *)
-                   (* using static System.Math; *)
-                   (AST.ImportAll (v1, AST.DottedName (ids_of_name v3), v4))
-               | `Name_equals x ->
-                   (* using Foo = System.Text; *)
-                   let alias = (name_equals env x) in
-                   AST.ImportAs (v1, AST.DottedName (ids_of_name v3), Some (alias, empty_id_info ()))
-              )
-          | None ->
-              (* using System.IO; *)
-              (AST.ImportAll (v1, AST.DottedName (ids_of_name v3), v4))
-         )
-       in
-       AST.DirectiveStmt import |> AST.s
+   | `Using_dire x -> using_directive env x
   )
 
 (*****************************************************************************)
