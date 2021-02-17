@@ -116,8 +116,8 @@ let var_stats prog : var_stats =
     { V.default_visitor with
       V.kdef = (fun (k, _v) x ->
         match x with
-        | { name = EId (id,
-                        { id_resolved = {contents = Some(_kind, sid)}; _}); _},
+        | { name = EN (Id (id,
+                           { id_resolved = {contents = Some(_kind, sid)}; _})); _},
           VarDef ({ vinit = Some _; _ }) ->
             let var = (H.str_of_ident id, sid) in
             let stat = get_stat_or_create var h in
@@ -268,8 +268,8 @@ let propagate_basic lang prog =
 
       V.kdef = (fun (k, _v) x ->
         match x with
-        | { name = EId (id,
-                        ({ id_resolved = {contents = Some (_kind, sid)}; _} as id_info));
+        | { name = EN (Id (id,
+                           ({ id_resolved = {contents = Some (_kind, sid)}; _} as id_info)));
             attrs = attrs;
             _},
           (* note that some languages such as Python do not have VarDef.
@@ -303,7 +303,7 @@ let propagate_basic lang prog =
               | _ -> ()
              );
 
-         | DotAccess (IdSpecial (This, _), _, EId (id, id_info)) ->
+         | DotAccess (IdSpecial (This, _), _, EN (Id (id, id_info))) ->
              (match find_id env id id_info with
               | Some literal ->
                   id_info.id_constness := Some (Lit literal)
@@ -352,9 +352,9 @@ let propagate_dataflow ast =
   let v = V.mk_visitor
       { V.default_visitor with
         V.kfunction_definition = (fun (_k, _) def ->
-          let xs = AST_to_IL.stmt def.fbody in
+          let inputs, xs = AST_to_IL.function_definition def in
           let flow = CFG_build.cfg_of_stmts xs in
-          let mapping = Dataflow_constness.fixpoint flow in
+          let mapping = Dataflow_constness.fixpoint inputs flow in
           Dataflow_constness.update_constness flow mapping
         );
       } in

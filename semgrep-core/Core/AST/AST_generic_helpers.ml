@@ -18,10 +18,17 @@
 open Common
 
 open AST_generic
+module M = Map_AST
 
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
+(* Helpers to build or convert AST_generic elements.
+ *
+ * Very often used helper functions are actually in AST_generic.ml at
+ * the end (e.g., AST_generic.basic_entity).
+ * This module is for the more rarely used helpers.
+*)
 
 (*****************************************************************************)
 (* Helpers *)
@@ -44,16 +51,6 @@ let gensym () =
   !gensym_counter
 (* before Naming_AST.resolve can do its job *)
 (*e: function [[AST_generic.gensym]] *)
-
-(* todo: should also make sure nameinfo.name_typeargs is empty? *)
-let id_of_name_ (id, nameinfo) =
-  match nameinfo.name_qualifier with
-  | None | Some (QDots []) -> N (Id (id, empty_id_info ()))
-  | _ -> N (IdQualified ((id, nameinfo), empty_id_info()))
-
-(* TODO: delete *)
-let name_of_id id =
-  (id, empty_name_info)
 
 let name_of_ids ?(name_typeargs=None) xs =
   match List.rev xs with
@@ -130,6 +127,7 @@ let opt_to_label_ident = function
 (*s: function [[AST_generic.is_boolean_operator]] *)
 (* used in abstract interpreter and type for PHP where we now reuse
  * 'AST_generic.arithmetic_operator' above *)
+(*
 let is_boolean_operator = function
   | Plus (* unary too *) | Minus (* unary too *)
   | Mult | Div | Mod
@@ -147,22 +145,23 @@ let is_boolean_operator = function
   | RegexpMatch | NotMatch
   | In | NotIn | Is | NotIs
     -> true
+*)
 (*e: function [[AST_generic.is_boolean_operator]] *)
 
-let ident_or_dynamic_to_expr name idinfo_opt =
+let name_or_dynamic_to_expr name idinfo_opt =
   match name, idinfo_opt with
   (* assert idinfo = _idinfo below? *)
-  | EId (id, idinfo), None -> N (Id (id, idinfo))
-  | EId (id, _idinfo), Some idinfo -> N (Id (id, idinfo))
-  | EName n, None -> N (IdQualified (n, empty_id_info()))
-  | EName n, Some idinfo -> N (IdQualified (n, idinfo))
+  | EN (Id (id, idinfo)), None -> N (Id (id, idinfo))
+  | EN (Id (id, _idinfo)), Some idinfo -> N (Id (id, idinfo))
+  | EN (IdQualified (n, idinfo)), None -> N (IdQualified (n, idinfo))
+  | EN (IdQualified (n, _idinfo)), Some idinfo -> N (IdQualified (n, idinfo))
   | EDynamic e, _ -> e
 
 
 (*s: function [[AST_generic.vardef_to_assign]] *)
 (* used in controlflow_build and semgrep *)
 let vardef_to_assign (ent, def) =
-  let name = ident_or_dynamic_to_expr ent.name None in
+  let name = name_or_dynamic_to_expr ent.name None in
   let v =
     match def.vinit with
     | Some v -> v
@@ -175,7 +174,7 @@ let vardef_to_assign (ent, def) =
 (* used in controlflow_build *)
 let funcdef_to_lambda (ent, def) resolved =
   let idinfo = { (empty_id_info()) with id_resolved = ref resolved } in
-  let name = ident_or_dynamic_to_expr ent.name (Some idinfo) in
+  let name = name_or_dynamic_to_expr ent.name (Some idinfo) in
   let v = Lambda def in
   Assign (name, Parse_info.fake_info "=", v)
 (*e: function [[AST_generic.funcdef_to_lambda]] *)
@@ -187,5 +186,117 @@ let has_keyword_attr kwd attrs =
     | _ -> false
   )
 (*e: function [[AST_generic.has_keyword_attr]] *)
+
+
+(*****************************************************************************)
+(* Abstract position and constness for comparison *)
+(*****************************************************************************)
+
+(* update: you should now use AST_generic.equal_any which internally
+ * does not care about position information.
+*)
+
+let abstract_for_comparison_visitor recursor =
+  let hooks = { M.default_visitor with
+                M.kinfo = (fun (_k, _) i ->
+                  { i with Parse_info.token = Parse_info.Ab }
+                );
+                M.kidinfo = (fun (k, _) ii ->
+                  k { ii with AST_generic.id_constness = ref None }
+                )
+              } in
+  begin
+    let vout = M.mk_visitor hooks in
+    recursor vout;
+  end
+
+let abstract_for_comparison_any x =
+  abstract_for_comparison_visitor (fun visitor -> visitor.M.vany x)
+
+
+(*****************************************************************************)
+(* Conversion *)
+(*****************************************************************************)
+
+module G_ = AST_generic_
+module G = AST_generic
+
+(* This module is ugly, but it was written to allow to move AST_generic.ml
+ * out of pfff/ and inside semgrep/. However there are many
+ * language-specific ASTs that we using AST_generic.ml to factorize
+ * the definitions of operators. To break the dependency we had
+ * to duplicate that part of AST_generic in pfff/h_program-lang/AST_generic_.ml
+ * (note that underscore at the end) and we need those boilerplate functions
+ * below to convert them back to AST_generic.
+ *
+ * alt: use polymorphic variants (e.g., `Plus)
+*)
+
+let (conv_op: AST_generic_.operator -> AST_generic.operator) = function
+  | G_.Plus -> G.Plus
+  | G_.Minus -> G.Minus
+  | G_.Mult  -> G.Mult
+  | G_.Div  -> G.Div
+  | G_.Mod -> G.Mod
+  | G_.Pow -> G.Pow
+  | G_.FloorDiv  -> G.FloorDiv
+  | G_.MatMult -> G.MatMult
+  | G_.LSL -> G.LSL
+  | G_.LSR  -> G.LSR
+  | G_.ASR -> G.ASR
+  | G_.BitOr  -> G.BitOr
+  | G_.BitXor  -> G.BitXor
+  | G_.BitAnd  -> G.BitAnd
+  | G_.BitNot  -> G.BitNot
+  | G_.BitClear -> G.BitClear
+  | G_.And  -> G.And
+  | G_.Or  -> G.Or
+  | G_.Xor  -> G.Xor
+  | G_.Not -> G.Not
+  | G_.Eq -> G.Eq
+  | G_.NotEq -> G.NotEq
+  | G_.PhysEq -> G.PhysEq
+  | G_.NotPhysEq -> G.NotPhysEq
+  | G_.Lt  -> G.Lt
+  | G_.LtE  -> G.LtE
+  | G_.Gt  -> G.Gt
+  | G_.GtE -> G.GtE
+  | G_.Cmp -> G.Cmp
+  | G_.Concat -> G.Concat
+  | G_.Append -> G.Append
+  | G_.RegexpMatch -> G.RegexpMatch
+  | G_.NotMatch -> G.NotMatch
+  | G_.Range -> G.Range
+  | G_.RangeInclusive -> G.RangeInclusive
+  | G_.NotNullPostfix -> G.NotNullPostfix
+  | G_.Length -> G.Length
+  | G_.Elvis -> G.Elvis
+  | G_.Nullish -> G.Nullish
+  | G_.In -> G.In
+  | G_.NotIn -> G.NotIn
+  | G_.Is -> G.Is
+  | G_.NotIs -> G.NotIs
+
+
+let (conv_incr: AST_generic_.incr_decr -> AST_generic.incr_decr) = function
+  | G_.Incr  -> G.Incr
+  | G_.Decr -> G.Decr
+
+let (conv_prepost: AST_generic_.prefix_postfix -> AST_generic.prefix_postfix) =  function
+  | G_.Prefix  -> G.Prefix
+  | G_.Postfix -> G.Postfix
+
+
+let (conv_incdec:
+       (AST_generic_.incr_decr * AST_generic_.prefix_postfix) ->
+     (AST_generic.incr_decr * AST_generic.prefix_postfix)) = fun (x, y) ->
+  conv_incr x, conv_prepost y
+
+let (conv_class_kind: AST_generic_.class_kind * Parse_info.t -> AST_generic.class_kind * Parse_info.t) = fun (c, t) ->
+  (match c with
+   | G_.Class -> G.Class
+   | G_.Interface -> G.Interface
+   | G_.Trait -> G.Trait
+  ), t
 
 (*e: pfff/lang_GENERIC_base/AST_generic_helpers.ml *)

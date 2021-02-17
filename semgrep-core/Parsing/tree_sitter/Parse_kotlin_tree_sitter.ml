@@ -66,7 +66,7 @@ let token_todo (env : env) _ =
   failwith "token Todo"
 
 let unhandled_keywordattr_to_namedattr (env : env) tok =
-  NamedAttr (token env tok, [str env tok], empty_id_info (), fake_bracket [])
+  NamedAttr (token env tok, Id (str env tok, empty_id_info ()), fake_bracket [])
 
 let escaped_identifier (env : env) (tok : CST.escaped_identifier) =
   token env tok (* pattern "\\\\[tbrn'\dq\\\\$]" *)
@@ -456,8 +456,8 @@ and annotation (env : env) (x : CST.annotation) =
          (match v2 with
           | Some x ->
               let v2 = use_site_target env x in
-              NamedAttr (v1, ["use site target", v2], empty_id_info (), fake_bracket [v3])
-          | None -> NamedAttr (v1, [str env origv1], empty_id_info (), fake_bracket [v3])) in
+              NamedAttr (v1, Id (("use site target", v2), empty_id_info ()), fake_bracket [v3])
+          | None -> NamedAttr (v1, Id (str env origv1, empty_id_info ()), fake_bracket [v3])) in
        [v2]
    | `Multi_anno (v1, v2, v3, v4, v5) ->
        let v1 = token env v1 (* "@" *) in
@@ -1466,7 +1466,7 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
           | `Class tok -> str env tok (* "class" *)
          )
        in
-       let ident_v3 = EId (v3, empty_id_info()) in
+       let ident_v3 = EN (Id (v3, empty_id_info())) in
        DotAccess (v1, v2, ident_v3)
    | `Func_lit x -> function_literal env x
    | `Obj_lit (v1, v2, v3) ->

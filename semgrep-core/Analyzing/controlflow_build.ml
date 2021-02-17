@@ -103,7 +103,7 @@ let (lookup_some_ctx:
   aux 1 xs
 
 let info_opt any =
-  match Lib_AST.ii_of_any any with
+  match Visitor_AST.ii_of_any any with
   | [] -> None
   | x::_xs -> Some x
 

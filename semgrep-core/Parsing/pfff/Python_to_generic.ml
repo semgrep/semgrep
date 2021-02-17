@@ -226,7 +226,7 @@ let rec expr (x: expr) =
       and t = info t
       and v2 = name v2
       and _v3TODO = expr_context v3 in
-      G.DotAccess (v1, t, G.EId (v2, G.empty_id_info()))
+      G.DotAccess (v1, t, G.EN (G.Id (v2, G.empty_id_info())))
 
   | DictOrSet (CompList (t1, v, t2)) ->
       let v' = list dictorset_elt v in
@@ -758,7 +758,8 @@ and decorator (t, v1, v2) =
     | Some (t1, x, t2) -> (t1, x, t2)
     | None -> G.fake_bracket []
   in
-  G.NamedAttr (t, v1, G.empty_id_info(), args)
+  let name = H.name_of_ids v1 in
+  G.NamedAttr (t, name, args)
 (*e: function [[Python_to_generic.decorator]] *)
 
 (*s: function [[Python_to_generic.alias]] *)

@@ -95,7 +95,7 @@ let log_error opt_tok msg =
   logger#error "%s" (locate opt_tok msg)
 
 let log_fixme kind gany =
-  let toks = Lib_AST.ii_of_any gany in
+  let toks = Visitor_AST.ii_of_any gany in
   let opt_tok = Common2.hd_opt toks in
   match kind with
   | ToDo ->
@@ -137,8 +137,7 @@ let fresh_lval env tok =
   { base = Var var; offset = NoOffset; constness = ref None; }
 (*e: function [[AST_to_IL.fresh_lval]] *)
 
-(*s: function [[AST_to_IL.lval_of_id_info]] *)
-let lval_of_id_info _env id id_info =
+let var_of_id_info id id_info =
   let sid =
     match !(id_info.G.id_resolved) with
     | Some (_resolved, sid) -> sid
@@ -148,7 +147,11 @@ let lval_of_id_info _env id id_info =
         log_warning (Some id_tok) msg;
         -1
   in
-  let var = id, sid in
+  (id, sid)
+
+(*s: function [[AST_to_IL.lval_of_id_info]] *)
+let lval_of_id_info _env id id_info =
+  let var = var_of_id_info id id_info in
   { base = Var var; offset = NoOffset; constness = id_info.id_constness; }
 (*e: function [[AST_to_IL.lval_of_id_info]] *)
 
@@ -213,10 +216,10 @@ let rec lval env eorig =
   | G.DotAccess (e1orig, tok, field) ->
       let base, base_constness = nested_lval env tok e1orig in
       (match field with
-       | G.EId (id, idinfo) ->
+       | G.EN (G.Id (id, idinfo)) ->
            { base; offset = Dot id; constness = idinfo.id_constness; }
-       | G.EName gname ->
-           let attr = expr env (H.id_of_name_ gname) in
+       | G.EN (name) ->
+           let attr = expr env (G.N name) in
            { base; offset = Index attr; constness = base_constness; }
        | G.EDynamic e2orig ->
            let attr = expr env e2orig in
@@ -382,6 +385,12 @@ and expr_aux env eorig =
       mk_e (Lvalue lval) eorig
 
   | G.Assign (e1, tok, e2) ->
+      let exp = expr env e2 in
+      assign env e1 tok exp eorig
+  | G.AssignOp (e1, (G.Eq, tok), e2)
+    when Parse_info.str_of_info tok = ":=" ->
+      (* We encode Go's `:=` as `AssignOp(Eq)`,
+       * see "go_to_generic.ml" in Pfff. *)
       let exp = expr env e2 in
       assign env e1 tok exp eorig
   | G.AssignOp (e1, op, e2) ->
@@ -564,7 +573,7 @@ and record env ((_tok, origfields, _) as record_def) =
   let fields =
     origfields
     |> List.map (function
-      | G.FieldStmt ({s=G.DefStmt ({G. name=G.EId (id, _);tparams=[];_}, def_kind);_}) ->
+      | G.FieldStmt ({s=G.DefStmt ({G. name=G.EN (G.Id (id, _));tparams=[];_}, def_kind);_}) ->
           let fdeforig =
             match def_kind with
             (* TODO: Consider what to do with vtype. *)
@@ -588,8 +597,8 @@ and record env ((_tok, origfields, _) as record_def) =
 (*s: function [[AST_to_IL.lval_of_ent]] *)
 let lval_of_ent env ent =
   match ent.G.name with
-  | G.EId (id, idinfo) -> lval_of_id_info env id idinfo
-  | G.EName gname -> lval env (G.N (G.IdQualified(gname, G.empty_id_info())))
+  | G.EN (G.Id (id, idinfo)) -> lval_of_id_info env id idinfo
+  | G.EN name -> lval env (G.N name)
   | G.EDynamic eorig -> lval env eorig
 (*e: function [[AST_to_IL.lval_of_ent]] *)
 
@@ -634,6 +643,17 @@ let for_var_or_expr_list env xs =
         )
   ) |> List.flatten
 (*e: function [[AST_to_IL.for_var_or_expr_list]] *)
+
+(*****************************************************************************)
+(* Parameters *)
+(*****************************************************************************)
+
+let parameters _env params =
+  params
+  |> List.filter_map (function
+    | G.ParamClassic {pname=Some i; pinfo; _} ->
+        Some (var_of_id_info i pinfo)
+    | ___else___ -> None (* TODO *))
 
 (*****************************************************************************)
 (* Statement *)
@@ -786,8 +806,14 @@ and stmt env st =
 (*e: function [[AST_to_IL.stmt]] *)
 
 (*****************************************************************************)
-(* Entry point *)
+(* Entry points *)
 (*****************************************************************************)
+
+let function_definition def =
+  let env    = empty_env () in
+  let params = parameters env def.G.fparams in
+  let body   = stmt env def.G.fbody in
+  (params, body)
 
 (*s: function [[AST_to_IL.stmt (/home/pad/pfff/lang_GENERIC/analyze/AST_to_IL.ml)]] *)
 let stmt st =

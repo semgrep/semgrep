@@ -1,0 +1,14 @@
+(library
+ (name semgrep_testing)
+ (wrapped false)
+ (libraries
+   pfff-lang_GENERIC
+   semgrep_parsing
+ )
+ (preprocess
+    (pps
+      ppx_profiling
+      ppx_deriving.show
+    )
+ )
+)

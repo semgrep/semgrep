@@ -196,7 +196,7 @@ and vof_expr =
   | DotAccess (v1, t, v2) ->
       let v1 = vof_expr v1
       and t = vof_tok t
-      and v2 = vof_ident_or_dynamic v2
+      and v2 = vof_name_or_dynamic v2
       in OCaml.VSum ("DotAccess", [ v1; t; v2 ])
   | ArrayAccess (v1, v2) ->
       let v1 = vof_expr v1
@@ -250,12 +250,8 @@ and vof_expr =
       and v2 = OCaml.vof_list vof_any v2
       in OCaml.VSum ("OtherExpr", [ v1; v2 ])
 
-and vof_ident_or_dynamic = function
-  | EId (v1, v2) ->
-      let v1 = vof_ident v1 in
-      let v2 = vof_id_info v2 in
-      OCaml.VSum ("EId", [v1; v2])
-  | EName v1 -> let v1 = vof_name_ v1 in OCaml.VSum ("EName", [v1])
+and vof_name_or_dynamic = function
+  | EN (v1) -> let v1 = vof_name v1 in OCaml.VSum ("EN", [v1])
   | EDynamic v1 -> let v1 = vof_expr v1 in OCaml.VSum ("EDynamic", [v1])
 
 and vof_literal =
@@ -576,12 +572,11 @@ and vof_keyword_attribute =
 and vof_attribute = function
   | KeywordAttr x -> let v1 = vof_wrap vof_keyword_attribute x in
       OCaml.VSum ("KeywordAttr", [v1])
-  | NamedAttr (t, v1, v2, v3) ->
+  | NamedAttr (t, v1, v3) ->
       let t = vof_tok t in
-      let v1 = vof_dotted_ident v1
-      and v2 = vof_id_info v2
+      let v1 = vof_name v1
       and v3 = vof_bracket (OCaml.vof_list vof_argument) v3
-      in OCaml.VSum ("NamedAttr", [ t; v1; v2; v3 ])
+      in OCaml.VSum ("NamedAttr", [ t; v1; v3 ])
   | OtherAttribute (v1, v2) ->
       let v1 = vof_other_attribute_operator v1
       and v2 = OCaml.vof_list vof_any v2
@@ -889,7 +884,7 @@ and
   let arg = OCaml.vof_list vof_attribute v_attrs in
   let bnd = ("attrs", arg) in
   let bnds = bnd :: bnds in
-  let arg = vof_ident_or_dynamic v_name in
+  let arg = vof_name_or_dynamic v_name in
   let bnd = ("name", arg) in let bnds = bnd :: bnds in OCaml.VDict bnds
 
 and vof_definition_kind =
@@ -1217,6 +1212,7 @@ and vof_partial =
 
 and vof_any =
   function
+  | Str v1 -> let v1 = vof_wrap OCaml.vof_string v1 in OCaml.VSum ("Str", [ v1 ])
   | Args v1 -> let v1 = OCaml.vof_list vof_argument v1 in OCaml.VSum("Args", [v1])
   | Partial v1 -> let v1 = vof_partial v1 in OCaml.VSum ("Partial", [ v1 ])
   | TodoK v1 -> let v1 = vof_ident v1 in OCaml.VSum ("TodoK", [ v1 ])
@@ -1240,4 +1236,4 @@ and vof_any =
   | Dk v1 -> let v1 = vof_definition_kind v1 in OCaml.VSum ("Dk", [ v1 ])
   | Pr v1 -> let v1 = vof_program v1 in OCaml.VSum ("Pr", [ v1 ])
   | Lbli v1 -> let v1 = vof_label_ident v1 in OCaml.VSum ("Lbli", [v1])
-  | IoD v1 -> let v1 = vof_ident_or_dynamic v1 in OCaml.VSum ("IoD", [v1])
+  | NoD v1 -> let v1 = vof_name_or_dynamic v1 in OCaml.VSum ("NoD", [v1])

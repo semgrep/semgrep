@@ -20,9 +20,10 @@ open Common
 module A = AST_generic
 module B = AST_generic
 module MV = Metavariable
-module Lib = Lib_AST
+module H = AST_generic_helpers
 module AST = AST_generic
 module Flag = Flag_semgrep
+module Env = Metavariable_capture
 
 let logger = Logging.get_logger [__MODULE__]
 
@@ -79,7 +80,7 @@ let logger = Logging.get_logger [__MODULE__]
 (* tin is for 'type in' and tout for 'type out' *)
 (* incoming environment *)
 type tin = {
-  mv : Metavariable.Env.t;
+  mv : Metavariable_capture.t;
   stmts_match_span : Stmts_match_span.t;
   cache : tout Caching.Cache.t option;
 }
@@ -201,10 +202,10 @@ let (let*) o f =
 (*****************************************************************************)
 
 let add_mv_capture key value (env : tin) =
-  { env with mv = MV.Env.add_capture key value env.mv }
+  { env with mv = Env.add_capture key value env.mv }
 
 let get_mv_capture key (env : tin) =
-  MV.Env.get_capture key env.mv
+  Env.get_capture key env.mv
 
 let extend_stmts_match_span rightmost_stmt (env : tin) =
   let stmts_match_span =
@@ -331,7 +332,7 @@ let (envf: (MV.mvar AST.wrap, MV.mvalue) matcher) =
 (*s: function [[Matching_generic.empty_environment]] *)
 let empty_environment opt_cache =
   {
-    mv = MV.Env.empty;
+    mv = Env.empty;
     stmts_match_span = Empty;
     cache = opt_cache;
   }
@@ -597,6 +598,21 @@ let string_is_prefix s1 s2 =
 let m_string_prefix a b =
   if string_is_prefix b a then return () else fail ()
 (*e: function [[Matching_generic.m_string_prefix]] *)
+
+let m_string_ellipsis_or_regexp_or_default
+    ?(use_m_string_prefix_for_default=false) a b =
+  match a with
+  (* dots: '...' on string *)
+  | "..." -> return ()
+  | _ when is_regexp_string a ->
+      let f = regexp_matcher_of_regexp_string a in
+      if f b
+      then return ()
+      else fail ()
+  | _ ->
+      if use_m_string_prefix_for_default
+      then m_string_prefix a b
+      else m_string a b
 
 (* ---------------------------------------------------------------------- *)
 (* Token *)

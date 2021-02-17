@@ -146,6 +146,7 @@ jobs:
         with:
           name: semgrep-osx-${{ github.sha }}
           path: artifacts.zip
+
   release-ubuntu-16-04:
     runs-on: ubuntu-latest
     container: returntocorp/sgrep-build:ubuntu-16.04
@@ -202,9 +203,10 @@ jobs:
         with:
           name: osx-wheel
           path: semgrep/dist.zip
+
   build-wheels-manylinux:
-    runs-on: 'ubuntu-16.04'
-    container: 'returntocorp/sgrep-build:ubuntu-16.04'
+    runs-on: ubuntu-16.04
+    container: returntocorp/sgrep-build:ubuntu-16.04
     needs: [build-core]
     steps:
       - name: Checkout
@@ -234,10 +236,11 @@ jobs:
         with:
           name: manylinux-wheel
           path: semgrep/dist.zip
+
   test-wheels-manylinux:
-    needs: ['build-wheels-manylinux']
-    runs-on: 'ubuntu-16.04'
-    container: 'quay.io/pypa/manylinux1_x86_64'
+    runs-on: ubuntu-16.04
+    container: quay.io/pypa/manylinux1_x86_64
+    needs: [build-wheels-manylinux]
     steps:
       - uses: actions/download-artifact@v1
         with:
@@ -258,7 +261,7 @@ jobs:
         run: echo '1 == 1' | ./semgrep -l generic -e '$X == $X' -
 
   upload-wheels:
-    runs-on: 'ubuntu-16.04'
+    runs-on: ubuntu-16.04
     needs: [test-wheels-manylinux, build-wheels-osx]
     steps:
       - name: Download Artifact

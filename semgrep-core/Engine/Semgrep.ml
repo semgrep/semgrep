@@ -246,7 +246,7 @@ let filter_ranges xs cond =
            * but too many possible escaping problems, so easier to build
            * an expression manually.
           *)
-          G.Call (G.DotAccess(G.N (G.Id (("re", fk), fki)), fk, EId ((("match"),fk),fki)),
+          G.Call (G.DotAccess(G.N (G.Id (("re", fk), fki)), fk, EN (Id ((("match"),fk),fki))),
                   (fk, [G.Arg (G.N (G.Id ((mvar, fk), fki)));
                         G.Arg (G.L (G.String (re_str, fk)))], fk))
 

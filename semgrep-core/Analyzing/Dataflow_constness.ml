@@ -267,22 +267,44 @@ and eval_op env wop args =
 (* Transfer *)
 (*****************************************************************************)
 
+(* FIXME: This takes "Bottom" as the default constness of a variable.
+ *
+ * E.g. in
+ *
+ *     def foo():
+ *         if cond():
+ *              x = "abc"
+ *         return x
+ *
+ * we infer that `foo' returns the string "abc" when `x' may not even be defined!
+ *
+ * It would be more sound to assume "Top" (i.e., `G.NotCst`) as default, or
+ * perhaps we could have a switch to control whether we want a may- or must-
+ * analysis?
+*)
 let union_env =
   Dataflow.varmap_union union
 
-let (transfer: flow:F.cfg -> G.constness Dataflow.transfn) =
-  fun ~flow ->
+let transfer
+  : enter_env:G.constness Dataflow.env
+    -> flow:F.cfg
+    -> G.constness Dataflow.transfn =
+  fun ~enter_env ~flow ->
   (* the transfer function to update the mapping at node index ni *)
   fun mapping ni ->
 
+  let node = flow#nodes#assoc ni in
+
   let inp' = (* input mapping *)
-    (flow#predecessors ni)#fold (fun acc (ni_pred, _) ->
-      union_env acc mapping.(ni_pred).D.out_env
-    ) VarMap.empty
+    match node.F.n with
+    | Enter -> enter_env
+    | _else ->
+        (flow#predecessors ni)#fold (fun acc (ni_pred, _) ->
+          union_env acc mapping.(ni_pred).D.out_env
+        ) VarMap.empty
   in
 
   let out' =
-    let node = flow#nodes#assoc ni in
     match node.F.n with
     | Enter | Exit | TrueNode | FalseNode | Join
     | NCond _ | NGoto _ | NReturn _ | NThrow _ | NOther _
@@ -307,11 +329,17 @@ let (transfer: flow:F.cfg -> G.constness Dataflow.transfn) =
 (* Entry point *)
 (*****************************************************************************)
 
-let (fixpoint: F.cfg -> mapping) = fun flow ->
+let (fixpoint: IL.name list -> F.cfg -> mapping) = fun inputs flow ->
+  let enter_env =
+    inputs
+    |> List.to_seq
+    |> Seq.map (fun var -> (str_of_name var, G.NotCst))
+    |> D.VarMap.of_seq
+  in
   DataflowX.fixpoint
     ~eq
     ~init:(DataflowX.new_node_array flow (Dataflow.empty_inout ()))
-    ~trans:(transfer ~flow)
+    ~trans:(transfer ~enter_env ~flow)
     (* constness is a forward analysis! *)
     ~forward:true
     ~flow

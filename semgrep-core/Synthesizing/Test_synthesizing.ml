@@ -18,7 +18,7 @@ module J = JSON
 let expr_at_range s file =
   let r = Range.range_of_linecol_spec s file in
   pr2_gen r;
-  let ast = Parse_generic.parse_program file in
+  let ast = Parse_target.parse_program file in
   (* just to see if it works with Naming on *)
   let lang = Lang.langs_of_filename file |> List.hd in
   Naming_AST.resolve lang ast;

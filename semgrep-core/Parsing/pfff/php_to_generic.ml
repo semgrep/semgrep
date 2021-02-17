@@ -18,7 +18,6 @@ open Cst_php
 open Ast_php
 module G = AST_generic
 module H = AST_generic_helpers
-module H2 = To_generic_helpers
 
 (*****************************************************************************)
 (* Prelude *)
@@ -71,13 +70,13 @@ let name_of_qualified_ident xs =
 
 let name v = qualified_ident v
 
-let fixOp x = H2.conv_incr x
+let fixOp x = H.conv_incr x
 
 let binaryOp (x, t) =
   match x with
   | BinaryConcat -> Left (G.Concat, t)
   | CombinedComparison -> Left (G.Cmp, t)
-  | ArithOp op -> Left ((H2.conv_op op), t)
+  | ArithOp op -> Left ((H.conv_op op), t)
 
 let unaryOp x = x
 
@@ -124,28 +123,28 @@ let rec stmt_aux =
       let v1 = expr v1
       and v2 = list case v2 |> List.map (fun x -> G.CasesAndBody x) in
       [G.Switch (t, Some v1, v2) |> G.s]
-  | While (t, v1, v2) -> let v1 = expr v1 and v2 = list stmt v2 in
-      [G.While (t, v1, G.stmt1 v2) |> G.s]
-  | Do (t, v1, v2) -> let v1 = list stmt v1 and v2 = expr v2 in
-      [G.DoWhile (t, G.stmt1 v1, v2) |> G.s]
+  | While (t, v1, v2) -> let v1 = expr v1 and v2 = stmt v2 in
+      [G.While (t, v1, v2) |> G.s]
+  | Do (t, v1, v2) -> let v1 = stmt v1 and v2 = expr v2 in
+      [G.DoWhile (t, v1, v2) |> G.s]
   | For (t, v1, v2, v3, v4) ->
       let v1 = list expr v1
       and v2 = list expr v2
       and v3 = list expr v3
-      and v4 = list stmt v4
+      and v4 = stmt v4
       in
       [G.For (t, G.ForClassic (
          for_var v1,
          list_expr_to_opt v2,
          list_expr_to_opt v3),
-              G.stmt1 v4) |> G.s]
+              v4) |> G.s]
 
   | Foreach (t, v1, t2, v2, v3) ->
       let v1 = expr v1
       and v2 = foreach_pattern v2
-      and v3 = list stmt v3
+      and v3 = stmt v3
       in
-      [G.For (t, G.ForEach (v2, t2, v1), G.stmt1 v3) |> G.s]
+      [G.For (t, G.ForEach (v2, t2, v1), v3) |> G.s]
   | Return (t, v1) -> let v1 = option expr v1 in
       [G.Return (t, v1, G.sc) |> G.s]
   | Break (t, v1) ->
@@ -265,12 +264,12 @@ and expr =
       G.OtherExpr (G.OE_ArrayAppend, [G.Tk t1; G.E v1])
   | Obj_get (v1, t, Id [v2]) ->
       let v1 = expr v1 and v2 = ident v2 in
-      G.DotAccess (v1, t, G.EId (v2, G.empty_id_info()))
+      G.DotAccess (v1, t, G.EN (G.Id (v2, G.empty_id_info())))
   | Obj_get (v1, t, v2) ->
       let v1 = expr v1 and v2 = expr v2 in
       G.DotAccess (v1, t, G.EDynamic v2)
   | Class_get (v1, t, Id [v2]) -> let v1 = expr v1 and v2 = ident v2 in
-      G.DotAccess (v1, t, G.EId (v2, G.empty_id_info()))
+      G.DotAccess (v1, t, G.EN (G.Id (v2, G.empty_id_info())))
   | Class_get (v1, t, v2) -> let v1 = expr v1 and v2 = expr v2 in
       G.DotAccess (v1, t, G.EDynamic v2)
   | New (t, v1, v2) -> let v1 = expr v1 and v2 = list expr v2 in
@@ -341,7 +340,7 @@ and expr =
            G.Call (G.IdSpecial x, fb[G.Arg v1; G.Arg v3])
       )
   | Unop (((v1, t), v2)) -> let v1 = unaryOp v1 and v2 = expr v2 in
-      G.Call (G.IdSpecial (G.Op (H2.conv_op v1), t), fb[G.Arg v2])
+      G.Call (G.IdSpecial (G.Op (H.conv_op v1), t), fb[G.Arg v2])
   | Guil (t, v1, _) -> let v1 = list expr v1 in
       G.Call (G.IdSpecial (G.ConcatString G.InterpolatedConcat, t),
               fb (v1 |> List.map G.arg))
@@ -481,11 +480,11 @@ and attribute v =
   match v with
   | Id [id] ->
       let id = ident id in
-      G.NamedAttr (fake "@", [id], G.empty_id_info(), fb [])
+      G.NamedAttr (fake "@", G.Id (id, G.empty_id_info()), fb [])
   | Call (Id [id], args) ->
       let id = ident id in
       let args = bracket (list argument) args in
-      G.NamedAttr (fake "@", [id], G.empty_id_info(), args)
+      G.NamedAttr (fake "@", G.Id (id, G.empty_id_info()), args)
   | _ -> raise Impossible (* see ast_php_build.ml *)
 
 

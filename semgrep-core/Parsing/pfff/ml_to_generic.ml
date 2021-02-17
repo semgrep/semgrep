@@ -149,21 +149,14 @@ and expr =
   | FieldAccess (v1, vtok, v2) ->
       let v1 = expr v1 in
       let vtok = tok vtok in
-      (match v2 with
-       | [], id -> let id = ident id in
-           G.DotAccess (v1, vtok, G.EId (id, G.empty_id_info()))
-       | _ -> let v2 = name_ v2 in G.DotAccess (v1, vtok, G.EName v2)
+      let v2 = name v2 in
+      G.DotAccess (v1, vtok, G.EN v2)
 
-      )
   | FieldAssign (v1, t1, v2, t2, v3) ->
       let v1 = expr v1 and v3 = expr v3 in
       let t1 = tok t1 in let t2 = tok t2 in
-      (match v2 with
-       | [], id -> let id = ident id in
-           G.Assign (G.DotAccess (v1, t1, G.EId (id, G.empty_id_info())), t2, v3)
-       | _ -> let v2 = name_ v2 in
-           G.Assign (G.DotAccess (v1, t1, G.EName v2), t2, v3)
-      )
+      let v2 = name v2 in
+      G.Assign (G.DotAccess (v1, t1, G.EN v2), t2, v3)
 
   | Record (v1, v2) ->
       let v1 = option expr v1
@@ -193,7 +186,7 @@ and expr =
   | ObjAccess (v1, t, v2) ->
       let v1 = expr v1 and v2 = ident v2 in
       let t = tok t in
-      G.DotAccess (v1, t, G.EId (v2, G.empty_id_info()))
+      G.DotAccess (v1, t, G.EN (G.Id (v2, G.empty_id_info())))
   | LetIn (tlet, v1, v2, v3) ->
       let _v1 = rec_opt v1 in
       let v2 = list let_binding v2 in
@@ -360,7 +353,7 @@ and let_binding =
        | G.PatTyped (G.PatId (id, _idinfo), ty) ->
            let ent = G.basic_entity id [] in
            (match ent.G.name with
-            | G.EId (_, idinfo) ->
+            | G.EN (G.Id (_, idinfo)) ->
                 (* less: abusing id_type? Do we asume id_info is populated
                  * by further static analysis (naming/typing)? But the info
                  * is here, and this can be used in semgrep too to express
@@ -460,7 +453,8 @@ and attribute (t1, (dotted, xs), t2) =
       | _ -> None
     )
   in
-  G.NamedAttr (t1, dotted, G.empty_id_info(), (t2, args, t2))
+  let name = H.name_of_ids dotted in
+  G.NamedAttr (t1, name, (t2, args, t2))
 
 and item { i; iattrs } =
   let attrs = attributes iattrs in

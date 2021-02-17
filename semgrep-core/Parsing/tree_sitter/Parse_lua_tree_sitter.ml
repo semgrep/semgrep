@@ -162,6 +162,7 @@ let map_local_variable_declarator (env : env) ((v1, v2) : CST.local_variable_dec
   in
   List.map (fun x -> G.basic_entity x [G.KeywordAttr (G.Static, local)]) (ident_first::ident_rest)
 
+(* TODO: return a G.name *)
 let map_function_name_field (env : env) ((v1, v2) : CST.function_name_field) (colon_and_ident): (G.ident * G.name_info) =
   let v1 =
     identifier env v1 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *)
@@ -188,6 +189,7 @@ let map_function_name_field (env : env) ((v1, v2) : CST.function_name_field) (co
   )
 
 
+(* TODO: return a G.name *)
 let map_function_name (env : env) ((v1, v2) : CST.function_name): (G.ident * G.name_info) =
   match v1 with
   | `Id tok ->
@@ -658,8 +660,9 @@ and map_statement (env : env) (x : CST.statement): G.stmt list =
    | `Empty_stmt _tok -> [] (* ";" *)
    | `Func_stmt (v1, v2, v3) ->
        let fn_name = map_function_name env v2 in
+       let name = G.IdQualified (fn_name, G.empty_id_info()) in
        let v3 = map_function_body env v3 v1 in
-       let ent = { G.name = G.EName (fn_name); G.attrs = []; G.tparams = [] } in
+       let ent = { G.name = G.EN (name); G.attrs = []; G.tparams = [] } in
        [G.DefStmt (ent, G.FuncDef v3) |> G.s]
    | `Local_func_stmt (v1, v2, v3, v4) ->
        let v1 = token env v1 (* "local" *) in

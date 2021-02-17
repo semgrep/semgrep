@@ -47,6 +47,7 @@
    TODO: update the ml grammar in pfff so as to support the
          '| Span of { ... }' syntax in semgrep.
 *)
+
 type span = {
   left_stmts: AST_generic.stmt list;
   right_stmts: AST_generic.stmt list;
@@ -75,8 +76,8 @@ let location x =
   match x with
   | Empty -> None
   | Span {left_stmts; right_stmts} ->
-      let min_loc, _ = Lib_AST.range_of_any (AST_generic.Ss left_stmts) in
-      let _, max_loc = Lib_AST.range_of_any (AST_generic.Ss right_stmts) in
+      let min_loc, _ = Visitor_AST.range_of_any (AST_generic.Ss left_stmts) in
+      let _, max_loc = Visitor_AST.range_of_any (AST_generic.Ss right_stmts) in
       Some (min_loc, max_loc)
 
 let merge_and_deduplicate get_key a b =
@@ -96,7 +97,7 @@ let merge_and_deduplicate get_key a b =
   List.rev !acc
 
 let extract_tokens stmts =
-  Lib_AST.ii_of_any (Ss stmts)
+  Visitor_AST.ii_of_any (Ss stmts)
   |> List.filter Parse_info.is_origintok
 
 let is_not_before ~min_loc tok =
@@ -112,8 +113,8 @@ let list_original_tokens x =
   | Span {left_stmts; right_stmts} ->
       let left_tokens = extract_tokens left_stmts in
       let right_tokens = extract_tokens right_stmts in
-      let min_loc, _ = Lib_AST.range_of_tokens left_tokens in
-      let _, max_loc = Lib_AST.range_of_tokens right_tokens in
+      let min_loc, _ = Visitor_AST.range_of_tokens left_tokens in
+      let _, max_loc = Visitor_AST.range_of_tokens right_tokens in
       let left_tokens = List.filter (is_not_after ~max_loc) left_tokens in
       let right_tokens = List.filter (is_not_before ~min_loc) right_tokens in
       (* deduplicate tokens by location *)

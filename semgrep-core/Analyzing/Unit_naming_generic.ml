@@ -5,7 +5,7 @@ open OUnit
 (* Unit tests *)
 (*****************************************************************************)
 
-let unittest =
+let unittest parse_program =
   "naming generic" >::: [
 
     "regression files" >:: (fun () ->
@@ -23,7 +23,7 @@ let unittest =
         try
           (* at least we can assert we don't thrown an exn or go
            * into infinite loops *)
-          let ast = Parse_generic.parse_program file in
+          let ast = parse_program file in
           let lang = List.hd (Lang.langs_of_filename file) in
           Naming_AST.resolve lang ast;
           (* this used to loop forever if you were not handling correctly

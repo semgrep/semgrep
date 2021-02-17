@@ -9,7 +9,7 @@
    pfff-lang_GENERIC pfff-lang_GENERIC-analyze
    pfff-lang_js pfff-lang_js-analyze  ; for Ast_js.default_entity
 
-   semgrep_core
+   semgrep_core semgrep_core_opti
    semgrep_typing
  )
  (preprocess (pps ppx_deriving.show ppx_profiling))

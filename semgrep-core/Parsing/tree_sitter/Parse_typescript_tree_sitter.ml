@@ -159,21 +159,22 @@ let concat_nested_identifier (idents : ident list) : ident =
   in
   str, PI.combine_infos x xs
 
-(* TODO: 'require(...)' to AST?
-
-   example:
-      import zip = require("./ZipCodeValidator");
-
-   Treating 'require' like assignment and function application for now.
+(* 'import id = require(...)' are Commonjs-style import.
+ * See https://www.typescriptlang.org/docs/handbook/2/modules.html#commonjs-style-import-and-export- for reference.
+ * We translate them in regular typescript import.
+ *  example:
+ *      import zip = require("./ZipCodeValidator");
+ *   => import * as zip from "./ZipCodeValidator"
+ *
 *)
-let import_require_clause (env : env) ((v1, v2, v3, v4, v5, v6) : CST.import_require_clause) =
-  let _v1 = JS.identifier env v1 (* identifier *) |> idexp in
+let import_require_clause tk (env : env) ((v1, v2, v3, v4, v5, v6) : CST.import_require_clause) =
+  let v1 = JS.identifier env v1 (* identifier *) in
   let _v2 = JS.token env v2 (* "=" *) in
-  let _v3 = JS.identifier env v3 (* "require" *) |> idexp in
+  let _v3 = JS.identifier env v3 (* "require" *) in
   let _v4 = JS.token env v4 (* "(" *) in
-  let _v5 = JS.string_ env v5 in
+  let v5 = JS.string_ env v5 in
   let _v6 = JS.token env v6 (* ")" *) in
-  [] (* TODO *)
+  ModuleAlias(tk, v1, v5)
 
 let literal_type (env : env) (x : CST.literal_type) : literal =
   (match x with
@@ -1656,7 +1657,7 @@ and statement (env : env) (x : CST.statement) : stmt list =
               let _t, path = JS.from_clause env v2 in
               f tok path
           | `Import_requ_clause x ->
-              import_require_clause env x
+              [import_require_clause v1 env x]
           | `Str x ->
               let file = JS.string_ env x in [ImportFile (tok, file)]
          )

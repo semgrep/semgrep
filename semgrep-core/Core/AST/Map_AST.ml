@@ -208,7 +208,7 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
       | LetPattern (v1, v2) ->
           let v1 = map_pattern v1 and v2 = map_expr v2 in LetPattern (v1, v2)
       | DotAccess (v1, t, v2) ->
-          let v1 = map_expr v1 and t = map_tok t and v2 = map_ident_or_dynamic v2 in
+          let v1 = map_expr v1 and t = map_tok t and v2 = map_name_or_dynamic v2 in
           DotAccess (v1, t, v2)
       | ArrayAccess (v1, v2) ->
           let v1 = map_expr v1 and v2 = map_bracket map_expr v2 in
@@ -260,12 +260,8 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
     in
     vin.kexpr (k, all_functions) x
 
-  and map_ident_or_dynamic = function
-    | EId (v1, v2) ->
-        let v1 = map_ident v1 in
-        let v2 = map_id_info v2 in
-        EId (v1, v2)
-    | EName v1 -> let v1 = map_name_ v1 in EName v1
+  and map_name_or_dynamic = function
+    | EN v1 -> let v1 = map_name v1 in EN v1
     | EDynamic v1 -> let v1 = map_expr v1 in EDynamic v1
 
   and map_literal =
@@ -421,12 +417,11 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
   and map_attribute = function
     | KeywordAttr v1 -> let v1 = map_wrap map_keyword_attribute v1 in
         KeywordAttr v1
-    | NamedAttr (t, v1, v2, v3) ->
+    | NamedAttr (t, v1, v3) ->
         let t = map_tok t in
-        let v1 = map_dotted_ident v1
-        and v2 = map_id_info v2
+        let v1 = map_name v1
         and v3 = map_bracket (map_of_list map_argument) v3
-        in NamedAttr (t, v1, v2, v3)
+        in NamedAttr (t, v1, v3)
     | OtherAttribute (v1, v2) ->
         let v1 = map_other_attribute_operator v1
         and v2 = map_of_list map_any v2
@@ -658,7 +653,7 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
     } =
     let v_tparams = map_of_list map_type_parameter v_tparams in
     let v_attrs = map_of_list map_attribute v_attrs in
-    let v_name = map_ident_or_dynamic v_name
+    let v_name = map_name_or_dynamic v_name
     in {
       name = v_name;
       attrs = v_attrs;
@@ -926,6 +921,7 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
 
   and map_any =
     function
+    | Str v1 -> let v1 = map_wrap map_of_string v1 in Str v1
     | Args v1 -> let v1 = map_of_list map_argument v1 in Args v1
     | Partial v1 -> let v1 = map_partial v1 in Partial v1
     | TodoK v1 -> let v1 = map_ident v1 in TodoK v1
@@ -949,7 +945,7 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
     | Dk v1 -> let v1 = map_definition_kind v1 in Dk v1
     | Pr v1 -> let v1 = map_program v1 in Pr v1
     | Lbli v1 -> let v1 = map_label_ident v1 in Lbli v1
-    | IoD v1 -> let v1 = map_ident_or_dynamic v1 in IoD v1
+    | NoD v1 -> let v1 = map_name_or_dynamic v1 in NoD v1
 
   and all_functions =
     {

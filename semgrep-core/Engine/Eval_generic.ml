@@ -87,7 +87,7 @@ let parse_json file =
            in
            (* less: could also use Parse_pattern *)
            let code =
-             match Parse_generic.parse_pattern lang code with
+             match Parse_pattern.parse_pattern lang code with
              | G.E e -> e
              | _ -> failwith "only expressions are supported"
            in
@@ -173,7 +173,7 @@ let rec eval env code =
        | _ -> Bool (false)
       )
   (* Emulate Python re.match just enough *)
-  | G.Call (G.DotAccess(G.N (G.Id (("re", _), _)), _, EId ((("match"),_),_)),
+  | G.Call (G.DotAccess(G.N (G.Id (("re", _), _)), _, EN (Id ((("match"),_),_))),
             (_, [G.Arg e1; G.Arg (G.L (G.String (re, _)))], _)) ->
       (* alt: take the text range of the metavariable in the original file,
        * and enforce e1 can only be an Id metavariable.
@@ -288,7 +288,7 @@ let bindings_to_env xs =
 let bindings_to_env_with_just_strings xs =
   xs |> List.map (fun (mvar, mval) ->
     let any = MV.mvalue_to_any mval in
-    let (min, max) = Lib_AST.range_of_any any in
+    let (min, max) = Visitor_AST.range_of_any any in
     let file = min.Parse_info.file in
     let range = Range.range_of_token_locations min max in
     mvar, String (Range.content_at_range file range)

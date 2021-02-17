@@ -4,7 +4,7 @@
 (* tin is for 'type in' and tout for 'type out' *)
 (* incoming environment *)
 type tin = {
-  mv : Metavariable.Env.t;
+  mv : Metavariable_capture.t;
   stmts_match_span : Stmts_match_span.t;
   cache : tout Caching.Cache.t option;
 }
@@ -140,6 +140,9 @@ val string_is_prefix : string -> string -> bool
 (*s: signature [[Matching_generic.m_string_prefix]] *)
 val m_string_prefix : string -> string -> tin -> tout
 (*e: signature [[Matching_generic.m_string_prefix]] *)
+val m_string_ellipsis_or_regexp_or_default:
+  ?use_m_string_prefix_for_default:bool ->
+  string -> string -> tin -> tout
 
 (*s: signature [[Matching_generic.m_info]] *)
 val m_info : 'a -> 'b -> tin -> tout

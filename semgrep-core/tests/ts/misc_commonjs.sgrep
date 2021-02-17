@@ -1,0 +1,4 @@
+import * as $X from "fs";
+...
+$X.read(...);
+

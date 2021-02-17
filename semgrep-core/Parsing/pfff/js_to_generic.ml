@@ -17,7 +17,6 @@ open Common
 open Ast_js
 module G = AST_generic
 module H = AST_generic_helpers
-module H2 = To_generic_helpers
 
 (*****************************************************************************)
 (* Prelude *)
@@ -121,8 +120,8 @@ let special (x, tok) =
                       [G.Arg (G.Call (
                          G.IdSpecial (G.ConcatString G.InterpolatedConcat, tok),
                          rest |> List.map (fun e -> G.Arg e) |> G.fake_bracket))]))
-  | ArithOp op -> SR_Special (G.Op (H2.conv_op op), tok)
-  | IncrDecr v -> SR_Special (G.IncrDecr (H2.conv_incdec v), tok)
+  | ArithOp op -> SR_Special (G.Op (H.conv_op op), tok)
+  | IncrDecr v -> SR_Special (G.IncrDecr (H.conv_incdec v), tok)
 
 (*
    This is used to expose an individual statement as a block of one statement,
@@ -219,7 +218,7 @@ and expr (x: expr) =
       let v2 = property_name v2 in
       let t = info t in
       (match v2 with
-       | Left n -> G.DotAccess (v1, t, G.EId (n, G.empty_id_info()))
+       | Left n -> G.DotAccess (v1, t, G.EN (G.Id (n, G.empty_id_info())))
        | Right e -> G.DotAccess (v1, t, G.EDynamic e)
       )
   | Fun (v1, _v2TODO) ->
@@ -496,7 +495,8 @@ and attribute = function
         | None -> G.fake_bracket []
       in
       let args = list argument args |> List.map G.arg in
-      G.NamedAttr (t, ids, G.empty_id_info (), (t1, args, t2))
+      let name = H.name_of_ids ids in
+      G.NamedAttr (t, name, (t1, args, t2))
 
 and keyword_attribute (x, tok) =
   (match x with
@@ -530,7 +530,7 @@ and class_ { c_extends; c_implements; c_body; c_kind; c_attrs;  } =
   let v2 = bracket (list property) c_body in
   let attrs = list attribute c_attrs in
   let cimplements = list type_ c_implements in
-  { G.ckind = H2.conv_class_kind c_kind; cextends; cimplements;
+  { G.ckind = H.conv_class_kind c_kind; cextends; cimplements;
     cmixins = []; cbody = v2;}, attrs
 
 
@@ -596,7 +596,7 @@ and module_directive x =
   match x with
   | ReExportNamespace (v1, _v2, _v3, v4) ->
       let v4 = filename v4 in
-      G.OtherDirective (G.OI_ReExportNamespace, [G.Tk v1; G.I v4])
+      G.OtherDirective (G.OI_ReExportNamespace, [G.Tk v1; G.Str v4])
   | Import (t, v1, v2, v3) ->
       let v1 = name v1 and v2 = option alias v2 and v3 = filename v3 in
       G.ImportFrom (t, G.FileName v3, v1, v2)

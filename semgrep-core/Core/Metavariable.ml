@@ -15,9 +15,9 @@
  * license.txt for more details.
 *)
 (*e: pad/r2c copyright *)
-open Printf
 open Common
 module G = AST_generic
+module H = AST_generic_helpers
 
 (* Provide hash_* and hash_fold_* for the core ocaml types *)
 open Ppx_hash_lib.Std.Hash.Builtin
@@ -54,7 +54,9 @@ type mvar = string
  * use of AST_generic.any for patterns.
 *)
 type mvalue =
+  (* TODO: get rid of Id, N generalize it *)
   | Id of AST_generic.ident * AST_generic.id_info option
+  | N of AST_generic.name
   | E of AST_generic.expr
   | S of AST_generic.stmt
   | Ss of AST_generic.stmt list
@@ -75,6 +77,7 @@ let mvalue_to_any = function
   *)
   | Id (id, Some idinfo) -> G.E (G.N (G.Id (id, idinfo)))
   | Id (id, None) -> G.E (G.N (G.Id (id, G.empty_id_info())))
+  | N x -> G.E (G.N x)
   | Ss x -> G.Ss x
   | Args x -> G.Args x
   | T x -> G.T x
@@ -82,7 +85,7 @@ let mvalue_to_any = function
 
 (* update: you should use equal_mvalue (from deriving eq) now *)
 let _abstract_position_info_mval x =
-  x |> mvalue_to_any |> Lib_AST.abstract_for_comparison_any
+  x |> mvalue_to_any |> H.abstract_for_comparison_any
 
 let str_of_any any =
   if !Flag_semgrep.debug_with_full_position
@@ -93,7 +96,7 @@ let str_of_any any =
   s
 
 let ii_of_mval x =
-  x |> mvalue_to_any |> Lib_AST.ii_of_any
+  x |> mvalue_to_any |> Visitor_AST.ii_of_any
 let str_of_mval x =
   x |> mvalue_to_any |> str_of_any
 
@@ -111,116 +114,6 @@ let str_of_mval x =
 type bindings = (mvar * mvalue) list (* = Common.assoc *)
 [@@deriving show, eq, hash]
 (*e: type [[Metavars_generic.metavars_binding]] *)
-
-(*
-   Environment that is carried along and modified while matching a
-   pattern AST against a target AST. It holds the captured metavariables
-   which are eventually returned if matching is successful.
-*)
-module Env = struct
-  type t = {
-    (* All metavariable captures *)
-    full_env: bindings;
-
-    (* Only the captures that are used in the rest of the pattern.
-       Used in the cache key. *)
-    min_env: bindings;
-
-    (* This is the set of metavariables referenced in the rest of the pattern.
-       It's used to determine the subset of bindings that should be kept in
-       min_env. It comes from the last stmt node encountered in the pattern. *)
-    last_stmt_backrefs: AST_generic.String_set.t;
-  }
-
-  let empty = {
-    full_env = [];
-    min_env = [];
-    last_stmt_backrefs = Set_.empty;
-  }
-
-  (* Get the value bound to a metavariable or return None. *)
-  let get_capture k env =
-    List.assoc_opt k env.full_env
-
-  (*
-     A pattern node provides the set of metavariables that are already bound
-     and checked against in the rest of the pattern. This is e.g. the
-     's_backrefs' field for a statement node.
-  *)
-  let has_backref k backrefs =
-    Set_.mem k backrefs
-
-  (*
-     To be called each time a new value is captured, i.e. bound to a
-     metavariable.
-  *)
-  let add_capture k v env =
-    if debug then
-      printf "add_capture %s\n" k;
-    let kv = (k, v) in
-    let full_env = kv :: env.full_env in
-    let min_env = kv :: env.min_env
-    in
-    { env with full_env; min_env }
-
-  (*
-     This is used for tracking the span of a matched sequence of statements.
-  *)
-  let replace_capture k v env =
-    if debug then
-      printf "replace_capture %s\n" k;
-    let kv = (k, v) in
-    let full_env = kv :: List.remove_assoc k env.full_env in
-    let min_env = kv :: List.remove_assoc k env.min_env
-    in
-    { env with full_env; min_env }
-
-  let remove_capture k env =
-    if debug then
-      printf "remove_capture %s\n" k;
-    {
-      env with
-      full_env = List.remove_assoc k env.full_env;
-      min_env = List.remove_assoc k env.min_env;
-    }
-
-  (*
-     To be called as early as possible after passing a backreference
-     which may no longer be needed when descending down the pattern.
-     For now, we call this only when reaching a new stmt pattern node.
-
-     For simplicity, we assume any member of 'min_env' may no longer be
-     needed. It may be more efficient to accumulate the backreferences
-     that were encountered since the last stmt and only consider removing
-     their bindings, rather than considering all the bindings in min_env.
-
-     If we don't call this, the cache keys will be overspecified, reducing
-     or preventing reuse.
-  *)
-  let update_min_env env (stmt_pat : G.stmt) =
-    if debug then
-      printf "update_min_env\n";
-    let backrefs =
-      match stmt_pat.s_backrefs with
-      | None -> assert false (* missing initialization *)
-      | Some x -> x
-    in
-    let min_env =
-      List.filter (fun (k, _v) ->
-        let keep =
-          Set_.mem k backrefs
-        in
-        if debug then
-          printf "keep %s in min env: %B\n" k keep;
-        keep
-      ) env.min_env
-    in
-    {
-      env with
-      min_env;
-      last_stmt_backrefs = backrefs;
-    }
-end
 
 (*s: constant [[Metavars_generic.metavar_regexp_string]] *)
 (* ex: $X, $FAIL, $VAR2, $_
@@ -268,15 +161,15 @@ let is_metavar_ellipsis s =
   s =~ metavar_ellipsis_regexp_string
 
 module Structural = struct
-  let equal_mvalue = AST_generic.with_structural_equal equal_mvalue
+  let equal_mvalue = AST_utils.with_structural_equal equal_mvalue
   let equal_bindings =
-    AST_generic.with_structural_equal equal_bindings
+    AST_utils.with_structural_equal equal_bindings
 end
 
 module Referential = struct
-  let equal_mvalue = AST_generic.with_referential_equal equal_mvalue
+  let equal_mvalue = AST_utils.with_referential_equal equal_mvalue
   let equal_bindings =
-    AST_generic.with_referential_equal equal_bindings
+    AST_utils.with_referential_equal equal_bindings
 
   let hash_bindings = hash_bindings
 end

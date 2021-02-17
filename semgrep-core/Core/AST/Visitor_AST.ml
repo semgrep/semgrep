@@ -249,7 +249,7 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
           in ()
       | LetPattern (v1, v2) -> let v1 = v_pattern v1 and v2 = v_expr v2 in ()
       | DotAccess (v1, t, v2) ->
-          let v1 = v_expr v1 and t = v_tok t and v2 = v_ident_or_dynamic v2 in ()
+          let v1 = v_expr v1 and t = v_tok t and v2 = v_name_or_dynamic v2 in ()
       | ArrayAccess (v1, v2) -> let v1 = v_expr v1 and v2 = v_bracket v_expr v2 in ()
       | SliceAccess (v1, v2, v3, v4) ->
           let v1 = v_expr v1
@@ -287,9 +287,8 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
     in
     vin.kexpr (k, all_functions) x
 
-  and v_ident_or_dynamic = function
-    | EId (id, idinfo) -> v_ident id; v_id_info idinfo
-    | EName n -> v_name_ n
+  and v_name_or_dynamic = function
+    | EN v1 -> v_name v1
     | EDynamic e -> v_expr e
 
   and v_literal =
@@ -433,9 +432,9 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
     let k x =
       match x with
       | KeywordAttr v1 -> let v1 = v_wrap v_keyword_attribute v1 in ()
-      | NamedAttr (t, v1, v2, v3) ->
+      | NamedAttr (t, v1, v3) ->
           let t = v_tok t in
-          let v1 = v_dotted_ident v1 and v2 = v_id_info v2 and
+          let v1 = v_name v1 and
             v3 = v_bracket (v_list v_argument) v3 in ()
       | OtherAttribute (v1, v2) ->
           let v1 = v_other_attribute_operator v1 and v2 = v_list v_any v2 in ()
@@ -708,7 +707,7 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
         attrs = v_attrs;
         tparams = v_tparams;
       } = x in
-      let arg = v_ident_or_dynamic x_name in
+      let arg = v_name_or_dynamic x_name in
       let arg = v_list v_attribute v_attrs in
       let arg = v_list v_type_parameter v_tparams in
       ()
@@ -909,6 +908,7 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
   and v_program v = v_stmts v
   and v_any =
     function
+    | Str v1 -> v_wrap v_string v1
     | Args v1 -> v_list v_argument v1
     | Partial v1 -> v_partial ~recurse:true v1
     | TodoK v1 -> v_ident v1
@@ -932,7 +932,7 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
     | I v1 -> let v1 = v_ident v1 in ()
     | Tk v1 -> let v1 = v_tok v1 in ()
     | Lbli v1 -> v_label_ident v1
-    | IoD v1 -> v_ident_or_dynamic v1
+    | NoD v1 -> v_name_or_dynamic v1
 
 
   and all_functions x = v_any x
@@ -942,3 +942,37 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
+
+(*****************************************************************************)
+(* Extract infos *)
+(*****************************************************************************)
+
+(*s: function [[Lib_AST.extract_info_visitor]] *)
+let extract_info_visitor recursor =
+  let globals = ref [] in
+  let hooks = { default_visitor with
+                kinfo = (fun (_k, _) i -> Common.push i globals);
+              } in
+  begin
+    let vout = mk_visitor hooks in
+    recursor vout;
+    List.rev !globals
+  end
+(*e: function [[Lib_AST.extract_info_visitor]] *)
+
+(*s: function [[Lib_AST.ii_of_any]] *)
+let ii_of_any any =
+  extract_info_visitor (fun visitor -> visitor any)
+(*e: function [[Lib_AST.ii_of_any]] *)
+
+let range_of_tokens tokens =
+  List.filter Parse_info.is_origintok tokens
+  |> Parse_info.min_max_ii_by_pos
+
+let range_of_any any =
+  let leftmost_token, rightmost_token =
+    ii_of_any any
+    |> range_of_tokens
+  in
+  (Parse_info.token_location_of_info leftmost_token,
+   Parse_info.token_location_of_info rightmost_token)

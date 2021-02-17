@@ -17,7 +17,6 @@ open Common
 open Ast_java
 module G = AST_generic
 module H = AST_generic_helpers
-module H2 = To_generic_helpers
 
 (*****************************************************************************)
 (* Prelude *)
@@ -46,8 +45,8 @@ let fb = G.fake_bracket
 
 
 let id_of_entname = function
-  | G.EId (id, idinfo) -> id, idinfo
-  | G.EName _ | G.EDynamic _ -> raise Impossible
+  | G.EN (Id (id, idinfo)) -> id, idinfo
+  | G.EN _ | G.EDynamic _ -> raise Impossible
 
 let entity_to_param { G.name; attrs; tparams = _unused; } t =
   let id, info = id_of_entname name in
@@ -142,7 +141,8 @@ and annotation (t, v1, v2) =
     | None -> fb []
     | Some x -> bracket annotation_element x
   in
-  G.NamedAttr (t, v1, G.empty_id_info(), xs)
+  let name = H.name_of_ids v1 in
+  G.NamedAttr (t, name, xs)
 
 and type_arguments x = list type_argument x
 
@@ -278,7 +278,7 @@ and expr e =
   | Call (v1, v2) -> let v1 = expr v1 and v2 = arguments v2 in
       G.Call (v1, v2)
   | Dot (v1, t, v2) -> let v1 = expr v1 and t = info t and v2 = ident v2 in
-      G.DotAccess (v1, t, G.EId (v2, G.empty_id_info()))
+      G.DotAccess (v1, t, G.EN (G.Id (v2, G.empty_id_info())))
   | ArrayAccess (v1, v2) -> let v1 = expr v1 and v2 = bracket expr v2 in
       G.ArrayAccess (v1, v2)
   | Postfix ((v1, (v2, tok))) -> let v1 = expr v1 and v2 = fix_op v2 in
@@ -286,10 +286,10 @@ and expr e =
   | Prefix (((v1, tok), v2)) -> let v1 = fix_op v1 and v2 = expr v2 in
       G.Call (G.IdSpecial (G.IncrDecr (v1, G.Prefix), tok), fb[G.Arg v2])
   | Unary (v1, v2) -> let (v1, tok) = v1 and v2 = expr v2 in
-      G.Call (G.IdSpecial (G.Op (H2.conv_op v1), tok), fb[G.Arg v2])
+      G.Call (G.IdSpecial (G.Op (H.conv_op v1), tok), fb[G.Arg v2])
   | Infix ((v1, (v2, tok), v3)) ->
       let v1 = expr v1 and v2 = v2 and v3 = expr v3 in
-      G.Call (G.IdSpecial (G.Op (H2.conv_op v2), tok), fb[G.Arg v1; G.Arg v3])
+      G.Call (G.IdSpecial (G.Op (H.conv_op v2), tok), fb[G.Arg v1; G.Arg v3])
   | Cast (((_, v1, _), v2)) ->
       let v1 = list typ v1 and v2 = expr v2 in
       let t = Common2.foldl1 (fun acc e -> G.TyAnd (acc, fake "&", e)) v1 in
@@ -305,7 +305,7 @@ and expr e =
       G.Assign (v1, v2, v3)
   | AssignOp ((v1, (v2, tok), v3)) ->
       let v1 = expr v1 and v3 = expr v3 in
-      G.AssignOp (v1, (H2.conv_op v2, tok), v3)
+      G.AssignOp (v1, (H.conv_op v2, tok), v3)
   | TypedMetavar (v1, v2) ->
       let v1 = ident v1 in
       let v2 = typ v2 in
@@ -324,7 +324,7 @@ and argument v = let v = expr v in G.Arg v
 
 and arguments v : G.argument list G.bracket = bracket (list argument) v
 
-and fix_op v = H2.conv_incr v
+and fix_op v = H.conv_incr v
 
 and stmt st =
   match st with

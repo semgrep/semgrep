@@ -17,11 +17,13 @@
 (*e: pad/r2c copyright *)
 open Common
 open AST_generic
+module H = AST_generic_helpers
 
 module Flag = Flag_semgrep
 module MV = Metavariable
 module M = Map_AST
 module Eq = Equivalence
+module Env = Metavariable_capture
 
 (*****************************************************************************)
 (* Matchers for code equivalence mode *)
@@ -42,7 +44,7 @@ let match_e_e_for_equivalences _ruleid a b =
 (* Substituters *)
 (*****************************************************************************)
 (*s: function [[Apply_equivalences.subst_e]] *)
-let subst_e (env : MV.Env.t) e =
+let subst_e (env : Env.t) e =
   let bindings = env.full_env in
   let visitor =
     M.mk_visitor
@@ -113,8 +115,8 @@ let apply equivs any =
                  (* Found a match *)
                  let alt = subst_e env.mv r (* recurse on r? *) in
                  (* TODO: use AST_generic.equal_any*)
-                 if Lib_AST.abstract_for_comparison_any (E x) =*=
-                    Lib_AST.abstract_for_comparison_any (E alt)
+                 if H.abstract_for_comparison_any (E x) =*=
+                    H.abstract_for_comparison_any (E alt)
                  then x'
                  (* disjunction (if different) *)
                  else DisjExpr (x', alt)
