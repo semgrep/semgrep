@@ -355,10 +355,39 @@ let real_literal (env : env) (tok : CST.real_literal) =
   AST.Float (str env tok) (* real_literal *)
 (* TODO should real be returned as float? *)
 
+let contextual_keywords env x =
+  (match x with
+   | `Asce x (* "ascending" *)
+   | `By x (* "by" *)
+   | `Desc x (* "descending" *)
+   | `Equals x (* "equals" *)
+   | `From x (* "from" *)
+   | `Group x (* "group" *)
+   | `Into x (* "into" *)
+   | `Join x (* "join" *)
+   | `Let x (* "let" *)
+   | `On x (* "on" *)
+   | `Orde x (* "orderby" *)
+   | `Select x (* "select" *)
+   | `Where x (* "where" *)
+   | `Add x (* "add" *)
+   | `Get x (* "get" *)
+   | `Remove x (* "remove" *)
+   | `Set x (* "set" *)
+   | `Global x (* "global" *)
+   | `Alias x (* "alias" *)
+   | `Dyna x (* "dynamic" *)
+   | `Nameof x (* "nameof" *)
+   | `Notn x (* "notnull" *)
+   | `Unma x (* "unmanaged" *)
+   | `When x (* "when" *)
+   | `Yield x (* "yield" *) -> str env x
+  )
+
 let identifier (env : env) (tok : CST.identifier) : ident =
   match tok with
   | `Choice_id_tok (`Id_tok tok) -> str env tok
-  | `Choice_id_tok (`Cont_keywos kw) -> todo env kw
+  | `Choice_id_tok (`Cont_keywos kw) -> contextual_keywords env kw
   | `Tok_pat_8cc7dbf tok -> str env tok
 
 (* TODO: not sure why preprocessor_call was not generated. Because
