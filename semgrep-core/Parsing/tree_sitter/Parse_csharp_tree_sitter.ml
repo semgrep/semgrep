@@ -1871,7 +1871,7 @@ and pattern (env : env) (x : CST.pattern) : AST.pattern =
        PatTyped (v2, v1)
    | `Disc tok ->
        PatUnderscore (token env tok) (* "_" *)
-   | `Recu_pat (v1, v2, v3) -> todo env (v1, v2, v3)
+   | `Recu_pat (v1, v2, v3) -> recursive_pattern env (v1, v2, v3)
    | `Var_pat (v1, v2) ->
        let v1 = token env v1 (* "var" *) in
        let v2 = variable_designation env v2 in
@@ -1882,6 +1882,62 @@ and pattern (env : env) (x : CST.pattern) : AST.pattern =
    | `Bin_pat x -> todo env x
    | `Type_pat x -> todo env x
   )
+
+and recursive_pattern env (v1, v2, v3) =
+  let pat = (match v2 with
+    | `Posi_pat_clause_opt_prop_pat_clause (v1, v2) ->
+        let v1 = positional_pattern_clause env v1 in
+        let v2 = (match v2 with
+          | None -> None
+          | Some x -> todo env x) in
+        v1
+    | `Prop_pat_clause x -> property_pattern_clause env x
+  ) in
+  let pat = (match v1 with
+    | None -> pat
+    | Some x ->
+        let t = type_ env x in
+        PatTyped (pat, t)
+  ) in
+  (match v3 with
+   | None -> pat
+   | Some x ->
+       let v = variable_designation env x in
+       todo env (pat, v)
+  )
+
+and positional_pattern_clause (env : env) ((v1, v2, v3) : CST.positional_pattern_clause) =
+  let v1 = token env v1 (* "(" *) in
+  let v2 =
+    (match v2 with
+     | Some (v1, v2, v3, v4) ->
+         let v1 = subpattern env v1 in
+         let v3 = subpattern env v3 in
+         let v4 = List.map (fun (v1, v2) -> subpattern env v2) v4 in
+         v1 :: v3 :: v4
+     | None -> [])
+  in
+  let v3 = token env v3 (* ")" *) in
+  PatTuple (v1, v2, v3)
+
+and subpattern (env : env) ((v1, v2) : CST.subpattern) =
+  let v1 =
+    (match v1 with
+     | Some x -> Some (name_colon env x) (* TODO handle this *)
+     | None -> None)
+  in
+  let v2 = pattern env v2 in
+  v2
+
+and property_pattern_clause (env : env) ((v1, v2, v3, v4) : CST.property_pattern_clause) =
+  let v1 = token env v1 (* "{" *) in
+  let v2 =
+    (match v2 with
+     | Some x -> todo env x
+     | None -> [])
+  in
+  let v4 = token env v4 (* "}" *) in
+  todo env (v1, v2, v3, v4)
 
 and anonymous_object_member_declarator (env : env) (x : CST.anonymous_object_member_declarator) =
   (match x with
@@ -2116,15 +2172,6 @@ let explicit_interface_specifier (env : env) ((v1, v2) : CST.explicit_interface_
   let v2 = token env v2 (* "." *) in
   v1
 
-let subpattern (env : env) ((v1, v2) : CST.subpattern) =
-  let v1 =
-    (match v1 with
-     | Some x -> name_colon env x
-     | None -> todo env ())
-  in
-  let v2 = pattern env v2 in
-  todo env (v1, v2)
-
 let accessor_declaration (env : env) ((v1, v2, v3, v4) : CST.accessor_declaration) =
   let v1 = List.concat_map (attribute_list env) v1 in
   let v2 = List.map (modifier env) v2 in
@@ -2217,26 +2264,6 @@ let enum_member_declaration_list (env : env) ((v1, v2, v3, v4) : CST.enum_member
   in
   let v4 = token env v4 (* "}" *) in
   v2
-
-let positional_pattern_clause (env : env) ((v1, v2, v3) : CST.positional_pattern_clause) =
-  let v1 = token env v1 (* "(" *) in
-  let v2 =
-    (match v2 with
-     | Some x -> todo env x
-     | None -> todo env ())
-  in
-  let v3 = token env v3 (* ")" *) in
-  todo env (v1, v2, v3)
-
-let property_pattern_clause (env : env) ((v1, v2, v3, v4) : CST.property_pattern_clause) =
-  let v1 = token env v1 (* "{" *) in
-  let v2 =
-    (match v2 with
-     | Some x -> todo env x
-     | None -> todo env ())
-  in
-  let v4 = token env v4 (* "}" *) in
-  todo env (v1, v2, v4)
 
 let rec declaration_list (env : env) ((open_bracket, body, close_bracket) : CST.declaration_list) =
   let xs = List.map (declaration env) body in
