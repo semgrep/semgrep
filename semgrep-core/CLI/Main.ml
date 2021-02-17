@@ -823,7 +823,9 @@ let semgrep_with_real_rules ~with_opt_cache rules files =
              print_match !mvars env Metavariable.ii_of_mval xs
            end
          in
-         Semgrep.check with_opt_cache hook rules (file, lang, ast)
+         let xlang = R.L (lang, []) in
+         let ast = lazy ast in
+         Semgrep.check with_opt_cache hook rules (file, xlang, ast)
       )
   in
   logger#info "found %d matches and %d errors"
