@@ -1135,10 +1135,6 @@ and expression (env : env) (x : CST.expression) : AST.expr =
        let v3 = simple_name env v3 in
        let name = AST.IdQualified (v3, AST.empty_id_info()) in
        AST.DotAccess (v1, v2, AST.EN name)
-   | `Member_bind_exp (v1, v2) ->
-       let v1 = token env v1 (* "." *) in
-       let v2 = simple_name env v2 in
-       todo env (v1, v2)
    | `Obj_crea_exp (v1, v2, v3, v4) ->
        let v1 = token env v1 (* "new" *) in
        let v2 = type_constraint env v2 in
