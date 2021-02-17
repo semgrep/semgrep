@@ -1039,7 +1039,6 @@ and expression (env : env) (x : CST.expression) : AST.expr =
              let x2 = simple_name env x2 in
              let name = IdQualified (x2, empty_id_info()) in
              DotAccess (v1, x1, EN name)
-         | _ -> raise Impossible
        ) in
        Conditional (is_null, fake_null, access)
    | `Cond_exp (v1, v2, v3, v4, v5) ->
@@ -2218,43 +2217,64 @@ let rec declaration_list (env : env) ((open_bracket, body, close_bracket) : CST.
     token env close_bracket
   )
 
+and extern_alias_directive (env : env) ((v1, v2, v3, v4) : CST.extern_alias_directive) =
+  let v1 = token env v1 (* "extern" *) in
+  let v2 = token env v2 (* "alias" *) in
+  let v3 = identifier env v3 (* identifier *) in
+  let v4 = token env v4 (* ";" *) in
+  todo env (v1, v2, v3, v4)
+
+and using_directive (env : env) ((v1, v2, v3, v4) : CST.using_directive) =
+  todo env (v1, v2, v3, v4)
+
+and global_attribute_list (env : env) ((v1, v2, v3, v4, v5) : CST.global_attribute_list) =
+  let v1 = token env v1 (* "[" *) in
+  let v2 =
+    (match v2 with
+     | `Asse tok -> token env tok (* "assembly" *)
+     | `Module tok -> token env tok (* "module" *)
+    )
+  in
+  let v3 = token env v3 (* ":" *) in
+  let v4 =
+    (match v4 with
+     | Some (v1, v2) ->
+         let v1 = attribute env v1 in
+         let v2 =
+           List.map (fun (v1, v2) ->
+             let v1 = token env v1 (* "," *) in
+             let v2 = attribute env v2 in
+             v2
+           ) v2
+         in
+         v1 :: v2
+     | None -> [])
+  in
+  let v5 = token env v5 (* "]" *) in
+  let anys = List.map (fun a -> At a) v4 in
+  ExprStmt (OtherExpr (OE_Annot, anys), v1) |> AST.s
+
+and global_statement (env : env) (x : CST.global_statement) =
+  statement env x
+
+and namespace_member_declaration (env : env) (x : CST.namespace_member_declaration) =
+  todo env x
+
 and compilation_unit (env : env) (xs : CST.compilation_unit) : any =
   match xs with
-  | `Rep_decl xs ->
-      let xs = List.map (declaration env) xs in
-      AST.Pr xs
+  | `Rep_extern_alias_dire_rep_using_dire_rep_global_attr_list_rep_global_stmt_rep_name_member_decl (v1, v2, v3, v4, v5) ->
+      let v1 = v1 |> List.map (extern_alias_directive env) in
+      let v2 = v2 |> List.map (using_directive env) in
+      let v3 = v3 |> List.map (global_attribute_list env) in
+      let v4 = v4 |> List.map (global_statement env) in
+      let v5 = v5 |> List.map (namespace_member_declaration env) in
+      AST.Pr v5 (* TODO also use v1 - v4 *)
   | `Semg_exp (_v1, v2) ->
       let v2 = expression env v2 in
       AST.E v2
 
 and declaration (env : env) (x : CST.declaration) : stmt =
   (match x with
-   | `Global_attr_list (v1, v2, v3, v4, v5) ->
-       let v1 = token env v1 (* "[" *) in
-       let v2 =
-         (match v2 with
-          | `Asse tok -> token env tok (* "assembly" *)
-          | `Module tok -> token env tok (* "module" *)
-         )
-       in
-       let v3 = token env v3 (* ":" *) in
-       let v4 =
-         (match v4 with
-          | Some (v1, v2) ->
-              let v1 = attribute env v1 in
-              let v2 =
-                List.map (fun (v1, v2) ->
-                  let v1 = token env v1 (* "," *) in
-                  let v2 = attribute env v2 in
-                  v2
-                ) v2
-              in
-              v1 :: v2
-          | None -> [])
-       in
-       let v5 = token env v5 (* "]" *) in
-       let anys = List.map (fun a -> At a) v4 in
-       ExprStmt (OtherExpr (OE_Annot, anys), v1) |> AST.s
    | `Class_decl (v1, v2, v3, v4, v5, v6, v7, v8, v9)
    | `Inte_decl (v1, v2, v3, v4, v5, v6, v7, v8, v9)
    | `Struct_decl (v1, v2, v3, v4, v5, v6, v7, v8, v9) ->
@@ -2301,8 +2321,8 @@ and declaration (env : env) (x : CST.declaration) : stmt =
    | `Cons_decl (v1, v2, v3, v4, v5, v6) ->
        let v1 = List.concat_map (attribute_list env) v1 in
        let v2 = List.map (modifier env) v2 in
-       let tok = token env v3 in
        let v3 = identifier env v3 (* identifier *) in
+       let _, tok = v3 in
        let v4 = parameter_list env v4 in
        let v5 =
          (match v5 with
@@ -2463,12 +2483,6 @@ and declaration (env : env) (x : CST.declaration) : stmt =
        } in
        let open_br, funcs, close_br = v7 in
        Block (open_br, (DefStmt (ent, VarDef vardef) |> AST.s) :: funcs, close_br) |> AST.s
-   | `Extern_alias_dire (v1, v2, v3, v4) ->
-       let v1 = token env v1 (* "extern" *) in
-       let v2 = token env v2 (* "alias" *) in
-       let v3 = identifier env v3 (* identifier *) in
-       let v4 = token env v4 (* ";" *) in
-       todo env (v1, v2, v3, v4)
    | `Event_field_decl (v1, v2, v3, v4, v5) ->
        let v1 = List.concat_map (attribute_list env) v1 in
        let v2 = List.map (modifier env) v2 in
@@ -2544,8 +2558,8 @@ and declaration (env : env) (x : CST.declaration) : stmt =
        let v1 = List.concat_map (attribute_list env) v1 in
        let v2 = List.map (modifier env) v2 in
        let v3 = return_type env v3 in
-       let tok = token env v5 in
        let v5 = identifier env v5 (* identifier *) in
+       let _, tok = v5 in
        let v6 =
          (match v6 with
           | Some x -> type_parameter_list env x
@@ -2682,6 +2696,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
        } in
        let open_br, funcs, close_br = accessors in
        Block (open_br, (DefStmt (ent, VarDef vardef) |> AST.s) :: funcs, close_br)|> AST.s
+   | `Record_decl x -> todo env x
    | `Using_dire (v1, v2, v3, v4) ->
        let v1 = token env v1 (* "using" *) in
        let v3 = name env v3 in
