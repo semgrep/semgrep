@@ -28,6 +28,9 @@
     tree-sitter-lang.ruby
     tree-sitter-lang.java
 
+    ; we now also depends on spacegrep with full-rule-in-ocaml
+    spacegrep
+
     ; internal deps
     semgrep_core
     semgrep_metachecking

@@ -13,6 +13,8 @@
    pfff-lang_go pfff-lang_go-analyze
    pfff-lang_js pfff-lang_js-analyze
 
+   spacegrep
+
    semgrep_core semgrep_core_opti
    semgrep_metachecking
    semgrep_parsing_tree_sitter
