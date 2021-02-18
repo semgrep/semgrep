@@ -1100,12 +1100,15 @@ let dump_pattern (file: Common.filename) =
 (*e: function [[Main_semgrep_core.dump_pattern]] *)
 
 (*s: function [[Main_semgrep_core.dump_ast]] *)
-let dump_ast file =
+let dump_ast ?(naming=false) file =
   match Lang.langs_of_filename file with
   | lang::_ ->
       E.try_with_print_exn_and_reraise file (fun () ->
         let {Parse_target. ast; errors; _ } =
-          Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang file in
+          if naming
+          then Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang file
+          else Parse_target.just_parse_with_lang lang file
+        in
         let v = Meta_AST.vof_any (AST_generic.Pr ast) in
         let s = dump_v_to_format v in
         pr s;
@@ -1177,7 +1180,9 @@ let all_actions () = [
   Common.mk_action_1_arg dump_pattern;
   (*x: [[Main_semgrep_core.all_actions]] dumper cases *)
   "-dump_ast", " <file>",
-  Common.mk_action_1_arg dump_ast;
+  Common.mk_action_1_arg (dump_ast ~naming:false);
+  "-dump_named_ast", " <file>",
+  Common.mk_action_1_arg (dump_ast ~naming:true);
   (*x: [[Main_semgrep_core.all_actions]] dumper cases *)
   "-dump_equivalences", " <file>",
   Common.mk_action_1_arg dump_equivalences;

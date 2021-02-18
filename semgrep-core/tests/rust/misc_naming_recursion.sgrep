@@ -1,0 +1,3 @@
+// we just want to make sure we don't loop anymore when processing
+// misc_naming_recursion.rs
+DOES_NOT_MATTER

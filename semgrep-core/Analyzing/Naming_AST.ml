@@ -416,6 +416,7 @@ let params_of_parameters env xs =
 
 (*s: function [[Naming_AST.resolve]] *)
 let resolve2 lang prog =
+  logger#info "Naming_AST.resolve program";
   let env = default_env lang in
 
   (* would be better to use a classic recursive-with-environment visit.
@@ -637,26 +638,31 @@ let resolve2 lang prog =
 
       V.ktype_ = (fun (k, _v) x ->
 
-        (match x with
-         (* TODO: factorize in kname? *)
-         | TyN (Id (id, id_info)) ->
-             (match lookup_scope_opt id env with
-              | Some resolved ->
-                  set_resolved env id_info resolved
-              | _ -> ()
-             )
-         | _ -> ()
-        );
+        let f x =
+          (match x with
+           (* TODO: factorize in kname? *)
+           | TyN (Id (id, id_info)) ->
+               (match lookup_scope_opt id env with
+                | Some resolved ->
+                    set_resolved env id_info resolved
+                | _ -> ()
+               )
+           | _ -> ()
+          );
+          k x
+        in
         (* when we are inside a type, especially in  (OtherType (OT_Expr)),
          * we don't want set_resolved to set the type on some Id because
          * this could lead to cycle in the AST because of id_type
          * that will reference a type, that could containi an OT_Expr, containing
          * an Id, that could contain the same id_type, and so on.
          * See tests/python/naming/shadow_name_type.py for a patological example
+         * See also tests/rust/parsing/misc_recursion.rs for another example.
         *)
         if !(env.in_type)
-        then k x
-        else Common.save_excursion env.in_type true (fun () -> k x)
+        then f x
+        else Common.save_excursion env.in_type true (fun () -> f x)
+
       );
 
     }
