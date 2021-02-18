@@ -14,8 +14,19 @@ import pytest
     ],
 )
 def test_spacegrep(run_semgrep_in_tmp, snapshot, rule, target):
-    # Yes, this is fugly. I apologize. T_T
     snapshot.assert_match(
         run_semgrep_in_tmp(rule, target_name=target),
+        "results.json",
+    )
+
+@pytest.mark.parametrize(
+    "rule,target",
+    [
+        ("rules/spacegrep/nosem-html.yaml", "spacegrep/nosem.html"),
+    ],
+)
+def test_spacegrep_nosem(run_semgrep_in_tmp, snapshot, rule, target):
+    snapshot.assert_match(
+        run_semgrep_in_tmp(rule, target_name=target, options=["--no-rewrite-rule-ids"]),
         "results.json",
     )

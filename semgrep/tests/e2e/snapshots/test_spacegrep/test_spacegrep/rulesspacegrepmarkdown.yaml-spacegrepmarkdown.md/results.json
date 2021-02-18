@@ -9,7 +9,7 @@
       },
       "extra": {
         "is_ignored": false,
-        "lines": "## Getting",
+        "lines": "## Getting Started",
         "message": "Detected h2 Markdown header",
         "metadata": {},
         "metavars": {
@@ -199,7 +199,7 @@
       },
       "extra": {
         "is_ignored": false,
-        "lines": "## Commercial",
+        "lines": "## Commercial Support",
         "message": "Detected h2 Markdown header",
         "metadata": {},
         "metavars": {

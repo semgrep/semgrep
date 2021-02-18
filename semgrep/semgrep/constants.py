@@ -58,7 +58,7 @@ NOSEM_INLINE_RE = re.compile(
     #   Python comments that begin with '# '
     # * nosem and nosemgrep should be interchangeable
     #
-    r" nosem(?:grep)?(?::[\s]?(?P<ids>([^,\s](?:[,\s]+)?)+))?",
+    r" nosem(?:grep)?(?:[:=][\s]?(?P<ids>([^,\s](?:[,\s]+)?)+))?",
     re.IGNORECASE,
 )
 COMMA_SEPARATED_LIST_RE = re.compile(r"[,\s]")
