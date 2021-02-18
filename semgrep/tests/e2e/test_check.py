@@ -141,7 +141,7 @@ def test_regex_rule__child(run_semgrep_in_tmp, snapshot):
 
 def test_regex_rule__not(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(
-        run_semgrep_in_tmp("rules/regex-not.yaml", target_name="basic/stupid.py"),
+        run_semgrep_in_tmp("rules/pattern-not-regex/regex-not.yaml", target_name="basic/stupid.py"),
         "results.json",
     )
 
@@ -149,7 +149,7 @@ def test_regex_rule__not(run_semgrep_in_tmp, snapshot):
 def test_regex_rule__not2(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(
-            "rules/regex-not2.yaml", target_name="basic/regex-any-language.html"
+            "rules/pattern-not-regex/regex-not2.yaml", target_name="basic/regex-any-language.html"
         ),
         "results.json",
     )
@@ -158,8 +158,17 @@ def test_regex_rule__not2(run_semgrep_in_tmp, snapshot):
 def test_regex_rule__pattern_regex_and_pattern_not_regex(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(
-            "rules/regex-not-with-pattern-regex.yaml",
+            "rules/pattern-not-regex/regex-not-with-pattern-regex.yaml",
             target_name="basic/regex-any-language.html",
+        ),
+        "results.json",
+    )
+
+def test_regex_rule__issue2465(run_semgrep_in_tmp, snapshot):
+    snapshot.assert_match(
+        run_semgrep_in_tmp(
+            "rules/pattern-not-regex/issue2465.yaml",
+            target_name="pattern-not-regex/issue2465.requirements.txt",
         ),
         "results.json",
     )
