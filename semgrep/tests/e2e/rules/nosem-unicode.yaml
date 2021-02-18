@@ -1,0 +1,6 @@
+rules:
+- id: 寿司
+  message: test-nosem-message
+  severity: WARNING
+  languages: [c, go, java, javascript, python]
+  pattern: test_nosem_func(...)
