@@ -9,7 +9,7 @@
       },
       "extra": {
         "is_ignored": false,
-        "lines": "{{ message }}",
+        "lines": "var message = {{ message }};",
         "message": "Detected template variable in script tag. This is dangerous because\nHTML escaping does not prevent injection in script contexts.\n",
         "metadata": {},
         "metavars": {},
@@ -29,7 +29,7 @@
       },
       "extra": {
         "is_ignored": false,
-        "lines": "{{ message }}",
+        "lines": "var message = {{ message }};",
         "message": "Detected template variable in script tag. This is dangerous because\nHTML escaping does not prevent injection in script contexts.\n",
         "metadata": {},
         "metavars": {},
@@ -49,7 +49,7 @@
       },
       "extra": {
         "is_ignored": false,
-        "lines": "{{ message2 }}",
+        "lines": "var message2 = {{ message2 }};",
         "message": "Detected template variable in script tag. This is dangerous because\nHTML escaping does not prevent injection in script contexts.\n",
         "metadata": {},
         "metavars": {},
