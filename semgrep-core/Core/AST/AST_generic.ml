@@ -534,6 +534,7 @@ and special =
   (* note that certain languages do not have a 'new' keyword
    * (e.g., Python, Scala 3), instead certain 'Call' are really 'New' *)
   | New  (* usually associated with Call(New, [ArgType _;...]) *)
+  (* new by itself is not a valid expression*)
 
   (* used for interpolated strings constructs *)
   | ConcatString of concat_string_kind

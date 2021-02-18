@@ -558,7 +558,9 @@ and m_expr a b =
   (* Matching a generic Id metavariable to an IdSpecial will fail as it is missing the token
    * info; instead the Id should match Call(IdSpecial _, _)
   *)
-  | A.N (A.Id ((str, _), _)), B.IdSpecial (B.ConcatString _, _) when MV.is_metavar_name str ->
+  | A.N (A.Id ((str, _), _)), B.IdSpecial (B.ConcatString _, _)
+  | A.N (A.Id ((str, _), _)), B.IdSpecial (B.Instanceof, _)
+  | A.N (A.Id ((str, _), _)), B.IdSpecial (B.New, _) when MV.is_metavar_name str ->
       fail ()
   (*e: [[Generic_vs_generic.m_expr()]] forbidden metavariable case *)
   (* TODO: factorize in m_name? *)
