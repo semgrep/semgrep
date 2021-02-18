@@ -17,6 +17,8 @@ open AST_generic
 module H = AST_generic_helpers
 module V = Visitor_AST
 
+let logger = Logging.get_logger [__MODULE__]
+
 (* TODO: Remove duplication between first and second pass, move towards
    making the first pass as light as possible. *)
 
@@ -256,6 +258,7 @@ and eval_op env op args =
 (*****************************************************************************)
 (* !Note that this assumes Naming_AST.resolve has been called before! *)
 let propagate_basic lang prog =
+  logger#info "Constant_propagation.propagate_basic progran";
   let env = default_env () in
 
   (* step1: first pass const analysis for languages without 'const/final' *)
@@ -349,6 +352,7 @@ let propagate_basic a b = Common.profile_code "Constant_propagation.xxx" (fun ()
   propagate_basic a b)
 
 let propagate_dataflow ast =
+  logger#info "Constant_propagation.propagate_dataflow progran";
   let v = V.mk_visitor
       { V.default_visitor with
         V.kfunction_definition = (fun (_k, _) def ->
