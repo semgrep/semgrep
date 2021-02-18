@@ -7,6 +7,7 @@ type atom =
   | Punct of char (* ascii punctuation, including braces *)
   | Byte of char (* everything else, excluding ascii whitespace *)
   | Metavar of string
+[@@deriving show, eq]
 
 type node =
   | Atom of Loc.t * atom
@@ -14,8 +15,10 @@ type node =
   | Dots of Loc.t
   | End (* used to mark the end of the root pattern, so as to distinguish
            it from the end of a sub-pattern. *)
+[@@deriving show, eq]
 
 type t = node list
+[@@deriving show, eq]
 
 (*
    Ignore the special meaning of Dots and Metavars.

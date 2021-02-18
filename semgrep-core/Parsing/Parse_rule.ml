@@ -208,8 +208,9 @@ let parse_pattern (id, lang) s =
   | R.LNone ->
       failwith ("you should not use real pattern with language = none")
   | R.LGeneric ->
-      (* todo: call spacegrep to parse s *)
-      R.mk_xpat (Spacegrep s) s
+      let src = Spacegrep.Src_file.of_string s in
+      let ast = Spacegrep.Parse_pattern.of_src src in
+      R.mk_xpat (Spacegrep ast) s
 
 let rec parse_formula_old env (x: string * J.t) : R.formula_old =
   match x with

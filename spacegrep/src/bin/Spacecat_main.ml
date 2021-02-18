@@ -2,7 +2,6 @@
    Entrypoint for the 'spacecat' command.
 *)
 
-open Printf
 open Cmdliner
 open Spacegrep
 

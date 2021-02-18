@@ -47,6 +47,7 @@ build-ocaml-tree-sitter:
 .PHONY: build-spacegrep
 build-spacegrep:
 	$(MAKE) -C spacegrep
+	$(MAKE) -C spacegrep install
 
 # Update and rebuild everything within the project.
 #
