@@ -110,9 +110,15 @@ def rule_match_nosem(rule_match: RuleMatch, strict: bool) -> bool:
         for pattern_id in COMMA_SEPARATED_LIST_RE.split(ids_str)
         if pattern_id.strip()
     }
-    # Filter out ids that are not alphanum+dashes+underscores.
-    # This removes trailing symbols from comments, such as HTML comments' `-->`.
-    pattern_ids = set(filter(lambda x: not sub(r"[\w-]+", "", x), pattern_ids))
+
+    # Strip comments to allow for use of nosem as an HTML attribute inside tags.
+    # HTML comments inside tags are not allowed by the spec.
+    pattern_ids = set([pid.strip("\"\'") for pid in pattern_ids])
+
+    # Filter out ids that are not alphanum+dashes+underscores+periods.
+    # This removes trailing symbols from comments, such as HTML comments `-->`
+    # or C-like multiline comments `*/`.
+    pattern_ids = set(filter(lambda x: not sub(r"[\w\-\.]+", "", x), pattern_ids))
 
     result = False
     for pattern_id in pattern_ids:
