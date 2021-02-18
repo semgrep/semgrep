@@ -316,14 +316,6 @@ def group_by_pattern_id(
     return by_id
 
 
-def safe_relative_to(a: Path, b: Path) -> Path:
-    try:
-        return a.relative_to(b)
-    except ValueError:
-        # paths had no common prefix; not possible to relativize
-        return a
-
-
 def evaluate(
     rule: Rule, pattern_matches: List[PatternMatch], allow_exec: bool
 ) -> Tuple[List[RuleMatch], List[Dict[str, Any]]]:
