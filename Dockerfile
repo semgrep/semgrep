@@ -35,6 +35,7 @@ RUN eval "$(opam env)" && opam install --deps-only -y spacegrep/
 RUN eval "$(opam env)" && opam install --deps-only -y semgrep-core/pfff/
 RUN eval "$(opam env)" && opam install --deps-only -y semgrep-core/
 RUN eval "$(opam env)" && DUNE_PROFILE=static make -C spacegrep/
+RUN eval "$(opam env)" && DUNE_PROFILE=static make -C spacegrep/ install
 RUN eval "$(opam env)" && make -C semgrep-core/ all
 
 # Sanity checks

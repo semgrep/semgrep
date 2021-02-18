@@ -15,7 +15,7 @@ let string_of_atom atom =
   | Byte c -> sprintf "0x%02x" (Char.code c)
   | Metavar s -> sprintf "$%s" s
 
-let print_atom buf loc indent atom =
+let print_atom buf _loc indent atom =
   match atom with
   | Word s -> bprintf buf "%s%s\n" indent s
   | Punct c -> bprintf buf "%s%c\n" indent c
@@ -26,7 +26,7 @@ let rec print_node buf indent node =
   match node with
   | Atom (loc, atom) -> print_atom buf loc indent atom
   | List nodes -> print_nodes buf (indent ^ "  ") nodes
-  | Dots loc -> bprintf buf "%s...\n" indent
+  | Dots _loc -> bprintf buf "%s...\n" indent
   | End -> ()
 
 and print_nodes buf indent nodes =
@@ -58,7 +58,7 @@ let to_file file nodes =
 module Debug = struct
   let show_loc = false
 
-  let print_loc buf (start, end_) =
+  let print_loc buf (start, _end_) =
     if show_loc then
       bprintf buf "%3i: " start.Lexing.pos_lnum
 

@@ -6,6 +6,12 @@ open Printf
 open Lexing
 
 type t = Lexing.position * Lexing.position
+let pp fmt _t =
+  (*if !pp_full_token_info
+    then pp_token_mutable fmt t*)
+  Format.fprintf fmt "()"
+(* we don't care about position information in spacegrep/semgrep *)
+let equal _ _ = true
 
 module Pos = struct
   type t = Lexing.position

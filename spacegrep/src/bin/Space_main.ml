@@ -10,7 +10,6 @@
    on the spacegrep/default help page.
 *)
 
-open Cmdliner
 
 let dispatch () =
   Printexc.record_backtrace true;
