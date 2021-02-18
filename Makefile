@@ -42,7 +42,6 @@ build-core: build-ocaml-tree-sitter
 .PHONY: build-ocaml-tree-sitter
 build-ocaml-tree-sitter:
 	$(MAKE) -C ocaml-tree-sitter
-	$(MAKE) -C ocaml-tree-sitter install
 
 .PHONY: build-spacegrep
 build-spacegrep:
