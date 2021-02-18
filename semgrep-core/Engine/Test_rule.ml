@@ -54,6 +54,7 @@ let test_rules xs =
 
   let newscore  = Common2.empty_score () in
   let ext = "rule" in
+  let total_mismatch = ref 0 in
 
   fullxs |> List.iter (fun file ->
     logger#info "processing rule file %s" file;
@@ -111,6 +112,13 @@ let test_rules xs =
     with (OUnitTest.OUnit_failure s) ->
       pr2 s;
       Hashtbl.add newscore file (Common2.Pb s);
+      (* coupling: ugly: with Error_code.compare_actual_to_expected *)
+      if s =~ "it should find all reported errors and no more (\\([0-9]+\\) errors)"
+      then
+        let n = Common.matched1 s |> int_of_string in
+        total_mismatch := !total_mismatch + n
+      else failwith (spf "wrong unit failure format: %s" s)
   );
   Parse_info.print_regression_information ~ext xs newscore;
+  pr2 (spf "total mismatch: %d" !total_mismatch);
   ()
