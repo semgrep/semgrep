@@ -255,11 +255,11 @@ def _evaluate_single_expression(
         )
         return output_ranges
     elif expression.operator == OPERATORS.NOT_REGEX:
-        # remove the result if pattern-not-regex is within another pattern
+        # remove the result if pattern-not-regex overlaps with another pattern
         output_ranges = ranges_left.copy()
         for arange in ranges_left:
             for pattern_not_regex_result in results_for_pattern:
-                if arange.is_range_enclosing_or_eq(pattern_not_regex_result):
+                if arange.is_range_enclosing_or_eq(pattern_not_regex_result) or pattern_not_regex_result.is_range_enclosing_or_eq(arange):
                     output_ranges.remove(arange)
                     break
         add_debugging_info(
