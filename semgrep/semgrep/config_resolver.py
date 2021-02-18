@@ -4,10 +4,12 @@ import time
 from pathlib import Path
 from typing import Any
 from typing import Dict
+from typing import IO
 from typing import List
 from typing import Optional
 from typing import Tuple
 
+from ruamel.yaml import YAML
 from ruamel.yaml import YAMLError
 
 from semgrep.constants import DEFAULT_CONFIG_FILE
@@ -45,6 +47,18 @@ RULES_REGISTRY = {"r2c": "https://semgrep.dev/c/p/r2c"}
 DEFAULT_REGISTRY_KEY = "r2c"
 
 MISSING_RULE_ID = "no-rule-id"
+
+DEFAULT_CONFIG = {
+    "rules": [
+        {
+            "id": "eqeq-is-bad",
+            "pattern": "$X == $X",
+            "message": "$X == $X is a useless equality check",
+            "languages": ["python"],
+            "severity": "ERROR",
+        },
+    ],
+}
 
 
 class Config:
@@ -457,34 +471,18 @@ def resolve_config(config_str: str) -> Dict[str, YamlTree]:
     return config
 
 
-def generate_config() -> None:
-    import requests  # here for faster startup times
+def generate_config(fd: IO, lang: Optional[str], pattern: Optional[str]) -> None:
+    config = DEFAULT_CONFIG
 
-    # defensive coding
-    if Path(DEFAULT_CONFIG_FILE).exists():
-        raise SemgrepError(
-            f"{DEFAULT_CONFIG_FILE} already exists. Please remove and try again"
-        )
+    if lang:
+        config["rules"][0]["languages"] = [lang]
+    if pattern:
+        config["rules"][0]["pattern"] = pattern
+
+    yaml = YAML(typ="rt")
+
     try:
-        r = requests.get(TEMPLATE_YAML_URL, timeout=10)
-        r.raise_for_status()
-        template_str = r.text
-    except Exception as e:
-        logger.debug(str(e))
-        logger.warning(
-            f"There was a problem downloading the latest template config. Using fallback template"
-        )
-        template_str = """rules:
-  - id: eqeq-is-bad
-    pattern: $X == $X
-    message: "$X == $X is a useless equality check"
-    languages: [python]
-    severity: ERROR"""
-    try:
-        with open(DEFAULT_CONFIG_FILE, "w") as template:
-            template.write(template_str)
-            logger.info(
-                f"Template config successfully written to {DEFAULT_CONFIG_FILE}"
-            )
+        yaml.dump(config, fd)
+        logger.info(f"Template config successfully written to {fd.name}")
     except Exception as e:
         raise SemgrepError(str(e))
