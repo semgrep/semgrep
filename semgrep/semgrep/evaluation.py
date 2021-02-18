@@ -171,11 +171,12 @@ def _evaluate_single_expression(
     flags: Optional[Dict[str, Any]] = None,
 ) -> Set[Range]:
 
-    ranges_for_pattern = (
-        [x.range for x in pattern_ids_to_pattern_matches.get(expression.pattern_id, [])]
-        if expression.pattern_id
-        else []
-    )
+    if not expression.pattern_id:
+        raise SemgrepError(f"expected expression '{expression}' to have pattern_id")
+
+    ranges_for_pattern = [
+        x.range for x in pattern_ids_to_pattern_matches.get(expression.pattern_id, [])
+    ]
 
     if expression.operator == OPERATORS.AND:
         # remove all ranges that don't equal the ranges for this pattern
