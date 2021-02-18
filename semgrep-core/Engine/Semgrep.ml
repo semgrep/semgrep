@@ -120,7 +120,7 @@ let partition_xpatterns xs =
     let id = xpat.R.pid in
     match xpat.R.pat with
     | R.Sem x -> Left3 (id, x)
-    | R.Spacegrep x -> Middle3 (id, x)
+    | R.Spacegrep x -> Middle3 (id, x, xpat.R.pstr)
     | R.Regexp x -> Right3 (id, x)
   )
 
@@ -143,7 +143,7 @@ let (mini_rule_of_pattern: R.t -> (R.pattern_id * Pattern.t) -> MR.t) =
 (* todo: change Pattern_match type so we don't need this gymnastic.
  * A pattern_match should just need the id from the mini_rule
 *)
-let (mini_rule_of_regexp: (R.pattern_id * string) -> MR.t) =
+let (mini_rule_of_string: (R.pattern_id * string) -> MR.t) =
   fun (id, s) ->
   { MR.
     id = string_of_int id;
@@ -192,6 +192,13 @@ let (split_and:
     | R.MetavarCond c -> Right3 c
     | _ -> Left3 e
   )
+
+let lexing_pos_to_loc  file x str =
+  (* like Spacegrep.Semgrep.semgrep_pos() *)
+  let line = x.Lexing.pos_lnum in
+  let charpos = x.Lexing.pos_cnum in
+  let column = x.Lexing.pos_cnum - x.Lexing.pos_bol + 1 in
+  {PI. str; charpos; file; line; column }
 
 (*****************************************************************************)
 (* Logic on ranges *)
@@ -261,9 +268,11 @@ let filter_ranges xs cond =
 
 let matches_of_xpatterns with_caching orig_rule (file, xlang, ast) xpatterns =
   (* Right now you can only mix semgrep/regexps and spacegrep/regexps, but
-   * in theory we could mix all of them together.
+   * in theory we could mix all of them together.This is why below
+   * I don't match over xlang and instead assume we could have the 3 different
+   * kind of patterns at the same time.
   *)
-  let (patterns, _spacegrepsTODO, regexps) = partition_xpatterns xpatterns in
+  let (patterns, spacegreps, regexps) = partition_xpatterns xpatterns in
 
   (* semgrep *)
   let semgrep_matches =
@@ -284,6 +293,30 @@ let matches_of_xpatterns with_caching orig_rule (file, xlang, ast) xpatterns =
   in
 
   (* spacegrep *)
+  let spacegrep_matches =
+    if spacegreps = []
+    then []
+    else begin
+      let src = Spacegrep.Src_file.of_file file in
+      let doc = Spacegrep.Parse_doc.of_src src in
+      (* pr (Spacegrep.Doc_AST.show doc); *)
+      spacegreps |> List.map (fun (id, pat, pat_str) ->
+        let matches =
+          Spacegrep.Match.search ~case_sensitive:true src pat doc
+        in
+        matches |> List.map (fun m ->
+          let ((pos1,_),(_pos2,_)) = m.Spacegrep.Match.region in
+          let {Spacegrep.Match.value = str; _} = m.Spacegrep.Match.capture in
+          (* TODO: use also m.Spacegrep.Match.named_captures! *)
+
+          let loc = lexing_pos_to_loc file pos1 str in
+          let mini_rule = mini_rule_of_string (id, pat_str) in
+          {PM. rule = mini_rule; file; location = loc, loc;
+           tokens = lazy [info_of_token_location loc]; env = [] }
+        )
+      ) |> List.flatten
+    end
+  in
 
   (* regexps *)
   let regexp_matches =
@@ -300,9 +333,10 @@ let matches_of_xpatterns with_caching orig_rule (file, xlang, ast) xpatterns =
         subs |> Array.to_list |> List.map (fun sub ->
           let (charpos, _) = Pcre.get_substring_ofs sub 0 in
           let str = Pcre.get_substring sub 0 in
+
           let (line, column) = line_col_of_charpos file charpos in
           let loc = {PI. str; charpos; file; line; column } in
-          let mini_rule = mini_rule_of_regexp (id, s) in
+          let mini_rule = mini_rule_of_string (id, s) in
           {PM. rule = mini_rule; file; location = loc, loc;
            tokens = lazy [info_of_token_location loc]; env = [] }
         )
@@ -311,7 +345,7 @@ let matches_of_xpatterns with_caching orig_rule (file, xlang, ast) xpatterns =
   in
 
   (* final result *)
-  semgrep_matches @ regexp_matches
+  semgrep_matches @ regexp_matches @ spacegrep_matches
 
 (*****************************************************************************)
 (* Formula evaluation *)

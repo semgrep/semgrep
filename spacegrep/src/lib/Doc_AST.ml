@@ -6,12 +6,15 @@ type atom =
   | Word of string (* ascii words [A-Za-z0-9_]+ *)
   | Punct of char (* ascii punctuation, including braces *)
   | Byte of char (* everything else, excluding ascii whitespace *)
+[@@deriving show { with_path = false }]
 
 type node =
   | Atom of Loc.t * atom
   | List of node list
+[@@deriving show { with_path = false }]
 
 type t = node list
+[@@deriving show]
 
 (*
    For convenience of implementation, a document is parsed as a pattern.
