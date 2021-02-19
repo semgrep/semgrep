@@ -272,6 +272,7 @@ def _where_python_statement_matches(
     where_expression: str, metavars: Dict[str, Any]
 ) -> bool:
     # TODO: filter out obvious dangerous things here
+    result = False
     return_var = "semgrep_pattern_return"
     lines = where_expression.strip().split("\n")
     to_eval = "\n".join(lines[:-1] + [f"{return_var} = {lines[-1]}"])
@@ -283,7 +284,7 @@ def _where_python_statement_matches(
         # fmt: off
         exec(to_eval, scope)  # nosem: contrib.dlint.dlint-equivalent.insecure-exec-use, python.lang.security.audit.exec-detected.exec-detected
         # fmt: on
-        result = scope[return_var]
+        result = scope[return_var]  # type: ignore
     except KeyError as ex:
         logger.error(
             f"could not find metavariable {ex} while evaluating where-python expression '{where_expression}', consider case where metavariable is missing"
