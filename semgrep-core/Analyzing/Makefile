@@ -6,7 +6,7 @@ TARGET=lib
 OPAMPKG=pfff-lang_GENERIC-analyze
 
 SRC= \
-  Naming_AST.ml Normalize_AST.ml Constant_propagation.ml \
+  Typing.ml Naming_AST.ml Normalize_AST.ml Constant_propagation.ml \
   controlflow.ml controlflow_build.ml \
   controlflow_visitor.ml \
   lrvalue.ml \

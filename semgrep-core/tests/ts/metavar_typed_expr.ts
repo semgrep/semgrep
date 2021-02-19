@@ -4,11 +4,16 @@ function foo(a:number, b:number, s:string, t:string) {
     if (a == b) return 2;
     if (a == c) return 3;
 
-    v = "hello";
+    let v = "hello";
     //ERROR:
     if (s == "bye") return 1;
     //ERROR:
     if (s == t) return 2;
-    //TODO
+    //ERROR:
     if (s == v) return 3;
+
+    var n : string;
+    var m : string;
+    //ERROR:
+    if (n == m) return 4;
 }
