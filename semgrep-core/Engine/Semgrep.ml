@@ -47,9 +47,6 @@ module MV = Metavariable
  *    but could do much more: deep static analysis using Datalog?
  *
  * TODO
- *  - spacegrep, link with spacegrep lib :)
- *  - regexp, use PCRE compatible regexp OCaml lib
- *  - metavar comparison, use Eval_generic :)
  *  - pattern-where-python? use pycaml? works for dlint rule?
  *    right now only 4 rules are using pattern-where-python
  *
@@ -62,11 +59,13 @@ module MV = Metavariable
  * Right now we just analyze one file at a time. Later we could
  * maybe take a list of files and do some global analysis for:
  *     * caller/callee in different files
+ *       which can be useful to understand keyword arguments
  *     * inheritance awareness, because right now we can't match
- *       code that inherit indirectly form a class mentioned in a pattern
+ *       code that inherits indirectly form a class mentioned in a pattern
  * There are different options for such global analysis:
  *  - generate a giant file a la CIL, but scale?
- *  - do it via a 2 passes process. 1st pass iterate over all files, report
+ *    (there is a recent LLVM project that does the same)
+ *  - do it via a 2 passes process. 1st pass iterates over all files, report
  *    already matches, record semantic information (e.g., inheritance tree,
  *    call graph, etc.) as it goes, and let the matching engine report
  *    todo_second_pass if for example is_children returned a Maybe.
@@ -165,18 +164,6 @@ let (mini_rule_of_string: (R.pattern_id * string) -> MR.t) =
     pattern_string = s;
   }
 
-(* todo: same, we should not need that *)
-let hmemo = Hashtbl.create 101
-let line_col_of_charpos file charpos =
-  let conv =
-    Common.memoized hmemo file (fun () -> PI.full_charpos_to_pos_large file)
-  in
-  conv charpos
-
-(* todo: same, we should not need that *)
-let info_of_token_location loc =
-  { PI.token = PI.OriginTok loc; transfo = PI.NoTransfo }
-
 let (group_matches_per_pattern_id: Pattern_match.t list ->id_to_match_results)=
   fun xs ->
   let h = Hashtbl.create 101 in
@@ -205,6 +192,22 @@ let (split_and:
     | R.MetavarCond c -> Right3 c
     | _ -> Left3 e
   )
+
+(*****************************************************************************)
+(* Adapters *)
+(*****************************************************************************)
+
+(* todo: same, we should not need that *)
+let hmemo = Hashtbl.create 101
+let line_col_of_charpos file charpos =
+  let conv =
+    Common.memoized hmemo file (fun () -> PI.full_charpos_to_pos_large file)
+  in
+  conv charpos
+
+(* todo: same, we should not need that *)
+let info_of_token_location loc =
+  { PI.token = PI.OriginTok loc; transfo = PI.NoTransfo }
 
 let lexing_pos_to_loc  file x str =
   (* like Spacegrep.Semgrep.semgrep_pos() *)
@@ -445,14 +448,10 @@ let check with_caching hook rules (file, xlang, ast) =
     let final_ranges =
       evaluate_formula env formula in
 
-    let back_to_match_results =
-      final_ranges |> List.map (range_to_match_result) in
-    back_to_match_results |> List.iter (fun (m : Pattern_match.t) ->
-      hook m.env m.tokens
-    );
-
-    back_to_match_results
-
+    final_ranges |> List.map (range_to_match_result)
+    |> (fun v ->
+      v |> List.iter (fun (m : Pattern_match.t) -> hook m.env m.tokens);
+      v)
   ) |> List.flatten
 [@@profiling]
 (*e: semgrep/engine/Semgrep.ml *)
