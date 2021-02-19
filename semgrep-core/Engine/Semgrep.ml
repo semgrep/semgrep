@@ -22,6 +22,7 @@ module MR = Mini_rule
 module PM = Pattern_match
 module G = AST_generic
 module PI = Parse_info
+module MV = Metavariable
 
 (*****************************************************************************)
 (* Prelude *)
@@ -200,6 +201,16 @@ let lexing_pos_to_loc  file x str =
   let column = x.Lexing.pos_cnum - x.Lexing.pos_bol + 1 in
   {PI. str; charpos; file; line; column }
 
+let mval_of_spacegrep_string str t =
+  let literal =
+    try
+      let _ = int_of_string str in
+      G.Int (str, t)
+    with _ ->
+      G.String (str, t)
+  in
+  MV.E (G.L literal)
+
 (*****************************************************************************)
 (* Logic on ranges *)
 (*****************************************************************************)
@@ -307,12 +318,22 @@ let matches_of_xpatterns with_caching orig_rule (file, xlang, ast) xpatterns =
         matches |> List.map (fun m ->
           let ((pos1,_),(_pos2,_)) = m.Spacegrep.Match.region in
           let {Spacegrep.Match.value = str; _} = m.Spacegrep.Match.capture in
-          (* TODO: use also m.Spacegrep.Match.named_captures! *)
+          let env =
+            m.Spacegrep.Match.named_captures |> List.map (fun (s, capture) ->
+              let mvar = "$" ^ s in
+              let {Spacegrep.Match.value = str; loc = (pos, _)} = capture in
+              let loc = lexing_pos_to_loc file pos str in
+              let t = info_of_token_location loc in
+              let mval = mval_of_spacegrep_string str t in
+              mvar, mval
+            )
+          in
 
           let loc = lexing_pos_to_loc file pos1 str in
           let mini_rule = mini_rule_of_string (id, pat_str) in
-          {PM. rule = mini_rule; file; location = loc, loc;
-           tokens = lazy [info_of_token_location loc]; env = [] }
+          {PM. rule = mini_rule; file; location = loc, loc; env;
+           tokens = lazy [info_of_token_location loc];
+          }
         )
       ) |> List.flatten
     end
