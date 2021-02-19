@@ -231,7 +231,6 @@ let mval_of_spacegrep_string str t =
 (* Logic on ranges *)
 (*****************************************************************************)
 
-(* TODO: also check metavariables! *)
 let intersect_ranges xs ys =
   let surviving_xs =
     xs |> List.filter (fun x ->
@@ -250,6 +249,7 @@ let difference_ranges pos neg =
   let surviving_pos =
     pos |> List.filter (fun x ->
       not (neg |> List.exists (fun y ->
+        (* todo? or also filter if x overlaps with y? *)
         x $<=$ y
       ))
     )
@@ -258,7 +258,7 @@ let difference_ranges pos neg =
 
 let filter_ranges xs cond =
   xs |> List.filter (fun r ->
-    let bindings = r.origin.PM.env in
+    let bindings = r.mvars in
     match cond with
     | R.CondGeneric e ->
         let env = Eval_generic.bindings_to_env bindings in
