@@ -108,6 +108,18 @@ type env = {
 }
 
 (*****************************************************************************)
+(* Range_with_mvars *)
+(*****************************************************************************)
+
+let ($<=$) rv1 rv2 =
+  Range.($<=$) rv1.r rv2.r &&
+  rv1.mvars |> List.for_all (fun (mvar, mval1) ->
+    match List.assoc_opt mvar rv2.mvars with
+    | None -> true
+    | Some mval2 -> Matching_generic.equal_ast_binded_code mval1 mval2
+  )
+
+(*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
@@ -215,19 +227,17 @@ let mval_of_spacegrep_string str t =
 (* Logic on ranges *)
 (*****************************************************************************)
 
-open Range
-
 (* TODO: also check metavariables! *)
 let intersect_ranges xs ys =
   let surviving_xs =
     xs |> List.filter (fun x ->
       ys |> List.exists (fun y ->
-        x.r $<=$ y.r
+        x $<=$ y
       )) in
   let surviving_ys =
     ys |> List.filter (fun y ->
       xs |> List.exists (fun x ->
-        y.r $<=$ x.r
+        y $<=$ x
       ))
   in
   surviving_xs @ surviving_ys
@@ -236,7 +246,7 @@ let difference_ranges pos neg =
   let surviving_pos =
     pos |> List.filter (fun x ->
       not (neg |> List.exists (fun y ->
-        x.r $<=$ y.r
+        x $<=$ y
       ))
     )
   in
