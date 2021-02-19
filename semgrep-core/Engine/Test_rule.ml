@@ -99,7 +99,11 @@ let test_rules xs =
     in
     E.g_errors := [];
     let matches =
-      Semgrep.check false (fun _ _ -> ()) rules (target, xlang, ast) in
+      try
+        Semgrep.check false (fun _ _ -> ()) rules (target, xlang, ast)
+      with exn ->
+        failwith (spf "exn on %s (exn = %s)" file (Common.exn_to_s exn))
+    in
     matches |> List.iter JSON_report.match_to_error;
 
     let actual_errors = !E.g_errors in
