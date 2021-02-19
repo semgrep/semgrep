@@ -914,6 +914,9 @@ and m_wrap_m_int_opt (a1, a2) (b1, b2) =
   match a1, b1 with
   (* iso: semantic equivalence of value! 0x8 can match 8 *)
   | Some i1, Some i2 when i1 =|= i2 -> return ()
+  (* if the integers (or floats) were too large or were using
+   * a syntax OCaml int_of_string could not parse,
+   * we default to a string comparison *)
   | _ ->
       let a1 = Parse_info.str_of_info a2 in
       let b1 = Parse_info.str_of_info b2 in
