@@ -100,8 +100,8 @@ let todo any =
 let var_of_name _env ((s, _tok), sid) =
   spf "%s__%d" s sid
 
-let heap_of_int _env (s, _tok) =
-  spf "int %s" s
+let heap_of_int _env (_, tok) =
+  spf "int %s" (Parse_info.str_of_info tok)
 
 (*****************************************************************************)
 (* Fact extractor *)

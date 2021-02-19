@@ -486,7 +486,10 @@ and expr =
 (*s: type [[AST_generic.literal]] *)
 and literal =
   | Bool of bool wrap
-  | Int of string wrap | Float of string wrap
+  (* the numbers are an option because OCaml numbers (e.g., 63bits int)
+   * may not be able to represent all numbers.
+  *)
+  | Int of int option wrap | Float of float option wrap
   | Char of string wrap | String of string wrap | Regexp of string wrap
   | Unit of tok (* a.k.a Void *) | Null of tok | Undefined of tok (* JS *)
   | Imag of string wrap (* Go, Python *) | Ratio of string wrap (* Ruby *)

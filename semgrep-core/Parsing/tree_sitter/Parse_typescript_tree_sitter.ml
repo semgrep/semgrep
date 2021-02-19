@@ -186,8 +186,12 @@ let literal_type (env : env) (x : CST.literal_type) : literal =
          )
        in
        let (s2, t2) = JS.str env v2 (* number *) in
-       Num (s ^ s2, PI.combine_infos t1 [t2])
-   | `Num tok -> Num (JS.str env tok) (* number *)
+       (* TODO: float_of_string_opt_also_from_hexoctbin *)
+       Num (float_of_string_opt (s ^ s2), PI.combine_infos t1 [t2])
+   | `Num tok ->
+       let (s, t) = JS.str env tok in(* number *)
+       (* TODO: float_of_string_opt_also_from_hexoctbin *)
+       Num (float_of_string_opt s, t)
    | `Str x -> String (JS.string_ env x)
    | `True tok -> Bool (true, JS.token env tok) (* "true" *)
    | `False tok -> Bool (false, JS.token env tok) (* "false" *)
@@ -2288,7 +2292,7 @@ and property_name (env : env) (x : CST.property_name) =
        let s = JS.string_ env x in
        PN s
    | `Num tok ->
-       let n = JS.number env tok (* number *) in
+       let n = JS.number_as_string env tok (* number *) in
        PN n
    | `Comp_prop_name (v1, v2, v3) ->
        let _v1 = JS.token env v1 (* "[" *) in

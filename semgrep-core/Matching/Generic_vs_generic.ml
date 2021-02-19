@@ -886,9 +886,9 @@ and m_literal a b =
   | A.Bool(a1), B.Bool(b1) ->
       (m_wrap m_bool) a1 b1
   | A.Int(a1), B.Int(b1) ->
-      (m_wrap m_string) a1 b1
+      (m_wrap_m_int_opt) a1 b1
   | A.Float(a1), B.Float(b1) ->
-      (m_wrap m_string) a1 b1
+      (m_wrap_m_float_opt) a1 b1
   | A.Imag(a1), B.Imag(b1) ->
       (m_wrap m_string) a1 b1
   | A.Ratio(a1), B.Ratio(b1) ->
@@ -909,6 +909,25 @@ and m_literal a b =
   | A.Imag _, _ | A.Ratio _, _ | A.Atom _, _
     -> fail ()
 (*e: function [[Generic_vs_generic.m_literal]] *)
+
+and m_wrap_m_int_opt (a1, a2) (b1, b2) =
+  match a1, b1 with
+  (* iso: semantic equivalence of value! 0x8 can match 8 *)
+  | Some i1, Some i2 when i1 =|= i2 -> return ()
+  | _ ->
+      let a1 = Parse_info.str_of_info a2 in
+      let b1 = Parse_info.str_of_info b2 in
+      m_wrap m_string (a1, a2) (b1, b2)
+
+and m_wrap_m_float_opt (a1, a2) (b1, b2) =
+  match a1, b1 with
+  (* iso: semantic equivalence of value! 0x8 can match 8 *)
+  | Some i1, Some i2 when i1 = i2 -> return ()
+  | _ ->
+      let a1 = Parse_info.str_of_info a2 in
+      let b1 = Parse_info.str_of_info b2 in
+      m_wrap m_string (a1, a2) (b1, b2)
+
 
 and m_literal_constness a b =
   match b with

@@ -252,7 +252,7 @@ and expr =
       let ent = G.basic_entity v1 [] in
       let var = { G.vinit = Some v2; vtype = None } in
       let n = G.N (G.Id (v1, G.empty_id_info())) in
-      let next = (G.AssignOp (n, (nextop, tok), G.L (G.Int ("1", tok)))) in
+      let next = (G.AssignOp (n, (nextop, tok), G.L (G.Int (Some 1, tok)))) in
       let cond = G.Call (G.IdSpecial (G.Op condop, tok),
                          G.fake_bracket [G.Arg n; G.Arg v4]) in
       let header = G.ForClassic ([G.ForInitVar (ent, var)],
@@ -267,8 +267,8 @@ and expr =
 
 and literal =
   function
-  | Int v1 -> let v1 = wrap string v1 in G.Int v1
-  | Float v1 -> let v1 = wrap string v1 in G.Float v1
+  | Int v1 -> let v1 = wrap id v1 in G.Int v1
+  | Float v1 -> let v1 = wrap id v1 in G.Float v1
   | Char v1 -> let v1 = wrap string v1 in G.Char v1
   | String v1 -> let v1 = wrap string v1 in G.String v1
 

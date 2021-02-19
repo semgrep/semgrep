@@ -158,11 +158,11 @@ and struct_kind = function
 
 and expr =
   function
-  | Int v1 -> let v1 = wrap string v1 in G.L (G.Int v1)
-  | Float v1 -> let v1 = wrap string v1 in G.L (G.Float v1)
+  | Int v1 -> let v1 = wrap id v1 in G.L (G.Int v1)
+  | Float v1 -> let v1 = wrap id v1 in G.L (G.Float v1)
+  | Bool v1 -> let v1 = wrap id v1 in G.L (G.Bool v1)
   | String v1 -> let v1 = wrap string v1 in G.L (G.String v1)
   | Char v1 -> let v1 = wrap string v1 in G.L (G.Char v1)
-  | Bool v1 -> let v1 = wrap id v1 in G.L (G.Bool v1)
   | Null v1 -> G.L (G.Null v1)
   | ConcatString xs ->
       G.Call (G.IdSpecial (G.ConcatString (G.SequenceConcat), fake " "),

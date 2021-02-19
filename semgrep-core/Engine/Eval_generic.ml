@@ -139,11 +139,9 @@ let rec eval env code =
       (match x with
        | G.Bool (b, _t) -> Bool (b)
        | G.String (s, _t) -> String s
-       (* this assumes the string format of the language is handled by
-        * OCaml xx_of_string builtins.
-       *)
-       | G.Int (s, _t) -> Int (int_of_string s)
-       | G.Float (s, _t) -> Float (float_of_string s)
+       (* big integers or floats can't be evaluated (Int (None, ...)) *)
+       | G.Int (Some i, _t) -> Int i
+       | G.Float (Some f, _t) -> Float f
        | _ -> raise (NotHandled code)
       )
 

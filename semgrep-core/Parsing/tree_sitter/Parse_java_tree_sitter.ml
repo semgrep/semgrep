@@ -114,20 +114,28 @@ let inferred_parameters (env : env) ((v1, v2, v3, v4) : CST.inferred_parameters)
   let v4 = token env v4 (* ")" *) in
   v1, v2::v3, v4
 
+let int_literal env tok =
+  let (s, t) = str env tok in
+  int_of_string_opt s, t
+
+let float_literal env tok =
+  let (s, t) = str env tok in
+  float_of_string_opt s, t
+
 let literal (env : env) (x : CST.literal) =
   (match x with
    | `Deci_int_lit tok ->
-       Int (str env tok) (* decimal_integer_literal *)
+       Int (int_literal env tok) (* decimal_integer_literal *)
    | `Hex_int_lit tok ->
-       Int (str env tok) (* hex_integer_literal *)
+       Int (int_literal env tok) (* hex_integer_literal *)
    | `Octal_int_lit tok ->
-       Int (str env tok) (* octal_integer_literal *)
+       Int (int_literal env tok) (* octal_integer_literal *)
    | `Bin_int_lit tok ->
-       Int (str env tok) (* binary_integer_literal *)
+       Int (int_literal env tok) (* binary_integer_literal *)
    | `Deci_floa_point_lit tok ->
-       Float (str env tok) (* decimal_floating_point_literal *)
+       Float (float_literal env tok) (* decimal_floating_point_literal *)
    | `Hex_floa_point_lit tok ->
-       Float (str env tok) (* hex_floating_point_literal *)
+       Float (float_literal env tok) (* hex_floating_point_literal *)
    | `True tok -> Bool (true, token env tok) (* "true" *)
    | `False tok -> Bool (false, token env tok) (* "false" *)
    | `Char_lit tok -> Char (str env tok) (* character_literal *)
