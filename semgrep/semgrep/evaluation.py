@@ -36,11 +36,11 @@ DebugRangesConverted = Union[List[Range], Dict[str, List[Range]]]
 
 
 def convert_ranges(ranges: DebugRanges) -> DebugRangesConverted:
-    # Make ranges JSON serializable
+    # Make ranges JSON serializable and sort for performing comparisons
     return (
-        list(ranges)
+        sorted(list(ranges))
         if isinstance(ranges, set)
-        else {k: list(v) for k, v in ranges.items()}
+        else {k: sorted(list(v)) for k, v in ranges.items()}
     )
 
 
