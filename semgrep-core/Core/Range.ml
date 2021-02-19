@@ -19,12 +19,12 @@ module PI = Parse_info
 (*****************************************************************************)
 (* Basic code range (start/end of code portion).
  *
- * For semgrep pattern-from-code synthesizing project we need to
+ * We use this for the pattern-from-code synthesizing project where we need to
  * manipulate code ranges selected by the user.
- * Note that the semgrep python wrapper also needs to manipulate ranges
- * to apply boolean logic operations on them (for pattern-inside, patter-not,
- * etc.), so if one day we decide to port that part to OCaml we will also
- * need the range type of this module.
+ *
+ * We also now use it to manipulate ranges and apply boolean logic operations
+ * on them (for pattern-inside, pattern-not, etc.), now that we also handle
+ * the whole rule in OCaml
 *)
 
 (*****************************************************************************)
