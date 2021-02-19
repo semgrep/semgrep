@@ -136,33 +136,6 @@ let partition_xpatterns xs =
     | R.Regexp x -> Right3 (id, x)
   )
 
-let (mini_rule_of_pattern: R.t -> (R.pattern_id * Pattern.t) -> MR.t) =
-  fun r (id, pattern) ->
-  { MR.
-    id = string_of_int id; pattern;
-    (* parts that are not really needed I think in this context, since
-     * we just care about the matching result.
-    *)
-    message = ""; severity = MR.Error;
-    languages =
-      (match r.R.languages with
-       | R.L (x, xs) -> x::xs
-       | R.LNone | R.LGeneric -> raise Impossible
-      );
-    pattern_string = "";
-  }
-
-(* todo: change Pattern_match type so we don't need this gymnastic.
- * A pattern_match should just need the id from the mini_rule
-*)
-let (mini_rule_of_string: (R.pattern_id * string) -> MR.t) =
-  fun (id, s) ->
-  { MR.
-    id = string_of_int id;
-    pattern = G.E (G.L (G.Null (PI.fake_info "")));
-    message = ""; severity = MR.Error; languages = [];
-    pattern_string = s;
-  }
 
 let (group_matches_per_pattern_id: Pattern_match.t list ->id_to_match_results)=
   fun xs ->
@@ -196,6 +169,34 @@ let (split_and:
 (*****************************************************************************)
 (* Adapters *)
 (*****************************************************************************)
+
+let (mini_rule_of_pattern: R.t -> (R.pattern_id * Pattern.t) -> MR.t) =
+  fun r (id, pattern) ->
+  { MR.
+    id = string_of_int id; pattern;
+    (* parts that are not really needed I think in this context, since
+     * we just care about the matching result.
+    *)
+    message = ""; severity = MR.Error;
+    languages =
+      (match r.R.languages with
+       | R.L (x, xs) -> x::xs
+       | R.LNone | R.LGeneric -> raise Impossible
+      );
+    pattern_string = "";
+  }
+
+(* todo: change Pattern_match type so we don't need this gymnastic.
+ * A pattern_match should just need the id from the mini_rule
+*)
+let (mini_rule_of_string: (R.pattern_id * string) -> MR.t) =
+  fun (id, s) ->
+  { MR.
+    id = string_of_int id;
+    pattern = G.E (G.L (G.Null (PI.fake_info "")));
+    message = ""; severity = MR.Error; languages = [];
+    pattern_string = s;
+  }
 
 (* todo: same, we should not need that *)
 let hmemo = Hashtbl.create 101
