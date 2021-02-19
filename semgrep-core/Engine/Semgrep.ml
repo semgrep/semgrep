@@ -47,9 +47,6 @@ module MV = Metavariable
  *    but could do much more: deep static analysis using Datalog?
  *
  * TODO
- *  - spacegrep, link with spacegrep lib :)
- *  - regexp, use PCRE compatible regexp OCaml lib
- *  - metavar comparison, use Eval_generic :)
  *  - pattern-where-python? use pycaml? works for dlint rule?
  *    right now only 4 rules are using pattern-where-python
  *
@@ -62,11 +59,13 @@ module MV = Metavariable
  * Right now we just analyze one file at a time. Later we could
  * maybe take a list of files and do some global analysis for:
  *     * caller/callee in different files
+ *       which can be useful to understand keyword arguments
  *     * inheritance awareness, because right now we can't match
- *       code that inherit indirectly form a class mentioned in a pattern
+ *       code that inherits indirectly form a class mentioned in a pattern
  * There are different options for such global analysis:
  *  - generate a giant file a la CIL, but scale?
- *  - do it via a 2 passes process. 1st pass iterate over all files, report
+ *    (there is a recent LLVM project that does the same)
+ *  - do it via a 2 passes process. 1st pass iterates over all files, report
  *    already matches, record semantic information (e.g., inheritance tree,
  *    call graph, etc.) as it goes, and let the matching engine report
  *    todo_second_pass if for example is_children returned a Maybe.
@@ -108,6 +107,18 @@ type env = {
 }
 
 (*****************************************************************************)
+(* Range_with_mvars *)
+(*****************************************************************************)
+
+let ($<=$) rv1 rv2 =
+  Range.($<=$) rv1.r rv2.r &&
+  rv1.mvars |> List.for_all (fun (mvar, mval1) ->
+    match List.assoc_opt mvar rv2.mvars with
+    | None -> true
+    | Some mval2 -> Matching_generic.equal_ast_binded_code mval1 mval2
+  )
+
+(*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
@@ -124,6 +135,40 @@ let partition_xpatterns xs =
     | R.Spacegrep x -> Middle3 (id, x, xpat.R.pstr)
     | R.Regexp x -> Right3 (id, x)
   )
+
+
+let (group_matches_per_pattern_id: Pattern_match.t list ->id_to_match_results)=
+  fun xs ->
+  let h = Hashtbl.create 101 in
+  xs |> List.iter (fun m ->
+    let id = int_of_string (m.Pattern_match.rule.MR.id) in
+    Hashtbl.add h id m
+  );
+  h
+
+let (range_to_match_result: range_with_mvars -> Pattern_match.t) =
+  fun range -> range.origin
+
+let (match_result_to_range: Pattern_match.t -> range_with_mvars) =
+  fun m ->
+  let { Pattern_match.location = (start_loc, end_loc); env = mvars; _} = m in
+  let r = Range.range_of_token_locations start_loc end_loc in
+  { r; mvars; origin = m; }
+
+(* return list of "positive" x list of Not x list of Conds *)
+let (split_and:
+       R.formula list -> R.formula list * R.formula list * R.metavar_cond list) =
+  fun xs ->
+  xs |> Common.partition_either3 (fun e ->
+    match e with
+    | R.Not f -> Middle3 f
+    | R.MetavarCond c -> Right3 c
+    | _ -> Left3 e
+  )
+
+(*****************************************************************************)
+(* Adapters *)
+(*****************************************************************************)
 
 let (mini_rule_of_pattern: R.t -> (R.pattern_id * Pattern.t) -> MR.t) =
   fun r (id, pattern) ->
@@ -165,35 +210,6 @@ let line_col_of_charpos file charpos =
 let info_of_token_location loc =
   { PI.token = PI.OriginTok loc; transfo = PI.NoTransfo }
 
-let (group_matches_per_pattern_id: Pattern_match.t list ->id_to_match_results)=
-  fun xs ->
-  let h = Hashtbl.create 101 in
-  xs |> List.iter (fun m ->
-    let id = int_of_string (m.Pattern_match.rule.MR.id) in
-    Hashtbl.add h id m
-  );
-  h
-
-let (range_to_match_result: range_with_mvars -> Pattern_match.t) =
-  fun range -> range.origin
-
-let (match_result_to_range: Pattern_match.t -> range_with_mvars) =
-  fun m ->
-  let { Pattern_match.location = (start_loc, end_loc); env = mvars; _} = m in
-  let r = Range.range_of_token_locations start_loc end_loc in
-  { r; mvars; origin = m; }
-
-(* return list of "positive" x list of Not x list of Conds *)
-let (split_and:
-       R.formula list -> R.formula list * R.formula list * R.metavar_cond list) =
-  fun xs ->
-  xs |> Common.partition_either3 (fun e ->
-    match e with
-    | R.Not f -> Middle3 f
-    | R.MetavarCond c -> Right3 c
-    | _ -> Left3 e
-  )
-
 let lexing_pos_to_loc  file x str =
   (* like Spacegrep.Semgrep.semgrep_pos() *)
   let line = x.Lexing.pos_lnum in
@@ -215,19 +231,16 @@ let mval_of_spacegrep_string str t =
 (* Logic on ranges *)
 (*****************************************************************************)
 
-open Range
-
-(* TODO: also check metavariables! *)
 let intersect_ranges xs ys =
   let surviving_xs =
     xs |> List.filter (fun x ->
       ys |> List.exists (fun y ->
-        x.r $<=$ y.r
+        x $<=$ y
       )) in
   let surviving_ys =
     ys |> List.filter (fun y ->
       xs |> List.exists (fun x ->
-        y.r $<=$ x.r
+        y $<=$ x
       ))
   in
   surviving_xs @ surviving_ys
@@ -236,7 +249,8 @@ let difference_ranges pos neg =
   let surviving_pos =
     pos |> List.filter (fun x ->
       not (neg |> List.exists (fun y ->
-        x.r $<=$ y.r
+        (* todo? or also filter if x overlaps with y? *)
+        x $<=$ y
       ))
     )
   in
@@ -244,7 +258,7 @@ let difference_ranges pos neg =
 
 let filter_ranges xs cond =
   xs |> List.filter (fun r ->
-    let bindings = r.origin.PM.env in
+    let bindings = r.mvars in
     match cond with
     | R.CondGeneric e ->
         let env = Eval_generic.bindings_to_env bindings in
@@ -435,14 +449,10 @@ let check with_caching hook rules (file, xlang, ast) =
     let final_ranges =
       evaluate_formula env formula in
 
-    let back_to_match_results =
-      final_ranges |> List.map (range_to_match_result) in
-    back_to_match_results |> List.iter (fun (m : Pattern_match.t) ->
-      hook m.env m.tokens
-    );
-
-    back_to_match_results
-
+    final_ranges |> List.map (range_to_match_result)
+    |> (fun v ->
+      v |> List.iter (fun (m : Pattern_match.t) -> hook m.env m.tokens);
+      v)
   ) |> List.flatten
 [@@profiling]
 (*e: semgrep/engine/Semgrep.ml *)
