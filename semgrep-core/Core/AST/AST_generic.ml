@@ -1799,5 +1799,5 @@ let stmt1 xs =
   | [st] -> st
   | xs -> s (Block (fake_bracket xs))
 (*e: function [[AST_generic.stmt1]] *)
-
+(* just a comment to test *)
 (*e: pfff/h_program-lang/AST_generic.ml *)
