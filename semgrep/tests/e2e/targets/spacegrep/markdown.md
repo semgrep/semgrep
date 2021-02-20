@@ -198,7 +198,7 @@ Then check out a few ways you can get involved:
 - Update the [docs](https://github.com/returntocorp/semgrep/tree/develop/docs)
 - Help each other in the [community Slack](https://r2c.dev/slack)
 
-Please see the [contribution guidelines](https://github.com/returntocorp/semgrep/blob/develop/CONTRIBUTING.md) for info about the development workflow, testing, and making PRs.
+Please see the [contribution guidelines](https://github.com/returntocorp/semgrep/blob/develop/doc/README.md) for info about the development workflow, testing, and making PRs.
 
 ## Commercial Support
 
