@@ -207,8 +207,8 @@ and opt_expr_to_label_ident = function
   | None -> G.LNone
   | Some e ->
       (match e with
-       | Int (s, tok) when s =~ "^[0-9]+$" ->
-           G.LInt (int_of_string s, tok)
+       | Int (Some i, tok) ->
+           G.LInt (i, tok)
        | Id [label] -> G.LId label
        | _ ->
            let e = expr e in

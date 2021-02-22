@@ -73,7 +73,7 @@ let test_rules xs =
       try
         let (d,b,ext) = Common2.dbe_of_filename file in
         Common2.readdir_to_file_list d |> Common.find_some (fun file2 ->
-          let (_,b2, ext2) = Common2.dbe_of_filename file2 in
+          let (_,b2, ext2) = Common2.dbe_of_filename_noext_ok file2 in
           if b = b2 && ext <> ext2
           then Some (Filename.concat d file2)
           else None

@@ -15,6 +15,7 @@ open Common
 open AST_generic
 module F = Format
 module G = AST_generic
+module PI = Parse_info
 
 (*****************************************************************************)
 (* Prelude *)
@@ -55,6 +56,9 @@ let opt f = function
   | None -> ""
   | Some x -> f x
 
+(* pad: note that Parse_info.str_of_info does not raise an exn anymore
+ * on fake tokens. It instead returns the fake token string
+*)
 let token default tok =
   try Parse_info.str_of_info tok
   with Parse_info.NoTokenLocation _ -> default
@@ -414,11 +418,11 @@ and call env (e, (_, es, _)) =
   | _ -> F.sprintf "%s(%s)" s1 (arguments env es)
 
 and literal env = function
-  | Bool ((b,_)) -> print_bool env b
-  | Int ((s,_)) -> s
-  | Float ((s,_)) -> s
-  | Char ((s,_)) -> F.sprintf "'%s'" s
-  | String ((s,_)) ->
+  | Bool (b,_) -> print_bool env b
+  | Int (_,t) -> PI.str_of_info t
+  | Float (_,t) -> PI.str_of_info t
+  | Char (s,_) -> F.sprintf "'%s'" s
+  | String (s,_) ->
       (match env.lang with
        | Lang.PHP | Lang.Yaml -> raise Todo
 
@@ -429,7 +433,7 @@ and literal env = function
        | Lang.OCaml | Lang.Ruby | Lang.Typescript | Lang.Lua | Lang.Rust | Lang.R ->
            "\"" ^ s ^ "\""
       )
-  | Regexp ((s,_)) -> s
+  | Regexp (s,_) -> s
   | x -> todo (E (L x))
 
 and arguments env xs =

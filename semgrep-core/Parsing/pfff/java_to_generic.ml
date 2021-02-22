@@ -194,8 +194,8 @@ and name v =
 
 
 and literal = function
-  | Int v1 -> let v1 = wrap string v1 in (G.Int v1)
-  | Float v1 -> let v1 = wrap string v1 in (G.Float v1)
+  | Int v1 -> let v1 = wrap id v1 in (G.Int v1)
+  | Float v1 -> let v1 = wrap id v1 in (G.Float v1)
   | String v1 -> let v1 = wrap string v1 in (G.String v1)
   | Char v1 -> let v1 = wrap string v1 in (G.Char v1)
   | Null v1 -> let v1 = tok v1 in (G.Null v1)

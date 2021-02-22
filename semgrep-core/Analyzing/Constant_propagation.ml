@@ -173,14 +173,10 @@ let eval_bop_bool op b1 b2 =
 let literal_of_int i =
   let i_str = string_of_int i in
   let tok   = Parse_info.fake_info i_str in
-  Int(i_str, tok)
+  Int(Some i, tok)
 
 let int_of_literal = function
-  | Int (str, _) ->
-      (try Some (int_of_string str)
-       with
-       | Failure "int_of_string" -> None
-      )
+  | Int (Some i, _) -> Some i
   | __else__ -> None
 
 let eval_bop_int op i1 i2 =

@@ -260,9 +260,10 @@ and vof_literal =
   | Bool v1 ->
       let v1 = vof_wrap OCaml.vof_bool v1 in OCaml.VSum ("Bool", [ v1 ])
   | Int v1 ->
-      let v1 = vof_wrap OCaml.vof_string v1 in OCaml.VSum ("Int", [ v1 ])
+      let v1 = vof_wrap (OCaml.vof_option OCaml.vof_int) v1 in
+      OCaml.VSum ("Int", [ v1 ])
   | Float v1 ->
-      let v1 = vof_wrap OCaml.vof_string v1 in OCaml.VSum ("Float", [ v1 ])
+      let v1 = vof_wrap (OCaml.vof_option OCaml.vof_float) v1 in OCaml.VSum ("Float", [ v1 ])
   | Imag v1 ->
       let v1 = vof_wrap OCaml.vof_string v1 in OCaml.VSum ("Imag", [ v1 ])
   | Ratio v1 ->

@@ -205,14 +205,22 @@ let map_string_literal (env : env) ((v1, v2, v3) : CST.string_literal): G.litera
   let toks = (strs |> List.map snd) @ [rdquote] in
   G.String (str, PI.combine_infos ldquote toks)
 
+let integer_literal env tok =
+  let (s, t) = str env tok in
+  int_of_string_opt s, t
+
+let float_literal env tok =
+  let (s, t) = str env tok in
+  float_of_string_opt s, t
+
 let map_literal (env : env) (x : CST.literal): G.literal =
   (match x with
    | `Str_lit x -> map_string_literal env x
    | `Raw_str_lit tok -> G.String (str env tok) (* raw_string_literal *)
    | `Char_lit tok -> G.Char (str env tok) (* char_literal *)
    | `Bool_lit x -> map_boolean_literal env x
-   | `Int_lit tok -> G.Int (str env tok) (* integer_literal *)
-   | `Float_lit tok -> G.Float (str env tok) (* float_literal *)
+   | `Int_lit tok -> G.Int (integer_literal env tok) (* integer_literal *)
+   | `Float_lit tok -> G.Float (float_literal env tok) (* float_literal *)
   )
 
 let map_literal_token (env : env) (x : CST.literal): PI.token_mutable =
@@ -239,17 +247,27 @@ let map_literal_pattern (env : env) (x : CST.literal_pattern): G.pattern =
    | `Raw_str_lit tok -> G.PatLiteral (G.String (str env tok)) (* raw_string_literal *)
    | `Char_lit tok -> G.PatLiteral (G.Char (str env tok)) (* char_literal *)
    | `Bool_lit x -> G.PatLiteral (map_boolean_literal env x)
-   | `Int_lit tok -> G.PatLiteral (G.Int (str env tok)) (* integer_literal *)
-   | `Float_lit tok -> G.PatLiteral (G.Float (str env tok)) (* float_literal *)
+   | `Int_lit tok -> G.PatLiteral (G.Int (integer_literal env tok)) (* integer_literal *)
+   | `Float_lit tok -> G.PatLiteral (G.Float (float_literal env tok)) (* float_literal *)
    | `Nega_lit (v1, v2) ->
        let neg = str env v1 (* "-" *) in
        (match v2 with
-        | `Int_lit tok -> let int = str env tok in (* integer_literal *)
-            let str = String.concat "" [fst neg; fst int] in
-            G.PatLiteral (G.Int (str, (PI.combine_infos (snd neg) [snd int])))
-        | `Float_lit tok -> let float = str env tok in (* float_literal *)
-            let str = String.concat "" [fst neg; fst float] in
-            G.PatLiteral (G.Float (str, (PI.combine_infos (snd neg) [snd float])))
+        | `Int_lit tok ->
+            let (iopt, t) = integer_literal env tok in (* integer_literal *)
+            let iopt =
+              match iopt with
+              | Some i -> Some (- i)
+              | None -> None
+            in
+            G.PatLiteral (G.Int (iopt, (PI.combine_infos (snd neg) [t])))
+        | `Float_lit tok ->
+            let (fopt, t) = float_literal env tok in (* float_literal *)
+            let fopt =
+              match fopt with
+              | Some f -> Some (-. f)
+              | None -> None
+            in
+            G.PatLiteral (G.Float (fopt, (PI.combine_infos (snd neg) [t])))
        )
   )
 
@@ -1398,7 +1416,8 @@ and map_field_expression (env : env) ((v1, v2, v3) : CST.field_expression) (type
              G.EN (G.IdQualified (name_, G.empty_id_info()))
          | None -> G.EN (G.Id (ident, G.empty_id_info ())))
 
-    | `Int_lit tok -> let literal = G.L (G.Int (str env tok)) in (* integer_literal *)
+    | `Int_lit tok ->
+        let literal = G.L (G.Int (integer_literal env tok)) in (* integer_literal *)
         (match typeargs with
          | Some tas -> raise Impossible
          | None -> G.EDynamic literal))
@@ -1779,7 +1798,7 @@ and map_ordered_field (env: env) outer_attrs (attrs : G.attribute list) (type_ :
     G.vtype = Some type_;
   } in
   let ent = {
-    G.name = G.EDynamic (G.L (G.Int (index_s, G.fake index_s)));
+    G.name = G.EDynamic (G.L (G.Int (Some index, G.fake index_s)));
     G.attrs = [];
     G.tparams = [];
   } in

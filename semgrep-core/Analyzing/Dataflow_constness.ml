@@ -64,7 +64,7 @@ let string_of_constness = function
   | G.Lit l  ->
       match l with
       | G.Bool (b, _)   -> Printf.sprintf "lit(%b)" b
-      | G.Int (s, _)    -> Printf.sprintf "lit(%s)" s
+      | G.Int (Some i, _)    -> Printf.sprintf "lit(%d)" i
       | G.String (s, _) -> Printf.sprintf "lit(\"%s\")" s
       | ___else___      -> "lit(???)"
 
@@ -140,10 +140,10 @@ let literal_of_int i =
   let i_str = string_of_int i in
   (* TODO: use proper token when possible? *)
   let tok   = Parse_info.fake_info i_str in
-  G.Int(i_str, tok)
+  G.Int(Some i, tok)
 
 let int_of_literal = function
-  | G.Int (str, _) -> int_of_string_opt str
+  | G.Int (x, _) -> x
   | ___else___     -> None
 
 let literal_of_string s =

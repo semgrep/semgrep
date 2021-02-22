@@ -275,9 +275,9 @@ let top_func () =
 
   and literal =
     function
-    | Int v1 -> let v1 = wrap string v1 in
+    | Int v1 -> let v1 = wrap id v1 in
         G.Int v1
-    | Float v1 -> let v1 = wrap string v1 in
+    | Float v1 -> let v1 = wrap id v1 in
         G.Float v1
     | Imag v1 -> let v1 = wrap string v1 in
         G.Imag v1
