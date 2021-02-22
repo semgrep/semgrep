@@ -164,4 +164,10 @@ class Range(NamedTuple):
         if not isinstance(other, type(self)):
             return False
 
-        return (self.end - self.start) < (other.end - other.start)
+        diff_self = self.end - self.start
+        diff_other = other.end - other.start
+
+        if diff_self == diff_other:
+            return self.start < other.start
+
+        return diff_self < diff_other
