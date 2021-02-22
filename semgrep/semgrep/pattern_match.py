@@ -1,3 +1,4 @@
+import functools
 from pathlib import Path
 from typing import Any
 from typing import Dict
@@ -63,6 +64,7 @@ class PatternMatch:
             del end["offset"]
         return end
 
+    @functools.lru_cache(maxsize=None)
     def get_metavariable_value(self, metavariable: str) -> str:
         """
         Use metavars start and end to read into the file to find what the
