@@ -35,8 +35,11 @@ def evaluate_expression(
 def PatternMatchMock(
     start: int, end: int, metavars: Optional[Dict[str, Any]] = None
 ) -> PatternMatch:
+    if metavars is None:
+        metavars = {}
+
     mock = MagicMock()
-    range_property = PropertyMock(return_value=Range(start, end, metavars or {}))
+    range_property = PropertyMock(return_value=Range(start, end, metavars))
     type(mock).range = range_property
     metavars_property = PropertyMock(return_value=metavars)
     type(mock).metavars = metavars_property

@@ -1,3 +1,4 @@
+import functools
 from pathlib import Path
 from typing import Any
 from typing import Dict
@@ -112,6 +113,7 @@ class RuleGlobs(NamedTuple):
 ALLOWED_GLOB_TYPES = ("include", "exclude")
 
 
+@functools.total_ordering
 class Range(NamedTuple):
     start: int
     end: int
@@ -157,3 +159,15 @@ class Range(NamedTuple):
             and self.end == other.end
             and self.vars_match(other)
         )
+
+    def __lt__(self, other: Any) -> bool:
+        if not isinstance(other, type(self)):
+            return False
+
+        diff_self = self.end - self.start
+        diff_other = other.end - other.start
+
+        if diff_self == diff_other:
+            return self.start < other.start
+
+        return diff_self < diff_other

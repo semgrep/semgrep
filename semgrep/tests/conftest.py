@@ -88,6 +88,8 @@ def _run_semgrep(
 
     if output_format == "json":
         options.append("--json")
+    elif output_format == "debugging-json":
+        options.append("--debugging-json")
     elif output_format == "junit-xml":
         options.append("--junit-xml")
     elif output_format == "sarif":
@@ -99,7 +101,7 @@ def _run_semgrep(
         stderr=subprocess.STDOUT if stderr else subprocess.PIPE,
     )
 
-    if output_format in {"json", "sarif"} and not stderr:
+    if output_format in {"json", "debugging-json", "sarif"} and not stderr:
         output = _clean_output_json(output)
 
     return output
