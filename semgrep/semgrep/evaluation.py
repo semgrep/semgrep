@@ -277,7 +277,7 @@ def _where_python_statement_matches(
 
     local_vars = {
         metavar: pattern_match.get_metavariable_value(metavar)
-        for metavar in pattern_match.vars
+        for metavar in pattern_match.metavars
     }
     scope = {"vars": local_vars}
 
