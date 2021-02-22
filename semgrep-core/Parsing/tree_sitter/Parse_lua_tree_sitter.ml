@@ -401,7 +401,9 @@ and map_expression (env : env) (x : CST.expression): G.expr =
        G.Call (G.IdSpecial (G.Op op, token env tok), fb [G.Arg v2])
 
    | `Str tok -> string_literal env tok (* string *)
-   | `Num tok -> let (s, tok) = str env tok in G.L (G.Float (s, tok)) (* number *)
+   | `Num tok ->
+       let (s, tok) = str env tok in
+       G.L (G.Float (float_of_string_opt s, tok)) (* number *)
    | `Nil tok -> G.L (G.Null (token env tok)) (* "nil" *)
    | `True tok -> G.L (G.Bool (true, token env tok)) (* "true" *)
    | `False tok -> G.L (G.Bool (false, token env tok)) (* "false" *)

@@ -283,7 +283,8 @@ let attribute_target_specifier (env : env) ((v1, v2) : CST.attribute_target_spec
   todo env (v1, v2)
 
 let integer_literal (env : env) (tok : CST.integer_literal) =
-  AST.Int (str env tok) (* integer_literal *)
+  let (s, t) = str env tok in (* integer_literal *)
+  AST.Int (int_of_string_opt s, t)
 
 let overloadable_operator (env : env) (x : CST.overloadable_operator) =
   (match x with
@@ -352,8 +353,8 @@ let interpolated_verbatim_string_text (env : env) (x : CST.interpolated_verbatim
   String x
 
 let real_literal (env : env) (tok : CST.real_literal) =
-  AST.Float (str env tok) (* real_literal *)
-(* TODO should real be returned as float? *)
+  let (s, t) =  str env tok (* real_literal *) in
+  AST.Float (float_of_string_opt s, t)
 
 let contextual_keywords env x =
   (match x with

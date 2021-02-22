@@ -45,6 +45,8 @@ let default_visitor =
     kidinfo = (fun (k,_) x -> k x);
   }
 
+let map_id x = x
+
 let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
   (* start of auto generation *)
 
@@ -268,8 +270,8 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
     function
     | Unit v1 -> let v1 = map_tok v1 in Unit v1
     | Bool v1 -> let v1 = map_wrap map_of_bool v1 in Bool v1
-    | Int v1 -> let v1 = map_wrap map_of_string v1 in Int v1
-    | Float v1 -> let v1 = map_wrap map_of_string v1 in Float v1
+    | Int v1 -> let v1 = map_wrap map_id v1 in Int v1
+    | Float v1 -> let v1 = map_wrap map_id v1 in Float v1
     | Imag v1 -> let v1 = map_wrap map_of_string v1 in Imag v1
     | Ratio v1 -> let v1 = map_wrap map_of_string v1 in Ratio v1
     | Atom v1 -> let v1 = map_wrap map_of_string v1 in Atom v1

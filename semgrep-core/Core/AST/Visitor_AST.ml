@@ -90,6 +90,8 @@ let default_visitor =
     kconstness = (fun (k,_) x -> k x);
   }
 
+let v_id _ = ()
+
 let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
 
   (* start of auto generation *)
@@ -295,8 +297,8 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
     function
     | Unit v1 -> let v1 = v_tok v1 in ()
     | Bool v1 -> let v1 = v_wrap v_bool v1 in ()
-    | Int v1 -> let v1 = v_wrap v_string v1 in ()
-    | Float v1 -> let v1 = v_wrap v_string v1 in ()
+    | Int v1 -> let v1 = v_wrap v_id v1 in ()
+    | Float v1 -> let v1 = v_wrap v_id v1 in ()
     | Imag v1 -> let v1 = v_wrap v_string v1 in ()
     | Ratio v1 -> let v1 = v_wrap v_string v1 in ()
     | Atom v1 -> let v1 = v_wrap v_string v1 in ()

@@ -335,8 +335,9 @@ and atom x =
 and literal x =
   match x with
   | Bool x -> G.L (G.Bool (wrap bool x))
-  | Num x -> G.L (G.Int (wrap string x))
-  | Float x -> G.L (G.Float (wrap string x))
+  (* TODO: put real numbers here *)
+  | Num (_s, x) -> G.L (G.Int (None, tok x))
+  | Float (_s, x) -> G.L (G.Float (None, tok x))
   | Complex x -> G.L (G.Imag (wrap string x))
   | Rational ((s, t1), t2) ->
       let t = PI.combine_infos t1 [t2] in

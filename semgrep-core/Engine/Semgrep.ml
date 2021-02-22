@@ -219,11 +219,10 @@ let lexing_pos_to_loc  file x str =
 
 let mval_of_spacegrep_string str t =
   let literal =
-    try
-      let _ = int_of_string str in
-      G.Int (str, t)
-    with _ ->
-      G.String (str, t)
+    match int_of_string_opt str with
+    | Some i -> G.Int (Some i, t)
+    (* TODO? could try float_of_string_opt? *)
+    | None ->  G.String (str, t)
   in
   MV.E (G.L literal)
 

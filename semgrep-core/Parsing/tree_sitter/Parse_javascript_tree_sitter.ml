@@ -120,7 +120,15 @@ and anon_choice_type_id (env : env) (x : CST.anon_choice_id_b8f8ced) : ident lis
 
 
 let number (env : env) (tok : CST.number) =
-  str env tok (* number *)
+  let (s, t) = str env tok (* number *) in
+  (match int_of_string_opt s with
+   | Some i -> Some (float_of_int i)
+   | None ->
+       float_of_string_opt s
+  ), t
+
+let number_as_string (env : env) (tok : CST.number) =
+  str env tok
 
 let escape_sequence (env : env) (tok : CST.escape_sequence) =
   str env tok (* escape_sequence *)
@@ -1531,7 +1539,7 @@ and property_name (env : env) (x : CST.property_name) : property_name =
        let s = string_ env x in
        PN s
    | `Num tok ->
-       let n = number env tok (* number *) in
+       let n = number_as_string env tok (* number *) in
        PN n
    | `Comp_prop_name (v1, v2, v3) ->
        let _v1 = token env v1 (* "[" *) in

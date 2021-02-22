@@ -306,7 +306,7 @@ and assign env lhs _tok rhs_exp eorig =
       let tup_elems =
         lhss
         |> List.mapi (fun i lhs_i ->
-          let index_i = Literal(G.Int(string_of_int i, tok1)) in
+          let index_i = Literal(G.Int(Some i, tok1)) in
           let offset_i = Index ({e=index_i; eorig;}) in
           let lval_i = { base=Var tmp; offset=offset_i; constness = ref None; } in
           assign env lhs_i tok1 ({e=Lvalue lval_i; eorig;}) eorig
@@ -348,7 +348,7 @@ and expr_aux env eorig =
            let op =
              (match incdec with | G.Incr -> G.Plus | G.Decr -> G.Minus), tok
            in
-           let one = G.Int ("1", tok) in
+           let one = G.Int (Some 1, tok) in
            let one_exp = mk_e (Literal one) (G.L one) in
            let opexp = mk_e (Operator (op, [lvalexp; one_exp])) eorig in
            add_instr env (mk_i (Assign (lval, opexp)) eorig);

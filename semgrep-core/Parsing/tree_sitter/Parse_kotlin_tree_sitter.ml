@@ -115,7 +115,8 @@ let label (env : env) (tok : CST.label) =
   token env tok (* label *)
 
 let real_literal (env : env) (tok : CST.real_literal) =
-  Float (str env tok) (* real_literal *)
+  let (s, t) = str env tok in (* real_literal *)
+  Float (float_of_string_opt s, t)
 
 let comparison_operator (env : env) (x : CST.comparison_operator) =
   (match x with
@@ -175,7 +176,8 @@ let boolean_literal (env : env) (x : CST.boolean_literal) =
   )
 
 let hex_literal (env : env) (tok : CST.hex_literal) =
-  Int (str env tok) (* hex_literal *)
+  let (s, t) = str env tok (* hex_literal *) in
+  (int_of_string_opt s, t)
 
 let pat_f630af3 (env : env) (tok : CST.pat_f630af3) =
   token env tok (* pattern [^\r\n]* *)
@@ -203,7 +205,8 @@ let additive_operator (env : env) (x : CST.additive_operator) =
   )
 
 let integer_literal (env : env) (tok : CST.integer_literal) =
-  Int (str env tok) (* integer_literal *)
+  let (s, t) = str env tok (* integer_literal *) in
+  (int_of_string_opt s, t)
 
 let pat_ddcb2a5 (env : env) (tok : CST.pat_ddcb2a5) =
   token env tok (* pattern [a-zA-Z_][a-zA-Z_0-9]* *)
@@ -262,7 +265,8 @@ let parameter_modifier (env : env) (x : CST.parameter_modifier) =
   )
 
 let bin_literal (env : env) (tok : CST.bin_literal) =
-  Int (str env tok) (* bin_literal *)
+  let (s, t) = str env tok in (* bin_literal *)
+  (int_of_string_opt s, t)
 
 let pat_b9a3713 (env : env) (tok : CST.pat_b9a3713) =
   token env tok (* pattern `[^\r\n`]+` *)
@@ -314,11 +318,11 @@ let member_access_operator (env : env) (x : CST.member_access_operator) =
    | `COLONCOLON tok -> token env tok (* "::" *)
   )
 
-let anon_choice_int_lit_9015f32 (env : env) (x : CST.anon_choice_int_lit_9015f32) : string wrap =
+let anon_choice_int_lit_9015f32 (env : env) (x : CST.anon_choice_int_lit_9015f32) =
   (match x with
-   | `Int_lit tok -> str env tok (* integer_literal *)
-   | `Hex_lit tok -> str env tok (* hex_literal *)
-   | `Bin_lit tok -> str env tok (* bin_literal *)
+   | `Int_lit tok -> integer_literal env tok (* integer_literal *)
+   | `Hex_lit tok -> hex_literal env tok (* hex_literal *)
+   | `Bin_lit tok -> bin_literal env tok (* bin_literal *)
   )
 
 let lexical_identifier (env : env) (x : CST.lexical_identifier) : ident =
@@ -390,9 +394,9 @@ let import_alias (env : env) ((v1, v2) : CST.import_alias) =
 let literal_constant (env : env) (x : CST.literal_constant) =
   match x with
   | `Bool_lit x -> boolean_literal env x
-  | `Int_lit tok -> integer_literal env tok (* integer_literal *)
-  | `Hex_lit tok -> hex_literal env tok (* hex_literal *)
-  | `Bin_lit tok -> bin_literal env tok (* bin_literal *)
+  | `Int_lit tok -> Int (integer_literal env tok) (* integer_literal *)
+  | `Hex_lit tok -> Int (hex_literal env tok) (* hex_literal *)
+  | `Bin_lit tok -> Int (bin_literal env tok) (* bin_literal *)
   | `Char_lit (v1, v2, v3) ->
       let v1 = token env v1 (* "'" *) in
       let v2 =
@@ -412,16 +416,15 @@ let literal_constant (env : env) (x : CST.literal_constant) =
       let v2 = token env v2 (* "L" *) in
       Int (fst v1, snd v1)
   | `Unsi_lit (v1, v2, v3) ->
-      let v1 = anon_choice_int_lit_9015f32 env v1 in
+      let (iopt, v1) = anon_choice_int_lit_9015f32 env v1 in
       let v2 = str env v2 (* pattern [uU] *) in
-      let v3 =
+      let _v3 =
         (match v3 with
          | Some tok -> Some (str env tok) (* "L" *)
          | None -> None)
       in
-      let xs = [v1;v2] in
-      let str = xs |> List.map fst |> String.concat "" in
-      Int (str, PI.combine_infos (snd v1) [snd v2])
+      let str = PI.str_of_info v1 ^ fst v2 in
+      Int (iopt, PI.combine_infos (v1) [snd v2])
 
 let package_header (env : env) ((v1, v2, v3) : CST.package_header) =
   let v1 = token env v1 (* "package" *) in

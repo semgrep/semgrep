@@ -77,10 +77,12 @@ let imaginary_literal (env : env) (tok : CST.imaginary_literal) =
   str env tok (* imaginary_literal *)
 
 let float_literal (env : env) (tok : CST.float_literal) =
-  str env tok (* float_literal *)
+  let (s, t) = str env tok (* float_literal *) in
+  float_of_string_opt s, t
 
 let int_literal (env : env) (tok : CST.int_literal) =
-  str env tok (* int_literal *)
+  let (s, t) = str env tok (* int_literal *) in
+  int_of_string_opt s, t
 
 let rune_literal (env : env) (tok : CST.rune_literal) =
   str env tok (* rune_literal *)
