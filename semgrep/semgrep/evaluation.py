@@ -206,6 +206,20 @@ def _evaluate_single_expression(
                 for pattern_range in ranges_for_pattern
             )
         }
+    elif expression.operator == OPERATORS.REGEX:
+        # remove all ranges that don't equal the ranges for this pattern
+        output_ranges = ranges_left.intersection(ranges_for_pattern)
+    elif expression.operator == OPERATORS.NOT_REGEX:
+        # remove the result if pattern-not-regex is within another pattern
+        output_ranges = {
+            _range
+            for _range in ranges_left
+            if not any(
+                _range.is_range_enclosing_or_eq(pattern_range)
+                or pattern_range.is_range_enclosing_or_eq(_range)
+                for pattern_range in ranges_for_pattern
+            )
+        }
     elif expression.operator == OPERATORS.WHERE_PYTHON:
         if not allow_exec:
             raise SemgrepError(
@@ -220,23 +234,7 @@ def _evaluate_single_expression(
             pattern_match.range
             for pattern_match in list(flatten(pattern_ids_to_pattern_matches.values()))
             if pattern_match.range in ranges_left
-            and _where_python_statement_matches(
-                expression.operand, pattern_match.metavars
-            )
-        }
-    elif expression.operator == OPERATORS.REGEX:
-        # remove all ranges that don't equal the ranges for this pattern
-        output_ranges = ranges_left.intersection(ranges_for_pattern)
-    elif expression.operator == OPERATORS.NOT_REGEX:
-        # remove the result if pattern-not-regex is within another pattern
-        output_ranges = {
-            _range
-            for _range in ranges_left
-            if not any(
-                _range.is_range_enclosing_or_eq(pattern_range)
-                or pattern_range.is_range_enclosing_or_eq(_range)
-                for pattern_range in ranges_for_pattern
-            )
+            and _where_python_statement_matches(expression.operand, pattern_match)
         }
     elif expression.operator == OPERATORS.METAVARIABLE_REGEX:
         if not isinstance(expression.operand, dict):
@@ -269,7 +267,7 @@ def _evaluate_single_expression(
 
 
 def _where_python_statement_matches(
-    where_expression: str, metavars: Dict[str, Any]
+    where_expression: str, pattern_match: PatternMatch
 ) -> bool:
     # TODO: filter out obvious dangerous things here
     result = False
@@ -277,7 +275,10 @@ def _where_python_statement_matches(
     lines = where_expression.strip().split("\n")
     to_eval = "\n".join(lines[:-1] + [f"{return_var} = {lines[-1]}"])
 
-    local_vars = {k: v["abstract_content"] for k, v in metavars.items()}
+    local_vars = {
+        metavar: pattern_match.get_metavariable_value(metavar)
+        for metavar in pattern_match.metavars
+    }
     scope = {"vars": local_vars}
 
     try:

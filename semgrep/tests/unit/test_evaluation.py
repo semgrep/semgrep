@@ -7,7 +7,6 @@ from typing import Set
 from unittest.mock import MagicMock
 from unittest.mock import PropertyMock
 
-from semgrep.constants import RCE_RULE_FLAG
 from semgrep.evaluation import enumerate_patterns_in_boolean_expression
 from semgrep.evaluation import evaluate_expression as raw_evaluate_expression
 from semgrep.pattern_match import PatternMatch
@@ -22,12 +21,12 @@ from semgrep.semgrep_types import Range
 def evaluate_expression(
     exprs: List[BooleanRuleExpression],
     pattern_ids_to_pattern_matches: Dict[PatternId, List[PatternMatch]],
-    flags: Optional[Dict[str, Any]] = None,
+    allow_exec: bool = False,
 ) -> Set[Range]:
     # convert it to an implicit and
     e = BooleanRuleExpression(OPERATORS.AND_ALL, None, exprs, None)
     result: Set[Range] = raw_evaluate_expression(
-        e, pattern_ids_to_pattern_matches, [], flags
+        e, pattern_ids_to_pattern_matches, [], allow_exec=allow_exec
     )
     return result
 
@@ -39,10 +38,18 @@ def PatternMatchMock(
         metavars = {}
 
     mock = MagicMock()
+
     range_property = PropertyMock(return_value=Range(start, end, metavars))
     type(mock).range = range_property
+
     metavars_property = PropertyMock(return_value=metavars)
     type(mock).metavars = metavars_property
+
+    def mocked_get_metavariable_value(metavariable: str) -> Any:
+        return metavars[metavariable]["abstract_content"] if metavars else ""
+
+    mock.get_metavariable_value = mocked_get_metavariable_value
+
     return mock
 
 
@@ -484,5 +491,5 @@ def test_evaluate_python() -> None:
         ),
     ]
 
-    result = evaluate_expression(expression, results, flags={RCE_RULE_FLAG: True})
+    result = evaluate_expression(expression, results, allow_exec=True)
     assert result == set([Range(400, 500, {})]), f"{result}"
