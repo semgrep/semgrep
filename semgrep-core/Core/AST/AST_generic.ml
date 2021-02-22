@@ -1788,7 +1788,10 @@ let fake_bracket x = fake "(", x, fake ")"
 (*s: function [[AST_generic.unbracket]] *)
 let unbracket (_, x, _) = x
 (*e: function [[AST_generic.unbracket]] *)
-let sc = Parse_info.fake_info ";"
+(* bugfix: I used to put ";" but now Parse_info.str_of_info prints
+ * the string of a fake info
+*)
+let sc = Parse_info.fake_info ""
 
 let exprstmt e = s (ExprStmt (e, sc))
 let fieldEllipsis t = FieldStmt (exprstmt (Ellipsis t))

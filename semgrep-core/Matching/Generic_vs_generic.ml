@@ -913,12 +913,17 @@ and m_literal a b =
 and m_wrap_m_int_opt (a1, a2) (b1, b2) =
   match a1, b1 with
   (* iso: semantic equivalence of value! 0x8 can match 8 *)
-  | Some i1, Some i2 when i1 =|= i2 -> return ()
+  | Some i1, Some i2 ->
+      if i1 =|= i2 then return () else fail ()
   (* if the integers (or floats) were too large or were using
    * a syntax OCaml int_of_string could not parse,
    * we default to a string comparison *)
   | _ ->
       let a1 = Parse_info.str_of_info a2 in
+      (* bugfix: not that with constant propagation, some integers don't have
+       * a real token associated with them, so b2 may be a FakeTok, but
+       * Parse_info.str_of_info does not raise an exn anymore on a FakeTok
+      *)
       let b1 = Parse_info.str_of_info b2 in
       m_wrap m_string (a1, a2) (b1, b2)
 

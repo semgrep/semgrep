@@ -56,6 +56,9 @@ let opt f = function
   | None -> ""
   | Some x -> f x
 
+(* pad: note that Parse_info.str_of_info does not raise an exn anymore
+ * on fake tokens. It instead returns the fake token string
+*)
 let token default tok =
   try Parse_info.str_of_info tok
   with Parse_info.NoTokenLocation _ -> default
