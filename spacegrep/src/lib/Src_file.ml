@@ -107,6 +107,19 @@ let rec find_end_of_line s i =
     | '\n' -> i + 1
     | _ -> find_end_of_line s (i + 1)
 
+(* Remove the trailing newline character if there is one. *)
+let remove_trailing_newline s =
+  match s with
+  | "" -> ""
+  | s ->
+      let len = String.length s in
+      if s.[len - 1] = '\n' then
+        String.sub s 0 (len - 1)
+      else
+        s
+
+(* Add a trailing newline character if the last character isn't a newline
+   (or there is no last character). *)
 let ensure_newline s =
   match s with
   | "" -> ""
@@ -177,7 +190,11 @@ let region_of_pos_range x start_pos end_pos =
 let region_of_loc_range x (start_pos, _) (_, end_pos) =
   region_of_pos_range x start_pos end_pos
 
-let lines_of_pos_range ?highlight ?(line_prefix = "") x start_pos end_pos =
+let lines_of_pos_range
+    ?(force_trailing_newline = true)
+    ?highlight
+    ?(line_prefix = "")
+    x start_pos end_pos =
   let s = x.contents in
   let open Lexing in
   let start = start_pos.pos_bol in
@@ -187,8 +204,9 @@ let lines_of_pos_range ?highlight ?(line_prefix = "") x start_pos end_pos =
   let match_end = end_pos.pos_cnum in
   assert (match_end <= end_);
   let lines =
-    safe_string_sub s start (end_ - start)
-    |> ensure_newline
+    let s = safe_string_sub s start (end_ - start) in
+    if force_trailing_newline then ensure_newline s
+    else s
   in
   let with_highlight =
     match highlight with
@@ -199,5 +217,35 @@ let lines_of_pos_range ?highlight ?(line_prefix = "") x start_pos end_pos =
   in
   insert_line_prefix line_prefix with_highlight
 
-let lines_of_loc_range ?highlight ?line_prefix x (start_pos, _) (_, end_pos) =
-  lines_of_pos_range ?highlight ?line_prefix x start_pos end_pos
+let lines_of_loc_range
+    ?force_trailing_newline
+    ?highlight
+    ?line_prefix
+    x (start_pos, _) (_, end_pos) =
+  lines_of_pos_range
+    ?force_trailing_newline ?highlight ?line_prefix
+    x start_pos end_pos
+
+let list_lines_of_pos_range
+    ?highlight
+    ?line_prefix
+    x start_pos end_pos =
+
+  let s =
+    lines_of_pos_range
+      ~force_trailing_newline:false
+      ?highlight
+      ?line_prefix
+      x start_pos end_pos
+  in
+  remove_trailing_newline s
+  |> String.split_on_char '\n'
+
+let list_lines_of_loc_range
+    ?highlight
+    ?line_prefix
+    x (start_pos, _) (_, end_pos) =
+  list_lines_of_pos_range
+    ?highlight
+    ?line_prefix
+    x start_pos end_pos
