@@ -7,6 +7,9 @@ from typing import Set
 from unittest.mock import MagicMock
 from unittest.mock import PropertyMock
 
+import pytest
+
+from semgrep.error import SemgrepError
 from semgrep.evaluation import enumerate_patterns_in_boolean_expression
 from semgrep.evaluation import evaluate_expression as raw_evaluate_expression
 from semgrep.pattern_match import PatternMatch
@@ -493,3 +496,47 @@ def test_evaluate_python() -> None:
 
     result = evaluate_expression(expression, results, allow_exec=True)
     assert result == set([Range(400, 500, {})]), f"{result}"
+
+
+def test_evaluate_python_exec_false() -> None:
+    results = {
+        PatternId("all_execs"): [
+            PatternMatchMock(400, 500, {"$X": {"abstract_content": "cmd_pattern"}}),
+            PatternMatchMock(800, 900, {"$X": {"abstract_content": "other_pattern"}}),
+        ]
+    }
+
+    expression = [
+        BooleanRuleExpression(OPERATORS.AND, PatternId("all_execs"), None, "all_execs"),
+        BooleanRuleExpression(
+            OPERATORS.WHERE_PYTHON,
+            PatternId("p1"),
+            None,
+            "vars['$X'].startswith('cmd')",
+        ),
+    ]
+
+    with pytest.raises(SemgrepError):
+        evaluate_expression(expression, results, allow_exec=False)
+
+
+def test_evaluate_python_bad_return_type() -> None:
+    results = {
+        PatternId("all_execs"): [
+            PatternMatchMock(400, 500, {"$X": {"abstract_content": "cmd_pattern"}}),
+            PatternMatchMock(800, 900, {"$X": {"abstract_content": "other_pattern"}}),
+        ]
+    }
+
+    expression = [
+        BooleanRuleExpression(OPERATORS.AND, PatternId("all_execs"), None, "all_execs"),
+        BooleanRuleExpression(
+            OPERATORS.WHERE_PYTHON,
+            PatternId("p1"),
+            None,
+            "str(vars['$X'])",
+        ),
+    ]
+
+    with pytest.raises(SemgrepError):
+        evaluate_expression(expression, results, allow_exec=True)
