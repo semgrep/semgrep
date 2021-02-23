@@ -68,6 +68,15 @@ class Rule:
         if any([lang in REGEX_ONLY_LANGUAGE_KEYS for lang in self._languages]):
             self._validate_none_language_rule()
 
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, type(self)):
+            return False
+
+        return self._raw == other._raw
+
+    def __hash__(self) -> int:
+        return hash(self.id)
+
     def _validate_none_language_rule(self) -> None:
         """
         For regex-only rules, only patterns, pattern-either, and pattern-regex is valid.
