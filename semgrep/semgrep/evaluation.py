@@ -166,6 +166,50 @@ def get_comparison_range_matches(
     return result
 
 
+def compare_where_python(where_expression: str, pattern_match: PatternMatch) -> bool:
+    result = False
+    return_var = "semgrep_pattern_return"
+    lines = where_expression.strip().split("\n")
+    to_eval = "\n".join(lines[:-1] + [f"{return_var} = {lines[-1]}"])
+
+    local_vars = {
+        metavar: pattern_match.get_metavariable_value(metavar)
+        for metavar in pattern_match.metavars
+    }
+    scope = {"vars": local_vars}
+
+    try:
+        # fmt: off
+        exec(to_eval, scope)  # nosem: contrib.dlint.dlint-equivalent.insecure-exec-use, python.lang.security.audit.exec-detected.exec-detected
+        # fmt: on
+        result = scope[return_var]  # type: ignore
+    except KeyError as ex:
+        logger.error(
+            f"could not find metavariable {ex} while evaluating where-python expression '{where_expression}', consider case where metavariable is missing"
+        )
+    except Exception as ex:
+        logger.error(
+            f"received error '{repr(ex)}' while evaluating where-python expression '{where_expression}'"
+        )
+
+    if not isinstance(result, bool):
+        raise SemgrepError(
+            f"where-python expression '{where_expression}' needs boolean output but got {result}"
+        )
+    return result
+
+
+def get_where_python_range_matches(
+    where_expression: str, ranges: Set[Range], pattern_matches: List[PatternMatch]
+) -> Set[Range]:
+
+    return {
+        pm.range
+        for pm in pattern_matches
+        if pm.range in ranges and compare_where_python(where_expression, pm)
+    }
+
+
 def _evaluate_single_expression(
     expression: BooleanRuleExpression,
     pattern_ids_to_pattern_matches: Dict[PatternId, List[PatternMatch]],
@@ -230,12 +274,12 @@ def _evaluate_single_expression(
             raise SemgrepError(
                 f"expected operator '{expression.operator}' to have string value guaranteed by schema"
             )
-        output_ranges = {
-            pattern_match.range
-            for pattern_match in list(flatten(pattern_ids_to_pattern_matches.values()))
-            if pattern_match.range in ranges_left
-            and _where_python_statement_matches(expression.operand, pattern_match)
-        }
+        output_ranges = get_where_python_range_matches(
+            expression.operand,
+            ranges_left,
+            list(flatten(pattern_ids_to_pattern_matches.values())),
+        )
+
     elif expression.operator == OPERATORS.METAVARIABLE_REGEX:
         if not isinstance(expression.operand, dict):
             raise SemgrepError(
@@ -264,42 +308,6 @@ def _evaluate_single_expression(
         raise UnknownOperatorError(f"unknown operator {expression.operator}")
 
     return output_ranges
-
-
-def _where_python_statement_matches(
-    where_expression: str, pattern_match: PatternMatch
-) -> bool:
-    # TODO: filter out obvious dangerous things here
-    result = False
-    return_var = "semgrep_pattern_return"
-    lines = where_expression.strip().split("\n")
-    to_eval = "\n".join(lines[:-1] + [f"{return_var} = {lines[-1]}"])
-
-    local_vars = {
-        metavar: pattern_match.get_metavariable_value(metavar)
-        for metavar in pattern_match.metavars
-    }
-    scope = {"vars": local_vars}
-
-    try:
-        # fmt: off
-        exec(to_eval, scope)  # nosem: contrib.dlint.dlint-equivalent.insecure-exec-use, python.lang.security.audit.exec-detected.exec-detected
-        # fmt: on
-        result = scope[return_var]  # type: ignore
-    except KeyError as ex:
-        logger.error(
-            f"could not find metavariable {ex} while evaluating where-python expression '{where_expression}', consider case where metavariable is missing"
-        )
-    except Exception as ex:
-        logger.error(
-            f"received error '{repr(ex)}' while evaluating where-python expression '{where_expression}'"
-        )
-
-    if not isinstance(result, bool):
-        raise SemgrepError(
-            f"where-python expression '{where_expression}' needs boolean output but got {result}"
-        )
-    return result
 
 
 def evaluate(
