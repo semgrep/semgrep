@@ -46,7 +46,7 @@ RUN ./semgrep-core/_build/install/default/bin/semgrep-core -version
 # We change container, bringing only the 'semgrep-core' binary with us.
 #
 
-FROM python:3.7.7-alpine3.11
+FROM python:3.9.1-alpine3.13
 LABEL maintainer="support@r2c.dev"
 
 # ugly: circle CI requires valid git and ssh programs in the container
