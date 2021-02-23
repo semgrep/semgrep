@@ -114,7 +114,7 @@ let remove_trailing_newline s =
   | s ->
       let len = String.length s in
       if s.[len - 1] = '\n' then
-        String.sub s 0 (len - 1)
+        String.sub s 0 (len - 1) (* nosem *)
       else
         s
 
