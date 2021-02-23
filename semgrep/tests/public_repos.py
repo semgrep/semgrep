@@ -251,7 +251,6 @@ PASSING_REPOS = [
     {"repo": "https://github.com/dropbox/godropbox", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/dropbox/trapperkeeper", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/lodash/lodash", "languages": ALL_LANGUAGES},
-    {"repo": "https://github.com/zulip/zulip", "languages": ALL_LANGUAGES},
     {
         "repo": "https://github.com/home-assistant/home-assistant",
         "languages": ALL_LANGUAGES,
@@ -280,6 +279,10 @@ FAILING_REPOS = [
     #        },
     #        reason="MatchTimeout error but happens only in CI",
     #    ),
+    xfail_repo(
+        {"repo": "https://github.com/zulip/zulip", "languages": ALL_LANGUAGES},
+        reason="Invalid Typescript. Should pass after https://github.com/zulip/zulip/pull/17392 is in"
+    ),
     xfail_repo(
         {
             "repo": "https://github.com/highcharts/highcharts",
