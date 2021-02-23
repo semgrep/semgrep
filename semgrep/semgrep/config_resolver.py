@@ -133,7 +133,16 @@ class Config:
             # re-write the configs to have the hierarchical rule ids
             configs = self._rename_rule_ids(configs)
 
-        return [rule for rules in configs.values() for rule in rules]
+        rules = []
+        seen = set()
+        for rule in [rule for rules in configs.values() for rule in rules]:
+            if rule.id in seen:
+                next
+            else:
+                rules.append(rule)
+                seen.add(rule.id)
+
+        return rules
 
     @staticmethod
     def _safe_relative_to(a: Path, b: Path) -> Path:
