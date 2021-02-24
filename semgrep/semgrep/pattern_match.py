@@ -66,6 +66,9 @@ class PatternMatch:
         return end
 
     def _read_metavariable_values(self) -> Dict[str, str]:
+        """
+        Read self.path and lookup all values of metavariables in self.metavars
+        """
         result = {}
 
         # open path and ignore non-utf8 bytes. https://stackoverflow.com/a/56441652
