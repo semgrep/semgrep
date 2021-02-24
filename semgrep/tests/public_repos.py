@@ -336,7 +336,6 @@ FAILING_REPOS = [
         {
             "repo": "https://github.com/dropbox/notouch",
             "languages": ALL_LANGUAGES,
-            "excludes": ["notouch/notouch/util.py"],
         },
         reason="indented comment on last line python",
     ),
