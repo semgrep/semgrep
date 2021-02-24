@@ -45,6 +45,8 @@ val return : unit -> tin -> tout
 val fail : unit -> tin -> tout
 (*e: signature [[Matching_generic.fail]] *)
 
+val or_list: ('a, 'b) matcher -> 'a -> 'b list -> (tin -> tout)
+
 (* shortcut for >>=, since OCaml 4.08 you can define those "extended-let" *)
 val (let*) : (tin -> tout) -> (unit -> tin -> tout) -> tin -> tout
 
