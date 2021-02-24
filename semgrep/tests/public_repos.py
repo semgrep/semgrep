@@ -318,7 +318,6 @@ FAILING_REPOS = [
         {
             "repo": "https://github.com/dropbox/DropboxBusinessScripts",
             "languages": ALL_LANGUAGES,
-            "excludes": ["Sharing/reports/getCollaborationReport.py"],
         },
         reason="https://github.com/returntocorp/semgrep/issues/1498",
     ),
