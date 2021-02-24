@@ -68,7 +68,7 @@ let set_last_matched_rule rule f =
    * reset to None and that's what we want!
   *)
   let res = f() in
-  (* last_matched_rule := None; *)
+  last_matched_rule := None;
   res
 
 
