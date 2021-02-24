@@ -268,6 +268,12 @@ PASSING_REPOS = [
     {"repo": "https://github.com/OWASP/NodeGoat", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/dropbox/questions", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/rails/rails", "languages": ["ruby"]},
+    # Excluding cause of https://github.com/returntocorp/semgrep/issues/2613
+    {
+        "repo": "https://github.com/zulip/zulip",
+        "languages": ALL_LANGUAGES,
+        "excludes": ["frontend_tests/puppeteer_lib/common.ts"],
+    },
 ]
 
 FAILING_REPOS = [
@@ -279,10 +285,6 @@ FAILING_REPOS = [
     #        },
     #        reason="MatchTimeout error but happens only in CI",
     #    ),
-    xfail_repo(
-        {"repo": "https://github.com/zulip/zulip", "languages": ALL_LANGUAGES},
-        reason="Invalid Typescript. Should pass after https://github.com/zulip/zulip/pull/17392 is in"
-    ),
     xfail_repo(
         {
             "repo": "https://github.com/highcharts/highcharts",
@@ -331,7 +333,10 @@ FAILING_REPOS = [
         reason="https://www.oreilly.com/library/view/javascript-the-definitive/9781449393854/ch11s06.html",
     ),
     xfail_repo(
-        {"repo": "https://github.com/dropbox/notouch", "languages": ALL_LANGUAGES},
+        {
+            "repo": "https://github.com/dropbox/notouch",
+            "languages": ALL_LANGUAGES,
+        },
         reason="indented comment on last line python",
     ),
     xfail_repo(
