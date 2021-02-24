@@ -133,10 +133,16 @@ let var_stats prog : var_stats =
         | Assign (
           N (Id (id, ({ id_resolved = {contents = Some (_kind, sid)}; _ }))),
           _,
-          e2) ->
+          e2)
+        | AssignOp (
+            N (Id (id, ({ id_resolved = {contents = Some (_kind, sid)}; _ }))),
+            _,
+            e2)
+          ->
             let var = (H.str_of_ident id, sid) in
             let stat = get_stat_or_create var h in
             incr stat.lvalue;
+            (match x with | AssignOp _ -> incr stat.rvalue | _ -> ());
             vout (E e2)
 
         | N (Id (id, ({ id_resolved = {contents = Some (_kind, sid)}; _ })))->
