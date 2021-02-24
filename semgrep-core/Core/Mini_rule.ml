@@ -64,6 +64,7 @@ and rules = rule list
 (*s: type [[Rule.severity]] *)
 and severity = Error | Warning | Info
 (*e: type [[Rule.severity]] *)
+
 [@@deriving show]
 
 (*s: type [[Rule.t]] *)

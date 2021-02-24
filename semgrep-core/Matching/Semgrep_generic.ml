@@ -28,6 +28,8 @@ module MV = Metavariable
 module Flag = Flag_semgrep
 module MG = Matching_generic
 
+let logger = Logging.get_logger [__MODULE__]
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -66,7 +68,7 @@ let set_last_matched_rule rule f =
    * reset to None and that's what we want!
   *)
   let res = f() in
-  last_matched_rule := None;
+  (* last_matched_rule := None; *)
   res
 
 
@@ -212,6 +214,7 @@ let must_analyze_statement_bloom_opti_failed pattern_strs (st : AST_generic.stmt
 
 (*s: function [[Semgrep_generic.check2]] *)
 let check2 ~hook ~with_caching rules equivs file lang ast =
+  logger#info "checking %s with %d mini rules" file (List.length rules);
 
   let rules =
     (* simple opti using regexps; the bloom filter opti might supersede this *)

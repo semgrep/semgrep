@@ -24,6 +24,10 @@ module G = AST_generic
 module PI = Parse_info
 module MV = Metavariable
 
+let logger = Logging.get_logger [__MODULE__]
+
+let debug_timeout = ref false
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -130,10 +134,11 @@ let (xpatterns_in_formula: R.formula -> R.xpattern list) = fun e ->
 let partition_xpatterns xs =
   xs |> Common.partition_either3 (fun xpat ->
     let id = xpat.R.pid in
+    let str = xpat.R.pstr in
     match xpat.R.pat with
-    | R.Sem x -> Left3 (id, x)
-    | R.Spacegrep x -> Middle3 (id, x, xpat.R.pstr)
-    | R.Regexp x -> Right3 (id, x)
+    | R.Sem x -> Left3 (x, id, str)
+    | R.Spacegrep x -> Middle3 (x, id, str)
+    | R.Regexp x -> Right3 (x, id, str)
   )
 
 
@@ -170,10 +175,11 @@ let (split_and:
 (* Adapters *)
 (*****************************************************************************)
 
-let (mini_rule_of_pattern: R.t -> (R.pattern_id * Pattern.t) -> MR.t) =
-  fun r (id, pattern) ->
+let (mini_rule_of_pattern: R.t -> (Pattern.t * Rule.pattern_id * string) -> MR.t) =
+  fun r (pattern, id, pstr) ->
   { MR.
-    id = string_of_int id; pattern;
+    id = string_of_int id;
+    pattern;
     (* parts that are not really needed I think in this context, since
      * we just care about the matching result.
     *)
@@ -183,7 +189,8 @@ let (mini_rule_of_pattern: R.t -> (R.pattern_id * Pattern.t) -> MR.t) =
        | R.L (x, xs) -> x::xs
        | R.LNone | R.LGeneric -> raise Impossible
       );
-    pattern_string = "";
+    (* useful for debugging timeout *)
+    pattern_string = pstr;
   }
 
 (* todo: change Pattern_match type so we don't need this gymnastic.
@@ -309,10 +316,16 @@ let matches_of_xpatterns with_caching orig_rule (file, xlang, ast) xpatterns =
           (* TODO *)
           []
         in
-        Semgrep_generic.check
-          ~with_caching
-          ~hook:(fun _ _ -> ())
-          mini_rules equivalences file lang ast
+        if !debug_timeout
+        then mini_rules |> List.map (fun mr ->
+          logger#debug "Checking mini rule %s" (Mini_rule.show_rule mr);
+          Semgrep_generic.check ~with_caching ~hook:(fun _ _ -> ())
+            [mr] equivalences file lang ast
+        ) |> List.flatten
+        else Semgrep_generic.check
+            ~with_caching
+            ~hook:(fun _ _ -> ())
+            mini_rules equivalences file lang ast
     | _ -> []
   in
 
@@ -324,7 +337,7 @@ let matches_of_xpatterns with_caching orig_rule (file, xlang, ast) xpatterns =
       let src = Spacegrep.Src_file.of_file file in
       let doc = Spacegrep.Parse_doc.of_src src in
       (* pr (Spacegrep.Doc_AST.show doc); *)
-      spacegreps |> List.map (fun (id, pat, pat_str) ->
+      spacegreps |> List.map (fun (pat, id, pstr) ->
         let matches =
           Spacegrep.Match.search ~case_sensitive:true src pat doc
         in
@@ -343,7 +356,7 @@ let matches_of_xpatterns with_caching orig_rule (file, xlang, ast) xpatterns =
           in
 
           let loc = lexing_pos_to_loc file pos1 str in
-          let mini_rule = mini_rule_of_string (id, pat_str) in
+          let mini_rule = mini_rule_of_string (id, pstr) in
           {PM. rule = mini_rule; file; location = loc, loc; env;
            tokens = lazy [info_of_token_location loc];
           }
@@ -358,7 +371,7 @@ let matches_of_xpatterns with_caching orig_rule (file, xlang, ast) xpatterns =
     then []
     else begin
       let big_str = Common.read_file file in
-      regexps |> List.map (fun (id, (s, re)) ->
+      regexps |> List.map (fun ((s, re), id, _pstr) ->
         let subs =
           try
             Pcre.exec_all ~rex:re big_str
@@ -425,6 +438,7 @@ let rec (evaluate_formula: env -> R.formula -> range_with_mvars list) =
 (* 'with_caching' is unlabeled because ppx_profiling doesn't support labeled
    arguments *)
 let check with_caching hook rules (file, xlang, ast) =
+  logger#info "checking %s with %d rules" file (List.length rules);
   rules |> List.map (fun r ->
 
     let formula =
@@ -437,6 +451,7 @@ let check with_caching hook rules (file, xlang, ast) =
       xpatterns_in_formula formula in
     let matches =
       matches_of_xpatterns with_caching r (file, xlang, ast) xpatterns in
+    logger#info "found %d matches" (List.length matches);
     (* match results per minirule id which is the same than pattern_id in
      * the formula *)
     let pattern_matches_per_id =
@@ -445,8 +460,10 @@ let check with_caching hook rules (file, xlang, ast) =
       pattern_matches = pattern_matches_per_id;
       file;
     } in
+    logger#info "evaluating the formula";
     let final_ranges =
       evaluate_formula env formula in
+    logger#info "found %d final ranges" (List.length final_ranges);
 
     final_ranges |> List.map (range_to_match_result)
     |> (fun v ->
