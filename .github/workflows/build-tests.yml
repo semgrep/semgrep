@@ -68,6 +68,8 @@ jobs:
         with:
           name: semgrep-osx
           path: artifacts
+      - name: Check if PCRE exists
+        run: ls /usr/local/opt/pcre/lib/
       - name: Test build artifacts
         run: |
           chmod +x ./artifacts/semgrep-core

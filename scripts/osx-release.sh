@@ -14,6 +14,7 @@ make config
 # Remove dynamically linked libraries to force MacOS to use static ones
 rm /usr/local/lib/libtree-sitter.0.0.dylib
 rm /usr/local/lib/libtree-sitter.dylib
+rm /usr/local/opt/pcre/lib/libpcre.1.dylib
 
 make build-spacegrep
 make build-core
