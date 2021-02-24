@@ -1,0 +1,12 @@
+// again try on l50000.js
+// TODO: this one does not terminate though, too many matches on the
+// wasm code.
+// Arguably this hard to optimize; the wasm code uses lots of variables.
+// However such a pattern is usually used as part of a rule where
+// $Y will be binded by another rule, so doing a whole-rule-optimizer/planner
+// could help
+function (...,$Z,...) {
+  ...
+  $Y = <... $Z ...>;
+  ...
+}

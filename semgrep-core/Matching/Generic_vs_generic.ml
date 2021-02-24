@@ -1753,9 +1753,32 @@ and m_stmt a b =
         m_tok a2 b2
       )
   (*x: [[Generic_vs_generic.m_stmt()]] deep matching cases *)
-  (* TODO: ... should also allow a subset of stmts *)
+  (* opti: specialization to avoid going in the deep stmt matching!
+   * TODO: we should not need this; '...' should not enumerate all
+   * possible subset of stmt list and take forever.
+  *)
+  | A.Block(_, [{s=A.ExprStmt(A.Ellipsis _i, _);_}], _),
+    B.Block(_b1) -> return ()
+  (* opti: another specialization; again we should not need it *)
+  | A.Block(_, [
+    {s=A.ExprStmt(A.Ellipsis _, _);_};
+    a;
+    {s=A.ExprStmt(A.Ellipsis _, _);_};
+  ]
+           , _),
+    B.Block(_, bs, _) ->
+      let bs =
+        match SubAST_generic.flatten_substmts_of_stmts bs with
+        (* already flat  *)
+        | None -> bs
+        | Some (xs, _) -> xs
+      in
+      or_list m_stmt a bs
+  (* the general case *)
+  (* TODO: ... will allow a subset of stmts? good? *)
   | A.Block(a1), B.Block(b1) ->
       m_bracket (m_stmts_deep ~less_is_ok:false) a1 b1
+
   (*e: [[Generic_vs_generic.m_stmt()]] deep matching cases *)
   (*s: [[Generic_vs_generic.m_stmt()]] builtin equivalences cases *)
   (* equivalence: vardef ==> assign, and go deep *)
