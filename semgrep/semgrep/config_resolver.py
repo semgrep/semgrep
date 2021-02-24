@@ -1,6 +1,7 @@
 import logging
 import os
 import time
+from collections import OrderedDict
 from pathlib import Path
 from typing import Any
 from typing import Dict
@@ -133,7 +134,9 @@ class Config:
             # re-write the configs to have the hierarchical rule ids
             configs = self._rename_rule_ids(configs)
 
-        return [rule for rules in configs.values() for rule in rules]
+        return list(
+            OrderedDict.fromkeys([rule for rules in configs.values() for rule in rules])
+        )
 
     @staticmethod
     def _safe_relative_to(a: Path, b: Path) -> Path:
