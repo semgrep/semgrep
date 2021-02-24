@@ -114,16 +114,22 @@ def test_semgrep_on_repo(monkeypatch, clone_github_repo, tmp_path, public_repo_u
 
         _assert_sentinel_results(repo_url, repo_path, sentinel_path, language, excludes)
 
+    cmd = [
+        sys.executable,
+        "-m",
+        "semgrep",
+        "--config=rules/regex-sentinel.yaml",
+        "--strict",
+        "--json",
+        repo_path,
+    ]
+
+    if excludes:
+        for exclude in excludes:
+            cmd.extend(["--exclude", exclude])
+
     sub_output = subprocess.check_output(
-        [
-            sys.executable,
-            "-m",
-            "semgrep",
-            "--config=rules/regex-sentinel.yaml",
-            "--strict",
-            "--json",
-            repo_path,
-        ],
+        cmd,
         encoding="utf-8",
     )
     output = json.loads(sub_output)
