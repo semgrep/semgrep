@@ -244,6 +244,15 @@ let rec equal_ast_binded_code (a: MV.mvalue) (b: MV.mvalue) : bool = (
       MV.Id ((s2, _), Some {AST.id_resolved = {contents = None }; _})
       -> s1 = s2
 
+    (* A variable that is known to carry a given literal is equal to
+     * that same literal value.
+    *)
+    | MV.E (A.L a_lit),
+      MV.Id (_, Some {B.id_constness={contents=Some (B.Lit b_lit)}; _})
+    | MV.Id (_, Some {A.id_constness={contents=Some (A.Lit a_lit)}; _}),
+      MV.E (B.L b_lit)
+      -> A.equal_literal a_lit b_lit
+
     (* general case, equality modulo-position-and-constness.
      * TODO: in theory we should use user-defined equivalence to allow
      * equality modulo-equivalence rewriting!

@@ -1,7 +1,11 @@
 
-type mapping = AST_generic.constness Dataflow.mapping
+module G = AST_generic
 
-val string_of_constness : AST_generic.constness -> string
+type mapping = G.constness Dataflow.mapping
+
+val string_of_constness : G.constness -> string
+
+val union : G.constness -> G.constness -> G.constness
 
 (** Flow-sensitive constant-propagation.
  * !Note that this assumes Naming_AST.resolve has been called before!

@@ -75,7 +75,7 @@ let default_lr_stats () = {lvalue = ref 0; rvalue = ref 0 }
 type var_stats = (var, lr_stats) Hashtbl.t
 
 (*****************************************************************************)
-(* Environment Helpers *)
+(* Helpers *)
 (*****************************************************************************)
 
 let add_constant_env ident (sid, literal) env =
@@ -89,6 +89,11 @@ let find_id env id id_info =
       List.assoc_opt (s, sid) !(env.constants)
   | __else__ ->
       None
+
+let join_constness_ref c_ref c' =
+  match !c_ref with
+  | None   -> c_ref := Some c'
+  | Some c -> c_ref := Some (Dataflow_constness.union c c')
 
 (*****************************************************************************)
 (* Poor's man const analysis *)
@@ -119,8 +124,11 @@ let var_stats prog : var_stats =
       V.kdef = (fun (k, _v) x ->
         match x with
         | { name = EN (Id (id,
-                           { id_resolved = {contents = Some(_kind, sid)}; _})); _},
+                           { id_resolved = {contents = Some(_kind, sid)};
+                             id_constness; _})); _},
           VarDef ({ vinit = Some _; _ }) ->
+            (* In x = E, x stands for a label not for its content. *)
+            join_constness_ref id_constness NotCst;
             let var = (H.str_of_ident id, sid) in
             let stat = get_stat_or_create var h in
             incr stat.lvalue;
@@ -131,14 +139,18 @@ let var_stats prog : var_stats =
         match x with
         (* TODO: very incomplete, what if Assign (Tuple?) *)
         | Assign (
-          N (Id (id, ({ id_resolved = {contents = Some (_kind, sid)}; _ }))),
+          N (Id (id, ({ id_resolved = {contents = Some (_kind, sid)};
+                        id_constness; _ }))),
           _,
           e2)
         | AssignOp (
-            N (Id (id, ({ id_resolved = {contents = Some (_kind, sid)}; _ }))),
+            N (Id (id, ({ id_resolved = {contents = Some (_kind, sid)};
+                          id_constness; _ }))),
             _,
             e2)
           ->
+            (* In x = E, x stands for a label not for its content. *)
+            join_constness_ref id_constness NotCst;
             let var = (H.str_of_ident id, sid) in
             let stat = get_stat_or_create var h in
             incr stat.lvalue;
@@ -274,7 +286,7 @@ let propagate_basic lang prog =
       V.kdef = (fun (k, _v) x ->
         match x with
         | { name = EN (Id (id,
-                           ({ id_resolved = {contents = Some (_kind, sid)}; _} as id_info)));
+                           ({ id_resolved = {contents = Some (_kind, sid)}; _})));
             attrs = attrs;
             _},
           (* note that some languages such as Python do not have VarDef.
@@ -287,10 +299,7 @@ let propagate_basic lang prog =
             if H.has_keyword_attr Const attrs ||
                H.has_keyword_attr Final attrs
                (* TODO later? (!(stats.rvalue) = 1) *)
-            then begin
-              id_info.id_constness := Some (Lit literal);
-              add_constant_env id (sid, literal) env;
-            end;
+            then add_constant_env id (sid, literal) env;
             k x
 
         | _ -> k x
@@ -304,22 +313,21 @@ let propagate_basic lang prog =
          | N (Id (id, id_info)) ->
              (match find_id env id id_info with
               | Some literal ->
-                  id_info.id_constness := Some (Lit literal)
+                  join_constness_ref id_info.id_constness (Lit literal)
               | _ -> ()
              );
 
          | DotAccess (IdSpecial (This, _), _, EN (Id (id, id_info))) ->
              (match find_id env id id_info with
               | Some literal ->
-                  id_info.id_constness := Some (Lit literal)
+                  join_constness_ref id_info.id_constness (Lit literal)
               | _ -> ()
              );
 
 
              (* Assign that is really a hidden VarDef (e.g., in Python) *)
          | Assign (
-           N (Id (id, ({ id_resolved = {contents = Some (kind, sid)}; _ }
-                       as id_info))),
+           N (Id (id, ({ id_resolved = {contents = Some (kind, sid)}; _ }))),
            _,
            rexp) ->
              (match eval_expr env rexp with
@@ -332,10 +340,7 @@ let propagate_basic lang prog =
                      (* restrict to Python/Ruby Globals for now *)
                      (lang = Lang.Python || lang = Lang.Ruby) &&
                      kind = Global
-                  then begin
-                    id_info.id_constness := Some (Lit literal);
-                    add_constant_env id (sid, literal) env;
-                  end;
+                  then add_constant_env id (sid, literal) env;
                   k x
               | None -> ()
              )
