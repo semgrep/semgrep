@@ -1,47 +1,47 @@
-# name: Push Semgrep Docker Image
+name: Push Semgrep Docker Image
 
-# on:
-#   workflow_dispatch:
-#   push:
-#     branches:
-#       - develop
-#   pull_request:
-#     paths-ignore:
-#       - '**.md'
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - develop
+  pull_request:
+    paths-ignore:
+      - '**.md'
 
-# jobs:
-#   docker-build:
-#     runs-on: ubuntu-latest
-#     steps:
-#       - uses: actions/checkout@v2
-#       - name: Build the Docker image
-#         run: docker build -t semgrep-dev .
-#       - name: Check the Docker image
-#         run: ./scripts/validate-docker-build.sh semgrep-dev
-#       - name: Push Develop Image if on develop branch
-#         if: ${{ github.event_name == 'push'}}
-#         uses: docker/build-push-action@v1
-#         with:
-#           username: ${{ secrets.DOCKER_USERNAME }}
-#           password: ${{ secrets.DOCKER_PASSWORD }}
-#           repository: returntocorp/semgrep
-#           tags: develop
-#       - name: Push Commit Hash if PR
-#         # Don't run when PR is from a fork
-#         # For security, we do not autopush to docker when from PRs
-#         # said PRs do not have access to secrets so will fail anyway but
-#         # nicer to not have a "failing" CI job in the PR so don't even
-#         # try if we can detect is coming from a fork
-#         if: ${{ github.event_name == 'pull_request' }} && ${{ github.event.pull_request.head.repo.full_name == github.repository }}
-#         uses: docker/build-push-action@v1
-#         with:
-#           username: ${{ secrets.DOCKER_USERNAME }}
-#           password: ${{ secrets.DOCKER_PASSWORD }}
-#           repository: returntocorp/semgrep
-#           tags: ${{ github.event.pull_request.head.sha }}
-#       - name: update dev.semgrep.dev
-#         run: curl --fail -X POST https://dev.semgrep.dev/api/admin/update-docker
-#       - name: update staging.semgrep.dev
-#         run: curl --fail -X POST https://staging.semgrep.dev/api/admin/update-docker
-#       - name: update semgrep.dev
-#         run: curl --fail -X POST https://semgrep.dev/api/admin/update-docker
+jobs:
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build the Docker image
+        run: docker build -t semgrep-dev .
+      - name: Check the Docker image
+        run: ./scripts/validate-docker-build.sh semgrep-dev
+      - name: Push Develop Image if on develop branch
+        if: ${{ github.event_name == 'push'}}
+        uses: docker/build-push-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+          repository: returntocorp/semgrep
+          tags: develop
+      - name: Push Commit Hash if PR
+        # Don't run when PR is from a fork
+        # For security, we do not autopush to docker when from PRs
+        # said PRs do not have access to secrets so will fail anyway but
+        # nicer to not have a "failing" CI job in the PR so don't even
+        # try if we can detect is coming from a fork
+        if: ${{ github.event_name == 'pull_request' }} && ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+        uses: docker/build-push-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+          repository: returntocorp/semgrep
+          tags: ${{ github.event.pull_request.head.sha }}
+      - name: update dev.semgrep.dev
+        run: curl --fail -X POST https://dev.semgrep.dev/api/admin/update-docker
+      - name: update staging.semgrep.dev
+        run: curl --fail -X POST https://staging.semgrep.dev/api/admin/update-docker
+      - name: update semgrep.dev
+        run: curl --fail -X POST https://semgrep.dev/api/admin/update-docker
