@@ -2,6 +2,46 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [0.41.0](https://github.com/returntocorp/semgrep/releases/tag/v0.41.0) - 2021-02-24
+
+### Added
+
+- Added basic typed metavariables for javascript and typescript (#2588)
+- Ability to match integers or floats by values
+  e.g., the pattern '8' will now match code like 'x = 0x8'
+- Start converting the tree-sitter CST of R to the generic AST
+  thx to Ross Nanopoulos!
+- Allow 'nosem' in HTML. (#2574)
+
+#### Added in `semgrep-core` only
+
+These features are not yet available via the `semgrep` CLI,
+but have been added to the internal `semgrep-core` binary.
+
+- ability to process a whole rule in semgrep-core; this will allow
+  whole-rule optimisations and avoid some fork and communication with the
+  semgrep Python wrapper
+- handling the none (regexp) and generic (spacegrep) patterns in a rule
+- handling the metavariable-regexp, metavariable-comparison
+- correctly handle boolean formula using inclusion checks on metavariables
+- new semgrep-core -test_rules action to test rules; it reports only
+  28/2800 mismatches on the semgrep-rules repository
+
+### Changed
+
+- update C# to latest tree-sitter-csharp
+  thx to Sjord for the huge work adapting to the new C# grammar
+- Improve --generate-config capabilities (#2562)
+- optimise the matching of blocks with ellipsis (#2618)
+  e.g., the pattern 'function(...) { ... }' will now be more efficient
+- Change pattern-not-regex to filter when regex overlaps with a match (#2572)
+
+### Fixed
+
+- remove cycle in named AST for Rust 'fn foo(self)'  (#2584)
+  and also typescript, which could cause semgrep to use giga bytes of memory
+- fix missing token location on Go type assertion (#2577)
+
 ## [0.40.0](https://github.com/returntocorp/semgrep/releases/tag/v0.40.0) - 2021-02-17
 
 ### Added
