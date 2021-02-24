@@ -51,8 +51,7 @@ let make_semgrep_json doc_matches : Semgrep_t.match_results =
           let ((pos1, _), (_, pos2)) = match_.region in
           let metavars = List.map convert_capture match_.named_captures in
           let lines =
-            Src_file.lines_of_pos_range src pos1 pos2
-            |> String.split_on_char '\n'
+            Src_file.list_lines_of_pos_range src pos1 pos2
           in
           let extra = {
             message = None;
