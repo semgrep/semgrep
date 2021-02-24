@@ -11,8 +11,8 @@ export DUNE_PROFILE
 #
 .PHONY: build
 build:
+	rm -rf bin
 	dune build --profile $(DUNE_PROFILE)
-	@echo
 	mkdir -p bin
 	ln -sf ../_build/install/default/bin/spacegrep bin/spacegrep
 	ln -sf spacegrep bin/spacecat
