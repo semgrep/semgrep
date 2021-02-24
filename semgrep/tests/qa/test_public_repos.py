@@ -31,19 +31,30 @@ LANGUAGE_SENTINELS = {
 SENTINEL_PATTERN = f"$SENTINEL = {SENTINEL_VALUE}"
 
 
-def _assert_sentinel_results(repo_url, repo_path, sentinel_path, language):
+def _assert_sentinel_results(
+    repo_url, repo_path, sentinel_path, language, excludes=None
+):
+    """
+    EXCLUDES: Optional[List[str]] : Each element is passed to semgrep cli as --exclude flag
+    """
+    cmd = [
+        sys.executable,
+        "-m",
+        "semgrep",
+        "--pattern",
+        SENTINEL_PATTERN,
+        "--lang",
+        language,
+        "--json",
+        repo_path,
+    ]
+
+    if excludes:
+        for exclude in excludes:
+            cmd.extend(["--exclude", exclude])
+
     semgrep_run = subprocess.run(
-        [
-            sys.executable,
-            "-m",
-            "semgrep",
-            "--pattern",
-            SENTINEL_PATTERN,
-            "--lang",
-            language,
-            "--json",
-            repo_path,
-        ],
+        cmd,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         encoding="utf-8",
@@ -84,6 +95,7 @@ def test_semgrep_on_repo(monkeypatch, clone_github_repo, tmp_path, public_repo_u
 
     repo_url = public_repo_url["repo"]
     languages = public_repo_url["languages"]
+    excludes = public_repo_url.get("excludes")
     repo_path = clone_github_repo(repo_url=repo_url)
     repo_languages = (
         LANGUAGE_SENTINELS
@@ -100,18 +112,24 @@ def test_semgrep_on_repo(monkeypatch, clone_github_repo, tmp_path, public_repo_u
         with sentinel_path.open("w") as sentinel_file:
             sentinel_file.write(sentinel_info["file_contents"])
 
-        _assert_sentinel_results(repo_url, repo_path, sentinel_path, language)
+        _assert_sentinel_results(repo_url, repo_path, sentinel_path, language, excludes)
+
+    cmd = [
+        sys.executable,
+        "-m",
+        "semgrep",
+        "--config=rules/regex-sentinel.yaml",
+        "--strict",
+        "--json",
+        repo_path,
+    ]
+
+    if excludes:
+        for exclude in excludes:
+            cmd.extend(["--exclude", exclude])
 
     sub_output = subprocess.check_output(
-        [
-            sys.executable,
-            "-m",
-            "semgrep",
-            "--config=rules/regex-sentinel.yaml",
-            "--strict",
-            "--json",
-            repo_path,
-        ],
+        cmd,
         encoding="utf-8",
     )
     output = json.loads(sub_output)
