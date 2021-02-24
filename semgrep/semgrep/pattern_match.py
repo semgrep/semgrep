@@ -1,7 +1,7 @@
-import functools
 from pathlib import Path
 from typing import Any
 from typing import Dict
+from typing import Optional
 
 from semgrep.semgrep_types import PatternId
 from semgrep.semgrep_types import Range
@@ -14,6 +14,7 @@ class PatternMatch:
 
     def __init__(self, raw_json: Dict[str, Any]) -> None:
         self._raw_json = raw_json
+        self._metavariable_values: Optional[Dict[str, str]] = None
 
     @property
     def rule_index(self) -> int:
@@ -64,7 +65,25 @@ class PatternMatch:
             del end["offset"]
         return end
 
-    @functools.lru_cache(maxsize=None)
+    def _read_metavariable_values(self) -> Dict[str, str]:
+        """
+        Read self.path and lookup all values of metavariables in self.metavars
+        """
+        result = {}
+
+        # open path and ignore non-utf8 bytes. https://stackoverflow.com/a/56441652
+        with open(self.path, errors="replace") as fd:
+            for metavariable, metavariable_data in self.metavars.items():
+                # Offsets are start inclusive and end exclusive
+                start_offset = metavariable_data["start"]["offset"]
+                end_offset = metavariable_data["end"]["offset"]
+                length = end_offset - start_offset
+
+                fd.seek(start_offset)
+                result[metavariable] = fd.read(length)
+
+        return result
+
     def get_metavariable_value(self, metavariable: str) -> str:
         """
         Use metavars start and end to read into the file to find what the
@@ -72,17 +91,10 @@ class PatternMatch:
 
         Assumes METAVARIABLE is a key in self.metavars
         """
-        # Offsets are start inclusive and end exclusive
-        start_offset = self.metavars[metavariable]["start"]["offset"]
-        end_offset = self.metavars[metavariable]["end"]["offset"]
-        length = end_offset - start_offset
+        if self._metavariable_values is None:
+            self._metavariable_values = self._read_metavariable_values()
 
-        # open path and ignore non-utf8 bytes. https://stackoverflow.com/a/56441652
-        with open(self.path, errors="replace") as file:
-            file.seek(start_offset)
-            value = file.read(length)
-
-        return value
+        return self._metavariable_values[metavariable]
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} id={self.id} range={self.range}>"
