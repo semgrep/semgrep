@@ -334,7 +334,11 @@ FAILING_REPOS = [
         reason="https://www.oreilly.com/library/view/javascript-the-definitive/9781449393854/ch11s06.html",
     ),
     xfail_repo(
-        {"repo": "https://github.com/dropbox/notouch", "languages": ALL_LANGUAGES},
+        {
+            "repo": "https://github.com/dropbox/notouch",
+            "languages": ALL_LANGUAGES,
+            "excludes": ["notouch/notouch/util.py"],
+        },
         reason="indented comment on last line python",
     ),
     xfail_repo(

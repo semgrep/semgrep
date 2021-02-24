@@ -95,7 +95,7 @@ def test_semgrep_on_repo(monkeypatch, clone_github_repo, tmp_path, public_repo_u
 
     repo_url = public_repo_url["repo"]
     languages = public_repo_url["languages"]
-    excludes = public_repo_url["excludes"]
+    excludes = public_repo_url.get("excludes")
     repo_path = clone_github_repo(repo_url=repo_url)
     repo_languages = (
         LANGUAGE_SENTINELS
