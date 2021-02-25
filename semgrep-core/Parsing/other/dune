@@ -1,0 +1,10 @@
+(library
+ (name semgrep_parsing_other)
+ (wrapped false)
+ (libraries
+   yaml
+   commons
+   pfff-lang_GENERIC
+ )
+ (preprocess (pps ppx_profiling ppx_sexp_conv ppx_deriving.show))
+)

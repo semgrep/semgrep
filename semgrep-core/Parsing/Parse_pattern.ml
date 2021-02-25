@@ -105,7 +105,7 @@ let parse_pattern lang ?(print_errors = false) str =
     | Lang.R ->
         failwith "No R generic parser yet"
     | Lang.Yaml ->
-        failwith "No Yaml parser yet"
+        Yaml_to_generic.any str
 
   in
   Caching.prepare_pattern any;
