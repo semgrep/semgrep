@@ -682,7 +682,8 @@ and variable_declarator (env : env) ((v1, v2, v3) : CST.variable_declarator) =
     (match v1 with
      | `Id tok -> (identifier env tok, None) (* identifier *)
      | `Tuple_pat x ->
-         let id = (AST.special_multivardef_pattern, fake AST.special_multivardef_pattern) in
+         let (tok, _, _, _) = x in
+         let id = (AST.special_multivardef_pattern, token env tok) in
          let pat = Some (tuple_pattern env x) in
          (id, pat)
     )
