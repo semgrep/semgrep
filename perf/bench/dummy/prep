@@ -1,0 +1,14 @@
+#! /bin/sh
+#
+# This script only exists to satisfy the requirements of the benchmark
+# runner.
+#
+# Uses sh because bash is not installed within the semgrep docker container.
+#
+set -eu
+
+mkdir -p input/dummy/rules
+mkdir -p input/dummy/targets
+
+cp rules/* input/dummy/rules
+cp targets/* input/dummy/targets
