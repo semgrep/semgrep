@@ -863,7 +863,7 @@ and argument (env : env) ((v1, v2, v3) : CST.argument) : AST.argument =
   let v3 =
     (match v3 with
      | `Exp x -> expression env x
-     | `Decl_exp x -> H2.pattern_to_expr (declaration_expression env x) (* TODO is this OK? *)
+     | `Decl_exp x -> declaration_expression env x
     )
   in
   (* TODO return Ast.ArgKwd if Some v1 *)
@@ -2156,12 +2156,15 @@ and select_or_group_clause (env : env) (x : CST.select_or_group_clause) =
        Select (v1, v2)
   )
 
-and declaration_expression (env : env) ((v1, v2) : CST.declaration_expression) : pattern =
+and declaration_expression (env : env) ((v1, v2) : CST.declaration_expression) =
   let v1 = local_variable_type env v1 in
   let v2 = identifier env v2 (* identifier *) in
   match v1 with
-  | Some (t) -> PatVar (t, Some (v2, empty_id_info ()))
-  | None -> PatId (v2, empty_id_info ())
+  | Some (t) ->
+      let ent = basic_entity v2 [] in
+      let vardef = { vinit = None; vtype = Some(t) } in
+      OtherExpr (OE_StmtExpr, [S (s (DefStmt (ent, VarDef vardef)))])
+  | None -> N (Id (v2, empty_id_info ()))
 
 and interpolation (env : env) ((v1, v2, v3, v4, v5) : CST.interpolation) : expr bracket =
   let v1 = token env v1 (* "{" *) in
