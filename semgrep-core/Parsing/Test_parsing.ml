@@ -233,7 +233,7 @@ let diff_pfff_tree_sitter xs =
   pr2 "NOTE: consider using -full_token_info to get also diff on tokens";
   xs |> List.iter (fun file ->
     match Lang.langs_of_filename file with
-    | [lang] ->
+    | [_lang] ->
         let ast1 =
           Common.save_excursion Flag_semgrep.pfff_only true (fun () ->
             Parse_target.parse_program file
@@ -241,10 +241,7 @@ let diff_pfff_tree_sitter xs =
         in
         let ast2 =
           Common.save_excursion Flag_semgrep.tree_sitter_only true (fun () ->
-            let {Parse_target. ast; errors; _} =
-              Parse_target.just_parse_with_lang lang file in
-            if errors <> [] then failwith (spf "problem parsing %s" file);
-            ast
+            Parse_target.parse_program file
           ) in
         let s1 = AST_generic.show_program ast1 in
         let s2 = AST_generic.show_program ast2 in
