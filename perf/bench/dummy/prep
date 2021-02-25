@@ -1,6 +1,9 @@
-#! /usr/bin/env bash
+#! /bin/sh
+#
 # This script only exists to satisfy the requirements of the benchmark
 # runner.
+#
+# Uses sh because bash is not installed within the semgrep docker container.
 #
 set -eu
 

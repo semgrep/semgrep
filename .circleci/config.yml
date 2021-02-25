@@ -10,29 +10,39 @@ jobs:
       - checkout
       - run: semgrep --config semgrep.yml --config https://semgrep.dev/p/ocaml --error --strict --verbose --exclude tests --exclude TODO --exclude _build .
 
+  # For the benchmarks below, we had two alternatives:
+  # A. run semgrep container from existing container: requires mounting
+  #    a volume, which is disabled by CircleCI (results in empty folder
+  #    once mounted).
+  # B. run everything inside the semgrep container, which is very minimal
+  #    since it doesn't even have bash. At least it has a suitable
+  #    version of python.
+  #
+  # We use B out of necessity.
+  #
   # Go through the same steps as the real benchmarks but quickly.
   dummy-benchmarks:
     docker:
-      - image: cimg/python:3.7
-        user: root
+      - image: returntocorp/semgrep:develop
     steps:
       - checkout
-      - setup_remote_docker
       - run:
           name: dummy benchmarks
-          command: make -C perf dummy
+          command: |
+            cd perf
+            ./run-benchmarks --dummy --upload
 
   # Real benchmarks
   benchmarks:
     docker:
-      - image: cimg/python:3.7
-        user: root
+      - image: returntocorp/semgrep:develop
     steps:
       - checkout
-      - setup_remote_docker
       - run:
           name: benchmarks
-          command: make -C perf run
+          command: |
+            cd perf
+            ./run-benchmarks --upload
 
 workflows:
   version: 2

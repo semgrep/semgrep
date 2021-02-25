@@ -1,9 +1,11 @@
-#! /usr/bin/env bash
+#! /bin/sh
 #
 # Fetch rules and targets prior for the "njs" benchmark.
 #
 # rule_dir: input/njsscan/njsscan/rules/semantic_grep
 # target_dir: input/juice-shop
+#
+# Uses sh because bash is not installed within the semgrep docker container.
 #
 set -eu
 
@@ -12,7 +14,7 @@ cd input
 
 # Obtain a shallow clone of a git repo for a specific commit
 shallow_clone() {
-  if [[ -d "$name" ]]; then
+  if [ -d "$name" ]; then
     echo "Reusing repo '$name'"
   else
     echo "Obtaining a shallow clone of git repo '$name', commit $commit"
