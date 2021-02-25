@@ -1,0 +1,174 @@
+#! /usr/bin/env python3
+#
+# Run semgrep on a series of pairs (rules, repo) with different options,
+# and report the time it takes. Optionally upload the results to the semgrep
+# dashboard.
+#
+import argparse
+import os
+import subprocess
+import time
+import urllib.request
+from contextlib import contextmanager
+from pathlib import Path
+from typing import Iterator
+from typing import List
+
+DASHBOARD_URL = "https://dashboard.semgrep.dev"
+
+# Run command and propagate errors
+def cmd(*args: str) -> None:
+    subprocess.run(args, check=True)  # nosem
+
+
+class Corpus:
+    def __init__(self, name: str, rule_dir: str, target_dir: str):
+        # name for the input corpus (rules and targets)
+        self.name = name
+
+        # folder containing the semgrep rules
+        self.rule_dir = rule_dir
+
+        # folder containing the target source files
+        self.target_dir = target_dir
+
+    # Fetch rules and targets is delegated to an ad-hoc script named 'prep'.
+    def prep(self) -> None:
+        cmd("./prep")
+
+
+CORPUSES = [
+    # Run Ajin's nodejsscan rules on some repo containing javascript files.
+    Corpus("njs", "input/njsscan/njsscan/rules/semantic_grep", "input/juice-shop"),
+    # add more as needed
+]
+
+DUMMY_CORPUSES = [Corpus("dummy", "input/dummy/rules", "input/dummy/targets")]
+
+
+class SemgrepVariant:
+    def __init__(self, name: str, semgrep_core_extra: str):
+        # name for the input corpus (rules and targets)
+        self.name = name
+
+        # space-separated extra arguments to pass to the default semgrep
+        # command
+        self.semgrep_core_extra = semgrep_core_extra
+
+
+# Feel free to create new variants. The idea is to use the default set
+# of options as the baseline and we see what happens when we enable or
+# disable this or that optimization.
+#
+SEMGREP_VARIANTS = [
+    SemgrepVariant("std", ""),
+    SemgrepVariant("no-cache", "-no_opt_cache"),
+    SemgrepVariant("max-cache", "-opt_max_cache"),
+    SemgrepVariant("no-bloom", "-no_bloom_filter"),
+]
+
+# Add support for: with chdir(DIR): ...
+@contextmanager
+def chdir(dir: str) -> Iterator[None]:
+    old_dir = os.getcwd()
+    os.chdir(dir)
+    try:
+        yield
+    finally:
+        os.chdir(old_dir)
+
+
+def upload_result(metric_name: str, value: float) -> None:
+    url = f"{DASHBOARD_URL}/api/metric/{metric_name}"
+    print(f"Uploading to {url}")
+    r = urllib.request.urlopen(  # nosem
+        url=url,
+        data=str(value).encode("ascii"),
+    )
+    print(r.read().decode())
+
+
+def run_semgrep(docker: str, corpus: Corpus, variant: SemgrepVariant) -> float:
+    args = []
+    common_args = [
+        "--strict",
+        "--timeout",
+        "0",
+    ]
+    if docker:
+        # Absolute paths are required by docker for mounting volumes, otherwise
+        # they end up empty inside the container.
+        args = [
+            "docker",
+            "run",
+            "-v",
+            os.path.abspath(corpus.rule_dir) + ":/rules",
+            "-v",
+            os.path.abspath(corpus.target_dir) + ":/targets",
+            "-t",
+            docker,
+            "--config",
+            "/rules",
+            "/targets",
+        ]
+    else:
+        # Absolute paths for rules and targets are required by semgrep
+        # when running within the semgrep docker container.
+        args = [
+            "semgrep",
+            "--config",
+            os.path.abspath(corpus.rule_dir),
+            os.path.abspath(corpus.target_dir),
+        ]
+    args.extend(common_args)
+
+    print(f"current directory: {os.getcwd()}")
+    print("semgrep command: {}".format(" ".join(args)))
+    os.environ["SEMGREP_CORE_EXTRA"] = variant.semgrep_core_extra
+    print(f"extra arguments for semgrep-core: {variant.semgrep_core_extra}")
+    t1 = time.time()
+    subprocess.run(args, check=True)  # nosem
+    t2 = time.time()
+    return t2 - t1
+
+
+def run_benchmarks(docker: str, dummy: bool, upload: bool) -> None:
+    corpuses = CORPUSES
+    if dummy:
+        corpuses = DUMMY_CORPUSES
+    for corpus in corpuses:
+        with chdir(corpus.name):
+            corpus.prep()
+            for variant in SEMGREP_VARIANTS:
+                name = ".".join(["semgrep", "bench", corpus.name, variant.name])
+                metric_name = ".".join([name, "duration"])
+                print(f"------ {name} ------")
+                duration = run_semgrep(docker, corpus, variant)
+                print(f"{metric_name} = {duration:.3f} s")
+                if upload:
+                    upload_result(metric_name, duration)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--docker",
+        metavar="DOCKER_IMAGE",
+        type=str,
+        help="use the specified docker image for semgrep, such as returntocorp/semgrep:develop",
+    )
+    parser.add_argument(
+        "--dummy",
+        help="run quick, fake benchmarks for development purposes",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--upload", help="upload results to semgrep dashboard", action="store_true"
+    )
+    args = parser.parse_args()
+    with chdir("bench"):
+        run_benchmarks(args.docker, args.dummy, args.upload)
+
+
+if __name__ == "__main__":
+    main()

@@ -365,7 +365,7 @@ def load_config_from_local_path(location: str) -> Dict[str, YamlTree]:
     else:
         addendum = ""
         if IN_DOCKER:
-            addendum = " (since you are running in docker, you cannot specify arbitary paths on the host; they must be mounted into the container)"
+            addendum = " (since you are running in docker, you cannot specify arbitrary paths on the host; they must be mounted into the container)"
         raise SemgrepError(
             f"unable to find a config; path `{loc}` does not exist{addendum}"
         )
