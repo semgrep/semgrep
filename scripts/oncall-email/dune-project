@@ -1,0 +1,2 @@
+(lang dune 2.7)
+(name oncall-email)
