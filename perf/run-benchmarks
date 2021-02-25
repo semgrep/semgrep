@@ -96,6 +96,8 @@ def run_semgrep(docker: str, corpus: Corpus, variant: SemgrepVariant) -> float:
         "0",
     ]
     if docker:
+        # Absolute paths are required by docker for mounting volumes, otherwise
+        # they end up empty inside the container.
         args = [
             "docker",
             "run",
@@ -110,11 +112,13 @@ def run_semgrep(docker: str, corpus: Corpus, variant: SemgrepVariant) -> float:
             "/targets",
         ]
     else:
+        # Absolute paths for rules and targets are required by semgrep
+        # when running within the semgrep docker container.
         args = [
             "semgrep",
             "--config",
-            corpus.rule_dir,
-            corpus.target_dir,
+            os.path.abspath(corpus.rule_dir),
+            os.path.abspath(corpus.target_dir),
         ]
     args.extend(common_args)
 
