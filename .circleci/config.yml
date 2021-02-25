@@ -13,7 +13,7 @@ jobs:
   # Go through the same steps as the real benchmarks but quickly.
   dummy-benchmarks:
     docker:
-      - image: circleci/buildpack-deps:stretch
+      - image: cimg/python:3.7
     steps:
       - checkout
       - setup_remote_docker
@@ -24,7 +24,7 @@ jobs:
   # Real benchmarks
   benchmarks:
     docker:
-      - image: circleci/buildpack-deps:stretch
+      - image: cimg/python:3.7
     steps:
       - checkout
       - setup_remote_docker
