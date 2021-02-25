@@ -1688,12 +1688,12 @@ and interpolated_string_expression (env : env) (x : CST.interpolated_string_expr
 
 and tuple_element (env : env) ((v1, v2) : CST.tuple_element) =
   let v1 = type_constraint env v1 in
-  let v2 =
+  let v2_todo =
     (match v2 with
-     | Some tok -> identifier env tok (* identifier *)
-     | None -> todo env ())
+     | Some tok -> Some (identifier env tok) (* identifier *)
+     | None -> None)
   in
-  todo env (v1, v2)
+  v1
 
 and constant_pattern (env : env) (x : CST.constant_pattern) =
   H2.expr_to_pattern (expression env x)
@@ -2065,8 +2065,8 @@ and type_ (env : env) (x : CST.type_) : AST.type_ =
            v2
          ) v5
        in
-       let v6 = token env v4 (* ")" *) in
-       todo env (v1, v2 :: v4 :: v5, v4)
+       let v6 = token env v6 (* ")" *) in
+       TyTuple (v1, v2 :: v4 :: v5, v6)
   )
 
 and type_argument_list (env : env) ((v1, v2, v3) : CST.type_argument_list) =
