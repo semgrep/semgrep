@@ -4,4 +4,4 @@ rules:
     exec(...)
   message: "call to exec()"
   languages: [javascript]
-  severity: WARNING
+  severity: ERROR

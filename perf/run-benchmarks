@@ -94,6 +94,7 @@ def run_semgrep(docker: str, corpus: Corpus, variant: SemgrepVariant) -> float:
         "--strict",
         "--timeout",
         "0",
+        "--verbose",
     ]
     if docker:
         # Absolute paths are required by docker for mounting volumes, otherwise
@@ -126,9 +127,20 @@ def run_semgrep(docker: str, corpus: Corpus, variant: SemgrepVariant) -> float:
     print("semgrep command: {}".format(" ".join(args)))
     os.environ["SEMGREP_CORE_EXTRA"] = variant.semgrep_core_extra
     print(f"extra arguments for semgrep-core: {variant.semgrep_core_extra}")
+
     t1 = time.time()
-    subprocess.run(args, check=True)  # nosem
+    res = subprocess.run(args)  # nosem
     t2 = time.time()
+
+    status = res.returncode
+    print(f"semgrep exit status: {status}")
+    if status == 0:
+        print("success")
+    elif status == 3:
+        print("warning: some files couldn't be parsed")
+    else:
+        res.check_returncode()
+
     return t2 - t1
 
 
