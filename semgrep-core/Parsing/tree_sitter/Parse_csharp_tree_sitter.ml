@@ -428,13 +428,6 @@ let rec variable_designation (env : env) (x : CST.variable_designation) =
    | `Id tok -> PatId (identifier env tok, empty_id_info ()) (* identifier *)
   )
 
-let anon_choice_id_c036834 (env : env) (x : CST.anon_choice_id_c036834) =
-  (match x with
-   | `Id tok -> identifier env tok (* identifier *)
-   | `Disc tok -> todo env tok (* "_" *)
-   | `Tuple_pat x -> todo env x
-  )
-
 let join_into_clause (env : env) ((v1, v2) : CST.join_into_clause) =
   let v1 = token env v1 (* "into" *) in
   let v2 = identifier env v2 (* identifier *) in
@@ -452,7 +445,7 @@ let identifier_or_global_qualifier (env : env) (x : CST.identifier_or_global) =
    | `Id tok -> QDots [identifier env tok] (* identifier *)
   )
 
-let tuple_pattern (env : env) ((v1, v2, v3, v4) : CST.tuple_pattern) =
+let rec tuple_pattern (env : env) ((v1, v2, v3, v4) : CST.tuple_pattern) =
   let v1 = token env v1 (* "(" *) in
   let v2 = anon_choice_id_c036834 env v2 in
   let v3 =
@@ -463,7 +456,18 @@ let tuple_pattern (env : env) ((v1, v2, v3, v4) : CST.tuple_pattern) =
     ) v3
   in
   let v4 = token env v4 (* ")" *) in
-  todo env (v1, v2 :: v3, v4)
+  PatTuple (v1, v2 :: v3, v4)
+
+and anon_choice_id_c036834 (env : env) (x : CST.anon_choice_id_c036834) =
+  (match x with
+   | `Id tok ->
+       let id = identifier env tok (* identifier *) in
+       PatId(id, empty_id_info ())
+   | `Disc tok ->
+       let tok = token env tok (* "_" *) in
+       PatUnderscore tok
+   | `Tuple_pat x -> tuple_pattern env x
+  )
 
 let name_colon (env : env) ((v1, v2) : CST.name_colon) =
   let v1 = identifier_or_global env v1 in
@@ -674,10 +678,13 @@ and block (env : env) ((v1, v2, v3) : CST.block) : stmt =
   AST.Block (v1, v2, v3) |> AST.s
 
 and variable_declarator (env : env) ((v1, v2, v3) : CST.variable_declarator) =
-  let v1 =
+  let v1, pattern =
     (match v1 with
-     | `Id tok -> identifier env tok (* identifier *)
-     | `Tuple_pat x -> tuple_pattern env x
+     | `Id tok -> (identifier env tok, None) (* identifier *)
+     | `Tuple_pat x ->
+         let id = (AST.special_multivardef_pattern, fake AST.special_multivardef_pattern) in
+         let pat = Some (tuple_pattern env x) in
+         (id, pat)
     )
   in
   let v2 = (* TODO handle v2 *)
@@ -690,8 +697,11 @@ and variable_declarator (env : env) ((v1, v2, v3) : CST.variable_declarator) =
      | Some x -> Some (equals_value_clause env x)
      | None -> None)
   in
+  let vinit = (match (pattern, v3) with
+    | Some(pat), Some(init) -> Some(LetPattern (pat, init))
+    | _ -> v3) in
   let ent = basic_entity v1 [] in
-  let vardef = {vinit = v3; vtype = None} in
+  let vardef = {vinit; vtype = None} in
   (ent, vardef)
 
 and prefix_unary_expression (env : env) (x : CST.prefix_unary_expression) =
