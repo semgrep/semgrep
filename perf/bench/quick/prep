@@ -1,0 +1,11 @@
+#! /usr/bin/env bash
+# This script only exists to satisfy the requirements of the benchmark
+# runner.
+#
+set -eu
+
+mkdir -p input/quick/rules
+mkdir -p input/quick/targets
+
+cp rules/* input/quick/rules
+cp targets/* input/quick/targets

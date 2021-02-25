@@ -21,12 +21,9 @@ def cmd(*args: str) -> None:
 
 
 class Corpus:
-    def __init__(self, name: str, lang: str, rule_dir: str, target_dir: str):
+    def __init__(self, name: str, rule_dir: str, target_dir: str):
         # name for the input corpus (rules and targets)
         self.name = name
-
-        # language of the targets as understood by semgrep e.g. 'js'
-        self.lang = lang
 
         # folder containing the semgrep rules
         self.rule_dir = rule_dir
@@ -40,10 +37,12 @@ class Corpus:
 
 
 CORPUSES = [
-    Corpus(
-        "njs", "js", "input/njsscan/njsscan/rules/semantic_grep", "input/juice-shop"
-    ),
+    # Run Ajin's nodejsscan rules on some repo containing javascript files.
+    Corpus("njs", "input/njsscan/njsscan/rules/semantic_grep", "input/juice-shop"),
+    # add more as needed
 ]
+
+QUICK_CORPUSES = [Corpus("quick", "input/quick/rules", "input/quick/targets")]
 
 
 class SemgrepVariant:
@@ -82,18 +81,36 @@ def upload_result(metric_name: str, value: float) -> None:
     print("TODO: upload to dashboard")
 
 
-def run_semgrep(semgrep: str, corpus: Corpus, variant: SemgrepVariant) -> float:
-    args = semgrep.split()
-    args.extend(
-        [
-            "--lang",
-            corpus.lang,
-            "--strict",
+def run_semgrep(docker: str, corpus: Corpus, variant: SemgrepVariant) -> float:
+    args = []
+    common_args = [
+        "--strict",
+        "--timeout",
+        "0",
+    ]
+    if docker:
+        args = [
+            "docker",
+            "run",
+            "-v",
+            os.path.abspath(corpus.rule_dir) + ":/rules",
+            "-v",
+            os.path.abspath(corpus.target_dir) + ":/targets",
+            "-t",
+            docker,
+            "--config",
+            "/rules",
+            "/targets",
+        ]
+    else:
+        args = [
+            "semgrep",
             "--config",
             corpus.rule_dir,
             corpus.target_dir,
         ]
-    )
+    args.extend(common_args)
+
     print("current directory: {}".format(os.getcwd()))
     print("semgrep command: {}".format(args))
     os.environ["SEMGREP_CORE_EXTRA"] = variant.semgrep_core_extra
@@ -104,15 +121,18 @@ def run_semgrep(semgrep: str, corpus: Corpus, variant: SemgrepVariant) -> float:
     return t2 - t1
 
 
-def run_benchmarks(semgrep: str, upload: bool) -> None:
-    for corpus in CORPUSES:
+def run_benchmarks(docker: str, quick: bool, upload: bool) -> None:
+    corpuses = CORPUSES
+    if quick:
+        corpuses = QUICK_CORPUSES
+    for corpus in corpuses:
         with chdir(corpus.name):
             corpus.prep()
             for variant in SEMGREP_VARIANTS:
                 name = ".".join(["semgrep", "bench", corpus.name, variant.name])
                 metric_name = ".".join([name, "duration"])
                 print("------ {} ------".format(name))
-                duration = run_semgrep(semgrep, corpus, variant)
+                duration = run_semgrep(docker, corpus, variant)
                 print("{} = {:.3f} s".format(metric_name, duration))
                 if upload:
                     upload_result(metric_name, duration)
@@ -121,18 +141,22 @@ def run_benchmarks(semgrep: str, upload: bool) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--upload", help="upload results to semgrep dashboard", action="store_true"
+        "--docker",
+        metavar="DOCKER_IMAGE",
+        type=str,
+        help="use the specified docker image for semgrep, such as returntocorp/semgrep:develop",
     )
     parser.add_argument(
-        "--semgrep",
-        metavar="CMD",
-        type=str,
-        default="semgrep",
-        help="upload results to semgrep dashboard",
+        "--quick",
+        help="run quick, fake benchmarks for development purposes",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--upload", help="upload results to semgrep dashboard", action="store_true"
     )
     args = parser.parse_args()
     with chdir("bench"):
-        run_benchmarks(args.semgrep, args.upload)
+        run_benchmarks(args.docker, args.quick, args.upload)
 
 
 if __name__ == "__main__":
