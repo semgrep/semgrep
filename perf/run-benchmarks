@@ -42,7 +42,7 @@ CORPUSES = [
     # add more as needed
 ]
 
-QUICK_CORPUSES = [Corpus("quick", "input/quick/rules", "input/quick/targets")]
+DUMMY_CORPUSES = [Corpus("dummy", "input/dummy/rules", "input/dummy/targets")]
 
 
 class SemgrepVariant:
@@ -121,10 +121,10 @@ def run_semgrep(docker: str, corpus: Corpus, variant: SemgrepVariant) -> float:
     return t2 - t1
 
 
-def run_benchmarks(docker: str, quick: bool, upload: bool) -> None:
+def run_benchmarks(docker: str, dummy: bool, upload: bool) -> None:
     corpuses = CORPUSES
-    if quick:
-        corpuses = QUICK_CORPUSES
+    if dummy:
+        corpuses = DUMMY_CORPUSES
     for corpus in corpuses:
         with chdir(corpus.name):
             corpus.prep()
@@ -147,7 +147,7 @@ def main() -> None:
         help="use the specified docker image for semgrep, such as returntocorp/semgrep:develop",
     )
     parser.add_argument(
-        "--quick",
+        "--dummy",
         help="run quick, fake benchmarks for development purposes",
         action="store_true",
     )
@@ -156,7 +156,7 @@ def main() -> None:
     )
     args = parser.parse_args()
     with chdir("bench"):
-        run_benchmarks(args.docker, args.quick, args.upload)
+        run_benchmarks(args.docker, args.dummy, args.upload)
 
 
 if __name__ == "__main__":

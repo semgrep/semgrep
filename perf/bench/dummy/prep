@@ -1,0 +1,11 @@
+#! /usr/bin/env bash
+# This script only exists to satisfy the requirements of the benchmark
+# runner.
+#
+set -eu
+
+mkdir -p input/dummy/rules
+mkdir -p input/dummy/targets
+
+cp rules/* input/dummy/rules
+cp targets/* input/dummy/targets

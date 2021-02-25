@@ -10,8 +10,57 @@ jobs:
       - checkout
       - run: semgrep --config semgrep.yml --config https://semgrep.dev/p/ocaml --error --strict --verbose --exclude tests --exclude TODO --exclude _build .
 
+  # Go through the same steps as the real benchmarks but quickly.
+  dummy-benchmarks:
+    docker:
+      - image: circleci/buildpack-deps:stretch
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: dummy benchmarks
+          command: make -C perf dummy
+
+  # Real benchmarks
+  benchmarks:
+    docker:
+      - image: circleci/buildpack-deps:stretch
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: benchmarks
+          command: make -C perf run
+
 workflows:
   version: 2
   semgrep:
     jobs:
       - semgrep
+
+  # Daily semgrep benchmarks
+  benchmarks:
+    triggers:
+      - schedule:
+          # Run at 00:00 every day, UTC.
+          cron: "0 0 * * *"
+          filters:
+            branches:
+              only:
+                - develop
+    jobs:
+      - benchmarks:
+          # Run only on these branches
+          filters:
+            branches:
+              only:
+                - develop
+
+  # This is for testing. Requires pushing to a branch named 'benchmarks'.
+  dummy-benchmarks-on-commit:
+    jobs:
+      - dummy-benchmarks:
+          filters:
+            branches:
+              only:
+                - benchmarks
