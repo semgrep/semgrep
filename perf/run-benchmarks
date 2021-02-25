@@ -8,6 +8,7 @@ import argparse
 import os
 import subprocess
 import time
+import urllib.request
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterator
@@ -78,7 +79,13 @@ def chdir(dir: str) -> Iterator[None]:
 
 
 def upload_result(metric_name: str, value: float) -> None:
-    print("TODO: upload to dashboard")
+    url = f"{DASHBOARD_URL}/api/metric/{metric_name}"
+    print(f"Uploading to {url}")
+    r = urllib.request.urlopen(  # nosem
+        url=url,
+        data=str(value).encode("ascii"),
+    )
+    print(r.read().decode())
 
 
 def run_semgrep(docker: str, corpus: Corpus, variant: SemgrepVariant) -> float:
@@ -111,10 +118,10 @@ def run_semgrep(docker: str, corpus: Corpus, variant: SemgrepVariant) -> float:
         ]
     args.extend(common_args)
 
-    print("current directory: {}".format(os.getcwd()))
+    print(f"current directory: {os.getcwd()}")
     print("semgrep command: {}".format(args))
     os.environ["SEMGREP_CORE_EXTRA"] = variant.semgrep_core_extra
-    print("extra arguments for semgrep-core: {}".format(variant.semgrep_core_extra))
+    print(f"extra arguments for semgrep-core: {variant.semgrep_core_extra}")
     t1 = time.time()
     subprocess.run(args, check=True)  # nosem
     t2 = time.time()
@@ -131,9 +138,9 @@ def run_benchmarks(docker: str, dummy: bool, upload: bool) -> None:
             for variant in SEMGREP_VARIANTS:
                 name = ".".join(["semgrep", "bench", corpus.name, variant.name])
                 metric_name = ".".join([name, "duration"])
-                print("------ {} ------".format(name))
+                print(f"------ {name} ------")
                 duration = run_semgrep(docker, corpus, variant)
-                print("{} = {:.3f} s".format(metric_name, duration))
+                print(f"{metric_name} = {duration:.3f} s")
                 if upload:
                     upload_result(metric_name, duration)
 
