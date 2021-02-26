@@ -21,16 +21,21 @@ The workspace looks like this:
 ```
 .
 ├── bench
-│   ├── njs
-│   │   ├── extra-cache
-│   │   ├── no-bloom
-│   │   ├── no-cache
-│   │   └── std
-│   └── zulip
-│       ├── extra-cache
-│       ├── no-bloom
-│       ├── no-cache
-│       └── std
+│   ├── dummy
+│   │   ├── input
+│   │   │   └── dummy
+│   │   │       ├── rules
+│   │   │       │   └── exec.yaml
+│   │   │       └── targets
+│   │   │           ├── hello.js
+│   │   │           └── malformed.js
+│   │   └── prep
+│   └── njs
+│       ├── input
+│       │   ├── juice-shop/ (lots of files)
+│       │   └── njsscan/ (lots of files)
+│       └── prep
+├── Makefile
 ├── README.md
 └── run-benchmarks
 ```
@@ -46,7 +51,9 @@ offered by the host as is the default for `semgrep`.
 Manual operation
 --
 
-Use the Makefile to run the benchmarks:
+Read and use the Makefile or call `./run-benchmarks` directly.
+The bare `make` command will use the local `semgrep` command and
+overall is safe to use.
 ```
 $ make
 ```
