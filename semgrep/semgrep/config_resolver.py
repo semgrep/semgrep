@@ -398,7 +398,7 @@ def download_config(config_url: str) -> Dict[str, YamlTree]:
     headers = {"User-Agent": SEMGREP_USER_AGENT}
 
     try:
-        r = requests.get(config_url, stream=True, headers=headers, timeout=10)
+        r = requests.get(config_url, stream=True, headers=headers, timeout=20)
         if r.status_code == requests.codes.ok:
             content_type = r.headers.get("Content-Type")
             yaml_types = [
