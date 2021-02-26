@@ -298,10 +298,7 @@ let just_parse_with_lang lang file =
   | Lang.R ->
       failwith "No R parser yet; improve the one in tree-sitter"
   | Lang.Yaml ->
-      let ch = open_in file in
-      let s = really_input_string ch (in_channel_length ch) in
-      close_in ch;
-      { ast = Yaml_to_generic.program {str = s; file};
+      { ast = Yaml_to_generic.program file;
         errors = [];
         stat = Parse_info.default_stat file}
 

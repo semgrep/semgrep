@@ -12,11 +12,6 @@ exception ParseError of string
  * low-level Stream API, which we parse into a generic AST
 *)
 
-type env = {
-  str: string;
-  file: Common.filename
-}
-
 (* Helper functions *)
 
 let p_token = function
@@ -145,6 +140,8 @@ let parse file parser : A.expr =
 
 (* Entry point *)
 
-let program { str; file } = [A.exprstmt (get_res (S.parser str) |> parse file)]
+let program file =
+  let str = Common.read_file file in
+  [A.exprstmt (get_res (S.parser str) |> parse file)]
 
 let any str = A.E (get_res (S.parser str) |> parse "<pattern_file>")
