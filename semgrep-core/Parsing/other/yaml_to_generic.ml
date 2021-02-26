@@ -37,12 +37,12 @@ let get_res = function
   | Result.Ok v -> v
 
 let tok (index, line, column) str file =
-  {Parse_info.token = Parse_info.OriginTok {str; charpos = index; line; column; file};
+  {Parse_info.token = Parse_info.OriginTok {str; charpos = index; line = line + 1; column; file};
    Parse_info.transfo = NoTransfo}
 
 let mk_tok {E.start_mark = {M.index; M.line; M.column}; _} str file =
   (* their tokens are 0 indexed for line and column, AST_generic's are 1 indexed for line, 0 for column *)
-  tok (index, line + 1, column) str file
+  tok (index, line, column) str file
 
 let mk_bracket ({E.start_mark = {M.index = s_index; M.line = s_line; M.column = s_column}; _},
                 {E.end_mark = {M.index = e_index; M.line = e_line; M.column = e_column}; _}) v file =
