@@ -126,7 +126,7 @@ def run_semgrep(docker: str, corpus: Corpus, variant: SemgrepVariant) -> float:
     print(f"current directory: {os.getcwd()}")
     print("semgrep command: {}".format(" ".join(args)))
     os.environ["SEMGREP_CORE_EXTRA"] = variant.semgrep_core_extra
-    print(f"extra arguments for semgrep-core: {variant.semgrep_core_extra}")
+    print(f"extra arguments for semgrep-core: '{variant.semgrep_core_extra}'")
 
     t1 = time.time()
     res = subprocess.run(args)  # nosem
