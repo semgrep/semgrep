@@ -540,3 +540,21 @@ def test_evaluate_python_bad_return_type() -> None:
 
     with pytest.raises(SemgrepError):
         evaluate_expression(expression, results, allow_exec=True)
+
+
+def test_single_pattern_match_filtering() -> None:
+    results = {
+        PatternId("pattern1"): [PatternMatchMock(30, 100, {"$X": "x1", "$Y": "y1"})],
+        PatternId("pattern2"): [PatternMatchMock(30, 100, {"$X": "x1", "$Y": "y2"})],
+        PatternId("pattern3"): [PatternMatchMock(30, 100, {"$X": "x1"})],
+    }
+    expression = [
+        BooleanRuleExpression(
+            OPERATORS.AND_EITHER,
+            None,
+            [RuleExpr(OPERATORS.AND, "pattern1"), RuleExpr(OPERATORS.AND, "pattern2")],
+        ),
+        RuleExpr(OPERATORS.AND_NOT, "pattern3"),
+    ]
+    result = evaluate_expression(expression, results)
+    assert result == set(), f"{result}"
