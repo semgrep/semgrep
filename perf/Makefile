@@ -2,16 +2,32 @@
 # Run semgrep benchmarks.
 # See './run-benchmarks --help' for options.
 #
+
+DOCKER_IMG = returntocorp/semgrep:develop
+
+# Run whichever version of semgrep is available locally.
 .PHONY: run
 run:
-	docker pull returntocorp/semgrep:develop
-	./run-benchmarks --docker returntocorp/semgrep:develop
+	@set -e; \
+	if ! semgrep --version > /dev/null; then \
+	  echo "Missing 'semgrep' executable. Consider using 'make docker'."; \
+	  exit 1; \
+	fi
+	./run-benchmarks
 
+# Use the latest semgrep build published on DockerHub.
+.PHONY: docker
+docker:
+	docker pull $(DOCKER_IMG)
+	./run-benchmarks --docker $(DOCKER_IMG)
+
+# This is for testing the setup.
 .PHONY: dummy
 dummy:
-	docker pull returntocorp/semgrep:develop
-	./run-benchmarks --dummy --docker returntocorp/semgrep:develop --upload
+	docker pull $(DOCKER_IMG)
+	./run-benchmarks --dummy --docker $(DOCKER_IMG) --upload
 
 .PHONY: clean
 clean:
-	git clean -dfX
+	rm -rf bench/*/input
+	rm -rf bench/*/output
