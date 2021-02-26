@@ -61,9 +61,9 @@ class SemgrepVariant:
 # disable this or that optimization.
 #
 SEMGREP_VARIANTS = [
-    SemgrepVariant("std", ""),
-    SemgrepVariant("no-cache", "-no_opt_cache"),
-    SemgrepVariant("max-cache", "-opt_max_cache"),
+    SemgrepVariant("std", "-bloom_filter"),
+    SemgrepVariant("no-cache", "-bloom_filter -no_opt_cache"),
+    SemgrepVariant("max-cache", "-bloom_filter -opt_max_cache"),
     SemgrepVariant("no-bloom", "-no_bloom_filter"),
 ]
 
