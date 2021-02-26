@@ -92,7 +92,7 @@ let make_mappings _anchor _tag start_pos (es, end_pos) file =
 
 let make_mapping (pos1, pos2) ((key, value) : A.expr * A.expr) file =
   match key, value with
-  | A.L (A.String ("__fake", _)), A.L (A.String ("__sgrep_ellipses__", _)) -> A.Ellipsis (Parse_info.fake_info "...")
+  | A.Ellipsis _, A.Ellipsis _ -> A.Ellipsis (Parse_info.fake_info "...")
   | _ -> A.Tuple (mk_bracket (pos1, pos2) [key; value] file)
 
 let make_doc start_pos (doc, end_pos) file =
