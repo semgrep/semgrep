@@ -1519,18 +1519,17 @@ and statement (env : env) (x : CST.statement) =
        For (v1, for_header, v9) |> AST.s
    | `Goto_stmt (v1, v2, v3) ->
        let v1 = token env v1 (* "goto" *) in
-       let v2 =
-         (match v2 with
-          | `Id tok -> identifier env tok (* identifier *)
-          | `Case_exp (v1, v2) ->
-              let v1 = token env v1 (* "case" *) in
-              let v2 = expression env v2 in
-              todo env (v1, v2)
-          | `Defa tok -> todo env tok (* "default" *)
-         )
-       in
        let v3 = token env v3 (* ";" *) in
-       todo env (v1, v2, v3)
+       (match v2 with
+        | `Id tok ->
+            let label = identifier env tok (* identifier *) in
+            Goto (v1, label) |> AST.s
+        | `Case_exp (v1, v2) ->
+            let v1 = token env v1 (* "case" *) in
+            let v2 = expression env v2 in
+            todo env (v1, v2)
+        | `Defa tok -> todo env tok (* "default" *)
+       )
    | `If_stmt (v1, v2, v3, v4, v5, v6) ->
        let v1 = token env v1 (* "if" *) in
        let v2 = token env v2 (* "(" *) in
@@ -1550,7 +1549,7 @@ and statement (env : env) (x : CST.statement) =
        let v1 = identifier env v1 (* identifier *) in
        let v2 = token env v2 (* ":" *) in
        let v3 = statement env v3 in
-       todo env (v1, v2, v3)
+       Label (v1, v3) |> AST.s
    | `Local_decl_stmt (v1, v2, v3, v4, v5) ->
        let v1 = (* TODO handle v1 *)
          (match v1 with
