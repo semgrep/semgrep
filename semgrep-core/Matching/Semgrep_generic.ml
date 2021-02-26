@@ -422,6 +422,16 @@ let check2 ~hook ~with_caching rules equivs file lang ast =
     visitor prog;
 
     !matches |> List.rev
+    (* TODO: this uniq_by introduces some regressions in the semgrep wrapper!
+     * See tests/OTHER/rules/regression_uniq_or_ellipsis.go
+     * You have the regression also if you do the optimisation
+     * in Generic_vs_generic.m_stmt doing
+     *  | A.Block(_, [{s=A.ExprStmt(A.Ellipsis _i, _);_}], _),
+     *     B.Block(_b1) -> return ()
+     * which really has for effect to reduce the number of equivalent matches.
+     * WEIRD!
+       |> Common.uniq_by (AST_utils.with_structural_equal Pattern_match.equal)
+    *)
   end
 (*e: function [[Semgrep_generic.check2]] *)
 

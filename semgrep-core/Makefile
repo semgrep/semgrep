@@ -29,6 +29,7 @@ e2etest:
 	python3 tests/e2e/test_target_file.py
 install:
 	dune install
+	cp ./_build/default/CLI/Main.exe ../semgrep/semgrep/bin/semgrep-core
 dump:
 	./_build/default/tests/test.bc -dump_ast tests/lint/stupid.py
 

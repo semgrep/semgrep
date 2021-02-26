@@ -1,0 +1,40 @@
+rules:
+- id: wrong-err-check
+  message: |
+    Did you mean to check $ERR_A instead of $ERR_B?
+  severity: ERROR
+  languages: [go]
+  patterns: 
+    - pattern-either:
+        - pattern: |
+            if ...,$ERR_A = <...$F(...)...>; $ERR_B != nil {
+              ...
+            }
+        - pattern: |
+            if $ERR_A = <...$F(...)...>; $ERR_B != nil {
+              ...
+            }
+    - pattern-not: |
+        if ...,$ERR_B = <...$F(...)...>; $ERR_B != nil {
+          ...
+        }
+    # The patterns below rule out false positives where the error is the
+    # first return argument of the function.
+    - pattern-not: |
+        if $ERR_B, ... = <...$F(...)...>; $ERR_B != nil {
+          ...
+        }
+    - pattern-not: |
+        if $ERR_B = <...$F(...)...>; $ERR_B != nil {
+          ...
+        }
+    # We use meta variable regexes to surface checks which are likely to
+    # be dealing with error types. We use these because Semgrep doesn't
+    # currently support matching on Go function types. For now this is
+    # an effective heuristic.
+    - metavariable-regex:
+          metavariable: "$ERR_A"
+          regex: "err|(.*Err$)" 
+    - metavariable-regex:
+          metavariable: "$ERR_B"
+          regex: "err|(.*Err$)" 
