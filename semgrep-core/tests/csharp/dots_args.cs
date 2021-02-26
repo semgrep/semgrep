@@ -1,4 +1,4 @@
-public class MetaVar
+public class ConcreteSyntax
 {
     public static void Main()
     {
@@ -6,20 +6,27 @@ public class MetaVar
         Foo(1, 2);
 
         // ERROR:
-        Foo(int.MaxValue,
+        Foo(1,
             2);
 
         // ERROR:
-        Foo(int.Parse("3"), // comment
+        Foo(1, // comment
             2);
 
         // ERROR:
-        Foo(1 + 1, 2);
+        Foo(2, 1);
 
+        // ERROR:
         Foo(1, 2, 3);
+
+        Bar(1, 2);
     }
 
     private static void Foo(int a, int b, int c = 3)
+    {
+    }
+
+    private static void Bar(int a, int b)
     {
     }
 }
