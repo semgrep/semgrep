@@ -48,7 +48,7 @@ def convert_ranges(ranges: DebugRanges) -> DebugRangesConverted:
 class DebuggingStep:
     filter: str
     pattern_id: Optional[str]
-    ranges: DebugRanges = attr.ib(converter=convert_ranges)
+    ranges: DebugRangesConverted = attr.ib(converter=convert_ranges)
     metavar_ranges: Dict[str, List[PatternMatch]]
 
 

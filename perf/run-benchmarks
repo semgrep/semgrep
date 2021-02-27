@@ -61,6 +61,7 @@ class SemgrepVariant:
 # disable this or that optimization.
 #
 SEMGREP_VARIANTS = [
+    # default settings
     SemgrepVariant("std", "-bloom_filter"),
     SemgrepVariant("no-cache", "-bloom_filter -no_opt_cache"),
     SemgrepVariant("max-cache", "-bloom_filter -opt_max_cache"),
@@ -95,6 +96,7 @@ def run_semgrep(docker: str, corpus: Corpus, variant: SemgrepVariant) -> float:
         "--timeout",
         "0",
         "--verbose",
+        "--no-git-ignore",  # because files in bench/*/input/ are git-ignored
     ]
     if docker:
         # Absolute paths are required by docker for mounting volumes, otherwise
