@@ -39,8 +39,10 @@ class Corpus:
 
 CORPUSES = [
     # Run Ajin's nodejsscan rules on some repo containing javascript files.
-    Corpus("njs", "input/njsscan/njsscan/rules/semantic_grep", "input/juice-shop"),
-    # add more as needed
+    # This takes something like 4 hours or more. Maybe we could run it
+    # on fewer targets.
+    # Corpus("njs", "input/njsscan/njsscan/rules/semantic_grep", "input/juice-shop"),
+    Corpus("zulip", "input/semgrep.yml", "input/zulip")
 ]
 
 DUMMY_CORPUSES = [Corpus("dummy", "input/dummy/rules", "input/dummy/targets")]

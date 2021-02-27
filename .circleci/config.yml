@@ -68,11 +68,21 @@ workflows:
               only:
                 - develop
 
-  # This is for testing. Requires pushing to a branch named 'benchmarks'.
+  # This is for testing. Requires pushing to a branch named 'dummy-benchmarks'.
   dummy-benchmarks-on-commit:
     jobs:
       - dummy-benchmarks:
           filters:
             branches:
               only:
-                - benchmarks
+                - dummy-benchmarks
+
+  # This is for testing. Requires pushing to a branch named 'force-benchmarks'.
+  # It can take hours, use with care.
+  benchmarks-on-commit:
+    jobs:
+      - benchmarks:
+          filters:
+            branches:
+              only:
+                - force-benchmarks
