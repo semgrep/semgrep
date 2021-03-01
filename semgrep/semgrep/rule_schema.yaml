@@ -1,4 +1,4 @@
-$schema: http://github.com/returntocorp/semgrep/semgrep/semgrep/rule_schema.yaml
+$schema: https://raw.githubusercontent.com/returntocorp/semgrep/develop/semgrep/semgrep/rule_schema.yaml
 definitions:
   patterns-content:
     type: array
