@@ -1756,30 +1756,29 @@ and m_stmt a b =
   (* opti: specialization to avoid going in the deep stmt matching!
    * TODO: we should not need this; '...' should not enumerate all
    * possible subset of stmt list and take forever.
+   * Note that as a side effect it returns also less equivalent
+   * matches (which again, should not happen), which used to introduce
+   * some regressions (see tests/OTHER/rules/regression_uniq...) but this
+   * has been fixed now.
   *)
-  (* TODO this is commented because it introduces some regressions in
-   * the semgrep python wrapper.
-   * See tests/OTHER/rules/regression_uniq_or_ellipsis.go and also
-   * the related TODO in Semgrep_generic.check
+  | A.Block(_, [{s=A.ExprStmt(A.Ellipsis _i, _);_}], _),
+    B.Block(_b1) -> return ()
 
-     | A.Block(_, [{s=A.ExprStmt(A.Ellipsis _i, _);_}], _),
-      B.Block(_b1) -> return ()
-     (* opti: another specialization; again we should not need it *)
-     | A.Block(_, [
-      {s=A.ExprStmt(A.Ellipsis _, _);_};
-      a;
-      {s=A.ExprStmt(A.Ellipsis _, _);_};
-     ]
-             , _),
-      B.Block(_, bs, _) ->
-        let bs =
-          match SubAST_generic.flatten_substmts_of_stmts bs with
-          (* already flat  *)
-          | None -> bs
-          | Some (xs, _) -> xs
-        in
-        or_list m_stmt a bs
-  *)
+  (* opti: another specialization; again we should not need it *)
+  | A.Block(_, [
+    {s=A.ExprStmt(A.Ellipsis _, _);_};
+    a;
+    {s=A.ExprStmt(A.Ellipsis _, _);_};
+  ]
+           , _),
+    B.Block(_, bs, _) ->
+      let bs =
+        match SubAST_generic.flatten_substmts_of_stmts bs with
+        (* already flat  *)
+        | None -> bs
+        | Some (xs, _) -> xs
+      in
+      or_list m_stmt a bs
   (* the general case *)
   (* TODO: ... will allow a subset of stmts? good? *)
   | A.Block(a1), B.Block(b1) ->
