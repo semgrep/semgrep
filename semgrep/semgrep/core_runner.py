@@ -294,8 +294,11 @@ class CoreRunner:
             core_run = sub_run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             logger.debug(core_run.stderr.decode("utf-8", errors="replace"))
 
-            if core_run.returncode != 0:
-                output_json = self._parse_core_output(core_run.stdout)
+            out_bytes = core_run.stdout
+            err_bytes = core_run.stderr
+            returncode = core_run.returncode
+            if returncode != 0:
+                output_json = self._parse_core_output(out_bytes, err_bytes, returncode)
 
                 if "error" in output_json:
                     self._raise_semgrep_error_from_json(output_json, patterns, rule)
@@ -304,18 +307,29 @@ class CoreRunner:
                         f"unexpected json output while invoking semgrep-core with rule '{rule.id}':\n{PLEASE_FILE_ISSUE_TEXT}"
                     )
 
-            output_json = self._parse_core_output(core_run.stdout)
+            output_json = self._parse_core_output(out_bytes, err_bytes, returncode)
 
             return output_json
 
-    def _parse_core_output(self, core_run_out: bytes) -> Dict[str, Any]:
+    def _parse_core_output(
+        self, out_bytes: bytes, err_bytes: bytes, returncode: int
+    ) -> Dict[str, Any]:
         # see if semgrep output a JSON error that we can decode
-        semgrep_output = core_run_out.decode("utf-8", errors="replace")
+        semgrep_output = out_bytes.decode("utf-8", errors="replace")
         try:
             return cast(Dict[str, Any], json.loads(semgrep_output))
         except ValueError:
+            semgrep_error = err_bytes.decode("utf-8", errors="replace")
             raise SemgrepError(
-                f"unexpected non-json output while invoking semgrep-core:\n{semgrep_output}\n\n{PLEASE_FILE_ISSUE_TEXT}"
+                f"semgrep-core exit code: {returncode}\n"
+                f"unexpected non-json output while invoking semgrep-core:\n"
+                "--- semgrep-core stdout ---\n"
+                f"{semgrep_output}\n"
+                "--- end semgrep-core stdout ---\n"
+                "--- semgrep-core stderr ---\n"
+                f"{semgrep_error}\n"
+                "--- end semgrep-core stderr ---\n"
+                f"{PLEASE_FILE_ISSUE_TEXT}"
             )
 
     def _run_rule(

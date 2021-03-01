@@ -27,6 +27,10 @@ dummy:
 	docker pull $(DOCKER_IMG)
 	./run-benchmarks --dummy --docker $(DOCKER_IMG) --upload
 
+.PHONY: dummy-local
+dummy-local:
+	./run-benchmarks --dummy --upload
+
 .PHONY: clean
 clean:
 	rm -rf bench/*/input
