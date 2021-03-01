@@ -39,8 +39,13 @@ class Corpus:
 
 CORPUSES = [
     # Run Ajin's nodejsscan rules on some repo containing javascript files.
-    Corpus("njs", "input/njsscan/njsscan/rules/semantic_grep", "input/juice-shop"),
-    # add more as needed
+    # This takes something like 4 hours or more. Maybe we could run it
+    # on fewer targets.
+    # Corpus("njs", "input/njsscan/njsscan/rules/semantic_grep", "input/juice-shop"),
+    Corpus(
+        "njsbox", "input/njsscan/njsscan/rules/semantic_grep", "input/dropbox-sdk-js"
+    ),
+    Corpus("zulip", "input/semgrep.yml", "input/zulip"),
 ]
 
 DUMMY_CORPUSES = [Corpus("dummy", "input/dummy/rules", "input/dummy/targets")]
@@ -61,6 +66,7 @@ class SemgrepVariant:
 # disable this or that optimization.
 #
 SEMGREP_VARIANTS = [
+    # default settings
     SemgrepVariant("std", "-bloom_filter"),
     SemgrepVariant("no-cache", "-bloom_filter -no_opt_cache"),
     SemgrepVariant("max-cache", "-bloom_filter -opt_max_cache"),
@@ -95,6 +101,7 @@ def run_semgrep(docker: str, corpus: Corpus, variant: SemgrepVariant) -> float:
         "--timeout",
         "0",
         "--verbose",
+        "--no-git-ignore",  # because files in bench/*/input/ are git-ignored
     ]
     if docker:
         # Absolute paths are required by docker for mounting volumes, otherwise

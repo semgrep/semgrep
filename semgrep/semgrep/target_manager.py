@@ -86,7 +86,7 @@ class TargetManager:
     ) -> Set[Path]:
         """
         Recursively go through a directory and return list of all files with
-        default file extention of language
+        default file extension of language
         """
 
         def _parse_output(output: str, curr_dir: Path) -> Set[Path]:
@@ -107,7 +107,7 @@ class TargetManager:
                 }
             return files
 
-        def _find_files_with_extention(
+        def _find_files_with_extension(
             curr_dir: Path, extension: FileExtension
         ) -> Set[Path]:
             """
@@ -155,7 +155,7 @@ class TargetManager:
                     )
                 except (subprocess.CalledProcessError, FileNotFoundError):
                     # Not a git directory or git not installed. Fallback to using rglob
-                    ext_files = _find_files_with_extention(curr_dir, ext)
+                    ext_files = _find_files_with_extension(curr_dir, ext)
                     expanded = expanded.union(ext_files)
                 else:
                     tracked = _parse_output(tracked_output, curr_dir)
@@ -166,7 +166,7 @@ class TargetManager:
                     expanded = expanded.difference(deleted)
 
             else:
-                ext_files = _find_files_with_extention(curr_dir, ext)
+                ext_files = _find_files_with_extension(curr_dir, ext)
                 expanded = expanded.union(ext_files)
 
         return expanded
