@@ -6,5 +6,5 @@ running 1 rules...
 [94m  | [39m               [31m^^^^^^^^^^[39m
 [94m8 | [39m    severity: WARNING
 
-[31munsupported language: intercal. supported languages are: C#, JSON, Json, Kotlin, Rust, c, cs, csharp, generic, go, golang, java, javascript, js, json, jsx, kotlin, kt, lua, ml, none, ocaml, php, py, python, python2, python3, rb, regex, rs, ruby, rust, ts, tsx, typescript[39m
+[31munsupported language: intercal. supported languages are: C#, JSON, Json, Kotlin, Rust, Yaml, c, cs, csharp, generic, go, golang, java, javascript, js, json, jsx, kotlin, kt, lua, ml, none, ocaml, php, py, python, python2, python3, rb, regex, rs, ruby, rust, ts, tsx, typescript, yaml[39m
 
