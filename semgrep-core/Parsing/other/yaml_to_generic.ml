@@ -12,11 +12,6 @@ exception ParseError of string
  * low-level Stream API, which we parse into a generic AST
 *)
 
-type env = {
-  str: string;
-  file: Common.filename
-}
-
 (* Helper functions *)
 
 let p_token = function
@@ -37,12 +32,12 @@ let get_res = function
   | Result.Ok v -> v
 
 let tok (index, line, column) str file =
-  {Parse_info.token = Parse_info.OriginTok {str; charpos = index; line; column; file};
+  {Parse_info.token = Parse_info.OriginTok {str; charpos = index; line = line + 1; column; file};
    Parse_info.transfo = NoTransfo}
 
 let mk_tok {E.start_mark = {M.index; M.line; M.column}; _} str file =
   (* their tokens are 0 indexed for line and column, AST_generic's are 1 indexed for line, 0 for column *)
-  tok (index, line + 1, column) str file
+  tok (index, line, column) str file
 
 let mk_bracket ({E.start_mark = {M.index = s_index; M.line = s_line; M.column = s_column}; _},
                 {E.end_mark = {M.index = e_index; M.line = e_line; M.column = e_column}; _}) v file =
@@ -145,6 +140,8 @@ let parse file parser : A.expr =
 
 (* Entry point *)
 
-let program { str; file } = [A.exprstmt (get_res (S.parser str) |> parse file)]
+let program file =
+  let str = Common.read_file file in
+  [A.exprstmt (get_res (S.parser str) |> parse file)]
 
 let any str = A.E (get_res (S.parser str) |> parse "<pattern_file>")
