@@ -21,6 +21,7 @@ rules:
     paths:
       exclude:
        - CLI/*.ml
+       - scripts/*
        - Test.ml
        - Matching_report.ml
        - Unit_*.ml
