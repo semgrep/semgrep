@@ -27,6 +27,7 @@ module MV = Metavariable
 let logger = Logging.get_logger [__MODULE__]
 
 let debug_timeout = ref false
+let debug_matches = ref true
 
 (*****************************************************************************)
 (* Prelude *)
@@ -294,6 +295,32 @@ let filter_ranges xs cond =
   )
 
 (*****************************************************************************)
+(* Debugging semgrep *)
+(*****************************************************************************)
+
+let debug_semgrep mini_rules equivalences with_caching file lang ast =
+  (* process one mini rule at a time *)
+  mini_rules |> List.map (fun mr ->
+    logger#debug "Checking mini rule with pattern %s" (mr.MR.pattern_string);
+    let res =
+      Semgrep_generic.check ~with_caching ~hook:(fun _ _ -> ())
+        [mr] equivalences file lang ast
+    in
+    if !debug_matches
+    then begin
+      let json = res |> List.map JSON_report.match_to_json in
+      let json_uniq =
+        Common.uniq_by (=) json in
+      let res_uniq =
+        Common.uniq_by (AST_utils.with_structural_equal PM.equal) res in
+      logger#debug "Found %d mini rule matches (uniq = %d) (json_uniq = %d)"
+        (List.length res) (List.length res_uniq) (List.length json_uniq);
+      res |> List.iter (fun m -> logger#debug "match = %s" (PM.show m));
+    end;
+    res
+  ) |> List.flatten
+
+(*****************************************************************************)
 (* Evaluating xpatterns *)
 (*****************************************************************************)
 
@@ -316,12 +343,10 @@ let matches_of_xpatterns with_caching orig_rule (file, xlang, ast) xpatterns =
           (* TODO *)
           []
         in
-        if !debug_timeout
-        then mini_rules |> List.map (fun mr ->
-          logger#debug "Checking mini rule %s" (Mini_rule.show_rule mr);
-          Semgrep_generic.check ~with_caching ~hook:(fun _ _ -> ())
-            [mr] equivalences file lang ast
-        ) |> List.flatten
+        (* debugging path *)
+        if !debug_timeout || !debug_matches
+        then debug_semgrep mini_rules equivalences with_caching file lang ast
+        (* regular path *)
         else Semgrep_generic.check
             ~with_caching
             ~hook:(fun _ _ -> ())
