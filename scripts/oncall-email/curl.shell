@@ -1,6 +1,26 @@
 #!/bin/bash
 
 script='query {
+  repository(owner:\"returntocorp\", name:\"semgrep\") {
+    name
+    issues(last:50) {
+      nodes{
+        title
+        url
+        assignees(first:3) {
+          nodes { login }
+        }
+        closed
+        createdAt
+        updatedAt
+        labels(first:5) {
+          nodes {
+            name
+          }
+        }
+      }
+    }
+  }
   organization(login:\"returntocorp\") {
     project(number:50) {
       columns(first:10) {

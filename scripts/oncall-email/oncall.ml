@@ -10,12 +10,25 @@ module J = JSON
 (* Types *)
 (*****************************************************************************)
 
-type card = {
+type date = string
+[@@deriving show]
+
+type issue = {
   title: string;
+  (* plays the role of an id too *)
   url: string;
+
   assignees: string list;
   labels: string list;
+
+  closed: bool;
+  createdAt: date;
+  updatedAt: date;
 }
+[@@deriving show]
+
+(* in theory can have note, and can also be a PR *)
+type card = issue
 [@@deriving show]
 
 type column = {
@@ -24,10 +37,17 @@ type column = {
 }
 [@@deriving show]
 
+(* the customer board! *)
 type board = {
   columns: column list;
 }
 [@@deriving show]
+
+(* the semgrep repository *)
+type repo = {
+  repo_name: string;
+  issues: issue list;
+}
 
 (*****************************************************************************)
 (* Parsing JSON Combinators *)
@@ -59,10 +79,37 @@ let filter_some xs =
   xs |> Common.map_filter (fun x -> x)
 
 (*****************************************************************************)
-(* Parsing columns and card *)
+(* Helpers *)
+(*****************************************************************************)
+let find_issue_opt x xs =
+  xs |> List.find_opt (fun y -> y.url = x.url)
+
+let has_issue x xs =
+  match find_issue_opt x xs with
+  | None -> false
+  | Some _ -> true
+
+
+(*****************************************************************************)
+(* Parsing columns, cards, issues *)
 (*****************************************************************************)
 
-(* parsing *)
+let parse_issue j =
+  match j with
+  | J.Object [
+    "title", J.String title;
+    "url", J.String url;
+    "assignees", J.Object ["nodes", assignees];
+    "closed", J.Bool closed;
+    "createdAt", J.String createdAt;
+    "updatedAt", J.String updatedAt;
+    "labels", J.Object ["nodes", labels];
+  ] ->
+      let assignees = assignees |> array (fun j -> j >> "login" |> jstring) in
+      let labels = labels |> array (fun j -> j >> "name" |> jstring) in
+      { title; url; assignees; labels; closed; createdAt; updatedAt }
+  | _ -> error j "not an issue"
+
 let parse_card j =
   match j with
   | J.Object [
@@ -74,19 +121,8 @@ let parse_card j =
       if isArchived then None
       else
         (match j with
-         | J.Object [
-           "__typename", J.String "Issue";
-           "title", J.String title;
-           "url", J.String url;
-           "assignees", J.Object ["nodes", assignees];
-           "closed", J.Bool _closed;
-           "createdAt", J.String _createdAt;
-           "updatedAt", J.String _updatedAt;
-           "labels", J.Object ["nodes", labels];
-         ] ->
-             let assignees = assignees |> array (fun j -> j >> "login" |> jstring) in
-             let labels = labels |> array (fun j -> j >> "name" |> jstring) in
-             Some { title; url; assignees; labels }
+         | J.Object (("__typename", J.String "Issue")::rest) ->
+             Some (parse_issue (J.Object rest))
          | J.Null -> None
          | J.Object ["__typename", J.String "PullRequest";] -> None
          | _ -> error j "not a card"
@@ -105,11 +141,24 @@ let parse_column j =
       }
   | _ -> error j "not a column"
 
-let parse_board_state file =
+let parse_repository j =
+  match j with
+  | J.Object [
+    "name", J.String repo_name;
+    "issues", J.Object ["nodes", issues];
+  ] ->
+      let issues = array parse_issue issues in
+      { repo_name; issues }
+  | _ -> error j "not a repository"
+
+let parse_board_state_and_issues file =
   let j = J.load_json file in
   let cols =
     j >> "data" >> "organization" >> "project" >> "columns" >> "nodes" in
-  { columns = array parse_column cols }
+  let repo = j >> "data" >> "repository" in
+  { columns = array parse_column cols; },
+  parse_repository repo
+
 
 (*****************************************************************************)
 (* Report *)
@@ -119,48 +168,73 @@ let get_cards_of_column colname board =
   board.columns |> List.find (fun col -> col.colname = colname)
   |> (fun x -> x.cards)
 
-let report_card card =
-  let extra =
-    if List.mem "priority:high" card.labels
-    then " !PRIORITY:HIGH!"
+let report_issue ?(extra="") x =
+  let extra2 =
+    if List.mem "priority:high" x.labels
+    then "!PRIORITY:HIGH!"
     else ""
   in
-  pr (spf "\t- %s%s\n\t<%s> (%s)" card.title extra card.url
-        (card.assignees |> String.concat " "))
+  pr (spf "\t- %s %s%s\n\t<%s> (%s)" x.title extra extra2 x.url
+        (x.assignees |> String.concat " "))
 
+let report_card ?extra x =
+  report_issue ?extra x
 
 
 let report ~base ~today =
+  let base_board, base_repo = base in
+  let today_board, today_repo = today in
+
   pr "\nTo Discuss (UNASSIGNED)\n";
-  today |> get_cards_of_column "To discuss" |> List.iter (fun card ->
+  today_board |> get_cards_of_column "To discuss" |> List.iter (fun card ->
     if card.assignees = []
     then report_card card
   );
 
   pr "\nUnassigned To do\n";
-  today |> get_cards_of_column "Unassigned To do" |> List.iter (fun card ->
+  today_board |> get_cards_of_column "Unassigned To do" |> List.iter (fun card ->
     report_card card
   );
 
   (* TODO: display if no update since last time *)
   pr "\nAssigned To do\n";
-  today |> get_cards_of_column "Assigned To Do" |> List.iter (fun card ->
-    report_card card
+  let base_cards = base_board |> get_cards_of_column "Assigned To Do" in
+  today_board |> get_cards_of_column "Assigned To Do" |> List.iter (fun card ->
+    match find_issue_opt card base_cards with
+    | None -> report_card card
+    | Some old ->
+        let extra =
+          if card.updatedAt = old.updatedAt
+          then "!NO_UPDATE!"
+          else ""
+        in
+        report_card ~extra card
   );
 
-  (* TODO: In Progress column, double check actual progress ... *)
+  (* less: In Progress column, double check if actual progress ... *)
 
-  (* TODO: look at closed by in the issue when no assignee *)
+  (* TODO: look at closed by in the issue when no assignee or if last
+   * PR related to the issue is someone else.
+  *)
   pr "\nClosed since last email (good job guys!)\n";
-  let base_done = base |> get_cards_of_column "Done" in
-  today |> get_cards_of_column "Done" |> List.iter (fun card ->
-    let id = card.url in
+  let base_done = base_board |> get_cards_of_column "Done" in
+  today_board |> get_cards_of_column "Done" |> List.iter (fun card ->
+    if not (base_done |> has_issue card)
+    then report_card card
+  );
 
-    match base_done |> List.find_opt (fun card -> card.url = id) with
-    | None -> report_card card
-    | Some _ -> ()
+  pr "\nNew semgrep issues NOT in the customer board\n";
+  let all_issues_today_boards =
+    today_board.columns |> List.map (fun x -> x.cards) |> List.flatten in
+  let base_issues = base_repo.issues in
+  today_repo.issues |> List.iter (fun issue ->
+    if not (all_issues_today_boards |> has_issue issue) &&
+       not (base_issues |> has_issue issue)
+    then report_issue issue
   );
   ()
+
+
 
 (*****************************************************************************)
 (* Flags *)
@@ -174,10 +248,9 @@ let today = ref "today.json"
 (*****************************************************************************)
 
 let oncall () =
-  let base =  parse_board_state !base in
-  let today = parse_board_state !today in
+  let base =  parse_board_state_and_issues !base in
+  let today = parse_board_state_and_issues !today in
   report ~base ~today
-
 
 let options = [
   "-base", Arg.Set_string base,
