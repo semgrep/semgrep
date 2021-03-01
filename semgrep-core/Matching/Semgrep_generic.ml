@@ -422,6 +422,11 @@ let check2 ~hook ~with_caching rules equivs file lang ast =
     visitor prog;
 
     !matches |> List.rev
+    (* TODO: optimize uniq_by? Too slow? Use a hash?
+     * Note that this uniq_by was introducing regressions in semgrep!
+     * See tests/OTHER/rules/regression_uniq_or_ellipsis.go but it's fixed now.
+     * |> Common.uniq_by (AST_utils.with_structural_equal Pattern_match.equal)
+    *)
   end
 (*e: function [[Semgrep_generic.check2]] *)
 

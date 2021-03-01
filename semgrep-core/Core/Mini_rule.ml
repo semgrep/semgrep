@@ -70,5 +70,6 @@ and severity = Error | Warning | Info
 (*s: type [[Rule.t]] *)
 (* alias *)
 type t = rule
+[@@deriving show]
 (*e: type [[Rule.t]] *)
 (*e: semgrep/core/Mini_rule.ml *)

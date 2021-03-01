@@ -1756,9 +1756,14 @@ and m_stmt a b =
   (* opti: specialization to avoid going in the deep stmt matching!
    * TODO: we should not need this; '...' should not enumerate all
    * possible subset of stmt list and take forever.
+   * Note that as a side effect it returns also less equivalent
+   * matches (which again, should not happen), which used to introduce
+   * some regressions (see tests/OTHER/rules/regression_uniq...) but this
+   * has been fixed now.
   *)
   | A.Block(_, [{s=A.ExprStmt(A.Ellipsis _i, _);_}], _),
     B.Block(_b1) -> return ()
+
   (* opti: another specialization; again we should not need it *)
   | A.Block(_, [
     {s=A.ExprStmt(A.Ellipsis _, _);_};
