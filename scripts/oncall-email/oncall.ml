@@ -5,6 +5,14 @@ module J = JSON
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
+(* Compare the state of today's customer board with yesterday to help
+ * generating the OnCall standup email.
+ *
+ * Usage:
+ *  $ ./_build/default/oncall.exe -base yesterday.json today.json > email
+ *
+ * See README.md for more information.
+*)
 
 (*****************************************************************************)
 (* Types *)
@@ -75,12 +83,12 @@ let array f j =
   | J.Array xs -> xs |> List.map f
   | _ -> error j "not an array"
 
-let filter_some xs =
-  xs |> Common.map_filter (fun x -> x)
-
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
+let filter_some xs =
+  xs |> Common.map_filter (fun x -> x)
+
 let find_issue_opt x xs =
   xs |> List.find_opt (fun y -> y.url = x.url)
 
@@ -88,7 +96,6 @@ let has_issue x xs =
   match find_issue_opt x xs with
   | None -> false
   | Some _ -> true
-
 
 (*****************************************************************************)
 (* Parsing columns, cards, issues *)
@@ -197,7 +204,6 @@ let report ~base ~today =
     report_card card
   );
 
-  (* TODO: display if no update since last time *)
   pr "\nAssigned To do\n";
   let base_cards = base_board |> get_cards_of_column "Assigned To Do" in
   today_board |> get_cards_of_column "Assigned To Do" |> List.iter (fun card ->
@@ -234,8 +240,6 @@ let report ~base ~today =
     then report_issue issue
   );
   ()
-
-
 
 (*****************************************************************************)
 (* Flags *)

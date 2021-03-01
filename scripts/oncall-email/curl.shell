@@ -1,4 +1,7 @@
-#!/bin/bash
+#!/bin/sh
+
+#usage: $ curl.shell $GITUB_TOKEN > yesterday.json
+#see README.md for more information.
 
 script='query {
   repository(owner:\"returntocorp\", name:\"semgrep\") {
