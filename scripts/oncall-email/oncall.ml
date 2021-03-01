@@ -165,8 +165,9 @@ let parse_board_state_and_issues file =
 (*****************************************************************************)
 
 let get_cards_of_column colname board =
-  board.columns |> List.find (fun col -> col.colname = colname)
-  |> (fun x -> x.cards)
+  match board.columns |> List.find_opt (fun col -> col.colname = colname) with
+  | Some x -> x.cards
+  | None -> failwith (spf "could not find column %s in the board" colname)
 
 let report_issue ?(extra="") x =
   let extra2 =
