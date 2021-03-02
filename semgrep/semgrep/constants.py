@@ -10,6 +10,7 @@ from semgrep.util import compute_spacegrep_path
 RCE_RULE_FLAG = "--dangerously-allow-arbitrary-code-execution-from-rules"
 RULES_KEY = "rules"
 ID_KEY = "id"
+CLI_RULE_ID = "-"
 SEMGREP_URL = "https://semgrep.dev/"
 PLEASE_FILE_ISSUE_TEXT = "An error occurred while invoking the semgrep engine; please help us fix this by creating an issue at https://github.com/returntocorp/semgrep"
 
@@ -67,3 +68,4 @@ MAX_LINES_FLAG_NAME = "--max-lines-per-finding"
 DEFAULT_MAX_LINES_PER_FINDING = 10
 BREAK_LINE_WIDTH = 80
 BREAK_LINE_CHAR = "-"
+BREAK_LINE = BREAK_LINE_CHAR * BREAK_LINE_WIDTH
