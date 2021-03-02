@@ -13,6 +13,7 @@ from typing import Set
 
 import attr
 
+from semgrep.config_resolver import resolve_targets
 from semgrep.error import FilesNotFoundError
 from semgrep.output import OutputHandler
 from semgrep.semgrep_types import GENERIC_LANGUAGE
@@ -70,11 +71,7 @@ class TargetManager:
         Return list of Path objects appropriately resolving relative paths
         (relative to cwd) if necessary
         """
-        base_path = Path(".")
-        return set(
-            Path(target) if Path(target).is_absolute() else base_path.joinpath(target)
-            for target in targets
-        )
+        return set(resolve_targets(targets))
 
     @staticmethod
     def _is_valid(path: Path) -> bool:

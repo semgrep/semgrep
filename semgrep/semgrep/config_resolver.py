@@ -13,6 +13,7 @@ from typing import Tuple
 from ruamel.yaml import YAML
 from ruamel.yaml import YAMLError
 
+from semgrep.constants import CLI_RULE_ID
 from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import DEFAULT_CONFIG_FOLDER
 from semgrep.constants import DEFAULT_SEMGREP_CONFIG_NAME
@@ -40,12 +41,7 @@ IN_GH_ACTION = "GITHUB_WORKSPACE" in os.environ
 SRC_DIRECTORY = Path(os.environ.get("SEMGREP_SRC_DIRECTORY", Path("/") / "src"))
 OLD_SRC_DIRECTORY = Path("/") / "home" / "repo"
 
-TEMPLATE_YAML_URL = (
-    "https://raw.githubusercontent.com/returntocorp/semgrep-rules/develop/template.yaml"
-)
-
 RULES_REGISTRY = {"r2c": "https://semgrep.dev/c/p/r2c"}
-DEFAULT_REGISTRY_KEY = "r2c"
 
 MISSING_RULE_ID = "no-rule-id"
 
@@ -234,7 +230,7 @@ def manual_config(pattern: str, lang: str) -> Dict[str, YamlTree]:
             {
                 RULES_KEY: [
                     {
-                        ID_KEY: "-",
+                        ID_KEY: CLI_RULE_ID,
                         "pattern": pattern_tree,
                         "message": pattern,
                         "languages": [lang],
@@ -271,7 +267,7 @@ def adjust_for_docker() -> None:
 
 
 def get_base_path() -> Path:
-    return Path(".")
+    return Path(os.curdir)
 
 
 def indent(msg: str) -> str:
@@ -326,8 +322,8 @@ def _is_hidden_config(loc: Path) -> bool:
     Also want to keep src/.semgrep/bad_pattern.yml but not ./.pre-commit-config.yaml
     """
     return any(
-        part != "."
-        and part != ".."
+        part != os.curdir
+        and part != os.pardir
         and part.startswith(".")
         and DEFAULT_SEMGREP_CONFIG_NAME not in part
         for part in loc.parts
