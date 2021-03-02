@@ -1,0 +1,75 @@
+rules:
+- id: jwt-decode-without-verify
+  message: |
+    Detected the decoding of a JWT token without a verify step.
+    JWT tokens must be verified before use, otherwise the token's
+    integrity is unknown. This means a malicious actor could forge
+    a JWT token with any claims. Call '.verify()' before using the token.
+  metadata:
+    cwe: 'CWE-345: Insufficient Verification of Data Authenticity'
+    owasp: 'A2: Broken Authentication'
+    source-rule-url: https://r2c.dev/blog/2020/hardcoded-secrets-unverified-tokens-and-other-common-jwt-mistakes/
+  languages: [javascript]
+  severity: WARNING
+  patterns:
+  - pattern-either:
+    - pattern: |
+        var $JWT = require('jsonwebtoken');
+        ...
+        $JWT.decode(...);
+    - pattern: |
+        var $JWT = require('jsonwebtoken');
+        ...
+        return $JWT.decode(...);
+    - pattern: |
+        var $JWT = require('jsonwebtoken');
+        ...
+        if(<... $JWT.decode(...) ...>) {
+            ...
+        }
+    - pattern: |
+        var $JWT = require('jsonwebtoken');
+        ...
+        return {$P: $JWT.decode(...)};
+    - pattern: |
+        var $JWT = require('jsonwebtoken');
+        ...
+        $X = {$P: $JWT.decode(...)};
+    - pattern: |
+        var $JWT = require('jsonwebtoken');
+        ...
+        $FUNC({$P: $JWT.decode(...)});
+    - pattern: |
+        var $JWT = require('jsonwebtoken');
+        ...
+        return $FUNC({$P: $JWT.decode(...)});
+  - pattern-not-inside: |
+      var $JWT = require('jsonwebtoken');
+      ...
+      $JWT.verify(...);
+  - pattern-not-inside: |
+      var $JWT = require('jsonwebtoken');
+      ...
+      return $JWT.verify(...);
+  - pattern-not-inside: |
+      var $JWT = require('jsonwebtoken');
+      ...
+      if(<... $JWT.verify(...) ...>) {
+          ...
+      }
+  - pattern-not-inside: |
+      var $JWT = require('jsonwebtoken');
+      ...
+      return {$P: $JWT.verify(...)};
+  - pattern-not-inside: |
+      var $JWT = require('jsonwebtoken');
+      ...
+      $X = {$P: $JWT.verify(...)};
+  - pattern-not-inside: |
+      var $JWT = require('jsonwebtoken');
+      ...
+      $FUNC({$P: $JWT.verify(...)});
+  - pattern-not-inside: |
+      var $JWT = require('jsonwebtoken');
+      ...
+      return $FUNC({$P: $JWT.verify(...)});
