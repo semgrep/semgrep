@@ -395,6 +395,7 @@ let fail () = fail
 (*s: function [[Matching_generic.is_regexp_string]] *)
 (*e: function [[Matching_generic.is_regexp_string]] *)
 
+(* TODO: move in Core/Regexp_engine.ml! *)
 type regexp = Re.re (* old: Str.regexp *)
 
 (*s: function [[Matching_generic.regexp_of_regexp_string]] *)

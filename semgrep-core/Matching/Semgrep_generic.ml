@@ -218,8 +218,8 @@ let check2 ~hook ~with_caching rules equivs file lang ast =
 
   let rules =
     (* simple opti using regexps; the bloom filter opti might supersede this *)
-    if !Flag.filter_irrelevant_rules
-    then Rules_filter.filter_rules_relevant_to_file_using_regexp
+    if !Flag.filter_irrelevant_patterns
+    then Mini_rules_filter.filter_mini_rules_relevant_to_file_using_regexp
         rules lang file
     else rules
   in
