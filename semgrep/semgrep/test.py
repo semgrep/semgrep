@@ -28,6 +28,7 @@ from typing import Sequence
 from typing import Set
 from typing import Tuple
 
+from semgrep.constants import BREAK_LINE
 from semgrep.constants import YML_EXTENSIONS
 from semgrep.semgrep_main import invoke_semgrep
 from semgrep.util import partition
@@ -395,7 +396,7 @@ def generate_file_pairs(
 
     print(f"{len(tested)} yaml files tested")
     print("check id scoring:")
-    print("=" * 80)
+    print(BREAK_LINE)
 
     totals: Dict[str, Any] = collections.defaultdict(int)
 
@@ -408,9 +409,9 @@ def generate_file_pairs(
             for confusion in ["tp", "tn", "fp", "fn"]:
                 totals[confusion] += check_results[confusion]
 
-    print("=" * 80)
+    print(BREAK_LINE)
     print(f"final confusion matrix: {generate_confusion_string(totals)}")
-    print("=" * 80)
+    print(BREAK_LINE)
 
     sys.exit(exit_code)
 

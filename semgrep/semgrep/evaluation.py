@@ -12,6 +12,7 @@ from typing import Union
 
 import attr
 
+from semgrep.constants import BREAK_LINE
 from semgrep.constants import RCE_RULE_FLAG
 from semgrep.error import NEED_ARBITRARY_CODE_EXEC_EXIT_CODE
 from semgrep.error import SemgrepError
@@ -344,7 +345,7 @@ def evaluate(
 
         # only output matches which are inside these offsets!
         logger.debug(f"compiled result {valid_ranges_to_output}")
-        logger.debug("-" * 80)
+        logger.debug(BREAK_LINE)
 
     # Addresses https://github.com/returntocorp/semgrep/issues/1699,
     # where metavariables from pattern-inside are not bound to messages.
