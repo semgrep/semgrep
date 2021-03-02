@@ -10,6 +10,8 @@ mkdir -p input
 
 # This was the slowest rule on the Figma codebase
 cp semgrep_slow.yml input/semgrep.yml
+# Nathan optimized it recently (in semgrep_fast.yml) but it's better
+# to try to optimize also the older slower version.
 
 cd input
 
