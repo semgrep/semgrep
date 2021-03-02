@@ -163,7 +163,7 @@ let lang_parsing_tests =
     );
     "Kotlin" >::: (
       let dir = Filename.concat (Filename.concat tests_path "kotlin") "parsing" in
-      let files = Common2.glob (spf "%s/*.rs" dir) in
+      let files = Common2.glob (spf "%s/*.kt" dir) in
       let lang = Lang.Kotlin in
       parsing_tests_for_lang files lang
     );
