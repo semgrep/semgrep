@@ -1240,6 +1240,9 @@ let all_actions () = [
 
   "-datalog_experiment", " <file> <dir>",
   Common.mk_action_2_arg Datalog_experiment.gen_facts;
+  "-postmortem", " <log file",
+  Common.mk_action_1_arg Statistics_report.stat;
+
   "-eval", " <JSON file>",
   Common.mk_action_1_arg Eval_generic.eval_json_file;
   "-test_eval", " <JSON file>",
