@@ -391,18 +391,15 @@ let fail () = fail
 (*e: function [[Matching_generic.fail_bis]] *)
 
 (*s: constant [[Matching_generic.regexp_regexp_string]] *)
-let regexp_regexp_string = "^=~/\\(.*\\)/\\([mi]?\\)$"
 (*e: constant [[Matching_generic.regexp_regexp_string]] *)
 (*s: function [[Matching_generic.is_regexp_string]] *)
-let is_regexp_string s =
-  s =~ regexp_regexp_string
 (*e: function [[Matching_generic.is_regexp_string]] *)
 
 type regexp = Re.re (* old: Str.regexp *)
 
 (*s: function [[Matching_generic.regexp_of_regexp_string]] *)
 let regexp_matcher_of_regexp_string s =
-  if s =~ regexp_regexp_string
+  if s =~ Pattern.regexp_regexp_string
   then
     let x, flags = Common.matched2 s in
     let flags =
@@ -612,7 +609,7 @@ let m_string_ellipsis_or_regexp_or_default
   match a with
   (* dots: '...' on string *)
   | "..." -> return ()
-  | _ when is_regexp_string a ->
+  | _ when Pattern.is_regexp_string a ->
       let f = regexp_matcher_of_regexp_string a in
       if f b
       then return ()

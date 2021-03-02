@@ -15,6 +15,25 @@
  * license.txt for more details.
 *)
 (*e: pad/r2c copyright *)
+open Common
+
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+(* A semgrep pattern.
+ *
+ * A pattern is represented essentially as an AST_generic.any
+ * where special constructs are now allowed (e.g., Ellipsis),
+ * where certain identifiers are metavariables (e.g., $X), or
+ * where certain strings are ellipsis or regular expressions
+ * (e.g., "=~/foo/").
+ *
+ * See also Metavariable.ml.
+*)
+
+(*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
 
 (*s: type [[Pattern.t]] *)
 (* right now Expr/Stmt/Stmts/Types/Patterns/Partial and probably
@@ -22,5 +41,10 @@
 type t = AST_generic.any
 [@@deriving show, eq]
 (*e: type [[Pattern.t]] *)
+
+let regexp_regexp_string = "^=~/\\(.*\\)/\\([mi]?\\)$"
+
+let is_regexp_string s =
+  s =~ regexp_regexp_string
 
 (*e: semgrep/core/Pattern.ml *)

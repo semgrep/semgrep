@@ -15,7 +15,6 @@
 module B = Bloom_filter
 module V = Visitor_AST
 open AST_generic
-open Common
 
 (*****************************************************************************)
 (* Prelude *)
@@ -65,17 +64,14 @@ let add_all_to_bloom ids bf =
 (* Traversal methods *)
 (*****************************************************************************)
 
-(* TODO probably would rather not replicate code *)
-let regexp_regexp_string = "^=~/\\(.*\\)/\\([mi]?\\)$"
-let is_regexp_string s =
-  s =~ regexp_regexp_string
-
 let special_literal str =
-  str = "..." || (* Matching_generic. *)is_regexp_string str
+  str = "..." || Pattern.is_regexp_string str
 
 (* TODO: the second bit is a hack because my regexp skills are not great *)
 let special_ident str =
-  AST_generic_.is_metavar_name str || (String.length str > 4 && (Str.first_chars str 4) = "$...") || is_regexp_string str
+  AST_generic_.is_metavar_name str ||
+  (String.length str > 4 && (Str.first_chars str 4) = "$...") ||
+  Pattern.is_regexp_string str
 
 (* Use a visitor_AST to extract the strings from all identifiers,
  * and from all literals for now, except all semgrep stuff:

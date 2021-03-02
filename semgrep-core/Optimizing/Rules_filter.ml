@@ -74,7 +74,7 @@ let run_regexp re str =
 let reserved_id lang str =
   Metavariable.is_metavar_name str ||
   (* in JS field names can be regexps *)
-  (lang = Lang.Javascript && Matching_generic.is_regexp_string str) ||
+  (lang = Lang.Javascript && Pattern.is_regexp_string str) ||
   (* ugly hack that we then need to handle also here *)
   str = AST_generic.special_multivardef_pattern ||
   (* ugly: because ast_js_build introduce some extra "!default" ids *)
@@ -84,7 +84,7 @@ let reserved_id lang str =
 
 let reserved_str str =
   str = "..." ||
-  Matching_generic.is_regexp_string str
+  Pattern.is_regexp_string str
 
 (*****************************************************************************)
 (* ID extractor  *)

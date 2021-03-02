@@ -193,7 +193,7 @@ let m_ident a b =
    * which gives the opportunity to use regexp string for fields
    * (e.g., {"=~/.*field/": $X}).
   *)
-  | (stra, _), (strb, _) when Matching_generic.is_regexp_string stra ->
+  | (stra, _), (strb, _) when Pattern.is_regexp_string stra ->
       let re_match = Matching_generic.regexp_matcher_of_regexp_string stra in
       if re_match strb
       then return ()
@@ -410,7 +410,7 @@ and m_ident_and_id_info (a1, a2) (b1, b2) =
    * which gives the opportunity to use regexp string for fields
    * (e.g., {"=~/.*field/": $X}).
   *)
-  | (stra, _), (strb, _) when Matching_generic.is_regexp_string stra ->
+  | (stra, _), (strb, _) when Pattern.is_regexp_string stra ->
       let re_match = Matching_generic.regexp_matcher_of_regexp_string stra in
       if re_match strb
       then return ()
@@ -2363,7 +2363,7 @@ and m_list__m_field (xsa: A.field list) (xsb: A.field list) =
   | (A.FieldStmt ({s=A.DefStmt (({A.name = A.EN (A.Id ((s1, _), _)); _}, _) as adef);_}) as a)::xsa,
     xsb ->
       (*s: [[Generic_vs_generic.m_list__m_field()]] in [[DefStmt]] case if metavar field *)
-      if MV.is_metavar_name s1 || Matching_generic.is_regexp_string s1
+      if MV.is_metavar_name s1 || Pattern.is_regexp_string s1
       then
         let candidates = all_elem_and_rest_of_list xsb in
         (* less: could use a fold *)
