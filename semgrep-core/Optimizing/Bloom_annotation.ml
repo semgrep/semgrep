@@ -52,8 +52,6 @@ open AST_generic
  * necessary if we used a linked list
 *)
 
-let push v (l : 'a list ref) = Common.push v l
-
 let push_list vs (l : 'a list ref) =
   l := vs @ (!l)
 
@@ -63,9 +61,6 @@ let add_all_to_bloom ids bf =
 (*****************************************************************************)
 (* Traversal methods *)
 (*****************************************************************************)
-
-let special_literal str =
-  str = "..." || Pattern.is_regexp_string str
 
 (* TODO: the second bit is a hack because my regexp skills are not great *)
 let special_ident str =
@@ -89,7 +84,7 @@ let rec statement_strings stmt =
   let visitor = V.mk_visitor {
     V.default_visitor with
     V.kident = (fun (_k, _) (str, _tok) ->
-      push str res
+      Common.push str res
     );
     V.kexpr = (fun (k, _) x ->
       (match x with
@@ -97,14 +92,15 @@ let rec statement_strings stmt =
         * atoms, chars, even int?
        *)
        | L (String (str, _tok)) ->
-           push str res
+           Common.push str res
        | _ -> k x
       )
     );
     V.kconstness = (fun (k, _) x ->
       (match x with
        | Lit (String (str, _tok)) ->
-           if not (special_literal str) then push str res
+           if not (Pattern.is_special_string_literal str)
+           then Common.push str res
        | _ -> k x
       )
     );
@@ -137,8 +133,8 @@ let list_of_pattern_strings any =
   let visitor = V.mk_visitor {
     V.default_visitor with
     V.kident = (fun (_k, _) (str, _tok) ->
-      if not (special_ident str) then
-        push str res
+      if not (special_ident str)
+      then Common.push str res
     );
     V.kexpr = (fun (k, _) x ->
       (match x with
@@ -146,8 +142,8 @@ let list_of_pattern_strings any =
         * atoms, chars, even int?
        *)
        | L (String (str, _tok)) ->
-           if not (special_literal str) then
-             push str res
+           if not (Pattern.is_special_string_literal str)
+           then Common.push str res
        | TypedMetavar _ -> ()
        | DisjExpr _ -> ()
        | _ -> k x

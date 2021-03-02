@@ -43,8 +43,22 @@ type t = AST_generic.any
 (*e: type [[Pattern.t]] *)
 
 let regexp_regexp_string = "^=~/\\(.*\\)/\\([mi]?\\)$"
-
 let is_regexp_string s =
   s =~ regexp_regexp_string
+
+let is_special_string_literal str =
+  str = "..." ||
+  is_regexp_string str
+
+let is_special_identifier lang str =
+  Metavariable.is_metavar_name str ||
+  (* in JS field names can be regexps *)
+  (lang = Lang.Javascript && is_regexp_string str) ||
+  (* ugly hack that we then need to handle also here *)
+  str = AST_generic.special_multivardef_pattern ||
+  (* ugly: because ast_js_build introduce some extra "!default" ids *)
+  (lang = Lang.Javascript && str = Ast_js.default_entity) ||
+  (* parser_js.mly inserts some implicit this *)
+  (lang = Lang.Java && str = "this")
 
 (*e: semgrep/core/Pattern.ml *)

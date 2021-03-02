@@ -71,21 +71,6 @@ let run_regexp re str =
   with Not_found -> false
 [@@profiling]
 
-let reserved_id lang str =
-  Metavariable.is_metavar_name str ||
-  (* in JS field names can be regexps *)
-  (lang = Lang.Javascript && Pattern.is_regexp_string str) ||
-  (* ugly hack that we then need to handle also here *)
-  str = AST_generic.special_multivardef_pattern ||
-  (* ugly: because ast_js_build introduce some extra "!default" ids *)
-  (lang = Lang.Javascript && str = Ast_js.default_entity) ||
-  (* parser_js.mly inserts some implicit this *)
-  (lang = Lang.Java && str = "this")
-
-let reserved_str str =
-  str = "..." ||
-  Pattern.is_regexp_string str
-
 (*****************************************************************************)
 (* ID extractor  *)
 (*****************************************************************************)
@@ -94,7 +79,7 @@ let extract_specific_strings lang any =
   let visitor = V.mk_visitor {
     V.default_visitor with
     V.kident = (fun (_k, _) (str, _tok) ->
-      if not (reserved_id lang str)
+      if not (Pattern.is_special_identifier lang str)
       then Common.push str res
     );
     V.kexpr = (fun (k, _) x ->
@@ -103,7 +88,7 @@ let extract_specific_strings lang any =
         * atoms, chars, even int?
        *)
        | L (String (str, _tok)) ->
-           if not (reserved_str str)
+           if not (Pattern.is_special_string_literal str)
            then Common.push str res
        (* do not recurse there, the type does not have to be in the source *)
        | TypedMetavar _ ->
