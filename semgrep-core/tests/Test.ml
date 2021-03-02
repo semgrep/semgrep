@@ -161,6 +161,12 @@ let lang_parsing_tests =
       let lang = Lang.Rust in
       parsing_tests_for_lang files lang
     );
+    "Kotlin" >::: (
+      let dir = Filename.concat (Filename.concat tests_path "kotlin") "parsing" in
+      let files = Common2.glob (spf "%s/*.rs" dir) in
+      let lang = Lang.Kotlin in
+      parsing_tests_for_lang files lang
+    );
     (* here we have both a Pfff and tree-sitter parser *)
     "Java" >::: (
       let dir= Filename.concat (Filename.concat tests_path "java") "parsing" in
