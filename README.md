@@ -4,7 +4,7 @@
 <h3 align="center">
   Lightweight static analysis for many languages.
   </br>
-  Find bugs and enforce code standards.
+  Find bugs and enforce code standards. Test
 </h3>
 <p align="center">
   <a href="https://formulae.brew.sh/formula/semgrep">
