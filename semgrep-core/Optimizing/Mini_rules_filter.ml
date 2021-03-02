@@ -35,7 +35,7 @@ let filter_mini_rules_relevant_to_file_using_regexp rules lang file =
   let str = Common.read_file file in
   rules |> List.filter (fun rule ->
     let pat = rule.R.pattern in
-    let xs = Analyze_pattern.extract_specific_strings lang pat in
+    let xs = Analyze_pattern.extract_specific_strings ~lang pat in
     (* pr2_gen xs; *)
     let match_ =
       (* we could avoid running multiple regexps on the same file

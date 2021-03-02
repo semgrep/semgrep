@@ -62,20 +62,13 @@ let add_all_to_bloom ids bf =
 (* Traversal methods *)
 (*****************************************************************************)
 
-(* TODO: the second bit is a hack because my regexp skills are not great *)
-let special_ident str =
-  AST_generic_.is_metavar_name str ||
-  (String.length str > 4 && (Str.first_chars str 4) = "$...") ||
-  Pattern.is_regexp_string str
-
 (* Use a visitor_AST to extract the strings from all identifiers,
  * and from all literals for now, except all semgrep stuff:
  *  - identifier which are metavariables
  *  - string like "..."
  *  - string like "=~/stuff/"
  *
- * See also Rules_filter.reserved_id and reserved_str and
- * Rules_filter.extract_specific_strings.
+ * See also Analyze_pattern.extract_specific_strings
 *)
 
 let rec statement_strings stmt =
@@ -127,32 +120,8 @@ let rec statement_strings stmt =
 (*****************************************************************************)
 (* Analyze the pattern *)
 (*****************************************************************************)
-
-let list_of_pattern_strings any =
-  let res = ref [] in
-  let visitor = V.mk_visitor {
-    V.default_visitor with
-    V.kident = (fun (_k, _) (str, _tok) ->
-      if not (special_ident str)
-      then Common.push str res
-    );
-    V.kexpr = (fun (k, _) x ->
-      (match x with
-       (* less: we could extract strings for the other literals too?
-        * atoms, chars, even int?
-       *)
-       | L (String (str, _tok)) ->
-           if not (Pattern.is_special_string_literal str)
-           then Common.push str res
-       | TypedMetavar _ -> ()
-       | DisjExpr _ -> ()
-       | _ -> k x
-      )
-    );
-  } in
-  visitor any;
-  !res
-[@@profiling]
+let list_of_pattern_strings ?lang any =
+  Analyze_pattern.extract_specific_strings ?lang any
 
 (*****************************************************************************)
 (* Analyze the code *)

@@ -50,15 +50,18 @@ let is_special_string_literal str =
   str = "..." ||
   is_regexp_string str
 
-let is_special_identifier lang str =
+let is_special_identifier ?lang str =
   Metavariable.is_metavar_name str ||
+  (* emma: a hack because my regexp skills are not great *)
+  (String.length str > 4 && (Str.first_chars str 4) = "$...") ||
+
   (* in JS field names can be regexps *)
-  (lang = Lang.Javascript && is_regexp_string str) ||
+  (lang = Some Lang.Javascript && is_regexp_string str) ||
   (* ugly hack that we then need to handle also here *)
   str = AST_generic.special_multivardef_pattern ||
   (* ugly: because ast_js_build introduce some extra "!default" ids *)
-  (lang = Lang.Javascript && str = Ast_js.default_entity) ||
+  (lang = Some Lang.Javascript && str = Ast_js.default_entity) ||
   (* parser_js.mly inserts some implicit this *)
-  (lang = Lang.Java && str = "this")
+  (lang = Some Lang.Java && str = "this")
 
 (*e: semgrep/core/Pattern.ml *)

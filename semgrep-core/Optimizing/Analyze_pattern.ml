@@ -33,7 +33,7 @@ module V = Visitor_AST
  * This module is currently used by:
  *  - Mini_rules_filter and Semgrep_generic, to skip certain mini-rules
  *    (but not entire files)
- *  - TODO: the bloom filter pattern extractor of Nathan and Emma
+ *  - the bloom filter pattern extractor of Nathan and Emma
  *  - TODO: the Semgrep.ml engine to skip entire files!
  *
  * TODO:
@@ -43,15 +43,21 @@ module V = Visitor_AST
 *)
 
 (*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+let error s =
+  failwith s
+
+(*****************************************************************************)
 (* Identifier extractions *)
 (*****************************************************************************)
 
-let extract_specific_strings lang any =
+let extract_specific_strings ?lang any =
   let res = ref [] in
   let visitor = V.mk_visitor {
     V.default_visitor with
     V.kident = (fun (_k, _) (str, _tok) ->
-      if not (Pattern.is_special_identifier lang str)
+      if not (Pattern.is_special_identifier ?lang str)
       then Common.push str res
     );
     V.kexpr = (fun (k, _) x ->
@@ -64,12 +70,16 @@ let extract_specific_strings lang any =
        | L (String (str, _tok)) ->
            if not (Pattern.is_special_string_literal str)
            then Common.push str res
+
        (* do not recurse there, the type does not have to be in the source *)
        | TypedMetavar _ ->
            ()
+
+       | DisjExpr _ -> error "DisjExpr, call to ApplyEquivalence too early"
        | _ -> k x
       );
     );
   } in
   visitor any;
   Common2.uniq !res
+[@@profiling]
