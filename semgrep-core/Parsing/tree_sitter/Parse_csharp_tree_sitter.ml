@@ -144,6 +144,18 @@ let call_lambda base_expr funcname tok funcs =
   in
   Call (method_, fake_bracket args)
 
+let rec call_orderby base_expr lambda_params tok orderings =
+  match orderings with
+  | [] -> base_expr
+  | ht :: tl ->
+      let expr, dir = ht in
+      let funcname = (match dir with
+        | Ascending -> "OrderBy"
+        | Descending -> "OrderByDescending") in
+      let func = create_lambda lambda_params expr in
+      let base_expr = call_lambda base_expr funcname tok [func] in
+      call_orderby base_expr lambda_params tok tl
+
 let rec linq_remainder_to_expr (query : linq_query_part list) (base_expr : expr) (lambda_params : ident list) =
   match query with
   | [] -> base_expr
@@ -186,6 +198,9 @@ let rec linq_remainder_to_expr (query : linq_query_part list) (base_expr : expr)
            let res_func = create_join_result_lambda lambda_params ident in
            let base_expr = call_lambda base_expr "SelectMany" tok [sel_func; res_func] in
            let lambda_params = lambda_params @ [ident] in
+           linq_remainder_to_expr tl base_expr lambda_params
+       | OrderBy (tok, orderings) ->
+           let base_expr = call_orderby base_expr lambda_params tok orderings in
            linq_remainder_to_expr tl base_expr lambda_params
        | _ -> failwith "not implemented")
 
