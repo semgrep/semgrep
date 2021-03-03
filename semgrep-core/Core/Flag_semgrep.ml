@@ -29,8 +29,8 @@ let go_really_deeper_stmt = ref true
 (* Improves performance on some patterns, degrades performance on others. *)
 let max_cache = ref false
 
-(* look if identifiers in rule intersect with file using simple regexps *)
-let filter_irrelevant_rules = ref false
+(* look if identifiers in pattern intersect with file using simple regexps *)
+let filter_irrelevant_patterns = ref false
 
 (* check for identifiers before attempting to match a stmt or stmt list *)
 let use_bloom_filter = ref false
