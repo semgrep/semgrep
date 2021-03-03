@@ -324,7 +324,10 @@ let debug_semgrep mini_rules equivalences with_caching file lang ast =
 (* Evaluating xpatterns *)
 (*****************************************************************************)
 
-let matches_of_xpatterns with_caching orig_rule (file, xlang, ast) xpatterns =
+let matches_of_xpatterns with_caching orig_rule
+    (file, xlang, lazy_ast_and_errors)
+    xpatterns
+  =
   (* Right now you can only mix semgrep/regexps and spacegrep/regexps, but
    * in theory we could mix all of them together.This is why below
    * I don't match over xlang and instead assume we could have the 3 different
@@ -333,10 +336,10 @@ let matches_of_xpatterns with_caching orig_rule (file, xlang, ast) xpatterns =
   let (patterns, spacegreps, regexps) = partition_xpatterns xpatterns in
 
   (* semgrep *)
-  let semgrep_matches =
+  let semgrep_matches, errors =
     match xlang with
     | R.L (lang, _) ->
-        let ast = Lazy.force ast in
+        let (ast, errors) = Lazy.force lazy_ast_and_errors in
         let mini_rules =
           patterns |> List.map (mini_rule_of_pattern orig_rule) in
         let equivalences =
@@ -345,13 +348,15 @@ let matches_of_xpatterns with_caching orig_rule (file, xlang, ast) xpatterns =
         in
         (* debugging path *)
         if !debug_timeout || !debug_matches
-        then debug_semgrep mini_rules equivalences with_caching file lang ast
+        then (debug_semgrep mini_rules equivalences with_caching file lang ast,
+              errors)
         (* regular path *)
         else Semgrep_generic.check
             ~with_caching
             ~hook:(fun _ _ -> ())
-            mini_rules equivalences file lang ast
-    | _ -> []
+            mini_rules equivalences file lang ast,
+             errors
+    | _ -> [], []
   in
 
   (* spacegrep *)
@@ -417,7 +422,8 @@ let matches_of_xpatterns with_caching orig_rule (file, xlang, ast) xpatterns =
   in
 
   (* final result *)
-  semgrep_matches @ regexp_matches @ spacegrep_matches
+  semgrep_matches @ regexp_matches @ spacegrep_matches,
+  errors
 
 (*****************************************************************************)
 (* Formula evaluation *)
@@ -462,7 +468,7 @@ let rec (evaluate_formula: env -> R.formula -> range_with_mvars list) =
 
 (* 'with_caching' is unlabeled because ppx_profiling doesn't support labeled
    arguments *)
-let check with_caching hook rules (file, xlang, ast) =
+let check with_caching hook rules (file, xlang, lazy_ast_and_errors) =
   logger#info "checking %s with %d rules" file (List.length rules);
   rules |> List.map (fun r ->
 
@@ -474,8 +480,10 @@ let check with_caching hook rules (file, xlang, ast) =
 
     let xpatterns =
       xpatterns_in_formula formula in
-    let matches =
-      matches_of_xpatterns with_caching r (file, xlang, ast) xpatterns in
+    let matches, errors =
+      matches_of_xpatterns with_caching r (file, xlang, lazy_ast_and_errors)
+        xpatterns
+    in
     logger#info "found %d matches" (List.length matches);
     (* match results per minirule id which is the same than pattern_id in
      * the formula *)
@@ -493,7 +501,8 @@ let check with_caching hook rules (file, xlang, ast) =
     final_ranges |> List.map (range_to_match_result)
     |> (fun v ->
       v |> List.iter (fun (m : Pattern_match.t) -> hook m.env m.tokens);
-      v)
-  ) |> List.flatten
+      v),
+    errors
+  ) |> Common2.unzip |> (fun (xxs, yys) -> List.flatten xxs, List.flatten yys)
 [@@profiling]
 (*e: semgrep/engine/Semgrep.ml *)
