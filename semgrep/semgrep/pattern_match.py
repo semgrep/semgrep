@@ -29,7 +29,7 @@ class PatternMatch:
         return Path(self._raw_json["path"])
 
     @property
-    def metavars(self) -> Dict[str, Any]:
+    def metavariables(self) -> Dict[str, Any]:
         return self.extra.get("metavars", {})
 
     @property
@@ -37,16 +37,27 @@ class PatternMatch:
         return self._raw_json["extra"]
 
     @property
-    def vars(self) -> Dict[str, Any]:
-        metavars = {v: data.get("unique_id", {}) for v, data in self.metavars.items()}
-        return {v: uid.get("sid", uid.get("md5sum")) for v, uid in metavars.items()}
+    def metavariable_uids(self) -> Dict[str, Any]:
+        def _get_uid(metavariable_data: Any) -> Any:
+            try:
+                return metavariable_data["unique_id"]["sid"]
+            except KeyError:
+                try:
+                    return metavariable_data["unique_id"]["md5sum"]
+                except KeyError:
+                    return None
+
+        return {
+            metavariable: _get_uid(data)
+            for metavariable, data in self.metavariables.items()
+        }
 
     @property
     def range(self) -> Range:
         return Range(
             self._raw_json["start"]["offset"],
             self._raw_json["end"]["offset"],
-            self.vars,
+            self.metavariable_uids,
         )
 
     @property
@@ -67,13 +78,13 @@ class PatternMatch:
 
     def _read_metavariable_values(self) -> Dict[str, str]:
         """
-        Read self.path and lookup all values of metavariables in self.metavars
+        Read self.path and lookup all values of metavariables in self.metavariables
         """
         result = {}
 
         # open path and ignore non-utf8 bytes. https://stackoverflow.com/a/56441652
         with open(self.path, errors="replace") as fd:
-            for metavariable, metavariable_data in self.metavars.items():
+            for metavariable, metavariable_data in self.metavariables.items():
                 # Offsets are start inclusive and end exclusive
                 start_offset = metavariable_data["start"]["offset"]
                 end_offset = metavariable_data["end"]["offset"]
@@ -86,10 +97,10 @@ class PatternMatch:
 
     def get_metavariable_value(self, metavariable: str) -> str:
         """
-        Use metavars start and end to read into the file to find what the
+        Use metavariable's start and end to read into the file to find what the
         metavariable in this pattern match maps to in the file
 
-        Assumes METAVARIABLE is a key in self.metavars
+        Assumes METAVARIABLE is a key in self.metavariables
         """
         if self._metavariable_values is None:
             self._metavariable_values = self._read_metavariable_values()
