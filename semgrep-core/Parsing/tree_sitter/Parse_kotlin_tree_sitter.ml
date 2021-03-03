@@ -462,17 +462,19 @@ and annotation (env : env) (x : CST.annotation) =
               NamedAttr (v1, Id (("use site target", v2), empty_id_info ()), fake_bracket [v3])
           | None -> NamedAttr (v1, Id (str env origv1, empty_id_info ()), fake_bracket [v3])) in
        [v2]
-   | `Multi_anno (v1, v2, v3, v4, v5) ->
-       let v1 = token env v1 (* "@" *) in
-       let v2 =
-         (match v2 with
-          | Some x -> use_site_target env x
-          | None -> todo env ())
-       in
+   | `Multi_anno (origv1, v2, v3, v4, v5) ->
+       let v1 = token env origv1 (* "@" *) in
        let v3 = token env v3 (* "[" *) in
        let v4 = List.map (unescaped_annotation env) v4 in
        let v5 = token env v5 (* "]" *) in
-       todo env (v1, v2, v3, v4, v5)
+       let v2 =
+         (match v2 with
+          | Some x ->
+              let v2 = use_site_target env x in
+              NamedAttr (v1, Id (("use site target", v2), empty_id_info ()), fake_bracket v4)
+          | None -> NamedAttr (v1, Id (str env origv1, empty_id_info ()), fake_bracket v4))
+       in
+       [v2]
   )
 
 and anon_choice_param_b77c1d8 (env : env) (x : CST.anon_choice_param_b77c1d8) =
@@ -608,7 +610,7 @@ and class_declaration (env : env) (x : CST.class_declaration) =
        let v1 =
          (match v1 with
           | Some x -> modifiers env x
-          | None -> todo env ())
+          | None -> [])
        in
        let v2 =
          (match v2 with
@@ -620,7 +622,7 @@ and class_declaration (env : env) (x : CST.class_declaration) =
        let v4 =
          (match v4 with
           | Some x -> type_parameters env x
-          | None -> todo env ())
+          | None -> [])
        in
        let v5 =
          (match v5 with
@@ -759,8 +761,8 @@ and class_parameter (env : env) ((v1, v2, v3, v4, v5, v6) : CST.class_parameter)
   in
   let v2 =
     (match v2 with
-     | Some x -> anon_choice_val_2833752 env x
-     | None -> todo env ())
+     | Some x -> Some (anon_choice_val_2833752 env x)
+     | None -> None)
   in
   let v3 = simple_identifier env v3 in
   let v4 = token env v4 (* ":" *) in
@@ -888,20 +890,21 @@ and declaration (env : env) (x : CST.declaration) : definition =
        let v1 =
          (match v1 with
           | Some x -> modifiers env x
-          | None -> todo env ())
+          | None -> [])
        in
        let v2 = anon_choice_val_2833752 env v2 in
        let v3 =
          (match v3 with
           | Some x -> type_parameters env x
-          | None -> todo env ())
+          | None -> [])
        in
        let v4 = variable_declaration env v4 in
-       let v5 =
+       let tok, type_info = v4 in
+       (*let v5 =
          (match v5 with
           | Some x -> type_constraints env x
           | None -> todo env ())
-       in
+         in *)
        let v6 =
          (match v6 with
           | Some x ->
@@ -909,12 +912,12 @@ and declaration (env : env) (x : CST.declaration) : definition =
                | `EQ_exp (v1, v2) ->
                    let v1 = token env v1 (* "=" *) in
                    let v2 = expression env v2 in
-                   todo env (v1, v2)
+                   Some v2
                | `Prop_dele x -> property_delegate env x
               )
-          | None -> todo env ())
+          | None -> None)
        in
-       let v7 =
+       (*let v7 =
          (match v7 with
           | `Opt_getter opt ->
               (match opt with
@@ -925,8 +928,14 @@ and declaration (env : env) (x : CST.declaration) : definition =
                | Some x -> setter env x
                | None -> todo env ())
          )
-       in
-       todo env (v1, v2, v3, v4, v5, v6, v7)
+         in*)
+       let var_def = {
+         vinit = v6;
+         vtype = type_info;
+       } in
+       let entity = basic_entity tok [] in
+       let def_kind = VarDef var_def in
+       entity, def_kind
    | `Type_alias (v1, v2, v3, v4) ->
        let v1 = token env v1 (* "typealias" *) in
        let v2 = simple_identifier env v2 in
@@ -1316,15 +1325,24 @@ and loop_statement (env : env) (x : CST.loop_statement) =
        let v2 = token env v2 (* "(" *) in
        let v3 = List.map (annotation env) v3 in
        let v4 = lambda_parameter env v4 in
+       let id, type_info = v4 in
        let v5 = token env v5 (* "in" *) in
        let v6 = expression env v6 in
        let v7 = token env v7 (* ")" *) in
        let v8 =
          (match v8 with
           | Some x -> control_structure_body env x
-          | None -> todo env ())
+          | None -> empty_fbody)
        in
-       todo env (v1, v2, v3, v4, v5, v6, v7, v8)
+       let params = (match v4 with
+         | (v1, Some v2) ->
+             let pattern = PatId (v1, empty_id_info()) in
+             PatTyped (pattern, v2)
+         | (v1, None) ->
+             PatId (v1, empty_id_info())
+       ) in
+       let header = ForEach (params, v5, v6) in
+       For (v1, header, v8) |> AST.s
    | `While_stmt (v1, v2, v3, v4, v5) ->
        let v1 = token env v1 (* "while" *) in
        let v2 = token env v2 (* "(" *) in
@@ -1332,32 +1350,31 @@ and loop_statement (env : env) (x : CST.loop_statement) =
        let v4 = token env v4 (* ")" *) in
        let v5 =
          (match v5 with
-          | `SEMI tok -> let _ = token env tok in  (* ";" *)
-              raise Todo
+          | `SEMI tok -> empty_fbody
           | `Cont_stru_body x -> control_structure_body env x
          )
        in
-       todo env (v1, v2, v3, v4, v5)
+       While (v1, v3, v5) |> AST.s
    | `Do_while_stmt (v1, v2, v3, v4, v5, v6) ->
        let v1 = token env v1 (* "do" *) in
        let v2 =
          (match v2 with
           | Some x -> control_structure_body env x
-          | None -> todo env ())
+          | None -> empty_fbody)
        in
        let v3 = token env v3 (* "while" *) in
        let v4 = token env v4 (* "(" *) in
        let v5 = expression env v5 in
        let v6 = token env v6 (* ")" *) in
-       todo env (v1, v2, v3, v4, v5, v6)
+       DoWhile (v1, v2, v5) |> AST.s
   )
 
 and modifiers (env : env) (x : CST.modifiers) =
   (match x with
    | `Anno x -> annotation env x
    | `Rep1_modi xs ->
-       let _ = List.map (modifier env) xs in
-       raise Todo
+       let v1 = List.map (modifier env) xs in
+       []
   )
 
 and navigation_suffix (env : env) ((v1, v2) : CST.navigation_suffix) =
@@ -1587,7 +1604,7 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
 and property_delegate (env : env) ((v1, v2) : CST.property_delegate) =
   let v1 = token env v1 (* "by" *) in
   let v2 = expression env v2 in
-  todo env (v1, v2)
+  Some v2
 
 and range_test (env : env) ((v1, v2) : CST.range_test) =
   let v1 = in_operator env v1 in
@@ -1747,10 +1764,10 @@ and type_constraints (env : env) ((v1, v2, v3) : CST.type_constraints) =
     List.map (fun (v1, v2) ->
       let v1 = token env v1 (* "," *) in
       let v2 = type_constraint env v2 in
-      todo env (v1, v2)
+      v2
     ) v3
   in
-  todo env (v1, v2, v3)
+  v2::v3
 
 and type_modifier (env : env) (x : CST.type_modifier) =
   (match x with
@@ -1768,16 +1785,17 @@ and type_parameter (env : env) ((v1, v2, v3) : CST.type_parameter) =
      | Some x -> type_parameter_modifiers env x
      | None -> [])
   in
-  let v2 = simple_identifier env v2 in
+  let origv2 = simple_identifier env v2 in
   let v3 =
     (match v3 with
      | Some (v1, v2) ->
          let v1 = token env v1 (* ":" *) in
          let v2 = type_ env v2 in
-         todo env (v1, v2)
-     | None -> todo env ())
+         let type_parameter_constraints = [HasConstructor v1; Extends v2] in
+         (origv2, type_parameter_constraints)
+     | None -> (origv2, []))
   in
-  todo env (v1, v2, v3)
+  v3
 
 and type_parameter_modifier (env : env) (x : CST.type_parameter_modifier) =
   (match x with
@@ -1801,7 +1819,7 @@ and type_parameters (env : env) ((v1, v2, v3, v4) : CST.type_parameters) =
     ) v3
   in
   let v4 = token env v4 (* ">" *) in
-  todo env (v1, v2, v3, v4)
+  v2::v3
 
 and type_projection (env : env) (x : CST.type_projection) =
   (match x with

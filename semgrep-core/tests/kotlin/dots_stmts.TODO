@@ -1,0 +1,6 @@
+fun foo() {
+    var user_data = get()
+    print("do stuff")
+    foobar()
+    eval(user_data)
+}
