@@ -852,9 +852,7 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
     }
 
   and map_class_kind (x,t) =
-    (match x with Class -> Class | Interface -> Interface | Trait -> Trait
-                | AtInterface  -> AtInterface),
-    map_tok t
+    x, map_tok t
 
   and map_directive =
     function

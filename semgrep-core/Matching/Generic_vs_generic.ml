@@ -2537,15 +2537,14 @@ and m_class_definition a b =
 and m_class_kind a b = m_wrap m_class_kind_bis a b
 and m_class_kind_bis a b =
   match a, b with
-  | A.Class, B.Class ->
-      return ()
-  | A.Interface, B.Interface ->
-      return ()
-  | A.Trait, B.Trait ->
-      return ()
-  | A.AtInterface, B.AtInterface ->
-      return ()
-  | A.Class, _ | A.Interface, _ | A.Trait, _ | A.AtInterface, _
+  | A.Class, B.Class
+  | A.Interface, B.Interface
+  | A.Trait, B.Trait
+  | A.AtInterface, B.AtInterface
+  | A.Object, B.Object
+    -> return ()
+  | A.Class, _ | A.Interface, _ | A.Trait, _
+  | A.AtInterface, _ | A.Object, _
     -> fail ()
 (*e: function [[Generic_vs_generic.m_class_kind]] *)
 
