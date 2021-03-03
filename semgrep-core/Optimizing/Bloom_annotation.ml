@@ -15,7 +15,6 @@
 module B = Bloom_filter
 module V = Visitor_AST
 open AST_generic
-open Common
 
 (*****************************************************************************)
 (* Prelude *)
@@ -53,8 +52,6 @@ open Common
  * necessary if we used a linked list
 *)
 
-let push v (l : 'a list ref) = Common.push v l
-
 let push_list vs (l : 'a list ref) =
   l := vs @ (!l)
 
@@ -65,26 +62,13 @@ let add_all_to_bloom ids bf =
 (* Traversal methods *)
 (*****************************************************************************)
 
-(* TODO probably would rather not replicate code *)
-let regexp_regexp_string = "^=~/\\(.*\\)/\\([mi]?\\)$"
-let is_regexp_string s =
-  s =~ regexp_regexp_string
-
-let special_literal str =
-  str = "..." || (* Matching_generic. *)is_regexp_string str
-
-(* TODO: the second bit is a hack because my regexp skills are not great *)
-let special_ident str =
-  AST_generic_.is_metavar_name str || (String.length str > 4 && (Str.first_chars str 4) = "$...") || is_regexp_string str
-
 (* Use a visitor_AST to extract the strings from all identifiers,
  * and from all literals for now, except all semgrep stuff:
  *  - identifier which are metavariables
  *  - string like "..."
  *  - string like "=~/stuff/"
  *
- * See also Rules_filter.reserved_id and reserved_str and
- * Rules_filter.extract_specific_strings.
+ * See also Analyze_pattern.extract_specific_strings
 *)
 
 let rec statement_strings stmt =
@@ -93,7 +77,7 @@ let rec statement_strings stmt =
   let visitor = V.mk_visitor {
     V.default_visitor with
     V.kident = (fun (_k, _) (str, _tok) ->
-      push str res
+      Common.push str res
     );
     V.kexpr = (fun (k, _) x ->
       (match x with
@@ -101,14 +85,15 @@ let rec statement_strings stmt =
         * atoms, chars, even int?
        *)
        | L (String (str, _tok)) ->
-           push str res
+           Common.push str res
        | _ -> k x
       )
     );
     V.kconstness = (fun (k, _) x ->
       (match x with
        | Lit (String (str, _tok)) ->
-           if not (special_literal str) then push str res
+           if not (Pattern.is_special_string_literal str)
+           then Common.push str res
        | _ -> k x
       )
     );
@@ -135,32 +120,8 @@ let rec statement_strings stmt =
 (*****************************************************************************)
 (* Analyze the pattern *)
 (*****************************************************************************)
-
-let list_of_pattern_strings any =
-  let res = ref [] in
-  let visitor = V.mk_visitor {
-    V.default_visitor with
-    V.kident = (fun (_k, _) (str, _tok) ->
-      if not (special_ident str) then
-        push str res
-    );
-    V.kexpr = (fun (k, _) x ->
-      (match x with
-       (* less: we could extract strings for the other literals too?
-        * atoms, chars, even int?
-       *)
-       | L (String (str, _tok)) ->
-           if not (special_literal str) then
-             push str res
-       | TypedMetavar _ -> ()
-       | DisjExpr _ -> ()
-       | _ -> k x
-      )
-    );
-  } in
-  visitor any;
-  !res
-[@@profiling]
+let list_of_pattern_strings ?lang any =
+  Analyze_pattern.extract_specific_strings ?lang any
 
 (*****************************************************************************)
 (* Analyze the code *)

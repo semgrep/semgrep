@@ -84,7 +84,6 @@ val inits_and_rest_of_list: 'a list -> ('a list * 'a list) list
 val all_elem_and_rest_of_list : 'a list -> ('a * 'a list) list
 (*e: signature [[Matching_generic.all_elem_and_rest_of_list]] *)
 (*s: signature [[Matching_generic.is_regexp_string]] *)
-val is_regexp_string: string -> bool
 (*e: signature [[Matching_generic.is_regexp_string]] *)
 type regexp = Re.re
 (*s: signature [[Matching_generic.regexp_of_regexp_string]] *)

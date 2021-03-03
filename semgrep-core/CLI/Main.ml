@@ -1317,13 +1317,13 @@ let options () =
     (*e: [[Main_semgrep_core.options]] other cases *)
     "-use_parsing_cache", Arg.Set_string use_parsing_cache,
     " <dir> save and use parsed ASTs in a cache at given directory. Caller responsiblity to clear cache";
-    "-filter_irrelevant_rules", Arg.Set Flag.filter_irrelevant_rules,
-    " filter rules not containing any strings in target file";
+    "-filter_irrelevant_patterns", Arg.Set Flag.filter_irrelevant_patterns,
+    " filter patterns not containing any strings in target file";
     "-bloom_filter", Arg.Set Flag.use_bloom_filter,
     " use a bloom filter to only attempt matches when strings in the pattern are in the target";
     "-no_bloom_filter", Arg.Clear Flag.use_bloom_filter,
     " do not use bloom filter";
-    "-no_filter_irrelevant_rules", Arg.Clear Flag.filter_irrelevant_rules,
+    "-no_filter_irrelevant_patterns", Arg.Clear Flag.filter_irrelevant_patterns,
     " do not filter rules";
     "-tree_sitter_only", Arg.Set Flag.tree_sitter_only,
     " only use tree-sitter-based parsers";
