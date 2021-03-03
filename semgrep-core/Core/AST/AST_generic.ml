@@ -1491,10 +1491,13 @@ and class_definition = {
 }
 (*e: type [[AST_generic.class_definition]] *)
 (*s: type [[AST_generic.class_kind]] *)
+(* invariant: this must remain a simple enum; Map_AST relies on it *)
 and class_kind =
   | Class
   | Interface
   | Trait
+  (* Kotlin, Scala *)
+  | Object
   (* java: *)
   | AtInterface (* @interface, a.k.a annotation type declaration *)
 (*e: type [[AST_generic.class_kind]] *)

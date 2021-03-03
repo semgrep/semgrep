@@ -852,10 +852,8 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
       ()
     in
     vin.kclass_definition (k, all_functions) x
-  and v_class_kind (x, t) =
-    let _ = v_tok t in
-    match x with
-    | Class | Interface | Trait | AtInterface -> ()
+  and v_class_kind (_x, t) =
+    v_tok t
 
   and v_module_definition { mbody = v_mbody } =
     let arg = v_module_definition_kind v_mbody in ()
