@@ -42,10 +42,8 @@ type xlang =
   | LGeneric
 [@@deriving show]
 
-type regexp = string * Pcre.regexp
-let pp_regexp fmt (s, _) =
-  Format.fprintf fmt "\"%s\"" s
-let equal_regexp (s1, _) (s2, _) = s1 = s2
+type regexp = Regexp_engine.Pcre_engine.t
+[@@deriving show, eq]
 
 type xpattern = {
   pat: xpattern_kind;

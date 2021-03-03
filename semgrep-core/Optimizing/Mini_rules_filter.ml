@@ -53,7 +53,7 @@ let filter_mini_rules_relevant_to_file_using_regexp rules lang file =
        * extract a complex regexp instead handling itself disjunction.
       *)
       xs |> List.for_all (fun x ->
-        let re = Re.matching_string x in
+        let re = Re.matching_exact_string x in
         (* let re = Regexp_engine.compile_regexp t in *)
         Re.run re str
       )
