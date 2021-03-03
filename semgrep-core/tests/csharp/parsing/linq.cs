@@ -8,6 +8,7 @@ class HelloWorldLinq
     {
         FromLetSelect();
         DoubleFrom();
+        OrderBy();
     }
 
     private static void FromLetSelect() {
@@ -32,6 +33,20 @@ class HelloWorldLinq
         var wordList = from w1 in words1
             from w2 in w1
             select w1 + w2;
+
+        foreach (var word in wordList)
+        {
+            Console.WriteLine(word);
+        }
+    }
+
+    private static void OrderBy()
+    {
+        var words = new string[] {"hello", "world"};
+
+        var wordList = from w in words
+            orderby w.Length descending, w
+            select w;
 
         foreach (var word in wordList)
         {
