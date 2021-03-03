@@ -2,9 +2,8 @@ open Common
 
 module J = JSON
 
-let synthesize_patterns s file =
+let range_to_ast file lang s =
   let r = Range.range_of_linecol_spec s file in
-  let lang = Lang.langs_of_filename file |> List.hd in
   let {Parse_target. ast; errors; _ } =
     Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang file
   in
@@ -14,7 +13,26 @@ let synthesize_patterns s file =
   Constant_propagation.propagate_basic lang ast;
   Constant_propagation.propagate_dataflow ast;
   match a_opt with
-  | Some a ->
-      let patterns = Pattern_from_Code.from_any a in
-      List.map (fun (k, v) -> (k, Pretty_print_generic.pattern_to_string lang v)) patterns
+  | Some a -> a
   | None -> failwith (spf "could not find an expr at range %s in %s" s file)
+
+let synthesize_patterns s file =
+  let lang = Lang.langs_of_filename file |> List.hd in
+  let a = range_to_ast file lang s in
+  let patterns = Pattern_from_Code.from_any a in
+  List.map (fun (k, v) -> (k, Pretty_print_generic.pattern_to_string lang v)) patterns
+
+
+let generate_pattern_choices s =
+  let rec read_input xs =
+    match xs with
+    | [] -> raise WrongNumberOfArguments
+    | [x] -> [], x
+    | x::xs -> let ranges, file = read_input xs in
+        (x::ranges), file
+  in
+  let ranges, file = read_input s in
+  let lang = Lang.langs_of_filename file |> List.hd in
+  let targets = List.map (range_to_ast file lang) ranges in
+  (List.map (Pretty_print_generic.pattern_to_string lang) targets) @
+  List.map (Pretty_print_generic.pattern_to_string lang) (Pattern_from_Targets.generate_patterns targets)
