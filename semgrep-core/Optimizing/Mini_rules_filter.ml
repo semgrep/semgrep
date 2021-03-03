@@ -15,6 +15,8 @@
 module Flag = Flag_semgrep
 module R = Mini_rule
 
+module Re = Regexp_engine.Str_engine
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -51,9 +53,9 @@ let filter_mini_rules_relevant_to_file_using_regexp rules lang file =
        * extract a complex regexp instead handling itself disjunction.
       *)
       xs |> List.for_all (fun x ->
-        let t = Regexp_engine.regexp_matching_str x in
-        let re = Regexp_engine.compile_regexp t in
-        Regexp_engine.run_regexp re str
+        let re = Re.matching_string x in
+        (* let re = Regexp_engine.compile_regexp t in *)
+        Re.run re str
       )
 
     in

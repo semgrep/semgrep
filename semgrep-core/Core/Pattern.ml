@@ -61,7 +61,7 @@ let is_special_identifier ?lang str =
   str = AST_generic.special_multivardef_pattern ||
   (* ugly: because ast_js_build introduce some extra "!default" ids *)
   (lang = Some Lang.Javascript && str = Ast_js.default_entity) ||
-  (* parser_js.mly inserts some implicit this *)
+  (* parser_java.mly inserts some implicit this *)
   (lang = Some Lang.Java && str = "this")
 
 (*e: semgrep/core/Pattern.ml *)
