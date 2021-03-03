@@ -34,7 +34,7 @@ module MV = Metavariable
 
 (* less: merge with xpattern_kind? *)
 type xlang =
-  (* for "real" semgrep *)
+  (* for "real" semgrep (the first language is used to parse the pattern) *)
   | L of Lang.t * Lang.t list
   (* for pattern-regex *)
   | LNone
@@ -61,7 +61,7 @@ type xpattern = {
   pid: pattern_id [@equal (fun _ _ -> true)];
 }
 and xpattern_kind =
-  | Sem of Pattern.t
+  | Sem of Pattern.t * Lang.t (* language used for parsing the pattern *)
   | Spacegrep of Spacegrep.Pattern_AST.t
   | Regexp of regexp
   (* used in the engine for rule->mini_rule and match_result gymnastic *)

@@ -55,7 +55,7 @@ type t =
   (* config files *)
   | JSON | Yaml
   (*e: type [[Lang.t]] *)
-[@@deriving show]
+[@@deriving show, eq]
 
 (*****************************************************************************)
 (* Helpers *)

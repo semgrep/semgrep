@@ -59,21 +59,22 @@
    Re.execp re str
 *)
 
-let regexp_matching_str s =
-  Str.regexp_string s
+module Str_engine = struct
+  type t = Str.regexp
 
-let compile_regexp t = t
-[@@profiling]
+  let matching_string s =
+    Str.regexp_string s
 
-(* this is not anchored! *)
-let run_regexp re str =
-  (* bugfix:
-   * this does not work!:  Str.string_match re str 0
-   * because you need to add ".*" in front to make it work,
-   * (but then you can not use regexp_string above)
-   * => use Str.search_forward instead.
-  *)
-  try
-    Str.search_forward re str 0 |> ignore; true
-  with Not_found -> false
-[@@profiling]
+  (* this is not anchored! *)
+  let run re str =
+    (* bugfix:
+     * this does not work!:  Str.string_match re str 0
+     * because you need to add ".*" in front to make it work,
+     * (but then you can not use regexp_string above)
+     * => use Str.search_forward instead.
+    *)
+    try
+      Str.search_forward re str 0 |> ignore; true
+    with Not_found -> false
+  [@@profiling]
+end

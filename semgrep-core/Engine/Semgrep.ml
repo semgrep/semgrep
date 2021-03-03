@@ -137,7 +137,7 @@ let partition_xpatterns xs =
     let id = xpat.R.pid in
     let str = xpat.R.pstr in
     match xpat.R.pat with
-    | R.Sem x -> Left3 (x, id, str)
+    | R.Sem (x, _lang) -> Left3 (x, id, str)
     | R.Spacegrep x -> Middle3 (x, id, str)
     | R.Regexp x -> Right3 (x, id, str)
   )
@@ -325,7 +325,7 @@ let debug_semgrep mini_rules equivalences with_caching file lang ast =
 (*****************************************************************************)
 
 let matches_of_xpatterns with_caching orig_rule
-    (file, xlang, lazy_ast_and_errors)
+    (file, xlang, lazy_ast_and_errors, lazy_content)
     xpatterns
   =
   (* Right now you can only mix semgrep/regexps and spacegrep/regexps, but
@@ -400,7 +400,7 @@ let matches_of_xpatterns with_caching orig_rule
     if regexps = []
     then []
     else begin
-      let big_str = Common.read_file file in
+      let big_str = Lazy.force lazy_content in
       regexps |> List.map (fun ((s, re), id, _pstr) ->
         let subs =
           try
@@ -470,6 +470,7 @@ let rec (evaluate_formula: env -> R.formula -> range_with_mvars list) =
    arguments *)
 let check with_caching hook rules (file, xlang, lazy_ast_and_errors) =
   logger#info "checking %s with %d rules" file (List.length rules);
+  let lazy_content = lazy (Common.read_file file) in
   rules |> List.map (fun r ->
 
     let formula =
@@ -477,32 +478,49 @@ let check with_caching hook rules (file, xlang, lazy_ast_and_errors) =
       | R.New f -> f
       | R.Old oldf -> Convert_rule.convert_formula_old oldf
     in
-
-    let xpatterns =
-      xpatterns_in_formula formula in
-    let matches, errors =
-      matches_of_xpatterns with_caching r (file, xlang, lazy_ast_and_errors)
-        xpatterns
+    let relevant_rule =
+      if !Flag_semgrep.filter_irrelevant_rules
+      then
+        match Analyze_rule.regexp_prefilter_of_formula formula with
+        | None -> true
+        | Some (re, f) ->
+            let content = Lazy.force lazy_content in
+            logger#info "looking for %s in %s" re file;
+            (f content)
+      else true
     in
-    logger#info "found %d matches" (List.length matches);
-    (* match results per minirule id which is the same than pattern_id in
-     * the formula *)
-    let pattern_matches_per_id =
-      group_matches_per_pattern_id matches in
-    let env = {
-      pattern_matches = pattern_matches_per_id;
-      file;
-    } in
-    logger#info "evaluating the formula";
-    let final_ranges =
-      evaluate_formula env formula in
-    logger#info "found %d final ranges" (List.length final_ranges);
+    if not relevant_rule
+    then begin
+      logger#info "skipping rule %s for %s" (r.R.id) file;
+      [], []
+    end else begin
+      let xpatterns =
+        xpatterns_in_formula formula in
+      let matches, errors =
+        matches_of_xpatterns with_caching r
+          (file, xlang, lazy_ast_and_errors, lazy_content)
+          xpatterns
+      in
+      logger#info "found %d matches" (List.length matches);
+      (* match results per minirule id which is the same than pattern_id in
+       * the formula *)
+      let pattern_matches_per_id =
+        group_matches_per_pattern_id matches in
+      let env = {
+        pattern_matches = pattern_matches_per_id;
+        file;
+      } in
+      logger#info "evaluating the formula";
+      let final_ranges =
+        evaluate_formula env formula in
+      logger#info "found %d final ranges" (List.length final_ranges);
 
-    final_ranges |> List.map (range_to_match_result)
-    |> (fun v ->
-      v |> List.iter (fun (m : Pattern_match.t) -> hook m.env m.tokens);
-      v),
-    errors
+      final_ranges |> List.map (range_to_match_result)
+      |> (fun v ->
+        v |> List.iter (fun (m : Pattern_match.t) -> hook m.env m.tokens);
+        v),
+      errors
+    end
   ) |> Common2.unzip |> (fun (xxs, yys) -> List.flatten xxs, List.flatten yys)
 [@@profiling]
 (*e: semgrep/engine/Semgrep.ml *)
