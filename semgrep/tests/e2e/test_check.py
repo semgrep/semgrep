@@ -420,3 +420,23 @@ def test_multiple_configs_different_origins(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(["rules/eqeq.yaml", GITHUB_TEST_GIST_URL]), "results.json"
     )
+
+
+def test_metavariable_propagation_regex(run_semgrep_in_tmp, snapshot):
+    snapshot.assert_match(
+        run_semgrep_in_tmp(
+            "rules/metavariable_propagation/metavariable-regex-propagation.yaml",
+            target_name="metavariable_propagation/metavariable-regex-propagation.py",
+        ),
+        "results.json",
+    )
+
+
+def test_metavariable_propagation_comparison(run_semgrep_in_tmp, snapshot):
+    snapshot.assert_match(
+        run_semgrep_in_tmp(
+            "rules/metavariable_propagation/metavariable-comparison-propagation.yaml",
+            target_name="metavariable_propagation/metavariable-comparison-propagation.py",
+        ),
+        "results.json",
+    )
