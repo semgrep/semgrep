@@ -108,7 +108,7 @@ def rule_match_nosem(rule_match: RuleMatch, strict: bool) -> bool:
     # Strip quotes to allow for use of nosem as an HTML attribute inside tags.
     # HTML comments inside tags are not allowed by the spec.
     pattern_ids = {
-        pattern_id.strip().strip("\"\'")
+        pattern_id.strip().strip("\"'")
         for pattern_id in COMMA_SEPARATED_LIST_RE.split(ids_str)
         if pattern_id.strip()
     }
@@ -258,6 +258,7 @@ The two most popular are:
         semgrep_errors,
         all_targets,
         profiler,
+        match_time_matrix,
     ) = CoreRunner(
         allow_exec=dangerously_allow_arbitrary_code_execution_from_rules,
         jobs=jobs,
@@ -290,7 +291,13 @@ The two most popular are:
     stats_line = f"ran {len(filtered_rules)} rules on {len(all_targets)} files: {num_findings} findings"
 
     output_handler.handle_semgrep_core_output(
-        rule_matches_by_rule, debug_steps_by_rule, stats_line, all_targets, profiler
+        rule_matches_by_rule,
+        debug_steps_by_rule,
+        stats_line,
+        all_targets,
+        profiler,
+        filtered_rules,
+        match_time_matrix,
     )
 
     if autofix:

@@ -332,6 +332,18 @@ class CoreRunner:
                 f"{PLEASE_FILE_ISSUE_TEXT}"
             )
 
+    def _add_match_times(
+        self,
+        rule: Rule,
+        match_time_matrix: Dict[Tuple[str, str], float],
+        output_time_json: Dict[str, Any],
+    ) -> None:
+        """Collect the match times reported by semgrep-core (or spacegrep)."""
+        if "targets" in output_time_json:
+            for target in output_time_json["targets"]:
+                if "match_time" in target and "path" in target:
+                    match_time_matrix[(rule.id, target["path"])] = target["match_time"]
+
     def _run_rule(
         self,
         rule: Rule,
@@ -339,6 +351,7 @@ class CoreRunner:
         cache_dir: str,
         max_timeout_files: List[Path],
         profiler: ProfileManager,
+        match_time_matrix: Dict[Tuple[str, str], float],
     ) -> Tuple[List[RuleMatch], List[Dict[str, Any]], List[SemgrepError], Set[Path]]:
         """
         Run all rules on targets and return list of all places that match patterns, ... todo errors
@@ -436,6 +449,8 @@ class CoreRunner:
                 for e in output_json["errors"]
             )
             outputs.extend(PatternMatch(m) for m in output_json["matches"])
+            if "time" in output_json:
+                self._add_match_times(rule, match_time_matrix, output_json["time"])
 
         # group output; we want to see all of the same rule ids on the same file path
         by_rule_index: Dict[
@@ -507,7 +522,8 @@ class CoreRunner:
         Dict[Rule, List[RuleMatch]],
         Dict[Rule, List[Dict[str, Any]]],
         List[SemgrepError],
-        Set[Path],
+        Set[Path],  # targets
+        Dict[Tuple[str, str], float],  # match time for each (rule, target)
     ]:
         findings_by_rule: Dict[Rule, List[RuleMatch]] = {}
         debugging_steps_by_rule: Dict[Rule, List[Dict[str, Any]]] = {}
@@ -515,6 +531,7 @@ class CoreRunner:
         file_timeouts: Dict[Path, int] = collections.defaultdict(lambda: 0)
         max_timeout_files: List[Path] = []
         all_targets: Set[Path] = set()
+        match_time_matrix: Dict[Tuple[str, str], float] = {}
 
         # cf. for bar_format: https://tqdm.github.io/docs/tqdm/
         with tempfile.TemporaryDirectory() as semgrep_core_ast_cache_dir:
@@ -528,6 +545,7 @@ class CoreRunner:
                     semgrep_core_ast_cache_dir,
                     max_timeout_files,
                     profiler,
+                    match_time_matrix,
                 )
                 all_targets = all_targets.union(rule_targets)
                 findings_by_rule[rule] = rule_matches
@@ -543,7 +561,13 @@ class CoreRunner:
                             max_timeout_files.append(err.path)
 
         all_errors = dedup_errors(all_errors)
-        return findings_by_rule, debugging_steps_by_rule, all_errors, all_targets
+        return (
+            findings_by_rule,
+            debugging_steps_by_rule,
+            all_errors,
+            all_targets,
+            match_time_matrix,
+        )
 
     def invoke_semgrep(
         self,
@@ -555,6 +579,7 @@ class CoreRunner:
         List[SemgrepError],
         Set[Path],
         ProfileManager,
+        Dict[Tuple[str, str], float],
     ]:
         """
         Takes in rules and targets and retuns object with findings
@@ -562,9 +587,13 @@ class CoreRunner:
         start = datetime.now()
         profiler = ProfileManager()
 
-        findings_by_rule, debug_steps_by_rule, errors, all_targets = self._run_rules(
-            rules, target_manager, profiler
-        )
+        (
+            findings_by_rule,
+            debug_steps_by_rule,
+            errors,
+            all_targets,
+            match_time_matrix,
+        ) = self._run_rules(rules, target_manager, profiler)
 
         logger.debug(
             f"semgrep ran in {datetime.now() - start} on {len(all_targets)} files"
@@ -578,7 +607,14 @@ class CoreRunner:
         ]
         logger.debug(f'findings summary: {", ".join(by_sev_strings)}')
 
-        return findings_by_rule, debug_steps_by_rule, errors, all_targets, profiler
+        return (
+            findings_by_rule,
+            debug_steps_by_rule,
+            errors,
+            all_targets,
+            profiler,
+            match_time_matrix,
+        )
 
 
 def dedup_output(outputs: List[RuleMatch]) -> List[RuleMatch]:
