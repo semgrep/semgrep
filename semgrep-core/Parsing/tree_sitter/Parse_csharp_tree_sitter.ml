@@ -1455,7 +1455,7 @@ and statement (env : env) (x : CST.statement) =
    | `For_each_stmt (v1, v2, v3, v4, v5, v6, v7, v8) ->
        let v1 =
          (match v1 with
-          | Some tok -> todo env tok (* "await" *)
+          | Some tok -> Some (token env tok) (* "await" *)
           | None -> None)
        in
        let v2 = token env v2 (* "foreach" *) in
@@ -1478,6 +1478,10 @@ and statement (env : env) (x : CST.statement) =
        in
        let v5 = token env v5 (* "in" *) in
        let v6 = expression env v6 in
+       let v6 = (match v1 with
+         | Some tok -> Await (tok, v6) (* "await" *)
+         | None -> v6
+       ) in
        let v7 = token env v7 (* ")" *) in
        let v8 = statement env v8 in
        For (v2, ForEach  (v4, v5, v6), v8) |> AST.s
