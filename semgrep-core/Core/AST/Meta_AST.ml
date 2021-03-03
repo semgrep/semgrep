@@ -1141,6 +1141,7 @@ and vof_class_kind_bis =
   | Interface -> OCaml.VSum ("Interface", [])
   | Trait -> OCaml.VSum ("Trait", [])
   | AtInterface -> OCaml.VSum ("AtInterface", [])
+  | Object -> OCaml.VSum ("Object", [])
 and vof_ident_and_id_info (v1, v2) =
   let v1 = vof_ident v1 in
   let v2 = vof_id_info v2 in
