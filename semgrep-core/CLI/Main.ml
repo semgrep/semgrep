@@ -506,6 +506,10 @@ let filter_files_with_too_many_matches_and_transform_as_timeout matches =
 (*****************************************************************************)
 
 (*s: function [[Main_semgrep_core.parse_generic]] *)
+(* It should really be just a call to Parse_target.parse_and_resolve...
+ * but the semgrep python wrapper calls semgrep-core separately for each
+ * rule, so we need to cache parsed AST to avoid extra work.
+*)
 let parse_generic lang file =
   (*s: [[Main_semgrep_core.parse_generic()]] use standard macros if parsing C *)
   if lang = Lang.C && Sys.file_exists !Flag_parsing_cpp.macros_h
@@ -525,6 +529,7 @@ let parse_generic lang file =
       cache_file_of_file full_filename)
       (fun () ->
          try
+           logger#info "parsing %s" file;
            (* finally calling the actual function *)
            let ast = Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang file
            in
@@ -614,9 +619,13 @@ let iter_generic_ast_of_files_and_get_matches_and_exn_to_errors f files =
       try
         run_with_memory_limit !max_memory (fun () ->
           timeout_function file (fun () ->
-            let {Parse_target. ast; errors; _} = parse_generic lang file in
+            let lazy_ast_and_errors = lazy (
+              let {Parse_target. ast; errors; _} = parse_generic lang file in
+              ast, errors
+            )
+            in
             (* calling the hook *)
-            (f file lang ast, errors)
+            (f file lang lazy_ast_and_errors)
 
             |> (fun v ->
               (* This is just to test -max_memory, to give a chance
@@ -741,14 +750,16 @@ let semgrep_with_rules ~with_opt_cache rules files =
   logger#info "processing %d files" (List.length files);
   let matches, errs =
     files |> iter_generic_ast_of_files_and_get_matches_and_exn_to_errors
-      (fun file lang ast ->
+      (fun file lang lazy_ast_and_errors ->
+         let (ast, errors) = Lazy.force lazy_ast_and_errors in
          let rules =
            rules |> List.filter (fun r -> List.mem lang r.MR.languages) in
          Semgrep_generic.check
            ~hook:(fun _ _ -> ())
            ~with_caching:with_opt_cache
            rules (parse_equivalences ())
-           file lang ast
+           file lang ast,
+         errors
       )
   in
   logger#info "found %d matches and %d errors"
@@ -809,7 +820,7 @@ let semgrep_with_real_rules ~with_opt_cache rules files =
   logger#info "processing %d files" (List.length files);
   let matches, errs =
     files |> iter_generic_ast_of_files_and_get_matches_and_exn_to_errors
-      (fun file lang ast ->
+      (fun file lang lazy_ast_and_errors ->
          let rules =
            rules |> List.filter (fun r ->
              match r.R.languages with
@@ -824,8 +835,8 @@ let semgrep_with_real_rules ~with_opt_cache rules files =
            end
          in
          let xlang = R.L (lang, []) in
-         let ast = lazy ast in
-         Semgrep.check with_opt_cache hook rules (file, xlang, ast)
+         Semgrep.check with_opt_cache hook rules
+           (file, xlang, lazy_ast_and_errors)
       )
   in
   logger#info "found %d matches and %d errors"
@@ -979,10 +990,12 @@ let tainting_with_rules rules_file xs =
     let files = get_final_files xs in
     let matches, errs =
       files |> iter_generic_ast_of_files_and_get_matches_and_exn_to_errors
-        (fun file lang ast ->
+        (fun file lang lazy_ast_and_errors ->
+           let (ast, errors) = Lazy.force lazy_ast_and_errors in
            let rules =
              rules |> List.filter (fun r -> List.mem lang r.TR.languages) in
-           Tainting_generic.check rules file ast
+           Tainting_generic.check rules file ast,
+           errors
         )
     in
     let flds = json_fields_of_matches_and_errors files matches errs in
