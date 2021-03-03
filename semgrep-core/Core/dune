@@ -2,7 +2,8 @@
  (name semgrep_core)
  (wrapped false)
  (libraries
-   yaml pcre
+   str re pcre
+   yaml
 
    commons
    pfff-config

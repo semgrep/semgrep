@@ -49,24 +49,36 @@
 (*****************************************************************************)
 (* Helpers  *)
 (*****************************************************************************)
+module Re_engine = struct
+  type t = string * Re.t (* not compiled *)
+  [@@deriving show]
 
-(* Those functions using Re instead of Str are actually slower on Zulip.
-   let regexp_matching_str s =
-   Re.str s
-   let compile_regexp t =
-   Re.compile t
-   let run_regexp re str =
-   Re.execp re str
-*)
+  let matching_exact_string s =
+    "!exact:s!", Re.str s
+
+  let compile t =
+    Re.compile t
+  [@@profiling]
+
+  let run (_, t) str =
+    let re = compile t in
+    Re.execp re str
+  [@@profiling]
+end
 
 module Str_engine = struct
-  type t = Str.regexp
+  (* keep the string around for show *)
+  type t = string * Str.regexp
+  let show (s, _) = s
 
-  let matching_string s =
-    Str.regexp_string s
+  let matching_exact_string s =
+    "!exact:s!", Str.regexp_string s
+
+  let regexp s =
+    s, Str.regexp s
 
   (* this is not anchored! *)
-  let run re str =
+  let run (_, re) str =
     (* bugfix:
      * this does not work!:  Str.string_match re str 0
      * because you need to add ".*" in front to make it work,
@@ -77,4 +89,21 @@ module Str_engine = struct
       Str.search_forward re str 0 |> ignore; true
     with Not_found -> false
   [@@profiling]
+end
+
+module Pcre_engine = struct
+  (* keep the string around for show *)
+  type t = string * Pcre.regexp
+  let show (s, _) = s
+
+  let pp fmt (s, _) =
+    Format.fprintf fmt "\"%s\"" s
+  let equal (s1, _) (s2, _) = s1 = s2
+
+  let matching_exact_string s =
+    let quoted = Pcre.quote s in
+    quoted, Pcre.regexp quoted
+
+  let run (_, re) str =
+    Pcre.pmatch ~rex:re str
 end

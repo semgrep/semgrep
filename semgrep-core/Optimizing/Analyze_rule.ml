@@ -55,6 +55,6 @@ module Re = Regexp_engine.Str_engine
 (* TODO: hard-coded regexp for now, just to test *)
 let regexp_prefilter_of_formula _f =
   Some ("regexp: jsonwebtoken", fun big_str ->
-    let re = Re.matching_string "jsonwebtoken" in
+    let re = Re.matching_exact_string "jsonwebtoken" in
     Re.run re big_str
   )
