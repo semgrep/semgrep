@@ -141,7 +141,9 @@ def test_regex_rule__child(run_semgrep_in_tmp, snapshot):
 
 def test_regex_rule__not(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(
-        run_semgrep_in_tmp("rules/pattern-not-regex/regex-not.yaml", target_name="basic/stupid.py"),
+        run_semgrep_in_tmp(
+            "rules/pattern-not-regex/regex-not.yaml", target_name="basic/stupid.py"
+        ),
         "results.json",
     )
 
@@ -149,7 +151,8 @@ def test_regex_rule__not(run_semgrep_in_tmp, snapshot):
 def test_regex_rule__not2(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(
-            "rules/pattern-not-regex/regex-not2.yaml", target_name="basic/regex-any-language.html"
+            "rules/pattern-not-regex/regex-not2.yaml",
+            target_name="basic/regex-any-language.html",
         ),
         "results.json",
     )
@@ -163,6 +166,7 @@ def test_regex_rule__pattern_regex_and_pattern_not_regex(run_semgrep_in_tmp, sna
         ),
         "results.json",
     )
+
 
 def test_regex_rule__issue2465(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(
@@ -193,7 +197,12 @@ def test_nosem_rule(run_semgrep_in_tmp, snapshot):
 
 
 def test_nosem_rule_unicode(run_semgrep_in_tmp, snapshot):
-    snapshot.assert_match(run_semgrep_in_tmp("rules/nosem-unicode.yaml", target_name="advanced_nosem/nosem-unicode.py"), "results.json")
+    snapshot.assert_match(
+        run_semgrep_in_tmp(
+            "rules/nosem-unicode.yaml", target_name="advanced_nosem/nosem-unicode.py"
+        ),
+        "results.json",
+    )
 
 
 def test_nosem_rule__invalid_id(run_semgrep_in_tmp, snapshot):
