@@ -23,7 +23,7 @@ module Re = Regexp_engine.Str_engine
  * Analyze_pattern.ml tries to extract a regexp from a pattern
  * in order to skip certain target files. However, it processes only
  * one pattern at a time and is not aware of the context in which this
- * pattern is used. For example in
+ * pattern is used. For example in:
  *
  *  id: eval-not-in-foo
  *  patterns:
@@ -32,21 +32,20 @@ module Re = Regexp_engine.Str_engine
  *        require("foo.js")
  *        ...
  *
- * the current Rules_filter used in Semgrep_generic will just see a flat
+ * the current Mii_rules_filter used in Semgrep_generic will just see a flat
  * list of patterns, and will look separately for 'eval' and 'foo.js'
  * and filter certain patterns; But really, even if 'foo.js' is mentioned
  * in a file, we should completly skip the file if 'eval' is not in the file
- * because after all 'foo.js' is mentioned in a pattern-not context!.
+ * because after all 'foo.js' is mentioned in a pattern-not context!
  *
- * There are many optimizations opportunities when semgrep-core can see
+ * There are many optimization opportunities when semgrep-core can see
  * the whole rule:
  *  - TODO skip the pattern-not when computing the regexp
  *  - TODO if a pattern is very general (e.g., $FOO()), but is
  *    also mentioned in a metavariable-regexp, then we can use this
  *    regexp to filter the rule/target file.
  *  - TODO if a pattern is very general (e.g., $PROP), but reference
- *    metavariables used in other patterns, then you still skip the
- *    rule/target file
+ *    metavariables used in other patterns, then you can skip this pattern
 *)
 
 (*****************************************************************************)
