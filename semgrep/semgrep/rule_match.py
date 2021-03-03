@@ -79,10 +79,6 @@ class RuleMatch:
         return self._extra
 
     @property
-    def metavars(self) -> Dict[str, Any]:
-        return self._extra.get("metavars", {})
-
-    @property
     def fix(self) -> Optional[str]:
         return self._fix
 
