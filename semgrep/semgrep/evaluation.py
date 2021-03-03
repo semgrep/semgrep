@@ -65,7 +65,7 @@ def add_debugging_info(
         metavars_for_patterns = {}
     else:
         for pattern in pattern_ids_to_pattern_matches.get(expression.pattern_id, []):
-            for metavar, metavar_values in pattern.metavars.items():
+            for metavar, metavar_values in pattern.metavariables.items():
                 metavars_for_patterns[metavar].append(metavar_values)
 
     logger.debug(f"after filter '{expression.operator}': {output_ranges}")
@@ -89,13 +89,13 @@ def get_re_range_matches(
 
     result: Set[Range] = set()
     for _range in ranges:
-        if metavariable not in _range.vars:
+        if metavariable not in _range.metavariables:
             logger.debug(f"metavariable '{metavariable}' missing in range '{_range}'")
             continue
 
         any_matching_ranges = any(
             pm.range == _range
-            and metavariable in pm.metavars
+            and metavariable in pm.metavariables
             and re.match(regex, pm.get_metavariable_value(metavariable))
             for pm in pattern_matches
         )
@@ -145,13 +145,13 @@ def get_comparison_range_matches(
 
     result: Set[Range] = set()
     for _range in ranges:
-        if metavariable not in _range.vars:
+        if metavariable not in _range.metavariables:
             logger.debug(f"metavariable '{metavariable}' missing in range '{_range}'")
             continue
 
         any_matching_ranges = any(
             pm.range == _range
-            and metavariable in pm.metavars
+            and metavariable in pm.metavariables
             and compare_range_match(
                 metavariable,
                 comparison,
@@ -175,7 +175,7 @@ def compare_where_python(where_expression: str, pattern_match: PatternMatch) -> 
 
     local_vars = {
         metavar: pattern_match.get_metavariable_value(metavar)
-        for metavar in pattern_match.metavars
+        for metavar in pattern_match.metavariables
     }
     scope = {"vars": local_vars}
 
@@ -360,7 +360,7 @@ def evaluate(
     # about other nesting cases? ¯\_(ツ)_/¯ Right now it will prefer the largest PatternMatch range.
     all_pattern_match_metavariables: Dict[str, List[PatternMatch]] = defaultdict(list)
     for pattern_match in pattern_matches:
-        for metavar_text in pattern_match.metavars.keys():
+        for metavar_text in pattern_match.metavariables.keys():
             all_pattern_match_metavariables[metavar_text].append(pattern_match)
 
     for pattern_match in pattern_matches:
@@ -416,7 +416,7 @@ def interpolate_fix_metavariables(
     fix_str = rule.fix
     if fix_str is None:
         return None
-    for metavar in pattern_match.metavars:
+    for metavar in pattern_match.metavariables:
         fix_str = fix_str.replace(
             metavar, pattern_match.get_metavariable_value(metavar)
         )
