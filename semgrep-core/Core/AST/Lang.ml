@@ -90,6 +90,7 @@ let list_of_lang = [
   "kt", Kotlin;
   "lua", Lua;
   "rs", Rust;
+  "rust", Rust;
   "r", R;
   "yaml", Yaml;
 ]
