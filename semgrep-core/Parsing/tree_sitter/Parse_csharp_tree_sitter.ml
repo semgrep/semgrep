@@ -206,6 +206,16 @@ let rec linq_remainder_to_expr (query : linq_query_part list) (base_expr : expr)
        | OrderBy (tok, orderings) ->
            let base_expr = call_orderby base_expr lambda_params tok orderings in
            linq_remainder_to_expr tl base_expr lambda_params
+       | Join (tok, (_type, ident), enum, left, right, None) ->
+           (* base_expr.Join(enum, lambda_params -> left, ident -> right, (lambda_params, ident) -> (lambda_params, ident))
+            * and add ident to lambda_params
+           *)
+           let left_func = create_lambda lambda_params left in
+           let right_func = create_lambda [ident] right in
+           let res_func = create_join_result_lambda lambda_params ident in
+           let base_expr = call_lambda base_expr "Join" tok [enum; left_func; right_func; res_func] in
+           let lambda_params = lambda_params @ [ident] in
+           linq_remainder_to_expr tl base_expr lambda_params
        | _ -> failwith "not implemented")
 
 let linq_to_expr (from : linq_query_part) (body : linq_query_part list) =
