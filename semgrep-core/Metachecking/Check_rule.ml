@@ -16,10 +16,13 @@
 *)
 (*e: pad/r2c copyright *)
 open Common
+module FT = File_type
 
 open Rule
 module R = Rule
 module E = Error_code
+
+let logger = Logging.get_logger [__MODULE__]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -109,7 +112,7 @@ let check_formula env lang f =
   ()
 
 (*****************************************************************************)
-(* Entry point *)
+(* Entry points *)
 (*****************************************************************************)
 
 let check r =
@@ -121,4 +124,35 @@ let check r =
   in
   check_formula r r.languages f;
   ()
+
+(* We parse the parsing function fparser (Parser_rule.parse) to avoid
+ * circular dependencies.
+ * Similar to Test_parsing.test_parse_rules.
+*)
+let check_files fparser xs =
+  let fullxs =
+    xs
+    |> File_type.files_of_dirs_or_files (function
+      | FT.Config (FT.Yaml | (*FT.Json |*) FT.Jsonnet) -> true | _ -> false)
+    |> Skip_code.filter_files_if_skip_list ~root:xs
+  in
+  fullxs |> List.iter (fun file ->
+    logger#info "processing %s" file;
+    let rs = fparser file in
+    rs |> List.iter check;
+  )
+
+let stat_files fparser xs =
+  let fullxs =
+    xs
+    |> File_type.files_of_dirs_or_files (function
+      | FT.Config (FT.Yaml | (*FT.Json |*) FT.Jsonnet) -> true | _ -> false)
+    |> Skip_code.filter_files_if_skip_list ~root:xs
+  in
+  fullxs |> List.iter (fun file ->
+    logger#info "processing %s" file;
+    let _rs = fparser file in
+    ()
+  )
+
 (*e: semgrep/metachecking/Check_rule.ml *)
