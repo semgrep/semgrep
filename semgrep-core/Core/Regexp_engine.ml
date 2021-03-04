@@ -54,11 +54,17 @@ module Re_engine = struct
   [@@deriving show]
 
   let matching_exact_string s =
-    "!exact:s!", Re.str s
+    "exact:" ^ s, Re.str s
+  let regexp s =
+    s, Re.Pcre.re s
 
   let compile t =
     Re.compile t
   [@@profiling]
+
+  (* nice! *)
+  let alt (s1, t1) (s2, t2) =
+    s1 ^ "|" ^ s2, Re.alt [t1;t2]
 
   let run (_, t) str =
     let re = compile t in

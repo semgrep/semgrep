@@ -473,11 +473,7 @@ let check with_caching hook rules (file, xlang, lazy_ast_and_errors) =
   let lazy_content = lazy (Common.read_file file) in
   rules |> List.map (fun r ->
 
-    let formula =
-      match r.R.formula with
-      | R.New f -> f
-      | R.Old oldf -> Rule.convert_formula_old oldf
-    in
+    let formula = Rule.formula_of_rule r in
     let relevant_rule =
       if !Flag_semgrep.filter_irrelevant_rules
       then

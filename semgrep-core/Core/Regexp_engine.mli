@@ -24,8 +24,13 @@ end
 module Re_engine: sig
   type t = string * Re.t
   val show: t -> string
+  val pp: Format.formatter -> t -> unit
 
   val matching_exact_string: string -> t
+  val regexp: string -> t
+
+  (* nice! *)
+  val alt: t -> t -> t
 
   val run: t -> string -> bool
 end

@@ -250,4 +250,9 @@ let (convert_formula_old: formula_old -> formula) = fun e ->
   in
   aux e
 
+let formula_of_rule r =
+  match r.formula with
+  | New f -> f
+  | Old oldf -> convert_formula_old oldf
+
 (*e: semgrep/core/Rule.ml *)

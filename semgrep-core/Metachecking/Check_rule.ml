@@ -116,12 +116,8 @@ let check_formula env lang f =
 (*****************************************************************************)
 
 let check r =
-  let f =
-    match r.formula with
-    | New f -> f
-    (* less: maybe we could also have formula_old specific checks *)
-    | Old f -> Rule.convert_formula_old f
-  in
+  (* less: maybe we could also have formula_old specific checks *)
+  let f = Rule.formula_of_rule r in
   check_formula r r.languages f;
   ()
 
@@ -151,8 +147,14 @@ let stat_files fparser xs =
   in
   fullxs |> List.iter (fun file ->
     logger#info "processing %s" file;
-    let _rs = fparser file in
-    ()
+    let rs = fparser file in
+    rs |> List.iter (fun r ->
+      match Analyze_rule.regexp_prefilter_of_rule r with
+      | None ->
+          pr2 (spf "PB: could not find a regexp prefilter for rule %s" file)
+      | Some (s, _f) ->
+          pr (spf "regexp: %s" s)
+    )
   )
 
 (*e: semgrep/metachecking/Check_rule.ml *)
