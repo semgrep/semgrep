@@ -2,6 +2,7 @@ import copy
 import logging
 import re
 from collections import defaultdict
+from collections import OrderedDict
 from typing import Any
 from typing import Callable
 from typing import Dict
@@ -36,6 +37,15 @@ logger = logging.getLogger(__name__)
 
 DebugRanges = Union[Set[Range], Dict[str, Set[Range]]]
 DebugRangesConverted = Union[List[Range], Dict[str, List[Range]]]
+
+
+def stabilize_evaluation_ordering(
+    iterable: Iterable, key: Optional[Callable] = None
+) -> Iterable:
+    # Set reverse=True so we find the "nearest" pattern match or range, looking
+    # backwards. That is, if we have nested functions, classes, or other code blocks,
+    # we will produce the innermost block as the finding context
+    return sorted(iterable, key=key, reverse=True)
 
 
 def convert_ranges(ranges: DebugRanges) -> DebugRangesConverted:
@@ -256,10 +266,12 @@ def filter_ranges_with_propagation(
     metavariable_propagation: bool,
 ) -> Set[Range]:
 
+    stabilized_ranges_left = stabilize_evaluation_ordering(ranges_left)
+    stabilized_ranges_for_pattern = stabilize_evaluation_ordering(ranges_for_pattern)
     result: Set[Range] = set()
-    for _range in ranges_left:
+    for _range in stabilized_ranges_left:
         matched = False
-        for pattern_range in ranges_for_pattern:
+        for pattern_range in stabilized_ranges_for_pattern:
             if predicate(pattern_range, _range):
                 if metavariable_propagation:
                     # We need a deepcopy here because Python sets are passed by reference,
@@ -391,9 +403,9 @@ def evaluate(
     """
     output = []
 
-    pattern_ids_to_pattern_matches = defaultdict(list)
-    for pattern_match in pattern_matches:
-        pattern_ids_to_pattern_matches[pattern_match.id].append(pattern_match)
+    pattern_ids_to_pattern_matches: Dict[PatternId, List[PatternMatch]] = OrderedDict()
+    for pm in stabilize_evaluation_ordering(pattern_matches, key=lambda pm: pm.id):
+        pattern_ids_to_pattern_matches.setdefault(pm.id, []).append(pm)
 
     initial_ranges: DebugRanges = {
         pattern_id: set(pm.range for pm in pattern_matches)

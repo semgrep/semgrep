@@ -86,7 +86,7 @@
       "extra": {
         "is_ignored": false,
         "lines": "            print(\"asdf\")",
-        "message": "'print(\"asdf\")' detected in method 'D' in class 'A'",
+        "message": "'print(\"asdf\")' detected in method 'E' in class 'A'",
         "metadata": {},
         "metavars": {
           "$MSG": {
