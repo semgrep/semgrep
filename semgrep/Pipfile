@@ -14,3 +14,4 @@ xmldiff = "*"
 
 [packages]
 semgrep = {editable = true,path = "."}
+click = "*"

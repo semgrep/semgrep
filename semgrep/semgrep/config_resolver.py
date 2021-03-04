@@ -392,7 +392,14 @@ def download_config(config_url: str) -> Dict[str, YamlTree]:
         f"using config from {nice_semgrep_url(config_url)}. Visit https://semgrep.dev/registry to see all public rules."
     )
     logger.info(DOWNLOADING_MESSAGE)
+
     headers = {"User-Agent": SEMGREP_USER_AGENT}
+
+    from semgrep.authentication import Authentication
+    # TODO only need auth if url is semgrep.dev
+    auth = Authentication()
+    if auth.load():
+        headers["Authorization"] = f"Bearer {auth.token}"
 
     try:
         r = requests.get(config_url, stream=True, headers=headers, timeout=10)
