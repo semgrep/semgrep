@@ -289,7 +289,7 @@ let parse_formula env (x: string * J.t) : R.pformula =
 
 let parse_languages ~id langs =
   match langs with
-  | [J.String "none"] -> R.LNone
+  | [J.String ("none" | "regex")] -> R.LNone
   | [J.String "generic"] -> R.LGeneric
   | xs ->
       let languages = xs |> List.map (function
