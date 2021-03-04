@@ -111,7 +111,6 @@ let langs_of_filename filename =
   match typ with
   | FT.PL (FT.Web (FT.Js)) -> [Javascript] (* Add TypeScript too? *)
   | FT.PL (FT.Web (FT.TypeScript)) -> [Typescript]
-  | FT.PL (FT.Web (FT.TSX)) -> [Typescript]
   | FT.PL (FT.Python) -> [Python;Python2;Python2]
   (* .h could also be Cpp at some point *)
   | FT.PL (FT.C ("c")) -> [C]
@@ -159,7 +158,7 @@ let string_of_lang = function
 (* Manually pulled from file_type_of_file2 in file_type.ml *)
 let ext_of_lang = function
   | Python | Python2 | Python3 -> ["py"; "pyi"]
-  | Javascript -> ["js"]
+  | Javascript -> ["js"; "jsx"]
   | Typescript -> ["ts"; "tsx"]
   | JSON -> ["json"]
   | Java -> ["java"]
