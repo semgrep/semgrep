@@ -941,11 +941,13 @@ and declaration (env : env) (x : CST.declaration) : definition =
          (match v7 with
           | `Opt_getter opt ->
               (match opt with
-               | Some x -> getter env x
+               | Some x -> let x = getter env x in
+                   todo env x
                | None -> None)
           | `Opt_setter opt ->
               (match opt with
-               | Some x -> setter env x
+               | Some x -> let x = setter env x in
+                   todo env x
                | None -> None)
          )
        in
