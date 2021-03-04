@@ -396,6 +396,7 @@ def download_config(config_url: str) -> Dict[str, YamlTree]:
     headers = {"User-Agent": SEMGREP_USER_AGENT}
 
     from semgrep.authentication import Authentication
+
     # TODO only need auth if url is semgrep.dev
     auth = Authentication()
     if auth.load():

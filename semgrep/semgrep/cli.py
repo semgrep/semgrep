@@ -3,13 +3,15 @@ import argparse
 import logging
 import multiprocessing
 import os
+
 import click
-from semgrep.default_group import DefaultGroup
 
 import semgrep.config_resolver
 import semgrep.semgrep_main
 import semgrep.test
 from semgrep import __VERSION__
+from semgrep.commands.login import login
+from semgrep.commands.login import logout
 from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import DEFAULT_MAX_LINES_PER_FINDING
 from semgrep.constants import DEFAULT_TIMEOUT
@@ -17,6 +19,7 @@ from semgrep.constants import MAX_LINES_FLAG_NAME
 from semgrep.constants import OutputFormat
 from semgrep.constants import RCE_RULE_FLAG
 from semgrep.constants import SEMGREP_URL
+from semgrep.default_group import DefaultGroup
 from semgrep.dump_ast import dump_parsed_ast
 from semgrep.error import SemgrepError
 from semgrep.output import managed_output
@@ -24,7 +27,6 @@ from semgrep.output import OutputSettings
 from semgrep.synthesize_patterns import synthesize_patterns
 from semgrep.target_manager import optional_stdin_target
 from semgrep.version import is_running_latest
-from semgrep.commands.login import login, logout
 
 logger = logging.getLogger(__name__)
 try:
@@ -37,8 +39,10 @@ except NotImplementedError:
 def cli() -> None:
     pass
 
+
 cli.add_command(login)
 cli.add_command(logout)
+
 
 @cli.command()
 @click.option(
@@ -559,9 +563,7 @@ def scan(
                     output_handler.handle_semgrep_error(error)
                 raise SemgrepError("Please fix the above errors and try again.")
         elif generate_config:
-            semgrep.config_resolver.generate_config(
-                generate_config, lang, pattern
-            )
+            semgrep.config_resolver.generate_config(generate_config, lang, pattern)
         else:
             semgrep.semgrep_main.main(
                 output_handler=output_handler,

@@ -28,10 +28,11 @@ class DefaultGroup(click.Group):
 
     cli()
     """
+
     ignore_unknown_options = True
 
     def __init__(self, *args, **kwargs):
-        default_command = kwargs.pop('default_command', None)
+        default_command = kwargs.pop("default_command", None)
         super(DefaultGroup, self).__init__(*args, **kwargs)
         self.default_command_name = None
         if default_command is not None:
@@ -39,7 +40,7 @@ class DefaultGroup(click.Group):
 
     def parse_args(self, ctx, args):
         """
-            If there are no arguments, insert default command
+        If there are no arguments, insert default command
         """
         if not args and self.default_command_name is not None:
             args.insert(0, self.default_command_name)
@@ -47,11 +48,11 @@ class DefaultGroup(click.Group):
 
     def get_command(self, ctx, command_name):
         """
-            If COMMAND_NAME is not in self.commands then it means
-            it is an option/arg to the default command. So place
-            this in the context for retrieval in resolve_command.
+        If COMMAND_NAME is not in self.commands then it means
+        it is an option/arg to the default command. So place
+        this in the context for retrieval in resolve_command.
 
-            Also replace COMMAND_NAME with the self.default_command_name
+        Also replace COMMAND_NAME with the self.default_command_name
 
         """
         if command_name not in self.commands:
@@ -61,17 +62,17 @@ class DefaultGroup(click.Group):
 
     def resolve_command(self, ctx, args):
         """
-            MultiCommand.resolve_command assumes args[0] is the command name
-            if we are running a default command then args[0] will actually be
-            an option/arg to the default command.
+        MultiCommand.resolve_command assumes args[0] is the command name
+        if we are running a default command then args[0] will actually be
+        an option/arg to the default command.
 
-            In get_command we put this first arg into _default_command_overwrite_arg0
-            in the context. So here we just read it from context again
+        In get_command we put this first arg into _default_command_overwrite_arg0
+        in the context. So here we just read it from context again
 
-            If args[0] is actually a command name then _default_command_overwrite_args0
-            will not be set so this function is equivalent to existing behavior
+        If args[0] is actually a command name then _default_command_overwrite_args0
+        will not be set so this function is equivalent to existing behavior
         """
         cmd_name, cmd, args = super(DefaultGroup, self).resolve_command(ctx, args)
-        if hasattr(ctx, '_default_command_overwrite_args0'):
+        if hasattr(ctx, "_default_command_overwrite_args0"):
             args.insert(0, ctx._default_command_overwrite_args0)
         return cmd_name, cmd, args

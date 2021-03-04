@@ -1,9 +1,12 @@
 import os
 import webbrowser
+
 import click
+
 from semgrep.authentication import Authentication
 
 SEMGREP_LOGIN_TOKEN_ENVVAR_NAME = "SEMGREP_LOGIN_TOKEN"
+
 
 @click.command()
 def login():
@@ -13,7 +16,9 @@ def login():
     configuration = Authentication()
     configuration.load()
     if configuration.token:
-        click.echo(f"Auth token already exists in {Authentication.FILE_PATH}. To login with a different token logout with `semgrep logout`")
+        click.echo(
+            f"Auth token already exists in {Authentication.FILE_PATH}. To login with a different token logout with `semgrep logout`"
+        )
         return
 
     login_token = os.environ.get(SEMGREP_LOGIN_TOKEN_ENVVAR_NAME)
@@ -37,9 +42,9 @@ def login():
         # TODO validaton and retry?
         login_token = click.prompt("Please enter the API token", hide_input=True)
 
-
     configuration.token = login_token
     configuration.save()
+
 
 @click.command()
 def logout():

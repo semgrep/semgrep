@@ -1,10 +1,12 @@
 import json
 from pathlib import Path
 
+
 class Authentication:
     """
     Load,Write,Delete local config file that for now is only used for auth
     """
+
     FILE_PATH = Path.home() / ".semgrep/config"
 
     def __init__(self):
@@ -22,7 +24,6 @@ class Authentication:
         with Authentication.FILE_PATH.open() as f:
             # Error handling if not valid json
             config = json.load(f)
-
 
         self.token = config.get("TOKEN", None)
         return True
