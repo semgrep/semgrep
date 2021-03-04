@@ -35,4 +35,4 @@ let generate_pattern_choices s =
   let lang = Lang.langs_of_filename file |> List.hd in
   let targets = List.map (range_to_ast file lang) ranges in
   (List.map (Pretty_print_generic.pattern_to_string lang) targets) @
-  List.map (Pretty_print_generic.pattern_to_string lang) (Pattern_from_Targets.generate_patterns targets)
+  List.map (Pretty_print_generic.pattern_to_string lang) (Pattern_from_Targets.generate_patterns targets lang)

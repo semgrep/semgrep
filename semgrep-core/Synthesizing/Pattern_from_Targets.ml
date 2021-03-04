@@ -15,6 +15,8 @@ open AST_generic
 open Common
 module Set = Set_
 
+exception InvalidSubstitution
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -30,21 +32,40 @@ module Set = Set_
 (*****************************************************************************)
 
 type stage = DONE | ANY of any
+type pattern_instrs = (any * ((stage * (any -> any)) list)) list
+
+let global_lang = ref Lang.OCaml
 
 (*****************************************************************************)
 (* Print *)
 (*****************************************************************************)
 
-let show_stage = function
+let p_any = Pretty_print_generic.pattern_to_string !global_lang
+
+let stage_string = function
   | DONE -> "done"
-  | ANY any -> AST_generic.show_any any
+  | ANY any -> p_any any
+
+let rec show_replacements reps =
+  let list_string =
+    match reps with
+    | [] -> "]"
+    | [target, _] -> stage_string target ^ "]"
+    | (target, _)::reps' -> stage_string target ^ " , " ^ show_replacements reps'
+  in
+  "[" ^ list_string
 
 let rec show_patterns patterns =
   match patterns with
-  | [] -> pr2 ""
-  | (pattern, target, _)::pats ->
-      pr2 ("( " ^ (show_any pattern) ^ ", " ^ (show_stage target) ^ " )");
+  | [] -> pr2 "---"
+  | (pattern, replacements)::pats ->
+      pr2 ("( " ^ (p_any pattern) ^ ", " ^ show_replacements replacements ^ " )");
       show_patterns pats
+
+let show_pattern_sets patsets =
+  pr2 "[";
+  List.iter show_patterns patsets;
+  pr2 "]\n"
 
 (*****************************************************************************)
 (* Helpers *)
@@ -59,23 +80,62 @@ let default_id str =
   N (Id((str, fk),
         {id_resolved = ref None; id_type = ref None; id_constness = ref None}))
 
+let replace_sk { s = _s; s_id; s_use_cache; s_backrefs; s_bf } s_kind =
+  { s = s_kind; s_id; s_use_cache; s_backrefs; s_bf }
+
+let add_pattern s pattern =
+  Set.add (p_any pattern) s
+
+let add_patterns s patterns =
+  List.fold_left (fun s' (pattern, _) -> add_pattern s' pattern) s patterns
+
+let lookup_pattern pattern s =
+  Set.mem (p_any pattern) s
+
+
 (*****************************************************************************)
 (* Algorithm *)
 (*****************************************************************************)
 
-let pattern_from_any s =
-  let metavar_pattern _e = E (default_id "X") in
+let metavar_pattern _e = (default_id "$X")
+
+let sub_expr f sub =
+  match sub with
+  | E e -> f e
+  | _ -> raise InvalidSubstitution
+
+let pattern_from_call (e, (lp, args, rp)) =
+  [ E (Call (metavar_pattern e, (lp, args, rp))), [ANY (E e), sub_expr (fun e' -> E (Call (e', (lp, args, rp))))] ]
+
+let pattern_from_expr e =
+  match e with
+  | Call (e', (lp, args, rp)) -> pattern_from_call (e', (lp, args, rp))
+  | _ -> [E (metavar_pattern e), [DONE, fun x -> x]]
+
+let rec pattern_from_any s : pattern_instrs =
   match s with
-  | ANY (E e) -> [metavar_pattern e, DONE, fun x -> x]
+  | ANY (E e) -> pattern_from_expr e
+  | ANY (S ({s = ExprStmt (e, sc); _} as stmt)) ->
+      let _, pattern =
+        get_one_step_replacements (E (Ellipsis fk), [ANY (E e), sub_expr (fun e' -> S (replace_sk stmt (ExprStmt (e', sc))))])
+      in pattern
   | _ -> []
 
-let get_one_step_replacements (_, target, f) =
-  (* Case on any and use it to get the list of possible replacements (pattern, removed_target, g) list *)
-  let target_replacements = pattern_from_any target in
-  (* Return the (f pattern, removed_target, f circ g) list *)
-  List.map (fun (pattern, removed_target, g) -> (f pattern, removed_target, fun x -> f (g x))) target_replacements
+(* pattern construction *)
 
-let get_intersecting_patterns pattern_lists =
+and get_one_step_replacements (pattern, holes) =
+  (* Try the first hole (target, f) *)
+  match holes with
+  | [] -> (pattern, []), []
+  | (target, f)::holes' ->
+      (* Get all the possible replacements for the target (pattern, holes) list *)
+      let target_replacements = pattern_from_any target in
+      (* Use each replacement to fill the chosen hole *)
+      let incorporate_holes holes = List.map (fun (removed_target, g) -> (removed_target, fun x -> f (g x))) holes in
+      (pattern, holes'),
+      List.map (fun (pattern, target_holes) -> (f pattern, (incorporate_holes target_holes) @ holes')) target_replacements
+
+let get_included_patterns pattern_children =
   let intersect_all sets =
     match sets with
     | [] -> Set.empty
@@ -83,33 +143,62 @@ let get_intersecting_patterns pattern_lists =
     | x::xs -> List.fold_left (fun acc s -> Set.inter acc s) x xs
   in
   let sets = List.map (fun patterns ->
-    List.fold_left (fun s (pattern, _, _) -> Set.add pattern s) Set.empty patterns)
-    pattern_lists
+    List.fold_left (fun s (_, child_patterns) -> add_patterns s child_patterns) Set.empty patterns)
+    pattern_children
   in
   let intersection = intersect_all sets in
-  List.map (fun patterns -> List.filter (fun (pattern, _, _) -> Set.mem pattern intersection) patterns) pattern_lists,
-  Set.is_empty intersection
+  (* pr2 "sets";
+     List.iter (Set.iter (fun pattern -> pr2 pattern)) sets;
+     pr2 "intersection";
+     Set.iter (fun pattern -> pr2 pattern) intersection; *)
+  let include_pattern ((pattern, holes), children) =
+    let included_children = List.filter (fun (pattern, _) -> lookup_pattern pattern intersection) children in
+    match included_children with
+    | [] ->  (
+        match holes with
+        | [] -> []
+        | _ -> [pattern, holes]
+      )
+    | _ -> children
+  in
+  List.map (fun patterns -> List.flatten (List.map include_pattern patterns)) pattern_children,
+  not (Set.is_empty intersection)
 
-let rec generate_patterns_help target_patterns =
+let rec generate_patterns_help (target_patterns : pattern_instrs list) =
   (* For each pattern in each set of target_patterns, generate the list of one step replacements *)
-  (*    ex: ($X, bar(foo(2), x), f) ------> [bar(...), [foo(2), x], fun xs -> bar(xs)] *)
+  (*    ex: ($X, bar(foo(2), x), f) ------> [$X(...), [bar, fun x -> x(...); [foo(2), x], fun xs -> bar(xs)]] *)
   (*        (pattern, any, any -> any) list *)
   (* Flatten the list. Each node n will have a corresponding set of patterns Sn *)
-  let new_target_patterns =
-    List.map (fun patterns -> List.flatten (List.map get_one_step_replacements patterns)) target_patterns
+  pr2 "target patterns";
+  show_pattern_sets target_patterns;
+  let pattern_children =
+    List.map (fun patterns -> List.map (fun pattern -> get_one_step_replacements pattern) patterns)
+      target_patterns
   in
-  (* Keep only the patterns in each Sn that appear in every other *)
-  let intersecting_patterns, cont = get_intersecting_patterns new_target_patterns in
+  let new_target_patterns =
+    List.map (fun patterns -> List.flatten (List.map (fun (_, new_pattern) -> new_pattern) patterns))
+      pattern_children
+  in
+  pr2 "new target patterns";
+  show_pattern_sets new_target_patterns;
+  (* Keep only the patterns in each Sn that appear in every other OR *)
+  (* the patterns that were included last time, don't have children, and have another replacement to try *)
+  let included_patterns, cont = get_included_patterns pattern_children in
   (* Call recursively on these patterns *)
-  if cont then generate_patterns_help intersecting_patterns else intersecting_patterns
+  if cont then generate_patterns_help included_patterns else target_patterns
 
 
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
-let generate_patterns s =
+let generate_patterns s lang =
+  global_lang := lang;
   (* Start each target node any as [$X, any, fun x -> x ] *)
-  let patterns = List.map (fun any -> [E (Ellipsis fk), ANY any, fun x -> x]) s in
-  let patterns = List.flatten (generate_patterns_help patterns) in
-  List.map (fun (pattern, _, _) -> pattern) patterns
+  let patterns = List.map (fun any -> [E (Ellipsis fk), [ANY any, fun x -> x]]) s in
+  let patterns =
+    match generate_patterns_help patterns with
+    | [] -> []
+    | x::_ -> x
+  in
+  List.map (fun (pattern, _) -> pattern) patterns

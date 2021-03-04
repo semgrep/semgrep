@@ -37,4 +37,4 @@
 
 (* limited to expressions for now *)
 val generate_patterns:
-  AST_generic.any list -> Pattern.t list
+  AST_generic.any list -> Lang.t -> Pattern.t list
