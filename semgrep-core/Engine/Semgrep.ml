@@ -476,7 +476,7 @@ let check with_caching hook rules (file, xlang, lazy_ast_and_errors) =
     let formula =
       match r.R.formula with
       | R.New f -> f
-      | R.Old oldf -> Convert_rule.convert_formula_old oldf
+      | R.Old oldf -> Rule.convert_formula_old oldf
     in
     let relevant_rule =
       if !Flag_semgrep.filter_irrelevant_rules
