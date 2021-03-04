@@ -38,38 +38,60 @@ let convert_capture (name, x) =
     unique_id = unique_id_of_loc x.loc;
   }
 
+let make_target_time (src, match_time) : Semgrep_t.target_time =
+  {
+    path = Src_file.source_string src;
+    match_time;
+  }
+
 (*
    Convert match results to the format expected by semgrep.
 *)
-let make_semgrep_json doc_matches : Semgrep_t.match_results =
-  let matches =
+let make_semgrep_json ~with_time doc_matches : Semgrep_t.match_results =
+  let matches, match_times =
     List.map (fun (src, pat_matches) ->
       let path = Src_file.source_string src in
-      List.map (fun (pat_id, matches) ->
-        let check_id = Some (string_of_int pat_id) in
-        List.map (fun match_ ->
-          let ((pos1, _), (_, pos2)) = match_.region in
-          let metavars = List.map convert_capture match_.named_captures in
-          let lines =
-            Src_file.list_lines_of_pos_range src pos1 pos2
-          in
-          let extra = {
-            message = None;
-            metavars;
-            lines;
-          } in
-          ({
-            check_id;
-            path;
-            start = semgrep_pos pos1;
-            end_ = semgrep_pos pos2;
-            extra;
-          } : match_)
-        ) matches
-      ) pat_matches
-      |> List.flatten
+      let matches, match_time =
+        List.fold_right
+          (fun (pat_id, matches, match_time) (matches_acc, match_time_acc) ->
+             let check_id = Some (string_of_int pat_id) in
+             let matches_out =
+               List.map (fun match_ ->
+                 let ((pos1, _), (_, pos2)) = match_.region in
+                 let metavars =
+                   List.map convert_capture match_.named_captures in
+                 let lines =
+                   Src_file.list_lines_of_pos_range src pos1 pos2
+                 in
+                 let extra = {
+                   message = None;
+                   metavars;
+                   lines;
+                 } in
+                 ({
+                   check_id;
+                   path;
+                   start = semgrep_pos pos1;
+                   end_ = semgrep_pos pos2;
+                   extra;
+                 } : match_)
+               ) matches
+             in
+             (matches_out @ matches_acc, match_time +. match_time_acc)
+          ) pat_matches ([], 0.0)
+      in
+      (matches, (src, match_time))
     ) doc_matches
-    |> List.flatten
+    |> List.split
+  in
+  let matches = List.flatten matches in
+  let time =
+    if with_time then
+      Some {
+        targets = List.map make_target_time match_times;
+      }
+    else
+      None
   in
   {
     matches;
@@ -78,10 +100,10 @@ let make_semgrep_json doc_matches : Semgrep_t.match_results =
       okfiles = List.length doc_matches;
       errorfiles = 0;
     };
+    time;
   }
 
-let print_semgrep_json doc_matches =
-  make_semgrep_json doc_matches
+let print_semgrep_json ~with_time doc_matches =
+  make_semgrep_json ~with_time doc_matches
   |> Semgrep_j.string_of_match_results
-  |> Yojson.Safe.prettify
   |> print_endline

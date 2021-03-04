@@ -465,6 +465,15 @@ let search ?(case_sensitive = true) src pat doc =
     | Some selected_match -> (==) match_ selected_match
   )
 
+let timef f =
+  let t1 = Unix.gettimeofday () in
+  let res = f () in
+  let t2 = Unix.gettimeofday () in
+  (res, t2 -. t1)
+
+let timed_search ?case_sensitive src pat doc =
+  timef (fun () -> search ?case_sensitive src pat doc)
+
 let ansi_highlight s =
   match s with
   | "" -> s
@@ -509,7 +518,7 @@ let print_nested_results
     ?(print_optional_separator = make_separator_printer ())
     doc_matches =
   List.iter (fun (src, pat_matches) ->
-    List.iter (fun (_pat_id, matches) ->
+    List.iter (fun (_pat_id, matches, _match_time) ->
       print ?highlight ~print_optional_separator src matches
     ) pat_matches
   ) doc_matches

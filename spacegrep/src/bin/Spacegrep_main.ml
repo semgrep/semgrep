@@ -26,6 +26,7 @@ type config = {
   pattern: string option;
   pattern_files: string list;
   doc_files: string list;
+  time: bool;
   timeout: int option;
   warn: bool;
 }
@@ -40,7 +41,7 @@ let detect_highlight when_use_color oc =
    Run all the patterns on all the documents.
 *)
 let run_all
-    ~case_sensitive ~debug ~force ~output_format ~highlight ~warn
+    ~case_sensitive ~debug ~force ~output_format ~highlight ~time ~warn
     patterns docs =
   let num_files = ref 0 in
   let num_analyzed = ref 0 in
@@ -82,16 +83,12 @@ let run_all
                 printf "match document from %s against pattern from %s\n%!"
                   (Src_file.source_string doc_src)
                   (Src_file.source_string pat_src);
-              let matches_for_pat =
-                Match.search ~case_sensitive doc_src pat doc
+              let matches_for_pat, match_time =
+                Match.timed_search ~case_sensitive doc_src pat doc
               in
-              match matches_for_pat with
-              | [] -> None
-              | matches_for_pat ->
-                  num_matches := !num_matches + List.length matches_for_pat;
-                  Some (pat_id, matches_for_pat)
+              num_matches := !num_matches + List.length matches_for_pat;
+              (pat_id, matches_for_pat, match_time)
             ) patterns
-            |> List.filter_map (fun x -> x)
           in
           match matches_in_file with
           | [] -> None
@@ -104,7 +101,7 @@ let run_all
    | Text ->
        Match.print_nested_results ~highlight matches
    | Semgrep ->
-       Semgrep.print_semgrep_json matches
+       Semgrep.print_semgrep_json ~with_time:time matches
   );
   if debug then (
     printf "\nanalyzed %i files out of %i\n"
@@ -150,6 +147,7 @@ let run config =
     ~force:config.force
     ~output_format:config.output_format
     ~highlight
+    ~time:config.time
     ~warn:config.warn
     patterns docs
 
@@ -216,8 +214,9 @@ let output_format_term =
     Arg.info ["output-format"]
       ~doc:"Specifies how to print the matches. The default format, 'text',
             is an unspecified human-readable format. The other available
-            format is 'semgrep', which produce json output for internal
-            consumption by the semgrep front-end."
+            format is 'semgrep', which produces json output for internal
+            consumption by the semgrep front-end. Use a program like 'jq'
+            or 'ydump' for pretty-printing this json output."
   in
   Arg.value (Arg.opt output_format_conv Text info)
 
@@ -288,6 +287,13 @@ let doc_file_term =
   in
   Arg.value (Arg.opt_all Arg.string [] info)
 
+let time_term =
+  let info =
+    Arg.info ["time"]
+      ~doc:"Include matching times in the json output ('semgrep' format)."
+  in
+  Arg.value (Arg.flag info)
+
 let timeout_term =
   let info =
     Arg.info ["timeout"]
@@ -309,14 +315,14 @@ let warn_term =
 let cmdline_term =
   let combine
       case_insensitive color output_format debug force pattern
-      pattern_files anon_doc_file doc_files timeout warn =
+      pattern_files anon_doc_file doc_files time timeout warn =
     let doc_files =
       match anon_doc_file with
       | None -> doc_files
       | Some x -> x :: doc_files
     in
     { case_insensitive; color; output_format; debug; force; pattern;
-      pattern_files; doc_files; timeout; warn }
+      pattern_files; doc_files; time; timeout; warn }
   in
   Term.(const combine
         $ case_insensitive_term
@@ -328,6 +334,7 @@ let cmdline_term =
         $ pattern_file_term
         $ anon_doc_file_term
         $ doc_file_term
+        $ time_term
         $ timeout_term
         $ warn_term
        )
