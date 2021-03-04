@@ -35,6 +35,9 @@ let _fake = AST_generic.fake
 let token = H.token
 let str = H.str
 
+let unhandled_keywordattr_to_namedattr env tok =
+  AST.unhandled_keywordattr (str env tok)
+
 let ids_of_name (name : name_) : dotted_ident =
   let (ident, name_info) = name in
   (match name_info.name_qualifier with
@@ -54,6 +57,7 @@ let id_of_name_ (id, nameinfo) =
 (* TODO: delete *)
 let name_of_id id =
   (id, empty_name_info)
+
 
 let type_parameters_with_constraints params constraints : type_parameter list =
   List.map (fun param ->
@@ -326,9 +330,6 @@ let overloadable_operator (env : env) (x : CST.overloadable_operator) =
    | `GTEQ tok -> str env tok (* ">=" *)
    | `LTEQ tok -> str env tok (* "<=" *)
   )
-
-let unhandled_keywordattr_to_namedattr (env : env) tok =
-  NamedAttr (token env tok, Id (str env tok, empty_id_info ()), fake_bracket [])
 
 let modifier (env : env) (x : CST.modifier) =
   (* TODO these should all be KeywordAttr, but pfff doesn't know about all keywords *)

@@ -162,14 +162,6 @@ let rec eval env code =
       let vs = List.map (eval env) xs in
       List vs
 
-  (* TODO: Python In could be made an AST_generic.operator at some point *)
-  | G.OtherExpr (G.OE_In, [G.E e1; G.E e2]) ->
-      let v1 = eval env e1 in
-      let v2 = eval env e2 in
-      (match v2 with
-       | List xs -> Bool (List.mem v1 xs)
-       | _ -> Bool (false)
-      )
   (* Emulate Python re.match just enough *)
   | G.Call (G.DotAccess(G.N (G.Id (("re", _), _)), _, EN (Id ((("match"),_),_))),
             (_, [G.Arg e1; G.Arg (G.L (G.String (re, _)))], _)) ->
@@ -231,6 +223,12 @@ and eval_op op values code =
   *)
   | G.Eq, [v1; v2] -> Bool (v1 = v2)
   | G.NotEq, [v1; v2] -> Bool (v1 <> v2)
+
+  | G.In, [v1; v2] ->
+      (match v2 with
+       | List xs -> Bool (List.mem v1 xs)
+       | _ -> Bool (false)
+      )
 
   | _ -> raise (NotHandled code)
 

@@ -268,15 +268,12 @@ let rec expr (x: expr) =
       and v2 = list cmpop v2
       and v3 = list expr v3 in
       (match v2, v3 with
-       | [Left op, tok], [e] ->
+       | [op, tok], [e] ->
            G.Call (G.IdSpecial (G.Op op, tok), fb ([v1;e] |> List.map G.arg))
-       | [Right oe, _tok], [e] ->
-           G.OtherExpr (oe, [G.E v1; G.E e])
        | _ ->
            let anyops =
              v2 |> List.map (function
-               | Left arith, tok -> G.E (G.IdSpecial (G.Op arith, tok))
-               | Right other, _tok -> G.E (G.OtherExpr (other, []))
+               | arith, tok -> G.E (G.IdSpecial (G.Op arith, tok))
              ) in
            let any = anyops @ (v3 |> List.map (fun e -> G.E e)) in
            G.OtherExpr (G.OE_CmpOps, any)
@@ -383,16 +380,16 @@ and unaryop = function
 (*s: function [[Python_to_generic.cmpop]] *)
 and cmpop (a,b) =
   match a with
-  | Eq    -> Left G.Eq, b
-  | NotEq -> Left G.NotEq, b
-  | Lt    -> Left G.Lt, b
-  | LtE   -> Left G.LtE, b
-  | Gt    -> Left G.Gt, b
-  | GtE   -> Left G.GtE, b
-  | Is    -> Left G.PhysEq, b
-  | IsNot -> Left G.NotPhysEq, b
-  | In    -> Right G.OE_In, b
-  | NotIn -> Right G.OE_NotIn, b
+  | Eq    -> G.Eq, b
+  | NotEq -> G.NotEq, b
+  | Lt    -> G.Lt, b
+  | LtE   -> G.LtE, b
+  | Gt    -> G.Gt, b
+  | GtE   -> G.GtE, b
+  | Is    -> G.PhysEq, b
+  | IsNot -> G.NotPhysEq, b
+  | In    -> G.In, b
+  | NotIn -> G.NotIn, b
 (*e: function [[Python_to_generic.cmpop]] *)
 
 (*s: function [[Python_to_generic.comprehension]] *)
