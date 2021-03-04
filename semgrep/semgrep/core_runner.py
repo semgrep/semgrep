@@ -451,6 +451,8 @@ class CoreRunner:
             outputs.extend(PatternMatch(m) for m in output_json["matches"])
             if "time" in output_json:
                 self._add_match_times(rule, match_time_matrix, output_json["time"])
+            else:
+                print("no 'time' field: " + str(output_json))
 
         # group output; we want to see all of the same rule ids on the same file path
         by_rule_index: Dict[

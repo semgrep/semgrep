@@ -213,6 +213,7 @@ def build_output_json(
     semgrep_structured_errors: List[SemgrepError],
     all_targets: Set[Path],
     show_json_stats: bool,
+    show_json_time: bool,
     filtered_rules: List[Rule],
     match_time_matrix: Dict[Tuple[str, str], float],
     profiler: Optional[ProfileManager] = None,
@@ -231,7 +232,7 @@ def build_output_json(
             "loc": make_loc_stats(all_targets),
             "profiler": profiler.dump_stats() if profiler else None,
         }
-    if match_time_matrix:
+    if show_json_time:
         output_json["time"] = _build_time_json(
             filtered_rules, all_targets, match_time_matrix
         )
@@ -312,6 +313,7 @@ class OutputSettings(NamedTuple):
     strict: bool
     output_per_finding_max_lines_limit: Optional[int]
     json_stats: bool
+    json_time: bool
     timeout_threshold: int = 0
 
 
@@ -548,6 +550,7 @@ class OutputHandler:
                 self.semgrep_structured_errors,
                 self.all_targets,
                 self.settings.json_stats,
+                self.settings.json_time,
                 self.filtered_rules,
                 self.match_time_matrix,
                 self.profiler,
