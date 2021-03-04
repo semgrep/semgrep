@@ -36,7 +36,7 @@ module MV = Metavariable
 type xlang =
   (* for "real" semgrep (the first language is used to parse the pattern) *)
   | L of Lang.t * Lang.t list
-  (* for pattern-regex *)
+  (* for pattern-regex (less: rename LRegex? *)
   | LNone
   (* for spacegrep *)
   | LGeneric
@@ -100,6 +100,8 @@ and metavar_cond =
    * (which we use for MetavarRegexp) and using its actual value
    * (which we use for MetavarComparison), which translate to different
    * calls in Eval_generic.ml
+   * update: this is also useful to keep separate from CondGeneric for
+   * the "regexpizer" optimizer (see Analyze_rule.ml).
   *)
   | CondRegexp of MV.mvar * regexp
 
@@ -139,7 +141,7 @@ and extra =
 (* See also matching/eval_generic.ml *)
 and metavariable_comparison = {
   metavariable: MV.mvar;
-  comparison: string;
+  comparison: AST_generic.expr (* see Eval_generic.ml *);
   strip: bool option;
   base: int option;
 }
@@ -196,9 +198,9 @@ type rules = rule list
 [@@deriving show]
 
 (*****************************************************************************)
-(* Helpers *)
+(* Visitor *)
 (*****************************************************************************)
-
+(* currently used in Check_rule.ml metachecker *)
 let rec visit_new_formula f formula =
   match formula with
   | P p -> f p
@@ -206,10 +208,46 @@ let rec visit_new_formula f formula =
   | Not x -> visit_new_formula f x
   | Or xs | And xs -> xs |> List.iter (visit_new_formula f)
 
-let rec visit_old_formula f formula =
-  match formula with
-  | Pat x | PatNot x | PatInside x | PatNotInside x -> f x
-  | PatExtra _ -> ()
-  | PatEither xs | Patterns xs -> xs |> List.iter (visit_old_formula f)
+(*****************************************************************************)
+(* Converter *)
+(*****************************************************************************)
+
+let convert_extra x =
+  match x with
+  | MetavarRegexp (mvar, re) ->
+      CondRegexp (mvar, re)
+  | MetavarComparison comp ->
+      (match comp with
+       (* do we care about strip and base? should not Eval_generic handle it?
+        * base I think can be handled automatically, and for strip the user
+        * should instead use a more complex condition that converts
+        * the string into a number (e.g., "1234" in 1234).
+       *)
+       | { metavariable = _; comparison = x; strip = _TODO1; base = _TODO2 } ->
+           CondGeneric x
+      )
+  | _ ->
+(*
+  logger#debug "convert_extra: %s" s;
+  Parse_rule.parse_metavar_cond s
+*)
+      failwith (Common.spf "convert_extra: TODO: %s" (show_extra x))
+
+let (convert_formula_old: formula_old -> formula) = fun e ->
+  let rec aux e =
+    match e with
+    | Pat x | PatInside x -> P x
+    | PatNot x | PatNotInside x -> Not (P x)
+    | PatEither xs ->
+        let xs = List.map aux xs in
+        Or xs
+    | Patterns xs ->
+        let xs = List.map aux xs in
+        And xs
+    | PatExtra x ->
+        let e = convert_extra x in
+        MetavarCond e
+  in
+  aux e
 
 (*e: semgrep/core/Rule.ml *)

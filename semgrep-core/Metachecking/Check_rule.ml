@@ -34,7 +34,7 @@ let logger = Logging.get_logger [__MODULE__]
  *
  * TODO:
  *  - classic boolean checks for satisfaisability? A & !A => not good
- *  - use spacegrep or semgrep itself? but need sometimes to express
+ *  - use spacegrep or semgrep/yaml itself? but need sometimes to express
  *    rules on the yaml structure and sometimes on the pattern itself
  *    (a bit like in templating languages)
 *)
@@ -55,9 +55,8 @@ let error (env: env) s =
   let err = E.mk_error_loc loc (E.SemgrepMatchFound (check_id, s)) in
   pr2 (E.string_of_error err)
 
-
 (*****************************************************************************)
-(* New formula *)
+(* Formula *)
 (*****************************************************************************)
 
 let show_formula pf =
@@ -65,7 +64,10 @@ let show_formula pf =
   | P x -> x.pstr
   | _ -> R.show_formula pf
 
-let check_new_formula env lang f =
+let equal_formula x y =
+  AST_utils.with_structural_equal R.equal_formula x y
+
+let check_formula env lang f =
   (* check duplicated patterns, essentially:
    *  $K: $PAT
    *  ...
@@ -85,9 +87,9 @@ let check_new_formula env lang f =
               (* todo: for Pat, we could also check if exist PatNot
                * in which case intersection will always be empty
               *)
-              if xs |> List.exists (R.equal_formula x)
+              if xs |> List.exists (equal_formula x)
               then error env (spf "Duplicate pattern %s" (show_formula x));
-              if xs |> List.exists (R.equal_formula (Not x))
+              if xs |> List.exists (equal_formula (Not x))
               then error env (spf "Unsatisfiable patterns %s" (show_formula x));
               aux xs
         in
@@ -110,69 +112,17 @@ let check_new_formula env lang f =
   ()
 
 (*****************************************************************************)
-(* Old formula *)
-(*****************************************************************************)
-
-let show_formula_old pf =
-  match pf with
-  | Pat x | PatNot x | PatInside x | PatNotInside x ->
-      x.pstr
-  | _ -> R.show_formula_old pf
-
-let equal_formula_old x y =
-  AST_utils.with_structural_equal R.equal_formula_old x y
-
-let check_old_formula env lang f =
-  (* check duplicated patterns, essentially:
-   *  $K: $PAT
-   *  ...
-   *  $K2: $PAT
-   * but at the same level!
-  *)
-  let rec find_dupe f =
-    match f with
-    | Pat _ | PatNot _ | PatInside _ | PatNotInside _ -> ()
-    | PatExtra _ -> ()
-    | PatEither xs | Patterns xs ->
-        let rec aux xs =
-          match xs with
-          | [] -> ()
-          | x::xs ->
-              (* todo: for Pat, we could also check if exist PatNot
-               * in which case intersection will always be empty
-              *)
-              if xs |> List.exists (equal_formula_old x)
-              then error env (spf "Duplicate pattern %s" (show_formula_old x));
-              aux xs
-        in
-        (* breadth *)
-        aux xs;
-        (* depth *)
-        xs |> List.iter find_dupe
-  in
-  find_dupe f;
-
-  (* call Check_pattern subchecker *)
-  f |> visit_old_formula (fun { pat; pstr = _pat_str; pid = _ } ->
-    match pat, lang with
-    | Sem (semgrep_pat, _lang), L (lang, _rest)  ->
-        Check_pattern.check lang semgrep_pat
-    | Spacegrep _spacegrep_pat, LGeneric -> ()
-    | Regexp _, _ -> ()
-    | _ -> raise Impossible
-  );
-  ()
-
-(*****************************************************************************)
 (* Entry points *)
 (*****************************************************************************)
 
 let check r =
-  (match r.formula with
-   (* todo: convert old to new so can factorize checks? *)
-   | Old f -> check_old_formula r r.languages f;
-   | New f -> check_new_formula r r.languages f;
-  );
+  let f =
+    match r.formula with
+    | New f -> f
+    (* less: maybe we could also have formula_old specific checks *)
+    | Old f -> Rule.convert_formula_old f
+  in
+  check_formula r r.languages f;
   ()
 
 (* We parse the parsing function fparser (Parser_rule.parse) to avoid

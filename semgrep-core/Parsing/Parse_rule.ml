@@ -139,6 +139,7 @@ let parse_extra _env x =
           "strip", strip_opt;
           "base", base_opt;
          ], [] ->
+           let comparison = parse_metavar_cond comparison in
            R.MetavarComparison
              { R. metavariable; comparison;
                strip = Common.map_opt (parse_bool "strip") strip_opt;
