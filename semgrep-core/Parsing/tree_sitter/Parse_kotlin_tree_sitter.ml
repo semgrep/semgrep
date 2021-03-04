@@ -2136,13 +2136,21 @@ let parse file =
            raise exn
     )
 
+let parse_expression_or_source_file str =
+  let res = Tree_sitter_kotlin.Parse.string str in
+  match res.errors with
+  | [] -> res
+  | _ ->
+      let expr_str = "__SEMGREP_EXPRESSION " ^ str in
+      Tree_sitter_kotlin.Parse.string expr_str
+
+
 (* todo: special mode to convert Ellipsis in the right construct! *)
 let parse_pattern str =
-  let str = "__SEMGREP_EXPRESSION " ^ str in
   H.wrap_parser
     (fun () ->
        Parallel.backtrace_when_exn := false;
-       Parallel.invoke Tree_sitter_kotlin.Parse.string str ()
+       Parallel.invoke parse_expression_or_source_file str ()
     )
     (fun cst ->
        let file = "<pattern>" in

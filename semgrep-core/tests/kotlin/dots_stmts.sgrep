@@ -1,0 +1,4 @@
+val $V = get()
+...
+eval($V)
+
