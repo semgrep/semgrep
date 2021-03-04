@@ -427,8 +427,6 @@ and vof_other_expr_operator =
   | OE_YieldStar -> OCaml.VSum ("OE_YieldStar", [])
   | OE_Require -> OCaml.VSum ("OE_Require", [])
   | OE_UseStrict -> OCaml.VSum ("OE_UseStrict", [])
-  | OE_In -> OCaml.VSum ("OE_In", [])
-  | OE_NotIn -> OCaml.VSum ("OE_NotIn", [])
   | OE_Invert -> OCaml.VSum ("OE_Invert", [])
   | OE_Slices -> OCaml.VSum ("OE_Slices", [])
   | OE_CompForIf -> OCaml.VSum ("OE_CompForIf", [])
