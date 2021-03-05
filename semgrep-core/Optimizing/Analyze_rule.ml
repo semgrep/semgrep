@@ -122,8 +122,8 @@ and leaf_step1 f =
   | R.And _ | R.Or _ -> failwith "nested And or Or"
   (* we can filter that *)
   | R.Not _ -> None
-  | R.P pat -> xpat_step1 pat
-  | R.MetavarCond x ->
+  | R.Leaf (R.P pat) -> xpat_step1 pat
+  | R.Leaf (R.MetavarCond x) ->
       metavarcond_step1 x
 and xpat_step1 pat =
   match pat.R.pat with

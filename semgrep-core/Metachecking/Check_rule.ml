@@ -61,7 +61,7 @@ let error (env: env) s =
 
 let show_formula pf =
   match pf with
-  | P x -> x.pstr
+  | Leaf (P x) -> x.pstr
   | _ -> R.show_formula pf
 
 let equal_formula x y =
@@ -76,8 +76,8 @@ let check_formula env lang f =
   *)
   let rec find_dupe f =
     match f with
-    | P _ -> ()
-    | MetavarCond _ -> ()
+    | Leaf (P _) -> ()
+    | Leaf (MetavarCond _) -> ()
     | Not f -> find_dupe f
     | Or xs | And xs ->
         let rec aux xs =
