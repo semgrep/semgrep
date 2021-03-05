@@ -149,7 +149,8 @@ let stat_files fparser xs =
     logger#info "processing %s" file;
     let rs = fparser file in
     rs |> List.iter (fun r ->
-      match Analyze_rule.regexp_prefilter_of_rule r with
+      let res = Analyze_rule.regexp_prefilter_of_rule r in
+      match res with
       | None ->
           pr2 (spf "PB: could not find a regexp prefilter for rule %s" file)
       | Some (s, _f) ->

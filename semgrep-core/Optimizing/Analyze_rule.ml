@@ -271,11 +271,13 @@ let str_final final =
 [@@profiling]
 
 let regexp_prefilter_of_formula f =
-  let final = compute_final_cnf f in
-  Some (str_final final, fun big_str ->
-    run_cnf_step2 final big_str
-    (* run_cnf_step2 (And [Or [Idents ["jsonwebtoken"]]]) big_str *)
-  )
+  try
+    let final = compute_final_cnf f in
+    Some (str_final final, fun big_str ->
+      run_cnf_step2 final big_str
+      (* run_cnf_step2 (And [Or [Idents ["jsonwebtoken"]]]) big_str *)
+    )
+  with GeneralPattern -> None
 
 let hmemo = Hashtbl.create 101
 
