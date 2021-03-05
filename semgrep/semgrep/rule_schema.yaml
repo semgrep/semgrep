@@ -3,6 +3,7 @@ $schema: http://json-schema.org/draft-07/schema#
 definitions:
   patterns-content:
     type: array
+    title: "Return finding where all of the nested conditions are true"
     items:
       anyOf:
       - $ref: '#/definitions/patterns'
@@ -96,54 +97,54 @@ definitions:
     additionalProperties: false
   patterns:
     type: object
-    title: Return finding where all of the nested conditions are true
     properties:
       patterns:
+        title: Return finding where all of the nested conditions are true
         $ref: '#/definitions/patterns-content'
     required:
     - patterns
     additionalProperties: false
   pattern-either:
     type: object
-    title: Return finding where any of the nested conditions are true
     properties:
       pattern-either:
+        title: Return finding where any of the nested conditions are true
         $ref: '#/definitions/pattern-either-content'
     required:
     - pattern-either
     additionalProperties: false
   pattern-inside:
     type: object
-    title: Return findings only from within snippets Semgrep pattern matches
     properties:
       pattern-inside:
+        title: Return findings only from within snippets Semgrep pattern matches
         type: string
     required:
     - pattern-inside
     additionalProperties: false
   pattern-not-inside:
     type: object
-    title: Do not return findings from within snippets Semgrep pattern matches
     properties:
       pattern-not-inside:
+        title: Do not return findings from within snippets Semgrep pattern matches
         type: string
     required:
     - pattern-not-inside
     additionalProperties: false
   pattern-not:
     type: object
-    title: (deprecated, use pattern-not-inside) Do not return finding where Semgrep pattern matches exactly
     properties:
       pattern-not:
+        title: (deprecated, use pattern-not-inside) Do not return finding where Semgrep pattern matches exactly
         type: string
     required:
     - pattern-not
     additionalProperties: false
   pattern-where-python:
     type: object
-    title: Return finding where Python expression returns true
     properties:
       pattern-where-python:
+        title: Return finding where Python expression returns true
         type: string
     required:
       - pattern-where-python
