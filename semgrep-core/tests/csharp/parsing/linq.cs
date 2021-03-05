@@ -9,6 +9,7 @@ class HelloWorldLinq
         FromLetSelect();
         DoubleFrom();
         OrderBy();
+        Join();
     }
 
     private static void FromLetSelect() {
@@ -47,6 +48,20 @@ class HelloWorldLinq
         var wordList = from w in words
             orderby w.Length descending, w
             select w;
+
+        foreach (var word in wordList)
+        {
+            Console.WriteLine(word);
+        }
+    }
+    
+    private static void Join()
+    {
+        var words = new string[] {"hello", "world"};
+
+        var wordList = from w1 in words
+            join w2 in words on w1 equals w2
+            select w2;
 
         foreach (var word in wordList)
         {
