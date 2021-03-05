@@ -85,7 +85,52 @@ exception GeneralPattern
 (*****************************************************************************)
 (* Step0: a complex formula *)
 (*****************************************************************************)
-(* TODO: put in cnf? *)
+type step0 =
+  | Not of Rule.leaf
+  | Pos of Rule.leaf
+[@@deriving show]
+
+type cnf_step0 = step0 cnf
+[@@deriving show]
+
+(* reference? https://www.cs.jhu.edu/~jason/tutorials/convert-to-CNF.html *)
+let rec (cnf: Rule.formula -> cnf_step0) = fun f ->
+  match f with
+  | R.Leaf x -> And [Or [Pos x]]
+  | R.Not f ->
+      (match f with
+       | R.Leaf x -> And [Or [Not x]]
+       (* double negation *)
+       | R.Not f -> cnf f
+       (* de Morgan's laws *)
+       | R.Or _xs -> failwith "Not Or"
+       | R.And _xs -> failwith "Not And"
+      )
+  | R.And xs ->
+      let ys = List.map cnf xs in
+      And (ys |> List.map (function (And ors) -> ors) |> List.flatten)
+  | R.Or xs ->
+      let ys = List.map cnf xs in
+      let rec aux ys =
+        match ys with
+        | [] -> And []
+        | [x] -> x
+        | [And ps;And qs] ->
+            And (ps |> List.map (fun pi ->
+              let ands =
+                qs |> List.map (fun qi ->
+                  let (Or pi_ors) = pi in
+                  let (Or qi_ors) = qi in
+                  let ors = pi_ors @ qi_ors in
+                  (Or ors)
+                ) in
+              ands
+            ) |> List.flatten)
+        | x::xs ->
+            let y = aux xs in
+            aux [x;y]
+      in
+      aux ys
 
 (*****************************************************************************)
 (* Step1: just collect strings, mvars, regexps *)
@@ -99,9 +144,10 @@ type step1 =
 type cnf_step1 = step1 cnf
 [@@deriving show]
 
-
 (* simple for now, don't do any conversion *)
-let rec and_step1 f =
+
+(*
+let rec (and_step1: Rule.formula -> cnf_step1) = fun f ->
   match f with
   | R.And xs -> And (xs |> Common.map_filter or_step1)
   | _ -> And ([f] |> Common.map_filter or_step1)
@@ -125,6 +171,27 @@ and leaf_step1 f =
   | R.Leaf (R.P pat) -> xpat_step1 pat
   | R.Leaf (R.MetavarCond x) ->
       metavarcond_step1 x
+
+*)
+
+let rec (and_step1: cnf_step0 -> cnf_step1) = fun cnf ->
+  match cnf with
+  | And xs -> And (xs |> Common.map_filter or_step1)
+and or_step1 cnf =
+  match cnf with
+  | Or xs ->
+      let ys = (xs |> Common.map_filter leaf_step1) in
+      if null ys
+      then None
+      else (Some (Or ys))
+and leaf_step1 f =
+  match f with
+  (* we can filter that *)
+  | Not _ -> None
+  | Pos (R.P pat) -> xpat_step1 pat
+  | Pos (R.MetavarCond x) ->
+      metavarcond_step1 x
+
 and xpat_step1 pat =
   match pat.R.pat with
   | R.Sem (pat, lang) ->
@@ -259,10 +326,13 @@ let run_cnf_step2 cnf big_str =
 (*****************************************************************************)
 
 let compute_final_cnf f =
-  let cnf = and_step1 f in
-  (*  pr2 (show_cnf_step1 cnf); *)
+  let cnf = cnf f in
+  logger#ldebug (lazy (spf "cnf0 = %s" (show_cnf_step0 cnf)));
+  (* let cnf = and_step1 f in *)
+  let cnf = and_step1 cnf in
+  logger#ldebug (lazy (spf "cnf1 = %s" (show_cnf_step1 cnf)));
   let cnf = and_step2 cnf in
-  logger#debug "cnf = %s" (show_cnf_step2 cnf);
+  logger#ldebug (lazy (spf "cnf = %s" (show_cnf_step2 cnf)));
   cnf
 [@@profiling]
 
