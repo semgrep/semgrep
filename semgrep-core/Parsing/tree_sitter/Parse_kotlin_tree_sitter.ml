@@ -946,8 +946,7 @@ and declaration (env : env) (x : CST.declaration) : definition =
                | None -> None)
           | `Opt_setter opt ->
               (match opt with
-               | Some x ->
-                   let x = setter env x in
+               | Some x -> let x = setter env x in
                    todo env x
                | None -> None)
          )
@@ -1564,7 +1563,7 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
               let v1 =
                 (match v1 with
                  | Some x -> control_structure_body env x
-                 | None -> todo env ())
+                 | None -> empty_fbody)
               in
               let _v2 =
                 (match v2 with
@@ -1628,9 +1627,9 @@ and property_delegate (env : env) ((v1, v2) : CST.property_delegate) =
   Some v2
 
 and range_test (env : env) ((v1, v2) : CST.range_test) =
-  let v1 = in_operator env v1 in
+  let op, tok = in_operator env v1 in
   let v2 = expression env v2 in
-  todo env (v1, v2)
+  Call(IdSpecial (Op op, tok), fb[Arg v2])
 
 and setter (env : env) ((v1, v2) : CST.setter) =
   let v1 = token env v1 (* "set" *) in
@@ -1873,9 +1872,9 @@ and type_reference (env : env) (x : CST.type_reference) =
   )
 
 and type_test (env : env) ((v1, v2) : CST.type_test) =
-  let v1 = is_operator env v1 in
+  let op, tok = is_operator env v1 in
   let v2 = expression env v2 in
-  todo env (v1, v2)
+  Call(IdSpecial(Op op, tok), fb[Arg v2])
 
 and unary_expression (env : env) (x : CST.unary_expression) =
   (match x with
@@ -2019,7 +2018,7 @@ and when_condition (env : env) ((v1, v2, v3) : CST.when_condition) =
   let v1 = expression env v1 in
   let v2 = range_test env v2 in
   let v3 = type_test env v3 in
-  todo env (v1, v2, v3)
+  Conditional (v1, v2, v3)
 
 and when_entry (env : env) ((v1, v2, v3, v4) : CST.when_entry) =
   let v1 =
@@ -2089,8 +2088,8 @@ let file_annotation (env : env) ((v1, v2, v3, v4) : CST.file_annotation) =
          let _v3 = token env v3 (* "]" *) in
          v2
      | `Unes_anno x ->
-         let x = unescaped_annotation env x in
-         todo env x
+         let v1 = unescaped_annotation env x in
+         [v1]
     )
   in
   ()
