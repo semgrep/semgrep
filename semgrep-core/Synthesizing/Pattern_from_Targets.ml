@@ -33,8 +33,8 @@ exception UnsupportedTargetType
 (*****************************************************************************)
 
 type stage = DONE | ANY of any
-type env = { prev : any }
-type pattern_instrs = (env * any * ((stage * (any -> any -> any)) list)) list
+type env = { prev : any; count : int; mapping : (expr * expr) list; }
+type pattern_instrs = (env * any * ((stage * ((any -> any) -> any -> any)) list)) list
 
 let global_lang = ref Lang.OCaml
 
@@ -70,8 +70,18 @@ let show_pattern_sets patsets =
   pr2 "]\n"
 
 (*****************************************************************************)
-(* Helpers *)
+(* Pattern_from_Code Helpers *)
 (*****************************************************************************)
+
+(* TODO make mapping a map and use map lookup *)
+let lookup env e =
+  let mapping = env.mapping in
+  let rec look = function
+    | [] -> None
+    | (e1, e2)::xs ->
+        if Matching_generic.equal_ast_binded_code (E e) (E e1) then Some e2 else look xs
+  in
+  look mapping
 
 let fk = Parse_info.fake_info "fake"
 let fk_stmt = ExprStmt (Ellipsis fk, fk) |> s
@@ -81,6 +91,34 @@ let _bk f (lp,x,rp) = (lp, f x, rp)
 let default_id str =
   N (Id((str, fk),
         {id_resolved = ref None; id_type = ref None; id_constness = ref None}))
+
+let count_to_id count =
+  let make_id ch = Format.sprintf "$%c" ch in
+  match count with
+  | 1 -> make_id 'X'
+  | 2 -> make_id 'Y'
+  | 3 -> make_id 'Z'
+  | _ when count <= 26 -> make_id (Char.chr (count - 4 + Char.code 'A'))
+  | _ -> Format.sprintf "$X%d" (count - 26)
+
+(* If the id is already in env, return that *)
+(* Otherwise, this depends on the with_type flag *)
+(* If with_type is true, if there is a type, try to generate a TypedMetavar *)
+(* In all other cases, generate an id *)
+(* Add to env's mapping and return it *)
+let get_id env e =
+  let id = lookup env e in
+  match id with
+    Some x -> (env, x)
+  | None ->
+      let notype_id = default_id (count_to_id env.count) in
+      let new_id = notype_id
+      in
+      ({ count = env.count + 1; mapping = (e, new_id)::(env.mapping); prev = env.prev }, new_id)
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
 
 let replace_sk { s = _s; s_id; s_use_cache; s_backrefs; s_bf } s_kind =
   { s = s_kind; s_id; s_use_cache; s_backrefs; s_bf }
@@ -94,74 +132,92 @@ let add_patterns s patterns =
 let lookup_pattern pattern s =
   Set.mem (p_any pattern) s
 
-let set_prev { prev = _ } prev' = { prev = prev' }
+let set_prev { prev = _; count; mapping } prev' = { prev = prev'; count; mapping }
 
 (*****************************************************************************)
 (* Algorithm *)
 (*****************************************************************************)
 
-let metavar_pattern _e = (default_id "$X")
+let metavar_pattern env e = get_id env e
 
 let pattern_from_args env args : pattern_instrs =
-  let replace_first_arg args e =
-    match args, e with
-    | Args ((Arg _x)::xs), E e -> Args ((Arg e)::xs)
-    | _ -> pr2 (show_any args ^ " with\n" ^ (show_any e)); raise InvalidSubstitution
+  let replace_first_arg f args =
+    match args with
+    | Args ((Arg arg)::xs) -> (
+        match f (E arg) with
+        | E x -> Args ((Arg x)::xs)
+        | x -> pr2 (show_any x); raise InvalidSubstitution
+      )
+    | Args (_::_) -> args
+    | _ -> pr2 "h6"; raise InvalidSubstitution
   in
-  let replace_rest args es =
-    match args, es with
-    | Args ((Arg e)::_xs), Args xs -> Args ((Arg e)::xs)
-    | _ -> pr2 (show_any args ^ " with\n" ^ (show_any es)); raise InvalidSubstitution
+  let replace_rest f args =
+    match args with
+    | Args ((Arg e)::rest) -> (
+        match f (Args rest) with
+        | Args args' -> Args ((Arg e)::args')
+        | _ -> pr2 "h7"; raise InvalidSubstitution
+      )
+    | _ -> pr2 "h8"; raise InvalidSubstitution
   in
   match args with
   | [] -> []
   | Arg arg::rest ->
-      [ env, Args [Arg (metavar_pattern arg); Arg (Ellipsis fk)],
+      [ let env', id = metavar_pattern env arg in
+        env', Args [Arg id; Arg (Ellipsis fk)],
         [ANY (E arg), replace_first_arg;
          ANY (Args rest), replace_rest]
       ]
   | _ -> []
 
-let sub_expr f sub =
-  match sub with
-  | E e -> fun x -> E (f e x)
-  (* | S ({ s = ExprStmt (e, sc); _ } as stmt) -> fun x -> S (replace_sk stmt (ExprStmt (f e x, sc))) *)
-  | _ -> pr2 "h4"; raise InvalidSubstitution
-
 let pattern_from_call env (e', (lp, args, rp)) : pattern_instrs =
-  let replace_name e = fun x ->
-    match e, x with
-    | Call (_, (lp, args, rp)), E x -> Call (x, (lp, args, rp))
-    | _ -> pr2 ("h3" ^ (show_any x)); raise InvalidSubstitution
+  let replace_name f e =
+    match e with
+    | E (Call (e, (lp, args, rp))) -> (
+        match f (E e) with
+        | E x -> E (Call (x, (lp, args, rp)))
+        | _ -> raise InvalidSubstitution
+      )
+    | x -> pr2 ("h3 " ^ show_any x); raise InvalidSubstitution
   in
-  let replace_args e = fun x ->
-    match e, x with
-    | Call (e, (lp, _, rp)), Args x -> Call (e, (lp, x, rp))
+  let replace_args f e =
+    match e with
+    | E (Call (e, (lp, args, rp))) -> (
+        match f (Args args) with
+        | Args x -> E (Call (e, (lp, x, rp)))
+        | _ -> raise InvalidSubstitution
+      )
     | _ -> pr2 "h2"; raise InvalidSubstitution
   in
-  [ env, E (Call (metavar_pattern e', (lp, [Arg (Ellipsis fk)], rp))),
-    [ ANY (E e'), sub_expr replace_name;
-      ANY (Args args), sub_expr replace_args
+  [ let env', id = metavar_pattern env e' in
+    env', E (Call (id, (lp, [Arg (Ellipsis fk)], rp))),
+    [ ANY (E e'), replace_name;
+      ANY (Args args), replace_args
     ]
   ]
 
 let pattern_from_expr env e : pattern_instrs =
   match e with
   | Call (e', (lp, args, rp)) -> pattern_from_call env (e', (lp, args, rp))
-  | N _ | DotAccess _ | L _ -> [env, E e, [DONE, fun e _x -> e]]
-  | _ -> [ env, E (metavar_pattern e), [DONE, fun e _x -> e]]
+  | N _ | DotAccess _
+  | L _ -> [env, E e, [DONE, fun f e -> f e]]
+  | expr -> [ let env', id = metavar_pattern env expr in env', E id, [DONE, fun f e -> f e]]
 
 let rec pattern_from_stmt env ({s; _} as stmt) : pattern_instrs =
   match s with
   | ExprStmt (e, sc) ->
-      let fill_exprstmt s x =
-        match s, x with
-        | S stmt, E e -> S (replace_sk stmt (ExprStmt (e, sc)))
-        | S stmt, S { s = ExprStmt (e, _); _ } -> S (replace_sk stmt (ExprStmt (e, sc)))
-        | _ -> pr2 ("h1" ^ (show_any s) ^ " with\n " ^ (show_any x)); raise InvalidSubstitution
+      let fill_exprstmt f exprstmt =
+        match exprstmt with
+        | S ({s = ExprStmt (e', _); _} as stmt) -> (
+            match (f (E e')) with
+            | E x -> S (replace_sk stmt (ExprStmt (x, sc)))
+            | _ -> raise InvalidSubstitution
+          )
+        (* | S stmt, S { s = ExprStmt (e, _); _ } -> S (replace_sk stmt (ExprStmt (e, sc))) *)
+        | _ -> pr2 ("h1"); raise InvalidSubstitution
       in
       let _, pattern =
-        get_one_step_replacements (env, (fill_exprstmt (S stmt) (E (Ellipsis fk))),
+        get_one_step_replacements (env, (fill_exprstmt (fun _ -> E (Ellipsis fk)) (S stmt)),
                                    [ANY (E e), fill_exprstmt])
       in pattern
   | _ -> []
@@ -182,20 +238,17 @@ and get_one_step_replacements (env, pattern, holes) =
   | (target, f)::holes' ->
       (* Get all the possible replacements for the target (pattern, holes) list *)
       let target_replacements = pattern_from_any env target in
-      (* Use each replacement to fill the chosen hole *)
+      (* Use each replacement to fill the chosen hole *
+       * For example, if f turns foo(...), a -> foo(a), and g turns (...), a -> (a, ...), we want a function *
+       * that turns foo(...), a -> foo(a, ...) *)
       let incorporate_holes pattern holes =
-        List.map (fun (removed_target, g) -> (removed_target, fun any x -> f any (g pattern x))) holes
+        pr2 ("when incorporating " ^ p_any pattern);
+        List.map (fun (removed_target, g) -> (removed_target, fun (h : any -> any) (any : any) : any -> f (g h) any)) holes
       in
-      let apply_both pattern' holes =
-        pr2 ("pattern applied: " ^ p_any pattern');
-        List.map (fun (removed_target, g) -> (removed_target, fun any x -> (g (f any pattern') x))) holes
-      in
-      pr2 ("pattern: " ^ p_any pattern);
       (env, pattern, holes'),
       List.map
-        (fun (env, pattern', target_holes) -> pr2 ("pattern': " ^ (p_any pattern'));
-          (set_prev env pattern', f pattern pattern',
-           (incorporate_holes pattern' target_holes) @ apply_both pattern' holes'))
+        (fun (env, pattern', target_holes) ->
+           (set_prev env pattern', f (fun _ -> pattern') pattern, (incorporate_holes pattern' target_holes) @ holes'))
         target_replacements
 
 let get_included_patterns pattern_children =
@@ -260,8 +313,8 @@ let generate_patterns s lang =
   (* Start each target node any as [$X, [ any, fun x -> x ]] *)
   let starting_pattern any =
     match any with
-    | E _ -> [{ prev = E (Ellipsis fk) }, E (Ellipsis fk), [ANY any, fun _a x -> x]]
-    | S _ -> [{ prev = S (exprstmt (Ellipsis fk)) }, S (exprstmt (Ellipsis fk)), [ANY any, fun _a x -> x]]
+    | E _ -> [{ prev = E (Ellipsis fk); count = 1; mapping = [] }, E (Ellipsis fk), [ANY any, fun f a -> f a]]
+    | S _ -> [{ prev = S (exprstmt (Ellipsis fk)); count = 1; mapping = [] }, S (exprstmt (Ellipsis fk)), [ANY any, fun f a -> f a]]
     | _ -> raise UnsupportedTargetType
   in
   let patterns = List.map starting_pattern s in
