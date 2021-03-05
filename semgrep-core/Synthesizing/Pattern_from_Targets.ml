@@ -32,7 +32,7 @@ exception UnsupportedTargetType
 (* Types *)
 (*****************************************************************************)
 
-type stage = DONE | ANY of any
+type stage = DONE | ANY of any | LN of any
 type env = { prev : any; count : int; mapping : (expr * expr) list; }
 type pattern_instrs = (env * any * ((stage * ((any -> any) -> any -> any)) list)) list
 
@@ -47,6 +47,7 @@ let p_any = Pretty_print_generic.pattern_to_string !global_lang
 let stage_string = function
   | DONE -> "done"
   | ANY any -> p_any any
+  | LN any -> p_any any
 
 let rec show_replacements reps =
   let list_string =
@@ -143,32 +144,35 @@ let metavar_pattern env e = get_id env e
 let pattern_from_args env args : pattern_instrs =
   let replace_first_arg f args =
     match args with
-    | Args ((Arg arg)::xs) -> (
+    | Args (dots::(Arg arg)::xs) -> (
         match f (E arg) with
-        | E x -> Args ((Arg x)::xs)
+        | E x -> Args (dots::(Arg x)::xs)
         | x -> pr2 (show_any x); raise InvalidSubstitution
       )
     | Args (_::_) -> args
-    | _ -> pr2 "h6"; raise InvalidSubstitution
+    | _ -> raise InvalidSubstitution
   in
   let replace_rest f args =
     match args with
     | Args ((Arg e)::rest) -> (
         match f (Args rest) with
         | Args args' -> Args ((Arg e)::args')
-        | _ -> pr2 "h7"; raise InvalidSubstitution
+        | _ -> raise InvalidSubstitution
       )
-    | _ -> pr2 "h8"; raise InvalidSubstitution
+    | _ -> raise InvalidSubstitution
   in
-  match args with
-  | [] -> []
-  | Arg arg::rest ->
-      [ let env', id = metavar_pattern env arg in
-        env', Args [Arg id; Arg (Ellipsis fk)],
-        [ANY (E arg), replace_first_arg;
-         ANY (Args rest), replace_rest]
-      ]
-  | _ -> []
+  let rec make_arg_subs args =
+    match args with
+    | [] -> []
+    | Arg arg::rest ->
+        ( let env', id = metavar_pattern env arg in
+          env', Args [Arg (Ellipsis fk); Arg id; Arg (Ellipsis fk)],
+          [ANY (E arg), replace_first_arg;
+           ANY (Args rest), replace_rest]
+        ) :: (make_arg_subs rest)
+    | _ -> []
+  in
+  make_arg_subs args
 
 let pattern_from_call env (e', (lp, args, rp)) : pattern_instrs =
   let replace_name f e =
@@ -178,7 +182,7 @@ let pattern_from_call env (e', (lp, args, rp)) : pattern_instrs =
         | E x -> E (Call (x, (lp, args, rp)))
         | _ -> raise InvalidSubstitution
       )
-    | x -> pr2 ("h3 " ^ show_any x); raise InvalidSubstitution
+    | _ -> raise InvalidSubstitution
   in
   let replace_args f e =
     match e with
@@ -187,7 +191,7 @@ let pattern_from_call env (e', (lp, args, rp)) : pattern_instrs =
         | Args x -> E (Call (e, (lp, x, rp)))
         | _ -> raise InvalidSubstitution
       )
-    | _ -> pr2 "h2"; raise InvalidSubstitution
+    | _ -> raise InvalidSubstitution
   in
   [ let env', id = metavar_pattern env e' in
     env', E (Call (id, (lp, [Arg (Ellipsis fk)], rp))),
@@ -196,12 +200,26 @@ let pattern_from_call env (e', (lp, args, rp)) : pattern_instrs =
     ]
   ]
 
+let pattern_from_literal env l : pattern_instrs =
+  (* let replace_lit f e =
+     match e with
+     | E (L (String (s, tok))) -> (
+      match f (Str (s, tok)) with
+      | Str x -> E (L (String x))
+      | x -> pr2 (show_any x); raise InvalidSubstitution
+     )
+     | _ -> raise InvalidSubstitution
+     in *)
+  match l with
+  | String (_, tok) -> [ env, E (L (String ("...", tok))), [LN (E (L l)), fun f any -> f any]]
+  | _ -> [env, E (L l), [DONE, fun f e -> f e]]
+
 let pattern_from_expr env e : pattern_instrs =
   match e with
   | Call (e', (lp, args, rp)) -> pattern_from_call env (e', (lp, args, rp))
-  | N _ | DotAccess _
-  | L _ -> [env, E e, [DONE, fun f e -> f e]]
-  | expr -> [ let env', id = metavar_pattern env expr in env', E id, [DONE, fun f e -> f e]]
+  | L l -> pattern_from_literal env l
+  | N _ | DotAccess _ -> [env, E e, [DONE, fun f any -> f any]]
+  | expr -> [ let env', id = metavar_pattern env expr in env', E id, [DONE, fun f any -> f any]]
 
 let rec pattern_from_stmt env ({s; _} as stmt) : pattern_instrs =
   match s with
@@ -213,7 +231,6 @@ let rec pattern_from_stmt env ({s; _} as stmt) : pattern_instrs =
             | E x -> S (replace_sk stmt (ExprStmt (x, sc)))
             | _ -> raise InvalidSubstitution
           )
-        (* | S stmt, S { s = ExprStmt (e, _); _ } -> S (replace_sk stmt (ExprStmt (e, sc))) *)
         | _ -> pr2 ("h1"); raise InvalidSubstitution
       in
       let _, pattern =
@@ -222,11 +239,12 @@ let rec pattern_from_stmt env ({s; _} as stmt) : pattern_instrs =
       in pattern
   | _ -> []
 
-and pattern_from_any env s : pattern_instrs =
-  match s with
+and pattern_from_any env stage : pattern_instrs =
+  match stage with
   | ANY (E e) -> pattern_from_expr env e
   | ANY (S stmt) -> pattern_from_stmt env stmt
   | ANY (Args args) -> pattern_from_args env args
+  | LN any -> [env, any, [DONE, fun f any -> f any]]
   | _ -> []
 
 (* pattern construction *)
