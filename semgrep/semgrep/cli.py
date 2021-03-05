@@ -263,6 +263,11 @@ def cli() -> None:
         action="store_true",
         help="Output results in Emacs single-line format.",
     )
+    output.add_argument(
+        "--vim",
+        action="store_true",
+        help="Output results in vim single-line format.",
+    )
     output.add_argument("--test", action="store_true", help="Run test suite.")
     parser.add_argument(
         "--test-ignore-todo",
@@ -387,6 +392,8 @@ def cli() -> None:
         output_format = OutputFormat.SARIF
     elif args.emacs:
         output_format = OutputFormat.EMACS
+    elif args.vim:
+        output_format = OutputFormat.VIM
 
     output_settings = OutputSettings(
         output_format=output_format,

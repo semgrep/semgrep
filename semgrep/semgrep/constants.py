@@ -38,6 +38,7 @@ class OutputFormat(Enum):
     JUNIT_XML = auto()
     SARIF = auto()
     EMACS = auto()
+    VIM = auto()
 
     def is_json(self) -> bool:
         return self == OutputFormat.JSON or self == OutputFormat.JSON_DEBUG
