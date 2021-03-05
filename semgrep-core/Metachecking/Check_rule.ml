@@ -145,6 +145,8 @@ let stat_files fparser xs =
       | FT.Config (FT.Yaml | (*FT.Json |*) FT.Jsonnet) -> true | _ -> false)
     |> Skip_code.filter_files_if_skip_list ~root:xs
   in
+  let good = ref 0 in
+  let bad = ref 0 in
   fullxs |> List.iter (fun file ->
     logger#info "processing %s" file;
     let rs = fparser file in
@@ -152,10 +154,13 @@ let stat_files fparser xs =
       let res = Analyze_rule.regexp_prefilter_of_rule r in
       match res with
       | None ->
+          incr bad;
           pr2 (spf "PB: could not find a regexp prefilter for rule %s" file)
       | Some (s, _f) ->
+          incr good;
           pr2 (spf "regexp: %s" s)
     )
-  )
+  );
+  pr2 (spf "good = %d, no regexp found = %d" !good !bad)
 
 (*e: semgrep/metachecking/Check_rule.ml *)
