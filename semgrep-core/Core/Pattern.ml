@@ -62,6 +62,8 @@ let is_special_identifier ?lang str =
   (* ugly: because ast_js_build introduce some extra "!default" ids *)
   (lang = Some Lang.Javascript && str = Ast_js.default_entity) ||
   (* parser_java.mly inserts some implicit this *)
-  (lang = Some Lang.Java && str = "this")
+  (lang = Some Lang.Java && str = "this") ||
+  (* TODO: PHP converts some Eval in __builtin *)
+  (lang = Some Lang.PHP && (str =~ "__builtin__*"))
 
 (*e: semgrep/core/Pattern.ml *)

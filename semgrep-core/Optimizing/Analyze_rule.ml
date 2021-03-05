@@ -81,6 +81,8 @@ and 'a disj = Or of 'a list
 
 (* can't filter a file if there's no specific identifier in the pattern *)
 exception GeneralPattern
+exception EmptyAnd
+exception EmptyOr
 
 (*****************************************************************************)
 (* Step0: a complex formula *)
@@ -232,10 +234,10 @@ let or_step2 (Or xs) =
     | StringsAndMvars ([], _) -> raise GeneralPattern
     | _ -> ()
   );
-  let ys = xs |> Common.map_filter (function
-    | StringsAndMvars (xs, _) -> Some (Idents xs)
-    | Regexp re -> Some (Regexp2 re)
-    | MvarRegexp _ -> None
+  let ys = xs |> List.map (function
+    | StringsAndMvars (xs, _) -> (Idents xs)
+    | Regexp re -> (Regexp2 re)
+    | MvarRegexp (_mvar, re) -> (Regexp2 re)
   ) in
   Or ys
 
@@ -306,14 +308,17 @@ let _run_final (AndFinal xs) big_str =
 (*****************************************************************************)
 
 let eval_and p (And xs) =
+  if null xs then raise EmptyAnd;
   xs |> List.for_all (function (Or xs) ->
+    if null xs then raise EmptyOr;
     xs |> List.exists (fun x -> p x)
   )
 
 let run_cnf_step2 cnf big_str =
   cnf |> eval_and (function
     | Idents xs -> xs |> List.for_all (fun id ->
-      let re = Pcre.matching_exact_word id in
+      (* TODO: matching_exact_word does not work, why?? *)
+      let re = Pcre.matching_exact_string id in
       Pcre.run re big_str
     )
     | Regexp2 re -> Pcre.run re big_str
@@ -332,7 +337,7 @@ let compute_final_cnf f =
   let cnf = and_step1 cnf in
   logger#ldebug (lazy (spf "cnf1 = %s" (show_cnf_step1 cnf)));
   let cnf = and_step2 cnf in
-  logger#ldebug (lazy (spf "cnf = %s" (show_cnf_step2 cnf)));
+  logger#ldebug (lazy (spf "cnf2 = %s" (show_cnf_step2 cnf)));
   cnf
 [@@profiling]
 
@@ -344,10 +349,16 @@ let regexp_prefilter_of_formula f =
   try
     let final = compute_final_cnf f in
     Some (str_final final, fun big_str ->
-      run_cnf_step2 final big_str
+      try
+        run_cnf_step2 final big_str
       (* run_cnf_step2 (And [Or [Idents ["jsonwebtoken"]]]) big_str *)
+      with
+      (* can happen in spacegrep rules as we don't extract anything from t *)
+      | EmptyAnd | EmptyOr -> true
     )
-  with GeneralPattern -> None
+  with
+  | GeneralPattern
+    -> None
 
 let hmemo = Hashtbl.create 101
 
