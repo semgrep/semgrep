@@ -136,7 +136,7 @@ let lookup_pattern pattern s =
 let set_prev { prev = _; count; mapping } prev' = { prev = prev'; count; mapping }
 
 (*****************************************************************************)
-(* Algorithm *)
+(* Pattern generation *)
 (*****************************************************************************)
 
 let metavar_pattern env e = get_id env e
@@ -144,35 +144,64 @@ let metavar_pattern env e = get_id env e
 let pattern_from_args env args : pattern_instrs =
   let replace_first_arg f args =
     match args with
-    | Args (dots::(Arg arg)::xs) -> (
+    | Args ((Arg (Ellipsis el))::(Arg arg)::xs) -> (
         match f (E arg) with
-        | E x -> Args (dots::(Arg x)::xs)
+        | E x -> Args ((Arg (Ellipsis el))::(Arg x)::xs)
         | x -> pr2 (show_any x); raise InvalidSubstitution
       )
     | Args (_::_) -> args
     | _ -> raise InvalidSubstitution
   in
+  let remove_ellipsis _f args =
+    match args with
+    | Args (Arg (Ellipsis _)::x::xs) -> Args (x::xs)
+    | Args (_::_) -> args
+    | _ -> raise InvalidSubstitution
+  in
   let replace_rest f args =
     match args with
+    | Args ((Arg (Ellipsis el))::(Arg e)::rest) -> (
+        match f (Args rest) with
+        | (Args args') -> Args ((Arg (Ellipsis el))::(Arg e)::args')
+        | _ -> raise InvalidSubstitution
+      )
     | Args ((Arg e)::rest) -> (
         match f (Args rest) with
-        | Args args' -> Args ((Arg e)::args')
+        | (Args args') -> Args ((Arg e)::args')
         | _ -> raise InvalidSubstitution
       )
     | _ -> raise InvalidSubstitution
   in
-  let rec make_arg_subs args =
+  let remove_end_ellipsis _f args =
+    let rec remove_end = function
+      | [] -> []
+      | [Arg (Ellipsis _el)] -> []
+      | x::xs -> x::(remove_end xs)
+    in
+    match args with
+    | Args args' -> Args (remove_end args')
+    | _ -> raise InvalidSubstitution
+  in
+  let max = List.length args in
+  let rec make_arg_subs args count =
+    let substitute_next rest =
+      (* If it's the last one, try deleting the ellipses at the end *)
+      let funs = if count = max then [ANY (Args rest), replace_rest; ANY (E (Ellipsis fk)), remove_end_ellipsis] else [] in
+      (* Always try replacing the arguments *)
+      let funs = (ANY (Args rest), replace_rest)::funs in
+      (* If it's the first one, try deleting the ellipses at the start *)
+      if count = 1 then (ANY (E (Ellipsis fk)), remove_ellipsis)::funs else funs
+    in
     match args with
     | [] -> []
     | Arg arg::rest ->
         ( let env', id = metavar_pattern env arg in
           env', Args [Arg (Ellipsis fk); Arg id; Arg (Ellipsis fk)],
-          [ANY (E arg), replace_first_arg;
-           ANY (Args rest), replace_rest]
-        ) :: (make_arg_subs rest)
+          (ANY (E arg), replace_first_arg) :: (substitute_next rest)
+        ) :: (make_arg_subs rest (count + 1))
     | _ -> []
   in
-  make_arg_subs args
+  make_arg_subs args 1
 
 let pattern_from_call env (e', (lp, args, rp)) : pattern_instrs =
   let replace_name f e =
@@ -195,29 +224,45 @@ let pattern_from_call env (e', (lp, args, rp)) : pattern_instrs =
   in
   [ let env', id = metavar_pattern env e' in
     env', E (Call (id, (lp, [Arg (Ellipsis fk)], rp))),
-    [ ANY (E e'), replace_name;
-      ANY (Args args), replace_args
-    ]
+    [ ANY (E e'), replace_name; ANY (Args args), replace_args ]
   ]
 
 let pattern_from_literal env l : pattern_instrs =
-  (* let replace_lit f e =
-     match e with
-     | E (L (String (s, tok))) -> (
-      match f (Str (s, tok)) with
-      | Str x -> E (L (String x))
-      | x -> pr2 (show_any x); raise InvalidSubstitution
-     )
-     | _ -> raise InvalidSubstitution
-     in *)
   match l with
   | String (_, tok) -> [ env, E (L (String ("...", tok))), [LN (E (L l)), fun f any -> f any]]
   | _ -> [env, E (L l), [DONE, fun f e -> f e]]
+
+type side = Left | Right
+let pattern_from_assign env (e1, tok, e2) : pattern_instrs =
+  let replace_assign_ops side f e =
+    match e, side with
+    | E (Assign (e1, tok, e2)), Left -> (
+        match f (E e1) with
+        | E x -> E (Assign (x, tok, e2))
+        | _ -> raise InvalidSubstitution
+      )
+    | E (Assign (e1, tok, e2)), Right -> (
+        match f (E e2) with
+        | E x -> E (Assign (e1, tok, x))
+        | _ -> raise InvalidSubstitution
+      )
+    | _ -> raise InvalidSubstitution
+  in
+  [ let env, id1 = metavar_pattern env e1 in
+    let env, id2 = metavar_pattern env e2 in
+    env, E (Assign (id1, tok, id2)),
+    [
+      ANY (E e1), replace_assign_ops Left;
+      ANY (E e2), replace_assign_ops Right
+    ]
+  ]
+
 
 let pattern_from_expr env e : pattern_instrs =
   match e with
   | Call (e', (lp, args, rp)) -> pattern_from_call env (e', (lp, args, rp))
   | L l -> pattern_from_literal env l
+  | Assign (e1, tok, e2) -> pattern_from_assign env (e1, tok, e2)
   | N _ | DotAccess _ -> [env, E e, [DONE, fun f any -> f any]]
   | expr -> [ let env', id = metavar_pattern env expr in env', E id, [DONE, fun f any -> f any]]
 
@@ -247,7 +292,9 @@ and pattern_from_any env stage : pattern_instrs =
   | LN any -> [env, any, [DONE, fun f any -> f any]]
   | _ -> []
 
-(* pattern construction *)
+(*****************************************************************************)
+(* Infrastructure *)
+(*****************************************************************************)
 
 and get_one_step_replacements (env, pattern, holes) =
   (* Try the first hole (target, f) *)
@@ -259,14 +306,13 @@ and get_one_step_replacements (env, pattern, holes) =
       (* Use each replacement to fill the chosen hole *
        * For example, if f turns foo(...), a -> foo(a), and g turns (...), a -> (a, ...), we want a function *
        * that turns foo(...), a -> foo(a, ...) *)
-      let incorporate_holes pattern holes =
-        pr2 ("when incorporating " ^ p_any pattern);
+      let incorporate_holes holes =
         List.map (fun (removed_target, g) -> (removed_target, fun (h : any -> any) (any : any) : any -> f (g h) any)) holes
       in
       (env, pattern, holes'),
       List.map
         (fun (env, pattern', target_holes) ->
-           (set_prev env pattern', f (fun _ -> pattern') pattern, (incorporate_holes pattern' target_holes) @ holes'))
+           (set_prev env pattern', f (fun _ -> pattern') pattern, (incorporate_holes target_holes) @ holes'))
         target_replacements
 
 let get_included_patterns pattern_children =
@@ -281,10 +327,6 @@ let get_included_patterns pattern_children =
     pattern_children
   in
   let intersection = intersect_all sets in
-  (* pr2 "sets";
-     List.iter (Set.iter (fun pattern -> pr2 pattern)) sets;
-     pr2 "intersection";
-     Set.iter (fun pattern -> pr2 pattern) intersection; *)
   let include_pattern ((env, pattern, holes), children) =
     let included_children = List.filter (fun (_, pattern, _) -> lookup_pattern pattern intersection) children in
     match included_children with
@@ -308,16 +350,10 @@ let rec generate_patterns_help (target_patterns : pattern_instrs list) =
     List.map (fun patterns -> List.map (fun pattern -> get_one_step_replacements pattern) patterns)
       target_patterns
   in
-  let new_target_patterns =
-    List.map (fun patterns -> List.flatten (List.map (fun (_, new_pattern) -> new_pattern) patterns))
-      pattern_children
-  in
-  pr2 "new target patterns";
-  show_pattern_sets new_target_patterns;
   (* Keep only the patterns in each Sn that appear in every other OR *)
   (* the patterns that were included last time, don't have children, and have another replacement to try *)
   let included_patterns = get_included_patterns pattern_children in
-  let cont = List.fold_left (fun prev patterns -> prev || (not (List.length patterns = 0))) false included_patterns in
+  let cont = List.fold_left (fun prev patterns -> prev && (not (List.length patterns = 0))) true included_patterns in
   (* Call recursively on these patterns *)
   if cont then generate_patterns_help included_patterns else target_patterns
 
