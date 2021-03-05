@@ -37,7 +37,11 @@ def _extract_matching_time(time_json: Dict[str, Any]) -> float:
 
 
 def run_spacegrep(
-    rule_id: str, patterns: List[Pattern], targets: List[Path], timeout: int
+    rule_id: str,
+    patterns: List[Pattern],
+    targets: List[Path],
+    timeout: int,
+    report_time: bool,
 ) -> dict:
     matches: List[dict] = []
     errors: List[dict] = []
@@ -58,8 +62,10 @@ def run_spacegrep(
                 pattern_str,
                 "--timeout",
                 str(timeout),
-                "--time",
             ]
+            if report_time:
+                cmd += ["--time"]
+
             try:
                 p = sub_run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 # exit code 3 indicates a timeout. See 'spacegrep --help'.

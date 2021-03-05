@@ -144,6 +144,9 @@ type output_format = Text | Json
 (*s: constant [[Main_semgrep_core.output_format_json]] *)
 let output_format = ref Text
 (*e: constant [[Main_semgrep_core.output_format_json]] *)
+
+let report_time = ref false
+
 (*s: constant [[Main_semgrep_core.match_format]] *)
 let match_format = ref Matching_report.Normal
 (*e: constant [[Main_semgrep_core.match_format]] *)
@@ -605,10 +608,19 @@ let get_final_files xs =
 [@@profiling]
 (*e: function [[Main_semgrep_core.get_final_files]] *)
 
+(* Report the time a function takes.
+   TODO: use a library function instead. Do we have one already?
+*)
+let with_time f =
+  let t1 = Unix.gettimeofday () in
+  let res = f () in
+  let t2 = Unix.gettimeofday () in
+  (res, t2 -. t1)
+
 (*s: function [[Main_semgrep_core.iter_generic_ast_of_files_and_get_matches_and_exn_to_errors]] *)
 let iter_generic_ast_of_files_and_get_matches_and_exn_to_errors f files =
   let lang = lang_of_string !lang in
-  let matches_and_errors =
+  let matches_and_errors_and_times =
     files |> map (fun file ->
       logger#info "Analyzing %s" file;
       try
@@ -616,8 +628,8 @@ let iter_generic_ast_of_files_and_get_matches_and_exn_to_errors f files =
           timeout_function file (fun () ->
             let {Parse_target. ast; errors; _} = parse_generic lang file in
             (* calling the hook *)
-            (f file lang ast, errors)
-
+            let matches, time = with_time (fun () -> f file lang ast) in
+            (matches, errors, (file, time))
             |> (fun v ->
               (* This is just to test -max_memory, to give a chance
                * to Gc.create_alarm to run even if the program does
@@ -645,23 +657,34 @@ let iter_generic_ast_of_files_and_get_matches_and_exn_to_errors f files =
                 Some (spf " with ruleid %s" rule.MR.id)
           in
           let loc = Parse_info.first_loc_of_file file in
-          [], [Error_code.mk_error_loc loc
-                 (match exn with
-                  | Timeout ->
-                      logger#info "Timeout on %s" file;
-                      Error_code.Timeout str_opt
-                  | Out_of_memory ->
-                      logger#info "OutOfMemory on %s" file;
-                      Error_code.OutOfMemory str_opt
-                  | _ -> raise Impossible
-                 )]
+          (
+            [],
+            [Error_code.mk_error_loc loc
+               (match exn with
+                | Timeout ->
+                    logger#info "Timeout on %s" file;
+                    Error_code.Timeout str_opt
+                | Out_of_memory ->
+                    logger#info "OutOfMemory on %s" file;
+                    Error_code.OutOfMemory str_opt
+                | _ -> raise Impossible
+               )],
+            (file, 0.0)
+          )
       | exn when not !fail_fast ->
-          [], [Error_code.exn_to_error file exn]
+          [], [Error_code.exn_to_error file exn], (file, 0.0)
     )
   in
-  let matches = matches_and_errors |> List.map fst |> List.flatten in
-  let errors = matches_and_errors |> List.map snd |> List.flatten in
-  matches, errors
+  let matches =
+    matches_and_errors_and_times
+    |> List.map (fun (x, _, _) -> x) |> List.flatten in
+  let errors =
+    matches_and_errors_and_times
+    |> List.map (fun (_, x, _) -> x) |> List.flatten in
+  let times =
+    matches_and_errors_and_times
+    |> List.map (fun (_, _, x) -> x) in
+  matches, errors, times
 (*e: function [[Main_semgrep_core.iter_generic_ast_of_files_and_get_matches_and_exn_to_errors]] *)
 
 (*****************************************************************************)
@@ -669,19 +692,38 @@ let iter_generic_ast_of_files_and_get_matches_and_exn_to_errors f files =
 (*****************************************************************************)
 (* todo? move this code in JSON_report.ml? *)
 
-let json_fields_of_matches_and_errors files matches errs =
+let json_time_of_match_times match_times =
+  [
+    "time", J.Object [
+      "targets", J.Array (
+        List.map (fun (target, match_time) ->
+          J.Object [
+            "path", J.String target;
+            "match_time", J.Float match_time;
+          ]
+        ) match_times
+      )
+    ]
+  ]
+
+let json_fields_of_matches_and_errors files matches errs opt_match_times =
   let (matches, new_errs) =
     Common.partition_either JSON_report.match_to_json matches in
   let errs = new_errs @ errs in
   let count_errors = (List.length errs) in
   let count_ok = (List.length files) - count_errors in
+  let time_field =
+    match opt_match_times with
+    | None -> []
+    | Some x -> json_time_of_match_times x
+  in
   [ "matches", J.Array (matches);
     "errors", J.Array (errs |> List.map R2c.error_to_json);
     "stats", J.Object [
       "okfiles", J.Int count_ok;
       "errorfiles", J.Int count_errors;
     ];
-  ]
+  ] @ time_field
 [@@profiling]
 (*s: function [[Main_semgrep_core.print_matches_and_errors]] *)
 (*e: function [[Main_semgrep_core.print_matches_and_errors]] *)
@@ -736,10 +778,10 @@ let json_of_exn e =
 (*****************************************************************************)
 
 (*s: function [[Main_semgrep_core.semgrep_with_rules]] *)
-let semgrep_with_rules ~with_opt_cache rules files =
+let semgrep_with_rules ~with_opt_cache ~report_time rules files =
   let files = get_final_files files in
   logger#info "processing %d files" (List.length files);
-  let matches, errs =
+  let matches, errs, match_times =
     files |> iter_generic_ast_of_files_and_get_matches_and_exn_to_errors
       (fun file lang ast ->
          let rules =
@@ -751,6 +793,10 @@ let semgrep_with_rules ~with_opt_cache rules files =
            file lang ast
       )
   in
+  let match_times =
+    if report_time then Some match_times
+    else None
+  in
   logger#info "found %d matches and %d errors"
     (List.length matches) (List.length errs);
   let (matches, new_errors) =
@@ -760,7 +806,8 @@ let semgrep_with_rules ~with_opt_cache rules files =
    * to debug too-many-matches issues.
    * Common2.write_value matches "/tmp/debug_matches";
   *)
-  let flds = json_fields_of_matches_and_errors files matches errs in
+  let flds =
+    json_fields_of_matches_and_errors files matches errs match_times in
   let flds =
     if !profile
     then begin
@@ -783,13 +830,13 @@ let semgrep_with_rules ~with_opt_cache rules files =
   pr s
 (*e: function [[Main_semgrep_core.semgrep_with_rules]] *)
 
-let semgrep_with_rules_file ~with_opt_cache rules_file files =
+let semgrep_with_rules_file ~with_opt_cache ~report_time rules_file files =
   try
     (*s: [[Main_semgrep_core.semgrep_with_rules()]] if [[verbose]] *)
     logger#info "Parsing %s" rules_file;
     (*e: [[Main_semgrep_core.semgrep_with_rules()]] if [[verbose]] *)
     let rules = Parse_mini_rule.parse rules_file in
-    semgrep_with_rules ~with_opt_cache rules files;
+    semgrep_with_rules ~with_opt_cache ~report_time rules files;
     if !profile then save_rules_file_in_tmp ()
 
   with exn ->
@@ -804,10 +851,10 @@ let semgrep_with_rules_file ~with_opt_cache rules_file files =
 (* Semgrep -config *)
 (*****************************************************************************)
 
-let semgrep_with_real_rules ~with_opt_cache rules files =
+let semgrep_with_real_rules ~with_opt_cache ~report_time rules files =
   let files = get_final_files files in
   logger#info "processing %d files" (List.length files);
-  let matches, errs =
+  let matches, errs, match_times =
     files |> iter_generic_ast_of_files_and_get_matches_and_exn_to_errors
       (fun file lang ast ->
          let rules =
@@ -828,6 +875,10 @@ let semgrep_with_real_rules ~with_opt_cache rules files =
          Semgrep.check with_opt_cache hook rules (file, xlang, ast)
       )
   in
+  let match_times =
+    if report_time then Some match_times
+    else None
+  in
   logger#info "found %d matches and %d errors"
     (List.length matches) (List.length errs);
   let (matches, new_errors) =
@@ -839,7 +890,8 @@ let semgrep_with_real_rules ~with_opt_cache rules files =
   *)
   match !output_format with
   | Json ->
-      let flds = json_fields_of_matches_and_errors files matches errs in
+      let flds =
+        json_fields_of_matches_and_errors files matches errs match_times in
       let flds =
         if !profile
         then begin
@@ -858,11 +910,12 @@ let semgrep_with_real_rules ~with_opt_cache rules files =
       (* pr (spf "number of errors: %d" (List.length errs)); *)
       errs |> List.iter (fun err -> pr (E.string_of_error err))
 
-let semgrep_with_real_rules_file ~with_opt_cache rules_file files =
+let semgrep_with_real_rules_file
+    ~with_opt_cache ~report_time rules_file files =
   try
     logger#info "Parsing %s" rules_file;
     let rules = Parse_rule.parse rules_file in
-    semgrep_with_real_rules ~with_opt_cache rules files
+    semgrep_with_real_rules ~with_opt_cache ~report_time rules files
   with exn when !output_format = Json ->
     logger#debug "exn before exit %s" (Common.exn_to_s exn);
     let json = json_of_exn exn in
@@ -916,7 +969,10 @@ let semgrep_with_one_pattern xs =
   match !output_format with
   | Json ->
       (* closer to -rules_file, but no incremental match output *)
-      semgrep_with_rules ~with_opt_cache:!with_opt_cache [rule] xs
+      semgrep_with_rules
+        ~with_opt_cache:!with_opt_cache
+        ~report_time:!report_time
+        [rule] xs
   | Text ->
       (* simpler code path than in semgrep_with_rules *)
       begin
@@ -977,7 +1033,7 @@ let tainting_with_rules rules_file xs =
     let rules = Parse_tainting_rules.parse rules_file in
 
     let files = get_final_files xs in
-    let matches, errs =
+    let matches, errs, _match_times =
       files |> iter_generic_ast_of_files_and_get_matches_and_exn_to_errors
         (fun file lang ast ->
            let rules =
@@ -985,7 +1041,7 @@ let tainting_with_rules rules_file xs =
            Tainting_generic.check rules file ast
         )
     in
-    let flds = json_fields_of_matches_and_errors files matches errs in
+    let flds = json_fields_of_matches_and_errors files matches errs None in
     let s = J.string_of_json (J.Object flds) in
     pr s
   with exn ->
@@ -1293,6 +1349,14 @@ let options () =
     (*x: [[Main_semgrep_core.options]] report match mode cases *)
     "-json", Arg.Unit (fun () -> output_format := Json),
     " output JSON format";
+
+    "-json_time", Arg.Unit (fun () ->
+      output_format := Json;
+      report_time := true
+    ),
+    " report detailed matching times as part of the JSON response. \
+     Implies '--json'.";
+
     (*e: [[Main_semgrep_core.options]] report match mode cases *)
     (*s: [[Main_semgrep_core.options]] other cases *)
     "-pvar", Arg.String (fun s -> mvars := Common.split "," s),
@@ -1454,11 +1518,14 @@ let main () =
          (match () with
           | _ when !config_file <> "" ->
               semgrep_with_real_rules_file
-                ~with_opt_cache:!with_opt_cache !config_file (x::xs)
+                ~with_opt_cache:!with_opt_cache
+                ~report_time:!report_time
+                !config_file (x::xs)
           (*s: [[Main_semgrep_core.main()]] main entry match cases *)
           | _ when !rules_file <> "" ->
               semgrep_with_rules_file
                 ~with_opt_cache:!with_opt_cache
+                ~report_time:!report_time
                 !rules_file (x::xs)
           (*x: [[Main_semgrep_core.main()]] main entry match cases *)
           | _ when !tainting_rules_file <> "" ->

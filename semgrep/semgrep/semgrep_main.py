@@ -188,6 +188,7 @@ def main(
     timeout_threshold: int = 0,
     skip_unknown_extensions: bool = False,
     severity: Optional[List[str]] = None,
+    report_time: bool = False,
 ) -> None:
     if include is None:
         include = []
@@ -266,6 +267,7 @@ The two most popular are:
         timeout=timeout,
         max_memory=max_memory,
         timeout_threshold=timeout_threshold,
+        report_time=report_time,
     ).invoke_semgrep(
         target_manager, filtered_rules
     )

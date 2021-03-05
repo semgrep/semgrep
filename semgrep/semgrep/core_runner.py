@@ -141,12 +141,14 @@ class CoreRunner:
         timeout: int,
         max_memory: int,
         timeout_threshold: int,
+        report_time: bool,
     ):
         self._allow_exec = allow_exec
         self._jobs = jobs
         self._timeout = timeout
         self._max_memory = max_memory
         self._timeout_threshold = timeout_threshold
+        self._report_time = report_time
 
     def _flatten_rule_patterns(self, rules: List[Rule]) -> Iterator[Pattern]:
         """
@@ -254,6 +256,7 @@ class CoreRunner:
         rule: Rule,
         rules_file_flag: str,
         cache_dir: str,
+        report_time: bool,
     ) -> dict:
         with tempfile.NamedTemporaryFile(
             "w"
@@ -290,6 +293,9 @@ class CoreRunner:
             if equivalences:
                 self._write_equivalences_file(equiv_file, equivalences)
                 cmd += ["-equivalences", equiv_file.name]
+
+            if report_time:
+                cmd += ["-json_time"]
 
             core_run = sub_run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             logger.debug(core_run.stderr.decode("utf-8", errors="replace"))
@@ -430,6 +436,7 @@ class CoreRunner:
                         patterns,
                         targets,
                         timeout=self._timeout,
+                        report_time=self._report_time,
                     )
                 else:  # Run semgrep-core
                     output_json = profiler.track(
@@ -442,6 +449,7 @@ class CoreRunner:
                         rule,
                         "-rules_file",
                         cache_dir,
+                        report_time=self._report_time,
                     )
 
             errors.extend(
@@ -451,8 +459,6 @@ class CoreRunner:
             outputs.extend(PatternMatch(m) for m in output_json["matches"])
             if "time" in output_json:
                 self._add_match_times(rule, match_time_matrix, output_json["time"])
-            else:
-                print("no 'time' field: " + str(output_json))
 
         # group output; we want to see all of the same rule ids on the same file path
         by_rule_index: Dict[
