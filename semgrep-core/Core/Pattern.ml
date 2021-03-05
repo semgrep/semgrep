@@ -50,17 +50,22 @@ let is_special_string_literal str =
   str = "..." ||
   is_regexp_string str
 
+let is_js lang =
+  match lang with
+  | Some (Lang.Javascript | Lang.Typescript) -> true
+  | _ -> false
+
 let is_special_identifier ?lang str =
   Metavariable.is_metavar_name str ||
   (* emma: a hack because my regexp skills are not great *)
   (String.length str > 4 && (Str.first_chars str 4) = "$...") ||
 
   (* in JS field names can be regexps *)
-  (lang = Some Lang.Javascript && is_regexp_string str) ||
+  (is_js lang && is_regexp_string str) ||
   (* ugly hack that we then need to handle also here *)
   str = AST_generic.special_multivardef_pattern ||
   (* ugly: because ast_js_build introduce some extra "!default" ids *)
-  (lang = Some Lang.Javascript && str = Ast_js.default_entity) ||
+  (is_js lang && str = Ast_js.default_entity) ||
   (* parser_java.mly inserts some implicit this *)
   (lang = Some Lang.Java && str = "this") ||
   (* TODO: PHP converts some Eval in __builtin *)

@@ -155,7 +155,7 @@ let stat_files fparser xs =
       match res with
       | None ->
           incr bad;
-          pr2 (spf "PB: could not find a regexp prefilter for rule %s" file)
+          pr2 (spf "PB: no regexp prefilter for rule %s:%s" file r.id)
       | Some (s, _f) ->
           incr good;
           pr2 (spf "regexp: %s" s)
