@@ -238,7 +238,7 @@ properties:
 
       additionalProperties: false
 
-      anyOf:
+      oneOf:
         - properties:
             mode:
               const: taint
