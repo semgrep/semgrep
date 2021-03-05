@@ -24,14 +24,17 @@ from semgrep.rule_lang import Position
 from semgrep.util import sub_run
 
 
-def _extract_matching_time(time_json: Dict[str, Any]) -> float:
+def _extract_matching_time(json: Dict[str, Any]) -> float:
     """Extract the matching time from the 'time' field of the spacegrep output.
 
     It is expected to have run a single pattern on a single target.
     """
-    res = time_json["targets"][0]["match_time"]
-    if isinstance(res, float) or isinstance(res, int):
-        return res
+    if "time" in json:
+        res = json["time"]["targets"][0]["match_time"]
+        if isinstance(res, float) or isinstance(res, int):
+            return res
+        else:
+            return 0.0
     else:
         return 0.0
 
@@ -105,7 +108,7 @@ def run_spacegrep(
                     path_s = str(target)
                     targets_time[path_s] = targets_time.get(
                         path_s, 0.0
-                    ) + _extract_matching_time(output_json["time"])
+                    ) + _extract_matching_time(output_json)
 
             except subprocess.CalledProcessError as e:
                 raw_error = p.stderr
