@@ -153,7 +153,7 @@ let stat_files fparser xs =
       | None ->
           pr2 (spf "PB: could not find a regexp prefilter for rule %s" file)
       | Some (s, _f) ->
-          pr (spf "regexp: %s" s)
+          pr2 (spf "regexp: %s" s)
     )
   )
 
