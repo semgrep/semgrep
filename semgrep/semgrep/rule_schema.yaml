@@ -270,7 +270,7 @@ properties:
             - message
             - languages
             - severity
-          anyOf:
+          oneOf:
             - required:
                 - pattern
               not:
