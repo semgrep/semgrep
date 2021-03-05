@@ -87,7 +87,7 @@ let extract_strings_and_mvars ?lang any =
   } in
   visitor any;
   Common2.uniq !strings, Common2.uniq !mvars
-[@@profiling]
+
 
 let extract_specific_strings ?lang any =
   extract_strings_and_mvars ?lang any |> fst

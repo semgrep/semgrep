@@ -477,7 +477,7 @@ let check with_caching hook rules (file, xlang, lazy_ast_and_errors) =
     let relevant_rule =
       if !Flag_semgrep.filter_irrelevant_rules
       then
-        match Analyze_rule.regexp_prefilter_of_formula formula with
+        match Analyze_rule.regexp_prefilter_of_rule r with
         | None -> true
         | Some (re, f) ->
             let content = Lazy.force lazy_content in

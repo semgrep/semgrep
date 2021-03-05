@@ -15,7 +15,10 @@ module Pcre_engine : sig
   val equal: t -> t -> bool
   val pp: Format.formatter -> t -> unit
 
+  (* will quote special chars in the string *)
   val matching_exact_string: string -> t
+  (* add the \b around the quoted string *)
+  val matching_exact_word: string -> t
 
   val run: t -> string -> bool
 

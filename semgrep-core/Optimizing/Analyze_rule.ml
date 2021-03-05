@@ -15,8 +15,14 @@
 open Common
 
 module Re = Regexp_engine.Re_engine
+module Pcre = Regexp_engine.Pcre_engine
+
 module R = Rule
 module MV = Metavariable
+
+let logger = Logging.get_logger [__MODULE__]
+
+[@@@warning "-32"] (* for the unused pp_ coming from deriving show *)
 
 (*****************************************************************************)
 (* Prelude *)
@@ -49,14 +55,25 @@ module MV = Metavariable
  *    also mentioned in a metavariable-regexp, then we can use this
  *    regexp to filter the rule/target file.
  *  - TODO if a pattern is very general (e.g., $PROP), but reference
- *    metavariables used in other patterns, then you can skip this pattern
+ *    metavariables used in all the patterns of a conjonction, then you
+ *    can skip this pattern
 *)
 
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
 
-(* conjonctive normal form *)
+(* Conjonctive normal form (CNF).
+ *
+ * Why a CNF instead of a DNF (Disjunctive normal form)?
+ * Because in the context of producing a regexp, regexps are good at
+ * representing Or, but not so great for And.
+ *
+ * todo? the evaluation engine prefers to work on DNF where negation
+ * must be inside a And, so maybe better to work also on DNF here?
+ * and skip correctly the negations?
+ *
+*)
 type 'a cnf = And of 'a disj list
 (* no need for negation, they are filtered for *)
 and 'a disj = Or of 'a list
@@ -160,8 +177,9 @@ let and_step2 (And xs) =
   And ys
 
 (*****************************************************************************)
-(* Final Step: just regexps *)
+(* Final Step: just regexps? *)
 (*****************************************************************************)
+(*
 (* support alt which can be convenient *)
 type regexp = Regexp_engine.Re_engine.t
 [@@deriving show]
@@ -175,59 +193,94 @@ type cnf_final = AndFinal of final_step list
 
 let or_final (Or xs) =
   let ys = xs |> List.map (function
-    | Idents [] -> raise Impossible
-    (* take the first one *)
-    | Idents (x::_) -> Re.matching_exact_string x
-    | Regexp2 (s, _re) ->
+   | Idents [] -> raise Impossible
+   (* take the first one *)
+   | Idents (x::_) -> Re.matching_exact_string x
+   | Regexp2 (s, _re) ->
         (* PCRE regular expression not supported by Re, grrr *)
         try Re.regexp s
         with _ -> failwith (spf "Could not parse regexp: %s" s)
-  ) in
-  match ys with
-  | [] -> None
-  | y::ys ->
-      let combined =
-        ys |> List.fold_left (fun acc e -> Re.alt acc e) y
-      in
-      Some (Re combined)
+   ) in
+   match ys with
+   | [] -> None
+   | y::ys ->
+    let combined =
+      ys |> List.fold_left (fun acc e -> Re.alt acc e) y
+    in
+    Some (Re combined)
 
 (* TODO: normalize, merge similar Idents *)
 
 (* TODO: detect if all cases are an Idents in which case you can lift
  * up the Idents in an AndFinal
-*)
+ *)
 let and_final (And disjs) =
   AndFinal (disjs |> Common.map_filter or_final)
 
-(*****************************************************************************)
-(* Run the regexp *)
-(*****************************************************************************)
-
 (* todo: instead of running multiple times for the AndFinal, we could
- * do an or, look at the matchedstring and detect which parts of the
+ * do an or, look at the matched string and detect which parts of the
  * AndFinal it is, increment a counter, and at the end make sure we've
  * found each AndFinal elements.
-*)
-let run (AndFinal xs) big_str =
+ *)
+let _run_final (AndFinal xs) big_str =
   xs |> List.for_all (fun (Re re) ->
     Re.run re big_str
   )
+[@@profiling]
+
+  let final = and_final cnf in
+(*  pr2 (show_cnf_final final); *)
+  final, cnf_step2
+
+*)
+
+(*****************************************************************************)
+(* Run the regexps *)
+(*****************************************************************************)
+
+let eval_and p (And xs) =
+  xs |> List.for_all (function (Or xs) ->
+    xs |> List.exists (fun x -> p x)
+  )
+
+let run_cnf_step2 cnf big_str =
+  cnf |> eval_and (function
+    | Idents xs -> xs |> List.for_all (fun id ->
+      let re = Pcre.matching_exact_word id in
+      Pcre.run re big_str
+    )
+    | Regexp2 re -> Pcre.run re big_str
+  )
+[@@profiling]
+
 
 (*****************************************************************************)
 (* Entry points *)
 (*****************************************************************************)
 
-let regexp_prefilter_of_formula f =
+let compute_final_cnf f =
   let cnf = and_step1 f in
-  pr2 (show_cnf_step1 cnf);
+  (*  pr2 (show_cnf_step1 cnf); *)
   let cnf = and_step2 cnf in
-  pr2 (show_cnf_step2 cnf);
-  let final = and_final cnf in
-  pr2 (show_cnf_final final);
+  logger#debug "cnf = %s" (show_cnf_step2 cnf);
+  cnf
+[@@profiling]
 
-  Some (show_cnf_final final, fun big_str ->
-    run final big_str
+let str_final final =
+  show_cnf_step2 final
+[@@profiling]
+
+let regexp_prefilter_of_formula f =
+  let final = compute_final_cnf f in
+  Some (str_final final, fun big_str ->
+    run_cnf_step2 final big_str
+    (* run_cnf_step2 (And [Or [Idents ["jsonwebtoken"]]]) big_str *)
   )
 
+let hmemo = Hashtbl.create 101
+
 let regexp_prefilter_of_rule r =
-  r |> Rule.formula_of_rule |> regexp_prefilter_of_formula
+  let k = r.R.file ^ "." ^ r.R.id in
+  Common.memoized hmemo k (fun () ->
+    r |> Rule.formula_of_rule |> regexp_prefilter_of_formula
+  )
