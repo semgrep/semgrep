@@ -55,7 +55,7 @@ let logger = Logging.get_logger [__MODULE__]
  *    also mentioned in a metavariable-regexp, then we can use this
  *    regexp to filter the rule/target file.
  *  - TODO if a pattern is very general (e.g., $PROP), but reference
- *    metavariables used in all the patterns of a conjonction, then you
+ *    metavariables used in all the patterns of a disjunction, then you
  *    can skip this pattern
 *)
 
@@ -220,6 +220,40 @@ and metavarcond_step1 x =
  * MvarRegexp into a Regexp2
 *)
 
+let and_step1bis_filter_general (And xs) =
+  let has_empty_idents, rest =
+    xs |> Common.partition_either (function (Or xs) ->
+      if xs |> List.exists (function
+        | StringsAndMvars ([], _) -> true
+        | _ -> false
+      )
+      then Left (Or xs)
+      else Right (Or xs)
+    )
+  in
+  let filtered =
+    has_empty_idents |> Common.map_filter (fun (Or xs) ->
+      let xs' =
+        xs |> Common.exclude (function
+          | StringsAndMvars([], mvars) ->
+              mvars |> List.exists (fun mvar ->
+                rest |> List.exists (function (Or xs) ->
+                  xs |> List.for_all (function
+                    | StringsAndMvars (_, mvars) -> List.mem mvar mvars
+                    | Regexp _ -> false
+                    | MvarRegexp (mvar2, _) -> mvar2 = mvar
+                  )))
+          | _ -> false
+        )
+      in
+      if null xs'
+      then None
+      else Some (Or xs')
+    )
+  in
+  And (filtered @ rest)
+[@@profiling]
+
 type step2 =
   | Idents of string list (* a And *)
   | Regexp2 of Rule.regexp
@@ -339,6 +373,8 @@ let compute_final_cnf f =
   (* let cnf = and_step1 f in *)
   let cnf = and_step1 cnf in
   logger#ldebug (lazy (spf "cnf1 = %s" (show_cnf_step1 cnf)));
+  let cnf = and_step1bis_filter_general cnf in
+  logger#ldebug (lazy (spf "cnf1bis = %s" (show_cnf_step1 cnf)));
   let cnf = and_step2 cnf in
   logger#ldebug (lazy (spf "cnf2 = %s" (show_cnf_step2 cnf)));
   cnf

@@ -76,6 +76,10 @@ let extract_strings_and_mvars ?lang any =
            if not (Pattern.is_special_string_literal str)
            then Common.push str strings
 
+       | IdSpecial (Eval, t) ->
+           if Parse_info.is_origintok t
+           then Common.push (Parse_info.str_of_info t) strings
+
        (* do not recurse there, the type does not have to be in the source *)
        | TypedMetavar _ ->
            ()
