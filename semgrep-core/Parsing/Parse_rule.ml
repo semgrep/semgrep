@@ -139,6 +139,7 @@ let parse_extra _env x =
           "strip", strip_opt;
           "base", base_opt;
          ], [] ->
+           let comparison = parse_metavar_cond comparison in
            R.MetavarComparison
              { R. metavariable; comparison;
                strip = Common.map_opt (parse_bool "strip") strip_opt;
@@ -204,7 +205,7 @@ type _env = (string * R.xlang)
 let parse_pattern (id, lang) s =
   match lang with
   | R.L (lang, _) ->
-      R.mk_xpat (Sem (H.parse_pattern ~id ~lang s)) s
+      R.mk_xpat (Sem (H.parse_pattern ~id ~lang s, lang)) s
   | R.LNone ->
       failwith ("you should not use real pattern with language = none")
   | R.LGeneric ->
@@ -289,7 +290,7 @@ let parse_formula env (x: string * J.t) : R.pformula =
 
 let parse_languages ~id langs =
   match langs with
-  | [J.String "none"] -> R.LNone
+  | [J.String ("none" | "regex")] -> R.LNone
   | [J.String "generic"] -> R.LGeneric
   | xs ->
       let languages = xs |> List.map (function

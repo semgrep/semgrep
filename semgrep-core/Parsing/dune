@@ -15,7 +15,8 @@
 
    spacegrep
 
-   semgrep_core semgrep_core_opti
+   semgrep_core
+   semgrep_optimizing
    semgrep_metachecking
    semgrep_parsing_tree_sitter
    semgrep_parsing_other

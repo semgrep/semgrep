@@ -117,57 +117,55 @@ ALLOWED_GLOB_TYPES = ("include", "exclude")
 class Range(NamedTuple):
     start: int
     end: int
-    vars: Mapping[str, Any]
+    metavariables: Mapping[str, Any]
 
-    def is_enclosing_or_eq(self, other_range: "Range") -> bool:
-        return (
-            self.start <= other_range.start
-            and other_range.end <= self.end
-            and self.vars_match(other_range)
-        )
+    def is_enclosing_or_eq(self, rhs: "Range") -> bool:
+        return self.is_range_enclosing_or_eq(rhs) and self.metavariables_match(rhs)
 
-    def is_range_enclosing_or_eq(self, other_range: "Range") -> bool:
-        return self.start <= other_range.start and other_range.end <= self.end
+    def is_range_enclosing_or_eq(self, rhs: "Range") -> bool:
+        return self.start <= rhs.start and rhs.end <= self.end
 
-    def vars_match(self, rhs: "Range") -> bool:
+    def metavariables_match(self, rhs: "Range") -> bool:
         """
-        Returns true if and only if all metavariables in both this and the other Range refer to the same
-        variables (if variable nodes), in the same scope, or the same expressions (if expression nodes).
+        Returns true if and only if all metavariables in both this and the other Range
+        refer to the same variables (if variable nodes), in the same scope, or the same
+        expressions (if expression nodes).
 
-        That is, if two patterns define a "$X", and $X refers to a variable in one pattern, then
-        $X must refer to the same variable in both patterns
-        :param rhs: The other Range
+        That is, if two patterns define a "$X", and $X refers to a variable in one
+        pattern, then $X must refer to the same variable in both patterns.
         """
-        to_match = set(self.vars.keys()).intersection(rhs.vars.keys())
+        to_match = set(self.metavariables.keys()) & set(rhs.metavariables.keys())
         return all(
-            self.vars[v] and rhs.vars[v] and self.vars[v] == rhs.vars[v]
+            self.metavariables[v]
+            and rhs.metavariables[v]
+            and self.metavariables[v] == rhs.metavariables[v]
             for v in to_match
         )
 
     def __repr__(self) -> str:
-        return f"<{self.__class__.__name__} start={self.start} end={self.end} vars={self.vars}>"
+        return f"<{self.__class__.__name__} start={self.start} end={self.end} metavariables={self.metavariables}>"
 
     def __hash__(self) -> int:
         return hash((self.start, self.end))
 
-    def __eq__(self, other: Any) -> bool:
-        if not isinstance(other, type(self)):
+    def __eq__(self, rhs: Any) -> bool:
+        if not isinstance(rhs, type(self)):
             return False
 
         return (
-            self.start == other.start
-            and self.end == other.end
-            and self.vars_match(other)
+            self.start == rhs.start
+            and self.end == rhs.end
+            and self.metavariables_match(rhs)
         )
 
-    def __lt__(self, other: Any) -> bool:
-        if not isinstance(other, type(self)):
+    def __lt__(self, rhs: Any) -> bool:
+        if not isinstance(rhs, type(self)):
             return False
 
         diff_self = self.end - self.start
-        diff_other = other.end - other.start
+        diff_rhs = rhs.end - rhs.start
 
-        if diff_self == diff_other:
-            return self.start < other.start
+        if diff_self == diff_rhs:
+            return self.start < rhs.start
 
-        return diff_self < diff_other
+        return diff_self < diff_rhs

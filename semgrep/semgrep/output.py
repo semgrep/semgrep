@@ -22,8 +22,10 @@ from junit_xml import TestSuite
 
 from semgrep import __VERSION__
 from semgrep import config_resolver
+from semgrep.constants import BREAK_LINE
 from semgrep.constants import BREAK_LINE_CHAR
 from semgrep.constants import BREAK_LINE_WIDTH
+from semgrep.constants import CLI_RULE_ID
 from semgrep.constants import MAX_LINES_FLAG_NAME
 from semgrep.constants import OutputFormat
 from semgrep.error import FINDINGS_EXIT_CODE
@@ -102,7 +104,7 @@ def finding_to_line(
             if trimmed > 0:
                 yield trimmed_str.center(BREAK_LINE_WIDTH, BREAK_LINE_CHAR)
             elif show_separator:
-                yield BREAK_LINE_CHAR * BREAK_LINE_WIDTH
+                yield BREAK_LINE
 
 
 def build_normal_output(
@@ -134,7 +136,7 @@ def build_normal_output(
         # don't display the rule line if the check is empty
         if (
             check_id
-            and check_id != "-"
+            and check_id != CLI_RULE_ID
             and (last_message is None or last_message != message)
         ):
             severity_prepend = ""
@@ -295,7 +297,7 @@ def iter_emacs_output(
         start_col = rule_match.start.get("col")
         line = rule_match.lines[0].rstrip()
         info = ""
-        if check_id and check_id != "-":
+        if check_id and check_id != CLI_RULE_ID:
             check_id = check_id.split(".")[-1]
             info = f"({check_id})"
         yield f"{current_file}:{start_line}:{start_col}:{severity}{info}:{line}"

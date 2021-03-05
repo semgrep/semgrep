@@ -35,6 +35,9 @@ let _fake = AST_generic.fake
 let token = H.token
 let str = H.str
 
+let unhandled_keywordattr_to_namedattr env tok =
+  AST.unhandled_keywordattr (str env tok)
+
 let ids_of_name (name : name_) : dotted_ident =
   let (ident, name_info) = name in
   (match name_info.name_qualifier with
@@ -54,6 +57,7 @@ let id_of_name_ (id, nameinfo) =
 (* TODO: delete *)
 let name_of_id id =
   (id, empty_name_info)
+
 
 let type_parameters_with_constraints params constraints : type_parameter list =
   List.map (fun param ->
@@ -144,6 +148,18 @@ let call_lambda base_expr funcname tok funcs =
   in
   Call (method_, fake_bracket args)
 
+let rec call_orderby base_expr lambda_params tok orderings =
+  match orderings with
+  | [] -> base_expr
+  | ht :: tl ->
+      let expr, dir = ht in
+      let funcname = (match dir with
+        | Ascending -> "OrderBy"
+        | Descending -> "OrderByDescending") in
+      let func = create_lambda lambda_params expr in
+      let base_expr = call_lambda base_expr funcname tok [func] in
+      call_orderby base_expr lambda_params tok tl
+
 let rec linq_remainder_to_expr (query : linq_query_part list) (base_expr : expr) (lambda_params : ident list) =
   match query with
   | [] -> base_expr
@@ -186,6 +202,9 @@ let rec linq_remainder_to_expr (query : linq_query_part list) (base_expr : expr)
            let res_func = create_join_result_lambda lambda_params ident in
            let base_expr = call_lambda base_expr "SelectMany" tok [sel_func; res_func] in
            let lambda_params = lambda_params @ [ident] in
+           linq_remainder_to_expr tl base_expr lambda_params
+       | OrderBy (tok, orderings) ->
+           let base_expr = call_orderby base_expr lambda_params tok orderings in
            linq_remainder_to_expr tl base_expr lambda_params
        | _ -> failwith "not implemented")
 
@@ -311,9 +330,6 @@ let overloadable_operator (env : env) (x : CST.overloadable_operator) =
    | `GTEQ tok -> str env tok (* ">=" *)
    | `LTEQ tok -> str env tok (* "<=" *)
   )
-
-let unhandled_keywordattr_to_namedattr (env : env) tok =
-  NamedAttr (token env tok, Id (str env tok, empty_id_info ()), fake_bracket [])
 
 let modifier (env : env) (x : CST.modifier) =
   (* TODO these should all be KeywordAttr, but pfff doesn't know about all keywords *)
@@ -1455,7 +1471,7 @@ and statement (env : env) (x : CST.statement) =
    | `For_each_stmt (v1, v2, v3, v4, v5, v6, v7, v8) ->
        let v1 =
          (match v1 with
-          | Some tok -> todo env tok (* "await" *)
+          | Some tok -> Some (token env tok) (* "await" *)
           | None -> None)
        in
        let v2 = token env v2 (* "foreach" *) in
@@ -1478,6 +1494,10 @@ and statement (env : env) (x : CST.statement) =
        in
        let v5 = token env v5 (* "in" *) in
        let v6 = expression env v6 in
+       let v6 = (match v1 with
+         | Some tok -> Await (tok, v6) (* "await" *)
+         | None -> v6
+       ) in
        let v7 = token env v7 (* ")" *) in
        let v8 = statement env v8 in
        For (v2, ForEach  (v4, v5, v6), v8) |> AST.s

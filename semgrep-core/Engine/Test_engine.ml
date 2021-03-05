@@ -86,25 +86,33 @@ let test_rules xs =
     let expected_error_lines = E.expected_error_lines_of_files [target] in
 
     (* actual *)
-    let ast = lazy (
+    let lazy_ast_and_errors = lazy (
       match xlang with
       | R.L (lang, _) ->
-          (let {Parse_target. ast; _} =
-             Parse_target.parse_and_resolve_name_use_pfff_or_treesitter
-               lang target
-           in
-           ast)
+          let {Parse_target. ast; errors; _} =
+            Parse_target.parse_and_resolve_name_use_pfff_or_treesitter
+              lang target
+          in
+          ast, errors
       | R.LNone | R.LGeneric -> raise Impossible
     )
     in
     E.g_errors := [];
-    let matches =
+    let matches, errors, match_time =
       try
-        Semgrep.check false (fun _ _ -> ()) rules (target, xlang, ast)
+        Semgrep.check false (fun _ _ -> ()) rules
+          (target, xlang, lazy_ast_and_errors)
       with exn ->
         failwith (spf "exn on %s (exn = %s)" file (Common.exn_to_s exn))
     in
+    if not (match_time >= 0.) then
+      (* match_time could be 0.0 if the rule contains no pattern or if the
+         rules are skipped. Otherwise it's positive. *)
+      failwith (spf "invalid value for match time: %g" match_time);
+
     matches |> List.iter JSON_report.match_to_error;
+    if not (errors = [])
+    then failwith (spf "parsing error on %s" file);
 
     let actual_errors = !E.g_errors in
     actual_errors |> List.iter (fun e ->

@@ -46,7 +46,7 @@ def PatternMatchMock(
     type(mock).range = range_property
 
     metavars_property = PropertyMock(return_value=metavars)
-    type(mock).metavars = metavars_property
+    type(mock).metavariables = metavars_property
 
     def mocked_get_metavariable_value(metavariable: str) -> Any:
         return metavars[metavariable]["abstract_content"] if metavars else ""

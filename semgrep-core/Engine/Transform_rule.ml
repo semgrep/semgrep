@@ -23,6 +23,8 @@
  * purpose, a bit like a database engine can "compile" SQL queries
  * in the best execution plan.
  *
+ * See also Optimizing/Analyze_rule.ml
+ *
 *)
 
 (*****************************************************************************)

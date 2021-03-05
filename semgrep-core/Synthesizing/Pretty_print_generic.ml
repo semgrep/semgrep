@@ -408,6 +408,10 @@ and special env = function
 and call env (e, (_, es, _)) =
   let s1 = expr env e in
   match (e, es) with
+  | IdSpecial (Op In, _), [e1; e2] ->
+      F.sprintf "%s in %s" (argument env e1) (argument env e2)
+  | IdSpecial (Op NotIn, _), [e1; e2] ->
+      F.sprintf "%s not in %s" (argument env e1) (argument env e2)
   | (IdSpecial(Op _, _), x::y::[]) -> F.sprintf "%s %s %s" (argument env x) s1 (argument env y)
   | (IdSpecial(New, _), x::ys) -> F.sprintf "%s %s(%s)" s1 (argument env x) (arguments env ys)
   | (IdSpecial(IncrDecr (i_d, pre_post), _), [x]) ->
@@ -415,6 +419,7 @@ and call env (e, (_, es, _)) =
       (match pre_post with
        | Prefix -> F.sprintf "%s%s" op_str (argument env x)
        | Postfix -> F.sprintf "%s%s" (argument env x) op_str)
+
   | _ -> F.sprintf "%s(%s)" s1 (arguments env es)
 
 and literal env = function
@@ -467,10 +472,8 @@ and option env = function
   | None -> ""
   | Some e -> expr env e
 
-and other env (op, anys) =
+and other _env (op, anys) =
   match (op, anys) with
-  | OE_In, [E e1; E e2] -> F.sprintf "%s in %s" (expr env e1) (expr env e2)
-  | OE_NotIn, [E e1; E e2] -> F.sprintf "%s not in %s" (expr env e1) (expr env e2)
   | _ -> todo (E (OtherExpr(op, anys)))
 
 and dot_access env (e, _tok, fi) =

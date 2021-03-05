@@ -711,7 +711,6 @@ and other_expr_operator =
   | OE_Require (* todo: lift to DirectiveStmt? transform in Import? *)
   | OE_UseStrict (* todo: lift up to program attribute/directive? *)
   (* Python *)
-  | OE_In | OE_NotIn (* less: could be part of a obj_operator? *)
   | OE_Invert
   | OE_Slices (* see also SliceAccess *)
   (* todo: newvar: *)
@@ -1429,7 +1428,7 @@ and or_type_element =
 
 (*s: type [[AST_generic.other_or_type_element_operator]] *)
 and other_or_type_element_operator =
-  (* Java *)
+  (* Java, Kotlin *)
   | OOTEO_EnumWithMethods | OOTEO_EnumWithArguments
   (*e: type [[AST_generic.other_or_type_element_operator]] *)
 
@@ -1452,6 +1451,9 @@ and other_or_type_element_operator =
  * the variable declaration and field definition have a different syntax.
  * Note: the FieldStmt(DefStmt(FuncDef(...))) can have empty body
  * for interface methods.
+ *
+ * Note that not all stmt in FieldStmt are definitions. You can have also
+ * a Block like in Kotlin for 'init' stmts.
 *)
 (*s: type [[AST_generic.field]] *)
 and field =
@@ -1491,10 +1493,13 @@ and class_definition = {
 }
 (*e: type [[AST_generic.class_definition]] *)
 (*s: type [[AST_generic.class_kind]] *)
+(* invariant: this must remain a simple enum; Map_AST relies on it *)
 and class_kind =
   | Class
   | Interface
   | Trait
+  (* Kotlin, Scala *)
+  | Object
   (* java: *)
   | AtInterface (* @interface, a.k.a annotation type declaration *)
 (*e: type [[AST_generic.class_kind]] *)
@@ -1793,6 +1798,8 @@ let unbracket (_, x, _) = x
 *)
 let sc = Parse_info.fake_info ""
 
+let unhandled_keywordattr (s,t) =
+  NamedAttr (t, Id ((s,t), empty_id_info ()), fake_bracket [])
 let exprstmt e = s (ExprStmt (e, sc))
 let fieldEllipsis t = FieldStmt (exprstmt (Ellipsis t))
 let empty_fbody = s (Block (fake_bracket []))

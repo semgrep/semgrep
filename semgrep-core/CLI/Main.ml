@@ -502,13 +502,17 @@ let filter_files_with_too_many_matches_and_transform_as_timeout matches =
     )
   in
   new_matches, new_errors
-[@@profiling]
+[@@profiling "Main.filter_too_many_matches"]
 
 (*****************************************************************************)
 (* Parsing *)
 (*****************************************************************************)
 
 (*s: function [[Main_semgrep_core.parse_generic]] *)
+(* It should really be just a call to Parse_target.parse_and_resolve...
+ * but the semgrep python wrapper calls semgrep-core separately for each
+ * rule, so we need to cache parsed AST to avoid extra work.
+*)
 let parse_generic lang file =
   (*s: [[Main_semgrep_core.parse_generic()]] use standard macros if parsing C *)
   if lang = Lang.C && Sys.file_exists !Flag_parsing_cpp.macros_h
@@ -528,6 +532,7 @@ let parse_generic lang file =
       cache_file_of_file full_filename)
       (fun () ->
          try
+           logger#info "parsing %s" file;
            (* finally calling the actual function *)
            let ast = Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang file
            in
@@ -626,10 +631,13 @@ let iter_generic_ast_of_files_and_get_matches_and_exn_to_errors f files =
       try
         run_with_memory_limit !max_memory (fun () ->
           timeout_function file (fun () ->
-            let {Parse_target. ast; errors; _} = parse_generic lang file in
+            let lazy_ast_and_errors = lazy (
+              let {Parse_target. ast; errors; _} = parse_generic lang file in
+              ast, errors
+            )
+            in
             (* calling the hook *)
-            let matches, time = with_time (fun () -> f file lang ast) in
-            (matches, errors, (file, time))
+            (f file lang lazy_ast_and_errors)
             |> (fun v ->
               (* This is just to test -max_memory, to give a chance
                * to Gc.create_alarm to run even if the program does
@@ -783,14 +791,21 @@ let semgrep_with_rules ~with_opt_cache ~report_time rules files =
   logger#info "processing %d files" (List.length files);
   let matches, errs, match_times =
     files |> iter_generic_ast_of_files_and_get_matches_and_exn_to_errors
-      (fun file lang ast ->
-         let rules =
-           rules |> List.filter (fun r -> List.mem lang r.MR.languages) in
-         Semgrep_generic.check
-           ~hook:(fun _ _ -> ())
-           ~with_caching:with_opt_cache
-           rules (parse_equivalences ())
-           file lang ast
+      (fun file lang lazy_ast_and_errors ->
+         let (ast, errors) = Lazy.force lazy_ast_and_errors in
+         let (matches, errors), match_time =
+           with_time (fun () ->
+             let rules =
+               rules |> List.filter (fun r -> List.mem lang r.MR.languages) in
+             Semgrep_generic.check
+               ~hook:(fun _ _ -> ())
+               ~with_caching:with_opt_cache
+               rules (parse_equivalences ())
+               file lang ast,
+             errors
+           )
+         in
+         (matches, errors, (file, match_time))
       )
   in
   let match_times =
@@ -856,7 +871,7 @@ let semgrep_with_real_rules ~with_opt_cache ~report_time rules files =
   logger#info "processing %d files" (List.length files);
   let matches, errs, match_times =
     files |> iter_generic_ast_of_files_and_get_matches_and_exn_to_errors
-      (fun file lang ast ->
+      (fun file lang lazy_ast_and_errors ->
          let rules =
            rules |> List.filter (fun r ->
              match r.R.languages with
@@ -871,8 +886,11 @@ let semgrep_with_real_rules ~with_opt_cache ~report_time rules files =
            end
          in
          let xlang = R.L (lang, []) in
-         let ast = lazy ast in
-         Semgrep.check with_opt_cache hook rules (file, xlang, ast)
+         let matches, errors, match_time =
+           Semgrep.check with_opt_cache hook rules
+             (file, xlang, lazy_ast_and_errors)
+         in
+         matches, errors, (file, match_time)
       )
   in
   let match_times =
@@ -1035,10 +1053,13 @@ let tainting_with_rules rules_file xs =
     let files = get_final_files xs in
     let matches, errs, _match_times =
       files |> iter_generic_ast_of_files_and_get_matches_and_exn_to_errors
-        (fun file lang ast ->
+        (fun file lang lazy_ast_and_errors ->
+           let (ast, errors) = Lazy.force lazy_ast_and_errors in
            let rules =
              rules |> List.filter (fun r -> List.mem lang r.TR.languages) in
-           Tainting_generic.check rules file ast
+           Tainting_generic.check rules file ast,
+           errors,
+           (file, 0.0) (* TODO? *)
         )
     in
     let flds = json_fields_of_matches_and_errors files matches errs None in
@@ -1082,19 +1103,7 @@ let validate_pattern () =
   with _exn -> exit 1
 (*e: function [[Main_semgrep_core.validate_pattern]] *)
 
-(* similar to Test_parsing.test_parse_rules *)
-let check_rules xs =
-  let fullxs =
-    xs
-    |> File_type.files_of_dirs_or_files (function
-      | FT.Config (FT.Yaml | FT.Json | FT.Jsonnet) -> true | _ -> false)
-    |> Skip_code.filter_files_if_skip_list ~root:xs
-  in
-  fullxs |> List.iter (fun file ->
-    logger#info "processing %s" file;
-    let rs = Parse_rule.parse file in
-    rs |> List.iter Check_rule.check;
-  )
+(* See also Check_rule.check_files *)
 
 (*****************************************************************************)
 (* Dumpers *)
@@ -1287,15 +1296,20 @@ let all_actions () = [
     Test_parsing.test_parse_tree_sitter !lang xs);
 
   "-check_rules", " <files or dirs>",
-  Common.mk_action_n_arg check_rules;
+  Common.mk_action_n_arg (Check_rule.check_files Parse_rule.parse);
+  "-stat_rules", " <files or dirs>",
+  Common.mk_action_n_arg (Check_rule.stat_files Parse_rule.parse);
   "-test_rules", " <files or dirs>",
-  Common.mk_action_n_arg Test_rule.test_rules;
+  Common.mk_action_n_arg Test_engine.test_rules;
   "-parse_rules", " <files or dirs>",
   Common.mk_action_n_arg Test_parsing.test_parse_rules;
 
 
   "-datalog_experiment", " <file> <dir>",
   Common.mk_action_2_arg Datalog_experiment.gen_facts;
+  "-postmortem", " <log file",
+  Common.mk_action_1_arg Statistics_report.stat;
+
   "-eval", " <JSON file>",
   Common.mk_action_1_arg Eval_generic.eval_json_file;
   "-test_eval", " <JSON file>",
@@ -1378,14 +1392,20 @@ let options () =
     (*e: [[Main_semgrep_core.options]] other cases *)
     "-use_parsing_cache", Arg.Set_string use_parsing_cache,
     " <dir> save and use parsed ASTs in a cache at given directory. Caller responsiblity to clear cache";
+
+    "-filter_irrelevant_patterns", Arg.Set Flag.filter_irrelevant_patterns,
+    " filter patterns not containing any strings in target file";
+    "-no_filter_irrelevant_patterns",Arg.Clear Flag.filter_irrelevant_patterns,
+    " do not filter patterns";
     "-filter_irrelevant_rules", Arg.Set Flag.filter_irrelevant_rules,
     " filter rules not containing any strings in target file";
+    "-no_filter_irrelevant_rules", Arg.Clear Flag.filter_irrelevant_rules,
+    " do not filter rules";
+
     "-bloom_filter", Arg.Set Flag.use_bloom_filter,
     " use a bloom filter to only attempt matches when strings in the pattern are in the target";
     "-no_bloom_filter", Arg.Clear Flag.use_bloom_filter,
     " do not use bloom filter";
-    "-no_filter_irrelevant_rules", Arg.Clear Flag.filter_irrelevant_rules,
-    " do not filter rules";
     "-tree_sitter_only", Arg.Set Flag.tree_sitter_only,
     " only use tree-sitter-based parsers";
 

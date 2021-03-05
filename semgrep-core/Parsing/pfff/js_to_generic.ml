@@ -82,7 +82,7 @@ let special (x, tok) =
   | Seq -> SR_NeedArgs (fun args -> G.Seq args)
   | Typeof -> SR_Special (G.Typeof, tok)
   | Instanceof -> SR_Special (G.Instanceof, tok)
-  | In -> SR_Other (G.OE_In, tok)
+  | In -> SR_Special (G.Op G.In, tok)
   | Delete -> SR_Other (G.OE_Delete, tok)
   (* a kind of cast operator:
    * See https://stackoverflow.com/questions/7452341/what-does-void-0-mean
