@@ -522,6 +522,7 @@ let pattern_to_string lang any =
   match any with
   | E e -> expr_to_string lang mvars e
   | S s -> stmt_to_string lang mvars s
+  | Args args -> arguments { lang; mvars } args
   | _ ->
       pr2 (AST_generic.show_any any);
       failwith "todo: only expression pattern can be pretty printed right now"

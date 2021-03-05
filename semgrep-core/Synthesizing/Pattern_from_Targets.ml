@@ -16,6 +16,7 @@ open Common
 module Set = Set_
 
 exception InvalidSubstitution
+exception UnsupportedTargetType
 
 (*****************************************************************************)
 (* Prelude *)
@@ -40,10 +41,7 @@ let global_lang = ref Lang.OCaml
 (* Print *)
 (*****************************************************************************)
 
-let p_any any =
-  match any with
-  | E _ -> Pretty_print_generic.pattern_to_string !global_lang any
-  | _ -> "can't print"
+let p_any = Pretty_print_generic.pattern_to_string !global_lang
 
 let stage_string = function
   | DONE -> "done"
@@ -61,8 +59,8 @@ let rec show_replacements reps =
 let rec show_patterns (patterns : pattern_instrs) =
   match patterns with
   | [] -> pr2 "---"
-  | (any, pattern, replacements)::pats ->
-      pr2 ("( " ^ (p_any any) ^ ", " ^ (p_any pattern) ^ ", " ^ show_replacements replacements ^ " )");
+  | (_any, pattern, replacements)::pats ->
+      pr2 ("( " (* ^ (p_any any) ^ ", " *) ^ (p_any pattern) ^ ", " ^ show_replacements replacements ^ " )");
       show_patterns pats
 
 let show_pattern_sets patsets =
@@ -102,31 +100,33 @@ let lookup_pattern pattern s =
 
 let metavar_pattern _e = (default_id "$X")
 
-let _sub_expr f sub =
+let sub_expr f sub =
   match sub with
-  | E e -> f e
-  | _ -> raise InvalidSubstitution
+  | E e -> fun x -> E (f e x)
+  | S ({ s = ExprStmt (e, sc); _ } as stmt) -> fun x -> S (replace_sk stmt (ExprStmt (f e x, sc)))
+  | _ -> pr2 "h4"; raise InvalidSubstitution
 
 let pattern_from_call e (e', (lp, args, rp)) : pattern_instrs =
-  let replace_name e x =
+  let replace_name e = fun x ->
     match e, x with
-    | (E (Call (_, (lp, args, rp)))), E x -> E (Call (x, (lp, args, rp)))
-    | _ -> raise InvalidSubstitution
+    | Call (_, (lp, args, rp)), E x -> Call (x, (lp, args, rp))
+    | _ -> pr2 ("h3" ^ (show_any (E e))); raise InvalidSubstitution
   in
-  let replace_args e x =
+  let replace_args e = fun x ->
     match e, x with
-    | (E (Call (e, (lp, _, rp)))), Args x -> E (Call (e, (lp, x, rp)))
-    | _ -> raise InvalidSubstitution
+    | Call (e, (lp, _, rp)), Args x -> Call (e, (lp, x, rp))
+    | _ -> pr2 "h2"; raise InvalidSubstitution
   in
   [ e, E (Call (metavar_pattern e', (lp, [Arg (Ellipsis fk)], rp))),
-    [ ANY (E e'), replace_name;
-      ANY (Args args), replace_args
+    [ ANY (E e'), sub_expr replace_name;
+      ANY (Args args), sub_expr replace_args
     ]
   ]
 
 let pattern_from_expr e : pattern_instrs =
   match e with
   | Call (e', (lp, args, rp)) -> pattern_from_call (E e) (e', (lp, args, rp))
+  | N _ | DotAccess _ | L _ -> [E e, E e, [DONE, fun e _x -> e]]
   | _ -> [E e, E (metavar_pattern e), [DONE, fun e _x -> e]]
 
 let rec pattern_from_stmt ({s; _} as stmt) : pattern_instrs =
@@ -135,10 +135,11 @@ let rec pattern_from_stmt ({s; _} as stmt) : pattern_instrs =
       let fill_exprstmt s x =
         match s, x with
         | S stmt, E e -> S (replace_sk stmt (ExprStmt (e, sc)))
-        | _ -> raise InvalidSubstitution
+        | S stmt, S { s = ExprStmt (e, _); _ } -> S (replace_sk stmt (ExprStmt (e, sc)))
+        | _ -> pr2 ("h1" ^ (show_any s) ^ " with\n " ^ (show_any x)); raise InvalidSubstitution
       in
       let _, pattern =
-        get_one_step_replacements (S stmt, E (Ellipsis fk),
+        get_one_step_replacements (S stmt, (fill_exprstmt (S stmt) (E (Ellipsis fk))),
                                    [ANY (E e), fill_exprstmt])
       in pattern
   | _ -> []
@@ -163,7 +164,7 @@ and get_one_step_replacements (any, pattern, holes) =
         List.map (fun (removed_target, g) -> (removed_target, fun any' x -> f any (g any' x))) holes
       in
       (any, pattern, holes'),
-      List.map (fun (any', pattern, target_holes) -> (any', f any pattern, (incorporate_holes target_holes) @ holes'))
+      List.map (fun (any', pattern', target_holes) -> (any', f pattern pattern', (incorporate_holes target_holes) @ holes'))
         target_replacements
 
 let get_included_patterns pattern_children =
@@ -225,8 +226,14 @@ let rec generate_patterns_help (target_patterns : pattern_instrs list) =
 
 let generate_patterns s lang =
   global_lang := lang;
-  (* Start each target node any as [$X, any, fun x -> x ] *)
-  let patterns = List.map (fun any -> [any, E (Ellipsis fk), [ANY any, fun _a x -> x]]) s in
+  (* Start each target node any as [$X, [ any, fun x -> x ]] *)
+  let starting_pattern any =
+    match any with
+    | E _ -> [any, E (Ellipsis fk), [ANY any, fun _a x -> x]]
+    | S _ -> [any, S (exprstmt (Ellipsis fk)), [ANY any, fun _a x -> x]]
+    | _ -> raise UnsupportedTargetType
+  in
+  let patterns = List.map starting_pattern s in
   let patterns =
     match generate_patterns_help patterns with
     | [] -> []
