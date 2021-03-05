@@ -33,7 +33,8 @@ exception UnsupportedTargetType
 (*****************************************************************************)
 
 type stage = DONE | ANY of any
-type pattern_instrs = (any * any * ((stage * (any -> any -> any)) list)) list
+type env = { prev : any }
+type pattern_instrs = (env * any * ((stage * (any -> any -> any)) list)) list
 
 let global_lang = ref Lang.OCaml
 
@@ -93,6 +94,7 @@ let add_patterns s patterns =
 let lookup_pattern pattern s =
   Set.mem (p_any pattern) s
 
+let set_prev { prev = _ } prev' = { prev = prev' }
 
 (*****************************************************************************)
 (* Algorithm *)
@@ -100,36 +102,56 @@ let lookup_pattern pattern s =
 
 let metavar_pattern _e = (default_id "$X")
 
+let pattern_from_args env args : pattern_instrs =
+  let replace_first_arg args e =
+    match args, e with
+    | Args ((Arg _x)::xs), E e -> Args ((Arg e)::xs)
+    | _ -> pr2 (show_any args ^ " with\n" ^ (show_any e)); raise InvalidSubstitution
+  in
+  let replace_rest args es =
+    match args, es with
+    | Args ((Arg e)::_xs), Args xs -> Args ((Arg e)::xs)
+    | _ -> pr2 (show_any args ^ " with\n" ^ (show_any es)); raise InvalidSubstitution
+  in
+  match args with
+  | [] -> []
+  | Arg arg::rest ->
+      [ env, Args [Arg (metavar_pattern arg); Arg (Ellipsis fk)],
+        [ANY (E arg), replace_first_arg;
+         ANY (Args rest), replace_rest]
+      ]
+  | _ -> []
+
 let sub_expr f sub =
   match sub with
   | E e -> fun x -> E (f e x)
-  | S ({ s = ExprStmt (e, sc); _ } as stmt) -> fun x -> S (replace_sk stmt (ExprStmt (f e x, sc)))
+  (* | S ({ s = ExprStmt (e, sc); _ } as stmt) -> fun x -> S (replace_sk stmt (ExprStmt (f e x, sc))) *)
   | _ -> pr2 "h4"; raise InvalidSubstitution
 
-let pattern_from_call e (e', (lp, args, rp)) : pattern_instrs =
+let pattern_from_call env (e', (lp, args, rp)) : pattern_instrs =
   let replace_name e = fun x ->
     match e, x with
     | Call (_, (lp, args, rp)), E x -> Call (x, (lp, args, rp))
-    | _ -> pr2 ("h3" ^ (show_any (E e))); raise InvalidSubstitution
+    | _ -> pr2 ("h3" ^ (show_any x)); raise InvalidSubstitution
   in
   let replace_args e = fun x ->
     match e, x with
     | Call (e, (lp, _, rp)), Args x -> Call (e, (lp, x, rp))
     | _ -> pr2 "h2"; raise InvalidSubstitution
   in
-  [ e, E (Call (metavar_pattern e', (lp, [Arg (Ellipsis fk)], rp))),
+  [ env, E (Call (metavar_pattern e', (lp, [Arg (Ellipsis fk)], rp))),
     [ ANY (E e'), sub_expr replace_name;
       ANY (Args args), sub_expr replace_args
     ]
   ]
 
-let pattern_from_expr e : pattern_instrs =
+let pattern_from_expr env e : pattern_instrs =
   match e with
-  | Call (e', (lp, args, rp)) -> pattern_from_call (E e) (e', (lp, args, rp))
-  | N _ | DotAccess _ | L _ -> [E e, E e, [DONE, fun e _x -> e]]
-  | _ -> [E e, E (metavar_pattern e), [DONE, fun e _x -> e]]
+  | Call (e', (lp, args, rp)) -> pattern_from_call env (e', (lp, args, rp))
+  | N _ | DotAccess _ | L _ -> [env, E e, [DONE, fun e _x -> e]]
+  | _ -> [ env, E (metavar_pattern e), [DONE, fun e _x -> e]]
 
-let rec pattern_from_stmt ({s; _} as stmt) : pattern_instrs =
+let rec pattern_from_stmt env ({s; _} as stmt) : pattern_instrs =
   match s with
   | ExprStmt (e, sc) ->
       let fill_exprstmt s x =
@@ -139,32 +161,41 @@ let rec pattern_from_stmt ({s; _} as stmt) : pattern_instrs =
         | _ -> pr2 ("h1" ^ (show_any s) ^ " with\n " ^ (show_any x)); raise InvalidSubstitution
       in
       let _, pattern =
-        get_one_step_replacements (S stmt, (fill_exprstmt (S stmt) (E (Ellipsis fk))),
+        get_one_step_replacements (env, (fill_exprstmt (S stmt) (E (Ellipsis fk))),
                                    [ANY (E e), fill_exprstmt])
       in pattern
   | _ -> []
 
-and pattern_from_any s : pattern_instrs =
+and pattern_from_any env s : pattern_instrs =
   match s with
-  | ANY (E e) -> pattern_from_expr e
-  | ANY (S stmt) -> pattern_from_stmt stmt
+  | ANY (E e) -> pattern_from_expr env e
+  | ANY (S stmt) -> pattern_from_stmt env stmt
+  | ANY (Args args) -> pattern_from_args env args
   | _ -> []
 
 (* pattern construction *)
 
-and get_one_step_replacements (any, pattern, holes) =
+and get_one_step_replacements (env, pattern, holes) =
   (* Try the first hole (target, f) *)
   match holes with
-  | [] -> (any, pattern, []), []
+  | [] -> (env, pattern, []), []
   | (target, f)::holes' ->
       (* Get all the possible replacements for the target (pattern, holes) list *)
-      let target_replacements = pattern_from_any target in
+      let target_replacements = pattern_from_any env target in
       (* Use each replacement to fill the chosen hole *)
-      let incorporate_holes holes =
-        List.map (fun (removed_target, g) -> (removed_target, fun any' x -> f any (g any' x))) holes
+      let incorporate_holes pattern holes =
+        List.map (fun (removed_target, g) -> (removed_target, fun any x -> f any (g pattern x))) holes
       in
-      (any, pattern, holes'),
-      List.map (fun (any', pattern', target_holes) -> (any', f pattern pattern', (incorporate_holes target_holes) @ holes'))
+      let apply_both pattern' holes =
+        pr2 ("pattern applied: " ^ p_any pattern');
+        List.map (fun (removed_target, g) -> (removed_target, fun any x -> (g (f any pattern') x))) holes
+      in
+      pr2 ("pattern: " ^ p_any pattern);
+      (env, pattern, holes'),
+      List.map
+        (fun (env, pattern', target_holes) -> pr2 ("pattern': " ^ (p_any pattern'));
+          (set_prev env pattern', f pattern pattern',
+           (incorporate_holes pattern' target_holes) @ apply_both pattern' holes'))
         target_replacements
 
 let get_included_patterns pattern_children =
@@ -183,18 +214,17 @@ let get_included_patterns pattern_children =
      List.iter (Set.iter (fun pattern -> pr2 pattern)) sets;
      pr2 "intersection";
      Set.iter (fun pattern -> pr2 pattern) intersection; *)
-  let include_pattern ((any, pattern, holes), children) =
+  let include_pattern ((env, pattern, holes), children) =
     let included_children = List.filter (fun (_, pattern, _) -> lookup_pattern pattern intersection) children in
     match included_children with
     | [] ->  (
         match holes with
         | [] -> []
-        | _ -> [any, pattern, holes]
+        | _ -> [set_prev env pattern, pattern, holes]
       )
     | _ -> children
   in
-  List.map (fun patterns -> List.flatten (List.map include_pattern patterns)) pattern_children,
-  not (Set.is_empty intersection)
+  List.map (fun patterns -> List.flatten (List.map include_pattern patterns)) pattern_children
 
 let rec generate_patterns_help (target_patterns : pattern_instrs list) =
   (* For each pattern in each set of target_patterns, generate the list of one step replacements *)
@@ -215,7 +245,8 @@ let rec generate_patterns_help (target_patterns : pattern_instrs list) =
   show_pattern_sets new_target_patterns;
   (* Keep only the patterns in each Sn that appear in every other OR *)
   (* the patterns that were included last time, don't have children, and have another replacement to try *)
-  let included_patterns, cont = get_included_patterns pattern_children in
+  let included_patterns = get_included_patterns pattern_children in
+  let cont = List.fold_left (fun prev patterns -> prev || (not (List.length patterns = 0))) false included_patterns in
   (* Call recursively on these patterns *)
   if cont then generate_patterns_help included_patterns else target_patterns
 
@@ -229,8 +260,8 @@ let generate_patterns s lang =
   (* Start each target node any as [$X, [ any, fun x -> x ]] *)
   let starting_pattern any =
     match any with
-    | E _ -> [any, E (Ellipsis fk), [ANY any, fun _a x -> x]]
-    | S _ -> [any, S (exprstmt (Ellipsis fk)), [ANY any, fun _a x -> x]]
+    | E _ -> [{ prev = E (Ellipsis fk) }, E (Ellipsis fk), [ANY any, fun _a x -> x]]
+    | S _ -> [{ prev = S (exprstmt (Ellipsis fk)) }, S (exprstmt (Ellipsis fk)), [ANY any, fun _a x -> x]]
     | _ -> raise UnsupportedTargetType
   in
   let patterns = List.map starting_pattern s in
