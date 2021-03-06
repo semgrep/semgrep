@@ -954,14 +954,15 @@ and catch_clause (env : env) ((v1, v2, v3, v4) : CST.catch_clause) =
      | Some x -> catch_declaration env x
      | None -> PatUnderscore (fake "_"))
   in
-  let v3 =
+  let pat =
     (match v3 with
-     | Some x -> Some (catch_filter_clause env x)
-     | None -> None)
+     | Some x ->
+         let filter = catch_filter_clause env x in
+         PatWhen (v2, filter)
+     | None -> v2)
   in
-  (* TODO handle v3 *)
   let v4 = block env v4 in
-  (v1, v2, v4)
+  (v1, pat, v4)
 
 and ordering (env : env) ((v1, v2) : CST.ordering) =
   let v1 = expression env v1 in
@@ -1834,7 +1835,7 @@ and catch_filter_clause (env : env) ((v1, v2, v3, v4) : CST.catch_filter_clause)
   let v2 = token env v2 (* "(" *) in
   let v3 = expression env v3 in
   let v4 = token env v4 (* ")" *) in
-  todo env (v1, v2, v3, v4)
+  v3
 
 and formal_parameter_list (env : env) ((v1, v2) : CST.formal_parameter_list) =
   let v1 = anon_choice_param_ce11a32 env v1 in
