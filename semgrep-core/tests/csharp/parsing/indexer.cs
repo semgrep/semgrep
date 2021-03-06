@@ -7,6 +7,7 @@ class HelloWorldIndexer
         var instance = new HelloWorldIndexer();
         Console.WriteLine(instance[0]);
         Console.WriteLine(instance[1]);
+        Console.WriteLine(new IndexerWithArrowExpression()[0]);
     }
 
     private string this[int i]
@@ -22,4 +23,9 @@ class HelloWorldIndexer
         }
         set => throw new NotImplementedException();
     }
+}
+
+class IndexerWithArrowExpression
+{
+    public string this[int i] => "!";
 }
