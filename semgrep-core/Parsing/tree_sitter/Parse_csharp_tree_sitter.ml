@@ -1235,7 +1235,9 @@ and expression (env : env) (x : CST.expression) : AST.expr =
           | None -> None)
        in
        (* TODO handle v4 *)
-       Call (IdSpecial (New, v1), v3)
+       let lp, args, rp = v3 in
+       let args = (lp, ArgType v2 :: args, rp) in
+       Call (IdSpecial (New, v1), args)
    | `Paren_exp (x) -> parenthesized_expression env x
    | `Post_un_exp x -> postfix_unary_expression env x
    | `Prefix_un_exp x -> prefix_unary_expression env x
