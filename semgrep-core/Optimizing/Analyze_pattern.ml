@@ -49,16 +49,21 @@ let error s =
   failwith s
 
 (*****************************************************************************)
-(* Identifier extractions *)
+(* Extractions *)
 (*****************************************************************************)
 
-let extract_specific_strings ?lang any =
-  let res = ref [] in
+let extract_strings_and_mvars ?lang any =
+  let strings = ref [] in
+  let mvars = ref [] in
   let visitor = V.mk_visitor {
     V.default_visitor with
     V.kident = (fun (_k, _) (str, _tok) ->
-      if not (Pattern.is_special_identifier ?lang str)
-      then Common.push str res
+      match () with
+      | _ when Metavariable.is_metavar_name str ->
+          Common.push str mvars
+      | _ when not (Pattern.is_special_identifier ?lang str) ->
+          Common.push str strings
+      | _ -> ()
     );
     V.kexpr = (fun (k, _) x ->
       (match x with
@@ -69,7 +74,11 @@ let extract_specific_strings ?lang any =
        *)
        | L (String (str, _tok)) ->
            if not (Pattern.is_special_string_literal str)
-           then Common.push str res
+           then Common.push str strings
+
+       | IdSpecial (Eval, t) ->
+           if Parse_info.is_origintok t
+           then Common.push (Parse_info.str_of_info t) strings
 
        (* do not recurse there, the type does not have to be in the source *)
        | TypedMetavar _ ->
@@ -81,5 +90,8 @@ let extract_specific_strings ?lang any =
     );
   } in
   visitor any;
-  Common2.uniq !res
-[@@profiling]
+  Common2.uniq !strings, Common2.uniq !mvars
+
+
+let extract_specific_strings ?lang any =
+  extract_strings_and_mvars ?lang any |> fst

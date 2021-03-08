@@ -51,14 +51,24 @@
 (*****************************************************************************)
 module Re_engine = struct
   type t = string * Re.t (* not compiled *)
-  [@@deriving show]
+  let show (s, _) = s
+  (* calling pp on Re.t is really slow, so better just print the string *)
+  let pp fmt (s, _) =
+    Format.fprintf fmt "\"%s\"" s
+
 
   let matching_exact_string s =
-    "!exact:s!", Re.str s
+    "exact:" ^ s, Re.str s
+  let regexp s =
+    s, Re.Pcre.re s
 
   let compile t =
     Re.compile t
   [@@profiling]
+
+  (* nice! *)
+  let alt (s1, t1) (s2, t2) =
+    s1 ^ "|" ^ s2, Re.alt [t1;t2]
 
   let run (_, t) str =
     let re = compile t in
@@ -103,6 +113,10 @@ module Pcre_engine = struct
   let matching_exact_string s =
     let quoted = Pcre.quote s in
     quoted, Pcre.regexp quoted
+
+  let matching_exact_word s =
+    let re = "\b" ^ Pcre.quote s ^ "\b" in
+    re, Pcre.regexp re
 
   let run (_, re) str =
     Pcre.pmatch ~rex:re str
