@@ -82,8 +82,7 @@ let mk_xpat pat pstr =
  * TODO: add tok (Parse_info.t) for good metachecking error locations.
 *)
 type formula =
-  | P of xpattern (* a leaf pattern *)
-  | MetavarCond of metavar_cond
+  | Leaf of leaf
 
   | And of formula list
   | Or of formula list
@@ -91,6 +90,10 @@ type formula =
    * should always be inside an And to be intersected with "positive" formula
   *)
   | Not of formula
+
+and leaf =
+  | P of xpattern (* a leaf pattern *)
+  | MetavarCond of metavar_cond
 
 and metavar_cond =
   | CondGeneric of AST_generic.expr (* see Eval_generic.ml *)
@@ -203,8 +206,8 @@ type rules = rule list
 (* currently used in Check_rule.ml metachecker *)
 let rec visit_new_formula f formula =
   match formula with
-  | P p -> f p
-  | MetavarCond _ -> ()
+  | Leaf (P p) -> f p
+  | Leaf (MetavarCond _) -> ()
   | Not x -> visit_new_formula f x
   | Or xs | And xs -> xs |> List.iter (visit_new_formula f)
 
@@ -236,8 +239,8 @@ let convert_extra x =
 let (convert_formula_old: formula_old -> formula) = fun e ->
   let rec aux e =
     match e with
-    | Pat x | PatInside x -> P x
-    | PatNot x | PatNotInside x -> Not (P x)
+    | Pat x | PatInside x -> Leaf (P x)
+    | PatNot x | PatNotInside x -> Not (Leaf (P x))
     | PatEither xs ->
         let xs = List.map aux xs in
         Or xs
@@ -246,8 +249,13 @@ let (convert_formula_old: formula_old -> formula) = fun e ->
         And xs
     | PatExtra x ->
         let e = convert_extra x in
-        MetavarCond e
+        Leaf (MetavarCond e)
   in
   aux e
+
+let formula_of_rule r =
+  match r.formula with
+  | New f -> f
+  | Old oldf -> convert_formula_old oldf
 
 (*e: semgrep/core/Rule.ml *)

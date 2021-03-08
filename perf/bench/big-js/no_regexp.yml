@@ -1,0 +1,170 @@
+- id: eval_require
+  patterns:
+  - pattern-either:
+    - pattern-inside: function ($REQ, $RES, ...) {...}
+    - pattern-inside: function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: $X = function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: var $X = function $FUNC($REQ, $RES, ...) {...};
+    - pattern-inside: $APP.$METHOD(..., function $FUNC($REQ, $RES, ...) {...})
+  - pattern-either:
+    - pattern: |
+        $INP = <... $REQ.$QUERY ...>;
+        ...
+        require(<... $INP ...>);
+    - pattern: |
+        $INP = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        require(<... $INP ...>);
+    - pattern: require(<... $REQ.$QUERY.$FOO ...>)
+    - pattern: require(<... $REQ.$BODY ...>)
+  message: >-
+    Untrusted user input in `require()` function allows an attacker to load
+    arbitrary code.
+  severity: ERROR
+  languages:
+  - javascript
+  metadata:
+    owasp: 'A1: Injection'
+    cwe: 'CWE-706: Use of Incorrectly-Resolved Name or Reference'
+
+
+- id: express_cors
+  patterns:
+  - pattern-either:
+    - pattern-inside: function ($REQ, $RES, ...) {...}
+    - pattern-inside: function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: $X = function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: var $X = function $FUNC($REQ, $RES, ...) {...};
+    - pattern-inside: $APP.$METHOD(..., function $FUNC($REQ, $RES, ...) {...})
+  - pattern-either:
+    - pattern: |
+        $APP.options('*', cors(...))
+    - pattern: >
+        $RES.set("=~/[Access-Control-Allow-Origin|access-control-allow-origin]/",
+        '*', ...)
+    - pattern: >
+        $RES.set(..., {
+        "=~/[Access-Control-Allow-Origin|access-control-allow-origin]/" :
+        '*' }, ...)
+    - pattern: >
+        $RES.header("=~/[Access-Control-Allow-Origin|access-control-allow-origin]/",
+        '*', ...)
+    - pattern: >
+        $RES.writeHead(...,
+        {"=~/[Access-Control-Allow-Origin|access-control-allow-origin]/":
+        '*' }, ...);
+    - pattern: >
+        $VAL = '*';
+        ...
+        $RES.set("=~/[Access-Control-Allow-Origin|access-control-allow-origin]/",
+        $VAL, ...);
+    - pattern: >
+        $VAL = '*';
+        ...
+        $RES.set(..., {
+        "=~/[Access-Control-Allow-Origin|access-control-allow-origin]/" :
+        $VAL }, ...);
+    - pattern: >
+        $VAL = '*';
+        ...
+        $RES.header("=~/[Access-Control-Allow-Origin|access-control-allow-origin]/",
+        $VAL, ...);
+    - pattern: >
+        $VAL = '*';
+        ...
+        $RES.writeHead(...,
+        {"=~/[Access-Control-Allow-Origin|access-control-allow-origin]/":
+        $VAL }, ...);
+  message: >-
+    Access-Control-Allow-Origin response header is set to "*". This will
+    disable CORS Same Origin Policy restrictions.
+  languages:
+  - javascript
+  severity: WARNING
+  metadata:
+    owasp: 'A6: Security Misconfiguration'
+    cwe: 'CWE-346: Origin Validation Error'
+
+
+- id: layer7_object_dos
+  patterns:
+  - pattern-either:
+    - pattern-inside: function ($REQ, $RES, ...) {...}
+    - pattern-inside: function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: $X = function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: var $X = function $FUNC($REQ, $RES, ...) {...};
+    - pattern-inside: $APP.$METHOD(..., function $FUNC($REQ, $RES, ...) {...})
+  - pattern-either:
+    - pattern-inside: |
+        $OBJ = $REQ.body;
+        ...
+    - pattern-inside: |
+        $OBJ = $REQ.body.$FOO;
+        ...
+  - pattern-inside: |
+      for(...){...}
+  - pattern: |
+      $OBJ.length
+  message: Layer7 Denial of Service. Looping over user controlled objects can result in DoS.
+  languages:
+  - javascript
+  severity: ERROR
+  metadata:
+    owasp: 'A6: Security Misconfiguration'
+    cwe: >-
+      CWE-400: Uncontrolled Resource Consumption
+
+- id: node_logic_bypass
+  patterns:
+  - pattern-either:
+    - pattern-inside: function ($REQ, $RES, ...) {...}
+    - pattern-inside: function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: $X = function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: var $X = function $FUNC($REQ, $RES, ...) {...};
+    - pattern-inside: $APP.$METHOD(..., function $FUNC($REQ, $RES, ...) {...})
+  - pattern-either:
+    - pattern: |
+        $REQ.$FOO.$BAR !== $REQ.$ZOO.$ZAR
+    - pattern: |
+        $REQ.$FOO.$BAR === $REQ.$ZOO.$ZAR
+    - pattern: |
+        $REQ.$FOO.$BAR >= $REQ.$ZOO.$ZAR
+    - pattern: |
+        $REQ.$FOO.$BAR <= $REQ.$ZOO.$ZAR
+    - pattern: |
+        $REQ.$FOO.$BAR < $REQ.$ZOO.$ZAR
+    - pattern: |
+        $REQ.$FOO.$BAR > $REQ.$ZOO.$ZAR
+    - pattern: |
+        $REQ.$FOO['...'] !== $REQ.$ZOO['...']
+    - pattern: |
+        $REQ.$FOO['...'] === $REQ.$ZOO['...']
+    - pattern: |
+        $REQ.$FOO['...'] >= $REQ.$ZOO['...']
+    - pattern: |
+        $REQ.$FOO['...'] <= $REQ.$ZOO['...']
+    - pattern: |
+        $REQ.$FOO['...'] < $REQ.$ZOO['...']
+    - pattern: |
+        $REQ.$FOO['...'] > $REQ.$ZOO['...']
+    - pattern: |
+        $REQ.$FOO('...') !== $REQ.$ZOO('...')
+    - pattern: |
+        $REQ.$FOO('...') === $REQ.$ZOO('...')
+    - pattern: |
+        $REQ.$FOO('...') >= $REQ.$ZOO('...')
+    - pattern: |
+        $REQ.$FOO('...') <= $REQ.$ZOO('...')
+    - pattern: |
+        $REQ.$FOO('...') < $REQ.$ZOO('...')
+    - pattern: |
+        $REQ.$FOO('...') > $REQ.$ZOO('...')
+  message: >-
+    User controlled data is used for application business logic decision
+    making. This expose protected data or functionality.
+  languages:
+  - javascript
+  severity: ERROR
+  metadata:
+    owasp: 'A5: Broken Access Control'
+    cwe: 'CWE-807: Reliance on Untrusted Inputs in a Security Decision'

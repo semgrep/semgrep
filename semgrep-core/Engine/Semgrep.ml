@@ -168,7 +168,7 @@ let (split_and:
   xs |> Common.partition_either3 (fun e ->
     match e with
     | R.Not f -> Middle3 f
-    | R.MetavarCond c -> Right3 c
+    | R.Leaf (R.MetavarCond c) -> Right3 c
     | _ -> Left3 e
   )
 
@@ -446,7 +446,7 @@ let matches_of_xpatterns with_caching orig_rule
 let rec (evaluate_formula: env -> R.formula -> range_with_mvars list) =
   fun env e ->
   match e with
-  | R.P xpat ->
+  | R.Leaf (R.P xpat) ->
       let id = xpat.R.pid in
       let match_results =
         try Hashtbl.find_all env.pattern_matches id with Not_found -> []
@@ -473,7 +473,7 @@ let rec (evaluate_formula: env -> R.formula -> range_with_mvars list) =
       )
   | R.Not _ ->
       failwith "Invalid Not; you can only negate inside an And"
-  | R.MetavarCond _ ->
+  | R.Leaf (R.MetavarCond _) ->
       failwith "Invalid MetavarCond; you can MetavarCond only inside an And"
 
 (*****************************************************************************)
@@ -496,15 +496,11 @@ let check with_caching hook rules (file, xlang, lazy_ast_and_errors) =
   let lazy_content = lazy (Common.read_file file) in
   rules |> List.map (fun r ->
 
-    let formula =
-      match r.R.formula with
-      | R.New f -> f
-      | R.Old oldf -> Rule.convert_formula_old oldf
-    in
+    let formula = Rule.formula_of_rule r in
     let relevant_rule =
       if !Flag_semgrep.filter_irrelevant_rules
       then
-        match Analyze_rule.regexp_prefilter_of_formula formula with
+        match Analyze_rule.regexp_prefilter_of_rule r with
         | None -> true
         | Some (re, f) ->
             let content = Lazy.force lazy_content in

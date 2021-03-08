@@ -255,7 +255,7 @@ let rec parse_formula_old env (x: string * J.t) : R.formula_old =
 
 let rec parse_formula_new env (x: J.t) : R.formula =
   match x with
-  | J.String s -> R.P (parse_pattern env s)
+  | J.String s -> R.Leaf (R.P (parse_pattern env s))
   | J.Object xs ->
       (match xs with
        | ["and", J.Array xs] ->
@@ -270,13 +270,13 @@ let rec parse_formula_new env (x: J.t) : R.formula =
 
        | ["regex", J.String s] ->
            let xpat = R.mk_xpat (R.Regexp (parse_regexp s)) s in
-           R.P xpat
+           R.Leaf (R.P xpat)
 
        | ["where", J.String s] ->
-           R.MetavarCond (R.CondGeneric (parse_metavar_cond s))
+           R.Leaf (R.MetavarCond (R.CondGeneric (parse_metavar_cond s)))
 
        | ["metavariable_regex", J.Array [J.String mvar; J.String re]] ->
-           R.MetavarCond (R.CondRegexp (mvar, parse_regexp re))
+           R.Leaf (R.MetavarCond (R.CondRegexp (mvar, parse_regexp re)))
 
        | _ -> pr2_gen x; error "parse_formula_new"
       )

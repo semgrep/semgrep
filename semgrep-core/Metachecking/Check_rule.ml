@@ -61,7 +61,7 @@ let error (env: env) s =
 
 let show_formula pf =
   match pf with
-  | P x -> x.pstr
+  | Leaf (P x) -> x.pstr
   | _ -> R.show_formula pf
 
 let equal_formula x y =
@@ -76,8 +76,8 @@ let check_formula env lang f =
   *)
   let rec find_dupe f =
     match f with
-    | P _ -> ()
-    | MetavarCond _ -> ()
+    | Leaf (P _) -> ()
+    | Leaf (MetavarCond _) -> ()
     | Not f -> find_dupe f
     | Or xs | And xs ->
         let rec aux xs =
@@ -116,12 +116,8 @@ let check_formula env lang f =
 (*****************************************************************************)
 
 let check r =
-  let f =
-    match r.formula with
-    | New f -> f
-    (* less: maybe we could also have formula_old specific checks *)
-    | Old f -> Rule.convert_formula_old f
-  in
+  (* less: maybe we could also have formula_old specific checks *)
+  let f = Rule.formula_of_rule r in
   check_formula r r.languages f;
   ()
 
@@ -149,10 +145,22 @@ let stat_files fparser xs =
       | FT.Config (FT.Yaml | (*FT.Json |*) FT.Jsonnet) -> true | _ -> false)
     |> Skip_code.filter_files_if_skip_list ~root:xs
   in
+  let good = ref 0 in
+  let bad = ref 0 in
   fullxs |> List.iter (fun file ->
     logger#info "processing %s" file;
-    let _rs = fparser file in
-    ()
-  )
+    let rs = fparser file in
+    rs |> List.iter (fun r ->
+      let res = Analyze_rule.regexp_prefilter_of_rule r in
+      match res with
+      | None ->
+          incr bad;
+          pr2 (spf "PB: no regexp prefilter for rule %s:%s" file r.id)
+      | Some (s, _f) ->
+          incr good;
+          pr2 (spf "regexp: %s" s)
+    )
+  );
+  pr2 (spf "good = %d, no regexp found = %d" !good !bad)
 
 (*e: semgrep/metachecking/Check_rule.ml *)

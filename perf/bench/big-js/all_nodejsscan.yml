@@ -1,0 +1,5141 @@
+rules:
+- id: zip_path_overwrite
+  patterns:
+  - pattern-either:
+    - pattern-inside: |
+        $X = require('unzip');
+        ...
+    - pattern-inside: |
+        $X = require('unzipper');
+        ...
+  - pattern-inside: |
+      $Y.pipe($UNZIP.Parse(...)).on('entry', function $FUNC(...) {
+          ...
+      }, ...);
+  - pattern-not: |
+      $X = $FILENAME.indexOf(...);
+  - pattern-not: >
+      $FUNC.pipe($FS.createWriteStream($PATH.join(...,
+      $PATH.basename($FILENAME, ...))));
+  - pattern-not: >
+      $FUNC.pipe($FS.writeFile($PATH.join(..., $PATH.basename($FILENAME,
+      ...))));
+  - pattern-not: >
+      $FUNC.pipe($FS.writeFileSync($PATH.join(..., $PATH.basename($FILENAME,
+      ...))));
+  - pattern-either:
+    - pattern: |
+        $FUNC.pipe($FS.createWriteStream($FIL, ...));
+    - pattern: |
+        $FUNC.pipe($FS.writeFile($FIL, ...));
+    - pattern: |
+        $FUNC.pipe($FS.writeFileSync($FIL, ...));
+  message: >-
+    Insecure ZIP archive extraction can result in arbitrary path over write
+    and can result in code injection.
+  languages:
+  - javascript
+  severity: ERROR
+  metadata:
+    owasp: 'A5: Broken Access Control'
+    cwe: >-
+      CWE-22: Improper Limitation of a Pathname to a Restricted Directory
+      ('Path Traversal')
+- id: zip_path_overwrite2
+  patterns:
+  - pattern-either:
+    - pattern-inside: |
+        $X = require('unzip');
+        ...
+    - pattern-inside: |
+        $X = require('unzipper');
+        ...
+  - pattern-inside: |
+      $UNZIP.Parse(...).on('entry', function $FUNC($ENTRY) {
+          ...
+      }, ...);
+  - pattern-not: |
+      if ($FILENAME.indexOf('..'));
+  - pattern-not: >
+      $FS.createWriteStream($PATH.join(..., $PATH.basename($FILENAME,
+      ...)));
+  - pattern-not: |
+      $FS.writeFile($PATH.join(..., $PATH.basename($FILENAME, ...)));
+  - pattern-not: |
+      $FS.writeFileSync($PATH.join(..., $PATH.basename($FILENAME, ...)));
+  - pattern-either:
+    - pattern: |
+        $FS.createWriteStream($FIL, ...);
+    - pattern: |
+        $FS.writeFile($FIL, ...);
+    - pattern: |
+        $FS.writeFileSync($FIL, ...);
+  message: >-
+    Insecure ZIP archive extraction can result in arbitrary path over write
+    and can result in code injection.
+  languages:
+  - javascript
+  severity: ERROR
+  metadata:
+    owasp: 'A5: Broken Access Control'
+    cwe: >-
+      CWE-22: Improper Limitation of a Pathname to a Restricted Directory
+      ('Path Traversal')
+- id: admzip_path_overwrite
+  patterns:
+  - pattern-inside: |
+      $X = require('adm-zip');
+      ...
+  - pattern-not: |
+      if ($FILENAME.indexOf('..'));
+  - pattern-not: >
+      $FS.createWriteStream($PATH.join(..., $PATH.basename($FILENAME,
+      ...)));
+  - pattern-not: |
+      $FS.writeFile($PATH.join(..., $PATH.basename($FILENAME, ...)));
+  - pattern-not: |
+      $FS.writeFileSync($PATH.join(..., $PATH.basename($FILENAME, ...)));
+  - pattern-either:
+    - pattern: >-
+        $ZIPENTZ.forEach(function $FUNC($ENTRY, ...) {
+        $FS.createWriteStream(...); }, ...);
+    - pattern: >-
+        $ZIPENTZ.forEach(function $FUNC($ENTRY, ...) { $FS.writeFile(...);
+        }, ...);
+    - pattern: >-
+        $ZIPENTZ.forEach(function $FUNC($ENTRY, ...) {
+        $FS.writeFileSync(...); }, ...);
+  message: >-
+    Insecure ZIP archive extraction using adm-zip can result in arbitrary path
+    over write and can result in code injection.
+  languages:
+  - javascript
+  severity: ERROR
+  metadata:
+    owasp: 'A5: Broken Access Control'
+    cwe: >-
+      CWE-22: Improper Limitation of a Pathname to a Restricted Directory
+      ('Path Traversal')
+- id: tar_path_overwrite
+  patterns:
+  - pattern-inside: |
+      $X = require('tar-stream');
+      ...
+  - pattern-not-inside: |
+      $Y.pipe($UNZIP.Parse(...)).on('entry', function $FUNC(...) {
+          ...
+      }, ...);
+  - pattern-inside: |
+      $EXTRACT.on('entry', function $FUNC(...) {
+        ...
+      }, ...);
+  - pattern-not: |
+      if ($FILENAME.indexOf('..'));
+  - pattern-not: >
+      $FS.createWriteStream($PATH.join(..., $PATH.basename($FILENAME,
+      ...)));
+  - pattern-not: |
+      $FS.writeFile($PATH.join(..., $PATH.basename($FILENAME, ...)));
+  - pattern-not: |
+      $FS.writeFileSync($PATH.join(..., $PATH.basename($FILENAME, ...)));
+  - pattern-either:
+    - pattern: |
+        $FS.createWriteStream($FIL, ...);
+    - pattern: |
+        $FS.writeFile($FIL, ...);
+    - pattern: |
+        $FS.writeFileSync($FIL, ...);
+  message: >-
+    Insecure TAR archive extraction can result in arbitrary path over write
+    and can result in code injection.
+  languages:
+  - javascript
+  severity: ERROR
+  metadata:
+    owasp: 'A5: Broken Access Control'
+    cwe: >-
+      CWE-22: Improper Limitation of a Pathname to a Restricted Directory
+      ('Path Traversal')
+
+- id: buffer_noassert
+  pattern-either:
+  - pattern: $OBJ.readUInt8(..., true)
+  - pattern: $OBJ.readUInt16LE(..., true)
+  - pattern: $OBJ.readUInt16BE(..., true)
+  - pattern: $OBJ.readUInt32LE(..., true)
+  - pattern: $OBJ.readUInt32BE(..., true)
+  - pattern: $OBJ.readInt8(..., true)
+  - pattern: $OBJ.readInt16LE(..., true)
+  - pattern: $OBJ.readInt16BE(..., true)
+  - pattern: $OBJ.readInt32LE(..., true)
+  - pattern: $OBJ.readInt32BE(..., true)
+  - pattern: $OBJ.readFloatLE(..., true)
+  - pattern: $OBJ.readFloatBE(..., true)
+  - pattern: $OBJ.readDoubleLE(..., true)
+  - pattern: $OBJ.readDoubleBE(..., true)
+  - pattern: $OBJ.writeUInt8(..., true)
+  - pattern: $OBJ.writeUInt16LE(..., true)
+  - pattern: $OBJ.writeUInt16BE(..., true)
+  - pattern: $OBJ.writeUInt32LE(..., true)
+  - pattern: $OBJ.writeUInt32BE(..., true)
+  - pattern: $OBJ.writeInt8(..., true)
+  - pattern: $OBJ.writeInt16LE(..., true)
+  - pattern: $OBJ.writeInt16BE(..., true)
+  - pattern: $OBJ.writeInt32LE(..., true)
+  - pattern: $OBJ.writeInt32BE(..., true)
+  - pattern: $OBJ.writeFloatLE(..., true)
+  - pattern: $OBJ.writeFloatBE(..., true)
+  - pattern: $OBJ.writeDoubleLE(..., true)
+  - pattern: $OBJ.writeDoubleBE(..., true)
+  severity: WARNING
+  languages:
+  - javascript
+  metadata:
+    owasp: 'A6: Security Misconfiguration'
+    cwe: >-
+      CWE-119: Improper Restriction of Operations within the Bounds of a
+      Memory Buffer
+  message: >-
+    Detected usage of noassert in Buffer API, which allows the offset the be
+    beyond the end of the buffer. This could result in writing or reading
+    beyond the end of the buffer.
+
+- id: node_md5
+  patterns:
+  - pattern: |
+      $X.createHash("md5")
+  message: >-
+    MD5 is a a weak hash which is known to have collision. Use a strong
+    hashing function.
+  languages:
+  - javascript
+  severity: WARNING
+  metadata:
+    owasp: 'A9: Using Components with Known Vulnerabilities'
+    cwe: 'CWE-327: Use of a Broken or Risky Cryptographic Algorithm'
+- id: node_sha1
+  patterns:
+  - pattern: |
+      $X.createHash("sha1")
+  message: >-
+    SHA1 is a a weak hash which is known to have collision. Use a strong
+    hashing function.
+  languages:
+  - javascript
+  severity: WARNING
+  metadata:
+    owasp: 'A9: Using Components with Known Vulnerabilities'
+    cwe: 'CWE-327: Use of a Broken or Risky Cryptographic Algorithm'
+- id: node_aes_ecb
+  patterns:
+  - pattern-either:
+    - pattern: |
+        $X.createCipheriv("=~/aes-([0-9]+)-ecb/", ...)
+    - pattern: |
+        $X.createDecipheriv("=~/aes-([0-9]+)-ecb/", ...)
+  message: >-
+    AES with ECB mode is deterministic in nature and not suitable for
+    encrypting large amount of repetitive data.
+  languages:
+  - javascript
+  severity: ERROR
+  metadata:
+    owasp: 'A9: Using Components with Known Vulnerabilities'
+    cwe: 'CWE-327: Use of a Broken or Risky Cryptographic Algorithm'
+- id: node_weak_crypto
+  patterns:
+  - pattern-either:
+    - pattern: |
+        $X.createCipher('des', ...)
+  message: >-
+    A weak or broken cryptographic algorithm was identified. Using these
+    functions will introduce vulnerabilities or downgrade the security of your application.
+  languages:
+  - javascript
+  severity: ERROR
+  metadata:
+    owasp: 'A9: Using Components with Known Vulnerabilities'
+    cwe: 'CWE-327: Use of a Broken or Risky Cryptographic Algorithm'
+- id: node_insecure_random_generator
+  patterns:
+  - pattern-either:
+    - pattern: |
+        $X.pseudoRandomBytes(...)
+    - pattern: |
+        Math.random(...)
+  message: >-
+    crypto.pseudoRandomBytes()/Math.random() is a cryptographically weak random number generator.
+  languages:
+  - javascript
+  severity: WARNING
+  metadata:
+    owasp: 'A9: Using Components with Known Vulnerabilities'
+    cwe: 'CWE-327: Use of a Broken or Risky Cryptographic Algorithm'
+
+- id: node_error_disclosure
+  patterns:
+  - pattern-either:
+    - pattern-inside: function ($REQ, $RES, ...) {...}
+    - pattern-inside: function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: $X = function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: var $X = function $FUNC($REQ, $RES, ...) {...};
+    - pattern-inside: $APP.$METHOD(..., function $FUNC($REQ, $RES, ...) {...})
+  - pattern-either:
+    - pattern: |
+        $ERR = $ERROR.stack;
+        ...
+        $RES.end($ERR);
+    - pattern: |
+        $ERR = $ERROR.stack;
+        ...
+        $RES.send($ERR);
+    - pattern: |
+        $RES.end($ERR.stack)
+    - pattern: |
+        $RES.send($ERR.stack)
+  message: >-
+    Error messages with stack traces can expose sensitive information about
+    the application.
+  languages:
+  - javascript
+  severity: ERROR
+  metadata:
+    owasp: 'A3: Sensitive Data Exposure'
+    cwe: 'CWE-209: Generation of Error Message Containing Sensitive Information'
+- id: generic_error_disclosure
+  patterns:
+  - pattern-either:
+    - pattern: |
+        console.trace(...)
+    - pattern: |
+        try {
+            ...
+        } catch($ERR){
+            console.error(<... $ERR ...>, ...);
+        }
+  message: >-
+    Error messages with stack traces may expose sensitive information about
+    the application.
+  languages:
+  - javascript
+  severity: WARNING
+  metadata:
+    owasp: 'A3: Sensitive Data Exposure'
+    cwe: 'CWE-209: Generation of Error Message Containing Sensitive Information'
+
+- id: serializetojs_deserialize
+  patterns:
+  - pattern-inside: |
+      require('serialize-to-js');
+      ...
+  - pattern: |
+      $X.deserialize(...)
+  message: >-
+    User controlled data in 'unserialize()' or 'deserialize()' function can
+    result in Object Injection or Remote Code Injection.
+  languages:
+  - javascript
+  severity: ERROR
+  metadata:
+    owasp: 'A8: Insecure Deserialization'
+    cwe: 'CWE-502: Deserialization of Untrusted Data'
+- id: node_deserialize
+  patterns:
+  - pattern-inside: |
+      require('node-serialize');
+      ...
+  - pattern: |
+      $X.unserialize(...)
+  message: >-
+    User controlled data in 'unserialize()' or 'deserialize()' function can
+    result in Object Injection or Remote Code Injection.
+  languages:
+  - javascript
+  severity: ERROR
+  metadata:
+    owasp: 'A8: Insecure Deserialization'
+    cwe: 'CWE-502: Deserialization of Untrusted Data'
+
+- id: grpc_insecure_connection
+  patterns:
+  - pattern-inside: |
+      require('grpc');
+      ...
+  - pattern-either:
+    - pattern: |
+        $GRPC($ADDR, ..., $CREDENTIALS.createInsecure(), ...);
+    - pattern: |
+        $CREDS = <... $CREDENTIALS.createInsecure() ...>;
+        ...
+        $GRPC($ADDR, ..., $CREDS, ...);
+  message: >-
+    Found an insecure gRPC connection. This creates a connection without
+    encryption to a gRPC client/server. A malicious attacker could  tamper with the gRPC message, which could compromise the
+    machine.
+  metadata:
+    owasp: 'A8: Insecure Deserialization'
+    cwe: 'CWE-502: Deserialization of Untrusted Data'
+  severity: ERROR
+  languages:
+  - javascript
+
+- id: eval_nodejs
+  patterns:
+  - pattern-either:
+    - pattern-inside: function ($REQ, $RES, ...) {...}
+    - pattern-inside: function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: $X = function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: var $X = function $FUNC($REQ, $RES, ...) {...};
+    - pattern-inside: $APP.$METHOD(..., function $FUNC($REQ, $RES, ...) {...})
+  - pattern-either:
+    - pattern: |
+        new Function(..., <... $REQ.$QUERY.$VAR ...>, ...)
+    - pattern: |
+        new Function(..., <... $REQ.$QUERY ...>, ...)
+    - pattern: |
+        eval(..., <... $REQ.$QUERY.$VAR ...>, ...)
+    - pattern: |
+        eval(..., <... $REQ.$QUERY ...>, ...)
+    - pattern: |
+        setTimeout(..., <... $REQ.$QUERY.$VAR ...>, ...)
+    - pattern: |
+        setTimeout(..., <... $REQ.$QUERY ...>, ...)
+    - pattern: |
+        setInterval(..., <... $REQ.$QUERY.$VAR ...>, ...)
+    - pattern: |
+        setInterval(..., <... $REQ.$QUERY ...>, ...)
+    - pattern: |
+        $INP = <... $REQ.$QUERY.$VAR ...>;
+        ...
+        new Function(..., <... $INP ...>, ...);
+    - pattern: |
+        $INP = <... $REQ.$QUERY ...>;
+        ...
+        new Function(..., <... $INP ...>, ...);
+    - pattern: |
+        $INP = <... $REQ.$QUERY.$VAR ...>;
+        ...
+        eval(..., <... $INP ...>, ...);
+    - pattern: |
+        $INP = <... $REQ.$QUERY ...>;
+        ...
+        eval(..., <... $INP ...>, ...);
+    - pattern: |
+        $INP = <... $REQ.$QUERY.$VAR ...>;
+        ...
+        setTimeout(..., <... $INP ...>, ...);
+    - pattern: |
+        $INP = <... $REQ.$QUERY ...>;
+        ...
+        setTimeout(..., <... $INP ...>, ...);
+    - pattern: |
+        $INP = <... $REQ.$QUERY.$VAR ...>;
+        ...
+        setInterval(..., <... $INP ...>, ...);
+    - pattern: |
+        $INP = <... $REQ.$QUERY ...>;
+        ...
+        setInterval(..., <... $INP ...>, ...);
+  message: >-
+    User controlled data in eval() or similar functions may result in Server
+    Side Injection or Remote Code Injection
+  languages:
+  - javascript
+  severity: ERROR
+  metadata:
+    owasp: 'A1: Injection'
+    cwe: >-
+      CWE-95: Improper Neutralization of Directives in Dynamically Evaluated
+      Code ('Eval Injection')
+
+
+- id: sandbox_code_injection
+  patterns:
+  - pattern-inside: |
+      require('sandbox');
+      ...
+  - pattern-either:
+    - pattern-inside: function ($REQ, $RES, ...) {...}
+    - pattern-inside: function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: $X = function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: var $X = function $FUNC($REQ, $RES, ...) {...};
+    - pattern-inside: $APP.$METHOD(..., function $FUNC($REQ, $RES, ...) {...})
+  - pattern-either:
+    - pattern: |
+        $S.run(<... $REQ.$QUERY.$FOO ...>,...);
+    - pattern: |
+        $CODE = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        $S.run(<... $CODE ...>,...);
+    - pattern: |
+        new $SANDBOX(...).run(<... $REQ.$QUERY.$FOO ...>,...);
+    - pattern: |
+        $CODE = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        new $SANDBOX(...).run(<... $CODE ...>,...);
+    - pattern: |
+        $S.run(<... $REQ.$BODY ...>,...);
+    - pattern: |
+        $CODE = <... $REQ.$BODY ...>;
+        ...
+        $S.run(<... $CODE ...>,...);
+    - pattern: |
+        new $SANDBOX(...).run(<... $REQ.$BODY ...>,...);
+    - pattern: |-
+        $CODE = <... $REQ.$BODY ...>;
+        ...
+        new $SANDBOX(...).run(<... $CODE ...>,...);
+  message: Unrusted data in `sandbox` can result in code injection.
+  severity: ERROR
+  languages:
+  - javascript
+  metadata:
+    owasp: 'A1: Injection'
+    cwe: 'CWE-94: Improper Control of Generation of Code (Code Injection)'
+
+- id: vm2_code_injection
+  patterns:
+  - pattern-inside: |
+      require('vm2');
+      ...
+  - pattern-either:
+    - pattern-inside: function ($REQ, $RES, ...) {...}
+    - pattern-inside: function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: $X = function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: var $X = function $FUNC($REQ, $RES, ...) {...};
+    - pattern-inside: $APP.$METHOD(..., function $FUNC($REQ, $RES, ...) {...})
+  - pattern-either:
+    - pattern: |
+        $VM.run(<... $REQ.$QUERY.$FOO ...>,...);
+    - pattern: |
+        $CODE = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        $VM.run(<... $CODE ...>,...);
+    - pattern: |
+        new VM(...).run(<... $REQ.$QUERY.$FOO ...>,...);
+    - pattern: |
+        new NodeVM(...).run(<... $REQ.$QUERY.$FOO ...>,...);
+    - pattern: |
+        $CODE = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        new NodeVM(...).run(<... $CODE ...>,...);
+    - pattern: |
+        $CODE = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        new VMScript(<... $CODE ...>,...);
+    - pattern: |
+        $VM.run(<... $REQ.$BODY ...>,...);
+    - pattern: |
+        $CODE = <... $REQ.$BODY ...>;
+        ...
+        $VM.run(<... $CODE ...>,...);
+    - pattern: |
+        new VM(...).run(<... $REQ.$BODY ...>,...);
+    - pattern: |
+        $CODE = <... $REQ.$BODY ...>;
+        ...
+        new VM(...).run($CODE,...);
+    - pattern: |
+        new NodeVM(...).run(<... $REQ.$BODY ...>,...);
+    - pattern: |
+        $CODE = <... $REQ.$BODY ...>;
+        ...
+        new NodeVM(...).run(<... $CODE ...>,...);
+    - pattern: |
+        $CODE = <... $REQ.$BODY ...>;
+        ...
+        new VMScript(<... $CODE ...>,...);
+  message: Untrusted user input reaching `vm2` can result in code injection.
+  severity: WARNING
+  languages:
+  - javascript
+  metadata:
+    owasp: 'A1: Injection'
+    cwe: 'CWE-94: Improper Control of Generation of Code (Code Injection)'
+- id: vm2_context_injection
+  patterns:
+  - pattern-inside: |
+      require('vm2');
+      ...
+  - pattern-either:
+    - pattern-inside: function ($REQ, $RES, ...) {...}
+    - pattern-inside: function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: $X = function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: var $X = function $FUNC($REQ, $RES, ...) {...};
+    - pattern-inside: $APP.$METHOD(..., function $FUNC($REQ, $RES, ...) {...})
+  - pattern-either:
+    - pattern: |
+        new VM({sandbox: <... $REQ.$QUERY.$FOO ...>},...);
+    - pattern: |
+        $CONTEXT = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        new VM({sandbox: <... $CONTEXT ...>},...);
+    - pattern: |
+        $CONTEXT = <... {$NAME:$REQ.$QUERY.$FOO} ...>;
+        ...
+        new VM({sandbox: <... $CONTEXT ...>},...);
+    - pattern: |
+        $CONTEXT = {$NAME: <... $REQ.$QUERY.$FOO ...>};
+        ...
+        new VM({sandbox: <... $CONTEXT ...>},...);
+    - pattern: |
+        $VAR = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        $CONTEXT = {$NAME: <... $VAR ...>};
+        ...
+        new VM({sandbox: <... $CONTEXT ...>},...);
+    - pattern: |
+        $OPTS = {sandbox: <... $REQ.$QUERY.$FOO ...>};
+        ...
+        new VM($OPTS,...);
+    - pattern: |
+        $CONTEXT = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        $OPTS = {sandbox: <... $CONTEXT ...>};
+        ...
+        new VM($OPTS,...);
+    - pattern: |
+        $CONTEXT = {$NAME: <... $REQ.$QUERY.$FOO ...>};
+        ...
+        $OPTS = {sandbox: <... $CONTEXT ...>};
+        ...
+        new VM($OPTS,...);
+    - pattern: |
+        $VAR = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        $CONTEXT = {$NAME: <... $VAR ...>};
+        ...
+        $OPTS = {sandbox: <... $CONTEXT ...>};
+        ...
+        new VM($OPTS,...);
+    - pattern: |
+        new NodeVM({sandbox: <... $REQ.$QUERY.$FOO ...>},...);
+    - pattern: |
+        $CONTEXT = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        new NodeVM({sandbox: <... $CONTEXT ...>},...);
+    - pattern: |
+        $CONTEXT = <... {$NAME:$REQ.$QUERY.$FOO} ...>;
+        ...
+        new NodeVM({sandbox: <... $CONTEXT ...>},...);
+    - pattern: |
+        $CONTEXT = {$NAME: <... $REQ.$QUERY.$FOO ...>};
+        ...
+        new NodeVM({sandbox: <... $CONTEXT ...>},...);
+    - pattern: |
+        $VAR = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        $CONTEXT = {$NAME: <... $VAR ...>};
+        ...
+        new NodeVM({sandbox: <... $CONTEXT ...>},...);
+    - pattern: |
+        $OPTS = {sandbox: <... $REQ.$QUERY.$FOO ...>};
+        ...
+        new NodeVM($OPTS,...);
+    - pattern: |
+        $CONTEXT = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        $OPTS = {sandbox: <... $CONTEXT ...>};
+        ...
+        new NodeVM($OPTS,...);
+    - pattern: |
+        $CONTEXT = {$NAME: <... $REQ.$QUERY.$FOO ...>};
+        ...
+        $OPTS = {sandbox: <... $CONTEXT ...>};
+        ...
+        new NodeVM($OPTS,...);
+    - pattern: |
+        $VAR = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        $CONTEXT = {$NAME: <... $VAR ...>};
+        ...
+        $OPTS = {sandbox: <... $CONTEXT ...>};
+        ...
+        new NodeVM($OPTS,...);
+    - pattern: |
+        new VM({sandbox: <... $REQ.$BODY ...>},...);
+    - pattern: |
+        $CONTEXT = <... $REQ.$BODY ...>;
+        ...
+        new VM({sandbox: <... $CONTEXT ...>},...);
+    - pattern: |
+        $CONTEXT = <... {$NAME:$REQ.$BODY} ...>;
+        ...
+        new VM({sandbox: <... $CONTEXT ...>},...);
+    - pattern: |
+        $CONTEXT = {$NAME: <... $REQ.$BODY ...>};
+        ...
+        new VM({sandbox: <... $CONTEXT ...>},...);
+    - pattern: |
+        $VAR = <... $REQ.$BODY ...>;
+        ...
+        $CONTEXT = {$NAME: <... $VAR ...>};
+        ...
+        new VM({sandbox: <... $CONTEXT ...>},...);
+    - pattern: |
+        $OPTS = {sandbox: <... $REQ.$BODY ...>};
+        ...
+        new VM($OPTS,...);
+    - pattern: |
+        $CONTEXT = <... $REQ.$BODY ...>;
+        ...
+        $OPTS = {sandbox: <... $CONTEXT ...>};
+        ...
+        new VM($OPTS,...);
+    - pattern: |
+        $CONTEXT = {$NAME: <... $REQ.$BODY ...>};
+        ...
+        $OPTS = {sandbox: <... $CONTEXT ...>};
+        ...
+        new VM($OPTS,...);
+    - pattern: |
+        $VAR = <... $REQ.$BODY ...>;
+        ...
+        $CONTEXT = {$NAME: <... $VAR ...>};
+        ...
+        $OPTS = {sandbox: <... $CONTEXT ...>};
+        ...
+        new VM($OPTS,...);
+    - pattern: |
+        new NodeVM({sandbox: <... $REQ.$BODY ...>},...);
+    - pattern: |
+        $CONTEXT = <... $REQ.$BODY ...>;
+        ...
+        new NodeVM({sandbox: <... $CONTEXT ...>},...);
+    - pattern: |
+        $CONTEXT = <... {$NAME:$REQ.$BODY} ...>;
+        ...
+        new NodeVM({sandbox: <... $CONTEXT ...>},...);
+    - pattern: |
+        $CONTEXT = {$NAME: <... $REQ.$BODY ...>};
+        ...
+        new NodeVM({sandbox: <... $CONTEXT ...>},...);
+    - pattern: |
+        $VAR = <... $REQ.$BODY ...>;
+        ...
+        $CONTEXT = {$NAME: <... $VAR ...>};
+        ...
+        new NodeVM({sandbox: <... $CONTEXT ...>},...);
+    - pattern: |
+        $OPTS = {sandbox: <... $REQ.$BODY ...>};
+        ...
+        new NodeVM($OPTS,...);
+    - pattern: |
+        $CONTEXT = <... $REQ.$BODY ...>;
+        ...
+        $OPTS = {sandbox: <... $CONTEXT ...>};
+        ...
+        new NodeVM($OPTS,...);
+    - pattern: |
+        $CONTEXT = {$NAME: <... $REQ.$BODY ...>};
+        ...
+        $OPTS = {sandbox: <... $CONTEXT ...>};
+        ...
+        new NodeVM($OPTS,...);
+    - pattern: |-
+        $VAR = <... $REQ.$BODY ...>;
+        ...
+        $CONTEXT = {$NAME: <... $VAR ...>};
+        ...
+        $OPTS = {sandbox: <... $CONTEXT ...>};
+        ...
+        new NodeVM($OPTS,...);
+  message: >-
+    Untrusted user input reaching `vm2` sandbox can result in context
+    injection.
+  severity: ERROR
+  languages:
+  - javascript
+  metadata:
+    owasp: 'A1: Injection'
+    cwe: 'CWE-94: Improper Control of Generation of Code (Code Injection)'
+
+- id: vm_runincontext_injection
+  patterns:
+  - pattern-inside: |
+      require('vm');
+      ...
+  - pattern-either:
+    - pattern-inside: function ($REQ, $RES, ...) {...}
+    - pattern-inside: function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: $X = function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: var $X = function $FUNC($REQ, $RES, ...) {...};
+    - pattern-inside: $APP.$METHOD(..., function $FUNC($REQ, $RES, ...) {...})
+  - pattern-either:
+    - pattern: |
+        $CONTEXT = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        $VM.runInContext($CODE,<... $CONTEXT ...>,...);
+    - pattern: |
+        $CONTEXT = {$NAME: <... $REQ.$QUERY.$FOO ...>};
+        ...
+        $VM.runInContext($CODE,<... $CONTEXT ...>,...);
+    - pattern: |
+        $CONTEXT = <... {$NAME:$REQ.$QUERY.$FOO} ...>;
+        ...
+        $VM.runInContext($CODE,<... $CONTEXT ...>,...);
+    - pattern: |
+        $VAR = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        $CONTEXT = {$NAME: <... $VAR ...>};
+        ...
+        $VM.runInContext($CODE,<... $CONTEXT ...>,...);
+    - pattern: |
+        $CONTEXT = <... $REQ.$BODY ...>;
+        ...
+        $VM.runInContext($CODE,<... $CONTEXT ...>,...);
+    - pattern: |
+        $CONTEXT = {$NAME: <... $REQ.$BODY ...>};
+        ...
+        $VM.runInContext($CODE,<... $CONTEXT ...>,...);
+    - pattern: |
+        $CONTEXT = <... {$NAME:$REQ.$BODY} ...>;
+        ...
+        $VM.runInContext($CODE,<... $CONTEXT ...>,...);
+    - pattern: |
+        $VAR = <... $REQ.$BODY ...>;
+        ...
+        $CONTEXT = {$NAME: <... $VAR ...>};
+        ...
+        $VM.runInContext($CODE,<... $CONTEXT ...>,...);
+    - pattern: |
+        $CONTEXT = <... $REQ.$BODY ...>;
+        ...
+        $VM.runInContext($CODE,<... $CONTEXT ...>,...);
+    - pattern: |
+        $CONTEXT = <... {$NAME:$REQ.$BODY} ...>;
+        ...
+        $VM.runInContext($CODE,<... $CONTEXT ...>,...);
+    - pattern: |
+        $CONTEXT = {$NAME: <... $REQ.$BODY ...>};
+        ...
+        $VM.runInContext($CODE,<... $CONTEXT ...>,...);
+    - pattern: |
+        $VAR = <... $REQ.$BODY ...>;
+        ...
+        $CONTEXT = {$NAME: <... $VAR ...>};
+        ...
+        $VM.runInContext($CODE,<... $CONTEXT ...>,...);
+  message: Untrusted user input in `vm.runInContext()` can result in code injection.
+  severity: ERROR
+  languages:
+  - javascript
+  metadata:
+    owasp: 'A1: Injection'
+    cwe: 'CWE-94: Improper Control of Generation of Code (Code Injection)'
+- id: vm_runinnewcontext_injection
+  patterns:
+  - pattern-inside: |
+      require('vm');
+      ...
+  - pattern-either:
+    - pattern-inside: function ($REQ, $RES, ...) {...}
+    - pattern-inside: function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: $X = function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: var $X = function $FUNC($REQ, $RES, ...) {...};
+    - pattern-inside: $APP.$METHOD(..., function $FUNC($REQ, $RES, ...) {...})
+  - pattern-either:
+    - pattern: |
+        $VM.runInNewContext($CODE,<... $REQ.$QUERY.$FOO ...>,...);
+    - pattern: |
+        $CONTEXT = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        $VM.runInNewContext($CODE,<... $CONTEXT ...>,...);
+    - pattern: |
+        $CONTEXT = {$NAME: <... $REQ.$QUERY.$FOO ...>};
+        ...
+        $VM.runInNewContext($CODE,<... $CONTEXT ...>,...);
+    - pattern: |
+        $CONTEXT = <... {$NAME:$REQ.$QUERY.$FOO} ...>;
+        ...
+        $VM.runInNewContext($CODE,<... $CONTEXT ...>,...);
+    - pattern: |
+        $VAR = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        $CONTEXT = {$NAME: <... $VAR ...>};
+        ...
+        $VM.runInNewContext($CODE,<... $CONTEXT ...>,...);
+    - pattern: |
+        $VM.runInNewContext($CODE,<... $REQ.$BODY ...>,...);
+    - pattern: |
+        $CONTEXT = <... $REQ.$BODY ...>;
+        ...
+        $VM.runInNewContext($CODE,<... $CONTEXT ...>,...);
+    - pattern: |
+        $CONTEXT = {$NAME: <... $REQ.$BODY ...>};
+        ...
+        $VM.runInNewContext($CODE,<... $CONTEXT ...>,...);
+    - pattern: |
+        $CONTEXT = <... {$NAME:$REQ.$BODY} ...>;
+        ...
+        $VM.runInNewContext($CODE,<... $CONTEXT ...>,...);
+    - pattern: |
+        $VAR = <... $REQ.$BODY ...>;
+        ...
+        $CONTEXT = {$NAME: <... $VAR ...>};
+        ...
+        $VM.runInNewContext($CODE,<... $CONTEXT ...>,...);
+  message: >-
+    Untrusted user input in `vm.runInNewContext()` can result in code
+    injection.
+  severity: ERROR
+  languages:
+  - javascript
+  metadata:
+    owasp: 'A1: Injection'
+    cwe: 'CWE-94: Improper Control of Generation of Code (Code Injection)'
+- id: vm_compilefunction_injection
+  patterns:
+  - pattern-inside: |
+      require('vm');
+      ...
+  - pattern-either:
+    - pattern-inside: function ($REQ, $RES, ...) {...}
+    - pattern-inside: function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: $X = function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: var $X = function $FUNC($REQ, $RES, ...) {...};
+    - pattern-inside: $APP.$METHOD(..., function $FUNC($REQ, $RES, ...) {...})
+  - pattern-either:
+    - pattern: >
+        $VM.compileFunction($CODE,$PARAMS,{parsingContext: <... $REQ.$QUERY.$FOO ...>},...);
+    - pattern: >
+        $CONTEXT = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        $VM.compileFunction($CODE,$PARAMS,{parsingContext: <... $CONTEXT ...>},...);
+    - pattern: >
+        $CONTEXT = <... {$NAME:$REQ.$QUERY.$FOO} ...>;
+        ...
+        $VM.compileFunction($CODE,$PARAMS,{parsingContext: <... $CONTEXT ...>},...);
+    - pattern: >
+        $CONTEXT = {$NAME: <... $REQ.$QUERY.$FOO ...>};
+        ...
+        $VM.compileFunction($CODE,$PARAMS,{parsingContext: <... $CONTEXT ...>},...);
+    - pattern: >
+        $VAR = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        $CONTEXT = {$NAME: <... $VAR ...>};
+        ...
+        $VM.compileFunction($CODE,$PARAMS,{parsingContext: <... $CONTEXT ...>},...);
+    - pattern: |
+        $OPTS = {parsingContext: <... $REQ.$QUERY.$FOO ...>};
+        ...
+        $VM.compileFunction($CODE,$PARAMS,$OPTS,...);
+    - pattern: |
+        $CONTEXT = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        $OPTS = {parsingContext: <... $CONTEXT ...>};
+        ...
+        $VM.compileFunction($CODE,$PARAMS,$OPTS,...);
+    - pattern: |
+        $CONTEXT = {$NAME: <... $REQ.$QUERY.$FOO ...>};
+        ...
+        $OPTS = {parsingContext: <... $CONTEXT ...>};
+        ...
+        $VM.compileFunction($CODE,$PARAMS,$OPTS,...);
+    - pattern: |
+        $VAR = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        $CONTEXT = {$NAME: <... $VAR ...>};
+        ...
+        $OPTS = {parsingContext: <... $CONTEXT ...>};
+        ...
+        $VM.compileFunction($CODE,$PARAMS,$OPTS,...);
+    - pattern: >
+        $VM.compileFunction($CODE,$PARAMS,{parsingContext: <... $REQ.$BODY ...>},...);
+    - pattern: >
+        $CONTEXT = <... $REQ.$BODY ...>;
+        ...
+        $VM.compileFunction($CODE,$PARAMS,{parsingContext: <... $CONTEXT ...>},...);
+    - pattern: >
+        $CONTEXT = <... {$NAME:$REQ.$BODY} ...>;
+        ...
+        $VM.compileFunction($CODE,$PARAMS,{parsingContext: <... $CONTEXT ...>},...);
+    - pattern: >
+        $CONTEXT = {$NAME: <... $REQ.$BODY ...>};
+        ...
+        $VM.compileFunction($CODE,$PARAMS,{parsingContext: <... $CONTEXT ...>},...);
+    - pattern: >
+        $VAR = <... $REQ.$BODY ...>;
+        ...
+        $CONTEXT = {$NAME: <... $VAR ...>};
+        ...
+        $VM.compileFunction($CODE,$PARAMS,{parsingContext: <... $CONTEXT ...>},...);
+    - pattern: |
+        $OPTS = {parsingContext: <... $REQ.$BODY ...>};
+        ...
+        $VM.compileFunction($CODE,$PARAMS,$OPTS,...);
+    - pattern: |
+        $CONTEXT = <... $REQ.$BODY ...>;
+        ...
+        $OPTS = {parsingContext: <... $CONTEXT ...>};
+        ...
+        $VM.compileFunction($CODE,$PARAMS,$OPTS,...);
+    - pattern: |
+        $CONTEXT = {$NAME: <... $REQ.$BODY ...>};
+        ...
+        $OPTS = {parsingContext: <... $CONTEXT ...>};
+        ...
+        $VM.compileFunction($CODE,$PARAMS,$OPTS,...);
+    - pattern: |
+        $VAR = <... $REQ.$BODY ...>;
+        ...
+        $CONTEXT = {$NAME: <... $VAR ...>};
+        ...
+        $OPTS = {parsingContext: <... $CONTEXT ...>};
+        ...
+        $VM.compileFunction($CODE,$PARAMS,$OPTS,...);
+  message: >-
+    Untrusted user input in `vm.compileFunction()` can result in code
+    injection.
+  severity: ERROR
+  languages:
+  - javascript
+  metadata:
+    owasp: 'A1: Injection'
+    cwe: 'CWE-94: Improper Control of Generation of Code (Code Injection)'
+- id: vm_code_injection
+  patterns:
+  - pattern-inside: |
+      $VM = require('vm');
+      ...
+  - pattern-either:
+    - pattern-inside: function ($REQ, $RES, ...) {...}
+    - pattern-inside: function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: $X = function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: var $X = function $FUNC($REQ, $RES, ...) {...};
+    - pattern-inside: $APP.$METHOD(..., function $FUNC($REQ, $RES, ...) {...})
+  - pattern-either:
+    - pattern: $VM.runInContext(<... $REQ.$QUERY.$FOO ...>,...)
+    - pattern: $VM.runInContext(<... $REQ.$BODY ...>,...)
+    - pattern: |
+        $INPUT = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        $VM.runInContext($INPUT,...);
+    - pattern: |
+        $INPUT = <... $REQ.$BODY ...>;
+        ...
+        $VM.runInContext($INPUT,...);
+    - pattern: $VM.runInNewContext(<... $REQ.$QUERY.$FOO ...>,...)
+    - pattern: $VM.runInNewContext(<... $REQ.$BODY ...>,...)
+    - pattern: |
+        $INPUT = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        $VM.runInNewContext($INPUT,...);
+    - pattern: |
+        $INPUT = <... $REQ.$BODY ...>;
+        ...
+        $VM.runInNewContext($INPUT,...);
+    - pattern: $VM.runInThisContext(<... $REQ.$QUERY.$FOO ...>,...)
+    - pattern: $VM.runInThisContext(<... $REQ.$BODY ...>,...)
+    - pattern: |
+        $INPUT = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        $VM.runInThisContext($INPUT,...);
+    - pattern: |
+        $INPUT = <... $REQ.$BODY ...>;
+        ...
+        $VM.runInThisContext($INPUT,...);
+    - pattern: $VM.compileFunction(<... $REQ.$QUERY.$FOO ...>,...)
+    - pattern: $VM.compileFunction(<... $REQ.$BODY ...>,...)
+    - pattern: |
+        $INPUT = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        $VM.compileFunction($INPUT,...);
+    - pattern: |
+        $INPUT = <... $REQ.$BODY ...>;
+        ...
+        $VM.compileFunction($INPUT,...);
+    - pattern: new $VM.Script(<... $REQ.$QUERY.$FOO ...>,...)
+    - pattern: new $VM.Script(<... $REQ.$BODY ...>,...)
+    - pattern: |
+        $INPUT = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        new $VM.Script($INPUT,...);
+    - pattern: |
+        $INPUT = <... $REQ.$BODY ...>;
+        ...
+        new $VM.Script($INPUT,...);
+  message: Untrusted user input reaching `vm` can result in code injection.
+  severity: ERROR
+  languages:
+  - javascript
+  metadata:
+    owasp: 'A1: Injection'
+    cwe: 'CWE-94: Improper Control of Generation of Code (Code Injection)'
+
+- id: yaml_deserialize
+  patterns:
+  - pattern-inside: |
+      require('js-yaml');
+      ...
+  - pattern: |
+      $X.load(...)
+  message: >-
+    User controlled data in 'yaml.load()' function can result in Remote Code
+    Injection.
+  languages:
+  - javascript
+  severity: ERROR
+  metadata:
+    owasp: 'A8: Insecure Deserialization'
+    cwe: 'CWE-502: Deserialization of Untrusted Data'
+
+- id: generic_os_command_exec
+  patterns:
+  - pattern-inside: |
+      require('child_process');
+      ...
+  - pattern-either:
+    - pattern-inside: function ($REQ, $RES, ...) {...}
+    - pattern-inside: function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: $X = function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: var $X = function $FUNC($REQ, $RES, ...) {...};
+    - pattern-inside: $APP.$METHOD(..., function $FUNC($REQ, $RES, ...) {...})
+  - pattern-either:
+    - pattern: |
+        $EXEC.exec(..., <... $REQ.$QUERY.$VAR ...>, ...)
+    - pattern: |
+        $EXEC.exec(..., <... $REQ.$QUERY ...>, ...)
+    - pattern: |
+        $EXEC.execSync(..., <... $REQ.$QUERY.$VAR ...>, ...)
+    - pattern: |
+        $EXEC.execSync(..., <... $REQ.$QUERY ...>, ...)
+    - pattern: |
+        $INP = <... $REQ.$QUERY.$VAR ...>;
+        ...
+        $EXEC.exec(..., <... $INP ...>, ...);
+    - pattern: |
+        $INP = <... $REQ.$QUERY ...>;
+        ...
+        $EXEC.exec(..., <... $INP ...>, ...);
+    - pattern: |
+        $INP = <... $REQ.$QUERY ...>;
+        ...
+        $EXEC.execSync(..., <... $INP ...>, ...);
+    - pattern: |
+        $INP = <... $REQ.$QUERY.$VAR ...>;
+        ...
+        $EXEC.execSync(..., <... $INP ...>, ...);
+  message: >-
+    User controlled data in 'child_process.exec()' can result in Remote OS
+    Command Execution.
+  languages:
+  - javascript
+  severity: ERROR
+  metadata:
+    owasp: 'A1: Injection'
+    cwe: >-
+      CWE-78: Improper Neutralization of Special Elements used in an OS
+      Command ('OS Command Injection')
+- id: generic_os_command_exec2
+  patterns:
+  - pattern-inside: |
+      var {$EXEC} = require('child_process');
+      ...
+  - pattern-inside: |
+      $APP.$METHOD(..., function $FUNC($REQ, $RES, ...){ ... });
+  - pattern-either:
+    - pattern: |
+        exec(..., <... $REQ.$QUERY.$VAR ...>, ...)
+    - pattern: |
+        exec(..., <... $REQ.$QUERY ...>, ...)
+    - pattern: |
+        execSync(..., <... $REQ.$QUERY.$VAR ...>, ...)
+    - pattern: |
+        execSync(..., <... $REQ.$QUERY ...>, ...)
+    - pattern: |
+        $INP = <... $REQ.$QUERY.$VAR ...>;
+        ...
+        exec(..., <... $INP ...>, ...);
+    - pattern: |
+        $INP = <... $REQ.$QUERY ...>;
+        ...
+        exec(..., <... $INP ...>, ...);
+    - pattern: |
+        $INP = <... $REQ.$QUERY ...>;
+        ...
+        execSync(..., <... $INP ...>, ...);
+    - pattern: |
+        $INP = <... $REQ.$QUERY.$VAR ...>;
+        ...
+        execSync(..., <... $INP ...>, ...);
+  message: >-
+    User controlled data in 'child_process.exec()' can result in Remote OS
+    Command Execution.
+  languages:
+  - javascript
+  severity: ERROR
+  metadata:
+    owasp: 'A1: Injection'
+    cwe: >-
+      CWE-78: Improper Neutralization of Special Elements used in an OS
+      Command ('OS Command Injection')
+
+- id: shelljs_os_command_exec
+  patterns:
+  - pattern-inside: |
+      require('shelljs');
+      ...
+  - pattern-either:
+    - pattern-inside: function ($REQ, $RES, ...) {...}
+    - pattern-inside: function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: $X = function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: var $X = function $FUNC($REQ, $RES, ...) {...};
+    - pattern-inside: $APP.$METHOD(..., function $FUNC($REQ, $RES, ...) {...})
+  - pattern-either:
+    - pattern: |
+        $EXEC.exec(<... $REQ.$QUERY.$VAR ...>, ...)
+    - pattern: |
+        $EXEC.exec( <... $REQ.$QUERY ...>, ...)
+    - pattern: |
+        $INP = <... $REQ.$QUERY.$VAR ...>;
+        ...
+        $EXEC.exec(<... $INP ...>, ...);
+    - pattern: |
+        $INP = <... $REQ.$QUERY ...>;
+        ...
+        $EXEC.exec(<... $INP ...>, ...);
+  message: >-
+    User controlled data in 'shelljs.exec()' can result in Remote OS
+    Command Execution.
+  languages:
+  - javascript
+  severity: ERROR
+  metadata:
+    owasp: 'A1: Injection'
+    cwe: >-
+      CWE-78: Improper Neutralization of Special Elements used in an OS
+      Command ('OS Command Injection')
+
+- id: express_bodyparser
+  patterns:
+  - pattern-inside: $APP = express(); ...
+  - pattern-inside: |
+      $APP.use(...);
+  - pattern: $X.bodyParser(...)
+  message: >-
+    POST Request to Express Body Parser 'bodyParser()' can create Temporary
+    files and consume space.
+  languages:
+  - javascript
+  severity: ERROR
+  metadata:
+    owasp: 'A9: Using Components with Known Vulnerabilities'
+    cwe: 'CWE-400: Uncontrolled Resource Consumption'
+
+- id: anti_csrf_control
+  patterns:
+  - pattern-inside: |
+      $CSRUF = require('csurf');
+      ...
+  - pattern-either:
+    - pattern: $X = csrf(...);
+    - pattern: $X = csurf(...);
+    - pattern: $APP.use(csrf(...));
+    - pattern: $APP.use(csurf(...));
+  message: This application has anti CSRF protection which prevents cross site request forgery attacks.
+  languages:
+  - javascript
+  severity: WARNING
+# Convert this to INFO when semgrep supports that
+
+- id: helmet_header_check_csp
+  message: >-
+    Content Security Policy header is present. More Information:
+    https://helmetjs.github.io/docs/csp/
+  languages:
+  - javascript
+  severity: WARNING
+  patterns:
+  - pattern-not: |
+      $HELMET(..., {contentSecurityPolicy: false}, ...)
+  - pattern-either:
+    - pattern: |
+        helmet({contentSecurityPolicy: {directives: ...}})
+    - pattern: |
+        helmet.contentSecurityPolicy({directives: ...})
+    - pattern: |
+        csp({directives: ...})
+- id: helmet_header_check_crossdomain
+  message: >-
+    X-Permitted-Cross-Domain-Policies header set to off. More information:
+    https://helmetjs.github.io/docs/crossdomain/
+  languages:
+  - javascript
+  severity: WARNING
+  patterns:
+  - pattern-not: |
+      $HELMET(..., {permittedCrossDomainPolicies: false}, ...)
+  - pattern-either:
+    - pattern: |
+        permittedCrossDomainPolicies()
+    - pattern: |
+        permittedCrossDomainPolicies({ permittedPolicies: ... })
+    - pattern: |
+        helmet.permittedCrossDomainPolicies({ permittedPolicies: ... })
+    - pattern: |
+        helmet({permittedCrossDomainPolicies: { permittedPolicies: ... }})
+    - pattern: |
+        helmet.permittedCrossDomainPolicies()
+- id: helmet_header_check_expect_ct
+  message: >-
+    Expect-CT header is present. More information:
+    https://helmetjs.github.io/docs/expect-ct/
+  languages:
+  - javascript
+  severity: WARNING
+  patterns:
+  - pattern-not: |
+      $HELMET(..., {expectCt: false}, ...)
+  - pattern-either:
+    - pattern: |
+        expectCt({maxAge: ...,})
+    - pattern: |
+        helmet.expectCt({maxAge: ...,})
+    - pattern: |
+        expectCt({enforce: ...,})
+    - pattern: |
+        hemlet.expectCt({enforce: ...,})
+    - pattern: |
+        helmet({expectCt: { enforce: ... }})
+- id: helmet_header_feature_policy
+  message: >-
+    Feature-Policy header is present. More information:
+    https://helmetjs.github.io/docs/feature-policy/
+  languages:
+  - javascript
+  severity: WARNING
+  patterns:
+  - pattern-not: |
+      $HELMET(..., {featurePolicy: false}, ...)
+  - pattern-either:
+    - pattern: |
+        featurePolicy(..., {features: ...}, ...)
+    - pattern: |
+        helmet.featurePolicy(..., {features: ...}, ...)
+    - pattern: |
+        helmet({featurePolicy: {features: ...}})
+- id: helmet_header_frame_guard
+  message: >-
+    X-Frame-Options header is present. More information:
+    https://helmetjs.github.io/docs/frameguard/
+  languages:
+  - javascript
+  severity: WARNING
+  patterns:
+  - pattern-not: |
+      $HELMET(..., {frameguard: false}, ...)
+  - pattern-either:
+    - pattern: |
+        $APP.use(hemlet())
+    - pattern: |
+        helmet.frameguard(...)
+    - pattern: |
+        frameguard(...)
+    - pattern: |
+        helmet({frameguard: ...})
+- id: helmet_header_dns_prefetch
+  message: >-
+    X-DNS-Prefetch-Control header is present and DNS Prefetch Control is
+    enabled. More information:
+    https://helmetjs.github.io/docs/dns-prefetch-control/
+  languages:
+  - javascript
+  severity: WARNING
+  patterns:
+  - pattern-not: |
+      $HELMET(..., {dnsPrefetchControl: false}, ...)
+  - pattern-either:
+    - pattern: |
+        $APP.use(helmet())
+    - pattern: |
+        helmet.dnsPrefetchControl()
+    - pattern: |
+        dnsPrefetchControl()
+    - pattern: |
+        helmet.dnsPrefetchControl({ allow: false })
+    - pattern: |
+        helmet({dnsPrefetchControl: {allow: false}})
+    - pattern: |
+        dnsPrefetchControl({ allow: false })
+- id: helmet_header_x_powered_by
+  message: >-
+    Default X-Powered-By is removed or modified. More information:
+    https://helmetjs.github.io/docs/hide-powered-by/
+  languages:
+  - javascript
+  severity: WARNING
+  patterns:
+  - pattern-not: |
+      $HELMET(..., {hidePoweredBy: false}, ...)
+  - pattern-either:
+    - pattern: |
+        $APP.use(helmet())
+    - pattern: |
+        app.disable('x-powered-by')
+    - pattern: |
+        helmet.hidePoweredBy(...)
+    - pattern: |
+        hidePoweredBy(...)
+    - pattern: |
+        helmet({hidePoweredBy: ...})
+- id: helmet_header_hsts
+  message: >-
+    HSTS header is present. More information:
+    https://helmetjs.github.io/docs/hsts/
+  languages:
+  - javascript
+  severity: WARNING
+  patterns:
+  - pattern-not: |
+      $HELMET(..., {hsts: false}, ...)
+  - pattern-either:
+    - pattern: |
+        $APP.use(helmet())
+    - pattern: |
+        helmet.hsts(...)
+    - pattern: |
+        hsts({ maxAge: ...})
+    - pattern: |
+        helmet({hsts: ...})
+- id: helmet_header_ienoopen
+  message: >-
+    X-Download-Options header is present. More information:
+    https://helmetjs.github.io/docs/ienoopen/
+  languages:
+  - javascript
+  severity: WARNING
+  patterns:
+  - pattern-not: |
+      $HELMET(..., {ieNoOpen: false}, ...)
+  - pattern-either:
+    - pattern: |
+        $APP.use(helmet())
+    - pattern: |
+        helmet.ieNoOpen()
+    - pattern: |
+        ieNoOpen()
+    - pattern: |
+        helmet({ieNoOpen: ...})
+- id: helmet_header_nosniff
+  message: >-
+    Content-Type-Options header is present. More information:
+    https://helmetjs.github.io/docs/dont-sniff-mimetype/
+  languages:
+  - javascript
+  severity: WARNING
+  patterns:
+  - pattern-not: |
+      $HELMET(..., {noSniff: false}, ...)
+  - pattern-either:
+    - pattern: |
+        $APP.use(helmet())
+    - pattern: |
+        helmet.noSniff()
+    - pattern: |
+        noSniff()
+    - pattern: |
+        helmet({noSniff: ...})
+- id: helmet_header_referrer_policy
+  message: >-
+    Referrer-Policy header is present. More information:
+    https://helmetjs.github.io/docs/referrer-policy/
+  languages:
+  - javascript
+  severity: WARNING
+  patterns:
+  - pattern-not: |
+      $HELMET(..., {referrerPolicy: false}, ...)
+  - pattern-either:
+    - pattern: |
+        helmet.referrerPolicy(...)
+    - pattern: |
+        referrerPolicy(...)
+    - pattern: |
+        helmet({referrerPolicy: ...})
+- id: helmet_header_xss_filter
+  message: >-
+    X-XSS-Protection header is present. More information:
+    https://helmetjs.github.io/docs/xss-filter/
+  languages:
+  - javascript
+  severity: WARNING
+  patterns:
+  - pattern-not: |
+      $HELMET(..., {xssFilter: false}, ...)
+  - pattern-either:
+    - pattern: |
+        $APP.use(helmet())
+    - pattern: |
+        helmet.xssFilter(...)
+    - pattern: |
+        xssFilter(...)
+    - pattern: |
+        helmet({xssFilter: ...})
+
+- id: rate_limit_control
+  patterns:
+  - pattern-either:
+    - pattern: require("express-rate-limit");
+    - pattern: require("express-limiter");
+    - pattern: require("@authentication/rate-limit");
+  message: This application has API rate limiting controls.
+  languages:
+  - javascript
+  severity: WARNING
+
+- id: hardcoded_passport_secret
+  pattern-either:
+  - pattern: |
+      $F = require("passport-auth0").Strategy;
+      ...
+      new $F({clientSecret: "..."}, ...);
+  - pattern: |
+      $F = require("passport-auth0").Strategy;
+      ...
+      $P.clientSecret = "...";
+      ...
+      new $F($P, ...);
+  - pattern: |
+      $F = require("passport-auth0").Strategy;
+      ...
+      $P = {clientSecret: "..."};
+      ...
+      new $F($P, ...);
+  - pattern: |
+      $F = require("passport-auth0").Strategy;
+      ...
+      $S = "...";
+      ...
+      new $F({clientSecret: $S}, ...);
+  - pattern: |
+      $F = require("passport-auth0").Strategy;
+      ...
+      $S = "...";
+      ...
+      $P.clientSecret = $S;
+      ...
+      new $F($P, ...);
+  - pattern: |
+      $F = require("passport-auth0").Strategy;
+      ...
+      $S = "...";
+      ...
+      $P = {clientSecret: $S};
+      ...
+      new $F($P, ...);
+  - pattern: |
+      $F = require("passport-auth0").Strategy;
+      ...
+      $S = "...";
+      ...
+      new $F({clientSecret: $S}, ...);
+  - pattern: |
+      $F = require("passport-google-oauth2").Strategy;
+      ...
+      new $F({clientSecret: "..."}, ...);
+  - pattern: |
+      $F = require("passport-google-oauth2").Strategy;
+      ...
+      $P.clientSecret = "...";
+      ...
+      new $F($P, ...);
+  - pattern: |
+      $F = require("passport-google-oauth2").Strategy;
+      ...
+      $P = {clientSecret: "..."};
+      ...
+      new $F($P, ...);
+  - pattern: |
+      $F = require("passport-google-oauth2").Strategy;
+      ...
+      $S = "...";
+      ...
+      new $F({clientSecret: $S}, ...);
+  - pattern: |
+      $F = require("passport-google-oauth2").Strategy;
+      ...
+      $S = "...";
+      ...
+      $P.clientSecret = $S;
+      ...
+      new $F($P, ...);
+  - pattern: |
+      $F = require("passport-google-oauth2").Strategy;
+      ...
+      $S = "...";
+      ...
+      $P = {clientSecret: $S};
+      ...
+      new $F($P, ...);
+  - pattern: |
+      $F = require("passport-jwt").Strategy;
+      ...
+      new $F({secretOrKey: "..."}, ...);
+  - pattern: |
+      $F = require("passport-jwt").Strategy;
+      ...
+      $P.secretOrKey = "...";
+      ...
+      new $F($P, ...);
+  - pattern: |
+      $F = require("passport-jwt").Strategy;
+      ...
+      $P = {secretOrKey: "..."};
+      ...
+      new $F($P, ...);
+  - pattern: |
+      $F = require("passport-jwt").Strategy;
+      ...
+      $S = "...";
+      ...
+      new $F({secretOrKey: $S}, ...);
+  - pattern: |
+      $F = require("passport-jwt").Strategy;
+      ...
+      $S = "...";
+      ...
+      $P.secretOrKey = $S;
+      ...
+      new $F($P, ...);
+  - pattern: |
+      $F = require("passport-jwt").Strategy;
+      ...
+      $S = "...";
+      ...
+      $P = {secretOrKey: $S};
+      ...
+      new $F($P, ...);
+  - pattern: |
+      $F = require("passport-google-oauth1").Strategy;
+      ...
+      new $F({consumerSecret: "..."}, ...);
+  - pattern: |
+      $F = require("passport-google-oauth1").Strategy;
+      ...
+      $P.consumerSecret = "...";
+      ...
+      new $F($P, ...);
+  - pattern: |
+      $F = require("passport-google-oauth1").Strategy;
+      ...
+      $P = {consumerSecret: "..."};
+      ...
+      new $F($P, ...);
+  - pattern: |
+      $F = require("passport-google-oauth1").Strategy;
+      ...
+      $S = "...";
+      ...
+      new $F({consumerSecret: $S}, ...);
+  - pattern: |
+      $F = require("passport-google-oauth1").Strategy;
+      ...
+      $S = "...";
+      ...
+      $P.consumerSecret = $S;
+      ...
+      new $F($P, ...);
+  - pattern: |
+      $F = require("passport-google-oauth1").Strategy;
+      ...
+      $S = "...";
+      ...
+      $P = {consumerSecret: $S};
+      ...
+      new $F($P, ...);
+  - pattern: |
+      $F = require("passport-oauth2").Strategy;
+      ...
+      new $F({clientSecret: "..."}, ...);
+  - pattern: |
+      $F = require("passport-oauth2").Strategy;
+      ...
+      $P.clientSecret = "...";
+      ...
+      new $F($P, ...);
+  - pattern: |
+      $F = require("passport-oauth2").Strategy;
+      ...
+      $P = {clientSecret: "..."};
+      ...
+      new $F($P, ...);
+  - pattern: |
+      $F = require("passport-oauth2").Strategy;
+      ...
+      $S = "...";
+      ...
+      new $F({clientSecret: $S}, ...);
+  - pattern: |
+      $F = require("passport-oauth2").Strategy;
+      ...
+      $S = "...";
+      ...
+      $P.clientSecret = $S;
+      ...
+      new $F($P, ...);
+  - pattern: |
+      $F = require("passport-oauth2").Strategy;
+      ...
+      $S = "...";
+      ...
+      $P = {clientSecret: $S};
+      ...
+      new $F($P, ...);
+  - pattern: |
+      $F = require("passport-facebook").Strategy;
+      ...
+      new $F({clientSecret: "..."}, ...);
+  - pattern: |
+      $F = require("passport-facebook").Strategy;
+      ...
+      $P.clientSecret = "...";
+      ...
+      new $F($P, ...);
+  - pattern: |
+      $F = require("passport-facebook").Strategy;
+      ...
+      $P = {clientSecret: "..."};
+      ...
+      new $F($P, ...);
+  - pattern: |
+      $F = require("passport-facebook").Strategy;
+      ...
+      $S = "...";
+      ...
+      new $F({clientSecret: $S}, ...);
+  - pattern: |
+      $F = require("passport-facebook").Strategy;
+      ...
+      $S = "...";
+      ...
+      $P.clientSecret = $S;
+      ...
+      new $F($P, ...);
+  - pattern: |
+      $F = require("passport-facebook").Strategy;
+      ...
+      $S = "...";
+      ...
+      $P = {clientSecret: $S};
+      ...
+      new $F($P, ...);
+  - pattern: |
+      $F = require("passport-twitter").Strategy;
+      ...
+      new $F({consumerSecret: "..."}, ...);
+  - pattern: |
+      $F = require("passport-twitter").Strategy;
+      ...
+      $P.consumerSecret = "...";
+      ...
+      new $F($P, ...);
+  - pattern: |
+      $F = require("passport-twitter").Strategy;
+      ...
+      $P = {consumerSecret: "..."};
+      ...
+      new $F($P, ...);
+  - pattern: |
+      $F = require("passport-twitter").Strategy;
+      ...
+      $S = "...";
+      ...
+      new $F({consumerSecret: $S}, ...);
+  - pattern: |
+      $F = require("passport-twitter").Strategy;
+      ...
+      $S = "...";
+      ...
+      $P.consumerSecret = $S;
+      ...
+      new $F($P, ...);
+  - pattern: |
+      $F = require("passport-twitter").Strategy;
+      ...
+      $S = "...";
+      ...
+      $P = {consumerSecret: $S};
+      ...
+      new $F($P, ...);
+  - pattern: |
+      $F = require("passport-oauth1").Strategy;
+      ...
+      new $F({consumerSecret: "..."}, ...);
+  - pattern: |
+      $F = require("passport-oauth1").Strategy;
+      ...
+      $P.consumerSecret = "...";
+      ...
+      new $F($P, ...);
+  - pattern: |
+      $F = require("passport-oauth1").Strategy;
+      ...
+      $P = {consumerSecret: "..."};
+      ...
+      new $F($P, ...);
+  - pattern: |
+      $F = require("passport-oauth1").Strategy;
+      ...
+      $S = "...";
+      ...
+      new $F({consumerSecret: $S}, ...);
+  - pattern: |
+      $F = require("passport-oauth1").Strategy;
+      ...
+      $S = "...";
+      ...
+      $P.consumerSecret = $S;
+      ...
+      new $F($P, ...);
+  - pattern: |
+      $F = require("passport-oauth1").Strategy;
+      ...
+      $S = "...";
+      ...
+      $P = {consumerSecret: $S};
+      ...
+      new $F($P, ...);
+  message: >-
+    Hardcoded plain text secret used for Passport Strategy. Store it properly
+    in an environment variable.
+  metadata:
+    cwe: 'CWE-522: Insufficiently Protected Credentials'
+    owasp: 'A2: Broken Authentication'
+  languages:
+  - javascript
+  severity: ERROR
+
+- id: node_password
+  patterns:
+  - pattern-not: password = ''
+  - pattern-not: PASSWORD = ''
+  - pattern-not: PASS = ''
+  - pattern-not: pass = ''
+  - pattern-not: $X[...] = ''
+  - pattern-either:
+    - pattern: |
+        password = '...';
+    - pattern: |
+        PASSWORD = '...';
+    - pattern: |
+        PASS = '...';
+    - pattern: |
+        pass = '...';
+    - pattern: |
+        $X['pass'] = '...';
+    - pattern: |
+        $X['password'] = '...';
+    - pattern: |
+        $X['PASS'] = '...';
+    - pattern: |
+        $X['PASSWORD'] = '...';
+    - pattern: |
+        $X.pass = '...';
+    - pattern: |
+        $X.password = '...';
+    - pattern: |
+        $X.PASS = '...';
+    - pattern: |
+        $X.PASSWORD = '...';
+  message: >-
+    A hardcoded password in plain text is identified. Store it properly in an
+    environment variable.
+  languages:
+  - javascript
+  severity: ERROR
+  metadata:
+    owasp: 'A3: Sensitive Data Exposure'
+    cwe: 'CWE-798: Use of Hard-coded Credentials'
+- id: node_secret
+  patterns:
+  - pattern-not: secret = ''
+  - pattern-not: SECRET = ''
+  - pattern-not: api_secret = ''
+  - pattern-not: API_SECRET = ''
+  - pattern-not: $X['...'] = ''
+  - pattern-either:
+    - pattern: |
+        secret = '...';
+    - pattern: |
+        SECRET = '...';
+    - pattern: |
+        api_secret = '...';
+    - pattern: |
+        API_SECRET = '...';
+    - pattern: |
+        $X['secret'] = '...';
+    - pattern: |
+        $X['SECRET'] = '...';
+    - pattern: |
+        $X['api_secret'] = '...';
+    - pattern: |
+        $X['apiSecret'] = '...';
+    - pattern: |
+        $X['API_SECRET'] = '...';
+    - pattern: |
+        $X.secret = '...';
+    - pattern: |
+        $X.SECRET = '...';
+    - pattern: |
+        $X.api_secret = '...';
+    - pattern: |
+        $X.apiSecret = '...';
+    - pattern: |
+        $X.API_SECRET = '...';
+    - pattern: |
+        $X('api_secret', '...')
+    - pattern: |
+        $X('apiSecret', '...')
+    - pattern: |
+        $X('API_SECRET', '...')
+    - pattern: |
+        $X('secret', '...')
+    - pattern: |
+        $X('SECRET', '...')
+  message: >-
+    A hardcoded secret is identified. Store it properly in an
+    environment variable.
+  languages:
+  - javascript
+  severity: ERROR
+  metadata:
+    owasp: 'A3: Sensitive Data Exposure'
+    cwe: 'CWE-798: Use of Hard-coded Credentials'
+- id: node_username
+  patterns:
+  - pattern-not: username = ''
+  - pattern-not: userName = ''
+  - pattern-not: USERNAME = ''
+  - pattern-not: user = ''
+  - pattern-not: USER = ''
+  - pattern-not: $X['...'] = ''
+  - pattern-either:
+    - pattern: |
+        username = '...';
+    - pattern: |
+        userName = '...';
+    - pattern: |
+        USERNAME = '...';
+    - pattern: |
+        user = '...';
+    - pattern: |
+        USER = '...';
+    - pattern: |
+        $X['username'] = '...';
+    - pattern: |
+        $X['userName'] = '...';
+    - pattern: |
+        $X['USERNAME'] = '...';
+    - pattern: |
+        $X['user'] = '...';
+    - pattern: |
+        $X['USER'] = '...';
+    - pattern: |
+        $X.username = '...';
+    - pattern: |
+        $X.userName = '...';
+    - pattern: |
+        $X.USERNAME = '...';
+    - pattern: |
+        $X.user = '...';
+    - pattern: |
+        $X.USER = '...';
+  message: >-
+    A hardcoded username in plain text is identified. Store it properly in an
+    environment variable.
+  languages:
+  - javascript
+  severity: ERROR
+  metadata:
+    owasp: 'A3: Sensitive Data Exposure'
+    cwe: 'CWE-798: Use of Hard-coded Credentials'
+- id: node_api_key
+  patterns:
+  - pattern-not: api_key = ''
+  - pattern-not: apiKey = ''
+  - pattern-not: API_KEY = ''
+  - pattern-not: $X['...'] = ''
+  - pattern-either:
+    - pattern: |
+        api_key = '...';
+    - pattern: |
+        apiKey = '...';
+    - pattern: |
+        API_KEY = '...';
+    - pattern: |
+        $X['api_key'] = '...';
+    - pattern: |
+        $X['apiKey'] = '...';
+    - pattern: |
+        $X['API_KEY'] = '...';
+    - pattern: |
+        $X.api_key = '...';
+    - pattern: |
+        $X.apiKey = '...';
+    - pattern: |
+        $X.API_KEY = '...';
+    - pattern: |
+        $X('api_key', '...')
+    - pattern: |
+        $X('apiKey', '...')
+    - pattern: |
+        $X('API_KEY', '...')
+  message: >-
+    A hardcoded API Key is identified. Store it properly in an
+    environment variable.
+  languages:
+  - javascript
+  severity: ERROR
+  metadata:
+    owasp: 'A3: Sensitive Data Exposure'
+    cwe: 'CWE-798: Use of Hard-coded Credentials'
+
+- id: cookie_session_default
+  patterns:
+  - pattern-either:
+    - pattern-inside: |
+        $SESSION = require('cookie-session');
+        ...
+    - pattern-inside: |
+        $SESSION = require('express-session');
+        ...
+  - pattern: $SESSION(...)
+  - pattern-not-inside: $SESSION(<... {name:...} ...>,...)
+  - pattern-not-inside: |
+      $OPTS = <... {name:...} ...>;
+      ...
+      $SESSION($OPTS,...);
+  - pattern-not-inside: |
+      $OPTS = ...;
+      ...
+      $OPTS.name = ...;
+      ...
+      $SESSION($OPTS,...);
+  message: >-
+    Consider changing the default session cookie name. An attacker can use it
+    to fingerprint the server and target attacks accordingly.
+  severity: INFO
+  languages:
+  - javascript
+  metadata:
+    cwe: 'CWE-522: Insufficiently Protected Credentials'
+    owasp: 'A2: Broken Authentication'
+- id: cookie_session_no_secure
+  patterns:
+  - pattern-either:
+    - pattern-inside: |
+        $SESSION = require('cookie-session');
+        ...
+    - pattern-inside: |
+        $SESSION = require('express-session');
+        ...
+  - pattern: $SESSION(...)
+  - pattern-not-inside: $SESSION(<... {cookie:{secure:true}} ...>,...)
+  - pattern-not-inside: |
+      $OPTS = <... {cookie:{secure:true}} ...>;
+      ...
+      $SESSION($OPTS,...);
+  - pattern-not-inside: |
+      $OPTS = ...;
+      ...
+      $COOKIE = <... {secure:true} ...>;
+      ...
+      $SESSION($OPTS,...);
+  - pattern-not-inside: |
+      $OPTS = ...;
+      ...
+      $OPTS.cookie = <... {secure:true} ...>;
+      ...
+      $SESSION($OPTS,...);
+  - pattern-not-inside: |
+      $OPTS = ...;
+      ...
+      $COOKIE.secure = true;
+      ...
+      $SESSION($OPTS,...);
+  - pattern-not-inside: |
+      $OPTS = ...;
+      ...
+      $OPTS.cookie.secure = true;
+      ...
+      $SESSION($OPTS,...);
+  message: >-
+    Default session middleware settings: `secure` not set. It ensures the
+    browser only sends the cookie over HTTPS.
+  severity: WARNING
+  languages:
+  - javascript
+  metadata:
+    cwe: 'CWE-522: Insufficiently Protected Credentials'
+    owasp: 'A2: Broken Authentication'
+- id: cookie_session_no_samesite
+  patterns:
+  - pattern-either:
+    - pattern-inside: |
+        $SESSION = require('cookie-session');
+        ...
+    - pattern-inside: |
+        $SESSION = require('express-session');
+        ...
+  - pattern: $SESSION(...)
+  - pattern-not-inside: $SESSION(<... {cookie:{sameSite:true}} ...>,...)
+  - pattern-not-inside: $SESSION(<... {cookie:{sameSite:'lax'}} ...>,...)
+  - pattern-not-inside: $SESSION(<... {cookie:{sameSite:'strict'}} ...>,...)
+  - pattern-not-inside: |
+      $OPTS = <... {cookie:{sameSite:true}} ...>;
+      ...
+      $SESSION($OPTS,...);
+  - pattern-not-inside: |
+      $OPTS = ...;
+      ...
+      $COOKIE = <... {sameSite:true} ...>;
+      ...
+      $SESSION($OPTS,...);
+  - pattern-not-inside: |
+      $OPTS = ...;
+      ...
+      $OPTS.cookie = <... {sameSite:true} ...>;
+      ...
+      $SESSION($OPTS,...);
+  - pattern-not-inside: |
+      $OPTS = ...;
+      ...
+      $COOKIE.sameSite = true;
+      ...
+      $SESSION($OPTS,...);
+  - pattern-not-inside: |
+      $OPTS = ...;
+      ...
+      $OPTS.cookie.sameSite = true;
+      ...
+      $SESSION($OPTS,...);
+  - pattern-not-inside: |
+      $OPTS = <... {cookie:{sameSite:'strict'}} ...>;
+      ...
+      $SESSION($OPTS,...);
+  - pattern-not-inside: |
+      $OPTS = ...;
+      ...
+      $COOKIE = <... {sameSite:'strict'} ...>;
+      ...
+      $SESSION($OPTS,...);
+  - pattern-not-inside: |
+      $OPTS = ...;
+      ...
+      $OPTS.cookie = <... {sameSite:'strict'} ...>;
+      ...
+      $SESSION($OPTS,...);
+  - pattern-not-inside: |
+      $OPTS = ...;
+      ...
+      $COOKIE.sameSite = 'strict';
+      ...
+      $SESSION($OPTS,...);
+  - pattern-not-inside: |
+      $OPTS = ...;
+      ...
+      $OPTS.cookie.sameSite = 'strict';
+      ...
+      $SESSION($OPTS,...);
+  message: >-
+    Default session middleware settings: `sameSite` attribute is not
+    configured to strict or lax. These configurations provides protection
+    against Cross Site Request Forgery attacks.
+  severity: WARNING
+  languages:
+  - javascript
+  metadata:
+    cwe: 'CWE-522: Insufficiently Protected Credentials'
+    owasp: 'A2: Broken Authentication'
+- id: cookie_session_no_httponly
+  patterns:
+  - pattern-either:
+    - pattern-inside: |
+        $SESSION = require('cookie-session');
+        ...
+    - pattern-inside: |
+        $SESSION = require('express-session');
+        ...
+  - pattern: $SESSION(...)
+  - pattern-not-inside: $SESSION(<... {cookie:{httpOnly:true}} ...>,...)
+  - pattern-not-inside: |
+      $OPTS = <... {cookie:{httpOnly:true}} ...>;
+      ...
+      $SESSION($OPTS,...);
+  - pattern-not-inside: |
+      $OPTS = ...;
+      ...
+      $COOKIE = <... {httpOnly:true} ...>;
+      ...
+      $SESSION($OPTS,...);
+  - pattern-not-inside: |
+      $OPTS = ...;
+      ...
+      $OPTS.cookie = <... {httpOnly:true} ...>;
+      ...
+      $SESSION($OPTS,...);
+  - pattern-not-inside: |
+      $OPTS = ...;
+      ...
+      $COOKIE.httpOnly = true;
+      ...
+      $SESSION($OPTS,...);
+  - pattern-not-inside: |
+      $OPTS = ...;
+      ...
+      $OPTS.cookie.httpOnly = true;
+      ...
+      $SESSION($OPTS,...);
+  message: >-
+    Default session middleware settings: `httpOnly` not set. It ensures the
+    sensitive cookies cannot be accessed by client side JavaScript and helps
+    to protect against cross-site scripting attacks.
+  severity: WARNING
+  languages:
+  - javascript
+  metadata:
+    cwe: 'CWE-522: Insufficiently Protected Credentials'
+    owasp: 'A2: Broken Authentication'
+- id: cookie_session_no_domain
+  patterns:
+  - pattern-either:
+    - pattern-inside: |
+        $SESSION = require('cookie-session');
+        ...
+    - pattern-inside: |
+        $SESSION = require('express-session');
+        ...
+  - pattern: $SESSION(...)
+  - pattern-not-inside: $SESSION(<... {cookie:{domain:...}} ...>,...)
+  - pattern-not-inside: |
+      $OPTS = <... {cookie:{domain:...}} ...>;
+      ...
+      $SESSION($OPTS,...);
+  - pattern-not-inside: |
+      $OPTS = ...;
+      ...
+      $COOKIE = <... {domain:...} ...>;
+      ...
+      $SESSION($OPTS,...);
+  - pattern-not-inside: |
+      $OPTS = ...;
+      ...
+      $OPTS.cookie = <... {domain:...} ...>;
+      ...
+      $SESSION($OPTS,...);
+  - pattern-not-inside: |
+      $OPTS = ...;
+      ...
+      $COOKIE.domain = ...;
+      ...
+      $SESSION($OPTS,...);
+  - pattern-not-inside: |
+      $OPTS = ...;
+      ...
+      $OPTS.cookie.domain = ...;
+      ...
+      $SESSION($OPTS,...);
+  message: >-
+    Default session middleware settings: `domain` not set. It indicates the
+    domain of the cookie; use it to compare against the domain of the server
+    in which the URL is being requested. If they match, then check the path
+    attribute next.
+  severity: INFO
+  languages:
+  - javascript
+  metadata:
+    cwe: 'CWE-522: Insufficiently Protected Credentials'
+    owasp: 'A2: Broken Authentication'
+- id: cookie_session_no_path
+  patterns:
+  - pattern-either:
+    - pattern-inside: |
+        $SESSION = require('cookie-session');
+        ...
+    - pattern-inside: |
+        $SESSION = require('express-session');
+        ...
+  - pattern: $SESSION(...)
+  - pattern-not-inside: $SESSION(<... {cookie:{path:...}} ...>,...)
+  - pattern-not-inside: |
+      $OPTS = <... {cookie:{path:...}} ...>;
+      ...
+      $SESSION($OPTS,...);
+  - pattern-not-inside: |
+      $OPTS = ...;
+      ...
+      $COOKIE = <... {path:...} ...>;
+      ...
+      $SESSION($OPTS,...);
+  - pattern-not-inside: |
+      $OPTS = ...;
+      ...
+      $OPTS.cookie = <... {path:...} ...>;
+      ...
+      $SESSION($OPTS,...);
+  - pattern-not-inside: |
+      $OPTS = ...;
+      ...
+      $COOKIE.path = ...;
+      ...
+      $SESSION($OPTS,...);
+  - pattern-not-inside: |
+      $OPTS = ...;
+      ...
+      $OPTS.cookie.path = ...;
+      ...
+      $SESSION($OPTS,...);
+  message: >-
+    Default session middleware settings: `path` not set. It indicates the path
+    of the cookie; use it to compare against the request path. If this and
+    domain match, then send the cookie in the request.
+  severity: INFO
+  languages:
+  - javascript
+  metadata:
+    cwe: 'CWE-522: Insufficiently Protected Credentials'
+    owasp: 'A2: Broken Authentication'
+- id: cookie_session_no_expires
+  patterns:
+  - pattern-either:
+    - pattern-inside: |
+        $SESSION = require('cookie-session');
+        ...
+    - pattern-inside: |
+        $SESSION = require('express-session');
+        ...
+  - pattern: $SESSION(...)
+  - pattern-not-inside: $SESSION(<... {cookie:{expires:...}} ...>,...)
+  - pattern-not-inside: |
+      $OPTS = <... {cookie:{expires:...}} ...>;
+      ...
+      $SESSION($OPTS,...);
+  - pattern-not-inside: |
+      $OPTS = ...;
+      ...
+      $COOKIE = <... {expires:...} ...>;
+      ...
+      $SESSION($OPTS,...);
+  - pattern-not-inside: |
+      $OPTS = ...;
+      ...
+      $OPTS.cookie = <... {expires:...} ...>;
+      ...
+      $SESSION($OPTS,...);
+  - pattern-not-inside: |
+      $OPTS = ...;
+      ...
+      $COOKIE.expires = ...;
+      ...
+      $SESSION($OPTS,...);
+  - pattern-not-inside: |-
+      $OPTS = ...;
+      ...
+      $OPTS.cookie.expires = ...;
+      ...
+      $SESSION($OPTS,...);
+  message: >-
+    Default session middleware settings: `expires` not set. Use it to set
+    expiration date for persistent cookies.
+  severity: INFO
+  languages:
+  - javascript
+  metadata:
+    cwe: 'CWE-522: Insufficiently Protected Credentials'
+    owasp: 'A2: Broken Authentication'
+# Need QA + sgrep bug fix + false positive in generic_2 and {"=~/[Access-Control-Allow-Origin|access-control-allow-origin]/": '*' } not working
+
+- id: generic_cors
+  patterns:
+  - pattern: |
+      $APP.options('*', cors(...))
+  message: >-
+    Access-Control-Allow-Origin response header is set to "*". This will
+    disable CORS Same Origin Policy restrictions.
+  languages:
+  - javascript
+  severity: WARNING
+  metadata:
+    owasp: 'A6: Security Misconfiguration'
+    cwe: 'CWE-346: Origin Validation Error'
+
+- id: helmet_feature_disabled
+  patterns:
+  - pattern-either:
+    - pattern: |
+        $HELMET(..., {frameguard: false}, ...)
+    - pattern: |
+        $HELMET(..., {contentSecurityPolicy: false}, ...)
+    - pattern: |
+        $HELMET(..., {permittedCrossDomainPolicies: false}, ...)
+    - pattern: |
+        $HELMET(..., {dnsPrefetchControl: false}, ...)
+    - pattern: |
+        $HELMET(..., {expectCt: false}, ...)
+    - pattern: |
+        $HELMET(..., {featurePolicy: false}, ...)
+    - pattern: |
+        $HELMET(..., {hsts: false}, ...)
+    - pattern: |
+        $HELMET(..., {ieNoOpen: false}, ...)
+    - pattern: |
+        $HELMET(..., {noSniff: false}, ...)
+    - pattern: |
+        $HELMET(..., {hidePoweredBy: false}, ...)
+    - pattern: |
+        $HELMET(..., {referrerPolicy: false}, ...)
+    - pattern: |
+        $HELMET(..., {xssFilter: false}, ...)
+  message: >-
+    One or more Security Response header is explicitly disabled in Helmet.
+  languages:
+  - javascript
+  severity: WARNING
+  metadata:
+    owasp: 'A6: Security Misconfiguration'
+    cwe: 'CWE-693: Protection Mechanism Failure'
+
+- id: generic_header_injection
+  patterns:
+  - pattern-either:
+    - pattern-inside: function ($REQ, $RES, ...) {...}
+    - pattern-inside: function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: $X = function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: var $X = function $FUNC($REQ, $RES, ...) {...};
+    - pattern-inside: $APP.$METHOD(..., function $FUNC($REQ, $RES, ...) {...})
+  - pattern-either:
+    - pattern: |
+        $INP = $REQ.$QUERY;
+        ...
+        $RES.set(..., <... $INP ...>, ...);
+    - pattern: |
+        $INP = $REQ.$QUERY.$VAR;
+        ...
+        $RES.set(..., <... $INP ...>, ...);
+    - pattern: |
+        $INP = $REQ.$VAR;
+        ...
+        $RES.set(..., { $X: <... $INP ...>}, ...);
+    - pattern: |
+        $INP = $REQ.$QUERY.$FOO;
+        ...
+        $RES.set(..., { $X: <... $INP ...>}, ...);
+    - pattern: |
+        $INP = $REQ.$VAR;
+        ...
+        $RES.writeHead(..., { $X: <... $INP ...> }, ...);
+    - pattern: |
+        $INP = $REQ.$QUERY.$FOO;
+        ...
+        $RES.writeHead(..., { $X: <... $INP ...> }, ...);
+    - pattern: |
+        $RES.set(..., <... $REQ.$QUERY ...>, ...)
+    - pattern: |
+        $RES.set(..., <... $REQ.$QUERY.$VAR ...>, ...)
+    - pattern: |
+        $RES.set(..., { $X: <... $REQ.$VAR ...>}, ...)
+    - pattern: |
+        $RES.set(..., { $X: <... $REQ.$QUERY.$FOO ...>}, ...);
+    - pattern: |
+        $RES.writeHead(..., { $X: <... $REQ.$VAR ...> }, ...);
+    - pattern: |
+        $RES.writeHead(..., { $X: <... $REQ.$QUERY.$FOO ...> }, ...);
+  message: >-
+    Untrusted user input in response header will result in HTTP Header
+    Injection or Response Splitting Attacks.
+  languages:
+  - javascript
+  severity: ERROR
+  metadata:
+    owasp: 'A1: Injection'
+    cwe: 'CWE-644: Improper Neutralization of HTTP Headers for Scripting Syntax'
+
+- id: header_xss_lusca
+  patterns:
+  - pattern-inside: |
+      $X = require('lusca');
+      ...
+  - pattern-not: |
+      $X.use(helmet())
+  - pattern-either:
+    - pattern: |
+        $X.xssProtection(false)
+    - pattern: |
+        $X({ xssProtection: false})
+  message: >-
+    X-XSS-Protection header is set to 0. This will disable the browser's XSS
+    Filter.
+  languages:
+  - javascript
+  severity: ERROR
+  metadata:
+    owasp: 'A6: Security Misconfiguration'
+    cwe: 'CWE-693: Protection Mechanism Failure'
+- id: header_xss_generic
+  patterns:
+  - pattern-either:
+    - pattern-inside: function ($REQ, $RES, ...) {...}
+    - pattern-inside: function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: $X = function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: var $X = function $FUNC($REQ, $RES, ...) {...};
+    - pattern-inside: $APP.$METHOD(..., function $FUNC($REQ, $RES, ...) {...})
+  - pattern-either:
+    - pattern: |
+        $RES.header("=~/[X-XSS-Protection|x-xss-protection]/", 0, ...)
+    - pattern: |
+        $RES.set("=~/[X-XSS-Protection|x-xss-protection]/", 0, ...)
+    - pattern: >
+        $RES.set(..., { "=~/[X-XSS-Protection|x-xss-protection]/" : 0 },
+        ...)
+    - pattern: >
+        $RES.writeHead(..., {"=~/[X-XSS-Protection|x-xss-protection]/": 0
+        }, ...);
+    - pattern: |
+        $VAL = 0;
+        ...
+        $RES.header("=~/[X-XSS-Protection|x-xss-protection]/", $VAL, ...);
+    - pattern: |
+        $VAL = 0;
+        ...
+        $RES.set("=~/[X-XSS-Protection|x-xss-protection]/", $VAL, ...);
+    - pattern: >
+        $VAL = 0;
+        ...
+        $RES.set(..., { "=~/[X-XSS-Protection|x-xss-protection]/" : $VAL
+        }, ...);
+    - pattern: >
+        $VAL = 0;
+        ...
+        $RES.writeHead(..., {"=~/[X-XSS-Protection|x-xss-protection]/":
+        $VAL }, ...);
+  message: >-
+    X-XSS-Protection header is set to 0. This will disable the browser's XSS
+    Filter.
+  languages:
+  - javascript
+  severity: ERROR
+  metadata:
+    owasp: 'A6: Security Misconfiguration'
+    cwe: 'CWE-693: Protection Mechanism Failure'
+
+- id: host_header_injection
+  patterns:
+  - pattern-either:
+    - pattern-inside: function ($REQ, $RES, ...) {...}
+    - pattern-inside: function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: $X = function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: var $X = function $FUNC($REQ, $RES, ...) {...};
+    - pattern-inside: $APP.$METHOD(..., function $FUNC($REQ, $RES, ...) {...})
+  - pattern-either:
+    - pattern: |
+        $X = <... "=~/.*http[s]*:///" + $REQ.host ...>;
+    - pattern: |
+        $X = <... "=~/.*http[s]*:///" + $REQ["host"] ...>;
+    - pattern: |
+        $X = <... "=~/.*http[s]*:///" + $REQ("host") ...>;
+    - pattern: |
+        $X = { $Y: <... "=~/.*http[s]*:///" + $REQ.host ...>};
+    - pattern: |
+        $X = { $Y: <... "=~/.*http[s]*:///" + $REQ["host"] ...>};
+    - pattern: |
+        $X = { $Y: <... "=~/.*http[s]*:///" + $REQ("host") ...>};
+    - pattern: |
+        $Z = $REQ.host;
+        ...
+        $X = <... "=~/.*http[s]*:///" + $Z ...>;
+    - pattern: |
+        $Z = $REQ["host"];
+        ...
+        $X = <... "=~/.*http[s]*:///" + $Z ...>;
+    - pattern: |
+        $Z = $REQ("host");
+        ...
+        $X = <... "=~/.*http[s]*:///" + $Z ...>;
+    - pattern: |
+        $Z = $REQ.host;
+        ...
+        $X = { $Y: <... "=~/.*http[s]*:///" + $REQ.host ...>};
+    - pattern: |
+        $Z = $REQ["host"];
+        ...
+        $X = { $Y: <... "=~/.*http[s]*:///" + $Z ...>};
+    - pattern: |
+        $Z = $REQ("host");
+        ...
+        $X = { $Y: <... "=~/.*http[s]*:///" + $REQ("host") ...>};
+  message: >-
+    Using untrusted Host header for generating dynamic URLs can result in web
+    cache and or password reset poisoning.
+  languages:
+  - javascript
+  severity: ERROR
+  metadata:
+    owasp: 'A1: Injection'
+    cwe: 'CWE-20: Improper Input Validation'
+
+- id: jwt_exposed_credentials
+  patterns:
+  - pattern-either:
+    - pattern: |
+        $JOSE = require("jose");
+        ...
+        var { JWT } = $JOSE;
+        ...
+        $T = JWT.sign({password:...},...);
+    - pattern: |
+        $JOSE = require("jose");
+        ...
+        var { JWT } = $JOSE;
+        ...
+        $P = {password:...};
+        ...
+        $T = JWT.sign($P,...);
+    - pattern: |
+        $JOSE = require("jose");
+        ...
+        var { JWT } = $JOSE;
+        ...
+        $P.password = ...;
+        ...
+        $T = JWT.sign($P,...);
+    - pattern: |
+        $JOSE = require("jose");
+        ...
+        var { JWT } = $JOSE;
+        ...
+        $P = Object.assign(...,{password:...},...);
+        ...
+        $T = JWT.sign($P,...);
+    - pattern: |
+        $JOSE = require("jose");
+        ...
+        var { JWT } = $JOSE;
+        ...
+        $T = JWT.sign(Object.assign(...,{password:...},...),...);
+    - pattern: |
+        $JOSE = require("jose");
+        ...
+        var { JWT } = $JOSE;
+        ...
+        $T = JWT.sign({$U:{password:...}},...);
+    - pattern: |
+        $JOSE = require("jose");
+        ...
+        var { JWT } = $JOSE;
+        ...
+        $P = {$U:{password:...}};
+        ...
+        $T = JWT.sign($P,...);
+    - pattern: |
+        $JOSE = require("jose");
+        ...
+        var { JWT } = $JOSE;
+        ...
+        $P.$U.password = ...;
+        ...
+        $T = JWT.sign($P,...);
+    - pattern: |
+        $JOSE = require("jose");
+        ...
+        var { JWT } = $JOSE;
+        ...
+        $P = Object.assign(...,{$U:{password:...}},...);
+        ...
+        $T = JWT.sign($P,...);
+    - pattern: |
+        $JOSE = require("jose");
+        ...
+        var { JWT } = $JOSE;
+        ...
+        $T = JWT.sign(Object.assign(...,{$U:{password:...}},...),...);
+  severity: ERROR
+  languages:
+  - javascript
+  metadata:
+    cwe: 'CWE-522: Insufficiently Protected Credentials'
+    owasp: 'A2: Broken Authentication'
+  message: >-
+    Password is exposed through JWT token payload. This is not encrypted and  the password could be compromised. Do not store
+    passwords in JWT tokens.
+
+- id: jwt_exposed_data
+  patterns:
+  - pattern-inside: |
+      ...
+      require('jose');
+      ...
+  - pattern-either:
+    - patterns:
+      - pattern-inside: function (...,$INPUT,...) {...}
+      - pattern-either:
+        - pattern: $JOSE.JWT.sign($INPUT,...)
+        - pattern: $JWT.sign($INPUT,...)
+    - patterns:
+      - pattern-inside: function $F(...,$INPUT,...) {...}
+      - pattern-either:
+        - pattern: $JOSE.JWT.sign($INPUT,...)
+        - pattern: $JWT.sign($INPUT,...)
+  message: >-
+    The object is passed strictly to jose.JWT.sign(...). Make sure  that sensitive information is not exposed through JWT
+    token payload.
+  severity: WARNING
+  metadata:
+    owasp: A3:2017-Sensitive Data Exposure
+    cwe: 'CWE-522: Insufficiently Protected Credentials'
+  languages:
+  - javascript
+
+- id: jwt_express_hardcoded
+  patterns:
+  - pattern-inside: |
+      $JWT = require('express-jwt');
+      ...
+  - pattern-either:
+    - pattern: |
+        $JWT(<... {secret: "..."} ...>,...);
+    - pattern: |
+        $SECRET = "...";
+        ...
+        $JWT(<... {secret: $SECRET} ...>,...);
+    - pattern: |
+        $OPTS = <... {secret: "..."} ...>;
+        ...
+        $JWT($OPTS,...);
+    - pattern: |-
+        $SECRET = "...";
+        ...
+        $OPTS = <... {secret: $SECRET} ...>;
+        ...
+        $JWT($OPTS,...);
+  message: >-
+    Hardcoded JWT secret or private key was found. Store it properly in  an environment variable.
+  severity: ERROR
+  languages:
+  - javascript
+  metadata:
+    cwe: 'CWE-522: Insufficiently Protected Credentials'
+    owasp: 'A2: Broken Authentication'
+# Rule is from https://github.com/returntocorp/semgrep-rules/blob/develop/javascript/jwt-hardcode/jwt-hardcode.yaml
+# module imports used as described in https://github.com/returntocorp/semgrep/issues/285
+
+- id: hardcoded_jwt_secret
+  patterns:
+  - pattern-either:
+    - pattern: |
+        $JWT = require("jsonwebtoken");
+        ...
+        $JWT.sign($P, "...", ...);
+    - pattern: |
+        $JWT = require("jsonwebtoken");
+        ...
+        $JWT.verify($P, "...", ...);
+    - pattern: |
+        $JWT = require("jsonwebtoken");
+        ...
+        $SECRET = "...";
+        ...
+        $JWT.sign($P, $SECRET, ...);
+    - pattern: |
+        $JWT = require("jsonwebtoken");
+        ...
+        $SECRET = "...";
+        ...
+        $JWT.verify($P, $SECRET, ...);
+    - pattern: |
+        $JOSE = require("jose");
+        ...
+        $JOSE.JWT.sign($P, "...", ...);
+    - pattern: |
+        $JOSE = require("jose");
+        ...
+        $JOSE.JWT.verify($P, "...", ...);
+    - pattern: |
+        $JOSE = require("jose");
+        ...
+        $JOSE.JWT.sign($P, $JOSE.JWK.asKey("..."), ...);
+    - pattern: |
+        $JOSE = require("jose");
+        ...
+        $JOSE.JWT.verify($P, $JOSE.JWK.asKey("..."), ...);
+    - pattern: |
+        $JOSE = require("jose");
+        ...
+        $SECRET = "...";
+        ...
+        $JOSE.JWT.sign($P, $SECRET, ...);
+    - pattern: |
+        $JOSE = require("jose");
+        ...
+        $SECRET = "...";
+        ...
+        $JOSE.JWT.verify($P, $SECRET, ...);
+    - pattern: |
+        $JOSE = require("jose");
+        ...
+        $SECRET = "...";
+        ...
+        $JOSE.JWT.sign($P, $JOSE.JWK.asKey($SECRET), ...);
+    - pattern: |
+        $JOSE = require("jose");
+        ...
+        $SECRET = "...";
+        ...
+        $JOSE.JWT.verify($P, $JOSE.JWK.asKey($SECRET), ...);
+  message: Hardcoded JWT secret was found. Store it properly in an environment variable.
+  languages:
+  - javascript
+  severity: ERROR
+  metadata:
+    owasp: 'A3: Sensitive Data Exposure'
+    cwe: 'CWE-798: Use of Hard-coded Credentials'
+# Rule from : https://github.com/returntocorp/semgrep-rules/blob/develop/javascript/jwt-none-alg/jwt-none-alg.yaml
+# https://auth0.com/blog/critical-vulnerabilities-in-json-web-token-libraries/#Meet-the--None--Algorithm
+
+- id: node_jwt_none_algorithm
+  patterns:
+  - pattern-either:
+    - pattern: |
+        $JWT = require("jsonwebtoken");
+        ...
+        $T = $JWT.verify($P, $X, {algorithms:[...,'none',...]},...);
+    - pattern: |
+        $JWT = require("jsonwebtoken");
+        ...
+        $JWT.verify($P, $X, {algorithms:[...,'none',...]},...);
+    - pattern: |
+        $JOSE = require("jose");
+        ...
+        var { JWK, JWT } = $JOSE;
+        ...
+        $T = JWT.verify($P, JWK.None,...);
+    - pattern: |
+        $JOSE = require("jose");
+        ...
+        var { JWK, JWT } = $JOSE;
+        ...
+        JWT.verify($P, JWK.None,...);
+  message: >-
+    Algorithm is set to none for JWT token. This can nullify the integrity of
+    JWT signature.
+  languages:
+  - javascript
+  severity: ERROR
+  metadata:
+    owasp: 'A9: Using Components with Known Vulnerabilities'
+    cwe: 'CWE-327: Use of a Broken or Risky Cryptographic Algorithm'
+
+- id: jwt_not_revoked
+  patterns:
+  - pattern-inside: |
+      $JWT = require('express-jwt');
+      ...
+  - pattern: $JWT(...)
+  - pattern-not-inside: $JWT(<... {isRevoked:...} ...>,...)
+  - pattern-not-inside: |-
+      $OPTS = <... {isRevoked:...} ...>;
+      ...
+      $JWT($OPTS,...);
+  message: >-
+    No token revoking configured for `express-jwt`. A leaked token could still
+    be used and unable to be revoked. Consider using function as the `isRevoked` option.
+  severity: WARNING
+  languages:
+  - javascript
+  metadata:
+    cwe: 'CWE-522: Insufficiently Protected Credentials'
+    owasp: 'A2: Broken Authentication'
+
+
+
+- id: node_nosqli_injection
+  patterns:
+  - pattern-either:
+    - pattern: |
+        $OBJ.findOne({$KEY : <... $REQ.$FOO.$BAR ...> }, ...);
+    - pattern: |
+        $OBJ.findOne({$KEY: <... $REQ.$FOO ...> }, ...);
+    - pattern: |
+        $INP = <... $REQ.$FOO.$BAR ...>;
+        ...
+        $OBJ.findOne({$KEY : <... $INP ...> }, ...);
+    - pattern: |
+        $INP = <... $REQ.$FOO ...>;
+        ...
+        $OBJ.findOne({$KEY: <... $INP ...> }, ...);
+    - pattern: |
+        $QUERY = {$KEY: <... $REQ.$FOO.$BAR ...>};
+        ...
+        $OBJ.findOne($QUERY, ...);
+    - pattern: |
+        $QUERY = {$KEY: <... $REQ.$FOO ...>};
+        ...
+        $OBJ.findOne($QUERY, ...);
+    - pattern: |
+        $INP = <... $REQ.$FOO.$BAR ...>;
+        ...
+        $QUERY = {$KEY : <... $INP ...> };
+        ...
+        $OBJ.findOne(<... $QUERY  ...>, ...);
+    - pattern: |
+        $INP = <... $REQ.$FOO ...>;
+        ...
+        $QUERY = {$KEY : <... $INP ...> };
+        ...
+        $OBJ.findOne(<... $QUERY  ...>, ...);
+    - pattern: |
+        $QUERY[$KEY] = <... $REQ.$FOO.$BAR ...>;
+        ...
+        $OBJ.findOne($QUERY, ...);
+    - pattern: |
+        $QUERY[$KEY] = <... $REQ.$FOO ...>;
+        ...
+        $OBJ.findOne($QUERY, ...);
+    - pattern: |
+        $INP = <... $REQ.$FOO.$BAR ...>;
+        ...
+        $QUERY[$KEY] = <... $INP ...>;
+        ...
+        $OBJ.findOne(<... $QUERY  ...>, ...);
+    - pattern: |
+        $INP = <... $REQ.$FOO ...>;
+        ...
+        $QUERY[$KEY] = <... $INP ...>;
+        ...
+        $OBJ.findOne(<... $QUERY  ...>, ...);
+  message: Untrusted user input in findOne() function can result in NoSQL Injection.
+  languages:
+  - javascript
+  severity: ERROR
+  metadata:
+    owasp: 'A1: Injection'
+    cwe: 'CWE-943: Improper Neutralization of Special Elements in Data Query Logic'
+
+- id: node_nosqli_js_injection
+  patterns:
+  - pattern-either:
+    - pattern: |
+        $OBJ.$FUNC({$where: <... $REQ.$FOO.$BAR ...>}, ...);
+    - pattern: |
+        $OBJ.$FUNC({$where: <... $REQ.$QUERY ...>}, ...);
+    - pattern: |
+        $NSQL = <... $REQ.$QUERY.$...>;
+        ...
+        $OBJ.$FUNC({$where: <... $NSQL ...>}, ...);
+    - pattern: |
+        $NSQL = <... $REQ.$QUERY ...>;
+        ...
+        $OBJ.$FUNC({$where: <... $NSQL ...>}, ...);
+    - pattern: |
+        $INP = $REQ.$FOO.$BAR;
+        ...
+        $QRY = {$where: <... $INP ...>};
+        ...
+        $OBJ.$FUNC(<... $QRY ...>, ...);
+    - pattern: |
+        $INP = $REQ.$FOO;
+        ...
+        $QRY = {$where: <... $INP ...>};
+        ...
+        $OBJ.$FUNC(<... $QRY ...>, ...);
+    - pattern: |
+        $QRY["$where"] = <... $REQ.$FOO ...>;
+        ...
+        $OBJ.$FUNC(<... $QRY ...>, ...);
+    - pattern: |
+        $QRY["$where"] = <... $REQ.$FOO.$BAR ...>;
+        ...
+        $OBJ.$FUNC(<... $QRY ...>, ...);
+    - pattern: |
+        $INP = $REQ.$FOO;
+        ...
+        $QRY["$where"] = <... $INP ...>;
+        ...
+        $OBJ.$FUNC(<... $QRY ...>, ...);
+    - pattern: |
+        $INP = $REQ.$FOO.$BAR;
+        ...
+        $QRY["$where"] = <... $INP ...>;
+        ...
+        $OBJ.$FUNC(<... $QRY ...>, ...);
+  message: >-
+    Untrusted user input in MongoDB $where operator can result in NoSQL
+    JavaScript Injection.
+  languages:
+  - javascript
+  severity: ERROR
+  metadata:
+    owasp: 'A1: Injection'
+    cwe: 'CWE-943: Improper Neutralization of Special Elements in Data Query Logic'
+
+- id: express_open_redirect
+  patterns:
+  - pattern-either:
+    - pattern-inside: function ($REQ, $RES, ...) {...}
+    - pattern-inside: function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: $X = function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: var $X = function $FUNC($REQ, $RES, ...) {...};
+    - pattern-inside: $APP.$METHOD(..., function $FUNC($REQ, $RES, ...) {...})
+  - pattern-either:
+    - pattern: |
+        $X.redirect(..., <... $REQ.$QUERY ...>, ...)
+    - pattern: |
+        $X.redirect(..., <... $REQ.$QUERY.$FOO ...>, ...)
+    - pattern: |
+        $INP = <... $REQ.$QUERY ...>;
+        ...
+        $X.redirect(..., <... $INP ...>, ...);
+    - pattern: |
+        $INP = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        $X.redirect(..., <... $INP ...>, ...);
+  message: >-
+    Untrusted user input in redirect() can result in Open Redirect
+    vulnerability.
+  languages:
+  - javascript
+  severity: ERROR
+  metadata:
+    owasp: 'A1: Injection'
+    cwe: >-
+      CWE-601: URL Redirection to Untrusted Site ('Open Redirect')
+- id: express_open_redirect2
+  patterns:
+  - pattern-inside: |
+      $APP.$METHOD(..., function $FUNC($REQ, $RES) { ... })
+  - pattern-either:
+    - pattern: |
+        $RES.header(..., "=~/[Ll]+ocation/", <... $REQ.$VAR ...>, ...)
+    - pattern: |
+        $RES.header(..., "=~/[Ll]+ocation/", <... $REQ.$VAR.$VARR ...>, ...)
+    - pattern: |
+        $RES.writeHead(..., "=~/[Ll]+ocation/", <... $REQ.$VAR ...>, ...)
+    - pattern: |
+        $RES.writeHead(..., "=~/[Ll]+ocation/", <... $REQ.$VAR.$VARR ...>, ...)
+    - pattern: |
+        $RES.writeHead(..., {"=~/[Ll]+ocation/": <... $REQ.$VAR ...> }, ...)
+    - pattern: |
+        $RES.writeHead(..., {"=~/[Ll]+ocation/": <... $REQ.$VAR.$VARR ...> }, ...)
+    - pattern: |
+        $INP = <... $REQ.$VAR ...>;
+        ...
+        $RES.header(..., "=~/[Ll]+ocation/", <... $INP ...>, ...);
+    - pattern: |
+        $INP = <... $REQ.$VAR.$VARR ...>;
+        ...
+        $RES.header(..., "=~/[Ll]+ocation/", <... $INP ...>, ...);
+    - pattern: |
+        $INP = <... $REQ.$VAR ...>;
+        ...
+        $RES.writeHead(..., "=~/[Ll]+ocation/", <... $INP ...>, ...);
+    - pattern: |
+        $INP = <... $REQ.$VAR.$VARR ...>;
+        ...
+        $RES.writeHead(..., "=~/[Ll]+ocation/", <... $INP ...>, ...);
+    - pattern: |
+        $INP = <... $REQ.$VAR ...>;
+        ...
+        $RES.writeHead(..., {"=~/[Ll]+ocation/": <... $INP ...> }, ...);
+    - pattern: |
+        $INP = <... $REQ.$VAR.$VARR ...>;
+        ...
+        $RES.writeHead(..., {"=~/[Ll]+ocation/": <... $INP ...> }, ...);
+  message: >-
+    Untrusted user input in response header('Location') can result in Open
+    Redirect vulnerability.
+  languages:
+  - javascript
+  severity: ERROR
+  metadata:
+    owasp: 'A1: Injection'
+    cwe: >-
+      CWE-601: URL Redirection to Untrusted Site ('Open Redirect')
+
+- id: generic_path_traversal
+  patterns:
+  - pattern-either:
+    - pattern-inside: |
+        require('http');
+        ...
+    - pattern-inside: |
+        require('express');
+        ...
+    - pattern-inside: |
+        require('koa');
+        ...
+    - pattern-inside: |
+        require('electron');
+        ...
+  - pattern-either:
+    - pattern-inside: function ($REQ, $RES, ...) {...}
+    - pattern-inside: function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: $X = function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: var $X = function $FUNC($REQ, $RES, ...) {...};
+    - pattern-inside: $APP.$METHOD(..., function $FUNC($REQ, $RES, ...) {...})
+  - pattern-either:
+    - pattern: |
+        $X.createReadStream(..., <... $REQ.$QUERY.$VAR ...>, ...)
+    - pattern: |
+        $X.createReadStream(..., <... $REQ.$QUERY ...>, ...)
+    - pattern: |
+        $X.readFile(..., <... $REQ.$QUERY.$VAR ...>, ...)
+    - pattern: |
+        $X.readFile(..., <... $REQ.$QUERY ...>, ...)
+    - pattern: |
+        $X.readFileSync(..., <... $REQ.$QUERY.$VAR ...>, ...)
+    - pattern: |
+        $X.readFileSync(..., <... $REQ.$QUERY ...>, ...)
+    - pattern: |
+        $X.readFileAsync(..., <... $REQ.$QUERY.$VAR ...>, ...)
+    - pattern: |
+        $X.readFileAsync(..., <... $REQ.$QUERY ...>, ...)
+    - pattern: |
+        $INP = <... $REQ.$QUERY.$VAR ...>;
+        ...
+        $X.createReadStream(..., <... $INP ...>, ...);
+    - pattern: |
+        $INP = <... $REQ.$QUERY ...>;
+        ...
+        $X.createReadStream(..., <... $INP ...>, ...);
+    - pattern: |
+        $INP = <... $REQ.$QUERY.$VAR ...>;
+        ...
+        $X.readFile(..., <... $INP ...>, ...);
+    - pattern: |
+        $INP = <... $REQ.$QUERY ...>;
+        ...
+        $X.readFile(..., <... $INP ...>, ...);
+    - pattern: |
+        $INP = <... $REQ.$QUERY.$VAR ...>;
+        ...
+        $X.readFileSync(..., <... $INP ...>, ...);
+    - pattern: |
+        $INP = <... $REQ.$QUERY ...>;
+        ...
+        $X.readFileSync(..., <... $INP ...>, ...);
+    - pattern: |
+        $INP = <... $REQ.$QUERY.$VAR ...>;
+        ...
+        $X.readFileAsync(..., <... $INP ...>, ...);
+    - pattern: |
+        $INP = <... $REQ.$QUERY ...>;
+        ...
+        $X.readFileAsync(..., <... $INP ...>, ...);
+    - pattern: |
+        $Y = $REQ.$QUERY.$VAR;
+        ...
+        $INP = <... $Y ...>;
+        ...
+        $X.createReadStream(..., <... $INP ...>, ...);
+    - pattern: |
+        $Y = $REQ.$QUERY;
+        ...
+        $INP = <... $Y ...>;
+        ...
+        $X.createReadStream(..., <... $INP ...>, ...);
+    - pattern: |
+        $Y = $REQ.$QUERY.$VAR;
+        ...
+        $INP = <... $Y ...>;
+        ...
+        $X.readFile(..., <... $INP ...>, ...);
+    - pattern: |
+        $Y = $REQ.$QUERY;
+        ...
+        $INP = <... $Y ...>;
+        ...
+        $X.readFile(..., <... $INP ...>, ...);
+    - pattern: |
+        $Y = $REQ.$QUERY.$VAR;
+        ...
+        $INP = <... $Y ...>;
+        ...
+        $X.readFileSync(..., <... $INP ...>, ...);
+    - pattern: |
+        $Y = $REQ.$QUERY;
+        ...
+        $INP = <... $Y ...>;
+        ...
+        $X.readFileSync(..., <... $INP ...>, ...);
+    - pattern: |
+        $Y = $REQ.$QUERY.$VAR;
+        ...
+        $INP = <... $Y ...>;
+        ...
+        $X.readFileAsync(..., <... $INP ...>, ...);
+    - pattern: |
+        $Y = $REQ.$QUERY;
+        ...
+        $INP = <... $Y ...>;
+        ...
+        $X.readFileAsync(..., <... $INP ...>, ...);
+  message: >-
+    Untrusted user input in readFile()/readFileSync() can endup in Directory
+    Traversal Attacks.
+  languages:
+  - javascript
+  severity: ERROR
+  metadata:
+    owasp: 'A5: Broken Access Control'
+    cwe: 'CWE-23: Relative Path Traversal'
+
+- id: regex_dos
+  patterns:
+  - pattern-either:
+    - pattern-inside: function ($REQ, $RES, ...) {...}
+    - pattern-inside: function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: $X = function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: var $X = function $FUNC($REQ, $RES, ...) {...};
+    - pattern-inside: $APP.$METHOD(..., function $FUNC($REQ, $RES, ...) {...})
+  - pattern-either:
+    - pattern: |
+        $REGEX.test(<... $REQ ...>)
+    - pattern: |
+        $REGEX.test(<... $REQ.$QUERY ...>)
+    - pattern: |
+        $REGEX.test(<... $REQ.$BODY.$PARAM ...>)
+    - pattern: |
+        $INP = <... $REQ ...>;
+        ...
+        $REGEX.test(<... $INP ...>);
+    - pattern: |
+        $INP = <... $REQ.$QUERY ...>;
+        ...
+        $REGEX.test(<... $INP ...>);
+    - pattern: |
+        $INP = <... $REQ.$BODY.$PARAM ...>;
+        ...
+        $REGEX.test(<... $INP ...>);
+    - pattern: |
+        /.../g.exec(<... $REQ ...>)
+    - pattern: |
+        /.../g.exec(<... $REQ.$QUERY ...>)
+    - pattern: |
+        /.../.exec(<... $REQ.$BODY.$PARAM ...>)
+    - pattern: |
+        $INP = <... $REQ ...>;
+        ...
+        /.../.exec(<... $INP ...>);
+    - pattern: |
+        $INP = <... $REQ.$QUERY ...>;
+        ...
+        /.../.exec(<... $INP ...>);
+    - pattern: |
+        $INP = <... $REQ.$BODY.$PARAM ...>;
+        ...
+        /.../.exec(<... $INP ...>);
+    - pattern: |
+        $RE = /.../;
+        ...
+        $RE.exec(<... $REQ ...>);
+    - pattern: |
+        $RE = /.../;
+        ...
+        $RE.exec(<... $REQ.$QUERY ...>);
+    - pattern: |
+        $RE = /.../;
+        ...
+        $RE.exec(<... $REQ.$BODY.$PARAM ...>);
+  message: >-
+    Ensure that the regex used to compare with user supplied input is safe
+    from regular expression denial of service.
+  languages:
+  - javascript
+  severity: WARNING
+  metadata:
+    owasp: 'A6: Security Misconfiguration'
+    cwe: 'CWE-185: Incorrect Regular Expression'
+
+- id: regex_injection_dos
+  patterns:
+  - pattern-either:
+    - pattern-inside: function ($REQ, $RES, ...) {...}
+    - pattern-inside: function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: $X = function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: var $X = function $FUNC($REQ, $RES, ...) {...};
+    - pattern-inside: $APP.$METHOD(..., function $FUNC($REQ, $RES, ...) {...})
+  - pattern-either:
+    - pattern: |
+        $INP = <... $REQ.$PARAM ...>;
+        ...
+        $RE = new RegExp(<... $INP ...>);
+    - pattern: |
+        $INP = <... $REQ.$PARAM.$BAR ...>;
+        ...
+        $RE = new RegExp(<... $INP ...>);
+    - pattern: |
+        new RegExp(<... $REQ.$PARAM ...>);
+    - pattern: |
+        new RegExp(<... $REQ.$PARAM.$BAR ...>);
+    - pattern: |
+        $INP = <... $REQ.$PARAM ...>;
+        ...
+        $RE = $STR.search(<... $INP ...>);
+    - pattern: |
+        $INP = <... $REQ.$PARAM.$FOO ...>;
+        ...
+        $RE = $STR.search(<... $INP ...>);
+    - pattern: |
+        $STR.search(<... $REQ.$PARAM ...>);
+    - pattern: |
+        $STR.search(<... $REQ.$PARAM.$BAR ...>);
+    - pattern: |
+        $INP = <... $REQ.$PARAM ...>;
+        ...
+        $RE = $STR.match(<... $INP ...>);
+    - pattern: |
+        $INP = <... $REQ.$PARAM.$FOO ...>;
+        ...
+        $RE = $STR.match(<... $INP ...>);
+    - pattern: |
+        $STR.match(<... $REQ.$PARAM ...>);
+    - pattern: |
+        $STR.match(<... $REQ.$PARAM.$BAR ...>);
+    - pattern: |
+        $INP = <... $REQ.$PARAM ...>;
+        ...
+        $RE = $STR.split(<... $INP ...>);
+    - pattern: |
+        $INP = <... $REQ.$PARAM.$FOO ...>;
+        ...
+        $RE = $STR.split(<... $INP ...>);
+    - pattern: |
+        $STR.split(<... $REQ.$PARAM ...>);
+    - pattern: |
+        $STR.split(<... $REQ.$PARAM.$BAR ...>);
+  message: >-
+    User controlled data in RegExp() can make the application vulnerable to
+    layer 7 DoS.
+  languages:
+  - javascript
+  severity: ERROR
+  metadata:
+    owasp: 'A1: Injection'
+    cwe: 'CWE-400: Uncontrolled Resource Consumption'
+
+- id: join_resolve_path_traversal
+  patterns:
+  - pattern-inside: |
+      require('path');
+      ...
+  - pattern-either:
+    - pattern-inside: function ($REQ, $RES, ...) {...}
+    - pattern-inside: function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: $X = function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: var $X = function $FUNC($REQ, $RES, ...) {...};
+    - pattern-inside: $APP.$METHOD(..., function $FUNC($REQ, $RES, ...) {...})
+  - pattern-either:
+    - pattern: $PATH.join(...,<... $REQ.$BODY ...>,...)
+    - pattern: $PATH.join(...,<... $REQ.$QUERY.$FOO ...>,...)
+    - pattern: |
+        $VAR = <... $REQ.$BODY ...>;
+        ...
+        $PATH.join(...,<... $VAR ...>,...);
+    - pattern: |
+        $VAR = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        $PATH.join(...,<... $VAR ...>,...);
+    - pattern: $PATH.resolve(...,<... $REQ.$BODY ...>,...)
+    - pattern: $PATH.resolve(...,<... $REQ.$QUERY.$FOO ...>,...)
+    - pattern: |
+        $VAR = <... $REQ.$BODY ...>;
+        ...
+        $PATH.resolve(...,<... $VAR ...>,...);
+    - pattern: |-
+        $VAR = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        $PATH.resolve(...,<... $VAR ...>,...);
+  message: >-
+    Path constructed with user input can result in Path Traversal. Ensure that
+    user input does not reach `join()` or `resolve()`.
+  languages:
+  - javascript
+  metadata:
+    owasp: 'A5: Broken Access Control'
+    cwe: >-
+      CWE-22: Improper Limitation of a Pathname to a Restricted Directory
+      (Path Traversal)
+  severity: WARNING
+
+- id: electron_disable_websecurity
+  patterns:
+  - pattern-either:
+    - pattern: |
+        new BrowserWindow({webPreferences: {webSecurity: false}});
+    - pattern: |
+        var $X = {webPreferences: {webSecurity: false}};
+  message: >-
+    Disabling webSecurity will disable the same-origin policy and allows the
+    execution of insecure code from any domain.
+  languages:
+  - javascript
+  severity: ERROR
+  metadata:
+    owasp: 'A6: Security Misconfiguration'
+    cwe: 'CWE-346: Origin Validation Error'
+- id: electron_allow_http
+  patterns:
+  - pattern-either:
+    - pattern: >
+        new BrowserWindow({webPreferences: {allowRunningInsecureContent:
+        true}});
+    - pattern: |
+        var $X = {webPreferences: {allowRunningInsecureContent: true}};
+  message: >-
+    Application can load content over HTTP and that makes the app vulnerable
+    to Man in the middle attacks.
+  languages:
+  - javascript
+  severity: ERROR
+  metadata:
+    owasp: 'A6: Security Misconfiguration'
+    cwe: 'CWE-319: Cleartext Transmission of Sensitive Information'
+- id: electron_blink_integration
+  patterns:
+  - pattern-either:
+    - pattern: |
+        new BrowserWindow({webPreferences: {enableBlinkFeatures: '...'}});
+    - pattern: |
+        var $X = {webPreferences: {enableBlinkFeatures: '...'}};
+  message: >-
+    Blink's expirimental features are enabled in this application. Some of the
+    features may affect the security of the application.
+  languages:
+  - javascript
+  severity: WARNING
+  metadata:
+    owasp: 'A6: Security Misconfiguration'
+    cwe: 'CWE-272: Least Privilege Violation'
+- id: electron_nodejs_integration
+  patterns:
+  - pattern-either:
+    - pattern: |
+        new BrowserWindow({webPreferences: {nodeIntegration: true}});
+    - pattern: |
+        var $X = {webPreferences: {nodeIntegration: true}};
+  message: >-
+    Node integration exposes node.js APIs to the electron app and this can
+    introduce remote code execution vulnerabilities to the application if the
+    app is vulnerable to Cross Site Scripting (XSS).
+  languages:
+  - javascript
+  severity: WARNING
+  metadata:
+    owasp: 'A6: Security Misconfiguration'
+    cwe: 'CWE-272: Least Privilege Violation'
+- id: electron_context_isolation
+  patterns:
+  - pattern-either:
+    - pattern: |
+        new BrowserWindow({webPreferences: {contextIsolation: false}});
+    - pattern: |
+        var $X = {webPreferences: {contextIsolation: false}};
+  message: >-
+    Disabling context isolation can introduce Prototype Pollution
+    vulnerabilities.
+  languages:
+  - javascript
+  severity: WARNING
+  metadata:
+    owasp: 'A6: Security Misconfiguration'
+    cwe: 'CWE-693: Protection Mechanism Failure'
+- id: electron_experimental_features
+  patterns:
+  - pattern-either:
+    - pattern: |
+        new BrowserWindow({webPreferences: {experimentalFeatures: true}});
+    - pattern: |
+        var $X = {webPreferences: {experimentalFeatures: true}};
+  message: >-
+    Experimental features are not expected to be in production ready
+    applications.
+  languages:
+  - javascript
+  severity: WARNING
+  metadata:
+    owasp: 'A6: Security Misconfiguration'
+    cwe: 'CWE-272: Least Privilege Violation'
+
+- id: server_side_template_injection
+  patterns:
+  - pattern-either:
+    - pattern-inside: |
+        require('handlebars');
+        ...
+    - pattern-inside: |
+        require('pug');
+        ...
+    - pattern-inside: |
+        require('hamljs');
+        ...
+    - pattern-inside: |
+        require('ejs');
+        ...
+    - pattern-inside: |
+        require('squirrelly');
+        ...
+    - pattern-inside: |
+        require('eta');
+        ...
+  - pattern-either:
+    - pattern-inside: function ($REQ, $RES, ...) {...}
+    - pattern-inside: function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: $X = function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: var $X = function $FUNC($REQ, $RES, ...) {...};
+    - pattern-inside: $APP.$METHOD(..., function $FUNC($REQ, $RES, ...) {...})
+  - pattern-either:
+    - pattern: |
+        $HB.compile(..., <... $REQ.$FOO ...>, ...)
+    - pattern: |
+        $HB.compile(..., <... $REQ.$FOO.$BAR ...>, ...)
+    - pattern: |
+        $X = <... $REQ.$FOO ...>;
+        ...
+        $HB.compile(..., <... $X ...>, ...);
+    - pattern: |
+        $X = <... $REQ.$FOO.$BAR ...>;
+        ...
+        $HB.compile(..., <... $X ...>, ...);
+    - pattern: |
+        $X = $SOURCE.replace('...', <... $REQ.$FOO ...>, ...);
+        ...
+        $HB.compile(..., <... $X ...>, ...);
+    - pattern: |
+        $X = $SOURCE.replace('...', <... $REQ.$FOO.$BAR ...>, ...);
+        ...
+        $HB.compile(..., <... $X ...>, ...);
+    - pattern: |
+        $HB.Compile(..., <... $REQ.$FOO ...>, ...)
+    - pattern: |
+        $HB.Compile(..., <... $REQ.$FOO.$BAR ...>, ...)
+    - pattern: |
+        $X = <... $REQ.$FOO ...>;
+        ...
+        $HB.Compile(..., <... $X ...>, ...);
+    - pattern: |
+        $X = <... $REQ.$FOO.$BAR ...>;
+        ...
+        $HB.Compile(..., <... $X ...>, ...);
+    - pattern: |
+        $X = $SOURCE.replace('...', <... $REQ.$FOO ...>, ...);
+        ...
+        $HB.Compile(..., <... $X ...>, ...);
+    - pattern: |
+        $X = $SOURCE.replace('...', <... $REQ.$FOO.$BAR ...>, ...);
+        ...
+        $HB.Compile(..., <... $X ...>, ...);
+  message: >-
+    Untrusted user input in templating engine's compile() function can result
+    in Remote Code Execution via server side template injection.
+  languages:
+  - javascript
+  severity: ERROR
+  metadata:
+    owasp: 'A1: Injection'
+    cwe: 'CWE-94: Improper Control of Generation of Code (Code Injection)'
+
+- id: node_sqli_injection
+  patterns:
+  - pattern-either:
+    - pattern: |
+        $CON.query(<... $REQ.$QUERY.$VAR ...>, ...)
+    - pattern: |
+        $CON.query(<... $REQ.$QUERY ...>, ...)
+    - pattern: |
+        $SQL = <... $REQ.$QUERY.$VAR ...>;
+        ...
+        $CON.query(<... $SQL ...>, ...);
+    - pattern: |
+        $SQL = <... $REQ.$QUERY ...>;
+        ...
+        $CON.query(<... $SQL ...>, ...);
+    - pattern: |
+        $INP = <... $REQ.$QUERY.$VAR ...>;
+        ...
+        $SQL = <... $INP ...>;
+        ...
+        $CON.query(<... $SQL ...>, ...);
+    - pattern: |
+        $INP = <... $REQ.$QUERY ...>;
+        ...
+        $SQL = <... $INP ...>;
+        ...
+        $CON.query(<... $SQL ...>, ...);
+  message: >-
+    Untrusted input concatinated with raw SQL query can result in SQL
+    Injection.
+  languages:
+  - javascript
+  severity: ERROR
+  metadata:
+    owasp: 'A1: Injection'
+    cwe: >-
+      CWE-89: Improper Neutralization of Special Elements used in an SQL
+      Command ('SQL Injection')
+
+- id: node_ssrf
+  patterns:
+  - pattern-either:
+    - pattern-inside: |
+        require('request');
+        ...
+    - pattern-inside: |
+        require('axios');
+        ...
+    - pattern-inside: |
+        require('needle');
+        ...
+    - pattern-inside: |
+        require('bent');
+        ...
+    - pattern-inside: |
+        require('urllib');
+        ...
+    - pattern-inside: |
+        require('net');
+        ...
+    - pattern-inside: |
+        require('https');
+        ...
+    - pattern-inside: |
+        require('superagent');
+        ...
+    - pattern-inside: |
+        require('got');
+        ...
+  - pattern-either:
+    - pattern-inside: function ($REQ, $RES, ...) {...}
+    - pattern-inside: function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: $X = function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: var $X = function $FUNC($REQ, $RES, ...) {...};
+    - pattern-inside: $APP.$METHOD(..., function $FUNC($REQ, $RES, ...) {...})
+  - pattern-either:
+    - pattern: |
+        $PKG.get(<... $REQ.$VAR ...>, ...)
+    - pattern: |
+        $PKG.get(<... $REQ.$VAR.$FOO ...>, ...)
+    - pattern: |
+        $PKG.post(<... $REQ.$VAR ...>, ...)
+    - pattern: |
+        $PKG.post(<... $REQ.$VAR.$FOO ...>, ...)
+    - pattern: |
+        $PKG.put(<... $REQ.$VAR ...>, ...)
+    - pattern: |
+        $PKG.put(<... $REQ.$VAR.$FOO ...>, ...)
+    - pattern: |
+        needle("=~/[get|post|put|GET|POST|PUT]+/", <... $REQ.$VAR.$FOO ...>, ...)
+    - pattern: |
+        needle("=~/[get|post|put|GET|POST|PUT]+/", <... $REQ.$VAR ...>, ...)
+    - pattern: |
+        request(<... $REQ.$VAR ...>, ...)
+    - pattern: |
+        request(<... $REQ.$VAR.$FOO ...>, ...)
+    - pattern: |
+        $PKG.request(<... $REQ.$VAR ...>, ...)
+    - pattern: |
+        $PKG.request(<... $REQ.$VAR.$FOO ...>, ...)
+    - pattern: |
+        getJSON(<... $REQ.$VAR ...>, ...)
+    - pattern: |
+        getJSON(<... $REQ.$VAR.$FOO ...>, ...)
+    - pattern: |
+        getBuffer(<... $REQ.$VAR ...>, ...)
+    - pattern: |
+        getBuffer(<... $REQ.$VAR.$FOO ...>, ...)
+    - pattern: |
+        fetch(<... $REQ.$VAR ...>, ...)
+    - pattern: |
+        fetch(<... $REQ.$VAR.$FOO ...>, ...)
+    - pattern: |
+        $SOCKET.connect($PORT, <... $REQ.$VAR ...>, ...)
+    - pattern: |
+        $SOCKET.connect($PORT, <... $REQ.$VAR.$FOO ...>, ...)
+    - pattern: |
+        $PKG.get(..., {host: <... $REQ.$VAR ...>}, ...)
+    - pattern: |
+        $PKG.get(..., {host: <... $REQ.$VAR.$FOO ...>}, ...)
+    - pattern: |
+        $PKG.get(..., {hostname: <... $REQ.$VAR ...>}, ...)
+    - pattern: |
+        $PKG.get(..., {hostname: <... $REQ.$VAR.$FOO ...>}, ...)
+    - pattern: |
+        $INP = <... $REQ.$VAR ...>;
+        ...
+        $PKG.get(<... $INP ...>, ...);
+    - pattern: |
+        $INP = <... $REQ.$VAR.$FOO ...>;
+        ...
+        $PKG.get(<... $INP ...>, ...);
+    - pattern: |
+        $INP = <... $REQ.$VAR ...>;
+        ...
+        $PKG.post(<... $INP ...>, ...);
+    - pattern: |
+        $INP = <... $REQ.$VAR.$FOO ...>;
+        ...
+        $PKG.post(<... $INP ...>, ...);
+    - pattern: |
+        $INP = <... $REQ.$VAR ...>;
+        ...
+        $PKG.put(<... $INP ...>, ...);
+    - pattern: |
+        $INP = <... $REQ.$VAR.$FOO ...>;
+        ...
+        $PKG.put(<... $INP ...>, ...);
+    - pattern: |
+        $INP = <... $REQ.$VAR.$FOO ...>;
+        ...
+        needle("=~/[get|post|put|GET|POST|PUT]+/", <... $INP ...>, ...);
+    - pattern: |
+        $INP = <... $REQ.$VAR ...>;
+        ...
+        needle("=~/[get|post|put|GET|POST|PUT]+/", <... $INP ...>, ...);
+    - pattern: |
+        $INP = <... $REQ.$VAR ...>;
+        ...
+        request(<... $INP ...>, ...);
+    - pattern: |
+        $INP = <... $REQ.$VAR.$FOO ...>;
+        ...
+        request(<... $INP ...>, ...);
+    - pattern: |
+        $INP = <... $REQ.$VAR ...>;
+        ...
+        $PKG.request(<... $INP ...>, ...);
+    - pattern: |
+        $INP = <... $REQ.$VAR.$FOO ...>;
+        ...
+        $PKG.request(<... $INP ...>, ...);
+    - pattern: |
+        $INP = <... $REQ.$VAR ...>;
+        ...
+        getJSON(<... $INP ...>, ...);
+    - pattern: |
+        $INP = <... $REQ.$VAR.$FOO ...>;
+        ...
+        getJSON(<... $INP ...>, ...);
+    - pattern: |
+        $INP = <... $REQ.$VAR ...>;
+        ...
+        getBuffer(<... $INP ...>, ...);
+    - pattern: |
+        $INP = <... $REQ.$VAR.$FOO ...>;
+        ...
+        getBuffer(<... $INP ...>, ...);
+    - pattern: |
+        $INP = <... $REQ.$VAR ...>;
+        ...
+        fetch(<... $INP ...>, ...);
+    - pattern: |
+        $INP = <... $REQ.$VAR.$FOO ...>;
+        ...
+        fetch(<... $INP ...>, ...);
+    - pattern: |
+        $INP = <... $REQ.$VAR ...>;
+        ...
+        $SOCKET.connect($PORT, <... $INP ...>, ...);
+    - pattern: |
+        $INP = <... $REQ.$VAR.$FOO ...>;
+        ...
+        $SOCKET.connect($PORT, <... $INP ...>, ...);
+    - pattern: |
+        $INP = <... $REQ.$VAR ...>;
+        ...
+        $PKG.get(..., {host: <... $INP ...>}, ...);
+    - pattern: |
+        $INP = <... $REQ.$VAR.$FOO ...>;
+        ...
+        $PKG.get(..., {host: <... $INP ...>}, ...);
+    - pattern: |
+        $INP = <... $REQ.$VAR ...>;
+        ...
+        $PKG.get(..., {hostname: <... $INP ...>}, ...);
+    - pattern: |
+        $INP = <... $REQ.$VAR.$FOO ...>;
+        ...
+        $PKG.get(..., {hostname: <... $INP ...>}, ...);
+  message: >-
+    User controlled URL in http client libraries can result in Server Side
+    Request Forgery (SSRF).
+  languages:
+  - javascript
+  severity: ERROR
+  metadata:
+    owasp: 'A1: Injection'
+    cwe: 'CWE-918: Server-Side Request Forgery (SSRF)'
+
+- id: phantom_ssrf
+  patterns:
+  - pattern-inside: |
+      require('phantom');
+      ...
+  - pattern-either:
+    - pattern-inside: function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: $X = function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: var $X = function $FUNC($REQ, $RES, ...) {...};
+    - pattern-inside: $APP.$METHOD(..., function $FUNC($REQ, $RES, ...) {...})
+  - pattern-either:
+    - pattern: $PAGE.open(<... $REQ.$QUERY.$FOO ...>,...)
+    - pattern: $PAGE.setContent(<... $REQ.$QUERY.$FOO ...>,...)
+    - pattern: $PAGE.open(<... $REQ.$BODY ...>,...)
+    - pattern: $PAGE.setContent(<... $REQ.$BODY ...>,...)
+    - pattern: $PAGE.openUrl(<... $REQ.$QUERY.$FOO ...>,...)
+    - pattern: $PAGE.openUrl(<... $REQ.$BODY ...>,...)
+    - pattern: $PAGE.evaluateJavaScript(<... $REQ.$QUERY.$FOO ...>,...)
+    - pattern: $PAGE.evaluateJavaScript(<... $REQ.$BODY ...>,...)
+    - pattern: $PAGE.property("content",<... $REQ.$QUERY.$FOO ...>,...)
+    - pattern: $PAGE.property("content",<... $REQ.$BODY ...>,...)
+    - pattern: |
+        $INPUT = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        $PAGE.open(<... $INPUT ...>,...);
+    - pattern: |
+        $INPUT = <... $REQ.$BODY ...>;
+        ...
+        $PAGE.open(<... $INPUT ...>,...);
+    - pattern: |
+        $INPUT = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        $PAGE.setContent(<... $INPUT ...>,...);
+    - pattern: |
+        $INPUT = <... $REQ.$BODY ...>;
+        ...
+        $PAGE.setContent(<... $INPUT ...>,...);
+    - pattern: |
+        $INPUT = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        $PAGE.openUrl(<... $INPUT ...>,...);
+    - pattern: |
+        $INPUT = <... $REQ.$BODY ...>;
+        ...
+        $PAGE.openUrl(<... $INPUT ...>,...);
+    - pattern: |
+        $INPUT = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        $PAGE.evaluateJavaScript(<... $INPUT ...>,...);
+    - pattern: |
+        $INPUT = <... $REQ.$BODY ...>;
+        ...
+        $PAGE.evaluateJavaScript(<... $INPUT ...>,...);
+    - pattern: |
+        $INPUT = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        $PAGE.property("content",<... $INPUT ...>,...);
+    - pattern: |-
+        $INPUT = <... $REQ.$BODY ...>;
+        ...
+        $PAGE.property("content",<... $INPUT ...>,...);
+  message: >
+    If unverified user data can reach the `phantom` methods it can result in
+    Server-Side Request Forgery vulnerabilities.
+  metadata:
+    owasp: 'A1: Injection'
+    cwe: 'CWE-918: Server-Side Request Forgery (SSRF)'
+  severity: ERROR
+  languages:
+  - javascript
+
+- id: playwright_ssrf
+  patterns:
+  - pattern-inside: |
+      require('playwright');
+      ...
+  - pattern-either:
+    - pattern-inside: function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: $X = function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: var $X = function $FUNC($REQ, $RES, ...) {...};
+    - pattern-inside: $APP.$METHOD(..., function $FUNC($REQ, $RES, ...) {...})
+  - pattern-either:
+    - pattern: $PAGE.goto(<... $REQ.$QUERY.$FOO ...>, ...)
+    - pattern: $PAGE.goto(<... $REQ.$BODY ...>, ...)
+    - pattern: $PAGE.setContent(<... $REQ.$QUERY.$FOO ...>, ...)
+    - pattern: $PAGE.setContent(<... $REQ.$BODY ...>, ...)
+    - pattern: $PAGE.evaluate(<... $REQ.$QUERY.$FOO ...>, ...)
+    - pattern: $PAGE.evaluate(<... $REQ.$BODY ...>, ...)
+    - pattern: $PAGE.evaluate($CODE,..., <... $REQ.$QUERY.$FOO ...>, ...)
+    - pattern: $PAGE.evaluate($CODE,..., <... $REQ.$BODY ...>, ...)
+    - pattern: $PAGE.evaluateHandle(<... $REQ.$QUERY.$FOO ...>, ...)
+    - pattern: $PAGE.evaluateHandle(<... $REQ.$BODY ...>, ...)
+    - pattern: $PAGE.evaluateHandle($CODE,..., <... $REQ.$QUERY.$FOO ...>, ...)
+    - pattern: $PAGE.evaluateHandle($CODE,..., <... $REQ.$BODY ...>, ...)
+    - pattern: $PAGE.evaluateOnNewDocument(<... $REQ.$BODY ...>, ...)
+    - pattern: $PAGE.evaluateOnNewDocument(<... $REQ.$BODY.$FOO ...>, ...)
+    - pattern: $CONTEXT.addInitScript(<... $REQ.$BODY ...>,...)
+    - pattern: $CONTEXT.addInitScript(<... $REQ.$BODY.$FOO ...>,...)
+    - pattern: |
+        $INPUT = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        $PAGE.goto(<... $INPUT ...>,...);
+    - pattern: |
+        $INPUT = <... $REQ.$BODY ...>;
+        ...
+        $PAGE.goto(<... $INPUT ...>,...);
+    - pattern: |
+        $INPUT = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        $PAGE.setContent(<... $INPUT ...>,...);
+    - pattern: |
+        $INPUT = <... $REQ.$BODY ...>;
+        ...
+        $PAGE.setContent(<... $INPUT ...>,...);
+    - pattern: |
+        $INPUT = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        $PAGE.evaluate($CODE,..., <... $INPUT ...>,...);
+    - pattern: |
+        $INPUT = <... $REQ.$BODY ...>;
+        ...
+        $PAGE.evaluate($CODE,..., <... $INPUT ...>,...);
+    - pattern: |
+        $INPUT = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        $PAGE.evaluate(<... $INPUT ...>,...);
+    - pattern: |
+        $INPUT = <... $REQ.$BODY ...>;
+        ...
+        $PAGE.evaluate(<... $INPUT ...>,...);
+    - pattern: |
+        $INPUT = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        $PAGE.evaluateHandle(<... $INPUT ...>,...);
+    - pattern: |
+        $INPUT = <... $REQ.$BODY ...>;
+        ...
+        $PAGE.evaluateHandle(<... $INPUT ...>,...);
+    - pattern: |
+        $INPUT = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        $PAGE.evaluateHandle($CODE,..., <... $INPUT ...>,...);
+    - pattern: |
+        $INPUT = <... $REQ.$BODY ...>;
+        ...
+        $PAGE.evaluateHandle($CODE,..., <... $INPUT ...>,...);
+    - pattern: |
+        $INPUT = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        $PAGE.evaluateOnNewDocument(<... $INPUT ...>,...);
+    - pattern: |
+        $INPUT = <... $REQ.$BODY ...>;
+        ...
+        $PAGE.evaluateOnNewDocument(<... $INPUT ...>,...);
+    - pattern: |
+        $INPUT = <... $REQ.$BODY ...>;
+        ...
+        $CONTEXT.addInitScript($INPUT,...);
+  message: >-
+    If unverified user data can reach the `puppeteer` methods it can result in
+    Server-Side Request Forgery vulnerabilities.
+  metadata:
+    owasp: 'A1: Injection'
+    cwe: 'CWE-918: Server-Side Request Forgery (SSRF)'
+  severity: ERROR
+  languages:
+  - javascript
+
+- id: puppeteer_ssrf
+  patterns:
+  - pattern-inside: |
+      require('puppeteer');
+      ...
+  - pattern-either:
+    - pattern-inside: function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: $X = function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: var $X = function $FUNC($REQ, $RES, ...) {...};
+    - pattern-inside: $APP.$METHOD(..., function $FUNC($REQ, $RES, ...) {...})
+  - pattern-either:
+    - pattern: $PAGE.goto(<... $REQ.$QUERY.$FOO ...>,...)
+    - pattern: $PAGE.goto(<... $REQ.$BODY ...>,...)
+    - pattern: $PAGE.setContent(<... $REQ.$QUERY.$FOO ...>,...)
+    - pattern: $PAGE.setContent(<... $REQ.$BODY ...>,...)
+    - pattern: $PAGE.evaluate(<... $REQ.$QUERY.$FOO ...>,...)
+    - pattern: $PAGE.evaluate(<... $REQ.$BODY ...>,...)
+    - pattern: $PAGE.evaluateHandle(<... $REQ.$QUERY.$FOO ...>,...)
+    - pattern: $PAGE.evaluateHandle(<... $REQ.$BODY ...>,...)
+    - pattern: $PAGE.evaluateOnNewDocument(<... $REQ.$QUERY.$FOO ...>,...)
+    - pattern: $PAGE.evaluateOnNewDocument(<... $REQ.$BODY ...>,...)
+    - pattern: $PAGE.evaluate($CODE,<... $REQ.$QUERY.$FOO ...>,...)
+    - pattern: $PAGE.evaluate($CODE,<... $REQ.$BODY ...>,...)
+    - pattern: $PAGE.evaluateHandle($CODE,<... $REQ.$QUERY.$FOO ...>,...)
+    - pattern: $PAGE.evaluateHandle($CODE,<... $REQ.$BODY ...>,...)
+    - pattern: $PAGE.evaluateOnNewDocument($CODE,<... $REQ.$QUERY.$FOO ...>,...)
+    - pattern: $PAGE.evaluateOnNewDocument($CODE,<... $REQ.$BODY ...>,...)
+    - pattern: |
+        $INPUT = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        $PAGE.goto(<... $INPUT ...>,...);
+    - pattern: |
+        $INPUT = <... $REQ.$BODY ...>;
+        ...
+        $PAGE.goto(<... $INPUT ...>,...);
+    - pattern: |
+        $INPUT = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        $PAGE.setContent(<... $INPUT ...>,...);
+    - pattern: |
+        $INPUT = <... $REQ.$BODY ...>;
+        ...
+        $PAGE.setContent(<... $INPUT ...>,...);
+    - pattern: |
+        $INPUT = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        $PAGE.evaluate(<... $INPUT ...>,...);
+    - pattern: |
+        $INPUT = <... $REQ.$BODY ...>;
+        ...
+        $PAGE.evaluate(<... $INPUT ...>,...);
+    - pattern: |
+        $INPUT = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        $PAGE.evaluateHandle(<... $INPUT ...>,...);
+    - pattern: |
+        $INPUT = <... $REQ.$BODY ...>;
+        ...
+        $PAGE.evaluateHandle(<... $INPUT ...>,...);
+    - pattern: |
+        $INPUT = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        $PAGE.evaluateOnNewDocument(<... $INPUT ...>,...);
+    - pattern: |
+        $INPUT = <... $REQ.$BODY ...>;
+        ...
+        $PAGE.evaluateOnNewDocument(<... $INPUT ...>,...);
+    - pattern: |
+        $INPUT = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        $PAGE.evaluate($CODE,<... $INPUT ...>,...);
+    - pattern: |
+        $INPUT = <... $REQ.$BODY ...>;
+        ...
+        $PAGE.evaluate($CODE,<... $INPUT ...>,...);
+    - pattern: |
+        $INPUT = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        $PAGE.evaluateHandle($CODE,<... $INPUT ...>,...);
+    - pattern: |
+        $INPUT = <... $REQ.$BODY ...>;
+        ...
+        $PAGE.evaluateHandle($CODE,<... $INPUT ...>,...);
+    - pattern: |
+        $INPUT = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        $PAGE.evaluateOnNewDocument($CODE,<... $INPUT ...>,...);
+    - pattern: |
+        $INPUT = <... $REQ.$BODY ...>;
+        ...
+        $PAGE.evaluateOnNewDocument($CODE,<... $INPUT ...>,...);
+  message: >-
+    If unverified user data can reach the `puppeteer` methods it can result in
+    Server-Side Request Forgery vulnerabilities.
+  metadata:
+    owasp: 'A1: Injection'
+    cwe: 'CWE-918: Server-Side Request Forgery (SSRF)'
+  severity: ERROR
+  languages:
+  - javascript
+
+- id: wkhtmltoimage_ssrf
+  patterns:
+  - pattern-inside: |
+      require('wkhtmltoimage');
+      ...
+  - pattern-either:
+    - pattern-inside: function ($REQ, $RES, ...) {...}
+    - pattern-inside: function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: $X = function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: var $X = function $FUNC($REQ, $RES, ...) {...};
+    - pattern-inside: $APP.$METHOD(..., function $FUNC($REQ, $RES, ...) {...})
+  - pattern-either:
+    - pattern: |
+        $INP = <... $REQ.$VAR ...>;
+        ...
+        $PKG.generate(<... $INP ...>, ...);
+    - pattern: |
+        $INP = <... $REQ.$VAR.$FOO ...>;
+        ...
+        $PKG.generate(<... $INP ...>, ...);
+    - pattern: |
+        $PKG.generate(<... $REQ.$VAR ...>, ...)
+    - pattern: |
+        $PKG.generate(<... $REQ.$VAR.$FOO ...>, ...)
+  message: >-
+    User controlled URL reached to `wkhtmltoimage` can result in Server Side
+    Request Forgery (SSRF).
+  languages:
+  - javascript
+  severity: ERROR
+  metadata:
+    owasp: 'A1: Injection'
+    cwe: 'CWE-918: Server-Side Request Forgery (SSRF)'
+
+- id: wkhtmltopdf_ssrf
+  patterns:
+  - pattern-inside: |
+      require('wkhtmltopdf');
+      ...
+  - pattern-either:
+    - pattern-inside: function ($REQ, $RES, ...) {...}
+    - pattern-inside: function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: $X = function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: var $X = function $FUNC($REQ, $RES, ...) {...};
+    - pattern-inside: $APP.$METHOD(..., function $FUNC($REQ, $RES, ...) {...})
+  - pattern-either:
+    - pattern: |
+        $INP = <... $REQ.$VAR ...>;
+        ...
+        wkhtmltopdf(<... $INP ...>, ...);
+    - pattern: |
+        $INP = <... $REQ.$VAR.$FOO ...>;
+        ...
+        wkhtmltopdf(<... $INP ...>, ...);
+    - pattern: |
+        wkhtmltopdf(<... $REQ.$VAR ...>, ...)
+    - pattern: |
+        wkhtmltopdf(<... $REQ.$VAR.$FOO ...>, ...)
+  message: >-
+    User controlled URL reached to `wkhtmltopdf` can result in Server Side
+    Request Forgery (SSRF).
+  languages:
+  - javascript
+  severity: ERROR
+  metadata:
+    owasp: 'A1: Injection'
+    cwe: 'CWE-918: Server-Side Request Forgery (SSRF)'
+# Rule inspired from: https://github.com/nodesecurity/eslint-plugin-security/blob/master/rules/detect-possible-timing-attacks.js
+
+- id: node_timing_attack
+  patterns:
+  - pattern-not: if ($Z == null) { ... };
+  - pattern-not: if ($Z === null) { ... };
+  - pattern-not: if ($Z != null) { ... };
+  - pattern-not: if ($Z !== null) { ... };
+  - pattern-not: if ($Q != undefined) { ... };
+  - pattern-not: if ($Q !== undefined) { ... };
+  - pattern-not: if ($Q == undefined) { ... };
+  - pattern-not: if ($Q === undefined) { ... };
+  - pattern-not: return $Y == null;
+  - pattern-not: return $Y === null;
+  - pattern-not: return $Y != null;
+  - pattern-not: return $Y !== null;
+  - pattern-not: return $Y == undefined;
+  - pattern-not: return $Y === undefined;
+  - pattern-not: return $Y != undefined;
+  - pattern-not: return $Y !== undefined;
+  - pattern-either:
+    - pattern: |
+        if (password == $X) {
+            ...
+        }
+    - pattern: |
+        if ($X == password) {
+            ...
+        }
+    - pattern: |
+        if (password === $X) {
+            ...
+        }
+    - pattern: |
+        if ($X === password) {
+            ...
+        }
+    - pattern: |
+        if (pass == $X) {
+            ...
+        }
+    - pattern: |
+        if ($X == pass) {
+            ...
+        }
+    - pattern: |
+        if (pass === $X) {
+            ...
+        }
+    - pattern: |
+        if ($X === pass) {
+            ...
+        }
+    - pattern: |
+        if (secret == $X) {
+            ...
+        }
+    - pattern: |
+        if ($X == secret) {
+            ...
+        }
+    - pattern: |
+        if (secret === $X) {
+            ...
+        }
+    - pattern: |
+        if ($X === secret) {
+            ...
+        }
+    - pattern: |
+        if (api == $X) {
+            ...
+        }
+    - pattern: |
+        if ($X == api) {
+            ...
+        }
+    - pattern: |
+        if (api === $X) {
+            ...
+        }
+    - pattern: |
+        if ($X === api) {
+            ...
+        }
+    - pattern: |
+        if (apiKey == $X) {
+            ...
+        }
+    - pattern: |
+        if ($X == apiKey) {
+            ...
+        }
+    - pattern: |
+        if (apiKey === $X) {
+            ...
+        }
+    - pattern: |
+        if ($X === apiKey) {
+            ...
+        }
+    - pattern: |
+        if (apiSecret == $X) {
+            ...
+        }
+    - pattern: |
+        if ($X == apiSecret) {
+            ...
+        }
+    - pattern: |
+        if (apiSecret === $X) {
+            ...
+        }
+    - pattern: |
+        if ($X === apiSecret) {
+            ...
+        }
+    - pattern: |
+        if (token == $X) {
+            ...
+        }
+    - pattern: |
+        if ($X == token) {
+            ...
+        }
+    - pattern: |
+        if (token === $X) {
+            ...
+        }
+    - pattern: |
+        if ($X === token) {
+            ...
+        }
+    - pattern: |
+        if (hash == $X) {
+            ...
+        }
+    - pattern: |
+        if ($X == hash) {
+            ...
+        }
+    - pattern: |
+        if (hash === $X) {
+            ...
+        }
+    - pattern: |
+        if ($X === hash) {
+            ...
+        }
+    - pattern: |
+        if (auth_token == $X) {
+            ...
+        }
+    - pattern: |
+        if ($X == auth_token) {
+            ...
+        }
+    - pattern: |
+        if (auth_token === $X) {
+            ...
+        }
+    - pattern: |
+        if ($X === auth_token) {
+            ...
+        }
+    - pattern: |
+        if (password != $X) {
+            ...
+        }
+    - pattern: |
+        if ($X != password) {
+            ...
+        }
+    - pattern: |
+        if (password !== $X) {
+            ...
+        }
+    - pattern: |
+        if ($X !== password) {
+            ...
+        }
+    - pattern: |
+        if (pass != $X) {
+            ...
+        }
+    - pattern: |
+        if ($X != pass) {
+            ...
+        }
+    - pattern: |
+        if (pass !== $X) {
+            ...
+        }
+    - pattern: |
+        if ($X !== pass) {
+            ...
+        }
+    - pattern: |
+        if (secret != $X) {
+            ...
+        }
+    - pattern: |
+        if ($X != secret) {
+            ...
+        }
+    - pattern: |
+        if (secret !== $X) {
+            ...
+        }
+    - pattern: |
+        if ($X !== secret) {
+            ...
+        }
+    - pattern: |
+        if (api != $X) {
+            ...
+        }
+    - pattern: |
+        if ($X != api) {
+            ...
+        }
+    - pattern: |
+        if (api !== $X) {
+            ...
+        }
+    - pattern: |
+        if ($X !== api) {
+            ...
+        }
+    - pattern: |
+        if (apiKey != $X) {
+            ...
+        }
+    - pattern: |
+        if ($X != apiKey) {
+            ...
+        }
+    - pattern: |
+        if (apiKey !== $X) {
+            ...
+        }
+    - pattern: |
+        if ($X !== apiKey) {
+            ...
+        }
+    - pattern: |
+        if (apiSecret != $X) {
+            ...
+        }
+    - pattern: |
+        if ($X != apiSecret) {
+            ...
+        }
+    - pattern: |
+        if (apiSecret !== $X) {
+            ...
+        }
+    - pattern: |
+        if ($X !== apiSecret) {
+            ...
+        }
+    - pattern: |
+        if (token != $X) {
+            ...
+        }
+    - pattern: |
+        if ($X != token) {
+            ...
+        }
+    - pattern: |
+        if (token !== $X) {
+            ...
+        }
+    - pattern: |
+        if ($X !== token) {
+            ...
+        }
+    - pattern: |
+        if (hash != $X) {
+            ...
+        }
+    - pattern: |
+        if ($X != hash) {
+            ...
+        }
+    - pattern: |
+        if (hash !== $X) {
+            ...
+        }
+    - pattern: |
+        if ($X !== hash) {
+            ...
+        }
+    - pattern: |
+        if (auth_token != $X) {
+            ...
+        }
+    - pattern: |
+        if ($X != auth_token) {
+            ...
+        }
+    - pattern: |
+        if (auth_token !== $X) {
+            ...
+        }
+    - pattern: |
+        if ($X !== auth_token) {
+            ...
+        }
+    - pattern: |
+        return $X === auth_token;
+    - pattern: |
+        return auth_token === $X;
+    - pattern: |
+        return $X === token;
+    - pattern: |
+        return token === $X;
+    - pattern: |
+        return $X === hash;
+    - pattern: |
+        return hash === $X;
+    - pattern: |
+        return $X === password;
+    - pattern: |
+        return password === $X;
+    - pattern: |
+        return $X === pass;
+    - pattern: |
+        return pass === $X;
+    - pattern: |
+        return $X === apiKey;
+    - pattern: |
+        return apiKey === $X;
+    - pattern: |
+        return $X === apiSecret;
+    - pattern: |
+        return apiSecret === $X;
+    - pattern: |
+        return $X === api_key;
+    - pattern: |
+        return api_key === $X;
+    - pattern: |
+        return $X === api_secret;
+    - pattern: |
+        return api_secret === $X;
+    - pattern: |
+        return $X === secret;
+    - pattern: |
+        return secret === $X;
+    - pattern: |
+        return $X === api;
+    - pattern: |
+        return api === $X;
+    - pattern: |
+        return $X == auth_token;
+    - pattern: |
+        return auth_token == $X;
+    - pattern: |
+        return $X == token;
+    - pattern: |
+        return token == $X;
+    - pattern: |
+        return $X == hash;
+    - pattern: |
+        return hash == $X;
+    - pattern: |
+        return $X == password;
+    - pattern: |
+        return password == $X;
+    - pattern: |
+        return $X == pass;
+    - pattern: |
+        return pass == $X;
+    - pattern: |
+        return $X == apiKey;
+    - pattern: |
+        return apiKey == $X;
+    - pattern: |
+        return $X == apiSecret;
+    - pattern: |
+        return apiSecret == $X;
+    - pattern: |
+        return $X == api_key;
+    - pattern: |
+        return api_key == $X;
+    - pattern: |
+        return $X == api_secret;
+    - pattern: |
+        return api_secret == $X;
+    - pattern: |
+        return $X == secret;
+    - pattern: |
+        return secret == $X;
+    - pattern: |
+        return $X == api;
+    - pattern: |
+        return api == $X;
+    - pattern: |
+        return $X !== auth_token;
+    - pattern: |
+        return auth_token !== $X;
+    - pattern: |
+        return $X !== token;
+    - pattern: |
+        return token !== $X;
+    - pattern: |
+        return $X !== hash;
+    - pattern: |
+        return hash !== $X;
+    - pattern: |
+        return $X !== password;
+    - pattern: |
+        return password !== $X;
+    - pattern: |
+        return $X !== pass;
+    - pattern: |
+        return pass !== $X;
+    - pattern: |
+        return $X !== apiKey;
+    - pattern: |
+        return apiKey !== $X;
+    - pattern: |
+        return $X !== apiSecret;
+    - pattern: |
+        return apiSecret !== $X;
+    - pattern: |
+        return $X !== api_key;
+    - pattern: |
+        return api_key !== $X;
+    - pattern: |
+        return $X !== api_secret;
+    - pattern: |
+        return api_secret !== $X;
+    - pattern: |
+        return $X !== secret;
+    - pattern: |
+        return secret !== $X;
+    - pattern: |
+        return $X !== api;
+    - pattern: |
+        return api !== $X;
+    - pattern: |
+        return $X != auth_token;
+    - pattern: |
+        return auth_token != $X;
+    - pattern: |
+        return $X != token;
+    - pattern: |
+        return token != $X;
+    - pattern: |
+        return $X != hash;
+    - pattern: |
+        return hash != $X;
+    - pattern: |
+        return $X != password;
+    - pattern: |
+        return password != $X;
+    - pattern: |
+        return $X != pass;
+    - pattern: |
+        return pass != $X;
+    - pattern: |
+        return $X != apiKey;
+    - pattern: |
+        return apiKey != $X;
+    - pattern: |
+        return $X != apiSecret;
+    - pattern: |
+        return apiSecret != $X;
+    - pattern: |
+        return $X != api_key;
+    - pattern: |
+        return api_key != $X;
+    - pattern: |
+        return $X != api_secret;
+    - pattern: |
+        return api_secret != $X;
+    - pattern: |
+        return $X != secret;
+    - pattern: |
+        return secret != $X;
+    - pattern: |
+        return $X != api;
+    - pattern: |
+        return api != $X;
+  message: >-
+    String comparisons using '===', '!==', '!=' and '==' is vulnerable to timing attacks.
+    More info: https://snyk.io/blog/node-js-timing-attack-ccc-ctf/
+  languages:
+  - javascript
+  severity: WARNING
+  metadata:
+    owasp: 'A9: Using Components with Known Vulnerabilities'
+    cwe: 'CWE-208: Observable Timing Discrepancy'
+
+- id: node_tls_reject
+  patterns:
+  - pattern-either:
+    - pattern: |
+        $X.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
+    - pattern: |
+        $X.env['NODE_TLS_REJECT_UNAUTHORIZED']= '0'
+  message: >-
+    Setting 'NODE_TLS_REJECT_UNAUTHORIZED' to 0 will allow node server to
+    accept self signed certificates and is not a secure behaviour.
+  languages:
+  - javascript
+  severity: ERROR
+  metadata:
+    owasp: 'A6: Security Misconfiguration'
+    cwe: 'CWE-295: Improper Certificate Validation'
+- id: node_curl_ssl_verify_disable
+  patterns:
+  - pattern: |
+      $X(..., {SSL_VERIFYPEER : 0}, ...)
+  message: SSL Certificate verification for node-curl is disabled.
+  languages:
+  - javascript
+  severity: ERROR
+  metadata:
+    owasp: 'A6: Security Misconfiguration'
+    cwe: 'CWE-599: Missing Validation of OpenSSL Certificate'
+
+- id: node_entity_expansion
+  patterns:
+  - pattern-either:
+    - pattern-inside: function ($REQ, $RES, ...) {...}
+    - pattern-inside: function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: $X = function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: var $X = function $FUNC($REQ, $RES, ...) {...};
+    - pattern-inside: $APP.$METHOD(..., function $FUNC($REQ, $RES, ...) {...})
+  - pattern-either:
+    - pattern: |
+        $PARSER = new expat.Parser();
+        ...
+        $PARSER.write(..., <... $REQ.$QUERY ...>, ...);
+    - pattern: |
+        $PARSER = new expat.Parser();
+        ...
+        $PARSER.write(..., <... $REQ.$QUERY.$FOO ...>, ...);
+    - pattern: |
+        $PARSER = new expat.Parser();
+        ...
+        $PARSER.write(..., <... $REQ.$QUERY.$FOO.$FILE ...>, ...);
+  message: >-
+    User controlled data in XML Parsers can result in
+    XML Internal Entity Processing vulnerabilities like in DoS.
+  languages:
+  - javascript
+  severity: ERROR
+  metadata:
+    owasp: 'A4: XML External Entities (XXE)'
+    cwe: "CWE-776: Improper Restriction of Recursive Entity References in DTDs ('XML Entity Expansion')"
+
+- id: node_xpath_injection
+  patterns:
+  - pattern-either:
+    - pattern-inside: function ($REQ, $RES, ...) {...}
+    - pattern-inside: function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: $X = function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: var $X = function $FUNC($REQ, $RES, ...) {...};
+    - pattern-inside: $APP.$METHOD(..., function $FUNC($REQ, $RES, ...) {...})
+  - pattern-either:
+    - pattern: |
+        $XPATH.parse(<... "=~/[\/\/].+/" + $REQ.$QUERY.$VAR ...>, ...)
+    - pattern: |
+        $XPATH.parse(<... "=~/[\/\/].+/" + $REQ.$PARAM ...>, ...)
+    - pattern: |
+        $XPATH.parse(<... "=~/[\/\/].+/" + $REQ.$PARAM["..."] ...>, ...)
+    - pattern: |
+        $XPATH.parse(<... "=~/[\/\/].+/" + $REQ.$PARAM("...") ...>, ...)
+    - pattern: |
+        $XPATH.parse(<... "=~/[\/\/].+/" + $REQ["..."] ...>, ...)
+    - pattern: |
+        $XPATH.parse(<... "=~/[\/\/].+/" + $REQ("...") ...>, ...)
+    - pattern: |
+        $INP = <... $REQ.$QUERY.$VAR ...>;
+        ...
+        $XPATH.parse(<... "=~/[\/\/].+/" + $INP ...>, ...);
+    - pattern: |
+        $INP = <... $REQ.$PARAM ...>;
+        ...
+        $XPATH.parse(<... "=~/[\/\/].+/" + $INP ...>, ...);
+    - pattern: |
+        $INP = <... $REQ.$PARAM["..."] ...>;
+        ...
+        $XPATH.parse(<... "=~/[\/\/].+/" + $INP ...>, ...);
+    - pattern: |
+        $INP = <... $REQ.$PARAM("...") ...>;
+        ...
+        $XPATH.parse(<... "=~/[\/\/].+/" + $INP ...>, ...);
+    - pattern: |
+        $INP = <... $REQ["..."] ...>;
+        ...
+        $XPATH.parse(<... "=~/[\/\/].+/" + $INP ...>, ...);
+    - pattern: |
+        $INP = <... $REQ("...") ...>;
+        ...
+        $XPATH.parse(<... "=~/[\/\/].+/" + $INP ...>, ...);
+  message: >-
+    User controlled data in xpath.parse() can result in XPATH injection
+    vulnerability.
+  languages:
+  - javascript
+  severity: ERROR
+  metadata:
+    owasp: 'A1: Injection'
+    cwe: >-
+      CWE-643: Improper Neutralization of Data within XPath Expressions
+      ('XPath Injection')
+
+- id: xss_disable_mustache_escape
+  pattern: $OBJ.escapeMarkup = false
+  severity: WARNING
+  languages:
+  - javascript
+  metadata:
+    cwe: 'CWE-116: Improper Encoding or Escaping of Output'
+    owasp: 'A7: Cross-Site Scripting XSS'
+  message: >-
+    Markup escaping disabled. This can be used with some template engines to
+    escape disabling of HTML entities, which can lead to XSS attacks.
+
+- id: express_xss
+  patterns:
+  - pattern-either:
+    - pattern-inside: function ($REQ, $RES, ...) {...}
+    - pattern-inside: function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: $X = function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: var $X = function $FUNC($REQ, $RES, ...) {...};
+    - pattern-inside: $APP.$METHOD(..., function $FUNC($REQ, $RES, ...) {...})
+  - pattern-either:
+    - pattern: |
+        $RES.write(..., <... $REQ.$QUERY ...>, ...);
+    - pattern: |
+        $RES.write(..., <... $REQ.$QUERY.$FOO ...>, ...);
+    - pattern: |
+        $RES.send(..., <... $REQ.$QUERY ...>, ...);
+    - pattern: |
+        $RES.send(..., <... $REQ.$QUERY.$FOO ...>, ...);
+    - pattern: |
+        $LOCALVAR = <... $REQ.$QUERY ...>;
+        ...
+        $RES.write(..., <... $LOCALVAR ...>, ...);
+    - pattern: |
+        $LOCALVAR = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        $RES.write(..., <... $LOCALVAR ...>, ...);
+    - pattern: |
+        $LOCALVAR = <... $REQ.$QUERY.$VAR ...>;
+        ...
+        $RES.send(..., <... $LOCALVAR ...>, ...);
+    - pattern: |
+        $LOCALVAR = <... $REQ.$QUERY ...>;
+        ...
+        $RES.send(..., <... $LOCALVAR ...>, ...);
+    - pattern: |
+        var {$LOCALVAR} = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        $RES.write(..., <... $LOCALVAR ...>, ...);
+    - pattern: |
+        var {$LOCALVAR} = <... $REQ.$QUERY.$VAR ...>;
+        ...
+        $RES.send(..., <... $LOCALVAR ...>, ...);
+    - pattern: |
+        var {$LOCALVAR} = <... $REQ.$QUERY ...>;
+        ...
+        $RES.send(..., <... $LOCALVAR ...>, ...);
+    - pattern: |
+        $LOCALVAR = {$KEY: <... $REQ.$QUERY ...>};
+        ...
+        $RES.write(..., <... $LOCALVAR ...>, ...);
+    - pattern: |
+        $LOCALVAR =  {$KEY: <... $REQ.$QUERY.$FOO ...>};
+        ...
+        $RES.write(..., <... $LOCALVAR ...>, ...);
+    - pattern: |
+        $LOCALVAR = {$KEY: <... $REQ.$QUERY.$VAR ...>};
+        ...
+        $RES.send(..., <... $LOCALVAR ...>, ...);
+    - pattern: |
+        $LOCALVAR =  {$KEY: <... $REQ.$QUERY ...>};
+        ...
+        $RES.send(..., <... $LOCALVAR ...>, ...);
+    - pattern: |
+        $LOCALVAR.push(<... $REQ.$QUERY ...>);
+        ...
+        $RES.write(..., <... $LOCALVAR ...>, ...);
+    - pattern: |
+        $LOCALVAR.push(<... $REQ.$QUERY.$FOO ...>);
+        ...
+        $RES.write(..., <... $LOCALVAR ...>, ...);
+    - pattern: |
+        $LOCALVAR.push(<... $REQ.$QUERY.$VAR ...>);
+        ...
+        $RES.send(..., <... $LOCALVAR ...>, ...);
+    - pattern: |
+        $LOCALVAR.push(<... $REQ.$QUERY ...>);
+        ...
+        $RES.send(..., <... $LOCALVAR ...>, ...);
+    - pattern: |
+        $LOCALVAR = <... $REQ.$QUERY ...>;
+        ...
+        $ARR.push(<... $LOCALVAR ...>);
+        ...
+        $RES.write(..., <... $ARR ...>, ...);
+    - pattern: |
+        $LOCALVAR = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        $ARR.push(<... $LOCALVAR ...>);
+        ...
+        $RES.write(..., <... $ARR ...>, ...);
+    - pattern: |
+        $LOCALVAR = <... $REQ.$QUERY.$VAR ...>;
+        ...
+        $ARR.push(<... $LOCALVAR ...>);
+        ...
+        $RES.send(..., <... $ARR ...>, ...);
+    - pattern: |
+        $LOCALVAR = <... $REQ.$QUERY ...>;
+        ...
+        $ARR.push(<... $LOCALVAR ...>);
+        ...
+        $RES.send(..., <... $ARR ...>, ...);
+    - pattern: |
+        $LOCALVAR = <... $REQ.$QUERY ...>;
+        ...
+        $OUT = <... $LOCALVAR ...>;
+        ...
+        $RES.write(..., <... $OUT ...>, ...);
+    - pattern: |
+        $LOCALVAR = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        $OUT = <... $LOCALVAR ...>;
+        ...
+        $RES.write(..., <... $OUT ...>, ...);
+    - pattern: |
+        $LOCALVAR = <... $REQ.$QUERY.$VAR ...>;
+        ...
+        $OUT = <... $LOCALVAR ...>;
+        ...
+        $RES.send(..., <... $OUT ...>, ...);
+    - pattern: |
+        $LOCALVAR = <... $REQ.$QUERY ...>;
+        ...
+        $OUT = <... $LOCALVAR ...>;
+        ...
+        $RES.send(..., <... $OUT ...>, ...);
+  message: >-
+    Untrusted User Input in Response will result in Reflected Cross Site
+    Scripting Vulnerability.
+  languages:
+  - javascript
+  severity: ERROR
+  metadata:
+    owasp: 'A1: Injection'
+    cwe: >-
+      CWE-79: Improper Neutralization of Input During Web Page Generation
+      ('Cross-site Scripting')
+
+- id: xss_serialize_javascript
+  patterns:
+  - pattern-inside: |
+      ...
+      $S = require('serialize-javascript');
+      ...
+  - pattern-not-inside: escape(...)
+  - pattern-not-inside: encodeURI(...)
+  - pattern: |
+      $S(..., {unsafe: true});
+  message: >-
+    Untrusted user input reaching `serialize-javascript` with `unsafe`
+    attribute can cause Cross Site Scripting (XSS).
+  severity: WARNING
+  languages:
+  - javascript
+  metadata:
+    owasp: 'A1: Injection'
+    cwe: >-
+      CWE-80: Improper Neutralization of Script-Related HTML Tags in a Web
+      Page
+
+- id: handlebars_safestring
+  pattern-either:
+  - pattern: $X.SafeString(...)
+  - pattern: new Handlebars.SafeString(...)
+  message: >-
+    Handlebars SafeString will not escape the data passed through it.
+    Untrusted user input passing through SafeString can cause XSS.
+  languages:
+  - javascript
+  severity: ERROR
+  metadata:
+    owasp: 'A1: Injection'
+    cwe: >-
+      CWE-79: Improper Neutralization of Input During Web Page Generation
+      ('Cross-site Scripting')
+- id: handlebars_noescape
+  patterns:
+  - pattern: |
+      $X.compile(..., {noEscape: true}, ...)
+  message: >-
+    Disabling Escaping in Handlebars is not a secure behaviour. This can
+    introduce XSS vulnerabilties.
+  languages:
+  - javascript
+  severity: ERROR
+  metadata:
+    owasp: 'A1: Injection'
+    cwe: >-
+      CWE-80: Improper Neutralization of Script-Related HTML Tags in a Web
+      Page (Basic XSS)
+- id: squirrelly_autoescape
+  pattern: $X.autoEscaping(false)
+  message: >-
+    Handlebars SafeString will not escape the data passed through it.
+    Untrusted user input passing through SafeString can cause XSS.
+  languages:
+  - javascript
+  severity: ERROR
+  metadata:
+    owasp: 'A1: Injection'
+    cwe: >-
+      CWE-79: Improper Neutralization of Input During Web Page Generation
+      ('Cross-site Scripting')
+
+- id: xxe_expat
+  patterns:
+  - pattern-inside: |
+      require('node-expat');
+      ...
+  - pattern-either:
+    - pattern-inside: function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: $X = function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: var $X = function $FUNC($REQ, $RES, ...) {...};
+    - pattern-inside: $APP.$METHOD(..., function $FUNC($REQ, $RES, ...) {...})
+  - pattern-either:
+    - pattern-inside: |
+        $PARSER = new $EXPAT.Parser(...);
+        ...
+    - pattern-inside: |
+        $PARSER = new Parser(...);
+        ...
+  - pattern-either:
+    - pattern: $PARSER.parse(<... $REQ.$QUERY.$FOO ...>,...)
+    - pattern: $PARSER.parse(<... $REQ.$BODY ...>,...)
+    - pattern: |
+        $INPUT = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        $PARSER.parse(<... $INPUT ...>,...);
+    - pattern: |
+        $INPUT = <... $REQ.$BODY ...>;
+        ...
+        $PARSER.parse(<... $INPUT ...>,...);
+    - pattern: $PARSER.write(<... $REQ.$QUERY.$FOO ...>,...)
+    - pattern: $PARSER.write(<... $REQ.$BODY ...>,...)
+    - pattern: |
+        $INPUT = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        $PARSER.write(<... $INPUT ...>,...);
+    - pattern: |-
+        $INPUT = <... $REQ.$BODY ...>;
+        ...
+        $PARSER.write(<... $INPUT ...>,...);
+  message: >-
+    Make sure that unverified user data can not reach the XML Parser, as it
+    can result in XML External or Internal Entity (XXE) Processing
+    vulnerabilities.
+  metadata:
+    owasp: 'A4: XML External Entities (XXE)'
+    cwe: 'CWE-611: Improper Restriction of XML External Entity Reference'
+  severity: ERROR
+  languages:
+  - javascript
+
+- id: node_xxe
+  patterns:
+  - pattern-either:
+    - pattern-inside: function ($REQ, $RES, ...) {...}
+    - pattern-inside: function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: $X = function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: var $X = function $FUNC($REQ, $RES, ...) {...};
+    - pattern-inside: $APP.$METHOD(..., function $FUNC($REQ, $RES, ...) {...})
+  - pattern-either:
+    - pattern: |
+        $LIBXML.parseXmlString(..., <... $REQ.$QUERY.$VAR.$FILE ...>, ...)
+    - pattern: |
+        $LIBXML.parseXmlString(..., <... $REQ.$QUERY.$VAR ...>, ...)
+    - pattern: |
+        $LIBXML.parseXmlString(..., <... $REQ.$QUERY ...>, ...)
+    - pattern: >
+        $FOO = <... $REQ.$QUERY.$VAR.$FILE ...>; ...
+        $LIBXML.parseXmlString(..., <... $FOO ...>, ...);
+    - pattern: >
+        $FOO = <... $REQ.$QUERY.$VAR ...>; ... $LIBXML.parseXmlString(...,
+        <... $FOO ...>, ...);
+    - pattern: >
+        $FOO = <... $REQ.$QUERY ...>; ... $LIBXML.parseXmlString(..., <...
+        $FOO ...>, ...);
+    - pattern: |
+        $LIBXML.parseXml(..., <... $REQ.$QUERY.$VAR.$FILE ...>, ...)
+    - pattern: |
+        $LIBXML.parseXml(..., <... $REQ.$QUERY.$VAR ...>, ...)
+    - pattern: |
+        $LIBXML.parseXml(..., <... $REQ.$QUERY ...>, ...)
+    - pattern: >
+        $FOO = <... $REQ.$QUERY.$VAR.$FILE ...>; ... $LIBXML.parseXml(...,
+        <... $FOO ...>, ...);
+    - pattern: >
+        $FOO = <... $REQ.$QUERY.$VAR ...>; ... $LIBXML.parseXml(..., <...
+        $FOO ...>, ...);
+    - pattern: |
+        $FOO = <... $REQ.$QUERY ...>;
+        ...
+        $LIBXML.parseXml(..., <... $FOO ...>, ...);
+    - pattern: |
+        $PARSER = new libxmljs.SaxParser();
+        ...
+        $PARSER.parseString(..., <... $REQ.$QUERY ...>, ...);
+    - pattern: |
+        $PARSER = new libxmljs.SaxParser();
+        ...
+        $PARSER.parseString(..., <... $REQ.$QUERY.$BAR ...>, ...);
+    - pattern: |
+        $PARSER = new libxmljs.SaxParser();
+        ...
+        $PARSER.parseString(..., <... $REQ.$QUERY.$BAR.$FILE ...>, ...);
+    - pattern: |
+        $PARSER = new libxmljs.SaxPushParser();
+        ...
+        $PARSER.push(..., <... $REQ.$QUERY ...>, ...);
+    - pattern: |
+        $PARSER = new libxmljs.SaxPushParser();
+        ...
+        $PARSER.push(..., <... $REQ.$QUERY.$FOO ...> , ...);
+    - pattern: |
+        $PARSER = new libxmljs.SaxPushParser();
+        ...
+        $PARSER.push(..., <... $REQ.$QUERY.$FOO.$FILE ...> , ...);
+    - pattern: |
+        $PARSER = new libxmljs.SaxParser();
+        ...
+        $FOO = <... $REQ.$QUERY ...>;
+        ...
+        $PARSER.parseString(..., <... $FOO ...>, ...);
+    - pattern: |
+        $PARSER = new libxmljs.SaxParser();
+        ...
+        $FOO = <... $REQ.$QUERY.$BAR ...>;
+        ...
+        $PARSER.parseString(..., <... $FOO ...>, ...);
+    - pattern: |
+        $PARSER = new libxmljs.SaxParser();
+        ...
+        $FOO = <... $REQ.$QUERY.$BAR.$FILE ...>;
+        ...
+        $PARSER.parseString(..., <... $FOO ...>, ...);
+    - pattern: |
+        $PARSER = new libxmljs.SaxPushParser();
+        ...
+        $FOO = <... $REQ.$QUERY ...>;
+        ...
+        $PARSER.push(..., <... $FOO ...>, ...);
+    - pattern: |
+        $PARSER = new libxmljs.SaxPushParser();
+        ...
+        $FOO = <... $REQ.$QUERY.$BAR ...>;
+        ...
+        $PARSER.push(..., <... $FOO ...> , ...);
+    - pattern: |
+        $PARSER = new libxmljs.SaxPushParser();
+        ...
+        $FOO = <... $REQ.$QUERY.$BAR.$FILE ...>;
+        ...
+        $PARSER.push(..., <... $FOO ...> , ...);
+  message: >-
+    User controlled data in XML parsers can result in XML External or Internal
+    Entity (XXE) Processing vulnerabilities
+  languages:
+  - javascript
+  severity: ERROR
+  metadata:
+    owasp: 'A4: XML External Entities (XXE)'
+    cwe: 'CWE-611: Improper Restriction of XML External Entity Reference'
+
+- id: xxe_sax
+  pattern-either:
+  - pattern: |
+      require('sax');
+      ...
+      $PARSER.ondoctype = ...;
+  - pattern: |-
+      require('sax');
+      ...
+      $PARSER.on('doctype',...);
+  severity: WARNING
+  languages:
+  - javascript
+  message: >-
+    Use of 'ondoctype' in 'sax' library detected. By default, 'sax'
+    won't do anything with custom DTD entity definitions. If you're
+    implementing a custom DTD entity definition, be sure not to introduce
+    XML External Entity (XXE) vulnerabilities, or be absolutely sure that
+    external entities received from a trusted source while processing XML.
+  metadata:
+    owasp: 'A4: XML External Entities (XXE)'
+    cwe: 'CWE-611: Improper Restriction of XML External Entity Reference'
+
+- id: xxe_xml2json
+  patterns:
+  - pattern-inside: |
+      require('xml2json');
+      ...
+  - pattern-either:
+    - pattern-inside: function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: $X = function $FUNC($REQ, $RES, ...) {...}
+    - pattern-inside: var $X = function $FUNC($REQ, $RES, ...) {...};
+    - pattern-inside: $APP.$METHOD(..., function $FUNC($REQ, $RES, ...) {...})
+  - pattern-either:
+    - pattern: $EXPAT.toJson(<... $REQ.$QUERY.$FOO ...>,...)
+    - pattern: $EXPAT.toJson(<... $REQ.$BODY ...>,...)
+    - pattern: |
+        $INPUT = <... $REQ.$QUERY.$FOO ...>;
+        ...
+        $EXPAT.toJson(<... $INPUT ...>,...);
+    - pattern: |
+        $INPUT = <... $REQ.$BODY ...>;
+        ...
+        $EXPAT.toJson(<... $INPUT ...>,...);
+  message: >-
+    Make sure that unverified user data can not reach the XML Parser, as it
+    can result in XML External or Internal Entity (XXE) Processing
+    vulnerabilities.
+  metadata:
+    owasp: 'A4: XML External Entities (XXE)'
+    cwe: 'CWE-611: Improper Restriction of XML External Entity Reference'
+  severity: ERROR
+  languages:
+  - javascript
