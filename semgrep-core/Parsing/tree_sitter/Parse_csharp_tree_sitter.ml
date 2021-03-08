@@ -1616,6 +1616,7 @@ and statement (env : env) (x : CST.statement) =
        let v1 = List.map (modifier env) v1 in
        let v2 = return_type env v2 in
        let v3 = identifier env v3 (* identifier *) in
+       let _, tok = v3 in
        let v4 =
          (match v4 with
           | Some x -> type_parameter_list env x
@@ -1626,7 +1627,20 @@ and statement (env : env) (x : CST.statement) =
          List.map (type_parameter_constraints_clause env) v6
        in
        let v7 = function_body env v7 in
-       todo env (v1, v2, v3, v4, v5, v6, v7)
+       let tparams = type_parameters_with_constraints v4 v6 in
+       let idinfo = empty_id_info () in
+       let ent = {
+         name = EN (Id (v3, idinfo));
+         attrs = v1;
+         tparams;
+       } in
+       let def = AST.FuncDef {
+         fkind = (AST.Method, tok);
+         fparams = v5;
+         frettype = Some v2;
+         fbody = v7;
+       } in
+       AST.DefStmt (ent, def) |> AST.s
    | `Lock_stmt (v1, v2, v3, v4, v5) ->
        let v1 = token env v1 (* "lock" *) in
        let v2 = token env v2 (* "(" *) in
