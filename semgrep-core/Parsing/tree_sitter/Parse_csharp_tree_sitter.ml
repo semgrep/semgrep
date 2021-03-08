@@ -223,6 +223,20 @@ let linq_to_expr (from : linq_query_part) (body : linq_query_part list) =
   | From (_, (_type, id), collection) -> linq_remainder_to_expr body collection [id]
   | _ -> raise Impossible
 
+let new_index_from_end tok expr =
+  let index = TyN (
+    IdQualified (
+      (
+        ("Index", fake "Index"),
+        {name_qualifier = Some (
+           QDots [("System", fake "System")]);
+         name_typeargs = None}
+      ), empty_id_info ()
+    )
+  ) in
+  Call (IdSpecial (New, tok), fake_bracket [ArgType index; Arg expr; Arg (L (Bool (true, fake "true")))])
+
+
 module List = struct
   include List
   (* not available in 4.09 *)
@@ -764,7 +778,7 @@ and prefix_unary_expression (env : env) (x : CST.prefix_unary_expression) =
    | `HAT_exp (v1, v2) ->
        let v1 = token env v1 (* "^" *) in
        let v2 = expression env v2 in
-       todo env (v1, v2)
+       new_index_from_end v1 v2
    | `TILDE_exp (v1, v2) ->
        let v1 = token env v1 (* "~" *) in
        let v2 = expression env v2 in
@@ -1244,18 +1258,19 @@ and expression (env : env) (x : CST.expression) : AST.expr =
        let v2 = query_body env v2 in
        linq_to_expr v1 v2
    | `Range_exp (v1, v2, v3) ->
+       let fake_zero = L (Int (Some 0, fake "0")) in
        let v1 =
          (match v1 with
           | Some x -> expression env x
-          | None -> todo env ())
+          | None -> fake_zero)
        in
        let v2 = token env v2 (* ".." *) in
        let v3 =
          (match v3 with
           | Some x -> expression env x
-          | None -> todo env ())
+          | None -> new_index_from_end v2 fake_zero)
        in
-       todo env (v1, v2, v3)
+       Call (IdSpecial (Op Range, v2), fake_bracket [Arg v1; Arg v3])
    | `Ref_exp (v1, v2) ->
        let v1 = token env v1 (* "ref" *) in
        let v2 = expression env v2 in
