@@ -100,7 +100,7 @@ let test_rules xs =
     E.g_errors := [];
     let matches, errors, match_time =
       try
-        Semgrep.check false (fun _ _ -> ()) rules
+        Semgrep.check false (fun _ _ _ -> ()) rules
           (target, xlang, lazy_ast_and_errors)
       with exn ->
         failwith (spf "exn on %s (exn = %s)" file (Common.exn_to_s exn))
