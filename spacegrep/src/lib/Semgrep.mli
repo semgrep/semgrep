@@ -7,4 +7,6 @@
    (See Semgrep.atd)
 *)
 val print_semgrep_json :
-  (Src_file.t * (Match.pattern_id * Match.match_ list) list) list -> unit
+  with_time:bool ->
+  (Src_file.t * (Match.pattern_id * Match.match_ list * float) list) list ->
+  unit
