@@ -228,9 +228,6 @@ def _evaluate_single_expression(
     if expression.operator == OPERATORS.AND:
         # remove all ranges that don't equal the ranges for this pattern
         output_ranges = ranges_left.intersection(ranges_for_pattern)
-    elif expression.operator == OPERATORS.AND_NOT:
-        # remove all ranges that DO equal the ranges for this pattern
-        output_ranges = ranges_left.difference(ranges_for_pattern)
     elif expression.operator == OPERATORS.AND_INSIDE:
         # remove all ranges (not enclosed by) or (not equal to) the inside ranges
         output_ranges = {

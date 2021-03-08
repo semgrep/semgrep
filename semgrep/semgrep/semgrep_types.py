@@ -30,7 +30,6 @@ GENERIC_LANGUAGE = Language("generic")
 
 class OPERATORS:
     AND_ALL: Operator = Operator("and_all")
-    AND_NOT: Operator = Operator("and_not")
     AND: Operator = Operator("and")
     AND_EITHER: Operator = Operator("and_either")
     AND_INSIDE: Operator = Operator("and_inside")
@@ -49,9 +48,8 @@ OPERATORS_WITH_CHILDREN = [OPERATORS.AND_ALL, OPERATORS.AND_EITHER]
 
 OPERATOR_PATTERN_NAMES_MAP = {
     OPERATORS.AND_INSIDE: ["pattern-inside"],
-    OPERATORS.AND_NOT_INSIDE: ["pattern-not-inside"],
+    OPERATORS.AND_NOT_INSIDE: ["pattern-not-inside", "pattern-not"],
     OPERATORS.AND_EITHER: ["pattern-either"],
-    OPERATORS.AND_NOT: ["pattern-not"],
     OPERATORS.AND: ["pattern"],
     OPERATORS.AND_ALL: ["patterns"],
     OPERATORS.WHERE_PYTHON: ["pattern-where-python"],
