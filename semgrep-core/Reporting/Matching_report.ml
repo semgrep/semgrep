@@ -66,7 +66,7 @@ let rec join_with_space_if_needed xs =
 (* Entry point *)
 (*****************************************************************************)
 (*s: function [[Matching_report.print_match]] *)
-let print_match ?(format = Normal) ii =
+let print_match ?(format = Normal) ?(str="") ii =
   try
     let (mini, maxi) = PI.min_max_ii_by_pos ii in
     let (file, line) =
@@ -77,6 +77,7 @@ let print_match ?(format = Normal) ii =
 
     (match format with
      | Normal ->
+         let prefix = if str = "" then prefix else prefix ^ " " ^ str in
          pr prefix;
          (* todo? some context too ? *)
          lines |> List.map (fun i -> arr.(i)) |> List.iter (fun s -> pr (" " ^ s))

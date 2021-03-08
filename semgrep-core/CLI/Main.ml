@@ -256,12 +256,12 @@ let _matching_tokens = ref []
 (*e: constant [[Main_semgrep_core._matching_tokens]] *)
 
 (*s: function [[Main_semgrep_core.print_match]] *)
-let print_match mvars mvar_binding ii_of_any tokens_matched_code =
+let print_match ?str mvars mvar_binding ii_of_any tokens_matched_code =
   (* there are a few fake tokens in the generic ASTs now (e.g.,
    * for DotAccess generated outside the grammar) *)
   let toks = tokens_matched_code |> List.filter PI.is_origintok in
   (if mvars = []
-   then Matching_report.print_match ~format:!match_format toks
+   then Matching_report.print_match ?str ~format:!match_format toks
    (*s: [[Main_semgrep_core.print_match()]] when non empty [[mvars]] *)
    else begin
      (* similar to the code of Lib_matcher.print_match, maybe could
@@ -879,10 +879,10 @@ let semgrep_with_real_rules ~with_opt_cache ~report_time rules files =
              | R.LNone | R.LGeneric -> true
            )
          in
-         let hook = fun env matched_tokens ->
+         let hook = fun str env matched_tokens ->
            if !output_format = Text then begin
              let xs = Lazy.force matched_tokens in
-             print_match !mvars env Metavariable.ii_of_mval xs
+             print_match ~str !mvars env Metavariable.ii_of_mval xs
            end
          in
          let xlang = R.L (lang, []) in

@@ -14,7 +14,8 @@ type match_format =
   (*e: type [[Matching_report.match_format]] *)
 
 (*s: signature [[Matching_report.print_match]] *)
-val print_match: ?format:match_format -> Parse_info.t list -> unit
+val print_match:
+  ?format:match_format -> ?str:string -> Parse_info.t list -> unit
 (*e: signature [[Matching_report.print_match]] *)
 
 (*s: signature [[Matching_report.join_with_space_if_needed]] *)

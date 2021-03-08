@@ -480,15 +480,6 @@ let rec (evaluate_formula: env -> R.formula -> range_with_mvars list) =
 (* Main entry point *)
 (*****************************************************************************)
 
-(* Same as Common2.unzip or List.split but with triples. Tail-recursive.
-   TODO: Move to Common2 or so other util library? *)
-let unzip3 l =
-  let rec unzip aa bb cc = function
-    | (a, b, c) :: l -> unzip (a :: aa) (b :: bb) (c :: cc) l
-    | [] -> List.rev aa, List.rev bb, List.rev cc
-  in
-  unzip [] [] [] l
-
 (* 'with_caching' is unlabeled because ppx_profiling doesn't support labeled
    arguments *)
 let check with_caching hook rules (file, xlang, lazy_ast_and_errors) =
@@ -535,17 +526,17 @@ let check with_caching hook rules (file, xlang, lazy_ast_and_errors) =
       logger#info "found %d final ranges" (List.length final_ranges);
 
       (final_ranges |> List.map (range_to_match_result)
-       |> (fun v ->
-         v |> List.iter (fun (m : Pattern_match.t) -> hook m.env m.tokens);
-         v),
+       |> before_return (fun v -> v |> List.iter (fun (m : Pattern_match.t) ->
+         let str = spf "with rule %s" r.R.id in
+         hook str m.env m.tokens
+       )),
        errors,
        match_time)
     end
   )
-  |> unzip3
+  |> Common2.unzip3
   |> (fun (xxs, yys, match_times) ->
-    let match_time = List.fold_left (+.) 0. match_times in
-    (List.flatten xxs, List.flatten yys, match_time)
+    (List.flatten xxs, List.flatten yys, Common2.sum_float  match_times)
   )
 [@@profiling]
 (*e: semgrep/engine/Semgrep.ml *)
