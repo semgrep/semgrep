@@ -135,7 +135,7 @@ definitions:
     type: object
     properties:
       pattern-not:
-        title: (deprecated, use pattern-not-inside) Do not return finding where Semgrep pattern matches exactly
+        title: Do not return finding where Semgrep pattern matches exactly
         type: string
     required:
     - pattern-not
