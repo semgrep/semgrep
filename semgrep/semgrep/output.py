@@ -262,6 +262,26 @@ def build_emacs_output(rule_matches: List[RuleMatch], rules: FrozenSet[Rule]) ->
     return "\n".join(list(iter_emacs_output(rule_matches, rules)))
 
 
+def build_vim_output(rule_matches: List[RuleMatch], rules: FrozenSet[Rule]) -> str:
+    severity = {
+        "INFO": "I",
+        "WARNING": "W",
+        "ERROR": "E",
+    }
+
+    def _get_parts(rule_match: RuleMatch) -> List[str]:
+        return [
+            str(rule_match.path),
+            str(rule_match.start["line"]),
+            str(rule_match.start["col"]),
+            severity[rule_match.severity],
+            rule_match.id,
+            rule_match.message,
+        ]
+
+    return "\n".join(":".join(_get_parts(rm)) for rm in rule_matches)
+
+
 class OutputSettings(NamedTuple):
     output_format: OutputFormat
     output_destination: Optional[str]
@@ -508,6 +528,8 @@ class OutputHandler:
             return build_sarif_output(self.rule_matches, self.rules)
         elif output_format == OutputFormat.EMACS:
             return build_emacs_output(self.rule_matches, self.rules)
+        elif output_format == OutputFormat.VIM:
+            return build_vim_output(self.rule_matches, self.rules)
         elif output_format == OutputFormat.TEXT:
             return "\n".join(
                 list(
