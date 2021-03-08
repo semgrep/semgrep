@@ -8,6 +8,7 @@ type match_results = {
   matches: match_ list;
   errors: error list;
   stats: stats;
+  ?time: time option;
 }
 
 type stats = {
@@ -76,3 +77,14 @@ type unique_id_type = [
 (*  | ID <json name="id"> *) (* variant not supported at the moment *)
   | AST
 ]
+
+type time = {
+  targets: target_time list;
+}
+
+type target_time = {
+  path: string;
+
+  (* match time for all rules *)
+  match_time: float;
+}

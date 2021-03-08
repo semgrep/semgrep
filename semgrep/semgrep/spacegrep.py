@@ -24,11 +24,31 @@ from semgrep.rule_lang import Position
 from semgrep.util import sub_run
 
 
+def _extract_matching_time(json: Dict[str, Any]) -> float:
+    """Extract the matching time from the 'time' field of the spacegrep output.
+
+    It is expected to have run a single pattern on a single target.
+    """
+    if "time" in json:
+        res = json["time"]["targets"][0]["match_time"]
+        if isinstance(res, float) or isinstance(res, int):
+            return res
+        else:
+            return 0.0
+    else:
+        return 0.0
+
+
 def run_spacegrep(
-    rule_id: str, patterns: List[Pattern], targets: List[Path], timeout: int
+    rule_id: str,
+    patterns: List[Pattern],
+    targets: List[Path],
+    timeout: int,
+    report_time: bool,
 ) -> dict:
     matches: List[dict] = []
     errors: List[dict] = []
+    targets_time: Dict[str, float] = {}
     for pattern in patterns:
         if not isinstance(pattern._pattern, str):
             raise NotImplementedError(
@@ -46,6 +66,9 @@ def run_spacegrep(
                 "--timeout",
                 str(timeout),
             ]
+            if report_time:
+                cmd += ["--time"]
+
             try:
                 p = sub_run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 # exit code 3 indicates a timeout. See 'spacegrep --help'.
@@ -73,10 +96,20 @@ def run_spacegrep(
                     )
                     # dedent lines
                     for match in output_json["matches"]:
-                        match["extra"]["lines"] = dedent('\n'.join(filter(None, match.get("extra", {}).get("lines", [])))).split('\n')
+                        match["extra"]["lines"] = dedent(
+                            "\n".join(
+                                filter(None, match.get("extra", {}).get("lines", []))
+                            )
+                        ).split("\n")
 
                     matches.extend(output_json["matches"])
                     errors.extend(output_json["errors"])
+                    # aggregate the match times obtained for the different patterns of the rule
+                    path_s = str(target)
+                    targets_time[path_s] = targets_time.get(
+                        path_s, 0.0
+                    ) + _extract_matching_time(output_json)
+
             except subprocess.CalledProcessError as e:
                 raw_error = p.stderr
                 spacegrep_error_text = raw_error.decode("utf-8", errors="replace")
@@ -92,9 +125,16 @@ def run_spacegrep(
                     f"Invalid JSON output was received from spacegrep: {e}"
                 )
 
+    time = {
+        "targets": [
+            {"path": str(path), "match_time": targets_time.get(str(path), 0.0)}
+            for path in targets
+        ]
+    }
     return {
         "matches": matches,
         "errors": errors,
+        "time": time,
     }
 
 

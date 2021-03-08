@@ -108,7 +108,7 @@ def rule_match_nosem(rule_match: RuleMatch, strict: bool) -> bool:
     # Strip quotes to allow for use of nosem as an HTML attribute inside tags.
     # HTML comments inside tags are not allowed by the spec.
     pattern_ids = {
-        pattern_id.strip().strip("\"\'")
+        pattern_id.strip().strip("\"'")
         for pattern_id in COMMA_SEPARATED_LIST_RE.split(ids_str)
         if pattern_id.strip()
     }
@@ -150,6 +150,7 @@ def invoke_semgrep(config: Path, targets: List[Path], **kwargs: Any) -> Any:
             verbose_errors=False,
             strict=False,
             json_stats=False,
+            json_time=False,
             output_per_finding_max_lines_limit=None,
         ),
         stdout=io_capture,
@@ -187,6 +188,7 @@ def main(
     timeout_threshold: int = 0,
     skip_unknown_extensions: bool = False,
     severity: Optional[List[str]] = None,
+    report_time: bool = False,
 ) -> None:
     if include is None:
         include = []
@@ -258,12 +260,14 @@ The two most popular are:
         semgrep_errors,
         all_targets,
         profiler,
+        match_time_matrix,
     ) = CoreRunner(
         allow_exec=dangerously_allow_arbitrary_code_execution_from_rules,
         jobs=jobs,
         timeout=timeout,
         max_memory=max_memory,
         timeout_threshold=timeout_threshold,
+        report_time=report_time,
     ).invoke_semgrep(
         target_manager, filtered_rules
     )
@@ -290,7 +294,13 @@ The two most popular are:
     stats_line = f"ran {len(filtered_rules)} rules on {len(all_targets)} files: {num_findings} findings"
 
     output_handler.handle_semgrep_core_output(
-        rule_matches_by_rule, debug_steps_by_rule, stats_line, all_targets, profiler
+        rule_matches_by_rule,
+        debug_steps_by_rule,
+        stats_line,
+        all_targets,
+        profiler,
+        filtered_rules,
+        match_time_matrix,
     )
 
     if autofix:

@@ -98,13 +98,18 @@ let test_rules xs =
     )
     in
     E.g_errors := [];
-    let matches, errors =
+    let matches, errors, match_time =
       try
         Semgrep.check false (fun _ _ -> ()) rules
           (target, xlang, lazy_ast_and_errors)
       with exn ->
         failwith (spf "exn on %s (exn = %s)" file (Common.exn_to_s exn))
     in
+    if not (match_time >= 0.) then
+      (* match_time could be 0.0 if the rule contains no pattern or if the
+         rules are skipped. Otherwise it's positive. *)
+      failwith (spf "invalid value for match time: %g" match_time);
+
     matches |> List.iter JSON_report.match_to_error;
     if not (errors = [])
     then failwith (spf "parsing error on %s" file);

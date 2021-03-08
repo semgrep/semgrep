@@ -15,6 +15,7 @@ from typing import List
 from typing import NamedTuple
 from typing import Optional
 from typing import Set
+from typing import Tuple
 
 import colorama
 from junit_xml import TestSuite
@@ -172,11 +173,51 @@ def build_normal_output(
             yield f"{BLUE_COLOR}autofix:{RESET_COLOR} s/{fix_regex.get('regex')}/{fix_regex.get('replacement')}/{fix_regex.get('count', 'g')}"
 
 
+def _build_time_target_json(
+    rules: List[Rule],
+    target: Path,
+    match_time_matrix: Dict[Tuple[str, str], float],
+) -> Dict[str, Any]:
+    target_json: Dict[str, Any] = {}
+    path_str = str(target)
+    target_json["path"] = path_str
+    target_json["match_times"] = [
+        match_time_matrix.get((rule.id, path_str), 0.0) for rule in rules
+    ]
+    return target_json
+
+
+def _build_time_json(
+    rules: List[Rule],
+    targets: Set[Path],
+    match_time_matrix: Dict[Tuple[str, str], float],  # (rule, target) -> duration
+) -> Dict[str, Any]:
+    """Convert match times to a json-ready format.
+
+    Match times are obtained for each pair (rule, target) by running
+    semgrep-core. They exclude parsing time. One of the applications is
+    to estimate the performance of a rule, assuming the cost of parsing
+    the target file will become negligible once we run many rules on the
+    same AST.
+    """
+    time = {}
+    # this list of all rules names is given here so they don't have to be
+    # repeated for each target in the 'targets' field, saving space.
+    time["rules"] = [{"id": rule.id} for rule in rules]
+    time["targets"] = [
+        _build_time_target_json(rules, target, match_time_matrix) for target in targets
+    ]
+    return time
+
+
 def build_output_json(
     rule_matches: List[RuleMatch],
     semgrep_structured_errors: List[SemgrepError],
     all_targets: Set[Path],
     show_json_stats: bool,
+    report_time: bool,
+    filtered_rules: List[Rule],
+    match_time_matrix: Dict[Tuple[str, str], float],
     profiler: Optional[ProfileManager] = None,
     debug_steps_by_rule: Optional[Dict[Rule, List[Dict[str, Any]]]] = None,
 ) -> str:
@@ -193,6 +234,10 @@ def build_output_json(
             "loc": make_loc_stats(all_targets),
             "profiler": profiler.dump_stats() if profiler else None,
         }
+    if report_time:
+        output_json["time"] = _build_time_json(
+            filtered_rules, all_targets, match_time_matrix
+        )
     return json.dumps(output_json)
 
 
@@ -290,6 +335,7 @@ class OutputSettings(NamedTuple):
     strict: bool
     output_per_finding_max_lines_limit: Optional[int]
     json_stats: bool
+    json_time: bool
     timeout_threshold: int = 0
 
 
@@ -340,6 +386,10 @@ class OutputHandler:
         self.semgrep_structured_errors: List[SemgrepError] = []
         self.error_set: Set[SemgrepError] = set()
         self.has_output = False
+        self.filtered_rules: List[Rule] = []
+        self.match_time_matrix: Dict[
+            Tuple[str, str], float
+        ] = {}  # (rule, target) -> duration
 
         self.final_error: Optional[Exception] = None
 
@@ -399,6 +449,8 @@ class OutputHandler:
         stats_line: str,
         all_targets: Set[Path],
         profiler: ProfileManager,
+        filtered_rules: List[Rule],
+        match_time_matrix: Dict[Tuple[str, str], float],  # (rule, target) -> duration
     ) -> None:
         self.has_output = True
         self.rules = self.rules.union(rule_matches_by_rule.keys())
@@ -407,11 +459,12 @@ class OutputHandler:
             for matches_of_one_rule in rule_matches_by_rule.values()
             for match in matches_of_one_rule
         ]
-
         self.profiler = profiler
         self.all_targets = all_targets
         self.stats_line = stats_line
         self.debug_steps_by_rule.update(debug_steps_by_rule)
+        self.filtered_rules = filtered_rules
+        self.match_time_matrix = match_time_matrix
 
     def handle_unhandled_exception(self, ex: Exception) -> None:
         """
@@ -519,6 +572,9 @@ class OutputHandler:
                 self.semgrep_structured_errors,
                 self.all_targets,
                 self.settings.json_stats,
+                self.settings.json_time,
+                self.filtered_rules,
+                self.match_time_matrix,
                 self.profiler,
                 debug_steps,
             )
