@@ -1003,13 +1003,13 @@ and checked_expression (env : env) (x : CST.checked_expression) =
        let v2 = token env v2 (* "(" *) in
        let v3 = expression env v3 in
        let v4 = token env v4 (* ")" *) in
-       todo env (v1, v2, v3, v4)
+       OtherExpr (OE_Checked, [E v3])
    | `Unch_LPAR_exp_RPAR (v1, v2, v3, v4) ->
        let v1 = token env v1 (* "unchecked" *) in
        let v2 = token env v2 (* "(" *) in
        let v3 = expression env v3 in
        let v4 = token env v4 (* ")" *) in
-       todo env (v1, v2, v3, v4)
+       OtherExpr (OE_Unchecked, [E v3])
   )
 
 and expression (env : env) (x : CST.expression) : AST.expr =
@@ -1463,12 +1463,12 @@ and statement (env : env) (x : CST.statement) =
    | `Chec_stmt (v1, v2) ->
        let v1 =
          (match v1 with
-          | `Chec tok -> token env tok (* "checked" *)
-          | `Unch tok -> token env tok (* "unchecked" *)
+          | `Chec tok -> OSWS_CheckedBlock (* "checked" *)
+          | `Unch tok -> OSWS_UncheckedBlock (* "unchecked" *)
          )
        in
        let v2 = block env v2 in
-       todo env (v1, v2)
+       OtherStmtWithStmt (v1, None, v2) |> AST.s
    | `Cont_stmt (v1, v2) ->
        let v1 = token env v1 (* "continue" *) in
        let v2 = token env v2 (* ";" *) in

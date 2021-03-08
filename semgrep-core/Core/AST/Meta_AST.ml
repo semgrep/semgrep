@@ -443,6 +443,8 @@ and vof_other_expr_operator =
   | OE_RecordFieldName -> OCaml.VSum ("OE_RecordFieldName", [])
   | OE_RecordWith -> OCaml.VSum ("OE_RecordWith", [])
   | OE_MacroInvocation -> OCaml.VSum ("OE_MacroInvocation", [])
+  | OE_Checked -> OCaml.VSum ("OE_Checked", [])
+  | OE_Unchecked -> OCaml.VSum ("OE_Unchecked", [])
 
 and vof_type_ =
   function
@@ -694,6 +696,8 @@ and vof_other_stmt_with_stmt_operator = function
   | OSWS_ConstBlock -> OCaml.VSum ("OSWS_ConstBlock", [])
   | OSWS_ForeignBlock -> OCaml.VSum ("OSWS_ForeignBlock", [])
   | OSWS_ImplBlock -> OCaml.VSum ("OSWS_ImplBlock", [])
+  | OSWS_CheckedBlock -> OCaml.VSum ("OSWS_CheckedBlock", [])
+  | OSWS_UncheckedBlock -> OCaml.VSum ("OSWS_UncheckedBlock", [])
 
 
 and vof_label_ident =
