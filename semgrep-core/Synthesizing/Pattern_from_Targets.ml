@@ -307,7 +307,7 @@ and get_one_step_replacements (env, pattern, holes) =
        * For example, if f turns foo(...), a -> foo(a), and g turns (...), a -> (a, ...), we want a function *
        * that turns foo(...), a -> foo(a, ...) *)
       let incorporate_holes holes =
-        List.map (fun (removed_target, g) -> (removed_target, fun (h : any -> any) (any : any) : any -> f (g h) any)) holes
+        List.map (fun (removed_target, g) -> (removed_target, fun h any -> f (g h) any)) holes
       in
       (env, pattern, holes'),
       List.map
@@ -344,8 +344,9 @@ let rec generate_patterns_help (target_patterns : pattern_instrs list) =
   (*    ex: ($X, bar(foo(2), x), f) ------> [$X(...), [bar, fun x -> x(...); [foo(2), x], fun xs -> bar(xs)]] *)
   (*        (pattern, any, any -> any) list *)
   (* Flatten the list. Each node n will have a corresponding set of patterns Sn *)
-  pr2 "target patterns";
-  show_pattern_sets target_patterns;
+  if false then (* Set this for debug info *)
+    (pr2 "target patterns";
+     show_pattern_sets target_patterns);
   let pattern_children =
     List.map (fun patterns -> List.map (fun pattern -> get_one_step_replacements pattern) patterns)
       target_patterns
