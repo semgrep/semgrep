@@ -354,7 +354,7 @@ let rec generate_patterns_help (target_patterns : pattern_instrs list) =
   (* Keep only the patterns in each Sn that appear in every other OR *)
   (* the patterns that were included last time, don't have children, and have another replacement to try *)
   let included_patterns = get_included_patterns pattern_children in
-  let cont = List.fold_left (fun prev patterns -> prev && (not (List.length patterns = 0))) true included_patterns in
+  let cont = List.fold_left (fun prev patterns -> prev && (not (patterns = []))) true included_patterns in
   (* Call recursively on these patterns *)
   if cont then generate_patterns_help included_patterns else target_patterns
 
