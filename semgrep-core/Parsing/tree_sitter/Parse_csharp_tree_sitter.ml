@@ -216,7 +216,16 @@ let rec linq_remainder_to_expr (query : linq_query_part list) (base_expr : expr)
            let base_expr = call_lambda base_expr "Join" tok [enum; left_func; right_func; res_func] in
            let lambda_params = lambda_params @ [ident] in
            linq_remainder_to_expr tl base_expr lambda_params
-       | _ -> failwith "not implemented")
+       | Join (tok, (_type, ident), enum, left, right, Some(into)) ->
+           (* base_expr.GroupJoin(enum, lambda_params -> left, ident -> right, (lambda_params, into) -> (lambda_params, into))
+                 * and add into to lambda_params
+           *)
+           let left_func = create_lambda lambda_params left in
+           let right_func = create_lambda [ident] right in
+           let res_func = create_join_result_lambda lambda_params into in
+           let base_expr = call_lambda base_expr "GroupJoin" tok [enum; left_func; right_func; res_func] in
+           let lambda_params = lambda_params @ [into] in
+           linq_remainder_to_expr tl base_expr lambda_params)
 
 let linq_to_expr (from : linq_query_part) (body : linq_query_part list) =
   match from with
@@ -471,7 +480,7 @@ let rec variable_designation (env : env) (x : CST.variable_designation) =
 let join_into_clause (env : env) ((v1, v2) : CST.join_into_clause) =
   let v1 = token env v1 (* "into" *) in
   let v2 = identifier env v2 (* identifier *) in
-  todo env (v1, v2)
+  v2
 
 let identifier_or_global (env : env) (x : CST.identifier_or_global) =
   (match x with
