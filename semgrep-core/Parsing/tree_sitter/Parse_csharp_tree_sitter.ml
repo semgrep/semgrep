@@ -2679,49 +2679,56 @@ and declaration (env : env) (x : CST.declaration) : stmt =
        in
        let v5 = token env v5 (* "this" *) in
        let v6 = bracketed_parameter_list env v6 in
-       let open_br, funcs, close_br =
-         (match v7 with
-          | `Acce_list x ->
-              let open_br, accs, close_br = accessor_list env x in
-              let funcs = accs |> List.map (fun (attrs, id, fbody) ->
-                let iname, itok = id in
-                match iname with
-                | "get" -> (
-                    let ent = basic_entity ("get_Item", itok) attrs in
-                    let funcdef = FuncDef {
-                      fkind = (Method, itok);
-                      fparams = v6;
-                      frettype = Some v3;
-                      fbody;
-                    } in
-                    DefStmt (ent, funcdef) |> AST.s
-                  )
-                | "set" -> (
-                    let valparam = ParamClassic {
-                      pname = Some ("value", fake "value");
-                      ptype = Some v3;
-                      pdefault = None; pattrs = [];
-                      pinfo = empty_id_info ();
-                    } in
-                    let ent = basic_entity ("set_Item", itok) attrs in
-                    let funcdef = FuncDef {
-                      fkind = (Method, itok);
-                      fparams = v6 @ [valparam];
-                      frettype = None;
-                      fbody;
-                    } in
-                    DefStmt (ent, funcdef) |> AST.s
-                  )
-                | _ -> raise Impossible
-              ) in
-              open_br, funcs, close_br
-          | `Arrow_exp_clause_SEMI (v1, v2) ->
-              let v1 = arrow_expression_clause env v1 in
-              let v2 = token env v2 (* ";" *) in
-              todo env (v1, v2)
-         )
-       in
-       Block (open_br, funcs, close_br) |> AST.s
+       let indexer_attrs = v1 @ v2 in
+       (match v7 with
+        | `Acce_list x ->
+            let open_br, accs, close_br = accessor_list env x in
+            let funcs = accs |> List.map (fun (attrs, id, fbody) ->
+              let iname, itok = id in
+              match iname with
+              | "get" -> (
+                  let ent = basic_entity ("get_Item", itok) attrs in
+                  let funcdef = FuncDef {
+                    fkind = (Method, itok);
+                    fparams = v6;
+                    frettype = Some v3;
+                    fbody;
+                  } in
+                  DefStmt (ent, funcdef) |> AST.s
+                )
+              | "set" -> (
+                  let valparam = ParamClassic {
+                    pname = Some ("value", fake "value");
+                    ptype = Some v3;
+                    pdefault = None; pattrs = [];
+                    pinfo = empty_id_info ();
+                  } in
+                  let ent = basic_entity ("set_Item", itok) attrs in
+                  let funcdef = FuncDef {
+                    fkind = (Method, itok);
+                    fparams = v6 @ [valparam];
+                    frettype = None;
+                    fbody;
+                  } in
+                  DefStmt (ent, funcdef) |> AST.s
+                )
+              | _ -> raise Impossible
+            ) in
+            Block (open_br, funcs, close_br) |> AST.s
+        | `Arrow_exp_clause_SEMI (v1, v2) ->
+            let v1 = arrow_expression_clause env v1 in
+            let v2 = token env v2 (* ";" *) in
+            let arrow, expr = v1 in
+            let fbody = ExprStmt (expr, v2) |> AST.s in
+            let ent = basic_entity ("get_Item", arrow) indexer_attrs in
+            let funcdef = FuncDef {
+              fkind = (Arrow, arrow);
+              fparams = v6;
+              frettype = Some v3;
+              fbody;
+            } in
+            DefStmt (ent, funcdef) |> AST.s
+       )
    | `Meth_decl (v1, v2, v3, v4, v5, v6, v7, v8, v9) ->
       (*
         [Attr] static int IList<T>.MyMethod<T>(int p1) where T : Iterator { ... }
